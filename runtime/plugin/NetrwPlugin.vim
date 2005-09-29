@@ -1,19 +1,18 @@
-" netrw.vim: Handles file transfer and remote directory listing across a network
+" netrwPlugin.vim: Handles file transfer and remote directory listing across a network
 "            PLUGIN PORTION
-" Last Change:	Aug 29, 2005
+" Date:		Sep 08, 2005
 " Maintainer:	Charles E Campbell, Jr <drchipNOSPAM at campbellfamily dot biz>
-" Version:	66
 " License:	Vim License  (see vim's :help license)
 " GetLatestVimScripts: 1075 1 :AutoInstall: netrw.vim
 " Copyright:    Copyright (C) 1999-2005 Charles E. Campbell, Jr. {{{1
 "               Permission is hereby granted to use and distribute this code,
 "               with or without modifications, provided that this copyright
 "               notice is copied with it. Like anything else that's free,
-"               netrw.vim is provided *as is* and comes with no warranty
-"               of any kind, either expressed or implied. By using this
-"               plugin, you agree that in no event will the copyright
-"               holder be liable for any damages resulting from the use
-"               of this software.
+"               netrw.vim, netrwPlugin.vim, and netrwSettings.vim are provided
+"               *as is* and comes with no warranty of any kind, either
+"               expressed or implied. By using this plugin, you agree that
+"               in no event will the copyright holder be liable for any damages
+"               resulting from the use of this software.
 "
 "  But be doers of the Word, and not only hearers, deluding your own selves {{{1
 "  (James 1:22 RSV)
@@ -21,16 +20,8 @@
 
 " ---------------------------------------------------------------------
 " Load Once: {{{1
-if exists("g:loaded_netrw") || &cp
-  finish
-endif
-if v:version < 600
- echoerr "***netrw*** doesn't support Vim version ".v:version
+if exists("g:loaded_netrw")
  finish
-endif
-let g:loaded_netrw  = "v66"
-if v:version < 700
- let loaded_explorer = 1
 endif
 let s:keepcpo= &cpo
 set cpo&vim
@@ -73,7 +64,7 @@ com! -nargs=? -bar -bang   		Nexplore	call netrw#Explore(-1,0,0,<q-args>)
 com! -nargs=? -bar -bang   		Pexplore	call netrw#Explore(-2,0,0,<q-args>)
 
 " Commands: NetrwSettings {{{2
-com! -nargs=0 NetrwSettings :call NetrwSettings#NetrwSettings()
+com! -nargs=0 NetrwSettings :call netrwSettings#NetrwSettings()
 
 " ---------------------------------------------------------------------
 " LocalBrowse: {{{2
@@ -138,7 +129,7 @@ endfun
 "               example and as a fix for a Windows 95 problem: in my
 "               experience, win95's ftp always dumped four blank lines
 "               at the end of the transfer.
-if has("win95") && g:netrw_win95ftp
+if has("win95") && exists("g:netrw_win95ftp") && g:netrw_win95ftp
  fun! NetReadFixup(method, line1, line2)
 "   call Dfunc("NetReadFixup(method<".a:method."> line1=".a:line1." line2=".a:line2.")")
    if method == 3   " ftp (no <.netrc>)
@@ -149,8 +140,8 @@ if has("win95") && g:netrw_win95ftp
  endfun
 endif
 
+" ------------------------------------------------------------------------
+" Modelines And Restoration: {{{1
 let &cpo= s:keepcpo
 unlet s:keepcpo
-" ------------------------------------------------------------------------
-" Modelines: {{{1
 " vim:ts=8 fdm=marker

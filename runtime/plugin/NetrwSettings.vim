@@ -1,12 +1,12 @@
 " NetrwSettings.vim: makes netrw settings simpler
-" Last Change:	Aug 16, 2005
+" Date:		Sep 19, 2005
 " Maintainer:	Charles E Campbell, Jr <drchipNOSPAM at campbellfamily dot biz>
-" Version:		3
+" Version:	4a	NOT RELEASED
 " Copyright:    Copyright (C) 1999-2005 Charles E. Campbell, Jr. {{{1
 "               Permission is hereby granted to use and distribute this code,
 "               with or without modifications, provided that this copyright
 "               notice is copied with it. Like anything else that's free,
-"               NetrwSettings.vim is provided *as is* and comes with no
+"               netrwSettings.vim is provided *as is* and comes with no
 "               warranty of any kind, either expressed or implied. By using
 "               this plugin, you agree that in no event will the copyright
 "               holder be liable for any damages resulting from the use
@@ -16,16 +16,20 @@
 "                synagogues, preaching the gospel of the kingdom, and healing
 "                every disease and every sickness among the people.
 " Load Once: {{{1
-if exists("g:loaded_NetrwSettings") || &cp
+if exists("g:loaded_netrwSettings") || &cp
   finish
 endif
-let g:loaded_NetrwSettings  = "v3"
+let g:loaded_netrwSettings  = "v4a"
 
 " ---------------------------------------------------------------------
 " NetrwSettings: {{{1
-fun! NetrwSettings#NetrwSettings()
+fun! netrwSettings#NetrwSettings()
   " this call is here largely just to insure that netrw has been loaded
   call netrw#NetSavePosn()
+  if !exists("g:loaded_netrw")
+   echohl WarningMsg | echomsg "***sorry*** netrw needs to be loaded prior to using NetrwSettings" | echohl None
+   return
+  endif
 
   above wincmd s
   enew
