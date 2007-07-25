@@ -1,0 +1,7 @@
+{
+	PSMTabBarControl = {
+		SuperClass = NSControl;
+		Attributes = {
+		};
+	};
+}

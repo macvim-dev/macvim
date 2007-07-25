@@ -1,0 +1,301 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+    <head>
+        
+        <TITLE>PSMTabBarControl - Safari-style Tabs (Objective-C)</TITLE>
+		
+       	
+        <LINK REL="stylesheet" TYPE="text/css" HREF="frameset_styles.css">
+        
+    </head>
+    
+    <BODY bgcolor="#ffffff">
+        
+        <h1>PSMTabBarControl</h1><div class="spec_sheet_info_box"><table cellspacing="0" class="specbox">
+<tr><td scope="row"><b><span style="white-space: nowrap;">Inherits from</span></b></td><td><div style="margin-bottom:1px"><a href="file:///Developer/ADC%20Reference%20Library/documentation/Cocoa/Reference/ApplicationKit/ObjC_classic/Classes/NSControl.html#//apple_ref/occ/cl/NSControl" target="_top">NSControl</a> : <a href="file:///Developer/ADC%20Reference%20Library/documentation/Cocoa/Reference/ApplicationKit/ObjC_classic/Classes/NSView.html#//apple_ref/occ/cl/NSView" target="_top">NSView</a> : <a href="file:///Developer/ADC%20Reference%20Library/documentation/Cocoa/Reference/ApplicationKit/ObjC_classic/Classes/NSResponder.html#//apple_ref/occ/cl/NSResponder" target="_top">NSResponder</a> : <a href="file:///Developer/ADC%20Reference%20Library/documentation/Cocoa/Reference/Foundation/ObjC_classic/Classes/NSObject.html#//apple_ref/occ/cl/NSObject" target="_top">NSObject</a></div></td></tr>
+<tr><td scope="row"><b><span style="white-space: nowrap;">Conforms to</span></b></td><td><div style="margin-bottom:1px">
+<span class="content_text"><a href="file:///Developer/ADC%20Reference%20Library/documentation/Cocoa/Reference/Foundation/ObjC_classic/Protocols/NSCoding.html#//apple_ref/occ/intf/NSCoding" target="_top">NSCoding (NSResponder)</a></span><br>
+
+<span class="content_text"><a href="file:///Developer/ADC%20Reference%20Library/documentation/Cocoa/Reference/Foundation/ObjC_classic/Protocols/NSObjectProtocol.html#//apple_ref/occ/intf/NSObject" target="_top">NSObject (NSObject)</a></span><br>
+</div></td></tr>
+<tr><td scope="row"><b><span style="white-space: nowrap;">Declared in</span></b></td><td><div style="margin-bottom:1px"><span class="content_text">PSMTabBarControl.h</span><br>
+</div></td></tr>
+</table></div><br><a name="//apple_ref/doc/uid/20000092-50187" title="Class Description"></a><a name="50187" title="Class Description"></a><h2>Class Description</h2>
+
+<p class="spaceabove">PSMTabBarControl provides a user interface for the management of tabbed views that has an appearance similar to Apple's Safari web browser.<p>
+<p>Internally, PSMTabBarControl uses a custom cell class and supporting style objects to implement its user interface.</p>
+<p>Currently, this object supports "Aqua" and "Metal" tab styles to present an appearance consistent with the rest of your application.  Numerous configuration options exist to customize behavior, as outlined below.  PSMTabBarControl instances require a few specific connections with other application objects to perform properly at runtime:</p>
+<ul>
+<li><b>The control's "tabView" outlet must be connected to the desired NSTabView instance in Interface Builder, or set programmatically with the setTabView: method.</b></li>
+<li><b>The "delegate" outlet of the NSTabView being controlled must be connected to the instance of PSMTabBarControl, either programmatically or in IB.</b></li>
+<li>Optionally, you may connect the control's "partnerView" outlet to a view that will be resized to compensate when PSMTabBarControl changes size due to hide/show behavior.  If no connection is made, PSMTabBarControl will resize the window in response to hide/show messages.</li>
+</ul>
+<p>A PSMTabBarControl instance should occupy the width of the window, and should be precisely 22 pixels in height.  It should be resizable in width, but not height.  It can be placed at the top or botton of the window (or anywhere in between, if desired).</p>
+<p>Outside of configuring it, your application should have little interaction with this class.  The presented tabs will change in conjunction with changes your application makes in the NSTabView being controlled.</p>
+
+<h2>A Usage Pattern</h2>
+
+<p class="spaceabove">PSMTabBarControl becomes even more powerful if your application design matches an expected pattern: the control attempts to bind a number of tab attributes to the NSTabViewItem's identifier object if possible.  These visible attributes include a progress indicator, an icon, and an object counter.  Additionally, the control binds each tab's title to the label of the represented NSTabViewItem.<p>
+
+<p>Taking advantage of these features requires no glue code on your part, but it does require providing a particular object graph.  Here's the basics...</p>
+
+<ul><li>For each tab that is created, your application should have a model object that keeps the state of model attributes: isProcessing (a BOOL), objectCount (an int), and icon (an NSImage).  You can pick and choose any number of these to support, or none, at your option.
+<li>Your application should create an NSObjectController to control your model (the model object is the "content" of the NSObjectController instance).
+<li>When you create new tabs (via the NSTabView interface), you should set the object controller instance to be the identifier object of the newly created NSTabViewItem object.</ul>
+
+<p>The demo application included with this project illustrates a very quick way to accomplish these goals.  If this pattern is followed, PSMTabBarControl will take care of the rest.</p>
+
+
+<h2>Methods by Task</h2>
+<h3 class="tight">Setting needed connections</h3>
+<dl class="termdef">	<dt><code><a href="#addTabButton">&#8211;&#xA0;setTabView:</a></code></dt><dd><p>Specifies the instance of NSTabView to be controlled.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#tabView">&#8211;&#xA0;tabView</a></code></dt><dd><p>Returns the instance of NSTabView being controlled.</p></dd></dl>
+
+<h3 class="tight">Setting optional connections</h3>
+<dl class="termdef">	<dt><code><a href="#setPartnerView">&#8211;&#xA0;setPartnerView:</a></code></dt><dd><p>Specifies a view that will resize to compensate for control size changes in response to hide and show messages.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#partnerView">&#8211;&#xA0;partnerView</a></code></dt><dd><p>Returns the instance of a view that will resize to compensate for control size changes in response to hide and show messages.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setDelegate">&#8211;&#xA0;setDelegate:</a></code></dt><dd><p>Specifies an object that will receive delegate messages as passed through from the NSTabView instance.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#delegate">&#8211;&#xA0;delegate:</a></code></dt><dd><p>Returns the specified delegate object.</p></dd></dl>
+
+<h3 class="tight">Control configuration</h3>
+<dl class="termdef">	<dt><code><a href="#canCloseOnlyTab">&#8211;&#xA0;canCloseOnlyTab</a></code></dt><dd><p>Returns YES if the user is allowed to close a tab when it is the only tab left, NO otherwise.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setCanCloseOnlyTab">&#8211;&#xA0;setCanCloseOnlyTab:</a></code></dt><dd><p>Controls whether the receiver will present a close button for a single tab in a tab bar. </p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#styleName">&#8211;&#xA0;styleName</a></code></dt><dd><p>Returns the name of the current drawing style. "Aqua", "Metal", and "Unified" are the currently supported options.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setStyleNamed">&#8211;&#xA0;setStyleNamed:</a></code></dt><dd><p>Specifies the style in which the tabs and control are drawn.  "Aqua", "Metal", and "Unified" are the currently supported options. </p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#hideForSingleTab">&#8211;&#xA0;hideForSingleTab</a></code></dt><dd><p>Returns YES if the control will hide if there is only one tab left, NO otherwise.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setHideForSingleTab">&#8211;&#xA0;setHideForSingleTab:</a></code></dt><dd><p>Controls whether the receiver will hide when the user closes all but a single tab in a tab bar. </p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#showAddTabButton">&#8211;&#xA0;showAddTabButton</a></code></dt><dd><p>Returns YES if the control will display a small "add tab" button at the rightmost end of the tabs, NO otherwise.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setShowAddTabButton">&#8211;&#xA0;setShowAddTabButton:</a></code></dt><dd><p>Controls whether the receiver will will display a small "add tab" button at the rightmost end of the tabs. </p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#cellMinWidth">&#8211;&#xA0;cellMinWidth</a></code></dt><dd><p>Returns the minimum width (in pixels) that a tab will be allowed to occupy.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setCellMinWidth">&#8211;&#xA0;setCellMinWidth:</a></code></dt><dd><p>Specifies the maximum width (in pixels) that a tab will be allowed to occupy.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#cellMaxWidth">&#8211;&#xA0;cellMaxWidth</a></code></dt><dd><p>Returns the maximum width (in pixels) that a tab will be allowed to occupy.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setCellMaxWidth">&#8211;&#xA0;setCellMaxWidth:</a></code></dt><dd><p>Specifies the maximum width (in pixels) that a tab will be allowed to occupy.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#cellOptimumWidth">&#8211;&#xA0;cellOptimumWidth</a></code></dt><dd><p>Returns the default width (in pixels) that a tab will be allowed to occupy when tabs are drawn with uniform size.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setCellMaxWidth">&#8211;&#xA0;setCellMaxWidth:</a></code></dt><dd><p>Specifies the default width (in pixels) that a tab will be allowed to occupy when tabs are drawn with uniform size.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#sizeCellsToFit">&#8211;&#xA0;sizeCellsToFit</a></code></dt><dd><p>Returns YES if the control will make the tabs sized to fit the content of the tab, NO otherwise.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setSizeCellsToFit">&#8211;&#xA0;setSizeCellsToFit:</a></code></dt><dd><p>Controls whether the receiver will make the tabs sized to fit the content of the tab.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#allowsDragBetweenWindows">&#8211;&#xA0;allowsDragBetweenWindows</a></code></dt><dd><p>Returns YES if the control allows a user to drag a tab to another instance of this control, NO otherwise.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#setAllowsDragBetweenWindows">&#8211;&#xA0;setAllowsDragBetweenWindows:</a></code></dt><dd><p>Controls whether the receiver will allow a user to drag a tab to another instance of this control.</p></dd></dl>
+
+<h3 class="tight">Internal UI components</h3>
+<dl class="termdef">	<dt><code><a href="#addTabButton">&#8211;&#xA0;addTabButton</a></code></dt><dd><p>Returns an instance of an NSButton subclass that is used to present the "add tab" button.  If "showAddTabButton" is YES, developers must use this method to access the button and specify a target and action for the button.</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#overflowPopUpButton">&#8211;&#xA0;overflowPopUpButton</a></code></dt><dd><p>Returns an instance of an NSPopUpButton subclass that is used to present the overflow menu (which shows when there are more tabs than can fit across the control).</p></dd></dl>
+
+<dl class="termdef">	<dt><code><a href="#representedTabViewItems">&#8211;&#xA0;representedTabViewItems</a></code></dt><dd><p>Returns an array of the NSTabViewItems represented by the tabs in the control.  Useful if you want to archive the order of the tabs between runs of your program.</p></dd></dl>
+
+<h3 class="tight">Visibility</h3>
+<dl class="termdef">	<dt><code><a href="#hideTabBar">&#8211;&#xA0;hideTabBar:animate:</a></code></dt><dd><p>If desired, obejcts can tell the tab bar to hide (reduce in size to a single pixel line spanning the window) or show, and optionally whether to animate this effect or not.</p></dd></dl>
+
+<h2>Instance Methods</h2>
+
+<a name="addTabButton"></a><h3 class="tight">addTabButton</h3>
+<p class="spaceabove">Returns an instance of an NSButton subclass that is used to present the "add tab" button.  If "showAddTabButton" is YES, developers must use this method to access the button and specify a target and action for the button.</p><p class="spaceabovemethod">- (PSMRolloverButton *)addTabButton;</p>
+<h5 class="tight">Discussion</h5><p> If you have configured the control to show the add tab button, you must use this method to access the button and set the target and action for it.  Example:</p> <code>[[tabBar addTabButton] setTarget:self];<br>
+[[tabBar addTabButton] setAction:@selector(addNewTab:)];</code> </p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setShowAddTabButton">&#8211;&#xA0;setShowAddTabButton:</a></code><li><li class="availability">  <code><a href="#showAddTabButton">&#8211;&#xA0;showAddTabButton</a></code><li></ul>
+
+<a name="allowsDragBetweenWindows"></a><h3 class="tight">allowsDragBetweenWindows</h3>
+<p class="spaceabove">Returns <code>YES</code> if the control allows a user to drag a tab to another instance of this control, NO otherwise.</p><p class="spaceabovemethod">- (BOOL)allowsDragBetweenWindows</p>
+<h5 class="tight">Discussion</h5><p>The default is <code>YES</code>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setAllowsDragBetweenWindows">&#8211;&#xA0;setAllowsDragBetweenWindows:</a></code><li></ul>
+
+<a name="canCloseOnlyTab"></a><h3 class="tight">canCloseOnlyTab</h3>
+<p class="spaceabove">Returns <code>YES</code> if the receiver has been configured to allow users to close a single remaining tab.</p><p class="spaceabovemethod">- (BOOL)canCloseOnlyTab</p>
+<h5 class="tight">Discussion</h5><p>The default is <code>NO</code>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setCanCloseOnlyTab">&#8211;&#xA0;setCanCloseOnlyTab:</a></code><li></ul>
+
+<a name="cellMaxWidth"></a><h3 class="tight">cellMaxWidth</h3>
+<p class="spaceabove">Returns the maximum width (in pixels) that a tab will be allowed to occupy.</p><p class="spaceabovemethod">- (int)cellMaxWidth</p>
+<h5 class="tight">Discussion</h5><p>The cellMaxWidth value applies to both uniformly sized tabs, and tabs that are sized to fit.  No tab will be drawn wider than the specified value.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setCellMaxWidth">&#8211;&#xA0;setCellMaxWidth:</a></code><li><li class="availability">  <code><a href="#cellMinWidth">&#8211;&#xA0;cellMinWidth</a></code><li class="availability">  <code><a href="#cellOptimumWidth">&#8211;&#xA0;cellOptimumWidth</a></code><li></ul>
+
+<a name="cellMinWidth"></a><h3 class="tight">cellMinWidth</h3>
+<p class="spaceabove">Returns the minimum width (in pixels) that a tab will be allowed to occupy.</p><p class="spaceabovemethod">- (int)cellMinWidth</p>
+<h5 class="tight">Discussion</h5><p>The cellMinWidth value applies only to uniformly sized tabs.  No tab will be drawn smaller than the specified value.  Size-to-fit tabs ignore this value, and are made just small enough to fit their content.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setCellMinWidth">&#8211;&#xA0;setCellMinWidth:</a></code><li><li class="availability">  <code><a href="#cellMaxWidth">&#8211;&#xA0;cellMaxWidth</a></code><li class="availability">  <code><a href="#cellOptimumWidth">&#8211;&#xA0;cellOptimumWidth</a></code><li></ul>
+
+<a name="cellOptimumWidth"></a><h3 class="tight">cellOptimumWidth</h3>
+<p class="spaceabove">Returns the width (in pixels) that a tab will be made to occupy if the tabs are uniformly sized.</p><p class="spaceabovemethod">- (int)cellOptimumWidth</p>
+<h5 class="tight">Discussion</h5><p>The cellOptimumWidth value applies only to uniformly sized tabs.  All tabs will be drawn at the specified value.  Size-to-fit tabs ignore this value, and are made just small enough to fit their content.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setCellOptimumWidth">&#8211;&#xA0;setCellOptimumWidth:</a></code><li><li class="availability">  <code><a href="#cellMaxWidth">&#8211;&#xA0;cellMaxWidth</a></code><li class="availability">  <code><a href="#cellMinWidth">&#8211;&#xA0;cellMinWidth</a></code><li></ul>
+
+<a name="delegate"></a><h3 class="tight">delegate</h3>
+<p class="spaceabove">Returns the object that will be sent passed-through NSTabView delegate messages.</p><p class="spaceabovemethod">- (id)delegate</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setDelegate">&#8211;&#xA0;setDelegate:</a></code><li></ul>
+
+<a name="hideForSingleTab"></a><h3 class="tight">hideForSingleTab</h3>
+<p class="spaceabove">Returns <code>YES</code> if the receiver has been configured to hide if there is a single remaining tab.</p><p class="spaceabovemethod">- (BOOL)hideForSingleTab</p>
+<h5 class="tight">Discussion</h5><p>The default is <code>NO</code>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setHideForSingleTab">&#8211;&#xA0;setHideForSingleTab:</a></code><li></ul>
+
+<a name="hideTabBar"></a><h3 class="tight">hideTabBar:animate:</h3>
+<p class="spaceabove"><p>If desired, obejcts can tell the tab bar to hide (reduce in size to a single pixel line spanning the window) or show, and optionally whether to animate this effect or not.</p></p><p class="spaceabovemethod">- (void)hideTabBar:(BOOL)hide animate:(BOOL)animate</p>
+<h5 class="tight">Discussion</h5><p> If <i>hide</i> is <code>YES</code> the control will shrink to a single pixel line spanning the window; otherwise the control will expand to its normal appearance. If <i>animate</i> is <code>YES</code>, the shrinking and expanding will happen in a visible animation; otherwise the transition will be instant. There is no effect if the control is already in the specified state.</p>
+
+<a name="overflowPopUpButton"></a><h3 class="tight">overflowPopUpButton</h3>
+<p class="spaceabove">Returns an instance of an NSPopUpButton subclass that is used to present the overflow menu. </p><p class="spaceabovemethod">- (PSMOverflowPopUpButton *)overflowPopUpButton;</p>
+<h5 class="tight">Discussion</h5><p> This method could be used to modify the button or menu if desired.</p>
+
+<a name="partnerView"></a><h3 class="tight">partnerView</h3>
+<p class="spaceabove">Returns the object that will be resized to compensate for the changing size of the control during hide/show behavior.</p><p class="spaceabovemethod">- (id)partnerView</p>
+<h5 class="tight">Discussion</h5><p> If a partnerView has not been specified, the window will be resized during hide/show.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setPartnerView">&#8211;&#xA0;setPartnerView:</a></code><li></ul>
+
+<a name="representedTabViewItems"></a><h3 class="tight">representedTabViewItems</h3>
+<p class="spaceabove">Returns an array of NSTabViewItems, ordered according to the display order of the tabs in the control. </p><p class="spaceabovemethod">- (NSMutableArray *)representedTabViewItems;</p>
+<h5 class="tight">Discussion</h5><p> This method could be used archive the order of the tabs between application runs.  When the user reorders tabs via drag and drop, the represented NSTabView does <i>not</i> change order.</p>
+
+<a name="setAllowsDragBetweenWindows"></a><h3 class="tight">setAllowsDragBetweenWindows</h3>
+<p class="spaceabove">If set to <code>YES</code>, the receiver is configured to allow users to drag a tab to an instance of PSMTabBarControl in another window.</p><p class="spaceabovemethod">- (void)setAllowsDragBetweenWindows:(BOOL)value</p>
+<h5 class="tight">Discussion</h5><p>The default is <code>YES</code>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#allowsDragBetweenWindows">&#8211;&#xA0;allowsDragBetweenWindows:</a></code><li></ul>
+
+<a name="setCanCloseOnlyTab"></a><h3 class="tight">setCanCloseOnlyTab:</h3>
+<p class="spaceabove">If set to <code>YES</code>, the receiver is configured to allow users to close a single remaining tab.</p><p class="spaceabovemethod">- (void)setCanCloseOnlyTab:(BOOL)value</p>
+<h5 class="tight">Discussion</h5><p>The default is <code>NO</code>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#canCloseOnlyTab">&#8211;&#xA0;canCloseOnlyTab:</a></code><li></ul>
+
+<a name="setCellMaxWidth"></a><h3 class="tight">setCellMaxWidth:</h3>
+<p class="spaceabove">Specifies the maximum width (in pixels) that a tab will be allowed to occupy.</p><p class="spaceabovemethod">- (void)setCellMaxWidth:(int)value</p>
+<h5 class="tight">Discussion</h5><p> No tab will be drawn any wider than the specified value.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#cellMaxWidth">&#8211;&#xA0;cellMaxWidth</a></code><li></ul>
+
+<a name="setCellMinWidth"></a><h3 class="tight">setCellMinWidth:</h3>
+<p class="spaceabove">Specifies the minimum width (in pixels) that a tab will be allowed to occupy.</p><p class="spaceabovemethod">- (void)setCellMinWidth:(int)value</p>
+<h5 class="tight">Discussion</h5><p> No tab will be drawn any smaller than the specified value.  This value is ignored when drawing in size-to-fit; tabs are made just small enough to fit their content.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#cellMinWidth">&#8211;&#xA0;cellMinWidth</a></code><li></ul>
+
+<a name="setCellOptimumWidth"></a><h3 class="tight">setCellOptimumWidth:</h3>
+<p class="spaceabove">Specifies the width (in pixels) that a tab will occupy when tabs are uniformly sized.</p><p class="spaceabovemethod">- (void)setCellOptimumWidth:(int)value</p>
+<h5 class="tight">Discussion</h5><p> This value is ignored when drawing in size-to-fit; tabs are made just small enough to fit their content.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#cellOptimumWidth">&#8211;&#xA0;cellOptimumWidth</a></code><li></ul>
+
+<a name="setDelegate"></a><h3 class="tight">setDelegate:</h3>
+<p class="spaceabove">Specifies an object that will receive delegate messages as passed through from the NSTabView instance.</p><p class="spaceabovemethod">- (void)setDelegate:(id)object</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#delegate">&#8211;&#xA0;delegate:</a></code><li></ul>
+
+<a name="setHideForSingleTab"></a><h3 class="tight">setHideForSingleTab:</h3>
+<p class="spaceabove">If set to <code>YES</code>, the receiver is configured to hide when there is a single remaining tab.</p><p class="spaceabovemethod">- (void)setHideForSingleTab:(BOOL)value</p>
+<h5 class="tight">Discussion</h5><p>The default is <code>NO</code>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#hideForSingleTab">&#8211;&#xA0;hideForSingleTab</a></code><li></ul>
+
+<a name="setPartnerView"></a><h3 class="tight">setPartnerView:</h3>
+<p class="spaceabove">Specifies a view that will resize to compensate for control size changes in response to hide and show messages.</p><p class="spaceabovemethod">- (void)setPartnerView:(id)view</p>
+<h5 class="tight">Discussion</h5><p>if <i>nil</i>, the control will resize the window in response to hide/show messages.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#partnerView">&#8211;&#xA0;partnerView</a></code><li></ul>
+
+<a name="setStyleNamed"></a><h3 class="tight">setStyleNamed:</h3>
+<p class="spaceabove">Specifies the style in which the tabs and control are drawn.  </p><p class="spaceabovemethod">- (void)setStyleNamed:(NSString *)name</p>
+<h5 class="tight">Discussion</h5><p>"Aqua" and "Metal" are the currently supported options.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#styleName">&#8211;&#xA0;styleName</a></code><li></ul>
+
+<a name="setShowAddTabButton"></a><h3 class="tight">setShowAddTabButton:</h3>
+<p class="spaceabove">Controls whether the receiver will will display a small "add tab" button at the rightmost end of the tabs. </p><p class="spaceabovemethod">- (void)setShowAddTabButton:(BOOL)value</p>
+<h5 class="tight">Discussion</h5><p>Default is <code>NO</code>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#showAddTabButton">&#8211;&#xA0;showAddTabButton</a></code><li></ul>
+
+<a name="setSizeCellsToFit"></a><h3 class="tight">setSizeCellsToFit:</h3>
+<p class="spaceabove">Controls whether the receiver will make the tabs sized to fit the content of the tab. </p><p class="spaceabovemethod">- (void)setSizeCellsToFit:(BOOL)value</p>
+<h5 class="tight">Discussion</h5><p>Default is <code>NO</code>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#sizeCellsToFit">&#8211;&#xA0;sizeCellsToFit</a></code><li></ul>
+
+<a name="setTabView"></a><h3 class="tight">setTabView:</h3>
+<p class="spaceabove">Specifies the instance of NSTabView to be controlled. </p><p class="spaceabovemethod">- (void)setTabView:(NSTabView *)view</p>
+<h5 class="tight">Discussion</h5><p>This class will not function properly without this outlet being set.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#tabView">&#8211;&#xA0;tabView</a></code><li></ul>
+
+<a name="sizeCellsToFit"></a><h3 class="tight">sizeCellsToFit</h3>
+<p class="spaceabove">Returns YES if the control will make the tabs sized to fit the content of the tab, NO otherwise.</p><p class="spaceabovemethod"- (BOOL)sizeCellsToFit</p>
+<h5 class="tight">Discussion</h5><p>The default is <code>NO</code>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setSizeCellsToFit">&#8211;&#xA0;setSizeCellsToFit:</a></code><li></ul>
+
+<a name="styleName"></a><h3 class="tight">styleName:</h3>
+<p class="spaceabove">Returns the name of the current drawing style.  </p><p class="spaceabovemethod">- (NSString *)styleName</p>
+<h5 class="tight">Discussion</h5><p>"Aqua" and "Metal" are the currently supported options.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setStyleNamed">&#8211;&#xA0;setStyleNamed:</a></code><li></ul>
+
+<a name="tabView"></a><h3 class="tight">tabView:</h3>
+<p class="spaceabove">Returns the instance of NSTabView being controlled. </p><p class="spaceabovemethod">- (NSTabView *)tabView</p>
+<h5 class="tight">Discussion</h5><p>This class will not function properly if this object is <i>nil</i>.</p>
+<h5 class="tight">See Also</h5><ul class="availability">
+<li class="availability">  <code><a href="#setTabView">&#8211;&#xA0;setTabView</a></code><li></ul>
+
+<h2>Delegate Methods</h2>
+
+<p class="spaceabove">You application controller can keep track of activity from the tab view and the user via the following delegate methods.<p>
+
+<a name="shouldCloseTabViewItem"></a><h3 class="tight">tabView:shouldCloseTabViewItem:</h3>
+<p class="spaceabove">Sent when a user clicks the close button on a tab.  </p><p class="spaceabovemethod">- (BOOL)tabView:(NSTabView *)tabView shouldCloseTabViewItem:(NSTabViewItem *)tabViewItem</p>
+<h5 class="tight">Discussion</h5><p>If you return <code>NO</code>, the tab will not be closed.  Please make sure to alert the user as to why with a sheet or dialog.</p>
+
+<a name="willCloseTabViewItem"></a><h3 class="tight">tabView:willCloseTabViewItem:</h3>
+<p class="spaceabove">Sent when tab is about to be closed.  </p><p class="spaceabovemethod">- (void)tabView:(NSTabView *)tabView willCloseTabViewItem:(NSTabViewItem *)tabViewItem</p>
+<h5 class="tight">Discussion</h5><p>This presents you with an opportunity to clean up the application objects/events/sessions represented by the tab.</p>
+
+<a name="didCloseTabViewItem"></a><h3 class="tight">tabView:didCloseTabViewItem:</h3>
+<p class="spaceabove">Sent after a tab has been closed.  </p><p class="spaceabovemethod">- (void)tabView:(NSTabView *)tabView didCloseTabViewItem:(NSTabViewItem *)tabViewItem</p>
+<h5 class="tight">Discussion</h5><p>This presents you with an opportunity to clean up the application objects/events/sessions represented by the tab.  Don't go trying to modify the tabViewItem - it is about to be released, and has already been removed from the tabView!</p>
+
+<h3 class="tight">tabView:didSelectTabViewItem:</h3>
+<p class="spaceabove">Informs the delegate that <i>tabView</i> has selected <i>tabViewItem</i>.</p><p class="spaceabovemethod">- (void)tabView:(NSTabView *)<i>tabView</i> didSelectTabViewItem:(NSTabViewItem *)<i>tabViewItem</i></p>
+
+<h3 class="tight">tabView:shouldSelectTabViewItem:</h3>
+<p class="spaceabove">Invoked just before <i>tabViewItem</i> in <i>tabView</i> is selected.</p><p class="spaceabovemethod">- (BOOL)tabView:(NSTabView *)<i>tabView</i> shouldSelectTabViewItem:(NSTabViewItem *)<i>tabViewItem</i></p>
+<h5 class="tight">Discussion</h5><p> The delegate can return <code>NO</code> to prevent selection of specific tabs.</p>
+
+<h3 class="tight">tabView:willSelectTabViewItem:</h3>
+<p class="spaceabove">Informs the delegate that <i>tabView</i> is about to select <i>tabViewItem</i>.</p><p class="spaceabovemethod">- (void)tabView:(NSTabView *)<i>tabView</i> willSelectTabViewItem:(NSTabViewItem *)<i>tabViewItem</i></p>
+
+<h3 class="tight">tabViewDidChangeNumberOfTabViewItems:</h3>
+<p class="spaceabove">Informs the delegate that the number of tab view items in <i>tabView</i> has changed.</p><p class="spaceabovemethod">- (void)tabViewDidChangeNumberOfTabViewItems:(NSTabView *)<i>tabView</i></p>
+
+
+
+
+    </BODY>
+</html>

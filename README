@@ -1,0 +1,145 @@
+Compiling:
+
+- To build the project:
+    + open terminal, directory vimXX/src: type 'make'
+      this builds the Vim executable
+    + open MacVim.xcodeproj, choose 'Release' on pull-down menu 'Active Build
+      Configuration', click Build
+      this builds the PSMTabBarFramework, then MacVim.app (which can be found in
+      MacVim/build/Release)
+- To install:
+    + copy MacVim.app to /Applications (or anywhere you want it)
+    + in ~/.profile add this line:
+      alias gvim='/Applications/MacVim.app/Contents/MacOS/Vim -g'
+- To run:
+    + Double click MacVim icon
+    + with the above alias you can type 'gvim' in terminal to open MacVim
+      (if the -g switch is left out, then Vim is started in terminal mode)
+    + in terminal mode of Vim, type :gui and MacVim will start
+- Technical notes:
+    + to build a universal binary, the compiler AND linker needs the flags
+      '-isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch ppc -arch i386'
+    + vim runtime files are copied to
+      'MacVim.app/Contents/Resources/vim/runtime/'
+
+Weirdness:
+
+- When the text system (Cocoa) comes across multi byte characters it
+  automatically chooses a font for those characters;  this font may not be the
+  same height as the one set on the text storage and hence the program must
+  account for the fact that lines may have differing heights.
+  We get around this problem by resizing the window to fit the text storage
+  after the layout manager has performed layout.  As a side-effect the user
+  sees how the window resizes when certain multi byte characters are being
+  displayed.
+- Remember to set 'inputReceived = YES' in MMBackend
+  handlePortMessage:, otherwise Vim will not inform MMVimController of
+  changes it makes (e.g. in response to a key down event).
+- The way delegate messages from the tab bar are handled are based on lots of
+  assumptions on how the code works.  See comments in tabView:... delegate
+  messages in MMWindowController.
+- The insertion point is automatically moved to wherever changes are made in
+  the text storage.  To set the position manually (via setSelectedRange:),
+  first call endEditing on the text storage.
+- Delegate messages from the tab view need to be able to differentiate whether
+  the message was sent due to the user clicking a tab with the mouse, or if the
+  vim task initiated the change.  To facilitate this, flags must be set
+  whenever the vim task does something that results in these delegate messages
+  being sent.  See comments in the tabView:...Item: messages in
+  MMWindowController.
+- In Vim the first tab has index 1, in the gui the first tab has index 0.  This
+  is compensated for in MMBackend.m.
+- The PSMTabBarControl does not reorder the NSTabView when a user drags tabs
+  around, so we must rely on [PSMTabBarControl representedItems] to get the
+  correct order of tabs (the order which the user can 'see').  WARNING! This
+  means that the code cannot rely on calls like
+  [NSTabView selectTabViewItemAtIndex:] etc. since the NSTabView has the
+  'wrong' order.
+- The MMVimController is added to the NSEventTrackingRunLoopMode, otherwise
+  updates from Vim would not reach the MMVimController while the user
+  resizes the window using the mouse.
+
+
+Design decisions:
+
+- Output is queued and sent to the MMVimController only when
+  [MMBackend flushQueue] is called in order to minimize the amount of
+  messages sent back and forth between the task and gui.  (This does not apply
+  to all messages sent to the gui though.)
+- Drawing commands are stored in a buffer (drawData) and put on the output
+  queue whenever [MMBackend flush] is called.  This buffer might no
+  longer be needed now that there is a general output queue.  However, the
+  existing code works, so why change it?
+- The gui listens for tasks on a named port whose name is derived from
+  CFBundleIdentifier (which is defined inside Info.plist of the app bundle).
+  In order to run two different copies of MacVim at the same time, they need to
+  have differing bundle identifiers; otherwise one copy will not be able to
+  create the named listening port and all tasks will connect to the first copy.
+- All tabs share one text view and its associated text storage.  There used to
+  be one text view per tab, but this only complicated the code since Vim has no
+  concept of different views (as in NSView).
+
+
+Keyboard stuff:
+
+- input ends up in one of the following methods
+    (1)  insertText:
+    (2)  doCommandBySelector:
+    (3)  performKeyEquivalent:
+
+- (1) handles: printable keys (a, Space, 1, ...) and <M-key> (also <M-C-key>).
+  if Ctrl+Option is held [NSEvents characters] will translate the input to
+  control characters; note that if the translation fails, then Shift and Option
+  modifiers are NOT includeded in [NSEvent characters], but they are included
+  in [NSEvent charactersIgnoringModifiers].  e.g. given <M-C-S-1>, characters
+  returns 1, charactersIgnoringModifiers returns <M-S-1>.
+- (2) handles: Ctrl+key, enter, backspace, escape.
+  same note on translation of Ctrl+key as above holds true.
+- (3) handles: Cmd+key, arrow keys, function keys
+- <M-Space> and <Space> are two different characters (the former is 0xa0)
+
+
+Bugs:
+
+- Using NSString initWithBytesNoCopy:::: causes crash when trying to set window
+  title.
+- NSTabViewItem setInitialFirstResponder: seems to have no effect, so we
+  manually set the first responder when the tab item selection changes.
+
+
+Features (!supp indicates that a feature is not supported):
+
+- Multiple top-level windows: each window runs its own vim process (they are
+  completely independent)
+- Tabs: uses PSMTabBarControl to show tabs, can reorder tabs by dragging them,
+  has overflow menu, new tab button on tabline
+- Menubar: accelerators !supp, actext hint displayed as tool tip
+  instead of on menu, each window has its own menu, key equivalents !supp
+- Toolbar: toolbariconsize supported (tiny&small equiv to 24x24 px,
+  medium&large equiv to 32x32 px), toolbar supports 'icons' and 'text' options
+  (but not 'tooltip' which is always on), each window has its own toolbar,
+  custom toolbar items
+- Cocoa input protocols: input managers, character palette input etc.
+  supported, marked text !supp, cocoa key bindings (DefaultKeyBinding.dict)
+  !supp
+- Mouse: resize (vim) windows, selection, different mouse cursors !supp,
+  autoscrolling whilst selecting works poorly
+- Drag and Drop: drag files onto dock icon to open in tabs, drag to text view
+  !supp
+- Zoom: Command-click to zoom height only, otherwise maximize witdh as well,
+  hold down Option to zoom all windows
+- Resize: live resize (although terribly slow), :set lines will not make window
+  higher than can fit the screen (no such restrictions on width at the moment)
+- Pasteboard: star-register works with the mac os x pasteboard
+- Open/Save dialog: use with :browse
+- Fonts: bold/italic/underline traits supported, font changes !supp
+- File type associations: add more associations by editing Info.plist
+- Start GUI from terminal, type :gui
+- Scroll bars: !supp
+- Wide characters: !supp
+- Printing: !supp
+- Find/Replace dialog: !supp
+- Gui dialogs: !supp
+- External editor protocol: !supp
+- Services menu: !supp
+- Encodings: !supp (enc, tenc always set to utf-8)

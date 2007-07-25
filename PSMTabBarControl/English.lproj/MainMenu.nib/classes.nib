@@ -1,0 +1,24 @@
+{
+    IBClasses = (
+        {
+            ACTIONS = {newWindow = id; }; 
+            CLASS = AppController; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }, 
+        {CLASS = FakeModel; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {
+            ACTIONS = {addNewTab = id; closeTab = id; }; 
+            CLASS = FirstResponder; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }, 
+        {
+            CLASS = PSMTabBarControl; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {delegate = id; partnerView = id; style = id; tabView = NSTabView; }; 
+            SUPERCLASS = NSControl; 
+        }
+    ); 
+    IBVersion = 1; 
+}

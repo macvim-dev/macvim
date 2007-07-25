@@ -1,0 +1,114 @@
+Active:
+
+- proper font handling
+- font selection dialog (:set gfn=*)
+- check for memory leaks
+- startup is a bit flakey (up until openWindowWithRows:columns:)
+- i8n
+- services menu
+- don't clear the text storage on setMaxRows:: so that display does not go
+  blank when dragging to resize
+- gui dialogs (FEAT_GUI_DIALOG)
+- find/replace toolbar item (FIND_REPLACE_DIALOG)
+- main menu
+- menu key equivalents
+- add menu options with key equiv:
+    Cmd+Option+Left/Right to change tab, Cmd+x/c/v cut/copy/paste,
+    Cmd+z/Z undo/redo, Cmd+o open, Cmd+w/W close tab/window,
+    Cmd+Option+T special characters,
+    etc.
+- popup menus
+- encoding -- convert strings from vim to utf-8
+- change building procedure so that the Makefile compiles and links VimTask and
+  then calls pbxbuild to build MacVim (and put MacVim.app) in the src folder
+- icons for all built in toolbar items
+- hide baseline separator when tabbar is visible (and make sure clicking the
+  hide/show toolbar button in the top right of the corner does not show it
+  again)
+- use DO to communicate between GUI and Vim (only for two-way communication,
+  one-way communication should still use mach ports)
+- window title is never set when starting with terminal vim and typing :gui
+- forking doesn't work with :gui (i think)
+- make sure [NSMutableData appendByte:length:] is never called with 0 length
+  (this will lead to a crash)
+- wide characters are badly supported: they render as too wide
+- update speed whilst resizing with mouse is excruciatingly slow
+- drag and drop inside view (FEAT_GUI_DND, gui_handle_drop())
+- window count should be typeset nicely in tab
+- put marked text in status line (?)
+- track pad scrolling is jerky
+- memory leak with text view? (need to release text storage)
+- sanity check all input in handlePortMessage: etc.
+- cursor in replace mode
+- nice looking cursors (both the block and in insert mode)
+- support project builder external editor
+  http://www.codingmonkeys.de/techpubs/externaleditor/pbxexternaleditor.html
+- dock icon menu
+- horizontal scrolling with trackpad does not work
+- got this error when clicking to close second last tab:
+    2007-07-23 08:19:29.398 MacVim[335] *** Assertion failure in -[PSMTabBarControl lockFocus], AppKit.subproj/NSView.m:3248
+    2007-07-23 08:19:29.410 MacVim[335] lockFocus sent to a view whose window is deferred and does not yet have a corresponding platform window
+
+
+Pending:
+
+- make scrollbar inactive if it is too small to display properly
+- make vertical scrollbars cover command line as well
+- setting font in .gvimrc has no effect since textStorage has not been init'ed
+- fonts
+- scroll bars
+- Make MacVim project depend on PSMTabBarControl project
+- Change Makefile so that it builds a vim executable and copy this into the
+  MacVim.app from the MacVim project
+- warning before closing modified buffer
+- On quitting, warn user if modified files are open
+- An untitled window should not open when the GUI is started from the terminal
+  (figure out how to pass '-nowindow yes' option when launching GUI)
+- support using VimTask as a standalone terminal app, with support for :gui
+- path is set to / when not starting from command line, set it to $HOME instead
+
+
+Done:
+
+- input of wide characters does not work
+- tab completion doesn't work on iMac
+- close icons on tabs don't appear on iMac
+- toolbar
+- copy runtime files to bundle properly (only works for debug at the moment)
+- don't resize to make window bigger than what can fit on screen
+- window resizing using mouse & zoom
+- cmd-click to maximize window, :tabnew...the text view overlaps the tabline
+- colorscheme changes are buggy (open two tabs, change colorscheme, open new
+  tab;  the new tab has wrong color on first and last lines.)
+- tab selection bug: open three tabs, selct middle, drag last tab so it becomes
+  middle without selecting it, select middle tab...selects middle, then last
+- tab selection bug #2: :tabnew, drag tab #2 to pos #1, press enter.  tab #2 is
+  selected.
+- this stuffs up the display: set go-=e; :tabnew
+- with 2 tabs: closing one tab using mouse makes screen flash (does not happen
+  if tab is closed using :q)
+- resize to fit every draw update
+- insertion point
+- copy/paste
+- compute text storage size based on actual content
+- color changes (:colorscheme)
+- set text storage dimensions properly when creating text view
+- text dimension changes
+- notify vim task when user closes/selects tabs
+- mouse handling in text view
+- file type associations (Info.plist)
+- drag and drop onto app icon
+- remove tab update hack when flushing (edit vim code to call update)
+- crash when typing :browse e $vim (but not :browse e $vim/)
+- maintain queue of messages to send from task (to ensure they are passed in
+  the same order they arrive)
+- do not include shift flag in chars that are already shifted (%, A, etc.)
+- open file(s) in tab(s) (never open in new window?)
+- key handling:
+    <M-Space> works, <M-S-Space> does not
+    clean up dispatchKeyEvent
+- reordering tab pages (gui tabs must have same order as vim tabs)
+- make sure tab is wide enough to fit label
+- encoding (did_set_string_option, option.c, line 5675)
+  in init:
+    set_option_value((char_u *)"termencoding", 0L, (char_u *)"utf-8", 0);
