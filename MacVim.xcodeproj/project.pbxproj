@@ -8,17 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		1D0E051C0BA5F83800B6049E /* Colors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1D0E051B0BA5F83800B6049E /* Colors.plist */; };
-		1D1474970C56703C0038FA2B /* MacVim.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D1474950C56703C0038FA2B /* MacVim.h */; };
 		1D1474980C56703C0038FA2B /* MacVim.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474960C56703C0038FA2B /* MacVim.m */; };
-		1D14749F0C5673AE0038FA2B /* MMAppController.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D14749D0C5673AE0038FA2B /* MMAppController.h */; };
 		1D1474A00C5673AE0038FA2B /* MMAppController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D14749E0C5673AE0038FA2B /* MMAppController.m */; };
-		1D1474A90C5677450038FA2B /* MMTextStorage.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D1474A70C5677450038FA2B /* MMTextStorage.h */; };
 		1D1474AA0C5677450038FA2B /* MMTextStorage.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474A80C5677450038FA2B /* MMTextStorage.m */; };
-		1D1474AF0C5678370038FA2B /* MMTextView.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D1474AD0C5678370038FA2B /* MMTextView.h */; };
 		1D1474B00C5678370038FA2B /* MMTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474AE0C5678370038FA2B /* MMTextView.m */; };
-		1D1474B50C56796D0038FA2B /* MMVimController.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D1474B30C56796D0038FA2B /* MMVimController.h */; };
 		1D1474B60C56796D0038FA2B /* MMVimController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474B40C56796D0038FA2B /* MMVimController.m */; };
-		1D1474BB0C567A910038FA2B /* MMWindowController.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D1474B90C567A910038FA2B /* MMWindowController.h */; };
 		1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474BA0C567A910038FA2B /* MMWindowController.m */; };
 		1D16B9EB0BA33E1E00A69B33 /* VimWindow.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1D16B9E90BA33E1E00A69B33 /* VimWindow.nib */; };
 		1D493D580C5247BF00AB718C /* Vim in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D493D570C5247BF00AB718C /* Vim */; };
@@ -37,6 +31,7 @@
 		1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1DD04DEB0C529C5E006CDC2B /* Credits.rtf */; };
 		1DD703B90BA9D15D008679E9 /* vim_gloss.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1DD703B80BA9D15D008679E9 /* vim_gloss.icns */; };
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
+		1DE608B40C587FDA0055263D /* runtime in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
 		1DEE0D9F0C4E150B008E82B2 /* Attention.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8A0C4E150B008E82B2 /* Attention.png */; };
 		1DEE0DA00C4E150B008E82B2 /* Copy.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8B0C4E150B008E82B2 /* Copy.png */; };
 		1DEE0DA10C4E150B008E82B2 /* Cut.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8C0C4E150B008E82B2 /* Cut.png */; };
@@ -90,12 +85,6 @@
 			dstSubfolderSpec = 6;
 			files = (
 				1D493D580C5247BF00AB718C /* Vim in CopyFiles */,
-				1D1474970C56703C0038FA2B /* MacVim.h in CopyFiles */,
-				1D14749F0C5673AE0038FA2B /* MMAppController.h in CopyFiles */,
-				1D1474A90C5677450038FA2B /* MMTextStorage.h in CopyFiles */,
-				1D1474AF0C5678370038FA2B /* MMTextView.h in CopyFiles */,
-				1D1474B50C56796D0038FA2B /* MMVimController.h in CopyFiles */,
-				1D1474BB0C567A910038FA2B /* MMWindowController.h in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -106,6 +95,16 @@
 			dstSubfolderSpec = 10;
 			files = (
 				1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DE608B80C58807F0055263D /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = vim;
+			dstSubfolderSpec = 7;
+			files = (
+				1DE608B40C587FDA0055263D /* runtime in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -145,6 +144,7 @@
 		1DD04DEB0C529C5E006CDC2B /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		1DD703B80BA9D15D008679E9 /* vim_gloss.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = vim_gloss.icns; sourceTree = "<group>"; };
 		1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SpecialKeys.plist; sourceTree = "<group>"; };
+		1DE602470C587FD10055263D /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; name = runtime; path = ../../runtime; sourceTree = SOURCE_ROOT; };
 		1DEE0D8A0C4E150B008E82B2 /* Attention.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Attention.png; path = Toolbar/Attention.png; sourceTree = "<group>"; };
 		1DEE0D8B0C4E150B008E82B2 /* Copy.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Copy.png; path = Toolbar/Copy.png; sourceTree = "<group>"; };
 		1DEE0D8C0C4E150B008E82B2 /* Cut.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Cut.png; path = Toolbar/Cut.png; sourceTree = "<group>"; };
@@ -270,6 +270,14 @@
 			name = Icons;
 			sourceTree = "<group>";
 		};
+		1DE602460C587F760055263D /* Vim Resources */ = {
+			isa = PBXGroup;
+			children = (
+				1DE602470C587FD10055263D /* runtime */,
+			);
+			name = "Vim Resources";
+			sourceTree = "<group>";
+		};
 		1DE9726C0C48050600F96A9F /* Toolbar */ = {
 			isa = PBXGroup;
 			children = (
@@ -304,6 +312,7 @@
 				1D493D640C52482B00AB718C /* Executables */,
 				080E96DDFE201D6D7F000001 /* MacVim Source */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
+				1DE602460C587F760055263D /* Vim Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
 			);
@@ -348,7 +357,7 @@
 				8D11072E0486CEB800E47090 /* Frameworks */,
 				1D0DCAD80BA3604D00B6CCFA /* CopyFiles */,
 				1D9EB2840C366D7B0074B739 /* CopyFiles */,
-				1D670CC60C493AEC00E9771C /* ShellScript */,
+				1DE608B80C58807F0055263D /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -440,22 +449,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		1D670CC60C493AEC00E9771C /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 12;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "mkdir $TARGET_BUILD_DIR/MacVim.app/Contents/Resources/vim\ncp -R ../../runtime/ $TARGET_BUILD_DIR/MacVim.app/Contents/Resources/vim/runtime/";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8D11072C0486CEB800E47090 /* Sources */ = {

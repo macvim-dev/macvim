@@ -263,7 +263,7 @@
 							<key>PBXSmartGroupTreeModuleOutlineStateSelectionKey</key>
 							<array>
 								<array>
-									<integer>6</integer>
+									<integer>0</integer>
 								</array>
 							</array>
 							<key>PBXSmartGroupTreeModuleOutlineStateVisibleRectKey</key>
@@ -367,9 +367,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>1DC70EB80C57D44B0079D3C6</string>
+				<string>1DE601E10C587E150055263D</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>1DC70EB90C57D44B0079D3C6</string>
+				<string>1DE601E20C587E150055263D</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -504,6 +504,7 @@
 	<key>WindowOrderList</key>
 	<array>
 		<string>1D16B9EF0BA33E3800A69B33</string>
+		<string>1C0AD2B3069F1EA900FABCE6</string>
 		<string>/Users/winckler/Projects/vim7/src/MacVim/MacVim.xcodeproj</string>
 	</array>
 	<key>WindowString</key>
@@ -586,7 +587,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1D16B9EF0BA33E3800A69B33</string>
-				<string>1DC70EB70C57D44A0079D3C6</string>
+				<string>1DE601DB0C587DE80055263D</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>
@@ -956,9 +957,9 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1C0AD2B3069F1EA900FABCE6</string>
-				<string>1DDE36F90C572B25007FB583</string>
+				<string>1DE608C20C58821B0055263D</string>
 				<string>1CD0528B0623707200166675</string>
-				<string>1DDE36FA0C572B25007FB583</string>
+				<string>1DE608C30C58821B0055263D</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.run</string>
@@ -967,7 +968,7 @@
 			<key>WindowToolGUID</key>
 			<string>1C0AD2B3069F1EA900FABCE6</string>
 			<key>WindowToolIsVisible</key>
-			<false/>
+			<true/>
 		</dict>
 		<dict>
 			<key>Identifier</key>
