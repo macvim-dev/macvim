@@ -903,7 +903,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         //        dim[0], dim[1]);
         NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];
         [NSPortMessage sendMessage:SetTextDimensionsMsgID
-                      withSendPort:sendPort data:data wait:YES];
+                      withSendPort:sendPort
+                              data:data
+                              wait:![textView inLiveResize]];
     }
 
     [tabView setFrame:textViewRect];
