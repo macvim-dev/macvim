@@ -54,7 +54,7 @@
 
 - (void)dealloc
 {
-    [emptyColumnString release];
+    [emptyRowString release];
     //[paragraphStyle release];
     [font release];
     [attribString release];
@@ -132,8 +132,8 @@
             font, NSFontAttributeName,
             nil];
             
-    [emptyColumnString release];
-    emptyColumnString = [[NSAttributedString alloc]
+    [emptyRowString release];
+    emptyRowString = [[NSAttributedString alloc]
             initWithString:[NSString stringWithFormat:fmt, ' ']
                 attributes:dict];
 
@@ -141,7 +141,7 @@
     attribString = [[NSMutableAttributedString alloc] init];
     int i;
     for (i=0; i<maxRows; ++i) {
-        [attribString appendAttributedString:emptyColumnString];
+        [attribString appendAttributedString:emptyRowString];
     }
 
     NSRange fullRange = NSMakeRange(0, [attribString length]);
@@ -386,9 +386,9 @@
     return font;
 }
 
-- (float)widthOfEmptyColumn
+- (float)widthOfEmptyRow
 {
-    return [font widthOfString:[emptyColumnString string]];
+    return [font widthOfString:[emptyRowString string]];
 }
 
 - (NSSize)size
@@ -404,8 +404,8 @@
     //[lm glyphRangeForTextContainer:tc];
     //NSRect rect = [lm usedRectForTextContainer:tc];
 
-    NSSize size = NSMakeSize([self widthOfEmptyColumn], rect.size.height);
-    //NSSize size = NSMakeSize([self widthOfEmptyColumn], maxRows*LINEHEIGHT);
+    NSSize size = NSMakeSize([self widthOfEmptyRow], rect.size.height);
+    //NSSize size = NSMakeSize([self widthOfEmptyRow], maxRows*LINEHEIGHT);
     //NSLog(@"size=(%.2f,%.2f) rows=%d cols=%d layoutManager size=(%.2f,%.2f)",
     //        size.width, size.height, maxRows, maxColumns, rect.size.width,
     //        rect.size.height);
@@ -420,7 +420,7 @@
     NSSize size;
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
     size.height = [lm defaultLineHeightForFont:font];
-    size.width = maxColumns > 0 ? [self widthOfEmptyColumn]/maxColumns : 0;
+    size.width = maxColumns > 0 ? [self widthOfEmptyRow]/maxColumns : 0;
     if (size.height < 1.0f) size.height = 1.0f;
     if (size.width < 1.0f) size.width = 1.0f;
 
@@ -447,7 +447,7 @@
 {
     NSRect rect = { 0, 0, 0, 0 };
     float fontWidth = maxColumns > 0
-            ? [self widthOfEmptyColumn]/maxColumns : 0;
+            ? [self widthOfEmptyRow]/maxColumns : 0;
 
     rect.origin.x = fontWidth * range.location;
     rect.size.width = fontWidth * range.length;
@@ -538,7 +538,7 @@
     }
 
     if (size.width != curSize.width) {
-        float fw = maxColumns > 0 ? [self widthOfEmptyColumn]/maxColumns : 0;
+        float fw = maxColumns > 0 ? [self widthOfEmptyRow]/maxColumns : 0;
         if (fw < 1.0f) fw = 1.0f;
 
         fitCols = floor(size.width/fw);

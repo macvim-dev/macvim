@@ -15,8 +15,7 @@
 @interface MMTextStorage : NSTextStorage {
     NSMutableAttributedString *attribString;
     int maxRows, maxColumns;
-    // TODO! Rename to emptyRowString
-    NSAttributedString *emptyColumnString;
+    NSAttributedString *emptyRowString;
     NSFont *font;
     //NSMutableParagraphStyle *paragraphStyle;
 }
@@ -46,7 +45,7 @@
 - (void)clearAllWithColor:(NSColor *)color;
 - (void)setFont:(NSFont*)newFont;
 - (NSFont*)font;
-- (float)widthOfEmptyColumn;
+- (float)widthOfEmptyRow;
 - (NSSize)size;
 - (NSSize)calculateAverageFontSize;
 - (NSRect)rectForRowsInRange:(NSRange)range;
