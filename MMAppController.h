@@ -9,10 +9,15 @@
  */
 
 #import <Cocoa/Cocoa.h>
+#import "MacVim.h"
 
 
 
-@interface MMAppController : NSObject {
+@interface MMAppController : NSObject
+#if MM_USE_DO
+    <MMAppProtocol>
+#endif
+{
     NSPort          *receivePort;
     NSMutableArray  *vimControllers;
     unsigned        terminateNowCount;

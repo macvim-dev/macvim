@@ -9,7 +9,6 @@
  */
 
 #import "MMBackend.h"
-#import "MacVim.h"
 #import "vim.h"
 
 
@@ -21,9 +20,13 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
 
 @interface MMBackend (Private)
+- (void)handleMessage:(int)msgid data:(NSData *)data;
 + (NSDictionary *)specialKeys;
 - (void)handleKeyDown:(NSString *)key modifiers:(int)mods;
 - (void)queueMessage:(int)msgid data:(NSData *)data;
+#if MM_USE_DO
+- (void)connectionDidDie:(NSNotification *)notification;
+#endif
 @end
 
 
@@ -51,10 +54,17 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
 - (void)dealloc
 {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+
     [queue release];
     [drawData release];
+#if MM_USE_DO
+    [frontendProxy release];
+    [connection release];
+#else
     [sendPort release];
     [receivePort release];
+#endif
     [colorDict release];
 
     [super dealloc];
@@ -78,6 +88,14 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
 - (BOOL)checkin
 {
+#if MM_USE_DO
+    // NOTE!  If the name of the connection changes here it must also be
+    // updated in MMAppController.m.
+    NSString *name = [NSString stringWithFormat:@"%@-connection",
+             [[NSBundle mainBundle] bundleIdentifier]];
+    connection = [NSConnection connectionWithRegisteredName:name host:nil];
+    if (!connection)
+#else
     // NOTE!  If the name of the port changes here it must also be updated in
     // MMAppController.m.
     NSString *portName = [NSString stringWithFormat:@"%@-taskport",
@@ -85,7 +103,9 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
     NSPort *port = [[[NSMachBootstrapServer sharedInstance]
             portForName:portName host:nil] retain];
-    if (!port) {
+    if (!port)
+#endif
+    {
 #if 0
         NSString *path = [[NSBundle mainBundle] bundlePath];
         if (![[NSWorkspace sharedWorkspace] launchApplication:path]) {
@@ -113,20 +133,52 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         // returns a valid port.  Also set a time-out date so that we don't get
         // stuck doing this forever.
         NSDate *timeOutDate = [NSDate dateWithTimeIntervalSinceNow:15];
-        while (!port &&
-                NSOrderedDescending == [timeOutDate compare:[NSDate date]]) {
+        while (
+#if MM_USE_DO
+                !connection
+#else
+                !port
+#endif
+                && NSOrderedDescending == [timeOutDate compare:[NSDate date]])
+        {
             [[NSRunLoop currentRunLoop]
                     runMode:NSDefaultRunLoopMode
                  beforeDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-            port = [[NSMachBootstrapServer sharedInstance] portForName:portName];
+#if MM_USE_DO
+            connection = [NSConnection connectionWithRegisteredName:name
+                                                               host:nil];
+#else
+            port = [[NSMachBootstrapServer sharedInstance]
+                    portForName:portName];
+#endif
         }
 
-        if (!port) {
+#if MM_USE_DO
+        if (!connection)
+#else
+        if (!port)
+#endif
+        {
             NSLog(@"WARNING: Timed-out waiting for GUI to launch.");
             return NO;
         }
     }
 
+#if MM_USE_DO
+    id proxy = [connection rootProxy];
+    [proxy setProtocolForProxy:@protocol(MMAppProtocol)];
+
+    [[NSNotificationCenter defaultCenter] addObserver:self
+            selector:@selector(connectionDidDie:)
+                name:NSConnectionDidDieNotification object:connection];
+
+    frontendProxy = [(NSDistantObject*)[proxy connectBackend:self] retain];
+    if (frontendProxy) {
+        [frontendProxy setProtocolForProxy:@protocol(MMAppProtocol)];
+    }
+
+    return connection && frontendProxy;
+#else
     receivePort = [NSMachPort new];
     [receivePort setDelegate:self];
 
@@ -137,10 +189,12 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
                    receivePort:receivePort wait:YES];
 
     return YES;
+#endif
 }
 
 - (BOOL)openVimWindowWithRows:(int)rows columns:(int)cols
 {
+#if !MM_USE_DO
     if (!sendPort) {
 #if 0
         // TODO: Wait until connected---maybe time out at some point?
@@ -165,6 +219,7 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         }
 #endif
     }
+#endif // !MM_USE_DO
 
     NSMutableData *data = [NSMutableData data];
 
@@ -276,19 +331,25 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         // TODO: Come up with a better way to handle the insertion point.
         [self updateInsertionPoint];
 
+#if MM_USE_DO
+        [frontendProxy processCommandQueue:queue];
+#else
         [NSPortMessage sendMessage:FlushQueueMsgID withSendPort:sendPort
                               components:queue wait:YES];
+#endif
         [queue removeAllObjects];
     }
 }
 
 - (BOOL)waitForInput:(int)milliseconds
 {
+#if !MM_USE_DO
     if (![receivePort isValid]) {
         // This should only happen if the GUI crashes.
         NSLog(@"ERROR: The receive port is no longer valid, quitting...");
         getout(0);
     }
+#endif
 
     NSDate *date = milliseconds > 0 ?
             [NSDate dateWithTimeIntervalSinceNow:.001*milliseconds] : 
@@ -308,10 +369,18 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
 - (void)exit
 {
+#if MM_USE_DO
+    // By invalidating the NSConnection the MMWindowController immediately
+    // finds out that the connection is down and as a result
+    // [MMWindowController connectionDidDie:] is invoked.
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [connection invalidate];
+#else
     if (!receivedKillTaskMsg) {
         [NSPortMessage sendMessage:TaskExitedMsgID withSendPort:sendPort
                        receivePort:receivePort wait:YES];
     }
+#endif
 }
 
 - (void)selectTab:(int)index
@@ -388,6 +457,9 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
                             saving:(int)saving
 {
+#if MM_USE_DO
+    return nil;
+#else
     //NSLog(@"browseForFileInDirectory:%s title:%s saving:%d", dir, title,
     //        saving);
 
@@ -430,6 +502,7 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
     [replyData release];  replyData = nil;
     return (char*)s;
+#endif // MM_USE_DO
 }
 
 - (void)updateInsertionPoint
@@ -665,6 +738,27 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     return INVALCOLOR;
 }
 
+#if MM_USE_DO
+- (oneway void)processInput:(int)msgid data:(in NSData *)data
+{
+    [self handleMessage:msgid data:data];
+    inputReceived = YES;
+}
+
+- (BOOL)checkForModifiedBuffers
+{
+    buf_T *buf;
+    for (buf = firstbuf; buf != NULL; buf = buf->b_next) {
+        if (bufIsChanged(buf)) {
+            return YES;
+        }
+    }
+
+    return NO;
+}
+
+#else // MM_USE_DO
+
 - (void)handlePortMessage:(NSPortMessage *)portMessage
 {
     unsigned msgid = [portMessage msgid];
@@ -672,17 +766,48 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     if (ConnectedMsgID == msgid) {
         sendPort = [[portMessage sendPort] retain];
         //NSLog(@"VimTask connected to MMVimController.");
-    } else if (KillTaskMsgID == msgid) {
+    } else if (TaskShouldTerminateMsgID == msgid) {
+        int reply = TerminateReplyYesMsgID;
+        buf_T *buf;
+        for (buf = firstbuf; buf != NULL; buf = buf->b_next) {
+            if (bufIsChanged(buf)) {
+                reply = TerminateReplyNoMsgID;
+                break;
+            }
+        }
+
+        //NSLog(@"TaskShouldTerminateMsgID = %s",
+        //        reply == TerminateReplyYesMsgID ? "YES" : "NO");
+
+        [NSPortMessage sendMessage:reply withSendPort:[portMessage sendPort]
+                              wait:YES];
+    } else {
+        NSArray *components = [portMessage components];
+        NSData *data = [components count] > 0 ?
+                [components objectAtIndex:0] : nil;
+        [self handleMessage:msgid data:data];
+    }
+}
+#endif // MM_USE_DO
+
+@end // MMBackend
+
+
+
+@implementation MMBackend (Private)
+
+- (void)handleMessage:(int)msgid data:(NSData *)data
+{
+    if (KillTaskMsgID == msgid) {
         //NSLog(@"VimTask received kill message; exiting now.");
         // Set this flag here so that exit does not send TaskExitedMsgID back
         // to MMVimController.
         receivedKillTaskMsg = YES;
         getout(0);
     } else if (InsertTextMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        NSString *key = [[NSString alloc]
-                initWithData:[[portMessage components] objectAtIndex:0]
-                    encoding:NSUTF8StringEncoding];
+        if (!data) return;
+        NSString *key = [[NSString alloc] initWithData:data
+                                              encoding:NSUTF8StringEncoding];
         //NSLog(@"insert text: %@  (hex=%x)", key, [key characterAtIndex:0]);
         add_to_input_buf((char_u*)[key UTF8String],
                 [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
@@ -690,8 +815,8 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
         inputReceived = YES;
     } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
         int mods = *((int*)bytes);  bytes += sizeof(int);
         int len = *((int*)bytes);  bytes += sizeof(int);
         NSString *key = [[NSString alloc] initWithBytes:bytes length:len
@@ -703,15 +828,15 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         [key release];
         inputReceived = YES;
     } else if (SelectTabMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
         //NSLog(@"Selecting tab %d", idx);
         send_tabline_event(idx);
         inputReceived = YES;
     } else if (CloseTabMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
         //NSLog(@"Closing tab %d", idx);
         send_tabline_menu_event(idx, TABLINE_MENU_CLOSE);
@@ -721,8 +846,8 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         send_tabline_menu_event(0, TABLINE_MENU_NEW);
         inputReceived = YES;
     } else if (DraggedTabMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
         // NOTE! The destination index is 0 based, so do not add 1 to make it 1
         // based.
         int idx = *((int*)bytes);
@@ -743,8 +868,8 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         tabpage_move(idx);
 #endif
     } else if (ScrollWheelMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
 
         int row = *((int*)bytes);  bytes += sizeof(int);
         int col = *((int*)bytes);  bytes += sizeof(int);
@@ -759,8 +884,8 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         gui_send_mouse_event(button, col, row, NO, flags);
         inputReceived = YES;
     } else if (MouseDownMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
 
         int row = *((int*)bytes);  bytes += sizeof(int);
         int col = *((int*)bytes);  bytes += sizeof(int);
@@ -775,8 +900,8 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
         inputReceived = YES;
     } else if (MouseUpMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
 
         int row = *((int*)bytes);  bytes += sizeof(int);
         int col = *((int*)bytes);  bytes += sizeof(int);
@@ -787,8 +912,8 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         gui_send_mouse_event(MOUSE_RELEASE, col, row, NO, flags);
         inputReceived = YES;
     } else if (MouseDraggedMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
 
         int row = *((int*)bytes);  bytes += sizeof(int);
         int col = *((int*)bytes);  bytes += sizeof(int);
@@ -798,21 +923,25 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
         gui_send_mouse_event(MOUSE_DRAG, col, row, NO, flags);
         inputReceived = YES;
-    } else if (BrowseForFileReplyMsgID == msgid) {
-        if (![[portMessage components] count]) return;
+    } 
+#if !MM_USE_DO
+    else if (BrowseForFileReplyMsgID == msgid) {
+        if (!data) return;
         [replyData release];
-        replyData = [[[portMessage components] objectAtIndex:0] copy];
-    } else if (SetTextDimensionsMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        replyData = [data copy];
+    }
+#endif
+    else if (SetTextDimensionsMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
         int cols = *((int*)bytes);  bytes += sizeof(int);
 
         //NSLog(@"[VimTask] Resizing shell to %dx%d.", cols, rows);
         gui_resize_shell(cols, rows);
     } else if (ExecuteMenuMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
 
         vimmenu_T *menu = (vimmenu_T*)tag;
@@ -821,24 +950,9 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
             gui_menu_cb(menu);
             inputReceived = YES;
         }
-    } else if (TaskShouldTerminateMsgID == msgid) {
-        int reply = TerminateReplyYesMsgID;
-        buf_T *buf;
-        for (buf = firstbuf; buf != NULL; buf = buf->b_next) {
-            if (bufIsChanged(buf)) {
-                reply = TerminateReplyNoMsgID;
-                break;
-            }
-        }
-
-        //NSLog(@"TaskShouldTerminateMsgID = %s",
-        //        reply == TerminateReplyYesMsgID ? "YES" : "NO");
-
-        [NSPortMessage sendMessage:reply withSendPort:[portMessage sendPort]
-                              wait:YES];
     } else if (ScrollbarEventMsgID == msgid) {
-        if (![[portMessage components] count]) return;
-        const void *bytes = [[[portMessage components] objectAtIndex:0] bytes];
+        if (!data) return;
+        const void *bytes = [data bytes];
         long ident = *((long*)bytes);  bytes += sizeof(long);
         int hitPart = *((int*)bytes);  bytes += sizeof(int);
         float fval = *((float*)bytes);  bytes += sizeof(float);
@@ -900,17 +1014,12 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
             inputReceived = YES;
         }
+    } else if (VimShouldCloseMsgID == msgid) {
+        gui_shell_closed();
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
 }
-
-
-@end // MMBackend
-
-
-
-@implementation MMBackend (Private)
 
 + (NSDictionary *)specialKeys
 {
@@ -1001,6 +1110,19 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     else
         [queue addObject:[NSData data]];
 }
+
+#if MM_USE_DO
+- (void)connectionDidDie:(NSNotification *)notification
+{
+    // If the main connection to MacVim is lost this means that MacVim was
+    // either quit (by the user chosing Quit on the MacVim menu), or it has
+    // crashed.  In either case our only option is to quit now.
+    // TODO: Write backup file?
+
+    //NSLog(@"A Vim process lots its connection to MacVim; quitting.");
+    getout(0);
+}
+#endif // MM_USE_DO
 
 @end // MMBackend (Private)
 

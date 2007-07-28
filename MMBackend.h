@@ -9,15 +9,25 @@
  */
 
 #import <Foundation/Foundation.h>
+#import "MacVim.h"
 
 
 
-@interface MMBackend : NSObject {
+@interface MMBackend : NSObject
+#if MM_USE_DO
+    <MMBackendProtocol>
+#endif
+{
     NSMutableArray  *queue;
     NSMutableData   *drawData;
-    NSData          *replyData;
+#if MM_USE_DO
+    NSConnection    *connection;
+    id              frontendProxy;
+#else
     NSPort          *sendPort;
     NSPort          *receivePort;
+    NSData          *replyData;
+#endif
     NSDictionary    *colorDict;
     BOOL            inputReceived;
     BOOL            receivedKillTaskMsg;

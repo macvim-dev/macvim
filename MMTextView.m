@@ -10,79 +10,21 @@
 
 #import "MMTextView.h"
 #import "MMTextStorage.h"
-#import "MacVim.h"
 #import "MMWindowController.h"
+#import "MMVimController.h"
+#import "MacVim.h"
 
 
 
 @interface MMTextView (Private)
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 - (void)dispatchKeyEvent:(NSEvent *)event;
+- (MMVimController *)vimController;
 @end
 
 
 
 @implementation MMTextView
-
-- (id)initWithPort:(NSPort *)port frame:(NSRect)frame
-     textContainer:(NSTextContainer *)tc
-{
-    if ((self = [super initWithFrame:frame textContainer:tc])) {
-        sendPort = [port retain];
-    }
-
-    return self;
-}
-
-- (MMTextView *)initWithFrame:(NSRect)frame port:(NSPort *)port
-{
-    MMTextStorage *ts = [[MMTextStorage alloc] init];
-    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
-    NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
-            NSMakeSize(1.0e7,1.0e7)];
-
-    [tc setWidthTracksTextView:NO];
-    [tc setHeightTracksTextView:NO];
-    [tc setLineFragmentPadding:0];
-
-    [ts addLayoutManager:lm];
-    [lm addTextContainer:tc];
-
-    [tc release];
-    [lm release];
-
-    // HACK! Where should i get these values from?
-    // TODO: get values from frame
-    [ts setMaxRows:24 columns:80];
-
-    if ((self = [super initWithFrame:frame textContainer:tc])) {
-        ownsTextStorage = YES;
-        //[self setRichText:NO];
-        sendPort = [port retain];
-    } else {
-        ownsTextStorage = NO;
-        [ts release];
-    }
-
-    return self;
-}
-
-
-- (void)dealloc
-{
-    // BUG!  The reference count of the text view will never reach 0 unless
-    // release is explicitly called on the text storage;  so this code is
-    // meaningless.
-    if (ownsTextStorage) {
-        [[self textContainer] setTextView:nil];
-        [[self textStorage] release];
-        ownsTextStorage = NO;
-    }
-
-    [sendPort release];
-
-    [super dealloc];
-}
 
 - (void)setShouldDrawInsertionPoint:(BOOL)enable
 {
@@ -122,9 +64,9 @@
 
     [NSCursor setHiddenUntilMouseMoves:YES];
 
-    [NSPortMessage sendMessage:InsertTextMsgID withSendPort:sendPort
-                          data:[string dataUsingEncoding:NSUTF8StringEncoding]
-                          wait:NO];
+    [[self vimController] sendMessage:InsertTextMsgID
+                 data:[string dataUsingEncoding:NSUTF8StringEncoding]
+                 wait:NO];
 }
 
 
@@ -174,8 +116,7 @@
     [data appendBytes:&len length:sizeof(int)];
     [data appendBytes:[string UTF8String] length:len];
 
-    [NSPortMessage sendMessage:CmdKeyMsgID withSendPort:sendPort data:data
-                          wait:NO];
+    [[self vimController] sendMessage:CmdKeyMsgID data:data wait:NO];
 
     return YES;
 }
@@ -220,8 +161,7 @@
     [data appendBytes:&flags length:sizeof(int)];
     [data appendBytes:&dy length:sizeof(float)];
 
-    [NSPortMessage sendMessage:ScrollWheelMsgID withSendPort:sendPort
-                          data:data wait:NO];
+    [[self vimController] sendMessage:ScrollWheelMsgID data:data wait:NO];
 }
 
 - (void)mouseDown:(NSEvent *)event
@@ -242,8 +182,7 @@
     [data appendBytes:&flags length:sizeof(int)];
     [data appendBytes:&count length:sizeof(int)];
 
-    [NSPortMessage sendMessage:MouseDownMsgID withSendPort:sendPort
-                          data:data wait:NO];
+    [[self vimController] sendMessage:MouseDownMsgID data:data wait:NO];
 }
 
 - (void)rightMouseDown:(NSEvent *)event
@@ -270,8 +209,7 @@
     [data appendBytes:&col length:sizeof(int)];
     [data appendBytes:&flags length:sizeof(int)];
 
-    [NSPortMessage sendMessage:MouseUpMsgID withSendPort:sendPort
-                          data:data wait:NO];
+    [[self vimController] sendMessage:MouseUpMsgID data:data wait:NO];
 }
 
 - (void)rightMouseUp:(NSEvent *)event
@@ -298,8 +236,7 @@
     [data appendBytes:&col length:sizeof(int)];
     [data appendBytes:&flags length:sizeof(int)];
 
-    [NSPortMessage sendMessage:MouseDraggedMsgID withSendPort:sendPort
-                          data:data wait:NO];
+    [[self vimController] sendMessage:MouseDraggedMsgID data:data wait:NO];
 }
 
 - (void)rightMouseDragged:(NSEvent *)event
@@ -393,9 +330,17 @@
 
         [NSCursor setHiddenUntilMouseMoves:YES];
 
-        [NSPortMessage sendMessage:KeyDownMsgID withSendPort:sendPort data:data
-                              wait:NO];
+        [[self vimController] sendMessage:KeyDownMsgID data:data wait:NO];
     }
+}
+
+- (MMVimController *)vimController
+{
+    id windowController = [[self window] windowController];
+
+    // TODO: Make sure 'windowController' is a MMWindowController before type
+    // casting.
+    return [(MMWindowController*)windowController vimController];
 }
 
 @end // MMTextView (Private)

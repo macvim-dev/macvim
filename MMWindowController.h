@@ -13,6 +13,7 @@
 @class PSMTabBarControl;
 @class MMTextView;
 @class MMTextStorage;
+@class MMVimController;
 
 
 @interface MMWindowController : NSWindowController
@@ -20,7 +21,8 @@
     IBOutlet PSMTabBarControl *tabBarControl;
     IBOutlet NSTabView *tabView;
     IBOutlet NSTextField *statusTextField;
-    NSPort *sendPort;
+
+    MMVimController *vimController;
     BOOL vimTaskSelectedTab;
     NSTimer *statusTimer;
     MMTextView *textView;
@@ -29,7 +31,8 @@
     BOOL setupDone;
 }
 
-- (id)initWithPort:(NSPort *)port;
+- (id)initWithVimController:(MMVimController *)controller;
+- (MMVimController *)vimController;
 - (MMTextView *)textView;
 - (MMTextStorage *)textStorage;
 - (void)openWindowWithRows:(int)rows columns:(int)cols;

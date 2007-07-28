@@ -11,6 +11,30 @@
 #import <Cocoa/Cocoa.h>
 
 
+#define MM_USE_DO 1
+
+
+
+#if MM_USE_DO
+
+@protocol MMBackendProtocol
+- (oneway void)processInput:(int)msgid data:(in NSData *)data;
+- (BOOL)checkForModifiedBuffers;
+@end
+
+@protocol MMFrontendProtocol
+- (oneway void)processCommandQueue:(in NSArray *)queue;
+@end
+
+@protocol MMAppProtocol
+- (byref id <MMFrontendProtocol>)connectBackend:
+    (byref in id <MMBackendProtocol>)backend;
+@end
+
+#endif
+
+
+
 enum {
     CheckinMsgID = 1,
     ConnectedMsgID,
@@ -44,9 +68,11 @@ enum {
     EnableMenuItemMsgID,
     ExecuteMenuMsgID,
     ShowToolbarMsgID,
+#if !MM_USE_DO
     TaskShouldTerminateMsgID,
     TerminateReplyYesMsgID,
     TerminateReplyNoMsgID,
+#endif
     CreateScrollbarMsgID,
     DestroyScrollbarMsgID,
     ShowScrollbarMsgID,
@@ -54,6 +80,7 @@ enum {
     SetScrollbarThumbMsgID,
     ScrollbarEventMsgID,
     SetFontMsgID,
+    VimShouldCloseMsgID,
 };
 
 

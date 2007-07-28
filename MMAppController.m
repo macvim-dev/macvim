@@ -10,7 +10,6 @@
 
 #import "MMAppController.h"
 #import "MMVimController.h"
-#import "MacVim.h"
 
 
 
@@ -21,6 +20,20 @@
     if ((self = [super init])) {
         vimControllers = [NSMutableArray new];
 
+#if MM_USE_DO
+        // NOTE!  If the name of the connection changes here it must also be
+        // updated in MMBackend.m.
+        NSConnection *connection = [NSConnection defaultConnection];
+        NSString *name = [NSString stringWithFormat:@"%@-connection",
+                 [[NSBundle mainBundle] bundleIdentifier]];
+        //NSLog(@"Registering connection with name '%@'", name);
+        if ([connection registerName:name]) {
+            [connection setRootObject:self];
+        } else {
+            NSLog(@"WARNING: Failed to register connection with name '%@'",
+                    name);
+        }
+#else
         // Init named port for VimTasks to connect to
         receivePort = [NSMachPort new];
         [receivePort setDelegate:self];
@@ -37,6 +50,7 @@
                                                              name:portName]) {
             NSLog(@"WARNING: Failed to start mach bootstrap server");
         }
+#endif
     }
 
     return self;
@@ -46,7 +60,9 @@
 {
     //NSLog(@"MMAppController dealloc");
 
+#if !MM_USE_DO
     [receivePort release];
+#endif
     [vimControllers release];
 
     [super dealloc];
@@ -86,6 +102,38 @@
 - (NSApplicationTerminateReply)applicationShouldTerminate:
     (NSApplication *)sender
 {
+#if MM_USE_DO
+    int reply = NSTerminateNow;
+    BOOL modifiedBuffers = NO;
+
+    unsigned i, count = [vimControllers count];
+    for (i = 0; i < count; ++i) {
+        MMVimController *controller = [vimControllers objectAtIndex:i];
+        id proxy = [controller backendProxy];
+        if (proxy && [proxy checkForModifiedBuffers]) {
+            modifiedBuffers = YES;
+            break;
+        }
+    }
+
+    if (modifiedBuffers) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        [alert addButtonWithTitle:@"Quit"];
+        [alert addButtonWithTitle:@"Cancel"];
+        [alert setMessageText:@"Quit without saving?"];
+        [alert setInformativeText:@"There are modified buffers, "
+           " if you quit now all changes will be lost.  Quit anyway?"];
+        [alert setAlertStyle:NSWarningAlertStyle];
+
+        if ([alert runModal] != NSAlertFirstButtonReturn) {
+            reply = NSTerminateCancel;
+        }
+
+        [alert release];
+    }
+
+    return reply;
+#else
     int reply = NSTerminateNow;
 
     // HACK!  Send message to all vim tasks asking if they have modified
@@ -136,6 +184,7 @@
     }
 
     return reply;
+#endif
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
@@ -145,6 +194,7 @@
     [self autorelease];
 }
 
+#if !MM_USE_DO
 - (void)handlePortMessage:(NSPortMessage *)portMessage
 {
     unsigned msgid = [portMessage msgid];
@@ -163,6 +213,7 @@
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
 }
+#endif
 
 - (void)removeVimController:(id)controller
 {
@@ -178,5 +229,23 @@
     //NSLog(@"Launching a new VimTask...");
     [NSTask launchedTaskWithLaunchPath:path arguments:args];
 }
+
+#if MM_USE_DO
+- (byref id <MMFrontendProtocol>)connectBackend:
+    (byref in id <MMBackendProtocol>)backend;
+{
+    //NSLog(@"Frontend got connection request from backend...adding new "
+    //        "MMVimController");
+
+    [(NSDistantObject*)backend
+            setProtocolForProxy:@protocol(MMBackendProtocol)];
+
+    MMVimController *wc = [[[MMVimController alloc] initWithBackend:backend]
+            autorelease];
+    [vimControllers addObject:wc];
+
+    return wc;
+}
+#endif
 
 @end

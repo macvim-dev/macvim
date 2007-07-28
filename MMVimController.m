@@ -10,7 +10,6 @@
 
 #import "MMVimController.h"
 #import "MMWindowController.h"
-#import "MacVim.h"
 #import "MMAppController.h"
 #import "MMTextView.h"
 #import "MMTextStorage.h"
@@ -32,6 +31,7 @@ static NSString *DefaultToolbarImageName = @"Attention";
 - (IBAction)toolbarAction:(id)sender;
 - (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
+- (void)connectionDidDie:(NSNotification *)notification;
 @end
 
 
@@ -67,10 +67,40 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 @implementation MMVimController
 
+#if MM_USE_DO
+- (id)initWithBackend:(id)backend
+#else
 - (id)initWithPort:(NSPort *)port
+#endif
 {
     if ((self = [super init])) {
-        windowController = [[MMWindowController alloc] initWithPort:port];
+        windowController =
+            [[MMWindowController alloc] initWithVimController:self];
+#if MM_USE_DO
+        backendProxy = [backend retain];
+
+        NSConnection *connection = [backendProxy connectionForProxy];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                selector:@selector(connectionDidDie:)
+                    name:NSConnectionDidDieNotification object:connection];
+#else
+        sendPort = [port retain];
+
+        // Init receive port and send connected message to VimTask
+        receivePort = [NSMachPort new];
+        [receivePort setDelegate:self];
+
+        // Add to the default run loop mode as well as the event tracking mode;
+        // the latter ensures that updates from the VimTask reaches
+        // MMVimController whilst the user resizes a window with the mouse.
+        [[NSRunLoop currentRunLoop] addPort:receivePort
+                                    forMode:NSDefaultRunLoopMode];
+        [[NSRunLoop currentRunLoop] addPort:receivePort
+                                    forMode:NSEventTrackingRunLoopMode];
+
+        [NSPortMessage sendMessage:ConnectedMsgID withSendPort:sendPort
+                       receivePort:receivePort wait:YES];
+#endif
 
         mainMenuItems = [[NSMutableArray alloc] init];
 
@@ -90,22 +120,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                        name:NSWindowDidBecomeMainNotification
                      object:[windowController window]];
 
-        sendPort = [port retain];
-
-        // Init receive port and send connected message to VimTask
-        receivePort = [NSMachPort new];
-        [receivePort setDelegate:self];
-
-        // Add to the default run loop mode as well as the event tracking mode;
-        // the latter ensures that updates from the VimTask reaches
-        // MMVimController whilst the user resizes a window with the mouse.
-        [[NSRunLoop currentRunLoop] addPort:receivePort
-                                    forMode:NSDefaultRunLoopMode];
-        [[NSRunLoop currentRunLoop] addPort:receivePort
-                                    forMode:NSEventTrackingRunLoopMode];
-
-        [NSPortMessage sendMessage:ConnectedMsgID withSendPort:sendPort
-                       receivePort:receivePort wait:YES];
     }
 
     return self;
@@ -113,23 +127,66 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)dealloc
 {
+    //NSLog(@"%@ %s", [self className], _cmd);
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+
+#if MM_USE_DO
+    [backendProxy release];
+#else
     if (sendPort) {
         // Kill task immediately
         [NSPortMessage sendMessage:KillTaskMsgID withSendPort:sendPort
                        receivePort:receivePort wait:NO];
     }
 
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [sendPort release];
+    [receivePort release];
+#endif
 
     [toolbarItemDict release];
     [toolbar release];
     [mainMenuItems release];
     [windowController release];
-    [sendPort release];
-    [receivePort release];
 
     [super dealloc];
 }
+
+- (id)backendProxy
+{
+    return backendProxy;
+}
+
+- (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait
+{
+#if MM_USE_DO
+    // TODO: Decrease reply/request timeouts if 'wait' is off.
+    [backendProxy processInput:msgid data:data];
+#else
+    [NSPortMessage sendMessage:msgid withSendPort:sendPort data:data
+                          wait:wait];
+#endif
+}
+
+#if MM_USE_DO
+- (oneway void)processCommandQueue:(in NSArray *)queue
+{
+    unsigned i, count = [queue count];
+    if (count % 2) {
+        NSLog(@"WARNING: Uneven number of components (%d) in flush queue "
+                "message; ignoring this message.", count);
+        return;
+    }
+
+    for (i = 0; i < count; i += 2) {
+        NSData *value = [queue objectAtIndex:i];
+        NSData *data = [queue objectAtIndex:i+1];
+
+        [self handleMessage:*((int*)[value bytes]) data:data];
+    }
+}
+
+#else // MM_USE_DO
 
 - (NSPort *)sendPort
 {
@@ -138,6 +195,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)handlePortMessage:(NSPortMessage *)portMessage
 {
+    //NSLog(@"%@ %s %@", [self className], _cmd, portMessage);
+
     NSArray *components = [portMessage components];
     unsigned msgid = [portMessage msgid];
 
@@ -168,6 +227,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     if (shouldUpdateMainMenu)
         [self updateMainMenu];
 }
+#endif // MM_USE_DO
 
 - (void)windowWillClose:(NSNotification *)notification
 {
@@ -216,6 +276,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)handleMessage:(int)msgid data:(NSData *)data
 {
+    //NSLog(@"%@ %s", [self className], _cmd);
+
     if (OpenVimWindowMsgID == msgid) {
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
@@ -225,7 +287,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         //        cols, rows);
 
         [windowController openWindowWithRows:rows columns:cols];
-    } else if (TaskExitedMsgID == msgid) {
+    }
+#if !MM_USE_DO
+    else if (TaskExitedMsgID == msgid) {
         //NSLog(@"Received task exited message from VimTask; closing window.");
 
         // Release sendPort immediately to avoid dealloc trying to send a 'kill
@@ -237,7 +301,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
         // HACK! Make sure no menu updating is done, we're about to close.
         shouldUpdateMainMenu = NO;
-    } else if (BatchDrawMsgID == msgid) {
+    }
+#endif // !MM_USE_DO
+    else if (BatchDrawMsgID == msgid) {
         //NSLog(@"Received batch draw message from VimTask.");
 
         [self performBatchDrawWithData:data];
@@ -673,6 +739,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)panelDidEnd:(NSSavePanel *)panel code:(int)code context:(void *)context
 {
+#if !MM_USE_DO
     NSMutableData *data = [NSMutableData data];
     int ok = (code == NSOKButton);
     NSString *filename = [panel filename];
@@ -690,6 +757,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 
     [windowController setStatusText:@""];
+#endif // !MM_USE_DO
 }
 
 - (NSMenuItem *)menuItemForTag:(int)tag
@@ -800,6 +868,15 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
     [item release];
 }
+
+#if MM_USE_DO
+- (void)connectionDidDie:(NSNotification *)notification
+{
+    //NSLog(@"A MMVimController lost its connection to the backend; "
+    //       "closing the controller.");
+    [windowController close];
+}
+#endif // MM_USE_DO
 
 @end // MMVimController (Private)
 

@@ -12,6 +12,7 @@
 #import <PSMTabBarControl.h>
 #import "MMTextView.h"
 #import "MMTextStorage.h"
+#import "MMVimController.h"
 #import "MacVim.h"
 
 
@@ -93,10 +94,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 @implementation MMWindowController
 
-- (id)initWithPort:(NSPort *)port
+- (id)initWithVimController:(MMVimController *)controller
 {
     if ((self = [super initWithWindowNibName:@"VimWindow"])) {
-        sendPort = [port retain];
+        vimController = controller;
         scrollbars = [[NSMutableArray alloc] init];
         textStorage = [[MMTextStorage alloc] init];
     }
@@ -106,7 +107,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)dealloc
 {
+    //NSLog(@"%@ %s", [self className], _cmd);
+
     // TODO: release tabBarControl and tabView?
+
+    vimController = nil;
 
     [tabBarControl setDelegate:nil];
     [[self window] setDelegate:nil];
@@ -116,9 +121,13 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [scrollbars release];
     [textView release];
     [textStorage release];
-    [sendPort release];
 
     [super dealloc];
+}
+
+- (MMVimController *)vimController
+{
+    return vimController;
 }
 
 - (void)windowDidLoad
@@ -223,39 +232,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)openWindowWithRows:(int)rows columns:(int)cols
 {
-#if 0
-    // Make sure window nib file is loaded.
-    [self window];
-
-    // Set up text system
-    textStorage = [[MMTextStorage alloc] init];
-    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
-    NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
-            NSMakeSize(1.0e7,1.0e7)];
-
-    [tc setWidthTracksTextView:NO];
-    [tc setHeightTracksTextView:NO];
-    [tc setLineFragmentPadding:0];
-
-    [textStorage setMaxRows:rows columns:cols];
-    [textStorage addLayoutManager:lm];
-    [lm addTextContainer:tc];
-    //[[lm typesetter] setUsesFontLeading:NO];
-
-    textView = [[MMTextView alloc] initWithPort:sendPort frame:[tabView frame]
-                                textContainer:tc];
-    [[self window] makeFirstResponder:textView];
-
-    // Keep track of when the layout has changed.
-    [[textView layoutManager] setDelegate:self];
-
-    // The text storage retains the layout manager which in turn retains the
-    // text container.
-    [tc release];
-    [lm release];
-
-    [self addNewTabViewItem];
-#else
     // Setup a complete text system.
     NSLayoutManager *lm = [[NSLayoutManager alloc] init];
     NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
@@ -269,8 +245,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [textStorage addLayoutManager:lm];
     [lm addTextContainer:tc];
 
-    textView = [[MMTextView alloc] initWithPort:sendPort frame:[tabView frame]
-                                textContainer:tc];
+    textView = [[MMTextView alloc] initWithFrame:[tabView frame]
+                                   textContainer:tc];
 
     [[self window] makeFirstResponder:textView];
 
@@ -283,7 +259,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [lm release];
 
     [self addNewTabViewItem];
-#endif
 
     // NOTE! This flag is set once the entire text system is set up.
     setupDone = YES;
@@ -409,7 +384,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (IBAction)addNewTab:(id)sender
 {
-    [NSPortMessage sendMessage:AddNewTabMsgID withSendPort:sendPort wait:NO];
+    [vimController sendMessage:AddNewTabMsgID data:nil wait:NO];
 }
 
 - (IBAction)showTabBar:(id)sender
@@ -446,8 +421,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         // Propagate the selection message to the VimTask.
         int idx = [self representedIndexOfTabViewItem:tabViewItem];
         NSData *data = [NSData dataWithBytes:&idx length:sizeof(int)];
-        [NSPortMessage sendMessage:SelectTabMsgID withSendPort:sendPort
-                              data:data wait:YES];
+        [vimController sendMessage:SelectTabMsgID data:data wait:YES];
     }
 }
 
@@ -460,8 +434,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     int idx = [self representedIndexOfTabViewItem:tabViewItem];
     //NSLog(@"Closing tab with index %d", idx);
     NSData *data = [NSData dataWithBytes:&idx length:sizeof(int)];
-    [NSPortMessage sendMessage:CloseTabMsgID withSendPort:sendPort
-                          data:data wait:YES];
+    [vimController sendMessage:CloseTabMsgID data:data wait:YES];
 
     return NO;
 }
@@ -472,8 +445,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSMutableData *data = [NSMutableData data];
     [data appendBytes:&idx length:sizeof(int)];
 
-    [NSPortMessage sendMessage:DraggedTabMsgID withSendPort:sendPort
-                          data:data wait:YES];
+    [vimController sendMessage:DraggedTabMsgID data:data wait:YES];
 }
 
 
@@ -524,11 +496,24 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 // -- NSWindow delegate ------------------------------------------------------
 
 
-#if 0
-- (void)windowWillClose:(NSNotification *)notification
+- (BOOL)windowShouldClose:(id)sender
 {
+    [vimController sendMessage:VimShouldCloseMsgID data:nil wait:YES];
+    return NO;
 }
 
+- (void)windowWillClose:(NSNotification *)notification
+{
+    //NSLog(@"%@ %s", [self className], _cmd);
+
+    // NOTE! There is a bug in PSMTabBarControl in that it retains the delegate
+    // (which is the MMWindowController) so reset the delegate here, otherwise
+    // the MMWindowController never gets released resulting in a pretty serious
+    // memory leak.
+    [tabBarControl setDelegate:nil];
+}
+
+#if 0
 - (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)proposedFrameSize
 {
     //NSLog(@"%s (%.2f,%.2f)", _cmd, proposedFrameSize.width,
@@ -725,8 +710,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSMutableData *data = [NSMutableData data];
     [data appendBytes:&tag length:sizeof(int)];
 
-    [NSPortMessage sendMessage:ExecuteMenuMsgID withSendPort:sendPort
-                          data:data wait:NO];
+    [vimController sendMessage:ExecuteMenuMsgID data:data wait:NO];
 }
 
 - (MMScroller *)scrollbarForIdentifier:(long)ident index:(unsigned *)idx
@@ -871,8 +855,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [data appendBytes:&hitPart length:sizeof(int)];
     [data appendBytes:&value length:sizeof(float)];
 
-    [NSPortMessage sendMessage:ScrollbarEventMsgID withSendPort:sendPort
-                          data:data wait:YES];
+    [vimController sendMessage:ScrollbarEventMsgID data:data wait:YES];
 }
 
 - (void)fitWindowToScrollbars:(id)sender
@@ -902,10 +885,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         //NSLog(@"Notify Vim that text storage dimensions changed to %dx%d",
         //        dim[0], dim[1]);
         NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];
-        [NSPortMessage sendMessage:SetTextDimensionsMsgID
-                      withSendPort:sendPort
-                              data:data
-                              wait:![textView inLiveResize]];
+        [vimController sendMessage:SetTextDimensionsMsgID data:data
+                     wait:![textView inLiveResize]];
     }
 
     [tabView setFrame:textViewRect];

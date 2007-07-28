@@ -12,15 +12,9 @@
 
 
 @interface MMTextView : NSTextView {
-    BOOL    ownsTextStorage;
-    int     tabpageIdx;
-    NSPort  *sendPort;
     BOOL    shouldDrawInsertionPoint;
 }
 
-- (id)initWithPort:(NSPort *)port frame:(NSRect)frame
-     textContainer:(NSTextContainer *)tc;
-- (MMTextView *)initWithFrame:(NSRect)frame port:(NSPort *)port;
 - (void)setShouldDrawInsertionPoint:(BOOL)enable;
 
 @end

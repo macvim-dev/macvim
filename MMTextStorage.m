@@ -54,6 +54,8 @@
 
 - (void)dealloc
 {
+    //NSLog(@"%@ %s", [self className], _cmd);
+
     [emptyRowString release];
     //[paragraphStyle release];
     [font release];

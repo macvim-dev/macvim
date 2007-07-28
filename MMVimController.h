@@ -9,15 +9,24 @@
  */
 
 #import <Cocoa/Cocoa.h>
+#import "MacVim.h"
 
 @class MMWindowController;
 
 
 
-@interface MMVimController : NSObject {
+@interface MMVimController : NSObject
+#if MM_USE_DO
+    <MMFrontendProtocol>
+#endif
+{
     MMWindowController  *windowController;
+#if MM_USE_DO
+    id                  backendProxy;
+#else
     NSPort              *sendPort;
     NSPort              *receivePort;
+#endif
     NSMutableArray      *mainMenuItems;
     BOOL                shouldUpdateMainMenu;
     //NSMutableArray      *popupMenus;
@@ -25,9 +34,15 @@
     NSMutableDictionary *toolbarItemDict;
 }
 
+#if MM_USE_DO
+- (id)initWithBackend:(id)backend;
+- (id)backendProxy;
+#else
 - (id)initWithPort:(NSPort *)port;
-- (void)windowWillClose:(NSNotification *)notification;
 - (NSPort *)sendPort;
+#endif
+- (void)windowWillClose:(NSNotification *)notification;
+- (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait;
 
 @end
 
