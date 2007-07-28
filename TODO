@@ -1,5 +1,6 @@
 Active:
 
+- :colorscheme elflord, :set lines+=3 --> colors are not updated properly
 - proper font handling
 - font selection dialog (:set gfn=*)
 - check for memory leaks
@@ -25,8 +26,6 @@ Active:
 - hide baseline separator when tabbar is visible (and make sure clicking the
   hide/show toolbar button in the top right of the corner does not show it
   again)
-- use DO to communicate between GUI and Vim (only for two-way communication,
-  one-way communication should still use mach ports)
 - window title is never set when starting with terminal vim and typing :gui
 - forking doesn't work with :gui (i think)
 - make sure [NSMutableData appendByte:length:] is never called with 0 length
@@ -48,9 +47,19 @@ Active:
 - got this error when clicking to close second last tab:
     2007-07-23 08:19:29.398 MacVim[335] *** Assertion failure in -[PSMTabBarControl lockFocus], AppKit.subproj/NSView.m:3248
     2007-07-23 08:19:29.410 MacVim[335] lockFocus sent to a view whose window is deferred and does not yet have a corresponding platform window
+- got this error on Cmd-N with no other windows open:
+    2007-07-27 22:00:17.680 MacVim[454] *** -[NSToolbarView frameDidChange:]: selector not recognized [self = 0x39ba80]
+    2007-07-27 22:00:17.690 MacVim[454] Exception raised during posting of notification.  Ignored.  exception: *** -[NSToolbarView frameDidChange:]: selector not recognized [self = 0x39ba80]
+
 
 
 Pending:
+
+- use DO to communicate between GUI and Vim (only for two-way communication,
+  one-way communication should still use mach ports)
+
+
+Done:
 
 - make scrollbar inactive if it is too small to display properly
 - make vertical scrollbars cover command line as well
@@ -66,10 +75,6 @@ Pending:
   (figure out how to pass '-nowindow yes' option when launching GUI)
 - support using VimTask as a standalone terminal app, with support for :gui
 - path is set to / when not starting from command line, set it to $HOME instead
-
-
-Done:
-
 - input of wide characters does not work
 - tab completion doesn't work on iMac
 - close icons on tabs don't appear on iMac
