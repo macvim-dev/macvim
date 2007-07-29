@@ -505,6 +505,7 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         NSString *name = [[NSString alloc] initWithBytes:(void*)bytes
                 length:len encoding:NSUTF8StringEncoding];
         s = vim_strsave((char_u*)[name UTF8String]);
+        [name release];
     }
 
     [replyData release];  replyData = nil;

@@ -558,6 +558,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
         [title release];
         [tip release];
+        [icon release];
     } else if (RemoveMenuItemMsgID == msgid) {
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
