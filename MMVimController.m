@@ -169,8 +169,16 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         if (connection) {
             NSTimeInterval req = [connection requestTimeout];
             [connection setRequestTimeout:0];
-            [backendProxy processInput:msgid data:data];
-            [connection setRequestTimeout:req];
+            @try {
+                [backendProxy processInput:msgid data:data];
+            }
+            @catch (NSException *e) {
+                // Connection timed out, just ignore this.
+                //NSLog(@"WARNING! Connection timed out in %s", _cmd);
+            }
+            @finally {
+                [connection setRequestTimeout:req];
+            }
         }
     }
 #else
