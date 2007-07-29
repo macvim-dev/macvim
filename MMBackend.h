@@ -23,6 +23,7 @@
 #if MM_USE_DO
     NSConnection    *connection;
     id              frontendProxy;
+    NSString        *browseForFileString;
 #else
     NSPort          *sendPort;
     NSPort          *receivePort;

@@ -180,6 +180,27 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 }
 
 #if MM_USE_DO
+- (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
+                                   title:(in bycopy NSString *)title
+                                  saving:(int)saving
+{
+    if (saving) {
+        [[NSSavePanel savePanel] beginSheetForDirectory:dir file:nil
+                modalForWindow:[windowController window]
+                 modalDelegate:self
+                didEndSelector:@selector(panelDidEnd:code:context:)
+                   contextInfo:NULL];
+    } else {
+        NSOpenPanel *panel = [NSOpenPanel openPanel];
+        [panel setAllowsMultipleSelection:NO];
+        [panel beginSheetForDirectory:dir file:nil types:nil
+                modalForWindow:[windowController window]
+                 modalDelegate:self
+                didEndSelector:@selector(panelDidEnd:code:context:)
+                   contextInfo:NULL];
+    }
+}
+
 - (oneway void)processCommandQueue:(in NSArray *)queue
 {
     unsigned i, count = [queue count];
@@ -762,7 +783,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)panelDidEnd:(NSSavePanel *)panel code:(int)code context:(void *)context
 {
-#if !MM_USE_DO
+#if MM_USE_DO
+    NSString *string = (code == NSOKButton) ? [panel filename] : nil;
+    [backendProxy setBrowseForFileString:string];
+#else
     NSMutableData *data = [NSMutableData data];
     int ok = (code == NSOKButton);
     NSString *filename = [panel filename];

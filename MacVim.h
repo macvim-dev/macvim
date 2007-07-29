@@ -20,10 +20,14 @@
 @protocol MMBackendProtocol
 - (oneway void)processInput:(int)msgid data:(in NSData *)data;
 - (BOOL)checkForModifiedBuffers;
+- (oneway void)setBrowseForFileString:(in bycopy NSString *)string;
 @end
 
 @protocol MMFrontendProtocol
 - (oneway void)processCommandQueue:(in NSArray *)queue;
+- (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
+                                   title:(in bycopy NSString *)title
+                                  saving:(int)saving;
 @end
 
 @protocol MMAppProtocol

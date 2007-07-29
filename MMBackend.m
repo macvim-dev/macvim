@@ -461,15 +461,42 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     [self queueMessage:SetVimWindowTitleMsgID data:data];
 }
 
+#if MM_USE_DO
+- (oneway void)setBrowseForFileString:(in bycopy NSString *)string
+{
+    // NOTE: This is called by [MMVimController panelDidEnd:::] to indicate
+    // that the save/open panel has finished.  If 'string == nil' that means
+    // the user pressed cancel.
+    browseForFileString = string ? [string copy] : nil;
+}
+#endif
+
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
                             saving:(int)saving
 {
-#if MM_USE_DO
-    return nil;
-#else
     //NSLog(@"browseForFileInDirectory:%s title:%s saving:%d", dir, title,
     //        saving);
 
+#if MM_USE_DO
+    NSString *ds = dir
+            ? [NSString stringWithCString:dir encoding:NSUTF8StringEncoding]
+            : nil;
+    NSString *ts = title
+            ? [NSString stringWithCString:title encoding:NSUTF8StringEncoding]
+            : nil;
+    [frontendProxy showSavePanelForDirectory:ds title:ts saving:saving];
+
+    // Wait until a reply is sent from MMVimController.
+    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                             beforeDate:[NSDate distantFuture]];
+    if (!browseForFileString)
+        return nil;
+
+    char_u *s = vim_strsave((char_u*)[browseForFileString UTF8String]);
+    [browseForFileString release];  browseForFileString = nil;
+
+    return (char *)s;
+#else
     NSMutableData *data = [NSMutableData data];
 
     [data appendBytes:&saving length:sizeof(int)];
