@@ -6,6 +6,7 @@
             CLASS = MMWindowController; 
             LANGUAGE = ObjC; 
             OUTLETS = {
+                statusSeparator = NSBox; 
                 statusTextField = NSTextField; 
                 tabBarControl = PSMTabBarControl; 
                 tabView = NSTabView; 

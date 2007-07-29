@@ -13,7 +13,29 @@
 
 
 
+// NSUserDefaults keys
+NSString *MMNoWindowKey = @"nowindow";
+NSString *MMTabMinWidthKey = @"tabminwidth";
+NSString *MMTabMaxWidthKey = @"tabmaxwidth";
+NSString *MMTabOptimumWidthKey = @"taboptimumwidth";
+NSString *MMStatuslineOffKey = @"statuslineoff";
+
+
+
 @implementation MMAppController
+
++ (void)initialize
+{
+    NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
+        [NSNumber numberWithBool:NO],   MMNoWindowKey,
+        [NSNumber numberWithInt:64],    MMTabMinWidthKey,
+        [NSNumber numberWithInt:6*64],  MMTabMaxWidthKey,
+        [NSNumber numberWithInt:132],   MMTabOptimumWidthKey,
+        [NSNumber numberWithBool:NO],   MMStatuslineOffKey,
+        nil];
+
+    [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
+}
 
 - (id)init
 {
@@ -77,7 +99,7 @@
 {
     // NOTE!  This way it possible to start the app with the command-line
     // argument '-nowindow yes' and no window will be opened by default.
-    return ![[NSUserDefaults standardUserDefaults] boolForKey:@"nowindow"];
+    return ![[NSUserDefaults standardUserDefaults] boolForKey:MMNoWindowKey];
 }
 
 - (BOOL)applicationOpenUntitledFile:(NSApplication *)sender

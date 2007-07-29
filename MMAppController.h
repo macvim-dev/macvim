@@ -12,6 +12,14 @@
 #import "MacVim.h"
 
 
+// NSUserDefaults keys
+extern NSString *MMNoWindowKey;
+extern NSString *MMTabMinWidthKey;
+extern NSString *MMTabMaxWidthKey;
+extern NSString *MMTabOptimumWidthKey;
+extern NSString *MMStatuslineOffKey;
+
+
 
 @interface MMAppController : NSObject
 #if MM_USE_DO

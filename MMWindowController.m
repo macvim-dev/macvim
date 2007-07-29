@@ -14,6 +14,7 @@
 #import "MMTextStorage.h"
 #import "MMVimController.h"
 #import "MacVim.h"
+#import "MMAppController.h"
 
 
 // Scroller type; these must match SBAR_* in gui.h
@@ -23,9 +24,9 @@ enum {
     MMScrollerTypeBottom
 };
 
-// TODO!  Implement hiding/showing of status line.
+// NOTE!  This value must match the actual position of the status line
+// separator in VimWindow.nib.
 static float StatusLineHeight = 16.0f;
-static BOOL statusLineIsVisible = NO; // NO is _not_ supported at the moment!
 
 
 // TODO:  Move!
@@ -138,7 +139,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // NOTE: Size to fit looks good, but not many tabs will fit and there are
     // quite a few drawing bugs in this code, so it is disabled for now.
     //[tabBarControl setSizeCellsToFit:YES];
-    [tabBarControl setCellMinWidth:64];
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
+    [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
+    [tabBarControl setCellOptimumWidth:[ud integerForKey:MMTabOptimumWidthKey]];
     [tabBarControl setAllowsDragBetweenWindows:NO];
     [tabBarControl setShowAddTabButton:YES];
     [[tabBarControl addTabButton] setTarget:self];
@@ -276,7 +280,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     [[self window] makeKeyAndOrderFront:self];
 
-    [statusTextField setHidden:!statusLineIsVisible];
+    BOOL statusOff = [[NSUserDefaults standardUserDefaults]
+                    boolForKey:MMStatuslineOffKey];
+    [statusTextField setHidden:statusOff];
+    [statusSeparator setHidden:statusOff];
     [self flashStatusText:@"Welcome to MacVim!"];
 }
 
@@ -369,7 +376,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)flashStatusText:(NSString *)text
 {
-    if (!statusLineIsVisible) return;
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMStatuslineOffKey])
+        return;
 
     [self setStatusText:text];
 
@@ -577,7 +585,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     if (![tabBarControl isHidden])
         size.height += [tabBarControl frame].size.height;
-    if (statusLineIsVisible)
+    if (![[NSUserDefaults standardUserDefaults] boolForKey:MMStatuslineOffKey])
         size.height += StatusLineHeight;
 
     if ([self bottomScrollbarVisible])
@@ -596,7 +604,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     if (![tabBarControl isHidden])
         rect.size.height -= [tabBarControl frame].size.height;
-    if (statusLineIsVisible) {
+    if (![[NSUserDefaults standardUserDefaults]
+            boolForKey:MMStatuslineOffKey]) {
         rect.size.height -= StatusLineHeight;
         rect.origin.y += StatusLineHeight;
     }
@@ -776,6 +785,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSRect tabViewFrame = [tabView frame];
     NSView *contentView = [[self window] contentView];
     BOOL lsbVisible = [self leftScrollbarVisible];
+    BOOL statusVisible = ![[NSUserDefaults standardUserDefaults]
+            boolForKey:MMStatuslineOffKey];
 
     // HACK!  Find the lowest left&right vertical scrollbars, as well as the
     // leftmost horizontal scrollbar.  This hack continues further down.
@@ -814,7 +825,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         if ([scroller type] == MMScrollerTypeBottom) {
             rect = [textStorage rectForColumnsInRange:[scroller range]];
             rect.size.height = [NSScroller scrollerWidth];
-            if (statusLineIsVisible)
+            if (statusVisible)
                 rect.origin.y += StatusLineHeight;
             if (lsbVisible)
                 rect.origin.x += [NSScroller scrollerWidth];

@@ -21,6 +21,7 @@
     IBOutlet PSMTabBarControl *tabBarControl;
     IBOutlet NSTabView *tabView;
     IBOutlet NSTextField *statusTextField;
+    IBOutlet NSBox *statusSeparator;
 
     MMVimController *vimController;
     BOOL vimTaskSelectedTab;
