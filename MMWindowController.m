@@ -861,10 +861,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [data appendBytes:&hitPart length:sizeof(int)];
     [data appendBytes:&value length:sizeof(float)];
 
-    // TODO: Should this message wait or not?  If there are problems with
-    // MacVim locking up when the user scrolls violently, then it should be
-    // changed to NO.
-    [vimController sendMessage:ScrollbarEventMsgID data:data wait:YES];
+    [vimController sendMessage:ScrollbarEventMsgID data:data wait:NO];
 }
 
 - (void)fitWindowToScrollbars:(id)sender
