@@ -59,6 +59,7 @@
     [emptyRowString release];
     //[paragraphStyle release];
     [font release];
+    [defaultBackgroundColor release];
     [attribString release];
     [super dealloc];
 }
@@ -130,9 +131,15 @@
 
     NSString *fmt = [NSString stringWithFormat:@"%%%dc\%C", maxColumns,
              NSLineSeparatorCharacter];
-    NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
-            font, NSFontAttributeName,
-            nil];
+    NSDictionary *dict;
+    if (defaultBackgroundColor) {
+        dict = [NSDictionary dictionaryWithObjectsAndKeys:
+                font, NSFontAttributeName,
+                defaultBackgroundColor, NSBackgroundColorAttributeName, nil];
+    } else {
+        dict = [NSDictionary dictionaryWithObjectsAndKeys:
+                font, NSFontAttributeName, nil];
+    }
             
     [emptyRowString release];
     emptyRowString = [[NSAttributedString alloc]
@@ -359,6 +366,31 @@
     [self edited:NSTextStorageEditedAttributes range:range changeInLength:0];
 }
 
+- (void)setDefaultColorsBackground:(NSColor *)bgColor
+                        foreground:(NSColor *)fgColor
+{
+    // NOTE: Foreground color is ignored.
+    [defaultBackgroundColor release];
+
+#if 0
+    if (bgColor) {
+        defaultBackgroundColor = [bgColor retain];
+#if 1
+        NSMutableAttributedString *string = [emptyRowString mutableCopy];
+        [string addAttribute:NSBackgroundColorAttributeName value:bgColor
+                       range:NSMakeRange(0, [emptyRowString length])];
+        [emptyRowString release];
+        emptyRowString = string;
+#endif
+        [self clearAllWithColor:bgColor];
+    } else {
+        defaultBackgroundColor = nil;
+    }
+#else
+    defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
+#endif
+}
+
 - (void)setFont:(NSFont*)newFont
 {
 #if 0
@@ -374,7 +406,7 @@
                 changeInLength:0];
     }
 #else
-    if (font != newFont) {
+    if (newFont && font != newFont) {
         //NSLog(@"Setting font %@", newFont);
         [font release];
         font = [newFont retain];

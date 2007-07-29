@@ -650,6 +650,17 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         }
 
         [name release];
+    } else if (SetDefaultColorsMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int bg = *((int*)bytes);  bytes += sizeof(int);
+        int fg = *((int*)bytes);  bytes += sizeof(int);
+
+        MMTextStorage *textStorage = [windowController textStorage];
+        if (textStorage) {
+            [textStorage
+                    setDefaultColorsBackground:[NSColor colorWithRgbInt:bg]
+                                    foreground:[NSColor colorWithRgbInt:fg]];
+        }
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

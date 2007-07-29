@@ -17,6 +17,7 @@
     int maxRows, maxColumns;
     NSAttributedString *emptyRowString;
     NSFont *font;
+    NSColor *defaultBackgroundColor;
     //NSMutableParagraphStyle *paragraphStyle;
 }
 
@@ -43,6 +44,8 @@
 - (void)clearBlockFromRow:(int)row1 column:(int)col1 toRow:(int)row2
                    column:(int)col2 color:(NSColor *)color;
 - (void)clearAllWithColor:(NSColor *)color;
+- (void)setDefaultColorsBackground:(NSColor *)bgColor
+                        foreground:(NSColor *)fgColor;
 - (void)setFont:(NSFont*)newFont;
 - (NSFont*)font;
 - (float)widthOfEmptyRow;

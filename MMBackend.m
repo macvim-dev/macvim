@@ -84,6 +84,13 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 {
     defaultBackgroundColor = bg;
     defaultForegroundColor = fg;
+
+    NSMutableData *data = [NSMutableData data];
+
+    [data appendBytes:&bg length:sizeof(int)];
+    [data appendBytes:&fg length:sizeof(int)];
+
+    [self queueMessage:SetDefaultColorsMsgID data:data];
 }
 
 - (BOOL)checkin

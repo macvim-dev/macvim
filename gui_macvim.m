@@ -83,9 +83,7 @@ gui_mch_init(void)
     gui.char_width = 1;
     gui.char_ascent = 0;
 
-    // Default foreground and background colors are black and white.
-    gui.def_norm_pixel = gui.norm_pixel = 0;
-    gui.def_back_pixel = gui.back_pixel = 0xffffff;
+    gui_mch_def_colors();
 
     [[MMBackend sharedInstance]
         setDefaultColorsBackground:gui.back_pixel foreground:gui.norm_pixel];
@@ -1057,6 +1055,15 @@ gui_mch_new_colors(void)
     [[MMBackend sharedInstance]
         setDefaultColorsBackground:gui.def_back_pixel
                         foreground:gui.def_norm_pixel];
+}
+
+
+    void
+gui_mch_def_colors()
+{
+    // Default foreground and background colors are black and white.
+    gui.def_norm_pixel = gui.norm_pixel = 0;
+    gui.def_back_pixel = gui.back_pixel = 0xffffff;
 }
 
 

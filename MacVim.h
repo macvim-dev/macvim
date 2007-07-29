@@ -81,6 +81,7 @@ enum {
     ScrollbarEventMsgID,
     SetFontMsgID,
     VimShouldCloseMsgID,
+    SetDefaultColorsMsgID,
 };
 
 
