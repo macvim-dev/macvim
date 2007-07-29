@@ -29,6 +29,11 @@
         //NSLog(@"Registering connection with name '%@'", name);
         if ([connection registerName:name]) {
             [connection setRootObject:self];
+
+            // NOTE: When the user is resizing the window the AppKit puts the
+            // run loop in event tracking mode.  Unless the connection listens
+            // to request in this mode, live resizing won't work.
+            [connection addRequestMode:NSEventTrackingRunLoopMode];
         } else {
             NSLog(@"WARNING: Failed to register connection with name '%@'",
                     name);
