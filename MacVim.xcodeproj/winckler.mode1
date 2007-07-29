@@ -367,9 +367,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>1DE601E10C587E150055263D</string>
+				<string>1DBA03650C5CE38900B05DE3</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>1DE601E20C587E150055263D</string>
+				<string>1DBA03660C5CE38900B05DE3</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -503,7 +503,6 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>1D16B9EF0BA33E3800A69B33</string>
 		<string>1C0AD2B3069F1EA900FABCE6</string>
 		<string>/Users/winckler/Projects/vim7/src/MacVim/MacVim.xcodeproj</string>
 	</array>
@@ -957,9 +956,9 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1C0AD2B3069F1EA900FABCE6</string>
-				<string>1DE608C20C58821B0055263D</string>
+				<string>1DBA03670C5CE38900B05DE3</string>
 				<string>1CD0528B0623707200166675</string>
-				<string>1DE608C30C58821B0055263D</string>
+				<string>1DBA03680C5CE38900B05DE3</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.run</string>
