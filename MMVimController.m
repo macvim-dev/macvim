@@ -160,8 +160,19 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait
 {
 #if MM_USE_DO
-    // TODO: Decrease reply/request timeouts if 'wait' is off.
-    [backendProxy processInput:msgid data:data];
+    if (wait) {
+        [backendProxy processInput:msgid data:data];
+    } else {
+        // Do not wait for the message to be sent, i.e. drop the message if it
+        // can't be delivered immediately.
+        NSConnection *connection = [backendProxy connectionForProxy];
+        if (connection) {
+            NSTimeInterval req = [connection requestTimeout];
+            [connection setRequestTimeout:0];
+            [backendProxy processInput:msgid data:data];
+            [connection setRequestTimeout:req];
+        }
+    }
 #else
     [NSPortMessage sendMessage:msgid withSendPort:sendPort data:data
                           wait:wait];
