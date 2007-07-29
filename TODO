@@ -1,6 +1,7 @@
 Active:
 
-- :colorscheme elflord, :set lines+=3 --> colors are not updated properly
+- add user default for min/max tab size
+- should ignore action message if is called too often (e.g. in addNewTab:)
 - proper font handling
 - font selection dialog (:set gfn=*)
 - check for memory leaks
@@ -55,6 +56,7 @@ Active:
 
 Pending:
 
+- :colorscheme elflord, :set lines+=3 --> colors are not updated properly
 - use DO to communicate between GUI and Vim (only for two-way communication,
   one-way communication should still use mach ports)
 
