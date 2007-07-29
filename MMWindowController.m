@@ -135,7 +135,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // Called after window nib file is loaded.
 
     [tabBarControl setHidden:YES];
-    [tabBarControl setSizeCellsToFit:YES];
+    // NOTE: Size to fit looks good, but not many tabs will fit and there are
+    // quite a few drawing bugs in this code, so it is disabled for now.
+    //[tabBarControl setSizeCellsToFit:YES];
+    [tabBarControl setCellMinWidth:64];
     [tabBarControl setAllowsDragBetweenWindows:NO];
     [tabBarControl setShowAddTabButton:YES];
     [[tabBarControl addTabButton] setTarget:self];
@@ -384,6 +387,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (IBAction)addNewTab:(id)sender
 {
+    // NOTE! This can get called a lot if the user holds down the key
+    // equivalent for this action, which causes the ports to fill up.  If we
+    // wait for the message to be sent then the app might become unresponsive.
     [vimController sendMessage:AddNewTabMsgID data:nil wait:NO];
 }
 
@@ -855,6 +861,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [data appendBytes:&hitPart length:sizeof(int)];
     [data appendBytes:&value length:sizeof(float)];
 
+    // TODO: Should this message wait or not?  If there are problems with
+    // MacVim locking up when the user scrolls violently, then it should be
+    // changed to NO.
     [vimController sendMessage:ScrollbarEventMsgID data:data wait:YES];
 }
 
@@ -885,6 +894,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         //NSLog(@"Notify Vim that text storage dimensions changed to %dx%d",
         //        dim[0], dim[1]);
         NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];
+
+        // NOTE! This can get called a lot when in live resize, which causes
+        // the ports to fill up.  If we wait for the message to be sent then
+        // the app might become unresponsive.
         [vimController sendMessage:SetTextDimensionsMsgID data:data
                      wait:![textView inLiveResize]];
     }
