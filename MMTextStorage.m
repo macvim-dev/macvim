@@ -471,8 +471,13 @@
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
     float fontHeight = [lm defaultLineHeightForFont:font];
 
-    rect.origin.y = fontHeight * range.location;
-    rect.size.height = fontHeight * range.length;
+    unsigned start = range.location > maxRows ? maxRows : range.location;
+    unsigned length = range.length;
+    if (start+length > maxRows)
+        length = maxRows - start;
+
+    rect.origin.y = fontHeight * start;
+    rect.size.height = fontHeight * length;
 
     return rect;
 }
@@ -483,8 +488,13 @@
     float fontWidth = maxColumns > 0
             ? [self widthOfEmptyRow]/maxColumns : 0;
 
-    rect.origin.x = fontWidth * range.location;
-    rect.size.width = fontWidth * range.length;
+    unsigned start = range.location > maxColumns ? maxColumns : range.location;
+    unsigned length = range.length;
+    if (start+length > maxColumns)
+        length = maxColumns - start;
+
+    rect.origin.x = fontWidth * start;
+    rect.size.width = fontWidth * length;
 
     return rect;
 }
