@@ -25,7 +25,7 @@ enum {
 
 // TODO!  Implement hiding/showing of status line.
 static float StatusLineHeight = 16.0f;
-static BOOL statusLineIsVisible = YES; // NO is _not_ supported at the moment!
+static BOOL statusLineIsVisible = NO; // NO is _not_ supported at the moment!
 
 
 // TODO:  Move!
@@ -777,11 +777,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSView *contentView = [[self window] contentView];
     BOOL lsbVisible = [self leftScrollbarVisible];
 
-    // HACK!  Find the lowest left&right vertical scrollbars.  This hack
-    // continues further down.
+    // HACK!  Find the lowest left&right vertical scrollbars, as well as the
+    // leftmost horizontal scrollbar.  This hack continues further down.
     unsigned lowestLeftSbIdx = (unsigned)-1;
     unsigned lowestRightSbIdx = (unsigned)-1;
-    unsigned rowMaxLeft = 0, rowMaxRight = 0;
+    unsigned leftmostSbIdx = (unsigned)-1;
+    unsigned rowMaxLeft = 0, rowMaxRight = 0, colMax = 0;
     unsigned i, count = [scrollbars count];
     for (i = 0; i < count; ++i) {
         MMScroller *scroller = [scrollbars objectAtIndex:i];
@@ -795,6 +796,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                     && range.location >= rowMaxRight) {
                 rowMaxRight = range.location;
                 lowestRightSbIdx = i;
+            } else if ([scroller type] == MMScrollerTypeBottom
+                    && range.location >= colMax) {
+                colMax = range.location;
+                leftmostSbIdx = i;
             }
         }
     }
@@ -813,6 +818,25 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                 rect.origin.y += StatusLineHeight;
             if (lsbVisible)
                 rect.origin.x += [NSScroller scrollerWidth];
+
+            // HACK!  Make sure the leftmost horizontal scrollbar covers the
+            // text view all the way to the right, otherwise it looks ugly when
+            // the user drags the window to resize.
+            if (i == leftmostSbIdx) {
+                float w = NSMaxX(tabViewFrame) - NSMaxX(rect);
+                if (w > 0)
+                    rect.size.width += w;
+            }
+
+            // Make sure scrollbar rect is bounded by the tab view frame.
+            if (rect.origin.x < tabViewFrame.origin.x)
+                rect.origin.x = tabViewFrame.origin.x;
+            else if (rect.origin.x > NSMaxX(tabViewFrame))
+                rect.origin.x = NSMaxX(tabViewFrame);
+            if (NSMaxX(rect) > NSMaxX(tabViewFrame))
+                rect.size.width -= NSMaxX(rect) - NSMaxX(tabViewFrame);
+            if (rect.size.width < 0)
+                rect.size.width = 0;
         } else {
             rect = [textStorage rectForRowsInRange:[scroller range]];
             // Adjust for the fact that text layout is flipped.
@@ -836,6 +860,16 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                     rect.size.height = h;
                 }
             }
+
+            // Make sure scrollbar rect is bounded by the tab view frame.
+            if (rect.origin.y < tabViewFrame.origin.y)
+                rect.origin.y = tabViewFrame.origin.y;
+            else if (rect.origin.y > NSMaxY(tabViewFrame))
+                rect.origin.y = NSMaxY(tabViewFrame);
+            if (NSMaxY(rect) > NSMaxY(tabViewFrame))
+                rect.size.height -= NSMaxY(rect) - NSMaxY(tabViewFrame);
+            if (rect.size.height < 0)
+                rect.size.height = 0;
         }
 
         //NSLog(@"set scroller #%d frame = %@", i, NSStringFromRect(rect));
