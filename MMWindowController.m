@@ -891,6 +891,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         // Text storage dimensions changed, notify the VimTask.
         int dim[2];
         [textStorage getMaxRows:&dim[0] columns:&dim[1]];
+
+        NSString *sdim = [NSString stringWithFormat:@"%dx%d", dim[1], dim[0]];
+        [self flashStatusText:sdim];
+
         //NSLog(@"Notify Vim that text storage dimensions changed to %dx%d",
         //        dim[0], dim[1]);
         NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];

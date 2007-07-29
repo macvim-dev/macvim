@@ -184,6 +184,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                                    title:(in bycopy NSString *)title
                                   saving:(int)saving
 {
+    [windowController setStatusText:title];
+
     if (saving) {
         [[NSSavePanel savePanel] beginSheetForDirectory:dir file:nil
                 modalForWindow:[windowController window]
@@ -784,6 +786,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 - (void)panelDidEnd:(NSSavePanel *)panel code:(int)code context:(void *)context
 {
 #if MM_USE_DO
+    [windowController setStatusText:@""];
+
     NSString *string = (code == NSOKButton) ? [panel filename] : nil;
     [backendProxy setBrowseForFileString:string];
 #else
