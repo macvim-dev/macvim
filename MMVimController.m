@@ -31,7 +31,10 @@ static NSString *DefaultToolbarImageName = @"Attention";
 - (IBAction)toolbarAction:(id)sender;
 - (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
+#if MM_USE_DO
 - (void)connectionDidDie:(NSNotification *)notification;
+#endif
+- (BOOL)executeActionWithName:(NSString *)name;
 @end
 
 
@@ -152,9 +155,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     [super dealloc];
 }
 
-- (id)backendProxy
+- (MMWindowController *)windowController
 {
-    return backendProxy;
+    return windowController;
 }
 
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait
@@ -188,6 +191,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 }
 
 #if MM_USE_DO
+- (id)backendProxy
+{
+    return backendProxy;
+}
+
 - (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
                                    title:(in bycopy NSString *)title
                                   saving:(int)saving
@@ -693,6 +701,19 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                     setDefaultColorsBackground:[NSColor colorWithRgbInt:bg]
                                     foreground:[NSColor colorWithRgbInt:fg]];
         }
+    } else if (ExecuteActionMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int len = *((int*)bytes);  bytes += sizeof(int);
+        NSString *actionName = [[NSString alloc]
+                initWithBytesNoCopy:(void*)bytes
+                             length:len
+                           encoding:NSUTF8StringEncoding
+                       freeWhenDone:NO];
+
+        SEL sel = NSSelectorFromString(actionName);
+        [NSApp sendAction:sel to:nil from:self];
+
+        [actionName release];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
@@ -936,6 +957,41 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     [windowController close];
 }
 #endif // MM_USE_DO
+
+- (BOOL)executeActionWithName:(NSString *)name
+{
+#if 0
+    static NSDictionary *actionDict = nil;
+
+    if (!actionDict) {
+        NSBundle *mainBundle = [NSBundle mainBundle];
+        NSString *path = [mainBundle pathForResource:@"Actions"
+                                              ofType:@"plist"];
+        if (path) {
+            actionDict = [[NSDictionary alloc] initWithContentsOfFile:path];
+            NSLog(@"Actions = %@", actionDict);
+        } else {
+            NSLog(@"WARNING: Failed to load dictionary of actions "
+                    "(Actions.plist).");
+            return NO;
+        }
+    }
+
+    if ([actionDict objectForKey:name]) {
+        NSLog(@"Executing action %@", name);
+        SEL sel = NSSelectorFromString(name);
+
+        if ([NSApp sendAction:sel to:nil from:self])
+            return YES;
+
+        NSLog(@"WARNING: Failed to send action");
+    } else {
+        NSLog(@"WARNING: Action with name '%@' cannot be executed.", name);
+    }
+
+#endif
+    return NO;
+}
 
 @end // MMVimController (Private)
 

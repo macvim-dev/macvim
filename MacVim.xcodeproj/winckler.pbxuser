@@ -16,14 +16,36 @@
 		path = /Users/winckler/Projects/vim70/src/MacVim/VimWindowController.m;
 		sourceTree = "<absolute>";
 	};
+	1D14749E0C5673AE0038FA2B /* MMAppController.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {795, 4880}}";
+			sepNavSelRange = "{9716, 0}";
+			sepNavVisRect = "{{0, 4183}, {795, 162}}";
+		};
+	};
+	1D1474B40C56796D0038FA2B /* MMVimController.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {795, 16112}}";
+			sepNavSelRange = "{35098, 0}";
+			sepNavVisRect = "{{0, 11239}, {795, 162}}";
+		};
+	};
 	1D16B9CF0BA33BAE00A69B33 /* MacVim */ = {
 		isa = PBXExecutable;
 		activeArgIndex = 2147483647;
 		activeArgIndices = (
 			NO,
+			NO,
+			NO,
+			NO,
+			NO,
 		);
 		argumentStrings = (
+			"-tabmaxwidth 384",
+			"-taboptimumwidth 132",
+			"-statuslineoff 1",
 			"-nowindow 1",
+			"-tabminwidth 32",
 		);
 		autoAttachOnCrash = 1;
 		configStateDict = {
@@ -67,7 +89,7 @@
 		delayBeforeContinue = 0;
 		hitCount = 1;
 		location = Foundation;
-		modificationTime = 206990469.69439;
+		modificationTime = 207496396.974839;
 		state = 1;
 		symbolName = "[NSException raise]";
 	};
@@ -90,8 +112,7 @@
 		functionName = "-windowDidResize:";
 		hitCount = 1;
 		lineNumber = 539;
-		location = VimWindowController.ob;
-		modificationTime = 206990476.954509;
+		modificationTime = 207496396.974762;
 		state = 1;
 	};
 	1DE445650BA493EC00C4C77A /* XCBreakpointsBucket */ = {
@@ -215,8 +236,8 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 207414117;
-			PBXWorkspaceStateSaveDate = 207414117;
+			PBXPerProjectTemplateStateSaveDate = 207496274;
+			PBXWorkspaceStateSaveDate = 207496274;
 		};
 		sourceControlManager = 1D16B9DD0BA33BB000A69B33 /* Source Control */;
 		userBuildSettings = {

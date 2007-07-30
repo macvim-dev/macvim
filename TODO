@@ -1,5 +1,7 @@
 Active:
 
+- need E??? numbers for vim errors
+- tab-completion for :action command
 - should ignore action message if is called too often (e.g. in addNewTab:)
 - proper font handling
 - font selection dialog (:set gfn=*)

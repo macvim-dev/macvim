@@ -257,6 +257,73 @@ NSString *MMStatuslineOffKey = @"statuslineoff";
     [NSTask launchedTaskWithLaunchPath:path arguments:args];
 }
 
+- (IBAction)selectNextWindow:(id)sender
+{
+#if 0
+    NSArray *windows = [NSApp orderedWindows];
+    unsigned idx = [windows indexOfObject:[NSApp keyWindow]];
+    if (NSNotFound != idx) {
+        if (++idx >= [windows count])
+            idx = 0;
+        [[windows objectAtIndex:idx] makeKeyAndOrderFront:self];
+    }
+#else
+    unsigned i, count = [vimControllers count];
+    if (!count) return;
+
+    NSWindow *keyWindow = [NSApp keyWindow];
+    for (i = 0; i < count; ++i) {
+        MMWindowController *vc = [vimControllers objectAtIndex:i];
+        if ([[[vc windowController] window] isEqual:keyWindow])
+            break;
+    }
+
+    if (i < count) {
+        if (++i >= count)
+            i = 0;
+        MMWindowController *vc = [vimControllers objectAtIndex:i];
+        [[vc windowController] showWindow:self];
+    }
+#endif
+}
+
+- (IBAction)selectPreviousWindow:(id)sender
+{
+#if 0
+    NSArray *windows = [NSApp orderedWindows];
+    unsigned idx = [windows indexOfObject:[NSApp keyWindow]];
+    if (NSNotFound != idx) {
+        if (idx > 0) {
+            --idx;
+        } else {
+            idx = [windows count] - 1;
+        }
+        [[windows objectAtIndex:idx] makeKeyAndOrderFront:self];
+    }
+#else
+    unsigned i, count = [vimControllers count];
+    if (!count) return;
+
+    NSWindow *keyWindow = [NSApp keyWindow];
+    for (i = 0; i < count; ++i) {
+        MMWindowController *vc = [vimControllers objectAtIndex:i];
+        if ([[[vc windowController] window] isEqual:keyWindow])
+            break;
+    }
+
+    if (i < count) {
+        if (i > 0) {
+            --i;
+        } else {
+            i = count - 1;
+        }
+        MMWindowController *vc = [vimControllers objectAtIndex:i];
+        [[vc windowController] showWindow:self];
+    }
+#endif
+}
+
+
 #if MM_USE_DO
 - (byref id <MMFrontendProtocol>)connectBackend:
     (byref in id <MMBackendProtocol>)backend;

@@ -83,6 +83,7 @@
 - (void)setScrollbarThumbValue:(long)val size:(long)size max:(long)max
                     identifier:(long)ident;
 - (BOOL)setFontWithName:(char *)name;
+- (void)executeActionWithName:(NSString *)name;
 
 - (int)lookupColorWithKey:(NSString *)key;
 

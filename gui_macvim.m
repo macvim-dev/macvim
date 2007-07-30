@@ -852,6 +852,40 @@ gui_mch_set_scrollbar_thumb(
 // -- Unsorted --------------------------------------------------------------
 
 
+    void
+ex_action(eap)
+    exarg_T	*eap;
+{
+    static NSDictionary *actionDict = nil;
+
+    if (!gui.in_use) {
+        EMSG(_("E???: Command only available in GUI mode"));
+        return;
+    }
+
+    if (!actionDict) {
+        NSBundle *mainBundle = [NSBundle mainBundle];
+        NSString *path = [mainBundle pathForResource:@"Actions"
+                                              ofType:@"plist"];
+        if (path) {
+            actionDict = [[NSDictionary alloc] initWithContentsOfFile:path];
+        } else {
+            // Allocate bogus dictionary so that error only pops up once.
+            actionDict = [NSDictionary new];
+            EMSG(_("E???: Failed to load action dictionary"));
+        }
+    }
+
+    NSString *name = [NSString stringWithCString:(char*)eap->arg
+                                        encoding:NSUTF8StringEncoding];
+    if ([actionDict objectForKey:name]) {
+        [[MMBackend sharedInstance] executeActionWithName:name];
+    } else {
+        EMSG2(_("E???: \"%s\" is not a valid action"), eap->arg);
+    }
+}
+
+
 /*
  * Adjust gui.char_height (after 'linespace' was changed).
  */

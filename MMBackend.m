@@ -739,6 +739,20 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     return NO;
 }
 
+- (void)executeActionWithName:(NSString *)name
+{
+    int len = [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+    if (len > 0) {
+        NSMutableData *data = [NSMutableData data];
+
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[name UTF8String] length:len];
+
+        [self queueMessage:ExecuteActionMsgID data:data];
+    }
+}
+
 - (int)lookupColorWithKey:(NSString *)key
 {
     if (!(key && [key length] > 0))

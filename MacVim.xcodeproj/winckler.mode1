@@ -258,6 +258,7 @@
 							<array>
 								<string>29B97314FDCFA39411CA2CEA</string>
 								<string>1C37FBAC04509CD000000102</string>
+								<string>1C37FAAC04509CD000000102</string>
 								<string>1C37FABC05509CD000000102</string>
 							</array>
 							<key>PBXSmartGroupTreeModuleOutlineStateSelectionKey</key>
@@ -367,9 +368,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>1DBA03650C5CE38900B05DE3</string>
+				<string>1DE8CC400C5E2483003F56E3</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>1DBA03660C5CE38900B05DE3</string>
+				<string>1DE8CC410C5E2483003F56E3</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -503,6 +504,12 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
+		<string>1DE8CC540C5E24D6003F56E3</string>
+		<string>1DE8CC550C5E24D6003F56E3</string>
+		<string>1DE444730BA4445100C4C77A</string>
+		<string>1CD10A99069EF8BA00B06720</string>
+		<string>1DE8CC520C5E24CD003F56E3</string>
+		<string>1D16B9EF0BA33E3800A69B33</string>
 		<string>1C0AD2B3069F1EA900FABCE6</string>
 		<string>/Users/winckler/Projects/vim7/src/MacVim/MacVim.xcodeproj</string>
 	</array>
@@ -523,12 +530,14 @@
 					<key>Dock</key>
 					<array>
 						<dict>
+							<key>BecomeActive</key>
+							<true/>
 							<key>ContentConfiguration</key>
 							<dict>
 								<key>PBXProjectModuleGUID</key>
 								<string>1CD0528F0623707200166675</string>
 								<key>PBXProjectModuleLabel</key>
-								<string></string>
+								<string>MMAppController.m</string>
 								<key>StatusBarVisibility</key>
 								<true/>
 							</dict>
@@ -545,8 +554,6 @@
 							<string>194pt</string>
 						</dict>
 						<dict>
-							<key>BecomeActive</key>
-							<true/>
 							<key>ContentConfiguration</key>
 							<dict>
 								<key>PBXProjectModuleGUID</key>
@@ -586,7 +593,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1D16B9EF0BA33E3800A69B33</string>
-				<string>1DE601DB0C587DE80055263D</string>
+				<string>1DE8CC420C5E2483003F56E3</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>
@@ -628,8 +635,8 @@
 										<string>yes</string>
 										<key>sizes</key>
 										<array>
-											<string>{{0, 0}, {411, 339}}</string>
-											<string>{{411, 0}, {613, 339}}</string>
+											<string>{{0, 0}, {409, 339}}</string>
+											<string>{{409, 0}, {615, 339}}</string>
 										</array>
 									</dict>
 									<key>VerticalSplitView</key>
@@ -692,14 +699,14 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1CD10A99069EF8BA00B06720</string>
-				<string>1D14746A0C566C890038FA2B</string>
+				<string>1DE8CC4C0C5E24CD003F56E3</string>
 				<string>1C162984064C10D400B95A72</string>
-				<string>1D14746B0C566C890038FA2B</string>
-				<string>1D14746C0C566C890038FA2B</string>
-				<string>1D14746D0C566C890038FA2B</string>
-				<string>1D14746E0C566C890038FA2B</string>
-				<string>1D14746F0C566C890038FA2B</string>
-				<string>1D1474700C566C890038FA2B</string>
+				<string>1DE8CC4D0C5E24CD003F56E3</string>
+				<string>1DE8CC4E0C5E24CD003F56E3</string>
+				<string>1DE8CC4F0C5E24CD003F56E3</string>
+				<string>1DE8CC500C5E24CD003F56E3</string>
+				<string>1DE8CC510C5E24CD003F56E3</string>
+				<string>1DE8CC520C5E24CD003F56E3</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.debug</string>
@@ -861,7 +868,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1DE444730BA4445100C4C77A</string>
-				<string>1D1474710C566C890038FA2B</string>
+				<string>1DE8CC530C5E24CD003F56E3</string>
 				<string>1C78EAAC065D492600B07095</string>
 			</array>
 			<key>WindowString</key>
@@ -956,9 +963,9 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1C0AD2B3069F1EA900FABCE6</string>
-				<string>1DBA03670C5CE38900B05DE3</string>
+				<string>1DE8CC430C5E2483003F56E3</string>
 				<string>1CD0528B0623707200166675</string>
-				<string>1DBA03680C5CE38900B05DE3</string>
+				<string>1DE8CC440C5E2483003F56E3</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.run</string>
@@ -967,7 +974,7 @@
 			<key>WindowToolGUID</key>
 			<string>1C0AD2B3069F1EA900FABCE6</string>
 			<key>WindowToolIsVisible</key>
-			<true/>
+			<false/>
 		</dict>
 		<dict>
 			<key>Identifier</key>

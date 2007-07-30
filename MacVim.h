@@ -86,6 +86,7 @@ enum {
     SetFontMsgID,
     VimShouldCloseMsgID,
     SetDefaultColorsMsgID,
+    ExecuteActionMsgID,
 };
 
 

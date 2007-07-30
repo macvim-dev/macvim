@@ -34,5 +34,7 @@ extern NSString *MMStatuslineOffKey;
 
 - (void)removeVimController:(id)controller;
 - (IBAction)newVimWindow:(id)sender;
+- (IBAction)selectNextWindow:(id)sender;
+- (IBAction)selectPreviousWindow:(id)sender;
 
 @end

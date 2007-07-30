@@ -41,6 +41,7 @@
 - (id)initWithPort:(NSPort *)port;
 - (NSPort *)sendPort;
 #endif
+- (MMWindowController *)windowController;
 - (void)windowWillClose:(NSNotification *)notification;
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait;
 
