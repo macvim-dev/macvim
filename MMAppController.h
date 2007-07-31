@@ -26,10 +26,12 @@ extern NSString *MMStatuslineOffKey;
     <MMAppProtocol>
 #endif
 {
-    NSPort          *receivePort;
     NSMutableArray  *vimControllers;
+#if !MM_USE_DO
+    NSPort          *receivePort;
     unsigned        terminateNowCount;
     BOOL            abortTermination;
+#endif
 }
 
 - (void)removeVimController:(id)controller;
