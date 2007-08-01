@@ -12,6 +12,7 @@
 
 
 #define MM_USE_DO 1
+#define MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE 1
 
 
 
@@ -38,6 +39,8 @@
 #endif
 
 
+// NOTE! This array must be updated whenever the enum below changes!
+extern char *MessageStrings[];
 
 enum {
     CheckinMsgID = 1,

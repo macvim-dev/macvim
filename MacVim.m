@@ -10,6 +10,57 @@
 
 #import "MacVim.h"
 
+char *MessageStrings[] = 
+{
+    "BadMsgID",
+    "CheckinMsgID",
+    "ConnectedMsgID",
+    "KillTaskMsgID",
+    "TaskExitedMsgID",
+    "OpenVimWindowMsgID",
+    "InsertTextMsgID",
+    "KeyDownMsgID",
+    "CmdKeyMsgID",
+    "BatchDrawMsgID",
+    "SelectTabMsgID",
+    "CloseTabMsgID",
+    "AddNewTabMsgID",
+    "DraggedTabMsgID",
+    "UpdateTabBarMsgID",
+    "ShowTabBarMsgID",
+    "HideTabBarMsgID",
+    "SetTextDimensionsMsgID",
+    "SetVimWindowTitleMsgID",
+    "ScrollWheelMsgID",
+    "MouseDownMsgID",
+    "MouseUpMsgID",
+    "MouseDraggedMsgID",
+    "BrowseForFileMsgID",
+    "BrowseForFileReplyMsgID",
+    "FlushQueueMsgID",
+    "UpdateInsertionPointMsgID",
+    "AddMenuMsgID",
+    "AddMenuItemMsgID",
+    "RemoveMenuItemMsgID",
+    "EnableMenuItemMsgID",
+    "ExecuteMenuMsgID",
+    "ShowToolbarMsgID",
+#if !MM_USE_DO
+    "TaskShouldTerminateMsgID",
+    "TerminateReplyYesMsgID",
+    "TerminateReplyNoMsgID",
+#endif
+    "CreateScrollbarMsgID",
+    "DestroyScrollbarMsgID",
+    "ShowScrollbarMsgID",
+    "SetScrollbarPositionMsgID",
+    "SetScrollbarThumbMsgID",
+    "ScrollbarEventMsgID",
+    "SetFontMsgID",
+    "VimShouldCloseMsgID",
+    "SetDefaultColorsMsgID",
+    "ExecuteActionMsgID",
+};
 
 @implementation NSPortMessage (MacVim)
 
