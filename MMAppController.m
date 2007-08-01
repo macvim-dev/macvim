@@ -126,6 +126,15 @@ NSString *MMStatuslineOffKey = @"statuslineoff";
     // NSApplicationDelegateReplyFailure = 2
 }
 
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
+{
+    // HACK! If there is no open Vim nobody will handle the menus (in
+    // particual, 'New Vim Window' is not handled, so no new windows can be
+    // opened).  Until I figure out a way to deal with the menus this method
+    // will return YES.
+    return YES;
+}
+
 - (NSApplicationTerminateReply)applicationShouldTerminate:
     (NSApplication *)sender
 {
