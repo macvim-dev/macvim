@@ -248,8 +248,6 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     [drawData setLength:0];
 
     [drawData appendBytes:&type length:sizeof(int)];
-    [drawData appendBytes:&Rows length:sizeof(int)];
-    [drawData appendBytes:&Columns length:sizeof(int)];
 
     [drawData appendBytes:&defaultBackgroundColor length:sizeof(int)];
 }
@@ -260,8 +258,6 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     int type = ClearBlockDrawType;
 
     [drawData appendBytes:&type length:sizeof(int)];
-    [drawData appendBytes:&Rows length:sizeof(int)];
-    [drawData appendBytes:&Columns length:sizeof(int)];
 
     [drawData appendBytes:&defaultBackgroundColor length:sizeof(int)];
     [drawData appendBytes:&row1 length:sizeof(int)];
@@ -276,8 +272,6 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     int type = DeleteLinesDrawType;
 
     [drawData appendBytes:&type length:sizeof(int)];
-    [drawData appendBytes:&Rows length:sizeof(int)];
-    [drawData appendBytes:&Columns length:sizeof(int)];
 
     [drawData appendBytes:&defaultBackgroundColor length:sizeof(int)];
     [drawData appendBytes:&row length:sizeof(int)];
@@ -293,8 +287,6 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     int type = ReplaceStringDrawType;
 
     [drawData appendBytes:&type length:sizeof(int)];
-    [drawData appendBytes:&Rows length:sizeof(int)];
-    [drawData appendBytes:&Columns length:sizeof(int)];
 
     [drawData appendBytes:&backgroundColor length:sizeof(int)];
     [drawData appendBytes:&foregroundColor length:sizeof(int)];
@@ -311,8 +303,6 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     int type = InsertLinesDrawType;
 
     [drawData appendBytes:&type length:sizeof(int)];
-    [drawData appendBytes:&Rows length:sizeof(int)];
-    [drawData appendBytes:&Columns length:sizeof(int)];
 
     [drawData appendBytes:&defaultBackgroundColor length:sizeof(int)];
     [drawData appendBytes:&row length:sizeof(int)];

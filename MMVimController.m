@@ -786,20 +786,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
     while (bytes < end) {
         int type = *((int*)bytes);  bytes += sizeof(int);
-        int rows = *((int*)bytes);  bytes += sizeof(int);
-        int cols = *((int*)bytes);  bytes += sizeof(int);
-
-#if 0
-        if (ClearAllDrawType != type) {
-            // All draw types except clear all rely on the text storage have
-            // the appropriate dimensions, so set it before attempting to
-            // modify the text storage.
-            [textStorage setMaxRows:rows columns:cols];
-        }
-#else
-        // Avoid 'unused var' warning.
-        rows; cols;
-#endif
 
         if (ClearAllDrawType == type) {
             int color = *((int*)bytes);  bytes += sizeof(int);
