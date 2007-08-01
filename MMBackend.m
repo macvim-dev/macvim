@@ -199,7 +199,7 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 #endif
 }
 
-- (BOOL)openVimWindowWithRows:(int)rows columns:(int)cols
+- (BOOL)openVimWindow
 {
 #if !MM_USE_DO
     if (!sendPort) {
@@ -228,13 +228,7 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
     }
 #endif // !MM_USE_DO
 
-    NSMutableData *data = [NSMutableData data];
-
-    [data appendBytes:&rows length:sizeof(int)];
-    [data appendBytes:&cols length:sizeof(int)];
-
-    [self queueMessage:OpenVimWindowMsgID data:data];
-
+    [self queueMessage:OpenVimWindowMsgID data:nil];
     return YES;
 }
 

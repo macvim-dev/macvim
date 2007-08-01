@@ -115,8 +115,7 @@ gui_mch_open(void)
 {
     //NSLog(@"gui_mch_open()");
 
-    return [[MMBackend sharedInstance]
-            openVimWindowWithRows:gui.num_rows columns:gui.num_cols];
+    return [[MMBackend sharedInstance] openVimWindow];
 }
 
 

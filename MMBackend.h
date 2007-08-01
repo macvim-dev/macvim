@@ -46,7 +46,7 @@
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg;
 
 - (BOOL)checkin;
-- (BOOL)openVimWindowWithRows:(int)rows columns:(int)cols;
+- (BOOL)openVimWindow;
 - (void)clearAll;
 - (void)clearBlockFromRow:(int)row1 column:(int)col1
                     toRow:(int)row2 column:(int)col2;
