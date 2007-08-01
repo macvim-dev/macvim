@@ -2,13 +2,7 @@ Active:
 
 - drag and drop inside view (FEAT_GUI_DND, gui_handle_drop())
 - offset text away from left edge
-- main menu
-- menu key equivalents
-- add menu options with key equiv:
-    Cmd+Option+Left/Right to change tab, Cmd+x/c/v cut/copy/paste,
-    Cmd+z/Z undo/redo, Cmd+o open, Cmd+w/W close tab/window,
-    Cmd+Option+T special characters,
-    etc.
+- main menu (buffers menu, window menu)
 - application:openFiles: should open in tabs in current window instead of in a
   new window, only if user default is set
 - toolbar drawing bug
@@ -58,6 +52,12 @@ Active:
 
 Pending:
 
+- add menu options with key equiv:
+    Cmd+Option+Left/Right to change tab, Cmd+x/c/v cut/copy/paste,
+    Cmd+z/Z undo/redo, Cmd+o open, Cmd+w/W close tab/window,
+    Cmd+Option+T special characters,
+    etc.
+- menu key equivalents
 - startup is a bit flakey (up until openWindowWithRows:columns:)
 - background color of text view doesn't get set if :colorscheme is in .gvimrc,
   since textView=nil when setDefaultColorsBackground:foreground: is called
