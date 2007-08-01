@@ -81,6 +81,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             [[MMWindowController alloc] initWithVimController:self];
 #if MM_USE_DO
         backendProxy = [backend retain];
+# if MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE
+        sendQueue = [NSMutableArray new];
+# endif
 
         NSConnection *connection = [backendProxy connectionForProxy];
         [[NSNotificationCenter defaultCenter] addObserver:self
@@ -136,6 +139,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 #if MM_USE_DO
     [backendProxy release];
+# if MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE
+    [sendQueue release];
+# endif
 #else
     if (sendPort) {
         // Kill task immediately
@@ -163,6 +169,17 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait
 {
 #if MM_USE_DO
+# if MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE
+    if (inProcessCommandQueue) {
+        //NSLog(@"In process command queue; delaying message send.");
+        [sendQueue addObject:[NSNumber numberWithInt:msgid]];
+        if (data)
+            [sendQueue addObject:data];
+        else
+            [sendQueue addObject:[NSNull null]];
+        return;
+    }
+# endif
     if (wait) {
         [backendProxy processInput:msgid data:data];
     } else {
@@ -228,12 +245,48 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         return;
     }
 
+#if MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE
+    inProcessCommandQueue = YES;
+#endif
+
+    //NSLog(@"======== %s BEGIN ========", _cmd);
     for (i = 0; i < count; i += 2) {
         NSData *value = [queue objectAtIndex:i];
         NSData *data = [queue objectAtIndex:i+1];
 
-        [self handleMessage:*((int*)[value bytes]) data:data];
+        int msgid = *((int*)[value bytes]);
+#if 0
+        if (msgid != EnableMenuItemMsgID && msgid != AddMenuItemMsgID
+                && msgid != AddMenuMsgID) {
+            NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
+        }
+#endif
+
+        [self handleMessage:msgid data:data];
     }
+    //NSLog(@"======== %s  END  ========", _cmd);
+
+#if MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE
+    inProcessCommandQueue = NO;
+
+    count = [sendQueue count];
+    if (count > 0) {
+        if (count % 2 == 0) {
+            //NSLog(@"%s Sending %d queued messages", _cmd, count/2);
+
+            for (i = 0; i < count; i += 2) {
+                int msgid = [[sendQueue objectAtIndex:i] intValue];
+                id data = [sendQueue objectAtIndex:i+1];
+                if ([data isEqual:[NSNull null]])
+                    data = nil;
+
+                [backendProxy processInput:msgid data:data];
+            }
+        }
+
+        [sendQueue removeAllObjects];
+    }
+#endif
 }
 
 #else // MM_USE_DO
@@ -685,22 +738,18 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                      encoding:NSUTF8StringEncoding];
         NSFont *font = [NSFont fontWithName:name size:size];
 
-        if (font && [windowController textStorage]) {
-            [[windowController textStorage] setFont:font];
-        }
+        if (font)
+            [windowController setFont:font];
 
         [name release];
     } else if (SetDefaultColorsMsgID == msgid) {
         const void *bytes = [data bytes];
         int bg = *((int*)bytes);  bytes += sizeof(int);
         int fg = *((int*)bytes);  bytes += sizeof(int);
+        NSColor *back = [NSColor colorWithRgbInt:bg];
+        NSColor *fore = [NSColor colorWithRgbInt:fg];
 
-        MMTextStorage *textStorage = [windowController textStorage];
-        if (textStorage) {
-            [textStorage
-                    setDefaultColorsBackground:[NSColor colorWithRgbInt:bg]
-                                    foreground:[NSColor colorWithRgbInt:fg]];
-        }
+        [windowController setDefaultColorsBackground:back foreground:fore];
     } else if (ExecuteActionMsgID == msgid) {
         const void *bytes = [data bytes];
         int len = *((int*)bytes);  bytes += sizeof(int);
@@ -740,12 +789,17 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         int rows = *((int*)bytes);  bytes += sizeof(int);
         int cols = *((int*)bytes);  bytes += sizeof(int);
 
+#if 0
         if (ClearAllDrawType != type) {
             // All draw types except clear all rely on the text storage have
             // the appropriate dimensions, so set it before attempting to
             // modify the text storage.
             [textStorage setMaxRows:rows columns:cols];
         }
+#else
+        // Avoid 'unused var' warning.
+        rows; cols;
+#endif
 
         if (ClearAllDrawType == type) {
             int color = *((int*)bytes);  bytes += sizeof(int);

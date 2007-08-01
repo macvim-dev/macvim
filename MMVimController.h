@@ -23,6 +23,10 @@
     MMWindowController  *windowController;
 #if MM_USE_DO
     id                  backendProxy;
+# if MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE
+    BOOL                inProcessCommandQueue;
+    NSMutableArray      *sendQueue;
+# endif
 #else
     NSPort              *sendPort;
     NSPort              *receivePort;
