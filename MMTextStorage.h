@@ -11,10 +11,15 @@
 #import <Cocoa/Cocoa.h>
 
 
+#define MM_TS_LAZY_SET 1
+
 
 @interface MMTextStorage : NSTextStorage {
     NSMutableAttributedString *attribString;
     int maxRows, maxColumns;
+#if MM_TS_LAZY_SET
+    int actualRows, actualColumns;
+#endif
     NSAttributedString *emptyRowString;
     NSFont *font;
     NSColor *defaultBackgroundColor;
@@ -48,7 +53,6 @@
                         foreground:(NSColor *)fgColor;
 - (void)setFont:(NSFont*)newFont;
 - (NSFont*)font;
-- (float)widthOfEmptyRow;
 - (NSSize)size;
 - (NSSize)calculateAverageFontSize;
 - (NSRect)rectForRowsInRange:(NSRange)range;
@@ -56,6 +60,7 @@
 - (unsigned)offsetFromRow:(int)row column:(int)col;
 - (BOOL)resizeToFitSize:(NSSize)size;
 - (NSSize)fitToSize:(NSSize)size;
+- (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns;
 
 @end
 

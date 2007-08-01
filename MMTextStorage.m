@@ -23,10 +23,20 @@
 
 //static float LINEHEIGHT = 30.0f;
 
+#define MM_SIMPLE_TS_CALC 1
+
+#if MM_TS_LAZY_SET
+# define MM_SIMPLE_TS_CALC 1
+#endif
 
 
 @interface MMTextStorage (Private)
-- (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns;
+#if MM_TS_LAZY_SET
+- (void)doSetMaxRows:(int)rows columns:(int)cols;
+- (void)lazyResize;
+#endif
+- (float)cellWidth;
+- (float)widthOfEmptyRow;
 @end
 
 
@@ -119,43 +129,12 @@
 
 - (void)setMaxRows:(int)rows columns:(int)cols
 {
-    // Do nothing if the dimensions are already right.
-    if (maxRows == rows && maxColumns == cols)
-        return;
-
-    NSRange oldRange = NSMakeRange(0, maxRows*(maxColumns+1));
-
+#if MM_TS_LAZY_SET
     maxRows = rows;
     maxColumns = cols;
-    //NSLog(@"setMaxRows:%d columns:%d", maxRows, maxColumns);
-
-    NSString *fmt = [NSString stringWithFormat:@"%%%dc\%C", maxColumns,
-             NSLineSeparatorCharacter];
-    NSDictionary *dict;
-    if (defaultBackgroundColor) {
-        dict = [NSDictionary dictionaryWithObjectsAndKeys:
-                font, NSFontAttributeName,
-                defaultBackgroundColor, NSBackgroundColorAttributeName, nil];
-    } else {
-        dict = [NSDictionary dictionaryWithObjectsAndKeys:
-                font, NSFontAttributeName, nil];
-    }
-            
-    [emptyRowString release];
-    emptyRowString = [[NSAttributedString alloc]
-            initWithString:[NSString stringWithFormat:fmt, ' ']
-                attributes:dict];
-
-    [attribString release];
-    attribString = [[NSMutableAttributedString alloc] init];
-    int i;
-    for (i=0; i<maxRows; ++i) {
-        [attribString appendAttributedString:emptyRowString];
-    }
-
-    NSRange fullRange = NSMakeRange(0, [attribString length]);
-    [self edited:(NSTextStorageEditedCharacters|NSTextStorageEditedAttributes)
-           range:oldRange changeInLength:fullRange.length-oldRange.length];
+#else
+    [self doSetMaxRows:rows columns:cols];
+#endif
 }
 
 - (void)replaceString:(NSString*)string atRow:(int)row column:(int)col
@@ -163,6 +142,7 @@
         backgroundColor:(NSColor*)bg
 {
     //NSLog(@"replaceString:atRow:%d column:%d withFlags:%d", row, col, flags);
+    [self lazyResize];
 
     if (row < 0 || row >= maxRows || col < 0 || col >= maxColumns
             || col+[string length] > maxColumns) {
@@ -241,10 +221,11 @@
                      color:(NSColor *)color
 {
     //NSLog(@"deleteLinesFromRow:%d lineCount:%d", row, count);
+    [self lazyResize];
 
     if (row < 0 || row+count > maxRows) {
-        NSLog(@"[%s] WARNING : out of range, row=%d (%d) count=%d", _cmd, row,
-                maxRows, count);
+        //NSLog(@"[%s] WARNING : out of range, row=%d (%d) count=%d", _cmd, row,
+        //        maxRows, count);
         return;
     }
 
@@ -288,10 +269,11 @@
                    color:(NSColor *)color
 {
     //NSLog(@"insertLinesAtRow:%d lineCount:%d", row, count);
+    [self lazyResize];
 
     if (row < 0 || row+count > maxRows) {
-        NSLog(@"[%s] WARNING : out of range, row=%d (%d) count=%d", _cmd, row,
-                maxRows, count);
+        //NSLog(@"[%s] WARNING : out of range, row=%d (%d) count=%d", _cmd, row,
+        //        maxRows, count);
         return;
     }
 
@@ -331,11 +313,12 @@
 {
     //NSLog(@"clearBlockFromRow:%d column:%d toRow:%d column:%d", row1, col1,
     //        row2, col2);
+    [self lazyResize];
 
     if (row1 < 0 || row2 >= maxRows || col1 < 0 || col2 > maxColumns) {
-        NSLog(@"[%s] WARNING : out of range, row1=%d row2=%d (%d) col1=%d "
-                "col2=%d (%d)", _cmd, row1, row2, maxRows, col1, col2,
-                maxColumns);
+        //NSLog(@"[%s] WARNING : out of range, row1=%d row2=%d (%d) col1=%d "
+        //        "col2=%d (%d)", _cmd, row1, row2, maxRows, col1, col2,
+        //        maxColumns);
         return;
     }
 
@@ -357,6 +340,8 @@
 
 - (void)clearAllWithColor:(NSColor *)color
 {
+    //NSLog(@"%s%@", _cmd, color);
+
     NSRange range = { 0, [attribString length] };
     NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
             font, NSFontAttributeName,
@@ -420,16 +405,15 @@
     return font;
 }
 
-- (float)widthOfEmptyRow
-{
-    return [font widthOfString:[emptyRowString string]];
-}
-
 - (NSSize)size
 {
     if (![[self layoutManagers] count]) return NSZeroSize;
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
 
+#if MM_SIMPLE_TS_CALC
+    float h = [lm defaultLineHeightForFont:font];
+    NSSize size = NSMakeSize([self cellWidth]*maxColumns, h*maxRows);
+#else
     if (![[lm textContainers] count]) return NSZeroSize;
     NSTextContainer *tc = [[lm textContainers] objectAtIndex:0];
 
@@ -443,6 +427,7 @@
     //NSLog(@"size=(%.2f,%.2f) rows=%d cols=%d layoutManager size=(%.2f,%.2f)",
     //        size.width, size.height, maxRows, maxColumns, rect.size.width,
     //        rect.size.height);
+#endif
 
     return size;
 }
@@ -454,7 +439,7 @@
     NSSize size;
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
     size.height = [lm defaultLineHeightForFont:font];
-    size.width = maxColumns > 0 ? [self widthOfEmptyRow]/maxColumns : 0;
+    size.width = [self cellWidth];
     if (size.height < 1.0f) size.height = 1.0f;
     if (size.width < 1.0f) size.width = 1.0f;
 
@@ -485,8 +470,7 @@
 - (NSRect)rectForColumnsInRange:(NSRange)range
 {
     NSRect rect = { 0, 0, 0, 0 };
-    float fontWidth = maxColumns > 0
-            ? [self widthOfEmptyRow]/maxColumns : 0;
+    float fontWidth = [self cellWidth];
 
     unsigned start = range.location > maxColumns ? maxColumns : range.location;
     unsigned length = range.length;
@@ -530,20 +514,15 @@
     return [self fitToSize:size rows:NULL columns:NULL];
 }
 
-@end // MMTextStorage
-
-
-
-
-@implementation MMTextStorage (Private)
-
 - (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns
 {
     if (![[self layoutManagers] count]) return size;
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
 
+#if !MM_SIMPLE_TS_CALC
     if (![[lm textContainers] count]) return size;
     NSTextContainer *tc = [[lm textContainers] objectAtIndex:0];
+#endif
 
     NSSize curSize = [self size];
     NSSize fitSize = curSize;
@@ -556,21 +535,36 @@
         // text storage.  (Why 3? It seem Vim never allows less than 3 lines.)
         //
         // TODO: Use binary search instead of the current linear one.
+#if MM_TS_LAZY_SET
+        int rowCount = maxRows;
+        int rowsToRemove;
+        for (rowsToRemove = 0; rowsToRemove < maxRows-3; ++rowsToRemove) {
+            float height = [lm defaultLineHeightForFont:font]*rowCount;
+
+            if (height <= size.height) {
+                fitSize.height = height;
+                break;
+            }
+
+            --rowCount;
+        }
+#else
         NSRange charRange = { 0, maxRows*(maxColumns+1) };
         int rowsToRemove;
         for (rowsToRemove = 0; rowsToRemove < maxRows-3; ++rowsToRemove) {
             NSRange glyphRange = [lm glyphRangeForCharacterRange:charRange
                                             actualCharacterRange:nil];
-            NSRect rect = [lm boundingRectForGlyphRange:glyphRange
-                                        inTextContainer:tc];
+            float height = [lm boundingRectForGlyphRange:glyphRange
+                                         inTextContainer:tc].size.height;
             
-            if (rect.size.height <= size.height) {
-                fitSize.height = rect.size.height;
+            if (height <= size.height) {
+                fitSize.height = height;
                 break;
             }
 
             charRange.length -= (maxColumns+1);
         }
+#endif
 
         fitRows -= rowsToRemove;
     } else if (size.height > curSize.height) {
@@ -582,7 +576,7 @@
     }
 
     if (size.width != curSize.width) {
-        float fw = maxColumns > 0 ? [self widthOfEmptyRow]/maxColumns : 0;
+        float fw = [self cellWidth];
         if (fw < 1.0f) fw = 1.0f;
 
         fitCols = floor(size.width/fw);
@@ -593,6 +587,83 @@
     if (columns) *columns = fitCols;
 
     return fitSize;
+}
+
+@end // MMTextStorage
+
+
+
+
+@implementation MMTextStorage (Private)
+#if MM_TS_LAZY_SET
+- (void)lazyResize
+{
+    if (actualRows != maxRows || actualColumns != maxColumns) {
+        [self doSetMaxRows:maxRows columns:maxColumns];
+    }
+}
+#endif // MM_TS_LAZY_SET
+
+- (void)doSetMaxRows:(int)rows columns:(int)cols
+{
+#if MM_TS_LAZY_SET
+    // Do nothing if the dimensions are already right.
+    if (actualRows == rows && actualColumns == cols)
+        return;
+
+    NSRange oldRange = NSMakeRange(0, actualRows*(actualColumns+1));
+#else
+    // Do nothing if the dimensions are already right.
+    if (maxRows == rows && maxColumns == cols)
+        return;
+
+    NSRange oldRange = NSMakeRange(0, maxRows*(maxColumns+1));
+#endif
+
+    maxRows = rows;
+    maxColumns = cols;
+
+    NSString *fmt = [NSString stringWithFormat:@"%%%dc\%C", maxColumns,
+             NSLineSeparatorCharacter];
+    NSDictionary *dict;
+    if (defaultBackgroundColor) {
+        dict = [NSDictionary dictionaryWithObjectsAndKeys:
+                font, NSFontAttributeName,
+                defaultBackgroundColor, NSBackgroundColorAttributeName, nil];
+    } else {
+        dict = [NSDictionary dictionaryWithObjectsAndKeys:
+                font, NSFontAttributeName, nil];
+    }
+            
+    [emptyRowString release];
+    emptyRowString = [[NSAttributedString alloc]
+            initWithString:[NSString stringWithFormat:fmt, ' ']
+                attributes:dict];
+
+    [attribString release];
+    attribString = [[NSMutableAttributedString alloc] init];
+    int i;
+    for (i=0; i<maxRows; ++i) {
+        [attribString appendAttributedString:emptyRowString];
+    }
+
+    NSRange fullRange = NSMakeRange(0, [attribString length]);
+    [self edited:(NSTextStorageEditedCharacters|NSTextStorageEditedAttributes)
+           range:oldRange changeInLength:fullRange.length-oldRange.length];
+
+#if MM_TS_LAZY_SET
+    actualRows = rows;  actualColumns = cols;
+#endif
+}
+
+- (float)cellWidth
+{
+    return [font widthOfString:@"W"];
+}
+
+- (float)widthOfEmptyRow
+{
+    return [font widthOfString:[emptyRowString string]];
 }
 
 @end // MMTextStorage (Private)
