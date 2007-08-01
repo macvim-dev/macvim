@@ -1,12 +1,9 @@
 Compiling:
 
 - To build the project:
-    + open terminal, directory vimXX/src: type 'make'
-      this builds the Vim executable
-    + open MacVim.xcodeproj, choose 'Release' on pull-down menu 'Active Build
-      Configuration', click Build
-      this builds the PSMTabBarFramework, then MacVim.app (which can be found in
-      MacVim/build/Release)
+    + patch vim7 src with MacVim patch
+    + make vim7 src with --enable-gui=macvim
+    + build MacVim.xcodeproj
 - To install:
     + copy MacVim.app to /Applications (or anywhere you want it)
     + in ~/.profile add this line:
@@ -18,7 +15,8 @@ Compiling:
     + in terminal mode of Vim, type :gui and MacVim will start
 - Technical notes:
     + to build a universal binary, the compiler AND linker needs the flags
-      '-isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch ppc -arch i386'
+      '-isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch ppc -arch i386'; also,
+      make needs argument --with-mac-arch=both
     + vim runtime files are copied to
       'MacVim.app/Contents/Resources/vim/runtime/'
 
@@ -58,26 +56,49 @@ Weirdness:
 - The MMVimController is added to the NSEventTrackingRunLoopMode, otherwise
   updates from Vim would not reach the MMVimController while the user
   resizes the window using the mouse.
+- It seems that (oneway void) DO messages can arrive when another such message
+  is being processed.  For this reason, no input is sent to Vim whilst in
+  processCommandQueue:.  Instead, messages are queued and sent when
+  processCommandQueue: has finished.  Otherwise the invariant that all Vim
+  messages must appear in the same order they were issued will be violated.
+- Text storage dimensions are not ever directly modified, instead a message is
+  sent to Vim asking it to change the "shell size".  Otherwise, a message
+  asking Vim to change the shell size might get lost and Vim and MacVim will
+  have inconsistent states.
+- gui_mch_browse() is a blocking call, but you can't put up dialogs in Cocoa
+  which block until the user dismisses them (it uses callbacks).  This
+  complicates the browsing somewhat.
 
 
 Design decisions:
 
 - Output is queued and sent to the MMVimController only when
   [MMBackend flushQueue] is called in order to minimize the amount of
-  messages sent back and forth between the task and gui.  (This does not apply
-  to all messages sent to the gui though.)
+  messages sent back and forth between the task and gui.  Also, this makes sure
+  that commands reach MacVim in the same order they were issued by Vim.
 - Drawing commands are stored in a buffer (drawData) and put on the output
   queue whenever [MMBackend flush] is called.  This buffer might no
   longer be needed now that there is a general output queue.  However, the
   existing code works, so why change it?
-- The gui listens for tasks on a named port whose name is derived from
-  CFBundleIdentifier (which is defined inside Info.plist of the app bundle).
-  In order to run two different copies of MacVim at the same time, they need to
-  have differing bundle identifiers; otherwise one copy will not be able to
-  create the named listening port and all tasks will connect to the first copy.
+- [obsolete] The gui listens for tasks on a named port whose name is derived
+  from CFBundleIdentifier (which is defined inside Info.plist of the app
+  bundle).  In order to run two different copies of MacVim at the same time,
+  they need to have differing bundle identifiers; otherwise one copy will not
+  be able to create the named listening port and all tasks will connect to the
+  first copy.
+- The gui creates a named NSConnection which vends the MMAppController object.
 - All tabs share one text view and its associated text storage.  There used to
   be one text view per tab, but this only complicated the code since Vim has no
   concept of different views (as in NSView).
+- Vim holds the actual state.  MacVim should never change Vim related states
+  directly, instead it must ask Vim to change the state and wait for Vim to
+  reply with an actual state change command.
+- If MacVim wants to change the state of Vim it must go through
+  processInput:data:, this is an asynchronous call.
+- MacVim can query state information synchronously by adding a suitable message
+  to MMBackendProtocol, however this must not change the state of Vim!
+- If MacVim or Vim dies, the NSConnection is invalidated and connectionDidDie:
+  is invoked.
 
 
 Keyboard stuff:

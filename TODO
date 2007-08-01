@@ -1,23 +1,7 @@
 Active:
 
-- application:openFiles: should open in tabs in current window instead of in a
-  new window
-- don't clear the text storage on setMaxRows:: so that display does not go
-  blank when dragging to resize
-- zoom&resize broken
-- toolbar drawing bug
+- drag and drop inside view (FEAT_GUI_DND, gui_handle_drop())
 - offset text away from left edge
-- need E??? numbers for vim errors
-- tab-completion for :action command
-- should ignore action message if is called too often (e.g. in addNewTab:)
-- proper font handling
-- font selection dialog (:set gfn=*)
-- check for memory leaks
-- startup is a bit flakey (up until openWindowWithRows:columns:)
-- i8n
-- services menu
-- gui dialogs (FEAT_GUI_DIALOG)
-- find/replace toolbar item (FIND_REPLACE_DIALOG)
 - main menu
 - menu key equivalents
 - add menu options with key equiv:
@@ -25,6 +9,19 @@ Active:
     Cmd+z/Z undo/redo, Cmd+o open, Cmd+w/W close tab/window,
     Cmd+Option+T special characters,
     etc.
+- application:openFiles: should open in tabs in current window instead of in a
+  new window, only if user default is set
+- toolbar drawing bug
+- need E??? numbers for vim errors
+- tab-completion for :action command?
+- should ignore action message if is called too often (e.g. in addNewTab:)
+- proper font handling
+- font selection dialog (:set gfn=*)
+- check for memory leaks
+- i8n
+- services menu
+- gui dialogs (FEAT_GUI_DIALOG)
+- find/replace toolbar item (FIND_REPLACE_DIALOG)
 - popup menus
 - encoding -- convert strings from vim to utf-8
 - change building procedure so that the Makefile compiles and links VimTask and
@@ -39,7 +36,6 @@ Active:
   (this will lead to a crash)
 - wide characters are badly supported: they render as too wide
 - update speed whilst resizing with mouse is excruciatingly slow
-- drag and drop inside view (FEAT_GUI_DND, gui_handle_drop())
 - window count should be typeset nicely in tab
 - put marked text in status line (?)
 - track pad scrolling is jerky
@@ -62,6 +58,13 @@ Active:
 
 Pending:
 
+- startup is a bit flakey (up until openWindowWithRows:columns:)
+- background color of text view doesn't get set if :colorscheme is in .gvimrc,
+  since textView=nil when setDefaultColorsBackground:foreground: is called
+- resize window on font change
+- don't clear the text storage on setMaxRows:: so that display does not go
+  blank when dragging to resize
+- zoom&resize broken
 - add user default for min/max tab size
 - :colorscheme elflord, :set lines+=3 --> colors are not updated properly
 - use DO to communicate between GUI and Vim (only for two-way communication,
