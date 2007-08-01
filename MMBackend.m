@@ -986,6 +986,12 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
         int rows = *((int*)bytes);  bytes += sizeof(int);
         int cols = *((int*)bytes);  bytes += sizeof(int);
 
+        // NOTE! Vim doesn't call gui_mch_set_shellsize() after
+        // gui_resize_shell(), so we have to manually set the rows and columns
+        // here.  (MacVim doesn't change the rows and columns to avoid
+        // inconsistent states between Vim and MacVim.)
+        [self setRows:rows columns:cols];
+
         //NSLog(@"[VimTask] Resizing shell to %dx%d.", cols, rows);
         gui_resize_shell(cols, rows);
     } else if (ExecuteMenuMsgID == msgid) {
