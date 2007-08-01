@@ -99,7 +99,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     if ((self = [super initWithWindowNibName:@"VimWindow"])) {
         vimController = controller;
         scrollbars = [[NSMutableArray alloc] init];
+#if 0
         textStorage = [[MMTextStorage alloc] init];
+#endif
     }
 
     return self;
@@ -125,9 +127,28 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [super dealloc];
 }
 
-- (MMVimController *)vimController
+- (void)awakeFromNib
 {
-    return vimController;
+    // Setup a complete text system.
+    textStorage = [[MMTextStorage alloc] init];
+    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
+    NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
+            NSMakeSize(1.0e7,1.0e7)];
+
+    [tc setWidthTracksTextView:NO];
+    [tc setHeightTracksTextView:NO];
+    [tc setLineFragmentPadding:0];
+
+    [textStorage addLayoutManager:lm];
+    [lm addTextContainer:tc];
+
+    textView = [[MMTextView alloc] initWithFrame:NSZeroRect
+                                   textContainer:tc];
+
+    // The text storage retains the layout manager which in turn retains the
+    // text container.
+    [tc release];
+    [lm release];
 }
 
 - (void)windowDidLoad
@@ -151,91 +172,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [tabView removeAllTabViewItems];
 }
 
-- (void)createScrollbarWithIdentifier:(long)ident type:(int)type
+- (MMVimController *)vimController
 {
-    //NSLog(@"Create scroller %d of type %d", ident, type);
-
-    MMScroller *scroller = [[MMScroller alloc] initWithIdentifier:ident
-                                                             type:type];
-    [scroller setTarget:self];
-    [scroller setAction:@selector(scroll:)];
-
-    [[[self window] contentView] addSubview:scroller];
-    [scrollbars addObject:scroller];
-    [scroller release];
-}
-
-- (void)destroyScrollbarWithIdentifier:(long)ident
-{
-    //NSLog(@"Destroy scroller %d", ident);
-
-    unsigned idx = 0;
-    MMScroller *scroller = [self scrollbarForIdentifier:ident index:&idx];
-    if (scroller) {
-        [scroller removeFromSuperview];
-        [scrollbars removeObjectAtIndex:idx];
-
-        if (![scroller isHidden]) {
-            // A visible scroller was removed, so the window must resize to
-            // fit.
-            // TODO!  Should only do this once per update.
-            [self performSelectorOnMainThread:@selector(resizeWindowToFit:)
-                                   withObject:self waitUntilDone:NO];
-        }
-    }
-}
-
-- (void)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible
-{
-    MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
-    if (!scroller) return;
-
-    BOOL wasVisible = ![scroller isHidden];
-    //NSLog(@"%s scroller %d (was %svisible)", visible ? "Show" : "Hide",
-    //      ident, wasVisible ? "" : "in");
-    [scroller setHidden:!visible];
-
-    if (wasVisible != visible) {
-        // A scroller was hidden or shown, so the window must resize to fit.
-        //NSLog(@"%s scroller %d", visible ? "Show" : "Hide", ident);
-        // TODO!  Should only do this once per update.
-        [self performSelectorOnMainThread:@selector(resizeWindowToFit:)
-                               withObject:self waitUntilDone:NO];
-    }
-}
-
-- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident
-{
-    MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
-    NSRange range = NSMakeRange(pos, len);
-    if (!NSEqualRanges(range, [scroller range])) {
-        //NSLog(@"Set range %@ for scroller %d",
-        //        NSStringFromRange(range), ident);
-        [scroller setRange:range];
-        // TODO!  Should only do this once per update.
-        [self placeScrollbars];
-    }
-}
-
-- (void)setScrollbarThumbValue:(float)val proportion:(float)prop
-                    identifier:(long)ident
-{
-    MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
-    //NSLog(@"Set thumb value %.2f proportion %.2f for scroller %d",
-    //        val, prop, ident);
-    [scroller setFloatValue:val knobProportion:prop];
-}
-
-- (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore
-{
-    [textStorage setDefaultColorsBackground:back foreground:fore];
-    [textView setBackgroundColor:back];
-}
-
-- (void)setFont:(NSFont *)font
-{
-    [textStorage setFont:font];
-    [self updateResizeIncrements];
+    return vimController;
 }
 
 - (MMTextView *)textView
@@ -248,34 +187,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return textStorage;
 }
 
-- (void)openWindowWithRows:(int)rows columns:(int)cols
+- (void)openWindow
 {
-    // Setup a complete text system.
-    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
-    NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
-            NSMakeSize(1.0e7,1.0e7)];
-
-    [tc setWidthTracksTextView:NO];
-    [tc setHeightTracksTextView:NO];
-    [tc setLineFragmentPadding:0];
-
-    [textStorage setMaxRows:rows columns:cols];
-    [textStorage addLayoutManager:lm];
-    [lm addTextContainer:tc];
-
-    textView = [[MMTextView alloc] initWithFrame:[tabView frame]
-                                   textContainer:tc];
-
-    [[self window] makeFirstResponder:textView];
-
-    // Keep track of when the layout has changed.
-    [[textView layoutManager] setDelegate:self];
-
-    // The text storage retains the layout manager which in turn retains the
-    // text container.
-    [tc release];
-    [lm release];
-
     [self addNewTabViewItem];
 
     // NOTE! This flag is set once the entire text system is set up.
@@ -405,6 +318,93 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                             selector:@selector(statusTimerFired:)
                             userInfo:nil
                              repeats:NO] retain];
+}
+
+- (void)createScrollbarWithIdentifier:(long)ident type:(int)type
+{
+    //NSLog(@"Create scroller %d of type %d", ident, type);
+
+    MMScroller *scroller = [[MMScroller alloc] initWithIdentifier:ident
+                                                             type:type];
+    [scroller setTarget:self];
+    [scroller setAction:@selector(scroll:)];
+
+    [[[self window] contentView] addSubview:scroller];
+    [scrollbars addObject:scroller];
+    [scroller release];
+}
+
+- (void)destroyScrollbarWithIdentifier:(long)ident
+{
+    //NSLog(@"Destroy scroller %d", ident);
+
+    unsigned idx = 0;
+    MMScroller *scroller = [self scrollbarForIdentifier:ident index:&idx];
+    if (scroller) {
+        [scroller removeFromSuperview];
+        [scrollbars removeObjectAtIndex:idx];
+
+        if (![scroller isHidden]) {
+            // A visible scroller was removed, so the window must resize to
+            // fit.
+            // TODO!  Should only do this once per update.
+            [self performSelectorOnMainThread:@selector(resizeWindowToFit:)
+                                   withObject:self waitUntilDone:NO];
+        }
+    }
+}
+
+- (void)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible
+{
+    MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
+    if (!scroller) return;
+
+    BOOL wasVisible = ![scroller isHidden];
+    //NSLog(@"%s scroller %d (was %svisible)", visible ? "Show" : "Hide",
+    //      ident, wasVisible ? "" : "in");
+    [scroller setHidden:!visible];
+
+    if (wasVisible != visible) {
+        // A scroller was hidden or shown, so the window must resize to fit.
+        //NSLog(@"%s scroller %d", visible ? "Show" : "Hide", ident);
+        // TODO!  Should only do this once per update.
+        [self performSelectorOnMainThread:@selector(resizeWindowToFit:)
+                               withObject:self waitUntilDone:NO];
+    }
+}
+
+- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident
+{
+    MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
+    NSRange range = NSMakeRange(pos, len);
+    if (!NSEqualRanges(range, [scroller range])) {
+        //NSLog(@"Set range %@ for scroller %d",
+        //        NSStringFromRange(range), ident);
+        [scroller setRange:range];
+        // TODO!  Should only do this once per update.
+        [self placeScrollbars];
+    }
+}
+
+- (void)setScrollbarThumbValue:(float)val proportion:(float)prop
+                    identifier:(long)ident
+{
+    MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
+    //NSLog(@"Set thumb value %.2f proportion %.2f for scroller %d",
+    //        val, prop, ident);
+    [scroller setFloatValue:val knobProportion:prop];
+}
+
+- (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore
+{
+    [textStorage setDefaultColorsBackground:back foreground:fore];
+    [textView setBackgroundColor:back];
+}
+
+- (void)setFont:(NSFont *)font
+{
+    [textStorage setFont:font];
+    [self updateResizeIncrements];
 }
 
 - (IBAction)addNewTab:(id)sender

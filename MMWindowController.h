@@ -36,7 +36,7 @@
 - (MMVimController *)vimController;
 - (MMTextView *)textView;
 - (MMTextStorage *)textStorage;
-- (void)openWindowWithRows:(int)rows columns:(int)cols;
+- (void)openWindow;
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols;
