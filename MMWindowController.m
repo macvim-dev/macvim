@@ -51,7 +51,7 @@ static float StatusLineHeight = 16.0f;
 @interface MMWindowController (Private)
 - (NSSize)contentSizeForTextViewSize:(NSSize)textViewSize;
 - (NSRect)textViewRectForContentSize:(NSSize)contentSize;
-- (void)fitWindowToTextStorage;
+- (void)resizeWindowToFit:(id)sender;
 - (NSRect)fitWindowToFrame:(NSRect)frame;
 - (void)updateResizeIncrements;
 - (NSTabViewItem *)addNewTabViewItem;
@@ -64,7 +64,6 @@ static float StatusLineHeight = 16.0f;
 - (BOOL)rightScrollbarVisible;
 - (void)placeScrollbars;
 - (void)scroll:(id)sender;
-- (void)fitWindowToScrollbars:(id)sender;
 - (void)placeViews;
 @end
 
@@ -179,8 +178,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         if (![scroller isHidden]) {
             // A visible scroller was removed, so the window must resize to
             // fit.
-            // TODO!  See comment in fitWindowToScrollbars:.
-            [self performSelectorOnMainThread:@selector(fitWindowToScrollbars:)
+            // TODO!  Should only do this once per update.
+            [self performSelectorOnMainThread:@selector(resizeWindowToFit:)
                                    withObject:self waitUntilDone:NO];
         }
     }
@@ -199,8 +198,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     if (wasVisible != visible) {
         // A scroller was hidden or shown, so the window must resize to fit.
         //NSLog(@"%s scroller %d", visible ? "Show" : "Hide", ident);
-        // TODO!  See comment in fitWindowToScrollbars:.
-        [self performSelectorOnMainThread:@selector(fitWindowToScrollbars:)
+        // TODO!  Should only do this once per update.
+        [self performSelectorOnMainThread:@selector(resizeWindowToFit:)
                                withObject:self waitUntilDone:NO];
     }
 }
@@ -213,7 +212,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         //NSLog(@"Set range %@ for scroller %d",
         //        NSStringFromRange(range), ident);
         [scroller setRange:range];
-        // TODO!  See comment in fitWindowToScrollbars:.
+        // TODO!  Should only do this once per update.
         [self placeScrollbars];
     }
 }
@@ -225,6 +224,18 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     //NSLog(@"Set thumb value %.2f proportion %.2f for scroller %d",
     //        val, prop, ident);
     [scroller setFloatValue:val knobProportion:prop];
+}
+
+- (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore
+{
+    [textStorage setDefaultColorsBackground:back foreground:fore];
+    [textView setBackgroundColor:back];
+}
+
+- (void)setFont:(NSFont *)font
+{
+    [textStorage setFont:font];
+    [self updateResizeIncrements];
 }
 
 - (MMTextView *)textView
@@ -270,7 +281,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // NOTE! This flag is set once the entire text system is set up.
     setupDone = YES;
 
-    [self fitWindowToTextStorage];
+    [self updateResizeIncrements];
+    [self resizeWindowToFit:self];
 
     // HACK!  The GUI does not get activated if Vim is launched by MMBackend in
     // checkin:.  I have not been able to figure out any other way to get it to
@@ -362,8 +374,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     //NSLog(@"setTextDimensionsWithRows:%d columns:%d", rows, cols);
 
-    // HACK! Dimensions are set by [MMVimController performBatchDrawWithData:].
-    //[textStorage setMaxRows:rows columns:cols];
+    [textStorage setMaxRows:rows columns:cols];
+
+    if (setupDone && ![textView inLiveResize])
+        [self resizeWindowToFit:self];
 }
 
 - (void)setStatusText:(NSString *)text
@@ -405,14 +419,14 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     [tabBarControl setHidden:NO];
     if (setupDone)
-        [self fitWindowToTextStorage];
+        [self resizeWindowToFit:self];
 }
 
 - (IBAction)hideTabBar:(id)sender
 {
     [tabBarControl setHidden:YES];
     if (setupDone)
-        [self fitWindowToTextStorage];
+        [self resizeWindowToFit:self];
 }
 
 
@@ -466,6 +480,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 // -- NSLayoutManager delegate -----------------------------------------------
 
 
+#if 0
 - (void)layoutManager:(NSLayoutManager *)aLayoutManager
         didCompleteLayoutForTextContainer:(NSTextContainer *)aTextContainer
                                     atEnd:(BOOL)flag
@@ -492,10 +507,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         // (This way the text storage size can change however/whenever it wants
         // and the window will update to fit it.)
         if (!NSEqualSizes([tabView frame].size, [textStorage size])) {
-            [self fitWindowToTextStorage];
+            [self resizeWindowToFit:self];
             if (!NSEqualSizes([tabView frame].size, [textStorage size])) {
                 // NOTE!  If the window is the same size after
-                // fitWindowToTextStorage, we place the views manually
+                // resizeWindowToFit:, we place the views manually
                 // (normally windowDidResize: takes care of that) in case the
                 // text view changed size (which can happen e.g. after a ':set
                 // lines' command).
@@ -505,6 +520,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         }
     }
 }
+#endif
 
 
 // -- NSWindow delegate ------------------------------------------------------
@@ -527,15 +543,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [tabBarControl setDelegate:nil];
 }
 
-#if 0
-- (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)proposedFrameSize
-{
-    //NSLog(@"%s (%.2f,%.2f)", _cmd, proposedFrameSize.width,
-    //        proposedFrameSize.height);
-    return proposedFrameSize;
-}
-#endif
-
 - (void)windowDidResize:(id)sender
 {
     if (!setupDone) return;
@@ -555,7 +562,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // increase 'frame' so that their tops align.  Really, 'frame' should
     // already have its top at least as high as the current window frame, but
     // for some reason this is not always the case.
-    // (See fitWindowToTextStorage for a similar hack.)
+    // (See resizeWindowToFit: for a similar hack.)
     NSRect cur = [win frame];
     if (NSMaxY(cur) > NSMaxY(frame)) {
         frame.size.height = cur.origin.y - frame.origin.y + cur.size.height;
@@ -563,8 +570,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     frame = [self fitWindowToFrame:frame];
 
-    // Keep old width and horizontal position if the Command key is held down.
-    if ([[NSApp currentEvent] modifierFlags] & NSCommandKeyMask) {
+    // Keep old width and horizontal position unless the Command key is held
+    // down.
+    if (!([[NSApp currentEvent] modifierFlags] & NSCommandKeyMask)) {
         NSRect currentFrame = [win frame];
         frame.size.width = currentFrame.size.width;
         frame.origin.x = currentFrame.origin.x;
@@ -624,7 +632,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return rect;
 }
 
-- (void)fitWindowToTextStorage
+- (void)resizeWindowToFit:(id)sender
 {
     if (!setupDone) return;
 
@@ -649,15 +657,21 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                 + frame.size.height;
     }
 
-    if (NSEqualRects(maxFrame, frame)) {
-        // The new window frame fits on the screen, so resize the window.
-        [win setFrame:frame display:YES];
-    } else {
+    if (!NSEqualRects(maxFrame, frame)) {
         // The new window frame is too big to fit on the screen, so fit the
         // text storage to the biggest frame which will fit on the screen.
         //NSLog(@"Proposed window frame does not fit on the screen!");
+        frame = [self fitWindowToFrame:maxFrame];
+    }
 
-        [win setFrame:[self fitWindowToFrame:maxFrame] display:YES];
+    // HACK! If the window does resize, then windowDidResize is called which in
+    // turn calls placeViews.  In case the computed new size of the window is
+    // no different from the current size, then we need to call placeViews
+    // manually.
+    if (NSEqualRects(frame, [win frame])) {
+        [self placeViews];
+    } else {
+        [win setFrame:frame display:YES];
     }
 }
 
@@ -909,16 +923,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [vimController sendMessage:ScrollbarEventMsgID data:data wait:NO];
 }
 
-- (void)fitWindowToScrollbars:(id)sender
-{
-    // TODO!  Make sure this only gets called once per update (e.g. in case
-    // several scrollbars were hidden).  Could do this by setting a flag and
-    // then checking for this flag at appropriate places and then calling this
-    // method.
-    [self fitWindowToTextStorage];
-    [self placeScrollbars];
-}
-
 - (void)placeViews
 {
     if (!setupDone) return;
@@ -929,11 +933,17 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSWindow *win = [self window];
     NSRect contentRect = [win contentRectForFrameRect:[win frame]];
     NSRect textViewRect = [self textViewRectForContentSize:contentRect.size];
+#if 0
     if ([textStorage resizeToFitSize:textViewRect.size]) {
         // Text storage dimensions changed, notify the VimTask.
         int dim[2];
         [textStorage getMaxRows:&dim[0] columns:&dim[1]];
-
+#else
+    int dim[2], rows, cols;
+    [textStorage getMaxRows:&rows columns:&cols];
+    [textStorage fitToSize:textViewRect.size rows:&dim[0] columns:&dim[1]];
+    if (dim[0] != rows || dim[1] != cols) {
+#endif
         NSString *sdim = [NSString stringWithFormat:@"%dx%d", dim[1], dim[0]];
         [self flashStatusText:sdim];
 

@@ -48,6 +48,8 @@
 - (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident;
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
                     identifier:(long)ident;
+- (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
+- (void)setFont:(NSFont *)font;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)showTabBar:(id)sender;
