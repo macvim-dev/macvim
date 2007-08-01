@@ -29,6 +29,7 @@
 		1D71ACBD0BC702AC002F2B60 /* doc-bm-xml.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACB20BC702AB002F2B60 /* doc-bm-xml.icns */; };
 		1D71ACBE0BC702AC002F2B60 /* doc-bm.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACB30BC702AB002F2B60 /* doc-bm.icns */; };
 		1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1DD04DEB0C529C5E006CDC2B /* Credits.rtf */; };
+		1DD0C20C0C60FFB4008CD84A /* gvimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DD0C20A0C60FF9A008CD84A /* gvimrc */; };
 		1DD703B90BA9D15D008679E9 /* vim_gloss.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1DD703B80BA9D15D008679E9 /* vim_gloss.icns */; };
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
 		1DE608B40C587FDA0055263D /* runtime in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
@@ -105,6 +106,7 @@
 			dstPath = vim;
 			dstSubfolderSpec = 7;
 			files = (
+				1DD0C20C0C60FFB4008CD84A /* gvimrc in CopyFiles */,
 				1DE608B40C587FDA0055263D /* runtime in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -143,6 +145,7 @@
 		1D71ACB20BC702AB002F2B60 /* doc-bm-xml.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm-xml.icns"; sourceTree = "<group>"; };
 		1D71ACB30BC702AB002F2B60 /* doc-bm.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm.icns"; sourceTree = "<group>"; };
 		1DD04DEB0C529C5E006CDC2B /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
+		1DD0C20A0C60FF9A008CD84A /* gvimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gvimrc; sourceTree = "<group>"; };
 		1DD703B80BA9D15D008679E9 /* vim_gloss.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = vim_gloss.icns; sourceTree = "<group>"; };
 		1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SpecialKeys.plist; sourceTree = "<group>"; };
 		1DE602470C587FD10055263D /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; name = runtime; path = ../../runtime; sourceTree = SOURCE_ROOT; };
@@ -275,6 +278,7 @@
 		1DE602460C587F760055263D /* Vim Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1DD0C20A0C60FF9A008CD84A /* gvimrc */,
 				1DE602470C587FD10055263D /* runtime */,
 			);
 			name = "Vim Resources";

@@ -368,9 +368,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>1DE8CC400C5E2483003F56E3</string>
+				<string>1DD0C2170C610087008CD84A</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>1DE8CC410C5E2483003F56E3</string>
+				<string>1DD0C2180C610087008CD84A</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -504,13 +504,8 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>1DE8CC540C5E24D6003F56E3</string>
-		<string>1DE8CC550C5E24D6003F56E3</string>
-		<string>1DE444730BA4445100C4C77A</string>
-		<string>1CD10A99069EF8BA00B06720</string>
-		<string>1DE8CC520C5E24CD003F56E3</string>
-		<string>1D16B9EF0BA33E3800A69B33</string>
 		<string>1C0AD2B3069F1EA900FABCE6</string>
+		<string>1D16B9EF0BA33E3800A69B33</string>
 		<string>/Users/winckler/Projects/vim7/src/MacVim/MacVim.xcodeproj</string>
 	</array>
 	<key>WindowString</key>
@@ -530,14 +525,12 @@
 					<key>Dock</key>
 					<array>
 						<dict>
-							<key>BecomeActive</key>
-							<true/>
 							<key>ContentConfiguration</key>
 							<dict>
 								<key>PBXProjectModuleGUID</key>
 								<string>1CD0528F0623707200166675</string>
 								<key>PBXProjectModuleLabel</key>
-								<string>MMAppController.m</string>
+								<string></string>
 								<key>StatusBarVisibility</key>
 								<true/>
 							</dict>
@@ -593,7 +586,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1D16B9EF0BA33E3800A69B33</string>
-				<string>1DE8CC420C5E2483003F56E3</string>
+				<string>1DD0C2120C610078008CD84A</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>
@@ -963,9 +956,9 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1C0AD2B3069F1EA900FABCE6</string>
-				<string>1DE8CC430C5E2483003F56E3</string>
+				<string>1DD0C2130C610078008CD84A</string>
 				<string>1CD0528B0623707200166675</string>
-				<string>1DE8CC440C5E2483003F56E3</string>
+				<string>1DD0C2140C610078008CD84A</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.run</string>
