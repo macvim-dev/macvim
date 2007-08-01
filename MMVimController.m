@@ -382,14 +382,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     //NSLog(@"%@ %s", [self className], _cmd);
 
     if (OpenVimWindowMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int rows = *((int*)bytes);  bytes += sizeof(int);
-        int cols = *((int*)bytes);  bytes += sizeof(int);
-
-        //NSLog(@"Received open VimWindow (%dx%d) message from VimTask.",
-        //        cols, rows);
-
-        [windowController openWindowWithRows:rows columns:cols];
+        [windowController openWindow];
     }
 #if !MM_USE_DO
     else if (TaskExitedMsgID == msgid) {
