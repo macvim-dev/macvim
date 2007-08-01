@@ -906,7 +906,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 {
     shouldUpdateMainMenu = NO;
 
-    // HACK!  Add the vim menu named 'Window' as the submenu with index 5 of an
+    // HACK!  Add the vim menu named 'Window' as the submenu with index 3 of an
     // already existing menu with the same name.  The 'Window' menu is set up
     // in Interface Builder.
     NSMenu *mainMenu = [NSApp mainMenu];
@@ -929,11 +929,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     for (i = 0; i < count; ++i) {
         NSMenuItem *item = [mainMenuItems objectAtIndex:i];
 
-        if (windowMenu && [windowMenu numberOfItems] > 6
+        if (windowMenu && [windowMenu numberOfItems] > 4
                 && [[item title] isEqual:@"Window"]) {
-            // Item 5 of the Window menu is replaced with vim's Window menu.
-            [windowMenu removeItemAtIndex:5];
-            [windowMenu insertItem:item atIndex:5];
+            // Item 3 of the Window menu is replaced with vim's Window menu.
+            [windowMenu removeItemAtIndex:3];
+            [windowMenu insertItem:item atIndex:3];
         } else {
             [mainMenu insertItem:item atIndex:i+1];
         }
