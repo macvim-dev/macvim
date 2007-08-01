@@ -72,7 +72,8 @@
 - (void)addMenuWithTag:(int)tag parent:(int)parentTag name:(char *)name
                atIndex:(int)index;
 - (void)addMenuItemWithTag:(int)tag parent:(int)parentTag name:(char *)name
-                       tip:(char *)tip icon:(char *)icon atIndex:(int)index;
+                       tip:(char *)tip icon:(char *)icon
+             keyEquivalent:(int)key modifiers:(int)mods atIndex:(int)index;
 - (void)removeMenuItemWithTag:(int)tag;
 - (void)enableMenuItemWithTag:(int)tag state:(int)enabled;
 - (void)showToolbar:(int)enable flags:(int)flags;

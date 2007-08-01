@@ -605,6 +605,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         }
         int idx = *((int*)bytes);  bytes += sizeof(int);
         if (idx < 0) idx = 0;
+        int key = *((int*)bytes);  bytes += sizeof(int);
+        int mask = *((int*)bytes);  bytes += sizeof(int);
 
         NSString *ident = [NSString stringWithFormat:@"%d.%d",
                 (int)self, parentTag];
@@ -629,6 +631,15 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                     [item setTitle:title];
                     [item setAction:@selector(vimMenuItemAction:)];
                     if (tip) [item setToolTip:tip];
+
+                    if (key != 0) {
+                        NSString *keyString =
+                            [NSString stringWithFormat:@"%C", key];
+                        //NSLog(@"Set key equivalent %@ (code=0x%x, mods=%d)",
+                        //        keyString, key, mask);
+                        [item setKeyEquivalent:keyString];
+                        [item setKeyEquivalentModifierMask:mask];
+                    }
                 } else {
                     item = [NSMenuItem separatorItem];
                 }

@@ -583,8 +583,14 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
             ? (char*)menu->strings[MENU_INDEX_TIP] : (char*)menu->actext;
 
     [[MMBackend sharedInstance]
-            addMenuItemWithTag:(int)menu parent:(int)menu->parent name:name
-                           tip:tip icon:(char*)icon atIndex:idx];
+            addMenuItemWithTag:(int)menu
+                        parent:(int)menu->parent
+                          name:name
+                           tip:tip
+                          icon:(char*)icon
+                 keyEquivalent:menu->ke_key
+                     modifiers:menu->ke_mods
+                       atIndex:idx];
 }
 
 
