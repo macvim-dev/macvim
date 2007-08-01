@@ -15,6 +15,9 @@ an 10.300 File.-SEP0-                       <Nop>
 an 10.326 File.New\ Tab                     :tabnew<CR>
 an 10.331 File.Close\ Tab                   :tabclose<CR>
 
+an 20.460 Edit.-SEP4-                       <Nop>
+an 20.470 Edit.Special\ Characters\.\.\.    :action orderFrontCharacterPalette:<CR>
+
 
 "
 " Keyboard mappings
@@ -50,6 +53,7 @@ menukeyequiv Edit.Cut               <D-x>
 menukeyequiv Edit.Copy              <D-c>
 menukeyequiv Edit.Paste             <D-v>
 menukeyequiv Edit.Select\ All       <D-a>
+menukeyequiv Edit.Special\ Characters\.\.\.    <D-M-t> 
 
 menukeyequiv Tools.Make             <D-b>
 menukeyequiv Tools.List\ Errors     <D-l>
