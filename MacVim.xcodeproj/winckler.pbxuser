@@ -39,8 +39,16 @@
 			NO,
 			NO,
 			NO,
+			NO,
+			NO,
+			NO,
+			NO,
 		);
 		argumentStrings = (
+			"-insetleft 2",
+			"-insetright 1",
+			"-insettop 1",
+			"-insetbottom 1",
 			"-tabmaxwidth 384",
 			"-taboptimumwidth 132",
 			"-statuslineoff 1",
@@ -236,8 +244,8 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 207683433;
-			PBXWorkspaceStateSaveDate = 207683433;
+			PBXPerProjectTemplateStateSaveDate = 207728380;
+			PBXWorkspaceStateSaveDate = 207728380;
 		};
 		sourceControlManager = 1D16B9DD0BA33BB000A69B33 /* Source Control */;
 		userBuildSettings = {
