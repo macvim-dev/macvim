@@ -23,11 +23,23 @@ an 20.470 Edit.Special\ Characters\.\.\.    :action orderFrontCharacterPalette:<
 " Keyboard mappings
 "
 
-map <silent> <D-M-Right> :tabn<CR>
-map <silent> <D-M-Left> :tabp<CR>
+" TODO: Do these mappings have to be this complicated?  Is it possible to have
+" each tab 'remembering' which mode it was in?
+map <special><silent> <D-M-Right> :tabn<CR>
+imap <special><silent> <D-M-Right> <C-O>:tabn<CR>
+vmap <special><silent> <D-M-Right> <C-C>:tabn<CR><C-\><C-G>
 
-map <silent> <S-D-Left> :action selectPreviousWindow:<CR>
-map <silent> <S-D-Right> :action selectNextWindow:<CR>
+map <special><silent> <D-M-Left> :tabp<CR>
+imap <special><silent> <D-M-Left> <C-O>:tabp<CR>
+vmap <special><silent> <D-M-Left> <C-C>:tabp<CR><C-\><C-G>
+
+map <special><silent> <S-D-Left> :action selectPreviousWindow:<CR>
+imap <special><silent> <S-D-Left> <C-O>:action selectPreviousWindow:<CR>
+vmap <special><silent> <S-D-Left> <C-C>:action selectPreviousWindow:<CR>
+
+map <special><silent> <S-D-Right> :action selectNextWindow:<CR>
+imap <special><silent> <S-D-Right> <C-O>:action selectNextWindow:<CR>
+vmap <special><silent> <S-D-Right> <C-C>:action selectNextWindow:<CR>
 
 
 
