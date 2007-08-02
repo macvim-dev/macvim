@@ -19,6 +19,10 @@ NSString *MMTabMinWidthKey = @"tabminwidth";
 NSString *MMTabMaxWidthKey = @"tabmaxwidth";
 NSString *MMTabOptimumWidthKey = @"taboptimumwidth";
 NSString *MMStatuslineOffKey = @"statuslineoff";
+NSString *MMTextInsetLeft = @"insetleft";
+NSString *MMTextInsetRight = @"insetright";
+NSString *MMTextInsetTop = @"insettop";
+NSString *MMTextInsetBottom = @"insetbottom";
 
 
 
@@ -32,6 +36,10 @@ NSString *MMStatuslineOffKey = @"statuslineoff";
         [NSNumber numberWithInt:6*64],  MMTabMaxWidthKey,
         [NSNumber numberWithInt:132],   MMTabOptimumWidthKey,
         [NSNumber numberWithBool:NO],   MMStatuslineOffKey,
+        [NSNumber numberWithInt:2],     MMTextInsetLeft,
+        [NSNumber numberWithInt:1],     MMTextInsetRight,
+        [NSNumber numberWithInt:1],     MMTextInsetTop,
+        [NSNumber numberWithInt:1],     MMTextInsetBottom,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];

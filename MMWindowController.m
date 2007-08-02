@@ -49,8 +49,9 @@ static float StatusLineHeight = 16.0f;
 @end
 
 @interface MMWindowController (Private)
-- (NSSize)contentSizeForTextViewSize:(NSSize)textViewSize;
+- (NSSize)contentSizeForTextStorageSize:(NSSize)textViewSize;
 - (NSRect)textViewRectForContentSize:(NSSize)contentSize;
+- (NSSize)textStorageSizeForTextViewSize:(NSSize)textViewSize;
 - (void)resizeWindowToFit:(id)sender;
 - (NSRect)fitWindowToFrame:(NSRect)frame;
 - (void)updateResizeIncrements;
@@ -144,6 +145,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     textView = [[MMTextView alloc] initWithFrame:NSZeroRect
                                    textContainer:tc];
+
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int left = [ud integerForKey:MMTextInsetLeft];
+    int top = [ud integerForKey:MMTextInsetTop];
+    [textView setTextContainerInset:NSMakeSize(left, top)];
 
     // The text storage retains the layout manager which in turn retains the
     // text container.
@@ -587,9 +593,16 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 @implementation MMWindowController (Private)
 
-- (NSSize)contentSizeForTextViewSize:(NSSize)textViewSize
+- (NSSize)contentSizeForTextStorageSize:(NSSize)textViewSize
 {
     NSSize size = textViewSize;
+
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int right = [ud integerForKey:MMTextInsetRight];
+    int bot = [ud integerForKey:MMTextInsetBottom];
+
+    size.width += [textView textContainerOrigin].x + right;
+    size.height += [textView textContainerOrigin].y + bot;
 
     if (![tabBarControl isHidden])
         size.height += [tabBarControl frame].size.height;
@@ -632,6 +645,20 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return rect;
 }
 
+- (NSSize)textStorageSizeForTextViewSize:(NSSize)textViewSize
+{
+    NSSize size = textViewSize;
+
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int right = [ud integerForKey:MMTextInsetRight];
+    int bot = [ud integerForKey:MMTextInsetBottom];
+
+    size.width -= [textView textContainerOrigin].x + right;
+    size.height -= [textView textContainerOrigin].y + bot;
+
+    return size;
+}
+
 - (void)resizeWindowToFit:(id)sender
 {
     if (!setupDone) return;
@@ -639,7 +666,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSWindow *win = [self window];
     NSRect frame = [win frame];
     NSRect contentRect = [win contentRectForFrameRect:frame];
-    NSSize newSize = [self contentSizeForTextViewSize:[textStorage size]];
+    NSSize newSize = [self contentSizeForTextStorageSize:[textStorage size]];
 
     // Keep top-left corner of the window fixed when resizing.
     contentRect.origin.y -= newSize.height - contentRect.size.height;
@@ -681,13 +708,14 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     NSWindow *win = [self window];
     NSRect contentRect = [win contentRectForFrameRect:frame];
-    NSRect textViewRect = [self textViewRectForContentSize:contentRect.size];
-    NSSize fitSize = [textStorage fitToSize:textViewRect.size];
-    NSSize newSize = [self contentSizeForTextViewSize:fitSize];
+    NSSize size = [self textViewRectForContentSize:contentRect.size].size;
+    size = [self textStorageSizeForTextViewSize:size];
+    size = [textStorage fitToSize:size];
+    size = [self contentSizeForTextStorageSize:size];
 
     // Keep top-left corner of 'frame' fixed.
-    contentRect.origin.y -= newSize.height - contentRect.size.height;
-    contentRect.size = newSize;
+    contentRect.origin.y -= size.height - contentRect.size.height;
+    contentRect.size = size;
 
     return [win frameRectForContentRect:contentRect];
 }
@@ -933,15 +961,16 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSWindow *win = [self window];
     NSRect contentRect = [win contentRectForFrameRect:[win frame]];
     NSRect textViewRect = [self textViewRectForContentSize:contentRect.size];
+    NSSize tsSize = [self textStorageSizeForTextViewSize:textViewRect.size];
 #if 0
-    if ([textStorage resizeToFitSize:textViewRect.size]) {
+    if ([textStorage resizeToFitSize:tsSize]) {
         // Text storage dimensions changed, notify the VimTask.
         int dim[2];
         [textStorage getMaxRows:&dim[0] columns:&dim[1]];
 #else
     int dim[2], rows, cols;
     [textStorage getMaxRows:&rows columns:&cols];
-    [textStorage fitToSize:textViewRect.size rows:&dim[0] columns:&dim[1]];
+    [textStorage fitToSize:tsSize rows:&dim[0] columns:&dim[1]];
     if (dim[0] != rows || dim[1] != cols) {
 #endif
         NSString *sdim = [NSString stringWithFormat:@"%dx%d", dim[1], dim[0]];
