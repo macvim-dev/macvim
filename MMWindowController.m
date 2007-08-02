@@ -832,6 +832,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     // HACK!  Find the lowest left&right vertical scrollbars, as well as the
     // leftmost horizontal scrollbar.  This hack continues further down.
+    //
+    // TODO!  Can there be no more than one horizontal scrollbar?  If so, the
+    // code can be simplified.
     unsigned lowestLeftSbIdx = (unsigned)-1;
     unsigned lowestRightSbIdx = (unsigned)-1;
     unsigned leftmostSbIdx = (unsigned)-1;
@@ -914,10 +917,18 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                 }
             }
 
+            // Vertical scrollers must not cover the resize box in the
+            // bottom-right corner of the window.
+            if (rect.origin.y < [NSScroller scrollerWidth]) {
+                rect.size.height -= [NSScroller scrollerWidth] - rect.origin.y;
+                rect.origin.y = [NSScroller scrollerWidth];
+            }
+
             // Make sure scrollbar rect is bounded by the tab view frame.
-            if (rect.origin.y < tabViewFrame.origin.y)
+            if (rect.origin.y < tabViewFrame.origin.y) {
+                rect.size.height -= tabViewFrame.origin.y - rect.origin.y;
                 rect.origin.y = tabViewFrame.origin.y;
-            else if (rect.origin.y > NSMaxY(tabViewFrame))
+            } else if (rect.origin.y > NSMaxY(tabViewFrame))
                 rect.origin.y = NSMaxY(tabViewFrame);
             if (NSMaxY(rect) > NSMaxY(tabViewFrame))
                 rect.size.height -= NSMaxY(rect) - NSMaxY(tabViewFrame);
