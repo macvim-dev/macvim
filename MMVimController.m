@@ -26,11 +26,19 @@ static NSString *DefaultToolbarImageName = @"Attention";
             context:(void *)context;
 - (NSMenuItem *)menuItemForTag:(int)tag;
 - (NSMenu *)menuForTag:(int)tag;
+- (void)addMenuWithTag:(int)tag parent:(NSMenu *)parent title:(NSString *)title
+               atIndex:(int)idx;
+- (void)addMenuItemWithTag:(int)tag parent:(NSMenu *)parent
+                     title:(NSString *)title tip:(NSString *)tip
+             keyEquivalent:(int)key modifiers:(int)mask atIndex:(int)idx;
 - (void)updateMainMenu;
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index;
 - (IBAction)toolbarAction:(id)sender;
 - (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
+- (void)addToolbarItemWithTag:(int)tag label:(NSString *)label
+                          tip:(NSString *)tip icon:(NSString *)icon
+                      atIndex:(int)idx;
 #if MM_USE_DO
 - (void)connectionDidDie:(NSNotification *)notification;
 #endif
@@ -266,6 +274,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
     //NSLog(@"======== %s  END  ========", _cmd);
 
+    if (shouldUpdateMainMenu) {
+        [self updateMainMenu];
+    }
+
 #if MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE
     inProcessCommandQueue = NO;
 
@@ -327,8 +339,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [self handleMessage:msgid data:data];
     }
 
-    if (shouldUpdateMainMenu)
+    if (shouldUpdateMainMenu) {
         [self updateMainMenu];
+    }
 }
 #endif // MM_USE_DO
 
@@ -550,33 +563,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         } else if (MenuPopupType == parentTag) {
             // TODO!
         } else if (title) {
-            NSMenuItem *item = [[NSMenuItem alloc] init];
-            NSMenu *menu = [[NSMenu alloc] initWithTitle:title];
-
-            [menu setAutoenablesItems:NO];
-            [item setTag:tag];
-            [item setTitle:title];
-            [item setSubmenu:menu];
-
             NSMenu *parent = [self menuForTag:parentTag];
-            if (parent) {
-                if ([parent numberOfItems] <= idx) {
-                    [parent addItem:item];
-                } else {
-                    [parent insertItem:item atIndex:idx];
-                }
-            } else {
-                if ([mainMenuItems count] <= idx) {
-                    [mainMenuItems addObject:item];
-                } else {
-                    [mainMenuItems insertObject:item atIndex:idx];
-                }
-
-                shouldUpdateMainMenu = YES;
-            }
-
-            [item release];
-            [menu release];
+            [self addMenuWithTag:tag parent:parent title:title atIndex:idx];
         }
 
         [title release];
@@ -611,45 +599,12 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         NSString *ident = [NSString stringWithFormat:@"%d.%d",
                 (int)self, parentTag];
         if (toolbar && [[toolbar identifier] isEqual:ident]) {
-            //NSLog(@"Toolbar add: title=%@ icon=%@ tip=%@", title, icon, tip);
-            [self addToolbarItemToDictionaryWithTag:tag label:title toolTip:tip
-                                               icon:icon];
-
-            int maxIdx = [[toolbar items] count];
-            if (maxIdx < idx) idx = maxIdx;
-
-            // If 'title' is nul, insert a separator.
-            if (!title) title = NSToolbarSeparatorItemIdentifier;
-            [toolbar insertItemWithItemIdentifier:title atIndex:idx];
+            [self addToolbarItemWithTag:tag label:title tip:tip icon:icon
+                                atIndex:idx];
         } else {
             NSMenu *parent = [self menuForTag:parentTag];
-            if (parent) {
-                NSMenuItem *item = nil;
-                if (title) {
-                    item = [[[NSMenuItem alloc] init] autorelease];
-                    [item setTag:tag];
-                    [item setTitle:title];
-                    [item setAction:@selector(vimMenuItemAction:)];
-                    if (tip) [item setToolTip:tip];
-
-                    if (key != 0) {
-                        NSString *keyString =
-                            [NSString stringWithFormat:@"%C", key];
-                        //NSLog(@"Set key equivalent %@ (code=0x%x, mods=%d)",
-                        //        keyString, key, mask);
-                        [item setKeyEquivalent:keyString];
-                        [item setKeyEquivalentModifierMask:mask];
-                    }
-                } else {
-                    item = [NSMenuItem separatorItem];
-                }
-
-                if ([parent numberOfItems] <= idx) {
-                    [parent addItem:item];
-                } else {
-                    [parent insertItem:item atIndex:idx];
-                }
-            }
+            [self addMenuItemWithTag:tag parent:parent title:title tip:tip
+                       keyEquivalent:key modifiers:mask atIndex:idx];
         }
 
         [title release];
@@ -666,6 +621,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             [toolbar removeItemAtIndex:idx];
         } else if ((item = [self menuItemForTag:tag])) {
             if ([item menu] == [NSApp mainMenu]) {
+                NSLog(@"Removing menu: %@", item);
                 [mainMenuItems removeObject:item];
             }
             [[item menu] removeItem:item];
@@ -902,42 +858,111 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     return [[self menuItemForTag:tag] submenu];
 }
 
+- (void)addMenuWithTag:(int)tag parent:(NSMenu *)parent title:(NSString *)title
+               atIndex:(int)idx
+{
+    NSMenuItem *item = [[NSMenuItem alloc] init];
+    NSMenu *menu = [[NSMenu alloc] initWithTitle:title];
+
+    [menu setAutoenablesItems:NO];
+    [item setTag:tag];
+    [item setTitle:title];
+    [item setSubmenu:menu];
+
+    if (parent) {
+        if ([parent numberOfItems] <= idx) {
+            [parent addItem:item];
+        } else {
+            [parent insertItem:item atIndex:idx];
+        }
+    } else {
+        if ([mainMenuItems count] <= idx) {
+            [mainMenuItems addObject:item];
+        } else {
+            [mainMenuItems insertObject:item atIndex:idx];
+        }
+
+        shouldUpdateMainMenu = YES;
+    }
+
+    [item release];
+    [menu release];
+}
+
+- (void)addMenuItemWithTag:(int)tag parent:(NSMenu *)parent
+                     title:(NSString *)title tip:(NSString *)tip
+             keyEquivalent:(int)key modifiers:(int)mask atIndex:(int)idx
+{
+    if (parent) {
+        NSMenuItem *item = nil;
+        if (title) {
+            item = [[[NSMenuItem alloc] init] autorelease];
+            [item setTitle:title];
+            [item setAction:@selector(vimMenuItemAction:)];
+            if (tip) [item setToolTip:tip];
+
+            if (key != 0) {
+                NSString *keyString =
+                    [NSString stringWithFormat:@"%C", key];
+                //NSLog(@"Set key equivalent %@ (code=0x%x, mods=%d)",
+                //        keyString, key, mask);
+                [item setKeyEquivalent:keyString];
+                [item setKeyEquivalentModifierMask:mask];
+            }
+        } else {
+            item = [NSMenuItem separatorItem];
+        }
+
+        // NOTE!  The tag is used to idenfity which menu items were
+        // added by Vim (tag != 0) and which were added by the AppKit
+        // (tag == 0).
+        [item setTag:tag];
+
+        if ([parent numberOfItems] <= idx) {
+            [parent addItem:item];
+        } else {
+            [parent insertItem:item atIndex:idx];
+        }
+    }
+}
+
 - (void)updateMainMenu
 {
-    shouldUpdateMainMenu = NO;
-
-    // HACK!  Add the vim menu named 'Window' as the submenu with index 3 of an
-    // already existing menu with the same name.  The 'Window' menu is set up
-    // in Interface Builder.
     NSMenu *mainMenu = [NSApp mainMenu];
-    NSMenu *windowMenu = nil;
 
-    // Remove all existing menus, except for 'Window'.
+    // Stop NSApp from updating the Window menu.
+    [NSApp setWindowsMenu:nil];
+
+    // Remove all menus from main menu (except the MacVim menu).
     int i, count = [mainMenu numberOfItems];
     for (i = count-1; i > 0; --i) {
-        NSMenuItem *item = [mainMenu itemAtIndex:i];
-        NSMenu *submenu = [item submenu];
-        if ([[submenu title] isEqual:@"Window"]) {
-            windowMenu = submenu;
-        } else {
-            [mainMenu removeItem:item];
-        }
+        [mainMenu removeItemAtIndex:i];
     }
 
-    // Add menus from 'mainMenuItems'
+    // Add menus from 'mainMenuItems' to main menu.
     count = [mainMenuItems count];
     for (i = 0; i < count; ++i) {
-        NSMenuItem *item = [mainMenuItems objectAtIndex:i];
-
-        if (windowMenu && [windowMenu numberOfItems] > 4
-                && [[item title] isEqual:@"Window"]) {
-            // Item 3 of the Window menu is replaced with vim's Window menu.
-            [windowMenu removeItemAtIndex:3];
-            [windowMenu insertItem:item atIndex:3];
-        } else {
-            [mainMenu insertItem:item atIndex:i+1];
-        }
+        [mainMenu addItem:[mainMenuItems objectAtIndex:i]];
     }
+
+    // Set the new Window menu.
+    // TODO!  Need to look for 'Window' in all localized languages.
+    NSMenu *windowMenu = [[mainMenu itemWithTitle:@"Window"] submenu];
+    if (windowMenu) {
+        // Remove all AppKit owned menu items (tag == 0); they will be added
+        // again when setWindowsMenu: is called.
+        count = [windowMenu numberOfItems];
+        for (i = count-1; i >= 0; --i) {
+            NSMenuItem *item = [windowMenu itemAtIndex:i];
+            if (![item tag]) {
+                [windowMenu removeItem:item];
+            }
+        }
+
+        [NSApp setWindowsMenu:windowMenu];
+    }
+
+    shouldUpdateMainMenu = NO;
 }
 
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index
@@ -991,6 +1016,22 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     [toolbarItemDict setObject:item forKey:title];
 
     [item release];
+}
+
+- (void)addToolbarItemWithTag:(int)tag label:(NSString *)label tip:(NSString
+                   *)tip icon:(NSString *)icon atIndex:(int)idx
+{
+    if (!toolbar) return;
+
+    [self addToolbarItemToDictionaryWithTag:tag label:label toolTip:tip
+                                       icon:icon];
+
+    int maxIdx = [[toolbar items] count];
+    if (maxIdx < idx) idx = maxIdx;
+
+    // If 'label' is nul, insert a separator.
+    if (!label) label = NSToolbarSeparatorItemIdentifier;
+    [toolbar insertItemWithItemIdentifier:label atIndex:idx];
 }
 
 #if MM_USE_DO
