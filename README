@@ -68,6 +68,10 @@ Weirdness:
 - gui_mch_browse() is a blocking call, but you can't put up dialogs in Cocoa
   which block until the user dismisses them (it uses callbacks).  This
   complicates the browsing somewhat.
+- When binding menus to :action note that that action will be used for all
+  modes.  The reason for this is that MacVim needs to be able to execute such
+  menu items even when no windows are open (e.g. newVimWindow:) and the default
+  menu action relies on Vim to deal with it.
 
 
 Design decisions:
