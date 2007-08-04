@@ -35,8 +35,8 @@ an <silent> 70.300 Window.Minimize          :action performMiniaturize:<CR>
 an <silent> 70.310 Window.Zoom              :action performZoom:<CR>
 an 70.320 Window.-SEP1-                     <Nop>
 " TODO! Grey out if no tabs are visible.
-an <silent> 70.330 Window.Previous\ Tab     :tabnext<CR>
-an <silent> 70.340 Window.Next\ Tab         :tabprevious<CR>
+an <silent> 70.330 Window.Previous\ Tab     :tabprevious<CR>
+an <silent> 70.340 Window.Next\ Tab         :tabnext<CR>
 an 70.350 Window.-SEP2-                     <Nop>
 an <silent> 70.360 Window.Bring\ All\ To\ Front :action arrangeInFront:<CR>
 
