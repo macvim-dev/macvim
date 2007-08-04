@@ -14,16 +14,22 @@
 
 
 // NSUserDefaults keys
-NSString *MMNoWindowKey = @"nowindow";
-NSString *MMTabMinWidthKey = @"tabminwidth";
-NSString *MMTabMaxWidthKey = @"tabmaxwidth";
-NSString *MMTabOptimumWidthKey = @"taboptimumwidth";
-NSString *MMStatuslineOffKey = @"statuslineoff";
-NSString *MMTextInsetLeft = @"insetleft";
-NSString *MMTextInsetRight = @"insetright";
-NSString *MMTextInsetTop = @"insettop";
-NSString *MMTextInsetBottom = @"insetbottom";
+NSString *MMNoWindowKey                     = @"nowindow";
+NSString *MMTabMinWidthKey                  = @"tabminwidth";
+NSString *MMTabMaxWidthKey                  = @"tabmaxwidth";
+NSString *MMTabOptimumWidthKey              = @"taboptimumwidth";
+NSString *MMStatuslineOffKey                = @"statuslineoff";
+NSString *MMTextInsetLeft                   = @"insetleft";
+NSString *MMTextInsetRight                  = @"insetright";
+NSString *MMTextInsetTop                    = @"insettop";
+NSString *MMTextInsetBottom                 = @"insetbottom";
+NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 
+
+
+@interface NSMenu (MMExtras)
+- (void)recurseSetAutoenablesItems:(BOOL)on;
+@end
 
 
 @implementation MMAppController
@@ -40,6 +46,7 @@ NSString *MMTextInsetBottom = @"insetbottom";
         [NSNumber numberWithInt:1],     MMTextInsetRight,
         [NSNumber numberWithInt:1],     MMTextInsetTop,
         [NSNumber numberWithInt:1],     MMTextInsetBottom,
+        [NSNumber numberWithBool:NO],   MMTerminateAfterLastWindowClosed,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -136,11 +143,8 @@ NSString *MMTextInsetBottom = @"insetbottom";
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
 {
-    // HACK! If there is no open Vim nobody will handle the menus (in
-    // particual, 'New Vim Window' is not handled, so no new windows can be
-    // opened).  Until I figure out a way to deal with the menus this method
-    // will return YES.
-    return YES;
+    return [[NSUserDefaults standardUserDefaults]
+            boolForKey:MMTerminateAfterLastWindowClosed];
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:
@@ -262,6 +266,17 @@ NSString *MMTextInsetBottom = @"insetbottom";
 - (void)removeVimController:(id)controller
 {
     [vimControllers removeObject:controller];
+
+    if (![vimControllers count]) {
+        // Turn on autoenabling of menus (because no Vim is open to handle it),
+        // but do not touch the MacVim menu.
+        NSMenu *mainMenu = [NSApp mainMenu];
+        int i, count = [mainMenu numberOfItems];
+        for (i = 1; i < count; ++i) {
+            NSMenu *submenu = [[mainMenu itemAtIndex:i] submenu];
+            [submenu recurseSetAutoenablesItems:YES];
+        }
+    }
 }
 
 - (IBAction)newVimWindow:(id)sender
@@ -358,5 +373,24 @@ NSString *MMTextInsetBottom = @"insetbottom";
     return wc;
 }
 #endif
+
+@end
+
+
+
+@implementation NSMenu (MMExtras)
+
+- (void)recurseSetAutoenablesItems:(BOOL)on
+{
+    [self setAutoenablesItems:on];
+
+    int i, count = [self numberOfItems];
+    for (i = 0; i < count; ++i) {
+        NSMenu *submenu = [[self itemAtIndex:i] submenu];
+        if (submenu) {
+            [submenu recurseSetAutoenablesItems:on];
+        }
+    }
+}
 
 @end

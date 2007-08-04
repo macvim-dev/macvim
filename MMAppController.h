@@ -22,6 +22,7 @@ extern NSString *MMTextInsetLeft;
 extern NSString *MMTextInsetRight;
 extern NSString *MMTextInsetTop;
 extern NSString *MMTextInsetBottom;
+extern NSString *MMTerminateAfterLastWindowClosed;
 
 
 
