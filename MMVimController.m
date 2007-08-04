@@ -30,7 +30,8 @@ static NSString *DefaultToolbarImageName = @"Attention";
                atIndex:(int)idx;
 - (void)addMenuItemWithTag:(int)tag parent:(NSMenu *)parent
                      title:(NSString *)title tip:(NSString *)tip
-             keyEquivalent:(int)key modifiers:(int)mask atIndex:(int)idx;
+             keyEquivalent:(int)key modifiers:(int)mask
+                    action:(NSString *)action atIndex:(int)idx;
 - (void)updateMainMenu;
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index;
 - (IBAction)toolbarAction:(id)sender;
@@ -569,7 +570,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
         [title release];
     } else if (AddMenuItemMsgID == msgid) {
-        NSString *title = nil, *tip = nil, *icon = nil;
+        NSString *title = nil, *tip = nil, *icon = nil, *action = nil;
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
         int parentTag = *((int*)bytes);  bytes += sizeof(int);
@@ -591,6 +592,13 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                                            encoding:NSUTF8StringEncoding];
             bytes += iconlen;
         }
+        int actionlen = *((int*)bytes);  bytes += sizeof(int);
+        if (actionlen > 0) {
+            action = [[NSString alloc] initWithBytes:(void*)bytes
+                                              length:actionlen
+                                            encoding:NSUTF8StringEncoding];
+            bytes += actionlen;
+        }
         int idx = *((int*)bytes);  bytes += sizeof(int);
         if (idx < 0) idx = 0;
         int key = *((int*)bytes);  bytes += sizeof(int);
@@ -604,12 +612,14 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         } else {
             NSMenu *parent = [self menuForTag:parentTag];
             [self addMenuItemWithTag:tag parent:parent title:title tip:tip
-                       keyEquivalent:key modifiers:mask atIndex:idx];
+                       keyEquivalent:key modifiers:mask action:action
+                             atIndex:idx];
         }
 
         [title release];
         [tip release];
         [icon release];
+        [action release];
     } else if (RemoveMenuItemMsgID == msgid) {
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
@@ -891,21 +901,23 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)addMenuItemWithTag:(int)tag parent:(NSMenu *)parent
                      title:(NSString *)title tip:(NSString *)tip
-             keyEquivalent:(int)key modifiers:(int)mask atIndex:(int)idx
+             keyEquivalent:(int)key modifiers:(int)mask
+                    action:(NSString *)action atIndex:(int)idx
 {
     if (parent) {
         NSMenuItem *item = nil;
         if (title) {
             item = [[[NSMenuItem alloc] init] autorelease];
             [item setTitle:title];
-            [item setAction:@selector(vimMenuItemAction:)];
+            // TODO: Check that 'action' is a valid action (nothing will happen
+            // if it isn't, but it would be nice with a warning).
+            if (action) [item setAction:NSSelectorFromString(action)];
+            else        [item setAction:@selector(vimMenuItemAction:)];
             if (tip) [item setToolTip:tip];
 
             if (key != 0) {
                 NSString *keyString =
                     [NSString stringWithFormat:@"%C", key];
-                //NSLog(@"Set key equivalent %@ (code=0x%x, mods=%d)",
-                //        keyString, key, mask);
                 [item setKeyEquivalent:keyString];
                 [item setKeyEquivalentModifierMask:mask];
             }

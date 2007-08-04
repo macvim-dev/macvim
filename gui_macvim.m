@@ -14,6 +14,8 @@
 #import "vim.h"
 
 
+static BOOL gui_cocoa_is_valid_action(NSString *action);
+
 
 // -- Initialization --------------------------------------------------------
 
@@ -582,6 +584,26 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     char *tip = menu->strings[MENU_INDEX_TIP]
             ? (char*)menu->strings[MENU_INDEX_TIP] : (char*)menu->actext;
 
+    // HACK!  Check if menu is mapped to ':action actionName:'; if so, pass the
+    // action along so that MacVim can bind the menu item to this action.  This
+    // means that if a menu item maps to an action in normal mode, then all
+    // other modes will also use the same action.
+    NSString *action = nil;
+    char_u *map_str = menu->strings[MENU_INDEX_NORMAL];
+    if (map_str) {
+        NSString *mapping = [NSString stringWithCString:(char*)map_str
+                                               encoding:NSUTF8StringEncoding];
+        NSArray *parts = [mapping componentsSeparatedByString:@" "];
+        if ([parts count] >=2 
+                && [[parts objectAtIndex:0] isEqual:@":action"]) {
+            action = [parts objectAtIndex:1];
+            action = [action stringByTrimmingCharactersInSet:
+                    [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            if (!gui_cocoa_is_valid_action(action))
+                action = nil;
+        }
+    }
+
     [[MMBackend sharedInstance]
             addMenuItemWithTag:(int)menu
                         parent:(int)menu->parent
@@ -590,6 +612,7 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
                           icon:(char*)icon
                  keyEquivalent:menu->ke_key
                      modifiers:menu->ke_mods
+                        action:action
                        atIndex:idx];
 }
 
@@ -861,29 +884,14 @@ gui_mch_set_scrollbar_thumb(
 ex_action(eap)
     exarg_T	*eap;
 {
-    static NSDictionary *actionDict = nil;
-
     if (!gui.in_use) {
         EMSG(_("E???: Command only available in GUI mode"));
         return;
     }
 
-    if (!actionDict) {
-        NSBundle *mainBundle = [NSBundle mainBundle];
-        NSString *path = [mainBundle pathForResource:@"Actions"
-                                              ofType:@"plist"];
-        if (path) {
-            actionDict = [[NSDictionary alloc] initWithContentsOfFile:path];
-        } else {
-            // Allocate bogus dictionary so that error only pops up once.
-            actionDict = [NSDictionary new];
-            EMSG(_("E???: Failed to load action dictionary"));
-        }
-    }
-
     NSString *name = [NSString stringWithCString:(char*)eap->arg
                                         encoding:NSUTF8StringEncoding];
-    if ([actionDict objectForKey:name]) {
+    if (gui_cocoa_is_valid_action(name)) {
         [[MMBackend sharedInstance] executeActionWithName:name];
     } else {
         EMSG2(_("E???: \"%s\" is not a valid action"), eap->arg);
@@ -1243,4 +1251,26 @@ gui_mch_toggle_tearoffs(int enable)
     void
 mch_set_mouse_shape(int shape)
 {
+}
+
+
+    static BOOL
+gui_cocoa_is_valid_action(NSString *action)
+{
+    static NSDictionary *actionDict = nil;
+
+    if (!actionDict) {
+        NSBundle *mainBundle = [NSBundle mainBundle];
+        NSString *path = [mainBundle pathForResource:@"Actions"
+                                              ofType:@"plist"];
+        if (path) {
+            actionDict = [[NSDictionary alloc] initWithContentsOfFile:path];
+        } else {
+            // Allocate bogus dictionary so that error only pops up once.
+            actionDict = [NSDictionary new];
+            EMSG(_("E???: Failed to load action dictionary"));
+        }
+    }
+
+    return [actionDict objectForKey:action] != nil;
 }

@@ -73,7 +73,8 @@
                atIndex:(int)index;
 - (void)addMenuItemWithTag:(int)tag parent:(int)parentTag name:(char *)name
                        tip:(char *)tip icon:(char *)icon
-             keyEquivalent:(int)key modifiers:(int)mods atIndex:(int)index;
+             keyEquivalent:(int)key modifiers:(int)mods
+                    action:(NSString *)action atIndex:(int)index;
 - (void)removeMenuItemWithTag:(int)tag;
 - (void)enableMenuItemWithTag:(int)tag state:(int)enabled;
 - (void)showToolbar:(int)enable flags:(int)flags;

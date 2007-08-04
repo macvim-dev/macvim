@@ -569,7 +569,8 @@ static int specialKeyToNSKey(int key);
 
 - (void)addMenuItemWithTag:(int)tag parent:(int)parentTag name:(char *)name
                        tip:(char *)tip icon:(char *)icon
-             keyEquivalent:(int)key modifiers:(int)mods atIndex:(int)index
+             keyEquivalent:(int)key modifiers:(int)mods
+                    action:(NSString *)action atIndex:(int)index
 {
     //NSLog(@"addMenuItemWithTag:%d parent:%d name:%s tip:%s atIndex:%d", tag,
     //        parentTag, name, tip, index);
@@ -578,6 +579,7 @@ static int specialKeyToNSKey(int key);
     int tiplen = tip ? strlen(tip) : 0;
     int iconlen = icon ? strlen(icon) : 0;
     int eventFlags = vimModMaskToEventModifierFlags(mods);
+    int actionlen = [action lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     NSMutableData *data = [NSMutableData data];
 
     key = specialKeyToNSKey(key);
@@ -590,6 +592,8 @@ static int specialKeyToNSKey(int key);
     if (tiplen > 0) [data appendBytes:tip length:tiplen];
     [data appendBytes:&iconlen length:sizeof(int)];
     if (iconlen > 0) [data appendBytes:icon length:iconlen];
+    [data appendBytes:&actionlen length:sizeof(int)];
+    if (actionlen > 0) [data appendBytes:[action UTF8String] length:actionlen];
     [data appendBytes:&index length:sizeof(int)];
     [data appendBytes:&key length:sizeof(int)];
     [data appendBytes:&eventFlags length:sizeof(int)];
