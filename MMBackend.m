@@ -97,18 +97,20 @@ static int specialKeyToNSKey(int key);
 
 - (BOOL)checkin
 {
+    NSBundle *mainBundle = [NSBundle mainBundle];
+
 #if MM_USE_DO
     // NOTE!  If the name of the connection changes here it must also be
     // updated in MMAppController.m.
     NSString *name = [NSString stringWithFormat:@"%@-connection",
-             [[NSBundle mainBundle] bundleIdentifier]];
+             [mainBundle bundleIdentifier]];
     connection = [NSConnection connectionWithRegisteredName:name host:nil];
     if (!connection)
 #else
     // NOTE!  If the name of the port changes here it must also be updated in
     // MMAppController.m.
     NSString *portName = [NSString stringWithFormat:@"%@-taskport",
-             [[NSBundle mainBundle] bundleIdentifier]];
+             [mainBundle bundleIdentifier]];
 
     NSPort *port = [[[NSMachBootstrapServer sharedInstance]
             portForName:portName host:nil] retain];
@@ -116,7 +118,7 @@ static int specialKeyToNSKey(int key);
 #endif
     {
 #if 0
-        NSString *path = [[NSBundle mainBundle] bundlePath];
+        NSString *path = [mainBundle bundlePath];
         if (![[NSWorkspace sharedWorkspace] launchApplication:path]) {
             NSLog(@"WARNING: Failed to launch GUI with path %@", path);
             return NO;
@@ -132,8 +134,14 @@ static int specialKeyToNSKey(int key);
         // opened.
         NSMutableArray *args = [NSMutableArray arrayWithObjects:@"-nowindow",
                        @"yes", nil];
-        NSString *path = [[NSBundle mainBundle]
-                pathForAuxiliaryExecutable:@"MacVim"];
+        NSString *exeName = [[mainBundle infoDictionary]
+                objectForKey:@"CFBundleExecutable"];
+        NSString *path = [mainBundle pathForAuxiliaryExecutable:exeName];
+        if (!path) {
+            NSLog(@"ERROR: Could not find MacVim executable in bundle");
+            return NO;
+        }
+
         [NSTask launchedTaskWithLaunchPath:path arguments:args];
 #endif
 
