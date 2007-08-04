@@ -203,12 +203,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [self updateResizeIncrements];
     [self resizeWindowToFit:self];
 
-    // HACK!  The GUI does not get activated if Vim is launched by MMBackend in
-    // checkin:.  I have not been able to figure out any other way to get it to
-    // activate other than forcing it here.  A better solution for launching
-    // the GUI would be good.
-    [NSApp activateIgnoringOtherApps:YES];
-
     [[self window] makeKeyAndOrderFront:self];
 
     BOOL statusOff = [[NSUserDefaults standardUserDefaults]
