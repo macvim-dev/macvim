@@ -428,12 +428,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     } else if (ShowTabBarMsgID == msgid) {
         //NSLog(@"Showing tab bar");
 
-        // The tab bar has it's own baseline separator, so hide the one
-        // belonging to the toolbar whenever the tab bar is visible.
-        // BUG: The window auto shows the separator when clicking the show/hide
-        // toolbar button.
-        [toolbar setShowsBaselineSeparator:NO];
-
         // HACK! Vim sends several draw commands etc. after the show message
         // and these can mess up the display when showing the tab bar results
         // in the window having to resize to fit the screen; delaying this
@@ -443,13 +437,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         //[windowController showTabBar:self];
     } else if (HideTabBarMsgID == msgid) {
         //NSLog(@"Hiding tab bar");
-
-        // The tab bar has it's own baseline separator, so hide the one
-        // belonging to the toolbar whenever the tab bar is visible.
-        // BUG: The window auto shows the separator when clicking the show/hide
-        // toolbar button.
-        [toolbar setShowsBaselineSeparator:YES];
-
         [windowController hideTabBar:self];
     } else if (SetTextDimensionsMsgID == msgid) {
         const void *bytes = [data bytes];
@@ -555,6 +542,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                 //NSLog(@"Creating toolbar with identifier %@", ident);
                 toolbar = [[NSToolbar alloc] initWithIdentifier:ident];
 
+                [toolbar setShowsBaselineSeparator:NO];
                 [toolbar setDelegate:self];
                 [toolbar setDisplayMode:NSToolbarDisplayModeIconOnly];
                 [toolbar setSizeMode:NSToolbarSizeModeSmall];
