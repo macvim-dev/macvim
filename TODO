@@ -1,5 +1,6 @@
 Active:
 
+- validate menu actions for when no windows are open (e.g. selectNextWindow:)
 - grey out menus which can't be used: Tab Next/Prev/Close, Undo/Redo, etc.
 - when only one tab open make <D-w> close window
 - drag and drop inside view (FEAT_GUI_DND, gui_handle_drop())
