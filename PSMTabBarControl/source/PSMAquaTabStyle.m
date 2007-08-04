@@ -34,8 +34,6 @@
 
 - (void) loadImages
 {
-    NSLog(@"PSMAquaTabStyle loadImages");
-
     // Aqua Tabs Images
     aquaTabBg = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"AquaTabsBackground"]];
     [aquaTabBg setFlipped:YES];
