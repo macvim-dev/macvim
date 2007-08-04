@@ -161,14 +161,18 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     // Called after window nib file is loaded.
 
+    [tablineSeparator setHidden:NO];
     [tabBarControl setHidden:YES];
+
     // NOTE: Size to fit looks good, but not many tabs will fit and there are
     // quite a few drawing bugs in this code, so it is disabled for now.
     //[tabBarControl setSizeCellsToFit:YES];
+
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
     [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
     [tabBarControl setCellOptimumWidth:[ud integerForKey:MMTabOptimumWidthKey]];
+
     [tabBarControl setAllowsDragBetweenWindows:NO];
     [tabBarControl setShowAddTabButton:YES];
     [[tabBarControl addTabButton] setTarget:self];
@@ -417,14 +421,18 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (IBAction)showTabBar:(id)sender
 {
+    [tablineSeparator setHidden:YES];
     [tabBarControl setHidden:NO];
+
     if (setupDone)
         [self resizeWindowToFit:self];
 }
 
 - (IBAction)hideTabBar:(id)sender
 {
+    [tablineSeparator setHidden:NO];
     [tabBarControl setHidden:YES];
+
     if (setupDone)
         [self resizeWindowToFit:self];
 }
@@ -477,50 +485,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 }
 
 
-// -- NSLayoutManager delegate -----------------------------------------------
-
-
-#if 0
-- (void)layoutManager:(NSLayoutManager *)aLayoutManager
-        didCompleteLayoutForTextContainer:(NSTextContainer *)aTextContainer
-                                    atEnd:(BOOL)flag
-{
-    // HACK!  Sometimes the text handling system will use fonts for some glyphs
-    // (e.g. digraphs) which are slightly higher than the font that the text
-    // storage uses (usually a fixed pitch font like Monaco).  In this case the
-    // text might not fit in the window so the window is resized here to always
-    // be big enough to show all characters.  This has the unpleasant visual
-    // side-effect of the window changing size when such glyphs are displayed.
-
-#if 0
-    // HACK!  The baseline separator keeps popping up, hide it again.  This
-    // hack doesn't work.
-    if (tabBarControl) {
-        [[[self window] toolbar] setShowsBaselineSeparator:
-                [tabBarControl isHidden]];
-    }
-#endif
-
-    if (flag && ![textView inLiveResize]) {
-        // Make sure the text storage exactly fills out the entire tab view,
-        // otherwise resize the window to fit the text storage.
-        // (This way the text storage size can change however/whenever it wants
-        // and the window will update to fit it.)
-        if (!NSEqualSizes([tabView frame].size, [textStorage size])) {
-            [self resizeWindowToFit:self];
-            if (!NSEqualSizes([tabView frame].size, [textStorage size])) {
-                // NOTE!  If the window is the same size after
-                // resizeWindowToFit:, we place the views manually
-                // (normally windowDidResize: takes care of that) in case the
-                // text view changed size (which can happen e.g. after a ':set
-                // lines' command).
-                [self placeViews];
-            }
-            [self updateResizeIncrements];
-        }
-    }
-}
-#endif
 
 
 // -- NSWindow delegate ------------------------------------------------------
@@ -600,8 +564,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     size.width += [textView textContainerOrigin].x + right;
     size.height += [textView textContainerOrigin].y + bot;
 
-    if (![tabBarControl isHidden])
-        size.height += [tabBarControl frame].size.height;
+    // A one pixel high separator is shown if tabline is hidden.
+    if ([tabBarControl isHidden]) ++size.height;
+    else size.height += [tabBarControl frame].size.height;
+
     if (![[NSUserDefaults standardUserDefaults] boolForKey:MMStatuslineOffKey])
         size.height += StatusLineHeight;
 
@@ -619,8 +585,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     NSRect rect = { 0, 0, contentSize.width, contentSize.height };
 
-    if (![tabBarControl isHidden])
-        rect.size.height -= [tabBarControl frame].size.height;
+    // A one pixel high separator is shown if tabline is hidden.
+    if ([tabBarControl isHidden]) --rect.size.height;
+    else rect.size.height -= [tabBarControl frame].size.height;
+
     if (![[NSUserDefaults standardUserDefaults]
             boolForKey:MMStatuslineOffKey]) {
         rect.size.height -= StatusLineHeight;
@@ -995,17 +963,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     }
 
     [tabView setFrame:textViewRect];
-
-    // HACK!  I manually place the tab bar here instead of setting the sizing
-    // options in Interface Builder because I couldn't get the automatic sizing
-    // to work.
-    if (![tabBarControl isHidden]) {
-        NSRect tabBarRect = {
-            0, NSMaxY(textViewRect),
-            contentRect.size.width, [tabBarControl frame].size.height };
-
-        [tabBarControl setFrame:tabBarRect];
-    }
 
     [self placeScrollbars];
 }
