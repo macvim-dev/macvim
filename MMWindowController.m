@@ -576,9 +576,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     frame = [self fitWindowToFrame:frame];
 
-    // Keep old width and horizontal position unless the Command key is held
-    // down.
-    if (!([[NSApp currentEvent] modifierFlags] & NSCommandKeyMask)) {
+    // Keep old width and horizontal position unless user clicked with the
+    // Command key is held down.
+    NSEvent *event = [NSApp currentEvent];
+    if (!([event type] == NSLeftMouseUp
+            && [event modifierFlags] & NSCommandKeyMask)) {
         NSRect currentFrame = [win frame];
         frame.size.width = currentFrame.size.width;
         frame.origin.x = currentFrame.origin.x;
