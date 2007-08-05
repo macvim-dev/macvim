@@ -110,15 +110,6 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
     [super dealloc];
 }
 
-- (void)applicationDidFinishLaunching:(NSNotification *)notification
-{
-    // HACK!  The GUI does not get activated if Vim is launched by MMBackend in
-    // checkin:.  I have not been able to figure out any other way to get it to
-    // activate other than forcing it here.  A better solution for launching
-    // the GUI would be good.
-    [NSApp activateIgnoringOtherApps:YES];
-}
-
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
 {
     // NOTE!  This way it possible to start the app with the command-line
@@ -378,6 +369,10 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
     MMVimController *wc = [[[MMVimController alloc] initWithBackend:backend]
             autorelease];
     [vimControllers addObject:wc];
+
+    // HACK!  MacVim does not get activated if it is launched from the
+    // terminal, so we forcibly activate here.
+    [NSApp activateIgnoringOtherApps:YES];
 
     return wc;
 }
