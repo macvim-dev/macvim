@@ -10,7 +10,7 @@
 " Extra menus
 "
 
-" File menu.
+" File menu
 
 aunmenu File.New
 aunmenu File.Close
@@ -28,7 +28,7 @@ an 20.460 Edit.-SEP4-                       <Nop>
 an 20.470 Edit.Special\ Characters\.\.\.    :action orderFrontCharacterPalette:<CR>
 
 
-" Try to make Window menu follow Apple HIG.
+" Window menu
 aunmenu Window
 
 an <silent> 70.300 Window.Minimize          :action performMiniaturize:<CR>
@@ -45,23 +45,6 @@ an <silent> 70.360 Window.Bring\ All\ To\ Front :action arrangeInFront:<CR>
 " Keyboard mappings
 "
 
-" TODO: Do these mappings have to be this complicated?  Is it possible to have
-" each tab 'remembering' which mode it was in?
-"map <special><silent> <D-M-Right> :tabn<CR>
-"imap <special><silent> <D-M-Right> <C-O>:tabn<CR>
-"vmap <special><silent> <D-M-Right> <C-C>:tabn<CR><C-\><C-G>
-
-"map <special><silent> <D-M-Left> :tabp<CR>
-"imap <special><silent> <D-M-Left> <C-O>:tabp<CR>
-"vmap <special><silent> <D-M-Left> <C-C>:tabp<CR><C-\><C-G>
-
-map <special><silent> <S-D-Left> :action selectPreviousWindow:<CR>
-imap <special><silent> <S-D-Left> <C-O>:action selectPreviousWindow:<CR>
-vmap <special><silent> <S-D-Left> <C-C>:action selectPreviousWindow:<CR>
-
-map <special><silent> <S-D-Right> :action selectNextWindow:<CR>
-imap <special><silent> <S-D-Right> <C-O>:action selectNextWindow:<CR>
-vmap <special><silent> <S-D-Right> <C-C>:action selectNextWindow:<CR>
 
 
 
@@ -75,11 +58,9 @@ menukeyequiv File.Close\ Tab        <D-w>
 
 menukeyequiv File.Open\.\.\.        <D-o>
 menukeyequiv File.Open\ Tab\.\.\.   <D-T>
-"menukeyequiv File.New               <D-e>
 menukeyequiv File.Close\ Window     <D-W>
 menukeyequiv File.Save              <D-s>
 menukeyequiv File.Save\ As\.\.\.    <D-S>
-"menukeyequiv File.Exit              <D-W>
 menukeyequiv File.Print             <D-p>
 
 menukeyequiv Edit.Undo              <D-z>
@@ -97,6 +78,5 @@ menukeyequiv Tools.Next\ Error      <D-C-Right>
 menukeyequiv Tools.Previous\ Error  <D-C-Left>
 
 menukeyequiv Window.Minimize        <D-m>
-"menukeyequiv Window.Zoom            <D-M>
 menukeyequiv Window.Previous\ Tab   <D-M-Left>
 menukeyequiv Window.Next\ Tab       <D-M-Right>
