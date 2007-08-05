@@ -606,6 +606,8 @@
 
 - (void)doSetMaxRows:(int)rows columns:(int)cols
 {
+    int i;
+
 #if MM_TS_LAZY_SET
     // Do nothing if the dimensions are already right.
     if (actualRows == rows && actualColumns == cols)
@@ -623,8 +625,6 @@
     maxRows = rows;
     maxColumns = cols;
 
-    NSString *fmt = [NSString stringWithFormat:@"%%%dc\%C", maxColumns,
-             NSLineSeparatorCharacter];
     NSDictionary *dict;
     if (defaultBackgroundColor) {
         dict = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -635,14 +635,18 @@
                 font, NSFontAttributeName, nil];
     }
             
+    NSMutableString *rowString = [NSMutableString string];
+    for (i = 0; i < maxColumns; ++i) {
+        [rowString appendString:@" "];
+    }
+    [rowString appendString:@"\n"];
+
     [emptyRowString release];
-    emptyRowString = [[NSAttributedString alloc]
-            initWithString:[NSString stringWithFormat:fmt, ' ']
-                attributes:dict];
+    emptyRowString = [[NSAttributedString alloc] initWithString:rowString
+                                                     attributes:dict];
 
     [attribString release];
     attribString = [[NSMutableAttributedString alloc] init];
-    int i;
     for (i=0; i<maxRows; ++i) {
         [attribString appendAttributedString:emptyRowString];
     }
