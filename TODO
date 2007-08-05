@@ -1,5 +1,7 @@
 Active:
 
+- drag-to-resize, delay if mouse button held down
+- no warning when buffer modified outside vim (implement gui_mch_dialog())
 - ability to modify key equivalents at any time
 - validate menu actions for when no windows are open (e.g. selectNextWindow:)
 - grey out menus which can't be used: Tab Next/Prev/Close, Undo/Redo, etc.
@@ -62,6 +64,7 @@ Active:
 
 Pending:
 
+- Cmd-zoom -> no input received, drawing broken
 - scrollbars not positioned over resize box
 - offset text away from left edge
 - add menu options with key equiv:
