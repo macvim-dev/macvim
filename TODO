@@ -1,5 +1,6 @@
 Active:
 
+- ability to modify key equivalents at any time
 - validate menu actions for when no windows are open (e.g. selectNextWindow:)
 - grey out menus which can't be used: Tab Next/Prev/Close, Undo/Redo, etc.
 - when only one tab open make <D-w> close window
@@ -49,6 +50,13 @@ Active:
 - got this error on Cmd-N with no other windows open:
     2007-07-27 22:00:17.680 MacVim[454] *** -[NSToolbarView frameDidChange:]: selector not recognized [self = 0x39ba80]
     2007-07-27 22:00:17.690 MacVim[454] Exception raised during posting of notification.  Ignored.  exception: *** -[NSToolbarView frameDidChange:]: selector not recognized [self = 0x39ba80]
+- got this error when opening MacVim from terminal (with 'gvim gvimrc&'):
+  Frost:~/Projects/vim7/src/MacVim winckler$ 2007-08-05 13:25:01.151 MacVim[223] *** -[NSThemeFrame frameDidChange:]: selector not recognized [self = 0x3baa30]
+  2007-08-05 13:25:01.152 MacVim[223] Exception raised during posting of notification.  Ignored.  exception: *** -[NSThemeFrame frameDidChange:]: selector not recognized [self = 0x3baa30]
+  2007-08-05 13:25:01.155 MacVim[223] *** -[NSThemeFrame frameDidChange:]: selector not recognized [self = 0x3baa30]
+  2007-08-05 13:25:01.156 MacVim[223] Exception raised during posting of notification.  Ignored.  exception: *** -[NSThemeFrame frameDidChange:]: selector not recognized [self = 0x3baa30]
+  2007-08-05 13:25:01.246 MacVim[223] *** -[NSThemeFrame frameDidChange:]: selector not recognized [self = 0x3baa30]
+  2007-08-05 13:25:01.247 MacVim[223] Exception raised during posting of notification.  Ignored.  exception: *** -[NSThemeFrame frameDidChange:]: selector not recognized [self = 0x3baa30]
 
 
 
