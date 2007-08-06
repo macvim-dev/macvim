@@ -456,8 +456,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     if (!vimTaskSelectedTab) {
         // Propagate the selection message to the VimTask.
         int idx = [self representedIndexOfTabViewItem:tabViewItem];
-        NSData *data = [NSData dataWithBytes:&idx length:sizeof(int)];
-        [vimController sendMessage:SelectTabMsgID data:data wait:YES];
+        if (NSNotFound != idx) {
+            NSData *data = [NSData dataWithBytes:&idx length:sizeof(int)];
+            [vimController sendMessage:SelectTabMsgID data:data wait:YES];
+        }
     }
 }
 
@@ -703,9 +705,13 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     // BUG!  This call seems to have no effect; see comment in
     // tabView:didSelectTabViewItem:.
-    [tvi setInitialFirstResponder:textView];
+    //[tvi setInitialFirstResponder:textView];
 
+    // NOTE: If this is the first tab it will be automatically selected.
+    vimTaskSelectedTab = YES;
     [tabView addTabViewItem:tvi];
+    vimTaskSelectedTab = NO;
+
     [tvi release];
 
     return tvi;
