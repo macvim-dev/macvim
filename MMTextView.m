@@ -259,6 +259,77 @@
 }
 #endif
 
+#if 1
+- (NSArray *)acceptableDragTypes
+{
+    return [NSArray arrayWithObjects:NSFilenamesPboardType, nil];
+}
+
+- (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
+{
+    NSPasteboard *pboard = [sender draggingPasteboard];
+
+    if ( [[pboard types] containsObject:NSFilenamesPboardType] ) {
+        NSArray *files = [pboard propertyListForType:NSFilenamesPboardType];
+        int i, numberOfFiles = [files count];
+        NSMutableData *data = [NSMutableData data];
+
+        [data appendBytes:&numberOfFiles length:sizeof(int)];
+
+#if 0
+        int row, col;
+        NSPoint pt = [self convertPoint:[sender draggingLocation] fromView:nil];
+        if (![self convertPoint:pt toRow:&row column:&col])
+            return NO;
+
+        [data appendBytes:&row length:sizeof(int)];
+        [data appendBytes:&col length:sizeof(int)];
+#endif
+
+        for (i = 0; i < numberOfFiles; ++i) {
+            NSString *file = [files objectAtIndex:i];
+            int len = [file lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+            if (len > 0) {
+                ++len;  // append NUL as well
+                [data appendBytes:&len length:sizeof(int)];
+                [data appendBytes:[file UTF8String] length:len];
+            }
+        }
+
+        [[self vimController] sendMessage:DropFilesMsgID data:data wait:NO];
+        return YES;
+    }
+
+    return NO;
+}
+
+- (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
+{
+    NSDragOperation sourceDragMask = [sender draggingSourceOperationMask];
+    NSPasteboard *pboard = [sender draggingPasteboard];
+
+    if ( [[pboard types] containsObject:NSFilenamesPboardType]
+            && (sourceDragMask & NSDragOperationCopy) )
+        return NSDragOperationCopy;
+
+    return NSDragOperationNone;
+}
+
+- (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)sender
+{
+    NSDragOperation sourceDragMask = [sender draggingSourceOperationMask];
+    NSPasteboard *pboard = [sender draggingPasteboard];
+
+    if ( [[pboard types] containsObject:NSFilenamesPboardType]
+            && (sourceDragMask & NSDragOperationCopy) )
+        return NSDragOperationCopy;
+
+    return NSDragOperationNone;
+}
+
+#endif
+
 @end // MMTextView
 
 

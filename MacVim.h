@@ -90,6 +90,7 @@ enum {
     VimShouldCloseMsgID,
     SetDefaultColorsMsgID,
     ExecuteActionMsgID,
+    DropFilesMsgID,
 };
 
 

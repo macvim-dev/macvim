@@ -1075,6 +1075,61 @@ static int specialKeyToNSKey(int key);
         }
     } else if (VimShouldCloseMsgID == msgid) {
         gui_shell_closed();
+    } else if (DropFilesMsgID == msgid) {
+#ifdef FEAT_DND
+        const void *bytes = [data bytes];
+        int n = *((int*)bytes);  bytes += sizeof(int);
+
+#if 0
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+
+	char_u **fnames = (char_u **)alloc(n * sizeof(char_u *));
+        if (fnames) {
+            const void *end = [data bytes] + [data length];
+            int i = 0;
+            while (bytes < end && i < n) {
+                int len = *((int*)bytes);  bytes += sizeof(int);
+                fnames[i++] = vim_strnsave((char_u*)bytes, len);
+                bytes += len;
+            }
+
+            // NOTE!  This function will free 'fnames'.
+            gui_handle_drop(col, row, 0, fnames, i < n ? i : n);
+        }
+#else
+        // HACK!  I'm not sure how to get Vim to open a list of files in tabs,
+        // so instead I create a ':tab drop' command with all the files to open
+        // and execute it.
+        NSMutableString *cmd = [NSMutableString stringWithString:@":tab drop"];
+
+        const void *end = [data bytes] + [data length];
+        int i;
+        for (i = 0; i < n && bytes < end; ++i) {
+            int len = *((int*)bytes);  bytes += sizeof(int);
+            NSString *file = [NSString stringWithUTF8String:bytes];
+            bytes += len;
+
+            [cmd appendString:@" "];
+            [cmd appendString:file];
+        }
+
+        // By going to the last tabpage we ensure that the new tabs will appear
+        // last (if this call is left out, the taborder becomes messy).
+        goto_tabpage(9999);
+
+        do_cmdline_cmd((char_u*)[cmd UTF8String]);
+
+#if 1
+        // This code was taken from the end of gui_handle_drop().
+	update_screen(NOT_VALID);
+	setcursor();
+	out_flush();
+	gui_update_cursor(FALSE, FALSE);
+	gui_mch_flush();
+#endif
+#endif
+#endif // FEAT_DND
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
