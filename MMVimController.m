@@ -418,10 +418,12 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
         [self performBatchDrawWithData:data];
     } else if (SelectTabMsgID == msgid) {
+#if 0   // NOTE: Tab selection is done inside updateTabsWithData:.
         const void *bytes = [data bytes];
         int idx = *((int*)bytes);
         //NSLog(@"Selecting tab with index %d", idx);
         [windowController selectTabWithIndex:idx];
+#endif
     } else if (UpdateTabBarMsgID == msgid) {
         //NSLog(@"Updating tabs");
         [windowController updateTabsWithData:data];
