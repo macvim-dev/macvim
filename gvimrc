@@ -1,6 +1,6 @@
 " System gvimrc file for MacVim
 " Author:	Björn Winckler
-" Last Change:	Wed Aug  1 20:03:43 CEST 2007
+" Last Change:	Mon Aug  6 15:30:37 CEST 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -21,8 +21,9 @@ aunmenu File.Save-Exit
 an <silent> 10.290 File.New\ Window         :action newVimWindow:<CR>
 an 10.295 File.New\ Tab                     :tabnew<CR>
 an 10.328 File.-SEP0-                       <Nop>
-an <silent> 10.330 File.Close\ Window       :confirm qa<CR>
-an 10.331 File.Close\ Tab                   :tabclose<CR>
+an 10.330 File.Close<Tab>:q                 :confirm q<CR>
+"an <silent> 10.330 File.Close\ Window       :confirm qa<CR>
+"an 10.331 File.Close\ Tab                   :tabclose<CR>
 
 an 20.460 Edit.-SEP4-                       <Nop>
 an 20.470 Edit.Special\ Characters\.\.\.    :action orderFrontCharacterPalette:<CR>
@@ -54,11 +55,12 @@ an <silent> 70.360 Window.Bring\ All\ To\ Front :action arrangeInFront:<CR>
 
 menukeyequiv File.New\ Window       <D-n>
 menukeyequiv File.New\ Tab          <D-t>
-menukeyequiv File.Close\ Tab        <D-w>
 
 menukeyequiv File.Open\.\.\.        <D-o>
 menukeyequiv File.Open\ Tab\.\.\.   <D-T>
-menukeyequiv File.Close\ Window     <D-W>
+"menukeyequiv File.Close\ Window     <D-W>
+"menukeyequiv File.Close\ Tab        <D-w>
+menukeyequiv File.Close             <D-w>
 menukeyequiv File.Save              <D-s>
 menukeyequiv File.Save\ As\.\.\.    <D-S>
 menukeyequiv File.Print             <D-p>
