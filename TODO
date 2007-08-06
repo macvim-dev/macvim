@@ -1,16 +1,19 @@
 Active:
 
-- drag-to-resize, delay if mouse button held down
-- no warning when buffer modified outside vim (implement gui_mch_dialog())
-- ability to modify key equivalents at any time
-- validate menu actions for when no windows are open (e.g. selectNextWindow:)
+- improve drag and drop support (drop in command line mode not working,
+  modifier keys are ignored)
 - grey out menus which can't be used: Tab Next/Prev/Close, Undo/Redo, etc.
 - when only one tab open make <D-w> close window
-- drag and drop inside view (FEAT_GUI_DND, gui_handle_drop())
 - main menu (buffers menu, window menu)
+- services menu
+- no warning when buffer modified outside vim (implement gui_mch_dialog())
+- gui dialogs (FEAT_GUI_DIALOG)
+- find/replace toolbar item (FIND_REPLACE_DIALOG)
+- drag-to-resize, delay if mouse button held down
+- ability to modify key equivalents at any time
+- validate menu actions for when no windows are open (e.g. selectNextWindow:)
 - application:openFiles: should open in tabs in current window instead of in a
   new window, only if user default is set
-- toolbar drawing bug
 - need E??? numbers for vim errors
 - tab-completion for :action command?
 - should ignore action message if is called too often (e.g. in addNewTab:)
@@ -18,9 +21,6 @@ Active:
 - font selection dialog (:set gfn=*)
 - check for memory leaks
 - i8n
-- services menu
-- gui dialogs (FEAT_GUI_DIALOG)
-- find/replace toolbar item (FIND_REPLACE_DIALOG)
 - popup menus
 - encoding -- convert strings from vim to utf-8
 - change building procedure so that the Makefile compiles and links VimTask and
@@ -38,7 +38,6 @@ Active:
 - window count should be typeset nicely in tab
 - put marked text in status line (?)
 - track pad scrolling is jerky
-- memory leak with text view? (need to release text storage)
 - sanity check all input in handlePortMessage: etc.
 - cursor in replace mode
 - nice looking cursors (both the block and in insert mode)
@@ -64,6 +63,9 @@ Active:
 
 Pending:
 
+- memory leak with text view? (need to release text storage)
+- drag and drop inside view (FEAT_GUI_DND, gui_handle_drop())
+- toolbar drawing bug
 - Cmd-zoom -> no input received, drawing broken
 - scrollbars not positioned over resize box
 - offset text away from left edge
