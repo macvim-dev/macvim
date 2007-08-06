@@ -22,7 +22,7 @@ Compiling:
 
 Weirdness:
 
-- When the text system (Cocoa) comes across multi byte characters it
+- [obsolete] When the text system (Cocoa) comes across multi byte characters it
   automatically chooses a font for those characters;  this font may not be the
   same height as the one set on the text storage and hence the program must
   account for the fact that lines may have differing heights.
@@ -30,7 +30,7 @@ Weirdness:
   after the layout manager has performed layout.  As a side-effect the user
   sees how the window resizes when certain multi byte characters are being
   displayed.
-- Remember to set 'inputReceived = YES' in MMBackend
+- [obsolete] Remember to set 'inputReceived = YES' in MMBackend
   handlePortMessage:, otherwise Vim will not inform MMVimController of
   changes it makes (e.g. in response to a key down event).
 - The way delegate messages from the tab bar are handled are based on lots of
@@ -139,29 +139,30 @@ Features (!supp indicates that a feature is not supported):
 - Tabs: uses PSMTabBarControl to show tabs, can reorder tabs by dragging them,
   has overflow menu, new tab button on tabline
 - Menubar: accelerators !supp, actext hint displayed as tool tip
-  instead of on menu, each window has its own menu, key equivalents !supp
+  instead of on menu, each window has its own menu, set key equivalents with
+  :menukeyequiv command
 - Toolbar: toolbariconsize supported (tiny&small equiv to 24x24 px,
   medium&large equiv to 32x32 px), toolbar supports 'icons' and 'text' options
   (but not 'tooltip' which is always on), each window has its own toolbar,
   custom toolbar items
 - Cocoa input protocols: input managers, character palette input etc.
   supported, marked text !supp, cocoa key bindings (DefaultKeyBinding.dict)
-  !supp
+  are disabled
 - Mouse: resize (vim) windows, selection, different mouse cursors !supp,
   autoscrolling whilst selecting works poorly
-- Drag and Drop: drag files onto dock icon to open in tabs, drag to text view
-  !supp
-- Zoom: Command-click to zoom height only, otherwise maximize witdh as well,
+- Drag and Drop: drag files onto dock icon to open in tabs, drag text and files
+  onto text view
+- Zoom: Command-click to zoom to fill window, otherwise only zoom height,
   hold down Option to zoom all windows
 - Resize: live resize (although terribly slow), :set lines will not make window
   higher than can fit the screen (no such restrictions on width at the moment)
 - Pasteboard: star-register works with the mac os x pasteboard
 - Open/Save dialog: use with :browse
-- Fonts: bold/italic/underline traits supported, font changes !supp
+- Fonts: bold/italic/underline traits supported, font changes with ':set gfn'
 - File type associations: add more associations by editing Info.plist
 - Start GUI from terminal, type :gui
-- Scroll bars: !supp
-- Wide characters: !supp
+- Scroll bars
+- Wide characters: poor support, do not render at right width/height
 - Printing: !supp
 - Find/Replace dialog: !supp
 - Gui dialogs: !supp
