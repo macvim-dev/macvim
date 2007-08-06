@@ -78,6 +78,8 @@ menukeyequiv Tools.List\ Errors     <D-l>
 menukeyequiv Tools.List\ Messages   <D-L>
 menukeyequiv Tools.Next\ Error      <D-C-Right>
 menukeyequiv Tools.Previous\ Error  <D-C-Left>
+menukeyequiv Tools.Older\ List      <D-C-Up>
+menukeyequiv Tools.Newer\ List      <D-C-Down>
 
 menukeyequiv Window.Minimize        <D-m>
 menukeyequiv Window.Previous\ Tab   <D-M-Left>
