@@ -1120,7 +1120,6 @@ static int specialKeyToNSKey(int key);
 
         do_cmdline_cmd((char_u*)[cmd UTF8String]);
 
-#if 1
         // This code was taken from the end of gui_handle_drop().
 	update_screen(NOT_VALID);
 	setcursor();
@@ -1128,7 +1127,27 @@ static int specialKeyToNSKey(int key);
 	gui_update_cursor(FALSE, FALSE);
 	gui_mch_flush();
 #endif
-#endif
+#endif // FEAT_DND
+    } else if (DropStringMsgID == msgid) {
+#ifdef FEAT_DND
+        char_u  dropkey[3] = { CSI, KS_EXTRA, (char_u)KE_DROP };
+        const void *bytes = [data bytes];
+        int len = *((int*)bytes);  bytes += sizeof(int);
+        NSMutableString *string = [NSMutableString stringWithUTF8String:bytes];
+
+        // Replace unrecognized end-of-line sequences with \x0a (line feed).
+        NSRange range = { 0, [string length] };
+        unsigned n = [string replaceOccurrencesOfString:@"\x0d\x0a"
+                                             withString:@"\x0a" options:0
+                                                  range:range];
+        if (0 == n) {
+            n = [string replaceOccurrencesOfString:@"\x0d" withString:@"\x0a"
+                                           options:0 range:range];
+        }
+
+        len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        dnd_yank_drag_data((char_u*)[string UTF8String], len);
+        add_to_input_buf(dropkey, sizeof(dropkey));
 #endif // FEAT_DND
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);

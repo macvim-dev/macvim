@@ -91,6 +91,7 @@ enum {
     SetDefaultColorsMsgID,
     ExecuteActionMsgID,
     DropFilesMsgID,
+    DropStringMsgID,
 };
 
 

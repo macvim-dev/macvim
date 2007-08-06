@@ -485,7 +485,7 @@ clip_mch_request_selection(VimClipboard *cbd)
             [NSArray arrayWithObject:NSStringPboardType]];
     if (type) {
         NSMutableString *string =
-        [[pb stringForType:NSStringPboardType] mutableCopy];
+                [[pb stringForType:NSStringPboardType] mutableCopy];
 
         // Replace unrecognized end-of-line sequences with \x0a (line feed).
         NSRange range = { 0, [string length] };
