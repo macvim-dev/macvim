@@ -810,6 +810,47 @@ static int specialKeyToNSKey(int key);
     return NO;
 }
 
+- (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard
+{
+    if (VIsual_active && (State & NORMAL) && clip_star.available) {
+        // If there is no pasteboard, return YES to indicate that there is text
+        // to copy.
+        if (!pboard)
+            return YES;
+
+        clip_copy_selection();
+
+        // Get the text to put on the pasteboard.
+        long_u len = 0; char_u *str = 0;
+        int type = clip_convert_selection(&str, &len, &clip_star);
+        if (type < 0)
+            return NO;
+        
+        NSString *string = [[NSString alloc]
+            initWithBytes:str length:len encoding:NSUTF8StringEncoding];
+
+        NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
+        [pboard declareTypes:types owner:nil];
+        BOOL ok = [pboard setString:string forType:NSStringPboardType];
+    
+        [string release];
+        vim_free(str);
+
+        return ok;
+    }
+
+    return NO;
+}
+
+- (BOOL)starRegisterFromPasteboard:(byref NSPasteboard *)pboard
+{
+    if (curbuf && !curbuf->b_p_ro) {
+        return YES;
+    }
+
+    return NO;
+}
+
 #else // MM_USE_DO
 
 - (void)handlePortMessage:(NSPortMessage *)portMessage
@@ -1107,7 +1148,12 @@ static int specialKeyToNSKey(int key);
         int i;
         for (i = 0; i < n && bytes < end; ++i) {
             int len = *((int*)bytes);  bytes += sizeof(int);
-            NSString *file = [NSString stringWithUTF8String:bytes];
+            NSMutableString *file =
+                    [NSMutableString stringWithUTF8String:bytes];
+            [file replaceOccurrencesOfString:@" "
+                                  withString:@"\\ "
+                                     options:0
+                                       range:NSMakeRange(0, [file length])];
             bytes += len;
 
             [cmd appendString:@" "];

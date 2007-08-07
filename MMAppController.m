@@ -27,9 +27,23 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 
 
 
+@interface MMAppController (MMServices)
+- (void)openSelection:(NSPasteboard *)pboard userData:(NSString *)userData
+                error:(NSString **)error;
+- (void)openFile:(NSPasteboard *)pboard userData:(NSString *)userData
+           error:(NSString **)error;
+@end
+
+
+@interface MMAppController (Private)
+- (MMVimController *)keyVimController;
+- (MMVimController *)topmostVimController;
+@end
+
 @interface NSMenu (MMExtras)
 - (void)recurseSetAutoenablesItems:(BOOL)on;
 @end
+
 
 
 @implementation MMAppController
@@ -50,6 +64,9 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
+
+    NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
+    [NSApp registerServicesMenuSendTypes:types returnTypes:types];
 }
 
 - (id)init
@@ -110,6 +127,11 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
     [super dealloc];
 }
 
+- (void)applicationDidFinishLaunching:(NSNotification *)notification
+{
+    [NSApp setServicesProvider:self];
+}
+
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
 {
     // NOTE!  This way it possible to start the app with the command-line
@@ -127,8 +149,45 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 
 - (void)application:(NSApplication *)sender openFiles:(NSArray *)filenames
 {
+    NSString *firstMissingFile = nil;
+    NSMutableArray *files = [NSMutableArray array];
+    int i, count = [filenames count];
+    for (i = 0; i < count; ++i) {
+        NSString *name = [filenames objectAtIndex:i];
+        if ([NSFileHandle fileHandleForReadingAtPath:name]) {
+            [files addObject:name];
+        } else if (!firstMissingFile) {
+            firstMissingFile = name;
+        }
+    }
+
+    if (firstMissingFile) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        [alert addButtonWithTitle:@"OK"];
+
+        NSString *text;
+        if ([files count] >= count-1) {
+            [alert setMessageText:@"File not found"];
+            text = [NSString stringWithFormat:@"Could not open file with "
+                "name %@.", firstMissingFile];
+        } else {
+            [alert setMessageText:@"Multiple files not found"];
+            text = [NSString stringWithFormat:@"Could not open file with "
+                "name %@, and %d other files.", firstMissingFile,
+                count-[files count]-1];
+        }
+
+        [alert setInformativeText:text];
+        [alert setAlertStyle:NSWarningAlertStyle];
+
+        [alert runModal];
+        [alert release];
+
+        return;
+    }
+
     NSMutableArray *args = [NSMutableArray arrayWithObjects:@"-g", @"-p", nil];
-    [args addObjectsFromArray:filenames];
+    [args addObjectsFromArray:files];
 
     NSString *path = [[NSBundle mainBundle]
             pathForAuxiliaryExecutable:@"Vim"];
@@ -305,7 +364,7 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 
     NSWindow *keyWindow = [NSApp keyWindow];
     for (i = 0; i < count; ++i) {
-        MMWindowController *vc = [vimControllers objectAtIndex:i];
+        MMVimController *vc = [vimControllers objectAtIndex:i];
         if ([[[vc windowController] window] isEqual:keyWindow])
             break;
     }
@@ -313,7 +372,7 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
     if (i < count) {
         if (++i >= count)
             i = 0;
-        MMWindowController *vc = [vimControllers objectAtIndex:i];
+        MMVimController *vc = [vimControllers objectAtIndex:i];
         [[vc windowController] showWindow:self];
     }
 #endif
@@ -338,7 +397,7 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 
     NSWindow *keyWindow = [NSApp keyWindow];
     for (i = 0; i < count; ++i) {
-        MMWindowController *vc = [vimControllers objectAtIndex:i];
+        MMVimController *vc = [vimControllers objectAtIndex:i];
         if ([[[vc windowController] window] isEqual:keyWindow])
             break;
     }
@@ -349,7 +408,7 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
         } else {
             i = count - 1;
         }
-        MMWindowController *vc = [vimControllers objectAtIndex:i];
+        MMVimController *vc = [vimControllers objectAtIndex:i];
         [[vc windowController] showWindow:self];
     }
 #endif
@@ -378,7 +437,114 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 }
 #endif
 
+@end // MMAppController
+
+
+
+
+@implementation MMAppController (MMServices)
+
+- (void)openSelection:(NSPasteboard *)pboard userData:(NSString *)userData
+                error:(NSString **)error
+{
+    if (![[pboard types] containsObject:NSStringPboardType]) {
+        NSLog(@"WARNING: Pasteboard contains no object of type "
+                "NSStringPboardType");
+        return;
+    }
+
+    MMVimController *vc = [self topmostVimController];
+    if (vc) {
+        NSString *string = [pboard stringForType:NSStringPboardType];
+        NSMutableData *data = [NSMutableData data];
+        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
+
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[string UTF8String] length:len];
+
+        [vc sendMessage:AddNewTabMsgID data:nil wait:NO];
+        [vc sendMessage:DropStringMsgID data:data wait:NO];
+    } else {
+        // TODO: Open the selection in the new window.
+        *error = @"ERROR: No window found to open selection in.";
+        [self newVimWindow:self];
+    }
+}
+
+- (void)openFile:(NSPasteboard *)pboard userData:(NSString *)userData
+           error:(NSString **)error
+{
+    if (![[pboard types] containsObject:NSStringPboardType]) {
+        NSLog(@"WARNING: Pasteboard contains no object of type "
+                "NSStringPboardType");
+        return;
+    }
+
+    // TODO: Parse multiple filenames and create array with names.
+    int numberOfFiles = 1;
+    NSString *string = [pboard stringForType:NSStringPboardType];
+    string = [string stringByTrimmingCharactersInSet:
+            [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    string = [string stringByStandardizingPath];
+
+    MMVimController *vc = nil;
+    if (userData && [userData isEqual:@"Tab"])
+        vc = [self topmostVimController];
+
+    if (vc) {
+        NSMutableData *data = [NSMutableData data];
+        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+        [data appendBytes:&numberOfFiles length:sizeof(int)];
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[string UTF8String] length:len];
+
+        [vc sendMessage:DropFilesMsgID data:data wait:NO];
+    } else {
+        [self application:NSApp openFiles:[NSArray arrayWithObject:string]];
+    }
+}
+
+@end // MMAppController (MMServices)
+
+
+
+
+@implementation MMAppController (Private)
+
+- (MMVimController *)keyVimController
+{
+    NSWindow *keyWindow = [NSApp keyWindow];
+    if (keyWindow) {
+        unsigned i, count = [vimControllers count];
+        for (i = 0; i < count; ++i) {
+            MMVimController *vc = [vimControllers objectAtIndex:i];
+            if ([[[vc windowController] window] isEqual:keyWindow])
+                return vc;
+        }
+    }
+
+    return nil;
+}
+
+- (MMVimController *)topmostVimController
+{
+    NSArray *windows = [NSApp orderedWindows];
+    if ([windows count] > 0) {
+        NSWindow *window = [windows objectAtIndex:0];
+        unsigned i, count = [vimControllers count];
+        for (i = 0; i < count; ++i) {
+            MMVimController *vc = [vimControllers objectAtIndex:i];
+            if ([[[vc windowController] window] isEqual:window])
+                return vc;
+        }
+    }
+
+    return nil;
+}
+
 @end
+
 
 
 
@@ -397,4 +563,4 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
     }
 }
 
-@end
+@end  // NSMenu (MMExtras)

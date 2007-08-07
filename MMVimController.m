@@ -123,18 +123,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         //[self addToolbarItemToDictionaryWithTag:0 label:@"Attention"
         //                                toolTip:@"A toolbar item is missing"
         //                                   icon:@"Attention"];
-
-        [[NSNotificationCenter defaultCenter]
-                addObserver:self
-                   selector:@selector(windowWillClose:)
-                       name:NSWindowWillCloseNotification
-                     object:[windowController window]];
-        [[NSNotificationCenter defaultCenter]
-                addObserver:self
-                   selector:@selector(windowDidBecomeMain:)
-                       name:NSWindowDidBecomeMainNotification
-                     object:[windowController window]];
-
     }
 
     return self;

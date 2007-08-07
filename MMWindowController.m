@@ -100,9 +100,32 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     if ((self = [super initWithWindowNibName:@"VimWindow"])) {
         vimController = controller;
         scrollbars = [[NSMutableArray alloc] init];
-#if 0
+
+        // Setup a complete text system.
         textStorage = [[MMTextStorage alloc] init];
-#endif
+        NSLayoutManager *lm = [[NSLayoutManager alloc] init];
+        NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
+                NSMakeSize(1.0e7,1.0e7)];
+
+        [tc setWidthTracksTextView:NO];
+        [tc setHeightTracksTextView:NO];
+        [tc setLineFragmentPadding:0];
+
+        [textStorage addLayoutManager:lm];
+        [lm addTextContainer:tc];
+
+        textView = [[MMTextView alloc] initWithFrame:NSZeroRect
+                                       textContainer:tc];
+
+        NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+        int left = [ud integerForKey:MMTextInsetLeft];
+        int top = [ud integerForKey:MMTextInsetTop];
+        [textView setTextContainerInset:NSMakeSize(left, top)];
+
+        // The text storage retains the layout manager which in turn retains
+        // the text container.
+        [tc release];
+        [lm release];
     }
 
     return self;
@@ -128,35 +151,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [super dealloc];
 }
 
-- (void)awakeFromNib
-{
-    // Setup a complete text system.
-    textStorage = [[MMTextStorage alloc] init];
-    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
-    NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
-            NSMakeSize(1.0e7,1.0e7)];
-
-    [tc setWidthTracksTextView:NO];
-    [tc setHeightTracksTextView:NO];
-    [tc setLineFragmentPadding:0];
-
-    [textStorage addLayoutManager:lm];
-    [lm addTextContainer:tc];
-
-    textView = [[MMTextView alloc] initWithFrame:NSZeroRect
-                                   textContainer:tc];
-
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int left = [ud integerForKey:MMTextInsetLeft];
-    int top = [ud integerForKey:MMTextInsetTop];
-    [textView setTextContainerInset:NSMakeSize(left, top)];
-
-    // The text storage retains the layout manager which in turn retains the
-    // text container.
-    [tc release];
-    [lm release];
-}
-
 - (void)windowDidLoad
 {
     // Called after window nib file is loaded.
@@ -180,6 +174,22 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     // HACK! remove any tabs present in the nib
     [tabView removeAllTabViewItems];
+
+    // HACK!  These observers used to be set in the designated init of
+    // MMVimController, but this occasionally caused exceptions from within the
+    // AppKit to be raised.  The problem seemed related to the fact that the
+    // window got loaded 'too early'; adding the observers here seems to
+    // alleviate this problem.
+    [[NSNotificationCenter defaultCenter]
+            addObserver:vimController
+               selector:@selector(windowWillClose:)
+                   name:NSWindowWillCloseNotification
+                 object:[self window]];
+    [[NSNotificationCenter defaultCenter]
+            addObserver:vimController
+               selector:@selector(windowDidBecomeMain:)
+                   name:NSWindowDidBecomeMainNotification
+                 object:[self window]];
 }
 
 - (MMVimController *)vimController
@@ -548,6 +558,38 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     return frame;
 }
+
+#if MM_USE_DO
+- (id)validRequestorForSendType:(NSString *)sendType
+                     returnType:(NSString *)returnType
+{
+    //NSLog(@"validRequestorForSendType:%@ returnType:%@", sendType, returnType);
+
+    id backendProxy = [vimController backendProxy];
+
+    if ((!sendType || [sendType isEqual:NSStringPboardType])
+            && (!returnType || [returnType isEqual:NSStringPboardType])) {
+        if ((!sendType || [backendProxy starRegisterToPasteboard:nil])
+                && (!returnType || [backendProxy starRegisterFromPasteboard:nil])) {
+            return self;
+        }
+    }
+
+    return [super validRequestorForSendType:sendType returnType:returnType];
+}
+
+- (BOOL)writeSelectionToPasteboard:(NSPasteboard *)pboard
+                             types:(NSArray *)types
+{
+    //NSLog(@"writeSelectionToPasteboard:%@ types:%@", pboard, types);
+
+    if (![types containsObject:NSStringPboardType])
+        return NO;
+
+    id backendProxy = [vimController backendProxy];
+    return [backendProxy starRegisterToPasteboard:pboard];
+}
+#endif // MM_USE_DO
 
 @end // MMWindowController
 

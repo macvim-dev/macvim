@@ -22,6 +22,8 @@
 - (oneway void)processInput:(int)msgid data:(in NSData *)data;
 - (BOOL)checkForModifiedBuffers;
 - (oneway void)setBrowseForFileString:(in bycopy NSString *)string;
+- (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
+- (BOOL)starRegisterFromPasteboard:(byref NSPasteboard *)pboard;
 @end
 
 @protocol MMFrontendProtocol
