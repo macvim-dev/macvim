@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1D09AB420C6A4D520045497E /* MMTypesetter.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D09AB400C6A4D520045497E /* MMTypesetter.m */; };
 		1D0E051C0BA5F83800B6049E /* Colors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1D0E051B0BA5F83800B6049E /* Colors.plist */; };
 		1D1474980C56703C0038FA2B /* MacVim.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474960C56703C0038FA2B /* MacVim.m */; };
 		1D1474A00C5673AE0038FA2B /* MMAppController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D14749E0C5673AE0038FA2B /* MMAppController.m */; };
@@ -117,6 +118,8 @@
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		13E42FB307B3F0F600E4EEF1 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
+		1D09AB3F0C6A4D520045497E /* MMTypesetter.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMTypesetter.h; sourceTree = "<group>"; };
+		1D09AB400C6A4D520045497E /* MMTypesetter.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMTypesetter.m; sourceTree = "<group>"; };
 		1D0E051B0BA5F83800B6049E /* Colors.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Colors.plist; sourceTree = "<group>"; };
 		1D1474950C56703C0038FA2B /* MacVim.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MacVim.h; sourceTree = "<group>"; };
 		1D1474960C56703C0038FA2B /* MacVim.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MacVim.m; sourceTree = "<group>"; };
@@ -196,6 +199,8 @@
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
+				1D09AB3F0C6A4D520045497E /* MMTypesetter.h */,
+				1D09AB400C6A4D520045497E /* MMTypesetter.m */,
 				1D1474B90C567A910038FA2B /* MMWindowController.h */,
 				1D1474BA0C567A910038FA2B /* MMWindowController.m */,
 				1D1474B30C56796D0038FA2B /* MMVimController.h */,
@@ -470,6 +475,7 @@
 				1D1474B00C5678370038FA2B /* MMTextView.m in Sources */,
 				1D1474B60C56796D0038FA2B /* MMVimController.m in Sources */,
 				1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */,
+				1D09AB420C6A4D520045497E /* MMTypesetter.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

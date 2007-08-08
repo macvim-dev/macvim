@@ -132,7 +132,7 @@
 		);
 	};
 	29B97313FDCFA39411CA2CEA /* Project object */ = {
-		activeBuildConfigurationName = Release;
+		activeBuildConfigurationName = Debug;
 		activeExecutable = 1D16B9CF0BA33BAE00A69B33 /* MacVim */;
 		activeTarget = 8D1107260486CEB800E47090 /* MacVim */;
 		addToTargets = (
@@ -244,8 +244,8 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 207728380;
-			PBXWorkspaceStateSaveDate = 207728380;
+			PBXPerProjectTemplateStateSaveDate = 208293179;
+			PBXWorkspaceStateSaveDate = 208293179;
 		};
 		sourceControlManager = 1D16B9DD0BA33BB000A69B33 /* Source Control */;
 		userBuildSettings = {
