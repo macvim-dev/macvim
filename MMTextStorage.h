@@ -58,5 +58,6 @@
 - (BOOL)resizeToFitSize:(NSSize)size;
 - (NSSize)fitToSize:(NSSize)size;
 - (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns;
+- (float)cellWidth;
 
 @end

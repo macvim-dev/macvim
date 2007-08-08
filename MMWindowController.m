@@ -8,6 +8,8 @@
  * See README.txt for an overview of the Vim source code.
  */
 
+#define MM_USE_CUSTOM_TYPESETTER 1
+
 #import "MMWindowController.h"
 #import <PSMTabBarControl.h>
 #import "MMTextView.h"
@@ -15,6 +17,10 @@
 #import "MMVimController.h"
 #import "MacVim.h"
 #import "MMAppController.h"
+
+#if MM_USE_CUSTOM_TYPESETTER
+# import "MMTypesetter.h"
+#endif
 
 
 // Scroller type; these must match SBAR_* in gui.h
@@ -106,6 +112,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         NSLayoutManager *lm = [[NSLayoutManager alloc] init];
         NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
                 NSMakeSize(1.0e7,1.0e7)];
+
+#if MM_USE_CUSTOM_TYPESETTER
+        MMTypesetter *typesetter = [[MMTypesetter alloc] init];
+        [lm setTypesetter:typesetter];
+        [typesetter release];
+#endif
 
         [tc setWidthTracksTextView:NO];
         [tc setHeightTracksTextView:NO];

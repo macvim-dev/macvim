@@ -29,7 +29,6 @@
 @interface MMTextStorage (Private)
 - (void)doSetMaxRows:(int)rows columns:(int)cols;
 - (void)lazyResize;
-- (float)cellWidth;
 - (float)widthOfEmptyRow;
 @end
 
@@ -509,6 +508,11 @@
     return fitSize;
 }
 
+- (float)cellWidth
+{
+    return [font widthOfString:@"W"];
+}
+
 @end // MMTextStorage
 
 
@@ -566,11 +570,6 @@
            range:oldRange changeInLength:fullRange.length-oldRange.length];
 
     actualRows = rows;  actualColumns = cols;
-}
-
-- (float)cellWidth
-{
-    return [font widthOfString:@"W"];
 }
 
 - (float)widthOfEmptyRow
