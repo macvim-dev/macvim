@@ -31,6 +31,7 @@
     MMTextStorage *textStorage;
     NSMutableArray *scrollbars;
     BOOL setupDone;
+    BOOL shouldUpdateWindowSize;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
@@ -51,6 +52,7 @@
                     identifier:(long)ident;
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
 - (void)setFont:(NSFont *)font;
+- (void)processCommandQueueDidFinish;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)showTabBar:(id)sender;

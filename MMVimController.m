@@ -213,6 +213,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [self updateMainMenu];
     }
 
+    [windowController processCommandQueueDidFinish];
+
     inProcessCommandQueue = NO;
 
     count = [sendQueue count];
@@ -301,14 +303,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [windowController updateTabsWithData:data];
     } else if (ShowTabBarMsgID == msgid) {
         //NSLog(@"Showing tab bar");
-
-        // HACK! Vim sends several draw commands etc. after the show message
-        // and these can mess up the display when showing the tab bar results
-        // in the window having to resize to fit the screen; delaying this
-        // message alleviates this problem.
-        [windowController performSelectorOnMainThread:@selector(showTabBar:)
-                                           withObject:self waitUntilDone:NO];
-        //[windowController showTabBar:self];
+        [windowController showTabBar:self];
     } else if (HideTabBarMsgID == msgid) {
         //NSLog(@"Hiding tab bar");
         [windowController hideTabBar:self];

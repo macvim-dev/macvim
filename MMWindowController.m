@@ -304,7 +304,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [textStorage setMaxRows:rows columns:cols];
 
     if (setupDone && ![textView inLiveResize])
-        [self resizeWindowToFit:self];
+        shouldUpdateWindowSize = YES;
 }
 
 - (void)setStatusText:(NSString *)text
@@ -361,9 +361,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         if (![scroller isHidden]) {
             // A visible scroller was removed, so the window must resize to
             // fit.
-            // TODO!  Should only do this once per update.
-            [self performSelectorOnMainThread:@selector(resizeWindowToFit:)
-                                   withObject:self waitUntilDone:NO];
+            //NSLog(@"Visible scroller %d was destroyed, resizing window.",
+            //        ident);
+            shouldUpdateWindowSize = YES;
         }
     }
 }
@@ -380,10 +380,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     if (wasVisible != visible) {
         // A scroller was hidden or shown, so the window must resize to fit.
-        //NSLog(@"%s scroller %d", visible ? "Show" : "Hide", ident);
-        // TODO!  Should only do this once per update.
-        [self performSelectorOnMainThread:@selector(resizeWindowToFit:)
-                               withObject:self waitUntilDone:NO];
+        //NSLog(@"%s scroller %d and resize.", visible ? "Show" : "Hide",
+        //        ident);
+        shouldUpdateWindowSize = YES;
     }
 }
 
@@ -421,6 +420,14 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [self updateResizeIncrements];
 }
 
+- (void)processCommandQueueDidFinish
+{
+    if (shouldUpdateWindowSize) {
+        shouldUpdateWindowSize = NO;
+        [self resizeWindowToFit:self];
+    }
+}
+
 - (IBAction)addNewTab:(id)sender
 {
     // NOTE! This can get called a lot if the user holds down the key
@@ -435,7 +442,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [tabBarControl setHidden:NO];
 
     if (setupDone)
-        [self resizeWindowToFit:self];
+        shouldUpdateWindowSize = YES;
 }
 
 - (IBAction)hideTabBar:(id)sender
@@ -444,8 +451,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [tabBarControl setHidden:YES];
 
     if (setupDone)
-        [self resizeWindowToFit:self];
+        shouldUpdateWindowSize = YES;
 }
+
+
 
 
 // -- PSMTabBarControl delegate ----------------------------------------------
@@ -559,6 +568,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return frame;
 }
 
+
+
+
+// -- Services menu delegate -------------------------------------------------
+
 - (id)validRequestorForSendType:(NSString *)sendType
                      returnType:(NSString *)returnType
 {
@@ -567,9 +581,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     id backendProxy = [vimController backendProxy];
 
     if ((!sendType || [sendType isEqual:NSStringPboardType])
-            && (!returnType || [returnType isEqual:NSStringPboardType])) {
-        if ((!sendType || [backendProxy starRegisterToPasteboard:nil])
-                && (!returnType || [backendProxy starRegisterFromPasteboard:nil])) {
+            && (!returnType || [returnType isEqual:NSStringPboardType]))
+    {
+        if ((!sendType || [backendProxy starRegisterToPasteboard:nil]) &&
+                (!returnType || [backendProxy starRegisterFromPasteboard:nil]))
+        {
             return self;
         }
     }
@@ -696,6 +712,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         //NSLog(@"Proposed window frame does not fit on the screen!");
         frame = [self fitWindowToFrame:maxFrame];
     }
+
+    //NSLog(@"%s %@", _cmd, NSStringFromRect(frame));
 
     // HACK! If the window does resize, then windowDidResize is called which in
     // turn calls placeViews.  In case the computed new size of the window is
