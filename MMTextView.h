@@ -18,5 +18,3 @@
 - (void)setShouldDrawInsertionPoint:(BOOL)enable;
 
 @end
-
-// vim: set ft=objc :

@@ -60,5 +60,3 @@
 - (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns;
 
 @end
-
-/* vim: set filetype=objc: */

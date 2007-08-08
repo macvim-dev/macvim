@@ -81,6 +81,3 @@
 - (int)lookupColorWithKey:(NSString *)key;
 
 @end
-
-
-// vim: set ft=objc:
