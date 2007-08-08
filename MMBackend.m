@@ -26,9 +26,7 @@ static int specialKeyToNSKey(int key);
 + (NSDictionary *)specialKeys;
 - (void)handleKeyDown:(NSString *)key modifiers:(int)mods;
 - (void)queueMessage:(int)msgid data:(NSData *)data;
-#if MM_USE_DO
 - (void)connectionDidDie:(NSNotification *)notification;
-#endif
 @end
 
 
@@ -60,13 +58,8 @@ static int specialKeyToNSKey(int key);
 
     [queue release];
     [drawData release];
-#if MM_USE_DO
     [frontendProxy release];
     [connection release];
-#else
-    [sendPort release];
-    [receivePort release];
-#endif
     [colorDict release];
 
     [super dealloc];
@@ -99,24 +92,12 @@ static int specialKeyToNSKey(int key);
 {
     NSBundle *mainBundle = [NSBundle mainBundle];
 
-#if MM_USE_DO
     // NOTE!  If the name of the connection changes here it must also be
     // updated in MMAppController.m.
     NSString *name = [NSString stringWithFormat:@"%@-connection",
              [mainBundle bundleIdentifier]];
     connection = [NSConnection connectionWithRegisteredName:name host:nil];
-    if (!connection)
-#else
-    // NOTE!  If the name of the port changes here it must also be updated in
-    // MMAppController.m.
-    NSString *portName = [NSString stringWithFormat:@"%@-taskport",
-             [mainBundle bundleIdentifier]];
-
-    NSPort *port = [[[NSMachBootstrapServer sharedInstance]
-            portForName:portName host:nil] retain];
-    if (!port)
-#endif
-    {
+    if (!connection) {
 #if 0
         NSString *path = [mainBundle bundlePath];
         if (![[NSWorkspace sharedWorkspace] launchApplication:path]) {
@@ -147,41 +128,26 @@ static int specialKeyToNSKey(int key);
 
         // HACK!  The NSWorkspaceDidLaunchApplicationNotification does not work
         // for tasks like this, so poll the mach bootstrap server until it
-        // returns a valid port.  Also set a time-out date so that we don't get
-        // stuck doing this forever.
+        // returns a valid connection.  Also set a time-out date so that we
+        // don't get stuck doing this forever.
         NSDate *timeOutDate = [NSDate dateWithTimeIntervalSinceNow:15];
-        while (
-#if MM_USE_DO
-                !connection
-#else
-                !port
-#endif
-                && NSOrderedDescending == [timeOutDate compare:[NSDate date]])
+        while (!connection &&
+                NSOrderedDescending == [timeOutDate compare:[NSDate date]])
         {
             [[NSRunLoop currentRunLoop]
                     runMode:NSDefaultRunLoopMode
                  beforeDate:[NSDate dateWithTimeIntervalSinceNow:1]];
-#if MM_USE_DO
+
             connection = [NSConnection connectionWithRegisteredName:name
                                                                host:nil];
-#else
-            port = [[NSMachBootstrapServer sharedInstance]
-                    portForName:portName];
-#endif
         }
 
-#if MM_USE_DO
-        if (!connection)
-#else
-        if (!port)
-#endif
-        {
+        if (!connection) {
             NSLog(@"WARNING: Timed-out waiting for GUI to launch.");
             return NO;
         }
     }
 
-#if MM_USE_DO
     id proxy = [connection rootProxy];
     [proxy setProtocolForProxy:@protocol(MMAppProtocol)];
 
@@ -195,49 +161,10 @@ static int specialKeyToNSKey(int key);
     }
 
     return connection && frontendProxy;
-#else
-    receivePort = [NSMachPort new];
-    [receivePort setDelegate:self];
-
-    [[NSRunLoop currentRunLoop] addPort:receivePort
-                                forMode:NSDefaultRunLoopMode];
-
-    [NSPortMessage sendMessage:CheckinMsgID withSendPort:port
-                   receivePort:receivePort wait:YES];
-
-    return YES;
-#endif
 }
 
 - (BOOL)openVimWindow
 {
-#if !MM_USE_DO
-    if (!sendPort) {
-#if 0
-        // TODO: Wait until connected---maybe time out at some point?
-        // Note that if we return 'NO' Vim will be started in terminal mode
-        // (i.e.  output goes to stdout).
-        NSLog(@"WARNING: Trying to open VimWindow but sendPort==nil;"
-               " waiting for connected message.");
-
-        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                 beforeDate:[NSDate distantFuture]];
-        if (!sendPort)
-            return NO;
-#else
-        // Wait until the sendPort has actually been set.
-        //
-        // TODO: Come up with a more elegant solution to this problem---this
-        // message should not be called before the sendPort has been
-        // initialized.
-        while (!sendPort) {
-            [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                     beforeDate:[NSDate distantFuture]];
-        }
-#endif
-    }
-#endif // !MM_USE_DO
-
     [self queueMessage:OpenVimWindowMsgID data:nil];
     return YES;
 }
@@ -332,26 +259,13 @@ static int specialKeyToNSKey(int key);
         // TODO: Come up with a better way to handle the insertion point.
         [self updateInsertionPoint];
 
-#if MM_USE_DO
         [frontendProxy processCommandQueue:queue];
-#else
-        [NSPortMessage sendMessage:FlushQueueMsgID withSendPort:sendPort
-                              components:queue wait:YES];
-#endif
         [queue removeAllObjects];
     }
 }
 
 - (BOOL)waitForInput:(int)milliseconds
 {
-#if !MM_USE_DO
-    if (![receivePort isValid]) {
-        // This should only happen if the GUI crashes.
-        NSLog(@"ERROR: The receive port is no longer valid, quitting...");
-        getout(0);
-    }
-#endif
-
     NSDate *date = milliseconds > 0 ?
             [NSDate dateWithTimeIntervalSinceNow:.001*milliseconds] : 
             [NSDate distantFuture];
@@ -360,7 +274,7 @@ static int specialKeyToNSKey(int key);
 
     // I know of no way to figure out if the run loop exited because input was
     // found or because of a time out, so I need to manually indicate when
-    // input was received in handlePortMessage and then reset it every time
+    // input was received in processInput:data: and then reset it every time
     // here.
     BOOL yn = inputReceived;
     inputReceived = NO;
@@ -370,18 +284,11 @@ static int specialKeyToNSKey(int key);
 
 - (void)exit
 {
-#if MM_USE_DO
     // By invalidating the NSConnection the MMWindowController immediately
     // finds out that the connection is down and as a result
     // [MMWindowController connectionDidDie:] is invoked.
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [connection invalidate];
-#else
-    if (!receivedKillTaskMsg) {
-        [NSPortMessage sendMessage:TaskExitedMsgID withSendPort:sendPort
-                       receivePort:receivePort wait:YES];
-    }
-#endif
 }
 
 - (void)selectTab:(int)index
@@ -455,7 +362,6 @@ static int specialKeyToNSKey(int key);
     [self queueMessage:SetVimWindowTitleMsgID data:data];
 }
 
-#if MM_USE_DO
 - (oneway void)setBrowseForFileString:(in bycopy NSString *)string
 {
     // NOTE: This is called by [MMVimController panelDidEnd:::] to indicate
@@ -463,7 +369,6 @@ static int specialKeyToNSKey(int key);
     // the user pressed cancel.
     browseForFileString = string ? [string copy] : nil;
 }
-#endif
 
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
                             saving:(int)saving
@@ -471,7 +376,6 @@ static int specialKeyToNSKey(int key);
     //NSLog(@"browseForFileInDirectory:%s title:%s saving:%d", dir, title,
     //        saving);
 
-#if MM_USE_DO
     NSString *ds = dir
             ? [NSString stringWithCString:dir encoding:NSUTF8StringEncoding]
             : nil;
@@ -490,48 +394,6 @@ static int specialKeyToNSKey(int key);
     [browseForFileString release];  browseForFileString = nil;
 
     return (char *)s;
-#else
-    NSMutableData *data = [NSMutableData data];
-
-    [data appendBytes:&saving length:sizeof(int)];
-
-    int len = dir ? strlen(dir) : 0;
-    [data appendBytes:&len length:sizeof(int)];
-    if (len > 0)
-        [data appendBytes:dir length:len];
-
-    len = title ? strlen(title) : 0;
-    [data appendBytes:&len length:sizeof(int)];
-    if (len > 0)
-        [data appendBytes:title length:len];
-
-    if (![NSPortMessage sendMessage:BrowseForFileMsgID withSendPort:sendPort
-                                 data:data wait:YES])
-        return nil;
-
-    // Wait until a reply is sent from MMVimController.
-    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                             beforeDate:[NSDate distantFuture]];
-
-    // Something went wrong if replyData is nil.
-    if (!replyData)
-        return nil;
-
-    const void *bytes = [replyData bytes];
-    int ok = *((int*)bytes);  bytes += sizeof(int);
-    len = *((int*)bytes);  bytes += sizeof(int);
-
-    char_u *s = NULL;
-    if (ok && len > 0) {
-        NSString *name = [[NSString alloc] initWithBytes:(void*)bytes
-                length:len encoding:NSUTF8StringEncoding];
-        s = vim_strsave((char_u*)[name UTF8String]);
-        [name release];
-    }
-
-    [replyData release];  replyData = nil;
-    return (char*)s;
-#endif // MM_USE_DO
 }
 
 - (void)updateInsertionPoint
@@ -791,7 +653,6 @@ static int specialKeyToNSKey(int key);
     return INVALCOLOR;
 }
 
-#if MM_USE_DO
 - (oneway void)processInput:(int)msgid data:(in NSData *)data
 {
     [self handleMessage:msgid data:data];
@@ -851,39 +712,6 @@ static int specialKeyToNSKey(int key);
     return NO;
 }
 
-#else // MM_USE_DO
-
-- (void)handlePortMessage:(NSPortMessage *)portMessage
-{
-    unsigned msgid = [portMessage msgid];
-
-    if (ConnectedMsgID == msgid) {
-        sendPort = [[portMessage sendPort] retain];
-        //NSLog(@"VimTask connected to MMVimController.");
-    } else if (TaskShouldTerminateMsgID == msgid) {
-        int reply = TerminateReplyYesMsgID;
-        buf_T *buf;
-        for (buf = firstbuf; buf != NULL; buf = buf->b_next) {
-            if (bufIsChanged(buf)) {
-                reply = TerminateReplyNoMsgID;
-                break;
-            }
-        }
-
-        //NSLog(@"TaskShouldTerminateMsgID = %s",
-        //        reply == TerminateReplyYesMsgID ? "YES" : "NO");
-
-        [NSPortMessage sendMessage:reply withSendPort:[portMessage sendPort]
-                              wait:YES];
-    } else {
-        NSArray *components = [portMessage components];
-        NSData *data = [components count] > 0 ?
-                [components objectAtIndex:0] : nil;
-        [self handleMessage:msgid data:data];
-    }
-}
-#endif // MM_USE_DO
-
 @end // MMBackend
 
 
@@ -906,8 +734,6 @@ static int specialKeyToNSKey(int key);
         add_to_input_buf((char_u*)[key UTF8String],
                 [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
         [key release];
-
-        inputReceived = YES;
     } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -920,25 +746,21 @@ static int specialKeyToNSKey(int key);
         [self handleKeyDown:key modifiers:mods];
 
         [key release];
-        inputReceived = YES;
     } else if (SelectTabMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
         //NSLog(@"Selecting tab %d", idx);
         send_tabline_event(idx);
-        inputReceived = YES;
     } else if (CloseTabMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
         //NSLog(@"Closing tab %d", idx);
         send_tabline_menu_event(idx, TABLINE_MENU_CLOSE);
-        inputReceived = YES;
     } else if (AddNewTabMsgID == msgid) {
         //NSLog(@"Adding new tab");
         send_tabline_menu_event(0, TABLINE_MENU_NEW);
-        inputReceived = YES;
     } else if (DraggedTabMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -946,21 +768,7 @@ static int specialKeyToNSKey(int key);
         // based.
         int idx = *((int*)bytes);
 
-#if 0
-        tabpage_T *tp = find_tabpage(oldIdx);
-        if (tp) {
-            // HACK!  tabpage_move(idx) moves 'curtab' to 'idx', but since it
-            // is also possible to drag tabs which are not selected we must
-            // first set 'curtab' to the tab that was actually dragged and then
-            // reset 'curtab' to what it used to be.
-            tabpage_T *oldcur = curtab;
-            curtab = tp;
-            tabpage_move(idx);
-            curtab = oldcur;
-        }
-#else
         tabpage_move(idx);
-#endif
     } else if (ScrollWheelMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -976,7 +784,6 @@ static int specialKeyToNSKey(int key);
         flags = eventModifierFlagsToVimMouseModMask(flags);
 
         gui_send_mouse_event(button, col, row, NO, flags);
-        inputReceived = YES;
     } else if (MouseDownMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -991,8 +798,6 @@ static int specialKeyToNSKey(int key);
         flags = eventModifierFlagsToVimMouseModMask(flags);
 
         gui_send_mouse_event(button, col, row, 0 != count, flags);
-
-        inputReceived = YES;
     } else if (MouseUpMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -1004,7 +809,6 @@ static int specialKeyToNSKey(int key);
         flags = eventModifierFlagsToVimMouseModMask(flags);
 
         gui_send_mouse_event(MOUSE_RELEASE, col, row, NO, flags);
-        inputReceived = YES;
     } else if (MouseDraggedMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -1016,16 +820,7 @@ static int specialKeyToNSKey(int key);
         flags = eventModifierFlagsToVimMouseModMask(flags);
 
         gui_send_mouse_event(MOUSE_DRAG, col, row, NO, flags);
-        inputReceived = YES;
-    } 
-#if !MM_USE_DO
-    else if (BrowseForFileReplyMsgID == msgid) {
-        if (!data) return;
-        [replyData release];
-        replyData = [data copy];
-    }
-#endif
-    else if (SetTextDimensionsMsgID == msgid) {
+    } else if (SetTextDimensionsMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
@@ -1048,7 +843,6 @@ static int specialKeyToNSKey(int key);
         // TODO!  Make sure 'menu' is a valid menu pointer!
         if (menu) {
             gui_menu_cb(menu);
-            inputReceived = YES;
         }
     } else if (ScrollbarEventMsgID == msgid) {
         if (!data) return;
@@ -1111,8 +905,6 @@ static int specialKeyToNSKey(int key);
                                       identifier:ident];
                 }
             }
-
-            inputReceived = YES;
         }
     } else if (VimShouldCloseMsgID == msgid) {
         gui_shell_closed();
@@ -1292,7 +1084,6 @@ static int specialKeyToNSKey(int key);
         [queue addObject:[NSData data]];
 }
 
-#if MM_USE_DO
 - (void)connectionDidDie:(NSNotification *)notification
 {
     // If the main connection to MacVim is lost this means that MacVim was
@@ -1303,7 +1094,6 @@ static int specialKeyToNSKey(int key);
     //NSLog(@"A Vim process lots its connection to MacVim; quitting.");
     getout(0);
 }
-#endif // MM_USE_DO
 
 @end // MMBackend (Private)
 

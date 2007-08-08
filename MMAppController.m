@@ -74,7 +74,6 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
     if ((self = [super init])) {
         vimControllers = [NSMutableArray new];
 
-#if MM_USE_DO
         // NOTE!  If the name of the connection changes here it must also be
         // updated in MMBackend.m.
         NSConnection *connection = [NSConnection defaultConnection];
@@ -92,24 +91,6 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
             NSLog(@"WARNING: Failed to register connection with name '%@'",
                     name);
         }
-#else
-        // Init named port for VimTasks to connect to
-        receivePort = [NSMachPort new];
-        [receivePort setDelegate:self];
-
-        [[NSRunLoop currentRunLoop] addPort:receivePort
-                                    forMode:NSDefaultRunLoopMode];
-
-        // NOTE!  If the name of the port changes here it must also be updated
-        // in MMBackend.m.
-        NSString *portName = [NSString stringWithFormat:@"%@-taskport",
-                 [[NSBundle mainBundle] bundleIdentifier]];
-        //NSLog(@"Starting mach bootstrap server: %@", portName);
-        if (![[NSMachBootstrapServer sharedInstance] registerPort:receivePort
-                                                             name:portName]) {
-            NSLog(@"WARNING: Failed to start mach bootstrap server");
-        }
-#endif
     }
 
     return self;
@@ -119,9 +100,6 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 {
     //NSLog(@"MMAppController dealloc");
 
-#if !MM_USE_DO
-    [receivePort release];
-#endif
     [vimControllers release];
 
     [super dealloc];
@@ -209,7 +187,6 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 - (NSApplicationTerminateReply)applicationShouldTerminate:
     (NSApplication *)sender
 {
-#if MM_USE_DO
     int reply = NSTerminateNow;
     BOOL modifiedBuffers = NO;
 
@@ -240,58 +217,6 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
     }
 
     return reply;
-#else
-    int reply = NSTerminateNow;
-
-    // HACK!  Send message to all vim tasks asking if they have modified
-    // buffers, then hang around for a while waiting for responses to come
-    // back.  If any task has at least one modified buffer an alert dialog is
-    // displayed telling the user that there are modified buffers.  The user
-    // can then choose whether to quit anyway, or cancel the termination.
-    // (NSTerminateLater is not supported.)
-    terminateNowCount = 0;
-    abortTermination = NO;
-
-    unsigned i, count = [vimControllers count];
-    for (i = 0; i < count; ++i) {
-        MMVimController *controller = [vimControllers objectAtIndex:i];
-        [NSPortMessage sendMessage:TaskShouldTerminateMsgID
-                      withSendPort:[controller sendPort]
-                       receivePort:receivePort
-                              wait:NO];
-    }
-
-    NSDate *timeOutDate = [NSDate dateWithTimeIntervalSinceNow:15];
-    while (terminateNowCount < count && !abortTermination &&
-            NSOrderedDescending == [timeOutDate compare:[NSDate date]]) {
-        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                 beforeDate:timeOutDate];
-    }
-
-    //NSLog(@"%s terminateNowCount=%d abortTermination=%s", _cmd,
-    //        terminateNowCount, abortTermination ? "YES" : "NO");
-
-    if (abortTermination) {
-        NSAlert *alert = [[NSAlert alloc] init];
-        [alert addButtonWithTitle:@"Quit"];
-        [alert addButtonWithTitle:@"Cancel"];
-        [alert setMessageText:@"Quit without saving?"];
-        [alert setInformativeText:@"There are modified buffers, "
-           " if you quit now all changes will be lost.  Quit anyway?"];
-        [alert setAlertStyle:NSWarningAlertStyle];
-
-        if ([alert runModal] != NSAlertFirstButtonReturn) {
-            reply = NSTerminateCancel;
-        }
-
-        [alert release];
-    } else if (terminateNowCount < count) {
-        NSLog(@"WARNING: Not all tasks replied to TaskShouldTerminateMsgID,"
-                " quitting anyway.");
-    }
-
-    return reply;
-#endif
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
@@ -300,27 +225,6 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
     [NSApp setDelegate:nil];
     [self autorelease];
 }
-
-#if !MM_USE_DO
-- (void)handlePortMessage:(NSPortMessage *)portMessage
-{
-    unsigned msgid = [portMessage msgid];
-
-    if (msgid == CheckinMsgID) {
-        //NSLog(@"Received checkin message from VimTask.");
-        MMVimController *wc = [[MMVimController alloc]
-                initWithPort:[portMessage sendPort]];
-        [vimControllers addObject:wc];
-        [wc release];
-    } else if (msgid == TerminateReplyYesMsgID) {
-        ++terminateNowCount;
-    } else if (msgid == TerminateReplyNoMsgID) {
-        abortTermination = YES;
-    } else {
-        NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
-    }
-}
-#endif
 
 - (void)removeVimController:(id)controller
 {
@@ -350,15 +254,6 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 
 - (IBAction)selectNextWindow:(id)sender
 {
-#if 0
-    NSArray *windows = [NSApp orderedWindows];
-    unsigned idx = [windows indexOfObject:[NSApp keyWindow]];
-    if (NSNotFound != idx) {
-        if (++idx >= [windows count])
-            idx = 0;
-        [[windows objectAtIndex:idx] makeKeyAndOrderFront:self];
-    }
-#else
     unsigned i, count = [vimControllers count];
     if (!count) return;
 
@@ -375,23 +270,10 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
         MMVimController *vc = [vimControllers objectAtIndex:i];
         [[vc windowController] showWindow:self];
     }
-#endif
 }
 
 - (IBAction)selectPreviousWindow:(id)sender
 {
-#if 0
-    NSArray *windows = [NSApp orderedWindows];
-    unsigned idx = [windows indexOfObject:[NSApp keyWindow]];
-    if (NSNotFound != idx) {
-        if (idx > 0) {
-            --idx;
-        } else {
-            idx = [windows count] - 1;
-        }
-        [[windows objectAtIndex:idx] makeKeyAndOrderFront:self];
-    }
-#else
     unsigned i, count = [vimControllers count];
     if (!count) return;
 
@@ -411,11 +293,8 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
         MMVimController *vc = [vimControllers objectAtIndex:i];
         [[vc windowController] showWindow:self];
     }
-#endif
 }
 
-
-#if MM_USE_DO
 - (byref id <MMFrontendProtocol>)connectBackend:
     (byref in id <MMBackendProtocol>)backend;
 {
@@ -435,7 +314,6 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 
     return wc;
 }
-#endif
 
 @end // MMAppController
 

@@ -45,11 +45,6 @@ char *MessageStrings[] =
     "EnableMenuItemMsgID",
     "ExecuteMenuMsgID",
     "ShowToolbarMsgID",
-#if !MM_USE_DO
-    "TaskShouldTerminateMsgID",
-    "TerminateReplyYesMsgID",
-    "TerminateReplyNoMsgID",
-#endif
     "CreateScrollbarMsgID",
     "DestroyScrollbarMsgID",
     "ShowScrollbarMsgID",
@@ -60,78 +55,7 @@ char *MessageStrings[] =
     "VimShouldCloseMsgID",
     "SetDefaultColorsMsgID",
     "ExecuteActionMsgID",
+    "DropFilesMsgID",
+    "DropStringMsgID",
 };
 
-@implementation NSPortMessage (MacVim)
-
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        receivePort:(NSPort *)receivePort components:(NSArray *)components
-               wait:(BOOL)wait
-{
-    NSPortMessage *msg = [[NSPortMessage alloc]
-            initWithSendPort:sendPort
-                 receivePort:receivePort
-                  components:components];
-    [msg setMsgid:msgid];
-
-    // HACK!  How long should this wait before time out?
-    NSDate *date = wait ? [NSDate dateWithTimeIntervalSinceNow:1]
-                        : [NSDate date];
-    BOOL ok = [msg sendBeforeDate:date];
-
-    [msg release];
-
-    return ok;
-}
-
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        receivePort:(NSPort *)receivePort data:(NSData *)data wait:(BOOL)wait
-{
-    return [NSPortMessage sendMessage:msgid
-                         withSendPort:sendPort
-                          receivePort:receivePort
-                           components:[NSArray arrayWithObject:data]
-                                 wait:wait];
-}
-
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        receivePort:(NSPort *)receivePort wait:(BOOL)wait
-{
-    return [NSPortMessage sendMessage:msgid
-                         withSendPort:sendPort
-                          receivePort:receivePort
-                           components:nil
-                                 wait:wait];
-}
-
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        components:(NSArray *)components wait:(BOOL)wait
-{
-    return [NSPortMessage sendMessage:msgid
-                         withSendPort:sendPort
-                          receivePort:nil
-                           components:components
-                                 wait:wait];
-}
-
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        data:(NSData *)data wait:(BOOL)wait
-{
-    return [NSPortMessage sendMessage:msgid
-                         withSendPort:sendPort
-                          receivePort:nil
-                           components:[NSArray arrayWithObject:data]
-                                 wait:wait];
-}
-
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort wait:(BOOL)wait
-{
-    return [NSPortMessage sendMessage:msgid
-                         withSendPort:sendPort
-                          receivePort:nil
-                           components:nil
-                                 wait:wait];
-}
-
-
-@end

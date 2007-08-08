@@ -559,7 +559,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return frame;
 }
 
-#if MM_USE_DO
 - (id)validRequestorForSendType:(NSString *)sendType
                      returnType:(NSString *)returnType
 {
@@ -589,7 +588,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     id backendProxy = [vimController backendProxy];
     return [backendProxy starRegisterToPasteboard:pboard];
 }
-#endif // MM_USE_DO
 
 @end // MMWindowController
 
@@ -985,17 +983,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSRect contentRect = [win contentRectForFrameRect:[win frame]];
     NSRect textViewRect = [self textViewRectForContentSize:contentRect.size];
     NSSize tsSize = [self textStorageSizeForTextViewSize:textViewRect.size];
-#if 0
-    if ([textStorage resizeToFitSize:tsSize]) {
-        // Text storage dimensions changed, notify the VimTask.
-        int dim[2];
-        [textStorage getMaxRows:&dim[0] columns:&dim[1]];
-#else
+
     int dim[2], rows, cols;
     [textStorage getMaxRows:&rows columns:&cols];
     [textStorage fitToSize:tsSize rows:&dim[0] columns:&dim[1]];
+
     if (dim[0] != rows || dim[1] != cols) {
-#endif
         NSString *sdim = [NSString stringWithFormat:@"%dx%d", dim[1], dim[0]];
         [self flashStatusText:sdim];
 
@@ -1004,8 +997,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];
 
         // NOTE! This can get called a lot when in live resize, which causes
-        // the ports to fill up.  If we wait for the message to be sent then
-        // the app might become unresponsive.
+        // the connection buffers to fill up.  If we wait for the message to be
+        // sent then the app might become unresponsive.
         [vimController sendMessage:SetTextDimensionsMsgID data:data
                      wait:![textView inLiveResize]];
     }

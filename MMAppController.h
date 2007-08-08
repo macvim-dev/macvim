@@ -26,17 +26,9 @@ extern NSString *MMTerminateAfterLastWindowClosed;
 
 
 
-@interface MMAppController : NSObject
-#if MM_USE_DO
-    <MMAppProtocol>
-#endif
+@interface MMAppController : NSObject <MMAppProtocol>
 {
     NSMutableArray  *vimControllers;
-#if !MM_USE_DO
-    NSPort          *receivePort;
-    unsigned        terminateNowCount;
-    BOOL            abortTermination;
-#endif
 }
 
 - (void)removeVimController:(id)controller;

@@ -11,15 +11,12 @@
 #import <Cocoa/Cocoa.h>
 
 
-#define MM_TS_LAZY_SET 1
 
 
 @interface MMTextStorage : NSTextStorage {
     NSMutableAttributedString *attribString;
     int maxRows, maxColumns;
-#if MM_TS_LAZY_SET
     int actualRows, actualColumns;
-#endif
     NSAttributedString *emptyRowString;
     NSFont *font;
     NSColor *defaultBackgroundColor;

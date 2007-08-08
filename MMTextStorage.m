@@ -23,18 +23,12 @@
 
 //static float LINEHEIGHT = 30.0f;
 
-#define MM_SIMPLE_TS_CALC 1
 
-#if MM_TS_LAZY_SET
-# define MM_SIMPLE_TS_CALC 1
-#endif
 
 
 @interface MMTextStorage (Private)
-#if MM_TS_LAZY_SET
 - (void)doSetMaxRows:(int)rows columns:(int)cols;
 - (void)lazyResize;
-#endif
 - (float)cellWidth;
 - (float)widthOfEmptyRow;
 @end
@@ -129,12 +123,8 @@
 
 - (void)setMaxRows:(int)rows columns:(int)cols
 {
-#if MM_TS_LAZY_SET
     maxRows = rows;
     maxColumns = cols;
-#else
-    [self doSetMaxRows:rows columns:cols];
-#endif
 }
 
 - (void)replaceString:(NSString*)string atRow:(int)row column:(int)col
@@ -356,48 +346,17 @@
 {
     // NOTE: Foreground color is ignored.
     [defaultBackgroundColor release];
-
-#if 0
-    if (bgColor) {
-        defaultBackgroundColor = [bgColor retain];
-#if 1
-        NSMutableAttributedString *string = [emptyRowString mutableCopy];
-        [string addAttribute:NSBackgroundColorAttributeName value:bgColor
-                       range:NSMakeRange(0, [emptyRowString length])];
-        [emptyRowString release];
-        emptyRowString = string;
-#endif
-        [self clearAllWithColor:bgColor];
-    } else {
-        defaultBackgroundColor = nil;
-    }
-#else
     defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
-#endif
 }
 
 - (void)setFont:(NSFont*)newFont
 {
-#if 0
-    if (font != newFont) {
-        //NSLog(@"Changing font from %@ to %@", font, newFont);
-        [font release];
-        font = [newFont retain];
-        NSRange range = { 0, [attribString length] };
-        [attribString addAttribute:NSFontAttributeName value:font
-                range:range];
-        [self setDefaultFg:norm_pixel bg:gui.back_pixel];
-        [self edited:NSTextStorageEditedAttributes range:range
-                changeInLength:0];
-    }
-#else
     if (newFont && font != newFont) {
         //NSLog(@"Setting font %@", newFont);
         [font release];
         font = [newFont retain];
         // TODO! Change paragraph style to match line height of new font
     }
-#endif
 }
 
 - (NSFont*)font
@@ -410,24 +369,8 @@
     if (![[self layoutManagers] count]) return NSZeroSize;
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
 
-#if MM_SIMPLE_TS_CALC
     float h = [lm defaultLineHeightForFont:font];
     NSSize size = NSMakeSize([self cellWidth]*maxColumns, h*maxRows);
-#else
-    if (![[lm textContainers] count]) return NSZeroSize;
-    NSTextContainer *tc = [[lm textContainers] objectAtIndex:0];
-
-    NSRange range = [lm glyphRangeForTextContainer:tc];
-    NSRect rect = [lm boundingRectForGlyphRange:range inTextContainer:tc];
-    //[lm glyphRangeForTextContainer:tc];
-    //NSRect rect = [lm usedRectForTextContainer:tc];
-
-    NSSize size = NSMakeSize([self widthOfEmptyRow], rect.size.height);
-    //NSSize size = NSMakeSize([self widthOfEmptyRow], maxRows*LINEHEIGHT);
-    //NSLog(@"size=(%.2f,%.2f) rows=%d cols=%d layoutManager size=(%.2f,%.2f)",
-    //        size.width, size.height, maxRows, maxColumns, rect.size.width,
-    //        rect.size.height);
-#endif
 
     return size;
 }
@@ -519,11 +462,6 @@
     if (![[self layoutManagers] count]) return size;
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
 
-#if !MM_SIMPLE_TS_CALC
-    if (![[lm textContainers] count]) return size;
-    NSTextContainer *tc = [[lm textContainers] objectAtIndex:0];
-#endif
-
     NSSize curSize = [self size];
     NSSize fitSize = curSize;
     int fitRows = maxRows;
@@ -535,7 +473,6 @@
         // text storage.  (Why 3? It seem Vim never allows less than 3 lines.)
         //
         // TODO: Use binary search instead of the current linear one.
-#if MM_TS_LAZY_SET
         int rowCount = maxRows;
         int rowsToRemove;
         for (rowsToRemove = 0; rowsToRemove < maxRows-3; ++rowsToRemove) {
@@ -548,23 +485,6 @@
 
             --rowCount;
         }
-#else
-        NSRange charRange = { 0, maxRows*(maxColumns+1) };
-        int rowsToRemove;
-        for (rowsToRemove = 0; rowsToRemove < maxRows-3; ++rowsToRemove) {
-            NSRange glyphRange = [lm glyphRangeForCharacterRange:charRange
-                                            actualCharacterRange:nil];
-            float height = [lm boundingRectForGlyphRange:glyphRange
-                                         inTextContainer:tc].size.height;
-            
-            if (height <= size.height) {
-                fitSize.height = height;
-                break;
-            }
-
-            charRange.length -= (maxColumns+1);
-        }
-#endif
 
         fitRows -= rowsToRemove;
     } else if (size.height > curSize.height) {
@@ -595,32 +515,22 @@
 
 
 @implementation MMTextStorage (Private)
-#if MM_TS_LAZY_SET
 - (void)lazyResize
 {
     if (actualRows != maxRows || actualColumns != maxColumns) {
         [self doSetMaxRows:maxRows columns:maxColumns];
     }
 }
-#endif // MM_TS_LAZY_SET
 
 - (void)doSetMaxRows:(int)rows columns:(int)cols
 {
     int i;
 
-#if MM_TS_LAZY_SET
     // Do nothing if the dimensions are already right.
     if (actualRows == rows && actualColumns == cols)
         return;
 
     NSRange oldRange = NSMakeRange(0, actualRows*(actualColumns+1));
-#else
-    // Do nothing if the dimensions are already right.
-    if (maxRows == rows && maxColumns == cols)
-        return;
-
-    NSRange oldRange = NSMakeRange(0, maxRows*(maxColumns+1));
-#endif
 
     maxRows = rows;
     maxColumns = cols;
@@ -655,9 +565,7 @@
     [self edited:(NSTextStorageEditedCharacters|NSTextStorageEditedAttributes)
            range:oldRange changeInLength:fullRange.length-oldRange.length];
 
-#if MM_TS_LAZY_SET
     actualRows = rows;  actualColumns = cols;
-#endif
 }
 
 - (float)cellWidth

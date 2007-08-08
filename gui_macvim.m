@@ -715,13 +715,6 @@ gui_mch_show_toolbar(int showit)
 gui_mch_free_font(font)
     GuiFont	font;
 {
-#if 0
-    static GuiFont last_font = -1;
-    if (last_font != font) {
-        NSLog(@"gui_mch_free_font(font=%d)", font);
-        last_font = font;
-    }
-#endif
 }
 
 
@@ -774,13 +767,6 @@ gui_mch_init_font(char_u *font_name, int fontset)
     void
 gui_mch_set_font(GuiFont font)
 {
-#if 0
-    static GuiFont last_font = -1;
-    if (last_font != font) {
-        NSLog(@"gui_mch_set_font(font=%d)", font);
-        last_font = font;
-    }
-#endif
 }
 
 
@@ -857,20 +843,8 @@ gui_mch_set_scrollbar_thumb(
     //NSLog(@"gui_mch_set_scrollbar_thumb(id=%d, val=%d, size=%d, max=%d)",
     //        sb->ident, val, size, max);
 
-#if 0
-    float value = max-size+1 > 0 ? (float)val/(max-size+1) : 0;
-    float prop = (float)size/(max+1);
-    if (value < 0) value = 0;
-    else if (value > 1.0f) value = 1.0f;
-    if (prop < 0) prop = 0;
-    else if (prop > 1.0f) prop = 1.0f;
-
-    [[MMBackend sharedInstance] 
-            setScrollbarThumbValue:value proportion:prop identifier:sb->ident];
-#else
     [[MMBackend sharedInstance] 
             setScrollbarThumbValue:val size:size max:max identifier:sb->ident];
-#endif
 }
 
 

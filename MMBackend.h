@@ -13,22 +13,13 @@
 
 
 
-@interface MMBackend : NSObject
-#if MM_USE_DO
-    <MMBackendProtocol>
-#endif
+@interface MMBackend : NSObject <MMBackendProtocol>
 {
     NSMutableArray  *queue;
     NSMutableData   *drawData;
-#if MM_USE_DO
     NSConnection    *connection;
     id              frontendProxy;
     NSString        *browseForFileString;
-#else
-    NSPort          *sendPort;
-    NSPort          *receivePort;
-    NSData          *replyData;
-#endif
     NSDictionary    *colorDict;
     BOOL            inputReceived;
     BOOL            receivedKillTaskMsg;

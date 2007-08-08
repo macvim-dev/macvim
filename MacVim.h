@@ -11,13 +11,14 @@
 #import <Cocoa/Cocoa.h>
 
 
-#define MM_USE_DO 1
-#define MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE 1
 
 
-
-#if MM_USE_DO
-
+//
+// This is the protocol MMBackend implements.
+//
+// Only processInput:data: is allowed to cause state changes in Vim; all other
+// messages should only read the Vim state.
+//
 @protocol MMBackendProtocol
 - (oneway void)processInput:(int)msgid data:(in NSData *)data;
 - (BOOL)checkForModifiedBuffers;
@@ -26,6 +27,10 @@
 - (BOOL)starRegisterFromPasteboard:(byref NSPasteboard *)pboard;
 @end
 
+
+//
+// This is the protocol MMVimController implements.
+//
 @protocol MMFrontendProtocol
 - (oneway void)processCommandQueue:(in NSArray *)queue;
 - (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
@@ -33,13 +38,23 @@
                                   saving:(int)saving;
 @end
 
+
+//
+// This is the protocol MMAppController implements.
+//
+// It handles connections between MacVim and Vim.
+//
 @protocol MMAppProtocol
 - (byref id <MMFrontendProtocol>)connectBackend:
     (byref in id <MMBackendProtocol>)backend;
 @end
 
-#endif
 
+
+//
+// The following enum lists all messages that are passed between MacVim and
+// Vim.  These can be sent in processInput:data: and in processCommandQueue:.
+//
 
 // NOTE! This array must be updated whenever the enum below changes!
 extern char *MessageStrings[];
@@ -77,11 +92,6 @@ enum {
     EnableMenuItemMsgID,
     ExecuteMenuMsgID,
     ShowToolbarMsgID,
-#if !MM_USE_DO
-    TaskShouldTerminateMsgID,
-    TerminateReplyYesMsgID,
-    TerminateReplyNoMsgID,
-#endif
     CreateScrollbarMsgID,
     DestroyScrollbarMsgID,
     ShowScrollbarMsgID,
@@ -121,22 +131,5 @@ enum {
     ToolbarSizeRegularFlag = 4
 };
 
-
-@interface NSPortMessage (MacVim)
-
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        receivePort:(NSPort *)receivePort components:(NSArray *)components
-               wait:(BOOL)wait;
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        receivePort:(NSPort *)receivePort data:(NSData *)data wait:(BOOL)wait;
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        receivePort:(NSPort *)receivePort wait:(BOOL)wait;
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        components:(NSArray *)components wait:(BOOL)wait;
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort
-        data:(NSData *)data wait:(BOOL)wait;
-+ (BOOL)sendMessage:(int)msgid withSendPort:(NSPort *)sendPort wait:(BOOL)wait;
-
-@end
 
 // vim: set ft=objc:

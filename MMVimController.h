@@ -15,22 +15,12 @@
 
 
 
-@interface MMVimController : NSObject
-#if MM_USE_DO
-    <MMFrontendProtocol>
-#endif
+@interface MMVimController : NSObject <MMFrontendProtocol>
 {
     MMWindowController  *windowController;
-#if MM_USE_DO
     id                  backendProxy;
-# if MM_DELAY_SEND_IN_PROCESS_CMD_QUEUE
     BOOL                inProcessCommandQueue;
     NSMutableArray      *sendQueue;
-# endif
-#else
-    NSPort              *sendPort;
-    NSPort              *receivePort;
-#endif
     NSMutableArray      *mainMenuItems;
     BOOL                shouldUpdateMainMenu;
     //NSMutableArray      *popupMenus;
@@ -38,13 +28,8 @@
     NSMutableDictionary *toolbarItemDict;
 }
 
-#if MM_USE_DO
 - (id)initWithBackend:(id)backend;
 - (id)backendProxy;
-#else
-- (id)initWithPort:(NSPort *)port;
-- (NSPort *)sendPort;
-#endif
 - (MMWindowController *)windowController;
 - (void)windowWillClose:(NSNotification *)notification;
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait;

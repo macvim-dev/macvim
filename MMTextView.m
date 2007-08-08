@@ -132,16 +132,6 @@
             range.length);
 }
 
-#if 0
-- (IBAction)copy:(id)sender
-{
-}
-
-- (IBAction)paste:(id)sender
-{
-}
-#endif
-
 - (void)scrollWheel:(NSEvent *)event
 {
     if ([event deltaY] == 0)
@@ -259,7 +249,6 @@
 }
 #endif
 
-#if 1
 - (NSArray *)acceptableDragTypes
 {
     return [NSArray arrayWithObjects:NSFilenamesPboardType,
@@ -344,8 +333,6 @@
 
     return NSDragOperationNone;
 }
-
-#endif
 
 @end // MMTextView
 
