@@ -914,9 +914,9 @@ static int specialKeyToNSKey(int key);
         bytes += sizeof(unsigned);  // len not used
 
         NSMutableString *name = [NSMutableString stringWithUTF8String:bytes];
-        [name appendString:[NSString stringWithFormat:@":h%f", pointSize]];
+        [name appendString:[NSString stringWithFormat:@":h%.2f", pointSize]];
 
-        gui_init_font((char_u*)[name UTF8String], FALSE);
+        set_option_value((char_u*)"gfn", 0, (char_u*)[name UTF8String], 0);
 
         // Force screen redraw (does it have to be this complicated?).
 	redraw_all_later(CLEAR);
