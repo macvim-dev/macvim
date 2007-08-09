@@ -80,6 +80,7 @@
     // We usually end up here if the user pressed Ctrl+key (but not
     // Ctrl+Option+key).
 
+    //NSLog(@"%s%@", _cmd, NSStringFromSelector(selector));
     [self dispatchKeyEvent:[NSApp currentEvent]];
 }
 
@@ -387,6 +388,21 @@
     return YES;
 }
 
+- (void)keyDown:(NSEvent *)event
+{
+    // HACK! If a modifier is held, don't pass the event along to
+    // interpretKeyEvents: since some keys are bound to multiple commands which
+    // means doCommandBySelector: is called several times.
+    //
+    // TODO: Figure out a way to disable Cocoa key bindings entirely.
+
+    if ([event modifierFlags] &
+            (NSControlKeyMask|NSAlternateKeyMask|NSCommandKeyMask))
+        [self dispatchKeyEvent:event];
+    else
+        [super keyDown:event];
+}
+
 - (void)dispatchKeyEvent:(NSEvent *)event
 {
     // Only handle the command if it came from a keyDown event
@@ -431,6 +447,7 @@
 
         [NSCursor setHiddenUntilMouseMoves:YES];
 
+        //NSLog(@"%s len=%d bytes=0x%x", _cmd, len, bytes[0]);
         [[self vimController] sendMessage:KeyDownMsgID data:data wait:NO];
     }
 }
