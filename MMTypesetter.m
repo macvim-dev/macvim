@@ -28,7 +28,7 @@
 // Layout glyphs so that each glyph takes up exactly one cell.
 //
 // The width of a cell is determined by [MMTextStorage cellWidth] (which
-// typically sets one cell to equal the width of 'W' in the current font), and
+// typically sets one cell to equal the width of 'm' in the current font), and
 // the height of a cell is given by the default line height for the current
 // font.
 //
@@ -93,7 +93,6 @@
         [lm setTextContainer:tc forGlyphRange:glyphRange];
         [lm setLineFragmentRect:lineRect forGlyphRange:glyphRange
                        usedRect:lineRect];
-        //[lm setLocation:glyphPt forStartOfGlyphRange:glyphRange];
 
         // Position each glyph individually to ensure they take up exactly one
         // cell.
@@ -102,10 +101,11 @@
             glyphPt.x += cellWidth;
         }
 
-        // Hide non-zero space characters (there is one after every wide
-        // character).
+        // Hide end-of-line and non-zero space characters (there is one after
+        // every wide character).
         for (j = lineRange.location; j < endLineIdx; ++j) {
-            if ([text characterAtIndex:j] == 0x200b) {
+            unichar ch = [text characterAtIndex:j];
+            if (ch == 0x200b || ch == '\n') {
                 NSRange range = { j, 1 };
                 range = [lm glyphRangeForCharacterRange:range
                                    actualCharacterRange:nil];
