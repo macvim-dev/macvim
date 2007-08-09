@@ -67,6 +67,7 @@ static float StatusLineHeight = 16.0f;
 - (void)placeScrollbars;
 - (void)scroll:(id)sender;
 - (void)placeViews;
+- (NSDictionary *)windowAutosaveDict;
 @end
 
 
@@ -101,6 +102,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     if ((self = [super initWithWindowNibName:@"VimWindow"])) {
         vimController = controller;
         scrollbars = [[NSMutableArray alloc] init];
+
+        // Window cascading is handled by MMAppController.
+        [self setShouldCascadeWindows:NO];
 
         // Setup a complete text system.
         textStorage = [[MMTextStorage alloc] init];
@@ -220,8 +224,21 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return textStorage;
 }
 
+- (NSString *)windowAutosaveKey
+{
+    return windowAutosaveKey;
+}
+
+- (void)setWindowAutosaveKey:(NSString *)key
+{
+    [windowAutosaveKey autorelease];
+    windowAutosaveKey = [key copy];
+}
+
 - (void)openWindow
 {
+    [[NSApp delegate] windowControllerWillOpen:self];
+
     [self addNewTabViewItem];
 
     // NOTE! This flag is set once the entire text system is set up.
@@ -229,7 +246,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     [self updateResizeIncrements];
     [self resizeWindowToFit:self];
-
     [[self window] makeKeyAndOrderFront:self];
 
     BOOL statusOff = [[NSUserDefaults standardUserDefaults]
@@ -539,6 +555,16 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // the MMWindowController never gets released resulting in a pretty serious
     // memory leak.
     [tabBarControl setDelegate:nil];
+}
+
+- (void)windowDidMove:(NSNotification *)notification
+{
+    if (windowAutosaveKey) {
+        NSDictionary *dict = [self windowAutosaveDict];
+        if (dict)
+            [[NSUserDefaults standardUserDefaults]
+                    setObject:dict forKey:windowAutosaveKey];
+    }
 }
 
 - (void)windowDidResize:(id)sender
@@ -1037,6 +1063,30 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [tabView setFrame:textViewRect];
 
     [self placeScrollbars];
+}
+
+- (NSDictionary *)windowAutosaveDict
+{
+    if (!setupDone)
+        return nil;
+
+    int rows = 0, cols = 0;
+    if (textStorage)
+        [textStorage getMaxRows:&rows columns:&cols];
+
+    NSPoint origin = NSZeroPoint;
+    if (setupDone) {
+        NSRect frame = [[self window] frame];
+        origin = NSMakePoint(frame.origin.x, NSMaxY(frame));
+    }
+
+    NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
+        [NSNumber numberWithInt:rows], @"Rows",
+        [NSNumber numberWithInt:cols], @"Columns",
+        [NSNumber numberWithFloat:origin.x], @"x",
+        [NSNumber numberWithFloat:origin.y], @"y", nil];
+
+    return dict;
 }
 
 @end // MMWindowController (Private)

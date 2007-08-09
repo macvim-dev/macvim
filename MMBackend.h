@@ -13,8 +13,7 @@
 
 
 
-@interface MMBackend : NSObject <MMBackendProtocol>
-{
+@interface MMBackend : NSObject <MMBackendProtocol> {
     NSMutableArray  *queue;
     NSMutableData   *drawData;
     NSConnection    *connection;

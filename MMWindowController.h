@@ -16,8 +16,7 @@
 @class MMVimController;
 
 
-@interface MMWindowController : NSWindowController
-{
+@interface MMWindowController : NSWindowController {
     IBOutlet PSMTabBarControl *tabBarControl;
     IBOutlet NSTabView *tabView;
     IBOutlet NSTextField *statusTextField;
@@ -32,12 +31,15 @@
     NSMutableArray *scrollbars;
     BOOL setupDone;
     BOOL shouldUpdateWindowSize;
+    NSString *windowAutosaveKey;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
 - (MMVimController *)vimController;
 - (MMTextView *)textView;
 - (MMTextStorage *)textStorage;
+- (NSString *)windowAutosaveKey;
+- (void)setWindowAutosaveKey:(NSString *)key;
 - (void)openWindow;
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;

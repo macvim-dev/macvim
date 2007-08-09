@@ -10,6 +10,7 @@
 
 #import "MMAppController.h"
 #import "MMVimController.h"
+#import "MMWindowController.h"
 
 
 
@@ -28,6 +29,10 @@ NSString *MMTerminateAfterLastWindowClosedKey
 NSString *MMTypesetterKey                   = @"typesetter";
 NSString *MMCellWidthMultiplierKey          = @"cellwidthmultiplier";
 NSString *MMBaselineOffsetKey               = @"baselineoffset";
+
+
+// Key in user defaults for autosave data.
+NSString *MMAutosaveKey                     = @"DefaultWindow";
 
 
 
@@ -249,6 +254,42 @@ NSString *MMBaselineOffsetKey               = @"baselineoffset";
     }
 }
 
+- (void)windowControllerWillOpen:(MMWindowController *)windowController
+{
+    NSPoint topLeft = NSZeroPoint;
+    NSWindow *keyWin = [NSApp keyWindow];
+    NSWindow *win = [windowController window];
+
+    if (!win) return;
+
+    // If there is a key window, cascade from it, otherwise use the autosaved
+    // window position (if any).
+    if (keyWin) {
+        NSRect frame = [keyWin frame];
+        topLeft = NSMakePoint(frame.origin.x, NSMaxY(frame));
+    } else {
+        NSDictionary *dict = [[NSUserDefaults standardUserDefaults]
+            dictionaryForKey:MMAutosaveKey];
+        if (dict) {
+            id x = [dict objectForKey:@"x"];
+            id y = [dict objectForKey:@"y"];
+
+            if (x && [x isKindOfClass:[NSNumber class]] &&
+                    y && [y isKindOfClass:[NSNumber class]]) {
+                topLeft.x = [x floatValue];
+                topLeft.y = [y floatValue];
+            }
+        }
+    }
+
+    if (!NSEqualPoints(topLeft, NSZeroPoint)) {
+        if (keyWin)
+            topLeft = [win cascadeTopLeftFromPoint:topLeft];
+
+        [win setFrameTopLeftPoint:topLeft];
+    }
+}
+
 - (IBAction)newVimWindow:(id)sender
 {
     NSMutableArray *args = [NSMutableArray arrayWithObject:@"-g"];
@@ -311,15 +352,23 @@ NSString *MMBaselineOffsetKey               = @"baselineoffset";
     [(NSDistantObject*)backend
             setProtocolForProxy:@protocol(MMBackendProtocol)];
 
-    MMVimController *wc = [[[MMVimController alloc] initWithBackend:backend]
+    MMVimController *vc = [[[MMVimController alloc] initWithBackend:backend]
             autorelease];
-    [vimControllers addObject:wc];
+
+    if (![vimControllers count]) {
+        // The first window autosaves its position.  (The autosaving features
+        // of Cocoa are not used because we need more control over what is
+        // autosaved and when it is restored.)
+        [[vc windowController] setWindowAutosaveKey:MMAutosaveKey];
+    }
+
+    [vimControllers addObject:vc];
 
     // HACK!  MacVim does not get activated if it is launched from the
     // terminal, so we forcibly activate here.
     [NSApp activateIgnoringOtherApps:YES];
 
-    return wc;
+    return vc;
 }
 
 @end // MMAppController
