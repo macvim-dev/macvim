@@ -394,10 +394,10 @@
     // interpretKeyEvents: since some keys are bound to multiple commands which
     // means doCommandBySelector: is called several times.
     //
-    // TODO: Figure out a way to disable Cocoa key bindings entirely.
+    // TODO: Figure out a way to disable Cocoa key bindings entirely, without
+    // affecting input management.
 
-    if ([event modifierFlags] &
-            (NSControlKeyMask|NSAlternateKeyMask|NSCommandKeyMask))
+    if ([event modifierFlags] & NSControlKeyMask)
         [self dispatchKeyEvent:event];
     else
         [super keyDown:event];
