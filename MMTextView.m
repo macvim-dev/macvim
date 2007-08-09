@@ -334,6 +334,32 @@
     return NSDragOperationNone;
 }
 
+- (void)changeFont:(id)sender
+{
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    if (!ts) return;
+
+    NSFont *oldFont = [ts font];
+    NSFont *newFont = [sender convertFont:oldFont];
+
+    if (newFont) {
+        NSString *name = [newFont displayName];
+        unsigned len = [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        if (len > 0) {
+            NSMutableData *data = [NSMutableData data];
+            float pointSize = [newFont pointSize];
+
+            [data appendBytes:&pointSize length:sizeof(float)];
+
+            ++len;  // include NUL byte
+            [data appendBytes:&len length:sizeof(unsigned)];
+            [data appendBytes:[name UTF8String] length:len];
+
+            [[self vimController] sendMessage:SetFontMsgID data:data wait:NO];
+        }
+    }
+}
+
 @end // MMTextView
 
 

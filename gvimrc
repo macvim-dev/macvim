@@ -26,6 +26,7 @@ an 10.330 File.Close<Tab>:q                 :confirm q<CR>
 "an 10.331 File.Close\ Tab                   :tabclose<CR>
 
 an 20.460 Edit.-SEP4-                       <Nop>
+an 20.465 Edit.Show\ Fonts\.\.\.            :action orderFrontFontPanel:<CR>
 an 20.470 Edit.Special\ Characters\.\.\.    :action orderFrontCharacterPalette:<CR>
 
 

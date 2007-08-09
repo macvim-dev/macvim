@@ -906,6 +906,25 @@ static int specialKeyToNSKey(int key);
                 }
             }
         }
+    } else if (SetFontMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+        float pointSize = *((float*)bytes);  bytes += sizeof(float);
+        //unsigned len = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+        bytes += sizeof(unsigned);  // len not used
+
+        NSMutableString *name = [NSMutableString stringWithUTF8String:bytes];
+        [name appendString:[NSString stringWithFormat:@":h%f", pointSize]];
+
+        gui_init_font((char_u*)[name UTF8String], FALSE);
+
+        // Force screen redraw (does it have to be this complicated?).
+	redraw_all_later(CLEAR);
+	update_screen(NOT_VALID);
+	setcursor();
+	out_flush();
+	gui_update_cursor(FALSE, FALSE);
+	gui_mch_flush();
     } else if (VimShouldCloseMsgID == msgid) {
         gui_shell_closed();
     } else if (DropFilesMsgID == msgid) {
@@ -960,7 +979,8 @@ static int specialKeyToNSKey(int key);
 
         do_cmdline_cmd((char_u*)[cmd UTF8String]);
 
-        // This code was taken from the end of gui_handle_drop().
+        // Force screen redraw (does it have to be this complicated?).
+        // (This code was taken from the end of gui_handle_drop().)
 	update_screen(NOT_VALID);
 	setcursor();
 	out_flush();
