@@ -19,11 +19,15 @@ NSString *MMTabMinWidthKey                  = @"tabminwidth";
 NSString *MMTabMaxWidthKey                  = @"tabmaxwidth";
 NSString *MMTabOptimumWidthKey              = @"taboptimumwidth";
 NSString *MMStatuslineOffKey                = @"statuslineoff";
-NSString *MMTextInsetLeft                   = @"insetleft";
-NSString *MMTextInsetRight                  = @"insetright";
-NSString *MMTextInsetTop                    = @"insettop";
-NSString *MMTextInsetBottom                 = @"insetbottom";
-NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
+NSString *MMTextInsetLeftKey                = @"insetleft";
+NSString *MMTextInsetRightKey               = @"insetright";
+NSString *MMTextInsetTopKey                 = @"insettop";
+NSString *MMTextInsetBottomKey              = @"insetbottom";
+NSString *MMTerminateAfterLastWindowClosedKey
+                                            = @"terminateafterlastwindowclosed";
+NSString *MMTypesetterKey                   = @"typesetter";
+NSString *MMCellWidthMultiplierKey          = @"cellwidthmultiplier";
+NSString *MMBaselineOffsetKey               = @"baselineoffset";
 
 
 
@@ -56,11 +60,14 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
         [NSNumber numberWithInt:6*64],  MMTabMaxWidthKey,
         [NSNumber numberWithInt:132],   MMTabOptimumWidthKey,
         [NSNumber numberWithBool:NO],   MMStatuslineOffKey,
-        [NSNumber numberWithInt:2],     MMTextInsetLeft,
-        [NSNumber numberWithInt:1],     MMTextInsetRight,
-        [NSNumber numberWithInt:1],     MMTextInsetTop,
-        [NSNumber numberWithInt:1],     MMTextInsetBottom,
-        [NSNumber numberWithBool:NO],   MMTerminateAfterLastWindowClosed,
+        [NSNumber numberWithInt:2],     MMTextInsetLeftKey,
+        [NSNumber numberWithInt:1],     MMTextInsetRightKey,
+        [NSNumber numberWithInt:1],     MMTextInsetTopKey,
+        [NSNumber numberWithInt:1],     MMTextInsetBottomKey,
+        [NSNumber numberWithBool:NO],   MMTerminateAfterLastWindowClosedKey,
+        @"MMTypesetter",                MMTypesetterKey,
+        [NSNumber numberWithFloat:1.0], MMCellWidthMultiplierKey,
+        [NSNumber numberWithFloat:0.0], MMBaselineOffsetKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -181,7 +188,7 @@ NSString *MMTerminateAfterLastWindowClosed  = @"terminateafterlastwindowclosed";
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
 {
     return [[NSUserDefaults standardUserDefaults]
-            boolForKey:MMTerminateAfterLastWindowClosed];
+            boolForKey:MMTerminateAfterLastWindowClosedKey];
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:

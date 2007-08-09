@@ -10,6 +10,7 @@
 
 #import "MMTypesetter.h"
 #import "MMTextStorage.h"
+#import "MMAppController.h"
 
 
 
@@ -54,6 +55,11 @@
 
     if (!(ts && tv && tc && font && text && textLen))
         return;
+
+    float baselineOffset = [[NSUserDefaults standardUserDefaults]
+            floatForKey:MMBaselineOffsetKey];
+
+    baseline += baselineOffset;
 
     unsigned startCharIdx = [lm characterIndexForGlyphAtIndex:startGlyphIdx];
     unsigned i, numberOfLines = 0, firstLine = 0;

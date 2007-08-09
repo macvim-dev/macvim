@@ -18,11 +18,14 @@ extern NSString *MMTabMinWidthKey;
 extern NSString *MMTabMaxWidthKey;
 extern NSString *MMTabOptimumWidthKey;
 extern NSString *MMStatuslineOffKey;
-extern NSString *MMTextInsetLeft;
-extern NSString *MMTextInsetRight;
-extern NSString *MMTextInsetTop;
-extern NSString *MMTextInsetBottom;
-extern NSString *MMTerminateAfterLastWindowClosed;
+extern NSString *MMTextInsetLeftKey;
+extern NSString *MMTextInsetRightKey;
+extern NSString *MMTextInsetTopKey;
+extern NSString *MMTextInsetBottomKey;
+extern NSString *MMTerminateAfterLastWindowClosedKey;
+extern NSString *MMTypesetterKey;
+extern NSString *MMCellWidthMultiplierKey;
+extern NSString *MMBaselineOffsetKey;
 
 
 

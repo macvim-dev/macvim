@@ -8,8 +8,6 @@
  * See README.txt for an overview of the Vim source code.
  */
 
-#define MM_USE_CUSTOM_TYPESETTER 1
-
 #import "MMWindowController.h"
 #import <PSMTabBarControl.h>
 #import "MMTextView.h"
@@ -17,10 +15,7 @@
 #import "MMVimController.h"
 #import "MacVim.h"
 #import "MMAppController.h"
-
-#if MM_USE_CUSTOM_TYPESETTER
-# import "MMTypesetter.h"
-#endif
+#import "MMTypesetter.h"
 
 
 // Scroller type; these must match SBAR_* in gui.h
@@ -113,11 +108,17 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
                 NSMakeSize(1.0e7,1.0e7)];
 
-#if MM_USE_CUSTOM_TYPESETTER
-        MMTypesetter *typesetter = [[MMTypesetter alloc] init];
-        [lm setTypesetter:typesetter];
-        [typesetter release];
-#endif
+        NSString *typesetterString = [[NSUserDefaults standardUserDefaults]
+                stringForKey:MMTypesetterKey];
+        if (![typesetterString isEqual:@"NSTypesetter"]) {
+            MMTypesetter *typesetter = [[MMTypesetter alloc] init];
+            [lm setTypesetter:typesetter];
+            [typesetter release];
+        } else {
+            // Only MMTypesetter supports different cell width multipliers.
+            [[NSUserDefaults standardUserDefaults]
+                    setFloat:1.0 forKey:MMCellWidthMultiplierKey];
+        }
 
         [tc setWidthTracksTextView:NO];
         [tc setHeightTracksTextView:NO];
@@ -130,8 +131,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                                        textContainer:tc];
 
         NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-        int left = [ud integerForKey:MMTextInsetLeft];
-        int top = [ud integerForKey:MMTextInsetTop];
+        int left = [ud integerForKey:MMTextInsetLeftKey];
+        int top = [ud integerForKey:MMTextInsetTopKey];
         [textView setTextContainerInset:NSMakeSize(left, top)];
 
         // The text storage retains the layout manager which in turn retains
@@ -628,8 +629,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSSize size = textViewSize;
 
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int right = [ud integerForKey:MMTextInsetRight];
-    int bot = [ud integerForKey:MMTextInsetBottom];
+    int right = [ud integerForKey:MMTextInsetRightKey];
+    int bot = [ud integerForKey:MMTextInsetBottomKey];
 
     size.width += [textView textContainerOrigin].x + right;
     size.height += [textView textContainerOrigin].y + bot;
@@ -638,7 +639,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     if ([tabBarControl isHidden]) ++size.height;
     else size.height += [tabBarControl frame].size.height;
 
-    if (![[NSUserDefaults standardUserDefaults] boolForKey:MMStatuslineOffKey])
+    if (![ud boolForKey:MMStatuslineOffKey])
         size.height += StatusLineHeight;
 
     if ([self bottomScrollbarVisible])
@@ -684,8 +685,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSSize size = textViewSize;
 
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int right = [ud integerForKey:MMTextInsetRight];
-    int bot = [ud integerForKey:MMTextInsetBottom];
+    int right = [ud integerForKey:MMTextInsetRightKey];
+    int bot = [ud integerForKey:MMTextInsetBottomKey];
 
     size.width -= [textView textContainerOrigin].x + right;
     size.height -= [textView textContainerOrigin].y + bot;

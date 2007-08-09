@@ -9,6 +9,7 @@
  */
 
 #import "MMTextStorage.h"
+#import "MMAppController.h"
 
 // If 0 DRAW_TRANSP flag will be ignored.  Setting it to 1 causes the cursor
 // background to be drawn in white.
@@ -510,7 +511,11 @@
 
 - (float)cellWidth
 {
-    return [font widthOfString:@"W"];
+    float em = [font widthOfString:@"m"];
+    float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
+            floatForKey:MMCellWidthMultiplierKey];
+
+    return em * cellWidthMultiplier;
 }
 
 @end // MMTextStorage
