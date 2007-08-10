@@ -13,8 +13,10 @@
 
 @interface MMTextView : NSTextView {
     BOOL    shouldDrawInsertionPoint;
+    NSEvent *lastMouseDownEvent;
 }
 
+- (void)popupMenu:(NSMenu *)menu;
 - (void)setShouldDrawInsertionPoint:(BOOL)enable;
 
 @end

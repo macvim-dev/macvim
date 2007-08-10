@@ -26,7 +26,8 @@ static NSString *DefaultToolbarImageName = @"Attention";
             context:(void *)context;
 - (NSMenuItem *)menuItemForTag:(int)tag;
 - (NSMenu *)menuForTag:(int)tag;
-- (void)addMenuWithTag:(int)tag parent:(NSMenu *)parent title:(NSString *)title
+- (NSMenu *)topLevelMenuForTitle:(NSString *)title;
+- (void)addMenuWithTag:(int)tag parent:(int)parentTag title:(NSString *)title
                atIndex:(int)idx;
 - (void)addMenuItemWithTag:(int)tag parent:(NSMenu *)parent
                      title:(NSString *)title tip:(NSString *)tip
@@ -85,6 +86,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         backendProxy = [backend retain];
         sendQueue = [NSMutableArray new];
         mainMenuItems = [[NSMutableArray alloc] init];
+        popupMenuItems = [[NSMutableArray alloc] init];
         toolbarItemDict = [[NSMutableDictionary alloc] init];
 
         NSConnection *connection = [backendProxy connectionForProxy];
@@ -107,6 +109,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
     [toolbarItemDict release];
     [toolbar release];
+    [popupMenuItems release];
     [mainMenuItems release];
     [windowController release];
 
@@ -408,11 +411,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
                 [[windowController window] setToolbar:toolbar];
             }
-        } else if (MenuPopupType == parentTag) {
-            // TODO!
         } else if (title) {
-            NSMenu *parent = [self menuForTag:parentTag];
-            [self addMenuWithTag:tag parent:parent title:title atIndex:idx];
+            [self addMenuWithTag:tag parent:parentTag title:title atIndex:idx];
         }
 
         [title release];
@@ -471,24 +471,32 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
 
-        // TODO: Search for tag in popup menus.
         id item;
         int idx;
         if ((item = [self toolbarItemForTag:tag index:&idx])) {
             [toolbar removeItemAtIndex:idx];
         } else if ((item = [self menuItemForTag:tag])) {
-            if ([item menu] == [NSApp mainMenu]) {
-                NSLog(@"Removing menu: %@", item);
+            [item retain];
+
+            if ([item menu] == [NSApp mainMenu] || ![item menu]) {
+                //NSLog(@"Removing menu: %@", item);
+                // NOTE: To be on the safe side we try to remove the item from
+                // both arrays (it is ok to call removeObject: even if an array
+                // does not contain the object to remove).
                 [mainMenuItems removeObject:item];
+                [popupMenuItems removeObject:item];
             }
-            [[item menu] removeItem:item];
+
+            if ([item menu])
+                [[item menu] removeItem:item];
+
+            [item release];
         }
     } else if (EnableMenuItemMsgID == msgid) {
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
         int state = *((int*)bytes);  bytes += sizeof(int);
 
-        // TODO: Search for tag in popup menus.
         id item = [self toolbarItemForTag:tag index:NULL];
         if (!item)
             item = [self menuItemForTag:tag];
@@ -580,6 +588,24 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [NSApp sendAction:sel to:nil from:self];
 
         [actionName release];
+    } else if (ShowPopupMenuMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int len = *((int*)bytes);  bytes += sizeof(int);
+        NSString *title = [[NSString alloc]
+                initWithBytesNoCopy:(void*)bytes
+                             length:len
+                           encoding:NSUTF8StringEncoding
+                       freeWhenDone:NO];
+
+        NSMenu *menu = [self topLevelMenuForTitle:title];
+        if (menu) {
+            [[windowController textView] popupMenu:menu];
+        } else {
+            NSLog(@"WARNING: Cannot popup menu with title %@; no such menu.",
+                    title);
+        }
+
+        [title release];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
@@ -679,9 +705,19 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (NSMenuItem *)menuItemForTag:(int)tag
 {
+    // Search the main menu.
     int i, count = [mainMenuItems count];
     for (i = 0; i < count; ++i) {
         NSMenuItem *item = [mainMenuItems objectAtIndex:i];
+        if ([item tag] == tag) return item;
+        item = findMenuItemWithTagInMenu([item submenu], tag);
+        if (item) return item;
+    }
+
+    // Search the popup menus.
+    count = [popupMenuItems count];
+    for (i = 0; i < count; ++i) {
+        NSMenuItem *item = [popupMenuItems objectAtIndex:i];
         if ([item tag] == tag) return item;
         item = findMenuItemWithTagInMenu([item submenu], tag);
         if (item) return item;
@@ -695,9 +731,31 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     return [[self menuItemForTag:tag] submenu];
 }
 
-- (void)addMenuWithTag:(int)tag parent:(NSMenu *)parent title:(NSString *)title
+- (NSMenu *)topLevelMenuForTitle:(NSString *)title
+{
+    // Search only the top-level menus.
+
+    unsigned i, count = [popupMenuItems count];
+    for (i = 0; i < count; ++i) {
+        NSMenuItem *item = [popupMenuItems objectAtIndex:i];
+        if ([title isEqual:[item title]])
+            return [item submenu];
+    }
+
+    count = [mainMenuItems count];
+    for (i = 0; i < count; ++i) {
+        NSMenuItem *item = [mainMenuItems objectAtIndex:i];
+        if ([title isEqual:[item title]])
+            return [item submenu];
+    }
+
+    return nil;
+}
+
+- (void)addMenuWithTag:(int)tag parent:(int)parentTag title:(NSString *)title
                atIndex:(int)idx
 {
+    NSMenu *parent = [self menuForTag:parentTag];
     NSMenuItem *item = [[NSMenuItem alloc] init];
     NSMenu *menu = [[NSMenu alloc] initWithTitle:title];
 
@@ -713,13 +771,15 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             [parent insertItem:item atIndex:idx];
         }
     } else {
-        if ([mainMenuItems count] <= idx) {
-            [mainMenuItems addObject:item];
+        NSMutableArray *items = (MenuPopupType == parentTag)
+            ? popupMenuItems : mainMenuItems;
+        if ([items count] <= idx) {
+            [items addObject:item];
         } else {
-            [mainMenuItems insertObject:item atIndex:idx];
+            [items insertObject:item atIndex:idx];
         }
 
-        shouldUpdateMainMenu = YES;
+        shouldUpdateMainMenu = (MenuPopupType != parentTag);
     }
 
     [item release];
@@ -762,6 +822,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         } else {
             [parent insertItem:item atIndex:idx];
         }
+    } else {
+        NSLog(@"WARNING: Menu item '%@' (tag=%d) has no parent.", title, tag);
     }
 }
 

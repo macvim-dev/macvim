@@ -104,6 +104,7 @@ enum {
     ExecuteActionMsgID,
     DropFilesMsgID,
     DropStringMsgID,
+    ShowPopupMenuMsgID,
 };
 
 

@@ -67,6 +67,7 @@
                     action:(NSString *)action atIndex:(int)index;
 - (void)removeMenuItemWithTag:(int)tag;
 - (void)enableMenuItemWithTag:(int)tag state:(int)enabled;
+- (void)showPopupMenuWithName:(char *)name;
 - (void)showToolbar:(int)enable flags:(int)flags;
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
 - (void)destroyScrollbarWithIdentifier:(long)ident;

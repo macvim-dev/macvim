@@ -22,8 +22,8 @@
     BOOL                inProcessCommandQueue;
     NSMutableArray      *sendQueue;
     NSMutableArray      *mainMenuItems;
+    NSMutableArray      *popupMenuItems;
     BOOL                shouldUpdateMainMenu;
-    //NSMutableArray      *popupMenus;
     NSToolbar           *toolbar;
     NSMutableDictionary *toolbarItemDict;
 }

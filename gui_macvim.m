@@ -660,6 +660,8 @@ gui_mch_menu_hidden(vimmenu_T *menu, int hidden)
 gui_mch_show_popupmenu(vimmenu_T *menu)
 {
     //NSLog(@"gui_mch_show_popupmenu(name=%s)", menu->name);
+
+    [[MMBackend sharedInstance] showPopupMenuWithName:(char*)menu->name];
 }
 
 

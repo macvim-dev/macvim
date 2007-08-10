@@ -481,6 +481,17 @@ static int specialKeyToNSKey(int key);
     [self queueMessage:EnableMenuItemMsgID data:data];
 }
 
+- (void)showPopupMenuWithName:(char *)name
+{
+    int len = strlen(name);
+    NSMutableData *data = [NSMutableData data];
+
+    [data appendBytes:&len length:sizeof(int)];
+    [data appendBytes:name length:len];
+
+    [self queueMessage:ShowPopupMenuMsgID data:data];
+}
+
 - (void)showToolbar:(int)enable flags:(int)flags
 {
     NSMutableData *data = [NSMutableData data];

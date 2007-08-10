@@ -26,6 +26,26 @@
 
 @implementation MMTextView
 
+- (void)dealloc
+{
+    [lastMouseDownEvent release];
+    [super dealloc];
+}
+
+- (void)popupMenu:(NSMenu *)menu
+{
+#if 0
+    NSEvent *event = [NSEvent
+            mouseEventWithType:NSLeftMouseDown location:NSZeroPoint
+                 modifierFlags:0 timestamp:0
+                  windowNumber:[[self window] windowNumber] context:nil
+                   eventNumber:0 clickCount:0 pressure:1.0];
+    [NSMenu popUpContextMenu:menu withEvent:event forView:self];
+#else
+    [NSMenu popUpContextMenu:menu withEvent:lastMouseDownEvent forView:self];
+#endif
+}
+
 - (void)setShouldDrawInsertionPoint:(BOOL)enable
 {
     shouldDrawInsertionPoint = enable;
@@ -161,6 +181,8 @@
     NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
     if (![self convertPoint:pt toRow:&row column:&col])
         return;
+
+    lastMouseDownEvent = [event copy];
 
     int button = [event buttonNumber];
     int flags = [event modifierFlags];

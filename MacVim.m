@@ -57,5 +57,6 @@ char *MessageStrings[] =
     "ExecuteActionMsgID",
     "DropFilesMsgID",
     "DropStringMsgID",
+    "ShowPopupMenuMsgID",
 };
 
