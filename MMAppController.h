@@ -26,6 +26,7 @@ extern NSString *MMTerminateAfterLastWindowClosedKey;
 extern NSString *MMTypesetterKey;
 extern NSString *MMCellWidthMultiplierKey;
 extern NSString *MMBaselineOffsetKey;
+extern NSString *MMCenterGlyphsKey;
 
 
 @class MMWindowController;

@@ -58,6 +58,8 @@
 
     float baselineOffset = [[NSUserDefaults standardUserDefaults]
             floatForKey:MMBaselineOffsetKey];
+    BOOL centerGlyphs = [[NSUserDefaults standardUserDefaults]
+            boolForKey:MMCenterGlyphsKey];
 
     baseline += baselineOffset;
 
@@ -94,11 +96,30 @@
         [lm setLineFragmentRect:lineRect forGlyphRange:glyphRange
                        usedRect:lineRect];
 
-        // Position each glyph individually to ensure they take up exactly one
-        // cell.
-        for (j = glyphRange.location; j < endGlyphIdx; ++j) {
-            [lm setLocation:glyphPt forStartOfGlyphRange:NSMakeRange(j, 1)];
-            glyphPt.x += cellWidth;
+        if (centerGlyphs) {
+            // Center each glyph inside its cell. (Optional)
+            // + Proportional fonts look better.
+            // - The cursor changes width depending on which glyph it is over
+            //   and selections look uneven.
+            for (j = glyphRange.location; j < endGlyphIdx; ++j) {
+                NSGlyph glyph = [lm glyphAtIndex:j];
+                NSSize adv = [font advancementForGlyph:glyph];
+                NSPoint pt = glyphPt;
+                if (adv.width > 0 && adv.width < cellWidth) {
+                    pt.x += .5*(cellWidth-adv.width);
+                }
+                [lm setLocation:pt forStartOfGlyphRange:NSMakeRange(j, 1)];
+                glyphPt.x += cellWidth;
+            }
+        } else {
+            // Position each glyph individually to ensure they take up exactly
+            // one cell. (Default)
+            // + The cursor and selections look good
+            // - Proportional fonts look bad (try entering 'Wi')
+            for (j = glyphRange.location; j < endGlyphIdx; ++j) {
+                [lm setLocation:glyphPt forStartOfGlyphRange:NSMakeRange(j, 1)];
+                glyphPt.x += cellWidth;
+            }
         }
 
         // Hide end-of-line and non-zero space characters (there is one after
