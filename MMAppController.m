@@ -30,6 +30,7 @@ NSString *MMTypesetterKey                   = @"typesetter";
 NSString *MMCellWidthMultiplierKey          = @"cellwidthmultiplier";
 NSString *MMBaselineOffsetKey               = @"baselineoffset";
 NSString *MMCenterGlyphsKey                 = @"centerglyphs";
+NSString *MMTranslateCtrlClickKey           = @"translatectrlclick";
 
 
 // Key in user defaults for autosave data.
@@ -75,6 +76,7 @@ NSString *MMAutosaveKey                     = @"DefaultWindow";
         [NSNumber numberWithFloat:1],   MMCellWidthMultiplierKey,
         [NSNumber numberWithFloat:-1],  MMBaselineOffsetKey,
         [NSNumber numberWithBool:NO],   MMCenterGlyphsKey,
+        [NSNumber numberWithBool:YES],  MMTranslateCtrlClickKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];

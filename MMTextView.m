@@ -12,6 +12,7 @@
 #import "MMTextStorage.h"
 #import "MMWindowController.h"
 #import "MMVimController.h"
+#import "MMAppController.h"
 #import "MacVim.h"
 
 
@@ -188,6 +189,14 @@
     int flags = [event modifierFlags];
     int count = [event clickCount];
     NSMutableData *data = [NSMutableData data];
+
+    // If desired, intepret Ctrl-Click as a right mouse click.
+    if ([[NSUserDefaults standardUserDefaults]
+            boolForKey:MMTranslateCtrlClickKey]
+            && button == 0 && flags & NSControlKeyMask) {
+        button = 1;
+        flags &= ~NSControlKeyMask;
+    }
 
     [data appendBytes:&row length:sizeof(int)];
     [data appendBytes:&col length:sizeof(int)];

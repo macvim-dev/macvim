@@ -27,6 +27,7 @@ extern NSString *MMTypesetterKey;
 extern NSString *MMCellWidthMultiplierKey;
 extern NSString *MMBaselineOffsetKey;
 extern NSString *MMCenterGlyphsKey;
+extern NSString *MMTranslateCtrlClickKey;
 
 
 @class MMWindowController;
