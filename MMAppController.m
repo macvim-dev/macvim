@@ -29,7 +29,6 @@ NSString *MMTerminateAfterLastWindowClosedKey
 NSString *MMTypesetterKey                   = @"typesetter";
 NSString *MMCellWidthMultiplierKey          = @"cellwidthmultiplier";
 NSString *MMBaselineOffsetKey               = @"baselineoffset";
-NSString *MMCenterGlyphsKey                 = @"centerglyphs";
 NSString *MMTranslateCtrlClickKey           = @"translatectrlclick";
 
 
@@ -75,7 +74,6 @@ NSString *MMAutosaveKey                     = @"DefaultWindow";
         @"MMTypesetter",                MMTypesetterKey,
         [NSNumber numberWithFloat:1],   MMCellWidthMultiplierKey,
         [NSNumber numberWithFloat:-1],  MMBaselineOffsetKey,
-        [NSNumber numberWithBool:NO],   MMCenterGlyphsKey,
         [NSNumber numberWithBool:YES],  MMTranslateCtrlClickKey,
         nil];
 
