@@ -6,9 +6,16 @@
 " this file.
 "
 
+" Make sure the '<' and 'C' flags are not included in 'cpoptions', otherwise
+" <CR> would not be recognized.  See ":help 'cpoptions'".
+let s:cpo_save = &cpo
+set cpo&vim
+
+
 "
 " Extra menus
 "
+
 
 " File menu
 
@@ -19,7 +26,7 @@ aunmenu File.Exit
 aunmenu File.Save-Exit
 
 an <silent> 10.290 File.New\ Window         :action newVimWindow:<CR>
-an 10.295 File.New\ Tab                     :tabnew<CR>
+an  10.295 File.New\ Tab                    :tabnew<CR>
 an 10.328 File.-SEP0-                       <Nop>
 an 10.330 File.Close<Tab>:q                 :confirm q<CR>
 "an <silent> 10.330 File.Close\ Window       :confirm qa<CR>
@@ -85,3 +92,8 @@ menukeyequiv Tools.Newer\ List      <D-C-Down>
 menukeyequiv Window.Minimize        <D-m>
 menukeyequiv Window.Previous\ Tab   <D-M-Left>
 menukeyequiv Window.Next\ Tab       <D-M-Right>
+
+
+" Restore the previous value of 'cpoptions'.
+let &cpo = s:cpo_save
+unlet s:cpo_save
