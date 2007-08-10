@@ -240,15 +240,13 @@
     [self mouseDragged:event];
 }
 
-#if 0
-- (void)menuForEvent:(NSEvent *)event
+- (NSMenu*)menuForEvent:(NSEvent *)event
 {
-    // TODO:  Enabling this causes a crash at the moment.  Why?
-    //
-    // Called when user Ctrl-clicks in the view
-    [self mouseDown:event];
+    // HACK! Return nil to disable NSTextView's popup menus (Vim provides its
+    // own).  Called when user Ctrl-clicks in the view (this is already handled
+    // in rightMouseDown:).
+    return nil;
 }
-#endif
 
 - (NSArray *)acceptableDragTypes
 {
