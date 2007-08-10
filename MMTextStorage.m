@@ -22,15 +22,10 @@
 #define DRAW_ITALIC               0x10    /* draw italic text */
 
 
-//static float LINEHEIGHT = 30.0f;
-
-
 
 
 @interface MMTextStorage (Private)
-- (void)doSetMaxRows:(int)rows columns:(int)cols;
 - (void)lazyResize;
-- (float)widthOfEmptyRow;
 @end
 
 
@@ -42,15 +37,10 @@
     if ((self = [super init])) {
         attribString = [[NSMutableAttributedString alloc] initWithString:@""];
         // NOTE!  It does not matter which font is set here, Vim will set its
-        // own font on startup anyway.
+        // own font on startup anyway.  Just set some bogus values.
         font = [[NSFont userFixedPitchFontOfSize:0] retain];
-
-#if 0
-        paragraphStyle = [[NSMutableParagraphStyle alloc] init];
-        [paragraphStyle setMinimumLineHeight:LINEHEIGHT];
-        [paragraphStyle setMaximumLineHeight:LINEHEIGHT];
-        [paragraphStyle setLineSpacing:0];
-#endif
+        cellSize.height = [font pointSize];
+        cellSize.width = [font defaultLineHeightForFont];
     }
 
     return self;
@@ -61,7 +51,6 @@
     //NSLog(@"%@ %s", [self className], _cmd);
 
     [emptyRowString release];
-    //[paragraphStyle release];
     [font release];
     [defaultBackgroundColor release];
     [attribString release];
@@ -75,34 +64,69 @@
 }
 
 - (NSDictionary *)attributesAtIndex:(unsigned)index
-                     effectiveRange:(NSRangePointer)aRange
+                     effectiveRange:(NSRangePointer)range
 {
     //NSLog(@"%s", _cmd);
     if (index>=[attribString length]) {
         //NSLog(@"%sWARNING: index (%d) out of bounds", _cmd, index);
-        if (aRange) {
-            *aRange = NSMakeRange(NSNotFound, 0);
+        if (range) {
+            *range = NSMakeRange(NSNotFound, 0);
         }
         return [NSDictionary dictionary];
     }
 
-    return [attribString attributesAtIndex:index effectiveRange:aRange];
+    return [attribString attributesAtIndex:index effectiveRange:range];
 }
 
-- (void)replaceCharactersInRange:(NSRange)aRange
-                      withString:(NSString *)aString
+- (void)replaceCharactersInRange:(NSRange)range
+                      withString:(NSString *)string
 {
-    //NSLog(@"replaceCharactersInRange:(%d,%d) withString:%@", aRange.location,
-    //        aRange.length, aString);
+    //NSLog(@"replaceCharactersInRange:(%d,%d) withString:%@", range.location,
+    //        range.length, string);
     NSLog(@"WARNING: calling %s on MMTextStorage is unsupported", _cmd);
-    //[attribString replaceCharactersInRange:aRange withString:aString];
+    //[attribString replaceCharactersInRange:range withString:string];
 }
 
-- (void)setAttributes:(NSDictionary *)attributes range:(NSRange)aRange
+- (void)setAttributes:(NSDictionary *)attributes range:(NSRange)range
 {
     // NOTE!  This method must be implemented since the text system calls it
     // constantly to 'fix attributes', apply font substitution, etc.
-    [attribString setAttributes:attributes range:aRange];
+#if 0
+    [attribString setAttributes:attributes range:range];
+#else
+    // HACK! If the font attribute is being modified, then ensure that the new
+    // font has a fixed advancement which is either the same as the current
+    // font or twice that, depending on whether it is a 'wide' character that
+    // is being fixed or not.  This code really only works if 'range' has
+    // length 1 or 2.
+    NSFont *newFont = [attributes objectForKey:NSFontAttributeName];
+    if (newFont) {
+        float adv = cellSize.width;
+        if ([attribString length] > range.location+1) {
+            // If the first char is followed by zero-width space, then it is a
+            // 'wide' character, so double the advancement.
+            NSString *string = [attribString string];
+            if ([string characterAtIndex:range.location+1] == 0x200b)
+                adv += adv;
+        }
+
+        // Create a new font which has the 'fixed advance attribute' set.
+        NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
+            [NSNumber numberWithFloat:adv], NSFontFixedAdvanceAttribute, nil];
+        NSFontDescriptor *desc = [newFont fontDescriptor];
+        desc = [desc fontDescriptorByAddingAttributes:dict];
+        newFont = [NSFont fontWithDescriptor:desc size:[newFont pointSize]];
+
+        // Now modify the 'attributes' dictionary to hold the new font.
+        NSMutableDictionary *newAttr = [NSMutableDictionary
+            dictionaryWithDictionary:attributes];
+        [newAttr setObject:newFont forKey:NSFontAttributeName];
+
+        [attribString setAttributes:newAttr range:range];
+    } else {
+        [attribString setAttributes:attributes range:range];
+    }
+#endif
 }
 
 - (int)maxRows
@@ -123,6 +147,7 @@
 
 - (void)setMaxRows:(int)rows columns:(int)cols
 {
+    // NOTE: Just remember the new values, the actual resizing is done lazily.
     maxRows = rows;
     maxColumns = cols;
 }
@@ -153,7 +178,6 @@
 
     NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
             font, NSFontAttributeName,
-            //paragraphStyle, NSParagraphStyleAttributeName,
 #if !HEED_DRAW_TRANSP
             bg, NSBackgroundColorAttributeName,
 #endif
@@ -191,12 +215,6 @@
         [attribString addAttribute:NSUnderlineStyleAttributeName
                 value:value range:range];
     }
-
-#if 0
-    [attribString addAttribute:NSParagraphStyleAttributeName
-                         value:paragraphStyle
-                         range:NSMakeRange(0, [attribString length])];
-#endif
 
     [self edited:(NSTextStorageEditedCharacters|NSTextStorageEditedAttributes)
            range:range changeInLength:0];
@@ -352,10 +370,29 @@
 - (void)setFont:(NSFont*)newFont
 {
     if (newFont && font != newFont) {
-        //NSLog(@"Setting font %@", newFont);
         [font release];
-        font = [newFont retain];
-        // TODO! Change paragraph style to match line height of new font
+
+        // NOTE! When setting a new font we make sure that the advancement of
+        // each glyph is fixed. 
+
+        float em = [newFont widthOfString:@"m"];
+        float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
+                floatForKey:MMCellWidthMultiplierKey];
+
+        cellSize.width = em * cellWidthMultiplier;
+
+        NSDictionary *dict = [NSDictionary
+            dictionaryWithObject:[NSNumber numberWithFloat:cellSize.width]
+                          forKey:NSFontFixedAdvanceAttribute];
+        NSFontDescriptor *desc = [newFont fontDescriptor];
+        desc = [desc fontDescriptorByAddingAttributes:dict];
+
+        font = [NSFont fontWithDescriptor:desc size:[newFont pointSize]];
+        [font retain];
+
+        NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
+        cellSize.height = lm ? [lm defaultLineHeightForFont:font]
+                             : [font defaultLineHeightForFont];
     }
 }
 
@@ -366,46 +403,25 @@
 
 - (NSSize)size
 {
-    if (![[self layoutManagers] count]) return NSZeroSize;
-    NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
-
-    float h = [lm defaultLineHeightForFont:font];
-    NSSize size = NSMakeSize([self cellWidth]*maxColumns, h*maxRows);
-
-    return size;
+    return NSMakeSize(maxColumns*cellSize.width, maxRows*cellSize.height);
 }
 
-- (NSSize)calculateAverageFontSize
+- (NSSize)cellSize
 {
-    if (![[self layoutManagers] count]) return NSZeroSize;
-
-    NSSize size;
-    NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
-    size.height = [lm defaultLineHeightForFont:font];
-    size.width = [self cellWidth];
-    if (size.height < 1.0f) size.height = 1.0f;
-    if (size.width < 1.0f) size.width = 1.0f;
-
-    return size;
+    return cellSize;
 }
 
 - (NSRect)rectForRowsInRange:(NSRange)range
 {
-    if (![[self layoutManagers] count]) return NSZeroRect;
-
-    // TODO!  Take range.location into account when computing height (in case
-    // the line height varies).
     NSRect rect = { 0, 0, 0, 0 };
-    NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
-    float fontHeight = [lm defaultLineHeightForFont:font];
-
     unsigned start = range.location > maxRows ? maxRows : range.location;
     unsigned length = range.length;
+
     if (start+length > maxRows)
         length = maxRows - start;
 
-    rect.origin.y = fontHeight * start;
-    rect.size.height = fontHeight * length;
+    rect.origin.y = cellSize.height * start;
+    rect.size.height = cellSize.height * length;
 
     return rect;
 }
@@ -413,15 +429,14 @@
 - (NSRect)rectForColumnsInRange:(NSRange)range
 {
     NSRect rect = { 0, 0, 0, 0 };
-    float fontWidth = [self cellWidth];
-
     unsigned start = range.location > maxColumns ? maxColumns : range.location;
     unsigned length = range.length;
+
     if (start+length > maxColumns)
         length = maxColumns - start;
 
-    rect.origin.x = fontWidth * start;
-    rect.size.width = fontWidth * length;
+    rect.origin.x = cellSize.width * start;
+    rect.size.width = cellSize.width * length;
 
     return rect;
 }
@@ -459,9 +474,6 @@
 
 - (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns
 {
-    if (![[self layoutManagers] count]) return size;
-    NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
-
     NSSize curSize = [self size];
     NSSize fitSize = curSize;
     int fitRows = maxRows;
@@ -472,11 +484,12 @@
         // 'size'.  However, always make sure there are at least 3 lines in the
         // text storage.  (Why 3? It seem Vim never allows less than 3 lines.)
         //
-        // TODO: Use binary search instead of the current linear one.
+        // TODO: No need to search since line height is fixed, just calculate
+        // the new height.
         int rowCount = maxRows;
         int rowsToRemove;
         for (rowsToRemove = 0; rowsToRemove < maxRows-3; ++rowsToRemove) {
-            float height = [lm defaultLineHeightForFont:font]*rowCount;
+            float height = cellSize.height*rowCount;
 
             if (height <= size.height) {
                 fitSize.height = height;
@@ -488,7 +501,7 @@
 
         fitRows -= rowsToRemove;
     } else if (size.height > curSize.height) {
-        float fh = [lm defaultLineHeightForFont:font];
+        float fh = cellSize.height;
         if (fh < 1.0f) fh = 1.0f;
 
         fitRows = floor(size.height/fh);
@@ -496,7 +509,7 @@
     }
 
     if (size.width != curSize.width) {
-        float fw = [self cellWidth];
+        float fw = cellSize.width;
         if (fw < 1.0f) fw = 1.0f;
 
         fitCols = floor(size.width/fw);
@@ -509,15 +522,6 @@
     return fitSize;
 }
 
-- (float)cellWidth
-{
-    float em = [font widthOfString:@"m"];
-    float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
-            floatForKey:MMCellWidthMultiplierKey];
-
-    return em * cellWidthMultiplier;
-}
-
 @end // MMTextStorage
 
 
@@ -526,23 +530,16 @@
 @implementation MMTextStorage (Private)
 - (void)lazyResize
 {
-    if (actualRows != maxRows || actualColumns != maxColumns) {
-        [self doSetMaxRows:maxRows columns:maxColumns];
-    }
-}
-
-- (void)doSetMaxRows:(int)rows columns:(int)cols
-{
     int i;
 
     // Do nothing if the dimensions are already right.
-    if (actualRows == rows && actualColumns == cols)
+    if (actualRows == maxRows && actualColumns == maxColumns)
         return;
 
     NSRange oldRange = NSMakeRange(0, actualRows*(actualColumns+1));
 
-    maxRows = rows;
-    maxColumns = cols;
+    actualRows = maxRows;
+    actualColumns = maxColumns;
 
     NSDictionary *dict;
     if (defaultBackgroundColor) {
@@ -573,13 +570,6 @@
     NSRange fullRange = NSMakeRange(0, [attribString length]);
     [self edited:(NSTextStorageEditedCharacters|NSTextStorageEditedAttributes)
            range:oldRange changeInLength:fullRange.length-oldRange.length];
-
-    actualRows = rows;  actualColumns = cols;
-}
-
-- (float)widthOfEmptyRow
-{
-    return [font widthOfString:[emptyRowString string]];
 }
 
 @end // MMTextStorage (Private)

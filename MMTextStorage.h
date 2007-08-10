@@ -14,13 +14,13 @@
 
 
 @interface MMTextStorage : NSTextStorage {
-    NSMutableAttributedString *attribString;
-    int maxRows, maxColumns;
-    int actualRows, actualColumns;
-    NSAttributedString *emptyRowString;
-    NSFont *font;
-    NSColor *defaultBackgroundColor;
-    //NSMutableParagraphStyle *paragraphStyle;
+    NSMutableAttributedString   *attribString;
+    int                         maxRows, maxColumns;
+    int                         actualRows, actualColumns;
+    NSAttributedString          *emptyRowString;
+    NSFont                      *font;
+    NSColor                     *defaultBackgroundColor;
+    NSSize                      cellSize;
 }
 
 - (NSString *)string;
@@ -51,13 +51,12 @@
 - (void)setFont:(NSFont*)newFont;
 - (NSFont*)font;
 - (NSSize)size;
-- (NSSize)calculateAverageFontSize;
+- (NSSize)cellSize;
 - (NSRect)rectForRowsInRange:(NSRange)range;
 - (NSRect)rectForColumnsInRange:(NSRange)range;
 - (unsigned)offsetFromRow:(int)row column:(int)col;
 - (BOOL)resizeToFitSize:(NSSize)size;
 - (NSSize)fitToSize:(NSSize)size;
 - (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns;
-- (float)cellWidth;
 
 @end

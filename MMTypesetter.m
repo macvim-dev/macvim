@@ -25,17 +25,14 @@
 @implementation MMTypesetter
 
 //
-// Layout glyphs so that each glyph takes up exactly one cell.
+// Layout glyphs so that each line fragment has a fixed size.
 //
-// The width of a cell is determined by [MMTextStorage cellWidth] (which
-// typically sets one cell to equal the width of 'm' in the current font), and
-// the height of a cell is given by the default line height for the current
-// font.
-//
-// It is assumed that the text storage is set up so that each wide character is
-// followed by a 'zero-width space' character (Unicode 0x200b); these are not
-// rendered.  If a wide character is not followed by a zero-width space, then
-// the next character will render on top of it.
+// It is assumed that the font for each character has been chosen so that every
+// glyph has the right advancement (either 2*cellSize.width or half that,
+// depending on whether it is a wide character or not).  This is taken care of
+// by MMTextStorage in setAttributes:range: and in setFont:.  All that is left
+// for the typesetter to do is to make sure each line fragment has the same
+// height and that unwanted glyphs are hidden.
 //
 - (void)layoutGlyphsInLayoutManager:(NSLayoutManager *)lm
                startingAtGlyphIndex:(unsigned)startGlyphIdx
@@ -49,8 +46,7 @@
     NSFont *font = [ts font];
     NSString *text = [ts string];
     unsigned textLen = [text length];
-    float cellWidth = [ts cellWidth];
-    float cellHeight = [lm defaultLineHeightForFont:font];
+    NSSize cellSize = [ts cellSize];
     float baseline = [font descender];
 
     if (!(ts && tv && tc && font && text && textLen))
@@ -58,8 +54,6 @@
 
     float baselineOffset = [[NSUserDefaults standardUserDefaults]
             floatForKey:MMBaselineOffsetKey];
-    BOOL centerGlyphs = [[NSUserDefaults standardUserDefaults]
-            boolForKey:MMCenterGlyphsKey];
 
     baseline += baselineOffset;
 
@@ -67,7 +61,9 @@
     unsigned i, numberOfLines = 0, firstLine = 0;
     NSRange firstLineRange = { 0, 0 };
 
-    // Find first line and its range, and count the number of lines.
+    // Find the first line and its range, and count the number of lines.  (This
+    // info could also be gleaned from MMTextStorage, but we do it here anyway
+    // to make absolutely sure everything is right.)
     for (i = 0; i < textLen; numberOfLines++) {
         NSRange lineRange = [text lineRangeForRange:NSMakeRange(i, 0)];
         if (NSLocationInRange(startCharIdx, lineRange)) {
@@ -84,10 +80,10 @@
     for (i = 0; i < maxNumLines && lineRange.length; ++i) {
         NSRange glyphRange = [lm glyphRangeForCharacterRange:lineRange
                                         actualCharacterRange:nil];
-        NSRect lineRect = { 0, (firstLine+i)*cellHeight,
-                cellWidth*(lineRange.length-1), cellHeight };
+        NSRect lineRect = { 0, (firstLine+i)*cellSize.height,
+                cellSize.width*(lineRange.length-1), cellSize.height };
         unsigned endLineIdx = NSMaxRange(lineRange);
-        NSPoint glyphPt = { 0, cellHeight+baseline };
+        NSPoint glyphPt = { 0, cellSize.height+baseline };
         unsigned j;
 
         endGlyphIdx = NSMaxRange(glyphRange);
@@ -95,32 +91,7 @@
         [lm setTextContainer:tc forGlyphRange:glyphRange];
         [lm setLineFragmentRect:lineRect forGlyphRange:glyphRange
                        usedRect:lineRect];
-
-        if (centerGlyphs) {
-            // Center each glyph inside its cell. (Optional)
-            // + Proportional fonts look better.
-            // - The cursor changes width depending on which glyph it is over
-            //   and selections look uneven.
-            for (j = glyphRange.location; j < endGlyphIdx; ++j) {
-                NSGlyph glyph = [lm glyphAtIndex:j];
-                NSSize adv = [font advancementForGlyph:glyph];
-                NSPoint pt = glyphPt;
-                if (adv.width > 0 && adv.width < cellWidth) {
-                    pt.x += .5*(cellWidth-adv.width);
-                }
-                [lm setLocation:pt forStartOfGlyphRange:NSMakeRange(j, 1)];
-                glyphPt.x += cellWidth;
-            }
-        } else {
-            // Position each glyph individually to ensure they take up exactly
-            // one cell. (Default)
-            // + The cursor and selections look good
-            // - Proportional fonts look bad (try entering 'Wi')
-            for (j = glyphRange.location; j < endGlyphIdx; ++j) {
-                [lm setLocation:glyphPt forStartOfGlyphRange:NSMakeRange(j, 1)];
-                glyphPt.x += cellWidth;
-            }
-        }
+        [lm setLocation:glyphPt forStartOfGlyphRange:glyphRange];
 
         // Hide end-of-line and non-zero space characters (there is one after
         // every wide character).

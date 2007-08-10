@@ -787,7 +787,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     if (!setupDone) return;
 
-    NSSize size = [textStorage calculateAverageFontSize];
+    NSSize size = [textStorage cellSize];
     [[self window] setContentResizeIncrements:size];
 }
 
