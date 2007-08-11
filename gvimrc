@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
-" Maintainer:	Björn Winckler
-" Last Change:	Sat Aug 11 14:27:26 CEST 2007
+" Maintainer:	Björn Winckler <bjorn.winckler@gmail.com>
+" Last Change:	Sat Aug 11 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -49,6 +49,31 @@ an <silent> 70.330 Window.Previous\ Tab     :tabprevious<CR>
 an <silent> 70.340 Window.Next\ Tab         :tabnext<CR>
 an 70.350 Window.-SEP2-                     <Nop>
 an <silent> 70.360 Window.Bring\ All\ To\ Front :action arrangeInFront:<CR>
+
+
+
+"
+" Toolbar
+"
+" These items are special ('*' means zero or more arbitrary characters):
+"   -space*-        an empty space
+"   -flexspace*-    a flexible space
+"   -*-             a separator item
+
+" Remove some items so that all items are visible at the default window size.
+aunmenu ToolBar.Undo
+aunmenu ToolBar.Redo
+aunmenu ToolBar.-sep2-
+aunmenu ToolBar.Cut
+aunmenu ToolBar.Copy
+aunmenu ToolBar.Paste
+aunmenu ToolBar.-sep3-
+aunmenu ToolBar.Replace
+aunmenu ToolBar.FindNext
+aunmenu ToolBar.FindPrev
+aunmenu ToolBar.-sep5-
+
+
 
 
 "
