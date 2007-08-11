@@ -580,7 +580,8 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     char *icon = menu->iconfile ? (char*)menu->iconfile :
                  menu->iconidx >= 0 ? (char*)menu->dname :
                  NULL;
-    char *name = menu_is_separator(menu->name) ? NULL : (char*)menu->dname;
+    //char *name = menu_is_separator(menu->name) ? NULL : (char*)menu->dname;
+    char *name = (char*)menu->dname;
     char *tip = menu->strings[MENU_INDEX_TIP]
             ? (char*)menu->strings[MENU_INDEX_TIP] : (char*)menu->actext;
 

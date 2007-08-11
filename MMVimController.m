@@ -795,7 +795,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 {
     if (parent) {
         NSMenuItem *item = nil;
-        if (title) {
+        if (!title || ([title hasPrefix:@"-"] && [title hasSuffix:@"-"])) {
+            item = [NSMenuItem separatorItem];
+        } else {
             item = [[[NSMenuItem alloc] init] autorelease];
             [item setTitle:title];
             // TODO: Check that 'action' is a valid action (nothing will happen
@@ -810,8 +812,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                 [item setKeyEquivalent:keyString];
                 [item setKeyEquivalentModifierMask:mask];
             }
-        } else {
-            item = [NSMenuItem separatorItem];
         }
 
         // NOTE!  The tag is used to idenfity which menu items were
@@ -893,9 +893,12 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 - (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon
 {
-    // NOTE!  'title' is nul for separator item.  Since this is already defined
-    // by Coca, we don't need to do anything here.
-    if (!title) return;
+    // If the item corresponds to a separator then do nothing, since it is
+    // already defined by Cocoa.
+    if (!title || [title isEqual:NSToolbarSeparatorItemIdentifier]
+               || [title isEqual:NSToolbarSpaceItemIdentifier]
+               || [title isEqual:NSToolbarFlexibleSpaceItemIdentifier])
+        return;
 
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:title];
     [item setTag:tag];
@@ -926,14 +929,28 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 {
     if (!toolbar) return;
 
+    // Check for separator items.
+    if (!label) {
+        label = NSToolbarSeparatorItemIdentifier;
+    } else if ([label length] >= 2 && [label hasPrefix:@"-"]
+                                   && [label hasSuffix:@"-"]) {
+        // The label begins and ends with '-'; decided which kind of separator
+        // item it is by looking at the prefix.
+        if ([label hasPrefix:@"-space"]) {
+            label = NSToolbarSpaceItemIdentifier;
+        } else if ([label hasPrefix:@"-flexspace"]) {
+            label = NSToolbarFlexibleSpaceItemIdentifier;
+        } else {
+            label = NSToolbarSeparatorItemIdentifier;
+        }
+    }
+
     [self addToolbarItemToDictionaryWithTag:tag label:label toolTip:tip
                                        icon:icon];
 
     int maxIdx = [[toolbar items] count];
     if (maxIdx < idx) idx = maxIdx;
 
-    // If 'label' is nul, insert a separator.
-    if (!label) label = NSToolbarSeparatorItemIdentifier;
     [toolbar insertItemWithItemIdentifier:label atIndex:idx];
 }
 
