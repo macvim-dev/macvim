@@ -55,6 +55,7 @@
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
 - (void)setFont:(NSFont *)font;
 - (void)processCommandQueueDidFinish;
+- (void)popupMenu:(NSMenu *)menu atRow:(int)row column:(int)col;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)showTabBar:(id)sender;

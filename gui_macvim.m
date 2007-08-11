@@ -656,12 +656,28 @@ gui_mch_menu_hidden(vimmenu_T *menu, int hidden)
 }
 
 
+/*
+ * This is called when user right clicks.
+ */
     void
 gui_mch_show_popupmenu(vimmenu_T *menu)
 {
     //NSLog(@"gui_mch_show_popupmenu(name=%s)", menu->name);
 
-    [[MMBackend sharedInstance] showPopupMenuWithName:(char*)menu->name];
+    [[MMBackend sharedInstance] showPopupMenuWithName:(char*)menu->name
+                                      atMouseLocation:YES];
+}
+
+
+/*
+ * This is called when a :popup command is executed.
+ */
+    void
+gui_make_popup(char_u *path_name, int mouse_pos)
+{
+    // TODO: Unless mouse_pos set, popup at cursor location.
+    [[MMBackend sharedInstance] showPopupMenuWithName:(char*)path_name
+                                      atMouseLocation:mouse_pos];
 }
 
 

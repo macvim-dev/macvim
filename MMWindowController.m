@@ -457,6 +457,32 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     }
 }
 
+- (void)popupMenu:(NSMenu *)menu atRow:(int)row column:(int)col
+{
+    if (!setupDone) return;
+
+    NSEvent *event;
+    if (row >= 0 && col >= 0) {
+        NSSize cellSize = [textStorage cellSize];
+        NSPoint pt = { (col+1)*cellSize.width, [textView frame].size.height
+            - (row+1)*cellSize.height };
+
+        event = [NSEvent mouseEventWithType:NSRightMouseDown
+                                   location:pt
+                              modifierFlags:0
+                                  timestamp:0
+                               windowNumber:[[self window] windowNumber]
+                                    context:nil
+                                eventNumber:0
+                                 clickCount:0
+                                   pressure:1.0];
+    } else {
+        event = [textView lastMouseDownEvent];
+    }
+
+    [NSMenu popUpContextMenu:menu withEvent:event forView:textView];
+}
+
 - (IBAction)addNewTab:(id)sender
 {
     // NOTE! This can get called a lot if the user holds down the key

@@ -481,11 +481,19 @@ static int specialKeyToNSKey(int key);
     [self queueMessage:EnableMenuItemMsgID data:data];
 }
 
-- (void)showPopupMenuWithName:(char *)name
+- (void)showPopupMenuWithName:(char *)name atMouseLocation:(BOOL)mouse
 {
-    int len = strlen(name);
     NSMutableData *data = [NSMutableData data];
+    int len = strlen(name);
+    int row = -1, col = -1;
 
+    if (!mouse && curwin) {
+        row = curwin->w_wrow;
+        col = curwin->w_wcol;
+    }
+
+    [data appendBytes:&row length:sizeof(int)];
+    [data appendBytes:&col length:sizeof(int)];
     [data appendBytes:&len length:sizeof(int)];
     [data appendBytes:name length:len];
 

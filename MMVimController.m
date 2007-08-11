@@ -590,6 +590,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [actionName release];
     } else if (ShowPopupMenuMsgID == msgid) {
         const void *bytes = [data bytes];
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
         int len = *((int*)bytes);  bytes += sizeof(int);
         NSString *title = [[NSString alloc]
                 initWithBytesNoCopy:(void*)bytes
@@ -599,7 +601,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
         NSMenu *menu = [self topLevelMenuForTitle:title];
         if (menu) {
-            [[windowController textView] popupMenu:menu];
+            [windowController popupMenu:menu atRow:row column:col];
         } else {
             NSLog(@"WARNING: Cannot popup menu with title %@; no such menu.",
                     title);

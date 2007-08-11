@@ -16,7 +16,7 @@
     NSEvent *lastMouseDownEvent;
 }
 
-- (void)popupMenu:(NSMenu *)menu;
+- (NSEvent *)lastMouseDownEvent;
 - (void)setShouldDrawInsertionPoint:(BOOL)enable;
 
 @end

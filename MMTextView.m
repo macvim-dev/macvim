@@ -33,18 +33,9 @@
     [super dealloc];
 }
 
-- (void)popupMenu:(NSMenu *)menu
+- (NSEvent *)lastMouseDownEvent
 {
-#if 0
-    NSEvent *event = [NSEvent
-            mouseEventWithType:NSLeftMouseDown location:NSZeroPoint
-                 modifierFlags:0 timestamp:0
-                  windowNumber:[[self window] windowNumber] context:nil
-                   eventNumber:0 clickCount:0 pressure:1.0];
-    [NSMenu popUpContextMenu:menu withEvent:event forView:self];
-#else
-    [NSMenu popUpContextMenu:menu withEvent:lastMouseDownEvent forView:self];
-#endif
+    return lastMouseDownEvent;
 }
 
 - (void)setShouldDrawInsertionPoint:(BOOL)enable
