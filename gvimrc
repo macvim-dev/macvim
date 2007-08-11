@@ -14,6 +14,15 @@ set cpo&vim
 
 
 "
+" Global default options
+"
+
+if !exists("syntax_on")
+  syntax on
+endif
+
+
+"
 " Extra menus
 "
 
