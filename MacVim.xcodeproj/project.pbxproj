@@ -35,7 +35,7 @@
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
 		1DE608B40C587FDA0055263D /* runtime in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
-		1DED78600C6DE43D0079945F /* vimrc in Resources */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
+		1DED78600C6DE43D0079945F /* vimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
 		1DEE0D9F0C4E150B008E82B2 /* Attention.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8A0C4E150B008E82B2 /* Attention.png */; };
 		1DEE0DA00C4E150B008E82B2 /* Copy.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8B0C4E150B008E82B2 /* Copy.png */; };
 		1DEE0DA10C4E150B008E82B2 /* Cut.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8C0C4E150B008E82B2 /* Cut.png */; };
@@ -108,6 +108,7 @@
 			dstPath = vim;
 			dstSubfolderSpec = 7;
 			files = (
+				1DED78600C6DE43D0079945F /* vimrc in CopyFiles */,
 				1DD0C20C0C60FFB4008CD84A /* gvimrc in CopyFiles */,
 				1DE608B40C587FDA0055263D /* runtime in CopyFiles */,
 			);
@@ -461,7 +462,6 @@
 				1DEE0DB30C4E150B008E82B2 /* Undo.png in Resources */,
 				1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */,
 				1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */,
-				1DED78600C6DE43D0079945F /* vimrc in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

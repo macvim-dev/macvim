@@ -368,9 +368,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>1DED78180C6DCFB00079945F</string>
+				<string>1DEB90230C6E044900BB466E</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>1DED78190C6DCFB00079945F</string>
+				<string>1DEB90240C6E044900BB466E</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -530,7 +530,7 @@
 								<key>PBXProjectModuleGUID</key>
 								<string>1CD0528F0623707200166675</string>
 								<key>PBXProjectModuleLabel</key>
-								<string>MMTypesetter.m</string>
+								<string></string>
 								<key>StatusBarVisibility</key>
 								<true/>
 							</dict>
@@ -588,7 +588,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1D16B9EF0BA33E3800A69B33</string>
-				<string>1DED78170C6DCFAF0079945F</string>
+				<string>1DEB90250C6E044900BB466E</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>
@@ -960,9 +960,9 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1C0AD2B3069F1EA900FABCE6</string>
-				<string>1DED782E0C6DD7AF0079945F</string>
+				<string>1DEB902B0C6E050B00BB466E</string>
 				<string>1CD0528B0623707200166675</string>
-				<string>1DED782F0C6DD7AF0079945F</string>
+				<string>1DEB902C0C6E050B00BB466E</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.run</string>
