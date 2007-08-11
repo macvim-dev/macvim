@@ -8,6 +8,14 @@
 			sepNavWindowFrame = "{{15, 4}, {823, 737}}";
 		};
 	};
+	1D09AB400C6A4D520045497E /* MMTypesetter.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {795, 2224}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRect = "{{0, 0}, {795, 162}}";
+			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
+		};
+	};
 	1D0DC9EB0BA34B3D00B6CCFA /* VimWindowController.m */ = {
 		isa = PBXFileReference;
 		fileEncoding = 30;
@@ -16,18 +24,57 @@
 		path = /Users/winckler/Projects/vim70/src/MacVim/VimWindowController.m;
 		sourceTree = "<absolute>";
 	};
+	1D14749D0C5673AE0038FA2B /* MMAppController.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {795, 464}}";
+			sepNavSelRange = "{686, 0}";
+			sepNavVisRect = "{{0, 302}, {795, 162}}";
+		};
+	};
 	1D14749E0C5673AE0038FA2B /* MMAppController.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {795, 4880}}";
-			sepNavSelRange = "{9716, 0}";
-			sepNavVisRect = "{{0, 4183}, {795, 162}}";
+			sepNavIntBoundsRect = "{{0, 0}, {795, 7568}}";
+			sepNavSelRange = "{14355, 0}";
+			sepNavVisRect = "{{0, 3943}, {795, 162}}";
+		};
+	};
+	1D1474A80C5677450038FA2B /* MMTextStorage.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {795, 9248}}";
+			sepNavSelRange = "{18454, 0}";
+			sepNavVisRect = "{{0, 6007}, {795, 162}}";
+			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
+		};
+	};
+	1D1474AD0C5678370038FA2B /* MMTextView.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {781, 608}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRect = "{{0, 0}, {781, 608}}";
+			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
+		};
+	};
+	1D1474AE0C5678370038FA2B /* MMTextView.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {795, 7760}}";
+			sepNavSelRange = "{14917, 0}";
+			sepNavVisRect = "{{0, 423}, {795, 162}}";
+			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
 	1D1474B40C56796D0038FA2B /* MMVimController.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {795, 16112}}";
-			sepNavSelRange = "{35098, 0}";
-			sepNavVisRect = "{{0, 11239}, {795, 162}}";
+			sepNavIntBoundsRect = "{{0, 0}, {795, 15968}}";
+			sepNavSelRange = "{34308, 0}";
+			sepNavVisRect = "{{0, 9591}, {795, 162}}";
+			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
+		};
+	};
+	1D1474BA0C567A910038FA2B /* MMWindowController.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {795, 18528}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRect = "{{0, 0}, {795, 162}}";
 		};
 	};
 	1D16B9CF0BA33BAE00A69B33 /* MacVim */ = {
@@ -43,17 +90,27 @@
 			NO,
 			NO,
 			NO,
+			NO,
+			NO,
+			NO,
+			NO,
+			NO,
 		);
 		argumentStrings = (
-			"-insetleft 2",
-			"-insetright 1",
-			"-insettop 1",
-			"-insetbottom 1",
-			"-tabmaxwidth 384",
-			"-taboptimumwidth 132",
-			"-statuslineoff 1",
-			"-nowindow 1",
-			"-tabminwidth 32",
+			"-MMTextInsetLeft 2",
+			"-MMTextInsetRight 1",
+			"-MMTextInsetTop 1",
+			"-MMTextInsetBottom 1",
+			"-MMTabMaxWidth 384",
+			"-MMTabOptimumWidth 132",
+			"-MMStatuslineOff 1",
+			"-MMNoWindow 1",
+			"-MMTabMinWidth 32",
+			"-MMCellWidthMultiplier 1.414",
+			"-MMBaselineOffset 2",
+			"-MMTypesetter \"NSTypesetter\"",
+			"-MMTerminateAfterLastWindowClosed 0",
+			"-MMTranslateCtrlClick 0",
 		);
 		autoAttachOnCrash = 1;
 		configStateDict = {
@@ -97,7 +154,7 @@
 		delayBeforeContinue = 0;
 		hitCount = 1;
 		location = Foundation;
-		modificationTime = 207496396.974839;
+		modificationTime = 208462702.108592;
 		state = 1;
 		symbolName = "[NSException raise]";
 	};
@@ -120,7 +177,7 @@
 		functionName = "-windowDidResize:";
 		hitCount = 1;
 		lineNumber = 539;
-		modificationTime = 207496396.974762;
+		modificationTime = 208463293.566525;
 		state = 1;
 	};
 	1DE445650BA493EC00C4C77A /* XCBreakpointsBucket */ = {
@@ -244,8 +301,8 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 208293179;
-			PBXWorkspaceStateSaveDate = 208293179;
+			PBXPerProjectTemplateStateSaveDate = 208523154;
+			PBXWorkspaceStateSaveDate = 208523154;
 		};
 		sourceControlManager = 1D16B9DD0BA33BB000A69B33 /* Source Control */;
 		userBuildSettings = {

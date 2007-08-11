@@ -1,10 +1,11 @@
 " System gvimrc file for MacVim
-" Author:	Björn Winckler
-" Last Change:	Mon Aug  6 15:30:37 CEST 2007
+"
+" Maintainer:	Björn Winckler
+" Last Change:	Sat Aug 11 14:27:26 CEST 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
-"
+
 
 " Make sure the '<' and 'C' flags are not included in 'cpoptions', otherwise
 " <CR> would not be recognized.  See ":help 'cpoptions'".

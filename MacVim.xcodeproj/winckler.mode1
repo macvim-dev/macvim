@@ -368,9 +368,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>1D09AB4F0C6A4DC10045497E</string>
+				<string>1DED78180C6DCFB00079945F</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>1D09AB500C6A4DC10045497E</string>
+				<string>1DED78190C6DCFB00079945F</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -504,6 +504,7 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
+		<string>1C0AD2B3069F1EA900FABCE6</string>
 		<string>1D16B9EF0BA33E3800A69B33</string>
 		<string>/Users/winckler/Projects/vim7/src/MacVim/MacVim.xcodeproj</string>
 	</array>
@@ -529,7 +530,7 @@
 								<key>PBXProjectModuleGUID</key>
 								<string>1CD0528F0623707200166675</string>
 								<key>PBXProjectModuleLabel</key>
-								<string></string>
+								<string>MMTypesetter.m</string>
 								<key>StatusBarVisibility</key>
 								<true/>
 							</dict>
@@ -587,7 +588,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1D16B9EF0BA33E3800A69B33</string>
-				<string>1D09AB470C6A4D690045497E</string>
+				<string>1DED78170C6DCFAF0079945F</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>
@@ -629,8 +630,8 @@
 										<string>yes</string>
 										<key>sizes</key>
 										<array>
-											<string>{{0, 0}, {409, 339}}</string>
-											<string>{{409, 0}, {615, 339}}</string>
+											<string>{{0, 0}, {401, 339}}</string>
+											<string>{{401, 0}, {623, 339}}</string>
 										</array>
 									</dict>
 									<key>VerticalSplitView</key>
@@ -693,14 +694,14 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1CD10A99069EF8BA00B06720</string>
-				<string>1DE8CC4C0C5E24CD003F56E3</string>
+				<string>1DB6C9A40C6CE37300DDB514</string>
 				<string>1C162984064C10D400B95A72</string>
-				<string>1DE8CC4D0C5E24CD003F56E3</string>
-				<string>1DE8CC4E0C5E24CD003F56E3</string>
-				<string>1DE8CC4F0C5E24CD003F56E3</string>
-				<string>1DE8CC500C5E24CD003F56E3</string>
-				<string>1DE8CC510C5E24CD003F56E3</string>
-				<string>1DE8CC520C5E24CD003F56E3</string>
+				<string>1DB6C9A50C6CE37300DDB514</string>
+				<string>1DB6C9A60C6CE37300DDB514</string>
+				<string>1DB6C9A70C6CE37300DDB514</string>
+				<string>1DB6C9A80C6CE37300DDB514</string>
+				<string>1DB6C9A90C6CE37300DDB514</string>
+				<string>1DB6C9AA0C6CE37300DDB514</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.debug</string>
@@ -827,6 +828,8 @@
 					<key>Dock</key>
 					<array>
 						<dict>
+							<key>BecomeActive</key>
+							<true/>
 							<key>ContentConfiguration</key>
 							<dict>
 								<key>PBXProjectModuleGUID</key>
@@ -839,7 +842,7 @@
 								<key>Frame</key>
 								<string>{{0, 0}, {836, 380}}</string>
 								<key>RubberWindowFrame</key>
-								<string>118 143 836 421 0 0 1024 746 </string>
+								<string>128 242 836 421 0 0 1024 746 </string>
 							</dict>
 							<key>Module</key>
 							<string>PBXDebugCLIModule</string>
@@ -862,11 +865,11 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1DE444730BA4445100C4C77A</string>
-				<string>1DE8CC530C5E24CD003F56E3</string>
+				<string>1DB6C9AB0C6CE37300DDB514</string>
 				<string>1C78EAAC065D492600B07095</string>
 			</array>
 			<key>WindowString</key>
-			<string>118 143 836 421 0 0 1024 746 </string>
+			<string>128 242 836 421 0 0 1024 746 </string>
 			<key>WindowToolGUID</key>
 			<string>1DE444730BA4445100C4C77A</string>
 			<key>WindowToolIsVisible</key>
@@ -957,9 +960,9 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1C0AD2B3069F1EA900FABCE6</string>
-				<string>1D8FA20E0C61AF48009406B2</string>
+				<string>1DED782E0C6DD7AF0079945F</string>
 				<string>1CD0528B0623707200166675</string>
-				<string>1D8FA20F0C61AF48009406B2</string>
+				<string>1DED782F0C6DD7AF0079945F</string>
 			</array>
 			<key>ToolbarConfiguration</key>
 			<string>xcode.toolbar.config.run</string>

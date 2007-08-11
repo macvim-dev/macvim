@@ -35,6 +35,7 @@
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
 		1DE608B40C587FDA0055263D /* runtime in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
+		1DED78600C6DE43D0079945F /* vimrc in Resources */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
 		1DEE0D9F0C4E150B008E82B2 /* Attention.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8A0C4E150B008E82B2 /* Attention.png */; };
 		1DEE0DA00C4E150B008E82B2 /* Copy.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8B0C4E150B008E82B2 /* Copy.png */; };
 		1DEE0DA10C4E150B008E82B2 /* Cut.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8C0C4E150B008E82B2 /* Cut.png */; };
@@ -153,6 +154,7 @@
 		1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SpecialKeys.plist; sourceTree = "<group>"; };
 		1DE602470C587FD10055263D /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; name = runtime; path = ../../runtime; sourceTree = SOURCE_ROOT; };
 		1DE8CC610C5E2AAD003F56E3 /* Actions.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Actions.plist; sourceTree = "<group>"; };
+		1DED785F0C6DE43D0079945F /* vimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = vimrc; sourceTree = "<group>"; };
 		1DEE0D8A0C4E150B008E82B2 /* Attention.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Attention.png; path = Toolbar/Attention.png; sourceTree = "<group>"; };
 		1DEE0D8B0C4E150B008E82B2 /* Copy.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Copy.png; path = Toolbar/Copy.png; sourceTree = "<group>"; };
 		1DEE0D8C0C4E150B008E82B2 /* Cut.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Cut.png; path = Toolbar/Cut.png; sourceTree = "<group>"; };
@@ -283,6 +285,7 @@
 		1DE602460C587F760055263D /* Vim Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1DED785F0C6DE43D0079945F /* vimrc */,
 				1DD0C20A0C60FF9A008CD84A /* gvimrc */,
 				1DE602470C587FD10055263D /* runtime */,
 			);
@@ -458,6 +461,7 @@
 				1DEE0DB30C4E150B008E82B2 /* Undo.png in Resources */,
 				1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */,
 				1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */,
+				1DED78600C6DE43D0079945F /* vimrc in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
