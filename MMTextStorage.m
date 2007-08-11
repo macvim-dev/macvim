@@ -9,7 +9,9 @@
  */
 
 #import "MMTextStorage.h"
-#import "MMAppController.h"
+#import "MacVim.h"
+
+
 
 // If 0 DRAW_TRANSP flag will be ignored.  Setting it to 1 causes the cursor
 // background to be drawn in white.

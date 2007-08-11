@@ -60,3 +60,23 @@ char *MessageStrings[] =
     "ShowPopupMenuMsgID",
 };
 
+
+
+
+// NSUserDefaults keys
+NSString *MMNoWindowKey                 = @"MMNoWindow";
+NSString *MMTabMinWidthKey              = @"MMTabMinWidth";
+NSString *MMTabMaxWidthKey              = @"MMTabMaxWidth";
+NSString *MMTabOptimumWidthKey          = @"MMTabOptimumWidth";
+NSString *MMStatuslineOffKey            = @"MMStatuslineOff";
+NSString *MMTextInsetLeftKey            = @"MMTextInsetLeft";
+NSString *MMTextInsetRightKey           = @"MMTextInsetRight";
+NSString *MMTextInsetTopKey             = @"MMTextInsetTop";
+NSString *MMTextInsetBottomKey          = @"MMTextInsetBottom";
+NSString *MMTerminateAfterLastWindowClosedKey
+                                        = @"MMTerminateAfterLastWindowClosed";
+NSString *MMTypesetterKey               = @"MMTypesetter";
+NSString *MMCellWidthMultiplierKey      = @"MMCellWidthMultiplier";
+NSString *MMBaselineOffsetKey           = @"MMBaselineOffset";
+NSString *MMTranslateCtrlClickKey       = @"MMTranslateCtrlClick";
+NSString *MMTopLeftPointKey             = @"MMTopLeftPoint";

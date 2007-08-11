@@ -133,4 +133,24 @@ enum {
 };
 
 
+// NSUserDefaults keys
+extern NSString *MMNoWindowKey;
+extern NSString *MMTabMinWidthKey;
+extern NSString *MMTabMaxWidthKey;
+extern NSString *MMTabOptimumWidthKey;
+extern NSString *MMStatuslineOffKey;
+extern NSString *MMTextInsetLeftKey;
+extern NSString *MMTextInsetRightKey;
+extern NSString *MMTextInsetTopKey;
+extern NSString *MMTextInsetBottomKey;
+extern NSString *MMTerminateAfterLastWindowClosedKey;
+extern NSString *MMTypesetterKey;
+extern NSString *MMCellWidthMultiplierKey;
+extern NSString *MMBaselineOffsetKey;
+extern NSString *MMTranslateCtrlClickKey;
+extern NSString *MMTopLeftPointKey;
+
+
+
+
 // vim: set ft=objc:

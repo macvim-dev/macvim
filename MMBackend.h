@@ -12,7 +12,6 @@
 #import "MacVim.h"
 
 
-
 @interface MMBackend : NSObject <MMBackendProtocol> {
     NSMutableArray  *queue;
     NSMutableData   *drawData;

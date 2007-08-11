@@ -12,7 +12,6 @@
 #import "MMTextStorage.h"
 #import "MMWindowController.h"
 #import "MMVimController.h"
-#import "MMAppController.h"
 #import "MacVim.h"
 
 

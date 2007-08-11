@@ -10,7 +10,7 @@
 
 #import "MMTypesetter.h"
 #import "MMTextStorage.h"
-#import "MMAppController.h"
+#import "MacVim.h"
 
 
 

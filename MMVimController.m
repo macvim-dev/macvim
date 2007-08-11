@@ -10,8 +10,8 @@
 
 #import "MMVimController.h"
 #import "MMWindowController.h"
-#import "MMAppController.h"
 #import "MMTextView.h"
+#import "MMAppController.h"
 #import "MMTextStorage.h"
 
 

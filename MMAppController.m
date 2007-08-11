@@ -14,28 +14,6 @@
 
 
 
-// NSUserDefaults keys
-NSString *MMNoWindowKey                     = @"nowindow";
-NSString *MMTabMinWidthKey                  = @"tabminwidth";
-NSString *MMTabMaxWidthKey                  = @"tabmaxwidth";
-NSString *MMTabOptimumWidthKey              = @"taboptimumwidth";
-NSString *MMStatuslineOffKey                = @"statuslineoff";
-NSString *MMTextInsetLeftKey                = @"insetleft";
-NSString *MMTextInsetRightKey               = @"insetright";
-NSString *MMTextInsetTopKey                 = @"insettop";
-NSString *MMTextInsetBottomKey              = @"insetbottom";
-NSString *MMTerminateAfterLastWindowClosedKey
-                                            = @"terminateafterlastwindowclosed";
-NSString *MMTypesetterKey                   = @"typesetter";
-NSString *MMCellWidthMultiplierKey          = @"cellwidthmultiplier";
-NSString *MMBaselineOffsetKey               = @"baselineoffset";
-NSString *MMTranslateCtrlClickKey           = @"translatectrlclick";
-
-
-// Key in user defaults for autosave data.
-NSString *MMAutosaveKey                     = @"DefaultWindow";
-
-
 
 @interface MMAppController (MMServices)
 - (void)openSelection:(NSPasteboard *)pboard userData:(NSString *)userData
@@ -270,18 +248,10 @@ NSString *MMAutosaveKey                     = @"DefaultWindow";
         NSRect frame = [keyWin frame];
         topLeft = NSMakePoint(frame.origin.x, NSMaxY(frame));
     } else {
-        NSDictionary *dict = [[NSUserDefaults standardUserDefaults]
-            dictionaryForKey:MMAutosaveKey];
-        if (dict) {
-            id x = [dict objectForKey:@"x"];
-            id y = [dict objectForKey:@"y"];
-
-            if (x && [x isKindOfClass:[NSNumber class]] &&
-                    y && [y isKindOfClass:[NSNumber class]]) {
-                topLeft.x = [x floatValue];
-                topLeft.y = [y floatValue];
-            }
-        }
+        NSString *topLeftString = [[NSUserDefaults standardUserDefaults]
+            stringForKey:MMTopLeftPointKey];
+        if (topLeftString)
+            topLeft = NSPointFromString(topLeftString);
     }
 
     if (!NSEqualPoints(topLeft, NSZeroPoint)) {
@@ -361,7 +331,7 @@ NSString *MMAutosaveKey                     = @"DefaultWindow";
         // The first window autosaves its position.  (The autosaving features
         // of Cocoa are not used because we need more control over what is
         // autosaved and when it is restored.)
-        [[vc windowController] setWindowAutosaveKey:MMAutosaveKey];
+        [[vc windowController] setWindowAutosaveKey:MMTopLeftPointKey];
     }
 
     [vimControllers addObject:vc];

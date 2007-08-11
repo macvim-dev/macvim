@@ -113,8 +113,8 @@ static int specialKeyToNSKey(int key);
         // that the GUI won't be activated (or raised) so there is a hack in
         // MMWindowController which always raises the app when a new window is
         // opened.
-        NSMutableArray *args = [NSMutableArray arrayWithObjects:@"-nowindow",
-                       @"yes", nil];
+        NSMutableArray *args = [NSMutableArray arrayWithObjects:
+                MMNoWindowKey, @"yes", nil];
         NSString *exeName = [[mainBundle infoDictionary]
                 objectForKey:@"CFBundleExecutable"];
         NSString *path = [mainBundle pathForAuxiliaryExecutable:exeName];

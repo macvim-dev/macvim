@@ -11,6 +11,7 @@
 #import <Cocoa/Cocoa.h>
 #import "MacVim.h"
 
+
 @class MMWindowController;
 
 

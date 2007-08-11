@@ -67,7 +67,6 @@ static float StatusLineHeight = 16.0f;
 - (void)placeScrollbars;
 - (void)scroll:(id)sender;
 - (void)placeViews;
-- (NSDictionary *)windowAutosaveDict;
 @end
 
 
@@ -585,11 +584,13 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)windowDidMove:(NSNotification *)notification
 {
-    if (windowAutosaveKey) {
-        NSDictionary *dict = [self windowAutosaveDict];
-        if (dict)
-            [[NSUserDefaults standardUserDefaults]
-                    setObject:dict forKey:windowAutosaveKey];
+    if (setupDone && windowAutosaveKey) {
+        NSRect frame = [[self window] frame];
+        NSPoint topLeft = { frame.origin.x, NSMaxY(frame) };
+        NSString *topLeftString = NSStringFromPoint(topLeft);
+
+        [[NSUserDefaults standardUserDefaults]
+            setObject:topLeftString forKey:windowAutosaveKey];
     }
 }
 
@@ -1089,30 +1090,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [tabView setFrame:textViewRect];
 
     [self placeScrollbars];
-}
-
-- (NSDictionary *)windowAutosaveDict
-{
-    if (!setupDone)
-        return nil;
-
-    int rows = 0, cols = 0;
-    if (textStorage)
-        [textStorage getMaxRows:&rows columns:&cols];
-
-    NSPoint origin = NSZeroPoint;
-    if (setupDone) {
-        NSRect frame = [[self window] frame];
-        origin = NSMakePoint(frame.origin.x, NSMaxY(frame));
-    }
-
-    NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
-        [NSNumber numberWithInt:rows], @"Rows",
-        [NSNumber numberWithInt:cols], @"Columns",
-        [NSNumber numberWithFloat:origin.x], @"x",
-        [NSNumber numberWithFloat:origin.y], @"y", nil];
-
-    return dict;
 }
 
 @end // MMWindowController (Private)
