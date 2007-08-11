@@ -114,7 +114,7 @@ static int specialKeyToNSKey(int key);
         // MMWindowController which always raises the app when a new window is
         // opened.
         NSMutableArray *args = [NSMutableArray arrayWithObjects:
-                MMNoWindowKey, @"yes", nil];
+            [NSString stringWithFormat:@"-%@", MMNoWindowKey], @"yes", nil];
         NSString *exeName = [[mainBundle infoDictionary]
                 objectForKey:@"CFBundleExecutable"];
         NSString *path = [mainBundle pathForAuxiliaryExecutable:exeName];
