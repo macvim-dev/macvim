@@ -381,7 +381,11 @@
         float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
                 floatForKey:MMCellWidthMultiplierKey];
 
-        cellSize.width = em * cellWidthMultiplier;
+        // NOTE! Even though NSFontFixedAdvanceAttribute is a float, it will
+        // only render at integer sizes.  Hence, we restrict the cell width to
+        // an integer here, otherwise the window width and the actual text
+        // width will not match.
+        cellSize.width = ceilf(em * cellWidthMultiplier);
 
         NSDictionary *dict = [NSDictionary
             dictionaryWithObject:[NSNumber numberWithFloat:cellSize.width]
