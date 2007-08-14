@@ -874,6 +874,35 @@ static int specialKeyToNSKey(int key);
         if (menu) {
             gui_menu_cb(menu);
         }
+    } else if (ToggleToolbarMsgID == msgid) {
+        char_u go[sizeof(GO_ALL)+2];
+        char_u *p;
+        int len;
+
+        STRCPY(go, p_go);
+        p = vim_strchr(go, GO_TOOLBAR);
+        len = STRLEN(go);
+
+        if (p != NULL) {
+            char_u *end = go + len;
+            while (p < end) {
+                p[0] = p[1];
+                ++p;
+            }
+        } else {
+            go[len] = GO_TOOLBAR;
+            go[len+1] = NUL;
+        }
+
+        set_option_value((char_u*)"guioptions", 0, go, 0);
+
+        // Force screen redraw (does it have to be this complicated?).
+	redraw_all_later(CLEAR);
+	update_screen(NOT_VALID);
+	setcursor();
+	out_flush();
+	gui_update_cursor(FALSE, FALSE);
+	gui_mch_flush();
     } else if (ScrollbarEventMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];

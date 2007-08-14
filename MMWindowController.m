@@ -169,6 +169,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)windowDidLoad
 {
+    NSWindow *win = [self window];
+
     // Called after window nib file is loaded.
 
     [tablineSeparator setHidden:NO];
@@ -200,12 +202,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
             addObserver:vimController
                selector:@selector(windowWillClose:)
                    name:NSWindowWillCloseNotification
-                 object:[self window]];
+                 object:win];
     [[NSNotificationCenter defaultCenter]
             addObserver:vimController
                selector:@selector(windowDidBecomeMain:)
                    name:NSWindowDidBecomeMainNotification
-                 object:[self window]];
+                 object:win];
 }
 
 - (MMVimController *)vimController
@@ -482,32 +484,49 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [NSMenu popUpContextMenu:menu withEvent:event forView:textView];
 }
 
+- (void)showTabBar:(BOOL)on
+{
+    [tabBarControl setHidden:!on];
+
+    if (!on) {
+        NSToolbar *toolbar = [[self window] toolbar]; 
+        [tablineSeparator setHidden:![toolbar isVisible]];
+    } else {
+        [tablineSeparator setHidden:on];
+    }
+
+    if (setupDone)
+        shouldUpdateWindowSize = YES;
+}
+
+- (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode
+{
+    NSToolbar *toolbar = [[self window] toolbar];
+    if (!toolbar) return;
+
+    [toolbar setSizeMode:size];
+    [toolbar setDisplayMode:mode];
+    [toolbar setVisible:on];
+
+    if (!on) {
+        [tablineSeparator setHidden:YES];
+    } else {
+        [tablineSeparator setHidden:![tabBarControl isHidden]];
+    }
+}
+
 - (IBAction)addNewTab:(id)sender
 {
-    // NOTE! This can get called a lot if the user holds down the key
-    // equivalent for this action, which causes the ports to fill up.  If we
-    // wait for the message to be sent then the app might become unresponsive.
-    [vimController sendMessage:AddNewTabMsgID data:nil wait:NO];
+// NOTE! This can get called a lot if the user holds down the key
+// equivalent for this action, which causes the ports to fill up.  If we
+// wait for the message to be sent then the app might become unresponsive.
+[vimController sendMessage:AddNewTabMsgID data:nil wait:NO];
 }
 
-- (IBAction)showTabBar:(id)sender
+- (IBAction)toggleToolbar:(id)sender
 {
-    [tablineSeparator setHidden:YES];
-    [tabBarControl setHidden:NO];
-
-    if (setupDone)
-        shouldUpdateWindowSize = YES;
+[vimController sendMessage:ToggleToolbarMsgID data:nil wait:NO];
 }
-
-- (IBAction)hideTabBar:(id)sender
-{
-    [tablineSeparator setHidden:NO];
-    [tabBarControl setHidden:YES];
-
-    if (setupDone)
-        shouldUpdateWindowSize = YES;
-}
-
 
 
 
@@ -515,16 +534,16 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 
 - (void)tabView:(NSTabView *)theTabView didSelectTabViewItem:
-        (NSTabViewItem *)tabViewItem
+    (NSTabViewItem *)tabViewItem
 {
-    // HACK!  There seem to be a bug in NSTextView which results in the first
-    // responder not being set to the view of the tab item so it is done
-    // manually here.
-    [[self window] makeFirstResponder:[tabViewItem view]];
+// HACK!  There seem to be a bug in NSTextView which results in the first
+// responder not being set to the view of the tab item so it is done
+// manually here.
+[[self window] makeFirstResponder:[tabViewItem view]];
 
-    // HACK!  The selection message should not be propagated to the VimTask if
-    // the VimTask selected the tab (e.g. as opposed the user clicking the
-    // tab).  The delegate method has no way of knowing who initiated the
+// HACK!  The selection message should not be propagated to the VimTask if
+// the VimTask selected the tab (e.g. as opposed the user clicking the
+// tab).  The delegate method has no way of knowing who initiated the
     // selection so a flag is set when the VimTask initiated the selection.
     if (!vimTaskSelectedTab) {
         // Propagate the selection message to the VimTask.
@@ -688,9 +707,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     size.width += [textView textContainerOrigin].x + right;
     size.height += [textView textContainerOrigin].y + bot;
 
-    // A one pixel high separator is shown if tabline is hidden.
-    if ([tabBarControl isHidden]) ++size.height;
-    else size.height += [tabBarControl frame].size.height;
+    if (![tablineSeparator isHidden])
+        ++size.height;
+    if (![tabBarControl isHidden])
+        size.height += [tabBarControl frame].size.height;
 
     if (![ud boolForKey:MMStatuslineOffKey])
         size.height += StatusLineHeight;
@@ -709,9 +729,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     NSRect rect = { 0, 0, contentSize.width, contentSize.height };
 
-    // A one pixel high separator is shown if tabline is hidden.
-    if ([tabBarControl isHidden]) --rect.size.height;
-    else rect.size.height -= [tabBarControl frame].size.height;
+    if (![tablineSeparator isHidden])
+        --rect.size.height;
+    if (![tabBarControl isHidden])
+        rect.size.height -= [tabBarControl frame].size.height;
 
     if (![[NSUserDefaults standardUserDefaults]
             boolForKey:MMStatuslineOffKey]) {

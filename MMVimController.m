@@ -306,10 +306,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [windowController updateTabsWithData:data];
     } else if (ShowTabBarMsgID == msgid) {
         //NSLog(@"Showing tab bar");
-        [windowController showTabBar:self];
+        [windowController showTabBar:YES];
     } else if (HideTabBarMsgID == msgid) {
         //NSLog(@"Hiding tab bar");
-        [windowController hideTabBar:self];
+        [windowController showTabBar:NO];
     } else if (SetTextDimensionsMsgID == msgid) {
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
@@ -409,7 +409,17 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                 [toolbar setDisplayMode:NSToolbarDisplayModeIconOnly];
                 [toolbar setSizeMode:NSToolbarSizeModeSmall];
 
-                [[windowController window] setToolbar:toolbar];
+                NSWindow *win = [windowController window];
+                [win setToolbar:toolbar];
+
+                // HACK! Redirect the pill button so that we can ask Vim to
+                // hide the toolbar.
+                NSButton *pillButton = [win
+                    standardWindowButton:NSWindowToolbarButton];
+                if (pillButton) {
+                    [pillButton setAction:@selector(toggleToolbar:)];
+                    [pillButton setTarget:windowController];
+                }
             }
         } else if (title) {
             [self addMenuWithTag:tag parent:parentTag title:title atIndex:idx];
@@ -518,9 +528,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         int size = flags & ToolbarSizeRegularFlag ? NSToolbarSizeModeRegular
                 : NSToolbarSizeModeSmall;
 
-        [toolbar setSizeMode:size];
-        [toolbar setDisplayMode:mode];
-        [toolbar setVisible:enable];
+        [windowController showToolbar:enable size:size mode:mode];
     } else if (CreateScrollbarMsgID == msgid) {
         const void *bytes = [data bytes];
         long ident = *((long*)bytes);  bytes += sizeof(long);

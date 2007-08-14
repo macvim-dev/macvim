@@ -56,10 +56,11 @@
 - (void)setFont:(NSFont *)font;
 - (void)processCommandQueueDidFinish;
 - (void)popupMenu:(NSMenu *)menu atRow:(int)row column:(int)col;
+- (void)showTabBar:(BOOL)on;
+- (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode;
 
 - (IBAction)addNewTab:(id)sender;
-- (IBAction)showTabBar:(id)sender;
-- (IBAction)hideTabBar:(id)sender;
+- (IBAction)toggleToolbar:(id)sender;
 
 @end
 

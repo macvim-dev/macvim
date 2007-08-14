@@ -92,6 +92,7 @@ enum {
     EnableMenuItemMsgID,
     ExecuteMenuMsgID,
     ShowToolbarMsgID,
+    ToggleToolbarMsgID,
     CreateScrollbarMsgID,
     DestroyScrollbarMsgID,
     ShowScrollbarMsgID,
