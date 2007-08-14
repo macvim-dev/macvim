@@ -13,6 +13,9 @@
 
 
 
+static float MMFlushTimeoutInterval = 0.1f;
+
+
 // TODO: Move to separate file.
 static int eventModifierFlagsToVimModMask(int modifierFlags);
 static int vimModMaskToEventModifierFlags(int mods);
@@ -243,24 +246,29 @@ static int specialKeyToNSKey(int key);
     [drawData appendBytes:&right length:sizeof(int)];
 }
 
-- (void)flush
+- (void)flushQueue:(BOOL)force
 {
+    // NOTE! This method gets called a lot; if we were to flush every time it
+    // was called MacVim would feel unresponsive.  So there is a time out which
+    // ensures that the queue isn't flushed too often.
+    if (!force && lastFlushDate && -[lastFlushDate timeIntervalSinceNow]
+            < MMFlushTimeoutInterval)
+        return;
+
     if ([drawData length] > 0) {
         [self queueMessage:BatchDrawMsgID data:[drawData copy]];
         [drawData setLength:0];
     }
-}
 
-- (void)flushQueue
-{
-    [self flush];
-
-    if ([drawData length] > 0 || [queue count] > 0) {
+    if ([queue count] > 0) {
         // TODO: Come up with a better way to handle the insertion point.
         [self updateInsertionPoint];
 
         [frontendProxy processCommandQueue:queue];
         [queue removeAllObjects];
+
+        [lastFlushDate release];
+        lastFlushDate = [[NSDate date] retain];
     }
 }
 
@@ -674,6 +682,9 @@ static int specialKeyToNSKey(int key);
 
 - (oneway void)processInput:(int)msgid data:(in NSData *)data
 {
+    [lastFlushDate release];
+    lastFlushDate = [[NSDate date] retain];
+
     [self handleMessage:msgid data:data];
     inputReceived = YES;
 }

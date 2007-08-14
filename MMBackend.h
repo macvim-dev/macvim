@@ -26,6 +26,7 @@
     int             foregroundColor;
     int             defaultBackgroundColor;
     int             defaultForegroundColor;
+    NSDate          *lastFlushDate;
 }
 
 + (MMBackend *)sharedInstance;
@@ -45,8 +46,7 @@
                 flags:(int)flags;
 - (void)insertLinesFromRow:(int)row count:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right;
-- (void)flush;
-- (void)flushQueue;
+- (void)flushQueue:(BOOL)force;
 - (BOOL)waitForInput:(int)milliseconds;
 - (void)exit;
 - (void)selectTab:(int)index;

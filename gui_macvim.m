@@ -133,8 +133,7 @@ gui_mch_open(void)
     void
 gui_mch_update(void)
 {
-    // HACK!  Nothing to do here since we tend to the run loop (which holds
-    // incoming events) in gui_mch_wait_for_chars().
+    [[MMBackend sharedInstance] flushQueue:NO];
 }
 
 
@@ -142,13 +141,7 @@ gui_mch_update(void)
     void
 gui_mch_flush(void)
 {
-    // HACK!  This function is called so often that draw performance suffers.
-    // Instead of actually flushing the output it is placed on a queue and
-    // flushed in gui_mch_wait_for_chars(), which makes the program feel much
-    // more responsive.  This might have unintended side effects though;  if
-    // so, another solution might have to be found.
-
-    //[[MMBackend sharedInstance] flush];
+    [[MMBackend sharedInstance] flushQueue:NO];
 }
 
 
@@ -164,8 +157,9 @@ gui_mch_flush(void)
     int
 gui_mch_wait_for_chars(int wtime)
 {
-    // HACK!  See comment in gui_mch_flush().
-    [[MMBackend sharedInstance] flushQueue];
+    // NOTE! In all likelyhood Vim will take a nap when waitForInput: is
+    // called, so force a flush of the command queue here.
+    [[MMBackend sharedInstance] flushQueue:YES];
 
     return [[MMBackend sharedInstance] waitForInput:wtime];
 }
