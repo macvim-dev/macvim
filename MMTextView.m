@@ -428,14 +428,14 @@
     if ([event type] != NSKeyDown)
         return;
 
-    //NSLog(@"%s%@", _cmd, event);
-
     NSString *chars = [event characters];
     NSString *imchars = [event charactersIgnoringModifiers];
     unichar c = [chars characterAtIndex:0];
     unichar imc = [imchars characterAtIndex:0];
     int len = 0;
     const char *bytes = 0;
+
+    //NSLog(@"%s chars=0x%x unmodchars=0x%x", _cmd, c, imc);
 
     if (' ' == imc && 0xa0 != c) {
         // HACK!  The AppKit turns <C-Space> into <C-@> which is not standard
@@ -451,7 +451,12 @@
         // HACK!  Translate Ctrl+6 to <C-^>.
         static char ctrl_hat = 0x1e;
         len = 1;  bytes = &ctrl_hat;
-    } else {
+    } else if (c == 0x19 && imc == 0x19) {
+        // HACK! AppKit turns back tab into Ctrl-Y, so we need to handle it
+        // separately (else Ctrl-Y doesn't work).
+        static char back_tab[2] = { 'k', 'B' };
+        len = 2; bytes = back_tab;
+    }else {
         len = [chars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
         bytes = [chars UTF8String];
     }
