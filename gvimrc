@@ -70,18 +70,24 @@ an <silent> 70.360 Window.Bring\ All\ To\ Front :action arrangeInFront:<CR>
 "   -*-             a separator item
 
 " Remove some items so that all items are visible at the default window size.
-aunmenu ToolBar.Undo
-aunmenu ToolBar.Redo
-aunmenu ToolBar.-sep2-
-aunmenu ToolBar.Cut
-aunmenu ToolBar.Copy
-aunmenu ToolBar.Paste
-aunmenu ToolBar.-sep3-
+"aunmenu ToolBar.Undo
+"aunmenu ToolBar.Redo
+"aunmenu ToolBar.-sep2-
+"aunmenu ToolBar.Cut
+"aunmenu ToolBar.Copy
+"aunmenu ToolBar.Paste
+"aunmenu ToolBar.-sep3-
 aunmenu ToolBar.Replace
 aunmenu ToolBar.FindNext
 aunmenu ToolBar.FindPrev
 aunmenu ToolBar.-sep5-
+aunmenu ToolBar.-sep6-
+aunmenu ToolBar.RunCtags
+aunmenu ToolBar.TagJump
+"aunmenu ToolBar.-sep7-
+aunmenu ToolBar.FindHelp
 
+"an 1.295 ToolBar.-flexspace7-   <Nop>
 
 
 
