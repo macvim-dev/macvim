@@ -456,7 +456,12 @@
         // separately (else Ctrl-Y doesn't work).
         static char back_tab[2] = { 'k', 'B' };
         len = 2; bytes = back_tab;
-    }else {
+    } else if (c == 0x3 && imc == 0x3) {
+        // HACK! AppKit turns enter (not return) into Ctrl-C, so we need to
+        // handle it separately (else Ctrl-C doesn't work).
+        static char enter[2] = { 'K', 'A' };
+        len = 2; bytes = enter;
+    } else {
         len = [chars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
         bytes = [chars UTF8String];
     }
