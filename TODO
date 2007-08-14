@@ -1,13 +1,19 @@
 Active:
 
+- ability to interrupt vim (needs to check the run-loop for interrupts)
+- let user choose file encoding and format in open/save dialogs
+- view menu option to show/hide gui status line
+- autosave settings ?
+- encoding -- convert strings from vim to utf-8
+- main menu (buffers menu, window menu)
+- gui dialogs (FEAT_GUI_DIALOG)
+  no warning when buffer modified outside vim (implement gui_mch_dialog())
+- standardize NSString usage (initialization & how it is passed in messages)
+- autosave window rows&columns?
+- set gfn=* ?
 - improve drag and drop support (drop in command line mode not working,
   modifier keys are ignored)
 - grey out menus which can't be used: Tab Next/Prev/Close, Undo/Redo, etc.
-- when only one tab open make <D-w> close window
-- main menu (buffers menu, window menu)
-- services menu
-- no warning when buffer modified outside vim (implement gui_mch_dialog())
-- gui dialogs (FEAT_GUI_DIALOG)
 - find/replace toolbar item (FIND_REPLACE_DIALOG)
 - drag-to-resize, delay if mouse button held down
 - ability to modify key equivalents at any time
@@ -18,11 +24,8 @@ Active:
 - tab-completion for :action command?
 - should ignore action message if is called too often (e.g. in addNewTab:)
 - proper font handling
-- font selection dialog (:set gfn=*)
 - check for memory leaks
 - i8n
-- popup menus
-- encoding -- convert strings from vim to utf-8
 - change building procedure so that the Makefile compiles and links VimTask and
   then calls pbxbuild to build MacVim (and put MacVim.app) in the src folder
 - icons for all built in toolbar items
@@ -33,7 +36,6 @@ Active:
 - forking doesn't work with :gui (i think)
 - make sure [NSMutableData appendByte:length:] is never called with 0 length
   (this will lead to a crash)
-- wide characters are badly supported: they render as too wide
 - update speed whilst resizing with mouse is excruciatingly slow
 - window count should be typeset nicely in tab
 - put marked text in status line (?)
@@ -63,8 +65,25 @@ Active:
 
 Pending:
 
+- toogle toolbar off, maximize window, toolbar on -> text view under toolbar
+- clicking pill button does not update 'guioptions'
+- detect Cmd-. (and Ctrl-C) for interrupt
+- :popup
+- popup menus
+- when only one tab open make <D-w> close window
+- cscope, ctags
+- Ctrl-O in insert mode
+- remember window position
+- font selection dialog (:set gfn=*)
+- services menu
+- wide characters are badly supported: they render as too wide
+- dropping directories does not work
 - memory leak with text view? (need to release text storage)
 - drag and drop inside view (FEAT_GUI_DND, gui_handle_drop())
+
+
+Done:
+
 - toolbar drawing bug
 - Cmd-zoom -> no input received, drawing broken
 - scrollbars not positioned over resize box
@@ -86,10 +105,6 @@ Pending:
 - :colorscheme elflord, :set lines+=3 --> colors are not updated properly
 - use DO to communicate between GUI and Vim (only for two-way communication,
   one-way communication should still use mach ports)
-
-
-Done:
-
 - make scrollbar inactive if it is too small to display properly
 - make vertical scrollbars cover command line as well
 - setting font in .gvimrc has no effect since textStorage has not been init'ed
