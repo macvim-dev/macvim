@@ -1,0 +1,19 @@
+{
+    IBClasses = (
+        {CLASS = FirstResponder; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {
+            ACTIONS = {addNewTab = id; toggleToolbar = id; }; 
+            CLASS = MMWindowController; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {
+                statusSeparator = NSBox; 
+                statusTextField = NSTextField; 
+                tabBarControl = PSMTabBarControl; 
+                tabView = NSTabView; 
+                tablineSeparator = NSBox; 
+            }; 
+            SUPERCLASS = NSWindowController; 
+        }
+    ); 
+    IBVersion = 1; 
+}

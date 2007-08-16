@@ -16,14 +16,6 @@
 			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
-	1D0DC9EB0BA34B3D00B6CCFA /* VimWindowController.m */ = {
-		isa = PBXFileReference;
-		fileEncoding = 30;
-		lastKnownFileType = sourcecode.c.objc;
-		name = VimWindowController.m;
-		path = /Users/winckler/Projects/vim70/src/MacVim/VimWindowController.m;
-		sourceTree = "<absolute>";
-	};
 	1D14749D0C5673AE0038FA2B /* MMAppController.h */ = {
 		uiCtxt = {
 			sepNavIntBoundsRect = "{{0, 0}, {795, 464}}";
@@ -33,9 +25,10 @@
 	};
 	1D14749E0C5673AE0038FA2B /* MMAppController.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {795, 7568}}";
-			sepNavSelRange = "{14355, 0}";
-			sepNavVisRect = "{{0, 3943}, {795, 162}}";
+			sepNavIntBoundsRect = "{{0, 0}, {983, 7600}}";
+			sepNavSelRange = "{14399, 0}";
+			sepNavVisRect = "{{0, 4078}, {983, 274}}";
+			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
 	1D1474A80C5677450038FA2B /* MMTextStorage.m */ = {
@@ -56,25 +49,34 @@
 	};
 	1D1474AE0C5678370038FA2B /* MMTextView.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {795, 7760}}";
-			sepNavSelRange = "{14917, 0}";
-			sepNavVisRect = "{{0, 423}, {795, 162}}";
+			sepNavIntBoundsRect = "{{0, 0}, {983, 7904}}";
+			sepNavSelRange = "{3174, 0}";
+			sepNavVisRect = "{{0, 1599}, {983, 274}}";
 			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
 	1D1474B40C56796D0038FA2B /* MMVimController.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {795, 15968}}";
-			sepNavSelRange = "{34308, 0}";
-			sepNavVisRect = "{{0, 9591}, {795, 162}}";
+			sepNavIntBoundsRect = "{{0, 0}, {1637, 17296}}";
+			sepNavSelRange = "{3790, 7}";
+			sepNavVisRect = "{{0, 1576}, {781, 608}}";
+			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
+		};
+	};
+	1D1474B90C567A910038FA2B /* MMWindowController.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {781, 1168}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRect = "{{0, 0}, {781, 608}}";
 			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
 	1D1474BA0C567A910038FA2B /* MMWindowController.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {795, 18528}}";
-			sepNavSelRange = "{0, 0}";
-			sepNavVisRect = "{{0, 0}, {795, 162}}";
+			sepNavIntBoundsRect = "{{0, 0}, {1147, 20016}}";
+			sepNavSelRange = "{39888, 0}";
+			sepNavVisRect = "{{0, 2791}, {795, 162}}";
+			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
 	1D16B9CF0BA33BAE00A69B33 /* MacVim */ = {
@@ -114,6 +116,17 @@
 		);
 		autoAttachOnCrash = 1;
 		configStateDict = {
+			"PBXLSLaunchAction-0" = {
+				PBXLSLaunchAction = 0;
+				PBXLSLaunchStartAction = 1;
+				PBXLSLaunchStdioStyle = 2;
+				PBXLSLaunchStyle = 0;
+				class = PBXLSRunLaunchConfig;
+				displayName = "Executable Runner";
+				identifier = com.apple.Xcode.launch.runConfig;
+				remoteHostInfo = "";
+				startActionInfo = "";
+			};
 		};
 		customDataFormattersEnabled = 1;
 		debuggerPlugin = GDBDebugging;
@@ -121,6 +134,16 @@
 		dylibVariantSuffix = "";
 		enableDebugStr = 1;
 		environmentEntries = (
+			{
+				active = NO;
+				name = DYLD_INSERT_LIBRARIES;
+				value = /usr/lib/libgmalloc.dylib;
+			},
+			{
+				active = NO;
+				name = NSZombieEnabled;
+				value = YES;
+			},
 		);
 		executableSystemSymbolLevel = 0;
 		executableUserSymbolLevel = 0;
@@ -131,6 +154,46 @@
 		sourceDirectories = (
 		);
 		variableFormatDictionary = {
+			$cr = 1;
+			$ctr = 1;
+			$lr = 1;
+			$mq = 1;
+			$pc = 1;
+			$ps = 1;
+			$r0 = 1;
+			$r1 = 1;
+			$r10 = 1;
+			$r11 = 1;
+			$r12 = 1;
+			$r13 = 1;
+			$r14 = 1;
+			$r15 = 1;
+			$r16 = 1;
+			$r17 = 1;
+			$r18 = 1;
+			$r19 = 1;
+			$r2 = 1;
+			$r20 = 1;
+			$r21 = 1;
+			$r22 = 1;
+			$r23 = 1;
+			$r24 = 1;
+			$r25 = 1;
+			$r26 = 1;
+			$r27 = 1;
+			$r28 = 1;
+			$r29 = 1;
+			$r3 = 1;
+			$r30 = 1;
+			$r31 = 1;
+			$r4 = 1;
+			$r5 = 1;
+			$r6 = 1;
+			$r7 = 1;
+			$r8 = 1;
+			$r9 = 1;
+			$xer = 1;
+			"type-FourCharCode-SendOFAStrikeMessage" = 5;
 		};
 	};
 	1D16B9DD0BA33BB000A69B33 /* Source Control */ = {
@@ -145,6 +208,32 @@
 		isa = PBXCodeSenseManager;
 		indexTemplatePath = "";
 	};
+	1D6F54990C7358B600D9BDC8 /* [NSView performKeyEquivalent:] */ = {
+		isa = PBXSymbolicBreakpoint;
+		actions = (
+		);
+		breakpointStyle = 1;
+		continueAfterActions = 0;
+		delayBeforeContinue = 0;
+		hitCount = 1;
+		location = AppKit;
+		modificationTime = 208946307.079667;
+		state = 2;
+		symbolName = "[NSView performKeyEquivalent:]";
+	};
+	1D6F54CB0C7371E000D9BDC8 /* -[_NSZombie methodSignatureForSelector:] */ = {
+		isa = PBXSymbolicBreakpoint;
+		actions = (
+		);
+		breakpointStyle = 1;
+		continueAfterActions = 0;
+		delayBeforeContinue = 0;
+		hitCount = 1;
+		location = Foundation;
+		modificationTime = 208946315.868945;
+		state = 1;
+		symbolName = "-[_NSZombie methodSignatureForSelector:]";
+	};
 	1D9B9FEF0BB34E7700F878F2 /* [NSException raise] */ = {
 		isa = PBXSymbolicBreakpoint;
 		actions = (
@@ -154,7 +243,7 @@
 		delayBeforeContinue = 0;
 		hitCount = 1;
 		location = Foundation;
-		modificationTime = 208462702.108592;
+		modificationTime = 208946315.819578;
 		state = 1;
 		symbolName = "[NSException raise]";
 	};
@@ -166,26 +255,13 @@
 			sepNavWindowFrame = "{{15, 17}, {606, 724}}";
 		};
 	};
-	1DDA694B0C552B2B00F5D112 /* VimWindowController.m:539 */ = {
-		isa = PBXFileBreakpoint;
-		actions = (
-		);
-		breakpointStyle = 0;
-		continueAfterActions = 0;
-		delayBeforeContinue = 0;
-		fileReference = 1D0DC9EB0BA34B3D00B6CCFA /* VimWindowController.m */;
-		functionName = "-windowDidResize:";
-		hitCount = 1;
-		lineNumber = 539;
-		modificationTime = 208463293.566525;
-		state = 1;
-	};
 	1DE445650BA493EC00C4C77A /* XCBreakpointsBucket */ = {
 		isa = XCBreakpointsBucket;
 		name = "Project Breakpoints";
 		objects = (
 			1D9B9FEF0BB34E7700F878F2 /* [NSException raise] */,
-			1DDA694B0C552B2B00F5D112 /* VimWindowController.m:539 */,
+			1D6F54990C7358B600D9BDC8 /* [NSView performKeyEquivalent:] */,
+			1D6F54CB0C7371E000D9BDC8 /* -[_NSZombie methodSignatureForSelector:] */,
 		);
 	};
 	29B97313FDCFA39411CA2CEA /* Project object */ = {
@@ -197,7 +273,8 @@
 		);
 		breakpoints = (
 			1D9B9FEF0BB34E7700F878F2 /* [NSException raise] */,
-			1DDA694B0C552B2B00F5D112 /* VimWindowController.m:539 */,
+			1D6F54990C7358B600D9BDC8 /* [NSView performKeyEquivalent:] */,
+			1D6F54CB0C7371E000D9BDC8 /* -[_NSZombie methodSignatureForSelector:] */,
 		);
 		breakpointsGroup = 1DE445650BA493EC00C4C77A /* XCBreakpointsBucket */;
 		codeSenseManager = 1D16B9DE0BA33BB000A69B33 /* Code sense */;
@@ -225,6 +302,20 @@
 					PBXBreakpointsDataSource_LocationID,
 					PBXBreakpointsDataSource_ConditionID,
 					PBXBreakpointsDataSource_ContinueID,
+				);
+			};
+			PBXConfiguration.PBXFileTableDataSource3.PBXErrorsWarningsDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXErrorsWarningsDataSource_LocationID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					300,
+					133,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXErrorsWarningsDataSource_TypeID,
+					PBXErrorsWarningsDataSource_MessageID,
+					PBXErrorsWarningsDataSource_LocationID,
 				);
 			};
 			PBXConfiguration.PBXFileTableDataSource3.PBXExecutablesDataSource = {
@@ -301,8 +392,8 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 208536631;
-			PBXWorkspaceStateSaveDate = 208536631;
+			PBXPerProjectTemplateStateSaveDate = 208941697;
+			PBXWorkspaceStateSaveDate = 208941697;
 		};
 		sourceControlManager = 1D16B9DD0BA33BB000A69B33 /* Source Control */;
 		userBuildSettings = {

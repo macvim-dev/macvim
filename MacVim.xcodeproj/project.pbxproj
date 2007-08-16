@@ -15,7 +15,6 @@
 		1D1474B00C5678370038FA2B /* MMTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474AE0C5678370038FA2B /* MMTextView.m */; };
 		1D1474B60C56796D0038FA2B /* MMVimController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474B40C56796D0038FA2B /* MMVimController.m */; };
 		1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474BA0C567A910038FA2B /* MMWindowController.m */; };
-		1D16B9EB0BA33E1E00A69B33 /* VimWindow.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1D16B9E90BA33E1E00A69B33 /* VimWindow.nib */; };
 		1D493D580C5247BF00AB718C /* Vim in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D493D570C5247BF00AB718C /* Vim */; };
 		1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
 		1D71ACB40BC702AB002F2B60 /* doc-bm-c.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACA90BC702AB002F2B60 /* doc-bm-c.icns */; };
@@ -33,6 +32,7 @@
 		1DD0C20C0C60FFB4008CD84A /* gvimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DD0C20A0C60FF9A008CD84A /* gvimrc */; };
 		1DD703B90BA9D15D008679E9 /* vim_gloss.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1DD703B80BA9D15D008679E9 /* vim_gloss.icns */; };
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
+		1DDBEB6D0C7434150036EEDD /* EmptyWindow.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDBEB6B0C7434150036EEDD /* EmptyWindow.nib */; };
 		1DE608B40C587FDA0055263D /* runtime in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
 		1DED78600C6DE43D0079945F /* vimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
@@ -135,7 +135,6 @@
 		1D1474B40C56796D0038FA2B /* MMVimController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMVimController.m; sourceTree = "<group>"; };
 		1D1474B90C567A910038FA2B /* MMWindowController.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMWindowController.h; sourceTree = "<group>"; };
 		1D1474BA0C567A910038FA2B /* MMWindowController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMWindowController.m; sourceTree = "<group>"; };
-		1D16B9EA0BA33E1E00A69B33 /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/VimWindow.nib; sourceTree = "<group>"; };
 		1D493D570C5247BF00AB718C /* Vim */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = Vim; path = ../Vim; sourceTree = SOURCE_ROOT; };
 		1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PSMTabBarControl.xcodeproj; path = PSMTabBarControl/PSMTabBarControl.xcodeproj; sourceTree = "<group>"; };
 		1D71ACA90BC702AB002F2B60 /* doc-bm-c.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm-c.icns"; sourceTree = "<group>"; };
@@ -153,6 +152,7 @@
 		1DD0C20A0C60FF9A008CD84A /* gvimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gvimrc; sourceTree = "<group>"; };
 		1DD703B80BA9D15D008679E9 /* vim_gloss.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = vim_gloss.icns; sourceTree = "<group>"; };
 		1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SpecialKeys.plist; sourceTree = "<group>"; };
+		1DDBEB6C0C7434150036EEDD /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/EmptyWindow.nib; sourceTree = "<group>"; };
 		1DE602470C587FD10055263D /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; name = runtime; path = ../../runtime; sourceTree = SOURCE_ROOT; };
 		1DE8CC610C5E2AAD003F56E3 /* Actions.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Actions.plist; sourceTree = "<group>"; };
 		1DED785F0C6DE43D0079945F /* vimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = vimrc; sourceTree = "<group>"; };
@@ -346,7 +346,7 @@
 				8D1107310486CEB800E47090 /* Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				29B97318FDCFA39411CA2CEA /* MainMenu.nib */,
-				1D16B9E90BA33E1E00A69B33 /* VimWindow.nib */,
+				1DDBEB6B0C7434150036EEDD /* EmptyWindow.nib */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -424,7 +424,6 @@
 			files = (
 				8D11072A0486CEB800E47090 /* MainMenu.nib in Resources */,
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
-				1D16B9EB0BA33E1E00A69B33 /* VimWindow.nib in Resources */,
 				1D0E051C0BA5F83800B6049E /* Colors.plist in Resources */,
 				1DD703B90BA9D15D008679E9 /* vim_gloss.icns in Resources */,
 				1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */,
@@ -462,6 +461,7 @@
 				1DEE0DB30C4E150B008E82B2 /* Undo.png in Resources */,
 				1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */,
 				1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */,
+				1DDBEB6D0C7434150036EEDD /* EmptyWindow.nib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -502,12 +502,12 @@
 			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
-		1D16B9E90BA33E1E00A69B33 /* VimWindow.nib */ = {
+		1DDBEB6B0C7434150036EEDD /* EmptyWindow.nib */ = {
 			isa = PBXVariantGroup;
 			children = (
-				1D16B9EA0BA33E1E00A69B33 /* English */,
+				1DDBEB6C0C7434150036EEDD /* English */,
 			);
-			name = VimWindow.nib;
+			name = EmptyWindow.nib;
 			sourceTree = "<group>";
 		};
 		29B97318FDCFA39411CA2CEA /* MainMenu.nib */ = {
