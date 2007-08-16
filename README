@@ -130,6 +130,10 @@ Bugs:
   title.
 - NSTabViewItem setInitialFirstResponder: seems to have no effect, so we
   manually set the first responder when the tab item selection changes.
+- PSMTabBarControl never removes itself as an observer, which can cause all
+  sort of weird problems (crashes etc.), so this is taken care of at cleanup.
+- PSMTabBarControl retains its delegate, so the delegate is forcibly set to nil
+  at cleanup, else there will be a memory leak.
 
 
 Features (!supp indicates that a feature is not supported):
@@ -158,14 +162,17 @@ Features (!supp indicates that a feature is not supported):
   higher than can fit the screen (no such restrictions on width at the moment)
 - Pasteboard: star-register works with the mac os x pasteboard
 - Open/Save dialog: use with :browse
-- Fonts: bold/italic/underline traits supported, font changes with ':set gfn'
+- Fonts: bold/italic/underline traits supported, font changes with ':set gfn',
+  or use font panel
 - File type associations: add more associations by editing Info.plist
 - Start GUI from terminal, type :gui
 - Scroll bars
-- Wide characters: poor support, do not render at right width/height
+- Wide characters: but composed characters !supp
 - Printing: !supp
 - Find/Replace dialog: !supp
 - Gui dialogs: !supp
 - External editor protocol: !supp
-- Services menu: !supp
+- Services menu: some simple minded provider entries 
 - Encodings: !supp (enc, tenc always set to utf-8)
+- Autosave window position
+- Smart cascading of new windows
