@@ -220,6 +220,8 @@
 
 - (void)removeVimController:(id)controller
 {
+    [[controller windowController] close];
+
     [vimControllers removeObject:controller];
 
     if (![vimControllers count]) {

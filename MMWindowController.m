@@ -98,7 +98,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (id)initWithVimController:(MMVimController *)controller
 {
-    if ((self = [super initWithWindowNibName:@"VimWindow"])) {
+#if MM_USE_EMPTY_WINDOW
+    if ((self = [super initWithWindowNibName:@"EmptyWindow"]))
+#else
+    if ((self = [super initWithWindowNibName:@"VimWindow"]))
+#endif
+    {
         vimController = controller;
         scrollbars = [[NSMutableArray alloc] init];
 
@@ -130,7 +135,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         [textStorage addLayoutManager:lm];
         [lm addTextContainer:tc];
 
-        textView = [[MMTextView alloc] initWithFrame:NSZeroRect
+        NSView *contentView = [[self window] contentView];
+        textView = [[MMTextView alloc] initWithFrame:[contentView frame]
                                        textContainer:tc];
 
         NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
@@ -138,10 +144,57 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         int top = [ud integerForKey:MMTextInsetTopKey];
         [textView setTextContainerInset:NSMakeSize(left, top)];
 
+        [contentView addSubview:textView];
+
         // The text storage retains the layout manager which in turn retains
         // the text container.
         [tc release];
         [lm release];
+
+#if MM_USE_EMPTY_WINDOW
+        // Create the tabline separator (which may be visible when the tabline
+        // is hidden).
+        NSRect tabSepRect = [contentView frame];
+        tabSepRect.origin.y = NSMaxY(tabSepRect)-1;
+        tabSepRect.size.height = 1;
+        tablineSeparator = [[NSBox alloc] initWithFrame:tabSepRect];
+
+        // Create the tab view (which is never visible, but the tab bar control
+        // needs it to function).
+        tabView = [[NSTabView alloc] initWithFrame:NSZeroRect];
+
+        // Create the tab bar control (which is responsible for actually
+        // drawing the tabline and tabs).
+        NSRect tabFrame = [contentView frame];
+        tabFrame.origin.y = NSMaxY(tabFrame) - 22;
+        tabFrame.size.height = 22;
+        tabBarControl = [[PSMTabBarControl alloc] initWithFrame:tabFrame];
+
+        [tabView setDelegate:tabBarControl];
+
+        [tabBarControl setTabView:tabView];
+        [tabBarControl setDelegate:self];
+        [tabBarControl setHidden:YES];
+        [tabBarControl setAutoresizingMask:NSViewWidthSizable|NSViewMinYMargin];
+        [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
+        [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
+        [tabBarControl setCellOptimumWidth:
+                         [ud integerForKey:MMTabOptimumWidthKey]];
+
+        [tabBarControl setAllowsDragBetweenWindows:NO];
+
+        [tablineSeparator setBoxType:NSBoxSeparator];
+        [tablineSeparator setHidden:NO];
+        [tablineSeparator setAutoresizingMask:NSViewWidthSizable
+            | NSViewMinYMargin];
+
+        [contentView setAutoresizesSubviews:YES];
+        [contentView addSubview:tabBarControl];
+        [contentView addSubview:tablineSeparator];
+
+        [[self window] setDelegate:self];
+        [[self window] setInitialFirstResponder:textView];
+#endif
     }
 
     return self;
@@ -151,29 +204,33 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     //NSLog(@"%@ %s", [self className], _cmd);
 
-    // TODO: release tabBarControl and tabView?
+#if MM_USE_EMPTY_WINDOW
+    [tabBarControl release];  tabBarControl = nil;
+    [tabView release];  tabView = nil;
+    [tablineSeparator release];  tablineSeparator = nil;
+#endif
+    [windowAutosaveKey release];  windowAutosaveKey = nil;
+    [scrollbars release];  scrollbars = nil;
+    [textView release];  textView = nil;
+    [textStorage release];  textStorage = nil;
 
-    vimController = nil;
-
-    [tabBarControl setDelegate:nil];
-    [[self window] setDelegate:nil];
-
-    [tabView removeAllTabViewItems];
-
-    [scrollbars release];
-    [textView release];
-    [textStorage release];
+    //[tabBarControl release];  tabBarControl = nil;
+    //[tabView release];  tabView = nil;
 
     [super dealloc];
 }
 
+- (NSString *)description
+{
+    return [NSString stringWithFormat:@"%@ : setupDone=%d windowAutosaveKey=%@ vimController=%@", [self className], setupDone, windowAutosaveKey, vimController];
+}
+
+#if !MM_USE_EMPTY_WINDOW
 - (void)windowDidLoad
 {
-    NSWindow *win = [self window];
-
     // Called after window nib file is loaded.
 
-    [tablineSeparator setHidden:NO];
+    [tablineSeparator setHidden:([[self window] toolbar] == nil)];
     [tabBarControl setHidden:YES];
 
     // NOTE: Size to fit looks good, but not many tabs will fit and there are
@@ -186,29 +243,15 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [tabBarControl setCellOptimumWidth:[ud integerForKey:MMTabOptimumWidthKey]];
 
     [tabBarControl setAllowsDragBetweenWindows:NO];
-    [tabBarControl setShowAddTabButton:YES];
-    [[tabBarControl addTabButton] setTarget:self];
-    [[tabBarControl addTabButton] setAction:@selector(addNewTab:)];
+    //[tabBarControl setShowAddTabButton:YES];
+    //[[tabBarControl addTabButton] setTarget:self];
+    //[[tabBarControl addTabButton] setAction:@selector(addNewTab:)];
 
     // HACK! remove any tabs present in the nib
     [tabView removeAllTabViewItems];
-
-    // HACK!  These observers used to be set in the designated init of
-    // MMVimController, but this occasionally caused exceptions from within the
-    // AppKit to be raised.  The problem seemed related to the fact that the
-    // window got loaded 'too early'; adding the observers here seems to
-    // alleviate this problem.
-    [[NSNotificationCenter defaultCenter]
-            addObserver:vimController
-               selector:@selector(windowWillClose:)
-                   name:NSWindowWillCloseNotification
-                 object:win];
-    [[NSNotificationCenter defaultCenter]
-            addObserver:vimController
-               selector:@selector(windowDidBecomeMain:)
-                   name:NSWindowDidBecomeMainNotification
-                 object:win];
+    [tabView setHidden:YES];
 }
+#endif
 
 - (MMVimController *)vimController
 {
@@ -236,6 +279,44 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     windowAutosaveKey = [key copy];
 }
 
+- (void)cleanup
+{
+    //NSLog(@"%@ %s", [self className], _cmd);
+
+    setupDone = NO;
+    vimController = nil;
+
+    // NOTE! There is a bug in PSMTabBarControl in that it retains the delegate
+    // (which is the MMWindowController) so reset the delegate here, otherwise
+    // the MMWindowController never gets released resulting in a pretty serious
+    // memory leak.
+    [tabView setDelegate:nil];
+    [tabBarControl setDelegate:nil];
+    [tabBarControl setTabView:nil];
+    [[self window] setDelegate:nil];
+
+    // NOTE! There is another bug in PSMTabBarControl where the control is not
+    // removed as an observer, so remove it here (else lots of evil nasty bugs
+    // will come and gnaw at your feet while you are sleeping).
+    [[NSNotificationCenter defaultCenter] removeObserver:tabBarControl];
+
+#if MM_USE_EMPTY_WINDOW
+    [tabBarControl removeFromSuperviewWithoutNeedingDisplay];
+    [tablineSeparator removeFromSuperviewWithoutNeedingDisplay];
+#endif
+    [textView removeFromSuperviewWithoutNeedingDisplay];
+
+    unsigned i, count = [scrollbars count];
+    for (i = 0; i < count; ++i) {
+        MMScroller *sb = [scrollbars objectAtIndex:i];
+        [sb removeFromSuperviewWithoutNeedingDisplay];
+    }
+
+    [tabView removeAllTabViewItems];
+
+    [[self window] orderOut:self];
+}
+
 - (void)openWindow
 {
     [[NSApp delegate] windowControllerWillOpen:self];
@@ -245,15 +326,17 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // NOTE! This flag is set once the entire text system is set up.
     setupDone = YES;
 
-    [self updateResizeIncrements];
-    [self resizeWindowToFit:self];
-    [[self window] makeKeyAndOrderFront:self];
-
+#if !MM_USE_EMPTY_WINDOW
     BOOL statusOff = [[NSUserDefaults standardUserDefaults]
                     boolForKey:MMStatuslineOffKey];
     [statusTextField setHidden:statusOff];
     [statusSeparator setHidden:statusOff];
     [self flashStatusText:@"Welcome to MacVim!"];
+#endif
+
+    [self updateResizeIncrements];
+    [self resizeWindowToFit:self];
+    [[self window] makeKeyAndOrderFront:self];
 }
 
 - (void)updateTabsWithData:(NSData *)data
@@ -339,14 +422,17 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)setStatusText:(NSString *)text
 {
+#if !MM_USE_EMPTY_WINDOW
     if (text)
         [statusTextField setStringValue:text];
     else
         [statusTextField setStringValue:@""];
+#endif
 }
 
 - (void)flashStatusText:(NSString *)text
 {
+#if !MM_USE_EMPTY_WINDOW
     if ([[NSUserDefaults standardUserDefaults] boolForKey:MMStatuslineOffKey])
         return;
 
@@ -362,6 +448,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                             selector:@selector(statusTimerFired:)
                             userInfo:nil
                              repeats:NO] retain];
+#endif
 }
 
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type
@@ -517,15 +604,15 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (IBAction)addNewTab:(id)sender
 {
-// NOTE! This can get called a lot if the user holds down the key
-// equivalent for this action, which causes the ports to fill up.  If we
-// wait for the message to be sent then the app might become unresponsive.
-[vimController sendMessage:AddNewTabMsgID data:nil wait:NO];
+    // NOTE! This can get called a lot if the user holds down the key
+    // equivalent for this action, which causes the ports to fill up.  If we
+    // wait for the message to be sent then the app might become unresponsive.
+    [vimController sendMessage:AddNewTabMsgID data:nil wait:NO];
 }
 
 - (IBAction)toggleToolbar:(id)sender
 {
-[vimController sendMessage:ToggleToolbarMsgID data:nil wait:NO];
+    [vimController sendMessage:ToggleToolbarMsgID data:nil wait:NO];
 }
 
 
@@ -536,14 +623,16 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (void)tabView:(NSTabView *)theTabView didSelectTabViewItem:
     (NSTabViewItem *)tabViewItem
 {
-// HACK!  There seem to be a bug in NSTextView which results in the first
-// responder not being set to the view of the tab item so it is done
-// manually here.
-[[self window] makeFirstResponder:[tabViewItem view]];
+#if !MM_USE_EMPTY_WINDOW
+    // HACK!  There seem to be a bug in NSTabView which results in the first
+    // responder not being set to the view of the tab item so it is done
+    // manually here.
+    //[[self window] makeFirstResponder:[tabViewItem view]];
+#endif
 
-// HACK!  The selection message should not be propagated to the VimTask if
-// the VimTask selected the tab (e.g. as opposed the user clicking the
-// tab).  The delegate method has no way of knowing who initiated the
+    // HACK!  The selection message should not be propagated to the VimTask if
+    // the VimTask selected the tab (e.g. as opposed the user clicking the
+    // tab).  The delegate method has no way of knowing who initiated the
     // selection so a flag is set when the VimTask initiated the selection.
     if (!vimTaskSelectedTab) {
         // Propagate the selection message to the VimTask.
@@ -588,17 +677,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     [vimController sendMessage:VimShouldCloseMsgID data:nil wait:YES];
     return NO;
-}
-
-- (void)windowWillClose:(NSNotification *)notification
-{
-    //NSLog(@"%@ %s", [self className], _cmd);
-
-    // NOTE! There is a bug in PSMTabBarControl in that it retains the delegate
-    // (which is the MMWindowController) so reset the delegate here, otherwise
-    // the MMWindowController never gets released resulting in a pretty serious
-    // memory leak.
-    [tabBarControl setDelegate:nil];
 }
 
 - (void)windowDidMove:(NSNotification *)notification
@@ -846,11 +924,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // will automatically select the first tab added to a tab view.
 
     NSTabViewItem *tvi = [[NSTabViewItem alloc] initWithIdentifier:nil];
-    [tvi setView:textView];
-
-    // BUG!  This call seems to have no effect; see comment in
-    // tabView:didSelectTabViewItem:.
-    //[tvi setInitialFirstResponder:textView];
 
     // NOTE: If this is the first tab it will be automatically selected.
     vimTaskSelectedTab = YES;
@@ -939,8 +1012,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     if (!setupDone) return;
 
-    NSRect tabViewFrame = [tabView frame];
-    NSView *contentView = [[self window] contentView];
+    NSRect textViewFrame = [textView frame];
     BOOL lsbVisible = [self leftScrollbarVisible];
     BOOL statusVisible = ![[NSUserDefaults standardUserDefaults]
             boolForKey:MMStatuslineOffKey];
@@ -994,28 +1066,28 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
             // text view all the way to the right, otherwise it looks ugly when
             // the user drags the window to resize.
             if (i == leftmostSbIdx) {
-                float w = NSMaxX(tabViewFrame) - NSMaxX(rect);
+                float w = NSMaxX(textViewFrame) - NSMaxX(rect);
                 if (w > 0)
                     rect.size.width += w;
             }
 
-            // Make sure scrollbar rect is bounded by the tab view frame.
-            if (rect.origin.x < tabViewFrame.origin.x)
-                rect.origin.x = tabViewFrame.origin.x;
-            else if (rect.origin.x > NSMaxX(tabViewFrame))
-                rect.origin.x = NSMaxX(tabViewFrame);
-            if (NSMaxX(rect) > NSMaxX(tabViewFrame))
-                rect.size.width -= NSMaxX(rect) - NSMaxX(tabViewFrame);
+            // Make sure scrollbar rect is bounded by the text view frame.
+            if (rect.origin.x < textViewFrame.origin.x)
+                rect.origin.x = textViewFrame.origin.x;
+            else if (rect.origin.x > NSMaxX(textViewFrame))
+                rect.origin.x = NSMaxX(textViewFrame);
+            if (NSMaxX(rect) > NSMaxX(textViewFrame))
+                rect.size.width -= NSMaxX(rect) - NSMaxX(textViewFrame);
             if (rect.size.width < 0)
                 rect.size.width = 0;
         } else {
             rect = [textStorage rectForRowsInRange:[scroller range]];
             // Adjust for the fact that text layout is flipped.
-            rect.origin.y = NSMaxY(tabViewFrame) - rect.origin.y
+            rect.origin.y = NSMaxY(textViewFrame) - rect.origin.y
                     - rect.size.height;
             rect.size.width = [NSScroller scrollerWidth];
             if ([scroller type] == MMScrollerTypeRight)
-                rect.origin.x = NSMaxX(tabViewFrame);
+                rect.origin.x = NSMaxX(textViewFrame);
 
             // HACK!  Make sure the lowest vertical scrollbar covers the text
             // view all the way to the bottom.  This is done because Vim only
@@ -1025,9 +1097,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
             // TODO!  Find a nicer way to do this.
             if (i == lowestLeftSbIdx || i == lowestRightSbIdx) {
                 float h = rect.origin.y + rect.size.height
-                          - tabViewFrame.origin.y;
+                          - textViewFrame.origin.y;
                 if (rect.size.height < h) {
-                    rect.origin.y = tabViewFrame.origin.y;
+                    rect.origin.y = textViewFrame.origin.y;
                     rect.size.height = h;
                 }
             }
@@ -1039,14 +1111,14 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                 rect.origin.y = [NSScroller scrollerWidth];
             }
 
-            // Make sure scrollbar rect is bounded by the tab view frame.
-            if (rect.origin.y < tabViewFrame.origin.y) {
-                rect.size.height -= tabViewFrame.origin.y - rect.origin.y;
-                rect.origin.y = tabViewFrame.origin.y;
-            } else if (rect.origin.y > NSMaxY(tabViewFrame))
-                rect.origin.y = NSMaxY(tabViewFrame);
-            if (NSMaxY(rect) > NSMaxY(tabViewFrame))
-                rect.size.height -= NSMaxY(rect) - NSMaxY(tabViewFrame);
+            // Make sure scrollbar rect is bounded by the text view frame.
+            if (rect.origin.y < textViewFrame.origin.y) {
+                rect.size.height -= textViewFrame.origin.y - rect.origin.y;
+                rect.origin.y = textViewFrame.origin.y;
+            } else if (rect.origin.y > NSMaxY(textViewFrame))
+                rect.origin.y = NSMaxY(textViewFrame);
+            if (NSMaxY(rect) > NSMaxY(textViewFrame))
+                rect.size.height -= NSMaxY(rect) - NSMaxY(textViewFrame);
             if (rect.size.height < 0)
                 rect.size.height = 0;
         }
@@ -1057,7 +1129,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
             [scroller setFrame:rect];
             // Clear behind the old scroller frame, or parts of the old
             // scroller might still be visible after setFrame:.
-            [contentView setNeedsDisplayInRect:oldRect];
+            [[[self window] contentView] setNeedsDisplayInRect:oldRect];
             [scroller setNeedsDisplay:YES];
         }
     }
@@ -1108,7 +1180,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                      wait:![textView inLiveResize]];
     }
 
-    [tabView setFrame:textViewRect];
+    [textView setFrame:textViewRect];
 
     [self placeScrollbars];
 }

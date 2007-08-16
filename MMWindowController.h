@@ -10,6 +10,10 @@
 
 #import <Cocoa/Cocoa.h>
 
+
+#define MM_USE_EMPTY_WINDOW 1
+
+
 @class PSMTabBarControl;
 @class MMTextView;
 @class MMTextStorage;
@@ -40,6 +44,7 @@
 - (MMTextStorage *)textStorage;
 - (NSString *)windowAutosaveKey;
 - (void)setWindowAutosaveKey:(NSString *)key;
+- (void)cleanup;
 - (void)openWindow;
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;

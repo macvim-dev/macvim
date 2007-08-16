@@ -18,6 +18,7 @@
 
 @interface MMVimController : NSObject <MMFrontendProtocol>
 {
+    BOOL                isInitialized;
     MMWindowController  *windowController;
     id                  backendProxy;
     BOOL                inProcessCommandQueue;
@@ -32,7 +33,7 @@
 - (id)initWithBackend:(id)backend;
 - (id)backendProxy;
 - (MMWindowController *)windowController;
-- (void)windowWillClose:(NSNotification *)notification;
+- (void)cleanup;
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait;
 
 @end

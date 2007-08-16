@@ -93,6 +93,23 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [[NSNotificationCenter defaultCenter] addObserver:self
                 selector:@selector(connectionDidDie:)
                     name:NSConnectionDidDieNotification object:connection];
+
+        NSWindow *win = [windowController window];
+
+#if 0
+        [[NSNotificationCenter defaultCenter]
+                addObserver:self
+                   selector:@selector(windowWillClose:)
+                       name:NSWindowWillCloseNotification
+                     object:win];
+#endif
+        [[NSNotificationCenter defaultCenter]
+                addObserver:self
+                   selector:@selector(windowDidBecomeMain:)
+                       name:NSWindowDidBecomeMainNotification
+                     object:win];
+
+        isInitialized = YES;
     }
 
     return self;
@@ -101,17 +118,16 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 - (void)dealloc
 {
     //NSLog(@"%@ %s", [self className], _cmd);
+    isInitialized = NO;
 
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [backendProxy release];  backendProxy = nil;
+    [sendQueue release];  sendQueue = nil;
 
-    [backendProxy release];
-    [sendQueue release];
-
-    [toolbarItemDict release];
-    [toolbar release];
-    [popupMenuItems release];
-    [mainMenuItems release];
-    [windowController release];
+    [toolbarItemDict release];  toolbarItemDict = nil;
+    [toolbar release];  toolbar = nil;
+    [popupMenuItems release];  popupMenuItems = nil;
+    [mainMenuItems release];  mainMenuItems = nil;
+    [windowController release];  windowController = nil;
 
     [super dealloc];
 }
@@ -123,6 +139,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait
 {
+    if (!isInitialized) return;
+
     if (inProcessCommandQueue) {
         //NSLog(@"In process command queue; delaying message send.");
         [sendQueue addObject:[NSNumber numberWithInt:msgid]];
@@ -134,7 +152,13 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 
     if (wait) {
-        [backendProxy processInput:msgid data:data];
+        @try {
+            [backendProxy processInput:msgid data:data];
+        }
+        @catch (NSException *e) {
+            NSLog(@"%@ %s Exception caught during DO call: %@",
+                    [self className], _cmd, e);
+        }
     } else {
         // Do not wait for the message to be sent, i.e. drop the message if it
         // can't be delivered immediately.
@@ -161,10 +185,23 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     return backendProxy;
 }
 
+- (void)cleanup
+{
+    //NSLog(@"%@ %s", [self className], _cmd);
+    if (!isInitialized) return;
+
+    isInitialized = NO;
+    [toolbar setDelegate:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [windowController cleanup];
+}
+
 - (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
                                    title:(in bycopy NSString *)title
                                   saving:(int)saving
 {
+    if (!isInitialized) return;
+
     [windowController setStatusText:title];
 
     if (saving) {
@@ -186,6 +223,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (oneway void)processCommandQueue:(in NSArray *)queue
 {
+    if (!isInitialized) return;
+
     unsigned i, count = [queue count];
     if (count % 2) {
         NSLog(@"WARNING: Uneven number of components (%d) in flush queue "
@@ -239,17 +278,24 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 }
 
+#if 0
 - (void)windowWillClose:(NSNotification *)notification
 {
+    NSLog(@"%@ %s%@", [self className], _cmd, notification);
+
+    //[self cleanup];
+
     // NOTE!  This causes the call to removeVimController: to be delayed.
     [[NSApp delegate]
             performSelectorOnMainThread:@selector(removeVimController:)
                              withObject:self waitUntilDone:NO];
 }
+#endif
 
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
-    [self updateMainMenu];
+    if (isInitialized)
+        [self updateMainMenu];
 }
 
 - (NSToolbarItem *)toolbar:(NSToolbar *)theToolbar
@@ -839,6 +885,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)updateMainMenu
 {
+#if 1
     NSMenu *mainMenu = [NSApp mainMenu];
 
     // Stop NSApp from updating the Window menu.
@@ -873,6 +920,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [NSApp setWindowsMenu:windowMenu];
     }
 
+#endif
     shouldUpdateMainMenu = NO;
 }
 
@@ -964,9 +1012,14 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)connectionDidDie:(NSNotification *)notification
 {
-    //NSLog(@"A MMVimController lost its connection to the backend; "
-    //       "closing the controller.");
-    [windowController close];
+    //NSLog(@"%@ %s%@", [self className], _cmd, notification);
+
+    [self cleanup];
+
+    // NOTE!  This causes the call to removeVimController: to be delayed.
+    [[NSApp delegate]
+            performSelectorOnMainThread:@selector(removeVimController:)
+                             withObject:self waitUntilDone:NO];
 }
 
 - (BOOL)executeActionWithName:(NSString *)name
@@ -1002,6 +1055,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 #endif
     return NO;
+}
+
+- (NSString *)description
+{
+    return [NSString stringWithFormat:@"%@ : isInitialized=%d inProcessCommandQueue=%d mainMenuItems=%@ popupMenuItems=%@ toolbar=%@", [self className], isInitialized, inProcessCommandQueue, mainMenuItems, popupMenuItems, toolbar];
 }
 
 @end // MMVimController (Private)

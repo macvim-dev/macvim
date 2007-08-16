@@ -57,6 +57,8 @@ static int specialKeyToNSKey(int key);
 
 - (void)dealloc
 {
+    //NSLog(@"%@ %s", [self className], _cmd);
+
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     [queue release];
@@ -295,6 +297,7 @@ static int specialKeyToNSKey(int key);
     // By invalidating the NSConnection the MMWindowController immediately
     // finds out that the connection is down and as a result
     // [MMWindowController connectionDidDie:] is invoked.
+    //NSLog(@"%@ %s", [self className], _cmd);
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [connection invalidate];
 }
