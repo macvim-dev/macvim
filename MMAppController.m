@@ -93,6 +93,7 @@
     //NSLog(@"MMAppController dealloc");
 
     [vimControllers release];
+    [openSelectionString release];
 
     [super dealloc];
 }
@@ -262,6 +263,23 @@
 
         [win setFrameTopLeftPoint:topLeft];
     }
+
+    if (openSelectionString) {
+        // There is some text to paste into this window as a result of the
+        // services menu "Open selection ..." being used.
+        NSMutableData *data = [NSMutableData data];
+        int len = [openSelectionString
+            lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
+
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[openSelectionString UTF8String] length:len];
+
+        MMVimController *vc = [windowController vimController];
+        [vc sendMessage:DropStringMsgID data:data wait:NO];
+
+        [openSelectionString release];
+        openSelectionString = nil;
+    }
 }
 
 - (IBAction)newVimWindow:(id)sender
@@ -373,8 +391,13 @@
         [vc sendMessage:AddNewTabMsgID data:nil wait:NO];
         [vc sendMessage:DropStringMsgID data:data wait:NO];
     } else {
-        // TODO: Open the selection in the new window.
-        *error = @"ERROR: No window found to open selection in.";
+        // NOTE: There is no window to paste the selection into, so save the
+        // text, open a new window, and paste the text when the next window
+        // opens.  (If this is called several times in a row, then all but the
+        // last call might be ignored.)
+        if (openSelectionString) [openSelectionString release];
+        openSelectionString = [[pboard stringForType:NSStringPboardType] copy];
+
         [self newVimWindow:self];
     }
 }
