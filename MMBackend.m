@@ -765,9 +765,20 @@ static int specialKeyToNSKey(int key);
         if (!data) return;
         NSString *key = [[NSString alloc] initWithData:data
                                               encoding:NSUTF8StringEncoding];
-        //NSLog(@"insert text: %@  (hex=%x)", key, [key characterAtIndex:0]);
-        add_to_input_buf((char_u*)[key UTF8String],
-                [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+        char_u *chars = (char_u*)[key UTF8String];
+        int i, len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+        for (i = 0; i < len; ++i) {
+            add_to_input_buf(chars+i, 1);
+            if (CSI == chars[i]) {
+                // NOTE: If the converted string contains the byte CSI, then it
+                // must be followed by the bytes KS_EXTRA, KE_CSI or things
+                // won't work.
+                static char_u extra[2] = { KS_EXTRA, KE_CSI };
+                add_to_input_buf(extra, 2);
+            }
+        }
+
         [key release];
     } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
         if (!data) return;
@@ -1155,6 +1166,7 @@ static int specialKeyToNSKey(int key);
         }
 
         //NSLog(@"add to input buf: 0x%x", chars[0]);
+        // TODO: Check for CSI bytes?
         add_to_input_buf(chars, length);
     }
 }
