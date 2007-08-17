@@ -157,7 +157,7 @@ gui_mch_flush(void)
     int
 gui_mch_wait_for_chars(int wtime)
 {
-    // NOTE! In all likelyhood Vim will take a nap when waitForInput: is
+    // NOTE! In all likelihood Vim will take a nap when waitForInput: is
     // called, so force a flush of the command queue here.
     [[MMBackend sharedInstance] flushQueue:YES];
 
@@ -953,7 +953,19 @@ gui_mch_dialog(
     int		dfltbutton,
     char_u	*textfield)
 {
-    return 0;
+    //NSLog(@"gui_mch_dialog(type=%d title=%s message=%s buttons=%s "
+    //        "dfltbutton=%d textfield=%s)", type, title, message, buttons,
+    //        dfltbutton, textfield);
+
+    if (textfield) {
+        NSLog(@"gui_mch_dialog() Textfiled support not implemented");
+        return 0;
+    }
+
+    return [[MMBackend sharedInstance] presentDialogWithType:type
+                                                       title:(char*)title
+                                                     message:(char*)message
+                                                     buttons:(char*)buttons];
 }
 
 

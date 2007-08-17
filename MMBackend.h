@@ -27,6 +27,7 @@
     int             defaultBackgroundColor;
     int             defaultForegroundColor;
     NSDate          *lastFlushDate;
+    int             alertReturn;
 }
 
 + (MMBackend *)sharedInstance;
@@ -57,6 +58,8 @@
 - (void)setVimWindowTitle:(char *)title;
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
                             saving:(int)saving;
+- (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
+                     buttons:(char *)btns;
 - (void)updateInsertionPoint;
 - (void)addMenuWithTag:(int)tag parent:(int)parentTag name:(char *)name
                atIndex:(int)index;

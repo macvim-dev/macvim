@@ -24,6 +24,7 @@ static NSString *DefaultToolbarImageName = @"Attention";
 - (void)performBatchDrawWithData:(NSData *)data;
 - (void)panelDidEnd:(NSSavePanel *)panel code:(int)code
             context:(void *)context;
+- (void)alertDidEnd:(NSAlert *)panel code:(int)code context:(void *)context;
 - (NSMenuItem *)menuItemForTag:(int)tag;
 - (NSMenu *)menuForTag:(int)tag;
 - (NSMenu *)topLevelMenuForTitle:(NSString *)title;
@@ -227,6 +228,32 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 }
 
+- (oneway void)presentDialogWithStyle:(int)style message:(NSString *)message
+                      informativeText:(NSString *)text
+                              buttons:(NSArray *)buttons
+{
+    if (!windowController) return;
+
+    NSAlert *alert = [[NSAlert alloc] init];
+
+    [alert setAlertStyle:style];
+    [alert setMessageText:message];
+    [alert setInformativeText:text];
+
+    unsigned i, count = [buttons count];
+    for (i = 0; i < count; ++i) {
+        NSString *title = [buttons objectAtIndex:i];
+        [alert addButtonWithTitle:title];
+    }
+
+    [alert beginSheetModalForWindow:[windowController window]
+                      modalDelegate:self
+                     didEndSelector:@selector(alertDidEnd:code:context:)
+                        contextInfo:NULL];
+
+    [alert release];
+}
+
 - (oneway void)processCommandQueue:(in NSArray *)queue
 {
     if (!isInitialized) return;
@@ -378,47 +405,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [[windowController window] setTitle:string];
 
         [string release];
-    } else if (BrowseForFileMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int save = *((int*)bytes);  bytes += sizeof(int);
-
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        NSString *dir = nil;
-        if (len > 0) {
-            dir = [[NSString alloc] initWithBytes:(void*)bytes
-                                           length:len
-                                         encoding:NSUTF8StringEncoding];
-            bytes += len;
-        }
-
-        len = *((int*)bytes);  bytes += sizeof(int);
-        if (len > 0) {
-            NSString *title = [[NSString alloc]
-                    initWithBytes:(void*)bytes length:len
-                         encoding:NSUTF8StringEncoding];
-            bytes += len;
-
-            [windowController setStatusText:title];
-            [title release];
-        }
-
-        if (save) {
-            [[NSSavePanel savePanel] beginSheetForDirectory:dir file:nil
-                modalForWindow:[windowController window]
-                 modalDelegate:self
-                didEndSelector:@selector(panelDidEnd:code:context:)
-                   contextInfo:NULL];
-        } else {
-            NSOpenPanel *panel = [NSOpenPanel openPanel];
-            [panel setAllowsMultipleSelection:NO];
-            [panel beginSheetForDirectory:dir file:nil types:nil
-                    modalForWindow:[windowController window]
-                     modalDelegate:self
-                    didEndSelector:@selector(panelDidEnd:code:context:)
-                       contextInfo:NULL];
-        }
-
-        [dir release];
     } else if (UpdateInsertionPointMsgID == msgid) {
         const void *bytes = [data bytes];
         int color = *((int*)bytes);  bytes += sizeof(int);
@@ -763,6 +749,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
     NSString *string = (code == NSOKButton) ? [panel filename] : nil;
     [backendProxy setBrowseForFileString:string];
+}
+
+- (void)alertDidEnd:(NSAlert *)panel code:(int)code context:(void *)context
+{
+    [backendProxy setAlertReturn:(code - NSAlertFirstButtonReturn + 1)];
 }
 
 - (NSMenuItem *)menuItemForTag:(int)tag

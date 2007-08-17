@@ -35,8 +35,6 @@ char *MessageStrings[] =
     "MouseDownMsgID",
     "MouseUpMsgID",
     "MouseDraggedMsgID",
-    "BrowseForFileMsgID",
-    "BrowseForFileReplyMsgID",
     "FlushQueueMsgID",
     "UpdateInsertionPointMsgID",
     "AddMenuMsgID",
@@ -58,6 +56,8 @@ char *MessageStrings[] =
     "DropFilesMsgID",
     "DropStringMsgID",
     "ShowPopupMenuMsgID",
+    "GotFocusMsgID",
+    "LostFocusMsgID",
 };
 
 

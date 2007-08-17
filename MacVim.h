@@ -23,6 +23,7 @@
 - (oneway void)processInput:(int)msgid data:(in NSData *)data;
 - (BOOL)checkForModifiedBuffers;
 - (oneway void)setBrowseForFileString:(in bycopy NSString *)string;
+- (oneway void)setAlertReturn:(int)val;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
 - (BOOL)starRegisterFromPasteboard:(byref NSPasteboard *)pboard;
 @end
@@ -36,6 +37,9 @@
 - (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
                                    title:(in bycopy NSString *)title
                                   saving:(int)saving;
+- (oneway void)presentDialogWithStyle:(int)style message:(NSString *)message
+                      informativeText:(NSString *)text
+                              buttons:(NSArray *)buttons;
 @end
 
 
@@ -82,8 +86,6 @@ enum {
     MouseDownMsgID,
     MouseUpMsgID,
     MouseDraggedMsgID,
-    BrowseForFileMsgID,
-    BrowseForFileReplyMsgID,
     FlushQueueMsgID,
     UpdateInsertionPointMsgID,
     AddMenuMsgID,
@@ -106,6 +108,8 @@ enum {
     DropFilesMsgID,
     DropStringMsgID,
     ShowPopupMenuMsgID,
+    GotFocusMsgID,
+    LostFocusMsgID,
 };
 
 

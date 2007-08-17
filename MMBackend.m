@@ -409,6 +409,44 @@ static int specialKeyToNSKey(int key);
     return (char *)s;
 }
 
+- (oneway void)setAlertReturn:(int)val
+{
+    alertReturn = val;
+}
+
+- (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
+                     buttons:(char *)btns
+{
+    int style = NSInformationalAlertStyle;
+    if (VIM_WARNING == type) style = NSWarningAlertStyle;
+    else if (VIM_ERROR == type) style = NSCriticalAlertStyle;
+
+    NSString *hotkey = [NSString stringWithFormat:@"%c", DLG_HOTKEY_CHAR];
+    NSMutableString *btnString = [NSMutableString stringWithUTF8String:btns];
+    [btnString replaceOccurrencesOfString:hotkey
+                               withString:@""
+                                  options:0
+                                    range:NSMakeRange(0, [btnString length])];
+
+    NSString *separator = [NSString stringWithFormat:@"%c", DLG_BUTTON_SEP];
+    NSArray *buttons = [btnString componentsSeparatedByString:separator];
+
+    NSString *message = [NSString stringWithUTF8String:title];
+    NSString *text = [NSString stringWithUTF8String:msg];
+
+    [frontendProxy presentDialogWithStyle:style message:message
+                          informativeText:text buttons:buttons];
+
+    // Wait until a reply is sent from MMVimController.
+    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                             beforeDate:[NSDate distantFuture]];
+
+    int ret = alertReturn;
+    alertReturn = 0;
+
+    return ret;
+}
+
 - (void)updateInsertionPoint
 {
     NSMutableData *data = [NSMutableData data];
@@ -1084,6 +1122,10 @@ static int specialKeyToNSKey(int key);
         dnd_yank_drag_data((char_u*)[string UTF8String], len);
         add_to_input_buf(dropkey, sizeof(dropkey));
 #endif // FEAT_DND
+    } else if (GotFocusMsgID == msgid) {
+        gui_focus_change(YES);
+    } else if (LostFocusMsgID == msgid) {
+        gui_focus_change(NO);
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
