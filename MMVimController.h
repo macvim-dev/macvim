@@ -28,10 +28,12 @@
     BOOL                shouldUpdateMainMenu;
     NSToolbar           *toolbar;
     NSMutableDictionary *toolbarItemDict;
+    int                 pid;
 }
 
-- (id)initWithBackend:(id)backend;
+- (id)initWithBackend:(id)backend pid:(int)processIdentifier;
 - (id)backendProxy;
+- (int)pid;
 - (MMWindowController *)windowController;
 - (void)cleanup;
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait;

@@ -461,6 +461,13 @@
         // handle it separately (else Ctrl-C doesn't work).
         static char enter[2] = { 'K', 'A' };
         len = 2; bytes = enter;
+    } else if (c == 0x3 && imc == 0x63) {
+        // HACK! Intercept Ctrl-C and send SIGINT to Vim.
+        int pid = [[self vimController] pid];
+        if (pid > 0) {
+            kill(pid, SIGINT);
+            return;
+        }
     } else {
         len = [chars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
         bytes = [chars UTF8String];

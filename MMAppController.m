@@ -336,7 +336,7 @@
 }
 
 - (byref id <MMFrontendProtocol>)connectBackend:
-    (byref in id <MMBackendProtocol>)backend;
+    (byref in id <MMBackendProtocol>)backend pid:(int)pid
 {
     //NSLog(@"Frontend got connection request from backend...adding new "
     //        "MMVimController");
@@ -344,8 +344,8 @@
     [(NSDistantObject*)backend
             setProtocolForProxy:@protocol(MMBackendProtocol)];
 
-    MMVimController *vc = [[[MMVimController alloc] initWithBackend:backend]
-            autorelease];
+    MMVimController *vc = [[[MMVimController alloc]
+            initWithBackend:backend pid:pid] autorelease];
 
     if (![vimControllers count]) {
         // The first window autosaves its position.  (The autosaving features

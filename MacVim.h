@@ -46,7 +46,7 @@
 //
 @protocol MMAppProtocol
 - (byref id <MMFrontendProtocol>)connectBackend:
-    (byref in id <MMBackendProtocol>)backend;
+    (byref in id <MMBackendProtocol>)backend pid:(int)pid;
 @end
 
 

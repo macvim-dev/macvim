@@ -160,7 +160,9 @@ static int specialKeyToNSKey(int key);
             selector:@selector(connectionDidDie:)
                 name:NSConnectionDidDieNotification object:connection];
 
-    frontendProxy = [(NSDistantObject*)[proxy connectBackend:self] retain];
+    int pid = [[NSProcessInfo processInfo] processIdentifier];
+    frontendProxy = [(NSDistantObject*)[proxy connectBackend:self
+                                                         pid:pid] retain];
     if (frontendProxy) {
         [frontendProxy setProtocolForProxy:@protocol(MMAppProtocol)];
     }
@@ -1120,14 +1122,6 @@ static int specialKeyToNSKey(int key);
         chars = (char_u*)[key UTF8String];
         length = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
         unichar c = [key characterAtIndex:0];
-
-        if ((c == Ctrl_C && ctrl_c_interrupts)
-                || (c == intr_char && intr_char != Ctrl_C)) {
-            // TODO: The run loop is not touched while Vim is processing, so
-            // effectively it is impossible to interrupt Vim.
-            trash_input_buf();
-            got_int = TRUE;
-        }
 
         //NSLog(@"non-special: %@ (hex=%x, mods=%d)", key,
         //        [key characterAtIndex:0], mods);

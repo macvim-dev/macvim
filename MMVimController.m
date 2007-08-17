@@ -78,7 +78,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 @implementation MMVimController
 
-- (id)initWithBackend:(id)backend
+- (id)initWithBackend:(id)backend pid:(int)processIdentifier
 {
     if ((self = [super init])) {
         windowController =
@@ -88,6 +88,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         mainMenuItems = [[NSMutableArray alloc] init];
         popupMenuItems = [[NSMutableArray alloc] init];
         toolbarItemDict = [[NSMutableDictionary alloc] init];
+        pid = processIdentifier;
 
         NSConnection *connection = [backendProxy connectionForProxy];
         [[NSNotificationCenter defaultCenter] addObserver:self
@@ -135,6 +136,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 - (MMWindowController *)windowController
 {
     return windowController;
+}
+
+- (int)pid
+{
+    return pid;
 }
 
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait
