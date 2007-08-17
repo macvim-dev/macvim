@@ -57,20 +57,19 @@
     // modifiers are already included and should not be added to the input
     // buffer using CSI, K_MODIFIER).
 
-    //NSLog(@"%s%@ (%x)", _cmd, string, [string characterAtIndex:0]);
-
     NSEvent *event = [NSApp currentEvent];
-    if ([event type] == NSKeyDown) {
-        unsigned mods = [event modifierFlags];
-        unichar c = [[event charactersIgnoringModifiers] characterAtIndex:0];
+    //NSLog(@"%s%@ (event=%@)", _cmd, string, event);
 
-        if (mods & (NSShiftKeyMask|NSControlKeyMask|NSAlternateKeyMask)
-                && ' ' == c) {
-            // HACK!  In order to be able to bind to <S-Space> etc. we have to
-            // watch for when space was pressed.
-            [self dispatchKeyEvent:event];
-            return;
-        }
+    // HACK!  In order to be able to bind to <S-Space> etc. we have to watch
+    // for when space was pressed.
+    if ([event type] == NSKeyDown
+            && [[event charactersIgnoringModifiers] length] > 0
+            && [[event charactersIgnoringModifiers] characterAtIndex:0] == ' '
+            && [event modifierFlags]
+                & (NSShiftKeyMask|NSControlKeyMask|NSAlternateKeyMask))
+    {
+        [self dispatchKeyEvent:event];
+        return;
     }
 
     [NSCursor setHiddenUntilMouseMoves:YES];
