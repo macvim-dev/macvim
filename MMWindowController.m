@@ -180,7 +180,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
         [tabBarControl setCellOptimumWidth:
                          [ud integerForKey:MMTabOptimumWidthKey]];
-
+        [tabBarControl setShowAddTabButton:YES];
+        [[tabBarControl addTabButton] setTarget:self];
+        [[tabBarControl addTabButton] setAction:@selector(addNewTab:)];
         [tabBarControl setAllowsDragBetweenWindows:NO];
 
         [tablineSeparator setBoxType:NSBoxSeparator];
