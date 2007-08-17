@@ -676,12 +676,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
-    [vimController sendMessage:GotFocusMsgID data:nil wait:YES];
+    [vimController sendMessage:GotFocusMsgID data:nil wait:NO];
 }
 
 - (void)windowDidResignMain:(NSNotification *)notification
 {
-    [vimController sendMessage:LostFocusMsgID data:nil wait:YES];
+    [vimController sendMessage:LostFocusMsgID data:nil wait:NO];
 }
 
 - (BOOL)windowShouldClose:(id)sender

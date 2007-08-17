@@ -728,6 +728,11 @@ static int specialKeyToNSKey(int key);
     [lastFlushDate release];
     lastFlushDate = [[NSDate date] retain];
 
+    // HACK! A focus message might get lost, but whenever we get here the GUI
+    // is in focus.
+    if (!gui.in_focus && GotFocusMsgID != msgid && LostFocusMsgID != msgid)
+        gui_focus_change(TRUE);
+
     [self handleMessage:msgid data:data];
     inputReceived = YES;
 }
@@ -1123,9 +1128,11 @@ static int specialKeyToNSKey(int key);
         add_to_input_buf(dropkey, sizeof(dropkey));
 #endif // FEAT_DND
     } else if (GotFocusMsgID == msgid) {
-        gui_focus_change(YES);
+        if (!gui.in_focus)
+            gui_focus_change(YES);
     } else if (LostFocusMsgID == msgid) {
-        gui_focus_change(NO);
+        if (gui.in_focus)
+            gui_focus_change(NO);
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
