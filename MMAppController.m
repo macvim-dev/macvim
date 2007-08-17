@@ -154,6 +154,7 @@
         [alert runModal];
         [alert release];
 
+        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplyFailure];
         return;
     }
 
@@ -162,6 +163,11 @@
 
     NSString *path = [[NSBundle mainBundle]
             pathForAuxiliaryExecutable:@"Vim"];
+    if (!path) {
+        NSLog(@"ERROR: Vim executable could not be found inside app bundle!");
+        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplyFailure];
+        return;
+    }
 
     [NSTask launchedTaskWithLaunchPath:path arguments:args];
 
@@ -287,6 +293,11 @@
     NSMutableArray *args = [NSMutableArray arrayWithObject:@"-g"];
     NSString *path = [[NSBundle mainBundle]
             pathForAuxiliaryExecutable:@"Vim"];
+    if (!path) {
+        NSLog(@"ERROR: Vim executable could not be found inside app bundle!");
+        return;
+    }
+
 
     //NSLog(@"Launching a new VimTask...");
     [NSTask launchedTaskWithLaunchPath:path arguments:args];
