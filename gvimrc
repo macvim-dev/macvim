@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Björn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sat Aug 11 2007
+" Last Change:	Fri Aug 17 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -35,11 +35,11 @@ aunmenu File.-SEP4-
 aunmenu File.Exit
 aunmenu File.Save-Exit
 
-an <silent> 10.290 File.New\ Window         :action newVimWindow:<CR>
-an  10.295 File.New\ Tab                    :tabnew<CR>
-an 10.328 File.-SEP0-                       <Nop>
-an 10.330 File.Close<Tab>:q                 :confirm q<CR>
-"an <silent> 10.330 File.Close\ Window       :confirm qa<CR>
+an <silent> 10.290 File.New\ Window             :action newVimWindow:<CR>
+an  10.295 File.New\ Tab                        :tabnew<CR>
+an 10.328 File.-SEP0-                           <Nop>
+an <silent> 10.330 File.Close\ Window<Tab>:qa   :confirm qa<CR>
+an 10.331 File.Close<Tab>:q                     :confirm q<CR>
 "an 10.331 File.Close\ Tab                   :tabclose<CR>
 
 an 20.460 Edit.-SEP4-                       <Nop>
@@ -107,7 +107,7 @@ menukeyequiv File.New\ Tab          <D-t>
 
 menukeyequiv File.Open\.\.\.        <D-o>
 menukeyequiv File.Open\ Tab\.\.\.   <D-T>
-"menukeyequiv File.Close\ Window     <D-W>
+menukeyequiv File.Close\ Window     <D-W>
 "menukeyequiv File.Close\ Tab        <D-w>
 menukeyequiv File.Close             <D-w>
 menukeyequiv File.Save              <D-s>
