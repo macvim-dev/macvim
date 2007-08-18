@@ -243,7 +243,33 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     unsigned i, count = [buttons count];
     for (i = 0; i < count; ++i) {
         NSString *title = [buttons objectAtIndex:i];
+        // NOTE: The title of the button may contain the character '&' to
+        // indicate that the following letter should be the key equivalent
+        // associated with the button.  Extract this letter and lowercase it.
+        NSString *keyEquivalent = nil;
+        NSRange hotkeyRange = [title rangeOfString:@"&"];
+        if (NSNotFound != hotkeyRange.location) {
+            if ([title length] > NSMaxRange(hotkeyRange)) {
+                NSRange keyEquivRange = NSMakeRange(hotkeyRange.location+1, 1);
+                keyEquivalent = [[title substringWithRange:keyEquivRange]
+                    lowercaseString];
+            }
+
+            NSMutableString *string = [NSMutableString stringWithString:title];
+            [string deleteCharactersInRange:hotkeyRange];
+            title = string;
+        }
+
         [alert addButtonWithTitle:title];
+
+        // Set key equivalent for the button, but only if NSAlert hasn't
+        // already done so.  (Check the documentation for
+        // - [NSAlert addButtonWithTitle:] to see what key equivalents are
+        // automatically assigned.)
+        NSButton *btn = [[alert buttons] lastObject];
+        if ([[btn keyEquivalent] length] == 0 && keyEquivalent) {
+            [btn setKeyEquivalent:keyEquivalent];
+        }
     }
 
     [alert beginSheetModalForWindow:[windowController window]

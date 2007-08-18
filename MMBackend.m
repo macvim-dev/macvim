@@ -421,16 +421,8 @@ static int specialKeyToNSKey(int key);
     if (VIM_WARNING == type) style = NSWarningAlertStyle;
     else if (VIM_ERROR == type) style = NSCriticalAlertStyle;
 
-    NSString *hotkey = [NSString stringWithFormat:@"%c", DLG_HOTKEY_CHAR];
-    NSMutableString *btnString = [NSMutableString stringWithUTF8String:btns];
-    [btnString replaceOccurrencesOfString:hotkey
-                               withString:@""
-                                  options:0
-                                    range:NSMakeRange(0, [btnString length])];
-
-    NSString *separator = [NSString stringWithFormat:@"%c", DLG_BUTTON_SEP];
-    NSArray *buttons = [btnString componentsSeparatedByString:separator];
-
+    NSString *btnString = [NSString stringWithUTF8String:btns];
+    NSArray *buttons = [btnString componentsSeparatedByString:@"\n"];
     NSString *message = [NSString stringWithUTF8String:title];
     NSString *text = [NSString stringWithUTF8String:msg];
 
