@@ -1258,4 +1258,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     range = newRange;
 }
 
+- (void)scrollWheel:(NSEvent *)event
+{
+    // HACK! Pass message on to the text view.
+    MMWindowController *wc = [[self window] windowController];
+    [[wc textView] scrollWheel:event];
+}
+
 @end // MMScroller
