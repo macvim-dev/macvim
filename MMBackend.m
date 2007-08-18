@@ -375,14 +375,6 @@ static int specialKeyToNSKey(int key);
     [self queueMessage:SetVimWindowTitleMsgID data:data];
 }
 
-- (oneway void)setBrowseForFileString:(in bycopy NSString *)string
-{
-    // NOTE: This is called by [MMVimController panelDidEnd:::] to indicate
-    // that the save/open panel has finished.  If 'string == nil' that means
-    // the user pressed cancel.
-    browseForFileString = string ? [string copy] : nil;
-}
-
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
                             saving:(int)saving
 {
@@ -400,43 +392,73 @@ static int specialKeyToNSKey(int key);
     // Wait until a reply is sent from MMVimController.
     [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                              beforeDate:[NSDate distantFuture]];
-    if (!browseForFileString)
-        return nil;
 
-    char_u *s = vim_strsave((char_u*)[browseForFileString UTF8String]);
-    [browseForFileString release];  browseForFileString = nil;
+    char_u *s = NULL;
+    if (dialogReturn && [dialogReturn isKindOfClass:[NSString class]]) {
+        s = vim_strsave((char_u*)[dialogReturn UTF8String]);
+    }
+
+    [dialogReturn release];  dialogReturn = nil;
 
     return (char *)s;
 }
 
-- (oneway void)setAlertReturn:(int)val
+- (oneway void)setDialogReturn:(in bycopy id)obj
 {
-    alertReturn = val;
+    // NOTE: This is called by
+    //   - [MMVimController panelDidEnd:::], and
+    //   - [MMVimController alertDidEnd:::],
+    // to indicate that a save/open panel or alert has finished.
+
+    if (obj != dialogReturn) {
+        [dialogReturn release];
+        dialogReturn = [obj retain];
+    }
 }
 
 - (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
-                     buttons:(char *)btns
+                     buttons:(char *)btns textField:(char *)txtfield
 {
+    NSString *message = nil, *text = nil, *textFieldString = nil;
+    NSArray *buttons = nil;
     int style = NSInformationalAlertStyle;
+
     if (VIM_WARNING == type) style = NSWarningAlertStyle;
     else if (VIM_ERROR == type) style = NSCriticalAlertStyle;
 
-    NSString *btnString = [NSString stringWithUTF8String:btns];
-    NSArray *buttons = [btnString componentsSeparatedByString:@"\n"];
-    NSString *message = [NSString stringWithUTF8String:title];
-    NSString *text = [NSString stringWithUTF8String:msg];
+    if (btns) {
+        NSString *btnString = [NSString stringWithUTF8String:btns];
+        buttons = [btnString componentsSeparatedByString:@"\n"];
+    }
+    if (title)
+        message = [NSString stringWithUTF8String:title];
+    if (msg)
+        text = [NSString stringWithUTF8String:msg];
+    if (txtfield)
+        textFieldString = [NSString stringWithUTF8String:txtfield];
 
     [frontendProxy presentDialogWithStyle:style message:message
-                          informativeText:text buttons:buttons];
+                          informativeText:text buttonTitles:buttons
+                          textFieldString:textFieldString];
 
     // Wait until a reply is sent from MMVimController.
     [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                              beforeDate:[NSDate distantFuture]];
 
-    int ret = alertReturn;
-    alertReturn = 0;
+    int retval = 0;
+    if (dialogReturn && [dialogReturn isKindOfClass:[NSArray class]]
+            && [dialogReturn count]) {
+        retval = [[dialogReturn objectAtIndex:0] intValue];
+        if (txtfield && [dialogReturn count] > 1) {
+            NSString *retString = [dialogReturn objectAtIndex:1];
+            vim_strncpy((char_u*)txtfield, (char_u*)[retString UTF8String],
+                    IOSIZE - 1);
+        }
+    }
 
-    return ret;
+    [dialogReturn release]; dialogReturn = nil;
+
+    return retval;
 }
 
 - (void)updateInsertionPoint

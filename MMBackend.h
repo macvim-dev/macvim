@@ -27,7 +27,7 @@
     int             defaultBackgroundColor;
     int             defaultForegroundColor;
     NSDate          *lastFlushDate;
-    int             alertReturn;
+    id              dialogReturn;
 }
 
 + (MMBackend *)sharedInstance;
@@ -59,7 +59,7 @@
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
                             saving:(int)saving;
 - (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
-                     buttons:(char *)btns;
+                     buttons:(char *)btns textField:(char *)txtfield;
 - (void)updateInsertionPoint;
 - (void)addMenuWithTag:(int)tag parent:(int)parentTag name:(char *)name
                atIndex:(int)index;

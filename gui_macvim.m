@@ -957,15 +957,11 @@ gui_mch_dialog(
     //        "dfltbutton=%d textfield=%s)", type, title, message, buttons,
     //        dfltbutton, textfield);
 
-    if (textfield) {
-        NSLog(@"gui_mch_dialog() Textfiled support not implemented");
-        return 0;
-    }
-
     return [[MMBackend sharedInstance] presentDialogWithType:type
                                                        title:(char*)title
                                                      message:(char*)message
-                                                     buttons:(char*)buttons];
+                                                     buttons:(char*)buttons
+                                                   textField:(char*)textfield];
 }
 
 

@@ -19,12 +19,20 @@
 static NSString *DefaultToolbarImageName = @"Attention";
 
 
+@interface MMAlert : NSAlert {
+    NSTextField *textField;
+}
+- (void)setTextFieldString:(NSString *)textFieldString;
+- (NSTextField *)textField;
+@end
+
+
 @interface MMVimController (Private)
 - (void)handleMessage:(int)msgid data:(NSData *)data;
 - (void)performBatchDrawWithData:(NSData *)data;
 - (void)panelDidEnd:(NSSavePanel *)panel code:(int)code
             context:(void *)context;
-- (void)alertDidEnd:(NSAlert *)panel code:(int)code context:(void *)context;
+- (void)alertDidEnd:(MMAlert *)alert code:(int)code context:(void *)context;
 - (NSMenuItem *)menuItemForTag:(int)tag;
 - (NSMenu *)menuForTag:(int)tag;
 - (NSMenu *)topLevelMenuForTitle:(NSString *)title;
@@ -230,19 +238,26 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (oneway void)presentDialogWithStyle:(int)style message:(NSString *)message
                       informativeText:(NSString *)text
-                              buttons:(NSArray *)buttons
+                         buttonTitles:(NSArray *)buttonTitles
+                      textFieldString:(NSString *)textFieldString
 {
-    if (!windowController) return;
+    if (!(windowController && buttonTitles && [buttonTitles count])) return;
 
-    NSAlert *alert = [[NSAlert alloc] init];
+    MMAlert *alert = [[MMAlert alloc] init];
+
+    // NOTE! This has to be done before setting the informative text.
+    if (textFieldString)
+        [alert setTextFieldString:textFieldString];
 
     [alert setAlertStyle:style];
-    [alert setMessageText:message];
-    [alert setInformativeText:text];
 
-    unsigned i, count = [buttons count];
+    if (message) [alert setMessageText:message];
+    else [alert setMessageText:@""];
+    if (text) [alert setInformativeText:text];
+
+    unsigned i, count = [buttonTitles count];
     for (i = 0; i < count; ++i) {
-        NSString *title = [buttons objectAtIndex:i];
+        NSString *title = [buttonTitles objectAtIndex:i];
         // NOTE: The title of the button may contain the character '&' to
         // indicate that the following letter should be the key equivalent
         // associated with the button.  Extract this letter and lowercase it.
@@ -774,12 +789,23 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     [windowController setStatusText:@""];
 
     NSString *string = (code == NSOKButton) ? [panel filename] : nil;
-    [backendProxy setBrowseForFileString:string];
+    [backendProxy setDialogReturn:string];
 }
 
-- (void)alertDidEnd:(NSAlert *)panel code:(int)code context:(void *)context
+- (void)alertDidEnd:(MMAlert *)alert code:(int)code context:(void *)context
 {
-    [backendProxy setAlertReturn:(code - NSAlertFirstButtonReturn + 1)];
+    NSArray *ret = nil;
+
+    code = code - NSAlertFirstButtonReturn + 1;
+
+    if ([alert isKindOfClass:[MMAlert class]] && [alert textField]) {
+        ret = [NSArray arrayWithObjects:[NSNumber numberWithInt:code],
+            [[alert textField] stringValue], nil];
+    } else {
+        ret = [NSArray arrayWithObject:[NSNumber numberWithInt:code]];
+    }
+
+    [backendProxy setDialogReturn:ret];
 }
 
 - (NSMenuItem *)menuItemForTag:(int)tag
@@ -1101,3 +1127,62 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 }
 
 @end // NSColor (MMProtocol)
+
+
+
+@implementation MMAlert
+- (void)dealloc
+{
+    [textField release];
+    [super dealloc];
+}
+
+- (void)setTextFieldString:(NSString *)textFieldString
+{
+    textField = [[NSTextField alloc] init];
+    [textField setStringValue:textFieldString];
+}
+
+- (NSTextField *)textField
+{
+    return textField;
+}
+
+- (void)setInformativeText:(NSString *)text
+{
+    if (textField) {
+        // HACK! Add some space for the text field.
+        [super setInformativeText:[text stringByAppendingString:@"\n\n\n"]];
+    } else {
+        [super setInformativeText:text];
+    }
+}
+
+- (void)beginSheetModalForWindow:(NSWindow *)window
+                   modalDelegate:(id)delegate
+                  didEndSelector:(SEL)didEndSelector
+                     contextInfo:(void *)contextInfo
+{
+    [super beginSheetModalForWindow:window
+                      modalDelegate:delegate
+                     didEndSelector:didEndSelector
+                        contextInfo:contextInfo];
+
+    NSView *contentView = [[self window] contentView];
+    NSRect rect = NSZeroRect;
+    NSArray *subviews = [contentView subviews];
+    unsigned i, count = [subviews count];
+    for (i = 0; i < count; ++i) {
+        NSView *view = [subviews objectAtIndex:i];
+        if ([view isKindOfClass:[NSTextField class]]) {
+            rect = [view frame];
+        }
+    }
+
+    rect.size.height = 22;
+    [textField setFrame:rect];
+    [contentView addSubview:textField];
+    [textField becomeFirstResponder];
+}
+
+@end // MMAlert

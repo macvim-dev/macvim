@@ -22,8 +22,7 @@
 @protocol MMBackendProtocol
 - (oneway void)processInput:(int)msgid data:(in NSData *)data;
 - (BOOL)checkForModifiedBuffers;
-- (oneway void)setBrowseForFileString:(in bycopy NSString *)string;
-- (oneway void)setAlertReturn:(int)val;
+- (oneway void)setDialogReturn:(in bycopy id)obj;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
 - (BOOL)starRegisterFromPasteboard:(byref NSPasteboard *)pboard;
 @end
@@ -39,7 +38,8 @@
                                   saving:(int)saving;
 - (oneway void)presentDialogWithStyle:(int)style message:(NSString *)message
                       informativeText:(NSString *)text
-                              buttons:(NSArray *)buttons;
+                         buttonTitles:(NSArray *)buttonTitles
+                      textFieldString:(NSString *)textFieldString;
 @end
 
 
