@@ -18,6 +18,8 @@
 //static NSString *AttentionToolbarItemID = @"Attention";
 static NSString *DefaultToolbarImageName = @"Attention";
 
+static int MMAlertTextFieldHeight = 22;
+
 
 @interface MMAlert : NSAlert {
     NSTextField *textField;
@@ -251,9 +253,19 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
     [alert setAlertStyle:style];
 
-    if (message) [alert setMessageText:message];
-    else [alert setMessageText:@""];
-    if (text) [alert setInformativeText:text];
+    if (message) {
+        [alert setMessageText:message];
+    } else {
+        // If no message text is specified 'Alert' is used.
+        [alert setMessageText:@""];
+    }
+
+    if (text) {
+        [alert setInformativeText:text];
+    } else if (textFieldString) {
+        // Make sure there is always room for the input text field.
+        [alert setInformativeText:@""];
+    }
 
     unsigned i, count = [buttonTitles count];
     for (i = 0; i < count; ++i) {
@@ -1168,18 +1180,25 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                      didEndSelector:didEndSelector
                         contextInfo:contextInfo];
 
+    // HACK! Place the input text field at the bottom of the informative text
+    // (which has been made a bit larger by adding newline characters).
     NSView *contentView = [[self window] contentView];
-    NSRect rect = NSZeroRect;
+    NSRect rect = [contentView frame];
+    rect.origin.y = rect.size.height;
+
     NSArray *subviews = [contentView subviews];
     unsigned i, count = [subviews count];
     for (i = 0; i < count; ++i) {
         NSView *view = [subviews objectAtIndex:i];
-        if ([view isKindOfClass:[NSTextField class]]) {
+        if ([view isKindOfClass:[NSTextField class]]
+                && [view frame].origin.y < rect.origin.y) {
+            // NOTE: The informative text field is the lowest NSTextField in
+            // the alert dialog.
             rect = [view frame];
         }
     }
 
-    rect.size.height = 22;
+    rect.size.height = MMAlertTextFieldHeight;
     [textField setFrame:rect];
     [contentView addSubview:textField];
     [textField becomeFirstResponder];

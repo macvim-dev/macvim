@@ -432,8 +432,23 @@ static int specialKeyToNSKey(int key);
     }
     if (title)
         message = [NSString stringWithUTF8String:title];
-    if (msg)
+    if (msg) {
         text = [NSString stringWithUTF8String:msg];
+        if (!message) {
+            // HACK! If there is a '\n\n' or '\n' sequence in the message, then
+            // make the part up to there into the title.  We only do this
+            // because Vim has lots of dialogs without a title and they look
+            // ugly that way.
+            // TODO: Fix the actual dialog texts.
+            NSRange eolRange = [text rangeOfString:@"\n\n"];
+            if (NSNotFound == eolRange.location)
+                eolRange = [text rangeOfString:@"\n"];
+            if (NSNotFound != eolRange.location) {
+                message = [text substringToIndex:eolRange.location];
+                text = [text substringFromIndex:NSMaxRange(eolRange)];
+            }
+        }
+    }
     if (txtfield)
         textFieldString = [NSString stringWithUTF8String:txtfield];
 
