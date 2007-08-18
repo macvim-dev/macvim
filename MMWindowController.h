@@ -11,8 +11,6 @@
 #import <Cocoa/Cocoa.h>
 
 
-#define MM_USE_EMPTY_WINDOW 1
-
 
 @class PSMTabBarControl;
 @class MMTextView;
@@ -21,21 +19,18 @@
 
 
 @interface MMWindowController : NSWindowController {
-    IBOutlet PSMTabBarControl *tabBarControl;
-    IBOutlet NSTabView *tabView;
-    IBOutlet NSTextField *statusTextField;
-    IBOutlet NSBox *statusSeparator;
-    IBOutlet NSBox *tablineSeparator;
+    PSMTabBarControl    *tabBarControl;
+    NSTabView           *tabView;
+    NSBox               *tablineSeparator;
 
-    MMVimController *vimController;
-    BOOL vimTaskSelectedTab;
-    NSTimer *statusTimer;
-    MMTextView *textView;
-    MMTextStorage *textStorage;
-    NSMutableArray *scrollbars;
-    BOOL setupDone;
-    BOOL shouldUpdateWindowSize;
-    NSString *windowAutosaveKey;
+    MMVimController     *vimController;
+    BOOL                vimTaskSelectedTab;
+    MMTextView          *textView;
+    MMTextStorage       *textStorage;
+    NSMutableArray      *scrollbars;
+    BOOL                setupDone;
+    BOOL                shouldUpdateWindowSize;
+    NSString            *windowAutosaveKey;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
@@ -49,8 +44,6 @@
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols;
-- (void)setStatusText:(NSString *)text;
-- (void)flashStatusText:(NSString *)text;
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
 - (void)destroyScrollbarWithIdentifier:(long)ident;
 - (void)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible;

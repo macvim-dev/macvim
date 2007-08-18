@@ -15,9 +15,7 @@
 #import "MMTextStorage.h"
 
 
-//static NSString *AttentionToolbarItemID = @"Attention";
-static NSString *DefaultToolbarImageName = @"Attention";
-
+static NSString *MMDefaultToolbarImageName = @"Attention";
 static int MMAlertTextFieldHeight = 22;
 
 
@@ -32,8 +30,8 @@ static int MMAlertTextFieldHeight = 22;
 @interface MMVimController (Private)
 - (void)handleMessage:(int)msgid data:(NSData *)data;
 - (void)performBatchDrawWithData:(NSData *)data;
-- (void)panelDidEnd:(NSSavePanel *)panel code:(int)code
-            context:(void *)context;
+- (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
+                context:(void *)context;
 - (void)alertDidEnd:(MMAlert *)alert code:(int)code context:(void *)context;
 - (NSMenuItem *)menuItemForTag:(int)tag;
 - (NSMenu *)menuForTag:(int)tag;
@@ -46,14 +44,12 @@ static int MMAlertTextFieldHeight = 22;
                     action:(NSString *)action atIndex:(int)idx;
 - (void)updateMainMenu;
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index;
-- (IBAction)toolbarAction:(id)sender;
 - (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
 - (void)addToolbarItemWithTag:(int)tag label:(NSString *)label
                           tip:(NSString *)tip icon:(NSString *)icon
                       atIndex:(int)idx;
 - (void)connectionDidDie:(NSNotification *)notification;
-- (BOOL)executeActionWithName:(NSString *)name;
 @end
 
 
@@ -108,13 +104,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
         NSWindow *win = [windowController window];
 
-#if 0
-        [[NSNotificationCenter defaultCenter]
-                addObserver:self
-                   selector:@selector(windowWillClose:)
-                       name:NSWindowWillCloseNotification
-                     object:win];
-#endif
         [[NSNotificationCenter defaultCenter]
                 addObserver:self
                    selector:@selector(windowDidBecomeMain:)
@@ -219,13 +208,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 {
     if (!isInitialized) return;
 
-    [windowController setStatusText:title];
-
     if (saving) {
         [[NSSavePanel savePanel] beginSheetForDirectory:dir file:nil
                 modalForWindow:[windowController window]
                  modalDelegate:self
-                didEndSelector:@selector(panelDidEnd:code:context:)
+                didEndSelector:@selector(savePanelDidEnd:code:context:)
                    contextInfo:NULL];
     } else {
         NSOpenPanel *panel = [NSOpenPanel openPanel];
@@ -233,15 +220,16 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [panel beginSheetForDirectory:dir file:nil types:nil
                 modalForWindow:[windowController window]
                  modalDelegate:self
-                didEndSelector:@selector(panelDidEnd:code:context:)
+                didEndSelector:@selector(savePanelDidEnd:code:context:)
                    contextInfo:NULL];
     }
 }
 
-- (oneway void)presentDialogWithStyle:(int)style message:(NSString *)message
-                      informativeText:(NSString *)text
-                         buttonTitles:(NSArray *)buttonTitles
-                      textFieldString:(NSString *)textFieldString
+- (oneway void)presentDialogWithStyle:(int)style
+                              message:(in bycopy NSString *)message
+                      informativeText:(in bycopy NSString *)text
+                         buttonTitles:(in bycopy NSArray *)buttonTitles
+                      textFieldString:(in bycopy NSString *)textFieldString
 {
     if (!(windowController && buttonTitles && [buttonTitles count])) return;
 
@@ -256,7 +244,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     if (message) {
         [alert setMessageText:message];
     } else {
-        // If no message text is specified 'Alert' is used.
+        // If no message text is specified 'Alert' is used, which we don't
+        // want, so set an empty string as message text.
         [alert setMessageText:@""];
     }
 
@@ -364,20 +353,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 }
 
-#if 0
-- (void)windowWillClose:(NSNotification *)notification
-{
-    NSLog(@"%@ %s%@", [self className], _cmd, notification);
-
-    //[self cleanup];
-
-    // NOTE!  This causes the call to removeVimController: to be delayed.
-    [[NSApp delegate]
-            performSelectorOnMainThread:@selector(removeVimController:)
-                             withObject:self waitUntilDone:NO];
-}
-#endif
-
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
     if (isInitialized)
@@ -388,8 +363,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     itemForItemIdentifier:(NSString *)itemId
     willBeInsertedIntoToolbar:(BOOL)flag
 {
-    //NSLog(@"%s", _cmd);
-
     NSToolbarItem *item = [toolbarItemDict objectForKey:itemId];
     if (!item) {
         NSLog(@"WARNING:  No toolbar item with id '%@'", itemId);
@@ -400,13 +373,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (NSArray *)toolbarAllowedItemIdentifiers:(NSToolbar *)theToolbar
 {
-    //NSLog(@"%s", _cmd);
     return nil;
 }
 
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar *)theToolbar
 {
-    //NSLog(@"%s", _cmd);
     return nil;
 }
 
@@ -423,8 +394,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     if (OpenVimWindowMsgID == msgid) {
         [windowController openWindow];
     } else if (BatchDrawMsgID == msgid) {
-        //NSLog(@"Received batch draw message from VimTask.");
-
         [self performBatchDrawWithData:data];
     } else if (SelectTabMsgID == msgid) {
 #if 0   // NOTE: Tab selection is done inside updateTabsWithData:.
@@ -434,13 +403,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [windowController selectTabWithIndex:idx];
 #endif
     } else if (UpdateTabBarMsgID == msgid) {
-        //NSLog(@"Updating tabs");
         [windowController updateTabsWithData:data];
     } else if (ShowTabBarMsgID == msgid) {
-        //NSLog(@"Showing tab bar");
         [windowController showTabBar:YES];
     } else if (HideTabBarMsgID == msgid) {
-        //NSLog(@"Hiding tab bar");
         [windowController showTabBar:NO];
     } else if (SetTextDimensionsMsgID == msgid) {
         const void *bytes = [data bytes];
@@ -490,9 +456,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
         if (MenuToolbarType == parentTag) {
             if (!toolbar) {
+                // NOTE! Each toolbar must have a unique identifier, else each
+                // window will have the same toolbar.
                 NSString *ident = [NSString stringWithFormat:@"%d.%d",
                          (int)self, tag];
-                //NSLog(@"Creating toolbar with identifier %@", ident);
                 toolbar = [[NSToolbar alloc] initWithIdentifier:ident];
 
                 [toolbar setShowsBaselineSeparator:NO];
@@ -580,7 +547,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             [item retain];
 
             if ([item menu] == [NSApp mainMenu] || ![item menu]) {
-                //NSLog(@"Removing menu: %@", item);
                 // NOTE: To be on the safe side we try to remove the item from
                 // both arrays (it is ok to call removeObject: even if an array
                 // does not contain the object to remove).
@@ -724,9 +690,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
     [textStorage beginEditing];
 
-    // TODO:
-    // 1. Sanity check input
-    // 2. Cache rgb -> NSColor lookups?
+    // TODO: Sanity check input
 
     while (bytes < end) {
         int type = *((int*)bytes);  bytes += sizeof(int);
@@ -796,10 +760,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     [textStorage endEditing];
 }
 
-- (void)panelDidEnd:(NSSavePanel *)panel code:(int)code context:(void *)context
+- (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
+                context:(void *)context
 {
-    [windowController setStatusText:@""];
-
     NSString *string = (code == NSOKButton) ? [panel filename] : nil;
     [backendProxy setDialogReturn:string];
 }
@@ -946,7 +909,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)updateMainMenu
 {
-#if 1
     NSMenu *mainMenu = [NSApp mainMenu];
 
     // Stop NSApp from updating the Window menu.
@@ -981,7 +943,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [NSApp setWindowsMenu:windowMenu];
     }
 
-#endif
     shouldUpdateMainMenu = NO;
 }
 
@@ -1000,11 +961,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 
     return nil;
-}
-
-- (IBAction)toolbarAction:(id)sender
-{
-    NSLog(@"%s%@", _cmd, sender);
 }
 
 - (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
@@ -1029,9 +985,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         NSLog(@"WARNING: Could not find image with name '%@' to use as toolbar"
                " image for identifier '%@';"
                " using default toolbar icon '%@' instead.",
-               icon, title, DefaultToolbarImageName);
+               icon, title, MMDefaultToolbarImageName);
 
-        img = [NSImage imageNamed:DefaultToolbarImageName];
+        img = [NSImage imageNamed:MMDefaultToolbarImageName];
     }
 
     [item setImage:img];
@@ -1081,41 +1037,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     [[NSApp delegate]
             performSelectorOnMainThread:@selector(removeVimController:)
                              withObject:self waitUntilDone:NO];
-}
-
-- (BOOL)executeActionWithName:(NSString *)name
-{
-#if 0
-    static NSDictionary *actionDict = nil;
-
-    if (!actionDict) {
-        NSBundle *mainBundle = [NSBundle mainBundle];
-        NSString *path = [mainBundle pathForResource:@"Actions"
-                                              ofType:@"plist"];
-        if (path) {
-            actionDict = [[NSDictionary alloc] initWithContentsOfFile:path];
-            NSLog(@"Actions = %@", actionDict);
-        } else {
-            NSLog(@"WARNING: Failed to load dictionary of actions "
-                    "(Actions.plist).");
-            return NO;
-        }
-    }
-
-    if ([actionDict objectForKey:name]) {
-        NSLog(@"Executing action %@", name);
-        SEL sel = NSSelectorFromString(name);
-
-        if ([NSApp sendAction:sel to:nil from:self])
-            return YES;
-
-        NSLog(@"WARNING: Failed to send action");
-    } else {
-        NSLog(@"WARNING: Action with name '%@' cannot be executed.", name);
-    }
-
-#endif
-    return NO;
 }
 
 - (NSString *)description

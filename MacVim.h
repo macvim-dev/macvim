@@ -36,10 +36,11 @@
 - (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
                                    title:(in bycopy NSString *)title
                                   saving:(int)saving;
-- (oneway void)presentDialogWithStyle:(int)style message:(NSString *)message
-                      informativeText:(NSString *)text
-                         buttonTitles:(NSArray *)buttonTitles
-                      textFieldString:(NSString *)textFieldString;
+- (oneway void)presentDialogWithStyle:(int)style
+                              message:(in bycopy NSString *)message
+                      informativeText:(in bycopy NSString *)text
+                         buttonTitles:(in bycopy NSArray *)buttonTitles
+                      textFieldString:(in bycopy NSString *)textFieldString;
 @end
 
 
