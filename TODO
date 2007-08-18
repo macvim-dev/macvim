@@ -1,13 +1,11 @@
 Active:
 
-- ability to interrupt vim (needs to check the run-loop for interrupts)
+- scrolling when mouse is over scrollbar doesn't work
 - let user choose file encoding and format in open/save dialogs
 - view menu option to show/hide gui status line
 - autosave settings ?
 - encoding -- convert strings from vim to utf-8
 - main menu (buffers menu, window menu)
-- gui dialogs (FEAT_GUI_DIALOG)
-  no warning when buffer modified outside vim (implement gui_mch_dialog())
 - standardize NSString usage (initialization & how it is passed in messages)
 - autosave window rows&columns?
 - set gfn=* ?
@@ -29,9 +27,6 @@ Active:
 - change building procedure so that the Makefile compiles and links VimTask and
   then calls pbxbuild to build MacVim (and put MacVim.app) in the src folder
 - icons for all built in toolbar items
-- hide baseline separator when tabbar is visible (and make sure clicking the
-  hide/show toolbar button in the top right of the corner does not show it
-  again)
 - window title is never set when starting with terminal vim and typing :gui
 - forking doesn't work with :gui (i think)
 - make sure [NSMutableData appendByte:length:] is never called with 0 length
@@ -50,6 +45,14 @@ Active:
 - got this error when clicking to close second last tab:
     2007-07-23 08:19:29.398 MacVim[335] *** Assertion failure in -[PSMTabBarControl lockFocus], AppKit.subproj/NSView.m:3248
     2007-07-23 08:19:29.410 MacVim[335] lockFocus sent to a view whose window is deferred and does not yet have a corresponding platform window
+
+
+Pending:
+
+- gui dialogs (FEAT_GUI_DIALOG)
+- no warning when buffer modified outside vim (implement gui_mch_dialog())
+- call gui_focus_change() when appropriate
+- ability to interrupt vim (needs to check the run-loop for interrupts)
 - got this error on Cmd-N with no other windows open:
     2007-07-27 22:00:17.680 MacVim[454] *** -[NSToolbarView frameDidChange:]: selector not recognized [self = 0x39ba80]
     2007-07-27 22:00:17.690 MacVim[454] Exception raised during posting of notification.  Ignored.  exception: *** -[NSToolbarView frameDidChange:]: selector not recognized [self = 0x39ba80]
@@ -60,11 +63,9 @@ Active:
   2007-08-05 13:25:01.156 MacVim[223] Exception raised during posting of notification.  Ignored.  exception: *** -[NSThemeFrame frameDidChange:]: selector not recognized [self = 0x3baa30]
   2007-08-05 13:25:01.246 MacVim[223] *** -[NSThemeFrame frameDidChange:]: selector not recognized [self = 0x3baa30]
   2007-08-05 13:25:01.247 MacVim[223] Exception raised during posting of notification.  Ignored.  exception: *** -[NSThemeFrame frameDidChange:]: selector not recognized [self = 0x3baa30]
-
-
-
-Pending:
-
+- hide baseline separator when tabbar is visible (and make sure clicking the
+  hide/show toolbar button in the top right of the corner does not show it
+  again)
 - toogle toolbar off, maximize window, toolbar on -> text view under toolbar
 - clicking pill button does not update 'guioptions'
 - detect Cmd-. (and Ctrl-C) for interrupt
