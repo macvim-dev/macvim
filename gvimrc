@@ -125,10 +125,10 @@ menukeyequiv Edit.Special\ Characters\.\.\.    <D-M-t>
 menukeyequiv Tools.Make             <D-b>
 menukeyequiv Tools.List\ Errors     <D-l>
 menukeyequiv Tools.List\ Messages   <D-L>
-menukeyequiv Tools.Next\ Error      <D-C-Right>
-menukeyequiv Tools.Previous\ Error  <D-C-Left>
-menukeyequiv Tools.Older\ List      <D-C-Up>
-menukeyequiv Tools.Newer\ List      <D-C-Down>
+menukeyequiv Tools.Next\ Error      <D-]>
+menukeyequiv Tools.Previous\ Error  <D-[>
+menukeyequiv Tools.Older\ List      <D-M-[>
+menukeyequiv Tools.Newer\ List      <D-M-]>
 
 menukeyequiv Window.Minimize        <D-m>
 menukeyequiv Window.Previous\ Tab   <D-M-Left>
