@@ -810,15 +810,6 @@ static int specialKeyToNSKey(int key);
     return NO;
 }
 
-- (BOOL)starRegisterFromPasteboard:(byref NSPasteboard *)pboard
-{
-    if (curbuf && !curbuf->b_p_ro) {
-        return YES;
-    }
-
-    return NO;
-}
-
 @end // MMBackend
 
 
@@ -837,12 +828,21 @@ static int specialKeyToNSKey(int key);
         if (!data) return;
         NSString *key = [[NSString alloc] initWithData:data
                                               encoding:NSUTF8StringEncoding];
-        char_u *chars = (char_u*)[key UTF8String];
+        char_u *str = (char_u*)[key UTF8String];
         int i, len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
+#if MM_ENABLE_CONV
+        char_u *conv_str = NULL;
+        if (input_conv.vc_type != CONV_NONE) {
+            conv_str = string_convert(&input_conv, str, &len);
+            if (conv_str)
+                str = conv_str;
+        }
+#endif
+
         for (i = 0; i < len; ++i) {
-            add_to_input_buf(chars+i, 1);
-            if (CSI == chars[i]) {
+            add_to_input_buf(str+i, 1);
+            if (CSI == str[i]) {
                 // NOTE: If the converted string contains the byte CSI, then it
                 // must be followed by the bytes KS_EXTRA, KE_CSI or things
                 // won't work.
@@ -851,6 +851,10 @@ static int specialKeyToNSKey(int key);
             }
         }
 
+#if MM_ENABLE_CONV
+        if (conv_str)
+            vim_free(conv_str);
+#endif
         [key release];
     } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
         if (!data) return;

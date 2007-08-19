@@ -662,13 +662,13 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     id backendProxy = [vimController backendProxy];
 
-    if ((!sendType || [sendType isEqual:NSStringPboardType])
-            && (!returnType || [returnType isEqual:NSStringPboardType]))
-    {
-        if ((!sendType || [backendProxy starRegisterToPasteboard:nil]) &&
-                (!returnType || [backendProxy starRegisterFromPasteboard:nil]))
-        {
-            return self;
+    if (backendProxy && [sendType isEqual:NSStringPboardType]) {
+        @try {
+            if ([backendProxy starRegisterToPasteboard:nil])
+                return self;
+        }
+        @catch (NSException *e) {
+            NSLog(@"WARNING: Caught exception in %s: \"%@\"", _cmd, e);
         }
     }
 
@@ -682,7 +682,16 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         return NO;
 
     id backendProxy = [vimController backendProxy];
-    return [backendProxy starRegisterToPasteboard:pboard];
+    if (backendProxy) {
+        @try {
+            return [backendProxy starRegisterToPasteboard:pboard];
+        }
+        @catch (NSException *e) {
+            NSLog(@"WARNING: Caught exception in %s: \"%@\"", _cmd, e);
+        }
+    }
+
+    return NO;
 }
 
 @end // MMWindowController

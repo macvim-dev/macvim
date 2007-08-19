@@ -14,6 +14,14 @@
 
 
 
+// Default timeout intervals on all connections.
+static NSTimeInterval MMRequestTimeout = 5;
+static NSTimeInterval MMReplyTimeout = 5;
+
+// Timeout used when the app should terminate.
+static NSTimeInterval MMTerminateTimeout = 3;
+
+
 
 @interface MMAppController (MMServices)
 - (void)openSelection:(NSPasteboard *)pboard userData:(NSString *)userData
@@ -73,6 +81,8 @@
                  [[NSBundle mainBundle] bundleIdentifier]];
         //NSLog(@"Registering connection with name '%@'", name);
         if ([connection registerName:name]) {
+            [connection setRequestTimeout:MMRequestTimeout];
+            [connection setReplyTimeout:MMReplyTimeout];
             [connection setRootObject:self];
 
             // NOTE: When the user is resizing the window the AppKit puts the
@@ -188,24 +198,53 @@
 {
     int reply = NSTerminateNow;
     BOOL modifiedBuffers = NO;
+    BOOL notResponding = NO;
 
+    // Go through vim controllers, checking for modified buffers.  If a process
+    // is not responding then note this as well.
     unsigned i, count = [vimControllers count];
     for (i = 0; i < count; ++i) {
         MMVimController *controller = [vimControllers objectAtIndex:i];
         id proxy = [controller backendProxy];
-        if (proxy && [proxy checkForModifiedBuffers]) {
-            modifiedBuffers = YES;
-            break;
+        NSConnection *connection = [proxy connectionForProxy];
+        if (connection) {
+            NSTimeInterval req = [connection requestTimeout];
+            NSTimeInterval rep = [connection replyTimeout];
+            [connection setRequestTimeout:MMTerminateTimeout];
+            [connection setReplyTimeout:MMTerminateTimeout];
+
+            @try {
+                if ([proxy checkForModifiedBuffers])
+                    modifiedBuffers = YES;
+            }
+            @catch (NSException *e) {
+                NSLog(@"WARNING: Got exception while waiting for "
+                        "checkForModifiedBuffers: \"%@\"", e);
+                notResponding = YES;
+            }
+            @finally {
+                [connection setRequestTimeout:req];
+                [connection setReplyTimeout:rep];
+                if (modifiedBuffers || notResponding)
+                    break;
+            }
         }
     }
 
-    if (modifiedBuffers) {
+    if (modifiedBuffers || notResponding) {
         NSAlert *alert = [[NSAlert alloc] init];
         [alert addButtonWithTitle:@"Quit"];
         [alert addButtonWithTitle:@"Cancel"];
-        [alert setMessageText:@"Quit without saving?"];
-        [alert setInformativeText:@"There are modified buffers, "
-           " if you quit now all changes will be lost.  Quit anyway?"];
+        if (modifiedBuffers) {
+            [alert setMessageText:@"Quit without saving?"];
+            [alert setInformativeText:@"There are modified buffers, "
+                "if you quit now all changes will be lost.  Quit anyway?"];
+        } else {
+            [alert setMessageText:@"Force Quit?"];
+            [alert setInformativeText:@"At least one Vim process is not "
+                "responding, if you quit now any changes you have made "
+                "will be lost. Quit anyway?"];
+        }
         [alert setAlertStyle:NSWarningAlertStyle];
 
         if ([alert runModal] != NSAlertFirstButtonReturn) {
@@ -220,6 +259,23 @@
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
+    // Send a SIGINT to all running Vim processes, so that they are sure to
+    // receive the connectionDidDie: notification (a process has to checking
+    // the run-loop for this to happen).
+    unsigned i, count = [vimControllers count];
+    for (i = 0; i < count; ++i) {
+        MMVimController *controller = [vimControllers objectAtIndex:i];
+        int pid = [controller pid];
+        if (pid > 0)
+            kill(pid, SIGINT);
+
+        id proxy = [controller backendProxy];
+        NSConnection *connection = [proxy connectionForProxy];
+        if (connection) {
+            [connection invalidate];
+        }
+    }
+
     // NOTE! Is this a correct way of releasing the MMAppController?
     [NSApp setDelegate:nil];
     [self autorelease];
@@ -227,6 +283,8 @@
 
 - (void)removeVimController:(id)controller
 {
+    //NSLog(@"%s%@", _cmd, controller);
+
     [[controller windowController] close];
 
     [vimControllers removeObject:controller];

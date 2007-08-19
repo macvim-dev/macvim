@@ -118,16 +118,24 @@
 
     //NSLog(@"%s%@", _cmd, event);
 
-    NSMutableData *data = [NSMutableData data];
     NSString *string = [event charactersIgnoringModifiers];
     int flags = [event modifierFlags];
     int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
-    [data appendBytes:&flags length:sizeof(int)];
-    [data appendBytes:&len length:sizeof(int)];
-    [data appendBytes:[string UTF8String] length:len];
+    if (len > 0 && [string characterAtIndex:0] == '.') {
+        // HACK! Intercept Cmd-. and send SIGINT to Vim.
+        int pid = [[self vimController] pid];
+        if (pid > 0)
+            kill(pid, SIGINT);
+    } else {
+        NSMutableData *data = [NSMutableData data];
 
-    [[self vimController] sendMessage:CmdKeyMsgID data:data wait:NO];
+        [data appendBytes:&flags length:sizeof(int)];
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[string UTF8String] length:len];
+
+        [[self vimController] sendMessage:CmdKeyMsgID data:data wait:NO];
+    }
 
     return YES;
 }

@@ -305,6 +305,15 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
     BOOL outPad = NO;
     MMBackend *backend = [MMBackend sharedInstance];
     static char ZeroWidthSpace[] = { 0xe2, 0x80, 0x8b };
+#if MM_ENABLE_CONV
+    char_u *conv_str = NULL;
+
+    if (output_conv.vc_type != CONV_NONE) {
+        char_u *conv_str = string_convert(&output_conv, s, &len);
+        if (conv_str)
+            s = conv_str;
+    }
+#endif
 
     for (i = 0; i < len; i += cl) {
         c = utf_ptr2char(s + i);
@@ -374,6 +383,11 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
                      length:sizeof(ZeroWidthSpace)
                 row:row column:endcol-1 flags:flags];
     }
+
+#if MM_ENABLE_CONV
+    if (conv_str)
+        vim_free(conv_str);
+#endif
 
     return endcol - col;
 #else
@@ -475,9 +489,9 @@ clip_mch_own_selection(VimClipboard *cbd)
 clip_mch_request_selection(VimClipboard *cbd)
 {
     NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    NSString *type = [pb availableTypeFromArray:
+    NSString *pbType = [pb availableTypeFromArray:
             [NSArray arrayWithObject:NSStringPboardType]];
-    if (type) {
+    if (pbType) {
         NSMutableString *string =
                 [[pb stringForType:NSStringPboardType] mutableCopy];
 
@@ -496,9 +510,24 @@ clip_mch_request_selection(VimClipboard *cbd)
         int type = MCHAR;
         if (0 < n || NSNotFound != [string rangeOfString:@"\n"].location)
             type = MLINE;
-        
-        const char *utf8chars = [string UTF8String];
-        clip_yank_selection(type, (char_u*)utf8chars, strlen(utf8chars), cbd);
+
+        char_u *str = (char_u*)[string UTF8String];
+        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+#if MM_ENABLE_CONV
+        if (input_conv.vc_type != CONV_NONE) {
+            NSLog(@"Converting from: '%@'", string);
+            char_u *conv_str = string_convert(&input_conv, str, &len);
+            if (conv_str) {
+                NSLog(@"           to: '%s'", conv_str);
+                clip_yank_selection(type, conv_str, len, cbd);
+                vim_free(conv_str);
+                return;
+            }
+        }
+#endif
+
+        clip_yank_selection(type, str, len, cbd);
     }
 }
 
@@ -515,19 +544,35 @@ clip_mch_set_selection(VimClipboard *cbd)
     cbd->owned = FALSE;
     
     // Get the text to put on the pasteboard.
-    long_u len = 0; char_u *str = 0;
-    int type = clip_convert_selection(&str, &len, cbd);
+    long_u llen = 0; char_u *str = 0;
+    int type = clip_convert_selection(&str, &llen, cbd);
     if (type < 0)
         return;
-    
-    NSString *string = [[NSString alloc] initWithBytes:str length:len
-                                              encoding:NSUTF8StringEncoding];
-    
-    NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    [pb declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:nil];
-    [pb setString:string forType:NSStringPboardType];
-    
-    [string release];
+
+    // TODO: Avoid overflow.
+    int len = (int)llen;
+#if MM_ENABLE_CONV
+    if (output_conv.vc_type != CONV_NONE) {
+        char_u *conv_str = string_convert(&output_conv, str, &len);
+        if (conv_str) {
+            vim_free(str);
+            str = conv_str;
+        }
+    }
+#endif
+
+    if (len > 0) {
+        NSString *string = [[NSString alloc]
+            initWithBytes:str length:len encoding:NSUTF8StringEncoding];
+
+        NSPasteboard *pb = [NSPasteboard generalPasteboard];
+        [pb declareTypes:[NSArray arrayWithObject:NSStringPboardType]
+                   owner:nil];
+        [pb setString:string forType:NSStringPboardType];
+        
+        [string release];
+    }
+
     vim_free(str);
 }
 
