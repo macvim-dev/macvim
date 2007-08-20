@@ -1,5 +1,6 @@
 Active:
 
+- Terminal support.  :!bash -> no cursor, arrow keys mucks up display
 - Press Cmd-n multiple times and quickly press Cmd-q; sometimes two or more
   instance of MacVim opens up
 - hide toolbar, open new tab, show toolbar: baseline sepearator still visible
