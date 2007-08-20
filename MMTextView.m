@@ -387,6 +387,11 @@
     }
 }
 
+- (void)resetCursorRects
+{
+    // No need to set up cursor rects...Vim is in control of cursor changes.
+}
+
 @end // MMTextView
 
 
