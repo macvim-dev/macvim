@@ -540,9 +540,14 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 // -- PSMTabBarControl delegate ----------------------------------------------
 
 
-- (void)tabView:(NSTabView *)theTabView didSelectTabViewItem:
+- (BOOL)tabView:(NSTabView *)theTabView shouldSelectTabViewItem:
     (NSTabViewItem *)tabViewItem
 {
+    // NOTE: It would be reasonable to think that 'shouldSelect...' implies
+    // that this message only gets sent when the user clicks the tab.
+    // Unfortunately it is not so, which is why we need the
+    // 'vimTaskSelectedTab' flag.
+    //
     // HACK!  The selection message should not be propagated to the VimTask if
     // the VimTask selected the tab (e.g. as opposed the user clicking the
     // tab).  The delegate method has no way of knowing who initiated the
@@ -555,6 +560,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
             [vimController sendMessage:SelectTabMsgID data:data wait:YES];
         }
     }
+
+    // Unless Vim selected the tab, return NO, and let Vim decide if the tab
+    // should get selected or not.
+    return vimTaskSelectedTab;
 }
 
 - (BOOL)tabView:(NSTabView *)theTabView shouldCloseTabViewItem:
