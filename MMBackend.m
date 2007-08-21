@@ -13,7 +13,9 @@
 
 
 
-static float MMFlushTimeoutInterval = 0.1f;
+// This constant controls how often the command queue may be flushed.  (The
+// unit is seconds.)
+static float MMFlushTimeoutInterval = 0.5f;
 
 
 // TODO: Move to separate file.
