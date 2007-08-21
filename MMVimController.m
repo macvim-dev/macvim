@@ -15,8 +15,20 @@
 #import "MMTextStorage.h"
 
 
+#define MM_NO_REQUEST_TIMEOUT 1
+
+
 static NSString *MMDefaultToolbarImageName = @"Attention";
 static int MMAlertTextFieldHeight = 22;
+
+#if MM_NO_REQUEST_TIMEOUT
+// NOTE: By default a message sent to the backend will be dropped if it cannot
+// be delivered instantly; otherwise there is a possibility that MacVim will
+// 'beachball' while waiting to deliver DO messages to an unresponsive Vim
+// process.  This means that you cannot rely on any message sent with
+// sendMessage:: to actually reach Vim.
+static NSTimeInterval MMBackendProxyRequestTimeout = 0;
+#endif
 
 
 @interface MMAlert : NSAlert {
@@ -98,9 +110,17 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         pid = processIdentifier;
 
         NSConnection *connection = [backendProxy connectionForProxy];
+
+#if MM_NO_REQUEST_TIMEOUT
+        // TODO: Check that this will not set the timeout for the root proxy
+        // (in MMAppController).
+        [connection setRequestTimeout:MMBackendProxyRequestTimeout];
+#endif
+
         [[NSNotificationCenter defaultCenter] addObserver:self
                 selector:@selector(connectionDidDie:)
                     name:NSConnectionDidDieNotification object:connection];
+
 
         NSWindow *win = [windowController window];
 
@@ -157,6 +177,15 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         return;
     }
 
+#if MM_NO_REQUEST_TIMEOUT
+    @try {
+        [backendProxy processInput:msgid data:data];
+    }
+    @catch (NSException *e) {
+        //NSLog(@"%@ %s Exception caught during DO call: %@",
+        //        [self className], _cmd, e);
+    }
+#else
     if (wait) {
         @try {
             [backendProxy processInput:msgid data:data];
@@ -184,6 +213,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             }
         }
     }
+#endif
 }
 
 - (id)backendProxy
@@ -334,20 +364,34 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
     inProcessCommandQueue = NO;
 
-    count = [sendQueue count];
-    if (count > 0) {
-        if (count % 2 == 0) {
-            //NSLog(@"%s Sending %d queued messages", _cmd, count/2);
-
-            for (i = 0; i < count; i += 2) {
-                int msgid = [[sendQueue objectAtIndex:i] intValue];
-                id data = [sendQueue objectAtIndex:i+1];
-                if ([data isEqual:[NSNull null]])
-                    data = nil;
-
-                [backendProxy processInput:msgid data:data];
+    if ([sendQueue count] > 0) {
+#if MM_NO_REQUEST_TIMEOUT
+        @try {
+            [backendProxy processInputAndData:sendQueue];
+        }
+        @catch (NSException *e) {
+            // Connection timed out, just ignore this.
+            //NSLog(@"WARNING! Connection timed out in %s", _cmd);
+        }
+#else
+        // Do not wait for the message to be sent, i.e. drop the message if it
+        // can't be delivered immediately.
+        NSConnection *connection = [backendProxy connectionForProxy];
+        if (connection) {
+            NSTimeInterval req = [connection requestTimeout];
+            [connection setRequestTimeout:0];
+            @try {
+                [backendProxy processInputAndData:sendQueue];
+            }
+            @catch (NSException *e) {
+                // Connection timed out, just ignore this.
+                //NSLog(@"WARNING! Connection timed out in %s", _cmd);
+            }
+            @finally {
+                [connection setRequestTimeout:req];
             }
         }
+#endif
 
         [sendQueue removeAllObjects];
     }
@@ -764,7 +808,12 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                 context:(void *)context
 {
     NSString *string = (code == NSOKButton) ? [panel filename] : nil;
-    [backendProxy setDialogReturn:string];
+    @try {
+        [backendProxy setDialogReturn:string];
+    }
+    @catch (NSException *e) {
+        NSLog(@"Exception caught in %s %@", _cmd, e);
+    }
 }
 
 - (void)alertDidEnd:(MMAlert *)alert code:(int)code context:(void *)context
@@ -780,7 +829,12 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         ret = [NSArray arrayWithObject:[NSNumber numberWithInt:code]];
     }
 
-    [backendProxy setDialogReturn:ret];
+    @try {
+        [backendProxy setDialogReturn:ret];
+    }
+    @catch (NSException *e) {
+        NSLog(@"Exception caught in %s %@", _cmd, e);
+    }
 }
 
 - (NSMenuItem *)menuItemForTag:(int)tag
@@ -1072,6 +1126,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)setTextFieldString:(NSString *)textFieldString
 {
+    [textField release];
     textField = [[NSTextField alloc] init];
     [textField setStringValue:textFieldString];
 }

@@ -766,6 +766,34 @@ static int specialKeyToNSKey(int key);
     inputReceived = YES;
 }
 
+- (oneway void)processInputAndData:(in NSArray *)messages
+{
+    unsigned i, count = [messages count];
+    if (count % 2) {
+        NSLog(@"WARNING: [messages count] is odd in %s", _cmd);
+        return;
+    }
+
+    [lastFlushDate release];
+    lastFlushDate = [[NSDate date] retain];
+
+    for (i = 0; i < count; i += 2) {
+        int msgid = [[messages objectAtIndex:i] intValue];
+        id data = [messages objectAtIndex:i+1];
+        if ([data isEqual:[NSNull null]])
+            data = nil;
+
+        [self handleMessage:msgid data:data];
+    }
+
+    // HACK! A focus message might get lost, but whenever we get here the GUI
+    // is in focus.
+    if (!gui.in_focus)
+        gui_focus_change(TRUE);
+
+    inputReceived = YES;
+}
+
 - (BOOL)checkForModifiedBuffers
 {
     buf_T *buf;

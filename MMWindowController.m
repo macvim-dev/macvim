@@ -66,6 +66,7 @@ static float StatusLineHeight = 16.0f;
 - (void)placeScrollbars;
 - (void)scroll:(id)sender;
 - (void)placeViews;
+- (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
 @end
 
 
@@ -660,17 +661,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (id)validRequestorForSendType:(NSString *)sendType
                      returnType:(NSString *)returnType
 {
-    id backendProxy = [vimController backendProxy];
-
-    if (backendProxy && [sendType isEqual:NSStringPboardType]) {
-        @try {
-            if ([backendProxy starRegisterToPasteboard:nil])
-                return self;
-        }
-        @catch (NSException *e) {
-            NSLog(@"WARNING: Caught exception in %s: \"%@\"", _cmd, e);
-        }
-    }
+    if ([sendType isEqual:NSStringPboardType]
+            && [self askBackendForStarRegister:nil])
+        return self;
 
     return [super validRequestorForSendType:sendType returnType:returnType];
 }
@@ -681,17 +674,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     if (![types containsObject:NSStringPboardType])
         return NO;
 
-    id backendProxy = [vimController backendProxy];
-    if (backendProxy) {
-        @try {
-            return [backendProxy starRegisterToPasteboard:pboard];
-        }
-        @catch (NSException *e) {
-            NSLog(@"WARNING: Caught exception in %s: \"%@\"", _cmd, e);
-        }
-    }
-
-    return NO;
+    return [self askBackendForStarRegister:pboard];
 }
 
 @end // MMWindowController
@@ -1099,6 +1082,23 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [textView setFrame:textViewRect];
 
     [self placeScrollbars];
+}
+
+- (BOOL)askBackendForStarRegister:(NSPasteboard *)pb
+{ 
+    BOOL reply = NO;
+    id backendProxy = [vimController backendProxy];
+
+    if (backendProxy) {
+        @try {
+            reply = [backendProxy starRegisterToPasteboard:pb];
+        }
+        @catch (NSException *e) {
+            NSLog(@"WARNING: Caught exception in %s: \"%@\"", _cmd, e);
+        }
+    }
+
+    return reply;
 }
 
 @end // MMWindowController (Private)
