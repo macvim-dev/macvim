@@ -1274,6 +1274,12 @@ static int specialKeyToNSKey(int key);
         //NSLog(@"non-special: %@ (hex=%x, mods=%d)", key,
         //        [key characterAtIndex:0], mods);
 
+        if (length == 1 && ((c == Ctrl_C && ctrl_c_interrupts)
+                || (c == intr_char && intr_char != Ctrl_C))) {
+            trash_input_buf();
+            got_int = TRUE;
+        }
+
         // HACK!  In most circumstances the Ctrl and Shift modifiers should be
         // cleared since they are already added to the key by the AppKit.
         // Unfortunately, the only way to deal with when to clear the modifiers
