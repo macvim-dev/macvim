@@ -169,6 +169,11 @@
         return;
     }
 
+    // NOTE: If 'string' was initialized with bad data it might be nil; this
+    // may be due to 'enc' being set to an unsupported value, so don't print an
+    // error message or stdout will most likely get flooded.
+    if (!string) return;
+
     if (!(fg && bg && sp)) {
         NSLog(@"[%s] WARNING: background, foreground or special color not "
                 "specified", _cmd);
