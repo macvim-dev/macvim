@@ -238,6 +238,8 @@ static int specialKeyToNSKey(int key);
 - (void)replaceString:(char*)s length:(int)len row:(int)row column:(int)col
                 flags:(int)flags
 {
+    if (len <= 0) return;
+
     int type = ReplaceStringDrawType;
 
     [drawData appendBytes:&type length:sizeof(int)];
@@ -350,6 +352,7 @@ static int specialKeyToNSKey(int key);
         // This function puts the label of the tab in the global 'NameBuff'.
         get_tabline_label(tp, FALSE);
         int len = strlen((char*)NameBuff);
+        if (len <= 0) continue;
 
         // Count the number of windows in the tabpage.
         //win_T *wp = tp->tp_firstwin;
@@ -391,6 +394,7 @@ static int specialKeyToNSKey(int key);
 {
     NSMutableData *data = [NSMutableData data];
     int len = strlen(title);
+    if (len <= 0) return;
 
     [data appendBytes:&len length:sizeof(int)];
     [data appendBytes:title length:len];
@@ -596,14 +600,17 @@ static int specialKeyToNSKey(int key);
 
 - (void)showPopupMenuWithName:(char *)name atMouseLocation:(BOOL)mouse
 {
-    NSMutableData *data = [NSMutableData data];
     int len = strlen(name);
     int row = -1, col = -1;
+
+    if (len <= 0) return;
 
     if (!mouse && curwin) {
         row = curwin->w_wrow;
         col = curwin->w_wcol;
     }
+
+    NSMutableData *data = [NSMutableData data];
 
     [data appendBytes:&row length:sizeof(int)];
     [data appendBytes:&col length:sizeof(int)];
@@ -719,16 +726,18 @@ static int specialKeyToNSKey(int key);
         NSFont *font = [NSFont fontWithName:fontName size:size];
         if (font) {
             //NSLog(@"Setting font '%@' of size %.2f", fontName, size);
-            NSMutableData *data = [NSMutableData data];
             int len = [fontName
                     lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+            if (len > 0) {
+                NSMutableData *data = [NSMutableData data];
 
-            [data appendBytes:&size length:sizeof(float)];
-            [data appendBytes:&len length:sizeof(int)];
-            [data appendBytes:[fontName UTF8String] length:len];
+                [data appendBytes:&size length:sizeof(float)];
+                [data appendBytes:&len length:sizeof(int)];
+                [data appendBytes:[fontName UTF8String] length:len];
 
-            [self queueMessage:SetFontMsgID data:data];
-            return YES;
+                [self queueMessage:SetFontMsgID data:data];
+                return YES;
+            }
         }
     }
 
