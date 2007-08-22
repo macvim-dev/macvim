@@ -59,6 +59,8 @@ char *MessageStrings[] =
     "ShowPopupMenuMsgID",
     "GotFocusMsgID",
     "LostFocusMsgID",
+    "MouseMovedMsgID",
+    "SetMouseShapeMsgID",
 };
 
 

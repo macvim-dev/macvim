@@ -283,6 +283,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     [self addNewTabViewItem];
 
+    [[self window] setAcceptsMouseMovedEvents:YES];
+
     setupDone = YES;
 
     [self updateResizeIncrements];
@@ -520,6 +522,27 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     } else {
         [tablineSeparator setHidden:![tabBarControl isHidden]];
     }
+}
+
+- (void)setMouseShape:(int)shape
+{
+    // This switch should match mshape_names[] in misc2.c.
+    //
+    // TODO: Add missing cursor shapes.
+    switch (shape) {
+        case 2: [[NSCursor IBeamCursor] set]; break;
+        case 3: case 4: [[NSCursor resizeUpDownCursor] set]; break;
+        case 5: case 6: [[NSCursor resizeLeftRightCursor] set]; break;
+        case 9: [[NSCursor crosshairCursor] set]; break;
+        case 10: [[NSCursor pointingHandCursor] set]; break;
+        case 11: [[NSCursor openHandCursor] set]; break;
+        default:
+            [[NSCursor arrowCursor] set]; break;
+    }
+
+    // Shape 1 indicates that the mouse cursor should be hidden.
+    if (1 == shape)
+        [NSCursor setHiddenUntilMouseMoves:YES];
 }
 
 - (IBAction)addNewTab:(id)sender

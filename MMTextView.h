@@ -12,8 +12,9 @@
 
 
 @interface MMTextView : NSTextView {
-    BOOL    shouldDrawInsertionPoint;
-    NSEvent *lastMouseDownEvent;
+    BOOL                shouldDrawInsertionPoint;
+    NSEvent             *lastMouseDownEvent;
+    //NSTrackingRectTag   trackingRectTag;
 }
 
 - (NSEvent *)lastMouseDownEvent;

@@ -81,6 +81,7 @@
                     identifier:(long)ident;
 - (BOOL)setFontWithName:(char *)name;
 - (void)executeActionWithName:(NSString *)name;
+- (void)setMouseShape:(int)shape;
 
 - (int)lookupColorWithKey:(NSString *)key;
 

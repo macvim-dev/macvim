@@ -56,6 +56,7 @@
 - (void)popupMenu:(NSMenu *)menu atRow:(int)row column:(int)col;
 - (void)showTabBar:(BOOL)on;
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode;
+- (void)setMouseShape:(int)shape;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;

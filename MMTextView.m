@@ -260,6 +260,57 @@
     [self mouseDragged:event];
 }
 
+- (void)mouseMoved:(NSEvent *)event
+{
+    NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
+    int row, col;
+    if (![self convertPoint:pt toRow:&row column:&col])
+        return;
+
+    NSMutableData *data = [NSMutableData data];
+
+    [data appendBytes:&row length:sizeof(int)];
+    [data appendBytes:&col length:sizeof(int)];
+
+    [[self vimController] sendMessage:MouseMovedMsgID data:data wait:NO];
+}
+
+#if 0
+- (void)mouseEntered:(NSEvent *)event
+{
+    NSLog(@"%s", _cmd);
+    [[self window] setAcceptsMouseMovedEvents:YES];
+}
+
+- (void)mouseExited:(NSEvent *)event
+{
+    NSLog(@"%s", _cmd);
+    [[self window] setAcceptsMouseMovedEvents:NO];
+    [[NSCursor arrowCursor] set];
+}
+
+- (void)setFrame:(NSRect)frame
+{
+    NSLog(@"%s", _cmd);
+
+    // NOTE: Set a tracking rect which covers the text view.  While the mouse
+    // cursor is in this rect the view will receive 'mouseMoved:' events so
+    // that Vim can take care of updating the mouse cursor.
+    [super setFrame:frame];
+    [self removeTrackingRect:trackingRectTag];
+    trackingRectTag = [self addTrackingRect:frame owner:self userData:NULL
+                            assumeInside:YES];
+}
+
+- (void)viewWillMoveToWindow:(NSWindow *)newWindow
+{
+    // Remove tracking rect if view moves or is removed.
+    if ([self window] && trackingRectTag) {
+        [self removeTrackingRect:trackingRectTag];
+    }
+}
+#endif
+
 - (NSMenu*)menuForEvent:(NSEvent *)event
 {
     // HACK! Return nil to disable NSTextView's popup menus (Vim provides its

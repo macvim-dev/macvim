@@ -121,6 +121,8 @@ enum {
     ShowPopupMenuMsgID,
     GotFocusMsgID,
     LostFocusMsgID,
+    MouseMovedMsgID,
+    SetMouseShapeMsgID,
 };
 
 

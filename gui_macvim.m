@@ -1294,6 +1294,7 @@ gui_mch_toggle_tearoffs(int enable)
     void
 mch_set_mouse_shape(int shape)
 {
+    [[MMBackend sharedInstance] setMouseShape:shape];
 }
 
 

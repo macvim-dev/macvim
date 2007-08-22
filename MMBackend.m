@@ -760,6 +760,13 @@ static int specialKeyToNSKey(int key);
     }
 }
 
+- (void)setMouseShape:(int)shape
+{
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&shape length:sizeof(int)];
+    [self queueMessage:SetMouseShapeMsgID data:data];
+}
+
 - (int)lookupColorWithKey:(NSString *)key
 {
     if (!(key && [key length] > 0))
@@ -1236,6 +1243,12 @@ static int specialKeyToNSKey(int key);
     } else if (LostFocusMsgID == msgid) {
         if (gui.in_focus)
             gui_focus_change(NO);
+    } else if (MouseMovedMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+
+        gui_mouse_moved(col, row);
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
