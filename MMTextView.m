@@ -278,7 +278,17 @@
 {
     NSPasteboard *pboard = [sender draggingPasteboard];
 
-    if ([[pboard types] containsObject:NSFilenamesPboardType]) {
+    if ([[pboard types] containsObject:NSStringPboardType]) {
+        NSString *string = [pboard stringForType:NSStringPboardType];
+        NSMutableData *data = [NSMutableData data];
+        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
+
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[string UTF8String] length:len];
+
+        [[self vimController] sendMessage:DropStringMsgID data:data wait:NO];
+        return YES;
+    } else if ([[pboard types] containsObject:NSFilenamesPboardType]) {
         NSArray *files = [pboard propertyListForType:NSFilenamesPboardType];
         int i, numberOfFiles = [files count];
         NSMutableData *data = [NSMutableData data];
@@ -307,16 +317,6 @@
         }
 
         [[self vimController] sendMessage:DropFilesMsgID data:data wait:NO];
-        return YES;
-    } else if ([[pboard types] containsObject:NSStringPboardType]) {
-        NSString *string = [pboard stringForType:NSStringPboardType];
-        NSMutableData *data = [NSMutableData data];
-        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
-
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:[string UTF8String] length:len];
-
-        [[self vimController] sendMessage:DropStringMsgID data:data wait:NO];
         return YES;
     }
 
