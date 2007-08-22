@@ -133,7 +133,9 @@ gui_mch_open(void)
     void
 gui_mch_update(void)
 {
-    [[MMBackend sharedInstance] flushQueue:NO];
+    // TODO: Ensure that this causes no problems.
+    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                             beforeDate:[NSDate distantPast]];
 }
 
 
