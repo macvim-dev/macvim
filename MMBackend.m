@@ -13,9 +13,11 @@
 
 
 
-// This constant controls how often the command queue may be flushed.  (The
-// unit is seconds.)
-static float MMFlushTimeoutInterval = 0.5f;
+// This constant controls how often the command queue may be flushed.  If it is
+// too small the app might feel unresponsive; if it is too large there might be
+// long periods without the screen updating (e.g. when sourcing a large session
+// file).  (The unit is seconds.)
+static float MMFlushTimeoutInterval = 0.1f;
 
 
 // TODO: Move to separate file.
@@ -163,8 +165,15 @@ static int specialKeyToNSKey(int key);
                 name:NSConnectionDidDieNotification object:connection];
 
     int pid = [[NSProcessInfo processInfo] processIdentifier];
-    frontendProxy = [(NSDistantObject*)[proxy connectBackend:self
-                                                         pid:pid] retain];
+
+    @try {
+        frontendProxy = [(NSDistantObject*)[proxy connectBackend:self
+                                                             pid:pid] retain];
+    }
+    @catch (NSException *e) {
+        NSLog(@"Exception caught when trying to connect backend: \"%@\"", e);
+    }
+
     if (frontendProxy) {
         [frontendProxy setProtocolForProxy:@protocol(MMAppProtocol)];
     }
@@ -270,7 +279,13 @@ static int specialKeyToNSKey(int key);
         // TODO: Come up with a better way to handle the insertion point.
         [self updateInsertionPoint];
 
-        [frontendProxy processCommandQueue:queue];
+        @try {
+            [frontendProxy processCommandQueue:queue];
+        }
+        @catch (NSException *e) {
+            NSLog(@"Exception caught when processing command queue: \"%@\"", e);
+        }
+
         [queue removeAllObjects];
 
         [lastFlushDate release];
@@ -383,24 +398,29 @@ static int specialKeyToNSKey(int key);
     //NSLog(@"browseForFileInDirectory:%s title:%s saving:%d", dir, title,
     //        saving);
 
+    char_u *s = NULL;
     NSString *ds = dir
             ? [NSString stringWithCString:dir encoding:NSUTF8StringEncoding]
             : nil;
     NSString *ts = title
             ? [NSString stringWithCString:title encoding:NSUTF8StringEncoding]
             : nil;
-    [frontendProxy showSavePanelForDirectory:ds title:ts saving:saving];
+    @try {
+        [frontendProxy showSavePanelForDirectory:ds title:ts saving:saving];
 
-    // Wait until a reply is sent from MMVimController.
-    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                             beforeDate:[NSDate distantFuture]];
+        // Wait until a reply is sent from MMVimController.
+        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                 beforeDate:[NSDate distantFuture]];
 
-    char_u *s = NULL;
-    if (dialogReturn && [dialogReturn isKindOfClass:[NSString class]]) {
-        s = vim_strsave((char_u*)[dialogReturn UTF8String]);
+        if (dialogReturn && [dialogReturn isKindOfClass:[NSString class]]) {
+            s = vim_strsave((char_u*)[dialogReturn UTF8String]);
+        }
+
+        [dialogReturn release];  dialogReturn = nil;
     }
-
-    [dialogReturn release];  dialogReturn = nil;
+    @catch (NSException *e) {
+        NSLog(@"Exception caught when showing save panel: \"%@\"", e);
+    }
 
     return (char *)s;
 }
@@ -421,6 +441,7 @@ static int specialKeyToNSKey(int key);
 - (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
                      buttons:(char *)btns textField:(char *)txtfield
 {
+    int retval = 0;
     NSString *message = nil, *text = nil, *textFieldString = nil;
     NSArray *buttons = nil;
     int style = NSInformationalAlertStyle;
@@ -454,26 +475,30 @@ static int specialKeyToNSKey(int key);
     if (txtfield)
         textFieldString = [NSString stringWithUTF8String:txtfield];
 
-    [frontendProxy presentDialogWithStyle:style message:message
-                          informativeText:text buttonTitles:buttons
-                          textFieldString:textFieldString];
+    @try {
+        [frontendProxy presentDialogWithStyle:style message:message
+                              informativeText:text buttonTitles:buttons
+                              textFieldString:textFieldString];
 
-    // Wait until a reply is sent from MMVimController.
-    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                             beforeDate:[NSDate distantFuture]];
+        // Wait until a reply is sent from MMVimController.
+        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                 beforeDate:[NSDate distantFuture]];
 
-    int retval = 0;
-    if (dialogReturn && [dialogReturn isKindOfClass:[NSArray class]]
-            && [dialogReturn count]) {
-        retval = [[dialogReturn objectAtIndex:0] intValue];
-        if (txtfield && [dialogReturn count] > 1) {
-            NSString *retString = [dialogReturn objectAtIndex:1];
-            vim_strncpy((char_u*)txtfield, (char_u*)[retString UTF8String],
-                    IOSIZE - 1);
+        if (dialogReturn && [dialogReturn isKindOfClass:[NSArray class]]
+                && [dialogReturn count]) {
+            retval = [[dialogReturn objectAtIndex:0] intValue];
+            if (txtfield && [dialogReturn count] > 1) {
+                NSString *retString = [dialogReturn objectAtIndex:1];
+                vim_strncpy((char_u*)txtfield, (char_u*)[retString UTF8String],
+                        IOSIZE - 1);
+            }
         }
-    }
 
-    [dialogReturn release]; dialogReturn = nil;
+        [dialogReturn release]; dialogReturn = nil;
+    }
+    @catch (NSException *e) {
+        NSLog(@"Exception caught while showing alert dialog: \"%@\"", e);
+    }
 
     return retval;
 }
