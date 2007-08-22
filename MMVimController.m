@@ -165,6 +165,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait
 {
+    //NSLog(@"sendMessage:%s (isInitialized=%d inProcessCommandQueue=%d)",
+    //        MessageStrings[msgid], isInitialized, inProcessCommandQueue);
+
     if (!isInitialized) return;
 
     if (inProcessCommandQueue) {
