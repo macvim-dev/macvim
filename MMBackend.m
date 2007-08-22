@@ -84,6 +84,11 @@ static int specialKeyToNSKey(int key);
     foregroundColor = color;
 }
 
+- (void)setSpecialColor:(int)color
+{
+    specialColor = color;
+}
+
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg
 {
     defaultBackgroundColor = bg;
@@ -239,6 +244,7 @@ static int specialKeyToNSKey(int key);
 
     [drawData appendBytes:&backgroundColor length:sizeof(int)];
     [drawData appendBytes:&foregroundColor length:sizeof(int)];
+    [drawData appendBytes:&specialColor length:sizeof(int)];
     [drawData appendBytes:&row length:sizeof(int)];
     [drawData appendBytes:&col length:sizeof(int)];
     [drawData appendBytes:&flags length:sizeof(int)];

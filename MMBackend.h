@@ -24,6 +24,7 @@
     BOOL            tabBarVisible;
     int             backgroundColor;
     int             foregroundColor;
+    int             specialColor;
     int             defaultBackgroundColor;
     int             defaultForegroundColor;
     NSDate          *lastFlushDate;
@@ -34,6 +35,7 @@
 
 - (void)setBackgroundColor:(int)color;
 - (void)setForegroundColor:(int)color;
+- (void)setSpecialColor:(int)color;
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg;
 
 - (BOOL)checkin;

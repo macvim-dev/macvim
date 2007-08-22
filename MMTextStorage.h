@@ -34,9 +34,9 @@
 - (int)maxColumns;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
-- (void)replaceString:(NSString*)string atRow:(int)row column:(int)col
-        withFlags:(int)flags foregroundColor:(NSColor*)fg
-        backgroundColor:(NSColor*)bg;
+- (void)replaceString:(NSString *)string atRow:(int)row column:(int)col
+            withFlags:(int)flags foregroundColor:(NSColor *)fg
+      backgroundColor:(NSColor *)bg specialColor:(NSColor *)sp;
 - (void)deleteLinesFromRow:(int)row lineCount:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right
                      color:(NSColor *)color;

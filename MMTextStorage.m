@@ -154,9 +154,9 @@
     maxColumns = cols;
 }
 
-- (void)replaceString:(NSString*)string atRow:(int)row column:(int)col
-        withFlags:(int)flags foregroundColor:(NSColor*)fg
-        backgroundColor:(NSColor*)bg
+- (void)replaceString:(NSString *)string atRow:(int)row column:(int)col
+            withFlags:(int)flags foregroundColor:(NSColor *)fg
+      backgroundColor:(NSColor *)bg specialColor:(NSColor *)sp
 {
     //NSLog(@"replaceString:atRow:%d column:%d withFlags:%d", row, col, flags);
     [self lazyResize];
@@ -169,9 +169,9 @@
         return;
     }
 
-    if (!(fg && bg)) {
-        NSLog(@"[%s] WARNING: background or foreground color not specified",
-                _cmd);
+    if (!(fg && bg && sp)) {
+        NSLog(@"[%s] WARNING: background, foreground or special color not "
+                "specified", _cmd);
         return;
     }
 
@@ -183,7 +183,9 @@
 #if !HEED_DRAW_TRANSP
             bg, NSBackgroundColorAttributeName,
 #endif
-            fg, NSForegroundColorAttributeName, nil];
+            fg, NSForegroundColorAttributeName,
+            sp, NSUnderlineColorAttributeName,
+            nil];
     [attribString setAttributes:attributes range:range];
 
 #if HEED_DRAW_TRANSP

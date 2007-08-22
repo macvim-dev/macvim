@@ -770,6 +770,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         } else if (ReplaceStringDrawType == type) {
             int bg = *((int*)bytes);  bytes += sizeof(int);
             int fg = *((int*)bytes);  bytes += sizeof(int);
+            int sp = *((int*)bytes);  bytes += sizeof(int);
             int row = *((int*)bytes);  bytes += sizeof(int);
             int col = *((int*)bytes);  bytes += sizeof(int);
             int flags = *((int*)bytes);  bytes += sizeof(int);
@@ -785,7 +786,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                                  atRow:row column:col
                              withFlags:flags
                        foregroundColor:[NSColor colorWithRgbInt:fg]
-                       backgroundColor:[NSColor colorWithRgbInt:bg]];
+                       backgroundColor:[NSColor colorWithRgbInt:bg]
+                          specialColor:[NSColor colorWithRgbInt:sp]];
 
             [string release];
         } else if (InsertLinesDrawType == type) {

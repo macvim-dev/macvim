@@ -1226,6 +1226,7 @@ gui_mch_set_shellsize(
     void
 gui_mch_set_sp_color(guicolor_T color)
 {
+    [[MMBackend sharedInstance] setSpecialColor:color];
 }
 
 
