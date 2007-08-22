@@ -12,7 +12,7 @@
 
 char *MessageStrings[] = 
 {
-    "BadMsgID",
+    "INVALID MESSAGE ID",
     "CheckinMsgID",
     "ConnectedMsgID",
     "KillTaskMsgID",
@@ -43,6 +43,7 @@ char *MessageStrings[] =
     "EnableMenuItemMsgID",
     "ExecuteMenuMsgID",
     "ShowToolbarMsgID",
+    "ToggleToolbarMsgID",
     "CreateScrollbarMsgID",
     "DestroyScrollbarMsgID",
     "ShowScrollbarMsgID",
