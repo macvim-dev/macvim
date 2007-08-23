@@ -156,7 +156,6 @@ extern NSString *MMNoWindowKey;
 extern NSString *MMTabMinWidthKey;
 extern NSString *MMTabMaxWidthKey;
 extern NSString *MMTabOptimumWidthKey;
-extern NSString *MMStatuslineOffKey;
 extern NSString *MMTextInsetLeftKey;
 extern NSString *MMTextInsetRightKey;
 extern NSString *MMTextInsetTopKey;
@@ -167,6 +166,7 @@ extern NSString *MMCellWidthMultiplierKey;
 extern NSString *MMBaselineOffsetKey;
 extern NSString *MMTranslateCtrlClickKey;
 extern NSString *MMTopLeftPointKey;
+extern NSString *MMOpenFilesInTabsKey;
 
 
 

@@ -51,7 +51,6 @@ static NSTimeInterval MMTerminateTimeout = 3;
         [NSNumber numberWithInt:64],    MMTabMinWidthKey,
         [NSNumber numberWithInt:6*64],  MMTabMaxWidthKey,
         [NSNumber numberWithInt:132],   MMTabOptimumWidthKey,
-        [NSNumber numberWithBool:NO],   MMStatuslineOffKey,
         [NSNumber numberWithInt:2],     MMTextInsetLeftKey,
         [NSNumber numberWithInt:1],     MMTextInsetRightKey,
         [NSNumber numberWithInt:1],     MMTextInsetTopKey,
@@ -61,6 +60,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
         [NSNumber numberWithFloat:1],   MMCellWidthMultiplierKey,
         [NSNumber numberWithFloat:-1],  MMBaselineOffsetKey,
         [NSNumber numberWithBool:YES],  MMTranslateCtrlClickKey,
+        [NSNumber numberWithBool:NO],   MMOpenFilesInTabsKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -168,18 +168,28 @@ static NSTimeInterval MMTerminateTimeout = 3;
         return;
     }
 
-    NSMutableArray *args = [NSMutableArray arrayWithObjects:@"-g", @"-p", nil];
-    [args addObjectsFromArray:files];
+    MMVimController *vc;
+    BOOL openInTabs = [[NSUserDefaults standardUserDefaults]
+        boolForKey:MMOpenFilesInTabsKey];
 
-    NSString *path = [[NSBundle mainBundle]
-            pathForAuxiliaryExecutable:@"Vim"];
-    if (!path) {
-        NSLog(@"ERROR: Vim executable could not be found inside app bundle!");
-        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplyFailure];
-        return;
+    if (openInTabs && (vc = [self topmostVimController])) {
+        [vc dropFiles:files];
+    } else {
+        NSMutableArray *args = [NSMutableArray arrayWithObjects:
+            @"-g", @"-p", nil];
+        [args addObjectsFromArray:files];
+
+        NSString *path = [[NSBundle mainBundle]
+                pathForAuxiliaryExecutable:@"Vim"];
+        if (!path) {
+            NSLog(@"ERROR: Vim executable could not be found inside app "
+                   "bundle!");
+            [NSApp replyToOpenOrPrint:NSApplicationDelegateReplyFailure];
+            return;
+        }
+
+        [NSTask launchedTaskWithLaunchPath:path arguments:args];
     }
-
-    [NSTask launchedTaskWithLaunchPath:path arguments:args];
 
     [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
     // NSApplicationDelegateReplySuccess = 0,
@@ -331,16 +341,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
     if (openSelectionString) {
         // There is some text to paste into this window as a result of the
         // services menu "Open selection ..." being used.
-        NSMutableData *data = [NSMutableData data];
-        int len = [openSelectionString
-            lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
-
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:[openSelectionString UTF8String] length:len];
-
-        MMVimController *vc = [windowController vimController];
-        [vc sendMessage:DropStringMsgID data:data wait:NO];
-
+        [[windowController vimController] dropString:openSelectionString];
         [openSelectionString release];
         openSelectionString = nil;
     }
@@ -450,15 +451,9 @@ static NSTimeInterval MMTerminateTimeout = 3;
 
     MMVimController *vc = [self topmostVimController];
     if (vc) {
-        NSString *string = [pboard stringForType:NSStringPboardType];
-        NSMutableData *data = [NSMutableData data];
-        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
-
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:[string UTF8String] length:len];
-
+        // Open a new tab first, since dropString: does not do this.
         [vc sendMessage:AddNewTabMsgID data:nil wait:NO];
-        [vc sendMessage:DropStringMsgID data:data wait:NO];
+        [vc dropString:[pboard stringForType:NSStringPboardType]];
     } else {
         // NOTE: There is no window to paste the selection into, so save the
         // text, open a new window, and paste the text when the next window
@@ -481,7 +476,6 @@ static NSTimeInterval MMTerminateTimeout = 3;
     }
 
     // TODO: Parse multiple filenames and create array with names.
-    int numberOfFiles = 1;
     NSString *string = [pboard stringForType:NSStringPboardType];
     string = [string stringByTrimmingCharactersInSet:
             [NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -492,14 +486,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
         vc = [self topmostVimController];
 
     if (vc) {
-        NSMutableData *data = [NSMutableData data];
-        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-
-        [data appendBytes:&numberOfFiles length:sizeof(int)];
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:[string UTF8String] length:len];
-
-        [vc sendMessage:DropFilesMsgID data:data wait:NO];
+        [vc dropFiles:[NSArray arrayWithObject:string]];
     } else {
         [self application:NSApp openFiles:[NSArray arrayWithObject:string]];
     }

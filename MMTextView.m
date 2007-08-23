@@ -363,43 +363,11 @@
 
     if ([[pboard types] containsObject:NSStringPboardType]) {
         NSString *string = [pboard stringForType:NSStringPboardType];
-        NSMutableData *data = [NSMutableData data];
-        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
-
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:[string UTF8String] length:len];
-
-        [[self vimController] sendMessage:DropStringMsgID data:data wait:NO];
+        [[self vimController] dropString:string];
         return YES;
     } else if ([[pboard types] containsObject:NSFilenamesPboardType]) {
         NSArray *files = [pboard propertyListForType:NSFilenamesPboardType];
-        int i, numberOfFiles = [files count];
-        NSMutableData *data = [NSMutableData data];
-
-        [data appendBytes:&numberOfFiles length:sizeof(int)];
-
-#if 0
-        int row, col;
-        NSPoint pt = [self convertPoint:[sender draggingLocation] fromView:nil];
-        if (![self convertPoint:pt toRow:&row column:&col])
-            return NO;
-
-        [data appendBytes:&row length:sizeof(int)];
-        [data appendBytes:&col length:sizeof(int)];
-#endif
-
-        for (i = 0; i < numberOfFiles; ++i) {
-            NSString *file = [files objectAtIndex:i];
-            int len = [file lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-
-            if (len > 0) {
-                ++len;  // append NUL as well
-                [data appendBytes:&len length:sizeof(int)];
-                [data appendBytes:[file UTF8String] length:len];
-            }
-        }
-
-        [[self vimController] sendMessage:DropFilesMsgID data:data wait:NO];
+        [[self vimController] dropFiles:files];
         return YES;
     }
 

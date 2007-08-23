@@ -36,6 +36,8 @@
 - (int)pid;
 - (MMWindowController *)windowController;
 - (void)cleanup;
+- (void)dropFiles:(NSArray *)filenames;
+- (void)dropString:(NSString *)string;
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait;
 
 @end

@@ -25,9 +25,6 @@ enum {
     MMScrollerTypeBottom
 };
 
-// NOTE!  This value must match the actual position of the status line
-// separator in VimWindow.nib.
-static float StatusLineHeight = 16.0f;
 
 
 // TODO:  Move!
@@ -731,9 +728,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     if (![tabBarControl isHidden])
         size.height += [tabBarControl frame].size.height;
 
-    if (![ud boolForKey:MMStatuslineOffKey])
-        size.height += StatusLineHeight;
-
     if ([self bottomScrollbarVisible])
         size.height += [NSScroller scrollerWidth];
     if ([self leftScrollbarVisible])
@@ -752,12 +746,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         --rect.size.height;
     if (![tabBarControl isHidden])
         rect.size.height -= [tabBarControl frame].size.height;
-
-    if (![[NSUserDefaults standardUserDefaults]
-            boolForKey:MMStatuslineOffKey]) {
-        rect.size.height -= StatusLineHeight;
-        rect.origin.y += StatusLineHeight;
-    }
 
     if ([self bottomScrollbarVisible]) {
         rect.size.height -= [NSScroller scrollerWidth];
@@ -948,8 +936,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     NSRect textViewFrame = [textView frame];
     BOOL lsbVisible = [self leftScrollbarVisible];
-    BOOL statusVisible = ![[NSUserDefaults standardUserDefaults]
-            boolForKey:MMStatuslineOffKey];
 
     // HACK!  Find the lowest left&right vertical scrollbars, as well as the
     // rightmost horizontal scrollbar.  This hack continues further down.
@@ -991,8 +977,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         if ([scroller type] == MMScrollerTypeBottom) {
             rect = [textStorage rectForColumnsInRange:[scroller range]];
             rect.size.height = [NSScroller scrollerWidth];
-            if (statusVisible)
-                rect.origin.y += StatusLineHeight;
             if (lsbVisible)
                 rect.origin.x += [NSScroller scrollerWidth];
 

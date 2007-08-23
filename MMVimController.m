@@ -163,6 +163,40 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     return pid;
 }
 
+- (void)dropFiles:(NSArray *)filenames
+{
+    int i, numberOfFiles = [filenames count];
+    NSMutableData *data = [NSMutableData data];
+
+    [data appendBytes:&numberOfFiles length:sizeof(int)];
+
+    for (i = 0; i < numberOfFiles; ++i) {
+        NSString *file = [filenames objectAtIndex:i];
+        int len = [file lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+        if (len > 0) {
+            ++len;  // append NUL as well
+            [data appendBytes:&len length:sizeof(int)];
+            [data appendBytes:[file UTF8String] length:len];
+        }
+    }
+
+    [self sendMessage:DropFilesMsgID data:data wait:NO];
+}
+
+- (void)dropString:(NSString *)string
+{
+    int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
+    if (len > 0) {
+        NSMutableData *data = [NSMutableData data];
+
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[string UTF8String] length:len];
+
+        [self sendMessage:DropStringMsgID data:data wait:NO];
+    }
+}
+
 - (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait
 {
     //NSLog(@"sendMessage:%s (isInitialized=%d inProcessCommandQueue=%d)",
