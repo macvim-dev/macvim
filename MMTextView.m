@@ -21,6 +21,8 @@
 - (NSRect)trackingRect;
 - (void)dispatchKeyEvent:(NSEvent *)event;
 - (MMVimController *)vimController;
+- (void)startDragTimerWithInterval:(NSTimeInterval)t;
+- (void)dragTimerFired:(NSTimer *)timer;
 @end
 
 
@@ -222,6 +224,8 @@
     [data appendBytes:&flags length:sizeof(int)];
 
     [[self vimController] sendMessage:MouseUpMsgID data:data wait:NO];
+
+    isDragging = NO;
 }
 
 - (void)rightMouseUp:(NSEvent *)event
@@ -236,19 +240,28 @@
 
 - (void)mouseDragged:(NSEvent *)event
 {
+    int flags = [event modifierFlags];
     int row, col;
     NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
     if (![self convertPoint:pt toRow:&row column:&col])
         return;
 
-    int flags = [event modifierFlags];
-    NSMutableData *data = [NSMutableData data];
+    // Autoscrolling is done in dragTimerFired:
+    if (!isAutoscrolling) {
+        NSMutableData *data = [NSMutableData data];
 
-    [data appendBytes:&row length:sizeof(int)];
-    [data appendBytes:&col length:sizeof(int)];
-    [data appendBytes:&flags length:sizeof(int)];
+        [data appendBytes:&row length:sizeof(int)];
+        [data appendBytes:&col length:sizeof(int)];
+        [data appendBytes:&flags length:sizeof(int)];
 
-    [[self vimController] sendMessage:MouseDraggedMsgID data:data wait:NO];
+        [[self vimController] sendMessage:MouseDraggedMsgID data:data wait:NO];
+    }
+
+    dragRow = row; dragColumn = col; dragFlags = flags;
+    if (!isDragging) {
+        [self startDragTimerWithInterval:.5];
+        isDragging = YES;
+    }
 }
 
 - (void)rightMouseDragged:(NSEvent *)event
@@ -304,6 +317,9 @@
 
     [data appendBytes:&shape length:sizeof(int)];
     [[self vimController] sendMessage:SetMouseShapeMsgID data:data wait:NO];
+
+    if (isDragging) {
+    }
 }
 
 - (void)setFrame:(NSRect)frame
@@ -579,6 +595,52 @@
     // TODO: Make sure 'windowController' is a MMWindowController before type
     // casting.
     return [(MMWindowController*)windowController vimController];
+}
+
+- (void)startDragTimerWithInterval:(NSTimeInterval)t
+{
+    [NSTimer scheduledTimerWithTimeInterval:t target:self
+                                   selector:@selector(dragTimerFired:)
+                                   userInfo:nil repeats:NO];
+}
+
+- (void)dragTimerFired:(NSTimer *)timer
+{
+    static unsigned tick = 1;
+    MMTextStorage *ts = (MMTextStorage *)[self textStorage];
+
+    isAutoscrolling = NO;
+
+    if (isDragging && ts && (dragRow < 0 || dragRow >= [ts maxRows])) {
+        // HACK! If the mouse cursor is outside the text area, then send a
+        // dragged event.  However, if row&col hasn't changed since the last
+        // dragged event, Vim won't do anything (see gui_send_mouse_event()).
+        // Thus we fiddle with the column to make sure something happens.
+        int col = dragColumn + (dragRow < 0 ? -(tick % 2) : +(tick % 2));
+        NSMutableData *data = [NSMutableData data];
+
+        [data appendBytes:&dragRow length:sizeof(int)];
+        [data appendBytes:&col length:sizeof(int)];
+        [data appendBytes:&dragFlags length:sizeof(int)];
+
+        [[self vimController] sendMessage:MouseDraggedMsgID data:data wait:NO];
+
+        isAutoscrolling = YES;
+    }
+
+    if (isDragging) {
+        // The timer only fires once, so we have to keep rescheduling it while
+        // the user is dragging.
+        NSTimeInterval t = .3;
+        int delta = dragRow < 0 ? -dragRow : dragRow - [ts maxRows] + 1;
+        if (delta > 0)
+            t -= .01*delta*delta;
+        if (t < .05) t = .05;
+
+        [self startDragTimerWithInterval:t];
+    }
+
+    ++tick;
 }
 
 @end // MMTextView (Private)

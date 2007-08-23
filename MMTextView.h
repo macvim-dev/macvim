@@ -15,6 +15,11 @@
     BOOL                shouldDrawInsertionPoint;
     NSEvent             *lastMouseDownEvent;
     NSTrackingRectTag   trackingRectTag;
+    BOOL                isDragging;
+    BOOL                isAutoscrolling;
+    int                 dragRow;
+    int                 dragColumn;
+    int                 dragFlags;
 }
 
 - (NSEvent *)lastMouseDownEvent;
