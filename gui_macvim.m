@@ -1097,6 +1097,7 @@ gui_mch_get_winpos(int *x, int *y)
     void
 gui_mch_getmouse(int *x, int *y)
 {
+    //NSLog(@"gui_mch_getmouse()");
 }
 
 
@@ -1248,6 +1249,7 @@ gui_mch_set_winpos(int x, int y)
     void
 gui_mch_setmouse(int x, int y)
 {
+    //NSLog(@"gui_mch_setmouse(x=%d, y=%d)", x, y);
 }
 
 

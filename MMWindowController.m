@@ -283,7 +283,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     [self addNewTabViewItem];
 
-    [[self window] setAcceptsMouseMovedEvents:YES];
+    //[[self window] setAcceptsMouseMovedEvents:YES];
 
     setupDone = YES;
 

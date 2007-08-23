@@ -1249,6 +1249,10 @@ static int specialKeyToNSKey(int key);
         int col = *((int*)bytes);  bytes += sizeof(int);
 
         gui_mouse_moved(col, row);
+    } else if (SetMouseShapeMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int shape = *((int*)bytes);  bytes += sizeof(int);
+        update_mouseshape(shape);
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

@@ -18,6 +18,7 @@
 
 @interface MMTextView (Private)
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
+- (NSRect)trackingRect;
 - (void)dispatchKeyEvent:(NSEvent *)event;
 - (MMVimController *)vimController;
 @end
@@ -262,54 +263,85 @@
 
 - (void)mouseMoved:(NSEvent *)event
 {
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    if (!ts) return;
+
     NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
     int row, col;
     if (![self convertPoint:pt toRow:&row column:&col])
         return;
 
-    NSMutableData *data = [NSMutableData data];
+    // HACK! It seems impossible to get the tracking rects set up before the
+    // view is visible, which means that the first mouseEntered: or
+    // mouseExited: events are never received.  This forces us to check if the
+    // mouseMoved: event really happened over the text.
+    int rows, cols;
+    [ts getMaxRows:&rows columns:&cols];
+    if (row >= 0 && row < rows && col >= 0 && col < cols) {
+        NSMutableData *data = [NSMutableData data];
 
-    [data appendBytes:&row length:sizeof(int)];
-    [data appendBytes:&col length:sizeof(int)];
+        [data appendBytes:&row length:sizeof(int)];
+        [data appendBytes:&col length:sizeof(int)];
 
-    [[self vimController] sendMessage:MouseMovedMsgID data:data wait:NO];
+        [[self vimController] sendMessage:MouseMovedMsgID data:data wait:NO];
+    }
 }
 
-#if 0
 - (void)mouseEntered:(NSEvent *)event
 {
-    NSLog(@"%s", _cmd);
+    //NSLog(@"%s", _cmd);
     [[self window] setAcceptsMouseMovedEvents:YES];
 }
 
 - (void)mouseExited:(NSEvent *)event
 {
-    NSLog(@"%s", _cmd);
+    //NSLog(@"%s", _cmd);
+
+    int shape = 0;
+    NSMutableData *data = [NSMutableData data];
+
     [[self window] setAcceptsMouseMovedEvents:NO];
-    [[NSCursor arrowCursor] set];
+
+    [data appendBytes:&shape length:sizeof(int)];
+    [[self vimController] sendMessage:SetMouseShapeMsgID data:data wait:NO];
 }
 
 - (void)setFrame:(NSRect)frame
 {
-    NSLog(@"%s", _cmd);
+    //NSLog(@"%s", _cmd);
 
-    // NOTE: Set a tracking rect which covers the text view.  While the mouse
-    // cursor is in this rect the view will receive 'mouseMoved:' events so
-    // that Vim can take care of updating the mouse cursor.
+    // When the frame changes we also need to update the tracking rect.
     [super setFrame:frame];
     [self removeTrackingRect:trackingRectTag];
-    trackingRectTag = [self addTrackingRect:frame owner:self userData:NULL
-                            assumeInside:YES];
+    trackingRectTag = [self addTrackingRect:[self trackingRect] owner:self
+                                   userData:NULL assumeInside:YES];
+}
+
+- (void)viewDidMoveToWindow
+{
+    //NSLog(@"%s (window=%@)", _cmd, [self window]);
+
+    // Set a tracking rect which covers the text.
+    // NOTE: While the mouse cursor is in this rect the view will receive
+    // 'mouseMoved:' events so that Vim can take care of updating the mouse
+    // cursor.
+    if ([self window]) {
+        [[self window] setAcceptsMouseMovedEvents:YES];
+        trackingRectTag = [self addTrackingRect:[self trackingRect] owner:self
+                                       userData:NULL assumeInside:YES];
+    }
 }
 
 - (void)viewWillMoveToWindow:(NSWindow *)newWindow
 {
+    //NSLog(@"%s%@", _cmd, newWindow);
+
     // Remove tracking rect if view moves or is removed.
     if ([self window] && trackingRectTag) {
         [self removeTrackingRect:trackingRectTag];
+        trackingRectTag = 0;
     }
 }
-#endif
 
 - (NSMenu*)menuForEvent:(NSEvent *)event
 {
@@ -444,6 +476,7 @@
 
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column
 {
+#if 0
     NSLayoutManager *lm = [self layoutManager];
     NSTextContainer *tc = [self textContainer];
     MMTextStorage *ts = (MMTextStorage*)[self textStorage];
@@ -459,7 +492,42 @@
     if (row) *row = (int)(charIdx / mod);
     if (column) *column = (int)(charIdx % mod);
 
+    NSLog(@"convertPoint:%@ toRow:%d column:%d", NSStringFromPoint(point),
+            *row, *column);
+
     return YES;
+#else
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    NSSize cellSize = [ts cellSize];
+    if (!(cellSize.width > 0 && cellSize.height > 0))
+        return NO;
+    NSPoint origin = [self textContainerOrigin];
+
+    if (row) *row = floor((point.y-origin.y-1) / cellSize.height);
+    if (column) *column = floor((point.x-origin.x-1) / cellSize.width);
+
+    //NSLog(@"convertPoint:%@ toRow:%d column:%d", NSStringFromPoint(point),
+    //        *row, *column);
+
+    return YES;
+#endif
+}
+
+- (NSRect)trackingRect
+{
+    NSRect rect = [self frame];
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int left = [ud integerForKey:MMTextInsetLeftKey];
+    int top = [ud integerForKey:MMTextInsetTopKey];
+    int right = [ud integerForKey:MMTextInsetRightKey];
+    int bot = [ud integerForKey:MMTextInsetBottomKey];
+
+    rect.origin.x = left;
+    rect.origin.y = top;
+    rect.size.width -= left + right - 1;
+    rect.size.height -= top + bot - 1;
+
+    return rect;
 }
 
 - (void)keyDown:(NSEvent *)event
