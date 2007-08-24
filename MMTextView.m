@@ -21,7 +21,7 @@ static NSTimeInterval MMDragTimerMaxInterval = .3f;
 static NSTimeInterval MMDragTimerMinInterval = .01f;
 
 // The number of pixels in which the drag timer interval changes
-static int MMDragAreaSize = 73;
+static float MMDragAreaSize = 73.0f;
 
 
 
@@ -646,11 +646,10 @@ static int MMDragAreaSize = 73;
         float dy = 0;
         if (dragPoint.y < rect.origin.y) dy = rect.origin.y - dragPoint.y;
         else if (dragPoint.y > NSMaxY(rect)) dy = dragPoint.y - NSMaxY(rect);
+        if (dy > MMDragAreaSize) dy = MMDragAreaSize;
 
-        NSTimeInterval t = MMDragTimerMaxInterval *
-            (1.0f - dy/(float)MMDragAreaSize);
-        if (t < MMDragTimerMinInterval)
-            t = MMDragTimerMinInterval;
+        NSTimeInterval t = MMDragTimerMaxInterval -
+            dy*(MMDragTimerMaxInterval-MMDragTimerMinInterval)/MMDragAreaSize;
 
         [self startDragTimerWithInterval:t];
     }
