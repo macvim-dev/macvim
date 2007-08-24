@@ -1,8 +1,12 @@
 Active:
 
+- Hollow insertion point drawing does not always work
+- Insertion point blinking
+- Build Vim (make) from Xcode project
+- Cmd-W in about box sends vimMenuAction: instead of performClose:
 - Terminal support.  :!bash -> no cursor, arrow keys mucks up display
 - Press Cmd-n multiple times and quickly press Cmd-q; sometimes two or more
-  instance of MacVim opens up
+  instances of MacVim opens up
 - hide toolbar, open new tab, show toolbar: baseline sepearator still visible
   (seems like a drawing bug in PSMTabBarControl)
 - file modified outside vim dialog sometimes only appear after pressing a key
@@ -21,11 +25,8 @@ Active:
 - drag-to-resize, delay if mouse button held down
 - ability to modify key equivalents at any time
 - validate menu actions for when no windows are open (e.g. selectNextWindow:)
-- application:openFiles: should open in tabs in current window instead of in a
-  new window, only if user default is set
 - need E??? numbers for vim errors
 - tab-completion for :action command?
-- should ignore action message if is called too often (e.g. in addNewTab:)
 - proper font handling
 - check for memory leaks
 - i8n
@@ -37,12 +38,11 @@ Active:
 - make sure [NSMutableData appendByte:length:] is never called with 0 length
   (this will lead to a crash)
 - update speed whilst resizing with mouse is excruciatingly slow
-- window count should be typeset nicely in tab
-- put marked text in status line (?)
+- window count should be typeset nicely in tab ?
+- marked text
 - track pad scrolling is jerky
 - sanity check all input in handlePortMessage: etc.
-- cursor in replace mode
-- nice looking cursors (both the block and in insert mode)
+- nice looking cursors (both the block and in insert mode) ?
 - support project builder external editor
   http://www.codingmonkeys.de/techpubs/externaleditor/pbxexternaleditor.html
 - dock icon menu
@@ -54,6 +54,16 @@ Active:
 
 Pending:
 
+- cursor in replace mode
+- should ignore action message if is called too often (e.g. in addNewTab:)
+- application:openFiles: should open in tabs in current window instead of in a
+  new window, only if user default is set
+- Mouse cursor changes depeding on context
+- Ctrl-C does not update screen until another key press (in command window)
+- Underline color is never set properly (sp_color)
+- Lock up when opening large session files (increasing MMFlushTimeoutInterval
+  alleviates this problem)
+- Respond to "should change" instead of "will change" tab messages 
 - scrolling when mouse is over scrollbar doesn't work
 - gui dialogs (FEAT_GUI_DIALOG)
 - no warning when buffer modified outside vim (implement gui_mch_dialog())
@@ -72,6 +82,10 @@ Pending:
 - toogle toolbar off, maximize window, toolbar on -> text view under toolbar
 - clicking pill button does not update 'guioptions'
 - detect Cmd-. (and Ctrl-C) for interrupt
+
+
+Done:
+
 - :popup
 - popup menus
 - when only one tab open make <D-w> close window
@@ -84,10 +98,6 @@ Pending:
 - dropping directories does not work
 - memory leak with text view? (need to release text storage)
 - drag and drop inside view (FEAT_GUI_DND, gui_handle_drop())
-
-
-Done:
-
 - hide baseline separator when tabbar is visible (and make sure clicking the
   hide/show toolbar button in the top right of the corner does not show it
   again)
