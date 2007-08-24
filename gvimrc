@@ -127,8 +127,8 @@ menukeyequiv Tools.List\ Errors     <D-l>
 menukeyequiv Tools.List\ Messages   <D-L>
 menukeyequiv Tools.Next\ Error      <D-]>
 menukeyequiv Tools.Previous\ Error  <D-[>
-menukeyequiv Tools.Older\ List      <D-M-[>
-menukeyequiv Tools.Newer\ List      <D-M-]>
+menukeyequiv Tools.Older\ List      <D-{>
+menukeyequiv Tools.Newer\ List      <D-}>
 
 menukeyequiv Window.Minimize        <D-m>
 menukeyequiv Window.Previous\ Tab   <D-M-Left>
