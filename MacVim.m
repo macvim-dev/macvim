@@ -13,10 +13,6 @@
 char *MessageStrings[] = 
 {
     "INVALID MESSAGE ID",
-    "CheckinMsgID",
-    "ConnectedMsgID",
-    "KillTaskMsgID",
-    "TaskExitedMsgID",
     "OpenVimWindowMsgID",
     "InsertTextMsgID",
     "KeyDownMsgID",

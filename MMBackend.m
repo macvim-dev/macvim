@@ -895,13 +895,7 @@ static int specialKeyToNSKey(int key);
 
 - (void)handleMessage:(int)msgid data:(NSData *)data
 {
-    if (KillTaskMsgID == msgid) {
-        //NSLog(@"VimTask received kill message; exiting now.");
-        // Set this flag here so that exit does not send TaskExitedMsgID back
-        // to MMVimController.
-        receivedKillTaskMsg = YES;
-        getout(0);
-    } else if (InsertTextMsgID == msgid) {
+    if (InsertTextMsgID == msgid) {
         if (!data) return;
         NSString *key = [[NSString alloc] initWithData:data
                                               encoding:NSUTF8StringEncoding];

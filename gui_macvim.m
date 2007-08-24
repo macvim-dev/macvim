@@ -14,7 +14,7 @@
 #import "vim.h"
 
 
-static BOOL gui_cocoa_is_valid_action(NSString *action);
+static BOOL gui_macvim_is_valid_action(NSString *action);
 
 
 // -- Initialization --------------------------------------------------------
@@ -641,7 +641,7 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
             action = [parts objectAtIndex:1];
             action = [action stringByTrimmingCharactersInSet:
                     [NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            if (!gui_cocoa_is_valid_action(action))
+            if (!gui_macvim_is_valid_action(action))
                 action = nil;
         }
     }
@@ -925,7 +925,7 @@ ex_action(eap)
 
     NSString *name = [NSString stringWithCString:(char*)eap->arg
                                         encoding:NSUTF8StringEncoding];
-    if (gui_cocoa_is_valid_action(name)) {
+    if (gui_macvim_is_valid_action(name)) {
         [[MMBackend sharedInstance] executeActionWithName:name];
     } else {
         EMSG2(_("E???: \"%s\" is not a valid action"), eap->arg);
@@ -1301,7 +1301,7 @@ mch_set_mouse_shape(int shape)
 
 
     static BOOL
-gui_cocoa_is_valid_action(NSString *action)
+gui_macvim_is_valid_action(NSString *action)
 {
     static NSDictionary *actionDict = nil;
 

@@ -75,11 +75,7 @@
 extern char *MessageStrings[];
 
 enum {
-    CheckinMsgID = 1,
-    ConnectedMsgID,
-    KillTaskMsgID,
-    TaskExitedMsgID,
-    OpenVimWindowMsgID,
+    OpenVimWindowMsgID = 1,
     InsertTextMsgID,
     KeyDownMsgID,
     CmdKeyMsgID,

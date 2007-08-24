@@ -17,10 +17,8 @@
     NSMutableData   *drawData;
     NSConnection    *connection;
     id              frontendProxy;
-    NSString        *browseForFileString;
     NSDictionary    *colorDict;
     BOOL            inputReceived;
-    BOOL            receivedKillTaskMsg;
     BOOL            tabBarVisible;
     int             backgroundColor;
     int             foregroundColor;
