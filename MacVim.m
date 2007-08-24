@@ -32,7 +32,6 @@ char *MessageStrings[] =
     "MouseUpMsgID",
     "MouseDraggedMsgID",
     "FlushQueueMsgID",
-    "UpdateInsertionPointMsgID",
     "AddMenuMsgID",
     "AddMenuItemMsgID",
     "RemoveMenuItemMsgID",

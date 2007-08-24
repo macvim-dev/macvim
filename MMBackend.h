@@ -47,6 +47,8 @@
                 flags:(int)flags;
 - (void)insertLinesFromRow:(int)row count:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right;
+- (void)drawCursorAtRow:(int)row column:(int)col shape:(int)shape
+                  color:(int)color;
 - (void)flushQueue:(BOOL)force;
 - (BOOL)waitForInput:(int)milliseconds;
 - (void)exit;
@@ -60,7 +62,6 @@
                             saving:(int)saving;
 - (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
                      buttons:(char *)btns textField:(char *)txtfield;
-- (void)updateInsertionPoint;
 - (void)addMenuWithTag:(int)tag parent:(int)parentTag name:(char *)name
                atIndex:(int)index;
 - (void)addMenuItemWithTag:(int)tag parent:(int)parentTag name:(char *)name

@@ -505,23 +505,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [[windowController window] setTitle:string];
 
         [string release];
-    } else if (UpdateInsertionPointMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int color = *((int*)bytes);  bytes += sizeof(int);
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int state = *((int*)bytes);  bytes += sizeof(int);
-
-        // TODO! Move to window controller.
-        MMTextView *textView = [windowController textView];
-        if (textView) {
-            MMTextStorage *textStorage = (MMTextStorage*)[textView textStorage];
-            unsigned off = [textStorage offsetFromRow:row column:col];
-
-            [textView setInsertionPointColor:[NSColor colorWithRgbInt:color]];
-            [textView setSelectedRange:NSMakeRange(off, 0)];
-            [textView setShouldDrawInsertionPoint:state];
-        }
     } else if (AddMenuMsgID == msgid) {
         NSString *title = nil;
         const void *bytes = [data bytes];
@@ -768,7 +751,8 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 {
     // TODO!  Move to window controller.
     MMTextStorage *textStorage = [windowController textStorage];
-    if (!textStorage)
+    MMTextView *textView = [windowController textView];
+    if (!(textStorage && textView))
         return;
 
     const void *bytes = [data bytes];
@@ -840,6 +824,14 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             [textStorage insertLinesAtRow:row lineCount:count
                              scrollBottom:bot left:left right:right
                                     color:[NSColor colorWithRgbInt:color]];
+        } else if (DrawCursorDrawType == type) {
+            int color = *((int*)bytes);  bytes += sizeof(int);
+            int row = *((int*)bytes);  bytes += sizeof(int);
+            int col = *((int*)bytes);  bytes += sizeof(int);
+            int shape = *((int*)bytes);  bytes += sizeof(int);
+
+            [textView drawInsertionPointAtRow:row column:col shape:shape
+                                        color:[NSColor colorWithRgbInt:color]];
         } else {
             NSLog(@"WARNING: Unknown draw type (type=%d)", type);
         }

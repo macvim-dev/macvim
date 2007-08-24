@@ -49,14 +49,72 @@ static float MMDragAreaSize = 73.0f;
     return lastMouseDownEvent;
 }
 
-- (void)setShouldDrawInsertionPoint:(BOOL)enable
-{
-    shouldDrawInsertionPoint = enable;
-}
-
 - (BOOL)shouldDrawInsertionPoint
 {
-    return shouldDrawInsertionPoint;
+    // NOTE: The insertion point is drawn manually in drawRect:.  It would be
+    // nice to be able to use the insertion point related methods of
+    // NSTextView, but it seems impossible to get them to work properly (search
+    // the cocoabuilder archives).
+    return NO;
+}
+
+- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
+                          color:(NSColor *)color
+{
+    // This only stores where to draw the insertion point, the actual drawing
+    // is done in drawRect:.
+    shouldDrawInsertionPoint = YES;
+    insertionPointRow = row;
+    insertionPointColumn = col;
+    insertionPointShape = shape;
+
+    [self setInsertionPointColor:color];
+}
+
+- (void)drawRect:(NSRect)rect
+{
+    [super drawRect:rect];
+
+    if (shouldDrawInsertionPoint) {
+        MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+        NSLayoutManager *lm = [self layoutManager];
+        NSTextContainer *tc = [self textContainer];
+
+        // Given (row,column), calculate the bounds of the glyph at that spot.
+        // We use the layout manager because this gives us exactly the size and
+        // location of the glyph so that we can match the insertion point to
+        // it.
+        unsigned charIdx = [ts characterIndexForRow:insertionPointRow
+                                             column:insertionPointColumn];
+        NSRange glyphRange =
+            [lm glyphRangeForCharacterRange:NSMakeRange(charIdx,1)
+                       actualCharacterRange:NULL];
+        NSRect glyphRect = [lm boundingRectForGlyphRange:glyphRange
+                                         inTextContainer:tc];
+        glyphRect.origin.x += [self textContainerOrigin].x;
+        glyphRect.origin.y += [self textContainerOrigin].y;
+
+        if (MMInsertionPointHorizontal == insertionPointShape) {
+            glyphRect.origin.y += glyphRect.size.height - 1;
+            glyphRect.size.height = 2;
+        } else if (MMInsertionPointVertical == insertionPointShape) {
+            glyphRect.size.width = 2;
+        }
+
+        if (MMInsertionPointHollow == insertionPointShape) {
+            // This looks very ugly.
+            [[self insertionPointColor] set];
+            //[NSBezierPath setDefaultLineWidth:2.0];
+            //[NSBezierPath setDefaultLineJoinStyle:NSRoundLineJoinStyle];
+            [NSBezierPath strokeRect:glyphRect];
+        } else {
+            NSRectFill(glyphRect);
+        }
+
+        // NOTE: We only draw the cursor once and rely on Vim to say when it
+        // should be drawn again.
+        shouldDrawInsertionPoint = NO;
+    }
 }
 
 - (void)insertText:(id)string

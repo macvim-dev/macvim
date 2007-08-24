@@ -21,9 +21,13 @@
     int                 dragColumn;
     int                 dragFlags;
     NSPoint             dragPoint;
+    int                 insertionPointRow;
+    int                 insertionPointColumn;
+    int                 insertionPointShape;
 }
 
 - (NSEvent *)lastMouseDownEvent;
-- (void)setShouldDrawInsertionPoint:(BOOL)enable;
+- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
+                          color:(NSColor *)color;
 
 @end

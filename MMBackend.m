@@ -269,6 +269,19 @@ static int specialKeyToNSKey(int key);
     [drawData appendBytes:&right length:sizeof(int)];
 }
 
+- (void)drawCursorAtRow:(int)row column:(int)col shape:(int)shape
+                  color:(int)color
+{
+    int type = DrawCursorDrawType;
+
+    [drawData appendBytes:&type length:sizeof(int)];
+
+    [drawData appendBytes:&color length:sizeof(int)];
+    [drawData appendBytes:&row length:sizeof(int)];
+    [drawData appendBytes:&col length:sizeof(int)];
+    [drawData appendBytes:&shape length:sizeof(int)];
+}
+
 - (void)flushQueue:(BOOL)force
 {
     // NOTE! This method gets called a lot; if we were to flush every time it
@@ -284,9 +297,6 @@ static int specialKeyToNSKey(int key);
     }
 
     if ([queue count] > 0) {
-        // TODO: Come up with a better way to handle the insertion point.
-        [self updateInsertionPoint];
-
         @try {
             [frontendProxy processCommandQueue:queue];
         }
@@ -511,21 +521,6 @@ static int specialKeyToNSKey(int key);
     }
 
     return retval;
-}
-
-- (void)updateInsertionPoint
-{
-    NSMutableData *data = [NSMutableData data];
-
-    int state = get_shape_idx(FALSE);
-    state = (state == SHAPE_IDX_I) || (state == SHAPE_IDX_CI);
-
-    [data appendBytes:&defaultForegroundColor length:sizeof(int)];
-    [data appendBytes:&gui.row length:sizeof(int)];
-    [data appendBytes:&gui.col length:sizeof(int)];
-    [data appendBytes:&state length:sizeof(int)];
-
-    [self queueMessage:UpdateInsertionPointMsgID data:data];
 }
 
 - (void)addMenuWithTag:(int)tag parent:(int)parentTag name:(char *)name

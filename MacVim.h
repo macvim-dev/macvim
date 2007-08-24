@@ -94,7 +94,6 @@ enum {
     MouseUpMsgID,
     MouseDraggedMsgID,
     FlushQueueMsgID,
-    UpdateInsertionPointMsgID,
     AddMenuMsgID,
     AddMenuItemMsgID,
     RemoveMenuItemMsgID,
@@ -127,7 +126,15 @@ enum {
     ClearBlockDrawType,
     DeleteLinesDrawType,
     ReplaceStringDrawType,
-    InsertLinesDrawType
+    InsertLinesDrawType,
+    DrawCursorDrawType
+};
+
+enum {
+    MMInsertionPointBlock,
+    MMInsertionPointHorizontal,
+    MMInsertionPointVertical,
+    MMInsertionPointHollow,
 };
 
 

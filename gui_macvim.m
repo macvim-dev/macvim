@@ -1018,6 +1018,11 @@ gui_mch_dialog(
     void
 gui_mch_draw_hollow_cursor(guicolor_T color)
 {
+    //NSLog(@"gui_mch_draw_hollow_cursor(color=0x%x)", color);
+
+    return [[MMBackend sharedInstance] drawCursorAtRow:gui.row column:gui.col
+                                                 shape:MMInsertionPointHollow
+                                                 color:color];
 }
 
 
@@ -1027,6 +1032,16 @@ gui_mch_draw_hollow_cursor(guicolor_T color)
     void
 gui_mch_draw_part_cursor(int w, int h, guicolor_T color)
 {
+    //NSLog(@"gui_mch_draw_part_cursor(w=%d, h=%d, color=0x%x)", w, h, color);
+
+    int shape = MMInsertionPointBlock;
+    switch (shape_table[get_shape_idx(FALSE)].shape) {
+        case SHAPE_HOR: shape = MMInsertionPointHorizontal; break;
+        case SHAPE_VER: shape = MMInsertionPointVertical; break;
+    }
+
+    return [[MMBackend sharedInstance] drawCursorAtRow:gui.row column:gui.col
+                                                 shape:shape color:color];
 }
 
 

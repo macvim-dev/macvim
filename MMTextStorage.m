@@ -454,7 +454,7 @@
     return rect;
 }
 
-- (unsigned)offsetFromRow:(int)row column:(int)col
+- (unsigned)characterIndexForRow:(int)row column:(int)col
 {
     // Ensure the offset returned is valid.
     // This code also works if maxRows and/or maxColumns is 0.
