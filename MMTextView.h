@@ -20,6 +20,7 @@
     int                 dragRow;
     int                 dragColumn;
     int                 dragFlags;
+    NSPoint             dragPoint;
 }
 
 - (NSEvent *)lastMouseDownEvent;

@@ -16,6 +16,15 @@
 
 
 
+// The max/min drag timer interval in seconds
+static NSTimeInterval MMDragTimerMaxInterval = .3f;
+static NSTimeInterval MMDragTimerMinInterval = .01f;
+
+// The number of pixels in which the drag timer interval changes
+static int MMDragAreaSize = 73;
+
+
+
 @interface MMTextView (Private)
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 - (NSRect)trackingRect;
@@ -257,6 +266,7 @@
         [[self vimController] sendMessage:MouseDraggedMsgID data:data wait:NO];
     }
 
+    dragPoint = pt;
     dragRow = row; dragColumn = col; dragFlags = flags;
     if (!isDragging) {
         [self startDragTimerWithInterval:.5];
@@ -606,6 +616,7 @@
 
 - (void)dragTimerFired:(NSTimer *)timer
 {
+    // TODO: Autoscroll in horizontal direction?
     static unsigned tick = 1;
     MMTextStorage *ts = (MMTextStorage *)[self textStorage];
 
@@ -629,13 +640,17 @@
     }
 
     if (isDragging) {
-        // The timer only fires once, so we have to keep rescheduling it while
-        // the user is dragging.
-        NSTimeInterval t = .3;
-        int delta = dragRow < 0 ? -dragRow : dragRow - [ts maxRows] + 1;
-        if (delta > 0)
-            t -= .01*delta*delta;
-        if (t < .05) t = .05;
+        // Compute timer interval depending on how far away the mouse cursor is
+        // from the text view.
+        NSRect rect = [self trackingRect];
+        float dy = 0;
+        if (dragPoint.y < rect.origin.y) dy = rect.origin.y - dragPoint.y;
+        else if (dragPoint.y > NSMaxY(rect)) dy = dragPoint.y - NSMaxY(rect);
+
+        NSTimeInterval t = MMDragTimerMaxInterval *
+            (1.0f - dy/(float)MMDragAreaSize);
+        if (t < MMDragTimerMinInterval)
+            t = MMDragTimerMinInterval;
 
         [self startDragTimerWithInterval:t];
     }
