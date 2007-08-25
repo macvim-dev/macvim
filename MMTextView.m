@@ -58,9 +58,17 @@ static float MMDragAreaSize = 73.0f;
     return NO;
 }
 
+- (void)setShouldDrawInsertionPoint:(BOOL)on
+{
+    shouldDrawInsertionPoint = on;
+}
+
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
                           color:(NSColor *)color
 {
+    //NSLog(@"drawInsertionPointAtRow:%d column:%d shape:%d color:%@",
+    //        row, col, shape, color);
+
     // This only stores where to draw the insertion point, the actual drawing
     // is done in drawRect:.
     shouldDrawInsertionPoint = YES;
@@ -89,31 +97,32 @@ static float MMDragAreaSize = 73.0f;
         NSRange glyphRange =
             [lm glyphRangeForCharacterRange:NSMakeRange(charIdx,1)
                        actualCharacterRange:NULL];
-        NSRect glyphRect = [lm boundingRectForGlyphRange:glyphRange
-                                         inTextContainer:tc];
-        glyphRect.origin.x += [self textContainerOrigin].x;
-        glyphRect.origin.y += [self textContainerOrigin].y;
+        NSRect ipRect = [lm boundingRectForGlyphRange:glyphRange
+                                      inTextContainer:tc];
+        ipRect.origin.x += [self textContainerOrigin].x;
+        ipRect.origin.y += [self textContainerOrigin].y;
 
         if (MMInsertionPointHorizontal == insertionPointShape) {
-            glyphRect.origin.y += glyphRect.size.height - 1;
-            glyphRect.size.height = 2;
+            ipRect.origin.y += ipRect.size.height - 2;
+            ipRect.size.height = 2;
         } else if (MMInsertionPointVertical == insertionPointShape) {
-            glyphRect.size.width = 2;
+            ipRect.size.width = 2;
         }
 
+        [[self insertionPointColor] set];
         if (MMInsertionPointHollow == insertionPointShape) {
-            // This looks very ugly.
-            [[self insertionPointColor] set];
-            //[NSBezierPath setDefaultLineWidth:2.0];
-            //[NSBezierPath setDefaultLineJoinStyle:NSRoundLineJoinStyle];
-            [NSBezierPath strokeRect:glyphRect];
+            NSFrameRect(ipRect);
         } else {
-            NSRectFill(glyphRect);
+            NSRectFill(ipRect);
         }
 
         // NOTE: We only draw the cursor once and rely on Vim to say when it
         // should be drawn again.
         shouldDrawInsertionPoint = NO;
+
+        //NSLog(@"%s draw insertion point %@ shape=%d color=%@", _cmd,
+        //        NSStringFromRect(ipRect), insertionPointShape,
+        //        [self insertionPointColor]);
     }
 }
 
@@ -378,15 +387,13 @@ static float MMDragAreaSize = 73.0f;
 {
     //NSLog(@"%s", _cmd);
 
-    int shape = 0;
-    NSMutableData *data = [NSMutableData data];
-
     [[self window] setAcceptsMouseMovedEvents:NO];
 
-    [data appendBytes:&shape length:sizeof(int)];
-    [[self vimController] sendMessage:SetMouseShapeMsgID data:data wait:NO];
-
-    if (isDragging) {
+    if ([[self window] isKeyWindow]) {
+        int shape = 0;
+        NSMutableData *data = [NSMutableData data];
+        [data appendBytes:&shape length:sizeof(int)];
+        [[self vimController] sendMessage:SetMouseShapeMsgID data:data wait:NO];
     }
 }
 

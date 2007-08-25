@@ -27,6 +27,7 @@
 }
 
 - (NSEvent *)lastMouseDownEvent;
+- (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
                           color:(NSColor *)color;
 

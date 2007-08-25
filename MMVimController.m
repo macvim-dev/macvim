@@ -17,6 +17,8 @@
 
 #define MM_NO_REQUEST_TIMEOUT 1
 
+// This is taken from gui.h
+#define DRAW_CURSOR 0x20
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
 static int MMAlertTextFieldHeight = 22;
@@ -747,6 +749,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 }
 
+
+#define MM_DEBUG_DRAWING 0
+
 - (void)performBatchDrawWithData:(NSData *)data
 {
     // TODO!  Move to window controller.
@@ -758,6 +763,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     const void *bytes = [data bytes];
     const void *end = bytes + [data length];
 
+#if MM_DEBUG_DRAWING
+    NSLog(@"====> BEGIN %s", _cmd);
+#endif
     [textStorage beginEditing];
 
     // TODO: Sanity check input
@@ -768,6 +776,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         if (ClearAllDrawType == type) {
             int color = *((int*)bytes);  bytes += sizeof(int);
 
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Clear all");
+#endif
             [textStorage clearAllWithColor:[NSColor colorWithRgbInt:color]];
         } else if (ClearBlockDrawType == type) {
             int color = *((int*)bytes);  bytes += sizeof(int);
@@ -776,6 +787,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             int row2 = *((int*)bytes);  bytes += sizeof(int);
             int col2 = *((int*)bytes);  bytes += sizeof(int);
 
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Clear block (%d,%d) -> (%d,%d)", row1, col1,
+                    row2,col2);
+#endif
             [textStorage clearBlockFromRow:row1 column:col1
                     toRow:row2 column:col2
                     color:[NSColor colorWithRgbInt:color]];
@@ -787,6 +802,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             int left = *((int*)bytes);  bytes += sizeof(int);
             int right = *((int*)bytes);  bytes += sizeof(int);
 
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Delete %d line(s) from %d", count, row);
+#endif
             [textStorage deleteLinesFromRow:row lineCount:count
                     scrollBottom:bot left:left right:right
                            color:[NSColor colorWithRgbInt:color]];
@@ -805,6 +823,20 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                            freeWhenDone:NO];
             bytes += len;
 
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Draw string at (%d,%d) length=%d flags=%d fg=0x%x "
+                    "bg=0x%x sp=0x%x (%@)", row, col, len, flags, fg, bg, sp,
+                    len > 0 ? [string substringToIndex:1] : @"");
+#endif
+            // NOTE: If this is a call to draw the (block) cursor, then cancel
+            // any previous request to draw the insertion point, or it might
+            // get drawn as well.
+            if (flags & DRAW_CURSOR) {
+                [textView setShouldDrawInsertionPoint:NO];
+                //[textView drawInsertionPointAtRow:row column:col
+                //                            shape:MMInsertionPointBlock
+                //                            color:[NSColor colorWithRgbInt:bg]];
+            }
             [textStorage replaceString:string
                                  atRow:row column:col
                              withFlags:flags
@@ -821,6 +853,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             int left = *((int*)bytes);  bytes += sizeof(int);
             int right = *((int*)bytes);  bytes += sizeof(int);
 
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Insert %d line(s) at row %d", count, row);
+#endif
             [textStorage insertLinesAtRow:row lineCount:count
                              scrollBottom:bot left:left right:right
                                     color:[NSColor colorWithRgbInt:color]];
@@ -830,6 +865,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             int col = *((int*)bytes);  bytes += sizeof(int);
             int shape = *((int*)bytes);  bytes += sizeof(int);
 
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Draw cursor at (%d,%d)", row, col);
+#endif
             [textView drawInsertionPointAtRow:row column:col shape:shape
                                         color:[NSColor colorWithRgbInt:color]];
         } else {
@@ -838,6 +876,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 
     [textStorage endEditing];
+#if MM_DEBUG_DRAWING
+    NSLog(@"<==== END   %s", _cmd);
+#endif
 }
 
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code

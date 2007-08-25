@@ -14,7 +14,7 @@
 
 
 // If 0 DRAW_TRANSP flag will be ignored.  Setting it to 1 causes the cursor
-// background to be drawn in white.
+// background to be drawn in white. TODO: Figure out why this flag is set.
 #define HEED_DRAW_TRANSP 0
 
 #define DRAW_TRANSP               0x01    /* draw with transparant bg */
@@ -161,6 +161,11 @@
     //NSLog(@"replaceString:atRow:%d column:%d withFlags:%d", row, col, flags);
     [self lazyResize];
 
+#if !HEED_DRAW_TRANSP
+    if (flags & DRAW_TRANSP)
+        return;
+#endif
+
     if (row < 0 || row >= maxRows || col < 0 || col >= maxColumns
             || col+[string length] > maxColumns) {
         //NSLog(@"[%s] WARNING : out of range, row=%d (%d) col=%d (%d) "
@@ -185,9 +190,7 @@
 
     NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
             font, NSFontAttributeName,
-#if !HEED_DRAW_TRANSP
             bg, NSBackgroundColorAttributeName,
-#endif
             fg, NSForegroundColorAttributeName,
             sp, NSUnderlineColorAttributeName,
             nil];

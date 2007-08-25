@@ -9,7 +9,6 @@
  */
 
 #import <Cocoa/Cocoa.h>
-#import "MacVim.h"
 
 
 @interface MMApplication : NSApplication {

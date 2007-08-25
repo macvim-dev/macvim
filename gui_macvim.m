@@ -1034,6 +1034,13 @@ gui_mch_draw_part_cursor(int w, int h, guicolor_T color)
 {
     //NSLog(@"gui_mch_draw_part_cursor(w=%d, h=%d, color=0x%x)", w, h, color);
 
+    // HACK!  'w' and 'h' are always 1 since we do not tell Vim about the exact
+    // font dimensions.  Thus these parameters are useless.  For the moment we
+    // just check if the cursor should be vertical or horizontal and pass this
+    // info on to MacVim.  This means that the cursor does not look the way it
+    // is supposed to e.g. after pressing 'd' in normal mode.
+    //
+    // TODO: fix this
     int shape = MMInsertionPointBlock;
     switch (shape_table[get_shape_idx(FALSE)].shape) {
         case SHAPE_HOR: shape = MMInsertionPointHorizontal; break;
