@@ -1,6 +1,5 @@
 Active:
 
-- Hollow insertion point drawing does not always work
 - Insertion point blinking
 - Build Vim (make) from Xcode project
 - Cmd-W in about box sends vimMenuAction: instead of performClose:
@@ -54,6 +53,7 @@ Active:
 
 Pending:
 
+- Hollow insertion point drawing does not always work
 - cursor in replace mode
 - should ignore action message if is called too often (e.g. in addNewTab:)
 - application:openFiles: should open in tabs in current window instead of in a

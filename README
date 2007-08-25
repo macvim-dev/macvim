@@ -36,9 +36,9 @@ Weirdness:
 - The way delegate messages from the tab bar are handled are based on lots of
   assumptions on how the code works.  See comments in tabView:... delegate
   messages in MMWindowController.
-- The insertion point is automatically moved to wherever changes are made in
-  the text storage.  To set the position manually (via setSelectedRange:),
-  first call endEditing on the text storage.
+- [obsolete] The insertion point is automatically moved to wherever changes are
+  made in the text storage.  To set the position manually (via
+  setSelectedRange:), first call endEditing on the text storage.
 - Delegate messages from the tab view need to be able to differentiate whether
   the message was sent due to the user clicking a tab with the mouse, or if the
   vim task initiated the change.  To facilitate this, flags must be set
@@ -65,13 +65,18 @@ Weirdness:
   sent to Vim asking it to change the "shell size".  Otherwise, a message
   asking Vim to change the shell size might get lost and Vim and MacVim will
   have inconsistent states.
-- gui_mch_browse() is a blocking call, but you can't put up dialogs in Cocoa
-  which block until the user dismisses them (it uses callbacks).  This
-  complicates the browsing somewhat.
+- gui_mch_browse() and gui_mch_dialog() are blocking calls, but you can't put
+  up dialogs in Cocoa which block until the user dismisses them (it uses
+  callbacks).  This complicates the browsing somewhat.
 - When binding menus to :action note that that action will be used for all
   modes.  The reason for this is that MacVim needs to be able to execute such
   menu items even when no windows are open (e.g. newVimWindow:) and the default
   menu action relies on Vim to deal with it.
+- The 'help' key is treated as a special key by Cocoa; when the user presses
+  this key the mouse cursor changes to a question mark and the application is
+  put into 'context help mode'.  The key down event is never sent down the
+  responder chain.  To get around this problem we are forced to subclass
+  NSApplication and look for the 'help' key in sendEvent: (see MMApplication).
 
 
 Design decisions:
@@ -120,7 +125,7 @@ Keyboard stuff:
   returns 1, charactersIgnoringModifiers returns <M-S-1>.
 - (2) handles: Ctrl+key, enter, backspace, escape.
   same note on translation of Ctrl+key as above holds true.
-- (3) handles: Cmd+key, arrow keys, function keys
+- (3) handles: Cmd+key, arrow keys, function keys, help key
 - <M-Space> and <Space> are two different characters (the former is 0xa0)
 
 
@@ -152,8 +157,8 @@ Features (!supp indicates that a feature is not supported):
 - Cocoa input protocols: input managers, character palette input etc.
   supported, marked text !supp, cocoa key bindings (DefaultKeyBinding.dict)
   are disabled
-- Mouse: resize (vim) windows, selection, different mouse cursors !supp,
-  autoscrolling whilst selecting works poorly
+- Mouse: resize (vim) windows, selection, different mouse cursors,
+  autoscrolling whilst selecting (horizontal autoscroll !supp)
 - Drag and Drop: drag files onto dock icon to open in tabs, drag text and files
   onto text view
 - Zoom: Command-click to zoom to fill window, otherwise only zoom height,
@@ -162,6 +167,7 @@ Features (!supp indicates that a feature is not supported):
   higher than can fit the screen (no such restrictions on width at the moment)
 - Pasteboard: star-register works with the mac os x pasteboard
 - Open/Save dialog: use with :browse
+- Gui dialogs
 - Fonts: bold/italic/underline traits supported, font changes with ':set gfn',
   or use font panel
 - File type associations: add more associations by editing Info.plist
@@ -170,7 +176,6 @@ Features (!supp indicates that a feature is not supported):
 - Wide characters: but composed characters !supp
 - Printing: !supp
 - Find/Replace dialog: !supp
-- Gui dialogs: !supp
 - External editor protocol: !supp
 - Services menu: some simple minded provider entries 
 - Encodings: !supp (enc, tenc always set to utf-8)
