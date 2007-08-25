@@ -58,5 +58,7 @@
 	<string>kP</string>
 	<key></key>
 	<string>kN</string>
+	<key></key>
+	<string>%1</string>
 </dict>
 </plist>
