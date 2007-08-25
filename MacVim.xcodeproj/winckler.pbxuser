@@ -25,9 +25,9 @@
 	};
 	1D14749E0C5673AE0038FA2B /* MMAppController.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {983, 7600}}";
-			sepNavSelRange = "{14399, 0}";
-			sepNavVisRect = "{{0, 4078}, {983, 274}}";
+			sepNavIntBoundsRect = "{{0, 0}, {795, 8864}}";
+			sepNavSelRange = "{17491, 0}";
+			sepNavVisRect = "{{0, 5415}, {795, 162}}";
 			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
@@ -49,17 +49,17 @@
 	};
 	1D1474AE0C5678370038FA2B /* MMTextView.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {983, 7904}}";
-			sepNavSelRange = "{3174, 0}";
-			sepNavVisRect = "{{0, 1599}, {983, 274}}";
+			sepNavIntBoundsRect = "{{0, 0}, {781, 11504}}";
+			sepNavSelRange = "{18031, 7}";
+			sepNavVisRect = "{{0, 9245}, {781, 608}}";
 			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
 	1D1474B40C56796D0038FA2B /* MMVimController.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1637, 17296}}";
-			sepNavSelRange = "{3790, 7}";
-			sepNavVisRect = "{{0, 1576}, {781, 608}}";
+			sepNavIntBoundsRect = "{{0, 0}, {1637, 19840}}";
+			sepNavSelRange = "{42712, 0}";
+			sepNavVisRect = "{{0, 13527}, {795, 162}}";
 			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
@@ -73,9 +73,9 @@
 	};
 	1D1474BA0C567A910038FA2B /* MMWindowController.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1147, 20016}}";
-			sepNavSelRange = "{39888, 0}";
-			sepNavVisRect = "{{0, 2791}, {795, 162}}";
+			sepNavIntBoundsRect = "{{0, 0}, {1147, 19040}}";
+			sepNavSelRange = "{38061, 0}";
+			sepNavVisRect = "{{0, 15143}, {795, 162}}";
 			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
@@ -99,13 +99,13 @@
 			NO,
 		);
 		argumentStrings = (
-			"-MMTextInsetLeft 2",
-			"-MMTextInsetRight 1",
-			"-MMTextInsetTop 1",
-			"-MMTextInsetBottom 1",
+			"-MMTextInsetLeft 10",
+			"-MMTextInsetRight 5",
+			"-MMTextInsetTop 10",
+			"-MMTextInsetBottom 5",
 			"-MMTabMaxWidth 384",
 			"-MMTabOptimumWidth 132",
-			"-MMStatuslineOff 1",
+			"-MMOpenFilesInTabs 1",
 			"-MMNoWindow 1",
 			"-MMTabMinWidth 32",
 			"-MMCellWidthMultiplier 1.414",
@@ -142,6 +142,11 @@
 			{
 				active = NO;
 				name = NSZombieEnabled;
+				value = YES;
+			},
+			{
+				active = NO;
+				name = NSObjCMessageLoggingEnabled;
 				value = YES;
 			},
 		);
@@ -217,7 +222,7 @@
 		delayBeforeContinue = 0;
 		hitCount = 1;
 		location = AppKit;
-		modificationTime = 208946307.079667;
+		modificationTime = 209732042.802391;
 		state = 2;
 		symbolName = "[NSView performKeyEquivalent:]";
 	};
@@ -230,7 +235,7 @@
 		delayBeforeContinue = 0;
 		hitCount = 1;
 		location = Foundation;
-		modificationTime = 208946315.868945;
+		modificationTime = 209732047.262262;
 		state = 1;
 		symbolName = "-[_NSZombie methodSignatureForSelector:]";
 	};
@@ -243,9 +248,46 @@
 		delayBeforeContinue = 0;
 		hitCount = 1;
 		location = Foundation;
-		modificationTime = 208946315.819578;
+		modificationTime = 209732047.175895;
 		state = 1;
 		symbolName = "[NSException raise]";
+	};
+	1DD66EA30C802F2D00EBDAB3 /* MMTextView.m:594 */ = {
+		isa = PBXFileBreakpoint;
+		actions = (
+		);
+		breakpointStyle = 0;
+		continueAfterActions = 0;
+		delayBeforeContinue = 0;
+		fileReference = 1D1474AE0C5678370038FA2B /* MMTextView.m */;
+		functionName = "-keyDown:";
+		hitCount = 1;
+		lineNumber = 594;
+		location = MacVim;
+		modificationTime = 209732042.795645;
+		state = 2;
+	};
+	1DD66EB70C80301100EBDAB3 /* MMTextView.m:172 */ = {
+		isa = PBXFileBreakpoint;
+		actions = (
+		);
+		breakpointStyle = 0;
+		continueAfterActions = 0;
+		delayBeforeContinue = 0;
+		fileReference = 1D1474AE0C5678370038FA2B /* MMTextView.m */;
+		functionName = "-performKeyEquivalent:";
+		hitCount = 3;
+		lineNumber = 172;
+		location = MacVim;
+		modificationTime = 209732165.15915;
+		state = 2;
+	};
+	1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {795, 736}}";
+			sepNavSelRange = "{1597, 0}";
+			sepNavVisRect = "{{0, 247}, {795, 162}}";
+		};
 	};
 	1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */ = {
 		uiCtxt = {
@@ -262,6 +304,8 @@
 			1D9B9FEF0BB34E7700F878F2 /* [NSException raise] */,
 			1D6F54990C7358B600D9BDC8 /* [NSView performKeyEquivalent:] */,
 			1D6F54CB0C7371E000D9BDC8 /* -[_NSZombie methodSignatureForSelector:] */,
+			1DD66EA30C802F2D00EBDAB3 /* MMTextView.m:594 */,
+			1DD66EB70C80301100EBDAB3 /* MMTextView.m:172 */,
 		);
 	};
 	29B97313FDCFA39411CA2CEA /* Project object */ = {
@@ -275,6 +319,8 @@
 			1D9B9FEF0BB34E7700F878F2 /* [NSException raise] */,
 			1D6F54990C7358B600D9BDC8 /* [NSView performKeyEquivalent:] */,
 			1D6F54CB0C7371E000D9BDC8 /* -[_NSZombie methodSignatureForSelector:] */,
+			1DD66EA30C802F2D00EBDAB3 /* MMTextView.m:594 */,
+			1DD66EB70C80301100EBDAB3 /* MMTextView.m:172 */,
 		);
 		breakpointsGroup = 1DE445650BA493EC00C4C77A /* XCBreakpointsBucket */;
 		codeSenseManager = 1D16B9DE0BA33BB000A69B33 /* Code sense */;
@@ -392,8 +438,8 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 209024719;
-			PBXWorkspaceStateSaveDate = 209024719;
+			PBXPerProjectTemplateStateSaveDate = 209732622;
+			PBXWorkspaceStateSaveDate = 209732622;
 		};
 		sourceControlManager = 1D16B9DD0BA33BB000A69B33 /* Source Control */;
 		userBuildSettings = {

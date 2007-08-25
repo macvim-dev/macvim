@@ -30,6 +30,7 @@
 		1D71ACBE0BC702AC002F2B60 /* doc-bm.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACB30BC702AB002F2B60 /* doc-bm.icns */; };
 		1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1DD04DEB0C529C5E006CDC2B /* Credits.rtf */; };
 		1DD0C20C0C60FFB4008CD84A /* gvimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DD0C20A0C60FF9A008CD84A /* gvimrc */; };
+		1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */; };
 		1DD703B90BA9D15D008679E9 /* vim_gloss.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1DD703B80BA9D15D008679E9 /* vim_gloss.icns */; };
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
 		1DDBEB6D0C7434150036EEDD /* EmptyWindow.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDBEB6B0C7434150036EEDD /* EmptyWindow.nib */; };
@@ -150,6 +151,8 @@
 		1D71ACB30BC702AB002F2B60 /* doc-bm.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm.icns"; sourceTree = "<group>"; };
 		1DD04DEB0C529C5E006CDC2B /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		1DD0C20A0C60FF9A008CD84A /* gvimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gvimrc; sourceTree = "<group>"; };
+		1DD66ECB0C803D3600EBDAB3 /* MMApplication.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMApplication.h; sourceTree = "<group>"; };
+		1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMApplication.m; sourceTree = "<group>"; };
 		1DD703B80BA9D15D008679E9 /* vim_gloss.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = vim_gloss.icns; sourceTree = "<group>"; };
 		1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SpecialKeys.plist; sourceTree = "<group>"; };
 		1DDBEB6C0C7434150036EEDD /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/EmptyWindow.nib; sourceTree = "<group>"; };
@@ -202,6 +205,8 @@
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
+				1DD66ECB0C803D3600EBDAB3 /* MMApplication.h */,
+				1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */,
 				1D09AB3F0C6A4D520045497E /* MMTypesetter.h */,
 				1D09AB400C6A4D520045497E /* MMTypesetter.m */,
 				1D1474B90C567A910038FA2B /* MMWindowController.h */,
@@ -480,6 +485,7 @@
 				1D1474B60C56796D0038FA2B /* MMVimController.m in Sources */,
 				1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */,
 				1D09AB420C6A4D520045497E /* MMTypesetter.m in Sources */,
+				1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
