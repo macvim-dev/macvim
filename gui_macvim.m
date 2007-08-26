@@ -426,7 +426,67 @@ gui_mch_insert_lines(int row, int num_lines)
 }
 
 
-// -- Tab line --------------------------------------------------------------
+/*
+ * Set the current text foreground color.
+ */
+    void
+gui_mch_set_fg_color(guicolor_T color)
+{
+    [[MMBackend sharedInstance] setForegroundColor:color];
+}
+
+
+/*
+ * Set the current text background color.
+ */
+    void
+gui_mch_set_bg_color(guicolor_T color)
+{
+    [[MMBackend sharedInstance] setBackgroundColor:color];
+}
+
+
+/*
+ * Set the current text special color (used for underlines).
+ */
+    void
+gui_mch_set_sp_color(guicolor_T color)
+{
+    [[MMBackend sharedInstance] setSpecialColor:color];
+}
+
+
+/*
+ * Set default colors.
+ */
+    void
+gui_mch_def_colors()
+{
+    // Default foreground and background colors are black and white.
+    gui.def_norm_pixel = gui.norm_pixel = 0;
+    gui.def_back_pixel = gui.back_pixel = 0xffffff;
+}
+
+
+/*
+ * Called when the foreground or background color has been changed.
+ */
+    void
+gui_mch_new_colors(void)
+{
+    gui.def_back_pixel = gui.back_pixel;
+    gui.def_norm_pixel = gui.norm_pixel;
+
+    //NSLog(@"gui_mch_new_colors(back=%x, norm=%x)", gui.def_back_pixel,
+    //        gui.def_norm_pixel);
+
+    [[MMBackend sharedInstance]
+        setDefaultColorsBackground:gui.def_back_pixel
+                        foreground:gui.def_norm_pixel];
+}
+
+
+// -- Tabline ---------------------------------------------------------------
 
 
 /*
@@ -435,7 +495,6 @@ gui_mch_insert_lines(int row, int num_lines)
     void
 gui_mch_set_curtab(int nr)
 {
-    //NSLog(@"gui_mch_set_curtab(nr=%d)", nr);
     [[MMBackend sharedInstance] selectTab:nr];
 }
 
@@ -446,7 +505,6 @@ gui_mch_set_curtab(int nr)
     int
 gui_mch_showing_tabline(void)
 {
-    //NSLog(@"gui_mch_showing_tabline()");
     return [[MMBackend sharedInstance] tabBarVisible];
 }
 
@@ -456,7 +514,6 @@ gui_mch_showing_tabline(void)
     void
 gui_mch_update_tabline(void)
 {
-    //NSLog(@"gui_mch_update_tabline()");
     [[MMBackend sharedInstance] updateTabBar];
 }
 
@@ -466,7 +523,6 @@ gui_mch_update_tabline(void)
     void
 gui_mch_show_tabline(int showit)
 {
-    //NSLog(@"gui_mch_show_tabline(showit=%d)", showit);
     [[MMBackend sharedInstance] showTabBar:showit];
 }
 
@@ -588,8 +644,6 @@ clip_mch_set_selection(VimClipboard *cbd)
     void
 gui_mch_add_menu(vimmenu_T *menu, int idx)
 {
-    //NSLog(@"gui_mch_add_menu(name=%s, idx=%d)", menu->name, idx);
-
     // HACK!  If menu has no parent, then we set the parent tag to the type of
     // menu it is.  This will not mix up tag and type because pointers can not
     // take values close to zero (and the tag is simply the value of the
@@ -613,9 +667,6 @@ gui_mch_add_menu(vimmenu_T *menu, int idx)
     void
 gui_mch_add_menu_item(vimmenu_T *menu, int idx)
 {
-    //NSLog(@"gui_mch_add_menu_item(name=%s, accel=%s idx=%d)", menu->dname,
-    //        menu->actext, idx);
-
     // NOTE!  If 'iconfile' is not set but 'iconidx' is, use the name of the
     // menu item.  (Should correspond to a stock item.)
     char *icon = menu->iconfile ? (char*)menu->iconfile :
@@ -665,8 +716,6 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     void
 gui_mch_destroy_menu(vimmenu_T *menu)
 {
-    //NSLog(@"gui_mch_destroy_menu(name=%s)", menu->name);
-
     [[MMBackend sharedInstance] removeMenuItemWithTag:(int)menu];
 }
 
@@ -677,7 +726,6 @@ gui_mch_destroy_menu(vimmenu_T *menu)
     void
 gui_mch_menu_grey(vimmenu_T *menu, int grey)
 {
-    //NSLog(@"gui_mch_menu_grey(name=%s, grey=%d)", menu->name, grey);
     [[MMBackend sharedInstance]
             enableMenuItemWithTag:(int)menu state:!grey];
 }
@@ -689,8 +737,6 @@ gui_mch_menu_grey(vimmenu_T *menu, int grey)
     void
 gui_mch_menu_hidden(vimmenu_T *menu, int hidden)
 {
-    //NSLog(@"gui_mch_menu_hidden(name=%s, hidden=%d)", menu->name, hidden);
-
     // HACK! There is no (obvious) way to hide a menu item, so simply
     // enable/disable it instead.
     [[MMBackend sharedInstance]
@@ -704,8 +750,6 @@ gui_mch_menu_hidden(vimmenu_T *menu, int hidden)
     void
 gui_mch_show_popupmenu(vimmenu_T *menu)
 {
-    //NSLog(@"gui_mch_show_popupmenu(name=%s)", menu->name);
-
     [[MMBackend sharedInstance] showPopupMenuWithName:(char*)menu->name
                                       atMouseLocation:YES];
 }
@@ -717,7 +761,6 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
     void
 gui_make_popup(char_u *path_name, int mouse_pos)
 {
-    // TODO: Unless mouse_pos set, popup at cursor location.
     [[MMBackend sharedInstance] showPopupMenuWithName:(char*)path_name
                                       atMouseLocation:mouse_pos];
 }
@@ -756,8 +799,6 @@ gui_mch_show_toolbar(int showit)
     if (toolbar_flags & TOOLBAR_TEXT) flags |= ToolbarLabelFlag;
     if (toolbar_flags & TOOLBAR_ICONS) flags |= ToolbarIconFlag;
     if (tbis_flags & (TBIS_MEDIUM|TBIS_LARGE)) flags |= ToolbarSizeRegularFlag;
-
-    //NSLog(@"gui_mch_show_toolbar(showit=%d, flags=%d)", showit, flags);
 
     [[MMBackend sharedInstance] showToolbar:showit flags:flags];
 }
@@ -830,8 +871,6 @@ gui_mch_set_font(GuiFont font)
 }
 
 
-
-
 // -- Scrollbars ------------------------------------------------------------
 
 
@@ -840,9 +879,6 @@ gui_mch_create_scrollbar(
 	scrollbar_T *sb,
 	int orient)	/* SBAR_VERT or SBAR_HORIZ */
 {
-    //NSLog(@"gui_mch_create_scrollbar(id=%d, orient=%d, type=%d)",
-    //        sb->ident, orient, sb->type);
-
     [[MMBackend sharedInstance] 
             createScrollbarWithIdentifier:sb->ident type:sb->type];
 }
@@ -851,8 +887,6 @@ gui_mch_create_scrollbar(
     void
 gui_mch_destroy_scrollbar(scrollbar_T *sb)
 {
-    //NSLog(@"gui_mch_destroy_scrollbar(id=%d)", sb->ident);
-
     [[MMBackend sharedInstance] 
             destroyScrollbarWithIdentifier:sb->ident];
 }
@@ -863,8 +897,6 @@ gui_mch_enable_scrollbar(
 	scrollbar_T	*sb,
 	int		flag)
 {
-    //NSLog(@"gui_mch_enable_scrollbar(id=%d, flag=%d)", sb->ident, flag);
-
     [[MMBackend sharedInstance] 
             showScrollbarWithIdentifier:sb->ident state:flag];
 }
@@ -878,9 +910,6 @@ gui_mch_set_scrollbar_pos(
 	int w,
 	int h)
 {
-    //NSLog(@"gui_mch_set_scrollbar_pos(id=%d, x=%d, y=%d, w=%d, h=%d)",
-    //        sb->ident, x, y, w, h);
-
     int pos = y;
     int len = h;
     if (SBAR_BOTTOM == sb->type) {
@@ -900,13 +929,110 @@ gui_mch_set_scrollbar_thumb(
 	long size,
 	long max)
 {
-    //NSLog(@"gui_mch_set_scrollbar_thumb(id=%d, val=%d, size=%d, max=%d)",
-    //        sb->ident, val, size, max);
-
     [[MMBackend sharedInstance] 
             setScrollbarThumbValue:val size:size max:max identifier:sb->ident];
 }
 
+
+// -- Cursor ----------------------------------------------------------------
+
+
+/*
+ * Draw a cursor without focus.
+ */
+    void
+gui_mch_draw_hollow_cursor(guicolor_T color)
+{
+    return [[MMBackend sharedInstance]
+        drawCursorAtRow:gui.row column:gui.col shape:MMInsertionPointHollow
+               fraction:100 color:color];
+}
+
+
+/*
+ * Draw part of a cursor, only w pixels wide, and h pixels high.
+ */
+    void
+gui_mch_draw_part_cursor(int w, int h, guicolor_T color)
+{
+    // HACK!  'w' and 'h' are always 1 since we do not tell Vim about the exact
+    // font dimensions.  Thus these parameters are useless.  Instead we look at
+    // the shape_table to determine the shape and size of the cursor (just like
+    // gui_update_cursor() does).
+    int idx = get_shape_idx(FALSE);
+    int shape = MMInsertionPointBlock;
+    switch (shape_table[idx].shape) {
+        case SHAPE_HOR: shape = MMInsertionPointHorizontal; break;
+        case SHAPE_VER: shape = MMInsertionPointVertical; break;
+    }
+
+    return [[MMBackend sharedInstance]
+        drawCursorAtRow:gui.row column:gui.col shape:shape
+               fraction:shape_table[idx].percentage color:color];
+}
+
+
+/*
+ * Cursor blink functions.
+ *
+ * This is a simple state machine:
+ * BLINK_NONE	not blinking at all
+ * BLINK_OFF	blinking, cursor is not shown
+ * BLINK_ON blinking, cursor is shown
+ */
+    void
+gui_mch_set_blinking(long wait, long on, long off)
+{
+    [[MMBackend sharedInstance] setBlinkWait:wait on:on off:off];
+}
+
+
+/*
+ * Start the cursor blinking.  If it was already blinking, this restarts the
+ * waiting time and shows the cursor.
+ */
+    void
+gui_mch_start_blink(void)
+{
+    [[MMBackend sharedInstance] startBlink];
+}
+
+
+/*
+ * Stop the cursor blinking.  Show the cursor if it wasn't shown.
+ */
+    void
+gui_mch_stop_blink(void)
+{
+    [[MMBackend sharedInstance] stopBlink];
+}
+
+
+// -- Mouse -----------------------------------------------------------------
+
+
+/*
+ * Get current mouse coordinates in text window.
+ */
+    void
+gui_mch_getmouse(int *x, int *y)
+{
+    //NSLog(@"gui_mch_getmouse()");
+}
+
+
+    void
+gui_mch_setmouse(int x, int y)
+{
+    //NSLog(@"gui_mch_setmouse(x=%d, y=%d)", x, y);
+}
+
+
+    void
+mch_set_mouse_shape(int shape)
+{
+    [[MMBackend sharedInstance] setMouseShape:shape];
+}
 
 
 
@@ -1012,43 +1138,6 @@ gui_mch_dialog(
 }
 
 
-/*
- * Draw a cursor without focus.
- */
-    void
-gui_mch_draw_hollow_cursor(guicolor_T color)
-{
-    //NSLog(@"gui_mch_draw_hollow_cursor(color=0x%x)", color);
-
-    return [[MMBackend sharedInstance]
-        drawCursorAtRow:gui.row column:gui.col shape:MMInsertionPointHollow
-               fraction:100 color:color];
-}
-
-
-/*
- * Draw part of a cursor, only w pixels wide, and h pixels high.
- */
-    void
-gui_mch_draw_part_cursor(int w, int h, guicolor_T color)
-{
-    // HACK!  'w' and 'h' are always 1 since we do not tell Vim about the exact
-    // font dimensions.  Thus these parameters are useless.  Instead we look at
-    // the shape_table to determine the shape and size of the cursor (just like
-    // gui_update_cursor() does).
-    int idx = get_shape_idx(FALSE);
-    int shape = MMInsertionPointBlock;
-    switch (shape_table[idx].shape) {
-        case SHAPE_HOR: shape = MMInsertionPointHorizontal; break;
-        case SHAPE_VER: shape = MMInsertionPointVertical; break;
-    }
-
-    return [[MMBackend sharedInstance]
-        drawCursorAtRow:gui.row column:gui.col shape:shape
-               fraction:shape_table[idx].percentage color:color];
-}
-
-
     void
 gui_mch_flash(int msec)
 {
@@ -1111,16 +1200,6 @@ gui_mch_get_winpos(int *x, int *y)
 
 
 /*
- * Get current mouse coordinates in text window.
- */
-    void
-gui_mch_getmouse(int *x, int *y)
-{
-    //NSLog(@"gui_mch_getmouse()");
-}
-
-
-/*
  * Return OK if the key with the termcap name "name" is supported.
  */
     int
@@ -1146,67 +1225,6 @@ gui_mch_iconify(void)
     void
 gui_mch_invert_rectangle(int r, int c, int nr, int nc)
 {
-}
-
-
-/*
- * Called when the foreground or background color has been changed.
- */
-    void
-gui_mch_new_colors(void)
-{
-    gui.def_back_pixel = gui.back_pixel;
-    gui.def_norm_pixel = gui.norm_pixel;
-
-    //NSLog(@"gui_mch_new_colors(back=%x, norm=%x)", gui.def_back_pixel,
-    //        gui.def_norm_pixel);
-
-    [[MMBackend sharedInstance]
-        setDefaultColorsBackground:gui.def_back_pixel
-                        foreground:gui.def_norm_pixel];
-}
-
-
-    void
-gui_mch_def_colors()
-{
-    // Default foreground and background colors are black and white.
-    gui.def_norm_pixel = gui.norm_pixel = 0;
-    gui.def_back_pixel = gui.back_pixel = 0xffffff;
-}
-
-
-/*
- * Set the current text background color.
- */
-    void
-gui_mch_set_bg_color(guicolor_T color)
-{
-    [[MMBackend sharedInstance] setBackgroundColor:color];
-}
-
-
-/*
- * Cursor blink functions.
- *
- * This is a simple state machine:
- * BLINK_NONE	not blinking at all
- * BLINK_OFF	blinking, cursor is not shown
- * BLINK_ON blinking, cursor is shown
- */
-    void
-gui_mch_set_blinking(long wait, long on, long off)
-{
-}
-
-
-/*
- * Set the current text foreground color.
- */
-    void
-gui_mch_set_fg_color(guicolor_T color)
-{
-    [[MMBackend sharedInstance] setForegroundColor:color];
 }
 
 
@@ -1240,16 +1258,6 @@ gui_mch_set_shellsize(
 }
 
 
-/*
- * Set the current text special color.
- */
-    void
-gui_mch_set_sp_color(guicolor_T color)
-{
-    [[MMBackend sharedInstance] setSpecialColor:color];
-}
-
-
     void
 gui_mch_set_text_area_pos(int x, int y, int w, int h)
 {
@@ -1262,13 +1270,6 @@ gui_mch_set_text_area_pos(int x, int y, int w, int h)
     void
 gui_mch_set_winpos(int x, int y)
 {
-}
-
-
-    void
-gui_mch_setmouse(int x, int y)
-{
-    //NSLog(@"gui_mch_setmouse(x=%d, y=%d)", x, y);
 }
 
 
@@ -1287,35 +1288,9 @@ gui_mch_settitle(char_u *title, char_u *icon)
 #endif
 
 
-/*
- * Start the cursor blinking.  If it was already blinking, this restarts the
- * waiting time and shows the cursor.
- */
-    void
-gui_mch_start_blink(void)
-{
-}
-
-
-/*
- * Stop the cursor blinking.  Show the cursor if it wasn't shown.
- */
-    void
-gui_mch_stop_blink(void)
-{
-}
-
-
     void
 gui_mch_toggle_tearoffs(int enable)
 {
-}
-
-
-    void
-mch_set_mouse_shape(int shape)
-{
-    [[MMBackend sharedInstance] setMouseShape:shape];
 }
 
 

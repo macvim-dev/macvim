@@ -27,6 +27,11 @@
     int             defaultForegroundColor;
     NSDate          *lastFlushDate;
     id              dialogReturn;
+    NSTimer         *blinkTimer;
+    int             blinkState;
+    NSTimeInterval  blinkWaitInterval;
+    NSTimeInterval  blinkOnInterval;
+    NSTimeInterval  blinkOffInterval;
 }
 
 + (MMBackend *)sharedInstance;
@@ -81,6 +86,9 @@
 - (BOOL)setFontWithName:(char *)name;
 - (void)executeActionWithName:(NSString *)name;
 - (void)setMouseShape:(int)shape;
+- (void)setBlinkWait:(int)wait on:(int)on off:(int)off;
+- (void)startBlink;
+- (void)stopBlink;
 
 - (int)lookupColorWithKey:(NSString *)key;
 

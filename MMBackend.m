@@ -27,6 +27,12 @@ static int eventModifierFlagsToVimMouseModMask(int modifierFlags);
 static int eventButtonNumberToVimMouseButton(int buttonNumber);
 static int specialKeyToNSKey(int key);
 
+enum {
+    MMBlinkStateNone = 0,
+    MMBlinkStateOn,
+    MMBlinkStateOff
+};
+
 
 @interface MMBackend (Private)
 - (void)handleMessage:(int)msgid data:(NSData *)data;
@@ -34,6 +40,7 @@ static int specialKeyToNSKey(int key);
 - (void)handleKeyDown:(NSString *)key modifiers:(int)mods;
 - (void)queueMessage:(int)msgid data:(NSData *)data;
 - (void)connectionDidDie:(NSNotification *)notification;
+- (void)blinkTimerFired:(NSTimer *)timer;
 @end
 
 
@@ -65,11 +72,12 @@ static int specialKeyToNSKey(int key);
 
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
-    [queue release];
-    [drawData release];
-    [frontendProxy release];
-    [connection release];
-    [colorDict release];
+    [blinkTimer release];  blinkTimer = nil;
+    [queue release];  queue = nil;
+    [drawData release];  drawData = nil;
+    [frontendProxy release];  frontendProxy = nil;
+    [connection release];  connection = nil;
+    [colorDict release];  colorDict = nil;
 
     [super dealloc];
 }
@@ -763,6 +771,46 @@ static int specialKeyToNSKey(int key);
     [self queueMessage:SetMouseShapeMsgID data:data];
 }
 
+- (void)setBlinkWait:(int)wait on:(int)on off:(int)off
+{
+    // Vim specifies times in milliseconds, whereas Cocoa wants them in
+    // seconds.
+    blinkWaitInterval = .001f*wait;
+    blinkOnInterval = .001f*on;
+    blinkOffInterval = .001f*off;
+}
+
+- (void)startBlink
+{
+    if (blinkTimer) {
+        [blinkTimer invalidate];
+        [blinkTimer release];
+        blinkTimer = nil;
+    }
+
+    if (blinkWaitInterval > 0 && blinkOnInterval > 0 && blinkOffInterval > 0
+            && gui.in_focus) {
+        blinkState = MMBlinkStateOn;
+        blinkTimer =
+            [[NSTimer scheduledTimerWithTimeInterval:blinkWaitInterval
+                                              target:self
+                                            selector:@selector(blinkTimerFired:)
+                                            userInfo:nil repeats:NO] retain];
+        gui_update_cursor(TRUE, FALSE);
+        [self flushQueue:YES];
+    }
+}
+
+- (void)stopBlink
+{
+    if (MMBlinkStateOff == blinkState) {
+        gui_update_cursor(TRUE, FALSE);
+        [self flushQueue:YES];
+    }
+
+    blinkState = MMBlinkStateNone;
+}
+
 - (int)lookupColorWithKey:(NSString *)key
 {
     if (!(key && [key length] > 0))
@@ -1354,6 +1402,32 @@ static int specialKeyToNSKey(int key);
 
     //NSLog(@"A Vim process lots its connection to MacVim; quitting.");
     getout(0);
+}
+
+- (void)blinkTimerFired:(NSTimer *)timer
+{
+    NSTimeInterval timeInterval = 0;
+
+    [blinkTimer release];
+    blinkTimer = nil;
+
+    if (MMBlinkStateOn == blinkState) {
+        gui_undraw_cursor();
+        blinkState = MMBlinkStateOff;
+        timeInterval = blinkOffInterval;
+    } else if (MMBlinkStateOff == blinkState) {
+        gui_update_cursor(TRUE, FALSE);
+        blinkState = MMBlinkStateOn;
+        timeInterval = blinkOnInterval;
+    }
+
+    if (timeInterval > 0) {
+        blinkTimer = 
+            [[NSTimer scheduledTimerWithTimeInterval:timeInterval target:self
+                                            selector:@selector(blinkTimerFired:)
+                                            userInfo:nil repeats:NO] retain];
+        [self flushQueue:YES];
+    }
 }
 
 @end // MMBackend (Private)
