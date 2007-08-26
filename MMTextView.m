@@ -129,6 +129,21 @@ static float MMDragAreaSize = 73.0f;
     }
 }
 
+- (void)keyDown:(NSEvent *)event
+{
+    // HACK! If a modifier is held, don't pass the event along to
+    // interpretKeyEvents: since some keys are bound to multiple commands which
+    // means doCommandBySelector: is called several times.
+    //
+    // TODO: Figure out a way to disable Cocoa key bindings entirely, without
+    // affecting input management.
+
+    if ([event modifierFlags] & NSControlKeyMask)
+        [self dispatchKeyEvent:event];
+    else
+        [super keyDown:event];
+}
+
 - (void)insertText:(id)string
 {
     // NOTE!  This method is called for normal key presses but also for
@@ -526,7 +541,12 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)resetCursorRects
 {
-    // No need to set up cursor rects...Vim is in control of cursor changes.
+    // No need to set up cursor rects since Vim handles cursor changes.
+}
+
+- (void)updateFontPanel
+{
+    // The font panel is updated whenever the font is set.
 }
 
 @end // MMTextView
@@ -590,21 +610,6 @@ static float MMDragAreaSize = 73.0f;
     rect.size.height -= top + bot - 1;
 
     return rect;
-}
-
-- (void)keyDown:(NSEvent *)event
-{
-    // HACK! If a modifier is held, don't pass the event along to
-    // interpretKeyEvents: since some keys are bound to multiple commands which
-    // means doCommandBySelector: is called several times.
-    //
-    // TODO: Figure out a way to disable Cocoa key bindings entirely, without
-    // affecting input management.
-
-    if ([event modifierFlags] & NSControlKeyMask)
-        [self dispatchKeyEvent:event];
-    else
-        [super keyDown:event];
 }
 
 - (void)dispatchKeyEvent:(NSEvent *)event

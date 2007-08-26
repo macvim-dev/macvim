@@ -452,6 +452,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)setFont:(NSFont *)font
 {
+    [[NSFontManager sharedFontManager] setSelectedFont:font isMultiple:NO];
     [textStorage setFont:font];
     [self updateResizeIncrements];
 }
