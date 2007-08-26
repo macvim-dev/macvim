@@ -48,7 +48,7 @@
 - (void)insertLinesFromRow:(int)row count:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right;
 - (void)drawCursorAtRow:(int)row column:(int)col shape:(int)shape
-                  color:(int)color;
+               fraction:(int)percent color:(int)color;
 - (void)flushQueue:(BOOL)force;
 - (BOOL)waitForInput:(int)milliseconds;
 - (void)exit;

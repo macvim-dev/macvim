@@ -864,11 +864,13 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             int row = *((int*)bytes);  bytes += sizeof(int);
             int col = *((int*)bytes);  bytes += sizeof(int);
             int shape = *((int*)bytes);  bytes += sizeof(int);
+            int percent = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
             NSLog(@"   Draw cursor at (%d,%d)", row, col);
 #endif
             [textView drawInsertionPointAtRow:row column:col shape:shape
+                                     fraction:percent
                                         color:[NSColor colorWithRgbInt:color]];
         } else {
             NSLog(@"WARNING: Unknown draw type (type=%d)", type);

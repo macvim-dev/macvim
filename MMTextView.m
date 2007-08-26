@@ -64,7 +64,7 @@ static float MMDragAreaSize = 73.0f;
 }
 
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                          color:(NSColor *)color
+                       fraction:(int)percent color:(NSColor *)color
 {
     //NSLog(@"drawInsertionPointAtRow:%d column:%d shape:%d color:%@",
     //        row, col, shape, color);
@@ -75,6 +75,7 @@ static float MMDragAreaSize = 73.0f;
     insertionPointRow = row;
     insertionPointColumn = col;
     insertionPointShape = shape;
+    insertionPointFraction = percent;
 
     [self setInsertionPointColor:color];
 }
@@ -103,10 +104,12 @@ static float MMDragAreaSize = 73.0f;
         ipRect.origin.y += [self textContainerOrigin].y;
 
         if (MMInsertionPointHorizontal == insertionPointShape) {
-            ipRect.origin.y += ipRect.size.height - 2;
-            ipRect.size.height = 2;
+            int frac = (ipRect.size.height * insertionPointFraction + 99)/100;
+            ipRect.origin.y += ipRect.size.height - frac;
+            ipRect.size.height = frac;
         } else if (MMInsertionPointVertical == insertionPointShape) {
-            ipRect.size.width = 2;
+            int frac = (ipRect.size.width * insertionPointFraction + 99)/100;
+            ipRect.size.width = frac;
         }
 
         [[self insertionPointColor] set];

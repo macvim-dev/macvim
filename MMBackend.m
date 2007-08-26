@@ -270,7 +270,7 @@ static int specialKeyToNSKey(int key);
 }
 
 - (void)drawCursorAtRow:(int)row column:(int)col shape:(int)shape
-                  color:(int)color
+               fraction:(int)percent color:(int)color
 {
     int type = DrawCursorDrawType;
 
@@ -280,6 +280,7 @@ static int specialKeyToNSKey(int key);
     [drawData appendBytes:&row length:sizeof(int)];
     [drawData appendBytes:&col length:sizeof(int)];
     [drawData appendBytes:&shape length:sizeof(int)];
+    [drawData appendBytes:&percent length:sizeof(int)];
 }
 
 - (void)flushQueue:(BOOL)force
