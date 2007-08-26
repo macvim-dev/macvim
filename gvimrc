@@ -21,6 +21,9 @@ if !exists("syntax_on")
   syntax on
 endif
 
+" Shift + special movement key starts selection mode (<S-Left>, etc.)
+set keymodel=startsel,stopsel selectmode=key
+
 
 "
 " Extra menus
@@ -99,21 +102,39 @@ no   <D-Left>       <Home>
 no!  <D-Left>       <Home>
 no   <M-Left>       <C-Left>
 no!  <M-Left>       <C-Left>
+nn   <S-D-Left>     <S-Home>
+vn   <S-D-Left>     <S-Home>
+ino  <S-D-Left>     <S-Home>
+nn   <S-M-Left>     <S-C-Left>
+vn   <S-M-Left>     <S-C-Left>
+ino  <S-M-Left>     <S-C-Left>
 
 no   <D-Right>      <End>
 no!  <D-Right>      <End>
 no   <M-Right>      <C-Right>
 no!  <M-Right>      <C-Right>
+nn   <S-D-Right>    <S-End>
+vn   <S-D-Right>    <S-End>
+ino  <S-D-Right>    <S-End>
+nn   <S-M-Right>    <S-C-Right>
+vn   <S-M-Right>    <S-C-Right>
+ino  <S-M-Right>    <S-C-Right>
 
 no   <D-Up>         <C-Home>
 ino  <D-Up>         <C-Home>
 map  <M-Up>         {
 imap <M-Up>         <C-o>{
+nn   <S-D-Up>       <S-C-Home>
+vn   <S-D-Up>       <S-C-Home>
+ino  <S-D-Up>       <S-C-Home>
 
 no   <D-Down>       <C-End>
 ino  <D-Down>       <C-End>
 map  <M-Down>       }
 imap <M-Down>       <C-o>}
+nn   <S-D-Down>     <S-C-End>
+vn   <S-D-Down>     <S-C-End>
+ino  <S-D-Down>     <S-C-End>
 
 
 
