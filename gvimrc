@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Björn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Fri Aug 17 2007
+" Last Change:	Sun Aug 26 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -92,8 +92,28 @@ aunmenu ToolBar.FindHelp
 
 
 "
-" Keyboard mappings
+" HIG insertion point related mappings
 "
+
+no   <D-Left>       <Home>
+no!  <D-Left>       <Home>
+no   <M-Left>       <C-Left>
+no!  <M-Left>       <C-Left>
+
+no   <D-Right>      <End>
+no!  <D-Right>      <End>
+no   <M-Right>      <C-Right>
+no!  <M-Right>      <C-Right>
+
+no   <D-Up>         <C-Home>
+ino  <D-Up>         <C-Home>
+map  <M-Up>         {
+imap <M-Up>         <C-o>{
+
+no   <D-Down>       <C-End>
+ino  <D-Down>       <C-End>
+map  <M-Down>       }
+imap <M-Down>       <C-o>}
 
 
 
@@ -102,37 +122,39 @@ aunmenu ToolBar.FindHelp
 " Menu key equivalents (these should always have the 'D' modifier set)
 "
 
-menukeyequiv File.New\ Window       <D-n>
-menukeyequiv File.New\ Tab          <D-t>
+menukeyequiv File.New\ Window                       <D-n>
+menukeyequiv File.New\ Tab                          <D-t>
 
-menukeyequiv File.Open\.\.\.        <D-o>
-menukeyequiv File.Open\ Tab\.\.\.   <D-T>
-menukeyequiv File.Close\ Window     <D-W>
-"menukeyequiv File.Close\ Tab        <D-w>
-menukeyequiv File.Close             <D-w>
-menukeyequiv File.Save              <D-s>
-menukeyequiv File.Save\ As\.\.\.    <D-S>
-menukeyequiv File.Print             <D-p>
+menukeyequiv File.Open\.\.\.                        <D-o>
+menukeyequiv File.Open\ Tab\.\.\.                   <D-T>
+menukeyequiv File.Close\ Window                     <D-W>
+"menukeyequiv File.Close\ Tab                        <D-w>
+menukeyequiv File.Close                             <D-w>
+menukeyequiv File.Save                              <D-s>
+menukeyequiv File.Save\ As\.\.\.                    <D-S>
+menukeyequiv File.Print                             <D-p>
 
-menukeyequiv Edit.Undo              <D-z>
-menukeyequiv Edit.Redo              <D-Z>
-menukeyequiv Edit.Cut               <D-x>
-menukeyequiv Edit.Copy              <D-c>
-menukeyequiv Edit.Paste             <D-v>
-menukeyequiv Edit.Select\ All       <D-a>
-menukeyequiv Edit.Special\ Characters\.\.\.    <D-M-t> 
+menukeyequiv Edit.Undo                              <D-z>
+menukeyequiv Edit.Redo                              <D-Z>
+menukeyequiv Edit.Cut                               <D-x>
+menukeyequiv Edit.Copy                              <D-c>
+menukeyequiv Edit.Paste                             <D-v>
+menukeyequiv Edit.Select\ All                       <D-a>
+menukeyequiv Edit.Special\ Characters\.\.\.         <D-M-t> 
 
-menukeyequiv Tools.Make             <D-b>
-menukeyequiv Tools.List\ Errors     <D-l>
-menukeyequiv Tools.List\ Messages   <D-L>
-menukeyequiv Tools.Next\ Error      <D-]>
-menukeyequiv Tools.Previous\ Error  <D-[>
-menukeyequiv Tools.Older\ List      <D-{>
-menukeyequiv Tools.Newer\ List      <D-}>
+menukeyequiv Tools.Spelling.To\ Next\ error         <D-;>
+menukeyequiv Tools.Spelling.Suggest\ Corrections    <D-:>
+menukeyequiv Tools.Make                             <D-b>
+menukeyequiv Tools.List\ Errors                     <D-l>
+menukeyequiv Tools.List\ Messages                   <D-L>
+menukeyequiv Tools.Next\ Error                      <D-C-Right>
+menukeyequiv Tools.Previous\ Error                  <D-C-Left>
+menukeyequiv Tools.Older\ List                      <D-C-Up>
+menukeyequiv Tools.Newer\ List                      <D-C-Down>
 
-menukeyequiv Window.Minimize        <D-m>
-menukeyequiv Window.Previous\ Tab   <D-M-Left>
-menukeyequiv Window.Next\ Tab       <D-M-Right>
+menukeyequiv Window.Minimize                        <D-m>
+menukeyequiv Window.Previous\ Tab                   <D-[>
+menukeyequiv Window.Next\ Tab                       <D-]>
 
 
 " Restore the previous value of 'cpoptions'.
