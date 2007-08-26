@@ -1,6 +1,5 @@
 Active:
 
-- Insertion point blinking
 - Build Vim (make) from Xcode project
 - Cmd-W in about box sends vimMenuAction: instead of performClose:
 - Terminal support.  :!bash -> no cursor, arrow keys mucks up display
@@ -53,6 +52,8 @@ Active:
 
 Pending:
 
+- Select-mode for <S-Key>
+- Insertion point blinking
 - Hollow insertion point drawing does not always work
 - cursor in replace mode
 - should ignore action message if is called too often (e.g. in addNewTab:)
