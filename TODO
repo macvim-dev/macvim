@@ -1,5 +1,6 @@
 Active:
 
+- Add support for 'mousehide' (needs to check p_mh)
 - Build Vim (make) from Xcode project
 - Cmd-W in about box sends vimMenuAction: instead of performClose:
 - Terminal support.  :!bash -> no cursor, arrow keys mucks up display

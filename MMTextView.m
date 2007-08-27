@@ -169,6 +169,7 @@ static float MMDragAreaSize = 73.0f;
         return;
     }
 
+    // TODO: Support 'mousehide' (check p_mh)
     [NSCursor setHiddenUntilMouseMoves:YES];
 
     [[self vimController] sendMessage:InsertTextMsgID
@@ -672,6 +673,7 @@ static float MMDragAreaSize = 73.0f;
         [data appendBytes:&len length:sizeof(int)];
         [data appendBytes:bytes length:len];
 
+        // TODO: Support 'mousehide' (check p_mh)
         [NSCursor setHiddenUntilMouseMoves:YES];
 
         //NSLog(@"%s len=%d bytes=0x%x", _cmd, len, bytes[0]);
