@@ -77,6 +77,14 @@ static float MMDragAreaSize = 73.0f;
     insertionPointShape = shape;
     insertionPointFraction = percent;
 
+    // Update the selected range so that the AppKit knows where the insertion
+    // point is.  (The input manager sometimes likes to popup a window near the
+    // insertion point.)
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    unsigned charIdx = [ts characterIndexForRow:insertionPointRow
+                                         column:insertionPointColumn];
+    [self setSelectedRange:NSMakeRange(charIdx,0)];
+
     [self setInsertionPointColor:color];
 }
 
