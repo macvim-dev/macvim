@@ -22,7 +22,7 @@ if !exists("syntax_on")
 endif
 
 " Shift + special movement key starts selection mode (<S-Left>, etc.)
-set keymodel=startsel,stopsel selectmode=key
+behave mswin
 
 
 "
