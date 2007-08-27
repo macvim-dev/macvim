@@ -398,7 +398,12 @@ static float MMDragAreaSize = 73.0f;
 - (void)mouseEntered:(NSEvent *)event
 {
     //NSLog(@"%s", _cmd);
-    [[self window] setAcceptsMouseMovedEvents:YES];
+
+    // NOTE: This event is received even when the window is not key; thus we
+    // have to take care not to enable mouse moved events unless our window is
+    // key.
+    if ([[self window] isKeyWindow])
+        [[self window] setAcceptsMouseMovedEvents:YES];
 }
 
 - (void)mouseExited:(NSEvent *)event
@@ -407,6 +412,9 @@ static float MMDragAreaSize = 73.0f;
 
     [[self window] setAcceptsMouseMovedEvents:NO];
 
+    // NOTE: This event is received even when the window is not key; if the
+    // mouse shape is set when our window is not key, the hollow (unfocused)
+    // cursor will become a block (focused) cursor.
     if ([[self window] isKeyWindow]) {
         int shape = 0;
         NSMutableData *data = [NSMutableData data];
