@@ -618,6 +618,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
     [vimController sendMessage:GotFocusMsgID data:nil wait:NO];
+
+    if (textStorage)
+        [[NSFontManager sharedFontManager] setSelectedFont:[textStorage font]
+                                                isMultiple:NO];
 }
 
 - (void)windowDidResignMain:(NSNotification *)notification
