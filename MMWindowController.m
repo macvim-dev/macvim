@@ -627,6 +627,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (void)windowDidResignMain:(NSNotification *)notification
 {
     [vimController sendMessage:LostFocusMsgID data:nil wait:NO];
+
+    if (textView)
+        [textView hideMarkedTextField];
 }
 
 - (BOOL)windowShouldClose:(id)sender

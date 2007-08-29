@@ -32,5 +32,6 @@
 - (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
                        fraction:(int)percent color:(NSColor *)color;
+- (void)hideMarkedTextField;
 
 @end

@@ -34,7 +34,6 @@ static float MMDragAreaSize = 73.0f;
 - (MMVimController *)vimController;
 - (void)startDragTimerWithInterval:(NSTimeInterval)t;
 - (void)dragTimerFired:(NSTimer *)timer;
-- (void)hideMarkedTextField;
 - (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags;
 @end
 
@@ -88,6 +87,15 @@ static float MMDragAreaSize = 73.0f;
     insertionPointFraction = percent;
 
     [self setInsertionPointColor:color];
+}
+
+- (void)hideMarkedTextField
+{
+    if (markedTextField) {
+        NSWindow *win = [markedTextField window];
+        [win close];
+        [markedTextField setStringValue:@""];
+    }
 }
 
 - (void)drawRect:(NSRect)rect
@@ -881,15 +889,6 @@ static float MMDragAreaSize = 73.0f;
     }
 
     ++tick;
-}
-
-- (void)hideMarkedTextField
-{
-    if (markedTextField) {
-        NSWindow *win = [markedTextField window];
-        [win close];
-        [markedTextField setStringValue:@""];
-    }
 }
 
 - (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags
