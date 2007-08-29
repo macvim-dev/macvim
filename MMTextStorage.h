@@ -48,8 +48,9 @@
 - (void)clearAllWithColor:(NSColor *)color;
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
                         foreground:(NSColor *)fgColor;
-- (void)setFont:(NSFont*)newFont;
-- (NSFont*)font;
+- (void)setFont:(NSFont *)newFont;
+- (NSFont *)font;
+- (NSColor *)defaultBackgroundColor;
 - (NSSize)size;
 - (NSSize)cellSize;
 - (NSRect)rectForRowsInRange:(NSRange)range;

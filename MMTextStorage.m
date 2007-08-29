@@ -417,6 +417,11 @@
     return font;
 }
 
+- (NSColor *)defaultBackgroundColor
+{
+    return defaultBackgroundColor;
+}
+
 - (NSSize)size
 {
     return NSMakeSize(maxColumns*cellSize.width, maxRows*cellSize.height);
