@@ -41,6 +41,9 @@ enum {
 - (void)queueMessage:(int)msgid data:(NSData *)data;
 - (void)connectionDidDie:(NSNotification *)notification;
 - (void)blinkTimerFired:(NSTimer *)timer;
+- (void)focusChange:(BOOL)on;
+- (void)processInputBegin;
+- (void)processInputEnd;
 @end
 
 
@@ -57,6 +60,9 @@ enum {
 {
     if ((self = [super init])) {
         queue = [[NSMutableArray alloc] init];
+#if MM_USE_INPUT_QUEUE
+        inputQueue = [[NSMutableArray alloc] init];
+#endif
         drawData = [[NSMutableData alloc] initWithCapacity:1024];
 
         NSString *path = [[NSBundle mainBundle] pathForResource:@"Colors"
@@ -88,6 +94,9 @@ enum {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     [blinkTimer release];  blinkTimer = nil;
+#if MM_USE_INPUT_QUEUE
+    [inputQueue release];  inputQueue = nil;
+#endif
     [queue release];  queue = nil;
     [drawData release];  drawData = nil;
     [frontendProxy release];  frontendProxy = nil;
@@ -875,16 +884,19 @@ enum {
 
 - (oneway void)processInput:(int)msgid data:(in NSData *)data
 {
-    [lastFlushDate release];
-    lastFlushDate = [[NSDate date] retain];
-
-    // HACK! A focus message might get lost, but whenever we get here the GUI
-    // is in focus.
-    if (!gui.in_focus && GotFocusMsgID != msgid && LostFocusMsgID != msgid)
-        gui_focus_change(TRUE);
-
-    [self handleMessage:msgid data:data];
-    inputReceived = YES;
+    if (inProcessInput) {
+#if MM_USE_INPUT_QUEUE
+        [inputQueue addObject:[NSNumber numberWithInt:msgid]];
+        [inputQueue addObject:data];
+#else
+        // Just drop the input
+        NSLog(@"WARNING: Dropping input in %s", _cmd);
+#endif
+    } else {
+        [self processInputBegin];
+        [self handleMessage:msgid data:data];
+        [self processInputEnd];
+    }
 }
 
 - (oneway void)processInputAndData:(in NSArray *)messages
@@ -895,24 +907,27 @@ enum {
         return;
     }
 
-    [lastFlushDate release];
-    lastFlushDate = [[NSDate date] retain];
+    if (inProcessInput) {
+#if MM_USE_INPUT_QUEUE
+        [inputQueue addObjectsFromArray:messages];
+#else
+        // Just drop the input
+        NSLog(@"WARNING: Dropping input in %s", _cmd);
+#endif
+    } else {
+        [self processInputBegin];
 
-    for (i = 0; i < count; i += 2) {
-        int msgid = [[messages objectAtIndex:i] intValue];
-        id data = [messages objectAtIndex:i+1];
-        if ([data isEqual:[NSNull null]])
-            data = nil;
+        for (i = 0; i < count; i += 2) {
+            int msgid = [[messages objectAtIndex:i] intValue];
+            id data = [messages objectAtIndex:i+1];
+            if ([data isEqual:[NSNull null]])
+                data = nil;
 
-        [self handleMessage:msgid data:data];
+            [self handleMessage:msgid data:data];
+        }
+
+        [self processInputEnd];
     }
-
-    // HACK! A focus message might get lost, but whenever we get here the GUI
-    // is in focus.
-    if (!gui.in_focus)
-        gui_focus_change(TRUE);
-
-    inputReceived = YES;
 }
 
 - (BOOL)checkForModifiedBuffers
@@ -1305,10 +1320,10 @@ enum {
 #endif // FEAT_DND
     } else if (GotFocusMsgID == msgid) {
         if (!gui.in_focus)
-            gui_focus_change(YES);
+            [self focusChange:YES];
     } else if (LostFocusMsgID == msgid) {
         if (gui.in_focus)
-            gui_focus_change(NO);
+            [self focusChange:NO];
     } else if (MouseMovedMsgID == msgid) {
         const void *bytes = [data bytes];
         int row = *((int*)bytes);  bytes += sizeof(int);
@@ -1456,6 +1471,69 @@ enum {
                                             userInfo:nil repeats:NO] retain];
         [self flushQueue:YES];
     }
+}
+
+- (void)focusChange:(BOOL)on
+{
+    // This is a bit of an ugly way to change the selection color.
+    // TODO: Is there a nicer way to do this?
+    char *cmd = on
+        ? "hi Visual guibg=MacSelectedTextBackgroundColor"
+        : "hi Visual guibg=MacSecondarySelectedControlColor";
+
+    do_cmdline_cmd((char_u*)cmd);
+    gui_focus_change(on);
+
+    // TODO: Is all this necessary just to get the highlights to update?
+    redraw_all_later(CLEAR);
+    update_screen(NOT_VALID);
+    setcursor();
+    out_flush();
+    gui_update_cursor(FALSE, FALSE);
+    gui_mch_flush();
+}
+
+- (void)processInputBegin
+{
+    inProcessInput = YES;
+    [lastFlushDate release];
+    lastFlushDate = [[NSDate date] retain];
+}
+
+- (void)processInputEnd
+{
+#if MM_USE_INPUT_QUEUE
+    int count = [inputQueue count];
+    if (count % 2) {
+        // TODO: This is troubling, but it is not hard to get Vim to end up
+        // here.  Why does this happen?
+        NSLog(@"WARNING: inputQueue has odd number of objects (%d)", count);
+        [inputQueue removeAllObjects];
+    } else if (count > 0) {
+        // TODO: Dispatch these messages?  Maybe not; usually when the
+        // 'inputQueue' is non-empty it means that a LOT of messages has been
+        // sent simultaneously.  The only way this happens is when Vim is being
+        // tormented, e.g. if the user holds down <D-`> to rapidly switch
+        // windows.
+        unsigned i;
+        for (i = 0; i < count; i+=2) {
+            int msgid = [[inputQueue objectAtIndex:i] intValue];
+            NSLog(@"%s: Dropping message %s", _cmd, MessageStrings[msgid]);
+        }
+
+        [inputQueue removeAllObjects];
+    }
+#endif
+
+#if 0 // This does not work...for now, just don't care if a focus msg was lost.
+    // HACK! A focus message might get lost, but whenever we get here the GUI
+    // is in focus.
+    if (!gui.in_focus)
+        [self focusChange:TRUE];
+#endif
+
+    inputReceived = YES;
+    inProcessInput = NO;
 }
 
 @end // MMBackend (Private)
