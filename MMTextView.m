@@ -25,13 +25,17 @@ static float MMDragAreaSize = 73.0f;
 
 
 
+
 @interface MMTextView (Private)
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
+- (BOOL)convertRow:(int)row column:(int)column toPoint:(NSPoint *)point;
 - (NSRect)trackingRect;
 - (void)dispatchKeyEvent:(NSEvent *)event;
 - (MMVimController *)vimController;
 - (void)startDragTimerWithInterval:(NSTimeInterval)t;
 - (void)dragTimerFired:(NSTimer *)timer;
+- (void)hideMarkedTextField;
+- (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags;
 @end
 
 
@@ -40,6 +44,12 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)dealloc
 {
+    if (markedTextField) {
+        [[markedTextField window] autorelease];
+        [markedTextField release];
+        markedTextField = nil;
+    }
+
     [lastMouseDownEvent release];
     [super dealloc];
 }
@@ -77,14 +87,6 @@ static float MMDragAreaSize = 73.0f;
     insertionPointShape = shape;
     insertionPointFraction = percent;
 
-    // Update the selected range so that the AppKit knows where the insertion
-    // point is.  (The input manager sometimes likes to popup a window near the
-    // insertion point.)
-    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-    unsigned charIdx = [ts characterIndexForRow:insertionPointRow
-                                         column:insertionPointColumn];
-    [self setSelectedRange:NSMakeRange(charIdx,0)];
-
     [self setInsertionPointColor:color];
 }
 
@@ -112,11 +114,11 @@ static float MMDragAreaSize = 73.0f;
         ipRect.origin.y += [self textContainerOrigin].y;
 
         if (MMInsertionPointHorizontal == insertionPointShape) {
-            int frac = (ipRect.size.height * insertionPointFraction + 99)/100;
+            int frac = ([ts cellSize].height * insertionPointFraction + 99)/100;
             ipRect.origin.y += ipRect.size.height - frac;
             ipRect.size.height = frac;
         } else if (MMInsertionPointVertical == insertionPointShape) {
-            int frac = (ipRect.size.width * insertionPointFraction + 99)/100;
+            int frac = ([ts cellSize].width* insertionPointFraction + 99)/100;
             ipRect.size.width = frac;
         }
 
@@ -139,6 +141,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)keyDown:(NSEvent *)event
 {
+    //NSLog(@"%s %@", _cmd, event);
     // HACK! If a modifier is held, don't pass the event along to
     // interpretKeyEvents: since some keys are bound to multiple commands which
     // means doCommandBySelector: is called several times.
@@ -154,6 +157,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)insertText:(id)string
 {
+    //NSLog(@"%s %@", _cmd, string);
     // NOTE!  This method is called for normal key presses but also for
     // Option-key presses --- even when Ctrl is held as well as Option.  When
     // Ctrl is held, the AppKit translates the character to a Ctrl+key stroke,
@@ -162,8 +166,9 @@ static float MMDragAreaSize = 73.0f;
     // modifiers are already included and should not be added to the input
     // buffer using CSI, K_MODIFIER).
 
+    [self hideMarkedTextField];
+
     NSEvent *event = [NSApp currentEvent];
-    //NSLog(@"%s%@ (event=%@)", _cmd, string, event);
 
     // HACK!  In order to be able to bind to <S-Space> etc. we have to watch
     // for when space was pressed.
@@ -188,6 +193,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)doCommandBySelector:(SEL)selector
 {
+    //NSLog(@"%s %@", _cmd, NSStringFromSelector(selector));
     // By ignoring the selector we effectively disable the key binding
     // mechanism of Cocoa.  Hopefully this is what the user will expect
     // (pressing Ctrl+P would otherwise result in moveUp: instead of previous
@@ -196,12 +202,40 @@ static float MMDragAreaSize = 73.0f;
     // We usually end up here if the user pressed Ctrl+key (but not
     // Ctrl+Option+key).
 
-    //NSLog(@"%s%@", _cmd, NSStringFromSelector(selector));
-    [self dispatchKeyEvent:[NSApp currentEvent]];
+    NSEvent *event = [NSApp currentEvent];
+
+    if (selector == @selector(cancelOperation:)
+            || selector == @selector(insertNewline:)) {
+        // HACK! If there was marked text which got abandoned as a result of
+        // hitting escape or enter, then 'insertText:' is called with the
+        // abandoned text but '[event characters]' includes the abandoned text
+        // as well.  Since 'dispatchKeyEvent:' looks at '[event characters]' we
+        // must intercept these keys here or the abandonded text gets inserted
+        // twice.
+        NSString *key = [event charactersIgnoringModifiers];
+        const char *chars = [key UTF8String];
+        int len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+        if (0x3 == chars[0]) {
+            // HACK! AppKit turns enter (not return) into Ctrl-C, so we need to
+            // handle it separately (else Ctrl-C doesn't work).
+            static char keypadEnter[2] = { 'K', 'A' };
+            len = 2; chars = keypadEnter;
+        }
+
+        [self sendKeyDown:chars length:len modifiers:[event modifierFlags]];
+    } else {
+        [self dispatchKeyEvent:event];
+    }
 }
 
+#if 0
+// Confused note to self: Why did I implement this in the first place?  Will
+// something break if I don't?  Input methods that use arrow keys do not work
+// properly with this implementation, so it is disabled for now.
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
+    NSLog(@"%s %@", _cmd, event);
     // Called for Cmd+key keystrokes, function keys, arrow keys, page
     // up/down, home, end.
 
@@ -237,16 +271,120 @@ static float MMDragAreaSize = 73.0f;
 
     return YES;
 }
+#endif
+
+- (BOOL)hasMarkedText
+{
+    //NSLog(@"%s", _cmd);
+    return markedTextField && [[markedTextField stringValue] length] > 0;
+}
+
+- (NSRange)markedRange
+{
+    //NSLog(@"%s", _cmd);
+    // HACK! If a valid range is returned, then NSTextView changes the
+    // background color of the returned range.  Since marked text is displayed
+    // in a separate popup window this behaviour is not wanted.  By setting the
+    // location of the returned range to NSNotFound NSTextView does nothing.
+    // This hack is continued in 'firstRectForCharacterRange:'.
+    return NSMakeRange(NSNotFound, 0);
+}
 
 - (void)setMarkedText:(id)text selectedRange:(NSRange)range
 {
-    // TODO: Figure out a way to handle marked text, at the moment the user
-    // has no way of knowing what has been added so far in a multi-stroke key.
-    // E.g. hitting Option-e and then e will result in an 'e' with acute, but
-    // nothing is displayed immediately after hitting Option-e.
+    //NSLog(@"setMarkedText:'%@' selectedRange:%@", text,
+    //        NSStringFromRange(range));
 
-    NSLog(@"setMarkedText:'%@' selectedRange:(%d,%d)", text, range.location,
-            range.length);
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    if (!ts) return;
+
+    if (!markedTextField) {
+        // Create a text field and put it inside a floating panel.  This field
+        // is used to display marked text.
+        NSSize cellSize = [ts cellSize];
+        NSRect cellRect = { 0, 0, cellSize.width, cellSize.height };
+
+        markedTextField = [[NSTextField alloc] initWithFrame:cellRect];
+        [markedTextField setEditable:NO];
+        [markedTextField setSelectable:NO];
+        [markedTextField setBezeled:NO];
+        [markedTextField setBordered:YES];
+
+        NSPanel *panel = [[NSPanel alloc]
+            initWithContentRect:cellRect
+                      styleMask:NSBorderlessWindowMask|NSUtilityWindowMask
+                        backing:NSBackingStoreBuffered
+                          defer:YES];
+
+        //[panel setHidesOnDeactivate:NO];
+        [panel setFloatingPanel:YES];
+        [panel setBecomesKeyOnlyIfNeeded:YES];
+        [panel setContentView:markedTextField];
+    }
+
+    if (text && [text length] > 0) {
+        [markedTextField setFont:[ts font]];
+        if ([text isKindOfClass:[NSAttributedString class]])
+            [markedTextField setAttributedStringValue:text];
+        else
+            [markedTextField setStringValue:text];
+
+        [markedTextField sizeToFit];
+        NSSize size = [markedTextField frame].size;
+
+        // Convert coordinates (row,col) -> view -> window base -> screen
+        NSPoint origin;
+        if (![self convertRow:insertionPointRow+1 column:insertionPointColumn
+                     toPoint:&origin])
+            return;
+        origin = [self convertPoint:origin toView:nil];
+        origin = [[self window] convertBaseToScreen:origin];
+
+        NSWindow *win = [markedTextField window];
+        [win setContentSize:size];
+        [win setFrameOrigin:origin];
+        [win orderFront:nil];
+    } else {
+        [self hideMarkedTextField];
+    }
+}
+
+- (void)unmarkText
+{
+    //NSLog(@"%s", _cmd);
+    [self hideMarkedTextField];
+}
+
+- (NSRect)firstRectForCharacterRange:(NSRange)range
+{
+    //NSLog(@"%s%@", _cmd, NSStringFromRange(range));
+
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    NSLayoutManager *lm = [self layoutManager];
+    NSTextContainer *tc = [self textContainer];
+
+    // HACK! Since we always return marked text to have location NSNotFound,
+    // this method will be called with 'range.location == NSNotFound' whenever
+    // the input manager tries to position a popup window near the insertion
+    // point.  For this reason we compute where the insertion point is and
+    // return a rect which contains it.
+    if (!(ts && lm && tc) || NSNotFound != range.location)
+        return [super firstRectForCharacterRange:range];
+
+    unsigned charIdx = [ts characterIndexForRow:insertionPointRow
+                                         column:insertionPointColumn];
+    NSRange glyphRange =
+        [lm glyphRangeForCharacterRange:NSMakeRange(charIdx,1)
+                   actualCharacterRange:NULL];
+    NSRect ipRect = [lm boundingRectForGlyphRange:glyphRange
+                                  inTextContainer:tc];
+    ipRect.origin.x += [self textContainerOrigin].x;
+    ipRect.origin.y += [self textContainerOrigin].y + [ts cellSize].height;
+
+    ipRect.origin = [self convertPoint:ipRect.origin toView:nil];
+    ipRect.origin = [[self window] convertBaseToScreen:ipRect.origin];
+
+    return ipRect;
 }
 
 - (void)scrollWheel:(NSEvent *)event
@@ -612,6 +750,20 @@ static float MMDragAreaSize = 73.0f;
 #endif
 }
 
+- (BOOL)convertRow:(int)row column:(int)column toPoint:(NSPoint *)point
+{
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    NSSize cellSize = [ts cellSize];
+    if (!(point && cellSize.width > 0 && cellSize.height > 0))
+        return NO;
+
+    *point = [self textContainerOrigin];
+    point->x += column * cellSize.width;
+    point->y += row * cellSize.height;
+
+    return YES;
+}
+
 - (NSRect)trackingRect
 {
     NSRect rect = [self frame];
@@ -636,20 +788,21 @@ static float MMDragAreaSize = 73.0f;
         return;
 
     NSString *chars = [event characters];
-    NSString *imchars = [event charactersIgnoringModifiers];
+    NSString *unmodchars = [event charactersIgnoringModifiers];
     unichar c = [chars characterAtIndex:0];
-    unichar imc = [imchars characterAtIndex:0];
+    unichar imc = [unmodchars characterAtIndex:0];
     int len = 0;
     const char *bytes = 0;
 
-    //NSLog(@"%s chars=0x%x unmodchars=0x%x", _cmd, c, imc);
+    //NSLog(@"%s chars[0]=0x%x unmodchars[0]=0x%x (chars=%@ unmodchars=%@)",
+    //        _cmd, c, imc, chars, unmodchars);
 
     if (' ' == imc && 0xa0 != c) {
         // HACK!  The AppKit turns <C-Space> into <C-@> which is not standard
         // Vim behaviour, so bypass this problem.  (0xa0 is <M-Space>, which
         // should be passed on as is.)
-        len = [imchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        bytes = [imchars UTF8String];
+        len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        bytes = [unmodchars UTF8String];
     } else if (imc == c && '2' == c) {
         // HACK!  Translate Ctrl+2 to <C-@>.
         static char ctrl_at = 0;
@@ -663,30 +816,12 @@ static float MMDragAreaSize = 73.0f;
         // separately (else Ctrl-Y doesn't work).
         static char back_tab[2] = { 'k', 'B' };
         len = 2; bytes = back_tab;
-    } else if (c == 0x3 && imc == 0x3) {
-        // HACK! AppKit turns enter (not return) into Ctrl-C, so we need to
-        // handle it separately (else Ctrl-C doesn't work).
-        static char enter[2] = { 'K', 'A' };
-        len = 2; bytes = enter;
     } else {
         len = [chars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
         bytes = [chars UTF8String];
     }
 
-    if (len > 0 && bytes) {
-        NSMutableData *data = [NSMutableData data];
-        int flags = [event modifierFlags];
-
-        [data appendBytes:&flags length:sizeof(int)];
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:bytes length:len];
-
-        // TODO: Support 'mousehide' (check p_mh)
-        [NSCursor setHiddenUntilMouseMoves:YES];
-
-        //NSLog(@"%s len=%d bytes=0x%x", _cmd, len, bytes[0]);
-        [[self vimController] sendMessage:KeyDownMsgID data:data wait:NO];
-    }
+    [self sendKeyDown:bytes length:len modifiers:[event modifierFlags]];
 }
 
 - (MMVimController *)vimController
@@ -746,6 +881,32 @@ static float MMDragAreaSize = 73.0f;
     }
 
     ++tick;
+}
+
+- (void)hideMarkedTextField
+{
+    if (markedTextField) {
+        NSWindow *win = [markedTextField window];
+        [win close];
+        [markedTextField setStringValue:@""];
+    }
+}
+
+- (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags
+{
+    if (chars && len > 0) {
+        NSMutableData *data = [NSMutableData data];
+
+        [data appendBytes:&flags length:sizeof(int)];
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:chars length:len];
+
+        // TODO: Support 'mousehide' (check p_mh)
+        [NSCursor setHiddenUntilMouseMoves:YES];
+
+        //NSLog(@"%s len=%d chars=0x%x", _cmd, len, chars[0]);
+        [[self vimController] sendMessage:KeyDownMsgID data:data wait:NO];
+    }
 }
 
 @end // MMTextView (Private)

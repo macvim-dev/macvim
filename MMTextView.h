@@ -25,6 +25,7 @@
     int                 insertionPointColumn;
     int                 insertionPointShape;
     int                 insertionPointFraction;
+    NSTextField         *markedTextField;
 }
 
 - (NSEvent *)lastMouseDownEvent;
