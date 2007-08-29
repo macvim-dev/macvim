@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Björn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sun Aug 26 2007
+" Last Change:	Wed Aug 29 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -21,8 +21,8 @@ if !exists("syntax_on")
   syntax on
 endif
 
-" Shift + special movement key starts selection mode (<S-Left>, etc.)
-behave mswin
+" Shift + special movement key starts visual mode (<S-Left>, etc.)
+set keymodel=startsel
 
 
 "
