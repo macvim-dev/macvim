@@ -33,6 +33,7 @@
 		1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */; };
 		1DD703B90BA9D15D008679E9 /* vim_gloss.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1DD703B80BA9D15D008679E9 /* vim_gloss.icns */; };
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
+		1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */; };
 		1DDBEB6D0C7434150036EEDD /* EmptyWindow.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDBEB6B0C7434150036EEDD /* EmptyWindow.nib */; };
 		1DE608B40C587FDA0055263D /* runtime in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
@@ -155,6 +156,7 @@
 		1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMApplication.m; sourceTree = "<group>"; };
 		1DD703B80BA9D15D008679E9 /* vim_gloss.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = vim_gloss.icns; sourceTree = "<group>"; };
 		1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SpecialKeys.plist; sourceTree = "<group>"; };
+		1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SystemColors.plist; sourceTree = "<group>"; };
 		1DDBEB6C0C7434150036EEDD /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/EmptyWindow.nib; sourceTree = "<group>"; };
 		1DE602470C587FD10055263D /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; name = runtime; path = ../../runtime; sourceTree = SOURCE_ROOT; };
 		1DE8CC610C5E2AAD003F56E3 /* Actions.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Actions.plist; sourceTree = "<group>"; };
@@ -342,6 +344,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */,
 				1DE8CC610C5E2AAD003F56E3 /* Actions.plist */,
 				1DD04DEB0C529C5E006CDC2B /* Credits.rtf */,
 				1DE9726C0C48050600F96A9F /* Toolbar */,
@@ -467,6 +470,7 @@
 				1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */,
 				1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */,
 				1DDBEB6D0C7434150036EEDD /* EmptyWindow.nib in Resources */,
+				1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
