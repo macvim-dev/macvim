@@ -20,6 +20,7 @@
     NSAttributedString          *emptyRowString;
     NSFont                      *font;
     NSColor                     *defaultBackgroundColor;
+    NSColor                     *defaultForegroundColor;
     NSSize                      cellSize;
 }
 
@@ -51,6 +52,7 @@
 - (void)setFont:(NSFont *)newFont;
 - (NSFont *)font;
 - (NSColor *)defaultBackgroundColor;
+- (NSColor *)defaultForegroundColor;
 - (NSSize)size;
 - (NSSize)cellSize;
 - (NSRect)rectForRowsInRange:(NSRange)range;

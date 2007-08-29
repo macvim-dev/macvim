@@ -55,6 +55,7 @@
     [emptyRowString release];
     [font release];
     [defaultBackgroundColor release];
+    [defaultForegroundColor release];
     [attribString release];
     [super dealloc];
 }
@@ -374,9 +375,18 @@
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
                         foreground:(NSColor *)fgColor
 {
-    // NOTE: Foreground color is ignored.
-    [defaultBackgroundColor release];
-    defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
+    if (defaultBackgroundColor != bgColor) {
+        [defaultBackgroundColor release];
+        defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
+    }
+
+    // NOTE: The default foreground color isn't actually used for anything, but
+    // other class instances might want to be able to access it so it is stored
+    // here.
+    if (defaultForegroundColor != fgColor) {
+        [defaultForegroundColor release];
+        defaultForegroundColor = fgColor ? [fgColor retain] : nil;
+    }
 }
 
 - (void)setFont:(NSFont*)newFont
@@ -420,6 +430,11 @@
 - (NSColor *)defaultBackgroundColor
 {
     return defaultBackgroundColor;
+}
+
+- (NSColor *)defaultForegroundColor
+{
+    return defaultForegroundColor;
 }
 
 - (NSSize)size
