@@ -58,9 +58,24 @@ enum {
     if ((self = [super init])) {
         queue = [[NSMutableArray alloc] init];
         drawData = [[NSMutableData alloc] initWithCapacity:1024];
+
         NSString *path = [[NSBundle mainBundle] pathForResource:@"Colors"
                                                          ofType:@"plist"];
-        colorDict = [[NSDictionary dictionaryWithContentsOfFile:path] retain];
+        if (path) {
+            colorDict = [[NSDictionary dictionaryWithContentsOfFile:path]
+                retain];
+        } else {
+            NSLog(@"WARNING: Could not locate Colors.plist.");
+        }
+
+        path = [[NSBundle mainBundle] pathForResource:@"SystemColors"
+                                               ofType:@"plist"];
+        if (path) {
+            sysColorDict = [[NSDictionary dictionaryWithContentsOfFile:path]
+                retain];
+        } else {
+            NSLog(@"WARNING: Could not locate SystemColors.plist.");
+        }
     }
 
     return self;
@@ -77,6 +92,7 @@ enum {
     [drawData release];  drawData = nil;
     [frontendProxy release];  frontendProxy = nil;
     [connection release];  connection = nil;
+    [sysColorDict release];  sysColorDict = nil;
     [colorDict release];  colorDict = nil;
 
     [super dealloc];
@@ -816,27 +832,39 @@ enum {
     if (!(key && [key length] > 0))
         return INVALCOLOR;
 
-    // First of all try to lookup key in the color dictionary; note that all
-    // keys in this dictionary are lowercase with no whitespace.
-
     NSString *stripKey = [[[[key lowercaseString]
         stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]]
             componentsSeparatedByString:@" "]
                componentsJoinedByString:@""];
 
     if (stripKey && [stripKey length] > 0) {
+        // First of all try to lookup key in the color dictionary; note that
+        // all keys in this dictionary are lowercase with no whitespace.
         id obj = [colorDict objectForKey:stripKey];
         if (obj) return [obj intValue];
 
         // The key was not in the dictionary; is it perhaps of the form
         // #rrggbb?
-
         if ([stripKey length] > 1 && [stripKey characterAtIndex:0] == '#') {
             NSScanner *scanner = [NSScanner scannerWithString:stripKey];
             [scanner setScanLocation:1];
             unsigned hex = 0;
             if ([scanner scanHexInt:&hex]) {
                 return (int)hex;
+            }
+        }
+
+        // As a last resort, check if it is one of the system defined colors.
+        // The keys in this dictionary are also lowercase with no whitespace.
+        obj = [sysColorDict objectForKey:stripKey];
+        if (obj) {
+            NSColor *col = [NSColor performSelector:NSSelectorFromString(obj)];
+            if (col) {
+                float r, g, b, a;
+                col = [col colorUsingColorSpaceName:NSCalibratedRGBColorSpace];
+                [col getRed:&r green:&g blue:&b alpha:&a];
+                return ((int)(r*255) << 16) + ((int)(g*255) << 8)
+                    + (int)(b*255);
             }
         }
     }

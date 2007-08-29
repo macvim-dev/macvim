@@ -462,9 +462,17 @@ gui_mch_set_sp_color(guicolor_T color)
     void
 gui_mch_def_colors()
 {
-    // Default foreground and background colors are black and white.
-    gui.def_norm_pixel = gui.norm_pixel = 0;
-    gui.def_back_pixel = gui.back_pixel = 0xffffff;
+    MMBackend *backend = [MMBackend sharedInstance];
+
+    // The default colors are taken from system values
+    gui.def_norm_pixel = gui.norm_pixel = 
+        [backend lookupColorWithKey:@"MacTextColor"];
+    gui.def_back_pixel = gui.back_pixel = 
+        [backend lookupColorWithKey:@"MacTextBackgroundColor"];
+
+    // Set the text selection color to match the system preferences.
+    // TODO: Is there a better way to do this?
+    do_cmdline_cmd((char_u*)"hi Visual guibg=MacSelectedTextBackgroundColor");
 }
 
 

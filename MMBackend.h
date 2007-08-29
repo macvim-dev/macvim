@@ -18,6 +18,7 @@
     NSConnection    *connection;
     id              frontendProxy;
     NSDictionary    *colorDict;
+    NSDictionary    *sysColorDict;
     BOOL            inputReceived;
     BOOL            tabBarVisible;
     int             backgroundColor;
