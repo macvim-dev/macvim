@@ -13,10 +13,8 @@
 
 
 
-// If 0 DRAW_TRANSP flag will be ignored.  Setting it to 1 causes the cursor
-// background to be drawn in white. TODO: Figure out why this flag is set.
-#define HEED_DRAW_TRANSP 0
 
+// TODO: support DRAW_TRANSP flag
 #define DRAW_TRANSP               0x01    /* draw with transparant bg */
 #define DRAW_BOLD                 0x02    /* draw bold text */
 #define DRAW_UNDERL               0x04    /* draw underline text */
@@ -53,6 +51,9 @@
     //NSLog(@"%@ %s", [self className], _cmd);
 
     [emptyRowString release];
+    [boldItalicFont release];
+    [italicFont release];
+    [boldFont release];
     [font release];
     [defaultBackgroundColor release];
     [defaultForegroundColor release];
@@ -162,10 +163,9 @@
     //NSLog(@"replaceString:atRow:%d column:%d withFlags:%d", row, col, flags);
     [self lazyResize];
 
-#if !HEED_DRAW_TRANSP
+    // TODO: support DRAW_TRANSP
     if (flags & DRAW_TRANSP)
         return;
-#endif
 
     if (row < 0 || row >= maxRows || col < 0 || col >= maxColumns
             || col+[string length] > maxColumns) {
@@ -189,30 +189,19 @@
     NSRange range = NSMakeRange(col+row*(maxColumns+1), [string length]);
     [attribString replaceCharactersInRange:range withString:string];
 
+    NSFont *theFont = font;
+    if (flags & DRAW_BOLD)
+        theFont = flags & DRAW_ITALIC ? boldItalicFont : boldFont;
+    else if (flags & DRAW_ITALIC)
+        theFont = italicFont;
+
     NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
-            font, NSFontAttributeName,
+            theFont, NSFontAttributeName,
             bg, NSBackgroundColorAttributeName,
             fg, NSForegroundColorAttributeName,
             sp, NSUnderlineColorAttributeName,
             nil];
     [attribString setAttributes:attributes range:range];
-
-#if HEED_DRAW_TRANSP
-    if ( !(flags & DRAW_TRANSP) ) {
-        [attribString addAttribute:NSBackgroundColorAttributeName value:bg
-                range:range];
-    }
-#endif
-
-    // TODO: cache bold font and apply in setAttributes:range:
-    if (flags & DRAW_BOLD) {
-        [attribString applyFontTraits:NSBoldFontMask range:range];
-    }
-
-    // TODO: cache italic font and apply in setAttributes:range:
-    if (flags & DRAW_ITALIC) {
-        [attribString applyFontTraits:NSItalicFontMask range:range];
-    }
 
     if (flags & DRAW_UNDERL) {
         NSNumber *value = [NSNumber numberWithInt:(NSUnderlineStyleSingle
@@ -407,18 +396,43 @@
         // width will not match.
         cellSize.width = ceilf(em * cellWidthMultiplier);
 
+        float pointSize = [newFont pointSize];
         NSDictionary *dict = [NSDictionary
             dictionaryWithObject:[NSNumber numberWithFloat:cellSize.width]
                           forKey:NSFontFixedAdvanceAttribute];
+
         NSFontDescriptor *desc = [newFont fontDescriptor];
         desc = [desc fontDescriptorByAddingAttributes:dict];
-
-        font = [NSFont fontWithDescriptor:desc size:[newFont pointSize]];
+        font = [NSFont fontWithDescriptor:desc size:pointSize];
         [font retain];
 
         NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
         cellSize.height = lm ? [lm defaultLineHeightForFont:font]
                              : [font defaultLineHeightForFont];
+
+        // NOTE: The font manager does not care about the 'font fixed advance'
+        // attribute, so after converting the font we have to add this
+        // attribute again.
+        boldFont = [[NSFontManager sharedFontManager]
+            convertFont:font toHaveTrait:NSBoldFontMask];
+        desc = [boldFont fontDescriptor];
+        desc = [desc fontDescriptorByAddingAttributes:dict];
+        boldFont = [NSFont fontWithDescriptor:desc size:pointSize];
+        [boldFont retain];
+
+        italicFont = [[NSFontManager sharedFontManager]
+            convertFont:font toHaveTrait:NSItalicFontMask];
+        desc = [italicFont fontDescriptor];
+        desc = [desc fontDescriptorByAddingAttributes:dict];
+        italicFont = [NSFont fontWithDescriptor:desc size:pointSize];
+        [italicFont retain];
+
+        boldItalicFont = [[NSFontManager sharedFontManager]
+            convertFont:italicFont toHaveTrait:NSBoldFontMask];
+        desc = [boldItalicFont fontDescriptor];
+        desc = [desc fontDescriptorByAddingAttributes:dict];
+        boldItalicFont = [NSFont fontWithDescriptor:desc size:pointSize];
+        [boldItalicFont retain];
     }
 }
 

@@ -19,6 +19,9 @@
     int                         actualRows, actualColumns;
     NSAttributedString          *emptyRowString;
     NSFont                      *font;
+    NSFont                      *boldFont;
+    NSFont                      *italicFont;
+    NSFont                      *boldItalicFont;
     NSColor                     *defaultBackgroundColor;
     NSColor                     *defaultForegroundColor;
     NSSize                      cellSize;
