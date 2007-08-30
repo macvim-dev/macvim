@@ -1213,8 +1213,11 @@ gui_mch_get_winpos(int *x, int *y)
     int
 gui_mch_haskey(char_u *name)
 {
-    NSLog(@"gui_mch_haskey(name=%s)", name);
-    return 0;
+    NSString *value = [NSString stringWithUTF8String:(char*)name];
+    if (value)
+        return [[MMBackend sharedInstance] hasSpecialKeyWithValue:value];
+
+    return NO;
 }
 
 

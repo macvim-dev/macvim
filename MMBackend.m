@@ -882,8 +882,29 @@ enum {
     return INVALCOLOR;
 }
 
+- (BOOL)hasSpecialKeyWithValue:(NSString *)value
+{
+    NSEnumerator *e = [[MMBackend specialKeys] objectEnumerator];
+    id obj;
+
+    while ((obj = [e nextObject])) {
+        if ([value isEqual:obj])
+            return YES;
+    }
+
+    return NO;
+}
+
 - (oneway void)processInput:(int)msgid data:(in NSData *)data
 {
+    // NOTE: This method might get called whenever the run loop is tended to.
+    // Thus it might get called whilst input is being processed.  Normally this
+    // is not a problem, but if it gets called often then it might become
+    // dangerous.  E.g. when a focus messages is received the screen is redrawn
+    // because the selection color changes and if another focus message is
+    // received whilst the first one is being processed Vim might crash.  To
+    // deal with this problem at the moment, we simply drop messages that are
+    // received while other input is being processed.
     if (inProcessInput) {
 #if MM_USE_INPUT_QUEUE
         [inputQueue addObject:[NSNumber numberWithInt:msgid]];
@@ -901,6 +922,7 @@ enum {
 
 - (oneway void)processInputAndData:(in NSArray *)messages
 {
+    // NOTE: See comment in processInput:data:.
     unsigned i, count = [messages count];
     if (count % 2) {
         NSLog(@"WARNING: [messages count] is odd in %s", _cmd);
@@ -1477,6 +1499,7 @@ enum {
 {
     // This is a bit of an ugly way to change the selection color.
     // TODO: Is there a nicer way to do this?
+    // TODO: Store selection color and restore it when focus is regained.
     char *cmd = on
         ? "hi Visual guibg=MacSelectedTextBackgroundColor"
         : "hi Visual guibg=MacSecondarySelectedControlColor";

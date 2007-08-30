@@ -104,5 +104,6 @@
 - (void)stopBlink;
 
 - (int)lookupColorWithKey:(NSString *)key;
+- (BOOL)hasSpecialKeyWithValue:(NSString *)value;
 
 @end
