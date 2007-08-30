@@ -193,6 +193,12 @@ static float MMDragAreaSize = 73.0f;
     // TODO: Support 'mousehide' (check p_mh)
     [NSCursor setHiddenUntilMouseMoves:YES];
 
+    // NOTE: 'string' is either an NSString or an NSAttributedString.  Since we
+    // do not support attributes, simply pass the corresponding NSString in the
+    // latter case.
+    if ([string isKindOfClass:[NSAttributedString class]])
+        string = [string string];
+
     [[self vimController] sendMessage:InsertTextMsgID
                  data:[string dataUsingEncoding:NSUTF8StringEncoding]
                  wait:NO];
