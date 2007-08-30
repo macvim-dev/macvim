@@ -108,6 +108,10 @@ Design decisions:
   to MMBackendProtocol, however this must not change the state of Vim!
 - If MacVim or Vim dies, the NSConnection is invalidated and connectionDidDie:
   is invoked.
+- Input may reach the backend whenever the run loop is updated.  This can cause
+  problems if more input is received whilst already processing other input.  At
+  the moment new input is dropped if the backend is already processing other
+  input.
 
 
 Keyboard stuff:
