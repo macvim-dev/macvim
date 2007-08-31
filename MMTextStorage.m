@@ -39,6 +39,9 @@
         // NOTE!  It does not matter which font is set here, Vim will set its
         // own font on startup anyway.  Just set some bogus values.
         font = [[NSFont userFixedPitchFontOfSize:0] retain];
+        boldFont = [font retain];
+        italicFont = [font retain];
+        boldItalicFont = [font retain];
         cellSize.height = [font pointSize];
         cellSize.width = [font defaultLineHeightForFont];
     }
@@ -151,6 +154,27 @@
 - (int)actualColumns
 {
     return actualColumns;
+}
+
+- (float)linespace
+{
+    return linespace;
+}
+
+- (void)setLinespace:(float)newLinespace
+{
+    NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
+
+    linespace = newLinespace;
+
+    // NOTE: The linespace is added to the cell height in order for a multiline
+    // selection not to have white (background color) gaps between lines.  Also
+    // this simplifies the code a lot because there is no need to check the
+    // linespace when calculating the size of the text view etc.  When the
+    // linespace is non-zero the baseline will be adjusted as well; check
+    // MMTypesetter.
+    cellSize.height = linespace + (lm ? [lm defaultLineHeightForFont:font]
+                                      : [font defaultLineHeightForFont]);
 }
 
 - (void)getMaxRows:(int*)rows columns:(int*)cols
@@ -417,8 +441,8 @@
         [font retain];
 
         NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
-        cellSize.height = lm ? [lm defaultLineHeightForFont:font]
-                             : [font defaultLineHeightForFont];
+        cellSize.height = linespace + (lm ? [lm defaultLineHeightForFont:font]
+                                          : [font defaultLineHeightForFont]);
 
         // NOTE: The font manager does not care about the 'font fixed advance'
         // attribute, so after converting the font we have to add this

@@ -744,6 +744,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         int shape = *((int*)bytes);  bytes += sizeof(int);
 
         [windowController setMouseShape:shape];
+    } else if (AdjustLinespaceMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int linespace = *((int*)bytes);  bytes += sizeof(int);
+
+        [windowController adjustLinespace:linespace];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

@@ -836,6 +836,13 @@ enum {
     blinkState = MMBlinkStateNone;
 }
 
+- (void)adjustLinespace:(int)linespace
+{
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&linespace length:sizeof(int)];
+    [self queueMessage:AdjustLinespaceMsgID data:data];
+}
+
 - (int)lookupColorWithKey:(NSString *)key
 {
     if (!(key && [key length] > 0))

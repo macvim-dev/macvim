@@ -280,8 +280,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     [self addNewTabViewItem];
 
-    //[[self window] setAcceptsMouseMovedEvents:YES];
-
     setupDone = YES;
 
     [self updateResizeIncrements];
@@ -541,6 +539,14 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // Shape 1 indicates that the mouse cursor should be hidden.
     if (1 == shape)
         [NSCursor setHiddenUntilMouseMoves:YES];
+}
+
+- (void)adjustLinespace:(int)linespace
+{
+    if (textStorage) {
+        [textStorage setLinespace:(float)linespace];
+        shouldUpdateWindowSize = YES;
+    }
 }
 
 - (IBAction)addNewTab:(id)sender

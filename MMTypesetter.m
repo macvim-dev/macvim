@@ -52,7 +52,9 @@
     NSString *text = [ts string];
     unsigned textLen = [text length];
     NSSize cellSize = [ts cellSize];
-    float baseline = [font descender];
+    // NOTE: With non-zero linespace the baseline is adjusted so that the text
+    // is centered within a line.
+    float baseline = [font descender] - floor(.5*[ts linespace]);
 
     if (!(ts && tv && tc && font && text && textLen))
         return;

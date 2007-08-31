@@ -118,6 +118,7 @@ enum {
     LostFocusMsgID,
     MouseMovedMsgID,
     SetMouseShapeMsgID,
+    AdjustLinespaceMsgID,
 };
 
 

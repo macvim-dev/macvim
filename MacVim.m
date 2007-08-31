@@ -56,6 +56,7 @@ char *MessageStrings[] =
     "LostFocusMsgID",
     "MouseMovedMsgID",
     "SetMouseShapeMsgID",
+    "AdjustLinespaceMsgID",
 };
 
 

@@ -25,6 +25,7 @@
     NSColor                     *defaultBackgroundColor;
     NSColor                     *defaultForegroundColor;
     NSSize                      cellSize;
+    float                       linespace;
 }
 
 - (NSString *)string;
@@ -38,6 +39,8 @@
 - (int)maxColumns;
 - (int)actualRows;
 - (int)actualColumns;
+- (float)linespace;
+- (void)setLinespace:(float)newLinespace;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
 - (void)replaceString:(NSString *)string atRow:(int)row column:(int)col

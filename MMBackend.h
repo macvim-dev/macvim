@@ -102,6 +102,7 @@
 - (void)setBlinkWait:(int)wait on:(int)on off:(int)off;
 - (void)startBlink;
 - (void)stopBlink;
+- (void)adjustLinespace:(int)linespace;
 
 - (int)lookupColorWithKey:(NSString *)key;
 - (BOOL)hasSpecialKeyWithValue:(NSString *)value;

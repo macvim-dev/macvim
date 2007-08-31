@@ -57,6 +57,7 @@
 - (void)showTabBar:(BOOL)on;
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode;
 - (void)setMouseShape:(int)shape;
+- (void)adjustLinespace:(int)linespace;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;

@@ -1073,7 +1073,8 @@ ex_action(eap)
     int
 gui_mch_adjust_charheight(void)
 {
-    return 0;
+    [[MMBackend sharedInstance] adjustLinespace:p_linespace];
+    return OK;
 }
 
 
