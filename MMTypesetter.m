@@ -13,6 +13,8 @@
 #import "MacVim.h"
 
 
+#define MM_USE_LINERANGE 0
+
 
 #if 0
 @interface MMTypesetter (Private)
@@ -61,6 +63,7 @@
     unsigned i, numberOfLines = 0, firstLine = 0;
     NSRange firstLineRange = { 0, 0 };
 
+#if MM_USE_LINERANGE
     // Find the first line and its range, and count the number of lines.  (This
     // info could also be gleaned from MMTextStorage, but we do it here anyway
     // to make absolutely sure everything is right.)
@@ -73,6 +76,14 @@
 
         i = NSMaxRange(lineRange);
     }
+#else
+    unsigned stride = 1 + [ts actualColumns];
+    numberOfLines = [ts actualRows];
+    firstLine = (unsigned)(startCharIdx/stride);
+    firstLineRange.location =  firstLine * stride;
+    unsigned len = [text length] - firstLineRange.location;
+    firstLineRange.length = len < stride ? len : stride;
+#endif
 
     // Perform line fragment generation one line at a time.
     NSRange lineRange = firstLineRange;
@@ -105,7 +116,14 @@
             }
         }
 
+#if MM_USE_LINERANGE
         lineRange = [text lineRangeForRange:NSMakeRange(endLineIdx, 0)];
+#else
+        lineRange.location = endLineIdx;
+        len = [text length] - lineRange.location;
+        if (len < lineRange.length)
+            lineRange.length = len;
+#endif
     }
 
     if (nextGlyph)

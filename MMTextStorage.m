@@ -143,6 +143,16 @@
     return maxColumns;
 }
 
+- (int)actualRows
+{
+    return actualRows;
+}
+
+- (int)actualColumns
+{
+    return actualColumns;
+}
+
 - (void)getMaxRows:(int*)rows columns:(int*)cols
 {
     if (rows) *rows = maxRows;

@@ -36,6 +36,8 @@
 
 - (int)maxRows;
 - (int)maxColumns;
+- (int)actualRows;
+- (int)actualColumns;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
 - (void)replaceString:(NSString *)string atRow:(int)row column:(int)col
