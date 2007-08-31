@@ -13,6 +13,9 @@
 #import "MacVim.h"
 
 
+// The 'linerange' functions count U+2028 and U+2029 as line end characters,
+// which causes rendering to be screwed up because Vim does not count them as
+// line end characters.
 #define MM_USE_LINERANGE 0
 
 
