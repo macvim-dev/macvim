@@ -749,6 +749,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         int linespace = *((int*)bytes);  bytes += sizeof(int);
 
         [windowController adjustLinespace:linespace];
+    } else if (ActivateMsgID == msgid) {
+        [NSApp activateIgnoringOtherApps:YES];
+        [[windowController window] makeKeyAndOrderFront:self];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

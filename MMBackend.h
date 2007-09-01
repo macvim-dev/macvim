@@ -54,6 +54,7 @@
 - (void)setSpecialColor:(int)color;
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg;
 
+- (NSString *)macVimConnectionName;
 - (BOOL)checkin;
 - (BOOL)openVimWindow;
 - (void)clearAll;
@@ -103,6 +104,7 @@
 - (void)startBlink;
 - (void)stopBlink;
 - (void)adjustLinespace:(int)linespace;
+- (void)activate;
 
 - (int)lookupColorWithKey:(NSString *)key;
 - (BOOL)hasSpecialKeyWithValue:(NSString *)value;

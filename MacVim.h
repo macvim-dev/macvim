@@ -35,6 +35,7 @@
 - (BOOL)checkForModifiedBuffers;
 - (oneway void)setDialogReturn:(in bycopy id)obj;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
+- (NSString *)evaluateExpression:(in bycopy NSString *)expr;
 @end
 
 
@@ -62,6 +63,7 @@
 @protocol MMAppProtocol
 - (byref id <MMFrontendProtocol>)connectBackend:
     (byref in id <MMBackendProtocol>)backend pid:(int)pid;
+- (NSArray *)serverList;
 @end
 
 
@@ -119,6 +121,8 @@ enum {
     MouseMovedMsgID,
     SetMouseShapeMsgID,
     AdjustLinespaceMsgID,
+    ActivateMsgID,
+    ServerAddInputMsgID,
 };
 
 

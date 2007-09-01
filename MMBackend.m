@@ -135,14 +135,19 @@ enum {
     [self queueMessage:SetDefaultColorsMsgID data:data];
 }
 
+- (NSString *)macVimConnectionName
+{
+    // NOTE!  If the name of the connection changes here it must also be
+    // updated in MMAppController.m.
+    return [NSString stringWithFormat:@"%@-connection",
+           [[NSBundle mainBundle] bundleIdentifier]];
+}
+
 - (BOOL)checkin
 {
     NSBundle *mainBundle = [NSBundle mainBundle];
 
-    // NOTE!  If the name of the connection changes here it must also be
-    // updated in MMAppController.m.
-    NSString *name = [NSString stringWithFormat:@"%@-connection",
-             [mainBundle bundleIdentifier]];
+    NSString *name = [self macVimConnectionName];
     connection = [NSConnection connectionWithRegisteredName:name host:nil];
     if (!connection) {
 #if 0
@@ -365,6 +370,12 @@ enum {
 
 - (void)exit
 {
+#ifdef MAC_CLIENTSERVER
+    // The default connection is used for the client/server code.
+    [[NSConnection defaultConnection] setRootObject:nil];
+    [[NSConnection defaultConnection] invalidate];
+#endif
+
     // By invalidating the NSConnection the MMWindowController immediately
     // finds out that the connection is down and as a result
     // [MMWindowController connectionDidDie:] is invoked.
@@ -843,6 +854,11 @@ enum {
     [self queueMessage:AdjustLinespaceMsgID data:data];
 }
 
+- (void)activate
+{
+    [self queueMessage:ActivateMsgID data:nil];
+}
+
 - (int)lookupColorWithKey:(NSString *)key
 {
     if (!(key && [key length] > 0))
@@ -1001,6 +1017,19 @@ enum {
     }
 
     return NO;
+}
+
+- (NSString *)evaluateExpression:(in bycopy NSString *)expr
+{
+    NSString *eval = nil;
+    char_u *res = eval_client_expr_to_string((char_u*)[expr UTF8String]);
+
+    if (res != NULL) {
+        eval = [NSString stringWithUTF8String:(char*)res];
+        vim_free(res);
+    }
+
+    return eval;
 }
 
 @end // MMBackend
@@ -1363,6 +1392,12 @@ enum {
         const void *bytes = [data bytes];
         int shape = *((int*)bytes);  bytes += sizeof(int);
         update_mouseshape(shape);
+    } else if (ServerAddInputMsgID == msgid) {
+        const void *bytes = [data bytes];
+        /*int len = *((int*)bytes);*/  bytes += sizeof(int);
+        char_u *cmd = (char_u*)bytes;
+
+        server_to_input_buf(cmd);
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

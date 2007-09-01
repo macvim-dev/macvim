@@ -1247,6 +1247,7 @@ gui_mch_invert_rectangle(int r, int c, int nr, int nc)
     void
 gui_mch_set_foreground(void)
 {
+    [[MMBackend sharedInstance] activate];
 }
 #endif
 
@@ -1326,3 +1327,211 @@ gui_macvim_is_valid_action(NSString *action)
 
     return [actionDict objectForKey:action] != nil;
 }
+
+
+
+// -- Client/Server ---------------------------------------------------------
+
+#ifdef MAC_CLIENTSERVER
+
+//
+// NOTE: Client/Server stuff only works with the GUI.  Theoretically it would
+// be possible to make this code work with terminal Vim, but it would require
+// that a run-loop is set up and checked, etc.
+//
+
+static unsigned MMServerMax = 1000;
+static NSTimeInterval MMEvaluateExpressionTimeout = 3;
+static NSTimeInterval MMServerListTimeout = 3;
+
+
+    static NSString *
+shortToLongName(NSString *shortName)
+{
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+
+    return [NSString stringWithFormat:@"%@.%@", bundleIdentifier, shortName];
+}
+
+
+    static NSString *
+longToShortName(NSString *longName)
+{
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+    NSRange range = [longName rangeOfString:bundleIdentifier];
+
+    return NSNotFound != range.location
+        ? [longName substringFromIndex:1+NSMaxRange(range)]
+        : longName;
+}
+
+
+/*
+ * Register connection with 'name'.  The actual connection is named something
+ * like 'org.vim.MacVim.VIM3', whereas the server is called 'VIM3'.
+ */
+    void
+serverSetName(char_u *name)
+{
+    NSString *baseName =
+        shortToLongName([NSString stringWithUTF8String:(char*)name]);
+    NSString *longName = baseName;
+    NSConnection *connection = [NSConnection defaultConnection];
+    unsigned i;
+
+    for (i = 1; i < MMServerMax; ++i) {
+        //NSLog(@"Client-Server: Try to register connection '%@'", longName);
+        if ([connection registerName:longName]) {
+            NSString *shortName = longToShortName(longName);
+
+            //NSLog(@"Client-Server: Did register server '%@'", shortName);
+            serverName = vim_strsave((char_u*)[shortName UTF8String]);
+#ifdef FEAT_EVAL
+            set_vim_var_string(VV_SEND_SERVER, serverName, -1);
+#endif
+#ifdef FEAT_TITLE
+	    need_maketitle = TRUE;
+#endif
+
+            // Don't wait for requests (time-out means that the message is
+            // dropped).
+            [connection setRequestTimeout:0];
+            //[connection setReplyTimeout:MMReplyTimeout];
+            [connection setRootObject:[MMBackend sharedInstance]];
+            break;
+        }
+
+        longName = [NSString stringWithFormat:@"%@%d", baseName, i];
+    }
+}
+
+
+/*
+ * Send to an instance of Vim.
+ * Returns 0 for OK, negative for an error.
+ */
+    int
+serverSendToVim(char_u *name, char_u *cmd, char_u **result,
+        int *server, int asExpr, int silent)
+{
+    //NSLog(@"serverSendToVim(name=%s, cmd=%s, asExpr=%d, silent=%d)",
+    //        name, cmd, asExpr, silent);
+
+    NSString *longName =
+        shortToLongName([NSString stringWithUTF8String:(char*)name]);
+    NSConnection *connection = [NSConnection
+        connectionWithRegisteredName:longName host:nil];
+
+    if (!connection) {
+        if (!silent)
+	    EMSG2(_(e_noserver), name);
+        return -1;
+    }
+
+    [connection setRequestTimeout:0];
+
+    id proxy = [connection rootProxy];
+    [proxy setProtocolForProxy:@protocol(MMBackendProtocol)];
+
+    // Expressions need to wait for a reply; otherwise just send off the input
+    // asynchronously.
+    if (asExpr) {
+        [connection setReplyTimeout:MMEvaluateExpressionTimeout];
+        @try {
+            NSString *expr = [NSString stringWithUTF8String:(char*)cmd];
+            NSString *eval = [proxy evaluateExpression:expr];
+            if (result) {
+                *result = (eval ? vim_strsave((char_u*)[eval UTF8String])
+                                : vim_strsave((char_u*)_(e_invexprmsg)));
+            }
+        }
+        @catch (NSException *e) {
+            NSLog(@"WARNING: Caught exception during expression evaluation "
+                    "\"%@\"", e);
+            return -1;
+        }
+    } else {
+        int len = 1 + STRLEN(cmd);
+        NSMutableData *data = [NSMutableData data];
+
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:cmd length:len];
+
+        [proxy processInput:ServerAddInputMsgID data:data];
+    }
+
+    return 0;
+}
+
+
+/*
+ * Ask MacVim for the names of all Vim servers.
+ */
+    char_u *
+serverGetVimNames(void)
+{
+    char_u *names = NULL;
+    NSString *name = [[MMBackend sharedInstance] macVimConnectionName];
+    NSConnection *connection = [NSConnection connectionWithRegisteredName:name
+                                                                     host:nil];
+    if (connection) {
+        NSArray *serverNames = nil;
+        id proxy = [connection rootProxy];
+
+        [proxy setProtocolForProxy:@protocol(MMAppProtocol)];
+        [connection setRequestTimeout:0];
+        [connection setReplyTimeout:MMServerListTimeout];
+
+        @try {
+            serverNames = [proxy serverList];
+        }
+        @catch (NSException *e) {
+            NSLog(@"Exception caught when listing servers: \"%@\"", e);
+        }
+
+        if (serverNames) {
+            NSString *string = [serverNames componentsJoinedByString:@"\n"];
+            names = vim_strsave((char_u*)[string UTF8String]);
+        }
+    }
+
+    return names;
+}
+
+
+/*
+ * Check for replies from 'serverid'.
+ * Return TRUE and a non-malloc'ed string if there is.  Else return FALSE.
+ */
+    int
+serverPeekReply(char_u *serverid, char_u **str)
+{
+    return FALSE;
+}
+
+
+/*
+ * Wait for replies from server 'name'.
+ * Return 0 and the malloc'ed string when a reply is available.
+ * Return -1 on error.
+ */
+    int
+serverReadReply(char_u *name, char_u **str)
+{
+    //NSLog(@"serverReadReply(name=%s)", name);
+    return -1;
+}
+
+
+/*
+ * Send a reply string (notification) to client with id "name".
+ * Return -1 if the window is invalid.
+ */
+    int
+serverSendReply(char_u *name, char_u *reply)
+{
+    //NSLog(@"serverSendReply(name=%s, reply=%s)", name, reply);
+    return -1;
+}
+
+#endif // MAC_CLIENTSERVER

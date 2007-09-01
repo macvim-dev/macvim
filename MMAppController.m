@@ -433,6 +433,43 @@ static NSTimeInterval MMTerminateTimeout = 3;
     return vc;
 }
 
+- (NSArray *)serverList
+{
+    NSMutableArray *array = [NSMutableArray array];
+
+    unsigned i, count = [vimControllers count];
+    for (i = 0; i < count; ++i) {
+        MMVimController *controller = [vimControllers objectAtIndex:i];
+        id proxy = [controller backendProxy];
+        NSConnection *connection = [proxy connectionForProxy];
+        if (!connection)
+            continue;
+
+        // Set low timeouts since we don't want this call to potentially lock
+        // up MacVim for a while.
+        NSTimeInterval req = [connection requestTimeout];
+        NSTimeInterval rep = [connection replyTimeout];
+        [connection setRequestTimeout:0];
+        [connection setReplyTimeout:.1];
+
+        @try {
+            NSString *eval = [proxy evaluateExpression:@"v:servername"];
+            if (eval) {
+                [array addObject:eval];
+            }
+        }
+        @catch (NSException *e) {
+            NSLog(@"WARNING: Got exception while listing servers: \"%@\"", e);
+        }
+        @finally {
+            [connection setRequestTimeout:req];
+            [connection setReplyTimeout:rep];
+        }
+    }
+
+    return array;
+}
+
 @end // MMAppController
 
 

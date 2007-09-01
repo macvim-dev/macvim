@@ -57,6 +57,8 @@ char *MessageStrings[] =
     "MouseMovedMsgID",
     "SetMouseShapeMsgID",
     "AdjustLinespaceMsgID",
+    "ActivateMsgID",
+    "ServerAddInputMsgID",
 };
 
 
