@@ -895,8 +895,9 @@ enum {
                 float r, g, b, a;
                 col = [col colorUsingColorSpaceName:NSCalibratedRGBColorSpace];
                 [col getRed:&r green:&g blue:&b alpha:&a];
-                return ((int)(r*255) << 16) + ((int)(g*255) << 8)
-                    + (int)(b*255);
+                return (((int)(r*255+.5f) & 0xff) << 16)
+                     + (((int)(g*255+.5f) & 0xff) << 8)
+                     +  ((int)(b*255+.5f) & 0xff);
             }
         }
     }
