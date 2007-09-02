@@ -1539,23 +1539,7 @@ enum {
 
 - (void)focusChange:(BOOL)on
 {
-    // This is a bit of an ugly way to change the selection color.
-    // TODO: Is there a nicer way to do this?
-    // TODO: Store selection color and restore it when focus is regained.
-    char *cmd = on
-        ? "hi Visual guibg=MacSelectedTextBackgroundColor"
-        : "hi Visual guibg=MacSecondarySelectedControlColor";
-
-    do_cmdline_cmd((char_u*)cmd);
     gui_focus_change(on);
-
-    // TODO: Is all this necessary just to get the highlights to update?
-    redraw_all_later(CLEAR);
-    update_screen(NOT_VALID);
-    setcursor();
-    out_flush();
-    gui_update_cursor(FALSE, FALSE);
-    gui_mch_flush();
 }
 
 - (void)processInputBegin

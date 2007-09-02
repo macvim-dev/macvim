@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Björn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Wed Aug 29 2007
+" Last Change:	Sun Sep 02 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -23,6 +23,11 @@ endif
 
 " Shift + special movement key starts visual mode (<S-Left>, etc.)
 set keymodel=startsel
+
+
+" Change selection color on focus change
+au FocusLost * hi Visual guibg=MacSecondarySelectedControlColor
+au FocusGained * hi Visual guibg=MacSelectedTextBackgroundColor
 
 
 "
