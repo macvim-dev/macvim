@@ -935,7 +935,7 @@ enum {
         [inputQueue addObject:data];
 #else
         // Just drop the input
-        NSLog(@"WARNING: Dropping input in %s", _cmd);
+        //NSLog(@"WARNING: Dropping input in %s", _cmd);
 #endif
     } else {
         [self processInputBegin];
@@ -958,7 +958,7 @@ enum {
         [inputQueue addObjectsFromArray:messages];
 #else
         // Just drop the input
-        NSLog(@"WARNING: Dropping input in %s", _cmd);
+        //NSLog(@"WARNING: Dropping input in %s", _cmd);
 #endif
     } else {
         [self processInputBegin];
