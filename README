@@ -185,3 +185,4 @@ Features (!supp indicates that a feature is not supported):
 - Encodings: !supp (enc, tenc always set to utf-8)
 - Autosave window position
 - Smart cascading of new windows
+- Partial client/server support

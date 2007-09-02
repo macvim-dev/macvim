@@ -1,8 +1,6 @@
 Active:
 
 - Listen to NSSystemColorsDidChangeNotification and update highlighting
-- System colors don't come out the same as in other apps (as measure with
-  Digital Color Meter)
 - Add support for 'mousehide' (needs to check p_mh)
 - Build Vim (make) from Xcode project
 - Cmd-W in about box sends vimMenuAction: instead of performClose:
@@ -56,6 +54,8 @@ Active:
 
 Pending:
 
+- System colors don't come out the same as in other apps (as measure with
+  Digital Color Meter)
 - Select-mode for <S-Key>
 - Insertion point blinking
 - Hollow insertion point drawing does not always work
