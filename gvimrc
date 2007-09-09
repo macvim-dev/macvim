@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Björn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sun Sep 02 2007
+" Last Change:	Sun Sep 9 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -20,10 +20,6 @@ set cpo&vim
 if !exists("syntax_on")
   syntax on
 endif
-
-" Shift + special movement key starts visual mode (<S-Left>, etc.)
-set keymodel=startsel
-
 
 " Change selection color on focus change
 au FocusLost * hi Visual guibg=MacSecondarySelectedControlColor
@@ -107,40 +103,56 @@ no   <D-Left>       <Home>
 no!  <D-Left>       <Home>
 no   <M-Left>       <C-Left>
 no!  <M-Left>       <C-Left>
-nn   <S-D-Left>     <S-Home>
-vn   <S-D-Left>     <S-Home>
-ino  <S-D-Left>     <S-Home>
-nn   <S-M-Left>     <S-C-Left>
-vn   <S-M-Left>     <S-C-Left>
-ino  <S-M-Left>     <S-C-Left>
 
 no   <D-Right>      <End>
 no!  <D-Right>      <End>
 no   <M-Right>      <C-Right>
 no!  <M-Right>      <C-Right>
-nn   <S-D-Right>    <S-End>
-vn   <S-D-Right>    <S-End>
-ino  <S-D-Right>    <S-End>
-nn   <S-M-Right>    <S-C-Right>
-vn   <S-M-Right>    <S-C-Right>
-ino  <S-M-Right>    <S-C-Right>
 
 no   <D-Up>         <C-Home>
 ino  <D-Up>         <C-Home>
 map  <M-Up>         {
 imap <M-Up>         <C-o>{
-nn   <S-D-Up>       <S-C-Home>
-vn   <S-D-Up>       <S-C-Home>
-ino  <S-D-Up>       <S-C-Home>
 
 no   <D-Down>       <C-End>
 ino  <D-Down>       <C-End>
 map  <M-Down>       }
 imap <M-Down>       <C-o>}
-nn   <S-D-Down>     <S-C-End>
-vn   <S-D-Down>     <S-C-End>
-ino  <S-D-Down>     <S-C-End>
 
+
+" This is so that the HIG shift movement related settings can be disabled by
+" adding the line
+"   let macvim_skip_hig_shift_movement = 1
+" to the user .vimrc.
+"
+if !exists("macvim_skip_hig_shift_movement")
+  " Shift + special movement key (<S-Left>, etc.) and mouse starts insert mode
+  set selectmode=mouse,key
+  set keymodel=startsel,stopsel
+
+  " HIG related shift + special movement key mappings
+  nn   <S-D-Left>     <S-Home>
+  vn   <S-D-Left>     <S-Home>
+  ino  <S-D-Left>     <S-Home>
+  nn   <S-M-Left>     <S-C-Left>
+  vn   <S-M-Left>     <S-C-Left>
+  ino  <S-M-Left>     <S-C-Left>
+
+  nn   <S-D-Right>    <S-End>
+  vn   <S-D-Right>    <S-End>
+  ino  <S-D-Right>    <S-End>
+  nn   <S-M-Right>    <S-C-Right>
+  vn   <S-M-Right>    <S-C-Right>
+  ino  <S-M-Right>    <S-C-Right>
+
+  nn   <S-D-Up>       <S-C-Home>
+  vn   <S-D-Up>       <S-C-Home>
+  ino  <S-D-Up>       <S-C-Home>
+
+  nn   <S-D-Down>     <S-C-End>
+  vn   <S-D-Down>     <S-C-End>
+  ino  <S-D-Down>     <S-C-End>
+endif " !exists("macvim_skip_hig_shift_movement")
 
 
 
