@@ -10,6 +10,7 @@
 
 #import <Foundation/Foundation.h>
 #import "MacVim.h"
+#import "vim.h"
 
 
 // If disabled, all input is dropped if input is already being processed.  (If
@@ -20,7 +21,8 @@
 
 
 
-@interface MMBackend : NSObject <MMBackendProtocol> {
+@interface MMBackend : NSObject <MMBackendProtocol, MMVimServerProtocol,
+        MMVimClientProtocol> {
     NSMutableArray  *queue;
     NSMutableData   *drawData;
     NSConnection    *connection;
@@ -45,6 +47,10 @@
 #if MM_USE_INPUT_QUEUE
     NSMutableArray  *inputQueue;
 #endif
+    NSMutableDictionary *connectionNameDict;
+    NSMutableDictionary *clientProxyDict;
+    NSMutableDictionary *serverReplyDict;
+    NSString            *alternateServerName;
 }
 
 + (MMBackend *)sharedInstance;
@@ -53,8 +59,8 @@
 - (void)setForegroundColor:(int)color;
 - (void)setSpecialColor:(int)color;
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg;
+- (NSConnection *)connection;
 
-- (NSString *)macVimConnectionName;
 - (BOOL)checkin;
 - (BOOL)openVimWindow;
 - (void)clearAll;
@@ -108,5 +114,14 @@
 
 - (int)lookupColorWithKey:(NSString *)key;
 - (BOOL)hasSpecialKeyWithValue:(NSString *)value;
+
+- (void)registerServerWithName:(NSString *)name;
+- (BOOL)sendToServer:(NSString *)name string:(NSString *)string
+               reply:(char_u **)reply port:(int *)port expression:(BOOL)expr
+              silent:(BOOL)silent;
+- (NSArray *)serverList;
+- (NSString *)peekForReplyOnPort:(int)port;
+- (NSString *)waitForReplyOnPort:(int)port;
+- (BOOL)sendReply:(NSString *)reply toPort:(int)port;
 
 @end

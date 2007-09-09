@@ -59,6 +59,7 @@ char *MessageStrings[] =
     "AdjustLinespaceMsgID",
     "ActivateMsgID",
     "ServerAddInputMsgID",
+    "SetServerNameMsgID",
 };
 
 

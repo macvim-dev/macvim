@@ -405,8 +405,9 @@ static NSTimeInterval MMTerminateTimeout = 3;
     }
 }
 
-- (byref id <MMFrontendProtocol>)connectBackend:
-    (byref in id <MMBackendProtocol>)backend pid:(int)pid
+- (byref id <MMFrontendProtocol>)
+    connectBackend:(byref in id <MMBackendProtocol>)backend
+               pid:(int)pid
 {
     //NSLog(@"Frontend got connection request from backend...adding new "
     //        "MMVimController");
@@ -440,6 +441,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
     unsigned i, count = [vimControllers count];
     for (i = 0; i < count; ++i) {
         MMVimController *controller = [vimControllers objectAtIndex:i];
+#if 0
         id proxy = [controller backendProxy];
         NSConnection *connection = [proxy connectionForProxy];
         if (!connection)
@@ -465,6 +467,10 @@ static NSTimeInterval MMTerminateTimeout = 3;
             [connection setRequestTimeout:req];
             [connection setReplyTimeout:rep];
         }
+#else
+        if ([controller serverName])
+            [array addObject:[controller serverName]];
+#endif
     }
 
     return array;

@@ -9,7 +9,6 @@
  */
 
 #import "MMBackend.h"
-#import "vim.h"
 
 
 
@@ -18,6 +17,9 @@
 // long periods without the screen updating (e.g. when sourcing a large session
 // file).  (The unit is seconds.)
 static float MMFlushTimeoutInterval = 0.1f;
+
+static unsigned MMServerMax = 1000;
+//static NSTimeInterval MMEvaluateExpressionTimeout = 3;
 
 
 // TODO: Move to separate file.
@@ -34,6 +36,13 @@ enum {
 };
 
 
+
+@interface NSString (MMServerNameCompare)
+- (NSComparisonResult)serverNameCompare:(NSString *)string;
+@end
+
+
+
 @interface MMBackend (Private)
 - (void)handleMessage:(int)msgid data:(NSData *)data;
 + (NSDictionary *)specialKeys;
@@ -44,6 +53,12 @@ enum {
 - (void)focusChange:(BOOL)on;
 - (void)processInputBegin;
 - (void)processInputEnd;
+- (NSString *)connectionNameFromServerName:(NSString *)name;
+- (NSConnection *)connectionForServerName:(NSString *)name;
+- (NSConnection *)connectionForServerPort:(int)port;
+- (void)serverConnectionDidDie:(NSNotification *)notification;
+- (void)addClient:(NSDistantObject *)client;
+- (NSString *)alternateServerNameForName:(NSString *)name;
 @end
 
 
@@ -64,6 +79,9 @@ enum {
         inputQueue = [[NSMutableArray alloc] init];
 #endif
         drawData = [[NSMutableData alloc] initWithCapacity:1024];
+        connectionNameDict = [[NSMutableDictionary alloc] init];
+        clientProxyDict = [[NSMutableDictionary alloc] init];
+        serverReplyDict = [[NSMutableDictionary alloc] init];
 
         NSString *path = [[NSBundle mainBundle] pathForResource:@"Colors"
                                                          ofType:@"plist"];
@@ -97,6 +115,10 @@ enum {
 #if MM_USE_INPUT_QUEUE
     [inputQueue release];  inputQueue = nil;
 #endif
+    [alternateServerName release];  alternateServerName = nil;
+    [serverReplyDict release];  serverReplyDict = nil;
+    [clientProxyDict release];  clientProxyDict = nil;
+    [connectionNameDict release];  connectionNameDict = nil;
     [queue release];  queue = nil;
     [drawData release];  drawData = nil;
     [frontendProxy release];  frontendProxy = nil;
@@ -135,21 +157,26 @@ enum {
     [self queueMessage:SetDefaultColorsMsgID data:data];
 }
 
-- (NSString *)macVimConnectionName
+- (NSConnection *)connection
 {
-    // NOTE!  If the name of the connection changes here it must also be
-    // updated in MMAppController.m.
-    return [NSString stringWithFormat:@"%@-connection",
-           [[NSBundle mainBundle] bundleIdentifier]];
+    if (!connection) {
+        // NOTE!  If the name of the connection changes here it must also be
+        // updated in MMAppController.m.
+        NSString *name = [NSString stringWithFormat:@"%@-connection",
+               [[NSBundle mainBundle] bundleIdentifier]];
+
+        connection = [NSConnection connectionWithRegisteredName:name host:nil];
+        [connection retain];
+    }
+
+    // NOTE: 'connection' may be nil here.
+    return connection;
 }
 
 - (BOOL)checkin
 {
-    NSBundle *mainBundle = [NSBundle mainBundle];
-
-    NSString *name = [self macVimConnectionName];
-    connection = [NSConnection connectionWithRegisteredName:name host:nil];
-    if (!connection) {
+    if (![self connection]) {
+        NSBundle *mainBundle = [NSBundle mainBundle];
 #if 0
         NSString *path = [mainBundle bundlePath];
         if (![[NSWorkspace sharedWorkspace] launchApplication:path]) {
@@ -190,8 +217,8 @@ enum {
                     runMode:NSDefaultRunLoopMode
                  beforeDate:[NSDate dateWithTimeIntervalSinceNow:1]];
 
-            connection = [NSConnection connectionWithRegisteredName:name
-                                                               host:nil];
+            // NOTE: This call will set 'connection' as a side-effect.
+            [self connection];
         }
 
         if (!connection) {
@@ -210,14 +237,14 @@ enum {
     int pid = [[NSProcessInfo processInfo] processIdentifier];
 
     @try {
-        frontendProxy = [(NSDistantObject*)[proxy connectBackend:self
-                                                             pid:pid] retain];
+        frontendProxy = [proxy connectBackend:self pid:pid];
     }
     @catch (NSException *e) {
         NSLog(@"Exception caught when trying to connect backend: \"%@\"", e);
     }
 
     if (frontendProxy) {
+        [frontendProxy retain];
         [frontendProxy setProtocolForProxy:@protocol(MMAppProtocol)];
     }
 
@@ -859,6 +886,12 @@ enum {
     [self queueMessage:ActivateMsgID data:nil];
 }
 
+- (void)setServerName:(NSString *)name
+{
+    NSData *data = [name dataUsingEncoding:NSUTF8StringEncoding];
+    [self queueMessage:SetServerNameMsgID data:data];
+}
+
 - (int)lookupColorWithKey:(NSString *)key
 {
     if (!(key && [key length] > 0))
@@ -1020,6 +1053,7 @@ enum {
     return NO;
 }
 
+#if 0
 - (NSString *)evaluateExpression:(in bycopy NSString *)expr
 {
     NSString *eval = nil;
@@ -1031,6 +1065,230 @@ enum {
     }
 
     return eval;
+}
+#endif
+
+- (oneway void)addReply:(in bycopy NSString *)reply
+                 server:(in byref id <MMVimServerProtocol>)server
+{
+    //NSLog(@"addReply:%@ server:%@", reply, (id)server);
+
+    // Replies might come at any time and in any order so we keep them in an
+    // array inside a dictionary with the send port used as key.
+
+    NSConnection *conn = [(NSDistantObject*)server connectionForProxy];
+    // HACK! Assume connection uses mach ports.
+    int port = [(NSMachPort*)[conn sendPort] machPort];
+    NSNumber *key = [NSNumber numberWithInt:port];
+
+    NSMutableArray *replies = [serverReplyDict objectForKey:key];
+    if (!replies) {
+        replies = [NSMutableArray array];
+        [serverReplyDict setObject:replies forKey:key];
+    }
+
+    [replies addObject:reply];
+}
+
+- (void)addInput:(in bycopy NSString *)input
+                 client:(in byref id <MMVimClientProtocol>)client
+{
+    //NSLog(@"addInput:%@ client:%@", input, (id)client);
+
+    server_to_input_buf((char_u*)[input UTF8String]);
+
+    [self addClient:(id)client];
+
+    inputReceived = YES;
+}
+
+- (NSString *)evaluateExpression:(in bycopy NSString *)expr
+                 client:(in byref id <MMVimClientProtocol>)client
+{
+    //NSLog(@"evaluateExpression:%@ client:%@", expr, (id)client);
+
+    NSString *eval = nil;
+    char_u *res = eval_client_expr_to_string((char_u*)[expr UTF8String]);
+
+    if (res != NULL) {
+        eval = [NSString stringWithUTF8String:(char*)res];
+        vim_free(res);
+    }
+
+    [self addClient:(id)client];
+
+    return eval;
+}
+
+- (void)registerServerWithName:(NSString *)name
+{
+    NSString *svrName = name;
+    NSConnection *svrConn = [NSConnection defaultConnection];
+    unsigned i;
+
+    for (i = 0; i < MMServerMax; ++i) {
+        NSString *connName = [self connectionNameFromServerName:svrName];
+
+        if ([svrConn registerName:connName]) {
+            //NSLog(@"Registered server with name: %@", svrName);
+
+            // Don't wait for requests (time-out means that the message is
+            // dropped).
+            [svrConn setRequestTimeout:0];
+            //[svrConn setReplyTimeout:MMReplyTimeout];
+            [svrConn setRootObject:self];
+
+            // NOTE: 'serverName' is a global variable
+            serverName = vim_strsave((char_u*)[svrName UTF8String]);
+#ifdef FEAT_EVAL
+            set_vim_var_string(VV_SEND_SERVER, serverName, -1);
+#endif
+#ifdef FEAT_TITLE
+	    need_maketitle = TRUE;
+#endif
+            [self queueMessage:SetServerNameMsgID data:
+                    [svrName dataUsingEncoding:NSUTF8StringEncoding]];
+            break;
+        }
+
+        svrName = [NSString stringWithFormat:@"%@%d", name, i+1];
+    }
+}
+
+- (BOOL)sendToServer:(NSString *)name string:(NSString *)string
+               reply:(char_u **)reply port:(int *)port expression:(BOOL)expr
+              silent:(BOOL)silent
+{
+    // NOTE: If 'name' equals 'serverName' then the request is local (client
+    // and server are the same).  This case is not handled separately, so a
+    // connection will be set up anyway (this simplifies the code).
+
+    NSConnection *conn = [self connectionForServerName:name];
+    if (!conn) {
+        if (!silent)
+	    EMSG2(_(e_noserver), [name UTF8String]);
+        return NO;
+    }
+
+    if (port) {
+        // HACK! Assume connection uses mach ports.
+        *port = [(NSMachPort*)[conn sendPort] machPort];
+    }
+
+    id proxy = [conn rootProxy];
+    [proxy setProtocolForProxy:@protocol(MMVimServerProtocol)];
+
+    @try {
+        if (expr) {
+            NSString *eval = [proxy evaluateExpression:string client:self];
+            if (reply) {
+                *reply = (eval ? vim_strsave((char_u*)[eval UTF8String])
+                               : vim_strsave((char_u*)_(e_invexprmsg)));
+            }
+
+            if (!eval)
+                return NO;
+        } else {
+            [proxy addInput:string client:self];
+        }
+    }
+    @catch (NSException *e) {
+        NSLog(@"WARNING: Caught exception in %s: \"%@\"", _cmd, e);
+        return NO;
+    }
+
+    return YES;
+}
+
+- (NSArray *)serverList
+{
+    NSArray *list = nil;
+
+    if ([self connection]) {
+        id proxy = [connection rootProxy];
+        [proxy setProtocolForProxy:@protocol(MMAppProtocol)];
+
+        @try {
+            list = [proxy serverList];
+        }
+        @catch (NSException *e) {
+            NSLog(@"Exception caught when listing servers: \"%@\"", e);
+        }
+    } else {
+        EMSG(_("E???: No connection to MacVim, server listing not possible."));
+    }
+
+    return list;
+}
+
+- (NSString *)peekForReplyOnPort:(int)port
+{
+    //NSLog(@"%s%d", _cmd, port);
+
+    NSNumber *key = [NSNumber numberWithInt:port];
+    NSMutableArray *replies = [serverReplyDict objectForKey:key];
+    if (replies && [replies count]) {
+        //NSLog(@"    %d replies, topmost is: %@", [replies count],
+        //        [replies objectAtIndex:0]);
+        return [replies objectAtIndex:0];
+    }
+
+    //NSLog(@"    No replies");
+    return nil;
+}
+
+- (NSString *)waitForReplyOnPort:(int)port
+{
+    //NSLog(@"%s%d", _cmd, port);
+    
+    NSConnection *conn = [self connectionForServerPort:port];
+    if (!conn)
+        return nil;
+
+    NSNumber *key = [NSNumber numberWithInt:port];
+    NSMutableArray *replies = nil;
+    NSString *reply = nil;
+
+    // Wait for reply as long as the connection to the server is valid (unless
+    // user interrupts wait with Ctrl-C).
+    while (!got_int && [conn isValid] &&
+            !(replies = [serverReplyDict objectForKey:key])) {
+        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                 beforeDate:[NSDate distantFuture]];
+    }
+
+    if (replies) {
+        if ([replies count] > 0) {
+            reply = [[replies objectAtIndex:0] retain];
+            //NSLog(@"    Got reply: %@", reply);
+            [replies removeObjectAtIndex:0];
+            [reply autorelease];
+        }
+
+        if ([replies count] == 0)
+            [serverReplyDict removeObjectForKey:key];
+    }
+
+    return reply;
+}
+
+- (BOOL)sendReply:(NSString *)reply toPort:(int)port
+{
+    id client = [clientProxyDict objectForKey:[NSNumber numberWithInt:port]];
+    if (client) {
+        @try {
+            //NSLog(@"sendReply:%@ toPort:%d", reply, port);
+            [client addReply:reply server:self];
+            return YES;
+        }
+        @catch (NSException *e) {
+            NSLog(@"WARNING: Exception caught in %s: \"%@\"", _cmd, e);
+        }
+    } else {
+        EMSG2(_("E???: server2client failed; no client with id 0x%x"), port);
+    }
+
+    return NO;
 }
 
 @end // MMBackend
@@ -1586,7 +1844,181 @@ enum {
     inProcessInput = NO;
 }
 
+- (NSString *)connectionNameFromServerName:(NSString *)name
+{
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+
+    return [[NSString stringWithFormat:@"%@.%@", bundleIdentifier, name]
+        lowercaseString];
+}
+
+- (NSConnection *)connectionForServerName:(NSString *)name
+{
+    // TODO: Try 'name%d' if 'name' fails.
+    NSString *connName = [self connectionNameFromServerName:name];
+    NSConnection *svrConn = [connectionNameDict objectForKey:connName];
+
+    if (!svrConn) {
+        svrConn = [NSConnection connectionWithRegisteredName:connName
+                                                           host:nil];
+#if 0
+        if (!svrConn && [name length] > 0) {
+            unichar lastChar = [name characterAtIndex:[name length]-1];
+            if (lastChar < '0' && lastChar > '9') {
+                // No connection for 'name' exists, and 'name' does not end
+                // with a digit, so try to find connection with name 'name%d'.
+                int i;
+                for (i = 1; i <= 10; ++i) {
+                    NSString *altName = [NSString stringWithFormat:@"%@%d",
+                             connName, i];
+                    svrConn = [NSConnection
+                        connectionWithRegisteredName:altName host:nil];
+                    if (svrConn) {
+                        connName = altName;
+                        break;
+                    }
+                }
+            }
+        }
+#else
+        // Try alternate server...
+        if (!svrConn && alternateServerName) {
+            //NSLog(@"  trying to connect to alternate server: %@",
+            //        alternateServerName);
+            connName = [self connectionNameFromServerName:alternateServerName];
+            svrConn = [NSConnection connectionWithRegisteredName:connName
+                                                            host:nil];
+        }
+
+        // Try looking for alternate servers...
+        if (!svrConn) {
+            NSLog(@"  looking for alternate servers...");
+            NSString *alt = [self alternateServerNameForName:name];
+            if (alt != alternateServerName) {
+                //NSLog(@"  found alternate server: %@", string);
+                [alternateServerName release];
+                alternateServerName = [alt copy];
+            }
+        }
+
+        // Try alternate server again...
+        if (!svrConn && alternateServerName) {
+            //NSLog(@"  trying to connect to alternate server: %@",
+            //        alternateServerName);
+            connName = [self connectionNameFromServerName:alternateServerName];
+            svrConn = [NSConnection connectionWithRegisteredName:connName
+                                                            host:nil];
+        }
+
+#endif
+
+        if (svrConn) {
+            [connectionNameDict setObject:svrConn forKey:connName];
+
+            //NSLog(@"Adding %@ as connection observer for %@", self, svrConn);
+            [[NSNotificationCenter defaultCenter] addObserver:self
+                    selector:@selector(serverConnectionDidDie:)
+                        name:NSConnectionDidDieNotification object:svrConn];
+        }
+    }
+
+    return svrConn;
+}
+
+- (NSConnection *)connectionForServerPort:(int)port
+{
+    NSConnection *conn;
+    NSEnumerator *e = [connectionNameDict objectEnumerator];
+
+    while ((conn = [e nextObject])) {
+        // HACK! Assume connection uses mach ports.
+        if (port == [(NSMachPort*)[conn sendPort] machPort])
+            return conn;
+    }
+
+    return nil;
+}
+
+- (void)serverConnectionDidDie:(NSNotification *)notification
+{
+    //NSLog(@"%s%@", _cmd, notification);
+
+    NSConnection *svrConn = [notification object];
+
+    //NSLog(@"Removing %@ as connection observer from %@", self, svrConn);
+    [[NSNotificationCenter defaultCenter]
+            removeObserver:self
+                      name:NSConnectionDidDieNotification
+                    object:svrConn];
+
+    [connectionNameDict removeObjectsForKeys:
+        [connectionNameDict allKeysForObject:svrConn]];
+
+    // HACK! Assume connection uses mach ports.
+    int port = [(NSMachPort*)[svrConn sendPort] machPort];
+    NSNumber *key = [NSNumber numberWithInt:port];
+
+    [clientProxyDict removeObjectForKey:key];
+    [serverReplyDict removeObjectForKey:key];
+}
+
+- (void)addClient:(NSDistantObject *)client
+{
+    NSConnection *conn = [client connectionForProxy];
+    // HACK! Assume connection uses mach ports.
+    int port = [(NSMachPort*)[conn sendPort] machPort];
+    NSNumber *key = [NSNumber numberWithInt:port];
+
+    if (![clientProxyDict objectForKey:key]) {
+        [client setProtocolForProxy:@protocol(MMVimClientProtocol)];
+        [clientProxyDict setObject:client forKey:key];
+    }
+
+    // NOTE: 'clientWindow' is a global variable which is used by <client>
+    clientWindow = port;
+}
+
+- (NSString *)alternateServerNameForName:(NSString *)name
+{
+    if (!(name && [name length] > 0))
+        return nil;
+
+    // Only look for alternates if 'name' doesn't end in a digit.
+    unichar lastChar = [name characterAtIndex:[name length]-1];
+    if (lastChar >= '0' && lastChar <= '9')
+        return nil;
+
+    // Look for alternates among all current servers.
+    NSArray *list = [self serverList];
+    if (!(list && [list count] > 0))
+        return nil;
+
+    // Filter out servers starting with 'name' and ending with a number. The
+    // (?i) pattern ensures that the match case insensitive.
+    NSString *pat = [NSString stringWithFormat:@"(?i)%@[0-9]+\\z", name];
+    NSPredicate *pred = [NSPredicate predicateWithFormat:
+            @"SELF MATCHES %@", pat];
+    list = [list filteredArrayUsingPredicate:pred];
+    if ([list count] > 0) {
+        list = [list sortedArrayUsingSelector:@selector(serverNameCompare:)];
+        return [list objectAtIndex:0];
+    }
+
+    return nil;
+}
+
 @end // MMBackend (Private)
+
+
+
+
+@implementation NSString (MMServerNameCompare)
+- (NSComparisonResult)serverNameCompare:(NSString *)string
+{
+    return [self compare:string
+                 options:NSCaseInsensitiveSearch|NSNumericSearch];
+}
+@end
 
 
 

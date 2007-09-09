@@ -143,6 +143,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     //NSLog(@"%@ %s", [self className], _cmd);
     isInitialized = NO;
 
+    [serverName release];  serverName = nil;
     [backendProxy release];  backendProxy = nil;
     [sendQueue release];  sendQueue = nil;
 
@@ -158,6 +159,19 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 - (MMWindowController *)windowController
 {
     return windowController;
+}
+
+- (void)setServerName:(NSString *)name
+{
+    if (name != serverName) {
+        [serverName release];
+        serverName = [name copy];
+    }
+}
+
+- (NSString *)serverName
+{
+    return serverName;
 }
 
 - (int)pid
@@ -752,6 +766,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     } else if (ActivateMsgID == msgid) {
         [NSApp activateIgnoringOtherApps:YES];
         [[windowController window] makeKeyAndOrderFront:self];
+    } else if (SetServerNameMsgID == msgid) {
+        NSString *name = [[NSString alloc] initWithData:data
+                                               encoding:NSUTF8StringEncoding];
+        [self setServerName:name];
+        [name release];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

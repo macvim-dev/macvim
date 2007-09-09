@@ -29,11 +29,14 @@
     NSToolbar           *toolbar;
     NSMutableDictionary *toolbarItemDict;
     int                 pid;
+    NSString            *serverName;
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
 - (id)backendProxy;
 - (int)pid;
+- (void)setServerName:(NSString *)name;
+- (NSString *)serverName;
 - (MMWindowController *)windowController;
 - (void)cleanup;
 - (void)dropFiles:(NSArray *)filenames;

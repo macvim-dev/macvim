@@ -35,7 +35,9 @@
 - (BOOL)checkForModifiedBuffers;
 - (oneway void)setDialogReturn:(in bycopy id)obj;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
+#if 0
 - (NSString *)evaluateExpression:(in bycopy NSString *)expr;
+#endif
 @end
 
 
@@ -61,9 +63,39 @@
 // It handles connections between MacVim and Vim.
 //
 @protocol MMAppProtocol
-- (byref id <MMFrontendProtocol>)connectBackend:
-    (byref in id <MMBackendProtocol>)backend pid:(int)pid;
+- (byref id <MMFrontendProtocol>)
+    connectBackend:(byref in id <MMBackendProtocol>)backend
+               pid:(int)pid;
 - (NSArray *)serverList;
+@end
+
+
+@protocol MMVimServerProtocol;
+
+//
+// The Vim client protocol (implemented by MMBackend).
+//
+// The client needs to keep track of server replies.  Take a look at MMBackend
+// if you want to implement this protocol in another program.
+//
+@protocol MMVimClientProtocol
+- (oneway void)addReply:(in bycopy NSString *)reply
+                 server:(in byref id <MMVimServerProtocol>)server;
+@end
+
+
+//
+// The Vim server protocol (implemented by MMBackend).
+//
+// Note that addInput:client: is not asynchronous, because otherwise Vim might
+// quit before the message has been passed (e.g. if --remote was used on the
+// command line).
+//
+@protocol MMVimServerProtocol
+- (void)addInput:(in bycopy NSString *)input
+                 client:(in byref id <MMVimClientProtocol>)client;
+- (NSString *)evaluateExpression:(in bycopy NSString *)expr
+                 client:(in byref id <MMVimClientProtocol>)client;
 @end
 
 
@@ -123,6 +155,7 @@ enum {
     AdjustLinespaceMsgID,
     ActivateMsgID,
     ServerAddInputMsgID,
+    SetServerNameMsgID,
 };
 
 
