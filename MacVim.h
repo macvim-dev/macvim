@@ -35,9 +35,6 @@
 - (BOOL)checkForModifiedBuffers;
 - (oneway void)setDialogReturn:(in bycopy id)obj;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
-#if 0
-- (NSString *)evaluateExpression:(in bycopy NSString *)expr;
-#endif
 @end
 
 
@@ -154,7 +151,6 @@ enum {
     SetMouseShapeMsgID,
     AdjustLinespaceMsgID,
     ActivateMsgID,
-    ServerAddInputMsgID,
     SetServerNameMsgID,
 };
 

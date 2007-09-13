@@ -245,7 +245,12 @@ static float MMDragAreaSize = 73.0f;
 
 #if 0
 // Confused note to self: Why did I implement this in the first place?  Will
-// something break if I don't?  Input methods that use arrow keys do not work
+// something break if I don't?
+//
+// Answer: Cmd-letter key strokes are consumed by the menu (regardless if they
+// are bound to a menu item or not) and never passed on to Vim.
+//
+// Input methods that use arrow keys do not work
 // properly with this implementation, so it is disabled for now.
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {

@@ -159,8 +159,8 @@ Features (!supp indicates that a feature is not supported):
   (but not 'tooltip' which is always on), each window has its own toolbar,
   custom toolbar items
 - Cocoa input protocols: input managers, character palette input etc.
-  supported, marked text !supp, cocoa key bindings (DefaultKeyBinding.dict)
-  are disabled
+  supported, marked text partially supported, cocoa key bindings
+  (DefaultKeyBinding.dict) are disabled
 - Mouse: resize (vim) windows, selection, different mouse cursors,
   autoscrolling whilst selecting (horizontal autoscroll !supp)
 - Drag and Drop: drag files onto dock icon to open in tabs, drag text and files
@@ -185,4 +185,4 @@ Features (!supp indicates that a feature is not supported):
 - Encodings: !supp (enc, tenc always set to utf-8)
 - Autosave window position
 - Smart cascading of new windows
-- Partial client/server support
+- Client/server support (only gui window can become server)

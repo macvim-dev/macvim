@@ -1053,21 +1053,6 @@ enum {
     return NO;
 }
 
-#if 0
-- (NSString *)evaluateExpression:(in bycopy NSString *)expr
-{
-    NSString *eval = nil;
-    char_u *res = eval_client_expr_to_string((char_u*)[expr UTF8String]);
-
-    if (res != NULL) {
-        eval = [NSString stringWithUTF8String:(char*)res];
-        vim_free(res);
-    }
-
-    return eval;
-}
-#endif
-
 - (oneway void)addReply:(in bycopy NSString *)reply
                  server:(in byref id <MMVimServerProtocol>)server
 {
@@ -1132,6 +1117,8 @@ enum {
         if ([svrConn registerName:connName]) {
             //NSLog(@"Registered server with name: %@", svrName);
 
+            // TODO: Set request/reply time-outs to something else?
+            //
             // Don't wait for requests (time-out means that the message is
             // dropped).
             [svrConn setRequestTimeout:0];
@@ -1651,12 +1638,6 @@ enum {
         const void *bytes = [data bytes];
         int shape = *((int*)bytes);  bytes += sizeof(int);
         update_mouseshape(shape);
-    } else if (ServerAddInputMsgID == msgid) {
-        const void *bytes = [data bytes];
-        /*int len = *((int*)bytes);*/  bytes += sizeof(int);
-        char_u *cmd = (char_u*)bytes;
-
-        server_to_input_buf(cmd);
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
@@ -1833,13 +1814,6 @@ enum {
     }
 #endif
 
-#if 0 // This does not work...for now, just don't care if a focus msg was lost.
-    // HACK! A focus message might get lost, but whenever we get here the GUI
-    // is in focus.
-    if (!gui.in_focus)
-        [self focusChange:TRUE];
-#endif
-
     inputReceived = YES;
     inProcessInput = NO;
 }
@@ -1861,26 +1835,6 @@ enum {
     if (!svrConn) {
         svrConn = [NSConnection connectionWithRegisteredName:connName
                                                            host:nil];
-#if 0
-        if (!svrConn && [name length] > 0) {
-            unichar lastChar = [name characterAtIndex:[name length]-1];
-            if (lastChar < '0' && lastChar > '9') {
-                // No connection for 'name' exists, and 'name' does not end
-                // with a digit, so try to find connection with name 'name%d'.
-                int i;
-                for (i = 1; i <= 10; ++i) {
-                    NSString *altName = [NSString stringWithFormat:@"%@%d",
-                             connName, i];
-                    svrConn = [NSConnection
-                        connectionWithRegisteredName:altName host:nil];
-                    if (svrConn) {
-                        connName = altName;
-                        break;
-                    }
-                }
-            }
-        }
-#else
         // Try alternate server...
         if (!svrConn && alternateServerName) {
             //NSLog(@"  trying to connect to alternate server: %@",
@@ -1892,7 +1846,7 @@ enum {
 
         // Try looking for alternate servers...
         if (!svrConn) {
-            NSLog(@"  looking for alternate servers...");
+            //NSLog(@"  looking for alternate servers...");
             NSString *alt = [self alternateServerNameForName:name];
             if (alt != alternateServerName) {
                 //NSLog(@"  found alternate server: %@", string);
@@ -1909,8 +1863,6 @@ enum {
             svrConn = [NSConnection connectionWithRegisteredName:connName
                                                             host:nil];
         }
-
-#endif
 
         if (svrConn) {
             [connectionNameDict setObject:svrConn forKey:connName];
@@ -1994,7 +1946,7 @@ enum {
         return nil;
 
     // Filter out servers starting with 'name' and ending with a number. The
-    // (?i) pattern ensures that the match case insensitive.
+    // (?i) pattern ensures that the match is case insensitive.
     NSString *pat = [NSString stringWithFormat:@"(?i)%@[0-9]+\\z", name];
     NSPredicate *pred = [NSPredicate predicateWithFormat:
             @"SELF MATCHES %@", pat];
