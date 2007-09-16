@@ -1,0 +1,198 @@
+*gui_macvim.txt* For Vim version 7.1.  Last change: 2007 Sep 13
+
+
+		  VIM REFERENCE MANUAL    by Bram Moolenaar
+
+
+The MacVim Graphical User Interface			*macvim* *gui-macvim*
+
+1. MacVim differences		|macvim-differences|
+2. Starting MacVim		|gui-macvim-start|
+3. Special colors		|macvim-colors|
+4. Menus			|macvim-menus|
+5. System services		|macvim-services|
+6. Known bugs/missing features  |macvim-todo|
+
+Other relevant documentation:
+|gui.txt|	For generic items of the GUI.
+|os_mac.txt|	For Mac specific items.
+
+{Vi does not have a GUI}
+
+==============================================================================
+1. MacVim differences					*macvim-differences*
+
+One of the goals of MacVim is to make Vim behave like a proper Mac OS X
+application.  For this reason MacVim behaves slightly different from other GUI
+ports.  Most of the modifications are provided in the system gvimrc file; you
+can quickly open this file and look at it yourself by typing: >
+	:tabe $VIM/gvimrc
+Note that this file will be overwritten each time you update MacVim, so it is
+better (where possible) to keep your own modifications inside "~/.gvimrc".
+
+							*macvim-windows*
+There is some confusion regarding the term "window" in MacVim since it means
+one thing to Vim and another to MacVim.  A "window" in Vim is what opens up
+when you type ":sp", whereas a "window" in MacVim is the GUI window which
+contains the text view, scrollbars, toolbar and tabline.  To avoid confusion,
+the former is referred to as a Vim-window, whereas the latter is simply called
+a window.
+
+							*macvim-shift-movement*
+Text editors on Mac OS X lets the user hold down shift+movement key to extend
+the selection.  Also, pressing a printable key whilst selecting replaces the
+current selection with that character.  MacVim tries to emulate this behaviour
+by providing several key bindings and by setting 'keymodel' and 'selectmode'
+to non-default values.  To disable this behaviour, add the following line to
+your "~/.vimrc" (not .gvimrc) file: >
+	if has("gui_macvim")
+	  let macvim_skip_hig_shift_movement = 1
+	endif
+<
+							*macvim-encoding*
+It is not possible to modify 'termencoding' in MacVim; this option is forcibly
+set to "utf-8".
+
+							*macvim-drag-n-drop*
+Dragging files and dropping them on a window opens those files in tabs in that
+window.  This happens even when Vim is in command-line mode.  Holding down
+modifier keys whilst dragging is not supported.
+
+							*macvim-default-menu*
+The default menu in MacVim has been changed to conform better with the Apple
+Human Interface Guidelines (HIG).
+
+Note: The menus are a work in progress.  If you know something about the HIG
+and want to contribute to MacVim you could do so by making the menus better.
+
+==============================================================================
+2. Starting MacVim					*gui-macvim-start*
+
+MacVim can be started from Terminal or by double clicking its icon in the
+Finder.  If you use the Dock then you might want to drag the MacVim icon to
+the Dock so that you have easy access to it.  MacVim automatically registers
+itself as an editor of several standard file formats.  This enables you to
+double-click a file to open it with MacVim (if it is not associated with
+another program), or to right-click a file to bring up the "Open with" menu.
+You can also drag and drop files onto the Dock icon to open them in tabs in a
+new window, or you can drop them in an already open window to open the files
+in tabs in that specific window.  Finally, you can use Mac OS X System
+Services to open files in MacVim, see |macvim-services|.
+
+There are essentially two ways to start MacVim from Terminal: either call the
+Vim binary with the -g switch >
+	MacVim.app/Contents/MacOS/Vim -g file ...
+or use the "open" command (which is of limited use since it cannot be used to
+pass parameters to Vim) >
+	open -a MacVim file ...
+
+In order to save you from having to type the entire path every time you start
+MacVim, add the following alias to "~/.profile": >
+	alias gvim='/Applications/MacVim.app/Contents/MacOS/Vim -g'
+(This assumes that you have put MacVim.app in /Applications.)
+
+Once in terminal Vim it is possible to start MacVim by using the following
+command:
+	:gui [++opt] [+cmd] [-f|-b] [files...]
+Note: Forking ("-b") currently does not work.
+
+==============================================================================
+3. Special colors					*macvim-colors*
+
+The colors in MacVim are defined in two dictionaries inside the "Resources"
+folder of the application bundle (MacVim.app/Contents/Resources).  It is
+possible to add more colors by modifying these files.  Color names are case
+insensitive when accessed from Vim, but in the dictionary they must be
+lowercase.
+
+							*SystemColors.plist*
+There are only a few system colors that can be accessed from Vim.  These
+colors are defined in the dictionary "SystemColors.plist".  This dictionary
+stores (key, value) pairs where the key is the name of the color  and the
+value is an NSColor selector name.
+
+The most useful system colors are: >
+	MacSelectedTextBackgroundColor
+	MacSecondarySelectedColor
+The former is the "Highlight Color" which can be changed in the "Appearance"
+section of the System Preferences.  The latter is the selection color used
+when an application is not in focus.
+
+							*Colors.plist*
+Apart from the system colors, it is also possible to use the colors listed in
+the dictionary "Colors.plist". The key in this dictionary is the name of the
+color  and the value is an RGB value on the for #rrggbb stored as an integer.
+
+==============================================================================
+4. Menus						*macvim-menus*
+
+MacVim has a special way of binding keys to menu items that differs from other
+Vim GUI ports.  A menu binding is called a "key equivalent" in Mac OS X
+terminology.  The ":menukeyequiv" command is used to set the key equivalent of
+a menu item.  This command takes two parameters, the first names the menu item
+to bind to, the second gives the key combination.  For example: >
+	:menukeyequiv File.New\ Tab <D-t>
+This sets the key equivalent of the "New Tab" menu item under the "File" menu
+to Cmd+t.
+
+Note 1: A key equivalent should always contain the Cmd key modifier flag!
+Note 2: Key equivalents take precedence over normal mappings made with ":map".
+
+It is typical for menu items in Cocoa applications to bind to Objective-C
+selectors.  To support this, MacVim introduces the ":action" command.  This
+command takes the name of an action message as its only parameter.  (An action
+message is an Objective-C message with "void" return type and a single
+parameter of type "id".)  For example, the "New Window" menu item on the
+"File" menu is created in the following manner: >
+	:an 10.290 File.New\ Window :action newVimWindow:<CR>
+
+Note 1: A menu item which is bound to ":action" will automatically be bound to
+that action in all modes (as if ":an" was used).  It is not possible to bind
+to ":action" in one mode only.
+Note 2: The action is "nil-targeted", which means it is passed down the first
+responder chain.
+
+							*Actions.plist*
+Some action messages would not be suitable to call from within Vim, so there
+is a dictionary called "Actions.plist" (in the Resources folder of the
+application bundle) which contains all actions that may be called.  The key in
+this dictionary is the name of the action message (case sensitive), the value
+is not used.
+
+==============================================================================
+5. System services					*macvim-services*
+
+MacVim supports a few system services.  These can be accessed from the MacVim
+submenu in the Services menu.  For services to work, MacVim.app should be
+located in the /Applications folder.  (You might have to logout and then login
+again before Mac OS X detects the MacVim services.)
+
+These are the currently supported services:
+* New Tab Containing Selection: Opens a new tab in the topmost window and
+  pastes the currently selected text in that tab.  A new window will be
+  opened if necessary.
+* Open Selected File in Tab (Window): If the selected text represents a file
+  name, then the corresponding file is opened in a new tab in the topmost
+  window (in a new window).
+
+==============================================================================
+6. Known bugs/missing features				*macvim-todo*
+
+Here are some of the bigger bugs in MacVim.  Of course there are others, but
+these are ones that are know and/or which were judged major.
+
+- Composing characters are not supported, they will mess up the display
+- Only "utf-8" is supported for 'enc'
+- Sometimes multibyte characters look "too wide", i.e. they overlap the
+  following character.  It might help to change 'ambiwidth'.
+- Printing
+- No find/replace dialog
+
+If you find new bugs then add a new issue at http://code.google.com/p/macvim/
+or post your findings to the vim_mac mailing list.  If you are missing feature
+X in MacVim then voice your opinion on the vim_mac mailing list; it might be
+simple to implement, but unless somebody ask for a particular feature then
+there is little incentive to add it.
+
+
+ vim:tw=78:sw=4:ts=8:ft=help:norl:
