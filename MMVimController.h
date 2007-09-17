@@ -12,6 +12,10 @@
 #import "MacVim.h"
 
 
+// If sendMessage:: fails, store the message and resend after a delay.
+#define MM_RESEND_LAST_FAILURE 1
+
+
 @class MMWindowController;
 
 
@@ -30,6 +34,11 @@
     NSMutableDictionary *toolbarItemDict;
     int                 pid;
     NSString            *serverName;
+#ifdef MM_RESEND_LAST_FAILURE
+    NSTimer             *resendTimer;
+    int                 resendMsgid;
+    NSData              *resendData;
+#endif
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;

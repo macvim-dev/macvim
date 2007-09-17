@@ -15,21 +15,23 @@
 #import "MMTextStorage.h"
 
 
-#define MM_NO_REQUEST_TIMEOUT 1
-
 // This is taken from gui.h
 #define DRAW_CURSOR 0x20
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
 static int MMAlertTextFieldHeight = 22;
 
-#if MM_NO_REQUEST_TIMEOUT
 // NOTE: By default a message sent to the backend will be dropped if it cannot
 // be delivered instantly; otherwise there is a possibility that MacVim will
 // 'beachball' while waiting to deliver DO messages to an unresponsive Vim
 // process.  This means that you cannot rely on any message sent with
 // sendMessage:: to actually reach Vim.
 static NSTimeInterval MMBackendProxyRequestTimeout = 0;
+
+#if MM_RESEND_LAST_FAILURE
+// If a message send fails, the message will be resent after this many seconds
+// have passed.  (No queue is kept, only the very last message is resent.)
+static NSTimeInterval MMResendInterval = 0.5;
 #endif
 
 
@@ -64,6 +66,9 @@ static NSTimeInterval MMBackendProxyRequestTimeout = 0;
                           tip:(NSString *)tip icon:(NSString *)icon
                       atIndex:(int)idx;
 - (void)connectionDidDie:(NSNotification *)notification;
+#if MM_RESEND_LAST_FAILURE
+- (void)resendTimerFired:(NSTimer *)timer;
+#endif
 @end
 
 
@@ -113,11 +118,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
         NSConnection *connection = [backendProxy connectionForProxy];
 
-#if MM_NO_REQUEST_TIMEOUT
         // TODO: Check that this will not set the timeout for the root proxy
         // (in MMAppController).
         [connection setRequestTimeout:MMBackendProxyRequestTimeout];
-#endif
 
         [[NSNotificationCenter defaultCenter] addObserver:self
                 selector:@selector(connectionDidDie:)
@@ -142,6 +145,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 {
     //NSLog(@"%@ %s", [self className], _cmd);
     isInitialized = NO;
+
+#if MM_RESEND_LAST_FAILURE
+    [resendData release];  resendData = nil;
+#endif
 
     [serverName release];  serverName = nil;
     [backendProxy release];  backendProxy = nil;
@@ -230,43 +237,43 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         return;
     }
 
-#if MM_NO_REQUEST_TIMEOUT
+#if MM_RESEND_LAST_FAILURE
+    if (resendTimer) {
+        //NSLog(@"cancelling scheduled resend of %s",
+        //        MessageStrings[resendMsgid]);
+
+        [resendTimer invalidate];
+        [resendTimer release];
+        resendTimer = nil;
+    }
+
+    if (resendData) {
+        [resendData release];
+        resendData = nil;
+    }
+#endif
+
     @try {
         [backendProxy processInput:msgid data:data];
     }
     @catch (NSException *e) {
         //NSLog(@"%@ %s Exception caught during DO call: %@",
         //        [self className], _cmd, e);
-    }
-#else
-    if (wait) {
-        @try {
-            [backendProxy processInput:msgid data:data];
-        }
-        @catch (NSException *e) {
-            NSLog(@"%@ %s Exception caught during DO call: %@",
-                    [self className], _cmd, e);
-        }
-    } else {
-        // Do not wait for the message to be sent, i.e. drop the message if it
-        // can't be delivered immediately.
-        NSConnection *connection = [backendProxy connectionForProxy];
-        if (connection) {
-            NSTimeInterval req = [connection requestTimeout];
-            [connection setRequestTimeout:0];
-            @try {
-                [backendProxy processInput:msgid data:data];
-            }
-            @catch (NSException *e) {
-                // Connection timed out, just ignore this.
-                //NSLog(@"WARNING! Connection timed out in %s", _cmd);
-            }
-            @finally {
-                [connection setRequestTimeout:req];
-            }
-        }
-    }
+#if MM_RESEND_LAST_FAILURE
+        //NSLog(@"%s failed, scheduling message %s for resend", _cmd,
+        //        MessageStrings[msgid]);
+
+        resendMsgid = msgid;
+        resendData = [data retain];
+        resendTimer = [NSTimer
+            scheduledTimerWithTimeInterval:MMResendInterval
+                                    target:self
+                                  selector:@selector(resendTimerFired:)
+                                  userInfo:nil
+                                   repeats:NO];
+        [resendTimer retain];
 #endif
+    }
 }
 
 - (id)backendProxy
@@ -418,7 +425,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     inProcessCommandQueue = NO;
 
     if ([sendQueue count] > 0) {
-#if MM_NO_REQUEST_TIMEOUT
         @try {
             [backendProxy processInputAndData:sendQueue];
         }
@@ -426,25 +432,6 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             // Connection timed out, just ignore this.
             //NSLog(@"WARNING! Connection timed out in %s", _cmd);
         }
-#else
-        // Do not wait for the message to be sent, i.e. drop the message if it
-        // can't be delivered immediately.
-        NSConnection *connection = [backendProxy connectionForProxy];
-        if (connection) {
-            NSTimeInterval req = [connection requestTimeout];
-            [connection setRequestTimeout:0];
-            @try {
-                [backendProxy processInputAndData:sendQueue];
-            }
-            @catch (NSException *e) {
-                // Connection timed out, just ignore this.
-                //NSLog(@"WARNING! Connection timed out in %s", _cmd);
-            }
-            @finally {
-                [connection setRequestTimeout:req];
-            }
-        }
-#endif
 
         [sendQueue removeAllObjects];
     }
@@ -1203,6 +1190,26 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 {
     return [NSString stringWithFormat:@"%@ : isInitialized=%d inProcessCommandQueue=%d mainMenuItems=%@ popupMenuItems=%@ toolbar=%@", [self className], isInitialized, inProcessCommandQueue, mainMenuItems, popupMenuItems, toolbar];
 }
+
+#if MM_RESEND_LAST_FAILURE
+- (void)resendTimerFired:(NSTimer *)timer
+{
+    int msgid = resendMsgid;
+    NSData *data = nil;
+
+    [resendTimer release];
+    resendTimer = nil;
+
+    if (!isInitialized)
+        return;
+
+    if (resendData)
+        data = [resendData copy];
+
+    //NSLog(@"Resending message: %s", MessageStrings[msgid]);
+    [self sendMessage:msgid data:data wait:NO];
+}
+#endif
 
 @end // MMVimController (Private)
 
