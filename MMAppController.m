@@ -467,7 +467,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
     MMVimController *vc = [self topmostVimController];
     if (vc) {
         // Open a new tab first, since dropString: does not do this.
-        [vc sendMessage:AddNewTabMsgID data:nil wait:NO];
+        [vc sendMessage:AddNewTabMsgID data:nil];
         [vc dropString:[pboard stringForType:NSStringPboardType]];
     } else {
         // NOTE: There is no window to paste the selection into, so save the

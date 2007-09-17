@@ -202,8 +202,7 @@ static NSString *MMKeypadEnterString = @"KA";
         string = [string string];
 
     [[self vimController] sendMessage:InsertTextMsgID
-                 data:[string dataUsingEncoding:NSUTF8StringEncoding]
-                 wait:NO];
+                 data:[string dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
 
@@ -305,7 +304,7 @@ static NSString *MMKeypadEnterString = @"KA";
     [data appendBytes:&len length:sizeof(int)];
     [data appendBytes:[unmodchars UTF8String] length:len];
 
-    [[self vimController] sendMessage:CmdKeyMsgID data:data wait:NO];
+    [[self vimController] sendMessage:CmdKeyMsgID data:data];
 
     return YES;
 }
@@ -443,7 +442,7 @@ static NSString *MMKeypadEnterString = @"KA";
     [data appendBytes:&flags length:sizeof(int)];
     [data appendBytes:&dy length:sizeof(float)];
 
-    [[self vimController] sendMessage:ScrollWheelMsgID data:data wait:NO];
+    [[self vimController] sendMessage:ScrollWheelMsgID data:data];
 }
 
 - (void)mouseDown:(NSEvent *)event
@@ -474,7 +473,7 @@ static NSString *MMKeypadEnterString = @"KA";
     [data appendBytes:&flags length:sizeof(int)];
     [data appendBytes:&count length:sizeof(int)];
 
-    [[self vimController] sendMessage:MouseDownMsgID data:data wait:NO];
+    [[self vimController] sendMessage:MouseDownMsgID data:data];
 }
 
 - (void)rightMouseDown:(NSEvent *)event
@@ -501,7 +500,7 @@ static NSString *MMKeypadEnterString = @"KA";
     [data appendBytes:&col length:sizeof(int)];
     [data appendBytes:&flags length:sizeof(int)];
 
-    [[self vimController] sendMessage:MouseUpMsgID data:data wait:NO];
+    [[self vimController] sendMessage:MouseUpMsgID data:data];
 
     isDragging = NO;
 }
@@ -532,7 +531,7 @@ static NSString *MMKeypadEnterString = @"KA";
         [data appendBytes:&col length:sizeof(int)];
         [data appendBytes:&flags length:sizeof(int)];
 
-        [[self vimController] sendMessage:MouseDraggedMsgID data:data wait:NO];
+        [[self vimController] sendMessage:MouseDraggedMsgID data:data];
     }
 
     dragPoint = pt;
@@ -575,7 +574,7 @@ static NSString *MMKeypadEnterString = @"KA";
         [data appendBytes:&row length:sizeof(int)];
         [data appendBytes:&col length:sizeof(int)];
 
-        [[self vimController] sendMessage:MouseMovedMsgID data:data wait:NO];
+        [[self vimController] sendMessage:MouseMovedMsgID data:data];
     }
 }
 
@@ -603,7 +602,7 @@ static NSString *MMKeypadEnterString = @"KA";
         int shape = 0;
         NSMutableData *data = [NSMutableData data];
         [data appendBytes:&shape length:sizeof(int)];
-        [[self vimController] sendMessage:SetMouseShapeMsgID data:data wait:NO];
+        [[self vimController] sendMessage:SetMouseShapeMsgID data:data];
     }
 }
 
@@ -726,7 +725,7 @@ static NSString *MMKeypadEnterString = @"KA";
             [data appendBytes:&len length:sizeof(unsigned)];
             [data appendBytes:[name UTF8String] length:len];
 
-            [[self vimController] sendMessage:SetFontMsgID data:data wait:NO];
+            [[self vimController] sendMessage:SetFontMsgID data:data];
         }
     }
 }
@@ -897,7 +896,7 @@ static NSString *MMKeypadEnterString = @"KA";
         [data appendBytes:&col length:sizeof(int)];
         [data appendBytes:&dragFlags length:sizeof(int)];
 
-        [[self vimController] sendMessage:MouseDraggedMsgID data:data wait:NO];
+        [[self vimController] sendMessage:MouseDraggedMsgID data:data];
 
         isAutoscrolling = YES;
     }
@@ -933,7 +932,7 @@ static NSString *MMKeypadEnterString = @"KA";
         [NSCursor setHiddenUntilMouseMoves:YES];
 
         //NSLog(@"%s len=%d chars=0x%x", _cmd, len, chars[0]);
-        [[self vimController] sendMessage:KeyDownMsgID data:data wait:NO];
+        [[self vimController] sendMessage:KeyDownMsgID data:data];
     }
 }
 

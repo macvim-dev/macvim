@@ -554,12 +554,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // NOTE! This can get called a lot if the user holds down the key
     // equivalent for this action, which causes the ports to fill up.  If we
     // wait for the message to be sent then the app might become unresponsive.
-    [vimController sendMessage:AddNewTabMsgID data:nil wait:NO];
+    [vimController sendMessage:AddNewTabMsgID data:nil];
 }
 
 - (IBAction)toggleToolbar:(id)sender
 {
-    [vimController sendMessage:ToggleToolbarMsgID data:nil wait:NO];
+    [vimController sendMessage:ToggleToolbarMsgID data:nil];
 }
 
 
@@ -584,7 +584,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         int idx = [self representedIndexOfTabViewItem:tabViewItem];
         if (NSNotFound != idx) {
             NSData *data = [NSData dataWithBytes:&idx length:sizeof(int)];
-            [vimController sendMessage:SelectTabMsgID data:data wait:YES];
+            [vimController sendMessage:SelectTabMsgID data:data];
         }
     }
 
@@ -602,7 +602,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     int idx = [self representedIndexOfTabViewItem:tabViewItem];
     //NSLog(@"Closing tab with index %d", idx);
     NSData *data = [NSData dataWithBytes:&idx length:sizeof(int)];
-    [vimController sendMessage:CloseTabMsgID data:data wait:YES];
+    [vimController sendMessage:CloseTabMsgID data:data];
 
     return NO;
 }
@@ -613,7 +613,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSMutableData *data = [NSMutableData data];
     [data appendBytes:&idx length:sizeof(int)];
 
-    [vimController sendMessage:DraggedTabMsgID data:data wait:YES];
+    [vimController sendMessage:DraggedTabMsgID data:data];
 }
 
 
@@ -623,7 +623,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
-    [vimController sendMessage:GotFocusMsgID data:nil wait:NO];
+    [vimController sendMessage:GotFocusMsgID data:nil];
 
     if (textStorage)
         [[NSFontManager sharedFontManager] setSelectedFont:[textStorage font]
@@ -632,7 +632,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)windowDidResignMain:(NSNotification *)notification
 {
-    [vimController sendMessage:LostFocusMsgID data:nil wait:NO];
+    [vimController sendMessage:LostFocusMsgID data:nil];
 
     if (textView)
         [textView hideMarkedTextField];
@@ -640,7 +640,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (BOOL)windowShouldClose:(id)sender
 {
-    [vimController sendMessage:VimShouldCloseMsgID data:nil wait:YES];
+    [vimController sendMessage:VimShouldCloseMsgID data:nil];
     return NO;
 }
 
@@ -891,7 +891,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSMutableData *data = [NSMutableData data];
     [data appendBytes:&tag length:sizeof(int)];
 
-    [vimController sendMessage:ExecuteMenuMsgID data:data wait:NO];
+    [vimController sendMessage:ExecuteMenuMsgID data:data];
 }
 
 - (MMScroller *)scrollbarForIdentifier:(long)ident index:(unsigned *)idx
@@ -1078,7 +1078,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [data appendBytes:&hitPart length:sizeof(int)];
     [data appendBytes:&value length:sizeof(float)];
 
-    [vimController sendMessage:ScrollbarEventMsgID data:data wait:NO];
+    [vimController sendMessage:ScrollbarEventMsgID data:data];
 }
 
 - (void)placeViews
@@ -1105,8 +1105,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         // NOTE! This can get called a lot when in live resize, which causes
         // the connection buffers to fill up.  If we wait for the message to be
         // sent then the app might become unresponsive.
-        [vimController sendMessage:SetTextDimensionsMsgID data:data
-                     wait:![textView inLiveResize]];
+        [vimController sendMessage:SetTextDimensionsMsgID data:data];
     }
 
     [textView setFrame:textViewRect];

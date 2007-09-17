@@ -25,7 +25,7 @@ static int MMAlertTextFieldHeight = 22;
 // be delivered instantly; otherwise there is a possibility that MacVim will
 // 'beachball' while waiting to deliver DO messages to an unresponsive Vim
 // process.  This means that you cannot rely on any message sent with
-// sendMessage:: to actually reach Vim.
+// sendMessage: to actually reach Vim.
 static NSTimeInterval MMBackendProxyRequestTimeout = 0;
 
 #if MM_RESEND_LAST_FAILURE
@@ -204,7 +204,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         }
     }
 
-    [self sendMessage:DropFilesMsgID data:data wait:NO];
+    [self sendMessage:DropFilesMsgID data:data];
 }
 
 - (void)dropString:(NSString *)string
@@ -216,11 +216,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [data appendBytes:&len length:sizeof(int)];
         [data appendBytes:[string UTF8String] length:len];
 
-        [self sendMessage:DropStringMsgID data:data wait:NO];
+        [self sendMessage:DropStringMsgID data:data];
     }
 }
 
-- (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait
+- (void)sendMessage:(int)msgid data:(NSData *)data
 {
     //NSLog(@"sendMessage:%s (isInitialized=%d inProcessCommandQueue=%d)",
     //        MessageStrings[msgid], isInitialized, inProcessCommandQueue);
@@ -1207,7 +1207,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         data = [resendData copy];
 
     //NSLog(@"Resending message: %s", MessageStrings[msgid]);
-    [self sendMessage:msgid data:data wait:NO];
+    [self sendMessage:msgid data:data];
 }
 #endif
 

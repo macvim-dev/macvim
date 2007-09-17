@@ -12,7 +12,7 @@
 #import "MacVim.h"
 
 
-// If sendMessage:: fails, store the message and resend after a delay.
+// If sendMessage: fails, store the message and resend after a delay.
 #define MM_RESEND_LAST_FAILURE 1
 
 
@@ -50,7 +50,7 @@
 - (void)cleanup;
 - (void)dropFiles:(NSArray *)filenames;
 - (void)dropString:(NSString *)string;
-- (void)sendMessage:(int)msgid data:(NSData *)data wait:(BOOL)wait;
+- (void)sendMessage:(int)msgid data:(NSData *)data;
 
 @end
 
