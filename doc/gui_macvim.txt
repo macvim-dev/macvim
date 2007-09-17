@@ -12,6 +12,7 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
 4. Menus			|macvim-menus|
 5. System services		|macvim-services|
 6. Known bugs/missing features  |macvim-todo|
+7. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -194,5 +195,30 @@ X in MacVim then voice your opinion on the vim_mac mailing list; it might be
 simple to implement, but unless somebody ask for a particular feature then
 there is little incentive to add it.
 
+==============================================================================
+7. Hints						*macvim-hints*
+
+In this section some general (not necessarily MacVim specific) hints are
+given.
+
+Scenario: You try opening a bunch of files in tabs but not all files get
+opened in their own tab.
+Solution: To get around this, set 'tabpagemax' to something big in your
+.gvimrc file (e.g. ":set tabpagemax=100").
+
+Scenario: You want to open a file in a tab in an already opened window, but
+typing "gvim filename" in Terminal opens it up in a separate window.
+Solution: Use the |--remote-tab| switch.  If you have several windows open you
+might have to specify which window you want the file to open in by using the
+|--servername| switch.  The title of a window usually ends in something like
+"VIM" or "VIM3" --- this is the server name of that window.  So to open a file
+named "foobar.txt" in a window which ends in "VIM3" you would type: >
+	gvim --servername VIM3 --remote-tab foobar.txt
+For more information, consult the |client-server| manual page.
+
+Scenario: You can't find the information on MacVim you thought should be in
+this manual page.
+Solution: Post your question on the vim_mac mailing list and wait for an
+answer.
 
  vim:tw=78:sw=4:ts=8:ft=help:norl:
