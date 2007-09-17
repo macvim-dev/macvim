@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Björn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sun Sep 9 2007
+" Last Change:	Mon Sep 17 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -21,9 +21,10 @@ if !exists("syntax_on")
   syntax on
 endif
 
-" Change selection color on focus change
-au FocusLost * hi Visual guibg=MacSecondarySelectedControlColor
-au FocusGained * hi Visual guibg=MacSelectedTextBackgroundColor
+" Change selection color on focus change (disabled until I can figure out how
+" to restore the last value for Visual on FocusGained)
+"au FocusLost * hi Visual guibg=MacSecondarySelectedControlColor
+"au FocusGained * hi Visual guibg=MacSelectedTextBackgroundColor
 
 
 "
