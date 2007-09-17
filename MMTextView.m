@@ -23,6 +23,8 @@ static NSTimeInterval MMDragTimerMinInterval = .01f;
 // The number of pixels in which the drag timer interval changes
 static float MMDragAreaSize = 73.0f;
 
+static char MMKeypadEnter[2] = { 'K', 'A' };
+static NSString *MMKeypadEnterString = @"KA";
 
 
 
@@ -233,8 +235,8 @@ static float MMDragAreaSize = 73.0f;
         if (0x3 == chars[0]) {
             // HACK! AppKit turns enter (not return) into Ctrl-C, so we need to
             // handle it separately (else Ctrl-C doesn't work).
-            static char keypadEnter[2] = { 'K', 'A' };
-            len = 2; chars = keypadEnter;
+            len = sizeof(MMKeypadEnter)/sizeof(MMKeypadEnter[0]);
+            chars = MMKeypadEnter;
         }
 
         [self sendKeyDown:chars length:len modifiers:[event modifierFlags]];
@@ -243,22 +245,22 @@ static float MMDragAreaSize = 73.0f;
     }
 }
 
-#if 0
-// Confused note to self: Why did I implement this in the first place?  Will
-// something break if I don't?
-//
-// Answer: Cmd-letter key strokes are consumed by the menu (regardless if they
-// are bound to a menu item or not) and never passed on to Vim.
-//
-// Input methods that use arrow keys do not work
-// properly with this implementation, so it is disabled for now.
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
-    NSLog(@"%s %@", _cmd, event);
+    //NSLog(@"%s %@", _cmd, event);
     // Called for Cmd+key keystrokes, function keys, arrow keys, page
     // up/down, home, end.
+    //
+    // NOTE: This message cannot be ignored since Cmd+letter keys never are
+    // passed to keyDown:.  It seems as if the main menu consumes Cmd-key
+    // strokes, unless the key is a function key.
 
-    if ([event type] != NSKeyDown)
+    // NOTE: If the event that triggered this method represents a function key
+    // down then we do nothing, otherwise the input method never gets the key
+    // stroke (some input methods use e.g.  arrow keys).  The function key down
+    // event will still reach Vim though (via keyDown:).
+    int flags = [event modifierFlags];
+    if ([event type] != NSKeyDown || flags & NSFunctionKeyMask)
         return NO;
 
     // HACK!  Let the main menu try to handle any key down event, before
@@ -277,20 +279,36 @@ static float MMDragAreaSize = 73.0f;
 
     //NSLog(@"%s%@", _cmd, event);
 
-    NSString *string = [event charactersIgnoringModifiers];
-    int flags = [event modifierFlags];
-    int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    NSString *chars = [event characters];
+    NSString *unmodchars = [event charactersIgnoringModifiers];
+    int len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     NSMutableData *data = [NSMutableData data];
+
+    if (len <= 0)
+        return NO;
+
+    // If 'chars' and 'unmodchars' differs when shift flag is present, then we
+    // can clear the shift flag as it is already included in 'unmodchars'.
+    // Failing to clear the shift flag means <D-Bar> turns into <S-D-Bar> (on
+    // an English keyboard).
+    if (flags & NSShiftKeyMask && ![chars isEqual:unmodchars])
+        flags &= ~NSShiftKeyMask;
+
+    if (0x3 == [unmodchars characterAtIndex:0]) {
+        // HACK! AppKit turns enter (not return) into Ctrl-C, so we need to
+        // handle it separately (else Cmd-enter turns into Ctrl-C).
+        unmodchars = MMKeypadEnterString;
+        len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    }
 
     [data appendBytes:&flags length:sizeof(int)];
     [data appendBytes:&len length:sizeof(int)];
-    [data appendBytes:[string UTF8String] length:len];
+    [data appendBytes:[unmodchars UTF8String] length:len];
 
     [[self vimController] sendMessage:CmdKeyMsgID data:data wait:NO];
 
     return YES;
 }
-#endif
 
 - (BOOL)hasMarkedText
 {
