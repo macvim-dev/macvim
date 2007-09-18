@@ -10,9 +10,10 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
 2. Starting MacVim		|gui-macvim-start|
 3. Special colors		|macvim-colors|
 4. Menus			|macvim-menus|
-5. System services		|macvim-services|
-6. Known bugs/missing features  |macvim-todo|
-7. Hints			|macvim-hints|
+5. Dialogs			|macvim-dialogs|
+6. System services		|macvim-services|
+7. Known bugs/missing features  |macvim-todo|
+8. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -168,7 +169,25 @@ this dictionary is the name of the action message (case sensitive), the value
 is not used.
 
 ==============================================================================
-5. System services					*macvim-services*
+5. Dialogs						*macvim-dialogs*
+
+Dialogs can be controlled with the keyboard in two ways.  By default each
+button in a dialog is bound to a key.  The button that is highlighted by blue
+is bound to Enter, and any button with the title "Cancel" is bound to Escape.
+Other buttons are usually bound to the first letter in the title of the
+button.  There is no visual feedback to indicate which letter a button is
+bound to, so sometimes some experimentation might be required in order to
+figure out which key to press.
+
+The second way of controlling dialogs with the keyboard is to enable "Full
+keyboard access" in the "Keyboard & Mouse" pane of the System Preferences (you
+can also toggle this on or off by pressing Ctrl-F7).  Once keyboard access is
+enabled it is possible to move between buttons with Tab and pressing Space to
+select the current button.  The current button is indicated with a blue
+outline.
+
+==============================================================================
+6. System services					*macvim-services*
 
 MacVim supports a few system services.  These can be accessed from the MacVim
 submenu in the Services menu.  For services to work, MacVim.app should be
@@ -186,7 +205,7 @@ These are the currently supported services:
   window.
 
 ==============================================================================
-6. Known bugs/missing features				*macvim-todo*
+7. Known bugs/missing features				*macvim-todo*
 
 Here are some of the bigger bugs in MacVim.  Of course there are others, but
 these are ones that are know and/or which were judged major.
@@ -205,7 +224,7 @@ simple to implement, but unless somebody asks for a particular feature then
 there is little incentive to add it.
 
 ==============================================================================
-7. Hints						*macvim-hints*
+8. Hints						*macvim-hints*
 
 In this section some general (not necessarily MacVim specific) hints are
 given.
