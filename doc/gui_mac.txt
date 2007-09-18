@@ -129,18 +129,23 @@ color and the value is an RGB value on the form #rrggbb stored as an integer.
 ==============================================================================
 4. Menus						*macvim-menus*
 
+							*:menukeyequiv*
 MacVim has a special way of binding keys to menu items that differs from other
 Vim GUI ports.  A menu binding is called a "key equivalent" in Mac OS X
-terminology.  The ":menukeyequiv" command is used to set the key equivalent of
-a menu item.  This command takes two parameters, the first names the menu item
-to bind to, the second gives the key combination.  For example: >
+terminology, this is displayed on the right side of a menu item.  The
+":menukeyequiv" command is used to set the key equivalent of a menu item.
+This command takes two parameters, the first names the menu item to bind to,
+the second gives the key combination.  For example: >
 	:menukeyequiv File.New\ Tab <D-t>
 This sets the key equivalent of the "New Tab" menu item under the "File" menu
 to Cmd+t.
 
-Note 1: A key equivalent should always contain the Cmd key modifier flag!
-Note 2: Key equivalents take precedence over normal mappings made with ":map".
+Note that key equivalents:
+	* should always contain the Cmd modifier flag (<D-...>)
+	* take precedence over normal mappings made with ":map"
+	* can only be modified during startup (e.g. in .gvimrc)
 
+							*:action*
 It is typical for menu items in Cocoa applications to bind to Objective-C
 selectors.  To support this, MacVim introduces the ":action" command.  This
 command takes the name of an action message as its only parameter.  (An action
