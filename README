@@ -129,8 +129,14 @@ Keyboard stuff:
   returns 1, charactersIgnoringModifiers returns <M-S-1>.
 - (2) handles: Ctrl+key, enter, backspace, escape.
   same note on translation of Ctrl+key as above holds true.
+  come Ctrl+key combos are by default mapped to several commands, so Ctrl+keys
+  must be intercepted in keyDown:
 - (3) handles: Cmd+key, arrow keys, function keys, help key
+  Cmd+letter keys never reach the app if this method isn't overridden (but
+  Cmd+function keys do)
+  Cmd+function key must not be intercepted here or input methods won't work
 - <M-Space> and <Space> are two different characters (the former is 0xa0)
+- Cocoa translates <C-Enter> to Ctrl-C so this must be taken care of
 
 
 Bugs:
