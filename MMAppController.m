@@ -124,7 +124,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
 {
     //NSLog(@"%s NSapp=%@ theApp=%@", _cmd, NSApp, sender);
 
-    [self newVimWindow:self];
+    [self newWindow:self];
     return YES;
 }
 
@@ -347,7 +347,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
     }
 }
 
-- (IBAction)newVimWindow:(id)sender
+- (IBAction)newWindow:(id)sender
 {
     NSMutableArray *args = [NSMutableArray arrayWithObject:@"-g"];
     NSString *path = [[NSBundle mainBundle]
@@ -477,7 +477,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
         if (openSelectionString) [openSelectionString release];
         openSelectionString = [[pboard stringForType:NSStringPboardType] copy];
 
-        [self newVimWindow:self];
+        [self newWindow:self];
     }
 }
 

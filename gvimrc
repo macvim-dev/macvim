@@ -40,7 +40,7 @@ aunmenu File.-SEP4-
 aunmenu File.Exit
 aunmenu File.Save-Exit
 
-an <silent> 10.290 File.New\ Window             :action newVimWindow:<CR>
+an <silent> 10.290 File.New\ Window             :action newWindow:<CR>
 an  10.295 File.New\ Tab                        :tabnew<CR>
 an 10.328 File.-SEP0-                           <Nop>
 an <silent> 10.330 File.Close\ Window<Tab>:qa   :confirm qa<CR>

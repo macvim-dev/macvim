@@ -13,7 +13,7 @@
             SUPERCLASS = NSObject; 
         }, 
         {
-            ACTIONS = {newVimWindow = id; }; 
+            ACTIONS = {newWindow = id; selectNextWindow = id; selectPreviousWindow = id; }; 
             CLASS = MMAppController; 
             LANGUAGE = ObjC; 
             SUPERCLASS = NSObject; 

@@ -22,7 +22,7 @@
 
 - (void)removeVimController:(id)controller;
 - (void)windowControllerWillOpen:(MMWindowController *)windowController;
-- (IBAction)newVimWindow:(id)sender;
+- (IBAction)newWindow:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;
 - (IBAction)selectPreviousWindow:(id)sender;
 
