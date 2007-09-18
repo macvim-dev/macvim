@@ -740,6 +740,17 @@ static NSString *MMKeypadEnterString = @"KA";
     // The font panel is updated whenever the font is set.
 }
 
+- (void)viewDidEndLiveResize
+{
+    // HACK! If a SetTextDimensionsMsgID message is lost while dragging to
+    // resize the window, then the text view and window sizes may become out of
+    // sync.  To avoid this problem, resize the window when live resizes ends.
+    // This sometimes makes the window size 'jump' unpleasantly, but that is
+    // better than the alternative.
+    id windowController = [[self window] windowController];
+    [windowController resizeWindowToFit:self];
+}
+
 @end // MMTextView
 
 

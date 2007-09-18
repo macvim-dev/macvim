@@ -50,7 +50,6 @@ enum {
 - (NSSize)contentSizeForTextStorageSize:(NSSize)textViewSize;
 - (NSRect)textViewRectForContentSize:(NSSize)contentSize;
 - (NSSize)textStorageSizeForTextViewSize:(NSSize)textViewSize;
-- (void)resizeWindowToFit:(id)sender;
 - (NSRect)fitWindowToFrame:(NSRect)frame;
 - (void)updateResizeIncrements;
 - (NSTabViewItem *)addNewTabViewItem;
@@ -720,6 +719,58 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return [self askBackendForStarRegister:pboard];
 }
 
+- (void)resizeWindowToFit:(id)sender
+{
+    // NOTE: Be very careful when you call this method!  Do not call while
+    // processing command queue, instead set 'shouldUpdateWindowSize' to YES.
+    // The only other place it is currently called is when live resize ends.
+    // This is done to ensure that the text view and window sizes match up
+    // (they may become out of sync if a SetTextDimensionsMsgID message to the
+    // backend is dropped).
+
+    if (!setupDone) return;
+
+    NSWindow *win = [self window];
+    NSRect frame = [win frame];
+    NSRect contentRect = [win contentRectForFrameRect:frame];
+    NSSize newSize = [self contentSizeForTextStorageSize:[textStorage size]];
+
+    // Keep top-left corner of the window fixed when resizing.
+    contentRect.origin.y -= newSize.height - contentRect.size.height;
+    contentRect.size = newSize;
+
+    frame = [win frameRectForContentRect:contentRect];
+    NSRect maxFrame = [win constrainFrameRect:frame toScreen:[win screen]];
+
+    // HACK!  Assuming the window frame cannot already be placed too high,
+    // adjust 'maxFrame' so that it at least as high up as the current frame.
+    // The reason for doing this is that constrainFrameRect:toScreen: does not
+    // always seem to utilize as much area as possible.
+    if (NSMaxY(frame) > NSMaxY(maxFrame)) {
+        maxFrame.size.height = frame.origin.y - maxFrame.origin.y
+                + frame.size.height;
+    }
+
+    if (!NSEqualRects(maxFrame, frame)) {
+        // The new window frame is too big to fit on the screen, so fit the
+        // text storage to the biggest frame which will fit on the screen.
+        //NSLog(@"Proposed window frame does not fit on the screen!");
+        frame = [self fitWindowToFrame:maxFrame];
+    }
+
+    //NSLog(@"%s %@", _cmd, NSStringFromRect(frame));
+
+    // HACK! If the window does resize, then windowDidResize is called which in
+    // turn calls placeViews.  In case the computed new size of the window is
+    // no different from the current size, then we need to call placeViews
+    // manually.
+    if (NSEqualRects(frame, [win frame])) {
+        [self placeViews];
+    } else {
+        [win setFrame:frame display:YES];
+    }
+}
+
 @end // MMWindowController
 
 
@@ -787,51 +838,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     size.height -= [textView textContainerOrigin].y + bot;
 
     return size;
-}
-
-- (void)resizeWindowToFit:(id)sender
-{
-    if (!setupDone) return;
-
-    NSWindow *win = [self window];
-    NSRect frame = [win frame];
-    NSRect contentRect = [win contentRectForFrameRect:frame];
-    NSSize newSize = [self contentSizeForTextStorageSize:[textStorage size]];
-
-    // Keep top-left corner of the window fixed when resizing.
-    contentRect.origin.y -= newSize.height - contentRect.size.height;
-    contentRect.size = newSize;
-
-    frame = [win frameRectForContentRect:contentRect];
-    NSRect maxFrame = [win constrainFrameRect:frame toScreen:[win screen]];
-
-    // HACK!  Assuming the window frame cannot already be placed too high,
-    // adjust 'maxFrame' so that it at least as high up as the current frame.
-    // The reason for doing this is that constrainFrameRect:toScreen: does not
-    // always seem to utilize as much area as possible.
-    if (NSMaxY(frame) > NSMaxY(maxFrame)) {
-        maxFrame.size.height = frame.origin.y - maxFrame.origin.y
-                + frame.size.height;
-    }
-
-    if (!NSEqualRects(maxFrame, frame)) {
-        // The new window frame is too big to fit on the screen, so fit the
-        // text storage to the biggest frame which will fit on the screen.
-        //NSLog(@"Proposed window frame does not fit on the screen!");
-        frame = [self fitWindowToFrame:maxFrame];
-    }
-
-    //NSLog(@"%s %@", _cmd, NSStringFromRect(frame));
-
-    // HACK! If the window does resize, then windowDidResize is called which in
-    // turn calls placeViews.  In case the computed new size of the window is
-    // no different from the current size, then we need to call placeViews
-    // manually.
-    if (NSEqualRects(frame, [win frame])) {
-        [self placeViews];
-    } else {
-        [win setFrame:frame display:YES];
-    }
 }
 
 - (NSRect)fitWindowToFrame:(NSRect)frame

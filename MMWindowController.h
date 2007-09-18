@@ -62,6 +62,8 @@
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;
 
+- (void)resizeWindowToFit:(id)sender;
+
 @end
 
 // vim: set ft=objc:

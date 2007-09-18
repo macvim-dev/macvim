@@ -13,7 +13,7 @@
 
 
 // If sendMessage: fails, store the message and resend after a delay.
-#define MM_RESEND_LAST_FAILURE 1
+#define MM_RESEND_LAST_FAILURE 0
 
 
 @class MMWindowController;
