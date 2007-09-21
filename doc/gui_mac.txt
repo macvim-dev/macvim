@@ -58,12 +58,14 @@ set to "utf-8".
 
 							*macvim-drag-n-drop*
 Dragging files and dropping them on a window opens those files in tabs in that
-window.  This happens even when Vim is in command-line mode.  Holding down
-modifier keys whilst dragging is not supported.
+window, unless Vim is in command-line mode.  In command-line mode the names of
+the files are added to the command line.  Holding down modifier keys whilst
+dragging is not supported.
 
 							*macvim-default-menu*
 The default menu in MacVim has been changed to conform better with the Apple
-Human Interface Guidelines (HIG).
+Human Interface Guidelines (HIG).  At the moment this breaks the localized
+menus, so only English menus are supported.
 
 Note: The menus are a work in progress.  If you know something about the HIG
 and want to contribute to MacVim you could do so by making the menus better.
@@ -224,6 +226,9 @@ These are the currently supported services:
 Here are some of the bigger bugs in MacVim.  Of course there are others, but
 these are ones that are know and/or which were judged major.
 
+- Localized menus are not supported.  Choosing anything but "English" in the
+  "International" pane of "System Prefences" may break the menus (and
+  toolbar).
 - Composing characters are not supported, they will mess up the display
 - Only "utf-8" is supported for 'enc'
 - Sometimes multibyte characters look "too wide", i.e. they overlap the
