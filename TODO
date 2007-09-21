@@ -1,5 +1,6 @@
 Active:
 
+- transparent text view
 - Listen to NSSystemColorsDidChangeNotification and update highlighting
 - Add support for 'mousehide' (needs to check p_mh)
 - Build Vim (make) from Xcode project
