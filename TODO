@@ -19,12 +19,11 @@ Active:
 - standardize NSString usage (initialization & how it is passed in messages)
 - autosave window rows&columns?
 - set gfn=* ?
-- improve drag and drop support (drop in command line mode not working,
-  modifier keys are ignored)
+- improve drag and drop support (modifier keys are ignored)
 - grey out menus which can't be used: Tab Next/Prev/Close, Undo/Redo, etc.
 - find/replace toolbar item (FIND_REPLACE_DIALOG)
 - drag-to-resize, delay if mouse button held down
-- ability to modify key equivalents at any time
+- ability to modify key equivalents at any time (?)
 - validate menu actions for when no windows are open (e.g. selectNextWindow:)
 - need E??? numbers for vim errors
 - tab-completion for :action command?
@@ -55,6 +54,7 @@ Active:
 
 Pending:
 
+- improve drag and drop support (drop in command line mode not working)
 - System colors don't come out the same as in other apps (as measure with
   Digital Color Meter)
 - Select-mode for <S-Key>
