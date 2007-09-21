@@ -43,12 +43,13 @@ a window.
 							*macvim-shift-movement*
 Text editors on Mac OS X lets the user hold down shift+movement key to extend
 the selection.  Also, pressing a printable key whilst selecting replaces the
-current selection with that character.  MacVim tries to emulate this behaviour
-by providing several key bindings and by setting 'keymodel' and 'selectmode'
-to non-default values.  To disable this behaviour, add the following line to
-your "~/.vimrc" (not .gvimrc) file: >
+current selection with that character.  MacVim can emulate this kind of
+behaviour (by providing key bindings and by setting 'keymodel' and
+'selectmode' to non-default values) although it is not enabled by default.  To
+make MacVim behave more like TextEdit and less like Vim, add the following
+lines to your "~/.vimrc" (not .gvimrc) file: >
 	if has("gui_macvim")
-	  let macvim_skip_hig_shift_movement = 1
+	  let macvim_hig_shift_movement = 1
 	endif
 <
 							*macvim-encoding*
@@ -245,8 +246,22 @@ order of the arguments matters): >
 	gvim --servername VIM3 --remote-tab foobar.txt
 For more information, consult the |client-server| manual page.
 
-Scenario: Selection doesn't work the way you are used to.
+Scenario: You like to be able to select text by holding down shift and
+pressing the arrow keys and find the Vim way of selecting text strange.
 Solution: See |macvim-shift-movement|.
+
+Scenario: You dislike the default font (Monaco) and/or want a font with bold
+and italic variants.
+Solution: The font "Courier New" is a fixed width font that ships with Mac OS
+X which has both bold and italic variants; however, it is not particularly
+well suited for programming.  A better alternative is to use the font
+"Bitstream Vera Sans Mono" which can be downloaded for free, and it also has
+both oblique and bold variants.  After having downloaded and installed the
+Bitstream Vera font, you can make it the default font by adding the following
+line to "~/.gvimrc": >
+	set guifont=Bitstream\ Vera\ Sans\ Mono:h13
+The suffix ":h13" specifies the point size of the font should be "13" (see
+'guifont' for more information on how to set the font).
 
 Scenario: You can't find the information on MacVim you thought should be in
 this manual page.
