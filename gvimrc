@@ -121,12 +121,12 @@ map  <M-Down>       }
 imap <M-Down>       <C-o>}
 
 
-" This is so that the HIG shift movement related settings can be disabled by
+" This is so that the HIG shift movement related settings can be enabled by
 " adding the line
-"   let macvim_skip_hig_shift_movement = 1
-" to the user .vimrc.
+"   let macvim_hig_shift_movement = 1
+" to the user .vimrc (not .gvimrc!).
 "
-if !exists("macvim_skip_hig_shift_movement")
+if exists("macvim_hig_shift_movement")
   " Shift + special movement key (<S-Left>, etc.) and mouse starts insert mode
   set selectmode=mouse,key
   set keymodel=startsel,stopsel
@@ -192,8 +192,8 @@ menukeyequiv Tools.Older\ List                      <D-C-Up>
 menukeyequiv Tools.Newer\ List                      <D-C-Down>
 
 menukeyequiv Window.Minimize                        <D-m>
-menukeyequiv Window.Previous\ Tab                   <D-[>
-menukeyequiv Window.Next\ Tab                       <D-]>
+menukeyequiv Window.Previous\ Tab                   <D-{>
+menukeyequiv Window.Next\ Tab                       <D-}>
 
 
 " Restore the previous value of 'cpoptions'.
