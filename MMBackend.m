@@ -1543,63 +1543,65 @@ enum {
     } else if (DropFilesMsgID == msgid) {
 #ifdef FEAT_DND
         const void *bytes = [data bytes];
+        const void *end = [data bytes] + [data length];
         int n = *((int*)bytes);  bytes += sizeof(int);
 
-#if 0
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
+        if (State & CMDLINE) {
+            // HACK!  If Vim is in command line mode then the files names
+            // should be added to the command line, instead of opening the
+            // files in tabs.  This is taken care of by gui_handle_drop().
+            char_u **fnames = (char_u **)alloc(n * sizeof(char_u *));
+            if (fnames) {
+                int i = 0;
+                while (bytes < end && i < n) {
+                    int len = *((int*)bytes);  bytes += sizeof(int);
+                    fnames[i++] = vim_strnsave((char_u*)bytes, len);
+                    bytes += len;
+                }
 
-	char_u **fnames = (char_u **)alloc(n * sizeof(char_u *));
-        if (fnames) {
-            const void *end = [data bytes] + [data length];
-            int i = 0;
-            while (bytes < end && i < n) {
+                // NOTE!  This function will free 'fnames'.
+                // HACK!  It is assumed that the 'x' and 'y' arguments are
+                // unused when in command line mode.
+                gui_handle_drop(0, 0, 0, fnames, i < n ? i : n);
+            }
+        } else {
+            // HACK!  I'm not sure how to get Vim to open a list of files in
+            // tabs, so instead I create a ':tab drop' command with all the
+            // files to open and execute it.
+            NSMutableString *cmd = (n > 1)
+                    ? [NSMutableString stringWithString:@":tab drop"]
+                    : [NSMutableString stringWithString:@":drop"];
+
+            int i;
+            for (i = 0; i < n && bytes < end; ++i) {
                 int len = *((int*)bytes);  bytes += sizeof(int);
-                fnames[i++] = vim_strnsave((char_u*)bytes, len);
+                NSMutableString *file =
+                        [NSMutableString stringWithUTF8String:bytes];
+                [file replaceOccurrencesOfString:@" "
+                                      withString:@"\\ "
+                                         options:0
+                                           range:NSMakeRange(0,[file length])];
                 bytes += len;
+
+                [cmd appendString:@" "];
+                [cmd appendString:file];
             }
 
-            // NOTE!  This function will free 'fnames'.
-            gui_handle_drop(col, row, 0, fnames, i < n ? i : n);
+            // By going to the last tabpage we ensure that the new tabs will
+            // appear last (if this call is left out, the taborder becomes
+            // messy).
+            goto_tabpage(9999);
+
+            do_cmdline_cmd((char_u*)[cmd UTF8String]);
+
+            // Force screen redraw (does it have to be this complicated?).
+            // (This code was taken from the end of gui_handle_drop().)
+            update_screen(NOT_VALID);
+            setcursor();
+            out_flush();
+            gui_update_cursor(FALSE, FALSE);
+            gui_mch_flush();
         }
-#else
-        // HACK!  I'm not sure how to get Vim to open a list of files in tabs,
-        // so instead I create a ':tab drop' command with all the files to open
-        // and execute it.
-        NSMutableString *cmd = (n > 1)
-                ? [NSMutableString stringWithString:@":tab drop"]
-                : [NSMutableString stringWithString:@":drop"];
-
-        const void *end = [data bytes] + [data length];
-        int i;
-        for (i = 0; i < n && bytes < end; ++i) {
-            int len = *((int*)bytes);  bytes += sizeof(int);
-            NSMutableString *file =
-                    [NSMutableString stringWithUTF8String:bytes];
-            [file replaceOccurrencesOfString:@" "
-                                  withString:@"\\ "
-                                     options:0
-                                       range:NSMakeRange(0, [file length])];
-            bytes += len;
-
-            [cmd appendString:@" "];
-            [cmd appendString:file];
-        }
-
-        // By going to the last tabpage we ensure that the new tabs will appear
-        // last (if this call is left out, the taborder becomes messy).
-        goto_tabpage(9999);
-
-        do_cmdline_cmd((char_u*)[cmd UTF8String]);
-
-        // Force screen redraw (does it have to be this complicated?).
-        // (This code was taken from the end of gui_handle_drop().)
-	update_screen(NOT_VALID);
-	setcursor();
-	out_flush();
-	gui_update_cursor(FALSE, FALSE);
-	gui_mch_flush();
-#endif
 #endif // FEAT_DND
     } else if (DropStringMsgID == msgid) {
 #ifdef FEAT_DND
