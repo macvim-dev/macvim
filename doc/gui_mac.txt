@@ -147,6 +147,19 @@ Note that key equivalents:
 	* take precedence over normal mappings made with ":map"
 	* can only be modified during startup (e.g. in .gvimrc)
 
+It is possible to reset a key equivalent by calling :menukeyequiv with a menu
+name but no key.  This is so that the default key equivalents can be reset in
+"~/.gvimrc".  For example, if you would like to free up <D-s> (which is the
+key equivalent of "File.Save") then add the following line to "~/.gvimrc": >
+	menukeyequiv File.Save
+Now you can use :map to bind <D-s> to whatever you like.
+
+It is not necessary to reset a key equivalent if all you want to do is to
+change the key equivalent of a menu item.  For example, say you want to use
+<D-M-Right> as the key equivalent for "Next Tab", then add the following line
+to "~/.gvimrc": >
+	menukeyequiv Window.Next\ Tab <D-M-Right>
+<
 							*:action*
 It is typical for menu items in Cocoa applications to bind to Objective-C
 selectors.  To support this, MacVim introduces the ":action" command.  This
