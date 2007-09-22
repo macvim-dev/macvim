@@ -1670,8 +1670,8 @@ enum {
 {
     char_u special[3];
     char_u modChars[3];
-    char_u *chars = 0;
-    int length = 0;
+    char_u *chars = (char_u*)[key UTF8String];
+    int length = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
     // Special keys (arrow keys, function keys, etc.) are stored in a plist so
     // that new keys can easily be added.
@@ -1692,9 +1692,34 @@ enum {
 
         chars = special;
         length = 3;
-    } else if ([key length] > 0) {
-        chars = (char_u*)[key UTF8String];
-        length = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    } else if (1 == length && TAB == chars[0]) {
+        // Tab is a trouble child:
+        // - <Tab> is added to the input buffer as is
+        // - <S-Tab> is translated to, {CSI,'k','B'} (i.e. 'Back-tab')
+        // - <M-Tab> should be 0x80|TAB but this is not valid utf-8 so it needs
+        //   to be converted to utf-8
+        // - <S-M-Tab> is translated to <S-Tab> with ALT modifier
+        // - <C-Tab> is reserved by Mac OS X
+        // - <D-Tab> is reserved by Mac OS X
+        chars = special;
+        special[0] = TAB;
+        length = 1;
+
+        if (mods & MOD_MASK_SHIFT) {
+            mods &= ~MOD_MASK_SHIFT;
+            special[0] = CSI;
+            special[1] = K_SECOND(K_S_TAB);
+            special[2] = K_THIRD(K_S_TAB);
+            length = 3;
+        } else if (mods & MOD_MASK_ALT) {
+            int mtab = 0x80 | TAB;
+            // Convert to utf-8
+            special[0] = (mtab >> 6) + 0xc0;
+            special[1] = mtab & 0xbf;
+            length = 2;
+            mods &= ~MOD_MASK_ALT;
+        }
+    } else if (length > 0) {
         unichar c = [key characterAtIndex:0];
 
         //NSLog(@"non-special: %@ (hex=%x, mods=%d)", key,
@@ -1710,7 +1735,8 @@ enum {
         // cleared since they are already added to the key by the AppKit.
         // Unfortunately, the only way to deal with when to clear the modifiers
         // or not seems to be to have hard-wired rules like this.
-        if ( !((' ' == c) || (0xa0 == c) || (mods & MOD_MASK_CMD)) ) {
+        if ( !((' ' == c) || (0xa0 == c) || (mods & MOD_MASK_CMD)
+                    || 0x9 == c) ) {
             mods &= ~MOD_MASK_SHIFT;
             mods &= ~MOD_MASK_CTRL;
             //NSLog(@"clear shift ctrl");

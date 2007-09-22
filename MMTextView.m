@@ -180,16 +180,19 @@ static NSString *MMKeypadEnterString = @"KA";
 
     NSEvent *event = [NSApp currentEvent];
 
-    // HACK!  In order to be able to bind to <S-Space> etc. we have to watch
-    // for when space was pressed.
+    // HACK!  In order to be able to bind to <S-Space>, <S-M-Tab>, etc. we have
+    // to watch for them here.
     if ([event type] == NSKeyDown
             && [[event charactersIgnoringModifiers] length] > 0
-            && [[event charactersIgnoringModifiers] characterAtIndex:0] == ' '
             && [event modifierFlags]
-                & (NSShiftKeyMask|NSControlKeyMask|NSAlternateKeyMask))
-    {
-        [self dispatchKeyEvent:event];
-        return;
+                & (NSShiftKeyMask|NSControlKeyMask|NSAlternateKeyMask)) {
+        unichar c = [[event charactersIgnoringModifiers] characterAtIndex:0];
+
+        // <S-M-Tab> translates to 0x19 
+        if (' ' == c || 0x19 == c) {
+            [self dispatchKeyEvent:event];
+            return;
+        }
     }
 
     // TODO: Support 'mousehide' (check p_mh)
@@ -835,6 +838,7 @@ static NSString *MMKeypadEnterString = @"KA";
     unichar imc = [unmodchars characterAtIndex:0];
     int len = 0;
     const char *bytes = 0;
+    int mods = [event modifierFlags];
 
     //NSLog(@"%s chars[0]=0x%x unmodchars[0]=0x%x (chars=%@ unmodchars=%@)",
     //        _cmd, c, imc, chars, unmodchars);
@@ -856,14 +860,14 @@ static NSString *MMKeypadEnterString = @"KA";
     } else if (c == 0x19 && imc == 0x19) {
         // HACK! AppKit turns back tab into Ctrl-Y, so we need to handle it
         // separately (else Ctrl-Y doesn't work).
-        static char back_tab[2] = { 'k', 'B' };
-        len = 2; bytes = back_tab;
+        static char tab = 0x9;
+        len = 1;  bytes = &tab;  mods |= NSShiftKeyMask;
     } else {
         len = [chars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
         bytes = [chars UTF8String];
     }
 
-    [self sendKeyDown:bytes length:len modifiers:[event modifierFlags]];
+    [self sendKeyDown:bytes length:len modifiers:mods];
 }
 
 - (MMVimController *)vimController
