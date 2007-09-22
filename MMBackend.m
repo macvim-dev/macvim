@@ -764,6 +764,13 @@ enum {
     if (name) {
         fontName = [[[NSString alloc] initWithCString:name
                 encoding:NSUTF8StringEncoding] autorelease];
+
+        if ([fontName isEqual:@"*"]) {
+            // :set gfn=* shows the font panel.
+            do_cmdline_cmd((char_u*)":action orderFrontFontPanel:");
+            return YES;
+        }
+
         NSArray *components = [fontName componentsSeparatedByString:@":"];
         if ([components count] == 2) {
             NSString *sizeString = [components lastObject];
@@ -808,8 +815,8 @@ enum {
         }
     }
 
-    NSLog(@"WARNING: Cannot set font with name '%@' of size %.2f",
-            fontName, size);
+    //NSLog(@"WARNING: Cannot set font with name '%@' of size %.2f",
+    //        fontName, size);
     return NO;
 }
 
