@@ -51,6 +51,8 @@
 - (void)dropFiles:(NSArray *)filenames;
 - (void)dropString:(NSString *)string;
 - (void)sendMessage:(int)msgid data:(NSData *)data;
+- (BOOL)sendMessageNow:(int)msgid data:(NSData *)data
+               timeout:(NSTimeInterval)timeout;
 
 @end
 

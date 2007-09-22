@@ -276,6 +276,33 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 }
 
+- (BOOL)sendMessageNow:(int)msgid data:(NSData *)data
+               timeout:(NSTimeInterval)timeout
+{
+    if (!isInitialized || inProcessCommandQueue)
+        return NO;
+
+    if (timeout < 0) timeout = 0;
+
+    BOOL sendOk = YES;
+    NSConnection *conn = [backendProxy connectionForProxy];
+    NSTimeInterval oldTimeout = [conn requestTimeout];
+
+    [conn setRequestTimeout:timeout];
+
+    @try {
+        [backendProxy processInput:msgid data:data];
+    }
+    @catch (NSException *e) {
+        sendOk = NO;
+    }
+    @finally {
+        [conn setRequestTimeout:oldTimeout];
+    }
+
+    return sendOk;
+}
+
 - (id)backendProxy
 {
     return backendProxy;

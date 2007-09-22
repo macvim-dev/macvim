@@ -58,11 +58,10 @@
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode;
 - (void)setMouseShape:(int)shape;
 - (void)adjustLinespace:(int)linespace;
+- (void)liveResizeDidEnd;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;
-
-- (void)resizeWindowToFit:(id)sender;
 
 @end
 

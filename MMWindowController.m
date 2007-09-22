@@ -50,6 +50,7 @@ enum {
 - (NSSize)contentSizeForTextStorageSize:(NSSize)textViewSize;
 - (NSRect)textViewRectForContentSize:(NSSize)contentSize;
 - (NSSize)textStorageSizeForTextViewSize:(NSSize)textViewSize;
+- (void)resizeWindowToFit:(id)sender;
 - (NSRect)fitWindowToFrame:(NSRect)frame;
 - (void)updateResizeIncrements;
 - (NSTabViewItem *)addNewTabViewItem;
@@ -548,6 +549,50 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     }
 }
 
+- (void)liveResizeDidEnd
+{
+    // TODO: Don't duplicate code from placeViews.
+
+    if (!setupDone) return;
+
+    // NOTE!  It is assumed that the window has been resized so that it will
+    // exactly fit the text storage (possibly after resizing it).  If this is
+    // not the case the display might be messed up.
+    BOOL resizeFailed = NO;
+    NSWindow *win = [self window];
+    NSRect contentRect = [win contentRectForFrameRect:[win frame]];
+    NSRect textViewRect = [self textViewRectForContentSize:contentRect.size];
+    NSSize tsSize = [self textStorageSizeForTextViewSize:textViewRect.size];
+
+    int dim[2], rows, cols;
+    [textStorage getMaxRows:&rows columns:&cols];
+    [textStorage fitToSize:tsSize rows:&dim[0] columns:&dim[1]];
+
+    if (dim[0] != rows || dim[1] != cols) {
+        NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];
+
+        // NOTE:  Since we're at the end of a live resize we want to make sure
+        // that the SetTextDimensionsMsgID message reaches Vim, else Vim and
+        // MacVim will have inconsistent states (i.e. the text view will be too
+        // large or too small for the window size).  Thus, add a timeout (this
+        // may have to be tweaked) and take note if the message was sent or
+        // not.
+        resizeFailed = ![vimController sendMessageNow:SetTextDimensionsMsgID
+                                                 data:data
+                                              timeout:.5];
+    }
+
+    [textView setFrame:textViewRect];
+
+    [self placeScrollbars];
+
+    if (resizeFailed) {
+        // Force the window size to match the text view size otherwise Vim and
+        // MacVim will have inconsistent states.
+        [self resizeWindowToFit:self];
+    }
+}
+
 - (IBAction)addNewTab:(id)sender
 {
     // NOTE! This can get called a lot if the user holds down the key
@@ -719,58 +764,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return [self askBackendForStarRegister:pboard];
 }
 
-- (void)resizeWindowToFit:(id)sender
-{
-    // NOTE: Be very careful when you call this method!  Do not call while
-    // processing command queue, instead set 'shouldUpdateWindowSize' to YES.
-    // The only other place it is currently called is when live resize ends.
-    // This is done to ensure that the text view and window sizes match up
-    // (they may become out of sync if a SetTextDimensionsMsgID message to the
-    // backend is dropped).
-
-    if (!setupDone) return;
-
-    NSWindow *win = [self window];
-    NSRect frame = [win frame];
-    NSRect contentRect = [win contentRectForFrameRect:frame];
-    NSSize newSize = [self contentSizeForTextStorageSize:[textStorage size]];
-
-    // Keep top-left corner of the window fixed when resizing.
-    contentRect.origin.y -= newSize.height - contentRect.size.height;
-    contentRect.size = newSize;
-
-    frame = [win frameRectForContentRect:contentRect];
-    NSRect maxFrame = [win constrainFrameRect:frame toScreen:[win screen]];
-
-    // HACK!  Assuming the window frame cannot already be placed too high,
-    // adjust 'maxFrame' so that it at least as high up as the current frame.
-    // The reason for doing this is that constrainFrameRect:toScreen: does not
-    // always seem to utilize as much area as possible.
-    if (NSMaxY(frame) > NSMaxY(maxFrame)) {
-        maxFrame.size.height = frame.origin.y - maxFrame.origin.y
-                + frame.size.height;
-    }
-
-    if (!NSEqualRects(maxFrame, frame)) {
-        // The new window frame is too big to fit on the screen, so fit the
-        // text storage to the biggest frame which will fit on the screen.
-        //NSLog(@"Proposed window frame does not fit on the screen!");
-        frame = [self fitWindowToFrame:maxFrame];
-    }
-
-    //NSLog(@"%s %@", _cmd, NSStringFromRect(frame));
-
-    // HACK! If the window does resize, then windowDidResize is called which in
-    // turn calls placeViews.  In case the computed new size of the window is
-    // no different from the current size, then we need to call placeViews
-    // manually.
-    if (NSEqualRects(frame, [win frame])) {
-        [self placeViews];
-    } else {
-        [win setFrame:frame display:YES];
-    }
-}
-
 @end // MMWindowController
 
 
@@ -838,6 +831,58 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     size.height -= [textView textContainerOrigin].y + bot;
 
     return size;
+}
+
+- (void)resizeWindowToFit:(id)sender
+{
+    // NOTE: Be very careful when you call this method!  Do not call while
+    // processing command queue, instead set 'shouldUpdateWindowSize' to YES.
+    // The only other place it is currently called is when live resize ends.
+    // This is done to ensure that the text view and window sizes match up
+    // (they may become out of sync if a SetTextDimensionsMsgID message to the
+    // backend is dropped).
+
+    if (!setupDone) return;
+
+    NSWindow *win = [self window];
+    NSRect frame = [win frame];
+    NSRect contentRect = [win contentRectForFrameRect:frame];
+    NSSize newSize = [self contentSizeForTextStorageSize:[textStorage size]];
+
+    // Keep top-left corner of the window fixed when resizing.
+    contentRect.origin.y -= newSize.height - contentRect.size.height;
+    contentRect.size = newSize;
+
+    frame = [win frameRectForContentRect:contentRect];
+    NSRect maxFrame = [win constrainFrameRect:frame toScreen:[win screen]];
+
+    // HACK!  Assuming the window frame cannot already be placed too high,
+    // adjust 'maxFrame' so that it at least as high up as the current frame.
+    // The reason for doing this is that constrainFrameRect:toScreen: does not
+    // always seem to utilize as much area as possible.
+    if (NSMaxY(frame) > NSMaxY(maxFrame)) {
+        maxFrame.size.height = frame.origin.y - maxFrame.origin.y
+                + frame.size.height;
+    }
+
+    if (!NSEqualRects(maxFrame, frame)) {
+        // The new window frame is too big to fit on the screen, so fit the
+        // text storage to the biggest frame which will fit on the screen.
+        //NSLog(@"Proposed window frame does not fit on the screen!");
+        frame = [self fitWindowToFrame:maxFrame];
+    }
+
+    //NSLog(@"%s %@", _cmd, NSStringFromRect(frame));
+
+    // HACK! If the window does resize, then windowDidResize is called which in
+    // turn calls placeViews.  In case the computed new size of the window is
+    // no different from the current size, then we need to call placeViews
+    // manually.
+    if (NSEqualRects(frame, [win frame])) {
+        [self placeViews];
+    } else {
+        [win setFrame:frame display:YES];
+    }
 }
 
 - (NSRect)fitWindowToFrame:(NSRect)frame
@@ -1108,9 +1153,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         //        dim[0], dim[1]);
         NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];
 
-        // NOTE! This can get called a lot when in live resize, which causes
-        // the connection buffers to fill up.  If we wait for the message to be
-        // sent then the app might become unresponsive.
         [vimController sendMessage:SetTextDimensionsMsgID data:data];
     }
 
