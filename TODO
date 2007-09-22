@@ -12,13 +12,11 @@ Active:
   (seems like a drawing bug in PSMTabBarControl)
 - file modified outside vim dialog sometimes only appear after pressing a key
 - let user choose file encoding and format in open/save dialogs
-- view menu option to show/hide gui status line
 - autosave settings ?
 - encoding -- convert strings from vim to utf-8
 - main menu (buffers menu, window menu)
 - standardize NSString usage (initialization & how it is passed in messages)
 - autosave window rows&columns?
-- set gfn=* ?
 - improve drag and drop support (modifier keys are ignored)
 - grey out menus which can't be used: Tab Next/Prev/Close, Undo/Redo, etc.
 - find/replace toolbar item (FIND_REPLACE_DIALOG)
@@ -39,7 +37,6 @@ Active:
   (this will lead to a crash)
 - update speed whilst resizing with mouse is excruciatingly slow
 - window count should be typeset nicely in tab ?
-- marked text
 - track pad scrolling is jerky
 - sanity check all input in handlePortMessage: etc.
 - nice looking cursors (both the block and in insert mode) ?
@@ -54,6 +51,8 @@ Active:
 
 Pending:
 
+- marked text
+- set gfn=*
 - improve drag and drop support (drop in command line mode not working)
 - System colors don't come out the same as in other apps (as measure with
   Digital Color Meter)

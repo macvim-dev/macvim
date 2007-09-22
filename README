@@ -137,6 +137,8 @@ Keyboard stuff:
   Cmd+function key must not be intercepted here or input methods won't work
 - <M-Space> and <Space> are two different characters (the former is 0xa0)
 - Cocoa translates <C-Enter> to Ctrl-C so this must be taken care of
+- <Tab> with various modifiers is very special, check MMBackend how it is
+  handled
 
 
 Bugs:
