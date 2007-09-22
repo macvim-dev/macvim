@@ -1381,7 +1381,7 @@ enum {
         button = eventButtonNumberToVimMouseButton(button);
         flags = eventModifierFlagsToVimMouseModMask(flags);
 
-        gui_send_mouse_event(button, col, row, 0 != count, flags);
+        gui_send_mouse_event(button, col, row, count>1, flags);
     } else if (MouseUpMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
