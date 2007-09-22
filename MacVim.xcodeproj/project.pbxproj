@@ -35,6 +35,10 @@
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
 		1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */; };
 		1DDBEB6D0C7434150036EEDD /* EmptyWindow.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDBEB6B0C7434150036EEDD /* EmptyWindow.nib */; };
+		1DE5F2520CA5B0B8005A40E4 /* VeraMoBd.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1DE5F24E0CA5B0B8005A40E4 /* VeraMoBd.ttf */; };
+		1DE5F2530CA5B0B8005A40E4 /* VeraMoBI.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1DE5F24F0CA5B0B8005A40E4 /* VeraMoBI.ttf */; };
+		1DE5F2540CA5B0B8005A40E4 /* VeraMoIt.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1DE5F2500CA5B0B8005A40E4 /* VeraMoIt.ttf */; };
+		1DE5F2550CA5B0B8005A40E4 /* VeraMono.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1DE5F2510CA5B0B8005A40E4 /* VeraMono.ttf */; };
 		1DE608B40C587FDA0055263D /* runtime in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
 		1DED78600C6DE43D0079945F /* vimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
@@ -158,6 +162,10 @@
 		1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SpecialKeys.plist; sourceTree = "<group>"; };
 		1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SystemColors.plist; sourceTree = "<group>"; };
 		1DDBEB6C0C7434150036EEDD /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/EmptyWindow.nib; sourceTree = "<group>"; };
+		1DE5F24E0CA5B0B8005A40E4 /* VeraMoBd.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = VeraMoBd.ttf; path = "ttf-bitstream-vera-1.10/VeraMoBd.ttf"; sourceTree = "<group>"; };
+		1DE5F24F0CA5B0B8005A40E4 /* VeraMoBI.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = VeraMoBI.ttf; path = "ttf-bitstream-vera-1.10/VeraMoBI.ttf"; sourceTree = "<group>"; };
+		1DE5F2500CA5B0B8005A40E4 /* VeraMoIt.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = VeraMoIt.ttf; path = "ttf-bitstream-vera-1.10/VeraMoIt.ttf"; sourceTree = "<group>"; };
+		1DE5F2510CA5B0B8005A40E4 /* VeraMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = VeraMono.ttf; path = "ttf-bitstream-vera-1.10/VeraMono.ttf"; sourceTree = "<group>"; };
 		1DE602470C587FD10055263D /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; name = runtime; path = ../../runtime; sourceTree = SOURCE_ROOT; };
 		1DE8CC610C5E2AAD003F56E3 /* Actions.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Actions.plist; sourceTree = "<group>"; };
 		1DED785F0C6DE43D0079945F /* vimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = vimrc; sourceTree = "<group>"; };
@@ -344,6 +352,10 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1DE5F24E0CA5B0B8005A40E4 /* VeraMoBd.ttf */,
+				1DE5F24F0CA5B0B8005A40E4 /* VeraMoBI.ttf */,
+				1DE5F2500CA5B0B8005A40E4 /* VeraMoIt.ttf */,
+				1DE5F2510CA5B0B8005A40E4 /* VeraMono.ttf */,
 				1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */,
 				1DE8CC610C5E2AAD003F56E3 /* Actions.plist */,
 				1DD04DEB0C529C5E006CDC2B /* Credits.rtf */,
@@ -471,6 +483,10 @@
 				1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */,
 				1DDBEB6D0C7434150036EEDD /* EmptyWindow.nib in Resources */,
 				1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */,
+				1DE5F2520CA5B0B8005A40E4 /* VeraMoBd.ttf in Resources */,
+				1DE5F2530CA5B0B8005A40E4 /* VeraMoBI.ttf in Resources */,
+				1DE5F2540CA5B0B8005A40E4 /* VeraMoIt.ttf in Resources */,
+				1DE5F2550CA5B0B8005A40E4 /* VeraMono.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

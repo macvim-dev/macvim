@@ -21,6 +21,10 @@ static float MMFlushTimeoutInterval = 0.1f;
 static unsigned MMServerMax = 1000;
 //static NSTimeInterval MMEvaluateExpressionTimeout = 3;
 
+// NOTE: The Bitstream Vera font is bundled with the application and loaded
+// during initialization of MMAppController.
+static NSString *MMDefaultFontName = @"Bitstream Vera Sans Mono";
+static float MMDefaultFontSize = 12.0f;
 
 // TODO: Move to separate file.
 static int eventModifierFlagsToVimModMask(int modifierFlags);
@@ -757,8 +761,8 @@ enum {
 
 - (BOOL)setFontWithName:(char *)name
 {
-    NSString *fontName;
-    float size = 0.0f;
+    NSString *fontName = MMDefaultFontName;
+    float size = MMDefaultFontSize;
     BOOL parseFailed = NO;
 
     if (name) {
@@ -787,8 +791,6 @@ enum {
         } else if ([components count] > 2) {
             parseFailed = YES;
         }
-    } else {
-        fontName = [[NSFont userFixedPitchFontOfSize:0] displayName];
     }
 
     if (!parseFailed && [fontName length] > 0) {

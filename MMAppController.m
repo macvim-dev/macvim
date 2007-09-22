@@ -34,6 +34,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
 @interface MMAppController (Private)
 - (MMVimController *)keyVimController;
 - (MMVimController *)topmostVimController;
++ (void)loadFonts;
 @end
 
 @interface NSMenu (MMExtras)
@@ -67,6 +68,8 @@ static NSTimeInterval MMTerminateTimeout = 3;
 
     NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
     [NSApp registerServicesMenuSendTypes:types returnTypes:types];
+
+    [self loadFonts];
 }
 
 - (id)init
@@ -543,6 +546,28 @@ static NSTimeInterval MMTerminateTimeout = 3;
     }
 
     return nil;
+}
+
++ (void)loadFonts
+{
+    // This loads all fonts from the Resources folder.
+    // (Code taken from cocoadev.com)
+    NSString *fontsFolder;    
+    if (fontsFolder = [[NSBundle mainBundle] resourcePath]) {
+        NSURL *fontsURL;
+        if (fontsURL = [NSURL fileURLWithPath:fontsFolder]) {
+            FSRef fsRef;
+            FSSpec fsSpec;
+            CFURLGetFSRef((CFURLRef)fontsURL, &fsRef);
+
+            if (FSGetCatalogInfo(&fsRef, kFSCatInfoNone, NULL, NULL, &fsSpec,
+                        NULL) == noErr) {
+                ATSFontActivateFromFileSpecification(&fsSpec,
+                        kATSFontContextGlobal, kATSFontFormatUnspecified, NULL,
+                        kATSOptionFlagsDefault, NULL);
+            }
+        }
+    }
 }
 
 @end

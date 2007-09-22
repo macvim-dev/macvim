@@ -49,17 +49,17 @@
 	};
 	1D1474AE0C5678370038FA2B /* MMTextView.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {781, 11504}}";
-			sepNavSelRange = "{18031, 7}";
-			sepNavVisRect = "{{0, 9245}, {781, 608}}";
+			sepNavIntBoundsRect = "{{0, 0}, {795, 15040}}";
+			sepNavSelRange = "{31183, 0}";
+			sepNavVisRect = "{{0, 343}, {795, 162}}";
 			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
 	1D1474B40C56796D0038FA2B /* MMVimController.m */ = {
 		uiCtxt = {
-			sepNavIntBoundsRect = "{{0, 0}, {1637, 19840}}";
-			sepNavSelRange = "{42712, 0}";
-			sepNavVisRect = "{{0, 13527}, {795, 162}}";
+			sepNavIntBoundsRect = "{{0, 0}, {1637, 20752}}";
+			sepNavSelRange = "{7708, 0}";
+			sepNavVisRect = "{{0, 4063}, {983, 274}}";
 			sepNavWindowFrame = "{{15, 4}, {820, 737}}";
 		};
 	};
@@ -222,7 +222,7 @@
 		delayBeforeContinue = 0;
 		hitCount = 1;
 		location = AppKit;
-		modificationTime = 209732042.802391;
+		modificationTime = 211747499.23789;
 		state = 2;
 		symbolName = "[NSView performKeyEquivalent:]";
 	};
@@ -235,7 +235,7 @@
 		delayBeforeContinue = 0;
 		hitCount = 1;
 		location = Foundation;
-		modificationTime = 209732047.262262;
+		modificationTime = 211747504.632111;
 		state = 1;
 		symbolName = "-[_NSZombie methodSignatureForSelector:]";
 	};
@@ -248,7 +248,7 @@
 		delayBeforeContinue = 0;
 		hitCount = 1;
 		location = Foundation;
-		modificationTime = 209732047.175895;
+		modificationTime = 211747504.576004;
 		state = 1;
 		symbolName = "[NSException raise]";
 	};
@@ -264,7 +264,7 @@
 		hitCount = 1;
 		lineNumber = 594;
 		location = MacVim;
-		modificationTime = 209732042.795645;
+		modificationTime = 211747499.23754;
 		state = 2;
 	};
 	1DD66EB70C80301100EBDAB3 /* MMTextView.m:172 */ = {
@@ -276,10 +276,10 @@
 		delayBeforeContinue = 0;
 		fileReference = 1D1474AE0C5678370038FA2B /* MMTextView.m */;
 		functionName = "-performKeyEquivalent:";
-		hitCount = 3;
+		hitCount = 1;
 		lineNumber = 172;
 		location = MacVim;
-		modificationTime = 209732165.15915;
+		modificationTime = 211747499.237583;
 		state = 2;
 	};
 	1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */ = {
@@ -438,8 +438,8 @@
 					PBXFileDataSource_Warnings_ColumnID,
 				);
 			};
-			PBXPerProjectTemplateStateSaveDate = 210097639;
-			PBXWorkspaceStateSaveDate = 210097639;
+			PBXPerProjectTemplateStateSaveDate = 212185620;
+			PBXWorkspaceStateSaveDate = 212185620;
 		};
 		sourceControlManager = 1D16B9DD0BA33BB000A69B33 /* Source Control */;
 		userBuildSettings = {
