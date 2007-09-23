@@ -1,11 +1,12 @@
 *gui_mac.txt*	For Vim version 7.1.  Last change: 2007 Sep 18
 
 
-		  VIM REFERENCE MANUAL    by Bram Moolenaar
+		  VIM REFERENCE MANUAL    by Björn Winckler
 
 
 The MacVim Graphical User Interface			*macvim* *gui-macvim*
 
+0. Important!			|macvim-important|
 1. MacVim differences		|macvim-differences|
 2. Starting MacVim		|gui-macvim-start|
 3. Special colors		|macvim-colors|
@@ -20,6 +21,20 @@ Other relevant documentation:
 |os_mac.txt|	For Mac specific items.
 
 {Vi does not have a GUI}
+
+==============================================================================
+0. Important!						*macvim-important*
+
+MacVim is still under development...this is not the finished product!  If you
+have problems with MacVim then make it known either by adding an issue report
+on the MacVim project page >
+	http://code.google.com/p/macvim
+or by posting to the vim_mac mailing list >
+	http://groups.google.com/group/vim_mac
+
+Remember to keep checking the project page for new snapshots.  (If you
+downloaded this copy from somewhere else, you might want to go there now to
+make sure that you have got the latest version.)
 
 ==============================================================================
 1. MacVim differences					*macvim-differences*
@@ -130,6 +145,13 @@ Apart from the system colors, it is also possible to use the colors listed in
 the dictionary "Colors.plist". The key in this dictionary is the name of the
 color and the value is an RGB value on the form #rrggbb stored as an integer.
 
+							*macvim-colorscheme*
+MacVim ships with a custom colorscheme that can be used as an alternative to
+the default Vim colorscheme.  You can try it out by typing: >
+	:colorscheme macvim
+If you have any comments regarding this colorscheme (is it better or worse
+than the default?) then post them to vim_mac.
+
 ==============================================================================
 4. Menus						*macvim-menus*
 
@@ -145,7 +167,7 @@ This sets the key equivalent of the "New Tab" menu item under the "File" menu
 to Cmd+t.
 
 Note that key equivalents:
-	* should always contain the Cmd modifier flag (<D-...>)
+	* must contain the Cmd modifier flag (<D-...>)
 	* take precedence over normal mappings made with ":map"
 	* can only be modified during startup (e.g. in .gvimrc)
 
@@ -183,6 +205,25 @@ is a dictionary called "Actions.plist" (in the Resources folder of the
 application bundle) which contains all actions that may be called.  The key in
 this dictionary is the name of the action message (case sensitive), the value
 is not used.
+
+Here is a random assortment of actions from Actions.plist which might be
+useful.
+
+Action				Description ~
+newWindow:			Open a new (empty) window
+orderFrontCharacterPalette:	Show the the "Special Characters" dialog
+orderFrontFontPanel:		Show the Font panel
+performZoom:			Zoom window (same as clicking the green blob)
+selectNextWindow:		Select next window (similar to <D-`>)
+selectPreviousWindow:		Select previous window (similar to <S-D-`>)
+
+As an example, to map <C-z> to performZoom: you could do something like this: >
+	:map <silent> <C-z> :action performZoom:<CR>
+A better way to map to performZoom: would be to set the key equivalent of the
+menu item "Window.Zoom" to the above action.  This can be done by adding the
+following line to "~/.gvimrc": >
+	menukeyequiv Window.Zoom <D-C-z>
+(Note that key equivalents must contain the 'D' flag.)
 
 ==============================================================================
 5. Dialogs						*macvim-dialogs*
@@ -248,14 +289,18 @@ there is little incentive to add it.
 In this section some general (not necessarily MacVim specific) hints are
 given.
 
-Scenario: You try opening a bunch of files in tabs but not all files get
+Scenario: ~
+You try opening a bunch of files in tabs but not all files get
 opened in their own tab.
-Solution: To get around this, set 'tabpagemax' to something big in your
+Solution: ~
+To get around this, set 'tabpagemax' to something big in your
 .gvimrc file (e.g. ":set tabpagemax=100").
 
-Scenario: You want to open a file in a tab in an already opened window, but
+Scenario: ~
+You want to open a file in a tab in an already opened window, but
 typing "gvim filename" in Terminal opens it up in a separate window.
-Solution: Use the |--remote-tab| switch.  If you have several windows open you
+Solution: ~
+Use the |--remote-tab| switch.  If you have several windows open you
 might have to specify which window you want the file to open in by using the
 |--servername| switch.  The title of a window usually ends in something like
 "VIM" or "VIM3" --- this is the server name of that window.  So to open a file
@@ -264,26 +309,32 @@ order of the arguments matters): >
 	gvim --servername VIM3 --remote-tab foobar.txt
 For more information, consult the |client-server| manual page.
 
-Scenario: You like to be able to select text by holding down shift and
+Scenario: ~
+You like to be able to select text by holding down shift and
 pressing the arrow keys and find the Vim way of selecting text strange.
-Solution: See |macvim-shift-movement|.
+Solution: ~
+See |macvim-shift-movement|.
 
-Scenario: You dislike the default font (Monaco) and/or want a font with bold
-and italic variants.
-Solution: The font "Courier New" is a fixed width font that ships with Mac OS
-X which has both bold and italic variants; however, it is not particularly
-well suited for programming.  A better alternative is to use the font
-"Bitstream Vera Sans Mono" which can be downloaded for free, and it also has
-both oblique and bold variants.  After having downloaded and installed the
-Bitstream Vera font, you can make it the default font by adding the following
-line to "~/.gvimrc": >
-	set guifont=Bitstream\ Vera\ Sans\ Mono:h13
-The suffix ":h13" specifies the point size of the font should be "13" (see
+Scenario: ~
+Enabling localized menus breaks the toolbar and the menus as well.
+Solution: ~
+This is a know problem, see |macvim-todo|.
+
+Scenario: ~
+You dislike the default font (Bitstream Vera).
+Solution: ~
+The standard fixed width font on other Mac OS X applications is
+Monaco.  If you prefer this font then add the following line to your
+"~/.gvimrc" (note that Monaco does not come in italic and bold variants): >
+	set guifont=Monaco:h10
+The suffix ":h10" specifies the point size of the font should be "10" (see
 'guifont' for more information on how to set the font).
 
-Scenario: You can't find the information on MacVim you thought should be in
+Scenario: ~
+You can't find the information on MacVim you thought should be in
 this manual page.
-Solution: Post your question on the vim_mac mailing list and wait for an
+Solution: ~
+Post your question on the vim_mac mailing list and wait for an
 answer.
 
  vim:tw=78:sw=4:ts=8:ft=help:norl:
