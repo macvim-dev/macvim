@@ -779,7 +779,7 @@ enum {
         if ([fontName isEqual:@"*"]) {
             // :set gfn=* shows the font panel.
             do_cmdline_cmd((char_u*)":action orderFrontFontPanel:");
-            return YES;
+            return NO;
         }
 
         NSArray *components = [fontName componentsSeparatedByString:@":"];
