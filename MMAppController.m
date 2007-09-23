@@ -119,7 +119,9 @@ static NSTimeInterval MMTerminateTimeout = 3;
 {
     // NOTE!  This way it possible to start the app with the command-line
     // argument '-nowindow yes' and no window will be opened by default.
-    return ![[NSUserDefaults standardUserDefaults] boolForKey:MMNoWindowKey];
+    untitledWindowOpening =
+        ![[NSUserDefaults standardUserDefaults] boolForKey:MMNoWindowKey];
+    return untitledWindowOpening;
 }
 
 - (BOOL)applicationOpenUntitledFile:(NSApplication *)sender
@@ -436,8 +438,14 @@ static NSTimeInterval MMTerminateTimeout = 3;
     [vimControllers addObject:vc];
 
     // HACK!  MacVim does not get activated if it is launched from the
-    // terminal, so we forcibly activate here.
-    [NSApp activateIgnoringOtherApps:YES];
+    // terminal, so we forcibly activate here unless it is an untitled window
+    // opening (i.e. MacVim was opened from the Finder).  Untitled windows are
+    // treated differently, else MacVim would steal the focus if another app
+    // was activated while the untitled window was loading.
+    if (!untitledWindowOpening)
+        [NSApp activateIgnoringOtherApps:YES];
+
+    untitledWindowOpening = NO;
 
     return vc;
 }
