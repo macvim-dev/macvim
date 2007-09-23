@@ -19,6 +19,7 @@
     NSMutableArray      *vimControllers;
     NSString            *openSelectionString;
     ATSFontContainerRef fontContainerRef;
+    BOOL                untitledWindowOpening;
 }
 
 - (void)removeVimController:(id)controller;
