@@ -137,7 +137,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
     int i, count = [filenames count];
     for (i = 0; i < count; ++i) {
         NSString *name = [filenames objectAtIndex:i];
-        if ([NSFileHandle fileHandleForReadingAtPath:name]) {
+        if ([[NSFileManager defaultManager] fileExistsAtPath:name]) {
             [files addObject:name];
         } else if (!firstMissingFile) {
             firstMissingFile = name;
