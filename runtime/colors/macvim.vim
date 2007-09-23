@@ -60,7 +60,7 @@ hi TabLine      gui=underline guibg=LightGrey
 hi CursorColumn guibg=#F1F5FA
 hi CursorLine   guibg=#F1F5FA   "Data browser list view secondary color
 hi MatchParen   guifg=white guibg=DeepPink4
-hi Normal       gui=NONE
+hi Normal       gui=NONE guifg=MacTextColor guibg=MacTextBackgroundColor
 
 
 " Syntax items (`:he group-name` -- more groups are available, these are just
