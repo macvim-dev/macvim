@@ -81,3 +81,37 @@ NSString *MMBaselineOffsetKey           = @"MMBaselineOffset";
 NSString *MMTranslateCtrlClickKey       = @"MMTranslateCtrlClick";
 NSString *MMTopLeftPointKey             = @"MMTopLeftPoint";
 NSString *MMOpenFilesInTabsKey          = @"MMOpenFilesInTabs";
+
+
+
+
+    ATSFontContainerRef
+loadFonts()
+{
+    // This loads all fonts from the Resources folder.  The fonts are only
+    // available to the process which loaded them, so loading has to be done
+    // once for MacVim and an additional time for each Vim process.  The
+    // returned container ref should be used to deactiave the font.
+    //
+    // (Code taken from cocoadev.com)
+    ATSFontContainerRef fontContainerRef = 0;
+    NSString *fontsFolder = [[NSBundle mainBundle] resourcePath];    
+    if (fontsFolder) {
+        NSURL *fontsURL = [NSURL fileURLWithPath:fontsFolder];
+        if (fontsURL) {
+            FSRef fsRef;
+            FSSpec fsSpec;
+            CFURLGetFSRef((CFURLRef)fontsURL, &fsRef);
+
+            if (FSGetCatalogInfo(&fsRef, kFSCatInfoNone, NULL, NULL, &fsSpec,
+                        NULL) == noErr) {
+                ATSFontActivateFromFileSpecification(&fsSpec,
+                        kATSFontContextLocal, kATSFontFormatUnspecified, NULL,
+                        kATSOptionFlagsDefault, &fontContainerRef);
+            }
+        }
+    }
+
+    return fontContainerRef;
+}
+

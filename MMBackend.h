@@ -51,6 +51,7 @@
     NSMutableDictionary *clientProxyDict;
     NSMutableDictionary *serverReplyDict;
     NSString            *alternateServerName;
+    ATSFontContainerRef fontContainerRef;
 }
 
 + (MMBackend *)sharedInstance;

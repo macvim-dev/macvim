@@ -21,9 +21,8 @@ static float MMFlushTimeoutInterval = 0.1f;
 static unsigned MMServerMax = 1000;
 //static NSTimeInterval MMEvaluateExpressionTimeout = 3;
 
-// NOTE: The Bitstream Vera font is bundled with the application and loaded
-// during initialization of MMAppController.
-static NSString *MMDefaultFontName = @"Bitstream Vera Sans Mono";
+// NOTE: The default font is bundled with the application.
+static NSString *MMDefaultFontName = @"DejaVu Sans Mono";
 static float MMDefaultFontSize = 12.0f;
 
 // TODO: Move to separate file.
@@ -78,6 +77,8 @@ enum {
 - (id)init
 {
     if ((self = [super init])) {
+        fontContainerRef = loadFonts();
+
         queue = [[NSMutableArray alloc] init];
 #if MM_USE_INPUT_QUEUE
         inputQueue = [[NSMutableArray alloc] init];
@@ -413,6 +414,12 @@ enum {
     //NSLog(@"%@ %s", [self className], _cmd);
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [connection invalidate];
+
+    if (fontContainerRef) {
+        ATSFontDeactivate(fontContainerRef, NULL, kATSOptionFlagsDefault);
+        fontContainerRef = 0;
+    }
+
 }
 
 - (void)selectTab:(int)index
@@ -800,6 +807,15 @@ enum {
         }
 
         NSFont *font = [NSFont fontWithName:fontName size:size];
+
+        if (!font && MMDefaultFontName == fontName) {
+            // If for some reason the MacVim default font is not in the app
+            // bundle, then fall back on the system default font.
+            size = 0;
+            font = [NSFont userFixedPitchFontOfSize:size];
+            fontName = [font displayName];
+        }
+
         if (font) {
             //NSLog(@"Setting font '%@' of size %.2f", fontName, size);
             int len = [fontName

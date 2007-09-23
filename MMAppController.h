@@ -16,8 +16,9 @@
 
 
 @interface MMAppController : NSObject <MMAppProtocol> {
-    NSMutableArray  *vimControllers;
-    NSString        *openSelectionString;
+    NSMutableArray      *vimControllers;
+    NSString            *openSelectionString;
+    ATSFontContainerRef fontContainerRef;
 }
 
 - (void)removeVimController:(id)controller;
