@@ -141,9 +141,12 @@ section of the System Preferences.  The latter is the selection color used by
 a Cocoa application when it is not in focus.
 
 							*Colors.plist*
-Apart from the system colors, it is also possible to use the colors listed in
-the dictionary "Colors.plist". The key in this dictionary is the name of the
-color and the value is an RGB value on the form #rrggbb stored as an integer.
+Apart from the system colors, it is also possible to use the standard X11
+color names (see http://en.wikipedia.org/wiki/X11_color_names) which usually
+come in a file called "rgb.txt".  MacVim does not have such a file, instead it
+keeps these colors in a dictionary called "Colors.plist". The key in this
+dictionary is the name of the color and the value is an RGB value on the form
+#rrggbb stored as an integer.
 
 							*macvim-colorscheme*
 MacVim ships with a custom colorscheme that can be used as an alternative to
