@@ -19,7 +19,6 @@
 static float MMFlushTimeoutInterval = 0.1f;
 
 static unsigned MMServerMax = 1000;
-//static NSTimeInterval MMEvaluateExpressionTimeout = 3;
 
 // NOTE: The default font is bundled with the application.
 static NSString *MMDefaultFontName = @"DejaVu Sans Mono";
@@ -1838,8 +1837,11 @@ enum {
 - (void)processInputBegin
 {
     inProcessInput = YES;
+
+    // Reset last flush date otherwise timed error message from e.g.
+    // ':set tenc=latin1' are never displayed.
     [lastFlushDate release];
-    lastFlushDate = [[NSDate date] retain];
+    lastFlushDate = nil;
 }
 
 - (void)processInputEnd
