@@ -334,6 +334,12 @@ The suffix ":h10" specifies the point size of the font should be "10" (see
 'guifont' for more information on how to set the font).
 
 Scenario: ~
+When you click the (green) zoom button you want the window to maximize
+horizontally as well as vertically.
+Solution: ~
+Hold down Cmd and click the zoom button.
+
+Scenario: ~
 You can't find the information on MacVim you thought should be in
 this manual page.
 Solution: ~
