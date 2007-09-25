@@ -469,10 +469,6 @@ gui_mch_def_colors()
         [backend lookupColorWithKey:@"MacTextColor"];
     gui.def_back_pixel = gui.back_pixel = 
         [backend lookupColorWithKey:@"MacTextBackgroundColor"];
-
-    // Set the text selection color to match the system preferences.
-    // TODO: Is there a better way to do this?
-    do_cmdline_cmd((char_u*)"hi Visual guibg=MacSelectedTextBackgroundColor");
 }
 
 
