@@ -152,6 +152,10 @@ dictionary is the name of the color and the value is an RGB value on the form
 MacVim ships with a custom colorscheme that can be used as an alternative to
 the default Vim colorscheme.  You can try it out by typing: >
 	:colorscheme macvim
+The colorscheme uses the the system "Highlight Color", which can be changed in
+the "Appearance" pane of the System Preferences.  It also changes the
+highlight color when a window becomes inactive.
+
 If you have any comments regarding this colorscheme (is it better or worse
 than the default?) then post them to vim_mac.
 
