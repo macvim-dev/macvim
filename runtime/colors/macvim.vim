@@ -21,10 +21,10 @@ hi ErrorMsg     guibg=Firebrick2 guifg=White
 hi IncSearch    gui=reverse
 hi ModeMsg      gui=bold
 hi NonText      gui=bold guifg=Blue
-hi StatusLine   gui=NONE guifg=white guibg=Black
-hi StatusLineNC gui=NONE guifg=Gray95 guibg=SlateGray
-hi VertSplit    gui=NONE guifg=SlateGray guibg=Gray
-hi DiffText     gui=bold guibg=firebrick2
+hi StatusLine   gui=NONE guifg=White guibg=Black
+hi StatusLineNC gui=NONE guifg=Gray70 guibg=Gray90
+hi VertSplit    gui=NONE guifg=White guibg=Gray
+hi DiffText     gui=bold guibg=Firebrick2
 hi PmenuThumb   gui=reverse
 hi PmenuSbar    guibg=Grey
 hi TabLineSel   gui=bold
@@ -37,17 +37,17 @@ hi lCursor      guibg=fg guifg=bg
 hi Directory    guifg=#1600FF
 hi LineNr       guifg=#888888 guibg=#E6E6E6
 hi MoreMsg      gui=bold guifg=SeaGreen4
-hi Question     gui=bold guifg=chartreuse4
-hi Search       guibg=cadetblue1 guifg=NONE
-hi SpellBad     guisp=firebrick2 gui=undercurl
-hi SpellCap     guisp=blue gui=undercurl
+hi Question     gui=bold guifg=Chartreuse4
+hi Search       guibg=CadetBlue1 guifg=NONE
+hi SpellBad     guisp=Firebrick2 gui=undercurl
+hi SpellCap     guisp=Blue gui=undercurl
 hi SpellRare    guisp=Magenta gui=undercurl
 hi SpellLocal   guisp=DarkCyan gui=undercurl
-hi Pmenu        guibg=Cornsilk
-hi PmenuSel     guifg=White guibg=goldenrod2
+hi Pmenu        guibg=LightSteelBlue1
+hi PmenuSel     guifg=White guibg=SkyBlue4
 hi SpecialKey   guifg=Blue
 hi Title        gui=bold guifg=DeepSkyBlue3
-hi WarningMsg   guifg=firebrick2
+hi WarningMsg   guifg=Firebrick2
 hi WildMenu     guibg=SkyBlue guifg=Black
 hi Folded       guibg=#E6E6E6 guifg=DarkBlue
 hi FoldColumn   guibg=Grey guifg=DarkBlue
@@ -55,29 +55,39 @@ hi SignColumn   guibg=Grey guifg=DarkBlue
 hi Visual       guibg=MacSelectedTextBackgroundColor
 hi DiffAdd      guibg=LightBlue
 hi DiffChange   guibg=DarkSlateBlue
-hi DiffDelete   gui=bold guifg=black guibg=SpringGreen4
+hi DiffDelete   gui=bold guifg=Black guibg=SpringGreen4
 hi TabLine      gui=underline guibg=LightGrey
 hi CursorColumn guibg=#F1F5FA
 hi CursorLine   guibg=#F1F5FA   "Data browser list view secondary color
-hi MatchParen   guifg=white guibg=DeepPink4
+hi MatchParen   guifg=White guibg=MediumPurple1
 hi Normal       gui=NONE guifg=MacTextColor guibg=MacTextBackgroundColor
 
 
 " Syntax items (`:he group-name` -- more groups are available, these are just
 " the top level syntax items for now).
 
-hi Comment gui=italic guifg=blue2 guibg=NONE
-hi Constant gui=NONE guifg=magenta1 guibg=NONE
+hi Comment gui=italic guifg=Blue2 guibg=NONE
+hi Constant gui=NONE guifg=Magenta1 guibg=NONE
 hi String gui=NONE guifg=SkyBlue4 guibg=NONE
-hi Boolean gui=NONE guifg=red3 guibg=NONE
-hi Identifier gui=NONE guifg=aquamarine4 guibg=NONE
-hi Statement gui=bold guifg=maroon guibg=NONE
+hi Boolean gui=NONE guifg=Red3 guibg=NONE
+hi Identifier gui=NONE guifg=Aquamarine4 guibg=NONE
+hi Statement gui=bold guifg=Maroon guibg=NONE
 hi PreProc gui=NONE guifg=DodgerBlue3 guibg=NONE
-hi Type gui=bold guifg=green4 guibg=NONE
+hi Type gui=bold guifg=Green4 guibg=NONE
 hi Special  gui=NONE guifg=BlueViolet guibg=NONE
 hi Underlined gui=underline guifg=SteelBlue1
 hi Ignore gui=NONE guifg=bg guibg=NONE
-hi Error gui=NONE guifg=White guibg=firebrick3
-hi Todo gui=NONE guifg=White guibg=magenta3
+hi Error gui=NONE guifg=White guibg=Firebrick3
+hi Todo gui=NONE guifg=White guibg=Magenta3
+
+
+" Change the selection color on focus change (but only if the "macvim"
+" colorscheme is active).
+if !exists("s:augroups_defined")
+  au FocusLost * if colors_name == "macvim" | hi Visual guibg=MacSecondarySelectedControlColor | endif
+  au FocusGained * if colors_name == "macvim" | hi Visual guibg=MacSelectedTextBackgroundColor | endif
+
+  let s:augroups_defined = 1
+endif
 
 " vim: sw=2
