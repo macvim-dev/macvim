@@ -83,7 +83,7 @@
 - (BOOL)tabBarVisible;
 - (void)showTabBar:(BOOL)enable;
 - (void)setRows:(int)rows columns:(int)cols;
-- (void)setVimWindowTitle:(char *)title;
+- (void)setWindowTitle:(char *)title;
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
                             saving:(int)saving;
 - (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg

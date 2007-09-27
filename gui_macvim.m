@@ -71,11 +71,9 @@ gui_mch_init(void)
     if (![[MMBackend sharedInstance] checkin])
         return FAIL;
 
-    // HACK!  Force the 'termencoding to utf-8.  For the moment also force
-    // 'encoding', although this will change in the future.  The user can still
-    // change 'encoding'; doing so WILL crash the program.
+    // Force 'termencoding' to utf-8 (changes to 'tenc' are disallowed in
+    // 'option.c', so that ':set termencoding=...' is impossible).
     set_option_value((char_u *)"termencoding", 0L, (char_u *)"utf-8", 0);
-    set_option_value((char_u *)"encoding", 0L, (char_u *)"utf-8", 0);
 
     // Set values so that pixels and characters are in one-to-one
     // correspondence (assuming all characters have the same dimensions).
@@ -209,88 +207,28 @@ gui_mch_delete_lines(int row, int num_lines)
     void
 gui_mch_draw_string(int row, int col, char_u *s, int len, int flags)
 {
+#if MM_ENABLE_CONV
+    char_u *conv_str = NULL;
+    if (output_conv.vc_type != CONV_NONE) {
+        conv_str = string_convert(&output_conv, s, &len);
+        if (conv_str)
+            s = conv_str;
+    }
+#endif
+
     [[MMBackend sharedInstance] replaceString:(char*)s length:len
             row:row column:col flags:flags];
+
+#if MM_ENABLE_CONV
+    if (conv_str)
+        vim_free(conv_str);
+#endif
 }
 
 
     int
 gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
 {
-#if 0
-    NSString *string = [[NSString alloc]
-            initWithBytesNoCopy:(void*)s
-                         length:len
-                       encoding:NSUTF8StringEncoding
-                   freeWhenDone:NO];
-    int cells = [string length];
-    [string release];
-
-    NSLog(@"gui_macvim_draw_string(row=%d, col=%d, len=%d, cells=%d, flags=%d)",
-            row, col, len, cells, flags);
-
-    [[MMBackend sharedInstance] replaceString:(char*)s length:len
-            row:row column:col flags:flags];
-
-    return cells;
-#elif 0
-    int c;
-    int cn;
-    int cl;
-    int i;
-    BOOL wide = NO;
-    int start = 0;
-    int endcol = col;
-    int startcol = col;
-    MMBackend *backend = [MMBackend sharedInstance];
-
-    for (i = 0; i < len; i += cl) {
-        c = utf_ptr2char(s + i);
-        cl = utf_ptr2len(s + i);
-        cn = utf_char2cells(c);
-        comping = utf_iscomposing(c);
-
-        if (!comping)
-            endcol += cn;
-
-        if (cn > 1 && !wide) {
-            // Start of wide characters.
-            wide = YES;
-
-            // Output non-wide characters.
-            if (start > i) {
-                NSLog(@"Outputting %d non-wide chars (%d bytes)",
-                        endcol-startcol, start-i);
-                [backend replaceString:(char*)(s+start) length:start-i
-                        row:row column:startcol flags:flags];
-                startcol = endcol;
-                start = i;
-            }
-        } else if (cn <= 1 && !comping && wide) {
-            // End of wide characters.
-            wide = NO;
-
-            // Output wide characters.
-            if (start > i) {
-                NSLog(@"Outputting %d wide chars (%d bytes)",
-                        endcol-startcol, start-i);
-                [backend replaceString:(char*)(s+start) length:start-i
-                        row:row column:startcol flags:(flags|0x80)];
-                startcol = endcol;
-                start = i;
-            }
-        }
-    }
-
-    // Output remaining characters.
-    flags = wide ? flags|0x80 : flags;
-    NSLog(@"Outputting %d %s chars (%d bytes)", endcol-startcol, wide ? "wide"
-            : "non-wide", len-start);
-    [backend replaceString:(char*)(s+start) length:len-start
-            row:row column:startcol flags:flags];
-
-    return endcol - col;
-#elif 1
     //
     // Output chars until a wide char found.  If a wide char is found, output a
     // zero-width space after it so that a wide char looks like two chars to
@@ -311,7 +249,7 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
     char_u *conv_str = NULL;
 
     if (output_conv.vc_type != CONV_NONE) {
-        char_u *conv_str = string_convert(&output_conv, s, &len);
+        conv_str = string_convert(&output_conv, s, &len);
         if (conv_str)
             s = conv_str;
     }
@@ -392,23 +330,6 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
 #endif
 
     return endcol - col;
-#else
-    // This will fail abysmally when wide or composing characters are used.
-    [[MMBackend sharedInstance]
-            replaceString:(char*)s length:len row:row column:col flags:flags];
-
-    int i, c, cl, cn, cells = 0;
-    for (i = 0; i < len; i += cl) {
-        c = utf_ptr2char(s + i);
-        cl = utf_ptr2len(s + i);
-        cn = utf_char2cells(c);
-
-        if (!utf_iscomposing(c))
-            cells += cn;
-    }
-
-    return cells;
-#endif
 }
 
 
@@ -577,19 +498,17 @@ clip_mch_request_selection(VimClipboard *cbd)
         int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
 #if MM_ENABLE_CONV
-        if (input_conv.vc_type != CONV_NONE) {
-            NSLog(@"Converting from: '%@'", string);
-            char_u *conv_str = string_convert(&input_conv, str, &len);
-            if (conv_str) {
-                NSLog(@"           to: '%s'", conv_str);
-                clip_yank_selection(type, conv_str, len, cbd);
-                vim_free(conv_str);
-                return;
-            }
-        }
+        if (input_conv.vc_type != CONV_NONE)
+            str = string_convert(&input_conv, str, &len);
 #endif
 
-        clip_yank_selection(type, str, len, cbd);
+        if (str)
+            clip_yank_selection(type, str, len, cbd);
+
+#if MM_ENABLE_CONV
+        if (input_conv.vc_type != CONV_NONE)
+            vim_free(str);
+#endif
     }
 }
 
@@ -659,9 +578,18 @@ gui_mch_add_menu(vimmenu_T *menu, int idx)
                  MenuMenubarType;
     }
 
+    char_u *dname = menu->dname;
+#if MM_ENABLE_CONV
+    dname = CONVERT_TO_UTF8(dname);
+#endif
+
     [[MMBackend sharedInstance]
-            addMenuWithTag:(int)menu parent:parent name:(char*)menu->dname
+            addMenuWithTag:(int)menu parent:parent name:(char*)dname
                    atIndex:idx];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(dname);
+#endif
 }
 
 
@@ -673,20 +601,27 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
 {
     // NOTE!  If 'iconfile' is not set but 'iconidx' is, use the name of the
     // menu item.  (Should correspond to a stock item.)
-    char *icon = menu->iconfile ? (char*)menu->iconfile :
-                 menu->iconidx >= 0 ? (char*)menu->dname :
+    char_u *icon = menu->iconfile ? menu->iconfile :
+                 menu->iconidx >= 0 ? menu->dname :
                  NULL;
     //char *name = menu_is_separator(menu->name) ? NULL : (char*)menu->dname;
-    char *name = (char*)menu->dname;
-    char *tip = menu->strings[MENU_INDEX_TIP]
-            ? (char*)menu->strings[MENU_INDEX_TIP] : (char*)menu->actext;
+    char_u *name = menu->dname;
+    char_u *tip = menu->strings[MENU_INDEX_TIP]
+            ? menu->strings[MENU_INDEX_TIP] : menu->actext;
+    char_u *map_str = menu->strings[MENU_INDEX_NORMAL];
+
+#if MM_ENABLE_CONV
+    icon = CONVERT_TO_UTF8(icon);
+    name = CONVERT_TO_UTF8(name);
+    tip = CONVERT_TO_UTF8(tip);
+    map_str = CONVERT_TO_UTF8(map_str);
+#endif
 
     // HACK!  Check if menu is mapped to ':action actionName:'; if so, pass the
     // action along so that MacVim can bind the menu item to this action.  This
     // means that if a menu item maps to an action in normal mode, then all
     // other modes will also use the same action.
     NSString *action = nil;
-    char_u *map_str = menu->strings[MENU_INDEX_NORMAL];
     if (map_str) {
         NSString *mapping = [NSString stringWithCString:(char*)map_str
                                                encoding:NSUTF8StringEncoding];
@@ -704,13 +639,20 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     [[MMBackend sharedInstance]
             addMenuItemWithTag:(int)menu
                         parent:(int)menu->parent
-                          name:name
-                           tip:tip
+                          name:(char*)name
+                           tip:(char*)tip
                           icon:(char*)icon
                  keyEquivalent:menu->ke_key
                      modifiers:menu->ke_mods
                         action:action
                        atIndex:idx];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(icon);
+    CONVERT_TO_UTF8_FREE(name);
+    CONVERT_TO_UTF8_FREE(tip);
+    CONVERT_TO_UTF8_FREE(map_str);
+#endif
 }
 
 
@@ -754,8 +696,18 @@ gui_mch_menu_hidden(vimmenu_T *menu, int hidden)
     void
 gui_mch_show_popupmenu(vimmenu_T *menu)
 {
-    [[MMBackend sharedInstance] showPopupMenuWithName:(char*)menu->name
+    char_u *name = menu->name;
+#if MM_ENABLE_CONV
+    name = CONVERT_TO_UTF8(name);
+#endif
+
+    [[MMBackend sharedInstance] showPopupMenuWithName:(char*)name
                                       atMouseLocation:YES];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(name);
+#endif
+
 }
 
 
@@ -765,8 +717,16 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
     void
 gui_make_popup(char_u *path_name, int mouse_pos)
 {
+#if MM_ENABLE_CONV
+    path_name = CONVERT_TO_UTF8(path_name);
+#endif
+
     [[MMBackend sharedInstance] showPopupMenuWithName:(char*)path_name
                                       atMouseLocation:mouse_pos];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(path_name);
+#endif
 }
 
 
@@ -861,8 +821,18 @@ gui_mch_init_font(char_u *font_name, int fontset)
     // HACK!  This gets called whenever the user types :set gfn=fontname, so
     // for now we set the font here.
     // TODO!  Proper font handling, the way Vim expects it.
-    return [[MMBackend sharedInstance]
-            setFontWithName:(char*)font_name];
+
+#if MM_ENABLE_CONV
+    font_name = CONVERT_TO_UTF8(font_name);
+#endif
+
+    BOOL ok = [[MMBackend sharedInstance] setFontWithName:(char*)font_name];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(font_name);
+#endif
+
+    return ok;
 }
 
 
@@ -1053,13 +1023,22 @@ ex_action(eap)
         return;
     }
 
-    NSString *name = [NSString stringWithCString:(char*)eap->arg
+    char_u *arg = eap->arg;
+#if MM_ENABLE_CONV
+    arg = CONVERT_TO_UTF8(arg);
+#endif
+
+    NSString *name = [NSString stringWithCString:(char*)arg
                                         encoding:NSUTF8StringEncoding];
     if (gui_macvim_is_valid_action(name)) {
         [[MMBackend sharedInstance] executeActionWithName:name];
     } else {
         EMSG2(_("E???: \"%s\" is not a valid action"), eap->arg);
     }
+
+#if MM_ENABLE_CONV
+    arg = CONVERT_TO_UTF8(arg);
+#endif
 }
 
 
@@ -1112,9 +1091,19 @@ gui_mch_browse(
     //NSLog(@"gui_mch_browse(saving=%d, title=%s, dflt=%s, ext=%s, initdir=%s,"
     //        " filter=%s", saving, title, dflt, ext, initdir, filter);
 
+#if MM_ENABLE_CONV
+    title = CONVERT_TO_UTF8(title);
+    initdir = CONVERT_TO_UTF8(initdir);
+#endif
+
     char_u *s = (char_u*)[[MMBackend sharedInstance]
             browseForFileInDirectory:(char*)initdir title:(char*)title
                               saving:saving];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(title);
+    CONVERT_TO_UTF8_FREE(initdir);
+#endif
 
     return s;
 }
@@ -1135,11 +1124,28 @@ gui_mch_dialog(
     //        "dfltbutton=%d textfield=%s)", type, title, message, buttons,
     //        dfltbutton, textfield);
 
-    return [[MMBackend sharedInstance] presentDialogWithType:type
-                                                       title:(char*)title
-                                                     message:(char*)message
-                                                     buttons:(char*)buttons
-                                                   textField:(char*)textfield];
+#if MM_ENABLE_CONV
+    title = CONVERT_TO_UTF8(title);
+    message = CONVERT_TO_UTF8(message);
+    buttons = CONVERT_TO_UTF8(buttons);
+    textfield = CONVERT_TO_UTF8(textfield);
+#endif
+
+    int ret = [[MMBackend sharedInstance]
+            presentDialogWithType:type
+                            title:(char*)title
+                          message:(char*)message
+                          buttons:(char*)buttons
+                        textField:(char*)textfield];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(title);
+    CONVERT_TO_UTF8_FREE(message);
+    CONVERT_TO_UTF8_FREE(buttons);
+    CONVERT_TO_UTF8_FREE(textfield);
+#endif
+
+    return ret;
 }
 
 
@@ -1158,8 +1164,18 @@ gui_mch_flash(int msec)
     guicolor_T
 gui_mch_get_color(char_u *name)
 {
+#if MM_ENABLE_CONV
+    name = CONVERT_TO_UTF8(name);
+#endif
+
     NSString *key = [NSString stringWithUTF8String:(char*)name];
-    return [[MMBackend sharedInstance] lookupColorWithKey:key];
+    guicolor_T col = [[MMBackend sharedInstance] lookupColorWithKey:key];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(name);
+#endif
+
+    return col;
 }
 
 
@@ -1210,11 +1226,21 @@ gui_mch_get_winpos(int *x, int *y)
     int
 gui_mch_haskey(char_u *name)
 {
+    BOOL ok = NO;
+
+#if MM_ENABLE_CONV
+    name = CONVERT_TO_UTF8(name);
+#endif
+
     NSString *value = [NSString stringWithUTF8String:(char*)name];
     if (value)
-        return [[MMBackend sharedInstance] hasSpecialKeyWithValue:value];
+        ok =  [[MMBackend sharedInstance] hasSpecialKeyWithValue:value];
 
-    return NO;
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(name);
+#endif
+
+    return ok;
 }
 
 
@@ -1292,7 +1318,15 @@ gui_mch_settitle(char_u *title, char_u *icon)
 {
     //NSLog(@"gui_mch_settitle(title=%s, icon=%s)", title, icon);
 
-    [[MMBackend sharedInstance] setVimWindowTitle:(char*)title];
+#if MM_ENABLE_CONV
+    title = CONVERT_TO_UTF8(title);
+#endif
+
+    [[MMBackend sharedInstance] setWindowTitle:(char*)title];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(title);
+#endif
 }
 #endif
 
@@ -1348,8 +1382,16 @@ gui_macvim_is_valid_action(NSString *action)
     void
 serverRegisterName(char_u *name)
 {
+#if MM_ENABLE_CONV
+    name = CONVERT_TO_UTF8(name);
+#endif
+
     NSString *svrName = [NSString stringWithUTF8String:(char*)name];
     [[MMBackend sharedInstance] registerServerWithName:svrName];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(name);
+#endif
 }
 
 
@@ -1361,6 +1403,11 @@ serverRegisterName(char_u *name)
 serverSendToVim(char_u *name, char_u *cmd, char_u **result,
         int *port, int asExpr, int silent)
 {
+#if MM_ENABLE_CONV
+    name = CONVERT_TO_UTF8(name);
+    cmd = CONVERT_TO_UTF8(cmd);
+#endif
+
     BOOL ok = [[MMBackend sharedInstance]
             sendToServer:[NSString stringWithUTF8String:(char*)name]
                   string:[NSString stringWithUTF8String:(char*)cmd]
@@ -1368,6 +1415,11 @@ serverSendToVim(char_u *name, char_u *cmd, char_u **result,
                     port:port
               expression:asExpr
                   silent:silent];
+
+#if MM_ENABLE_CONV
+    CONVERT_TO_UTF8_FREE(name);
+    CONVERT_TO_UTF8_FREE(cmd);
+#endif
 
     return ok ? 0 : -1;
 }
@@ -1384,7 +1436,14 @@ serverGetVimNames(void)
 
     if (list) {
         NSString *string = [list componentsJoinedByString:@"\n"];
-        names = vim_strsave((char_u*)[string UTF8String]);
+        char_u *s = (char_u*)[string UTF8String];
+#if MM_ENABLE_CONV
+        s = CONVERT_FROM_UTF8(s);
+#endif
+        names = vim_strsave(s);
+#if MM_ENABLE_CONV
+        CONVERT_FROM_UTF8_FREE(s);
+#endif
     }
 
     return names;
@@ -1415,8 +1474,28 @@ serverStrToPort(char_u *str)
 serverPeekReply(int port, char_u **str)
 {
     NSString *reply = [[MMBackend sharedInstance] peekForReplyOnPort:port];
-    if (str)
+    int len = [reply lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+    if (str && len > 0) {
         *str = (char_u*)[reply UTF8String];
+
+#if MM_ENABLE_CONV
+        if (input_conv.vc_type != CONV_NONE) {
+            char_u *s = string_convert(&input_conv, *str, &len);
+
+            if (len > 0) {
+                // HACK! Since 's' needs to be freed we cannot simply set
+                // '*str = s' or memory will leak.  Instead, create a dummy
+                // NSData and return its 'bytes' pointer, then autorelease the
+                // NSData.
+                NSData *data = [NSData dataWithBytes:s length:len+1];
+                *str = (char_u*)[data bytes];
+            }
+
+            vim_free(s);
+        }
+#endif
+    }
 
     return reply != nil;
 }
@@ -1432,7 +1511,14 @@ serverReadReply(int port, char_u **str)
 {
     NSString *reply = [[MMBackend sharedInstance] waitForReplyOnPort:port];
     if (reply && str) {
-        *str = vim_strsave((char_u*)[reply UTF8String]);
+        char_u *s = (char_u*)[reply UTF8String];
+#if MM_ENABLE_CONV
+        s = CONVERT_FROM_UTF8(s);
+#endif
+        *str = vim_strsave(s);
+#if MM_ENABLE_CONV
+        CONVERT_FROM_UTF8_FREE(s);
+#endif
         return 0;
     }
 
@@ -1450,10 +1536,16 @@ serverSendReply(char_u *serverid, char_u *reply)
     int retval = -1;
     int port = serverStrToPort(serverid);
     if (port > 0 && reply) {
+#if MM_ENABLE_CONV
+        reply = CONVERT_TO_UTF8(reply);
+#endif
         BOOL ok = [[MMBackend sharedInstance]
                 sendReply:[NSString stringWithUTF8String:(char*)reply]
                    toPort:port];
         retval = ok ? 0 : -1;
+#if MM_ENABLE_CONV
+        CONVERT_TO_UTF8_FREE(reply);
+#endif
     }
 
     return retval;

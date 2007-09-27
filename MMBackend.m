@@ -443,8 +443,13 @@ enum {
     for (tp = first_tabpage; tp != NULL; tp = tp->tp_next) {
         // This function puts the label of the tab in the global 'NameBuff'.
         get_tabline_label(tp, FALSE);
-        int len = strlen((char*)NameBuff);
+        char_u *s = NameBuff;
+        int len = STRLEN(s);
         if (len <= 0) continue;
+
+#if MM_ENABLE_CONV
+        s = CONVERT_TO_UTF8(s);
+#endif
 
         // Count the number of windows in the tabpage.
         //win_T *wp = tp->tp_firstwin;
@@ -453,7 +458,11 @@ enum {
 
         //[data appendBytes:&wincount length:sizeof(int)];
         [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:NameBuff length:len];
+        [data appendBytes:s length:len];
+
+#if MM_ENABLE_CONV
+        CONVERT_TO_UTF8_FREE(s);
+#endif
     }
 
     [self queueMessage:UpdateTabBarMsgID data:data];
@@ -482,7 +491,7 @@ enum {
     [self queueMessage:SetTextDimensionsMsgID data:data];
 }
 
-- (void)setVimWindowTitle:(char *)title
+- (void)setWindowTitle:(char *)title
 {
     NSMutableData *data = [NSMutableData data];
     int len = strlen(title);
@@ -491,7 +500,7 @@ enum {
     [data appendBytes:&len length:sizeof(int)];
     [data appendBytes:title length:len];
 
-    [self queueMessage:SetVimWindowTitleMsgID data:data];
+    [self queueMessage:SetWindowTitleMsgID data:data];
 }
 
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
@@ -501,12 +510,8 @@ enum {
     //        saving);
 
     char_u *s = NULL;
-    NSString *ds = dir
-            ? [NSString stringWithCString:dir encoding:NSUTF8StringEncoding]
-            : nil;
-    NSString *ts = title
-            ? [NSString stringWithCString:title encoding:NSUTF8StringEncoding]
-            : nil;
+    NSString *ds = dir ? [NSString stringWithUTF8String:dir] : nil;
+    NSString *ts = title ? [NSString stringWithUTF8String:title] : nil;
     @try {
         [frontendProxy showSavePanelForDirectory:ds title:ts saving:saving];
 
@@ -515,7 +520,14 @@ enum {
                                  beforeDate:[NSDate distantFuture]];
 
         if (dialogReturn && [dialogReturn isKindOfClass:[NSString class]]) {
-            s = vim_strsave((char_u*)[dialogReturn UTF8String]);
+            char_u *ret = (char_u*)[dialogReturn UTF8String];
+#if MM_ENABLE_CONV
+            ret = CONVERT_FROM_UTF8(ret);
+#endif
+            s = vim_strsave(ret);
+#if MM_ENABLE_CONV
+            CONVERT_FROM_UTF8_FREE(ret);
+#endif
         }
 
         [dialogReturn release];  dialogReturn = nil;
@@ -591,8 +603,14 @@ enum {
             retval = [[dialogReturn objectAtIndex:0] intValue];
             if (txtfield && [dialogReturn count] > 1) {
                 NSString *retString = [dialogReturn objectAtIndex:1];
-                vim_strncpy((char_u*)txtfield, (char_u*)[retString UTF8String],
-                        IOSIZE - 1);
+                char_u *ret = (char_u*)[retString UTF8String];
+#if MM_ENABLE_CONV
+                ret = CONVERT_FROM_UTF8(ret);
+#endif
+                vim_strncpy((char_u*)txtfield, ret, IOSIZE - 1);
+#if MM_ENABLE_CONV
+                CONVERT_FROM_UTF8_FREE(ret);
+#endif
             }
         }
 
@@ -772,8 +790,7 @@ enum {
     BOOL parseFailed = NO;
 
     if (name) {
-        fontName = [[[NSString alloc] initWithCString:name
-                encoding:NSUTF8StringEncoding] autorelease];
+        fontName = [NSString stringWithUTF8String:name];
 
         if ([fontName isEqual:@"*"]) {
             // :set gfn=* shows the font panel.
@@ -910,12 +927,6 @@ enum {
     [self queueMessage:ActivateMsgID data:nil];
 }
 
-- (void)setServerName:(NSString *)name
-{
-    NSData *data = [name dataUsingEncoding:NSUTF8StringEncoding];
-    [self queueMessage:SetServerNameMsgID data:data];
-}
-
 - (int)lookupColorWithKey:(NSString *)key
 {
     if (!(key && [key length] > 0))
@@ -981,11 +992,10 @@ enum {
     // NOTE: This method might get called whenever the run loop is tended to.
     // Thus it might get called whilst input is being processed.  Normally this
     // is not a problem, but if it gets called often then it might become
-    // dangerous.  E.g. when a focus messages is received the screen is redrawn
-    // because the selection color changes and if another focus message is
-    // received whilst the first one is being processed Vim might crash.  To
-    // deal with this problem at the moment, we simply drop messages that are
-    // received while other input is being processed.
+    // dangerous.  E.g. say a message causes the screen to be redrawn and then
+    // another message is received causing another simultaneous screen redraw;
+    // this is not good.  To deal with this problem at the moment, we simply
+    // drop messages that are received while other input is being processed.
     if (inProcessInput) {
 #if MM_USE_INPUT_QUEUE
         [inputQueue addObject:[NSNumber numberWithInt:msgid]];
@@ -1056,11 +1066,23 @@ enum {
         clip_copy_selection();
 
         // Get the text to put on the pasteboard.
-        long_u len = 0; char_u *str = 0;
-        int type = clip_convert_selection(&str, &len, &clip_star);
+        long_u llen = 0; char_u *str = 0;
+        int type = clip_convert_selection(&str, &llen, &clip_star);
         if (type < 0)
             return NO;
         
+        // TODO: Avoid overflow.
+        int len = (int)llen;
+#if MM_ENABLE_CONV
+        if (output_conv.vc_type != CONV_NONE) {
+            char_u *conv_str = string_convert(&output_conv, str, &len);
+            if (conv_str) {
+                vim_free(str);
+                str = conv_str;
+            }
+        }
+#endif
+
         NSString *string = [[NSString alloc]
             initWithBytes:str length:len encoding:NSUTF8StringEncoding];
 
@@ -1104,7 +1126,17 @@ enum {
 {
     //NSLog(@"addInput:%@ client:%@", input, (id)client);
 
-    server_to_input_buf((char_u*)[input UTF8String]);
+    char_u *s = (char_u*)[input UTF8String];
+
+#if MM_ENABLE_CONV
+    s = CONVERT_FROM_UTF8(s);
+#endif
+
+    server_to_input_buf(s);
+
+#if MM_ENABLE_CONV
+    CONVERT_FROM_UTF8_FREE(s);
+#endif
 
     [self addClient:(id)client];
 
@@ -1117,10 +1149,27 @@ enum {
     //NSLog(@"evaluateExpression:%@ client:%@", expr, (id)client);
 
     NSString *eval = nil;
-    char_u *res = eval_client_expr_to_string((char_u*)[expr UTF8String]);
+    char_u *s = (char_u*)[expr UTF8String];
+
+#if MM_ENABLE_CONV
+    s = CONVERT_FROM_UTF8(s);
+#endif
+
+    char_u *res = eval_client_expr_to_string(s);
+
+#if MM_ENABLE_CONV
+    CONVERT_FROM_UTF8_FREE(s);
+#endif
 
     if (res != NULL) {
-        eval = [NSString stringWithUTF8String:(char*)res];
+        s = res;
+#if MM_ENABLE_CONV
+        s = CONVERT_TO_UTF8(s);
+#endif
+        eval = [NSString stringWithUTF8String:(char*)s];
+#if MM_ENABLE_CONV
+        CONVERT_TO_UTF8_FREE(s);
+#endif
         vim_free(res);
     }
 
@@ -1149,8 +1198,15 @@ enum {
             //[svrConn setReplyTimeout:MMReplyTimeout];
             [svrConn setRootObject:self];
 
+            char_u *s = (char_u*)[svrName UTF8String];
+#if MM_ENABLE_CONV
+            s = CONVERT_FROM_UTF8(s);
+#endif
             // NOTE: 'serverName' is a global variable
-            serverName = vim_strsave((char_u*)[svrName UTF8String]);
+            serverName = vim_strsave(s);
+#if MM_ENABLE_CONV
+            CONVERT_FROM_UTF8_FREE(s);
+#endif
 #ifdef FEAT_EVAL
             set_vim_var_string(VV_SEND_SERVER, serverName, -1);
 #endif
@@ -1176,8 +1232,16 @@ enum {
 
     NSConnection *conn = [self connectionForServerName:name];
     if (!conn) {
-        if (!silent)
-	    EMSG2(_(e_noserver), [name UTF8String]);
+        if (!silent) {
+            char_u *s = (char_u*)[name UTF8String];
+#if MM_ENABLE_CONV
+            s = CONVERT_FROM_UTF8(s);
+#endif
+	    EMSG2(_(e_noserver), s);
+#if MM_ENABLE_CONV
+            CONVERT_FROM_UTF8_FREE(s);
+#endif
+        }
         return NO;
     }
 
@@ -1193,8 +1257,18 @@ enum {
         if (expr) {
             NSString *eval = [proxy evaluateExpression:string client:self];
             if (reply) {
-                *reply = (eval ? vim_strsave((char_u*)[eval UTF8String])
-                               : vim_strsave((char_u*)_(e_invexprmsg)));
+                if (eval) {
+                    char_u *r = (char_u*)[eval UTF8String];
+#if MM_ENABLE_CONV
+                    r = CONVERT_FROM_UTF8(r);
+#endif
+                    *reply = vim_strsave(r);
+#if MM_ENABLE_CONV
+                    CONVERT_FROM_UTF8_FREE(r);
+#endif
+                } else {
+                    *reply = vim_strsave((char_u*)_(e_invexprmsg));
+                }
             }
 
             if (!eval)
@@ -1552,8 +1626,17 @@ enum {
 
         NSMutableString *name = [NSMutableString stringWithUTF8String:bytes];
         [name appendString:[NSString stringWithFormat:@":h%.2f", pointSize]];
+        char_u *s = (char_u*)[name UTF8String];
 
-        set_option_value((char_u*)"gfn", 0, (char_u*)[name UTF8String], 0);
+#if MM_ENABLE_CONV
+        s = CONVERT_FROM_UTF8(s);
+#endif
+
+        set_option_value((char_u*)"guifont", 0, s, 0);
+
+#if MM_ENABLE_CONV
+        CONVERT_FROM_UTF8_FREE(s);
+#endif
 
         // Force screen redraw (does it have to be this complicated?).
 	redraw_all_later(CLEAR);
@@ -1579,7 +1662,14 @@ enum {
                 int i = 0;
                 while (bytes < end && i < n) {
                     int len = *((int*)bytes);  bytes += sizeof(int);
-                    fnames[i++] = vim_strnsave((char_u*)bytes, len);
+                    char_u *s = (char_u*)bytes;
+#if MM_ENABLE_CONV
+                    s = CONVERT_FROM_UTF8(s);
+#endif
+                    fnames[i++] = vim_strsave(s);
+#if MM_ENABLE_CONV
+                    s = CONVERT_FROM_UTF8_FREE(s);
+#endif
                     bytes += len;
                 }
 
@@ -1616,7 +1706,14 @@ enum {
             // messy).
             goto_tabpage(9999);
 
-            do_cmdline_cmd((char_u*)[cmd UTF8String]);
+            char_u *s = (char_u*)[cmd UTF8String];
+#if MM_ENABLE_CONV
+            s = CONVERT_FROM_UTF8(s);
+#endif
+            do_cmdline_cmd(s);
+#if MM_ENABLE_CONV
+            CONVERT_FROM_UTF8_FREE(s);
+#endif
 
             // Force screen redraw (does it have to be this complicated?).
             // (This code was taken from the end of gui_handle_drop().)
@@ -1645,7 +1742,16 @@ enum {
         }
 
         len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        dnd_yank_drag_data((char_u*)[string UTF8String], len);
+        char_u *s = (char_u*)[string UTF8String];
+#if MM_ENABLE_CONV
+        if (input_conv.vc_type != CONV_NONE)
+            s = string_convert(&input_conv, s, &len);
+#endif
+        dnd_yank_drag_data(s, len);
+#if MM_ENABLE_CONV
+        if (input_conv.vc_type != CONV_NONE)
+            vim_free(s);
+#endif
         add_to_input_buf(dropkey, sizeof(dropkey));
 #endif // FEAT_DND
     } else if (GotFocusMsgID == msgid) {
@@ -1688,6 +1794,9 @@ enum {
     char_u special[3];
     char_u modChars[3];
     char_u *chars = (char_u*)[key UTF8String];
+#if MM_ENABLE_CONV
+    char_u *conv_str = NULL;
+#endif
     int length = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
     // Special keys (arrow keys, function keys, etc.) are stored in a plist so
@@ -1730,10 +1839,15 @@ enum {
             length = 3;
         } else if (mods & MOD_MASK_ALT) {
             int mtab = 0x80 | TAB;
-            // Convert to utf-8
-            special[0] = (mtab >> 6) + 0xc0;
-            special[1] = mtab & 0xbf;
-            length = 2;
+            if (enc_utf8) {
+                // Convert to utf-8
+                special[0] = (mtab >> 6) + 0xc0;
+                special[1] = mtab & 0xbf;
+                length = 2;
+            } else {
+                special[0] = mtab;
+                length = 1;
+            }
             mods &= ~MOD_MASK_ALT;
         }
     } else if (length > 0) {
@@ -1766,6 +1880,14 @@ enum {
             //NSLog(@"clear alt");
             mods &= ~MOD_MASK_ALT;
         }
+
+#if MM_ENABLE_CONV
+        if (input_conv.vc_type != CONV_NONE) {
+            conv_str = string_convert(&input_conv, chars, &length);
+            if (conv_str)
+                chars = conv_str;
+        }
+#endif
     }
 
     if (chars && length > 0) {
@@ -1781,6 +1903,11 @@ enum {
         // TODO: Check for CSI bytes?
         add_to_input_buf(chars, length);
     }
+
+#if MM_ENABLE_CONV
+    if (conv_str)
+        vim_free(conv_str);
+#endif
 }
 
 - (void)queueMessage:(int)msgid data:(NSData *)data
