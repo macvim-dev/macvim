@@ -1,7 +1,7 @@
 *gui_mac.txt*	For Vim version 7.1.  Last change: 2007 Sep 18
 
 
-		  VIM REFERENCE MANUAL    by Björn Winckler
+		  VIM REFERENCE MANUAL    by Bjorn Winckler
 
 
 The MacVim Graphical User Interface			*macvim* *gui-macvim*
@@ -11,10 +11,11 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
 2. Starting MacVim		|gui-macvim-start|
 3. Special colors		|macvim-colors|
 4. Menus			|macvim-menus|
-5. Dialogs			|macvim-dialogs|
-6. System services		|macvim-services|
-7. Known bugs/missing features  |macvim-todo|
-8. Hints			|macvim-hints|
+5. Toolbar			|macvim-toolbar|
+6. Dialogs			|macvim-dialogs|
+7. System services		|macvim-services|
+8. Known bugs/missing features  |macvim-todo|
+9. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -55,6 +56,14 @@ contains the text view, scrollbars, toolbar and tabline.  To avoid confusion,
 the former is referred to as a Vim-window, whereas the latter is simply called
 a window.
 
+							*macvim-encoding*
+It is not possible to modify 'termencoding' in MacVim; this option is forcibly
+set to "utf-8".  The most natural value for 'encoding' is "utf-8" as well, but
+this is not the default for reasons explained in the help for 'encoding'.  If
+you want to edit files with non-English characters you should add the
+following line to "~/.gvimrc": >
+	set encoding=utf-8
+<
 							*macvim-shift-movement*
 Text editors on Mac OS X lets the user hold down shift+movement key to extend
 the selection.  Also, pressing a printable key whilst selecting replaces the
@@ -67,10 +76,6 @@ lines to your "~/.vimrc" (not .gvimrc) file: >
 	  let macvim_hig_shift_movement = 1
 	endif
 <
-							*macvim-encoding*
-It is not possible to modify 'termencoding' in MacVim; this option is forcibly
-set to "utf-8".
-
 							*macvim-drag-n-drop*
 Dragging files and dropping them on a window opens those files in tabs in that
 window, unless Vim is in command-line mode.  In command-line mode the names of
@@ -233,7 +238,23 @@ following line to "~/.gvimrc": >
 (Note that key equivalents must contain the 'D' flag.)
 
 ==============================================================================
-5. Dialogs						*macvim-dialogs*
+5. Toolbar						*macvim-toolbar*
+
+The toolbar in MacVim works just like in the other GUIs (see |gui-toolbar|),
+with the addition of two separator items (see |menu-separator|).  You can use
+them as follows: >
+	:an ToolBar.-space1-        <Nop>
+	:an ToolBar.-flexspace2-    <Nop>
+The first example creates an empty space on the toolbar, the second creates an
+empty space which will shink or expand so that the items to the right of it
+are right-aligned.  A space (flexspace) will be created for any toolbar item
+whose name begins with "-space" ("-flexspace") and ends with "-"
+
+Note: Only a subset of the builtin toolbar items presently have icons.  If no
+icon can be found a warning triangle is displayed instead.
+
+==============================================================================
+6. Dialogs						*macvim-dialogs*
 
 Dialogs can be controlled with the keyboard in two ways.  By default each
 button in a dialog is bound to a key.  The button that is highlighted by blue
@@ -251,7 +272,7 @@ select the current button.  The current button is indicated with a blue
 outline.
 
 ==============================================================================
-6. System services					*macvim-services*
+7. System services					*macvim-services*
 
 MacVim supports a few system services.  These can be accessed from the MacVim
 submenu in the Services menu.  For services to work, MacVim.app should be
@@ -269,7 +290,7 @@ These are the currently supported services:
   window.
 
 ==============================================================================
-7. Known bugs/missing features				*macvim-todo*
+8. Known bugs/missing features				*macvim-todo*
 
 Here are some of the bigger bugs in MacVim.  Of course there are others, but
 these are ones that are know and/or which were judged major.
@@ -278,7 +299,6 @@ these are ones that are know and/or which were judged major.
   "International" pane of "System Prefences" may break the menus (and
   toolbar).
 - Composing characters are not supported, they will mess up the display
-- Only "utf-8" is supported for 'enc'
 - Sometimes multibyte characters look "too wide", i.e. they overlap the
   following character.  It might help to change 'ambiwidth'.
 - Printing
@@ -291,10 +311,20 @@ simple to implement, but unless somebody asks for a particular feature then
 there is little incentive to add it.
 
 ==============================================================================
-8. Hints						*macvim-hints*
+9. Hints						*macvim-hints*
 
 In this section some general (not necessarily MacVim specific) hints are
 given.
+
+Scenario: ~
+You open a file which contain non-English characters, and all you see is lots
+of upside-down question marks.
+Solution: ~
+Set the 'encoding' option to "utf-8".  To make Vim remember this setting
+between sessions, add the following line to your "~/.gvimrc": >
+	set encoding=utf-8
+Be aware that changing 'encoding' has certain side-effects which are
+documented in the help for 'encoding'.
 
 Scenario: ~
 You try opening a bunch of files in tabs but not all files get
