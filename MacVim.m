@@ -26,7 +26,7 @@ char *MessageStrings[] =
     "ShowTabBarMsgID",
     "HideTabBarMsgID",
     "SetTextDimensionsMsgID",
-    "SetVimWindowTitleMsgID",
+    "SetWindowTitleMsgID",
     "ScrollWheelMsgID",
     "MouseDownMsgID",
     "MouseUpMsgID",

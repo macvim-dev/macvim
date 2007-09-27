@@ -12,7 +12,7 @@
 
 
 // Enable to use experimental 'enc' support.
-#define MM_ENABLE_CONV 0
+#define MM_ENABLE_CONV 1
 
 
 
@@ -119,7 +119,7 @@ enum {
     ShowTabBarMsgID,
     HideTabBarMsgID,
     SetTextDimensionsMsgID,
-    SetVimWindowTitleMsgID,
+    SetWindowTitleMsgID,
     ScrollWheelMsgID,
     MouseDownMsgID,
     MouseUpMsgID,

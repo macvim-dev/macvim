@@ -525,7 +525,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         int cols = *((int*)bytes);  bytes += sizeof(int);
 
         [windowController setTextDimensionsWithRows:rows columns:cols];
-    } else if (SetVimWindowTitleMsgID == msgid) {
+    } else if (SetWindowTitleMsgID == msgid) {
         const void *bytes = [data bytes];
         int len = *((int*)bytes);  bytes += sizeof(int);
 
