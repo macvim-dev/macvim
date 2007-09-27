@@ -1,6 +1,6 @@
 " MacVim colorscheme
 "
-" Maintainer:   Björn Winckler <bjorn.winckler@gmail.com>
+" Maintainer:   Bjorn Winckler <bjorn.winckler@gmail.com>
 " Last Change:  2007 Sep 22
 "
 
