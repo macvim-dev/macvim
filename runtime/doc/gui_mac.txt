@@ -8,7 +8,7 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
 
 0. Important!			|macvim-important|
 1. MacVim differences		|macvim-differences|
-2. Starting MacVim		|gui-macvim-start|
+2. Starting MacVim		|macvim-start|
 3. Special colors		|macvim-colors|
 4. Menus			|macvim-menus|
 5. Toolbar			|macvim-toolbar|
@@ -91,7 +91,7 @@ Note: The menus are a work in progress.  If you know something about the HIG
 and want to contribute to MacVim you could do so by making the menus better.
 
 ==============================================================================
-2. Starting MacVim					*gui-macvim-start*
+2. Starting MacVim					*macvim-start*
 
 The easiest way to start MacVim is by double-clicking its icon in the Finder,
 but most users will probably prefer to use the Terminal.  First some Finder
@@ -113,10 +113,21 @@ Vim binary with the -g switch >
 or use the "open" command (which is of limited use since it cannot be used to
 pass parameters to Vim) >
 	open -a MacVim file ...
-
-In order to save you from having to type the entire path every time you start
-MacVim, add the following alias to "~/.profile": >
+<
+							*mvim*
+To save yourself from having to type the entire path to the Vim binary each
+time you start MacVim, you could create an alias such as >
 	alias gvim='/Applications/MacVim.app/Contents/MacOS/Vim -g'
+and add that to "~/.profile".  A more flexible way to start MacVim is to use
+the shell script "mvim" which comes bundled with MacVim.  Put this script in a
+folder in your path and then simply type "mvim" to start MacVim.  This script
+will try to find MacVim.app in various typical folders such as >
+	~/Applications              ~/Applications/vim
+	/Applications               /Applications/vim
+	/Applications/Utilities     /Applications/Utilities/vim
+If you would rather put MacVim.app in some other directory then that is also
+possible, simply set the environment variable VIM_APP_DIR to whatever folder
+you have placed MacVim.app in.
 
 Once in terminal Vim it is possible to start MacVim by using the following
 command:
