@@ -259,10 +259,12 @@ static NSString *MMKeypadEnterString = @"KA";
 
     // NOTE: If the event that triggered this method represents a function key
     // down then we do nothing, otherwise the input method never gets the key
-    // stroke (some input methods use e.g.  arrow keys).  The function key down
-    // event will still reach Vim though (via keyDown:).
+    // stroke (some input methods use e.g. arrow keys).  The function key down
+    // event will still reach Vim though (via keyDown:).  The exceptions to
+    // this rule are: PageUp/PageDown (keycode 116/121).
     int flags = [event modifierFlags];
-    if ([event type] != NSKeyDown || flags & NSFunctionKeyMask)
+    if ([event type] != NSKeyDown || flags & NSFunctionKeyMask
+            && !(116 == [event keyCode] || 121 == [event keyCode]))
         return NO;
 
     // HACK!  Let the main menu try to handle any key down event, before
