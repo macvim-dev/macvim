@@ -90,6 +90,12 @@ menus, so only English menus are supported.
 Note: The menus are a work in progress.  If you know something about the HIG
 and want to contribute to MacVim you could do so by making the menus better.
 
+							*macvim-window-title*
+The default window title does not include the argument list because it looks
+really bad once you start using tabs.  For example, dropping two files, then
+dropping two more, and switching back to the first tab would cause weird
+strings like "((3) of 2)" to appear in the window title.
+
 ==============================================================================
 2. Starting MacVim					*macvim-start*
 
