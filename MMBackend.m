@@ -1668,7 +1668,7 @@ enum {
 #endif
                     fnames[i++] = vim_strsave(s);
 #if MM_ENABLE_CONV
-                    s = CONVERT_FROM_UTF8_FREE(s);
+                    CONVERT_FROM_UTF8_FREE(s);
 #endif
                     bytes += len;
                 }
@@ -1965,10 +1965,9 @@ enum {
 {
     inProcessInput = YES;
 
-    // Reset last flush date otherwise timed error message from e.g.
-    // ':set tenc=latin1' are never displayed.
+    // Don't flush too soon or update speed will suffer.
     [lastFlushDate release];
-    lastFlushDate = nil;
+    lastFlushDate = [[NSDate date] retain];
 }
 
 - (void)processInputEnd
