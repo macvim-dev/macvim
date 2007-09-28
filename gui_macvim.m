@@ -145,6 +145,15 @@ gui_mch_flush(void)
 }
 
 
+/* Force flush output to MacVim.  Do not call this method unless absolutely
+ * necessary (use gui_mch_flush() instead). */
+    void
+gui_macvim_force_flush(void)
+{
+    [[MMBackend sharedInstance] flushQueue:YES];
+}
+
+
 /*
  * GUI input routine called by gui_wait_for_chars().  Waits for a character
  * from the keyboard.
