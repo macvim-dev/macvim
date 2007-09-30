@@ -816,12 +816,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         int type = *((int*)bytes);  bytes += sizeof(int);
 
         if (ClearAllDrawType == type) {
-            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-
 #if MM_DEBUG_DRAWING
             NSLog(@"   Clear all");
 #endif
-            [textStorage clearAllWithColor:[NSColor colorWithArgbInt:color]];
+            [textStorage clearAll];
         } else if (ClearBlockDrawType == type) {
             unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
             int row1 = *((int*)bytes);  bytes += sizeof(int);

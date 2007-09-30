@@ -278,8 +278,6 @@ enum {
     [drawData setLength:0];
 
     [drawData appendBytes:&type length:sizeof(int)];
-
-    [drawData appendBytes:&defaultBackgroundColor length:sizeof(unsigned)];
 }
 
 - (void)clearBlockFromRow:(int)row1 column:(int)col1

@@ -54,7 +54,7 @@
                    color:(NSColor *)color;
 - (void)clearBlockFromRow:(int)row1 column:(int)col1 toRow:(int)row2
                    column:(int)col2 color:(NSColor *)color;
-- (void)clearAllWithColor:(NSColor *)color;
+- (void)clearAll;
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
                         foreground:(NSColor *)fgColor;
 - (void)setFont:(NSFont *)newFont;

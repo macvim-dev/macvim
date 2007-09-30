@@ -25,7 +25,7 @@
 
 
 @interface MMTextStorage (Private)
-- (void)lazyResize;
+- (void)lazyResize:(BOOL)force;
 @end
 
 
@@ -194,8 +194,10 @@
             withFlags:(int)flags foregroundColor:(NSColor *)fg
       backgroundColor:(NSColor *)bg specialColor:(NSColor *)sp
 {
-    //NSLog(@"replaceString:atRow:%d column:%d withFlags:%d", row, col, flags);
-    [self lazyResize];
+    //NSLog(@"replaceString:atRow:%d column:%d withFlags:%d "
+    //          "foreground:%@ background:%@ special:%@",
+    //          row, col, flags, fg, bg, sp);
+    [self lazyResize:NO];
 
     // TODO: support DRAW_TRANSP
     if (flags & DRAW_TRANSP)
@@ -264,8 +266,8 @@
               scrollBottom:(int)bottom left:(int)left right:(int)right
                      color:(NSColor *)color
 {
-    //NSLog(@"deleteLinesFromRow:%d lineCount:%d", row, count);
-    [self lazyResize];
+    //NSLog(@"deleteLinesFromRow:%d lineCount:%d color:%@", row, count, color);
+    [self lazyResize:NO];
 
     if (row < 0 || row+count > maxRows) {
         //NSLog(@"[%s] WARNING : out of range, row=%d (%d) count=%d", _cmd, row,
@@ -318,8 +320,8 @@
             scrollBottom:(int)bottom left:(int)left right:(int)right
                    color:(NSColor *)color
 {
-    //NSLog(@"insertLinesAtRow:%d lineCount:%d", row, count);
-    [self lazyResize];
+    //NSLog(@"insertLinesAtRow:%d lineCount:%d color:%@", row, count, color);
+    [self lazyResize:NO];
 
     if (row < 0 || row+count > maxRows) {
         //NSLog(@"[%s] WARNING : out of range, row=%d (%d) count=%d", _cmd, row,
@@ -367,9 +369,9 @@
 - (void)clearBlockFromRow:(int)row1 column:(int)col1 toRow:(int)row2
                    column:(int)col2 color:(NSColor *)color
 {
-    //NSLog(@"clearBlockFromRow:%d column:%d toRow:%d column:%d", row1, col1,
-    //        row2, col2);
-    [self lazyResize];
+    //NSLog(@"clearBlockFromRow:%d column:%d toRow:%d column:%d color:%@",
+    //        row1, col1, row2, col2, color);
+    [self lazyResize:NO];
 
     if (row1 < 0 || row2 >= maxRows || col1 < 0 || col2 > maxColumns) {
         //NSLog(@"[%s] WARNING : out of range, row1=%d row2=%d (%d) col1=%d "
@@ -399,31 +401,17 @@
     }
 }
 
-- (void)clearAllWithColor:(NSColor *)color
+- (void)clearAll
 {
     //NSLog(@"%s%@", _cmd, color);
-    [self lazyResize];
-
-    [attribString release];
-    attribString = [[NSMutableAttributedString alloc] init];
-    NSRange fullRange = NSMakeRange(0, [attribString length]);
-
-    int i;
-    for (i=0; i<maxRows; ++i)
-        [attribString appendAttributedString:emptyRowString];
-
-    NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
-            font, NSFontAttributeName,
-            color, NSBackgroundColorAttributeName, nil];
-    [attribString setAttributes:attribs range:fullRange];
-
-    [self edited:(NSTextStorageEditedCharacters|NSTextStorageEditedAttributes)
-           range:fullRange changeInLength:0];
+    [self lazyResize:YES];
 }
 
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
                         foreground:(NSColor *)fgColor
 {
+    //NSLog(@"setDefaultColorsBackground:%@ foreground:%@", bgColor, fgColor);
+
     if (defaultBackgroundColor != bgColor) {
         [defaultBackgroundColor release];
         defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
@@ -638,12 +626,12 @@
 
 
 @implementation MMTextStorage (Private)
-- (void)lazyResize
+- (void)lazyResize:(BOOL)force
 {
     int i;
 
     // Do nothing if the dimensions are already right.
-    if (actualRows == maxRows && actualColumns == maxColumns)
+    if (!force && actualRows == maxRows && actualColumns == maxColumns)
         return;
 
     NSRange oldRange = NSMakeRange(0, actualRows*(actualColumns+1));
