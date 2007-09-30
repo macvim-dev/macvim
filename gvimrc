@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Mon Sep 17 2007
+" Last Change:	Mon Sep 30 2007
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
