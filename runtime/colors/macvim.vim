@@ -1,7 +1,7 @@
 " MacVim colorscheme
 "
 " Maintainer:   Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:  2007 Sep 22
+" Last Change:  2007 Sep 30
 "
 
 
@@ -22,7 +22,7 @@ hi IncSearch    gui=reverse
 hi ModeMsg      gui=bold
 hi NonText      gui=bold guifg=Blue
 hi StatusLine   gui=NONE guifg=White guibg=Black
-hi StatusLineNC gui=NONE guifg=Gray70 guibg=Gray90
+hi StatusLineNC gui=NONE guifg=Gray50 guibg=Gray80
 hi VertSplit    gui=NONE guifg=White guibg=Gray
 hi DiffText     gui=bold guibg=Firebrick2
 hi PmenuThumb   gui=reverse
