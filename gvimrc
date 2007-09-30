@@ -21,6 +21,9 @@ if !exists("syntax_on")
   syntax on
 endif
 
+" TODO: Move to the source code instead.
+set enc=utf-8
+
 
 
 "

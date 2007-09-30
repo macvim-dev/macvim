@@ -58,12 +58,18 @@ a window.
 
 							*macvim-encoding*
 It is not possible to modify 'termencoding' in MacVim; this option is forcibly
-set to "utf-8".  The most natural value for 'encoding' is "utf-8" as well, but
-this is not the default for reasons explained in the help for 'encoding'.  If
-you want to edit files with non-English characters you should add the
-following line to "~/.gvimrc": >
-	set encoding=utf-8
-<
+set to "utf-8".  The option 'encoding' also defaults to "utf-8"; currently
+this is done in "$VIM/gvimrc" so you can override it by adding the following
+line to "~/.gvimrc": >
+	set enc=latin1
+Note: Having 'encoding' default to "utf-8" has the side-effect that all files
+you load will be converted in memory (unless they are already utf-8 encoded).
+When you save them back to their original encoding, the contents in memory are
+converted once again.  This means that if you read and then write a file
+immediately the file might still change.  This is no problem if you are
+editing utf-8 encoded files, but if you edit say a binary file then you should
+set 'encoding' to "latin1" since this does no conversion.
+
 							*macvim-shift-movement*
 Text editors on Mac OS X lets the user hold down shift+movement key to extend
 the selection.  Also, pressing a printable key whilst selecting replaces the
@@ -336,16 +342,6 @@ there is little incentive to add it.
 
 In this section some general (not necessarily MacVim specific) hints are
 given.
-
-Scenario: ~
-You open a file which contain non-English characters, and all you see is lots
-of upside-down question marks.
-Solution: ~
-Set the 'encoding' option to "utf-8".  To make Vim remember this setting
-between sessions, add the following line to your "~/.gvimrc": >
-	set encoding=utf-8
-Be aware that changing 'encoding' has certain side-effects which are
-documented in the help for 'encoding'.
 
 Scenario: ~
 You try opening a bunch of files in tabs but not all files get
