@@ -90,6 +90,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 }
 #endif
 
+// Note: This hack allows us to set content shadowing separately from
+// the window shadow.  This is apparently what webkit and terminal do.
+@interface NSWindow (NSWindowPrivate) // new Tiger private method
+- (void) _setContentHasShadow:(BOOL)shadow;
+@end
+
 
 @implementation MMWindowController
 
@@ -127,7 +133,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         [textStorage addLayoutManager:lm];
         [lm addTextContainer:tc];
 
-        NSView *contentView = [[self window] contentView];
+        NSWindow *win = [self window];
+        NSView *contentView = [win contentView];
         textView = [[MMTextView alloc] initWithFrame:[contentView frame]
                                        textContainer:tc];
 
@@ -185,8 +192,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         [contentView addSubview:tabBarControl];
         [contentView addSubview:tablineSeparator];
 
-        [[self window] setDelegate:self];
-        [[self window] setInitialFirstResponder:textView];
+        [win setDelegate:self];
+        [win setInitialFirstResponder:textView];
+	
+        // Make us safe on pre-tiger OSX
+        if ([win respondsToSelector:@selector(_setContentHasShadow:)])
+            [win _setContentHasShadow:NO];
     }
 
     return self;
@@ -444,6 +455,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore
 {
+    // NOTE: This is called when the transparency changes so set the opacity
+    // flag on the window here (should be faster if the window is opaque).
+    BOOL isOpaque = [back alphaComponent] == 1.0f;
+    [[self window] setOpaque:isOpaque];
+
     [textStorage setDefaultColorsBackground:back foreground:fore];
     [textView setBackgroundColor:back];
 }

@@ -100,6 +100,11 @@ static NSString *MMKeypadEnterString = @"KA";
     }
 }
 
+- (BOOL)isOpaque
+{
+    return NO;
+}
+
 - (void)drawRect:(NSRect)rect
 {
     [super drawRect:rect];
@@ -147,6 +152,22 @@ static NSString *MMKeypadEnterString = @"KA";
         //        NSStringFromRect(ipRect), insertionPointShape,
         //        [self insertionPointColor]);
     }
+#if 0
+    // this code invalidates the shadow, so we don't 
+    // get shifting ghost text on scroll and resize
+    // but makes speed unusable
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    if ([ts defaultBackgroundAlpha] < 1.0f) {
+        if (floor(NSAppKitVersionNumber) <= NSAppKitVersionNumber10_1)
+        {
+            [[self window] setHasShadow:NO];
+            [[self window] setHasShadow:YES];
+        }
+        else
+            [[self window] invalidateShadow];
+
+    }
+#endif
 }
 
 - (void)keyDown:(NSEvent *)event

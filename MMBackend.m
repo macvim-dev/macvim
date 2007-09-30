@@ -12,6 +12,13 @@
 
 
 
+// NOTE: Colors in MMBackend are stored as unsigned ints on the form 0xaarrggbb
+// whereas colors in Vim are int without the alpha component.
+#define MM_COLOR(col) ((unsigned)( ((col)&0xffffff) | 0xff000000 ))
+#define MM_COLOR_WITH_TRANSP(col,transp) \
+    ((unsigned)( ((col)&0xffffff) | (((unsigned)(255-(transp))&0xff)<<24) ))
+
+
 // This constant controls how often the command queue may be flushed.  If it is
 // too small the app might feel unresponsive; if it is too large there might be
 // long periods without the screen updating (e.g. when sourcing a large session
@@ -135,28 +142,28 @@ enum {
 
 - (void)setBackgroundColor:(int)color
 {
-    backgroundColor = color;
+    backgroundColor = MM_COLOR_WITH_TRANSP(color,p_transp);
 }
 
 - (void)setForegroundColor:(int)color
 {
-    foregroundColor = color;
+    foregroundColor = MM_COLOR(color);
 }
 
 - (void)setSpecialColor:(int)color
 {
-    specialColor = color;
+    specialColor = MM_COLOR(color);
 }
 
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg
 {
-    defaultBackgroundColor = bg;
-    defaultForegroundColor = fg;
+    defaultBackgroundColor = MM_COLOR_WITH_TRANSP(bg,p_transp);
+    defaultForegroundColor = MM_COLOR(fg);
 
     NSMutableData *data = [NSMutableData data];
 
-    [data appendBytes:&bg length:sizeof(int)];
-    [data appendBytes:&fg length:sizeof(int)];
+    [data appendBytes:&defaultBackgroundColor length:sizeof(unsigned)];
+    [data appendBytes:&defaultForegroundColor length:sizeof(unsigned)];
 
     [self queueMessage:SetDefaultColorsMsgID data:data];
 }
@@ -272,7 +279,7 @@ enum {
 
     [drawData appendBytes:&type length:sizeof(int)];
 
-    [drawData appendBytes:&defaultBackgroundColor length:sizeof(int)];
+    [drawData appendBytes:&defaultBackgroundColor length:sizeof(unsigned)];
 }
 
 - (void)clearBlockFromRow:(int)row1 column:(int)col1
@@ -282,7 +289,7 @@ enum {
 
     [drawData appendBytes:&type length:sizeof(int)];
 
-    [drawData appendBytes:&defaultBackgroundColor length:sizeof(int)];
+    [drawData appendBytes:&defaultBackgroundColor length:sizeof(unsigned)];
     [drawData appendBytes:&row1 length:sizeof(int)];
     [drawData appendBytes:&col1 length:sizeof(int)];
     [drawData appendBytes:&row2 length:sizeof(int)];
@@ -296,7 +303,7 @@ enum {
 
     [drawData appendBytes:&type length:sizeof(int)];
 
-    [drawData appendBytes:&defaultBackgroundColor length:sizeof(int)];
+    [drawData appendBytes:&defaultBackgroundColor length:sizeof(unsigned)];
     [drawData appendBytes:&row length:sizeof(int)];
     [drawData appendBytes:&count length:sizeof(int)];
     [drawData appendBytes:&bottom length:sizeof(int)];
@@ -313,9 +320,9 @@ enum {
 
     [drawData appendBytes:&type length:sizeof(int)];
 
-    [drawData appendBytes:&backgroundColor length:sizeof(int)];
-    [drawData appendBytes:&foregroundColor length:sizeof(int)];
-    [drawData appendBytes:&specialColor length:sizeof(int)];
+    [drawData appendBytes:&backgroundColor length:sizeof(unsigned)];
+    [drawData appendBytes:&foregroundColor length:sizeof(unsigned)];
+    [drawData appendBytes:&specialColor length:sizeof(unsigned)];
     [drawData appendBytes:&row length:sizeof(int)];
     [drawData appendBytes:&col length:sizeof(int)];
     [drawData appendBytes:&flags length:sizeof(int)];
@@ -330,7 +337,7 @@ enum {
 
     [drawData appendBytes:&type length:sizeof(int)];
 
-    [drawData appendBytes:&defaultBackgroundColor length:sizeof(int)];
+    [drawData appendBytes:&defaultBackgroundColor length:sizeof(unsigned)];
     [drawData appendBytes:&row length:sizeof(int)];
     [drawData appendBytes:&count length:sizeof(int)];
     [drawData appendBytes:&bottom length:sizeof(int)];
@@ -342,10 +349,11 @@ enum {
                fraction:(int)percent color:(int)color
 {
     int type = DrawCursorDrawType;
+    unsigned uc = MM_COLOR(color);
 
     [drawData appendBytes:&type length:sizeof(int)];
 
-    [drawData appendBytes:&color length:sizeof(int)];
+    [drawData appendBytes:&uc length:sizeof(unsigned)];
     [drawData appendBytes:&row length:sizeof(int)];
     [drawData appendBytes:&col length:sizeof(int)];
     [drawData appendBytes:&shape length:sizeof(int)];

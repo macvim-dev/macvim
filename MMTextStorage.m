@@ -292,14 +292,20 @@
         srcRange.location += maxColumns+1;
     }
 
+    NSRange emptyRange = {0,width};
+    NSAttributedString *emptyString =
+            [emptyRowString attributedSubstringFromRange: emptyRange];
+    NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
+            font, NSFontAttributeName,
+            color, NSBackgroundColorAttributeName, nil];
+
     for (i = 0; i < count; ++i) {
-        NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
-                font, NSFontAttributeName,
-                color, NSForegroundColorAttributeName,
-                color, NSBackgroundColorAttributeName, nil];
+        [attribString replaceCharactersInRange:destRange
+                          withAttributedString:emptyString];
         [attribString setAttributes:attribs range:destRange];
-        [self edited:NSTextStorageEditedAttributes range:destRange
-                changeInLength:0];
+        [self edited:(NSTextStorageEditedAttributes
+                | NSTextStorageEditedCharacters) range:destRange
+                                        changeInLength:0];
         destRange.location += maxColumns+1;
     }
 }
@@ -339,15 +345,21 @@
         destRange.location -= maxColumns+1;
         srcRange.location -= maxColumns+1;
     }
-
+    
+    NSRange emptyRange = {0,width};
+    NSAttributedString *emptyString =
+            [emptyRowString attributedSubstringFromRange:emptyRange];
+    NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
+            font, NSFontAttributeName,
+            color, NSBackgroundColorAttributeName, nil];
+    
     for (i = 0; i < count; ++i) {
-        NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
-                font, NSFontAttributeName,
-                color, NSForegroundColorAttributeName,
-                color, NSBackgroundColorAttributeName, nil];
+        [attribString replaceCharactersInRange:destRange
+                          withAttributedString:emptyString];
         [attribString setAttributes:attribs range:destRange];
-        [self edited:NSTextStorageEditedAttributes range:destRange
-                changeInLength:0];
+        [self edited:(NSTextStorageEditedAttributes
+                | NSTextStorageEditedCharacters) range:destRange
+                                        changeInLength:0];
         destRange.location -= maxColumns+1;
     }
 }
@@ -368,16 +380,21 @@
 
     NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
             font, NSFontAttributeName,
-            color, NSForegroundColorAttributeName,
             color, NSBackgroundColorAttributeName, nil];
 
     NSRange range = { row1*(maxColumns+1) + col1, col2-col1+1 };
-
+    
+    NSRange emptyRange = {0,col2-col1+1};
+    NSAttributedString *emptyString =
+            [emptyRowString attributedSubstringFromRange:emptyRange];
     int r;
     for (r=row1; r<=row2; ++r) {
+        [attribString replaceCharactersInRange:range
+                          withAttributedString:emptyString];
         [attribString setAttributes:attribs range:range];
-        [self edited:NSTextStorageEditedAttributes range:range
-                changeInLength:0];
+        [self edited:(NSTextStorageEditedAttributes
+                | NSTextStorageEditedCharacters) range:range
+                                        changeInLength:0];
         range.location += maxColumns+1;
     }
 }
@@ -385,14 +402,23 @@
 - (void)clearAllWithColor:(NSColor *)color
 {
     //NSLog(@"%s%@", _cmd, color);
+    [self lazyResize];
 
-    NSRange range = { 0, [attribString length] };
+    [attribString release];
+    attribString = [[NSMutableAttributedString alloc] init];
+    NSRange fullRange = NSMakeRange(0, [attribString length]);
+
+    int i;
+    for (i=0; i<maxRows; ++i)
+        [attribString appendAttributedString:emptyRowString];
+
     NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
             font, NSFontAttributeName,
-            color, NSForegroundColorAttributeName,
             color, NSBackgroundColorAttributeName, nil];
-    [attribString setAttributes:attribs range:range];
-    [self edited:NSTextStorageEditedAttributes range:range changeInLength:0];
+    [attribString setAttributes:attribs range:fullRange];
+
+    [self edited:(NSTextStorageEditedCharacters|NSTextStorageEditedAttributes)
+           range:fullRange changeInLength:0];
 }
 
 - (void)setDefaultColorsBackground:(NSColor *)bgColor

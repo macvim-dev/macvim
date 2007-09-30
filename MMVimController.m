@@ -75,7 +75,8 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 // TODO: Move to separate file
 @interface NSColor (MMProtocol)
-+ (NSColor *)colorWithRgbInt:(int)rgb;
++ (NSColor *)colorWithRgbInt:(unsigned)rgb;
++ (NSColor *)colorWithArgbInt:(unsigned)argb;
 @end
 
 
@@ -728,9 +729,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [name release];
     } else if (SetDefaultColorsMsgID == msgid) {
         const void *bytes = [data bytes];
-        int bg = *((int*)bytes);  bytes += sizeof(int);
-        int fg = *((int*)bytes);  bytes += sizeof(int);
-        NSColor *back = [NSColor colorWithRgbInt:bg];
+        unsigned bg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+        unsigned fg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+        NSColor *back = [NSColor colorWithArgbInt:bg];
         NSColor *fore = [NSColor colorWithRgbInt:fg];
 
         [windowController setDefaultColorsBackground:back foreground:fore];
@@ -815,14 +816,14 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         int type = *((int*)bytes);  bytes += sizeof(int);
 
         if (ClearAllDrawType == type) {
-            int color = *((int*)bytes);  bytes += sizeof(int);
+            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
 
 #if MM_DEBUG_DRAWING
             NSLog(@"   Clear all");
 #endif
-            [textStorage clearAllWithColor:[NSColor colorWithRgbInt:color]];
+            [textStorage clearAllWithColor:[NSColor colorWithArgbInt:color]];
         } else if (ClearBlockDrawType == type) {
-            int color = *((int*)bytes);  bytes += sizeof(int);
+            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
             int row1 = *((int*)bytes);  bytes += sizeof(int);
             int col1 = *((int*)bytes);  bytes += sizeof(int);
             int row2 = *((int*)bytes);  bytes += sizeof(int);
@@ -834,9 +835,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 #endif
             [textStorage clearBlockFromRow:row1 column:col1
                     toRow:row2 column:col2
-                    color:[NSColor colorWithRgbInt:color]];
+                    color:[NSColor colorWithArgbInt:color]];
         } else if (DeleteLinesDrawType == type) {
-            int color = *((int*)bytes);  bytes += sizeof(int);
+            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
             int row = *((int*)bytes);  bytes += sizeof(int);
             int count = *((int*)bytes);  bytes += sizeof(int);
             int bot = *((int*)bytes);  bytes += sizeof(int);
@@ -848,7 +849,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 #endif
             [textStorage deleteLinesFromRow:row lineCount:count
                     scrollBottom:bot left:left right:right
-                           color:[NSColor colorWithRgbInt:color]];
+                           color:[NSColor colorWithArgbInt:color]];
         } else if (ReplaceStringDrawType == type) {
             int bg = *((int*)bytes);  bytes += sizeof(int);
             int fg = *((int*)bytes);  bytes += sizeof(int);
@@ -882,12 +883,12 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                                  atRow:row column:col
                              withFlags:flags
                        foregroundColor:[NSColor colorWithRgbInt:fg]
-                       backgroundColor:[NSColor colorWithRgbInt:bg]
+                       backgroundColor:[NSColor colorWithArgbInt:bg]
                           specialColor:[NSColor colorWithRgbInt:sp]];
 
             [string release];
         } else if (InsertLinesDrawType == type) {
-            int color = *((int*)bytes);  bytes += sizeof(int);
+            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
             int row = *((int*)bytes);  bytes += sizeof(int);
             int count = *((int*)bytes);  bytes += sizeof(int);
             int bot = *((int*)bytes);  bytes += sizeof(int);
@@ -899,9 +900,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 #endif
             [textStorage insertLinesAtRow:row lineCount:count
                              scrollBottom:bot left:left right:right
-                                    color:[NSColor colorWithRgbInt:color]];
+                                    color:[NSColor colorWithArgbInt:color]];
         } else if (DrawCursorDrawType == type) {
-            int color = *((int*)bytes);  bytes += sizeof(int);
+            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
             int row = *((int*)bytes);  bytes += sizeof(int);
             int col = *((int*)bytes);  bytes += sizeof(int);
             int shape = *((int*)bytes);  bytes += sizeof(int);
@@ -1244,13 +1245,23 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
 @implementation NSColor (MMProtocol)
 
-+ (NSColor *)colorWithRgbInt:(int)rgb
++ (NSColor *)colorWithRgbInt:(unsigned)rgb
 {
     float r = ((rgb>>16) & 0xff)/255.0f;
     float g = ((rgb>>8) & 0xff)/255.0f;
     float b = (rgb & 0xff)/255.0f;
 
     return [NSColor colorWithCalibratedRed:r green:g blue:b alpha:1.0f];
+}
+
++ (NSColor *)colorWithArgbInt:(unsigned)argb
+{
+    float a = ((argb>>24) & 0xff)/255.0f;
+    float r = ((argb>>16) & 0xff)/255.0f;
+    float g = ((argb>>8) & 0xff)/255.0f;
+    float b = (argb & 0xff)/255.0f;
+
+    return [NSColor colorWithCalibratedRed:r green:g blue:b alpha:a];
 }
 
 @end // NSColor (MMProtocol)

@@ -31,11 +31,11 @@
     NSDictionary    *sysColorDict;
     BOOL            inputReceived;
     BOOL            tabBarVisible;
-    int             backgroundColor;
-    int             foregroundColor;
-    int             specialColor;
-    int             defaultBackgroundColor;
-    int             defaultForegroundColor;
+    unsigned        backgroundColor;
+    unsigned        foregroundColor;
+    unsigned        specialColor;
+    unsigned        defaultBackgroundColor;
+    unsigned        defaultForegroundColor;
     NSDate          *lastFlushDate;
     id              dialogReturn;
     NSTimer         *blinkTimer;
