@@ -96,6 +96,10 @@ really bad once you start using tabs.  For example, dropping two files, then
 dropping two more, and switching back to the first tab would cause weird
 strings like "((3) of 2)" to appear in the window title.
 
+							*macvim-options*
+These are the non-standard options that MacVim supports:
+	'toolbariconsize' 'transparency'
+
 ==============================================================================
 2. Starting MacVim					*macvim-start*
 
