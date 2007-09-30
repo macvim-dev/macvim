@@ -44,7 +44,10 @@ an 10.331 File.Close<Tab>:q                     :confirm q<CR>
 "an 10.331 File.Close\ Tab                   :tabclose<CR>
 
 an 20.460 Edit.-SEP4-                       <Nop>
-an 20.465 Edit.Show\ Fonts\.\.\.            :action orderFrontFontPanel:<CR>
+an 20.465.10 Edit.Font.Show\ Fonts          :action orderFrontFontPanel:<CR>
+an 20.465.20 Edit.Font.-SEP5-               <Nop>
+an 20.465.30 Edit.Font.Bigger               :action fontSizeUp:<CR>
+an 20.465.40 Edit.Font.Smaller              :action fontSizeDown:<CR>
 an 20.470 Edit.Special\ Characters\.\.\.    :action orderFrontCharacterPalette:<CR>
 
 
@@ -176,6 +179,8 @@ menukeyequiv Edit.Copy                              <D-c>
 menukeyequiv Edit.Paste                             <D-v>
 menukeyequiv Edit.Select\ All                       <D-a>
 menukeyequiv Edit.Special\ Characters\.\.\.         <D-M-t> 
+menukeyequiv Edit.Font.Bigger                       <D-=>
+menukeyequiv Edit.Font.Smaller                      <D-->
 
 menukeyequiv Tools.Spelling.To\ Next\ error         <D-;>
 menukeyequiv Tools.Spelling.Suggest\ Corrections    <D-:>

@@ -27,5 +27,7 @@
 - (IBAction)newWindow:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;
 - (IBAction)selectPreviousWindow:(id)sender;
+- (IBAction)fontSizeUp:(id)sender;
+- (IBAction)fontSizeDown:(id)sender;
 
 @end

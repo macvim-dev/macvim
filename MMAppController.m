@@ -40,6 +40,10 @@ static NSTimeInterval MMTerminateTimeout = 3;
 - (void)recurseSetAutoenablesItems:(BOOL)on;
 @end
 
+@interface NSNumber (MMExtras)
+- (int)tag;
+@end
+
 
 
 @implementation MMAppController
@@ -415,6 +419,18 @@ static NSTimeInterval MMTerminateTimeout = 3;
     }
 }
 
+- (IBAction)fontSizeUp:(id)sender
+{
+    [[NSFontManager sharedFontManager] modifyFont:
+            [NSNumber numberWithInt:NSSizeUpFontAction]];
+}
+
+- (IBAction)fontSizeDown:(id)sender
+{
+    [[NSFontManager sharedFontManager] modifyFont:
+            [NSNumber numberWithInt:NSSizeDownFontAction]];
+}
+
 - (byref id <MMFrontendProtocol>)
     connectBackend:(byref in id <MMBackendProtocol>)backend
                pid:(int)pid
@@ -582,3 +598,13 @@ static NSTimeInterval MMTerminateTimeout = 3;
 }
 
 @end  // NSMenu (MMExtras)
+
+
+
+
+@implementation NSNumber (MMExtras)
+- (int)tag
+{
+    return [self intValue];
+}
+@end // NSNumber (MMExtras)

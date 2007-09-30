@@ -6,6 +6,10 @@
 	<string></string>
 	<key>arrangeInFront:</key>
 	<string></string>
+	<key>fontSizeDown:</key>
+	<string></string>
+	<key>fontSizeUp:</key>
+	<string></string>
 	<key>hide:</key>
 	<string></string>
 	<key>hideOtherApplications:</key>
