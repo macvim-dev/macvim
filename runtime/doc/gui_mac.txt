@@ -62,13 +62,19 @@ set to "utf-8".  The option 'encoding' also defaults to "utf-8"; currently
 this is done in "$VIM/gvimrc" so you can override it by adding the following
 line to "~/.gvimrc": >
 	set enc=latin1
-Note: Having 'encoding' default to "utf-8" has the side-effect that all files
-you load will be converted in memory (unless they are already utf-8 encoded).
-When you save them back to their original encoding, the contents in memory are
-converted once again.  This means that if you read and then write a file
-immediately the file might still change.  This is no problem if you are
-editing utf-8 encoded files, but if you edit say a binary file then you should
-set 'encoding' to "latin1" since this does no conversion.
+
+Note: UTF-8 can represent all characters defined in Unicode, which includes
+all characters in all other standard encodings, so it should be perfectly safe
+to edit files in any encoding while 'encoding' is set to "utf-8".  Of course,
+you may need to set 'fileencodings' to auto-detect the encoding of the files
+you edit, or force the detection with |++enc| on the command line.
+
+However, if you are editing files that use multiple encodings (container
+formats like MIME or Unix mbox files) or no standard encoding (binary data,
+see also |edit-binary|), you may want to prevent MacVim from re-encoding the
+file at all. In this situation, you will need to set both 'encoding' and
+'fileencodings' to a simple single-byte encoding such as Latin1 so that when
+the file is read into memory, the original bytes are left untouched.
 
 							*macvim-shift-movement*
 Text editors on Mac OS X lets the user hold down shift+movement key to extend
