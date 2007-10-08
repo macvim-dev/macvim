@@ -21,9 +21,6 @@ if !exists("syntax_on")
   syntax on
 endif
 
-" TODO: Move to the source code instead.
-set enc=utf-8
-
 
 
 "
@@ -54,17 +51,17 @@ an 20.465.40 Edit.Font.Smaller              :action fontSizeDown:<CR>
 an 20.470 Edit.Special\ Characters\.\.\.    :action orderFrontCharacterPalette:<CR>
 
 
-" Window menu
+" Window menu (should be next to Help so give it a high priority)
 aunmenu Window
 
-an <silent> 70.300 Window.Minimize          :action performMiniaturize:<CR>
-an <silent> 70.310 Window.Zoom              :action performZoom:<CR>
-an 70.320 Window.-SEP1-                     <Nop>
+an <silent> 9900.300 Window.Minimize          :action performMiniaturize:<CR>
+an <silent> 9900.310 Window.Zoom              :action performZoom:<CR>
+an 9900.320 Window.-SEP1-                     <Nop>
 " TODO! Grey out if no tabs are visible.
-an <silent> 70.330 Window.Previous\ Tab     :tabprevious<CR>
-an <silent> 70.340 Window.Next\ Tab         :tabnext<CR>
-an 70.350 Window.-SEP2-                     <Nop>
-an <silent> 70.360 Window.Bring\ All\ To\ Front :action arrangeInFront:<CR>
+an <silent> 9900.330 Window.Previous\ Tab     :tabprevious<CR>
+an <silent> 9900.340 Window.Next\ Tab         :tabnext<CR>
+an 9900.350 Window.-SEP2-                     <Nop>
+an <silent> 9900.360 Window.Bring\ All\ To\ Front :action arrangeInFront:<CR>
 
 
 
@@ -98,29 +95,32 @@ aunmenu ToolBar.FindHelp
 
 
 
+" This is so that HIG Cmd and Option movement mappings can be disabled by
+" adding the line
+"   let macvim_skip_cmd_opt_movement = 1
+" to the user .vimrc
 "
-" HIG insertion point related mappings
-"
+if !exists("macvim_skip_cmd_opt_movement")
+  no   <D-Left>       <Home>
+  no!  <D-Left>       <Home>
+  no   <M-Left>       <C-Left>
+  no!  <M-Left>       <C-Left>
 
-no   <D-Left>       <Home>
-no!  <D-Left>       <Home>
-no   <M-Left>       <C-Left>
-no!  <M-Left>       <C-Left>
+  no   <D-Right>      <End>
+  no!  <D-Right>      <End>
+  no   <M-Right>      <C-Right>
+  no!  <M-Right>      <C-Right>
 
-no   <D-Right>      <End>
-no!  <D-Right>      <End>
-no   <M-Right>      <C-Right>
-no!  <M-Right>      <C-Right>
+  no   <D-Up>         <C-Home>
+  ino  <D-Up>         <C-Home>
+  map  <M-Up>         {
+  imap <M-Up>         <C-o>{
 
-no   <D-Up>         <C-Home>
-ino  <D-Up>         <C-Home>
-map  <M-Up>         {
-imap <M-Up>         <C-o>{
-
-no   <D-Down>       <C-End>
-ino  <D-Down>       <C-End>
-map  <M-Down>       }
-imap <M-Down>       <C-o>}
+  no   <D-Down>       <C-End>
+  ino  <D-Down>       <C-End>
+  map  <M-Down>       }
+  imap <M-Down>       <C-o>}
+endif " !exists("macvim_skip_cmd_opt_movement")
 
 
 " This is so that the HIG shift movement related settings can be enabled by
@@ -155,7 +155,7 @@ if exists("macvim_hig_shift_movement")
   nn   <S-D-Down>     <S-C-End>
   vn   <S-D-Down>     <S-C-End>
   ino  <S-D-Down>     <S-C-End>
-endif " !exists("macvim_skip_hig_shift_movement")
+endif " exists("macvim_hig_shift_movement")
 
 
 

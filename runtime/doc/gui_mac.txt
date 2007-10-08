@@ -58,10 +58,8 @@ a window.
 
 							*macvim-encoding*
 It is not possible to modify 'termencoding' in MacVim; this option is forcibly
-set to "utf-8".  The option 'encoding' also defaults to "utf-8"; currently
-this is done in "$VIM/gvimrc" so you can override it by adding the following
-line to "~/.gvimrc": >
-	set enc=latin1
+set to "utf-8".  The option 'encoding' also defaults to "utf-8" (as opposed to
+"latin1" in the other GUI ports).
 
 Note: UTF-8 can represent all characters defined in Unicode, which includes
 all characters in all other standard encodings, so it should be perfectly safe
@@ -75,6 +73,16 @@ see also |edit-binary|), you may want to prevent MacVim from re-encoding the
 file at all. In this situation, you will need to set both 'encoding' and
 'fileencodings' to a simple single-byte encoding such as Latin1 so that when
 the file is read into memory, the original bytes are left untouched.
+
+							*macvim-movement*
+Some Mac OS X standard key mappings involving Cmd or Option and an arrow key
+are set up by default in "$VIM/gvimrc".  You can quickly disable all of these
+by adding the following lines to your "~/.vimrc" (not .gvimrc) file: >
+	if has("gui_macvim")
+	  let macvim_skip_cmd_opt_movement = 1
+	endif
+Note: These are the only key mappings that MacVim make (not counting menu key
+equivalents which are not set up with :map).
 
 							*macvim-shift-movement*
 Text editors on Mac OS X lets the user hold down shift+movement key to extend
@@ -376,12 +384,17 @@ Solution: ~
 See |macvim-shift-movement|.
 
 Scenario: ~
+You do not want MacVim to set up any key mappings.
+Solution: ~
+See |macvim-movement|.
+
+Scenario: ~
 Enabling localized menus breaks the toolbar and the menus as well.
 Solution: ~
 This is a know problem, see |macvim-todo|.
 
 Scenario: ~
-You dislike the default font (Bitstream Vera).
+You dislike the default font (DejaVu Sans Mono).
 Solution: ~
 The standard fixed width font on other Mac OS X applications is
 Monaco.  If you prefer this font then add the following line to your
