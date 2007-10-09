@@ -368,9 +368,9 @@
 			</array>
 			<key>TableOfContents</key>
 			<array>
-				<string>1DD15C5B0CA69E1F00C745CE</string>
+				<string>1D80FBD80CBBD3DA00102A1C</string>
 				<string>1CE0B1FE06471DED0097A5F4</string>
-				<string>1DD15C5C0CA69E1F00C745CE</string>
+				<string>1D80FBD90CBBD3DA00102A1C</string>
 				<string>1CE0B20306471E060097A5F4</string>
 				<string>1CE0B20506471E060097A5F4</string>
 			</array>
@@ -504,9 +504,8 @@
 	<integer>5</integer>
 	<key>WindowOrderList</key>
 	<array>
-		<string>1D16B9EF0BA33E3800A69B33</string>
-		<string>1C0AD2B3069F1EA900FABCE6</string>
 		<string>/Users/winckler/Projects/vim7/src/MacVim/MacVim.xcodeproj</string>
+		<string>1D16B9EF0BA33E3800A69B33</string>
 	</array>
 	<key>WindowString</key>
 	<string>165 349 690 397 0 0 1024 746 </string>
@@ -547,6 +546,8 @@
 							<string>194pt</string>
 						</dict>
 						<dict>
+							<key>BecomeActive</key>
+							<true/>
 							<key>ContentConfiguration</key>
 							<dict>
 								<key>PBXProjectModuleGUID</key>
@@ -586,7 +587,7 @@
 			<key>TableOfContents</key>
 			<array>
 				<string>1D16B9EF0BA33E3800A69B33</string>
-				<string>1DD15C5D0CA69E1F00C745CE</string>
+				<string>1D80FBCD0CBBD39300102A1C</string>
 				<string>1CD0528F0623707200166675</string>
 				<string>XCMainBuildResultsModuleGUID</string>
 			</array>
@@ -597,7 +598,7 @@
 			<key>WindowToolGUID</key>
 			<string>1D16B9EF0BA33E3800A69B33</string>
 			<key>WindowToolIsVisible</key>
-			<false/>
+			<true/>
 		</dict>
 		<dict>
 			<key>FirstTimeWindowDisplayed</key>

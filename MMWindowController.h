@@ -12,31 +12,28 @@
 
 
 
-@class PSMTabBarControl;
-@class MMTextView;
-@class MMTextStorage;
+@class MMFullscreenWindow;
 @class MMVimController;
-
+@class MMTextStorage;
+@class MMTextView;
+@class MMVimView;
 
 @interface MMWindowController : NSWindowController {
-    PSMTabBarControl    *tabBarControl;
-    NSTabView           *tabView;
     NSBox               *tablineSeparator;
 
     MMVimController     *vimController;
-    BOOL                vimTaskSelectedTab;
-    MMTextView          *textView;
-    MMTextStorage       *textStorage;
-    NSMutableArray      *scrollbars;
+    MMVimView           *vimView;
     BOOL                setupDone;
     BOOL                shouldUpdateWindowSize;
     NSString            *windowAutosaveKey;
+    MMFullscreenWindow  *fullscreenWindow;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
 - (MMVimController *)vimController;
 - (MMTextView *)textView;
 - (MMTextStorage *)textStorage;
+- (MMVimView *)vimView;
 - (NSString *)windowAutosaveKey;
 - (void)setWindowAutosaveKey:(NSString *)key;
 - (void)cleanup;
@@ -59,6 +56,10 @@
 - (void)setMouseShape:(int)shape;
 - (void)adjustLinespace:(int)linespace;
 - (void)liveResizeDidEnd;
+- (void)placeViews;
+
+- (void)enterFullscreen;
+- (void)leaveFullscreen;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;

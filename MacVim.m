@@ -59,6 +59,8 @@ char *MessageStrings[] =
     "AdjustLinespaceMsgID",
     "ActivateMsgID",
     "SetServerNameMsgID",
+    "EnterFullscreenMsgID",
+    "LeaveFullscreenMsgID",
 };
 
 

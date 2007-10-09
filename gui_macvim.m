@@ -1367,6 +1367,18 @@ gui_macvim_is_valid_action(NSString *action)
     return [actionDict objectForKey:action] != nil;
 }
 
+    void
+gui_mch_enter_fullscreen()
+{
+    [[MMBackend sharedInstance] enterFullscreen];
+}
+
+    void
+gui_mch_leave_fullscreen()
+{
+    [[MMBackend sharedInstance] leaveFullscreen];
+}
+
 
 
 // -- Client/Server ---------------------------------------------------------

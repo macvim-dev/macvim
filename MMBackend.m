@@ -993,6 +993,16 @@ enum {
     return NO;
 }
 
+- (void)enterFullscreen
+{
+    [self queueMessage:EnterFullscreenMsgID data:nil];
+}
+
+- (void)leaveFullscreen
+{
+    [self queueMessage:LeaveFullscreenMsgID data:nil];
+}
+
 - (oneway void)processInput:(int)msgid data:(in NSData *)data
 {
     // NOTE: This method might get called whenever the run loop is tended to.

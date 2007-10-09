@@ -786,6 +786,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
                                                encoding:NSUTF8StringEncoding];
         [self setServerName:name];
         [name release];
+    } else if (EnterFullscreenMsgID == msgid) {
+        [windowController enterFullscreen];
+    } else if (LeaveFullscreenMsgID == msgid) {
+        [windowController leaveFullscreen];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

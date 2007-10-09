@@ -13,6 +13,14 @@
 #define kPSMMetalObjectCounterRadius 7.0
 #define kPSMMetalCounterMinWidth 20
 
+// NSDrawWindowBackground() is broken for borderless windows, see
+// http://lists.apple.com/archives/cocoa-dev/2006/Feb/msg00130.html
+void MyNSDrawWindowBackground(NSRect rect)
+{
+    [[NSColor windowBackgroundColor] set];
+    NSRectFill( rect );
+}
+
 @implementation PSMMetalTabStyle
 
 - (NSString *)name
@@ -316,7 +324,7 @@
         aRect.size.height -= 0.5;
         
         // background
-        NSDrawWindowBackground(aRect);
+        MyNSDrawWindowBackground(aRect);
         
         aRect.size.height+=0.5;
         
@@ -452,7 +460,7 @@
 
 - (void)drawTabBar:(PSMTabBarControl *)bar inRect:(NSRect)rect
 {
-    NSDrawWindowBackground(rect);
+    MyNSDrawWindowBackground(rect);
     [[NSColor colorWithCalibratedWhite:0.0 alpha:0.2] set];
     NSRectFillUsingOperation(rect, NSCompositeSourceAtop);
     [[NSColor darkGrayColor] set];

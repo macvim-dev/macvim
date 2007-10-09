@@ -152,6 +152,8 @@ enum {
     AdjustLinespaceMsgID,
     ActivateMsgID,
     SetServerNameMsgID,
+    EnterFullscreenMsgID,
+    LeaveFullscreenMsgID,
 };
 
 
