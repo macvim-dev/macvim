@@ -36,7 +36,7 @@ aunmenu File.-SEP4-
 aunmenu File.Exit
 aunmenu File.Save-Exit
 
-an <silent> 10.290 File.New\ Window             :action newWindow:<CR>
+an <silent> 10.290 File.New\ Window             :maca newWindow:<CR>
 an  10.295 File.New\ Tab                        :tabnew<CR>
 an 10.328 File.-SEP0-                           <Nop>
 an <silent> 10.330 File.Close\ Window<Tab>:qa   :confirm qa<CR>
@@ -44,24 +44,27 @@ an 10.331 File.Close<Tab>:q                     :confirm q<CR>
 "an 10.331 File.Close\ Tab                   :tabclose<CR>
 
 an 20.460 Edit.-SEP4-                       <Nop>
-an 20.465.10 Edit.Font.Show\ Fonts          :action orderFrontFontPanel:<CR>
+an 20.465.10 Edit.Font.Show\ Fonts          :maca orderFrontFontPanel:<CR>
 an 20.465.20 Edit.Font.-SEP5-               <Nop>
-an 20.465.30 Edit.Font.Bigger               :action fontSizeUp:<CR>
-an 20.465.40 Edit.Font.Smaller              :action fontSizeDown:<CR>
-an 20.470 Edit.Special\ Characters\.\.\.    :action orderFrontCharacterPalette:<CR>
+an 20.465.30 Edit.Font.Bigger               :maca fontSizeUp:<CR>
+an 20.465.40 Edit.Font.Smaller              :maca fontSizeDown:<CR>
+an 20.470 Edit.Special\ Characters\.\.\.    :maca orderFrontCharacterPalette:<CR>
 
 
 " Window menu (should be next to Help so give it a high priority)
 aunmenu Window
 
-an <silent> 9900.300 Window.Minimize          :action performMiniaturize:<CR>
-an <silent> 9900.310 Window.Zoom              :action performZoom:<CR>
-an 9900.320 Window.-SEP1-                     <Nop>
+an <silent> 9900.300 Window.Minimize            :maca performMiniaturize:<CR>
+an <silent> 9900.310 Window.Zoom                :maca performZoom:<CR>
+an 9900.320 Window.-SEP1-                       <Nop>
 " TODO! Grey out if no tabs are visible.
-an <silent> 9900.330 Window.Previous\ Tab     :tabprevious<CR>
-an <silent> 9900.340 Window.Next\ Tab         :tabnext<CR>
-an 9900.350 Window.-SEP2-                     <Nop>
-an <silent> 9900.360 Window.Bring\ All\ To\ Front :action arrangeInFront:<CR>
+an <silent> 9900.330 Window.Previous\ Tab       :tabprevious<CR>
+an <silent> 9900.340 Window.Next\ Tab           :tabnext<CR>
+an 9900.350 Window.-SEP2-                       <Nop>
+an 9900.360 Window.Enter\ Fullscreen            :set fu<CR>
+an 9900.370 Window.Leave\ Fullscreen            :set nofu<CR>
+an 9900.380 Window.-SEP3-                       <Nop>
+an <silent> 9900.390 Window.Bring\ All\ To\ Front :maca arrangeInFront:<CR>
 
 
 
@@ -163,41 +166,43 @@ endif " exists("macvim_hig_shift_movement")
 " Menu key equivalents (these should always have the 'D' modifier set)
 "
 
-menukeyequiv File.New\ Window                       <D-n>
-menukeyequiv File.New\ Tab                          <D-t>
+macmenukey File.New\ Window                       <D-n>
+macmenukey File.New\ Tab                          <D-t>
 
-menukeyequiv File.Open\.\.\.                        <D-o>
-menukeyequiv File.Open\ Tab\.\.\.                   <D-T>
-menukeyequiv File.Close\ Window                     <D-W>
-"menukeyequiv File.Close\ Tab                        <D-w>
-menukeyequiv File.Close                             <D-w>
-menukeyequiv File.Save                              <D-s>
-menukeyequiv File.Save\ As\.\.\.                    <D-S>
-menukeyequiv File.Print                             <D-p>
+macmenukey File.Open\.\.\.                        <D-o>
+macmenukey File.Open\ Tab\.\.\.                   <D-T>
+macmenukey File.Close\ Window                     <D-W>
+"macmenukey File.Close\ Tab                        <D-w>
+macmenukey File.Close                             <D-w>
+macmenukey File.Save                              <D-s>
+macmenukey File.Save\ As\.\.\.                    <D-S>
+macmenukey File.Print                             <D-p>
 
-menukeyequiv Edit.Undo                              <D-z>
-menukeyequiv Edit.Redo                              <D-Z>
-menukeyequiv Edit.Cut                               <D-x>
-menukeyequiv Edit.Copy                              <D-c>
-menukeyequiv Edit.Paste                             <D-v>
-menukeyequiv Edit.Select\ All                       <D-a>
-menukeyequiv Edit.Special\ Characters\.\.\.         <D-M-t> 
-menukeyequiv Edit.Font.Bigger                       <D-=>
-menukeyequiv Edit.Font.Smaller                      <D-->
+macmenukey Edit.Undo                              <D-z>
+macmenukey Edit.Redo                              <D-Z>
+macmenukey Edit.Cut                               <D-x>
+macmenukey Edit.Copy                              <D-c>
+macmenukey Edit.Paste                             <D-v>
+macmenukey Edit.Select\ All                       <D-a>
+macmenukey Edit.Special\ Characters\.\.\.         <D-M-t> 
+macmenukey Edit.Font.Bigger                       <D-=>
+macmenukey Edit.Font.Smaller                      <D-->
 
-menukeyequiv Tools.Spelling.To\ Next\ error         <D-;>
-menukeyequiv Tools.Spelling.Suggest\ Corrections    <D-:>
-menukeyequiv Tools.Make                             <D-b>
-menukeyequiv Tools.List\ Errors                     <D-l>
-menukeyequiv Tools.List\ Messages                   <D-L>
-menukeyequiv Tools.Next\ Error                      <D-C-Right>
-menukeyequiv Tools.Previous\ Error                  <D-C-Left>
-menukeyequiv Tools.Older\ List                      <D-C-Up>
-menukeyequiv Tools.Newer\ List                      <D-C-Down>
+macmenukey Tools.Spelling.To\ Next\ error         <D-;>
+macmenukey Tools.Spelling.Suggest\ Corrections    <D-:>
+macmenukey Tools.Make                             <D-b>
+macmenukey Tools.List\ Errors                     <D-l>
+macmenukey Tools.List\ Messages                   <D-L>
+macmenukey Tools.Next\ Error                      <D-C-Right>
+macmenukey Tools.Previous\ Error                  <D-C-Left>
+macmenukey Tools.Older\ List                      <D-C-Up>
+macmenukey Tools.Newer\ List                      <D-C-Down>
 
-menukeyequiv Window.Minimize                        <D-m>
-menukeyequiv Window.Previous\ Tab                   <D-{>
-menukeyequiv Window.Next\ Tab                       <D-}>
+macmenukey Window.Minimize                        <D-m>
+macmenukey Window.Previous\ Tab                   <D-{>
+macmenukey Window.Next\ Tab                       <D-}>
+macmenukey Window.Enter\ Fullscreen               <D-Enter>
+macmenukey Window.Leave\ Fullscreen               <D-S-Enter>
 
 
 " Restore the previous value of 'cpoptions'.

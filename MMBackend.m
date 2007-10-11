@@ -13,10 +13,12 @@
 
 
 // NOTE: Colors in MMBackend are stored as unsigned ints on the form 0xaarrggbb
-// whereas colors in Vim are int without the alpha component.
+// whereas colors in Vim are int without the alpha component.  Also note that
+// 'transp' is assumed to be a value between 0 and 100.
 #define MM_COLOR(col) ((unsigned)( ((col)&0xffffff) | 0xff000000 ))
 #define MM_COLOR_WITH_TRANSP(col,transp) \
-    ((unsigned)( ((col)&0xffffff) | (((unsigned)(255-(transp))&0xff)<<24) ))
+    ((unsigned)( ((col)&0xffffff) \
+        | ((((unsigned)((((100-(transp))*255)/100)+.5f))&0xff)<<24) ))
 
 
 // This constant controls how often the command queue may be flushed.  If it is

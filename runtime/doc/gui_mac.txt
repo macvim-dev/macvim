@@ -208,14 +208,14 @@ than the default?) then post them to vim_mac.
 ==============================================================================
 4. Menus						*macvim-menus*
 
-							*:menukeyequiv*
+						*:macm* *:macmenukey*
 MacVim has a special way of binding keys to menu items that differs from other
 Vim GUI ports.  A menu binding is called a "key equivalent" in Mac OS X
 terminology, this is displayed on the right side of a menu item.  The
-":menukeyequiv" command is used to set the key equivalent of a menu item.
-This command takes two parameters, the first names the menu item to bind to,
-the second gives the key combination.  For example: >
-	:menukeyequiv File.New\ Tab <D-t>
+":macmenukey" command is used to set the key equivalent of a menu item.  This
+command takes two parameters, the first names the menu item to bind to, the
+second gives the key combination.  For example: >
+	:macmenukey File.New\ Tab <D-t>
 This sets the key equivalent of the "New Tab" menu item under the "File" menu
 to Cmd+t.
 
@@ -224,31 +224,31 @@ Note that key equivalents:
 	* take precedence over normal mappings made with ":map"
 	* can only be modified during startup (e.g. in .gvimrc)
 
-It is possible to reset a key equivalent by calling :menukeyequiv with a menu
+It is possible to reset a key equivalent by calling :macmenukey with a menu
 name but no key.  This is so that the default key equivalents can be reset in
 "~/.gvimrc".  For example, if you would like to free up <D-s> (which is the
 key equivalent of "File.Save") then add the following line to "~/.gvimrc": >
-	menukeyequiv File.Save
+	macmenukey File.Save
 Now you can use :map to bind <D-s> to whatever you like.
 
 It is not necessary to reset a key equivalent if all you want to do is to
 change the key equivalent of a menu item.  For example, say you want to use
 <D-M-Right> as the key equivalent for "Next Tab", then add the following line
 to "~/.gvimrc": >
-	menukeyequiv Window.Next\ Tab <D-M-Right>
+	macmenukey Window.Next\ Tab <D-M-Right>
 <
-							*:action*
+						*:maca* *:macaction*
 It is typical for menu items in Cocoa applications to bind to Objective-C
-selectors.  To support this, MacVim introduces the ":action" command.  This
+selectors.  To support this, MacVim introduces the ":macaction" command.  This
 command takes the name of an action message as its only parameter.  (An action
 message is an Objective-C message with "void" return type and a single
 parameter of type "id".)  For example, the "New Window" menu item on the
 "File" menu is created in the following manner: >
-	:an 10.290 File.New\ Window :action newWindow:<CR>
+	:an 10.290 File.New\ Window :macaction newWindow:<CR>
 
-Note 1: A menu item which is bound to ":action" will automatically be bound to
-that action in all modes (as if ":an" was used).  It is not possible to bind
-to ":action" in one mode only.
+Note 1: A menu item which is bound to ":macaction" will automatically be bound
+to that action in all modes (as if ":an" was used).  It is not possible to
+bind to ":macaction" in one mode only.
 Note 2: The action is "nil-targeted", which means it is passed down the first
 responder chain.
 
@@ -263,6 +263,8 @@ Here is a random assortment of actions from Actions.plist which might be
 useful.
 
 Action				Description ~
+fontSizeDown:			Decrease font size
+fontSizeUp:			Increase font size
 newWindow:			Open a new (empty) window
 orderFrontCharacterPalette:	Show the the "Special Characters" dialog
 orderFrontFontPanel:		Show the Font panel
@@ -271,11 +273,11 @@ selectNextWindow:		Select next window (similar to <D-`>)
 selectPreviousWindow:		Select previous window (similar to <S-D-`>)
 
 As an example, to map <C-z> to performZoom: you could do something like this: >
-	:map <silent> <C-z> :action performZoom:<CR>
+	:map <silent> <C-z> :macaction performZoom:<CR>
 A better way to map to performZoom: would be to set the key equivalent of the
 menu item "Window.Zoom" to the above action.  This can be done by adding the
 following line to "~/.gvimrc": >
-	menukeyequiv Window.Zoom <D-C-z>
+	macmenukey Window.Zoom <D-C-z>
 (Note that key equivalents must contain the 'D' flag.)
 
 ==============================================================================
@@ -365,8 +367,8 @@ To get around this, set 'tabpagemax' to something big in your
 .gvimrc file (e.g. ":set tabpagemax=100").
 
 Scenario: ~
-You want to open a file in a tab in an already opened window, but
-typing "gvim filename" in Terminal opens it up in a separate window.
+You want to open a file in a tab in an already opened window, but typing
+"mvim filename" in Terminal opens it up in a separate window.
 Solution: ~
 Use the |--remote-tab| switch.  If you have several windows open you
 might have to specify which window you want the file to open in by using the
@@ -374,7 +376,7 @@ might have to specify which window you want the file to open in by using the
 "VIM" or "VIM3" --- this is the server name of that window.  So to open a file
 named "foobar.txt" in a window whose title ends in "VIM3" you would type (the
 order of the arguments matters): >
-	gvim --servername VIM3 --remote-tab foobar.txt
+	mvim --servername VIM3 --remote-tab foobar.txt
 For more information, consult the |client-server| manual page.
 
 Scenario: ~

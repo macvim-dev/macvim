@@ -651,8 +651,8 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
                           name:(char*)name
                            tip:(char*)tip
                           icon:(char*)icon
-                 keyEquivalent:menu->ke_key
-                     modifiers:menu->ke_mods
+                 keyEquivalent:menu->mac_key
+                     modifiers:menu->mac_mods
                         action:action
                        atIndex:idx];
 
@@ -1024,7 +1024,7 @@ mch_set_mouse_shape(int shape)
 
 
     void
-ex_action(eap)
+ex_macaction(eap)
     exarg_T	*eap;
 {
     if (!gui.in_use) {
