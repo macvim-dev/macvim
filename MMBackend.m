@@ -1885,7 +1885,7 @@ enum {
         // Unfortunately, the only way to deal with when to clear the modifiers
         // or not seems to be to have hard-wired rules like this.
         if ( !((' ' == c) || (0xa0 == c) || (mods & MOD_MASK_CMD)
-                    || 0x9 == c) ) {
+                    || 0x9 == c || 0xd == c) ) {
             mods &= ~MOD_MASK_SHIFT;
             mods &= ~MOD_MASK_CTRL;
             //NSLog(@"clear shift ctrl");
