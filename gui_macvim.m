@@ -626,17 +626,17 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     map_str = CONVERT_TO_UTF8(map_str);
 #endif
 
-    // HACK!  Check if menu is mapped to ':action actionName:'; if so, pass the
-    // action along so that MacVim can bind the menu item to this action.  This
-    // means that if a menu item maps to an action in normal mode, then all
-    // other modes will also use the same action.
+    // HACK!  Check if menu is mapped to ':macaction actionName:'; if so, pass
+    // the action along so that MacVim can bind the menu item to this action.
+    // This means that if a menu item maps to an action in normal mode, then
+    // all other modes will also use the same action.
     NSString *action = nil;
     if (map_str) {
         NSString *mapping = [NSString stringWithCString:(char*)map_str
                                                encoding:NSUTF8StringEncoding];
         NSArray *parts = [mapping componentsSeparatedByString:@" "];
         if ([parts count] >=2 
-                && [[parts objectAtIndex:0] isEqual:@":action"]) {
+                && [[parts objectAtIndex:0] hasPrefix:@":maca"]) {
             action = [parts objectAtIndex:1];
             action = [action stringByTrimmingCharactersInSet:
                     [NSCharacterSet whitespaceAndNewlineCharacterSet]];
