@@ -19,7 +19,7 @@
 
 @implementation MMFullscreenWindow
 
-- (MMFullscreenWindow*)initWithWindow:(NSWindow*)t andView:(MMVimView*)v
+- (MMFullscreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v
 {
     NSScreen* screen = [t screen];
 
@@ -35,7 +35,7 @@
                                 defer:YES
                                screen:screen];
       
-    if(self == nil)
+    if (self == nil)
         return nil;
 
     [self setHasShadow:NO];
@@ -49,7 +49,7 @@
     return self;
 }
 
-- (void) dealloc
+- (void)dealloc
 {
     [target release];
     [view release];
@@ -57,7 +57,7 @@
     [super dealloc];
 }
 
-- (void) centerView
+- (void)centerView
 {
     NSRect outer = [self frame], inner = [view frame];
     //NSLog(@"%s %@%@", _cmd, NSStringFromRect(outer), NSStringFromRect(inner));
@@ -67,7 +67,7 @@
     [view setFrameOrigin:origin];
 }
 
-- (void) enterFullscreen
+- (void)enterFullscreen
 {
     // hide menu and dock, both appear on demand
     SetSystemUIMode(kUIModeAllSuppressed, 0); //requires 10.3
@@ -75,7 +75,7 @@
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
-    if(CGAcquireDisplayFadeReservation(.5, &token) == kCGErrorSuccess) {
+    if (CGAcquireDisplayFadeReservation(.5, &token) == kCGErrorSuccess) {
         CGDisplayFade(token, .25, kCGDisplayBlendNormal,
             kCGDisplayBlendSolidColor, .0, .0, .0, true);
         didBlend = YES;
@@ -86,9 +86,9 @@
     [target setDelegate:nil];
     
     // make target's window controller believe that it's now controlling us
-    [target retain];  // NSWindowController will release target once in the next
-                      // line
-    [[target windowController] setWindow: self];
+    [target retain];  // NSWindowController will release target once in the
+                      // in the next line
+    [[target windowController] setWindow:self];
 
 
     oldTabBarStyle = [[view tabBarControl] styleName];
@@ -100,15 +100,16 @@
     [[self contentView] addSubview:view];
     [self setInitialFirstResponder:[view textView]];
     
-    [self setTitle: [target title]];
+    [self setTitle:[target title]];
     [self setOpaque:[target isOpaque]];
 
     // make us visible and target invisible
     [target orderOut:self];
     [self makeKeyAndOrderFront:self];
 
-    // don't set this sooner, so we don't get an additional focus gained message  
-    [self setDelegate: delegate];
+    // don't set this sooner, so we don't get an additional
+    // focus gained message  
+    [self setDelegate:delegate];
 
     // update bottom right corner scrollbar (no resize handle in fu mode)
     [[self windowController] placeViews];
@@ -119,19 +120,19 @@
     [self display];
 
     // fade back in
-    if(didBlend) {
+    if (didBlend) {
         CGDisplayFade(token, .25, kCGDisplayBlendSolidColor,
             kCGDisplayBlendNormal, .0, .0, .0, false);
         CGReleaseDisplayFadeReservation(token);
     }
 }
 
-- (void) leaveFullscreen
+- (void)leaveFullscreen
 {
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
-    if(CGAcquireDisplayFadeReservation(.5, &token) == kCGErrorSuccess) {
+    if (CGAcquireDisplayFadeReservation(.5, &token) == kCGErrorSuccess) {
         CGDisplayFade(token, .25, kCGDisplayBlendNormal,
             kCGDisplayBlendSolidColor, .0, .0, .0, true);
         didBlend = YES;
@@ -139,7 +140,7 @@
 
     // fix up target controller
     [self retain];  // NSWindowController releases us once
-    [[self windowController] setWindow: target];
+    [[self windowController] setWindow:target];
 
 
     [[view tabBarControl] setStyleNamed:oldTabBarStyle];
@@ -153,14 +154,14 @@
     // do this _after_ resetting delegate and window controller, so the
     // window controller doesn't get a focus lost message from the fullscreen
     // window.
-    [[target contentView] addSubview: view];
+    [[target contentView] addSubview:view];
     [view setFrameOrigin:oldPosition];
     [self close];
     [target makeKeyAndOrderFront:self];
 
     // ...but we don't want a focus gained message either, so don't set this
     // sooner
-    [target setDelegate: delegate];
+    [target setDelegate:delegate];
 
 
     // update bottom right corner scrollbar (resize handle reappears)
@@ -170,7 +171,7 @@
 
 
     // fade back in  
-    if(didBlend) {
+    if (didBlend) {
         CGDisplayFade(token, .25, kCGDisplayBlendSolidColor,
             kCGDisplayBlendNormal, .0, .0, .0, false);
         CGReleaseDisplayFadeReservation(token);
@@ -200,7 +201,7 @@
 // non-fullscreen window. forward those, and interpret the messages that are
 // interesting for us
 
-- (void)setTitle:(NSString*)title
+- (void)setTitle:(NSString *)title
 {
     [target setTitle:title];
     [super setTitle:title];
@@ -210,7 +211,7 @@
 // to be changed when nofu is set. MMWindowController gets the toolbar object,
 // so we need to return a toolbar from this method, even if none is visible for
 // the fullscreen window. Seems to work, though.
-- (NSToolbar*)toolbar
+- (NSToolbar *)toolbar
 {
     return [target toolbar];
 }

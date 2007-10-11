@@ -877,9 +877,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
             // get drawn as well.
             if (flags & DRAW_CURSOR) {
                 [textView setShouldDrawInsertionPoint:NO];
+                //NSColor *color = [NSColor colorWithRgbInt:bg];
                 //[textView drawInsertionPointAtRow:row column:col
                 //                            shape:MMInsertionPointBlock
-                //                            color:[NSColor colorWithRgbInt:bg]];
+                //                            color:color];
             }
             [textStorage replaceString:string
                                  atRow:row column:col

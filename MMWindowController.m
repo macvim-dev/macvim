@@ -63,7 +63,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 // Note: This hack allows us to set content shadowing separately from
 // the window shadow.  This is apparently what webkit and terminal do.
 @interface NSWindow (NSWindowPrivate) // new Tiger private method
-- (void) _setContentHasShadow:(BOOL)shadow;
+- (void)_setContentHasShadow:(BOOL)shadow;
 @end
 
 
@@ -119,6 +119,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     [tablineSeparator release];  tablineSeparator = nil;
     [windowAutosaveKey release];  windowAutosaveKey = nil;
+    [vimView release];  vimView = nil;
 
     [super dealloc];
 }
@@ -285,8 +286,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSEvent *event;
     if (row >= 0 && col >= 0) {
         NSSize cellSize = [[vimView textStorage] cellSize];
-        NSPoint pt = { (col+1)*cellSize.width, [[vimView textView] frame].size.height
-            - (row+1)*cellSize.height };
+        NSPoint pt = { (col+1)*cellSize.width, (row+1)*cellSize.height };
+        pt = [[vimView textView] convertPoint:pt toView:nil];
 
         event = [NSEvent mouseEventWithType:NSRightMouseDown
                                    location:pt
@@ -456,7 +457,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (void)enterFullscreen
 {
     fullscreenWindow = [[MMFullscreenWindow alloc] initWithWindow:[self window]
-                                                          andView:vimView];
+                                                             view:vimView];
     [fullscreenWindow enterFullscreen];    
       
     [fullscreenWindow setDelegate:self];
@@ -488,9 +489,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     [vimController sendMessage:GotFocusMsgID data:nil];
 
-    if ([vimView textStorage])
-        [[NSFontManager sharedFontManager] setSelectedFont:[[vimView textStorage] font]
-                                                isMultiple:NO];
+    if ([vimView textStorage]) {
+        NSFontManager *fontManager = [NSFontManager sharedFontManager];
+        [fontManager setSelectedFont:[[vimView textStorage] font]
+                          isMultiple:NO];
+    }
 }
 
 - (void)windowDidResignMain:(NSNotification *)notification
@@ -625,7 +628,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSWindow *win = [self window];
     NSRect frame = [win frame];
     NSRect contentRect = [win contentRectForFrameRect:frame];
-    NSSize newSize = [self contentSizeForTextStorageSize:[[vimView textStorage] size]];
+    NSSize textStorageSize = [[vimView textStorage] size];
+    NSSize newSize = [self contentSizeForTextStorageSize:textStorageSize];
 
     // Keep top-left corner of the window fixed when resizing.
     contentRect.origin.y -= newSize.height - contentRect.size.height;

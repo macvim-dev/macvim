@@ -15,16 +15,16 @@
 @class MMVimView;
 
 @interface MMFullscreenWindow : NSWindow {
-    NSWindow* target;
-    MMVimView* view;
-    NSPoint oldPosition;
-    NSString *oldTabBarStyle;
+    NSWindow    *target;
+    MMVimView   *view;
+    NSPoint     oldPosition;
+    NSString    *oldTabBarStyle;
 }
 
-- (MMFullscreenWindow*)initWithWindow:(NSWindow*)t andView:(MMVimView*)v;
+- (MMFullscreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v;
 
-- (void) enterFullscreen;
-- (void) leaveFullscreen;
+- (void)enterFullscreen;
+- (void)leaveFullscreen;
 
 - (BOOL)canBecomeKeyWindow;
 - (BOOL)canBecomeMainWindow;
