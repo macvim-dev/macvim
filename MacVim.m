@@ -117,3 +117,51 @@ loadFonts()
     return fontContainerRef;
 }
 
+
+
+
+@implementation NSString (MMExtras)
+
+- (NSString *)stringByEscapingPercent
+{
+    NSMutableString *string = [self mutableCopy];
+
+    // Some '%' may already be escaped, so un-escape first...
+    [string replaceOccurrencesOfString:@"\\%"
+                            withString:@"%"
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+    // ...then escape all '%'
+    [string replaceOccurrencesOfString:@"%"
+                            withString:@"\\%"
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+
+    return [string autorelease];
+}
+
+- (NSString *)stringByEscapingSpace
+{
+    NSMutableString *string = [self mutableCopy];
+
+    // Some space chars may already be escaped, so un-escape first...
+    [string replaceOccurrencesOfString:@"\\ "
+                            withString:@" "
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+    // ...then escape all space chars
+    [string replaceOccurrencesOfString:@" "
+                            withString:@"\\ "
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+
+    return [string autorelease];
+}
+
+- (NSString *)stringByEscapingInvalidFilenameCharacters
+{
+    return [[self stringByEscapingSpace] stringByEscapingPercent];
+}
+
+
+@end // NSString (MMExtras)

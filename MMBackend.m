@@ -57,6 +57,7 @@ enum {
 @interface MMBackend (Private)
 - (void)handleMessage:(int)msgid data:(NSData *)data;
 + (NSDictionary *)specialKeys;
+- (void)handleInsertText:(NSData *)data;
 - (void)handleKeyDown:(NSString *)key modifiers:(int)mods;
 - (void)queueMessage:(int)msgid data:(NSData *)data;
 - (void)connectionDidDie:(NSNotification *)notification;
@@ -64,6 +65,16 @@ enum {
 - (void)focusChange:(BOOL)on;
 - (void)processInputBegin;
 - (void)processInputEnd;
+- (void)handleToggleToolbar;
+- (void)handleScrollbarEvent:(NSData *)data;
+- (void)handleSetFont:(NSData *)data;
+- (void)handleDropFiles:(NSData *)data;
+- (void)handleDropString:(NSData *)data;
+@end
+
+
+
+@interface MMBackend (ClientServer)
 - (NSString *)connectionNameFromServerName:(NSString *)name;
 - (NSConnection *)connectionForServerName:(NSString *)name;
 - (NSConnection *)connectionForServerPort:(int)port;
@@ -1403,37 +1414,7 @@ enum {
 - (void)handleMessage:(int)msgid data:(NSData *)data
 {
     if (InsertTextMsgID == msgid) {
-        if (!data) return;
-        NSString *key = [[NSString alloc] initWithData:data
-                                              encoding:NSUTF8StringEncoding];
-        char_u *str = (char_u*)[key UTF8String];
-        int i, len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-
-#if MM_ENABLE_CONV
-        char_u *conv_str = NULL;
-        if (input_conv.vc_type != CONV_NONE) {
-            conv_str = string_convert(&input_conv, str, &len);
-            if (conv_str)
-                str = conv_str;
-        }
-#endif
-
-        for (i = 0; i < len; ++i) {
-            add_to_input_buf(str+i, 1);
-            if (CSI == str[i]) {
-                // NOTE: If the converted string contains the byte CSI, then it
-                // must be followed by the bytes KS_EXTRA, KE_CSI or things
-                // won't work.
-                static char_u extra[2] = { KS_EXTRA, KE_CSI };
-                add_to_input_buf(extra, 2);
-            }
-        }
-
-#if MM_ENABLE_CONV
-        if (conv_str)
-            vim_free(conv_str);
-#endif
-        [key release];
+        [self handleInsertText:data];
     } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -1545,233 +1526,17 @@ enum {
             gui_menu_cb(menu);
         }
     } else if (ToggleToolbarMsgID == msgid) {
-        char_u go[sizeof(GO_ALL)+2];
-        char_u *p;
-        int len;
-
-        STRCPY(go, p_go);
-        p = vim_strchr(go, GO_TOOLBAR);
-        len = STRLEN(go);
-
-        if (p != NULL) {
-            char_u *end = go + len;
-            while (p < end) {
-                p[0] = p[1];
-                ++p;
-            }
-        } else {
-            go[len] = GO_TOOLBAR;
-            go[len+1] = NUL;
-        }
-
-        set_option_value((char_u*)"guioptions", 0, go, 0);
-
-        // Force screen redraw (does it have to be this complicated?).
-	redraw_all_later(CLEAR);
-	update_screen(NOT_VALID);
-	setcursor();
-	out_flush();
-	gui_update_cursor(FALSE, FALSE);
-	gui_mch_flush();
+        [self handleToggleToolbar];
     } else if (ScrollbarEventMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-        long ident = *((long*)bytes);  bytes += sizeof(long);
-        int hitPart = *((int*)bytes);  bytes += sizeof(int);
-        float fval = *((float*)bytes);  bytes += sizeof(float);
-        scrollbar_T *sb = gui_find_scrollbar(ident);
-
-        if (sb) {
-            scrollbar_T *sb_info = sb->wp ? &sb->wp->w_scrollbars[0] : sb;
-            long value = sb_info->value;
-            long size = sb_info->size;
-            long max = sb_info->max;
-            BOOL isStillDragging = NO;
-            BOOL updateKnob = YES;
-
-            switch (hitPart) {
-            case NSScrollerDecrementPage:
-                value -= (size > 2 ? size - 2 : 1);
-                break;
-            case NSScrollerIncrementPage:
-                value += (size > 2 ? size - 2 : 1);
-                break;
-            case NSScrollerDecrementLine:
-                --value;
-                break;
-            case NSScrollerIncrementLine:
-                ++value;
-                break;
-            case NSScrollerKnob:
-                isStillDragging = YES;
-                // fall through ...
-            case NSScrollerKnobSlot:
-                value = (long)(fval * (max - size + 1));
-                // fall through ...
-            default:
-                updateKnob = NO;
-                break;
-            }
-
-            //NSLog(@"value %d -> %d", sb_info->value, value);
-            gui_drag_scrollbar(sb, value, isStillDragging);
-
-            if (updateKnob) {
-                // Dragging the knob or option+clicking automatically updates
-                // the knob position (on the actual NSScroller), so we only
-                // need to set the knob position in the other cases.
-                if (sb->wp) {
-                    // Update both the left&right vertical scrollbars.
-                    long identLeft = sb->wp->w_scrollbars[SBAR_LEFT].ident;
-                    long identRight = sb->wp->w_scrollbars[SBAR_RIGHT].ident;
-                    [self setScrollbarThumbValue:value size:size max:max
-                                      identifier:identLeft];
-                    [self setScrollbarThumbValue:value size:size max:max
-                                      identifier:identRight];
-                } else {
-                    // Update the horizontal scrollbar.
-                    [self setScrollbarThumbValue:value size:size max:max
-                                      identifier:ident];
-                }
-            }
-        }
+        [self handleScrollbarEvent:data];
     } else if (SetFontMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-        float pointSize = *((float*)bytes);  bytes += sizeof(float);
-        //unsigned len = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-        bytes += sizeof(unsigned);  // len not used
-
-        NSMutableString *name = [NSMutableString stringWithUTF8String:bytes];
-        [name appendString:[NSString stringWithFormat:@":h%.2f", pointSize]];
-        char_u *s = (char_u*)[name UTF8String];
-
-#if MM_ENABLE_CONV
-        s = CONVERT_FROM_UTF8(s);
-#endif
-
-        set_option_value((char_u*)"guifont", 0, s, 0);
-
-#if MM_ENABLE_CONV
-        CONVERT_FROM_UTF8_FREE(s);
-#endif
-
-        // Force screen redraw (does it have to be this complicated?).
-	redraw_all_later(CLEAR);
-	update_screen(NOT_VALID);
-	setcursor();
-	out_flush();
-	gui_update_cursor(FALSE, FALSE);
-	gui_mch_flush();
+        [self handleSetFont:data];
     } else if (VimShouldCloseMsgID == msgid) {
         gui_shell_closed();
     } else if (DropFilesMsgID == msgid) {
-#ifdef FEAT_DND
-        const void *bytes = [data bytes];
-        const void *end = [data bytes] + [data length];
-        int n = *((int*)bytes);  bytes += sizeof(int);
-
-        if (State & CMDLINE) {
-            // HACK!  If Vim is in command line mode then the files names
-            // should be added to the command line, instead of opening the
-            // files in tabs.  This is taken care of by gui_handle_drop().
-            char_u **fnames = (char_u **)alloc(n * sizeof(char_u *));
-            if (fnames) {
-                int i = 0;
-                while (bytes < end && i < n) {
-                    int len = *((int*)bytes);  bytes += sizeof(int);
-                    char_u *s = (char_u*)bytes;
-#if MM_ENABLE_CONV
-                    s = CONVERT_FROM_UTF8(s);
-#endif
-                    fnames[i++] = vim_strsave(s);
-#if MM_ENABLE_CONV
-                    CONVERT_FROM_UTF8_FREE(s);
-#endif
-                    bytes += len;
-                }
-
-                // NOTE!  This function will free 'fnames'.
-                // HACK!  It is assumed that the 'x' and 'y' arguments are
-                // unused when in command line mode.
-                gui_handle_drop(0, 0, 0, fnames, i < n ? i : n);
-            }
-        } else {
-            // HACK!  I'm not sure how to get Vim to open a list of files in
-            // tabs, so instead I create a ':tab drop' command with all the
-            // files to open and execute it.
-            NSMutableString *cmd = (n > 1)
-                    ? [NSMutableString stringWithString:@":tab drop"]
-                    : [NSMutableString stringWithString:@":drop"];
-
-            int i;
-            for (i = 0; i < n && bytes < end; ++i) {
-                int len = *((int*)bytes);  bytes += sizeof(int);
-                NSMutableString *file =
-                        [NSMutableString stringWithUTF8String:bytes];
-                [file replaceOccurrencesOfString:@" "
-                                      withString:@"\\ "
-                                         options:0
-                                           range:NSMakeRange(0,[file length])];
-                bytes += len;
-
-                [cmd appendString:@" "];
-                [cmd appendString:file];
-            }
-
-            // By going to the last tabpage we ensure that the new tabs will
-            // appear last (if this call is left out, the taborder becomes
-            // messy).
-            goto_tabpage(9999);
-
-            char_u *s = (char_u*)[cmd UTF8String];
-#if MM_ENABLE_CONV
-            s = CONVERT_FROM_UTF8(s);
-#endif
-            do_cmdline_cmd(s);
-#if MM_ENABLE_CONV
-            CONVERT_FROM_UTF8_FREE(s);
-#endif
-
-            // Force screen redraw (does it have to be this complicated?).
-            // (This code was taken from the end of gui_handle_drop().)
-            update_screen(NOT_VALID);
-            setcursor();
-            out_flush();
-            gui_update_cursor(FALSE, FALSE);
-            gui_mch_flush();
-        }
-#endif // FEAT_DND
+        [self handleDropFiles:data];
     } else if (DropStringMsgID == msgid) {
-#ifdef FEAT_DND
-        char_u  dropkey[3] = { CSI, KS_EXTRA, (char_u)KE_DROP };
-        const void *bytes = [data bytes];
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        NSMutableString *string = [NSMutableString stringWithUTF8String:bytes];
-
-        // Replace unrecognized end-of-line sequences with \x0a (line feed).
-        NSRange range = { 0, [string length] };
-        unsigned n = [string replaceOccurrencesOfString:@"\x0d\x0a"
-                                             withString:@"\x0a" options:0
-                                                  range:range];
-        if (0 == n) {
-            n = [string replaceOccurrencesOfString:@"\x0d" withString:@"\x0a"
-                                           options:0 range:range];
-        }
-
-        len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        char_u *s = (char_u*)[string UTF8String];
-#if MM_ENABLE_CONV
-        if (input_conv.vc_type != CONV_NONE)
-            s = string_convert(&input_conv, s, &len);
-#endif
-        dnd_yank_drag_data(s, len);
-#if MM_ENABLE_CONV
-        if (input_conv.vc_type != CONV_NONE)
-            vim_free(s);
-#endif
-        add_to_input_buf(dropkey, sizeof(dropkey));
-#endif // FEAT_DND
+        [self handleDropString:data];
     } else if (GotFocusMsgID == msgid) {
         if (!gui.in_focus)
             [self focusChange:YES];
@@ -1805,6 +1570,42 @@ enum {
     }
 
     return specialKeys;
+}
+
+- (void)handleInsertText:(NSData *)data
+{
+    if (!data) return;
+
+    NSString *key = [[NSString alloc] initWithData:data
+                                          encoding:NSUTF8StringEncoding];
+    char_u *str = (char_u*)[key UTF8String];
+    int i, len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+#if MM_ENABLE_CONV
+    char_u *conv_str = NULL;
+    if (input_conv.vc_type != CONV_NONE) {
+        conv_str = string_convert(&input_conv, str, &len);
+        if (conv_str)
+            str = conv_str;
+    }
+#endif
+
+    for (i = 0; i < len; ++i) {
+        add_to_input_buf(str+i, 1);
+        if (CSI == str[i]) {
+            // NOTE: If the converted string contains the byte CSI, then it
+            // must be followed by the bytes KS_EXTRA, KE_CSI or things
+            // won't work.
+            static char_u extra[2] = { KS_EXTRA, KE_CSI };
+            add_to_input_buf(extra, 2);
+        }
+    }
+
+#if MM_ENABLE_CONV
+    if (conv_str)
+        vim_free(conv_str);
+#endif
+    [key release];
 }
 
 - (void)handleKeyDown:(NSString *)key modifiers:(int)mods
@@ -2017,6 +1818,258 @@ enum {
     inProcessInput = NO;
 }
 
+- (void)handleToggleToolbar
+{
+    // If 'go' contains 'T', then remove it, else add it.
+
+    char_u go[sizeof(GO_ALL)+2];
+    char_u *p;
+    int len;
+
+    STRCPY(go, p_go);
+    p = vim_strchr(go, GO_TOOLBAR);
+    len = STRLEN(go);
+
+    if (p != NULL) {
+        char_u *end = go + len;
+        while (p < end) {
+            p[0] = p[1];
+            ++p;
+        }
+    } else {
+        go[len] = GO_TOOLBAR;
+        go[len+1] = NUL;
+    }
+
+    set_option_value((char_u*)"guioptions", 0, go, 0);
+
+    // Force screen redraw (does it have to be this complicated?).
+    redraw_all_later(CLEAR);
+    update_screen(NOT_VALID);
+    setcursor();
+    out_flush();
+    gui_update_cursor(FALSE, FALSE);
+    gui_mch_flush();
+}
+
+- (void)handleScrollbarEvent:(NSData *)data
+{
+    if (!data) return;
+
+    const void *bytes = [data bytes];
+    long ident = *((long*)bytes);  bytes += sizeof(long);
+    int hitPart = *((int*)bytes);  bytes += sizeof(int);
+    float fval = *((float*)bytes);  bytes += sizeof(float);
+    scrollbar_T *sb = gui_find_scrollbar(ident);
+
+    if (sb) {
+        scrollbar_T *sb_info = sb->wp ? &sb->wp->w_scrollbars[0] : sb;
+        long value = sb_info->value;
+        long size = sb_info->size;
+        long max = sb_info->max;
+        BOOL isStillDragging = NO;
+        BOOL updateKnob = YES;
+
+        switch (hitPart) {
+        case NSScrollerDecrementPage:
+            value -= (size > 2 ? size - 2 : 1);
+            break;
+        case NSScrollerIncrementPage:
+            value += (size > 2 ? size - 2 : 1);
+            break;
+        case NSScrollerDecrementLine:
+            --value;
+            break;
+        case NSScrollerIncrementLine:
+            ++value;
+            break;
+        case NSScrollerKnob:
+            isStillDragging = YES;
+            // fall through ...
+        case NSScrollerKnobSlot:
+            value = (long)(fval * (max - size + 1));
+            // fall through ...
+        default:
+            updateKnob = NO;
+            break;
+        }
+
+        //NSLog(@"value %d -> %d", sb_info->value, value);
+        gui_drag_scrollbar(sb, value, isStillDragging);
+
+        if (updateKnob) {
+            // Dragging the knob or option+clicking automatically updates
+            // the knob position (on the actual NSScroller), so we only
+            // need to set the knob position in the other cases.
+            if (sb->wp) {
+                // Update both the left&right vertical scrollbars.
+                long identLeft = sb->wp->w_scrollbars[SBAR_LEFT].ident;
+                long identRight = sb->wp->w_scrollbars[SBAR_RIGHT].ident;
+                [self setScrollbarThumbValue:value size:size max:max
+                                  identifier:identLeft];
+                [self setScrollbarThumbValue:value size:size max:max
+                                  identifier:identRight];
+            } else {
+                // Update the horizontal scrollbar.
+                [self setScrollbarThumbValue:value size:size max:max
+                                  identifier:ident];
+            }
+        }
+    }
+}
+
+- (void)handleSetFont:(NSData *)data
+{
+    if (!data) return;
+
+    const void *bytes = [data bytes];
+    float pointSize = *((float*)bytes);  bytes += sizeof(float);
+    //unsigned len = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+    bytes += sizeof(unsigned);  // len not used
+
+    NSMutableString *name = [NSMutableString stringWithUTF8String:bytes];
+    [name appendString:[NSString stringWithFormat:@":h%.2f", pointSize]];
+    char_u *s = (char_u*)[name UTF8String];
+
+#if MM_ENABLE_CONV
+    s = CONVERT_FROM_UTF8(s);
+#endif
+
+    set_option_value((char_u*)"guifont", 0, s, 0);
+
+#if MM_ENABLE_CONV
+    CONVERT_FROM_UTF8_FREE(s);
+#endif
+
+    // Force screen redraw (does it have to be this complicated?).
+    redraw_all_later(CLEAR);
+    update_screen(NOT_VALID);
+    setcursor();
+    out_flush();
+    gui_update_cursor(FALSE, FALSE);
+    gui_mch_flush();
+}
+
+- (void)handleDropFiles:(NSData *)data
+{
+    if (!data) return;
+
+#ifdef FEAT_DND
+    const void *bytes = [data bytes];
+    const void *end = [data bytes] + [data length];
+    int n = *((int*)bytes);  bytes += sizeof(int);
+
+    if (State & CMDLINE) {
+        // HACK!  If Vim is in command line mode then the files names
+        // should be added to the command line, instead of opening the
+        // files in tabs.  This is taken care of by gui_handle_drop().
+        char_u **fnames = (char_u **)alloc(n * sizeof(char_u *));
+        if (fnames) {
+            int i = 0;
+            while (bytes < end && i < n) {
+                int len = *((int*)bytes);  bytes += sizeof(int);
+                char_u *s = (char_u*)bytes;
+#if MM_ENABLE_CONV
+                s = CONVERT_FROM_UTF8(s);
+#endif
+                fnames[i++] = vim_strsave(s);
+#if MM_ENABLE_CONV
+                CONVERT_FROM_UTF8_FREE(s);
+#endif
+                bytes += len;
+            }
+
+            // NOTE!  This function will free 'fnames'.
+            // HACK!  It is assumed that the 'x' and 'y' arguments are
+            // unused when in command line mode.
+            gui_handle_drop(0, 0, 0, fnames, i < n ? i : n);
+        }
+    } else {
+        // HACK!  I'm not sure how to get Vim to open a list of files in
+        // tabs, so instead I create a ':tab drop' command with all the
+        // files to open and execute it.
+        NSMutableString *cmd = (n > 1)
+                ? [NSMutableString stringWithString:@":tab drop"]
+                : [NSMutableString stringWithString:@":drop"];
+
+        int i;
+        for (i = 0; i < n && bytes < end; ++i) {
+            int len = *((int*)bytes);  bytes += sizeof(int);
+            NSString *file = [NSString stringWithUTF8String:bytes];
+            file = [file stringByEscapingInvalidFilenameCharacters];
+            bytes += len;
+
+            [cmd appendString:@" "];
+            [cmd appendString:file];
+        }
+
+        // By going to the last tabpage we ensure that the new tabs will
+        // appear last (if this call is left out, the taborder becomes
+        // messy).
+        goto_tabpage(9999);
+
+        char_u *s = (char_u*)[cmd UTF8String];
+#if MM_ENABLE_CONV
+        s = CONVERT_FROM_UTF8(s);
+#endif
+        do_cmdline_cmd(s);
+#if MM_ENABLE_CONV
+        CONVERT_FROM_UTF8_FREE(s);
+#endif
+
+        // Force screen redraw (does it have to be this complicated?).
+        // (This code was taken from the end of gui_handle_drop().)
+        update_screen(NOT_VALID);
+        setcursor();
+        out_flush();
+        gui_update_cursor(FALSE, FALSE);
+        gui_mch_flush();
+    }
+#endif // FEAT_DND
+}
+
+- (void)handleDropString:(NSData *)data
+{
+    if (!data) return;
+
+#ifdef FEAT_DND
+    char_u  dropkey[3] = { CSI, KS_EXTRA, (char_u)KE_DROP };
+    const void *bytes = [data bytes];
+    int len = *((int*)bytes);  bytes += sizeof(int);
+    NSMutableString *string = [NSMutableString stringWithUTF8String:bytes];
+
+    // Replace unrecognized end-of-line sequences with \x0a (line feed).
+    NSRange range = { 0, [string length] };
+    unsigned n = [string replaceOccurrencesOfString:@"\x0d\x0a"
+                                         withString:@"\x0a" options:0
+                                              range:range];
+    if (0 == n) {
+        n = [string replaceOccurrencesOfString:@"\x0d" withString:@"\x0a"
+                                       options:0 range:range];
+    }
+
+    len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    char_u *s = (char_u*)[string UTF8String];
+#if MM_ENABLE_CONV
+    if (input_conv.vc_type != CONV_NONE)
+        s = string_convert(&input_conv, s, &len);
+#endif
+    dnd_yank_drag_data(s, len);
+#if MM_ENABLE_CONV
+    if (input_conv.vc_type != CONV_NONE)
+        vim_free(s);
+#endif
+    add_to_input_buf(dropkey, sizeof(dropkey));
+#endif // FEAT_DND
+}
+
+@end // MMBackend (Private)
+
+
+
+
+@implementation MMBackend (ClientServer)
+
 - (NSString *)connectionNameFromServerName:(NSString *)name
 {
     NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
@@ -2158,7 +2211,7 @@ enum {
     return nil;
 }
 
-@end // MMBackend (Private)
+@end // MMBackend (ClientServer)
 
 
 

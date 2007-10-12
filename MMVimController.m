@@ -199,7 +199,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         int len = [file lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
         if (len > 0) {
-            ++len;  // append NUL as well
+            ++len;  // include NUL as well
             [data appendBytes:&len length:sizeof(int)];
             [data appendBytes:[file UTF8String] length:len];
         }

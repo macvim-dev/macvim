@@ -215,4 +215,13 @@ extern NSString *MMOpenFilesInTabsKey;
 ATSFontContainerRef loadFonts();
 
 
+
+
+@interface NSString (MMExtras)
+- (NSString *)stringByEscapingPercent;
+- (NSString *)stringByEscapingSpace;
+- (NSString *)stringByEscapingInvalidFilenameCharacters;
+@end
+
+
 // vim: set ft=objc:
