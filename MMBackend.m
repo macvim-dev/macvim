@@ -815,7 +815,7 @@ enum {
 
         if ([fontName isEqual:@"*"]) {
             // :set gfn=* shows the font panel.
-            do_cmdline_cmd((char_u*)":action orderFrontFontPanel:");
+            do_cmdline_cmd((char_u*)":macaction orderFrontFontPanel:");
             return NO;
         }
 
