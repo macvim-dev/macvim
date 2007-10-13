@@ -2035,6 +2035,7 @@ enum {
         setcursor();
         out_flush();
         gui_update_cursor(FALSE, FALSE);
+        maketitle();
         gui_mch_flush();
     }
 #endif // FEAT_DND
