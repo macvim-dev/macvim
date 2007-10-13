@@ -10,6 +10,12 @@
 
 #import "MMApplication.h"
 
+// Ctrl-Tab is broken on pre 10.5, so we add a hack to make it work.
+#if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_4
+# import "MMTextView.h"
+# define MM_CTRL_TAB_HACK 1
+#endif
+
 
 
 
@@ -19,6 +25,19 @@
 {
     NSEventType type = [event type];
     unsigned flags = [event modifierFlags];
+
+#ifdef MM_CTRL_TAB_HACK
+    NSResponder *firstResponder = [[self keyWindow] firstResponder];
+
+    if (NSKeyDown == type && NSControlKeyMask & flags && 48 == [event keyCode]
+            && [firstResponder isKindOfClass:[MMTextView class]]) {
+        // HACK! This is a Ctrl-Tab key down event and the first responder is
+        // an MMTextView; send the event directly to the text view, else it
+        // will never receive it on pre 10.5 systems.
+        [firstResponder keyDown:event];
+        return;
+    }
+#endif
 
     // HACK! Intercept 'help' key presses and clear the 'help key flag', else
     // Cocoa turns the mouse cursor into a question mark and goes into 'context
