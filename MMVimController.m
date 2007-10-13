@@ -414,7 +414,7 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     [alert release];
 }
 
-- (oneway void)processCommandQueue:(in NSArray *)queue
+- (oneway void)processCommandQueue:(in bycopy NSArray *)queue
 {
     if (!isInitialized) return;
 

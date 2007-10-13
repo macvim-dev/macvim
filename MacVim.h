@@ -30,8 +30,8 @@
 // @try/@catch/@finally to deal with timeouts.
 //
 @protocol MMBackendProtocol
-- (oneway void)processInput:(int)msgid data:(in NSData *)data;
-- (oneway void)processInputAndData:(in NSArray *)messages;
+- (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data;
+- (oneway void)processInputAndData:(in bycopy NSArray *)messages;
 - (BOOL)checkForModifiedBuffers;
 - (oneway void)setDialogReturn:(in bycopy id)obj;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
@@ -42,7 +42,7 @@
 // This is the protocol MMVimController implements.
 //
 @protocol MMFrontendProtocol
-- (oneway void)processCommandQueue:(in NSArray *)queue;
+- (oneway void)processCommandQueue:(in bycopy NSArray *)queue;
 - (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
                                    title:(in bycopy NSString *)title
                                   saving:(int)saving;

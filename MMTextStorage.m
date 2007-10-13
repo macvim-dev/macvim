@@ -231,12 +231,25 @@
     else if (flags & DRAW_ITALIC)
         theFont = italicFont;
 
-    NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+    NSDictionary *attributes;
+    
+    if (flags & DRAW_UNDERC) {
+        // move the undercurl down a bit so it is visible
+        attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+            theFont, NSFontAttributeName,
+            bg, NSBackgroundColorAttributeName,
+            fg, NSForegroundColorAttributeName,
+            sp, NSUnderlineColorAttributeName,
+            [NSNumber numberWithFloat:2],NSBaselineOffsetAttributeName,
+            nil];
+    } else {
+        attributes = [NSDictionary dictionaryWithObjectsAndKeys:
             theFont, NSFontAttributeName,
             bg, NSBackgroundColorAttributeName,
             fg, NSForegroundColorAttributeName,
             sp, NSUnderlineColorAttributeName,
             nil];
+    }
     [attribString setAttributes:attributes range:range];
 
     if (flags & DRAW_UNDERL) {
@@ -282,33 +295,54 @@
     NSRange srcRange = { (row+count)*(maxColumns+1) + left, width };
     int i;
 
-    for (i = 0; i < move; ++i) {
-        NSAttributedString *srcString = [attribString
-                attributedSubstringFromRange:srcRange];
-        [attribString replaceCharactersInRange:destRange
-                          withAttributedString:srcString];
-        [self edited:(NSTextStorageEditedCharacters
-                | NSTextStorageEditedAttributes)
-                range:destRange changeInLength:0];
-        destRange.location += maxColumns+1;
-        srcRange.location += maxColumns+1;
-    }
+    if (width != maxColumns) {      // if this is the case, then left must be 0
+        for (i = 0; i < move; ++i) {
+            NSAttributedString *srcString = [attribString
+                    attributedSubstringFromRange:srcRange];
+            [attribString replaceCharactersInRange:destRange
+                              withAttributedString:srcString];
+            [self edited:(NSTextStorageEditedCharacters
+                    | NSTextStorageEditedAttributes)
+                    range:destRange changeInLength:0];
+            destRange.location += maxColumns+1;
+            srcRange.location += maxColumns+1;
+        }
+        
+        NSRange emptyRange = {0,width};
+        NSAttributedString *emptyString =
+                [emptyRowString attributedSubstringFromRange: emptyRange];
+        NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
+                font, NSFontAttributeName,
+                color, NSBackgroundColorAttributeName, nil];
 
-    NSRange emptyRange = {0,width};
-    NSAttributedString *emptyString =
-            [emptyRowString attributedSubstringFromRange: emptyRange];
-    NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
-            font, NSFontAttributeName,
-            color, NSBackgroundColorAttributeName, nil];
-
-    for (i = 0; i < count; ++i) {
-        [attribString replaceCharactersInRange:destRange
-                          withAttributedString:emptyString];
-        [attribString setAttributes:attribs range:destRange];
+        for (i = 0; i < count; ++i) {
+            [attribString replaceCharactersInRange:destRange
+                              withAttributedString:emptyString];
+            [attribString setAttributes:attribs range:destRange];
+            [self edited:(NSTextStorageEditedAttributes
+                    | NSTextStorageEditedCharacters) range:destRange
+                                            changeInLength:0];
+            destRange.location += maxColumns+1;
+        }
+    } else {
+        NSRange delRange = {row*(maxColumns+1), count*(maxColumns+1)};
+        [attribString deleteCharactersInRange: delRange];
+        destRange.location += move*(maxColumns+1);
+        
+        NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
+                font, NSFontAttributeName,
+                color, NSBackgroundColorAttributeName, nil];
+        destRange.length = maxColumns;
+        for (i = 0; i < count; ++i) {
+            [attribString insertAttributedString:emptyRowString
+                    atIndex:destRange.location];
+            [attribString setAttributes:attribs range:destRange];
+            destRange.location += maxColumns+1;
+        }
+        NSRange editedRange = {row*(maxColumns+1),total*(maxColumns+1)};
         [self edited:(NSTextStorageEditedAttributes
-                | NSTextStorageEditedCharacters) range:destRange
-                                        changeInLength:0];
-        destRange.location += maxColumns+1;
+                | NSTextStorageEditedCharacters) range:editedRange
+                                         changeInLength:0];
     }
 }
 
@@ -336,33 +370,53 @@
     NSRange srcRange = { (row+move-1)*(maxColumns+1) + left, width };
     int i;
 
-    for (i = 0; i < move; ++i) {
-        NSAttributedString *srcString = [attribString
-                attributedSubstringFromRange:srcRange];
-        [attribString replaceCharactersInRange:destRange
-                          withAttributedString:srcString];
-        [self edited:(NSTextStorageEditedCharacters
-                | NSTextStorageEditedAttributes)
-                range:destRange changeInLength:0];
-        destRange.location -= maxColumns+1;
-        srcRange.location -= maxColumns+1;
-    }
-    
-    NSRange emptyRange = {0,width};
-    NSAttributedString *emptyString =
-            [emptyRowString attributedSubstringFromRange:emptyRange];
-    NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
-            font, NSFontAttributeName,
-            color, NSBackgroundColorAttributeName, nil];
-    
-    for (i = 0; i < count; ++i) {
-        [attribString replaceCharactersInRange:destRange
-                          withAttributedString:emptyString];
-        [attribString setAttributes:attribs range:destRange];
+    if (width != maxColumns) {      // if this is the case, then left must be 0
+        for (i = 0; i < move; ++i) {
+            NSAttributedString *srcString = [attribString
+                    attributedSubstringFromRange:srcRange];
+            [attribString replaceCharactersInRange:destRange
+                              withAttributedString:srcString];
+            [self edited:(NSTextStorageEditedCharacters
+                    | NSTextStorageEditedAttributes)
+                    range:destRange changeInLength:0];
+            destRange.location -= maxColumns+1;
+            srcRange.location -= maxColumns+1;
+        }
+        
+        NSRange emptyRange = {0,width};
+        NSAttributedString *emptyString =
+                [emptyRowString attributedSubstringFromRange:emptyRange];
+        NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
+                font, NSFontAttributeName,
+                color, NSBackgroundColorAttributeName, nil];
+        
+        for (i = 0; i < count; ++i) {
+            [attribString replaceCharactersInRange:destRange
+                              withAttributedString:emptyString];
+            [attribString setAttributes:attribs range:destRange];
+            [self edited:(NSTextStorageEditedAttributes
+                    | NSTextStorageEditedCharacters) range:destRange
+                                            changeInLength:0];
+            destRange.location -= maxColumns+1;
+        }
+    } else {
+        NSRange delRange = {(row+move)*(maxColumns+1),count*(maxColumns+1)};
+        [attribString deleteCharactersInRange: delRange];
+
+        NSDictionary *attribs = [NSDictionary dictionaryWithObjectsAndKeys:
+                font, NSFontAttributeName,
+                color, NSBackgroundColorAttributeName, nil];
+        
+        destRange.location = row*(maxColumns+1);
+        for (i = 0; i < count; ++i) {
+            [attribString insertAttributedString:emptyRowString
+                            atIndex:destRange.location];
+            [attribString setAttributes:attribs range:destRange];
+        }
+        NSRange editedRange = {row*(maxColumns+1),total*(maxColumns+1)};
         [self edited:(NSTextStorageEditedAttributes
-                | NSTextStorageEditedCharacters) range:destRange
+                | NSTextStorageEditedCharacters) range:editedRange
                                         changeInLength:0];
-        destRange.location -= maxColumns+1;
     }
 }
 

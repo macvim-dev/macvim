@@ -26,6 +26,7 @@
 // long periods without the screen updating (e.g. when sourcing a large session
 // file).  (The unit is seconds.)
 static float MMFlushTimeoutInterval = 0.1f;
+static int MMFlushQueueLenHint = 80*40;
 
 static unsigned MMServerMax = 1000;
 
@@ -377,7 +378,8 @@ enum {
     // was called MacVim would feel unresponsive.  So there is a time out which
     // ensures that the queue isn't flushed too often.
     if (!force && lastFlushDate && -[lastFlushDate timeIntervalSinceNow]
-            < MMFlushTimeoutInterval)
+            < MMFlushTimeoutInterval
+ 	    && [drawData length] < MMFlushQueueLenHint)
         return;
 
     if ([drawData length] > 0) {
@@ -1016,7 +1018,7 @@ enum {
     [self queueMessage:LeaveFullscreenMsgID data:nil];
 }
 
-- (oneway void)processInput:(int)msgid data:(in NSData *)data
+- (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data
 {
     // NOTE: This method might get called whenever the run loop is tended to.
     // Thus it might get called whilst input is being processed.  Normally this
@@ -1040,7 +1042,7 @@ enum {
     }
 }
 
-- (oneway void)processInputAndData:(in NSArray *)messages
+- (oneway void)processInputAndData:(in bycopy NSArray *)messages
 {
     // NOTE: See comment in processInput:data:.
     unsigned i, count = [messages count];
