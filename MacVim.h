@@ -220,9 +220,7 @@ ATSFontContainerRef loadFonts();
 
 
 @interface NSString (MMExtras)
-- (NSString *)stringByEscapingPercent;
-- (NSString *)stringByEscapingSpace;
-- (NSString *)stringByEscapingInvalidFilenameCharacters;
+- (NSString *)stringByEscapingSpecialFilenameCharacters;
 @end
 
 

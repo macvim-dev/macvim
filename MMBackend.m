@@ -2008,7 +2008,7 @@ enum {
         for (i = 0; i < n && bytes < end; ++i) {
             int len = *((int*)bytes);  bytes += sizeof(int);
             NSString *file = [NSString stringWithUTF8String:bytes];
-            file = [file stringByEscapingInvalidFilenameCharacters];
+            file = [file stringByEscapingSpecialFilenameCharacters];
             bytes += len;
 
             [cmd appendString:@" "];

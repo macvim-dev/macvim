@@ -124,45 +124,41 @@ loadFonts()
 
 @implementation NSString (MMExtras)
 
-- (NSString *)stringByEscapingPercent
+- (NSString *)stringByEscapingSpecialFilenameCharacters
 {
+    // NOTE: This code assumes that no characters already have been escaped.
     NSMutableString *string = [self mutableCopy];
 
-    // Some '%' may already be escaped, so un-escape first...
-    [string replaceOccurrencesOfString:@"\\%"
-                            withString:@"%"
+    [string replaceOccurrencesOfString:@"\\"
+                            withString:@"\\\\"
                                options:NSLiteralSearch
                                  range:NSMakeRange(0, [string length])];
-    // ...then escape all '%'
-    [string replaceOccurrencesOfString:@"%"
-                            withString:@"\\%"
-                               options:NSLiteralSearch
-                                 range:NSMakeRange(0, [string length])];
-
-    return [string autorelease];
-}
-
-- (NSString *)stringByEscapingSpace
-{
-    NSMutableString *string = [self mutableCopy];
-
-    // Some space chars may already be escaped, so un-escape first...
-    [string replaceOccurrencesOfString:@"\\ "
-                            withString:@" "
-                               options:NSLiteralSearch
-                                 range:NSMakeRange(0, [string length])];
-    // ...then escape all space chars
     [string replaceOccurrencesOfString:@" "
                             withString:@"\\ "
                                options:NSLiteralSearch
                                  range:NSMakeRange(0, [string length])];
+    [string replaceOccurrencesOfString:@"\t"
+                            withString:@"\\\t "
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+    [string replaceOccurrencesOfString:@"%"
+                            withString:@"\\%"
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+    [string replaceOccurrencesOfString:@"#"
+                            withString:@"\\#"
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+    [string replaceOccurrencesOfString:@"|"
+                            withString:@"\\|"
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+    [string replaceOccurrencesOfString:@"\""
+                            withString:@"\\\""
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
 
     return [string autorelease];
-}
-
-- (NSString *)stringByEscapingInvalidFilenameCharacters
-{
-    return [[self stringByEscapingSpace] stringByEscapingPercent];
 }
 
 
