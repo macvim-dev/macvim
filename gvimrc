@@ -56,15 +56,13 @@ aunmenu Window
 
 an <silent> 9900.300 Window.Minimize            :maca performMiniaturize:<CR>
 an <silent> 9900.310 Window.Zoom                :maca performZoom:<CR>
-an 9900.320 Window.-SEP1-                       <Nop>
+an <silent> 9900.320 Window.Toggle\ Full\ Screen\ Mode  :set invfullscreen<CR>
+an 9900.330 Window.-SEP1-                       <Nop>
 " TODO! Grey out if no tabs are visible.
-an <silent> 9900.330 Window.Previous\ Tab       :tabprevious<CR>
-an <silent> 9900.340 Window.Next\ Tab           :tabnext<CR>
-an 9900.350 Window.-SEP2-                       <Nop>
-an 9900.360 Window.Enter\ Fullscreen            :set fu<CR>
-an 9900.370 Window.Leave\ Fullscreen            :set nofu<CR>
-an 9900.380 Window.-SEP3-                       <Nop>
-an <silent> 9900.390 Window.Bring\ All\ To\ Front :maca arrangeInFront:<CR>
+an <silent> 9900.340 Window.Previous\ Tab       :tabprevious<CR>
+an <silent> 9900.350 Window.Next\ Tab           :tabnext<CR>
+an 9900.360 Window.-SEP2-                       <Nop>
+an <silent> 9900.370 Window.Bring\ All\ To\ Front :maca arrangeInFront:<CR>
 
 
 
@@ -199,10 +197,9 @@ macmenukey Tools.Older\ List                      <D-C-Up>
 macmenukey Tools.Newer\ List                      <D-C-Down>
 
 macmenukey Window.Minimize                        <D-m>
+macmenukey Window.Toggle\ Full\ Screen\ Mode      <D-F>
 macmenukey Window.Previous\ Tab                   <D-{>
 macmenukey Window.Next\ Tab                       <D-}>
-macmenukey Window.Enter\ Fullscreen               <D-Enter>
-macmenukey Window.Leave\ Fullscreen               <D-S-Enter>
 
 
 " Restore the previous value of 'cpoptions'.
