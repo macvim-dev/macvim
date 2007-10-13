@@ -1018,6 +1018,16 @@ enum {
     [self queueMessage:LeaveFullscreenMsgID data:nil];
 }
 
+- (void)updateModifiedFlag
+{
+    // Notify MacVim if _any_ buffer has changed from unmodified to modified or
+    // vice versa.
+    int msgid = [self checkForModifiedBuffers]
+            ? BuffersModifiedMsgID : BuffersNotModifiedMsgID;
+
+    [self queueMessage:msgid data:nil];
+}
+
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data
 {
     // NOTE: This method might get called whenever the run loop is tended to.

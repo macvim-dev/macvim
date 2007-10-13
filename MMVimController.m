@@ -790,6 +790,10 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
         [windowController enterFullscreen];
     } else if (LeaveFullscreenMsgID == msgid) {
         [windowController leaveFullscreen];
+    } else if (BuffersNotModifiedMsgID == msgid) {
+        [[windowController window] setDocumentEdited:NO];
+    } else if (BuffersModifiedMsgID == msgid) {
+        [[windowController window] setDocumentEdited:YES];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

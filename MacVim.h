@@ -154,6 +154,8 @@ enum {
     SetServerNameMsgID,
     EnterFullscreenMsgID,
     LeaveFullscreenMsgID,
+    BuffersNotModifiedMsgID,
+    BuffersModifiedMsgID,
 };
 
 

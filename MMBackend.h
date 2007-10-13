@@ -119,6 +119,8 @@
 - (void)enterFullscreen;
 - (void)leaveFullscreen;
 
+- (void)updateModifiedFlag;
+
 - (void)registerServerWithName:(NSString *)name;
 - (BOOL)sendToServer:(NSString *)name string:(NSString *)string
                reply:(char_u **)reply port:(int *)port expression:(BOOL)expr

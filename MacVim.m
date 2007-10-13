@@ -61,6 +61,8 @@ char *MessageStrings[] =
     "SetServerNameMsgID",
     "EnterFullscreenMsgID",
     "LeaveFullscreenMsgID",
+    "BuffersNotModifiedMsgID",
+    "BuffersModifiedMsgID",
 };
 
 
