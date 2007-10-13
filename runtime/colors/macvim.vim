@@ -1,7 +1,7 @@
 " MacVim colorscheme
 "
 " Maintainer:   Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:  2007 Sep 30
+" Last Change:  2007 Oct 11
 "
 
 
@@ -21,10 +21,10 @@ hi ErrorMsg     guibg=Firebrick2 guifg=White
 hi IncSearch    gui=reverse
 hi ModeMsg      gui=bold
 hi NonText      gui=bold guifg=Blue
-hi StatusLine   gui=NONE guifg=White guibg=Black
-hi StatusLineNC gui=NONE guifg=Gray50 guibg=Gray80
-hi VertSplit    gui=NONE guifg=White guibg=Gray
-hi DiffText     gui=bold guibg=Firebrick2
+hi StatusLine   gui=NONE guifg=White guibg=DarkSlateGray
+hi StatusLineNC gui=NONE guifg=SlateGray guibg=Gray90
+hi VertSplit    gui=NONE guifg=DarkSlateGray guibg=Gray90
+hi DiffText     gui=NONE guibg=VioletRed
 hi PmenuThumb   gui=reverse
 hi PmenuSbar    guibg=Grey
 hi TabLineSel   gui=bold
@@ -53,9 +53,9 @@ hi Folded       guibg=#E6E6E6 guifg=DarkBlue
 hi FoldColumn   guibg=Grey guifg=DarkBlue
 hi SignColumn   guibg=Grey guifg=DarkBlue
 hi Visual       guibg=MacSelectedTextBackgroundColor
-hi DiffAdd      guibg=LightBlue
-hi DiffChange   guibg=DarkSlateBlue
-hi DiffDelete   gui=bold guifg=Black guibg=SpringGreen4
+hi DiffAdd      guibg=MediumSeaGreen
+hi DiffChange   guibg=DeepSkyBlue
+hi DiffDelete   gui=bold guifg=Black guibg=SlateBlue
 hi TabLine      gui=underline guibg=LightGrey
 hi CursorColumn guibg=#F1F5FA
 hi CursorLine   guibg=#F1F5FA   "Data browser list view secondary color
@@ -78,7 +78,7 @@ hi Special  gui=NONE guifg=BlueViolet guibg=NONE
 hi Underlined gui=underline guifg=SteelBlue1
 hi Ignore gui=NONE guifg=bg guibg=NONE
 hi Error gui=NONE guifg=White guibg=Firebrick3
-hi Todo gui=NONE guifg=White guibg=Magenta3
+hi Todo gui=NONE guifg=DarkGreen guibg=PaleGreen1
 
 
 " Change the selection color on focus change (but only if the "macvim"
