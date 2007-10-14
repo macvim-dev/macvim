@@ -1080,7 +1080,8 @@ gui_update_cursor(force, clear_selection)
 		cur_width = gui.char_width;
 	    }
 #ifdef FEAT_MBYTE
-	    if (has_mbyte && (*mb_off2cells)(LineOffset[gui.row] + gui.col) > 1)
+	    if (has_mbyte && (*mb_off2cells)(LineOffset[gui.row] + gui.col,
+				    LineOffset[gui.row] + screen_Columns) > 1)
 	    {
 		/* Double wide character. */
 		if (shape_table[idx].shape != SHAPE_VER)
@@ -1159,7 +1160,7 @@ gui_position_components(total_width)
 #endif
 
 # if defined(FEAT_GUI_TABLINE) && (defined(FEAT_GUI_MSWIN) \
- 	|| defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_MAC))
+	|| defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_MAC))
     if (gui_has_tabline())
 	text_area_y += gui.tabline_height;
 #endif
@@ -4518,7 +4519,18 @@ gui_focus_change(in_focus)
     xim_set_focus(in_focus);
 # endif
 
-    ui_focus_change(in_focus);
+    /* Put events in the input queue only when allowed.
+     * ui_focus_change() isn't called directly, because it invokes
+     * autocommands and that must not happen asynchronously. */
+    if (!hold_gui_events)
+    {
+	char_u  bytes[3];
+
+	bytes[0] = CSI;
+	bytes[1] = KS_EXTRA;
+	bytes[2] = in_focus ? (int)KE_FOCUSGAINED : (int)KE_FOCUSLOST;
+	add_to_input_buf(bytes, 3);
+    }
 #endif
 }
 
@@ -5117,7 +5129,7 @@ gui_handle_drop(x, y, modifiers, fnames, count)
 		p = vim_strsave_escaped(fnames[i], (char_u *)"\\ \t\"|");
 # endif
 		if (p != NULL)
-		    add_to_input_buf(p, (int)STRLEN(p));
+		    add_to_input_buf_csi(p, (int)STRLEN(p));
 		vim_free(p);
 		vim_free(fnames[i]);
 	    }

@@ -427,6 +427,8 @@ struct vimoption
 #define P_NOGLOB       0x100000L/* do not use local value for global vimrc */
 #define P_NFNAME       0x200000L/* only normal file name chars allowed */
 #define P_INSECURE     0x400000L/* option was set from a modeline */
+#define P_PRI_MKRC     0x800000L/* priority for :mkvimrc (setting option has
+				   side effects) */
 
 #define ISK_LATIN1  (char_u *)"@,48-57,_,192-255"
 
@@ -773,6 +775,8 @@ static struct vimoption
 			    {(char_u *)0L, (char_u *)0L}
 #endif
 			    },
+			    /* P_PRI_MKRC isn't needed here, optval_default()
+			     * always returns TRUE for 'compatible' */
     {"compatible",  "cp",   P_BOOL|P_RALL,
 			    (char_u *)&p_cp, PV_NONE,
 			    {(char_u *)TRUE, (char_u *)FALSE}},
@@ -1515,7 +1519,7 @@ static struct vimoption
 			    {(char_u *)0L, (char_u *)0L}
 #endif
 			    },
-    {"keymap",	    "kmp",  P_STRING|P_ALLOCED|P_VI_DEF|P_RBUF|P_RSTAT|P_NFNAME,
+    {"keymap",	    "kmp",  P_STRING|P_ALLOCED|P_VI_DEF|P_RBUF|P_RSTAT|P_NFNAME|P_PRI_MKRC,
 #ifdef FEAT_KEYMAP
 			    (char_u *)&p_keymap, PV_KMAP,
 			    {(char_u *)"", (char_u *)0L}
@@ -1836,7 +1840,7 @@ static struct vimoption
     {"paragraphs",  "para", P_STRING|P_VI_DEF,
 			    (char_u *)&p_para, PV_NONE,
 			    {(char_u *)"IPLPPPQPP LIpplpipbp", (char_u *)0L}},
-    {"paste",	    NULL,   P_BOOL|P_VI_DEF,
+    {"paste",	    NULL,   P_BOOL|P_VI_DEF|P_PRI_MKRC,
 			    (char_u *)&p_paste, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}},
     {"pastetoggle", "pt",   P_STRING|P_VI_DEF,
@@ -4992,7 +4996,7 @@ option_expand(opt_idx, val)
      * For 'spellsuggest' expand after "file:".
      */
     expand_env_esc(val, NameBuff, MAXPATHL,
-	    (char_u **)options[opt_idx].var == &p_tags,
+	    (char_u **)options[opt_idx].var == &p_tags, FALSE,
 #ifdef FEAT_SPELL
 	    (char_u **)options[opt_idx].var == &p_sps ? (char_u *)"file:" :
 #endif
@@ -6348,7 +6352,7 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
 		errmsg = check_stl_option(p_ruf);
 	}
 	/* check 'statusline' only if it doesn't start with "%!" */
-	else if (varp != &p_stl || s[0] != '%' || s[1] != '!')
+	else if (varp == &p_ruf || s[0] != '%' || s[1] != '!')
 	    errmsg = check_stl_option(s);
 	if (varp == &p_ruf && errmsg == NULL)
 	    comp_col();
@@ -7118,6 +7122,11 @@ set_bool_option(opt_idx, varp, value, opt_flags)
     /* when 'endofline' is changed, redraw the window title */
     else if ((int *)varp == &curbuf->b_p_eol)
 	need_maketitle = TRUE;
+#ifdef FEAT_MBYTE
+    /* when 'bomb' is changed, redraw the window title */
+    else if ((int *)varp == &curbuf->b_p_bomb)
+	need_maketitle = TRUE;
+#endif
 #endif
 
     /* when 'bin' is set also set some other options */
@@ -7815,6 +7824,8 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 	    errmsg = e_positive;
 	    p_ch = 1;
 	}
+	if (p_ch > Rows - min_rows() + 1)
+	    p_ch = Rows - min_rows() + 1;
 
 	/* Only compute the new window layout when startup has been
 	 * completed. Otherwise the frame sizes may be wrong. */
@@ -8530,13 +8541,20 @@ makeset(fd, opt_flags, local_only)
     char_u		*varp_local = NULL;	/* fresh value */
     char		*cmd;
     int			round;
+    int			pri;
 
     /*
      * The options that don't have a default (terminal name, columns, lines)
      * are never written.  Terminal options are also not written.
+     * Do the loop over "options[]" twice: once for options with the
+     * P_PRI_MKRC flag and once without.
      */
-    for (p = &options[0]; !istermoption(p); p++)
-	if (!(p->flags & P_NO_MKRC) && !istermoption(p))
+    for (pri = 1; pri >= 0; --pri)
+    {
+      for (p = &options[0]; !istermoption(p); p++)
+	if (!(p->flags & P_NO_MKRC)
+		&& !istermoption(p)
+		&& ((pri == 1) == ((p->flags & P_PRI_MKRC) != 0)))
 	{
 	    /* skip global option when only doing locals */
 	    if (p->indir == PV_NONE && !(opt_flags & OPT_GLOBAL))
@@ -8632,6 +8650,7 @@ makeset(fd, opt_flags, local_only)
 		}
 	    }
 	}
+    }
     return OK;
 }
 
@@ -8734,6 +8753,8 @@ put_setbool(fd, cmd, name, value)
     char	*name;
     int		value;
 {
+    if (value < 0)	/* global/local option using global value */
+	return OK;
     if (fprintf(fd, "%s %s%s", cmd, value ? "" : "no", name) < 0
 	    || put_eol(fd) < 0)
 	return FAIL;
@@ -10604,6 +10625,8 @@ save_file_ff(buf)
     buf->b_start_ffc = *buf->b_p_ff;
     buf->b_start_eol = buf->b_p_eol;
 #ifdef FEAT_MBYTE
+    buf->b_start_bomb = buf->b_p_bomb;
+
     /* Only use free/alloc when necessary, they take time. */
     if (buf->b_start_fenc == NULL
 			     || STRCMP(buf->b_start_fenc, buf->b_p_fenc) != 0)
@@ -10617,7 +10640,8 @@ save_file_ff(buf)
 /*
  * Return TRUE if 'fileformat' and/or 'fileencoding' has a different value
  * from when editing started (save_file_ff() called).
- * Also when 'endofline' was changed and 'binary' is set.
+ * Also when 'endofline' was changed and 'binary' is set, or when 'bomb' was
+ * changed and 'binary' is not set.
  * Don't consider a new, empty buffer to be changed.
  */
     int
@@ -10636,6 +10660,8 @@ file_ff_differs(buf)
     if (buf->b_p_bin && buf->b_start_eol != buf->b_p_eol)
 	return TRUE;
 #ifdef FEAT_MBYTE
+    if (!buf->b_p_bin && buf->b_start_bomb != buf->b_p_bomb)
+	return TRUE;
     if (buf->b_start_fenc == NULL)
 	return (*buf->b_p_fenc != NUL);
     return (STRCMP(buf->b_start_fenc, buf->b_p_fenc) != 0);

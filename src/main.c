@@ -275,6 +275,7 @@ main
      *   -display or --display
      *   --server...
      *   --socketid
+     *   --windowid
      */
     early_arg_scan(&params);
 
@@ -954,7 +955,8 @@ main_loop(cmdwin, noexmode)
     int		cmdwin;	    /* TRUE when working in the command-line window */
     int		noexmode;   /* TRUE when return on entering Ex mode */
 {
-    oparg_T	oa;	/* operator arguments */
+    oparg_T	oa;				/* operator arguments */
+    int		previous_got_int = FALSE;	/* "got_int" was TRUE */
 
 #if defined(FEAT_X11) && defined(FEAT_XCLIPBOARD)
     /* Setup to catch a terminating error from the X server.  Just ignore
@@ -1015,12 +1017,32 @@ main_loop(cmdwin, noexmode)
 		need_fileinfo = FALSE;
 	    }
 	}
-	if (got_int && !global_busy)
+
+	/* Reset "got_int" now that we got back to the main loop.  Except when
+	 * inside a ":g/pat/cmd" command, then the "got_int" needs to abort
+	 * the ":g" command.
+	 * For ":g/pat/vi" we reset "got_int" when used once.  When used
+	 * a second time we go back to Ex mode and abort the ":g" command. */
+	if (got_int)
 	{
-	    if (!quit_more)
-		(void)vgetc();		/* flush all buffers */
-	    got_int = FALSE;
+	    if (noexmode && global_busy && !exmode_active && previous_got_int)
+	    {
+		/* Typed two CTRL-C in a row: go back to ex mode as if "Q" was
+		 * used and keep "got_int" set, so that it aborts ":g". */
+		exmode_active = EXMODE_NORMAL;
+		State = NORMAL;
+	    }
+	    else if (!global_busy || !exmode_active)
+	    {
+		if (!quit_more)
+		    (void)vgetc();		/* flush all buffers */
+		got_int = FALSE;
+	    }
+	    previous_got_int = TRUE;
 	}
+	else
+	    previous_got_int = FALSE;
+
 	if (!exmode_active)
 	    msg_scroll = FALSE;
 	quit_more = FALSE;
@@ -1309,6 +1331,13 @@ getout(exitval)
 #ifdef FEAT_NETBEANS_INTG
     netbeans_end();
 #endif
+#ifdef FEAT_CSCOPE
+    cs_end();
+#endif
+#ifdef FEAT_EVAL
+    if (garbage_collect_at_exit)
+	garbage_collect();
+#endif
 
     mch_exit(exitval);
 }
@@ -1468,7 +1497,7 @@ parse_command_name(parmp)
  * Get the name of the display, before gui_prepare() removes it from
  * argv[].  Used for the xterm-clipboard display.
  *
- * Also find the --server... arguments and --socketid
+ * Also find the --server... arguments and --socketid and --windowid
  */
 /*ARGSUSED*/
     static void
@@ -1515,24 +1544,35 @@ early_arg_scan(parmp)
 #  endif
 	}
 # endif
-# ifdef FEAT_GUI_GTK
+
+# if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_W32)
+#  ifdef FEAT_GUI_W32
+	else if (STRICMP(argv[i], "--windowid") == 0)
+#  else
 	else if (STRICMP(argv[i], "--socketid") == 0)
+#  endif
 	{
-	    unsigned int    socket_id;
+	    unsigned int    id;
 	    int		    count;
 
 	    if (i == argc - 1)
 		mainerr_arg_missing((char_u *)argv[i]);
 	    if (STRNICMP(argv[i+1], "0x", 2) == 0)
-		count = sscanf(&(argv[i + 1][2]), "%x", &socket_id);
+		count = sscanf(&(argv[i + 1][2]), "%x", &id);
 	    else
-		count = sscanf(argv[i+1], "%u", &socket_id);
+		count = sscanf(argv[i+1], "%u", &id);
 	    if (count != 1)
 		mainerr(ME_INVALID_ARG, (char_u *)argv[i]);
 	    else
-		gtk_socket_id = socket_id;
+#  ifdef FEAT_GUI_W32
+		win_socket_id = id;
+#  else
+		gtk_socket_id = id;
+#  endif
 	    i++;
 	}
+# endif
+# ifdef FEAT_GUI_GTK
 	else if (STRICMP(argv[i], "--echo-wid") == 0)
 	    echo_wid_arg = TRUE;
 # endif
@@ -1662,8 +1702,12 @@ command_line_scan(parmp)
 		    }
 		}
 #endif
-#ifdef FEAT_GUI_GTK
+#if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_W32)
+# ifdef FEAT_GUI_GTK
 		else if (STRNICMP(argv[0] + argv_idx, "socketid", 8) == 0)
+# else
+		else if (STRNICMP(argv[0] + argv_idx, "windowid", 8) == 0)
+# endif
 		{
 		    /* already processed -- snatch the following arg */
 		    if (argc > 1)
@@ -1672,6 +1716,8 @@ command_line_scan(parmp)
 			++argv;
 		    }
 		}
+#endif
+#ifdef FEAT_GUI_GTK
 		else if (STRNICMP(argv[0] + argv_idx, "echo-wid", 8) == 0)
 		{
 		    /* already processed, skip */
@@ -3099,6 +3145,7 @@ usage()
 #endif
 #ifdef FEAT_GUI_W32
     main_msg(_("-P <parent title>\tOpen Vim inside parent application"));
+    main_msg(_("--windowid <HWND>\tOpen Vim inside another win32 widget"));
 #endif
 
 #ifdef FEAT_GUI_GNOME
@@ -3631,7 +3678,13 @@ build_drop_cmd(filec, filev, tabs, sendReply)
 	mainerr_arg_missing((char_u *)filev[-1]);
     if (mch_dirname(cwd, MAXPATHL) != OK)
 	return NULL;
-    if ((p = vim_strsave_escaped_ext(cwd, PATH_ESC_CHARS, '\\', TRUE)) == NULL)
+    if ((p = vim_strsave_escaped_ext(cwd,
+#ifdef BACKSLASH_IN_FILENAME
+		    "",  /* rem_backslash() will tell what chars to escape */
+#else
+		    PATH_ESC_CHARS,
+#endif
+		    '\\', TRUE)) == NULL)
 	return NULL;
     ga_init2(&ga, 1, 100);
     ga_concat(&ga, (char_u *)"<C-\\><C-N>:cd ");

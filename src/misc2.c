@@ -972,7 +972,7 @@ free_all_mem()
 	return;
     entered = TRUE;
 
-    ++autocmd_block;	    /* don't want to trigger autocommands here */
+    block_autocmds();	    /* don't want to trigger autocommands here */
 
 #ifdef FEAT_WINDOWS
     /* close all tabs and windows */
@@ -1037,7 +1037,9 @@ free_all_mem()
 
     /* Free some global vars. */
     vim_free(username);
+# ifdef FEAT_CLIPBOARD
     vim_free(clip_exclude_prog);
+# endif
     vim_free(last_cmdline);
     vim_free(new_last_cmdline);
     set_keep_msg(NULL, 0);

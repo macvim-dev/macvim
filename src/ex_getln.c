@@ -641,7 +641,7 @@ getcmdline(firstc, count, indent)
 	{
 	    ++no_mapping;
 	    ++allow_keys;
-	    c = safe_vgetc();
+	    c = plain_vgetc();
 	    --no_mapping;
 	    --allow_keys;
 	    /* CTRL-\ e doesn't work when obtaining an expression. */
@@ -1091,11 +1091,11 @@ getcmdline(firstc, count, indent)
 #endif
 		putcmdline('"', TRUE);
 		++no_mapping;
-		i = c = safe_vgetc();	/* CTRL-R <char> */
+		i = c = plain_vgetc();	/* CTRL-R <char> */
 		if (i == Ctrl_O)
 		    i = Ctrl_R;		/* CTRL-R CTRL-O == CTRL-R CTRL-R */
 		if (i == Ctrl_R)
-		    c = safe_vgetc();	/* CTRL-R CTRL-R <char> */
+		    c = plain_vgetc();	/* CTRL-R CTRL-R <char> */
 		--no_mapping;
 #ifdef FEAT_EVAL
 		/*
@@ -2095,11 +2095,11 @@ getexmodeline(promptc, dummy, indent)
     garray_T	line_ga;
     char_u	*pend;
     int		startcol = 0;
-    int		c1;
+    int		c1 = 0;
     int		escaped = FALSE;	/* CTRL-V typed */
     int		vcol = 0;
     char_u	*p;
-    int		prev_char = 0;
+    int		prev_char;
 
     /* Switch cursor on now.  This avoids that it happens after the "\n", which
      * confuses the system function that computes tabstops. */
@@ -2152,6 +2152,7 @@ getexmodeline(promptc, dummy, indent)
 
 	/* Get one character at a time.  Don't use inchar(), it can't handle
 	 * special characters. */
+	prev_char = c1;
 	c1 = vgetc();
 
 	/*
@@ -2209,7 +2210,6 @@ add_indent:
 redraw:
 		/* redraw the line */
 		msg_col = startcol;
-		windgoto(msg_row, msg_col);
 		vcol = 0;
 		for (p = (char_u *)line_ga.ga_data;
 			  p < (char_u *)line_ga.ga_data + line_ga.ga_len; ++p)
@@ -2228,6 +2228,7 @@ redraw:
 		    }
 		}
 		msg_clr_eos();
+		windgoto(msg_row, msg_col);
 		continue;
 	    }
 
@@ -2273,7 +2274,6 @@ redraw:
 	if (IS_SPECIAL(c1))
 	    c1 = '?';
 	((char_u *)line_ga.ga_data)[line_ga.ga_len] = c1;
-	prev_char = c1;
 	if (c1 == '\n')
 	    msg_putchar('\n');
 	else if (c1 == TAB)
@@ -3316,6 +3316,10 @@ nextwild(xp, type, options)
  * Return a pointer to alloced memory containing the new string.
  * Return NULL for failure.
  *
+ * "orig" is the originally expanded string, copied to allocated memory.  It
+ * should either be kept in orig_save or freed.  When "mode" is WILD_NEXT or
+ * WILD_PREV "orig" should be NULL.
+ *
  * Results are cached in xp->xp_files and xp->xp_numfiles, except when "mode"
  * is WILD_EXPAND_FREE or WILD_ALL.
  *
@@ -3400,7 +3404,7 @@ ExpandOne(xp, str, orig, options, mode)
 	    return NULL;
     }
 
-/* free old names */
+    /* free old names */
     if (xp->xp_numfiles != -1 && mode != WILD_ALL && mode != WILD_LONGEST)
     {
 	FreeWild(xp->xp_numfiles, xp->xp_files);
@@ -3540,6 +3544,10 @@ ExpandOne(xp, str, orig, options, mode)
 
     if (mode == WILD_EXPAND_FREE || mode == WILD_ALL)
 	ExpandCleanup(xp);
+
+    /* Free "orig" if it wasn't stored in "orig_save". */
+    if (orig != orig_save)
+	vim_free(orig);
 
     return ss;
 }
@@ -4306,10 +4314,11 @@ ExpandFromContext(xp, pat, num_file, file, options)
 			    && pat[i + 1] == '\\'
 			    && pat[i + 2] == '\\'
 			    && pat[i + 3] == ' ')
-			STRCPY(pat + i, pat + i + 3);
+			mch_memmove(pat + i, pat + i + 3,
+						     STRLEN(pat + i + 3) + 1);
 		    if (xp->xp_backslash == XP_BS_ONE
 			    && pat[i + 1] == ' ')
-			STRCPY(pat + i, pat + i + 1);
+			mch_memmove(pat + i, pat + i + 1, STRLEN(pat + i));
 		}
 	}
 
@@ -4552,7 +4561,7 @@ expand_shellcmd(filepat, num_file, file, flagsarg)
     pat = vim_strsave(filepat);
     for (i = 0; pat[i]; ++i)
 	if (pat[i] == '\\' && pat[i + 1] == ' ')
-	    STRCPY(pat + i, pat + i + 1);
+	    mch_memmove(pat + i, pat + i + 1, STRLEN(pat + i));
 
     flags |= EW_FILE | EW_EXEC;
 
@@ -5924,7 +5933,7 @@ ex_window()
 
 # ifdef FEAT_AUTOCMD
     /* Don't execute autocommands while creating the window. */
-    ++autocmd_block;
+    block_autocmds();
 # endif
     /* don't use a new tab page */
     cmdmod.tab = 0;
@@ -5933,6 +5942,9 @@ ex_window()
     if (win_split((int)p_cwh, WSP_BOT) == FAIL)
     {
 	beep_flush();
+# ifdef FEAT_AUTOCMD
+	unblock_autocmds();
+# endif
 	return K_IGNORE;
     }
     cmdwin_type = ccline.cmdfirstc;
@@ -5955,7 +5967,7 @@ ex_window()
 
 # ifdef FEAT_AUTOCMD
     /* Do execute autocommands for setting the filetype (load syntax). */
-    --autocmd_block;
+    unblock_autocmds();
 # endif
 
     /* Showing the prompt may have set need_wait_return, reset it. */
@@ -6109,7 +6121,7 @@ ex_window()
 
 # ifdef FEAT_AUTOCMD
 	/* Don't execute autocommands while deleting the window. */
-	++autocmd_block;
+	block_autocmds();
 # endif
 	wp = curwin;
 	bp = curbuf;
@@ -6121,7 +6133,7 @@ ex_window()
 	win_size_restore(&winsizes);
 
 # ifdef FEAT_AUTOCMD
-	--autocmd_block;
+	unblock_autocmds();
 # endif
     }
 

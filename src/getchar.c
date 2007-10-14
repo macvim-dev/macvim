@@ -1596,8 +1596,16 @@ vgetc()
 		continue;
 	    }
 #endif
-
 #ifdef FEAT_GUI
+	    /* Handle focus event here, so that the caller doesn't need to
+	     * know about it.  Return K_IGNORE so that we loop once (needed if
+	     * 'lazyredraw' is set). */
+	    if (c == K_FOCUSGAINED || c == K_FOCUSLOST)
+	    {
+		ui_focus_change(c == K_FOCUSGAINED);
+		c = K_IGNORE;
+	    }
+
 	    /* Translate K_CSI to CSI.  The special key is only used to avoid
 	     * it being recognized as the start of a special key. */
 	    if (c == K_CSI)
@@ -1737,6 +1745,22 @@ safe_vgetc()
     c = vgetc();
     if (c == NUL)
 	c = get_keystroke();
+    return c;
+}
+
+/*
+ * Like safe_vgetc(), but loop to handle K_IGNORE.
+ * Also ignore scrollbar events.
+ */
+    int
+plain_vgetc()
+{
+    int c;
+
+    do
+    {
+	c = safe_vgetc();
+    } while (c == K_IGNORE || c == K_VER_SCROLLBAR || c == K_HOR_SCROLLBAR);
     return c;
 }
 

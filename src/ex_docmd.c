@@ -276,7 +276,6 @@ static void	ex_popup __ARGS((exarg_T *eap));
 static void	ex_swapname __ARGS((exarg_T *eap));
 static void	ex_syncbind __ARGS((exarg_T *eap));
 static void	ex_read __ARGS((exarg_T *eap));
-static void	ex_cd __ARGS((exarg_T *eap));
 static void	ex_pwd __ARGS((exarg_T *eap));
 static void	ex_equal __ARGS((exarg_T *eap));
 static void	ex_sleep __ARGS((exarg_T *eap));
@@ -3281,32 +3280,27 @@ set_one_cmd_context(xp, buff)
 
     if (ea.argt & XFILE)
     {
-	int in_quote = FALSE;
-	char_u *bow = NULL;	/* Beginning of word */
+	int	c;
+	int	in_quote = FALSE;
+	char_u	*bow = NULL;	/* Beginning of word */
 
 	/*
 	 * Allow spaces within back-quotes to count as part of the argument
 	 * being expanded.
 	 */
 	xp->xp_pattern = skipwhite(arg);
-	for (p = xp->xp_pattern; *p; )
+	p = xp->xp_pattern;
+	while (*p != NUL)
 	{
-	    if (*p == '\\' && p[1] != NUL)
-		++p;
-#ifdef SPACE_IN_FILENAME
-	    else if (vim_iswhite(*p) && (!(ea.argt & NOSPC) || usefilter))
-#else
-	    else if (vim_iswhite(*p))
+#ifdef FEAT_MBYTE
+	    if (has_mbyte)
+		c = mb_ptr2char(p);
+	    else
 #endif
-	    {
-		p = skipwhite(p);
-		if (in_quote)
-		    bow = p;
-		else
-		    xp->xp_pattern = p;
-		--p;
-	    }
-	    else if (*p == '`')
+		c = *p;
+	    if (c == '\\' && p[1] != NUL)
+		++p;
+	    else if (c == '`')
 	    {
 		if (!in_quote)
 		{
@@ -3314,6 +3308,37 @@ set_one_cmd_context(xp, buff)
 		    bow = p + 1;
 		}
 		in_quote = !in_quote;
+	    }
+#ifdef SPACE_IN_FILENAME
+	    else if (!vim_isfilec_or_wc(c)
+					 && (!(ea.argt & NOSPC) || usefilter))
+#else
+	    else if (!vim_isfilec_or_wc(c))
+#endif
+	    {
+		while (*p != NUL)
+		{
+#ifdef FEAT_MBYTE
+		    if (has_mbyte)
+			c = mb_ptr2char(p);
+		    else
+#endif
+			c = *p;
+		    if (c == '`' || vim_isfilec_or_wc(c))
+			break;
+#ifdef FEAT_MBYTE
+		    if (has_mbyte)
+			len = (*mb_ptr2len)(p);
+		    else
+#endif
+			len = 1;
+		    mb_ptr_adv(p);
+		}
+		if (in_quote)
+		    bow = p;
+		else
+		    xp->xp_pattern = p;
+		p -= len;
 	    }
 	    mb_ptr_adv(p);
 	}
@@ -4377,7 +4402,7 @@ expand_filename(eap, cmdlinep, errormsgp)
 			    || vim_strchr(eap->arg, '~') != NULL)
 		    {
 			expand_env_esc(eap->arg, NameBuff, MAXPATHL,
-								 TRUE, NULL);
+							    TRUE, TRUE, NULL);
 			has_wildcards = mch_has_wildcard(NameBuff);
 			p = NameBuff;
 		    }
@@ -4493,7 +4518,8 @@ separate_nextcmd(eap)
 	    if (eap->argt & (USECTRLV | XFILE))
 		++p;		/* skip CTRL-V and next char */
 	    else
-		STRCPY(p, p + 1);	/* remove CTRL-V and skip next char */
+				/* remove CTRL-V and skip next char */
+		mch_memmove(p, p + 1, STRLEN(p));
 	    if (*p == NUL)		/* stop at NUL after CTRL-V */
 		break;
 	}
@@ -7751,7 +7777,7 @@ free_cd_dir()
 /*
  * ":cd", ":lcd", ":chdir" and ":lchdir".
  */
-    static void
+    void
 ex_cd(eap)
     exarg_T	*eap;
 {
@@ -10817,12 +10843,13 @@ ex_match(eap)
     exarg_T	*eap;
 {
     char_u	*p;
+    char_u	*g = NULL;
     char_u	*end;
     int		c;
-    int		mi;
+    int		id;
 
     if (eap->line2 <= 3)
-	mi = eap->line2 - 1;
+	id = eap->line2;
     else
     {
 	EMSG(e_invcmd);
@@ -10831,13 +10858,7 @@ ex_match(eap)
 
     /* First clear any old pattern. */
     if (!eap->skip)
-    {
-	vim_free(curwin->w_match[mi].regprog);
-	curwin->w_match[mi].regprog = NULL;
-	vim_free(curwin->w_match_pat[mi]);
-	curwin->w_match_pat[mi] = NULL;
-	redraw_later(SOME_VALID);	/* always need a redraw */
-    }
+	match_delete(curwin, id, FALSE);
 
     if (ends_excmd(*eap->arg))
 	end = eap->arg;
@@ -10848,15 +10869,7 @@ ex_match(eap)
     {
 	p = skiptowhite(eap->arg);
 	if (!eap->skip)
-	{
-	    curwin->w_match_id[mi] = syn_namen2id(eap->arg,
-							 (int)(p - eap->arg));
-	    if (curwin->w_match_id[mi] == 0)
-	    {
-		EMSG2(_(e_nogroup), eap->arg);
-		return;
-	    }
-	}
+	    g = vim_strnsave(eap->arg, (int)(p - eap->arg));
 	p = skipwhite(p);
 	if (*p == NUL)
 	{
@@ -10880,14 +10893,8 @@ ex_match(eap)
 
 	    c = *end;
 	    *end = NUL;
-	    curwin->w_match[mi].regprog = vim_regcomp(p + 1, RE_MAGIC);
-	    if (curwin->w_match[mi].regprog == NULL)
-	    {
-		EMSG2(_(e_invarg2), p);
-		*end = c;
-		return;
-	    }
-	    curwin->w_match_pat[mi] = vim_strsave(p + 1);
+	    match_add(curwin, g, p + 1, 10, id);
+	    vim_free(g);
 	    *end = c;
 	}
     }

@@ -100,27 +100,7 @@ static int	screen_attr = 0;
 static int	screen_cur_row, screen_cur_col;	/* last known cursor position */
 
 #ifdef FEAT_SEARCH_EXTRA
-/*
- * Struct used for highlighting 'hlsearch' matches for the last use search
- * pattern or a ":match" item.
- * For 'hlsearch' there is one pattern for all windows.  For ":match" there is
- * a different pattern for each window.
- */
-typedef struct
-{
-    regmmatch_T	rm;	/* points to the regexp program; contains last found
-			   match (may continue in next line) */
-    buf_T	*buf;	/* the buffer to search for a match */
-    linenr_T	lnum;	/* the line to search for a match */
-    int		attr;	/* attributes to be used for a match */
-    int		attr_cur; /* attributes currently active in win_line() */
-    linenr_T	first_lnum;	/* first lnum to search for multi-line pat */
-    colnr_T	startcol; /* in win_line() points to char where HL starts */
-    colnr_T	endcol;	 /* in win_line() points to char where HL ends */
-} match_T;
-
 static match_T search_hl;	/* used for 'hlsearch' highlight matching */
-static match_T match_hl[3];	/* used for ":match" highlight matching */
 #endif
 
 #ifdef FEAT_FOLDING
@@ -155,6 +135,7 @@ static void draw_vsep_win __ARGS((win_T *wp, int row));
 static void redraw_custum_statusline __ARGS((win_T *wp));
 #endif
 #ifdef FEAT_SEARCH_EXTRA
+#define SEARCH_HL_PRIORITY 0
 static void start_search_hl __ARGS((void));
 static void end_search_hl __ARGS((void));
 static void prepare_search_hl __ARGS((win_T *wp, linenr_T lnum));
@@ -350,6 +331,11 @@ update_screen(type)
     {
 	if (type < must_redraw)	    /* use maximal type */
 	    type = must_redraw;
+
+	/* must_redraw is reset here, so that when we run into some weird
+	 * reason to redraw while busy redrawing (e.g., asynchronous
+	 * scrolling), or update_topline() in win_update() will cause a
+	 * scroll, the screen will be redrawn later or in win_update(). */
 	must_redraw = 0;
     }
 
@@ -787,6 +773,7 @@ win_update(wp)
 					   w_topline got smaller a bit */
 #endif
 #ifdef FEAT_SEARCH_EXTRA
+    matchitem_T *cur;		/* points to the match list */
     int		top_to_mod = FALSE;    /* redraw above mod_top */
 #endif
 
@@ -848,18 +835,20 @@ win_update(wp)
 #endif
 
 #ifdef FEAT_SEARCH_EXTRA
-    /* Setup for ":match" and 'hlsearch' highlighting.  Disable any previous
+    /* Setup for match and 'hlsearch' highlighting.  Disable any previous
      * match */
-    for (i = 0; i < 3; ++i)
+    cur = wp->w_match_head;
+    while (cur != NULL)
     {
-	match_hl[i].rm = wp->w_match[i];
-	if (wp->w_match_id[i] == 0)
-	    match_hl[i].attr = 0;
+	cur->hl.rm = cur->match;
+	if (cur->hlg_id == 0)
+	    cur->hl.attr = 0;
 	else
-	    match_hl[i].attr = syn_id2attr(wp->w_match_id[i]);
-	match_hl[i].buf = buf;
-	match_hl[i].lnum = 0;
-	match_hl[i].first_lnum = 0;
+	    cur->hl.attr = syn_id2attr(cur->hlg_id);
+	cur->hl.buf = buf;
+	cur->hl.lnum = 0;
+	cur->hl.first_lnum = 0;
+	cur = cur->next;
     }
     search_hl.buf = buf;
     search_hl.lnum = 0;
@@ -923,19 +912,25 @@ win_update(wp)
 	     * change in one line may make the Search highlighting in a
 	     * previous line invalid.  Simple solution: redraw all visible
 	     * lines above the change.
-	     * Same for a ":match" pattern.
+	     * Same for a match pattern.
 	     */
 	    if (search_hl.rm.regprog != NULL
 					&& re_multiline(search_hl.rm.regprog))
 		top_to_mod = TRUE;
 	    else
-		for (i = 0; i < 3; ++i)
-		    if (match_hl[i].rm.regprog != NULL
-				      && re_multiline(match_hl[i].rm.regprog))
+	    {
+		cur = wp->w_match_head;
+		while (cur != NULL)
+		{
+		    if (cur->match.regprog != NULL
+					   && re_multiline(cur->match.regprog))
 		    {
 			top_to_mod = TRUE;
 			break;
 		    }
+		    cur = cur->next;
+		}
+	    }
 #endif
 	}
 #ifdef FEAT_FOLDING
@@ -1028,6 +1023,13 @@ win_update(wp)
 	    /* top area defined, the rest is VALID */
 	    type = VALID;
     }
+
+    /* Trick: we want to avoid clearing the screen twice.  screenclear() will
+     * set "screen_cleared" to TRUE.  The special value MAYBE (which is still
+     * non-zero and thus not FALSE) will indicate that screenclear() was not
+     * called. */
+    if (screen_cleared)
+	screen_cleared = MAYBE;
 
     /*
      * If there are no changes on the screen that require a complete redraw,
@@ -1230,7 +1232,11 @@ win_update(wp)
 	    mid_end = wp->w_height;
 	    if (lastwin == firstwin)
 	    {
-		screenclear();
+		/* Clear the screen when it was not done by win_del_lines() or
+		 * win_ins_lines() above, "screen_cleared" is FALSE or MAYBE
+		 * then. */
+		if (screen_cleared != TRUE)
+		    screenclear();
 #ifdef FEAT_WINDOWS
 		/* The screen was cleared, redraw the tab pages line. */
 		if (redraw_tabline)
@@ -1238,6 +1244,13 @@ win_update(wp)
 #endif
 	    }
 	}
+
+	/* When win_del_lines() or win_ins_lines() caused the screen to be
+	 * cleared (only happens for the first window) or when screenclear()
+	 * was called directly above, "must_redraw" will have been set to
+	 * NOT_VALID, need to reset it here to avoid redrawing twice. */
+	if (screen_cleared == TRUE)
+	    must_redraw = 0;
     }
     else
     {
@@ -2292,9 +2305,11 @@ fold_line(wp, fold_count, foldinfo, lnum, row)
 			prev_c = u8c;
 #endif
 		    /* Non-BMP character: display as ? or fullwidth ?. */
+#ifdef UNICODE16
 		    if (u8c >= 0x10000)
 			ScreenLinesUC[idx] = (cells == 2) ? 0xff1f : (int)'?';
 		    else
+#endif
 			ScreenLinesUC[idx] = u8c;
 		    for (i = 0; i < Screen_mco; ++i)
 		    {
@@ -2542,7 +2557,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 
     char_u	extra[18];		/* "%ld" and 'fdc' must fit in here */
     int		n_extra = 0;		/* number of extra chars */
-    char_u	*p_extra = NULL;	/* string of extra chars */
+    char_u	*p_extra = NULL;	/* string of extra chars, plus NUL */
     int		c_extra = NUL;		/* extra chars, all the same */
     int		extra_attr = 0;		/* attributes when n_extra != 0 */
     static char_u *at_end_str = (char_u *)""; /* used for p_extra when
@@ -2626,10 +2641,13 @@ win_line(wp, lnum, startrow, endrow, nochange)
     int		line_attr = 0;		/* atrribute for the whole line */
 #endif
 #ifdef FEAT_SEARCH_EXTRA
-    match_T	*shl;			/* points to search_hl or match_hl */
-#endif
-#if defined(FEAT_SEARCH_EXTRA) || defined(FEAT_MBYTE)
-    int		i;
+    matchitem_T *cur;			/* points to the match list */
+    match_T	*shl;			/* points to search_hl or a match */
+    int		shl_flag;		/* flag to indicate whether search_hl
+					   has been processed or not */
+    int		prevcol_hl_flag;	/* flag to indicate whether prevcol
+					   equals startcol of search_hl or one
+					   of the matches */
 #endif
 #ifdef FEAT_ARABIC
     int		prev_c = 0;		/* previous Arabic character */
@@ -3074,12 +3092,20 @@ win_line(wp, lnum, startrow, endrow, nochange)
 
 #ifdef FEAT_SEARCH_EXTRA
     /*
-     * Handle highlighting the last used search pattern and ":match".
-     * Do this for both search_hl and match_hl[3].
+     * Handle highlighting the last used search pattern and matches.
+     * Do this for both search_hl and the match list.
      */
-    for (i = 3; i >= 0; --i)
+    cur = wp->w_match_head;
+    shl_flag = FALSE;
+    while (cur != NULL || shl_flag == FALSE)
     {
-	shl = (i == 3) ? &search_hl : &match_hl[i];
+	if (shl_flag == FALSE)
+	{
+	    shl = &search_hl;
+	    shl_flag = TRUE;
+	}
+	else
+	    shl = &cur->hl;
 	shl->startcol = MAXCOL;
 	shl->endcol = MAXCOL;
 	shl->attr_cur = 0;
@@ -3122,6 +3148,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		area_highlighting = TRUE;
 	    }
 	}
+	if (shl != &search_hl && cur != NULL)
+	    cur = cur->next;
     }
 #endif
 
@@ -3163,10 +3191,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		if (cmdwin_type != 0 && wp == curwin)
 		{
 		    /* Draw the cmdline character. */
-		    *extra = cmdwin_type;
 		    n_extra = 1;
-		    p_extra = extra;
-		    c_extra = NUL;
+		    c_extra = cmdwin_type;
 		    char_attr = hl_attr(HLF_AT);
 		}
 	    }
@@ -3182,6 +3208,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		    fill_foldcolumn(extra, wp, FALSE, lnum);
 		    n_extra = wp->w_p_fdc;
 		    p_extra = extra;
+		    p_extra[n_extra] = NUL;
 		    c_extra = NUL;
 		    char_attr = hl_attr(HLF_FC);
 		}
@@ -3388,13 +3415,24 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		 * After end, check for start/end of next match.
 		 * When another match, have to check for start again.
 		 * Watch out for matching an empty string!
-		 * Do this first for search_hl, then for match_hl, so that
-		 * ":match" overrules 'hlsearch'.
+		 * Do this for 'search_hl' and the match list (ordered by
+		 * priority).
 		 */
 		v = (long)(ptr - line);
-		for (i = 3; i >= 0; --i)
+		cur = wp->w_match_head;
+		shl_flag = FALSE;
+		while (cur != NULL || shl_flag == FALSE)
 		{
-		    shl = (i == 3) ? &search_hl : &match_hl[i];
+		    if (shl_flag == FALSE
+			    && ((cur != NULL
+				    && cur->priority > SEARCH_HL_PRIORITY)
+				|| cur == NULL))
+		    {
+			shl = &search_hl;
+			shl_flag = TRUE;
+		    }
+		    else
+			shl = &cur->hl;
 		    while (shl->rm.regprog != NULL)
 		    {
 			if (shl->startcol != MAXCOL
@@ -3442,17 +3480,32 @@ win_line(wp, lnum, startrow, endrow, nochange)
 			}
 			break;
 		    }
+		    if (shl != &search_hl && cur != NULL)
+			cur = cur->next;
 		}
 
-		/* ":match" highlighting overrules 'hlsearch' */
-		for (i = 0; i <= 3; ++i)
-		    if (i == 3)
-			search_attr = search_hl.attr_cur;
-		    else if (match_hl[i].attr_cur != 0)
+		/* Use attributes from match with highest priority among
+		 * 'search_hl' and the match list. */
+		search_attr = search_hl.attr_cur;
+		cur = wp->w_match_head;
+		shl_flag = FALSE;
+		while (cur != NULL || shl_flag == FALSE)
+		{
+		    if (shl_flag == FALSE
+			    && ((cur != NULL
+				    && cur->priority > SEARCH_HL_PRIORITY)
+				|| cur == NULL))
 		    {
-			search_attr = match_hl[i].attr_cur;
-			break;
+			shl = &search_hl;
+			shl_flag = TRUE;
 		    }
+		    else
+			shl = &cur->hl;
+		    if (shl->attr_cur != 0)
+			search_attr = shl->attr_cur;
+		    if (shl != &search_hl && cur != NULL)
+			cur = cur->next;
+		}
 	    }
 #endif
 
@@ -3498,9 +3551,11 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	 * Get the next character to put on the screen.
 	 */
 	/*
-	 * The 'extra' array contains the extra stuff that is inserted to
-	 * represent special characters (non-printable stuff).  When all
-	 * characters are the same, c_extra is used.
+	 * The "p_extra" points to the extra stuff that is inserted to
+	 * represent special characters (non-printable stuff) and other
+	 * things.  When all characters are the same, c_extra is used.
+	 * "p_extra" must end in a NUL to avoid mb_ptr2len() reads past
+	 * "p_extra[n_extra]".
 	 * For the '$' of the 'list' option, n_extra == 1, p_extra == "".
 	 */
 	if (n_extra > 0)
@@ -3613,6 +3668,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 			 * Draw it as a space with a composing char. */
 			if (utf_iscomposing(mb_c))
 			{
+			    int i;
+
 			    for (i = Screen_mco - 1; i > 0; --i)
 				u8cc[i] = u8cc[i - 1];
 			    u8cc[0] = mb_c;
@@ -3623,13 +3680,18 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		    if ((mb_l == 1 && c >= 0x80)
 			    || (mb_l >= 1 && mb_c == 0)
 			    || (mb_l > 1 && (!vim_isprintc(mb_c)
-							 || mb_c >= 0x10000)))
+# ifdef UNICODE16
+							 || mb_c >= 0x10000
+# endif
+							 )))
 		    {
 			/*
 			 * Illegal UTF-8 byte: display as <xx>.
 			 * Non-BMP character : display as ? or fullwidth ?.
 			 */
+# ifdef UNICODE16
 			if (mb_c < 0x10000)
+# endif
 			{
 			    transchar_hex(extra, mb_c);
 # ifdef FEAT_RIGHTLEFT
@@ -3637,11 +3699,13 @@ win_line(wp, lnum, startrow, endrow, nochange)
 				rl_mirror(extra);
 # endif
 			}
+# ifdef UNICODE16
 			else if (utf_char2cells(mb_c) != 2)
 			    STRCPY(extra, "?");
 			else
 			    /* 0xff1f in UTF-8: full-width '?' */
 			    STRCPY(extra, "\357\274\237");
+# endif
 
 			p_extra = extra;
 			c = *p_extra;
@@ -3754,10 +3818,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		 * a '<' in the first column. */
 		if (n_skip > 0 && mb_l > 1)
 		{
-		    extra[0] = '<';
-		    p_extra = extra;
 		    n_extra = 1;
-		    c_extra = NUL;
+		    c_extra = '<';
 		    c = ' ';
 		    if (area_attr == 0 && search_attr == 0)
 		    {
@@ -4256,14 +4318,29 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	     * highlight match at end of line. If it's beyond the last
 	     * char on the screen, just overwrite that one (tricky!)  Not
 	     * needed when a '$' was displayed for 'list'. */
+#ifdef FEAT_SEARCH_EXTRA
+	    prevcol_hl_flag = FALSE;
+	    if (prevcol == (long)search_hl.startcol)
+		prevcol_hl_flag = TRUE;
+	    else
+	    {
+		cur = wp->w_match_head;
+		while (cur != NULL)
+		{
+		    if (prevcol == (long)cur->hl.startcol)
+		    {
+			prevcol_hl_flag = TRUE;
+			break;
+		    }
+		    cur = cur->next;
+		}
+	    }
+#endif
 	    if (lcs_eol == lcs_eol_one
 		    && ((area_attr != 0 && vcol == fromcol && c == NUL)
 #ifdef FEAT_SEARCH_EXTRA
 			/* highlight 'hlsearch' match at end of line */
-			|| ((prevcol == (long)search_hl.startcol
-				|| prevcol == (long)match_hl[0].startcol
-				|| prevcol == (long)match_hl[1].startcol
-				|| prevcol == (long)match_hl[2].startcol)
+			|| (prevcol_hl_flag == TRUE
 # if defined(LINE_ATTR)
 			    && did_line_attr <= 1
 # endif
@@ -4304,15 +4381,27 @@ win_line(wp, lnum, startrow, endrow, nochange)
 #ifdef FEAT_SEARCH_EXTRA
 		if (area_attr == 0)
 		{
-		    for (i = 0; i <= 3; ++i)
+		    /* Use attributes from match with highest priority among
+		     * 'search_hl' and the match list. */
+		    char_attr = search_hl.attr;
+		    cur = wp->w_match_head;
+		    shl_flag = FALSE;
+		    while (cur != NULL || shl_flag == FALSE)
 		    {
-			if (i == 3)
-			    char_attr = search_hl.attr;
-			else if ((ptr - line) - 1 == (long)match_hl[i].startcol)
+			if (shl_flag == FALSE
+				&& ((cur != NULL
+					&& cur->priority > SEARCH_HL_PRIORITY)
+				    || cur == NULL))
 			{
-			    char_attr = match_hl[i].attr;
-			    break;
+			    shl = &search_hl;
+			    shl_flag = TRUE;
 			}
+			else
+			    shl = &cur->hl;
+			if ((ptr - line) - 1 == (long)shl->startcol)
+			    char_attr = shl->attr;
+			if (shl != &search_hl && cur != NULL)
+			    cur = cur->next;
 		    }
 		}
 #endif
@@ -4462,6 +4551,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    {
 		if (mb_utf8)
 		{
+		    int i;
+
 		    ScreenLinesUC[off] = mb_c;
 		    if ((c & 0xff) == 0)
 			ScreenLines[off] = 0x80;   /* avoid storing zero */
@@ -4550,7 +4641,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 
 	/*
 	 * At end of screen line and there is more to come: Display the line
-	 * so far.  If there is no more to display it is catched above.
+	 * so far.  If there is no more to display it is caught above.
 	 */
 	if ((
 #ifdef FEAT_RIGHTLEFT
@@ -4627,9 +4718,13 @@ win_line(wp, lnum, startrow, endrow, nochange)
 #endif
 #ifdef FEAT_MBYTE
 			 && !(has_mbyte
-			     && ((*mb_off2cells)(LineOffset[screen_row]) == 2
+			     && ((*mb_off2cells)(LineOffset[screen_row],
+				     LineOffset[screen_row] + screen_Columns)
+									  == 2
 				 || (*mb_off2cells)(LineOffset[screen_row - 1]
-							+ (int)Columns - 2) == 2))
+							+ (int)Columns - 2,
+				     LineOffset[screen_row] + screen_Columns)
+									== 2))
 #endif
 		   )
 		{
@@ -4789,6 +4884,10 @@ screen_line(row, coloff, endcol, clear_width
 {
     unsigned	    off_from;
     unsigned	    off_to;
+#ifdef FEAT_MBYTE
+    unsigned	    max_off_from;
+    unsigned	    max_off_to;
+#endif
     int		    col = 0;
 #if defined(FEAT_GUI) || defined(UNIX) || defined(FEAT_VERTSPLIT)
     int		    hl;
@@ -4815,6 +4914,10 @@ screen_line(row, coloff, endcol, clear_width
 
     off_from = (unsigned)(current_ScreenLine - ScreenLines);
     off_to = LineOffset[row] + coloff;
+#ifdef FEAT_MBYTE
+    max_off_from = off_from + screen_Columns;
+    max_off_to = LineOffset[row] + screen_Columns;
+#endif
 
 #ifdef FEAT_RIGHTLEFT
     if (rlflag)
@@ -4849,7 +4952,7 @@ screen_line(row, coloff, endcol, clear_width
     {
 #ifdef FEAT_MBYTE
 	if (has_mbyte && (col + 1 < endcol))
-	    char_cells = (*mb_off2cells)(off_from);
+	    char_cells = (*mb_off2cells)(off_from, max_off_from);
 	else
 	    char_cells = 1;
 #endif
@@ -4926,7 +5029,7 @@ screen_line(row, coloff, endcol, clear_width
 		 * ScreenLinesUC[] is sufficient. */
 		if (char_cells == 1
 			&& col + 1 < endcol
-			&& (*mb_off2cells)(off_to) > 1)
+			&& (*mb_off2cells)(off_to, max_off_to) > 1)
 		{
 		    /* Writing a single-cell character over a double-cell
 		     * character: need to redraw the next cell. */
@@ -4935,8 +5038,8 @@ screen_line(row, coloff, endcol, clear_width
 		}
 		else if (char_cells == 2
 			&& col + 2 < endcol
-			&& (*mb_off2cells)(off_to) == 1
-			&& (*mb_off2cells)(off_to + 1) > 1)
+			&& (*mb_off2cells)(off_to, max_off_to) == 1
+			&& (*mb_off2cells)(off_to + 1, max_off_to) > 1)
 		{
 		    /* Writing the second half of a double-cell character over
 		     * a double-cell character: need to redraw the second
@@ -4955,10 +5058,10 @@ screen_line(row, coloff, endcol, clear_width
 	     * char over the left halve of an existing one. */
 	    if (has_mbyte && col + char_cells == endcol
 		    && ((char_cells == 1
-			    && (*mb_off2cells)(off_to) > 1)
+			    && (*mb_off2cells)(off_to, max_off_to) > 1)
 			|| (char_cells == 2
-			    && (*mb_off2cells)(off_to) == 1
-			    && (*mb_off2cells)(off_to + 1) > 1)))
+			    && (*mb_off2cells)(off_to, max_off_to) == 1
+			    && (*mb_off2cells)(off_to + 1, max_off_to) > 1)))
 		clear_next = TRUE;
 #endif
 
@@ -5098,10 +5201,11 @@ screen_line(row, coloff, endcol, clear_width
 			/* find previous character by counting from first
 			 * column and get its width. */
 			unsigned off = LineOffset[row];
+			unsigned max_off = LineOffset[row] + screen_Columns;
 
 			while (off < off_to)
 			{
-			    prev_cells = (*mb_off2cells)(off);
+			    prev_cells = (*mb_off2cells)(off, max_off);
 			    off += prev_cells;
 			}
 		    }
@@ -5287,7 +5391,7 @@ static int status_match_len __ARGS((expand_T *xp, char_u *s));
 static int skip_status_match_char __ARGS((expand_T *xp, char_u *s));
 
 /*
- * Get the lenght of an item as it will be shown in the status line.
+ * Get the length of an item as it will be shown in the status line.
  */
     static int
 status_match_len(xp, s)
@@ -5353,7 +5457,7 @@ win_redr_status_matches(xp, num_matches, matches, match, showtail)
     int		row;
     char_u	*buf;
     int		len;
-    int		clen;		/* lenght in screen cells */
+    int		clen;		/* length in screen cells */
     int		fillchar;
     int		attr;
     int		i;
@@ -6105,6 +6209,7 @@ screen_puts_len(text, len, row, col, attr)
     char_u	*ptr = text;
     int		c;
 #ifdef FEAT_MBYTE
+    unsigned	max_off;
     int		mbyte_blen = 1;
     int		mbyte_cells = 1;
     int		u8c = 0;
@@ -6121,8 +6226,12 @@ screen_puts_len(text, len, row, col, attr)
 	return;
 
     off = LineOffset[row] + col;
-    while (*ptr != NUL && col < screen_Columns
-				      && (len < 0 || (int)(ptr - text) < len))
+#ifdef FEAT_MBYTE
+    max_off = LineOffset[row] + screen_Columns;
+#endif
+    while (col < screen_Columns
+	    && (len < 0 || (int)(ptr - text) < len)
+	    && *ptr != NUL)
     {
 	c = *ptr;
 #ifdef FEAT_MBYTE
@@ -6145,6 +6254,7 @@ screen_puts_len(text, len, row, col, attr)
 		else
 		    u8c = utfc_ptr2char(ptr, u8cc);
 		mbyte_cells = utf_char2cells(u8c);
+# ifdef UNICODE16
 		/* Non-BMP character: display as ? or fullwidth ?. */
 		if (u8c >= 0x10000)
 		{
@@ -6152,6 +6262,7 @@ screen_puts_len(text, len, row, col, attr)
 		    if (attr == 0)
 			attr = hl_attr(HLF_8);
 		}
+# endif
 # ifdef FEAT_ARABIC
 		if (p_arshape && !p_tbidi && ARABIC_CHAR(u8c))
 		{
@@ -6243,19 +6354,19 @@ screen_puts_len(text, len, row, col, attr)
 	    else if (has_mbyte
 		    && (len < 0 ? ptr[mbyte_blen] == NUL
 					     : ptr + mbyte_blen >= text + len)
-		    && ((mbyte_cells == 1 && (*mb_off2cells)(off) > 1)
+		    && ((mbyte_cells == 1 && (*mb_off2cells)(off, max_off) > 1)
 			|| (mbyte_cells == 2
-			    && (*mb_off2cells)(off) == 1
-			    && (*mb_off2cells)(off + 1) > 1)))
+			    && (*mb_off2cells)(off, max_off) == 1
+			    && (*mb_off2cells)(off + 1, max_off) > 1)))
 		clear_next_cell = TRUE;
 
 	    /* Make sure we never leave a second byte of a double-byte behind,
 	     * it confuses mb_off2cells(). */
 	    if (enc_dbcs
-		    && ((mbyte_cells == 1 && (*mb_off2cells)(off) > 1)
+		    && ((mbyte_cells == 1 && (*mb_off2cells)(off, max_off) > 1)
 			|| (mbyte_cells == 2
-			    && (*mb_off2cells)(off) == 1
-			    && (*mb_off2cells)(off + 1) > 1)))
+			    && (*mb_off2cells)(off, max_off) == 1
+			    && (*mb_off2cells)(off + 1, max_off) > 1)))
 		ScreenLines[off + mbyte_blen] = 0;
 #endif
 	    ScreenLines[off] = c;
@@ -6320,7 +6431,7 @@ screen_puts_len(text, len, row, col, attr)
 
 #ifdef FEAT_SEARCH_EXTRA
 /*
- * Prepare for 'searchhl' highlighting.
+ * Prepare for 'hlsearch' highlighting.
  */
     static void
 start_search_hl()
@@ -6333,7 +6444,7 @@ start_search_hl()
 }
 
 /*
- * Clean up for 'searchhl' highlighting.
+ * Clean up for 'hlsearch' highlighting.
  */
     static void
 end_search_hl()
@@ -6353,18 +6464,28 @@ prepare_search_hl(wp, lnum)
     win_T	*wp;
     linenr_T	lnum;
 {
-    match_T	*shl;		/* points to search_hl or match_hl */
+    matchitem_T *cur;		/* points to the match list */
+    match_T	*shl;		/* points to search_hl or a match */
+    int		shl_flag;	/* flag to indicate whether search_hl
+				   has been processed or not */
     int		n;
-    int		i;
 
     /*
      * When using a multi-line pattern, start searching at the top
      * of the window or just after a closed fold.
-     * Do this both for search_hl and match_hl[3].
+     * Do this both for search_hl and the match list.
      */
-    for (i = 3; i >= 0; --i)
+    cur = wp->w_match_head;
+    shl_flag = FALSE;
+    while (cur != NULL || shl_flag == FALSE)
     {
-	shl = (i == 3) ? &search_hl : &match_hl[i];
+	if (shl_flag == FALSE)
+	{
+	    shl = &search_hl;
+	    shl_flag = TRUE;
+	}
+	else
+	    shl = &cur->hl;
 	if (shl->rm.regprog != NULL
 		&& shl->lnum == 0
 		&& re_multiline(shl->rm.regprog))
@@ -6399,11 +6520,13 @@ prepare_search_hl(wp, lnum)
 		}
 	    }
 	}
+	if (shl != &search_hl && cur != NULL)
+	    cur = cur->next;
     }
 }
 
 /*
- * Search for a next 'searchl' or ":match" match.
+ * Search for a next 'hlsearch' or match.
  * Uses shl->buf.
  * Sets shl->lnum and shl->rm contents.
  * Note: Assumes a previous match is always before "lnum", unless
@@ -6413,7 +6536,7 @@ prepare_search_hl(wp, lnum)
     static void
 next_search_hl(win, shl, lnum, mincol)
     win_T	*win;
-    match_T	*shl;		/* points to search_hl or match_hl */
+    match_T	*shl;		/* points to search_hl or a match */
     linenr_T	lnum;
     colnr_T	mincol;		/* minimal column for a match */
 {
@@ -6481,7 +6604,7 @@ next_search_hl(win, shl, lnum, mincol)
 	    /* Error while handling regexp: stop using this regexp. */
 	    if (shl == &search_hl)
 	    {
-		/* don't free the regprog in match_hl[], it's a copy */
+		/* don't free regprog in the match list, it's a copy */
 		vim_free(shl->rm.regprog);
 		no_hlsearch = TRUE;
 	    }
@@ -6829,6 +6952,9 @@ screen_draw_rectangle(row, col, height, width, invert)
 {
     int		r, c;
     int		off;
+#ifdef FEAT_MBYTE
+    int		max_off;
+#endif
 
     /* Can't use ScreenLines unless initialized */
     if (ScreenLines == NULL)
@@ -6839,10 +6965,13 @@ screen_draw_rectangle(row, col, height, width, invert)
     for (r = row; r < row + height; ++r)
     {
 	off = LineOffset[r];
+#ifdef FEAT_MBYTE
+	max_off = off + screen_Columns;
+#endif
 	for (c = col; c < col + width; ++c)
 	{
 #ifdef FEAT_MBYTE
-	    if (enc_dbcs != 0 && dbcs_off2cells(off + c) > 1)
+	    if (enc_dbcs != 0 && dbcs_off2cells(off + c, max_off) > 1)
 	    {
 		screen_char_2(off + c, r, c);
 		++c;
@@ -6852,7 +6981,7 @@ screen_draw_rectangle(row, col, height, width, invert)
 	    {
 		screen_char(off + c, r, c);
 #ifdef FEAT_MBYTE
-		if (utf_off2cells(off + c) > 1)
+		if (utf_off2cells(off + c, max_off) > 1)
 		    ++c;
 #endif
 	    }

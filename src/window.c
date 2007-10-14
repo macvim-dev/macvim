@@ -75,6 +75,7 @@ static int check_snapshot_rec __ARGS((frame_T *sn, frame_T *fr));
 static win_T *restore_snapshot_rec __ARGS((frame_T *sn, frame_T *fr));
 
 #endif /* FEAT_WINDOWS */
+
 static win_T *win_alloc __ARGS((win_T *after));
 static void win_new_height __ARGS((win_T *, int));
 
@@ -583,7 +584,7 @@ wingotofile:
 		++no_mapping;
 		++allow_keys;   /* no mapping for xchar, but allow key codes */
 		if (xchar == NUL)
-		    xchar = safe_vgetc();
+		    xchar = plain_vgetc();
 #ifdef FEAT_LANGMAP
 		LANGMAP_ADJUST(xchar, TRUE);
 #endif
@@ -732,7 +733,6 @@ win_split_ins(size, flags, newwin, dir)
     if (flags & WSP_VERT)
     {
 	layout = FR_ROW;
-	do_equal = (p_ea && new_size == 0 && *p_ead != 'v');
 
 	/*
 	 * Check if we are able to split the current window and compute its
@@ -769,16 +769,31 @@ win_split_ins(size, flags, newwin, dir)
 	 * instead, if possible. */
 	if (oldwin->w_p_wfw)
 	    win_setwidth_win(oldwin->w_width + new_size, oldwin);
+
+	/* Only make all windows the same width if one of them (except oldwin)
+	 * is wider than one of the split windows. */
+	if (!do_equal && p_ea && size == 0 && *p_ead != 'v'
+	   && oldwin->w_frame->fr_parent != NULL)
+	{
+	    frp = oldwin->w_frame->fr_parent->fr_child;
+	    while (frp != NULL)
+	    {
+		if (frp->fr_win != oldwin && frp->fr_win != NULL
+			&& (frp->fr_win->w_width > new_size
+			    || frp->fr_win->w_width > oldwin->w_width
+						   - new_size - STATUS_HEIGHT))
+		{
+		    do_equal = TRUE;
+		    break;
+		}
+		frp = frp->fr_next;
+	    }
+	}
     }
     else
 #endif
     {
 	layout = FR_COL;
-	do_equal = (p_ea && new_size == 0
-#ifdef FEAT_VERTSPLIT
-		&& *p_ead != 'h'
-#endif
-		);
 
 	/*
 	 * Check if we are able to split the current window and compute its
@@ -830,6 +845,29 @@ win_split_ins(size, flags, newwin, dir)
 	    oldwin_height = oldwin->w_height;
 	    if (need_status)
 		oldwin_height -= STATUS_HEIGHT;
+	}
+
+	/* Only make all windows the same height if one of them (except oldwin)
+	 * is higher than one of the split windows. */
+	if (!do_equal && p_ea && size == 0
+#ifdef FEAT_VERTSPLIT
+		&& *p_ead != 'h'
+#endif
+	   && oldwin->w_frame->fr_parent != NULL)
+	{
+	    frp = oldwin->w_frame->fr_parent->fr_child;
+	    while (frp != NULL)
+	    {
+		if (frp->fr_win != oldwin && frp->fr_win != NULL
+			&& (frp->fr_win->w_height > new_size
+			    || frp->fr_win->w_height > oldwin_height - new_size
+							      - STATUS_HEIGHT))
+		{
+		    do_equal = TRUE;
+		    break;
+		}
+		frp = frp->fr_next;
+	    }
 	}
     }
 
@@ -1253,7 +1291,7 @@ make_windows(count, vertical)
      * Don't execute autocommands while creating the windows.  Must do that
      * when putting the buffers in the windows.
      */
-    ++autocmd_block;
+    block_autocmds();
 #endif
 
     /* todo is number of windows left to create */
@@ -1275,7 +1313,7 @@ make_windows(count, vertical)
 	}
 
 #ifdef FEAT_AUTOCMD
-    --autocmd_block;
+    unblock_autocmds();
 #endif
 
     /* return actual number of windows */
@@ -2120,7 +2158,7 @@ win_close(win, free_buf)
 	if (wp->w_p_pvw || bt_quickfix(wp->w_buffer))
 	{
 	    /*
-	     * The cursor goes to the preview or the quickfix window, try
+	     * If the cursor goes to the preview or the quickfix window, try
 	     * finding another window to go to.
 	     */
 	    for (;;)
@@ -2307,7 +2345,6 @@ winframe_remove(win, dirp, tp)
     frame_T	*frp, *frp2, *frp3;
     frame_T	*frp_close = win->w_frame;
     win_T	*wp;
-    int		old_size = 0;
 
     /*
      * If there is only one window there is nothing to remove.
@@ -2328,33 +2365,77 @@ winframe_remove(win, dirp, tp)
     if (frp_close->fr_parent->fr_layout == FR_COL)
     {
 #endif
-	/* When 'winfixheight' is set, remember its old size and restore
-	 * it later (it's a simplistic solution...).  Don't do this if the
-	 * window will occupy the full height of the screen. */
-	if (frp2->fr_win != NULL
-		&& (frp2->fr_next != NULL || frp2->fr_prev != NULL)
-		&& frp2->fr_win->w_p_wfh)
-	    old_size = frp2->fr_win->w_height;
+	/* When 'winfixheight' is set, try to find another frame in the column
+	 * (as close to the closed frame as possible) to distribute the height
+	 * to. */
+	if (frp2->fr_win != NULL && frp2->fr_win->w_p_wfh)
+	{
+	    frp = frp_close->fr_prev;
+	    frp3 = frp_close->fr_next;
+	    while (frp != NULL || frp3 != NULL)
+	    {
+		if (frp != NULL)
+		{
+		    if (frp->fr_win != NULL && !frp->fr_win->w_p_wfh)
+		    {
+			frp2 = frp;
+			wp = frp->fr_win;
+			break;
+		    }
+		    frp = frp->fr_prev;
+		}
+		if (frp3 != NULL)
+		{
+		    if (frp3->fr_win != NULL && !frp3->fr_win->w_p_wfh)
+		    {
+			frp2 = frp3;
+			wp = frp3->fr_win;
+			break;
+		    }
+		    frp3 = frp3->fr_next;
+		}
+	    }
+	}
 	frame_new_height(frp2, frp2->fr_height + frp_close->fr_height,
 			    frp2 == frp_close->fr_next ? TRUE : FALSE, FALSE);
-	if (old_size != 0)
-	    win_setheight_win(old_size, frp2->fr_win);
 #ifdef FEAT_VERTSPLIT
 	*dirp = 'v';
     }
     else
     {
-	/* When 'winfixwidth' is set, remember its old size and restore
-	 * it later (it's a simplistic solution...).  Don't do this if the
-	 * window will occupy the full width of the screen. */
-	if (frp2->fr_win != NULL
-		&& (frp2->fr_next != NULL || frp2->fr_prev != NULL)
-		&& frp2->fr_win->w_p_wfw)
-	    old_size = frp2->fr_win->w_width;
+	/* When 'winfixwidth' is set, try to find another frame in the column
+	 * (as close to the closed frame as possible) to distribute the width
+	 * to. */
+	if (frp2->fr_win != NULL && frp2->fr_win->w_p_wfw)
+	{
+	    frp = frp_close->fr_prev;
+	    frp3 = frp_close->fr_next;
+	    while (frp != NULL || frp3 != NULL)
+	    {
+		if (frp != NULL)
+		{
+		    if (frp->fr_win != NULL && !frp->fr_win->w_p_wfw)
+		    {
+			frp2 = frp;
+			wp = frp->fr_win;
+			break;
+		    }
+		    frp = frp->fr_prev;
+		}
+		if (frp3 != NULL)
+		{
+		    if (frp3->fr_win != NULL && !frp3->fr_win->w_p_wfw)
+		    {
+			frp2 = frp3;
+			wp = frp3->fr_win;
+			break;
+		    }
+		    frp3 = frp3->fr_next;
+		}
+	    }
+	}
 	frame_new_width(frp2, frp2->fr_width + frp_close->fr_width,
 			    frp2 == frp_close->fr_next ? TRUE : FALSE, FALSE);
-	if (old_size != 0)
-	    win_setwidth_win(old_size, frp2->fr_win);
 	*dirp = 'h';
     }
 #endif
@@ -3334,7 +3415,7 @@ make_tabpages(maxcount)
      * Don't execute autocommands while creating the tab pages.  Must do that
      * when putting the buffers in the windows.
      */
-    ++autocmd_block;
+    block_autocmds();
 #endif
 
     for (todo = count - 1; todo > 0; --todo)
@@ -3342,7 +3423,7 @@ make_tabpages(maxcount)
 	    break;
 
 #ifdef FEAT_AUTOCMD
-    --autocmd_block;
+    unblock_autocmds();
 #endif
 
     /* return actual number of tab pages */
@@ -4081,7 +4162,7 @@ win_alloc(after)
 	/* Don't execute autocommands while the window is not properly
 	 * initialized yet.  gui_create_scrollbar() may trigger a FocusGained
 	 * event. */
-	++autocmd_block;
+	block_autocmds();
 #endif
 	/*
 	 * link the window in the window list
@@ -4126,7 +4207,11 @@ win_alloc(after)
 	foldInitWin(newwin);
 #endif
 #ifdef FEAT_AUTOCMD
-	--autocmd_block;
+	unblock_autocmds();
+#endif
+#ifdef FEAT_SEARCH_EXTRA
+	newwin->w_match_head = NULL;
+	newwin->w_next_match_id = 4;
 #endif
     }
     return newwin;
@@ -4147,7 +4232,7 @@ win_free(wp, tp)
 #ifdef FEAT_AUTOCMD
     /* Don't execute autocommands while the window is halfway being deleted.
      * gui_mch_destroy_scrollbar() may trigger a FocusGained event. */
-    ++autocmd_block;
+    block_autocmds();
 #endif
 
 #ifdef FEAT_MZSCHEME
@@ -4185,11 +4270,11 @@ win_free(wp, tp)
 	vim_free(wp->w_tagstack[i].tagname);
 
     vim_free(wp->w_localdir);
+
 #ifdef FEAT_SEARCH_EXTRA
-    vim_free(wp->w_match[0].regprog);
-    vim_free(wp->w_match[1].regprog);
-    vim_free(wp->w_match[2].regprog);
+    clear_matches(wp);
 #endif
+
 #ifdef FEAT_JUMPLIST
     free_jumplist(wp);
 #endif
@@ -4210,7 +4295,7 @@ win_free(wp, tp)
     vim_free(wp);
 
 #ifdef FEAT_AUTOCMD
-    --autocmd_block;
+    unblock_autocmds();
 #endif
 }
 
@@ -5438,6 +5523,7 @@ command_height()
 		{
 		    EMSG(_(e_noroom));
 		    p_ch = old_p_ch;
+		    curtab->tp_ch_used = p_ch;
 		    cmdline_row = Rows - p_ch;
 		    break;
 		}
@@ -6172,5 +6258,177 @@ win_hasvertsplit()
 		return TRUE;
 
     return FALSE;
+}
+#endif
+
+#if defined(FEAT_SEARCH_EXTRA) || defined(PROTO)
+/*
+ * Add match to the match list of window 'wp'.  The pattern 'pat' will be
+ * highligted with the group 'grp' with priority 'prio'.
+ * Optionally, a desired ID 'id' can be specified (greater than or equal to 1).
+ * If no particular ID is desired, -1 must be specified for 'id'.
+ * Return ID of added match, -1 on failure.
+ */
+    int
+match_add(wp, grp, pat, prio, id)
+    win_T	*wp;
+    char_u	*grp;
+    char_u	*pat;
+    int		prio;
+    int		id;
+{
+    matchitem_T *cur;
+    matchitem_T *prev;
+    matchitem_T *m;
+    int		hlg_id;
+    regprog_T	*regprog;
+
+    if (*grp == NUL || *pat == NUL)
+	return -1;
+    if (id < -1 || id == 0)
+    {
+	EMSGN("E799: Invalid ID: %ld (must be greater than or equal to 1)", id);
+	return -1;
+    }
+    if (id != -1)
+    {
+	cur = wp->w_match_head;
+	while (cur != NULL)
+	{
+	    if (cur->id == id)
+	    {
+		EMSGN("E801: ID already taken: %ld", id);
+		return -1;
+	    }
+	    cur = cur->next;
+	}
+    }
+    if ((hlg_id = syn_namen2id(grp, STRLEN(grp))) == 0)
+    {
+	EMSG2(_(e_nogroup), grp);
+	return -1;
+    }
+    if ((regprog = vim_regcomp(pat, RE_MAGIC)) == NULL)
+    {
+	EMSG2(_(e_invarg2), pat);
+	return -1;
+    }
+
+    /* Find available match ID. */
+    while (id == -1)
+    {
+	cur = wp->w_match_head;
+	while (cur != NULL && cur->id != wp->w_next_match_id)
+	    cur = cur->next;
+	if (cur == NULL)
+	    id = wp->w_next_match_id;
+	wp->w_next_match_id++;
+    }
+
+    /* Build new match. */
+    m = (matchitem_T *)alloc(sizeof(matchitem_T));
+    m->id = id;
+    m->priority = prio;
+    m->pattern = vim_strsave(pat);
+    m->hlg_id = hlg_id;
+    m->match.regprog = regprog;
+    m->match.rmm_ic = FALSE;
+    m->match.rmm_maxcol = 0;
+
+    /* Insert new match.  The match list is in ascending order with regard to
+     * the match priorities. */
+    cur = wp->w_match_head;
+    prev = cur;
+    while (cur != NULL && prio >= cur->priority)
+    {
+	prev = cur;
+	cur = cur->next;
+    }
+    if (cur == prev)
+	wp->w_match_head = m;
+    else
+	prev->next = m;
+    m->next = cur;
+
+    redraw_later(SOME_VALID);
+    return id;
+}
+
+/*
+ * Delete match with ID 'id' in the match list of window 'wp'.
+ * Print error messages if 'perr' is TRUE.
+ */
+    int
+match_delete(wp, id, perr)
+    win_T	*wp;
+    int		id;
+    int		perr;
+{
+    matchitem_T *cur = wp->w_match_head;
+    matchitem_T *prev = cur;
+
+    if (id < 1)
+    {
+	if (perr == TRUE)
+	    EMSGN("E802: Invalid ID: %ld (must be greater than or equal to 1)",
+									  id);
+	return -1;
+    }
+    while (cur != NULL && cur->id != id)
+    {
+	prev = cur;
+	cur = cur->next;
+    }
+    if (cur == NULL)
+    {
+	if (perr == TRUE)
+	    EMSGN("E803: ID not found: %ld", id);
+	return -1;
+    }
+    if (cur == prev)
+	wp->w_match_head = cur->next;
+    else
+	prev->next = cur->next;
+    vim_free(cur->match.regprog);
+    vim_free(cur->pattern);
+    vim_free(cur);
+    redraw_later(SOME_VALID);
+    return 0;
+}
+
+/*
+ * Delete all matches in the match list of window 'wp'.
+ */
+    void
+clear_matches(wp)
+    win_T	*wp;
+{
+    matchitem_T *m;
+
+    while (wp->w_match_head != NULL)
+    {
+	m = wp->w_match_head->next;
+	vim_free(wp->w_match_head->match.regprog);
+	vim_free(wp->w_match_head->pattern);
+	vim_free(wp->w_match_head);
+	wp->w_match_head = m;
+    }
+    redraw_later(SOME_VALID);
+}
+
+/*
+ * Get match from ID 'id' in window 'wp'.
+ * Return NULL if match not found.
+ */
+    matchitem_T *
+get_match(wp, id)
+    win_T	*wp;
+    int		id;
+{
+    matchitem_T *cur = wp->w_match_head;
+
+    while (cur != NULL && cur->id != id)
+	cur = cur->next;
+    return cur;
 }
 #endif

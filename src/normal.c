@@ -690,13 +690,20 @@ getcount:
 		ca.count0 = ca.count0 * 10 + (c - '0');
 	    if (ca.count0 < 0)	    /* got too large! */
 		ca.count0 = 999999999L;
+#ifdef FEAT_EVAL
+	    /* Set v:count here, when called from main() and not a stuffed
+	     * command, so that v:count can be used in an expression mapping
+	     * right after the count. */
+	    if (toplevel && stuff_empty())
+		set_vcount(ca.count0, ca.count0 == 0 ? 1 : ca.count0);
+#endif
 	    if (ctrl_w)
 	    {
 		++no_mapping;
 		++allow_keys;		/* no mapping for nchar, but keys */
 	    }
 	    ++no_zero_mapping;		/* don't map zero here */
-	    c = safe_vgetc();
+	    c = plain_vgetc();
 #ifdef FEAT_LANGMAP
 	    LANGMAP_ADJUST(c, TRUE);
 #endif
@@ -721,7 +728,7 @@ getcount:
 	    ca.count0 = 0;
 	    ++no_mapping;
 	    ++allow_keys;		/* no mapping for nchar, but keys */
-	    c = safe_vgetc();		/* get next character */
+	    c = plain_vgetc();		/* get next character */
 #ifdef FEAT_LANGMAP
 	    LANGMAP_ADJUST(c, TRUE);
 #endif
@@ -889,13 +896,18 @@ getcount:
 
 	++no_mapping;
 	++allow_keys;		/* no mapping for nchar, but allow key codes */
+#ifdef FEAT_AUTOCMD
+	/* Don't generate a CursorHold event here, most commands can't handle
+	 * it, e.g., nv_replace(), nv_csearch(). */
+	did_cursorhold = TRUE;
+#endif
 	if (ca.cmdchar == 'g')
 	{
 	    /*
 	     * For 'g' get the next character now, so that we can check for
 	     * "gr", "g'" and "g`".
 	     */
-	    ca.nchar = safe_vgetc();
+	    ca.nchar = plain_vgetc();
 #ifdef FEAT_LANGMAP
 	    LANGMAP_ADJUST(ca.nchar, TRUE);
 #endif
@@ -952,7 +964,7 @@ getcount:
 		im_set_active(TRUE);
 #endif
 
-	    *cp = safe_vgetc();
+	    *cp = plain_vgetc();
 
 	    if (langmap_active)
 	    {
@@ -1040,7 +1052,7 @@ getcount:
 		}
 		if (c > 0)
 		{
-		    c = safe_vgetc();
+		    c = plain_vgetc();
 		    if (c != Ctrl_N && c != Ctrl_G)
 			vungetc(c);
 		    else
@@ -1059,7 +1071,7 @@ getcount:
 	    while (enc_utf8 && lang && (c = vpeekc()) > 0
 				 && (c >= 0x100 || MB_BYTE2LEN(vpeekc()) > 1))
 	    {
-		c = safe_vgetc();
+		c = plain_vgetc();
 		if (!utf_iscomposing(c))
 		{
 		    vungetc(c);		/* it wasn't, put it back */
@@ -3755,7 +3767,8 @@ add_to_showcmd(c)
     extra_len = (int)STRLEN(p);
     overflow = old_len + extra_len - SHOWCMD_COLS;
     if (overflow > 0)
-	STRCPY(showcmd_buf, showcmd_buf + overflow);
+	mch_memmove(showcmd_buf, showcmd_buf + overflow,
+						      old_len - overflow + 1);
     STRCAT(showcmd_buf, p);
 
     if (char_avail())
@@ -4558,7 +4571,7 @@ nv_zet(cap)
 #endif
 	    ++no_mapping;
 	    ++allow_keys;   /* no mapping for nchar, but allow key codes */
-	    nchar = safe_vgetc();
+	    nchar = plain_vgetc();
 #ifdef FEAT_LANGMAP
 	    LANGMAP_ADJUST(nchar, TRUE);
 #endif
@@ -4916,7 +4929,7 @@ dozet:
     case 'u':	/* "zug" and "zuw": undo "zg" and "zw" */
 		++no_mapping;
 		++allow_keys;   /* no mapping for nchar, but allow key codes */
-		nchar = safe_vgetc();
+		nchar = plain_vgetc();
 #ifdef FEAT_LANGMAP
 		LANGMAP_ADJUST(nchar, TRUE);
 #endif
@@ -6662,6 +6675,13 @@ nv_replace(cap)
     else
 	had_ctrl_v = NUL;
 
+    /* Abort if the character is a special key. */
+    if (IS_SPECIAL(cap->nchar))
+    {
+	clearopbeep(cap->oap);
+	return;
+    }
+
 #ifdef FEAT_VISUAL
     /* Visual mode "r" */
     if (VIsual_active)
@@ -6688,11 +6708,9 @@ nv_replace(cap)
     }
 #endif
 
-    /*
-     * Check for a special key or not enough characters to replace.
-     */
+    /* Abort if not enough characters to replace. */
     ptr = ml_get_cursor();
-    if (IS_SPECIAL(cap->nchar) || STRLEN(ptr) < (unsigned)cap->count1
+    if (STRLEN(ptr) < (unsigned)cap->count1
 #ifdef FEAT_MBYTE
 	    || (has_mbyte && mb_charlen(ptr) < cap->count1)
 #endif
@@ -8353,7 +8371,7 @@ nv_wordcmd(cap)
 	n = fwd_word(cap->count1, cap->arg, cap->oap->op_type != OP_NOP);
 
     /* Don't leave the cursor on the NUL past a line */
-    if (curwin->w_cursor.col && gchar_cursor() == NUL)
+    if (n != FAIL && curwin->w_cursor.col > 0 && gchar_cursor() == NUL)
     {
 	--curwin->w_cursor.col;
 	cap->oap->inclusive = TRUE;

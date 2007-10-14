@@ -1272,7 +1272,6 @@ gui_mch_browse(int saving,
     GtkWidget		*fc;
 #endif
     char_u		dirbuf[MAXPATHL];
-    char_u		*p;
 
 # ifdef HAVE_GTK2
     title = CONVERT_TO_UTF8(title);
@@ -1363,11 +1362,7 @@ gui_mch_browse(int saving,
 	return NULL;
 
     /* shorten the file name if possible */
-    mch_dirname(dirbuf, MAXPATHL);
-    p = shorten_fname(gui.browse_fname, dirbuf);
-    if (p == NULL)
-	p = gui.browse_fname;
-    return vim_strsave(p);
+    return vim_strsave(shorten_fname1(gui.browse_fname));
 }
 
 #if defined(HAVE_GTK2) || defined(PROTO)
@@ -1427,11 +1422,7 @@ gui_mch_browsedir(
 	return NULL;
 
     /* shorten the file name if possible */
-    mch_dirname(dirbuf, MAXPATHL);
-    p = shorten_fname(dirname, dirbuf);
-    if (p == NULL || *p == NUL)
-	p = dirname;
-    p = vim_strsave(p);
+    p = vim_strsave(shorten_fname1(dirname));
     g_free(dirname);
     return p;
 
@@ -1630,11 +1621,14 @@ dlg_button_clicked(GtkWidget * widget, ButtonData *data)
  */
 /*ARGSUSED*/
     static int
-dlg_key_press_event(GtkWidget * widget, GdkEventKey * event, CancelData *data)
+dlg_key_press_event(GtkWidget *widget, GdkEventKey *event, CancelData *data)
 {
-    /* Ignore hitting Enter when there is no default button. */
-    if (data->ignore_enter && event->keyval == GDK_Return)
+    /* Ignore hitting Enter (or Space) when there is no default button. */
+    if (data->ignore_enter && (event->keyval == GDK_Return
+						     || event->keyval == ' '))
 	return TRUE;
+    else    /* A different key was pressed, return to normal behavior */
+	data->ignore_enter = FALSE;
 
     if (event->keyval != GDK_Escape && event->keyval != GDK_Return)
 	return FALSE;
@@ -2223,6 +2217,13 @@ typedef struct _DialogInfo
 dialog_key_press_event_cb(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
     DialogInfo *di = (DialogInfo *)data;
+
+    /* Ignore hitting Enter (or Space) when there is no default button. */
+    if (di->ignore_enter && (event->keyval == GDK_Return
+						     || event->keyval == ' '))
+	return TRUE;
+    else    /* A different key was pressed, return to normal behavior */
+	di->ignore_enter = FALSE;
 
     /* Close the dialog when hitting "Esc". */
     if (event->keyval == GDK_Escape)

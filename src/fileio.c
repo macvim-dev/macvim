@@ -114,7 +114,7 @@ struct bw_info
 {
     int		bw_fd;		/* file descriptor */
     char_u	*bw_buf;	/* buffer with data to be written */
-    int		bw_len;	/* lenght of data */
+    int		bw_len;		/* length of data */
 #ifdef HAS_BW_FLAGS
     int		bw_flags;	/* FIO_ flags */
 #endif
@@ -654,6 +654,7 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 	curbuf->b_start_eol = TRUE;
 #ifdef FEAT_MBYTE
 	curbuf->b_p_bomb = FALSE;
+	curbuf->b_start_bomb = FALSE;
 #endif
     }
 
@@ -912,7 +913,10 @@ retry:
 	file_rewind = FALSE;
 #ifdef FEAT_MBYTE
 	if (set_options)
+	{
 	    curbuf->b_p_bomb = FALSE;
+	    curbuf->b_start_bomb = FALSE;
+	}
 	conv_error = 0;
 #endif
     }
@@ -1361,7 +1365,10 @@ retry:
 		    size -= blen;
 		    mch_memmove(ptr, ptr + blen, (size_t)size);
 		    if (set_options)
+		    {
 			curbuf->b_p_bomb = TRUE;
+			curbuf->b_start_bomb = TRUE;
+		    }
 		}
 
 		if (fio_flags == FIO_UCSBOM)
@@ -5546,6 +5553,30 @@ make_bom(buf, name)
 }
 #endif
 
+#if defined(FEAT_VIMINFO) || defined(FEAT_BROWSE) || \
+    defined(FEAT_QUICKFIX) || defined(PROTO)
+/*
+ * Try to find a shortname by comparing the fullname with the current
+ * directory.
+ * Returns "full_path" or pointer into "full_path" if shortened.
+ */
+    char_u *
+shorten_fname1(full_path)
+    char_u	*full_path;
+{
+    char_u	dirname[MAXPATHL];
+    char_u	*p = full_path;
+
+    if (mch_dirname(dirname, MAXPATHL) == OK)
+    {
+	p = shorten_fname(full_path, dirname);
+	if (p == NULL || *p == NUL)
+	    p = full_path;
+    }
+    return p;
+}
+#endif
+
 /*
  * Try to find a shortname by comparing the fullname with the current
  * directory.
@@ -7158,6 +7189,7 @@ static void auto_next_pat __ARGS((AutoPatCmd *apc, int stop_at_last));
 
 static event_T	last_event;
 static int	last_group;
+static int	autocmd_blocked = 0;	/* block all autocmds */
 
 /*
  * Show the autocommands for one AutoPat.
@@ -8447,7 +8479,7 @@ apply_autocmds_group(event, fname, fname_io, force, group, buf, eap)
      * Quickly return if there are no autocommands for this event or
      * autocommands are blocked.
      */
-    if (first_autopat[(int)event] == NULL || autocmd_block > 0)
+    if (first_autopat[(int)event] == NULL || autocmd_blocked > 0)
 	goto BYPASS_AU;
 
     /*
@@ -8759,6 +8791,40 @@ BYPASS_AU:
 	aubuflocal_remove(buf);
 
     return retval;
+}
+
+# ifdef FEAT_EVAL
+static char_u	*old_termresponse = NULL;
+# endif
+
+/*
+ * Block triggering autocommands until unblock_autocmd() is called.
+ * Can be used recursively, so long as it's symmetric.
+ */
+    void
+block_autocmds()
+{
+# ifdef FEAT_EVAL
+    /* Remember the value of v:termresponse. */
+    if (autocmd_blocked == 0)
+	old_termresponse = get_vim_var_str(VV_TERMRESPONSE);
+# endif
+    ++autocmd_blocked;
+}
+
+    void
+unblock_autocmds()
+{
+    --autocmd_blocked;
+
+# ifdef FEAT_EVAL
+    /* When v:termresponse was set while autocommands were blocked, trigger
+     * the autocommands now.  Esp. useful when executing a shell command
+     * during startup (vimdiff). */
+    if (autocmd_blocked == 0
+		      && get_vim_var_str(VV_TERMRESPONSE) != old_termresponse)
+	apply_autocmds(EVENT_TERMRESPONSE, NULL, NULL, FALSE, curbuf);
+# endif
 }
 
 /*

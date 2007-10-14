@@ -2974,7 +2974,7 @@ check_readonly(forceit, buf)
  * 'fnum' is the number of the file, if zero use ffname/sfname.
  *
  * Return 1 for "normal" error, 2 for "not written" error, 0 for success
- * -1 for succesfully opening another file.
+ * -1 for successfully opening another file.
  * 'lnum' is the line number for the cursor in the new file (if non-zero).
  */
     int
@@ -3584,9 +3584,20 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags)
 	curwin_init();
 
 #ifdef FEAT_FOLDING
-	/* It's like all lines in the buffer changed.  Need to update
-	 * automatic folding. */
+	/* It's possible that all lines in the buffer changed.  Need to update
+	 * automatic folding for all windows where it's used. */
+# ifdef FEAT_WINDOWS
+	{
+	    win_T	    *win;
+	    tabpage_T	    *tp;
+
+	    FOR_ALL_TAB_WINDOWS(tp, win)
+		if (win->w_buffer == curbuf)
+		    foldUpdateAll(win);
+	}
+# else
 	foldUpdateAll(curwin);
+# endif
 #endif
 
 	/* Change directories when the 'acd' option is set. */
@@ -3776,7 +3787,7 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags)
 	    workshop_file_opened((char *)curbuf->b_ffname, curbuf->b_p_ro);
 # endif
 # ifdef FEAT_NETBEANS_INTG
-	if (usingNetbeans & ((flags & ECMD_SET_HELP) != ECMD_SET_HELP))
+	if (usingNetbeans && ((flags & ECMD_SET_HELP) != ECMD_SET_HELP))
 	    netbeans_file_opened(curbuf);
 # endif
     }
@@ -4487,7 +4498,7 @@ do_sub(eap)
 	     *
 	     * The new text is built up in new_start[].  It has some extra
 	     * room to avoid using alloc()/free() too often.  new_start_len is
-	     * the lenght of the allocated memory at new_start.
+	     * the length of the allocated memory at new_start.
 	     *
 	     * Make a copy of the old line, so it won't be taken away when
 	     * updating the screen or handling a multi-line match.  The "old_"
@@ -4658,7 +4669,7 @@ do_sub(eap)
 #endif
 			    ++no_mapping;	/* don't map this key */
 			    ++allow_keys;	/* allow special keys */
-			    i = safe_vgetc();
+			    i = plain_vgetc();
 			    --allow_keys;
 			    --no_mapping;
 
@@ -6374,9 +6385,9 @@ helptags_one(dir, ext, tagfname)
 	for (i = 0; i < ga.ga_len; ++i)
 	{
 	    s = ((char_u **)ga.ga_data)[i];
-	    if (STRNCMP(s, "help-tags", 9) == 0)
+	    if (STRNCMP(s, "help-tags\t", 10) == 0)
 		/* help-tags entry was added in formatted form */
-		fprintf(fd_tags, (char *)s);
+		fputs((char *)s, fd_tags);
 	    else
 	    {
 		fprintf(fd_tags, "%s\t/*", s);

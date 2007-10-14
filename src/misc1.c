@@ -104,7 +104,7 @@ set_indent(size, flags)
     int		ind_done = 0;	    /* measured in spaces */
     int		tab_pad;
     int		retval = FALSE;
-    int		orig_char_len = 0;  /* number of initial whitespace chars when
+    int		orig_char_len = -1; /* number of initial whitespace chars when
 				       'et' and 'pi' are both set */
 
     /*
@@ -159,7 +159,7 @@ set_indent(size, flags)
 
 	    /* Fill to next tabstop with a tab, if possible */
 	    tab_pad = (int)curbuf->b_p_ts - (ind_done % (int)curbuf->b_p_ts);
-	    if (todo >= tab_pad && orig_char_len == 0)
+	    if (todo >= tab_pad && orig_char_len == -1)
 	    {
 		doit = TRUE;
 		todo -= tab_pad;
@@ -206,11 +206,15 @@ set_indent(size, flags)
     /* If 'preserveindent' and 'expandtab' are both set keep the original
      * characters and allocate accordingly.  We will fill the rest with spaces
      * after the if (!curbuf->b_p_et) below. */
-    if (orig_char_len != 0)
+    if (orig_char_len != -1)
     {
 	newline = alloc(orig_char_len + size - ind_done + line_len);
 	if (newline == NULL)
 	    return FALSE;
+	todo = size - ind_done;
+	ind_len = orig_char_len + todo;    /* Set total length of indent in
+					    * characters, which may have been
+					    * undercounted until now  */
 	p = oldline;
 	s = newline;
 	while (orig_char_len > 0)
@@ -222,7 +226,7 @@ set_indent(size, flags)
 	 * than old) */
 	while (vim_iswhite(*p))
 	    (void)*p++;
-	todo = size-ind_done;
+
     }
     else
     {
@@ -3502,9 +3506,38 @@ free_homedir()
 #endif
 
 /*
+ * Call expand_env() and store the result in an allocated string.
+ * This is not very memory efficient, this expects the result to be freed
+ * again soon.
+ */
+    char_u *
+expand_env_save(src)
+    char_u	*src;
+{
+    return expand_env_save_opt(src, FALSE);
+}
+
+/*
+ * Idem, but when "one" is TRUE handle the string as one file name, only
+ * expand "~" at the start.
+ */
+    char_u *
+expand_env_save_opt(src, one)
+    char_u	*src;
+    int		one;
+{
+    char_u	*p;
+
+    p = alloc(MAXPATHL);
+    if (p != NULL)
+	expand_env_esc(src, p, MAXPATHL, FALSE, one, NULL);
+    return p;
+}
+
+/*
  * Expand environment variable with path name.
  * "~/" is also expanded, using $HOME.	For Unix "~user/" is expanded.
- * Skips over "\ ", "\~" and "\$".
+ * Skips over "\ ", "\~" and "\$" (not for Win32 though).
  * If anything fails no expansion is done and dst equals src.
  */
     void
@@ -3513,15 +3546,16 @@ expand_env(src, dst, dstlen)
     char_u	*dst;		/* where to put the result */
     int		dstlen;		/* maximum length of the result */
 {
-    expand_env_esc(src, dst, dstlen, FALSE, NULL);
+    expand_env_esc(src, dst, dstlen, FALSE, FALSE, NULL);
 }
 
     void
-expand_env_esc(srcp, dst, dstlen, esc, startstr)
+expand_env_esc(srcp, dst, dstlen, esc, one, startstr)
     char_u	*srcp;		/* input string e.g. "$HOME/vim.hlp" */
     char_u	*dst;		/* where to put the result */
     int		dstlen;		/* maximum length of the result */
     int		esc;		/* escape spaces in expanded variables */
+    int		one;		/* "srcp" is one file name */
     char_u	*startstr;	/* start again after this (can be NULL) */
 {
     char_u	*src;
@@ -3762,6 +3796,8 @@ expand_env_esc(srcp, dst, dstlen, esc, startstr)
 	{
 	    /*
 	     * Recognize the start of a new name, for '~'.
+	     * Don't do this when "one" is TRUE, to avoid expanding "~" in
+	     * ":edit foo ~ foo".
 	     */
 	    at_start = FALSE;
 	    if (src[0] == '\\' && src[1] != NUL)
@@ -3769,7 +3805,7 @@ expand_env_esc(srcp, dst, dstlen, esc, startstr)
 		*dst++ = *src++;
 		--dstlen;
 	    }
-	    else if (src[0] == ' ' || src[0] == ',')
+	    else if ((src[0] == ' ' || src[0] == ',') && !one)
 		at_start = TRUE;
 	    *dst++ = *src++;
 	    --dstlen;
@@ -4063,23 +4099,6 @@ remove_tail(p, pend, name)
 	    && (newend == p || after_pathsep(p, newend)))
 	return newend;
     return pend;
-}
-
-/*
- * Call expand_env() and store the result in an allocated string.
- * This is not very memory efficient, this expects the result to be freed
- * again soon.
- */
-    char_u *
-expand_env_save(src)
-    char_u	*src;
-{
-    char_u	*p;
-
-    p = alloc(MAXPATHL);
-    if (p != NULL)
-	expand_env(src, p, MAXPATHL);
-    return p;
 }
 
 /*
@@ -4820,7 +4839,7 @@ static int	cin_isdo __ARGS((char_u *));
 static int	cin_iswhileofdo __ARGS((char_u *, linenr_T, int));
 static int	cin_iswhileofdo_end __ARGS((int terminated, int	ind_maxparen, int ind_maxcomment));
 static int	cin_isbreak __ARGS((char_u *));
-static int	cin_is_cpp_baseclass __ARGS((char_u *line, colnr_T *col));
+static int	cin_is_cpp_baseclass __ARGS((colnr_T *col));
 static int	get_baseclass_amount __ARGS((int col, int ind_maxparen, int ind_maxcomment, int ind_cpp_baseclass));
 static int	cin_ends_in __ARGS((char_u *, char_u *, char_u *));
 static int	cin_skip2pos __ARGS((pos_T *trypos));
@@ -5585,13 +5604,13 @@ cin_isbreak(p)
  * This is a lot of guessing.  Watch out for "cond ? func() : foo".
  */
     static int
-cin_is_cpp_baseclass(line, col)
-    char_u	*line;
+cin_is_cpp_baseclass(col)
     colnr_T	*col;	    /* return: column to align with */
 {
     char_u	*s;
     int		class_or_struct, lookfor_ctor_init, cpp_base_class;
     linenr_T	lnum = curwin->w_cursor.lnum;
+    char_u	*line = ml_get_curline();
 
     *col = 0;
 
@@ -5619,7 +5638,8 @@ cin_is_cpp_baseclass(line, col)
      */
     while (lnum > 1)
     {
-	s = skipwhite(ml_get(lnum - 1));
+	line = ml_get(lnum - 1);
+	s = skipwhite(line);
 	if (*s == '#' || *s == NUL)
 	    break;
 	while (*s != NUL)
@@ -5636,7 +5656,8 @@ cin_is_cpp_baseclass(line, col)
 	--lnum;
     }
 
-    s = cin_skipcomment(ml_get(lnum));
+    line = ml_get(lnum);
+    s = cin_skipcomment(line);
     for (;;)
     {
 	if (*s == NUL)
@@ -5644,7 +5665,10 @@ cin_is_cpp_baseclass(line, col)
 	    if (lnum == curwin->w_cursor.lnum)
 		break;
 	    /* Continue in the cursor line. */
-	    s = cin_skipcomment(ml_get(++lnum));
+	    line = ml_get(++lnum);
+	    s = cin_skipcomment(line);
+	    if (*s == NUL)
+		continue;
 	}
 
 	if (s[0] == ':')
@@ -7113,7 +7137,7 @@ get_c_indent()
 		n = FALSE;
 		if (lookfor != LOOKFOR_TERM && ind_cpp_baseclass > 0)
 		{
-		    n = cin_is_cpp_baseclass(l, &col);
+		    n = cin_is_cpp_baseclass(&col);
 		    l = ml_get_curline();
 		}
 		if (n)
@@ -7704,7 +7728,7 @@ term_again:
 		n = FALSE;
 		if (ind_cpp_baseclass != 0 && theline[0] != '{')
 		{
-		    n = cin_is_cpp_baseclass(l, &col);
+		    n = cin_is_cpp_baseclass(&col);
 		    l = ml_get_curline();
 		}
 		if (n)
@@ -8630,7 +8654,7 @@ dos_expandpath(
     for (p = buf + wildoff; p < s; ++p)
 	if (rem_backslash(p))
 	{
-	    STRCPY(p, p + 1);
+	    mch_memmove(p, p + 1, STRLEN(p));
 	    --e;
 	    --s;
 	}
@@ -8931,7 +8955,7 @@ unix_expandpath(gap, path, wildoff, flags, didstar)
     for (p = buf + wildoff; p < s; ++p)
 	if (rem_backslash(p))
 	{
-	    STRCPY(p, p + 1);
+	    mch_memmove(p, p + 1, STRLEN(p));
 	    --e;
 	    --s;
 	}
@@ -9130,7 +9154,7 @@ gen_expand_wildcards(num_pat, pat, num_file, file, flags)
 	     */
 	    if (vim_strpbrk(p, (char_u *)"$~") != NULL)
 	    {
-		p = expand_env_save(p);
+		p = expand_env_save_opt(p, TRUE);
 		if (p == NULL)
 		    p = pat[i];
 #ifdef UNIX

@@ -828,7 +828,7 @@ ex_messages(eap)
 		_("Messages maintainer: Bram Moolenaar <Bram@vim.org>"),
 		hl_attr(HLF_T));
 
-    for (p = first_msg_hist; p != NULL; p = p->next)
+    for (p = first_msg_hist; p != NULL && !got_int; p = p->next)
 	if (p->msg != NULL)
 	    msg_attr(p->msg, p->attr);
 
@@ -944,6 +944,7 @@ wait_return(redraw)
 		c = K_IGNORE;
 	    }
 #endif
+
 	    /*
 	     * Allow scrolling back in the messages.
 	     * Also accept scroll-down commands when messages fill the screen,
@@ -1840,9 +1841,10 @@ msg_puts_display(str, maxlen, attr, recurse)
     char_u	*sb_str = str;
     int		sb_col = msg_col;
     int		wrap;
+    int		did_last_char;
 
     did_wait_return = FALSE;
-    while (*s != NUL && (maxlen < 0 || (int)(s - str) < maxlen))
+    while ((maxlen < 0 || (int)(s - str) < maxlen) && *s != NUL)
     {
 	/*
 	 * We are at the end of the screen line when:
@@ -1878,7 +1880,7 @@ msg_puts_display(str, maxlen, attr, recurse)
 		/* output postponed text */
 		t_puts(&t_col, t_s, s, attr);
 
-	    /* When no more prompt an no more room, truncate here */
+	    /* When no more prompt and no more room, truncate here */
 	    if (msg_no_more && lines_left == 0)
 		break;
 
@@ -1909,7 +1911,10 @@ msg_puts_display(str, maxlen, attr, recurse)
 		else
 #endif
 		    msg_screen_putchar(*s++, attr);
+		did_last_char = TRUE;
 	    }
+	    else
+		did_last_char = FALSE;
 
 	    if (p_more)
 		/* store text for scrolling back */
@@ -1927,7 +1932,8 @@ msg_puts_display(str, maxlen, attr, recurse)
 	     * If screen is completely filled and 'more' is set then wait
 	     * for a character.
 	     */
-	    --lines_left;
+	    if (lines_left > 0)
+		--lines_left;
 	    if (p_more && lines_left == 0 && State != HITRETURN
 					    && !msg_no_more && !exmode_active)
 	    {
@@ -1943,11 +1949,7 @@ msg_puts_display(str, maxlen, attr, recurse)
 
 	    /* When we displayed a char in last column need to check if there
 	     * is still more. */
-	    if (*s >= ' '
-#ifdef FEAT_RIGHTLEFT
-		    && !cmdmsg_rl
-#endif
-	       )
+	    if (did_last_char)
 		continue;
 	}
 
@@ -2234,7 +2236,7 @@ show_sb_text()
 {
     msgchunk_T	*mp;
 
-    /* Only show somethign if there is more than one line, otherwise it looks
+    /* Only show something if there is more than one line, otherwise it looks
      * weird, typing a command without output results in one line. */
     mp = msg_sb_start(last_msgchunk);
     if (mp == NULL || mp->sb_prev == NULL)
@@ -2622,7 +2624,7 @@ do_more_prompt(typed_char)
 		}
 	    }
 
-	    if (scroll < 0 || (scroll == 0 && mp_last != NULL))
+	    if (scroll <= 0)
 	    {
 		/* displayed the requested text, more prompt again */
 		screen_fill((int)Rows - 1, (int)Rows, 0,

@@ -1612,8 +1612,8 @@ qf_jump(qi, dir, errornr, forceit)
 	}
 
 	/*
-	 * If there is only one window and is the quickfix window, create a new
-	 * one above the quickfix window.
+	 * If there is only one window and it is the quickfix window, create a
+	 * new one above the quickfix window.
 	 */
 	if (((firstwin == lastwin) && bt_quickfix(curbuf)) || !usable_win)
 	{
@@ -2972,6 +2972,7 @@ ex_vimgrep(eap)
     regmmatch_T	regmatch;
     int		fcount;
     char_u	**fnames;
+    char_u	*fname;
     char_u	*s;
     char_u	*p;
     int		fi;
@@ -2981,6 +2982,7 @@ ex_vimgrep(eap)
     buf_T	*buf;
     int		duplicate_name = FALSE;
     int		using_dummy;
+    int		redraw_for_dummy = FALSE;
     int		found_match;
     buf_T	*first_match_buf = NULL;
     time_t	seconds = 0;
@@ -2994,6 +2996,9 @@ ex_vimgrep(eap)
     int		flags = 0;
     colnr_T	col;
     long	tomatch;
+    char_u	dirname_start[MAXPATHL];
+    char_u	dirname_now[MAXPATHL];
+    char_u	*target_dir = NULL;
 
     switch (eap->cmdidx)
     {
@@ -3068,17 +3073,23 @@ ex_vimgrep(eap)
 	goto theend;
     }
 
+    /* Remember the current directory, because a BufRead autocommand that does
+     * ":lcd %:p:h" changes the meaning of short path names. */
+    mch_dirname(dirname_start, MAXPATHL);
+
     seconds = (time_t)0;
     for (fi = 0; fi < fcount && !got_int && tomatch > 0; ++fi)
     {
+	fname = shorten_fname1(fnames[fi]);
 	if (time(NULL) > seconds)
 	{
-	    /* Display the file name every second or so. */
+	    /* Display the file name every second or so, show the user we are
+	     * working on it. */
 	    seconds = time(NULL);
 	    msg_start();
-	    p = msg_strtrunc(fnames[fi], TRUE);
+	    p = msg_strtrunc(fname, TRUE);
 	    if (p == NULL)
-		msg_outtrans(fnames[fi]);
+		msg_outtrans(fname);
 	    else
 	    {
 		msg_outtrans(p);
@@ -3097,6 +3108,7 @@ ex_vimgrep(eap)
 	    /* Remember that a buffer with this name already exists. */
 	    duplicate_name = (buf != NULL);
 	    using_dummy = TRUE;
+	    redraw_for_dummy = TRUE;
 
 #if defined(FEAT_AUTOCMD) && defined(FEAT_SYN_HL)
 	    /* Don't do Filetype autocommands to avoid loading syntax and
@@ -3109,7 +3121,19 @@ ex_vimgrep(eap)
 
 	    /* Load file into a buffer, so that 'fileencoding' is detected,
 	     * autocommands applied, etc. */
-	    buf = load_dummy_buffer(fnames[fi]);
+	    buf = load_dummy_buffer(fname);
+
+	    /* When autocommands changed directory: go back.  We assume it was
+	     * ":lcd %:p:h". */
+	    mch_dirname(dirname_now, MAXPATHL);
+	    if (STRCMP(dirname_start, dirname_now) != 0)
+	    {
+		exarg_T ea;
+
+		ea.arg = dirname_start;
+		ea.cmdidx = CMD_lcd;
+		ex_cd(&ea);
+	    }
 
 	    p_mls = save_mls;
 #if defined(FEAT_AUTOCMD) && defined(FEAT_SYN_HL)
@@ -3123,7 +3147,7 @@ ex_vimgrep(eap)
 	if (buf == NULL)
 	{
 	    if (!got_int)
-		smsg((char_u *)_("Cannot open file \"%s\""), fnames[fi]);
+		smsg((char_u *)_("Cannot open file \"%s\""), fname);
 	}
 	else
 	{
@@ -3137,9 +3161,10 @@ ex_vimgrep(eap)
 		while (vim_regexec_multi(&regmatch, curwin, buf, lnum,
 								     col) > 0)
 		{
+		    ;
 		    if (qf_add_entry(qi, &prevp,
 				NULL,       /* dir */
-				fnames[fi],
+				fname,
 				0,
 				ml_get_buf(buf,
 				     regmatch.startpos[0].lnum + lnum, FALSE),
@@ -3207,6 +3232,13 @@ ex_vimgrep(eap)
 
 		if (buf != NULL)
 		{
+		    /* If the buffer is still loaded we need to use the
+		     * directory we jumped to below. */
+		    if (buf == first_match_buf
+			    && target_dir == NULL
+			    && STRCMP(dirname_start, dirname_now) != 0)
+			target_dir = vim_strsave(dirname_now);
+
 		    /* The buffer is still loaded, the Filetype autocommands
 		     * need to be done now, in that buffer.  And the modelines
 		     * need to be done (again).  But not the window-local
@@ -3243,12 +3275,41 @@ ex_vimgrep(eap)
     if (qi->qf_lists[qi->qf_curlist].qf_count > 0)
     {
 	if ((flags & VGR_NOJUMP) == 0)
+	{
+	    buf = curbuf;
 	    qf_jump(qi, 0, 0, eap->forceit);
+	    if (buf != curbuf)
+		/* If we jumped to another buffer redrawing will already be
+		 * taken care of. */
+		redraw_for_dummy = FALSE;
+
+	    /* Jump to the directory used after loading the buffer. */
+	    if (curbuf == first_match_buf && target_dir != NULL)
+	    {
+		exarg_T ea;
+
+		ea.arg = target_dir;
+		ea.cmdidx = CMD_lcd;
+		ex_cd(&ea);
+	    }
+	}
     }
     else
 	EMSG2(_(e_nomatch2), s);
 
+    /* If we loaded a dummy buffer into the current window, the autocommands
+     * may have messed up things, need to redraw and recompute folds. */
+    if (redraw_for_dummy)
+    {
+#ifdef FEAT_FOLDING
+	foldUpdateAll(curwin);
+#else
+	redraw_later(NOT_VALID);
+#endif
+    }
+
 theend:
+    vim_free(target_dir);
     vim_free(regmatch.regprog);
 }
 

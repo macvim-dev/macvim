@@ -207,7 +207,10 @@ buf_init_chartab(buf, global)
 	    }
 	    while (c <= c2)
 	    {
-		if (!do_isalpha || isalpha(c)
+		/* Use the MB_ functions here, because isalpha() doesn't
+		 * work properly when 'encoding' is "latin1" and the locale is
+		 * "C".  */
+		if (!do_isalpha || MB_ISLOWER(c) || MB_ISUPPER(c)
 #ifdef FEAT_FKMAP
 			|| (p_altkeymap && (F_isalpha(c) || F_isdigit(c)))
 #endif
@@ -926,6 +929,23 @@ vim_isfilec(c)
     int	c;
 {
     return (c >= 0x100 || (c > 0 && (chartab[c] & CT_FNAME_CHAR)));
+}
+
+/*
+ * return TRUE if 'c' is a valid file-name character or a wildcard character
+ * Assume characters above 0x100 are valid (multi-byte).
+ * Explicitly interpret ']' as a wildcard character as mch_has_wildcard("]")
+ * returns false.
+ */
+    int
+vim_isfilec_or_wc(c)
+    int c;
+{
+    char_u buf[2];
+
+    buf[0] = (char_u)c;
+    buf[1] = NUL;
+    return vim_isfilec(c) || c == ']' || mch_has_wildcard(buf);
 }
 
 /*
@@ -1898,7 +1918,7 @@ backslash_halve(p)
 {
     for ( ; *p; ++p)
 	if (rem_backslash(p))
-	    STRCPY(p, p + 1);
+	    mch_memmove(p, p + 1, STRLEN(p));
 }
 
 /*

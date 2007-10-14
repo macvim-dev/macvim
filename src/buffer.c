@@ -502,6 +502,7 @@ buf_clear_file(buf)
     buf->b_start_eol = TRUE;
 #ifdef FEAT_MBYTE
     buf->b_p_bomb = FALSE;
+    buf->b_start_bomb = FALSE;
 #endif
     buf->b_ml.ml_mfp = NULL;
     buf->b_ml.ml_flags = ML_EMPTY;		/* empty buffer */
@@ -4174,29 +4175,35 @@ fix_fname(fname)
      * mess up the full path name, even though it starts with a '/'.
      * Also expand when there is ".." in the file name, try to remove it,
      * because "c:/src/../README" is equal to "c:/README".
+     * Similarly "c:/src//file" is equal to "c:/src/file".
      * For MS-Windows also expand names like "longna~1" to "longname".
      */
 #ifdef UNIX
     return FullName_save(fname, TRUE);
 #else
-    if (!vim_isAbsName(fname) || strstr((char *)fname, "..") != NULL
-#if defined(MSWIN) || defined(DJGPP)
+    if (!vim_isAbsName(fname)
+	    || strstr((char *)fname, "..") != NULL
+	    || strstr((char *)fname, "//") != NULL
+# ifdef BACKSLASH_IN_FILENAME
+	    || strstr((char *)fname, "\\\\") != NULL
+# endif
+# if defined(MSWIN) || defined(DJGPP)
 	    || vim_strchr(fname, '~') != NULL
-#endif
+# endif
 	    )
 	return FullName_save(fname, FALSE);
 
     fname = vim_strsave(fname);
 
-#ifdef USE_FNAME_CASE
-# ifdef USE_LONG_FNAME
+# ifdef USE_FNAME_CASE
+#  ifdef USE_LONG_FNAME
     if (USE_LONG_FNAME)
-# endif
+#  endif
     {
 	if (fname != NULL)
 	    fname_case(fname, 0);	/* set correct case for file name */
     }
-#endif
+# endif
 
     return fname;
 #endif
@@ -4260,12 +4267,12 @@ alist_name(aep)
 do_arg_all(count, forceit, keep_tabs)
     int	count;
     int	forceit;		/* hide buffers in current windows */
-    int keep_tabs;		/* keep curren tabs, for ":tab drop file" */
+    int keep_tabs;		/* keep current tabs, for ":tab drop file" */
 {
     int		i;
     win_T	*wp, *wpnext;
     char_u	*opened;	/* array of flags for which args are open */
-    int		opened_len;	/* lenght of opened[] */
+    int		opened_len;	/* length of opened[] */
     int		use_firstwin = FALSE;	/* use first window for arglist */
     int		split_ret = OK;
     int		p_ea_save;
@@ -4860,7 +4867,7 @@ chk_modeline(lnum, flags)
 	     */
 	    for (e = s; *e != ':' && *e != NUL; ++e)
 		if (e[0] == '\\' && e[1] == ':')
-		    STRCPY(e, e + 1);
+		    mch_memmove(e, e + 1, STRLEN(e));
 	    if (*e == NUL)
 		end = TRUE;
 
@@ -4945,10 +4952,7 @@ read_viminfo_bufferlist(virp, writing)
 	/* Expand "~/" in the file name at "line + 1" to a full path.
 	 * Then try shortening it by comparing with the current directory */
 	expand_env(xline, NameBuff, MAXPATHL);
-	mch_dirname(IObuff, IOSIZE);
-	sfname = shorten_fname(NameBuff, IObuff);
-	if (sfname == NULL)
-	    sfname = NameBuff;
+	sfname = shorten_fname1(NameBuff);
 
 	buf = buflist_new(NameBuff, sfname, (linenr_T)0, BLN_LISTED);
 	if (buf != NULL)	/* just in case... */
@@ -5514,11 +5518,11 @@ wipe_buffer(buf, aucmd)
 
 #ifdef FEAT_AUTOCMD
     if (!aucmd)		    /* Don't trigger BufDelete autocommands here. */
-	++autocmd_block;
+	block_autocmds();
 #endif
     close_buffer(NULL, buf, DOBUF_WIPE);
 #ifdef FEAT_AUTOCMD
     if (!aucmd)
-	--autocmd_block;
+	unblock_autocmds();
 #endif
 }
