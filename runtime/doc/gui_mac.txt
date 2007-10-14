@@ -416,7 +416,7 @@ Typing feels sluggish when the cursor is just before a right bracket (i.e. ')',
 '}', or ']').
 Solution: ~
 Disable the "matchparen" plugin (see |matchparen|) by typing :NoMatchParen.
-If that helps, then you can permantenly disable "matchparen" by adding the
+If that helps, then you can permanently disable "matchparen" by adding the
 following line to your "~/.vimrc": >
 	let loaded_matchparen=1
 <
