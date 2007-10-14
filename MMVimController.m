@@ -49,6 +49,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
                 context:(void *)context;
 - (void)alertDidEnd:(MMAlert *)alert code:(int)code context:(void *)context;
+- (NSMenuItem *)recurseMenuItemForTag:(int)tag rootMenu:(NSMenu *)root;
 - (NSMenuItem *)menuItemForTag:(int)tag;
 - (NSMenu *)menuForTag:(int)tag;
 - (NSMenu *)topLevelMenuForTitle:(NSString *)title;
@@ -79,27 +80,6 @@ static NSTimeInterval MMResendInterval = 0.5;
 + (NSColor *)colorWithArgbInt:(unsigned)argb;
 @end
 
-
-
-static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
-{
-    if (root) {
-        NSMenuItem *item = [root itemWithTag:tag];
-        if (item) return item;
-
-        NSArray *items = [root itemArray];
-        unsigned i, count = [items count];
-        for (i = 0; i < count; ++i) {
-            item = [items objectAtIndex:i];
-            if ([item hasSubmenu]) {
-                item = findMenuItemWithTagInMenu([item submenu], tag);
-                if (item) return item;
-            }
-        }
-    }
-
-    return nil;
-}
 
 
 
@@ -654,6 +634,9 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
 
             [item release];
         }
+
+        // Reset cached menu, just to be on the safe side.
+        lastMenuSearched = nil;
     } else if (EnableMenuItemMsgID == msgid) {
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
@@ -965,15 +948,54 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     }
 }
 
+- (NSMenuItem *)recurseMenuItemForTag:(int)tag rootMenu:(NSMenu *)root
+{
+    if (root) {
+        NSMenuItem *item = [root itemWithTag:tag];
+        if (item) {
+            lastMenuSearched = root;
+            return item;
+        }
+
+        NSArray *items = [root itemArray];
+        unsigned i, count = [items count];
+        for (i = 0; i < count; ++i) {
+            item = [items objectAtIndex:i];
+            if ([item hasSubmenu]) {
+                item = [self recurseMenuItemForTag:tag
+                                          rootMenu:[item submenu]];
+                if (item) {
+                    lastMenuSearched = [item submenu];
+                    return item;
+                }
+            }
+        }
+    }
+
+    return nil;
+}
+
 - (NSMenuItem *)menuItemForTag:(int)tag
 {
+    // First search the same menu that was search last time this method was
+    // called.  Since this method is often called for each menu item in a
+    // menu this can significantly improve search times.
+    if (lastMenuSearched) {
+        NSMenuItem *item = [self recurseMenuItemForTag:tag
+                                              rootMenu:lastMenuSearched];
+        if (item) return item;
+    }
+
     // Search the main menu.
     int i, count = [mainMenuItems count];
     for (i = 0; i < count; ++i) {
         NSMenuItem *item = [mainMenuItems objectAtIndex:i];
         if ([item tag] == tag) return item;
-        item = findMenuItemWithTagInMenu([item submenu], tag);
-        if (item) return item;
+        item = [self recurseMenuItemForTag:tag rootMenu:[item submenu]];
+        if (item) {
+            lastMenuSearched = [item submenu];
+            return item;
+        }
     }
 
     // Search the popup menus.
@@ -981,8 +1003,11 @@ static NSMenuItem *findMenuItemWithTagInMenu(NSMenu *root, int tag)
     for (i = 0; i < count; ++i) {
         NSMenuItem *item = [popupMenuItems objectAtIndex:i];
         if ([item tag] == tag) return item;
-        item = findMenuItemWithTagInMenu([item submenu], tag);
-        if (item) return item;
+        item = [self recurseMenuItemForTag:tag rootMenu:[item submenu]];
+        if (item) {
+            lastMenuSearched = [item submenu];
+            return item;
+        }
     }
 
     return nil;

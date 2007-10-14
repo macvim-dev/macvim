@@ -39,6 +39,7 @@
     int                 resendMsgid;
     NSData              *resendData;
 #endif
+    NSMenu              *lastMenuSearched;
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
