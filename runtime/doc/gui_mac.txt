@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.1.  Last change: 2007 Sep 18
+*gui_mac.txt*	For Vim version 7.1.  Last change: 2007 Oct 14
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -410,6 +410,16 @@ When you click the (green) zoom button you want the window to maximize
 horizontally as well as vertically.
 Solution: ~
 Hold down Cmd and click the zoom button.
+
+Scenario: ~
+Typing feels sluggish when the cursor is just before a right bracket (i.e. ')',
+'}', or ']').
+Solution: ~
+Disable the "matchparen" plugin (see |matchparen|) by typing :NoMatchParen.
+If that helps, then you can permantenly disable "matchparen" by adding the
+following line to your "~/.vimrc": >
+	let loaded_matchparen=1
+<
 
 Scenario: ~
 You can't find the information on MacVim you thought should be in
