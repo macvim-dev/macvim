@@ -56,7 +56,8 @@
     // is centered within a line.
     float baseline = [font descender] - floor(.5*[ts linespace]);
 
-    if (!(ts && tv && tc && font && text && textLen))
+    if (!(lm && ts && tv && tc && font && text && textLen
+                && [lm isValidGlyphIndex:startGlyphIdx]))
         return;
 
     float baselineOffset = [[NSUserDefaults standardUserDefaults]
