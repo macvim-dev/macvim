@@ -231,6 +231,11 @@ static char *(features[]) =
 #if !defined(USE_SYSTEM) && defined(UNIX)
 	"+fork()",
 #endif
+#ifdef FEAT_FULLSCREEN
+	"+fullscreen",
+#else
+	"-fullscreen",
+#endif
 #ifdef FEAT_GETTEXT
 # ifdef DYNAMIC_GETTEXT
 	"+gettext/dyn",
@@ -560,6 +565,11 @@ static char *(features[]) =
 	"+toolbar",
 #else
 	"-toolbar",
+#endif
+#ifdef FEAT_TRANSPARENCY
+	"+transparency",
+#else
+	"-transparency",
 #endif
 #ifdef FEAT_USR_CMDS
 	"+user_commands",
@@ -1165,15 +1175,19 @@ list_version()
 #      if defined(MSWIN)
     MSG_PUTS(_("with GUI."));
 #      else
-#	if defined (TARGET_API_MAC_CARBON) && TARGET_API_MAC_CARBON
+#       if defined FEAT_GUI_MACVIM
+    MSG_PUTS(_("with MacVim GUI."));
+#       else
+#	 if defined (TARGET_API_MAC_CARBON) && TARGET_API_MAC_CARBON
     MSG_PUTS(_("with Carbon GUI."));
-#	else
-#	 if defined (TARGET_API_MAC_OSX) && TARGET_API_MAC_OSX
-    MSG_PUTS(_("with Cocoa GUI."));
 #	 else
-#	  if defined (MACOS)
+#	  if defined (TARGET_API_MAC_OSX) && TARGET_API_MAC_OSX
+    MSG_PUTS(_("with Cocoa GUI."));
+#	  else
+#	   if defined (MACOS)
     MSG_PUTS(_("with (classic) GUI."));
-#	  endif
+#	   endif
+#         endif
 #	 endif
 #	endif
 #      endif
@@ -1332,7 +1346,12 @@ intro_message(colon)
 	"",
 	N_("type  :q<Enter>               to exit         "),
 	N_("type  :help<Enter>  or  <F1>  for on-line help"),
+#ifdef FEAT_GUI_MACVIM
+        // TODO: Don't steal the show from version7 help?
+	N_("type  :help macvim<Enter>     for MacVim help "),
+#else
 	N_("type  :help version7<Enter>   for version info"),
+#endif
 	NULL,
 	"",
 	N_("Running in Vi compatible mode"),

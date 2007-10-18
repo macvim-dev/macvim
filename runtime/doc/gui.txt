@@ -25,8 +25,8 @@ Other GUI documentation:
 
 First you must make sure you actually have a version of Vim with the GUI code
 included.  You can check this with the ":version" command, it says "with xxx
-GUI", where "xxx" is X11-Motif, X11-Athena, Photon, GTK, GTK2, etc., or
-"MS-Windows 32 bit GUI version".
+GUI", where "xxx" is Macvim, X11-Motif, X11-Athena, Photon, GTK, GTK2, etc.,
+or "MS-Windows 32 bit GUI version".
 
 How to start the GUI depends on the system used.  Mostly you can run the
 GUI version of Vim with:
@@ -93,7 +93,7 @@ and initialize other things that you may want to set up differently from the
 terminal version.
 
 Recommended place for your personal GUI initializations:
-	Unix		    $HOME/.gvimrc
+	Unix and Mac OS X   $HOME/.gvimrc
 	OS/2		    $HOME/.gvimrc or $VIM/.gvimrc
 	MS-DOS and Win32    $HOME/_gvimrc or $VIM/_gvimrc
 	Amiga		    s:.gvimrc or $VIM/.gvimrc
@@ -665,9 +665,10 @@ because the item will never be selected.  Use a single colon to keep it
 simple.
 
 							*gui-toolbar*
-The toolbar is currently available in the Win32, Athena, Motif, GTK+ (X11),
-and Photon GUI.  It should turn up in other GUIs in due course.  The
-default toolbar is setup in menu.vim.
+The toolbar is currently available in the MacVim, Win32, Athena, Motif, GTK+
+(X11), and Photon GUI.  It should turn up in other GUIs in due course.  The
+default toolbar is setup in menu.vim.  (Note: The MacVim toolbar is modified
+in "$VIM/gvimrc".)
 The display of the toolbar is controlled by the 'guioptions' letter 'T'.  You
 can thus have menu & toolbar together, or either on its own, or neither.
 The appearance is controlled by the 'toolbar' option.  You can chose between
@@ -904,9 +905,9 @@ a menu item - you don't need to do a :tunmenu as well.
 
 5.9 Popup Menus
 
-In the Win32 and GTK+ GUI, you can cause a menu to popup at the cursor.
-This behaves similarly to the PopUp menus except that any menu tree can
-be popped up.
+In the Win32, MacVim, and GTK+ GUI, you can cause a menu to popup at the
+cursor.  This behaves similarly to the PopUp menus except that any menu tree
+can be popped up.
 
 This command is for backwards compatibility, using it is discouraged, because
 it behaves in a strange way.
@@ -915,7 +916,7 @@ it behaves in a strange way.
 :popu[p] {name}			Popup the menu {name}.  The menu named must
 				have at least one subentry, but need not
 				appear on the menu-bar (see |hidden-menus|).
-				{only available for Win32 and GTK GUI}
+				{only available for Win32, MacVim, and GTK GUI}
 
 :popu[p]! {name}		Like above, but use the position of the mouse
 				pointer instead of the cursor.
@@ -969,6 +970,8 @@ This section describes other features which are related to the GUI.
 		:set guifont=*-lucidatypewriter-medium-r-normal-*-*-180-*-*-m-*-*
 	    elseif has("gui_win32")
 		:set guifont=Luxi_Mono:h12:cANSI
+	    elseif has("gui_macvim")
+	        :set guifont=DejaVu\ Sans\ Mono:h13
 	    endif
 	endif
 

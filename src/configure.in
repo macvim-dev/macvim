@@ -158,11 +158,20 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
       CPPFLAGS="$CPPFLAGS -I/Developer/Headers/FlatCarbon"
     fi
 
-    dnl If Carbon is found, assume we don't want X11
-    dnl unless it was specifically asked for (--with-x)
+    dnl If Carbon or Cocoa is found, assume we don't want
+    dnl X11 unless it was specifically asked for (--with-x)
     dnl or Motif, Athena or GTK GUI is used.
     AC_CHECK_HEADER(Carbon/Carbon.h, CARBON=yes)
-    if test "x$CARBON" = "xyes"; then
+
+    SAVE_CPPFLAGS=$CPPFLAGS
+    SAVE_CFLAGS=$CFLAGS
+    CPPFLAGS="$CPPFLAGS -ObjC"
+    CFLAGS="$CFLAGS -ObjC"
+    AC_CHECK_HEADER(Cocoa/Cocoa.h, COCOA=yes)
+    CPPFLAGS=$SAVE_CPPFLAGS
+    CFLAGS=$SAVE_CFLAGS
+
+    if test "x$CARBON" = "xyes" -o "x$COCOA" = "xyes"; then
       if test -z "$with_x" -a "X$enable_gui" != Xmotif -a "X$enable_gui" != Xathena -a "X$enable_gui" != Xgtk -a "X$enable_gui" != Xgtk2; then
 	with_x=no
       fi
@@ -1152,7 +1161,7 @@ test "x$with_x" = xno -a "x$MACOSX" != "xyes" -a "x$QNX" != "xyes" && enable_gui
 
 AC_MSG_CHECKING(--enable-gui argument)
 AC_ARG_ENABLE(gui,
- [  --enable-gui[=OPTS]     X11 GUI [default=auto] [OPTS=auto/no/gtk/gtk2/gnome/gnome2/motif/athena/neXtaw/photon/carbon]], , enable_gui="auto")
+ [  --enable-gui[=OPTS]       X11 GUI [default=auto] [OPTS=auto/no/gtk/gtk2/gnome/gnome2/motif/athena/neXtaw/photon/carbon/macvim]], , enable_gui="auto")
 
 dnl Canonicalize the --enable-gui= argument so that it can be easily compared.
 dnl Do not use character classes for portability with old tools.
@@ -1168,6 +1177,7 @@ SKIP_ATHENA=YES
 SKIP_NEXTAW=YES
 SKIP_PHOTON=YES
 SKIP_CARBON=YES
+SKIP_MACVIM=YES
 GUITYPE=NONE
 
 if test "x$QNX" = "xyes" -a "x$with_x" = "xno" ; then
@@ -1184,14 +1194,20 @@ if test "x$QNX" = "xyes" -a "x$with_x" = "xno" ; then
 
 elif test "x$MACOSX" = "xyes" -a "x$with_x" = "xno" ; then
   SKIP_CARBON=
+  SKIP_MACVIM=
   case "$enable_gui_canon" in
     no)		AC_MSG_RESULT(no GUI support)
-		SKIP_CARBON=YES ;;
+		SKIP_CARBON=YES 
+		SKIP_MACVIM=YES ;;
     yes|"")	AC_MSG_RESULT(yes - automatic GUI support) ;;
     auto)	AC_MSG_RESULT(auto - automatic GUI support) ;;
-    carbon)	AC_MSG_RESULT(Carbon GUI support) ;;
-    *)		AC_MSG_RESULT([Sorry, $enable_gui GUI is not supported])
+    carbon)	AC_MSG_RESULT(Carbon GUI support) 
+		SKIP_MACVIM=YES ;;
+    macvim)	AC_MSG_RESULT(MacVim GUI support) 
 		SKIP_CARBON=YES ;;
+    *)		AC_MSG_RESULT([Sorry, $enable_gui GUI is not supported])
+		SKIP_CARBON=YES 
+		SKIP_MACVIM=YES ;;
   esac
 
 else
@@ -1205,6 +1221,7 @@ else
 		SKIP_MOTIF=
 		SKIP_ATHENA=
 		SKIP_NEXTAW=
+		SKIP_MACVIM=
 		SKIP_CARBON=;;
     gtk)	AC_MSG_RESULT(GTK+ 1.x GUI support)
 		SKIP_GTK=;;
@@ -1309,12 +1326,30 @@ if test "x$SKIP_CARBON" != "xYES" -a "$enable_gui_canon" != "carbon"; then
   fi
 fi
 
+if test "x$SKIP_MACVIM" != "xYES" -a "$enable_gui_canon" != "macvim"; then
+  AC_MSG_CHECKING(whether or not to look for MacVim)
+  AC_ARG_ENABLE(macvim-check,
+	[  --enable-macvim-check    If auto-select GUI, check for MacVim [default=yes]],
+	, enable_macvim_check="yes")
+  AC_MSG_RESULT($enable_macvim_check);
+  if test "x$enable_macvim_check" = "xno"; then
+    SKIP_MACVIM=YES
+  fi
+fi
 
-if test "x$MACOSX" = "xyes" -a -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
-  AC_MSG_CHECKING(for Carbon GUI)
-  dnl already did the check, just give the message
-  AC_MSG_RESULT(yes);
-  GUITYPE=CARBONGUI
+if test "x$MACOSX" = "xyes"; then
+  if test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
+    AC_MSG_CHECKING(for Carbon GUI)
+    dnl already did the check, just give the message
+    AC_MSG_RESULT(yes);
+    GUITYPE=CARBONGUI
+  elif test -z "$SKIP_MACVIM" -a "x$COCOA" = "xyes"; then
+    AC_MSG_CHECKING(for MacVim GUI)
+    dnl already did the check, just give the message
+    AC_MSG_RESULT(yes);
+    GUITYPE=MACVIMGUI
+  fi
+
   if test "$VIMNAME" = "vim"; then
     VIMNAME=Vim
   fi
@@ -1335,6 +1370,7 @@ if test "x$MACOSX" = "xyes" -a -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
   SKIP_ATHENA=YES;
   SKIP_NEXTAW=YES;
   SKIP_PHOTON=YES;
+  SKIP_MACVIM=YES;
   SKIP_CARBON=YES
 fi
 
@@ -2859,7 +2895,7 @@ if test "x$MACOSX" = "xyes" -a -n "$PERL"; then
 fi
 
 if test "x$MACOSX" = "xyes" && test "x$CARBON" = "xyes" \
-	&& test "x$GUITYPE" != "xCARBONGUI"; then
+	&& test "x$GUITYPE" != "xCARBONGUI" && test "x$GUITYPE" != "xMACVIMGUI"; then
   AC_MSG_CHECKING(whether we need -framework Carbon)
   dnl check for MACOSX without Carbon GUI, but with FEAT_MBYTE
   if test "x$enable_multibyte" = "xyes" || test "x$features" = "xbig" \

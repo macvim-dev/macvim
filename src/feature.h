@@ -620,7 +620,8 @@
  * Disabled for EBCDIC:
  * Multibyte support doesn't work on OS390 Unix currently.
  */
-#if (defined(FEAT_BIG) || defined(HAVE_GTK2) || defined(FEAT_ARABIC)) \
+#if (defined(FEAT_BIG) || defined(HAVE_GTK2) || defined(FEAT_ARABIC) \
+        || defined(FEAT_GUI_MACVIM)) \
 	&& !defined(FEAT_MBYTE) && !defined(WIN16) \
 	&& SIZEOF_INT >= 4 && !defined(EBCDIC)
 # define FEAT_MBYTE
@@ -741,7 +742,8 @@
 		|| defined(FEAT_GUI_MSWIN) \
 		|| ((defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA)) \
 			&& defined(HAVE_XPM)) \
-		|| defined(FEAT_GUI_PHOTON))
+		|| defined(FEAT_GUI_PHOTON) \
+                || defined(FEAT_GUI_MACVIM))
 # define FEAT_TOOLBAR
 #endif
 
@@ -755,6 +757,7 @@
  */
 #if defined(FEAT_WINDOWS) && defined(FEAT_NORMAL) \
     && (defined(FEAT_GUI_GTK) \
+        || defined(FEAT_GUI_MACVIM) \
 	|| (defined(FEAT_GUI_MOTIF) && defined(HAVE_XM_NOTEBOOK_H)) \
 	|| defined(FEAT_GUI_MAC) \
 	|| (defined(FEAT_GUI_MSWIN) && (!defined(_MSC_VER) || _MSC_VER > 1020)))
@@ -764,7 +767,7 @@
 /*
  * +browse		":browse" command.
  */
-#if defined(FEAT_NORMAL) && (defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MAC))
+#if defined(FEAT_NORMAL) && (defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MAC) || defined(FEAT_GUI_MACVIM))
 # define FEAT_BROWSE
 #endif
 
@@ -779,7 +782,8 @@
 	|| defined(FEAT_GUI_GTK) \
 	|| defined(FEAT_GUI_PHOTON) \
 	|| defined(FEAT_GUI_MSWIN) \
-	|| defined(FEAT_GUI_MAC)
+	|| defined(FEAT_GUI_MAC) \
+	|| defined(FEAT_GUI_MACVIM)
 #  define FEAT_CON_DIALOG
 #  define FEAT_GUI_DIALOG
 # else
@@ -794,7 +798,8 @@
 #if defined(FEAT_GUI_DIALOG) && \
 	(defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA) \
 	 || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MSWIN) \
-	 || defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MAC))
+	 || defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MAC) \
+	 || defined(FEAT_GUI_MACVIM))
 # define FEAT_GUI_TEXTDIALOG
 #endif
 
@@ -1069,9 +1074,10 @@
 #endif
 
 /*
- * +dnd		Drag'n'drop support.  Always used for the GTK+ GUI.
+ * +dnd		Drag'n'drop support.  Always used for the GTK+ GUI and MacVim.
  */
-#if defined(FEAT_CLIPBOARD) && defined(FEAT_GUI_GTK)
+#if defined(FEAT_CLIPBOARD) && (defined(FEAT_GUI_GTK) \
+        || defined(FEAT_GUI_MACVIM))
 # define FEAT_DND
 #endif
 
@@ -1089,7 +1095,12 @@
  * +clientserver	Remote control via the remote_send() function
  *			and the --remote argument
  */
-#if (defined(WIN32) || defined(FEAT_XCLIPBOARD)) && defined(FEAT_EVAL)
+#if defined(FEAT_GUI_MACVIM)
+#define MAC_CLIENTSERVER
+#endif
+
+#if (defined(WIN32) || defined(FEAT_XCLIPBOARD) || defined(MAC_CLIENTSERVER)) \
+	&& defined(FEAT_EVAL)
 # define FEAT_CLIENTSERVER
 #endif
 
@@ -1113,7 +1124,7 @@
 # endif
 # if defined(FEAT_GUI_W32) || defined(FEAT_GUI_W16) || defined(FEAT_GUI_MOTIF) \
 	|| defined(FEAT_GUI_ATHENA) || defined(FEAT_GUI_GTK) \
-	|| defined(FEAT_GUI_PHOTON)
+	|| defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MACVIM)
 #  define FEAT_MOUSESHAPE
 # endif
 #endif
@@ -1256,4 +1267,18 @@
 #if defined(FEAT_SUN_WORKSHOP) || defined(FEAT_NETBEANS_INTG) \
 	    || defined(FEAT_BIG)
 # define FEAT_AUTOCHDIR
+#endif
+
+/*
+ * +transparency        'transparency' option.
+ */
+#if defined(FEAT_GUI_MACVIM)
+# define FEAT_TRANSPARENCY
+#endif
+
+/*
+ * +fullscreen		'fullscreen' option
+ */
+#ifdef FEAT_GUI_MACVIM
+# define FEAT_FULLSCREEN
 #endif

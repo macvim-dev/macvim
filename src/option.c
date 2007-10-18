@@ -1152,6 +1152,13 @@ static struct vimoption
 			    {(char_u *)FALSE, (char_u *)0L}
 #endif
 			    },
+    {"fullscreen",  "fu",   P_BOOL,
+#ifdef FEAT_FULLSCREEN
+			    (char_u *)&p_fullscreen, PV_NONE,
+#else
+			    (char_u *)NULL, PV_NONE,
+#endif
+			    {(char_u *)FALSE, (char_u *)0L}},
     {"gdefault",    "gd",   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_gd, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}},
@@ -2511,11 +2518,19 @@ static struct vimoption
 			    (char_u *)&p_toolbar, PV_NONE,
 			    {(char_u *)"icons,tooltips", (char_u *)0L}},
 #endif
-#if defined(FEAT_TOOLBAR) && defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)
+#if defined(FEAT_TOOLBAR) && ((defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)) \
+        || defined(FEAT_GUI_MACVIM))
     {"toolbariconsize",	"tbis", P_STRING|P_VI_DEF,
 			    (char_u *)&p_tbis, PV_NONE,
 			    {(char_u *)"small", (char_u *)0L}},
 #endif
+    {"transparency",   "transp",  P_NUM|P_VIM|P_RCLR,
+#ifdef FEAT_TRANSPARENCY
+			    (char_u *)&p_transp, PV_NONE,
+#else
+			    (char_u *)NULL, PV_NONE,
+#endif
+			    {(char_u *)0L, (char_u *)0L} },
     {"ttimeout",    NULL,   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_ttimeout, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}},
@@ -2936,6 +2951,9 @@ set_init_1()
     char_u	*p;
     int		opt_idx;
     long_u	n;
+#ifdef FEAT_GUI_MACVIM
+    int         did_mb_init;
+#endif
 
 #ifdef FEAT_LANGMAP
     langmap_init();
@@ -3302,7 +3320,22 @@ set_init_1()
 	    p_enc = vim_strsave((char_u *)"cp936");
 	    vim_free(p);
 	}
+#if defined(FEAT_GUI_MACVIM)
+	did_mb_init = (mb_init() == NULL);
+	if (!did_mb_init)
+	{
+            /* The encoding returned by enc_locale() was invalid, so fall back
+             * on using utf-8 as the default encoding in MacVim. */
+	    vim_free(p_enc);
+	    p_enc = vim_strsave((char_u *)"utf-8");
+	    did_mb_init = (mb_init() == NULL);
+	}
+
+	/* did_mb_init should always be TRUE, but check just in case. */
+	if (did_mb_init)
+#else
 	if (mb_init() == NULL)
+#endif
 	{
 	    opt_idx = findoption((char_u *)"encoding");
 	    if (opt_idx >= 0)
@@ -5043,7 +5076,8 @@ didset_options()
 #if defined(FEAT_TOOLBAR) && !defined(FEAT_GUI_W32)
     (void)opt_strings_flags(p_toolbar, p_toolbar_values, &toolbar_flags, TRUE);
 #endif
-#if defined(FEAT_TOOLBAR) && defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)
+#if defined(FEAT_TOOLBAR) && ((defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)) \
+        || defined(FEAT_GUI_MACVIM))
     (void)opt_strings_flags(p_tbis, p_tbis_values, &tbis_flags, FALSE);
 #endif
 #ifdef FEAT_CMDWIN
@@ -5698,12 +5732,16 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
 	    }
 	}
 
-# if defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)
+# if (defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)) || defined(FEAT_GUI_MACVIM)
 	if (errmsg == NULL && varp == &p_tenc && gui.in_use)
 	{
-	    /* GTK+ 2 uses only a single encoding, and that is UTF-8. */
+	    /* MacVim and GTK+ 2 GUIs force 'tenc' to UTF-8. */
 	    if (STRCMP(p_tenc, "utf-8") != 0)
+#  if defined(FEAT_GUI_MACVIM)
+		errmsg = (char_u *)N_("E617: Cannot be changed in MacVim");
+#  else
 		errmsg = (char_u *)N_("E617: Cannot be changed in the GTK+ 2 GUI");
+#  endif
 	}
 # endif
 
@@ -6046,7 +6084,8 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
 # endif
 	    if (p != NULL && gui_init_font(p_guifont, FALSE) != OK)
 	    {
-# if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_PHOTON)
+# if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_PHOTON) \
+                || defined(FEAT_GUI_MACVIM)
 		if (STRCMP(p_guifont, "*") == 0)
 		{
 		    /* Dialog was cancelled: Keep the old value without giving
@@ -6427,8 +6466,9 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
     }
 #endif
 
-#if defined(FEAT_TOOLBAR) && defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)
-    /* 'toolbariconsize': GTK+ 2 only */
+#if defined(FEAT_TOOLBAR) && ((defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)) \
+        || defined(FEAT_GUI_MACVIM))
+    /* 'toolbariconsize': GTK+ 2 and MacVim only */
     else if (varp == &p_tbis)
     {
 	if (opt_strings_flags(p_tbis, p_tbis_values, &tbis_flags, FALSE) != OK)
@@ -7250,6 +7290,17 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 	set_fileformat(curbuf->b_p_tx ? EOL_DOS : EOL_UNIX, opt_flags);
     }
 
+#ifdef FEAT_FULLSCREEN
+    /* when 'fullscreen' changes, forward it to the gui */
+    else if ((int *)varp == &p_fullscreen && gui.in_use)
+    {
+	if (p_fullscreen && !old_value)
+	    gui_mch_enter_fullscreen();
+        else if (!p_fullscreen && old_value)
+	    gui_mch_leave_fullscreen();
+    }
+#endif
+
     /* when 'textauto' is set or reset also change 'fileformats' */
     else if ((int *)varp == &p_ta)
 	set_string_option_direct((char_u *)"ffs", -1,
@@ -7877,6 +7928,20 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 	    curwin->w_p_nuw = 10;
 	}
 	curwin->w_nrwidth_line_count = 0;
+    }
+#endif
+
+#if defined(FEAT_TRANSPARENCY)
+    /* 'transparency' is a number between 0 and 100 */
+    else if (pp == &p_transp)
+    {
+	if (p_transp < 0 || p_transp > 100)
+	{
+	    errmsg = e_invarg;
+            p_transp = old_value;
+	}
+        else if (gui.in_use)
+            gui_mch_new_colors();
     }
 #endif
 

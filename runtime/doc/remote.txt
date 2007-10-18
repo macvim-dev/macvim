@@ -9,6 +9,7 @@ Vim client-server communication				*client-server*
 1. Common functionality		|clientserver|
 2. X11 specific items		|x11-clientserver|
 3. MS-Windows specific items	|w32-clientserver|
+4. MacVim specific items	|macvim-clientserver|
 
 {Vi does not have any of these commands}
 
@@ -198,4 +199,23 @@ When using gvim, the --remote-wait only works properly this way: >
 
 	start /w gvim --remote-wait file.txt
 <
+==============================================================================
+4. MacVim specific items				*macvim-clientserver*
+
+MacVim uses distributed objects for interprocess communication.  A server
+listens to a named port for new connections, and clients connect to this port
+to send messages.  Server listings are made possible by the frontend (MacVim)
+keeping a list of all currently running servers.  Thus, server are not aware
+of each other directly; only MacVim knows which servers are running.
+
+A client is any object which implements the MMVimClientProtocol (see
+MacVim.h).  Take a look at MMBackend if you wish to implement this protocol in
+your own application.  The current implementation assumes that the
+NSConnections use mach ports for interprocess communication.  This means that
+you can only use Vim's client/server feature on a local machine (and not
+across a network).
+
+Note: Client mode always works, but server mode only works when the GUI is
+started.
+
  vim:tw=78:sw=4:ts=8:ft=help:norl:

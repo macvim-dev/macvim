@@ -29,6 +29,10 @@
 # include <limits.h>
 #endif
 
+#if FEAT_GUI_MACVIM
+#include <objc/objc-runtime.h>  /* for objc_*() and sel_*() */
+#endif
+
 /* Maximum number of commands from + or -c arguments. */
 #define MAX_ARG_CMDS 10
 
@@ -175,6 +179,15 @@ main
     char_u	*fname = NULL;		/* file name from command line */
     mparm_T	params;			/* various parameters passed between
 					 * main() and other functions. */
+
+#if FEAT_GUI_MACVIM
+    // Cocoa needs an NSAutoreleasePool in place or it will leak memory.
+    // This particular pool will hold autorelease objects created during
+    // initialization.
+    id autoreleasePool = objc_msgSend(objc_msgSend(
+            objc_getClass("NSAutoreleasePool"),sel_getUid("alloc")
+            ), sel_getUid("init"));
+#endif
 
     /*
      * Do any system-specific initialisations.  These can NOT use IObuff or
@@ -445,7 +458,7 @@ main
 	params.want_full_screen = FALSE;
 #endif
 
-#if defined(FEAT_GUI_MAC) && defined(MACOS_X_UNIX)
+#if (defined(FEAT_GUI_MAC) || defined(FEAT_GUI_MACVIM)) && defined(MACOS_X_UNIX)
     /* When the GUI is started from Finder, need to display messages in a
      * message box.  isatty(2) returns TRUE anyway, thus we need to check the
      * name to know we're not started from a terminal. */
@@ -934,10 +947,26 @@ main
 
     TIME_MSG("before starting main loop");
 
+#if FEAT_GUI_MACVIM
+    // The autorelease pool might have filled up quite a bit during
+    // initialization, so purge it before entering the main loop.
+    objc_msgSend(autoreleasePool, sel_getUid("release"));
+
+    // The main loop sets up its own autorelease pool, but to be safe we still
+    // realloc this one here.
+    autoreleasePool = objc_msgSend(objc_msgSend(
+            objc_getClass("NSAutoreleasePool"),sel_getUid("alloc")
+            ), sel_getUid("init"));
+#endif
+
     /*
      * Call the main command loop.  This never returns.
      */
     main_loop(FALSE, FALSE);
+
+#if FEAT_GUI_MACVIM
+    objc_msgSend(autoreleasePool, sel_getUid("release"));
+#endif
 
     return 0;
 }
@@ -997,6 +1026,14 @@ main_loop(cmdwin, noexmode)
 #endif
 	    )
     {
+#if FEAT_GUI_MACVIM
+        // Cocoa needs an NSAutoreleasePool in place or it will leak memory.
+        // This particular pool gets released once every loop.
+        id autoreleasePool = objc_msgSend(objc_msgSend(
+                objc_getClass("NSAutoreleasePool"),sel_getUid("alloc")
+                ), sel_getUid("init"));
+#endif
+
 	if (stuff_empty())
 	{
 	    did_check_timestamps = FALSE;
@@ -1179,6 +1216,12 @@ main_loop(cmdwin, noexmode)
 	}
 	else
 	    normal_cmd(&oa, TRUE);
+
+#if FEAT_GUI_MACVIM
+        // TODO! Make sure there are no continue statements that will cause
+        // this not to be called or MacVim will leak memory!
+        objc_msgSend(autoreleasePool, sel_getUid("release"));
+#endif
     }
 }
 
@@ -2739,7 +2782,7 @@ source_startup_scripts(parmp)
 #ifdef SYS_VIMRC_FILE
 	(void)do_source((char_u *)SYS_VIMRC_FILE, FALSE, DOSO_NONE);
 #endif
-#ifdef MACOS_X
+#if defined(MACOS_X) && !defined(FEAT_GUI_MACVIM)
 	(void)do_source((char_u *)"$VIMRUNTIME/macmap.vim", FALSE, DOSO_NONE);
 #endif
 
@@ -3362,6 +3405,14 @@ prepare_server(parmp)
     }
     else
 	serverDelayedStartName = parmp->servername;
+# elif defined(MAC_CLIENTSERVER)
+    // NOTE: Can't set server name at same time as WIN32 because gui.in_use
+    // isn't set then.  Servers are only supported in GUI mode.
+    if (parmp->servername != NULL && gui.in_use)
+    {
+        serverRegisterName(parmp->servername);
+        vim_free(parmp->servername);
+    }
 # endif
 
     /*
@@ -3401,9 +3452,11 @@ cmdsrv_main(argc, argv, serverName_arg, serverStr)
 #define ARGTYPE_SEND		3
     int		silent = FALSE;
     int		tabs = FALSE;
-# ifndef FEAT_X11
+# ifdef WIN32
     HWND	srv;
-# else
+# elif defined(MAC_CLIENTSERVER)
+    int         srv;
+# elif defined(FEAT_X11)
     Window	srv;
 
     setup_term_clip();
@@ -3495,7 +3548,7 @@ cmdsrv_main(argc, argv, serverName_arg, serverStr)
 	    else
 		ret = serverSendToVim(xterm_dpy, sname, *serverStr,
 						    NULL, &srv, 0, 0, silent);
-# else
+# elif defined(WIN32) || defined(MAC_CLIENTSERVER)
 	    /* Win32 always works? */
 	    ret = serverSendToVim(sname, *serverStr, NULL, &srv, 0, silent);
 # endif
@@ -3560,9 +3613,12 @@ cmdsrv_main(argc, argv, serverName_arg, serverStr)
 		    p = serverGetReply(srv, NULL, TRUE, TRUE);
 		    if (p == NULL)
 			break;
-# else
+# elif defined(FEAT_X11)
 		    if (serverReadReply(xterm_dpy, srv, &p, TRUE) < 0)
 			break;
+# elif defined(MAC_CLIENTSERVER)
+                    if (serverReadReply(srv, &p) < 0)
+                        break;
 # endif
 		    j = atoi((char *)p);
 		    if (j >= 0 && j < numFiles)
@@ -3589,11 +3645,14 @@ cmdsrv_main(argc, argv, serverName_arg, serverStr)
 	    /* Win32 always works? */
 	    if (serverSendToVim(sname, (char_u *)argv[i + 1],
 						    &res, NULL, 1, FALSE) < 0)
-# else
+# elif defined(FEAT_X11)
 	    if (xterm_dpy == NULL)
 		mch_errmsg(_("No display: Send expression failed.\n"));
 	    else if (serverSendToVim(xterm_dpy, sname, (char_u *)argv[i + 1],
 						 &res, NULL, 1, 1, FALSE) < 0)
+# elif defined(MAC_CLIENTSERVER)
+            if (serverSendToVim(sname, (char_u *)argv[i + 1],
+                        &res, NULL, 1, FALSE) < 0)
 # endif
 	    {
 		if (res != NULL && *res != NUL)
@@ -3608,10 +3667,10 @@ cmdsrv_main(argc, argv, serverName_arg, serverStr)
 	}
 	else if (STRICMP(argv[i], "--serverlist") == 0)
 	{
-# ifdef WIN32
+# if defined(WIN32) ||  defined(MAC_CLIENTSERVER)
 	    /* Win32 always works? */
 	    res = serverGetVimNames();
-# else
+# elif defined(FEAT_X11)
 	    if (xterm_dpy != NULL)
 		res = serverGetVimNames(xterm_dpy);
 # endif

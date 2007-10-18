@@ -97,7 +97,7 @@ ex_menu(eap)
     char_u	*arg;
     char_u	*p;
     int		i;
-#if defined(FEAT_GUI) && !defined(FEAT_GUI_GTK)
+#if defined(FEAT_GUI) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
     int		old_menu_height;
 # if defined(FEAT_TOOLBAR) && !defined(FEAT_GUI_W32) && !defined(FEAT_GUI_W16)
     int		old_toolbar_height;
@@ -322,7 +322,8 @@ ex_menu(eap)
 	EMSG(_(e_trailing));
 	goto theend;
     }
-#if defined(FEAT_GUI) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON))
+#if defined(FEAT_GUI) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON) \
+        || defined(FEAT_GUI_MACVIM))
     old_menu_height = gui.menu_height;
 # if defined(FEAT_TOOLBAR) && !defined(FEAT_GUI_W32) && !defined(FEAT_GUI_W16)
     old_toolbar_height = gui.toolbar_height;
@@ -441,7 +442,7 @@ ex_menu(eap)
 	vim_free(map_buf);
     }
 
-#if defined(FEAT_GUI) && !(defined(FEAT_GUI_GTK))
+#if defined(FEAT_GUI) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
     /* If the menubar height changed, resize the window */
     if (gui.in_use
 	    && (gui.menu_height != old_menu_height
@@ -2259,7 +2260,7 @@ ex_emenu(eap)
 	EMSG2(_("E335: Menu not defined for %s mode"), mode);
 }
 
-#if defined(FEAT_GUI_MSWIN) \
+#if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MACVIM)\
 	|| (defined(FEAT_GUI_GTK) && defined(FEAT_MENU)) \
 	|| defined(FEAT_BEVAL_TIP) || defined(PROTO)
 /*
@@ -2469,5 +2470,145 @@ menutrans_lookup(name, len)
     return NULL;
 }
 #endif /* FEAT_MULTI_LANG */
+
+
+#ifdef FEAT_GUI_MACVIM
+    void
+ex_macmenukey(eap)
+    exarg_T	*eap;
+{
+    char_u *arg = eap->arg;
+    char_u *keys, *name, *p;
+    vimmenu_T *menu;
+    char_u	*last_dash;
+    int		modifiers;
+    int		bit;
+    int		key;
+
+    /*
+     * Isolate the menu name.
+     */
+    name = arg;
+    if (*name == '.')
+    {
+	EMSG2(_(e_invarg2), name);
+	return;
+    }
+
+    while (*arg && !vim_iswhite(*arg))
+    {
+	if ((*arg == '\\' || *arg == Ctrl_V) && arg[1] != NUL)
+	    arg++;
+	arg++;
+    }
+    if (*arg != NUL)
+	*arg++ = NUL;
+    arg = skipwhite(arg);
+    keys = arg;
+
+    // TODO: move to gui_find_menu_item(path_name)
+    menu = root_menu;
+    while (*name)
+    {
+	/* find the end of one dot-separated name and put a NUL at the dot */
+	p = menu_name_skip(name);
+
+	while (menu != NULL)
+	{
+	    if (STRCMP(name, menu->name) == 0 || STRCMP(name, menu->dname) == 0)
+	    {
+                if (*p == NUL)
+                {
+                    if (menu->children != NULL)
+                        menu = NULL;
+                    goto search_end;
+                }
+                break;
+	    }
+	    menu = menu->next;
+	}
+	if (menu == NULL)	/* didn't find it */
+	    break;
+
+	/* Found a match, search the sub-menu. */
+	menu = menu->children;
+	name = p;
+    }
+
+search_end:
+    if (!menu) {
+	EMSG(_("E337: Menu not found - check menu names"));
+        return;
+    }
+
+    if (keys[0] == '<')
+    {
+        key = 0;
+
+        /* Find end of modifier list */
+        last_dash = keys;
+        for (p = keys + 1; *p == '-' || vim_isIDc(*p); p++)
+        {
+            if (*p == '-')
+            {
+                last_dash = p;
+                if (p[1] != NUL && p[2] == '>')
+                    ++p;	/* anything accepted, like <C-?> */
+            }
+            if (p[0] == 't' && p[1] == '_' && p[2] && p[3])
+                p += 3;		/* skip t_xx, xx may be '-' or '>' */
+        }
+
+        if (*p == '>')	/* found matching '>' */
+        {
+            /* Which modifiers are given? */
+            modifiers = 0x0;
+            for (p = keys + 1; p < last_dash; p++)
+            {
+                if (*p != '-')
+                {
+                    bit = name_to_mod_mask(*p);
+                    if (bit == 0x0)
+                        break;	/* Illegal modifier name */
+                    modifiers |= bit;
+                }
+            }
+
+            /*
+             * Legal modifier name.
+             */
+            if (p >= last_dash)
+            {
+                /*
+                 * Modifier with single letter, or special key name.
+                 */
+                if (modifiers != 0 && last_dash[2] == '>')
+                    key = last_dash[1];
+                else
+                {
+                    key = get_special_key_code(last_dash + 1);
+                    key = handle_x_keys(key);
+                }
+            }
+        }
+
+        if (key != 0)
+        {
+            menu->mac_key = key;
+            menu->mac_mods = modifiers;
+        }
+    }
+    else if (keys[0] == NUL)
+    {
+        /* Clear the key equivalent */
+        menu->mac_key = 0;
+        menu->mac_mods = 0;
+    }
+    else
+    {
+        EMSG(_(e_invarg));
+    }
+}
+#endif /* FEAT_GUI_MACVIM */
 
 #endif /* FEAT_MENU */

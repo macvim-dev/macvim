@@ -612,6 +612,12 @@ if has("gui")
     call append("$", "macatsui\tuse ATSUI text drawing; disable to avoid display problems")
     call <SID>OptionG("macatsui", &macatsui)
   endif
+  if has("gui_macvim")
+    call append("$", "transparency\ttransparency of the text background as a percent")
+    call append("$", " \tset transparency=" . &transp)
+    call append("$", "fullscreen\tdisplay vim in fullscreen mode")
+    call <SID>BinOptionG("fullscreen", &fullscreen)
+  endif
 endif
 
 if has("printer")

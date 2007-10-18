@@ -1275,11 +1275,13 @@ EXTERN Window	commWindow INIT(= None);
 EXTERN Window	clientWindow INIT(= None);
 EXTERN Atom	commProperty INIT(= None);
 EXTERN char_u	*serverDelayedStartName INIT(= NULL);
-# else
+# elif defined(WIN32)
 # ifdef PROTO
 typedef int HWND;
 # endif
 EXTERN HWND	clientWindow INIT(= 0);
+# elif defined(MAC_CLIENTSERVER)
+EXTERN int      clientWindow INIT(= 0);
 # endif
 #endif
 

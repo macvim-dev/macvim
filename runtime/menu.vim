@@ -17,7 +17,8 @@ if !exists("did_install_default_menus")
 let did_install_default_menus = 1
 
 
-if exists("v:lang") || &langmenu != ""
+" Localized menus currently not supported in MacVim
+if !has("gui_macvim") && (exists("v:lang") || &langmenu != "")
   " Try to find a menu translation file for the current language.
   if &langmenu != ""
     if &langmenu =~ "none"

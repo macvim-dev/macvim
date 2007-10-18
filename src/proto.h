@@ -214,6 +214,9 @@ extern char *vim_SelFile __ARGS((Widget toplevel, char *prompt, char *init_path,
 #  ifdef FEAT_GUI_MAC
 #   include "gui_mac.pro"
 #  endif
+#  ifdef FEAT_GUI_MACVIM
+#   include "gui_macvim.pro"
+#  endif
 #  ifdef FEAT_GUI_X11
 #   include "gui_x11.pro"
 #  endif

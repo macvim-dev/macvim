@@ -215,7 +215,8 @@ static void	ex_tearoff __ARGS((exarg_T *eap));
 #else
 # define ex_tearoff		ex_ni
 #endif
-#if (defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK)) && defined(FEAT_MENU)
+#if defined(FEAT_MENU) && (defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) \
+	|| defined(FEAT_GUI_MACVIM))
 static void	ex_popup __ARGS((exarg_T *eap));
 #else
 # define ex_popup		ex_ni
@@ -461,6 +462,11 @@ static void	ex_folddo __ARGS((exarg_T *eap));
 
 #ifndef FEAT_PROFILE
 # define ex_profile		ex_ni
+#endif
+
+#ifndef FEAT_GUI_MACVIM
+# define ex_macaction		ex_ni
+# define ex_macmenukey		ex_ni
 #endif
 
 /*
@@ -3726,6 +3732,9 @@ set_one_cmd_context(xp, buff)
 	case CMD_cmenu:	    case CMD_cnoremenu:	    case CMD_cunmenu:
 	case CMD_tmenu:				    case CMD_tunmenu:
 	case CMD_popup:	    case CMD_tearoff:	    case CMD_emenu:
+#ifdef FEAT_GUI_MACVIM
+	case CMD_macmenukey:
+#endif
 	    return set_context_in_menu_cmd(xp, cmd, arg, forceit);
 #endif
 
@@ -6665,7 +6674,8 @@ ex_shell(eap)
 	|| (defined(FEAT_GUI_GTK) && defined(FEAT_DND)) \
 	|| defined(FEAT_GUI_MSWIN) \
 	|| defined(FEAT_GUI_MAC) \
-	|| defined(PROTO)
+	|| defined(PROTO) \
+	|| defined(FEAT_GUI_MACVIM)
 
 /*
  * Handle a file drop. The code is here because a drop is *nearly* like an
@@ -7583,7 +7593,8 @@ ex_tearoff(eap)
 }
 #endif
 
-#if (defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK)) && defined(FEAT_MENU)
+#if defined(FEAT_MENU) && (defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) \
+	|| defined(FEAT_GUI_MACVIM))
     static void
 ex_popup(eap)
     exarg_T	*eap;

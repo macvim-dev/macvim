@@ -268,7 +268,7 @@ gui_init_check()
 #  endif
 # endif
     gui.menu_is_active = TRUE;	    /* default: include menu */
-# ifndef FEAT_GUI_GTK
+# if !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
     gui.menu_height = MENU_DEFAULT_HEIGHT;
     gui.menu_width = 0;
 # endif
@@ -636,7 +636,8 @@ gui_exit(rc)
 }
 
 #if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_X11) || defined(FEAT_GUI_MSWIN) \
-	|| defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MAC) || defined(PROTO)
+	|| defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MAC) \
+        || defined(PROTO) || defined(FEAT_GUI_MACVIM)
 # define NEED_GUI_UPDATE_SCREEN 1
 /*
  * Called when the GUI shell is closed by the user.  If there are no changed
@@ -707,6 +708,17 @@ gui_init_font(font_list, fontset)
 	    {
 		/* Isolate one comma separated font name. */
 		(void)copy_option_part(&font_list, font_name, FONTLEN, ",");
+
+#if defined(FEAT_GUI_MACVIM)
+                /* The font dialog is modeless in Mac OS X, so when
+                 * gui_mch_init_font() is called with "*" it brings up the
+                 * dialog and returns immediately.  In this case we don't want
+                 * it to be called again with NULL, so return here.  */
+                if (STRCMP(font_name, "*") == 0) {
+                    gui_mch_init_font(font_name, FALSE);
+                    return FALSE;
+                }
+#endif
 
 		/* Careful!!!  The Win32 version of gui_mch_init_font(), when
 		 * called with "*" will change p_guifont to the selected font
@@ -1120,7 +1132,8 @@ gui_update_cursor(force, clear_selection)
     void
 gui_position_menu()
 {
-# if !defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_MOTIF)
+# if !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MOTIF) \
+        || defined(FEAT_GUI_MACVIM))
     if (gui.menu_is_active && gui.in_use)
 	gui_mch_set_menu_pos(0, 0, gui.menu_width, gui.menu_height);
 # endif
@@ -1149,7 +1162,8 @@ gui_position_components(total_width)
 	text_area_x += gui.scrollbar_width;
 
     text_area_y = 0;
-#if defined(FEAT_MENU) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON))
+#if defined(FEAT_MENU) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_PHOTON) \
+        || defined(FEAT_GUI_MACVIM))
     gui.menu_width = total_width;
     if (gui.menu_is_active)
 	text_area_y += gui.menu_height;
@@ -1233,7 +1247,7 @@ gui_get_base_height()
     /* We can't take the sizes properly into account until anything is
      * realized.  Therefore we recalculate all the values here just before
      * setting the size. (--mdcki) */
-#else
+#elif !defined(FEAT_GUI_MACVIM)
 # ifdef FEAT_MENU
     if (gui.menu_is_active)
 	base_height += gui.menu_height;
@@ -2158,7 +2172,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
     if (back != 0 && ((draw_flags & DRAW_BOLD) || (highlight_mask & HL_ITALIC)))
 	return FAIL;
 
-#if defined(RISCOS) || defined(HAVE_GTK2)
+#if defined(RISCOS) || defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM)
     /* If there's no italic font, then fake it.
      * For GTK2, we don't need a different font for italic style. */
     if (hl_mask_todo & HL_ITALIC)
@@ -2190,6 +2204,9 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 #ifdef HAVE_GTK2
     /* The value returned is the length in display cells */
     len = gui_gtk2_draw_string(gui.row, col, s, len, draw_flags);
+#elif defined(FEAT_GUI_MACVIM)
+    /* The value returned is the length in display cells */
+    len = gui_macvim_draw_string(gui.row, col, s, len, draw_flags);
 #else
 # ifdef FEAT_MBYTE
     if (enc_utf8)
@@ -4002,7 +4019,8 @@ gui_update_scrollbars(force)
 	    /* Calculate height and position in pixels */
 	    h = (sb->height + sb->status_height) * gui.char_height;
 	    y = sb->top * gui.char_height + gui.border_offset;
-#if defined(FEAT_MENU) && !defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_MOTIF) && !defined(FEAT_GUI_PHOTON)
+#if defined(FEAT_MENU) && !(defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MOTIF) \
+        || defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MACVIM))
 	    if (gui.menu_is_active)
 		y += gui.menu_height;
 #endif
@@ -5062,7 +5080,8 @@ gui_do_findrepl(flags, find_text, repl_text, down)
 #if (defined(FEAT_DND) && defined(FEAT_GUI_GTK)) \
 	|| defined(FEAT_GUI_MSWIN) \
 	|| defined(FEAT_GUI_MAC) \
-	|| defined(PROTO)
+	|| defined(PROTO) \
+	|| defined(FEAT_GUI_MACVIM)
 
 #ifdef FEAT_WINDOWS
 static void gui_wingoto_xy __ARGS((int x, int y));

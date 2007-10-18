@@ -3056,6 +3056,10 @@ maketitle()
 	return;
     }
 
+#ifdef FEAT_GUI_MACVIM
+    gui_macvim_update_modified_flag();
+#endif
+
     need_maketitle = FALSE;
     if (!p_title && !p_icon)
 	return;
@@ -3149,7 +3153,9 @@ maketitle()
 		STRCAT(buf, ")");
 	    }
 
+#ifndef FEAT_GUI_MACVIM
 	    append_arg_number(curwin, buf, FALSE, IOSIZE);
+#endif
 
 #if defined(FEAT_CLIENTSERVER)
 	    if (serverName != NULL)

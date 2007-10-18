@@ -4066,8 +4066,8 @@ guisp={color-name}					*highlight-guisp*
 	    Black	White
 	    Orange	Purple		Violet
 
-	In the Win32 GUI version, additional system colors are available.  See
-	|win32-colors|.
+	In the Win32 and MacVim GUI versions, additional system colors are
+	available.  See |win32-colors| and |macvim-colors| respectively.
 
 	You can also specify a color by its Red, Green and Blue values.
 	The format is "#rrggbb", where

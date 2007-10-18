@@ -248,7 +248,17 @@ ui_delay(msec, ignoreinput)
 	gui_wait_for_chars(msec);
     else
 #endif
+    {
+#if defined(FEAT_GUI_MACVIM)
+        /* MacVim tries to be conservative with flushing, but when Vim takes a
+         * nap it really must flush (else timed error messages might not appear
+         * etc.).  Note that gui_mch_wait_for_chars() already does force a
+         * flush, so only do it here. */
+        if (gui.in_use)
+            gui_macvim_force_flush();
+#endif
 	mch_delay(msec, ignoreinput);
+    }
 }
 
 /*
@@ -2938,7 +2948,8 @@ mouse_find_win(rowp, colp)
 
 #if defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_GTK) || defined (FEAT_GUI_MAC) \
 	|| defined(FEAT_GUI_ATHENA) || defined(FEAT_GUI_MSWIN) \
-	|| defined(FEAT_GUI_PHOTON) || defined(PROTO)
+	|| defined(FEAT_GUI_PHOTON) || defined(PROTO) \
+	|| defined(FEAT_GUI_MACVIM)
 /*
  * Translate window coordinates to buffer position without any side effects
  */

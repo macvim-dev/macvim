@@ -5685,7 +5685,8 @@ shorten_fnames(force)
 #if (defined(FEAT_DND) && defined(FEAT_GUI_GTK)) \
 	|| defined(FEAT_GUI_MSWIN) \
 	|| defined(FEAT_GUI_MAC) \
-	|| defined(PROTO)
+	|| defined(PROTO) \
+	|| defined(FEAT_GUI_MACVIM)
 /*
  * Shorten all filenames in "fnames[count]" by current directory.
  */

@@ -1225,6 +1225,22 @@ CARBONGUI_BUNDLE = gui_bundle
 APPDIR = $(VIMNAME).app
 CARBONGUI_TESTARG = VIMPROG=../$(APPDIR)/Contents/MacOS/$(VIMTARGET)
 
+# MACVIM GUI
+MACVIMGUI_SRC	= gui.c MacVim/gui_macvim.m MacVim/MMBackend.m \
+		  MacVim/MacVim.m
+MACVIMGUI_OBJ	= objects/gui.o objects/pty.o objects/gui_macvim.o \
+		  objects/MMBackend.o objects/MacVim.o
+MACVIMGUI_DEFS	= -DFEAT_GUI_MACVIM -Wall -Wno-unknown-pragmas -pipe
+MACVIMGUI_IPATH	= -I. -Iproto
+MACVIMGUI_LIBS_DIR =
+MACVIMGUI_LIBS1	= -framework Cocoa
+MACVIMGUI_LIBS2	=
+MACVIMGUI_INSTALL = install_normal
+MACVIMGUI_TARGETS =
+MACVIMGUI_MAN_TARGETS =
+MACVIMGUI_TESTTARGET = gui
+MACVIMGUI_BUNDLE = 
+
 # All GUI files
 ALL_GUI_SRC  = gui.c gui_gtk.c gui_gtk_f.c gui_motif.c gui_xmdlg.c gui_xmebw.c gui_athena.c gui_gtk_x11.c gui_x11.c gui_at_sb.c gui_at_fs.c pty.c
 ALL_GUI_PRO  = gui.pro gui_gtk.pro gui_motif.pro gui_xmdlg.pro gui_athena.pro gui_gtk_x11.pro gui_x11.pro gui_w16.pro gui_w32.pro gui_photon.pro
@@ -2295,6 +2311,12 @@ auto/pathdef.c: Makefile auto/config.mk
 objects:
 	mkdir objects
 
+objects/MMBackend.o: MacVim/MMBackend.m
+	$(CCC) -fobjc-exceptions -o $@ MacVim/MMBackend.m
+
+objects/MacVim.o: MacVim/MacVim.m
+	$(CCC) -o $@ MacVim/MacVim.m
+
 objects/buffer.o: buffer.c
 	$(CCC) -o $@ buffer.c
 
@@ -2384,6 +2406,9 @@ objects/gui_photon.o: gui_photon.c
 
 objects/gui_mac.o: gui_mac.c
 	$(CCC) -o $@ gui_mac.c
+
+objects/gui_macvim.o: MacVim/gui_macvim.m
+	$(CCC) -fobjc-exceptions -o $@ MacVim/gui_macvim.m
 
 objects/hangulin.o: hangulin.c
 	$(CCC) -o $@ hangulin.c
