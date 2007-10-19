@@ -393,6 +393,7 @@ enum {
     //NSLog(@"Set thumb value %.2f proportion %.2f for scroller %d",
     //        val, prop, ident);
     [scroller setFloatValue:val knobProportion:prop];
+    [scroller setEnabled:prop != 1.f];
 }
 
 
