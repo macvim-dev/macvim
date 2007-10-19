@@ -1,0 +1,17 @@
+src/MacVim/MacVim.xcodeproj/*.mode1
+src/MacVim/MacVim.xcodeproj/*.pbxuser
+src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1
+src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.pbxuser
+src/MacVim/PSMTabBarControl/build
+src/MacVim/build
+src/Vim
+src/auto/link.log
+src/auto/link.sed
+src/auto/osdef.h
+src/auto/pathdef.c
+src/config.log
+src/config.status
+src/objects
+src/xxd/xxd
+src/auto/config.h
+src/auto/config.mk
