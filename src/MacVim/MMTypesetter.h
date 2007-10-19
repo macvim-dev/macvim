@@ -11,7 +11,7 @@
 #import <Cocoa/Cocoa.h>
 
 
-@interface MMTypesetter : NSTypesetter {
+@interface MMTypesetter : NSATSTypesetter {
 }
 
 - (void)layoutGlyphsInLayoutManager:(NSLayoutManager *)lm
