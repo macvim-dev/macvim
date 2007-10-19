@@ -413,12 +413,7 @@ static NSTimeInterval MMResendInterval = 0.5;
         NSData *data = [queue objectAtIndex:i+1];
 
         int msgid = *((int*)[value bytes]);
-#if 0
-        if (msgid != EnableMenuItemMsgID && msgid != AddMenuItemMsgID
-                && msgid != AddMenuMsgID) {
-            NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
-        }
-#endif
+        //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
 
         [self handleMessage:msgid data:data];
     }

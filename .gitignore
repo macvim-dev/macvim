@@ -16,3 +16,4 @@ src/xxd/xxd
 src/auto/config.h
 src/auto/config.mk
 src/TAGS
+.*.swp

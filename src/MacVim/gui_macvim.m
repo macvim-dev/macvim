@@ -681,8 +681,15 @@ gui_mch_destroy_menu(vimmenu_T *menu)
     void
 gui_mch_menu_grey(vimmenu_T *menu, int grey)
 {
-    [[MMBackend sharedInstance]
-            enableMenuItemWithTag:(int)menu state:!grey];
+    /* Only update menu if the 'grey' state has changed to avoid having to pass
+     * lots of unnecessary data to MacVim.  (Skipping this test makes MacVim
+     * pause noticably on mode changes. */
+    if (menu->was_grey != grey)
+    {
+        menu->was_grey = grey;
+        [[MMBackend sharedInstance]
+                enableMenuItemWithTag:(int)menu state:!grey];
+    }
 }
 
 
@@ -694,8 +701,7 @@ gui_mch_menu_hidden(vimmenu_T *menu, int hidden)
 {
     // HACK! There is no (obvious) way to hide a menu item, so simply
     // enable/disable it instead.
-    [[MMBackend sharedInstance]
-            enableMenuItemWithTag:(int)menu state:!hidden];
+    gui_mch_menu_grey(menu, hidden);
 }
 
 

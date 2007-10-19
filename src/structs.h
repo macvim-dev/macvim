@@ -2246,8 +2246,9 @@ struct VimMenu
     PtWidget_t	*submenu_id;
 #endif
 #ifdef FEAT_GUI_MACVIM
-    int         mac_key;
-    int         mac_mods;
+    int		mac_key;            /* Key equivalent */
+    int		mac_mods;           /* Modifier flags for the above */
+    int		was_grey;           /* Remember last 'grey' state */
 #endif
 };
 #else
