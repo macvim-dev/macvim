@@ -835,6 +835,12 @@ enum {
         } else if ([components count] > 2) {
             parseFailed = YES;
         }
+
+        if (!parseFailed) {
+            // Replace underscores with spaces.
+            fontName = [[fontName componentsSeparatedByString:@"_"]
+                                     componentsJoinedByString:@" "];
+        }
     }
 
     if (!parseFailed && [fontName length] > 0) {
