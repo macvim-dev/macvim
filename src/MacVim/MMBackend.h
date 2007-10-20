@@ -13,12 +13,6 @@
 #import "vim.h"
 
 
-// If disabled, all input is dropped if input is already being processed.  (If
-// enabled, same thing happens at the moment actually.  So this is pretty
-// useless.)
-#define MM_USE_INPUT_QUEUE 0
-
-
 
 
 @interface MMBackend : NSObject <MMBackendProtocol, MMVimServerProtocol,
@@ -44,9 +38,6 @@
     NSTimeInterval  blinkOnInterval;
     NSTimeInterval  blinkOffInterval;
     BOOL            inProcessInput;
-#if MM_USE_INPUT_QUEUE
-    NSMutableArray  *inputQueue;
-#endif
     NSMutableDictionary *connectionNameDict;
     NSMutableDictionary *clientProxyDict;
     NSMutableDictionary *serverReplyDict;

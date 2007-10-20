@@ -315,12 +315,14 @@ static NSTimeInterval MMTerminateTimeout = 3;
 
     if (![vimControllers count]) {
         // Turn on autoenabling of menus (because no Vim is open to handle it),
-        // but do not touch the MacVim menu.
+        // but do not touch the MacVim menu.  Note that the menus must be
+        // enabled first otherwise autoenabling does not work.
         NSMenu *mainMenu = [NSApp mainMenu];
         int i, count = [mainMenu numberOfItems];
         for (i = 1; i < count; ++i) {
-            NSMenu *submenu = [[mainMenu itemAtIndex:i] submenu];
-            [submenu recurseSetAutoenablesItems:YES];
+            NSMenuItem *item = [mainMenu itemAtIndex:i];
+            [item setEnabled:YES];
+            [[item submenu] recurseSetAutoenablesItems:YES];
         }
     }
 }
@@ -590,7 +592,9 @@ static NSTimeInterval MMTerminateTimeout = 3;
 
     int i, count = [self numberOfItems];
     for (i = 0; i < count; ++i) {
-        NSMenu *submenu = [[self itemAtIndex:i] submenu];
+        NSMenuItem *item = [self itemAtIndex:i];
+        [item setEnabled:YES];
+        NSMenu *submenu = [item submenu];
         if (submenu) {
             [submenu recurseSetAutoenablesItems:on];
         }

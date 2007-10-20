@@ -64,8 +64,6 @@ enum {
 - (void)connectionDidDie:(NSNotification *)notification;
 - (void)blinkTimerFired:(NSTimer *)timer;
 - (void)focusChange:(BOOL)on;
-- (void)processInputBegin;
-- (void)processInputEnd;
 - (void)handleToggleToolbar;
 - (void)handleScrollbarEvent:(NSData *)data;
 - (void)handleSetFont:(NSData *)data;
@@ -100,9 +98,6 @@ enum {
         fontContainerRef = loadFonts();
 
         queue = [[NSMutableArray alloc] init];
-#if MM_USE_INPUT_QUEUE
-        inputQueue = [[NSMutableArray alloc] init];
-#endif
         drawData = [[NSMutableData alloc] initWithCapacity:1024];
         connectionNameDict = [[NSMutableDictionary alloc] init];
         clientProxyDict = [[NSMutableDictionary alloc] init];
@@ -137,9 +132,6 @@ enum {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     [blinkTimer release];  blinkTimer = nil;
-#if MM_USE_INPUT_QUEUE
-    [inputQueue release];  inputQueue = nil;
-#endif
     [alternateServerName release];  alternateServerName = nil;
     [serverReplyDict release];  serverReplyDict = nil;
     [clientProxyDict release];  clientProxyDict = nil;
@@ -1042,51 +1034,40 @@ enum {
     // dangerous.  E.g. say a message causes the screen to be redrawn and then
     // another message is received causing another simultaneous screen redraw;
     // this is not good.  To deal with this problem at the moment, we simply
-    // drop messages that are received while other input is being processed.
-    if (inProcessInput) {
-#if MM_USE_INPUT_QUEUE
-        [inputQueue addObject:[NSNumber numberWithInt:msgid]];
-        [inputQueue addObject:data];
-#else
+    // drop messages that are received while other input is being processed,
+    // unless the message represents keyboard input.
+
+    //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
+
+    if (inProcessInput && !(InsertTextMsgID == msgid || KeyDownMsgID == msgid
+                || CmdKeyMsgID == msgid)) {
         // Just drop the input
         //NSLog(@"WARNING: Dropping input in %s", _cmd);
-#endif
     } else {
-        [self processInputBegin];
+        // Don't flush too soon or update speed will suffer.
+        [lastFlushDate release];
+        lastFlushDate = [[NSDate date] retain];
+
+        inProcessInput = YES;
         [self handleMessage:msgid data:data];
-        [self processInputEnd];
+        inProcessInput = NO;
+
+        inputReceived = YES;
     }
 }
 
 - (oneway void)processInputAndData:(in bycopy NSArray *)messages
 {
-    // NOTE: See comment in processInput:data:.
+    // TODO: Get rid of this method?
+
     unsigned i, count = [messages count];
-    if (count % 2) {
-        NSLog(@"WARNING: [messages count] is odd in %s", _cmd);
-        return;
-    }
+    for (i = 0; i < count; i += 2) {
+        int msgid = [[messages objectAtIndex:i] intValue];
+        id data = [messages objectAtIndex:i+1];
+        if ([data isEqual:[NSNull null]])
+            data = nil;
 
-    if (inProcessInput) {
-#if MM_USE_INPUT_QUEUE
-        [inputQueue addObjectsFromArray:messages];
-#else
-        // Just drop the input
-        //NSLog(@"WARNING: Dropping input in %s", _cmd);
-#endif
-    } else {
-        [self processInputBegin];
-
-        for (i = 0; i < count; i += 2) {
-            int msgid = [[messages objectAtIndex:i] intValue];
-            id data = [messages objectAtIndex:i+1];
-            if ([data isEqual:[NSNull null]])
-                data = nil;
-
-            [self handleMessage:msgid data:data];
-        }
-
-        [self processInputEnd];
+        [self processInput:msgid data:data];
     }
 }
 
@@ -1431,6 +1412,14 @@ enum {
 
 - (void)handleMessage:(int)msgid data:(NSData *)data
 {
+    // NOTE: Be careful with what you do in this method.  Ideally, a message
+    // should be handled by adding something to the input buffer and returning
+    // immediately.  If you call a Vim function then it should not enter a loop
+    // waiting for key presses or in any other way block the process.  The
+    // reason for this being that only one message can be processed at a time,
+    // so if another message is received while processing, then the new message
+    // is dropped.  See also the comment in processInput:data:.
+
     if (InsertTextMsgID == msgid) {
         [self handleInsertText:data];
     } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
@@ -1796,44 +1785,6 @@ enum {
 - (void)focusChange:(BOOL)on
 {
     gui_focus_change(on);
-}
-
-- (void)processInputBegin
-{
-    inProcessInput = YES;
-
-    // Don't flush too soon or update speed will suffer.
-    [lastFlushDate release];
-    lastFlushDate = [[NSDate date] retain];
-}
-
-- (void)processInputEnd
-{
-#if MM_USE_INPUT_QUEUE
-    int count = [inputQueue count];
-    if (count % 2) {
-        // TODO: This is troubling, but it is not hard to get Vim to end up
-        // here.  Why does this happen?
-        NSLog(@"WARNING: inputQueue has odd number of objects (%d)", count);
-        [inputQueue removeAllObjects];
-    } else if (count > 0) {
-        // TODO: Dispatch these messages?  Maybe not; usually when the
-        // 'inputQueue' is non-empty it means that a LOT of messages has been
-        // sent simultaneously.  The only way this happens is when Vim is being
-        // tormented, e.g. if the user holds down <D-`> to rapidly switch
-        // windows.
-        unsigned i;
-        for (i = 0; i < count; i+=2) {
-            int msgid = [[inputQueue objectAtIndex:i] intValue];
-            NSLog(@"%s: Dropping message %s", _cmd, MessageStrings[msgid]);
-        }
-
-        [inputQueue removeAllObjects];
-    }
-#endif
-
-    inputReceived = YES;
-    inProcessInput = NO;
 }
 
 - (void)handleToggleToolbar
