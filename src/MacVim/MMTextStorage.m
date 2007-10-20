@@ -199,10 +199,6 @@
     //          row, col, flags, fg, bg, sp);
     [self lazyResize:NO];
 
-    // TODO: support DRAW_TRANSP
-    if (flags & DRAW_TRANSP)
-        return;
-
     if (row < 0 || row >= maxRows || col < 0 || col >= maxColumns
             || col+[string length] > maxColumns) {
         //NSLog(@"[%s] WARNING : out of range, row=%d (%d) col=%d (%d) "
@@ -241,6 +237,16 @@
             fg, NSForegroundColorAttributeName,
             sp, NSUnderlineColorAttributeName,
             [NSNumber numberWithFloat:2],NSBaselineOffsetAttributeName,
+            nil];
+    } else if (flags & DRAW_TRANSP) {
+        // Don't include background color when DRAW_TRANSP is set.
+        //
+        // NOTE: I'm not sure what the point of this is, but if DRAW_TRANSP
+        // calls are ignored, then cursor blinking in insert mode doesn't work.
+        attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+            theFont, NSFontAttributeName,
+            fg, NSForegroundColorAttributeName,
+            sp, NSUnderlineColorAttributeName,
             nil];
     } else {
         attributes = [NSDictionary dictionaryWithObjectsAndKeys:
