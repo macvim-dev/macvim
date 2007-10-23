@@ -905,6 +905,11 @@ static NSTimeInterval MMResendInterval = 0.5;
     }
 
     [textStorage endEditing];
+
+    // NOTE: During resizing, Cocoa only sends draw messages before Vim's rows
+    // and columns are changed (due to ipc delays). Force a redraw here.
+    [[windowController vimView] displayIfNeeded];
+
 #if MM_DEBUG_DRAWING
     NSLog(@"<==== END   %s", _cmd);
 #endif
