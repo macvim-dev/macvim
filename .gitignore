@@ -1,4 +1,5 @@
 .*.swp
+.DS_Store
 src/MacVim/MacVim.xcodeproj/*.mode1
 src/MacVim/MacVim.xcodeproj/*.pbxuser
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1
