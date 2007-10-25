@@ -9,6 +9,7 @@ src/TAGS
 src/Vim
 src/auto/config.h
 src/auto/config.mk
+src/auto/if_perl.c
 src/auto/link.log
 src/auto/link.sed
 src/auto/osdef.h
