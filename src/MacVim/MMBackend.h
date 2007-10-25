@@ -17,27 +17,27 @@
 
 @interface MMBackend : NSObject <MMBackendProtocol, MMVimServerProtocol,
         MMVimClientProtocol> {
-    NSMutableArray  *queue;
-    NSMutableData   *drawData;
-    NSConnection    *connection;
-    id              frontendProxy;
-    NSDictionary    *colorDict;
-    NSDictionary    *sysColorDict;
-    BOOL            inputReceived;
-    BOOL            tabBarVisible;
-    unsigned        backgroundColor;
-    unsigned        foregroundColor;
-    unsigned        specialColor;
-    unsigned        defaultBackgroundColor;
-    unsigned        defaultForegroundColor;
-    NSDate          *lastFlushDate;
-    id              dialogReturn;
-    NSTimer         *blinkTimer;
-    int             blinkState;
-    NSTimeInterval  blinkWaitInterval;
-    NSTimeInterval  blinkOnInterval;
-    NSTimeInterval  blinkOffInterval;
-    BOOL            inProcessInput;
+    NSMutableArray      *outputQueue;
+    NSMutableArray      *inputQueue;
+    NSMutableData       *drawData;
+    NSConnection        *connection;
+    id                  frontendProxy;
+    NSDictionary        *colorDict;
+    NSDictionary        *sysColorDict;
+    BOOL                inputReceived;
+    BOOL                tabBarVisible;
+    unsigned            backgroundColor;
+    unsigned            foregroundColor;
+    unsigned            specialColor;
+    unsigned            defaultBackgroundColor;
+    unsigned            defaultForegroundColor;
+    NSDate              *lastFlushDate;
+    id                  dialogReturn;
+    NSTimer             *blinkTimer;
+    int                 blinkState;
+    NSTimeInterval      blinkWaitInterval;
+    NSTimeInterval      blinkOnInterval;
+    NSTimeInterval      blinkOffInterval;
     NSMutableDictionary *connectionNameDict;
     NSMutableDictionary *clientProxyDict;
     NSMutableDictionary *serverReplyDict;
@@ -66,6 +66,7 @@
               scrollBottom:(int)bottom left:(int)left right:(int)right;
 - (void)drawCursorAtRow:(int)row column:(int)col shape:(int)shape
                fraction:(int)percent color:(int)color;
+- (void)update;
 - (void)flushQueue:(BOOL)force;
 - (BOOL)waitForInput:(int)milliseconds;
 - (void)exit;

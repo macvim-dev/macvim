@@ -277,6 +277,10 @@ static NSTimeInterval MMTerminateTimeout = 3;
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
+    // This will invalidate all connections (since they were spawned from the
+    // default connection).
+    [[NSConnection defaultConnection] invalidate];
+
     // Send a SIGINT to all running Vim processes, so that they are sure to
     // receive the connectionDidDie: notification (a process has to checking
     // the run-loop for this to happen).
@@ -286,12 +290,6 @@ static NSTimeInterval MMTerminateTimeout = 3;
         int pid = [controller pid];
         if (pid > 0)
             kill(pid, SIGINT);
-
-        id proxy = [controller backendProxy];
-        NSConnection *connection = [proxy connectionForProxy];
-        if (connection) {
-            [connection invalidate];
-        }
     }
 
     if (fontContainerRef) {

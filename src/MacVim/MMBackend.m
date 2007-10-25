@@ -56,7 +56,8 @@ enum {
 
 
 @interface MMBackend (Private)
-- (void)handleMessage:(int)msgid data:(NSData *)data;
+- (void)processInputQueue;
+- (void)handleInputEvent:(int)msgid data:(NSData *)data;
 + (NSDictionary *)specialKeys;
 - (void)handleInsertText:(NSData *)data;
 - (void)handleKeyDown:(NSString *)key modifiers:(int)mods;
@@ -97,7 +98,8 @@ enum {
     if ((self = [super init])) {
         fontContainerRef = loadFonts();
 
-        queue = [[NSMutableArray alloc] init];
+        outputQueue = [[NSMutableArray alloc] init];
+        inputQueue = [[NSMutableArray alloc] init];
         drawData = [[NSMutableData alloc] initWithCapacity:1024];
         connectionNameDict = [[NSMutableDictionary alloc] init];
         clientProxyDict = [[NSMutableDictionary alloc] init];
@@ -128,7 +130,6 @@ enum {
 - (void)dealloc
 {
     //NSLog(@"%@ %s", [self className], _cmd);
-
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     [blinkTimer release];  blinkTimer = nil;
@@ -136,7 +137,8 @@ enum {
     [serverReplyDict release];  serverReplyDict = nil;
     [clientProxyDict release];  clientProxyDict = nil;
     [connectionNameDict release];  connectionNameDict = nil;
-    [queue release];  queue = nil;
+    [inputQueue release];  inputQueue = nil;
+    [outputQueue release];  outputQueue = nil;
     [drawData release];  drawData = nil;
     [frontendProxy release];  frontendProxy = nil;
     [connection release];  connection = nil;
@@ -364,10 +366,23 @@ enum {
     [drawData appendBytes:&percent length:sizeof(int)];
 }
 
+- (void)update
+{
+    // Tend to the run loop, returning immediately if there are no events
+    // waiting.
+    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                             beforeDate:[NSDate distantPast]];
+
+    // Keyboard and mouse input is handled directly, other input is queued and
+    // processed here.  This call may enter a blocking loop.
+    if ([inputQueue count] > 0)
+        [self processInputQueue];
+}
+
 - (void)flushQueue:(BOOL)force
 {
     // NOTE! This method gets called a lot; if we were to flush every time it
-    // was called MacVim would feel unresponsive.  So there is a time out which
+    // got called MacVim would feel unresponsive.  So there is a time out which
     // ensures that the queue isn't flushed too often.
     if (!force && lastFlushDate && -[lastFlushDate timeIntervalSinceNow]
             < MMFlushTimeoutInterval
@@ -379,15 +394,15 @@ enum {
         [drawData setLength:0];
     }
 
-    if ([queue count] > 0) {
+    if ([outputQueue count] > 0) {
         @try {
-            [frontendProxy processCommandQueue:queue];
+            [frontendProxy processCommandQueue:outputQueue];
         }
         @catch (NSException *e) {
             NSLog(@"Exception caught when processing command queue: \"%@\"", e);
         }
 
-        [queue removeAllObjects];
+        [outputQueue removeAllObjects];
 
         [lastFlushDate release];
         lastFlushDate = [[NSDate date] retain];
@@ -396,6 +411,7 @@ enum {
 
 - (BOOL)waitForInput:(int)milliseconds
 {
+    //NSLog(@"|ENTER| %s%d",  _cmd, milliseconds);
     NSDate *date = milliseconds > 0 ?
             [NSDate dateWithTimeIntervalSinceNow:.001*milliseconds] : 
             [NSDate distantFuture];
@@ -409,6 +425,7 @@ enum {
     BOOL yn = inputReceived;
     inputReceived = NO;
 
+    //NSLog(@"|LEAVE| %s input=%d", _cmd, yn);
     return yn;
 }
 
@@ -1029,36 +1046,109 @@ enum {
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data
 {
     // NOTE: This method might get called whenever the run loop is tended to.
-    // Thus it might get called whilst input is being processed.  Normally this
-    // is not a problem, but if it gets called often then it might become
-    // dangerous.  E.g. say a message causes the screen to be redrawn and then
-    // another message is received causing another simultaneous screen redraw;
-    // this is not good.  To deal with this problem at the moment, we simply
-    // drop messages that are received while other input is being processed,
-    // unless the message represents keyboard input.
+    // Normal keyboard and mouse input is added to input buffers, so there is
+    // no risk in handling these events directly (they return immediately, and
+    // do not call any other Vim functions).  However, other events such
+    // as 'VimShouldCloseMsgID' may enter blocking loops that wait for key
+    // events which would cause this method to be called recursively.  This
+    // in turn leads to various difficulties that we do not want to have to
+    // deal with.  To avoid recursive calls here we add all events except
+    // keyboard and mouse events to an input queue which is processed whenever
+    // gui_mch_update() is called (see processInputQueue).
 
     //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
 
-    if (inProcessInput && !(InsertTextMsgID == msgid || KeyDownMsgID == msgid
-                || CmdKeyMsgID == msgid)) {
-        // Just drop the input
-        //NSLog(@"WARNING: Dropping input in %s", _cmd);
+    // Don't flush too soon after receiving input or update speed will suffer.
+    [lastFlushDate release];
+    lastFlushDate = [[NSDate date] retain];
+
+    // Handle keyboard and mouse input now.  All other events are queued.
+    if (InsertTextMsgID == msgid) {
+        [self handleInsertText:data];
+    } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+        int mods = *((int*)bytes);  bytes += sizeof(int);
+        int len = *((int*)bytes);  bytes += sizeof(int);
+        NSString *key = [[NSString alloc] initWithBytes:bytes length:len
+                                              encoding:NSUTF8StringEncoding];
+        mods = eventModifierFlagsToVimModMask(mods);
+
+        [self handleKeyDown:key modifiers:mods];
+
+        [key release];
+    } else if (ScrollWheelMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+        int flags = *((int*)bytes);  bytes += sizeof(int);
+        float dy = *((float*)bytes);  bytes += sizeof(float);
+
+        int button = MOUSE_5;
+        if (dy > 0) button = MOUSE_4;
+
+        flags = eventModifierFlagsToVimMouseModMask(flags);
+
+        gui_send_mouse_event(button, col, row, NO, flags);
+    } else if (MouseDownMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+        int button = *((int*)bytes);  bytes += sizeof(int);
+        int flags = *((int*)bytes);  bytes += sizeof(int);
+        int count = *((int*)bytes);  bytes += sizeof(int);
+
+        button = eventButtonNumberToVimMouseButton(button);
+        flags = eventModifierFlagsToVimMouseModMask(flags);
+
+        gui_send_mouse_event(button, col, row, count>1, flags);
+    } else if (MouseUpMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+        int flags = *((int*)bytes);  bytes += sizeof(int);
+
+        flags = eventModifierFlagsToVimMouseModMask(flags);
+
+        gui_send_mouse_event(MOUSE_RELEASE, col, row, NO, flags);
+    } else if (MouseDraggedMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+        int flags = *((int*)bytes);  bytes += sizeof(int);
+
+        flags = eventModifierFlagsToVimMouseModMask(flags);
+
+        gui_send_mouse_event(MOUSE_DRAG, col, row, NO, flags);
+    } else if (MouseMovedMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+
+        gui_mouse_moved(col, row);
     } else {
-        // Don't flush too soon or update speed will suffer.
-        [lastFlushDate release];
-        lastFlushDate = [[NSDate date] retain];
-
-        inProcessInput = YES;
-        [self handleMessage:msgid data:data];
-        inProcessInput = NO;
-
-        inputReceived = YES;
+        // Not keyboard or mouse event, queue it and handle later.
+        //NSLog(@"Add event %s to input event queue", MessageStrings[msgid]);
+        [inputQueue addObject:[NSNumber numberWithInt:msgid]];
+        [inputQueue addObject:(data ? (id)data : (id)[NSNull null])];
     }
+
+    // See waitForInput: for an explanation of this flag.
+    inputReceived = YES;
 }
 
 - (oneway void)processInputAndData:(in bycopy NSArray *)messages
 {
     // TODO: Get rid of this method?
+    //NSLog(@"%s%@", _cmd, messages);
 
     unsigned i, count = [messages count];
     for (i = 0; i < count; i += 2) {
@@ -1410,7 +1500,32 @@ enum {
 
 @implementation MMBackend (Private)
 
-- (void)handleMessage:(int)msgid data:(NSData *)data
+- (void)processInputQueue
+{
+    // NOTE: One of the input events may cause this method to be called
+    // recursively, so copy the input queue to a local variable and clear it
+    // before starting to process input events (otherwise we could get stuck in
+    // an endless loop).
+    NSArray *q = [inputQueue copy];
+    unsigned i, count = [q count];
+
+    [inputQueue removeAllObjects];
+
+    for (i = 0; i < count-1; i += 2) {
+        int msgid = [[q objectAtIndex:i] intValue];
+        id data = [q objectAtIndex:i+1];
+        if ([data isEqual:[NSNull null]])
+            data = nil;
+
+        //NSLog(@"(%d) %s:%s", i, _cmd, MessageStrings[msgid]);
+        [self handleInputEvent:msgid data:data];
+    }
+
+    [q release];
+    //NSLog(@"Clear input event queue");
+}
+
+- (void)handleInputEvent:(int)msgid data:(NSData *)data
 {
     // NOTE: Be careful with what you do in this method.  Ideally, a message
     // should be handled by adding something to the input buffer and returning
@@ -1420,21 +1535,9 @@ enum {
     // so if another message is received while processing, then the new message
     // is dropped.  See also the comment in processInput:data:.
 
-    if (InsertTextMsgID == msgid) {
-        [self handleInsertText:data];
-    } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-        int mods = *((int*)bytes);  bytes += sizeof(int);
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        NSString *key = [[NSString alloc] initWithBytes:bytes length:len
-                                              encoding:NSUTF8StringEncoding];
-        mods = eventModifierFlagsToVimModMask(mods);
+    //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
 
-        [self handleKeyDown:key modifiers:mods];
-
-        [key release];
-    } else if (SelectTabMsgID == msgid) {
+    if (SelectTabMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
@@ -1457,57 +1560,6 @@ enum {
         int idx = *((int*)bytes);
 
         tabpage_move(idx);
-    } else if (ScrollWheelMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
-        float dy = *((float*)bytes);  bytes += sizeof(float);
-
-        int button = MOUSE_5;
-        if (dy > 0) button = MOUSE_4;
-
-        flags = eventModifierFlagsToVimMouseModMask(flags);
-
-        gui_send_mouse_event(button, col, row, NO, flags);
-    } else if (MouseDownMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int button = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
-        int count = *((int*)bytes);  bytes += sizeof(int);
-
-        button = eventButtonNumberToVimMouseButton(button);
-        flags = eventModifierFlagsToVimMouseModMask(flags);
-
-        gui_send_mouse_event(button, col, row, count>1, flags);
-    } else if (MouseUpMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
-
-        flags = eventModifierFlagsToVimMouseModMask(flags);
-
-        gui_send_mouse_event(MOUSE_RELEASE, col, row, NO, flags);
-    } else if (MouseDraggedMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
-
-        flags = eventModifierFlagsToVimMouseModMask(flags);
-
-        gui_send_mouse_event(MOUSE_DRAG, col, row, NO, flags);
     } else if (SetTextDimensionsMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -1550,12 +1602,6 @@ enum {
     } else if (LostFocusMsgID == msgid) {
         if (gui.in_focus)
             [self focusChange:NO];
-    } else if (MouseMovedMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-
-        gui_mouse_moved(col, row);
     } else if (SetMouseShapeMsgID == msgid) {
         const void *bytes = [data bytes];
         int shape = *((int*)bytes);  bytes += sizeof(int);
@@ -1738,11 +1784,11 @@ enum {
 
 - (void)queueMessage:(int)msgid data:(NSData *)data
 {
-    [queue addObject:[NSData dataWithBytes:&msgid length:sizeof(int)]];
+    [outputQueue addObject:[NSData dataWithBytes:&msgid length:sizeof(int)]];
     if (data)
-        [queue addObject:data];
+        [outputQueue addObject:data];
     else
-        [queue addObject:[NSData data]];
+        [outputQueue addObject:[NSData data]];
 }
 
 - (void)connectionDidDie:(NSNotification *)notification
@@ -1752,7 +1798,7 @@ enum {
     // crashed.  In either case our only option is to quit now.
     // TODO: Write backup file?
 
-    //NSLog(@"A Vim process lots its connection to MacVim; quitting.");
+    //NSLog(@"A Vim process lost its connection to MacVim; quitting.");
     getout(0);
 }
 
