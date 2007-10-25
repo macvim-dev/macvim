@@ -1,7 +1,7 @@
 " MacVim colorscheme
 "
 " Maintainer:   Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:  2007 Oct 11
+" Last Change:  2007 Oct 25
 "
 
 
@@ -24,7 +24,7 @@ hi NonText      gui=bold guifg=Blue
 hi StatusLine   gui=NONE guifg=White guibg=DarkSlateGray
 hi StatusLineNC gui=NONE guifg=SlateGray guibg=Gray90
 hi VertSplit    gui=NONE guifg=DarkSlateGray guibg=Gray90
-hi DiffText     gui=NONE guibg=VioletRed
+hi DiffText     gui=NONE guibg=Gold
 hi PmenuThumb   gui=reverse
 hi PmenuSbar    guibg=Grey
 hi TabLineSel   gui=bold
@@ -67,7 +67,7 @@ hi Normal       gui=NONE guifg=MacTextColor guibg=MacTextBackgroundColor
 " the top level syntax items for now).
 
 hi Comment gui=italic guifg=Blue2 guibg=NONE
-hi Constant gui=NONE guifg=Magenta1 guibg=NONE
+hi Constant gui=NONE guifg=DarkOrange guibg=NONE
 hi String gui=NONE guifg=SkyBlue4 guibg=NONE
 hi Boolean gui=NONE guifg=Red3 guibg=NONE
 hi Identifier gui=NONE guifg=Aquamarine4 guibg=NONE
