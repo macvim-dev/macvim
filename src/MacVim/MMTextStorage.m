@@ -14,7 +14,9 @@
 
 
 
-// TODO: support DRAW_TRANSP flag
+// TODO: What does DRAW_TRANSP flag do?  If the background isn't drawn when
+// this flag is set, then sometimes the character after the cursor becomes
+// blank.  Everything seems to work fine by just ignoring this flag.
 #define DRAW_TRANSP               0x01    /* draw with transparant bg */
 #define DRAW_BOLD                 0x02    /* draw bold text */
 #define DRAW_UNDERL               0x04    /* draw underline text */
@@ -237,16 +239,6 @@
             fg, NSForegroundColorAttributeName,
             sp, NSUnderlineColorAttributeName,
             [NSNumber numberWithFloat:2],NSBaselineOffsetAttributeName,
-            nil];
-    } else if (flags & DRAW_TRANSP) {
-        // Don't include background color when DRAW_TRANSP is set.
-        //
-        // NOTE: I'm not sure what the point of this is, but if DRAW_TRANSP
-        // calls are ignored, then cursor blinking in insert mode doesn't work.
-        attributes = [NSDictionary dictionaryWithObjectsAndKeys:
-            theFont, NSFontAttributeName,
-            fg, NSForegroundColorAttributeName,
-            sp, NSUnderlineColorAttributeName,
             nil];
     } else {
         attributes = [NSDictionary dictionaryWithObjectsAndKeys:

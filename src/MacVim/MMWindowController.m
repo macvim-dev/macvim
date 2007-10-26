@@ -451,7 +451,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         // We only want to set the window title if this resize came from
         // a live-resize, not (for example) setting 'columns' or 'lines'.
         if ([[self textView] inLiveResize]) {
-            [win setTitle:[NSString stringWithFormat:@"%dx%d", 
+            [win setTitle:[NSString stringWithFormat:@"%dx%d",
                     dim[1], dim[0]]];
         }
     }
