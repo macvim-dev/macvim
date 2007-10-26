@@ -72,7 +72,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (id)initWithVimController:(MMVimController *)controller
 {
     if ((self = [super initWithWindowNibName:@"EmptyWindow"])) {
-        fullscreenWindow = nil;
         vimController = controller;
 
         // Window cascading is handled by MMAppController.
@@ -365,6 +364,14 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     }
 }
 
+- (void)liveResizeWillStart
+{
+    // Save the original title, if we haven't already.
+    if (lastSetTitle == nil) {
+        lastSetTitle = [[[self window] title] retain];
+    }
+}
+
 - (void)liveResizeDidEnd
 {
     // TODO: Don't duplicate code from placeViews.
@@ -407,6 +414,13 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         // MacVim will have inconsistent states.
         [self resizeWindowToFit:self];
     }
+
+    // If we saved the original title while resizing, restore it.
+    if (lastSetTitle != nil) {
+        [[self window] setTitle:lastSetTitle];
+        [lastSetTitle release];
+        lastSetTitle = nil;
+    }
 }
 
 - (void)placeViews
@@ -421,16 +435,25 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     NSRect textViewRect = [self textViewRectForContentSize:contentRect.size];
     NSSize tsSize = [self textStorageSizeForTextViewSize:textViewRect.size];
 
+    // If our optimal (rows,cols) do not match our current (rows,cols), resize
+    // ourselves and tell the Vim process to sync up.
     int dim[2], rows, cols;
     [[vimView textStorage] getMaxRows:&rows columns:&cols];
     [[vimView textStorage] fitToSize:tsSize rows:&dim[0] columns:&dim[1]];
 
     if (dim[0] != rows || dim[1] != cols) {
-        //NSLog(@"Notify Vim that text storage dimensions changed to %dx%d",
-        //        dim[0], dim[1]);
+        //NSLog(@"Notify Vim that text storage dimensions changed "
+        //        @"from %dx%d to %dx%d", cols, rows, dim[1], dim[0]);
         NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];
 
         [vimController sendMessage:SetTextDimensionsMsgID data:data];
+
+        // We only want to set the window title if this resize came from
+        // a live-resize, not (for example) setting 'columns' or 'lines'.
+        if ([[self textView] inLiveResize]) {
+            [win setTitle:[NSString stringWithFormat:@"%dx%d", 
+                    dim[1], dim[0]]];
+        }
     }
 
     // XXX: put vimView resizing logic in vimView
@@ -446,8 +469,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         vimViewRect.size.width += [NSScroller scrollerWidth];
     if ([vimView rightScrollbarVisible])
         vimViewRect.size.width += [NSScroller scrollerWidth];
-
-
 
     [vimView setFrame:vimViewRect];
 

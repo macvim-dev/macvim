@@ -27,6 +27,7 @@
     BOOL                shouldUpdateWindowSize;
     NSString            *windowAutosaveKey;
     MMFullscreenWindow  *fullscreenWindow;
+    NSString            *lastSetTitle;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
@@ -55,6 +56,7 @@
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode;
 - (void)setMouseShape:(int)shape;
 - (void)adjustLinespace:(int)linespace;
+- (void)liveResizeWillStart;
 - (void)liveResizeDidEnd;
 - (void)placeViews;
 

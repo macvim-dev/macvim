@@ -766,10 +766,20 @@ static NSString *MMKeypadEnterString = @"KA";
     // The font panel is updated whenever the font is set.
 }
 
+- (void)viewWillStartLiveResize
+{
+    id windowController = [[self window] windowController];
+    [windowController liveResizeWillStart];
+
+    [super viewWillStartLiveResize];
+}
+
 - (void)viewDidEndLiveResize
 {
     id windowController = [[self window] windowController];
     [windowController liveResizeDidEnd];
+
+    [super viewDidEndLiveResize];
 }
 
 @end // MMTextView
