@@ -14,7 +14,14 @@
 #import "vim.h"
 
 
+
+// This constant controls how often [MMBackend update] may get called (see
+// gui_mch_update()).
+static NSTimeInterval MMUpdateTimeoutInterval = 0.1f;
+
+
 static BOOL gui_macvim_is_valid_action(NSString *action);
+
 
 
 // -- Initialization --------------------------------------------------------
@@ -128,10 +135,39 @@ gui_mch_open(void)
  * nothing in the X event queue (& no timers pending), then we return
  * immediately.
  */
+#define MM_LOG_UPDATE_STATS 0
     void
 gui_mch_update(void)
 {
+    // NOTE: This function can get called A LOT (~1 call/ms) and unfortunately
+    // checking the run loop takes a long time, resulting in noticable slow
+    // downs if it is done every time this function is called.  Therefore we
+    // make sure that it is not done too often.
+    static NSDate *lastUpdateDate = nil;
+#if MM_LOG_UPDATE_STATS
+    static int skipCount = 0;
+#endif
+
+    if (lastUpdateDate && -[lastUpdateDate timeIntervalSinceNow] <
+            MMUpdateTimeoutInterval) {
+#if MM_LOG_UPDATE_STATS
+        ++skipCount;
+#endif
+        return;
+    }
+
+#if MM_LOG_UPDATE_STATS
+    NSTimeInterval dt = -[lastUpdateDate timeIntervalSinceNow];
+    NSLog(@"Updating (last update %.2f seconds ago, skipped %d updates, "
+            "approx %.1f calls per second)",
+            dt, skipCount, dt > 0 ? skipCount/dt : 0);
+    skipCount = 0;
+#endif
+
     [[MMBackend sharedInstance] update];
+
+    [lastUpdateDate release];
+    lastUpdateDate = [[NSDate date] retain];
 }
 
 

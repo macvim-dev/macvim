@@ -425,6 +425,9 @@ enum {
     BOOL yn = inputReceived;
     inputReceived = NO;
 
+    if ([inputQueue count] > 0)
+        [self processInputQueue];
+
     //NSLog(@"|LEAVE| %s input=%d", _cmd, yn);
     return yn;
 }
