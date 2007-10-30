@@ -304,7 +304,6 @@ static NSString *MMKeypadEnterString = @"KA";
 
     // HACK!  On Leopard Ctrl-key events end up here instead of keyDown:.
     if (flags & NSControlKeyMask) {
-        NSLog(@"pass on control key");
         [self dispatchKeyEvent:event];
         return YES;
     }
