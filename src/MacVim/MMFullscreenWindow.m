@@ -103,21 +103,19 @@
     [self setTitle:[target title]];
     [self setOpaque:[target isOpaque]];
 
-    // make us visible and target invisible
-    [target orderOut:self];
-    [self makeKeyAndOrderFront:self];
-
     // don't set this sooner, so we don't get an additional
     // focus gained message  
     [self setDelegate:delegate];
 
     // update bottom right corner scrollbar (no resize handle in fu mode)
-    [[self windowController] placeViews];
-    
-    // the call above moves the text view in the lower left corner, fix that
-    // XXX: still required?
+    [view placeViews];
+
+    // move vim view to the window's center
     [self centerView];
-    [self display];
+
+    // make us visible and target invisible
+    [target orderOut:self];
+    [self makeKeyAndOrderFront:self];
 
     // fade back in
     if (didBlend) {
@@ -142,7 +140,6 @@
     [self retain];  // NSWindowController releases us once
     [[self windowController] setWindow:target];
 
-
     [[view tabBarControl] setStyleNamed:oldTabBarStyle];
 
     // fix delegate
@@ -163,12 +160,8 @@
     // sooner
     [target setDelegate:delegate];
 
-
     // update bottom right corner scrollbar (resize handle reappears)
-    // XXX: Doesn't work?
-    [[self windowController] placeViews];
-    [view placeScrollbars];
-
+    [view placeViews];
 
     // fade back in  
     if (didBlend) {
@@ -243,10 +236,14 @@
 {
     //return [target contentRectForFrameRect:rect];
     
-    // EVIL HACK: this is always called with [[self window] frame] as argument
-    // from MMWindowController. We can't let frame return the frame of target,
-    // so "fix" this here.
-    return [target contentRectForFrameRect:[target frame]];
+    // EVIL HACK: if this is always called with [[self window] frame] as
+    // argument from MMWindowController, we can't let frame return the frame
+    // of target so "fix" this here.
+    if (NSEqualRects([self frame], rect)) {
+        return [target contentRectForFrameRect:[target frame]];
+    } else {
+        return [target contentRectForFrameRect:rect];
+    }
 }
 
 - (NSRect)frameRectForContentRect:(NSRect)contentRect

@@ -20,7 +20,6 @@
 
 @interface MMWindowController : NSWindowController {
     NSBox               *tablineSeparator;
-
     MMVimController     *vimController;
     MMVimView           *vimView;
     BOOL                setupDone;
@@ -67,5 +66,3 @@
 - (IBAction)toggleToolbar:(id)sender;
 
 @end
-
-// vim: set ft=objc:

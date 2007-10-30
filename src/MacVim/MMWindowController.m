@@ -22,18 +22,17 @@
 
 
 @interface MMWindowController (Private)
-- (NSSize)contentSizeForTextStorageSize:(NSSize)textViewSize;
-- (NSRect)textViewRectForContentSize:(NSSize)contentSize;
-- (NSSize)textStorageSizeForTextViewSize:(NSSize)textViewSize;
+- (NSSize)contentSize;
+- (NSRect)contentRectForFrameRect:(NSRect)frame;
+- (NSRect)frameRectForContentRect:(NSRect)contentRect;
 - (void)resizeWindowToFit:(id)sender;
 - (NSRect)fitWindowToFrame:(NSRect)frame;
 - (void)updateResizeIncrements;
 - (NSTabViewItem *)addNewTabViewItem;
-- (int)representedIndexOfTabViewItem:(NSTabViewItem *)tvi;
 - (IBAction)vimMenuItemAction:(id)sender;
-- (MMScroller *)scrollbarForIdentifier:(long)ident index:(unsigned *)idx;
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
 - (void)checkWindowNeedsResizing;
+- (NSSize)resizeVimViewToFitSize:(NSSize)size;
 @end
 
 
@@ -82,9 +81,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         vimView = [[MMVimView alloc] initWithFrame:[contentView frame]
                                      vimController:vimController];
         [contentView addSubview:vimView];
-        //[vimView translateOriginToPoint:
-        //    NSMakePoint([contentView frame].size.width, 0)];
-        //[vimView rotateByAngle:45.f];
+        // [vimView translateOriginToPoint:
+        //     NSMakePoint([contentView frame].size.width, 0)];
+        // [vimView rotateByAngle:45.f];
 
         // Create the tabline separator (which may be visible when the tabline
         // is hidden).
@@ -125,7 +124,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (NSString *)description
 {
-    return [NSString stringWithFormat:@"%@ : setupDone=%d windowAutosaveKey=%@ vimController=%@", [self className], setupDone, windowAutosaveKey, vimController];
+    NSString *format =
+        @"%@ : setupDone=%d windowAutosaveKey=%@ vimController=%@";
+    return [NSString stringWithFormat:format,
+        [self className], setupDone, windowAutosaveKey, vimController];
 }
 
 - (MMVimController *)vimController
@@ -208,7 +210,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     //NSLog(@"setTextDimensionsWithRows:%d columns:%d", rows, cols);
 
-    [[vimView textStorage] setMaxRows:rows columns:cols];
+    [vimView setActualRows:rows columns:cols];
 
     if (setupDone && ![vimView inLiveResize])
         shouldUpdateWindowSize = YES;
@@ -233,17 +235,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident
 {
-    MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
-    NSRange range = NSMakeRange(pos, len);
-    if (!NSEqualRanges(range, [scroller range])) {
-        //NSLog(@"Set range %@ for scroller %d",
-        //        NSStringFromRange(range), ident);
-        [scroller setRange:range];
-        // TODO!  Should only do this once per update.
-        
-        if (setupDone) // TODO: probably not necessary
-          [vimView placeScrollbars];
-    }
+    [vimView setScrollbarPosition:pos length:len identifier:ident];
 }
 
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
@@ -271,6 +263,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)processCommandQueueDidFinish
 {
+    // XXX: If not in live resize and vimview's desired size differs from actual
+    // size, resize ourselves
     if (shouldUpdateWindowSize) {
         shouldUpdateWindowSize = NO;
         [vimView setShouldUpdateWindowSize:NO];
@@ -374,25 +368,30 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)liveResizeDidEnd
 {
-    // TODO: Don't duplicate code from placeViews.
-
     if (!setupDone) return;
+
+    // At the end of an resize, check if vim view size and number of
+    // columns / rows agree (the first is set while resizing, the second by
+    // messages sent from vim). If not, send a synchronous (!) message to vim
+    // to set columns / rows to the value belonging to the view size. If the
+    // message couldn't be sent, change the view size to fit columns / rows.
 
     // NOTE!  It is assumed that the window has been resized so that it will
     // exactly fit the text storage (possibly after resizing it).  If this is
     // not the case the display might be messed up.
     BOOL resizeFailed = NO;
-    NSWindow *win = [self window];
-    NSRect contentRect = [win contentRectForFrameRect:[win frame]];
-    NSRect textViewRect = [self textViewRectForContentSize:contentRect.size];
-    NSSize tsSize = [self textStorageSizeForTextViewSize:textViewRect.size];
+    NSSize contentSize = [self contentSize];
 
-    int dim[2], rows, cols;
-    [[vimView textStorage] getMaxRows:&rows columns:&cols];
-    [[vimView textStorage] fitToSize:tsSize rows:&dim[0] columns:&dim[1]];
+    int desiredSize[2];
+    [vimView getDesiredRows:&desiredSize[0] columns:&desiredSize[1]
+                    forSize:contentSize];
 
-    if (dim[0] != rows || dim[1] != cols) {
-        NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];
+    int rows, columns;
+    [vimView getActualRows:&rows columns:&columns];
+
+    if (desiredSize[0] != rows || desiredSize[1] != columns) {
+
+        NSData *data = [NSData dataWithBytes:desiredSize length:2*sizeof(int)];
 
         // NOTE:  Since we're at the end of a live resize we want to make sure
         // that the SetTextDimensionsMsgID message reaches Vim, else Vim and
@@ -404,10 +403,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                                                  data:data
                                               timeout:.5];
     }
-
-    [[vimView textView] setFrame:textViewRect];
-
-    [vimView placeScrollbars];
 
     if (resizeFailed) {
         // Force the window size to match the text view size otherwise Vim and
@@ -427,52 +422,20 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     if (!setupDone) return;
 
-    // NOTE!  It is assumed that the window has been resized so that it will
-    // exactly fit the text storage (possibly after resizing it).  If this is
-    // not the case the display might be messed up.
-    NSWindow *win = [self window];
-    NSRect contentRect = [win contentRectForFrameRect:[win frame]];
-    NSRect textViewRect = [self textViewRectForContentSize:contentRect.size];
-    NSSize tsSize = [self textStorageSizeForTextViewSize:textViewRect.size];
-
-    // If our optimal (rows,cols) do not match our current (rows,cols), resize
-    // ourselves and tell the Vim process to sync up.
-    int dim[2], rows, cols;
-    [[vimView textStorage] getMaxRows:&rows columns:&cols];
-    [[vimView textStorage] fitToSize:tsSize rows:&dim[0] columns:&dim[1]];
-
-    if (dim[0] != rows || dim[1] != cols) {
-        //NSLog(@"Notify Vim that text storage dimensions changed "
-        //        @"from %dx%d to %dx%d", cols, rows, dim[1], dim[0]);
-        NSData *data = [NSData dataWithBytes:dim length:2*sizeof(int)];
-
-        [vimController sendMessage:SetTextDimensionsMsgID data:data];
-
-        // We only want to set the window title if this resize came from
-        // a live-resize, not (for example) setting 'columns' or 'lines'.
-        if ([[self textView] inLiveResize]) {
-            [win setTitle:[NSString stringWithFormat:@"%dx%d",
-                    dim[1], dim[0]]];
-        }
-    }
-
-    // XXX: put vimView resizing logic in vimView
-    [[vimView textView] setFrame:textViewRect];
-    
-    NSRect vimViewRect = textViewRect;
+    NSRect vimViewRect;
     vimViewRect.origin = NSMakePoint(0, 0);
-    if (![[vimView tabBarControl] isHidden])
-        vimViewRect.size.height += [[vimView tabBarControl] frame].size.height;
-    if ([vimView bottomScrollbarVisible])
-        vimViewRect.size.height += [NSScroller scrollerWidth];
-    if ([vimView leftScrollbarVisible])
-        vimViewRect.size.width += [NSScroller scrollerWidth];
-    if ([vimView rightScrollbarVisible])
-        vimViewRect.size.width += [NSScroller scrollerWidth];
+    vimViewRect.size = [vimView getDesiredRows:NULL columns:NULL
+                                       forSize:[self contentSize]];
 
-    [vimView setFrame:vimViewRect];
-
-    [vimView placeScrollbars];
+     // HACK! If the window does resize, then windowDidResize is called which in
+     // turn calls placeViews.  In case the computed new size of the window is
+     // no different from the current size, then we need to call placeViews
+     // manually.
+     if (NSEqualRects(vimViewRect, [vimView frame])) {
+         [vimView placeViews];
+     } else {
+         [vimView setFrame:vimViewRect];
+     }
 }
 
 - (void)enterFullscreen
@@ -546,7 +509,23 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (void)windowDidResize:(id)sender
 {
     if (!setupDone) return;
-    [self placeViews];
+
+    // Live resizing works as follows:
+    // VimView's size is changed immediatly, and a resize message to the
+    // remote vim instance is sent. The remote vim instance sends a
+    // "vim content size changed" right back, but in live resize mode this
+    // doesn't change the VimView (because we assume that it already has the
+    // correct size because we set the resize increments correctly). Afterward,
+    // the remote vim view sends a batch draw for the text visible in the
+    // resized text area.
+
+    NSSize contentSize = [self contentSize];
+    [self resizeVimViewToFitSize:contentSize];
+
+    NSRect frame;
+    frame.origin = NSMakePoint(0, 0);
+    frame.size = contentSize;
+    [vimView setFrame:frame];
 }
 
 - (NSRect)windowWillUseStandardFrame:(NSWindow *)win
@@ -570,7 +549,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     frame = [self fitWindowToFrame:frame];
 
-    // Keep old width and horizontal position unless user clicked with the
+    // Keep old width and horizontal position unless user clicked while the
     // Command key is held down.
     NSEvent *event = [NSApp currentEvent];
     if (!([event type] == NSLeftMouseUp
@@ -613,30 +592,32 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 @implementation MMWindowController (Private)
 
-- (NSSize)contentSizeForTextStorageSize:(NSSize)textViewSize
+- (NSRect)contentRectForFrameRect:(NSRect)frame
 {
-    NSSize size = [vimView contentSizeForTextStorageSize:textViewSize];
+    NSRect result = [[self window] contentRectForFrameRect:frame];
     if (![tablineSeparator isHidden])
-        ++size.height;
-    return size;
+        --result.size.height;
+    return result;
 }
 
-- (NSRect)textViewRectForContentSize:(NSSize)contentSize
+- (NSRect)frameRectForContentRect:(NSRect)contentRect
 {
-    NSSize size = { contentSize.width, contentSize.height };
     if (![tablineSeparator isHidden])
-        --size.height;
-
-    return [vimView textViewRectForContentSize:size];
+        ++contentRect.size.height;
+    return [[self window] frameRectForContentRect:contentRect];
 }
 
-- (NSSize)textStorageSizeForTextViewSize:(NSSize)textViewSize
+- (NSSize)contentSize
 {
-    return [vimView textStorageSizeForTextViewSize:textViewSize];
+    return [self contentRectForFrameRect:[[self window] frame]].size;
 }
 
 - (void)resizeWindowToFit:(id)sender
 {
+    // Makes the window large enough to contain the vim view, called after the
+    // vim view's size was changed. If the window had to become to big, the
+    // vim view is made smaller.
+
     // NOTE: Be very careful when you call this method!  Do not call while
     // processing command queue, instead set 'shouldUpdateWindowSize' to YES.
     // The only other place it is currently called is when live resize ends.
@@ -646,17 +627,17 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     if (!setupDone) return;
 
+    // Get size of text view, adapt window size to it
     NSWindow *win = [self window];
     NSRect frame = [win frame];
-    NSRect contentRect = [win contentRectForFrameRect:frame];
-    NSSize textStorageSize = [[vimView textStorage] size];
-    NSSize newSize = [self contentSizeForTextStorageSize:textStorageSize];
+    NSRect contentRect = [self contentRectForFrameRect:frame];
+    NSSize newSize = [vimView desiredSizeForActualRowsAndColumns];
 
     // Keep top-left corner of the window fixed when resizing.
     contentRect.origin.y -= newSize.height - contentRect.size.height;
     contentRect.size = newSize;
 
-    frame = [win frameRectForContentRect:contentRect];
+    frame = [self frameRectForContentRect:contentRect];
     NSRect maxFrame = [win constrainFrameRect:frame toScreen:[win screen]];
 
     // HACK!  Assuming the window frame cannot already be placed too high,
@@ -673,9 +654,10 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         // text storage to the biggest frame which will fit on the screen.
         //NSLog(@"Proposed window frame does not fit on the screen!");
         frame = [self fitWindowToFrame:maxFrame];
+        [self resizeVimViewToFitSize:[self contentRectForFrameRect:frame].size];
     }
 
-    //NSLog(@"%s %@", _cmd, NSStringFromRect(frame));
+    // NSLog(@"%s %@", _cmd, NSStringFromRect(frame));
 
     // HACK! If the window does resize, then windowDidResize is called which in
     // turn calls placeViews.  In case the computed new size of the window is
@@ -692,18 +674,15 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     if (!setupDone) return frame;
 
-    NSWindow *win = [self window];
-    NSRect contentRect = [win contentRectForFrameRect:frame];
-    NSSize size = [self textViewRectForContentSize:contentRect.size].size;
-    size = [self textStorageSizeForTextViewSize:size];
-    size = [[vimView textStorage] fitToSize:size];
-    size = [self contentSizeForTextStorageSize:size];
+    NSRect contentRect = [self contentRectForFrameRect:frame];
+    NSSize size = [vimView getDesiredRows:NULL columns:NULL
+                                  forSize:contentRect.size];
 
     // Keep top-left corner of 'frame' fixed.
     contentRect.origin.y -= size.height - contentRect.size.height;
     contentRect.size = size;
 
-    return [win frameRectForContentRect:contentRect];
+    return [self frameRectForContentRect:contentRect];
 }
 
 - (void)updateResizeIncrements
@@ -719,11 +698,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return [vimView addNewTabViewItem];
 }
 
-- (int)representedIndexOfTabViewItem:(NSTabViewItem *)tvi
-{
-    return [vimView representedIndexOfTabViewItem:tvi];
-}
-
 - (IBAction)vimMenuItemAction:(id)sender
 {
     int tag = [sender tag];
@@ -732,11 +706,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [data appendBytes:&tag length:sizeof(int)];
 
     [vimController sendMessage:ExecuteMenuMsgID data:data];
-}
-
-- (MMScroller *)scrollbarForIdentifier:(long)ident index:(unsigned *)idx
-{
-    return [vimView scrollbarForIdentifier:ident index:idx];
 }
 
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb
@@ -761,5 +730,35 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     shouldUpdateWindowSize =
         shouldUpdateWindowSize || [vimView shouldUpdateWindowSize];
 }
+
+- (NSSize)resizeVimViewToFitSize:(NSSize)size
+{
+    // If our optimal (rows,cols) do not match our current (rows,cols), resize
+    // ourselves and tell the Vim process to sync up.
+    int desired[2];
+    NSSize newSize = [vimView getDesiredRows:&desired[0] columns:&desired[1]
+                              forSize:size];
+
+    int rows, columns;
+    [vimView getActualRows:&rows columns:&columns];
+
+    if (desired[0] != rows || desired[1] != columns) {
+        // NSLog(@"Notify Vim that text storage dimensions changed from %dx%d "
+        //       @"to %dx%d", columns, rows, desired[0], desired[1]);
+        NSData *data = [NSData dataWithBytes:desired length:2*sizeof(int)];
+
+        [vimController sendMessage:SetTextDimensionsMsgID data:data];
+
+        // We only want to set the window title if this resize came from
+        // a live-resize, not (for example) setting 'columns' or 'lines'.
+        if ([[self textView] inLiveResize]) {
+            [[self window] setTitle:[NSString stringWithFormat:@"%dx%d",
+                    desired[1], desired[0]]];
+        }
+    }
+
+    return newSize;
+}
+
 
 @end // MMWindowController (Private)

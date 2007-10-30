@@ -32,15 +32,43 @@ enum {
 @end
 
 
+// TODO:  Move!
+@interface MMScroller : NSScroller {
+    long identifier;
+    int type;
+    NSRange range;
+}
+- (id)initWithIdentifier:(long)ident type:(int)type;
+- (long)identifier;
+- (int)type;
+- (NSRange)range;
+- (void)setRange:(NSRange)newRange;
+@end
+
+
 @interface MMVimView (Private)
 - (BOOL)bottomScrollbarVisible;
 - (BOOL)leftScrollbarVisible;
 - (BOOL)rightScrollbarVisible;
 - (void)placeScrollbars;
+- (int)representedIndexOfTabViewItem:(NSTabViewItem *)tvi;
+- (MMScroller *)scrollbarForIdentifier:(long)ident index:(unsigned *)idx;
+- (NSSize)contentSizeForTextStorageSize:(NSSize)textViewSize;
+- (NSSize)textStorageSizeForTextViewSize:(NSSize)textViewSize;
+- (NSTabView *)tabView;
 @end
 
 
 @implementation MMVimView
+
+- (NSRect)tabBarFrameForFrame:(NSRect)frame
+{
+    NSRect tabFrame = {
+        { 0, frame.size.height - 22 },
+        { frame.size.width, 22 }
+    };
+    return tabFrame;
+}
 
 - (MMVimView *)initWithFrame:(NSRect)frame
                vimController:(MMVimController *)controller {
@@ -96,9 +124,7 @@ enum {
 
     // Create the tab bar control (which is responsible for actually
     // drawing the tabline and tabs).
-    NSRect tabFrame = frame;
-    tabFrame.origin.y = NSMaxY(tabFrame) - 22;
-    tabFrame.size.height = 22;
+    NSRect tabFrame = [self tabBarFrameForFrame:frame];
     tabBarControl = [[PSMTabBarControl alloc] initWithFrame:tabFrame];
 
     [tabView setDelegate:tabBarControl];
@@ -106,7 +132,6 @@ enum {
     [tabBarControl setTabView:tabView];
     [tabBarControl setDelegate:self];
     [tabBarControl setHidden:YES];
-    [tabBarControl setAutoresizingMask:NSViewWidthSizable|NSViewMinYMargin];
     [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
     [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
     [tabBarControl setCellOptimumWidth:
@@ -118,7 +143,17 @@ enum {
     
     [tabBarControl setPartnerView:[self textView]];
     
+    // tab bar resizing only works if awakeFromNib is called (that's where
+    // the NSViewFrameDidChangeNotification callback is installed). Sounds like
+    // a PSMTabBarControl bug, let's live with it for now.
+    [tabBarControl awakeFromNib];
+
     [self addSubview:tabBarControl];
+
+    [self setPostsFrameChangedNotifications:YES];
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self selector:@selector(placeViews)
+                            name:NSViewFrameDidChangeNotification object:self];
 
     return self;
 }
@@ -182,6 +217,8 @@ enum {
     // removed as an observer, so remove it here (else lots of evil nasty bugs
     // will come and gnaw at your feet while you are sleeping).
     [[NSNotificationCenter defaultCenter] removeObserver:tabBarControl];
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
     
     [tabBarControl removeFromSuperviewWithoutNeedingDisplay];
     [textView removeFromSuperviewWithoutNeedingDisplay];
@@ -193,6 +230,29 @@ enum {
     }
 
     [tabView removeAllTabViewItems];
+}
+
+- (NSSize)desiredSizeForActualRowsAndColumns
+{
+    return [self contentSizeForTextStorageSize:[[self textStorage] size]];
+}
+
+- (NSSize)getDesiredRows:(int *)r columns:(int *)c forSize:(NSSize)size
+{
+  NSSize textViewSize = [self textViewRectForContentSize:size].size;
+  NSSize textStorageSize = [self textStorageSizeForTextViewSize:textViewSize];
+  NSSize newSize = [textStorage fitToSize:textStorageSize rows:r columns:c];
+  return [self contentSizeForTextStorageSize:newSize];
+}
+
+- (void)getActualRows:(int *)r columns:(int *)c
+{
+    [textStorage getMaxRows:r columns:c];
+}
+
+- (void)setActualRows:(int)r columns:(int)c
+{
+    [textStorage setMaxRows:r columns:c];
 }
 
 - (IBAction)addNewTab:(id)sender
@@ -271,6 +331,9 @@ enum {
         vimTaskSelectedTab = YES;
         [[self tabView] selectTabViewItem:tvi];
         vimTaskSelectedTab = NO;
+
+        // we might need to change the scrollbars that are visible
+        [self placeScrollbars];
     }
 }
 
@@ -547,6 +610,36 @@ enum {
     return nil;
 }
 
+- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident
+{
+    MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
+    NSRange range = NSMakeRange(pos, len);
+    if (!NSEqualRanges(range, [scroller range])) {
+        //NSLog(@"Set range %@ for scroller %d",
+        //        NSStringFromRange(range), ident);
+        [scroller setRange:range];
+        // TODO!  Should only do this once per update.
+
+        // This could be sent because a text window was created or closed, so
+        // we might need to update which scrollbars are visible.
+        [self placeScrollbars];
+    }
+}
+
+- (void)placeViews
+{
+    NSRect textViewRect = [self textViewRectForContentSize:[self frame].size];
+
+    // Give all superfluous space to the text view. It might be smaller or
+    // larger than it wants to be, but this is needed during life resizing
+    [[self textView] setFrame:textViewRect];
+
+    // for some reason, autoresizing doesn't work...set tab size manually
+    [tabBarControl setFrame:[self tabBarFrameForFrame:[self frame]]];
+
+    [self placeScrollbars];
+}
+
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore
 {
     [textStorage setDefaultColorsBackground:back foreground:fore];
@@ -567,13 +660,6 @@ enum {
 {
     NSSize size = textViewSize;
 
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int right = [ud integerForKey:MMTextInsetRightKey];
-    int bot = [ud integerForKey:MMTextInsetBottomKey];
-
-    size.width += [[self textView] textContainerOrigin].x + right;
-    size.height += [[self textView] textContainerOrigin].y + bot;
-
     if (![[self tabBarControl] isHidden])
         size.height += [[self tabBarControl] frame].size.height;
 
@@ -583,6 +669,13 @@ enum {
         size.width += [NSScroller scrollerWidth];
     if ([self rightScrollbarVisible])
         size.width += [NSScroller scrollerWidth];
+
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int right = [ud integerForKey:MMTextInsetRightKey];
+    int bot = [ud integerForKey:MMTextInsetBottomKey];
+
+    size.width += [[self textView] textContainerOrigin].x + right;
+    size.height += [[self textView] textContainerOrigin].y + bot;
 
     return size;
 }

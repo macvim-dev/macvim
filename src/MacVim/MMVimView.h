@@ -29,7 +29,7 @@
     MMTextStorage       *textStorage;
     NSMutableArray      *scrollbars;
 
-    // This is temporary to make the refactoring easier    
+    // This is temporary to make the refactoring easier  (XXX)
     BOOL                shouldUpdateWindowSize;
 }
 
@@ -41,25 +41,23 @@
 - (BOOL)inLiveResize;
 - (void)cleanup;
 
+- (NSSize)desiredSizeForActualRowsAndColumns;
+- (NSSize)getDesiredRows:(int *)r columns:(int *)c forSize:(NSSize)size;
+- (void)getActualRows:(int *)r columns:(int *)c;
+- (void)setActualRows:(int)r columns:(int)c;
 
 - (PSMTabBarControl *)tabBarControl;
-- (NSTabView *)tabView;
 - (IBAction)addNewTab:(id)sender;
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
-- (int)representedIndexOfTabViewItem:(NSTabViewItem *)tvi;
 - (NSTabViewItem *)addNewTabViewItem;
 
-- (BOOL)bottomScrollbarVisible;
-- (BOOL)leftScrollbarVisible;
-- (BOOL)rightScrollbarVisible;
-- (void)placeScrollbars;
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
 - (void)destroyScrollbarWithIdentifier:(long)ident;
 - (void)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible;
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
                     identifier:(long)ident;
-- (MMScroller *)scrollbarForIdentifier:(long)ident index:(unsigned *)idx;
+- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident;
 
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
 
@@ -67,21 +65,6 @@
 - (NSRect)textViewRectForContentSize:(NSSize)contentSize;
 - (void)setShouldUpdateWindowSize:(BOOL)b;
 
+- (void)placeViews;  // XXX: this should probably not be public
 
-- (NSSize)contentSizeForTextStorageSize:(NSSize)textViewSize;
-- (NSSize)textStorageSizeForTextViewSize:(NSSize)textViewSize;
 @end
-
-// TODO:  Move!
-@interface MMScroller : NSScroller {
-    long identifier;
-    int type;
-    NSRange range;
-}
-- (id)initWithIdentifier:(long)ident type:(int)type;
-- (long)identifier;
-- (int)type;
-- (NSRange)range;
-- (void)setRange:(NSRange)newRange;
-@end
-

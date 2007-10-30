@@ -603,6 +603,7 @@
     return (unsigned)(col + row*(maxColumns+1));
 }
 
+// XXX: unused at the moment
 - (BOOL)resizeToFitSize:(NSSize)size
 {
     int rows = maxRows, cols = maxColumns;
