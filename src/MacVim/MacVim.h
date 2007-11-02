@@ -11,9 +11,6 @@
 #import <Cocoa/Cocoa.h>
 
 
-// Enable to use experimental 'enc' support.
-#define MM_ENABLE_CONV 1
-
 
 
 //

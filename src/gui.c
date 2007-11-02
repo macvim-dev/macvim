@@ -2204,7 +2204,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 #ifdef HAVE_GTK2
     /* The value returned is the length in display cells */
     len = gui_gtk2_draw_string(gui.row, col, s, len, draw_flags);
-#elif defined(FEAT_GUI_MACVIM)
+#elif defined(FEAT_GUI_MACVIM) && defined(FEAT_MBYTE)
     /* The value returned is the length in display cells */
     len = gui_macvim_draw_string(gui.row, col, s, len, draw_flags);
 #else

@@ -250,7 +250,7 @@ gui_mch_delete_lines(int row, int num_lines)
     void
 gui_mch_draw_string(int row, int col, char_u *s, int len, int flags)
 {
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
     if (output_conv.vc_type != CONV_NONE) {
         conv_str = string_convert(&output_conv, s, &len);
@@ -262,7 +262,7 @@ gui_mch_draw_string(int row, int col, char_u *s, int len, int flags)
     [[MMBackend sharedInstance] replaceString:(char*)s length:len
             row:row column:col flags:flags];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     if (conv_str)
         vim_free(conv_str);
 #endif
@@ -288,7 +288,7 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
     BOOL outPad = NO;
     MMBackend *backend = [MMBackend sharedInstance];
     static char ZeroWidthSpace[] = { 0xe2, 0x80, 0x8b };
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
 
     if (output_conv.vc_type != CONV_NONE) {
@@ -367,7 +367,7 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
                 row:row column:endcol-1 flags:flags];
     }
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     if (conv_str)
         vim_free(conv_str);
 #endif
@@ -540,7 +540,7 @@ clip_mch_request_selection(VimClipboard *cbd)
         char_u *str = (char_u*)[string UTF8String];
         int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         if (input_conv.vc_type != CONV_NONE)
             str = string_convert(&input_conv, str, &len);
 #endif
@@ -548,7 +548,7 @@ clip_mch_request_selection(VimClipboard *cbd)
         if (str)
             clip_yank_selection(type, str, len, cbd);
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         if (input_conv.vc_type != CONV_NONE)
             vim_free(str);
 #endif
@@ -575,7 +575,7 @@ clip_mch_set_selection(VimClipboard *cbd)
 
     // TODO: Avoid overflow.
     int len = (int)llen;
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     if (output_conv.vc_type != CONV_NONE) {
         char_u *conv_str = string_convert(&output_conv, str, &len);
         if (conv_str) {
@@ -622,7 +622,7 @@ gui_mch_add_menu(vimmenu_T *menu, int idx)
     }
 
     char_u *dname = menu->dname;
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     dname = CONVERT_TO_UTF8(dname);
 #endif
 
@@ -630,7 +630,7 @@ gui_mch_add_menu(vimmenu_T *menu, int idx)
             addMenuWithTag:(int)menu parent:parent name:(char*)dname
                    atIndex:idx];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(dname);
 #endif
 }
@@ -653,7 +653,7 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
             ? menu->strings[MENU_INDEX_TIP] : menu->actext;
     char_u *map_str = menu->strings[MENU_INDEX_NORMAL];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     icon = CONVERT_TO_UTF8(icon);
     name = CONVERT_TO_UTF8(name);
     tip = CONVERT_TO_UTF8(tip);
@@ -690,7 +690,7 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
                         action:action
                        atIndex:idx];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(icon);
     CONVERT_TO_UTF8_FREE(name);
     CONVERT_TO_UTF8_FREE(tip);
@@ -746,14 +746,14 @@ gui_mch_menu_hidden(vimmenu_T *menu, int hidden)
 gui_mch_show_popupmenu(vimmenu_T *menu)
 {
     char_u *name = menu->name;
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
 #endif
 
     [[MMBackend sharedInstance] showPopupMenuWithName:(char*)name
                                       atMouseLocation:YES];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(name);
 #endif
 
@@ -766,14 +766,14 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
     void
 gui_make_popup(char_u *path_name, int mouse_pos)
 {
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     path_name = CONVERT_TO_UTF8(path_name);
 #endif
 
     [[MMBackend sharedInstance] showPopupMenuWithName:(char*)path_name
                                       atMouseLocation:mouse_pos];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(path_name);
 #endif
 }
@@ -871,13 +871,13 @@ gui_mch_init_font(char_u *font_name, int fontset)
     // for now we set the font here.
     // TODO!  Proper font handling, the way Vim expects it.
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     font_name = CONVERT_TO_UTF8(font_name);
 #endif
 
     BOOL ok = [[MMBackend sharedInstance] setFontWithName:(char*)font_name];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(font_name);
 #endif
 
@@ -1073,7 +1073,7 @@ ex_macaction(eap)
     }
 
     char_u *arg = eap->arg;
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     arg = CONVERT_TO_UTF8(arg);
 #endif
 
@@ -1085,7 +1085,7 @@ ex_macaction(eap)
         EMSG2(_("E???: \"%s\" is not a valid action"), eap->arg);
     }
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     arg = CONVERT_TO_UTF8(arg);
 #endif
 }
@@ -1140,7 +1140,7 @@ gui_mch_browse(
     //NSLog(@"gui_mch_browse(saving=%d, title=%s, dflt=%s, ext=%s, initdir=%s,"
     //        " filter=%s", saving, title, dflt, ext, initdir, filter);
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     title = CONVERT_TO_UTF8(title);
     initdir = CONVERT_TO_UTF8(initdir);
 #endif
@@ -1149,7 +1149,7 @@ gui_mch_browse(
             browseForFileInDirectory:(char*)initdir title:(char*)title
                               saving:saving];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(title);
     CONVERT_TO_UTF8_FREE(initdir);
 #endif
@@ -1173,7 +1173,7 @@ gui_mch_dialog(
     //        "dfltbutton=%d textfield=%s)", type, title, message, buttons,
     //        dfltbutton, textfield);
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     title = CONVERT_TO_UTF8(title);
     message = CONVERT_TO_UTF8(message);
     buttons = CONVERT_TO_UTF8(buttons);
@@ -1187,7 +1187,7 @@ gui_mch_dialog(
                           buttons:(char*)buttons
                         textField:(char*)textfield];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(title);
     CONVERT_TO_UTF8_FREE(message);
     CONVERT_TO_UTF8_FREE(buttons);
@@ -1213,14 +1213,14 @@ gui_mch_flash(int msec)
     guicolor_T
 gui_mch_get_color(char_u *name)
 {
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
 #endif
 
     NSString *key = [NSString stringWithUTF8String:(char*)name];
     guicolor_T col = [[MMBackend sharedInstance] lookupColorWithKey:key];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(name);
 #endif
 
@@ -1277,7 +1277,7 @@ gui_mch_haskey(char_u *name)
 {
     BOOL ok = NO;
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
 #endif
 
@@ -1285,7 +1285,7 @@ gui_mch_haskey(char_u *name)
     if (value)
         ok =  [[MMBackend sharedInstance] hasSpecialKeyWithValue:value];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(name);
 #endif
 
@@ -1367,13 +1367,13 @@ gui_mch_settitle(char_u *title, char_u *icon)
 {
     //NSLog(@"gui_mch_settitle(title=%s, icon=%s)", title, icon);
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     title = CONVERT_TO_UTF8(title);
 #endif
 
     [[MMBackend sharedInstance] setWindowTitle:(char*)title];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(title);
 #endif
 }
@@ -1453,14 +1453,14 @@ gui_macvim_update_modified_flag()
     void
 serverRegisterName(char_u *name)
 {
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
 #endif
 
     NSString *svrName = [NSString stringWithUTF8String:(char*)name];
     [[MMBackend sharedInstance] registerServerWithName:svrName];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(name);
 #endif
 }
@@ -1474,7 +1474,7 @@ serverRegisterName(char_u *name)
 serverSendToVim(char_u *name, char_u *cmd, char_u **result,
         int *port, int asExpr, int silent)
 {
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
     cmd = CONVERT_TO_UTF8(cmd);
 #endif
@@ -1487,7 +1487,7 @@ serverSendToVim(char_u *name, char_u *cmd, char_u **result,
               expression:asExpr
                   silent:silent];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(name);
     CONVERT_TO_UTF8_FREE(cmd);
 #endif
@@ -1508,11 +1508,11 @@ serverGetVimNames(void)
     if (list) {
         NSString *string = [list componentsJoinedByString:@"\n"];
         char_u *s = (char_u*)[string UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         s = CONVERT_FROM_UTF8(s);
 #endif
         names = vim_strsave(s);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         CONVERT_FROM_UTF8_FREE(s);
 #endif
     }
@@ -1550,7 +1550,7 @@ serverPeekReply(int port, char_u **str)
     if (str && len > 0) {
         *str = (char_u*)[reply UTF8String];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         if (input_conv.vc_type != CONV_NONE) {
             char_u *s = string_convert(&input_conv, *str, &len);
 
@@ -1583,11 +1583,11 @@ serverReadReply(int port, char_u **str)
     NSString *reply = [[MMBackend sharedInstance] waitForReplyOnPort:port];
     if (reply && str) {
         char_u *s = (char_u*)[reply UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         s = CONVERT_FROM_UTF8(s);
 #endif
         *str = vim_strsave(s);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         CONVERT_FROM_UTF8_FREE(s);
 #endif
         return 0;
@@ -1607,14 +1607,14 @@ serverSendReply(char_u *serverid, char_u *reply)
     int retval = -1;
     int port = serverStrToPort(serverid);
     if (port > 0 && reply) {
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         reply = CONVERT_TO_UTF8(reply);
 #endif
         BOOL ok = [[MMBackend sharedInstance]
                 sendReply:[NSString stringWithUTF8String:(char*)reply]
                    toPort:port];
         retval = ok ? 0 : -1;
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         CONVERT_TO_UTF8_FREE(reply);
 #endif
     }

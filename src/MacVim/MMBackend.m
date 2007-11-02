@@ -480,7 +480,7 @@ enum {
         int len = STRLEN(s);
         if (len <= 0) continue;
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         s = CONVERT_TO_UTF8(s);
 #endif
 
@@ -493,7 +493,7 @@ enum {
         [data appendBytes:&len length:sizeof(int)];
         [data appendBytes:s length:len];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         CONVERT_TO_UTF8_FREE(s);
 #endif
     }
@@ -554,11 +554,11 @@ enum {
 
         if (dialogReturn && [dialogReturn isKindOfClass:[NSString class]]) {
             char_u *ret = (char_u*)[dialogReturn UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
             ret = CONVERT_FROM_UTF8(ret);
 #endif
             s = vim_strsave(ret);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
             CONVERT_FROM_UTF8_FREE(ret);
 #endif
         }
@@ -637,11 +637,11 @@ enum {
             if (txtfield && [dialogReturn count] > 1) {
                 NSString *retString = [dialogReturn objectAtIndex:1];
                 char_u *ret = (char_u*)[retString UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
                 ret = CONVERT_FROM_UTF8(ret);
 #endif
                 vim_strncpy((char_u*)txtfield, ret, IOSIZE - 1);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
                 CONVERT_FROM_UTF8_FREE(ret);
 #endif
             }
@@ -1194,7 +1194,7 @@ enum {
         
         // TODO: Avoid overflow.
         int len = (int)llen;
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         if (output_conv.vc_type != CONV_NONE) {
             char_u *conv_str = string_convert(&output_conv, str, &len);
             if (conv_str) {
@@ -1249,13 +1249,13 @@ enum {
 
     char_u *s = (char_u*)[input UTF8String];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     s = CONVERT_FROM_UTF8(s);
 #endif
 
     server_to_input_buf(s);
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_FROM_UTF8_FREE(s);
 #endif
 
@@ -1272,23 +1272,23 @@ enum {
     NSString *eval = nil;
     char_u *s = (char_u*)[expr UTF8String];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     s = CONVERT_FROM_UTF8(s);
 #endif
 
     char_u *res = eval_client_expr_to_string(s);
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_FROM_UTF8_FREE(s);
 #endif
 
     if (res != NULL) {
         s = res;
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         s = CONVERT_TO_UTF8(s);
 #endif
         eval = [NSString stringWithUTF8String:(char*)s];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         CONVERT_TO_UTF8_FREE(s);
 #endif
         vim_free(res);
@@ -1320,12 +1320,12 @@ enum {
             [svrConn setRootObject:self];
 
             char_u *s = (char_u*)[svrName UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
             s = CONVERT_FROM_UTF8(s);
 #endif
             // NOTE: 'serverName' is a global variable
             serverName = vim_strsave(s);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
             CONVERT_FROM_UTF8_FREE(s);
 #endif
 #ifdef FEAT_EVAL
@@ -1355,11 +1355,11 @@ enum {
     if (!conn) {
         if (!silent) {
             char_u *s = (char_u*)[name UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
             s = CONVERT_FROM_UTF8(s);
 #endif
 	    EMSG2(_(e_noserver), s);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
             CONVERT_FROM_UTF8_FREE(s);
 #endif
         }
@@ -1380,11 +1380,11 @@ enum {
             if (reply) {
                 if (eval) {
                     char_u *r = (char_u*)[eval UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
                     r = CONVERT_FROM_UTF8(r);
 #endif
                     *reply = vim_strsave(r);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
                     CONVERT_FROM_UTF8_FREE(r);
 #endif
                 } else {
@@ -1637,7 +1637,7 @@ enum {
     char_u *str = (char_u*)[key UTF8String];
     int i, len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
     if (input_conv.vc_type != CONV_NONE) {
         conv_str = string_convert(&input_conv, str, &len);
@@ -1657,7 +1657,7 @@ enum {
         }
     }
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     if (conv_str)
         vim_free(conv_str);
 #endif
@@ -1669,7 +1669,7 @@ enum {
     char_u special[3];
     char_u modChars[3];
     char_u *chars = (char_u*)[key UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
 #endif
     int length = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
@@ -1714,12 +1714,15 @@ enum {
             length = 3;
         } else if (mods & MOD_MASK_ALT) {
             int mtab = 0x80 | TAB;
+#ifdef FEAT_MBYTE
             if (enc_utf8) {
                 // Convert to utf-8
                 special[0] = (mtab >> 6) + 0xc0;
                 special[1] = mtab & 0xbf;
                 length = 2;
-            } else {
+            } else
+#endif
+            {
                 special[0] = mtab;
                 length = 1;
             }
@@ -1756,7 +1759,7 @@ enum {
             mods &= ~MOD_MASK_ALT;
         }
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         if (input_conv.vc_type != CONV_NONE) {
             conv_str = string_convert(&input_conv, chars, &length);
             if (conv_str)
@@ -1779,7 +1782,7 @@ enum {
         add_to_input_buf(chars, length);
     }
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     if (conv_str)
         vim_free(conv_str);
 #endif
@@ -1949,13 +1952,13 @@ enum {
     [name appendString:[NSString stringWithFormat:@":h%.2f", pointSize]];
     char_u *s = (char_u*)[name UTF8String];
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     s = CONVERT_FROM_UTF8(s);
 #endif
 
     set_option_value((char_u*)"guifont", 0, s, 0);
 
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     CONVERT_FROM_UTF8_FREE(s);
 #endif
 
@@ -1987,11 +1990,11 @@ enum {
             while (bytes < end && i < n) {
                 int len = *((int*)bytes);  bytes += sizeof(int);
                 char_u *s = (char_u*)bytes;
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
                 s = CONVERT_FROM_UTF8(s);
 #endif
                 fnames[i++] = vim_strsave(s);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
                 CONVERT_FROM_UTF8_FREE(s);
 #endif
                 bytes += len;
@@ -2027,11 +2030,11 @@ enum {
         goto_tabpage(9999);
 
         char_u *s = (char_u*)[cmd UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         s = CONVERT_FROM_UTF8(s);
 #endif
         do_cmdline_cmd(s);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
         CONVERT_FROM_UTF8_FREE(s);
 #endif
 
@@ -2069,12 +2072,12 @@ enum {
 
     len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     char_u *s = (char_u*)[string UTF8String];
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     if (input_conv.vc_type != CONV_NONE)
         s = string_convert(&input_conv, s, &len);
 #endif
     dnd_yank_drag_data(s, len);
-#if MM_ENABLE_CONV
+#ifdef FEAT_MBYTE
     if (input_conv.vc_type != CONV_NONE)
         vim_free(s);
 #endif

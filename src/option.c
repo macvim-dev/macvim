@@ -2951,7 +2951,7 @@ set_init_1()
     char_u	*p;
     int		opt_idx;
     long_u	n;
-#ifdef FEAT_GUI_MACVIM
+#if defined(FEAT_GUI_MACVIM) && defined(FEAT_MBYTE)
     int         did_mb_init;
 #endif
 
