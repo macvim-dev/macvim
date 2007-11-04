@@ -1106,9 +1106,10 @@ enum {
         int count = *((int*)bytes);  bytes += sizeof(int);
 
         button = eventButtonNumberToVimMouseButton(button);
-        flags = eventModifierFlagsToVimMouseModMask(flags);
-
-        gui_send_mouse_event(button, col, row, count>1, flags);
+        if (button >= 0) {
+            flags = eventModifierFlagsToVimMouseModMask(flags);
+            gui_send_mouse_event(button, col, row, count>1, flags);
+        }
     } else if (MouseUpMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -2297,10 +2298,10 @@ static int eventModifierFlagsToVimMouseModMask(int modifierFlags)
 
 static int eventButtonNumberToVimMouseButton(int buttonNumber)
 {
-    static int mouseButton[] = { MOUSE_LEFT, MOUSE_RIGHT, MOUSE_MIDDLE,
-            MOUSE_X1, MOUSE_X2 };
+    static int mouseButton[] = { MOUSE_LEFT, MOUSE_RIGHT, MOUSE_MIDDLE };
 
-    return mouseButton[buttonNumber < 5 ? buttonNumber : 0];
+    return (buttonNumber >= 0 && buttonNumber < 3)
+            ? mouseButton[buttonNumber] : -1;
 }
 
 static int specialKeyToNSKey(int key)
