@@ -229,25 +229,13 @@
     else if (flags & DRAW_ITALIC)
         theFont = italicFont;
 
-    NSDictionary *attributes;
-    
-    if (flags & DRAW_UNDERC) {
-        // move the undercurl down a bit so it is visible
-        attributes = [NSDictionary dictionaryWithObjectsAndKeys:
-            theFont, NSFontAttributeName,
-            bg, NSBackgroundColorAttributeName,
-            fg, NSForegroundColorAttributeName,
-            sp, NSUnderlineColorAttributeName,
-            [NSNumber numberWithFloat:2],NSBaselineOffsetAttributeName,
-            nil];
-    } else {
-        attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+    NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
             theFont, NSFontAttributeName,
             bg, NSBackgroundColorAttributeName,
             fg, NSForegroundColorAttributeName,
             sp, NSUnderlineColorAttributeName,
             nil];
-    }
+
     [attribString setAttributes:attributes range:range];
 
     if (flags & DRAW_UNDERL) {
