@@ -34,6 +34,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
 @interface MMAppController (Private)
 - (MMVimController *)keyVimController;
 - (MMVimController *)topmostVimController;
+- (void)launchVimProcessWithArguments:(NSArray *)args;
 @end
 
 @interface NSMenu (MMExtras)
@@ -138,6 +139,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
 
 - (void)application:(NSApplication *)sender openFiles:(NSArray *)filenames
 {
+    // Go trough 'filenames' array and make sure each file exists.
     NSString *firstMissingFile = nil;
     NSMutableArray *files = [NSMutableArray array];
     int i, count = [filenames count];
@@ -183,20 +185,9 @@ static NSTimeInterval MMTerminateTimeout = 3;
     if (openInTabs && (vc = [self topmostVimController])) {
         [vc dropFiles:files];
     } else {
-        NSMutableArray *args = [NSMutableArray arrayWithObjects:
-            @"-g", @"-p", nil];
+        NSMutableArray *args = [NSMutableArray arrayWithObject:@"-p"];
         [args addObjectsFromArray:files];
-
-        NSString *path = [[NSBundle mainBundle]
-                pathForAuxiliaryExecutable:@"Vim"];
-        if (!path) {
-            NSLog(@"ERROR: Vim executable could not be found inside app "
-                   "bundle!");
-            [NSApp replyToOpenOrPrint:NSApplicationDelegateReplyFailure];
-            return;
-        }
-
-        [NSTask launchedTaskWithLaunchPath:path arguments:args];
+        [self launchVimProcessWithArguments:args];
     }
 
     [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
@@ -363,17 +354,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
 
 - (IBAction)newWindow:(id)sender
 {
-    NSMutableArray *args = [NSMutableArray arrayWithObject:@"-g"];
-    NSString *path = [[NSBundle mainBundle]
-            pathForAuxiliaryExecutable:@"Vim"];
-    if (!path) {
-        NSLog(@"ERROR: Vim executable could not be found inside app bundle!");
-        return;
-    }
-
-
-    //NSLog(@"Launching a new VimTask...");
-    [NSTask launchedTaskWithLaunchPath:path arguments:args];
+    [self launchVimProcessWithArguments:nil];
 }
 
 - (IBAction)selectNextWindow:(id)sender
@@ -577,7 +558,44 @@ static NSTimeInterval MMTerminateTimeout = 3;
     return nil;
 }
 
-@end
+- (void)launchVimProcessWithArguments:(NSArray *)args
+{
+    NSString *path = [[NSBundle mainBundle] pathForAuxiliaryExecutable:@"Vim"];
+    if (!path) {
+        NSLog(@"ERROR: Vim executable could not be found inside app bundle!");
+        return;
+    }
+
+    NSMutableString *execArg = [NSMutableString
+        stringWithFormat:@"exec \"%@\" -g", path];
+    if (args) {
+        // Append all arguments while making sure that arguments containing
+        // spaces are enclosed in quotes.
+        NSCharacterSet *space = [NSCharacterSet whitespaceCharacterSet];
+        unsigned i, count = [args count];
+
+        for (i = 0; i < count; ++i) {
+            NSString *arg = [args objectAtIndex:i];
+            if (NSNotFound != [arg rangeOfCharacterFromSet:space].location)
+                [execArg appendFormat:@" \"%@\"", arg];
+            else
+                [execArg appendFormat:@" %@", arg];
+        }
+    }
+
+    // Launch the process with a login shell so that users environment settings
+    // get sourced.  This does not always happen when MacVim is started.
+    NSArray *shellArgs = [NSArray arrayWithObjects:@"-l", @"-c", execArg, nil];
+    NSString *shell = [[[NSProcessInfo processInfo] environment]
+        objectForKey:@"SHELL"];
+    if (!shell)
+        shell = @"/bin/sh";
+
+    //NSLog(@"Launching: %@  args: %@", shell, shellArgs);
+    [NSTask launchedTaskWithLaunchPath:shell arguments:shellArgs];
+}
+
+@end // MMAppController (Private)
 
 
 
