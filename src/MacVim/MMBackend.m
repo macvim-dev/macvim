@@ -71,6 +71,7 @@ enum {
 - (void)handleDropFiles:(NSData *)data;
 - (void)handleDropString:(NSData *)data;
 - (BOOL)checkForModifiedBuffers;
+- (void)addInput:(NSString *)input;
 @end
 
 
@@ -1139,6 +1140,13 @@ enum {
         int col = *((int*)bytes);  bytes += sizeof(int);
 
         gui_mouse_moved(col, row);
+    } else if (AddInputMsgID == msgid) {
+        NSString *string = [[NSString alloc] initWithData:data
+                encoding:NSUTF8StringEncoding];
+        if (string) {
+            [self addInput:string];
+            [string release];
+        }
     } else {
         // Not keyboard or mouse event, queue it and handle later.
         //NSLog(@"Add event %s to input event queue", MessageStrings[msgid]);
@@ -1164,6 +1172,36 @@ enum {
 
         [self processInput:msgid data:data];
     }
+}
+
+- (NSString *)evaluateExpression:(in bycopy NSString *)expr
+{
+    NSString *eval = nil;
+    char_u *s = (char_u*)[expr UTF8String];
+
+#ifdef FEAT_MBYTE
+    s = CONVERT_FROM_UTF8(s);
+#endif
+
+    char_u *res = eval_client_expr_to_string(s);
+
+#ifdef FEAT_MBYTE
+    CONVERT_FROM_UTF8_FREE(s);
+#endif
+
+    if (res != NULL) {
+        s = res;
+#ifdef FEAT_MBYTE
+        s = CONVERT_TO_UTF8(s);
+#endif
+        eval = [NSString stringWithUTF8String:(char*)s];
+#ifdef FEAT_MBYTE
+        CONVERT_TO_UTF8_FREE(s);
+#endif
+        vim_free(res);
+    }
+
+    return eval;
 }
 
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard
@@ -1237,18 +1275,7 @@ enum {
 {
     //NSLog(@"addInput:%@ client:%@", input, (id)client);
 
-    char_u *s = (char_u*)[input UTF8String];
-
-#ifdef FEAT_MBYTE
-    s = CONVERT_FROM_UTF8(s);
-#endif
-
-    server_to_input_buf(s);
-
-#ifdef FEAT_MBYTE
-    CONVERT_FROM_UTF8_FREE(s);
-#endif
-
+    [self addInput:input];
     [self addClient:(id)client];
 
     inputReceived = YES;
@@ -1257,36 +1284,8 @@ enum {
 - (NSString *)evaluateExpression:(in bycopy NSString *)expr
                  client:(in byref id <MMVimClientProtocol>)client
 {
-    //NSLog(@"evaluateExpression:%@ client:%@", expr, (id)client);
-
-    NSString *eval = nil;
-    char_u *s = (char_u*)[expr UTF8String];
-
-#ifdef FEAT_MBYTE
-    s = CONVERT_FROM_UTF8(s);
-#endif
-
-    char_u *res = eval_client_expr_to_string(s);
-
-#ifdef FEAT_MBYTE
-    CONVERT_FROM_UTF8_FREE(s);
-#endif
-
-    if (res != NULL) {
-        s = res;
-#ifdef FEAT_MBYTE
-        s = CONVERT_TO_UTF8(s);
-#endif
-        eval = [NSString stringWithUTF8String:(char*)s];
-#ifdef FEAT_MBYTE
-        CONVERT_TO_UTF8_FREE(s);
-#endif
-        vim_free(res);
-    }
-
     [self addClient:(id)client];
-
-    return eval;
+    return [self evaluateExpression:expr];
 }
 
 - (void)registerServerWithName:(NSString *)name
@@ -2083,6 +2082,21 @@ enum {
     }
 
     return NO;
+}
+
+- (void)addInput:(NSString *)input
+{
+    char_u *s = (char_u*)[input UTF8String];
+
+#ifdef FEAT_MBYTE
+    s = CONVERT_FROM_UTF8(s);
+#endif
+
+    server_to_input_buf(s);
+
+#ifdef FEAT_MBYTE
+    CONVERT_FROM_UTF8_FREE(s);
+#endif
 }
 
 @end // MMBackend (Private)

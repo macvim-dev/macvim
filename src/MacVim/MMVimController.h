@@ -54,7 +54,7 @@
 - (void)sendMessage:(int)msgid data:(NSData *)data;
 - (BOOL)sendMessageNow:(int)msgid data:(NSData *)data
                timeout:(NSTimeInterval)timeout;
-
+- (void)addVimInput:(NSString *)string;
 @end
 
 // vim: set ft=objc:

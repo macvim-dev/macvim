@@ -63,6 +63,7 @@ char *MessageStrings[] =
     "LeaveFullscreenMsgID",
     "BuffersNotModifiedMsgID",
     "BuffersModifiedMsgID",
+    "AddInputMsgID",
 };
 
 

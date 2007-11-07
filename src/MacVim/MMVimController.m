@@ -284,6 +284,17 @@ static NSTimeInterval MMResendInterval = 0.5;
     return sendOk;
 }
 
+- (void)addVimInput:(NSString *)string
+{
+    // This is a very general method of adding input to the Vim process.  It is
+    // basically the same as calling remote_send() on the process (see
+    // ':h remote_send').
+    if (string) {
+        NSData *data = [string dataUsingEncoding:NSUTF8StringEncoding];
+        [self sendMessage:AddInputMsgID data:data];
+    }
+}
+
 - (id)backendProxy
 {
     return backendProxy;
@@ -757,6 +768,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 
         [windowController adjustLinespace:linespace];
     } else if (ActivateMsgID == msgid) {
+        //NSLog(@"ActivateMsgID");
         [NSApp activateIgnoringOtherApps:YES];
         [[windowController window] makeKeyAndOrderFront:self];
     } else if (SetServerNameMsgID == msgid) {

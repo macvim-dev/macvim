@@ -175,6 +175,30 @@ static NSTimeInterval MMReplyTimeout = 5;
         return;
     }
 
+    if ([files count] == 1) {
+        // Check if the file is already open...if so raise that window.
+        i, count = [vimControllers count];
+        for (i = 0; i < count; ++i) {
+            MMVimController *controller = [vimControllers objectAtIndex:i];
+            id proxy = [controller backendProxy];
+
+            @try {
+                NSString *expr = [NSString stringWithFormat:
+                        @"bufloaded(\"%@\")", [files objectAtIndex:0]];
+                NSString *eval = [proxy evaluateExpression:expr];
+                if ([eval isEqual:@"1"]) {
+                    // TODO: Select the tab with 'file' open.
+                    [controller addVimInput:
+                                @"<C-\\><C-N>:cal foreground()<CR>"];
+                    return;
+                }
+            }
+            @catch (NSException *e) {
+                // Do nothing ...
+            }
+        }
+    }
+
     MMVimController *vc;
     BOOL openInTabs = [[NSUserDefaults standardUserDefaults]
         boolForKey:MMOpenFilesInTabsKey];
