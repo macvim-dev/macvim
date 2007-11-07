@@ -18,9 +18,6 @@
 static NSTimeInterval MMRequestTimeout = 5;
 static NSTimeInterval MMReplyTimeout = 5;
 
-// Timeout used when the app should terminate.
-static NSTimeInterval MMTerminateTimeout = 3;
-
 
 
 @interface MMAppController (MMServices)
@@ -205,60 +202,34 @@ static NSTimeInterval MMTerminateTimeout = 3;
 - (NSApplicationTerminateReply)applicationShouldTerminate:
     (NSApplication *)sender
 {
+    // TODO: Follow Apple's guidelines for 'Graceful Application Termination'
+    // (in particular, allow user to review changes and save).
     int reply = NSTerminateNow;
     BOOL modifiedBuffers = NO;
-    BOOL notResponding = NO;
 
-    // Go through vim controllers, checking for modified buffers.  If a process
-    // is not responding then note this as well.
-    unsigned i, count = [vimControllers count];
-    for (i = 0; i < count; ++i) {
-        MMVimController *controller = [vimControllers objectAtIndex:i];
-        id proxy = [controller backendProxy];
-        NSConnection *connection = [proxy connectionForProxy];
-        if (connection) {
-            NSTimeInterval req = [connection requestTimeout];
-            NSTimeInterval rep = [connection replyTimeout];
-            [connection setRequestTimeout:MMTerminateTimeout];
-            [connection setReplyTimeout:MMTerminateTimeout];
-
-            @try {
-                if ([proxy checkForModifiedBuffers])
-                    modifiedBuffers = YES;
-            }
-            @catch (NSException *e) {
-                NSLog(@"WARNING: Got exception while waiting for "
-                        "checkForModifiedBuffers: \"%@\"", e);
-                notResponding = YES;
-            }
-            @finally {
-                [connection setRequestTimeout:req];
-                [connection setReplyTimeout:rep];
-                if (modifiedBuffers || notResponding)
-                    break;
-            }
+    // Go through windows, checking for modified buffers.  (Each Vim process
+    // tells MacVim when any buffer has been modified and MacVim sets the
+    // 'documentEdited' flag of the window correspondingly.)
+    NSEnumerator *e = [[NSApp windows] objectEnumerator];
+    id window;
+    while (window = [e nextObject]) {
+        if ([window isDocumentEdited]) {
+            modifiedBuffers = YES;
+            break;
         }
     }
 
-    if (modifiedBuffers || notResponding) {
+    if (modifiedBuffers) {
         NSAlert *alert = [[NSAlert alloc] init];
         [alert addButtonWithTitle:@"Quit"];
         [alert addButtonWithTitle:@"Cancel"];
-        if (modifiedBuffers) {
-            [alert setMessageText:@"Quit without saving?"];
-            [alert setInformativeText:@"There are modified buffers, "
-                "if you quit now all changes will be lost.  Quit anyway?"];
-        } else {
-            [alert setMessageText:@"Force Quit?"];
-            [alert setInformativeText:@"At least one Vim process is not "
-                "responding, if you quit now any changes you have made "
-                "will be lost. Quit anyway?"];
-        }
+        [alert setMessageText:@"Quit without saving?"];
+        [alert setInformativeText:@"There are modified buffers, "
+            "if you quit now all changes will be lost.  Quit anyway?"];
         [alert setAlertStyle:NSWarningAlertStyle];
 
-        if ([alert runModal] != NSAlertFirstButtonReturn) {
+        if ([alert runModal] != NSAlertFirstButtonReturn)
             reply = NSTerminateCancel;
-        }
 
         [alert release];
     }
@@ -273,7 +244,7 @@ static NSTimeInterval MMTerminateTimeout = 3;
     [[NSConnection defaultConnection] invalidate];
 
     // Send a SIGINT to all running Vim processes, so that they are sure to
-    // receive the connectionDidDie: notification (a process has to checking
+    // receive the connectionDidDie: notification (a process has to be checking
     // the run-loop for this to happen).
     unsigned i, count = [vimControllers count];
     for (i = 0; i < count; ++i) {

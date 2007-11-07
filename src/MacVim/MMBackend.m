@@ -70,6 +70,7 @@ enum {
 - (void)handleSetFont:(NSData *)data;
 - (void)handleDropFiles:(NSData *)data;
 - (void)handleDropString:(NSData *)data;
+- (BOOL)checkForModifiedBuffers;
 @end
 
 
@@ -1165,18 +1166,6 @@ enum {
     }
 }
 
-- (BOOL)checkForModifiedBuffers
-{
-    buf_T *buf;
-    for (buf = firstbuf; buf != NULL; buf = buf->b_next) {
-        if (bufIsChanged(buf)) {
-            return YES;
-        }
-    }
-
-    return NO;
-}
-
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard
 {
     if (VIsual_active && (State & NORMAL) && clip_star.available) {
@@ -2082,6 +2071,18 @@ enum {
 #endif
     add_to_input_buf(dropkey, sizeof(dropkey));
 #endif // FEAT_DND
+}
+
+- (BOOL)checkForModifiedBuffers
+{
+    buf_T *buf;
+    for (buf = firstbuf; buf != NULL; buf = buf->b_next) {
+        if (bufIsChanged(buf)) {
+            return YES;
+        }
+    }
+
+    return NO;
 }
 
 @end // MMBackend (Private)

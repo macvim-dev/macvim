@@ -29,7 +29,6 @@
 @protocol MMBackendProtocol
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data;
 - (oneway void)processInputAndData:(in bycopy NSArray *)messages;
-- (BOOL)checkForModifiedBuffers;
 - (oneway void)setDialogReturn:(in bycopy id)obj;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
 @end
