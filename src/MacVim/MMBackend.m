@@ -2010,9 +2010,7 @@ enum {
         // HACK!  I'm not sure how to get Vim to open a list of files in
         // tabs, so instead I create a ':tab drop' command with all the
         // files to open and execute it.
-        NSMutableString *cmd = (n > 1)
-                ? [NSMutableString stringWithString:@":tab drop"]
-                : [NSMutableString stringWithString:@":drop"];
+        NSMutableString *cmd = [NSMutableString stringWithString:@":tab drop"];
 
         int i;
         for (i = 0; i < n && bytes < end; ++i) {
