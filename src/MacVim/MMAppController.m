@@ -181,15 +181,20 @@ static NSTimeInterval MMReplyTimeout = 5;
         for (i = 0; i < count; ++i) {
             MMVimController *controller = [vimControllers objectAtIndex:i];
             id proxy = [controller backendProxy];
+            NSString *file = [[files objectAtIndex:0]
+                    stringByEscapingSpecialFilenameCharacters];
 
             @try {
                 NSString *expr = [NSString stringWithFormat:
-                        @"bufloaded(\"%@\")", [files objectAtIndex:0]];
+                        @"bufloaded(\"%@\")", file];
                 NSString *eval = [proxy evaluateExpression:expr];
                 if ([eval isEqual:@"1"]) {
                     // TODO: Select the tab with 'file' open.
-                    [controller addVimInput:
-                                @"<C-\\><C-N>:cal foreground()<CR>"];
+                    NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
+                        ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
+                        "tab sb %@|let &swb=oldswb|unl oldswb|"
+                        "cal foreground()|redr|f<CR>", file];
+                    [controller addVimInput:input];
                     return;
                 }
             }
