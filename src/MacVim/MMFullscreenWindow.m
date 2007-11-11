@@ -195,6 +195,11 @@
 
 #pragma mark Proxy/Decorator/whatever stuff
 
+- (void)scrollWheel:(NSEvent *)theEvent
+{
+    [[view textView] scrollWheel:theEvent];
+}
+
 // the window controller will send us messages that are meant for the original,
 // non-fullscreen window. forward those, and interpret the messages that are
 // interesting for us
