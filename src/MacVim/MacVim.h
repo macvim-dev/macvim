@@ -224,3 +224,10 @@ ATSFontContainerRef loadFonts();
 @interface NSString (MMExtras)
 - (NSString *)stringByEscapingSpecialFilenameCharacters;
 @end
+
+
+
+
+@interface NSIndexSet (MMExtras)
++ (id)indexSetWithVimList:(NSString *)list;
+@end

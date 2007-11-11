@@ -50,6 +50,8 @@ static NSTimeInterval MMReplyTimeout = 5;
 - (MMVimController *)keyVimController;
 - (MMVimController *)topmostVimController;
 - (void)launchVimProcessWithArguments:(NSArray *)args;
+- (NSArray *)filterFilesAndNotify:(NSArray *)files;
+- (NSArray *)filterOpenFilesAndRaiseFirst:(NSArray *)filenames;
 @end
 
 @interface NSMenu (MMExtras)
@@ -155,84 +157,19 @@ static NSTimeInterval MMReplyTimeout = 5;
 
 - (void)application:(NSApplication *)sender openFiles:(NSArray *)filenames
 {
-    // Go trough 'filenames' array and make sure each file exists.
-    NSString *firstMissingFile = nil;
-    NSMutableArray *files = [NSMutableArray array];
-    int i, count = [filenames count];
-    for (i = 0; i < count; ++i) {
-        NSString *name = [filenames objectAtIndex:i];
-        if ([[NSFileManager defaultManager] fileExistsAtPath:name]) {
-            [files addObject:name];
-        } else if (!firstMissingFile) {
-            firstMissingFile = name;
-        }
-    }
+    filenames = [self filterOpenFilesAndRaiseFirst:filenames];
+    if ([filenames count]) {
+        MMVimController *vc;
+        BOOL openInTabs = [[NSUserDefaults standardUserDefaults]
+            boolForKey:MMOpenFilesInTabsKey];
 
-    if (firstMissingFile) {
-        NSAlert *alert = [[NSAlert alloc] init];
-        [alert addButtonWithTitle:@"OK"];
-
-        NSString *text;
-        if ([files count] >= count-1) {
-            [alert setMessageText:@"File not found"];
-            text = [NSString stringWithFormat:@"Could not open file with "
-                "name %@.", firstMissingFile];
+        if (openInTabs && (vc = [self topmostVimController])) {
+            [vc dropFiles:filenames];
         } else {
-            [alert setMessageText:@"Multiple files not found"];
-            text = [NSString stringWithFormat:@"Could not open file with "
-                "name %@, and %d other files.", firstMissingFile,
-                count-[files count]-1];
+            NSMutableArray *args = [NSMutableArray arrayWithObject:@"-p"];
+            [args addObjectsFromArray:filenames];
+            [self launchVimProcessWithArguments:args];
         }
-
-        [alert setInformativeText:text];
-        [alert setAlertStyle:NSWarningAlertStyle];
-
-        [alert runModal];
-        [alert release];
-
-        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplyFailure];
-        return;
-    }
-
-    if ([files count] == 1) {
-        // Check if the file is already open...if so raise that window.
-        i, count = [vimControllers count];
-        for (i = 0; i < count; ++i) {
-            MMVimController *controller = [vimControllers objectAtIndex:i];
-            id proxy = [controller backendProxy];
-            NSString *file = [[files objectAtIndex:0]
-                    stringByEscapingSpecialFilenameCharacters];
-
-            @try {
-                NSString *expr = [NSString stringWithFormat:
-                        @"bufloaded(\"%@\")", file];
-                NSString *eval = [proxy evaluateExpression:expr];
-                if ([eval isEqual:@"1"]) {
-                    // TODO: Select the tab with 'file' open.
-                    NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
-                        ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
-                        "tab sb %@|let &swb=oldswb|unl oldswb|"
-                        "cal foreground()|redr|f<CR>", file];
-                    [controller addVimInput:input];
-                    return;
-                }
-            }
-            @catch (NSException *e) {
-                // Do nothing ...
-            }
-        }
-    }
-
-    MMVimController *vc;
-    BOOL openInTabs = [[NSUserDefaults standardUserDefaults]
-        boolForKey:MMOpenFilesInTabsKey];
-
-    if (openInTabs && (vc = [self topmostVimController])) {
-        [vc dropFiles:files];
-    } else {
-        NSMutableArray *args = [NSMutableArray arrayWithObject:@"-p"];
-        [args addObjectsFromArray:files];
-        [self launchVimProcessWithArguments:args];
     }
 
     [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
@@ -528,14 +465,18 @@ static NSTimeInterval MMReplyTimeout = 5;
             [NSCharacterSet whitespaceAndNewlineCharacterSet]];
     string = [string stringByStandardizingPath];
 
-    MMVimController *vc = nil;
-    if (userData && [userData isEqual:@"Tab"])
-        vc = [self topmostVimController];
+    NSArray *filenames = [self filterFilesAndNotify:
+            [NSArray arrayWithObject:string]];
+    if ([filenames count] > 0) {
+        MMVimController *vc = nil;
+        if (userData && [userData isEqual:@"Tab"])
+            vc = [self topmostVimController];
 
-    if (vc) {
-        [vc dropFiles:[NSArray arrayWithObject:string]];
-    } else {
-        [self application:NSApp openFiles:[NSArray arrayWithObject:string]];
+        if (vc) {
+            [vc dropFiles:filenames];
+        } else {
+            [self application:NSApp openFiles:filenames];
+        }
     }
 }
 
@@ -612,6 +553,113 @@ static NSTimeInterval MMReplyTimeout = 5;
 
     //NSLog(@"Launching: %@  args: %@", shell, shellArgs);
     [NSTask launchedTaskWithLaunchPath:shell arguments:shellArgs];
+}
+
+- (NSArray *)filterFilesAndNotify:(NSArray *)filenames
+{
+    // Go trough 'filenames' array and make sure each file exists.  Present
+    // warning dialog if some file was missing.
+
+    NSString *firstMissingFile = nil;
+    NSMutableArray *files = [NSMutableArray array];
+    unsigned i, count = [filenames count];
+
+    for (i = 0; i < count; ++i) {
+        NSString *name = [filenames objectAtIndex:i];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:name]) {
+            [files addObject:name];
+        } else if (!firstMissingFile) {
+            firstMissingFile = name;
+        }
+    }
+
+    if (firstMissingFile) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        [alert addButtonWithTitle:@"OK"];
+
+        NSString *text;
+        if ([files count] >= count-1) {
+            [alert setMessageText:@"File not found"];
+            text = [NSString stringWithFormat:@"Could not open file with "
+                "name %@.", firstMissingFile];
+        } else {
+            [alert setMessageText:@"Multiple files not found"];
+            text = [NSString stringWithFormat:@"Could not open file with "
+                "name %@, and %d other files.", firstMissingFile,
+                count-[files count]-1];
+        }
+
+        [alert setInformativeText:text];
+        [alert setAlertStyle:NSWarningAlertStyle];
+
+        [alert runModal];
+        [alert release];
+
+        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplyFailure];
+    }
+
+    return files;
+}
+
+- (NSArray *)filterOpenFilesAndRaiseFirst:(NSArray *)filenames
+{
+    // Check if any of the files in the 'filenames' array are open in any Vim
+    // process.  Remove the files that are open from the 'filenames' array and
+    // return it.  If all files were filtered out, then raise the first file in
+    // the Vim process it is open.
+
+    MMVimController *raiseController = nil;
+    NSString *raiseFile = nil;
+    NSMutableArray *files = [filenames mutableCopy];
+    NSString *expr = [NSString stringWithFormat:
+            @"map([\"%@\"],\"bufloaded(v:val)\")",
+            [files componentsJoinedByString:@"\",\""]];
+    unsigned i, count = [vimControllers count];
+
+    for (i = 0; i < count && [files count]; ++i) {
+        MMVimController *controller = [vimControllers objectAtIndex:i];
+        id proxy = [controller backendProxy];
+
+        @try {
+            NSString *eval = [proxy evaluateExpression:expr];
+            NSIndexSet *idxSet = [NSIndexSet indexSetWithVimList:eval];
+            if ([idxSet count]) {
+                if (!raiseFile) {
+                    // Remember the file and which Vim that has it open so that
+                    // we can raise it later on.
+                    raiseController = controller;
+                    raiseFile = [files objectAtIndex:[idxSet firstIndex]];
+                    [[raiseFile retain] autorelease];
+                }
+
+                // Remove all the files that were open in this Vim process and
+                // create a new expression to evaluate.
+                [files removeObjectsAtIndexes:idxSet];
+                expr = [NSString stringWithFormat:
+                        @"map([\"%@\"],\"bufloaded(v:val)\")",
+                        [files componentsJoinedByString:@"\",\""]];
+            }
+        }
+        @catch (NSException *e) {
+            // Do nothing ...
+        }
+    }
+
+    if (![files count] && raiseFile) {
+        // Raise the window containing the first file that was already open,
+        // and make sure that the tab containing that file is selected.  Only
+        // do this if there are no more files to open, otherwise sometimes the
+        // window with 'raiseFile' will be raised, other times it might be the
+        // window that will open with the files in the 'files' array.
+        raiseFile = [raiseFile stringByEscapingSpecialFilenameCharacters];
+        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
+            ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
+            "tab sb %@|let &swb=oldswb|unl oldswb|"
+            "cal foreground()|redr|f<CR>", raiseFile];
+        [raiseController addVimInput:input];
+    }
+
+    return files;
 }
 
 @end // MMAppController (Private)

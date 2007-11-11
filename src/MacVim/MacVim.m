@@ -167,5 +167,25 @@ loadFonts()
     return [string autorelease];
 }
 
-
 @end // NSString (MMExtras)
+
+
+
+@implementation NSIndexSet (MMExtras)
+
++ (id)indexSetWithVimList:(NSString *)list
+{
+    NSMutableIndexSet *idxSet = [NSMutableIndexSet indexSet];
+    NSArray *array = [list componentsSeparatedByString:@"\n"];
+    unsigned i, count = [array count];
+
+    for (i = 0; i < count; ++i) {
+        NSString *entry = [array objectAtIndex:i];
+        if ([entry intValue] > 0)
+            [idxSet addIndex:i];
+    }
+
+    return idxSet;
+}
+
+@end // NSIndexSet (MMExtras)
