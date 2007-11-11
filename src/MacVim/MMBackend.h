@@ -43,6 +43,7 @@
     NSMutableDictionary *serverReplyDict;
     NSString            *alternateServerName;
     ATSFontContainerRef fontContainerRef;
+    NSFont              *oldWideFont;
 }
 
 + (MMBackend *)sharedInstance;
@@ -60,8 +61,8 @@
                     toRow:(int)row2 column:(int)col2;
 - (void)deleteLinesFromRow:(int)row count:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right;
-- (void)replaceString:(char*)s length:(int)len row:(int)row column:(int)col
-                flags:(int)flags;
+- (void)drawString:(char*)s length:(int)len row:(int)row column:(int)col
+             cells:(int)cells flags:(int)flags;
 - (void)insertLinesFromRow:(int)row count:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right;
 - (void)drawCursorAtRow:(int)row column:(int)col shape:(int)shape
@@ -96,7 +97,8 @@
 - (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident;
 - (void)setScrollbarThumbValue:(long)val size:(long)size max:(long)max
                     identifier:(long)ident;
-- (BOOL)setFontWithName:(char *)name;
+- (void)setFont:(NSFont *)font;
+- (void)setWideFont:(NSFont *)font;
 - (void)executeActionWithName:(NSString *)name;
 - (void)setMouseShape:(int)shape;
 - (void)setBlinkWait:(int)wait on:(int)on off:(int)off;

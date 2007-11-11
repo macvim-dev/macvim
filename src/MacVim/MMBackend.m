@@ -7,6 +7,25 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * MMBackend
+ *
+ * MMBackend communicates with the frontend (MacVim).  It maintains a queue of
+ * output which is flushed to the frontend under controlled circumstances (so
+ * as to maintain a steady framerate).  Input from the frontend is also handled
+ * here.
+ *
+ * The frontend communicates with the backend via the MMBackendProtocol.  In
+ * particular, input is sent to the backend via processInput:data: and Vim
+ * state can be queried from the frontend with evaluateExpression:.
+ *
+ * It is very important to realize that all state is held by the backend, the
+ * frontend must either ask for state [MMBackend evaluateExpression:] or wait
+ * for the backend to update [MMVimController processCommandQueue:].
+ *
+ * The client/server functionality of Vim is handled by the backend.  It sets
+ * up a named NSConnection to which other Vim processes can connect.
+ */
 
 #import "MMBackend.h"
 
@@ -29,10 +48,6 @@ static float MMFlushTimeoutInterval = 0.1f;
 static int MMFlushQueueLenHint = 80*40;
 
 static unsigned MMServerMax = 1000;
-
-// NOTE: The default font is bundled with the application.
-static NSString *MMDefaultFontName = @"DejaVu Sans Mono";
-static float MMDefaultFontSize = 12.0f;
 
 // TODO: Move to separate file.
 static int eventModifierFlagsToVimModMask(int modifierFlags);
@@ -134,6 +149,7 @@ enum {
     //NSLog(@"%@ %s", [self className], _cmd);
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
+    [oldWideFont release];  oldWideFont = nil;
     [blinkTimer release];  blinkTimer = nil;
     [alternateServerName release];  alternateServerName = nil;
     [serverReplyDict release];  serverReplyDict = nil;
@@ -319,12 +335,12 @@ enum {
     [drawData appendBytes:&right length:sizeof(int)];
 }
 
-- (void)replaceString:(char*)s length:(int)len row:(int)row column:(int)col
-                flags:(int)flags
+- (void)drawString:(char*)s length:(int)len row:(int)row column:(int)col
+             cells:(int)cells flags:(int)flags
 {
-    if (len <= 0) return;
+    if (len <= 0 || cells <= 0) return;
 
-    int type = ReplaceStringDrawType;
+    int type = DrawStringDrawType;
 
     [drawData appendBytes:&type length:sizeof(int)];
 
@@ -333,6 +349,7 @@ enum {
     [drawData appendBytes:&specialColor length:sizeof(unsigned)];
     [drawData appendBytes:&row length:sizeof(int)];
     [drawData appendBytes:&col length:sizeof(int)];
+    [drawData appendBytes:&cells length:sizeof(int)];
     [drawData appendBytes:&flags length:sizeof(int)];
     [drawData appendBytes:&len length:sizeof(int)];
     [drawData appendBytes:s length:len];
@@ -392,6 +409,13 @@ enum {
         return;
 
     if ([drawData length] > 0) {
+        // HACK!  Detect changes to 'guifontwide'.
+        if (gui.wide_font != (GuiFont)oldWideFont) {
+            [oldWideFont release];
+            oldWideFont = [(NSFont*)gui.wide_font retain];
+            [self setWideFont:oldWideFont];
+        }
+
         [self queueMessage:BatchDrawMsgID data:[drawData copy]];
         [drawData setLength:0];
     }
@@ -818,81 +842,35 @@ enum {
     [self queueMessage:SetScrollbarThumbMsgID data:data];
 }
 
-- (BOOL)setFontWithName:(char *)name
+- (void)setFont:(NSFont *)font
 {
-    NSString *fontName = MMDefaultFontName;
-    float size = MMDefaultFontSize;
-    BOOL parseFailed = NO;
+    NSString *fontName = [font displayName];
+    float size = [font pointSize];
+    int len = [fontName lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    if (len > 0) {
+        NSMutableData *data = [NSMutableData data];
 
-    if (name) {
-        fontName = [NSString stringWithUTF8String:name];
+        [data appendBytes:&size length:sizeof(float)];
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[fontName UTF8String] length:len];
 
-        if ([fontName isEqual:@"*"]) {
-            // :set gfn=* shows the font panel.
-            do_cmdline_cmd((char_u*)":macaction orderFrontFontPanel:");
-            return NO;
-        }
-
-        NSArray *components = [fontName componentsSeparatedByString:@":"];
-        if ([components count] == 2) {
-            NSString *sizeString = [components lastObject];
-            if ([sizeString length] > 0
-                    && [sizeString characterAtIndex:0] == 'h') {
-                sizeString = [sizeString substringFromIndex:1];
-                if ([sizeString length] > 0) {
-                    size = [sizeString floatValue];
-                    fontName = [components objectAtIndex:0];
-                }
-            } else {
-                parseFailed = YES;
-            }
-        } else if ([components count] > 2) {
-            parseFailed = YES;
-        }
-
-        if (!parseFailed) {
-            // Replace underscores with spaces.
-            fontName = [[fontName componentsSeparatedByString:@"_"]
-                                     componentsJoinedByString:@" "];
-        }
+        [self queueMessage:SetFontMsgID data:data];
     }
+}
 
-    if (!parseFailed && [fontName length] > 0) {
-        if (size < 6 || size > 100) {
-            // Font size 0.0 tells NSFont to use the 'user default size'.
-            size = 0.0f;
-        }
+- (void)setWideFont:(NSFont *)font
+{
+    NSString *fontName = [font displayName];
+    float size = [font pointSize];
+    int len = [fontName lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    NSMutableData *data = [NSMutableData data];
 
-        NSFont *font = [NSFont fontWithName:fontName size:size];
+    [data appendBytes:&size length:sizeof(float)];
+    [data appendBytes:&len length:sizeof(int)];
+    if (len > 0)
+        [data appendBytes:[fontName UTF8String] length:len];
 
-        if (!font && MMDefaultFontName == fontName) {
-            // If for some reason the MacVim default font is not in the app
-            // bundle, then fall back on the system default font.
-            size = 0;
-            font = [NSFont userFixedPitchFontOfSize:size];
-            fontName = [font displayName];
-        }
-
-        if (font) {
-            //NSLog(@"Setting font '%@' of size %.2f", fontName, size);
-            int len = [fontName
-                    lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-            if (len > 0) {
-                NSMutableData *data = [NSMutableData data];
-
-                [data appendBytes:&size length:sizeof(float)];
-                [data appendBytes:&len length:sizeof(int)];
-                [data appendBytes:[fontName UTF8String] length:len];
-
-                [self queueMessage:SetFontMsgID data:data];
-                return YES;
-            }
-        }
-    }
-
-    //NSLog(@"WARNING: Cannot set font with name '%@' of size %.2f",
-    //        fontName, size);
-    return NO;
+    [self queueMessage:SetWideFontMsgID data:data];
 }
 
 - (void)executeActionWithName:(NSString *)name

@@ -11,6 +11,17 @@
 #import <Cocoa/Cocoa.h>
 
 
+#define MM_USE_ROW_CACHE 1
+
+
+#if MM_USE_ROW_CACHE
+typedef struct {
+    unsigned    length;     // length of row in unichars
+    int         col;        // last column accessed (in this row)
+    unsigned    colOffset;  // offset of 'col' from start of row (in unichars)
+} MMRowCacheEntry;
+#endif
+
 
 
 @interface MMTextStorage : NSTextStorage {
@@ -22,15 +33,25 @@
     NSFont                      *boldFont;
     NSFont                      *italicFont;
     NSFont                      *boldItalicFont;
+    NSFont                      *fontWide;
+    NSFont                      *boldFontWide;
+    NSFont                      *italicFontWide;
+    NSFont                      *boldItalicFontWide;
     NSColor                     *defaultBackgroundColor;
     NSColor                     *defaultForegroundColor;
     NSSize                      cellSize;
     float                       linespace;
+#if MM_USE_ROW_CACHE
+    MMRowCacheEntry             *rowCache;
+#endif
+    BOOL                        characterEqualsColumn;
 }
 
 - (NSString *)string;
 - (NSDictionary *)attributesAtIndex:(unsigned)index
                      effectiveRange:(NSRangePointer)aRange;
+- (id)attribute:(NSString *)attrib atIndex:(unsigned)index
+        effectiveRange:(NSRangePointer)range;
 - (void)replaceCharactersInRange:(NSRange)aRange
                       withString:(NSString *)aString;
 - (void)setAttributes:(NSDictionary *)attributes range:(NSRange)aRange;
@@ -43,9 +64,10 @@
 - (void)setLinespace:(float)newLinespace;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
-- (void)replaceString:(NSString *)string atRow:(int)row column:(int)col
-            withFlags:(int)flags foregroundColor:(NSColor *)fg
-      backgroundColor:(NSColor *)bg specialColor:(NSColor *)sp;
+- (void)drawString:(NSString *)string atRow:(int)row column:(int)col
+             cells:(int)cells withFlags:(int)flags
+   foregroundColor:(NSColor *)fg backgroundColor:(NSColor *)bg
+      specialColor:(NSColor *)sp;
 - (void)deleteLinesFromRow:(int)row lineCount:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right
                      color:(NSColor *)color;
@@ -58,6 +80,7 @@
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
                         foreground:(NSColor *)fgColor;
 - (void)setFont:(NSFont *)newFont;
+- (void)setWideFont:(NSFont *)newFont;
 - (NSFont *)font;
 - (NSColor *)defaultBackgroundColor;
 - (NSColor *)defaultForegroundColor;
@@ -69,5 +92,9 @@
 - (BOOL)resizeToFitSize:(NSSize)size;
 - (NSSize)fitToSize:(NSSize)size;
 - (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns;
+- (NSRect)boundingRectForCharacterAtRow:(int)row column:(int)col;
+#if MM_USE_ROW_CACHE
+- (MMRowCacheEntry *)rowCache;
+#endif
 
 @end

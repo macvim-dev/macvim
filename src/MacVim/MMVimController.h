@@ -56,5 +56,3 @@
                timeout:(NSTimeInterval)timeout;
 - (void)addVimInput:(NSString *)string;
 @end
-
-// vim: set ft=objc:

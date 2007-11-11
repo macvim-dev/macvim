@@ -49,6 +49,7 @@
                     identifier:(long)ident;
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
 - (void)setFont:(NSFont *)font;
+- (void)setWideFont:(NSFont *)font;
 - (void)processCommandQueueDidFinish;
 - (void)popupMenu:(NSMenu *)menu atRow:(int)row column:(int)col;
 - (void)showTabBar:(BOOL)on;

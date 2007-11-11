@@ -7,6 +7,21 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * MMVimController
+ *
+ * Coordinates input/output to/from backend.  Each MMBackend communicates
+ * directly with a MMVimController.
+ *
+ * MMVimController does not deal with visual presentation.  Essentially it
+ * should be able to run with no window present.
+ *
+ * Output from the backend is received in processCommandQueue:.  Input is sent
+ * to the backend via sendMessage:data: or addVimInput:.  The latter allows
+ * execution of arbitrary stings in the Vim process, much like the Vim script
+ * function remote_send() does.  The messages that may be passed between
+ * frontend and backend are defined in an enum in MacVim.h.
+ */
 
 #import "MMVimController.h"
 #import "MMWindowController.h"
@@ -716,6 +731,21 @@ static NSTimeInterval MMResendInterval = 0.5;
             [windowController setFont:font];
 
         [name release];
+    } else if (SetWideFontMsgID == msgid) {
+        const void *bytes = [data bytes];
+        float size = *((float*)bytes);  bytes += sizeof(float);
+        int len = *((int*)bytes);  bytes += sizeof(int);
+        if (len > 0) {
+            NSString *name = [[NSString alloc]
+                    initWithBytes:(void*)bytes length:len
+                         encoding:NSUTF8StringEncoding];
+            NSFont *font = [NSFont fontWithName:name size:size];
+            [windowController setWideFont:font];
+
+            [name release];
+        } else {
+            [windowController setWideFont:nil];
+        }
     } else if (SetDefaultColorsMsgID == msgid) {
         const void *bytes = [data bytes];
         unsigned bg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
@@ -846,12 +876,13 @@ static NSTimeInterval MMResendInterval = 0.5;
             [textStorage deleteLinesFromRow:row lineCount:count
                     scrollBottom:bot left:left right:right
                            color:[NSColor colorWithArgbInt:color]];
-        } else if (ReplaceStringDrawType == type) {
+        } else if (DrawStringDrawType == type) {
             int bg = *((int*)bytes);  bytes += sizeof(int);
             int fg = *((int*)bytes);  bytes += sizeof(int);
             int sp = *((int*)bytes);  bytes += sizeof(int);
             int row = *((int*)bytes);  bytes += sizeof(int);
             int col = *((int*)bytes);  bytes += sizeof(int);
+            int cells = *((int*)bytes);  bytes += sizeof(int);
             int flags = *((int*)bytes);  bytes += sizeof(int);
             int len = *((int*)bytes);  bytes += sizeof(int);
             NSString *string = [[NSString alloc]
@@ -876,12 +907,13 @@ static NSTimeInterval MMResendInterval = 0.5;
                 //                            shape:MMInsertionPointBlock
                 //                            color:color];
             }
-            [textStorage replaceString:string
-                                 atRow:row column:col
-                             withFlags:flags
-                       foregroundColor:[NSColor colorWithRgbInt:fg]
-                       backgroundColor:[NSColor colorWithArgbInt:bg]
-                          specialColor:[NSColor colorWithRgbInt:sp]];
+
+            [textStorage drawString:string
+                              atRow:row column:col cells:cells
+                          withFlags:flags
+                    foregroundColor:[NSColor colorWithRgbInt:fg]
+                    backgroundColor:[NSColor colorWithArgbInt:bg]
+                       specialColor:[NSColor colorWithRgbInt:sp]];
 
             [string release];
         } else if (InsertLinesDrawType == type) {

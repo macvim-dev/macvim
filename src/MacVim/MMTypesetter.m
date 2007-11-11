@@ -7,27 +7,89 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * MMTypesetter
+ *
+ * Ensures that each line has a fixed height and deals with some baseline
+ * issues.
+ */
 
 #import "MMTypesetter.h"
 #import "MMTextStorage.h"
 #import "MacVim.h"
 
 
-// The 'linerange' functions count U+2028 and U+2029 as line end characters,
-// which causes rendering to be screwed up because Vim does not count them as
-// line end characters.
-#define MM_USE_LINERANGE 0
-
-
-#if 0
-@interface MMTypesetter (Private)
-- (NSCharacterSet *)hiddenCharSet;
-@end
-#endif
-
 
 
 @implementation MMTypesetter
+
+- (void)willSetLineFragmentRect:(NSRectPointer)lineRect
+                  forGlyphRange:(NSRange)glyphRange
+                       usedRect:(NSRectPointer)usedRect
+                 baselineOffset:(float *)baselineOffset
+{
+    MMTextStorage *ts = (MMTextStorage*)[[self layoutManager] textStorage];
+    float h = [ts cellSize].height;
+
+    // HACK! Force each line fragment rect to have a fixed height.  By also
+    // forcing the 'usedRect' to the same height we also ensure that the cursor
+    // is as high as the line itself.
+    lineRect->size.height = h;
+    usedRect->size.height = h;
+
+    // See [MMTextStorage setLinespace:] for info on how 'linespace' support
+    // works.
+    *baselineOffset += floor(.5*[ts linespace]);
+}
+
+#if 0
+- (void)setNotShownAttribute:(BOOL)flag forGlyphRange:(NSRange)glyphRange
+{
+    if (1 != glyphRange.length)
+        return;
+
+    NSLayoutManager *lm = [self layoutManager];
+    unsigned charIdx = [lm characterIndexForGlyphAtIndex:glyphRange.location];
+
+    if ('\n' == [[[lm textStorage] string] characterAtIndex:charIdx])
+        [lm setNotShownAttribute:flag forGlyphAtIndex:glyphRange.location];
+}
+#endif
+
+#if 0
+- (NSTypesetterControlCharacterAction)
+    actionForControlCharacterAtIndex:(unsigned)charIndex
+{
+    //NSLog(@"%s%d", _cmd, charIndex);
+    /*NSTextStorage *ts = [[self layoutManager] textStorage];
+
+    if ('\n' == [[ts string] characterAtIndex:charIndex])
+        return NSTypesetterLineBreakAction;*/
+
+    return NSTypesetterWhitespaceAction;
+}
+#endif
+
+#if 0
+- (void)setLocation:(NSPoint)location
+        withAdvancements:(const float *)advancements
+    forStartOfGlyphRange:(NSRange)glyphRange
+{
+    NSLog(@"setLocation:%@ withAdvancements:%f forStartOfGlyphRange:%@",
+            NSStringFromPoint(location), advancements ? *advancements : 0,
+            NSStringFromRange(glyphRange));
+    [super setLocation:location withAdvancements:advancements
+            forStartOfGlyphRange:glyphRange];
+}
+#endif
+
+
+@end // MMTypesetter
+
+
+
+
+@implementation MMTypesetter2
 
 //
 // Layout glyphs so that each line fragment has a fixed size.
@@ -37,126 +99,92 @@
 // depending on whether it is a wide character or not).  This is taken care of
 // by MMTextStorage in setAttributes:range: and in setFont:.  All that is left
 // for the typesetter to do is to make sure each line fragment has the same
-// height and that unwanted glyphs are hidden.
+// height and that EOL glyphs are hidden.
 //
 - (void)layoutGlyphsInLayoutManager:(NSLayoutManager *)lm
                startingAtGlyphIndex:(unsigned)startGlyphIdx
            maxNumberOfLineFragments:(unsigned)maxNumLines
                      nextGlyphIndex:(unsigned *)nextGlyph
 {
-    // TODO: Check that it really is an MMTextStorage.
+    // TODO: Check that it really is an MMTextStorage?
     MMTextStorage *ts = (MMTextStorage*)[lm textStorage];
-    NSTextView *tv = [lm firstTextView];
-    NSTextContainer *tc = [tv textContainer];
+    NSTextContainer *tc = [[lm firstTextView] textContainer];
     NSFont *font = [ts font];
     NSString *text = [ts string];
-    unsigned textLen = [text length];
-    NSSize cellSize = [ts cellSize];
-    // NOTE: With non-zero linespace the baseline is adjusted so that the text
-    // is centered within a line.
-    float baseline = [font descender] - floor(.5*[ts linespace]);
 
-    if (!(lm && ts && tv && tc && font && text && textLen
+    if (!(lm && ts && tc && font && text
                 && [lm isValidGlyphIndex:startGlyphIdx]))
         return;
 
-    float baselineOffset = [[NSUserDefaults standardUserDefaults]
-            floatForKey:MMBaselineOffsetKey];
-
-    baseline += baselineOffset;
-
+    // Note that we always start laying out lines from the beginning of a line,
+    // even if 'startCharIdx' may be somewhere in the middle.
     unsigned startCharIdx = [lm characterIndexForGlyphAtIndex:startGlyphIdx];
-    unsigned i, numberOfLines = 0, firstLine = 0;
-    NSRange firstLineRange = { 0, 0 };
+    if (startCharIdx >= [text length])
+        return;
 
-#if MM_USE_LINERANGE
-    // Find the first line and its range, and count the number of lines.  (This
-    // info could also be gleaned from MMTextStorage, but we do it here anyway
-    // to make absolutely sure everything is right.)
-    for (i = 0; i < textLen; numberOfLines++) {
-        NSRange lineRange = [text lineRangeForRange:NSMakeRange(i, 0)];
-        if (NSLocationInRange(startCharIdx, lineRange)) {
-            firstLine = numberOfLines;
-            firstLineRange = lineRange;
-        }
+    [lm setTextContainer:tc forGlyphRange:
+            [lm glyphRangeForCharacterRange:NSMakeRange(0, [text length])
+                       actualCharacterRange:nil]];
 
-        i = NSMaxRange(lineRange);
+    //
+    // STEP 1: Locate the line containing 'startCharIdx'.
+    //
+    MMRowCacheEntry *cache = [ts rowCache];
+    unsigned lineIdx = 0, nextLineIdx = 0;
+    int actualRows = [ts actualRows];
+    int line = 0;
+
+    for (; line < actualRows; ++line, ++cache) {
+        lineIdx = nextLineIdx;
+        nextLineIdx += cache->length;
+        if (startCharIdx < nextLineIdx)
+            break;
     }
-#else
-    unsigned stride = 1 + [ts actualColumns];
-    numberOfLines = [ts actualRows];
-    firstLine = (unsigned)(startCharIdx/stride);
-    firstLineRange.location =  firstLine * stride;
-    unsigned len = [text length] - firstLineRange.location;
-    firstLineRange.length = len < stride ? len : stride;
-#endif
 
-    // Perform line fragment generation one line at a time.
-    NSRange lineRange = firstLineRange;
-    unsigned endGlyphIdx = startGlyphIdx;
-    for (i = 0; i < maxNumLines && lineRange.length; ++i) {
-        NSRange glyphRange = [lm glyphRangeForCharacterRange:lineRange
-                                        actualCharacterRange:nil];
-        NSRect lineRect = { 0, (firstLine+i)*cellSize.height,
-                cellSize.width*(lineRange.length-1), cellSize.height };
-        unsigned endLineIdx = NSMaxRange(lineRange);
-        NSPoint glyphPt = { 0, cellSize.height+baseline };
-        unsigned j;
+    //
+    // STEP 2: Generate line fragment rects one line at a time until there are
+    // no more lines in the text storage, or until 'maxNumLines' have been
+    // exhausted.  (There is no point in just laying out one line, the layout
+    // manager will keep calling this method until there are no more lines in
+    // the text storage.)
+    //
 
-        endGlyphIdx = NSMaxRange(glyphRange);
+    // NOTE: With non-zero linespace the baseline is adjusted so that the text
+    // is centered within a line.
+    float baseline = [font descender] - floor(.5*[ts linespace])
+        + [[NSUserDefaults standardUserDefaults]
+                floatForKey:MMBaselineOffsetKey];
+    NSSize cellSize = [ts cellSize];
+    NSPoint glyphPt = { 0, cellSize.height+baseline };
 
-        [lm setTextContainer:tc forGlyphRange:glyphRange];
+    NSRange lineRange = { lineIdx, 0 };
+    NSRange glyphRange = { startGlyphIdx, 0 };
+    NSRect lineRect = { 0, line*cellSize.height,
+            [ts actualColumns]*cellSize.width, cellSize.height };
+    int endLine = line + maxNumLines;
+    if (endLine > actualRows)
+        endLine = actualRows;
+
+    for (; line < endLine; ++line, ++cache) {
+        lineRange.length = cache->length;
+
+        glyphRange = [lm glyphRangeForCharacterRange:lineRange
+                                actualCharacterRange:nil];
+
         [lm setLineFragmentRect:lineRect forGlyphRange:glyphRange
                        usedRect:lineRect];
         [lm setLocation:glyphPt forStartOfGlyphRange:glyphRange];
 
-        // Hide end-of-line and non-zero space characters (there is one after
-        // every wide character).
-        for (j = lineRange.location; j < endLineIdx; ++j) {
-            unichar ch = [text characterAtIndex:j];
-            if (ch == 0x200b || ch == '\n') {
-                NSRange range = { j, 1 };
-                range = [lm glyphRangeForCharacterRange:range
-                                   actualCharacterRange:nil];
-                [lm setNotShownAttribute:YES forGlyphAtIndex:range.location];
-            }
-        }
+        lineRange.location += lineRange.length;
+        lineRect.origin.y += cellSize.height;
 
-#if MM_USE_LINERANGE
-        lineRange = [text lineRangeForRange:NSMakeRange(endLineIdx, 0)];
-#else
-        lineRange.location = endLineIdx;
-        len = [text length] - lineRange.location;
-        if (len < lineRange.length)
-            lineRange.length = len;
-#endif
+        // Hide EOL character (otherwise a square will be rendered).
+        [lm setNotShownAttribute:YES forGlyphAtIndex:lineRange.location-1];
     }
 
     if (nextGlyph)
-        *nextGlyph = endGlyphIdx;
+        *nextGlyph = NSMaxRange(glyphRange);
 }
 
-@end // MMTypesetter
+@end // MMTypesetter2
 
-
-
-
-#if 0
-@implementation MMTypesetter (Private)
-
-- (NSCharacterSet *)hiddenCharSet
-{
-    static NSCharacterSet *hiddenCharSet = nil;
-
-    if (!hiddenCharSet) {
-        NSString *string = [NSString stringWithFormat:@"%C\n", 0x200b];
-        hiddenCharSet = [NSCharacterSet
-                characterSetWithCharactersInString:string];
-        [hiddenCharSet retain];
-    }
-
-    return hiddenCharSet;
-}
-
-@end // MMTypesetter (Private)
-#endif

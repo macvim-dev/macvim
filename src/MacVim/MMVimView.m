@@ -7,6 +7,11 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * MMVimView
+ *
+ * A view class with a tabline, scrollbars, and text view.
+ */
 
 #import "MMVimView.h"
 
@@ -86,8 +91,12 @@ enum {
 
     NSString *typesetterString = [[NSUserDefaults standardUserDefaults]
             stringForKey:MMTypesetterKey];
-    if (![typesetterString isEqual:@"NSTypesetter"]) {
-        MMTypesetter *typesetter = [[MMTypesetter alloc] init];
+    if ([typesetterString isEqual:@"MMTypesetter"]) {
+        NSTypesetter *typesetter = [[MMTypesetter alloc] init];
+        [lm setTypesetter:typesetter];
+        [typesetter release];
+    } else if ([typesetterString isEqual:@"MMTypesetter2"]) {
+        NSTypesetter *typesetter = [[MMTypesetter2 alloc] init];
         [lm setTypesetter:typesetter];
         [typesetter release];
     } else {
@@ -95,6 +104,10 @@ enum {
         [[NSUserDefaults standardUserDefaults]
                 setFloat:1.0 forKey:MMCellWidthMultiplierKey];
     }
+
+    // The characters in the text storage are in display order, so disable
+    // bidirectional text processing (this call is 10.4 only).
+    [[lm typesetter] setBidiProcessingEnabled:NO];
 
     [tc setWidthTracksTextView:NO];
     [tc setHeightTracksTextView:NO];

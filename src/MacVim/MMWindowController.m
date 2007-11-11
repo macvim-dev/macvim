@@ -7,6 +7,12 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * MMWindowController
+ *
+ * Handles resizing of windows, acts as an mediator between MMVimView and
+ * MMVimController.
+ */
 
 #import "MMWindowController.h"
 #import <PSMTabBarControl.h>
@@ -259,6 +265,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [[NSFontManager sharedFontManager] setSelectedFont:font isMultiple:NO];
     [[vimView textStorage] setFont:font];
     [self updateResizeIncrements];
+}
+
+- (void)setWideFont:(NSFont *)font
+{
+    [[vimView textStorage] setWideFont:font];
 }
 
 - (void)processCommandQueueDidFinish

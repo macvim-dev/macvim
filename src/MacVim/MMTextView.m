@@ -7,6 +7,11 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * MMTextView
+ *
+ * Dispatches keyboard and mouse input to the backend.  Also handles drag&drop.
+ */
 
 #import "MMTextView.h"
 #import "MMTextStorage.h"
@@ -111,20 +116,9 @@ static NSString *MMKeypadEnterString = @"KA";
 
     if (shouldDrawInsertionPoint) {
         MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-        NSLayoutManager *lm = [self layoutManager];
-        NSTextContainer *tc = [self textContainer];
 
-        // Given (row,column), calculate the bounds of the glyph at that spot.
-        // We use the layout manager because this gives us exactly the size and
-        // location of the glyph so that we can match the insertion point to
-        // it.
-        unsigned charIdx = [ts characterIndexForRow:insertionPointRow
-                                             column:insertionPointColumn];
-        NSRange glyphRange =
-            [lm glyphRangeForCharacterRange:NSMakeRange(charIdx,1)
-                       actualCharacterRange:NULL];
-        NSRect ipRect = [lm boundingRectForGlyphRange:glyphRange
-                                      inTextContainer:tc];
+        NSRect ipRect = [ts boundingRectForCharacterAtRow:insertionPointRow
+                                                   column:insertionPointColumn];
         ipRect.origin.x += [self textContainerOrigin].x;
         ipRect.origin.y += [self textContainerOrigin].y;
 

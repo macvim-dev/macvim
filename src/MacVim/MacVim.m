@@ -7,6 +7,9 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * MacVim.m:  Code shared between Vim and MacVim.
+ */
 
 #import "MacVim.h"
 
@@ -46,6 +49,7 @@ char *MessageStrings[] =
     "SetScrollbarThumbMsgID",
     "ScrollbarEventMsgID",
     "SetFontMsgID",
+    "SetWideFontMsgID",
     "VimShouldCloseMsgID",
     "SetDefaultColorsMsgID",
     "ExecuteActionMsgID",
@@ -86,6 +90,7 @@ NSString *MMBaselineOffsetKey           = @"MMBaselineOffset";
 NSString *MMTranslateCtrlClickKey       = @"MMTranslateCtrlClick";
 NSString *MMTopLeftPointKey             = @"MMTopLeftPoint";
 NSString *MMOpenFilesInTabsKey          = @"MMOpenFilesInTabs";
+NSString *MMNoFontSubstitutionKey       = @"MMNoFontSubstitution";
 
 
 

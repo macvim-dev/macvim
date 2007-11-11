@@ -7,6 +7,11 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * MMApplication
+ *
+ * Some default NSApplication key input behavior is overridden here.
+ */
 
 #import "MMApplication.h"
 

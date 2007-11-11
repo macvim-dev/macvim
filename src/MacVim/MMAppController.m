@@ -7,6 +7,24 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * MMAppController
+ *
+ * MMAppController is the delegate of NSApp and as such handles file open
+ * requests, application termination, etc.  It sets up a named NSConnection on
+ * which it listens to incoming connections from Vim processes.  It also
+ * coordinates all MMVimControllers.
+ *
+ * A new Vim process is started by calling launchVimProcessWithArguments:.
+ * When the Vim process is initialized it notifies the app controller by
+ * sending a connectBackend:pid: message.  At this point a new MMVimController
+ * is allocated.  Afterwards, the Vim process communicates directly with its
+ * MMVimController.
+ *
+ * A Vim process started from the command line connects directly by sending the
+ * connectBackend:pid: message (launchVimProcessWithArguments: is never called
+ * in this case).
+ */
 
 #import "MMAppController.h"
 #import "MMVimController.h"
@@ -63,6 +81,7 @@ static NSTimeInterval MMReplyTimeout = 5;
         [NSNumber numberWithFloat:-1],  MMBaselineOffsetKey,
         [NSNumber numberWithBool:YES],  MMTranslateCtrlClickKey,
         [NSNumber numberWithBool:NO],   MMOpenFilesInTabsKey,
+        [NSNumber numberWithBool:NO],   MMNoFontSubstitutionKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];

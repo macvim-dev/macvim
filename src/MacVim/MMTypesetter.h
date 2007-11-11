@@ -13,10 +13,8 @@
 
 @interface MMTypesetter : NSATSTypesetter {
 }
+@end
 
-- (void)layoutGlyphsInLayoutManager:(NSLayoutManager *)lm
-               startingAtGlyphIndex:(unsigned)startGlyphIdx
-           maxNumberOfLineFragments:(unsigned)maxNumLines
-                     nextGlyphIndex:(unsigned *)nextGlyph;
-
+@interface MMTypesetter2 : NSATSTypesetter {
+}
 @end

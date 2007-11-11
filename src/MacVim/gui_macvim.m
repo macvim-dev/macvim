@@ -7,6 +7,11 @@
  * Do ":help credits" in Vim to see a list of people who contributed.
  * See README.txt for an overview of the Vim source code.
  */
+/*
+ * gui_macvim.m
+ *
+ * Hooks for the Vim gui code.  Mainly passes control on to MMBackend.
+ */
 
 #import <Foundation/Foundation.h>
 #import "MMBackend.h"
@@ -19,7 +24,14 @@
 // gui_mch_update()).
 static NSTimeInterval MMUpdateTimeoutInterval = 0.1f;
 
+// NOTE: The default font is bundled with the application.
+static NSString *MMDefaultFontName = @"DejaVu Sans Mono";
+static float MMDefaultFontSize = 12.0f;
+static float MMMinFontSize = 6.0f;
+static float MMMaxFontSize = 100.0f;
 
+
+static NSFont *gui_macvim_font_with_name(char_u *name);
 static BOOL gui_macvim_is_valid_action(NSString *action);
 
 
@@ -259,8 +271,8 @@ gui_mch_draw_string(int row, int col, char_u *s, int len, int flags)
     }
 #endif
 
-    [[MMBackend sharedInstance] replaceString:(char*)s length:len
-            row:row column:col flags:flags];
+    [[MMBackend sharedInstance] drawString:(char*)s length:len row:row
+                                    column:col cells:len flags:flags];
 
 #ifdef FEAT_MBYTE
     if (conv_str)
@@ -272,22 +284,12 @@ gui_mch_draw_string(int row, int col, char_u *s, int len, int flags)
     int
 gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
 {
-    //
-    // Output chars until a wide char found.  If a wide char is found, output a
-    // zero-width space after it so that a wide char looks like two chars to
-    // MMTextStorage.  This way 1 char corresponds to 1 column.
-    //
-
-    int c;
-    int cn;
-    int cl;
-    int i;
+    int c, cn, cl, i;
     int start = 0;
     int endcol = col;
     int startcol = col;
-    BOOL outPad = NO;
+    BOOL wide = NO;
     MMBackend *backend = [MMBackend sharedInstance];
-    static char ZeroWidthSpace[] = { 0xe2, 0x80, 0x8b };
 #ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
 
@@ -298,74 +300,34 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
     }
 #endif
 
+    // Loop over each character and output text when it changes from normal to
+    // wide and vice versa.
     for (i = 0; i < len; i += cl) {
         c = utf_ptr2char(s + i);
         cl = utf_ptr2len(s + i);
         cn = utf_char2cells(c);
 
         if (!utf_iscomposing(c)) {
-            if (outPad) {
-                outPad = NO;
-#if 0
-                NSString *string = [[NSString alloc]
-                        initWithBytesNoCopy:(void*)(s+start)
-                                     length:i-start
-                                   encoding:NSUTF8StringEncoding
-                               freeWhenDone:NO];
-                NSLog(@"Flushing string=%@ len=%d row=%d col=%d end=%d",
-                        string, i-start, row, startcol, endcol);
-                [string release];
-#endif
-                [backend replaceString:(char*)(s+start) length:i-start
-                        row:row column:startcol flags:flags];
+            if ((cn > 1 && !wide) || (cn <= 1 && wide)) {
+                // Changed from normal to wide or vice versa.
+                [backend drawString:(char*)(s+start) length:i-start
+                                   row:row column:startcol
+                                 cells:endcol-startcol
+                                 flags:(wide ? flags|DRAW_WIDE : flags)];
+
                 start = i;
                 startcol = endcol;
-#if 0
-                NSLog(@"Padding len=%d row=%d col=%d", sizeof(ZeroWidthSpace),
-                        row, endcol-1);
-#endif
-                [backend replaceString:ZeroWidthSpace
-                             length:sizeof(ZeroWidthSpace)
-                        row:row column:endcol-1 flags:flags];
             }
 
+            wide = cn > 1;
             endcol += cn;
         }
-
-        if (cn > 1) {
-#if 0
-            NSLog(@"Wide char detected! (char=%C hex=%x cells=%d)", c, c, cn);
-#endif
-            outPad = YES;
-        }
     }
-
-#if 0
-    if (row < 1) {
-        NSString *string = [[NSString alloc]
-                initWithBytesNoCopy:(void*)(s+start)
-                             length:len-start
-                           encoding:NSUTF8StringEncoding
-                       freeWhenDone:NO];
-        NSLog(@"Output string=%@ len=%d row=%d col=%d", string, len-start, row,
-                startcol);
-        [string release];
-    }
-#endif
 
     // Output remaining characters.
-    [backend replaceString:(char*)(s+start) length:len-start
-            row:row column:startcol flags:flags];
-
-    if (outPad) {
-#if 0
-        NSLog(@"Padding len=%d row=%d col=%d", sizeof(ZeroWidthSpace), row,
-                endcol-1);
-#endif
-        [backend replaceString:ZeroWidthSpace
-                     length:sizeof(ZeroWidthSpace)
-                row:row column:endcol-1 flags:flags];
-    }
+    [backend drawString:(char*)(s+start) length:len-start
+                    row:row column:startcol cells:endcol-startcol
+                  flags:(wide ? flags|DRAW_WIDE : flags)];
 
 #ifdef FEAT_MBYTE
     if (conv_str)
@@ -829,6 +791,10 @@ gui_mch_show_toolbar(int showit)
 gui_mch_free_font(font)
     GuiFont	font;
 {
+    if (font != NOFONT) {
+        //NSLog(@"gui_mch_free_font(font=0x%x)", font);
+        [(NSFont*)font release];
+    }
 }
 
 
@@ -840,7 +806,15 @@ gui_mch_get_font(char_u *name, int giveErrorIfMissing)
 {
     //NSLog(@"gui_mch_get_font(name=%s, giveErrorIfMissing=%d)", name,
     //        giveErrorIfMissing);
-    return 0;
+
+    NSFont *font = gui_macvim_font_with_name(name);
+    if (font)
+        return (GuiFont)[font retain];
+
+    if (giveErrorIfMissing)
+        EMSG2(_(e_font), name);
+
+    return NOFONT;
 }
 
 
@@ -852,8 +826,9 @@ gui_mch_get_font(char_u *name, int giveErrorIfMissing)
     char_u *
 gui_mch_get_fontname(GuiFont font, char_u *name)
 {
-    //NSLog(@"gui_mch_get_fontname(font=%d, name=%s)", font, name);
-    return 0;
+    if (name == NULL)
+	return NULL;
+    return vim_strsave(name);
 }
 #endif
 
@@ -867,21 +842,30 @@ gui_mch_init_font(char_u *font_name, int fontset)
 {
     //NSLog(@"gui_mch_init_font(font_name=%s, fontset=%d)", font_name, fontset);
 
-    // HACK!  This gets called whenever the user types :set gfn=fontname, so
-    // for now we set the font here.
-    // TODO!  Proper font handling, the way Vim expects it.
+    if (font_name && STRCMP(font_name, "*") == 0) {
+        // :set gfn=* shows the font panel.
+        do_cmdline_cmd((char_u*)":macaction orderFrontFontPanel:");
+        return FAIL;
+    }
 
-#ifdef FEAT_MBYTE
-    font_name = CONVERT_TO_UTF8(font_name);
-#endif
+    NSFont *font = gui_macvim_font_with_name(font_name);
+    if (font) {
+        [(NSFont*)gui.norm_font release];
+        gui.norm_font = (GuiFont)font;
 
-    BOOL ok = [[MMBackend sharedInstance] setFontWithName:(char*)font_name];
+        // NOTE: MacVim keeps separate track of the normal and wide fonts.
+        // Unless the user changes 'guifontwide' manually, they are based on
+        // the same (normal) font.  Also note that each time the normal font is
+        // set, the advancement may change so the wide font needs to be updated
+        // as well (so that it is always twice the width of the normal font).
+        [[MMBackend sharedInstance] setFont:font];
+        [[MMBackend sharedInstance] setWideFont:
+               (NOFONT == gui.wide_font ? font : (NSFont*)gui.wide_font)];
 
-#ifdef FEAT_MBYTE
-    CONVERT_TO_UTF8_FREE(font_name);
-#endif
+        return OK;
+    }
 
-    return ok;
+    return FAIL;
 }
 
 
@@ -891,8 +875,68 @@ gui_mch_init_font(char_u *font_name, int fontset)
     void
 gui_mch_set_font(GuiFont font)
 {
+    // Font selection is done inside MacVim...nothing here to do.
 }
 
+
+    NSFont *
+gui_macvim_font_with_name(char_u *name)
+{
+    NSFont *font = nil;
+    NSString *fontName = MMDefaultFontName;
+    float size = MMDefaultFontSize;
+    BOOL parseFailed = NO;
+
+#ifdef FEAT_MBYTE
+    name = CONVERT_TO_UTF8(name);
+#endif
+
+    if (name) {
+        fontName = [NSString stringWithUTF8String:(char*)name];
+
+        NSArray *components = [fontName componentsSeparatedByString:@":"];
+        if ([components count] == 2) {
+            NSString *sizeString = [components lastObject];
+            if ([sizeString length] > 0
+                    && [sizeString characterAtIndex:0] == 'h') {
+                sizeString = [sizeString substringFromIndex:1];
+                if ([sizeString length] > 0) {
+                    size = [sizeString floatValue];
+                    fontName = [components objectAtIndex:0];
+                }
+            } else {
+                parseFailed = YES;
+            }
+        } else if ([components count] > 2) {
+            parseFailed = YES;
+        }
+
+        if (!parseFailed) {
+            // Replace underscores with spaces.
+            fontName = [[fontName componentsSeparatedByString:@"_"]
+                                     componentsJoinedByString:@" "];
+        }
+    }
+
+    if (!parseFailed && [fontName length] > 0) {
+        if (size < MMMinFontSize) size = MMMinFontSize;
+        if (size > MMMaxFontSize) size = MMMaxFontSize;
+
+        font = [NSFont fontWithName:fontName size:size];
+
+        if (!font && MMDefaultFontName == fontName) {
+            // If for some reason the MacVim default font is not in the app
+            // bundle, then fall back on the system default font.
+            font = [NSFont userFixedPitchFontOfSize:0];
+        }
+    }
+
+#ifdef FEAT_MBYTE
+    CONVERT_TO_UTF8_FREE(name);
+#endif
+
+    return font;
+}
 
 // -- Scrollbars ------------------------------------------------------------
 

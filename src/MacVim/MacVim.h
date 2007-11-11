@@ -136,6 +136,7 @@ enum {
     SetScrollbarThumbMsgID,
     ScrollbarEventMsgID,
     SetFontMsgID,
+    SetWideFontMsgID,
     VimShouldCloseMsgID,
     SetDefaultColorsMsgID,
     ExecuteActionMsgID,
@@ -157,11 +158,13 @@ enum {
 };
 
 
+#define DRAW_WIDE   0x40    /* draw wide text */
+
 enum {
     ClearAllDrawType = 1,
     ClearBlockDrawType,
     DeleteLinesDrawType,
-    ReplaceStringDrawType,
+    DrawStringDrawType,
     InsertLinesDrawType,
     DrawCursorDrawType
 };
@@ -206,6 +209,7 @@ extern NSString *MMBaselineOffsetKey;
 extern NSString *MMTranslateCtrlClickKey;
 extern NSString *MMTopLeftPointKey;
 extern NSString *MMOpenFilesInTabsKey;
+extern NSString *MMNoFontSubstitutionKey;
 
 
 
@@ -220,6 +224,3 @@ ATSFontContainerRef loadFonts();
 @interface NSString (MMExtras)
 - (NSString *)stringByEscapingSpecialFilenameCharacters;
 @end
-
-
-// vim: set ft=objc:
