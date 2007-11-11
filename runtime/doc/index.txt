@@ -1039,7 +1039,6 @@ The commands are sorted on the non-optional part of their name.
 |:abbreviate|	:ab[breviate]	enter abbreviation
 |:abclear|	:abc[lear]	remove all abbreviations
 |:aboveleft|	:abo[veleft]	make split window appear left or above
-|:action|	:ac[tion]	send action message
 |:all|		:al[l]		open a window for each file in the argument
 				list
 |:amenu|	:am[enu]	enter new menu item for all modes
@@ -1289,6 +1288,8 @@ The commands are sorted on the non-optional part of their name.
 |:lwindow|	:lw[indow]	open or close location window
 |:move|		:m[ove]		move lines
 |:mark|		:ma[rk]		set a mark
+|:macation|	:maca[ction]	send action message
+|:macmenukey|	:macm[eyequiv]	set key equivalent for menu item
 |:make|		:mak[e]		execute external command 'makeprg' and parse
 				error messages
 |:map|		:map		show or enter a mapping
@@ -1296,7 +1297,6 @@ The commands are sorted on the non-optional part of their name.
 |:marks|	:marks		list all marks
 |:match|	:mat[ch]	define a match to highlight
 |:menu|		:me[nu]		enter a new menu item
-|:menukeyequiv| :menuk[eyequiv]	set key equivalent for menu item
 |:menutranslate| :menut[ranslate] add a menu translation item
 |:messages|	:mes[sages]	view previously displayed messages
 |:mkexrc|	:mk[exrc]	write current mappings and settings to a file

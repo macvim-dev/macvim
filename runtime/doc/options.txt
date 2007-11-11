@@ -3225,7 +3225,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	    :set guifont=*
 <	will bring up a font requester, where you can pick the font you want.
         In MacVim ":set guifont=*" calls: >
-	    :action orderFrontFontPanel:
+	    :macaction orderFrontFontPanel:
 <	which is the same as choosing "Show Fonts..." from the main menu.
 
 	The font name depends on the GUI used.  See |setting-guifont| for a
@@ -3317,8 +3317,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	MacVim only:				*guifontwide_macvim*
 
-	MacVim performs automatic font substitution, setting 'guifontwide' has
-	no effect.
+        MacVim performs automatic font substitution.  If 'guifontwide' is set,
+        that font will be used for all wide fonts.  However, if a glyph is
+	not available in the wide font, then font substitution is still used.
 
 	GTK+ 2 GUI only:			*guifontwide_gtk2*
 

@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.1.  Last change: 2007 Oct 14
+*gui_mac.txt*	For Vim version 7.1.  Last change: 2007 Nov 11
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -118,7 +118,7 @@ strings like "((3) of 2)" to appear in the window title.
 
 							*macvim-options*
 These are the non-standard options that MacVim supports:
-	'toolbariconsize' 'transparency'
+	'fullscreen' 'toolbariconsize' 'transparency'
 
 ==============================================================================
 2. Starting MacVim					*macvim-start*
@@ -341,9 +341,10 @@ these are ones that are know and/or which were judged major.
 - Localized menus are not supported.  Choosing anything but "English" in the
   "International" pane of "System Prefences" may break the menus (and
   toolbar).
-- Composing characters are not supported, they will mess up the display
+- Some Unicode characters are not handled well (e.g. nonspacing marks)
 - Sometimes multibyte characters look "too wide", i.e. they overlap the
-  following character.  It might help to change 'ambiwidth'.
+  following character.  It might help to change 'ambiwidth', or override the
+  automatic font substitution by setting 'guifontwide' manually.
 - Printing
 - No find/replace dialog
 
