@@ -84,6 +84,7 @@ static NSTimeInterval MMReplyTimeout = 5;
         [NSNumber numberWithBool:YES],  MMTranslateCtrlClickKey,
         [NSNumber numberWithBool:NO],   MMOpenFilesInTabsKey,
         [NSNumber numberWithBool:NO],   MMNoFontSubstitutionKey,
+        [NSNumber numberWithBool:YES],  MMLoginShellKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -520,39 +521,55 @@ static NSTimeInterval MMReplyTimeout = 5;
 
 - (void)launchVimProcessWithArguments:(NSArray *)args
 {
+    NSString *taskPath = nil;
+    NSArray *taskArgs = nil;
     NSString *path = [[NSBundle mainBundle] pathForAuxiliaryExecutable:@"Vim"];
+
     if (!path) {
         NSLog(@"ERROR: Vim executable could not be found inside app bundle!");
         return;
     }
 
-    NSMutableString *execArg = [NSMutableString
-        stringWithFormat:@"exec \"%@\" -g", path];
-    if (args) {
-        // Append all arguments while making sure that arguments containing
-        // spaces are enclosed in quotes.
-        NSCharacterSet *space = [NSCharacterSet whitespaceCharacterSet];
-        unsigned i, count = [args count];
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMLoginShellKey]) {
+        // Run process with a login shell
+        //   $SHELL -l -c "exec Vim args"
 
-        for (i = 0; i < count; ++i) {
-            NSString *arg = [args objectAtIndex:i];
-            if (NSNotFound != [arg rangeOfCharacterFromSet:space].location)
-                [execArg appendFormat:@" \"%@\"", arg];
-            else
-                [execArg appendFormat:@" %@", arg];
+        NSMutableString *execArg = [NSMutableString
+            stringWithFormat:@"exec \"%@\" -g", path];
+        if (args) {
+            // Append all arguments while making sure that arguments containing
+            // spaces are enclosed in quotes.
+            NSCharacterSet *space = [NSCharacterSet whitespaceCharacterSet];
+            unsigned i, count = [args count];
+
+            for (i = 0; i < count; ++i) {
+                NSString *arg = [args objectAtIndex:i];
+                if (NSNotFound != [arg rangeOfCharacterFromSet:space].location)
+                    [execArg appendFormat:@" \"%@\"", arg];
+                else
+                    [execArg appendFormat:@" %@", arg];
+            }
         }
+
+        // Launch the process with a login shell so that users environment
+        // settings get sourced.  This does not always happen when MacVim is
+        // started.
+        taskArgs = [NSArray arrayWithObjects:@"-l", @"-c", execArg, nil];
+        taskPath = [[[NSProcessInfo processInfo] environment]
+            objectForKey:@"SHELL"];
+        if (!taskPath)
+            taskPath = @"/bin/sh";
+    } else {
+        // Run process directly:
+        //   Vim args
+        taskPath = path;
+        taskArgs = [NSArray arrayWithObject:@"-g"];
+        if (args)
+            taskArgs = [taskArgs arrayByAddingObjectsFromArray:args];
     }
 
-    // Launch the process with a login shell so that users environment settings
-    // get sourced.  This does not always happen when MacVim is started.
-    NSArray *shellArgs = [NSArray arrayWithObjects:@"-l", @"-c", execArg, nil];
-    NSString *shell = [[[NSProcessInfo processInfo] environment]
-        objectForKey:@"SHELL"];
-    if (!shell)
-        shell = @"/bin/sh";
-
-    //NSLog(@"Launching: %@  args: %@", shell, shellArgs);
-    [NSTask launchedTaskWithLaunchPath:shell arguments:shellArgs];
+    //NSLog(@"Launching: %@  args: %@", taskPath, taskArgs);
+    [NSTask launchedTaskWithLaunchPath:taskPath arguments:taskArgs];
 }
 
 - (NSArray *)filterFilesAndNotify:(NSArray *)filenames

@@ -91,6 +91,7 @@ NSString *MMTranslateCtrlClickKey       = @"MMTranslateCtrlClick";
 NSString *MMTopLeftPointKey             = @"MMTopLeftPoint";
 NSString *MMOpenFilesInTabsKey          = @"MMOpenFilesInTabs";
 NSString *MMNoFontSubstitutionKey       = @"MMNoFontSubstitution";
+NSString *MMLoginShellKey               = @"MMLoginShell";
 
 
 

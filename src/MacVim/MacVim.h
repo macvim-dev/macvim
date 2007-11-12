@@ -210,6 +210,7 @@ extern NSString *MMTranslateCtrlClickKey;
 extern NSString *MMTopLeftPointKey;
 extern NSString *MMOpenFilesInTabsKey;
 extern NSString *MMNoFontSubstitutionKey;
+extern NSString *MMLoginShellKey;
 
 
 
