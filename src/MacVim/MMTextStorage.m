@@ -115,6 +115,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
 - (void)setAttributes:(NSDictionary *)attributes range:(NSRange)range
 {
+    //NSLog(@"%s%@", _cmd, NSStringFromRange(range));
+
     // NOTE!  This method must be implemented since the text system calls it
     // constantly to 'fix attributes', apply font substitution, etc.
 #if 0
@@ -156,6 +158,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
         [attribString setAttributes:newAttr range:range];
     } else {
+        //NSLog(@"NOT fixing font attribute!");
         [attribString setAttributes:attributes range:range];
     }
 #endif

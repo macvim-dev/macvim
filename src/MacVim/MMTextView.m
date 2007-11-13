@@ -10,7 +10,11 @@
 /*
  * MMTextView
  *
- * Dispatches keyboard and mouse input to the backend.  Also handles drag&drop.
+ * Dispatches keyboard and mouse input to the backend.  Handles drag-n-drop of
+ * files onto window.
+ *
+ * Support for input managers is somewhat hacked together.  Marked text is
+ * displayed in a popup window instead of 'in-line' (because it is easier).
  */
 
 #import "MMTextView.h"
@@ -225,6 +229,8 @@ static NSString *MMKeypadEnterString = @"KA";
     if ([string isKindOfClass:[NSAttributedString class]])
         string = [string string];
 
+    //NSLog(@"send InsertTextMsgID: %@", string);
+
     [[self vimController] sendMessage:InsertTextMsgID
                  data:[string dataUsingEncoding:NSUTF8StringEncoding]];
 }
@@ -350,12 +356,8 @@ static NSString *MMKeypadEnterString = @"KA";
 - (NSRange)markedRange
 {
     //NSLog(@"%s", _cmd);
-    // HACK! If a valid range is returned, then NSTextView changes the
-    // background color of the returned range.  Since marked text is displayed
-    // in a separate popup window this behaviour is not wanted.  By setting the
-    // location of the returned range to NSNotFound NSTextView does nothing.
-    // This hack is continued in 'firstRectForCharacterRange:'.
-    return NSMakeRange(NSNotFound, 0);
+    unsigned len = [[markedTextField stringValue] length];
+    return NSMakeRange(len > 0 ? 0 : NSNotFound, len);
 }
 
 - (void)setMarkedText:(id)text selectedRange:(NSRange)range
@@ -426,18 +428,11 @@ static NSString *MMKeypadEnterString = @"KA";
 - (NSRect)firstRectForCharacterRange:(NSRange)range
 {
     //NSLog(@"%s%@", _cmd, NSStringFromRange(range));
-
+    // HACK!  This method is called when the input manager wants to pop up an
+    // auxiliary window.  The position where this should be is controller by
+    // Vim by sending SetPreEditPositionMsgID so compute a position based on
+    // the pre-edit (row,column) pair.
     MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-    NSLayoutManager *lm = [self layoutManager];
-    NSTextContainer *tc = [self textContainer];
-
-    // HACK! Since we always return marked text to have location NSNotFound,
-    // this method will be called with 'range.location == NSNotFound' whenever
-    // the input manager tries to position a popup window at the pre-edit
-    // point.  The pre-edit point itself is set by the IM routines in Vim
-    // (MacVim is notified via the SetPreEditPositionMsgID).
-    if (!(ts && lm && tc) || NSNotFound != range.location)
-        return [super firstRectForCharacterRange:range];
 
     NSRect rect = [ts boundingRectForCharacterAtRow:preEditRow
                                              column:preEditColumn];
@@ -792,27 +787,6 @@ static NSString *MMKeypadEnterString = @"KA";
 
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column
 {
-#if 0
-    NSLayoutManager *lm = [self layoutManager];
-    NSTextContainer *tc = [self textContainer];
-    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-
-    if (!(lm && tc && ts))
-        return NO;
-
-    unsigned glyphIdx = [lm glyphIndexForPoint:point inTextContainer:tc];
-    unsigned charIdx = [lm characterIndexForGlyphAtIndex:glyphIdx];
-
-    int mod = [ts maxColumns] + 1;
-
-    if (row) *row = (int)(charIdx / mod);
-    if (column) *column = (int)(charIdx % mod);
-
-    NSLog(@"convertPoint:%@ toRow:%d column:%d", NSStringFromPoint(point),
-            *row, *column);
-
-    return YES;
-#else
     MMTextStorage *ts = (MMTextStorage*)[self textStorage];
     NSSize cellSize = [ts cellSize];
     if (!(cellSize.width > 0 && cellSize.height > 0))
@@ -826,7 +800,6 @@ static NSString *MMKeypadEnterString = @"KA";
     //        *row, *column);
 
     return YES;
-#endif
 }
 
 - (BOOL)convertRow:(int)row column:(int)column toPoint:(NSPoint *)point
