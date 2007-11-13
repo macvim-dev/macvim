@@ -155,6 +155,7 @@ enum {
     BuffersNotModifiedMsgID,
     BuffersModifiedMsgID,
     AddInputMsgID,
+    SetPreEditPositionMsgID,
 };
 
 

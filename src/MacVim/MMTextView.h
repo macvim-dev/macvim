@@ -26,10 +26,13 @@
     int                 insertionPointShape;
     int                 insertionPointFraction;
     NSTextField         *markedTextField;
+    int                 preEditRow;
+    int                 preEditColumn;
 }
 
 - (NSEvent *)lastMouseDownEvent;
 - (void)setShouldDrawInsertionPoint:(BOOL)on;
+- (void)setPreEditRow:(int)row column:(int)col;
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
                        fraction:(int)percent color:(NSColor *)color;
 - (void)hideMarkedTextField;

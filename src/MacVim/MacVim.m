@@ -68,6 +68,7 @@ char *MessageStrings[] =
     "BuffersNotModifiedMsgID",
     "BuffersModifiedMsgID",
     "AddInputMsgID",
+    "SetPreEditPositionMsgID",
 };
 
 

@@ -946,6 +946,14 @@ enum {
     [self queueMessage:ActivateMsgID data:nil];
 }
 
+- (void)setPreEditRow:(int)row column:(int)col
+{
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&row length:sizeof(int)];
+    [data appendBytes:&col length:sizeof(int)];
+    [self queueMessage:SetPreEditPositionMsgID data:data];
+}
+
 - (int)lookupColorWithKey:(NSString *)key
 {
     if (!(key && [key length] > 0))

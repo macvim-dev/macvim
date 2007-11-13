@@ -79,6 +79,12 @@ static NSString *MMKeypadEnterString = @"KA";
     shouldDrawInsertionPoint = on;
 }
 
+- (void)setPreEditRow:(int)row column:(int)col
+{
+    preEditRow = row;
+    preEditColumn = col;
+}
+
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
                        fraction:(int)percent color:(NSColor *)color
 {
@@ -396,7 +402,7 @@ static NSString *MMKeypadEnterString = @"KA";
 
         // Convert coordinates (row,col) -> view -> window base -> screen
         NSPoint origin;
-        if (![self convertRow:insertionPointRow+1 column:insertionPointColumn
+        if (![self convertRow:preEditRow+1 column:preEditColumn
                      toPoint:&origin])
             return;
         origin = [self convertPoint:origin toView:nil];
@@ -427,26 +433,21 @@ static NSString *MMKeypadEnterString = @"KA";
 
     // HACK! Since we always return marked text to have location NSNotFound,
     // this method will be called with 'range.location == NSNotFound' whenever
-    // the input manager tries to position a popup window near the insertion
-    // point.  For this reason we compute where the insertion point is and
-    // return a rect which contains it.
+    // the input manager tries to position a popup window at the pre-edit
+    // point.  The pre-edit point itself is set by the IM routines in Vim
+    // (MacVim is notified via the SetPreEditPositionMsgID).
     if (!(ts && lm && tc) || NSNotFound != range.location)
         return [super firstRectForCharacterRange:range];
 
-    unsigned charIdx = [ts characterIndexForRow:insertionPointRow
-                                         column:insertionPointColumn];
-    NSRange glyphRange =
-        [lm glyphRangeForCharacterRange:NSMakeRange(charIdx,1)
-                   actualCharacterRange:NULL];
-    NSRect ipRect = [lm boundingRectForGlyphRange:glyphRange
-                                  inTextContainer:tc];
-    ipRect.origin.x += [self textContainerOrigin].x;
-    ipRect.origin.y += [self textContainerOrigin].y + [ts cellSize].height;
+    NSRect rect = [ts boundingRectForCharacterAtRow:preEditRow
+                                             column:preEditColumn];
+    rect.origin.x += [self textContainerOrigin].x;
+    rect.origin.y += [self textContainerOrigin].y + [ts cellSize].height;
 
-    ipRect.origin = [self convertPoint:ipRect.origin toView:nil];
-    ipRect.origin = [[self window] convertBaseToScreen:ipRect.origin];
+    rect.origin = [self convertPoint:rect.origin toView:nil];
+    rect.origin = [[self window] convertBaseToScreen:rect.origin];
 
-    return ipRect;
+    return rect;
 }
 
 - (void)scrollWheel:(NSEvent *)event

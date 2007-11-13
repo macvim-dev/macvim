@@ -814,6 +814,9 @@ static NSTimeInterval MMResendInterval = 0.5;
         [[windowController window] setDocumentEdited:NO];
     } else if (BuffersModifiedMsgID == msgid) {
         [[windowController window] setDocumentEdited:YES];
+    } else if (SetPreEditPositionMsgID == msgid) {
+        const int *dim = (const int*)[data bytes];
+        [[windowController textView] setPreEditRow:dim[0] column:dim[1]];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

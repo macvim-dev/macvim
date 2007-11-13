@@ -106,6 +106,7 @@
 - (void)stopBlink;
 - (void)adjustLinespace:(int)linespace;
 - (void)activate;
+- (void)setPreEditRow:(int)row column:(int)col;
 
 - (int)lookupColorWithKey:(NSString *)key;
 - (BOOL)hasSpecialKeyWithValue:(NSString *)value;

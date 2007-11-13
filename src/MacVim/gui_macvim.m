@@ -1104,6 +1104,47 @@ mch_set_mouse_shape(int shape)
 
 
 
+// -- Input Method ----------------------------------------------------------
+
+#if defined(USE_IM_CONTROL)
+
+    void
+im_set_position(int row, int col)
+{
+    // The pre-edit area is a popup window which is displayed by MMTextView.
+    [[MMBackend sharedInstance] setPreEditRow:row column:col];
+}
+
+
+    void
+im_set_active(int active)
+{
+    // Set roman or the system script if 'active' is TRUE or FALSE,
+    // respectively.
+    SInt32 systemScript = GetScriptManagerVariable(smSysScript);
+
+    if (!p_imdisable && smRoman != systemScript)
+        KeyScript(active ? smKeySysScript : smKeyRoman);
+}
+
+
+    int
+im_get_status(void)
+{
+    // IM is active whenever the current script is the system script and the
+    // system script isn't roman.  (Hence IM can only be active when using
+    // non-roman scripts.)
+    SInt32 currentScript = GetScriptManagerVariable(smKeyScript);
+    SInt32 systemScript = GetScriptManagerVariable(smSysScript);
+
+    return currentScript != smRoman && currentScript == systemScript;
+}
+
+#endif // defined(USE_IM_CONTROL)
+
+
+
+
 // -- Unsorted --------------------------------------------------------------
 
 
