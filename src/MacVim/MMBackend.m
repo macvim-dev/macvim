@@ -1782,7 +1782,7 @@ enum {
     // quit cleanly; in the latter case we make sure the swap files are left
     // for recovery.
 
-    NSLog(@"%s isTerminating=%d", _cmd, isTerminating);
+    //NSLog(@"%s isTerminating=%d", _cmd, isTerminating);
     if (isTerminating)
         getout(0);
     else
