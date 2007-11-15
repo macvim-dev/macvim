@@ -1226,7 +1226,8 @@ main_loop(cmdwin, noexmode)
 }
 
 
-#if defined(USE_XSMP) || defined(FEAT_GUI_MSWIN) || defined(PROTO)
+#if defined(USE_XSMP) || defined(FEAT_GUI_MSWIN) || defined(PROTO) \
+	|| defined(FEAT_GUI_MACVIM)
 /*
  * Exit, but leave behind swap files for modified buffers.
  */

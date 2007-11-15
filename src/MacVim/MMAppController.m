@@ -198,7 +198,7 @@ static NSTimeInterval MMReplyTimeout = 5;
     // 'documentEdited' flag of the window correspondingly.)
     NSEnumerator *e = [[NSApp windows] objectEnumerator];
     id window;
-    while (window = [e nextObject]) {
+    while ((window = [e nextObject])) {
         if ([window isDocumentEdited]) {
             modifiedBuffers = YES;
             break;
@@ -218,6 +218,15 @@ static NSTimeInterval MMReplyTimeout = 5;
             reply = NSTerminateCancel;
 
         [alert release];
+    }
+
+    // Tell all Vim processes to terminate now (otherwise they'll leave swap
+    // files behind).
+    if (NSTerminateNow == reply) {
+        e = [vimControllers objectEnumerator];
+        id vc;
+        while ((vc = [e nextObject]))
+            [vc sendMessage:TerminateNowMsgID data:nil];
     }
 
     return reply;

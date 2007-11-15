@@ -44,6 +44,7 @@
     NSString            *alternateServerName;
     ATSFontContainerRef fontContainerRef;
     NSFont              *oldWideFont;
+    BOOL                isTerminating;
 }
 
 + (MMBackend *)sharedInstance;

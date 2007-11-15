@@ -1133,6 +1133,8 @@ enum {
             [self addInput:string];
             [string release];
         }
+    } else if (TerminateNowMsgID == msgid) {
+        isTerminating = YES;
     } else {
         // Not keyboard or mouse event, queue it and handle later.
         //NSLog(@"Add event %s to input event queue", MessageStrings[msgid]);
@@ -1776,11 +1778,15 @@ enum {
 {
     // If the main connection to MacVim is lost this means that MacVim was
     // either quit (by the user chosing Quit on the MacVim menu), or it has
-    // crashed.  In either case our only option is to quit now.
-    // TODO: Write backup file?
+    // crashed.  In the former case the flag 'isTerminating' is set and we then
+    // quit cleanly; in the latter case we make sure the swap files are left
+    // for recovery.
 
-    //NSLog(@"A Vim process lost its connection to MacVim; quitting.");
-    getout(0);
+    NSLog(@"%s isTerminating=%d", _cmd, isTerminating);
+    if (isTerminating)
+        getout(0);
+    else
+        getout_preserve_modified(1);
 }
 
 - (void)blinkTimerFired:(NSTimer *)timer
