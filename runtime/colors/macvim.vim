@@ -1,7 +1,7 @@
 " MacVim colorscheme
 "
 " Maintainer:   Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:  2007 Oct 25
+" Last Change:  2007 Nov 15
 "
 
 
@@ -84,8 +84,8 @@ hi Todo gui=NONE guifg=DarkGreen guibg=PaleGreen1
 " Change the selection color on focus change (but only if the "macvim"
 " colorscheme is active).
 if !exists("s:augroups_defined")
-  au FocusLost * if colors_name == "macvim" | hi Visual guibg=MacSecondarySelectedControlColor | endif
-  au FocusGained * if colors_name == "macvim" | hi Visual guibg=MacSelectedTextBackgroundColor | endif
+  au FocusLost * if exists("colors_name") && colors_name == "macvim" | hi Visual guibg=MacSecondarySelectedControlColor | endif
+  au FocusGained * if exists("colors_name") && colors_name == "macvim" | hi Visual guibg=MacSelectedTextBackgroundColor | endif
 
   let s:augroups_defined = 1
 endif
