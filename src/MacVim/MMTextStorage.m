@@ -11,11 +11,33 @@
  * MMTextStorage
  *
  * Text rendering related code.
+ *
+ * Note that:
+ * - There are exactly 'actualRows' number of rows
+ * - Each row is terminated by an EOL character ('\n')
+ * - Each row must cover exactly 'actualColumns' display cells
+ * - The attribute "MMWideChar" denotes a character that covers two cells, a
+ *   character without this attribute covers one cell
+ * - Unicode line (U+2028) and paragraph (U+2029) terminators are considered
+ *   invalid and are replaced by spaces
+ * - Spaces are used to fill out blank spaces
+ *
+ * In order to locate a (row,col) pair it is in general necessary to search one
+ * character at a time.  To speed things up we cache the length of each row, as
+ * well as the offset of the last column searched within each row.
+ *
+ * If each character in the text storage has length 1 and is not wide, then
+ * there is no need to search for a (row, col) pair since it can easily be
+ * computed.
  */
 
 #import "MMTextStorage.h"
 #import "MacVim.h"
 
+
+
+// Enable debug log messages for situations that should never occur.
+#define MM_TS_PARANOIA_LOG 1
 
 
 
@@ -37,7 +59,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
 @interface MMTextStorage (Private)
 - (void)lazyResize:(BOOL)force;
-- (NSRange)charRangeForRow:(int)row column:(int)col cells:(int)cells;
+- (NSRange)charRangeForRow:(int)row column:(int*)col cells:(int*)cells;
 - (void)fixInvalidCharactersInRange:(NSRange)range;
 @end
 
@@ -109,7 +131,9 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 - (void)replaceCharactersInRange:(NSRange)range
                       withString:(NSString *)string
 {
+#if MM_TS_PARANOIA_LOG
     NSLog(@"WARNING: calling %s on MMTextStorage is unsupported", _cmd);
+#endif
     //[attribString replaceCharactersInRange:range withString:string];
 }
 
@@ -233,9 +257,13 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         return;
 
     // Find range of characters in text storage to replace.
-    NSRange range = [self charRangeForRow:row column:col cells:cells];
-    if (NSMaxRange(range) > [[attribString string] length]) {
-        NSLog(@"%s Out of bounds");
+    int acol = col;
+    int acells = cells;
+    NSRange range = [self charRangeForRow:row column:&acol cells:&acells];
+    if (NSNotFound == range.location) {
+#if MM_TS_PARANOIA_LOG
+        NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+#endif
         return;
     }
 
@@ -287,16 +315,50 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     [attribString replaceCharactersInRange:range withString:string];
     [attribString setAttributes:attributes range:r];
 
+    unsigned changeInLength = [string length] - range.length;
+    if (acells != cells || acol != col) {
+        if (acells == cells + 1) {
+            // NOTE: A normal width character replaced a double width
+            // character.  To maintain the invariant that each row covers the
+            // same amount of cells, we compensate by adding an empty column.
+            [attribString replaceCharactersInRange:NSMakeRange(NSMaxRange(r),0)
+                withAttributedString:[emptyRowString
+                    attributedSubstringFromRange:NSMakeRange(0,1)]];
+            ++changeInLength;
+#if 0
+        } else if (acol == col - 1) {
+            NSLog(@"acol == col - 1");
+            [attribString replaceCharactersInRange:NSMakeRange(r.location,0)
+                withAttributedString:[emptyRowString
+                    attributedSubstringFromRange:NSMakeRange(0,1)]];
+            ++changeInLength;
+        } else if (acol == col + 1) {
+            NSLog(@"acol == col + 1");
+            [attribString replaceCharactersInRange:NSMakeRange(r.location-1,1)
+                withAttributedString:[emptyRowString
+                    attributedSubstringFromRange:NSMakeRange(0,2)]];
+            ++changeInLength;
+#endif
+        } else {
+            // NOTE: It seems that this never gets called.  If it ever does,
+            // then there is another case to treat.
+#if MM_TS_PARANOIA_LOG
+            NSLog(@"row=%d col=%d acol=%d cells=%d acells=%d", row, col, acol,
+                    cells, acells);
+#endif
+        }
+    }
+
     if ((flags & DRAW_WIDE) || [string length] != cells)
         characterEqualsColumn = NO;
 
     [self fixInvalidCharactersInRange:r];
 
     [self edited:(NSTextStorageEditedCharacters|NSTextStorageEditedAttributes)
-           range:range changeInLength:[string length]-range.length];
+           range:range changeInLength:changeInLength];
 
 #if MM_USE_ROW_CACHE
-    rowCache[row].length += [string length] - range.length;
+    rowCache[row].length += changeInLength;
 #endif
 }
 
@@ -322,9 +384,30 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     int i;
 
     for (i = 0; i < move; ++i, ++destRow) {
-        destRange = [self charRangeForRow:destRow column:left cells:width];
-        srcRange = [self charRangeForRow:(destRow+count) column:left
-                                   cells:width];
+        int acol = left;
+        int acells = width;
+        destRange = [self charRangeForRow:destRow column:&acol cells:&acells];
+#if MM_TS_PARANOIA_LOG
+        if (acells != width || acol != left)
+            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+#endif
+
+        acol = left; acells = width;
+        srcRange = [self charRangeForRow:(destRow+count) column:&acol
+                                   cells:&acells];
+#if MM_TS_PARANOIA_LOG
+        if (acells != width || acol != left)
+            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+#endif
+
+        if (NSNotFound == destRange.location || NSNotFound == srcRange.location)
+        {
+#if MM_TS_PARANOIA_LOG
+            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+#endif
+            return;
+        }
+
         NSAttributedString *srcString = [attribString
                 attributedSubstringFromRange:srcRange];
 
@@ -347,7 +430,19 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             color, NSBackgroundColorAttributeName, nil];
 
     for (i = 0; i < count; ++i, ++destRow) {
-        destRange = [self charRangeForRow:destRow column:left cells:width];
+        int acol = left;
+        int acells = width;
+        destRange = [self charRangeForRow:destRow column:&acol cells:&acells];
+#if MM_TS_PARANOIA_LOG
+        if (acells != width || acol != left)
+            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+#endif
+        if (NSNotFound == destRange.location) {
+#if MM_TS_PARANOIA_LOG
+            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+#endif
+            return;
+        }
 
         [attribString replaceCharactersInRange:destRange
                           withAttributedString:emptyString];
@@ -387,8 +482,28 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     int i;
 
     for (i = 0; i < move; ++i, --destRow, --srcRow) {
-        destRange = [self charRangeForRow:destRow column:left cells:width];
-        srcRange = [self charRangeForRow:srcRow column:left cells:width];
+        int acol = left;
+        int acells = width;
+        destRange = [self charRangeForRow:destRow column:&acol cells:&acells];
+#if MM_TS_PARANOIA_LOG
+        if (acells != width || acol != left)
+            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+#endif
+
+        acol = left; acells = width;
+        srcRange = [self charRangeForRow:srcRow column:&acol cells:&acells];
+#if MM_TS_PARANOIA_LOG
+        if (acells != width || acol != left)
+            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+#endif
+        if (NSNotFound == destRange.location || NSNotFound == srcRange.location)
+        {
+#if MM_TS_PARANOIA_LOG
+            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+#endif
+            return;
+        }
+
         NSAttributedString *srcString = [attribString
                 attributedSubstringFromRange:srcRange];
         [attribString replaceCharactersInRange:destRange
@@ -410,7 +525,19 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             color, NSBackgroundColorAttributeName, nil];
     
     for (i = 0; i < count; ++i, --destRow) {
-        destRange = [self charRangeForRow:destRow column:left cells:width];
+        int acol = left;
+        int acells = width;
+        destRange = [self charRangeForRow:destRow column:&acol cells:&acells];
+#if MM_TS_PARANOIA_LOG
+        if (acells != width || acol != left)
+            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+#endif
+        if (NSNotFound == destRange.location) {
+#if MM_TS_PARANOIA_LOG
+            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+#endif
+            return;
+        }
 
         [attribString replaceCharactersInRange:destRange
                           withAttributedString:emptyString];
@@ -447,7 +574,19 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     int r;
 
     for (r=row1; r<=row2; ++r) {
-        range = [self charRangeForRow:r column:col1 cells:cells];
+        int acol = col1;
+        int acells = cells;
+        range = [self charRangeForRow:r column:&acol cells:&acells];
+#if MM_TS_PARANOIA_LOG
+        if (acells != cells || acol != col1)
+            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+#endif
+        if (NSNotFound == range.location) {
+#if MM_TS_PARANOIA_LOG
+            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+#endif
+            return;
+        }
 
         [attribString replaceCharactersInRange:range
                           withAttributedString:emptyString];
@@ -650,7 +789,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
 - (unsigned)characterIndexForRow:(int)row column:(int)col
 {
-    NSRange range = [self charRangeForRow:row column:col cells:1];
+    int cells = 1;
+    NSRange range = [self charRangeForRow:row column:&col cells:&cells];
     return range.location != NSNotFound ? range.location : 0;
 }
 
@@ -737,7 +877,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     rect.size = cellSize;
 
     // Wide character take up twice the width of a normal character.
-    NSRange r = [self charRangeForRow:row column:col cells:1];
+    int cells = 1;
+    NSRange r = [self charRangeForRow:row column:&col cells:&cells];
     if (NSNotFound != r.location
             && [attribString attribute:MMWideCharacterAttributeName
                                atIndex:r.location
@@ -751,7 +892,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     // are drawn).
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
     NSTextContainer *tc = [[lm textContainers] objectAtIndex:0];
-    NSRange range = [self charRangeForRow:row column:col cells:1];
+    int cells = 1;
+    NSRange range = [self charRangeForRow:row column:&col cells:&cells];
     NSRange glyphRange = [lm glyphRangeForCharacterRange:range
                                     actualCharacterRange:NULL];
 
@@ -825,8 +967,11 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
            range:oldRange changeInLength:fullRange.length-oldRange.length];
 }
 
-- (NSRange)charRangeForRow:(int)row column:(int)col cells:(int)cells
+- (NSRange)charRangeForRow:(int)row column:(int*)pcol cells:(int*)pcells
 {
+    int col = *pcol;
+    int cells = *pcells;
+
     // If no wide chars are used and if every char has length 1 (no composing
     // characters, no > 16 bit characters), then we can compute the range.
     if (characterEqualsColumn)
@@ -834,13 +979,15 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
     NSString *string = [attribString string];
     NSRange r, range = { NSNotFound, 0 };
-    unsigned idx;
+    unsigned idx, rowEnd;
     int i;
 
     if (row < 0 || row >= actualRows || col < 0 || col >= actualColumns
             || col+cells > actualColumns) {
+#if MM_TS_PARANOIA_LOG
         NSLog(@"%s row=%d col=%d cells=%d is out of range (length=%d)",
                 _cmd, row, col, cells, [string length]);
+#endif
         return range;
     }
 
@@ -850,6 +997,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     idx = 0;
     for (i = 0; i < row; ++i, ++cache)
         idx += cache->length;
+
+    rowEnd = idx + cache->length;
 #else
     // Locate the beginning of the row by scanning for EOL characters.
     r.location = 0;
@@ -873,6 +1022,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     } else {
         range.location = idx;
 
+#if 0  // Backward search seems to be broken...
         // Cache miss
         if (col < i - col) {
             // Search forward from beginning of line.
@@ -915,8 +1065,37 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             }
         }
 
+        *pcol = i;
         cache->col = i;
         cache->colOffset = idx - range.location;
+#else
+        // Cache miss
+        if (col < i) {
+            // Search forward from beginning of line.
+            i = 0;
+        } else {
+            // Search forward from cache spot.
+            idx += cache->colOffset;
+        }
+
+        // Forward search
+        while (col > i) {
+            r = [string rangeOfComposedCharacterSequenceAtIndex:idx];
+
+            // Wide chars take up two display cells.
+            if ([attribString attribute:MMWideCharacterAttributeName
+                                atIndex:idx
+                         effectiveRange:nil])
+                ++i;
+
+            idx += r.length;
+            ++i;
+        }
+
+        *pcol = i;
+        cache->col = i;
+        cache->colOffset = idx - range.location;
+#endif
     }
 #else
     idx = r.location;
@@ -947,6 +1126,30 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         idx += r.length;
         range.length += r.length;
     }
+
+    *pcells = i;
+
+#if MM_TS_PARANOIA_LOG
+#if MM_USE_ROW_CACHE
+    if (range.location >= rowEnd-1) {
+        NSLog(@"INTERNAL ERROR [%s] : row=%d col=%d cells=%d --> range=%@",
+                _cmd, row, col, cells, NSStringFromRange(range));
+        range.location = rowEnd - 2;
+        range.length = 1;
+    } else if (NSMaxRange(range) >= rowEnd) {
+        NSLog(@"INTERNAL ERROR [%s] : row=%d col=%d cells=%d --> range=%@",
+                _cmd, row, col, cells, NSStringFromRange(range));
+        range.length = rowEnd - range.location - 1;
+    }
+#endif
+
+    if (NSMaxRange(range) > [string length]) {
+        NSLog(@"INTERNAL ERROR [%s] : row=%d col=%d cells=%d --> range=%@",
+                _cmd, row, col, cells, NSStringFromRange(range));
+        range.location = NSNotFound;
+        range.length = 0;
+    }
+#endif
 
     return range;
 }

@@ -997,7 +997,7 @@ enum {
         }
     }
 
-    NSLog(@"WARNING: No color with key %@ found.", stripKey);
+    //NSLog(@"WARNING: No color with key %@ found.", stripKey);
     return INVALCOLOR;
 }
 

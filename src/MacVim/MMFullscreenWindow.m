@@ -11,6 +11,8 @@
  * MMFullscreen
  *
  * Support for full-screen editing.
+ *
+ * Author: Nico Weber
  */
 
 #import "MMFullscreenWindow.h"
