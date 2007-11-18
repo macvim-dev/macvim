@@ -84,7 +84,7 @@ static NSTimeInterval MMReplyTimeout = 5;
         [NSNumber numberWithBool:YES],  MMTranslateCtrlClickKey,
         [NSNumber numberWithBool:NO],   MMOpenFilesInTabsKey,
         [NSNumber numberWithBool:NO],   MMNoFontSubstitutionKey,
-        [NSNumber numberWithBool:YES],  MMLoginShellKey,
+        [NSNumber numberWithBool:NO],   MMLoginShellKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
