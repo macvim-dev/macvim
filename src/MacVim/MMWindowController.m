@@ -381,41 +381,28 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     if (!setupDone) return;
 
-    // At the end of an resize, check if vim view size and number of
-    // columns / rows agree (the first is set while resizing, the second by
-    // messages sent from vim). If not, send a synchronous (!) message to vim
-    // to set columns / rows to the value belonging to the view size. If the
-    // message couldn't be sent, change the view size to fit columns / rows.
+    // NOTE: During live resize the window is not constrained to lie inside the
+    // screen (because we must not programmatically alter the window size
+    // during live resize or it will 'jitter'), so at the end of live resize we
+    // make sure a final SetTextDimensionsMsgID message is sent to ensure that
+    // resizeWindowToFit does get called.  For this reason and also because we
+    // want to ensure that Vim and MacVim have consistent states, this resize
+    // message is sent synchronously.  (If the states were inconsistent the
+    // text view may become too large or too small to fit the window.)
 
-    // NOTE!  It is assumed that the window has been resized so that it will
-    // exactly fit the text storage (possibly after resizing it).  If this is
-    // not the case the display might be messed up.
-    BOOL resizeFailed = NO;
     NSSize contentSize = [self contentSize];
 
     int desiredSize[2];
     [vimView getDesiredRows:&desiredSize[0] columns:&desiredSize[1]
                     forSize:contentSize];
 
-    int rows, columns;
-    [vimView getActualRows:&rows columns:&columns];
+    NSData *data = [NSData dataWithBytes:desiredSize length:2*sizeof(int)];
 
-    if (desiredSize[0] != rows || desiredSize[1] != columns) {
+    BOOL resizeOk = [vimController sendMessageNow:SetTextDimensionsMsgID
+                                             data:data
+                                          timeout:.5];
 
-        NSData *data = [NSData dataWithBytes:desiredSize length:2*sizeof(int)];
-
-        // NOTE:  Since we're at the end of a live resize we want to make sure
-        // that the SetTextDimensionsMsgID message reaches Vim, else Vim and
-        // MacVim will have inconsistent states (i.e. the text view will be too
-        // large or too small for the window size).  Thus, add a timeout (this
-        // may have to be tweaked) and take note if the message was sent or
-        // not.
-        resizeFailed = ![vimController sendMessageNow:SetTextDimensionsMsgID
-                                                 data:data
-                                              timeout:.5];
-    }
-
-    if (resizeFailed) {
+    if (!resizeOk) {
         // Force the window size to match the text view size otherwise Vim and
         // MacVim will have inconsistent states.
         [self resizeWindowToFit:self];
