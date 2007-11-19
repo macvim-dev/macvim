@@ -177,17 +177,27 @@ static NSString *MMKeypadEnterString = @"KA";
 - (void)keyDown:(NSEvent *)event
 {
     //NSLog(@"%s %@", _cmd, event);
-    // HACK! If a modifier is held, don't pass the event along to
+    // HACK! If control modifier is held, don't pass the event along to
     // interpretKeyEvents: since some keys are bound to multiple commands which
     // means doCommandBySelector: is called several times.
     //
     // TODO: Figure out a way to disable Cocoa key bindings entirely, without
     // affecting input management.
-
-    if ([event modifierFlags] & NSControlKeyMask)
-        [self dispatchKeyEvent:event];
-    else
+    if ([event modifierFlags] & NSControlKeyMask) {
+        NSString *unmod = [event charactersIgnoringModifiers];
+        if ([unmod length] == 1 && [unmod characterAtIndex:0] <= 0x7f
+                                && [unmod characterAtIndex:0] >= 0x60) {
+            // HACK! Send Ctrl-letter keys (and C-@, C-[, C-\, C-], C-^, C-_)
+            // as normal text to be added to the Vim input buffer.  This must
+            // be done in order for the backend to be able to separate e.g.
+            // Ctrl-i and Ctrl-tab.
+            [self insertText:[event characters]];
+        } else {
+            [self dispatchKeyEvent:event];
+        }
+    } else {
         [super keyDown:event];
+    }
 }
 
 - (void)insertText:(id)string
@@ -310,7 +320,7 @@ static NSString *MMKeypadEnterString = @"KA";
 
     // HACK!  On Leopard Ctrl-key events end up here instead of keyDown:.
     if (flags & NSControlKeyMask) {
-        [self dispatchKeyEvent:event];
+        [self keyDown:event];
         return YES;
     }
 
