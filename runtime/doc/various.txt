@@ -315,6 +315,7 @@ N  *+find_in_path*	include file searches: |[I|, |:isearch|,
 N  *+folding*		|folding|
    *+footer*		|gui-footer|
    *+fork*		Unix only: |fork| shell commands
+m  *+fullscreen*        MacVim only: edit in full-screen
 N  *+gettext*		message translations |multi-lang|
    *+GUI_Athena*	Unix only: Athena |GUI|
    *+GUI_neXtaw*	Unix only: neXtaw |GUI|
@@ -350,6 +351,7 @@ N  *+multi_lang*	non-English language support |multi-lang|
 m  *+mzscheme*		Mzscheme interface |mzscheme|
 m  *+mzscheme/dyn*	Mzscheme interface |mzscheme-dynamic| |/dyn|
 m  *+netbeans_intg*	|netbeans|
+m  *+odbeditor*         MacVim only: ODB Editor Protocol support |odbeditor|
 m  *+ole*		Win32 GUI only: |ole-interface|
    *+osfiletype*	Support for the 'osfiletype' option and filetype
 			checking in automatic commands.  |autocmd-osfiletypes|
@@ -386,6 +388,7 @@ N  *+textobjects*	|text-objects| selection
    *+tgetent*		non-Unix only: able to use external termcap
 N  *+title*		Setting the window 'title' and 'icon'
 N  *+toolbar*		|gui-toolbar|
+m  *+transparency*      MacVim only: window background transparency
 N  *+user_commands*	User-defined commands. |user-commands|
 N  *+viminfo*		|'viminfo'|
 N  *+vertsplit*		Vertically split windows |:vsplit|

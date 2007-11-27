@@ -531,7 +531,7 @@
 	<key>CFBundleIconFile</key>
 	<string>vim_gloss</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.vim.MacVim-odb</string>
+	<string>org.vim.MacVim</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

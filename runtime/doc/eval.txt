@@ -5333,6 +5333,7 @@ fname_case		Case in file names matters (for Amiga, MS-DOS, and
 folding			Compiled with |folding| support.
 footer			Compiled with GUI footer support. |gui-footer|
 fork			Compiled to use fork()/exec() instead of system().
+fullscreen              Compiled with 'fullscreen' support.
 gettext			Compiled with message translation |multi-lang|
 gui			Compiled with GUI enabled.
 gui_athena		Compiled with Athena GUI.
@@ -5377,6 +5378,7 @@ multi_lang		Compiled with support for multiple languages.
 mzscheme		Compiled with MzScheme interface |mzscheme|.
 netbeans_intg		Compiled with support for |netbeans|.
 netbeans_enabled	Compiled with support for |netbeans| and it's used.
+odbeditor               Compiled with |odbeditor| support.
 ole			Compiled with OLE automation support for Win32.
 os2			OS/2 version of Vim.
 osfiletype		Compiled with support for osfiletypes |+osfiletype|
@@ -5418,6 +5420,7 @@ tgetent			Compiled with tgetent support, able to use a termcap
 			or terminfo file.
 title			Compiled with window title support |'title'|.
 toolbar			Compiled with support for |gui-toolbar|.
+transparency            Compiled with 'transparency' support.
 unix			Unix version of Vim.
 user_commands		User-defined commands.
 viminfo			Compiled with viminfo support.

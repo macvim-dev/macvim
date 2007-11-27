@@ -168,6 +168,18 @@ command:
 	:gui [++opt] [+cmd] [-f|-b] [files...]
 Note: Forking ("-b") currently does not work.
 
+						*odbeditor* *external-editor*
+MacVim can act as an 'external editor' for Mac OS X applications that support
+the ODB Editor Protocol (or the 'external editor' protocol).  Each application
+has different ways of configuring this option, check the applications
+documentation.  Once configured properly MacVim can be used to open files in
+such an application.
+
+A technical note: MacVim handles file open, modified and closed events.  In
+the open event the FTok and Burl parameters are parsed (the latter is ignored
+at the moment though).  In the modified and closed events the Tokn parameter
+is sent back to the server application.
+
 ==============================================================================
 3. Special colors					*macvim-colors*
 
