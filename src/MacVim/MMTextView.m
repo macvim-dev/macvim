@@ -699,7 +699,7 @@ static NSString *MMKeypadEnterString = @"KA";
         return YES;
     } else if ([[pboard types] containsObject:NSFilenamesPboardType]) {
         NSArray *files = [pboard propertyListForType:NSFilenamesPboardType];
-        [[self vimController] dropFiles:files];
+        [[self vimController] dropFiles:files forceOpen:NO];
         return YES;
     }
 

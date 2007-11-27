@@ -70,6 +70,8 @@ char *MessageStrings[] =
     "AddInputMsgID",
     "SetPreEditPositionMsgID",
     "TerminateNowMsgID",
+    "ODBEditMsgID",
+    "XcodeModMsgID",
 };
 
 

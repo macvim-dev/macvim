@@ -10865,6 +10865,9 @@ f_has(argvars, rettv)
 #if !defined(USE_SYSTEM) && defined(UNIX)
 	"fork",
 #endif
+#ifdef FEAT_FULLSCREEN
+	"fullscreen",
+#endif
 #ifdef FEAT_GETTEXT
 	"gettext",
 #endif
@@ -11052,6 +11055,9 @@ f_has(argvars, rettv)
 #ifdef FEAT_NETBEANS_INTG
 	"netbeans_intg",
 #endif
+#ifdef FEAT_ODB_EDITOR
+	"odbeditor",
+#endif
 #ifdef FEAT_SPELL
 	"spell",
 #endif
@@ -11092,6 +11098,9 @@ f_has(argvars, rettv)
 #endif
 #ifdef FEAT_TOOLBAR
 	"toolbar",
+#endif
+#ifdef FEAT_TRANSPARENCY
+	"transparency",
 #endif
 #ifdef FEAT_USR_CMDS
 	"user-commands",    /* was accidentally included in 5.4 */

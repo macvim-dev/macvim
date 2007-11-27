@@ -157,6 +157,8 @@ enum {
     AddInputMsgID,
     SetPreEditPositionMsgID,
     TerminateNowMsgID,
+    ODBEditMsgID,
+    XcodeModMsgID,
 };
 
 
@@ -234,3 +236,17 @@ ATSFontContainerRef loadFonts();
 @interface NSIndexSet (MMExtras)
 + (id)indexSetWithVimList:(NSString *)list;
 @end
+
+
+
+
+// ODB Editor Suite Constants (taken from ODBEditorSuite.h)
+#define	keyFileSender		'FSnd'
+#define	keyFileSenderToken	'FTok'
+#define	keyFileCustomPath	'Burl'
+#define	kODBEditorSuite		'R*ch'
+#define	kAEModifiedFile		'FMod'
+#define	keyNewLocation		'New?'
+#define	kAEClosedFile		'FCls'
+#define	keySenderToken		'Tokn'
+

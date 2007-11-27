@@ -20,6 +20,7 @@
     NSString            *openSelectionString;
     ATSFontContainerRef fontContainerRef;
     BOOL                untitledWindowOpening;
+    NSMutableDictionary *pidArguments;
 }
 
 - (void)removeVimController:(id)controller;

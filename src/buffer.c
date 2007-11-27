@@ -441,6 +441,10 @@ close_buffer(win, buf, action)
     if (usingNetbeans)
 	netbeans_file_closed(buf);
 #endif
+#ifdef FEAT_ODB_EDITOR
+    odb_buffer_close(buf);
+#endif
+
     /* Change directories when the 'acd' option is set. */
     DO_AUTOCHDIR
 

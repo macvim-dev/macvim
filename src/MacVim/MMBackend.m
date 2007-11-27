@@ -85,6 +85,8 @@ enum {
 - (void)handleSetFont:(NSData *)data;
 - (void)handleDropFiles:(NSData *)data;
 - (void)handleDropString:(NSData *)data;
+- (void)handleOdbEdit:(NSData *)data;
+- (void)handleXcodeMod:(NSData *)data;
 - (BOOL)checkForModifiedBuffers;
 - (void)addInput:(NSString *)input;
 @end
@@ -392,10 +394,12 @@ enum {
     [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                              beforeDate:[NSDate distantPast]];
 
+#if 0
     // Keyboard and mouse input is handled directly, other input is queued and
     // processed here.  This call may enter a blocking loop.
     if ([inputQueue count] > 0)
         [self processInputQueue];
+#endif
 }
 
 - (void)flushQueue:(BOOL)force
@@ -451,6 +455,8 @@ enum {
     BOOL yn = inputReceived;
     inputReceived = NO;
 
+    // Keyboard and mouse input is handled directly, other input is queued and
+    // processed here.  This call may enter a blocking loop.
     if ([inputQueue count] > 0)
         [self processInputQueue];
 
@@ -1586,6 +1592,10 @@ enum {
         const void *bytes = [data bytes];
         int shape = *((int*)bytes);  bytes += sizeof(int);
         update_mouseshape(shape);
+    } else if (ODBEditMsgID == msgid) {
+        [self handleOdbEdit:data];
+    } else if (XcodeModMsgID == msgid) {
+        [self handleXcodeMod:data];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
@@ -1959,12 +1969,14 @@ enum {
 #ifdef FEAT_DND
     const void *bytes = [data bytes];
     const void *end = [data bytes] + [data length];
+    BOOL forceOpen = *((BOOL*)bytes);  bytes += sizeof(BOOL);
     int n = *((int*)bytes);  bytes += sizeof(int);
 
-    if (State & CMDLINE) {
+    if (!forceOpen && (State & CMDLINE)) {
         // HACK!  If Vim is in command line mode then the files names
         // should be added to the command line, instead of opening the
-        // files in tabs.  This is taken care of by gui_handle_drop().
+        // files in tabs (unless forceOpen is set).  This is taken care of by
+        // gui_handle_drop().
         char_u **fnames = (char_u **)alloc(n * sizeof(char_u *));
         if (fnames) {
             int i = 0;
@@ -1990,7 +2002,12 @@ enum {
         // HACK!  I'm not sure how to get Vim to open a list of files in
         // tabs, so instead I create a ':tab drop' command with all the
         // files to open and execute it.
+#if 1
         NSMutableString *cmd = [NSMutableString stringWithString:@":tab drop"];
+#else
+        NSMutableString *cmd = [NSMutableString stringWithString:
+                @"<C-\\><C-N>:tab drop"];
+#endif
 
         int i;
         for (i = 0; i < n && bytes < end; ++i) {
@@ -2003,6 +2020,7 @@ enum {
             [cmd appendString:file];
         }
 
+#if 1
         // By going to the last tabpage we ensure that the new tabs will
         // appear last (if this call is left out, the taborder becomes
         // messy).
@@ -2025,6 +2043,11 @@ enum {
         gui_update_cursor(FALSE, FALSE);
         maketitle();
         gui_mch_flush();
+#else
+        [cmd appendString:@"|redr|f<CR>"];
+
+        [self addInput:cmd];
+#endif
     }
 #endif // FEAT_DND
 }
@@ -2062,6 +2085,90 @@ enum {
 #endif
     add_to_input_buf(dropkey, sizeof(dropkey));
 #endif // FEAT_DND
+}
+
+- (void)handleOdbEdit:(NSData *)data
+{
+#ifdef FEAT_ODB_EDITOR
+    const void *bytes = [data bytes];
+
+    OSType serverID = *((OSType*)bytes);  bytes += sizeof(OSType);
+
+    char_u *path = NULL;
+    int pathLen = *((int*)bytes);  bytes += sizeof(int);
+    if (pathLen > 0) {
+        path = (char_u*)bytes;
+        bytes += pathLen;
+#ifdef FEAT_MBYTE
+        path = CONVERT_FROM_UTF8(path);
+#endif
+    }
+
+    NSAppleEventDescriptor *token = nil;
+    DescType tokenType = *((DescType*)bytes);  bytes += sizeof(DescType);
+    int descLen = *((int*)bytes);  bytes += sizeof(int);
+    if (descLen > 0) {
+        token = [NSAppleEventDescriptor descriptorWithDescriptorType:tokenType
+                                                               bytes:bytes
+                                                              length:descLen];
+        bytes += descLen;
+    }
+
+    unsigned i, numFiles = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+    for (i = 0; i < numFiles; ++i) {
+        int len = *((int*)bytes);  bytes += sizeof(int);
+        char_u *filename = (char_u*)bytes;
+#ifdef FEAT_MBYTE
+        filename = CONVERT_FROM_UTF8(filename);
+#endif
+        buf_T *buf = buflist_findname(filename);
+        if (buf) {
+            if (buf->b_odb_token) {
+                [(NSAppleEventDescriptor*)(buf->b_odb_token) release];
+                buf->b_odb_token = NULL;
+            }
+
+            if (buf->b_odb_fname) {
+                vim_free(buf->b_odb_fname);
+                buf->b_odb_fname = NULL;
+            }
+
+            buf->b_odb_server_id = serverID;
+
+            if (token)
+                buf->b_odb_token = [token retain];
+            if (path)
+                buf->b_odb_fname = vim_strsave(path);
+        } else {
+            NSLog(@"WARNING: Could not find buffer '%s' for ODB editing.",
+                    filename);
+        }
+
+#ifdef FEAT_MBYTE
+        CONVERT_FROM_UTF8_FREE(filename);
+#endif
+        bytes += len;
+    }
+#ifdef FEAT_MBYTE
+    CONVERT_FROM_UTF8_FREE(path);
+#endif
+#endif // FEAT_ODB_EDITOR
+}
+
+- (void)handleXcodeMod:(NSData *)data
+{
+#if 0
+    const void *bytes = [data bytes];
+    DescType type = *((DescType*)bytes);  bytes += sizeof(DescType);
+    unsigned len = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+    if (0 == len)
+        return;
+
+    NSAppleEventDescriptor *replyEvent = [NSAppleEventDescriptor
+            descriptorWithDescriptorType:type
+                                   bytes:bytes
+                                  length:len];
+#endif
 }
 
 - (BOOL)checkForModifiedBuffers

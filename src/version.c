@@ -395,6 +395,11 @@ static char *(features[]) =
 #else
 	"-netbeans_intg",
 #endif
+#ifdef FEAT_ODB_EDITOR
+	"+odbeditor",
+#else
+	"-odbeditor",
+#endif
 #ifdef FEAT_GUI_W32
 # ifdef FEAT_OLE
 	"+ole",

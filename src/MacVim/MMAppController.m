@@ -32,6 +32,7 @@
 
 
 
+
 // Default timeout intervals on all connections.
 static NSTimeInterval MMRequestTimeout = 5;
 static NSTimeInterval MMReplyTimeout = 5;
@@ -49,9 +50,13 @@ static NSTimeInterval MMReplyTimeout = 5;
 @interface MMAppController (Private)
 - (MMVimController *)keyVimController;
 - (MMVimController *)topmostVimController;
-- (void)launchVimProcessWithArguments:(NSArray *)args;
+- (int)launchVimProcessWithArguments:(NSArray *)args;
 - (NSArray *)filterFilesAndNotify:(NSArray *)files;
-- (NSArray *)filterOpenFilesAndRaiseFirst:(NSArray *)filenames;
+- (NSArray *)filterOpenFiles:(NSArray *)filenames remote:(OSType)theID
+                        path:(NSString *)path
+                       token:(NSAppleEventDescriptor *)token;
+- (void)handleXcodeModEvent:(NSAppleEventDescriptor *)event
+                 replyEvent:(NSAppleEventDescriptor *)reply;
 @end
 
 @interface NSMenu (MMExtras)
@@ -99,6 +104,7 @@ static NSTimeInterval MMReplyTimeout = 5;
         fontContainerRef = loadFonts();
 
         vimControllers = [NSMutableArray new];
+        pidArguments = [NSMutableDictionary new];
 
         // NOTE!  If the name of the connection changes here it must also be
         // updated in MMBackend.m.
@@ -128,10 +134,20 @@ static NSTimeInterval MMReplyTimeout = 5;
 {
     //NSLog(@"MMAppController dealloc");
 
+    [pidArguments release];
     [vimControllers release];
     [openSelectionString release];
 
     [super dealloc];
+}
+
+- (void)applicationWillFinishLaunching:(NSNotification *)notification
+{
+    [[NSAppleEventManager sharedAppleEventManager]
+            setEventHandler:self
+                andSelector:@selector(handleXcodeModEvent:replyEvent:)
+              forEventClass:'KAHL'
+                 andEventID:'MOD '];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
@@ -150,26 +166,79 @@ static NSTimeInterval MMReplyTimeout = 5;
 
 - (BOOL)applicationOpenUntitledFile:(NSApplication *)sender
 {
-    //NSLog(@"%s NSapp=%@ theApp=%@", _cmd, NSApp, sender);
-
     [self newWindow:self];
     return YES;
 }
 
 - (void)application:(NSApplication *)sender openFiles:(NSArray *)filenames
 {
-    filenames = [self filterOpenFilesAndRaiseFirst:filenames];
+    OSType remoteID;
+    NSString *remotePath;
+    NSAppleEventDescriptor *remoteToken;
+    NSAppleEventDescriptor *odbdesc =
+        [[NSAppleEventManager sharedAppleEventManager] currentAppleEvent];
+
+    if (![odbdesc paramDescriptorForKeyword:keyFileSender]) {
+        // The ODB paramaters may hide inside the 'keyAEPropData' descriptor.
+        odbdesc = [odbdesc paramDescriptorForKeyword:keyAEPropData];
+        if (![odbdesc paramDescriptorForKeyword:keyFileSender])
+            odbdesc = nil;
+    }
+
+    if (odbdesc) {
+        remoteID = [[odbdesc paramDescriptorForKeyword:keyFileSender]
+                typeCodeValue];
+        remotePath = [[odbdesc paramDescriptorForKeyword:keyFileCustomPath]
+                stringValue];
+        remoteToken = [[odbdesc paramDescriptorForKeyword:keyFileSenderToken]
+                copy];
+
+        //NSLog(@"ODB parameters: ID=0x%x path=%@ token=%@",
+        //        remoteID, remotePath, remoteToken);
+    }
+
+    filenames = [self filterOpenFiles:filenames remote:remoteID path:remotePath
+                                token:remoteToken];
     if ([filenames count]) {
         MMVimController *vc;
         BOOL openInTabs = [[NSUserDefaults standardUserDefaults]
             boolForKey:MMOpenFilesInTabsKey];
 
         if (openInTabs && (vc = [self topmostVimController])) {
-            [vc dropFiles:filenames];
+            // Open files in tabs in the topmost window.
+            [vc dropFiles:filenames forceOpen:YES];
+            if (odbdesc)
+                [vc odbEdit:filenames server:remoteID path:remotePath
+                      token:remoteToken];
         } else {
+            // Open files in tabs in a new window.
             NSMutableArray *args = [NSMutableArray arrayWithObject:@"-p"];
             [args addObjectsFromArray:filenames];
-            [self launchVimProcessWithArguments:args];
+            int pid = [self launchVimProcessWithArguments:args];
+
+            // The Vim process starts asynchronously.  Some arguments cannot be
+            // on the command line, so store them in a dictionary and pass them
+            // to the process once it has started.
+            //
+            // TODO: If the Vim process fails to start, or if it changes PID,
+            // then the memory allocated for these parameters will leak.
+            // Ensure that this cannot happen or somehow detect it.
+            if (odbdesc) {
+                // The remote token can be arbitrary data so it is cannot
+                // (without encoding it as text) be passed on the command line.
+                NSMutableDictionary *args =
+                    [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                        filenames, @"filenames",
+                        [NSNumber numberWithUnsignedInt:remoteID], @"remoteID",
+                        nil];
+                if (remotePath)
+                    [args setObject:remotePath forKey:@"remotePath"];
+                if (remoteToken)
+                    [args setObject:remoteToken forKey:@"remoteToken"];
+
+                [pidArguments setObject:args
+                                 forKey:[NSNumber numberWithInt:pid]];
+            }
         }
     }
 
@@ -232,8 +301,12 @@ static NSTimeInterval MMReplyTimeout = 5;
     return reply;
 }
 
-- (void)applicationWillTerminate:(NSNotification *)aNotification
+- (void)applicationWillTerminate:(NSNotification *)notification
 {
+    [[NSAppleEventManager sharedAppleEventManager]
+            removeEventHandlerForEventClass:'KAHL'
+                                 andEventID:'MOD '];
+
     // This will invalidate all connections (since they were spawned from the
     // default connection).
     [[NSConnection defaultConnection] invalidate];
@@ -382,8 +455,7 @@ static NSTimeInterval MMReplyTimeout = 5;
     connectBackend:(byref in id <MMBackendProtocol>)backend
                pid:(int)pid
 {
-    //NSLog(@"Frontend got connection request from backend...adding new "
-    //        "MMVimController");
+    //NSLog(@"Connect backend (pid=%d)", pid);
 
     [(NSDistantObject*)backend
             setProtocolForProxy:@protocol(MMBackendProtocol)];
@@ -409,6 +481,21 @@ static NSTimeInterval MMReplyTimeout = 5;
         [NSApp activateIgnoringOtherApps:YES];
 
     untitledWindowOpening = NO;
+
+    // Arguments to a new Vim process that cannot be passed on the command line
+    // are stored in a dictionary and passed to the Vim process here.
+    NSNumber *key = [NSNumber numberWithInt:pid];
+    NSDictionary *args = [pidArguments objectForKey:key];
+    if (args) {
+        if ([args objectForKey:@"remoteID"]) {
+            [vc odbEdit:[args objectForKey:@"filenames"]
+                 server:[[args objectForKey:@"remoteID"] unsignedIntValue]
+                   path:[args objectForKey:@"remotePath"]
+                  token:[args objectForKey:@"remoteToken"]];
+        }
+
+        [pidArguments removeObjectForKey:key];
+    }
 
     return vc;
 }
@@ -483,7 +570,7 @@ static NSTimeInterval MMReplyTimeout = 5;
             vc = [self topmostVimController];
 
         if (vc) {
-            [vc dropFiles:filenames];
+            [vc dropFiles:filenames forceOpen:YES];
         } else {
             [self application:NSApp openFiles:filenames];
         }
@@ -528,7 +615,7 @@ static NSTimeInterval MMReplyTimeout = 5;
     return nil;
 }
 
-- (void)launchVimProcessWithArguments:(NSArray *)args
+- (int)launchVimProcessWithArguments:(NSArray *)args
 {
     NSString *taskPath = nil;
     NSArray *taskArgs = nil;
@@ -536,7 +623,7 @@ static NSTimeInterval MMReplyTimeout = 5;
 
     if (!path) {
         NSLog(@"ERROR: Vim executable could not be found inside app bundle!");
-        return;
+        return 0;
     }
 
     if ([[NSUserDefaults standardUserDefaults] boolForKey:MMLoginShellKey]) {
@@ -577,8 +664,12 @@ static NSTimeInterval MMReplyTimeout = 5;
             taskArgs = [taskArgs arrayByAddingObjectsFromArray:args];
     }
 
-    //NSLog(@"Launching: %@  args: %@", taskPath, taskArgs);
-    [NSTask launchedTaskWithLaunchPath:taskPath arguments:taskArgs];
+    NSTask *task =[NSTask launchedTaskWithLaunchPath:taskPath
+                                           arguments:taskArgs];
+    //NSLog(@"launch %@ with args=%@ (pid=%d)", [task processIdentifier],
+    //    taskPath, taskArgs);
+
+    return [task processIdentifier];
 }
 
 - (NSArray *)filterFilesAndNotify:(NSArray *)filenames
@@ -627,12 +718,15 @@ static NSTimeInterval MMReplyTimeout = 5;
     return files;
 }
 
-- (NSArray *)filterOpenFilesAndRaiseFirst:(NSArray *)filenames
+- (NSArray *)filterOpenFiles:(NSArray *)filenames remote:(OSType)theID
+                        path:(NSString *)path
+                       token:(NSAppleEventDescriptor *)token
 {
     // Check if any of the files in the 'filenames' array are open in any Vim
     // process.  Remove the files that are open from the 'filenames' array and
     // return it.  If all files were filtered out, then raise the first file in
-    // the Vim process it is open.
+    // the Vim process it is open.  Files that are filtered are sent an odb
+    // open event in case theID is not zero.
 
     MMVimController *raiseController = nil;
     NSString *raiseFile = nil;
@@ -657,6 +751,11 @@ static NSTimeInterval MMReplyTimeout = 5;
                     raiseFile = [files objectAtIndex:[idxSet firstIndex]];
                     [[raiseFile retain] autorelease];
                 }
+
+                // Send an odb open event to the Vim process.
+                if (theID != 0)
+                    [controller odbEdit:[files objectsAtIndexes:idxSet]
+                                 server:theID path:path token:token];
 
                 // Remove all the files that were open in this Vim process and
                 // create a new expression to evaluate.
@@ -686,6 +785,31 @@ static NSTimeInterval MMReplyTimeout = 5;
     }
 
     return files;
+}
+
+- (void)handleXcodeModEvent:(NSAppleEventDescriptor *)event
+                 replyEvent:(NSAppleEventDescriptor *)reply
+{
+#if 0
+    // Xcode sends this event to query MacVim which open files have been
+    // modified.
+    NSLog(@"reply:%@", reply);
+    NSLog(@"event:%@", event);
+
+    NSEnumerator *e = [vimControllers objectEnumerator];
+    id vc;
+    while ((vc = [e nextObject])) {
+        DescType type = [reply descriptorType];
+        unsigned len = [[type data] length];
+        NSMutableData *data = [NSMutableData data];
+
+        [data appendBytes:&type length:sizeof(DescType)];
+        [data appendBytes:&len length:sizeof(unsigned)];
+        [data appendBytes:[reply data] length:len];
+
+        [vc sendMessage:XcodeModMsgID data:data];
+    }
+#endif
 }
 
 @end // MMAppController (Private)

@@ -1708,3 +1708,93 @@ serverSendReply(char_u *serverid, char_u *reply)
 }
 
 #endif // MAC_CLIENTSERVER
+
+
+
+
+// -- ODB Editor Support ----------------------------------------------------
+
+#ifdef FEAT_ODB_EDITOR
+/*
+ * The ODB Editor protocol works like this:
+ * - An external program (the server) asks MacVim to open a file and associates
+ *   three things with this file: (1) a server id (a four character code that
+ *   identifies the server), (2) a path that can be used as window title for
+ *   the file (optional), (3) an arbitrary token (optional)
+ * - When a file is saved or closed, MacVim should tell the server about which
+ *   file was modified and also pass back the token
+ *
+ * All communication between MacVim and the server goes via Apple Events.
+ */
+
+    static OSErr
+odb_event(buf_T *buf, const AEEventID action)
+{
+    if (!(buf->b_odb_server_id && buf->b_ffname))
+        return noErr;
+
+    NSAppleEventDescriptor *targetDesc = [NSAppleEventDescriptor
+            descriptorWithDescriptorType:typeApplSignature
+                                   bytes:&buf->b_odb_server_id
+                                  length:sizeof(OSType)];
+
+    NSString *path = [NSString stringWithUTF8String:(char*)buf->b_ffname];
+    NSData *pathData = [[[NSURL fileURLWithPath:path] absoluteString]
+            dataUsingEncoding:NSUTF8StringEncoding];
+    NSAppleEventDescriptor *pathDesc = [NSAppleEventDescriptor
+            descriptorWithDescriptorType:typeFileURL data:pathData];
+
+    NSAppleEventDescriptor *event = [NSAppleEventDescriptor
+            appleEventWithEventClass:kODBEditorSuite
+                             eventID:action
+                    targetDescriptor:targetDesc
+                            returnID:kAutoGenerateReturnID
+                       transactionID:kAnyTransactionID];
+
+    [event setParamDescriptor:pathDesc forKeyword:keyDirectObject];
+
+    if (buf->b_odb_token)
+        [event setParamDescriptor:buf->b_odb_token forKeyword:keySenderToken];
+
+    return AESendMessage([event aeDesc], NULL, kAENoReply | kAENeverInteract,
+            kAEDefaultTimeout);
+}
+
+    OSErr
+odb_buffer_close(buf_T *buf)
+{
+    OSErr err = noErr;
+    if (buf) {
+        err = odb_event(buf, kAEClosedFile);
+
+        buf->b_odb_server_id = 0;
+
+        if (buf->b_odb_token) {
+            [(NSAppleEventDescriptor *)(buf->b_odb_token) release];
+            buf->b_odb_token = NULL;
+        }
+
+        if (buf->b_odb_fname) {
+            vim_free(buf->b_odb_fname);
+            buf->b_odb_fname = NULL;
+        }
+    }
+
+    return err;
+}
+
+    OSErr
+odb_post_buffer_write(buf_T *buf)
+{
+    return buf ? odb_event(buf, kAEModifiedFile) : noErr;
+}
+
+    void
+odb_end(void)
+{
+    buf_T *buf;
+    for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+        odb_buffer_close(buf);
+}
+
+#endif // FEAT_ODB_EDITOR

@@ -182,11 +182,12 @@ static NSTimeInterval MMResendInterval = 0.5;
     return pid;
 }
 
-- (void)dropFiles:(NSArray *)filenames
+- (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force
 {
-    int i, numberOfFiles = [filenames count];
+    unsigned i, numberOfFiles = [filenames count];
     NSMutableData *data = [NSMutableData data];
 
+    [data appendBytes:&force length:sizeof(BOOL)];
     [data appendBytes:&numberOfFiles length:sizeof(int)];
 
     for (i = 0; i < numberOfFiles; ++i) {
@@ -214,6 +215,59 @@ static NSTimeInterval MMResendInterval = 0.5;
 
         [self sendMessage:DropStringMsgID data:data];
     }
+}
+
+- (void)odbEdit:(NSArray *)filenames server:(OSType)theID path:(NSString *)path
+          token:(NSAppleEventDescriptor *)token
+{
+    int len;
+    unsigned i, numberOfFiles = [filenames count];
+    NSMutableData *data = [NSMutableData data];
+
+    if (0 == numberOfFiles || 0 == theID)
+        return;
+
+    [data appendBytes:&theID length:sizeof(theID)];
+
+    if (path && [path length] > 0) {
+        len = [path lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[path UTF8String] length:len];
+    } else {
+        len = 0;
+        [data appendBytes:&len length:sizeof(int)];
+    }
+
+    if (token) {
+        DescType tokenType = [token descriptorType];
+        NSData *tokenData = [token data];
+        len = [tokenData length];
+
+        [data appendBytes:&tokenType length:sizeof(tokenType)];
+        [data appendBytes:&len length:sizeof(int)];
+        if (len > 0)
+            [data appendBytes:[tokenData bytes] length:len];
+    } else {
+        DescType tokenType = 0;
+        len = 0;
+        [data appendBytes:&tokenType length:sizeof(tokenType)];
+        [data appendBytes:&len length:sizeof(int)];
+    }
+
+    [data appendBytes:&numberOfFiles length:sizeof(int)];
+
+    for (i = 0; i < numberOfFiles; ++i) {
+        NSString *file = [filenames objectAtIndex:i];
+        len = [file lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+        if (len > 0) {
+            ++len;  // include NUL as well
+            [data appendBytes:&len length:sizeof(unsigned)];
+            [data appendBytes:[file UTF8String] length:len];
+        }
+    }
+
+    [self sendMessage:ODBEditMsgID data:data];
 }
 
 - (void)sendMessage:(int)msgid data:(NSData *)data

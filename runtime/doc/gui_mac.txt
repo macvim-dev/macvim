@@ -102,6 +102,10 @@ window, unless Vim is in command-line mode.  In command-line mode the names of
 the files are added to the command line.  Holding down modifier keys whilst
 dragging is not supported.
 
+If a file is dropped on the Dock icon, it is always opened in a new tab
+regardless of the mode Vim is currently in.  The same holds if you
+double-click on a file in the Finder.
+
 							*macvim-default-menu*
 The default menu in MacVim has been changed to conform better with the Apple
 Human Interface Guidelines (HIG).  At the moment this breaks the localized

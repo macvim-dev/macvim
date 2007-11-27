@@ -1282,3 +1282,10 @@
 #ifdef FEAT_GUI_MACVIM
 # define FEAT_FULLSCREEN
 #endif
+
+/*
+ * +odbeditor		ODBEditor protocol support (aka. external editor)
+ */
+#ifdef FEAT_GUI_MACVIM
+# define FEAT_ODB_EDITOR
+#endif

@@ -49,8 +49,10 @@
 - (NSString *)serverName;
 - (MMWindowController *)windowController;
 - (void)cleanup;
-- (void)dropFiles:(NSArray *)filenames;
+- (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force;
 - (void)dropString:(NSString *)string;
+- (void)odbEdit:(NSArray *)filenames server:(OSType)theID path:(NSString *)path
+          token:(NSAppleEventDescriptor *)token;
 - (void)sendMessage:(int)msgid data:(NSData *)data;
 - (BOOL)sendMessageNow:(int)msgid data:(NSData *)data
                timeout:(NSTimeInterval)timeout;

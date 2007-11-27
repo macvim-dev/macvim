@@ -1375,6 +1375,9 @@ getout(exitval)
 #ifdef FEAT_NETBEANS_INTG
     netbeans_end();
 #endif
+#ifdef FEAT_ODB_EDITOR
+    odb_end();
+#endif
 #ifdef FEAT_CSCOPE
     cs_end();
 #endif
