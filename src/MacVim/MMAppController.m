@@ -38,6 +38,18 @@ static NSTimeInterval MMRequestTimeout = 5;
 static NSTimeInterval MMReplyTimeout = 5;
 
 
+#pragma options align=mac68k
+typedef struct
+{
+    short unused1;      // 0 (not used)
+    short lineNum;      // line to select (< 0 to specify range)
+    long  startRange;   // start of selection range (if line < 0)
+    long  endRange;     // end of selection range (if line < 0)
+    long  unused2;      // 0 (not used)
+    long  theDate;      // modification date/time
+} MMSelectionRange;
+#pragma options align=reset
+
 
 @interface MMAppController (MMServices)
 - (void)openSelection:(NSPasteboard *)pboard userData:(NSString *)userData
@@ -54,9 +66,11 @@ static NSTimeInterval MMReplyTimeout = 5;
 - (NSArray *)filterFilesAndNotify:(NSArray *)files;
 - (NSArray *)filterOpenFiles:(NSArray *)filenames remote:(OSType)theID
                         path:(NSString *)path
-                       token:(NSAppleEventDescriptor *)token;
+                       token:(NSAppleEventDescriptor *)token
+              selectionRange:(MMSelectionRange *)selRange;
 - (void)handleXcodeModEvent:(NSAppleEventDescriptor *)event
                  replyEvent:(NSAppleEventDescriptor *)reply;
+- (NSString *)inputStringFromSelectionRange:(MMSelectionRange *)selRange;
 @end
 
 @interface NSMenu (MMExtras)
@@ -172,12 +186,16 @@ static NSTimeInterval MMReplyTimeout = 5;
 
 - (void)application:(NSApplication *)sender openFiles:(NSArray *)filenames
 {
-    OSType remoteID;
-    NSString *remotePath;
-    NSAppleEventDescriptor *remoteToken;
-    NSAppleEventDescriptor *odbdesc =
-        [[NSAppleEventManager sharedAppleEventManager] currentAppleEvent];
+    OSType remoteID = 0;
+    NSString *remotePath = nil;
+    NSAppleEventManager *aem;
+    NSAppleEventDescriptor *remoteToken = nil;
+    NSAppleEventDescriptor *odbdesc = nil;
+    NSAppleEventDescriptor *xcodedesc = nil;
+    MMSelectionRange *selRange = NULL;
 
+    aem = [NSAppleEventManager sharedAppleEventManager];
+    odbdesc = [aem currentAppleEvent];
     if (![odbdesc paramDescriptorForKeyword:keyFileSender]) {
         // The ODB paramaters may hide inside the 'keyAEPropData' descriptor.
         odbdesc = [odbdesc paramDescriptorForKeyword:keyAEPropData];
@@ -192,13 +210,15 @@ static NSTimeInterval MMReplyTimeout = 5;
                 stringValue];
         remoteToken = [[odbdesc paramDescriptorForKeyword:keyFileSenderToken]
                 copy];
-
-        //NSLog(@"ODB parameters: ID=0x%x path=%@ token=%@",
-        //        remoteID, remotePath, remoteToken);
     }
 
+    xcodedesc = [[aem currentAppleEvent]
+            paramDescriptorForKeyword:keyAEPosition];
+    if (xcodedesc)
+        selRange = (MMSelectionRange*)[[xcodedesc data] bytes];
+
     filenames = [self filterOpenFiles:filenames remote:remoteID path:remotePath
-                                token:remoteToken];
+                                token:remoteToken selectionRange:selRange];
     if ([filenames count]) {
         MMVimController *vc;
         BOOL openInTabs = [[NSUserDefaults standardUserDefaults]
@@ -210,6 +230,8 @@ static NSTimeInterval MMReplyTimeout = 5;
             if (odbdesc)
                 [vc odbEdit:filenames server:remoteID path:remotePath
                       token:remoteToken];
+            if (selRange)
+                [vc addVimInput:[self inputStringFromSelectionRange:selRange]];
         } else {
             // Open files in tabs in a new window.
             NSMutableArray *args = [NSMutableArray arrayWithObject:@"-p"];
@@ -223,22 +245,33 @@ static NSTimeInterval MMReplyTimeout = 5;
             // TODO: If the Vim process fails to start, or if it changes PID,
             // then the memory allocated for these parameters will leak.
             // Ensure that this cannot happen or somehow detect it.
+            NSMutableDictionary *argDict = nil;
             if (odbdesc) {
                 // The remote token can be arbitrary data so it is cannot
                 // (without encoding it as text) be passed on the command line.
-                NSMutableDictionary *args =
-                    [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                argDict = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                         filenames, @"filenames",
                         [NSNumber numberWithUnsignedInt:remoteID], @"remoteID",
                         nil];
                 if (remotePath)
-                    [args setObject:remotePath forKey:@"remotePath"];
+                    [argDict setObject:remotePath forKey:@"remotePath"];
                 if (remoteToken)
-                    [args setObject:remoteToken forKey:@"remoteToken"];
-
-                [pidArguments setObject:args
-                                 forKey:[NSNumber numberWithInt:pid]];
+                    [argDict setObject:remoteToken forKey:@"remoteToken"];
             }
+
+            if (selRange) {
+                if (!argDict)
+                    argDict = [NSMutableDictionary
+                        dictionaryWithObject:[xcodedesc data]
+                                      forKey:@"selectionRangeData"];
+                else
+                    [argDict setObject:[xcodedesc data]
+                                forKey:@"selectionRangeData"];
+            }
+
+            if (argDict)
+                [pidArguments setObject:argDict
+                                 forKey:[NSNumber numberWithInt:pid]];
         }
     }
 
@@ -494,6 +527,12 @@ static NSTimeInterval MMReplyTimeout = 5;
                   token:[args objectForKey:@"remoteToken"]];
         }
 
+        if ([args objectForKey:@"selectionRangeData"]) {
+            MMSelectionRange *selRange = (MMSelectionRange*)
+                    [[args objectForKey:@"selectionRangeData"] bytes];
+            [vc addVimInput:[self inputStringFromSelectionRange:selRange]];
+        }
+
         [pidArguments removeObjectForKey:key];
     }
 
@@ -721,6 +760,7 @@ static NSTimeInterval MMReplyTimeout = 5;
 - (NSArray *)filterOpenFiles:(NSArray *)filenames remote:(OSType)theID
                         path:(NSString *)path
                        token:(NSAppleEventDescriptor *)token
+              selectionRange:(MMSelectionRange *)selRange
 {
     // Check if any of the files in the 'filenames' array are open in any Vim
     // process.  Remove the files that are open from the 'filenames' array and
@@ -781,6 +821,11 @@ static NSTimeInterval MMReplyTimeout = 5;
             ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
             "tab sb %@|let &swb=oldswb|unl oldswb|"
             "cal foreground()|redr|f<CR>", raiseFile];
+
+        if (selRange)
+            input = [input stringByAppendingString:
+                    [self inputStringFromSelectionRange:selRange]];
+
         [raiseController addVimInput:input];
     }
 
@@ -810,6 +855,23 @@ static NSTimeInterval MMReplyTimeout = 5;
         [vc sendMessage:XcodeModMsgID data:data];
     }
 #endif
+}
+
+- (NSString *)inputStringFromSelectionRange:(MMSelectionRange *)selRange
+{
+    if (!selRange)
+        return [NSString string];
+
+    NSString *input;
+    if (selRange->lineNum < 0) {
+        input = [NSString stringWithFormat:@"<C-\\><C-N>%dGV%dG",
+              selRange->endRange+1, selRange->startRange+1];
+    } else {
+        input = [NSString stringWithFormat:@"<C-\\><C-N>%dGz.",
+              selRange->lineNum+1];
+    }
+
+    return input;
 }
 
 @end // MMAppController (Private)
