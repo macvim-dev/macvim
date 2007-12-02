@@ -65,10 +65,14 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 }
 #endif
 
+@interface NSWindow (NSWindowPrivate)
 // Note: This hack allows us to set content shadowing separately from
 // the window shadow.  This is apparently what webkit and terminal do.
-@interface NSWindow (NSWindowPrivate) // new Tiger private method
-- (void)_setContentHasShadow:(BOOL)shadow;
+- (void)_setContentHasShadow:(BOOL)shadow; // new Tiger private method
+
+// This is a private api that makes textured windows not have rounded corners.
+// We want this on Leopard.
+- (void)setBottomCornerRounded:(BOOL)rounded;
 @end
 
 
@@ -76,23 +80,38 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (id)initWithVimController:(MMVimController *)controller
 {
-    if ((self = [super initWithWindowNibName:@"EmptyWindow"])) {
+#ifndef NSAppKitVersionNumber10_4  // needed for non-10.5 sdk
+# define NSAppKitVersionNumber10_4 824
+#endif
+    unsigned styleMask = NSTitledWindowMask | NSClosableWindowMask
+            | NSMiniaturizableWindowMask | NSResizableWindowMask
+            | NSUnifiedTitleAndToolbarWindowMask;
+
+    // Use textured background on Leopard or later (uncomment this on Tiger for
+    // polished metal window).
+    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_4)
+        styleMask |= NSTexturedBackgroundWindowMask;
+
+    NSWindow *win = [[NSWindow alloc]
+            initWithContentRect:NSMakeRect(0,0,480,360)
+                      styleMask:styleMask
+                        backing:NSBackingStoreBuffered
+                          defer:YES];
+
+    if ((self = [super initWithWindow:win])) {
         vimController = controller;
 
         // Window cascading is handled by MMAppController.
         [self setShouldCascadeWindows:NO];
 
-        NSWindow *win = [self window];
         NSView *contentView = [win contentView];
         vimView = [[MMVimView alloc] initWithFrame:[contentView frame]
                                      vimController:vimController];
         [contentView addSubview:vimView];
-        // [vimView translateOriginToPoint:
-        //     NSMakePoint([contentView frame].size.width, 0)];
-        // [vimView rotateByAngle:45.f];
 
         // Create the tabline separator (which may be visible when the tabline
-        // is hidden).
+        // is hidden).  See showTabBar: for circumstances when the separator
+        // should be hidden.
         NSRect tabSepRect = [contentView frame];
         tabSepRect.origin.y = NSMaxY(tabSepRect)-1;
         tabSepRect.size.height = 1;
@@ -109,6 +128,30 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         [win setDelegate:self];
         [win setInitialFirstResponder:[vimView textView]];
 	
+        if ([win styleMask] & NSTexturedBackgroundWindowMask) {
+            // On Leopard, we want to have a textured window to have nice
+            // looking tabs. But the textured window look implies rounded
+            // corners, which looks really weird -- disable them. This is a
+            // private api, though.
+            if ([win respondsToSelector:@selector(setBottomCornerRounded:)])
+                [win setBottomCornerRounded:NO];
+
+#if NSAppKitVersionNumber > NSAppKitVersionNumber10_4 // Avoid warning on 10.4
+            // When the tab bar is toggled, it changes color for the fraction
+            // of a second, probably because vim sends us events in a strange
+            // order, confusing appkit's content border heuristic for a short
+            // while.  This can be worked around with these two methods.  There
+            // might be a better way, but it's good enough.
+            if ([win respondsToSelector:@selector(
+                    setAutorecalculatesContentBorderThickness:forEdge:)])
+                [win setAutorecalculatesContentBorderThickness:NO
+                                                       forEdge:NSMaxYEdge];
+            if ([win respondsToSelector:
+                    @selector(setContentBorderThickness:forEdge:)])
+                [win setContentBorderThickness:40 forEdge:NSMaxYEdge];
+#endif // NSAppKitVersionNumber > NSAppKitVersionNumber10_4
+        }
+
         // Make us safe on pre-tiger OSX
         if ([win respondsToSelector:@selector(_setContentHasShadow:)])
             [win _setContentHasShadow:NO];
@@ -177,7 +220,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         // and perform close operation on the original window
         [self leaveFullscreen];
     }
-
 
     setupDone = NO;
     vimController = nil;
@@ -313,11 +355,29 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     [[vimView tabBarControl] setHidden:!on];
 
+    // Rules for when to show tabline separator:
+    //
+    // Tabline visible & Toolbar visible  =>  Separator visible
+    // ================================================================
+    //       NO        &        NO        =>  NO (Tiger), YES (Leopard)
+    //       NO        &       YES        =>  YES
+    //      YES        &        NO        =>  NO
+    //      YES        &       YES        =>  NO
+    //
+    // XXX: This is ignored if called while in fullscreen mode
     if (!on) {
         NSToolbar *toolbar = [[self window] toolbar]; 
-        [tablineSeparator setHidden:![toolbar isVisible]];
+        if (([[self window] styleMask] & NSTexturedBackgroundWindowMask) == 0) {
+            [tablineSeparator setHidden:![toolbar isVisible]];
+        } else {
+            [tablineSeparator setHidden:NO];
+        }
     } else {
-        [tablineSeparator setHidden:on];
+        if (([[self window] styleMask] & NSTexturedBackgroundWindowMask) == 0) {
+            [tablineSeparator setHidden:on];
+        } else {
+            [tablineSeparator setHidden:YES];
+        }
     }
 
     //if (setupDone)
@@ -333,9 +393,18 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [toolbar setDisplayMode:mode];
     [toolbar setVisible:on];
 
-    if (!on) {
-        [tablineSeparator setHidden:YES];
+    // See showTabBar: for circumstances when the separator should be hidden.
+    if (([[self window] styleMask] & NSTexturedBackgroundWindowMask) == 0) {
+        if (!on) {
+            [tablineSeparator setHidden:YES];
+        } else {
+            [tablineSeparator setHidden:![[vimView tabBarControl] isHidden]];
+        }
     } else {
+        // Textured windows don't have a line below there title bar, so we
+        // need the separator in this case as well. In fact, the only case
+        // where we don't need the separator is when the tab bar control
+        // is visible (because it brings its own separator).
         [tablineSeparator setHidden:![[vimView tabBarControl] isHidden]];
     }
 }

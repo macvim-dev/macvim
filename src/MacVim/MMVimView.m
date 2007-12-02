@@ -182,6 +182,38 @@ enum {
     [super dealloc];
 }
 
+- (void)drawRect:(NSRect)rect
+{
+    // On Leopard, we want to have a textured window background for nice
+    // looking tabs. However, the textured window background looks really
+    // weird behind the window resize throbber, so emulate the look of an
+    // NSScrollView in the bottom right corner.
+    if (![[self window] showsResizeIndicator]  // XXX: make this a flag
+            || !([[self window] styleMask] & NSTexturedBackgroundWindowMask))
+        return;
+
+    int sw = [NSScroller scrollerWidth];
+
+    // add .5 to the pixel locations to put the lines on a pixel boundary.
+    // the top and right edges of the rect will be outside of the bounds rect
+    // and clipped away.
+    NSRect sizerRect = NSMakeRect([self bounds].size.width - sw + .5, -.5,
+            sw, sw);
+    //NSBezierPath* path = [NSBezierPath bezierPath];
+    NSBezierPath* path = [NSBezierPath bezierPathWithRect:sizerRect];
+
+    // On Tiger, we have color #E8E8E8 behind the resize throbber
+    // (which is windowBackgroundColor on untextured windows or controlColor in
+    // general). Terminal.app on Leopard has #FFFFFF background and #D9D9D9 as
+    // stroke. The colors below are #FFFFFF and #D4D4D4, which is close enough
+    // for me.
+    [[NSColor controlBackgroundColor] set];
+    [path fill];
+
+    [[NSColor secondarySelectedControlColor] set];
+    [path stroke];
+}
+
 - (MMTextView *)textView
 {
     return textView;
