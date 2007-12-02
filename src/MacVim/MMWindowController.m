@@ -92,8 +92,12 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_4)
         styleMask |= NSTexturedBackgroundWindowMask;
 
+    // NOTE: The content rect is only used the very first time MacVim is
+    // started (or rather, when ~/Library/Preferences/org.vim.MacVim.plist does
+    // not exist).  The chosen values will put the window somewhere near the
+    // top and in the middle of a 1024x768 screen.
     NSWindow *win = [[NSWindow alloc]
-            initWithContentRect:NSMakeRect(0,0,480,360)
+            initWithContentRect:NSMakeRect(242,364,480,360)
                       styleMask:styleMask
                         backing:NSBackingStoreBuffered
                           defer:YES];
