@@ -23,8 +23,6 @@ let colors_name = "macvim"
 "
 
 " `:he highlight-groups`
-hi CursorColumn guibg=#F1F5FA
-hi CursorLine   guibg=#F1F5FA
 hi DiffAdd      guibg=MediumSeaGreen
 hi Directory    guifg=#1600FF
 hi ErrorMsg     guibg=Firebrick2 guifg=White
@@ -76,7 +74,9 @@ if &background == "dark"
   hi Comment      gui=italic guifg=CadetBlue3
   hi Constant     gui=NONE guifg=Goldenrod1 guibg=NONE
   hi Cursor       guibg=LightSlateGrey guifg=bg
+  hi CursorColumn guibg=Gray20
   hi CursorIM     guibg=LightSlateGrey guifg=bg
+  hi CursorLine   guibg=Gray20
   hi DiffChange   guibg=MediumPurple4
   hi DiffDelete   gui=bold guifg=White guibg=SlateBlue
   hi DiffText     gui=NONE guifg=White guibg=SteelBlue
@@ -93,7 +93,9 @@ else
   hi Comment      gui=italic guifg=Blue2 guibg=NONE
   hi Constant     gui=NONE guifg=DarkOrange guibg=NONE
   hi Cursor       guibg=fg guifg=bg
+  hi CursorColumn guibg=#F1F5FA
   hi CursorIM     guibg=fg guifg=bg
+  hi CursorLine   guibg=#F1F5FA
   hi DiffChange   guibg=DeepSkyBlue
   hi DiffDelete   gui=bold guifg=Black guibg=SlateBlue
   hi DiffText     gui=NONE guibg=Gold
