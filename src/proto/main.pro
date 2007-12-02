@@ -1,5 +1,6 @@
 /* main.c */
 void main_loop __ARGS((int cmdwin, int noexmode));
+void prepare_getout __ARGS(());
 void getout_preserve_modified __ARGS((int exitval));
 void getout __ARGS((int exitval));
 int process_env __ARGS((char_u *env, int is_viminit));

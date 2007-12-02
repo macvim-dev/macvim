@@ -667,10 +667,11 @@ typedef struct
 
     if ([[NSUserDefaults standardUserDefaults] boolForKey:MMLoginShellKey]) {
         // Run process with a login shell
-        //   $SHELL -l -c "exec Vim args"
+        //   $SHELL -l -c "exec Vim -g -f args"
+        // (-g for GUI, -f for foreground, i.e. don't fork)
 
         NSMutableString *execArg = [NSMutableString
-            stringWithFormat:@"exec \"%@\" -g", path];
+            stringWithFormat:@"exec \"%@\" -g -f", path];
         if (args) {
             // Append all arguments while making sure that arguments containing
             // spaces are enclosed in quotes.
@@ -696,17 +697,18 @@ typedef struct
             taskPath = @"/bin/sh";
     } else {
         // Run process directly:
-        //   Vim args
+        //   Vim -g -f args
+        // (-g for GUI, -f for foreground, i.e. don't fork)
         taskPath = path;
-        taskArgs = [NSArray arrayWithObject:@"-g"];
+        taskArgs = [NSArray arrayWithObjects:@"-g", @"-f", nil];
         if (args)
             taskArgs = [taskArgs arrayByAddingObjectsFromArray:args];
     }
 
     NSTask *task =[NSTask launchedTaskWithLaunchPath:taskPath
                                            arguments:taskArgs];
-    //NSLog(@"launch %@ with args=%@ (pid=%d)", [task processIdentifier],
-    //    taskPath, taskArgs);
+    //NSLog(@"launch %@ with args=%@ (pid=%d)", taskPath, taskArgs,
+    //        [task processIdentifier]);
 
     return [task processIdentifier];
 }

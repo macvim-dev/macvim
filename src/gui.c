@@ -58,7 +58,7 @@ static int can_update_cursor = TRUE; /* can display the cursor */
 gui_start()
 {
     char_u	*old_term;
-#if defined(UNIX) && !defined(__BEOS__) && !defined(MACOS_X)
+#if defined(UNIX) && !defined(__BEOS__)
 # define MAY_FORK
     int		dofork = TRUE;
 #endif
@@ -117,10 +117,75 @@ gui_start()
      */
     if (gui.in_use && dofork)
     {
+	pid_t	pid = -1;
+
+# if defined MACOS_X
+        int i;
+
+        /* on os x, you have to exec after a fork, otherwise calls to
+         * frameworks will assert (and without corefoundation, you can't start
+         * the gui. what fun.). See CAVEATS at
+http://developer.apple.com/documentation/Darwin/Reference/ManPages/man2/fork.2.html
+         *
+         * Since we have to go through this anyways, we might as well use vfork.
+         * But: then we can't detach from our starting shell, so stick with
+         * fork.
+         *
+         * Kinda sucks to restart vim when doing :gui, so don't fork in that
+         * case (make sure gui.dofork is only set when interpreting argv, not
+         * when doing :gui. Currently, gui.dofork is set to false in ex_gui().
+         *
+         * Also doesn't work well if vim starts cscope (or some other
+         * subprocess I guess), because it's not transferred to the newly
+         * exec'd process, leaving an orphaned process (not a zombie process)
+         * behind. The Right Thing is to kill all our child processes before
+         * calling exec.
+         */
+
+        /* stolen from http://paste.lisp.org/display/50906 */
+        extern int *_NSGetArgc(void);
+        extern char ***_NSGetArgv(void);
+
+        int argc = *_NSGetArgc();
+        char ** argv = *_NSGetArgv();
+        char * newargv[argc+2];
+
+        for (i = 0; i < argc; i++) {
+            newargv[i] = argv[i];
+        }
+        newargv[argc] = "-f";
+        newargv[argc+1] = NULL;
+
+        pid = fork();
+        switch(pid) {
+            case -1:
+#  ifndef NDEBUG
+                fprintf(stderr, "vim: Mac OS X workaround fork() failed!");
+#  endif
+                _exit(255);
+            case 0:
+                /* Child. */
+
+                /* shut down all the stuff we just started, just to start
+                 * it again from the exec :-\ */
+                prepare_getout();
+
+                /* make sure we survive our shell */
+                setsid();
+
+                 /* Restarts the vim process, will not return. */
+                execvp(argv[0], newargv);
+
+                /* if we come here, exec has failed. bail. */
+                _exit(255);
+            default:
+                /* Parent */
+                _exit(0);
+        }
+# else
 	int	pipefd[2];	/* pipe between parent and child */
 	int	pipe_error;
 	char	dummy;
-	pid_t	pid = -1;
 
 	/* Setup a pipe between the child and the parent, so that the parent
 	 * knows when the child has done the setsid() call and is allowed to
@@ -155,27 +220,30 @@ gui_start()
 	    _exit(0);
 	}
 
-# if defined(HAVE_SETSID) || defined(HAVE_SETPGID)
+#  if defined(HAVE_SETSID) || defined(HAVE_SETPGID)
 	/*
 	 * Change our process group.  On some systems/shells a CTRL-C in the
 	 * shell where Vim was started would otherwise kill gvim!
 	 */
 	if (pid == 0)	    /* child */
-#  if defined(HAVE_SETSID)
+#   if defined(HAVE_SETSID)
 	    (void)setsid();
-#  else
+#   else
 	    (void)setpgid(0, 0);
+#   endif
 #  endif
-# endif
 	if (!pipe_error)
 	{
 	    close(pipefd[0]);
 	    close(pipefd[1]);
 	}
 
-# if defined(FEAT_GUI_GNOME) && defined(FEAT_SESSION)
+
+#  if defined(FEAT_GUI_GNOME) && defined(FEAT_SESSION)
 	/* Tell the session manager our new PID */
 	gui_mch_forked();
+#  endif
+
 # endif
     }
 #else
@@ -4736,6 +4804,13 @@ ex_gui(eap)
     {
 	/* Clear the command.  Needed for when forking+exiting, to avoid part
 	 * of the argument ending up after the shell prompt. */
+
+#ifdef MACOS_X
+        /* os x doesn't really support fork(), so we can't fork of a gui
+         * in an already running vim. see gui_start() for more details.
+         */
+	gui.dofork = FALSE;
+#endif
 	msg_clr_eos_force();
 	gui_start();
     }
