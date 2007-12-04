@@ -75,6 +75,27 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (void)setBottomCornerRounded:(BOOL)rounded;
 @end
 
+@interface NSWindow (NSLeopardOnly)
+// Note: These functions are Leopard-only, use -[NSObject respondsToSelector:]
+// before calling them to make sure everything works on Tiger too.
+
+#ifndef CGFLOAT_DEFINED
+    // On Leopard, CGFloat is float on 32bit and double on 64bit. On Tiger,
+    // we can't use this anyways, so it's just here to keep the compiler happy.
+    // However, when we're compiling for Tiger and running on Leopard, we
+    // might need the correct typedef, so this piece is copied from ATSTypes.h
+# ifdef __LP64__
+    typedef double CGFloat;
+# else
+    typedef float CGFloat;
+# endif
+#endif
+- (void)setAutorecalculatesContentBorderThickness:(BOOL)b forEdge:(NSRectEdge)e;
+- (void)setContentBorderThickness:(CGFloat)b forEdge:(NSRectEdge)e;
+@end
+
+
+
 
 @implementation MMWindowController
 
@@ -140,7 +161,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
             if ([win respondsToSelector:@selector(setBottomCornerRounded:)])
                 [win setBottomCornerRounded:NO];
 
-#if NSAppKitVersionNumber > NSAppKitVersionNumber10_4 // Avoid warning on 10.4
             // When the tab bar is toggled, it changes color for the fraction
             // of a second, probably because vim sends us events in a strange
             // order, confusing appkit's content border heuristic for a short
@@ -152,8 +172,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
                                                        forEdge:NSMaxYEdge];
             if ([win respondsToSelector:
                     @selector(setContentBorderThickness:forEdge:)])
-                [win setContentBorderThickness:40 forEdge:NSMaxYEdge];
-#endif // NSAppKitVersionNumber > NSAppKitVersionNumber10_4
+                [win setContentBorderThickness:0 forEdge:NSMaxYEdge];
         }
 
         // Make us safe on pre-tiger OSX
