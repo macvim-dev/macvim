@@ -150,10 +150,17 @@ http://developer.apple.com/documentation/Darwin/Reference/ManPages/man2/fork.2.h
         char ** argv = *_NSGetArgv();
         char * newargv[argc+2];
 
-        for (i = 0; i < argc; i++) {
-            newargv[i] = argv[i];
+        newargv[0] = argv[0];
+
+        /*
+         * make sure "-f" is in front of potential "--remote" flags, else
+         * they would consume it.
+         */
+        newargv[1] = "-f";
+
+        for (i = 1; i < argc; i++) {
+            newargv[i + 1] = argv[i];
         }
-        newargv[argc] = "-f";
         newargv[argc+1] = NULL;
 
         pid = fork();
