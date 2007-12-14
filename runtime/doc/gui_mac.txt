@@ -30,7 +30,7 @@ MacVim is still under development...this is not the finished product!  If you
 have problems with MacVim then make it known either by adding an issue report
 on the MacVim project page >
 	http://code.google.com/p/macvim
-or by posting to the vim_mac mailing list >
+or by posting to the vim_mac mailing list 		*vim_mac*  >
 	http://groups.google.com/group/vim_mac
 
 Remember to keep checking the project page for new snapshots.  (If you
@@ -81,7 +81,7 @@ by adding the following lines to your "~/.vimrc" (not .gvimrc) file: >
 	if has("gui_macvim")
 	  let macvim_skip_cmd_opt_movement = 1
 	endif
-Note: These are the only key mappings that MacVim make (not counting menu key
+Note: These are the only key mappings that MacVim makes (not counting menu key
 equivalents which are not set up with :map).
 
 							*macvim-shift-movement*
@@ -163,6 +163,10 @@ If you would rather put MacVim.app in some other directory then that is also
 possible, simply set the environment variable VIM_APP_DIR to whatever folder
 you have placed MacVim.app in.
 
+Note: Starting MacVim by creating a symlink to >
+	.../MacVim.app/Contents/MacOS/Vim
+with 'ln -s' does not work.
+
 Once in terminal Vim it is possible to start MacVim by using the following
 command:
 	:gui [++opt] [+cmd] [-f|-b] [files...]
@@ -219,7 +223,7 @@ the "Appearance" pane of the System Preferences.  It also changes the
 highlight color when a window becomes inactive.
 
 If you have any comments regarding this colorscheme (is it better or worse
-than the default?) then post them to vim_mac.
+than the default?) then post them to |vim_mac|.
 
 ==============================================================================
 4. Menus						*macvim-menus*
@@ -365,10 +369,10 @@ these are ones that are know and/or which were judged major.
 - No find/replace dialog
 
 If you find new bugs then add a new issue at http://code.google.com/p/macvim/
-or post your findings to the vim_mac mailing list.  If you are missing feature
-X in MacVim then voice your opinion on the vim_mac mailing list; it might be
-simple to implement, but unless somebody asks for a particular feature then
-there is little incentive to add it.
+or post your findings to the |vim_mac| mailing list.  If you are missing
+feature X in MacVim then voice your opinion on the |vim_mac| mailing list; it
+might be simple to implement, but unless somebody asks for a particular
+feature then there is little incentive to add it.
 
 ==============================================================================
 9. Hints						*macvim-hints*
@@ -442,7 +446,7 @@ Scenario: ~
 You can't find the information on MacVim you thought should be in
 this manual page.
 Solution: ~
-Post your question on the vim_mac mailing list and wait for an
+Post your question on the |vim_mac| mailing list and wait for an
 answer.
 
  vim:tw=78:sw=4:ts=8:ft=help:norl:
