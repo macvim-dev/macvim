@@ -108,7 +108,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
             | NSMiniaturizableWindowMask | NSResizableWindowMask
             | NSUnifiedTitleAndToolbarWindowMask;
 
-    // Use textured background on Leopard or later (uncomment this on Tiger for
+    // Use textured background on Leopard or later (skip the 'if' on Tiger for
     // polished metal window).
     if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_4)
         styleMask |= NSTexturedBackgroundWindowMask;
@@ -179,6 +179,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
         if ([win respondsToSelector:@selector(_setContentHasShadow:)])
             [win _setContentHasShadow:NO];
     }
+
+    [win release];
 
     return self;
 }
