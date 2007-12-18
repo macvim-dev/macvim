@@ -253,6 +253,11 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [vimView removeFromSuperviewWithoutNeedingDisplay];
     [vimView cleanup];  // TODO: is this necessary?
 
+    // It is feasible that the user quits before the window controller is
+    // released, make sure the edit flag is cleared so no warning dialog is
+    // displayed.
+    [[self window] setDocumentEdited:NO];
+
     [[self window] orderOut:self];
 }
 
