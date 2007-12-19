@@ -175,7 +175,7 @@ Note: Forking ("-b") currently does not work.
 						*odbeditor* *external-editor*
 MacVim can act as an 'external editor' for Mac OS X applications that support
 the ODB Editor Protocol (or the 'external editor' protocol).  Each application
-has different ways of configuring this option, check the applications
+has different ways of configuring this option, check the application's
 documentation.  Once configured properly MacVim can be used to open files in
 such an application.
 
@@ -215,14 +215,18 @@ dictionary is the name of the color and the value is an RGB value on the form
 #rrggbb stored as an integer.
 
 							*macvim-colorscheme*
-MacVim ships with a custom colorscheme that can be used as an alternative to
-the default Vim colorscheme.  You can try it out by typing: >
+MacVim ships with a custom color scheme that is used instead of the default
+Vim color scheme.  The color scheme can be changed with >
 	:colorscheme macvim
-The colorscheme uses the the system "Highlight Color", which can be changed in
+If you prefer a dark background color, then type >
+	:set bg=dark
+after having loaded the "macvim" color scheme.
+
+The color scheme uses the the system "Highlight Color", which can be changed in
 the "Appearance" pane of the System Preferences.  It also changes the
 highlight color when a window becomes inactive.
 
-If you have any comments regarding this colorscheme (is it better or worse
+If you have any comments regarding this colors cheme (is it better or worse
 than the default?) then post them to |vim_mac|.
 
 ==============================================================================
@@ -312,6 +316,14 @@ The first example creates an empty space on the toolbar, the second creates an
 empty space which will shink or expand so that the items to the right of it
 are right-aligned.  A space (flexspace) will be created for any toolbar item
 whose name begins with "-space" ("-flexspace") and ends with "-"
+
+Toolbar icons should be tiff, png or icns, of dimension 32x32 or 24x24 pixels.
+The larger size is used when 'tbis' is "medium" or "large", otherwise the
+smaller size is used (which is the default).  If the icon file only contains
+one dimension then Mac OS X will scale the icon to the appropriate dimension
+if necessary.  To avoid this, use a file format which supports multiple
+resolutions (such as icns) and provide both 32x32 and 24x24 versions of the
+icon.
 
 Note: Only a subset of the builtin toolbar items presently have icons.  If no
 icon can be found a warning triangle is displayed instead.
