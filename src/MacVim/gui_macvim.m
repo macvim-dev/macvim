@@ -851,7 +851,7 @@ gui_mch_init_font(char_u *font_name, int fontset)
     NSFont *font = gui_macvim_font_with_name(font_name);
     if (font) {
         [(NSFont*)gui.norm_font release];
-        gui.norm_font = (GuiFont)font;
+        gui.norm_font = (GuiFont)[font retain];
 
         // NOTE: MacVim keeps separate track of the normal and wide fonts.
         // Unless the user changes 'guifontwide' manually, they are based on
