@@ -23,6 +23,14 @@
 #import <Carbon/Carbon.h>
 
 
+static int numFullscreenWindows = 0;
+
+@interface MMFullscreenWindow (Private)
+- (void)centerView;
+- (BOOL)isOnPrimaryScreen;
+- (void)hideDockIfAppropriate;
+- (void)revealDockIfAppropriate;
+@end
 
 @implementation MMFullscreenWindow
 
@@ -40,7 +48,10 @@
                             styleMask:NSBorderlessWindowMask
                               backing:NSBackingStoreBuffered
                                 defer:YES
-                               screen:screen];
+                               // since we're passing [screen frame] above,
+                               // we want the content rect to be relative to
+                               // the main screen (ie, pass nil for screen).
+                               screen:nil];
       
     if (self == nil)
         return nil;
@@ -64,20 +75,9 @@
     [super dealloc];
 }
 
-- (void)centerView
-{
-    NSRect outer = [self frame], inner = [view frame];
-    //NSLog(@"%s %@%@", _cmd, NSStringFromRect(outer), NSStringFromRect(inner));
- 
-    NSPoint origin = NSMakePoint((outer.size.width - inner.size.width)/2,
-                                 (outer.size.height - inner.size.height)/2);
-    [view setFrameOrigin:origin];
-}
-
 - (void)enterFullscreen
 {
-    // hide menu and dock, both appear on demand
-    SetSystemUIMode(kUIModeAllSuppressed, 0); //requires 10.3
+    [self hideDockIfAppropriate];
 
     // fade to black
     Boolean didBlend = NO;
@@ -177,8 +177,7 @@
         CGReleaseDisplayFadeReservation(token);
     }
     
-    // order menu and dock back in
-    SetSystemUIMode(kUIModeNormal, 0);
+    [self revealDockIfAppropriate];
 }
 
 // Title-less windows normally don't receive key presses, override this
@@ -280,4 +279,68 @@
     [target setOpaque:isOpaque];
 }
 
-@end
+@end // MMFullscreenWindow
+
+
+
+
+@implementation MMFullscreenWindow (Private)
+
+- (void)centerView
+{
+    NSRect outer = [self frame], inner = [view frame];
+    //NSLog(@"%s %@%@", _cmd, NSStringFromRect(outer), NSStringFromRect(inner));
+ 
+    NSPoint origin = NSMakePoint((outer.size.width - inner.size.width)/2,
+                                 (outer.size.height - inner.size.height)/2);
+    [view setFrameOrigin:origin];
+}
+
+- (BOOL)isOnPrimaryScreen
+{
+    // The primary screen is the screen the menu bar is on. This is different
+    // from [NSScreen mainScreen] (which returns the screen containing the
+    // key window).
+    NSArray *screens = [NSScreen screens];
+    if (screens == nil || [screens count] < 1)
+        return NO;
+
+    return [self screen] == [screens objectAtIndex:0];
+}
+
+- (void)hideDockIfAppropriate
+{
+    // Hide menu and dock, both appear on demand.
+    //
+    // Don't hide the dock if going fullscreen on a non-primary screen. Also,
+    // if there are several fullscreen windows on the primary screen, only
+    // hide dock and friends for the first fullscreen window (and display
+    // them again after the last fullscreen window has been closed).
+    //
+    // Another way to deal with several fullscreen windows would be to hide/
+    // reveal the dock each time a fullscreen window gets/loses focus, but
+    // this way it's less distracting.
+
+    // XXX: If you have a fullscreen window on a secondary monitor and unplug
+    // the monitor, this will probably not work right.
+
+    if ([self isOnPrimaryScreen]) {
+        if (numFullscreenWindows == 0) {
+            SetSystemUIMode(kUIModeAllSuppressed, 0); //requires 10.3
+        }
+        ++numFullscreenWindows;
+    }
+}
+
+- (void)revealDockIfAppropriate
+{
+     // order menu and dock back in
+    if ([self isOnPrimaryScreen]) {
+        --numFullscreenWindows;
+        if (numFullscreenWindows == 0) {
+            SetSystemUIMode(kUIModeNormal, 0);
+        }
+    }
+}
+
+@end // MMFullscreenWindow (Private)
