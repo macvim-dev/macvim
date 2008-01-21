@@ -13,7 +13,15 @@
 
 enum { MMMaxCellsPerChar = 2 };
 
-
+// TODO: What does DRAW_TRANSP flag do?  If the background isn't drawn when
+// this flag is set, then sometimes the character after the cursor becomes
+// blank.  Everything seems to work fine by just ignoring this flag.
+#define DRAW_TRANSP               0x01    /* draw with transparant bg */
+#define DRAW_BOLD                 0x02    /* draw bold text */
+#define DRAW_UNDERL               0x04    /* draw underline text */
+#define DRAW_UNDERC               0x08    /* draw undercurl text */
+#define DRAW_ITALIC               0x10    /* draw italic text */
+#define DRAW_CURSOR               0x20
 
 @interface MMAtsuiTextView : NSView {
     // From MMTextStorage
@@ -26,6 +34,9 @@ enum { MMMaxCellsPerChar = 2 };
     float                       linespace;
 
     // From vim-cocoa
+    NSImage                     *contentImage;
+    NSSize                      imageSize;
+    ATSUStyle                   atsuStyles[MMMaxCellsPerChar];
 }
 
 - (id)initWithFrame:(NSRect)frame;

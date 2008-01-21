@@ -556,7 +556,7 @@ static NSTimeInterval MMResendInterval = 0.5;
     } else if (BatchDrawMsgID == msgid) {
         if ([[NSUserDefaults standardUserDefaults]
                 boolForKey:MMAtsuiRendererKey])
-            [[windowController textView] performBatchDrawWithData:data];
+            [(MMAtsuiTextView *)[windowController textView] performBatchDrawWithData:data];
         else
             [self performBatchDrawWithData:data];
     } else if (SelectTabMsgID == msgid) {

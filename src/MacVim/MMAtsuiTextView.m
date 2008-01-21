@@ -18,20 +18,24 @@
 #import "MMVimController.h"
 #import "MacVim.h"
 
-
-
 static char MMKeypadEnter[2] = { 'K', 'A' };
 static NSString *MMKeypadEnterString = @"KA";
 
-
+@interface NSFont (AppKitPrivate)
+- (ATSUFontID) _atsFontID;
+@end
 
 @interface MMAtsuiTextView (Private)
+- (void)initAtsuStyles;
+- (void)disposeAtsuStyles;
+- (void)updateAtsuStyles;
 - (void)dispatchKeyEvent:(NSEvent *)event;
 - (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags;
 - (MMVimController *)vimController;
 @end
 
 @interface MMAtsuiTextView (Drawing)
+- (void)fitImageToSize;
 - (void)beginDrawing;
 - (void)endDrawing;
 - (void)drawString:(UniChar *)string length:(UniCharCount)length
@@ -59,6 +63,10 @@ static NSString *MMKeypadEnterString = @"KA";
         // own font on startup anyway.  Just set some bogus values.
         font = [[NSFont userFixedPitchFontOfSize:0] retain];
         cellSize.width = cellSize.height = 1;
+        contentImage = nil;
+        imageSize = NSZeroSize;
+
+        [self initAtsuStyles];
     }
 
     return self;
@@ -66,6 +74,7 @@ static NSString *MMKeypadEnterString = @"KA";
 
 - (void)dealloc
 {
+    [self disposeAtsuStyles];
     [font release];  font = nil;
     [defaultBackgroundColor release];  defaultBackgroundColor = nil;
     [defaultForegroundColor release];  defaultForegroundColor = nil;
@@ -205,6 +214,8 @@ static NSString *MMKeypadEnterString = @"KA";
         // width will not match.
         cellSize.width = ceilf(em * cellWidthMultiplier);
         cellSize.height = linespace + [newFont defaultLineHeightForFont];
+
+        [self updateAtsuStyles];
     }
 }
 
@@ -468,18 +479,21 @@ static NSString *MMKeypadEnterString = @"KA";
 
 - (BOOL)isFlipped
 {
-    return YES;
+    return NO;
 }
 
 - (void)drawRect:(NSRect)rect
 {
-    NSColor *color = defaultBackgroundColor ? defaultBackgroundColor
-                                            : [NSColor lightGrayColor];
-    [color set];
-    [NSBezierPath fillRect:rect];
+    [contentImage drawInRect: rect
+                    fromRect: rect
+                   operation: NSCompositeCopy
+                    fraction: 1.0];
 }
 
-
+- (BOOL) wantsDefaultClipping
+{
+    return NO;
+}
 
 
 #define MM_DEBUG_DRAWING 0
@@ -488,6 +502,9 @@ static NSString *MMKeypadEnterString = @"KA";
 {
     const void *bytes = [data bytes];
     const void *end = bytes + [data length];
+
+    if (! NSEqualSizes(imageSize, [self size]))
+        [self fitImageToSize];
 
 #if MM_DEBUG_DRAWING
     NSLog(@"====> BEGIN %s", _cmd);
@@ -541,17 +558,26 @@ static NSString *MMKeypadEnterString = @"KA";
             int cells = *((int*)bytes);  bytes += sizeof(int);
             int flags = *((int*)bytes);  bytes += sizeof(int);
             int len = *((int*)bytes);  bytes += sizeof(int);
-            UniChar *string = (UniChar*)bytes;  bytes += len;
-
+            // UniChar *string = (UniChar*)bytes;  bytes += len;
+            NSString *string = [[NSString alloc] initWithBytesNoCopy:(void*)bytes
+                                                              length:len
+                                                            encoding:NSUTF8StringEncoding
+                                                        freeWhenDone:NO];
+            bytes += len;
 #if MM_DEBUG_DRAWING
             NSLog(@"   Draw string at (%d,%d) length=%d flags=%d fg=0x%x "
                     "bg=0x%x sp=0x%x", row, col, len, flags, fg, bg, sp);
 #endif
-            [self drawString:string length:len atRow:row column:col
+            unichar *characters = malloc(sizeof(unichar) * [string length]);
+            [string getCharacters:characters];
+
+            [self drawString:characters length:[string length] atRow:row column:col
                        cells:cells withFlags:flags
                     foregroundColor:[NSColor colorWithRgbInt:fg]
                     backgroundColor:[NSColor colorWithArgbInt:bg]
                        specialColor:[NSColor colorWithRgbInt:sp]];
+            free(characters);
+            [string release];
         } else if (InsertLinesDrawType == type) {
             unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
             int row = *((int*)bytes);  bytes += sizeof(int);
@@ -588,7 +614,8 @@ static NSString *MMKeypadEnterString = @"KA";
 
     // NOTE: During resizing, Cocoa only sends draw messages before Vim's rows
     // and columns are changed (due to ipc delays). Force a redraw here.
-    [self displayIfNeeded];
+    [self setNeedsDisplay:YES];
+    // [self displayIfNeeded];
 
 #if MM_DEBUG_DRAWING
     NSLog(@"<==== END   %s", _cmd);
@@ -601,6 +628,71 @@ static NSString *MMKeypadEnterString = @"KA";
 
 
 @implementation MMAtsuiTextView (Private)
+
+- (void)initAtsuStyles
+{
+    int i;
+    for (i = 0; i < MMMaxCellsPerChar; i++)
+        ATSUCreateStyle(&atsuStyles[i]);
+}
+
+- (void)disposeAtsuStyles
+{
+    int i;
+
+    for (i = 0; i < MMMaxCellsPerChar; i++)
+        if (atsuStyles[i] != NULL)
+        {
+            if (ATSUDisposeStyle(atsuStyles[i]) != noErr)
+                atsuStyles[i] = NULL;
+        }
+}
+
+- (void)updateAtsuStyles
+{
+    ATSUFontID        fontID;
+    Fixed             fontSize;
+    Fixed             fontWidth;
+    int               i;
+    CGAffineTransform transform = CGAffineTransformMakeScale(1, -1);
+    ATSStyleRenderingOptions options;
+
+    fontID    = [font _atsFontID];
+    fontSize  = Long2Fix([font pointSize]);
+    options   = kATSStyleApplyAntiAliasing;
+
+    ATSUAttributeTag attribTags[] =
+    {
+        kATSUFontTag, kATSUSizeTag, kATSUImposeWidthTag,
+        kATSUFontMatrixTag, kATSUStyleRenderingOptionsTag,
+        kATSUMaxATSUITagValue + 1
+    };
+
+    ByteCount attribSizes[] =
+    {
+        sizeof(ATSUFontID), sizeof(Fixed), sizeof(fontWidth),
+        sizeof(CGAffineTransform), sizeof(ATSStyleRenderingOptions),
+        sizeof(font)
+    };
+
+    ATSUAttributeValuePtr attribValues[] =
+    {
+        &fontID, &fontSize, &fontWidth, &transform, &options, &font
+    };
+
+    for (i = 0; i < MMMaxCellsPerChar; i++)
+    {
+        fontWidth = Long2Fix(cellSize.width * (i + 1));
+
+        if (ATSUSetAttributes(atsuStyles[i],
+                              (sizeof attribTags) / sizeof(ATSUAttributeTag),
+                              attribTags, attribSizes, attribValues) != noErr)
+        {
+            ATSUDisposeStyle(atsuStyles[i]);
+            atsuStyles[i] = NULL;
+        }
+    }
+}
 
 - (void)dispatchKeyEvent:(NSEvent *)event
 {
@@ -679,12 +771,31 @@ static NSString *MMKeypadEnterString = @"KA";
 
 @implementation MMAtsuiTextView (Drawing)
 
+- (NSRect)rectFromRow:(int)row1 column:(int)col1
+                toRow:(int)row2 column:(int)col2
+{
+    return NSMakeRect(col1 * cellSize.width, row1 * cellSize.height,
+                      (col2 + 1 - col1) * cellSize.width,
+                      (row2 + 1 - row1) * cellSize.height);
+}
+
 - (void)beginDrawing
 {
+    [contentImage lockFocus];
 }
 
 - (void)endDrawing
 {
+    [contentImage unlockFocus];
+}
+
+- (void)fitImageToSize
+{
+    NSLog(@"fitImageToSize");
+    [contentImage release];
+    contentImage = [[NSImage alloc] initWithSize:[self size]];
+    [contentImage setFlipped: YES];
+    imageSize = [self size];
 }
 
 - (void)drawString:(UniChar *)string length:(UniCharCount)length
@@ -695,27 +806,98 @@ static NSString *MMKeypadEnterString = @"KA";
     // 'string' consists of 'length' utf-16 code pairs and should cover 'cells'
     // display cells (a normal character takes up one display cell, a wide
     // character takes up two)
+    ATSUStyle          style = atsuStyles[0];
+    ATSUTextLayout     layout;
+
+    // NSLog(@"drawString: %d", length);
+
+    ATSUCreateTextLayout(&layout);
+    ATSUSetTextPointerLocation(layout, string,
+                               kATSUFromTextBeginning, kATSUToTextEnd,
+                               length);
+    ATSUSetRunStyle(layout, style, kATSUFromTextBeginning, kATSUToTextEnd);
+
+    NSRect rect = NSMakeRect(col * cellSize.width, row * cellSize.height,
+                             length * cellSize.width, cellSize.height);
+    CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
+
+    ATSUAttributeTag tags[] = { kATSUCGContextTag };
+    ByteCount sizes[] = { sizeof(CGContextRef) };
+    ATSUAttributeValuePtr values[] = { &context };
+    ATSUSetLayoutControls(layout, 1, tags, sizes, values);
+
+    if (! (flags & DRAW_TRANSP))
+    {
+        [bg set];
+        NSRectFill(rect);
+    }
+
+    [fg set];
+
+    ATSUSetTransientFontMatching(layout, TRUE);
+    ATSUDrawText(layout,
+                 kATSUFromTextBeginning,
+                 kATSUToTextEnd,
+                 X2Fix(rect.origin.x),
+                 X2Fix(rect.origin.y + [font ascender]));
+    ATSUDisposeTextLayout(layout);
+}
+
+- (void)scrollRect:(NSRect)rect lineCount:(int)count
+{
+    NSPoint destPoint = rect.origin;
+    destPoint.y += count * cellSize.height;
+
+    NSCopyBits(0, rect, destPoint);
 }
 
 - (void)deleteLinesFromRow:(int)row lineCount:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right
                      color:(NSColor *)color
 {
+    NSRect rect = [self rectFromRow:row + count
+                             column:left
+                              toRow:bottom
+                             column:right];
+    [color set];
+    // move rect up for count lines
+    [self scrollRect:rect lineCount:-count];
+    [self clearBlockFromRow:bottom - count + 1
+                     column:left
+                      toRow:bottom
+                     column:right
+                      color:color];
 }
 
 - (void)insertLinesAtRow:(int)row lineCount:(int)count
             scrollBottom:(int)bottom left:(int)left right:(int)right
                    color:(NSColor *)color
 {
+    NSRect rect = [self rectFromRow:row
+                             column:left
+                              toRow:bottom - count
+                             column:right];
+    [color set];
+    // move rect down for count lines
+    [self scrollRect:rect lineCount:count];
+    [self clearBlockFromRow:row
+                     column:left
+                      toRow:row + count - 1
+                     column:right
+                      color:color];
 }
 
 - (void)clearBlockFromRow:(int)row1 column:(int)col1 toRow:(int)row2
                    column:(int)col2 color:(NSColor *)color
 {
+    [color set];
+    NSRectFill([self rectFromRow:row1 column:col1 toRow:row2 column:col2]);
 }
 
 - (void)clearAll
 {
+    [defaultBackgroundColor set];
+    NSRectFill(NSMakeRect(0, 0, imageSize.width, imageSize.height));
 }
 
 @end // MMAtsuiTextView (Drawing)
