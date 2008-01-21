@@ -12,59 +12,75 @@
  *
  * Handles resizing of windows, acts as an mediator between MMVimView and
  * MMVimController.
+ *
+ * Resizing in windowed mode:
+ *
+ * In windowed mode resizing can occur either due to the window frame changing
+ * size (e.g. when the user drags to resize), or due to Vim changing the number
+ * of (rows,columns).  The former case is dealt with by letting the vim view
+ * fill the entire content view when the window has resized.  In the latter
+ * case we ensure that vim view fits on the screen.
+ *
+ * The vim view notifies Vim if the number of (rows,columns) does not match the
+ * current number whenver the view size is about to change.  Upon receiving a
+ * dimension change message, Vim notifies the window controller and the window
+ * resizes.  However, the window is never resized programmatically during a
+ * live resize (in order to avoid jittering).
+ *
+ * The window size is constrained to not become too small during live resize,
+ * and it is also constrained to always fit an integer number of
+ * (rows,columns).
+ *
+ * In windowed mode we have to manually draw a tabline separator (due to bugs
+ * in the way Cocoa deals with the toolbar separator) when certain conditions
+ * are met.  The rules for this are as follows:
+ *
+ *   Tabline visible & Toolbar visible  =>  Separator visible
+ *   =====================================================================
+ *         NO        &        NO        =>  YES, if the window is textured
+ *                                           NO, otherwise
+ *         NO        &       YES        =>  YES
+ *        YES        &        NO        =>   NO
+ *        YES        &       YES        =>   NO
+ *
+ *
+ * Resizing in full-screen mode:
+ *
+ * The window never resizes since it fills the screen, however the vim view may
+ * change size, e.g. when the user types ":set lines=60", or when a scrollbar
+ * is toggled.
+ *
+ * It is ensured that the vim view never becomes larger than the screen size
+ * and that it always stays in the center of the screen.
+ *  
  */
 
 #import "MMWindowController.h"
-#import <PSMTabBarControl.h>
-#import "MMTextView.h"
-#import "MMTextStorage.h"
-#import "MMVimController.h"
-#import "MacVim.h"
 #import "MMAppController.h"
-#import "MMTypesetter.h"
-#import "MMFullscreenWindow.h"
-#import "MMVimView.h"
 #import "MMAtsuiTextView.h"
+#import "MMFullscreenWindow.h"
+#import "MMTextView.h"
+#import "MMTypesetter.h"
+#import "MMVimController.h"
+#import "MMVimView.h"
+#import "MMWindow.h"
+#import "MacVim.h"
+
+#import <PSMTabBarControl.h>
 
 
 
 @interface MMWindowController (Private)
 - (NSSize)contentSize;
-- (NSRect)contentRectForFrameRect:(NSRect)frame;
-- (NSRect)frameRectForContentRect:(NSRect)contentRect;
-- (void)resizeWindowToFit:(id)sender;
-- (NSRect)fitWindowToFrame:(NSRect)frame;
-- (void)updateResizeIncrements;
+- (void)resizeWindowToFitContentSize:(NSSize)contentSize;
+- (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize;
+- (void)updateResizeConstraints;
 - (NSTabViewItem *)addNewTabViewItem;
 - (IBAction)vimMenuItemAction:(id)sender;
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
-- (void)checkWindowNeedsResizing;
-- (NSSize)resizeVimViewToFitSize:(NSSize)size;
+- (void)hideTablineSeparator:(BOOL)hide;
 @end
 
-
-
-#if 0
-NSString *buildMenuItemDescriptor(NSMenu *menu, NSString *tail)
-{
-    return menu ? buildMenuItemDescriptor([menu supermenu], [[menu title]
-                    stringByAppendingString:tail])
-                : tail;
-}
-
-NSMutableArray *buildMenuAddress(NSMenu *menu)
-{
-    NSMutableArray *addr;
-    if (menu) {
-        addr = buildMenuAddress([menu supermenu]);
-        [addr addObject:[menu title]];
-    } else {
-        addr = [NSMutableArray array];
-    }
-
-    return addr;
-}
-#endif
 
 @interface NSWindow (NSWindowPrivate)
 // Note: This hack allows us to set content shadowing separately from
@@ -75,6 +91,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 // We want this on Leopard.
 - (void)setBottomCornerRounded:(BOOL)rounded;
 @end
+
 
 @interface NSWindow (NSLeopardOnly)
 // Note: These functions are Leopard-only, use -[NSObject respondsToSelector:]
@@ -118,70 +135,61 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     // started (or rather, when ~/Library/Preferences/org.vim.MacVim.plist does
     // not exist).  The chosen values will put the window somewhere near the
     // top and in the middle of a 1024x768 screen.
-    NSWindow *win = [[NSWindow alloc]
+    MMWindow *win = [[[MMWindow alloc]
             initWithContentRect:NSMakeRect(242,364,480,360)
                       styleMask:styleMask
                         backing:NSBackingStoreBuffered
-                          defer:YES];
+                          defer:YES] autorelease];
 
-    if ((self = [super initWithWindow:win])) {
-        vimController = controller;
+    self = [super initWithWindow:win];
+    if (!self) return nil;
 
-        // Window cascading is handled by MMAppController.
-        [self setShouldCascadeWindows:NO];
+    vimController = controller;
+    decoratedWindow = [win retain];
 
-        NSView *contentView = [win contentView];
-        vimView = [[MMVimView alloc] initWithFrame:[contentView frame]
-                                     vimController:vimController];
-        [contentView addSubview:vimView];
+    // Window cascading is handled by MMAppController.
+    [self setShouldCascadeWindows:NO];
 
-        // Create the tabline separator (which may be visible when the tabline
-        // is hidden).  See showTabBar: for circumstances when the separator
-        // should be hidden.
-        NSRect tabSepRect = [contentView frame];
-        tabSepRect.origin.y = NSMaxY(tabSepRect)-1;
-        tabSepRect.size.height = 1;
-        tablineSeparator = [[NSBox alloc] initWithFrame:tabSepRect];
-        
-        [tablineSeparator setBoxType:NSBoxSeparator];
-        [tablineSeparator setHidden:NO];
-        [tablineSeparator setAutoresizingMask:NSViewWidthSizable
-            | NSViewMinYMargin];
+    // NOTE: Autoresizing is enabled for the content view, but only used
+    // for the tabline separator.  The vim view must be resized manually
+    // because of full-screen considerations, and because its size depends
+    // on whether the tabline separator is visible or not.
+    NSView *contentView = [win contentView];
+    [contentView setAutoresizesSubviews:YES];
 
-        [contentView setAutoresizesSubviews:YES];
-        [contentView addSubview:tablineSeparator];
+    vimView = [[MMVimView alloc] initWithFrame:[contentView frame]
+                                 vimController:vimController];
+    [vimView setAutoresizingMask:NSViewNotSizable];
+    [contentView addSubview:vimView];
 
-        [win setDelegate:self];
-        [win setInitialFirstResponder:[vimView textView]];
-	
-        if ([win styleMask] & NSTexturedBackgroundWindowMask) {
-            // On Leopard, we want to have a textured window to have nice
-            // looking tabs. But the textured window look implies rounded
-            // corners, which looks really weird -- disable them. This is a
-            // private api, though.
-            if ([win respondsToSelector:@selector(setBottomCornerRounded:)])
-                [win setBottomCornerRounded:NO];
+    [win setDelegate:self];
+    [win setInitialFirstResponder:[vimView textView]];
+    
+    if ([win styleMask] & NSTexturedBackgroundWindowMask) {
+        // On Leopard, we want to have a textured window to have nice
+        // looking tabs. But the textured window look implies rounded
+        // corners, which looks really weird -- disable them. This is a
+        // private api, though.
+        if ([win respondsToSelector:@selector(setBottomCornerRounded:)])
+            [win setBottomCornerRounded:NO];
 
-            // When the tab bar is toggled, it changes color for the fraction
-            // of a second, probably because vim sends us events in a strange
-            // order, confusing appkit's content border heuristic for a short
-            // while.  This can be worked around with these two methods.  There
-            // might be a better way, but it's good enough.
-            if ([win respondsToSelector:@selector(
-                    setAutorecalculatesContentBorderThickness:forEdge:)])
-                [win setAutorecalculatesContentBorderThickness:NO
-                                                       forEdge:NSMaxYEdge];
-            if ([win respondsToSelector:
-                    @selector(setContentBorderThickness:forEdge:)])
-                [win setContentBorderThickness:0 forEdge:NSMaxYEdge];
-        }
-
-        // Make us safe on pre-tiger OSX
-        if ([win respondsToSelector:@selector(_setContentHasShadow:)])
-            [win _setContentHasShadow:NO];
+        // When the tab bar is toggled, it changes color for the fraction
+        // of a second, probably because vim sends us events in a strange
+        // order, confusing appkit's content border heuristic for a short
+        // while.  This can be worked around with these two methods.  There
+        // might be a better way, but it's good enough.
+        if ([win respondsToSelector:@selector(
+                setAutorecalculatesContentBorderThickness:forEdge:)])
+            [win setAutorecalculatesContentBorderThickness:NO
+                                                   forEdge:NSMaxYEdge];
+        if ([win respondsToSelector:
+                @selector(setContentBorderThickness:forEdge:)])
+            [win setContentBorderThickness:0 forEdge:NSMaxYEdge];
     }
 
-    [win release];
+    // Make us safe on pre-tiger OSX
+    if ([win respondsToSelector:@selector(_setContentHasShadow:)])
+        [win _setContentHasShadow:NO];
 
     return self;
 }
@@ -190,7 +198,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     //NSLog(@"%@ %s", [self className], _cmd);
 
-    [tablineSeparator release];  tablineSeparator = nil;
+    [decoratedWindow release];  decoratedWindow = nil;
     [windowAutosaveKey release];  windowAutosaveKey = nil;
     [vimView release];  vimView = nil;
 
@@ -208,16 +216,6 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (MMVimController *)vimController
 {
     return vimController;
-}
-
-- (MMTextView *)textView
-{
-    return [vimView textView];
-}
-
-- (MMTextStorage *)textStorage
-{
-    return [vimView textStorage];
 }
 
 - (MMVimView *)vimView
@@ -240,24 +238,23 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     //NSLog(@"%@ %s", [self className], _cmd);
 
-    if (fullscreenWindow != nil) {
-        // if we are closed while still in fullscreen, end fullscreen mode,
+    if (fullscreenEnabled) {
+        // If we are closed while still in fullscreen, end fullscreen mode,
         // release ourselves (because this won't happen in MMWindowController)
-        // and perform close operation on the original window
+        // and perform close operation on the original window.
         [self leaveFullscreen];
     }
 
     setupDone = NO;
     vimController = nil;
 
-    [tablineSeparator removeFromSuperviewWithoutNeedingDisplay];
     [vimView removeFromSuperviewWithoutNeedingDisplay];
-    [vimView cleanup];  // TODO: is this necessary?
+    [vimView cleanup];
 
-    // It is feasible that the user quits before the window controller is
-    // released, make sure the edit flag is cleared so no warning dialog is
-    // displayed.
-    [[self window] setDocumentEdited:NO];
+    // It is feasible (though unlikely) that the user quits before the window
+    // controller is released, make sure the edit flag is cleared so no warning
+    // dialog is displayed.
+    [decoratedWindow setDocumentEdited:NO];
 
     [[self window] orderOut:self];
 }
@@ -270,8 +267,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     setupDone = YES;
 
-    [self updateResizeIncrements];
-    [self resizeWindowToFit:self];
+    [self updateResizeConstraints];
+    [self resizeWindowToFitContentSize:[vimView desiredSize]];
     [[self window] makeKeyAndOrderFront:self];
 }
 
@@ -285,14 +282,47 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [vimView selectTabWithIndex:idx];
 }
 
-- (void)setTextDimensionsWithRows:(int)rows columns:(int)cols
+- (void)setTextDimensionsWithRows:(int)rows columns:(int)cols live:(BOOL)live
 {
-    //NSLog(@"setTextDimensionsWithRows:%d columns:%d", rows, cols);
+    //NSLog(@"setTextDimensionsWithRows:%d columns:%d live:%s", rows, cols,
+    //        live ? "YES" : "NO");
 
-    [vimView setActualRows:rows columns:cols];
+    // NOTE: This is the only place where the (rows,columns) of the vim view
+    // are modified.  Setting these values have no immediate effect, the actual
+    // resizing of the view is done in processCommandQueueDidFinish.
+    //
+    // The 'live' flag indicates that this resize originated from a live
+    // resize; it may very well happen that the view is no longer in live
+    // resize when this message is received.  We refrain from changing the view
+    // size when this flag is set, otherwise the window might jitter when the
+    // user drags to resize the window.
 
-    if (setupDone && ![vimView inLiveResize])
-        shouldUpdateWindowSize = YES;
+    [vimView setDesiredRows:rows columns:cols];
+
+    if (setupDone && !live)
+        shouldResizeVimView = YES;
+}
+
+- (void)setTitle:(NSString *)title
+{
+    // The full-screen window has no title (?!) and it does not show up in the
+    // Window menu.
+    [decoratedWindow setTitle:title];
+}
+
+- (void)setToolbar:(NSToolbar *)toolbar
+{
+    // The full-screen window has no toolbar.
+    [decoratedWindow setToolbar:toolbar];
+
+    // HACK! Redirect the pill button so that we can ask Vim to hide the
+    // toolbar.
+    NSButton *pillButton = [decoratedWindow
+            standardWindowButton:NSWindowToolbarButton];
+    if (pillButton) {
+        [pillButton setAction:@selector(toggleToolbar:)];
+        [pillButton setTarget:self];
+    }
 }
 
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type
@@ -300,16 +330,21 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     [vimView createScrollbarWithIdentifier:ident type:type];
 }
 
-- (void)destroyScrollbarWithIdentifier:(long)ident
+- (BOOL)destroyScrollbarWithIdentifier:(long)ident
 {
-    [vimView destroyScrollbarWithIdentifier:ident];   
-    [self checkWindowNeedsResizing];
+    BOOL scrollbarHidden = [vimView destroyScrollbarWithIdentifier:ident];   
+    shouldResizeVimView = shouldResizeVimView || scrollbarHidden;
+
+    return scrollbarHidden;
 }
 
-- (void)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible
+- (BOOL)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible
 {
-    [vimView showScrollbarWithIdentifier:ident state:visible];
-    [self checkWindowNeedsResizing];
+    BOOL scrollbarToggled = [vimView showScrollbarWithIdentifier:ident
+                                                           state:visible];
+    shouldResizeVimView = shouldResizeVimView || scrollbarToggled;
+
+    return scrollbarToggled;
 }
 
 - (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident
@@ -336,23 +371,38 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (void)setFont:(NSFont *)font
 {
     [[NSFontManager sharedFontManager] setSelectedFont:font isMultiple:NO];
-    [[vimView textStorage] setFont:font];
-    [self updateResizeIncrements];
+    [[vimView textView] setFont:font];
+    [self updateResizeConstraints];
 }
 
 - (void)setWideFont:(NSFont *)font
 {
-    [[vimView textStorage] setWideFont:font];
+    [[vimView textView] setWideFont:font];
 }
 
 - (void)processCommandQueueDidFinish
 {
-    // XXX: If not in live resize and vimview's desired size differs from actual
-    // size, resize ourselves
-    if (shouldUpdateWindowSize) {
-        shouldUpdateWindowSize = NO;
-        [vimView setShouldUpdateWindowSize:NO];
-        [self resizeWindowToFit:self];
+    // NOTE: Resizing is delayed until after all commands have been processed
+    // since it often happens that more than one command will cause a resize.
+    // If we were to immediately resize then the vim view size would jitter
+    // (e.g.  hiding/showing scrollbars often happens several time in one
+    // update).
+
+    if (shouldResizeVimView) {
+        shouldResizeVimView = NO;
+
+        NSSize contentSize = [vimView desiredSize];
+        contentSize = [self constrainContentSizeToScreenSize:contentSize];
+        contentSize = [vimView constrainRows:NULL columns:NULL
+                                      toSize:contentSize];
+        [vimView setFrameSize:contentSize];
+
+        if (fullscreenEnabled) {
+            [[fullscreenWindow contentView] setNeedsDisplay:YES];
+            [fullscreenWindow centerView];
+        } else {
+            [self resizeWindowToFitContentSize:contentSize];
+        }
     }
 }
 
@@ -362,7 +412,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
     NSEvent *event;
     if (row >= 0 && col >= 0) {
-        NSSize cellSize = [[vimView textStorage] cellSize];
+        // TODO: Let textView convert (row,col) to NSPoint.
+        NSSize cellSize = [[vimView textView] cellSize];
         NSPoint pt = { (col+1)*cellSize.width, (row+1)*cellSize.height };
         pt = [[vimView textView] convertPoint:pt toView:nil];
 
@@ -386,57 +437,47 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     [[vimView tabBarControl] setHidden:!on];
 
-    // Rules for when to show tabline separator:
-    //
-    // Tabline visible & Toolbar visible  =>  Separator visible
-    // ================================================================
-    //       NO        &        NO        =>  NO (Tiger), YES (Leopard)
-    //       NO        &       YES        =>  YES
-    //      YES        &        NO        =>  NO
-    //      YES        &       YES        =>  NO
-    //
-    // XXX: This is ignored if called while in fullscreen mode
+    // Showing the tabline may result in the tabline separator being hidden or
+    // shown; this does not apply to full-screen mode.
     if (!on) {
-        NSToolbar *toolbar = [[self window] toolbar]; 
-        if (([[self window] styleMask] & NSTexturedBackgroundWindowMask) == 0) {
-            [tablineSeparator setHidden:![toolbar isVisible]];
+        NSToolbar *toolbar = [decoratedWindow toolbar]; 
+        if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask)
+                == 0) {
+            [self hideTablineSeparator:![toolbar isVisible]];
         } else {
-            [tablineSeparator setHidden:NO];
+            [self hideTablineSeparator:NO];
         }
     } else {
-        if (([[self window] styleMask] & NSTexturedBackgroundWindowMask) == 0) {
-            [tablineSeparator setHidden:on];
+        if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask)
+                == 0) {
+            [self hideTablineSeparator:on];
         } else {
-            [tablineSeparator setHidden:YES];
+            [self hideTablineSeparator:YES];
         }
     }
-
-    //if (setupDone)
-    //    shouldUpdateWindowSize = YES;
 }
 
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode
 {
-    NSToolbar *toolbar = [[self window] toolbar];
+    NSToolbar *toolbar = [decoratedWindow toolbar];
     if (!toolbar) return;
 
     [toolbar setSizeMode:size];
     [toolbar setDisplayMode:mode];
     [toolbar setVisible:on];
 
-    // See showTabBar: for circumstances when the separator should be hidden.
-    if (([[self window] styleMask] & NSTexturedBackgroundWindowMask) == 0) {
+    if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask) == 0) {
         if (!on) {
-            [tablineSeparator setHidden:YES];
+            [self hideTablineSeparator:YES];
         } else {
-            [tablineSeparator setHidden:![[vimView tabBarControl] isHidden]];
+            [self hideTablineSeparator:![[vimView tabBarControl] isHidden]];
         }
     } else {
         // Textured windows don't have a line below there title bar, so we
         // need the separator in this case as well. In fact, the only case
         // where we don't need the separator is when the tab bar control
         // is visible (because it brings its own separator).
-        [tablineSeparator setHidden:![[vimView tabBarControl] isHidden]];
+        [self hideTablineSeparator:![[vimView tabBarControl] isHidden]];
     }
 }
 
@@ -463,9 +504,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)adjustLinespace:(int)linespace
 {
-    if (vimView && [vimView textStorage]) {
-        [[vimView textStorage] setLinespace:(float)linespace];
-        shouldUpdateWindowSize = YES;
+    if (vimView && [vimView textView]) {
+        [[vimView textView] setLinespace:(float)linespace];
+        shouldResizeVimView = YES;
     }
 }
 
@@ -473,7 +514,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     // Save the original title, if we haven't already.
     if (lastSetTitle == nil) {
-        lastSetTitle = [[[self window] title] retain];
+        lastSetTitle = [[decoratedWindow title] retain];
     }
 }
 
@@ -481,75 +522,74 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     if (!setupDone) return;
 
-    // NOTE: During live resize the window is not constrained to lie inside the
-    // screen (because we must not programmatically alter the window size
-    // during live resize or it will 'jitter'), so at the end of live resize we
-    // make sure a final SetTextDimensionsMsgID message is sent to ensure that
-    // resizeWindowToFit does get called.  For this reason and also because we
-    // want to ensure that Vim and MacVim have consistent states, this resize
-    // message is sent synchronously.  (If the states were inconsistent the
-    // text view may become too large or too small to fit the window.)
+    // NOTE: During live resize messages from MacVim to Vim are often dropped
+    // (because too many messages are sent at once).  This may lead to
+    // inconsistent states between Vim and MacVim; to avoid this we send a
+    // synchronous resize message to Vim now (this is not fool-proof, but it
+    // does seem to work quite well).
 
-    NSSize contentSize = [self contentSize];
+    int constrained[2];
+    NSSize textViewSize = [[vimView textView] frame].size;
+    [[vimView textView] constrainRows:&constrained[0] columns:&constrained[1]
+                               toSize:textViewSize];
 
-    int desiredSize[2];
-    [vimView getDesiredRows:&desiredSize[0] columns:&desiredSize[1]
-                    forSize:contentSize];
+    //NSLog(@"End of live resize, notify Vim that text dimensions are %dx%d",
+    //       constrained[1], constrained[0]);
 
-    NSData *data = [NSData dataWithBytes:desiredSize length:2*sizeof(int)];
+    NSData *data = [NSData dataWithBytes:constrained length:2*sizeof(int)];
+    BOOL sendOk = [vimController sendMessageNow:SetTextDimensionsMsgID
+                                           data:data
+                                        timeout:.5];
 
-    BOOL resizeOk = [vimController sendMessageNow:SetTextDimensionsMsgID
-                                             data:data
-                                          timeout:.5];
-
-    if (!resizeOk) {
-        // Force the window size to match the text view size otherwise Vim and
-        // MacVim will have inconsistent states.
-        [self resizeWindowToFit:self];
+    if (!sendOk) {
+        // Sending of synchronous message failed.  Force the window size to
+        // match the last dimensions received from Vim, otherwise we end up
+        // with inconsistent states.
+        [self resizeWindowToFitContentSize:[vimView desiredSize]];
     }
 
     // If we saved the original title while resizing, restore it.
     if (lastSetTitle != nil) {
-        [[self window] setTitle:lastSetTitle];
+        [decoratedWindow setTitle:lastSetTitle];
         [lastSetTitle release];
         lastSetTitle = nil;
     }
 }
 
-- (void)placeViews
-{
-    if (!setupDone) return;
-
-    NSRect vimViewRect;
-    vimViewRect.origin = NSMakePoint(0, 0);
-    vimViewRect.size = [vimView getDesiredRows:NULL columns:NULL
-                                       forSize:[self contentSize]];
-
-     // HACK! If the window does resize, then windowDidResize is called which in
-     // turn calls placeViews.  In case the computed new size of the window is
-     // no different from the current size, then we need to call placeViews
-     // manually.
-     if (NSEqualRects(vimViewRect, [vimView frame])) {
-         [vimView placeViews];
-     } else {
-         [vimView setFrame:vimViewRect];
-     }
-}
-
 - (void)enterFullscreen
 {
-    fullscreenWindow = [[MMFullscreenWindow alloc] initWithWindow:[self window]
-                                                             view:vimView];
+    if (fullscreenEnabled) return;
+
+    fullscreenWindow = [[MMFullscreenWindow alloc]
+            initWithWindow:decoratedWindow view:vimView];
     [fullscreenWindow enterFullscreen];    
-      
     [fullscreenWindow setDelegate:self];
+    fullscreenEnabled = YES;
+
+    // The resize handle disappears so the vim view needs to update the
+    // scrollbars.
+    shouldResizeVimView = YES;
 }
 
 - (void)leaveFullscreen
 {
+    if (!fullscreenEnabled) return;
+
+    fullscreenEnabled = NO;
     [fullscreenWindow leaveFullscreen];    
     [fullscreenWindow release];
     fullscreenWindow = nil;
+
+    // The vim view may be too large to fit the screen, so update it.
+    shouldResizeVimView = YES;
+}
+
+- (void)setBuffersModified:(BOOL)mod
+{
+    // NOTE: We only set the document edited flag on the decorated window since
+    // the full-screen window has no close button anyway.  (It also saves us
+    // from keeping track of the flag in two different places.)
+    [decoratedWindow setDocumentEdited:mod];
 }
 
 
@@ -571,10 +611,9 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 {
     [vimController sendMessage:GotFocusMsgID data:nil];
 
-    if ([vimView textStorage]) {
-        NSFontManager *fontManager = [NSFontManager sharedFontManager];
-        [fontManager setSelectedFont:[[vimView textStorage] font]
-                          isMultiple:NO];
+    if ([vimView textView]) {
+        NSFontManager *fm = [NSFontManager sharedFontManager];
+        [fm setSelectedFont:[[vimView textView] font] isMultiple:NO];
     }
 }
 
@@ -588,6 +627,8 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (BOOL)windowShouldClose:(id)sender
 {
+    // Don't close the window now; Instead let Vim decide whether to close the
+    // window or not.
     [vimController sendMessage:VimShouldCloseMsgID data:nil];
     return NO;
 }
@@ -595,7 +636,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 - (void)windowDidMove:(NSNotification *)notification
 {
     if (setupDone && windowAutosaveKey) {
-        NSRect frame = [[self window] frame];
+        NSRect frame = [decoratedWindow frame];
         NSPoint topLeft = { frame.origin.x, NSMaxY(frame) };
         NSString *topLeftString = NSStringFromPoint(topLeft);
 
@@ -606,47 +647,18 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (void)windowDidResize:(id)sender
 {
-    if (!setupDone) return;
+    if (!setupDone || fullscreenEnabled) return;
 
-    // Live resizing works as follows:
-    // VimView's size is changed immediatly, and a resize message to the
-    // remote vim instance is sent. The remote vim instance sends a
-    // "vim content size changed" right back, but in live resize mode this
-    // doesn't change the VimView (because we assume that it already has the
-    // correct size because we set the resize increments correctly). Afterward,
-    // the remote vim view sends a batch draw for the text visible in the
-    // resized text area.
-
-    NSSize contentSize = [self contentSize];
-    [self resizeVimViewToFitSize:contentSize];
-
-    NSRect frame;
-    frame.origin = NSMakePoint(0, 0);
-    frame.size = contentSize;
-    [vimView setFrame:frame];
+    // NOTE: Since we have no control over when the window may resize (Cocoa
+    // may resize automatically) we simply set the view to fill the entire
+    // window.  The vim view takes care of notifying Vim if the number of
+    // (rows,columns) changed.
+    [vimView setFrameSize:[self contentSize]];
 }
 
 - (NSRect)windowWillUseStandardFrame:(NSWindow *)win
                         defaultFrame:(NSRect)frame
 {
-    // HACK!  For some reason 'frame' is not always constrained to fit on the
-    // screen (e.g. it may overlap the menu bar), so first constrain it to the
-    // screen; otherwise the new frame we compute may be too large and this
-    // will mess up the display after the window resizes.
-    frame = [win constrainFrameRect:frame toScreen:[win screen]];
-
-    // HACK!  If the top of 'frame' is lower than the current window frame,
-    // increase 'frame' so that their tops align.  Really, 'frame' should
-    // already have its top at least as high as the current window frame, but
-    // for some reason this is not always the case.
-    // (See resizeWindowToFit: for a similar hack.)
-    NSRect cur = [win frame];
-    if (NSMaxY(cur) > NSMaxY(frame)) {
-        frame.size.height = cur.origin.y - frame.origin.y + cur.size.height;
-    }
-
-    frame = [self fitWindowToFrame:frame];
-
     // Keep old width and horizontal position unless user clicked while the
     // Command key is held down.
     NSEvent *event = [NSApp currentEvent];
@@ -690,105 +702,52 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 @implementation MMWindowController (Private)
 
-- (NSRect)contentRectForFrameRect:(NSRect)frame
-{
-    NSRect result = [[self window] contentRectForFrameRect:frame];
-    if (![tablineSeparator isHidden])
-        --result.size.height;
-    return result;
-}
-
-- (NSRect)frameRectForContentRect:(NSRect)contentRect
-{
-    if (![tablineSeparator isHidden])
-        ++contentRect.size.height;
-    return [[self window] frameRectForContentRect:contentRect];
-}
-
 - (NSSize)contentSize
 {
-    return [self contentRectForFrameRect:[[self window] frame]].size;
+    // NOTE: Never query the content view directly for its size since it may
+    // not return the same size as contentRectForFrameRect: (e.g. when in
+    // windowed mode and the tabline separator is visible)!
+    NSWindow *win = [self window];
+    return [win contentRectForFrameRect:[win frame]].size;
 }
 
-- (void)resizeWindowToFit:(id)sender
+- (void)resizeWindowToFitContentSize:(NSSize)contentSize
 {
-    // Makes the window large enough to contain the vim view, called after the
-    // vim view's size was changed. If the window had to become to big, the
-    // vim view is made smaller.
-
-    // NOTE: Be very careful when you call this method!  Do not call while
-    // processing command queue, instead set 'shouldUpdateWindowSize' to YES.
-    // The only other place it is currently called is when live resize ends.
-    // This is done to ensure that the text view and window sizes match up
-    // (they may become out of sync if a SetTextDimensionsMsgID message to the
-    // backend is dropped).
-
-    if (!setupDone) return;
-
-    // Get size of text view, adapt window size to it
-    NSWindow *win = [self window];
-    NSRect frame = [win frame];
-    NSRect contentRect = [self contentRectForFrameRect:frame];
-    NSSize newSize = [vimView desiredSizeForActualRowsAndColumns];
+    NSRect frame = [decoratedWindow frame];
+    NSRect contentRect = [decoratedWindow contentRectForFrameRect:frame];
 
     // Keep top-left corner of the window fixed when resizing.
-    contentRect.origin.y -= newSize.height - contentRect.size.height;
-    contentRect.size = newSize;
+    contentRect.origin.y -= contentSize.height - contentRect.size.height;
+    contentRect.size = contentSize;
 
-    frame = [self frameRectForContentRect:contentRect];
-    NSRect maxFrame = [win constrainFrameRect:frame toScreen:[win screen]];
-
-    // HACK!  Assuming the window frame cannot already be placed too high,
-    // adjust 'maxFrame' so that it at least as high up as the current frame.
-    // The reason for doing this is that constrainFrameRect:toScreen: does not
-    // always seem to utilize as much area as possible.
-    if (NSMaxY(frame) > NSMaxY(maxFrame)) {
-        maxFrame.size.height = frame.origin.y - maxFrame.origin.y
-                + frame.size.height;
-    }
-
-    if (!NSEqualRects(maxFrame, frame)) {
-        // The new window frame is too big to fit on the screen, so fit the
-        // text storage to the biggest frame which will fit on the screen.
-        //NSLog(@"Proposed window frame does not fit on the screen!");
-        frame = [self fitWindowToFrame:maxFrame];
-        [self resizeVimViewToFitSize:[self contentRectForFrameRect:frame].size];
-    }
-
-    // NSLog(@"%s %@", _cmd, NSStringFromRect(frame));
-
-    // HACK! If the window does resize, then windowDidResize is called which in
-    // turn calls placeViews.  In case the computed new size of the window is
-    // no different from the current size, then we need to call placeViews
-    // manually.
-    if (NSEqualRects(frame, [win frame])) {
-        [self placeViews];
-    } else {
-        [win setFrame:frame display:YES];
-    }
+    frame = [decoratedWindow frameRectForContentRect:contentRect];
+    [decoratedWindow setFrame:frame display:YES];
 }
 
-- (NSRect)fitWindowToFrame:(NSRect)frame
+- (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize
 {
-    if (!setupDone) return frame;
+    NSWindow *win = [self window];
+    NSRect rect = [win contentRectForFrameRect:[[win screen] visibleFrame]];
 
-    NSRect contentRect = [self contentRectForFrameRect:frame];
-    NSSize size = [vimView getDesiredRows:NULL columns:NULL
-                                  forSize:contentRect.size];
+    if (contentSize.height > rect.size.height)
+        contentSize.height = rect.size.height;
+    if (contentSize.width > rect.size.width)
+        contentSize.width = rect.size.width;
 
-    // Keep top-left corner of 'frame' fixed.
-    contentRect.origin.y -= size.height - contentRect.size.height;
-    contentRect.size = size;
-
-    return [self frameRectForContentRect:contentRect];
+    return contentSize;
 }
 
-- (void)updateResizeIncrements
+- (void)updateResizeConstraints
 {
     if (!setupDone) return;
 
-    NSSize size = [[vimView textStorage] cellSize];
-    [[self window] setContentResizeIncrements:size];
+    // Set the resize increments to exactly match the font size; this way the
+    // window will always hold an integer number of (rows,columns).
+    NSSize cellSize = [[vimView textView] cellSize];
+    [decoratedWindow setContentResizeIncrements:cellSize];
+
+    NSSize minSize = [vimView minSize];
+    [decoratedWindow setContentMinSize:minSize];
 }
 
 - (NSTabViewItem *)addNewTabViewItem
@@ -808,6 +767,7 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
 
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb
 { 
+    // TODO: Can this be done with evaluateExpression: instead?
     BOOL reply = NO;
     id backendProxy = [vimController backendProxy];
 
@@ -823,40 +783,16 @@ NSMutableArray *buildMenuAddress(NSMenu *menu)
     return reply;
 }
 
-- (void)checkWindowNeedsResizing
+- (void)hideTablineSeparator:(BOOL)hide
 {
-    shouldUpdateWindowSize =
-        shouldUpdateWindowSize || [vimView shouldUpdateWindowSize];
-}
-
-- (NSSize)resizeVimViewToFitSize:(NSSize)size
-{
-    // If our optimal (rows,cols) do not match our current (rows,cols), resize
-    // ourselves and tell the Vim process to sync up.
-    int desired[2];
-    NSSize newSize = [vimView getDesiredRows:&desired[0] columns:&desired[1]
-                              forSize:size];
-
-    int rows, columns;
-    [vimView getActualRows:&rows columns:&columns];
-
-    if (desired[0] != rows || desired[1] != columns) {
-        // NSLog(@"Notify Vim that text storage dimensions changed from %dx%d "
-        //       @"to %dx%d", columns, rows, desired[0], desired[1]);
-        NSData *data = [NSData dataWithBytes:desired length:2*sizeof(int)];
-
-        [vimController sendMessage:SetTextDimensionsMsgID data:data];
-
-        // We only want to set the window title if this resize came from
-        // a live-resize, not (for example) setting 'columns' or 'lines'.
-        if ([[self textView] inLiveResize]) {
-            [[self window] setTitle:[NSString stringWithFormat:@"%dx%d",
-                    desired[1], desired[0]]];
-        }
+    // The full-screen window has no tabline separator so we operate on
+    // decoratedWindow instead of [self window].
+    if ([decoratedWindow hideTablineSeparator:hide]) {
+        // The tabline separator was toggled so the content view must change
+        // size.
+        [self updateResizeConstraints];
+        shouldResizeVimView = YES;
     }
-
-    return newSize;
 }
-
 
 @end // MMWindowController (Private)

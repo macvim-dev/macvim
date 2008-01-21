@@ -488,55 +488,67 @@ typedef struct
     connectBackend:(byref in id <MMBackendProtocol>)backend
                pid:(int)pid
 {
+    MMVimController *vc = nil;
     //NSLog(@"Connect backend (pid=%d)", pid);
 
-    [(NSDistantObject*)backend
-            setProtocolForProxy:@protocol(MMBackendProtocol)];
+    @try {
+        [(NSDistantObject*)backend
+                setProtocolForProxy:@protocol(MMBackendProtocol)];
 
-    MMVimController *vc = [[[MMVimController alloc]
-            initWithBackend:backend pid:pid] autorelease];
+        vc = [[[MMVimController alloc]
+                initWithBackend:backend pid:pid] autorelease];
 
-    if (![vimControllers count]) {
-        // The first window autosaves its position.  (The autosaving features
-        // of Cocoa are not used because we need more control over what is
-        // autosaved and when it is restored.)
-        [[vc windowController] setWindowAutosaveKey:MMTopLeftPointKey];
-    }
-
-    [vimControllers addObject:vc];
-
-    // HACK!  MacVim does not get activated if it is launched from the
-    // terminal, so we forcibly activate here unless it is an untitled window
-    // opening (i.e. MacVim was opened from the Finder).  Untitled windows are
-    // treated differently, else MacVim would steal the focus if another app
-    // was activated while the untitled window was loading.
-    if (!untitledWindowOpening)
-        [NSApp activateIgnoringOtherApps:YES];
-
-    untitledWindowOpening = NO;
-
-    // Arguments to a new Vim process that cannot be passed on the command line
-    // are stored in a dictionary and passed to the Vim process here.
-    NSNumber *key = [NSNumber numberWithInt:pid];
-    NSDictionary *args = [pidArguments objectForKey:key];
-    if (args) {
-        if ([args objectForKey:@"remoteID"]) {
-            [vc odbEdit:[args objectForKey:@"filenames"]
-                 server:[[args objectForKey:@"remoteID"] unsignedIntValue]
-                   path:[args objectForKey:@"remotePath"]
-                  token:[args objectForKey:@"remoteToken"]];
+        if (![vimControllers count]) {
+            // The first window autosaves its position.  (The autosaving
+            // features of Cocoa are not used because we need more control over
+            // what is autosaved and when it is restored.)
+            [[vc windowController] setWindowAutosaveKey:MMTopLeftPointKey];
         }
 
-        if ([args objectForKey:@"selectionRangeData"]) {
-            MMSelectionRange *selRange = (MMSelectionRange*)
-                    [[args objectForKey:@"selectionRangeData"] bytes];
-            [vc addVimInput:[self inputStringFromSelectionRange:selRange]];
+        [vimControllers addObject:vc];
+
+        // HACK!  MacVim does not get activated if it is launched from the
+        // terminal, so we forcibly activate here unless it is an untitled
+        // window opening (i.e. MacVim was opened from the Finder).  Untitled
+        // windows are treated differently, else MacVim would steal the focus
+        // if another app was activated while the untitled window was loading.
+        if (!untitledWindowOpening)
+            [NSApp activateIgnoringOtherApps:YES];
+
+        untitledWindowOpening = NO;
+
+        // Arguments to a new Vim process that cannot be passed on the command
+        // line are stored in a dictionary and passed to the Vim process here.
+        NSNumber *key = [NSNumber numberWithInt:pid];
+        NSDictionary *args = [pidArguments objectForKey:key];
+        if (args) {
+            if ([args objectForKey:@"remoteID"]) {
+                [vc odbEdit:[args objectForKey:@"filenames"]
+                     server:[[args objectForKey:@"remoteID"] unsignedIntValue]
+                       path:[args objectForKey:@"remotePath"]
+                      token:[args objectForKey:@"remoteToken"]];
+            }
+
+            if ([args objectForKey:@"selectionRangeData"]) {
+                MMSelectionRange *selRange = (MMSelectionRange*)
+                        [[args objectForKey:@"selectionRangeData"] bytes];
+                [vc addVimInput:[self inputStringFromSelectionRange:selRange]];
+            }
+
+            [pidArguments removeObjectForKey:key];
         }
 
-        [pidArguments removeObjectForKey:key];
+        return vc;
     }
 
-    return vc;
+    @catch (NSException *e) {
+        NSLog(@"Exception caught in %s: \"%@\"", _cmd, e);
+
+        if (vc)
+            [vimControllers removeObject:vc];
+    }
+
+    return nil;
 }
 
 - (NSArray *)serverList

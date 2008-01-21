@@ -25,6 +25,7 @@
 
 - (void)enterFullscreen;
 - (void)leaveFullscreen;
+- (void)centerView;
 
 - (BOOL)canBecomeKeyWindow;
 - (BOOL)canBecomeMainWindow;

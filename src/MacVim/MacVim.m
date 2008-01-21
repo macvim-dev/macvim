@@ -72,6 +72,7 @@ char *MessageStrings[] =
     "TerminateNowMsgID",
     "ODBEditMsgID",
     "XcodeModMsgID",
+    "LiveResizeMsgID",
 };
 
 

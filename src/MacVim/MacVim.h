@@ -159,6 +159,7 @@ enum {
     TerminateNowMsgID,
     ODBEditMsgID,
     XcodeModMsgID,
+    LiveResizeMsgID,
 };
 
 

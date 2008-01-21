@@ -442,11 +442,19 @@ enum {
 - (BOOL)waitForInput:(int)milliseconds
 {
     //NSLog(@"|ENTER| %s%d",  _cmd, milliseconds);
-    NSDate *date = milliseconds > 0 ?
-            [NSDate dateWithTimeIntervalSinceNow:.001*milliseconds] : 
-            [NSDate distantFuture];
 
-    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:date];
+    // Only start the run loop if the input queue is empty, otherwise process
+    // the input first so that the input on queue isn't delayed.
+    if ([inputQueue count]) {
+        inputReceived = YES;
+    } else {
+        NSDate *date = milliseconds > 0 ?
+                [NSDate dateWithTimeIntervalSinceNow:.001*milliseconds] : 
+                [NSDate distantFuture];
+
+        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                 beforeDate:date];
+    }
 
     // I know of no way to figure out if the run loop exited because input was
     // found or because of a time out, so I need to manually indicate when
@@ -1546,7 +1554,7 @@ enum {
         int idx = *((int*)bytes);
 
         tabpage_move(idx);
-    } else if (SetTextDimensionsMsgID == msgid) {
+    } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
@@ -1556,7 +1564,7 @@ enum {
         // gui_resize_shell(), so we have to manually set the rows and columns
         // here.  (MacVim doesn't change the rows and columns to avoid
         // inconsistent states between Vim and MacVim.)
-        [self setRows:rows columns:cols];
+        [self queueMessage:msgid data:data];
 
         //NSLog(@"[VimTask] Resizing shell to %dx%d.", cols, rows);
         gui_resize_shell(cols, rows);

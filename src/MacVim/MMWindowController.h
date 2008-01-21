@@ -12,27 +12,25 @@
 
 
 
+@class MMWindow;
 @class MMFullscreenWindow;
 @class MMVimController;
-@class MMTextStorage;
-@class MMTextView;
 @class MMVimView;
 
 @interface MMWindowController : NSWindowController {
-    NSBox               *tablineSeparator;
     MMVimController     *vimController;
     MMVimView           *vimView;
     BOOL                setupDone;
-    BOOL                shouldUpdateWindowSize;
+    BOOL                shouldResizeVimView;
+    BOOL                fullscreenEnabled;
     NSString            *windowAutosaveKey;
     MMFullscreenWindow  *fullscreenWindow;
+    MMWindow            *decoratedWindow;
     NSString            *lastSetTitle;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
 - (MMVimController *)vimController;
-- (MMTextView *)textView;
-- (MMTextStorage *)textStorage;
 - (MMVimView *)vimView;
 - (NSString *)windowAutosaveKey;
 - (void)setWindowAutosaveKey:(NSString *)key;
@@ -40,10 +38,12 @@
 - (void)openWindow;
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
-- (void)setTextDimensionsWithRows:(int)rows columns:(int)cols;
+- (void)setTextDimensionsWithRows:(int)rows columns:(int)cols live:(BOOL)live;
+- (void)setTitle:(NSString *)title;
+- (void)setToolbar:(NSToolbar *)toolbar;
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
-- (void)destroyScrollbarWithIdentifier:(long)ident;
-- (void)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible;
+- (BOOL)destroyScrollbarWithIdentifier:(long)ident;
+- (BOOL)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible;
 - (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident;
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
                     identifier:(long)ident;
@@ -58,10 +58,10 @@
 - (void)adjustLinespace:(int)linespace;
 - (void)liveResizeWillStart;
 - (void)liveResizeDidEnd;
-- (void)placeViews;
 
 - (void)enterFullscreen;
 - (void)leaveFullscreen;
+- (void)setBuffersModified:(BOOL)mod;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;

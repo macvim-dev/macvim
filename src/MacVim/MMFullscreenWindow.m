@@ -8,9 +8,17 @@
  * See README.txt for an overview of the Vim source code.
  */
 /*
- * MMFullscreen
+ * MMFullscreenWindow
  *
- * Support for full-screen editing.
+ * A window without any decorations which covers an entire screen.
+ *
+ * When entering full-screen mode the window controller is set to control an
+ * instance of this class instead of an MMWindow.  (This seems to work fine
+ * even though the Apple docs state that it is generally a better idea to
+ * create a separate window controller for each window.)
+ *
+ * Most of the full-screen logic is currently in this class although it might
+ * move to the window controller in the future.
  *
  * Author: Nico Weber
  */
@@ -26,7 +34,6 @@
 static int numFullscreenWindows = 0;
 
 @interface MMFullscreenWindow (Private)
-- (void)centerView;
 - (BOOL)isOnPrimaryScreen;
 - (void)hideDockIfAppropriate;
 - (void)revealDockIfAppropriate;
@@ -56,13 +63,13 @@ static int numFullscreenWindows = 0;
     if (self == nil)
         return nil;
 
+    target = [t retain];
+    view = [v retain];
+
     [self setHasShadow:NO];
     [self setShowsResizeIndicator:NO];
     [self setBackgroundColor:[NSColor blackColor]];
     [self setReleasedWhenClosed:NO];
-
-    target = t;  [target retain];
-    view = v;  [view retain];
 
     return self;
 }
@@ -93,10 +100,7 @@ static int numFullscreenWindows = 0;
     [target setDelegate:nil];
     
     // make target's window controller believe that it's now controlling us
-    [target retain];  // NSWindowController will release target once in the
-                      // in the next line
     [[target windowController] setWindow:self];
-
 
     oldTabBarStyle = [[view tabBarControl] styleName];
     [[view tabBarControl] setStyleNamed:@"Unified"];
@@ -104,18 +108,20 @@ static int numFullscreenWindows = 0;
     // add text view
     oldPosition = [view frame].origin;
 
+    [view removeFromSuperviewWithoutNeedingDisplay];
     [[self contentView] addSubview:view];
     [self setInitialFirstResponder:[view textView]];
     
-    [self setTitle:[target title]];
+    // NOTE: Calling setTitle:nil causes an exception to be raised (and it is
+    // possible that 'target' has no title when we get here).
+    if ([target title])
+        [self setTitle:[target title]];
+
     [self setOpaque:[target isOpaque]];
 
     // don't set this sooner, so we don't get an additional
     // focus gained message  
     [self setDelegate:delegate];
-
-    // update bottom right corner scrollbar (no resize handle in fu mode)
-    [view placeViews];
 
     // move vim view to the window's center
     [self centerView];
@@ -158,6 +164,7 @@ static int numFullscreenWindows = 0;
     // do this _after_ resetting delegate and window controller, so the
     // window controller doesn't get a focus lost message from the fullscreen
     // window.
+    [view removeFromSuperviewWithoutNeedingDisplay];
     [[target contentView] addSubview:view];
     [view setFrameOrigin:oldPosition];
     [self close];
@@ -167,9 +174,6 @@ static int numFullscreenWindows = 0;
     // sooner
     [target setDelegate:delegate];
 
-    // update bottom right corner scrollbar (resize handle reappears)
-    [view placeViews];
-
     // fade back in  
     if (didBlend) {
         CGDisplayFade(token, .25, kCGDisplayBlendSolidColor,
@@ -178,6 +182,8 @@ static int numFullscreenWindows = 0;
     }
     
     [self revealDockIfAppropriate];
+
+    [self autorelease]; // Balance the above retain
 }
 
 // Title-less windows normally don't receive key presses, override this
@@ -193,99 +199,6 @@ static int numFullscreenWindows = 0;
     return YES;
 }
 
-
-#pragma mark Proxy/Decorator/whatever stuff
-
-- (void)scrollWheel:(NSEvent *)theEvent
-{
-    [[view textView] scrollWheel:theEvent];
-}
-
-// the window controller will send us messages that are meant for the original,
-// non-fullscreen window. forward those, and interpret the messages that are
-// interesting for us
-
-- (void)setTitle:(NSString *)title
-{
-    [target setTitle:title];
-    [super setTitle:title];
-}
-
-// HACK: if the T flag in guioptions is changed in fu mode, the toolbar needs
-// to be changed when nofu is set. MMWindowController gets the toolbar object,
-// so we need to return a toolbar from this method, even if none is visible for
-// the fullscreen window. Seems to work, though.
-- (NSToolbar *)toolbar
-{
-    return [target toolbar];
-}
-
-- (void)setFrame:(NSRect)frame display:(BOOL)display
-{
-    // HACK: if the target window would resize, we have to call our own
-    // windowDidResize method so that placeViews in MMWindowController is called
-    if (!NSEqualRects(frame, [target frame]))
-    {
-        [target setFrame:frame display:NO];
-
-        // XXX: send this directly to MMVimView
-        if ([[self delegate] respondsToSelector:@selector(windowDidResize:)])
-          [[self delegate] windowDidResize:nil];
-
-        [self centerView];
-        [self display];
-    }
-}
-
-/*- (NSRect)frame
-{
-    return [target frame];  // really? needed by MMWindowController placeViews.
-                            //  but mucks up display
-}*/
-
-- (NSRect)contentRectForFrameRect:(NSRect)rect
-{
-    //return [target contentRectForFrameRect:rect];
-    
-    // EVIL HACK: if this is always called with [[self window] frame] as
-    // argument from MMWindowController, we can't let frame return the frame
-    // of target so "fix" this here.
-    if (NSEqualRects([self frame], rect)) {
-        return [target contentRectForFrameRect:[target frame]];
-    } else {
-        return [target contentRectForFrameRect:rect];
-    }
-}
-
-- (NSRect)frameRectForContentRect:(NSRect)contentRect
-{
-    return [target frameRectForContentRect:contentRect];
-}
-
-- (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen*)screen
-{
-    return [target constrainFrameRect:frameRect toScreen:screen];
-}
-
-- (void)setContentResizeIncrements:(NSSize)size
-{
-    [target setContentResizeIncrements:size];
-}
-
-- (void)setOpaque:(BOOL)isOpaque
-{
-    // XXX: Do we want transparency even in fullscreen mode?
-    [super setOpaque:isOpaque];
-    [target setOpaque:isOpaque];
-}
-
-@end // MMFullscreenWindow
-
-
-
-
-@implementation MMFullscreenWindow (Private)
-
 - (void)centerView
 {
     NSRect outer = [self frame], inner = [view frame];
@@ -295,6 +208,21 @@ static int numFullscreenWindows = 0;
                                  (outer.size.height - inner.size.height)/2);
     [view setFrameOrigin:origin];
 }
+
+
+#pragma mark Proxy/Decorator/whatever stuff
+
+- (void)scrollWheel:(NSEvent *)theEvent
+{
+    [[view textView] scrollWheel:theEvent];
+}
+
+@end // MMFullscreenWindow
+
+
+
+
+@implementation MMFullscreenWindow (Private)
 
 - (BOOL)isOnPrimaryScreen
 {

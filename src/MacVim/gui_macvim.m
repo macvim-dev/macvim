@@ -87,8 +87,11 @@ gui_mch_init(void)
 {
     //NSLog(@"gui_mch_init()");
 
-    if (![[MMBackend sharedInstance] checkin])
+    if (![[MMBackend sharedInstance] checkin]) {
+        // TODO: Kill the process if there is no terminal to fall back on,
+        // otherwise the process will run outputting to the console.
         return FAIL;
+    }
 
     // Force 'termencoding' to utf-8 (changes to 'tenc' are disallowed in
     // 'option.c', so that ':set termencoding=...' is impossible).

@@ -11,21 +11,55 @@
  * MMAtsuiTextView
  *
  * Dispatches keyboard and mouse input to the backend.  Handles drag-n-drop of
- * files onto window.
+ * files onto window.  The rendering is done using ATSUI.
+ *
+ * The text view area consists of two parts:
+ *   1. The text area - this is where text is rendered; the size is governed by
+ *      the current number of rows and columns.
+ *   2. The inset area - this is a border around the text area; the size is
+ *      governed by the user defaults MMTextInset[Left|Right|Top|Bottom].
+ *
+ * The current size of the text view frame does not always match the desired
+ * area, i.e. the area determined by the number of rows, columns plus text
+ * inset.  This distinction is particularly important when the view is being
+ * resized.
  */
 
 #import "MMAtsuiTextView.h"
 #import "MMVimController.h"
 #import "MacVim.h"
 
+
+// TODO: What does DRAW_TRANSP flag do?  If the background isn't drawn when
+// this flag is set, then sometimes the character after the cursor becomes
+// blank.  Everything seems to work fine by just ignoring this flag.
+#define DRAW_TRANSP               0x01    /* draw with transparant bg */
+#define DRAW_BOLD                 0x02    /* draw bold text */
+#define DRAW_UNDERL               0x04    /* draw underline text */
+#define DRAW_UNDERC               0x08    /* draw undercurl text */
+#define DRAW_ITALIC               0x10    /* draw italic text */
+#define DRAW_CURSOR               0x20
+
+
 static char MMKeypadEnter[2] = { 'K', 'A' };
 static NSString *MMKeypadEnterString = @"KA";
+
+enum {
+    // These values are chosen so that the min size is not too small with the
+    // default font (they only affect resizing with the mouse, you can still
+    // use e.g. ":set lines=2" to go below these values).
+    MMMinRows = 4,
+    MMMinColumns = 30
+};
+
 
 @interface NSFont (AppKitPrivate)
 - (ATSUFontID) _atsFontID;
 @end
 
+
 @interface MMAtsuiTextView (Private)
+- (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 - (void)initAtsuStyles;
 - (void)disposeAtsuStyles;
 - (void)updateAtsuStyles;
@@ -34,8 +68,12 @@ static NSString *MMKeypadEnterString = @"KA";
 - (MMVimController *)vimController;
 @end
 
+
 @interface MMAtsuiTextView (Drawing)
-- (void)fitImageToSize;
+- (NSRect)rectFromRow:(int)row1 column:(int)col1
+                toRow:(int)row2 column:(int)col2;
+- (NSSize)textAreaSize;
+- (void)resizeContentImage;
 - (void)beginDrawing;
 - (void)endDrawing;
 - (void)drawString:(UniChar *)string length:(UniCharCount)length
@@ -51,6 +89,8 @@ static NSString *MMKeypadEnterString = @"KA";
 - (void)clearBlockFromRow:(int)row1 column:(int)col1 toRow:(int)row2
                    column:(int)col2 color:(NSColor *)color;
 - (void)clearAll;
+- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
+                       fraction:(int)percent color:(NSColor *)color;
 @end
 
 
@@ -112,63 +152,9 @@ static NSString *MMKeypadEnterString = @"KA";
     }
 }
 
-- (NSSize)size
-{
-    return NSMakeSize(maxColumns*cellSize.width, maxRows*cellSize.height);
-}
-
-- (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns
-{
-    NSSize curSize = [self size];
-    NSSize fitSize = curSize;
-    int fitRows = maxRows;
-    int fitCols = maxColumns;
-
-    if (size.height < curSize.height) {
-        // Remove lines until the height of the text storage fits inside
-        // 'size'.  However, always make sure there are at least 3 lines in the
-        // text storage.  (Why 3? It seem Vim never allows less than 3 lines.)
-        //
-        // TODO: No need to search since line height is fixed, just calculate
-        // the new height.
-        int rowCount = maxRows;
-        int rowsToRemove;
-        for (rowsToRemove = 0; rowsToRemove < maxRows-3; ++rowsToRemove) {
-            float height = cellSize.height*rowCount;
-
-            if (height <= size.height) {
-                fitSize.height = height;
-                break;
-            }
-
-            --rowCount;
-        }
-
-        fitRows -= rowsToRemove;
-    } else if (size.height > curSize.height) {
-        float fh = cellSize.height;
-        if (fh < 1.0f) fh = 1.0f;
-
-        fitRows = floor(size.height/fh);
-        fitSize.height = fh*fitRows;
-    }
-
-    if (size.width != curSize.width) {
-        float fw = cellSize.width;
-        if (fw < 1.0f) fw = 1.0f;
-
-        fitCols = floor(size.width/fw);
-        fitSize.width = fw*fitCols;
-    }
-
-    if (rows) *rows = fitRows;
-    if (columns) *columns = fitCols;
-
-    return fitSize;
-}
-
 - (NSRect)rectForRowsInRange:(NSRange)range
 {
+    // TODO: Add text inset to origin
     NSRect rect = { 0, 0, 0, 0 };
     unsigned start = range.location > maxRows ? maxRows : range.location;
     unsigned length = range.length;
@@ -184,6 +170,7 @@ static NSString *MMKeypadEnterString = @"KA";
 
 - (NSRect)rectForColumnsInRange:(NSRange)range
 {
+    // TODO: Add text inset to origin
     NSRect rect = { 0, 0, 0, 0 };
     unsigned start = range.location > maxColumns ? maxColumns : range.location;
     unsigned length = range.length;
@@ -262,11 +249,6 @@ static NSString *MMKeypadEnterString = @"KA";
 {
 }
 
-- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                       fraction:(int)percent color:(NSColor *)color
-{
-}
-
 - (void)hideMarkedTextField
 {
 }
@@ -296,7 +278,7 @@ static NSString *MMKeypadEnterString = @"KA";
             [self dispatchKeyEvent:event];
         }
     } else {
-        [super keyDown:event];
+        [self interpretKeyEvents:[NSArray arrayWithObject:event]];
     }
 }
 
@@ -456,19 +438,6 @@ static NSString *MMKeypadEnterString = @"KA";
     return YES;
 }
 
-- (NSPoint)textContainerOrigin
-{
-    return NSZeroPoint;
-}
-
-- (void)setTextContainerInset:(NSSize)inset
-{
-}
-
-- (void)setBackgroundColor:(NSColor *)color
-{
-}
-
 
 
 
@@ -503,8 +472,8 @@ static NSString *MMKeypadEnterString = @"KA";
     const void *bytes = [data bytes];
     const void *end = bytes + [data length];
 
-    if (! NSEqualSizes(imageSize, [self size]))
-        [self fitImageToSize];
+    if (! NSEqualSizes(imageSize, [self textAreaSize]))
+        [self resizeContentImage];
 
 #if MM_DEBUG_DRAWING
     NSLog(@"====> BEGIN %s", _cmd);
@@ -622,12 +591,131 @@ static NSString *MMKeypadEnterString = @"KA";
 #endif
 }
 
+- (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size
+{
+    // TODO:
+    // - Take text area inset into consideration
+    // - Rounding errors may cause size change when there should be none
+    // - Desired rows/columns shold not be 'too small'
+
+    // Constrain the desired size to the given size.  Values for the minimum
+    // rows and columns is taken from Vim.
+    NSSize desiredSize = [self desiredSize];
+    int desiredRows = maxRows;
+    int desiredCols = maxColumns;
+
+    if (size.height != desiredSize.height) {
+        float fh = cellSize.height;
+        if (fh < 1.0f) fh = 1.0f;
+
+        desiredRows = floor(size.height/fh);
+        desiredSize.height = fh*desiredRows;
+    }
+
+    if (size.width != desiredSize.width) {
+        float fw = cellSize.width;
+        if (fw < 1.0f) fw = 1.0f;
+
+        desiredCols = floor(size.width/fw);
+        desiredSize.width = fw*desiredCols;
+    }
+
+    if (rows) *rows = desiredRows;
+    if (cols) *cols = desiredCols;
+
+    return desiredSize;
+}
+
+- (NSSize)desiredSize
+{
+    // Compute the size the text view should be for the entire text area and
+    // inset area to be visible with the present number of rows and columns.
+    //
+    // TODO: Add inset area to size.
+    return NSMakeSize(maxColumns*cellSize.width, maxRows*cellSize.height);
+}
+
+- (NSSize)minSize
+{
+    // Compute the smallest size the text view is allowed to be.
+    //
+    // TODO: Add inset area to size.
+    return NSMakeSize(MMMinColumns*cellSize.width, MMMinRows*cellSize.height);
+}
+
+- (void)changeFont:(id)sender
+{
+    NSFont *newFont = [sender convertFont:font];
+
+    if (newFont) {
+        NSString *name = [newFont displayName];
+        unsigned len = [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        if (len > 0) {
+            NSMutableData *data = [NSMutableData data];
+            float pointSize = [newFont pointSize];
+
+            [data appendBytes:&pointSize length:sizeof(float)];
+
+            ++len;  // include NUL byte
+            [data appendBytes:&len length:sizeof(unsigned)];
+            [data appendBytes:[name UTF8String] length:len];
+
+            [[self vimController] sendMessage:SetFontMsgID data:data];
+        }
+    }
+}
+
+- (void)scrollWheel:(NSEvent *)event
+{
+    if ([event deltaY] == 0)
+        return;
+
+    int row, col;
+    NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
+
+    // View is not flipped, instead the atsui code draws to a flipped image;
+    // thus we need to 'flip' the coordinate here since the column number
+    // increases in an up-to-down order.
+    pt.y = [self frame].size.height - pt.y;
+
+    if (![self convertPoint:pt toRow:&row column:&col])
+        return;
+
+    int flags = [event modifierFlags];
+    float dy = [event deltaY];
+    NSMutableData *data = [NSMutableData data];
+
+    [data appendBytes:&row length:sizeof(int)];
+    [data appendBytes:&col length:sizeof(int)];
+    [data appendBytes:&flags length:sizeof(int)];
+    [data appendBytes:&dy length:sizeof(float)];
+
+    [[self vimController] sendMessage:ScrollWheelMsgID data:data];
+}
+
 @end // MMAtsuiTextView
 
 
 
 
 @implementation MMAtsuiTextView (Private)
+
+- (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column
+{
+    // TODO: text inset
+    NSPoint origin = { 0,0 };
+
+    if (!(cellSize.width > 0 && cellSize.height > 0))
+        return NO;
+
+    if (row) *row = floor((point.y-origin.y-1) / cellSize.height);
+    if (column) *column = floor((point.x-origin.x-1) / cellSize.width);
+
+    //NSLog(@"convertPoint:%@ toRow:%d column:%d", NSStringFromPoint(point),
+    //        *row, *column);
+
+    return YES;
+}
 
 - (void)initAtsuStyles
 {
@@ -779,6 +867,22 @@ static NSString *MMKeypadEnterString = @"KA";
                       (row2 + 1 - row1) * cellSize.height);
 }
 
+- (NSSize)textAreaSize
+{
+    // Calculate the (desired) size of the text area, i.e. the text view area
+    // minus the inset area.
+    return NSMakeSize(maxColumns*cellSize.width, maxRows*cellSize.height);
+}
+
+- (void)resizeContentImage
+{
+    //NSLog(@"resizeContentImage");
+    [contentImage release];
+    contentImage = [[NSImage alloc] initWithSize:[self textAreaSize]];
+    [contentImage setFlipped: YES];
+    imageSize = [self textAreaSize];
+}
+
 - (void)beginDrawing
 {
     [contentImage lockFocus];
@@ -787,15 +891,6 @@ static NSString *MMKeypadEnterString = @"KA";
 - (void)endDrawing
 {
     [contentImage unlockFocus];
-}
-
-- (void)fitImageToSize
-{
-    NSLog(@"fitImageToSize");
-    [contentImage release];
-    contentImage = [[NSImage alloc] initWithSize:[self size]];
-    [contentImage setFlipped: YES];
-    imageSize = [self size];
 }
 
 - (void)drawString:(UniChar *)string length:(UniCharCount)length
@@ -898,6 +993,11 @@ static NSString *MMKeypadEnterString = @"KA";
 {
     [defaultBackgroundColor set];
     NSRectFill(NSMakeRect(0, 0, imageSize.width, imageSize.height));
+}
+
+- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
+                       fraction:(int)percent color:(NSColor *)color
+{
 }
 
 @end // MMAtsuiTextView (Drawing)

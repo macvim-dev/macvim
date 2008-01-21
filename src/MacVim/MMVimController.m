@@ -25,14 +25,11 @@
 
 #import "MMVimController.h"
 #import "MMWindowController.h"
-#import "MMTextView.h"
 #import "MMAppController.h"
-#import "MMTextStorage.h"
+#import "MMVimView.h"
+#import "MMTextView.h"
 #import "MMAtsuiTextView.h"
 
-
-// This is taken from gui.h
-#define DRAW_CURSOR 0x20
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
 static int MMAlertTextFieldHeight = 22;
@@ -61,7 +58,6 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 @interface MMVimController (Private)
 - (void)handleMessage:(int)msgid data:(NSData *)data;
-- (void)performBatchDrawWithData:(NSData *)data;
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
                 context:(void *)context;
 - (void)alertDidEnd:(MMAlert *)alert code:(int)code context:(void *)context;
@@ -116,13 +112,12 @@ static NSTimeInterval MMResendInterval = 0.5;
                     name:NSConnectionDidDieNotification object:connection];
 
 
-        NSWindow *win = [windowController window];
-
+        // TODO: What if [windowController window] is the full-screen window?
         [[NSNotificationCenter defaultCenter]
                 addObserver:self
                    selector:@selector(windowDidBecomeMain:)
                        name:NSWindowDidBecomeMainNotification
-                     object:win];
+                     object:[windowController window]];
 
         isInitialized = YES;
     }
@@ -322,6 +317,11 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (BOOL)sendMessageNow:(int)msgid data:(NSData *)data
                timeout:(NSTimeInterval)timeout
 {
+    // Send a message with a timeout.  USE WITH EXTREME CAUTION!  Sending
+    // messages in rapid succession with a timeout may cause MacVim to beach
+    // ball forever.  In almost all circumstances sendMessage:data: should be
+    // used instead.
+
     if (!isInitialized || inProcessCommandQueue)
         return NO;
 
@@ -549,16 +549,13 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 - (void)handleMessage:(int)msgid data:(NSData *)data
 {
-    //NSLog(@"%@ %s", [self className], _cmd);
+    //if (msgid != AddMenuMsgID && msgid != AddMenuItemMsgID)
+    //    NSLog(@"%@ %s%s", [self className], _cmd, MessageStrings[msgid]);
 
     if (OpenVimWindowMsgID == msgid) {
         [windowController openWindow];
     } else if (BatchDrawMsgID == msgid) {
-        if ([[NSUserDefaults standardUserDefaults]
-                boolForKey:MMAtsuiRendererKey])
-            [(MMAtsuiTextView *)[windowController textView] performBatchDrawWithData:data];
-        else
-            [self performBatchDrawWithData:data];
+        [[[windowController vimView] textView] performBatchDrawWithData:data];
     } else if (SelectTabMsgID == msgid) {
 #if 0   // NOTE: Tab selection is done inside updateTabsWithData:.
         const void *bytes = [data bytes];
@@ -572,12 +569,13 @@ static NSTimeInterval MMResendInterval = 0.5;
         [windowController showTabBar:YES];
     } else if (HideTabBarMsgID == msgid) {
         [windowController showTabBar:NO];
-    } else if (SetTextDimensionsMsgID == msgid) {
+    } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid) {
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
         int cols = *((int*)bytes);  bytes += sizeof(int);
 
-        [windowController setTextDimensionsWithRows:rows columns:cols];
+        [windowController setTextDimensionsWithRows:rows columns:cols
+                                               live:(LiveResizeMsgID==msgid)];
     } else if (SetWindowTitleMsgID == msgid) {
         const void *bytes = [data bytes];
         int len = *((int*)bytes);  bytes += sizeof(int);
@@ -585,7 +583,7 @@ static NSTimeInterval MMResendInterval = 0.5;
         NSString *string = [[NSString alloc] initWithBytes:(void*)bytes
                 length:len encoding:NSUTF8StringEncoding];
 
-        [[windowController window] setTitle:string];
+        [windowController setTitle:string];
 
         [string release];
     } else if (AddMenuMsgID == msgid) {
@@ -614,17 +612,7 @@ static NSTimeInterval MMResendInterval = 0.5;
                 [toolbar setDisplayMode:NSToolbarDisplayModeIconOnly];
                 [toolbar setSizeMode:NSToolbarSizeModeSmall];
 
-                NSWindow *win = [windowController window];
-                [win setToolbar:toolbar];
-
-                // HACK! Redirect the pill button so that we can ask Vim to
-                // hide the toolbar.
-                NSButton *pillButton = [win
-                    standardWindowButton:NSWindowToolbarButton];
-                if (pillButton) {
-                    [pillButton setAction:@selector(toggleToolbar:)];
-                    [pillButton setTarget:windowController];
-                }
+                [windowController setToolbar:toolbar];
             }
         } else if (title) {
             [self addMenuWithTag:tag parent:parentTag title:title atIndex:idx];
@@ -862,155 +850,16 @@ static NSTimeInterval MMResendInterval = 0.5;
     } else if (LeaveFullscreenMsgID == msgid) {
         [windowController leaveFullscreen];
     } else if (BuffersNotModifiedMsgID == msgid) {
-        [[windowController window] setDocumentEdited:NO];
+        [windowController setBuffersModified:NO];
     } else if (BuffersModifiedMsgID == msgid) {
-        [[windowController window] setDocumentEdited:YES];
+        [windowController setBuffersModified:YES];
     } else if (SetPreEditPositionMsgID == msgid) {
         const int *dim = (const int*)[data bytes];
-        [[windowController textView] setPreEditRow:dim[0] column:dim[1]];
+        [[[windowController vimView] textView] setPreEditRow:dim[0]
+                                                      column:dim[1]];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
-}
-
-
-#define MM_DEBUG_DRAWING 0
-
-- (void)performBatchDrawWithData:(NSData *)data
-{
-    // TODO!  Move to window controller.
-    MMTextStorage *textStorage = [windowController textStorage];
-    MMTextView *textView = [windowController textView];
-    if (!(textStorage && textView))
-        return;
-
-    const void *bytes = [data bytes];
-    const void *end = bytes + [data length];
-
-#if MM_DEBUG_DRAWING
-    NSLog(@"====> BEGIN %s", _cmd);
-#endif
-    [textStorage beginEditing];
-
-    // TODO: Sanity check input
-
-    while (bytes < end) {
-        int type = *((int*)bytes);  bytes += sizeof(int);
-
-        if (ClearAllDrawType == type) {
-#if MM_DEBUG_DRAWING
-            NSLog(@"   Clear all");
-#endif
-            [textStorage clearAll];
-        } else if (ClearBlockDrawType == type) {
-            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-            int row1 = *((int*)bytes);  bytes += sizeof(int);
-            int col1 = *((int*)bytes);  bytes += sizeof(int);
-            int row2 = *((int*)bytes);  bytes += sizeof(int);
-            int col2 = *((int*)bytes);  bytes += sizeof(int);
-
-#if MM_DEBUG_DRAWING
-            NSLog(@"   Clear block (%d,%d) -> (%d,%d)", row1, col1,
-                    row2,col2);
-#endif
-            [textStorage clearBlockFromRow:row1 column:col1
-                    toRow:row2 column:col2
-                    color:[NSColor colorWithArgbInt:color]];
-        } else if (DeleteLinesDrawType == type) {
-            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int count = *((int*)bytes);  bytes += sizeof(int);
-            int bot = *((int*)bytes);  bytes += sizeof(int);
-            int left = *((int*)bytes);  bytes += sizeof(int);
-            int right = *((int*)bytes);  bytes += sizeof(int);
-
-#if MM_DEBUG_DRAWING
-            NSLog(@"   Delete %d line(s) from %d", count, row);
-#endif
-            [textStorage deleteLinesFromRow:row lineCount:count
-                    scrollBottom:bot left:left right:right
-                           color:[NSColor colorWithArgbInt:color]];
-        } else if (DrawStringDrawType == type) {
-            int bg = *((int*)bytes);  bytes += sizeof(int);
-            int fg = *((int*)bytes);  bytes += sizeof(int);
-            int sp = *((int*)bytes);  bytes += sizeof(int);
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int col = *((int*)bytes);  bytes += sizeof(int);
-            int cells = *((int*)bytes);  bytes += sizeof(int);
-            int flags = *((int*)bytes);  bytes += sizeof(int);
-            int len = *((int*)bytes);  bytes += sizeof(int);
-            NSString *string = [[NSString alloc]
-                    initWithBytesNoCopy:(void*)bytes
-                                 length:len
-                               encoding:NSUTF8StringEncoding
-                           freeWhenDone:NO];
-            bytes += len;
-
-#if MM_DEBUG_DRAWING
-            NSLog(@"   Draw string at (%d,%d) length=%d flags=%d fg=0x%x "
-                    "bg=0x%x sp=0x%x (%@)", row, col, len, flags, fg, bg, sp,
-                    len > 0 ? [string substringToIndex:1] : @"");
-#endif
-            // NOTE: If this is a call to draw the (block) cursor, then cancel
-            // any previous request to draw the insertion point, or it might
-            // get drawn as well.
-            if (flags & DRAW_CURSOR) {
-                [textView setShouldDrawInsertionPoint:NO];
-                //NSColor *color = [NSColor colorWithRgbInt:bg];
-                //[textView drawInsertionPointAtRow:row column:col
-                //                            shape:MMInsertionPointBlock
-                //                            color:color];
-            }
-
-            [textStorage drawString:string
-                              atRow:row column:col cells:cells
-                          withFlags:flags
-                    foregroundColor:[NSColor colorWithRgbInt:fg]
-                    backgroundColor:[NSColor colorWithArgbInt:bg]
-                       specialColor:[NSColor colorWithRgbInt:sp]];
-
-            [string release];
-        } else if (InsertLinesDrawType == type) {
-            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int count = *((int*)bytes);  bytes += sizeof(int);
-            int bot = *((int*)bytes);  bytes += sizeof(int);
-            int left = *((int*)bytes);  bytes += sizeof(int);
-            int right = *((int*)bytes);  bytes += sizeof(int);
-
-#if MM_DEBUG_DRAWING
-            NSLog(@"   Insert %d line(s) at row %d", count, row);
-#endif
-            [textStorage insertLinesAtRow:row lineCount:count
-                             scrollBottom:bot left:left right:right
-                                    color:[NSColor colorWithArgbInt:color]];
-        } else if (DrawCursorDrawType == type) {
-            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int col = *((int*)bytes);  bytes += sizeof(int);
-            int shape = *((int*)bytes);  bytes += sizeof(int);
-            int percent = *((int*)bytes);  bytes += sizeof(int);
-
-#if MM_DEBUG_DRAWING
-            NSLog(@"   Draw cursor at (%d,%d)", row, col);
-#endif
-            [textView drawInsertionPointAtRow:row column:col shape:shape
-                                     fraction:percent
-                                        color:[NSColor colorWithRgbInt:color]];
-        } else {
-            NSLog(@"WARNING: Unknown draw type (type=%d)", type);
-        }
-    }
-
-    [textStorage endEditing];
-
-    // NOTE: During resizing, Cocoa only sends draw messages before Vim's rows
-    // and columns are changed (due to ipc delays). Force a redraw here.
-    [[windowController vimView] displayIfNeeded];
-
-#if MM_DEBUG_DRAWING
-    NSLog(@"<==== END   %s", _cmd);
-#endif
 }
 
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code

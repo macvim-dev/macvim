@@ -21,9 +21,13 @@
 #import "MMTextStorage.h"
 #import "MMWindowController.h"
 #import "MMVimController.h"
+#import "MMTypesetter.h"
 #import "MacVim.h"
 
 
+
+// This is taken from gui.h
+#define DRAW_CURSOR 0x20
 
 // The max/min drag timer interval in seconds
 static NSTimeInterval MMDragTimerMaxInterval = .3f;
@@ -35,6 +39,10 @@ static float MMDragAreaSize = 73.0f;
 static char MMKeypadEnter[2] = { 'K', 'A' };
 static NSString *MMKeypadEnterString = @"KA";
 
+enum {
+    MMMinRows = 4,
+    MMMinColumns = 20
+};
 
 
 @interface MMTextView (Private)
@@ -52,8 +60,69 @@ static NSString *MMKeypadEnterString = @"KA";
 
 @implementation MMTextView
 
+- (id)initWithFrame:(NSRect)frame
+{
+    // Set up a Cocoa text system.  Note that the textStorage is released in
+    // -[MMVimView dealloc].
+    MMTextStorage *textStorage = [[MMTextStorage alloc] init];
+    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
+    NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
+                    NSMakeSize(1.0e7,1.0e7)];
+
+    NSString *typesetterString = [[NSUserDefaults standardUserDefaults]
+            stringForKey:MMTypesetterKey];
+    if ([typesetterString isEqual:@"MMTypesetter"]) {
+        NSTypesetter *typesetter = [[MMTypesetter alloc] init];
+        [lm setTypesetter:typesetter];
+        [typesetter release];
+    } else if ([typesetterString isEqual:@"MMTypesetter2"]) {
+        NSTypesetter *typesetter = [[MMTypesetter2 alloc] init];
+        [lm setTypesetter:typesetter];
+        [typesetter release];
+    } else {
+        // Only MMTypesetter supports different cell width multipliers.
+        [[NSUserDefaults standardUserDefaults]
+                setFloat:1.0 forKey:MMCellWidthMultiplierKey];
+    }
+
+    // The characters in the text storage are in display order, so disable
+    // bidirectional text processing (this call is 10.4 only).
+    [[lm typesetter] setBidiProcessingEnabled:NO];
+
+    [tc setWidthTracksTextView:NO];
+    [tc setHeightTracksTextView:NO];
+    [tc setLineFragmentPadding:0];
+
+    [textStorage addLayoutManager:lm];
+    [lm addTextContainer:tc];
+
+    // The text storage retains the layout manager which in turn retains
+    // the text container.
+    [tc release];
+    [lm release];
+
+    // NOTE: This will make the text storage the principal owner of the text
+    // system.  Releasing the text storage will in turn release the layout
+    // manager, the text container, and finally the text view (self).  This
+    // complicates deallocation somewhat, see -[MMVimView dealloc].
+    if (![super initWithFrame:frame textContainer:tc]) {
+        [textStorage release];
+        return nil;
+    }
+
+    // Allow control of text view inset via MMTextInset* user defaults.
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int left = [ud integerForKey:MMTextInsetLeftKey];
+    int top = [ud integerForKey:MMTextInsetTopKey];
+    [self setTextContainerInset:NSMakeSize(left, top)];
+
+    return self;
+}
+
 - (void)dealloc
 {
+    //NSLog(@"MMTextView dealloc");
+
     if (markedTextField) {
         [[markedTextField window] autorelease];
         [markedTextField release];
@@ -113,6 +182,245 @@ static NSString *MMKeypadEnterString = @"KA";
         [win close];
         [markedTextField setStringValue:@""];
     }
+}
+
+
+#define MM_DEBUG_DRAWING 0
+
+- (void)performBatchDrawWithData:(NSData *)data
+{
+    MMTextStorage *textStorage = (MMTextStorage *)[self textStorage];
+    if (!textStorage)
+        return;
+
+    const void *bytes = [data bytes];
+    const void *end = bytes + [data length];
+
+#if MM_DEBUG_DRAWING
+    NSLog(@"====> BEGIN %s", _cmd);
+#endif
+    [textStorage beginEditing];
+
+    // TODO: Sanity check input
+
+    while (bytes < end) {
+        int type = *((int*)bytes);  bytes += sizeof(int);
+
+        if (ClearAllDrawType == type) {
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Clear all");
+#endif
+            [textStorage clearAll];
+        } else if (ClearBlockDrawType == type) {
+            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            int row1 = *((int*)bytes);  bytes += sizeof(int);
+            int col1 = *((int*)bytes);  bytes += sizeof(int);
+            int row2 = *((int*)bytes);  bytes += sizeof(int);
+            int col2 = *((int*)bytes);  bytes += sizeof(int);
+
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Clear block (%d,%d) -> (%d,%d)", row1, col1,
+                    row2,col2);
+#endif
+            [textStorage clearBlockFromRow:row1 column:col1
+                    toRow:row2 column:col2
+                    color:[NSColor colorWithArgbInt:color]];
+        } else if (DeleteLinesDrawType == type) {
+            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            int row = *((int*)bytes);  bytes += sizeof(int);
+            int count = *((int*)bytes);  bytes += sizeof(int);
+            int bot = *((int*)bytes);  bytes += sizeof(int);
+            int left = *((int*)bytes);  bytes += sizeof(int);
+            int right = *((int*)bytes);  bytes += sizeof(int);
+
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Delete %d line(s) from %d", count, row);
+#endif
+            [textStorage deleteLinesFromRow:row lineCount:count
+                    scrollBottom:bot left:left right:right
+                           color:[NSColor colorWithArgbInt:color]];
+        } else if (DrawStringDrawType == type) {
+            int bg = *((int*)bytes);  bytes += sizeof(int);
+            int fg = *((int*)bytes);  bytes += sizeof(int);
+            int sp = *((int*)bytes);  bytes += sizeof(int);
+            int row = *((int*)bytes);  bytes += sizeof(int);
+            int col = *((int*)bytes);  bytes += sizeof(int);
+            int cells = *((int*)bytes);  bytes += sizeof(int);
+            int flags = *((int*)bytes);  bytes += sizeof(int);
+            int len = *((int*)bytes);  bytes += sizeof(int);
+            NSString *string = [[NSString alloc]
+                    initWithBytesNoCopy:(void*)bytes
+                                 length:len
+                               encoding:NSUTF8StringEncoding
+                           freeWhenDone:NO];
+            bytes += len;
+
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Draw string at (%d,%d) length=%d flags=%d fg=0x%x "
+                    "bg=0x%x sp=0x%x (%@)", row, col, len, flags, fg, bg, sp,
+                    len > 0 ? [string substringToIndex:1] : @"");
+#endif
+            // NOTE: If this is a call to draw the (block) cursor, then cancel
+            // any previous request to draw the insertion point, or it might
+            // get drawn as well.
+            if (flags & DRAW_CURSOR) {
+                [self setShouldDrawInsertionPoint:NO];
+                //NSColor *color = [NSColor colorWithRgbInt:bg];
+                //[self drawInsertionPointAtRow:row column:col
+                //                            shape:MMInsertionPointBlock
+                //                            color:color];
+            }
+
+            [textStorage drawString:string
+                              atRow:row column:col cells:cells
+                          withFlags:flags
+                    foregroundColor:[NSColor colorWithRgbInt:fg]
+                    backgroundColor:[NSColor colorWithArgbInt:bg]
+                       specialColor:[NSColor colorWithRgbInt:sp]];
+
+            [string release];
+        } else if (InsertLinesDrawType == type) {
+            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            int row = *((int*)bytes);  bytes += sizeof(int);
+            int count = *((int*)bytes);  bytes += sizeof(int);
+            int bot = *((int*)bytes);  bytes += sizeof(int);
+            int left = *((int*)bytes);  bytes += sizeof(int);
+            int right = *((int*)bytes);  bytes += sizeof(int);
+
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Insert %d line(s) at row %d", count, row);
+#endif
+            [textStorage insertLinesAtRow:row lineCount:count
+                             scrollBottom:bot left:left right:right
+                                    color:[NSColor colorWithArgbInt:color]];
+        } else if (DrawCursorDrawType == type) {
+            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            int row = *((int*)bytes);  bytes += sizeof(int);
+            int col = *((int*)bytes);  bytes += sizeof(int);
+            int shape = *((int*)bytes);  bytes += sizeof(int);
+            int percent = *((int*)bytes);  bytes += sizeof(int);
+
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Draw cursor at (%d,%d)", row, col);
+#endif
+            [self drawInsertionPointAtRow:row column:col shape:shape
+                                     fraction:percent
+                                        color:[NSColor colorWithRgbInt:color]];
+        } else {
+            NSLog(@"WARNING: Unknown draw type (type=%d)", type);
+        }
+    }
+
+    [textStorage endEditing];
+
+    // NOTE: During resizing, Cocoa only sends draw messages before Vim's rows
+    // and columns are changed (due to ipc delays). Force a redraw here.
+    [self displayIfNeeded];
+
+#if MM_DEBUG_DRAWING
+    NSLog(@"<==== END   %s", _cmd);
+#endif
+}
+
+- (NSFont *)font
+{
+    return [(MMTextStorage*)[self textStorage] font];
+}
+
+- (void)setFont:(NSFont *)newFont
+{
+    [(MMTextStorage*)[self textStorage] setFont:newFont];
+}
+
+- (void)setWideFont:(NSFont *)newFont
+{
+    [(MMTextStorage*)[self textStorage] setWideFont:newFont];
+}
+
+- (NSSize)cellSize
+{
+    return [(MMTextStorage*)[self textStorage] cellSize];
+}
+
+- (void)setLinespace:(float)newLinespace
+{
+    return [(MMTextStorage*)[self textStorage] setLinespace:newLinespace];
+}
+
+- (void)getMaxRows:(int*)rows columns:(int*)cols
+{
+    return [(MMTextStorage*)[self textStorage] getMaxRows:rows columns:cols];
+}
+
+- (void)setMaxRows:(int)rows columns:(int)cols
+{
+    return [(MMTextStorage*)[self textStorage] setMaxRows:rows columns:cols];
+}
+
+- (NSRect)rectForRowsInRange:(NSRange)range
+{
+    return [(MMTextStorage*)[self textStorage] rectForRowsInRange:range];
+}
+
+- (NSRect)rectForColumnsInRange:(NSRange)range
+{
+    return [(MMTextStorage*)[self textStorage] rectForColumnsInRange:range];
+}
+
+- (void)setDefaultColorsBackground:(NSColor *)bgColor
+                        foreground:(NSColor *)fgColor
+{
+    [self setBackgroundColor:bgColor];
+    return [(MMTextStorage*)[self textStorage]
+            setDefaultColorsBackground:bgColor foreground:fgColor];
+}
+
+- (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size
+{
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int right = [ud integerForKey:MMTextInsetRightKey];
+    int bot = [ud integerForKey:MMTextInsetBottomKey];
+
+    size.width -= [self textContainerOrigin].x + right;
+    size.height -= [self textContainerOrigin].y + bot;
+
+    NSSize newSize = [(MMTextStorage*)[self textStorage] fitToSize:size
+                                                              rows:rows
+                                                           columns:cols];
+
+    newSize.width += [self textContainerOrigin].x + right;
+    newSize.height += [self textContainerOrigin].y + bot;
+
+    return newSize;
+}
+
+- (NSSize)desiredSize
+{
+    NSSize size = [(MMTextStorage*)[self textStorage] size];
+
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int right = [ud integerForKey:MMTextInsetRightKey];
+    int bot = [ud integerForKey:MMTextInsetBottomKey];
+
+    size.width += [self textContainerOrigin].x + right;
+    size.height += [self textContainerOrigin].y + bot;
+
+    return size;
+}
+
+- (NSSize)minSize
+{
+    NSSize cellSize = [(MMTextStorage*)[self textStorage] cellSize];
+    NSSize size = { MMMinColumns*cellSize.width, MMMinRows*cellSize.height };
+
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int right = [ud integerForKey:MMTextInsetRightKey];
+    int bot = [ud integerForKey:MMTextInsetBottomKey];
+
+    size.width += [self textContainerOrigin].x + right;
+    size.height += [self textContainerOrigin].y + bot;
+
+    return size;
 }
 
 - (BOOL)isOpaque
@@ -770,22 +1078,6 @@ static NSString *MMKeypadEnterString = @"KA";
 - (void)updateFontPanel
 {
     // The font panel is updated whenever the font is set.
-}
-
-- (void)viewWillStartLiveResize
-{
-    id windowController = [[self window] windowController];
-    [windowController liveResizeWillStart];
-
-    [super viewWillStartLiveResize];
-}
-
-- (void)viewDidEndLiveResize
-{
-    id windowController = [[self window] windowController];
-    [windowController liveResizeDidEnd];
-
-    [super viewDidEndLiveResize];
 }
 
 @end // MMTextView

@@ -45,6 +45,8 @@
 		1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */; };
 		1DE608B40C587FDA0055263D /* runtime in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
+		1DE9B94F0D341AB8008FEDD4 /* MMWindow.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE9B94D0D341AB8008FEDD4 /* MMWindow.h */; };
+		1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */; };
 		1DED78600C6DE43D0079945F /* vimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
 		1DEE0D9F0C4E150B008E82B2 /* Attention.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8A0C4E150B008E82B2 /* Attention.png */; };
 		1DEE0DA00C4E150B008E82B2 /* Copy.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8B0C4E150B008E82B2 /* Copy.png */; };
@@ -100,6 +102,7 @@
 			files = (
 				1D493D580C5247BF00AB718C /* Vim in CopyFiles */,
 				1D9918480D299F9900A96335 /* MMAtsuiTextView.h in CopyFiles */,
+				1DE9B94F0D341AB8008FEDD4 /* MMWindow.h in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -179,6 +182,8 @@
 		1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SystemColors.plist; sourceTree = "<group>"; };
 		1DE602470C587FD10055263D /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; name = runtime; path = ../../runtime; sourceTree = SOURCE_ROOT; };
 		1DE8CC610C5E2AAD003F56E3 /* Actions.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Actions.plist; sourceTree = "<group>"; };
+		1DE9B94D0D341AB8008FEDD4 /* MMWindow.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMWindow.h; sourceTree = "<group>"; };
+		1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMWindow.m; sourceTree = "<group>"; };
 		1DED785F0C6DE43D0079945F /* vimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = vimrc; sourceTree = "<group>"; };
 		1DEE0D8A0C4E150B008E82B2 /* Attention.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Attention.png; path = Toolbar/Attention.png; sourceTree = "<group>"; };
 		1DEE0D8B0C4E150B008E82B2 /* Copy.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Copy.png; path = Toolbar/Copy.png; sourceTree = "<group>"; };
@@ -227,6 +232,8 @@
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
+				1DE9B94D0D341AB8008FEDD4 /* MMWindow.h */,
+				1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */,
 				1D9918460D299F9900A96335 /* MMAtsuiTextView.h */,
 				1D9918470D299F9900A96335 /* MMAtsuiTextView.m */,
 				1D80FBCF0CBBD3B700102A1C /* MMFullscreenWindow.h */,
@@ -528,6 +535,7 @@
 				1D80FBD40CBBD3B700102A1C /* MMFullscreenWindow.m in Sources */,
 				1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */,
 				1D9918490D299F9900A96335 /* MMAtsuiTextView.m in Sources */,
+				1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
