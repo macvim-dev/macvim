@@ -73,7 +73,7 @@ if &background == "dark"
   hi Boolean      gui=NONE guifg=DeepPink4 guibg=NONE
   hi Comment      gui=italic guifg=CadetBlue3
   hi Constant     gui=NONE guifg=Goldenrod1 guibg=NONE
-  hi Cursor       guibg=LightSlateGrey guifg=bg
+  hi Cursor       guibg=LightGoldenrod guifg=bg
   hi CursorColumn guibg=Gray20
   hi CursorIM     guibg=LightSlateGrey guifg=bg
   hi CursorLine   guibg=Gray20
