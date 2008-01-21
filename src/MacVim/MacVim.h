@@ -215,6 +215,7 @@ extern NSString *MMTopLeftPointKey;
 extern NSString *MMOpenFilesInTabsKey;
 extern NSString *MMNoFontSubstitutionKey;
 extern NSString *MMLoginShellKey;
+extern NSString *MMAtsuiRendererKey;
 
 
 
@@ -235,6 +236,14 @@ ATSFontContainerRef loadFonts();
 
 @interface NSIndexSet (MMExtras)
 + (id)indexSetWithVimList:(NSString *)list;
+@end
+
+
+
+
+@interface NSColor (MMExtras)
++ (NSColor *)colorWithRgbInt:(unsigned)rgb;
++ (NSColor *)colorWithArgbInt:(unsigned)argb;
 @end
 
 

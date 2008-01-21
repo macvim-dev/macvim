@@ -96,6 +96,7 @@ NSString *MMTopLeftPointKey             = @"MMTopLeftPoint";
 NSString *MMOpenFilesInTabsKey          = @"MMOpenFilesInTabs";
 NSString *MMNoFontSubstitutionKey       = @"MMNoFontSubstitution";
 NSString *MMLoginShellKey               = @"MMLoginShell";
+NSString *MMAtsuiRendererKey            = @"MMAtsuiRenderer";
 
 
 
@@ -194,3 +195,30 @@ loadFonts()
 }
 
 @end // NSIndexSet (MMExtras)
+
+
+
+
+@implementation NSColor (MMExtras)
+
++ (NSColor *)colorWithRgbInt:(unsigned)rgb
+{
+    float r = ((rgb>>16) & 0xff)/255.0f;
+    float g = ((rgb>>8) & 0xff)/255.0f;
+    float b = (rgb & 0xff)/255.0f;
+
+    return [NSColor colorWithCalibratedRed:r green:g blue:b alpha:1.0f];
+}
+
++ (NSColor *)colorWithArgbInt:(unsigned)argb
+{
+    float a = ((argb>>24) & 0xff)/255.0f;
+    float r = ((argb>>16) & 0xff)/255.0f;
+    float g = ((argb>>8) & 0xff)/255.0f;
+    float b = (argb & 0xff)/255.0f;
+
+    return [NSColor colorWithCalibratedRed:r green:g blue:b alpha:a];
+}
+
+@end // NSColor (MMExtras)
+

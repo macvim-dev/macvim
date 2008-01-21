@@ -24,6 +24,7 @@
 #import "MMTypesetter.h"
 #import "MMFullscreenWindow.h"
 #import "MMVimView.h"
+#import "MMAtsuiTextView.h"
 
 
 

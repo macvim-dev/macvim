@@ -28,6 +28,7 @@
 #import "MMTextView.h"
 #import "MMAppController.h"
 #import "MMTextStorage.h"
+#import "MMAtsuiTextView.h"
 
 
 // This is taken from gui.h
@@ -85,14 +86,6 @@ static NSTimeInterval MMResendInterval = 0.5;
 #if MM_RESEND_LAST_FAILURE
 - (void)resendTimerFired:(NSTimer *)timer;
 #endif
-@end
-
-
-
-// TODO: Move to separate file
-@interface NSColor (MMProtocol)
-+ (NSColor *)colorWithRgbInt:(unsigned)rgb;
-+ (NSColor *)colorWithArgbInt:(unsigned)argb;
 @end
 
 
@@ -561,7 +554,11 @@ static NSTimeInterval MMResendInterval = 0.5;
     if (OpenVimWindowMsgID == msgid) {
         [windowController openWindow];
     } else if (BatchDrawMsgID == msgid) {
-        [self performBatchDrawWithData:data];
+        if ([[NSUserDefaults standardUserDefaults]
+                boolForKey:MMAtsuiRendererKey])
+            [[windowController textView] performBatchDrawWithData:data];
+        else
+            [self performBatchDrawWithData:data];
     } else if (SelectTabMsgID == msgid) {
 #if 0   // NOTE: Tab selection is done inside updateTabsWithData:.
         const void *bytes = [data bytes];
@@ -1373,31 +1370,6 @@ static NSTimeInterval MMResendInterval = 0.5;
 #endif
 
 @end // MMVimController (Private)
-
-
-
-@implementation NSColor (MMProtocol)
-
-+ (NSColor *)colorWithRgbInt:(unsigned)rgb
-{
-    float r = ((rgb>>16) & 0xff)/255.0f;
-    float g = ((rgb>>8) & 0xff)/255.0f;
-    float b = (rgb & 0xff)/255.0f;
-
-    return [NSColor colorWithCalibratedRed:r green:g blue:b alpha:1.0f];
-}
-
-+ (NSColor *)colorWithArgbInt:(unsigned)argb
-{
-    float a = ((argb>>24) & 0xff)/255.0f;
-    float r = ((argb>>16) & 0xff)/255.0f;
-    float g = ((argb>>8) & 0xff)/255.0f;
-    float b = (argb & 0xff)/255.0f;
-
-    return [NSColor colorWithCalibratedRed:r green:g blue:b alpha:a];
-}
-
-@end // NSColor (MMProtocol)
 
 
 

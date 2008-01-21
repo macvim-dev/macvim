@@ -21,6 +21,7 @@
 #import "MMTextStorage.h"
 #import "MMTypesetter.h"
 #import "MMVimController.h"
+#import "MMAtsuiTextView.h"
 
 #import "MMWindowController.h"  // needed by MMScroller. TODO: remove
 
@@ -83,53 +84,64 @@ enum {
     vimController = controller;
     scrollbars = [[NSMutableArray alloc] init];
 
-    // Set up a complete text system.
-    textStorage = [[MMTextStorage alloc] init];
-    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
-    NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
-                    NSMakeSize(1.0e7,1.0e7)];
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMAtsuiRendererKey]) {
+        // Use ATSUI for text rendering.
+        textView = [[MMAtsuiTextView alloc] initWithFrame:frame];
 
-    NSString *typesetterString = [[NSUserDefaults standardUserDefaults]
-            stringForKey:MMTypesetterKey];
-    if ([typesetterString isEqual:@"MMTypesetter"]) {
-        NSTypesetter *typesetter = [[MMTypesetter alloc] init];
-        [lm setTypesetter:typesetter];
-        [typesetter release];
-    } else if ([typesetterString isEqual:@"MMTypesetter2"]) {
-        NSTypesetter *typesetter = [[MMTypesetter2 alloc] init];
-        [lm setTypesetter:typesetter];
-        [typesetter release];
+        // HACK! The ATSUI text view has no text storage, but to avoid having
+        // to rewrite a lot of code we simply pretend like there still is a
+        // text storage.
+        textStorage = [textView retain];
     } else {
-        // Only MMTypesetter supports different cell width multipliers.
-        [[NSUserDefaults standardUserDefaults]
-                setFloat:1.0 forKey:MMCellWidthMultiplierKey];
+        // Set up a Cocoa text system.
+        textStorage = [[MMTextStorage alloc] init];
+        NSLayoutManager *lm = [[NSLayoutManager alloc] init];
+        NSTextContainer *tc = [[NSTextContainer alloc] initWithContainerSize:
+                        NSMakeSize(1.0e7,1.0e7)];
+
+        NSString *typesetterString = [[NSUserDefaults standardUserDefaults]
+                stringForKey:MMTypesetterKey];
+        if ([typesetterString isEqual:@"MMTypesetter"]) {
+            NSTypesetter *typesetter = [[MMTypesetter alloc] init];
+            [lm setTypesetter:typesetter];
+            [typesetter release];
+        } else if ([typesetterString isEqual:@"MMTypesetter2"]) {
+            NSTypesetter *typesetter = [[MMTypesetter2 alloc] init];
+            [lm setTypesetter:typesetter];
+            [typesetter release];
+        } else {
+            // Only MMTypesetter supports different cell width multipliers.
+            [[NSUserDefaults standardUserDefaults]
+                    setFloat:1.0 forKey:MMCellWidthMultiplierKey];
+        }
+
+        // The characters in the text storage are in display order, so disable
+        // bidirectional text processing (this call is 10.4 only).
+        [[lm typesetter] setBidiProcessingEnabled:NO];
+
+        [tc setWidthTracksTextView:NO];
+        [tc setHeightTracksTextView:NO];
+        [tc setLineFragmentPadding:0];
+
+        [textStorage addLayoutManager:lm];
+        [lm addTextContainer:tc];
+
+        textView = [[MMTextView alloc] initWithFrame:frame
+                                       textContainer:tc];
+
+        // The text storage retains the layout manager which in turn retains
+        // the text container.
+        [tc release];
+        [lm release];
     }
 
-    // The characters in the text storage are in display order, so disable
-    // bidirectional text processing (this call is 10.4 only).
-    [[lm typesetter] setBidiProcessingEnabled:NO];
-
-    [tc setWidthTracksTextView:NO];
-    [tc setHeightTracksTextView:NO];
-    [tc setLineFragmentPadding:0];
-
-    [textStorage addLayoutManager:lm];
-    [lm addTextContainer:tc];
-
-    textView = [[MMTextView alloc] initWithFrame:frame
-                                   textContainer:tc];
-
+    // Allow control of text view inset via MMTextInset* user defaults.
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     int left = [ud integerForKey:MMTextInsetLeftKey];
     int top = [ud integerForKey:MMTextInsetTopKey];
     [textView setTextContainerInset:NSMakeSize(left, top)];
 
     [self addSubview:textView];
-
-    // The text storage retains the layout manager which in turn retains
-    // the text container.
-    [tc release];
-    [lm release];
     
     // Create the tab view (which is never visible, but the tab bar control
     // needs it to function).
