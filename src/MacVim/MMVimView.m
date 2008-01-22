@@ -136,7 +136,7 @@ enum {
 
     [tabBarControl setAutoresizingMask:NSViewWidthSizable|NSViewMinYMargin];
     
-    //[tabBarControl setPartnerView:[self textView]];
+    //[tabBarControl setPartnerView:textView];
     
     // tab bar resizing only works if awakeFromNib is called (that's where
     // the NSViewFrameDidChangeNotification callback is installed). Sounds like
@@ -244,12 +244,12 @@ enum {
 
 - (NSSize)desiredSize
 {
-    return [self vimViewSizeForTextViewSize:[[self textView] desiredSize]];
+    return [self vimViewSizeForTextViewSize:[textView desiredSize]];
 }
 
 - (NSSize)minSize
 {
-    return [self vimViewSizeForTextViewSize:[[self textView] minSize]];
+    return [self vimViewSizeForTextViewSize:[textView minSize]];
 }
 
 - (NSSize)constrainRows:(int *)r columns:(int *)c toSize:(NSSize)size
@@ -782,7 +782,7 @@ enum {
     // Give all superfluous space to the text view. It might be smaller or
     // larger than it wants to be, but this is needed during live resizing.
     NSRect textViewRect = [self textViewRectForVimViewSize:[self frame].size];
-    [[self textView] setFrame:textViewRect];
+    [textView setFrame:textViewRect];
 
     [self placeScrollbars];
 
@@ -797,7 +797,7 @@ enum {
     // a live resize or not -- this is necessary to avoid the window jittering
     // when the user drags to resize.
     int constrained[2];
-    NSSize textViewSize = [[self textView] frame].size;
+    NSSize textViewSize = [textView frame].size;
     [textView constrainRows:&constrained[0] columns:&constrained[1]
                      toSize:textViewSize];
 

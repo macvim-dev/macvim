@@ -168,6 +168,11 @@ static int numFullscreenWindows = 0;
     [[target contentView] addSubview:view];
     [view setFrameOrigin:oldPosition];
     [self close];
+
+    // Set the text view to initial first responder, otherwise the 'plus'
+    // button on the tabline steals the first responder status.
+    [target setInitialFirstResponder:[view textView]];
+
     [target makeKeyAndOrderFront:self];
 
     // ...but we don't want a focus gained message either, so don't set this
