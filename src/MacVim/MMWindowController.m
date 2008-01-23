@@ -609,6 +609,7 @@
 
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
+    [vimController updateMainMenu];
     [vimController sendMessage:GotFocusMsgID data:nil];
 
     if ([vimView textView]) {

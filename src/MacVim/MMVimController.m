@@ -71,7 +71,6 @@ static NSTimeInterval MMResendInterval = 0.5;
                      title:(NSString *)title tip:(NSString *)tip
              keyEquivalent:(int)key modifiers:(int)mask
                     action:(NSString *)action atIndex:(int)idx;
-- (void)updateMainMenu;
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index;
 - (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
@@ -110,14 +109,6 @@ static NSTimeInterval MMResendInterval = 0.5;
         [[NSNotificationCenter defaultCenter] addObserver:self
                 selector:@selector(connectionDidDie:)
                     name:NSConnectionDidDieNotification object:connection];
-
-
-        // TODO: What if [windowController window] is the full-screen window?
-        [[NSNotificationCenter defaultCenter]
-                addObserver:self
-                   selector:@selector(windowDidBecomeMain:)
-                       name:NSWindowDidBecomeMainNotification
-                     object:[windowController window]];
 
         isInitialized = YES;
     }
@@ -513,12 +504,6 @@ static NSTimeInterval MMResendInterval = 0.5;
     }
 }
 
-- (void)windowDidBecomeMain:(NSNotification *)notification
-{
-    if (isInitialized)
-        [self updateMainMenu];
-}
-
 - (NSToolbarItem *)toolbar:(NSToolbar *)theToolbar
     itemForItemIdentifier:(NSString *)itemId
     willBeInsertedIntoToolbar:(BOOL)flag
@@ -539,6 +524,45 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar *)theToolbar
 {
     return nil;
+}
+
+- (void)updateMainMenu
+{
+    NSMenu *mainMenu = [NSApp mainMenu];
+
+    // Stop NSApp from updating the Window menu.
+    [NSApp setWindowsMenu:nil];
+
+    // Remove all menus from main menu (except the MacVim menu).
+    int i, count = [mainMenu numberOfItems];
+    for (i = count-1; i > 0; --i) {
+        [mainMenu removeItemAtIndex:i];
+    }
+
+    // Add menus from 'mainMenuItems' to main menu.
+    count = [mainMenuItems count];
+    for (i = 0; i < count; ++i) {
+        [mainMenu addItem:[mainMenuItems objectAtIndex:i]];
+    }
+
+    // Set the new Window menu.
+    // TODO!  Need to look for 'Window' in all localized languages.
+    NSMenu *windowMenu = [[mainMenu itemWithTitle:@"Window"] submenu];
+    if (windowMenu) {
+        // Remove all AppKit owned menu items (tag == 0); they will be added
+        // again when setWindowsMenu: is called.
+        count = [windowMenu numberOfItems];
+        for (i = count-1; i >= 0; --i) {
+            NSMenuItem *item = [windowMenu itemAtIndex:i];
+            if (![item tag]) {
+                [windowMenu removeItem:item];
+            }
+        }
+
+        [NSApp setWindowsMenu:windowMenu];
+    }
+
+    shouldUpdateMainMenu = NO;
 }
 
 @end // MMVimController
@@ -1059,45 +1083,6 @@ static NSTimeInterval MMResendInterval = 0.5;
     } else {
         NSLog(@"WARNING: Menu item '%@' (tag=%d) has no parent.", title, tag);
     }
-}
-
-- (void)updateMainMenu
-{
-    NSMenu *mainMenu = [NSApp mainMenu];
-
-    // Stop NSApp from updating the Window menu.
-    [NSApp setWindowsMenu:nil];
-
-    // Remove all menus from main menu (except the MacVim menu).
-    int i, count = [mainMenu numberOfItems];
-    for (i = count-1; i > 0; --i) {
-        [mainMenu removeItemAtIndex:i];
-    }
-
-    // Add menus from 'mainMenuItems' to main menu.
-    count = [mainMenuItems count];
-    for (i = 0; i < count; ++i) {
-        [mainMenu addItem:[mainMenuItems objectAtIndex:i]];
-    }
-
-    // Set the new Window menu.
-    // TODO!  Need to look for 'Window' in all localized languages.
-    NSMenu *windowMenu = [[mainMenu itemWithTitle:@"Window"] submenu];
-    if (windowMenu) {
-        // Remove all AppKit owned menu items (tag == 0); they will be added
-        // again when setWindowsMenu: is called.
-        count = [windowMenu numberOfItems];
-        for (i = count-1; i >= 0; --i) {
-            NSMenuItem *item = [windowMenu itemAtIndex:i];
-            if (![item tag]) {
-                [windowMenu removeItem:item];
-            }
-        }
-
-        [NSApp setWindowsMenu:windowMenu];
-    }
-
-    shouldUpdateMainMenu = NO;
 }
 
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index
