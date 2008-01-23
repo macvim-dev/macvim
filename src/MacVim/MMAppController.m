@@ -429,6 +429,16 @@ typedef struct
     [self launchVimProcessWithArguments:nil];
 }
 
+- (IBAction)fileOpen:(id)sender
+{
+    NSOpenPanel *panel = [NSOpenPanel openPanel];
+    [panel setAllowsMultipleSelection:YES];
+
+    int result = [panel runModalForTypes:nil];
+    if (NSOKButton == result)
+        [self application:NSApp openFiles:[panel filenames]];
+}
+
 - (IBAction)selectNextWindow:(id)sender
 {
     unsigned i, count = [vimControllers count];

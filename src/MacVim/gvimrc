@@ -36,6 +36,7 @@ endif
 " File menu
 
 aunmenu File.New
+aunmenu File.Open\.\.\.
 aunmenu File.Close
 aunmenu File.-SEP4-
 aunmenu File.Exit
@@ -43,6 +44,7 @@ aunmenu File.Save-Exit
 
 an <silent> 10.290 File.New\ Window             :maca newWindow:<CR>
 an  10.295 File.New\ Tab                        :tabnew<CR>
+an <silent> 10.310 File.&Open\.\.\.             :maca fileOpen:<CR>
 an 10.328 File.-SEP0-                           <Nop>
 an <silent> 10.330 File.Close\ Window<Tab>:qa   :confirm qa<CR>
 an 10.331 File.Close<Tab>:q                     :confirm q<CR>

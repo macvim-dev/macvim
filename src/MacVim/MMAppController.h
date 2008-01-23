@@ -26,6 +26,7 @@
 - (void)removeVimController:(id)controller;
 - (void)windowControllerWillOpen:(MMWindowController *)windowController;
 - (IBAction)newWindow:(id)sender;
+- (IBAction)fileOpen:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;
 - (IBAction)selectPreviousWindow:(id)sender;
 - (IBAction)fontSizeUp:(id)sender;
