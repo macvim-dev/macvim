@@ -487,11 +487,16 @@ enum {
     //NSLog(@"%s %@", _cmd, event);
     // HACK! If control modifier is held, don't pass the event along to
     // interpretKeyEvents: since some keys are bound to multiple commands which
-    // means doCommandBySelector: is called several times.
+    // means doCommandBySelector: is called several times.  Do the same for
+    // Alt+Function key presses (Alt+Up and Alt+Down are bound to two
+    // commands).  This hack may break input management, but unless we can
+    // figure out a way to disable key bindings there seems little else to do.
     //
     // TODO: Figure out a way to disable Cocoa key bindings entirely, without
     // affecting input management.
-    if ([event modifierFlags] & NSControlKeyMask) {
+    int flags = [event modifierFlags];
+    if ((flags & NSControlKeyMask) ||
+            ((flags & NSAlternateKeyMask) && (flags & NSFunctionKeyMask))) {
         NSString *unmod = [event charactersIgnoringModifiers];
         if ([unmod length] == 1 && [unmod characterAtIndex:0] <= 0x7f
                                 && [unmod characterAtIndex:0] >= 0x60) {
