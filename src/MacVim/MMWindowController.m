@@ -135,11 +135,12 @@
     // started (or rather, when ~/Library/Preferences/org.vim.MacVim.plist does
     // not exist).  The chosen values will put the window somewhere near the
     // top and in the middle of a 1024x768 screen.
-    MMWindow *win = [[[MMWindow alloc]
+    MMWindow *win = [[MMWindow alloc]
             initWithContentRect:NSMakeRect(242,364,480,360)
                       styleMask:styleMask
                         backing:NSBackingStoreBuffered
-                          defer:YES] autorelease];
+                          defer:YES];
+    [win autorelease];
 
     self = [super initWithWindow:win];
     if (!self) return nil;
@@ -305,9 +306,10 @@
 
 - (void)setTitle:(NSString *)title
 {
-    // The full-screen window has no title (?!) and it does not show up in the
-    // Window menu.
-    [decoratedWindow setTitle:title];
+    if (title) {
+        [decoratedWindow setTitle:title];
+        [fullscreenWindow setTitle:title];
+    }
 }
 
 - (void)setToolbar:(NSToolbar *)toolbar
