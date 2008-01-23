@@ -62,6 +62,12 @@ enum {
     MMBlinkStateOff
 };
 
+static NSString *MMSymlinkWarningString =
+    @"\n\n\tMost likely this is because you have symlinked directly to\n"
+     "\tthe Vim binary, which Cocoa does not allow.  Please use an\n"
+     "\talias or the mvim shell script instead.  If you have not used\n"
+     "\ta symlink, then your MacVim.app bundle is incomplete.\n\n";
+
 
 
 @interface NSString (MMServerNameCompare)
@@ -114,34 +120,31 @@ enum {
 
 - (id)init
 {
-    if ((self = [super init])) {
-        fontContainerRef = loadFonts();
+    self = [super init];
+    if (!self) return nil;
 
-        outputQueue = [[NSMutableArray alloc] init];
-        inputQueue = [[NSMutableArray alloc] init];
-        drawData = [[NSMutableData alloc] initWithCapacity:1024];
-        connectionNameDict = [[NSMutableDictionary alloc] init];
-        clientProxyDict = [[NSMutableDictionary alloc] init];
-        serverReplyDict = [[NSMutableDictionary alloc] init];
+    fontContainerRef = loadFonts();
 
-        NSString *path = [[NSBundle mainBundle] pathForResource:@"Colors"
-                                                         ofType:@"plist"];
-        if (path) {
-            colorDict = [[NSDictionary dictionaryWithContentsOfFile:path]
-                retain];
-        } else {
-            NSLog(@"WARNING: Could not locate Colors.plist.");
-        }
+    outputQueue = [[NSMutableArray alloc] init];
+    inputQueue = [[NSMutableArray alloc] init];
+    drawData = [[NSMutableData alloc] initWithCapacity:1024];
+    connectionNameDict = [[NSMutableDictionary alloc] init];
+    clientProxyDict = [[NSMutableDictionary alloc] init];
+    serverReplyDict = [[NSMutableDictionary alloc] init];
 
-        path = [[NSBundle mainBundle] pathForResource:@"SystemColors"
-                                               ofType:@"plist"];
-        if (path) {
-            sysColorDict = [[NSDictionary dictionaryWithContentsOfFile:path]
-                retain];
-        } else {
-            NSLog(@"WARNING: Could not locate SystemColors.plist.");
-        }
-    }
+    NSBundle *mainBundle = [NSBundle mainBundle];
+    NSString *path = [mainBundle pathForResource:@"Colors" ofType:@"plist"];
+    if (path)
+        colorDict = [[NSDictionary dictionaryWithContentsOfFile:path] retain];
+
+    path = [mainBundle pathForResource:@"SystemColors" ofType:@"plist"];
+    if (path)
+        sysColorDict = [[NSDictionary dictionaryWithContentsOfFile:path]
+            retain];
+
+    if (!(colorDict && sysColorDict))
+        NSLog(@"ERROR: Failed to load color dictionaries.%@",
+                MMSymlinkWarningString);
 
     return self;
 }
@@ -237,7 +240,8 @@ enum {
                 objectForKey:@"CFBundleExecutable"];
         NSString *path = [mainBundle pathForAuxiliaryExecutable:exeName];
         if (!path) {
-            NSLog(@"ERROR: Could not find MacVim executable in bundle");
+            NSLog(@"ERROR: Could not find MacVim executable in bundle.%@",
+                    MMSymlinkWarningString);
             return NO;
         }
 
