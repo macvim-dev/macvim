@@ -1976,6 +1976,10 @@ static NSString *MMSymlinkWarningString =
 
 - (void)handleDropFiles:(NSData *)data
 {
+    // TODO: Get rid of this method; instead use Vim script directly.  At the
+    // moment I know how to do this to open files in tabs, but I'm not sure how
+    // to add the filenames to the command line when in command line mode.
+
     if (!data) return;
 
 #ifdef FEAT_DND
@@ -2014,12 +2018,7 @@ static NSString *MMSymlinkWarningString =
         // HACK!  I'm not sure how to get Vim to open a list of files in
         // tabs, so instead I create a ':tab drop' command with all the
         // files to open and execute it.
-#if 1
         NSMutableString *cmd = [NSMutableString stringWithString:@":tab drop"];
-#else
-        NSMutableString *cmd = [NSMutableString stringWithString:
-                @"<C-\\><C-N>:tab drop"];
-#endif
 
         int i;
         for (i = 0; i < n && bytes < end; ++i) {
@@ -2032,7 +2031,6 @@ static NSString *MMSymlinkWarningString =
             [cmd appendString:file];
         }
 
-#if 1
         // By going to the last tabpage we ensure that the new tabs will
         // appear last (if this call is left out, the taborder becomes
         // messy).
@@ -2055,11 +2053,6 @@ static NSString *MMSymlinkWarningString =
         gui_update_cursor(FALSE, FALSE);
         maketitle();
         gui_mch_flush();
-#else
-        [cmd appendString:@"|redr|f<CR>"];
-
-        [self addInput:cmd];
-#endif
     }
 #endif // FEAT_DND
 }

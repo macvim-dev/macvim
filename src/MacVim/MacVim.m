@@ -135,6 +135,54 @@ loadFonts()
 
 
 
+    NSString *
+buildTabDropCommand(NSArray *filenames)
+{
+    // Create a command line string that will open the specified files in tabs.
+
+    if (!filenames || [filenames count] == 0)
+        return [NSString string];
+
+    NSMutableString *cmd = [NSMutableString stringWithString:
+            @"<C-\\><C-N>:tab drop"];
+
+    NSEnumerator *e = [filenames objectEnumerator];
+    id o;
+    while ((o = [e nextObject])) {
+        NSString *file = [o stringByEscapingSpecialFilenameCharacters];
+        [cmd appendString:@" "];
+        [cmd appendString:file];
+    }
+
+    [cmd appendString:@"|redr|f<CR>"];
+
+    return cmd;
+}
+
+    NSString *
+buildSelectRangeCommand(NSRange range)
+{
+    // Build a command line string that will select the given range of lines.
+    // If range.length == 0, then position the cursor on the given line but do
+    // not select.
+
+    if (range.location == NSNotFound)
+        return [NSString string];
+
+    NSString *cmd;
+    if (range.length > 0) {
+        cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGV%dGz.0",
+                NSMaxRange(range), range.location];
+    } else {
+        cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGz.0", range.location];
+    }
+
+    return cmd;
+}
+
+
+
+
 @implementation NSString (MMExtras)
 
 - (NSString *)stringByEscapingSpecialFilenameCharacters

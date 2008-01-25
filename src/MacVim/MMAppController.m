@@ -31,6 +31,8 @@
 #import "MMWindowController.h"
 
 
+#define MM_HANDLE_XCODE_MOD_EVENT 0
+
 
 
 // Default timeout intervals on all connections.
@@ -67,10 +69,13 @@ typedef struct
 - (NSArray *)filterOpenFiles:(NSArray *)filenames remote:(OSType)theID
                         path:(NSString *)path
                        token:(NSAppleEventDescriptor *)token
-              selectionRange:(MMSelectionRange *)selRange;
+              selectionRange:(NSRange)selectionRange;
+#if MM_HANDLE_XCODE_MOD_EVENT
 - (void)handleXcodeModEvent:(NSAppleEventDescriptor *)event
                  replyEvent:(NSAppleEventDescriptor *)reply;
-- (NSString *)inputStringFromSelectionRange:(MMSelectionRange *)selRange;
+#endif
+- (int)findLaunchingProcessWithoutArguments;
+- (MMVimController *)findUntitledWindow;
 @end
 
 @interface NSMenu (MMExtras)
@@ -104,6 +109,7 @@ typedef struct
         [NSNumber numberWithBool:NO],   MMOpenFilesInTabsKey,
         [NSNumber numberWithBool:NO],   MMNoFontSubstitutionKey,
         [NSNumber numberWithBool:NO],   MMLoginShellKey,
+        [NSNumber numberWithBool:NO],   MMAtsuiRendererKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -148,13 +154,14 @@ typedef struct
 {
     //NSLog(@"MMAppController dealloc");
 
-    [pidArguments release];
-    [vimControllers release];
-    [openSelectionString release];
+    [pidArguments release];  pidArguments = nil;
+    [vimControllers release];  vimControllers = nil;
+    [openSelectionString release];  openSelectionString = nil;
 
     [super dealloc];
 }
 
+#if MM_HANDLE_XCODE_MOD_EVENT
 - (void)applicationWillFinishLaunching:(NSNotification *)notification
 {
     [[NSAppleEventManager sharedAppleEventManager]
@@ -163,6 +170,7 @@ typedef struct
               forEventClass:'KAHL'
                  andEventID:'MOD '];
 }
+#endif
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
@@ -171,6 +179,11 @@ typedef struct
 
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
 {
+    // Never open an untitled window if there is at least one open window or if
+    // there are processes that are currently launching.
+    if ([vimControllers count] > 0 || [pidArguments count] > 0)
+        return NO;
+
     // NOTE!  This way it possible to start the app with the command-line
     // argument '-nowindow yes' and no window will be opened by default.
     untitledWindowOpening =
@@ -186,14 +199,29 @@ typedef struct
 
 - (void)application:(NSApplication *)sender openFiles:(NSArray *)filenames
 {
+    // Opening files works like this:
+    //  a) extract ODB and/or Xcode parameters from the current Apple event
+    //  b) filter out any already open files (see filterOpenFiles:::::)
+    //  c) open any remaining files
+    //
+    // A file is opened in an untitled window if there is one (it may be
+    // currently launching, or it may already be visible), otherwise a new
+    // window is opened.
+    //
+    // Each launching Vim process has a dictionary of arguments that are passed
+    // to the process when in checks in (via connectBackend:pid:).  The
+    // arguments for each launching process can be looked up by its PID (in the
+    // pidArguments dictionary).
+
     OSType remoteID = 0;
     NSString *remotePath = nil;
     NSAppleEventManager *aem;
     NSAppleEventDescriptor *remoteToken = nil;
     NSAppleEventDescriptor *odbdesc = nil;
     NSAppleEventDescriptor *xcodedesc = nil;
-    MMSelectionRange *selRange = NULL;
+    NSRange selectionRange = { NSNotFound, 0 };
 
+    // 1. Extract ODB parameters (if any)
     aem = [NSAppleEventManager sharedAppleEventManager];
     odbdesc = [aem currentAppleEvent];
     if (![odbdesc paramDescriptorForKeyword:keyFileSender]) {
@@ -212,64 +240,94 @@ typedef struct
                 copy];
     }
 
+    // 2. Extract Xcode parameters (if any)
     xcodedesc = [[aem currentAppleEvent]
             paramDescriptorForKeyword:keyAEPosition];
-    if (xcodedesc)
-        selRange = (MMSelectionRange*)[[xcodedesc data] bytes];
+    if (xcodedesc) {
+        MMSelectionRange *sr = (MMSelectionRange*)[[xcodedesc data] bytes];
+        if (sr->lineNum < 0) {
+            // Should select a range of lines.
+            selectionRange.location = sr->startRange + 1;
+            selectionRange.length = sr->endRange - sr->startRange + 1;
+        } else {
+            // Should only move cursor to a line.
+            selectionRange.location = sr->lineNum + 1;
+        }
+    }
 
+    // 3. Filter out files that are already open
     filenames = [self filterOpenFiles:filenames remote:remoteID path:remotePath
-                                token:remoteToken selectionRange:selRange];
+                                token:remoteToken
+                       selectionRange:selectionRange];
+
+    // 4. Open any files that remain
     if ([filenames count]) {
         MMVimController *vc;
         BOOL openInTabs = [[NSUserDefaults standardUserDefaults]
             boolForKey:MMOpenFilesInTabsKey];
 
-        if (openInTabs && (vc = [self topmostVimController])) {
-            // Open files in tabs in the topmost window.
+        if ((openInTabs && (vc = [self topmostVimController]))
+               || (vc = [self findUntitledWindow])) {
+
+            // 5-1 Open files in an already open window (either due to the fact
+            // that MMMOpenFilesInTabs was set or because there was already an
+            // untitled Vim process open).
+
             [vc dropFiles:filenames forceOpen:YES];
             if (odbdesc)
                 [vc odbEdit:filenames server:remoteID path:remotePath
                       token:remoteToken];
-            if (selRange)
-                [vc addVimInput:[self inputStringFromSelectionRange:selRange]];
+            if (selectionRange.location != NSNotFound)
+                [vc addVimInput:buildSelectRangeCommand(selectionRange)];
         } else {
-            // Open files in tabs in a new window.
-            NSMutableArray *args = [NSMutableArray arrayWithObject:@"-p"];
-            [args addObjectsFromArray:filenames];
-            int pid = [self launchVimProcessWithArguments:args];
 
-            // The Vim process starts asynchronously.  Some arguments cannot be
-            // on the command line, so store them in a dictionary and pass them
-            // to the process once it has started.
-            //
+            // 5-2. Open files
+            //   a) in a launching Vim that has no arguments, if there is one
+            // else
+            //   b) launch a new Vim process and open files there.
+
+            NSMutableDictionary *argDict = [NSMutableDictionary dictionary];
+
+            int pid = [self findLaunchingProcessWithoutArguments];
+            if (pid) {
+                // The filenames are passed as arguments in connectBackend::.
+                [argDict setObject:filenames forKey:@"filenames"];
+            } else {
+                // Pass the filenames to the process straight away.
+                //
+                // TODO: It would be nicer if all arguments were passed to the
+                // Vim process in connectBackend::, but if we don't pass the
+                // filename arguments here, the window 'flashes' once when it
+                // opens.  This is due to the 'welcome' screen first being
+                // displayed, then quickly thereafter the files are opened.
+                NSArray *fileArgs = [NSArray arrayWithObject:@"-p"];
+                fileArgs = [fileArgs arrayByAddingObjectsFromArray:filenames];
+
+                pid = [self launchVimProcessWithArguments:fileArgs];
+            }
+
             // TODO: If the Vim process fails to start, or if it changes PID,
             // then the memory allocated for these parameters will leak.
             // Ensure that this cannot happen or somehow detect it.
-            NSMutableDictionary *argDict = nil;
+
             if (odbdesc) {
+                [argDict setObject:filenames forKey:@"remoteFiles"];
+
                 // The remote token can be arbitrary data so it is cannot
                 // (without encoding it as text) be passed on the command line.
-                argDict = [NSMutableDictionary dictionaryWithObjectsAndKeys:
-                        filenames, @"filenames",
-                        [NSNumber numberWithUnsignedInt:remoteID], @"remoteID",
-                        nil];
+                [argDict setObject:[NSNumber numberWithUnsignedInt:remoteID]
+                            forKey:@"remoteID"];
                 if (remotePath)
                     [argDict setObject:remotePath forKey:@"remotePath"];
                 if (remoteToken)
                     [argDict setObject:remoteToken forKey:@"remoteToken"];
             }
 
-            if (selRange) {
-                if (!argDict)
-                    argDict = [NSMutableDictionary
-                        dictionaryWithObject:[xcodedesc data]
-                                      forKey:@"selectionRangeData"];
-                else
-                    [argDict setObject:[xcodedesc data]
-                                forKey:@"selectionRangeData"];
-            }
+            if (selectionRange.location != NSNotFound)
+                [argDict setObject:NSStringFromRange(selectionRange)
+                            forKey:@"selectionRange"];
 
-            if (argDict)
+            if ([argDict count] > 0)
                 [pidArguments setObject:argDict
                                  forKey:[NSNumber numberWithInt:pid]];
         }
@@ -336,9 +394,11 @@ typedef struct
 
 - (void)applicationWillTerminate:(NSNotification *)notification
 {
+#if MM_HANDLE_XCODE_MOD_EVENT
     [[NSAppleEventManager sharedAppleEventManager]
             removeEventHandlerForEventClass:'KAHL'
                                  andEventID:'MOD '];
+#endif
 
     // This will invalidate all connections (since they were spawned from the
     // default connection).
@@ -416,6 +476,9 @@ typedef struct
     }
 
     if (openSelectionString) {
+        // TODO: Pass this as a parameter instead!  Get rid of
+        // 'openSelectionString' etc.
+        //
         // There is some text to paste into this window as a result of the
         // services menu "Open selection ..." being used.
         [[windowController vimController] dropString:openSelectionString];
@@ -498,6 +561,7 @@ typedef struct
     connectBackend:(byref in id <MMBackendProtocol>)backend
                pid:(int)pid
 {
+    NSNumber *pidKey = [NSNumber numberWithInt:pid];
     MMVimController *vc = nil;
     //NSLog(@"Connect backend (pid=%d)", pid);
 
@@ -527,26 +591,35 @@ typedef struct
 
         untitledWindowOpening = NO;
 
-        // Arguments to a new Vim process that cannot be passed on the command
-        // line are stored in a dictionary and passed to the Vim process here.
-        NSNumber *key = [NSNumber numberWithInt:pid];
-        NSDictionary *args = [pidArguments objectForKey:key];
-        if (args) {
-            if ([args objectForKey:@"remoteID"]) {
-                [vc odbEdit:[args objectForKey:@"filenames"]
+        // Pass arguments to the Vim process.
+        id args = [pidArguments objectForKey:pidKey];
+        if (args && args != [NSNull null]) {
+            // Pass filenames to open
+            NSArray *filenames = [args objectForKey:@"filenames"];
+            if (filenames) {
+                NSString *tabDrop = buildTabDropCommand(filenames);
+                [vc addVimInput:tabDrop];
+            }
+
+            // Pass ODB data
+            if ([args objectForKey:@"remoteFiles"]
+                    && [args objectForKey:@"remoteID"]) {
+                [vc odbEdit:[args objectForKey:@"remoteFiles"]
                      server:[[args objectForKey:@"remoteID"] unsignedIntValue]
                        path:[args objectForKey:@"remotePath"]
                       token:[args objectForKey:@"remoteToken"]];
             }
 
-            if ([args objectForKey:@"selectionRangeData"]) {
-                MMSelectionRange *selRange = (MMSelectionRange*)
-                        [[args objectForKey:@"selectionRangeData"] bytes];
-                [vc addVimInput:[self inputStringFromSelectionRange:selRange]];
+            // Pass range of lines to select
+            if ([args objectForKey:@"selectionRange"]) {
+                NSRange selectionRange = NSRangeFromString(
+                        [args objectForKey:@"selectionRange"]);
+                [vc addVimInput:buildSelectRangeCommand(selectionRange)];
             }
-
-            [pidArguments removeObjectForKey:key];
         }
+
+        if (args)
+            [pidArguments removeObjectForKey:pidKey];
 
         return vc;
     }
@@ -556,6 +629,8 @@ typedef struct
 
         if (vc)
             [vimControllers removeObject:vc];
+
+        [pidArguments removeObjectForKey:pidKey];
     }
 
     return nil;
@@ -732,7 +807,16 @@ typedef struct
     //NSLog(@"launch %@ with args=%@ (pid=%d)", taskPath, taskArgs,
     //        [task processIdentifier]);
 
-    return [task processIdentifier];
+    int pid = [task processIdentifier];
+
+    // If the process has no arguments, then add a null argument to the
+    // pidArguments dictionary.  This is later used to detect that a process
+    // without arguments is being launched.
+    if (!args)
+        [pidArguments setObject:[NSNull null]
+                         forKey:[NSNumber numberWithInt:pid]];
+
+    return pid;
 }
 
 - (NSArray *)filterFilesAndNotify:(NSArray *)filenames
@@ -784,7 +868,7 @@ typedef struct
 - (NSArray *)filterOpenFiles:(NSArray *)filenames remote:(OSType)theID
                         path:(NSString *)path
                        token:(NSAppleEventDescriptor *)token
-              selectionRange:(MMSelectionRange *)selRange
+              selectionRange:(NSRange)selectionRange
 {
     // Check if any of the files in the 'filenames' array are open in any Vim
     // process.  Remove the files that are open from the 'filenames' array and
@@ -846,9 +930,9 @@ typedef struct
             "tab sb %@|let &swb=oldswb|unl oldswb|"
             "cal foreground()|redr|f<CR>", raiseFile];
 
-        if (selRange)
+        if (selectionRange.location != NSNotFound)
             input = [input stringByAppendingString:
-                    [self inputStringFromSelectionRange:selRange]];
+                    buildSelectRangeCommand(selectionRange)];
 
         [raiseController addVimInput:input];
     }
@@ -856,6 +940,7 @@ typedef struct
     return files;
 }
 
+#if MM_HANDLE_XCODE_MOD_EVENT
 - (void)handleXcodeModEvent:(NSAppleEventDescriptor *)event
                  replyEvent:(NSAppleEventDescriptor *)reply
 {
@@ -880,22 +965,34 @@ typedef struct
     }
 #endif
 }
+#endif
 
-- (NSString *)inputStringFromSelectionRange:(MMSelectionRange *)selRange
+- (int)findLaunchingProcessWithoutArguments
 {
-    if (!selRange)
-        return [NSString string];
-
-    NSString *input;
-    if (selRange->lineNum < 0) {
-        input = [NSString stringWithFormat:@"<C-\\><C-N>%dGV%dG",
-              selRange->endRange+1, selRange->startRange+1];
-    } else {
-        input = [NSString stringWithFormat:@"<C-\\><C-N>%dGz.",
-              selRange->lineNum+1];
+    NSArray *keys = [pidArguments allKeysForObject:[NSNull null]];
+    if ([keys count] > 0) {
+        //NSLog(@"found launching process without arguments");
+        return [[keys objectAtIndex:0] intValue];
     }
 
-    return input;
+    return 0;
+}
+
+- (MMVimController *)findUntitledWindow
+{
+    NSEnumerator *e = [vimControllers objectEnumerator];
+    id vc;
+    while ((vc = [e nextObject])) {
+        // TODO: This is a moronic test...should query the Vim process if there
+        // are any open buffers or something like that instead.
+        NSString *title = [[[vc windowController] window] title];
+        if ([title hasPrefix:@"[No Name]"]) {
+            //NSLog(@"found untitled window");
+            return vc;
+        }
+    }
+
+    return nil;
 }
 
 @end // MMAppController (Private)

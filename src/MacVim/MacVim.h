@@ -225,6 +225,9 @@ extern NSString *MMAtsuiRendererKey;
 // container reference (which should be used to deactivate the loaded fonts).
 ATSFontContainerRef loadFonts();
 
+// Functions to create command strings that can be sent to Vim as input.
+NSString *buildTabDropCommand(NSArray *filenames);
+NSString *buildSelectRangeCommand(NSRange range);
 
 
 
