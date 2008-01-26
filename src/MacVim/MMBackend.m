@@ -219,51 +219,45 @@ static NSString *MMSymlinkWarningString =
 {
     if (![self connection]) {
         NSBundle *mainBundle = [NSBundle mainBundle];
-#if 0
-        NSString *path = [mainBundle bundlePath];
-        if (![[NSWorkspace sharedWorkspace] launchApplication:path]) {
-            NSLog(@"WARNING: Failed to launch GUI with path %@", path);
-            return NO;
+        OSStatus status;
+        FSRef ref;
+        NSString *ident = [mainBundle bundleIdentifier];
+
+        // Launch MacVim using Launch Services (NSWorkspace would be nicer, but
+        // the API to pass Apple Event parameters is broken on 10.4).
+        status = LSFindApplicationForInfo(kLSUnknownCreator,
+                (CFStringRef)ident, NULL, &ref, NULL);
+        if (noErr == status) {
+            // Pass parameter to the 'Open' Apple Event that tells MacVim not
+            // to open an untitled window.
+            NSAppleEventDescriptor *desc =
+                    [NSAppleEventDescriptor recordDescriptor];
+            [desc setParamDescriptor:
+                    [NSAppleEventDescriptor descriptorWithBoolean:NO]
+                          forKeyword:keyMMUntitledWindow];
+
+            LSLaunchFSRefSpec spec = { &ref, 0, NULL, [desc aeDesc],
+                    kLSLaunchDefaults, NULL };
+            status = LSOpenFromRefSpec(&spec, NULL);
         }
-#else
-        // HACK!  It would be preferable to launch the GUI using NSWorkspace,
-        // however I have not managed to figure out how to pass arguments using
-        // NSWorkspace.
-        //
-        // NOTE!  Using NSTask to launch the GUI has the negative side-effect
-        // that the GUI won't be activated (or raised) so there is a hack in
-        // MMWindowController which always raises the app when a new window is
-        // opened.
-        NSMutableArray *args = [NSMutableArray arrayWithObjects:
-            [NSString stringWithFormat:@"-%@", MMNoWindowKey], @"yes", nil];
-        NSString *exeName = [[mainBundle infoDictionary]
-                objectForKey:@"CFBundleExecutable"];
-        NSString *path = [mainBundle pathForAuxiliaryExecutable:exeName];
-        if (!path) {
-            NSLog(@"ERROR: Could not find MacVim executable in bundle.%@",
-                    MMSymlinkWarningString);
+
+        if (noErr != status) {
+            NSLog(@"ERROR: Failed to launch MacVim using bundle identifier %@",
+                    ident);
             return NO;
         }
 
-        [NSTask launchedTaskWithLaunchPath:path arguments:args];
-#endif
-
-        // HACK!  The NSWorkspaceDidLaunchApplicationNotification does not work
-        // for tasks like this, so poll the mach bootstrap server until it
-        // returns a valid connection.  Also set a time-out date so that we
-        // don't get stuck doing this forever.
-        NSDate *timeOutDate = [NSDate dateWithTimeIntervalSinceNow:15];
-        while (!connection &&
+        // HACK!  Poll the mach bootstrap server until it returns a valid
+        // connection to detect that MacVim has finished launching.  Also set a
+        // time-out date so that we don't get stuck doing this forever.
+        NSDate *timeOutDate = [NSDate dateWithTimeIntervalSinceNow:10];
+        while (![self connection] &&
                 NSOrderedDescending == [timeOutDate compare:[NSDate date]])
-        {
             [[NSRunLoop currentRunLoop]
                     runMode:NSDefaultRunLoopMode
                  beforeDate:[NSDate dateWithTimeIntervalSinceNow:1]];
 
-            // NOTE: This call will set 'connection' as a side-effect.
-            [self connection];
-        }
-
+        // NOTE: [self connection] will set 'connection' as a side-effect.
         if (!connection) {
             NSLog(@"WARNING: Timed-out waiting for GUI to launch.");
             return NO;

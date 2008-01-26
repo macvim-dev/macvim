@@ -217,7 +217,15 @@ extern NSString *MMOpenFilesInTabsKey;
 extern NSString *MMNoFontSubstitutionKey;
 extern NSString *MMLoginShellKey;
 extern NSString *MMAtsuiRendererKey;
+extern NSString *MMUntitledWindowKey;
 
+// Enum for MMUntitledWindowKey
+enum {
+    MMUntitledWindowNever = 0,
+    MMUntitledWindowOnOpen = 1,
+    MMUntitledWindowOnReopen = 2,
+    MMUntitledWindowAlways = 3
+};
 
 
 
@@ -262,4 +270,8 @@ NSString *buildSelectRangeCommand(NSRange range);
 #define	keyNewLocation		'New?'
 #define	kAEClosedFile		'FCls'
 #define	keySenderToken		'Tokn'
+
+
+// MacVim Apple Event Constants
+#define keyMMUntitledWindow       'MMuw'
 

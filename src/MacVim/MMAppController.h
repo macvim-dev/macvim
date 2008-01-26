@@ -19,7 +19,6 @@
     NSMutableArray      *vimControllers;
     NSString            *openSelectionString;
     ATSFontContainerRef fontContainerRef;
-    BOOL                untitledWindowOpening;
     NSMutableDictionary *pidArguments;
 }
 

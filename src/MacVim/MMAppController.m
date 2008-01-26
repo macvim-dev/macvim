@@ -110,6 +110,8 @@ typedef struct
         [NSNumber numberWithBool:NO],   MMNoFontSubstitutionKey,
         [NSNumber numberWithBool:NO],   MMLoginShellKey,
         [NSNumber numberWithBool:NO],   MMAtsuiRendererKey,
+        [NSNumber numberWithInt:MMUntitledWindowAlways],
+                                        MMUntitledWindowKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -179,6 +181,27 @@ typedef struct
 
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
 {
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    NSAppleEventManager *aem = [NSAppleEventManager sharedAppleEventManager];
+    NSAppleEventDescriptor *desc = [aem currentAppleEvent];
+
+    // The user default MMUntitledWindow can be set to control whether an
+    // untitled window should open on 'Open' and 'Reopen' events.
+    int untitledWindowFlag = [ud integerForKey:MMUntitledWindowKey];
+    if ([desc eventID] == kAEOpenApplication
+            && (untitledWindowFlag & MMUntitledWindowOnOpen) == 0)
+        return NO;
+    else if ([desc eventID] == kAEReopenApplication
+            && (untitledWindowFlag & MMUntitledWindowOnReopen) == 0)
+        return NO;
+
+    // When a process is started from the command line, the 'Open' event will
+    // contain a parameter to surpress the opening of an untitled window.
+    desc = [desc paramDescriptorForKeyword:keyAEPropData];
+    desc = [desc paramDescriptorForKeyword:keyMMUntitledWindow];
+    if (desc && ![desc booleanValue])
+        return NO;
+
     // Never open an untitled window if there is at least one open window or if
     // there are processes that are currently launching.
     if ([vimControllers count] > 0 || [pidArguments count] > 0)
@@ -186,9 +209,7 @@ typedef struct
 
     // NOTE!  This way it possible to start the app with the command-line
     // argument '-nowindow yes' and no window will be opened by default.
-    untitledWindowOpening =
-        ![[NSUserDefaults standardUserDefaults] boolForKey:MMNoWindowKey];
-    return untitledWindowOpening;
+    return ![ud boolForKey:MMNoWindowKey];
 }
 
 - (BOOL)applicationOpenUntitledFile:(NSApplication *)sender
@@ -215,7 +236,7 @@ typedef struct
 
     OSType remoteID = 0;
     NSString *remotePath = nil;
-    NSAppleEventManager *aem;
+    NSAppleEventManager *aem = nil;
     NSAppleEventDescriptor *remoteToken = nil;
     NSAppleEventDescriptor *odbdesc = nil;
     NSAppleEventDescriptor *xcodedesc = nil;
@@ -561,9 +582,9 @@ typedef struct
     connectBackend:(byref in id <MMBackendProtocol>)backend
                pid:(int)pid
 {
+    //NSLog(@"Connect backend (pid=%d)", pid);
     NSNumber *pidKey = [NSNumber numberWithInt:pid];
     MMVimController *vc = nil;
-    //NSLog(@"Connect backend (pid=%d)", pid);
 
     @try {
         [(NSDistantObject*)backend
@@ -580,16 +601,6 @@ typedef struct
         }
 
         [vimControllers addObject:vc];
-
-        // HACK!  MacVim does not get activated if it is launched from the
-        // terminal, so we forcibly activate here unless it is an untitled
-        // window opening (i.e. MacVim was opened from the Finder).  Untitled
-        // windows are treated differently, else MacVim would steal the focus
-        // if another app was activated while the untitled window was loading.
-        if (!untitledWindowOpening)
-            [NSApp activateIgnoringOtherApps:YES];
-
-        untitledWindowOpening = NO;
 
         // Pass arguments to the Vim process.
         id args = [pidArguments objectForKey:pidKey];
@@ -617,6 +628,14 @@ typedef struct
                 [vc addVimInput:buildSelectRangeCommand(selectionRange)];
             }
         }
+
+        // HACK!  MacVim does not get activated if it is launched from the
+        // terminal, so we forcibly activate here unless it is an untitled
+        // window opening.  Untitled windows are treated differently, else
+        // MacVim would steal the focus if another app was activated while the
+        // untitled window was loading.
+        if (!args || args != [NSNull null])
+            [NSApp activateIgnoringOtherApps:YES];
 
         if (args)
             [pidArguments removeObjectForKey:pidKey];
