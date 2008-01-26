@@ -494,8 +494,9 @@ last_pat_prog(regmatch)
  * When FEAT_EVAL is defined, returns the index of the first matching
  * subpattern plus one; one if there was none.
  */
+/*ARGSUSED*/
     int
-searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum)
+searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
     win_T	*win;		/* window to search in; can be NULL for a
 				   buffer without a window! */
     buf_T	*buf;
@@ -506,6 +507,7 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum)
     int		options;
     int		pat_use;	/* which pattern to use when "pat" is empty */
     linenr_T	stop_lnum;	/* stop after this line number when != 0 */
+    proftime_T	*tm;		/* timeout limit or NULL */
 {
     int		found;
     linenr_T	lnum;		/* no init to shut up Apollo cc */
@@ -594,12 +596,23 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum)
 		if (stop_lnum != 0 && (dir == FORWARD
 				       ? lnum > stop_lnum : lnum < stop_lnum))
 		    break;
+#ifdef FEAT_RELTIME
+		/* Stop after passing the "tm" time limit. */
+		if (tm != NULL && profile_passed_limit(tm))
+		    break;
+#endif
 
 		/*
 		 * Look for a match somewhere in line "lnum".
 		 */
 		nmatched = vim_regexec_multi(&regmatch, win, buf,
-							    lnum, (colnr_T)0);
+						      lnum, (colnr_T)0,
+#ifdef FEAT_RELTIME
+						      tm
+#else
+						      NULL
+#endif
+						      );
 		/* Abort searching on an error (e.g., out of stack). */
 		if (called_emsg)
 		    break;
@@ -608,9 +621,9 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum)
 		    /* match may actually be in another line when using \zs */
 		    matchpos = regmatch.startpos[0];
 		    endpos = regmatch.endpos[0];
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
 		    submatch = first_submatch(&regmatch);
-# endif
+#endif
 		    /* Line me be past end of buffer for "\n\zs". */
 		    if (lnum + matchpos.lnum > buf->b_ml.ml_line_count)
 			ptr = (char_u *)"";
@@ -686,7 +699,13 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum)
 			    if (ptr[matchcol] == NUL
 				    || (nmatched = vim_regexec_multi(&regmatch,
 					      win, buf, lnum + matchpos.lnum,
-					      matchcol)) == 0)
+					      matchcol,
+#ifdef FEAT_RELTIME
+					      tm
+#else
+					      NULL
+#endif
+					      )) == 0)
 			    {
 				match_ok = FALSE;
 				break;
@@ -792,7 +811,13 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum)
 			    if (ptr[matchcol] == NUL
 				    || (nmatched = vim_regexec_multi(&regmatch,
 					      win, buf, lnum + matchpos.lnum,
-							      matchcol)) == 0)
+					      matchcol,
+#ifdef FEAT_RELTIME
+					      tm
+#else
+					      NULL
+#endif
+					    )) == 0)
 				break;
 
 			    /* Need to get the line pointer again, a
@@ -970,12 +995,13 @@ first_submatch(rp)
  * return 0 for failure, 1 for found, 2 for found and line offset added
  */
     int
-do_search(oap, dirc, pat, count, options)
+do_search(oap, dirc, pat, count, options, tm)
     oparg_T	    *oap;	/* can be NULL */
     int		    dirc;	/* '/' or '?' */
     char_u	   *pat;
     long	    count;
     int		    options;
+    proftime_T	    *tm;	/* timeout limit or NULL */
 {
     pos_T	    pos;	/* position of the last match */
     char_u	    *searchstr;
@@ -1249,7 +1275,7 @@ do_search(oap, dirc, pat, count, options)
 		       (SEARCH_KEEP + SEARCH_PEEK + SEARCH_HIS
 			+ SEARCH_MSG + SEARCH_START
 			+ ((pat != NULL && *pat == ';') ? 0 : SEARCH_NOOF))),
-		RE_LAST, (linenr_T)0);
+		RE_LAST, (linenr_T)0, tm);
 
 	if (dircp != NULL)
 	    *dircp = dirc;	/* restore second '/' or '?' for normal_cmd() */
@@ -2319,7 +2345,9 @@ check_linecomment(line)
 #endif
     while ((p = vim_strchr(p, '/')) != NULL)
     {
-	if (p[1] == '/')
+	/* accept a double /, unless it's preceded with * and followed by *,
+	 * because * / / * is an end and start of a C comment */
+	if (p[1] == '/' && (p == line || p[-1] != '*' || p[2] != '*'))
 	    break;
 	++p;
     }
@@ -3609,7 +3637,7 @@ current_block(oap, count, include, what, other)
 	oap->inclusive = FALSE;
 	if (sol)
 	    incl(&curwin->w_cursor);
-	else if (lt(start_pos, curwin->w_cursor))
+	else if (ltoreq(start_pos, curwin->w_cursor))
 	    /* Include the character under the cursor. */
 	    oap->inclusive = TRUE;
 	else
@@ -3726,6 +3754,10 @@ current_tagblock(oap, count_arg, include)
     old_pos = curwin->w_cursor;
     old_end = curwin->w_cursor;		    /* remember where we started */
     old_start = old_end;
+#ifdef FEAT_VISUAL
+    if (!VIsual_active || *p_sel == 'e')
+#endif
+	decl(&old_end);			    /* old_end is inclusive */
 
     /*
      * If we start on "<aaa>" select that block.
@@ -3778,7 +3810,7 @@ again:
 	if (do_searchpair((char_u *)"<[^ \t>/!]\\+\\%(\\_s\\_[^>]\\{-}[^/]>\\|$\\|\\_s\\=>\\)",
 		    (char_u *)"",
 		    (char_u *)"</[^>]*>", BACKWARD, (char_u *)"", 0,
-						      NULL, (linenr_T)0) <= 0)
+						  NULL, (linenr_T)0, 0L) <= 0)
 	{
 	    curwin->w_cursor = old_pos;
 	    goto theend;
@@ -3812,7 +3844,7 @@ again:
     sprintf((char *)epat, "</%.*s>\\c", len, p);
 
     r = do_searchpair(spat, (char_u *)"", epat, FORWARD, (char_u *)"",
-						       0, NULL, (linenr_T)0);
+						    0, NULL, (linenr_T)0, 0L);
 
     vim_free(spat);
     vim_free(epat);

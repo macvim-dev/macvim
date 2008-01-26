@@ -290,6 +290,11 @@ static struct
 
 /* Local variables */
 static int		s_button_pending = -1;
+
+/* s_getting_focus is set when we got focus but didn't see mouse-up event yet,
+ * so don't reset s_button_pending. */
+static int		s_getting_focus = FALSE;
+
 static int		s_x_pending;
 static int		s_y_pending;
 static UINT		s_kFlags_pending;
@@ -486,10 +491,11 @@ _OnDeadChar(
 
 /*
  * Convert Unicode character "ch" to bytes in "string[slen]".
+ * When "had_alt" is TRUE the ALT key was included in "ch".
  * Return the length.
  */
     static int
-char_to_string(int ch, char_u *string, int slen)
+char_to_string(int ch, char_u *string, int slen, int had_alt)
 {
     int		len;
     int		i;
@@ -522,8 +528,22 @@ char_to_string(int ch, char_u *string, int slen)
 	 * "enc_codepage" is non-zero use the standard Win32 function,
 	 * otherwise use our own conversion function (e.g., for UTF-8). */
 	if (enc_codepage > 0)
+	{
 	    len = WideCharToMultiByte(enc_codepage, 0, wstring, len,
 						       string, slen, 0, NULL);
+	    /* If we had included the ALT key into the character but now the
+	     * upper bit is no longer set, that probably means the conversion
+	     * failed.  Convert the original character and set the upper bit
+	     * afterwards. */
+	    if (had_alt && len == 1 && ch >= 0x80 && string[0] < 0x80)
+	    {
+		wstring[0] = ch & 0x7f;
+		len = WideCharToMultiByte(enc_codepage, 0, wstring, len,
+						       string, slen, 0, NULL);
+		if (len == 1) /* safety check */
+		    string[0] |= 0x80;
+	    }
+	}
 	else
 	{
 	    len = 1;
@@ -573,7 +593,7 @@ _OnChar(
     char_u	string[40];
     int		len = 0;
 
-    len = char_to_string(ch, string, 40);
+    len = char_to_string(ch, string, 40, FALSE);
     if (len == 1 && string[0] == Ctrl_C && ctrl_c_interrupts)
     {
 	trash_input_buf();
@@ -640,7 +660,7 @@ _OnSysChar(
     {
 	/* Although the documentation isn't clear about it, we assume "ch" is
 	 * a Unicode character. */
-	len += char_to_string(ch, string + len, 40 - len);
+	len += char_to_string(ch, string + len, 40 - len, TRUE);
     }
 
     add_to_input_buf(string, len);
@@ -655,6 +675,8 @@ _OnMouseEvent(
     UINT keyFlags)
 {
     int vim_modifiers = 0x0;
+
+    s_getting_focus = FALSE;
 
     if (keyFlags & MK_SHIFT)
 	vim_modifiers |= MOUSE_SHIFT;
@@ -777,6 +799,7 @@ _OnMouseMoveOrRelease(
 {
     int button;
 
+    s_getting_focus = FALSE;
     if (s_button_pending > -1)
     {
 	/* Delayed action for mouse down event */
@@ -1775,7 +1798,7 @@ process_message(void)
 		    int	len;
 
 		    /* Handle "key" as a Unicode character. */
-		    len = char_to_string(key, string, 40);
+		    len = char_to_string(key, string, 40, FALSE);
 		    add_to_input_buf(string, len);
 		}
 		break;
@@ -1936,8 +1959,10 @@ gui_mch_wait_for_chars(int wtime)
 	    allow_scrollbar = FALSE;
 
 	    /* Clear pending mouse button, the release event may have been
-	     * taken by the dialog window. */
-	    s_button_pending = -1;
+	     * taken by the dialog window.  But don't do this when getting
+	     * focus, we need the mouse-up event then. */
+	    if (!s_getting_focus)
+		s_button_pending = -1;
 
 	    return OK;
 	}
@@ -2687,6 +2712,7 @@ _OnSetFocus(
     HWND hwndOldFocus)
 {
     gui_focus_change(TRUE);
+    s_getting_focus = TRUE;
     (void)MyWindowProc(hwnd, WM_SETFOCUS, (WPARAM)hwndOldFocus, 0);
 }
 
@@ -2696,6 +2722,7 @@ _OnKillFocus(
     HWND hwndNewFocus)
 {
     gui_focus_change(FALSE);
+    s_getting_focus = FALSE;
     (void)MyWindowProc(hwnd, WM_KILLFOCUS, (WPARAM)hwndNewFocus, 0);
 }
 

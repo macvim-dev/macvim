@@ -3826,8 +3826,10 @@ gui_drag_scrollbar(sb, value, still_dragging)
     sb->value = value;
 
 #ifdef USE_ON_FLY_SCROLL
-    /* When not allowed to do the scrolling right now, return. */
-    if (dont_scroll || input_available())
+    /* When not allowed to do the scrolling right now, return.
+     * This also checked input_available(), but that causes the first click in
+     * a scrollbar to be ignored when Vim doesn't have focus. */
+    if (dont_scroll)
 	return;
 #endif
 #ifdef FEAT_INS_EXPAND
@@ -4307,7 +4309,19 @@ gui_do_scroll()
 #endif
 	    )
     {
-	redraw_win_later(wp, VALID);
+	int type = VALID;
+
+#ifdef FEAT_INS_EXPAND
+	if (pum_visible())
+	{
+	    type = NOT_VALID;
+	    wp->w_lines_valid = 0;
+	}
+#endif
+	/* Don't set must_redraw here, it may cause the popup menu to
+	 * disappear when losing focus after a scrollbar drag. */
+	if (wp->w_redr_type < type)
+	    wp->w_redr_type = type;
 	updateWindow(wp);   /* update window, status line, and cmdline */
     }
 
@@ -5138,7 +5152,7 @@ gui_do_findrepl(flags, find_text, repl_text, down)
 	/* Search for the next match. */
 	i = msg_scroll;
 	do_search(NULL, down ? '/' : '?', ga.ga_data, 1L,
-						    SEARCH_MSG + SEARCH_MARK);
+					      SEARCH_MSG + SEARCH_MARK, NULL);
 	msg_scroll = i;	    /* don't let an error message set msg_scroll */
     }
 

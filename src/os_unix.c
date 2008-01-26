@@ -310,7 +310,7 @@ mch_write(s, len)
 }
 
 /*
- * mch_inchar(): low level input funcion.
+ * mch_inchar(): low level input function.
  * Get a characters from the keyboard.
  * Return the number of characters that are available.
  * If wtime == 0 do not wait for characters.
@@ -1567,18 +1567,19 @@ get_x11_windis()
 #ifdef FEAT_XCLIPBOARD
     if (xterm_dpy != NULL && x11_window != 0)
     {
-	/* Checked it already. */
-	if (x11_display_from == XD_XTERM)
-	    return OK;
-
-	/*
-	 * If the X11 display was opened here before, for the window where Vim
-	 * was started, close that one now to avoid a memory leak.
-	 */
-	if (x11_display_from == XD_HERE && x11_display != NULL)
-	    XCloseDisplay(x11_display);
-	x11_display = xterm_dpy;
-	x11_display_from = XD_XTERM;
+	/* We may have checked it already, but Gnome terminal can move us to
+	 * another window, so we need to check every time. */
+	if (x11_display_from != XD_XTERM)
+	{
+	    /*
+	     * If the X11 display was opened here before, for the window where
+	     * Vim was started, close that one now to avoid a memory leak.
+	     */
+	    if (x11_display_from == XD_HERE && x11_display != NULL)
+		XCloseDisplay(x11_display);
+	    x11_display = xterm_dpy;
+	    x11_display_from = XD_XTERM;
+	}
 	if (test_x11_window(x11_display) == FAIL)
 	{
 	    /* probably bad $WINDOWID */
@@ -2423,7 +2424,7 @@ mch_isFullName(fname)
 /*
  * Set the case of the file name, if it already exists.  This will cause the
  * file name to remain exactly the same.
- * Only required for file systems where case is ingored and preserved.
+ * Only required for file systems where case is ignored and preserved.
  */
 /*ARGSUSED*/
     void
@@ -4655,7 +4656,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	ret = poll(fds, nfd, towait);
 # ifdef FEAT_MZSCHEME
 	if (ret == 0 && mzquantum_used)
-	    /* MzThreads scheduling is required and timeout occured */
+	    /* MzThreads scheduling is required and timeout occurred */
 	    finished = FALSE;
 # endif
 
@@ -4803,7 +4804,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 #endif
 # ifdef FEAT_MZSCHEME
 	if (ret == 0 && mzquantum_used)
-	    /* loop if MzThreads must be scheduled and timeout occured */
+	    /* loop if MzThreads must be scheduled and timeout occurred */
 	    finished = FALSE;
 # endif
 
@@ -4947,6 +4948,9 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
     char_u	*p;
     int		dir;
 #ifdef __EMX__
+    /*
+     * This is the OS/2 implementation.
+     */
 # define EXPL_ALLOC_INC	16
     char_u	**expl_files;
     size_t	files_alloced, files_free;
@@ -5057,20 +5061,26 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
     return OK;
 
 #else /* __EMX__ */
-
+    /*
+     * This is the non-OS/2 implementation (really Unix).
+     */
     int		j;
     char_u	*tempname;
     char_u	*command;
     FILE	*fd;
     char_u	*buffer;
-#define STYLE_ECHO  0	    /* use "echo" to expand */
-#define STYLE_GLOB  1	    /* use "glob" to expand, for csh */
-#define STYLE_PRINT 2	    /* use "print -N" to expand, for zsh */
-#define STYLE_BT    3	    /* `cmd` expansion, execute the pattern directly */
+#define STYLE_ECHO	0	/* use "echo", the default */
+#define STYLE_GLOB	1	/* use "glob", for csh */
+#define STYLE_VIMGLOB	2	/* use "vimglob", for Posix sh */
+#define STYLE_PRINT	3	/* use "print -N", for zsh */
+#define STYLE_BT	4	/* `cmd` expansion, execute the pattern
+				 * directly */
     int		shell_style = STYLE_ECHO;
     int		check_spaces;
     static int	did_find_nul = FALSE;
     int		ampersent = FALSE;
+		/* vimglob() function to define for Posix shell */
+    static char *sh_vimglob_func = "vimglob() { while [ $# -ge 1 ]; do echo -n \"$1\"; echo; shift; done }; vimglob >";
 
     *num_file = 0;	/* default: no files found */
     *file = NULL;
@@ -5108,9 +5118,17 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
 
     /*
      * Let the shell expand the patterns and write the result into the temp
-     * file.  if expanding `cmd` execute it directly.
-     * If we use csh, glob will work better than echo.
-     * If we use zsh, print -N will work better than glob.
+     * file.
+     * STYLE_BT:	NL separated
+     *	    If expanding `cmd` execute it directly.
+     * STYLE_GLOB:	NUL separated
+     *	    If we use *csh, "glob" will work better than "echo".
+     * STYLE_PRINT:	NL or NUL separated
+     *	    If we use *zsh, "print -N" will work better than "glob".
+     * STYLE_VIMGLOB:	NL separated
+     *	    If we use *sh*, we define "vimglob()".
+     * STYLE_ECHO:	space separated.
+     *	    A shell we don't know, stay safe and use "echo".
      */
     if (num_pat == 1 && *pat[0] == '`'
 	    && (len = STRLEN(pat[0])) > 2
@@ -5123,9 +5141,17 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
 	else if (STRCMP(p_sh + len - 3, "zsh") == 0)
 	    shell_style = STYLE_PRINT;
     }
+    if (shell_style == STYLE_ECHO && strstr((char *)gettail(p_sh),
+								"sh") != NULL)
+	shell_style = STYLE_VIMGLOB;
 
-    /* "unset nonomatch; print -N >" plus two is 29 */
+    /* Compute the length of the command.  We need 2 extra bytes: for the
+     * optional '&' and for the NUL.
+     * Worst case: "unset nonomatch; print -N >" plus two is 29 */
     len = STRLEN(tempname) + 29;
+    if (shell_style == STYLE_VIMGLOB)
+	len += STRLEN(sh_vimglob_func);
+
     for (i = 0; i < num_pat; ++i)
     {
 	/* Count the length of the patterns in the same way as they are put in
@@ -5184,16 +5210,20 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
 	    STRCAT(command, "glob >");
 	else if (shell_style == STYLE_PRINT)
 	    STRCAT(command, "print -N >");
+	else if (shell_style == STYLE_VIMGLOB)
+	    STRCAT(command, sh_vimglob_func);
 	else
 	    STRCAT(command, "echo >");
     }
+
     STRCAT(command, tempname);
+
     if (shell_style != STYLE_BT)
 	for (i = 0; i < num_pat; ++i)
 	{
 	    /* When using system() always add extra quotes, because the shell
 	     * is started twice.  Otherwise put a backslash before special
-	     * characters, except insice ``. */
+	     * characters, except inside ``. */
 #ifdef USE_SYSTEM
 	    STRCAT(command, " \"");
 	    STRCAT(command, pat[i]);
@@ -5233,8 +5263,7 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
     if (flags & EW_SILENT)
 	show_shell_mess = FALSE;
     if (ampersent)
-	STRCAT(command, "&");		/* put the '&' back after the
-					   redirection */
+	STRCAT(command, "&");		/* put the '&' after the redirection */
 
     /*
      * Using zsh -G: If a pattern has no matches, it is just deleted from
@@ -5266,7 +5295,7 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
     show_shell_mess = TRUE;
     vim_free(command);
 
-    if (i)				/* mch_call_shell() failed */
+    if (i != 0)				/* mch_call_shell() failed */
     {
 	mch_remove(tempname);
 	vim_free(tempname);
@@ -5337,7 +5366,7 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
     }
     vim_free(tempname);
 
-#if defined(__CYGWIN__) || defined(__CYGWIN32__)
+# if defined(__CYGWIN__) || defined(__CYGWIN32__)
     /* Translate <CR><NL> into <NL>.  Caution, buffer may contain NUL. */
     p = buffer;
     for (i = 0; i < len; ++i)
@@ -5360,7 +5389,7 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
 	}
     }
     /* file names are separated with NL */
-    else if (shell_style == STYLE_BT)
+    else if (shell_style == STYLE_BT || shell_style == STYLE_VIMGLOB)
     {
 	buffer[len] = NUL;		/* make sure the buffer ends in NUL */
 	p = buffer;
@@ -5439,7 +5468,8 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
     {
 	(*file)[i] = p;
 	/* Space or NL separates */
-	if (shell_style == STYLE_ECHO || shell_style == STYLE_BT)
+	if (shell_style == STYLE_ECHO || shell_style == STYLE_BT
+					      || shell_style == STYLE_VIMGLOB)
 	{
 	    while (!(shell_style == STYLE_ECHO && *p == ' ')
 						   && *p != '\n' && *p != NUL)
@@ -5483,7 +5513,7 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
 	{
 	    STRCPY(p, (*file)[i]);
 	    if (dir)
-		STRCAT(p, "/");	    /* add '/' to a directory name */
+		add_pathsep(p);	    /* add '/' to a directory name */
 	    (*file)[j++] = p;
 	}
     }
@@ -5677,7 +5707,7 @@ gpm_open()
 	    /* gpm library tries to handling TSTP causes
 	     * problems. Anyways, we close connection to Gpm whenever
 	     * we are going to suspend or starting an external process
-	     * so we should'nt  have problem with this
+	     * so we shouldn't  have problem with this
 	     */
 	    signal(SIGTSTP, restricted ? SIG_IGN : SIG_DFL);
 	    return 1; /* succeed */
@@ -6117,9 +6147,9 @@ do_xterm_trace()
     if (xterm_trace == 1)
     {
 	/* Get the hints just before tracking starts.  The font size might
-	 * have changed recently */
-	XGetWMNormalHints(xterm_dpy, x11_window, &xterm_hints, &got_hints);
-	if (!(got_hints & PResizeInc)
+	 * have changed recently. */
+	if (!XGetWMNormalHints(xterm_dpy, x11_window, &xterm_hints, &got_hints)
+		|| !(got_hints & PResizeInc)
 		|| xterm_hints.width_inc <= 1
 		|| xterm_hints.height_inc <= 1)
 	{

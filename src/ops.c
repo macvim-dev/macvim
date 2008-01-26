@@ -258,7 +258,7 @@ op_shift(oap, curs_top, amount)
 	    if (first_char != '#' || !preprocs_left())
 #endif
 	{
-	    shift_line(oap->op_type == OP_LSHIFT, p_sr, amount);
+	    shift_line(oap->op_type == OP_LSHIFT, p_sr, amount, FALSE);
 	}
 	++curwin->w_cursor.lnum;
     }
@@ -321,10 +321,11 @@ op_shift(oap, curs_top, amount)
  * leaves cursor on first blank in the line
  */
     void
-shift_line(left, round, amount)
+shift_line(left, round, amount, call_changed_bytes)
     int	left;
     int	round;
     int	amount;
+    int call_changed_bytes;	/* call changed_bytes() */
 {
     int		count;
     int		i, j;
@@ -363,10 +364,10 @@ shift_line(left, round, amount)
     /* Set new indent */
 #ifdef FEAT_VREPLACE
     if (State & VREPLACE_FLAG)
-	change_indent(INDENT_SET, count, FALSE, NUL);
+	change_indent(INDENT_SET, count, FALSE, NUL, call_changed_bytes);
     else
 #endif
-	(void)set_indent(count, SIN_CHANGED);
+	(void)set_indent(count, call_changed_bytes ? SIN_CHANGED : 0);
 }
 
 #if defined(FEAT_VISUALEXTRA) || defined(PROTO)
@@ -927,15 +928,16 @@ get_register(name, copy)
     int		name;
     int		copy;	/* make a copy, if FALSE make register empty. */
 {
-    static struct yankreg	*reg;
-    int				i;
+    struct yankreg	*reg;
+    int			i;
 
 #ifdef FEAT_CLIPBOARD
     /* When Visual area changed, may have to update selection.  Obtain the
      * selection too. */
-    if (name == '*' && clip_star.available && clip_isautosel())
+    if (name == '*' && clip_star.available)
     {
-	clip_update_selection();
+	if (clip_isautosel())
+	    clip_update_selection();
 	may_get_selection(name);
     }
 #endif
@@ -966,7 +968,7 @@ get_register(name, copy)
 }
 
 /*
- * Put "reg" into register "name".  Free any previous contents.
+ * Put "reg" into register "name".  Free any previous contents and "reg".
  */
     void
 put_register(name, reg)
@@ -976,6 +978,7 @@ put_register(name, reg)
     get_yank_register(name, 0);
     free_yank_all();
     *y_current = *(struct yankreg *)reg;
+    vim_free(reg);
 
 # ifdef FEAT_CLIPBOARD
     /* Send text written to clipboard register to the clipboard. */
@@ -2181,6 +2184,8 @@ op_replace(oap, c)
 }
 #endif
 
+static int swapchars __ARGS((int op_type, pos_T *pos, int length));
+
 /*
  * Handle the (non-standard vi) tilde operator.  Also for "gu", "gU" and "g?".
  */
@@ -2191,9 +2196,8 @@ op_tilde(oap)
     pos_T		pos;
 #ifdef FEAT_VISUAL
     struct block_def	bd;
-    int			todo;
 #endif
-    int			did_change = 0;
+    int			did_change;
 
     if (u_save((linenr_T)(oap->start.lnum - 1),
 				       (linenr_T)(oap->end.lnum + 1)) == FAIL)
@@ -2207,16 +2211,8 @@ op_tilde(oap)
 	{
 	    block_prep(oap, &bd, pos.lnum, FALSE);
 	    pos.col = bd.textcol;
-	    for (todo = bd.textlen; todo > 0; --todo)
-	    {
-# ifdef FEAT_MBYTE
-		if (has_mbyte)
-		    todo -= (*mb_ptr2len)(ml_get_pos(&pos)) - 1;
-# endif
-		did_change |= swapchar(oap->op_type, &pos);
-		if (inc(&pos) == -1)	    /* at end of file */
-		    break;
-	    }
+	    did_change = swapchars(oap->op_type, &pos, bd.textlen);
+
 # ifdef FEAT_NETBEANS_INTG
 	    if (usingNetbeans && did_change)
 	    {
@@ -2246,13 +2242,7 @@ op_tilde(oap)
 	else if (!oap->inclusive)
 	    dec(&(oap->end));
 
-	while (ltoreq(pos, oap->end))
-	{
-	    did_change |= swapchar(oap->op_type, &pos);
-	    if (inc(&pos) == -1)    /* at end of file */
-		break;
-	}
-
+	did_change = swapchars(oap->op_type, &pos, oap->end.col - pos.col + 1);
 	if (did_change)
 	{
 	    changed_lines(oap->start.lnum, oap->start.col, oap->end.lnum + 1,
@@ -2306,6 +2296,42 @@ op_tilde(oap)
 }
 
 /*
+ * Invoke swapchar() on "length" bytes at position "pos".
+ * "pos" is advanced to just after the changed characters.
+ * "length" is rounded up to include the whole last multi-byte character.
+ * Also works correctly when the number of bytes changes.
+ * Returns TRUE if some character was changed.
+ */
+    static int
+swapchars(op_type, pos, length)
+    int		op_type;
+    pos_T	*pos;
+    int		length;
+{
+    int todo;
+    int	did_change = 0;
+
+    for (todo = length; todo > 0; --todo)
+    {
+# ifdef FEAT_MBYTE
+	int pos_col = pos->col;
+
+	if (has_mbyte)
+	    /* we're counting bytes, not characters */
+	    todo -= (*mb_ptr2len)(ml_get_pos(pos)) - 1;
+# endif
+	did_change |= swapchar(op_type, pos);
+# ifdef FEAT_MBYTE
+	/* Changing German sharp s to SS increases the column. */
+	todo += pos->col - pos_col;
+# endif
+	if (inc(pos) == -1)    /* at end of file */
+	    break;
+    }
+    return did_change;
+}
+
+/*
  * If op_type == OP_UPPER: make uppercase,
  * if op_type == OP_LOWER: make lowercase,
  * if op_type == OP_ROT13: do rot13 encoding,
@@ -2327,7 +2353,8 @@ swapchar(op_type, pos)
 	return FALSE;
 
 #ifdef FEAT_MBYTE
-    if (op_type == OP_UPPER && enc_latin1like && c == 0xdf)
+    if (op_type == OP_UPPER && c == 0xdf
+		      && (enc_latin1like || STRCMP(p_enc, "iso-8859-2") == 0))
     {
 	pos_T   sp = curwin->w_cursor;
 
@@ -2466,9 +2493,10 @@ op_insert(oap, count1)
 
     edit(NUL, FALSE, (linenr_T)count1);
 
-    /* if user has moved off this line, we don't know what to do, so do
-     * nothing */
-    if (curwin->w_cursor.lnum != oap->start.lnum)
+    /* If user has moved off this line, we don't know what to do, so do
+     * nothing.
+     * Also don't repeat the insert when Insert mode ended with CTRL-C. */
+    if (curwin->w_cursor.lnum != oap->start.lnum || got_int)
 	return;
 
     if (oap->block_mode)
@@ -2599,8 +2627,9 @@ op_change(oap)
     /*
      * In Visual block mode, handle copying the new text to all lines of the
      * block.
+     * Don't repeat the insert when Insert mode ended with CTRL-C.
      */
-    if (oap->block_mode && oap->start.lnum != oap->end.lnum)
+    if (oap->block_mode && oap->start.lnum != oap->end.lnum && !got_int)
     {
 	/* Auto-indenting may have changed the indent.  If the cursor was past
 	 * the indent, exclude that indent change from the inserted text. */

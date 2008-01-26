@@ -335,7 +335,14 @@ getcmdline(firstc, count, indent)
 	quit_more = FALSE;	/* reset after CTRL-D which had a more-prompt */
 
 	cursorcmd();		/* set the cursor on the right spot */
-	c = safe_vgetc();
+
+	/* Get a character.  Ignore K_IGNORE, it should not do anything, such
+	 * as stop completion. */
+	do
+	{
+	    c = safe_vgetc();
+	} while (c == K_IGNORE);
+
 	if (KeyTyped)
 	{
 	    some_key_typed = TRUE;
@@ -1186,10 +1193,10 @@ getcmdline(firstc, count, indent)
 	case K_LEFT:
 	case K_S_LEFT:
 	case K_C_LEFT:
+		if (ccline.cmdpos == 0)
+		    goto cmdline_not_changed;
 		do
 		{
-		    if (ccline.cmdpos == 0)
-			break;
 		    --ccline.cmdpos;
 #ifdef FEAT_MBYTE
 		    if (has_mbyte)	/* move to first byte of char */
@@ -1198,7 +1205,8 @@ getcmdline(firstc, count, indent)
 #endif
 		    ccline.cmdspos -= cmdline_charsize(ccline.cmdpos);
 		}
-		while ((c == K_S_LEFT || c == K_C_LEFT
+		while (ccline.cmdpos > 0
+			&& (c == K_S_LEFT || c == K_C_LEFT
 			       || (mod_mask & (MOD_MASK_SHIFT|MOD_MASK_CTRL)))
 			&& ccline.cmdbuff[ccline.cmdpos - 1] != ' ');
 #ifdef FEAT_MBYTE
@@ -1208,7 +1216,8 @@ getcmdline(firstc, count, indent)
 		goto cmdline_not_changed;
 
 	case K_IGNORE:
-		goto cmdline_not_changed;	/* Ignore mouse */
+		/* Ignore mouse event or ex_window() result. */
+		goto cmdline_not_changed;
 
 #ifdef FEAT_GUI_W32
 	    /* On Win32 ignore <M-F4>, we get it when closing the window was
@@ -1700,6 +1709,9 @@ cmdline_changed:
 	if (p_is && !cmd_silent && (firstc == '/' || firstc == '?'))
 	{
 	    pos_T	end_pos;
+#ifdef FEAT_RELTIME
+	    proftime_T	tm;
+#endif
 
 	    /* if there is a character waiting, search and redraw later */
 	    if (char_avail())
@@ -1718,8 +1730,18 @@ cmdline_changed:
 		cursor_off();		/* so the user knows we're busy */
 		out_flush();
 		++emsg_off;    /* So it doesn't beep if bad expr */
+#ifdef FEAT_RELTIME
+		/* Set the time limit to half a second. */
+		profile_setlimit(500L, &tm);
+#endif
 		i = do_search(NULL, firstc, ccline.cmdbuff, count,
-			SEARCH_KEEP + SEARCH_OPT + SEARCH_NOOF + SEARCH_PEEK);
+			SEARCH_KEEP + SEARCH_OPT + SEARCH_NOOF + SEARCH_PEEK,
+#ifdef FEAT_RELTIME
+			&tm
+#else
+			NULL
+#endif
+			);
 		--emsg_off;
 		/* if interrupted while searching, behave like it failed */
 		if (got_int)
@@ -3353,6 +3375,7 @@ ExpandOne(xp, str, orig, options, mode)
     char_u	*ss = NULL;
     static int	findex;
     static char_u *orig_save = NULL;	/* kept value of orig */
+    int		orig_saved = FALSE;
     int		i;
     long_u	len;
     int		non_suf_match;		/* number without matching suffix */
@@ -3421,6 +3444,7 @@ ExpandOne(xp, str, orig, options, mode)
     {
 	vim_free(orig_save);
 	orig_save = orig;
+	orig_saved = TRUE;
 
 	/*
 	 * Do the expansion.
@@ -3546,7 +3570,7 @@ ExpandOne(xp, str, orig, options, mode)
 	ExpandCleanup(xp);
 
     /* Free "orig" if it wasn't stored in "orig_save". */
-    if (orig != orig_save)
+    if (!orig_saved)
 	vim_free(orig);
 
     return ss;
@@ -4067,6 +4091,7 @@ addstar(fname, len, context)
 	     * ~ would be at the start of the file name, but not the tail.
 	     * $ could be anywhere in the tail.
 	     * ` could be anywhere in the file name.
+	     * When the name ends in '$' don't add a star, remove the '$'.
 	     */
 	    tail = gettail(retval);
 	    if ((*retval != '~' || tail != retval)
@@ -4074,6 +4099,8 @@ addstar(fname, len, context)
 		    && vim_strchr(tail, '$') == NULL
 		    && vim_strchr(retval, '`') == NULL)
 		retval[len++] = '*';
+	    else if (len > 0 && retval[len - 1] == '$')
+		--len;
 	    retval[len] = NUL;
 	}
     }
@@ -4641,7 +4668,7 @@ expand_shellcmd(filepat, num_file, file, flagsarg)
 static void * call_user_expand_func __ARGS((void *(*user_expand_func) __ARGS((char_u *, int, char_u **, int)), expand_T	*xp, int *num_file, char_u ***file));
 
 /*
- * call "user_expand_func()" to invoke a user defined VimL function and return
+ * Call "user_expand_func()" to invoke a user defined VimL function and return
  * the result (either a string or a List).
  */
     static void *
@@ -4663,11 +4690,22 @@ call_user_expand_func(user_expand_func, xp, num_file, file)
     *num_file = 0;
     *file = NULL;
 
-    keep = ccline.cmdbuff[ccline.cmdlen];
-    ccline.cmdbuff[ccline.cmdlen] = 0;
-    sprintf((char *)num, "%d", ccline.cmdpos);
+    if (ccline.cmdbuff == NULL)
+    {
+	/* Completion from Insert mode, pass fake arguments. */
+	keep = 0;
+	sprintf((char *)num, "%d", (int)STRLEN(xp->xp_pattern));
+	args[1] = xp->xp_pattern;
+    }
+    else
+    {
+	/* Completion on the command line, pass real arguments. */
+	keep = ccline.cmdbuff[ccline.cmdlen];
+	ccline.cmdbuff[ccline.cmdlen] = 0;
+	sprintf((char *)num, "%d", ccline.cmdpos);
+	args[1] = ccline.cmdbuff;
+    }
     args[0] = xp->xp_pattern;
-    args[1] = ccline.cmdbuff;
     args[2] = num;
 
     /* Save the cmdline, we don't know what the function may do. */
@@ -4680,8 +4718,8 @@ call_user_expand_func(user_expand_func, xp, num_file, file)
 
     ccline = save_ccline;
     current_SID = save_current_SID;
-
-    ccline.cmdbuff[ccline.cmdlen] = keep;
+    if (ccline.cmdbuff != NULL)
+	ccline.cmdbuff[ccline.cmdlen] = keep;
 
     return ret;
 }

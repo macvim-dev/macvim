@@ -93,6 +93,8 @@ do_debug(cmd)
     int		save_emsg_silent = emsg_silent;
     int		save_redir_off = redir_off;
     tasave_T	typeaheadbuf;
+    int		typeahead_saved = FALSE;
+    int		save_ignore_script = 0;
 # ifdef FEAT_EX_EXTRA
     int		save_ex_normal_busy;
 # endif
@@ -159,18 +161,26 @@ do_debug(cmd)
 	 * This makes sure we get input from the user here and don't interfere
 	 * with the commands being executed.  Reset "ex_normal_busy" to avoid
 	 * the side effects of using ":normal". Save the stuff buffer and make
-	 * it empty. */
+	 * it empty. Set ignore_script to avoid reading from script input. */
 # ifdef FEAT_EX_EXTRA
 	save_ex_normal_busy = ex_normal_busy;
 	ex_normal_busy = 0;
 # endif
 	if (!debug_greedy)
+	{
 	    save_typeahead(&typeaheadbuf);
+	    typeahead_saved = TRUE;
+	    save_ignore_script = ignore_script;
+	    ignore_script = TRUE;
+	}
 
 	cmdline = getcmdline_prompt('>', NULL, 0, EXPAND_NOTHING, NULL);
 
-	if (!debug_greedy)
+	if (typeahead_saved)
+	{
 	    restore_typeahead(&typeaheadbuf);
+	    ignore_script = save_ignore_script;
+	}
 # ifdef FEAT_EX_EXTRA
 	ex_normal_busy = save_ex_normal_busy;
 # endif
@@ -885,19 +895,61 @@ profile_msg(tm)
     sprintf(buf, "%10.6lf", (double)tm->QuadPart / (double)fr.QuadPart);
 # else
     sprintf(buf, "%3ld.%06ld", (long)tm->tv_sec, (long)tm->tv_usec);
-#endif
+# endif
     return buf;
 }
 
-# endif  /* FEAT_PROFILE || FEAT_RELTIME */
-
-# if defined(FEAT_PROFILE) || defined(PROTO)
 /*
- * Functions for profiling.
+ * Put the time "msec" past now in "tm".
  */
-static void script_do_profile __ARGS((scriptitem_T *si));
-static void script_dump_profile __ARGS((FILE *fd));
-static proftime_T prof_wait_time;
+    void
+profile_setlimit(msec, tm)
+    long	msec;
+    proftime_T	*tm;
+{
+    if (msec <= 0)   /* no limit */
+	profile_zero(tm);
+    else
+    {
+# ifdef WIN3264
+	LARGE_INTEGER   fr;
+
+	QueryPerformanceCounter(tm);
+	QueryPerformanceFrequency(&fr);
+	tm->QuadPart += (LONGLONG)((double)msec / 1000.0 * (double)fr.QuadPart);
+# else
+	long	    usec;
+
+	gettimeofday(tm, NULL);
+	usec = (long)tm->tv_usec + (long)msec * 1000;
+	tm->tv_usec = usec % 1000000L;
+	tm->tv_sec += usec / 1000000L;
+# endif
+    }
+}
+
+/*
+ * Return TRUE if the current time is past "tm".
+ */
+    int
+profile_passed_limit(tm)
+    proftime_T	*tm;
+{
+    proftime_T	now;
+
+# ifdef WIN3264
+    if (tm->QuadPart == 0)  /* timer was not set */
+	return FALSE;
+    QueryPerformanceCounter(&now);
+    return (now.QuadPart > tm->QuadPart);
+# else
+    if (tm->tv_sec == 0)    /* timer was not set */
+	return FALSE;
+    gettimeofday(&now, NULL);
+    return (now.tv_sec > tm->tv_sec
+	    || (now.tv_sec == tm->tv_sec && now.tv_usec > tm->tv_usec));
+# endif
+}
 
 /*
  * Set the time in "tm" to zero.
@@ -913,6 +965,16 @@ profile_zero(tm)
     tm->tv_sec = 0;
 # endif
 }
+
+# endif  /* FEAT_PROFILE || FEAT_RELTIME */
+
+# if defined(FEAT_PROFILE) || defined(PROTO)
+/*
+ * Functions for profiling.
+ */
+static void script_do_profile __ARGS((scriptitem_T *si));
+static void script_dump_profile __ARGS((FILE *fd));
+static proftime_T prof_wait_time;
 
 /*
  * Add the time "tm2" to "tm".
@@ -2827,11 +2889,14 @@ do_source(fname, check_other, is_vimrc)
     if (has_autocmd(EVENT_SOURCECMD, fname_exp, NULL)
 	    && apply_autocmds(EVENT_SOURCECMD, fname_exp, fname_exp,
 							       FALSE, curbuf))
+    {
 # ifdef FEAT_EVAL
-	return aborting() ? FAIL : OK;
+	retval = aborting() ? FAIL : OK;
 # else
-	return OK;
+	retval = OK;
 # endif
+	goto theend;
+    }
 
     /* Apply SourcePre autocommands, they may get the file. */
     apply_autocmds(EVENT_SOURCEPRE, fname_exp, fname_exp, FALSE, curbuf);

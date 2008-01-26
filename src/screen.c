@@ -848,11 +848,16 @@ win_update(wp)
 	cur->hl.buf = buf;
 	cur->hl.lnum = 0;
 	cur->hl.first_lnum = 0;
+# ifdef FEAT_RELTIME
+	/* Set the time limit to 'redrawtime'. */
+	profile_setlimit(p_rdt, &(cur->hl.tm));
+# endif
 	cur = cur->next;
     }
     search_hl.buf = buf;
     search_hl.lnum = 0;
     search_hl.first_lnum = 0;
+    /* time limit is set at the toplevel, for all windows */
 #endif
 
 #ifdef FEAT_LINEBREAK
@@ -2599,6 +2604,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
     int		syntax_attr = 0;	/* attributes desired by syntax */
     int		has_syntax = FALSE;	/* this buffer has syntax highl. */
     int		save_did_emsg;
+    int		eol_hl_off = 0;		/* 1 if highlighted char after EOL */
 #endif
 #ifdef FEAT_SPELL
     int		has_spell = FALSE;	/* this buffer has spell checking */
@@ -3884,7 +3890,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 # ifdef FEAT_SPELL
 					       has_spell ? &can_spell :
 # endif
-					       NULL);
+					       NULL, FALSE);
 
 		    if (did_emsg)
 		    {
@@ -4312,6 +4318,10 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	{
 #ifdef FEAT_SEARCH_EXTRA
 	    long prevcol = (long)(ptr - line) - (c == NUL);
+
+	    /* we're not really at that column when skipping some text */
+	    if ((long)(wp->w_p_wrap ? wp->w_skipcol : wp->w_leftcol) > prevcol)
+		++prevcol;
 #endif
 
 	    /* invert at least one char, used for Visual and empty line or
@@ -4408,11 +4418,20 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		ScreenAttrs[off] = char_attr;
 #ifdef FEAT_RIGHTLEFT
 		if (wp->w_p_rl)
+		{
 		    --col;
+		    --off;
+		}
 		else
 #endif
+		{
 		    ++col;
+		    ++off;
+		}
 		++vcol;
+#ifdef FEAT_SYN_HL
+		eol_hl_off = 1;
+#endif
 	    }
 	}
 
@@ -4422,6 +4441,14 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	if (c == NUL)
 	{
 #ifdef FEAT_SYN_HL
+	    if (eol_hl_off > 0 && vcol - eol_hl_off == (long)wp->w_virtcol)
+	    {
+		/* highlight last char after line */
+		--col;
+		--off;
+		--vcol;
+	    }
+
 	    /* Highlight 'cursorcolumn' past end of the line. */
 	    if (wp->w_p_wrap)
 		v = wp->w_skipcol;
@@ -4432,7 +4459,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 
 		vcol = v + col - win_col_off(wp);
 	    if (wp->w_p_cuc
-		    && (int)wp->w_virtcol >= vcol
+		    && (int)wp->w_virtcol >= vcol - eol_hl_off
 		    && (int)wp->w_virtcol < W_WIDTH(wp) * (row - startrow + 1)
 									   + v
 		    && lnum != wp->w_cursor.lnum
@@ -6440,6 +6467,10 @@ start_search_hl()
     {
 	last_pat_prog(&search_hl.rm);
 	search_hl.attr = hl_attr(HLF_L);
+# ifdef FEAT_RELTIME
+	/* Set the time limit to 'redrawtime'. */
+	profile_setlimit(p_rdt, &search_hl.tm);
+# endif
     }
 }
 
@@ -6565,6 +6596,14 @@ next_search_hl(win, shl, lnum, mincol)
     called_emsg = FALSE;
     for (;;)
     {
+#ifdef FEAT_RELTIME
+	/* Stop searching after passing the time limit. */
+	if (profile_passed_limit(&(shl->tm)))
+	{
+	    shl->lnum = 0;		/* no match found in time */
+	    break;
+	}
+#endif
 	/* Three situations:
 	 * 1. No useful previous match: search from start of line.
 	 * 2. Not Vi compatible or empty match: continue at next character.
@@ -6598,7 +6637,13 @@ next_search_hl(win, shl, lnum, mincol)
 	    matchcol = shl->rm.endpos[0].col;
 
 	shl->lnum = lnum;
-	nmatched = vim_regexec_multi(&shl->rm, win, shl->buf, lnum, matchcol);
+	nmatched = vim_regexec_multi(&shl->rm, win, shl->buf, lnum, matchcol,
+#ifdef FEAT_RELTIME
+		&(shl->tm)
+#else
+		NULL
+#endif
+		);
 	if (called_emsg)
 	{
 	    /* Error while handling regexp: stop using this regexp. */

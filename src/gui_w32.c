@@ -987,6 +987,11 @@ _WndProc(
 			{
 			    LPNMTTDISPINFOW	lpdi = (LPNMTTDISPINFOW)lParam;
 
+			    /* Set the maximum width, this also enables using
+			     * \n for line break. */
+			    SendMessage(lpdi->hdr.hwndFrom, TTM_SETMAXTIPWIDTH,
+								      0, 500);
+
 			    tt_text = enc_to_ucs2(str, NULL);
 			    lpdi->lpszText = tt_text;
 			    /* can't show tooltip if failed */
@@ -995,6 +1000,11 @@ _WndProc(
 # endif
 			{
 			    LPNMTTDISPINFO	lpdi = (LPNMTTDISPINFO)lParam;
+
+			    /* Set the maximum width, this also enables using
+			     * \n for line break. */
+			    SendMessage(lpdi->hdr.hwndFrom, TTM_SETMAXTIPWIDTH,
+								      0, 500);
 
 			    if (STRLEN(str) < sizeof(lpdi->szText)
 				    || ((tt_text = vim_strsave(str)) == NULL))
@@ -4565,11 +4575,15 @@ make_tooltip(beval, text, pt)
     SendMessage(beval->balloon, TTM_ADDTOOL, 0, (LPARAM)pti);
     /* Make tooltip appear sooner */
     SendMessage(beval->balloon, TTM_SETDELAYTIME, TTDT_INITIAL, 10);
+    /* I've performed some tests and it seems the longest possible life time
+     * of tooltip is 30 seconds */
+    SendMessage(beval->balloon, TTM_SETDELAYTIME, TTDT_AUTOPOP, 30000);
     /*
      * HACK: force tooltip to appear, because it'll not appear until
      * first mouse move. D*mn M$
+     * Amazingly moving (2, 2) and then (-1, -1) the mouse doesn't move.
      */
-    mouse_event(MOUSEEVENTF_MOVE, 1, 1, 0, 0);
+    mouse_event(MOUSEEVENTF_MOVE, 2, 2, 0, 0);
     mouse_event(MOUSEEVENTF_MOVE, (DWORD)-1, (DWORD)-1, 0, 0);
     vim_free(pti);
 }
@@ -4734,12 +4748,12 @@ Handle_WM_Notify(hwnd, pnmh)
 	    cur_beval->showState = ShS_NEUTRAL;
 	    break;
 	case TTN_GETDISPINFO:
-	{
-	    /* if you get there then we have new common controls */
-	    NMTTDISPINFO_NEW *info = (NMTTDISPINFO_NEW *)pnmh;
-	    info->lpszText = (LPSTR)info->lParam;
-	    info->uFlags |= TTF_DI_SETITEM;
-	}
+	    {
+		/* if you get there then we have new common controls */
+		NMTTDISPINFO_NEW *info = (NMTTDISPINFO_NEW *)pnmh;
+		info->lpszText = (LPSTR)info->lParam;
+		info->uFlags |= TTF_DI_SETITEM;
+	    }
 	    break;
 	}
     }

@@ -345,6 +345,7 @@ static struct vimvar
     {VV_NAME("mouse_win",	 VAR_NUMBER), 0},
     {VV_NAME("mouse_lnum",	 VAR_NUMBER), 0},
     {VV_NAME("mouse_col",	 VAR_NUMBER), 0},
+    {VV_NAME("operator",	 VAR_STRING), VV_RO},
 };
 
 /* shorthand */
@@ -650,6 +651,7 @@ static void f_substitute __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_synID __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_synIDattr __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_synIDtrans __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_synstack __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_system __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_tabpagebuflist __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_tabpagenr __ARGS((typval_T *argvars, typval_T *rettv));
@@ -3406,6 +3408,7 @@ do_unlet(name, forceit)
     hashtab_T	*ht;
     hashitem_T	*hi;
     char_u	*varname;
+    dictitem_T	*di;
 
     ht = find_var_ht(name, &varname);
     if (ht != NULL && *varname != NUL)
@@ -3413,9 +3416,9 @@ do_unlet(name, forceit)
 	hi = hash_find(ht, varname);
 	if (!HASHITEM_EMPTY(hi))
 	{
-	    if (var_check_fixed(HI2DI(hi)->di_flags, name))
-		return FAIL;
-	    if (var_check_ro(HI2DI(hi)->di_flags, name))
+	    di = HI2DI(hi);
+	    if (var_check_fixed(di->di_flags, name)
+		    || var_check_ro(di->di_flags, name))
 		return FAIL;
 	    delete_var(ht, hi);
 	    return OK;
@@ -7211,11 +7214,11 @@ static struct fst
     {"repeat",		2, 2, f_repeat},
     {"resolve",		1, 1, f_resolve},
     {"reverse",		1, 1, f_reverse},
-    {"search",		1, 3, f_search},
+    {"search",		1, 4, f_search},
     {"searchdecl",	1, 3, f_searchdecl},
-    {"searchpair",	3, 6, f_searchpair},
-    {"searchpairpos",	3, 6, f_searchpairpos},
-    {"searchpos",	1, 3, f_searchpos},
+    {"searchpair",	3, 7, f_searchpair},
+    {"searchpairpos",	3, 7, f_searchpairpos},
+    {"searchpos",	1, 4, f_searchpos},
     {"server2client",	2, 2, f_server2client},
     {"serverlist",	0, 0, f_serverlist},
     {"setbufvar",	3, 3, f_setbufvar},
@@ -7250,6 +7253,7 @@ static struct fst
     {"synID",		3, 3, f_synID},
     {"synIDattr",	2, 3, f_synIDattr},
     {"synIDtrans",	1, 1, f_synIDtrans},
+    {"synstack",	2, 2, f_synstack},
     {"system",		1, 2, f_system},
     {"tabpagebuflist",	0, 1, f_tabpagebuflist},
     {"tabpagenr",	0, 1, f_tabpagenr},
@@ -8729,7 +8733,7 @@ f_diff_hlID(argvars, rettv)
     static int		fnum = 0;
     static int		change_start = 0;
     static int		change_end = 0;
-    static hlf_T	hlID = 0;
+    static hlf_T	hlID = (hlf_T)0;
     int			filler_lines;
     int			col;
 
@@ -14038,6 +14042,10 @@ search_cmn(argvars, match_pos, flagsp)
     int		dir;
     int		retval = 0;	/* default: FAIL */
     long	lnum_stop = 0;
+    proftime_T	tm;
+#ifdef FEAT_RELTIME
+    long	time_limit = 0;
+#endif
     int		options = SEARCH_KEEP;
     int		subpatnum;
 
@@ -14051,14 +14059,26 @@ search_cmn(argvars, match_pos, flagsp)
     if (flags & SP_END)
 	options |= SEARCH_END;
 
-    /* Optional extra argument: line number to stop searching. */
-    if (argvars[1].v_type != VAR_UNKNOWN
-	    && argvars[2].v_type != VAR_UNKNOWN)
+    /* Optional arguments: line number to stop searching and timeout. */
+    if (argvars[1].v_type != VAR_UNKNOWN && argvars[2].v_type != VAR_UNKNOWN)
     {
 	lnum_stop = get_tv_number_chk(&argvars[2], NULL);
 	if (lnum_stop < 0)
 	    goto theend;
+#ifdef FEAT_RELTIME
+	if (argvars[3].v_type != VAR_UNKNOWN)
+	{
+	    time_limit = get_tv_number_chk(&argvars[3], NULL);
+	    if (time_limit < 0)
+		goto theend;
+	}
+#endif
     }
+
+#ifdef FEAT_RELTIME
+    /* Set the time limit, if there is one. */
+    profile_setlimit(time_limit, &tm);
+#endif
 
     /*
      * This function does not accept SP_REPEAT and SP_RETCOUNT flags.
@@ -14075,7 +14095,7 @@ search_cmn(argvars, match_pos, flagsp)
 
     pos = save_cursor = curwin->w_cursor;
     subpatnum = searchit(curwin, curbuf, &pos, dir, pat, 1L,
-				     options, RE_SEARCH, (linenr_T)lnum_stop);
+				options, RE_SEARCH, (linenr_T)lnum_stop, &tm);
     if (subpatnum != FAIL)
     {
 	if (flags & SP_SUBPAT)
@@ -14165,6 +14185,7 @@ searchpair_cmn(argvars, match_pos)
     char_u	nbuf3[NUMBUFLEN];
     int		retval = 0;		/* default: FAIL */
     long	lnum_stop = 0;
+    long	time_limit = 0;
 
     /* Get the three pattern arguments: start, middle, end. */
     spat = get_tv_string_chk(&argvars[0]);
@@ -14188,6 +14209,10 @@ searchpair_cmn(argvars, match_pos)
 	goto theend;
     }
 
+    /* Using 'r' implies 'W', otherwise it doesn't work. */
+    if (flags & SP_REPEAT)
+	p_ws = FALSE;
+
     /* Optional fifth argument: skip expression */
     if (argvars[3].v_type == VAR_UNKNOWN
 	    || argvars[4].v_type == VAR_UNKNOWN)
@@ -14200,13 +14225,21 @@ searchpair_cmn(argvars, match_pos)
 	    lnum_stop = get_tv_number_chk(&argvars[5], NULL);
 	    if (lnum_stop < 0)
 		goto theend;
+#ifdef FEAT_RELTIME
+	    if (argvars[6].v_type != VAR_UNKNOWN)
+	    {
+		time_limit = get_tv_number_chk(&argvars[6], NULL);
+		if (time_limit < 0)
+		    goto theend;
+	    }
+#endif
 	}
     }
     if (skip == NULL)
 	goto theend;	    /* type error */
 
     retval = do_searchpair(spat, mpat, epat, dir, skip, flags,
-							match_pos, lnum_stop);
+					    match_pos, lnum_stop, time_limit);
 
 theend:
     p_ws = save_p_ws;
@@ -14258,7 +14291,8 @@ f_searchpairpos(argvars, rettv)
  * Returns 0 or -1 for no match,
  */
     long
-do_searchpair(spat, mpat, epat, dir, skip, flags, match_pos, lnum_stop)
+do_searchpair(spat, mpat, epat, dir, skip, flags, match_pos,
+							lnum_stop, time_limit)
     char_u	*spat;	    /* start pattern */
     char_u	*mpat;	    /* middle pattern */
     char_u	*epat;	    /* end pattern */
@@ -14267,6 +14301,7 @@ do_searchpair(spat, mpat, epat, dir, skip, flags, match_pos, lnum_stop)
     int		flags;	    /* SP_SETPCMARK and other SP_ values */
     pos_T	*match_pos;
     linenr_T	lnum_stop;  /* stop at this line if not zero */
+    long	time_limit; /* stop after this many msec */
 {
     char_u	*save_cpo;
     char_u	*pat, *pat2 = NULL, *pat3 = NULL;
@@ -14281,10 +14316,16 @@ do_searchpair(spat, mpat, epat, dir, skip, flags, match_pos, lnum_stop)
     int		nest = 1;
     int		err;
     int		options = SEARCH_KEEP;
+    proftime_T	tm;
 
     /* Make 'cpoptions' empty, the 'l' flag should not be used here. */
     save_cpo = p_cpo;
     p_cpo = (char_u *)"";
+
+#ifdef FEAT_RELTIME
+    /* Set the time limit, if there is one. */
+    profile_setlimit(time_limit, &tm);
+#endif
 
     /* Make two search patterns: start/end (pat2, for in nested pairs) and
      * start/middle/end (pat3, for the top pair). */
@@ -14309,7 +14350,7 @@ do_searchpair(spat, mpat, epat, dir, skip, flags, match_pos, lnum_stop)
     for (;;)
     {
 	n = searchit(curwin, curbuf, &pos, dir, pat, 1L,
-					       options, RE_SEARCH, lnum_stop);
+					   options, RE_SEARCH, lnum_stop, &tm);
 	if (n == FAIL || (firstpos.lnum != 0 && equalpos(pos, firstpos)))
 	    /* didn't find it or found the first match again: FAIL */
 	    break;
@@ -14327,6 +14368,9 @@ do_searchpair(spat, mpat, epat, dir, skip, flags, match_pos, lnum_stop)
 		incl(&pos);
 	}
 	foundpos = pos;
+
+	/* clear the start flag to avoid getting stuck here */
+	options &= ~SEARCH_START;
 
 	/* If the skip pattern matches, ignore this match. */
 	if (*skip != NUL)
@@ -15708,7 +15752,7 @@ f_synID(argvars, rettv)
 
     if (!transerr && lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count
 	    && col >= 0 && col < (long)STRLEN(ml_get(lnum)))
-	id = syn_get_id(curwin, lnum, (colnr_T)col, trans, NULL);
+	id = syn_get_id(curwin, lnum, (colnr_T)col, trans, NULL, FALSE);
 #endif
 
     rettv->vval.v_number = id;
@@ -15831,6 +15875,46 @@ f_synIDtrans(argvars, rettv)
 }
 
 /*
+ * "synstack(lnum, col)" function
+ */
+/*ARGSUSED*/
+    static void
+f_synstack(argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+#ifdef FEAT_SYN_HL
+    long	lnum;
+    long	col;
+    int		i;
+    int		id;
+#endif
+
+    rettv->v_type = VAR_LIST;
+    rettv->vval.v_list = NULL;
+
+#ifdef FEAT_SYN_HL
+    lnum = get_tv_lnum(argvars);		/* -1 on type error */
+    col = get_tv_number(&argvars[1]) - 1;	/* -1 on type error */
+
+    if (lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count
+	    && col >= 0 && col < (long)STRLEN(ml_get(lnum))
+	    && rettv_list_alloc(rettv) != FAIL)
+    {
+	(void)syn_get_id(curwin, lnum, (colnr_T)col, FALSE, NULL, TRUE);
+	for (i = 0; ; ++i)
+	{
+	    id = syn_get_stack_item(i);
+	    if (id < 0)
+		break;
+	    if (list_append_number(rettv->vval.v_list, id) == FAIL)
+		break;
+	}
+    }
+#endif
+}
+
+/*
  * "system()" function
  */
     static void
@@ -15846,7 +15930,7 @@ f_system(argvars, rettv)
     FILE	*fd;
 
     if (check_restricted() || check_secure())
-	return;
+	goto done;
 
     if (argvars[1].v_type != VAR_UNKNOWN)
     {
@@ -15857,7 +15941,7 @@ f_system(argvars, rettv)
 	if ((infile = vim_tempname('i')) == NULL)
 	{
 	    EMSG(_(e_notmp));
-	    return;
+	    goto done;
 	}
 
 	fd = mch_fopen((char *)infile, WRITEBIN);

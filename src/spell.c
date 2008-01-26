@@ -2146,7 +2146,7 @@ spell_move_to(wp, dir, allwords, curline, attrp)
 			{
 			    col = (int)(p - buf);
 			    (void)syn_get_id(wp, lnum, (colnr_T)col,
-						       FALSE, &can_spell);
+						    FALSE, &can_spell, FALSE);
 			    if (!can_spell)
 				attr = HLF_COUNT;
 			}
@@ -10343,7 +10343,7 @@ ex_spellrepall(eap)
     curwin->w_cursor.lnum = 0;
     while (!got_int)
     {
-	if (do_search(NULL, '/', frompat, 1L, SEARCH_KEEP) == 0
+	if (do_search(NULL, '/', frompat, 1L, SEARCH_KEEP, NULL) == 0
 						   || u_save_cursor() == FAIL)
 	    break;
 

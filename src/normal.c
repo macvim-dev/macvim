@@ -141,12 +141,16 @@ static void	nv_redo __ARGS((cmdarg_T *cap));
 static void	nv_Undo __ARGS((cmdarg_T *cap));
 static void	nv_tilde __ARGS((cmdarg_T *cap));
 static void	nv_operator __ARGS((cmdarg_T *cap));
+#ifdef FEAT_EVAL
+static void	set_op_var __ARGS((int optype));
+#endif
 static void	nv_lineop __ARGS((cmdarg_T *cap));
 static void	nv_home __ARGS((cmdarg_T *cap));
 static void	nv_pipe __ARGS((cmdarg_T *cap));
 static void	nv_bck_word __ARGS((cmdarg_T *cap));
 static void	nv_wordcmd __ARGS((cmdarg_T *cap));
 static void	nv_beginline __ARGS((cmdarg_T *cap));
+static void	adjust_cursor __ARGS((oparg_T *oap));
 #ifdef FEAT_VISUAL
 static void	adjust_for_sel __ARGS((cmdarg_T *cap));
 static int	unadjust_for_sel __ARGS((void));
@@ -4193,7 +4197,7 @@ find_decl(ptr, len, locally, thisblock, searchflags)
     for (;;)
     {
 	t = searchit(curwin, curbuf, &curwin->w_cursor, FORWARD,
-				  pat, 1L, searchflags, RE_LAST, (linenr_T)0);
+			    pat, 1L, searchflags, RE_LAST, (linenr_T)0, NULL);
 	if (curwin->w_cursor.lnum >= old_pos.lnum)
 	    t = FAIL;	/* match after start is failure too */
 
@@ -5851,12 +5855,13 @@ nv_left(cap)
 		/* When the NL before the first char has to be deleted we
 		 * put the cursor on the NUL after the previous line.
 		 * This is a very special case, be careful!
-		 * don't adjust op_end now, otherwise it won't work */
+		 * Don't adjust op_end now, otherwise it won't work. */
 		if (	   (cap->oap->op_type == OP_DELETE
 			    || cap->oap->op_type == OP_CHANGE)
 			&& !lineempty(curwin->w_cursor.lnum))
 		{
-		    ++curwin->w_cursor.col;
+		    if (*ml_get_cursor() != NUL)
+			++curwin->w_cursor.col;
 		    cap->retval |= CA_NO_ADJ_OP_END;
 		}
 		continue;
@@ -6090,7 +6095,7 @@ normal_search(cap, dir, pat, opt)
     curwin->w_set_curswant = TRUE;
 
     i = do_search(cap->oap, dir, pat, cap->count1,
-				 opt | SEARCH_OPT | SEARCH_ECHO | SEARCH_MSG);
+			   opt | SEARCH_OPT | SEARCH_ECHO | SEARCH_MSG, NULL);
     if (i == 0)
 	clearop(cap->oap);
     else
@@ -6565,6 +6570,8 @@ nv_brace(cap)
 	clearopbeep(cap->oap);
     else
     {
+	/* Don't leave the cursor on the NUL past end of line. */
+	adjust_cursor(cap->oap);
 #ifdef FEAT_VIRTUALEDIT
 	curwin->w_cursor.coladd = 0;
 #endif
@@ -7175,6 +7182,9 @@ nv_optrans(cap)
 	{
 	    cap->oap->start = curwin->w_cursor;
 	    cap->oap->op_type = OP_DELETE;
+#ifdef FEAT_EVAL
+	    set_op_var(OP_DELETE);
+#endif
 	    cap->count1 = 1;
 	    nv_dollar(cap);
 	    finish_op = TRUE;
@@ -8214,8 +8224,33 @@ nv_operator(cap)
     {
 	cap->oap->start = curwin->w_cursor;
 	cap->oap->op_type = op_type;
+#ifdef FEAT_EVAL
+	set_op_var(op_type);
+#endif
     }
 }
+
+#ifdef FEAT_EVAL
+/*
+ * Set v:operator to the characters for "optype".
+ */
+    static void
+set_op_var(optype)
+    int optype;
+{
+    char_u	opchars[3];
+
+    if (optype == OP_NOP)
+	set_vim_var_string(VV_OP, NULL, 0);
+    else
+    {
+	opchars[0] = get_op_char(optype);
+	opchars[1] = get_extra_op_char(optype);
+	opchars[2] = NUL;
+	set_vim_var_string(VV_OP, opchars, -1);
+    }
+}
+#endif
 
 /*
  * Handle linewise operator "dd", "yy", etc.
@@ -8372,12 +8407,9 @@ nv_wordcmd(cap)
     else
 	n = fwd_word(cap->count1, cap->arg, cap->oap->op_type != OP_NOP);
 
-    /* Don't leave the cursor on the NUL past a line */
-    if (n != FAIL && curwin->w_cursor.col > 0 && gchar_cursor() == NUL)
-    {
-	--curwin->w_cursor.col;
-	cap->oap->inclusive = TRUE;
-    }
+    /* Don't leave the cursor on the NUL past the end of line. */
+    if (n != FAIL)
+	adjust_cursor(cap->oap);
 
     if (n == FAIL && cap->oap->op_type == OP_NOP)
 	clearopbeep(cap->oap);
@@ -8390,6 +8422,39 @@ nv_wordcmd(cap)
 	if ((fdo_flags & FDO_HOR) && KeyTyped && cap->oap->op_type == OP_NOP)
 	    foldOpenCursor();
 #endif
+    }
+}
+
+/*
+ * Used after a movement command: If the cursor ends up on the NUL after the
+ * end of the line, may move it back to the last character and make the motion
+ * inclusive.
+ */
+    static void
+adjust_cursor(oap)
+    oparg_T *oap;
+{
+    /* The cursor cannot remain on the NUL when:
+     * - the column is > 0
+     * - not in Visual mode or 'selection' is "o"
+     * - 'virtualedit' is not "all" and not "onemore".
+     */
+    if (curwin->w_cursor.col > 0 && gchar_cursor() == NUL
+#ifdef FEAT_VISUAL
+		&& (!VIsual_active || *p_sel == 'o')
+#endif
+#ifdef FEAT_VIRTUALEDIT
+		&& !virtual_active() && (ve_flags & VE_ONEMORE) == 0
+#endif
+		)
+    {
+	--curwin->w_cursor.col;
+#ifdef FEAT_MBYTE
+	/* prevent cursor from moving on the trail byte */
+	if (has_mbyte)
+	    mb_adjust_cursor();
+#endif
+	oap->inclusive = TRUE;
     }
 }
 

@@ -378,14 +378,6 @@ re_multi_type(c)
 
 static char_u		*reg_prev_sub = NULL;
 
-#if defined(EXITFREE) || defined(PROTO)
-    void
-free_regexp_stuff()
-{
-    vim_free(reg_prev_sub);
-}
-#endif
-
 /*
  * REGEXP_INRANGE contains all characters which are always special in a []
  * range after '\'.
@@ -1288,8 +1280,7 @@ reg(paren, flagp)
 }
 
 /*
- * regbranch - one alternative of an | operator
- *
+ * Handle one alternative of an | operator.
  * Implements the & operator.
  */
     static char_u *
@@ -1330,8 +1321,7 @@ regbranch(flagp)
 }
 
 /*
- * regbranch - one alternative of an | or & operator
- *
+ * Handle one alternative of an | or & operator.
  * Implements the concatenation operator.
  */
     static char_u *
@@ -1708,6 +1698,8 @@ regatom(flagp)
       case Magic('|'):
       case Magic('&'):
       case Magic(')'):
+	if (one_exactly)
+	    EMSG_ONE_RET_NULL;
 	EMSG_RET_NULL(_(e_internal));	/* Supposed to be caught earlier. */
 	/* NOTREACHED */
 
@@ -2770,7 +2762,8 @@ skipchr()
     {
 #ifdef FEAT_MBYTE
 	if (enc_utf8)
-	    prevchr_len += utf_char2len(mb_ptr2char(regparse + prevchr_len));
+	    /* exclude composing chars that mb_ptr2len does include */
+	    prevchr_len += utf_ptr2len(regparse + prevchr_len);
 	else if (has_mbyte)
 	    prevchr_len += (*mb_ptr2len)(regparse + prevchr_len);
 	else
@@ -3047,7 +3040,7 @@ typedef struct
 } save_se_T;
 
 static char_u	*reg_getline __ARGS((linenr_T lnum));
-static long	vim_regexec_both __ARGS((char_u *line, colnr_T col));
+static long	vim_regexec_both __ARGS((char_u *line, colnr_T col, proftime_T *tm));
 static long	regtry __ARGS((regprog_T *prog, colnr_T col));
 static void	cleanup_subexpr __ARGS((void));
 #ifdef FEAT_SYN_HL
@@ -3105,7 +3098,7 @@ static colnr_T	ireg_maxcol;
  * slow, we keep one allocated piece of memory and only re-allocate it when
  * it's too small.  It's freed in vim_regexec_both() when finished.
  */
-static char_u	*reg_tofree;
+static char_u	*reg_tofree = NULL;
 static unsigned	reg_tofreelen;
 
 /*
@@ -3205,12 +3198,39 @@ typedef struct backpos_S
 } backpos_T;
 
 /*
- * regstack and backpos are used by regmatch().  They are kept over calls to
- * avoid invoking malloc() and free() often.
+ * "regstack" and "backpos" are used by regmatch().  They are kept over calls
+ * to avoid invoking malloc() and free() often.
+ * "regstack" is a stack with regitem_T items, sometimes preceded by regstar_T
+ * or regbehind_T.
+ * "backpos_T" is a table with backpos_T for BACK
  */
-static garray_T	regstack;	/* stack with regitem_T items, sometimes
-				   preceded by regstar_T or regbehind_T. */
-static garray_T	backpos;	/* table with backpos_T for BACK */
+static garray_T	regstack = {0, 0, 0, 0, NULL};
+static garray_T	backpos = {0, 0, 0, 0, NULL};
+
+/*
+ * Both for regstack and backpos tables we use the following strategy of
+ * allocation (to reduce malloc/free calls):
+ * - Initial size is fairly small.
+ * - When needed, the tables are grown bigger (8 times at first, double after
+ *   that).
+ * - After executing the match we free the memory only if the array has grown.
+ *   Thus the memory is kept allocated when it's at the initial size.
+ * This makes it fast while not keeping a lot of memory allocated.
+ * A three times speed increase was observed when using many simple patterns.
+ */
+#define REGSTACK_INITIAL	2048
+#define BACKPOS_INITIAL		64
+
+#if defined(EXITFREE) || defined(PROTO)
+    void
+free_regexp_stuff()
+{
+    ga_clear(&regstack);
+    ga_clear(&backpos);
+    vim_free(reg_tofree);
+    vim_free(reg_prev_sub);
+}
+#endif
 
 /*
  * Get pointer to the line "lnum", which is relative to "reg_firstlnum".
@@ -3264,7 +3284,7 @@ vim_regexec(rmp, line, col)
     ireg_icombine = FALSE;
 #endif
     ireg_maxcol = 0;
-    return (vim_regexec_both(line, col) != 0);
+    return (vim_regexec_both(line, col, NULL) != 0);
 }
 
 #if defined(FEAT_MODIFY_FNAME) || defined(FEAT_EVAL) \
@@ -3288,7 +3308,7 @@ vim_regexec_nl(rmp, line, col)
     ireg_icombine = FALSE;
 #endif
     ireg_maxcol = 0;
-    return (vim_regexec_both(line, col) != 0);
+    return (vim_regexec_both(line, col, NULL) != 0);
 }
 #endif
 
@@ -3301,12 +3321,13 @@ vim_regexec_nl(rmp, line, col)
  * match otherwise.
  */
     long
-vim_regexec_multi(rmp, win, buf, lnum, col)
+vim_regexec_multi(rmp, win, buf, lnum, col, tm)
     regmmatch_T	*rmp;
     win_T	*win;		/* window in which to search or NULL */
     buf_T	*buf;		/* buffer in which to search */
     linenr_T	lnum;		/* nr of line to start looking for match */
     colnr_T	col;		/* column to start looking for match */
+    proftime_T	*tm;		/* timeout limit or NULL */
 {
     long	r;
     buf_T	*save_curbuf = curbuf;
@@ -3326,7 +3347,7 @@ vim_regexec_multi(rmp, win, buf, lnum, col)
 
     /* Need to switch to buffer "buf" to make vim_iswordc() work. */
     curbuf = buf;
-    r = vim_regexec_both(NULL, col);
+    r = vim_regexec_both(NULL, col, tm);
     curbuf = save_curbuf;
 
     return r;
@@ -3336,24 +3357,36 @@ vim_regexec_multi(rmp, win, buf, lnum, col)
  * Match a regexp against a string ("line" points to the string) or multiple
  * lines ("line" is NULL, use reg_getline()).
  */
+/*ARGSUSED*/
     static long
-vim_regexec_both(line, col)
+vim_regexec_both(line, col, tm)
     char_u	*line;
     colnr_T	col;		/* column to start looking for match */
+    proftime_T	*tm;		/* timeout limit or NULL */
 {
     regprog_T	*prog;
     char_u	*s;
     long	retval = 0L;
 
-    reg_tofree = NULL;
+    /* Create "regstack" and "backpos" if they are not allocated yet.
+     * We allocate *_INITIAL amount of bytes first and then set the grow size
+     * to much bigger value to avoid many malloc calls in case of deep regular
+     * expressions.  */
+    if (regstack.ga_data == NULL)
+    {
+	/* Use an item size of 1 byte, since we push different things
+	 * onto the regstack. */
+	ga_init2(&regstack, 1, REGSTACK_INITIAL);
+	ga_grow(&regstack, REGSTACK_INITIAL);
+	regstack.ga_growsize = REGSTACK_INITIAL * 8;
+    }
 
-    /* Init the regstack empty.  Use an item size of 1 byte, since we push
-     * different things onto it.  Use a large grow size to avoid reallocating
-     * it too often. */
-    ga_init2(&regstack, 1, 10000);
-
-    /* Init the backpos table empty. */
-    ga_init2(&backpos, sizeof(backpos_T), 10);
+    if (backpos.ga_data == NULL)
+    {
+	ga_init2(&backpos, sizeof(backpos_T), BACKPOS_INITIAL);
+	ga_grow(&backpos, BACKPOS_INITIAL);
+	backpos.ga_growsize = BACKPOS_INITIAL * 8;
+    }
 
     if (REG_MULTI)
     {
@@ -3472,6 +3505,9 @@ vim_regexec_both(line, col)
     }
     else
     {
+#ifdef FEAT_RELTIME
+	int tm_count = 0;
+#endif
 	/* Messy cases:  unanchored match. */
 	while (!got_int)
 	{
@@ -3520,13 +3556,30 @@ vim_regexec_both(line, col)
 	    else
 #endif
 		++col;
+#ifdef FEAT_RELTIME
+	    /* Check for timeout once in a twenty times to avoid overhead. */
+	    if (tm != NULL && ++tm_count == 20)
+	    {
+		tm_count = 0;
+		if (profile_passed_limit(tm))
+		    break;
+	    }
+#endif
 	}
     }
 
 theend:
-    vim_free(reg_tofree);
-    ga_clear(&regstack);
-    ga_clear(&backpos);
+    /* Free "reg_tofree" when it's a bit big.
+     * Free regstack and backpos if they are bigger than their initial size. */
+    if (reg_tofreelen > 400)
+    {
+	vim_free(reg_tofree);
+	reg_tofree = NULL;
+    }
+    if (regstack.ga_maxlen > REGSTACK_INITIAL)
+	ga_clear(&regstack);
+    if (backpos.ga_maxlen > BACKPOS_INITIAL)
+	ga_clear(&backpos);
 
     return retval;
 }
@@ -3716,8 +3769,8 @@ regmatch(scan)
 #define RA_MATCH	4	/* successful match */
 #define RA_NOMATCH	5	/* didn't match */
 
-  /* Init the regstack and backpos table empty.  They are initialized and
-   * freed in vim_regexec_both() to reduce malloc()/free() calls. */
+  /* Make "regstack" and "backpos" empty.  They are allocated and freed in
+   * vim_regexec_both() to reduce malloc()/free() calls. */
   regstack.ga_len = 0;
   backpos.ga_len = 0;
 
@@ -3809,11 +3862,11 @@ regmatch(scan)
 	    break;
 
 	  case RE_BOF:
-	    /* Passing -1 to the getline() function provided for the search
-	     * should always return NULL if the current line is the first
-	     * line of the file. */
+	    /* We're not at the beginning of the file when below the first
+	     * line where we started, not at the start of the line or we
+	     * didn't start at the first line of the buffer. */
 	    if (reglnum != 0 || reginput != regline
-			|| (REG_MULTI && reg_getline((linenr_T)-1) != NULL))
+					  || (REG_MULTI && reg_firstlnum > 1))
 		status = RA_NOMATCH;
 	    break;
 

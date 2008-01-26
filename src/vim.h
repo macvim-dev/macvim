@@ -1552,6 +1552,16 @@ int vim_memcmp __ARGS((void *, void *, size_t));
 # define MB_MAXBYTES	21
 #endif
 
+#if (defined(FEAT_PROFILE) || defined(FEAT_RELTIME)) && !defined(PROTO)
+# ifdef WIN3264
+typedef LARGE_INTEGER proftime_T;
+# else
+typedef struct timeval proftime_T;
+# endif
+#else
+typedef int proftime_T;	    /* dummy for function prototypes */
+#endif
+
 /* Include option.h before structs.h, because the number of window-local and
  * buffer-local options is used there. */
 #include "option.h"	    /* options and default values */
@@ -1690,7 +1700,8 @@ int vim_memcmp __ARGS((void *, void *, size_t));
 #define VV_MOUSE_WIN	49
 #define VV_MOUSE_LNUM   50
 #define VV_MOUSE_COL	51
-#define VV_LEN		52	/* number of v: vars */
+#define VV_OP		52
+#define VV_LEN		53	/* number of v: vars */
 
 #ifdef FEAT_CLIPBOARD
 
@@ -1761,16 +1772,6 @@ typedef int VimClipboard;	/* This is required for the prototypes. */
 # include <io.h>	    /* for access() */
 
 # define stat(a,b) (access(a,0) ? -1 : stat(a,b))
-#endif
-
-#if (defined(FEAT_PROFILE) || defined(FEAT_RELTIME)) && !defined(PROTO)
-# ifdef WIN3264
-typedef LARGE_INTEGER proftime_T;
-# else
-typedef struct timeval proftime_T;
-# endif
-#else
-typedef int proftime_T;	    /* dummy for function prototypes */
 #endif
 
 #include "ex_cmds.h"	    /* Ex command defines */

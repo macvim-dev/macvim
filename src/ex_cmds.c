@@ -1650,7 +1650,7 @@ viminfo_error(errnum, message, line)
 {
     vim_snprintf((char *)IObuff, IOSIZE, _("%sviminfo: %s in line: "),
 							     errnum, message);
-    STRNCAT(IObuff, line, IOSIZE - STRLEN(IObuff));
+    STRNCAT(IObuff, line, IOSIZE - STRLEN(IObuff) - 1);
     if (IObuff[STRLEN(IObuff) - 1] == '\n')
 	IObuff[STRLEN(IObuff) - 1] = NUL;
     emsg(IObuff);
@@ -1774,7 +1774,8 @@ write_viminfo(file, forceit)
 	 * overwrite a user's viminfo file after a "su root", with a
 	 * viminfo file that the user can't read.
 	 */
-	st_old.st_dev = st_old.st_ino = 0;
+	st_old.st_dev = 0;
+	st_old.st_ino = 0;
 	st_old.st_mode = 0600;
 	if (mch_stat((char *)fname, &st_old) == 0
 		&& getuid() != ROOT_UID
@@ -2731,6 +2732,9 @@ check_overwrite(eap, buf, fname, ffname, other)
 		    && vim_strchr(p_cpo, CPO_OVERNEW) == NULL)
 		|| (buf->b_flags & BF_READERR))
 	    && !p_wa
+#ifdef FEAT_QUICKFIX
+	    && !bt_nofile(buf)
+#endif
 	    && vim_fexists(ffname))
     {
 	if (!eap->forceit && !eap->append)
@@ -4196,7 +4200,6 @@ do_sub(eap)
     linenr_T	old_line_count = curbuf->b_ml.ml_line_count;
     linenr_T	line2;
     long	nmatch;			/* number of lines in match */
-    linenr_T	sub_firstlnum;		/* nr of first sub line */
     char_u	*sub_firstline;		/* allocated copy of first sub line */
     int		endcolumn = FALSE;	/* cursor in last column when done */
     pos_T	old_cursor = curwin->w_cursor;
@@ -4207,11 +4210,6 @@ do_sub(eap)
 	sub_nsubs = 0;
 	sub_nlines = 0;
     }
-
-#ifdef FEAT_FKMAP	/* reverse the flow of the Farsi characters */
-    if (p_altkeymap && curwin->w_p_rl)
-	lrF_sub(cmd);
-#endif
 
     if (eap->cmdidx == CMD_tilde)
 	which_pat = RE_LAST;	/* use last used regexp */
@@ -4248,6 +4246,10 @@ do_sub(eap)
 	}
 	else		/* find the end of the regexp */
 	{
+#ifdef FEAT_FKMAP	/* reverse the flow of the Farsi characters */
+	    if (p_altkeymap && curwin->w_p_rl)
+		lrF_sub(cmd);
+#endif
 	    which_pat = RE_LAST;	    /* use last used regexp */
 	    delimiter = *cmd++;		    /* remember delimiter character */
 	    pat = cmd;			    /* remember start of search pat */
@@ -4444,8 +4446,8 @@ do_sub(eap)
 #endif
 		); ++lnum)
     {
-	sub_firstlnum = lnum;
-	nmatch = vim_regexec_multi(&regmatch, curwin, curbuf, lnum, (colnr_T)0);
+	nmatch = vim_regexec_multi(&regmatch, curwin, curbuf, lnum,
+							    (colnr_T)0, NULL);
 	if (nmatch)
 	{
 	    colnr_T	copycol;
@@ -4460,6 +4462,7 @@ do_sub(eap)
 	    long	nmatch_tl = 0;	/* nr of lines matched below lnum */
 	    int		do_again;	/* do it again after joining lines */
 	    int		skip_match = FALSE;
+	    linenr_T	sub_firstlnum;	/* nr of first sub line */
 
 	    /*
 	     * The new text is build up step by step, to avoid too much
@@ -4479,8 +4482,10 @@ do_sub(eap)
 	     *			far.
 	     * new_end		The new text, where to append new text.
 	     *
-	     * lnum		The line number where we were looking for the
-	     *			first match in the old line.
+	     * lnum		The line number where we found the start of
+	     *			the match.  Can be below the line we searched
+	     *			when there is a \n before a \zs in the
+	     *			pattern.
 	     * sub_firstlnum	The line number in the buffer where to look
 	     *			for a match.  Can be different from "lnum"
 	     *			when the pattern or substitute string contains
@@ -4504,12 +4509,7 @@ do_sub(eap)
 	     * updating the screen or handling a multi-line match.  The "old_"
 	     * pointers point into this copy.
 	     */
-	    sub_firstline = vim_strsave(ml_get(sub_firstlnum));
-	    if (sub_firstline == NULL)
-	    {
-		vim_free(new_start);
-		goto outofmem;
-	    }
+	    sub_firstlnum = lnum;
 	    copycol = 0;
 	    matchcol = 0;
 
@@ -4530,6 +4530,28 @@ do_sub(eap)
 	     */
 	    for (;;)
 	    {
+		/* Advance "lnum" to the line where the match starts.  The
+		 * match does not start in the first line when there is a line
+		 * break before \zs. */
+		if (regmatch.startpos[0].lnum > 0)
+		{
+		    lnum += regmatch.startpos[0].lnum;
+		    sub_firstlnum += regmatch.startpos[0].lnum;
+		    nmatch -= regmatch.startpos[0].lnum;
+		    vim_free(sub_firstline);
+		    sub_firstline = NULL;
+		}
+
+		if (sub_firstline == NULL)
+		{
+		    sub_firstline = vim_strsave(ml_get(sub_firstlnum));
+		    if (sub_firstline == NULL)
+		    {
+			vim_free(new_start);
+			goto outofmem;
+		    }
+		}
+
 		/* Save the line number of the last change for the final
 		 * cursor position (just like Vi). */
 		curwin->w_cursor.lnum = lnum;
@@ -4572,6 +4594,7 @@ do_sub(eap)
 		    {
 			matchcol = (colnr_T)STRLEN(sub_firstline);
 			nmatch = 1;
+			skip_match = TRUE;
 		    }
 		    sub_nsubs++;
 		    did_sub = TRUE;
@@ -4634,7 +4657,8 @@ do_sub(eap)
 			    temp = RedrawingDisabled;
 			    RedrawingDisabled = 0;
 
-			    search_match_lines = regmatch.endpos[0].lnum;
+			    search_match_lines = regmatch.endpos[0].lnum
+						  - regmatch.startpos[0].lnum;
 			    search_match_endcol = regmatch.endpos[0].col;
 			    highlight_match = TRUE;
 
@@ -4745,7 +4769,8 @@ do_sub(eap)
 		 * 3. substitute the string.
 		 */
 		/* get length of substitution part */
-		sublen = vim_regsub_multi(&regmatch, sub_firstlnum,
+		sublen = vim_regsub_multi(&regmatch,
+				    sub_firstlnum - regmatch.startpos[0].lnum,
 				    sub, sub_firstline, FALSE, p_magic, TRUE);
 
 		/* When the match included the "$" of the last line it may
@@ -4815,7 +4840,8 @@ do_sub(eap)
 		mch_memmove(new_end, sub_firstline + copycol, (size_t)i);
 		new_end += i;
 
-		(void)vim_regsub_multi(&regmatch, sub_firstlnum,
+		(void)vim_regsub_multi(&regmatch,
+				    sub_firstlnum - regmatch.startpos[0].lnum,
 					   sub, new_end, TRUE, p_magic, TRUE);
 		sub_nsubs++;
 		did_sub = TRUE;
@@ -4884,7 +4910,8 @@ do_sub(eap)
 			    ++line2;
 			    /* move the cursor to the new line, like Vi */
 			    ++curwin->w_cursor.lnum;
-			    STRCPY(new_start, p1 + 1);	/* copy the rest */
+			    /* copy the rest */
+			    mch_memmove(new_start, p1 + 1, STRLEN(p1 + 1) + 1);
 			    p1 = new_start - 1;
 			}
 		    }
@@ -4903,10 +4930,13 @@ do_sub(eap)
 skip:
 		/* We already know that we did the last subst when we are at
 		 * the end of the line, except that a pattern like
-		 * "bar\|\nfoo" may match at the NUL. */
+		 * "bar\|\nfoo" may match at the NUL.  "lnum" can be below
+		 * "line2" when there is a \zs in the pattern after a line
+		 * break. */
 		lastone = (skip_match
 			|| got_int
 			|| got_quit
+			|| lnum > line2
 			|| !(do_all || do_again)
 			|| (sub_firstline[matchcol] == NUL && nmatch <= 1
 					 && !re_multiline(regmatch.regprog)));
@@ -4921,12 +4951,16 @@ skip:
 		 * When asking the user we like to show the already replaced
 		 * text, but don't do it when "\<@=" or "\<@!" is used, it
 		 * changes what matches.
+		 * When the match starts below where we start searching also
+		 * need to replace the line first (using \zs after \n).
 		 */
 		if (lastone
 			|| (do_ask && !re_lookbehind(regmatch.regprog))
 			|| nmatch_tl > 0
 			|| (nmatch = vim_regexec_multi(&regmatch, curwin,
-				       curbuf, sub_firstlnum, matchcol)) == 0)
+							curbuf, sub_firstlnum,
+							 matchcol, NULL)) == 0
+			|| regmatch.startpos[0].lnum > 0)
 		{
 		    if (new_start != NULL)
 		    {
@@ -4990,13 +5024,20 @@ skip:
 		    }
 		    if (nmatch == -1 && !lastone)
 			nmatch = vim_regexec_multi(&regmatch, curwin, curbuf,
-						     sub_firstlnum, matchcol);
+					       sub_firstlnum, matchcol, NULL);
 
 		    /*
 		     * 5. break if there isn't another match in this line
 		     */
 		    if (nmatch <= 0)
+		    {
+			/* If the match found didn't start where we were
+			 * searching, do the next search in the line where we
+			 * found the match. */
+			if (nmatch == -1)
+			    lnum -= regmatch.startpos[0].lnum;
 			break;
+		    }
 		}
 
 		line_breakcheck();
@@ -5213,7 +5254,8 @@ ex_global(eap)
     for (lnum = eap->line1; lnum <= eap->line2 && !got_int; ++lnum)
     {
 	/* a match on this line? */
-	match = vim_regexec_multi(&regmatch, curwin, curbuf, lnum, (colnr_T)0);
+	match = vim_regexec_multi(&regmatch, curwin, curbuf, lnum,
+							    (colnr_T)0, NULL);
 	if ((type == 'g' && match) || (type == 'v' && !match))
 	{
 	    ml_setmarked(lnum);
@@ -6052,7 +6094,7 @@ ex_viusage(eap)
 }
 
 #if defined(FEAT_EX_EXTRA) || defined(PROTO)
-static void helptags_one __ARGS((char_u *dir, char_u *ext, char_u *lang));
+static void helptags_one __ARGS((char_u *dir, char_u *ext, char_u *lang, int add_help_tags));
 
 /*
  * ":helptags"
@@ -6067,12 +6109,26 @@ ex_helptags(eap)
 #ifdef FEAT_MULTI_LANG
     char_u	lang[2];
 #endif
+    expand_T	xpc;
+    char_u	*dirname;
     char_u	ext[5];
     char_u	fname[8];
     int		filecount;
     char_u	**files;
+    int		add_help_tags = FALSE;
 
-    if (!mch_isdir(eap->arg))
+    /* Check for ":helptags ++t {dir}". */
+    if (STRNCMP(eap->arg, "++t", 3) == 0 && vim_iswhite(eap->arg[3]))
+    {
+	add_help_tags = TRUE;
+	eap->arg = skipwhite(eap->arg + 3);
+    }
+
+    ExpandInit(&xpc);
+    xpc.xp_context = EXPAND_DIRECTORIES;
+    dirname = ExpandOne(&xpc, eap->arg, NULL,
+			    WILD_LIST_NOTFOUND|WILD_SILENT, WILD_EXPAND_FREE);
+    if (dirname == NULL || !mch_isdir(dirname))
     {
 	EMSG2(_("E150: Not a directory: %s"), eap->arg);
 	return;
@@ -6080,7 +6136,7 @@ ex_helptags(eap)
 
 #ifdef FEAT_MULTI_LANG
     /* Get a list of all files in the directory. */
-    STRCPY(NameBuff, eap->arg);
+    STRCPY(NameBuff, dirname);
     add_pathsep(NameBuff);
     STRCAT(NameBuff, "*");
     if (gen_expand_wildcards(1, &NameBuff, &filecount, &files,
@@ -6088,6 +6144,7 @@ ex_helptags(eap)
 	    || filecount == 0)
     {
 	EMSG2("E151: No match: %s", NameBuff);
+	vim_free(dirname);
 	return;
     }
 
@@ -6153,7 +6210,7 @@ ex_helptags(eap)
 	    ext[1] = fname[5];
 	    ext[2] = fname[6];
 	}
-	helptags_one(eap->arg, ext, fname);
+	helptags_one(dirname, ext, fname, add_help_tags);
     }
 
     ga_clear(&ga);
@@ -6161,15 +6218,17 @@ ex_helptags(eap)
 
 #else
     /* No language support, just use "*.txt" and "tags". */
-    helptags_one(eap->arg, (char_u *)".txt", (char_u *)"tags");
+    helptags_one(dirname, (char_u *)".txt", (char_u *)"tags", add_help_tags);
 #endif
+    vim_free(dirname);
 }
 
     static void
-helptags_one(dir, ext, tagfname)
-    char_u	*dir;	    /* doc directory */
-    char_u	*ext;	    /* suffix, ".txt", ".itx", ".frx", etc. */
-    char_u	*tagfname;    /* "tags" for English, "tags-it" for Italian. */
+helptags_one(dir, ext, tagfname, add_help_tags)
+    char_u	*dir;		/* doc directory */
+    char_u	*ext;		/* suffix, ".txt", ".itx", ".frx", etc. */
+    char_u	*tagfname;      /* "tags" for English, "tags-fr" for French. */
+    int		add_help_tags;  /* add "help-tags" tag */
 {
     FILE	*fd_tags;
     FILE	*fd;
@@ -6220,10 +6279,12 @@ helptags_one(dir, ext, tagfname)
     }
 
     /*
-     * If generating tags for "$VIMRUNTIME/doc" add the "help-tags" tag.
+     * If using the "++t" argument or generating tags for "$VIMRUNTIME/doc"
+     * add the "help-tags" tag.
      */
     ga_init2(&ga, (int)sizeof(char_u *), 100);
-    if (fullpathcmp((char_u *)"$VIMRUNTIME/doc", dir, FALSE) == FPC_SAME)
+    if (add_help_tags || fullpathcmp((char_u *)"$VIMRUNTIME/doc",
+						      dir, FALSE) == FPC_SAME)
     {
 	if (ga_grow(&ga, 1) == FAIL)
 	    got_int = TRUE;
