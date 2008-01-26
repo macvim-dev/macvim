@@ -112,6 +112,7 @@ typedef struct
         [NSNumber numberWithBool:NO],   MMAtsuiRendererKey,
         [NSNumber numberWithInt:MMUntitledWindowAlways],
                                         MMUntitledWindowKey,
+        [NSNumber numberWithBool:NO],   MMTexturedWindowKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];

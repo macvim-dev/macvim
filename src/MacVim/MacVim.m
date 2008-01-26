@@ -99,6 +99,7 @@ NSString *MMNoFontSubstitutionKey       = @"MMNoFontSubstitution";
 NSString *MMLoginShellKey               = @"MMLoginShell";
 NSString *MMAtsuiRendererKey            = @"MMAtsuiRenderer";
 NSString *MMUntitledWindowKey           = @"MMUntitledWindow";
+NSString *MMTexturedWindowKey           = @"MMTexturedWindow";
 
 
 

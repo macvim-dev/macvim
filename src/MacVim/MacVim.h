@@ -218,6 +218,7 @@ extern NSString *MMNoFontSubstitutionKey;
 extern NSString *MMLoginShellKey;
 extern NSString *MMAtsuiRendererKey;
 extern NSString *MMUntitledWindowKey;
+extern NSString *MMTexturedWindowKey;
 
 // Enum for MMUntitledWindowKey
 enum {
