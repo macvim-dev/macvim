@@ -182,6 +182,14 @@ buildSelectRangeCommand(NSRange range)
     return cmd;
 }
 
+    NSString *
+buildSearchTextCommand(NSString *searchText)
+{
+    // TODO: Searching is an exclusive motion, so if the pattern would match on
+    // row 0 column 0 then this pattern will miss that match.
+    return [NSString stringWithFormat:@"<C-\\><C-N>gg/\\c%@<CR>", searchText];
+}
+
 
 
 

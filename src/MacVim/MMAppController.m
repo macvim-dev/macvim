@@ -66,16 +66,17 @@ typedef struct
 - (MMVimController *)topmostVimController;
 - (int)launchVimProcessWithArguments:(NSArray *)args;
 - (NSArray *)filterFilesAndNotify:(NSArray *)files;
-- (NSArray *)filterOpenFiles:(NSArray *)filenames remote:(OSType)theID
-                        path:(NSString *)path
-                       token:(NSAppleEventDescriptor *)token
-              selectionRange:(NSRange)selectionRange;
+- (NSArray *)filterOpenFiles:(NSArray *)filenames
+                   arguments:(NSDictionary *)args;
 #if MM_HANDLE_XCODE_MOD_EVENT
 - (void)handleXcodeModEvent:(NSAppleEventDescriptor *)event
                  replyEvent:(NSAppleEventDescriptor *)reply;
 #endif
 - (int)findLaunchingProcessWithoutArguments;
 - (MMVimController *)findUntitledWindow;
+- (NSMutableDictionary *)extractArgumentsFromOdocEvent:
+    (NSAppleEventDescriptor *)desc;
+- (void)passArguments:(NSDictionary *)args toVimController:(MMVimController*)vc;
 @end
 
 @interface NSMenu (MMExtras)
@@ -222,8 +223,8 @@ typedef struct
 - (void)application:(NSApplication *)sender openFiles:(NSArray *)filenames
 {
     // Opening files works like this:
-    //  a) extract ODB and/or Xcode parameters from the current Apple event
-    //  b) filter out any already open files (see filterOpenFiles:::::)
+    //  a) extract ODB/Xcode/Spotlight parameters from the current Apple event
+    //  b) filter out any already open files (see filterOpenFiles::)
     //  c) open any remaining files
     //
     // A file is opened in an untitled window if there is one (it may be
@@ -235,86 +236,29 @@ typedef struct
     // arguments for each launching process can be looked up by its PID (in the
     // pidArguments dictionary).
 
-    OSType remoteID = 0;
-    NSString *remotePath = nil;
-    NSAppleEventManager *aem = nil;
-    NSAppleEventDescriptor *remoteToken = nil;
-    NSAppleEventDescriptor *odbdesc = nil;
-    NSAppleEventDescriptor *xcodedesc = nil;
-    NSRange selectionRange = { NSNotFound, 0 };
+    NSMutableDictionary *arguments = [self extractArgumentsFromOdocEvent:
+            [[NSAppleEventManager sharedAppleEventManager] currentAppleEvent]];
 
-    // 1. Extract ODB parameters (if any)
-    aem = [NSAppleEventManager sharedAppleEventManager];
-    odbdesc = [aem currentAppleEvent];
-    if (![odbdesc paramDescriptorForKeyword:keyFileSender]) {
-        // The ODB paramaters may hide inside the 'keyAEPropData' descriptor.
-        odbdesc = [odbdesc paramDescriptorForKeyword:keyAEPropData];
-        if (![odbdesc paramDescriptorForKeyword:keyFileSender])
-            odbdesc = nil;
-    }
+    // Filter out files that are already open
+    filenames = [self filterOpenFiles:filenames arguments:arguments];
 
-    if (odbdesc) {
-        remoteID = [[odbdesc paramDescriptorForKeyword:keyFileSender]
-                typeCodeValue];
-        remotePath = [[odbdesc paramDescriptorForKeyword:keyFileCustomPath]
-                stringValue];
-        remoteToken = [[odbdesc paramDescriptorForKeyword:keyFileSenderToken]
-                copy];
-    }
-
-    // 2. Extract Xcode parameters (if any)
-    xcodedesc = [[aem currentAppleEvent]
-            paramDescriptorForKeyword:keyAEPosition];
-    if (xcodedesc) {
-        MMSelectionRange *sr = (MMSelectionRange*)[[xcodedesc data] bytes];
-        if (sr->lineNum < 0) {
-            // Should select a range of lines.
-            selectionRange.location = sr->startRange + 1;
-            selectionRange.length = sr->endRange - sr->startRange + 1;
-        } else {
-            // Should only move cursor to a line.
-            selectionRange.location = sr->lineNum + 1;
-        }
-    }
-
-    // 3. Filter out files that are already open
-    filenames = [self filterOpenFiles:filenames remote:remoteID path:remotePath
-                                token:remoteToken
-                       selectionRange:selectionRange];
-
-    // 4. Open any files that remain
+    // Open any files that remain
     if ([filenames count]) {
         MMVimController *vc;
         BOOL openInTabs = [[NSUserDefaults standardUserDefaults]
             boolForKey:MMOpenFilesInTabsKey];
 
+        [arguments setObject:filenames forKey:@"filenames"];
+        [arguments setObject:[NSNumber numberWithBool:YES] forKey:@"openFiles"];
+
         if ((openInTabs && (vc = [self topmostVimController]))
                || (vc = [self findUntitledWindow])) {
-
-            // 5-1 Open files in an already open window (either due to the fact
-            // that MMMOpenFilesInTabs was set or because there was already an
-            // untitled Vim process open).
-
-            [vc dropFiles:filenames forceOpen:YES];
-            if (odbdesc)
-                [vc odbEdit:filenames server:remoteID path:remotePath
-                      token:remoteToken];
-            if (selectionRange.location != NSNotFound)
-                [vc addVimInput:buildSelectRangeCommand(selectionRange)];
+            // Open files in an already open window.
+            [self passArguments:arguments toVimController:vc];
         } else {
-
-            // 5-2. Open files
-            //   a) in a launching Vim that has no arguments, if there is one
-            // else
-            //   b) launch a new Vim process and open files there.
-
-            NSMutableDictionary *argDict = [NSMutableDictionary dictionary];
-
+            // Open files in a launching Vim process or start a new process.
             int pid = [self findLaunchingProcessWithoutArguments];
-            if (pid) {
-                // The filenames are passed as arguments in connectBackend::.
-                [argDict setObject:filenames forKey:@"filenames"];
-            } else {
+            if (!pid) {
                 // Pass the filenames to the process straight away.
                 //
                 // TODO: It would be nicer if all arguments were passed to the
@@ -326,31 +270,19 @@ typedef struct
                 fileArgs = [fileArgs arrayByAddingObjectsFromArray:filenames];
 
                 pid = [self launchVimProcessWithArguments:fileArgs];
+
+                // Make sure these files aren't opened again when
+                // connectBackend:pid: is called.
+                [arguments setObject:[NSNumber numberWithBool:NO]
+                              forKey:@"openFiles"];
             }
 
             // TODO: If the Vim process fails to start, or if it changes PID,
             // then the memory allocated for these parameters will leak.
             // Ensure that this cannot happen or somehow detect it.
 
-            if (odbdesc) {
-                [argDict setObject:filenames forKey:@"remoteFiles"];
-
-                // The remote token can be arbitrary data so it is cannot
-                // (without encoding it as text) be passed on the command line.
-                [argDict setObject:[NSNumber numberWithUnsignedInt:remoteID]
-                            forKey:@"remoteID"];
-                if (remotePath)
-                    [argDict setObject:remotePath forKey:@"remotePath"];
-                if (remoteToken)
-                    [argDict setObject:remoteToken forKey:@"remoteToken"];
-            }
-
-            if (selectionRange.location != NSNotFound)
-                [argDict setObject:NSStringFromRange(selectionRange)
-                            forKey:@"selectionRange"];
-
-            if ([argDict count] > 0)
-                [pidArguments setObject:argDict
+            if ([arguments count] > 0)
+                [pidArguments setObject:arguments
                                  forKey:[NSNumber numberWithInt:pid]];
         }
     }
@@ -603,32 +535,9 @@ typedef struct
 
         [vimControllers addObject:vc];
 
-        // Pass arguments to the Vim process.
         id args = [pidArguments objectForKey:pidKey];
-        if (args && args != [NSNull null]) {
-            // Pass filenames to open
-            NSArray *filenames = [args objectForKey:@"filenames"];
-            if (filenames) {
-                NSString *tabDrop = buildTabDropCommand(filenames);
-                [vc addVimInput:tabDrop];
-            }
-
-            // Pass ODB data
-            if ([args objectForKey:@"remoteFiles"]
-                    && [args objectForKey:@"remoteID"]) {
-                [vc odbEdit:[args objectForKey:@"remoteFiles"]
-                     server:[[args objectForKey:@"remoteID"] unsignedIntValue]
-                       path:[args objectForKey:@"remotePath"]
-                      token:[args objectForKey:@"remoteToken"]];
-            }
-
-            // Pass range of lines to select
-            if ([args objectForKey:@"selectionRange"]) {
-                NSRange selectionRange = NSRangeFromString(
-                        [args objectForKey:@"selectionRange"]);
-                [vc addVimInput:buildSelectRangeCommand(selectionRange)];
-            }
-        }
+        if (args && [NSNull null] != args)
+            [self passArguments:args toVimController:vc];
 
         // HACK!  MacVim does not get activated if it is launched from the
         // terminal, so we forcibly activate here unless it is an untitled
@@ -885,10 +794,8 @@ typedef struct
     return files;
 }
 
-- (NSArray *)filterOpenFiles:(NSArray *)filenames remote:(OSType)theID
-                        path:(NSString *)path
-                       token:(NSAppleEventDescriptor *)token
-              selectionRange:(NSRange)selectionRange
+- (NSArray *)filterOpenFiles:(NSArray *)filenames
+                   arguments:(NSDictionary *)args
 {
     // Check if any of the files in the 'filenames' array are open in any Vim
     // process.  Remove the files that are open from the 'filenames' array and
@@ -896,6 +803,8 @@ typedef struct
     // the Vim process it is open.  Files that are filtered are sent an odb
     // open event in case theID is not zero.
 
+    NSMutableDictionary *localArgs =
+            [NSMutableDictionary dictionaryWithDictionary:args];
     MMVimController *raiseController = nil;
     NSString *raiseFile = nil;
     NSMutableArray *files = [filenames mutableCopy];
@@ -904,11 +813,15 @@ typedef struct
             [files componentsJoinedByString:@"\",\""]];
     unsigned i, count = [vimControllers count];
 
+    // Ensure that the files aren't opened when passing arguments.
+    [localArgs setObject:[NSNumber numberWithBool:NO] forKey:@"openFiles"];
+
     for (i = 0; i < count && [files count]; ++i) {
         MMVimController *controller = [vimControllers objectAtIndex:i];
         id proxy = [controller backendProxy];
 
         @try {
+            // Query Vim for which files in the 'files' array are open.
             NSString *eval = [proxy evaluateExpression:expr];
             NSIndexSet *idxSet = [NSIndexSet indexSetWithVimList:eval];
             if ([idxSet count]) {
@@ -920,10 +833,10 @@ typedef struct
                     [[raiseFile retain] autorelease];
                 }
 
-                // Send an odb open event to the Vim process.
-                if (theID != 0)
-                    [controller odbEdit:[files objectsAtIndexes:idxSet]
-                                 server:theID path:path token:token];
+                // Pass (ODB/Xcode/Spotlight) arguments to this process.
+                [localArgs setObject:[files objectsAtIndexes:idxSet]
+                              forKey:@"filenames"];
+                [self passArguments:localArgs toVimController:controller];
 
                 // Remove all the files that were open in this Vim process and
                 // create a new expression to evaluate.
@@ -949,10 +862,6 @@ typedef struct
             ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
             "tab sb %@|let &swb=oldswb|unl oldswb|"
             "cal foreground()|redr|f<CR>", raiseFile];
-
-        if (selectionRange.location != NSNotFound)
-            input = [input stringByAppendingString:
-                    buildSelectRangeCommand(selectionRange)];
 
         [raiseController addVimInput:input];
     }
@@ -1013,6 +922,98 @@ typedef struct
     }
 
     return nil;
+}
+
+- (NSMutableDictionary *)extractArgumentsFromOdocEvent:
+    (NSAppleEventDescriptor *)desc
+{
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+
+    // 1. Extract ODB parameters (if any)
+    NSAppleEventDescriptor *odbdesc = desc;
+    if (![odbdesc paramDescriptorForKeyword:keyFileSender]) {
+        // The ODB paramaters may hide inside the 'keyAEPropData' descriptor.
+        odbdesc = [odbdesc paramDescriptorForKeyword:keyAEPropData];
+        if (![odbdesc paramDescriptorForKeyword:keyFileSender])
+            odbdesc = nil;
+    }
+
+    if (odbdesc) {
+        NSAppleEventDescriptor *p =
+                [odbdesc paramDescriptorForKeyword:keyFileSender];
+        if (p)
+            [dict setObject:[NSNumber numberWithUnsignedInt:[p typeCodeValue]]
+                     forKey:@"remoteID"];
+
+        p = [odbdesc paramDescriptorForKeyword:keyFileCustomPath];
+        if (p)
+            [dict setObject:[p stringValue] forKey:@"remotePath"];
+
+        p = [odbdesc paramDescriptorForKeyword:keyFileSenderToken];
+        if (p)
+            [dict setObject:p forKey:@"remotePath"];
+    }
+
+    // 2. Extract Xcode parameters (if any)
+    NSAppleEventDescriptor *xcodedesc =
+            [desc paramDescriptorForKeyword:keyAEPosition];
+    if (xcodedesc) {
+        NSRange range;
+        MMSelectionRange *sr = (MMSelectionRange*)[[xcodedesc data] bytes];
+
+        if (sr->lineNum < 0) {
+            // Should select a range of lines.
+            range.location = sr->startRange + 1;
+            range.length = sr->endRange - sr->startRange + 1;
+        } else {
+            // Should only move cursor to a line.
+            range.location = sr->lineNum + 1;
+            range.length = 0;
+        }
+
+        [dict setObject:NSStringFromRange(range) forKey:@"selectionRange"];
+    }
+
+    // 3. Extract Spotlight search text (if any)
+    NSAppleEventDescriptor *spotlightdesc = 
+            [desc paramDescriptorForKeyword:keyAESearchText];
+    if (spotlightdesc)
+        [dict setObject:[spotlightdesc stringValue] forKey:@"searchText"];
+
+    return dict;
+}
+
+- (void)passArguments:(NSDictionary *)args toVimController:(MMVimController*)vc
+{
+    if (!args) return;
+
+    // Pass filenames to open if required (the 'openFiles' argument can be used
+    // to disallow opening of the files).
+    NSArray *filenames = [args objectForKey:@"filenames"];
+    if (filenames && [[args objectForKey:@"openFiles"] boolValue]) {
+        NSString *tabDrop = buildTabDropCommand(filenames);
+        [vc addVimInput:tabDrop];
+    }
+
+    // Pass ODB data
+    if (filenames && [args objectForKey:@"remoteID"]) {
+        [vc odbEdit:filenames
+             server:[[args objectForKey:@"remoteID"] unsignedIntValue]
+               path:[args objectForKey:@"remotePath"]
+              token:[args objectForKey:@"remoteToken"]];
+    }
+
+    // Pass range of lines to select
+    if ([args objectForKey:@"selectionRange"]) {
+        NSRange selectionRange = NSRangeFromString(
+                [args objectForKey:@"selectionRange"]);
+        [vc addVimInput:buildSelectRangeCommand(selectionRange)];
+    }
+
+    // Pass search text
+    NSString *searchText = [args objectForKey:@"searchText"];
+    if (searchText)
+        [vc addVimInput:buildSearchTextCommand(searchText)];
 }
 
 @end // MMAppController (Private)

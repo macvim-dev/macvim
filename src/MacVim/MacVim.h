@@ -237,6 +237,7 @@ ATSFontContainerRef loadFonts();
 // Functions to create command strings that can be sent to Vim as input.
 NSString *buildTabDropCommand(NSArray *filenames);
 NSString *buildSelectRangeCommand(NSRange range);
+NSString *buildSearchTextCommand(NSString *searchText);
 
 
 
