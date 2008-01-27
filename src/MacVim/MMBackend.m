@@ -221,12 +221,17 @@ static NSString *MMSymlinkWarningString =
         NSBundle *mainBundle = [NSBundle mainBundle];
         OSStatus status;
         FSRef ref;
-        NSString *ident = [mainBundle bundleIdentifier];
 
         // Launch MacVim using Launch Services (NSWorkspace would be nicer, but
         // the API to pass Apple Event parameters is broken on 10.4).
+#if 0
+        NSString *ident = [mainBundle bundleIdentifier];
         status = LSFindApplicationForInfo(kLSUnknownCreator,
                 (CFStringRef)ident, NULL, &ref, NULL);
+#else
+        NSString *path = [mainBundle bundlePath];
+        status = FSPathMakeRef((const UInt8 *)[path UTF8String], &ref, NULL);
+#endif
         if (noErr == status) {
             // Pass parameter to the 'Open' Apple Event that tells MacVim not
             // to open an untitled window.
@@ -242,8 +247,13 @@ static NSString *MMSymlinkWarningString =
         }
 
         if (noErr != status) {
+#if 0
             NSLog(@"ERROR: Failed to launch MacVim using bundle identifier %@",
                     ident);
+#else
+        NSLog(@"ERROR: Failed to launch MacVim (path=%@).%@",
+                path, MMSymlinkWarningString);
+#endif
             return NO;
         }
 
