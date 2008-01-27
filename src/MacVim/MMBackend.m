@@ -219,19 +219,14 @@ static NSString *MMSymlinkWarningString =
 {
     if (![self connection]) {
         NSBundle *mainBundle = [NSBundle mainBundle];
+#if 0
         OSStatus status;
         FSRef ref;
 
         // Launch MacVim using Launch Services (NSWorkspace would be nicer, but
         // the API to pass Apple Event parameters is broken on 10.4).
-#if 0
-        NSString *ident = [mainBundle bundleIdentifier];
-        status = LSFindApplicationForInfo(kLSUnknownCreator,
-                (CFStringRef)ident, NULL, &ref, NULL);
-#else
         NSString *path = [mainBundle bundlePath];
         status = FSPathMakeRef((const UInt8 *)[path UTF8String], &ref, NULL);
-#endif
         if (noErr == status) {
             // Pass parameter to the 'Open' Apple Event that tells MacVim not
             // to open an untitled window.
@@ -247,15 +242,33 @@ static NSString *MMSymlinkWarningString =
         }
 
         if (noErr != status) {
-#if 0
-            NSLog(@"ERROR: Failed to launch MacVim using bundle identifier %@",
-                    ident);
-#else
         NSLog(@"ERROR: Failed to launch MacVim (path=%@).%@",
                 path, MMSymlinkWarningString);
-#endif
             return NO;
         }
+#else
+        // Launch MacVim using NSTask.  For some reason the above code using
+        // Launch Services sometimes fails on LSOpenFromRefSpec() (when it
+        // fails, the dock icon starts bouncing and never stops).  It seems
+        // like rebuilding the Launch Services database takes care of this
+        // problem, but the NSTask way seems more stable so stick with it.
+        //
+        // NOTE!  Using NSTask to launch the GUI has the negative side-effect
+        // that the GUI won't be activated (or raised) so there is a hack in
+        // MMAppController which raises the app when a new window is opened.
+        NSMutableArray *args = [NSMutableArray arrayWithObjects:
+            [NSString stringWithFormat:@"-%@", MMNoWindowKey], @"yes", nil];
+        NSString *exeName = [[mainBundle infoDictionary]
+                objectForKey:@"CFBundleExecutable"];
+        NSString *path = [mainBundle pathForAuxiliaryExecutable:exeName];
+        if (!path) {
+            NSLog(@"ERROR: Could not find MacVim executable in bundle.%@",
+                    MMSymlinkWarningString);
+            return NO;
+        }
+
+        [NSTask launchedTaskWithLaunchPath:path arguments:args];
+#endif
 
         // HACK!  Poll the mach bootstrap server until it returns a valid
         // connection to detect that MacVim has finished launching.  Also set a
