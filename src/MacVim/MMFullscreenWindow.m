@@ -214,12 +214,18 @@ static int numFullscreenWindows = 0;
     [view setFrameOrigin:origin];
 }
 
-
-#pragma mark Proxy/Decorator/whatever stuff
-
 - (void)scrollWheel:(NSEvent *)theEvent
 {
     [[view textView] scrollWheel:theEvent];
+}
+
+- (void)performClose:(id)sender
+{
+    id wc = [self windowController];
+    if ([wc respondsToSelector:@selector(performClose:)])
+        [wc performClose:sender];
+    else
+        [super performClose:sender];
 }
 
 @end // MMFullscreenWindow

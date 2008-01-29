@@ -117,4 +117,13 @@
     [super setContentSize:size];
 }
 
+- (void)performClose:(id)sender
+{
+    id wc = [self windowController];
+    if ([wc respondsToSelector:@selector(performClose:)])
+        [wc performClose:sender];
+    else
+        [super performClose:sender];
+}
+
 @end // MMWindow
