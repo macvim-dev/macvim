@@ -24,6 +24,8 @@
 	<string></string>
 	<key>orderFrontFontPanel:</key>
 	<string></string>
+	<key>orderFrontPreferencePanel:</key>
+	<string></string>
 	<key>performClose:</key>
 	<string></string>
 	<key>performMiniaturize:</key>

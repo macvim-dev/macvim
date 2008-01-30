@@ -13,7 +13,15 @@
             SUPERCLASS = NSObject; 
         }, 
         {
-            ACTIONS = {newWindow = id; selectNextWindow = id; selectPreviousWindow = id; }; 
+            ACTIONS = {
+                fileOpen = id; 
+                fontSizeDown = id; 
+                fontSizeUp = id; 
+                newWindow = id; 
+                orderFrontPreferencePanel = id; 
+                selectNextWindow = id; 
+                selectPreviousWindow = id; 
+            }; 
             CLASS = MMAppController; 
             LANGUAGE = ObjC; 
             SUPERCLASS = NSObject; 

@@ -1,0 +1,25 @@
+{
+    IBClasses = (
+        {CLASS = FirstResponder; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {
+            ACTIONS = {
+                loginShellDidChange = id; 
+                openFilesInTabsDidChange = id; 
+                terminateAfterLastWindowClosedDidChange = id; 
+                translateCtrlClickDidChange = id; 
+                untitledWindowDidChange = id; 
+            }; 
+            CLASS = MMPreferenceController; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {
+                loginShellButton = id; 
+                openFilesInTabsButton = id; 
+                terminateAfterLastWindowClosedButton = id; 
+                translateCtrlClickButton = id; 
+                untitledWindowPopUp = id; 
+            }; 
+            SUPERCLASS = NSWindowController; 
+        }
+    ); 
+    IBVersion = 1; 
+}

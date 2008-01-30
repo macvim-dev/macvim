@@ -29,6 +29,7 @@
 #import "MMAppController.h"
 #import "MMVimController.h"
 #import "MMWindowController.h"
+#import "MMPreferenceController.h"
 
 
 #define MM_HANDLE_XCODE_MOD_EVENT 0
@@ -509,6 +510,11 @@ typedef struct
 {
     [[NSFontManager sharedFontManager] modifyFont:
             [NSNumber numberWithInt:NSSizeDownFontAction]];
+}
+
+- (IBAction)orderFrontPreferencePanel:(id)sender
+{
+    [[MMPreferenceController sharedPreferenceController] showWindow:self];
 }
 
 - (byref id <MMFrontendProtocol>)

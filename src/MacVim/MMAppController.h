@@ -30,5 +30,6 @@
 - (IBAction)selectPreviousWindow:(id)sender;
 - (IBAction)fontSizeUp:(id)sender;
 - (IBAction)fontSizeDown:(id)sender;
+- (IBAction)orderFrontPreferencePanel:(id)sender;
 
 @end

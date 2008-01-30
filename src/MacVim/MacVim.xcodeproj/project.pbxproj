@@ -43,6 +43,9 @@
 		1DD703B90BA9D15D008679E9 /* vim_gloss.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1DD703B80BA9D15D008679E9 /* vim_gloss.icns */; };
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
 		1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */; };
+		1DE3F8E70D50F80500052B9E /* Preferences.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1DE3F8E50D50F80500052B9E /* Preferences.nib */; };
+		1DE3F8EA0D50F84600052B9E /* MMPreferenceController.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE3F8E80D50F84600052B9E /* MMPreferenceController.h */; };
+		1DE3F8EB0D50F84600052B9E /* MMPreferenceController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DE3F8E90D50F84600052B9E /* MMPreferenceController.m */; };
 		1DE608B40C587FDA0055263D /* runtime in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE602470C587FD10055263D /* runtime */; };
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
 		1DE9B94F0D341AB8008FEDD4 /* MMWindow.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DE9B94D0D341AB8008FEDD4 /* MMWindow.h */; };
@@ -103,6 +106,7 @@
 				1D493D580C5247BF00AB718C /* Vim in CopyFiles */,
 				1D9918480D299F9900A96335 /* MMAtsuiTextView.h in CopyFiles */,
 				1DE9B94F0D341AB8008FEDD4 /* MMWindow.h in CopyFiles */,
+				1DE3F8EA0D50F84600052B9E /* MMPreferenceController.h in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -180,6 +184,9 @@
 		1DD703B80BA9D15D008679E9 /* vim_gloss.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = vim_gloss.icns; sourceTree = "<group>"; };
 		1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SpecialKeys.plist; sourceTree = "<group>"; };
 		1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = SystemColors.plist; sourceTree = "<group>"; };
+		1DE3F8E60D50F80500052B9E /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/Preferences.nib; sourceTree = "<group>"; };
+		1DE3F8E80D50F84600052B9E /* MMPreferenceController.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMPreferenceController.h; sourceTree = "<group>"; };
+		1DE3F8E90D50F84600052B9E /* MMPreferenceController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMPreferenceController.m; sourceTree = "<group>"; };
 		1DE602470C587FD10055263D /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; name = runtime; path = ../../runtime; sourceTree = SOURCE_ROOT; };
 		1DE8CC610C5E2AAD003F56E3 /* Actions.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Actions.plist; sourceTree = "<group>"; };
 		1DE9B94D0D341AB8008FEDD4 /* MMWindow.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMWindow.h; sourceTree = "<group>"; };
@@ -232,6 +239,8 @@
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
+				1DE3F8E80D50F84600052B9E /* MMPreferenceController.h */,
+				1DE3F8E90D50F84600052B9E /* MMPreferenceController.m */,
 				1DE9B94D0D341AB8008FEDD4 /* MMWindow.h */,
 				1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */,
 				1D9918460D299F9900A96335 /* MMAtsuiTextView.h */,
@@ -378,6 +387,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1DE3F8E50D50F80500052B9E /* Preferences.nib */,
 				1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */,
 				1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */,
 				1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */,
@@ -513,6 +523,7 @@
 				1D3D19120CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf in Resources */,
 				1D3D19130CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf in Resources */,
 				1D3D19140CA690FF0004A0A5 /* DejaVuSansMono.ttf in Resources */,
+				1DE3F8E70D50F80500052B9E /* Preferences.nib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -536,6 +547,7 @@
 				1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */,
 				1D9918490D299F9900A96335 /* MMAtsuiTextView.m in Sources */,
 				1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */,
+				1DE3F8EB0D50F84600052B9E /* MMPreferenceController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -556,6 +568,14 @@
 				089C165DFE840E0CC02AAC07 /* English */,
 			);
 			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		1DE3F8E50D50F80500052B9E /* Preferences.nib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1DE3F8E60D50F80500052B9E /* English */,
+			);
+			name = Preferences.nib;
 			sourceTree = "<group>";
 		};
 		29B97318FDCFA39411CA2CEA /* MainMenu.nib */ = {
