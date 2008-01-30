@@ -333,7 +333,55 @@ typedef struct
             reply = NSTerminateCancel;
 
         [alert release];
+    } else {
+        // No unmodified buffers, but give a warning if there are multiple
+        // windows and/or tabs open.
+        int numWindows = [vimControllers count];
+        int numTabs = 0;
+
+        e = [vimControllers objectEnumerator];
+        id vc;
+        while ((vc = [e nextObject])) {
+            NSString *eval = [vc evaluateVimExpression:@"tabpagenr('$')"];
+            if (eval) {
+                int count = [eval intValue];
+                if (count > 0 && count < INT_MAX)
+                    numTabs += count;
+            }
+        }
+
+        if (numWindows > 1 || numTabs > 1) {
+            NSAlert *alert = [[NSAlert alloc] init];
+            [alert addButtonWithTitle:@"Quit"];
+            [alert addButtonWithTitle:@"Cancel"];
+            [alert setMessageText:@"Are you sure you want to quit MacVim?"];
+
+            NSString *info = nil;
+            if (numWindows > 1) {
+                if (numTabs > numWindows)
+                    info = [NSString stringWithFormat:@"There are %d windows "
+                        "open in MacVim, with a total of %d tabs. Do you want "
+                        "to quit anyway?", numWindows, numTabs];
+                else
+                    info = [NSString stringWithFormat:@"There are %d windows "
+                        "open in MacVim. Do you want to quit anyway?",
+                        numWindows];
+
+                [alert setAlertStyle:NSWarningAlertStyle];
+            } else {
+                info = [NSString stringWithFormat:@"There are %d tabs open "
+                    "in MacVim. Do you want to quit anyway?", numTabs];
+            }
+
+            [alert setInformativeText:info];
+
+            if ([alert runModal] != NSAlertFirstButtonReturn)
+                reply = NSTerminateCancel;
+
+            [alert release];
+        }
     }
+
 
     // Tell all Vim processes to terminate now (otherwise they'll leave swap
     // files behind).
@@ -824,36 +872,32 @@ typedef struct
 
     for (i = 0; i < count && [files count]; ++i) {
         MMVimController *controller = [vimControllers objectAtIndex:i];
-        id proxy = [controller backendProxy];
 
-        @try {
-            // Query Vim for which files in the 'files' array are open.
-            NSString *eval = [proxy evaluateExpression:expr];
-            NSIndexSet *idxSet = [NSIndexSet indexSetWithVimList:eval];
-            if ([idxSet count]) {
-                if (!raiseFile) {
-                    // Remember the file and which Vim that has it open so that
-                    // we can raise it later on.
-                    raiseController = controller;
-                    raiseFile = [files objectAtIndex:[idxSet firstIndex]];
-                    [[raiseFile retain] autorelease];
-                }
+        // Query Vim for which files in the 'files' array are open.
+        NSString *eval = [controller evaluateVimExpression:expr];
+        if (!eval) continue;
 
-                // Pass (ODB/Xcode/Spotlight) arguments to this process.
-                [localArgs setObject:[files objectsAtIndexes:idxSet]
-                              forKey:@"filenames"];
-                [self passArguments:localArgs toVimController:controller];
-
-                // Remove all the files that were open in this Vim process and
-                // create a new expression to evaluate.
-                [files removeObjectsAtIndexes:idxSet];
-                expr = [NSString stringWithFormat:
-                        @"map([\"%@\"],\"bufloaded(v:val)\")",
-                        [files componentsJoinedByString:@"\",\""]];
+        NSIndexSet *idxSet = [NSIndexSet indexSetWithVimList:eval];
+        if ([idxSet count]) {
+            if (!raiseFile) {
+                // Remember the file and which Vim that has it open so that
+                // we can raise it later on.
+                raiseController = controller;
+                raiseFile = [files objectAtIndex:[idxSet firstIndex]];
+                [[raiseFile retain] autorelease];
             }
-        }
-        @catch (NSException *e) {
-            // Do nothing ...
+
+            // Pass (ODB/Xcode/Spotlight) arguments to this process.
+            [localArgs setObject:[files objectsAtIndexes:idxSet]
+                          forKey:@"filenames"];
+            [self passArguments:localArgs toVimController:controller];
+
+            // Remove all the files that were open in this Vim process and
+            // create a new expression to evaluate.
+            [files removeObjectsAtIndexes:idxSet];
+            expr = [NSString stringWithFormat:
+                    @"map([\"%@\"],\"bufloaded(v:val)\")",
+                    [files componentsJoinedByString:@"\",\""]];
         }
     }
 

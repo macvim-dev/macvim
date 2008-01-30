@@ -57,5 +57,6 @@
 - (BOOL)sendMessageNow:(int)msgid data:(NSData *)data
                timeout:(NSTimeInterval)timeout;
 - (void)addVimInput:(NSString *)string;
+- (NSString *)evaluateVimExpression:(NSString *)expr;
 - (void)updateMainMenu;
 @end

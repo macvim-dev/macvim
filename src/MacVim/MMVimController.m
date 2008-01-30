@@ -348,6 +348,18 @@ static NSTimeInterval MMResendInterval = 0.5;
     }
 }
 
+- (NSString *)evaluateVimExpression:(NSString *)expr
+{
+    NSString *eval = nil;
+
+    @try {
+        eval = [backendProxy evaluateExpression:expr];
+    }
+    @catch (NSException *ex) { /* do nothing */ }
+
+    return eval;
+}
+
 - (id)backendProxy
 {
     return backendProxy;
