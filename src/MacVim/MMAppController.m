@@ -967,7 +967,7 @@ typedef struct
         // TODO: This is a moronic test...should query the Vim process if there
         // are any open buffers or something like that instead.
         NSString *title = [[[vc windowController] window] title];
-        if ([title hasPrefix:@"[No Name]"]) {
+        if ([title hasPrefix:@"[No Name] - VIM"]) {
             //NSLog(@"found untitled window");
             return vc;
         }
