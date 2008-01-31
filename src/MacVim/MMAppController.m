@@ -255,6 +255,7 @@ typedef struct
         if ((openInTabs && (vc = [self topmostVimController]))
                || (vc = [self findUntitledWindow])) {
             // Open files in an already open window.
+            [[[vc windowController] window] makeKeyAndOrderFront:self];
             [self passArguments:arguments toVimController:vc];
         } else {
             // Open files in a launching Vim process or start a new process.
