@@ -11,19 +11,8 @@
 #import <Cocoa/Cocoa.h>
 
 @interface MMPreferenceController : NSWindowController {
-    IBOutlet id loginShellButton;
-    IBOutlet id openFilesInTabsButton;
-    IBOutlet id terminateAfterLastWindowClosedButton;
-    IBOutlet id translateCtrlClickButton;
-    IBOutlet id untitledWindowPopUp;
 }
 
 + (MMPreferenceController *)sharedPreferenceController;
-
-- (IBAction)loginShellDidChange:(id)sender;
-- (IBAction)openFilesInTabsDidChange:(id)sender;
-- (IBAction)terminateAfterLastWindowClosedDidChange:(id)sender;
-- (IBAction)translateCtrlClickDidChange:(id)sender;
-- (IBAction)untitledWindowDidChange:(id)sender;
 
 @end
