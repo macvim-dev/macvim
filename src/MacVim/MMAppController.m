@@ -322,12 +322,12 @@ typedef struct
 
     if (modifiedBuffers) {
         NSAlert *alert = [[NSAlert alloc] init];
+        [alert setAlertStyle:NSWarningAlertStyle];
         [alert addButtonWithTitle:@"Quit"];
         [alert addButtonWithTitle:@"Cancel"];
         [alert setMessageText:@"Quit without saving?"];
         [alert setInformativeText:@"There are modified buffers, "
             "if you quit now all changes will be lost.  Quit anyway?"];
-        [alert setAlertStyle:NSWarningAlertStyle];
 
         if ([alert runModal] != NSAlertFirstButtonReturn)
             reply = NSTerminateCancel;
@@ -339,6 +339,7 @@ typedef struct
         int numWindows = [vimControllers count];
         int numTabs = 0;
 
+        // Count the number of open tabs
         e = [vimControllers objectEnumerator];
         id vc;
         while ((vc = [e nextObject])) {
@@ -352,6 +353,7 @@ typedef struct
 
         if (numWindows > 1 || numTabs > 1) {
             NSAlert *alert = [[NSAlert alloc] init];
+            [alert setAlertStyle:NSWarningAlertStyle];
             [alert addButtonWithTitle:@"Quit"];
             [alert addButtonWithTitle:@"Cancel"];
             [alert setMessageText:@"Are you sure you want to quit MacVim?"];
@@ -367,7 +369,6 @@ typedef struct
                         "open in MacVim. Do you want to quit anyway?",
                         numWindows];
 
-                [alert setAlertStyle:NSWarningAlertStyle];
             } else {
                 info = [NSString stringWithFormat:@"There are %d tabs open "
                     "in MacVim. Do you want to quit anyway?", numTabs];
