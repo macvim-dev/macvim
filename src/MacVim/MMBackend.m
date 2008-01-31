@@ -1662,6 +1662,12 @@ static NSString *MMSymlinkWarningString =
     }
 #endif
 
+    if (len == 1 && ((str[0] == Ctrl_C && ctrl_c_interrupts)
+            || (str[0] == intr_char && intr_char != Ctrl_C))) {
+        trash_input_buf();
+        got_int = TRUE;
+    }
+
     for (i = 0; i < len; ++i) {
         add_to_input_buf(str+i, 1);
         if (CSI == str[i]) {
