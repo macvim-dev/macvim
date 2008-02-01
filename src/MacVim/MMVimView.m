@@ -287,10 +287,8 @@ enum {
         int length = *((int*)p);  p += sizeof(int);
 
         NSString *label = [[NSString alloc]
-                initWithBytesNoCopy:(void*)p
-                             length:length
-                           encoding:NSUTF8StringEncoding
-                       freeWhenDone:NO];
+                initWithBytes:(void*)p length:length
+                     encoding:NSUTF8StringEncoding];
         p += length;
 
         // Set the label of the tab;  add a new tab when needed.
@@ -356,7 +354,7 @@ enum {
     [[self tabView] addTabViewItem:tvi];
     vimTaskSelectedTab = NO;
 
-    [tvi release];
+    [tvi autorelease];
 
     return tvi;
 }

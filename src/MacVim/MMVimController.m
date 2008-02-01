@@ -833,10 +833,8 @@ static NSTimeInterval MMResendInterval = 0.5;
         const void *bytes = [data bytes];
         int len = *((int*)bytes);  bytes += sizeof(int);
         NSString *actionName = [[NSString alloc]
-                initWithBytesNoCopy:(void*)bytes
-                             length:len
-                           encoding:NSUTF8StringEncoding
-                       freeWhenDone:NO];
+                initWithBytes:(void*)bytes length:len
+                     encoding:NSUTF8StringEncoding];
 
         SEL sel = NSSelectorFromString(actionName);
         [NSApp sendAction:sel to:nil from:self];
@@ -848,10 +846,8 @@ static NSTimeInterval MMResendInterval = 0.5;
         int col = *((int*)bytes);  bytes += sizeof(int);
         int len = *((int*)bytes);  bytes += sizeof(int);
         NSString *title = [[NSString alloc]
-                initWithBytesNoCopy:(void*)bytes
-                             length:len
-                           encoding:NSUTF8StringEncoding
-                       freeWhenDone:NO];
+                initWithBytes:(void*)bytes length:len
+                     encoding:NSUTF8StringEncoding];
 
         NSMenu *menu = [self topLevelMenuForTitle:title];
         if (menu) {
@@ -1222,7 +1218,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 @implementation MMAlert
 - (void)dealloc
 {
-    [textField release];
+    [textField release];  textField = nil;
     [super dealloc];
 }
 

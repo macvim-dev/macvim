@@ -76,8 +76,8 @@ static int numFullscreenWindows = 0;
 
 - (void)dealloc
 {
-    [target release];
-    [view release];
+    [target release];  target = nil;
+    [view release];  view = nil;
 
     [super dealloc];
 }

@@ -425,10 +425,7 @@ typedef struct
         fontContainerRef = 0;
     }
 
-    // TODO: Is this a correct way of releasing the MMAppController?
-    // (It doesn't seem like dealloc is ever called.)
     [NSApp setDelegate:nil];
-    [self autorelease];
 }
 
 - (void)removeVimController:(id)controller

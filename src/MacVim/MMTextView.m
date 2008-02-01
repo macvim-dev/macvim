@@ -98,8 +98,8 @@ enum {
 
     // The text storage retains the layout manager which in turn retains
     // the text container.
-    [tc release];
-    [lm release];
+    [tc autorelease];
+    [lm autorelease];
 
     // NOTE: This will make the text storage the principal owner of the text
     // system.  Releasing the text storage will in turn release the layout
@@ -129,7 +129,7 @@ enum {
         markedTextField = nil;
     }
 
-    [lastMouseDownEvent release];
+    [lastMouseDownEvent release];  lastMouseDownEvent = nil;
     [super dealloc];
 }
 
@@ -249,10 +249,8 @@ enum {
             int flags = *((int*)bytes);  bytes += sizeof(int);
             int len = *((int*)bytes);  bytes += sizeof(int);
             NSString *string = [[NSString alloc]
-                    initWithBytesNoCopy:(void*)bytes
-                                 length:len
-                               encoding:NSUTF8StringEncoding
-                           freeWhenDone:NO];
+                    initWithBytes:(void*)bytes length:len
+                         encoding:NSUTF8StringEncoding];
             bytes += len;
 
 #if MM_DEBUG_DRAWING
@@ -703,6 +701,9 @@ enum {
         [markedTextField setBezeled:NO];
         [markedTextField setBordered:YES];
 
+        // NOTE: The panel that holds the marked text field is allocated here
+        // and released in dealloc.  No pointer to the panel is kept, instead
+        // [markedTextField window] is used to access the panel.
         NSPanel *panel = [[NSPanel alloc]
             initWithContentRect:cellRect
                       styleMask:NSBorderlessWindowMask|NSUtilityWindowMask

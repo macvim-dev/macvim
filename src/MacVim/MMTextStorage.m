@@ -91,18 +91,18 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         rowCache = NULL;
     }
 #endif
-    [emptyRowString release];
-    [boldItalicFontWide release];
-    [italicFontWide release];
-    [boldFontWide release];
-    [fontWide release];
-    [boldItalicFont release];
-    [italicFont release];
-    [boldFont release];
-    [font release];
-    [defaultBackgroundColor release];
-    [defaultForegroundColor release];
-    [attribString release];
+    [emptyRowString release];  emptyRowString = nil;
+    [boldItalicFontWide release];  boldItalicFontWide = nil;
+    [italicFontWide release];  italicFontWide = nil;
+    [boldFontWide release];  boldFontWide = nil;
+    [fontWide release];  fontWide = nil;
+    [boldItalicFont release];  boldItalicFont = nil;
+    [italicFont release];  italicFont = nil;
+    [boldFont release];  boldFont = nil;
+    [font release];  font = nil;
+    [defaultBackgroundColor release];  defaultBackgroundColor = nil;
+    [defaultForegroundColor release];  defaultForegroundColor = nil;
+    [attribString release];  attribString = nil;
     [super dealloc];
 }
 
@@ -631,10 +631,10 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 - (void)setFont:(NSFont*)newFont
 {
     if (newFont && font != newFont) {
-        [boldItalicFont release];
-        [italicFont release];
-        [boldFont release];
-        [font release];
+        [boldItalicFont release];  boldItalicFont = nil;
+        [italicFont release];  italicFont = nil;
+        [boldFont release];  boldFont = nil;
+        [font release];  font = nil;
 
         // NOTE! When setting a new font we make sure that the advancement of
         // each glyph is fixed.
@@ -696,10 +696,10 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         // very well include wide characters.)
         if (font) [self setWideFont:font];
     } else if (newFont != fontWide) {
-        [boldItalicFontWide release];
-        [italicFontWide release];
-        [boldFontWide release];
-        [fontWide release];
+        [boldItalicFontWide release];  boldItalicFontWide = nil;
+        [italicFontWide release];  italicFontWide = nil;
+        [boldFontWide release];  boldFontWide = nil;
+        [fontWide release];  fontWide = nil;
 
         float pointSize = [newFont pointSize];
         NSFontDescriptor *desc = [newFont fontDescriptor];

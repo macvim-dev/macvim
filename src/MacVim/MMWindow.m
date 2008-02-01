@@ -45,6 +45,8 @@
                                 defer:flag];
     if (!self) return nil;
 
+    [self setReleasedWhenClosed:NO];
+
     NSRect tabSepRect = { 0, rect.size.height - 1, rect.size.width, 1 };
     tablineSeparator = [[NSBox alloc] initWithFrame:tabSepRect];
     
@@ -61,7 +63,8 @@
 
 - (void)dealloc
 {
-    [tablineSeparator removeFromSuperviewWithoutNeedingDisplay];
+    // TODO: Is there any reason why we would want the following call?
+    //[tablineSeparator removeFromSuperviewWithoutNeedingDisplay];
     [tablineSeparator release];  tablineSeparator = nil;
     [super dealloc];
 }
