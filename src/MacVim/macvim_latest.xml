@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"> 
+  <channel>
+    <title>MacVim Cutting Edge</title>
+    <link>http://bjorn.winckler.googlepages.com/macvim_latest.xml</link>
+    <description>Most recent changes with links to updates.</description>
+
+    <item>
+      <title>Snapshot 20 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 20 released</h1>
+<ul>
+  <li>Automatic updates via Sparkle (Nico Weber)</li>
+  <li>Preferences panel</li>
+  <li>Fix ^C^W bug (Issue 48)</li>
+  <li>Make sure window is ordered front when new files are opened</li>
+  <li>Warn when quitting with multiple tabs or windows open</li>
+  <li>&lt;D-w&gt; can now be used to close dialogs (such as the About dialog)</li>
+</ul>
+      ]]></description>
+      <pubDate>Sun, 03 Feb 2008 16:39 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-20.tbz"
+        length="7805678"
+        sparkle:version="20"
+        sparkle:shortVersionString="snapshot 20"
+        />
+    </item>
+  </channel>
+</rss>
