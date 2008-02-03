@@ -600,8 +600,6 @@
 			<string>Window</string>
 		</dict>
 	</array>
-	<key>New item</key>
-	<string></string>
 	<key>SUFeedURL</key>
 	<string>http://bjorn.winckler.googlepages.com/macvim_latest.xml</string>
 </dict>
