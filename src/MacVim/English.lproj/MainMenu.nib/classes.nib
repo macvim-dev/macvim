@@ -1,31 +1,62 @@
-{
-    IBClasses = (
-        {
-            ACTIONS = {newVimWindow = id; }; 
-            CLASS = AppController; 
-            LANGUAGE = ObjC; 
-            SUPERCLASS = NSObject; 
-        }, 
-        {
-            ACTIONS = {addNewTab = id; }; 
-            CLASS = FirstResponder; 
-            LANGUAGE = ObjC; 
-            SUPERCLASS = NSObject; 
-        }, 
-        {
-            ACTIONS = {
-                fileOpen = id; 
-                fontSizeDown = id; 
-                fontSizeUp = id; 
-                newWindow = id; 
-                orderFrontPreferencePanel = id; 
-                selectNextWindow = id; 
-                selectPreviousWindow = id; 
-            }; 
-            CLASS = MMAppController; 
-            LANGUAGE = ObjC; 
-            SUPERCLASS = NSObject; 
-        }
-    ); 
-    IBVersion = 1; 
-}
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IBClasses</key>
+	<array>
+		<dict>
+			<key>ACTIONS</key>
+			<dict>
+				<key>fileOpen</key>
+				<string>id</string>
+				<key>fontSizeDown</key>
+				<string>id</string>
+				<key>fontSizeUp</key>
+				<string>id</string>
+				<key>newWindow</key>
+				<string>id</string>
+				<key>orderFrontPreferencePanel</key>
+				<string>id</string>
+				<key>selectNextWindow</key>
+				<string>id</string>
+				<key>selectPreviousWindow</key>
+				<string>id</string>
+			</dict>
+			<key>CLASS</key>
+			<string>MMAppController</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
+			<key>SUPERCLASS</key>
+			<string>NSObject</string>
+		</dict>
+		<dict>
+			<key>ACTIONS</key>
+			<dict>
+				<key>addNewTab</key>
+				<string>id</string>
+			</dict>
+			<key>CLASS</key>
+			<string>FirstResponder</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
+			<key>SUPERCLASS</key>
+			<string>NSObject</string>
+		</dict>
+		<dict>
+			<key>ACTIONS</key>
+			<dict>
+				<key>checkForUpdates</key>
+				<string>id</string>
+			</dict>
+			<key>CLASS</key>
+			<string>SUUpdater</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
+			<key>SUPERCLASS</key>
+			<string>NSObject</string>
+		</dict>
+	</array>
+	<key>IBVersion</key>
+	<string>1</string>
+</dict>
+</plist>

@@ -538,10 +538,12 @@
 	<string>${PRODUCT_NAME}</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>7.1</string>
 	<key>CFBundleSignature</key>
 	<string>VIMM</string>
 	<key>CFBundleVersion</key>
-	<string>(first snapshot)</string>
+	<string>20</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
@@ -598,5 +600,9 @@
 			<string>Window</string>
 		</dict>
 	</array>
+	<key>New item</key>
+	<string></string>
+	<key>SUFeedURL</key>
+	<string>http://bjorn.winckler.googlepages.com/macvim_latest.xml</string>
 </dict>
 </plist>
