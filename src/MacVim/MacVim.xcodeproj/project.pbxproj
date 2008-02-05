@@ -217,7 +217,7 @@
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		32CA4F630368D1EE00C91783 /* MacVim_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacVim_Prefix.pch; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -296,6 +296,17 @@
 				8D1107320486CEB800E47090 /* MacVim.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		1D0F11480D58C77800D5DA09 /* Font */ = {
+			isa = PBXGroup;
+			children = (
+				1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */,
+				1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */,
+				1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */,
+				1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */,
+			);
+			name = Font;
 			sourceTree = "<group>";
 		};
 		1D493D640C52482B00AB718C /* Executables */ = {
@@ -387,20 +398,17 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				1DE3F8E50D50F80500052B9E /* Preferences.nib */,
-				1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */,
-				1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */,
-				1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */,
-				1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */,
+				1D0F11480D58C77800D5DA09 /* Font */,
+				1DCE78490C460C6C006305A6 /* Icons */,
+				1DE9726C0C48050600F96A9F /* Toolbar */,
 				1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */,
 				1DE8CC610C5E2AAD003F56E3 /* Actions.plist */,
 				1DD04DEB0C529C5E006CDC2B /* Credits.rtf */,
-				1DE9726C0C48050600F96A9F /* Toolbar */,
-				1DCE78490C460C6C006305A6 /* Icons */,
 				1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */,
 				1D0E051B0BA5F83800B6049E /* Colors.plist */,
 				8D1107310486CEB800E47090 /* Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
+				1DE3F8E50D50F80500052B9E /* Preferences.nib */,
 				29B97318FDCFA39411CA2CEA /* MainMenu.nib */,
 			);
 			name = Resources;
