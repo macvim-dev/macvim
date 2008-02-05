@@ -5,6 +5,41 @@
     <link>http://bjorn.winckler.googlepages.com/macvim_latest.xml</link>
     <description>Most recent changes with links to updates.</description>
 
+    <!--
+    To add a new release:
+
+    * add a new <item> below (copy an old one)
+    * Adapt the <title>
+    * Adapt the <description>
+    * Adapt the <pubDate> (format 'Day, dd Mon yyyy hh:mm CET')
+    * Adapte <enclosure>, make sure to update the url, length, saprkle:version
+      and sparkle:shortVersionString attributes.
+
+    Sparkle honors the following user defaults:
+
+    * SUFeedURL overrides the value in Info.plist (if we want to offer several
+      appcasts in the preferences one day ("latest", "stable" for example).
+
+      This means that for testing you can do
+
+          defaults read org.vim.MacVim SUFeedURL  # note this down
+          defaults write org.vim.MacVim SUFeedURL file:///Users/you/testcast.xml
+            # !!! note the three '/' after 'file:
+          # test test test
+          defaults write org.vim.MacVim SUFeedURL previousvalue
+          # or, to use some default setting for the url,
+          defaults delete org.vim.MacVim SUFeedURL
+
+    Sparkle usually assumes a naming scheme of name_versionnumber.tar.bz2 .
+    Instead, you can also provide a sparkle:version="2.0_rc2" attribute on
+    the enclosure and name the package as you like. You can (and should) also
+    provide a sparkle:shortVersionString="User-facing version string"
+    attribute that corresponds to CFBundleShortVersionString. Sparkle uses
+    CFBundleVersion to determine the current application version.
+
+    Sparkle supports updates in zip, tar, tbz, tgz, or dmg format.
+    -->
+    
     <item>
       <title>Snapshot 20 released</title>
       <description><![CDATA[
