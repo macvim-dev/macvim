@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.1.  Last change: 2007 Nov 11
+*gui_mac.txt*	For Vim version 7.1.  Last change: 2008 Feb 05
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -6,16 +6,17 @@
 
 The MacVim Graphical User Interface			*macvim* *gui-macvim*
 
-0. Important!			|macvim-important|
-1. MacVim differences		|macvim-differences|
-2. Starting MacVim		|macvim-start|
-3. Special colors		|macvim-colors|
-4. Menus			|macvim-menus|
-5. Toolbar			|macvim-toolbar|
-6. Dialogs			|macvim-dialogs|
-7. System services		|macvim-services|
-8. Known bugs/missing features  |macvim-todo|
-9. Hints			|macvim-hints|
+ 0. Important!			|macvim-important|
+ 1. MacVim differences		|macvim-differences|
+ 2. Starting MacVim		|macvim-start|
+ 3. Preferences			|macvim-preferences|
+ 4. Special colors		|macvim-colors|
+ 5. Menus			|macvim-menus|
+ 6. Toolbar			|macvim-toolbar|
+ 7. Dialogs			|macvim-dialogs|
+ 8. System services		|macvim-services|
+ 9. Known bugs/missing features	|macvim-todo|
+10. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -185,7 +186,46 @@ at the moment though).  In the modified and closed events the Tokn parameter
 is sent back to the server application.
 
 ==============================================================================
-3. Special colors					*macvim-colors*
+3. Preferences				    *macvim-prefs* *macvim-preferences*
+
+Some settings are global to the MacVim application and would not make sense as
+Vim options.  These settings are stored in a user default database and can be
+accessed via the "MacVim/Preferences..." menu item.
+
+Not all entries in the user defaults database are exposed via the preference
+panel, usually because they should not be changed by the user under normal
+circumstances.  These options can still be changed with the "defaults" command
+by opening Terminal and typing >
+	defaults write org.vim.MacVim KEY VALUE
+Check the man page on "defaults" for more information on this command as well
+as general information regarding Mac OS X user defaults.
+
+Here is a list of relevant dictionary entries:
+
+KEY				VALUE ~
+MMCellWidthMultiplier		width of a normal glyph in em units [float]
+MMNoFontSubstitution		disable automatic font substitution [bool]
+MMTabMaxWidth			maximum width of a tab [int]
+MMTabMinWidth			minimum width of a tab [int]
+MMTabOptimumWidth		default width of a tab [int]
+MMTextInsetBottom		text area offset in pixels [int]
+MMTextInsetLeft			text area offset in pixels [int]
+MMTextInsetRight		text area offset in pixels [int]
+MMTextInsetTop			text area offset in pixels [int]
+MMTexturedWindow		use brushed metal window (Tiger only) [bool]
+MMTranslateCtrlClick		interpret ctrl-click as right-click [bool]
+
+As an example, if you have more than one mouse button and would wish to free
+up Ctrl-click so you can bind it to something else, then the appropriate
+command is: >
+	defaults write org.vim.MacVim MMTranslateCtrlClick 0
+
+If you wish to restore all user defaults to their starting values, open
+Terminal and type: >
+	defaults delete org.vim.MacVim
+
+==============================================================================
+4. Special colors					*macvim-colors*
 
 The colors in MacVim are defined in two dictionaries inside the "Resources"
 folder of the application bundle (MacVim.app/Contents/Resources).  It is
@@ -230,7 +270,7 @@ If you have any comments regarding this colors cheme (is it better or worse
 than the default?) then post them to |vim_mac|.
 
 ==============================================================================
-4. Menus						*macvim-menus*
+5. Menus						*macvim-menus*
 
 						*:macm* *:macmenukey*
 MacVim has a special way of binding keys to menu items that differs from other
@@ -305,7 +345,7 @@ following line to "~/.gvimrc": >
 (Note that key equivalents must contain the 'D' flag.)
 
 ==============================================================================
-5. Toolbar						*macvim-toolbar*
+6. Toolbar						*macvim-toolbar*
 
 The toolbar in MacVim works just like in the other GUIs (see |gui-toolbar|),
 with the addition of two separator items (see |menu-separator|).  You can use
@@ -329,7 +369,7 @@ Note: Only a subset of the builtin toolbar items presently have icons.  If no
 icon can be found a warning triangle is displayed instead.
 
 ==============================================================================
-6. Dialogs						*macvim-dialogs*
+7. Dialogs						*macvim-dialogs*
 
 Dialogs can be controlled with the keyboard in two ways.  By default each
 button in a dialog is bound to a key.  The button that is highlighted by blue
@@ -347,7 +387,7 @@ select the current button.  The current button is indicated with a blue
 outline.
 
 ==============================================================================
-7. System services					*macvim-services*
+8. System services					*macvim-services*
 
 MacVim supports a few system services.  These can be accessed from the MacVim
 submenu in the Services menu.  For services to work, MacVim.app should be
@@ -365,7 +405,7 @@ These are the currently supported services:
   window.
 
 ==============================================================================
-8. Known bugs/missing features				*macvim-todo*
+9. Known bugs/missing features				*macvim-todo*
 
 Here are some of the bigger bugs in MacVim.  Of course there are others, but
 these are ones that are know and/or which were judged major.
@@ -387,7 +427,7 @@ might be simple to implement, but unless somebody asks for a particular
 feature then there is little incentive to add it.
 
 ==============================================================================
-9. Hints						*macvim-hints*
+10. Hints						*macvim-hints*
 
 In this section some general (not necessarily MacVim specific) hints are
 given.
