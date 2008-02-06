@@ -29,6 +29,8 @@
     if (!self) return nil;
 
     [self setWindowFrameAutosaveName:@"Preferences"];
+    [[self window] setHidesOnDeactivate:NO];
+
     return self;
 }
 
