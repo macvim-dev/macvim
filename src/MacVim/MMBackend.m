@@ -1117,6 +1117,14 @@ static NSString *MMSymlinkWarningString =
 
         flags = eventModifierFlagsToVimMouseModMask(flags);
 
+        int numLines = (int)round(dy);
+        if (numLines < 0) numLines = -numLines;
+        if (numLines == 0) numLines = 1;
+
+#ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
+        gui.scroll_wheel_force = numLines;
+#endif
+
         gui_send_mouse_event(button, col, row, NO, flags);
     } else if (MouseDownMsgID == msgid) {
         if (!data) return;

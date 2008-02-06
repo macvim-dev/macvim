@@ -493,6 +493,10 @@ typedef struct Gui
     char	*rsrc_input_method;
     char	*rsrc_preedit_type_name;
 #endif
+
+#ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
+    int         scroll_wheel_force;
+#endif
 } gui_T;
 
 extern gui_T gui;			/* this is defined in gui.c */

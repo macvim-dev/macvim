@@ -4426,6 +4426,9 @@ nv_screengo(oap, dir, dist)
 nv_mousescroll(cap)
     cmdarg_T	*cap;
 {
+# ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
+    int scroll_wheel_force = 0;
+# endif
 # if defined(FEAT_GUI) && defined(FEAT_WINDOWS)
     win_T *old_curwin = curwin;
 
@@ -4449,8 +4452,22 @@ nv_mousescroll(cap)
     }
     else
     {
+# ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
+        if (gui.in_use && gui.scroll_wheel_force >= 1) {
+	    scroll_wheel_force = gui.scroll_wheel_force;
+	    if (scroll_wheel_force > 1000)
+	        scroll_wheel_force = 1000;
+
+	    cap->count1 = scroll_wheel_force;
+	    cap->count0 = scroll_wheel_force;
+	} else {
+	    cap->count1 = 3;
+	    cap->count0 = 3;
+	}
+# else
 	cap->count1 = 3;
 	cap->count0 = 3;
+# endif
 	nv_scroll_line(cap);
     }
 

@@ -1289,3 +1289,10 @@
 #ifdef FEAT_GUI_MACVIM
 # define FEAT_ODB_EDITOR
 #endif
+
+/*
+ * Scroll wheel supports a 'force' attribute (how many lines to scroll)
+ */
+#ifdef FEAT_GUI_MACVIM
+#define FEAT_GUI_SCROLL_WHEEL_FORCE
+#endif
