@@ -6111,6 +6111,10 @@ normal_search(cap, dir, pat, opt)
     cap->oap->use_reg_one = TRUE;
     curwin->w_set_curswant = TRUE;
 
+#if FEAT_GUI_MACVIM
+    gui_macvim_add_to_find_pboard(pat);
+#endif
+
     i = do_search(cap->oap, dir, pat, cap->count1,
 			   opt | SEARCH_OPT | SEARCH_ECHO | SEARCH_MSG, NULL);
     if (i == 0)

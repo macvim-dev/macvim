@@ -194,6 +194,7 @@ void gui_mch_enter_fullscreen(void);
 void gui_mch_leave_fullscreen(void);
 
 void gui_macvim_update_modified_flag();
+void gui_macvim_add_to_find_pboard(char_u *pat);
 
 OSErr odb_buffer_close(buf_T *buf);
 OSErr odb_post_buffer_write(buf_T *buf);

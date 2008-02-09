@@ -1516,6 +1516,31 @@ gui_macvim_update_modified_flag()
     [[MMBackend sharedInstance] updateModifiedFlag];
 }
 
+/*
+ * Add search pattern 'pat' to the OS X find pasteboard.  This allows other
+ * apps access the last pattern searched for (hitting <D-g> in another app will
+ * initiate a search for the same pattern).
+ */
+    void
+gui_macvim_add_to_find_pboard(char_u *pat)
+{
+    if (!pat) return;
+
+#ifdef FEAT_MBYTE
+    pat = CONVERT_TO_UTF8(pat);
+#endif
+    NSString *s = [NSString stringWithUTF8String:(char*)pat];
+#ifdef FEAT_MBYTE
+    CONVERT_TO_UTF8_FREE(pat);
+#endif
+
+    if (!s) return;
+
+    NSPasteboard *pb = [NSPasteboard pasteboardWithName:NSFindPboard];
+    [pb declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:nil];
+    [pb setString:s forType:NSStringPboardType];
+}
+
 
 
 
