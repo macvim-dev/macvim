@@ -29,7 +29,6 @@ hi ErrorMsg     guibg=Firebrick2 guifg=White
 hi FoldColumn   guibg=Grey guifg=DarkBlue
 hi Folded       guibg=#E6E6E6 guifg=DarkBlue
 hi IncSearch    gui=reverse
-hi LineNr       guifg=#888888 guibg=#E6E6E6
 hi ModeMsg      gui=bold
 hi MoreMsg      gui=bold guifg=SeaGreen4
 hi NonText      gui=bold guifg=Blue
@@ -80,6 +79,7 @@ if &background == "dark"
   hi DiffChange   guibg=MediumPurple4
   hi DiffDelete   gui=bold guifg=White guibg=SlateBlue
   hi DiffText     gui=NONE guifg=White guibg=SteelBlue
+  hi LineNr       guifg=#350A5B guibg=Grey5
   hi MatchParen   guifg=White guibg=Magenta
   hi Normal       guifg=Grey50 guibg=Grey10
   hi Search       guibg=Blue4 guifg=NONE
@@ -99,6 +99,7 @@ else
   hi DiffChange   guibg=DeepSkyBlue
   hi DiffDelete   gui=bold guifg=Black guibg=SlateBlue
   hi DiffText     gui=NONE guibg=Gold
+  hi LineNr       guifg=#888888 guibg=#E6E6E6
   hi MatchParen   guifg=White guibg=MediumPurple1
   hi Normal       gui=NONE guifg=MacTextColor guibg=MacTextBackgroundColor
   hi Search       guibg=CadetBlue1 guifg=NONE
