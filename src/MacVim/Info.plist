@@ -501,19 +501,6 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
-				<string>plist</string>
-				<string>dict</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>Propery List File</string>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSIsAppleDefaultForType</key>
-			<true/>
-		</dict>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
 				<string>*</string>
 			</array>
 			<key>CFBundleTypeName</key>
