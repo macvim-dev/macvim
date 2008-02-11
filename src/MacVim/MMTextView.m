@@ -195,6 +195,7 @@ enum {
 
     const void *bytes = [data bytes];
     const void *end = bytes + [data length];
+    int cursorRow = -1, cursorCol = 0;
 
 #if MM_DEBUG_DRAWING
     NSLog(@"====> BEGIN %s", _cmd);
@@ -304,12 +305,24 @@ enum {
             [self drawInsertionPointAtRow:row column:col shape:shape
                                      fraction:percent
                                         color:[NSColor colorWithRgbInt:color]];
+        } else if (SetCursorPosDrawType == type) {
+            cursorRow = *((int*)bytes);  bytes += sizeof(int);
+            cursorCol = *((int*)bytes);  bytes += sizeof(int);
         } else {
             NSLog(@"WARNING: Unknown draw type (type=%d)", type);
         }
     }
 
     [textStorage endEditing];
+
+    if (cursorRow >= 0) {
+        unsigned off = [textStorage characterIndexForRow:cursorRow
+                                                  column:cursorCol];
+        unsigned maxoff = [[textStorage string] length];
+        if (off > maxoff) off = maxoff;
+
+        [self setSelectedRange:NSMakeRange(off, 0)];
+    }
 
     // NOTE: During resizing, Cocoa only sends draw messages before Vim's rows
     // and columns are changed (due to ipc delays). Force a redraw here.

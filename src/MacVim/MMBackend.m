@@ -441,6 +441,11 @@ static NSString *MMSymlinkWarningString =
             [self setWideFont:oldWideFont];
         }
 
+        int type = SetCursorPosDrawType;
+        [drawData appendBytes:&type length:sizeof(type)];
+        [drawData appendBytes:&gui.row length:sizeof(gui.row)];
+        [drawData appendBytes:&gui.col length:sizeof(gui.col)];
+
         [self queueMessage:BatchDrawMsgID data:[drawData copy]];
         [drawData setLength:0];
     }

@@ -171,7 +171,8 @@ enum {
     DeleteLinesDrawType,
     DrawStringDrawType,
     InsertLinesDrawType,
-    DrawCursorDrawType
+    DrawCursorDrawType,
+    SetCursorPosDrawType,
 };
 
 enum {
