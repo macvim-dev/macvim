@@ -1193,6 +1193,7 @@ gui_mch_adjust_charheight(void)
     void
 gui_mch_beep(void)
 {
+    NSBeep();
 }
 
 
