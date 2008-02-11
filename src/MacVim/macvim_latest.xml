@@ -46,14 +46,14 @@
 <h1>MacVim snapshot 21 released</h1>
 <ul>
   <li>The macvim color scheme changed so that line numbers look better when
-    the background is dark (enable line numbers with :set number, set dark
+    the background is dark (enable line numbers with :set number; set dark
     background with :set bg=dark)</li>
-  <li>Improved support for Voice Over (enable with <D-F5>)</li>
+  <li>Improved support for Voice Over (enable with &lt;D-F5&gt;)</li>
   <li>System bell support (see :h 'vb' on how to turn it off)</li>
   <li>MacVim no longer associates to .plist and .dict since these may well be
     in binary format</li>
-  <li>Added Find Next <D-g>, Find Previous <D-G> and Use Selection for Find
-    <D-e> menu items</li>
+  <li>Added Find Next &lt;D-g&gt;, Find Previous &lt;D-G&gt; and Use Selection
+    for Find &lt;D-e&gt; menu items</li>
   <li>Track pad scrolling is now force sensitive</li>
   <li>Added help section on preferences</li>
   <li>Preferences panel updated (also no longer hides when MacVim loses focus)
