@@ -279,6 +279,9 @@ save_re_pat(idx, pat, magic)
 {
     if (spats[idx].pat != pat)
     {
+#if FEAT_GUI_MACVIM
+	gui_macvim_add_to_find_pboard(pat);
+#endif
 	vim_free(spats[idx].pat);
 	spats[idx].pat = vim_strsave(pat);
 	spats[idx].magic = magic;
@@ -422,6 +425,10 @@ set_last_search_pat(s, idx, magic, setlast)
     int		magic;
     int		setlast;
 {
+#if FEAT_GUI_MACVIM
+    gui_macvim_add_to_find_pboard(s);
+#endif
+
     vim_free(spats[idx].pat);
     /* An empty string means that nothing should be matched. */
     if (*s == NUL)

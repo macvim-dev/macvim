@@ -79,6 +79,7 @@
 - (IBAction)vimMenuItemAction:(id)sender;
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
 - (void)hideTablineSeparator:(BOOL)hide;
+- (void)doFindNext:(BOOL)next;
 @end
 
 
@@ -615,6 +616,16 @@
     [vimController addVimInput:@"<C-\\><C-N>:conf q<CR>"];
 }
 
+- (IBAction)findNext:(id)sender
+{
+    [self doFindNext:YES];
+}
+
+- (IBAction)findPrevious:(id)sender
+{
+    [self doFindNext:NO];
+}
+
 
 // -- NSWindow delegate ------------------------------------------------------
 
@@ -805,6 +816,41 @@
         [self updateResizeConstraints];
         shouldResizeVimView = YES;
     }
+}
+
+- (void)doFindNext:(BOOL)next
+{
+    NSString *query = nil;
+
+#if 0
+    // Use current query if the search field is selected.
+    id searchField = [[self searchFieldItem] view];
+    if (searchField && [[searchField stringValue] length] > 0 &&
+            [decoratedWindow firstResponder] == [searchField currentEditor])
+        query = [searchField stringValue];
+#endif
+
+    if (!query) {
+        // Use find pasteboard for next query.
+        NSPasteboard *pb = [NSPasteboard pasteboardWithName:NSFindPboard];
+        NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
+        if ([pb availableTypeFromArray:types])
+            query = [pb stringForType:NSStringPboardType];
+    }
+
+    NSString *input = nil;
+    if (query) {
+        // NOTE: The '/' register holds the last search string.  By setting it
+        // (using the '@/' syntax) we fool Vim into thinking that it has
+        // already searched for that string and then we can simply use 'n' or
+        // 'N' to find the next/previous match.
+        input = [NSString stringWithFormat:@"<C-\\><C-N>:let @/='%@'<CR>%c",
+                query, next ? 'n' : 'N'];
+    } else {
+        input = next ? @"<C-\\><C-N>n" : @"<C-\\><C-N>N"; 
+    }
+
+    [vimController addVimInput:input];
 }
 
 @end // MMWindowController (Private)

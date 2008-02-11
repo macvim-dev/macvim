@@ -8,6 +8,10 @@
 	<string></string>
 	<key>fileOpen:</key>
 	<string></string>
+	<key>findNext:</key>
+	<string></string>
+	<key>findPrevious:</key>
+	<string></string>
 	<key>fontSizeDown:</key>
 	<string></string>
 	<key>fontSizeUp:</key>

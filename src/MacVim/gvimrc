@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Mon Oct 27 2007
+" Last Change:	Mon Feb 11 2008
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -49,6 +49,21 @@ an 10.328 File.-SEP0-                           <Nop>
 an <silent> 10.330 File.Close\ Window<Tab>:qa   :confirm qa<CR>
 an <silent> 10.331 File.Close                   :maca performClose:<CR>
 "an 10.331 File.Close\ Tab                   :tabclose<CR>
+
+
+" Edit menu
+
+aunmenu Edit.Find
+aunmenu Edit.Find\ and\ Replace
+
+an 20.410.10 Edit.Find.Find\.\.\.<Tab>/     /
+an 20.410.20 Edit.Find.Find\ Next           :maca findNext:<CR>
+an 20.410.30 Edit.Find.Find\ Previous       :maca findPrevious:<CR>
+vmenu 20.410.35 Edit.Find.Use\ Selection\ for\ Find y:let @/=@"<CR>n
+an 20.410.40 Edit.Find.-SEP1-               <Nop>
+an 20.410.50 Edit.Find.Find\ and\ Replace\.\.\.<Tab>:%s   :%s/
+vunmenu      Edit.Find.Find\ and\ Replace\.\.\.<Tab>:%s
+vnoremenu    Edit.Find.Find\ and\ Replace\.\.\.<Tab>:s    :s/
 
 an 20.460 Edit.-SEP4-                       <Nop>
 an 20.465.10 Edit.Font.Show\ Fonts          :maca orderFrontFontPanel:<CR>
@@ -189,6 +204,10 @@ macmenukey Edit.Cut                               <D-x>
 macmenukey Edit.Copy                              <D-c>
 macmenukey Edit.Paste                             <D-v>
 macmenukey Edit.Select\ All                       <D-a>
+macmenukey Edit.Find.Find\.\.\.                   <D-f>
+macmenukey Edit.Find.Find\ Next                   <D-g>
+macmenukey Edit.Find.Find\ Previous               <D-G>
+macmenukey Edit.Find.Use\ Selection\ for\ Find    <D-e>
 macmenukey Edit.Special\ Characters\.\.\.         <D-M-t> 
 macmenukey Edit.Font.Bigger                       <D-=>
 macmenukey Edit.Font.Smaller                      <D-->

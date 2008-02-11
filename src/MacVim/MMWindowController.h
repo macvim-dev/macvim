@@ -66,5 +66,7 @@
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;
 - (IBAction)performClose:(id)sender;
+- (IBAction)findNext:(id)sender;
+- (IBAction)findPrevious:(id)sender;
 
 @end
