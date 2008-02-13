@@ -125,6 +125,22 @@ strings like "((3) of 2)" to appear in the window title.
 These are the non-standard options that MacVim supports:
 	'fullscreen' 'toolbariconsize' 'transparency'
 
+							*macvim-find*
+Whenever you search for something in Vim (e.g. using "/") the search query is
+copied to the OS X "Find Pasteboard".  The idea is that if you search for
+something and switch to another application, then you can hit <D-g> (or <D-G>)
+to repeat the search in the new app.  The same feature works if you search in
+some app, switch to MacVim and hit <D-g>.
+
+Note that the command |n| is not the same as <D-g>.  The former will repeat
+the last search made in Vim, whereas the latter searches for the string on the
+OS X Find Pasteboard using the action findNext: (see |:macaction|).
+
+The <D-g> key equivalent is a great way to bring a search from one window to
+another in MacVim.  Simply search for something in one window (using "/") then
+switch to another (e.g. with <D-`>) and hit <D-g> and the search will be
+repeated in the new window.
+
 ==============================================================================
 2. Starting MacVim					*macvim-start*
 
@@ -327,11 +343,14 @@ Here is a random assortment of actions from Actions.plist which might be
 useful.
 
 Action				Description ~
+findNext:			Search forward using the "Find Pasteboard"
+findPrevious:			Search backward using the "Find Pasteboard"
 fontSizeDown:			Decrease font size
 fontSizeUp:			Increase font size
 newWindow:			Open a new (empty) window
 orderFrontCharacterPalette:	Show the the "Special Characters" dialog
 orderFrontFontPanel:		Show the Font panel
+orderFrontPreferencePanel:	Show the Preferences panel
 performZoom:			Zoom window (same as clicking the green blob)
 selectNextWindow:		Select next window (similar to <D-`>)
 selectPreviousWindow:		Select previous window (similar to <S-D-`>)
