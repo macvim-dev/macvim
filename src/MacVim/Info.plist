@@ -530,7 +530,7 @@
 	<key>CFBundleSignature</key>
 	<string>VIMM</string>
 	<key>CFBundleVersion</key>
-	<string>21</string>
+	<string>22</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>

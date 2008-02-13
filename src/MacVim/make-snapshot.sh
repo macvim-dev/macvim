@@ -1,11 +1,16 @@
 #!/bin/sh
 
 # Increment build number
-/Developer/Tools/agvtool next-version -all
+/Developer/Tools/agvtool next-version -all > /dev/null
 
 # Get current build number
 BUILDNUM=`/Developer/Tools/agvtool what-version -terse`
 DEST=~/Desktop/MacVim-snapshot-$BUILDNUM
+
+echo '****************************************************'
+echo "              BUILDING SNAPSHOT $BUILDNUM"
+echo '****************************************************'
+echo ''
 
 # Build Vim binary
 echo 'BUILDING VIM BINARY'
