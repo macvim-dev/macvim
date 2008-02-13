@@ -1527,6 +1527,9 @@ gui_macvim_add_to_find_pboard(char_u *pat)
 {
     if (!pat) return;
 
+    // HACK: Do not call Cocoa during a fork or bad things (TM) will happen.
+    if (gui.dofork) return;
+
 #ifdef FEAT_MBYTE
     pat = CONVERT_TO_UTF8(pat);
 #endif

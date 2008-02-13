@@ -280,7 +280,8 @@ save_re_pat(idx, pat, magic)
     if (spats[idx].pat != pat)
     {
 #if FEAT_GUI_MACVIM
-	gui_macvim_add_to_find_pboard(pat);
+	if (RE_SEARCH == idx)
+	    gui_macvim_add_to_find_pboard(pat);
 #endif
 	vim_free(spats[idx].pat);
 	spats[idx].pat = vim_strsave(pat);
@@ -426,7 +427,8 @@ set_last_search_pat(s, idx, magic, setlast)
     int		setlast;
 {
 #if FEAT_GUI_MACVIM
-    gui_macvim_add_to_find_pboard(s);
+    if (RE_SEARCH == idx)
+	gui_macvim_add_to_find_pboard(s);
 #endif
 
     vim_free(spats[idx].pat);
