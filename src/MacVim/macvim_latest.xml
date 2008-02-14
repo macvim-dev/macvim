@@ -41,10 +41,16 @@
     -->
     
     <item>
-      <title>Snapshot 21 released</title>
+      <title>Snapshot 22 released</title>
       <description><![CDATA[
-<h1>MacVim snapshot 21 released</h1>
+<h1>MacVim snapshot 22 released</h1>
+
+<p><em>This snapshot replaces the broken snapshot 21.  If you installed build 21
+  then please update immediately.</em></p>
+
+<p>Changes since snapshot 20:</p>
 <ul>
+  <li>Fix forking bug which caused snapshot 21 to lock up OS X</li>
   <li>The macvim color scheme changed so that line numbers look better when
     the background is dark (enable line numbers with :set number; set dark
     background with :set bg=dark)</li>
@@ -59,13 +65,21 @@
   <li>Preferences panel updated (also no longer hides when MacVim loses focus)
     </li>
 </ul>
+
+<p>The most exciting new addition in this snapshot is support for &lt;D-g&gt;.
+It repeats the last search you made in any other application (that supports the
+Find Pasteboard).</p>
+<p>This is very useful if you have several windows open in MacVim...try
+searching for something in one window (using "/"), then switching to another
+window and hitting &lt;D-g&gt; for an example (after having pressed &lt;D-g&gt;
+once you can of course use "n" to repeat the search).</p>
       ]]></description>
-      <pubDate>Mon, 11 Feb 2008 22:17 CET</pubDate>
+      <pubDate>Wed, 13 Feb 2008 19:36 CET</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://macvim.googlecode.com/files/MacVim-snapshot-21.tbz"
-        length="7814596"
-        sparkle:version="21"
-        sparkle:shortVersionString="snapshot 21"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-22.tbz"
+        length="7812907"
+        sparkle:version="22"
+        sparkle:shortVersionString="7.1"
         />
     </item>
 
