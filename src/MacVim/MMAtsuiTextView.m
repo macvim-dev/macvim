@@ -70,6 +70,7 @@ enum {
 
 
 @interface MMAtsuiTextView (Drawing)
+- (NSPoint)originForRow:(int)row column:(int)column;
 - (NSRect)rectFromRow:(int)row1 column:(int)col1
                 toRow:(int)row2 column:(int)col2;
 - (NSSize)textAreaSize;
@@ -105,6 +106,7 @@ enum {
         cellSize.width = cellSize.height = 1;
         contentImage = nil;
         imageSize = NSZeroSize;
+        insetSize = NSZeroSize;
 
         [self initAtsuStyles];
     }
@@ -152,17 +154,21 @@ enum {
     }
 }
 
+- (void)setTextContainerInset:(NSSize)size
+{
+    insetSize = size;
+}
+
 - (NSRect)rectForRowsInRange:(NSRange)range
 {
-    // TODO: Add text inset to origin
     NSRect rect = { 0, 0, 0, 0 };
     unsigned start = range.location > maxRows ? maxRows : range.location;
     unsigned length = range.length;
 
-    if (start+length > maxRows)
+    if (start + length > maxRows)
         length = maxRows - start;
 
-    rect.origin.y = cellSize.height * start;
+    rect.origin.y = cellSize.height * start + insetSize.height;
     rect.size.height = cellSize.height * length;
 
     return rect;
@@ -170,7 +176,6 @@ enum {
 
 - (NSRect)rectForColumnsInRange:(NSRange)range
 {
-    // TODO: Add text inset to origin
     NSRect rect = { 0, 0, 0, 0 };
     unsigned start = range.location > maxColumns ? maxColumns : range.location;
     unsigned length = range.length;
@@ -178,7 +183,7 @@ enum {
     if (start+length > maxColumns)
         length = maxColumns - start;
 
-    rect.origin.x = cellSize.width * start;
+    rect.origin.x = cellSize.width * start + insetSize.width;
     rect.size.width = cellSize.width * length;
 
     return rect;
@@ -458,8 +463,14 @@ enum {
 
 - (void)drawRect:(NSRect)rect
 {
-    [contentImage drawInRect: rect
-                    fromRect: rect
+    NSRect srcRect = NSMakeRect(0, 0, imageSize.width, imageSize.height);
+    NSRect dstRect = srcRect;
+
+    dstRect.origin.x += insetSize.width;
+    dstRect.origin.y += insetSize.height;
+
+    [contentImage drawInRect: dstRect
+                    fromRect: srcRect
                    operation: NSCompositeCopy
                     fraction: 1.0];
 }
@@ -579,6 +590,11 @@ enum {
             [self drawInsertionPointAtRow:row column:col shape:shape
                                      fraction:percent
                                         color:[NSColor colorWithRgbInt:color]];
+        } else if (SetCursorPosDrawType == type) {
+            // TODO: This is used for Voice Over support in MMTextView,
+            // MMAtsuiTextView currently does not support Voice Over.
+            /*cursorRow = *((int*)bytes);*/  bytes += sizeof(int);
+            /*cursorCol = *((int*)bytes);*/  bytes += sizeof(int);
         } else {
             NSLog(@"WARNING: Unknown draw type (type=%d)", type);
         }
@@ -599,7 +615,6 @@ enum {
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size
 {
     // TODO:
-    // - Take text area inset into consideration
     // - Rounding errors may cause size change when there should be none
     // - Desired rows/columns shold not be 'too small'
 
@@ -611,18 +626,20 @@ enum {
 
     if (size.height != desiredSize.height) {
         float fh = cellSize.height;
+        float ih = 2 * insetSize.height;
         if (fh < 1.0f) fh = 1.0f;
 
-        desiredRows = floor(size.height/fh);
-        desiredSize.height = fh*desiredRows;
+        desiredRows = floor((size.height - ih)/fh);
+        desiredSize.height = fh*desiredRows + ih;
     }
 
     if (size.width != desiredSize.width) {
         float fw = cellSize.width;
+        float iw = 2 * insetSize.width;
         if (fw < 1.0f) fw = 1.0f;
 
-        desiredCols = floor(size.width/fw);
-        desiredSize.width = fw*desiredCols;
+        desiredCols = floor((size.width - iw)/fw);
+        desiredSize.width = fw*desiredCols + iw;
     }
 
     if (rows) *rows = desiredRows;
@@ -635,17 +652,15 @@ enum {
 {
     // Compute the size the text view should be for the entire text area and
     // inset area to be visible with the present number of rows and columns.
-    //
-    // TODO: Add inset area to size.
-    return NSMakeSize(maxColumns*cellSize.width, maxRows*cellSize.height);
+    return NSMakeSize(maxColumns * cellSize.width + 2 * insetSize.width,
+                      maxRows * cellSize.height + 2 * insetSize.height);
 }
 
 - (NSSize)minSize
 {
     // Compute the smallest size the text view is allowed to be.
-    //
-    // TODO: Add inset area to size.
-    return NSMakeSize(MMMinColumns*cellSize.width, MMMinRows*cellSize.height);
+    return NSMakeSize(MMMinColumns * cellSize.width + 2 * insetSize.width,
+                      MMMinRows * cellSize.height + 2 * insetSize.height);
 }
 
 - (void)changeFont:(id)sender
@@ -707,8 +722,7 @@ enum {
 
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column
 {
-    // TODO: text inset
-    NSPoint origin = { 0,0 };
+    NSPoint origin = { insetSize.width, insetSize.height };
 
     if (!(cellSize.width > 0 && cellSize.height > 0))
         return NO;
@@ -864,10 +878,16 @@ enum {
 
 @implementation MMAtsuiTextView (Drawing)
 
+- (NSPoint)originForRow:(int)row column:(int)col
+{
+    return NSMakePoint(col * cellSize.width, row * cellSize.height);
+}
+
 - (NSRect)rectFromRow:(int)row1 column:(int)col1
                 toRow:(int)row2 column:(int)col2
 {
-    return NSMakeRect(col1 * cellSize.width, row1 * cellSize.height,
+    NSPoint origin = [self originForRow: row1 column: col1];
+    return NSMakeRect(origin.x, origin.y,
                       (col2 + 1 - col1) * cellSize.width,
                       (row2 + 1 - row1) * cellSize.height);
 }
@@ -876,7 +896,7 @@ enum {
 {
     // Calculate the (desired) size of the text area, i.e. the text view area
     // minus the inset area.
-    return NSMakeSize(maxColumns*cellSize.width, maxRows*cellSize.height);
+    return NSMakeSize(maxColumns * cellSize.width, maxRows * cellSize.height);
 }
 
 - (void)resizeContentImage
@@ -906,7 +926,7 @@ enum {
     // 'string' consists of 'length' utf-16 code pairs and should cover 'cells'
     // display cells (a normal character takes up one display cell, a wide
     // character takes up two)
-    ATSUStyle          style = atsuStyles[0];
+    ATSUStyle          style = (flags & DRAW_WIDE) ? atsuStyles[1] : atsuStyles[0];
     ATSUTextLayout     layout;
 
     // NSLog(@"drawString: %d", length);
@@ -919,6 +939,8 @@ enum {
 
     NSRect rect = NSMakeRect(col * cellSize.width, row * cellSize.height,
                              length * cellSize.width, cellSize.height);
+    if (flags & DRAW_WIDE)
+        rect.size.width = rect.size.width * 2;
     CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
 
     ATSUAttributeTag tags[] = { kATSUCGContextTag };
@@ -1003,6 +1025,27 @@ enum {
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
                        fraction:(int)percent color:(NSColor *)color
 {
+    NSPoint origin = [self originForRow:row column:col];
+    NSRect rect = NSMakeRect(origin.x, origin.y,
+                             cellSize.width, cellSize.height);
+
+    // NSLog(@"shape = %d, fraction: %d", shape, percent);
+
+    if (MMInsertionPointHorizontal == shape) {
+        int frac = (cellSize.height * percent + 99)/100;
+        rect.origin.y += rect.size.height - frac;
+        rect.size.height = frac;
+    } else if (MMInsertionPointVertical == shape) {
+        int frac = (cellSize.width * percent + 99)/100;
+        rect.size.width = frac;
+    }
+
+    [color set];
+    if (MMInsertionPointHollow == shape) {
+        NSFrameRect(rect);
+    } else {
+        NSRectFill(rect);
+    }
 }
 
 @end // MMAtsuiTextView (Drawing)

@@ -104,6 +104,12 @@ enum {
         textView = [[MMTextView alloc] initWithFrame:frame];
     }
 
+    // Allow control of text view inset via MMTextInset* user defaults.
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int left = [ud integerForKey:MMTextInsetLeftKey];
+    int top = [ud integerForKey:MMTextInsetTopKey];
+    [textView setTextContainerInset:NSMakeSize(left, top)];
+
     [textView setAutoresizingMask:NSViewNotSizable];
     [self addSubview:textView];
     
@@ -123,7 +129,6 @@ enum {
     [tabBarControl setDelegate:self];
     [tabBarControl setHidden:YES];
 
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
     [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
     [tabBarControl setCellOptimumWidth:

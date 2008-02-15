@@ -23,6 +23,9 @@ enum { MMMaxCellsPerChar = 2 };
     NSFont                      *font;
     float                       linespace;
 
+    // From NSTextView
+    NSSize                      insetSize;
+
     // From vim-cocoa
     NSImage                     *contentImage;
     NSSize                      imageSize;
@@ -62,6 +65,11 @@ enum { MMMaxCellsPerChar = 2 };
 - (void)insertText:(id)string;
 - (void)doCommandBySelector:(SEL)selector;
 - (BOOL)performKeyEquivalent:(NSEvent *)event;
+
+//
+// NSTextContainer methods
+//
+- (void)setTextContainerInset:(NSSize)inset;
 
 //
 // MMAtsuiTextView methods

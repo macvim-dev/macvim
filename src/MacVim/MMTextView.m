@@ -110,12 +110,6 @@ enum {
         return nil;
     }
 
-    // Allow control of text view inset via MMTextInset* user defaults.
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int left = [ud integerForKey:MMTextInsetLeftKey];
-    int top = [ud integerForKey:MMTextInsetTopKey];
-    [self setTextContainerInset:NSMakeSize(left, top)];
-
     return self;
 }
 
