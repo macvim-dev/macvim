@@ -163,6 +163,10 @@ http://developer.apple.com/documentation/Darwin/Reference/ManPages/man2/fork.2.h
         }
         newargv[argc+1] = NULL;
 
+        /* shut down all the stuff we just started, just to start
+         * it again from the exec :-\ */
+        prepare_getout();
+
         pid = fork();
         switch(pid) {
             case -1:
@@ -172,10 +176,6 @@ http://developer.apple.com/documentation/Darwin/Reference/ManPages/man2/fork.2.h
                 _exit(255);
             case 0:
                 /* Child. */
-
-                /* shut down all the stuff we just started, just to start
-                 * it again from the exec :-\ */
-                prepare_getout();
 
                 /* make sure we survive our shell */
                 setsid();
