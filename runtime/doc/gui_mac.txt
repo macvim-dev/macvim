@@ -230,6 +230,7 @@ MMTextInsetRight		text area offset in pixels [int]
 MMTextInsetTop			text area offset in pixels [int]
 MMTexturedWindow		use brushed metal window (Tiger only) [bool]
 MMTranslateCtrlClick		interpret ctrl-click as right-click [bool]
+MMZoomBoth			zoom button maximizes both directions [bool]
 
 As an example, if you have more than one mouse button and would wish to free
 up Ctrl-click so you can bind it to something else, then the appropriate

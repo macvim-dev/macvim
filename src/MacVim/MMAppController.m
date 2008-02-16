@@ -115,6 +115,7 @@ typedef struct
         [NSNumber numberWithInt:MMUntitledWindowAlways],
                                         MMUntitledWindowKey,
         [NSNumber numberWithBool:NO],   MMTexturedWindowKey,
+        [NSNumber numberWithBool:NO],   MMZoomBothKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];

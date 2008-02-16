@@ -683,14 +683,19 @@
                         defaultFrame:(NSRect)frame
 {
     // Keep old width and horizontal position unless user clicked while the
-    // Command key is held down.
+    // Command key is held down, or if the MMZoomBoth user default is set.
+
     NSEvent *event = [NSApp currentEvent];
-    if (!([event type] == NSLeftMouseUp
-            && [event modifierFlags] & NSCommandKeyMask)) {
-        NSRect currentFrame = [win frame];
-        frame.size.width = currentFrame.size.width;
-        frame.origin.x = currentFrame.origin.x;
-    }
+    BOOL cmdLeftClick = [event type] == NSLeftMouseUp
+            && [event modifierFlags] & NSCommandKeyMask;
+    BOOL zoomBoth = [[NSUserDefaults standardUserDefaults]
+            boolForKey:MMZoomBothKey];
+    if (zoomBoth || cmdLeftClick)
+        return frame;
+
+    NSRect currentFrame = [win frame];
+    frame.size.width = currentFrame.size.width;
+    frame.origin.x = currentFrame.origin.x;
 
     return frame;
 }
