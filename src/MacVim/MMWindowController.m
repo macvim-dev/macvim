@@ -682,15 +682,19 @@
 - (NSRect)windowWillUseStandardFrame:(NSWindow *)win
                         defaultFrame:(NSRect)frame
 {
-    // Keep old width and horizontal position unless user clicked while the
-    // Command key is held down, or if the MMZoomBoth user default is set.
+    // By default the window is maximized in the vertical direction only.
+    // Holding down the Cmd key maximizes the window in the horizontal
+    // direction.  If the MMZoomBoth user default is set, then the window
+    // maximizes in both directions by default, unless the Cmd key is held in
+    // which case the window only maximizes in the vertical direction.
 
     NSEvent *event = [NSApp currentEvent];
     BOOL cmdLeftClick = [event type] == NSLeftMouseUp
             && [event modifierFlags] & NSCommandKeyMask;
     BOOL zoomBoth = [[NSUserDefaults standardUserDefaults]
             boolForKey:MMZoomBothKey];
-    if (zoomBoth || cmdLeftClick)
+
+    if ((zoomBoth && !cmdLeftClick) || (!zoomBoth && cmdLeftClick))
         return frame;
 
     NSRect currentFrame = [win frame];
