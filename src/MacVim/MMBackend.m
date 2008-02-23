@@ -287,28 +287,29 @@ static NSString *MMSymlinkWarningString =
         }
     }
 
-    id proxy = [connection rootProxy];
-    [proxy setProtocolForProxy:@protocol(MMAppProtocol)];
-
-    [[NSNotificationCenter defaultCenter] addObserver:self
-            selector:@selector(connectionDidDie:)
-                name:NSConnectionDidDieNotification object:connection];
-
-    int pid = [[NSProcessInfo processInfo] processIdentifier];
-
+    BOOL ok = NO;
     @try {
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                selector:@selector(connectionDidDie:)
+                    name:NSConnectionDidDieNotification object:connection];
+
+        id proxy = [connection rootProxy];
+        [proxy setProtocolForProxy:@protocol(MMAppProtocol)];
+
+        int pid = [[NSProcessInfo processInfo] processIdentifier];
+
         frontendProxy = [proxy connectBackend:self pid:pid];
+        if (frontendProxy) {
+            [frontendProxy retain];
+            [frontendProxy setProtocolForProxy:@protocol(MMAppProtocol)];
+            ok = YES;
+        }
     }
     @catch (NSException *e) {
         NSLog(@"Exception caught when trying to connect backend: \"%@\"", e);
     }
 
-    if (frontendProxy) {
-        [frontendProxy retain];
-        [frontendProxy setProtocolForProxy:@protocol(MMAppProtocol)];
-    }
-
-    return connection && frontendProxy;
+    return ok;
 }
 
 - (BOOL)openVimWindow
