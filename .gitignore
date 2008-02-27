@@ -18,5 +18,6 @@ src/auto/pathdef.c
 src/config.log
 src/config.status
 src/objects
+src/po/*.mo
 src/tags
 src/xxd/xxd
