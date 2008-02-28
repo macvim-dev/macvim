@@ -9,6 +9,13 @@
 /* Begin PBXBuildFile section */
 		031AD5D40D4DE1F60026C5D7 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 031AD5D30D4DE1F60026C5D7 /* Sparkle.framework */; };
 		031AD5EE0D4DE2490026C5D7 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 031AD5D30D4DE1F60026C5D7 /* Sparkle.framework */; };
+		0395A8330D71ED7800881434 /* DBPrefsWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0395A8320D71ED7800881434 /* DBPrefsWindowController.m */; };
+		0395A8AA0D72D88B00881434 /* General.png in Resources */ = {isa = PBXBuildFile; fileRef = 0395A8A90D72D88B00881434 /* General.png */; };
+		0395A95A0D74D47B00881434 /* Integration.png in Resources */ = {isa = PBXBuildFile; fileRef = 0395A9590D74D47B00881434 /* Integration.png */; };
+		0395A9BF0D75D02400881434 /* AuthorizedShellCommand.m in Sources */ = {isa = PBXBuildFile; fileRef = 0395A9BE0D75D02400881434 /* AuthorizedShellCommand.m */; };
+		0395A9C30D75D04D00881434 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0395A9C20D75D04D00881434 /* Security.framework */; };
+		0395AA780D76E77800881434 /* Info in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0395AA770D76E77800881434 /* Info */; };
+		0395AAAD0D76E94000881434 /* Edit in ODBEditor.bundle in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0395AA210D76E22700881434 /* Edit in ODBEditor.bundle */; };
 		1D09AB420C6A4D520045497E /* MMTypesetter.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D09AB400C6A4D520045497E /* MMTypesetter.m */; };
 		1D0E051C0BA5F83800B6049E /* Colors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1D0E051B0BA5F83800B6049E /* Colors.plist */; };
 		1D1474980C56703C0038FA2B /* MacVim.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474960C56703C0038FA2B /* MacVim.m */; };
@@ -79,6 +86,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		0395AA200D76E22700881434 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 8D5B49B6048680CD000E48DA;
+			remoteInfo = "Edit in ODBEditor";
+		};
+		0395AA230D76E2F300881434 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 8D5B49AC048680CD000E48DA;
+			remoteInfo = "Edit in ODBEditor";
+		};
 		1D493DB80C52533B00AB718C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
@@ -96,6 +117,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		0395AA790D76E77800881434 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "Edit in ODBEditor";
+			dstSubfolderSpec = 7;
+			files = (
+				0395AAAD0D76E94000881434 /* Edit in ODBEditor.bundle in CopyFiles */,
+				0395AA780D76E77800881434 /* Info in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1D0DCAD80BA3604D00B6CCFA /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -133,6 +165,15 @@
 
 /* Begin PBXFileReference section */
 		031AD5D30D4DE1F60026C5D7 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
+		0395A8310D71ED7800881434 /* DBPrefsWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DBPrefsWindowController.h; sourceTree = "<group>"; };
+		0395A8320D71ED7800881434 /* DBPrefsWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DBPrefsWindowController.m; sourceTree = "<group>"; };
+		0395A8A90D72D88B00881434 /* General.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = General.png; sourceTree = "<group>"; };
+		0395A9590D74D47B00881434 /* Integration.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Integration.png; sourceTree = "<group>"; };
+		0395A9BD0D75D02400881434 /* AuthorizedShellCommand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AuthorizedShellCommand.h; sourceTree = "<group>"; };
+		0395A9BE0D75D02400881434 /* AuthorizedShellCommand.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AuthorizedShellCommand.m; sourceTree = "<group>"; };
+		0395A9C20D75D04D00881434 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = /System/Library/Frameworks/Security.framework; sourceTree = "<absolute>"; };
+		0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "Edit in ODBEditor.xcodeproj"; path = "edit-in-odb/Edit in ODBEditor.xcodeproj"; sourceTree = "<group>"; };
+		0395AA770D76E77800881434 /* Info */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = Info; path = "edit-in-odb/Info"; sourceTree = "<group>"; };
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		13E42FB307B3F0F600E4EEF1 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
@@ -229,15 +270,37 @@
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				1D80FBE40CBBD6F200102A1C /* Carbon.framework in Frameworks */,
 				031AD5D40D4DE1F60026C5D7 /* Sparkle.framework in Frameworks */,
+				0395A9C30D75D04D00881434 /* Security.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0395AA1A0D76E22700881434 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0395AA210D76E22700881434 /* Edit in ODBEditor.bundle */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0395AA980D76E86200881434 /* Edit in ODBEditor */ = {
+			isa = PBXGroup;
+			children = (
+				0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */,
+				0395AA770D76E77800881434 /* Info */,
+			);
+			name = "Edit in ODBEditor";
+			sourceTree = "<group>";
+		};
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
+				0395A9BD0D75D02400881434 /* AuthorizedShellCommand.h */,
+				0395A9BE0D75D02400881434 /* AuthorizedShellCommand.m */,
+				0395A8310D71ED7800881434 /* DBPrefsWindowController.h */,
+				0395A8320D71ED7800881434 /* DBPrefsWindowController.m */,
 				1DE3F8E80D50F84600052B9E /* MMPreferenceController.h */,
 				1DE3F8E90D50F84600052B9E /* MMPreferenceController.m */,
 				1DE9B94D0D341AB8008FEDD4 /* MMWindow.h */,
@@ -339,6 +402,8 @@
 				1D71ACB10BC702AB002F2B60 /* doc-bm-txt.icns */,
 				1D71ACB20BC702AB002F2B60 /* doc-bm-xml.icns */,
 				1D71ACB30BC702AB002F2B60 /* doc-bm.icns */,
+				0395A8A90D72D88B00881434 /* General.png */,
+				0395A9590D74D47B00881434 /* Integration.png */,
 				1DD703B80BA9D15D008679E9 /* vim_gloss.icns */,
 			);
 			name = Icons;
@@ -417,6 +482,8 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				0395AA980D76E86200881434 /* Edit in ODBEditor */,
+				0395A9C20D75D04D00881434 /* Security.framework */,
 				1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */,
 				1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */,
 				1058C7A2FEA54F0111CA2CBB /* Other Frameworks */,
@@ -437,11 +504,13 @@
 				1D0DCAD80BA3604D00B6CCFA /* CopyFiles */,
 				1D9EB2840C366D7B0074B739 /* CopyFiles */,
 				1DE608B80C58807F0055263D /* CopyFiles */,
+				0395AA790D76E77800881434 /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				1D493DCD0C5254A400AB718C /* PBXTargetDependency */,
+				0395AA240D76E2F300881434 /* PBXTargetDependency */,
 			);
 			name = MacVim;
 			productInstallPath = "$(HOME)/Applications";
@@ -461,6 +530,10 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
+					ProductGroup = 0395AA1A0D76E22700881434 /* Products */;
+					ProjectRef = 0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */;
+				},
+				{
 					ProductGroup = 1D493DB40C52533B00AB718C /* Products */;
 					ProjectRef = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
 				},
@@ -473,6 +546,13 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		0395AA210D76E22700881434 /* Edit in ODBEditor.bundle */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = "Edit in ODBEditor.bundle";
+			remoteRef = 0395AA200D76E22700881434 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.framework;
@@ -532,6 +612,8 @@
 				1D3D19130CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf in Resources */,
 				1D3D19140CA690FF0004A0A5 /* DejaVuSansMono.ttf in Resources */,
 				1DE3F8E70D50F80500052B9E /* Preferences.nib in Resources */,
+				0395A8AA0D72D88B00881434 /* General.png in Resources */,
+				0395A95A0D74D47B00881434 /* Integration.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -556,12 +638,19 @@
 				1D9918490D299F9900A96335 /* MMAtsuiTextView.m in Sources */,
 				1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */,
 				1DE3F8EB0D50F84600052B9E /* MMPreferenceController.m in Sources */,
+				0395A8330D71ED7800881434 /* DBPrefsWindowController.m in Sources */,
+				0395A9BF0D75D02400881434 /* AuthorizedShellCommand.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		0395AA240D76E2F300881434 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "Edit in ODBEditor";
+			targetProxy = 0395AA230D76E2F300881434 /* PBXContainerItemProxy */;
+		};
 		1D493DCD0C5254A400AB718C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = PSMTabBarControlFramework;

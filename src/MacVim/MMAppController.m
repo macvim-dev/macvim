@@ -562,7 +562,7 @@ typedef struct
 
 - (IBAction)orderFrontPreferencePanel:(id)sender
 {
-    [[MMPreferenceController sharedPreferenceController] showWindow:self];
+    [[MMPreferenceController sharedPrefsWindowController] showWindow:self];
 }
 
 - (byref id <MMFrontendProtocol>)

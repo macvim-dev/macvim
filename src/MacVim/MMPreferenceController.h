@@ -9,10 +9,24 @@
  */
 
 #import <Cocoa/Cocoa.h>
+#import <DBPrefsWindowController.h>
 
-@interface MMPreferenceController : NSWindowController {
+@interface MMPreferenceController : DBPrefsWindowController {
+
+    IBOutlet NSView *generalPreferences;
+    IBOutlet NSView *integrationPreferences;
+
+
+    // Integration pane
+    NSDictionary *supportedOdbEditors;
+    IBOutlet NSPopUpButton *editors;
+    IBOutlet NSButton *installOdbButton;
+    IBOutlet NSButton *uninstallOdbButton;
+
 }
 
-+ (MMPreferenceController *)sharedPreferenceController;
+// Integration pane
+- (IBAction)installOdb:(id)sender;
+- (IBAction)uninstallOdb:(id)sender;
 
 @end

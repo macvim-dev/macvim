@@ -416,9 +416,11 @@
 		0259C573FE90428111CA0C5A /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = C056398B08A954F8003078D8 /* Build configuration list for PBXProject "PSMTabBarControl" */;
+			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 1;
 			mainGroup = 0259C574FE90428111CA0C5A /* PSMTabBarControl */;
 			projectDirPath = "";
+			projectRoot = "";
 			targets = (
 				53DF68FC067E5B5A0090B5B0 /* PSMTabBarControlFramework */,
 				53DF6901067E5B8E0090B5B0 /* All */,
