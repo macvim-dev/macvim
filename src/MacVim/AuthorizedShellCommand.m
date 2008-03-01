@@ -146,10 +146,7 @@ cleanup:
 
     free(authItems);
 
-    if (err != errAuthorizationSuccess)
-        return err;
-
-    return noErr;
+    return err;
 }
 
 @end

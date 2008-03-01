@@ -101,6 +101,7 @@ NSString *MMAtsuiRendererKey            = @"MMAtsuiRenderer";
 NSString *MMUntitledWindowKey           = @"MMUntitledWindow";
 NSString *MMTexturedWindowKey           = @"MMTexturedWindow";
 NSString *MMZoomBothKey                 = @"MMZoomBoth";
+NSString *MMCurrentPreferencePaneKey    = @"MMCurrentPreferencePane";
 
 
 

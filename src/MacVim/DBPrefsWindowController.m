@@ -182,6 +182,24 @@ static DBPrefsWindowController *_sharedPrefsWindowController = nil;
 
 
 
+- (NSString *)currentPaneIdentifier
+	// Subclasses can override this to persist the current preference pane.
+{
+	return currentPaneIdentifier;
+}
+
+
+
+
+- (void)setCurrentPaneIdentifier:(NSString *)identifier
+	// Subclasses can override this to persist the current preference pane.
+{
+	currentPaneIdentifier = identifier;
+}
+
+
+
+
 #pragma mark -
 #pragma mark Overriding Methods
 
@@ -211,11 +229,12 @@ static DBPrefsWindowController *_sharedPrefsWindowController = nil;
 		[toolbar release];
 	}
 	
-	if ([toolbarItems objectForKey:currentPaneIdentifier] == nil) {
-		currentPaneIdentifier = [toolbarIdentifiers objectAtIndex:0];
+	if ([toolbarItems objectForKey:[self currentPaneIdentifier]] == nil) {
+		[self setCurrentPaneIdentifier:[toolbarIdentifiers objectAtIndex:0]];
 	}
-	[[[self window] toolbar] setSelectedItemIdentifier:currentPaneIdentifier];
-	[self displayViewForIdentifier:currentPaneIdentifier animate:NO];
+	[[[self window] toolbar]
+		setSelectedItemIdentifier:[self currentPaneIdentifier]];
+	[self displayViewForIdentifier:[self currentPaneIdentifier] animate:NO];
 	
 	[[self window] center];
 
@@ -271,7 +290,7 @@ static DBPrefsWindowController *_sharedPrefsWindowController = nil;
 - (void)toggleActivePreferenceView:(NSToolbarItem *)toolbarItem
 {
 	[self displayViewForIdentifier:[toolbarItem itemIdentifier] animate:YES];
-	currentPaneIdentifier = [toolbarItem itemIdentifier];
+	[self setCurrentPaneIdentifier:[toolbarItem itemIdentifier]];
 }
 
 

@@ -221,6 +221,7 @@ extern NSString *MMAtsuiRendererKey;
 extern NSString *MMUntitledWindowKey;
 extern NSString *MMTexturedWindowKey;
 extern NSString *MMZoomBothKey;
+extern NSString *MMCurrentPreferencePaneKey;
 
 // Enum for MMUntitledWindowKey
 enum {
