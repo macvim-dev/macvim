@@ -22,6 +22,7 @@
     IBOutlet NSPopUpButton *editors;
     IBOutlet NSButton *installOdbButton;
     IBOutlet NSButton *uninstallOdbButton;
+    IBOutlet NSTextField* obdBundleVersionLabel;
 
 }
 

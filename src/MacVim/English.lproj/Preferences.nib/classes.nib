@@ -26,6 +26,8 @@
 				<string>NSButton</string>
 				<key>integrationPreferences</key>
 				<string>NSView</string>
+				<key>obdBundleVersionLabel</key>
+				<string>NSTextField</string>
 				<key>uninstallOdbButton</key>
 				<string>NSButton</string>
 			</dict>

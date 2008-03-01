@@ -83,6 +83,10 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
 - (void)updateIntegrationPane;
 - (void)setOdbEditorByName:(NSString *)name;
 - (NSString *)odbEditorBundleIdentifier;
+- (NSString *)odbBundleSourceDir;
+- (NSString *)versionOfBundle:(NSString *)bundlePath;
+- (NSString *)odbBundleInstalledVersion;
+- (NSString *)odbBundleInstallVersion;
 @end
 
 @implementation MMPreferenceController
@@ -201,6 +205,8 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
     // user changes settings in terminal, the changes are reflected in the
     // dialog)
 
+    NSString *versionString;
+
     // Check if ODB path exists before calling isFilePackageAtPath: otherwise
     // an error is output to stderr on Tiger.
     BOOL odbIsInstalled =
@@ -210,15 +216,43 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
     // enable/disable buttons
     if (odbIsInstalled) {
         [installOdbButton setTitle:@"Update"];
-        [installOdbButton setEnabled:YES];  //XXX: only if there'a new version
         [uninstallOdbButton setEnabled:YES];
         [editors setEnabled:YES];
+
+        NSString *installVersion = [self odbBundleInstallVersion];
+        NSString *installedVersion = [self odbBundleInstalledVersion];
+        switch ([installedVersion compare:installVersion
+                                  options:NSNumericSearch]) {
+        case NSOrderedAscending:
+            versionString = [NSString stringWithFormat:
+                @"Latest version is %@, you have %@.",
+                installVersion, installedVersion];
+            [installOdbButton setEnabled:YES];
+            break;
+        case NSOrderedSame:
+            versionString = [NSString stringWithFormat:
+                @"Latest version is %@. You have the latest version.",
+                installVersion];
+            [installOdbButton setEnabled:NO];
+            break;
+        case NSOrderedDescending:
+            versionString = [NSString stringWithFormat:
+                @"Latest version is %@, you have %@.",
+                installVersion, installedVersion];
+            [installOdbButton setEnabled:NO];
+            break;
+        }
     } else {
         [installOdbButton setTitle:@"Install"];
         [installOdbButton setEnabled:YES];
         [uninstallOdbButton setEnabled:NO];
         [editors setEnabled:NO];
+
+        versionString = [NSString stringWithFormat:@"Latest version is %@.",
+                      [self odbBundleInstallVersion]];
     }
+
+    [obdBundleVersionLabel setStringValue:versionString];
 
     // make sure the right editor is selected on the popup button
     NSString *selectedTitle = kOdbEditorNameNone;
@@ -259,11 +293,40 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
     [self setOdbEditorByName:[sender title]];
 }
 
+- (NSString *)odbBundleSourceDir
+{
+    return [[[NSBundle mainBundle] resourcePath]
+        stringByAppendingString:@"/Edit in ODBEditor"];
+}
+
+// Returns the CFBundleVersion of a bundle. This assumes a bundle exists
+// at bundlePath.
+- (NSString *)versionOfBundle:(NSString *)bundlePath
+{
+    // -[NSBundle initWithPath:] caches a bundle, so if the bundle is replaced
+    // with a new bundle on disk, we get the old version. So we can't use it :-(
+
+    NSString *infoPath = [bundlePath
+        stringByAppendingString:@"/Contents/Info.plist"];
+    NSDictionary *info = [NSDictionary dictionaryWithContentsOfFile:infoPath];
+    return [info objectForKey:@"CFBundleVersion"];
+}
+
+- (NSString *)odbBundleInstalledVersion
+{
+    return [self versionOfBundle:ODBEDITOR_PATH];
+}
+
+- (NSString *)odbBundleInstallVersion
+{
+    return [self versionOfBundle:[[self odbBundleSourceDir]
+         stringByAppendingString:@"/Edit in ODBEditor.bundle"]];
+}
+
 - (IBAction)installOdb:(id)sender
 {
-    NSString *source = [[[NSBundle mainBundle] resourcePath]
-        stringByAppendingString: @"/Edit in ODBEditor"];
-    
+    NSString *source = [self odbBundleSourceDir];
+
     // It doesn't hurt to rm -rf the InputManager even if it's not there,
     // the code is simpler that way.
     NSArray *cmd = [NSArray arrayWithObjects:
