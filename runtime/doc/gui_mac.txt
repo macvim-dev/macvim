@@ -34,9 +34,10 @@ on the MacVim project page >
 or by posting to the vim_mac mailing list 		*vim_mac*  >
 	http://groups.google.com/group/vim_mac
 
-Remember to keep checking the project page for new snapshots.  (If you
-downloaded this copy from somewhere else, you might want to go there now to
-make sure that you have got the latest version.)
+Remember to keep checking the project page for new snapshots or use the
+automatic updating feature which can be enabled in the preferences pane.  (If
+you downloaded this copy from somewhere else, you might want to go there now
+to make sure that you have got the latest version.)
 
 ==============================================================================
 1. MacVim differences					*macvim-differences*
@@ -502,7 +503,8 @@ Scenario: ~
 When you click the (green) zoom button you want the window to maximize
 horizontally as well as vertically.
 Solution: ~
-Hold down Cmd and click the zoom button.
+Hold down Cmd and click the zoom button.  If you prefer this to be the default
+action, then set the user default MMZoomBoth (see |macvim-prefs|).
 
 Scenario: ~
 Typing feels sluggish when the cursor is just before a right bracket (i.e. ')',
