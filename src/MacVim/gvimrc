@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Mon Feb 11 2008
+" Last Change:	Thu Mar 6 2008
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -223,6 +223,7 @@ macmenukey Tools.Older\ List                      <D-C-Up>
 macmenukey Tools.Newer\ List                      <D-C-Down>
 
 macmenukey Window.Minimize                        <D-m>
+macmenukey Window.Zoom                            <D-C-z>
 macmenukey Window.Toggle\ Full\ Screen\ Mode      <D-F>
 macmenukey Window.Previous\ Tab                   <D-{>
 macmenukey Window.Next\ Tab                       <D-}>
