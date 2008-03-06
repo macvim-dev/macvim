@@ -2270,13 +2270,16 @@ del_bytes(count, fixpos_arg, use_delcombine)
     /*
      * If the old line has been allocated the deletion can be done in the
      * existing line. Otherwise a new line has to be allocated
+     * Can't do this when using Netbeans, because we would need to invoke
+     * netbeans_removed(), which deallocates the line.  Let ml_replace() take
+     * care of notifiying Netbeans.
      */
-    was_alloced = ml_line_alloced();	    /* check if oldp was allocated */
 #ifdef FEAT_NETBEANS_INTG
-    if (was_alloced && usingNetbeans)
-	netbeans_removed(curbuf, lnum, col, count);
-    /* else is handled by ml_replace() */
+    if (usingNetbeans)
+	was_alloced = FALSE;
+    else
 #endif
+	was_alloced = ml_line_alloced();    /* check if oldp was allocated */
     if (was_alloced)
 	newp = oldp;			    /* use same allocated memory */
     else
@@ -3978,7 +3981,7 @@ vim_getenv(name, mustfree)
 	    /* remove trailing path separator */
 #ifndef MACOS_CLASSIC
 	    /* With MacOS path (with  colons) the final colon is required */
-	    /* to avoid confusion between absoulute and relative path */
+	    /* to avoid confusion between absolute and relative path */
 	    if (pend > p && after_pathsep(p, pend))
 		--pend;
 #endif
@@ -5689,7 +5692,7 @@ cin_is_cpp_baseclass(col)
 	    else if (lookfor_ctor_init || class_or_struct)
 	    {
 		/* we have something found, that looks like the start of
-		 * cpp-base-class-declaration or contructor-initialization */
+		 * cpp-base-class-declaration or constructor-initialization */
 		cpp_base_class = TRUE;
 		lookfor_ctor_init = class_or_struct = FALSE;
 		*col = 0;
@@ -6146,7 +6149,7 @@ get_c_indent()
     pos_T	our_paren_pos;
     char_u	*start;
     int		start_brace;
-#define BRACE_IN_COL0		1	    /* '{' is in comumn 0 */
+#define BRACE_IN_COL0		1	    /* '{' is in column 0 */
 #define BRACE_AT_START		2	    /* '{' is at start of line */
 #define BRACE_AT_END		3	    /* '{' is at end of line */
     linenr_T	ourscope;
@@ -6369,7 +6372,7 @@ get_c_indent()
 		    if (curwin->w_cursor.lnum > 1)
 		    {
 			/* If the start comment string matches in the previous
-			 * line, use the indent of that line pluss offset.  If
+			 * line, use the indent of that line plus offset.  If
 			 * the middle comment string matches in the previous
 			 * line, use the indent of that line.  XXX */
 			look = skipwhite(ml_get(curwin->w_cursor.lnum - 1));
@@ -6891,6 +6894,7 @@ get_c_indent()
 			if (trypos != NULL)
 			{
 			    curwin->w_cursor.lnum = trypos->lnum + 1;
+			    curwin->w_cursor.col = 0;
 			    continue;
 			}
 
@@ -6951,6 +6955,7 @@ get_c_indent()
 			    if (trypos != NULL)
 			    {
 				curwin->w_cursor.lnum = trypos->lnum + 1;
+				curwin->w_cursor.col = 0;
 				continue;
 			    }
 			}
@@ -6988,6 +6993,7 @@ get_c_indent()
 		if ((trypos = find_start_comment(ind_maxcomment)) != NULL)
 		{
 		    curwin->w_cursor.lnum = trypos->lnum + 1;
+		    curwin->w_cursor.col = 0;
 		    continue;
 		}
 
@@ -7111,7 +7117,10 @@ get_c_indent()
 		{
 		    if (find_last_paren(l, '{', '}') && (trypos =
 				    find_start_brace(ind_maxcomment)) != NULL)
+		    {
 			curwin->w_cursor.lnum = trypos->lnum + 1;
+			curwin->w_cursor.col = 0;
+		    }
 		    continue;
 		}
 
@@ -7227,11 +7236,12 @@ get_c_indent()
 			 *     case xx:  if ( asdf &&
 			 *			asdf)
 			 */
-			curwin->w_cursor.lnum = trypos->lnum;
+			curwin->w_cursor = *trypos;
 			l = ml_get_curline();
 			if (cin_iscase(l) || cin_isscopedecl(l))
 			{
 			    ++curwin->w_cursor.lnum;
+			    curwin->w_cursor.col = 0;
 			    continue;
 			}
 		    }
@@ -7251,6 +7261,7 @@ get_c_indent()
 			    if (*l == NUL || l[STRLEN(l) - 1] != '\\')
 				break;
 			    --curwin->w_cursor.lnum;
+			    curwin->w_cursor.col = 0;
 			}
 		    }
 
@@ -7584,11 +7595,12 @@ term_again:
 			     *	   case xx:  if ( asdf &&
 			     *			    asdf)
 			     */
-			    curwin->w_cursor.lnum = trypos->lnum;
+			    curwin->w_cursor = *trypos;
 			    l = ml_get_curline();
 			    if (cin_iscase(l) || cin_isscopedecl(l))
 			    {
 				++curwin->w_cursor.lnum;
+				curwin->w_cursor.col = 0;
 				continue;
 			    }
 			}
@@ -7649,13 +7661,14 @@ term_again:
 				&& (trypos = find_start_brace(ind_maxcomment))
 							    != NULL) /* XXX */
 			{
-			    curwin->w_cursor.lnum = trypos->lnum;
+			    curwin->w_cursor = *trypos;
 			    /* if not "else {" check for terminated again */
 			    /* but skip block for "} else {" */
 			    l = cin_skipcomment(ml_get_curline());
 			    if (*l == '}' || !cin_iselse(l))
 				goto term_again;
 			    ++curwin->w_cursor.lnum;
+			    curwin->w_cursor.col = 0;
 			}
 		    }
 		}
@@ -7724,6 +7737,7 @@ term_again:
 		if ((trypos = find_start_comment(ind_maxcomment)) != NULL)
 		{
 		    curwin->w_cursor.lnum = trypos->lnum + 1;
+		    curwin->w_cursor.col = 0;
 		    continue;
 		}
 
@@ -7774,7 +7788,7 @@ term_again:
 		    if (find_last_paren(l, '(', ')')
 			    && (trypos = find_match_paren(ind_maxparen,
 						     ind_maxcomment)) != NULL)
-			curwin->w_cursor.lnum = trypos->lnum;
+			curwin->w_cursor = *trypos;
 
 		    /* For a line ending in ',' that is a continuation line go
 		     * back to the first line with a backslash:
@@ -7788,6 +7802,7 @@ term_again:
 			if (*l == NUL || l[STRLEN(l) - 1] != '\\')
 			    break;
 			--curwin->w_cursor.lnum;
+			curwin->w_cursor.col = 0;
 		    }
 
 		    amount = get_indent();	    /* XXX */
@@ -7861,7 +7876,7 @@ term_again:
 
 		if ((trypos = find_match_paren(ind_maxparen,
 						     ind_maxcomment)) != NULL)
-		    curwin->w_cursor.lnum = trypos->lnum;
+		    curwin->w_cursor = *trypos;
 		amount = get_indent();	    /* XXX */
 		break;
 	    }
@@ -8222,7 +8237,7 @@ get_lisp_indent()
 
 		    if (*that && *that != ';') /* not a comment line */
 		    {
-			/* test *that != '(' to accomodate first let/do
+			/* test *that != '(' to accommodate first let/do
 			 * argument if it is more than one line */
 			if (!vi_lisp && *that != '(' && *that != '[')
 			    firsttry++;

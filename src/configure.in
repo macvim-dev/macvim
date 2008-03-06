@@ -803,11 +803,12 @@ if test "$enable_tclinterp" = "yes"; then
 
       AC_MSG_CHECKING(for location of Tcl include)
       if test "x$MACOSX" != "xyes"; then
-	tclinc="$tclloc/include $tclloc/include/tcl $tclloc/include/tcl$tclver /usr/local/include /usr/include"
+	tclinc="$tclloc/include $tclloc/include/tcl $tclloc/include/tcl$tclver /usr/local/include /usr/local/include/tcl$tclver /usr/include /usr/include/tcl$tclver"
       else
 	dnl For Mac OS X 10.3, use the OS-provided framework location
 	tclinc="/System/Library/Frameworks/Tcl.framework/Headers"
       fi
+      TCL_INC=
       for try in $tclinc; do
 	if test -f "$try/tcl.h"; then
 	  AC_MSG_RESULT($try/tcl.h)
@@ -2762,7 +2763,7 @@ AC_MSG_RESULT($TAGPRG) AC_SUBST(TAGPRG)
 dnl Check how we can run man with a section number
 AC_MSG_CHECKING(how to run man with a section nr)
 MANDEF="man"
-(eval man -s 2 read) < /dev/null > /dev/null 2>&AC_FD_CC && MANDEF="man -s"
+(eval MANPAGER=cat PAGER=cat man -s 2 read) < /dev/null > /dev/null 2>&AC_FD_CC && MANDEF="man -s"
 AC_MSG_RESULT($MANDEF)
 if test "$MANDEF" = "man -s"; then
   AC_DEFINE(USEMAN_S)

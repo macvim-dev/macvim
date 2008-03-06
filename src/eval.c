@@ -532,6 +532,7 @@ static void f_getftime __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_getftype __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_getline __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_getmatches __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_getpid __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_getpos __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_getqflist __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_getreg __ARGS((typval_T *argvars, typval_T *rettv));
@@ -7132,6 +7133,7 @@ static struct fst
     {"getline",		1, 2, f_getline},
     {"getloclist",	1, 1, f_getqflist},
     {"getmatches",	0, 0, f_getmatches},
+    {"getpid",		0, 0, f_getpid},
     {"getpos",		1, 1, f_getpos},
     {"getqflist",	0, 0, f_getqflist},
     {"getreg",		0, 2, f_getreg},
@@ -9203,13 +9205,13 @@ f_filewritable(argvars, rettv)
     rettv->vval.v_number = filewritable(get_tv_string(&argvars[0]));
 }
 
-static void findfilendir __ARGS((typval_T *argvars, typval_T *rettv, int dir));
+static void findfilendir __ARGS((typval_T *argvars, typval_T *rettv, int find_what));
 
     static void
-findfilendir(argvars, rettv, dir)
+findfilendir(argvars, rettv, find_what)
     typval_T	*argvars;
     typval_T	*rettv;
-    int		dir;
+    int		find_what;
 {
 #ifdef FEAT_SEARCHPATH
     char_u	*fname;
@@ -9254,8 +9256,11 @@ findfilendir(argvars, rettv, dir)
 		vim_free(fresult);
 	    fresult = find_file_in_path_option(first ? fname : NULL,
 					       first ? (int)STRLEN(fname) : 0,
-					0, first, path, dir, curbuf->b_ffname,
-					dir ? (char_u *)"" : curbuf->b_p_sua);
+					0, first, path,
+					find_what,
+					curbuf->b_ffname,
+					find_what == FINDFILE_DIR
+					    ? (char_u *)"" : curbuf->b_p_sua);
 	    first = FALSE;
 
 	    if (fresult != NULL && rettv->v_type == VAR_LIST)
@@ -9445,7 +9450,7 @@ f_finddir(argvars, rettv)
     typval_T	*argvars;
     typval_T	*rettv;
 {
-    findfilendir(argvars, rettv, TRUE);
+    findfilendir(argvars, rettv, FINDFILE_DIR);
 }
 
 /*
@@ -9456,7 +9461,7 @@ f_findfile(argvars, rettv)
     typval_T	*argvars;
     typval_T	*rettv;
 {
-    findfilendir(argvars, rettv, FALSE);
+    findfilendir(argvars, rettv, FINDFILE_FILE);
 }
 
 /*
@@ -10368,6 +10373,18 @@ f_getmatches(argvars, rettv)
 	}
     }
 #endif
+}
+
+/*
+ * "getpid()" function
+ */
+/*ARGSUSED*/
+    static void
+f_getpid(argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    rettv->vval.v_number = mch_get_pid();
 }
 
 /*
@@ -14796,24 +14813,31 @@ f_setpos(argvars, rettv)
     int		fnum;
     char_u	*name;
 
+    rettv->vval.v_number = -1;
     name = get_tv_string_chk(argvars);
     if (name != NULL)
     {
 	if (list2fpos(&argvars[1], &pos, &fnum) == OK)
 	{
 	    --pos.col;
-	    if (name[0] == '.')		/* cursor */
+	    if (name[0] == '.' && name[1] == NUL)
 	    {
+		/* set cursor */
 		if (fnum == curbuf->b_fnum)
 		{
 		    curwin->w_cursor = pos;
 		    check_cursor();
+		    rettv->vval.v_number = 0;
 		}
 		else
 		    EMSG(_(e_invarg));
 	    }
-	    else if (name[0] == '\'')	/* mark */
-		(void)setmark_pos(name[1], &pos, fnum);
+	    else if (name[0] == '\'' && name[1] != NUL && name[2] == NUL)
+	    {
+		/* set mark */
+		if (setmark_pos(name[1], &pos, fnum) == OK)
+		    rettv->vval.v_number = 0;
+	    }
 	    else
 		EMSG(_(e_invarg));
 	}
