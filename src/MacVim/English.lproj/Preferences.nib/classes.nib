@@ -1,57 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>IBClasses</key>
-	<array>
-		<dict>
-			<key>ACTIONS</key>
-			<dict>
-				<key>installOdb</key>
-				<string>id</string>
-				<key>uninstallOdb</key>
-				<string>id</string>
-			</dict>
-			<key>CLASS</key>
-			<string>MMPreferenceController</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-			<key>OUTLETS</key>
-			<dict>
-				<key>editors</key>
-				<string>NSPopUpButton</string>
-				<key>generalPreferences</key>
-				<string>NSView</string>
-				<key>installOdbButton</key>
-				<string>NSButton</string>
-				<key>integrationPreferences</key>
-				<string>NSView</string>
-				<key>obdBundleVersionLabel</key>
-				<string>NSTextField</string>
-				<key>uninstallOdbButton</key>
-				<string>NSButton</string>
-			</dict>
-			<key>SUPERCLASS</key>
-			<string>DBPrefsWindowController</string>
-		</dict>
-		<dict>
-			<key>CLASS</key>
-			<string>FirstResponder</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-			<key>SUPERCLASS</key>
-			<string>NSObject</string>
-		</dict>
-		<dict>
-			<key>CLASS</key>
-			<string>DBPrefsWindowController</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-			<key>SUPERCLASS</key>
-			<string>NSWindowController</string>
-		</dict>
-	</array>
-	<key>IBVersion</key>
-	<string>1</string>
-</dict>
-</plist>
+{
+    IBClasses = (
+        {
+            CLASS = DBPrefsWindowController; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSWindowController; 
+        }, 
+        {CLASS = FirstResponder; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {
+            ACTIONS = {installOdb = id; uninstallOdb = id; }; 
+            CLASS = MMPreferenceController; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {
+                editors = NSPopUpButton; 
+                generalPreferences = NSView; 
+                installOdbButton = NSButton; 
+                integrationPreferences = NSView; 
+                obdBundleVersionLabel = NSTextField; 
+                uninstallOdbButton = NSButton; 
+            }; 
+            SUPERCLASS = DBPrefsWindowController; 
+        }
+    ); 
+    IBVersion = 1; 
+}

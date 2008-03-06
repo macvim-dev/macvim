@@ -214,8 +214,8 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
         && [[NSWorkspace sharedWorkspace] isFilePackageAtPath:ODBEDITOR_PATH];
 
     // enable/disable buttons
+    [installOdbButton setTitle:@"Install"];
     if (odbIsInstalled) {
-        [installOdbButton setTitle:@"Update"];
         [uninstallOdbButton setEnabled:YES];
         [editors setEnabled:YES];
 
@@ -227,6 +227,7 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
             versionString = [NSString stringWithFormat:
                 @"Latest version is %@, you have %@.",
                 installVersion, installedVersion];
+            [installOdbButton setTitle:@"Update"];
             [installOdbButton setEnabled:YES];
             break;
         case NSOrderedSame:
@@ -243,12 +244,12 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
             break;
         }
     } else {
-        [installOdbButton setTitle:@"Install"];
         [installOdbButton setEnabled:YES];
         [uninstallOdbButton setEnabled:NO];
         [editors setEnabled:NO];
 
-        versionString = [NSString stringWithFormat:@"Latest version is %@.",
+        versionString = [NSString
+            stringWithFormat:@"Latest version is %@. It is not installed.",
                       [self odbBundleInstallVersion]];
     }
 
@@ -340,7 +341,7 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
             nil],
         [NSDictionary dictionaryWithObjectsAndKeys:
             @"/bin/cp", MMCommand,
-            [NSArray arrayWithObjects: @"-R", //XXX: -p?
+            [NSArray arrayWithObjects: @"-R",
                 source, @"/Library/InputManagers", nil], MMArguments,
             nil],
         [NSDictionary dictionaryWithObjectsAndKeys:
