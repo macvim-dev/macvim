@@ -2,7 +2,7 @@
 //  Edit in ODBEditor.mm
 //
 //  Created by Allan Odgaard on 2005-11-26.
-//  Copyright (c) 2005 MacroMates. All rights reserved.
+//  See LICENSE for license details
 //
 //  Generalized by Chris Eidhof and Eelco Lempsink from 'Edit in TextMate.mm'
 
@@ -19,8 +19,8 @@
 
 static NSMutableDictionary* OpenFiles;
 static NSMutableSet* FailedFiles;
-static NSString* ODBEditorBundleIdentifier = @"org.vim.ecdebug"; // TODO EC Load from preference file
-static NSString* ODBEditorName = @"Vim";
+static NSString* ODBEditorBundleIdentifier;
+static NSString* ODBEditorName;
 
 #pragma options align=mac68k
 struct PBX_SelectionRange
@@ -49,11 +49,22 @@ struct PBX_SelectionRange
 	[eventManager removeEventHandlerForEventClass:kODBEditorSuite andEventID:kAEClosedFile];
 }
 
++ (BOOL)launchODBEditor
+{
+	NSArray* array = [[NSWorkspace sharedWorkspace] launchedApplications];
+	for(unsigned i = [array count]; --i; )
+	{
+		if([[[array objectAtIndex:i] objectForKey:@"NSApplicationBundleIdentifier"] isEqualToString:ODBEditorBundleIdentifier])
+			return YES;
+	}
+	return [[NSWorkspace sharedWorkspace] launchAppWithBundleIdentifier:ODBEditorBundleIdentifier options:0L additionalEventParamDescriptor:nil launchIdentifier:nil];
+}
+
 + (void)asyncEditStringWithOptions:(NSDictionary*)someOptions
 {
 	NSAutoreleasePool* pool = [NSAutoreleasePool new];
 
-	if(![[NSWorkspace sharedWorkspace] launchAppWithBundleIdentifier:ODBEditorBundleIdentifier options:0L additionalEventParamDescriptor:nil launchIdentifier:nil])
+	if(![self launchODBEditor])
 		return;
 
 	/* =========== */
@@ -122,6 +133,11 @@ struct PBX_SelectionRange
 
 + (void)externalEditString:(NSString*)aString startingAtLine:(int)aLine forView:(NSView*)aView
 {
+	[self externalEditString:aString startingAtLine:aLine forView:aView withObject:nil];
+}
+
++ (void)externalEditString:(NSString*)aString startingAtLine:(int)aLine forView:(NSView*)aView withObject:(NSObject*)anObject
+{
 	Class cl = NSClassFromString(@"WebFrameView");
 
 	NSURL* url = nil;
@@ -145,6 +161,7 @@ struct PBX_SelectionRange
 		aView,                           @"view",
 		fileName,                        @"fileName",
 		[NSNumber numberWithInt:aLine],  @"line",
+		anObject,                        @"object", /* last since anObject might be nil */
 		nil];
 
 	[OpenFiles setObject:options forKey:[fileName precomposedStringWithCanonicalMapping]];
@@ -158,18 +175,32 @@ struct PBX_SelectionRange
 	NSAppleEventDescriptor* fileURL = [[event paramDescriptorForKeyword:keyDirectObject] coerceToDescriptorType:typeFileURL];
 	NSString* urlString = [[[NSString alloc] initWithData:[fileURL data] encoding:NSUTF8StringEncoding] autorelease];
 	NSString* fileName = [[[NSURL URLWithString:urlString] path] stringByStandardizingPath];
+	NSDictionary* options = [OpenFiles objectForKey:[fileName precomposedStringWithCanonicalMapping]];
+	NSView* view = [options objectForKey:@"view"];
 
-	NSView* view = [[OpenFiles objectForKey:[fileName precomposedStringWithCanonicalMapping]] objectForKey:@"view"];
-	if([view window] && [view respondsToSelector:@selector(odbEditorDidModifyString:)])
+	if([view window])
 	{
-		[view performSelector:@selector(odbEditorDidModifyString:) withObject:[[[NSString alloc] initWithData:[NSData dataWithContentsOfFile:fileName] encoding:NSUTF8StringEncoding] autorelease]];
-		[FailedFiles removeObject:fileName];
+		if ([view respondsToSelector:@selector(odbEditorDidModifyString:withObject:)])
+		{
+			NSString* newString = [[[NSString alloc] initWithData:[NSData dataWithContentsOfFile:fileName] encoding:NSUTF8StringEncoding] autorelease];
+			NSObject* anObject = [options objectForKey:@"object"];
+			[view performSelector:@selector(odbEditorDidModifyString:withObject:) withObject:newString withObject:anObject];
+			[FailedFiles removeObject:fileName];
+			fileName = nil;
+		}
+		else if([view respondsToSelector:@selector(odbEditorDidModifyString:)])
+		{
+			NSString* newString = [[[NSString alloc] initWithData:[NSData dataWithContentsOfFile:fileName] encoding:NSUTF8StringEncoding] autorelease];
+			[view performSelector:@selector(odbEditorDidModifyString:) withObject:newString];
+			[FailedFiles removeObject:fileName];
+			fileName = nil;
+		}
 	}
-	else
+	if (fileName)
 	{
 		[FailedFiles addObject:fileName];
 		NSLog(@"%s view %p, %@, window %@", _cmd, view, view, [view window]);
-		NSLog(@"%s file name %@, options %@", _cmd, fileName, [[OpenFiles objectForKey:[fileName precomposedStringWithCanonicalMapping]] description]);
+		NSLog(@"%s file name %@, options %@", _cmd, fileName, [options description]);
 		NSLog(@"%s all %@", _cmd, [OpenFiles description]);
 		NSBeep();
 	}
@@ -224,7 +255,7 @@ struct PBX_SelectionRange
 	if(NSMenu* editMenu = [self findEditMenu])
 	{
 		[editMenu addItem:[NSMenuItem separatorItem]];
-		NSString* ellips = [NSString stringWithUTF8String:"…"];
+		NSString* ellips = [NSString stringWithUTF8String:"\xe2\x80\xa6"]; // utf-8 for the '...' character (literal utf8 is not allowed in source code)
 		id <NSMenuItem> menuItem = [editMenu addItemWithTitle:[NSString stringWithFormat:@"Edit in %@%@", ODBEditorName, ellips] action:@selector(editInODBEditor:) keyEquivalent:@"E"];
 		[menuItem setKeyEquivalentModifierMask:NSControlKeyMask | NSCommandKeyMask];
 	}
@@ -246,8 +277,8 @@ struct PBX_SelectionRange
  
     [defaults registerDefaults:appDefaults];	
 	
-    ODBEditorBundleIdentifier = [defaults stringForKey:@"ODBEditorBundleIdentifier"];
-	ODBEditorName             = [defaults stringForKey:@"ODBEditorName"];
+    ODBEditorBundleIdentifier = [defaults stringForKey:@"ODBEditorBundleIdentifier"] ?: @"";
+	ODBEditorName             = [defaults stringForKey:@"ODBEditorName"] ?: @"<Unknown>";
 	if([defaults boolForKey:@"DisableEditInODBEditorMenuItem"] == NO
 		&& ![ODBEditorBundleIdentifier isEqualToString:@""]
 		&& ![ODBEditorBundleIdentifier isEqualToString:mainBundleIdentifier])

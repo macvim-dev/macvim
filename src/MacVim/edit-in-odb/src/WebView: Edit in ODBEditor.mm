@@ -2,7 +2,7 @@
 //  WebView: Edit in ODBEditor.mm
 //
 //  Created by Allan Odgaard on 2005-11-27.
-//  Copyright (c) 2005 MacroMates. All rights reserved.
+//  See LICENSE for license details
 //
 //  Generalized by Chris Eidhof and Eelco Lempsink from 'WebView: Edit in TextMate.mm'
 
@@ -29,13 +29,13 @@
 @end
 
 @interface NSString (EditInODBEditor)
-- (NSString*)TM_stringByTrimmingWhitespace;
-- (NSString*)TM_stringByReplacingString:(NSString*)aSearchString withString:(NSString*)aReplaceString;
-- (NSString*)TM_stringByNbspEscapingSpaces;
+- (NSString*)ODB_stringByTrimmingWhitespace;
+- (NSString*)ODB_stringByReplacingString:(NSString*)aSearchString withString:(NSString*)aReplaceString;
+- (NSString*)ODB_stringByNbspEscapingSpaces;
 @end
 
 @implementation NSString (EditInODBEditor)
-- (NSString*)TM_stringByTrimmingWhitespace
+- (NSString*)ODB_stringByTrimmingWhitespace
 {
 	NSString* str = self;
 	while([str hasPrefix:@" "])
@@ -46,12 +46,12 @@
 	return str;
 }
 
-- (NSString*)TM_stringByReplacingString:(NSString*)aSearchString withString:(NSString*)aReplaceString
+- (NSString*)ODB_stringByReplacingString:(NSString*)aSearchString withString:(NSString*)aReplaceString
 {
 	return [[self componentsSeparatedByString:aSearchString] componentsJoinedByString:aReplaceString];
 }
 
-- (NSString*)TM_stringByNbspEscapingSpaces
+- (NSString*)ODB_stringByNbspEscapingSpaces
 {
 	unsigned len = [self length];
 	unichar* buf = new unichar[len];
@@ -91,14 +91,14 @@ private:
 		if([str isEqualToString:@""])
 			return;
 
-		str = [str TM_stringByTrimmingWhitespace];
+		str = [str ODB_stringByTrimmingWhitespace];
 		if([str isEqualToString:@""])
 		{
 			pendingWhitespace = YES;
 			return;
 		}
 
-		str = [str TM_stringByReplacingString:[NSString stringWithUTF8String:" "] withString:@" "];
+		str = [str ODB_stringByReplacingString:[NSString stringWithUTF8String:" "] withString:@" "];
 
 		if(pendingFlush)
 		{
@@ -145,7 +145,11 @@ struct helper
 	helper () : textArea(nil), value(nil)		{ }
 	bool should_change () const					{ return selectionStart != 0 || selectionEnd != [value length]; }
 	bool did_change () const						{ return selectionStart != [textArea selectionStart] || selectionEnd != [textArea selectionEnd]; }
-	void reset () const								{ if(did_change()) [textArea setSelectionRange:selectionStart end:selectionEnd]; }
+	void reset () const
+	{ 
+		if([textArea value] != value) [textArea setValue:value];
+		if(did_change()) [textArea setSelectionRange:selectionStart end:selectionEnd];
+	}
 
 	static bool usable (DOMNode* node)
 	{
@@ -192,9 +196,10 @@ void convert_dom_to_text::visit_nodes (DOMTreeWalker* treeWalker)
 	}
 }
 
-static DOMHTMLTextAreaElement* find_active_text_area (WebView* webView, DOMDocument* doc)
+static DOMHTMLTextAreaElement* find_active_text_area_for_frame (WebFrame* frame)
 {
 	DOMHTMLTextAreaElement* res = nil;
+	DOMDocument* doc = [frame DOMDocument];
 	if([doc respondsToSelector:@selector(focusNode)])
 	{
 		// OmniWeb 5.6 has a method to get the focused node
@@ -232,7 +237,10 @@ static DOMHTMLTextAreaElement* find_active_text_area (WebView* webView, DOMDocum
 		}
 		else if(v.size() > 1)
 		{
-			[webView selectAll:nil];
+			for(std::vector<helper>::iterator it = v.begin(); it != v.end(); ++it)
+				if (!it->should_change())
+					[it->textArea setValue:@" "];
+			[[frame webView] selectLine:nil];
 
 			size_t should_change = 0, did_change = 0;
 			for(std::vector<helper>::iterator it = v.begin(); it != v.end(); ++it)
@@ -255,6 +263,21 @@ static DOMHTMLTextAreaElement* find_active_text_area (WebView* webView, DOMDocum
 			for(std::vector<helper>::iterator it = v.begin(); it != v.end(); ++it)
 				it->reset();
 		}
+	}
+	return res;
+}
+
+static DOMHTMLTextAreaElement* find_active_text_area (WebView* view)
+{
+	DOMHTMLTextAreaElement* res = nil;
+	if([view respondsToSelector:@selector(selectedFrame)])
+		res = find_active_text_area_for_frame([view performSelector:@selector(selectedFrame)]);
+	else
+	{
+		WebFrame* frame = [view mainFrame];
+		NSArray* frames = [[NSArray arrayWithObject: frame] arrayByAddingObjectsFromArray: [frame childFrames]];
+		for(unsigned i = 0; i != [frames count] && !res; i++)
+			res = find_active_text_area_for_frame([frames objectAtIndex:i]);
 	}
 	return res;
 }
@@ -306,13 +329,26 @@ static DOMHTMLTextAreaElement* find_active_text_area (WebView* webView, DOMDocum
 	else
 	{
 		// Likely the user wants to edit just a text area, so let’s try to find which
-		if(DOMHTMLTextAreaElement* textArea = find_active_text_area(self, [[self mainFrame] DOMDocument]))
-				[EditInODBEditor externalEditString:[textArea value] startingAtLine:0 forView:self]; // TODO calculate the line number from selectionStart
+		if(DOMHTMLTextAreaElement* textArea = find_active_text_area(self))
+			{
+				NSString* str = [textArea value];
+				unsigned long selectionStart = [textArea selectionStart];
+				int lineNumber = 0;
+				NSRange range = NSMakeRange(0, 0);
+				do {
+					NSRange oldRange = range;
+					range = [str lineRangeForRange:NSMakeRange(NSMaxRange(range), 0)];
+					if(NSMaxRange(oldRange) == NSMaxRange(range) || selectionStart < NSMaxRange(range))
+						break;
+					lineNumber++;
+				} while(true);
+				[EditInODBEditor externalEditString:str startingAtLine:lineNumber forView:self withObject:textArea];
+			}
 		else	NSBeep();
 	}
 }
 
-- (void)odbEditorDidModifyString:(NSString*)newString
+- (void)odbEditorDidModifyString:(NSString*)newString withObject:(NSObject*)textArea
 {
 	if([self isEditable])
 	{
@@ -354,10 +390,10 @@ static DOMHTMLTextAreaElement* find_active_text_area (WebView* webView, DOMDocum
 			}
 			else
 			{
-				line = [line TM_stringByNbspEscapingSpaces];
-				line = [line TM_stringByReplacingString:@"&" withString:@"&amp;"];
-				line = [line TM_stringByReplacingString:@"<" withString:@"&lt;"];
-				line = [line TM_stringByReplacingString:@">" withString:@"&gt;"];
+				line = [line ODB_stringByNbspEscapingSpaces];
+				line = [line ODB_stringByReplacingString:@"&" withString:@"&amp;"];
+				line = [line ODB_stringByReplacingString:@"<" withString:@"&lt;"];
+				line = [line ODB_stringByReplacingString:@">" withString:@"&gt;"];
 				[res appendFormat:@"<DIV>%@</DIV>", line];
 			}
 		}
@@ -368,9 +404,7 @@ static DOMHTMLTextAreaElement* find_active_text_area (WebView* webView, DOMDocum
 	}
 	else
 	{
-		// FIXME we should ensure we send back to the same text area as we took the text from
-		if(DOMHTMLTextAreaElement* textArea = find_active_text_area(self, [[self mainFrame] DOMDocument]))
-			[textArea setValue:newString];
+		[(DOMHTMLTextAreaElement*)textArea setValue:newString];
 	}
 }
 @end
