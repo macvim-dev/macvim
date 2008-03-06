@@ -487,6 +487,21 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
+				<string>patch</string>
+				<string>diff</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>doc-bm</string>
+			<key>CFBundleTypeName</key>
+			<string>Patch File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSIsAppleDefaultForType</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
 				<string>strings</string>
 			</array>
 			<key>CFBundleTypeName</key>
