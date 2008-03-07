@@ -30,6 +30,7 @@
 #import "MMVimController.h"
 #import "MMWindowController.h"
 #import "MMPreferenceController.h"
+#import <unistd.h>
 
 
 #define MM_HANDLE_XCODE_MOD_EVENT 0
@@ -52,6 +53,9 @@ typedef struct
     long  theDate;      // modification date/time
 } MMSelectionRange;
 #pragma options align=reset
+
+
+static int executeInLoginShell(NSString *path, NSArray *args);
 
 
 @interface MMAppController (MMServices)
@@ -116,6 +120,8 @@ typedef struct
                                         MMUntitledWindowKey,
         [NSNumber numberWithBool:NO],   MMTexturedWindowKey,
         [NSNumber numberWithBool:NO],   MMZoomBothKey,
+        @"",                            MMLoginShellCommandKey,
+        @"",                            MMLoginShellArgumentKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -273,6 +279,13 @@ typedef struct
                 fileArgs = [fileArgs arrayByAddingObjectsFromArray:filenames];
 
                 pid = [self launchVimProcessWithArguments:fileArgs];
+
+                if (-1 == pid) {
+                    // TODO: Notify user of failure?
+                    [NSApp replyToOpenOrPrint:
+                        NSApplicationDelegateReplyFailure];
+                    return;
+                }
 
                 // Make sure these files aren't opened again when
                 // connectBackend:pid: is called.
@@ -736,68 +749,43 @@ typedef struct
 
 - (int)launchVimProcessWithArguments:(NSArray *)args
 {
-    NSString *taskPath = nil;
-    NSArray *taskArgs = nil;
+    int pid = -1;
     NSString *path = [[NSBundle mainBundle] pathForAuxiliaryExecutable:@"Vim"];
 
     if (!path) {
         NSLog(@"ERROR: Vim executable could not be found inside app bundle!");
-        return 0;
+        return -1;
     }
 
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMLoginShellKey]) {
-        // Run process with a login shell
-        //   $SHELL -l -c "exec Vim -g -f args"
-        // (-g for GUI, -f for foreground, i.e. don't fork)
+    NSArray *taskArgs = [NSArray arrayWithObjects:@"-g", @"-f", nil];
+    if (args)
+        taskArgs = [taskArgs arrayByAddingObjectsFromArray:args];
 
-        NSMutableString *execArg = [NSMutableString
-            stringWithFormat:@"exec \"%@\" -g -f", path];
-        if (args) {
-            // Append all arguments while making sure that arguments containing
-            // spaces are enclosed in quotes.
-            NSCharacterSet *space = [NSCharacterSet whitespaceCharacterSet];
-            unsigned i, count = [args count];
-
-            for (i = 0; i < count; ++i) {
-                NSString *arg = [args objectAtIndex:i];
-                if (NSNotFound != [arg rangeOfCharacterFromSet:space].location)
-                    [execArg appendFormat:@" \"%@\"", arg];
-                else
-                    [execArg appendFormat:@" %@", arg];
-            }
-        }
-
-        // Launch the process with a login shell so that users environment
-        // settings get sourced.  This does not always happen when MacVim is
-        // started.
-        taskArgs = [NSArray arrayWithObjects:@"-l", @"-c", execArg, nil];
-        taskPath = [[[NSProcessInfo processInfo] environment]
-            objectForKey:@"SHELL"];
-        if (!taskPath)
-            taskPath = @"/bin/sh";
+    BOOL useLoginShell = [[NSUserDefaults standardUserDefaults]
+            boolForKey:MMLoginShellKey];
+    if (useLoginShell) {
+        // Run process with a login shell, roughly:
+        //   echo "exec Vim -g -f args" | ARGV0=-`basename $SHELL` $SHELL [-l]
+        pid = executeInLoginShell(path, taskArgs);
     } else {
         // Run process directly:
         //   Vim -g -f args
-        // (-g for GUI, -f for foreground, i.e. don't fork)
-        taskPath = path;
-        taskArgs = [NSArray arrayWithObjects:@"-g", @"-f", nil];
-        if (args)
-            taskArgs = [taskArgs arrayByAddingObjectsFromArray:args];
+        NSTask *task = [NSTask launchedTaskWithLaunchPath:path
+                                                arguments:taskArgs];
+        pid = task ? [task processIdentifier] : -1;
     }
 
-    NSTask *task =[NSTask launchedTaskWithLaunchPath:taskPath
-                                           arguments:taskArgs];
-    //NSLog(@"launch %@ with args=%@ (pid=%d)", taskPath, taskArgs,
-    //        [task processIdentifier]);
-
-    int pid = [task processIdentifier];
-
-    // If the process has no arguments, then add a null argument to the
-    // pidArguments dictionary.  This is later used to detect that a process
-    // without arguments is being launched.
-    if (!args)
-        [pidArguments setObject:[NSNull null]
-                         forKey:[NSNumber numberWithInt:pid]];
+    if (-1 != pid) {
+        // NOTE: If the process has no arguments, then add a null argument to
+        // the pidArguments dictionary.  This is later used to detect that a
+        // process without arguments is being launched.
+        if (!args)
+            [pidArguments setObject:[NSNull null]
+                             forKey:[NSNumber numberWithInt:pid]];
+    } else {
+        NSLog(@"WARNING: %s%@ failed (useLoginShell=%d)", _cmd, args,
+                useLoginShell);
+    }
 
     return pid;
 }
@@ -1099,3 +1087,101 @@ typedef struct
     return [self intValue];
 }
 @end // NSNumber (MMExtras)
+
+
+
+
+    static int
+executeInLoginShell(NSString *path, NSArray *args)
+{
+    // Start a login shell and execute the command 'path' with arguments 'args'
+    // in the shell.  This ensures that user environment variables are set even
+    // when MacVim was started from the Finder.
+
+    int pid = -1;
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+
+    // Determine which shell to use to execute the command.  The user
+    // may decide which shell to use by setting a user default or the
+    // $SHELL environment variable.
+    NSString *shell = [ud stringForKey:MMLoginShellCommandKey];
+    if (!shell || [shell length] == 0)
+        shell = [[[NSProcessInfo processInfo] environment]
+            objectForKey:@"SHELL"];
+    if (!shell)
+        shell = @"/bin/bash";
+
+    //NSLog(@"shell = %@", shell);
+
+    // Bash needs the '-l' flag to launch a login shell.  The user may add
+    // flags by setting a user default.
+    NSString *shellArgument = [ud stringForKey:MMLoginShellArgumentKey];
+    if (!shellArgument || [shellArgument length] == 0) {
+        if ([[shell lastPathComponent] isEqual:@"bash"])
+            shellArgument = @"-l";
+        else
+            shellArgument = nil;
+    }
+
+    //NSLog(@"shellArgument = %@", shellArgument);
+
+    // Build input string to pipe to the login shell.
+    NSMutableString *input = [NSMutableString stringWithFormat:
+            @"exec \"%@\"", path];
+    if (args) {
+        // Append all arguments, making sure they are properly quoted, even
+        // when they contain single quotes.
+        NSEnumerator *e = [args objectEnumerator];
+        id obj;
+
+        while ((obj = [e nextObject])) {
+            NSMutableString *arg = [NSMutableString stringWithString:obj];
+            [arg replaceOccurrencesOfString:@"'" withString:@"'\"'\"'"
+                                    options:NSLiteralSearch
+                                      range:NSMakeRange(0, [arg length])];
+            [input appendFormat:@" '%@'", arg];
+        }
+    }
+
+    // Build the argument vector used to start the login shell.
+    NSString *shellArg0 = [NSString stringWithFormat:@"-%@",
+             [shell lastPathComponent]];
+    char *shellArgv[3] = { (char *)[shellArg0 UTF8String], NULL, NULL };
+    if (shellArgument)
+        shellArgv[1] = (char *)[shellArgument UTF8String];
+
+    // Get the C string representation of the shell path before the fork since
+    // we must not call Foundation functions after a fork.
+    char *shellPath = [shell fileSystemRepresentation];
+
+    // Fork and execute the process.
+    int ds[2];
+    if (pipe(ds)) return -1;
+
+    pid = fork();
+    if (pid == -1) {
+        return -1;
+    } else if (pid == 0) {
+        // Child process
+        if (close(ds[1]) == -1) exit(255);
+        if (dup2(ds[0], 0) == -1) exit(255);
+
+        execv(shellPath, shellArgv);
+
+        // Never reached unless execv fails
+        exit(255);
+    } else {
+        // Parent process
+        if (close(ds[0]) == -1) return -1;
+
+        // Send input to execute to the child process
+        [input appendString:@"\n"];
+        int bytes = [input lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+        if (write(ds[1], [input UTF8String], bytes) != bytes) return -1;
+        if (close(ds[1]) == -1) return -1;
+    }
+
+    return pid;
+}
+

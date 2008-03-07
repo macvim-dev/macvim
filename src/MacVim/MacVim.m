@@ -102,6 +102,8 @@ NSString *MMUntitledWindowKey           = @"MMUntitledWindow";
 NSString *MMTexturedWindowKey           = @"MMTexturedWindow";
 NSString *MMZoomBothKey                 = @"MMZoomBoth";
 NSString *MMCurrentPreferencePaneKey    = @"MMCurrentPreferencePane";
+NSString *MMLoginShellCommandKey        = @"MMLoginShellCommand";
+NSString *MMLoginShellArgumentKey       = @"MMLoginShellArgument";
 
 
 

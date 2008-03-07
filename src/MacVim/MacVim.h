@@ -222,6 +222,8 @@ extern NSString *MMUntitledWindowKey;
 extern NSString *MMTexturedWindowKey;
 extern NSString *MMZoomBothKey;
 extern NSString *MMCurrentPreferencePaneKey;
+extern NSString *MMLoginShellCommandKey;
+extern NSString *MMLoginShellArgumentKey;
 
 // Enum for MMUntitledWindowKey
 enum {

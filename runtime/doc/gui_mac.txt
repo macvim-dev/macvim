@@ -221,6 +221,8 @@ Here is a list of relevant dictionary entries:
 
 KEY				VALUE ~
 MMCellWidthMultiplier		width of a normal glyph in em units [float]
+MMLoginShellArgument		login shell parameter [string]
+MMLoginShellCommand		which shell to use to launch Vim [string]
 MMNoFontSubstitution		disable automatic font substitution [bool]
 MMTabMaxWidth			maximum width of a tab [int]
 MMTabMinWidth			minimum width of a tab [int]
@@ -241,6 +243,23 @@ command is: >
 If you wish to restore all user defaults to their starting values, open
 Terminal and type: >
 	defaults delete org.vim.MacVim
+<
+							*macvim-login-shell*
+Applications opened from the Finder do not automatically source the user's
+environment variables (which are typically set in .profile or .bashrc).  This
+presents a problem when using |:!| to execute commands in the shell since e.g.
+$PATH might not be set properly.  To work around this problem MacVim can start
+new Vim processes via a login shell so that all environment variables are set.
+
+By default MacVim uses the $SHELL environment variable to determine which
+shell to use (if $SHELL is not set "/bin/bash" is used).  It is possible to
+override this choice by setting the user default MMLoginShellCommand to the
+shell that should be used (e.g. "/bin/tcsh").  MacVim tries to make the shell
+a login shell by prepending argv[0] with a dash.  If you use an exotic shell
+and need to pass it a parameter to make it a login shell then you can set the
+user default MMLoginShellArgument (e.g. to "-l").  Finally, if the "bash"
+shell is used, then "-l" is automatically added as an argument.  To override
+this behaviour set MMLoginShellArgument to "--".
 
 ==============================================================================
 4. Special colors					*macvim-colors*
