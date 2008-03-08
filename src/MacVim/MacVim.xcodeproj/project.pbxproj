@@ -47,6 +47,7 @@
 		1D9918490D299F9900A96335 /* MMAtsuiTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D9918470D299F9900A96335 /* MMAtsuiTextView.m */; };
 		1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1DD04DEB0C529C5E006CDC2B /* Credits.rtf */; };
 		1DD0C20C0C60FFB4008CD84A /* gvimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DD0C20A0C60FF9A008CD84A /* gvimrc */; };
+		1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DD3D51D0D82D4C9006E4320 /* ibeam.png */; };
 		1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */; };
 		1DD703B90BA9D15D008679E9 /* vim_gloss.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1DD703B80BA9D15D008679E9 /* vim_gloss.icns */; };
 		1DD704310BA9F9C2008679E9 /* SpecialKeys.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD704300BA9F9C2008679E9 /* SpecialKeys.plist */; };
@@ -218,6 +219,7 @@
 		1D9918470D299F9900A96335 /* MMAtsuiTextView.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMAtsuiTextView.m; sourceTree = "<group>"; };
 		1DD04DEB0C529C5E006CDC2B /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		1DD0C20A0C60FF9A008CD84A /* gvimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gvimrc; sourceTree = "<group>"; };
+		1DD3D51D0D82D4C9006E4320 /* ibeam.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ibeam.png; sourceTree = "<group>"; };
 		1DD66ECB0C803D3600EBDAB3 /* MMApplication.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMApplication.h; sourceTree = "<group>"; };
 		1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMApplication.m; sourceTree = "<group>"; };
 		1DD703B80BA9D15D008679E9 /* vim_gloss.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = vim_gloss.icns; sourceTree = "<group>"; };
@@ -463,6 +465,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1DD3D51D0D82D4C9006E4320 /* ibeam.png */,
 				1D0F11480D58C77800D5DA09 /* Font */,
 				1DCE78490C460C6C006305A6 /* Icons */,
 				1DE9726C0C48050600F96A9F /* Toolbar */,
@@ -614,6 +617,7 @@
 				1DE3F8E70D50F80500052B9E /* Preferences.nib in Resources */,
 				0395A8AA0D72D88B00881434 /* General.png in Resources */,
 				0395A95A0D74D47B00881434 /* Integration.png in Resources */,
+				1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
