@@ -79,7 +79,7 @@ if &background == "dark"
   hi DiffChange   guibg=MediumPurple4
   hi DiffDelete   gui=bold guifg=White guibg=SlateBlue
   hi DiffText     gui=NONE guifg=White guibg=SteelBlue
-  hi LineNr       guifg=#350A5B guibg=Grey5
+  hi LineNr       guifg=#552A7B guibg=Grey5
   hi MatchParen   guifg=White guibg=Magenta
   hi Normal       guifg=Grey50 guibg=Grey10
   hi Search       guibg=Blue4 guifg=NONE
