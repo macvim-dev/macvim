@@ -71,7 +71,7 @@
         arguments[i] = NULL;
 
         err = AuthorizationExecuteWithPrivileges (authorizationRef, toolPath,
-                kAuthorizationFlagDefaults, arguments, &ioPipe);
+                kAuthorizationFlagDefaults, (char*const*)arguments, &ioPipe);
         if (err != errAuthorizationSuccess)
             goto cleanup;
 

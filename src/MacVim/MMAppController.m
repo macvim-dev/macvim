@@ -1152,7 +1152,7 @@ executeInLoginShell(NSString *path, NSArray *args)
 
     // Get the C string representation of the shell path before the fork since
     // we must not call Foundation functions after a fork.
-    char *shellPath = [shell fileSystemRepresentation];
+    const char *shellPath = [shell fileSystemRepresentation];
 
     // Fork and execute the process.
     int ds[2];
