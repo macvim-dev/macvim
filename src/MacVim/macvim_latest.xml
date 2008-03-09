@@ -41,6 +41,55 @@
     -->
     
     <item>
+      <title>Snapshot 23 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 23 released</h1>
+
+Changes since snapshot 22:
+
+<ul>
+  <li> The preferences panel has been updated with an "Integration pane".  This
+      can be used to easily install (and uninstall) the "Edit in ODBEditor"
+      input manager.  The input manager enables you to use MacVim to edit text
+      in any Cocoa text field (e.g. you can use MacVim to edit emails in Mail).
+      Please read the warning on the Integration pane before installing the
+      input manager.  (Patch by Nico Weber.) </li>
+  <li> The "Login Shell" preference has been updated so it should now work with
+      most shells.  This option ensures that environment variables (e.g. $PATH)
+      are set properly.  You should enable it if you ever need to issue shell
+      commands from within MacVim.  (Patch by Ben Schmidt.) </li>
+  <li> Added MMZoomBoth user default.  Enable this if you prefer the window to
+      maximize in both directions when you press the green "maximize button"
+      (hold down Cmd to temporarily restrict resizing to the vertical direction
+      only).  (Requested by Brian McKee.) </li>
+  <li> Added Cmd-Ctrl-z as key equivalent for "Window->Zoom" (this is the same
+      key equivalent as in iTunes) </li>
+  <li> The Vim runtime files have been updated to the latest version </li>
+  <li> MacVim recognizes files with .patch and .diff extension </li>
+  <li> The mouse cursor in insert mode has higher contrast (when used with dark
+      backgrounds).  (Requested by Enno et al.) </li>
+  <li> Line numbers (:h 'number') are brighter when bakground=dark.  (Requested
+      by Ted Pavlic) </li>
+</ul>
+
+<p>
+  Like MacVim?  Go to <a href="http://code.google.com/p/macvim/">
+      http://code.google.com/p/macvim/</a> to see how you can show your
+  support.
+</p>
+
+      ]]></description>
+      <pubDate>Sun, 9 Mar 2008 16:43 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-23.tbz"
+        length="8037899"
+        sparkle:version="23"
+        sparkle:shortVersionString="7.1"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 22 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 22 released</h1>
