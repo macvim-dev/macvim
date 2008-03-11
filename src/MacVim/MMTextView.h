@@ -28,6 +28,7 @@
     NSTextField         *markedTextField;
     int                 preEditRow;
     int                 preEditColumn;
+    int                 mouseShape;
 }
 
 - (id)initWithFrame:(NSRect)frame;

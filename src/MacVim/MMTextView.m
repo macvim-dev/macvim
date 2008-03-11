@@ -46,6 +46,7 @@ enum {
 
 
 @interface MMTextView (Private)
+- (void)setCursor;
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 - (BOOL)convertRow:(int)row column:(int)column toPoint:(NSPoint *)point;
 - (NSRect)trackingRect;
@@ -927,7 +928,14 @@ enum {
         [data appendBytes:&row length:sizeof(int)];
         [data appendBytes:&col length:sizeof(int)];
 
+        // NSTextView wants to set the cursor to an IBeam every now and then.
+        // Not even Apple's TextLinks example application works, so we set
+        // "our" cursor on every mouse move.
+        [self setCursor];
+
         [[self vimController] sendMessage:MouseMovedMsgID data:data];
+
+        //NSLog(@"Moved %d %d\n", col, row);
     }
 }
 
@@ -1093,12 +1101,59 @@ enum {
     // The font panel is updated whenever the font is set.
 }
 
+- (void)setMouseShape:(int)shape
+{
+    mouseShape = shape;
+    [self setCursor];
+}
+
 @end // MMTextView
 
 
 
 
 @implementation MMTextView (Private)
+
+- (void)setCursor
+{
+    static NSCursor *customIbeamCursor = nil;
+
+    if (!customIbeamCursor) {
+        // Use a custom Ibeam cursor that has better contrast against dark
+        // backgrounds.
+        // TODO: Is the hotspot ok?
+        NSImage *ibeamImage = [NSImage imageNamed:@"ibeam"];
+        if (ibeamImage) {
+            NSSize size = [ibeamImage size];
+            NSPoint hotSpot = { size.width*.5f, size.height*.5f };
+
+            customIbeamCursor = [[NSCursor alloc]
+                    initWithImage:ibeamImage hotSpot:hotSpot];
+        }
+        if (!customIbeamCursor) {
+            NSLog(@"WARNING: Failed to load custom Ibeam cursor");
+            customIbeamCursor = [NSCursor IBeamCursor];
+        }
+    }
+
+    // This switch should match mshape_names[] in misc2.c.
+    //
+    // TODO: Add missing cursor shapes.
+    switch (mouseShape) {
+        case 2: [customIbeamCursor set]; break;
+        case 3: case 4: [[NSCursor resizeUpDownCursor] set]; break;
+        case 5: case 6: [[NSCursor resizeLeftRightCursor] set]; break;
+        case 9: [[NSCursor crosshairCursor] set]; break;
+        case 10: [[NSCursor pointingHandCursor] set]; break;
+        case 11: [[NSCursor openHandCursor] set]; break;
+        default:
+            [[NSCursor arrowCursor] set]; break;
+    }
+
+    // Shape 1 indicates that the mouse cursor should be hidden.
+    if (1 == mouseShape)
+        [NSCursor setHiddenUntilMouseMoves:YES];
+}
 
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column
 {

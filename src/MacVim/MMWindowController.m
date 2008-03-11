@@ -487,43 +487,7 @@
 
 - (void)setMouseShape:(int)shape
 {
-    static NSCursor *customIbeamCursor = nil;
-
-    if (!customIbeamCursor) {
-        // Use a custom Ibeam cursor that has better contrast against dark
-        // backgrounds.
-        // TODO: Is the hotspot ok?
-        NSImage *ibeamImage = [NSImage imageNamed:@"ibeam"];
-        if (ibeamImage) {
-            NSSize size = [ibeamImage size];
-            NSPoint hotSpot = { size.width*.5f, size.height*.5f };
-
-            customIbeamCursor = [[NSCursor alloc]
-                    initWithImage:ibeamImage hotSpot:hotSpot];
-        }
-        if (!customIbeamCursor) {
-            NSLog(@"WARNING: Failed to load custom Ibeam cursor");
-            customIbeamCursor = [NSCursor IBeamCursor];
-        }
-    }
-
-    // This switch should match mshape_names[] in misc2.c.
-    //
-    // TODO: Add missing cursor shapes.
-    switch (shape) {
-        case 2: [customIbeamCursor set]; break;
-        case 3: case 4: [[NSCursor resizeUpDownCursor] set]; break;
-        case 5: case 6: [[NSCursor resizeLeftRightCursor] set]; break;
-        case 9: [[NSCursor crosshairCursor] set]; break;
-        case 10: [[NSCursor pointingHandCursor] set]; break;
-        case 11: [[NSCursor openHandCursor] set]; break;
-        default:
-            [[NSCursor arrowCursor] set]; break;
-    }
-
-    // Shape 1 indicates that the mouse cursor should be hidden.
-    if (1 == shape)
-        [NSCursor setHiddenUntilMouseMoves:YES];
+    [[vimView textView] setMouseShape:shape];
 }
 
 - (void)adjustLinespace:(int)linespace
