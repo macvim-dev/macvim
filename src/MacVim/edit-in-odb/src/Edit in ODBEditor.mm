@@ -275,10 +275,10 @@ struct PBX_SelectionRange
 		@"<Unknown>", @"ODBEditorName",
 		nil];
  
-    [defaults registerDefaults:appDefaults];	
+	[defaults registerDefaults:appDefaults];	
 	
-    ODBEditorBundleIdentifier = [defaults stringForKey:@"ODBEditorBundleIdentifier"] ?: @"";
-	ODBEditorName             = [defaults stringForKey:@"ODBEditorName"] ?: @"<Unknown>";
+	ODBEditorBundleIdentifier = [[defaults stringForKey:@"ODBEditorBundleIdentifier"] retain] ?: @"";
+	ODBEditorName             = [[defaults stringForKey:@"ODBEditorName"] retain] ?: @"<Unknown>";
 	if([defaults boolForKey:@"DisableEditInODBEditorMenuItem"] == NO
 		&& ![ODBEditorBundleIdentifier isEqualToString:@""]
 		&& ![ODBEditorBundleIdentifier isEqualToString:mainBundleIdentifier])
