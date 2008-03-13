@@ -40,6 +40,7 @@
                        fraction:(int)percent color:(NSColor *)color;
 - (void)hideMarkedTextField;
 - (void)performBatchDrawWithData:(NSData *)data;
+- (void)setMouseShape:(int)shape;
 
 //
 // MMTextStorage methods

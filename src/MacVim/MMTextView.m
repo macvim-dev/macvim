@@ -328,6 +328,12 @@ enum {
 #endif
 }
 
+- (void)setMouseShape:(int)shape
+{
+    mouseShape = shape;
+    [self setCursor];
+}
+
 - (NSFont *)font
 {
     return [(MMTextStorage*)[self textStorage] font];
@@ -1099,12 +1105,6 @@ enum {
 - (void)updateFontPanel
 {
     // The font panel is updated whenever the font is set.
-}
-
-- (void)setMouseShape:(int)shape
-{
-    mouseShape = shape;
-    [self setCursor];
 }
 
 @end // MMTextView
