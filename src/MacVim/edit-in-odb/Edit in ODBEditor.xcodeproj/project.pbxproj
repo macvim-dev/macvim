@@ -131,7 +131,6 @@
 				8D5B49AF048680CD000E48DA /* Resources */,
 				8D5B49B1048680CD000E48DA /* Sources */,
 				8D5B49B3048680CD000E48DA /* Frameworks */,
-				17ECD3290A3A1A6A009A4BA0 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -171,22 +170,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		17ECD3290A3A1A6A009A4BA0 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "if [[ -d ~/Oak/Release/Edit\\ in\\ TextMate.bundle && -d ~/Source/TextMate/resources/Edit\\ in\\ TextMate ]]; then\n  cp -pR ~/Oak/Release/Edit\\ in\\ TextMate.bundle ~/Source/TextMate/resources/Edit\\ in\\ TextMate\n  touch ~/Source/TextMate/resources/Edit\\ in\\ TextMate\nfi";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8D5B49B1048680CD000E48DA /* Sources */ = {
