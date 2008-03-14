@@ -41,6 +41,34 @@
     -->
     
     <item>
+      <title>Snapshot 24 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 24 released</h1>
+
+<p><em> The input manager bundled with snapshot 23 contained a bug which could
+lead to other apps crashing on startup.  If you have installed the input
+manager, then you are strongly advised to update now and install the new input
+manager (via the Integration preference pane). </em></p>
+
+<p> Changes since snapshot 23:
+<ul>
+  <li> The mouse cursor has higher contrast in insert mode (when bg=dark). </li>
+  <li> The layout of the Integration preference pane has been updated. </li>
+</ul>
+</p>
+
+      ]]></description>
+      <pubDate>Fri, 14 Mar 2008 20:44 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-24.tbz"
+        length="8036815"
+        sparkle:version="24"
+        sparkle:shortVersionString="7.1"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 23 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 23 released</h1>
