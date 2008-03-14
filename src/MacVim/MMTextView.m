@@ -934,11 +934,6 @@ enum {
         [data appendBytes:&row length:sizeof(int)];
         [data appendBytes:&col length:sizeof(int)];
 
-        // NSTextView wants to set the cursor to an IBeam every now and then.
-        // Not even Apple's TextLinks example application works, so we set
-        // "our" cursor on every mouse move.
-        [self setCursor];
-
         [[self vimController] sendMessage:MouseMovedMsgID data:data];
 
         //NSLog(@"Moved %d %d\n", col, row);
@@ -952,8 +947,14 @@ enum {
     // NOTE: This event is received even when the window is not key; thus we
     // have to take care not to enable mouse moved events unless our window is
     // key.
-    if ([[self window] isKeyWindow])
+    if ([[self window] isKeyWindow]) {
         [[self window] setAcceptsMouseMovedEvents:YES];
+
+        // Ensure Vim gets to choose the mouse cursor when it enters over the
+        // text view, otherwise NSTextView will automatically set its I-Beam
+        // cursor.
+        [self setCursor];
+    }
 }
 
 - (void)mouseExited:(NSEvent *)event
