@@ -30,6 +30,7 @@ enum { MMMaxCellsPerChar = 2 };
     NSImage                     *contentImage;
     NSSize                      imageSize;
     ATSUStyle                   atsuStyles[MMMaxCellsPerChar];
+    BOOL                        antialias;
 }
 
 - (id)initWithFrame:(NSRect)frame;
@@ -57,6 +58,8 @@ enum { MMMaxCellsPerChar = 2 };
 - (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)setPreEditRow:(int)row column:(int)col;
 - (void)hideMarkedTextField;
+- (void)setMouseShape:(int)shape;
+- (void)setAntialias:(BOOL)state;
 
 //
 // NSTextView methods

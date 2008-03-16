@@ -309,8 +309,8 @@ EXTERN int	p_acd;		/* 'autochdir' */
 #ifdef FEAT_MBYTE
 EXTERN char_u	*p_ambw;	/* 'ambiwidth' */
 #endif
-#if defined(FEAT_GUI) && defined(MACOS_X)
-EXTERN int	*p_antialias;	/* 'antialias' */
+#ifdef FEAT_ANTIALIAS
+EXTERN int	p_antialias;	/* 'antialias' */
 #endif
 EXTERN int	p_ar;		/* 'autoread' */
 EXTERN int	p_aw;		/* 'autowrite' */

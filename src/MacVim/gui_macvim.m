@@ -1542,6 +1542,13 @@ gui_macvim_add_to_find_pboard(char_u *pat)
     [pb setString:s forType:NSStringPboardType];
 }
 
+    void
+gui_macvim_set_antialias(int antialias)
+{
+    [[MMBackend sharedInstance] setAntialias:antialias];
+}
+
+
 
 
 

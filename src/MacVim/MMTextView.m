@@ -334,6 +334,12 @@ enum {
     [self setCursor];
 }
 
+- (void)setAntialias:(BOOL)antialias
+{
+    // Antialiasing is handled by the System Preferences and there seems to be
+    // no way to control antialiasing with NSTextView.
+}
+
 - (NSFont *)font
 {
     return [(MMTextStorage*)[self textStorage] font];

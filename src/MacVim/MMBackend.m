@@ -1065,6 +1065,13 @@ static NSString *MMSymlinkWarningString =
     [self queueMessage:LeaveFullscreenMsgID data:nil];
 }
 
+- (void)setAntialias:(BOOL)antialias
+{
+    int msgid = antialias ? EnableAntialiasMsgID : DisableAntialiasMsgID;
+
+    [self queueMessage:msgid data:nil];
+}
+
 - (void)updateModifiedFlag
 {
     // Notify MacVim if _any_ buffer has changed from unmodified to modified or

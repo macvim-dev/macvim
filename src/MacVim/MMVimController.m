@@ -889,6 +889,10 @@ static NSTimeInterval MMResendInterval = 0.5;
         const int *dim = (const int*)[data bytes];
         [[[windowController vimView] textView] setPreEditRow:dim[0]
                                                       column:dim[1]];
+    } else if (EnableAntialiasMsgID == msgid) {
+        [[[windowController vimView] textView] setAntialias:YES];
+    } else if (DisableAntialiasMsgID == msgid) {
+        [[[windowController vimView] textView] setAntialias:NO];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

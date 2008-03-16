@@ -478,14 +478,16 @@ static struct vimoption
 #endif
 					    (char_u *)0L}},
     {"antialias",   "anti", P_BOOL|P_VI_DEF|P_VIM|P_RCLR,
-#if defined(FEAT_GUI) && defined(MACOS_X)
+#ifdef FEAT_ANTIALIAS
 			    (char_u *)&p_antialias, PV_NONE,
-			    {(char_u *)FALSE, (char_u *)FALSE}
 #else
 			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)FALSE, (char_u *)FALSE}
 #endif
-			    },
+#if FEAT_GUI_MACVIM
+			    {(char_u *)TRUE, (char_u *)0L}},
+#else
+			    {(char_u *)FALSE, (char_u *)0L}},
+#endif
     {"arabic",	    "arab", P_BOOL|P_VI_DEF|P_VIM,
 #ifdef FEAT_ARABIC
 			    (char_u *)VAR_WIN, PV_ARAB,
@@ -7305,6 +7307,13 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 	    gui_mch_enter_fullscreen();
         else if (!p_fullscreen && old_value)
 	    gui_mch_leave_fullscreen();
+    }
+#endif
+
+#if defined(FEAT_ANTIALIAS) && defined(FEAT_GUI_MACVIM)
+    else if ((int *)varp == &p_antialias && gui.in_use)
+    {
+	gui_macvim_set_antialias(p_antialias);
     }
 #endif
 

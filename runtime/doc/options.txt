@@ -666,17 +666,23 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Standard Annex #11 (http://www.unicode.org/reports/tr11).
 
 			*'antialias'* *'anti'* *'noantialias'* *'noanti'*
-'antialias' 'anti'	boolean (default: off)
+'antialias' 'anti'	boolean (default off, on for MacVim)
 			global
 			{not in Vi}
-			{only available when compiled with Carbon GUI enabled
-			on Mac OS X}
-        This option only has an effect in the Carbon GUI version of Vim on Mac
-        OS X v10.2 or later.  When on, Vim will use smooth ("antialiased")
-        fonts, which can be easier to read at certain sizes on certain
-        displays.  Setting this option can sometimes cause problems if
-        'guifont' is set to its default (empty string).
-	Note: Antialiasing is handled automatically on MacVim.
+                        {only available when compiled with GUI enabled on
+			 Mac OS X}
+	This option only has an effect in the Carbon GUI version of Vim on Mac
+	OS X v10.2 or later, and in MacVim when the ATSUI renderer is used.
+	When on, Vim will use smooth ("antialiased") fonts, which can be
+	easier to read at certain sizes on certain displays.
+
+	Setting this option in the Carbon version can sometimes cause problems
+	if 'guifont' is set to its default (empty string).
+
+	The default renderer in MacVim uses the System Preferences to control
+	antialiasing of text; this option is ignored. The ATSUI renderer on
+	the other hand does use this option (and ignores the System
+	Preferences setting).
 
 			*'autochdir'* *'acd'* *'noautochdir'* *'noacd'*
 'autochdir' 'acd'	boolean (default off)

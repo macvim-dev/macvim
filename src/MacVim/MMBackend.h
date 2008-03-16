@@ -115,6 +115,8 @@
 - (void)enterFullscreen;
 - (void)leaveFullscreen;
 
+- (void)setAntialias:(BOOL)antialias;
+
 - (void)updateModifiedFlag;
 
 - (void)registerServerWithName:(NSString *)name;

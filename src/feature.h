@@ -1296,3 +1296,10 @@
 #ifdef FEAT_GUI_MACVIM
 #define FEAT_GUI_SCROLL_WHEEL_FORCE
 #endif
+
+/*
+ * Support for enabling/disabling antialiased text.
+ */
+#if defined(FEAT_GUI) && defined(MACOS_X)
+#define FEAT_ANTIALIAS
+#endif

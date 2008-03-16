@@ -73,6 +73,8 @@ char *MessageStrings[] =
     "ODBEditMsgID",
     "XcodeModMsgID",
     "LiveResizeMsgID",
+    "EnableAntialiasMsgID",
+    "DisableAntialiasMsgID",
 };
 
 

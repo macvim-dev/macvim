@@ -160,6 +160,8 @@ enum {
     ODBEditMsgID,
     XcodeModMsgID,
     LiveResizeMsgID,
+    EnableAntialiasMsgID,
+    DisableAntialiasMsgID,
 };
 
 

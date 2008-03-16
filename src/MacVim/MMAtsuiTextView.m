@@ -108,6 +108,10 @@ enum {
         imageSize = NSZeroSize;
         insetSize = NSZeroSize;
 
+        // NOTE: If the default changes to 'NO' then the intialization of
+        // p_antialias in option.c must change as well.
+        antialias = YES;
+
         [self initAtsuStyles];
     }
 
@@ -256,6 +260,15 @@ enum {
 
 - (void)hideMarkedTextField
 {
+}
+
+- (void)setMouseShape:(int)shape
+{
+}
+
+- (void)setAntialias:(BOOL)state
+{
+    antialias = state;
 }
 
 
@@ -918,6 +931,9 @@ enum {
     [contentImage unlockFocus];
 }
 
+#define atsu_style_set_bool(s, t, b) \
+    ATSUSetAttributes(s, 1, &t, &(sizeof(Boolean)), &&b);
+
 - (void)drawString:(UniChar *)string length:(UniCharCount)length
              atRow:(int)row column:(int)col cells:(int)cells
          withFlags:(int)flags foregroundColor:(NSColor *)fg
@@ -928,6 +944,26 @@ enum {
     // character takes up two)
     ATSUStyle          style = (flags & DRAW_WIDE) ? atsuStyles[1] : atsuStyles[0];
     ATSUTextLayout     layout;
+
+    // Font selection and rendering options for ATSUI
+    ATSUAttributeTag      attribTags[3] = { kATSUQDBoldfaceTag,
+                                            kATSUQDItalicTag,
+                                            kATSUStyleRenderingOptionsTag };
+    ByteCount             attribSizes[] = { sizeof(Boolean),
+                                            sizeof(Boolean),
+                                            sizeof(UInt32) };
+    Boolean               useBold, useItalic;
+    UInt32                useAntialias;
+    ATSUAttributeValuePtr attribValues[3] = { &useBold, &useItalic,
+                                              &useAntialias };
+
+    useBold      = (flags & DRAW_BOLD) ? true : false;
+    useItalic    = (flags & DRAW_ITALIC) ? true : false;
+    useAntialias = antialias ? kATSStyleApplyAntiAliasing
+                             : kATSStyleNoAntiAliasing;
+
+    ATSUSetAttributes(style, sizeof(attribValues) / sizeof(attribValues[0]),
+                      attribTags, attribSizes, attribValues);
 
     // NSLog(@"drawString: %d", length);
 

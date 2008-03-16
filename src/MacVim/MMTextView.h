@@ -41,6 +41,7 @@
 - (void)hideMarkedTextField;
 - (void)performBatchDrawWithData:(NSData *)data;
 - (void)setMouseShape:(int)shape;
+- (void)setAntialias:(BOOL)antialias;
 
 //
 // MMTextStorage methods
