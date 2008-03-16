@@ -671,18 +671,16 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not in Vi}
                         {only available when compiled with GUI enabled on
 			 Mac OS X}
-	This option only has an effect in the Carbon GUI version of Vim on Mac
-	OS X v10.2 or later, and in MacVim when the ATSUI renderer is used.
-	When on, Vim will use smooth ("antialiased") fonts, which can be
-	easier to read at certain sizes on certain displays.
+	This option only has an effect in the GUI version of Vim on Mac OS X
+	v10.2 or later.  When on, Vim will use smooth ("antialiased") fonts,
+	which can be easier to read at certain sizes on certain displays.
 
 	Setting this option in the Carbon version can sometimes cause problems
 	if 'guifont' is set to its default (empty string).
 
-	The default renderer in MacVim uses the System Preferences to control
-	antialiasing of text; this option is ignored. The ATSUI renderer on
-	the other hand does use this option (and ignores the System
-	Preferences setting).
+	Support for this option is not flawless in MacVim. In particular,
+	Monaco always seems to render not antialiased for point sizes up
+	to 10. The ATSUI renderer has better antialias support.
 
 			*'autochdir'* *'acd'* *'noautochdir'* *'noacd'*
 'autochdir' 'acd'	boolean (default off)

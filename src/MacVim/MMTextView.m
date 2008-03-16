@@ -111,6 +111,9 @@ enum {
         return nil;
     }
 
+    // NOTE: If the default changes to 'NO' then the intialization of
+    // p_antialias in option.c must change as well.
+    antialias = YES;
     return self;
 }
 
@@ -334,10 +337,9 @@ enum {
     [self setCursor];
 }
 
-- (void)setAntialias:(BOOL)antialias
+- (void)setAntialias:(BOOL)state
 {
-    // Antialiasing is handled by the System Preferences and there seems to be
-    // no way to control antialiasing with NSTextView.
+    antialias = state;
 }
 
 - (NSFont *)font
@@ -448,6 +450,9 @@ enum {
 
 - (void)drawRect:(NSRect)rect
 {
+    NSGraphicsContext *context = [NSGraphicsContext currentContext];
+    [context setShouldAntialias:antialias];
+
     [super drawRect:rect];
 
     if (shouldDrawInsertionPoint) {

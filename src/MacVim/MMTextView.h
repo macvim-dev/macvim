@@ -29,6 +29,7 @@
     int                 preEditRow;
     int                 preEditColumn;
     int                 mouseShape;
+    BOOL                antialias;
 }
 
 - (id)initWithFrame:(NSRect)frame;
