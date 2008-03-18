@@ -1,7 +1,7 @@
 /* vi:set ts=8 sts=4 sw=4 ft=objc:
  *
- * VIM - Vi IMproved		by Bram Moolenaar
- *				MacVim GUI port by Bjorn Winckler
+ * VIM - Vi IMproved            by Bram Moolenaar
+ *                              MacVim GUI port by Bjorn Winckler
  *
  * Do ":help uganda"  in Vim to read copying and usage conditions.
  * Do ":help credits" in Vim to see a list of people who contributed.
@@ -23,12 +23,17 @@
  * Author: Nico Weber
  */
 
+#import "MMVimController.h"
 #import "MMFullscreenWindow.h"
 #import <PSMTabBarControl.h>
 #import "MMVimView.h"
 #import "MMTextView.h"
 #import "MMWindowController.h"
 #import <Carbon/Carbon.h>
+
+// These have to be the same as in option.h
+#define FUOPT_MAXVERT 0x001
+#define FUOPT_MAXHORZ 0x002
 
 
 static int numFullscreenWindows = 0;
@@ -82,7 +87,7 @@ static int numFullscreenWindows = 0;
     [super dealloc];
 }
 
-- (void)enterFullscreen
+- (void)enterFullscreen:(int)fuoptions
 {
     [self hideDockIfAppropriate];
 
@@ -123,6 +128,42 @@ static int numFullscreenWindows = 0;
     // focus gained message  
     [self setDelegate:delegate];
 
+    // resize vim view according to fuoptions
+    int currRows, currColumns;
+    [[view textView] getMaxRows:&currRows columns:&currColumns];
+
+    int fuRows = currRows, fuColumns = currColumns;
+
+    int maxRows, maxColumns;
+    NSSize size = [[self screen] frame].size;
+    [view constrainRows:&maxRows columns:&maxColumns toSize:size];
+
+    // Store current pre-fu vim size
+    nonFuRows = currRows;
+    nonFuColumns = currColumns;
+
+    // Compute current fu size
+    if (fuoptions & FUOPT_MAXVERT)
+        fuRows = maxRows;
+    if (fuoptions & FUOPT_MAXHORZ)
+        fuColumns = maxColumns;
+
+    startFuFlags = fuoptions;
+
+    // if necessary, resize vim to target fu size
+    if (currRows != fuRows || currColumns != fuColumns) {
+        int newSize[2] = { fuRows, fuColumns };
+        NSData *data = [NSData dataWithBytes:newSize length:2*sizeof(int)];
+        MMVimController *vimController =
+            [[self windowController] vimController];
+
+        [vimController sendMessage:SetTextDimensionsMsgID data:data];
+        [[view textView] setMaxRows:fuRows columns:fuColumns];
+    }
+
+    startFuRows = fuRows;
+    startFuColumns = fuColumns;
+
     // move vim view to the window's center
     [self centerView];
 
@@ -149,6 +190,32 @@ static int numFullscreenWindows = 0;
         didBlend = YES;
     }
 
+    // restore old vim view size
+    int currRows, currColumns;
+    [[view textView] getMaxRows:&currRows columns:&currColumns];
+    int newRows = currRows, newColumns = currColumns;
+
+    // compute desired non-fu size.
+    // if current fu size is equal to fu size at fu enter time,
+    // restore the old size
+    //
+    if (startFuFlags & FUOPT_MAXVERT && startFuRows == currRows)
+        newRows = nonFuRows;
+
+    if (startFuFlags & FUOPT_MAXHORZ && startFuColumns == currColumns)
+        newColumns = nonFuColumns;
+
+    // resize vim if necessary
+    if (currRows != newRows || currColumns != newColumns) {
+        int newSize[2] = { newRows, newColumns };
+        NSData *data = [NSData dataWithBytes:newSize length:2*sizeof(int)];
+        MMVimController *vimController =
+            [[self windowController] vimController];
+
+        [vimController sendMessage:SetTextDimensionsMsgID data:data];
+        [[view textView] setMaxRows:newRows columns:newColumns];
+    }
+
     // fix up target controller
     [self retain];  // NSWindowController releases us once
     [[self windowController] setWindow:target];
@@ -166,6 +233,7 @@ static int numFullscreenWindows = 0;
     // window.
     [view removeFromSuperviewWithoutNeedingDisplay];
     [[target contentView] addSubview:view];
+
     [view setFrameOrigin:oldPosition];
     [self close];
 

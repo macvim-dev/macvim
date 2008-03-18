@@ -697,6 +697,7 @@ Short explanation of each option:		*option-list*
 'formatexpr'	  'fex'     expression used with "gq" command
 'fsync'		  'fs'	    whether to invoke fsync() after file write
 'fullscreen'	  'fu'	    let vim cover the whole screen (MacVim only)
+'fuoptions'	  'fuopt'   controls how 'fullscreen' behaves (MacVim only)
 'gdefault'	  'gd'	    the ":substitute" flag 'g' is default on
 'grepformat'	  'gfm'     format of 'grepprg' output
 'grepprg'	  'gp'	    program to use for ":grep"

@@ -878,7 +878,8 @@ static NSTimeInterval MMResendInterval = 0.5;
         [self setServerName:name];
         [name release];
     } else if (EnterFullscreenMsgID == msgid) {
-        [windowController enterFullscreen];
+        int fuoptions = *(int*)[data bytes];
+        [windowController enterFullscreen:fuoptions];
     } else if (LeaveFullscreenMsgID == msgid) {
         [windowController leaveFullscreen];
     } else if (BuffersNotModifiedMsgID == msgid) {

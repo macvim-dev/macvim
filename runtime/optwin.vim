@@ -617,6 +617,8 @@ if has("gui")
     call append("$", " \tset transparency=" . &transp)
     call append("$", "fullscreen\tdisplay vim in fullscreen mode")
     call <SID>BinOptionG("fullscreen", &fullscreen)
+    call append("$", "fuoptions\tcontrol how fullscreen mode should behave")
+    call <SID>OptionG("fuoptions", &fuoptions)
   endif
 endif
 

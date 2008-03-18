@@ -470,6 +470,13 @@ EXTERN int	p_fs;		/* 'fsync' */
 #endif
 #ifdef FEAT_FULLSCREEN
 EXTERN int	p_fullscreen;
+EXTERN char_u	*p_fuoptions;
+EXTERN unsigned	fuoptions_flags;
+#ifdef IN_OPTION_C
+static char *(p_fuoptions_values[]) = {"maxvert", "maxhorz", NULL};
+#endif
+#define FUOPT_MAXVERT 0x001
+#define FUOPT_MAXHORZ 0x002
 #endif
 EXTERN int	p_gd;		/* 'gdefault' */
 #ifdef FEAT_PRINTER

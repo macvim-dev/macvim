@@ -1055,9 +1055,11 @@ static NSString *MMSymlinkWarningString =
     return NO;
 }
 
-- (void)enterFullscreen
+- (void)enterFullscreen:(int)fuoptions
 {
-    [self queueMessage:EnterFullscreenMsgID data:nil];
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&fuoptions length:sizeof(int)];
+    [self queueMessage:EnterFullscreenMsgID data:data];
 }
 
 - (void)leaveFullscreen

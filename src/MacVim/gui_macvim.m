@@ -1498,9 +1498,9 @@ gui_macvim_is_valid_action(NSString *action)
 
 
     void
-gui_mch_enter_fullscreen()
+gui_mch_enter_fullscreen(int fuoptions_flags)
 {
-    [[MMBackend sharedInstance] enterFullscreen];
+    [[MMBackend sharedInstance] enterFullscreen:fuoptions_flags];
 }
 
 

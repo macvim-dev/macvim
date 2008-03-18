@@ -59,7 +59,7 @@
 - (void)liveResizeWillStart;
 - (void)liveResizeDidEnd;
 
-- (void)enterFullscreen;
+- (void)enterFullscreen:(int)fuoptions;
 - (void)leaveFullscreen;
 - (void)setBuffersModified:(BOOL)mod;
 

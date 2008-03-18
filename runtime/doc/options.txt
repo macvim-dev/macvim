@@ -3050,15 +3050,56 @@ A jump table for the options with a short description can be found at |Q_op|.
 'fullscreen' 'fu'	boolean (default off)
 			global
 			{not in Vi}
-			{only available in the MacVim GUI}
-	When this option is set, the whole screen is covered by vim.  Screen
+			{only in MacVim GUI}
+	When this option is set, the whole screen is covered by Vim.  Screen
 	decorations drawn by the operating system (such as the dock or the
-	menu bar) are hidden.  Most of vim's window chrome is hidden as well
-	(e.g. toolbar, title bar).  The tab bar and scroll bars remains visible.
-
-	Most of the screen is black, only a 'columns' x 'lines' part of the
-	screen is covered by the actual vim control.  The control is centered.
+	menu bar) are hidden.  Most of Vim's window chrome is hidden as well
+	(e.g. toolbar, title bar).  The tab bar and scroll bars remain visible.
 	Updates to the window position are ignored in fullscreen mode.
+
+	See 'fuoptions' for how Vim resizes when entering and leaving
+	fullscreen mode.
+
+	XXX: Add fuenter/fuleave autocommands? You might want to display
+	a NERDTree or a Tlist only in fullscreen for example. Then again, this
+	could probably be in a sizechanged autocommand that triggers if the
+	size is above a certain threshold.
+	XXX: Think about how 'fullscreen' and 'transparency' should interact. 
+
+						*'fuoptions'* *'fuopt'*
+'fuoptions' 'fuopt'	string (default "maxvert")
+			global
+			{not in Vi}
+			{only in MacVim GUI}
+	In fullscreen mode, most of the screen is black, only a part of the
+	screen is covered by the actual Vim control.  The control is centered.
+	This option controls the size of the Vim control.
+	value	effect	~
+        maxvert	When entering fullscreen, 'lines' is set to the maximum number
+		of lines fitting on the screen in fullscreen mode. When
+		leaving fullscreen, if 'lines' is still equal to the maximized
+		number of lines, it is restored to the value it had before
+		entering fullscreen.
+        maxhorz	When entering fullscreen, 'columns' is set to the maximum number
+		of columns fitting on the screen in fullscreen mode. When
+		leaving fullscreen, if 'columns' is still equal to the maximized
+		number of columns, it is restored to the value it had before
+		entering fullscreen.
+
+	Examples: 
+	Don't change size of Vim when entering fullscreen: >
+	  :set fuoptions=
+<	Maximize Vim when entering fullscreen: >
+	  :set fuoptions=maxvert,maxhorz
+<
+	XXX: what if the font size is changed? you probably never want to
+	restore the old 'lines' or 'columns' in that case.
+	XXX: Each time the Vim window resizes (for example due to font size
+	changes, re-maximize Vim to fullscreen?)
+	XXX: The approach doesn't restore vertical Vim size if fu is entered
+	without tabs and leaves with tabs (or the other way round).
+
+
 
 				   *'gdefault'* *'gd'* *'nogdefault'* *'nogd'*
 'gdefault' 'gd'		boolean	(default off)

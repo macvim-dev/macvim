@@ -495,7 +495,7 @@ typedef struct Gui
 #endif
 
 #ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
-    int         scroll_wheel_force;
+    int		scroll_wheel_force;
 #endif
 } gui_T;
 

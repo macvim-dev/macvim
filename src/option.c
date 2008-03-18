@@ -1161,6 +1161,14 @@ static struct vimoption
 			    (char_u *)NULL, PV_NONE,
 #endif
 			    {(char_u *)FALSE, (char_u *)0L}},
+    {"fuoptions",  "fuopt", P_STRING|P_COMMA|P_NODUP|P_VI_DEF,
+#ifdef FEAT_FULLSCREEN
+			    (char_u *)&p_fuoptions, PV_NONE,
+			    {(char_u *)"maxvert", (char_u *)0L}},
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L}},
+#endif
     {"gdefault",    "gd",   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_gd, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}},
@@ -5070,6 +5078,12 @@ didset_options()
 #ifdef FEAT_FOLDING
     (void)opt_strings_flags(p_fdo, p_fdo_values, &fdo_flags, TRUE);
 #endif
+#ifdef FEAT_FULLSCREEN
+    (void)opt_strings_flags(p_fuoptions, p_fuoptions_values, &fuoptions_flags,
+	    TRUE);
+    
+    (void)opt_strings_flags(p_fdo, p_fdo_values, &fdo_flags, TRUE);
+#endif
     (void)opt_strings_flags(p_dy, p_dy_values, &dy_flags, TRUE);
 #ifdef FEAT_VIRTUALEDIT
     (void)opt_strings_flags(p_ve, p_ve_values, &ve_flags, TRUE);
@@ -6592,6 +6606,16 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
     }
 #endif
 
+#ifdef FEAT_FULLSCREEN
+    /* 'fuoptions' */
+    else if (varp == &p_fuoptions)
+    {
+	if (opt_strings_flags(p_fuoptions, p_fuoptions_values,
+		    &fuoptions_flags, TRUE) != OK)
+	    errmsg = e_invarg;
+    }
+#endif
+    
 #ifdef FEAT_VIRTUALEDIT
     /* 'virtualedit' */
     else if (varp == &p_ve)
@@ -7304,9 +7328,13 @@ set_bool_option(opt_idx, varp, value, opt_flags)
     else if ((int *)varp == &p_fullscreen && gui.in_use)
     {
 	if (p_fullscreen && !old_value)
-	    gui_mch_enter_fullscreen();
+	{
+	    gui_mch_enter_fullscreen(fuoptions_flags);
+	}
         else if (!p_fullscreen && old_value)
+	{
 	    gui_mch_leave_fullscreen();
+	}
     }
 #endif
 

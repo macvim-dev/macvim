@@ -190,7 +190,7 @@ int serverPeekReply(int port, char_u **str);
 int serverReadReply(int port, char_u **str);
 int serverSendReply(char_u *serverid, char_u *str);
 
-void gui_mch_enter_fullscreen(void);
+void gui_mch_enter_fullscreen(int fuoptions_flags);
 void gui_mch_leave_fullscreen(void);
 
 void gui_macvim_update_modified_flag();

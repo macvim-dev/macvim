@@ -544,13 +544,13 @@
     }
 }
 
-- (void)enterFullscreen
+- (void)enterFullscreen:(int)fuoptions
 {
     if (fullscreenEnabled) return;
 
     fullscreenWindow = [[MMFullscreenWindow alloc]
             initWithWindow:decoratedWindow view:vimView];
-    [fullscreenWindow enterFullscreen];    
+    [fullscreenWindow enterFullscreen:fuoptions];    
     [fullscreenWindow setDelegate:self];
     fullscreenEnabled = YES;
 
