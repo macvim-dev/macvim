@@ -593,11 +593,9 @@
 
 - (IBAction)performClose:(id)sender
 {
-    // NOTE: File->Close is bound to this action message instead binding it
-    // directly to the below vim input so that File->Close also works for
-    // auxiliary windows such as the About dialog.  (If we were to bind the
-    // below, then <D-w> will not close e.g. the About dialog.)
-    [vimController addVimInput:@"<C-\\><C-N>:conf q<CR>"];
+    // NOTE: File->Close is bound to this action message so that File->Close
+    // also works for auxiliary windows such as the About dialog.
+    [vimController sendMessage:CloseMsgID data:nil];
 }
 
 - (IBAction)findNext:(id)sender

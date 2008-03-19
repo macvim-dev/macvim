@@ -162,6 +162,7 @@ enum {
     LiveResizeMsgID,
     EnableAntialiasMsgID,
     DisableAntialiasMsgID,
+    CloseMsgID,
 };
 
 

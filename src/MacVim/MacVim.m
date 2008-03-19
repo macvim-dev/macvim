@@ -75,6 +75,7 @@ char *MessageStrings[] =
     "LiveResizeMsgID",
     "EnableAntialiasMsgID",
     "DisableAntialiasMsgID",
+    "CloseMsgID",
 };
 
 
