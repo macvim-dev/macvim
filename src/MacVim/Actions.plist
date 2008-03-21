@@ -24,6 +24,8 @@
 	<string></string>
 	<key>newWindow:</key>
 	<string></string>
+	<key>openWebsite:</key>
+	<string></string>
 	<key>orderFrontCharacterPalette:</key>
 	<string></string>
 	<key>orderFrontFontPanel:</key>

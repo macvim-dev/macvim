@@ -41,6 +41,8 @@
 static NSTimeInterval MMRequestTimeout = 5;
 static NSTimeInterval MMReplyTimeout = 5;
 
+static NSString *MMWebsiteString = @"http://code.google.com/p/macvim/";
+
 
 #pragma options align=mac68k
 typedef struct
@@ -576,6 +578,12 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (IBAction)orderFrontPreferencePanel:(id)sender
 {
     [[MMPreferenceController sharedPrefsWindowController] showWindow:self];
+}
+
+- (IBAction)openWebsite:(id)sender
+{
+    [[NSWorkspace sharedWorkspace] openURL:
+            [NSURL URLWithString:MMWebsiteString]];
 }
 
 - (byref id <MMFrontendProtocol>)

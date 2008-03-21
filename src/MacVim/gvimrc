@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Thu Mar 6 2008
+" Last Change:	Fri Mar 21 2008
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -86,6 +86,11 @@ an <silent> 9900.350 Window.Next\ Tab           :tabnext<CR>
 an 9900.360 Window.-SEP2-                       <Nop>
 an <silent> 9900.370 Window.Bring\ All\ To\ Front :maca arrangeInFront:<CR>
 
+
+" Help menu
+an 9999.1 Help.MacVim\ Help                 :h gui_mac<CR>
+an <silent> 9999.2 Help.MacVim\ Website     :maca openWebsite:<CR>
+an 9999.3 Help.-sep0-                       <Nop>
 
 
 "
@@ -227,6 +232,8 @@ macmenukey Window.Zoom                            <D-C-z>
 macmenukey Window.Toggle\ Full\ Screen\ Mode      <D-F>
 macmenukey Window.Previous\ Tab                   <D-{>
 macmenukey Window.Next\ Tab                       <D-}>
+
+macmenukey Help.MacVim\ Help                      <D-?>
 
 
 " Restore the previous value of 'cpoptions'.
