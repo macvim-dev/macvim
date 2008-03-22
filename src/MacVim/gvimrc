@@ -233,7 +233,9 @@ macmenukey Window.Toggle\ Full\ Screen\ Mode      <D-F>
 macmenukey Window.Previous\ Tab                   <D-{>
 macmenukey Window.Next\ Tab                       <D-}>
 
-macmenukey Help.MacVim\ Help                      <D-?>
+" TODO: <D-?> seems to be reserved by the system on Leopard.  Disable this key
+" equivalent until I can figure out what to do about it.
+"macmenukey Help.MacVim\ Help                      <D-?>
 
 
 " Restore the previous value of 'cpoptions'.
