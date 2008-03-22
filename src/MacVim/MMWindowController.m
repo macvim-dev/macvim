@@ -367,7 +367,9 @@
     // NOTE: This is called when the transparency changes so set the opacity
     // flag on the window here (should be faster if the window is opaque).
     BOOL isOpaque = [back alphaComponent] == 1.0f;
-    [[self window] setOpaque:isOpaque];
+    [decoratedWindow setOpaque:isOpaque];
+    if (fullscreenEnabled)
+        [fullscreenWindow setOpaque:isOpaque];
 
     [vimView setDefaultColorsBackground:back foreground:fore];
 }
