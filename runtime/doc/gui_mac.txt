@@ -362,7 +362,7 @@ this dictionary is the name of the action message (case sensitive), the value
 is not used.
 
 Note: The |:macaction| command supports tab-completion so to cycle through
-all available commands type ":maca<Space><Tab>" and keep pressing <Tab>.
+all available actions type ":maca<Space><Tab>" and keep pressing <Tab>.
 
 Here is a random assortment of actions from Actions.plist which might be
 useful.  
