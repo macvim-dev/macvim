@@ -4449,6 +4449,9 @@ ExpandFromContext(xp, pat, num_file, file, options)
 	    {EXPAND_LANGUAGE, get_lang_arg, TRUE},
 #endif
 	    {EXPAND_ENV_VARS, get_env_name, TRUE},
+#ifdef FEAT_GUI_MACVIM
+	    {EXPAND_MACACTION, get_macaction_name, FALSE},
+#endif
 	};
 	int	i;
 

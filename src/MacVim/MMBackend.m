@@ -142,8 +142,12 @@ static NSString *MMSymlinkWarningString =
         sysColorDict = [[NSDictionary dictionaryWithContentsOfFile:path]
             retain];
 
-    if (!(colorDict && sysColorDict))
-        NSLog(@"ERROR: Failed to load color dictionaries.%@",
+    path = [mainBundle pathForResource:@"Actions" ofType:@"plist"];
+    if (path)
+        actionDict = [[NSDictionary dictionaryWithContentsOfFile:path] retain];
+
+    if (!(colorDict && sysColorDict && actionDict))
+        NSLog(@"ERROR: Failed to load dictionaries.%@",
                 MMSymlinkWarningString);
 
     return self;
@@ -213,6 +217,11 @@ static NSString *MMSymlinkWarningString =
 
     // NOTE: 'connection' may be nil here.
     return connection;
+}
+
+- (NSDictionary *)actionDict
+{
+    return actionDict;
 }
 
 - (BOOL)checkin

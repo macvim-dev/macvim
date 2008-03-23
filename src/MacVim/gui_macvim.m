@@ -1478,22 +1478,8 @@ gui_mch_toggle_tearoffs(int enable)
     static BOOL
 gui_macvim_is_valid_action(NSString *action)
 {
-    static NSDictionary *actionDict = nil;
-
-    if (!actionDict) {
-        NSBundle *mainBundle = [NSBundle mainBundle];
-        NSString *path = [mainBundle pathForResource:@"Actions"
-                                              ofType:@"plist"];
-        if (path) {
-            actionDict = [[NSDictionary alloc] initWithContentsOfFile:path];
-        } else {
-            // Allocate bogus dictionary so that error only pops up once.
-            actionDict = [NSDictionary new];
-            EMSG(_("E???: Failed to load action dictionary"));
-        }
-    }
-
-    return [actionDict objectForKey:action] != nil;
+    NSDictionary *actionDict = [[MMBackend sharedInstance] actionDict];
+    return actionDict && [actionDict objectForKey:action] != nil;
 }
 
 
@@ -1834,3 +1820,35 @@ odb_end(void)
 }
 
 #endif // FEAT_ODB_EDITOR
+
+
+    char_u *
+get_macaction_name(expand_T *xp, int idx)
+{
+    static char_u *str = NULL;
+    NSDictionary *actionDict = [[MMBackend sharedInstance] actionDict];
+
+    if (nil == actionDict || idx < 0 || idx >= [actionDict count])
+        return NULL;
+
+    NSString *string = [[actionDict allKeys] objectAtIndex:idx];
+    if (!string)
+        return NULL;
+
+    char_u *plainStr = (char_u*)[string UTF8String];
+
+#ifdef FEAT_MBYTE
+    if (str) {
+        vim_free(str);
+        str = NULL;
+    }
+    if (input_conv.vc_type != CONV_NONE) {
+        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        str = string_convert(&input_conv, plainStr, &len);
+        plainStr = str;
+    }
+#endif
+
+    return plainStr;
+}
+

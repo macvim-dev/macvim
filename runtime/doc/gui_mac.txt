@@ -341,16 +341,16 @@ to "~/.gvimrc": >
 <
 						*:maca* *:macaction*
 It is typical for menu items in Cocoa applications to bind to Objective-C
-selectors.  To support this, MacVim introduces the ":macaction" command.  This
+selectors.  To support this, MacVim introduces the |:macaction| command.  This
 command takes the name of an action message as its only parameter.  (An action
 message is an Objective-C message with "void" return type and a single
 parameter of type "id".)  For example, the "New Window" menu item on the
 "File" menu is created in the following manner: >
 	:an 10.290 File.New\ Window :macaction newWindow:<CR>
 
-Note 1: A menu item which is bound to ":macaction" will automatically be bound
+Note 1: A menu item which is bound to |:macaction| will automatically be bound
 to that action in all modes (as if ":an" was used).  It is not possible to
-bind to ":macaction" in one mode only.
+bind to |:macaction| in one mode only.
 Note 2: The action is "nil-targeted", which means it is passed down the first
 responder chain.
 
@@ -361,8 +361,11 @@ application bundle) which contains all actions that may be called.  The key in
 this dictionary is the name of the action message (case sensitive), the value
 is not used.
 
+Note: The |:macaction| command supports tab-completion so to cycle through
+all available commands type ":maca<Space><Tab>" and keep pressing <Tab>.
+
 Here is a random assortment of actions from Actions.plist which might be
-useful.
+useful.  
 
 Action				Description ~
 findNext:			Search forward using the "Find Pasteboard"

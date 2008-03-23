@@ -24,6 +24,7 @@
     id                  frontendProxy;
     NSDictionary        *colorDict;
     NSDictionary        *sysColorDict;
+    NSDictionary        *actionDict;
     BOOL                inputReceived;
     BOOL                tabBarVisible;
     unsigned            backgroundColor;
@@ -54,6 +55,7 @@
 - (void)setSpecialColor:(int)color;
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg;
 - (NSConnection *)connection;
+- (NSDictionary *)actionDict;
 
 - (BOOL)checkin;
 - (BOOL)openVimWindow;

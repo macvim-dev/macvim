@@ -3792,6 +3792,14 @@ set_one_cmd_context(xp, buff)
 	    break;
 #endif
 
+#ifdef FEAT_GUI_MACVIM
+	case CMD_macaction:
+	    xp->xp_context = EXPAND_MACACTION;
+	    xp->xp_pattern = arg;
+	    break;
+#endif
+
+
 #endif /* FEAT_CMDL_COMPL */
 
 	default:
