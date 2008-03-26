@@ -169,6 +169,7 @@ static NSString *MMSymlinkWarningString =
     [drawData release];  drawData = nil;
     [frontendProxy release];  frontendProxy = nil;
     [connection release];  connection = nil;
+    [actionDict release];  actionDict = nil;
     [sysColorDict release];  sysColorDict = nil;
     [colorDict release];  colorDict = nil;
 

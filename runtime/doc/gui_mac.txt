@@ -361,8 +361,8 @@ application bundle) which contains all actions that may be called.  The key in
 this dictionary is the name of the action message (case sensitive), the value
 is not used.
 
-Note: The |:macaction| command supports tab-completion so to cycle through
-all available actions type ":maca<Space><Tab>" and keep pressing <Tab>.
+Hint: The |:macaction| command supports command-line completion so you can
+enter ":maca<Space><C-d>" to see a list of all available actions.
 
 Here is a random assortment of actions from Actions.plist which might be
 useful.  
@@ -376,6 +376,7 @@ newWindow:			Open a new (empty) window
 orderFrontCharacterPalette:	Show the the "Special Characters" dialog
 orderFrontFontPanel:		Show the Font panel
 orderFrontPreferencePanel:	Show the Preferences panel
+performClose:			Close tab/window
 performZoom:			Zoom window (same as clicking the green blob)
 selectNextWindow:		Select next window (similar to <D-`>)
 selectPreviousWindow:		Select previous window (similar to <S-D-`>)
