@@ -13974,6 +13974,7 @@ f_reverse(argvars, rettv)
 	rettv->vval.v_list = l;
 	rettv->v_type = VAR_LIST;
 	++l->lv_refcount;
+	l->lv_idx = l->lv_len - l->lv_idx - 1;
     }
 }
 
@@ -14682,6 +14683,8 @@ f_setline(argvars, rettv)
 	appended_lines_mark(lcount, added);
 }
 
+static void set_qf_ll_list __ARGS((win_T *wp, typval_T *list_arg, typval_T *action_arg, typval_T *rettv));
+
 /*
  * Used by "setqflist()" and "setloclist()" functions
  */
@@ -15220,7 +15223,7 @@ f_sort(argvars, rettv)
 	    if (!item_compare_func_err)
 	    {
 		/* Clear the List and append the items in the sorted order. */
-		l->lv_first = l->lv_last = NULL;
+		l->lv_first = l->lv_last = l->lv_idx_item = NULL;
 		l->lv_len = 0;
 		for (i = 0; i < len; ++i)
 		    list_append(l, ptrs[i]);

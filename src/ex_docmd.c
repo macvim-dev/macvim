@@ -3015,7 +3015,7 @@ modifier_len(cmd)
 		break;
 	if (!isalpha(p[j]) && j >= cmdmods[i].minlen
 					&& (p == cmd || cmdmods[i].has_count))
-	    return j + (p - cmd);
+	    return j + (int)(p - cmd);
     }
     return 0;
 }
@@ -3949,8 +3949,7 @@ get_address(ptr, skip, to_other_file)
 				curwin->w_cursor.col = 0;
 			    searchcmdlen = 0;
 			    if (!do_search(NULL, c, cmd, 1L,
-					SEARCH_HIS + SEARCH_MSG + SEARCH_START,
-					NULL))
+					       SEARCH_HIS | SEARCH_MSG, NULL))
 			    {
 				curwin->w_cursor = pos;
 				cmd = NULL;
@@ -3997,8 +3996,7 @@ get_address(ptr, skip, to_other_file)
 				pos.col = 0;
 			    if (searchit(curwin, curbuf, &pos,
 					*cmd == '?' ? BACKWARD : FORWARD,
-					(char_u *)"", 1L,
-					SEARCH_MSG + SEARCH_START,
+					(char_u *)"", 1L, SEARCH_MSG,
 						i, (linenr_T)0, NULL) != FAIL)
 				lnum = pos.lnum;
 			    else

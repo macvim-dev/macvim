@@ -356,16 +356,19 @@ typedef unsigned int	int_u;
  * On Win64 longs are 32 bit and pointers 64 bit.
  * For printf() and scanf() we need to take care of long_u specifically. */
 #ifdef _WIN64
-typedef unsigned __int64 long_u;
-typedef		 __int64 long_i;
-# define SCANF_HEX_LONG_U  "%Ix"
-# define PRINTF_HEX_LONG_U "0x%Ix"
+typedef unsigned __int64        long_u;
+typedef		 __int64        long_i;
+# define SCANF_HEX_LONG_U       "%Ix"
+# define SCANF_DECIMAL_LONG_U   "%Iu"
+# define PRINTF_HEX_LONG_U      "0x%Ix"
 #else
-typedef unsigned long	long_u;
-typedef		 long	long_i;
-# define SCANF_HEX_LONG_U  "%lx"
-# define PRINTF_HEX_LONG_U "0x%lx"
+typedef unsigned long	        long_u;
+typedef		 long	        long_i;
+# define SCANF_HEX_LONG_U       "%lx"
+# define SCANF_DECIMAL_LONG_U   "%lu"
+# define PRINTF_HEX_LONG_U      "0x%lx"
 #endif
+#define PRINTF_DECIMAL_LONG_U SCANF_DECIMAL_LONG_U
 
 /*
  * The characters and attributes cached for the screen.
@@ -462,9 +465,10 @@ typedef unsigned long u8char_T;	    /* long should be 32 bits or more */
 /*
  * Check input method control.
  */
-#if defined(FEAT_XIM) || \
-    (defined(FEAT_GUI) && (defined(FEAT_MBYTE_IME) || defined(GLOBAL_IME))) \
-	|| defined(FEAT_GUI_MACVIM)
+#if defined(FEAT_XIM) \
+    || (defined(FEAT_GUI) && (defined(FEAT_MBYTE_IME) || defined(GLOBAL_IME))) \
+    || (defined(FEAT_GUI_MAC) && defined(FEAT_MBYTE)) \
+    || defined(FEAT_GUI_MACVIM)
 # define USE_IM_CONTROL
 #endif
 
@@ -951,6 +955,7 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define INSCHAR_FORMAT	1	/* force formatting */
 #define INSCHAR_DO_COM	2	/* format comments */
 #define INSCHAR_CTRLV	4	/* char typed just after CTRL-V */
+#define INSCHAR_NO_FEX	8	/* don't use 'formatexpr' */
 
 /* flags for open_line() */
 #define OPENLINE_DELSPACES  1	/* delete spaces after cursor */
