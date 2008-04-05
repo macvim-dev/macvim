@@ -480,44 +480,75 @@ clip_mch_own_selection(VimClipboard *cbd)
 clip_mch_request_selection(VimClipboard *cbd)
 {
     NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    NSString *pbType = [pb availableTypeFromArray:
-            [NSArray arrayWithObject:NSStringPboardType]];
-    if (pbType) {
-        NSMutableString *string =
+    NSArray *supportedTypes = [NSArray arrayWithObjects:VimPBoardType,
+            NSStringPboardType, nil];
+    NSString *bestType = [pb availableTypeFromArray:supportedTypes];
+    if (!bestType) return;
+
+    int motion_type = MCHAR;
+    NSString *string = nil;
+
+    if ([bestType isEqual:VimPBoardType]) {
+        // This type should consist of an array with two objects:
+        //   1. motion type (NSNumber)
+        //   2. text (NSString)
+        // If this is not the case we fall back on using NSStringPboardType.
+        id plist = [pb propertyListForType:VimPBoardType];
+        if ([plist isKindOfClass:[NSArray class]] && [plist count] == 2) {
+            id obj = [plist objectAtIndex:1];
+            if ([obj isKindOfClass:[NSString class]]) {
+                motion_type = [[plist objectAtIndex:0] intValue];
+                string = obj;
+            }
+        }
+    }
+
+    if (!string) {
+        // Use NSStringPboardType.  The motion type is set to line-wise if the
+        // string contains at least one EOL character, otherwise it is set to
+        // character-wise (block-wise is never used).
+        NSMutableString *mstring =
                 [[pb stringForType:NSStringPboardType] mutableCopy];
+        if (!mstring) return;
 
         // Replace unrecognized end-of-line sequences with \x0a (line feed).
-        NSRange range = { 0, [string length] };
-        unsigned n = [string replaceOccurrencesOfString:@"\x0d\x0a"
+        NSRange range = { 0, [mstring length] };
+        unsigned n = [mstring replaceOccurrencesOfString:@"\x0d\x0a"
                                              withString:@"\x0a" options:0
                                                   range:range];
         if (0 == n) {
-            n = [string replaceOccurrencesOfString:@"\x0d" withString:@"\x0a"
+            n = [mstring replaceOccurrencesOfString:@"\x0d" withString:@"\x0a"
                                            options:0 range:range];
         }
         
         // Scan for newline character to decide whether the string should be
-        // pasted linewise or characterwise.
-        int type = MCHAR;
-        if (0 < n || NSNotFound != [string rangeOfString:@"\n"].location)
-            type = MLINE;
+        // pasted line-wise or character-wise.
+        motion_type = MCHAR;
+        if (0 < n || NSNotFound != [mstring rangeOfString:@"\n"].location)
+            motion_type = MLINE;
 
-        char_u *str = (char_u*)[string UTF8String];
-        int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-
-#ifdef FEAT_MBYTE
-        if (input_conv.vc_type != CONV_NONE)
-            str = string_convert(&input_conv, str, &len);
-#endif
-
-        if (str)
-            clip_yank_selection(type, str, len, cbd);
-
-#ifdef FEAT_MBYTE
-        if (input_conv.vc_type != CONV_NONE)
-            vim_free(str);
-#endif
+        string = mstring;
     }
+
+    if (!(MCHAR == motion_type || MLINE == motion_type || MBLOCK == motion_type
+            || MAUTO == motion_type))
+        motion_type = MCHAR;
+
+    char_u *str = (char_u*)[string UTF8String];
+    int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+#ifdef FEAT_MBYTE
+    if (input_conv.vc_type != CONV_NONE)
+        str = string_convert(&input_conv, str, &len);
+#endif
+
+    if (str)
+        clip_yank_selection(motion_type, str, len, cbd);
+
+#ifdef FEAT_MBYTE
+    if (input_conv.vc_type != CONV_NONE)
+        vim_free(str);
+#endif
 }
 
 
@@ -534,8 +565,8 @@ clip_mch_set_selection(VimClipboard *cbd)
     
     // Get the text to put on the pasteboard.
     long_u llen = 0; char_u *str = 0;
-    int type = clip_convert_selection(&str, &llen, cbd);
-    if (type < 0)
+    int motion_type = clip_convert_selection(&str, &llen, cbd);
+    if (motion_type < 0)
         return;
 
     // TODO: Avoid overflow.
@@ -554,9 +585,16 @@ clip_mch_set_selection(VimClipboard *cbd)
         NSString *string = [[NSString alloc]
             initWithBytes:str length:len encoding:NSUTF8StringEncoding];
 
+        // See clip_mch_request_selection() for info on pasteboard types.
         NSPasteboard *pb = [NSPasteboard generalPasteboard];
-        [pb declareTypes:[NSArray arrayWithObject:NSStringPboardType]
-                   owner:nil];
+        NSArray *supportedTypes = [NSArray arrayWithObjects:VimPBoardType,
+                NSStringPboardType, nil];
+        [pb declareTypes:supportedTypes owner:nil];
+
+        NSNumber *motion = [NSNumber numberWithInt:motion_type];
+        NSArray *plist = [NSArray arrayWithObjects:motion, string, nil];
+        [pb setPropertyList:plist forType:VimPBoardType];
+
         [pb setString:string forType:NSStringPboardType];
         
         [string release];

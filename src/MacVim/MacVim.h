@@ -238,6 +238,12 @@ enum {
 
 
 
+
+// Vim pasteboard type (holds motion type + string)
+extern NSString *VimPBoardType;
+
+
+
 // Loads all fonts in the Resouces folder of the app bundle and returns a font
 // container reference (which should be used to deactivate the loaded fonts).
 ATSFontContainerRef loadFonts();
@@ -284,4 +290,3 @@ NSString *buildSearchTextCommand(NSString *searchText);
 
 // MacVim Apple Event Constants
 #define keyMMUntitledWindow       'MMuw'
-

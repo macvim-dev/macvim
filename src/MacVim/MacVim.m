@@ -111,6 +111,12 @@ NSString *MMLoginShellArgumentKey       = @"MMLoginShellArgument";
 
 
 
+// Vim pasteboard type (holds motion type + string)
+NSString *VimPBoardType = @"VimPBoardType";
+
+
+
+
     ATSFontContainerRef
 loadFonts()
 {

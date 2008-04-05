@@ -1262,6 +1262,8 @@ static NSString *MMSymlinkWarningString =
 
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard
 {
+    // TODO: This method should share code with clip_mch_request_selection().
+
     if (VIsual_active && (State & NORMAL) && clip_star.available) {
         // If there is no pasteboard, return YES to indicate that there is text
         // to copy.
