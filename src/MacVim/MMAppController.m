@@ -469,15 +469,15 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (void)windowControllerWillOpen:(MMWindowController *)windowController
 {
     NSPoint topLeft = NSZeroPoint;
-    NSWindow *keyWin = [NSApp keyWindow];
+    NSWindow *topWin = [[[self topmostVimController] windowController] window];
     NSWindow *win = [windowController window];
 
     if (!win) return;
 
-    // If there is a key window, cascade from it, otherwise use the autosaved
-    // window position (if any).
-    if (keyWin) {
-        NSRect frame = [keyWin frame];
+    // If there is a window belonging to a Vim process, cascade from it,
+    // otherwise use the autosaved window position (if any).
+    if (topWin) {
+        NSRect frame = [topWin frame];
         topLeft = NSMakePoint(frame.origin.x, NSMaxY(frame));
     } else {
         NSString *topLeftString = [[NSUserDefaults standardUserDefaults]
@@ -487,7 +487,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     }
 
     if (!NSEqualPoints(topLeft, NSZeroPoint)) {
-        if (keyWin)
+        if (topWin)
             topLeft = [win cascadeTopLeftFromPoint:topLeft];
 
         [win setFrameTopLeftPoint:topLeft];
