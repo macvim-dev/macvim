@@ -41,6 +41,47 @@
     -->
     
     <item>
+      <title>Snapshot 25 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 25 released</h1>
+
+<p> This snapshot adds support for two new options: 'antialias' and
+'fuoptions'.  The former lets you turn text antialiasing on or off (it's
+on by default), the latter can be used to make the view maximize when
+full-screen is entered.  See the built-in help for more information (:h
+'anti' and :h 'fuopt'). </p>
+
+<p> Another minor addition is that &lt;C-c&gt; and &lt;C-v&gt; work with
+block-wise selections (do note that &lt;C-v&gt; behaves like "P", not "p").
+Also, &lt;D-w&gt; now works in ex-mode and in a command-line window. </p>
+
+<p> Here is the list of changes since snapshot 24:
+<ul>
+  <li> support 'antialias' option (Jjgod Jiang) </li>
+  <li> add option 'fuoptions' to control resizing when full-screen is entered
+      (Nico Weber) </li>
+  <li> fixed bug where transparency setting was lost after leaving full-screen
+      (Nico Weber) </li>
+  <li> help menu contains MacVim help and website link </li>
+  <li> &lt;D-w&gt; now works in ex-mode and in command-line window </li>
+  <li> :macaction command supports command-line completion (Nico Weber) </li>
+  <li> copy/paste respects block selections (requested by George Harker) </li>
+  <li> window no longer cascades from preferences panel </li>
+</ul>
+</p>
+
+      ]]></description>
+      <pubDate>Fri, 06 Apr 2008 19:11 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-25.tbz"
+        length="8042440"
+        sparkle:version="25"
+        sparkle:shortVersionString="7.1"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 24 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 24 released</h1>
