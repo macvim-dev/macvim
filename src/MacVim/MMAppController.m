@@ -741,9 +741,10 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 - (MMVimController *)topmostVimController
 {
-    NSArray *windows = [NSApp orderedWindows];
-    if ([windows count] > 0) {
-        NSWindow *window = [windows objectAtIndex:0];
+    // Find the topmost visible window which has an associated vim controller.
+    NSEnumerator *e = [[NSApp orderedWindows] objectEnumerator];
+    id window;
+    while ((window = [e nextObject]) && [window isVisible]) {
         unsigned i, count = [vimControllers count];
         for (i = 0; i < count; ++i) {
             MMVimController *vc = [vimControllers objectAtIndex:i];
