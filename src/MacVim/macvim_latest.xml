@@ -41,6 +41,25 @@
     -->
     
     <item>
+      <title>Snapshot 26 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 26 released</h1>
+<p> This snapshot contains a fix to the bug which caused the first window to
+    open in the wrong position as well as an initial version of the new MacVim
+    icon.  </p>
+
+      ]]></description>
+      <pubDate>Fri, 11 Apr 2008 20:37 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-26.tbz"
+        length="8147362"
+        sparkle:version="26"
+        sparkle:shortVersionString="7.1"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 25 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 25 released</h1>
