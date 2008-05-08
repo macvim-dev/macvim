@@ -59,7 +59,7 @@
 - (void)liveResizeWillStart;
 - (void)liveResizeDidEnd;
 
-- (void)enterFullscreen:(int)fuoptions;
+- (void)enterFullscreen:(int)fuoptions backgroundColor:(NSColor *)back;
 - (void)leaveFullscreen;
 - (void)setBuffersModified:(BOOL)mod;
 

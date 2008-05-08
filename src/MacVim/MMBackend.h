@@ -114,7 +114,7 @@
 - (int)lookupColorWithKey:(NSString *)key;
 - (BOOL)hasSpecialKeyWithValue:(NSString *)value;
 
-- (void)enterFullscreen:(int)fuoptions;
+- (void)enterFullscreen:(int)fuoptions background:(int)bg;
 - (void)leaveFullscreen;
 
 - (void)setAntialias:(BOOL)antialias;

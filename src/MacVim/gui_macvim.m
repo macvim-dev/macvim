@@ -1522,9 +1522,9 @@ gui_macvim_is_valid_action(NSString *action)
 
 
     void
-gui_mch_enter_fullscreen(int fuoptions_flags)
+gui_mch_enter_fullscreen(int fuoptions_flags, guicolor_T bg)
 {
-    [[MMBackend sharedInstance] enterFullscreen:fuoptions_flags];
+    [[MMBackend sharedInstance] enterFullscreen:fuoptions_flags background:bg];
 }
 
 

@@ -30,7 +30,8 @@
     int         startFuFlags;
 }
 
-- (MMFullscreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v;
+- (MMFullscreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v
+                               backgroundColor:(NSColor *)back;
 
 - (void)enterFullscreen:(int)fuoptions;
 - (void)leaveFullscreen;

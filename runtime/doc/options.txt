@@ -3057,8 +3057,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	(e.g. toolbar, title bar).  The tab bar and scroll bars remain visible.
 	Updates to the window position are ignored in fullscreen mode.
 
-	See 'fuoptions' for how Vim resizes when entering and leaving
-	fullscreen mode.
+	See 'fuoptions' for how Vim resizes and colors the background when 
+	entering and leaving fullscreen mode.
 
 	XXX: Add fuenter/fuleave autocommands? You might want to display
 	a NERDTree or a Tlist only in fullscreen for example. Then again, this
@@ -3073,7 +3073,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{only in MacVim GUI}
 	In fullscreen mode, most of the screen is black, only a part of the
 	screen is covered by the actual Vim control.  The control is centered.
-	This option controls the size of the Vim control.
+	This option controls the size of the Vim control as well as the color
+	of the unused screen area. 
 	value	effect	~
         maxvert	When entering fullscreen, 'lines' is set to the maximum number
 		of lines fitting on the screen in fullscreen mode. When
@@ -3085,12 +3086,28 @@ A jump table for the options with a short description can be found at |Q_op|.
 		leaving fullscreen, if 'columns' is still equal to the maximized
 		number of columns, it is restored to the value it had before
 		entering fullscreen.
+	background:color
+		When entering fullscreen, 'color' defines the color of the part
+		of the screen that is not occupied by the Vim control. If
+		'color' is an 8-digit hexadecimal number preceded by '#',
+		it is interpreted as an explicit color value '#aarrggbb', with
+		one byte each for the alpha, red, green, and blue values.
+		Otherwise, 'color' is interpreted as a highlight group name,
+		and the fullscreen background is filled with that highlight
+		group's background color, as defined by the current color
+		scheme.
 
 	Examples: 
 	Don't change size of Vim when entering fullscreen: >
 	  :set fuoptions=
 <	Maximize Vim when entering fullscreen: >
 	  :set fuoptions=maxvert,maxhorz
+<	Maximize Vim only vertically when entering fullscreen, and color the
+	background dark blue: >
+	  :set fuoptions=maxvert,background:#FF003042
+<	Don't change the size of Vim when entering fullscreen, and color the
+	background like the current text background: >
+	  :set fuoptions=background:Normal
 <
 	XXX: what if the font size is changed? you probably never want to
 	restore the old 'lines' or 'columns' in that case.

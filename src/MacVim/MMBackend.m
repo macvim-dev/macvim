@@ -1065,10 +1065,12 @@ static NSString *MMSymlinkWarningString =
     return NO;
 }
 
-- (void)enterFullscreen:(int)fuoptions
+- (void)enterFullscreen:(int)fuoptions background:(int)bg
 {
     NSMutableData *data = [NSMutableData data];
     [data appendBytes:&fuoptions length:sizeof(int)];
+    bg = MM_COLOR(bg);
+    [data appendBytes:&bg length:sizeof(int)];
     [self queueMessage:EnterFullscreenMsgID data:data];
 }
 

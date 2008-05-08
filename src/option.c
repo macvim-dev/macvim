@@ -2957,6 +2957,9 @@ static void fill_breakat_flags __ARGS((void));
 static int opt_strings_flags __ARGS((char_u *val, char **values, unsigned *flagp, int list));
 static int check_opt_strings __ARGS((char_u *val, char **values, int));
 static int check_opt_wim __ARGS((void));
+#ifdef FEAT_FULLSCREEN
+static int check_fuoptions __ARGS((char_u *, unsigned *, int *));
+#endif
 
 /*
  * Initialize the options, first part.
@@ -5080,10 +5083,8 @@ didset_options()
     (void)opt_strings_flags(p_fdo, p_fdo_values, &fdo_flags, TRUE);
 #endif
 #ifdef FEAT_FULLSCREEN
-    (void)opt_strings_flags(p_fuoptions, p_fuoptions_values, &fuoptions_flags,
-	    TRUE);
-    
-    (void)opt_strings_flags(p_fdo, p_fdo_values, &fdo_flags, TRUE);
+    (void)check_fuoptions(p_fuoptions, &fuoptions_flags, 
+            &fuoptions_bgcolor);
 #endif
     (void)opt_strings_flags(p_dy, p_dy_values, &dy_flags, TRUE);
 #ifdef FEAT_VIRTUALEDIT
@@ -6611,8 +6612,8 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
     /* 'fuoptions' */
     else if (varp == &p_fuoptions)
     {
-	if (opt_strings_flags(p_fuoptions, p_fuoptions_values,
-		    &fuoptions_flags, TRUE) != OK)
+        if (check_fuoptions(p_fuoptions, &fuoptions_flags, 
+                    &fuoptions_bgcolor) != OK)
 	    errmsg = e_invarg;
     }
 #endif
@@ -7330,7 +7331,19 @@ set_bool_option(opt_idx, varp, value, opt_flags)
     {
 	if (p_fullscreen && !old_value)
 	{
-	    gui_mch_enter_fullscreen(fuoptions_flags);
+            guicolor_T fg, bg;
+            if (fuoptions_flags & FUOPT_BGCOLOR_HLGROUP) 
+            {
+                /* Find out background color from colorscheme 
+                 * via highlight group id */
+                syn_id2colors(fuoptions_bgcolor, &fg, &bg);
+            } 
+            else
+            {
+                /* set explicit background color */
+                bg = fuoptions_bgcolor;
+            }
+            gui_mch_enter_fullscreen(fuoptions_flags, bg);
 	}
         else if (!p_fullscreen && old_value)
 	{
@@ -10789,3 +10802,92 @@ check_ff_value(p)
 {
     return check_opt_strings(p, p_ff_values, FALSE);
 }
+
+#ifdef FEAT_FULLSCREEN
+/*
+ * Read the 'fuoptions' option, set fuoptions_flags and 
+ * fuoptions_bgcolor.
+ */
+    static int
+check_fuoptions(p_fuoptions, flags, bgcolor)
+    char_u	*p_fuoptions;	/* fuoptions string */
+    unsigned    *flags;         /* fuoptions flags */
+    int         *bgcolor;       /* background highlight group id */
+{
+    unsigned 	new_fuoptions_flags;
+    int         new_fuoptions_bgcolor;
+    char_u      *p;
+    char_u      hg_term;        /* character terminating
+                                   highlight group string in 
+                                   'background' option' */
+    int		i,j,k;
+
+    new_fuoptions_flags = 0;
+    new_fuoptions_bgcolor = 0xFF000000;
+
+    for (p = p_fuoptions; *p; ++p)
+    {
+	for (i = 0; ASCII_ISALPHA(p[i]); ++i)
+	    ;
+	if (p[i] != NUL && p[i] != ',' && p[i] != ':')
+	    return FAIL;
+        if (i == 10 && STRNCMP(p, "background", 10) == 0) 
+        {
+            if (p[i] != ':') return FAIL;
+            i++;
+            if (p[i] == NUL) return FAIL;
+            if (p[i] == '#')
+            {
+                /* explicit color (#aarrggbb) */
+                i++;
+                for (j = i; j < i+8 && vim_isxdigit(p[j]); ++j)
+                    ;
+                if (j < i+8)
+                    return FAIL;    /* less than 8 digits */
+                if (p[j] != NUL && p[j] != ',')
+                    return FAIL; 
+                new_fuoptions_bgcolor = 0;
+                for (k = 0; k < 8; k++) 
+                    new_fuoptions_bgcolor = new_fuoptions_bgcolor * 16 +
+                        hex2nr(p[i+k]);
+                i = j;
+                /* mark bgcolor as an explicit argb color */
+                new_fuoptions_flags &= ~FUOPT_BGCOLOR_HLGROUP;
+            } 
+            else
+            {
+                /* highlight group name */
+                for (j = i; ASCII_ISALPHA(p[j]); ++j)
+                    ;
+                if (p[j] != NUL && p[j] != ',')
+                    return FAIL;
+                hg_term = p[j];
+                p[j] = NUL;     /* temporarily terminate string */
+                new_fuoptions_bgcolor = syn_name2id((char_u*)(p+i));
+                p[j] = hg_term; /* restore string */
+                if (! new_fuoptions_bgcolor) 
+                    return FAIL;
+                i = j;
+                /* mark bgcolor as highlight group id */
+                new_fuoptions_flags |= FUOPT_BGCOLOR_HLGROUP;
+            }
+        }
+        else if (i == 7 && STRNCMP(p, "maxhorz", 7) == 0)
+	    new_fuoptions_flags |= FUOPT_MAXHORZ;
+        else if (i == 7 && STRNCMP(p, "maxvert", 7) == 0)
+	    new_fuoptions_flags |= FUOPT_MAXVERT;
+	else
+	    return FAIL;
+	p += i;
+	if (*p == NUL)
+	    break;
+        if (*p == ':')
+            return FAIL;
+    }
+
+    *flags = new_fuoptions_flags;
+    *bgcolor = new_fuoptions_bgcolor;
+    return OK;
+}
+#endif
+

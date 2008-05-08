@@ -32,8 +32,9 @@
 #import <Carbon/Carbon.h>
 
 // These have to be the same as in option.h
-#define FUOPT_MAXVERT 0x001
-#define FUOPT_MAXHORZ 0x002
+#define FUOPT_MAXVERT         0x001
+#define FUOPT_MAXHORZ         0x002
+#define FUOPT_BGCOLOR_HLGROUP 0x004
 
 
 static int numFullscreenWindows = 0;
@@ -46,7 +47,8 @@ static int numFullscreenWindows = 0;
 
 @implementation MMFullscreenWindow
 
-- (MMFullscreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v
+- (MMFullscreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v 
+                               backgroundColor:(NSColor *)back
 {
     NSScreen* screen = [t screen];
 
@@ -73,7 +75,7 @@ static int numFullscreenWindows = 0;
 
     [self setHasShadow:NO];
     [self setShowsResizeIndicator:NO];
-    [self setBackgroundColor:[NSColor blackColor]];
+    [self setBackgroundColor:back];
     [self setReleasedWhenClosed:NO];
 
     return self;

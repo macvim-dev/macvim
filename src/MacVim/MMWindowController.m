@@ -546,12 +546,12 @@
     }
 }
 
-- (void)enterFullscreen:(int)fuoptions
+- (void)enterFullscreen:(int)fuoptions backgroundColor:(NSColor *)back
 {
     if (fullscreenEnabled) return;
 
     fullscreenWindow = [[MMFullscreenWindow alloc]
-            initWithWindow:decoratedWindow view:vimView];
+        initWithWindow:decoratedWindow view:vimView backgroundColor:back];
     [fullscreenWindow enterFullscreen:fuoptions];    
     [fullscreenWindow setDelegate:self];
     fullscreenEnabled = YES;

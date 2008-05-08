@@ -878,8 +878,12 @@ static NSTimeInterval MMResendInterval = 0.5;
         [self setServerName:name];
         [name release];
     } else if (EnterFullscreenMsgID == msgid) {
-        int fuoptions = *(int*)[data bytes];
-        [windowController enterFullscreen:fuoptions];
+        const void *bytes = [data bytes];
+        int fuoptions = *((int*)bytes); bytes += sizeof(int);
+        int bg = *((int*)bytes);
+        NSColor *back = [NSColor colorWithArgbInt:bg];
+
+        [windowController enterFullscreen:fuoptions backgroundColor:back];
     } else if (LeaveFullscreenMsgID == msgid) {
         [windowController leaveFullscreen];
     } else if (BuffersNotModifiedMsgID == msgid) {
