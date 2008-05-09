@@ -678,12 +678,22 @@
     BOOL zoomBoth = [[NSUserDefaults standardUserDefaults]
             boolForKey:MMZoomBothKey];
 
-    if ((zoomBoth && !cmdLeftClick) || (!zoomBoth && cmdLeftClick))
-        return frame;
+    if (!((zoomBoth && !cmdLeftClick) || (!zoomBoth && cmdLeftClick))) {
+        // Zoom in horizontal direction only.
+        NSRect currentFrame = [win frame];
+        frame.size.width = currentFrame.size.width;
+        frame.origin.x = currentFrame.origin.x;
+    }
 
-    NSRect currentFrame = [win frame];
-    frame.size.width = currentFrame.size.width;
-    frame.origin.x = currentFrame.origin.x;
+    // HACK! The window frame is often higher than the 'defaultFrame' (the fact
+    // that 'defaultFrame' doesn't cover the entire area up to the menu bar
+    // seems like a Cocoa bug).  To ensure that the window doesn't move
+    // downwards when the zoom button is clicked we check for this situation
+    // and return a frame whose max Y coordinate is no lower than the current
+    // max Y coordinate.
+    float delta = NSMaxY([win frame]) - NSMaxY(frame);
+    if (delta > 0)
+        frame.origin.y += delta;
 
     return frame;
 }
