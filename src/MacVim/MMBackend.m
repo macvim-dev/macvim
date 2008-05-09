@@ -1677,7 +1677,7 @@ static NSString *MMSymlinkWarningString =
             add_to_input_buf((char_u*)"\x1c\xe", 2);
             if (0 == cmdwin_type) {
                 // Command-line window was not open, so :q
-                add_to_input_buf((char_u*)":q\n", 3);
+                add_to_input_buf((char_u*)":conf q\n", 8);
             }
         }
     } else {
