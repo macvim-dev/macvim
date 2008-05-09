@@ -20,6 +20,8 @@
     NSString            *openSelectionString;
     ATSFontContainerRef fontContainerRef;
     NSMutableDictionary *pidArguments;
+
+    NSMenuItem          *recentFilesMenuItem;
 }
 
 - (void)removeVimController:(id)controller;

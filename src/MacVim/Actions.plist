@@ -6,6 +6,8 @@
 	<string></string>
 	<key>arrangeInFront:</key>
 	<string></string>
+	<key>clearRecentDocuments:</key>
+	<string></string>
 	<key>fileOpen:</key>
 	<string></string>
 	<key>findNext:</key>
@@ -37,6 +39,8 @@
 	<key>performMiniaturize:</key>
 	<string></string>
 	<key>performZoom:</key>
+	<string></string>
+	<key>recentFilesDummy:</key>
 	<string></string>
 	<key>selectNextWindow:</key>
 	<string></string>

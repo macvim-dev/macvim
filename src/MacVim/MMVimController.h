@@ -40,9 +40,12 @@
     NSData              *resendData;
 #endif
     NSMenu              *lastMenuSearched;
+    NSMenuItem          *recentFilesMenuItem;
+    NSMenuItem          *recentFilesDummy;
 }
 
-- (id)initWithBackend:(id)backend pid:(int)processIdentifier;
+- (id)initWithBackend:(id)backend pid:(int)processIdentifier
+          recentFiles:(NSMenuItem*)menu;
 - (id)backendProxy;
 - (int)pid;
 - (void)setServerName:(NSString *)name;

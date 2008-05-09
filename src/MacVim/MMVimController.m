@@ -81,6 +81,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 #if MM_RESEND_LAST_FAILURE
 - (void)resendTimerFired:(NSTimer *)timer;
 #endif
+- (void)replaceMenuItem:(NSMenuItem*)old with:(NSMenuItem*)new;
 @end
 
 
@@ -89,8 +90,12 @@ static NSTimeInterval MMResendInterval = 0.5;
 @implementation MMVimController
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier
+          recentFiles:(NSMenuItem*)menu;
 {
     if ((self = [super init])) {
+
+        recentFilesMenuItem = [menu retain];
+
         windowController =
             [[MMWindowController alloc] initWithVimController:self];
         backendProxy = [backend retain];
@@ -134,6 +139,9 @@ static NSTimeInterval MMResendInterval = 0.5;
     [popupMenuItems release];  popupMenuItems = nil;
     [mainMenuItems release];  mainMenuItems = nil;
     [windowController release];  windowController = nil;
+
+    [recentFilesMenuItem release];  recentFilesMenuItem = nil;
+    [recentFilesDummy release];  recentFilesDummy = nil;
 
     [super dealloc];
 }
@@ -573,6 +581,14 @@ static NSTimeInterval MMResendInterval = 0.5;
 
         [NSApp setWindowsMenu:windowMenu];
     }
+
+    // Replace real Recent Files menu in the old menu with the dummy, then
+    // remove dummy from new menu and put Recent Files menu there
+    NSMenuItem *oldItem = (NSMenuItem*)[recentFilesMenuItem representedObject];
+    if (oldItem)
+        [self replaceMenuItem:recentFilesMenuItem with:oldItem];
+    [recentFilesMenuItem setRepresentedObject:recentFilesDummy];
+    [self replaceMenuItem:recentFilesDummy with:recentFilesMenuItem];
 
     shouldUpdateMainMenu = NO;
 }
@@ -1073,17 +1089,28 @@ static NSTimeInterval MMResendInterval = 0.5;
         } else {
             item = [[[NSMenuItem alloc] init] autorelease];
             [item setTitle:title];
-            // TODO: Check that 'action' is a valid action (nothing will happen
-            // if it isn't, but it would be nice with a warning).
-            if (action) [item setAction:NSSelectorFromString(action)];
-            else        [item setAction:@selector(vimMenuItemAction:)];
-            if (tip) [item setToolTip:tip];
 
-            if (key != 0) {
-                NSString *keyString =
-                    [NSString stringWithFormat:@"%C", key];
-                [item setKeyEquivalent:keyString];
-                [item setKeyEquivalentModifierMask:mask];
+            if ([action isEqualToString:@"recentFilesDummy:"]) {
+                // Remove the recent files menu item from its current menu
+                // and put it in the current file menu.  See -[MMAppController
+                // applicationWillFinishLaunching for more information.
+                //[[recentFilesMenuItem menu] removeItem:recentFilesMenuItem];
+                //item = recentFilesMenuItem;
+                recentFilesDummy = [item retain];
+
+            } else {
+                // TODO: Check that 'action' is a valid action (nothing will
+                // happen if it isn't, but it would be nice with a warning).
+                if (action) [item setAction:NSSelectorFromString(action)];
+                else        [item setAction:@selector(vimMenuItemAction:)];
+                if (tip) [item setToolTip:tip];
+
+                if (key != 0) {
+                    NSString *keyString =
+                        [NSString stringWithFormat:@"%C", key];
+                    [item setKeyEquivalent:keyString];
+                    [item setKeyEquivalentModifierMask:mask];
+                }
             }
         }
 
@@ -1219,6 +1246,14 @@ static NSTimeInterval MMResendInterval = 0.5;
     [self sendMessage:msgid data:data];
 }
 #endif
+
+- (void)replaceMenuItem:(NSMenuItem*)old with:(NSMenuItem*)new
+{
+    NSMenu *menu = [old menu];
+    int index = [menu indexOfItem:old];
+    [menu removeItemAtIndex:index];
+    [menu insertItem:new atIndex:index];
+}
 
 @end // MMVimController (Private)
 

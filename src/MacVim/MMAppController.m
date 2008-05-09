@@ -171,20 +171,45 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     [pidArguments release];  pidArguments = nil;
     [vimControllers release];  vimControllers = nil;
     [openSelectionString release];  openSelectionString = nil;
+    [recentFilesMenuItem release];  recentFilesMenuItem = nil;
 
     [super dealloc];
 }
 
-#if MM_HANDLE_XCODE_MOD_EVENT
 - (void)applicationWillFinishLaunching:(NSNotification *)notification
 {
+    // Create the "Open Recent" menu. See
+    // http://lapcatsoftware.com/blog/2007/07/10/working-without-a-nib-part-5-open-recent-menu/
+    // and http://www.cocoabuilder.com/archive/message/cocoa/2007/8/15/187793
+    // for more information.
+    // 
+    // The menu needs to be created and be added to a toplevel menu in
+    // applicationWillFinishLaunching at the latest, otherwise it doesn't work.
+
+    recentFilesMenuItem = [[NSMenuItem alloc] initWithTitle:@"Open Recent"
+                                              action:nil keyEquivalent:@""];
+
+    NSMenu *recentFilesMenu = [[NSMenu alloc] initWithTitle:@"Open Recent"];
+    [recentFilesMenu performSelector:@selector(_setMenuName:)
+                          withObject:@"NSRecentDocumentsMenu"];
+
+    [recentFilesMenu addItemWithTitle:@"Clear Menu"
+                               action:@selector(clearRecentDocuments:)
+                        keyEquivalent:@""];
+    [recentFilesMenuItem setSubmenu:recentFilesMenu];
+    [recentFilesMenu release];  // the menu is retained by recentFilesMenuItem
+    [recentFilesMenuItem setTag:-1];  // must not be 0
+
+    [[[[NSApp mainMenu] itemWithTitle:@"File"] submenu] addItem:recentFilesMenuItem];
+
+#if MM_HANDLE_XCODE_MOD_EVENT
     [[NSAppleEventManager sharedAppleEventManager]
             setEventHandler:self
                 andSelector:@selector(handleXcodeModEvent:replyEvent:)
               forEventClass:'KAHL'
                  andEventID:'MOD '];
-}
 #endif
+}
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
@@ -260,6 +285,18 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
         [arguments setObject:filenames forKey:@"filenames"];
         [arguments setObject:[NSNumber numberWithBool:YES] forKey:@"openFiles"];
+
+        // Add file names to "Recent Files" menu.
+        int i, count = [filenames count];
+        for (i = 0; i < count; ++i) {
+            // Don't add files that are being edited remotely (using ODB).
+            if ([arguments objectForKey:@"remoteID"]) continue;
+
+            NSURL *url = [NSURL fileURLWithPath:[filenames objectAtIndex:i]];
+            if (!url) continue;
+            [[NSDocumentController sharedDocumentController]
+                    noteNewRecentDocumentURL:url];
+        }
 
         if ((openInTabs && (vc = [self topmostVimController]))
                || (vc = [self findUntitledWindow])) {
@@ -599,7 +636,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
                 setProtocolForProxy:@protocol(MMBackendProtocol)];
 
         vc = [[[MMVimController alloc]
-                initWithBackend:backend pid:pid] autorelease];
+            initWithBackend:backend pid:pid recentFiles:recentFilesMenuItem]
+            autorelease];
 
         if (![vimControllers count]) {
             // The first window autosaves its position.  (The autosaving
