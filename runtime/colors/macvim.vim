@@ -1,7 +1,7 @@
 " MacVim colorscheme
 "
 " Maintainer:   Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:  2007 Nov 17
+" Last Change:  2008 May 9
 "
 " This is the default MacVim color scheme.  It supports both light and dark
 " backgrounds (see :h 'background').
@@ -50,7 +50,11 @@ hi TabLineFill  gui=reverse
 hi TabLineSel   gui=bold
 hi Title        gui=bold guifg=DeepSkyBlue3
 hi VertSplit    gui=NONE guifg=DarkSlateGray guibg=Gray90
-hi Visual       guibg=MacSelectedTextBackgroundColor
+if has("gui_macvim")
+  hi Visual       guibg=MacSelectedTextBackgroundColor
+else
+  hi Visual       guibg=#72F7FF
+endif
 hi WarningMsg   guifg=Firebrick2
 
 " Syntax items (`:he group-name` -- more groups are available, these are just
@@ -101,7 +105,11 @@ else
   hi DiffText     gui=NONE guibg=Gold
   hi LineNr       guifg=#888888 guibg=#E6E6E6
   hi MatchParen   guifg=White guibg=MediumPurple1
-  hi Normal       gui=NONE guifg=MacTextColor guibg=MacTextBackgroundColor
+  if has("gui_macvim")
+    hi Normal       gui=NONE guifg=MacTextColor guibg=MacTextBackgroundColor
+  else
+    hi Normal       gui=NONE guifg=Black guibg=White
+  endif
   hi Search       guibg=CadetBlue1 guifg=NONE
   hi Statement    gui=bold guifg=Maroon guibg=NONE
   hi Todo         gui=NONE guifg=DarkGreen guibg=PaleGreen1
@@ -115,7 +123,7 @@ endif
 " Change the selection color on focus change (but only if the "macvim"
 " colorscheme is active).
 "
-if !exists("s:augroups_defined")
+if has("gui_macvim") && !exists("s:augroups_defined")
   au FocusLost * if exists("colors_name") && colors_name == "macvim" | hi Visual guibg=MacSecondarySelectedControlColor | endif
   au FocusGained * if exists("colors_name") && colors_name == "macvim" | hi Visual guibg=MacSelectedTextBackgroundColor | endif
 
