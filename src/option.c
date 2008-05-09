@@ -7353,7 +7353,7 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 #endif
 
 #if defined(FEAT_ANTIALIAS) && defined(FEAT_GUI_MACVIM)
-    else if ((int *)varp == &p_antialias && gui.in_use)
+    else if ((int *)varp == &p_antialias)
     {
 	gui_macvim_set_antialias(p_antialias);
     }
