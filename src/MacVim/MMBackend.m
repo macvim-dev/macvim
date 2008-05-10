@@ -439,9 +439,10 @@ static NSString *MMSymlinkWarningString =
     // NOTE! This method gets called a lot; if we were to flush every time it
     // got called MacVim would feel unresponsive.  So there is a time out which
     // ensures that the queue isn't flushed too often.
-    if (!force && lastFlushDate && -[lastFlushDate timeIntervalSinceNow]
-            < MMFlushTimeoutInterval
- 	    && [drawData length] < MMFlushQueueLenHint)
+    if (exiting ||
+            (!force && lastFlushDate &&
+             -[lastFlushDate timeIntervalSinceNow] < MMFlushTimeoutInterval &&
+             [drawData length] < MMFlushQueueLenHint))
         return;
 
     if ([drawData length] > 0) {
