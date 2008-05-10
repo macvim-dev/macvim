@@ -277,6 +277,13 @@ NSString *buildSearchTextCommand(NSString *searchText);
 
 
 
+@interface NSDocumentController (MMExtras)
+- (void)noteNewRecentFilePath:(NSString *)path;
+@end
+
+
+
+
 // ODB Editor Suite Constants (taken from ODBEditorSuite.h)
 #define	keyFileSender		'FSnd'
 #define	keyFileSenderToken	'FTok'

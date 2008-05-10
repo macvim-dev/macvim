@@ -294,3 +294,17 @@ buildSearchTextCommand(NSString *searchText)
 
 @end // NSColor (MMExtras)
 
+
+
+
+@implementation NSDocumentController (MMExtras)
+
+- (void)noteNewRecentFilePath:(NSString *)path
+{
+    NSURL *url = [NSURL fileURLWithPath:path];
+    if (url)
+        [self noteNewRecentDocumentURL:url];
+}
+
+@end // NSDocumentController (MMExtras)
+

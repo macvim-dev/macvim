@@ -292,10 +292,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
             // Don't add files that are being edited remotely (using ODB).
             if ([arguments objectForKey:@"remoteID"]) continue;
 
-            NSURL *url = [NSURL fileURLWithPath:[filenames objectAtIndex:i]];
-            if (!url) continue;
             [[NSDocumentController sharedDocumentController]
-                    noteNewRecentDocumentURL:url];
+                    noteNewRecentFilePath:[filenames objectAtIndex:i]];
         }
 
         if ((openInTabs && (vc = [self topmostVimController]))

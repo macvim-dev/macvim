@@ -922,9 +922,15 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
                 context:(void *)context
 {
-    NSString *string = (code == NSOKButton) ? [panel filename] : nil;
+    NSString *path = (code == NSOKButton) ? [panel filename] : nil;
     @try {
-        [backendProxy setDialogReturn:string];
+        [backendProxy setDialogReturn:path];
+
+        // Add file to the "Recent Files" menu (this ensures that files that
+        // are opened/saved from a :browse command are added to this menu).
+        if (path)
+            [[NSDocumentController sharedDocumentController]
+                    noteNewRecentFilePath:path];
     }
     @catch (NSException *e) {
         NSLog(@"Exception caught in %s %@", _cmd, e);
