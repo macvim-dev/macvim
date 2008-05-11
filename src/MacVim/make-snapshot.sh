@@ -1,10 +1,12 @@
 #!/bin/sh
 
+export MACOSX_DEPLOYMENT_TARGET=10.4
+
 # Increment build number
-/Developer/Tools/agvtool next-version -all > /dev/null
+/Developer/usr/bin/agvtool next-version -all > /dev/null
 
 # Get current build number
-BUILDNUM=`/Developer/Tools/agvtool what-version -terse`
+BUILDNUM=`/Developer/usr/bin/agvtool what-version -terse`
 DEST=~/Desktop/MacVim-snapshot-$BUILDNUM
 
 echo '****************************************************'
@@ -16,8 +18,8 @@ echo ''
 echo 'BUILDING VIM BINARY'
 echo '    running configure...'
 cd .. && ./configure --enable-gui=macvim --with-mac-arch=both \
-    --with-features=huge --enable-pythoninterp --enable-tclinterp \
-    --enable-cscope \
+    --with-features=huge --enable-pythoninterp \
+    --enable-cscope --enable-rubyinterp \
     --with-compiledby="Bjorn Winckler <bjorn.winckler@gmail.com>" > /dev/null
 
 echo '    cleaning...'

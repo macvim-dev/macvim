@@ -41,6 +41,42 @@
     -->
     
     <item>
+      <title>Snapshot 27 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 27 released</h1>
+<p> This is the first snapshot compiled on the new Mac I bought with money
+    donated from MacVim users!  There were problems with compiling universal
+    binaries with Ruby and Perl support on PPC/Tiger so I was hoping to be able
+    to include these now that I have Intel/Leopard.  The good news is that Ruby
+    support is now included, but Perl still is problematic and I had to drop
+    TCL support.  I will try to get these working in a future snapshot.
+    </p>
+
+<p> Here is the list of changes since snapshot 26:
+<ul>
+  <li> 'fuoptions' now support setting the background color while in
+       full-screen mode, check ":h 'fuopt'" (patch by Enno Lübbers) </li>
+  <li> &lt;D-w&gt; shows confirmation dialog when buffer is modified </li>
+  <li> setting 'antialias' from gvimrc now works </li>
+  <li> zooming a window no longer causes it to move downwards </li>
+  <li> the File menu now contains a "Recent Files" submenu; note that only
+       files opened from Finder or with the ":browse" command are added to this
+       list, and not files opened with e.g. ":e" (patch by Nico Weber) </li>
+  <li> includes latest Vim patches and runtime files </li>
+</ul>
+</p>
+      ]]></description>
+      <pubDate>Sun, 11 May 2008 16:36 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-27.tbz"
+        length="8104821"
+        sparkle:version="27"
+        sparkle:shortVersionString="7.1"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 26 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 26 released</h1>
