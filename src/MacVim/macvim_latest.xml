@@ -66,10 +66,10 @@
 </ul>
 </p>
       ]]></description>
-      <pubDate>Sun, 11 May 2008 16:36 CET</pubDate>
+      <pubDate>Mon, 12 May 2008 22:05 CET</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://macvim.googlecode.com/files/MacVim-snapshot-27.tbz"
-        length="8104821"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-27-fixed.tbz"
+        length="8102568"
         sparkle:version="27"
         sparkle:shortVersionString="7.1"
         />
