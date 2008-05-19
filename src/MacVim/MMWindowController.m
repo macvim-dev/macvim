@@ -595,9 +595,12 @@
 
 - (IBAction)performClose:(id)sender
 {
-    // NOTE: File->Close is bound to this action message so that File->Close
-    // also works for auxiliary windows such as the About dialog.
-    [vimController sendMessage:CloseMsgID data:nil];
+    // NOTE: With the introduction of :macmenu it is possible to bind
+    // File.Close to ":conf q" but at the same time have it send off the
+    // performClose: action.  For this reason we no longer need the CloseMsgID
+    // message.  However, we still need File.Close to send performClose:
+    // otherwise Cmd-w will not work on dialogs.
+    [self vimMenuItemAction:sender];
 }
 
 - (IBAction)findNext:(id)sender

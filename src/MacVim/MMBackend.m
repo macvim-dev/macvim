@@ -1665,24 +1665,6 @@ static NSString *MMSymlinkWarningString =
         [self handleOdbEdit:data];
     } else if (XcodeModMsgID == msgid) {
         [self handleXcodeMod:data];
-    } else if (CloseMsgID == msgid) {
-        // If in Ex mode, then simply exit Ex mode (^U:vi<CR>).  Otherwise
-        // try to close one (Vim-)window by going to Normal mode first
-        // (CTRL-\_CTRL-N) and then sending ":q<CR>", but only if the
-        // command-line window is not open.  If the command-line window is open
-        // then we just go back to normal mode (since CTRL-\_CTRL-N closes the
-        // command-line window).
-        if (exmode_active) {
-            // Exit Ex mode
-            add_to_input_buf((char_u*)"\x15:vi\n", 5);
-        } else {
-            // Go to normal mode
-            add_to_input_buf((char_u*)"\x1c\xe", 2);
-            if (0 == cmdwin_type) {
-                // Command-line window was not open, so :q
-                add_to_input_buf((char_u*)":conf q\n", 8);
-            }
-        }
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
