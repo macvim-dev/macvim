@@ -2834,11 +2834,6 @@ ex_macmenu(eap)
     vim_free(key);
     vim_free(arg);
 
-theend:
-#ifdef FEAT_MULTI_LANG
-    vim_free(tofree);
-#endif
-
     /*
      * Store all the keys that were set in the menu item.
      */
@@ -2851,13 +2846,21 @@ theend:
 	    menu->mac_key = mac_key;
 	    menu->mac_mods = mac_mods;
 	}
-	if (set_alt != -1)
+	if (set_alt)
 	    menu->mac_alternate = mac_alternate;
     }
     else
     {
 	vim_free(action);
     }
+
+theend:
+#ifdef FEAT_MULTI_LANG
+    vim_free(tofree);
+#else
+    ;
+#endif
+
 }
 #endif /* FEAT_GUI_MACVIM */
 
