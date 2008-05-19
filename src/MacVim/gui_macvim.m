@@ -32,7 +32,6 @@ static float MMMaxFontSize = 100.0f;
 
 
 static NSFont *gui_macvim_font_with_name(char_u *name);
-static BOOL gui_macvim_is_valid_action(NSString *action);
 
 
 
@@ -655,32 +654,15 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     char_u *tip = menu->strings[MENU_INDEX_TIP]
             ? menu->strings[MENU_INDEX_TIP] : menu->actext;
     char_u *map_str = menu->strings[MENU_INDEX_NORMAL];
+    char_u *mac_action = menu->mac_action;
 
 #ifdef FEAT_MBYTE
     icon = CONVERT_TO_UTF8(icon);
     name = CONVERT_TO_UTF8(name);
     tip = CONVERT_TO_UTF8(tip);
     map_str = CONVERT_TO_UTF8(map_str);
+    mac_action = CONVERT_TO_UTF8(mac_action);
 #endif
-
-    // HACK!  Check if menu is mapped to ':macaction actionName:'; if so, pass
-    // the action along so that MacVim can bind the menu item to this action.
-    // This means that if a menu item maps to an action in normal mode, then
-    // all other modes will also use the same action.
-    NSString *action = nil;
-    if (map_str) {
-        NSString *mapping = [NSString stringWithCString:(char*)map_str
-                                               encoding:NSUTF8StringEncoding];
-        NSArray *parts = [mapping componentsSeparatedByString:@" "];
-        if ([parts count] >=2 
-                && [[parts objectAtIndex:0] hasPrefix:@":maca"]) {
-            action = [parts objectAtIndex:1];
-            action = [action stringByTrimmingCharactersInSet:
-                    [NSCharacterSet whitespaceAndNewlineCharacterSet]];
-            if (!gui_macvim_is_valid_action(action))
-                action = nil;
-        }
-    }
 
     [[MMBackend sharedInstance]
             addMenuItemWithTag:(int)menu
@@ -690,7 +672,8 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
                           icon:(char*)icon
                  keyEquivalent:menu->mac_key
                      modifiers:menu->mac_mods
-                        action:action
+                        action:(char*)mac_action
+                   isAlternate:menu->mac_alternate
                        atIndex:idx];
 
 #ifdef FEAT_MBYTE
@@ -698,6 +681,7 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     CONVERT_TO_UTF8_FREE(name);
     CONVERT_TO_UTF8_FREE(tip);
     CONVERT_TO_UTF8_FREE(map_str);
+    CONVERT_TO_UTF8_FREE(mac_action);
 #endif
 }
 
@@ -1203,12 +1187,12 @@ ex_macaction(eap)
     arg = CONVERT_TO_UTF8(arg);
 #endif
 
-    NSString *name = [NSString stringWithCString:(char*)arg
-                                        encoding:NSUTF8StringEncoding];
-    if (gui_macvim_is_valid_action(name)) {
+    NSDictionary *actionDict = [[MMBackend sharedInstance] actionDict];
+    NSString *name = [NSString stringWithUTF8String:(char*)arg];
+    if (actionDict && [actionDict objectForKey:name] != nil) {
         [[MMBackend sharedInstance] executeActionWithName:name];
     } else {
-        EMSG2(_("E???: \"%s\" is not a valid action"), eap->arg);
+        EMSG2(_("E???: Invalid action: %s"), eap->arg);
     }
 
 #ifdef FEAT_MBYTE
@@ -1512,13 +1496,6 @@ gui_mch_toggle_tearoffs(int enable)
 {
 }
 
-
-    static BOOL
-gui_macvim_is_valid_action(NSString *action)
-{
-    NSDictionary *actionDict = [[MMBackend sharedInstance] actionDict];
-    return actionDict && [actionDict objectForKey:action] != nil;
-}
 
 
     void
@@ -1890,3 +1867,22 @@ get_macaction_name(expand_T *xp, int idx)
     return plainStr;
 }
 
+
+    int
+is_valid_macaction(char_u *action)
+{
+    int isValid = NO;
+    NSDictionary *actionDict = [[MMBackend sharedInstance] actionDict];
+    if (actionDict) {
+#ifdef FEAT_MBYTE
+        action = CONVERT_TO_UTF8(action);
+#endif
+        NSString *string = [NSString stringWithUTF8String:(char*)action];
+        isValid = (nil != [actionDict objectForKey:string]);
+#ifdef FEAT_MBYTE
+        CONVERT_TO_UTF8_FREE(action);
+#endif
+    }
+
+    return isValid;
+}

@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sat May 10 2008
+" Last Change:	Sun May 18 2008
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -42,14 +42,13 @@ aunmenu File.-SEP4-
 aunmenu File.Exit
 aunmenu File.Save-Exit
 
-an <silent> 10.290 File.New\ Window             :maca newWindow:<CR>
+an <silent> 10.290 File.New\ Window             <Nop>
 an  10.295 File.New\ Tab                        :tabnew<CR>
-an <silent> 10.310 File.&Open\.\.\.             :maca fileOpen:<CR>
-an <silent> 10.325 File.Open\ Recent            :maca recentFilesDummy:<CR>
+an <silent> 10.310 File.&Open\.\.\.             <Nop>
+an <silent> 10.325 File.Open\ Recent            <Nop>
 an 10.328 File.-SEP0-                           <Nop>
 an <silent> 10.330 File.Close\ Window<Tab>:qa   :confirm qa<CR>
-an <silent> 10.331 File.Close                   :maca performClose:<CR>
-"an 10.331 File.Close\ Tab                   :tabclose<CR>
+an <silent> 10.332 File.Close                   <Nop>
 
 
 " Edit menu
@@ -58,8 +57,8 @@ aunmenu Edit.Find
 aunmenu Edit.Find\ and\ Replace
 
 an 20.410.10 Edit.Find.Find\.\.\.<Tab>/     /
-an 20.410.20 Edit.Find.Find\ Next           :maca findNext:<CR>
-an 20.410.30 Edit.Find.Find\ Previous       :maca findPrevious:<CR>
+an 20.410.20 Edit.Find.Find\ Next           <Nop>
+an 20.410.30 Edit.Find.Find\ Previous       <Nop>
 vmenu 20.410.35 Edit.Find.Use\ Selection\ for\ Find y:let @/=@"<CR>n
 an 20.410.40 Edit.Find.-SEP1-               <Nop>
 an 20.410.50 Edit.Find.Find\ and\ Replace\.\.\.<Tab>:%s   :%s/
@@ -67,30 +66,30 @@ vunmenu      Edit.Find.Find\ and\ Replace\.\.\.<Tab>:%s
 vnoremenu    Edit.Find.Find\ and\ Replace\.\.\.<Tab>:s    :s/
 
 an 20.460 Edit.-SEP4-                       <Nop>
-an 20.465.10 Edit.Font.Show\ Fonts          :maca orderFrontFontPanel:<CR>
+an 20.465.10 Edit.Font.Show\ Fonts          <Nop>
 an 20.465.20 Edit.Font.-SEP5-               <Nop>
-an 20.465.30 Edit.Font.Bigger               :maca fontSizeUp:<CR>
-an 20.465.40 Edit.Font.Smaller              :maca fontSizeDown:<CR>
-an 20.470 Edit.Special\ Characters\.\.\.    :maca orderFrontCharacterPalette:<CR>
+an 20.465.30 Edit.Font.Bigger               <Nop>
+an 20.465.40 Edit.Font.Smaller              <Nop>
+an 20.470 Edit.Special\ Characters\.\.\.    <Nop>
 
 
 " Window menu (should be next to Help so give it a high priority)
 aunmenu Window
 
-an <silent> 9900.300 Window.Minimize            :maca performMiniaturize:<CR>
-an <silent> 9900.310 Window.Zoom                :maca performZoom:<CR>
+an <silent> 9900.300 Window.Minimize            <Nop>
+an <silent> 9900.310 Window.Zoom                <Nop>
 an <silent> 9900.320 Window.Toggle\ Full\ Screen\ Mode  :set invfullscreen<CR>
 an 9900.330 Window.-SEP1-                       <Nop>
 " TODO! Grey out if no tabs are visible.
 an <silent> 9900.340 Window.Previous\ Tab       :tabprevious<CR>
 an <silent> 9900.350 Window.Next\ Tab           :tabnext<CR>
 an 9900.360 Window.-SEP2-                       <Nop>
-an <silent> 9900.370 Window.Bring\ All\ To\ Front :maca arrangeInFront:<CR>
+an <silent> 9900.370 Window.Bring\ All\ To\ Front <Nop>
 
 
 " Help menu
 an 9999.1 Help.MacVim\ Help                 :h gui_mac<CR>
-an <silent> 9999.2 Help.MacVim\ Website     :maca openWebsite:<CR>
+an <silent> 9999.2 Help.MacVim\ Website     <Nop>
 an 9999.3 Help.-sep0-                       <Nop>
 
 
@@ -189,55 +188,58 @@ endif " exists("macvim_hig_shift_movement")
 
 
 "
-" Menu key equivalents (these should always have the 'D' modifier set)
+" Set up menu key equivalents (these should always have the 'D' modifier set),
+" action bindings, and alternate items.
+"
+" Note: menu items which should execute an action are bound to <Nop>; the
+" action message is specified here via the :macmenu command.
 "
 
-macmenukey File.New\ Window                       <D-n>
-macmenukey File.New\ Tab                          <D-t>
+macm File.New\ Window                       key=<D-n> action=newWindow:
+macm File.New\ Tab                          key=<D-t>
+macm File.Open\.\.\.                        key=<D-o> action=fileOpen:
+macm File.Open\ Tab\.\.\.                   key=<D-T>
+macm File.Open\ Recent                      action=recentFilesDummy:
+macm File.Close\ Window                     key=<D-W>
+macm File.Close                             key=<D-w> action=performClose:
+macm File.Save                              key=<D-s>
+macm File.Save\ As\.\.\.                    key=<D-S>
+macm File.Print                             key=<D-p>
 
-macmenukey File.Open\.\.\.                        <D-o>
-macmenukey File.Open\ Tab\.\.\.                   <D-T>
-macmenukey File.Close\ Window                     <D-W>
-"macmenukey File.Close\ Tab                        <D-w>
-macmenukey File.Close                             <D-w>
-macmenukey File.Save                              <D-s>
-macmenukey File.Save\ As\.\.\.                    <D-S>
-macmenukey File.Print                             <D-p>
+macm Edit.Undo                              key=<D-z>
+macm Edit.Redo                              key=<D-Z>
+macm Edit.Cut                               key=<D-x>
+macm Edit.Copy                              key=<D-c>
+macm Edit.Paste                             key=<D-v>
+macm Edit.Select\ All                       key=<D-a>
+macm Edit.Find.Find\.\.\.                   key=<D-f>
+macm Edit.Find.Find\ Next                   key=<D-g> action=findNext:
+macm Edit.Find.Find\ Previous               key=<D-G> action=findPrevious:
+macm Edit.Find.Use\ Selection\ for\ Find    key=<D-e>
+macm Edit.Special\ Characters\.\.\.         key=<D-M-t>
+macm Edit.Font.Show\ Fonts                  action=orderFrontFontPanel:
+macm Edit.Font.Bigger                       key=<D-=> action=fontSizeUp:
+macm Edit.Font.Smaller                      key=<D--> action=fontSizeDown:
+macm Edit.Special\ Characters\.\.\.         action=orderFrontCharacterPalette:
 
-macmenukey Edit.Undo                              <D-z>
-macmenukey Edit.Redo                              <D-Z>
-macmenukey Edit.Cut                               <D-x>
-macmenukey Edit.Copy                              <D-c>
-macmenukey Edit.Paste                             <D-v>
-macmenukey Edit.Select\ All                       <D-a>
-macmenukey Edit.Find.Find\.\.\.                   <D-f>
-macmenukey Edit.Find.Find\ Next                   <D-g>
-macmenukey Edit.Find.Find\ Previous               <D-G>
-macmenukey Edit.Find.Use\ Selection\ for\ Find    <D-e>
-macmenukey Edit.Special\ Characters\.\.\.         <D-M-t> 
-macmenukey Edit.Font.Bigger                       <D-=>
-macmenukey Edit.Font.Smaller                      <D-->
+macm Tools.Spelling.To\ Next\ error         key=<D-;>
+macm Tools.Spelling.Suggest\ Corrections    key=<D-:>
+macm Tools.Make                             key=<D-b>
+macm Tools.List\ Errors                     key=<D-l>
+macm Tools.List\ Messages                   key=<D-L>
+macm Tools.Next\ Error                      key=<D-C-Right>
+macm Tools.Previous\ Error                  key=<D-C-Left>
+macm Tools.Older\ List                      key=<D-C-Up>
+macm Tools.Newer\ List                      key=<D-C-Down>
 
-macmenukey Tools.Spelling.To\ Next\ error         <D-;>
-macmenukey Tools.Spelling.Suggest\ Corrections    <D-:>
-macmenukey Tools.Make                             <D-b>
-macmenukey Tools.List\ Errors                     <D-l>
-macmenukey Tools.List\ Messages                   <D-L>
-macmenukey Tools.Next\ Error                      <D-C-Right>
-macmenukey Tools.Previous\ Error                  <D-C-Left>
-macmenukey Tools.Older\ List                      <D-C-Up>
-macmenukey Tools.Newer\ List                      <D-C-Down>
+macm Window.Minimize                    key=<D-m>   action=performMiniaturize:
+macm Window.Zoom                        key=<D-C-z> action=performZoom:
+macm Window.Toggle\ Full\ Screen\ Mode  key=<D-F>
+macm Window.Previous\ Tab               key=<D-{>
+macm Window.Next\ Tab                   key=<D-}>
+macm Window.Bring\ All\ To\ Front       action=arrangeInFront:
 
-macmenukey Window.Minimize                        <D-m>
-macmenukey Window.Zoom                            <D-C-z>
-macmenukey Window.Toggle\ Full\ Screen\ Mode      <D-F>
-macmenukey Window.Previous\ Tab                   <D-{>
-macmenukey Window.Next\ Tab                       <D-}>
-
-" TODO: <D-?> seems to be reserved by the system on Leopard.  Disable this key
-" equivalent until I can figure out what to do about it.
-"macmenukey Help.MacVim\ Help                      <D-?>
-
+macm Help.MacVim\ Website               action=openWebsite:
 
 " Restore the previous value of 'cpoptions'.
 let &cpo = s:cpo_save

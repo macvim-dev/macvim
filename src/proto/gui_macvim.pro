@@ -202,3 +202,4 @@ OSErr odb_post_buffer_write(buf_T *buf);
 void odb_end(void);
 
 char_u *get_macaction_name(expand_T *xp, int idx);
+int is_valid_macaction(char_u *action);

@@ -89,7 +89,8 @@
 - (void)addMenuItemWithTag:(int)tag parent:(int)parentTag name:(char *)name
                        tip:(char *)tip icon:(char *)icon
              keyEquivalent:(int)key modifiers:(int)mods
-                    action:(NSString *)action atIndex:(int)index;
+                    action:(char *)action isAlternate:(int)isAlt
+                   atIndex:(int)index;
 - (void)removeMenuItemWithTag:(int)tag;
 - (void)enableMenuItemWithTag:(int)tag state:(int)enabled;
 - (void)showPopupMenuWithName:(char *)name atMouseLocation:(BOOL)mouse;

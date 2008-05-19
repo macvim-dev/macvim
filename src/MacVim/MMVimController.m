@@ -70,7 +70,8 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (void)addMenuItemWithTag:(int)tag parent:(NSMenu *)parent
                      title:(NSString *)title tip:(NSString *)tip
              keyEquivalent:(int)key modifiers:(int)mask
-                    action:(NSString *)action atIndex:(int)idx;
+                    action:(NSString *)action isAlternate:(int)isAlt
+                   atIndex:(int)idx;
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index;
 - (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
@@ -705,6 +706,7 @@ static NSTimeInterval MMResendInterval = 0.5;
         if (idx < 0) idx = 0;
         int key = *((int*)bytes);  bytes += sizeof(int);
         int mask = *((int*)bytes);  bytes += sizeof(int);
+        int isalt = *((int*)bytes);  bytes += sizeof(int);
 
         NSString *ident = [NSString stringWithFormat:@"%d.%d",
                 (int)self, parentTag];
@@ -715,7 +717,7 @@ static NSTimeInterval MMResendInterval = 0.5;
             NSMenu *parent = [self menuForTag:parentTag];
             [self addMenuItemWithTag:tag parent:parent title:title tip:tip
                        keyEquivalent:key modifiers:mask action:action
-                             atIndex:idx];
+                         isAlternate:isalt atIndex:idx];
         }
 
         [title release];
@@ -1086,7 +1088,8 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (void)addMenuItemWithTag:(int)tag parent:(NSMenu *)parent
                      title:(NSString *)title tip:(NSString *)tip
              keyEquivalent:(int)key modifiers:(int)mask
-                    action:(NSString *)action atIndex:(int)idx
+                    action:(NSString *)action isAlternate:(int)isAlt
+                   atIndex:(int)idx
 {
     if (parent) {
         NSMenuItem *item = nil;
@@ -1117,6 +1120,8 @@ static NSTimeInterval MMResendInterval = 0.5;
                     [item setKeyEquivalent:keyString];
                     [item setKeyEquivalentModifierMask:mask];
                 }
+
+                if (isAlt) [item setAlternate:YES];
             }
         }
 

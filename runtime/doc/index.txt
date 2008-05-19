@@ -1289,7 +1289,7 @@ The commands are sorted on the non-optional part of their name.
 |:move|		:m[ove]		move lines
 |:mark|		:ma[rk]		set a mark
 |:macation|	:maca[ction]	send action message
-|:macmenukey|	:macm[eyequiv]	set key equivalent for menu item
+|:macmenu|	:macm[enu]	set Mac specific properties for menu item
 |:make|		:mak[e]		execute external command 'makeprg' and parse
 				error messages
 |:map|		:map		show or enter a mapping

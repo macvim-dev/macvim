@@ -466,7 +466,7 @@ static void	ex_folddo __ARGS((exarg_T *eap));
 
 #ifndef FEAT_GUI_MACVIM
 # define ex_macaction		ex_ni
-# define ex_macmenukey		ex_ni
+# define ex_macmenu             ex_ni
 #endif
 
 /*
@@ -3764,7 +3764,7 @@ set_one_cmd_context(xp, buff)
 	case CMD_tmenu:				    case CMD_tunmenu:
 	case CMD_popup:	    case CMD_tearoff:	    case CMD_emenu:
 #ifdef FEAT_GUI_MACVIM
-	case CMD_macmenukey:
+        case CMD_macmenu:
 #endif
 	    return set_context_in_menu_cmd(xp, cmd, arg, forceit);
 #endif

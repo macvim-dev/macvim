@@ -2254,9 +2254,11 @@ struct VimMenu
     PtWidget_t	*submenu_id;
 #endif
 #ifdef FEAT_GUI_MACVIM
-    int		mac_key;            /* Key equivalent */
-    int		mac_mods;           /* Modifier flags for the above */
-    int		was_grey;           /* Remember last 'grey' state */
+    char_u	*mac_action;	    /* Action this menu sends */
+    int		mac_key;	    /* Key equivalent */
+    int		mac_mods;	    /* Modifier flags for the above */
+    int		mac_alternate;	    /* Item is alternate of previous item */
+    int		was_grey;	    /* Remember last 'grey' state */
 #endif
 };
 #else

@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.1.  Last change: 2008 Mar 16
+*gui_mac.txt*	For Vim version 7.1.  Last change: 2008 May 19
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -310,50 +310,79 @@ than the default?) then post them to |vim_mac|.
 ==============================================================================
 5. Menus						*macvim-menus*
 
-						*:macm* *:macmenukey*
-MacVim has a special way of binding keys to menu items that differs from other
-Vim GUI ports.  A menu binding is called a "key equivalent" in Mac OS X
-terminology, this is displayed on the right side of a menu item.  The
-":macmenukey" command is used to set the key equivalent of a menu item.  This
-command takes two parameters, the first names the menu item to bind to, the
-second gives the key combination.  For example: >
-	:macmenukey File.New\ Tab <D-t>
-This sets the key equivalent of the "New Tab" menu item under the "File" menu
-to Cmd+t.
+Menus in Mac OS X behave slightly different from other platforms.  For that
+reason two new commands have been added to Vim.  To understand what these
+commands do you must first understand how menus work on OS X.
 
-Note that key equivalents:
-	* must contain the Cmd modifier flag (<D-...>)
-	* take precedence over normal mappings made with ":map"
-	* can only be modified during startup (e.g. in .gvimrc)
+Each entry in a menu is called a "menu item".  With each menu item is
+associated: a title, a key equivalent and an action message.  When a menu is
+displayed the title is shown on the left and the key equivalent (if any) is
+shown on the right.  Key equivalents enable you to access a menu item using
+the keyboard instead of having to use the mouse.  When a menu item is clicked
+it will send it's associated action message.  Actions can be used to instruct
+MacVim to paste some text (paste:), open a new window (newWindow:), etc.
+Certain actions are standard throughout OS X which is why MacVim must be able
+to set these for each menu item.  (E.g. the menu item "Edit.Paste" must be
+bound to the action "paste:" otherwise pasting won't work in dialogs since
+that is the action that instructs them to paste something.)
 
-It is possible to reset a key equivalent by calling :macmenukey with a menu
-name but no key.  This is so that the default key equivalents can be reset in
-"~/.gvimrc".  For example, if you would like to free up <D-s> (which is the
-key equivalent of "File.Save") then add the following line to "~/.gvimrc": >
-	macmenukey File.Save
-Now you can use :map to bind <D-s> to whatever you like.
+Menus are configured using the |:macmenu| command and the |:macaction| command
+can be used to send action messages.
 
-It is not necessary to reset a key equivalent if all you want to do is to
-change the key equivalent of a menu item.  For example, say you want to use
-<D-M-Right> as the key equivalent for "Next Tab", then add the following line
-to "~/.gvimrc": >
-	macmenukey Window.Next\ Tab <D-M-Right>
-<
 						*:maca* *:macaction*
-It is typical for menu items in Cocoa applications to bind to Objective-C
-selectors.  To support this, MacVim introduces the |:macaction| command.  This
-command takes the name of an action message as its only parameter.  (An action
-message is an Objective-C message with "void" return type and a single
-parameter of type "id".)  For example, the "New Window" menu item on the
-"File" menu is created in the following manner: >
-	:an 10.290 File.New\ Window :macaction newWindow:<CR>
+:maca[ction] {action:}	Send the message "action:" to the first responder.
+			The list of allowed actions can be seen by typing
+			    :maca <C-d>
+			An attempt to send an action not listed here will
+			result in an error.  This list is specified in a
+			property list file called |Actions.plist|.
 
-Note 1: A menu item which is bound to |:macaction| will automatically be bound
-to that action in all modes (as if ":an" was used).  It is not possible to
-bind to |:macaction| in one mode only.
-Note 2: The action is "nil-targeted", which means it is passed down the first
-responder chain.
+						*:macm* *:macmenu*
+:mac[menu] {menu} {key}={arg} ...
+			Set Mac specific properties for {menu}.  The
+			properties that can be set are:
+			    action	the action this menu sends
+			    alt		"yes" if alternate of previous menu
+			    key		the key equivalent of this menu
+			This command must be used in a startup file, for
+			example in "~/.gvimrc".  It has no effect otherwise.
 
+			For convenience, a menu with "action=name:" which is
+			bound to <Nop> will act as if bound to
+			":maca name:<CR>".  Thus, if "Menu.Item" is given by
+			    :an Menu.Item <Nop>
+			    :macm Menu.Item action=name:
+			then ":emenu Menu.Item" is equivalent to
+			":maca name:".
+
+			The key equivalent is specified with the <D-..>
+			syntax.  Note that key equivalents must contain the
+			Cmd modifier flag (<D-...>), and they take precedence
+			over normal mappings.
+			Use the syntax "key=<nop>" to clear the key equivalent
+			of a menu.  This can be used to free up a key
+			combination that is set in the system gvimrc so that
+			it may be mapped to using ":map".
+
+			Recognised values of "alt" are "0", "no", "1", and
+			"yes".  The default is "no".  An alternate menu must
+			have the same key equivalent as the previous menu,
+			except the modifier flags must differ.  The alternate
+			menu is by default hidden and only shows up when the
+			modifier is held down.
+
+Here are some examples on how to use these commands:
+
+1. Create a menu item with title "New Window" under the "File" menu, with key
+equivalent Cmd-n, which opens a new window when selected: >
+	:an 10.290 File.New\ Window <Nop>
+	:macm File.New\ Window action=newWindow: key=<D-n>
+2. Change the key equivalent to cycle through tabs to Cmd-Left/Right: >
+	:macm Window.Previous\ Tab  key=<D-Left>
+	:macm Window.Next\ Tab	    key=<D-Right>
+3. Create a mapping in normal mode which closes the current tab/window: >
+	:map <C-w> :maca performClose:<CR>
+>
 							*Actions.plist*
 Some action messages would not be suitable to call from within Vim, so there
 is a dictionary called "Actions.plist" (in the Resources folder of the
@@ -380,14 +409,6 @@ performClose:			Close tab/window
 performZoom:			Zoom window (same as clicking the green blob)
 selectNextWindow:		Select next window (similar to <D-`>)
 selectPreviousWindow:		Select previous window (similar to <S-D-`>)
-
-As an example, to map <C-z> to performZoom: you could do something like this: >
-	:map <silent> <C-z> :macaction performZoom:<CR>
-A better way to map to performZoom: would be to set the key equivalent of the
-menu item "Window.Zoom" to the above action.  This can be done by adding the
-following line to "~/.gvimrc": >
-	macmenukey Window.Zoom <D-C-z>
-(Note that key equivalents must contain the 'D' flag.)
 
 ==============================================================================
 6. Toolbar						*macvim-toolbar*
