@@ -44,11 +44,13 @@ aunmenu File.Save-Exit
 
 an <silent> 10.290 File.New\ Window             <Nop>
 an  10.295 File.New\ Tab                        :tabnew<CR>
-an <silent> 10.310 File.&Open\.\.\.             <Nop>
+an <silent> 10.310 File.Open\.\.\.              <Nop>
 an <silent> 10.325 File.Open\ Recent            <Nop>
 an 10.328 File.-SEP0-                           <Nop>
 an <silent> 10.330 File.Close\ Window<Tab>:qa   :conf qa<CR>
 an <silent> 10.332 File.Close                   :conf q<CR>
+an <silent> 10.341 File.Save\ All               :browse conf wa<CR>
+an 10.350 File.Save\ As\.\.\.<Tab>:sav	        :browse confirm saveas<CR>
 
 
 " Edit menu
@@ -203,6 +205,7 @@ macm File.Open\ Recent                      action=recentFilesDummy:
 macm File.Close\ Window                     key=<D-W>
 macm File.Close                             key=<D-w> action=performClose:
 macm File.Save                              key=<D-s>
+macm File.Save\ All                         key=<D-M-s> alt=YES
 macm File.Save\ As\.\.\.                    key=<D-S>
 macm File.Print                             key=<D-p>
 
