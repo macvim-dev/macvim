@@ -1177,6 +1177,8 @@ goes from 2.2 to 2.3. (Gordon Prieur)
 
 Mac: When starting up Vim will load the $VIMRUNTIME/macmap.vim script to
 define default command-key mappings. (mostly by Benji Fisher)
+This only applies to the older Carbon version of Vim, MacVim.app does not
+source this file.
 
 Mac: Add the selection type to the clipboard, so that Block, line and
 character selections can be used between two Vims. (Eckehard Berns)
