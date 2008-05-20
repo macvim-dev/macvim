@@ -51,6 +51,7 @@ enum {
 - (BOOL)convertRow:(int)row column:(int)column toPoint:(NSPoint *)point;
 - (NSRect)trackingRect;
 - (void)dispatchKeyEvent:(NSEvent *)event;
+- (MMWindowController *)windowController;
 - (MMVimController *)vimController;
 - (void)startDragTimerWithInterval:(NSTimeInterval)t;
 - (void)dragTimerFired:(NSTimer *)timer;
@@ -1119,6 +1120,42 @@ enum {
     // The font panel is updated whenever the font is set.
 }
 
+
+//
+// NOTE: The menu items cut/copy/paste/undo/redo/select all/... must be bound
+// to the same actions as in IB otherwise they will not work with dialogs.  All
+// we do here is forward these actions to the Vim process.
+//
+- (IBAction)cut:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)copy:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)paste:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)undo:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)redo:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)selectAll:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
 @end // MMTextView
 
 
@@ -1259,13 +1296,17 @@ enum {
     [self sendKeyDown:bytes length:len modifiers:mods];
 }
 
-- (MMVimController *)vimController
+- (MMWindowController *)windowController
 {
     id windowController = [[self window] windowController];
+    if ([windowController isKindOfClass:[MMWindowController class]])
+        return (MMWindowController*)windowController;
+    return nil;
+}
 
-    // TODO: Make sure 'windowController' is a MMWindowController before type
-    // casting.
-    return [(MMWindowController*)windowController vimController];
+- (MMVimController *)vimController
+{
+    return [[self windowController] vimController];
 }
 
 - (void)startDragTimerWithInterval:(NSTimeInterval)t

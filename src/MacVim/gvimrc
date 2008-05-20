@@ -209,12 +209,12 @@ macm File.Save\ All                         key=<D-M-s> alt=YES
 macm File.Save\ As\.\.\.                    key=<D-S>
 macm File.Print                             key=<D-p>
 
-macm Edit.Undo                              key=<D-z>
-macm Edit.Redo                              key=<D-Z>
-macm Edit.Cut                               key=<D-x>
-macm Edit.Copy                              key=<D-c>
-macm Edit.Paste                             key=<D-v>
-macm Edit.Select\ All                       key=<D-a>
+macm Edit.Undo                              key=<D-z> action=undo:
+macm Edit.Redo                              key=<D-Z> action=redo:
+macm Edit.Cut                               key=<D-x> action=cut:
+macm Edit.Copy                              key=<D-c> action=copy:
+macm Edit.Paste                             key=<D-v> action=paste:
+macm Edit.Select\ All                       key=<D-a> action=selectAll:
 macm Edit.Find.Find\.\.\.                   key=<D-f>
 macm Edit.Find.Find\ Next                   key=<D-g> action=findNext:
 macm Edit.Find.Find\ Previous               key=<D-G> action=findPrevious:

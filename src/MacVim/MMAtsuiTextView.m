@@ -27,6 +27,7 @@
 
 #import "MMAtsuiTextView.h"
 #import "MMVimController.h"
+#import "MMWindowController.h"
 #import "MacVim.h"
 
 
@@ -65,6 +66,7 @@ enum {
 - (void)updateAtsuStyles;
 - (void)dispatchKeyEvent:(NSEvent *)event;
 - (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags;
+- (MMWindowController *)windowController;
 - (MMVimController *)vimController;
 @end
 
@@ -726,6 +728,42 @@ enum {
     [[self vimController] sendMessage:ScrollWheelMsgID data:data];
 }
 
+
+//
+// NOTE: The menu items cut/copy/paste/undo/redo/select all/... must be bound
+// to the same actions as in IB otherwise they will not work with dialogs.  All
+// we do here is forward these actions to the Vim process.
+//
+- (IBAction)cut:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)copy:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)paste:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)undo:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)redo:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
+- (IBAction)selectAll:(id)sender
+{
+    [[self windowController] vimMenuItemAction:sender];
+}
+
 @end // MMAtsuiTextView
 
 
@@ -875,13 +913,17 @@ enum {
     }
 }
 
-- (MMVimController *)vimController
+- (MMWindowController *)windowController
 {
     id windowController = [[self window] windowController];
+    if ([windowController isKindOfClass:[MMWindowController class]])
+        return (MMWindowController*)windowController;
+    return nil;
+}
 
-    // TODO: Make sure 'windowController' is a MMWindowController before type
-    // casting.
-    return [(MMWindowController*)windowController vimController];
+- (MMVimController *)vimController
+{
+    return [[self windowController] vimController];
 }
 
 @end // MMAtsuiTextView (Private)

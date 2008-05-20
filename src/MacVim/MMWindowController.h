@@ -68,5 +68,6 @@
 - (IBAction)performClose:(id)sender;
 - (IBAction)findNext:(id)sender;
 - (IBAction)findPrevious:(id)sender;
+- (IBAction)vimMenuItemAction:(id)sender;
 
 @end

@@ -76,7 +76,6 @@
 - (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize;
 - (void)updateResizeConstraints;
 - (NSTabViewItem *)addNewTabViewItem;
-- (IBAction)vimMenuItemAction:(id)sender;
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
 - (void)hideTablineSeparator:(BOOL)hide;
 - (void)doFindNext:(BOOL)next;
@@ -613,6 +612,16 @@
     [self doFindNext:NO];
 }
 
+- (IBAction)vimMenuItemAction:(id)sender
+{
+    int tag = [sender tag];
+
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&tag length:sizeof(int)];
+
+    [vimController sendMessage:ExecuteMenuMsgID data:data];
+}
+
 
 // -- NSWindow delegate ------------------------------------------------------
 
@@ -782,16 +791,6 @@
 - (NSTabViewItem *)addNewTabViewItem
 {
     return [vimView addNewTabViewItem];
-}
-
-- (IBAction)vimMenuItemAction:(id)sender
-{
-    int tag = [sender tag];
-
-    NSMutableData *data = [NSMutableData data];
-    [data appendBytes:&tag length:sizeof(int)];
-
-    [vimController sendMessage:ExecuteMenuMsgID data:data];
 }
 
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb
