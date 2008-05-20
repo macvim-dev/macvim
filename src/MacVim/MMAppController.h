@@ -16,6 +16,7 @@
 
 
 @interface MMAppController : NSObject <MMAppProtocol> {
+    NSConnection        *connection;
     NSMutableArray      *vimControllers;
     NSString            *openSelectionString;
     ATSFontContainerRef fontContainerRef;

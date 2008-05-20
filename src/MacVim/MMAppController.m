@@ -140,24 +140,30 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         vimControllers = [NSMutableArray new];
         pidArguments = [NSMutableDictionary new];
 
+        // NOTE: Do not use the default connection since the Logitech Control
+        // Center (LCC) input manager steals and this would cause MacVim to
+        // never open any windows.  (This is a bug in LCC but since they are
+        // unlikely to fix it, we graciously give them the default connection.)
+        connection = [[NSConnection alloc] initWithReceivePort:[NSPort port]
+                                                      sendPort:nil];
+        [connection setRootObject:self];
+        [connection setRequestTimeout:MMRequestTimeout];
+        [connection setReplyTimeout:MMReplyTimeout];
+
+        // NOTE: When the user is resizing the window the AppKit puts the run
+        // loop in event tracking mode.  Unless the connection listens to
+        // request in this mode, live resizing won't work.
+        [connection addRequestMode:NSEventTrackingRunLoopMode];
+
         // NOTE!  If the name of the connection changes here it must also be
         // updated in MMBackend.m.
-        NSConnection *connection = [NSConnection defaultConnection];
         NSString *name = [NSString stringWithFormat:@"%@-connection",
                  [[NSBundle mainBundle] bundleIdentifier]];
         //NSLog(@"Registering connection with name '%@'", name);
-        if ([connection registerName:name]) {
-            [connection setRequestTimeout:MMRequestTimeout];
-            [connection setReplyTimeout:MMReplyTimeout];
-            [connection setRootObject:self];
-
-            // NOTE: When the user is resizing the window the AppKit puts the
-            // run loop in event tracking mode.  Unless the connection listens
-            // to request in this mode, live resizing won't work.
-            [connection addRequestMode:NSEventTrackingRunLoopMode];
-        } else {
-            NSLog(@"WARNING: Failed to register connection with name '%@'",
+        if (![connection registerName:name]) {
+            NSLog(@"FATAL ERROR: Failed to register connection with name '%@'",
                     name);
+            [connection release];  connection = nil;
         }
     }
 
@@ -168,6 +174,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 {
     //NSLog(@"MMAppController dealloc");
 
+    [connection release];  connection = nil;
     [pidArguments release];  pidArguments = nil;
     [vimControllers release];  vimControllers = nil;
     [openSelectionString release];  openSelectionString = nil;
@@ -456,9 +463,9 @@ static int executeInLoginShell(NSString *path, NSArray *args);
                                  andEventID:'MOD '];
 #endif
 
-    // This will invalidate all connections (since they were spawned from the
-    // default connection).
-    [[NSConnection defaultConnection] invalidate];
+    // This will invalidate all connections (since they were spawned from this
+    // connection).
+    [connection invalidate];
 
     // Send a SIGINT to all running Vim processes, so that they are sure to
     // receive the connectionDidDie: notification (a process has to be checking
