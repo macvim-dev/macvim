@@ -144,6 +144,8 @@ static NSTimeInterval MMResendInterval = 0.5;
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
     [recentFilesDummy release];  recentFilesDummy = nil;
 
+    [vimState release];  vimState = nil;
+
     [super dealloc];
 }
 
