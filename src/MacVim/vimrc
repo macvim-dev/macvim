@@ -1,6 +1,10 @@
 " System vimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sat Aug 11 14:26:41 CEST 2007
+" Last Change:	Sun May 25 2008
 
 set nocompatible
+
+" The default for 'backspace' is very confusing to new users, so change it to a
+" more sensible value.  Add "set backspace&" to your ~/.vimrc to reset it.
+set backspace+=indent,eol,start

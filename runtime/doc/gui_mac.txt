@@ -142,6 +142,11 @@ another in MacVim.  Simply search for something in one window (using "/") then
 switch to another (e.g. with <D-`>) and hit <D-g> and the search will be
 repeated in the new window.
 
+					*macvim-backspace* *macvim-delete*
+The 'backspace' option is set in the system vimrc to make the delete key
+behave in a more familiar way to new users.  If you dislike this non-default
+behaviour, then add the line "set backspace&" to your "~/.vimrc" file.
+
 ==============================================================================
 2. Starting MacVim					*macvim-start*
 
