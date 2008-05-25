@@ -124,6 +124,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         [NSNumber numberWithBool:NO],   MMZoomBothKey,
         @"",                            MMLoginShellCommandKey,
         @"",                            MMLoginShellArgumentKey,
+        [NSNumber numberWithBool:YES],  MMDialogsTrackPwdKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -554,10 +555,17 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 - (IBAction)fileOpen:(id)sender
 {
+    NSString *dir = nil;
+    BOOL trackPwd = [[NSUserDefaults standardUserDefaults]
+            boolForKey:MMDialogsTrackPwdKey];
+    if (trackPwd) {
+        MMVimController *vc = [self keyVimController];
+        if (vc) dir = [[vc vimState] objectForKey:@"pwd"];
+    }
+
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     [panel setAllowsMultipleSelection:YES];
-
-    int result = [panel runModalForTypes:nil];
+    int result = [panel runModalForDirectory:dir file:nil types:nil];
     if (NSOKButton == result)
         [self application:NSApp openFiles:[panel filenames]];
 }

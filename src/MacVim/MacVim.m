@@ -75,6 +75,7 @@ char *MessageStrings[] =
     "LiveResizeMsgID",
     "EnableAntialiasMsgID",
     "DisableAntialiasMsgID",
+    "SetVimStateMsgID",
 };
 
 
@@ -106,6 +107,7 @@ NSString *MMZoomBothKey                 = @"MMZoomBoth";
 NSString *MMCurrentPreferencePaneKey    = @"MMCurrentPreferencePane";
 NSString *MMLoginShellCommandKey        = @"MMLoginShellCommand";
 NSString *MMLoginShellArgumentKey       = @"MMLoginShellArgument";
+NSString *MMDialogsTrackPwdKey          = @"MMDialogsTrackPwd";
 
 
 
@@ -307,3 +309,26 @@ buildSearchTextCommand(NSString *searchText)
 
 @end // NSDocumentController (MMExtras)
 
+
+
+
+@implementation NSDictionary (MMExtras)
+
++ (id)dictionaryWithData:(NSData *)data
+{
+    id plist = [NSPropertyListSerialization
+            propertyListFromData:data
+                mutabilityOption:NSPropertyListImmutable
+                          format:NULL
+                errorDescription:NULL];
+
+    return [plist isKindOfClass:[NSDictionary class]] ? plist : nil;
+}
+
+- (NSData *)dictionaryAsData
+{
+    return [NSPropertyListSerialization dataFromPropertyList:self
+            format:NSPropertyListBinaryFormat_v1_0 errorDescription:NULL];
+}
+
+@end

@@ -152,6 +152,11 @@ static NSTimeInterval MMResendInterval = 0.5;
     return windowController;
 }
 
+- (NSDictionary *)vimState
+{
+    return vimState;
+}
+
 - (void)setServerName:(NSString *)name
 {
     if (name != serverName) {
@@ -390,6 +395,15 @@ static NSTimeInterval MMResendInterval = 0.5;
                                   saving:(int)saving
 {
     if (!isInitialized) return;
+
+    if (!dir) {
+        // 'dir == nil' means: set dir to the pwd of the Vim process, or let
+        // open dialog decide (depending on the below user default).
+        BOOL trackPwd = [[NSUserDefaults standardUserDefaults]
+                boolForKey:MMDialogsTrackPwdKey];
+        if (trackPwd)
+            dir = [vimState objectForKey:@"pwd"];
+    }
 
     if (saving) {
         [[NSSavePanel savePanel] beginSheetForDirectory:dir file:nil
@@ -916,6 +930,12 @@ static NSTimeInterval MMResendInterval = 0.5;
         [[[windowController vimView] textView] setAntialias:YES];
     } else if (DisableAntialiasMsgID == msgid) {
         [[[windowController vimView] textView] setAntialias:NO];
+    } else if (SetVimStateMsgID == msgid) {
+        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+        if (dict) {
+            [vimState release];
+            vimState = [dict retain];
+        }
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

@@ -77,6 +77,7 @@ static NSString *MMSymlinkWarningString =
 
 
 @interface MMBackend (Private)
+- (void)queueVimStateMessage;
 - (void)processInputQueue;
 - (void)handleInputEvent:(int)msgid data:(NSData *)data;
 + (NSDictionary *)specialKeys;
@@ -462,7 +463,12 @@ static NSString *MMSymlinkWarningString =
         [drawData setLength:0];
     }
 
-    if ([outputQueue count] > 0) {
+    if ([outputQueue count] > 0 || force) {
+        // When 'force' is set we always update the Vim state to ensure that
+        // MacVim has a copy of the latest state (since 'force' is typically
+        // set just before Vim takes a nap whilst waiting for input).
+        [self queueVimStateMessage];
+
         @try {
             [frontendProxy processCommandQueue:outputQueue];
         }
@@ -1554,6 +1560,21 @@ static NSString *MMSymlinkWarningString =
 
 
 @implementation MMBackend (Private)
+
+- (void)queueVimStateMessage
+{
+    // NOTE: This is the place to add Vim state that needs to be accessed from
+    // MacVim.  Do not add state that could potentially require lots of memory
+    // since this message gets sent each time the output queue is forcibly
+    // flushed (e.g. storing the currently selected text would be a bad idea).
+    // We take this approach of "pushing" the state to MacVim to avoid having
+    // to make synchronous calls from MacVim to Vim in order to get state.
+    NSDictionary *vimState = [NSDictionary dictionaryWithObjectsAndKeys:
+        [[NSFileManager defaultManager] currentDirectoryPath], @"pwd",
+        nil];
+
+    [self queueMessage:SetVimStateMsgID data:[vimState dictionaryAsData]];
+}
 
 - (void)processInputQueue
 {

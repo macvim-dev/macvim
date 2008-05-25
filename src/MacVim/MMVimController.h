@@ -42,6 +42,7 @@
     NSMenu              *lastMenuSearched;
     NSMenuItem          *recentFilesMenuItem;
     NSMenuItem          *recentFilesDummy;
+    NSDictionary        *vimState;
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier
@@ -51,6 +52,7 @@
 - (void)setServerName:(NSString *)name;
 - (NSString *)serverName;
 - (MMWindowController *)windowController;
+- (NSDictionary *)vimState;
 - (void)cleanup;
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force;
 - (void)dropString:(NSString *)string;

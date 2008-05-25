@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.1.  Last change: 2008 May 19
+*gui_mac.txt*	For Vim version 7.1.  Last change: 2008 May 25
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -227,6 +227,7 @@ Here is a list of relevant dictionary entries:
 KEY				VALUE ~
 MMAtsuiRenderer			enable ATSUI renderer [bool]
 MMCellWidthMultiplier		width of a normal glyph in em units [float]
+MMDialogsTrackPwd		open/save dialogs track the Vim pwd [bool]
 MMLoginShellArgument		login shell parameter [string]
 MMLoginShellCommand		which shell to use to launch Vim [string]
 MMNoFontSubstitution		disable automatic font substitution [bool]

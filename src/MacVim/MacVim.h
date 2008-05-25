@@ -162,6 +162,7 @@ enum {
     LiveResizeMsgID,
     EnableAntialiasMsgID,
     DisableAntialiasMsgID,
+    SetVimStateMsgID,
 };
 
 
@@ -226,6 +227,7 @@ extern NSString *MMZoomBothKey;
 extern NSString *MMCurrentPreferencePaneKey;
 extern NSString *MMLoginShellCommandKey;
 extern NSString *MMLoginShellArgumentKey;
+extern NSString *MMDialogsTrackPwdKey;
 
 // Enum for MMUntitledWindowKey
 enum {
@@ -278,6 +280,14 @@ NSString *buildSearchTextCommand(NSString *searchText);
 
 @interface NSDocumentController (MMExtras)
 - (void)noteNewRecentFilePath:(NSString *)path;
+@end
+
+
+
+
+@interface NSDictionary (MMExtras)
++ (id)dictionaryWithData:(NSData *)data;
+- (NSData *)dictionaryAsData;
 @end
 
 
