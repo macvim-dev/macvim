@@ -41,6 +41,36 @@
     -->
     
     <item>
+      <title>Snapshot 28 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 28 released</h1>
+<p><em>The ":macmenukey" command is now deprecated.  Please update your .gvimrc
+file to use the ":macmenu" command instead (if you use ":macmenukey").</em></p>
+
+<p> Changes since snapshot 27:
+<ul>
+  <li> Added the ":macmenu" commmand (see ":h macmenu") and deprecated
+       ":macmenukey"</li>
+  <li> Cmd-w now works even when mappings to &lt;-\&gt; are present </li>
+  <li> Added "File.Save All" menu item (Cmd-Alt-s) </li>
+  <li> The Logitech Control Center no longer causes any problems </li>
+  <li> "Edit" menu items now work better with open and save dialogs </li>
+  <li> The 'backspace' option now includes "indent,eol,start" by default </li>
+  <li> Open and save dialogs track the present working directory </li>
+</ul>
+</p>
+      ]]></description>
+      <pubDate>Sun, 25 May 2008 19:40 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-28.tbz"
+        length="8124499"
+        sparkle:version="28"
+        sparkle:shortVersionString="7.1"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 27 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 27 released</h1>
