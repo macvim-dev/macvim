@@ -4,6 +4,35 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
+	<!--
+	  Both UTExportedTypeDeclarations (for Spotlight and QuickLook) and
+	  CFBundleDocumentTypes seem to be required, even though they contain
+	  more or less the same information:
+	  http://lists.apple.com/archives/Spotlight-dev/2007/Jul/msg00019.html
+	-->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+	  <dict>
+	    <key>UTTypeConformsTo</key>
+	    <array>
+	      <string>public.text</string>
+	      <string>public.plain-text</string>
+	    </array>
+	    <key>UTTypeDescription</key>
+	    <string>vim script file</string>
+	    <key>UTTypeIdentifier</key>
+	    <string>org.vim.vim</string>
+	    <key>UTTypeTagSpecification</key>
+	    <dict>
+	      <key>com.apple.ostype</key>
+	      <string>TEXT</string>
+	      <key>public.filename-extension</key>
+	      <array>
+		<string>vim</string>
+	      </array>
+	    </dict>
+	  </dict>
+	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
