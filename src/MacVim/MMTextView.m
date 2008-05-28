@@ -469,7 +469,11 @@ enum {
             ipRect.origin.y += ipRect.size.height - frac;
             ipRect.size.height = frac;
         } else if (MMInsertionPointVertical == insertionPointShape) {
+            BOOL rightLeft = [[[[self vimController] vimState]
+                    objectForKey:@"w_p_rl"] boolValue];
             int frac = ([ts cellSize].width* insertionPointFraction + 99)/100;
+            if (rightLeft)
+                ipRect.origin.x += ipRect.size.width - frac;
             ipRect.size.width = frac;
         }
 
