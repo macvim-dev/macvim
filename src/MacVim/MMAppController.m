@@ -194,20 +194,24 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     // The menu needs to be created and be added to a toplevel menu in
     // applicationWillFinishLaunching at the latest, otherwise it doesn't work.
 
-    recentFilesMenuItem = [[NSMenuItem alloc] initWithTitle:@"Open Recent"
-                                              action:nil keyEquivalent:@""];
+    recentFilesMenuItem = [[NSMenuItem alloc]
+        initWithTitle:NSLocalizedString(@"Open Recent", @"Open Recent menu")
+               action:nil keyEquivalent:@""];
 
-    NSMenu *recentFilesMenu = [[NSMenu alloc] initWithTitle:@"Open Recent"];
+    NSMenu *recentFilesMenu = [[NSMenu alloc]
+        initWithTitle:NSLocalizedString(@"Open Recent", @"Open Recent menu")];
     [recentFilesMenu performSelector:@selector(_setMenuName:)
                           withObject:@"NSRecentDocumentsMenu"];
 
-    [recentFilesMenu addItemWithTitle:@"Clear Menu"
+    [recentFilesMenu addItemWithTitle:NSLocalizedString(@"Clear Menu",
+                                                        @"Open Recent menu")
                                action:@selector(clearRecentDocuments:)
                         keyEquivalent:@""];
     [recentFilesMenuItem setSubmenu:recentFilesMenu];
     [recentFilesMenu release];  // the menu is retained by recentFilesMenuItem
     [recentFilesMenuItem setTag:-1];  // must not be 0
 
+    // TODO: this will not work in a localized MacVim
     [[[[NSApp mainMenu] itemWithTitle:@"File"] submenu] addItem:recentFilesMenuItem];
 
 #if MM_HANDLE_XCODE_MOD_EVENT
@@ -383,11 +387,16 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     if (modifiedBuffers) {
         NSAlert *alert = [[NSAlert alloc] init];
         [alert setAlertStyle:NSWarningAlertStyle];
-        [alert addButtonWithTitle:@"Quit"];
-        [alert addButtonWithTitle:@"Cancel"];
-        [alert setMessageText:@"Quit without saving?"];
-        [alert setInformativeText:@"There are modified buffers, "
-            "if you quit now all changes will be lost.  Quit anyway?"];
+        [alert addButtonWithTitle:NSLocalizedString(@"Quit",
+                @"Dialog button")];
+        [alert addButtonWithTitle:NSLocalizedString(@"Cancel",
+                @"Dialog button")];
+        [alert setMessageText:NSLocalizedString(@"Quit without saving?",
+                @"Quit dialog with changed buffers, title")];
+        [alert setInformativeText:NSLocalizedString(
+                @"There are modified buffers, "
+                "if you quit now all changes will be lost.  Quit anyway?",
+                @"Quit dialog with changed buffers, text")];
 
         if ([alert runModal] != NSAlertFirstButtonReturn)
             reply = NSTerminateCancel;
@@ -414,24 +423,35 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         if (numWindows > 1 || numTabs > 1) {
             NSAlert *alert = [[NSAlert alloc] init];
             [alert setAlertStyle:NSWarningAlertStyle];
-            [alert addButtonWithTitle:@"Quit"];
-            [alert addButtonWithTitle:@"Cancel"];
-            [alert setMessageText:@"Are you sure you want to quit MacVim?"];
+            [alert addButtonWithTitle:NSLocalizedString(@"Quit",
+                    @"Dialog button")];
+            [alert addButtonWithTitle:NSLocalizedString(@"Cancel",
+                    @"Dialog button")];
+            [alert setMessageText:NSLocalizedString(
+                    @"Are you sure you want to quit MacVim?",
+                    @"Quit dialog with no changed buffers, title")];
 
             NSString *info = nil;
             if (numWindows > 1) {
                 if (numTabs > numWindows)
-                    info = [NSString stringWithFormat:@"There are %d windows "
-                        "open in MacVim, with a total of %d tabs. Do you want "
-                        "to quit anyway?", numWindows, numTabs];
+                    info = [NSString stringWithFormat:NSLocalizedString(
+                            @"There are %d windows open in MacVim, with a "
+                            "total of %d tabs. Do you want to quit anyway?",
+                            @"Quit dialog with no changed buffers, text"),
+                         numWindows, numTabs];
                 else
-                    info = [NSString stringWithFormat:@"There are %d windows "
-                        "open in MacVim. Do you want to quit anyway?",
+                    info = [NSString stringWithFormat:NSLocalizedString(
+                            @"There are %d windows open in MacVim. "
+                            "Do you want to quit anyway?",
+                            @"Quit dialog with no changed buffers, text"),
                         numWindows];
 
             } else {
-                info = [NSString stringWithFormat:@"There are %d tabs open "
-                    "in MacVim. Do you want to quit anyway?", numTabs];
+                info = [NSString stringWithFormat:NSLocalizedString(
+                        @"There are %d tabs open in MacVim. "
+                        "Do you want to quit anyway?",
+                        @"Quit dialog with no changed buffers, text"), 
+                     numTabs];
             }
 
             [alert setInformativeText:info];
@@ -870,18 +890,23 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
     if (firstMissingFile) {
         NSAlert *alert = [[NSAlert alloc] init];
-        [alert addButtonWithTitle:@"OK"];
+        [alert addButtonWithTitle:NSLocalizedString(@"OK",
+                @"Dialog button")];
 
         NSString *text;
         if ([files count] >= count-1) {
-            [alert setMessageText:@"File not found"];
-            text = [NSString stringWithFormat:@"Could not open file with "
-                "name %@.", firstMissingFile];
+            [alert setMessageText:NSLocalizedString(@"File not found",
+                    @"File not found dialog, title")];
+            text = [NSString stringWithFormat:NSLocalizedString(
+                    @"Could not open file with name %@.",
+                    @"File not found dialog, text"), firstMissingFile];
         } else {
-            [alert setMessageText:@"Multiple files not found"];
-            text = [NSString stringWithFormat:@"Could not open file with "
-                "name %@, and %d other files.", firstMissingFile,
-                count-[files count]-1];
+            [alert setMessageText:NSLocalizedString(@"Multiple files not found",
+                    @"File not found dialog, title")];
+            text = [NSString stringWithFormat:NSLocalizedString(
+                    @"Could not open file with name %@, and %d other files.",
+                    @"File not found dialog, text"),
+                firstMissingFile, count-[files count]-1];
         }
 
         [alert setInformativeText:text];
@@ -1013,6 +1038,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         // TODO: This is a moronic test...should query the Vim process if there
         // are any open buffers or something like that instead.
         NSString *title = [[[vc windowController] window] title];
+
+        // TODO: this will not work in a localized MacVim
         if ([title hasPrefix:@"[No Name] - VIM"]) {
             //NSLog(@"found untitled window");
             return vc;
