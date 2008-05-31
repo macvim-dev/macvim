@@ -64,18 +64,21 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (NSMenuItem *)recurseMenuItemForTag:(int)tag rootMenu:(NSMenu *)root;
 - (NSMenuItem *)menuItemForTag:(int)tag;
 - (NSMenu *)menuForTag:(int)tag;
+- (NSMenu *)parentMenuForDescriptor:(NSArray *)desc;
 - (NSMenu *)topLevelMenuForTitle:(NSString *)title;
-- (void)addMenuWithTag:(int)tag parent:(int)parentTag title:(NSString *)title
-               atIndex:(int)idx;
-- (void)addMenuItemWithTag:(int)tag parent:(NSMenu *)parent
-                     title:(NSString *)title tip:(NSString *)tip
-             keyEquivalent:(int)key modifiers:(int)mask
-                    action:(NSString *)action isAlternate:(int)isAlt
-                   atIndex:(int)idx;
+- (void)addMenuWithDescriptor:(NSArray *)desc atIndex:(int)index;
+- (void)addMenuItemWithDescriptor:(NSArray *)desc
+                          atIndex:(int)index
+                              tip:(NSString *)tip
+                             icon:(NSString *)icon
+                    keyEquivalent:(NSString *)keyEquivalent
+                     modifierMask:(int)modifierMask
+                           action:(NSString *)action
+                      isAlternate:(BOOL)isAlternate;
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index;
-- (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
+- (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
-- (void)addToolbarItemWithTag:(int)tag label:(NSString *)label
+- (void)addToolbarItemWithLabel:(NSString *)label
                           tip:(NSString *)tip icon:(NSString *)icon
                       atIndex:(int)idx;
 - (void)connectionDidDie:(NSNotification *)notification;
@@ -656,6 +659,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 
         [string release];
     } else if (AddMenuMsgID == msgid) {
+#if 0
         NSString *title = nil;
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
@@ -688,7 +692,13 @@ static NSTimeInterval MMResendInterval = 0.5;
         }
 
         [title release];
+#else
+        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+        [self addMenuWithDescriptor:[attrs objectForKey:@"descriptor"]
+                atIndex:[[attrs objectForKey:@"index"] intValue]];
+#endif
     } else if (AddMenuItemMsgID == msgid) {
+#if 0
         NSString *title = nil, *tip = nil, *icon = nil, *action = nil;
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
@@ -740,7 +750,19 @@ static NSTimeInterval MMResendInterval = 0.5;
         [tip release];
         [icon release];
         [action release];
+#else
+        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+        [self addMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]
+                      atIndex:[[attrs objectForKey:@"index"] intValue]
+                          tip:[attrs objectForKey:@"tip"]
+                         icon:[attrs objectForKey:@"icon"]
+                keyEquivalent:[attrs objectForKey:@"keyEquivalent"]
+                 modifierMask:[[attrs objectForKey:@"modifierMask"] intValue]
+                       action:[attrs objectForKey:@"action"]
+                  isAlternate:[[attrs objectForKey:@"isAlternate"] boolValue]];
+#endif
     } else if (RemoveMenuItemMsgID == msgid) {
+#if 0
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
 
@@ -767,7 +789,9 @@ static NSTimeInterval MMResendInterval = 0.5;
 
         // Reset cached menu, just to be on the safe side.
         lastMenuSearched = nil;
+#endif
     } else if (EnableMenuItemMsgID == msgid) {
+#if 0
         const void *bytes = [data bytes];
         int tag = *((int*)bytes);  bytes += sizeof(int);
         int state = *((int*)bytes);  bytes += sizeof(int);
@@ -777,6 +801,7 @@ static NSTimeInterval MMResendInterval = 0.5;
             item = [self menuItemForTag:tag];
 
         [item setEnabled:state];
+#endif
     } else if (ShowToolbarMsgID == msgid) {
         const void *bytes = [data bytes];
         int enable = *((int*)bytes);  bytes += sizeof(int);
@@ -1052,6 +1077,36 @@ static NSTimeInterval MMResendInterval = 0.5;
     return [[self menuItemForTag:tag] submenu];
 }
 
+- (NSMenu *)parentMenuForDescriptor:(NSArray *)desc
+{
+    if (!(desc && [desc count] > 0)) return nil;
+
+    NSString *rootName = [desc objectAtIndex:0];
+    NSArray *rootItems = [rootName hasPrefix:@"PopUp"] ? popupMenuItems
+                                                       : mainMenuItems;
+
+    NSMenu *menu = nil;
+    int i, count = [rootItems count];
+    for (i = 0; i < count; ++i) {
+        NSMenuItem *item = [rootItems objectAtIndex:i];
+        if ([[item title] isEqual:rootName]) {
+            menu = [item submenu];
+            break;
+        }
+    }
+
+    if (!menu) return nil;
+
+    count = [desc count] - 1;
+    for (i = 1; i < count; ++i) {
+        NSMenuItem *item = [menu itemWithTitle:[desc objectAtIndex:i]];
+        menu = [item submenu];
+        if (!menu) return nil;
+    }
+
+    return menu;
+}
+
 - (NSMenu *)topLevelMenuForTitle:(NSString *)title
 {
     // Search only the top-level menus.
@@ -1073,9 +1128,9 @@ static NSTimeInterval MMResendInterval = 0.5;
     return nil;
 }
 
-- (void)addMenuWithTag:(int)tag parent:(int)parentTag title:(NSString *)title
-               atIndex:(int)idx
+- (void)addMenuWithDescriptor:(NSArray *)desc atIndex:(int)idx
 {
+#if 0
     NSMenu *parent = [self menuForTag:parentTag];
     NSMenuItem *item = [[NSMenuItem alloc] init];
     NSMenu *menu = [[NSMenu alloc] initWithTitle:title];
@@ -1105,14 +1160,73 @@ static NSTimeInterval MMResendInterval = 0.5;
 
     [item release];
     [menu release];
+#else
+    if (!(desc && [desc count] > 0)) return;
+
+    NSString *rootName = [desc objectAtIndex:0];
+    if ([rootName isEqual:@"ToolBar"]) {
+        // The toolbar only has one menu, we take this as a hint to create a
+        // toolbar, then we return.
+        if (!toolbar) {
+            // NOTE! Each toolbar must have a unique identifier, else each
+            // window will have the same toolbar.
+            NSString *ident = [NSString stringWithFormat:@"%d", (int)self];
+            toolbar = [[NSToolbar alloc] initWithIdentifier:ident];
+
+            [toolbar setShowsBaselineSeparator:NO];
+            [toolbar setDelegate:self];
+            [toolbar setDisplayMode:NSToolbarDisplayModeIconOnly];
+            [toolbar setSizeMode:NSToolbarSizeModeSmall];
+
+            [windowController setToolbar:toolbar];
+        }
+
+        return;
+    }
+
+    // This is either a main menu item or a popup menu item.
+    NSString *title = [desc lastObject];
+    NSMenuItem *item = [[NSMenuItem alloc] init];
+    NSMenu *menu = [[NSMenu alloc] initWithTitle:title];
+
+    [menu setAutoenablesItems:NO];
+    [item setTitle:title];
+    [item setSubmenu:menu];
+
+    NSMenu *parent = [self parentMenuForDescriptor:desc];
+    if (parent) {
+        if ([parent numberOfItems] <= idx) {
+            [parent addItem:item];
+        } else {
+            [parent insertItem:item atIndex:idx];
+        }
+    } else {
+        BOOL isPopup = [rootName hasPrefix:@"PopUp"];
+        NSMutableArray *items = isPopup ? popupMenuItems : mainMenuItems;
+        if ([items count] <= idx) {
+            [items addObject:item];
+        } else {
+            [items insertObject:item atIndex:idx];
+        }
+
+        shouldUpdateMainMenu = !isPopup;
+    }
+
+    [item release];
+    [menu release];
+#endif
 }
 
-- (void)addMenuItemWithTag:(int)tag parent:(NSMenu *)parent
-                     title:(NSString *)title tip:(NSString *)tip
-             keyEquivalent:(int)key modifiers:(int)mask
-                    action:(NSString *)action isAlternate:(int)isAlt
-                   atIndex:(int)idx
+- (void)addMenuItemWithDescriptor:(NSArray *)desc
+                          atIndex:(int)idx
+                              tip:(NSString *)tip
+                             icon:(NSString *)icon
+                    keyEquivalent:(NSString *)keyEquivalent
+                     modifierMask:(int)modifierMask
+                           action:(NSString *)action
+                      isAlternate:(BOOL)isAlternate
 {
+#if 0
     if (parent) {
         NSMenuItem *item = nil;
         if (!title || ([title hasPrefix:@"-"] && [title hasSuffix:@"-"])) {
@@ -1160,6 +1274,66 @@ static NSTimeInterval MMResendInterval = 0.5;
     } else {
         NSLog(@"WARNING: Menu item '%@' (tag=%d) has no parent.", title, tag);
     }
+#else
+    if (!(desc && [desc count] > 1)) return;
+
+    NSString *title = [desc lastObject];
+    NSString *rootName = [desc objectAtIndex:0];
+
+    if ([rootName isEqual:@"ToolBar"]) {
+        if (toolbar)
+            [self addToolbarItemWithLabel:title tip:tip icon:icon atIndex:idx];
+        return;
+    }
+
+    NSMenu *parent = [self parentMenuForDescriptor:desc];
+    if (!parent) {
+        NSLog(@"WARNING: Menu item '%@' has no parent",
+                [desc componentsJoinedByString:@"->"]);
+        return;
+    }
+
+    NSMenuItem *item = nil;
+    if (!title || ([title hasPrefix:@"-"] && [title hasSuffix:@"-"])) {
+        item = [NSMenuItem separatorItem];
+    } else {
+        item = [[[NSMenuItem alloc] init] autorelease];
+        [item setTitle:title];
+
+        if ([action isEqualToString:@"recentFilesDummy:"]) {
+            // Remove the recent files menu item from its current menu
+            // and put it in the current file menu.  See -[MMAppController
+            // applicationWillFinishLaunching for more information.
+            //[[recentFilesMenuItem menu] removeItem:recentFilesMenuItem];
+            //item = recentFilesMenuItem;
+            recentFilesDummy = [item retain];
+        } else {
+            // TODO: Check that 'action' is a valid action (nothing will
+            // happen if it isn't, but it would be nice with a warning).
+            if ([action length] > 0)
+                [item setAction:NSSelectorFromString(action)];
+            else
+                [item setAction:@selector(vimMenuItemAction:)];
+            if ([tip length] > 0) [item setToolTip:tip];
+            if ([keyEquivalent length] > 0) {
+                [item setKeyEquivalent:keyEquivalent];
+                [item setKeyEquivalentModifierMask:modifierMask];
+            }
+            [item setAlternate:isAlternate];
+        }
+    }
+
+    // NOTE!  The tag is used to idenfity which menu items were
+    // added by Vim (tag != 0) and which were added by the AppKit
+    // (tag == 0).
+    [item setTag:-1];
+
+    if ([parent numberOfItems] <= idx) {
+        [parent addItem:item];
+    } else {
+        [parent insertItem:item atIndex:idx];
+    }
+#endif
 }
 
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index
@@ -1179,7 +1353,7 @@ static NSTimeInterval MMResendInterval = 0.5;
     return nil;
 }
 
-- (void)addToolbarItemToDictionaryWithTag:(int)tag label:(NSString *)title
+- (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon
 {
     // If the item corresponds to a separator then do nothing, since it is
@@ -1190,7 +1364,7 @@ static NSTimeInterval MMResendInterval = 0.5;
         return;
 
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:title];
-    [item setTag:tag];
+    [item setTag:-1];
     [item setLabel:title];
     [item setToolTip:tip];
     [item setAction:@selector(vimMenuItemAction:)];
@@ -1213,7 +1387,7 @@ static NSTimeInterval MMResendInterval = 0.5;
     [item release];
 }
 
-- (void)addToolbarItemWithTag:(int)tag label:(NSString *)label tip:(NSString
+- (void)addToolbarItemWithLabel:(NSString *)label tip:(NSString
                    *)tip icon:(NSString *)icon atIndex:(int)idx
 {
     if (!toolbar) return;
@@ -1234,8 +1408,7 @@ static NSTimeInterval MMResendInterval = 0.5;
         }
     }
 
-    [self addToolbarItemToDictionaryWithTag:tag label:label toolTip:tip
-                                       icon:icon];
+    [self addToolbarItemToDictionaryWithLabel:label toolTip:tip icon:icon];
 
     int maxIdx = [[toolbar items] count];
     if (maxIdx < idx) idx = maxIdx;

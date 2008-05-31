@@ -32,6 +32,15 @@ static float MMMaxFontSize = 100.0f;
 
 
 static NSFont *gui_macvim_font_with_name(char_u *name);
+static int specialKeyToNSKey(int key);
+static int vimModMaskToEventModifierFlags(int mods);
+
+NSArray *descriptor_for_menu(vimmenu_T *menu);
+vimmenu_T *menu_for_descriptor(NSArray *desc);
+
+@interface NSString (VimStrings)
++ (id)stringWithVimString:(char_u *)s;
+@end
 
 
 
@@ -606,6 +615,46 @@ clip_mch_set_selection(VimClipboard *cbd)
 // -- Menu ------------------------------------------------------------------
 
 
+    NSArray *
+descriptor_for_menu(vimmenu_T *menu)
+{
+    if (!menu) return nil;
+
+    NSMutableArray *desc = [NSMutableArray array];
+    while (menu) {
+        NSString *name = [NSString stringWithVimString:menu->dname];
+        [desc insertObject:name atIndex:0];
+        menu = menu->parent;
+    }
+
+    return desc;
+}
+
+    vimmenu_T *
+menu_for_descriptor(NSArray *desc)
+{
+    if (!(desc && [desc count] > 0)) return NULL;
+
+    vimmenu_T *menu = root_menu;
+    int i, count = [desc count];
+
+    for (i = 0; i < count; ++i) {
+        NSString *component = [desc objectAtIndex:i];
+        while (menu) {
+            NSString *name = [NSString stringWithVimString:menu->dname];
+            if ([component isEqual:name]) {
+                if (i+1 == count)
+                    return menu;    // Matched all components, so return menu
+                menu = menu->children;
+                break;
+            }
+            menu = menu->next;
+        }
+    }
+
+    return NULL;
+}
+
 /*
  * Add a sub menu to the menu bar.
  */
@@ -628,9 +677,12 @@ gui_mch_add_menu(vimmenu_T *menu, int idx)
     dname = CONVERT_TO_UTF8(dname);
 #endif
 
-    [[MMBackend sharedInstance]
-            addMenuWithTag:(int)menu parent:parent name:(char*)dname
-                   atIndex:idx];
+    NSArray *desc = descriptor_for_menu(menu);
+    [[MMBackend sharedInstance] queueMessage:AddMenuMsgID properties:
+        [NSDictionary dictionaryWithObjectsAndKeys:
+            desc, @"descriptor",
+            [NSNumber numberWithInt:idx], @"index",
+            nil]];
 
 #ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(dname);
@@ -649,40 +701,24 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     char_u *icon = menu->iconfile ? menu->iconfile :
                  menu->iconidx >= 0 ? menu->dname :
                  NULL;
-    //char *name = menu_is_separator(menu->name) ? NULL : (char*)menu->dname;
-    char_u *name = menu->dname;
     char_u *tip = menu->strings[MENU_INDEX_TIP]
             ? menu->strings[MENU_INDEX_TIP] : menu->actext;
-    char_u *map_str = menu->strings[MENU_INDEX_NORMAL];
-    char_u *mac_action = menu->mac_action;
+    NSArray *desc = descriptor_for_menu(menu);
+    NSString *keyEquivalent = [NSString stringWithFormat:@"%C",
+             specialKeyToNSKey(menu->mac_key)];
+    int modifierMask = vimModMaskToEventModifierFlags(menu->mac_mods);
 
-#ifdef FEAT_MBYTE
-    icon = CONVERT_TO_UTF8(icon);
-    name = CONVERT_TO_UTF8(name);
-    tip = CONVERT_TO_UTF8(tip);
-    map_str = CONVERT_TO_UTF8(map_str);
-    mac_action = CONVERT_TO_UTF8(mac_action);
-#endif
-
-    [[MMBackend sharedInstance]
-            addMenuItemWithTag:(int)menu
-                        parent:(int)menu->parent
-                          name:(char*)name
-                           tip:(char*)tip
-                          icon:(char*)icon
-                 keyEquivalent:menu->mac_key
-                     modifiers:menu->mac_mods
-                        action:(char*)mac_action
-                   isAlternate:menu->mac_alternate
-                       atIndex:idx];
-
-#ifdef FEAT_MBYTE
-    CONVERT_TO_UTF8_FREE(icon);
-    CONVERT_TO_UTF8_FREE(name);
-    CONVERT_TO_UTF8_FREE(tip);
-    CONVERT_TO_UTF8_FREE(map_str);
-    CONVERT_TO_UTF8_FREE(mac_action);
-#endif
+    [[MMBackend sharedInstance] queueMessage:AddMenuItemMsgID properties:
+        [NSDictionary dictionaryWithObjectsAndKeys:
+            desc, @"descriptor",
+            [NSNumber numberWithInt:idx], @"index",
+            [NSString stringWithVimString:tip], @"tip",
+            [NSString stringWithVimString:icon], @"icon",
+            keyEquivalent, @"keyEquivalent",
+            [NSNumber numberWithInt:modifierMask], @"modifierMask",
+            [NSString stringWithVimString:menu->mac_action], @"action",
+            [NSNumber numberWithBool:menu->mac_alternate], @"isAlternate",
+            nil]];
 }
 
 
@@ -692,7 +728,9 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     void
 gui_mch_destroy_menu(vimmenu_T *menu)
 {
-    [[MMBackend sharedInstance] removeMenuItemWithTag:(int)menu];
+    NSArray *desc = descriptor_for_menu(menu);
+    [[MMBackend sharedInstance] queueMessage:RemoveMenuItemMsgID properties:
+        [NSDictionary dictionaryWithObject:desc forKey:@"descriptor"]];
 }
 
 
@@ -705,12 +743,12 @@ gui_mch_menu_grey(vimmenu_T *menu, int grey)
     /* Only update menu if the 'grey' state has changed to avoid having to pass
      * lots of unnecessary data to MacVim.  (Skipping this test makes MacVim
      * pause noticably on mode changes. */
-    if (menu->was_grey != grey)
-    {
-        menu->was_grey = grey;
-        [[MMBackend sharedInstance]
-                enableMenuItemWithTag:(int)menu state:!grey];
-    }
+    if (menu->was_grey != grey) return;
+
+    menu->was_grey = grey;
+    [[MMBackend sharedInstance] queueMessage:EnableMenuItemMsgID properties:
+        [NSDictionary dictionaryWithObject:[NSNumber numberWithInt:!grey]
+                                    forKey:@"enable"]];
 }
 
 
@@ -732,6 +770,7 @@ gui_mch_menu_hidden(vimmenu_T *menu, int hidden)
     void
 gui_mch_show_popupmenu(vimmenu_T *menu)
 {
+#if 0
     char_u *name = menu->name;
 #ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
@@ -743,7 +782,7 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
 #ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(name);
 #endif
-
+#endif
 }
 
 
@@ -753,6 +792,7 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
     void
 gui_make_popup(char_u *path_name, int mouse_pos)
 {
+#if 0
 #ifdef FEAT_MBYTE
     path_name = CONVERT_TO_UTF8(path_name);
 #endif
@@ -762,6 +802,7 @@ gui_make_popup(char_u *path_name, int mouse_pos)
 
 #ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(path_name);
+#endif
 #endif
 }
 
@@ -1886,3 +1927,105 @@ is_valid_macaction(char_u *action)
 
     return isValid;
 }
+
+static int specialKeyToNSKey(int key)
+{
+    if (!IS_SPECIAL(key))
+        return key;
+
+    static struct {
+        int special;
+        int nskey;
+    } sp2ns[] = {
+        { K_UP, NSUpArrowFunctionKey },
+        { K_DOWN, NSDownArrowFunctionKey },
+        { K_LEFT, NSLeftArrowFunctionKey },
+        { K_RIGHT, NSRightArrowFunctionKey },
+        { K_F1, NSF1FunctionKey },
+        { K_F2, NSF2FunctionKey },
+        { K_F3, NSF3FunctionKey },
+        { K_F4, NSF4FunctionKey },
+        { K_F5, NSF5FunctionKey },
+        { K_F6, NSF6FunctionKey },
+        { K_F7, NSF7FunctionKey },
+        { K_F8, NSF8FunctionKey },
+        { K_F9, NSF9FunctionKey },
+        { K_F10, NSF10FunctionKey },
+        { K_F11, NSF11FunctionKey },
+        { K_F12, NSF12FunctionKey },
+        { K_F13, NSF13FunctionKey },
+        { K_F14, NSF14FunctionKey },
+        { K_F15, NSF15FunctionKey },
+        { K_F16, NSF16FunctionKey },
+        { K_F17, NSF17FunctionKey },
+        { K_F18, NSF18FunctionKey },
+        { K_F19, NSF19FunctionKey },
+        { K_F20, NSF20FunctionKey },
+        { K_F21, NSF21FunctionKey },
+        { K_F22, NSF22FunctionKey },
+        { K_F23, NSF23FunctionKey },
+        { K_F24, NSF24FunctionKey },
+        { K_F25, NSF25FunctionKey },
+        { K_F26, NSF26FunctionKey },
+        { K_F27, NSF27FunctionKey },
+        { K_F28, NSF28FunctionKey },
+        { K_F29, NSF29FunctionKey },
+        { K_F30, NSF30FunctionKey },
+        { K_F31, NSF31FunctionKey },
+        { K_F32, NSF32FunctionKey },
+        { K_F33, NSF33FunctionKey },
+        { K_F34, NSF34FunctionKey },
+        { K_F35, NSF35FunctionKey },
+        { K_DEL, NSBackspaceCharacter },
+        { K_BS, NSDeleteCharacter },
+        { K_HOME, NSHomeFunctionKey },
+        { K_END, NSEndFunctionKey },
+        { K_PAGEUP, NSPageUpFunctionKey },
+        { K_PAGEDOWN, NSPageDownFunctionKey }
+    };
+
+    int i;
+    for (i = 0; i < sizeof(sp2ns)/sizeof(sp2ns[0]); ++i) {
+        if (sp2ns[i].special == key)
+            return sp2ns[i].nskey;
+    }
+
+    return 0;
+}
+
+static int vimModMaskToEventModifierFlags(int mods)
+{
+    int flags = 0;
+
+    if (mods & MOD_MASK_SHIFT)
+        flags |= NSShiftKeyMask;
+    if (mods & MOD_MASK_CTRL)
+        flags |= NSControlKeyMask;
+    if (mods & MOD_MASK_ALT)
+        flags |= NSAlternateKeyMask;
+    if (mods & MOD_MASK_CMD)
+        flags |= NSCommandKeyMask;
+
+    return flags;
+}
+
+
+
+
+@implementation NSString (VimStrings)
++ (id)stringWithVimString:(char_u *)s
+{
+    if (s) {
+#ifdef FEAT_MBYTE
+        s = CONVERT_TO_UTF8(s);
+#endif
+        NSString *string = [NSString stringWithUTF8String:(char*)s];
+#ifdef FEAT_MBYTE
+        CONVERT_TO_UTF8_FREE(s);
+#endif
+        return string;
+    }
+
+    return [NSString string];
+}
+@end

@@ -51,10 +51,12 @@ static unsigned MMServerMax = 1000;
 
 // TODO: Move to separate file.
 static int eventModifierFlagsToVimModMask(int modifierFlags);
-static int vimModMaskToEventModifierFlags(int mods);
 static int eventModifierFlagsToVimMouseModMask(int modifierFlags);
 static int eventButtonNumberToVimMouseButton(int buttonNumber);
-static int specialKeyToNSKey(int key);
+
+// In gui_macvim.m
+vimmenu_T *menu_for_descriptor(NSArray *desc);
+
 
 enum {
     MMBlinkStateNone = 0,
@@ -73,6 +75,7 @@ static NSString *MMSymlinkWarningString =
 @interface NSString (MMServerNameCompare)
 - (NSComparisonResult)serverNameCompare:(NSString *)string;
 @end
+
 
 
 
@@ -224,6 +227,11 @@ static NSString *MMSymlinkWarningString =
 - (NSDictionary *)actionDict
 {
     return actionDict;
+}
+
+- (void)queueMessage:(int)msgid properties:(NSDictionary *)props
+{
+    [self queueMessage:msgid data:[props dictionaryAsData]];
 }
 
 - (BOOL)checkin
@@ -738,78 +746,6 @@ static NSString *MMSymlinkWarningString =
     }
 
     return retval;
-}
-
-- (void)addMenuWithTag:(int)tag parent:(int)parentTag name:(char *)name
-               atIndex:(int)index
-{
-    //NSLog(@"addMenuWithTag:%d parent:%d name:%s atIndex:%d", tag, parentTag,
-    //        name, index);
-
-    int namelen = name ? strlen(name) : 0;
-    NSMutableData *data = [NSMutableData data];
-
-    [data appendBytes:&tag length:sizeof(int)];
-    [data appendBytes:&parentTag length:sizeof(int)];
-    [data appendBytes:&namelen length:sizeof(int)];
-    if (namelen > 0) [data appendBytes:name length:namelen];
-    [data appendBytes:&index length:sizeof(int)];
-
-    [self queueMessage:AddMenuMsgID data:data];
-}
-
-- (void)addMenuItemWithTag:(int)tag parent:(int)parentTag name:(char *)name
-                       tip:(char *)tip icon:(char *)icon
-             keyEquivalent:(int)key modifiers:(int)mods
-                    action:(char *)action isAlternate:(int)isAlt
-                   atIndex:(int)index
-{
-    //NSLog(@"addMenuItemWithTag:%d parent:%d name:%s tip:%s atIndex:%d", tag,
-    //        parentTag, name, tip, index);
-
-    int namelen = name ? strlen(name) : 0;
-    int tiplen = tip ? strlen(tip) : 0;
-    int iconlen = icon ? strlen(icon) : 0;
-    int eventFlags = vimModMaskToEventModifierFlags(mods);
-    int actionlen = action ? strlen(action) : 0;
-    NSMutableData *data = [NSMutableData data];
-
-    key = specialKeyToNSKey(key);
-
-    [data appendBytes:&tag length:sizeof(int)];
-    [data appendBytes:&parentTag length:sizeof(int)];
-    [data appendBytes:&namelen length:sizeof(int)];
-    if (namelen > 0) [data appendBytes:name length:namelen];
-    [data appendBytes:&tiplen length:sizeof(int)];
-    if (tiplen > 0) [data appendBytes:tip length:tiplen];
-    [data appendBytes:&iconlen length:sizeof(int)];
-    if (iconlen > 0) [data appendBytes:icon length:iconlen];
-    [data appendBytes:&actionlen length:sizeof(int)];
-    if (actionlen > 0) [data appendBytes:action length:actionlen];
-    [data appendBytes:&index length:sizeof(int)];
-    [data appendBytes:&key length:sizeof(int)];
-    [data appendBytes:&eventFlags length:sizeof(int)];
-    [data appendBytes:&isAlt length:sizeof(int)];
-
-    [self queueMessage:AddMenuItemMsgID data:data];
-}
-
-- (void)removeMenuItemWithTag:(int)tag
-{
-    NSMutableData *data = [NSMutableData data];
-    [data appendBytes:&tag length:sizeof(int)];
-
-    [self queueMessage:RemoveMenuItemMsgID data:data];
-}
-
-- (void)enableMenuItemWithTag:(int)tag state:(int)enabled
-{
-    NSMutableData *data = [NSMutableData data];
-
-    [data appendBytes:&tag length:sizeof(int)];
-    [data appendBytes:&enabled length:sizeof(int)];
-
-    [self queueMessage:EnableMenuItemMsgID data:data];
 }
 
 - (void)showPopupMenuWithName:(char *)name atMouseLocation:(BOOL)mouse
@@ -1659,14 +1595,12 @@ static NSString *MMSymlinkWarningString =
         //NSLog(@"[VimTask] Resizing shell to %dx%d.", cols, rows);
         gui_resize_shell(cols, rows);
     } else if (ExecuteMenuMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-        int tag = *((int*)bytes);  bytes += sizeof(int);
-
-        vimmenu_T *menu = (vimmenu_T*)tag;
-        // TODO!  Make sure 'menu' is a valid menu pointer!
-        if (menu) {
-            gui_menu_cb(menu);
+        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+        if (attrs) {
+            NSArray *desc = [attrs objectForKey:@"descriptor"];
+            vimmenu_T *menu = menu_for_descriptor(desc);
+            if (menu)
+                gui_menu_cb(menu);
         }
     } else if (ToggleToolbarMsgID == msgid) {
         [self handleToggleToolbar];
@@ -2475,22 +2409,6 @@ static int eventModifierFlagsToVimModMask(int modifierFlags)
     return modMask;
 }
 
-static int vimModMaskToEventModifierFlags(int mods)
-{
-    int flags = 0;
-
-    if (mods & MOD_MASK_SHIFT)
-        flags |= NSShiftKeyMask;
-    if (mods & MOD_MASK_CTRL)
-        flags |= NSControlKeyMask;
-    if (mods & MOD_MASK_ALT)
-        flags |= NSAlternateKeyMask;
-    if (mods & MOD_MASK_CMD)
-        flags |= NSCommandKeyMask;
-
-    return flags;
-}
-
 static int eventModifierFlagsToVimMouseModMask(int modifierFlags)
 {
     int modMask = 0;
@@ -2511,69 +2429,4 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber)
 
     return (buttonNumber >= 0 && buttonNumber < 3)
             ? mouseButton[buttonNumber] : -1;
-}
-
-static int specialKeyToNSKey(int key)
-{
-    if (!IS_SPECIAL(key))
-        return key;
-
-    static struct {
-        int special;
-        int nskey;
-    } sp2ns[] = {
-        { K_UP, NSUpArrowFunctionKey },
-        { K_DOWN, NSDownArrowFunctionKey },
-        { K_LEFT, NSLeftArrowFunctionKey },
-        { K_RIGHT, NSRightArrowFunctionKey },
-        { K_F1, NSF1FunctionKey },
-        { K_F2, NSF2FunctionKey },
-        { K_F3, NSF3FunctionKey },
-        { K_F4, NSF4FunctionKey },
-        { K_F5, NSF5FunctionKey },
-        { K_F6, NSF6FunctionKey },
-        { K_F7, NSF7FunctionKey },
-        { K_F8, NSF8FunctionKey },
-        { K_F9, NSF9FunctionKey },
-        { K_F10, NSF10FunctionKey },
-        { K_F11, NSF11FunctionKey },
-        { K_F12, NSF12FunctionKey },
-        { K_F13, NSF13FunctionKey },
-        { K_F14, NSF14FunctionKey },
-        { K_F15, NSF15FunctionKey },
-        { K_F16, NSF16FunctionKey },
-        { K_F17, NSF17FunctionKey },
-        { K_F18, NSF18FunctionKey },
-        { K_F19, NSF19FunctionKey },
-        { K_F20, NSF20FunctionKey },
-        { K_F21, NSF21FunctionKey },
-        { K_F22, NSF22FunctionKey },
-        { K_F23, NSF23FunctionKey },
-        { K_F24, NSF24FunctionKey },
-        { K_F25, NSF25FunctionKey },
-        { K_F26, NSF26FunctionKey },
-        { K_F27, NSF27FunctionKey },
-        { K_F28, NSF28FunctionKey },
-        { K_F29, NSF29FunctionKey },
-        { K_F30, NSF30FunctionKey },
-        { K_F31, NSF31FunctionKey },
-        { K_F32, NSF32FunctionKey },
-        { K_F33, NSF33FunctionKey },
-        { K_F34, NSF34FunctionKey },
-        { K_F35, NSF35FunctionKey },
-        { K_DEL, NSBackspaceCharacter },
-        { K_BS, NSDeleteCharacter },
-        { K_HOME, NSHomeFunctionKey },
-        { K_END, NSEndFunctionKey },
-        { K_PAGEUP, NSPageUpFunctionKey },
-        { K_PAGEDOWN, NSPageDownFunctionKey }
-    };
-
-    int i;
-    for (i = 0; i < sizeof(sp2ns)/sizeof(sp2ns[0]); ++i) {
-        if (sp2ns[i].special == key)
-            return sp2ns[i].nskey;
-    }
-
-    return 0;
 }

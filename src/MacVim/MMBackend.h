@@ -57,6 +57,7 @@
 - (NSConnection *)connection;
 - (NSDictionary *)actionDict;
 
+- (void)queueMessage:(int)msgid properties:(NSDictionary *)props;
 - (BOOL)checkin;
 - (BOOL)openVimWindow;
 - (void)clearAll;
@@ -84,15 +85,6 @@
                             saving:(int)saving;
 - (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
                      buttons:(char *)btns textField:(char *)txtfield;
-- (void)addMenuWithTag:(int)tag parent:(int)parentTag name:(char *)name
-               atIndex:(int)index;
-- (void)addMenuItemWithTag:(int)tag parent:(int)parentTag name:(char *)name
-                       tip:(char *)tip icon:(char *)icon
-             keyEquivalent:(int)key modifiers:(int)mods
-                    action:(char *)action isAlternate:(int)isAlt
-                   atIndex:(int)index;
-- (void)removeMenuItemWithTag:(int)tag;
-- (void)enableMenuItemWithTag:(int)tag state:(int)enabled;
 - (void)showPopupMenuWithName:(char *)name atMouseLocation:(BOOL)mouse;
 - (void)showToolbar:(int)enable flags:(int)flags;
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
