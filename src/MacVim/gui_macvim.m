@@ -743,12 +743,17 @@ gui_mch_menu_grey(vimmenu_T *menu, int grey)
     /* Only update menu if the 'grey' state has changed to avoid having to pass
      * lots of unnecessary data to MacVim.  (Skipping this test makes MacVim
      * pause noticably on mode changes. */
-    if (menu->was_grey != grey) return;
+    NSArray *desc = descriptor_for_menu(menu);
+    if (menu->was_grey == grey)
+        return;
 
     menu->was_grey = grey;
+
     [[MMBackend sharedInstance] queueMessage:EnableMenuItemMsgID properties:
-        [NSDictionary dictionaryWithObject:[NSNumber numberWithInt:!grey]
-                                    forKey:@"enable"]];
+        [NSDictionary dictionaryWithObjectsAndKeys:
+            desc, @"descriptor",
+            [NSNumber numberWithInt:!grey], @"enable",
+            nil]];
 }
 
 

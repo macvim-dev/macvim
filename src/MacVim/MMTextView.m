@@ -1160,6 +1160,18 @@ enum {
     [[self windowController] vimMenuItemAction:sender];
 }
 
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    if ([item action] == @selector(cut:)
+            || [item action] == @selector(copy:)
+            || [item action] == @selector(paste:)
+            || [item action] == @selector(undo:)
+            || [item action] == @selector(redo:)
+            || [item action] == @selector(selectAll:))
+        return [item tag];
+
+    return YES;
+}
 @end // MMTextView
 
 

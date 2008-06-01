@@ -86,9 +86,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (void)passArguments:(NSDictionary *)args toVimController:(MMVimController*)vc;
 @end
 
-@interface NSMenu (MMExtras)
-- (void)recurseSetAutoenablesItems:(BOOL)on;
-@end
 
 @interface NSNumber (MMExtras)
 - (int)tag;
@@ -516,16 +513,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     [vimControllers removeObject:controller];
 
     if (![vimControllers count]) {
-        // Turn on autoenabling of menus (because no Vim is open to handle it),
-        // but do not touch the MacVim menu.  Note that the menus must be
-        // enabled first otherwise autoenabling does not work.
-        NSMenu *mainMenu = [NSApp mainMenu];
-        int i, count = [mainMenu numberOfItems];
-        for (i = 1; i < count; ++i) {
-            NSMenuItem *item = [mainMenu itemAtIndex:i];
-            [item setEnabled:YES];
-            [[item submenu] recurseSetAutoenablesItems:YES];
-        }
+        // TODO: change menu to default state
     }
 }
 
@@ -1142,28 +1130,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 }
 
 @end // MMAppController (Private)
-
-
-
-
-@implementation NSMenu (MMExtras)
-
-- (void)recurseSetAutoenablesItems:(BOOL)on
-{
-    [self setAutoenablesItems:on];
-
-    int i, count = [self numberOfItems];
-    for (i = 0; i < count; ++i) {
-        NSMenuItem *item = [self itemAtIndex:i];
-        [item setEnabled:YES];
-        NSMenu *submenu = [item submenu];
-        if (submenu) {
-            [submenu recurseSetAutoenablesItems:on];
-        }
-    }
-}
-
-@end  // NSMenu (MMExtras)
 
 
 

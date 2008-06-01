@@ -39,7 +39,6 @@
     int                 resendMsgid;
     NSData              *resendData;
 #endif
-    NSMenu              *lastMenuSearched;
     NSMenuItem          *recentFilesMenuItem;
     NSMenuItem          *recentFilesDummy;
     NSDictionary        *vimState;

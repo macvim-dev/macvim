@@ -61,9 +61,6 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
                 context:(void *)context;
 - (void)alertDidEnd:(MMAlert *)alert code:(int)code context:(void *)context;
-- (NSMenuItem *)recurseMenuItemForTag:(int)tag rootMenu:(NSMenu *)root;
-- (NSMenuItem *)menuItemForTag:(int)tag;
-- (NSMenu *)menuForTag:(int)tag;
 - (NSMenuItem *)menuItemForDescriptor:(NSArray *)desc;
 - (NSMenu *)parentMenuForDescriptor:(NSArray *)desc;
 - (NSMenu *)topLevelMenuForTitle:(NSString *)title;
@@ -77,7 +74,7 @@ static NSTimeInterval MMResendInterval = 0.5;
                            action:(NSString *)action
                       isAlternate:(BOOL)isAlternate;
 - (void)removeMenuItemWithDescriptor:(NSArray *)desc;
-- (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index;
+- (void)enableMenuItemWithDescriptor:(NSArray *)desc state:(BOOL)on;
 - (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
 - (void)addToolbarItemWithLabel:(NSString *)label
@@ -92,7 +89,9 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 
 @interface NSToolbar (MMExtras)
-- (void)removeItemWithItemIdentifier:(NSString *)identifier;
+- (int)indexOfItemWithItemIdentifier:(NSString *)identifier;
+- (NSToolbarItem *)itemAtIndex:(int)idx;
+- (NSToolbarItem *)itemWithItemIdentifier:(NSString *)identifier;
 @end
 
 
@@ -596,12 +595,11 @@ static NSTimeInterval MMResendInterval = 0.5;
     // TODO!  Need to look for 'Window' in all localized languages.
     NSMenu *windowMenu = [[mainMenu itemWithTitle:@"Window"] submenu];
     if (windowMenu) {
-        // Remove all AppKit owned menu items (tag == 0); they will be added
-        // again when setWindowsMenu: is called.
+        // Remove all items that are added when setWindowsMenu: is called.
         count = [windowMenu numberOfItems];
         for (i = count-1; i >= 0; --i) {
             NSMenuItem *item = [windowMenu itemAtIndex:i];
-            if (![item tag]) {
+            if ([item action] == @selector(makeKeyAndOrderFront:)) {
                 [windowMenu removeItem:item];
             }
         }
@@ -680,49 +678,12 @@ static NSTimeInterval MMResendInterval = 0.5;
                        action:[attrs objectForKey:@"action"]
                   isAlternate:[[attrs objectForKey:@"isAlternate"] boolValue]];
     } else if (RemoveMenuItemMsgID == msgid) {
-#if 0
-        const void *bytes = [data bytes];
-        int tag = *((int*)bytes);  bytes += sizeof(int);
-
-        id item;
-        int idx;
-        if ((item = [self toolbarItemForTag:tag index:&idx])) {
-            [toolbar removeItemAtIndex:idx];
-        } else if ((item = [self menuItemForTag:tag])) {
-            [item retain];
-
-            if ([item menu] == [NSApp mainMenu] || ![item menu]) {
-                // NOTE: To be on the safe side we try to remove the item from
-                // both arrays (it is ok to call removeObject: even if an array
-                // does not contain the object to remove).
-                [mainMenuItems removeObject:item];
-                [popupMenuItems removeObject:item];
-            }
-
-            if ([item menu])
-                [[item menu] removeItem:item];
-
-            [item release];
-        }
-
-        // Reset cached menu, just to be on the safe side.
-        lastMenuSearched = nil;
-#else
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
         [self removeMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]];
-#endif
     } else if (EnableMenuItemMsgID == msgid) {
-#if 0
-        const void *bytes = [data bytes];
-        int tag = *((int*)bytes);  bytes += sizeof(int);
-        int state = *((int*)bytes);  bytes += sizeof(int);
-
-        id item = [self toolbarItemForTag:tag index:NULL];
-        if (!item)
-            item = [self menuItemForTag:tag];
-
-        [item setEnabled:state];
-#endif
+        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+        [self enableMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]
+                state:[[attrs objectForKey:@"enable"] boolValue]];
     } else if (ShowToolbarMsgID == msgid) {
         const void *bytes = [data bytes];
         int enable = *((int*)bytes);  bytes += sizeof(int);
@@ -928,76 +889,6 @@ static NSTimeInterval MMResendInterval = 0.5;
     }
 }
 
-- (NSMenuItem *)recurseMenuItemForTag:(int)tag rootMenu:(NSMenu *)root
-{
-    if (root) {
-        NSMenuItem *item = [root itemWithTag:tag];
-        if (item) {
-            lastMenuSearched = root;
-            return item;
-        }
-
-        NSArray *items = [root itemArray];
-        unsigned i, count = [items count];
-        for (i = 0; i < count; ++i) {
-            item = [items objectAtIndex:i];
-            if ([item hasSubmenu]) {
-                item = [self recurseMenuItemForTag:tag
-                                          rootMenu:[item submenu]];
-                if (item) {
-                    lastMenuSearched = [item submenu];
-                    return item;
-                }
-            }
-        }
-    }
-
-    return nil;
-}
-
-- (NSMenuItem *)menuItemForTag:(int)tag
-{
-    // First search the same menu that was search last time this method was
-    // called.  Since this method is often called for each menu item in a
-    // menu this can significantly improve search times.
-    if (lastMenuSearched) {
-        NSMenuItem *item = [self recurseMenuItemForTag:tag
-                                              rootMenu:lastMenuSearched];
-        if (item) return item;
-    }
-
-    // Search the main menu.
-    int i, count = [mainMenuItems count];
-    for (i = 0; i < count; ++i) {
-        NSMenuItem *item = [mainMenuItems objectAtIndex:i];
-        if ([item tag] == tag) return item;
-        item = [self recurseMenuItemForTag:tag rootMenu:[item submenu]];
-        if (item) {
-            lastMenuSearched = [item submenu];
-            return item;
-        }
-    }
-
-    // Search the popup menus.
-    count = [popupMenuItems count];
-    for (i = 0; i < count; ++i) {
-        NSMenuItem *item = [popupMenuItems objectAtIndex:i];
-        if ([item tag] == tag) return item;
-        item = [self recurseMenuItemForTag:tag rootMenu:[item submenu]];
-        if (item) {
-            lastMenuSearched = [item submenu];
-            return item;
-        }
-    }
-
-    return nil;
-}
-
-- (NSMenu *)menuForTag:(int)tag
-{
-    return [[self menuItemForTag:tag] submenu];
-}
-
 - (NSMenuItem *)menuItemForDescriptor:(NSArray *)desc
 {
     if (!(desc && [desc count] > 0)) return nil;
@@ -1106,7 +997,6 @@ static NSTimeInterval MMResendInterval = 0.5;
     NSMenuItem *item = [[NSMenuItem alloc] init];
     NSMenu *menu = [[NSMenu alloc] initWithTitle:title];
 
-    [menu setAutoenablesItems:NO];
     [item setTitle:title];
     [item setSubmenu:menu];
 
@@ -1188,13 +1078,9 @@ static NSTimeInterval MMResendInterval = 0.5;
                 [item setKeyEquivalentModifierMask:modifierMask];
             }
             [item setAlternate:isAlternate];
+            [item setTag:1];    // 'tag != 0' means item is enabled
         }
     }
-
-    // NOTE!  The tag is used to idenfity which menu items were
-    // added by Vim (tag != 0) and which were added by the AppKit
-    // (tag == 0).
-    [item setTag:-1];
 
     if ([parent numberOfItems] <= idx) {
         [parent addItem:item];
@@ -1215,7 +1101,9 @@ static NSTimeInterval MMResendInterval = 0.5;
                 [windowController setToolbar:nil];
                 [toolbar release];  toolbar = nil;
             } else if ([desc count] == 2) {
-                [toolbar removeItemWithItemIdentifier:title];
+                int idx = [toolbar indexOfItemWithItemIdentifier:title];
+                if (idx != NSNotFound)
+                    [toolbar removeItemAtIndex:idx];
             }
         }
         return;
@@ -1244,21 +1132,26 @@ static NSTimeInterval MMResendInterval = 0.5;
     [item release];
 }
 
-- (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index
+- (void)enableMenuItemWithDescriptor:(NSArray *)desc state:(BOOL)on
 {
-    if (!toolbar) return nil;
+    if (!(desc && [desc count] > 0)) return;
 
-    NSArray *items = [toolbar items];
-    int i, count = [items count];
-    for (i = 0; i < count; ++i) {
-        NSToolbarItem *item = [items objectAtIndex:i];
-        if ([item tag] == tag) {
-            if (index) *index = i;
-            return item;
+    /*NSLog(@"%sable item %@", on ? "En" : "Dis",
+            [desc componentsJoinedByString:@"->"]);*/
+
+    NSString *rootName = [desc objectAtIndex:0];
+    if ([rootName isEqual:@"ToolBar"]) {
+        if (toolbar && [desc count] == 2) {
+            NSString *title = [desc lastObject];
+            [[toolbar itemWithItemIdentifier:title] setEnabled:on];
         }
+    } else {
+        // Use tag to set whether item is enabled or disabled instead of
+        // calling setEnabled:.  This way the menus can autoenable themselves
+        // but at the same time Vim can set if a menu is enabled whenever it
+        // wants to.
+        [[self menuItemForDescriptor:desc] setTag:on];
     }
-
-    return nil;
 }
 
 - (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
@@ -1272,7 +1165,6 @@ static NSTimeInterval MMResendInterval = 0.5;
         return;
 
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:title];
-    [item setTag:-1];
     [item setLabel:title];
     [item setToolTip:tip];
     [item setAction:@selector(vimMenuItemAction:)];
@@ -1375,18 +1267,35 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 
 @implementation NSToolbar (MMExtras)
-- (void)removeItemWithItemIdentifier:(NSString *)identifier
+
+- (int)indexOfItemWithItemIdentifier:(NSString *)identifier
 {
     NSArray *items = [self items];
     int i, count = [items count];
     for (i = 0; i < count; ++i) {
         id item = [items objectAtIndex:i];
-        if ([[item identifier] isEqual:identifier]) {
-            [self removeItemAtIndex:i];
-            break;
-        }
+        if ([[item itemIdentifier] isEqual:identifier])
+            return i;
     }
+
+    return NSNotFound;
 }
+
+- (NSToolbarItem *)itemAtIndex:(int)idx
+{
+    NSArray *items = [self items];
+    if (idx < 0 || idx >= [items count])
+        return nil;
+
+    return [items objectAtIndex:idx];
+}
+
+- (NSToolbarItem *)itemWithItemIdentifier:(NSString *)identifier
+{
+    int idx = [self indexOfItemWithItemIdentifier:identifier];
+    return idx != NSNotFound ? [self itemAtIndex:idx] : nil;
+}
+
 @end // NSToolbar (MMExtras)
 
 
