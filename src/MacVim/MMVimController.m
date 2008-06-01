@@ -85,6 +85,10 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (void)resendTimerFired:(NSTimer *)timer;
 #endif
 - (void)replaceMenuItem:(NSMenuItem*)old with:(NSMenuItem*)new;
+- (NSMenu *)findMenuContainingItemWithAction:(SEL)action;
+- (NSMenu *)findWindowsMenu;
+- (NSMenu *)findApplicationMenu;
+- (NSMenu *)findServicesMenu;
 @end
 
 
@@ -92,6 +96,12 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (int)indexOfItemWithItemIdentifier:(NSString *)identifier;
 - (NSToolbarItem *)itemAtIndex:(int)idx;
 - (NSToolbarItem *)itemWithItemIdentifier:(NSString *)identifier;
+@end
+
+
+@interface NSMenu (MMExtras)
+- (int)indexOfItemWithAction:(SEL)action;
+- (NSMenuItem *)itemWithAction:(SEL)action;
 @end
 
 
@@ -103,14 +113,12 @@ static NSTimeInterval MMResendInterval = 0.5;
           recentFiles:(NSMenuItem*)menu;
 {
     if ((self = [super init])) {
-
         recentFilesMenuItem = [menu retain];
 
         windowController =
             [[MMWindowController alloc] initWithVimController:self];
         backendProxy = [backend retain];
         sendQueue = [NSMutableArray new];
-        mainMenuItems = [[NSMutableArray alloc] init];
         popupMenuItems = [[NSMutableArray alloc] init];
         toolbarItemDict = [[NSMutableDictionary alloc] init];
         pid = processIdentifier;
@@ -124,6 +132,18 @@ static NSTimeInterval MMResendInterval = 0.5;
         [[NSNotificationCenter defaultCenter] addObserver:self
                 selector:@selector(connectionDidDie:)
                     name:NSConnectionDidDieNotification object:connection];
+
+        // Copy the "MacVim menu" from the current main menu.
+        mainMenu = [[NSMenu alloc] initWithTitle:@"MainMenu"];
+        NSMenuItem *appMenuItem = [[NSApp mainMenu] itemAtIndex:0];
+        appMenuItem = [[appMenuItem copy] autorelease];
+
+        // Note: If the title of the application menu is anything but "MacVim",
+        // then the application menu will not be typeset in boldface for some
+        // reason.
+        [appMenuItem setTitle:@"MacVim"];
+
+        [mainMenu addItem:appMenuItem];
 
         isInitialized = YES;
     }
@@ -147,13 +167,13 @@ static NSTimeInterval MMResendInterval = 0.5;
     [toolbarItemDict release];  toolbarItemDict = nil;
     [toolbar release];  toolbar = nil;
     [popupMenuItems release];  popupMenuItems = nil;
-    [mainMenuItems release];  mainMenuItems = nil;
     [windowController release];  windowController = nil;
 
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
     [recentFilesDummy release];  recentFilesDummy = nil;
 
     [vimState release];  vimState = nil;
+    [mainMenu release];  mainMenu = nil;
 
     [super dealloc];
 }
@@ -529,10 +549,6 @@ static NSTimeInterval MMResendInterval = 0.5;
     }
     //NSLog(@"======== %s  END  ========", _cmd);
 
-    if (shouldUpdateMainMenu) {
-        [self updateMainMenu];
-    }
-
     [windowController processCommandQueueDidFinish];
 
     inProcessCommandQueue = NO;
@@ -574,39 +590,30 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 - (void)updateMainMenu
 {
-    NSMenu *mainMenu = [NSApp mainMenu];
+    if ([NSApp mainMenu] == mainMenu) return;
 
-    // Stop NSApp from updating the Window menu.
-    [NSApp setWindowsMenu:nil];
+    [NSApp setMainMenu:mainMenu];
 
-    // Remove all menus from main menu (except the MacVim menu).
-    int i, count = [mainMenu numberOfItems];
-    for (i = count-1; i > 0; --i) {
-        [mainMenu removeItemAtIndex:i];
-    }
+    NSMenu *appMenu = [self findApplicationMenu];
+    [NSApp performSelector:@selector(setAppleMenu:) withObject:appMenu];
 
-    // Add menus from 'mainMenuItems' to main menu.
-    count = [mainMenuItems count];
-    for (i = 0; i < count; ++i) {
-        [mainMenu addItem:[mainMenuItems objectAtIndex:i]];
-    }
+    NSMenu *servicesMenu = [self findServicesMenu];
+    [NSApp setServicesMenu:servicesMenu];
 
-    // Set the new Window menu.
-    // TODO!  Need to look for 'Window' in all localized languages.
-    NSMenu *windowMenu = [[mainMenu itemWithTitle:@"Window"] submenu];
-    if (windowMenu) {
+    NSMenu *windowsMenu = [self findWindowsMenu];
+    if (windowsMenu) {
         // Remove all items that are added when setWindowsMenu: is called.
-        count = [windowMenu numberOfItems];
+        int i, count = [windowsMenu numberOfItems];
         for (i = count-1; i >= 0; --i) {
-            NSMenuItem *item = [windowMenu itemAtIndex:i];
-            if ([item action] == @selector(makeKeyAndOrderFront:)) {
-                [windowMenu removeItem:item];
-            }
+            NSMenuItem *item = [windowsMenu itemAtIndex:i];
+            if ([item action] == @selector(makeKeyAndOrderFront:))
+                [windowsMenu removeItem:item];
         }
 
-        [NSApp setWindowsMenu:windowMenu];
+        [NSApp setWindowsMenu:windowsMenu];
     }
 
+#if 0
     // Replace real Recent Files menu in the old menu with the dummy, then
     // remove dummy from new menu and put Recent Files menu there
     NSMenuItem *oldItem = (NSMenuItem*)[recentFilesMenuItem representedObject];
@@ -614,8 +621,7 @@ static NSTimeInterval MMResendInterval = 0.5;
         [self replaceMenuItem:recentFilesMenuItem with:oldItem];
     [recentFilesMenuItem setRepresentedObject:recentFilesDummy];
     [self replaceMenuItem:recentFilesDummy with:recentFilesMenuItem];
-
-    shouldUpdateMainMenu = NO;
+#endif
 }
 
 @end // MMVimController
@@ -895,7 +901,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 
     NSString *rootName = [desc objectAtIndex:0];
     NSArray *rootItems = [rootName hasPrefix:@"PopUp"] ? popupMenuItems
-                                                       : mainMenuItems;
+                                                       : [mainMenu itemArray];
 
     NSMenuItem *item = nil;
     int i, count = [rootItems count];
@@ -922,7 +928,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 
     NSString *rootName = [desc objectAtIndex:0];
     NSArray *rootItems = [rootName hasPrefix:@"PopUp"] ? popupMenuItems
-                                                       : mainMenuItems;
+                                                       : [mainMenu itemArray];
 
     NSMenu *menu = nil;
     int i, count = [rootItems count];
@@ -957,9 +963,9 @@ static NSTimeInterval MMResendInterval = 0.5;
             return [item submenu];
     }
 
-    count = [mainMenuItems count];
+    count = [mainMenu numberOfItems];
     for (i = 0; i < count; ++i) {
-        NSMenuItem *item = [mainMenuItems objectAtIndex:i];
+        NSMenuItem *item = [mainMenu itemAtIndex:i];
         if ([title isEqual:[item title]])
             return [item submenu];
     }
@@ -1001,22 +1007,22 @@ static NSTimeInterval MMResendInterval = 0.5;
     [item setSubmenu:menu];
 
     NSMenu *parent = [self parentMenuForDescriptor:desc];
-    if (parent) {
+    if (!parent && [rootName hasPrefix:@"PopUp"]) {
+        if ([popupMenuItems count] <= idx) {
+            [popupMenuItems addObject:item];
+        } else {
+            [popupMenuItems insertObject:item atIndex:idx];
+        }
+    } else {
+        // If descriptor has no parent and its not a popup (or toolbar) menu,
+        // then it must belong to main menu.
+        if (!parent) parent = mainMenu;
+
         if ([parent numberOfItems] <= idx) {
             [parent addItem:item];
         } else {
             [parent insertItem:item atIndex:idx];
         }
-    } else {
-        BOOL isPopup = [rootName hasPrefix:@"PopUp"];
-        NSMutableArray *items = isPopup ? popupMenuItems : mainMenuItems;
-        if ([items count] <= idx) {
-            [items addObject:item];
-        } else {
-            [items insertObject:item atIndex:idx];
-        }
-
-        shouldUpdateMainMenu = !isPopup;
     }
 
     [item release];
@@ -1122,7 +1128,6 @@ static NSTimeInterval MMResendInterval = 0.5;
         // NOTE: To be on the safe side we try to remove the item from
         // both arrays (it is ok to call removeObject: even if an array
         // does not contain the object to remove).
-        [mainMenuItems removeObject:item];
         [popupMenuItems removeObject:item];
     }
 
@@ -1230,7 +1235,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 - (NSString *)description
 {
-    return [NSString stringWithFormat:@"%@ : isInitialized=%d inProcessCommandQueue=%d mainMenuItems=%@ popupMenuItems=%@ toolbar=%@", [self className], isInitialized, inProcessCommandQueue, mainMenuItems, popupMenuItems, toolbar];
+    return [NSString stringWithFormat:@"%@ : isInitialized=%d inProcessCommandQueue=%d mainMenu=%@ popupMenuItems=%@ toolbar=%@", [self className], isInitialized, inProcessCommandQueue, mainMenu, popupMenuItems, toolbar];
 }
 
 #if MM_RESEND_LAST_FAILURE
@@ -1259,6 +1264,46 @@ static NSTimeInterval MMResendInterval = 0.5;
     int index = [menu indexOfItem:old];
     [menu removeItemAtIndex:index];
     [menu insertItem:new atIndex:index];
+}
+
+- (NSMenu *)findMenuContainingItemWithAction:(SEL)action
+{
+    int i, count = [mainMenu numberOfItems];
+    for (i = 0; i < count; ++i) {
+        NSMenu *menu = [[mainMenu itemAtIndex:i] submenu];
+        NSMenuItem *item = [menu itemWithAction:action];
+        if (item) return menu;
+    }
+
+    return nil;
+}
+
+- (NSMenu *)findWindowsMenu
+{
+    return [self findMenuContainingItemWithAction:
+        @selector(performMiniaturize:)];
+}
+
+- (NSMenu *)findApplicationMenu
+{
+    return [self findMenuContainingItemWithAction:@selector(terminate:)];
+}
+
+- (NSMenu *)findServicesMenu
+{
+    // NOTE!  Our heuristic for finding the "Services" menu is to look for the
+    // second item after the "Preferences" menu item on the "MacVim" menu.
+    // (The item after "Preferences" should be a separator, but this is not
+    // important as long as the second item is the "Services" menu.)
+
+    NSMenu *appMenu = [self findApplicationMenu];
+    if (!appMenu) return nil;
+
+    int idx = [appMenu indexOfItemWithAction:
+            @selector(orderFrontPreferencePanel:)];
+    if (idx < 0 || idx+2 >= [appMenu numberOfItems]) return nil;
+
+    return [[appMenu itemAtIndex:idx+2] submenu];
 }
 
 @end // MMVimController (Private)
@@ -1298,6 +1343,27 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 @end // NSToolbar (MMExtras)
 
+@implementation NSMenu (MMExtras)
+
+- (int)indexOfItemWithAction:(SEL)action
+{
+    int i, count = [self numberOfItems];
+    for (i = 0; i < count; ++i) {
+        NSMenuItem *item = [self itemAtIndex:i];
+        if ([item action] == action)
+            return i;
+    }
+
+    return -1;
+}
+
+- (NSMenuItem *)itemWithAction:(SEL)action
+{
+    int idx = [self indexOfItemWithAction:action];
+    return idx >= 0 ? [self itemAtIndex:idx] : nil;
+}
+
+@end // NSMenu (MMExtras)
 
 
 

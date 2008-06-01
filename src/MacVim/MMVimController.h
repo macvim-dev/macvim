@@ -27,9 +27,8 @@
     id                  backendProxy;
     BOOL                inProcessCommandQueue;
     NSMutableArray      *sendQueue;
-    NSMutableArray      *mainMenuItems;
+    NSMenu              *mainMenu;
     NSMutableArray      *popupMenuItems;
-    BOOL                shouldUpdateMainMenu;
     NSToolbar           *toolbar;
     NSMutableDictionary *toolbarItemDict;
     int                 pid;
