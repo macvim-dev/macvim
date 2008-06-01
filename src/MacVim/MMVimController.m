@@ -64,6 +64,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (NSMenuItem *)recurseMenuItemForTag:(int)tag rootMenu:(NSMenu *)root;
 - (NSMenuItem *)menuItemForTag:(int)tag;
 - (NSMenu *)menuForTag:(int)tag;
+- (NSMenuItem *)menuItemForDescriptor:(NSArray *)desc;
 - (NSMenu *)parentMenuForDescriptor:(NSArray *)desc;
 - (NSMenu *)topLevelMenuForTitle:(NSString *)title;
 - (void)addMenuWithDescriptor:(NSArray *)desc atIndex:(int)index;
@@ -75,6 +76,7 @@ static NSTimeInterval MMResendInterval = 0.5;
                      modifierMask:(int)modifierMask
                            action:(NSString *)action
                       isAlternate:(BOOL)isAlternate;
+- (void)removeMenuItemWithDescriptor:(NSArray *)desc;
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index;
 - (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
         toolTip:(NSString *)tip icon:(NSString *)icon;
@@ -86,6 +88,11 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (void)resendTimerFired:(NSTimer *)timer;
 #endif
 - (void)replaceMenuItem:(NSMenuItem*)old with:(NSMenuItem*)new;
+@end
+
+
+@interface NSToolbar (MMExtras)
+- (void)removeItemWithItemIdentifier:(NSString *)identifier;
 @end
 
 
@@ -659,98 +666,10 @@ static NSTimeInterval MMResendInterval = 0.5;
 
         [string release];
     } else if (AddMenuMsgID == msgid) {
-#if 0
-        NSString *title = nil;
-        const void *bytes = [data bytes];
-        int tag = *((int*)bytes);  bytes += sizeof(int);
-        int parentTag = *((int*)bytes);  bytes += sizeof(int);
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        if (len > 0) {
-            title = [[NSString alloc] initWithBytes:(void*)bytes length:len
-                                           encoding:NSUTF8StringEncoding];
-            bytes += len;
-        }
-        int idx = *((int*)bytes);  bytes += sizeof(int);
-
-        if (MenuToolbarType == parentTag) {
-            if (!toolbar) {
-                // NOTE! Each toolbar must have a unique identifier, else each
-                // window will have the same toolbar.
-                NSString *ident = [NSString stringWithFormat:@"%d.%d",
-                         (int)self, tag];
-                toolbar = [[NSToolbar alloc] initWithIdentifier:ident];
-
-                [toolbar setShowsBaselineSeparator:NO];
-                [toolbar setDelegate:self];
-                [toolbar setDisplayMode:NSToolbarDisplayModeIconOnly];
-                [toolbar setSizeMode:NSToolbarSizeModeSmall];
-
-                [windowController setToolbar:toolbar];
-            }
-        } else if (title) {
-            [self addMenuWithTag:tag parent:parentTag title:title atIndex:idx];
-        }
-
-        [title release];
-#else
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
         [self addMenuWithDescriptor:[attrs objectForKey:@"descriptor"]
                 atIndex:[[attrs objectForKey:@"index"] intValue]];
-#endif
     } else if (AddMenuItemMsgID == msgid) {
-#if 0
-        NSString *title = nil, *tip = nil, *icon = nil, *action = nil;
-        const void *bytes = [data bytes];
-        int tag = *((int*)bytes);  bytes += sizeof(int);
-        int parentTag = *((int*)bytes);  bytes += sizeof(int);
-        int namelen = *((int*)bytes);  bytes += sizeof(int);
-        if (namelen > 0) {
-            title = [[NSString alloc] initWithBytes:(void*)bytes length:namelen
-                                           encoding:NSUTF8StringEncoding];
-            bytes += namelen;
-        }
-        int tiplen = *((int*)bytes);  bytes += sizeof(int);
-        if (tiplen > 0) {
-            tip = [[NSString alloc] initWithBytes:(void*)bytes length:tiplen
-                                           encoding:NSUTF8StringEncoding];
-            bytes += tiplen;
-        }
-        int iconlen = *((int*)bytes);  bytes += sizeof(int);
-        if (iconlen > 0) {
-            icon = [[NSString alloc] initWithBytes:(void*)bytes length:iconlen
-                                           encoding:NSUTF8StringEncoding];
-            bytes += iconlen;
-        }
-        int actionlen = *((int*)bytes);  bytes += sizeof(int);
-        if (actionlen > 0) {
-            action = [[NSString alloc] initWithBytes:(void*)bytes
-                                              length:actionlen
-                                            encoding:NSUTF8StringEncoding];
-            bytes += actionlen;
-        }
-        int idx = *((int*)bytes);  bytes += sizeof(int);
-        if (idx < 0) idx = 0;
-        int key = *((int*)bytes);  bytes += sizeof(int);
-        int mask = *((int*)bytes);  bytes += sizeof(int);
-        int isalt = *((int*)bytes);  bytes += sizeof(int);
-
-        NSString *ident = [NSString stringWithFormat:@"%d.%d",
-                (int)self, parentTag];
-        if (toolbar && [[toolbar identifier] isEqual:ident]) {
-            [self addToolbarItemWithTag:tag label:title tip:tip icon:icon
-                                atIndex:idx];
-        } else {
-            NSMenu *parent = [self menuForTag:parentTag];
-            [self addMenuItemWithTag:tag parent:parent title:title tip:tip
-                       keyEquivalent:key modifiers:mask action:action
-                         isAlternate:isalt atIndex:idx];
-        }
-
-        [title release];
-        [tip release];
-        [icon release];
-        [action release];
-#else
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
         [self addMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]
                       atIndex:[[attrs objectForKey:@"index"] intValue]
@@ -760,7 +679,6 @@ static NSTimeInterval MMResendInterval = 0.5;
                  modifierMask:[[attrs objectForKey:@"modifierMask"] intValue]
                        action:[attrs objectForKey:@"action"]
                   isAlternate:[[attrs objectForKey:@"isAlternate"] boolValue]];
-#endif
     } else if (RemoveMenuItemMsgID == msgid) {
 #if 0
         const void *bytes = [data bytes];
@@ -789,6 +707,9 @@ static NSTimeInterval MMResendInterval = 0.5;
 
         // Reset cached menu, just to be on the safe side.
         lastMenuSearched = nil;
+#else
+        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+        [self removeMenuItemWithDescriptor:[attrs objectForKey:@"descriptor"]];
 #endif
     } else if (EnableMenuItemMsgID == msgid) {
 #if 0
@@ -1077,6 +998,33 @@ static NSTimeInterval MMResendInterval = 0.5;
     return [[self menuItemForTag:tag] submenu];
 }
 
+- (NSMenuItem *)menuItemForDescriptor:(NSArray *)desc
+{
+    if (!(desc && [desc count] > 0)) return nil;
+
+    NSString *rootName = [desc objectAtIndex:0];
+    NSArray *rootItems = [rootName hasPrefix:@"PopUp"] ? popupMenuItems
+                                                       : mainMenuItems;
+
+    NSMenuItem *item = nil;
+    int i, count = [rootItems count];
+    for (i = 0; i < count; ++i) {
+        item = [rootItems objectAtIndex:i];
+        if ([[item title] isEqual:rootName])
+            break;
+    }
+
+    if (i == count) return nil;
+
+    count = [desc count];
+    for (i = 1; i < count; ++i) {
+        item = [[item submenu] itemWithTitle:[desc objectAtIndex:i]];
+        if (!item) return nil;
+    }
+
+    return item;
+}
+
 - (NSMenu *)parentMenuForDescriptor:(NSArray *)desc
 {
     if (!(desc && [desc count] > 0)) return nil;
@@ -1130,38 +1078,7 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 - (void)addMenuWithDescriptor:(NSArray *)desc atIndex:(int)idx
 {
-#if 0
-    NSMenu *parent = [self menuForTag:parentTag];
-    NSMenuItem *item = [[NSMenuItem alloc] init];
-    NSMenu *menu = [[NSMenu alloc] initWithTitle:title];
-
-    [menu setAutoenablesItems:NO];
-    [item setTag:tag];
-    [item setTitle:title];
-    [item setSubmenu:menu];
-
-    if (parent) {
-        if ([parent numberOfItems] <= idx) {
-            [parent addItem:item];
-        } else {
-            [parent insertItem:item atIndex:idx];
-        }
-    } else {
-        NSMutableArray *items = (MenuPopupType == parentTag)
-            ? popupMenuItems : mainMenuItems;
-        if ([items count] <= idx) {
-            [items addObject:item];
-        } else {
-            [items insertObject:item atIndex:idx];
-        }
-
-        shouldUpdateMainMenu = (MenuPopupType != parentTag);
-    }
-
-    [item release];
-    [menu release];
-#else
-    if (!(desc && [desc count] > 0)) return;
+    if (!(desc && [desc count] > 0 && idx >= 0)) return;
 
     NSString *rootName = [desc objectAtIndex:0];
     if ([rootName isEqual:@"ToolBar"]) {
@@ -1214,7 +1131,6 @@ static NSTimeInterval MMResendInterval = 0.5;
 
     [item release];
     [menu release];
-#endif
 }
 
 - (void)addMenuItemWithDescriptor:(NSArray *)desc
@@ -1226,62 +1142,13 @@ static NSTimeInterval MMResendInterval = 0.5;
                            action:(NSString *)action
                       isAlternate:(BOOL)isAlternate
 {
-#if 0
-    if (parent) {
-        NSMenuItem *item = nil;
-        if (!title || ([title hasPrefix:@"-"] && [title hasSuffix:@"-"])) {
-            item = [NSMenuItem separatorItem];
-        } else {
-            item = [[[NSMenuItem alloc] init] autorelease];
-            [item setTitle:title];
-
-            if ([action isEqualToString:@"recentFilesDummy:"]) {
-                // Remove the recent files menu item from its current menu
-                // and put it in the current file menu.  See -[MMAppController
-                // applicationWillFinishLaunching for more information.
-                //[[recentFilesMenuItem menu] removeItem:recentFilesMenuItem];
-                //item = recentFilesMenuItem;
-                recentFilesDummy = [item retain];
-
-            } else {
-                // TODO: Check that 'action' is a valid action (nothing will
-                // happen if it isn't, but it would be nice with a warning).
-                if (action) [item setAction:NSSelectorFromString(action)];
-                else        [item setAction:@selector(vimMenuItemAction:)];
-                if (tip) [item setToolTip:tip];
-
-                if (key != 0) {
-                    NSString *keyString =
-                        [NSString stringWithFormat:@"%C", key];
-                    [item setKeyEquivalent:keyString];
-                    [item setKeyEquivalentModifierMask:mask];
-                }
-
-                if (isAlt) [item setAlternate:YES];
-            }
-        }
-
-        // NOTE!  The tag is used to idenfity which menu items were
-        // added by Vim (tag != 0) and which were added by the AppKit
-        // (tag == 0).
-        [item setTag:tag];
-
-        if ([parent numberOfItems] <= idx) {
-            [parent addItem:item];
-        } else {
-            [parent insertItem:item atIndex:idx];
-        }
-    } else {
-        NSLog(@"WARNING: Menu item '%@' (tag=%d) has no parent.", title, tag);
-    }
-#else
-    if (!(desc && [desc count] > 1)) return;
+    if (!(desc && [desc count] > 1 && idx >= 0)) return;
 
     NSString *title = [desc lastObject];
     NSString *rootName = [desc objectAtIndex:0];
 
     if ([rootName isEqual:@"ToolBar"]) {
-        if (toolbar)
+        if (toolbar && [desc count] == 2)
             [self addToolbarItemWithLabel:title tip:tip icon:icon atIndex:idx];
         return;
     }
@@ -1294,7 +1161,8 @@ static NSTimeInterval MMResendInterval = 0.5;
     }
 
     NSMenuItem *item = nil;
-    if (!title || ([title hasPrefix:@"-"] && [title hasSuffix:@"-"])) {
+    if (0 == [title length]
+            || ([title hasPrefix:@"-"] && [title hasSuffix:@"-"])) {
         item = [NSMenuItem separatorItem];
     } else {
         item = [[[NSMenuItem alloc] init] autorelease];
@@ -1333,7 +1201,47 @@ static NSTimeInterval MMResendInterval = 0.5;
     } else {
         [parent insertItem:item atIndex:idx];
     }
-#endif
+}
+
+- (void)removeMenuItemWithDescriptor:(NSArray *)desc
+{
+    if (!(desc && [desc count] > 0)) return;
+
+    NSString *title = [desc lastObject];
+    NSString *rootName = [desc objectAtIndex:0];
+    if ([rootName isEqual:@"ToolBar"]) {
+        if (toolbar) {
+            if ([desc count] == 1) {
+                [windowController setToolbar:nil];
+                [toolbar release];  toolbar = nil;
+            } else if ([desc count] == 2) {
+                [toolbar removeItemWithItemIdentifier:title];
+            }
+        }
+        return;
+    }
+
+    NSMenuItem *item = [self menuItemForDescriptor:desc];
+    if (!item) {
+        NSLog(@"Failed to remove menu item, descriptor not found: %@",
+                [desc componentsJoinedByString:@"->"]);
+        return;
+    }
+
+    [item retain];
+
+    if ([item menu] == [NSApp mainMenu] || ![item menu]) {
+        // NOTE: To be on the safe side we try to remove the item from
+        // both arrays (it is ok to call removeObject: even if an array
+        // does not contain the object to remove).
+        [mainMenuItems removeObject:item];
+        [popupMenuItems removeObject:item];
+    }
+
+    if ([item menu])
+        [[item menu] removeItem:item];
+
+    [item release];
 }
 
 - (NSToolbarItem *)toolbarItemForTag:(int)tag index:(int *)index
@@ -1462,6 +1370,25 @@ static NSTimeInterval MMResendInterval = 0.5;
 }
 
 @end // MMVimController (Private)
+
+
+
+
+@implementation NSToolbar (MMExtras)
+- (void)removeItemWithItemIdentifier:(NSString *)identifier
+{
+    NSArray *items = [self items];
+    int i, count = [items count];
+    for (i = 0; i < count; ++i) {
+        id item = [items objectAtIndex:i];
+        if ([[item identifier] isEqual:identifier]) {
+            [self removeItemAtIndex:i];
+            break;
+        }
+    }
+}
+@end // NSToolbar (MMExtras)
+
 
 
 
