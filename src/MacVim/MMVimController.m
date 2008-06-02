@@ -1292,18 +1292,17 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (NSMenu *)findServicesMenu
 {
     // NOTE!  Our heuristic for finding the "Services" menu is to look for the
-    // second item after the "Preferences" menu item on the "MacVim" menu.
-    // (The item after "Preferences" should be a separator, but this is not
-    // important as long as the second item is the "Services" menu.)
+    // second item before the "Hide MacVim" menu item on the "MacVim" menu.
+    // (The item before "Hide MacVim" should be a separator, but this is not
+    // important as long as the item before that is the "Services" menu.)
 
     NSMenu *appMenu = [self findApplicationMenu];
     if (!appMenu) return nil;
 
-    int idx = [appMenu indexOfItemWithAction:
-            @selector(orderFrontPreferencePanel:)];
-    if (idx < 0 || idx+2 >= [appMenu numberOfItems]) return nil;
+    int idx = [appMenu indexOfItemWithAction: @selector(hide:)];
+    if (idx-2 < 0) return nil;  // idx == -1, if selector not found
 
-    return [[appMenu itemAtIndex:idx+2] submenu];
+    return [[appMenu itemAtIndex:idx-2] submenu];
 }
 
 @end // MMVimController (Private)
