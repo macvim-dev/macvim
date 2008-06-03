@@ -84,11 +84,6 @@ static NSTimeInterval MMResendInterval = 0.5;
 #if MM_RESEND_LAST_FAILURE
 - (void)resendTimerFired:(NSTimer *)timer;
 #endif
-- (void)replaceMenuItem:(NSMenuItem*)old with:(NSMenuItem*)new;
-- (NSMenu *)findMenuContainingItemWithAction:(SEL)action;
-- (NSMenu *)findWindowsMenu;
-- (NSMenu *)findApplicationMenu;
-- (NSMenu *)findServicesMenu;
 @end
 
 
@@ -99,22 +94,13 @@ static NSTimeInterval MMResendInterval = 0.5;
 @end
 
 
-@interface NSMenu (MMExtras)
-- (int)indexOfItemWithAction:(SEL)action;
-- (NSMenuItem *)itemWithAction:(SEL)action;
-@end
-
-
 
 
 @implementation MMVimController
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier
-          recentFiles:(NSMenuItem*)menu;
 {
     if ((self = [super init])) {
-        recentFilesMenuItem = [menu retain];
-
         windowController =
             [[MMWindowController alloc] initWithVimController:self];
         backendProxy = [backend retain];
@@ -133,15 +119,21 @@ static NSTimeInterval MMResendInterval = 0.5;
                 selector:@selector(connectionDidDie:)
                     name:NSConnectionDidDieNotification object:connection];
 
-        // Copy the "MacVim menu" from the current main menu.
+        // Copy the "MacVim menu" from the default main menu (we assume that it
+        // is the first item on the default main menu).
         mainMenu = [[NSMenu alloc] initWithTitle:@"MainMenu"];
-        NSMenuItem *appMenuItem = [[NSApp mainMenu] itemAtIndex:0];
+        NSMenuItem *appMenuItem = [[[MMAppController sharedInstance]
+                                            defaultMainMenu] itemAtIndex:0];
         appMenuItem = [[appMenuItem copy] autorelease];
 
-        // Note: If the title of the application menu is anything but "MacVim",
-        // then the application menu will not be typeset in boldface for some
-        // reason.
-        [appMenuItem setTitle:@"MacVim"];
+        // Note: If the title of the application menu is anything but what
+        // CFBundleName says then the application menu will not be typeset in
+        // boldface for some reason.  (It should already be set when we copy
+        // from the default main menu, but this is not the case for some
+        // reason.)
+        NSString *appName = [[NSBundle mainBundle]
+                objectForInfoDictionaryKey:@"CFBundleName"];
+        [appMenuItem setTitle:appName];
 
         [mainMenu addItem:appMenuItem];
 
@@ -169,9 +161,6 @@ static NSTimeInterval MMResendInterval = 0.5;
     [popupMenuItems release];  popupMenuItems = nil;
     [windowController release];  windowController = nil;
 
-    [recentFilesMenuItem release];  recentFilesMenuItem = nil;
-    [recentFilesDummy release];  recentFilesDummy = nil;
-
     [vimState release];  vimState = nil;
     [mainMenu release];  mainMenu = nil;
 
@@ -186,6 +175,11 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (NSDictionary *)vimState
 {
     return vimState;
+}
+
+- (NSMenu *)mainMenu
+{
+    return mainMenu;
 }
 
 - (void)setServerName:(NSString *)name
@@ -586,42 +580,6 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar *)theToolbar
 {
     return nil;
-}
-
-- (void)updateMainMenu
-{
-    if ([NSApp mainMenu] == mainMenu) return;
-
-    [NSApp setMainMenu:mainMenu];
-
-    NSMenu *appMenu = [self findApplicationMenu];
-    [NSApp performSelector:@selector(setAppleMenu:) withObject:appMenu];
-
-    NSMenu *servicesMenu = [self findServicesMenu];
-    [NSApp setServicesMenu:servicesMenu];
-
-    NSMenu *windowsMenu = [self findWindowsMenu];
-    if (windowsMenu) {
-        // Remove all items that are added when setWindowsMenu: is called.
-        int i, count = [windowsMenu numberOfItems];
-        for (i = count-1; i >= 0; --i) {
-            NSMenuItem *item = [windowsMenu itemAtIndex:i];
-            if ([item action] == @selector(makeKeyAndOrderFront:))
-                [windowsMenu removeItem:item];
-        }
-
-        [NSApp setWindowsMenu:windowsMenu];
-    }
-
-#if 0
-    // Replace real Recent Files menu in the old menu with the dummy, then
-    // remove dummy from new menu and put Recent Files menu there
-    NSMenuItem *oldItem = (NSMenuItem*)[recentFilesMenuItem representedObject];
-    if (oldItem)
-        [self replaceMenuItem:recentFilesMenuItem with:oldItem];
-    [recentFilesMenuItem setRepresentedObject:recentFilesDummy];
-    [self replaceMenuItem:recentFilesDummy with:recentFilesMenuItem];
-#endif
 }
 
 @end // MMVimController
@@ -1064,28 +1022,25 @@ static NSTimeInterval MMResendInterval = 0.5;
         item = [[[NSMenuItem alloc] init] autorelease];
         [item setTitle:title];
 
-        if ([action isEqualToString:@"recentFilesDummy:"]) {
-            // Remove the recent files menu item from its current menu
-            // and put it in the current file menu.  See -[MMAppController
-            // applicationWillFinishLaunching for more information.
-            //[[recentFilesMenuItem menu] removeItem:recentFilesMenuItem];
-            //item = recentFilesMenuItem;
-            recentFilesDummy = [item retain];
-        } else {
-            // TODO: Check that 'action' is a valid action (nothing will
-            // happen if it isn't, but it would be nice with a warning).
-            if ([action length] > 0)
-                [item setAction:NSSelectorFromString(action)];
-            else
-                [item setAction:@selector(vimMenuItemAction:)];
-            if ([tip length] > 0) [item setToolTip:tip];
-            if ([keyEquivalent length] > 0) {
-                [item setKeyEquivalent:keyEquivalent];
-                [item setKeyEquivalentModifierMask:modifierMask];
-            }
-            [item setAlternate:isAlternate];
-            [item setTag:1];    // 'tag != 0' means item is enabled
+        // Note: It is possible to set the action to a message that "doesn't
+        // exist" without problems.  We take advantage of this when adding
+        // "dummy items" e.g. when dealing with the "Recent Files" menu (in
+        // which case a recentFilesDummy: action is set, although it is never
+        // used).
+        if ([action length] > 0)
+            [item setAction:NSSelectorFromString(action)];
+        else
+            [item setAction:@selector(vimMenuItemAction:)];
+        if ([tip length] > 0) [item setToolTip:tip];
+        if ([keyEquivalent length] > 0) {
+            [item setKeyEquivalent:keyEquivalent];
+            [item setKeyEquivalentModifierMask:modifierMask];
         }
+        [item setAlternate:isAlternate];
+
+        // The tag is used to indicate whether Vim thinks a menu item should be
+        // enabled or disabled.  By default Vim thinks menu items are enabled.
+        [item setTag:1];
     }
 
     if ([parent numberOfItems] <= idx) {
@@ -1228,7 +1183,7 @@ static NSTimeInterval MMResendInterval = 0.5;
     [self cleanup];
 
     // NOTE!  This causes the call to removeVimController: to be delayed.
-    [[NSApp delegate]
+    [[MMAppController sharedInstance]
             performSelectorOnMainThread:@selector(removeVimController:)
                              withObject:self waitUntilDone:NO];
 }
@@ -1257,53 +1212,6 @@ static NSTimeInterval MMResendInterval = 0.5;
     [self sendMessage:msgid data:data];
 }
 #endif
-
-- (void)replaceMenuItem:(NSMenuItem*)old with:(NSMenuItem*)new
-{
-    NSMenu *menu = [old menu];
-    int index = [menu indexOfItem:old];
-    [menu removeItemAtIndex:index];
-    [menu insertItem:new atIndex:index];
-}
-
-- (NSMenu *)findMenuContainingItemWithAction:(SEL)action
-{
-    int i, count = [mainMenu numberOfItems];
-    for (i = 0; i < count; ++i) {
-        NSMenu *menu = [[mainMenu itemAtIndex:i] submenu];
-        NSMenuItem *item = [menu itemWithAction:action];
-        if (item) return menu;
-    }
-
-    return nil;
-}
-
-- (NSMenu *)findWindowsMenu
-{
-    return [self findMenuContainingItemWithAction:
-        @selector(performMiniaturize:)];
-}
-
-- (NSMenu *)findApplicationMenu
-{
-    return [self findMenuContainingItemWithAction:@selector(terminate:)];
-}
-
-- (NSMenu *)findServicesMenu
-{
-    // NOTE!  Our heuristic for finding the "Services" menu is to look for the
-    // second item before the "Hide MacVim" menu item on the "MacVim" menu.
-    // (The item before "Hide MacVim" should be a separator, but this is not
-    // important as long as the item before that is the "Services" menu.)
-
-    NSMenu *appMenu = [self findApplicationMenu];
-    if (!appMenu) return nil;
-
-    int idx = [appMenu indexOfItemWithAction: @selector(hide:)];
-    if (idx-2 < 0) return nil;  // idx == -1, if selector not found
-
-    return [[appMenu itemAtIndex:idx-2] submenu];
-}
 
 @end // MMVimController (Private)
 
@@ -1342,27 +1250,6 @@ static NSTimeInterval MMResendInterval = 0.5;
 
 @end // NSToolbar (MMExtras)
 
-@implementation NSMenu (MMExtras)
-
-- (int)indexOfItemWithAction:(SEL)action
-{
-    int i, count = [self numberOfItems];
-    for (i = 0; i < count; ++i) {
-        NSMenuItem *item = [self itemAtIndex:i];
-        if ([item action] == action)
-            return i;
-    }
-
-    return -1;
-}
-
-- (NSMenuItem *)itemWithAction:(SEL)action
-{
-    int idx = [self indexOfItemWithAction:action];
-    return idx >= 0 ? [self itemAtIndex:idx] : nil;
-}
-
-@end // NSMenu (MMExtras)
 
 
 

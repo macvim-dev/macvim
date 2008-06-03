@@ -15,6 +15,8 @@
 				<string>id</string>
 				<key>newWindow</key>
 				<string>id</string>
+				<key>openWebsite</key>
+				<string>id</string>
 				<key>orderFrontPreferencePanel</key>
 				<string>id</string>
 				<key>selectNextWindow</key>
@@ -24,6 +26,14 @@
 			</dict>
 			<key>CLASS</key>
 			<string>MMAppController</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
+			<key>SUPERCLASS</key>
+			<string>NSObject</string>
+		</dict>
+		<dict>
+			<key>CLASS</key>
+			<string>NSMenu</string>
 			<key>LANGUAGE</key>
 			<string>ObjC</string>
 			<key>SUPERCLASS</key>

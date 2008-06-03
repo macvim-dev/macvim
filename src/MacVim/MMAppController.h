@@ -21,12 +21,15 @@
     NSString            *openSelectionString;
     ATSFontContainerRef fontContainerRef;
     NSMutableDictionary *pidArguments;
-
+    NSMenu              *defaultMainMenu;
     NSMenuItem          *recentFilesMenuItem;
 }
 
++ (MMAppController *)sharedInstance;
+- (NSMenu *)defaultMainMenu;
 - (void)removeVimController:(id)controller;
 - (void)windowControllerWillOpen:(MMWindowController *)windowController;
+- (void)setMainMenu:(NSMenu *)mainMenu;
 - (IBAction)newWindow:(id)sender;
 - (IBAction)fileOpen:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;

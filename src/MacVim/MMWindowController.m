@@ -263,7 +263,7 @@
 
 - (void)openWindow
 {
-    [[NSApp delegate] windowControllerWillOpen:self];
+    [[MMAppController sharedInstance] windowControllerWillOpen:self];
 
     [self addNewTabViewItem];
 
@@ -649,7 +649,7 @@
 
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
-    [vimController updateMainMenu];
+    [[MMAppController sharedInstance] setMainMenu:[vimController mainMenu]];
     [vimController sendMessage:GotFocusMsgID data:nil];
 
     if ([vimView textView]) {

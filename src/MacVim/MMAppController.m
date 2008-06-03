@@ -92,6 +92,18 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 @end
 
 
+@interface NSMenu (MMExtras)
+- (int)indexOfItemWithAction:(SEL)action;
+- (NSMenuItem *)itemWithAction:(SEL)action;
+- (NSMenu *)findMenuContainingItemWithAction:(SEL)action;
+- (NSMenu *)findWindowsMenu;
+- (NSMenu *)findApplicationMenu;
+- (NSMenu *)findServicesMenu;
+- (NSMenu *)findFileMenu;
+@end
+
+
+
 
 @implementation MMAppController
 
@@ -177,39 +189,42 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     [vimControllers release];  vimControllers = nil;
     [openSelectionString release];  openSelectionString = nil;
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
+    [defaultMainMenu release];  defaultMainMenu = nil;
 
     [super dealloc];
 }
 
 - (void)applicationWillFinishLaunching:(NSNotification *)notification
 {
-    // Create the "Open Recent" menu. See
-    // http://lapcatsoftware.com/blog/2007/07/10/working-without-a-nib-part-5-open-recent-menu/
-    // and http://www.cocoabuilder.com/archive/message/cocoa/2007/8/15/187793
+    // Remember the default menu so that it can be restored if the user closes
+    // all editor windows.
+    defaultMainMenu = [[NSApp mainMenu] retain];
+
+    // Set up the "Open Recent" menu. See
+    //   http://lapcatsoftware.com/blog/2007/07/10/
+    //     working-without-a-nib-part-5-open-recent-menu/
+    // and
+    //   http://www.cocoabuilder.com/archive/message/cocoa/2007/8/15/187793
     // for more information.
-    // 
-    // The menu needs to be created and be added to a toplevel menu in
-    // applicationWillFinishLaunching at the latest, otherwise it doesn't work.
+    //
+    // The menu itself is created in MainMenu.nib but we still seem to have to
+    // hack around a bit to get it to work.  (This has to be done in
+    // applicationWillFinishLaunching at the latest, otherwise it doesn't
+    // work.)
+    NSMenu *fileMenu = [defaultMainMenu findFileMenu];
+    if (fileMenu) {
+        int idx = [fileMenu indexOfItemWithAction:@selector(fileOpen:)];
+        if (idx >= 0 && idx+1 < [fileMenu numberOfItems])
 
-    recentFilesMenuItem = [[NSMenuItem alloc]
-        initWithTitle:NSLocalizedString(@"Open Recent", @"Open Recent menu")
-               action:nil keyEquivalent:@""];
+        recentFilesMenuItem = [fileMenu itemWithTitle:@"Open Recent"];
+        [[recentFilesMenuItem submenu] performSelector:@selector(_setMenuName:)
+                                        withObject:@"NSRecentDocumentsMenu"];
 
-    NSMenu *recentFilesMenu = [[NSMenu alloc]
-        initWithTitle:NSLocalizedString(@"Open Recent", @"Open Recent menu")];
-    [recentFilesMenu performSelector:@selector(_setMenuName:)
-                          withObject:@"NSRecentDocumentsMenu"];
-
-    [recentFilesMenu addItemWithTitle:NSLocalizedString(@"Clear Menu",
-                                                        @"Open Recent menu")
-                               action:@selector(clearRecentDocuments:)
-                        keyEquivalent:@""];
-    [recentFilesMenuItem setSubmenu:recentFilesMenu];
-    [recentFilesMenu release];  // the menu is retained by recentFilesMenuItem
-    [recentFilesMenuItem setTag:-1];  // must not be 0
-
-    // TODO: this will not work in a localized MacVim
-    [[[[NSApp mainMenu] itemWithTitle:@"File"] submenu] addItem:recentFilesMenuItem];
+        // Note: The "Recent Files" menu must be moved around since there is no
+        // -[NSApp setRecentFilesMenu:] method.  We keep a reference to it to
+        // facilitate this move (see setMainMenu: below).
+        [recentFilesMenuItem retain];
+    }
 
 #if MM_HANDLE_XCODE_MOD_EVENT
     [[NSAppleEventManager sharedAppleEventManager]
@@ -504,6 +519,19 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     [NSApp setDelegate:nil];
 }
 
++ (MMAppController *)sharedInstance
+{
+    // Note: The app controller is a singleton which is instantiated in
+    // MainMenu.nib where it is also connected as the delegate of NSApp.
+    id delegate = [NSApp delegate];
+    return [delegate isKindOfClass:self] ? (MMAppController*)delegate : nil;
+}
+
+- (NSMenu *)defaultMainMenu
+{
+    return defaultMainMenu;
+}
+
 - (void)removeVimController:(id)controller
 {
     //NSLog(@"%s%@", _cmd, controller);
@@ -513,7 +541,9 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     [vimControllers removeObject:controller];
 
     if (![vimControllers count]) {
-        // TODO: change menu to default state
+        // The last editor window just closed so restore the main menu back to
+        // its default state (which is defined in MainMenu.nib).
+        [self setMainMenu:defaultMainMenu];
     }
 }
 
@@ -553,6 +583,68 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         [[windowController vimController] dropString:openSelectionString];
         [openSelectionString release];
         openSelectionString = nil;
+    }
+}
+
+- (void)setMainMenu:(NSMenu *)mainMenu
+{
+    if ([NSApp mainMenu] == mainMenu) return;
+
+    // If the new menu has a "Recent Files" dummy item, then swap the real item
+    // for the dummy.  We are forced to do this since Cocoa initializes the
+    // "Recent Files" menu and there is no way to simply point Cocoa to a new
+    // item each time the menus are swapped.
+    NSMenu *fileMenu = [mainMenu findFileMenu];
+    int dummyIdx =
+            [fileMenu indexOfItemWithAction:@selector(recentFilesDummy:)];
+    if (dummyIdx >= 0 && recentFilesMenuItem) {
+        NSMenuItem *dummyItem = [[fileMenu itemAtIndex:dummyIdx] retain];
+        [fileMenu removeItemAtIndex:dummyIdx];
+
+        NSMenu *recentFilesParentMenu = [recentFilesMenuItem menu];
+        int idx = [recentFilesParentMenu indexOfItem:recentFilesMenuItem];
+        if (idx >= 0) {
+            [[recentFilesMenuItem retain] autorelease];
+            [recentFilesParentMenu removeItemAtIndex:idx];
+            [recentFilesParentMenu insertItem:dummyItem atIndex:idx];
+        }
+
+        [fileMenu insertItem:recentFilesMenuItem atIndex:dummyIdx];
+        [dummyItem release];
+    }
+
+    // Now set the new menu.  Notice that we keep one menu for each editor
+    // window since each editor can have its own set of menus.  When swapping
+    // menus we have to tell Cocoa where the new "MacVim", "Windows", and
+    // "Services" menu are.
+    [NSApp setMainMenu:mainMenu];
+
+    // Setting the "MacVim" (or "Application") menu ensures that it is typeset
+    // in boldface.  (The setAppleMenu: method used to be public but is now
+    // private so this will have to be considered a bit of a hack!)
+    NSMenu *appMenu = [mainMenu findApplicationMenu];
+    [NSApp performSelector:@selector(setAppleMenu:) withObject:appMenu];
+
+    NSMenu *servicesMenu = [mainMenu findServicesMenu];
+    [NSApp setServicesMenu:servicesMenu];
+
+    NSMenu *windowsMenu = [mainMenu findWindowsMenu];
+    if (windowsMenu) {
+        // Cocoa isn't clever enough to get rid of items it has added to the
+        // "Windows" menu so we have to do it ourselves otherwise there will be
+        // multiple menu items for each window in the "Windows" menu.
+        //   This code assumes that the only items Cocoa add are ones which
+        // send off the action makeKeyAndOrderFront:.  (Cocoa will not add
+        // another separator item if the last item on the "Windows" menu
+        // already is a separator, so we needen't worry about separators.)
+        int i, count = [windowsMenu numberOfItems];
+        for (i = count-1; i >= 0; --i) {
+            NSMenuItem *item = [windowsMenu itemAtIndex:i];
+            if ([item action] == @selector(makeKeyAndOrderFront:))
+                [windowsMenu removeItem:item];
+        }
+
+        [NSApp setWindowsMenu:windowsMenu];
     }
 }
 
@@ -657,7 +749,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
                 setProtocolForProxy:@protocol(MMBackendProtocol)];
 
         vc = [[[MMVimController alloc]
-            initWithBackend:backend pid:pid recentFiles:recentFilesMenuItem]
+            initWithBackend:backend pid:pid]
             autorelease];
 
         if (![vimControllers count]) {
@@ -1144,6 +1236,77 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 
 
+@implementation NSMenu (MMExtras)
+
+- (int)indexOfItemWithAction:(SEL)action
+{
+    int i, count = [self numberOfItems];
+    for (i = 0; i < count; ++i) {
+        NSMenuItem *item = [self itemAtIndex:i];
+        if ([item action] == action)
+            return i;
+    }
+
+    return -1;
+}
+
+- (NSMenuItem *)itemWithAction:(SEL)action
+{
+    int idx = [self indexOfItemWithAction:action];
+    return idx >= 0 ? [self itemAtIndex:idx] : nil;
+}
+
+- (NSMenu *)findMenuContainingItemWithAction:(SEL)action
+{
+    // NOTE: We only look for the action in the submenus of 'self'
+    int i, count = [self numberOfItems];
+    for (i = 0; i < count; ++i) {
+        NSMenu *menu = [[self itemAtIndex:i] submenu];
+        NSMenuItem *item = [menu itemWithAction:action];
+        if (item) return menu;
+    }
+
+    return nil;
+}
+
+- (NSMenu *)findWindowsMenu
+{
+    return [self findMenuContainingItemWithAction:
+        @selector(performMiniaturize:)];
+}
+
+- (NSMenu *)findApplicationMenu
+{
+    // TODO: Just return [self itemAtIndex:0]?
+    return [self findMenuContainingItemWithAction:@selector(terminate:)];
+}
+
+- (NSMenu *)findServicesMenu
+{
+    // NOTE!  Our heuristic for finding the "Services" menu is to look for the
+    // second item before the "Hide MacVim" menu item on the "MacVim" menu.
+    // (The item before "Hide MacVim" should be a separator, but this is not
+    // important as long as the item before that is the "Services" menu.)
+
+    NSMenu *appMenu = [self findApplicationMenu];
+    if (!appMenu) return nil;
+
+    int idx = [appMenu indexOfItemWithAction: @selector(hide:)];
+    if (idx-2 < 0) return nil;  // idx == -1, if selector not found
+
+    return [[appMenu itemAtIndex:idx-2] submenu];
+}
+
+- (NSMenu *)findFileMenu
+{
+    return [self findMenuContainingItemWithAction:@selector(performClose:)];
+}
+
+@end // NSMenu (MMExtras)
+
+
+
+
     static int
 executeInLoginShell(NSString *path, NSArray *args)
 {
@@ -1237,4 +1400,3 @@ executeInLoginShell(NSString *path, NSArray *args)
 
     return pid;
 }
-

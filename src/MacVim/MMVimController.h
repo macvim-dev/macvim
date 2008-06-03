@@ -38,19 +38,17 @@
     int                 resendMsgid;
     NSData              *resendData;
 #endif
-    NSMenuItem          *recentFilesMenuItem;
-    NSMenuItem          *recentFilesDummy;
     NSDictionary        *vimState;
 }
 
-- (id)initWithBackend:(id)backend pid:(int)processIdentifier
-          recentFiles:(NSMenuItem*)menu;
+- (id)initWithBackend:(id)backend pid:(int)processIdentifier;
 - (id)backendProxy;
 - (int)pid;
 - (void)setServerName:(NSString *)name;
 - (NSString *)serverName;
 - (MMWindowController *)windowController;
 - (NSDictionary *)vimState;
+- (NSMenu *)mainMenu;
 - (void)cleanup;
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force;
 - (void)dropString:(NSString *)string;
@@ -61,5 +59,4 @@
                timeout:(NSTimeInterval)timeout;
 - (void)addVimInput:(NSString *)string;
 - (NSString *)evaluateVimExpression:(NSString *)expr;
-- (void)updateMainMenu;
 @end
