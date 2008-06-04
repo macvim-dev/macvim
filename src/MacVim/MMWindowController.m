@@ -411,33 +411,6 @@
     }
 }
 
-- (void)popupMenu:(NSMenu *)menu atRow:(int)row column:(int)col
-{
-    if (!setupDone) return;
-
-    NSEvent *event;
-    if (row >= 0 && col >= 0) {
-        // TODO: Let textView convert (row,col) to NSPoint.
-        NSSize cellSize = [[vimView textView] cellSize];
-        NSPoint pt = { (col+1)*cellSize.width, (row+1)*cellSize.height };
-        pt = [[vimView textView] convertPoint:pt toView:nil];
-
-        event = [NSEvent mouseEventWithType:NSRightMouseDown
-                                   location:pt
-                              modifierFlags:0
-                                  timestamp:0
-                               windowNumber:[[self window] windowNumber]
-                                    context:nil
-                                eventNumber:0
-                                 clickCount:0
-                                   pressure:1.0];
-    } else {
-        event = [[vimView textView] lastMouseDownEvent];
-    }
-
-    [NSMenu popUpContextMenu:menu withEvent:event forView:[vimView textView]];
-}
-
 - (void)showTabBar:(BOOL)on
 {
     [[vimView tabBarControl] setHidden:!on];

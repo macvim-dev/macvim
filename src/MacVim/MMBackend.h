@@ -85,7 +85,6 @@
                             saving:(int)saving;
 - (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
                      buttons:(char *)btns textField:(char *)txtfield;
-- (void)showPopupMenuWithName:(char *)name atMouseLocation:(BOOL)mouse;
 - (void)showToolbar:(int)enable flags:(int)flags;
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
 - (void)destroyScrollbarWithIdentifier:(long)ident;

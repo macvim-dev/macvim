@@ -748,28 +748,6 @@ static NSString *MMSymlinkWarningString =
     return retval;
 }
 
-- (void)showPopupMenuWithName:(char *)name atMouseLocation:(BOOL)mouse
-{
-    int len = strlen(name);
-    int row = -1, col = -1;
-
-    if (len <= 0) return;
-
-    if (!mouse && curwin) {
-        row = curwin->w_wrow;
-        col = curwin->w_wcol;
-    }
-
-    NSMutableData *data = [NSMutableData data];
-
-    [data appendBytes:&row length:sizeof(int)];
-    [data appendBytes:&col length:sizeof(int)];
-    [data appendBytes:&len length:sizeof(int)];
-    [data appendBytes:name length:len];
-
-    [self queueMessage:ShowPopupMenuMsgID data:data];
-}
-
 - (void)showToolbar:(int)enable flags:(int)flags
 {
     NSMutableData *data = [NSMutableData data];
@@ -1507,7 +1485,7 @@ static NSString *MMSymlinkWarningString =
     // to make synchronous calls from MacVim to Vim in order to get state.
 
 #ifdef FEAT_RIGHTLEFT
-    BOOL rightLeft = curwin->w_p_rl;
+    BOOL rightLeft = curwin ? curwin->w_p_rl : NO;
 #else
     BOOL rightLeft = NO;
 #endif

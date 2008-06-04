@@ -54,7 +54,6 @@ enum { MMMaxCellsPerChar = 2 };
 //
 // MMTextView methods
 //
-- (NSEvent *)lastMouseDownEvent;
 - (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)setPreEditRow:(int)row column:(int)col;
 - (void)hideMarkedTextField;

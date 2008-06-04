@@ -247,11 +247,6 @@ enum {
 
 
 
-- (NSEvent *)lastMouseDownEvent
-{
-    return nil;
-}
-
 - (void)setShouldDrawInsertionPoint:(BOOL)on
 {
 }

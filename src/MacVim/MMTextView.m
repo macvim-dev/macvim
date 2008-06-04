@@ -128,13 +128,7 @@ enum {
         markedTextField = nil;
     }
 
-    [lastMouseDownEvent release];  lastMouseDownEvent = nil;
     [super dealloc];
-}
-
-- (NSEvent *)lastMouseDownEvent
-{
-    return lastMouseDownEvent;
 }
 
 - (BOOL)shouldDrawInsertionPoint
@@ -819,8 +813,6 @@ enum {
     NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
     if (![self convertPoint:pt toRow:&row column:&col])
         return;
-
-    lastMouseDownEvent = [event copy];
 
     int button = [event buttonNumber];
     int flags = [event modifierFlags];

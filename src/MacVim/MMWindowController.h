@@ -51,7 +51,6 @@
 - (void)setFont:(NSFont *)font;
 - (void)setWideFont:(NSFont *)font;
 - (void)processCommandQueueDidFinish;
-- (void)popupMenu:(NSMenu *)menu atRow:(int)row column:(int)col;
 - (void)showTabBar:(BOOL)on;
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode;
 - (void)setMouseShape:(int)shape;

@@ -615,6 +615,10 @@ clip_mch_set_selection(VimClipboard *cbd)
 // -- Menu ------------------------------------------------------------------
 
 
+/*
+ * A menu descriptor represents the "address" of a menu as an array of strings.
+ * E.g. the menu "File->Close" has descriptor { "File", "Close" }.
+ */
     NSArray *
 descriptor_for_menu(vimmenu_T *menu)
 {
@@ -656,37 +660,17 @@ menu_for_descriptor(NSArray *desc)
 }
 
 /*
- * Add a sub menu to the menu bar.
+ * Add a submenu to the menu bar, toolbar, or a popup menu.
  */
     void
 gui_mch_add_menu(vimmenu_T *menu, int idx)
 {
-    // HACK!  If menu has no parent, then we set the parent tag to the type of
-    // menu it is.  This will not mix up tag and type because pointers can not
-    // take values close to zero (and the tag is simply the value of the
-    // pointer).
-    int parent = (int)menu->parent;
-    if (!parent) {
-        parent = menu_is_popup(menu->name) ? MenuPopupType :
-                 menu_is_toolbar(menu->name) ? MenuToolbarType :
-                 MenuMenubarType;
-    }
-
-    char_u *dname = menu->dname;
-#ifdef FEAT_MBYTE
-    dname = CONVERT_TO_UTF8(dname);
-#endif
-
     NSArray *desc = descriptor_for_menu(menu);
     [[MMBackend sharedInstance] queueMessage:AddMenuMsgID properties:
         [NSDictionary dictionaryWithObjectsAndKeys:
             desc, @"descriptor",
             [NSNumber numberWithInt:idx], @"index",
             nil]];
-
-#ifdef FEAT_MBYTE
-    CONVERT_TO_UTF8_FREE(dname);
-#endif
 }
 
 
@@ -775,19 +759,9 @@ gui_mch_menu_hidden(vimmenu_T *menu, int hidden)
     void
 gui_mch_show_popupmenu(vimmenu_T *menu)
 {
-#if 0
-    char_u *name = menu->name;
-#ifdef FEAT_MBYTE
-    name = CONVERT_TO_UTF8(name);
-#endif
-
-    [[MMBackend sharedInstance] showPopupMenuWithName:(char*)name
-                                      atMouseLocation:YES];
-
-#ifdef FEAT_MBYTE
-    CONVERT_TO_UTF8_FREE(name);
-#endif
-#endif
+    NSArray *desc = descriptor_for_menu(menu);
+    [[MMBackend sharedInstance] queueMessage:ShowPopupMenuMsgID properties:
+        [NSDictionary dictionaryWithObject:desc forKey:@"descriptor"]];
 }
 
 
@@ -797,18 +771,19 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
     void
 gui_make_popup(char_u *path_name, int mouse_pos)
 {
-#if 0
-#ifdef FEAT_MBYTE
-    path_name = CONVERT_TO_UTF8(path_name);
-#endif
+    vimmenu_T *menu = gui_find_menu(path_name);
+    if (!(menu && menu->children)) return;
 
-    [[MMBackend sharedInstance] showPopupMenuWithName:(char*)path_name
-                                      atMouseLocation:mouse_pos];
+    NSArray *desc = descriptor_for_menu(menu);
+    NSDictionary *p = (mouse_pos || NULL == curwin)
+        ? [NSDictionary dictionaryWithObject:desc forKey:@"descriptor"]
+        : [NSDictionary dictionaryWithObjectsAndKeys:
+            desc, @"descriptor",
+            [NSNumber numberWithInt:curwin->w_wrow], @"row",
+            [NSNumber numberWithInt:curwin->w_wcol], @"column",
+            nil];
 
-#ifdef FEAT_MBYTE
-    CONVERT_TO_UTF8_FREE(path_name);
-#endif
-#endif
+    [[MMBackend sharedInstance] queueMessage:ShowPopupMenuMsgID properties:p];
 }
 
 

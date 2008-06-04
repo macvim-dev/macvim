@@ -80,6 +80,9 @@ static NSTimeInterval MMResendInterval = 0.5;
 - (void)addToolbarItemWithLabel:(NSString *)label
                           tip:(NSString *)tip icon:(NSString *)icon
                       atIndex:(int)idx;
+- (void)popupMenuWithDescriptor:(NSArray *)desc
+                          atRow:(NSNumber *)row
+                         column:(NSNumber *)col;
 - (void)connectionDidDie:(NSNotification *)notification;
 #if MM_RESEND_LAST_FAILURE
 - (void)resendTimerFired:(NSTimer *)timer;
@@ -746,23 +749,10 @@ static NSTimeInterval MMResendInterval = 0.5;
 
         [actionName release];
     } else if (ShowPopupMenuMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        NSString *title = [[NSString alloc]
-                initWithBytes:(void*)bytes length:len
-                     encoding:NSUTF8StringEncoding];
-
-        NSMenu *menu = [self topLevelMenuForTitle:title];
-        if (menu) {
-            [windowController popupMenu:menu atRow:row column:col];
-        } else {
-            NSLog(@"WARNING: Cannot popup menu with title %@; no such menu.",
-                    title);
-        }
-
-        [title release];
+        NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
+        [self popupMenuWithDescriptor:[attrs objectForKey:@"descriptor"]
+                                atRow:[attrs objectForKey:@"row"]
+                               column:[attrs objectForKey:@"column"]];
     } else if (SetMouseShapeMsgID == msgid) {
         const void *bytes = [data bytes];
         int shape = *((int*)bytes);  bytes += sizeof(int);
@@ -1174,6 +1164,39 @@ static NSTimeInterval MMResendInterval = 0.5;
     if (maxIdx < idx) idx = maxIdx;
 
     [toolbar insertItemWithItemIdentifier:label atIndex:idx];
+}
+
+- (void)popupMenuWithDescriptor:(NSArray *)desc
+                          atRow:(NSNumber *)row
+                         column:(NSNumber *)col
+{
+    NSMenu *menu = [[self menuItemForDescriptor:desc] submenu];
+    if (!menu) return;
+
+    id textView = [[windowController vimView] textView];
+    NSPoint pt;
+    if (row && col) {
+        // TODO: Let textView convert (row,col) to NSPoint.
+        int r = [row intValue];
+        int c = [col intValue];
+        NSSize cellSize = [textView cellSize];
+        pt = NSMakePoint((c+1)*cellSize.width, (r+1)*cellSize.height);
+        pt = [textView convertPoint:pt toView:nil];
+    } else {
+        pt = [[windowController window] mouseLocationOutsideOfEventStream];
+    }
+
+    NSEvent *event = [NSEvent mouseEventWithType:NSRightMouseDown
+                           location:pt
+                      modifierFlags:0
+                          timestamp:0
+                       windowNumber:[[windowController window] windowNumber]
+                            context:nil
+                        eventNumber:0
+                         clickCount:0
+                           pressure:1.0];
+
+    [NSMenu popUpContextMenu:menu withEvent:event forView:textView];
 }
 
 - (void)connectionDidDie:(NSNotification *)notification

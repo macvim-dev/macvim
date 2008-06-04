@@ -13,7 +13,6 @@
 
 @interface MMTextView : NSTextView {
     BOOL                shouldDrawInsertionPoint;
-    NSEvent             *lastMouseDownEvent;
     NSTrackingRectTag   trackingRectTag;
     BOOL                isDragging;
     BOOL                isAutoscrolling;
@@ -34,7 +33,6 @@
 
 - (id)initWithFrame:(NSRect)frame;
 
-- (NSEvent *)lastMouseDownEvent;
 - (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)setPreEditRow:(int)row column:(int)col;
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
