@@ -79,7 +79,9 @@ an 20.470 Edit.Special\ Characters\.\.\.    <Nop>
 aunmenu Window
 
 an <silent> 9900.300 Window.Minimize            <Nop>
+an <silent> 9900.301 Window.Minimize\ All       <Nop>
 an <silent> 9900.310 Window.Zoom                <Nop>
+an <silent> 9900.311 Window.Zoom\ All           <Nop>
 an <silent> 9900.320 Window.Toggle\ Full\ Screen\ Mode  :set invfullscreen<CR>
 an <silent> 9900.325 Window.Cycle\ Through\ Windows             <Nop>
 an <silent> 9900.326 Window.Cycle\ Through\ Windows\ Backwards  <Nop>
@@ -237,8 +239,10 @@ macm Tools.Previous\ Error                  key=<D-C-Left>
 macm Tools.Older\ List                      key=<D-C-Up>
 macm Tools.Newer\ List                      key=<D-C-Down>
 
-macm Window.Minimize                    key=<D-m>   action=performMiniaturize:
-macm Window.Zoom                        key=<D-C-z> action=performZoom:
+macm Window.Minimize        key=<D-m>       action=performMiniaturize:
+macm Window.Minimize\ All   key=<D-M-m>     action=miniaturizeAll:  alt=YES
+macm Window.Zoom            key=<D-C-z>     action=performZoom:
+macm Window.Zoom\ All       key=<D-M-C-z>   action=zoomAll:         alt=YES
 macm Window.Toggle\ Full\ Screen\ Mode  key=<D-F>
 macm Window.Cycle\ Through\ Windows     key=<D-`>   action=_cycleWindows:
 macm Window.Cycle\ Through\ Windows\ Backwards      key=<D-S-`> action=_cycleWindowsBackwards: alt=YES

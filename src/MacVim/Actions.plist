@@ -68,5 +68,7 @@
 	<string></string>
 	<key>unhideAllApplications:</key>
 	<string></string>
+	<key>zoomAll:</key>
+	<string></string>
 </dict>
 </plist>

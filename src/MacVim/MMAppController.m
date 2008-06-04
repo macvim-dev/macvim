@@ -742,6 +742,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
             @"-c", @":h gui_mac", nil]];
 }
 
+- (IBAction)zoomAll:(id)sender
+{
+    [NSApp makeWindowsPerform:@selector(performZoom:) inOrder:YES];
+}
+
 - (byref id <MMFrontendProtocol>)
     connectBackend:(byref in id <MMBackendProtocol>)backend
                pid:(int)pid
