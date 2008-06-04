@@ -38,7 +38,7 @@
 - (IBAction)fontSizeDown:(id)sender;
 - (IBAction)orderFrontPreferencePanel:(id)sender;
 - (IBAction)openWebsite:(id)sender;
-- (IBAction)showHelp:(id)sender;
+- (IBAction)showVimHelp:(id)sender;
 - (IBAction)zoomAll:(id)sender;
 
 @end

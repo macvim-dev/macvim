@@ -60,6 +60,8 @@
 	<string></string>
 	<key>selectPreviousWindow:</key>
 	<string></string>
+	<key>showVimHelp:</key>
+	<string></string>
 	<key>terminate:</key>
 	<string></string>
 	<key>undo:</key>

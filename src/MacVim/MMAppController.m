@@ -736,10 +736,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
             [NSURL URLWithString:MMWebsiteString]];
 }
 
-- (IBAction)showHelp:(id)sender
+- (IBAction)showVimHelp:(id)sender
 {
+    // Open a new window with the help window maximized.
     [self launchVimProcessWithArguments:[NSArray arrayWithObjects:
-            @"-c", @":h gui_mac", nil]];
+            @"-c", @":h gui_mac", @"-c", @":res", nil]];
 }
 
 - (IBAction)zoomAll:(id)sender

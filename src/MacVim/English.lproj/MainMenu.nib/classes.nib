@@ -25,6 +25,10 @@
 				<string>id</string>
 				<key>showHelp</key>
 				<string>id</string>
+				<key>showVimHelp</key>
+				<string>id</string>
+				<key>zoomAll</key>
+				<string>id</string>
 			</dict>
 			<key>CLASS</key>
 			<string>MMAppController</string>
