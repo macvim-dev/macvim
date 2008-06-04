@@ -13,7 +13,7 @@
  * MMAppController is the delegate of NSApp and as such handles file open
  * requests, application termination, etc.  It sets up a named NSConnection on
  * which it listens to incoming connections from Vim processes.  It also
- * coordinates all MMVimControllers.
+ * coordinates all MMVimControllers and takes care of the main menu.
  *
  * A new Vim process is started by calling launchVimProcessWithArguments:.
  * When the Vim process is initialized it notifies the app controller by
@@ -24,6 +24,17 @@
  * A Vim process started from the command line connects directly by sending the
  * connectBackend:pid: message (launchVimProcessWithArguments: is never called
  * in this case).
+ *
+ * The main menu is handled as follows.  Each Vim controller keeps its own main
+ * menu.  All menus except the "MacVim" menu are controlled by the Vim process.
+ * The app controller also keeps a reference to the "default main menu" which
+ * is set up in MainMenu.nib.  When no editor window is open the default main
+ * menu is used.  When a new editor window becomes main its main menu becomes
+ * the new main menu, this is done in -[MMAppController setMainMenu:].
+ *   NOTE: Certain heuristics are used to find the "MacVim", "Windows", "File",
+ * and "Services" menu.  If MainMenu.nib changes these heuristics may have to
+ * change as well.  For specifics see the find... methods defined in the NSMenu
+ * category "MMExtras".
  */
 
 #import "MMAppController.h"
