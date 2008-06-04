@@ -643,9 +643,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
             if ([item action] == @selector(makeKeyAndOrderFront:))
                 [windowsMenu removeItem:item];
         }
-
-        [NSApp setWindowsMenu:windowsMenu];
     }
+    [NSApp setWindowsMenu:windowsMenu];
 }
 
 - (IBAction)newWindow:(id)sender
