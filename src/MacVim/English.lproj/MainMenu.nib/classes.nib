@@ -23,6 +23,8 @@
 				<string>id</string>
 				<key>selectPreviousWindow</key>
 				<string>id</string>
+				<key>showHelp</key>
+				<string>id</string>
 			</dict>
 			<key>CLASS</key>
 			<string>MMAppController</string>

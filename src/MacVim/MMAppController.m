@@ -736,6 +736,12 @@ static int executeInLoginShell(NSString *path, NSArray *args);
             [NSURL URLWithString:MMWebsiteString]];
 }
 
+- (IBAction)showHelp:(id)sender
+{
+    [self launchVimProcessWithArguments:[NSArray arrayWithObjects:
+            @"-c", @":h gui_mac", nil]];
+}
+
 - (byref id <MMFrontendProtocol>)
     connectBackend:(byref in id <MMBackendProtocol>)backend
                pid:(int)pid
