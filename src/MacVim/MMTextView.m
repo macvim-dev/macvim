@@ -651,14 +651,6 @@ enum {
     if ([[NSApp mainMenu] performKeyEquivalent:event])
         return YES;
 
-    // HACK!  KeyCode 50 represent the key which switches between windows
-    // within an application (like Cmd+Tab is used to switch between
-    // applications).  Return NO here, else the window switching does not work.
-    //
-    // Will this hack work for all languages / keyboard layouts?
-    if ([event keyCode] == 50)
-        return NO;
-
     // HACK!  On Leopard Ctrl-key events end up here instead of keyDown:.
     if (flags & NSControlKeyMask) {
         [self keyDown:event];
