@@ -507,6 +507,7 @@ static void f_filewritable __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_filter __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_finddir __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_findfile __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_fnameescape __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_fnamemodify __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_foldclosed __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_foldclosedend __ARGS((typval_T *argvars, typval_T *rettv));
@@ -7107,6 +7108,7 @@ static struct fst
     {"filter",		2, 2, f_filter},
     {"finddir",		1, 3, f_finddir},
     {"findfile",	1, 3, f_findfile},
+    {"fnameescape",	1, 1, f_fnameescape},
     {"fnamemodify",	2, 2, f_fnamemodify},
     {"foldclosed",	1, 1, f_foldclosed},
     {"foldclosedend",	1, 1, f_foldclosedend},
@@ -9462,6 +9464,19 @@ f_findfile(argvars, rettv)
     typval_T	*rettv;
 {
     findfilendir(argvars, rettv, FINDFILE_FILE);
+}
+
+/*
+ * "fnameescape({string})" function
+ */
+    static void
+f_fnameescape(argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    rettv->vval.v_string = vim_strsave_fnameescape(
+					   get_tv_string(&argvars[0]), FALSE);
+    rettv->v_type = VAR_STRING;
 }
 
 /*
@@ -21073,8 +21088,12 @@ static int shortpath_for_invalid_fname __ARGS((char_u **fname, char_u **bufp, in
 static int shortpath_for_partial __ARGS((char_u **fnamep, char_u **bufp, int *fnamelen));
 
 /*
- * Get the short pathname of a file.
- * Returns 1 on success. *fnamelen is 0 for nonexistent path.
+ * Get the short path (8.3) for the filename in "fnamep".
+ * Only works for a valid file name.
+ * When the path gets longer "fnamep" is changed and the allocated buffer
+ * is put in "bufp".
+ * *fnamelen is the length of "fnamep" and set to 0 for a nonexistent path.
+ * Returns OK on success, FAIL on failure.
  */
     static int
 get_short_pathname(fnamep, bufp, fnamelen)
@@ -21082,36 +21101,44 @@ get_short_pathname(fnamep, bufp, fnamelen)
     char_u	**bufp;
     int		*fnamelen;
 {
-    int		l,len;
+    int		l, len;
     char_u	*newbuf;
 
     len = *fnamelen;
-
     l = GetShortPathName(*fnamep, *fnamep, len);
     if (l > len - 1)
     {
 	/* If that doesn't work (not enough space), then save the string
-	 * and try again with a new buffer big enough
-	 */
+	 * and try again with a new buffer big enough. */
 	newbuf = vim_strnsave(*fnamep, l);
 	if (newbuf == NULL)
-	    return 0;
+	    return FAIL;
 
 	vim_free(*bufp);
 	*fnamep = *bufp = newbuf;
 
-	l = GetShortPathName(*fnamep,*fnamep,l+1);
-
-	/* Really should always succeed, as the buffer is big enough */
+	/* Really should always succeed, as the buffer is big enough. */
+	l = GetShortPathName(*fnamep, *fnamep, l+1);
     }
 
     *fnamelen = l;
-    return 1;
+    return OK;
 }
 
 /*
- * Create a short path name.  Returns the length of the buffer it needs.
- * Doesn't copy over the end of the buffer passed in.
+ * Get the short path (8.3) for the filename in "fname". The converted
+ * path is returned in "bufp".
+ *
+ * Some of the directories specified in "fname" may not exist. This function
+ * will shorten the existing directories at the beginning of the path and then
+ * append the remaining non-existing path.
+ *
+ * fname - Pointer to the filename to shorten.  On return, contains the
+ *         pointer to the shortened pathname
+ * bufp -  Pointer to an allocated buffer for the filename.
+ * fnamelen - Length of the filename pointed to by fname
+ *
+ * Returns OK on success (or nothing done) and FAIL on failure (out of memory).
  */
     static int
 shortpath_for_invalid_fname(fname, bufp, fnamelen)
@@ -21119,85 +21146,106 @@ shortpath_for_invalid_fname(fname, bufp, fnamelen)
     char_u	**bufp;
     int		*fnamelen;
 {
-    char_u	*s, *p, *pbuf2, *pbuf3;
+    char_u	*short_fname, *save_fname, *pbuf_unused;
+    char_u	*endp, *save_endp;
     char_u	ch;
-    int		len, len2, plen, slen;
+    int		old_len, len;
+    int		new_len, sfx_len;
+    int		retval = OK;
 
     /* Make a copy */
-    len2 = *fnamelen;
-    pbuf2 = vim_strnsave(*fname, len2);
-    pbuf3 = NULL;
+    old_len = *fnamelen;
+    save_fname = vim_strnsave(*fname, old_len);
+    pbuf_unused = NULL;
+    short_fname = NULL;
 
-    s = pbuf2 + len2 - 1; /* Find the end */
-    slen = 1;
-    plen = len2;
+    endp = save_fname + old_len - 1; /* Find the end of the copy */
+    save_endp = endp;
 
-    if (after_pathsep(pbuf2, s + 1))
+    /*
+     * Try shortening the supplied path till it succeeds by removing one
+     * directory at a time from the tail of the path.
+     */
+    len = 0;
+    for (;;)
     {
-	--s;
-	++slen;
-	--plen;
+	/* go back one path-separator */
+	while (endp > save_fname && !after_pathsep(save_fname, endp + 1))
+	    --endp;
+	if (endp <= save_fname)
+	    break;		/* processed the complete path */
+
+	/*
+	 * Replace the path separator with a NUL and try to shorten the
+	 * resulting path.
+	 */
+	ch = *endp;
+	*endp = 0;
+	short_fname = save_fname;
+	len = STRLEN(short_fname) + 1;
+	if (get_short_pathname(&short_fname, &pbuf_unused, &len) == FAIL)
+	{
+	    retval = FAIL;
+	    goto theend;
+	}
+	*endp = ch;	/* preserve the string */
+
+	if (len > 0)
+	    break;	/* successfully shortened the path */
+
+	/* failed to shorten the path. Skip the path separator */
+	--endp;
     }
 
-    do
+    if (len > 0)
     {
-	/* Go back one path-separator */
-	while (s > pbuf2 && !after_pathsep(pbuf2, s + 1))
-	{
-	    --s;
-	    ++slen;
-	    --plen;
-	}
-	if (s <= pbuf2)
-	    break;
+	/*
+	 * Succeeded in shortening the path. Now concatenate the shortened
+	 * path with the remaining path at the tail.
+	 */
 
-	/* Remember the character that is about to be splatted */
-	ch = *s;
-	*s = 0; /* get_short_pathname requires a null-terminated string */
+	/* Compute the length of the new path. */
+	sfx_len = (int)(save_endp - endp) + 1;
+	new_len = len + sfx_len;
 
-	/* Try it in situ */
-	p = pbuf2;
-	if (!get_short_pathname(&p, &pbuf3, &plen))
-	{
-	    vim_free(pbuf2);
-	    return -1;
-	}
-	*s = ch;    /* Preserve the string */
-    } while (plen == 0);
-
-    if (plen > 0)
-    {
-	/* Remember the length of the new string.  */
-	*fnamelen = len = plen + slen;
+	*fnamelen = new_len;
 	vim_free(*bufp);
-	if (len > len2)
+	if (new_len > old_len)
 	{
-	    /* If there's not enough space in the currently allocated string,
-	     * then copy it to a buffer big enough.
-	     */
-	    *fname= *bufp = vim_strnsave(p, len);
+	    /* There is not enough space in the currently allocated string,
+	     * copy it to a buffer big enough. */
+	    *fname = *bufp = vim_strnsave(short_fname, new_len);
 	    if (*fname == NULL)
-		return -1;
+	    {
+		retval = FAIL;
+		goto theend;
+	    }
 	}
 	else
 	{
-	    /* Transfer pbuf2 to being the main buffer  (it's big enough) */
-	    *fname = *bufp = pbuf2;
-	    if (p != pbuf2)
-		strncpy(*fname, p, plen);
-	    pbuf2 = NULL;
+	    /* Transfer short_fname to the main buffer (it's big enough),
+	     * unless get_short_pathname() did its work in-place. */
+	    *fname = *bufp = save_fname;
+	    if (short_fname != save_fname)
+		vim_strncpy(save_fname, short_fname, len);
+	    save_fname = NULL;
 	}
-	/* Concat the next bit */
-	strncpy(*fname + plen, s, slen);
-	(*fname)[len] = '\0';
+
+	/* concat the not-shortened part of the path */
+	vim_strncpy(*fname + len, endp, sfx_len);
+	(*fname)[new_len] = NUL;
     }
-    vim_free(pbuf3);
-    vim_free(pbuf2);
-    return 0;
+
+theend:
+    vim_free(pbuf_unused);
+    vim_free(save_fname);
+
+    return retval;
 }
 
 /*
  * Get a pathname for a partial path.
+ * Returns OK for success, FAIL for failure.
  */
     static int
 shortpath_for_partial(fnamep, bufp, fnamelen)
@@ -21227,8 +21275,8 @@ shortpath_for_partial(fnamep, bufp, fnamelen)
 
     len = tflen = (int)STRLEN(tfname);
 
-    if (!get_short_pathname(&tfname, &pbuf, &len))
-	return -1;
+    if (get_short_pathname(&tfname, &pbuf, &len) == FAIL)
+	return FAIL;
 
     if (len == 0)
     {
@@ -21237,8 +21285,8 @@ shortpath_for_partial(fnamep, bufp, fnamelen)
 	 * there's not a lot of point in guessing what it might be.
 	 */
 	len = tflen;
-	if (shortpath_for_invalid_fname(&tfname, &pbuf, &len) == -1)
-	    return -1;
+	if (shortpath_for_invalid_fname(&tfname, &pbuf, &len) == FAIL)
+	    return FAIL;
     }
 
     /* Count the paths backward to find the beginning of the desired string. */
@@ -21262,7 +21310,7 @@ shortpath_for_partial(fnamep, bufp, fnamelen)
 	if (p >= tfname)
 	    *p = '~';
 	else
-	    return -1;
+	    return FAIL;
     }
     else
 	++p;
@@ -21273,7 +21321,7 @@ shortpath_for_partial(fnamep, bufp, fnamelen)
     *bufp = pbuf;
     *fnamep = p;
 
-    return 0;
+    return OK;
 }
 #endif /* WIN3264 */
 
@@ -21281,7 +21329,7 @@ shortpath_for_partial(fnamep, bufp, fnamelen)
  * Adjust a filename, according to a string of modifiers.
  * *fnamep must be NUL terminated when called.  When returning, the length is
  * determined by *fnamelen.
- * Returns valid flags.
+ * Returns VALID_ flags or -1 for failure.
  * When there is an error, *fnamep is set to NULL.
  */
     int
@@ -21493,7 +21541,7 @@ repeat:
 	 */
 	if (!has_fullname && !vim_isAbsName(*fnamep))
 	{
-	    if (shortpath_for_partial(fnamep, bufp, fnamelen) == -1)
+	    if (shortpath_for_partial(fnamep, bufp, fnamelen) == FAIL)
 		return -1;
 	}
 	else
@@ -21503,7 +21551,7 @@ repeat:
 	    /* Simple case, already have the full-name
 	     * Nearly always shorter, so try first time. */
 	    l = *fnamelen;
-	    if (!get_short_pathname(fnamep, bufp, &l))
+	    if (get_short_pathname(fnamep, bufp, &l) == FAIL)
 		return -1;
 
 	    if (l == 0)
@@ -21511,7 +21559,7 @@ repeat:
 		/* Couldn't find the filename.. search the paths.
 		 */
 		l = *fnamelen;
-		if (shortpath_for_invalid_fname(fnamep, bufp, &l ) == -1)
+		if (shortpath_for_invalid_fname(fnamep, bufp, &l) == FAIL)
 		    return -1;
 	    }
 	    *fnamelen = l;

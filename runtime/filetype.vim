@@ -16,20 +16,23 @@ set cpo&vim
 augroup filetypedetect
 
 " Ignored extensions
+if exists("*fnameescape")
 au BufNewFile,BufRead ?\+.orig,?\+.bak,?\+.old,?\+.new,?\+.rpmsave,?\+.rpmnew
-	\ exe "doau filetypedetect BufRead " . expand("<afile>:r")
+	\ exe "doau filetypedetect BufRead " . fnameescape(expand("<afile>:r"))
 au BufNewFile,BufRead *~
 	\ let s:name = expand("<afile>") |
 	\ let s:short = substitute(s:name, '\~$', '', '') |
 	\ if s:name != s:short && s:short != "" |
-	\   exe "doau filetypedetect BufRead " . s:short |
+	\   exe "doau filetypedetect BufRead " . fnameescape(s:short) |
 	\ endif |
-	\ unlet s:name |
-	\ unlet s:short
+	\ unlet s:name s:short
 au BufNewFile,BufRead ?\+.in
 	\ if expand("<afile>:t") != "configure.in" |
-	\   exe "doau filetypedetect BufRead " . expand("<afile>:r") |
+	\   exe "doau filetypedetect BufRead " . fnameescape(expand("<afile>:r")) |
 	\ endif
+elseif &verbose > 0
+  echomsg "Warning: some filetypes will not be recognized because this version of Vim does not have fnameescape()"
+endif
 
 " Pattern used to match file names which should not be inspected.
 " Currently finds compressed files.
@@ -187,7 +190,7 @@ func! s:FTasmsyntax()
   let head = " ".getline(1)." ".getline(2)." ".getline(3)." ".getline(4).
 	\" ".getline(5)." "
   if head =~ '\sasmsyntax=\S\+\s'
-    let b:asmsyntax = substitute(head, '.*\sasmsyntax=\(\S\+\)\s.*','\1', "")
+    let b:asmsyntax = substitute(head, '.*\sasmsyntax=\([a-zA-Z0-9]\+\)\s.*','\1', "")
   elseif ((head =~? '\.title') || (head =~? '\.ident') || (head =~? '\.macro') || (head =~? '\.subtitle') || (head =~? '\.library'))
     let b:asmsyntax = "vmasm"
   endif

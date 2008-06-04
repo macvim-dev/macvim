@@ -1973,8 +1973,10 @@ utf_class(c)
 	{0x205f, 0x205f, 0},
 	{0x2060, 0x27ff, 1},		/* punctuation and symbols */
 	{0x2070, 0x207f, 0x2070},	/* superscript */
-	{0x2080, 0x208f, 0x2080},	/* subscript */
-	{0x2983, 0x2998, 1},
+	{0x2080, 0x2094, 0x2080},	/* subscript */
+	{0x20a0, 0x27ff, 1},		/* all kinds of symbols */
+	{0x2800, 0x28ff, 0x2800},	/* braille */
+	{0x2900, 0x2998, 1},		/* arrows, brackets, etc. */
 	{0x29d8, 0x29db, 1},
 	{0x29fc, 0x29fd, 1},
 	{0x3000, 0x3000, 0},		/* ideographic space */
@@ -5518,13 +5520,13 @@ preedit_callback_setup(GdkIC *ic)
     preedit_caret_cb.callback = (XIMProc)preedit_caret_cbproc;
     preedit_done_cb.callback = (XIMProc)preedit_done_cbproc;
     preedit_attr
-	= XVaCreateNestedList (0,
+	 = XVaCreateNestedList(0,
 			       XNPreeditStartCallback, &preedit_start_cb,
 			       XNPreeditDrawCallback, &preedit_draw_cb,
 			       XNPreeditCaretCallback, &preedit_caret_cb,
 			       XNPreeditDoneCallback, &preedit_done_cb,
-			       0);
-    XSetICValues (xxic, XNPreeditAttributes, preedit_attr, 0);
+			       NULL);
+    XSetICValues(xxic, XNPreeditAttributes, preedit_attr, NULL);
     XFree(preedit_attr);
 }
 
@@ -5534,7 +5536,8 @@ reset_state_setup(GdkIC *ic)
 {
 #ifdef USE_X11R6_XIM
     /* don't change the input context when we call reset */
-    XSetICValues(((GdkICPrivate*)ic)->xic, XNResetState, XIMPreserveState, 0);
+    XSetICValues(((GdkICPrivate *)ic)->xic, XNResetState, XIMPreserveState,
+									NULL);
 #endif
 }
 
