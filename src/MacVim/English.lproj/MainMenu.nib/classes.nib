@@ -48,6 +48,10 @@
 		<dict>
 			<key>ACTIONS</key>
 			<dict>
+				<key>_cycleWindows</key>
+				<string>id</string>
+				<key>_cycleWindowsBackwards</key>
+				<string>id</string>
 				<key>addNewTab</key>
 				<string>id</string>
 			</dict>
