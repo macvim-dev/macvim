@@ -298,6 +298,15 @@ static int numFullscreenWindows = 0;
         [super performClose:sender];
 }
 
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    if ([item action] == @selector(vimMenuItemAction:)
+            || [item action] == @selector(performClose:))
+        return [item tag];
+
+    return YES;
+}
+
 @end // MMFullscreenWindow
 
 

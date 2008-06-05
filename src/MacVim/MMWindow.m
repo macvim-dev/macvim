@@ -129,4 +129,13 @@
         [super performClose:sender];
 }
 
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    if ([item action] == @selector(vimMenuItemAction:)
+            || [item action] == @selector(performClose:))
+        return [item tag];
+
+    return YES;
+}
+
 @end // MMWindow
