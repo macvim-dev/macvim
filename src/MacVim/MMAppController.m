@@ -606,22 +606,24 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     // "Recent Files" menu and there is no way to simply point Cocoa to a new
     // item each time the menus are swapped.
     NSMenu *fileMenu = [mainMenu findFileMenu];
-    int dummyIdx =
-            [fileMenu indexOfItemWithAction:@selector(recentFilesDummy:)];
-    if (dummyIdx >= 0 && recentFilesMenuItem) {
-        NSMenuItem *dummyItem = [[fileMenu itemAtIndex:dummyIdx] retain];
-        [fileMenu removeItemAtIndex:dummyIdx];
+    if (recentFilesMenuItem && fileMenu) {
+        int dummyIdx =
+                [fileMenu indexOfItemWithAction:@selector(recentFilesDummy:)];
+        if (dummyIdx >= 0) {
+            NSMenuItem *dummyItem = [[fileMenu itemAtIndex:dummyIdx] retain];
+            [fileMenu removeItemAtIndex:dummyIdx];
 
-        NSMenu *recentFilesParentMenu = [recentFilesMenuItem menu];
-        int idx = [recentFilesParentMenu indexOfItem:recentFilesMenuItem];
-        if (idx >= 0) {
-            [[recentFilesMenuItem retain] autorelease];
-            [recentFilesParentMenu removeItemAtIndex:idx];
-            [recentFilesParentMenu insertItem:dummyItem atIndex:idx];
+            NSMenu *recentFilesParentMenu = [recentFilesMenuItem menu];
+            int idx = [recentFilesParentMenu indexOfItem:recentFilesMenuItem];
+            if (idx >= 0) {
+                [[recentFilesMenuItem retain] autorelease];
+                [recentFilesParentMenu removeItemAtIndex:idx];
+                [recentFilesParentMenu insertItem:dummyItem atIndex:idx];
+            }
+
+            [fileMenu insertItem:recentFilesMenuItem atIndex:dummyIdx];
+            [dummyItem release];
         }
-
-        [fileMenu insertItem:recentFilesMenuItem atIndex:dummyIdx];
-        [dummyItem release];
     }
 
     // Now set the new menu.  Notice that we keep one menu for each editor
