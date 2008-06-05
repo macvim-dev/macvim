@@ -28,6 +28,7 @@
 #import "MMAtsuiTextView.h"
 #import "MMVimController.h"
 #import "MMWindowController.h"
+#import "MMAppController.h"
 #import "MacVim.h"
 
 
@@ -409,6 +410,14 @@ enum {
     // passing it on to vim, otherwise key equivalents for menus will
     // effectively be disabled.
     if ([[NSApp mainMenu] performKeyEquivalent:event])
+        return YES;
+
+    // HACK! Give the default main menu a chance to handle the key down event.
+    // This is to ensure that the standard mappings (which are in the default
+    // main menu) are always available, also when the default Vim menus are
+    // used (these do not set any key equivalents!).
+    if ([[[MMAppController sharedInstance] defaultMainMenu]
+            performKeyEquivalent:event])
         return YES;
 
     // HACK!  On Leopard Ctrl-key events end up here instead of keyDown:.
