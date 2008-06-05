@@ -389,6 +389,12 @@ equivalent Cmd-n, which opens a new window when selected: >
 3. Create a mapping in normal mode which closes the current tab/window: >
 	:map <C-w> :maca performClose:<CR>
 >
+
+The standard Vim menus are modified in "$VIM/gvimrc".  Take a look at that
+file for more examples on how to set up menus.  Note: When no window is open a
+minimal default menu is used.  The default menu is set up in MainMenu.nib
+which resides in "Resources/English.lproj/" folder inside the app bundle.
+
 							*Actions.plist*
 Some action messages would not be suitable to call from within Vim, so there
 is a dictionary called "Actions.plist" (in the Resources folder of the
@@ -403,18 +409,23 @@ Here is a random assortment of actions from Actions.plist which might be
 useful.  
 
 Action				Description ~
+fileOpen:			Show "File Open" dialog
 findNext:			Search forward using the "Find Pasteboard"
 findPrevious:			Search backward using the "Find Pasteboard"
 fontSizeDown:			Decrease font size
 fontSizeUp:			Increase font size
+hide:				Hide MacVim
+miniaturizeAll:			Minimize all windows to the dock
 newWindow:			Open a new (empty) window
 orderFrontCharacterPalette:	Show the the "Special Characters" dialog
 orderFrontFontPanel:		Show the Font panel
 orderFrontPreferencePanel:	Show the Preferences panel
-performClose:			Close tab/window
+performMiniaturize:		Minimize window to the dock
 performZoom:			Zoom window (same as clicking the green blob)
-selectNextWindow:		Select next window (similar to <D-`>)
-selectPreviousWindow:		Select previous window (similar to <S-D-`>)
+terminate:			Quit MacVim
+zoomAll:			Zoom all windows
+_cycleWindows:			Select next window (similar to <D-`>)
+_cycleWindowsBackwards:		Select previous window (similar to <D-S-`>)
 
 ==============================================================================
 6. Toolbar						*macvim-toolbar*
