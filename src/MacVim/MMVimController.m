@@ -525,28 +525,33 @@ static NSTimeInterval MMResendInterval = 0.5;
 {
     if (!isInitialized) return;
 
-    unsigned i, count = [queue count];
-    if (count % 2) {
-        NSLog(@"WARNING: Uneven number of components (%d) in flush queue "
-                "message; ignoring this message.", count);
-        return;
+    @try {
+        unsigned i, count = [queue count];
+        if (count % 2) {
+            NSLog(@"WARNING: Uneven number of components (%d) in flush queue "
+                    "message; ignoring this message.", count);
+            return;
+        }
+
+        inProcessCommandQueue = YES;
+
+        //NSLog(@"======== %s BEGIN ========", _cmd);
+        for (i = 0; i < count; i += 2) {
+            NSData *value = [queue objectAtIndex:i];
+            NSData *data = [queue objectAtIndex:i+1];
+
+            int msgid = *((int*)[value bytes]);
+            //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
+
+            [self handleMessage:msgid data:data];
+        }
+        //NSLog(@"======== %s  END  ========", _cmd);
+
+        [windowController processCommandQueueDidFinish];
     }
-
-    inProcessCommandQueue = YES;
-
-    //NSLog(@"======== %s BEGIN ========", _cmd);
-    for (i = 0; i < count; i += 2) {
-        NSData *value = [queue objectAtIndex:i];
-        NSData *data = [queue objectAtIndex:i+1];
-
-        int msgid = *((int*)[value bytes]);
-        //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
-
-        [self handleMessage:msgid data:data];
+    @catch (NSException *e) {
+        NSLog(@"Exception caught whilst processing command queue: %@", e);
     }
-    //NSLog(@"======== %s  END  ========", _cmd);
-
-    [windowController processCommandQueueDidFinish];
 
     inProcessCommandQueue = NO;
 
