@@ -688,8 +688,9 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     char_u *tip = menu->strings[MENU_INDEX_TIP]
             ? menu->strings[MENU_INDEX_TIP] : menu->actext;
     NSArray *desc = descriptor_for_menu(menu);
-    NSString *keyEquivalent = [NSString stringWithFormat:@"%C",
-             specialKeyToNSKey(menu->mac_key)];
+    NSString *keyEquivalent = menu->mac_key
+        ? [NSString stringWithFormat:@"%C", specialKeyToNSKey(menu->mac_key)]
+        : [NSString string];
     int modifierMask = vimModMaskToEventModifierFlags(menu->mac_mods);
 
     [[MMBackend sharedInstance] queueMessage:AddMenuItemMsgID properties:
