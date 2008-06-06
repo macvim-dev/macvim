@@ -1014,6 +1014,7 @@ static NSTimeInterval MMResendInterval = 0.5;
     if (0 == [title length]
             || ([title hasPrefix:@"-"] && [title hasSuffix:@"-"])) {
         item = [NSMenuItem separatorItem];
+        [item setTitle:title];
     } else {
         item = [[[NSMenuItem alloc] init] autorelease];
         [item setTitle:title];
