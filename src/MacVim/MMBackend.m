@@ -1484,15 +1484,8 @@ static NSString *MMSymlinkWarningString =
     // We take this approach of "pushing" the state to MacVim to avoid having
     // to make synchronous calls from MacVim to Vim in order to get state.
 
-#ifdef FEAT_RIGHTLEFT
-    BOOL rightLeft = curwin ? curwin->w_p_rl : NO;
-#else
-    BOOL rightLeft = NO;
-#endif
-
     NSDictionary *vimState = [NSDictionary dictionaryWithObjectsAndKeys:
         [[NSFileManager defaultManager] currentDirectoryPath], @"pwd",
-        [NSNumber numberWithBool:rightLeft], @"w_p_rl",
         nil];
 
     [self queueMessage:SetVimStateMsgID data:[vimState dictionaryAsData]];

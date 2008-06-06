@@ -1073,11 +1073,24 @@ gui_mch_draw_part_cursor(int w, int h, guicolor_T color)
     // font dimensions.  Thus these parameters are useless.  Instead we look at
     // the shape_table to determine the shape and size of the cursor (just like
     // gui_update_cursor() does).
+
+#ifdef FEAT_RIGHTLEFT
+    // If 'rl' is set the insert mode cursor must be drawn on the right-hand
+    // side of a text cell.
+    int rl = curwin ? curwin->w_p_rl : FALSE;
+#else
+    int rl = FALSE;
+#endif
     int idx = get_shape_idx(FALSE);
     int shape = MMInsertionPointBlock;
     switch (shape_table[idx].shape) {
-        case SHAPE_HOR: shape = MMInsertionPointHorizontal; break;
-        case SHAPE_VER: shape = MMInsertionPointVertical; break;
+        case SHAPE_HOR:
+            shape = MMInsertionPointHorizontal;
+            break;
+        case SHAPE_VER:
+            shape = rl ? MMInsertionPointVerticalRight
+                       : MMInsertionPointVertical;
+            break;
     }
 
     return [[MMBackend sharedInstance]

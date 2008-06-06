@@ -183,6 +183,7 @@ enum {
     MMInsertionPointHorizontal,
     MMInsertionPointVertical,
     MMInsertionPointHollow,
+    MMInsertionPointVerticalRight,
 };
 
 
