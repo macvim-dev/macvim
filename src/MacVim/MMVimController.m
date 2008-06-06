@@ -122,11 +122,12 @@ static NSTimeInterval MMResendInterval = 0.5;
                 selector:@selector(connectionDidDie:)
                     name:NSConnectionDidDieNotification object:connection];
 
-        // Copy the "MacVim menu" from the default main menu (we assume that it
-        // is the first item on the default main menu).
+        // Set up a main menu with only a "MacVim" menu (copied from a template
+        // which itself is set up in MainMenu.nib).  The main menu is populated
+        // by Vim later on.
         mainMenu = [[NSMenu alloc] initWithTitle:@"MainMenu"];
-        NSMenuItem *appMenuItem = [[[MMAppController sharedInstance]
-                                            defaultMainMenu] itemAtIndex:0];
+        NSMenuItem *appMenuItem = [[MMAppController sharedInstance]
+                                            appMenuItemTemplate];
         appMenuItem = [[appMenuItem copy] autorelease];
 
         // Note: If the title of the application menu is anything but what

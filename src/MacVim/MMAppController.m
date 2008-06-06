@@ -201,6 +201,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     [openSelectionString release];  openSelectionString = nil;
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
     [defaultMainMenu release];  defaultMainMenu = nil;
+    [appMenuItemTemplate release];  appMenuItemTemplate = nil;
 
     [super dealloc];
 }
@@ -210,6 +211,14 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     // Remember the default menu so that it can be restored if the user closes
     // all editor windows.
     defaultMainMenu = [[NSApp mainMenu] retain];
+
+    // Store a copy of the default app menu so we can use this as a template
+    // for all other menus.  We make a copy here because the "Services" menu
+    // will not yet have been populated at this time.  If we don't we get
+    // problems trying to set key equivalents later on because they might clash
+    // with items on the "Services" menu.
+    appMenuItemTemplate = [defaultMainMenu itemAtIndex:0];
+    appMenuItemTemplate = [appMenuItemTemplate copy];
 
     // Set up the "Open Recent" menu. See
     //   http://lapcatsoftware.com/blog/2007/07/10/
@@ -541,6 +550,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (NSMenu *)defaultMainMenu
 {
     return defaultMainMenu;
+}
+
+- (NSMenuItem *)appMenuItemTemplate
+{
+    return appMenuItemTemplate;
 }
 
 - (void)removeVimController:(id)controller

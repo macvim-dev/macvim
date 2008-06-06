@@ -22,11 +22,13 @@
     ATSFontContainerRef fontContainerRef;
     NSMutableDictionary *pidArguments;
     NSMenu              *defaultMainMenu;
+    NSMenuItem          *appMenuItemTemplate;
     NSMenuItem          *recentFilesMenuItem;
 }
 
 + (MMAppController *)sharedInstance;
 - (NSMenu *)defaultMainMenu;
+- (NSMenuItem *)appMenuItemTemplate;
 - (void)removeVimController:(id)controller;
 - (void)windowControllerWillOpen:(MMWindowController *)windowController;
 - (void)setMainMenu:(NSMenu *)mainMenu;
