@@ -54,6 +54,10 @@ static NSTimeInterval MMReplyTimeout = 5;
 
 static NSString *MMWebsiteString = @"http://code.google.com/p/macvim/";
 
+// When terminating, notify Vim processes then sleep for these many
+// microseconds.
+static useconds_t MMTerminationSleepPeriod = 10000;
+
 
 #pragma options align=mac68k
 typedef struct
@@ -503,6 +507,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         id vc;
         while ((vc = [e nextObject]))
             [vc sendMessage:TerminateNowMsgID data:nil];
+
+        // Give Vim processes a chance to terminate before MacVim.  If they
+        // haven't terminated by the time applicationWillTerminate: is sent,
+        // they may be forced to quit (see below).
+        usleep(MMTerminationSleepPeriod);
     }
 
     return reply;
