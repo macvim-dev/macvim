@@ -258,6 +258,16 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             || col+cells > maxColumns || !string || !(fg && bg && sp))
         return;
 
+    BOOL hasControlChars = [string rangeOfCharacterFromSet:
+            [NSCharacterSet controlCharacterSet]].location != NSNotFound;
+    if (hasControlChars) {
+        // HACK! If a string for some reason contains control characters, then
+        // draw blanks instead (otherwise charRangeForRow::: fails).
+        NSRange subRange = { 0, cells };
+        flags &= ~DRAW_WIDE;
+        string = [[emptyRowString string] substringWithRange:subRange];
+    }
+
     // Find range of characters in text storage to replace.
     int acol = col;
     int acells = cells;
