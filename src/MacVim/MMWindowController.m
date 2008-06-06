@@ -609,6 +609,18 @@
     [vimController sendMessage:ExecuteMenuMsgID data:[attrs dictionaryAsData]];
 }
 
+- (IBAction)fontSizeUp:(id)sender
+{
+    [[NSFontManager sharedFontManager] modifyFont:
+            [NSNumber numberWithInt:NSSizeUpFontAction]];
+}
+
+- (IBAction)fontSizeDown:(id)sender
+{
+    [[NSFontManager sharedFontManager] modifyFont:
+            [NSNumber numberWithInt:NSSizeDownFontAction]];
+}
+
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
     if ([item action] == @selector(vimMenuItemAction:)

@@ -34,8 +34,6 @@
 - (IBAction)fileOpen:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;
 - (IBAction)selectPreviousWindow:(id)sender;
-- (IBAction)fontSizeUp:(id)sender;
-- (IBAction)fontSizeDown:(id)sender;
 - (IBAction)orderFrontPreferencePanel:(id)sender;
 - (IBAction)openWebsite:(id)sender;
 - (IBAction)showVimHelp:(id)sender;

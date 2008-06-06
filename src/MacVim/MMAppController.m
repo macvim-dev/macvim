@@ -725,18 +725,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     }
 }
 
-- (IBAction)fontSizeUp:(id)sender
-{
-    [[NSFontManager sharedFontManager] modifyFont:
-            [NSNumber numberWithInt:NSSizeUpFontAction]];
-}
-
-- (IBAction)fontSizeDown:(id)sender
-{
-    [[NSFontManager sharedFontManager] modifyFont:
-            [NSNumber numberWithInt:NSSizeDownFontAction]];
-}
-
 - (IBAction)orderFrontPreferencePanel:(id)sender
 {
     [[MMPreferenceController sharedPrefsWindowController] showWindow:self];

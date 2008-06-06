@@ -68,5 +68,7 @@
 - (IBAction)findNext:(id)sender;
 - (IBAction)findPrevious:(id)sender;
 - (IBAction)vimMenuItemAction:(id)sender;
+- (IBAction)fontSizeUp:(id)sender;
+- (IBAction)fontSizeDown:(id)sender;
 
 @end
