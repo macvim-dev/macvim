@@ -137,7 +137,7 @@ static int numFullscreenWindows = 0;
     int fuRows = currRows, fuColumns = currColumns;
 
     int maxRows, maxColumns;
-    NSSize size = [[self screen] frame].size;
+    NSSize size = [[self screen] visibleFrame].size;
     [view constrainRows:&maxRows columns:&maxColumns toSize:size];
 
     // Store current pre-fu vim size
