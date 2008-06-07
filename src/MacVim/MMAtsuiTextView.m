@@ -1121,6 +1121,10 @@ enum {
     } else if (MMInsertionPointVertical == shape) {
         int frac = (cellSize.width * percent + 99)/100;
         rect.size.width = frac;
+    } else if (MMInsertionPointVerticalRight == shape) {
+        int frac = (cellSize.width * percent + 99)/100;
+        rect.origin.x += rect.size.width - frac;
+        rect.size.width = frac;
     }
 
     [color set];
