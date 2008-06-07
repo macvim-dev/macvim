@@ -1486,6 +1486,7 @@ static NSString *MMSymlinkWarningString =
 
     NSDictionary *vimState = [NSDictionary dictionaryWithObjectsAndKeys:
         [[NSFileManager defaultManager] currentDirectoryPath], @"pwd",
+        [NSNumber numberWithInt:p_mh], @"p_mh",
         nil];
 
     [self queueMessage:SetVimStateMsgID data:[vimState dictionaryAsData]];

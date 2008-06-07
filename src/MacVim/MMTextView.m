@@ -57,6 +57,7 @@ enum {
 - (void)startDragTimerWithInterval:(NSTimeInterval)t;
 - (void)dragTimerFired:(NSTimer *)timer;
 - (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags;
+- (void)hideMouseCursor;
 @end
 
 
@@ -566,8 +567,7 @@ enum {
         }
     }
 
-    // TODO: Support 'mousehide' (check p_mh)
-    [NSCursor setHiddenUntilMouseMoves:YES];
+    [self hideMouseCursor];
 
     // NOTE: 'string' is either an NSString or an NSAttributedString.  Since we
     // do not support attributes, simply pass the corresponding NSString in the
@@ -1377,12 +1377,21 @@ enum {
         [data appendBytes:&len length:sizeof(int)];
         [data appendBytes:chars length:len];
 
-        // TODO: Support 'mousehide' (check p_mh)
-        [NSCursor setHiddenUntilMouseMoves:YES];
+        [self hideMouseCursor];
 
         //NSLog(@"%s len=%d chars=0x%x", _cmd, len, chars[0]);
         [[self vimController] sendMessage:KeyDownMsgID data:data];
     }
+}
+
+- (void)hideMouseCursor
+{
+    // Check 'mousehide' option
+    id mh = [[[self vimController] vimState] objectForKey:@"p_mh"];
+    if (mh && ![mh boolValue])
+        [NSCursor setHiddenUntilMouseMoves:NO];
+    else
+        [NSCursor setHiddenUntilMouseMoves:YES];
 }
 
 @end // MMTextView (Private)
