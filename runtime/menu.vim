@@ -783,8 +783,9 @@ func! s:BMMunge(fname, bnum)
   return name
 endfunc
 
-" When just starting Vim, load the buffer menu later
-if has("vim_starting")
+" When just starting Vim, load the buffer menu later.  Don't do this for MacVim
+" because it makes the menu flicker each time a new editor window is opened.
+if has("vim_starting") && !has("gui_macvim")
   augroup LoadBufferMenu
     au! VimEnter * if !exists("no_buffers_menu") | call <SID>BMShow() | endif
     au  VimEnter * au! LoadBufferMenu
