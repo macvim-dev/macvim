@@ -547,13 +547,12 @@ static NSTimeInterval MMResendInterval = 0.5;
             [self handleMessage:msgid data:data];
         }
         //NSLog(@"======== %s  END  ========", _cmd);
-
-        [windowController processCommandQueueDidFinish];
     }
     @catch (NSException *e) {
         NSLog(@"Exception caught whilst processing command queue: %@", e);
     }
 
+    [windowController processCommandQueueDidFinish];
     inProcessCommandQueue = NO;
 
     if ([sendQueue count] > 0) {
