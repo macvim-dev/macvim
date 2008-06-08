@@ -406,6 +406,12 @@ enum {
             && !(116 == [event keyCode] || 121 == [event keyCode]))
         return NO;
 
+    // HACK!  KeyCode 50 represent the key which switches between windows
+    // within an application (like Cmd+Tab is used to switch between
+    // applications).  Return NO here, else the window switching does not work.
+    if ([event keyCode] == 50)
+        return NO;
+
     // HACK!  Let the main menu try to handle any key down event, before
     // passing it on to vim, otherwise key equivalents for menus will
     // effectively be disabled.
