@@ -41,17 +41,15 @@
     -->
     
     <item>
-      <title>Snapshot 29 released</title>
+      <title>Snapshot 30 released</title>
       <description><![CDATA[
-<h1>MacVim snapshot 29 released</h1>
+<h1>MacVim snapshot 30 released</h1>
 <p> Changes since snapshot 28:
 <ul>
   <li> copy&paste and other "Edit" menu items now work as expected with dialogs
        (such as open/save). </li>
   <li> some menus (such as the "Window" menu) has got some new items </li>
   <li> general menu improvements when no editor window is open </li>
-  <li> window-cycling key Cmd-` is no longer hard-coded and can be changed with
-       :macmenu command </li>
   <li> ability to access some OS X default Cmd-keys even if menus are
        completely altered (e.g. when starting with "-u NONE") </li>
   <li> QuickLook works with .vim files (patch by Nico Weber) </li>
@@ -65,12 +63,14 @@
   <li> latest vim patches and runtime files </li>
 </ul>
 </p>
+<p> The only difference between snapshot 29 and 30 is that the former did not
+handle window cycling very well with international keyboard layouts. </p>
       ]]></description>
-      <pubDate>Sun, 7 Jun 2008 12:57 CET</pubDate>
+      <pubDate>Sun, 8 Jun 2008 16:43 CET</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://macvim.googlecode.com/files/MacVim-snapshot-29.tbz"
-        length="8137324"
-        sparkle:version="29"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-30.tbz"
+        length="8137308"
+        sparkle:version="30"
         sparkle:shortVersionString="7.1"
         />
     </item>
