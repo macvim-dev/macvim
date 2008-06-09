@@ -80,6 +80,7 @@ static NSString *MMSymlinkWarningString =
 
 
 @interface MMBackend (Private)
+- (void)waitForDialogReturn;
 - (void)queueVimStateMessage;
 - (void)processInputQueue;
 - (void)handleInputEvent:(int)msgid data:(NSData *)data;
@@ -640,9 +641,7 @@ static NSString *MMSymlinkWarningString =
     @try {
         [frontendProxy showSavePanelForDirectory:ds title:ts saving:saving];
 
-        // Wait until a reply is sent from MMVimController.
-        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                 beforeDate:[NSDate distantFuture]];
+        [self waitForDialogReturn];
 
         if (dialogReturn && [dialogReturn isKindOfClass:[NSString class]]) {
             char_u *ret = (char_u*)[dialogReturn UTF8String];
@@ -664,12 +663,17 @@ static NSString *MMSymlinkWarningString =
     return (char *)s;
 }
 
-- (oneway void)setDialogReturn:(in bycopy id)obj
+- (void)setDialogReturn:(in bycopy id)obj
 {
     // NOTE: This is called by
     //   - [MMVimController panelDidEnd:::], and
     //   - [MMVimController alertDidEnd:::],
     // to indicate that a save/open panel or alert has finished.
+
+    // We want to distinguish between "no dialog return yet" and "dialog
+    // returned nothing".  The former can be tested with dialogReturn == nil,
+    // the latter with dialogReturn == [NSNull null].
+    if (!obj) obj = [NSNull null];
 
     if (obj != dialogReturn) {
         [dialogReturn release];
@@ -719,9 +723,7 @@ static NSString *MMSymlinkWarningString =
                               informativeText:text buttonTitles:buttons
                               textFieldString:textFieldString];
 
-        // Wait until a reply is sent from MMVimController.
-        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                 beforeDate:[NSDate distantFuture]];
+        [self waitForDialogReturn];
 
         if (dialogReturn && [dialogReturn isKindOfClass:[NSArray class]]
                 && [dialogReturn count]) {
@@ -1475,6 +1477,49 @@ static NSString *MMSymlinkWarningString =
 
 @implementation MMBackend (Private)
 
+- (void)waitForDialogReturn
+{
+    // Keep processing the run loop until a dialog returns.  To avoid getting
+    // stuck in an endless loop (could happen if the setDialogReturn: message
+    // was lost) we also do some paranoia checks.
+    //
+    // Note that in Cocoa the user can still resize windows and select menu
+    // items while a sheet is being displayed, so we can't just wait for the
+    // first message to arrive and assume that is the setDialogReturn: call.
+
+    while (nil == dialogReturn && !got_int && [connection isValid]
+            && !isTerminating)
+        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                 beforeDate:[NSDate distantFuture]];
+
+    // Search for any resize messages on the input queue.  All other messages
+    // on the input queue are dropped.  The reason why we single out resize
+    // messages is because the user may have resized the window while a sheet
+    // was open.
+    int i, count = [inputQueue count];
+    if (count > 0) {
+        id textDimData = nil;
+        if (count%2 == 0) {
+            for (i = count-2; i >= 0; i -= 2) {
+                int msgid = [[inputQueue objectAtIndex:i] intValue];
+                if (SetTextDimensionsMsgID == msgid) {
+                    textDimData = [[inputQueue objectAtIndex:i+1] retain];
+                    break;
+                }
+            }
+        }
+
+        [inputQueue removeAllObjects];
+
+        if (textDimData) {
+            [inputQueue addObject:
+                    [NSNumber numberWithInt:SetTextDimensionsMsgID]];
+            [inputQueue addObject:textDimData];
+            [textDimData release];
+        }
+    }
+}
+
 - (void)queueVimStateMessage
 {
     // NOTE: This is the place to add Vim state that needs to be accessed from
@@ -1494,6 +1539,8 @@ static NSString *MMSymlinkWarningString =
 
 - (void)processInputQueue
 {
+    if ([inputQueue count] == 0) return;
+
     // NOTE: One of the input events may cause this method to be called
     // recursively, so copy the input queue to a local variable and clear it
     // before starting to process input events (otherwise we could get stuck in

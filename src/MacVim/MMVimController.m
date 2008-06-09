@@ -47,6 +47,8 @@ static NSTimeInterval MMBackendProxyRequestTimeout = 0;
 static NSTimeInterval MMResendInterval = 0.5;
 #endif
 
+static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
+
 
 @interface MMAlert : NSAlert {
     NSTextField *textField;
@@ -813,6 +815,15 @@ static NSTimeInterval MMResendInterval = 0.5;
                 context:(void *)context
 {
     NSString *path = (code == NSOKButton) ? [panel filename] : nil;
+
+    // NOTE! setDialogReturn: is a synchronous call so set a proper timeout to
+    // avoid waiting forever for it to finish.  We make this a synchronous call
+    // so that we can be fairly certain that Vim doesn't think the dialog box
+    // is still showing when MacVim has in fact already dismissed it.
+    NSConnection *conn = [backendProxy connectionForProxy];
+    NSTimeInterval oldTimeout = [conn requestTimeout];
+    [conn setRequestTimeout:MMSetDialogReturnTimeout];
+
     @try {
         [backendProxy setDialogReturn:path];
 
@@ -824,6 +835,9 @@ static NSTimeInterval MMResendInterval = 0.5;
     }
     @catch (NSException *e) {
         NSLog(@"Exception caught in %s %@", _cmd, e);
+    }
+    @finally {
+        [conn setRequestTimeout:oldTimeout];
     }
 }
 
