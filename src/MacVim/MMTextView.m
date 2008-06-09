@@ -932,6 +932,11 @@ enum {
     MMTextStorage *ts = (MMTextStorage*)[self textStorage];
     if (!ts) return;
 
+    // HACK! NSTextView has a nasty habit of resetting the cursor to the
+    // default I-beam cursor at random moments.  The only reliable way we know
+    // of to work around this is to set the cursor each time the mouse moves.
+    [self setCursor];
+
     NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
     int row, col;
     if (![self convertPoint:pt toRow:&row column:&col])
@@ -964,11 +969,6 @@ enum {
     // key.
     if ([[self window] isKeyWindow]) {
         [[self window] setAcceptsMouseMovedEvents:YES];
-
-        // Ensure Vim gets to choose the mouse cursor when it enters over the
-        // text view, otherwise NSTextView will automatically set its I-Beam
-        // cursor.
-        [self setCursor];
     }
 }
 
