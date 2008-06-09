@@ -3288,6 +3288,11 @@ do_dialog(type, title, message, buttons, dfltbutton, textfield)
     /* When GUI is running and 'c' not in 'guioptions', use the GUI dialog */
     if (gui.in_use && vim_strchr(p_go, GO_CONDIALOG) == NULL)
     {
+# ifdef FEAT_GUI_MACVIM
+	/* The 'swap file exists' dialog also displays text in the editor
+	 * window so make sure this is flushed before showing the dialog. */
+	gui_macvim_force_flush();
+# endif
 	c = gui_mch_dialog(type, title, message, buttons, dfltbutton,
 								   textfield);
 	msg_end_prompt();
