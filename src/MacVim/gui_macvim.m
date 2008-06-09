@@ -1286,6 +1286,9 @@ gui_mch_browse(
     //NSLog(@"gui_mch_browse(saving=%d, title=%s, dflt=%s, ext=%s, initdir=%s,"
     //        " filter=%s", saving, title, dflt, ext, initdir, filter);
 
+    // Ensure no data is on the output queue before presenting the dialog.
+    gui_macvim_force_flush();
+
 #ifdef FEAT_MBYTE
     title = CONVERT_TO_UTF8(title);
     initdir = CONVERT_TO_UTF8(initdir);
@@ -1318,6 +1321,9 @@ gui_mch_dialog(
     //NSLog(@"gui_mch_dialog(type=%d title=%s message=%s buttons=%s "
     //        "dfltbutton=%d textfield=%s)", type, title, message, buttons,
     //        dfltbutton, textfield);
+
+    // Ensure no data is on the output queue before presenting the dialog.
+    gui_macvim_force_flush();
 
 #ifdef FEAT_MBYTE
     title = CONVERT_TO_UTF8(title);
