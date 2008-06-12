@@ -124,7 +124,7 @@ gui_mch_haskey(char_u *name);
     void
 gui_mch_iconify(void);
     void
-gui_mch_invert_rectangle(int r, int c, int nr, int nc);
+gui_mch_invert_rectangle(int r, int c, int nr, int nc, int invert);
     void
 gui_mch_new_colors(void);
     void

@@ -96,6 +96,8 @@ enum {
 - (void)clearAll;
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
                        fraction:(int)percent color:(NSColor *)color;
+- (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nrows
+                   numColumns:(int)ncols;
 @end
 
 
@@ -599,6 +601,19 @@ enum {
             [self drawInsertionPointAtRow:row column:col shape:shape
                                      fraction:percent
                                         color:[NSColor colorWithRgbInt:color]];
+        } else if (DrawInvertedRectDrawType == type) {
+            int row = *((int*)bytes);  bytes += sizeof(int);
+            int col = *((int*)bytes);  bytes += sizeof(int);
+            int nr = *((int*)bytes);  bytes += sizeof(int);
+            int nc = *((int*)bytes);  bytes += sizeof(int);
+            /*int invert = *((int*)bytes);*/  bytes += sizeof(int);
+
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Draw inverted rect: row=%d col=%d nrows=%d ncols=%d",
+                    row, col, nr, nc);
+#endif
+            [self drawInvertedRectAtRow:row column:col numRows:nr
+                             numColumns:nc];
         } else if (SetCursorPosDrawType == type) {
             // TODO: This is used for Voice Over support in MMTextView,
             // MMAtsuiTextView currently does not support Voice Over.
@@ -1131,6 +1146,22 @@ enum {
     } else {
         NSRectFill(rect);
     }
+}
+
+- (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nrows
+                   numColumns:(int)ncols
+{
+    // TODO: THIS CODE HAS NOT BEEN TESTED!
+    CGContextRef cgctx = [[NSGraphicsContext currentContext] graphicsPort];
+    CGContextSaveGState(cgctx);
+    CGContextSetBlendMode(cgctx, kCGBlendModeDifference);
+    CGContextSetRGBFillColor(cgctx, 1.0, 1.0, 1.0, 1.0);
+
+    CGRect rect = { col * cellSize.width, row * cellSize.height,
+                    ncols * cellSize.width, nrows * cellSize.height };
+    CGContextFillRect(cgctx, rect);
+
+    CGContextRestoreGState(cgctx);
 }
 
 @end // MMAtsuiTextView (Drawing)

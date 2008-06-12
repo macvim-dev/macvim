@@ -50,6 +50,8 @@ enum {
 - (void)setCursor;
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 - (BOOL)convertRow:(int)row column:(int)column toPoint:(NSPoint *)point;
+- (BOOL)convertRow:(int)row column:(int)column numRows:(int)nr
+        numColumns:(int)nc toRect:(NSRect *)rect;
 - (NSRect)trackingRect;
 - (void)dispatchKeyEvent:(NSEvent *)event;
 - (MMWindowController *)windowController;
@@ -58,6 +60,10 @@ enum {
 - (void)dragTimerFired:(NSTimer *)timer;
 - (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags;
 - (void)hideMouseCursor;
+- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
+                       fraction:(int)percent color:(NSColor *)color;
+- (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nrows
+                   numColumns:(int)ncols invert:(int)invert;
 @end
 
 
@@ -130,6 +136,12 @@ enum {
         markedTextField = nil;
     }
 
+    if (invertRects) {
+        free(invertRects);
+        invertRects = NULL;
+        numInvertRects = 0;
+    }
+
     [super dealloc];
 }
 
@@ -151,23 +163,6 @@ enum {
 {
     preEditRow = row;
     preEditColumn = col;
-}
-
-- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                       fraction:(int)percent color:(NSColor *)color
-{
-    //NSLog(@"drawInsertionPointAtRow:%d column:%d shape:%d color:%@",
-    //        row, col, shape, color);
-
-    // This only stores where to draw the insertion point, the actual drawing
-    // is done in drawRect:.
-    shouldDrawInsertionPoint = YES;
-    insertionPointRow = row;
-    insertionPointColumn = col;
-    insertionPointShape = shape;
-    insertionPointFraction = percent;
-
-    [self setInsertionPointColor:color];
 }
 
 - (void)hideMarkedTextField
@@ -300,6 +295,19 @@ enum {
             [self drawInsertionPointAtRow:row column:col shape:shape
                                      fraction:percent
                                         color:[NSColor colorWithRgbInt:color]];
+        } else if (DrawInvertedRectDrawType == type) {
+            int row = *((int*)bytes);  bytes += sizeof(int);
+            int col = *((int*)bytes);  bytes += sizeof(int);
+            int nr = *((int*)bytes);  bytes += sizeof(int);
+            int nc = *((int*)bytes);  bytes += sizeof(int);
+            int invert = *((int*)bytes);  bytes += sizeof(int);
+
+#if MM_DEBUG_DRAWING
+            NSLog(@"   Draw inverted rect: row=%d col=%d nrows=%d ncols=%d",
+                    row, col, nr, nc);
+#endif
+            [self drawInvertedRectAtRow:row column:col numRows:nr numColumns:nc
+                                 invert:invert];
         } else if (SetCursorPosDrawType == type) {
             cursorRow = *((int*)bytes);  bytes += sizeof(int);
             cursorCol = *((int*)bytes);  bytes += sizeof(int);
@@ -451,6 +459,24 @@ enum {
     [context setShouldAntialias:antialias];
 
     [super drawRect:rect];
+
+    if (invertRects) {
+        CGContextRef cgctx = (CGContextRef)[context graphicsPort];
+        CGContextSaveGState(cgctx);
+        CGContextSetBlendMode(cgctx, kCGBlendModeDifference);
+        CGContextSetRGBFillColor(cgctx, 1.0, 1.0, 1.0, 1.0);
+
+        int i;
+        CGRect *rect = (CGRect*)invertRects;
+        for (i = 0; i < numInvertRects; ++i)
+            CGContextFillRect(cgctx, rect[i]);
+
+        CGContextRestoreGState(cgctx);
+
+        free(invertRects);
+        invertRects = NULL;
+        numInvertRects = 0;
+    }
 
     if (shouldDrawInsertionPoint) {
         MMTextStorage *ts = (MMTextStorage*)[self textStorage];
@@ -1242,6 +1268,23 @@ enum {
     return YES;
 }
 
+- (BOOL)convertRow:(int)row column:(int)column numRows:(int)nr
+        numColumns:(int)nc toRect:(NSRect *)rect
+{
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    NSSize cellSize = [ts cellSize];
+    if (!(rect && cellSize.width > 0 && cellSize.height > 0))
+        return NO;
+
+    rect->origin = [self textContainerOrigin];
+    rect->origin.x += column * cellSize.width;
+    rect->origin.y += row * cellSize.height;
+    rect->size.width = cellSize.width * nc;
+    rect->size.height = cellSize.height * nr;
+
+    return YES;
+}
+
 - (NSRect)trackingRect
 {
     NSRect rect = [self frame];
@@ -1390,6 +1433,48 @@ enum {
         [NSCursor setHiddenUntilMouseMoves:NO];
     else
         [NSCursor setHiddenUntilMouseMoves:YES];
+}
+
+- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
+                       fraction:(int)percent color:(NSColor *)color
+{
+    //NSLog(@"drawInsertionPointAtRow:%d column:%d shape:%d color:%@",
+    //        row, col, shape, color);
+
+    // This only stores where to draw the insertion point, the actual drawing
+    // is done in drawRect:.
+    shouldDrawInsertionPoint = YES;
+    insertionPointRow = row;
+    insertionPointColumn = col;
+    insertionPointShape = shape;
+    insertionPointFraction = percent;
+
+    [self setInsertionPointColor:color];
+}
+
+- (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nrows
+                   numColumns:(int)ncols invert:(int)invert
+{
+    if (invert) {
+        // The result should be inverted.
+        int n = numInvertRects++;
+        invertRects = reallocf(invertRects,
+                               numInvertRects*sizeof(NSRect));
+        if (NULL != invertRects) {
+            [self convertRow:row column:col numRows:nrows numColumns:ncols
+                      toRect:&invertRects[n]];
+            [self setNeedsDisplayInRect:invertRects[n]];
+        } else {
+            n = numInvertRects = 0;
+        }
+    } else {
+        // The result should look normal; all we need to do is to mark
+        // the rect for redrawing and Cocoa will redraw the text.
+        NSRect rect;
+        [self convertRow:row column:col numRows:nrows numColumns:ncols
+                  toRect:&rect];
+        [self setNeedsDisplayInRect:rect];
+    }
 }
 
 @end // MMTextView (Private)

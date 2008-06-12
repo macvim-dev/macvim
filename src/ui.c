@@ -1126,7 +1126,11 @@ clip_invert_rectangle(row, col, height, width, invert)
 {
 #ifdef FEAT_GUI
     if (gui.in_use)
+# ifdef FEAT_GUI_MACVIM
+	gui_mch_invert_rectangle(row, col, height, width, invert);
+# else
 	gui_mch_invert_rectangle(row, col, height, width);
+#endif
     else
 #endif
 	screen_draw_rectangle(row, col, height, width, invert);

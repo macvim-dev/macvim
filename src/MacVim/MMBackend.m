@@ -429,6 +429,19 @@ static NSString *MMSymlinkWarningString =
     [drawData appendBytes:&percent length:sizeof(int)];
 }
 
+- (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nr
+                   numColumns:(int)nc invert:(int)invert
+{
+    int type = DrawInvertedRectDrawType;
+    [drawData appendBytes:&type length:sizeof(int)];
+
+    [drawData appendBytes:&row length:sizeof(int)];
+    [drawData appendBytes:&col length:sizeof(int)];
+    [drawData appendBytes:&nr length:sizeof(int)];
+    [drawData appendBytes:&nc length:sizeof(int)];
+    [drawData appendBytes:&invert length:sizeof(int)];
+}
+
 - (void)update
 {
     // Tend to the run loop, returning immediately if there are no events

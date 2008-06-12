@@ -176,6 +176,7 @@ enum {
     InsertLinesDrawType,
     DrawCursorDrawType,
     SetCursorPosDrawType,
+    DrawInvertedRectDrawType,
 };
 
 enum {

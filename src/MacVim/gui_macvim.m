@@ -426,6 +426,17 @@ gui_mch_new_colors(void)
                         foreground:gui.def_norm_pixel];
 }
 
+/*
+ * Invert a rectangle from row r, column c, for nr rows and nc columns.
+ */
+    void
+gui_mch_invert_rectangle(int r, int c, int nr, int nc, int invert)
+{
+    [[MMBackend sharedInstance] drawInvertedRectAtRow:r column:c numRows:nr
+            numColumns:nc invert:invert];
+}
+
+
 
 // -- Tabline ---------------------------------------------------------------
 
@@ -1450,15 +1461,6 @@ gui_mch_haskey(char_u *name)
  */
     void
 gui_mch_iconify(void)
-{
-}
-
-
-/*
- * Invert a rectangle from row r, column c, for nr rows and nc columns.
- */
-    void
-gui_mch_invert_rectangle(int r, int c, int nr, int nc)
 {
 }
 

@@ -71,6 +71,8 @@
               scrollBottom:(int)bottom left:(int)left right:(int)right;
 - (void)drawCursorAtRow:(int)row column:(int)col shape:(int)shape
                fraction:(int)percent color:(int)color;
+- (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nr
+                   numColumns:(int)nc invert:(int)invert;
 - (void)update;
 - (void)flushQueue:(BOOL)force;
 - (BOOL)waitForInput:(int)milliseconds;

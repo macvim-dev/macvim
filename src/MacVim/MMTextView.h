@@ -29,14 +29,14 @@
     int                 preEditColumn;
     int                 mouseShape;
     BOOL                antialias;
+    NSRect              *invertRects;
+    int                 numInvertRects;
 }
 
 - (id)initWithFrame:(NSRect)frame;
 
 - (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)setPreEditRow:(int)row column:(int)col;
-- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                       fraction:(int)percent color:(NSColor *)color;
 - (void)hideMarkedTextField;
 - (void)performBatchDrawWithData:(NSData *)data;
 - (void)setMouseShape:(int)shape;
