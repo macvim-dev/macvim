@@ -1137,7 +1137,7 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:title];
     [item setLabel:title];
     [item setToolTip:tip];
-    [item setAction:@selector(vimMenuItemAction:)];
+    [item setAction:@selector(vimToolbarItemAction:)];
     [item setAutovalidates:NO];
 
     NSImage *img = [NSImage imageNamed:icon];

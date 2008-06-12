@@ -609,6 +609,14 @@
     [vimController sendMessage:ExecuteMenuMsgID data:[attrs dictionaryAsData]];
 }
 
+- (IBAction)vimToolbarItemAction:(id)sender
+{
+    NSArray *desc = [NSArray arrayWithObjects:@"ToolBar", [sender label], nil];
+    NSDictionary *attrs = [NSDictionary dictionaryWithObject:desc
+                                                      forKey:@"descriptor"];
+    [vimController sendMessage:ExecuteMenuMsgID data:[attrs dictionaryAsData]];
+}
+
 - (IBAction)fontSizeUp:(id)sender
 {
     [[NSFontManager sharedFontManager] modifyFont:
