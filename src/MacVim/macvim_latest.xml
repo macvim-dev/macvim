@@ -41,6 +41,44 @@
     -->
     
     <item>
+      <title>Snapshot 31 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 31 released</h1>
+<p> Changes since snapshot 30:
+<ul>
+  <li> Fixed problems with menus on OS X 10.4 and a related crash. </li>
+  <li> Dialog box handling has been updated.  This fixes a problem where the
+       "swap file warning" dialog would pop up before the informational text in
+       the editor window updated.  Hopefully this will also cure various other
+       problems with dialogs (e.g. nothing happening when opening files from a
+       dialog box). </li>
+  <li> Added dock menu with "New Window" item.  This is useful with "Spaces" on
+       OS X 10.5 since you can use this menu to open a new MacVim window on any
+       "space" when another editor window is already open.  (Also, now there is
+       always a way to open a new window, even if the menus are customized,
+       or if "-u NONE" is used.) </li>
+  <li> I have started trying to fix "modeless selection" and it sort of works
+       on my machine, but I've had one report stating that its not quite
+       working so you mileage may vary.  Make sure to let me know what works
+       and doesn't so that I can fix this properly.  (Try selecting text from
+       the command line.) </li>
+  <li> The default font (DejaVu Sans Mono) has been updated to version 2.25.
+  </li>
+  <li> Latest Vim source code merged </li>
+</ul>
+</p>
+      ]]></description>
+      <pubDate>Fri, 13 Jun 2008 16:00 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-31.tbz"
+        length="8182620"
+        sparkle:version="31"
+        sparkle:shortVersionString="7.1"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 30 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 30 released</h1>
