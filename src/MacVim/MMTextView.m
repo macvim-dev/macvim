@@ -853,9 +853,12 @@ enum {
     NSMutableData *data = [NSMutableData data];
 
     // If desired, intepret Ctrl-Click as a right mouse click.
-    if ([[NSUserDefaults standardUserDefaults]
-            boolForKey:MMTranslateCtrlClickKey]
-            && button == 0 && flags & NSControlKeyMask) {
+    BOOL translateCtrlClick = [[NSUserDefaults standardUserDefaults]
+            boolForKey:MMTranslateCtrlClickKey];
+    flags = flags & NSDeviceIndependentModifierFlagsMask;
+    if (translateCtrlClick && button == 0 &&
+            (flags == NSControlKeyMask ||
+             flags == (NSControlKeyMask|NSAlphaShiftKeyMask))) {
         button = 1;
         flags &= ~NSControlKeyMask;
     }
