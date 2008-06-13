@@ -1,3 +1,124 @@
+Changes from 2.24 to 2.25
+- moved/added U+2E18 (by Gee Fung Sit)
+- added empty glyph for U+2064 in Sans and Serif (by Gee Fung Sit)
+- added U+22CE-U+22CF to Sans (by Gee Fung Sit)
+- Sans Oblique and Bold Oblique, Serif: reverted digits hinting instructions back to before revision 1590, which fixed mistaken debian bug #471024. This fixes Debian bug #411308. The original bug was in freetype not in the fonts (by Denis Jacquerye)
+- added U+A726-U+A729, U+A730-U+A733, U+A738-U+A73F, U+A746-U+A74B, U+A74E-U+A74F, U+A780-U+A781, U+A7FB-U+A7FF to Sans (by Gee Fung Sit)
+- added Macedonian italic glyph shape for U+0453 in Serif (by Ben Laenen)
+- changed descenders in U+0446, U+0449, U+0497, U+04A3, U+04AD (by Andrey V. Panov)
+- updated main SFD files to SplineFontDB 3.0 (Denis Jacquerye and Gee Fung Sit)
+- moved U+0561 2 up since it wasn't aligned with the baseline well (by Ben Laenen)
+- added U+2E2E to Sans (by Gee Fung Sit)
+- replaced U+2699 with simpler version in Sans (by Gee Fung Sit)
+- added a lot of hinting instructions to Latin Extended B, Greek and Coptic glyphs Sans Book (by Wesley Transue)
+- differentiated U+2219 from U+22C5 and adjusted affected references in Sans and Mono (by Gee Fung Sit)
+- made Hebrew narrower in Sans Bold and Sans Bold Oblique (by Denis Jacquerye)
+- added Kurdish and Chuvash letters from Unicode 5.1 Cyrillic Extended block (by Wesley Transue)
+- added U+1E9F, U+A644-U+A647, U+A64C-U+A64D, U+A650-U+A651, U+A654-U+A655, U+A712U+A716 to Sans (by Gee Fung Sit)
+- added several glyphs to Sans ExtraLight (by Gee Fung Sit)
+- added hinting instructions to U+046A-U+046B, U+0508-U+0509, U+050B, U+0512-U+0513 in Sans Book (by Wesley Transue)
+- corrected width of U+027E in Sans Book (by Gee Fung Sit)
+- added U+2C79, U+2C7B-U+2C7D to Sans (by Gee Fung Sit)
+- added a bunch of glyphs+small corrections to Sans Light (by Gee Fung Sit)
+- added U+0496, U+0497, U+04B0, U+04B1 (by Andrey V. Panov)
+- updated U+0493, U+049B, U+04B3, U+04B7, U+04F7 (by Andrey V. Panov)
+- further improvements in extended Cyrillic (by Andrey V. Panov) 
+
+Changes from 2.23 to 2.24
+- instructions for U+05C0 ׀, U+05C3 ׃, U+05F3 ׳, and U+05F4 ״ in DejaVu 
+   Sans. (by Wesley Transue)
+- instructions for U+2116 in Sans (by Andrey V. Panov)
+- Unicode 5.1 update: moved U+F208 to U+2C6D, U+F25F to U+2C71, added 
+  U+2C6E-U+2C6F, U+2C72-U+2C73, updated outline of U+2C71 in Sans. (by 
+  Denis Jacquerye)
+- updated and instructed U+0401 in Sans (by Andrey V. Panov)
+- fixed the bug in Sans faces where U+02EC ˬ faced the wrong direction. 
+  Also, added a few more glyph instructions. (by Wesley Transue)
+- removed OS2Sub and OS2Strike that weren't intentional in Sans 
+  ExtraLight. (by Denis Jacquerye)
+- updated instructions for U+401, U+44F in Serif Book. (by Andrey V. 
+  Panov)
+- instructions for U+02C4 ˄, U+02C5 ˅, U+03D8 Ϙ, U+03D9 ϙ, U+0494 Ҕ, and 
+  U+0495 ҕ in Sans Book. (by Wesley Transue)
+- instructions for U+01A6 Ʀ, U+0238 ȸ, U+0239 ȹ, U+02EC ˬ, and U+05C6 ׆ 
+  in Sans Book. (by Wesley Transue)
+- DejaVuSans.sfd DejaVuSerif.sfd: updated instructions for U+447 and 
+  U+451 using code generated with xgridfit (by Andrey V. Panov)
+- instructions for a few glyphs in the Latin Extended-B Block, Greek 
+  Block, Cyrillic Block, and N'Ko block. (by Wesley Transue)
+- updated sfdnormalize.pl, and SFD files to new SFD format with empty 
+  lines. (by Denis Jacquerye) 
+
+Changes from 2.22 to 2.23
+
+- fixed bug which made Condensed fonts appear instead of normal width ones
+- added U+20DB, U+20DC, and U+20E1 to Sans (by Roozbeh Pournader)
+- added hinting instructions to U+01A7, U+01AA-U+01AC, U+01AE-U+01AF,
+  U+01BC-U+01BD, U+01BF, U+01F7, U+0277, U+027F, U+0285-U+0286, U+0297, U+02AF,
+  U+02B4-U+02B5, U+02BD, U+030D, U+0311, U+0329, U+04A0-U+04A1 in Sans Book (by
+  Wesley Transue)
+- modified hinting instructions of U+04A2 in Sans Book (by Wesley Transue)
+- added hinting instructions to U+237D, U+2423 in Mono Book and Mono Bold (by
+  Wesley Transue)
+- added mathematical alphanumeric symbols to all styles (by Max Berger)
+- added Unicode 5.1 U+2E18 as U+2E18.u51 (not yet usable) to Sans (by Roozbeh
+  Pournader) 
+- dereferenced all glyphs with mixed references and outlines (by Denis
+  Jacquerye)
+- removed non-zero width from U+0344 in Sans (by Denis Jacquerye)
+
+Changes from 2.21 to 2.22
+
+- directory structure has changed, we now use the Makefile
+- modified Armenian U+0565 in Sans (by Սահակ Պետրոսյան)
+- added double struck letters and numbers U+2102, U+210D, U+2115,
+  U+2119-U+211A, U+211D, U+2124, U+213C-U+2140, U+2145-U+2149, U+1D538-U+1D539,
+  U+1D53B-U+1D53E, U+1D540-U+1D544, U+1D546, U+1D54A-U+1D550, U+1D552-U+1D56B,
+  U+1D7D8-U+1D7E1 to Serif (by Stephen Hartke)
+- added letterlike symbols U+2103, U+2109, U+2127, U+214B, U+2141-U+2144 to
+  Serif (by Ben Laenen)
+- fixed outline direction of U+2143 in Sans Bold/Bold Oblique (by Ben Laenen)
+- added arrow set in Serif: arrows: U+2194-U+21FF; dingbats: U+27A1;
+  supplemental arrows A: U+27F0-U+27FF; supplemental arrows B: U+2900-U+2975,
+  U+297A; miscellaneous symbols and arrows: U+2B00-U+2B11 (by Ben Laenen)
+- added U+0180, U+01DE, U+01E0-01E1, U+022A, U+022C, U+0230, U+1E08-U+1E09,
+  U+1E10-U+1E11, U+1EB0-U+1EB1 to Mono (by Denis Jacquerye)
+- adjusted U+01D5, U+01D7, U+01D9, U+1DB in Mono (by Denis Jacquerye)
+- added Ogham in Sans (by Wesley Transue)
+- added Yijing Hexagram Symbols in Sans (by Wesley Transue)
+- hinting instructions added to Cyrillic U+0460, U+04A6-U+04A7, U+04AC-U+04AD,
+  U+04C7-U+04C8, U+04F6-U+04F7, U+04FA-U+04FB, U+050C-U+050D in Sans Book (by
+  Wesley Transue)
+- adjusted Cyrillic letters U+042A, U+044A, U+044C, U+0459-U+045B, U+0462,
+  U+048C-U+048D in Serif (by Andrey V. Panov)
+- hinting instructions added to Lao U+0EB7 in Sans (by Wesley Transue)
+- added Roman numerals and Claudian letter U+2160-U+2184 in Serif (by Ben
+  Laenen)
+- added U+FFF9-U+FFFD to Sans, Serif and Mono (by Lars Næsbye Christensen)
+- added mathematical symbols to Serif: U+2200, U+2203-U+2204, U+2213-U+2214,
+  U+2217-U+2218, U+2223-U+2226, U+2250-U+2255, U+2295-U+22AF, U+22C5 (by Ben
+  Laenen)
+- modified bullet symbol U+2219 in Serif (by Ben Laenen)
+
+Changes from 2.20 to 2.21
+
+- added U+FE20-U+FE23 (half diacritics) to Sans (by Denis Jacquerye)
+- added anchor "half" to position right half of double marks, U+FE21 or U+FE23
+  to Sans (by Denis Jacquerye)
+- shifted U+0360 up to avoid collision with some outlines in Sans (by Denis
+  Jacquerye)
+- added anchor above-mark anchor to U+035D, U+035E, U+0360, U+0361 in Sans (by
+  Denis Jacquerye)
+- added instructions for ff, ffi, ffl ligatures in Serif Bold (by Eugeniy
+  Meshcheryakov)
+- added instructions to some N'Ko glyphs (by Wesley Transue)
+- added instructions to some Lao glyphs (by Wesley Transue)
+- cleaning up 'liga' Standard Ligature in Latin, in Sans and Sans Mono (by
+  Denis Jacquerye)
+- added U+046A, U+046B (big yus) in Serif (by Andrey V. Panov)
+- added box drawing symbols to Sans and Serif (by Lars Næsbye Christensen)
+- added Makefile to improve font and packages generating (by Nicolas Mailhot)
+
 Changes from 2.19 to 2.20
 
 - removed TeX and TeXData tags from all sfd files (by Eugeniy  Meshcheryakov)
@@ -931,4 +1052,4 @@ Changes from 0.9 to 0.9.1:
 - proper caron shape for dcaron and tcaron
 - minor visual changes
 
-$Id: NEWS 1998 2007-09-16 14:23:46Z ben_laenen $
+$Id: NEWS 2227 2008-05-19 06:41:46Z moyogo $

@@ -193,10 +193,10 @@
 		1D1474B40C56796D0038FA2B /* MMVimController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMVimController.m; sourceTree = "<group>"; };
 		1D1474B90C567A910038FA2B /* MMWindowController.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMWindowController.h; sourceTree = "<group>"; };
 		1D1474BA0C567A910038FA2B /* MMWindowController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMWindowController.m; sourceTree = "<group>"; };
-		1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Bold.ttf"; path = "dejavu-ttf-2.20/DejaVuSansMono-Bold.ttf"; sourceTree = "<group>"; };
-		1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-BoldOblique.ttf"; path = "dejavu-ttf-2.20/DejaVuSansMono-BoldOblique.ttf"; sourceTree = "<group>"; };
-		1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Oblique.ttf"; path = "dejavu-ttf-2.20/DejaVuSansMono-Oblique.ttf"; sourceTree = "<group>"; };
-		1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = DejaVuSansMono.ttf; path = "dejavu-ttf-2.20/DejaVuSansMono.ttf"; sourceTree = "<group>"; };
+		1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Bold.ttf"; path = "dejavu-ttf/DejaVuSansMono-Bold.ttf"; sourceTree = "<group>"; };
+		1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-BoldOblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-BoldOblique.ttf"; sourceTree = "<group>"; };
+		1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Oblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-Oblique.ttf"; sourceTree = "<group>"; };
+		1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = DejaVuSansMono.ttf; path = "dejavu-ttf/DejaVuSansMono.ttf"; sourceTree = "<group>"; };
 		1D493D570C5247BF00AB718C /* Vim */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = Vim; path = ../Vim; sourceTree = SOURCE_ROOT; };
 		1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PSMTabBarControl.xcodeproj; path = PSMTabBarControl/PSMTabBarControl.xcodeproj; sourceTree = "<group>"; };
 		1D71ACA90BC702AB002F2B60 /* doc-bm-c.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm-c.icns"; sourceTree = "<group>"; };
