@@ -462,10 +462,9 @@ static NSString *MMSymlinkWarningString =
     // NOTE! This method gets called a lot; if we were to flush every time it
     // got called MacVim would feel unresponsive.  So there is a time out which
     // ensures that the queue isn't flushed too often.
-    if (exiting ||
-            (!force && lastFlushDate &&
-             -[lastFlushDate timeIntervalSinceNow] < MMFlushTimeoutInterval &&
-             [drawData length] < MMFlushQueueLenHint))
+    if (!force && lastFlushDate
+            && -[lastFlushDate timeIntervalSinceNow] < MMFlushTimeoutInterval
+            && [drawData length] < MMFlushQueueLenHint)
         return;
 
     if ([drawData length] > 0) {
@@ -1847,6 +1846,9 @@ static NSString *MMSymlinkWarningString =
 
 - (void)queueMessage:(int)msgid data:(NSData *)data
 {
+    //if (msgid != EnableMenuItemMsgID)
+    //    NSLog(@"queueMessage:%s", MessageStrings[msgid]);
+
     [outputQueue addObject:[NSData dataWithBytes:&msgid length:sizeof(int)]];
     if (data)
         [outputQueue addObject:data];
