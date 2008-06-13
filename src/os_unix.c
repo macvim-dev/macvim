@@ -3886,7 +3886,7 @@ mch_call_shell(cmd, options)
 		    /* push stream discipline modules */
 		    if (options & SHELL_COOKED)
 			SetupSlavePTY(pty_slave_fd);
-#  ifdef TIOCSCTTY
+#  if defined(TIOCSCTTY) && !defined(FEAT_GUI_MACVIM)
 		    /* Try to become controlling tty (probably doesn't work,
 		     * unless run by root) */
 		    ioctl(pty_slave_fd, TIOCSCTTY, (char *)NULL);
