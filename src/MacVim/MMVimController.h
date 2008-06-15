@@ -12,10 +12,6 @@
 #import "MacVim.h"
 
 
-// If sendMessage: fails, store the message and resend after a delay.
-#define MM_RESEND_LAST_FAILURE 0
-
-
 @class MMWindowController;
 
 
@@ -27,17 +23,13 @@
     id                  backendProxy;
     BOOL                inProcessCommandQueue;
     NSMutableArray      *sendQueue;
+    NSMutableArray      *receiveQueue;
     NSMenu              *mainMenu;
     NSMutableArray      *popupMenuItems;
     NSToolbar           *toolbar;
     NSMutableDictionary *toolbarItemDict;
     int                 pid;
     NSString            *serverName;
-#ifdef MM_RESEND_LAST_FAILURE
-    NSTimer             *resendTimer;
-    int                 resendMsgid;
-    NSData              *resendData;
-#endif
     NSDictionary        *vimState;
 }
 

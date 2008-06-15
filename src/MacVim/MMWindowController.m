@@ -387,6 +387,9 @@
 
 - (void)processCommandQueueDidFinish
 {
+    // IMPORTANT!  No synchronous DO calls are allowed in this method.  They
+    // may cause the command queue to get processed out of order.
+
     // NOTE: Resizing is delayed until after all commands have been processed
     // since it often happens that more than one command will cause a resize.
     // If we were to immediately resize then the vim view size would jitter

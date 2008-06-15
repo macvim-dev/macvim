@@ -41,13 +41,12 @@ static int MMAlertTextFieldHeight = 22;
 // sendMessage: to actually reach Vim.
 static NSTimeInterval MMBackendProxyRequestTimeout = 0;
 
-#if MM_RESEND_LAST_FAILURE
-// If a message send fails, the message will be resent after this many seconds
-// have passed.  (No queue is kept, only the very last message is resent.)
-static NSTimeInterval MMResendInterval = 0.5;
-#endif
-
+// Timeout used for setDialogReturn:.
 static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
+
+// Maximum number of items in the receiveQueue.  (It is hard to predict what
+// consequences changing this number will have.)
+static int MMReceiveQueueCap = 100;
 
 
 @interface MMAlert : NSAlert {
@@ -59,6 +58,7 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 
 
 @interface MMVimController (Private)
+- (void)doProcessCommandQueue:(NSArray *)queue;
 - (void)handleMessage:(int)msgid data:(NSData *)data;
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
                 context:(void *)context;
@@ -86,9 +86,6 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
                           atRow:(NSNumber *)row
                          column:(NSNumber *)col;
 - (void)connectionDidDie:(NSNotification *)notification;
-#if MM_RESEND_LAST_FAILURE
-- (void)resendTimerFired:(NSTimer *)timer;
-#endif
 @end
 
 
@@ -110,6 +107,7 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
             [[MMWindowController alloc] initWithVimController:self];
         backendProxy = [backend retain];
         sendQueue = [NSMutableArray new];
+        receiveQueue = [NSMutableArray new];
         popupMenuItems = [[NSMutableArray alloc] init];
         toolbarItemDict = [[NSMutableDictionary alloc] init];
         pid = processIdentifier;
@@ -154,13 +152,10 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
     //NSLog(@"%@ %s", [self className], _cmd);
     isInitialized = NO;
 
-#if MM_RESEND_LAST_FAILURE
-    [resendData release];  resendData = nil;
-#endif
-
     [serverName release];  serverName = nil;
     [backendProxy release];  backendProxy = nil;
     [sendQueue release];  sendQueue = nil;
+    [receiveQueue release];  receiveQueue = nil;
 
     [toolbarItemDict release];  toolbarItemDict = nil;
     [toolbar release];  toolbar = nil;
@@ -311,42 +306,12 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
         return;
     }
 
-#if MM_RESEND_LAST_FAILURE
-    if (resendTimer) {
-        //NSLog(@"cancelling scheduled resend of %s",
-        //        MessageStrings[resendMsgid]);
-
-        [resendTimer invalidate];
-        [resendTimer release];
-        resendTimer = nil;
-    }
-
-    if (resendData) {
-        [resendData release];
-        resendData = nil;
-    }
-#endif
-
     @try {
         [backendProxy processInput:msgid data:data];
     }
     @catch (NSException *e) {
         //NSLog(@"%@ %s Exception caught during DO call: %@",
         //        [self className], _cmd, e);
-#if MM_RESEND_LAST_FAILURE
-        //NSLog(@"%s failed, scheduling message %s for resend", _cmd,
-        //        MessageStrings[msgid]);
-
-        resendMsgid = msgid;
-        resendData = [data retain];
-        resendTimer = [NSTimer
-            scheduledTimerWithTimeInterval:MMResendInterval
-                                    target:self
-                                  selector:@selector(resendTimerFired:)
-                                  userInfo:nil
-                                   repeats:NO];
-        [resendTimer retain];
-#endif
     }
 }
 
@@ -528,34 +493,43 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 {
     if (!isInitialized) return;
 
-    @try {
-        unsigned i, count = [queue count];
-        if (count % 2) {
-            NSLog(@"WARNING: Uneven number of components (%d) in flush queue "
-                    "message; ignoring this message.", count);
-            return;
-        }
+    if (inProcessCommandQueue) {
+        // NOTE!  If a synchronous DO call is made during
+        // doProcessCommandQueue: below it may happen that this method is
+        // called a second time while the synchronous message is waiting for a
+        // reply (could also happen if doProcessCommandQueue: enters a modal
+        // loop, see comment below).  Since this method cannot be considered
+        // reentrant, we queue the input and return immediately.
+        //
+        // If doProcessCommandQueue: enters a modal loop (happens e.g. on
+        // ShowPopupMenuMsgID) then the receiveQueue could grow to become
+        // arbitrarily large because DO calls still get processed.  To avoid
+        // this we set a cap on the size of the queue and simply clear it if it
+        // becomes too large.  (That is messages will be dropped and hence Vim
+        // and MacVim will at least temporarily be out of sync.)
+        if ([receiveQueue count] >= MMReceiveQueueCap)
+            [receiveQueue removeAllObjects];
 
-        inProcessCommandQueue = YES;
-
-        //NSLog(@"======== %s BEGIN ========", _cmd);
-        for (i = 0; i < count; i += 2) {
-            NSData *value = [queue objectAtIndex:i];
-            NSData *data = [queue objectAtIndex:i+1];
-
-            int msgid = *((int*)[value bytes]);
-            //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
-
-            [self handleMessage:msgid data:data];
-        }
-        //NSLog(@"======== %s  END  ========", _cmd);
-    }
-    @catch (NSException *e) {
-        NSLog(@"Exception caught whilst processing command queue: %@", e);
+        [receiveQueue addObject:queue];
+        return;
     }
 
-    [windowController processCommandQueueDidFinish];
-    inProcessCommandQueue = NO;
+    inProcessCommandQueue = YES;
+    [self doProcessCommandQueue:queue];
+
+    int i;
+    for (i = 0; i < [receiveQueue count]; ++i) {
+        // Note that doProcessCommandQueue: may cause the receiveQueue to grow
+        // or get cleared (due to cap being hit).  Make sure to retain the item
+        // to process or it may get released from under us.
+        NSArray *q = [[receiveQueue objectAtIndex:i] retain];
+        [self doProcessCommandQueue:q];
+        [q release];
+    }
+
+    // We assume that the remaining calls make no synchronous DO calls.  If
+    // that did happen anyway, the command queue could get processed out of
+    // order.
 
     if ([sendQueue count] > 0) {
         @try {
@@ -568,6 +542,10 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 
         [sendQueue removeAllObjects];
     }
+
+    [windowController processCommandQueueDidFinish];
+    [receiveQueue removeAllObjects];
+    inProcessCommandQueue = NO;
 }
 
 - (NSToolbarItem *)toolbar:(NSToolbar *)theToolbar
@@ -597,6 +575,34 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 
 
 @implementation MMVimController (Private)
+
+- (void)doProcessCommandQueue:(NSArray *)queue
+{
+    @try {
+        unsigned i, count = [queue count];
+        if (count % 2) {
+            NSLog(@"WARNING: Uneven number of components (%d) in command "
+                    "queue.  Skipping...", count);
+            return;
+        }
+
+        //NSLog(@"======== %s BEGIN ========", _cmd);
+        for (i = 0; i < count; i += 2) {
+            NSData *value = [queue objectAtIndex:i];
+            NSData *data = [queue objectAtIndex:i+1];
+
+            int msgid = *((int*)[value bytes]);
+            //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
+
+            [self handleMessage:msgid data:data];
+        }
+        //NSLog(@"======== %s  END  ========", _cmd);
+    }
+    @catch (NSException *e) {
+        NSLog(@"Exception caught whilst processing command queue: %@", e);
+    }
+
+}
 
 - (void)handleMessage:(int)msgid data:(NSData *)data
 {
@@ -1235,26 +1241,6 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 {
     return [NSString stringWithFormat:@"%@ : isInitialized=%d inProcessCommandQueue=%d mainMenu=%@ popupMenuItems=%@ toolbar=%@", [self className], isInitialized, inProcessCommandQueue, mainMenu, popupMenuItems, toolbar];
 }
-
-#if MM_RESEND_LAST_FAILURE
-- (void)resendTimerFired:(NSTimer *)timer
-{
-    int msgid = resendMsgid;
-    NSData *data = nil;
-
-    [resendTimer release];
-    resendTimer = nil;
-
-    if (!isInitialized)
-        return;
-
-    if (resendData)
-        data = [resendData copy];
-
-    //NSLog(@"Resending message: %s", MessageStrings[msgid]);
-    [self sendMessage:msgid data:data];
-}
-#endif
 
 @end // MMVimController (Private)
 
