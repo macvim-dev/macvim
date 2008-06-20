@@ -606,7 +606,8 @@ static int MMReceiveQueueCap = 100;
 
 - (void)handleMessage:(int)msgid data:(NSData *)data
 {
-    //if (msgid != AddMenuMsgID && msgid != AddMenuItemMsgID)
+    //if (msgid != AddMenuMsgID && msgid != AddMenuItemMsgID &&
+    //        msgid != EnableMenuItemMsgID)
     //    NSLog(@"%@ %s%s", [self className], _cmd, MessageStrings[msgid]);
 
     if (OpenVimWindowMsgID == msgid) {
@@ -1074,10 +1075,9 @@ static int MMReceiveQueueCap = 100;
     NSString *rootName = [desc objectAtIndex:0];
     if ([rootName isEqual:@"ToolBar"]) {
         if (toolbar) {
-            if ([desc count] == 1) {
-                [windowController setToolbar:nil];
-                [toolbar release];  toolbar = nil;
-            } else if ([desc count] == 2) {
+            // Only remove toolbar items, never actually remove the toolbar
+            // itself or strange things may happen.
+            if ([desc count] == 2) {
                 int idx = [toolbar indexOfItemWithItemIdentifier:title];
                 if (idx != NSNotFound)
                     [toolbar removeItemAtIndex:idx];
