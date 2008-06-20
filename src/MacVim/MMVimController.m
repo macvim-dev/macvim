@@ -1229,12 +1229,19 @@ static int MMReceiveQueueCap = 100;
 {
     //NSLog(@"%@ %s%@", [self className], _cmd, notification);
 
-    [self cleanup];
-
-    // NOTE!  This causes the call to removeVimController: to be delayed.
+    // NOTE!  This notification can arrive at pretty much anytime, e.g. while
+    // the run loop is the 'event tracking' mode.  This means that Cocoa may
+    // well be in the middle of processing some message while this message is
+    // received.  If we were to remove the vim controller straight away we may
+    // free objects that Cocoa is currently using (e.g. view objects).  The
+    // following call ensures that the vim controller is not released until the
+    // run loop is back in the 'default' mode.
     [[MMAppController sharedInstance]
             performSelectorOnMainThread:@selector(removeVimController:)
-                             withObject:self waitUntilDone:NO];
+                             withObject:self
+			  waitUntilDone:NO
+			          modes:[NSArray arrayWithObject:
+					 NSDefaultRunLoopMode]];
 }
 
 - (NSString *)description

@@ -570,6 +570,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 {
     //NSLog(@"%s%@", _cmd, controller);
 
+    [controller cleanup];
     [[controller windowController] close];
 
     [vimControllers removeObject:controller];
