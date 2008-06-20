@@ -2017,17 +2017,26 @@ static int vimModMaskToEventModifierFlags(int mods)
 @implementation NSString (VimStrings)
 + (id)stringWithVimString:(char_u *)s
 {
+    // This method ensures a non-nil string is returned.  If 's' cannot be
+    // converted to a utf-8 string it is assumed to be latin-1.  If conversion
+    // still fails an empty NSString is returned.
+    NSString *string = nil;
     if (s) {
 #ifdef FEAT_MBYTE
         s = CONVERT_TO_UTF8(s);
 #endif
-        NSString *string = [NSString stringWithUTF8String:(char*)s];
+        string = [NSString stringWithUTF8String:(char*)s];
+        if (!string) {
+            // HACK! Apparently 's' is not a valid utf-8 string, maybe it is
+            // latin-1?
+            string = [NSString stringWithCString:(char*)s
+                                        encoding:NSISOLatin1StringEncoding];
+        }
 #ifdef FEAT_MBYTE
         CONVERT_TO_UTF8_FREE(s);
 #endif
-        return string;
     }
 
-    return [NSString string];
+    return string != nil ? string : [NSString string];
 }
 @end
