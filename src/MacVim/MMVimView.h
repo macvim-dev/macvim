@@ -30,7 +30,6 @@
 - (MMVimView *)initWithFrame:(NSRect)frame vimController:(MMVimController *)c;
 
 - (MMTextView *)textView;
-- (NSMutableArray *)scrollbars;
 - (void)cleanup;
 
 - (NSSize)desiredSize;

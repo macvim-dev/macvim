@@ -208,11 +208,6 @@ enum {
     return textView;
 }
 
-- (NSMutableArray *)scrollbars
-{
-    return scrollbars;
-}
-
 - (PSMTabBarControl *)tabBarControl
 {
     return tabBarControl;
@@ -374,7 +369,7 @@ enum {
     [scroller setAction:@selector(scroll:)];
 
     [self addSubview:scroller];
-    [[self scrollbars] addObject:scroller];
+    [scrollbars addObject:scroller];
     [scroller release];
 }
 
@@ -387,7 +382,7 @@ enum {
     if (!scroller) return NO;
 
     [scroller removeFromSuperview];
-    [[self scrollbars] removeObjectAtIndex:idx];
+    [scrollbars removeObjectAtIndex:idx];
 
     // If a visible scroller was removed then the vim view must resize.  This
     // is handled by the window controller (the vim view never resizes itself).
@@ -719,9 +714,9 @@ enum {
 
 - (MMScroller *)scrollbarForIdentifier:(long)ident index:(unsigned *)idx
 {
-    unsigned i, count = [[self scrollbars] count];
+    unsigned i, count = [scrollbars count];
     for (i = 0; i < count; ++i) {
-        MMScroller *scroller = [[self scrollbars] objectAtIndex:i];
+        MMScroller *scroller = [scrollbars objectAtIndex:i];
         if ([scroller identifier] == ident) {
             if (idx) *idx = i;
             return scroller;

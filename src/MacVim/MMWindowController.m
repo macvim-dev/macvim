@@ -289,9 +289,10 @@
     //NSLog(@"setTextDimensionsWithRows:%d columns:%d live:%s", rows, cols,
     //        live ? "YES" : "NO");
 
-    // NOTE: This is the only place where the (rows,columns) of the vim view
-    // are modified.  Setting these values have no immediate effect, the actual
-    // resizing of the view is done in processCommandQueueDidFinish.
+    // NOTE: The only place where the (rows,columns) of the vim view are
+    // modified is here and when entering/leaving full-screen.  Setting these
+    // values have no immediate effect, the actual resizing of the view is done
+    // in processCommandQueueDidFinish.
     //
     // The 'live' flag indicates that this resize originated from a live
     // resize; it may very well happen that the view is no longer in live
