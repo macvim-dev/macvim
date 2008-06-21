@@ -87,6 +87,7 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)popupMenuWithDescriptor:(NSArray *)desc
                           atRow:(NSNumber *)row
                          column:(NSNumber *)col;
+- (void)popupMenuWithAttributes:(NSDictionary *)attrs;
 - (void)connectionDidDie:(NSNotification *)notification;
 @end
 
@@ -804,9 +805,14 @@ static BOOL isUnsafeMessage(int msgid);
         [actionName release];
     } else if (ShowPopupMenuMsgID == msgid) {
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
-        [self popupMenuWithDescriptor:[attrs objectForKey:@"descriptor"]
-                                atRow:[attrs objectForKey:@"row"]
-                               column:[attrs objectForKey:@"column"]];
+
+        // The popup menu enters a modal loop so delay this call so that we
+        // don't block inside processCommandQueue:.
+        [self performSelectorOnMainThread:@selector(popupMenuWithAttributes:)
+                             withObject:attrs
+			  waitUntilDone:NO
+			          modes:[NSArray arrayWithObject:
+					 NSDefaultRunLoopMode]];
     } else if (SetMouseShapeMsgID == msgid) {
         const void *bytes = [data bytes];
         int shape = *((int*)bytes);  bytes += sizeof(int);
@@ -1270,6 +1276,15 @@ static BOOL isUnsafeMessage(int msgid);
                            pressure:1.0];
 
     [NSMenu popUpContextMenu:menu withEvent:event forView:textView];
+}
+
+- (void)popupMenuWithAttributes:(NSDictionary *)attrs
+{
+    if (!attrs) return;
+
+    [self popupMenuWithDescriptor:[attrs objectForKey:@"descriptor"]
+                            atRow:[attrs objectForKey:@"row"]
+                           column:[attrs objectForKey:@"column"]];
 }
 
 - (void)connectionDidDie:(NSNotification *)notification
