@@ -38,6 +38,11 @@
 //
 // This is the protocol MMVimController implements.
 //
+// Be very careful if you want to add methods to this protocol.  Since DO
+// messages may arrive while Cocoa is in the middle of processing some other
+// message be sure to consider reentrancy issues.  Look at processCommandQueue:
+// to see an example of how to deal with this.
+//
 @protocol MMFrontendProtocol
 - (oneway void)processCommandQueue:(in bycopy NSArray *)queue;
 - (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir

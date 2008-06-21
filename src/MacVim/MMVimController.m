@@ -48,6 +48,8 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 // consequences changing this number will have.)
 static int MMReceiveQueueCap = 100;
 
+static BOOL isUnsafeMessage(int msgid);
+
 
 @interface MMAlert : NSAlert {
     NSTextField *textField;
@@ -390,6 +392,7 @@ static int MMReceiveQueueCap = 100;
                                    title:(in bycopy NSString *)title
                                   saving:(int)saving
 {
+    // TODO: Delay call until run loop is in default mode.
     if (!isInitialized) return;
 
     if (!dir) {
@@ -424,6 +427,7 @@ static int MMReceiveQueueCap = 100;
                          buttonTitles:(in bycopy NSArray *)buttonTitles
                       textFieldString:(in bycopy NSString *)textFieldString
 {
+    // TODO: Delay call until run loop is in default mode.
     if (!(windowController && buttonTitles && [buttonTitles count])) return;
 
     MMAlert *alert = [[MMAlert alloc] init];
@@ -578,6 +582,8 @@ static int MMReceiveQueueCap = 100;
 
 - (void)doProcessCommandQueue:(NSArray *)queue
 {
+    NSMutableArray *delayQueue = nil;
+
     @try {
         unsigned i, count = [queue count];
         if (count % 2) {
@@ -594,7 +600,33 @@ static int MMReceiveQueueCap = 100;
             int msgid = *((int*)[value bytes]);
             //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
 
-            [self handleMessage:msgid data:data];
+            BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
+                                                isEqual:NSDefaultRunLoopMode];
+            if (!inDefaultMode && isUnsafeMessage(msgid)) {
+                // NOTE: Because we listen to DO messages in 'event tracking'
+                // mode we have to take extra care when doing things like
+                // releasing view items (and other Cocoa objects).  Messages
+                // that may be potentially "unsafe" are delayed until the run
+                // loop is back to default mode at which time they are safe to
+                // call again.
+                //   A problem with this approach is that it is hard to
+                // classify which messages are unsafe.  As a rule of thumb, if
+                // a message may release an object used by the Cocoa framework
+                // (e.g. views) then the message should be considered unsafe.
+                //   Delaying messages may have undesired side-effects since it
+                // means that messages may not be processed in the order Vim
+                // sent them, so beware.
+                if (!delayQueue)
+                    delayQueue = [NSMutableArray array];
+
+                //NSLog(@"Adding unsafe message '%s' to delay queue (mode=%@)",
+                //        MessageStrings[msgid],
+                //        [[NSRunLoop currentRunLoop] currentMode]);
+                [delayQueue addObject:value];
+                [delayQueue addObject:data];
+            } else {
+                [self handleMessage:msgid data:data];
+            }
         }
         //NSLog(@"======== %s  END  ========", _cmd);
     }
@@ -602,6 +634,14 @@ static int MMReceiveQueueCap = 100;
         NSLog(@"Exception caught whilst processing command queue: %@", e);
     }
 
+    if (delayQueue) {
+        //NSLog(@"    Flushing delay queue (%d items)", [delayQueue count]/2);
+        [self performSelectorOnMainThread:@selector(processCommandQueue:)
+                               withObject:delayQueue
+			    waitUntilDone:NO
+			            modes:[NSArray arrayWithObject:
+                                           NSDefaultRunLoopMode]];
+    }
 }
 
 - (void)handleMessage:(int)msgid data:(NSData *)data
@@ -813,6 +853,8 @@ static int MMReceiveQueueCap = 100;
             [vimState release];
             vimState = [dict retain];
         }
+    // IMPORTANT: When adding a new message, make sure to update
+    // isUnsafeMessage() if necessary!
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
@@ -1358,3 +1400,32 @@ static int MMReceiveQueueCap = 100;
 }
 
 @end // MMAlert
+
+
+
+
+    static BOOL
+isUnsafeMessage(int msgid)
+{
+    // Messages that may release Cocoa objects must be added to this list.  For
+    // example, UpdateTabBarMsgID may delete NSTabViewItem objects so it goes
+    // on this list.
+    static int unsafeMessages[] = { // REASON MESSAGE IS ON THIS LIST:
+        OpenVimWindowMsgID,         //   Changes lots of state
+        UpdateTabBarMsgID,          //   May delete NSTabViewItem
+        RemoveMenuItemMsgID,        //   Deletes NSMenuItem
+        DestroyScrollbarMsgID,      //   Deletes NSScroller
+        ExecuteActionMsgID,         //   Impossible to predict
+        ShowPopupMenuMsgID,         //   Enters modal loop
+        ActivateMsgID,              //   ?
+        EnterFullscreenMsgID,       //   Modifies delegate of window controller
+        LeaveFullscreenMsgID,       //   Modifies delegate of window controller
+    };
+
+    int i, count = sizeof(unsafeMessages)/sizeof(unsafeMessages[0]);
+    for (i = 0; i < count; ++i)
+        if (msgid == unsafeMessages[i])
+            return YES;
+
+    return NO;
+}
