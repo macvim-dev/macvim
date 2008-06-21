@@ -682,6 +682,38 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    330,
+/**/
+    329,
+/**/
+    328,
+/**/
+    327,
+/**/
+    326,
+/**/
+    325,
+/**/
+    324,
+/**/
+    323,
+/**/
+    322,
+/**/
+    321,
+/**/
+    320,
+/**/
+    319,
+/**/
+    318,
+/**/
+    317,
+/**/
+    316,
+/**/
+    315,
+/**/
     314,
 /**/
     313,
@@ -1372,12 +1404,12 @@ list_version()
 # ifdef FEAT_GUI_W32
 #  if defined(_MSC_VER) && (_MSC_VER <= 1010)
     /* Only MS VC 4.1 and earlier can do Win32s */
-    MSG_PUTS(_("\nMS-Windows 16/32 bit GUI version"));
+    MSG_PUTS(_("\nMS-Windows 16/32-bit GUI version"));
 #  else
 #   ifdef _WIN64
-    MSG_PUTS(_("\nMS-Windows 64 bit GUI version"));
+    MSG_PUTS(_("\nMS-Windows 64-bit GUI version"));
 #   else
-    MSG_PUTS(_("\nMS-Windows 32 bit GUI version"));
+    MSG_PUTS(_("\nMS-Windows 32-bit GUI version"));
 #   endif
 #  endif
     if (gui_is_win32s())
@@ -1386,17 +1418,21 @@ list_version()
     MSG_PUTS(_(" with OLE support"));
 # endif
 # else
-    MSG_PUTS(_("\nMS-Windows 32 bit console version"));
+#  ifdef _WIN64
+    MSG_PUTS(_("\nMS-Windows 64-bit console version"));
+#  else
+    MSG_PUTS(_("\nMS-Windows 32-bit console version"));
+#  endif
 # endif
 #endif
 #ifdef WIN16
-    MSG_PUTS(_("\nMS-Windows 16 bit version"));
+    MSG_PUTS(_("\nMS-Windows 16-bit version"));
 #endif
 #ifdef MSDOS
 # ifdef DJGPP
-    MSG_PUTS(_("\n32 bit MS-DOS version"));
+    MSG_PUTS(_("\n32-bit MS-DOS version"));
 # else
-    MSG_PUTS(_("\n16 bit MS-DOS version"));
+    MSG_PUTS(_("\n16-bit MS-DOS version"));
 # endif
 #endif
 #ifdef MACOS

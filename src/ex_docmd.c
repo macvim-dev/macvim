@@ -2148,7 +2148,9 @@ do_one_cmd(cmdlinep, sourcing,
 
 #endif
 
-    if (*p == '!' && ea.cmdidx != CMD_substitute)    /* forced commands */
+    /* forced commands */
+    if (*p == '!' && ea.cmdidx != CMD_substitute
+	    && ea.cmdidx != CMD_smagic && ea.cmdidx != CMD_snomagic)
     {
 	++p;
 	ea.forceit = TRUE;
@@ -9319,7 +9321,7 @@ ex_tag_cmd(eap, name)
 		  break;
 	default:			/* ":tag" */
 #ifdef FEAT_CSCOPE
-		  if (p_cst)
+		  if (p_cst && *eap->arg != NUL)
 		  {
 		      do_cstag(eap);
 		      return;
