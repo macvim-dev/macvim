@@ -691,11 +691,6 @@ gui_mch_add_menu(vimmenu_T *menu, int idx)
     void
 gui_mch_add_menu_item(vimmenu_T *menu, int idx)
 {
-    // NOTE!  If 'iconfile' is not set but 'iconidx' is, use the name of the
-    // menu item.  (Should correspond to a stock item.)
-    char_u *icon = menu->iconfile ? menu->iconfile :
-                 menu->iconidx >= 0 ? menu->dname :
-                 NULL;
     char_u *tip = menu->strings[MENU_INDEX_TIP]
             ? menu->strings[MENU_INDEX_TIP] : menu->actext;
     NSArray *desc = descriptor_for_menu(menu);
@@ -703,6 +698,18 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
         ? [NSString stringWithFormat:@"%C", specialKeyToNSKey(menu->mac_key)]
         : [NSString string];
     int modifierMask = vimModMaskToEventModifierFlags(menu->mac_mods);
+    char_u *icon = NULL;
+
+    if (menu_is_toolbar(menu->parent->name)) {
+        char_u fname[MAXPATHL];
+
+        // TODO: Ensure menu->iconfile exists (if != NULL)
+        icon = menu->iconfile;
+        if (!icon && gui_find_bitmap(menu->name, fname, "bmp") == OK)
+            icon = fname;
+        if (!icon && menu->iconidx >= 0)
+            icon = menu->dname;
+    }
 
     [[MMBackend sharedInstance] queueMessage:AddMenuItemMsgID properties:
         [NSDictionary dictionaryWithObjectsAndKeys:

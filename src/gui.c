@@ -4836,7 +4836,8 @@ ex_gui(eap)
 }
 
 #if ((defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_W32) \
-	|| defined(FEAT_GUI_PHOTON)) && defined(FEAT_TOOLBAR)) || defined(PROTO)
+	|| defined(FEAT_GUI_PHOTON)) && defined(FEAT_TOOLBAR) \
+        || defined(FEAT_GUI_MACVIM)) || defined(PROTO)
 /*
  * This is shared between Athena, Motif and GTK.
  */

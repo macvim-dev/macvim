@@ -1131,7 +1131,8 @@ static int MMReceiveQueueCap = 100;
 }
 
 - (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
-        toolTip:(NSString *)tip icon:(NSString *)icon
+                                    toolTip:(NSString *)tip
+                                       icon:(NSString *)icon
 {
     // If the item corresponds to a separator then do nothing, since it is
     // already defined by Cocoa.
@@ -1147,6 +1148,8 @@ static int MMReceiveQueueCap = 100;
     [item setAutovalidates:NO];
 
     NSImage *img = [NSImage imageNamed:icon];
+    if (!img)
+        img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
     if (!img) {
         NSLog(@"WARNING: Could not find image with name '%@' to use as toolbar"
                " image for identifier '%@';"
@@ -1163,8 +1166,10 @@ static int MMReceiveQueueCap = 100;
     [item release];
 }
 
-- (void)addToolbarItemWithLabel:(NSString *)label tip:(NSString
-                   *)tip icon:(NSString *)icon atIndex:(int)idx
+- (void)addToolbarItemWithLabel:(NSString *)label
+                            tip:(NSString *)tip
+                           icon:(NSString *)icon
+                        atIndex:(int)idx
 {
     if (!toolbar) return;
 
