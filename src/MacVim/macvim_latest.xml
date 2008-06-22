@@ -41,6 +41,37 @@
     -->
     
     <item>
+      <title>Snapshot 32 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 32 released</h1>
+
+<p><em> This snapshot contains fixes for several severe bugs; I strongly suggest
+that you update now! </em></p>
+
+<p> Changes since snapshot 31:
+<ul>
+  <li> Fix several bugs that caused MacVim to crash </li>
+  <li> Console dialogs work once again (set go+=c) </li>
+  <li> Background processes work (:sh ... &) </li>
+  <li> Ctrl-Shift can be used for modeless selection </li>
+  <li> No crashes with HTML plugin </li>
+  <li> Toolbar is a bit better at finding icons (this still needs some work)
+       </li>
+  <li> Latest Vim source code and runtime files merged </li>
+</ul>
+</p>
+      ]]></description>
+      <pubDate>Fri, 22 Jun 2008 13:13 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-32.tbz"
+        length="8194915"
+        sparkle:version="32"
+        sparkle:shortVersionString="7.1"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 31 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 31 released</h1>
