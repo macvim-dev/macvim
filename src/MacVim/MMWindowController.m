@@ -308,10 +308,8 @@
 
 - (void)setTitle:(NSString *)title
 {
-    if (title) {
+    if (title)
         [decoratedWindow setTitle:title];
-        [fullscreenWindow setTitle:title];
-    }
 }
 
 - (void)setDocumentFilename:(NSString *)filename
