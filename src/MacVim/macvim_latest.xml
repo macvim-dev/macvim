@@ -52,7 +52,7 @@ that you update now! </em></p>
 <ul>
   <li> Fix several bugs that caused MacVim to crash </li>
   <li> Console dialogs work once again (set go+=c) </li>
-  <li> Background processes work (:sh ... &) </li>
+  <li> Background processes work (:! ... &) (fix by Ben Schmidt)</li>
   <li> Ctrl-Shift can be used for modeless selection </li>
   <li> No crashes with HTML plugin </li>
   <li> Toolbar is a bit better at finding icons (this still needs some work)
