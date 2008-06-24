@@ -333,3 +333,37 @@ buildSearchTextCommand(NSString *searchText)
 }
 
 @end
+
+
+
+
+@implementation NSOpenPanel (MMExtras)
+
+- (void)hiddenFilesButtonToggled:(id)sender
+{
+    [self setShowsHiddenFiles:[sender intValue]];
+}
+
+- (void)setShowsHiddenFiles:(BOOL)show
+{
+    // This is undocumented stuff, so be careful. This does the same as
+    //     [[self _navView] setShowsHiddenFiles:show];
+    // but does not produce warnings.
+
+    if (![self respondsToSelector:@selector(_navView)])
+        return;
+
+    id navView = [self performSelector:@selector(_navView)];
+    if (![navView respondsToSelector:@selector(setShowsHiddenFiles:)])
+        return;
+
+    // performSelector:withObject: does not support a BOOL
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:
+        [navView methodSignatureForSelector:@selector(setShowsHiddenFiles:)]];
+    [invocation setTarget:navView];
+    [invocation setSelector:@selector(setShowsHiddenFiles:)];
+    [invocation setArgument:&show atIndex:2];
+    [invocation invoke];
+}
+
+@end

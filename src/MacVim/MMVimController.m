@@ -414,6 +414,9 @@ static BOOL isUnsafeMessage(int msgid);
     } else {
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         [panel setAllowsMultipleSelection:NO];
+        [panel setAccessoryView:
+            [[MMAppController sharedInstance] accessoryView]];
+
         [panel beginSheetForDirectory:dir file:nil types:nil
                 modalForWindow:[windowController window]
                  modalDelegate:self

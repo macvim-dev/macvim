@@ -301,6 +301,14 @@ NSString *buildSearchTextCommand(NSString *searchText);
 
 
 
+@interface NSOpenPanel (MMExtras)
+- (void)hiddenFilesButtonToggled:(id)sender;
+- (void)setShowsHiddenFiles:(BOOL)show;
+@end
+
+
+
+
 // ODB Editor Suite Constants (taken from ODBEditorSuite.h)
 #define	keyFileSender		'FSnd'
 #define	keyFileSenderToken	'FTok'

@@ -701,6 +701,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     [panel setAllowsMultipleSelection:YES];
+    [panel setAccessoryView:[self accessoryView]];
+
     int result = [panel runModalForDirectory:dir file:nil types:nil];
     if (NSOKButton == result)
         [self application:NSApp openFiles:[panel filenames]];
@@ -770,6 +772,34 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (IBAction)zoomAll:(id)sender
 {
     [NSApp makeWindowsPerform:@selector(performZoom:) inOrder:YES];
+}
+
+- (NSView *)accessoryView
+{
+    // Return a new button object for each NSOpenPanel -- several of them
+    // could be displayed at once.
+    // If the accessory view should get more complex, it should probably be
+    // loaded from a nib file.
+    NSButton *button = [[[NSButton alloc]
+        initWithFrame:NSMakeRect(0, 0, 140, 18)] autorelease];
+    [button setTitle:
+        NSLocalizedString(@"Show Hidden Files", @"Open File Dialog")];
+    [button setButtonType:NSSwitchButton];
+
+    [button setTarget:nil];
+    [button setAction:@selector(hiddenFilesButtonToggled:)];
+
+    // use the regular control size (checkbox is a bit smaller without this)
+    NSControlSize buttonSize = NSRegularControlSize;
+    float fontSize = [NSFont systemFontSizeForControlSize:buttonSize];
+    NSCell *theCell = [button cell];
+    NSFont *theFont = [NSFont fontWithName:[[theCell font] fontName]
+                                      size:fontSize];
+    [theCell setFont:theFont];
+    [theCell setControlSize:buttonSize];
+    [button sizeToFit];
+
+    return button;
 }
 
 - (byref id <MMFrontendProtocol>)
