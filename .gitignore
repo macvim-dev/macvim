@@ -1,6 +1,7 @@
 .*.swp
 .DS_Store
 src/MacVim/MacVim.xcodeproj/*.mode1
+src/MacVim/MacVim.xcodeproj/*.mode1v3
 src/MacVim/MacVim.xcodeproj/*.pbxuser
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.pbxuser
@@ -21,3 +22,4 @@ src/objects
 src/po/*.mo
 src/tags
 src/xxd/xxd
+src/xxd/xxd.dSYM
