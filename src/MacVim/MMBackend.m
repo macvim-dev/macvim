@@ -641,6 +641,18 @@ static NSString *MMSymlinkWarningString =
     [self queueMessage:SetWindowTitleMsgID data:data];
 }
 
+- (void)setDocumentFilename:(char *)filename
+{
+    NSMutableData *data = [NSMutableData data];
+    int len = filename ? strlen(filename) : 0;
+
+    [data appendBytes:&len length:sizeof(int)];
+    if (len > 0)
+        [data appendBytes:filename length:len];
+
+    [self queueMessage:SetDocumentFilenameMsgID data:data];
+}
+
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
                             saving:(int)saving
 {

@@ -685,6 +685,20 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController setTitle:string];
 
         [string release];
+    } else if (SetDocumentFilenameMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int len = *((int*)bytes);  bytes += sizeof(int);
+
+        if (len > 0) {
+            NSString *filename = [[NSString alloc] initWithBytes:(void*)bytes
+                    length:len encoding:NSUTF8StringEncoding];
+
+            [windowController setDocumentFilename:filename];
+
+            [filename release];
+        } else {
+            [windowController setDocumentFilename:@""];
+        }
     } else if (AddMenuMsgID == msgid) {
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
         [self addMenuWithDescriptor:[attrs objectForKey:@"descriptor"]

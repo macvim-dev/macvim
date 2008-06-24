@@ -314,6 +314,12 @@
     }
 }
 
+- (void)setDocumentFilename:(NSString *)filename
+{
+    if (filename)
+        [decoratedWindow setRepresentedFilename:filename];
+}
+
 - (void)setToolbar:(NSToolbar *)toolbar
 {
     // The full-screen window has no toolbar.

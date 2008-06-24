@@ -40,6 +40,7 @@
 - (void)selectTabWithIndex:(int)idx;
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols live:(BOOL)live;
 - (void)setTitle:(NSString *)title;
+- (void)setDocumentFilename:(NSString *)filename;
 - (void)setToolbar:(NSToolbar *)toolbar;
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
 - (BOOL)destroyScrollbarWithIdentifier:(long)ident;

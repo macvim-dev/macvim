@@ -168,6 +168,7 @@ enum {
     EnableAntialiasMsgID,
     DisableAntialiasMsgID,
     SetVimStateMsgID,
+    SetDocumentFilenameMsgID,
 };
 
 

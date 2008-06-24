@@ -83,6 +83,7 @@
 - (void)showTabBar:(BOOL)enable;
 - (void)setRows:(int)rows columns:(int)cols;
 - (void)setWindowTitle:(char *)title;
+- (void)setDocumentFilename:(char *)filename;
 - (char *)browseForFileInDirectory:(char *)dir title:(char *)title
                             saving:(int)saving;
 - (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg

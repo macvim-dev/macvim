@@ -1532,7 +1532,12 @@ gui_mch_settitle(char_u *title, char_u *icon)
     title = CONVERT_TO_UTF8(title);
 #endif
 
-    [[MMBackend sharedInstance] setWindowTitle:(char*)title];
+    MMBackend *backend = [MMBackend sharedInstance];
+    [backend setWindowTitle:(char*)title];
+
+    // TODO: Convert filename to UTF-8?
+    if (curbuf)
+        [backend setDocumentFilename:(char*)curbuf->b_ffname];
 
 #ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(title);
@@ -1825,6 +1830,7 @@ odb_event(buf_T *buf, const AEEventID action)
                                    bytes:&buf->b_odb_server_id
                                   length:sizeof(OSType)];
 
+    // TODO: Convert b_ffname to UTF-8?
     NSString *path = [NSString stringWithUTF8String:(char*)buf->b_ffname];
     NSData *pathData = [[[NSURL fileURLWithPath:path] absoluteString]
             dataUsingEncoding:NSUTF8StringEncoding];

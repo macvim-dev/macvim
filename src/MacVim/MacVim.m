@@ -76,6 +76,7 @@ char *MessageStrings[] =
     "EnableAntialiasMsgID",
     "DisableAntialiasMsgID",
     "SetVimStateMsgID",
+    "SetDocumentFilenameMsgID",
 };
 
 
