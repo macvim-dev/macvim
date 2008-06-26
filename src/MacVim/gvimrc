@@ -246,6 +246,7 @@ macm Window.Previous\ Tab               key=<D-{>
 macm Window.Next\ Tab                   key=<D-}>
 macm Window.Bring\ All\ To\ Front       action=arrangeInFront:
 
+macm Help.MacVim\ Help                  key=<D-?>
 macm Help.MacVim\ Website               action=openWebsite:
 
 " Restore the previous value of 'cpoptions'.

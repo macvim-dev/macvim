@@ -684,10 +684,14 @@ enum {
         return YES;
     }
 
+    // HACK!  Don't handle Cmd-? or the "Help" menu does not work on Leopard.
+    NSString *unmodchars = [event charactersIgnoringModifiers];
+    if ([unmodchars isEqual:@"?"])
+        return NO;
+
     //NSLog(@"%s%@", _cmd, event);
 
     NSString *chars = [event characters];
-    NSString *unmodchars = [event charactersIgnoringModifiers];
     int len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     NSMutableData *data = [NSMutableData data];
 
