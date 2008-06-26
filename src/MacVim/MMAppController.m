@@ -38,9 +38,10 @@
  */
 
 #import "MMAppController.h"
+#import "MMPreferenceController.h"
 #import "MMVimController.h"
 #import "MMWindowController.h"
-#import "MMPreferenceController.h"
+#import "Miscellaneous.h"
 #import <unistd.h>
 
 
@@ -100,23 +101,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     (NSAppleEventDescriptor *)desc;
 - (void)passArguments:(NSDictionary *)args toVimController:(MMVimController*)vc;
 @end
-
-
-@interface NSNumber (MMExtras)
-- (int)tag;
-@end
-
-
-@interface NSMenu (MMExtras)
-- (int)indexOfItemWithAction:(SEL)action;
-- (NSMenuItem *)itemWithAction:(SEL)action;
-- (NSMenu *)findMenuContainingItemWithAction:(SEL)action;
-- (NSMenu *)findWindowsMenu;
-- (NSMenu *)findApplicationMenu;
-- (NSMenu *)findServicesMenu;
-- (NSMenu *)findFileMenu;
-@end
-
 
 
 
@@ -701,7 +685,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     [panel setAllowsMultipleSelection:YES];
-    [panel setAccessoryView:[self accessoryView]];
+    [panel setAccessoryView:openPanelAccessoryView()];
 
     int result = [panel runModalForDirectory:dir file:nil types:nil];
     if (NSOKButton == result)
@@ -772,34 +756,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (IBAction)zoomAll:(id)sender
 {
     [NSApp makeWindowsPerform:@selector(performZoom:) inOrder:YES];
-}
-
-- (NSView *)accessoryView
-{
-    // Return a new button object for each NSOpenPanel -- several of them
-    // could be displayed at once.
-    // If the accessory view should get more complex, it should probably be
-    // loaded from a nib file.
-    NSButton *button = [[[NSButton alloc]
-        initWithFrame:NSMakeRect(0, 0, 140, 18)] autorelease];
-    [button setTitle:
-        NSLocalizedString(@"Show Hidden Files", @"Open File Dialog")];
-    [button setButtonType:NSSwitchButton];
-
-    [button setTarget:nil];
-    [button setAction:@selector(hiddenFilesButtonToggled:)];
-
-    // use the regular control size (checkbox is a bit smaller without this)
-    NSControlSize buttonSize = NSRegularControlSize;
-    float fontSize = [NSFont systemFontSizeForControlSize:buttonSize];
-    NSCell *theCell = [button cell];
-    NSFont *theFont = [NSFont fontWithName:[[theCell font] fontName]
-                                      size:fontSize];
-    [theCell setFont:theFont];
-    [theCell setControlSize:buttonSize];
-    [button sizeToFit];
-
-    return button;
 }
 
 - (byref id <MMFrontendProtocol>)
@@ -1288,87 +1244,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 }
 
 @end // MMAppController (Private)
-
-
-
-
-@implementation NSNumber (MMExtras)
-- (int)tag
-{
-    return [self intValue];
-}
-@end // NSNumber (MMExtras)
-
-
-
-
-@implementation NSMenu (MMExtras)
-
-- (int)indexOfItemWithAction:(SEL)action
-{
-    int i, count = [self numberOfItems];
-    for (i = 0; i < count; ++i) {
-        NSMenuItem *item = [self itemAtIndex:i];
-        if ([item action] == action)
-            return i;
-    }
-
-    return -1;
-}
-
-- (NSMenuItem *)itemWithAction:(SEL)action
-{
-    int idx = [self indexOfItemWithAction:action];
-    return idx >= 0 ? [self itemAtIndex:idx] : nil;
-}
-
-- (NSMenu *)findMenuContainingItemWithAction:(SEL)action
-{
-    // NOTE: We only look for the action in the submenus of 'self'
-    int i, count = [self numberOfItems];
-    for (i = 0; i < count; ++i) {
-        NSMenu *menu = [[self itemAtIndex:i] submenu];
-        NSMenuItem *item = [menu itemWithAction:action];
-        if (item) return menu;
-    }
-
-    return nil;
-}
-
-- (NSMenu *)findWindowsMenu
-{
-    return [self findMenuContainingItemWithAction:
-        @selector(performMiniaturize:)];
-}
-
-- (NSMenu *)findApplicationMenu
-{
-    // TODO: Just return [self itemAtIndex:0]?
-    return [self findMenuContainingItemWithAction:@selector(terminate:)];
-}
-
-- (NSMenu *)findServicesMenu
-{
-    // NOTE!  Our heuristic for finding the "Services" menu is to look for the
-    // second item before the "Hide MacVim" menu item on the "MacVim" menu.
-    // (The item before "Hide MacVim" should be a separator, but this is not
-    // important as long as the item before that is the "Services" menu.)
-
-    NSMenu *appMenu = [self findApplicationMenu];
-    if (!appMenu) return nil;
-
-    int idx = [appMenu indexOfItemWithAction: @selector(hide:)];
-    if (idx-2 < 0) return nil;  // idx == -1, if selector not found
-
-    return [[appMenu itemAtIndex:idx-2] submenu];
-}
-
-- (NSMenu *)findFileMenu
-{
-    return [self findMenuContainingItemWithAction:@selector(performClose:)];
-}
-
-@end // NSMenu (MMExtras)
 
 
 

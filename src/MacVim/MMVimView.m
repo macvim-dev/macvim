@@ -18,13 +18,12 @@
  * the view is filled by the text view.
  */
 
-#import "MMVimView.h"
-
-#import <PSMTabBarControl.h>
-#import "MacVim.h"
+#import "MMAtsuiTextView.h"
 #import "MMTextView.h"
 #import "MMVimController.h"
-#import "MMAtsuiTextView.h"
+#import "MMVimView.h"
+#import "Miscellaneous.h"
+#import <PSMTabBarControl.h>
 
 
 
@@ -34,11 +33,6 @@ enum {
     MMScrollerTypeRight,
     MMScrollerTypeBottom
 };
-
-// TODO:  Move!
-@interface NSTabView (MMExtras)
-- (void)removeAllTabViewItems;
-@end
 
 
 // TODO:  Move!
@@ -823,23 +817,6 @@ enum {
 }
 
 @end // MMVimView (Private)
-
-
-
-
-@implementation NSTabView (MMExtras)
-
-- (void)removeAllTabViewItems
-{
-    NSArray *existingItems = [self tabViewItems];
-    NSEnumerator *e = [existingItems objectEnumerator];
-    NSTabViewItem *item;
-    while (item = [e nextObject]){
-        [self removeTabViewItem:item];
-    }
-}
-
-@end // NSTabView (MMExtras)
 
 
 

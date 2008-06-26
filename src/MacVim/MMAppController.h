@@ -41,6 +41,4 @@
 - (IBAction)showVimHelp:(id)sender;
 - (IBAction)zoomAll:(id)sender;
 
-- (NSView *)accessoryView;
-
 @end

@@ -25,11 +25,11 @@
  * resized.
  */
 
+#import "MMAppController.h"
 #import "MMAtsuiTextView.h"
 #import "MMVimController.h"
 #import "MMWindowController.h"
-#import "MMAppController.h"
-#import "MacVim.h"
+#import "Miscellaneous.h"
 
 
 // TODO: What does DRAW_TRANSP flag do?  If the background isn't drawn when

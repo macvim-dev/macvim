@@ -23,12 +23,13 @@
  * frontend and backend are defined in an enum in MacVim.h.
  */
 
-#import "MMVimController.h"
-#import "MMWindowController.h"
 #import "MMAppController.h"
-#import "MMVimView.h"
-#import "MMTextView.h"
 #import "MMAtsuiTextView.h"
+#import "MMTextView.h"
+#import "MMVimController.h"
+#import "MMVimView.h"
+#import "MMWindowController.h"
+#import "Miscellaneous.h"
 
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
@@ -89,13 +90,6 @@ static BOOL isUnsafeMessage(int msgid);
                          column:(NSNumber *)col;
 - (void)popupMenuWithAttributes:(NSDictionary *)attrs;
 - (void)connectionDidDie:(NSNotification *)notification;
-@end
-
-
-@interface NSToolbar (MMExtras)
-- (int)indexOfItemWithItemIdentifier:(NSString *)identifier;
-- (NSToolbarItem *)itemAtIndex:(int)idx;
-- (NSToolbarItem *)itemWithItemIdentifier:(NSString *)identifier;
 @end
 
 
@@ -414,8 +408,7 @@ static BOOL isUnsafeMessage(int msgid);
     } else {
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         [panel setAllowsMultipleSelection:NO];
-        [panel setAccessoryView:
-            [[MMAppController sharedInstance] accessoryView]];
+        [panel setAccessoryView:openPanelAccessoryView()];
 
         [panel beginSheetForDirectory:dir file:nil types:nil
                 modalForWindow:[windowController window]
@@ -1333,41 +1326,6 @@ static BOOL isUnsafeMessage(int msgid);
 }
 
 @end // MMVimController (Private)
-
-
-
-
-@implementation NSToolbar (MMExtras)
-
-- (int)indexOfItemWithItemIdentifier:(NSString *)identifier
-{
-    NSArray *items = [self items];
-    int i, count = [items count];
-    for (i = 0; i < count; ++i) {
-        id item = [items objectAtIndex:i];
-        if ([[item itemIdentifier] isEqual:identifier])
-            return i;
-    }
-
-    return NSNotFound;
-}
-
-- (NSToolbarItem *)itemAtIndex:(int)idx
-{
-    NSArray *items = [self items];
-    if (idx < 0 || idx >= [items count])
-        return nil;
-
-    return [items objectAtIndex:idx];
-}
-
-- (NSToolbarItem *)itemWithItemIdentifier:(NSString *)identifier
-{
-    int idx = [self indexOfItemWithItemIdentifier:identifier];
-    return idx != NSNotFound ? [self itemAtIndex:idx] : nil;
-}
-
-@end // NSToolbar (MMExtras)
 
 
 

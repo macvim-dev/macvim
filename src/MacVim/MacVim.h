@@ -194,59 +194,15 @@ enum {
 };
 
 
-// NOTE!  These values must be close to zero, or the 'add menu' message might
-// fail to distinguish type from tag.
-enum {
-    MenuMenubarType = 0,
-    MenuPopupType,
-    MenuToolbarType
-};
-
-
 enum {
     ToolbarLabelFlag = 1,
     ToolbarIconFlag = 2,
     ToolbarSizeRegularFlag = 4
 };
 
-
-// NSUserDefaults keys
+// Argument used to stop MacVim from opening an empty window on startup
+// (techincally this is a user default but should not be used as such).
 extern NSString *MMNoWindowKey;
-extern NSString *MMTabMinWidthKey;
-extern NSString *MMTabMaxWidthKey;
-extern NSString *MMTabOptimumWidthKey;
-extern NSString *MMTextInsetLeftKey;
-extern NSString *MMTextInsetRightKey;
-extern NSString *MMTextInsetTopKey;
-extern NSString *MMTextInsetBottomKey;
-extern NSString *MMTerminateAfterLastWindowClosedKey;
-extern NSString *MMTypesetterKey;
-extern NSString *MMCellWidthMultiplierKey;
-extern NSString *MMBaselineOffsetKey;
-extern NSString *MMTranslateCtrlClickKey;
-extern NSString *MMTopLeftPointKey;
-extern NSString *MMOpenFilesInTabsKey;
-extern NSString *MMNoFontSubstitutionKey;
-extern NSString *MMLoginShellKey;
-extern NSString *MMAtsuiRendererKey;
-extern NSString *MMUntitledWindowKey;
-extern NSString *MMTexturedWindowKey;
-extern NSString *MMZoomBothKey;
-extern NSString *MMCurrentPreferencePaneKey;
-extern NSString *MMLoginShellCommandKey;
-extern NSString *MMLoginShellArgumentKey;
-extern NSString *MMDialogsTrackPwdKey;
-
-// Enum for MMUntitledWindowKey
-enum {
-    MMUntitledWindowNever = 0,
-    MMUntitledWindowOnOpen = 1,
-    MMUntitledWindowOnReopen = 2,
-    MMUntitledWindowAlways = 3
-};
-
-
-
 
 // Vim pasteboard type (holds motion type + string)
 extern NSString *VimPBoardType;
@@ -257,25 +213,11 @@ extern NSString *VimPBoardType;
 // container reference (which should be used to deactivate the loaded fonts).
 ATSFontContainerRef loadFonts();
 
-// Functions to create command strings that can be sent to Vim as input.
-NSString *buildTabDropCommand(NSArray *filenames);
-NSString *buildSelectRangeCommand(NSRange range);
-NSString *buildSearchTextCommand(NSString *searchText);
-
 
 
 @interface NSString (MMExtras)
 - (NSString *)stringByEscapingSpecialFilenameCharacters;
 @end
-
-
-
-
-@interface NSIndexSet (MMExtras)
-+ (id)indexSetWithVimList:(NSString *)list;
-@end
-
-
 
 
 @interface NSColor (MMExtras)
@@ -284,26 +226,9 @@ NSString *buildSearchTextCommand(NSString *searchText);
 @end
 
 
-
-
-@interface NSDocumentController (MMExtras)
-- (void)noteNewRecentFilePath:(NSString *)path;
-@end
-
-
-
-
 @interface NSDictionary (MMExtras)
 + (id)dictionaryWithData:(NSData *)data;
 - (NSData *)dictionaryAsData;
-@end
-
-
-
-
-@interface NSOpenPanel (MMExtras)
-- (void)hiddenFilesButtonToggled:(id)sender;
-- (void)setShowsHiddenFiles:(BOOL)show;
 @end
 
 

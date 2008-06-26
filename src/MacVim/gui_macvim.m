@@ -13,10 +13,10 @@
  * Hooks for the Vim gui code.  Mainly passes control on to MMBackend.
  */
 
-#import <Foundation/Foundation.h>
 #import "MMBackend.h"
 #import "MacVim.h"
 #import "vim.h"
+#import <Foundation/Foundation.h>
 
 
 

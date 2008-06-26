@@ -33,6 +33,7 @@
 
 #import "MMTextStorage.h"
 #import "MacVim.h"
+#import "Miscellaneous.h"
 
 
 

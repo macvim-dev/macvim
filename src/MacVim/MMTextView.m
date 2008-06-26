@@ -17,13 +17,13 @@
  * displayed in a popup window instead of 'in-line' (because it is easier).
  */
 
-#import "MMTextView.h"
-#import "MMTextStorage.h"
-#import "MMWindowController.h"
-#import "MMVimController.h"
-#import "MMTypesetter.h"
 #import "MMAppController.h"
-#import "MacVim.h"
+#import "MMTextStorage.h"
+#import "MMTextView.h"
+#import "MMTypesetter.h"
+#import "MMVimController.h"
+#import "MMWindowController.h"
+#import "Miscellaneous.h"
 
 
 

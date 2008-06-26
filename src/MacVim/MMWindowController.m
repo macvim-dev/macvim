@@ -55,7 +55,6 @@
  *  
  */
 
-#import "MMWindowController.h"
 #import "MMAppController.h"
 #import "MMAtsuiTextView.h"
 #import "MMFullscreenWindow.h"
@@ -64,8 +63,8 @@
 #import "MMVimController.h"
 #import "MMVimView.h"
 #import "MMWindow.h"
-#import "MacVim.h"
-
+#import "MMWindowController.h"
+#import "Miscellaneous.h"
 #import <PSMTabBarControl.h>
 
 

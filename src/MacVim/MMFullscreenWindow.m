@@ -23,13 +23,13 @@
  * Author: Nico Weber
  */
 
-#import "MMVimController.h"
 #import "MMFullscreenWindow.h"
-#import <PSMTabBarControl.h>
-#import "MMVimView.h"
 #import "MMTextView.h"
+#import "MMVimController.h"
+#import "MMVimView.h"
 #import "MMWindowController.h"
 #import <Carbon/Carbon.h>
+#import <PSMTabBarControl.h>
 
 // These have to be the same as in option.h
 #define FUOPT_MAXVERT         0x001

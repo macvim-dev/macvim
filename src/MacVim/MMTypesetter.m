@@ -14,9 +14,9 @@
  * issues.
  */
 
-#import "MMTypesetter.h"
 #import "MMTextStorage.h"
-#import "MacVim.h"
+#import "MMTypesetter.h"
+#import "Miscellaneous.h"
 
 
 

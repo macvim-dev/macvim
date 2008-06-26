@@ -8,10 +8,9 @@
  * See README.txt for an overview of the Vim source code.
  */
 
-#import "MMPreferenceController.h"
-#import "MacVim.h"
-
 #import "AuthorizedShellCommand.h"
+#import "MMPreferenceController.h"
+#import "Miscellaneous.h"
 
 // On Leopard, we want to use the images provided by the OS for some of the
 // toolbar images (NSImageNamePreferencesGeneral and friends). We need to jump

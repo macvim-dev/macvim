@@ -27,7 +27,6 @@
  */
 
 #import "MMWindow.h"
-#import "MacVim.h"
 
 
 

@@ -82,36 +82,9 @@ char *MessageStrings[] =
 
 
 
-// NSUserDefaults keys
-NSString *MMNoWindowKey                 = @"MMNoWindow";
-NSString *MMTabMinWidthKey              = @"MMTabMinWidth";
-NSString *MMTabMaxWidthKey              = @"MMTabMaxWidth";
-NSString *MMTabOptimumWidthKey          = @"MMTabOptimumWidth";
-NSString *MMTextInsetLeftKey            = @"MMTextInsetLeft";
-NSString *MMTextInsetRightKey           = @"MMTextInsetRight";
-NSString *MMTextInsetTopKey             = @"MMTextInsetTop";
-NSString *MMTextInsetBottomKey          = @"MMTextInsetBottom";
-NSString *MMTerminateAfterLastWindowClosedKey
-                                        = @"MMTerminateAfterLastWindowClosed";
-NSString *MMTypesetterKey               = @"MMTypesetter";
-NSString *MMCellWidthMultiplierKey      = @"MMCellWidthMultiplier";
-NSString *MMBaselineOffsetKey           = @"MMBaselineOffset";
-NSString *MMTranslateCtrlClickKey       = @"MMTranslateCtrlClick";
-NSString *MMTopLeftPointKey             = @"MMTopLeftPoint";
-NSString *MMOpenFilesInTabsKey          = @"MMOpenFilesInTabs";
-NSString *MMNoFontSubstitutionKey       = @"MMNoFontSubstitution";
-NSString *MMLoginShellKey               = @"MMLoginShell";
-NSString *MMAtsuiRendererKey            = @"MMAtsuiRenderer";
-NSString *MMUntitledWindowKey           = @"MMUntitledWindow";
-NSString *MMTexturedWindowKey           = @"MMTexturedWindow";
-NSString *MMZoomBothKey                 = @"MMZoomBoth";
-NSString *MMCurrentPreferencePaneKey    = @"MMCurrentPreferencePane";
-NSString *MMLoginShellCommandKey        = @"MMLoginShellCommand";
-NSString *MMLoginShellArgumentKey       = @"MMLoginShellArgument";
-NSString *MMDialogsTrackPwdKey          = @"MMDialogsTrackPwd";
-
-
-
+// Argument used to stop MacVim from opening an empty window on startup
+// (techincally this is a user default but should not be used as such).
+NSString *MMNoWindowKey = @"MMNoWindow";
 
 // Vim pasteboard type (holds motion type + string)
 NSString *VimPBoardType = @"VimPBoardType";
@@ -147,62 +120,6 @@ loadFonts()
     }
 
     return fontContainerRef;
-}
-
-
-
-
-    NSString *
-buildTabDropCommand(NSArray *filenames)
-{
-    // Create a command line string that will open the specified files in tabs.
-
-    if (!filenames || [filenames count] == 0)
-        return [NSString string];
-
-    NSMutableString *cmd = [NSMutableString stringWithString:
-            @"<C-\\><C-N>:tab drop"];
-
-    NSEnumerator *e = [filenames objectEnumerator];
-    id o;
-    while ((o = [e nextObject])) {
-        NSString *file = [o stringByEscapingSpecialFilenameCharacters];
-        [cmd appendString:@" "];
-        [cmd appendString:file];
-    }
-
-    [cmd appendString:@"|redr|f<CR>"];
-
-    return cmd;
-}
-
-    NSString *
-buildSelectRangeCommand(NSRange range)
-{
-    // Build a command line string that will select the given range of lines.
-    // If range.length == 0, then position the cursor on the given line but do
-    // not select.
-
-    if (range.location == NSNotFound)
-        return [NSString string];
-
-    NSString *cmd;
-    if (range.length > 0) {
-        cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGV%dGz.0",
-                NSMaxRange(range), range.location];
-    } else {
-        cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGz.0", range.location];
-    }
-
-    return cmd;
-}
-
-    NSString *
-buildSearchTextCommand(NSString *searchText)
-{
-    // TODO: Searching is an exclusive motion, so if the pattern would match on
-    // row 0 column 0 then this pattern will miss that match.
-    return [NSString stringWithFormat:@"<C-\\><C-N>gg/\\c%@<CR>", searchText];
 }
 
 
@@ -251,28 +168,6 @@ buildSearchTextCommand(NSString *searchText)
 
 
 
-@implementation NSIndexSet (MMExtras)
-
-+ (id)indexSetWithVimList:(NSString *)list
-{
-    NSMutableIndexSet *idxSet = [NSMutableIndexSet indexSet];
-    NSArray *array = [list componentsSeparatedByString:@"\n"];
-    unsigned i, count = [array count];
-
-    for (i = 0; i < count; ++i) {
-        NSString *entry = [array objectAtIndex:i];
-        if ([entry intValue] > 0)
-            [idxSet addIndex:i];
-    }
-
-    return idxSet;
-}
-
-@end // NSIndexSet (MMExtras)
-
-
-
-
 @implementation NSColor (MMExtras)
 
 + (NSColor *)colorWithRgbInt:(unsigned)rgb
@@ -299,20 +194,6 @@ buildSearchTextCommand(NSString *searchText)
 
 
 
-@implementation NSDocumentController (MMExtras)
-
-- (void)noteNewRecentFilePath:(NSString *)path
-{
-    NSURL *url = [NSURL fileURLWithPath:path];
-    if (url)
-        [self noteNewRecentDocumentURL:url];
-}
-
-@end // NSDocumentController (MMExtras)
-
-
-
-
 @implementation NSDictionary (MMExtras)
 
 + (id)dictionaryWithData:(NSData *)data
@@ -330,40 +211,6 @@ buildSearchTextCommand(NSString *searchText)
 {
     return [NSPropertyListSerialization dataFromPropertyList:self
             format:NSPropertyListBinaryFormat_v1_0 errorDescription:NULL];
-}
-
-@end
-
-
-
-
-@implementation NSOpenPanel (MMExtras)
-
-- (void)hiddenFilesButtonToggled:(id)sender
-{
-    [self setShowsHiddenFiles:[sender intValue]];
-}
-
-- (void)setShowsHiddenFiles:(BOOL)show
-{
-    // This is undocumented stuff, so be careful. This does the same as
-    //     [[self _navView] setShowsHiddenFiles:show];
-    // but does not produce warnings.
-
-    if (![self respondsToSelector:@selector(_navView)])
-        return;
-
-    id navView = [self performSelector:@selector(_navView)];
-    if (![navView respondsToSelector:@selector(setShowsHiddenFiles:)])
-        return;
-
-    // performSelector:withObject: does not support a BOOL
-    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:
-        [navView methodSignatureForSelector:@selector(setShowsHiddenFiles:)]];
-    [invocation setTarget:navView];
-    [invocation setSelector:@selector(setShowsHiddenFiles:)];
-    [invocation setArgument:&show atIndex:2];
-    [invocation invoke];
 }
 
 @end
