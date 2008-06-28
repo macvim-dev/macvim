@@ -84,10 +84,8 @@
 - (void)setRows:(int)rows columns:(int)cols;
 - (void)setWindowTitle:(char *)title;
 - (void)setDocumentFilename:(char *)filename;
-- (char *)browseForFileInDirectory:(char *)dir title:(char *)title
-                            saving:(int)saving;
-- (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
-                     buttons:(char *)btns textField:(char *)txtfield;
+- (char *)browseForFileWithAttributes:(NSDictionary *)attr;
+- (int)showDialogWithAttributes:(NSDictionary *)attr textField:(char *)txtfield;
 - (void)showToolbar:(int)enable flags:(int)flags;
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
 - (void)destroyScrollbarWithIdentifier:(long)ident;

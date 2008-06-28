@@ -653,17 +653,12 @@ static NSString *MMSymlinkWarningString =
     [self queueMessage:SetDocumentFilenameMsgID data:data];
 }
 
-- (char *)browseForFileInDirectory:(char *)dir title:(char *)title
-                            saving:(int)saving
+- (char *)browseForFileWithAttributes:(NSDictionary *)attr
 {
-    //NSLog(@"browseForFileInDirectory:%s title:%s saving:%d", dir, title,
-    //        saving);
-
     char_u *s = NULL;
-    NSString *ds = dir ? [NSString stringWithUTF8String:dir] : nil;
-    NSString *ts = title ? [NSString stringWithUTF8String:title] : nil;
+
     @try {
-        [frontendProxy showSavePanelForDirectory:ds title:ts saving:saving];
+        [frontendProxy showSavePanelWithAttributes:attr];
 
         [self waitForDialogReturn];
 
@@ -687,7 +682,7 @@ static NSString *MMSymlinkWarningString =
     return (char *)s;
 }
 
-- (void)setDialogReturn:(in bycopy id)obj
+- (oneway void)setDialogReturn:(in bycopy id)obj
 {
     // NOTE: This is called by
     //   - [MMVimController panelDidEnd:::], and
@@ -705,47 +700,12 @@ static NSString *MMSymlinkWarningString =
     }
 }
 
-- (int)presentDialogWithType:(int)type title:(char *)title message:(char *)msg
-                     buttons:(char *)btns textField:(char *)txtfield
+- (int)showDialogWithAttributes:(NSDictionary *)attr textField:(char *)txtfield
 {
     int retval = 0;
-    NSString *message = nil, *text = nil, *textFieldString = nil;
-    NSArray *buttons = nil;
-    int style = NSInformationalAlertStyle;
-
-    if (VIM_WARNING == type) style = NSWarningAlertStyle;
-    else if (VIM_ERROR == type) style = NSCriticalAlertStyle;
-
-    if (btns) {
-        NSString *btnString = [NSString stringWithUTF8String:btns];
-        buttons = [btnString componentsSeparatedByString:@"\n"];
-    }
-    if (title)
-        message = [NSString stringWithUTF8String:title];
-    if (msg) {
-        text = [NSString stringWithUTF8String:msg];
-        if (!message) {
-            // HACK! If there is a '\n\n' or '\n' sequence in the message, then
-            // make the part up to there into the title.  We only do this
-            // because Vim has lots of dialogs without a title and they look
-            // ugly that way.
-            // TODO: Fix the actual dialog texts.
-            NSRange eolRange = [text rangeOfString:@"\n\n"];
-            if (NSNotFound == eolRange.location)
-                eolRange = [text rangeOfString:@"\n"];
-            if (NSNotFound != eolRange.location) {
-                message = [text substringToIndex:eolRange.location];
-                text = [text substringFromIndex:NSMaxRange(eolRange)];
-            }
-        }
-    }
-    if (txtfield)
-        textFieldString = [NSString stringWithUTF8String:txtfield];
 
     @try {
-        [frontendProxy presentDialogWithStyle:style message:message
-                              informativeText:text buttonTitles:buttons
-                              textFieldString:textFieldString];
+        [frontendProxy presentDialogWithAttributes:attr];
 
         [self waitForDialogReturn];
 

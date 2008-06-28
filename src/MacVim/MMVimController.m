@@ -383,12 +383,25 @@ static BOOL isUnsafeMessage(int msgid);
     [windowController cleanup];
 }
 
-- (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
-                                   title:(in bycopy NSString *)title
-                                  saving:(int)saving
+- (oneway void)showSavePanelWithAttributes:(in bycopy NSDictionary *)attr
 {
-    // TODO: Delay call until run loop is in default mode.
     if (!isInitialized) return;
+
+    BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
+                                        isEqual:NSDefaultRunLoopMode];
+    if (!inDefaultMode) {
+        // Delay call until run loop is in default mode.
+        [self performSelectorOnMainThread:
+                                        @selector(showSavePanelWithAttributes:)
+                               withObject:attr
+			    waitUntilDone:NO
+			            modes:[NSArray arrayWithObject:
+                                           NSDefaultRunLoopMode]];
+        return;
+    }
+
+    NSString *dir = [attr objectForKey:@"dir"];
+    BOOL saving = [[attr objectForKey:@"saving"] boolValue];
 
     if (!dir) {
         // 'dir == nil' means: set dir to the pwd of the Vim process, or let
@@ -418,15 +431,29 @@ static BOOL isUnsafeMessage(int msgid);
     }
 }
 
-- (oneway void)presentDialogWithStyle:(int)style
-                              message:(in bycopy NSString *)message
-                      informativeText:(in bycopy NSString *)text
-                         buttonTitles:(in bycopy NSArray *)buttonTitles
-                      textFieldString:(in bycopy NSString *)textFieldString
+- (oneway void)presentDialogWithAttributes:(in bycopy NSDictionary *)attr
 {
-    // TODO: Delay call until run loop is in default mode.
-    if (!(windowController && buttonTitles && [buttonTitles count])) return;
+    if (!isInitialized) return;
 
+    BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
+                                        isEqual:NSDefaultRunLoopMode];
+    if (!inDefaultMode) {
+        // Delay call until run loop is in default mode.
+        [self performSelectorOnMainThread:@selector(presentDialogWithStyle:)
+                               withObject:attr
+			    waitUntilDone:NO
+			            modes:[NSArray arrayWithObject:
+                                           NSDefaultRunLoopMode]];
+        return;
+    }
+
+    NSArray *buttonTitles = [attr objectForKey:@"buttonTitles"];
+    if (!(buttonTitles && [buttonTitles count])) return;
+
+    int style = [[attr objectForKey:@"alertStyle"] intValue];
+    NSString *message = [attr objectForKey:@"messageText"];
+    NSString *text = [attr objectForKey:@"informativeText"];
+    NSString *textFieldString = [attr objectForKey:@"textFieldString"];
     MMAlert *alert = [[MMAlert alloc] init];
 
     // NOTE! This has to be done before setting the informative text.

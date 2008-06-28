@@ -29,7 +29,7 @@
 @protocol MMBackendProtocol
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data;
 - (oneway void)processInputAndData:(in bycopy NSArray *)messages;
-- (void)setDialogReturn:(in bycopy id)obj;
+- (oneway void)setDialogReturn:(in bycopy id)obj;
 - (NSString *)evaluateExpression:(in bycopy NSString *)expr;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
 @end
@@ -45,14 +45,8 @@
 //
 @protocol MMFrontendProtocol
 - (oneway void)processCommandQueue:(in bycopy NSArray *)queue;
-- (oneway void)showSavePanelForDirectory:(in bycopy NSString *)dir
-                                   title:(in bycopy NSString *)title
-                                  saving:(int)saving;
-- (oneway void)presentDialogWithStyle:(int)style
-                              message:(in bycopy NSString *)message
-                      informativeText:(in bycopy NSString *)text
-                         buttonTitles:(in bycopy NSArray *)buttonTitles
-                      textFieldString:(in bycopy NSString *)textFieldString;
+- (oneway void)showSavePanelWithAttributes:(in bycopy NSDictionary *)attr;
+- (oneway void)presentDialogWithAttributes:(in bycopy NSDictionary *)attr;
 @end
 
 

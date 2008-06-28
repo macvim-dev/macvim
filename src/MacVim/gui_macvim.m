@@ -1307,19 +1307,14 @@ gui_mch_browse(
     // Ensure no data is on the output queue before presenting the dialog.
     gui_macvim_force_flush();
 
-#ifdef FEAT_MBYTE
-    title = CONVERT_TO_UTF8(title);
-    initdir = CONVERT_TO_UTF8(initdir);
-#endif
+    NSMutableDictionary *attr = [NSMutableDictionary
+        dictionaryWithObject:[NSNumber numberWithBool:saving]
+                      forKey:@"saving"];
+    if (initdir)
+        [attr setObject:[NSString stringWithVimString:initdir] forKey:@"dir"];
 
     char_u *s = (char_u*)[[MMBackend sharedInstance]
-            browseForFileInDirectory:(char*)initdir title:(char*)title
-                              saving:saving];
-
-#ifdef FEAT_MBYTE
-    CONVERT_TO_UTF8_FREE(title);
-    CONVERT_TO_UTF8_FREE(initdir);
-#endif
+                            browseForFileWithAttributes:attr];
 
     return s;
 }
@@ -1343,28 +1338,57 @@ gui_mch_dialog(
     // Ensure no data is on the output queue before presenting the dialog.
     gui_macvim_force_flush();
 
-#ifdef FEAT_MBYTE
-    title = CONVERT_TO_UTF8(title);
-    message = CONVERT_TO_UTF8(message);
-    buttons = CONVERT_TO_UTF8(buttons);
-    textfield = CONVERT_TO_UTF8(textfield);
-#endif
+    int style = NSInformationalAlertStyle;
+    if (VIM_WARNING == type) style = NSWarningAlertStyle;
+    else if (VIM_ERROR == type) style = NSCriticalAlertStyle;
 
-    int ret = [[MMBackend sharedInstance]
-            presentDialogWithType:type
-                            title:(char*)title
-                          message:(char*)message
-                          buttons:(char*)buttons
-                        textField:(char*)textfield];
+    NSMutableDictionary *attr = [NSMutableDictionary
+                        dictionaryWithObject:[NSNumber numberWithInt:style]
+                                      forKey:@"alertStyle"];
 
-#ifdef FEAT_MBYTE
-    CONVERT_TO_UTF8_FREE(title);
-    CONVERT_TO_UTF8_FREE(message);
-    CONVERT_TO_UTF8_FREE(buttons);
-    CONVERT_TO_UTF8_FREE(textfield);
-#endif
+    if (buttons) {
+        // 'buttons' is a string of '\n'-separated button titles 
+        NSString *string = [NSString stringWithVimString:buttons];
+        NSArray *array = [string componentsSeparatedByString:@"\n"];
+        [attr setObject:array forKey:@"buttonTitles"];
+    }
 
-    return ret;
+    NSString *messageText = nil;
+    if (title)
+        messageText = [NSString stringWithVimString:title];
+
+    if (message) {
+        NSString *informativeText = [NSString stringWithVimString:message];
+        if (!messageText) {
+            // HACK! If there is a '\n\n' or '\n' sequence in the message, then
+            // make the part up to there into the title.  We only do this
+            // because Vim has lots of dialogs without a title and they look
+            // ugly that way.
+            // TODO: Fix the actual dialog texts.
+            NSRange eolRange = [informativeText rangeOfString:@"\n\n"];
+            if (NSNotFound == eolRange.location)
+                eolRange = [informativeText rangeOfString:@"\n"];
+            if (NSNotFound != eolRange.location) {
+                messageText = [informativeText substringToIndex:
+                                                        eolRange.location];
+                informativeText = [informativeText substringFromIndex:
+                                                        NSMaxRange(eolRange)];
+            }
+        }
+
+        [attr setObject:informativeText forKey:@"informativeText"];
+    }
+
+    if (messageText)
+        [attr setObject:messageText forKey:@"messageText"];
+
+    if (textfield) {
+        NSString *string = [NSString stringWithVimString:textfield];
+        [attr setObject:string forKey:@"textFieldString"];
+    }
+
+    return [[MMBackend sharedInstance] showDialogWithAttributes:attr
+                                                    textField:(char*)textfield];
 }
 
 
