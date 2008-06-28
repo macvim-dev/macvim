@@ -313,8 +313,15 @@
 
 - (void)setDocumentFilename:(NSString *)filename
 {
-    if (filename)
-        [decoratedWindow setRepresentedFilename:filename];
+    if (!filename)
+        return;
+
+    // Ensure file really exists or the path to the proxy icon will look weird.
+    // If the file does not exists, don't show a proxy icon.
+    if (![[NSFileManager defaultManager] fileExistsAtPath:filename])
+        filename = @"";
+
+    [decoratedWindow setRepresentedFilename:filename];
 }
 
 - (void)setToolbar:(NSToolbar *)toolbar
