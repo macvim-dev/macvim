@@ -31,6 +31,9 @@
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
 
+#ifdef MM_ENABLE_PLUGINS
+#import "MMPlugInManager.h"
+#endif
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
 static int MMAlertTextFieldHeight = 22;
@@ -138,6 +141,10 @@ static BOOL isUnsafeMessage(int msgid);
 
         [mainMenu addItem:appMenuItem];
 
+#ifdef MM_ENABLE_PLUGINS
+        instanceMediator = [[MMPlugInInstanceMediator alloc] initWithVimController:self];
+#endif
+
         isInitialized = YES;
     }
 
@@ -147,7 +154,13 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)dealloc
 {
     //NSLog(@"%@ %s", [self className], _cmd);
+
+
     isInitialized = NO;
+
+#ifdef MM_ENABLE_PLUGINS
+    [instanceMediator release]; instanceMediator = nil;
+#endif
 
     [serverName release];  serverName = nil;
     [backendProxy release];  backendProxy = nil;
@@ -169,6 +182,13 @@ static BOOL isUnsafeMessage(int msgid);
 {
     return windowController;
 }
+
+#ifdef MM_ENABLE_PLUGINS
+- (MMPlugInInstanceMediator *)instanceMediator
+{
+    return instanceMediator;
+}
+#endif
 
 - (NSDictionary *)vimState
 {
@@ -363,6 +383,20 @@ static BOOL isUnsafeMessage(int msgid);
         eval = [backendProxy evaluateExpression:expr];
     }
     @catch (NSException *ex) { /* do nothing */ }
+
+    return eval;
+}
+
+- (id)evaluateVimExpressionCocoa:(NSString *)expr errorString:(NSString **)errstr
+{
+    id eval = nil;
+
+    @try {
+        eval = [backendProxy evaluateExpressionCocoa:expr
+                                         errorString:errstr];
+    } @catch (NSException *ex) {
+        *errstr = [ex reason];
+    }
 
     return eval;
 }

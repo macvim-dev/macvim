@@ -11,6 +11,11 @@
 #import <Cocoa/Cocoa.h>
 
 
+//
+// Enable support for MacVim plugins (not to be confused with Vim plugins!).
+//
+#define MM_ENABLE_PLUGINS
+
 
 
 //
@@ -31,9 +36,10 @@
 - (oneway void)processInputAndData:(in bycopy NSArray *)messages;
 - (oneway void)setDialogReturn:(in bycopy id)obj;
 - (NSString *)evaluateExpression:(in bycopy NSString *)expr;
+- (id)evaluateExpressionCocoa:(in bycopy NSString *)expr
+                  errorString:(out bycopy NSString **)errstr;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
 @end
-
 
 //
 // This is the protocol MMVimController implements.

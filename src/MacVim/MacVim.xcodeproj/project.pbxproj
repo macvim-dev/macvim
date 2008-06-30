@@ -85,6 +85,13 @@
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
+		BD476E300DAAD74400F08A5C /* RBSplitSubview.m in Sources */ = {isa = PBXBuildFile; fileRef = BD476E2C0DAAD74400F08A5C /* RBSplitSubview.m */; };
+		BD476E310DAAD74400F08A5C /* RBSplitView.m in Sources */ = {isa = PBXBuildFile; fileRef = BD476E2E0DAAD74400F08A5C /* RBSplitView.m */; };
+		BD943D530DA3050B00A02D9B /* PlugInImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = BD943D520DA3050B00A02D9B /* PlugInImpl.m */; };
+		BD9DF0A00DB2BA020025C97C /* PlugInView.nib in Resources */ = {isa = PBXBuildFile; fileRef = BD9DF09F0DB2BA020025C97C /* PlugInView.nib */; };
+		BD9DF0B00DB41E780025C97C /* PlugInGUI.m in Sources */ = {isa = PBXBuildFile; fileRef = BD9DF0AF0DB41E780025C97C /* PlugInGUI.m */; };
+		BD9DF0FB0DB48C860025C97C /* CTGradient.m in Sources */ = {isa = PBXBuildFile; fileRef = BD9DF0FA0DB48C860025C97C /* CTGradient.m */; };
+		BDA8B1120D9F8A8500B3511A /* MMPlugInManager.m in Sources */ = {isa = PBXBuildFile; fileRef = BDA8B1110D9F8A8500B3511A /* MMPlugInManager.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -264,6 +271,21 @@
 		32CA4F630368D1EE00C91783 /* MacVim_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacVim_Prefix.pch; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD476E2B0DAAD74400F08A5C /* RBSplitSubview.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RBSplitSubview.h; sourceTree = "<group>"; };
+		BD476E2C0DAAD74400F08A5C /* RBSplitSubview.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RBSplitSubview.m; sourceTree = "<group>"; };
+		BD476E2D0DAAD74400F08A5C /* RBSplitView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RBSplitView.h; sourceTree = "<group>"; };
+		BD476E2E0DAAD74400F08A5C /* RBSplitView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RBSplitView.m; sourceTree = "<group>"; };
+		BD476E2F0DAAD74400F08A5C /* RBSplitViewPrivateDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RBSplitViewPrivateDefines.h; sourceTree = "<group>"; };
+		BD943D310DA2EA2500A02D9B /* PlugInInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlugInInterface.h; sourceTree = "<group>"; };
+		BD943D510DA3050B00A02D9B /* PlugInImpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlugInImpl.h; sourceTree = "<group>"; };
+		BD943D520DA3050B00A02D9B /* PlugInImpl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PlugInImpl.m; sourceTree = "<group>"; };
+		BD9DF09F0DB2BA020025C97C /* PlugInView.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = PlugInView.nib; sourceTree = "<group>"; };
+		BD9DF0AE0DB41E780025C97C /* PlugInGUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlugInGUI.h; sourceTree = "<group>"; };
+		BD9DF0AF0DB41E780025C97C /* PlugInGUI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PlugInGUI.m; sourceTree = "<group>"; };
+		BD9DF0F90DB48C860025C97C /* CTGradient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTGradient.h; sourceTree = "<group>"; };
+		BD9DF0FA0DB48C860025C97C /* CTGradient.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CTGradient.m; sourceTree = "<group>"; };
+		BDA8B1100D9F8A8500B3511A /* MMPlugInManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMPlugInManager.h; sourceTree = "<group>"; };
+		BDA8B1110D9F8A8500B3511A /* MMPlugInManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMPlugInManager.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -304,6 +326,13 @@
 			children = (
 				1D8059220E118663001699D1 /* Miscellaneous.h */,
 				1D80591D0E1185EA001699D1 /* Miscellaneous.m */,
+				BD9DF0F90DB48C860025C97C /* CTGradient.h */,
+				BD9DF0FA0DB48C860025C97C /* CTGradient.m */,
+				BD476E2B0DAAD74400F08A5C /* RBSplitSubview.h */,
+				BD476E2C0DAAD74400F08A5C /* RBSplitSubview.m */,
+				BD476E2D0DAAD74400F08A5C /* RBSplitView.h */,
+				BD476E2E0DAAD74400F08A5C /* RBSplitView.m */,
+				BD476E2F0DAAD74400F08A5C /* RBSplitViewPrivateDefines.h */,
 				0395A9BD0D75D02400881434 /* AuthorizedShellCommand.h */,
 				0395A9BE0D75D02400881434 /* AuthorizedShellCommand.m */,
 				0395A8310D71ED7800881434 /* DBPrefsWindowController.h */,
@@ -336,6 +365,13 @@
 				1D1474960C56703C0038FA2B /* MacVim.m */,
 				32CA4F630368D1EE00C91783 /* MacVim_Prefix.pch */,
 				29B97316FDCFA39411CA2CEA /* main.m */,
+				BDA8B1100D9F8A8500B3511A /* MMPlugInManager.h */,
+				BDA8B1110D9F8A8500B3511A /* MMPlugInManager.m */,
+				BD943D310DA2EA2500A02D9B /* PlugInInterface.h */,
+				BD943D510DA3050B00A02D9B /* PlugInImpl.h */,
+				BD943D520DA3050B00A02D9B /* PlugInImpl.m */,
+				BD9DF0AE0DB41E780025C97C /* PlugInGUI.h */,
+				BD9DF0AF0DB41E780025C97C /* PlugInGUI.m */,
 			);
 			name = "MacVim Source";
 			sourceTree = "<group>";
@@ -470,6 +506,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				BD9DF09F0DB2BA020025C97C /* PlugInView.nib */,
 				1DD3D51D0D82D4C9006E4320 /* ibeam.png */,
 				1D0F11480D58C77800D5DA09 /* Font */,
 				1DCE78490C460C6C006305A6 /* Icons */,
@@ -623,6 +660,7 @@
 				0395A8AA0D72D88B00881434 /* General.png in Resources */,
 				0395A95A0D74D47B00881434 /* Integration.png in Resources */,
 				1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */,
+				BD9DF0A00DB2BA020025C97C /* PlugInView.nib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -650,6 +688,12 @@
 				0395A8330D71ED7800881434 /* DBPrefsWindowController.m in Sources */,
 				0395A9BF0D75D02400881434 /* AuthorizedShellCommand.m in Sources */,
 				1D80591F0E1185EA001699D1 /* Miscellaneous.m in Sources */,
+				BDA8B1120D9F8A8500B3511A /* MMPlugInManager.m in Sources */,
+				BD943D530DA3050B00A02D9B /* PlugInImpl.m in Sources */,
+				BD476E300DAAD74400F08A5C /* RBSplitSubview.m in Sources */,
+				BD476E310DAAD74400F08A5C /* RBSplitView.m in Sources */,
+				BD9DF0B00DB41E780025C97C /* PlugInGUI.m in Sources */,
+				BD9DF0FB0DB48C860025C97C /* CTGradient.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

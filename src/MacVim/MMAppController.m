@@ -42,6 +42,11 @@
 #import "MMVimController.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
+
+#ifdef MM_ENABLE_PLUGINS
+#import "MMPlugInManager.h"
+#endif
+
 #import <unistd.h>
 
 
@@ -85,7 +90,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 
 @interface MMAppController (Private)
-- (MMVimController *)keyVimController;
 - (MMVimController *)topmostVimController;
 - (int)launchVimProcessWithArguments:(NSArray *)args;
 - (NSArray *)filterFilesAndNotify:(NSArray *)files;
@@ -100,8 +104,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (NSMutableDictionary *)extractArgumentsFromOdocEvent:
     (NSAppleEventDescriptor *)desc;
 - (void)passArguments:(NSDictionary *)args toVimController:(MMVimController*)vc;
+
+#ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu;
 - (void)addPlugInMenuToMenu:(NSMenu *)mainMenu;
+#endif
 @end
 
 
@@ -151,6 +158,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         vimControllers = [NSMutableArray new];
         pidArguments = [NSMutableDictionary new];
 
+#ifdef MM_ENABLE_PLUGINS
         NSString *plugInTitle = NSLocalizedString(@"Plug-In",
                                                   @"Plug-In menu title");
         plugInMenuItem = [[NSMenuItem alloc] initWithTitle:plugInTitle
@@ -159,6 +167,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         NSMenu *submenu = [[NSMenu alloc] initWithTitle:plugInTitle];
         [plugInMenuItem setSubmenu:submenu];
         [submenu release];
+#endif
 
         // NOTE: Do not use the default connection since the Logitech Control
         // Center (LCC) input manager steals and this would cause MacVim to
@@ -200,7 +209,9 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     [openSelectionString release];  openSelectionString = nil;
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
     [defaultMainMenu release];  defaultMainMenu = nil;
+#ifdef MM_ENABLE_PLUGINS
     [plugInMenuItem release];  plugInMenuItem = nil;
+#endif
     [appMenuItemTemplate release];  appMenuItemTemplate = nil;
 
     [super dealloc];
@@ -258,6 +269,9 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
     [NSApp setServicesProvider:self];
+#ifdef MM_ENABLE_PLUGINS
+    [[MMPlugInManager sharedManager] loadAllPlugIns];
+#endif
 }
 
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
@@ -515,6 +529,10 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 - (void)applicationWillTerminate:(NSNotification *)notification
 {
+#ifdef MM_ENABLE_PLUGINS
+    [[MMPlugInManager sharedManager] unloadAllPlugIns];
+#endif
+
 #if MM_HANDLE_XCODE_MOD_EVENT
     [[NSAppleEventManager sharedAppleEventManager]
             removeEventHandlerForEventClass:'KAHL'
@@ -679,11 +697,14 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     }
     [NSApp setWindowsMenu:windowsMenu];
 
+#ifdef MM_ENABLE_PLUGINS
     // Move plugin menu from old to new main menu.
     [self removePlugInMenu];
     [self addPlugInMenuToMenu:mainMenu];
+#endif
 }
 
+#ifdef MM_ENABLE_PLUGINS
 - (void)addItemToPlugInMenu:(NSMenuItem *)item
 {
     NSMenu *menu = [plugInMenuItem submenu];
@@ -699,6 +720,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     if ([menu numberOfItems] == 0)
         [self removePlugInMenu];
 }
+#endif
 
 - (IBAction)newWindow:(id)sender
 {
@@ -859,6 +881,21 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     return array;
 }
 
+- (MMVimController *)keyVimController
+{
+    NSWindow *keyWindow = [NSApp keyWindow];
+    if (keyWindow) {
+        unsigned i, count = [vimControllers count];
+        for (i = 0; i < count; ++i) {
+            MMVimController *vc = [vimControllers objectAtIndex:i];
+            if ([[[vc windowController] window] isEqual:keyWindow])
+                return vc;
+        }
+    }
+
+    return nil;
+}
+
 @end // MMAppController
 
 
@@ -928,21 +965,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 
 @implementation MMAppController (Private)
-
-- (MMVimController *)keyVimController
-{
-    NSWindow *keyWindow = [NSApp keyWindow];
-    if (keyWindow) {
-        unsigned i, count = [vimControllers count];
-        for (i = 0; i < count; ++i) {
-            MMVimController *vc = [vimControllers objectAtIndex:i];
-            if ([[[vc windowController] window] isEqual:keyWindow])
-                return vc;
-        }
-    }
-
-    return nil;
-}
 
 - (MMVimController *)topmostVimController
 {
@@ -1275,6 +1297,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         [vc addVimInput:buildSearchTextCommand(searchText)];
 }
 
+#ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu
 {
     if ([plugInMenuItem menu])
@@ -1295,6 +1318,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         }
     }
 }
+#endif
 
 @end // MMAppController (Private)
 

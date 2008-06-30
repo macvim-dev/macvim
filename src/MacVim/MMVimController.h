@@ -11,6 +11,10 @@
 #import <Cocoa/Cocoa.h>
 #import "MacVim.h"
 
+#ifdef MM_ENABLE_PLUGINS
+#import "PlugInImpl.h"
+#endif
+
 
 @class MMWindowController;
 
@@ -31,6 +35,9 @@
     int                 pid;
     NSString            *serverName;
     NSDictionary        *vimState;
+#ifdef MM_ENABLE_PLUGINS
+    MMPlugInInstanceMediator *instanceMediator;
+#endif
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
@@ -51,4 +58,8 @@
                timeout:(NSTimeInterval)timeout;
 - (void)addVimInput:(NSString *)string;
 - (NSString *)evaluateVimExpression:(NSString *)expr;
+- (id)evaluateVimExpressionCocoa:(NSString *)expr errorString:(NSString **)errstr;
+#ifdef MM_ENABLE_PLUGINS
+- (MMPlugInInstanceMediator *)instanceMediator;
+#endif
 @end

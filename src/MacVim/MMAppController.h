@@ -13,6 +13,7 @@
 
 
 @class MMWindowController;
+@class MMVimController;
 
 
 @interface MMAppController : NSObject <MMAppProtocol> {
@@ -24,18 +25,24 @@
     NSMenu              *defaultMainMenu;
     NSMenuItem          *appMenuItemTemplate;
     NSMenuItem          *recentFilesMenuItem;
+
+#ifdef MM_ENABLE_PLUGINS
     NSMenuItem          *plugInMenuItem;
+#endif
 }
 
 + (MMAppController *)sharedInstance;
 - (NSMenu *)defaultMainMenu;
 - (NSMenuItem *)appMenuItemTemplate;
+- (MMVimController *)keyVimController;
 - (void)removeVimController:(id)controller;
 - (void)windowControllerWillOpen:(MMWindowController *)windowController;
 - (void)setMainMenu:(NSMenu *)mainMenu;
 
+#ifdef MM_ENABLE_PLUGINS
 - (void)addItemToPlugInMenu:(NSMenuItem *)item;
 - (void)removeItemFromPlugInMenu:(NSMenuItem *)item;
+#endif
 
 - (IBAction)newWindow:(id)sender;
 - (IBAction)fileOpen:(id)sender;

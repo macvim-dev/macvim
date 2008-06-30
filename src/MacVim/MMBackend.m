@@ -57,6 +57,7 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber);
 // In gui_macvim.m
 vimmenu_T *menu_for_descriptor(NSArray *desc);
 
+static id evalExprCocoa(NSString * expr, NSString ** errstr);
 
 enum {
     MMBlinkStateNone = 0,
@@ -1140,6 +1141,13 @@ static NSString *MMSymlinkWarningString =
         [self processInput:msgid data:data];
     }
 }
+
+- (id)evaluateExpressionCocoa:(in bycopy NSString *)expr
+                  errorString:(out bycopy NSString **)errstr
+{
+    return evalExprCocoa(expr, errstr);
+}
+
 
 - (NSString *)evaluateExpression:(in bycopy NSString *)expr
 {
@@ -2435,4 +2443,141 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber)
 
     return (buttonNumber >= 0 && buttonNumber < 3)
             ? mouseButton[buttonNumber] : -1;
+}
+
+// This function is modeled after the VimToPython function found in if_python.c
+// NB This does a deep copy by value, it does not lookup references like the
+// VimToPython function does.  This is because I didn't want to deal with the
+// retain cycles that this would create, and we can cover 99% of the use cases
+// by ignoring it.  If we ever switch to using GC in MacVim then this
+// functionality can be implemented easily.
+static id vimToCocoa(typval_T * tv, int depth)
+{
+    id result = nil;
+    id newObj = nil;
+
+
+    // Avoid infinite recursion
+    if (depth > 100) {
+        return nil;
+    }
+
+    if (tv->v_type == VAR_STRING) {
+        char_u * val = tv->vval.v_string;
+        // val can be NULL if the string is empty
+        if (!val) {
+            result = [NSString string];
+        } else {
+#ifdef FEAT_MBYTE
+            val = CONVERT_TO_UTF8(val);
+#endif
+            result = [NSString stringWithUTF8String:(char*)val];
+#ifdef FEAT_MBYTE
+            CONVERT_TO_UTF8_FREE(val);
+#endif
+        }
+    } else if (tv->v_type == VAR_NUMBER) {
+        // looks like sizeof(varnumber_T) is always <= sizeof(long)
+        result = [NSNumber numberWithLong:(long)tv->vval.v_number];
+    } else if (tv->v_type == VAR_LIST) {
+        list_T * list = tv->vval.v_list;
+        listitem_T * curr;
+
+        NSMutableArray * arr = result = [NSMutableArray array];
+
+        if (list != NULL) {
+            for (curr = list->lv_first; curr != NULL; curr = curr->li_next) {
+                newObj = vimToCocoa(&curr->li_tv, depth + 1);
+                [arr addObject:newObj];
+            }
+        }
+    } else if (tv->v_type == VAR_DICT) {
+        NSMutableDictionary * dict = result = [NSMutableDictionary dictionary];
+
+        if (tv->vval.v_dict != NULL) {
+            hashtab_T * ht = &tv->vval.v_dict->dv_hashtab;
+            int todo = ht->ht_used;
+            hashitem_T * hi;
+            dictitem_T * di;
+
+            for (hi = ht->ht_array; todo > 0; ++hi) {
+                if (!HASHITEM_EMPTY(hi)) {
+                    --todo;
+
+                    di = dict_lookup(hi);
+                    newObj = vimToCocoa(&di->di_tv, depth + 1);
+
+                    char_u * keyval = hi->hi_key;
+#ifdef FEAT_MBYTE
+                    keyval = CONVERT_TO_UTF8(keyval);
+#endif
+                    NSString * key = [NSString stringWithUTF8String:(char*)keyval];
+#ifdef FEAT_MBYTE
+                    CONVERT_TO_UTF8_FREE(keyval);
+#endif
+                    [dict setObject:newObj forKey:key];
+                }
+            }
+        }
+    } else { // only func refs should fall into this category?
+        result = nil;
+    }
+
+    return result;
+}
+
+
+// This function is modeled after eval_client_expr_to_string found in main.c
+// Returns nil if there was an error evaluating the expression, and writes a
+// message to errorStr.
+// TODO Get the error that occurred while evaluating the expression in vim
+// somehow.
+static id evalExprCocoa(NSString * expr, NSString ** errstr)
+{
+
+    char_u *s = (char_u*)[expr UTF8String];
+
+#ifdef FEAT_MBYTE
+    s = CONVERT_FROM_UTF8(s);
+#endif
+
+    int save_dbl = debug_break_level;
+    int save_ro = redir_off;
+
+    debug_break_level = -1;
+    redir_off = 0;
+    ++emsg_skip;
+
+    typval_T * tvres = eval_expr(s, NULL);
+
+    debug_break_level = save_dbl;
+    redir_off = save_ro;
+    --emsg_skip;
+
+    setcursor();
+    out_flush();
+
+#ifdef FEAT_MBYTE
+    CONVERT_FROM_UTF8_FREE(s);
+#endif
+
+#ifdef FEAT_GUI
+    if (gui.in_use)
+        gui_update_cursor(FALSE, FALSE);
+#endif
+
+    if (tvres == NULL) {
+        free_tv(tvres);
+        *errstr = @"Expression evaluation failed.";
+    }
+
+    id res = vimToCocoa(tvres, 1);
+
+    free_tv(tvres);
+
+    if (res == nil) {
+        *errstr = @"Conversion to cocoa values failed.";
+    }
+
+    return res;
 }
