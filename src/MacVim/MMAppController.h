@@ -24,6 +24,7 @@
     NSMenu              *defaultMainMenu;
     NSMenuItem          *appMenuItemTemplate;
     NSMenuItem          *recentFilesMenuItem;
+    NSMenuItem          *plugInMenuItem;
 }
 
 + (MMAppController *)sharedInstance;
@@ -32,6 +33,10 @@
 - (void)removeVimController:(id)controller;
 - (void)windowControllerWillOpen:(MMWindowController *)windowController;
 - (void)setMainMenu:(NSMenu *)mainMenu;
+
+- (void)addItemToPlugInMenu:(NSMenuItem *)item;
+- (void)removeItemFromPlugInMenu:(NSMenuItem *)item;
+
 - (IBAction)newWindow:(id)sender;
 - (IBAction)fileOpen:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;

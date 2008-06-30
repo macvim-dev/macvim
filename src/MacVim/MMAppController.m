@@ -100,6 +100,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (NSMutableDictionary *)extractArgumentsFromOdocEvent:
     (NSAppleEventDescriptor *)desc;
 - (void)passArguments:(NSDictionary *)args toVimController:(MMVimController*)vc;
+- (void)removePlugInMenu;
+- (void)addPlugInMenuToMenu:(NSMenu *)mainMenu;
 @end
 
 
@@ -149,6 +151,15 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         vimControllers = [NSMutableArray new];
         pidArguments = [NSMutableDictionary new];
 
+        NSString *plugInTitle = NSLocalizedString(@"Plug-In",
+                                                  @"Plug-In menu title");
+        plugInMenuItem = [[NSMenuItem alloc] initWithTitle:plugInTitle
+                                                    action:NULL
+                                             keyEquivalent:@""];
+        NSMenu *submenu = [[NSMenu alloc] initWithTitle:plugInTitle];
+        [plugInMenuItem setSubmenu:submenu];
+        [submenu release];
+
         // NOTE: Do not use the default connection since the Logitech Control
         // Center (LCC) input manager steals and this would cause MacVim to
         // never open any windows.  (This is a bug in LCC but since they are
@@ -189,6 +200,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     [openSelectionString release];  openSelectionString = nil;
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
     [defaultMainMenu release];  defaultMainMenu = nil;
+    [plugInMenuItem release];  plugInMenuItem = nil;
     [appMenuItemTemplate release];  appMenuItemTemplate = nil;
 
     [super dealloc];
@@ -666,6 +678,26 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         }
     }
     [NSApp setWindowsMenu:windowsMenu];
+
+    // Move plugin menu from old to new main menu.
+    [self removePlugInMenu];
+    [self addPlugInMenuToMenu:mainMenu];
+}
+
+- (void)addItemToPlugInMenu:(NSMenuItem *)item
+{
+    NSMenu *menu = [plugInMenuItem submenu];
+    [menu addItem:item];
+    if ([menu numberOfItems] == 1)
+        [self addPlugInMenuToMenu:[NSApp mainMenu]];
+}
+
+- (void)removeItemFromPlugInMenu:(NSMenuItem *)item
+{
+    NSMenu *menu = [plugInMenuItem submenu];
+    [menu removeItem:item];
+    if ([menu numberOfItems] == 0)
+        [self removePlugInMenu];
 }
 
 - (IBAction)newWindow:(id)sender
@@ -1241,6 +1273,27 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     NSString *searchText = [args objectForKey:@"searchText"];
     if (searchText)
         [vc addVimInput:buildSearchTextCommand(searchText)];
+}
+
+- (void)removePlugInMenu
+{
+    if ([plugInMenuItem menu])
+        [[plugInMenuItem menu] removeItem:plugInMenuItem];
+}
+
+- (void)addPlugInMenuToMenu:(NSMenu *)mainMenu
+{
+    NSMenu *windowsMenu = [mainMenu findWindowsMenu];
+
+    if ([[plugInMenuItem submenu] numberOfItems] > 0) {
+        int idx = windowsMenu ? [mainMenu indexOfItemWithSubmenu:windowsMenu]
+                              : -1;
+        if (idx > 0) {
+            [mainMenu insertItem:plugInMenuItem atIndex:idx];
+        } else {
+            [mainMenu addItem:plugInMenuItem];
+        }
+    }
 }
 
 @end // MMAppController (Private)
