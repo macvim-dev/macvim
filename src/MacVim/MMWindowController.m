@@ -668,9 +668,6 @@
 - (void)windowDidResignMain:(NSNotification *)notification
 {
     [vimController sendMessage:LostFocusMsgID data:nil];
-
-    if ([vimView textView])
-        [[vimView textView] hideMarkedTextField];
 }
 
 - (BOOL)windowShouldClose:(id)sender

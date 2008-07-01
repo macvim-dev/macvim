@@ -24,7 +24,9 @@
     int                 insertionPointColumn;
     int                 insertionPointShape;
     int                 insertionPointFraction;
-    NSTextField         *markedTextField;
+    NSRange             imRange;
+    NSDictionary        *markedTextAttributes;
+    NSMutableAttributedString  *markedText;
     int                 preEditRow;
     int                 preEditColumn;
     int                 mouseShape;
@@ -37,7 +39,6 @@
 
 - (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)setPreEditRow:(int)row column:(int)col;
-- (void)hideMarkedTextField;
 - (void)performBatchDrawWithData:(NSData *)data;
 - (void)setMouseShape:(int)shape;
 - (void)setAntialias:(BOOL)antialias;

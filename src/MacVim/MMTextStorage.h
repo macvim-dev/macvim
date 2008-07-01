@@ -82,6 +82,7 @@ typedef struct {
 - (void)setFont:(NSFont *)newFont;
 - (void)setWideFont:(NSFont *)newFont;
 - (NSFont *)font;
+- (NSFont *)fontWide;
 - (NSColor *)defaultBackgroundColor;
 - (NSColor *)defaultForegroundColor;
 - (NSSize)size;

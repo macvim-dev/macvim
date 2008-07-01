@@ -750,6 +750,11 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     return font;
 }
 
+- (NSFont*)fontWide
+{
+    return fontWide;
+}
+
 - (NSColor *)defaultBackgroundColor
 {
     return defaultBackgroundColor;

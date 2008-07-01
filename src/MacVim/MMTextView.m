@@ -130,10 +130,10 @@ enum {
 {
     //NSLog(@"MMTextView dealloc");
 
-    if (markedTextField) {
-        [[markedTextField window] autorelease];
-        [markedTextField release];
-        markedTextField = nil;
+     if (markedText) {
+         imRange = NSMakeRange(0, 0);
+         [markedText release];
+         markedText = nil;
     }
 
     if (invertRects) {
@@ -164,16 +164,6 @@ enum {
     preEditRow = row;
     preEditColumn = col;
 }
-
-- (void)hideMarkedTextField
-{
-    if (markedTextField) {
-        NSWindow *win = [markedTextField window];
-        [win close];
-        [markedTextField setStringValue:@""];
-    }
-}
-
 
 #define MM_DEBUG_DRAWING 0
 
@@ -478,6 +468,45 @@ enum {
         numInvertRects = 0;
     }
 
+    if ([self hasMarkedText]) {
+        shouldDrawInsertionPoint = YES;
+        MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+        NSSize size = [self textContainerInset];
+
+        int len = [markedText length];
+        // The following implementation should be re-written with
+        // more efficient way...
+
+        // Calculate how many wide-font characters can be inserted at
+        // a first line, and draw those characters.
+        int cols = ([ts actualColumns] - insertionPointColumn) / 2;
+        int done = 0;
+        int lend = cols > len ? len : cols;
+        NSAttributedString *aString = [markedText attributedSubstringFromRange:NSMakeRange(done, lend)];
+        [aString drawAtPoint:NSMakePoint(
+                insertionPointColumn*[ts cellSize].width + size.width,
+                insertionPointRow*[ts cellSize].height + size.height)];
+
+        done = lend;
+        // Check whether there're charecters that aren't drawn at
+        // the first line. If everything is already done, the follow
+        // check fails.
+        if (done != len) {
+            int r;
+            // Calculate How many rows are needed to draw all the left
+            // characters.
+            int rows = (len - done) / ([ts actualColumns] / 2) + 1;
+            for (r = 1; r <= rows; r++) {
+                lend = len - done > [ts actualColumns] / 2 ? [ts actualColumns] / 2 : len - done;
+                aString = [markedText attributedSubstringFromRange:NSMakeRange(done, lend)];
+                [aString drawAtPoint:NSMakePoint(
+                        size.width,
+                        (insertionPointRow + r)*[ts cellSize].height + size.height)];
+                done += lend;
+            }
+        }
+    }
+
     if (shouldDrawInsertionPoint) {
         MMTextStorage *ts = (MMTextStorage*)[self textStorage];
 
@@ -485,6 +514,14 @@ enum {
                                                    column:insertionPointColumn];
         ipRect.origin.x += [self textContainerOrigin].x;
         ipRect.origin.y += [self textContainerOrigin].y;
+        /* for markedText */
+        if ([self hasMarkedText]) {
+            NSFont *theFont = [markedTextAttributes valueForKey:NSFontAttributeName];
+            if (theFont == [ts font])
+                ipRect.origin.x += [ts cellSize].width * (imRange.location + imRange.length);
+            else
+                ipRect.origin.x += [ts cellSize].width * 2 * (imRange.location + imRange.length);
+        }
 
         if (MMInsertionPointHorizontal == insertionPointShape) {
             int frac = ([ts cellSize].height * insertionPointFraction + 99)/100;
@@ -514,6 +551,7 @@ enum {
         //        NSStringFromRect(ipRect), insertionPointShape,
         //        [self insertionPointColor]);
     }
+
 #if 0
     // this code invalidates the shadow, so we don't 
     // get shifting ghost text on scroll and resize
@@ -544,6 +582,16 @@ enum {
     //
     // TODO: Figure out a way to disable Cocoa key bindings entirely, without
     // affecting input management.
+    [NSCursor setHiddenUntilMouseMoves: YES];
+    // When the Input Method is activated, some special key inputs
+    // should be treated as key inputs for Input Method.
+    if ([self hasMarkedText]) {
+        [self unmarkText];
+        [super keyDown:event];
+        [self setNeedsDisplay: YES];
+        return;
+    }
+
     int flags = [event modifierFlags];
     if ((flags & NSControlKeyMask) ||
             ((flags & NSAlternateKeyMask) && (flags & NSFunctionKeyMask))) {
@@ -574,7 +622,9 @@ enum {
     // modifiers are already included and should not be added to the input
     // buffer using CSI, K_MODIFIER).
 
-    [self hideMarkedTextField];
+    if([self hasMarkedText]) {
+        [self unmarkText];
+    }
 
     NSEvent *event = [NSApp currentEvent];
 
@@ -724,15 +774,16 @@ enum {
 - (BOOL)hasMarkedText
 {
     //NSLog(@"%s", _cmd);
-    return markedTextField && [[markedTextField stringValue] length] > 0;
+    return markedText && [markedText length] > 0;
 }
 
-- (NSRange)markedRange
+- (void) setMarkedTextAttributes: (NSDictionary *) attr
 {
-    //NSLog(@"%s", _cmd);
-    unsigned len = [[markedTextField stringValue] length];
-    return NSMakeRange(len > 0 ? 0 : NSNotFound, len);
+    [markedTextAttributes release];
+    [attr retain];
+    markedTextAttributes=attr;
 }
+
 
 - (void)setMarkedText:(id)text selectedRange:(NSRange)range
 {
@@ -740,66 +791,49 @@ enum {
     //        NSStringFromRange(range));
 
     MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-    if (!ts) return;
-
-    if (!markedTextField) {
-        // Create a text field and put it inside a floating panel.  This field
-        // is used to display marked text.
-        NSSize cellSize = [ts cellSize];
-        NSRect cellRect = { 0, 0, cellSize.width, cellSize.height };
-
-        markedTextField = [[NSTextField alloc] initWithFrame:cellRect];
-        [markedTextField setEditable:NO];
-        [markedTextField setSelectable:NO];
-        [markedTextField setBezeled:NO];
-        [markedTextField setBordered:YES];
-
-        // NOTE: The panel that holds the marked text field is allocated here
-        // and released in dealloc.  No pointer to the panel is kept, instead
-        // [markedTextField window] is used to access the panel.
-        NSPanel *panel = [[NSPanel alloc]
-            initWithContentRect:cellRect
-                      styleMask:NSBorderlessWindowMask|NSUtilityWindowMask
-                        backing:NSBackingStoreBuffered
-                          defer:YES];
-
-        //[panel setHidesOnDeactivate:NO];
-        [panel setFloatingPanel:YES];
-        [panel setBecomesKeyOnlyIfNeeded:YES];
-        [panel setContentView:markedTextField];
-    }
+    if (!ts)
+        return;
+    [self unmarkText];
 
     if (text && [text length] > 0) {
-        [markedTextField setFont:[ts font]];
-        if ([text isKindOfClass:[NSAttributedString class]])
-            [markedTextField setAttributedStringValue:text];
-        else
-            [markedTextField setStringValue:text];
+        if ([text isKindOfClass:[NSAttributedString class]]) {
+            [self setMarkedTextAttributes:
+                [NSDictionary dictionaryWithObjectsAndKeys:
+                    [ts fontWide], NSFontAttributeName,
+                    [ts defaultBackgroundColor], NSBackgroundColorAttributeName,
+                    [ts defaultForegroundColor], NSForegroundColorAttributeName,
+                    [NSNumber numberWithInt:1], NSUnderlineStyleAttributeName,
+                    nil]];
+            markedText=[[NSMutableAttributedString alloc] initWithString:[text string]
+                attributes:markedTextAttributes];
+        } else {
+            [self setMarkedTextAttributes:
+                [NSDictionary dictionaryWithObjectsAndKeys:
+                    [ts font], NSFontAttributeName,
+                    [ts defaultBackgroundColor], NSBackgroundColorAttributeName,
+                    [ts defaultForegroundColor], NSForegroundColorAttributeName,
+                    [NSNumber numberWithInt:1], NSUnderlineStyleAttributeName,
+                    nil]];
+            markedText=[[NSMutableAttributedString alloc] initWithString:text
+                attributes:markedTextAttributes];
+        }
 
-        [markedTextField sizeToFit];
-        NSSize size = [markedTextField frame].size;
-
-        // Convert coordinates (row,col) -> view -> window base -> screen
-        NSPoint origin;
-        if (![self convertRow:preEditRow+1 column:preEditColumn
-                     toPoint:&origin])
-            return;
-        origin = [self convertPoint:origin toView:nil];
-        origin = [[self window] convertBaseToScreen:origin];
-
-        NSWindow *win = [markedTextField window];
-        [win setContentSize:size];
-        [win setFrameOrigin:origin];
-        [win orderFront:nil];
-    } else {
-        [self hideMarkedTextField];
+        imRange = range;
+        if (range.length) {
+            [markedText addAttribute:NSUnderlineStyleAttributeName
+                               value:[NSNumber numberWithInt:2]
+                               range:range];
+        }
+        [self setNeedsDisplay: YES];
     }
 }
 
 - (void)unmarkText
 {
     //NSLog(@"%s", _cmd);
-    [self hideMarkedTextField];
+    imRange = NSMakeRange(0, 0);
+    [markedText release];
+    markedText = nil;
 }
 
 - (NSRect)firstRectForCharacterRange:(NSRange)range
