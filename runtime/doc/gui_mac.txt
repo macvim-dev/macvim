@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.1.  Last change: 2008 May 25
+*gui_mac.txt*	For Vim version 7.2a.  Last change: 2008 May 25
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
