@@ -236,6 +236,18 @@ NSString *MMDialogsTrackPwdKey          = @"MMDialogsTrackPwd";
 
 
 
+@implementation NSNumber (MMExtras)
+
+- (int)tag
+{
+    return [self intValue];
+}
+
+@end // NSNumber (MMExtras)
+
+
+
+
     NSView *
 openPanelAccessoryView()
 {

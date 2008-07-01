@@ -89,6 +89,11 @@ enum {
 @end
 
 
+@interface NSNumber (MMExtras)
+- (int)tag;
+@end
+
+
 
 // Create a view to be used as accessory for open panel.  This function assumes
 // ownership of the view so do not release it.
