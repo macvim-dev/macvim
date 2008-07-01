@@ -14,7 +14,8 @@
  * files onto window.
  *
  * Support for input managers is somewhat hacked together.  Marked text is
- * displayed in a popup window instead of 'in-line' (because it is easier).
+ * drawn "pseudo-inline"; it will simply draw on top of existing text and it
+ * does not respect Vim-window boundaries.
  */
 
 #import "MMAppController.h"
@@ -471,7 +472,19 @@ enum {
     if ([self hasMarkedText]) {
         shouldDrawInsertionPoint = YES;
         MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-        NSSize size = [self textContainerInset];
+        NSSize inset = [self textContainerInset];
+
+        // HACK! Get the baseline of the zeroth glyph and use that as the
+        // baseline for the marked text.  (Is there a better way to figure out
+        // what baseline NSTextView uses?)
+        NSLayoutManager *lm = [self layoutManager];
+        NSTypesetter *tsr = [lm typesetter];
+        float baseline = [tsr baselineOffsetInLayoutManager:lm glyphIndex:0];
+
+        // Also adjust for 'linespace' option (TODO: Why not .5*linespace?)
+        baseline -= floor([ts linespace]);
+
+        inset.height -= baseline;
 
         int len = [markedText length];
         // The following implementation should be re-written with
@@ -482,10 +495,11 @@ enum {
         int cols = ([ts actualColumns] - insertionPointColumn) / 2;
         int done = 0;
         int lend = cols > len ? len : cols;
-        NSAttributedString *aString = [markedText attributedSubstringFromRange:NSMakeRange(done, lend)];
+        NSAttributedString *aString = [markedText attributedSubstringFromRange:
+                NSMakeRange(done, lend)];
         [aString drawAtPoint:NSMakePoint(
-                insertionPointColumn*[ts cellSize].width + size.width,
-                insertionPointRow*[ts cellSize].height + size.height)];
+                insertionPointColumn*[ts cellSize].width + inset.width,
+                insertionPointRow*[ts cellSize].height + inset.height)];
 
         done = lend;
         // Check whether there're charecters that aren't drawn at
@@ -497,11 +511,14 @@ enum {
             // characters.
             int rows = (len - done) / ([ts actualColumns] / 2) + 1;
             for (r = 1; r <= rows; r++) {
-                lend = len - done > [ts actualColumns] / 2 ? [ts actualColumns] / 2 : len - done;
-                aString = [markedText attributedSubstringFromRange:NSMakeRange(done, lend)];
+                lend = len - done > [ts actualColumns] / 2
+                        ? [ts actualColumns] / 2 : len - done;
+                aString = [markedText attributedSubstringFromRange:
+                        NSMakeRange(done, lend)];
                 [aString drawAtPoint:NSMakePoint(
-                        size.width,
-                        (insertionPointRow + r)*[ts cellSize].height + size.height)];
+                        inset.width,
+                        (insertionPointRow + r)*[ts cellSize].height
+                            + inset.height)];
                 done += lend;
             }
         }
@@ -514,13 +531,17 @@ enum {
                                                    column:insertionPointColumn];
         ipRect.origin.x += [self textContainerOrigin].x;
         ipRect.origin.y += [self textContainerOrigin].y;
-        /* for markedText */
+
+        // Draw insertion point inside marked text.
         if ([self hasMarkedText]) {
-            NSFont *theFont = [markedTextAttributes valueForKey:NSFontAttributeName];
+            NSFont *theFont = [markedTextAttributes valueForKey:
+                    NSFontAttributeName];
             if (theFont == [ts font])
-                ipRect.origin.x += [ts cellSize].width * (imRange.location + imRange.length);
+                ipRect.origin.x += [ts cellSize].width *
+                                   (imRange.location + imRange.length);
             else
-                ipRect.origin.x += [ts cellSize].width * 2 * (imRange.location + imRange.length);
+                ipRect.origin.x += [ts cellSize].width * 2 *
+                                   (imRange.location + imRange.length);
         }
 
         if (MMInsertionPointHorizontal == insertionPointShape) {
@@ -582,13 +603,13 @@ enum {
     //
     // TODO: Figure out a way to disable Cocoa key bindings entirely, without
     // affecting input management.
-    [NSCursor setHiddenUntilMouseMoves: YES];
+
     // When the Input Method is activated, some special key inputs
     // should be treated as key inputs for Input Method.
     if ([self hasMarkedText]) {
         [self unmarkText];
         [super keyDown:event];
-        [self setNeedsDisplay: YES];
+        [self setNeedsDisplay:YES];
         return;
     }
 
@@ -622,7 +643,7 @@ enum {
     // modifiers are already included and should not be added to the input
     // buffer using CSI, K_MODIFIER).
 
-    if([self hasMarkedText]) {
+    if ([self hasMarkedText]) {
         [self unmarkText];
     }
 
@@ -777,11 +798,12 @@ enum {
     return markedText && [markedText length] > 0;
 }
 
-- (void) setMarkedTextAttributes: (NSDictionary *) attr
+- (void)setMarkedTextAttributes:(NSDictionary *)attr
 {
-    [markedTextAttributes release];
-    [attr retain];
-    markedTextAttributes=attr;
+    if (attr != markedTextAttributes) {
+        [markedTextAttributes release];
+        markedTextAttributes = [attr retain];
+    }
 }
 
 
@@ -804,8 +826,9 @@ enum {
                     [ts defaultForegroundColor], NSForegroundColorAttributeName,
                     [NSNumber numberWithInt:1], NSUnderlineStyleAttributeName,
                     nil]];
-            markedText=[[NSMutableAttributedString alloc] initWithString:[text string]
-                attributes:markedTextAttributes];
+            markedText = [[NSMutableAttributedString alloc]
+                    initWithString:[text string]
+                        attributes:markedTextAttributes];
         } else {
             [self setMarkedTextAttributes:
                 [NSDictionary dictionaryWithObjectsAndKeys:
@@ -814,8 +837,9 @@ enum {
                     [ts defaultForegroundColor], NSForegroundColorAttributeName,
                     [NSNumber numberWithInt:1], NSUnderlineStyleAttributeName,
                     nil]];
-            markedText=[[NSMutableAttributedString alloc] initWithString:text
-                attributes:markedTextAttributes];
+            markedText = [[NSMutableAttributedString alloc]
+                    initWithString:text
+                        attributes:markedTextAttributes];
         }
 
         imRange = range;
