@@ -492,7 +492,11 @@ enum {
 
         // Calculate how many wide-font characters can be inserted at
         // a first line, and draw those characters.
-        int cols = ([ts actualColumns] - insertionPointColumn) / 2;
+        int cols = ([ts actualColumns] - insertionPointColumn);
+        NSFont *theFont = [markedTextAttributes
+                            valueForKey:NSFontAttributeName];
+        if (theFont == [ts fontWide])
+            cols = cols / 2;
         int done = 0;
         int lend = cols > len ? len : cols;
         NSAttributedString *aString = [markedText attributedSubstringFromRange:
