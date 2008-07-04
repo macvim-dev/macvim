@@ -121,6 +121,8 @@ enum {
         return nil;
     }
 
+    imRange = NSMakeRange(0, 0);
+    markedRange = NSMakeRange(0, 0);
     // NOTE: If the default changes to 'NO' then the intialization of
     // p_antialias in option.c must change as well.
     antialias = YES;
@@ -493,8 +495,8 @@ enum {
         // Calculate how many wide-font characters can be inserted at
         // a first line, and draw those characters.
         int cols = ([ts actualColumns] - insertionPointColumn);
-        NSFont *theFont = [markedTextAttributes
-                            valueForKey:NSFontAttributeName];
+        NSFont *theFont = [[self markedTextAttributes]
+                valueForKey:NSFontAttributeName];
         if (theFont == [ts fontWide])
             cols = cols / 2;
         int done = 0;
@@ -538,8 +540,8 @@ enum {
 
         // Draw insertion point inside marked text.
         if ([self hasMarkedText]) {
-            NSFont *theFont = [markedTextAttributes valueForKey:
-                    NSFontAttributeName];
+            NSFont *theFont = [[self markedTextAttributes]
+                    valueForKey:NSFontAttributeName];
             if (theFont == [ts font])
                 ipRect.origin.x += [ts cellSize].width *
                                    (imRange.location + imRange.length);
@@ -611,8 +613,7 @@ enum {
     // When the Input Method is activated, some special key inputs
     // should be treated as key inputs for Input Method.
     if ([self hasMarkedText]) {
-        [self unmarkText];
-        [super keyDown:event];
+        [self interpretKeyEvents:[NSArray arrayWithObject:event]];
         [self setNeedsDisplay:YES];
         return;
     }
@@ -799,7 +800,21 @@ enum {
 - (BOOL)hasMarkedText
 {
     //NSLog(@"%s", _cmd);
-    return markedText && [markedText length] > 0;
+    //return markedText && [markedText length] > 0;
+    return markedRange.length > 0 ? YES : NO;
+}
+
+- (NSRange)markedRange
+{
+    if ([self hasMarkedText]) {
+        return markedRange;
+    } else
+        return NSMakeRange(NSNotFound, 0);
+}
+
+- (NSDictionary *)markedTextAttributes
+{
+    return markedTextAttributes;
 }
 
 - (void)setMarkedTextAttributes:(NSDictionary *)attr
@@ -828,38 +843,43 @@ enum {
                     [ts fontWide], NSFontAttributeName,
                     [ts defaultBackgroundColor], NSBackgroundColorAttributeName,
                     [ts defaultForegroundColor], NSForegroundColorAttributeName,
-                    [NSNumber numberWithInt:1], NSUnderlineStyleAttributeName,
                     nil]];
             markedText = [[NSMutableAttributedString alloc]
                     initWithString:[text string]
-                        attributes:markedTextAttributes];
+                        attributes:[self markedTextAttributes]];
         } else {
             [self setMarkedTextAttributes:
                 [NSDictionary dictionaryWithObjectsAndKeys:
                     [ts font], NSFontAttributeName,
                     [ts defaultBackgroundColor], NSBackgroundColorAttributeName,
                     [ts defaultForegroundColor], NSForegroundColorAttributeName,
-                    [NSNumber numberWithInt:1], NSUnderlineStyleAttributeName,
                     nil]];
             markedText = [[NSMutableAttributedString alloc]
                     initWithString:text
-                        attributes:markedTextAttributes];
+                        attributes:[self markedTextAttributes]];
         }
 
+        markedRange = NSMakeRange(0, [markedText length]);
+        if (markedRange.length) {
+            [markedText addAttribute:NSUnderlineStyleAttributeName
+                               value:[NSNumber numberWithInt:1]
+                               range:markedRange];
+        }
         imRange = range;
         if (range.length) {
             [markedText addAttribute:NSUnderlineStyleAttributeName
                                value:[NSNumber numberWithInt:2]
                                range:range];
         }
-        [self setNeedsDisplay: YES];
     }
+    [self setNeedsDisplay: YES];
 }
 
 - (void)unmarkText
 {
     //NSLog(@"%s", _cmd);
     imRange = NSMakeRange(0, 0);
+    markedRange = NSMakeRange(NSNotFound, 0);
     [markedText release];
     markedText = nil;
 }

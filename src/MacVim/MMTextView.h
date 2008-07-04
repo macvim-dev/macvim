@@ -25,6 +25,7 @@
     int                 insertionPointShape;
     int                 insertionPointFraction;
     NSRange             imRange;
+    NSRange             markedRange;
     NSDictionary        *markedTextAttributes;
     NSMutableAttributedString  *markedText;
     int                 preEditRow;
