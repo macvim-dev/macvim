@@ -504,8 +504,8 @@ enum {
         NSAttributedString *aString = [markedText attributedSubstringFromRange:
                 NSMakeRange(done, lend)];
         [aString drawAtPoint:NSMakePoint(
-                insertionPointColumn*[ts cellSize].width + inset.width,
-                insertionPointRow*[ts cellSize].height + inset.height)];
+                preEditColumn*[ts cellSize].width + inset.width,
+                preEditRow*[ts cellSize].height + inset.height)];
 
         done = lend;
         // Check whether there're charecters that aren't drawn at
@@ -523,7 +523,7 @@ enum {
                         NSMakeRange(done, lend)];
                 [aString drawAtPoint:NSMakePoint(
                         inset.width,
-                        (insertionPointRow + r)*[ts cellSize].height
+                        (preEditRow + r)*[ts cellSize].height
                             + inset.height)];
                 done += lend;
             }
@@ -533,8 +533,8 @@ enum {
     if (shouldDrawInsertionPoint) {
         MMTextStorage *ts = (MMTextStorage*)[self textStorage];
 
-        NSRect ipRect = [ts boundingRectForCharacterAtRow:insertionPointRow
-                                                   column:insertionPointColumn];
+        NSRect ipRect = [ts boundingRectForCharacterAtRow:preEditRow
+                                                   column:preEditColumn];
         ipRect.origin.x += [self textContainerOrigin].x;
         ipRect.origin.y += [self textContainerOrigin].y;
 
