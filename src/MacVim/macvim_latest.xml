@@ -41,6 +41,37 @@
     -->
     
     <item>
+      <title>Snapshot 33 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 33 released</h1>
+
+<p> This snapshot includes contributions from three new MacVim developers: Kyle Lippincott has added support for proxy icons, Matt Tolton has implemented a Plug-In architecture, and Kaoru Yoshida has rewritten the Input Manager support.  Let me just say that I find it very encouraging to get more help with this project!  While we're on the topic of MacVim development; if you are interested in getting started with the source code you should take a look at the newly updated file "src/MacVim/README".  I have also written some documentation on how to contribute with patches using Git, see <a href="http://code.google.com/p/macvim/wiki/Contributing">here</a>.
+
+<p> If you want to get started with plug-in development you should take a look at the example plug-in (FileBrowser.tgz) that Matt posted to vim_mac (the thread is called "Initial Plugin Architecture patch").  I'm sure Matt will be happy to help out with any question you may have (as will I). </p>
+
+<p> I think that the new Input Manager support is a big improvement, but we need feedback from more IM users to let us know exactly how well it works.  Kaoru seems to be on top of fixing bugs as they are reported, so if you have any problems or comments please make yourself heard. </p>
+
+<p> More changes since snapshot 32:
+<ul>
+  <li> The file open dialog has a check-box to show hidden files (patch by Nico Weber) </li>
+  <li> Cmd-? now works </li>
+  <li> Partial printing support: Cmd-p opens up Preview.app (Nico Weber) </li>
+  <li> Uses Vim 7.2a BETA source code </li>
+  <li> Latest runtime files </li>
+  <li> Minor bug fixes (see <a href="http://repo.or.cz/w/MacVim.git">here</a>) </li>
+</p>
+      ]]></description>
+      <pubDate>Sat, 05 Jul 2008 20:14 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-33.tbz"
+        length="8467287"
+        sparkle:version="33"
+        sparkle:shortVersionString="7.1"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 32 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 32 released</h1>

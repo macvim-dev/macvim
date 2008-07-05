@@ -574,7 +574,7 @@
 	<key>CFBundleSignature</key>
 	<string>VIMM</string>
 	<key>CFBundleVersion</key>
-	<string>32</string>
+	<string>33</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
