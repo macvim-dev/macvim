@@ -1,9 +1,15 @@
 " Vim script to download a missing spell file
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2007 May 08
+" Last Change:	2008 Jun 27
 
 if !exists('g:spellfile_URL')
-  let g:spellfile_URL = 'ftp://ftp.vim.org/pub/vim/runtime/spell'
+  " Prefer using http:// when netrw should be able to use it, since
+  " more firewalls let this through.
+  if executable("curl") || executable("wget") || executable("fetch")
+    let g:spellfile_URL = 'http://ftp.vim.org/pub/vim/runtime/spell'
+  else
+    let g:spellfile_URL = 'ftp://ftp.vim.org/pub/vim/runtime/spell'
+  endif
 endif
 let s:spellfile_URL = ''    " Start with nothing so that s:donedict is reset.
 
@@ -106,7 +112,12 @@ function! spellfile#LoadFile(lang)
     endfor
     let dirchoice = confirm(msg, dirchoices) - 2
     if dirchoice >= 0
-      exe "write " . escape(dirlist[dirchoice], ' ') . '/' . fname
+      if exists('*fnameescape')
+	let dirname = fnameescape(dirlist[dirchoice])
+      else
+	let dirname = escape(dirlist[dirchoice], ' ')
+      endif
+      exe "write " . dirname . '/' . fname
 
       " Also download the .sug file, if the user wants to.
       let msg = "Do you want me to try getting the .sug file?\n"
@@ -119,7 +130,7 @@ function! spellfile#LoadFile(lang)
 	call spellfile#Nread(fname)
 	if getline(2) =~ 'VIMsug'
 	  1d
-	  exe "write " . escape(dirlist[dirchoice], ' ') . '/' . fname
+	  exe "write " . dirname . '/' . fname
 	  set nomod
 	else
 	  echo 'Sorry, downloading failed'

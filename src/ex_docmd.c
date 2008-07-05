@@ -13,10 +13,6 @@
 
 #include "vim.h"
 
-#ifdef HAVE_FCNTL_H
-# include <fcntl.h>	    /* for chdir() */
-#endif
-
 static int	quitmore = 0;
 static int	ex_pressedreturn = FALSE;
 #ifndef FEAT_PRINTER
@@ -1138,7 +1134,7 @@ do_cmdline(cmdline, getline, cookie, flags)
 	{
 	    /* need to copy the command after the '|' to cmdline_copy, for the
 	     * next do_one_cmd() */
-	    mch_memmove(cmdline_copy, next_cmdline, STRLEN(next_cmdline) + 1);
+	    STRMOVE(cmdline_copy, next_cmdline);
 	    next_cmdline = cmdline_copy;
 	}
 
@@ -2381,7 +2377,7 @@ do_one_cmd(cmdlinep, sourcing,
 	     * Halving the number of backslashes is incompatible with previous
 	     * versions. */
 	    if (*p == '\\' && p[1] == '\n')
-		mch_memmove(p, p + 1, STRLEN(p));
+		STRMOVE(p, p + 1);
 	    else if (*p == '\n')
 	    {
 		ea.nextcmd = p + 1;
@@ -4568,7 +4564,7 @@ separate_nextcmd(eap)
 		++p;		/* skip CTRL-V and next char */
 	    else
 				/* remove CTRL-V and skip next char */
-		mch_memmove(p, p + 1, STRLEN(p));
+		STRMOVE(p, p + 1);
 	    if (*p == NUL)		/* stop at NUL after CTRL-V */
 		break;
 	}
@@ -4599,7 +4595,7 @@ separate_nextcmd(eap)
 	    if ((vim_strchr(p_cpo, CPO_BAR) == NULL
 			      || !(eap->argt & USECTRLV)) && *(p - 1) == '\\')
 	    {
-		mch_memmove(p - 1, p, STRLEN(p) + 1);	/* remove the '\' */
+		STRMOVE(p - 1, p);	/* remove the '\' */
 		--p;
 	    }
 	    else
@@ -4657,7 +4653,7 @@ skip_cmd_arg(p, rembs)
 	if (*p == '\\' && p[1] != NUL)
 	{
 	    if (rembs)
-		mch_memmove(p, p + 1, STRLEN(p));
+		STRMOVE(p, p + 1);
 	    else
 		++p;
 	}
@@ -7081,8 +7077,8 @@ ex_splitview(eap)
 
 # ifdef FEAT_QUICKFIX
     /* A ":split" in the quickfix window works like ":new".  Don't want two
-     * quickfix windows. */
-    if (bt_quickfix(curbuf))
+     * quickfix windows.  But it's OK when doing ":tab split". */
+    if (bt_quickfix(curbuf) && cmdmod.tab == 0)
     {
 	if (eap->cmdidx == CMD_split)
 	    eap->cmdidx = CMD_new;
@@ -7185,7 +7181,6 @@ theend:
 # endif
 }
 
-#if defined(FEAT_MOUSE) || defined(PROTO)
 /*
  * Open a new tab page.
  */
@@ -7200,7 +7195,6 @@ tabpage_new()
     ea.arg = (char_u *)"";
     ex_splitview(&ea);
 }
-#endif
 
 /*
  * :tabnext command
@@ -9346,6 +9340,58 @@ ex_tag_cmd(eap, name)
 }
 
 /*
+ * Check "str" for starting with a special cmdline variable.
+ * If found return one of the SPEC_ values and set "*usedlen" to the length of
+ * the variable.  Otherwise return -1 and "*usedlen" is unchanged.
+ */
+    int
+find_cmdline_var(src, usedlen)
+    char_u	*src;
+    int		*usedlen;
+{
+    int		len;
+    int		i;
+    static char *(spec_str[]) = {
+		    "%",
+#define SPEC_PERC   0
+		    "#",
+#define SPEC_HASH   1
+		    "<cword>",		/* cursor word */
+#define SPEC_CWORD  2
+		    "<cWORD>",		/* cursor WORD */
+#define SPEC_CCWORD 3
+		    "<cfile>",		/* cursor path name */
+#define SPEC_CFILE  4
+		    "<sfile>",		/* ":so" file name */
+#define SPEC_SFILE  5
+#ifdef FEAT_AUTOCMD
+		    "<afile>",		/* autocommand file name */
+# define SPEC_AFILE 6
+		    "<abuf>",		/* autocommand buffer number */
+# define SPEC_ABUF  7
+		    "<amatch>",		/* autocommand match name */
+# define SPEC_AMATCH 8
+#endif
+#ifdef FEAT_CLIENTSERVER
+		    "<client>"
+# define SPEC_CLIENT 9
+#endif
+    };
+#define SPEC_COUNT  (sizeof(spec_str) / sizeof(char *))
+
+    for (i = 0; i < SPEC_COUNT; ++i)
+    {
+	len = (int)STRLEN(spec_str[i]);
+	if (STRNCMP(src, spec_str[i], len) == 0)
+	{
+	    *usedlen = len;
+	    return i;
+	}
+    }
+    return -1;
+}
+
+/*
  * Evaluate cmdline variables.
  *
  * change '%'	    to curbuf->b_ffname
@@ -9385,34 +9431,6 @@ eval_vars(src, srcstart, usedlen, lnump, errormsg, escaped)
 #ifdef FEAT_MODIFY_FNAME
     int		skip_mod = FALSE;
 #endif
-    static char *(spec_str[]) =
-	{
-		    "%",
-#define SPEC_PERC   0
-		    "#",
-#define SPEC_HASH   1
-		    "<cword>",		/* cursor word */
-#define SPEC_CWORD  2
-		    "<cWORD>",		/* cursor WORD */
-#define SPEC_CCWORD 3
-		    "<cfile>",		/* cursor path name */
-#define SPEC_CFILE  4
-		    "<sfile>",		/* ":so" file name */
-#define SPEC_SFILE  5
-#ifdef FEAT_AUTOCMD
-		    "<afile>",		/* autocommand file name */
-# define SPEC_AFILE 6
-		    "<abuf>",		/* autocommand buffer number */
-# define SPEC_ABUF  7
-		    "<amatch>",		/* autocommand match name */
-# define SPEC_AMATCH 8
-#endif
-#ifdef FEAT_CLIENTSERVER
-		    "<client>"
-# define SPEC_CLIENT 9
-#endif
-		};
-#define SPEC_COUNT  (sizeof(spec_str) / sizeof(char *))
 
 #if defined(FEAT_AUTOCMD) || defined(FEAT_CLIENTSERVER)
     char_u	strbuf[30];
@@ -9425,13 +9443,8 @@ eval_vars(src, srcstart, usedlen, lnump, errormsg, escaped)
     /*
      * Check if there is something to do.
      */
-    for (spec_idx = 0; spec_idx < SPEC_COUNT; ++spec_idx)
-    {
-	*usedlen = (int)STRLEN(spec_str[spec_idx]);
-	if (STRNCMP(src, spec_str[spec_idx], *usedlen) == 0)
-	    break;
-    }
-    if (spec_idx == SPEC_COUNT)	    /* no match */
+    spec_idx = find_cmdline_var(src, usedlen);
+    if (spec_idx < 0)	/* no match */
     {
 	*usedlen = 1;
 	return NULL;
@@ -9444,7 +9457,7 @@ eval_vars(src, srcstart, usedlen, lnump, errormsg, escaped)
     if (src > srcstart && src[-1] == '\\')
     {
 	*usedlen = 0;
-	mch_memmove(src - 1, src, STRLEN(src) + 1);	/* remove backslash */
+	STRMOVE(src - 1, src);	/* remove backslash */
 	return NULL;
     }
 

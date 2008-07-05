@@ -2871,7 +2871,6 @@ static char *(p_bsdir_values[]) = {"current", "last", "buffer", NULL};
 #ifdef FEAT_SCROLLBIND
 static char *(p_scbopt_values[]) = {"ver", "hor", "jump", NULL};
 #endif
-static char *(p_swb_values[]) = {"useopen", "usetab", "split", NULL};
 static char *(p_debug_values[]) = {"msg", "throw", "beep", NULL};
 #ifdef FEAT_VERTSPLIT
 static char *(p_ead_values[]) = {"both", "ver", "hor", NULL};
@@ -3307,20 +3306,8 @@ set_init_1()
     }
 # else
 #  ifdef MACOS_CONVERT
-    if (mch_getenv((char_u *)"LANG") == NULL)
-    {
-	char	buf[20];
-	if (LocaleRefGetPartString(NULL,
-		    kLocaleLanguageMask | kLocaleLanguageVariantMask |
-		    kLocaleRegionMask | kLocaleRegionVariantMask,
-		    sizeof buf, buf) == noErr && *buf)
-	{
-	    vim_setenv((char_u *)"LANG", (char_u *)buf);
-#   ifdef HAVE_LOCALE_H
-	    setlocale(LC_ALL, "");
-#   endif
-	}
-    }
+    /* Moved to os_mac_conv.c to avoid dependency problems. */
+    mac_lang_init();
 #  endif
 # endif
 
@@ -4645,8 +4632,7 @@ do_set(arg, opt_flags)
 				else
 				{
 				    i = (int)STRLEN(newval);
-				    mch_memmove(newval + i + comma, origval,
-							  STRLEN(origval) + 1);
+				    STRMOVE(newval + i + comma, origval);
 				}
 				if (comma)
 				    newval[i] = ',';
@@ -4675,8 +4661,7 @@ do_set(arg, opt_flags)
 					    ++i;
 					}
 				    }
-				    mch_memmove(newval + (s - origval), s + i,
-							   STRLEN(s + i) + 1);
+				    STRMOVE(newval + (s - origval), s + i);
 				}
 			    }
 
@@ -4687,7 +4672,7 @@ do_set(arg, opt_flags)
 				    if ((!(flags & P_COMMA) || *s != ',')
 					    && vim_strchr(s + 1, *s) != NULL)
 				    {
-					mch_memmove(s, s + 1, STRLEN(s));
+					STRMOVE(s, s + 1);
 					--s;
 				    }
 			    }
@@ -6286,7 +6271,7 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
     /* 'switchbuf' */
     else if (varp == &p_swb)
     {
-	if (check_opt_strings(p_swb, p_swb_values, TRUE) != OK)
+	if (opt_strings_flags(p_swb, p_swb_values, &swb_flags, TRUE) != OK)
 	    errmsg = e_invarg;
     }
 
@@ -7250,7 +7235,7 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 	}
 	/* remove 's' from p_shm */
 	else if (!p_terse && p != NULL)
-	    mch_memmove(p, p + 1, STRLEN(p));
+	    STRMOVE(p, p + 1);
     }
 
     /* when 'paste' is set or reset also change other options */
@@ -8292,7 +8277,8 @@ get_option_value(name, numval, stringval, opt_flags)
 	{
 #ifdef FEAT_CRYPT
 	    /* never return the value of the crypt key */
-	    if ((char_u **)varp == &curbuf->b_p_key)
+	    if ((char_u **)varp == &curbuf->b_p_key
+						&& **(char_u **)(varp) != NUL)
 		*stringval = vim_strsave((char_u *)"*****");
 	    else
 #endif
@@ -10147,7 +10133,7 @@ ExpandOldSetting(num_file, file)
 		&& (options[expand_option_idx].flags & P_EXPAND)
 		&& vim_isfilec(var[2])
 		&& (var[2] != '\\' || (var == buf && var[4] != '\\')))
-	    mch_memmove(var, var + 1, STRLEN(var));
+	    STRMOVE(var, var + 1);
 #endif
 
     *file[0] = buf;

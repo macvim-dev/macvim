@@ -2,7 +2,7 @@
 " You can also use this as a start for your own set of menus.
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2007 Nov 19
+" Last Change:	2008 Jun 30
 
 " Note that ":an" (short for ":anoremenu") is often used to make a menu work
 " in all modes and avoid side effects from mappings defined by the user.
@@ -136,6 +136,11 @@ func! <SID>SelectAll()
   exe "norm gg" . (&slm == "" ? "VG" : "gH\<C-O>G")
 endfunc
 
+func! s:FnameEscape(fname)
+  if exists('*fnameescape')
+    return fnameescape(a:fname)
+  return escape(a:fname, " \t\n*?[{`$\\%#'\"|!<")
+endfunc
 
 " Edit menu
 an 20.310 &Edit.&Undo<Tab>u			u
@@ -182,18 +187,19 @@ an 20.435	 &Edit.Startup\ &Settings		:call <SID>EditVimrc()<CR>
 
 fun! s:EditVimrc()
   if $MYVIMRC != ''
-    let fname = "$MYVIMRC"
+    let fname = $MYVIMRC
   elseif has("win32") || has("dos32") || has("dos16") || has("os2")
     if $HOME != ''
-      let fname = "$HOME/_vimrc"
+      let fname = $HOME . "/_vimrc"
     else
-      let fname = "$VIM/_vimrc"
+      let fname = $VIM . "/_vimrc"
     endif
   elseif has("amiga")
     let fname = "s:.vimrc"
   else
-    let fname = "$HOME/.vimrc"
+    let fname = $HOME . "/.vimrc"
   endif
+  let fname = s:FnameEscape(fname)
   if &mod
     exe "split " . fname
   else
@@ -808,7 +814,7 @@ if has("vertsplit")
       if @% == ""
 	20vsp .
       else
-	exe "20vsp " . expand("%:p:h")
+	exe "20vsp " . s:FnameEscape(expand("%:p:h"))
       endif
     endfun
   endif
@@ -1030,7 +1036,7 @@ endif
 " Select a session to load; default to current session name if present
 fun! s:LoadVimSesn()
   if strlen(v:this_session) > 0
-    let name = escape(v:this_session, ' \t#%$|<>"*?[{`')
+    let name = s:FnameEscape(v:this_session)
   else
     let name = "Session.vim"
   endif
@@ -1042,7 +1048,7 @@ fun! s:SaveVimSesn()
   if strlen(v:this_session) == 0
     let v:this_session = "Session.vim"
   endif
-  execute "browse mksession! " . escape(v:this_session, ' \t#%$|<>"*?[{`')
+  execute "browse mksession! " . s:FnameEscape(v:this_session)
 endfun
 
 endif

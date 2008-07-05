@@ -18,13 +18,11 @@
 # include <spawno.h>		/* special MS-DOS swapping library */
 #endif
 
-#ifdef HAVE_FCNTL_H
-# include <fcntl.h>
-#endif
-
 #ifdef __CYGWIN__
 # ifndef WIN32
-#  include <sys/cygwin.h>	/* for cygwin_conv_to_posix_path() */
+#  include <cygwin/version.h>
+#  include <sys/cygwin.h>	/* for cygwin_conv_to_posix_path() and/or
+				 * cygwin_conv_path() */
 # endif
 # include <limits.h>
 #endif
@@ -1421,6 +1419,12 @@ get_number_arg(p, idx, def)
 init_locale()
 {
     setlocale(LC_ALL, "");
+
+# if defined(FEAT_FLOAT) && defined(LC_NUMERIC)
+    /* Make sure strtod() uses a decimal point, not a comma. */
+    setlocale(LC_NUMERIC, "C");
+# endif
+
 # ifdef WIN32
     /* Apparently MS-Windows printf() may cause a crash when we give it 8-bit
      * text while it's expecting text in the current locale.  This call avoids
@@ -2264,7 +2268,11 @@ scripterror:
 	    {
 		char posix_path[PATH_MAX];
 
+# if CYGWIN_VERSION_DLL_MAJOR >= 1007
+		cygwin_conv_path(CCP_WIN_A_TO_POSIX, p, posix_path, PATH_MAX);
+# else
 		cygwin_conv_to_posix_path(p, posix_path);
+# endif
 		vim_free(p);
 		p = vim_strsave(posix_path);
 		if (p == NULL)

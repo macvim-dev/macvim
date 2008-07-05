@@ -1387,7 +1387,7 @@ utf_ptr2char(p)
 	return p[0];
 
     len = utf8len_tab[p[0]];
-    if ((p[1] & 0xc0) == 0x80)
+    if (len > 1 && (p[1] & 0xc0) == 0x80)
     {
 	if (len == 2)
 	    return ((p[0] & 0x1f) << 6) + (p[1] & 0x3f);
@@ -1753,14 +1753,27 @@ utfc_ptr2len_len(p, size)
 #endif
     while (len < size)
     {
-	if (p[len] < 0x80 || !UTF_COMPOSINGLIKE(p + prevlen, p + len))
+	int	len_next_char;
+
+	if (p[len] < 0x80)
+	    break;
+
+	/*
+	 * Next character length should not go beyond size to ensure that
+	 * UTF_COMPOSINGLIKE(...) does not read beyond size.
+	 */
+	len_next_char = utf_ptr2len_len(p + len, size - len);
+	if (len_next_char > size - len)
+	    break;
+
+	if (!UTF_COMPOSINGLIKE(p + prevlen, p + len))
 	    break;
 
 	/* Skip over composing char */
 #ifdef FEAT_ARABIC
 	prevlen = len;
 #endif
-	len += utf_ptr2len_len(p + len, size - len);
+	len += len_next_char;
     }
     return len;
 }
@@ -2940,7 +2953,7 @@ mb_fix_col(col, row)
 		    && dbcs_screen_head_off(ScreenLines + LineOffset[row],
 					 ScreenLines + LineOffset[row] + col))
 		|| (enc_utf8 && ScreenLines[LineOffset[row] + col] == 0)))
-	--col;
+	return col - 1;
     return col;
 }
 # endif
@@ -3008,31 +3021,31 @@ enc_canonize(enc)
 
 	/* Change "microsoft-cp" to "cp".  Used in some spell files. */
 	if (STRNCMP(p, "microsoft-cp", 12) == 0)
-	    mch_memmove(p, p + 10, STRLEN(p + 10) + 1);
+	    STRMOVE(p, p + 10);
 
 	/* "iso8859" -> "iso-8859" */
 	if (STRNCMP(p, "iso8859", 7) == 0)
 	{
-	    mch_memmove(p + 4, p + 3, STRLEN(p + 2));
+	    STRMOVE(p + 4, p + 3);
 	    p[3] = '-';
 	}
 
 	/* "iso-8859n" -> "iso-8859-n" */
 	if (STRNCMP(p, "iso-8859", 8) == 0 && p[8] != '-')
 	{
-	    mch_memmove(p + 9, p + 8, STRLEN(p + 7));
+	    STRMOVE(p + 9, p + 8);
 	    p[8] = '-';
 	}
 
 	/* "latin-N" -> "latinN" */
 	if (STRNCMP(p, "latin-", 6) == 0)
-	    mch_memmove(p + 5, p + 6, STRLEN(p + 5));
+	    STRMOVE(p + 5, p + 6);
 
 	if (enc_canon_search(p) >= 0)
 	{
 	    /* canonical name can be used unmodified */
 	    if (p != r)
-		mch_memmove(r, p, STRLEN(p) + 1);
+		STRMOVE(r, p);
 	}
 	else if ((i = enc_alias_search(p)) >= 0)
 	{
@@ -3692,7 +3705,11 @@ im_preedit_end_cb(GtkIMContext *context, gpointer data)
     preedit_start_col = MAXCOL;
     xim_has_preediting = FALSE;
 
+#if 0
+    /* Removal of this line suggested by Takuhiro Nishioka.  Fixes that IM was
+     * switched off unintentionally. */
     im_is_active = FALSE;
+#endif
     gui_update_cursor(TRUE, FALSE);
     im_show_info();
 }
@@ -4144,6 +4161,7 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 	 * committed while we're processing one of these keys, we can ignore
 	 * that commit and go ahead & process it ourselves.  That way we can
 	 * still distinguish keypad keys for use in mappings.
+	 * Also add GDK_space to make <S-Space> work.
 	 */
 	switch (event->keyval)
 	{
@@ -4163,6 +4181,7 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 	    case GDK_KP_7:	  xim_expected_char = '7';  break;
 	    case GDK_KP_8:	  xim_expected_char = '8';  break;
 	    case GDK_KP_9:	  xim_expected_char = '9';  break;
+	    case GDK_space:	  xim_expected_char = ' ';  break;
 	    default:		  xim_expected_char = NUL;
 	}
 	xim_ignored_char = FALSE;
