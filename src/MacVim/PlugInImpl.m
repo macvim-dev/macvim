@@ -26,6 +26,9 @@
 
 #ifdef MM_ENABLE_PLUGINS
 
+static int MMPlugInArchMajorVersion = 1;
+static int MMPlugInArchMinorVersion = 0;
+
 #import "PlugInImpl.h"
 #import "PlugInGUI.h"
 #import "MMPlugInManager.h"
@@ -217,6 +220,16 @@ MMPlugInAppMediator *sharedAppMediator = nil;
         return [[keyVimController instanceMediator] instanceWithClass:class];
 
     return nil;
+}
+
+- (int)majorVersion
+{
+    return MMPlugInArchMajorVersion;
+}
+
+- (int)minorVersion
+{
+    return MMPlugInArchMinorVersion;
 }
 
 @end

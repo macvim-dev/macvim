@@ -39,6 +39,12 @@
 // If there are no instances with the specified class, returns nil.
 - (id)keyPlugInInstanceWithClass:(Class)class;
 
+// Plugin architecture version.  Major versions indicate API incompatibilities.
+// Minor versions may include additions, but nothing that should break current
+// plugins.
+- (int)majorVersion;
+- (int)minorVersion;
+
 @end
 
 @protocol PlugInInstanceMediator
