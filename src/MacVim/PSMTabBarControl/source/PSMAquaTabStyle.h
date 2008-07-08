@@ -22,6 +22,8 @@
     NSImage *_addTabButtonImage;
     NSImage *_addTabButtonPressedImage;
     NSImage *_addTabButtonRolloverImage;
+    NSMutableParagraphStyle *truncatingTailParagraphStyle;
+    NSMutableParagraphStyle *centeredParagraphStyle;
 }
 
 - (void)loadImages;

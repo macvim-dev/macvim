@@ -74,6 +74,9 @@
     [_addTabButtonImage release];
     [_addTabButtonPressedImage release];
     [_addTabButtonRolloverImage release];
+
+    [truncatingTailParagraphStyle release];
+    [centeredParagraphStyle release];
     
     [super dealloc];
 }
@@ -283,13 +286,12 @@
     [attrStr addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:11.0] range:range];
     
     // Paragraph Style for Truncating Long Text
-    static NSMutableParagraphStyle *TruncatingTailParagraphStyle = nil;
-    if (!TruncatingTailParagraphStyle) {
-        TruncatingTailParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
-        [TruncatingTailParagraphStyle setLineBreakMode:NSLineBreakByTruncatingTail];
-        [TruncatingTailParagraphStyle setAlignment:NSCenterTextAlignment];
+    if (!truncatingTailParagraphStyle) {
+        truncatingTailParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
+        [truncatingTailParagraphStyle setLineBreakMode:NSLineBreakByTruncatingTail];
+        [truncatingTailParagraphStyle setAlignment:NSCenterTextAlignment];
     }
-    [attrStr addAttribute:NSParagraphStyleAttributeName value:TruncatingTailParagraphStyle range:range];
+    [attrStr addAttribute:NSParagraphStyleAttributeName value:truncatingTailParagraphStyle range:range];
     
     return attrStr;	
 }
@@ -371,7 +373,6 @@
         attrStr = [[[NSMutableAttributedString alloc] initWithString:contents] autorelease];
         NSRange range = NSMakeRange(0, [contents length]);
         [attrStr addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:11.0] range:range];
-        NSMutableParagraphStyle *centeredParagraphStyle = nil;
         if (!centeredParagraphStyle) {
             centeredParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
             [centeredParagraphStyle setAlignment:NSCenterTextAlignment];
