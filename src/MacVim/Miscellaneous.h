@@ -10,7 +10,7 @@
 
 
 #import <Cocoa/Cocoa.h>
-
+#import "MacVim.h"
 
 
 // NSUserDefaults keys
@@ -38,6 +38,10 @@ extern NSString *MMCurrentPreferencePaneKey;
 extern NSString *MMLoginShellCommandKey;
 extern NSString *MMLoginShellArgumentKey;
 extern NSString *MMDialogsTrackPwdKey;
+
+#ifdef MM_ENABLE_PLUGINS
+extern NSString *MMShowLeftPlugInContainerKey;
+#endif
 
 // Enum for MMUntitledWindowKey
 enum {

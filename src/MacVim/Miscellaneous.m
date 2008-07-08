@@ -40,6 +40,9 @@ NSString *MMLoginShellCommandKey        = @"MMLoginShellCommand";
 NSString *MMLoginShellArgumentKey       = @"MMLoginShellArgument";
 NSString *MMDialogsTrackPwdKey          = @"MMDialogsTrackPwd";
 
+#ifdef MM_ENABLE_PLUGINS
+NSString *MMShowLeftPlugInContainerKey     = @"MMShowLeftPlugInContainer";
+#endif
 
 
 

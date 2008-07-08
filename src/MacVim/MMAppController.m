@@ -142,6 +142,9 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         @"",                            MMLoginShellCommandKey,
         @"",                            MMLoginShellArgumentKey,
         [NSNumber numberWithBool:YES],  MMDialogsTrackPwdKey,
+#ifdef MM_ENABLE_PLUGINS
+        [NSNumber numberWithBool:YES],  MMShowLeftPlugInContainerKey,
+#endif
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];

@@ -22,7 +22,7 @@
  * Author: Matt Tolton
  */
 
-#import "MacVim.h"
+#import "Miscellaneous.h"
 
 #ifdef MM_ENABLE_PLUGINS
 
@@ -47,7 +47,7 @@
     NSSize contentSize = [drawer contentSize];
 
     // XXX memory management for this
-    MMPlugInViewContainer * containerView = [[MMPlugInViewContainer alloc]
+    MMPlugInViewContainer *containerView = [[MMPlugInViewContainer alloc]
         initWithFrame:NSMakeRect(0, 0, contentSize.width, contentSize.height)];
 
     [drawer setContentView:containerView];
@@ -55,7 +55,15 @@
     [containerView release];
 
     [drawer setParentWindow:[[vimController windowController] window]];
+}
 
+- (void)toggleDrawer
+{
+    [drawer toggle:nil];
+    [[NSUserDefaults standardUserDefaults]
+        setBool:[drawer state] == NSDrawerOpenState
+            || [drawer state] == NSDrawerOpeningState
+        forKey:MMShowLeftPlugInContainerKey];
 }
 
 - (void)initializeInstances
@@ -117,8 +125,11 @@
 {
     //NSLog(@"%@ %s", [self className], _cmd);
 
-    // For now, just always open the drawer when adding a plugin view
-    [drawer open];
+    // Do this here so that the drawer is never opened automatically when there
+    // are no plugin views.
+    if ([[NSUserDefaults standardUserDefaults]
+            boolForKey:MMShowLeftPlugInContainerKey] && [plugInViews count] == 0)
+        [drawer open];
 
     MMPlugInViewController *newView =
         [[MMPlugInViewController alloc] initWithView:view title:title];
@@ -159,6 +170,34 @@ MMPlugInAppMediator *sharedAppMediator = nil;
         sharedAppMediator = [[MMPlugInAppMediator alloc] init];
 
     return sharedAppMediator;
+}
+
+- (id)init
+{
+    if ((self = [super init]) == nil) return nil;
+
+    NSString *title = NSLocalizedString(@"Toggle Left Drawer",
+                                        @"Toggle Left Drawer menu title");
+    NSMenuItem *item = [[[NSMenuItem alloc] initWithTitle:title
+                                           action:@selector(toggleLeftDrawer:)
+                                    keyEquivalent:@""] autorelease];
+    [item setTarget:self];
+    [self addPlugInMenuItem:item];
+    [self addPlugInMenuItem:[NSMenuItem separatorItem]];
+
+    return self;
+}
+
+- (void)toggleLeftDrawer:(id)sender
+{
+    MMVimController *c = [[MMAppController sharedInstance] keyVimController];
+
+    [[c instanceMediator] toggleDrawer];
+}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    return [[MMAppController sharedInstance] keyVimController] != nil;
 }
 
 - (void)addPlugInMenuItem:(NSMenuItem *)menuItem
