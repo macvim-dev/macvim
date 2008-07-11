@@ -473,7 +473,8 @@ static BOOL isUnsafeMessage(int msgid);
                                         isEqual:NSDefaultRunLoopMode];
     if (!inDefaultMode) {
         // Delay call until run loop is in default mode.
-        [self performSelectorOnMainThread:@selector(presentDialogWithStyle:)
+        [self performSelectorOnMainThread:
+                                        @selector(presentDialogWithAttributes:)
                                withObject:attr
 			    waitUntilDone:NO
 			            modes:[NSArray arrayWithObject:
