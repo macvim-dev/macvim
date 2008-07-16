@@ -302,6 +302,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             bg, NSBackgroundColorAttributeName,
             fg, NSForegroundColorAttributeName,
             sp, NSUnderlineColorAttributeName,
+            [NSNumber numberWithInt:0], NSLigatureAttributeName,
             nil];
 
     if (flags & DRAW_UNDERL) {

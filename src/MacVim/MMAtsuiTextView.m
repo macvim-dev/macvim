@@ -851,6 +851,14 @@ enum {
         &fontID, &fontSize, &fontWidth, &transform, &options, &font
     };
 
+    ATSUFontFeatureType featureTypes[] = {
+        kLigaturesType, kLigaturesType
+    };
+
+    ATSUFontFeatureSelector featureSelectors[] = {
+        kCommonLigaturesOffSelector, kRareLigaturesOffSelector
+    };
+
     for (i = 0; i < MMMaxCellsPerChar; i++)
     {
         fontWidth = Long2Fix(cellSize.width * (i + 1));
@@ -862,6 +870,11 @@ enum {
             ATSUDisposeStyle(atsuStyles[i]);
             atsuStyles[i] = NULL;
         }
+
+        // Turn off ligatures by default
+        ATSUSetFontFeatures(atsuStyles[i],
+                            sizeof(featureTypes) / sizeof(featureTypes[0]),
+                            featureTypes, featureSelectors);
     }
 }
 
