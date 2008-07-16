@@ -1,38 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
-	<!--
-	  Both UTExportedTypeDeclarations (for Spotlight and QuickLook) and
-	  CFBundleDocumentTypes seem to be required, even though they contain
-	  more or less the same information:
-	  http://lists.apple.com/archives/Spotlight-dev/2007/Jul/msg00019.html
-	-->
-	<key>UTExportedTypeDeclarations</key>
-	<array>
-	  <dict>
-	    <key>UTTypeConformsTo</key>
-	    <array>
-	      <string>public.text</string>
-	      <string>public.plain-text</string>
-	    </array>
-	    <key>UTTypeDescription</key>
-	    <string>vim script file</string>
-	    <key>UTTypeIdentifier</key>
-	    <string>org.vim.vim</string>
-	    <key>UTTypeTagSpecification</key>
-	    <dict>
-	      <key>com.apple.ostype</key>
-	      <string>TEXT</string>
-	      <key>public.filename-extension</key>
-	      <array>
-		<string>vim</string>
-	      </array>
-	    </dict>
-	  </dict>
-	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -570,7 +541,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>7.1</string>
+	<string>7.2b</string>
 	<key>CFBundleSignature</key>
 	<string>VIMM</string>
 	<key>CFBundleVersion</key>
@@ -633,5 +604,28 @@
 	</array>
 	<key>SUFeedURL</key>
 	<string>http://bjorn.winckler.googlepages.com/macvim_latest.xml</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.text</string>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>vim script file</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.vim.vim</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>com.apple.ostype</key>
+				<string>TEXT</string>
+				<key>public.filename-extension</key>
+				<array>
+					<string>vim</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>
