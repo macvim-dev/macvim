@@ -387,7 +387,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     //NSLog(@"deleteLinesFromRow:%d lineCount:%d color:%@", row, count, color);
     [self lazyResize:NO];
 
-    if (row < 0 || row+count > maxRows)
+    if (row < 0 || row+count > maxRows || bottom > maxRows || left < 0
+            || right > maxColumns)
         return;
 
     int total = 1 + bottom - row;
@@ -484,7 +485,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     //NSLog(@"insertLinesAtRow:%d lineCount:%d color:%@", row, count, color);
     [self lazyResize:NO];
 
-    if (row < 0 || row+count > maxRows)
+    if (row < 0 || row+count > maxRows || bottom > maxRows || left < 0
+            || right > maxColumns)
         return;
 
     int total = 1 + bottom - row;
