@@ -42,6 +42,12 @@
 #define DRAW_ITALIC               0x10    /* draw italic text */
 #define DRAW_CURSOR               0x20
 
+#define kUnderlineOffset            (-2)
+#define kUnderlineHeight            1
+#define kUndercurlHeight            2
+#define kUndercurlOffset            (-2)
+#define kUndercurlDotWidth          2
+#define kUndercurlDotDistance       2
 
 static char MMKeypadEnter[2] = { 'K', 'A' };
 static NSString *MMKeypadEnterString = @"KA";
@@ -484,6 +490,9 @@ enum {
     dstRect.origin.x += insetSize.width;
     dstRect.origin.y += insetSize.height;
 
+    [defaultBackgroundColor set];
+    NSRectFill(rect);
+
     [contentImage drawInRect: dstRect
                     fromRect: srcRect
                    operation: NSCompositeCopy
@@ -559,10 +568,11 @@ enum {
             int flags = *((int*)bytes);  bytes += sizeof(int);
             int len = *((int*)bytes);  bytes += sizeof(int);
             // UniChar *string = (UniChar*)bytes;  bytes += len;
-            NSString *string = [[NSString alloc] initWithBytesNoCopy:(void*)bytes
-                                                              length:len
-                                                            encoding:NSUTF8StringEncoding
-                                                        freeWhenDone:NO];
+            NSString *string = [[NSString alloc]
+                    initWithBytesNoCopy:(void*)bytes
+                                 length:len
+                               encoding:NSUTF8StringEncoding
+                           freeWhenDone:NO];
             bytes += len;
 #if MM_DEBUG_DRAWING
             NSLog(@"   Draw string at (%d,%d) length=%d flags=%d fg=0x%x "
@@ -571,8 +581,11 @@ enum {
             unichar *characters = malloc(sizeof(unichar) * [string length]);
             [string getCharacters:characters];
 
-            [self drawString:characters length:[string length] atRow:row column:col
-                       cells:cells withFlags:flags
+            [self drawString:characters
+                             length:[string length]
+                              atRow:row
+                             column:col
+                              cells:cells withFlags:flags
                     foregroundColor:[NSColor colorWithRgbInt:fg]
                     backgroundColor:[NSColor colorWithArgbInt:bg]
                        specialColor:[NSColor colorWithRgbInt:sp]];
@@ -1010,6 +1023,7 @@ enum {
 
 #define atsu_style_set_bool(s, t, b) \
     ATSUSetAttributes(s, 1, &t, &(sizeof(Boolean)), &&b);
+#define FILL_Y(y)    (y * cellSize.height)
 
 - (void)drawString:(UniChar *)string length:(UniCharCount)length
              atRow:(int)row column:(int)col cells:(int)cells
@@ -1019,23 +1033,29 @@ enum {
     // 'string' consists of 'length' utf-16 code pairs and should cover 'cells'
     // display cells (a normal character takes up one display cell, a wide
     // character takes up two)
-    ATSUStyle          style = (flags & DRAW_WIDE) ? atsuStyles[1] : atsuStyles[0];
-    ATSUTextLayout     layout;
+    ATSUStyle       style = (flags & DRAW_WIDE) ? atsuStyles[1] : atsuStyles[0];
+    ATSUTextLayout  layout;
 
     // Font selection and rendering options for ATSUI
     ATSUAttributeTag      attribTags[3] = { kATSUQDBoldfaceTag,
-                                            kATSUQDItalicTag,
+                                            kATSUFontMatrixTag,
                                             kATSUStyleRenderingOptionsTag };
+
     ByteCount             attribSizes[] = { sizeof(Boolean),
-                                            sizeof(Boolean),
+                                            sizeof(CGAffineTransform),
                                             sizeof(UInt32) };
-    Boolean               useBold, useItalic;
+    Boolean               useBold;
+    CGAffineTransform     theTransform = CGAffineTransformMakeScale(1.0, -1.0);
     UInt32                useAntialias;
-    ATSUAttributeValuePtr attribValues[3] = { &useBold, &useItalic,
+
+    ATSUAttributeValuePtr attribValues[3] = { &useBold, &theTransform,
                                               &useAntialias };
 
     useBold      = (flags & DRAW_BOLD) ? true : false;
-    useItalic    = (flags & DRAW_ITALIC) ? true : false;
+
+    if (flags & DRAW_ITALIC)
+        theTransform.c = Fix2X(kATSItalicQDSkew);
+
     useAntialias = antialias ? kATSStyleApplyAntiAliasing
                              : kATSStyleNoAntiAliasing;
 
@@ -1076,6 +1096,35 @@ enum {
                  X2Fix(rect.origin.x),
                  X2Fix(rect.origin.y + [font ascender]));
     ATSUDisposeTextLayout(layout);
+
+    if (flags & DRAW_UNDERL)
+    {
+        [fg set];
+        NSRectFill(NSMakeRect(rect.origin.x,
+                              (row + 1) * cellSize.height + kUnderlineOffset,
+                              rect.size.width, kUnderlineHeight));
+    }
+
+    if (flags & DRAW_UNDERC)
+    {
+        [sp set];
+
+        float line_end_x = rect.origin.x + rect.size.width;
+        int i = 0;
+        NSRect line_rect = NSMakeRect(
+                rect.origin.x,
+                (row + 1) * cellSize.height + kUndercurlOffset,
+                kUndercurlDotWidth, kUndercurlHeight);
+
+        while (line_rect.origin.x < line_end_x)
+        {
+            if (i % 2)
+                NSRectFill(line_rect);
+
+            line_rect.origin.x += kUndercurlDotDistance;
+            i++;
+        }
+    }
 }
 
 - (void)scrollRect:(NSRect)rect lineCount:(int)count
