@@ -70,13 +70,14 @@ char *MessageStrings[] =
     "AddInputMsgID",
     "SetPreEditPositionMsgID",
     "TerminateNowMsgID",
-    "ODBEditMsgID",
     "XcodeModMsgID",
     "LiveResizeMsgID",
     "EnableAntialiasMsgID",
     "DisableAntialiasMsgID",
     "SetVimStateMsgID",
     "SetDocumentFilenameMsgID",
+    "OpenWithArgumentsMsgID",
+    "CloseWindowMsgID",
 };
 
 
@@ -211,6 +212,24 @@ loadFonts()
 {
     return [NSPropertyListSerialization dataFromPropertyList:self
             format:NSPropertyListBinaryFormat_v1_0 errorDescription:NULL];
+}
+
+@end
+
+
+
+
+@implementation NSMutableDictionary (MMExtras)
+
++ (id)dictionaryWithData:(NSData *)data
+{
+    id plist = [NSPropertyListSerialization
+            propertyListFromData:data
+                mutabilityOption:NSPropertyListMutableContainers
+                          format:NULL
+                errorDescription:NULL];
+
+    return [plist isKindOfClass:[NSMutableDictionary class]] ? plist : nil;
 }
 
 @end

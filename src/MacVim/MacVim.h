@@ -39,6 +39,7 @@
 - (id)evaluateExpressionCocoa:(in bycopy NSString *)expr
                   errorString:(out bycopy NSString **)errstr;
 - (BOOL)starRegisterToPasteboard:(byref NSPasteboard *)pboard;
+- (oneway void)acknowledgeConnection;
 @end
 
 //
@@ -162,13 +163,14 @@ enum {
     AddInputMsgID,
     SetPreEditPositionMsgID,
     TerminateNowMsgID,
-    ODBEditMsgID,
     XcodeModMsgID,
     LiveResizeMsgID,
     EnableAntialiasMsgID,
     DisableAntialiasMsgID,
     SetVimStateMsgID,
     SetDocumentFilenameMsgID,
+    OpenWithArgumentsMsgID,
+    CloseWindowMsgID,
 };
 
 
@@ -229,6 +231,10 @@ ATSFontContainerRef loadFonts();
 @interface NSDictionary (MMExtras)
 + (id)dictionaryWithData:(NSData *)data;
 - (NSData *)dictionaryAsData;
+@end
+
+@interface NSMutableDictionary (MMExtras)
++ (id)dictionaryWithData:(NSData *)data;
 @end
 
 

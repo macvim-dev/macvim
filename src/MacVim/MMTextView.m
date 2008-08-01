@@ -131,7 +131,7 @@ enum {
 
 - (void)dealloc
 {
-    //NSLog(@"MMTextView dealloc");
+    LOG_DEALLOC
 
      if (markedText) {
          imRange = NSMakeRange(0, 0);

@@ -203,3 +203,6 @@ void odb_end(void);
 
 char_u *get_macaction_name(expand_T *xp, int idx);
 int is_valid_macaction(char_u *action);
+
+void gui_macvim_wait_for_startup();
+void gui_macvim_get_window_layout(int *count, int *layout);

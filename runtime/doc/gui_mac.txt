@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2b.  Last change: 2008 May 25
+*gui_mac.txt*	For Vim version 7.2b.  Last change: 2008 Jul 12
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -167,10 +167,14 @@ use Mac OS X System Services to open files in MacVim, see |macvim-services|.
 There are essentially two ways to start MacVim from Terminal: either call the
 Vim binary with the -g switch >
 	/Applications/MacVim.app/Contents/MacOS/Vim -g file ...
-or use the "open" command (which is of limited use since it cannot be used to
-pass parameters to Vim) >
+or use the "open" command (this method can not be used to pass parameters to
+Vim) >
 	open -a MacVim file ...
-<
+The advantage of using the latter method is that the settings relating to file
+opening in the preferences panel are respected, and files open significantly
+faster if preloading of Vim processes is enabled (i.e. if the user default
+MMPreloadCacheSize is positive, see |macvim-user-defaults|).
+
 							*mvim*
 To save yourself from having to type the entire path to the Vim binary each
 time you start MacVim, you could create an alias such as >
@@ -212,8 +216,9 @@ is sent back to the server application.
 
 Some settings are global to the MacVim application and would not make sense as
 Vim options.  These settings are stored in a user default database and can be
-accessed via the "MacVim/Preferences..." menu item.
+accessed via the "MacVim.Preferences..." menu item.
 
+							*macvim-user-defaults*
 Not all entries in the user defaults database are exposed via the preference
 panel, usually because they should not be changed by the user under normal
 circumstances.  These options can still be changed with the "defaults" command
@@ -231,6 +236,7 @@ MMDialogsTrackPwd		open/save dialogs track the Vim pwd [bool]
 MMLoginShellArgument		login shell parameter [string]
 MMLoginShellCommand		which shell to use to launch Vim [string]
 MMNoFontSubstitution		disable automatic font substitution [bool]
+MMPreloadCacheSize		number of Vim processes to preload [int]
 MMTabMaxWidth			maximum width of a tab [int]
 MMTabMinWidth			minimum width of a tab [int]
 MMTabOptimumWidth		default width of a tab [int]
@@ -240,6 +246,7 @@ MMTextInsetRight		text area offset in pixels [int]
 MMTextInsetTop			text area offset in pixels [int]
 MMTexturedWindow		use brushed metal window (Tiger only) [bool]
 MMTranslateCtrlClick		interpret ctrl-click as right-click [bool]
+MMVerticalSplit			files open in vertical splits [bool]
 MMZoomBoth			zoom button maximizes both directions [bool]
 
 As an example, if you have more than one mouse button and would wish to free

@@ -38,10 +38,6 @@ static int vimModMaskToEventModifierFlags(int mods);
 NSArray *descriptor_for_menu(vimmenu_T *menu);
 vimmenu_T *menu_for_descriptor(NSArray *desc);
 
-@interface NSString (VimStrings)
-+ (id)stringWithVimString:(char_u *)s;
-@end
-
 
 
 // -- Initialization --------------------------------------------------------
@@ -71,6 +67,17 @@ gui_mch_prepare(int *argc, char **argv)
 
     path = [path stringByAppendingPathComponent:@"runtime"];
     vim_setenv((char_u*)"VIMRUNTIME", (char_u*)[path UTF8String]);
+
+    int i;
+    for (i = 0; i < *argc; ++i) {
+        if (strncmp(argv[i], "--mmwaitforack", 14) == 0) {
+            [[MMBackend sharedInstance] setWaitForAck:YES];
+            --*argc;
+            if (*argc > i)
+                mch_memmove(&argv[i], &argv[i+1], (*argc-i) * sizeof(char*));
+            break;
+        }
+    }
 }
 
 
@@ -143,9 +150,16 @@ gui_mch_exit(int rc)
     int
 gui_mch_open(void)
 {
-    //NSLog(@"gui_mch_open()");
+    // For preloaded Vim processes we delay opening the GUI window until
+    // gui_macvim_wait_for_startup() is called.  (If for some reason preloading
+    // didn't work as expected, the "normal" behavior can be restored by
+    // disabling preloading.)
 
-    return [[MMBackend sharedInstance] openVimWindow];
+    MMBackend *backend = [MMBackend sharedInstance];
+    if ([backend waitForAck])
+        return OK;
+
+    return [backend openVimWindow];
 }
 
 
@@ -1629,7 +1643,25 @@ gui_macvim_set_antialias(int antialias)
 }
 
 
+    void
+gui_macvim_wait_for_startup()
+{
+    MMBackend *backend = [MMBackend sharedInstance];
+    if ([backend waitForAck])
+        [backend waitForConnectionAcknowledgement];
+}
 
+void gui_macvim_get_window_layout(int *count, int *layout)
+{
+    if (!(count && layout)) return;
+
+    int window_layout = [[MMBackend sharedInstance] initialWindowLayout];
+    if (window_layout > 0 && window_layout < 4) {
+        // The window_layout numbers must match the WIN_* defines in main.c.
+        *count = 0;
+        *layout = window_layout;
+    }
+}
 
 
 // -- Client/Server ---------------------------------------------------------
@@ -2047,33 +2079,3 @@ static int vimModMaskToEventModifierFlags(int mods)
 
     return flags;
 }
-
-
-
-
-@implementation NSString (VimStrings)
-+ (id)stringWithVimString:(char_u *)s
-{
-    // This method ensures a non-nil string is returned.  If 's' cannot be
-    // converted to a utf-8 string it is assumed to be latin-1.  If conversion
-    // still fails an empty NSString is returned.
-    NSString *string = nil;
-    if (s) {
-#ifdef FEAT_MBYTE
-        s = CONVERT_TO_UTF8(s);
-#endif
-        string = [NSString stringWithUTF8String:(char*)s];
-        if (!string) {
-            // HACK! Apparently 's' is not a valid utf-8 string, maybe it is
-            // latin-1?
-            string = [NSString stringWithCString:(char*)s
-                                        encoding:NSISOLatin1StringEncoding];
-        }
-#ifdef FEAT_MBYTE
-        CONVERT_TO_UTF8_FREE(s);
-#endif
-    }
-
-    return string != nil ? string : [NSString string];
-}
-@end

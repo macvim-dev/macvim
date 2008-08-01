@@ -25,6 +25,8 @@
     NSMenu              *defaultMainMenu;
     NSMenuItem          *appMenuItemTemplate;
     NSMenuItem          *recentFilesMenuItem;
+    NSMutableArray      *cachedVimControllers;
+    int                 preloadPid;
 
 #ifdef MM_ENABLE_PLUGINS
     NSMenuItem          *plugInMenuItem;
@@ -38,6 +40,7 @@
 - (void)removeVimController:(id)controller;
 - (void)windowControllerWillOpen:(MMWindowController *)windowController;
 - (void)setMainMenu:(NSMenu *)mainMenu;
+- (NSArray *)filterOpenFiles:(NSArray *)filenames;
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)addItemToPlugInMenu:(NSMenuItem *)item;
@@ -45,6 +48,7 @@
 #endif
 
 - (IBAction)newWindow:(id)sender;
+- (IBAction)forceNewWindow:(id)sender;
 - (IBAction)fileOpen:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;
 - (IBAction)selectPreviousWindow:(id)sender;

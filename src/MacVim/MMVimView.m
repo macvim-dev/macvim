@@ -149,6 +149,8 @@ enum {
 
 - (void)dealloc
 {
+    LOG_DEALLOC
+
     [tabBarControl release];  tabBarControl = nil;
     [tabView release];  tabView = nil;
     [scrollbars release];  scrollbars = nil;

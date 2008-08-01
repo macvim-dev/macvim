@@ -28,6 +28,7 @@
 #import "MMVimController.h"
 #import "MMVimView.h"
 #import "MMWindowController.h"
+#import "Miscellaneous.h"
 #import <Carbon/Carbon.h>
 #import <PSMTabBarControl.h>
 
@@ -83,6 +84,8 @@ static int numFullscreenWindows = 0;
 
 - (void)dealloc
 {
+    LOG_DEALLOC
+
     [target release];  target = nil;
     [view release];  view = nil;
 

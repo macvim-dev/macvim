@@ -27,6 +27,7 @@
  */
 
 #import "MMWindow.h"
+#import "Miscellaneous.h"
 
 
 
@@ -62,6 +63,8 @@
 
 - (void)dealloc
 {
+    LOG_DEALLOC
+
     // TODO: Is there any reason why we would want the following call?
     //[tablineSeparator removeFromSuperviewWithoutNeedingDisplay];
     [tablineSeparator release];  tablineSeparator = nil;

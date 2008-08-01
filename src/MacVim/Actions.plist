@@ -26,6 +26,8 @@
 	<string></string>
 	<key>fontSizeUp:</key>
 	<string></string>
+	<key>forceNewWindow:</key>
+	<string></string>
 	<key>hide:</key>
 	<string></string>
 	<key>hideOtherApplications:</key>

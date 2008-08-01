@@ -93,6 +93,7 @@ static BOOL isUnsafeMessage(int msgid);
                          column:(NSNumber *)col;
 - (void)popupMenuWithAttributes:(NSDictionary *)attrs;
 - (void)connectionDidDie:(NSNotification *)notification;
+- (void)scheduleClose;
 @end
 
 
@@ -153,8 +154,7 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)dealloc
 {
-    //NSLog(@"%@ %s", [self className], _cmd);
-
+    LOG_DEALLOC
 
     isInitialized = NO;
 
@@ -220,24 +220,20 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force
 {
-    unsigned i, numberOfFiles = [filenames count];
-    NSMutableData *data = [NSMutableData data];
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
 
-    [data appendBytes:&force length:sizeof(BOOL)];
-    [data appendBytes:&numberOfFiles length:sizeof(int)];
+    // Default to opening in tabs if layout is invalid or set to "windows".
+    int layout = [ud integerForKey:MMOpenLayoutKey];
+    if (layout < 0 || layout > MMLayoutTabs)
+        layout = MMLayoutTabs;
 
-    for (i = 0; i < numberOfFiles; ++i) {
-        NSString *file = [filenames objectAtIndex:i];
-        int len = [file lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
+            [NSNumber numberWithInt:layout],    @"layout",
+            filenames,                          @"filenames",
+            [NSNumber numberWithBool:force],    @"forceOpen",
+            nil];
 
-        if (len > 0) {
-            ++len;  // include NUL as well
-            [data appendBytes:&len length:sizeof(int)];
-            [data appendBytes:[file UTF8String] length:len];
-        }
-    }
-
-    [self sendMessage:DropFilesMsgID data:data];
+    [self sendMessage:DropFilesMsgID data:[args dictionaryAsData]];
 }
 
 - (void)dropString:(NSString *)string
@@ -253,57 +249,11 @@ static BOOL isUnsafeMessage(int msgid);
     }
 }
 
-- (void)odbEdit:(NSArray *)filenames server:(OSType)theID path:(NSString *)path
-          token:(NSAppleEventDescriptor *)token
+- (void)passArguments:(NSDictionary *)args
 {
-    int len;
-    unsigned i, numberOfFiles = [filenames count];
-    NSMutableData *data = [NSMutableData data];
+    if (!args) return;
 
-    if (0 == numberOfFiles || 0 == theID)
-        return;
-
-    [data appendBytes:&theID length:sizeof(theID)];
-
-    if (path && [path length] > 0) {
-        len = [path lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:[path UTF8String] length:len];
-    } else {
-        len = 0;
-        [data appendBytes:&len length:sizeof(int)];
-    }
-
-    if (token) {
-        DescType tokenType = [token descriptorType];
-        NSData *tokenData = [token data];
-        len = [tokenData length];
-
-        [data appendBytes:&tokenType length:sizeof(tokenType)];
-        [data appendBytes:&len length:sizeof(int)];
-        if (len > 0)
-            [data appendBytes:[tokenData bytes] length:len];
-    } else {
-        DescType tokenType = 0;
-        len = 0;
-        [data appendBytes:&tokenType length:sizeof(tokenType)];
-        [data appendBytes:&len length:sizeof(int)];
-    }
-
-    [data appendBytes:&numberOfFiles length:sizeof(int)];
-
-    for (i = 0; i < numberOfFiles; ++i) {
-        NSString *file = [filenames objectAtIndex:i];
-        len = [file lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-
-        if (len > 0) {
-            ++len;  // include NUL as well
-            [data appendBytes:&len length:sizeof(unsigned)];
-            [data appendBytes:[file UTF8String] length:len];
-        }
-    }
-
-    [self sendMessage:ODBEditMsgID data:data];
+    [self sendMessage:OpenWithArgumentsMsgID data:[args dictionaryAsData]];
 }
 
 - (void)sendMessage:(int)msgid data:(NSData *)data
@@ -408,12 +358,13 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)cleanup
 {
-    //NSLog(@"%@ %s", [self className], _cmd);
     if (!isInitialized) return;
 
     isInitialized = NO;
     [toolbar setDelegate:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+    //[[backendProxy connectionForProxy] invalidate];
+    //[windowController close];
     [windowController cleanup];
 }
 
@@ -935,6 +886,8 @@ static BOOL isUnsafeMessage(int msgid);
             [vimState release];
             vimState = [dict retain];
         }
+    } else if (CloseWindowMsgID == msgid) {
+        [self scheduleClose];
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {
@@ -1366,8 +1319,12 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)connectionDidDie:(NSNotification *)notification
 {
     //NSLog(@"%@ %s%@", [self className], _cmd, notification);
+    [self scheduleClose];
+}
 
-    // NOTE!  This notification can arrive at pretty much anytime, e.g. while
+- (void)scheduleClose
+{
+    // NOTE!  This message can arrive at pretty much anytime, e.g. while
     // the run loop is the 'event tracking' mode.  This means that Cocoa may
     // well be in the middle of processing some message while this message is
     // received.  If we were to remove the vim controller straight away we may
@@ -1380,11 +1337,6 @@ static BOOL isUnsafeMessage(int msgid);
 			  waitUntilDone:NO
 			          modes:[NSArray arrayWithObject:
 					 NSDefaultRunLoopMode]];
-}
-
-- (NSString *)description
-{
-    return [NSString stringWithFormat:@"%@ : isInitialized=%d inProcessCommandQueue=%d mainMenu=%@ popupMenuItems=%@ toolbar=%@", [self className], isInitialized, inProcessCommandQueue, mainMenu, popupMenuItems, toolbar];
 }
 
 @end // MMVimController (Private)

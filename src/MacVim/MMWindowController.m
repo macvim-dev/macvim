@@ -197,7 +197,7 @@
 
 - (void)dealloc
 {
-    //NSLog(@"%@ %s", [self className], _cmd);
+    LOG_DEALLOC
 
     [decoratedWindow release];  decoratedWindow = nil;
     [windowAutosaveKey release];  windowAutosaveKey = nil;

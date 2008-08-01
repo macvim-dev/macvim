@@ -16,6 +16,8 @@
     IBOutlet NSView *generalPreferences;
     IBOutlet NSView *integrationPreferences;
 
+    // General pane
+    IBOutlet NSPopUpButton *layoutPopUpButton;
 
     // Integration pane
     NSDictionary *supportedOdbEditors;
@@ -25,6 +27,9 @@
     IBOutlet NSTextField* obdBundleVersionLabel;
 
 }
+
+// General pane
+- (IBAction)openInCurrentWindowSelectionChanged:(id)sender;
 
 // Integration pane
 - (IBAction)installOdb:(id)sender;

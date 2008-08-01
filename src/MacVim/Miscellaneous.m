@@ -28,7 +28,7 @@ NSString *MMCellWidthMultiplierKey      = @"MMCellWidthMultiplier";
 NSString *MMBaselineOffsetKey           = @"MMBaselineOffset";
 NSString *MMTranslateCtrlClickKey       = @"MMTranslateCtrlClick";
 NSString *MMTopLeftPointKey             = @"MMTopLeftPoint";
-NSString *MMOpenFilesInTabsKey          = @"MMOpenFilesInTabs";
+NSString *MMOpenInCurrentWindowKey      = @"MMOpenInCurrentWindow";
 NSString *MMNoFontSubstitutionKey       = @"MMNoFontSubstitution";
 NSString *MMLoginShellKey               = @"MMLoginShell";
 NSString *MMAtsuiRendererKey            = @"MMAtsuiRenderer";
@@ -39,10 +39,12 @@ NSString *MMCurrentPreferencePaneKey    = @"MMCurrentPreferencePane";
 NSString *MMLoginShellCommandKey        = @"MMLoginShellCommand";
 NSString *MMLoginShellArgumentKey       = @"MMLoginShellArgument";
 NSString *MMDialogsTrackPwdKey          = @"MMDialogsTrackPwd";
-
 #ifdef MM_ENABLE_PLUGINS
-NSString *MMShowLeftPlugInContainerKey     = @"MMShowLeftPlugInContainer";
+NSString *MMShowLeftPlugInContainerKey  = @"MMShowLeftPlugInContainer";
 #endif
+NSString *MMOpenLayoutKey               = @"MMOpenLayout";
+NSString *MMVerticalSplitKey            = @"MMVerticalSplit";
+NSString *MMPreloadCacheSizeKey         = @"MMPreloadCacheSize";
 
 
 
@@ -75,6 +77,14 @@ NSString *MMShowLeftPlugInContainerKey     = @"MMShowLeftPlugInContainer";
     NSURL *url = [NSURL fileURLWithPath:path];
     if (url)
         [self noteNewRecentDocumentURL:url];
+}
+
+- (void)noteNewRecentFilePaths:(NSArray *)paths
+{
+    NSEnumerator *e = [paths objectEnumerator];
+    NSString *path;
+    while ((path = [e nextObject]))
+        [self noteNewRecentFilePath:path];
 }
 
 @end // NSDocumentController (MMExtras)
@@ -279,61 +289,3 @@ openPanelAccessoryView()
 
     return button;
 }
-
-
-    NSString *
-buildTabDropCommand(NSArray *filenames)
-{
-    // Create a command line string that will open the specified files in tabs.
-
-    if (!filenames || [filenames count] == 0)
-        return [NSString string];
-
-    NSMutableString *cmd = [NSMutableString stringWithString:
-            @"<C-\\><C-N>:tab drop"];
-
-    NSEnumerator *e = [filenames objectEnumerator];
-    id o;
-    while ((o = [e nextObject])) {
-        NSString *file = [o stringByEscapingSpecialFilenameCharacters];
-        [cmd appendString:@" "];
-        [cmd appendString:file];
-    }
-
-    [cmd appendString:@"|redr|f<CR>"];
-
-    return cmd;
-}
-
-    NSString *
-buildSelectRangeCommand(NSRange range)
-{
-    // Build a command line string that will select the given range of lines.
-    // If range.length == 0, then position the cursor on the given line but do
-    // not select.
-
-    if (range.location == NSNotFound)
-        return [NSString string];
-
-    NSString *cmd;
-    if (range.length > 0) {
-        cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGV%dGz.0",
-                NSMaxRange(range), range.location];
-    } else {
-        cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGz.0", range.location];
-    }
-
-    return cmd;
-}
-
-    NSString *
-buildSearchTextCommand(NSString *searchText)
-{
-    // TODO: Searching is an exclusive motion, so if the pattern would match on
-    // row 0 column 0 then this pattern will miss that match.
-    return [NSString stringWithFormat:@"<C-\\><C-N>gg/\\c%@<CR>", searchText];
-}
-
-
-
-

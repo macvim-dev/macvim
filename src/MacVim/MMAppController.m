@@ -94,7 +94,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (int)launchVimProcessWithArguments:(NSArray *)args;
 - (NSArray *)filterFilesAndNotify:(NSArray *)files;
 - (NSArray *)filterOpenFiles:(NSArray *)filenames
-                   arguments:(NSDictionary *)args;
+               openFilesDict:(NSDictionary **)openFiles;
 #if MM_HANDLE_XCODE_MOD_EVENT
 - (void)handleXcodeModEvent:(NSAppleEventDescriptor *)event
                  replyEvent:(NSAppleEventDescriptor *)reply;
@@ -103,7 +103,12 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (MMVimController *)findUntitledWindow;
 - (NSMutableDictionary *)extractArgumentsFromOdocEvent:
     (NSAppleEventDescriptor *)desc;
-- (void)passArguments:(NSDictionary *)args toVimController:(MMVimController*)vc;
+- (void)scheduleVimControllerPreloadAfterDelay:(NSTimeInterval)delay;
+- (void)preloadVimController:(id)sender;
+- (int)maxPreloadCacheSize;
+- (MMVimController *)takeVimControllerFromCache;
+- (void)clearPreloadCache;
+- (BOOL)openVimControllerWithArguments:(NSDictionary *)arguments;
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu;
@@ -131,7 +136,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         [NSNumber numberWithFloat:1],   MMCellWidthMultiplierKey,
         [NSNumber numberWithFloat:-1],  MMBaselineOffsetKey,
         [NSNumber numberWithBool:YES],  MMTranslateCtrlClickKey,
-        [NSNumber numberWithBool:NO],   MMOpenFilesInTabsKey,
+        [NSNumber numberWithInt:0],     MMOpenInCurrentWindowKey,
         [NSNumber numberWithBool:NO],   MMNoFontSubstitutionKey,
         [NSNumber numberWithBool:NO],   MMLoginShellKey,
         [NSNumber numberWithBool:NO],   MMAtsuiRendererKey,
@@ -145,6 +150,9 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 #ifdef MM_ENABLE_PLUGINS
         [NSNumber numberWithBool:YES],  MMShowLeftPlugInContainerKey,
 #endif
+        [NSNumber numberWithInt:3],     MMOpenLayoutKey,
+        [NSNumber numberWithBool:NO],   MMVerticalSplitKey,
+        [NSNumber numberWithInt:0],     MMPreloadCacheSizeKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -155,48 +163,50 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 - (id)init
 {
-    if ((self = [super init])) {
-        fontContainerRef = loadFonts();
+    if (!(self = [super init])) return nil;
 
-        vimControllers = [NSMutableArray new];
-        pidArguments = [NSMutableDictionary new];
+    fontContainerRef = loadFonts();
+
+    vimControllers = [NSMutableArray new];
+    cachedVimControllers = [NSMutableArray new];
+    preloadPid = -1;
+    pidArguments = [NSMutableDictionary new];
 
 #ifdef MM_ENABLE_PLUGINS
-        NSString *plugInTitle = NSLocalizedString(@"Plug-In",
-                                                  @"Plug-In menu title");
-        plugInMenuItem = [[NSMenuItem alloc] initWithTitle:plugInTitle
-                                                    action:NULL
-                                             keyEquivalent:@""];
-        NSMenu *submenu = [[NSMenu alloc] initWithTitle:plugInTitle];
-        [plugInMenuItem setSubmenu:submenu];
-        [submenu release];
+    NSString *plugInTitle = NSLocalizedString(@"Plug-In",
+                                              @"Plug-In menu title");
+    plugInMenuItem = [[NSMenuItem alloc] initWithTitle:plugInTitle
+                                                action:NULL
+                                         keyEquivalent:@""];
+    NSMenu *submenu = [[NSMenu alloc] initWithTitle:plugInTitle];
+    [plugInMenuItem setSubmenu:submenu];
+    [submenu release];
 #endif
 
-        // NOTE: Do not use the default connection since the Logitech Control
-        // Center (LCC) input manager steals and this would cause MacVim to
-        // never open any windows.  (This is a bug in LCC but since they are
-        // unlikely to fix it, we graciously give them the default connection.)
-        connection = [[NSConnection alloc] initWithReceivePort:[NSPort port]
-                                                      sendPort:nil];
-        [connection setRootObject:self];
-        [connection setRequestTimeout:MMRequestTimeout];
-        [connection setReplyTimeout:MMReplyTimeout];
+    // NOTE: Do not use the default connection since the Logitech Control
+    // Center (LCC) input manager steals and this would cause MacVim to
+    // never open any windows.  (This is a bug in LCC but since they are
+    // unlikely to fix it, we graciously give them the default connection.)
+    connection = [[NSConnection alloc] initWithReceivePort:[NSPort port]
+                                                  sendPort:nil];
+    [connection setRootObject:self];
+    [connection setRequestTimeout:MMRequestTimeout];
+    [connection setReplyTimeout:MMReplyTimeout];
 
-        // NOTE: When the user is resizing the window the AppKit puts the run
-        // loop in event tracking mode.  Unless the connection listens to
-        // request in this mode, live resizing won't work.
-        [connection addRequestMode:NSEventTrackingRunLoopMode];
+    // NOTE: When the user is resizing the window the AppKit puts the run
+    // loop in event tracking mode.  Unless the connection listens to
+    // request in this mode, live resizing won't work.
+    [connection addRequestMode:NSEventTrackingRunLoopMode];
 
-        // NOTE!  If the name of the connection changes here it must also be
-        // updated in MMBackend.m.
-        NSString *name = [NSString stringWithFormat:@"%@-connection",
-                 [[NSBundle mainBundle] bundleIdentifier]];
-        //NSLog(@"Registering connection with name '%@'", name);
-        if (![connection registerName:name]) {
-            NSLog(@"FATAL ERROR: Failed to register connection with name '%@'",
-                    name);
-            [connection release];  connection = nil;
-        }
+    // NOTE!  If the name of the connection changes here it must also be
+    // updated in MMBackend.m.
+    NSString *name = [NSString stringWithFormat:@"%@-connection",
+             [[NSBundle mainBundle] bundleIdentifier]];
+    //NSLog(@"Registering connection with name '%@'", name);
+    if (![connection registerName:name]) {
+        NSLog(@"FATAL ERROR: Failed to register connection with name '%@'",
+                name);
+        [connection release];  connection = nil;
     }
 
     return self;
@@ -209,6 +219,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     [connection release];  connection = nil;
     [pidArguments release];  pidArguments = nil;
     [vimControllers release];  vimControllers = nil;
+    [cachedVimControllers release];  cachedVimControllers = nil;
     [openSelectionString release];  openSelectionString = nil;
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
     [defaultMainMenu release];  defaultMainMenu = nil;
@@ -275,6 +286,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 #ifdef MM_ENABLE_PLUGINS
     [[MMPlugInManager sharedManager] loadAllPlugIns];
 #endif
+
+    [self scheduleVimControllerPreloadAfterDelay:2];
 }
 
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
@@ -320,7 +333,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 {
     // Opening files works like this:
     //  a) extract ODB/Xcode/Spotlight parameters from the current Apple event
-    //  b) filter out any already open files (see filterOpenFiles::)
+    //  b) filter out any already open files
     //  c) open any remaining files
     //
     // A file is opened in an untitled window if there is one (it may be
@@ -332,79 +345,141 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     // arguments for each launching process can be looked up by its PID (in the
     // pidArguments dictionary).
 
+    if (!(filenames && [filenames count] > 0))
+        return;
+
+    //
+    // a) Extract ODB/Xcode/Spotlight parameters from the current Apple event
+    //
     NSMutableDictionary *arguments = [self extractArgumentsFromOdocEvent:
             [[NSAppleEventManager sharedAppleEventManager] currentAppleEvent]];
 
-    // Filter out files that are already open
-    filenames = [self filterOpenFiles:filenames arguments:arguments];
+    //
+    // b) Filter out any already open files
+    //
+    NSString *firstFile = [filenames objectAtIndex:0];
+    MMVimController *firstController = nil;
+    NSDictionary *openFilesDict = nil;
+    filenames = [self filterOpenFiles:filenames openFilesDict:&openFilesDict];
 
-    // Open any files that remain
-    if ([filenames count]) {
-        MMVimController *vc;
-        BOOL openInTabs = [[NSUserDefaults standardUserDefaults]
-            boolForKey:MMOpenFilesInTabsKey];
+    // Pass arguments to vim controllers that had files open.
+    id key;
+    NSEnumerator *e = [openFilesDict keyEnumerator];
 
-        [arguments setObject:filenames forKey:@"filenames"];
-        [arguments setObject:[NSNumber numberWithBool:YES] forKey:@"openFiles"];
+    // (Indicate that we do not wish to open any files at the moment.)
+    [arguments setObject:[NSNumber numberWithBool:YES] forKey:@"dontOpen"];
 
-        // Add file names to "Recent Files" menu.
-        int i, count = [filenames count];
-        for (i = 0; i < count; ++i) {
-            // Don't add files that are being edited remotely (using ODB).
-            if ([arguments objectForKey:@"remoteID"]) continue;
+    while ((key = [e nextObject])) {
+        NSArray *files = [openFilesDict objectForKey:key];
+        [arguments setObject:files forKey:@"filenames"];
 
-            [[NSDocumentController sharedDocumentController]
-                    noteNewRecentFilePath:[filenames objectAtIndex:i]];
-        }
+        MMVimController *vc = [key pointerValue];
+        [vc passArguments:arguments];
 
-        if ((openInTabs && (vc = [self topmostVimController]))
-               || (vc = [self findUntitledWindow])) {
-            // Open files in an already open window.
-            [[[vc windowController] window] makeKeyAndOrderFront:self];
-            [self passArguments:arguments toVimController:vc];
-        } else {
-            // Open files in a launching Vim process or start a new process.
-            int pid = [self findLaunchingProcessWithoutArguments];
-            if (!pid) {
-                // Pass the filenames to the process straight away.
-                //
-                // TODO: It would be nicer if all arguments were passed to the
-                // Vim process in connectBackend::, but if we don't pass the
-                // filename arguments here, the window 'flashes' once when it
-                // opens.  This is due to the 'welcome' screen first being
-                // displayed, then quickly thereafter the files are opened.
-                NSArray *fileArgs = [NSArray arrayWithObject:@"-p"];
-                fileArgs = [fileArgs arrayByAddingObjectsFromArray:filenames];
-
-                pid = [self launchVimProcessWithArguments:fileArgs];
-
-                if (-1 == pid) {
-                    // TODO: Notify user of failure?
-                    [NSApp replyToOpenOrPrint:
-                        NSApplicationDelegateReplyFailure];
-                    return;
-                }
-
-                // Make sure these files aren't opened again when
-                // connectBackend:pid: is called.
-                [arguments setObject:[NSNumber numberWithBool:NO]
-                              forKey:@"openFiles"];
-            }
-
-            // TODO: If the Vim process fails to start, or if it changes PID,
-            // then the memory allocated for these parameters will leak.
-            // Ensure that this cannot happen or somehow detect it.
-
-            if ([arguments count] > 0)
-                [pidArguments setObject:arguments
-                                 forKey:[NSNumber numberWithInt:pid]];
-        }
+        // If this controller holds the first file, then remember it for later.
+        if ([files containsObject:firstFile])
+            firstController = vc;
     }
 
-    [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
-    // NSApplicationDelegateReplySuccess = 0,
-    // NSApplicationDelegateReplyCancel = 1,
-    // NSApplicationDelegateReplyFailure = 2
+    if ([filenames count] == 0) {
+        // Raise the window containing the first file that was already open,
+        // and make sure that the tab containing that file is selected.  Only
+        // do this when there are no more files to open, otherwise sometimes
+        // the window with 'firstFile' will be raised, other times it might be
+        // the window that will open with the files in the 'filenames' array.
+        firstFile = [firstFile stringByEscapingSpecialFilenameCharacters];
+        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
+                ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
+                "tab sb %@|let &swb=oldswb|unl oldswb|"
+                "cal foreground()|redr|f<CR>", firstFile];
+
+        [firstController addVimInput:input];
+
+        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
+        return;
+    }
+
+    // Add filenames to "Recent Files" menu, unless they are being edited
+    // remotely (using ODB).
+    if ([arguments objectForKey:@"remoteID"] == nil) {
+        [[NSDocumentController sharedDocumentController]
+                noteNewRecentFilePaths:filenames];
+    }
+
+    //
+    // c) Open any remaining files
+    //
+    MMVimController *vc;
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
+
+    // The meaning of "layout" is defined by the WIN_* defines in main.c.
+    int layout = [ud integerForKey:MMOpenLayoutKey];
+    BOOL splitVert = [ud boolForKey:MMVerticalSplitKey];
+    if (splitVert && MMLayoutHorizontalSplit == layout)
+        layout = MMLayoutVerticalSplit;
+    if (layout < 0 || (layout > MMLayoutTabs && openInCurrentWindow))
+        layout = MMLayoutTabs;
+
+    [arguments setObject:[NSNumber numberWithInt:layout] forKey:@"layout"];
+    [arguments setObject:filenames forKey:@"filenames"];
+    // (Indicate that files should be opened from now on.)
+    [arguments setObject:[NSNumber numberWithBool:NO] forKey:@"dontOpen"];
+
+    if (openInCurrentWindow && (vc = [self topmostVimController])) {
+        // Open files in an already open window.
+        [[[vc windowController] window] makeKeyAndOrderFront:self];
+        [vc passArguments:arguments];
+        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
+        return;
+    }
+
+    BOOL openOk = YES;
+    int numFiles = [filenames count];
+    if (MMLayoutWindows == layout && numFiles > 1) {
+        // Open one file at a time in a new window, but don't open too many at
+        // once (at most cap+1 windows will open).  If the user has increased
+        // the preload cache size we'll take that as a hint that more windows
+        // should be able to open at once.
+        int cap = [self maxPreloadCacheSize] - 1;
+        if (cap < 4) cap = 4;
+        if (cap > numFiles) cap = numFiles;
+
+        int i;
+        for (i = 0; i < cap; ++i) {
+            NSArray *a = [NSArray arrayWithObject:[filenames objectAtIndex:i]];
+            [arguments setObject:a forKey:@"filenames"];
+
+            // NOTE: We have to copy the args since we'll mutate them in the
+            // next loop and the below call may retain the arguments while
+            // waiting for a process to start.
+            NSDictionary *args = [[arguments copy] autorelease];
+
+            openOk = [self openVimControllerWithArguments:args];
+            if (!openOk) break;
+        }
+
+        // Open remaining files in tabs in a new window.
+        if (openOk && numFiles > cap) {
+            NSRange range = { i, numFiles-cap };
+            NSArray *a = [filenames subarrayWithRange:range];
+            [arguments setObject:a forKey:@"filenames"];
+            [arguments setObject:[NSNumber numberWithInt:MMLayoutTabs]
+                          forKey:@"layout"];
+
+            openOk = [self openVimControllerWithArguments:arguments];
+        }
+    } else {
+        // Open all files at once.
+        openOk = [self openVimControllerWithArguments:arguments];
+    }
+
+    if (openOk) {
+        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
+    } else {
+        // TODO: Notify user of failure?
+        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplyFailure];
+    }
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
@@ -521,6 +596,10 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         while ((vc = [e nextObject]))
             [vc sendMessage:TerminateNowMsgID data:nil];
 
+        e = [cachedVimControllers objectEnumerator];
+        while ((vc = [e nextObject]))
+            [vc sendMessage:TerminateNowMsgID data:nil];
+
         // Give Vim processes a chance to terminate before MacVim.  If they
         // haven't terminated by the time applicationWillTerminate: is sent,
         // they may be forced to quit (see below).
@@ -553,7 +632,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     for (i = 0; i < count; ++i) {
         MMVimController *controller = [vimControllers objectAtIndex:i];
         int pid = [controller pid];
-        if (pid > 0)
+        if (-1 != pid)
             kill(pid, SIGINT);
     }
 
@@ -585,12 +664,13 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 - (void)removeVimController:(id)controller
 {
-    //NSLog(@"%s%@", _cmd, controller);
+    int idx = [vimControllers indexOfObject:controller];
+    if (NSNotFound == idx)
+        return;
 
     [controller cleanup];
-    [[controller windowController] close];
 
-    [vimControllers removeObject:controller];
+    [vimControllers removeObjectAtIndex:idx];
 
     if (![vimControllers count]) {
         // The last editor window just closed so restore the main menu back to
@@ -624,6 +704,13 @@ static int executeInLoginShell(NSString *path, NSArray *args);
             topLeft = [win cascadeTopLeftFromPoint:topLeft];
 
         [win setFrameTopLeftPoint:topLeft];
+    }
+
+    if (1 == [vimControllers count]) {
+        // The first window autosaves its position.  (The autosaving
+        // features of Cocoa are not used because we need more control over
+        // what is autosaved and when it is restored.)
+        [windowController setWindowAutosaveKey:MMTopLeftPointKey];
     }
 
     if (openSelectionString) {
@@ -707,6 +794,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 #endif
 }
 
+- (NSArray *)filterOpenFiles:(NSArray *)filenames
+{
+    return [self filterOpenFiles:filenames openFilesDict:nil];
+}
+
 #ifdef MM_ENABLE_PLUGINS
 - (void)addItemToPlugInMenu:(NSMenuItem *)item
 {
@@ -727,7 +819,25 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 - (IBAction)newWindow:(id)sender
 {
+    // A cached controller requires no loading times and results in the new
+    // window popping up instantaneously.  If the cache is empty it may take
+    // 1-2 seconds to start a new Vim process.
+    if ([cachedVimControllers count]) {
+        MMVimController *vc = [self takeVimControllerFromCache];
+        [[vc backendProxy] acknowledgeConnection];
+    } else {
+        [self launchVimProcessWithArguments:nil];
+    }
+}
+
+- (IBAction)forceNewWindow:(id)sender
+{
+    // Open a new window, but clear the preload cache first so that any
+    // subsequent windows opening will have sourced the current .[g]vimrc
+    // files.
+    [self clearPreloadCache];
     [self launchVimProcessWithArguments:nil];
+    [self scheduleVimControllerPreloadAfterDelay:2.0];
 }
 
 - (IBAction)fileOpen:(id)sender
@@ -827,22 +937,23 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         [(NSDistantObject*)backend
                 setProtocolForProxy:@protocol(MMBackendProtocol)];
 
-        vc = [[[MMVimController alloc]
-            initWithBackend:backend pid:pid]
-            autorelease];
+        vc = [[[MMVimController alloc] initWithBackend:backend pid:pid]
+                autorelease];
 
-        if (![vimControllers count]) {
-            // The first window autosaves its position.  (The autosaving
-            // features of Cocoa are not used because we need more control over
-            // what is autosaved and when it is restored.)
-            [[vc windowController] setWindowAutosaveKey:MMTopLeftPointKey];
+        if (preloadPid == pid) {
+            // This backend was preloaded, so add it to the cache and schedule
+            // another vim process to be preloaded.
+            preloadPid = -1;
+            [cachedVimControllers addObject:vc];
+            [self scheduleVimControllerPreloadAfterDelay:1];
+            return vc;
         }
 
         [vimControllers addObject:vc];
 
         id args = [pidArguments objectForKey:pidKey];
         if (args && [NSNull null] != args)
-            [self passArguments:args toVimController:vc];
+            [vc passArguments:args];
 
         // HACK!  MacVim does not get activated if it is launched from the
         // terminal, so we forcibly activate here unless it is an untitled
@@ -1081,48 +1192,33 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 }
 
 - (NSArray *)filterOpenFiles:(NSArray *)filenames
-                   arguments:(NSDictionary *)args
+               openFilesDict:(NSDictionary **)openFiles
 {
-    // Check if any of the files in the 'filenames' array are open in any Vim
-    // process.  Remove the files that are open from the 'filenames' array and
-    // return it.  If all files were filtered out, then raise the first file in
-    // the Vim process it is open.  Files that are filtered are sent an odb
-    // open event in case theID is not zero.
+    // Filter out any files in the 'filenames' array that are open and return
+    // all files that are not already open.  On return, the 'openFiles'
+    // parameter (if non-nil) will point to a dictionary of open files, indexed
+    // by Vim controller.
 
-    NSMutableDictionary *localArgs =
-            [NSMutableDictionary dictionaryWithDictionary:args];
-    MMVimController *raiseController = nil;
-    NSString *raiseFile = nil;
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
     NSMutableArray *files = [filenames mutableCopy];
+
+    // TODO: Escape special characters in 'files'?
     NSString *expr = [NSString stringWithFormat:
             @"map([\"%@\"],\"bufloaded(v:val)\")",
             [files componentsJoinedByString:@"\",\""]];
+
     unsigned i, count = [vimControllers count];
-
-    // Ensure that the files aren't opened when passing arguments.
-    [localArgs setObject:[NSNumber numberWithBool:NO] forKey:@"openFiles"];
-
-    for (i = 0; i < count && [files count]; ++i) {
-        MMVimController *controller = [vimControllers objectAtIndex:i];
+    for (i = 0; i < count && [files count] > 0; ++i) {
+        MMVimController *vc = [vimControllers objectAtIndex:i];
 
         // Query Vim for which files in the 'files' array are open.
-        NSString *eval = [controller evaluateVimExpression:expr];
+        NSString *eval = [vc evaluateVimExpression:expr];
         if (!eval) continue;
 
         NSIndexSet *idxSet = [NSIndexSet indexSetWithVimList:eval];
-        if ([idxSet count]) {
-            if (!raiseFile) {
-                // Remember the file and which Vim that has it open so that
-                // we can raise it later on.
-                raiseController = controller;
-                raiseFile = [files objectAtIndex:[idxSet firstIndex]];
-                [[raiseFile retain] autorelease];
-            }
-
-            // Pass (ODB/Xcode/Spotlight) arguments to this process.
-            [localArgs setObject:[files objectsAtIndexes:idxSet]
-                          forKey:@"filenames"];
-            [self passArguments:localArgs toVimController:controller];
+        if ([idxSet count] > 0) {
+            [dict setObject:[files objectsAtIndexes:idxSet]
+                     forKey:[NSValue valueWithPointer:vc]];
 
             // Remove all the files that were open in this Vim process and
             // create a new expression to evaluate.
@@ -1133,20 +1229,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         }
     }
 
-    if (![files count] && raiseFile) {
-        // Raise the window containing the first file that was already open,
-        // and make sure that the tab containing that file is selected.  Only
-        // do this if there are no more files to open, otherwise sometimes the
-        // window with 'raiseFile' will be raised, other times it might be the
-        // window that will open with the files in the 'files' array.
-        raiseFile = [raiseFile stringByEscapingSpecialFilenameCharacters];
-        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
-            ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
-            "tab sb %@|let &swb=oldswb|unl oldswb|"
-            "cal foreground()|redr|f<CR>", raiseFile];
-
-        [raiseController addVimInput:input];
-    }
+    if (openFiles != nil)
+        *openFiles = dict;
 
     return files;
 }
@@ -1186,7 +1270,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         return [[keys objectAtIndex:0] intValue];
     }
 
-    return 0;
+    return -1;
 }
 
 - (MMVimController *)findUntitledWindow
@@ -1234,8 +1318,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
             [dict setObject:[p stringValue] forKey:@"remotePath"];
 
         p = [odbdesc paramDescriptorForKeyword:keyFileSenderToken];
-        if (p)
-            [dict setObject:p forKey:@"remotePath"];
+        if (p) {
+            [dict setObject:[NSNumber numberWithUnsignedLong:[p descriptorType]]
+                     forKey:@"remoteTokenDescType"];
+            [dict setObject:[p data] forKey:@"remoteTokenData"];
+        }
     }
 
     // 2. Extract Xcode parameters (if any)
@@ -1267,39 +1354,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     return dict;
 }
 
-- (void)passArguments:(NSDictionary *)args toVimController:(MMVimController*)vc
-{
-    if (!args) return;
-
-    // Pass filenames to open if required (the 'openFiles' argument can be used
-    // to disallow opening of the files).
-    NSArray *filenames = [args objectForKey:@"filenames"];
-    if (filenames && [[args objectForKey:@"openFiles"] boolValue]) {
-        NSString *tabDrop = buildTabDropCommand(filenames);
-        [vc addVimInput:tabDrop];
-    }
-
-    // Pass ODB data
-    if (filenames && [args objectForKey:@"remoteID"]) {
-        [vc odbEdit:filenames
-             server:[[args objectForKey:@"remoteID"] unsignedIntValue]
-               path:[args objectForKey:@"remotePath"]
-              token:[args objectForKey:@"remoteToken"]];
-    }
-
-    // Pass range of lines to select
-    if ([args objectForKey:@"selectionRange"]) {
-        NSRange selectionRange = NSRangeFromString(
-                [args objectForKey:@"selectionRange"]);
-        [vc addVimInput:buildSelectRangeCommand(selectionRange)];
-    }
-
-    // Pass search text
-    NSString *searchText = [args objectForKey:@"searchText"];
-    if (searchText)
-        [vc addVimInput:buildSearchTextCommand(searchText)];
-}
-
 #ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu
 {
@@ -1322,6 +1376,128 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     }
 }
 #endif
+
+- (void)scheduleVimControllerPreloadAfterDelay:(NSTimeInterval)delay
+{
+    [self performSelector:@selector(preloadVimController:)
+               withObject:nil
+               afterDelay:delay];
+}
+
+- (void)preloadVimController:(id)sender
+{
+    // We only allow preloading of one Vim process at a time (to avoid hogging
+    // CPU), so schedule another preload in a little while if necessary.
+    if (-1 != preloadPid) {
+        [self scheduleVimControllerPreloadAfterDelay:2];
+        return;
+    }
+
+    if ([cachedVimControllers count] >= [self maxPreloadCacheSize])
+        return;
+
+    preloadPid = [self launchVimProcessWithArguments:
+            [NSArray arrayWithObject:@"--mmwaitforack"]];
+}
+
+- (int)maxPreloadCacheSize
+{
+    // The maximum number of Vim processes to keep in the cache can be
+    // controlled via the user default "MMPreloadCacheSize".
+    int maxCacheSize = [[NSUserDefaults standardUserDefaults]
+            integerForKey:MMPreloadCacheSizeKey];
+    if (maxCacheSize < 0) maxCacheSize = 0;
+    else if (maxCacheSize > 10) maxCacheSize = 10;
+
+    return maxCacheSize;
+}
+
+- (MMVimController *)takeVimControllerFromCache
+{
+    // NOTE: After calling this message the backend corresponding to the
+    // returned vim controller must be sent an acknowledgeConnection message,
+    // else the vim process will be stuck.
+
+    if ([cachedVimControllers count] == 0) return nil;
+
+    MMVimController *vc = [cachedVimControllers objectAtIndex:0];
+    [vimControllers addObject:vc];
+    [cachedVimControllers removeObjectAtIndex:0];
+
+    // Since we've taken one controller from the cache we take the opportunity
+    // to preload another.
+    [self scheduleVimControllerPreloadAfterDelay:1];
+
+    return vc;
+}
+
+- (void)clearPreloadCache
+{
+    if ([cachedVimControllers count] == 0)
+        return;
+
+    // Make sure the preloaded Vim processes get killed or they'll just hang
+    // around being useless until MacVim is terminated.
+    NSEnumerator *e = [cachedVimControllers objectEnumerator];
+    MMVimController *vc;
+    while ((vc = [e nextObject])) {
+        [[NSNotificationCenter defaultCenter] removeObserver:vc];
+        [vc sendMessage:TerminateNowMsgID data:nil];
+    }
+
+    // Since the preloaded processes were killed "prematurely" we have to
+    // manually tell them to cleanup (it is not enough to simply release them
+    // since deallocation and cleanup are separated).
+    [cachedVimControllers makeObjectsPerformSelector:@selector(cleanup)];
+
+    [cachedVimControllers removeAllObjects];
+}
+
+- (BOOL)openVimControllerWithArguments:(NSDictionary *)arguments
+{
+    MMVimController *vc = [self findUntitledWindow];
+    if (vc) {
+        // Open files in an already open window.
+        [[[vc windowController] window] makeKeyAndOrderFront:self];
+        [vc passArguments:arguments];
+
+        // HACK! Change window title so that findUntitledWindow does not think
+        // this window is untitled anymore, in case this method is called
+        // before the arguments have reached the Vim process and it in turn has
+        // responded by setting the window title.
+        //
+        // TODO: When the findUntitledWindow heuristic changes, this has to be
+        // fixed for real.
+        [[vc windowController] setTitle:@""];
+    } else if ([cachedVimControllers count] > 0) {
+        // Open files in a new window using a cached vim controller.  This
+        // requires virtually no loading time so the new window will pop up
+        // instantaneously.
+        vc = [self takeVimControllerFromCache];
+        [vc passArguments:arguments];
+        [[vc backendProxy] acknowledgeConnection];
+    } else {
+        // Open files in a launching Vim process or start a new process.  This
+        // may take 1-2 seconds so there will be a visible delay before the
+        // window appears on screen.
+        int pid = [self findLaunchingProcessWithoutArguments];
+        if (-1 == pid) {
+            pid = [self launchVimProcessWithArguments:nil];
+            if (-1 == pid)
+                return NO;
+        }
+
+        // TODO: If the Vim process fails to start, or if it changes PID,
+        // then the memory allocated for these parameters will leak.
+        // Ensure that this cannot happen or somehow detect it.
+
+        if ([arguments count] > 0)
+            [pidArguments setObject:arguments
+                             forKey:[NSNumber numberWithInt:pid]];
+    }
+
+    return YES;
+}
 
 @end // MMAppController (Private)
 

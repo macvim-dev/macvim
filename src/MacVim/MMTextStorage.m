@@ -84,7 +84,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
 - (void)dealloc
 {
-    //NSLog(@"MMTextStorage dealloc");
+    LOG_DEALLOC
 
 #if MM_USE_ROW_CACHE
     if (rowCache) {

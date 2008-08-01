@@ -46,6 +46,9 @@
     ATSFontContainerRef fontContainerRef;
     NSFont              *oldWideFont;
     BOOL                isTerminating;
+    BOOL                waitForAck;
+    int                 initialWindowLayout;
+    BOOL                flushDisabled;
 }
 
 + (MMBackend *)sharedInstance;
@@ -56,6 +59,7 @@
 - (void)setDefaultColorsBackground:(int)bg foreground:(int)fg;
 - (NSConnection *)connection;
 - (NSDictionary *)actionDict;
+- (int)initialWindowLayout;
 
 - (void)queueMessage:(int)msgid properties:(NSDictionary *)props;
 - (BOOL)checkin;
@@ -123,4 +127,15 @@
 - (NSString *)waitForReplyOnPort:(int)port;
 - (BOOL)sendReply:(NSString *)reply toPort:(int)port;
 
+- (BOOL)waitForAck;
+- (void)setWaitForAck:(BOOL)yn;
+- (void)waitForConnectionAcknowledgement;
+
+@end
+
+
+
+@interface NSString (VimStrings)
++ (id)stringWithVimString:(char_u *)s;
+- (char_u *)vimStringSave;
 @end

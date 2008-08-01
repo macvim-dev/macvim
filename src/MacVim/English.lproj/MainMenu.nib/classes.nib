@@ -13,6 +13,8 @@
 				<string>id</string>
 				<key>fontSizeUp</key>
 				<string>id</string>
+				<key>forceNewWindow</key>
+				<string>id</string>
 				<key>newWindow</key>
 				<string>id</string>
 				<key>openWebsite</key>
@@ -39,11 +41,24 @@
 		</dict>
 		<dict>
 			<key>CLASS</key>
-			<string>NSMenu</string>
+			<string>RBSplitView</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
+			<key>OUTLETS</key>
+			<dict>
+				<key>delegate</key>
+				<string>id</string>
+			</dict>
+			<key>SUPERCLASS</key>
+			<string>RBSplitSubview</string>
+		</dict>
+		<dict>
+			<key>CLASS</key>
+			<string>RBSplitSubview</string>
 			<key>LANGUAGE</key>
 			<string>ObjC</string>
 			<key>SUPERCLASS</key>
-			<string>NSObject</string>
+			<string>NSView</string>
 		</dict>
 		<dict>
 			<key>ACTIONS</key>
@@ -61,6 +76,27 @@
 			<string>ObjC</string>
 			<key>SUPERCLASS</key>
 			<string>NSObject</string>
+		</dict>
+		<dict>
+			<key>CLASS</key>
+			<string>NSMenu</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
+			<key>SUPERCLASS</key>
+			<string>NSObject</string>
+		</dict>
+		<dict>
+			<key>ACTIONS</key>
+			<dict>
+				<key>didAdjustSubviews</key>
+				<string>RBSplitView</string>
+				<key>willAdjustSubviews</key>
+				<string>RBSplitView</string>
+			</dict>
+			<key>CLASS</key>
+			<string>NSObject</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
 		</dict>
 		<dict>
 			<key>ACTIONS</key>

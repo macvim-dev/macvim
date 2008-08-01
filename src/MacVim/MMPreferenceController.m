@@ -194,6 +194,15 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
     return YES;
 }
 
+- (IBAction)openInCurrentWindowSelectionChanged:(id)sender
+{
+    BOOL openInCurrentWindowSelected = ([[sender selectedCell] tag] != 0);
+    BOOL useWindowsLayout =
+            ([[layoutPopUpButton selectedItem] tag] == MMLayoutWindows);
+    if (openInCurrentWindowSelected && useWindowsLayout)
+        [layoutPopUpButton selectItemWithTag:MMLayoutTabs];
+}
+
 #pragma mark -
 #pragma mark Integration pane
 

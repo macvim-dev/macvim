@@ -12,6 +12,15 @@
 #import <Cocoa/Cocoa.h>
 #import "MacVim.h"
 
+#define MM_LOG_DEALLOCATIONS 0
+
+
+#if MM_LOG_DEALLOCATIONS
+# define LOG_DEALLOC NSLog(@"%s %@", _cmd, [self className]);
+#else
+# define LOG_DEALLOC
+#endif
+
 
 // NSUserDefaults keys
 extern NSString *MMTabMinWidthKey;
@@ -27,7 +36,7 @@ extern NSString *MMCellWidthMultiplierKey;
 extern NSString *MMBaselineOffsetKey;
 extern NSString *MMTranslateCtrlClickKey;
 extern NSString *MMTopLeftPointKey;
-extern NSString *MMOpenFilesInTabsKey;
+extern NSString *MMOpenInCurrentWindowKey;
 extern NSString *MMNoFontSubstitutionKey;
 extern NSString *MMLoginShellKey;
 extern NSString *MMAtsuiRendererKey;
@@ -38,10 +47,13 @@ extern NSString *MMCurrentPreferencePaneKey;
 extern NSString *MMLoginShellCommandKey;
 extern NSString *MMLoginShellArgumentKey;
 extern NSString *MMDialogsTrackPwdKey;
-
 #ifdef MM_ENABLE_PLUGINS
 extern NSString *MMShowLeftPlugInContainerKey;
 #endif
+extern NSString *MMOpenLayoutKey;
+extern NSString *MMVerticalSplitKey;
+extern NSString *MMPreloadCacheSizeKey;
+
 
 // Enum for MMUntitledWindowKey
 enum {
@@ -49,6 +61,16 @@ enum {
     MMUntitledWindowOnOpen = 1,
     MMUntitledWindowOnReopen = 2,
     MMUntitledWindowAlways = 3
+};
+
+
+// Enum for MMOpenLayoutKey (first 4 must match WIN_* defines in main.c)
+enum {
+    MMLayoutArglist = 0,
+    MMLayoutHorizontalSplit = 1,
+    MMLayoutVerticalSplit = 2,
+    MMLayoutTabs = 3,
+    MMLayoutWindows = 4,
 };
 
 
@@ -61,6 +83,7 @@ enum {
 
 @interface NSDocumentController (MMExtras)
 - (void)noteNewRecentFilePath:(NSString *)path;
+- (void)noteNewRecentFilePaths:(NSArray *)paths;
 @end
 
 
@@ -102,9 +125,4 @@ enum {
 // Create a view to be used as accessory for open panel.  This function assumes
 // ownership of the view so do not release it.
 NSView *openPanelAccessoryView();
-
-// Functions to create command strings that can be sent to Vim as input.
-NSString *buildTabDropCommand(NSArray *filenames);
-NSString *buildSelectRangeCommand(NSRange range);
-NSString *buildSearchTextCommand(NSString *searchText);
 

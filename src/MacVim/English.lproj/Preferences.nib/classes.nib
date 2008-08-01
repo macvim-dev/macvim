@@ -9,6 +9,8 @@
 			<dict>
 				<key>installOdb</key>
 				<string>id</string>
+				<key>openInCurrentWindowSelectionChanged</key>
+				<string>id</string>
 				<key>uninstallOdb</key>
 				<string>id</string>
 			</dict>
@@ -26,6 +28,8 @@
 				<string>NSButton</string>
 				<key>integrationPreferences</key>
 				<string>NSView</string>
+				<key>layoutPopUpButton</key>
+				<string>NSPopUpButton</string>
 				<key>obdBundleVersionLabel</key>
 				<string>NSTextField</string>
 				<key>uninstallOdbButton</key>
@@ -36,11 +40,53 @@
 		</dict>
 		<dict>
 			<key>CLASS</key>
+			<string>RBSplitView</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
+			<key>OUTLETS</key>
+			<dict>
+				<key>delegate</key>
+				<string>id</string>
+			</dict>
+			<key>SUPERCLASS</key>
+			<string>RBSplitSubview</string>
+		</dict>
+		<dict>
+			<key>CLASS</key>
+			<string>RBSplitSubview</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
+			<key>SUPERCLASS</key>
+			<string>NSView</string>
+		</dict>
+		<dict>
+			<key>CLASS</key>
+			<string>NSMenu</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
+			<key>SUPERCLASS</key>
+			<string>NSObject</string>
+		</dict>
+		<dict>
+			<key>CLASS</key>
 			<string>FirstResponder</string>
 			<key>LANGUAGE</key>
 			<string>ObjC</string>
 			<key>SUPERCLASS</key>
 			<string>NSObject</string>
+		</dict>
+		<dict>
+			<key>ACTIONS</key>
+			<dict>
+				<key>didAdjustSubviews</key>
+				<string>RBSplitView</string>
+				<key>willAdjustSubviews</key>
+				<string>RBSplitView</string>
+			</dict>
+			<key>CLASS</key>
+			<string>NSObject</string>
+			<key>LANGUAGE</key>
+			<string>ObjC</string>
 		</dict>
 		<dict>
 			<key>CLASS</key>

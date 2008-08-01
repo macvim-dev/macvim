@@ -39,6 +39,10 @@
     ((unsigned)( ((col)&0xffffff) \
         | ((((unsigned)((((100-(transp))*255)/100)+.5f))&0xff)<<24) ))
 
+// Values for window layout (must match values in main.c).
+#define WIN_HOR     1       // "-o" horizontally split windows
+#define WIN_VER     2       // "-O" vertically split windows
+#define WIN_TABS    3       // "-p" windows on tab pages
 
 // This constant controls how often the command queue may be flushed.  If it is
 // too small the app might feel unresponsive; if it is too large there might be
@@ -53,6 +57,7 @@ static unsigned MMServerMax = 1000;
 static int eventModifierFlagsToVimModMask(int modifierFlags);
 static int eventModifierFlagsToVimMouseModMask(int modifierFlags);
 static int eventButtonNumberToVimMouseButton(int buttonNumber);
+
 
 // In gui_macvim.m
 vimmenu_T *menu_for_descriptor(NSArray *desc);
@@ -97,8 +102,9 @@ static NSString *MMSymlinkWarningString =
 - (void)handleSetFont:(NSData *)data;
 - (void)handleDropFiles:(NSData *)data;
 - (void)handleDropString:(NSData *)data;
-- (void)handleOdbEdit:(NSData *)data;
+- (void)startOdbEditWithArguments:(NSDictionary *)args;
 - (void)handleXcodeMod:(NSData *)data;
+- (void)handleOpenWithArguments:(NSDictionary *)args;
 - (BOOL)checkForModifiedBuffers;
 - (void)addInput:(NSString *)input;
 @end
@@ -231,6 +237,11 @@ static NSString *MMSymlinkWarningString =
     return actionDict;
 }
 
+- (int)initialWindowLayout
+{
+    return initialWindowLayout;
+}
+
 - (void)queueMessage:(int)msgid properties:(NSDictionary *)props
 {
     [self queueMessage:msgid data:[props dictionaryAsData]];
@@ -239,6 +250,14 @@ static NSString *MMSymlinkWarningString =
 - (BOOL)checkin
 {
     if (![self connection]) {
+        if (waitForAck) {
+            // This is a preloaded process and as such should not cause the
+            // MacVim to be opened.  We probably got here as a result of the
+            // user quitting MacVim while the process was preloading, so exit
+            // this process too.
+            mch_exit(0);
+        }
+
         NSBundle *mainBundle = [NSBundle mainBundle];
 #if 0
         OSStatus status;
@@ -460,6 +479,12 @@ static NSString *MMSymlinkWarningString =
 
 - (void)flushQueue:(BOOL)force
 {
+    // NOTE: This variable allows for better control over when the queue is
+    // flushed.  It can be set to YES at the beginning of a sequence of calls
+    // that may potentially add items to the queue, and then restored back to
+    // NO.
+    if (flushDisabled) return;
+
     // NOTE! This method gets called a lot; if we were to flush every time it
     // got called MacVim would feel unresponsive.  So there is a time out which
     // ensures that the queue isn't flushed too often.
@@ -540,18 +565,38 @@ static NSString *MMSymlinkWarningString =
 
 - (void)exit
 {
+    // To notify MacVim that this Vim process is exiting we could simply
+    // invalidate the connection and it would automatically receive a
+    // connectionDidDie: notification.  However, this notification seems to
+    // take up to 300 ms to arrive which is quite a noticeable delay.  Instead
+    // we immediately send a message to MacVim asking it to close the window
+    // belonging to this process, and then we invalidate the connection (in
+    // case the message got lost).
+
+    // Make sure no connectionDidDie: notification is received now that we are
+    // already exiting.
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+
+    if ([connection isValid]) {
+        @try {
+            int msgid = CloseWindowMsgID;
+            NSData *data = [NSData dataWithBytes:&msgid length:sizeof(int)];
+            NSArray *q = [NSArray arrayWithObjects:data, [NSData data], nil];
+            [frontendProxy processCommandQueue:q];
+            //usleep(10000);
+        }
+        @catch (NSException *e) {
+            NSLog(@"Exception caught when sending CloseWindowMsgID: \"%@\"", e);
+        }
+
+        [connection invalidate];
+    }
+
 #ifdef MAC_CLIENTSERVER
     // The default connection is used for the client/server code.
     [[NSConnection defaultConnection] setRootObject:nil];
     [[NSConnection defaultConnection] invalidate];
 #endif
-
-    // By invalidating the NSConnection the MMWindowController immediately
-    // finds out that the connection is down and as a result
-    // [MMWindowController connectionDidDie:] is invoked.
-    //NSLog(@"%@ %s", [self className], _cmd);
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-    [connection invalidate];
 
     if (fontContainerRef) {
         ATSFontDeactivate(fontContainerRef, NULL, kATSOptionFlagsDefault);
@@ -1463,6 +1508,48 @@ static NSString *MMSymlinkWarningString =
     return NO;
 }
 
+- (BOOL)waitForAck
+{
+    return waitForAck;
+}
+
+- (void)setWaitForAck:(BOOL)yn
+{
+    waitForAck = yn;
+}
+
+- (void)waitForConnectionAcknowledgement
+{
+    if (!waitForAck) return;
+
+    while (waitForAck && !got_int && [connection isValid] && !isTerminating) {
+        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                 beforeDate:[NSDate distantFuture]];
+        //NSLog(@"  waitForAck=%d got_int=%d isTerminating=%d isValid=%d",
+        //        waitForAck, got_int, isTerminating, [connection isValid]);
+    }
+
+    if (waitForAck) {
+        // Never received a connection acknowledgement, so die.
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
+        [frontendProxy release];  frontendProxy = nil;
+
+        // NOTE: We intentionally do not call mch_exit() since this in turn
+        // will lead to -[MMBackend exit] getting called which we want to
+        // avoid.
+        exit(0);
+    }
+
+    [self processInputQueue];
+    [self openVimWindow];
+}
+
+- (oneway void)acknowledgeConnection
+{
+    //NSLog(@"%s", _cmd);
+    waitForAck = NO;
+}
+
 @end // MMBackend
 
 
@@ -1558,14 +1645,6 @@ static NSString *MMSymlinkWarningString =
 
 - (void)handleInputEvent:(int)msgid data:(NSData *)data
 {
-    // NOTE: Be careful with what you do in this method.  Ideally, a message
-    // should be handled by adding something to the input buffer and returning
-    // immediately.  If you call a Vim function then it should not enter a loop
-    // waiting for key presses or in any other way block the process.  The
-    // reason for this being that only one message can be processed at a time,
-    // so if another message is received while processing, then the new message
-    // is dropped.  See also the comment in processInput:data:.
-
     //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
 
     if (SelectTabMsgID == msgid) {
@@ -1635,10 +1714,10 @@ static NSString *MMSymlinkWarningString =
         const void *bytes = [data bytes];
         int shape = *((int*)bytes);  bytes += sizeof(int);
         update_mouseshape(shape);
-    } else if (ODBEditMsgID == msgid) {
-        [self handleOdbEdit:data];
     } else if (XcodeModMsgID == msgid) {
         [self handleXcodeMod:data];
+    } else if (OpenWithArgumentsMsgID == msgid) {
+        [self handleOpenWithArguments:[NSDictionary dictionaryWithData:data]];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
@@ -1843,6 +1922,8 @@ static NSString *MMSymlinkWarningString =
     // crashed.  In the former case the flag 'isTerminating' is set and we then
     // quit cleanly; in the latter case we make sure the swap files are left
     // for recovery.
+    //
+    // NOTE: This is not called if a Vim controller invalidates its connection.
 
     //NSLog(@"%s isTerminating=%d", _cmd, isTerminating);
     if (isTerminating)
@@ -2022,79 +2103,40 @@ static NSString *MMSymlinkWarningString =
 
     if (!data) return;
 
-#ifdef FEAT_DND
-    const void *bytes = [data bytes];
-    const void *end = [data bytes] + [data length];
-    BOOL forceOpen = *((BOOL*)bytes);  bytes += sizeof(BOOL);
-    int n = *((int*)bytes);  bytes += sizeof(int);
+    NSMutableDictionary *args = [NSMutableDictionary dictionaryWithData:data];
+    if (!args) return;
 
+    id obj = [args objectForKey:@"forceOpen"];
+    BOOL forceOpen = YES;
+    if (obj)
+        forceOpen = [obj boolValue];
+
+    NSArray *filenames = [args objectForKey:@"filenames"];
+    if (!(filenames && [filenames count] > 0)) return;
+
+#ifdef FEAT_DND
     if (!forceOpen && (State & CMDLINE)) {
         // HACK!  If Vim is in command line mode then the files names
         // should be added to the command line, instead of opening the
         // files in tabs (unless forceOpen is set).  This is taken care of by
         // gui_handle_drop().
+        int n = [filenames count];
         char_u **fnames = (char_u **)alloc(n * sizeof(char_u *));
         if (fnames) {
             int i = 0;
-            while (bytes < end && i < n) {
-                int len = *((int*)bytes);  bytes += sizeof(int);
-                char_u *s = (char_u*)bytes;
-#ifdef FEAT_MBYTE
-                s = CONVERT_FROM_UTF8(s);
-#endif
-                fnames[i++] = vim_strsave(s);
-#ifdef FEAT_MBYTE
-                CONVERT_FROM_UTF8_FREE(s);
-#endif
-                bytes += len;
-            }
+            for (i = 0; i < n; ++i)
+                fnames[i] = [[filenames objectAtIndex:i] vimStringSave];
 
             // NOTE!  This function will free 'fnames'.
             // HACK!  It is assumed that the 'x' and 'y' arguments are
             // unused when in command line mode.
-            gui_handle_drop(0, 0, 0, fnames, i < n ? i : n);
+            gui_handle_drop(0, 0, 0, fnames, n);
         }
-    } else {
-        // HACK!  I'm not sure how to get Vim to open a list of files in
-        // tabs, so instead I create a ':tab drop' command with all the
-        // files to open and execute it.
-        NSMutableString *cmd = [NSMutableString stringWithString:@":tab drop"];
-
-        int i;
-        for (i = 0; i < n && bytes < end; ++i) {
-            int len = *((int*)bytes);  bytes += sizeof(int);
-            NSString *file = [NSString stringWithUTF8String:bytes];
-            file = [file stringByEscapingSpecialFilenameCharacters];
-            bytes += len;
-
-            [cmd appendString:@" "];
-            [cmd appendString:file];
-        }
-
-        // By going to the last tabpage we ensure that the new tabs will
-        // appear last (if this call is left out, the taborder becomes
-        // messy).
-        goto_tabpage(9999);
-
-        char_u *s = (char_u*)[cmd UTF8String];
-#ifdef FEAT_MBYTE
-        s = CONVERT_FROM_UTF8(s);
-#endif
-        do_cmdline_cmd(s);
-#ifdef FEAT_MBYTE
-        CONVERT_FROM_UTF8_FREE(s);
-#endif
-
-        // Force screen redraw (does it have to be this complicated?).
-        // (This code was taken from the end of gui_handle_drop().)
-        update_screen(NOT_VALID);
-        setcursor();
-        out_flush();
-        gui_update_cursor(FALSE, FALSE);
-        maketitle();
-        gui_mch_flush();
-    }
+    } else
 #endif // FEAT_DND
+    {
+        [self handleOpenWithArguments:args];
+    }
 }
 
 - (void)handleDropString:(NSData *)data
@@ -2132,41 +2174,32 @@ static NSString *MMSymlinkWarningString =
 #endif // FEAT_DND
 }
 
-- (void)handleOdbEdit:(NSData *)data
+- (void)startOdbEditWithArguments:(NSDictionary *)args
 {
 #ifdef FEAT_ODB_EDITOR
-    const void *bytes = [data bytes];
+    id obj = [args objectForKey:@"remoteID"];
+    if (!obj) return;
 
-    OSType serverID = *((OSType*)bytes);  bytes += sizeof(OSType);
-
-    char_u *path = NULL;
-    int pathLen = *((int*)bytes);  bytes += sizeof(int);
-    if (pathLen > 0) {
-        path = (char_u*)bytes;
-        bytes += pathLen;
-#ifdef FEAT_MBYTE
-        path = CONVERT_FROM_UTF8(path);
-#endif
-    }
+    OSType serverID = [obj unsignedIntValue];
+    NSString *remotePath = [args objectForKey:@"remotePath"];
 
     NSAppleEventDescriptor *token = nil;
-    DescType tokenType = *((DescType*)bytes);  bytes += sizeof(DescType);
-    int descLen = *((int*)bytes);  bytes += sizeof(int);
-    if (descLen > 0) {
+    NSData *tokenData = [args objectForKey:@"remoteTokenData"];
+    obj = [args objectForKey:@"remoteTokenDescType"];
+    if (tokenData && obj) {
+        DescType tokenType = [obj unsignedLongValue];
         token = [NSAppleEventDescriptor descriptorWithDescriptorType:tokenType
-                                                               bytes:bytes
-                                                              length:descLen];
-        bytes += descLen;
+                                                                data:tokenData];
     }
 
-    unsigned i, numFiles = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+    NSArray *filenames = [args objectForKey:@"filenames"];
+    unsigned i, numFiles = [filenames count];
     for (i = 0; i < numFiles; ++i) {
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        char_u *filename = (char_u*)bytes;
-#ifdef FEAT_MBYTE
-        filename = CONVERT_FROM_UTF8(filename);
-#endif
-        buf_T *buf = buflist_findname(filename);
+        NSString *filename = [filenames objectAtIndex:i];
+        char_u *s = [filename vimStringSave];
+        buf_T *buf = buflist_findname(s);
+        vim_free(s);
+
         if (buf) {
             if (buf->b_odb_token) {
                 [(NSAppleEventDescriptor*)(buf->b_odb_token) release];
@@ -2182,21 +2215,13 @@ static NSString *MMSymlinkWarningString =
 
             if (token)
                 buf->b_odb_token = [token retain];
-            if (path)
-                buf->b_odb_fname = vim_strsave(path);
+            if (remotePath)
+                buf->b_odb_fname = [remotePath vimStringSave];
         } else {
-            NSLog(@"WARNING: Could not find buffer '%s' for ODB editing.",
+            NSLog(@"WARNING: Could not find buffer '%@' for ODB editing.",
                     filename);
         }
-
-#ifdef FEAT_MBYTE
-        CONVERT_FROM_UTF8_FREE(filename);
-#endif
-        bytes += len;
     }
-#ifdef FEAT_MBYTE
-    CONVERT_FROM_UTF8_FREE(path);
-#endif
 #endif // FEAT_ODB_EDITOR
 }
 
@@ -2214,6 +2239,193 @@ static NSString *MMSymlinkWarningString =
                                    bytes:bytes
                                   length:len];
 #endif
+}
+
+- (void)handleOpenWithArguments:(NSDictionary *)args
+{
+    //   ARGUMENT:              DESCRIPTION:
+    //   -------------------------------------------------------------
+    //   filenames              list of filenames
+    //   dontOpen               don't open files specified in above argument
+    //   layout                 which layout to use to open files
+    //   selectionRange         range to select
+    //   searchText             string to search for
+    //   remoteID               ODB parameter
+    //   remotePath             ODB parameter
+    //   remoteTokenDescType    ODB parameter
+    //   remoteTokenData        ODB parameter
+
+    //NSLog(@"%s%@ (starting=%d)", _cmd, args, starting);
+
+    NSArray *filenames = [args objectForKey:@"filenames"];
+    int i, numFiles = filenames ? [filenames count] : 0;
+    BOOL openFiles = ![[args objectForKey:@"dontOpen"] boolValue];
+    int layout = [[args objectForKey:@"layout"] intValue];
+
+    if (starting > 0) {
+        // When Vim is starting we simply add the files to be opened to the
+        // global arglist and Vim will take care of opening them for us.
+        if (openFiles && numFiles > 0) {
+            for (i = 0; i < numFiles; i++) {
+                NSString *fname = [filenames objectAtIndex:i];
+                char_u *p = NULL;
+
+                if (ga_grow(&global_alist.al_ga, 1) == FAIL
+                        || (p = [fname vimStringSave]) == NULL)
+                    mch_exit(2);
+                else
+                    alist_add(&global_alist, p, 2);
+            }
+
+            // Vim will take care of arranging the files added to the arglist
+            // in windows or tabs; all we must do is to specify which layout to
+            // use.
+            initialWindowLayout = layout;
+        }
+    } else {
+        // When Vim is already open we resort to some trickery to open the
+        // files with the specified layout.
+        //
+        // TODO: Figure out a better way to handle this?
+        if (openFiles && numFiles > 0) {
+            BOOL oneWindowInTab = topframe ? YES
+                                           : (topframe->fr_layout == FR_LEAF);
+            BOOL bufChanged = NO;
+            BOOL bufHasFilename = NO;
+            if (curbuf) {
+                bufChanged = check_changed(curbuf, TRUE, FALSE, FALSE, FALSE);
+                bufHasFilename = curbuf->b_ffname != NULL;
+            }
+
+            // Temporarily disable flushing since the following code may
+            // potentially cause multiple redraws.
+            flushDisabled = YES;
+
+            BOOL onlyOneTab = (first_tabpage->tp_next == NULL);
+            if (WIN_TABS == layout && !onlyOneTab) {
+                // By going to the last tabpage we ensure that the new tabs
+                // will appear last (if this call is left out, the taborder
+                // becomes messy).
+                goto_tabpage(9999);
+            }
+
+            // Make sure we're in normal mode first.
+            [self addInput:@"<C-\\><C-N>"];
+
+            if (numFiles > 1) {
+                // With "split layout" we open a new tab before opening
+                // multiple files if the current tab has more than one window
+                // or if there is exactly one window but whose buffer has a
+                // filename.  (The :drop command ensures modified buffers get
+                // their own window.)
+                if ((WIN_HOR == layout || WIN_VER == layout) &&
+                        (!oneWindowInTab || bufHasFilename))
+                    [self addInput:@":tabnew<CR>"];
+
+                // The files are opened by constructing a ":drop ..." command
+                // and executing it.
+                NSMutableString *cmd = (WIN_TABS == layout)
+                        ? [NSMutableString stringWithString:@":tab drop"]
+                        : [NSMutableString stringWithString:@":drop"];
+
+                for (i = 0; i < numFiles; ++i) {
+                    NSString *file = [filenames objectAtIndex:i];
+                    file = [file stringByEscapingSpecialFilenameCharacters];
+                    [cmd appendString:@" "];
+                    [cmd appendString:file];
+                }
+
+                [self addInput:cmd];
+
+                // Split the view into multiple windows if requested.
+                if (WIN_HOR == layout)
+                    [self addInput:@"|sall"];
+                else if (WIN_VER == layout)
+                    [self addInput:@"|vert sall"];
+
+                // Adding "|redr|f" ensures a "Hit ENTER" prompt is not shown.
+                [self addInput:@"|redr|f<CR>"];
+            } else {
+                // When opening one file we try to reuse the current window,
+                // but not if its buffer is modified or has a filename.
+                // However, the 'arglist' layout always opens the file in the
+                // current window.
+                NSString *file = [[filenames lastObject]
+                        stringByEscapingSpecialFilenameCharacters];
+                NSString *cmd;
+                if (WIN_HOR == layout) {
+                    if (!(bufHasFilename || bufChanged))
+                        cmd = [NSString stringWithFormat:@":e %@", file];
+                    else
+                        cmd = [NSString stringWithFormat:@":sp %@", file];
+                } else if (WIN_VER == layout) {
+                    if (!(bufHasFilename || bufChanged))
+                        cmd = [NSString stringWithFormat:@":e %@", file];
+                    else
+                        cmd = [NSString stringWithFormat:@":vsp %@", file];
+                } else if (WIN_TABS == layout) {
+                    if (oneWindowInTab && !(bufHasFilename || bufChanged))
+                        cmd = [NSString stringWithFormat:@":e %@", file];
+                    else
+                        cmd = [NSString stringWithFormat:@":tabe %@", file];
+                } else {
+                    // (The :drop command will split if there is a modified
+                    // buffer.)
+                    cmd = [NSString stringWithFormat:@":drop %@", file];
+                }
+
+                [self addInput:cmd];
+
+                // Adding "|redr|f" ensures a "Hit ENTER" prompt is not shown.
+                [self addInput:@"|redr|f<CR>"];
+            }
+
+            // Force screen redraw (does it have to be this complicated?).
+            // (This code was taken from the end of gui_handle_drop().)
+            update_screen(NOT_VALID);
+            setcursor();
+            out_flush();
+            gui_update_cursor(FALSE, FALSE);
+            maketitle();
+
+            flushDisabled = NO;
+            gui_mch_flush();
+        }
+    }
+
+    if ([args objectForKey:@"remoteID"]) {
+        // NOTE: We have to delay processing any ODB related arguments since
+        // the file(s) may not be opened until the input buffer is processed.
+        [self performSelectorOnMainThread:@selector(startOdbEditWithArguments:)
+                               withObject:args
+                            waitUntilDone:NO];
+    }
+
+    NSString *rangeString = [args objectForKey:@"selectionRange"];
+    if (rangeString) {
+        // Build a command line string that will select the given range of
+        // lines.  If range.length == 0, then position the cursor on the given
+        // line but do not select.
+        NSRange range = NSRangeFromString(rangeString);
+        NSString *cmd;
+        if (range.length > 0) {
+            cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGV%dGz.0",
+                    NSMaxRange(range), range.location];
+        } else {
+            cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGz.0",
+                    range.location];
+        }
+
+        [self addInput:cmd];
+    }
+
+    NSString *searchText = [args objectForKey:@"searchText"];
+    if (searchText) {
+        // TODO: Searching is an exclusive motion, so if the pattern would
+        // match on row 0 column 0 then this pattern will miss that match.
+        [self addInput:[NSString stringWithFormat:@"<C-\\><C-N>gg/\\c%@<CR>",
+                searchText]];
+    }
 }
 
 - (BOOL)checkForModifiedBuffers
@@ -2445,6 +2657,8 @@ static int eventButtonNumberToVimMouseButton(int buttonNumber)
             ? mouseButton[buttonNumber] : -1;
 }
 
+
+
 // This function is modeled after the VimToPython function found in if_python.c
 // NB This does a deep copy by value, it does not lookup references like the
 // VimToPython function does.  This is because I didn't want to deal with the
@@ -2581,3 +2795,50 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
 
     return res;
 }
+
+
+
+
+@implementation NSString (VimStrings)
+
++ (id)stringWithVimString:(char_u *)s
+{
+    // This method ensures a non-nil string is returned.  If 's' cannot be
+    // converted to a utf-8 string it is assumed to be latin-1.  If conversion
+    // still fails an empty NSString is returned.
+    NSString *string = nil;
+    if (s) {
+#ifdef FEAT_MBYTE
+        s = CONVERT_TO_UTF8(s);
+#endif
+        string = [NSString stringWithUTF8String:(char*)s];
+        if (!string) {
+            // HACK! Apparently 's' is not a valid utf-8 string, maybe it is
+            // latin-1?
+            string = [NSString stringWithCString:(char*)s
+                                        encoding:NSISOLatin1StringEncoding];
+        }
+#ifdef FEAT_MBYTE
+        CONVERT_TO_UTF8_FREE(s);
+#endif
+    }
+
+    return string != nil ? string : [NSString string];
+}
+
+- (char_u *)vimStringSave
+{
+    char_u *s = (char_u*)[self UTF8String], *ret = NULL;
+
+#ifdef FEAT_MBYTE
+    s = CONVERT_FROM_UTF8(s);
+#endif
+    ret = vim_strsave(s);
+#ifdef FEAT_MBYTE
+    CONVERT_FROM_UTF8_FREE(s);
+#endif
+
+    return ret;
+}
+
+@end // NSString (VimStrings)
