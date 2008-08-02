@@ -103,51 +103,54 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier
 {
-    if ((self = [super init])) {
-        windowController =
-            [[MMWindowController alloc] initWithVimController:self];
-        backendProxy = [backend retain];
-        sendQueue = [NSMutableArray new];
-        receiveQueue = [NSMutableArray new];
-        popupMenuItems = [[NSMutableArray alloc] init];
-        toolbarItemDict = [[NSMutableDictionary alloc] init];
-        pid = processIdentifier;
+    if (!(self = [super init]))
+        return nil;
 
-        NSConnection *connection = [backendProxy connectionForProxy];
+    windowController =
+        [[MMWindowController alloc] initWithVimController:self];
+    backendProxy = [backend retain];
+    sendQueue = [NSMutableArray new];
+    receiveQueue = [NSMutableArray new];
+    popupMenuItems = [[NSMutableArray alloc] init];
+    toolbarItemDict = [[NSMutableDictionary alloc] init];
+    pid = processIdentifier;
+    creationDate = [[NSDate alloc] init];
 
-        // TODO: Check that this will not set the timeout for the root proxy
-        // (in MMAppController).
-        [connection setRequestTimeout:MMBackendProxyRequestTimeout];
+    NSConnection *connection = [backendProxy connectionForProxy];
 
-        [[NSNotificationCenter defaultCenter] addObserver:self
-                selector:@selector(connectionDidDie:)
-                    name:NSConnectionDidDieNotification object:connection];
+    // TODO: Check that this will not set the timeout for the root proxy
+    // (in MMAppController).
+    [connection setRequestTimeout:MMBackendProxyRequestTimeout];
 
-        // Set up a main menu with only a "MacVim" menu (copied from a template
-        // which itself is set up in MainMenu.nib).  The main menu is populated
-        // by Vim later on.
-        mainMenu = [[NSMenu alloc] initWithTitle:@"MainMenu"];
-        NSMenuItem *appMenuItem = [[MMAppController sharedInstance]
-                                            appMenuItemTemplate];
-        appMenuItem = [[appMenuItem copy] autorelease];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+            selector:@selector(connectionDidDie:)
+                name:NSConnectionDidDieNotification object:connection];
 
-        // Note: If the title of the application menu is anything but what
-        // CFBundleName says then the application menu will not be typeset in
-        // boldface for some reason.  (It should already be set when we copy
-        // from the default main menu, but this is not the case for some
-        // reason.)
-        NSString *appName = [[NSBundle mainBundle]
-                objectForInfoDictionaryKey:@"CFBundleName"];
-        [appMenuItem setTitle:appName];
+    // Set up a main menu with only a "MacVim" menu (copied from a template
+    // which itself is set up in MainMenu.nib).  The main menu is populated
+    // by Vim later on.
+    mainMenu = [[NSMenu alloc] initWithTitle:@"MainMenu"];
+    NSMenuItem *appMenuItem = [[MMAppController sharedInstance]
+                                        appMenuItemTemplate];
+    appMenuItem = [[appMenuItem copy] autorelease];
 
-        [mainMenu addItem:appMenuItem];
+    // Note: If the title of the application menu is anything but what
+    // CFBundleName says then the application menu will not be typeset in
+    // boldface for some reason.  (It should already be set when we copy
+    // from the default main menu, but this is not the case for some
+    // reason.)
+    NSString *appName = [[NSBundle mainBundle]
+            objectForInfoDictionaryKey:@"CFBundleName"];
+    [appMenuItem setTitle:appName];
+
+    [mainMenu addItem:appMenuItem];
 
 #ifdef MM_ENABLE_PLUGINS
-        instanceMediator = [[MMPlugInInstanceMediator alloc] initWithVimController:self];
+    instanceMediator = [[MMPlugInInstanceMediator alloc]
+            initWithVimController:self];
 #endif
 
-        isInitialized = YES;
-    }
+    isInitialized = YES;
 
     return self;
 }
@@ -174,6 +177,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     [vimState release];  vimState = nil;
     [mainMenu release];  mainMenu = nil;
+    [creationDate release];  creationDate = nil;
 
     [super dealloc];
 }
@@ -208,6 +212,11 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)setIsPreloading:(BOOL)yn
 {
     isPreloading = yn;
+}
+
+- (NSDate *)creationDate
+{
+    return creationDate;
 }
 
 - (void)setServerName:(NSString *)name

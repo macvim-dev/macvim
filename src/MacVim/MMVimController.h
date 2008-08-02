@@ -39,6 +39,7 @@
     MMPlugInInstanceMediator *instanceMediator;
 #endif
     BOOL                isPreloading;
+    NSDate              *creationDate;
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
@@ -51,6 +52,7 @@
 - (NSMenu *)mainMenu;
 - (BOOL)isPreloading;
 - (void)setIsPreloading:(BOOL)yn;
+- (NSDate *)creationDate;
 - (void)cleanup;
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force;
 - (void)dropString:(NSString *)string;

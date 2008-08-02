@@ -107,7 +107,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (void)preloadVimController:(id)sender;
 - (int)maxPreloadCacheSize;
 - (MMVimController *)takeVimControllerFromCache;
-- (void)clearPreloadCache;
+- (void)clearPreloadCacheWithCount:(int)count;
+- (NSDate *)rcFilesModificationDate;
 - (BOOL)openVimControllerWithArguments:(NSDictionary *)arguments;
 
 #ifdef MM_ENABLE_PLUGINS
@@ -822,8 +823,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     // A cached controller requires no loading times and results in the new
     // window popping up instantaneously.  If the cache is empty it may take
     // 1-2 seconds to start a new Vim process.
-    if ([cachedVimControllers count]) {
-        MMVimController *vc = [self takeVimControllerFromCache];
+    MMVimController *vc = [self takeVimControllerFromCache];
+    if (vc) {
         [[vc backendProxy] acknowledgeConnection];
     } else {
         [self launchVimProcessWithArguments:nil];
@@ -835,7 +836,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     // Open a new window, but clear the preload cache first so that any
     // subsequent windows opening will have sourced the current .[g]vimrc
     // files.
-    [self clearPreloadCache];
+    [self clearPreloadCacheWithCount:-1];
     [self launchVimProcessWithArguments:nil];
     [self scheduleVimControllerPreloadAfterDelay:2.0];
 }
@@ -947,6 +948,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
             [vc setIsPreloading:YES];
             [cachedVimControllers addObject:vc];
             [self scheduleVimControllerPreloadAfterDelay:1];
+
             return vc;
         }
 
@@ -1418,8 +1420,32 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     // NOTE: After calling this message the backend corresponding to the
     // returned vim controller must be sent an acknowledgeConnection message,
     // else the vim process will be stuck.
+    //
+    // This method may return nil even though the cache might be non-empty; the
+    // caller should handle this by starting a new Vim process.
 
-    if ([cachedVimControllers count] == 0) return nil;
+    int i, count = [cachedVimControllers count];
+    if (0 == count) return nil;
+
+    // Locate the first Vim controller with up-to-date rc-files sourced.
+    NSDate *rcDate = [self rcFilesModificationDate];
+    for (i = 0; i < count; ++i) {
+        MMVimController *vc = [cachedVimControllers objectAtIndex:i];
+        NSDate *date = [vc creationDate];
+        if ([date compare:rcDate] != NSOrderedAscending)
+            break;
+    }
+
+    if (i > 0) {
+        // Clear out cache entries whose vimrc/gvimrc files were sourced before
+        // the latest modification date for those files.  This ensures that the
+        // latest rc-files are always sourced for new windows.
+        [self clearPreloadCacheWithCount:i];
+        [self scheduleVimControllerPreloadAfterDelay:2.0];
+    }
+
+    if ([cachedVimControllers count] == 0)
+        return nil;
 
     MMVimController *vc = [cachedVimControllers objectAtIndex:0];
     [vimControllers addObject:vc];
@@ -1438,26 +1464,70 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     return vc;
 }
 
-- (void)clearPreloadCache
+- (void)clearPreloadCacheWithCount:(int)count
 {
-    if ([cachedVimControllers count] == 0)
+    // Remove the 'count' first entries in the preload cache.  It is assumed
+    // that objects are added/removed from the cache in a FIFO manner so that
+    // this effectively clears the 'count' oldest entries.
+    // If 'count' is negative, then the entire cache is cleared.
+
+    if ([cachedVimControllers count] == 0 || count == 0)
         return;
+
+    if (count < 0)
+        count = [cachedVimControllers count];
 
     // Make sure the preloaded Vim processes get killed or they'll just hang
     // around being useless until MacVim is terminated.
     NSEnumerator *e = [cachedVimControllers objectEnumerator];
     MMVimController *vc;
-    while ((vc = [e nextObject])) {
+    int n = count;
+    while ((vc = [e nextObject]) && n-- > 0) {
         [[NSNotificationCenter defaultCenter] removeObserver:vc];
         [vc sendMessage:TerminateNowMsgID data:nil];
+
+        // Since the preloaded processes were killed "prematurely" we have to
+        // manually tell them to cleanup (it is not enough to simply release
+        // them since deallocation and cleanup are separated).
+        [vc cleanup];
     }
 
-    // Since the preloaded processes were killed "prematurely" we have to
-    // manually tell them to cleanup (it is not enough to simply release them
-    // since deallocation and cleanup are separated).
-    [cachedVimControllers makeObjectsPerformSelector:@selector(cleanup)];
+    n = count;
+    while (n-- > 0 && [cachedVimControllers count] > 0)
+        [cachedVimControllers removeObjectAtIndex:0];
+}
 
-    [cachedVimControllers removeAllObjects];
+- (NSDate *)rcFilesModificationDate
+{
+    // Check modification dates for ~/.vimrc and ~/.gvimrc and return the
+    // latest modification date.  If ~/.vimrc does not exist, check ~/_vimrc
+    // and similarly for gvimrc.
+    // Returns distantPath if no rc files were found.
+
+    NSDate *date = [NSDate distantPast];
+    NSFileManager *fm = [NSFileManager defaultManager];
+
+    NSString *path = [@"~/.vimrc" stringByExpandingTildeInPath];
+    NSDictionary *attr = [fm fileAttributesAtPath:path traverseLink:YES];
+    if (!attr) {
+        path = [@"~/_vimrc" stringByExpandingTildeInPath];
+        attr = [fm fileAttributesAtPath:path traverseLink:YES];
+    }
+    NSDate *modDate = [attr objectForKey:NSFileModificationDate];
+    if (modDate)
+        date = modDate;
+
+    path = [@"~/.gvimrc" stringByExpandingTildeInPath];
+    attr = [fm fileAttributesAtPath:path traverseLink:YES];
+    if (!attr) {
+        path = [@"~/_gvimrc" stringByExpandingTildeInPath];
+        attr = [fm fileAttributesAtPath:path traverseLink:YES];
+    }
+    modDate = [attr objectForKey:NSFileModificationDate];
+    if (modDate)
+        date = [date laterDate:modDate];
+
+    return date;
 }
 
 - (BOOL)openVimControllerWithArguments:(NSDictionary *)arguments
@@ -1476,11 +1546,10 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         // TODO: When the findUntitledWindow heuristic changes, this has to be
         // fixed for real.
         [[vc windowController] setTitle:@""];
-    } else if ([cachedVimControllers count] > 0) {
+    } else if ((vc = [self takeVimControllerFromCache])) {
         // Open files in a new window using a cached vim controller.  This
         // requires virtually no loading time so the new window will pop up
         // instantaneously.
-        vc = [self takeVimControllerFromCache];
         [vc passArguments:arguments];
         [[vc backendProxy] acknowledgeConnection];
     } else {
