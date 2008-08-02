@@ -200,6 +200,16 @@ static BOOL isUnsafeMessage(int msgid);
     return mainMenu;
 }
 
+- (BOOL)isPreloading
+{
+    return isPreloading;
+}
+
+- (void)setIsPreloading:(BOOL)yn
+{
+    isPreloading = yn;
+}
+
 - (void)setServerName:(NSString *)name
 {
     if (name != serverName) {
@@ -660,8 +670,13 @@ static BOOL isUnsafeMessage(int msgid);
     //        msgid != EnableMenuItemMsgID)
     //    NSLog(@"%@ %s%s", [self className], _cmd, MessageStrings[msgid]);
 
-    if (OpenVimWindowMsgID == msgid) {
+    if (OpenWindowMsgID == msgid) {
         [windowController openWindow];
+
+        // If the vim controller is preloading then the window will be
+        // displayed when it is taken off the preload cache.
+        if (!isPreloading)
+            [windowController showWindow];
     } else if (BatchDrawMsgID == msgid) {
         [[[windowController vimView] textView] performBatchDrawWithData:data];
     } else if (SelectTabMsgID == msgid) {
@@ -1419,7 +1434,7 @@ isUnsafeMessage(int msgid)
     // example, UpdateTabBarMsgID may delete NSTabViewItem objects so it goes
     // on this list.
     static int unsafeMessages[] = { // REASON MESSAGE IS ON THIS LIST:
-        OpenVimWindowMsgID,         //   Changes lots of state
+        //OpenWindowMsgID,            //   Changes lots of state
         UpdateTabBarMsgID,          //   May delete NSTabViewItem
         RemoveMenuItemMsgID,        //   Deletes NSMenuItem
         DestroyScrollbarMsgID,      //   Deletes NSScroller

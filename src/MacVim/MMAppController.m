@@ -944,6 +944,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
             // This backend was preloaded, so add it to the cache and schedule
             // another vim process to be preloaded.
             preloadPid = -1;
+            [vc setIsPreloading:YES];
             [cachedVimControllers addObject:vc];
             [self scheduleVimControllerPreloadAfterDelay:1];
             return vc;
@@ -1423,6 +1424,12 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     MMVimController *vc = [cachedVimControllers objectAtIndex:0];
     [vimControllers addObject:vc];
     [cachedVimControllers removeObjectAtIndex:0];
+    [vc setIsPreloading:NO];
+
+    // If the Vim process has finished loading then the window will displayed
+    // now, otherwise it will be displayed when the OpenWindowMsgID message is
+    // received.
+    [[vc windowController] showWindow];
 
     // Since we've taken one controller from the cache we take the opportunity
     // to preload another.

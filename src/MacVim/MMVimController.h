@@ -38,6 +38,7 @@
 #ifdef MM_ENABLE_PLUGINS
     MMPlugInInstanceMediator *instanceMediator;
 #endif
+    BOOL                isPreloading;
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
@@ -48,6 +49,8 @@
 - (MMWindowController *)windowController;
 - (NSDictionary *)vimState;
 - (NSMenu *)mainMenu;
+- (BOOL)isPreloading;
+- (void)setIsPreloading:(BOOL)yn;
 - (void)cleanup;
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force;
 - (void)dropString:(NSString *)string;

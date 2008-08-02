@@ -109,7 +109,7 @@
 extern char *MessageStrings[];
 
 enum {
-    OpenVimWindowMsgID = 1,
+    OpenWindowMsgID = 1,
     InsertTextMsgID,
     KeyDownMsgID,
     CmdKeyMsgID,

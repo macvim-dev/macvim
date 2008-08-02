@@ -255,7 +255,9 @@ static NSString *MMSymlinkWarningString =
             // MacVim to be opened.  We probably got here as a result of the
             // user quitting MacVim while the process was preloading, so exit
             // this process too.
-            mch_exit(0);
+            // (Don't use mch_exit() since it assumes the process has properly
+            // started.)
+            exit(0);
         }
 
         NSBundle *mainBundle = [NSBundle mainBundle];
@@ -352,9 +354,9 @@ static NSString *MMSymlinkWarningString =
     return ok;
 }
 
-- (BOOL)openVimWindow
+- (BOOL)openGUIWindow
 {
-    [self queueMessage:OpenVimWindowMsgID data:nil];
+    [self queueMessage:OpenWindowMsgID data:nil];
     return YES;
 }
 
@@ -565,6 +567,10 @@ static NSString *MMSymlinkWarningString =
 
 - (void)exit
 {
+    // NOTE: This is called if mch_exit() is called.  Since we assume here that
+    // the process has started properly, be sure to use exit() instead of
+    // mch_exit() to prematurely terminate a process.
+
     // To notify MacVim that this Vim process is exiting we could simply
     // invalidate the connection and it would automatically receive a
     // connectionDidDie: notification.  However, this notification seems to
@@ -1541,7 +1547,6 @@ static NSString *MMSymlinkWarningString =
     }
 
     [self processInputQueue];
-    [self openVimWindow];
 }
 
 - (oneway void)acknowledgeConnection
@@ -2272,7 +2277,7 @@ static NSString *MMSymlinkWarningString =
 
                 if (ga_grow(&global_alist.al_ga, 1) == FAIL
                         || (p = [fname vimStringSave]) == NULL)
-                    mch_exit(2);
+                    exit(2); // See comment in -[MMBackend exit]
                 else
                     alist_add(&global_alist, p, 2);
             }

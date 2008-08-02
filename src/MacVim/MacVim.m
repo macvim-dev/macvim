@@ -16,7 +16,7 @@
 char *MessageStrings[] = 
 {
     "INVALID MESSAGE ID",
-    "OpenVimWindowMsgID",
+    "OpenWindowMsgID",
     "InsertTextMsgID",
     "KeyDownMsgID",
     "CmdKeyMsgID",

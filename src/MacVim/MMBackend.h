@@ -63,7 +63,7 @@
 
 - (void)queueMessage:(int)msgid properties:(NSDictionary *)props;
 - (BOOL)checkin;
-- (BOOL)openVimWindow;
+- (BOOL)openGUIWindow;
 - (void)clearAll;
 - (void)clearBlockFromRow:(int)row1 column:(int)col1
                     toRow:(int)row2 column:(int)col2;

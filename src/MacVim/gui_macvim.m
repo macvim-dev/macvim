@@ -150,16 +150,7 @@ gui_mch_exit(int rc)
     int
 gui_mch_open(void)
 {
-    // For preloaded Vim processes we delay opening the GUI window until
-    // gui_macvim_wait_for_startup() is called.  (If for some reason preloading
-    // didn't work as expected, the "normal" behavior can be restored by
-    // disabling preloading.)
-
-    MMBackend *backend = [MMBackend sharedInstance];
-    if ([backend waitForAck])
-        return OK;
-
-    return [backend openVimWindow];
+    return [[MMBackend sharedInstance] openGUIWindow];
 }
 
 
@@ -1655,6 +1646,8 @@ void gui_macvim_get_window_layout(int *count, int *layout)
 {
     if (!(count && layout)) return;
 
+    // NOTE: Only set 'layout' if the backend has requested a != 0 layout, else
+    // any command line arguments (-p/-o) would be ignored.
     int window_layout = [[MMBackend sharedInstance] initialWindowLayout];
     if (window_layout > 0 && window_layout < 4) {
         // The window_layout numbers must match the WIN_* defines in main.c.

@@ -36,6 +36,7 @@
 - (void)setWindowAutosaveKey:(NSString *)key;
 - (void)cleanup;
 - (void)openWindow;
+- (void)showWindow;
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols live:(BOOL)live;

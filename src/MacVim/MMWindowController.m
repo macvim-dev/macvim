@@ -262,7 +262,8 @@
 
 - (void)openWindow
 {
-    [[MMAppController sharedInstance] windowControllerWillOpen:self];
+    // Indicates that the window is ready to be displayed, but do not display
+    // (or place) it yet -- that is done in showWindow.
 
     [self addNewTabViewItem];
 
@@ -270,6 +271,16 @@
 
     [self updateResizeConstraints];
     [self resizeWindowToFitContentSize:[vimView desiredSize]];
+}
+
+- (void)showWindow
+{
+    // Actually show the window on screen.  However, if openWindow hasn't
+    // already been called nothing will happen (the window will be displayed
+    // later).
+    if (!setupDone) return;
+
+    [[MMAppController sharedInstance] windowControllerWillOpen:self];
     [[self window] makeKeyAndOrderFront:self];
 }
 

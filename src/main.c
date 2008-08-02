@@ -751,29 +751,6 @@ main
 	newline_on_exit = TRUE;
 #endif
 
-#ifdef FEAT_GUI_MACVIM
-    /* We want to delay calling this function for as long as possible, since it
-     * will result in faster startup for cached processes.  However, we must
-     * react before wait_return() otherwise no window is visible before a
-     * "hit ENTER" message is displayed. */
-    gui_macvim_wait_for_startup();
-    gui_macvim_get_window_layout(&params.window_count, &params.window_layout);
-
-# ifdef MAC_CLIENTSERVER
-    // NOTE: Can't set server name at same time as WIN32 because gui.in_use
-    // isn't set then.  Servers are only supported in GUI mode.
-    // Also, in case the above call blocks this process another Vim process may
-    // open in the meantime.  If it did then it could be named e.g. VIM3
-    // whereas this may be VIM2, which looks weird.
-    if (params.servername != NULL && gui.in_use)
-    {
-        serverRegisterName(params.servername);
-        vim_free(params.servername);
-        params.servername = NULL;
-    }
-# endif
-#endif
-
     /*
      * When done something that is not allowed or error message call
      * wait_return.  This must be done before starttermcap(), because it may
@@ -825,6 +802,33 @@ main
 #endif
 
     no_wait_return = TRUE;
+
+#ifdef FEAT_GUI_MACVIM
+    /* We want to delay calling this function for as long as possible, since it
+     * will result in faster startup for cached processes.  However, we react
+     * before create_windows() so that we can open files by adding to the
+     * arglist. */
+    gui_macvim_wait_for_startup();
+
+    /* Since MacVim may receive the list of files to open via an Apple event
+     * (as opposed to from the command line) we must manually check to see if
+     * the window layout should be changed. */
+    gui_macvim_get_window_layout(&params.window_count, &params.window_layout);
+
+# ifdef MAC_CLIENTSERVER
+    // NOTE: Can't set server name at same time as WIN32 because gui.in_use
+    // isn't set then.  Servers are only supported in GUI mode.
+    // Also, in case the above call blocks this process another Vim process may
+    // open in the meantime.  If it did then it could be named e.g. VIM3
+    // whereas this may be VIM2, which looks weird.
+    if (params.servername != NULL && gui.in_use)
+    {
+        serverRegisterName(params.servername);
+        vim_free(params.servername);
+        params.servername = NULL;
+    }
+# endif
+#endif
 
     /*
      * Create the requested number of windows and edit buffers in them.
