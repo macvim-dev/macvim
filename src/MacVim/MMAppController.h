@@ -50,7 +50,6 @@
 - (void)setPreloadCacheSize:(int)size;
 
 - (IBAction)newWindow:(id)sender;
-- (IBAction)forceNewWindow:(id)sender;
 - (IBAction)fileOpen:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;
 - (IBAction)selectPreviousWindow:(id)sender;

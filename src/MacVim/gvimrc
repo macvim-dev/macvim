@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sat Jul 05 2008
+" Last Change:	Sun Aug 03 2008
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -48,7 +48,6 @@ aunmenu File.Exit
 aunmenu File.Save-Exit
 
 an <silent> 10.290 File.New\ Window             <Nop>
-an <silent> 10.291 File.Force\ New\ Window      <Nop>
 an  10.295 File.New\ Tab                        :tabnew<CR>
 an <silent> 10.310 File.Open\.\.\.              <Nop>
 an <silent> 10.325 File.Open\ Recent            <Nop>
@@ -206,7 +205,6 @@ endif " exists("macvim_hig_shift_movement")
 "
 
 macm File.New\ Window                       key=<D-n> action=newWindow:
-macm File.Force\ New\ Window    key=<D-S-N> action=forceNewWindow: alt=YES
 macm File.New\ Tab                          key=<D-t>
 macm File.Open\.\.\.                        key=<D-o> action=fileOpen:
 macm File.Open\ Tab\.\.\.                   key=<D-T>

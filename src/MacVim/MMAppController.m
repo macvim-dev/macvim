@@ -849,16 +849,6 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     }
 }
 
-- (IBAction)forceNewWindow:(id)sender
-{
-    // Open a new window, but clear the preload cache first so that any
-    // subsequent windows opening will have sourced the current .[g]vimrc
-    // files.
-    [self clearPreloadCacheWithCount:-1];
-    [self launchVimProcessWithArguments:nil];
-    [self scheduleVimControllerPreloadAfterDelay:2.0];
-}
-
 - (IBAction)fileOpen:(id)sender
 {
     NSString *dir = nil;
