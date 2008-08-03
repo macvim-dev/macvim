@@ -47,6 +47,8 @@
 - (void)removeItemFromPlugInMenu:(NSMenuItem *)item;
 #endif
 
+- (void)setPreloadCacheSize:(int)size;
+
 - (IBAction)newWindow:(id)sender;
 - (IBAction)forceNewWindow:(id)sender;
 - (IBAction)fileOpen:(id)sender;

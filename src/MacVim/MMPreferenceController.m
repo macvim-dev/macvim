@@ -9,6 +9,7 @@
  */
 
 #import "AuthorizedShellCommand.h"
+#import "MMAppController.h"
 #import "MMPreferenceController.h"
 #import "Miscellaneous.h"
 
@@ -162,6 +163,15 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
     }
 
     [self addView:integrationPreferences label:@"Integration"];
+
+    if (nsImageNamePreferencesAdvanced != NULL) {
+        [self addView:advancedPreferences
+                label:@"Advanced"
+                image:[NSImage imageNamed:nsImageNamePreferencesAdvanced]];
+    } else {
+        [self addView:advancedPreferences label:@"Advanced"];
+    }
+
 }
 
 
@@ -394,6 +404,12 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
     [au release];
 
     [self updateIntegrationPane];
+}
+
+- (IBAction)changePreloadCacheSize:(id)sender
+{
+    int size = [sender floatValue];
+    [[MMAppController sharedInstance] setPreloadCacheSize:(int)size];
 }
 
 @end

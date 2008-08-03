@@ -7,6 +7,8 @@
 		<dict>
 			<key>ACTIONS</key>
 			<dict>
+				<key>changePreloadCacheSize</key>
+				<string>id</string>
 				<key>installOdb</key>
 				<string>id</string>
 				<key>openInCurrentWindowSelectionChanged</key>
@@ -20,6 +22,8 @@
 			<string>ObjC</string>
 			<key>OUTLETS</key>
 			<dict>
+				<key>advancedPreferences</key>
+				<string>NSView</string>
 				<key>editors</key>
 				<string>NSPopUpButton</string>
 				<key>generalPreferences</key>

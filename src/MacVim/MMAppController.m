@@ -818,6 +818,24 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 }
 #endif
 
+- (void)setPreloadCacheSize:(int)size
+{
+    if (size < 0) return;
+
+    int count = [cachedVimControllers count];
+
+    if (0 == size) {
+        // Disable quickstart
+        [self clearPreloadCacheWithCount:-1];
+    } else if (count > size) {
+        // Cache size decreased
+        [self clearPreloadCacheWithCount:count-size];
+    } else if (count < size) {
+        // Cache size increased
+        [self scheduleVimControllerPreloadAfterDelay:1.0];
+    }
+}
+
 - (IBAction)newWindow:(id)sender
 {
     // A cached controller requires no loading times and results in the new

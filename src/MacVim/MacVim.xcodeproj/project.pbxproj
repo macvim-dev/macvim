@@ -24,6 +24,7 @@
 		1D1474B00C5678370038FA2B /* MMTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474AE0C5678370038FA2B /* MMTextView.m */; };
 		1D1474B60C56796D0038FA2B /* MMVimController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474B40C56796D0038FA2B /* MMVimController.m */; };
 		1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474BA0C567A910038FA2B /* MMWindowController.m */; };
+		1D22374B0E45DF4800E6FFFF /* Advanced.png in Resources */ = {isa = PBXBuildFile; fileRef = 1D22374A0E45DF4800E6FFFF /* Advanced.png */; };
 		1D3D19110CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */; };
 		1D3D19120CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */; };
 		1D3D19130CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */; };
@@ -201,6 +202,7 @@
 		1D1474B40C56796D0038FA2B /* MMVimController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMVimController.m; sourceTree = "<group>"; };
 		1D1474B90C567A910038FA2B /* MMWindowController.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMWindowController.h; sourceTree = "<group>"; };
 		1D1474BA0C567A910038FA2B /* MMWindowController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMWindowController.m; sourceTree = "<group>"; };
+		1D22374A0E45DF4800E6FFFF /* Advanced.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Advanced.png; sourceTree = "<group>"; };
 		1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Bold.ttf"; path = "dejavu-ttf/DejaVuSansMono-Bold.ttf"; sourceTree = "<group>"; };
 		1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-BoldOblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-BoldOblique.ttf"; sourceTree = "<group>"; };
 		1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Oblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-Oblique.ttf"; sourceTree = "<group>"; };
@@ -506,6 +508,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1D22374A0E45DF4800E6FFFF /* Advanced.png */,
 				BD9DF09F0DB2BA020025C97C /* PlugInView.nib */,
 				1DD3D51D0D82D4C9006E4320 /* ibeam.png */,
 				1D0F11480D58C77800D5DA09 /* Font */,
@@ -661,6 +664,7 @@
 				0395A95A0D74D47B00881434 /* Integration.png in Resources */,
 				1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */,
 				BD9DF0A00DB2BA020025C97C /* PlugInView.nib in Resources */,
+				1D22374B0E45DF4800E6FFFF /* Advanced.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

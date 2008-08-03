@@ -15,6 +15,7 @@
 
     IBOutlet NSView *generalPreferences;
     IBOutlet NSView *integrationPreferences;
+    IBOutlet NSView *advancedPreferences;
 
     // General pane
     IBOutlet NSPopUpButton *layoutPopUpButton;
@@ -25,7 +26,6 @@
     IBOutlet NSButton *installOdbButton;
     IBOutlet NSButton *uninstallOdbButton;
     IBOutlet NSTextField* obdBundleVersionLabel;
-
 }
 
 // General pane
@@ -34,5 +34,8 @@
 // Integration pane
 - (IBAction)installOdb:(id)sender;
 - (IBAction)uninstallOdb:(id)sender;
+
+// Advanced pane
+- (IBAction)changePreloadCacheSize:(id)sender;
 
 @end
