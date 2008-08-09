@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2008 Jun 20
+" Last Change:	2008 Aug 03
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -17,7 +17,7 @@ augroup filetypedetect
 
 " Ignored extensions
 if exists("*fnameescape")
-au BufNewFile,BufRead ?\+.orig,?\+.bak,?\+.old,?\+.new,?\+.rpmsave,?\+.rpmnew
+au BufNewFile,BufRead ?\+.orig,?\+.bak,?\+.old,?\+.new,?\+.dpkg-dist,?\+.dpkg-old,?\+.rpmsave,?\+.rpmnew
 	\ exe "doau filetypedetect BufRead " . fnameescape(expand("<afile>:r"))
 au BufNewFile,BufRead *~
 	\ let s:name = expand("<afile>") |
@@ -25,7 +25,7 @@ au BufNewFile,BufRead *~
 	\ if s:name != s:short && s:short != "" |
 	\   exe "doau filetypedetect BufRead " . fnameescape(s:short) |
 	\ endif |
-	\ unlet s:name s:short
+	\ unlet! s:name s:short
 au BufNewFile,BufRead ?\+.in
 	\ if expand("<afile>:t") != "configure.in" |
 	\   exe "doau filetypedetect BufRead " . fnameescape(expand("<afile>:r")) |
@@ -92,9 +92,9 @@ au BufNewFile,BufRead *.wrm			setf acedb
 " Ada (83, 9X, 95)
 au BufNewFile,BufRead *.adb,*.ads,*.ada		setf ada
 if has("vms")
-  au BufNewFile,BufRead *.gpr,*.ada_m,*.adc 	setf ada
+  au BufNewFile,BufRead *.gpr,*.ada_m,*.adc	setf ada
 else
-  au BufNewFile,BufRead *.gpr 			setf ada
+  au BufNewFile,BufRead *.gpr			setf ada
 endif
 
 " AHDL
@@ -181,7 +181,7 @@ func! s:FTasm()
     endif
   endif
 
-  exe "setf " . b:asmsyntax
+  exe "setf " . fnameescape(b:asmsyntax)
 endfunc
 
 func! s:FTasmsyntax()
@@ -189,8 +189,9 @@ func! s:FTasmsyntax()
   " b:asmsyntax appropriately
   let head = " ".getline(1)." ".getline(2)." ".getline(3)." ".getline(4).
 	\" ".getline(5)." "
-  if head =~ '\sasmsyntax=\S\+\s'
-    let b:asmsyntax = substitute(head, '.*\sasmsyntax=\([a-zA-Z0-9]\+\)\s.*','\1', "")
+  let match = matchstr(head, '\sasmsyntax=\zs[a-zA-Z0-9]\+\ze\s')
+  if match != ''
+    let b:asmsyntax = match
   elseif ((head =~? '\.title') || (head =~? '\.ident') || (head =~? '\.macro') || (head =~? '\.subtitle') || (head =~? '\.library'))
     let b:asmsyntax = "vmasm"
   endif
@@ -290,6 +291,9 @@ endfunc
 
 " Blank
 au BufNewFile,BufRead *.bl			setf blank
+
+" Blkid cache file
+au BufNewFile,BufRead /etc/blkid.tab,/etc/blkid.tab.old   setf xml
 
 " C or lpc
 au BufNewFile,BufRead *.c			call s:FTlpc()
@@ -633,7 +637,7 @@ func! s:FTe()
 endfunc
 
 " ERicsson LANGuage; Yaws is erlang too
-au BufNewFile,BufRead *.erl,*.yaws		setf erlang
+au BufNewFile,BufRead *.erl,*.hrl,*.yaws	setf erlang
 
 " Elm Filter Rules file
 au BufNewFile,BufRead filter-rules		setf elmfilt
@@ -687,6 +691,9 @@ if has("fname_case")
 endif
 au BufNewFile,BufRead   *.f,*.for,*.fortran,*.fpp,*.ftn,*.f77,*.f90,*.f95  setf fortran
 
+" Framescript
+au BufNewFile,BufRead *.fsl			setf framescript
+
 " FStab
 au BufNewFile,BufRead fstab,mtab		setf fstab
 
@@ -739,10 +746,13 @@ au BufNewFile,BufRead *.groovy			setf groovy
 au BufNewFile,BufRead *.gsp			setf gsp
 
 " Group file
-au BufNewFile,BufRead /etc/group		setf group
+au BufNewFile,BufRead /etc/group,/etc/group-,/etc/group.edit,/etc/gshadow,/etc/gshadow-,/etc/gshadow.edit,/var/backups/group.bak,/var/backups/gshadow.bak  setf group
 
 " GTK RC
 au BufNewFile,BufRead .gtkrc,gtkrc		setf gtkrc
+
+" Haml
+au BufNewFile,BufRead *.haml			setf haml
 
 " Hamster Classic | Playground files
 au BufNewFile,BufRead *.hsc,*.hsm		setf hamster
@@ -754,6 +764,7 @@ au BufNewFile,BufRead *.chs			setf chaskell
 
 " Haste
 au BufNewFile,BufRead *.ht			setf haste
+au BufNewFile,BufRead *.htpp			setf hastepreproc
 
 " Hercules
 au BufNewFile,BufRead *.vc,*.ev,*.rs,*.sum,*.errsum	setf hercules
@@ -795,6 +806,9 @@ au BufNewFile,BufRead *.tmpl			setf htmlcheetah
 
 " Host config
 au BufNewFile,BufRead /etc/host.conf		setf hostconf
+
+" Hosts access
+au BufNewFile,BufRead /etc/hosts.allow,/etc/hosts.deny  setf hostsaccess
 
 " Hyper Builder
 au BufNewFile,BufRead *.hb			setf hb
@@ -846,7 +860,7 @@ endfunc
 
 
 " Indent RC
-au BufNewFile,BufRead indentrc			setf indentrc
+au BufNewFile,BufRead indentrc			setf indent
 
 " Inform
 au BufNewFile,BufRead *.inf,*.INF		setf inform
@@ -1015,6 +1029,9 @@ au BufNewFile,BufRead /etc/man.conf,man.config	setf manconf
 
 " Maple V
 au BufNewFile,BufRead *.mv,*.mpl,*.mws		setf maple
+
+" Map (UMN mapserver config file)
+au BufNewFile,BufRead *.map			setf map
 
 " Mason
 au BufNewFile,BufRead *.mason,*.mhtml		setf mason
@@ -1226,7 +1243,7 @@ au BufNewFile,BufRead /etc/pam.conf		setf pamconf
 au BufNewFile,BufRead *.papp,*.pxml,*.pxsl	setf papp
 
 " Password file
-au BufNewFile,BufRead /etc/passwd,/etc/shadow,/etc/shadow- setf passwd
+au BufNewFile,BufRead /etc/passwd,/etc/passwd-,/etc/passwd.edit,/etc/shadow,/etc/shadow-,/var/backups/passwd.bak,/var/backups/shadow.bak setf passwd
 
 " Pascal (also *.p)
 au BufNewFile,BufRead *.pas			setf pascal
@@ -1334,7 +1351,7 @@ func! s:FTinc()
     else
       call s:FTasmsyntax()
       if exists("b:asmsyntax")
-	exe "setf " . b:asmsyntax
+	exe "setf " . fnameescape(b:asmsyntax)
       else
 	setf pov
       endif
@@ -1456,6 +1473,9 @@ au BufNewFile,BufRead *.pyx,*.pxd		setf pyrex
 " Python
 au BufNewFile,BufRead *.py,*.pyw		setf python
 
+" Quixote (Python-based web framework)
+au BufNewFile,BufRead *.ptl			setf python
+
 " Radiance
 au BufNewFile,BufRead *.rad,*.mat		setf radiance
 
@@ -1554,6 +1574,9 @@ au BufNewFile,BufRead *.rst			setf rst
 " RTF
 au BufNewFile,BufRead *.rtf			setf rtf
 
+" Interactive Ruby shell
+au BufNewFile,BufRead .irbrc,irbrc		setf ruby
+
 " Ruby
 au BufNewFile,BufRead *.rb,*.rbw,*.gem,*.gemspec	setf ruby
 
@@ -1571,6 +1594,9 @@ au BufNewFile,BufRead smb.conf			setf samba
 
 " SAS script
 au BufNewFile,BufRead *.sas			setf sas
+
+" Sass
+au BufNewFile,BufRead *.sass			setf sass
 
 " Sather
 au BufNewFile,BufRead *.sa			setf sather
@@ -1729,6 +1755,7 @@ endfunc
 " Z-Shell script
 au BufNewFile,BufRead .zprofile,/etc/zprofile,.zfbfmarks  setf zsh
 au BufNewFile,BufRead .zsh*,.zlog*,.zcompdump*  call s:StarSetf('zsh')
+au BufNewFile,BufRead *.zsh 			setf zsh
 
 " Scheme
 au BufNewFile,BufRead *.scm,*.ss		setf scheme
@@ -1796,7 +1823,7 @@ au BufNewFile,BufRead *.rules			call s:FTRules()
 
 let s:ft_rules_udev_rules_pattern = '^\s*\cudev_rules\s*=\s*"\([^"]\{-1,}\)/*".*'
 func! s:FTRules()
-  if expand('<amatch>:p') =~ '^/etc/udev/rules\.d/.*\.rules$'
+  if expand('<amatch>:p') =~ '^/etc/udev/\%(rules\.d/\)\=.*\.rules$'
     setf udevrules
     return
   endif
@@ -2257,6 +2284,9 @@ au StdinReadPost * if !did_filetype() | runtime! scripts.vim | endif
 " Most of these should call s:StarSetf() to avoid names ending in .gz and the
 " like are used.
 
+" More Apache files.
+au BufNewFile,BufRead /etc/apache2/conf.*/*,/etc/apache2/sites-*/*,/etc/apache2/mods-*/*		call s:StarSetf('apache')
+
 " Asterisk config file
 au BufNewFile,BufRead *asterisk/*.conf*		call s:StarSetf('asterisk')
 au BufNewFile,BufRead *asterisk*/*voicemail.conf* call s:StarSetf('asteriskvm')
@@ -2276,7 +2306,7 @@ au BufNewFile,BufRead [cC]hange[lL]og*
 	\|endif
 
 " Crontab
-au BufNewFile,BufRead crontab,crontab.*		call s:StarSetf('crontab')
+au BufNewFile,BufRead crontab,crontab.*,/etc/cron.d/*		call s:StarSetf('crontab')
 
 " Debian Sources.list
 au BufNewFile,BufRead /etc/apt/sources.list.d/*	call s:StarSetf('debsources')

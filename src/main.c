@@ -7,7 +7,7 @@
  * See README.txt for an overview of the Vim source code.
  */
 
-#if defined(MSDOS) || defined(WIN32) || defined(_WIN64)
+#if defined(MSDOS) || defined(WIN16) || defined(WIN32) || defined(_WIN64)
 # include "vimio.h"		/* for close() and dup() */
 #endif
 
@@ -2325,7 +2325,12 @@ scripterror:
 		/* Remember this argument has been added to the argument list.
 		 * Needed when 'encoding' is changed. */
 		used_file_arg(argv[0], parmp->literal, parmp->full_path,
-							    parmp->diff_mode);
+# ifdef FEAT_DIFF
+							    parmp->diff_mode
+# else
+							    FALSE
+# endif
+							    );
 	    }
 #endif
 	}
@@ -2604,7 +2609,6 @@ edit_buffers(parmp)
     int		arg_idx;		/* index in argument list */
     int		i;
     int		advance = TRUE;
-    buf_T	*old_curbuf;
 
 # ifdef FEAT_AUTOCMD
     /*
@@ -2657,21 +2661,26 @@ edit_buffers(parmp)
 	    curwin->w_arg_idx = arg_idx;
 	    /* Edit file from arg list, if there is one.  When "Quit" selected
 	     * at the ATTENTION prompt close the window. */
-	    old_curbuf = curbuf;
+# ifdef HAS_SWAP_EXISTS_ACTION
+	    swap_exists_did_quit = FALSE;
+# endif
 	    (void)do_ecmd(0, arg_idx < GARGCOUNT
 			  ? alist_name(&GARGLIST[arg_idx]) : NULL,
 			  NULL, NULL, ECMD_LASTL, ECMD_HIDE);
-	    if (curbuf == old_curbuf)
+# ifdef HAS_SWAP_EXISTS_ACTION
+	    if (swap_exists_did_quit)
 	    {
+		/* abort or quit selected */
 		if (got_int || only_one_window())
 		{
-		    /* abort selected or quit and only one window */
+		    /* abort selected and only one window */
 		    did_emsg = FALSE;   /* avoid hit-enter prompt */
 		    getout(1);
 		}
 		win_close(curwin, TRUE);
 		advance = FALSE;
 	    }
+# endif
 	    if (arg_idx == GARGCOUNT - 1)
 		arg_had_last = TRUE;
 	    ++arg_idx;

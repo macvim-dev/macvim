@@ -774,7 +774,7 @@ restofline:
 		    *namebuf = NUL;
 		    if (tail && *tail)
 		    {
-			STRCPY(IObuff, skipwhite(tail));
+			STRMOVE(IObuff, skipwhite(tail));
 			multiscan = TRUE;
 			goto restofline;
 		    }
@@ -2999,14 +2999,14 @@ ex_vimgrep(eap)
     char_u	*save_ei = NULL;
 #endif
     aco_save_T	aco;
-#ifdef FEAT_AUTOCMD
-    char_u	*au_name =  NULL;
     int		flags = 0;
     colnr_T	col;
     long	tomatch;
     char_u	dirname_start[MAXPATHL];
     char_u	dirname_now[MAXPATHL];
     char_u	*target_dir = NULL;
+#ifdef FEAT_AUTOCMD
+    char_u	*au_name =  NULL;
 
     switch (eap->cmdidx)
     {
@@ -3779,7 +3779,7 @@ ex_helpgrep(eap)
 
     /* Make 'cpoptions' empty, the 'l' flag should not be used here. */
     save_cpo = p_cpo;
-    p_cpo = (char_u *)"";
+    p_cpo = empty_option;
 
 #ifdef FEAT_MULTI_LANG
     /* Check for a specified language */
@@ -3889,7 +3889,11 @@ ex_helpgrep(eap)
 	qi->qf_lists[qi->qf_curlist].qf_index = 1;
     }
 
-    p_cpo = save_cpo;
+    if (p_cpo == empty_option)
+	p_cpo = save_cpo;
+    else
+	/* Darn, some plugin changed the value. */
+	free_string_option(save_cpo);
 
 #ifdef FEAT_WINDOWS
     qf_update_buffer(qi);

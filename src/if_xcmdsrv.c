@@ -1391,7 +1391,6 @@ serverEventProc(dpy, eventPtr)
 	    unsigned int u;
 	    int		gotWindow;
 	    char_u	*str;
-	    char_u	winstr[30];
 	    struct	ServerReply *r;
 	    char_u	*enc;
 
@@ -1437,8 +1436,12 @@ serverEventProc(dpy, eventPtr)
 		ga_append(&(r->strings), NUL);
 	    }
 #ifdef FEAT_AUTOCMD
-	    sprintf((char *)winstr, "0x%x", (unsigned int)win);
-	    apply_autocmds(EVENT_REMOTEREPLY, winstr, str, TRUE, curbuf);
+	    {
+		char_u	winstr[30];
+
+		sprintf((char *)winstr, "0x%x", (unsigned int)win);
+		apply_autocmds(EVENT_REMOTEREPLY, winstr, str, TRUE, curbuf);
+	    }
 #endif
 	    vim_free(tofree);
 	}

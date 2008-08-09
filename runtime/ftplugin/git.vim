@@ -1,7 +1,7 @@
 " Vim filetype plugin
 " Language:	generic git output
 " Maintainer:	Tim Pope <vimNOSPAM@tpope.info>
-" Last Change:	2008 Feb 27
+" Last Change:	2008 Jul 30
 
 " Only do this when not done yet for this buffer
 if (exists("b:did_ftplugin"))
@@ -15,14 +15,14 @@ if !exists('b:git_dir')
     elseif $GIT_DIR != ''
         let b:git_dir = $GIT_DIR
     endif
-    if has('win32') || has('win64')
+    if (has('win32') || has('win64')) && exists('b:git_dir')
         let b:git_dir = substitute(b:git_dir,'\\','/','g')
     endif
 endif
 
 if exists('*shellescape') && exists('b:git_dir') && b:git_dir != ''
     if b:git_dir =~# '/\.git$' " Not a bare repository
-        let &l:path = escape(fnamemodify(b:git_dir,':t'),'\, ').','.&l:path
+        let &l:path = escape(fnamemodify(b:git_dir,':h'),'\, ').','.&l:path
     endif
     let &l:path = escape(b:git_dir,'\, ').','.&l:path
     let &l:keywordprg = 'git --git-dir='.shellescape(b:git_dir).' show'

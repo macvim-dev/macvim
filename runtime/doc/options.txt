@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 7.2a.  Last change: 2008 Jun 24
+*options.txt*	For Vim version 7.2.  Last change: 2008 Aug 06
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1285,7 +1285,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 			|+file_in_path| feature}
 	This is a list of directories which will be searched when using the
 	|:cd| and |:lcd| commands, provided that the directory being searched
-	for has a relative path (not starting with "/", "./" or "../").
+	for has a relative path, not an absolute part starting with "/", "./"
+	or "../", the 'cdpath' option is not used then.
 	The 'cdpath' option's value has the same form and semantics as
 	|'path'|.  Also see |file-searching|.
 	The default value is taken from $CDPATH, with a "," prepended to look
@@ -2296,6 +2297,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	  or "\\", the swap file name will be built from the complete path to
 	  the file with all path separators substituted to percent '%' signs.
 	  This will ensure file name uniqueness in the preserve directory.
+	  On Win32, when a separating comma is following, you must use "//",
+	  since "\\" will include the comma in the file name.
 	- Spaces after the comma are ignored, other spaces are considered part
 	  of the directory name.  To have a space at the start of a directory
 	  name, precede it with a backslash.
@@ -4987,7 +4990,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	name, datestamp and permissions.  This option contains the extra
 	information, the nature of which will vary between systems.
 	The value of this option is usually set when the file is loaded, and
-	use to set the file type when file is written.
+	is used to set the operating system file type when file is written.
 	It can affect the pattern matching of the automatic commands.
 	|autocmd-osfiletypes|
 
@@ -5101,9 +5104,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 			global or local to buffer |global-local|
 			{not in Vi}
 	This is a list of directories which will be searched when using the
-	|gf|, [f, ]f, ^Wf, |:find| and other commands, provided that the file
-	being searched for has a relative path (not starting with '/').  The
-	directories in the 'path' option may be relative or absolute.
+	|gf|, [f, ]f, ^Wf, |:find|, |:sfind|, |:tabfind| and other commands,
+	provided that the file being searched for has a relative path (not
+	starting with "/", "./" or "../").  The directories in the 'path'
+	option may be relative or absolute.
 	- Use commas to separate directory names: >
 		:set path=.,/usr/local/include,/usr/include
 <	- Spaces can also be used to separate directory names (for backwards
@@ -5122,19 +5126,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	- Environment variables are expanded |:set_env|.
 	- When using |netrw.vim| URLs can be used.  For example, adding
 	  "http://www.vim.org" will make ":find index.html" work.
-	- Search upwards and downwards in a directory tree:
-	  1) "*" matches a sequence of characters, e.g.: >
-		:set path=/usr/include/*
-<	     means all subdirectories in /usr/include (but not /usr/include
-	     itself). >
-		:set path=/usr/*c
-<	     matches /usr/doc and /usr/src.
-	  2) "**" matches a subtree, up to 100 directories deep.  Example: >
-		:set path=/home/user_x/src/**
-<	     means search in the whole subtree under "/home/usr_x/src".
-	  3) If the path ends with a ';', this path is the startpoint
-	     for upward search.
-	  See |file-searching| for more info and exact syntax.
+	- Search upwards and downwards in a directory tree using "*", "**" and
+	  ";".  See |file-searching| for info and syntax.
 	  {not available when compiled without the |+path_extra| feature}
 	- Careful with '\' characters, type two to get one in the option: >
 		:set path=.,c:\\include
@@ -6405,15 +6398,15 @@ A jump table for the options with a short description can be found at |Q_op|.
 	      directory.
 	F S   Full path to the file in the buffer.
 	t S   File name (tail) of file in the buffer.
-	m F   Modified flag, text is " [+]"; " [-]" if 'modifiable' is off.
+	m F   Modified flag, text is "[+]"; "[-]" if 'modifiable' is off.
 	M F   Modified flag, text is ",+" or ",-".
-	r F   Readonly flag, text is " [RO]".
+	r F   Readonly flag, text is "[RO]".
 	R F   Readonly flag, text is ",RO".
-	h F   Help buffer flag, text is " [help]".
+	h F   Help buffer flag, text is "[help]".
 	H F   Help buffer flag, text is ",HLP".
-	w F   Preview window flag, text is " [Preview]".
+	w F   Preview window flag, text is "[Preview]".
 	W F   Preview window flag, text is ",PRV".
-	y F   Type of file in the buffer, e.g., " [vim]".  See 'filetype'.
+	y F   Type of file in the buffer, e.g., "[vim]".  See 'filetype'.
 	Y F   Type of file in the buffer, e.g., ",VIM".  See 'filetype'.
 	      {not available when compiled without |+autocmd| feature}
 	k S   Value of "b:keymap_name" or 'keymap' when |:lmap| mappings are
@@ -6460,14 +6453,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	      to StatusLineNC for the statusline of non-current windows.
 	      The number N must be between 1 and 9.  See |hl-User1..9|
 
-	Display of flags are controlled by the following heuristic:
-	If a flag text starts with comma it is assumed that it wants to
-	separate itself from anything but preceding plaintext.  If it starts
-	with a space it is assumed that it wants to separate itself from
-	anything but other flags.  That is: A leading comma is removed if the
-	preceding character stems from plaintext.  A leading space is removed
-	if the preceding character stems from another active flag.  This will
-	make a nice display when flags are used like in the examples below.
+	When displaying a flag, Vim removes the leading comma, if any, when
+	that flag comes right after plaintext.  This will make a nice display
+	when flags are used like in the examples below.
 
 	When all items in a group becomes an empty string (i.e. flags that are
 	not set) and a minwid is not set for the group, the whole group will

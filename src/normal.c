@@ -565,7 +565,6 @@ normal_cmd(oap, toplevel)
     oparg_T	*oap;
     int		toplevel;		/* TRUE when called from main() */
 {
-    static long	opcount = 0;		/* ca.opcount saved here */
     cmdarg_T	ca;			/* command arguments */
     int		c;
     int		ctrl_w = FALSE;		/* got CTRL-W command */
@@ -582,6 +581,10 @@ normal_cmd(oap, toplevel)
 
     vim_memset(&ca, 0, sizeof(ca));	/* also resets ca.retval */
     ca.oap = oap;
+
+    /* Use a count remembered from before entering an operator.  After typing
+     * "3d" we return from normal_cmd() and come back here, the "3" is
+     * remembered in "opcount". */
     ca.opcount = opcount;
 
 #ifdef FEAT_SNIFF
@@ -607,8 +610,23 @@ normal_cmd(oap, toplevel)
     }
 #endif
 
+    /* When not finishing an operator and no register name typed, reset the
+     * count. */
     if (!finish_op && !oap->regname)
 	ca.opcount = 0;
+
+#ifdef FEAT_AUTOCMD
+    /* Restore counts from before receiving K_CURSORHOLD.  This means after
+     * typing "3", handling K_CURSORHOLD and then typing "2" we get "32", not
+     * "3 * 2". */
+    if (oap->prev_opcount > 0 || oap->prev_count0 > 0)
+    {
+	ca.opcount = oap->prev_opcount;
+	ca.count0 = oap->prev_count0;
+	oap->prev_opcount = 0;
+	oap->prev_count0 = 0;
+    }
+#endif
 
 #ifdef FEAT_VISUAL
     mapped_len = typebuf_maplen();
@@ -745,16 +763,27 @@ getcount:
 	}
     }
 
-    /*
-     * If we're in the middle of an operator (including after entering a yank
-     * buffer with '"') AND we had a count before the operator, then that
-     * count overrides the current value of ca.count0.
-     * What this means effectively, is that commands like "3dw" get turned
-     * into "d3w" which makes things fall into place pretty neatly.
-     * If you give a count before AND after the operator, they are multiplied.
-     */
-    if (ca.opcount != 0)
+#ifdef FEAT_AUTOCMD
+    if (c == K_CURSORHOLD)
     {
+	/* Save the count values so that ca.opcount and ca.count0 are exactly
+	 * the same when coming back here after handling K_CURSORHOLD. */
+	oap->prev_opcount = ca.opcount;
+	oap->prev_count0 = ca.count0;
+    }
+    else
+#endif
+	if (ca.opcount != 0)
+    {
+	/*
+	 * If we're in the middle of an operator (including after entering a
+	 * yank buffer with '"') AND we had a count before the operator, then
+	 * that count overrides the current value of ca.count0.
+	 * What this means effectively, is that commands like "3dw" get turned
+	 * into "d3w" which makes things fall into place pretty neatly.
+	 * If you give a count before AND after the operator, they are
+	 * multiplied.
+	 */
 	if (ca.count0)
 	    ca.count0 *= ca.opcount;
 	else
@@ -799,7 +828,7 @@ getcount:
 
     if (text_locked() && (nv_cmds[idx].cmd_flags & NV_NCW))
     {
-	/* This command is not allowed wile editing a ccmdline: beep. */
+	/* This command is not allowed while editing a ccmdline: beep. */
 	clearopbeep(oap);
 	text_locked_msg();
 	goto normal_end;
@@ -1275,7 +1304,11 @@ normal_end:
 #endif
 
 #ifdef FEAT_CMDL_INFO
-    if (oap->op_type == OP_NOP && oap->regname == 0)
+    if (oap->op_type == OP_NOP && oap->regname == 0
+# ifdef FEAT_AUTOCMD
+	    && ca.cmdchar != K_CURSORHOLD
+# endif
+	    )
 	clear_showcmd();
 #endif
 

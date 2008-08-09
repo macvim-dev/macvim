@@ -10,7 +10,7 @@
 /*
  * eval.c: Expression evaluation.
  */
-#if defined(MSDOS) || defined(MSWIN)
+#if defined(MSDOS) || defined(WIN16) || defined(WIN32) || defined(_WIN64)
 # include "vimio.h"	/* for mch_open(), must be before vim.h */
 #endif
 
@@ -1275,7 +1275,8 @@ eval_to_string(arg, nextcmd, dolist)
 	if (dolist && tv.v_type == VAR_LIST)
 	{
 	    ga_init2(&ga, (int)sizeof(char), 80);
-	    list_join(&ga, tv.vval.v_list, (char_u *)"\n", TRUE, 0);
+	    if (tv.vval.v_list != NULL)
+		list_join(&ga, tv.vval.v_list, (char_u *)"\n", TRUE, 0);
 	    ga_append(&ga, NUL);
 	    retval = (char_u *)ga.ga_data;
 	}
@@ -1380,6 +1381,7 @@ restore_vimvar(idx, save_tv)
 /*
  * Evaluate an expression to a list with suggestions.
  * For the "expr:" part of 'spellsuggest'.
+ * Returns NULL when there is an error.
  */
     list_T *
 eval_spell_expr(badword, expr)
@@ -1587,8 +1589,9 @@ call_func_retnr(func, argc, argv, safe)
 # endif
 
 /*
- * Call vimL function "func" and return the result as a list
+ * Call vimL function "func" and return the result as a List.
  * Uses argv[argc] for the function arguments.
+ * Returns NULL when there is something wrong.
  */
     void *
 call_func_retlist(func, argc, argv, safe)
@@ -5817,6 +5820,8 @@ list_equal(l1, l2, ic)
 {
     listitem_T	*item1, *item2;
 
+    if (l1 == NULL || l2 == NULL)
+	return FALSE;
     if (l1 == l2)
 	return TRUE;
     if (list_len(l1) != list_len(l2))
@@ -5855,6 +5860,8 @@ dict_equal(d1, d2, ic)
     dictitem_T	*item2;
     int		todo;
 
+    if (d1 == NULL || d2 == NULL)
+	return FALSE;
     if (d1 == d2)
 	return TRUE;
     if (dict_len(d1) != dict_len(d2))
@@ -6224,8 +6231,11 @@ list_extend(l1, l2, bef)
     listitem_T	*bef;
 {
     listitem_T	*item;
+    int		todo = l2->lv_len;
 
-    for (item = l2->lv_first; item != NULL; item = item->li_next)
+    /* We also quit the loop when we have inserted the original item count of
+     * the list, avoid a hang when we extend a list with itself. */
+    for (item = l2->lv_first; item != NULL && --todo >= 0; item = item->li_next)
 	if (list_insert_tv(l1, &item->li_tv, bef) == FAIL)
 	    return FAIL;
     return OK;
@@ -6242,6 +6252,9 @@ list_concat(l1, l2, tv)
     typval_T	*tv;
 {
     list_T	*l;
+
+    if (l1 == NULL || l2 == NULL)
+	return FAIL;
 
     /* make a copy of the first list. */
     l = list_copy(l1, FALSE, 0);
@@ -9697,15 +9710,19 @@ f_filereadable(argvars, rettv)
     typval_T	*argvars;
     typval_T	*rettv;
 {
-    FILE	*fd;
+    int		fd;
     char_u	*p;
     int		n;
 
+#ifndef O_NONBLOCK
+# define O_NONBLOCK 0
+#endif
     p = get_tv_string(&argvars[0]);
-    if (*p && !mch_isdir(p) && (fd = mch_fopen((char *)p, "r")) != NULL)
+    if (*p && !mch_isdir(p) && (fd = mch_open((char *)p,
+					      O_RDONLY | O_NONBLOCK, 0)) >= 0)
     {
 	n = TRUE;
-	fclose(fd);
+	close(fd);
     }
     else
 	n = FALSE;
@@ -15013,7 +15030,7 @@ do_searchpair(spat, mpat, epat, dir, skip, flags, match_pos,
 
     /* Make 'cpoptions' empty, the 'l' flag should not be used here. */
     save_cpo = p_cpo;
-    p_cpo = (char_u *)"";
+    p_cpo = empty_option;
 
 #ifdef FEAT_RELTIME
     /* Set the time limit, if there is one. */
@@ -15128,7 +15145,11 @@ do_searchpair(spat, mpat, epat, dir, skip, flags, match_pos,
 theend:
     vim_free(pat2);
     vim_free(pat3);
-    p_cpo = save_cpo;
+    if (p_cpo == empty_option)
+	p_cpo = save_cpo;
+    else
+	/* Darn, evaluating the {skip} expression changed the value. */
+	free_string_option(save_cpo);
 
     return retval;
 }
@@ -18085,7 +18106,6 @@ get_vim_var_nr(idx)
     return vimvars[idx].vv_nr;
 }
 
-#if defined(FEAT_AUTOCMD) || defined(PROTO)
 /*
  * Get string v: variable value.  Uses a static buffer, can only be used once.
  */
@@ -18095,7 +18115,6 @@ get_vim_var_str(idx)
 {
     return get_tv_string(&vimvars[idx].vv_tv);
 }
-#endif
 
 /*
  * Set v:count, v:count1 and v:prevcount.
@@ -21995,7 +22014,7 @@ shortpath_for_invalid_fname(fname, bufp, fnamelen)
 	ch = *endp;
 	*endp = 0;
 	short_fname = save_fname;
-	len = STRLEN(short_fname) + 1;
+	len = (int)STRLEN(short_fname) + 1;
 	if (get_short_pathname(&short_fname, &pbuf_unused, &len) == FAIL)
 	{
 	    retval = FAIL;
@@ -22519,7 +22538,7 @@ do_string_sub(str, pat, sub, flags)
 
     /* Make 'cpoptions' empty, so that the 'l' flag doesn't work here */
     save_cpo = p_cpo;
-    p_cpo = (char_u *)"";
+    p_cpo = empty_option;
 
     ga_init2(&ga, 1, 200);
 
@@ -22580,7 +22599,11 @@ do_string_sub(str, pat, sub, flags)
 
     ret = vim_strsave(ga.ga_data == NULL ? str : (char_u *)ga.ga_data);
     ga_clear(&ga);
-    p_cpo = save_cpo;
+    if (p_cpo == empty_option)
+	p_cpo = save_cpo;
+    else
+	/* Darn, evaluating {sub} expression changed the value. */
+	free_string_option(save_cpo);
 
     return ret;
 }

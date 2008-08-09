@@ -772,6 +772,7 @@ ac_user_opts='
 enable_option_checking
 enable_darwin
 with_mac_arch
+with_local_dir
 with_vim_name
 with_ex_name
 with_view_name
@@ -1488,6 +1489,8 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-mac-arch=ARCH    current, intel, ppc or both
+  --with-local-dir=PATH   search PATH instead of /usr/local for local libraries.
+  --without-local-dir     do not search /usr/local for local libraries.
   --with-vim-name=NAME    what to call the Vim executable
   --with-ex-name=NAME     what to call the Ex executable
   --with-view-name=NAME   what to call the View executable
@@ -3943,7 +3946,7 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
 
   if test "$enable_darwin" = "yes"; then
     MACOSX=yes
-    OS_EXTRA_SCR="os_macosx.c os_mac_conv.c";
+    OS_EXTRA_SRC="os_macosx.c os_mac_conv.c";
     OS_EXTRA_OBJ="objects/os_macosx.o objects/os_mac_conv.o"
         CPPFLAGS="$CPPFLAGS -DMACOS_X_UNIX -no-cpp-precomp"
     if test "x$MACARCH" = "xboth"; then
@@ -4176,24 +4179,53 @@ fi
 
 
 if test "$cross_compiling" = no; then
+  { $as_echo "$as_me:$LINENO: checking --with-local-dir argument" >&5
+$as_echo_n "checking --with-local-dir argument... " >&6; }
   have_local_include=''
   have_local_lib=''
-  if test "$GCC" = yes; then
+
+# Check whether --with-local-dir was given.
+if test "${with_local_dir+set}" = set; then
+  withval=$with_local_dir;
+    local_dir="$withval"
+    case "$withval" in
+    */*) ;;
+    no)
+      # avoid adding local dir to LDFLAGS and CPPFLAGS
+      have_local_dir=yes
+      have_local_lib=yes
+      ;;
+    *) { { $as_echo "$as_me:$LINENO: error: must pass path argument to --with-local-dir" >&5
+$as_echo "$as_me: error: must pass path argument to --with-local-dir" >&2;}
+   { (exit 1); exit 1; }; } ;;
+    esac
+	{ $as_echo "$as_me:$LINENO: result: $local_dir" >&5
+$as_echo "$local_dir" >&6; }
+
+else
+
+    local_dir=/usr/local
+    { $as_echo "$as_me:$LINENO: result: Defaulting to $local_dir" >&5
+$as_echo "Defaulting to $local_dir" >&6; }
+
+fi
+
+  if test "$GCC" = yes -a "$local_dir" != no; then
     echo 'void f(){}' > conftest.c
-        have_local_include=`${CC-cc} -no-cpp-precomp -c -v conftest.c 2>&1 | grep '/usr/local/include'`
-    have_local_lib=`${CC-cc} -c -v conftest.c 2>&1 | grep '/usr/local/lib'`
+        have_local_include=`${CC-cc} -no-cpp-precomp -c -v conftest.c 2>&1 | grep "${local_dir}/include"`
+    have_local_lib=`${CC-cc} -c -v conftest.c 2>&1 | grep "${local_dir}/lib"`
     rm -f conftest.c conftest.o
   fi
-  if test -z "$have_local_lib" -a -d /usr/local/lib; then
-    tt=`echo "$LDFLAGS" | sed -e 's+-L/usr/local/lib ++g' -e 's+-L/usr/local/lib$++g'`
+  if test -z "$have_local_lib" -a -d "${local_dir}/lib"; then
+    tt=`echo "$LDFLAGS" | sed -e "s+-L${local_dir}/lib ++g" -e "s+-L${local_dir}/lib$++g"`
     if test "$tt" = "$LDFLAGS"; then
-      LDFLAGS="$LDFLAGS -L/usr/local/lib"
+      LDFLAGS="$LDFLAGS -L${local_dir}/lib"
     fi
   fi
-  if test -z "$have_local_include" -a -d /usr/local/include; then
-    tt=`echo "$CPPFLAGS" | sed -e 's+-I/usr/local/include ++g' -e 's+-I/usr/local/include$++g'`
+  if test -z "$have_local_include" -a -d "${local_dir}/include"; then
+    tt=`echo "$CPPFLAGS" | sed -e "s+-I${local_dir}/include ++g" -e "s+-I${local_dir}/include$++g"`
     if test "$tt" = "$CPPFLAGS"; then
-      CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+      CPPFLAGS="$CPPFLAGS -I${local_dir}/include"
     fi
   fi
 fi
@@ -5082,16 +5114,17 @@ $as_echo "can't find it!" >&6; }
   $as_echo_n "(cached) " >&6
 else
 
-	    tmp_mkf="/tmp/Makefile-conf$$"
-	    cat ${PYTHON_CONFDIR}/Makefile - <<'eof' >${tmp_mkf}
+	    pwd=`pwd`
+	    tmp_mkf="$pwd/config-PyMake$$"
+	    cat -- "${PYTHON_CONFDIR}/Makefile" - <<'eof' >"${tmp_mkf}"
 __:
 	@echo "python_MODLIBS='$(MODLIBS)'"
 	@echo "python_LIBS='$(LIBS)'"
 	@echo "python_SYSLIBS='$(SYSLIBS)'"
 	@echo "python_LINKFORSHARED='$(LINKFORSHARED)'"
 eof
-	    	    eval "`cd ${PYTHON_CONFDIR} && make -f ${tmp_mkf} __ | sed '/ directory /d'`"
-	    rm -f ${tmp_mkf}
+	    	    eval "`cd ${PYTHON_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
+	    rm -f -- "${tmp_mkf}"
 	    if test "x$MACOSX" = "xyes" && ${vi_cv_path_python} -c \
 		"import sys; sys.exit(${vi_cv_var_python_version} < 2.3)"; then
 	      vi_cv_path_python_plibs="-framework Python"
@@ -5566,7 +5599,7 @@ $as_echo_n "checking for location of tclConfig.sh script... " >&6; }
 $as_echo "$try/tclConfig.sh" >&6; }
 	    . $try/tclConfig.sh
 	    	    TCL_LIBS=`eval echo "$TCL_LIB_SPEC $TCL_LIBS"`
-	    	    	    TCL_DEFS=`echo $TCL_DEFS | sed -e 's/\\\\ /\\\\X/g' | tr ' ' '\012' | sed -e '/^-[^D]/d' -e '/-D[^_]/d' -e 's/-D_/ -D_/' | tr '\012' ' ' | sed -e 's/\\\\X/\\\\ /g'`
+	    	    	    TCL_DEFS=`echo $TCL_DEFS | sed -e 's/\\\\ /\\\\X/g' | tr ' ' '\012' | sed -e '/^[^-]/d' -e '/^-[^D]/d' -e '/-D[^_]/d' -e 's/-D_/ -D_/' | tr '\012' ' ' | sed -e 's/\\\\X/\\\\ /g'`
 	    break
 	  fi
 	done

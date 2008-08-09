@@ -1,4 +1,4 @@
-*pi_netrw.txt*  For Vim version 7.2a.  Last change: 2008 Jun 21
+*pi_netrw.txt*  For Vim version 7.2.  Last change: 2008 Aug 08
 
 	    -----------------------------------------------------
 	    NETRW REFERENCE MANUAL    by Charles E. Campbell, Jr.
@@ -313,13 +313,6 @@ settings are described below, in |netrw-browser-options|, and in
 			=1 preview window shown in a vertically split window.
 			Also affects the "previous window" (see |netrw-P|) in
 			the same way.
-
- *g:netrw_shq*		= "'" for Unix/Linux systems (ie. a single quote)
-			= "'" for Windows + cygwin systems (ie. a single quote)
-			= '"' for Windows systems, not using cygwin
-			      (ie. a double quote)
-			Controls the quoting character used during scp and ftp
-			commands.
 
  *g:netrw_scpport*      = "-P" : option to use to set port for scp
  *g:netrw_sshport*      = "-p" : option to use to set port for ssh
@@ -864,6 +857,7 @@ QUICK HELP						*netrw-quickhelp* {{{2
 	Sorted by
 	  Select sorting style (name/time/size).........|netrw-s|
 	  Editing the sorting sequence..................|netrw-S|
+	  Sorting options...............................|g:netrw_sort_options|
 	  Associated setting variable...................|g:netrw_sort_sequence|
 	  Reverse sorting order.........................|netrw-r|
 
@@ -920,6 +914,8 @@ QUICK REFERENCE: MAPS				*netrw-browse-maps* {{{2
 	   v	Enter the file/directory under the cursor in a new   |netrw-v|
 	   	browser window.  A vertical split is used.
 	   x	View file with an associated program                 |netrw-x|
+
+	   %	Open a new file in netrw's current directory         |netrw-%|
 
 	<leftmouse>	(gvim only) selects word under mouse as if a <cr>
 			had been pressed (ie. edit file, change directory)
@@ -1362,8 +1358,8 @@ will end up.  One may change the sorting sequence by modifying the
 g:netrw_sort_sequence variable (either manually or in your <.vimrc>) or by
 using the "S" map.
 
-Related topics:              |netrw-s|
-Associated setting variable: |g:netrw_sort_sequence|
+Related topics:               |netrw-s|               |netrw-S|
+Associated setting variables: |g:netrw_sort_sequence| |g:netrw_sort_options|
 
 
 GOING UP							*netrw--* {{{2
@@ -1441,21 +1437,56 @@ tips & tools" by Rob Flickenger (O'Reilly, ISBN 0-596-00461-3) gives a tip
 for setting up no-password ssh and scp and discusses associated security
 issues.  It used to be available at http://hacks.oreilly.com/pub/h/66 ,
 but apparently that address is now being redirected to some "hackzine".
-I'll attempt a summary:
+I'll attempt a summary based on that article and on a communication from
+Ben Schmidt:
 
-	1. Generate a public/private key pair on the ssh server:
-	   ssh-keygen -t rsa
-	   (saving the file in ~/.ssh/id_rsa is ok)
-	2. Just hit the <CR> when asked for passphrase (twice).
-	3. This creates two files:
-	     ~/.ssh/id_rsa
-	     ~/.ssh/id_rsa.pub
-	4. On the client:
-	    cd
-	    mkdir .ssh
-	    chmod 0700 .ssh
-	    scp {serverhostname}:.ssh/id_rsa.pub .
-	    cat id_rsa.pub >> .ssh/authorized_keys2
+	1. Generate a public/private key pair on the local machine
+	   (ssh client): >
+		ssh-keygen -t rsa
+		(saving the file in ~/.ssh/id_rsa as prompted)
+<
+	2. Just hit the <CR> when asked for passphrase (twice) for no
+	   passphrase.  If you do use a passphrase, you will also need to use
+	   ssh-agent so you only have to type the passphrase once per session.
+	   If you don't use a passphrase, simply logging onto your local
+	   computer or getting access to the keyfile in any way will suffice
+	   to access any ssh servers which have that key authorized for login.
+
+	3. This creates two files: >
+		~/.ssh/id_rsa
+		~/.ssh/id_rsa.pub
+<
+	4. On the target machine (ssh server): >
+		cd
+		mkdir -p .ssh
+		chmod 0700 .ssh
+<
+	5. On your local machine (ssh client): (one line) >
+		ssh {serverhostname}
+		  cat '>>' '~/.ssh/authorized_keys2' < ~/.ssh/id_rsa.pub
+<
+	   or, for OpenSSH, (one line) >
+		ssh {serverhostname}
+		  cat '>>' '~/.ssh/authorized_keys' < ~/.ssh/id_rsa.pub
+<
+You can test it out with >
+	ssh {serverhostname}
+and you should be log onto the server machine without further need to type
+anything.
+
+If you decided to use a passphrase, do: >
+	ssh-agent $SHELL
+	ssh-add
+	ssh {serverhostname}
+You will be prompted for your key passphrase when you use ssh-add, but not
+subsequently when you use ssh.  For use with vim, you can use >
+	ssh-agent vim
+and, when next within vim, use >
+	:!ssh-add
+Alternatively, you can apply ssh-agent to the terminal you're planning on
+running vim in: >
+	ssh-agent xterm &
+and do ssh-add whenever you need.
 
 For Windows, folks on the vim mailing list have mentioned that Pageant helps
 with avoiding the constant need to enter the password.
@@ -1632,6 +1663,13 @@ MARKED FILES: MOVING						*netrw-mm* {{{2
 	    (See |netrw-mf| and |netrw-mr| for how to mark files)
 		      (uses the global marked file list)
 
+	WARNING: moving files is more dangerous than copying them.
+	A file being moved is first copied and then deleted; if the
+	copy operation fails and the delete succeeds, you will lose
+	the file.  Either try things out with unimportant files
+	first or do the copy and then delete yourself using mc and D.
+	Use at your own risk!
+
 Select a target directory with mT (|netrw-mt|).  Then change directory,
 select file(s) (see |netrw-mf|), and press "mm".
 
@@ -1657,7 +1695,7 @@ MARKED FILES: TAGGING						*netrw-mT* {{{2
 	    (See |netrw-mf| and |netrw-mr| for how to mark files)
 		      (uses the global marked file list)
 
-The "mt" mapping will apply the command in g:netrw_ctags (by default, its
+The "mt" mapping will apply the command in |g:netrw_ctags| (by default, its
 "ctags") to marked files.  For remote browsing, in order to create a tags file
 netrw will use ssh (see |g:netrw_ssh_cmd|), and so ssh must be available for
 this to work on remote systems.  For your local system, see |ctags| on how to
@@ -1676,7 +1714,7 @@ preceded by the netrw-compatible url used to obtain it.  When one subsequently
 uses one of the go to tag actions (|tags|), the url will be used by netrw to
 edit the desired file and go to the tag.
 
-Associated setting variables: |g:netrw_ssh_cmd|
+Associated setting variables: |g:netrw_ctags| |g:netrw_ssh_cmd|
 
 
 MARKED FILES: SETTING THE TARGET DIRECTORY			*netrw-mt* {{{2
@@ -1738,13 +1776,12 @@ your browsing preferences.  (see also: |netrw-settings|)
 				a script/function to handle the given
 				extension.  (see |netrw_filehandler|).
 
-  *g:netrw_cd_escape*		="[]#*$%'\" ?`!&();<>\\"
-  				This option is used to escape directory names
-				before changing directory to them.
-
   *g:netrw_compress*		="gzip"
 				    Will compress marked files with this
 				    command
+
+  *g:netrw_ctags*		="ctags"
+				The default external program used to create tags
 
   *g:netrw_decompress*		= { ".gz" : "gunzip" ,
 				    ".bz2" : "bunzip2" ,
@@ -1888,6 +1925,14 @@ your browsing preferences.  (see also: |netrw-settings|)
   *g:netrw_sort_direction*	sorting direction: "normal" or "reverse"
 				 default: "normal"
 
+  *g:netrw_sort_options*	sorting is done using |:sort|; this
+				variable's value is appended to the
+				sort command.  Thus one may ignore case,
+				for example, with the following in your
+				.vimrc: >
+					let g:netrw_sort_options="i"
+<				 default: ""
+
   *g:netrw_sort_sequence*	when sorting by name, first sort by the
 				comma-separated pattern sequence
 				 default: '[\/]$,*,\.bak$,\.o$,\.h$,
@@ -2029,6 +2074,13 @@ Related topics:
  * To make the currently browsed directory the current directory, see |netrw-c|
  * To automatically make the currently browsed directory the current
    directory, see |g:netrw_keepdir|.
+
+
+OPEN A NEW FILE IN NETRW'S CURRENT DIRECTORY		*netrw-%*
+
+To open a file in netrw's current directory, press "%".  This map will
+query the user for a new filename; an empty file by that name will be
+placed in the netrw's current directory (ie. b:netrw_curdir).
 
 
 PREVIEW WINDOW				*netrw-p* *netrw-preview* {{{2
@@ -2377,6 +2429,37 @@ which is loaded automatically at startup (assuming :set nocp).
 ==============================================================================
 12. History						*netrw-history* {{{1
 
+	v132: Aug 06, 2008 * Fixed marked file-based obtain
+	      Aug 08, 2008 * sourcing a file via ftp from a netrw-generated
+	                     buffer (or any buffer with |'nobl'|) left an
+			     empty no-name buffer in its wake.  Fixed.
+	v130: Jul 31, 2008 * trying out elinks/links for http://host/
+			     requests.  One problem: in-page links
+			     (such as with ...#LABEL) are not supported
+			   * verified that Bram's modified netrwPlugin works
+	      Aug 01, 2008 * fixed a bug: when sourcing a file via ftp, the
+			     "filter window" was left behind.
+	v129: Jul 31, 2008 * bug found in non-mouse enabled vim and some
+			     local maps
+	v128: Jul 30, 2008 * much work done in using shellescape() and
+			     fnameescape()
+	v126: Jun 30, 2008 * after having gone to a remote directory,
+	                     <f1> was no longer taking one to the correct
+			     entry in the help (|netrw-quickhelp|).  Fixed.
+	      Jul 01, 2008 * extracting the last filename from a wide listing
+			     missed the last letter when |'virtualedit'| not
+			     enabled.
+	      Jul 01, 2008 * vim foo/bar  was creating [Scratch] buffers,
+			     where bar was also a directory
+	      Jul 01, 2008 * numerous additional changes were made to netrw
+			     to use fnameescape() and shellescape() instead
+			     of escape().  Not all changes have been tested
+			     as yet...
+	      Jul 01, 2008 * (James Vega reported) some problems with
+			     :NetrwSettings (due to no longer used setting
+			     variables).
+	      Jul 07, 2008 * Additional numerous changes to support security;
+	                     shellescape(arg,1), etc.
 	v125: Apr 07, 2008 * (Cristian Rigamonti) CR provides a patch; he
 			     noted that gx was failing since its call to
 			     netrw#NetBrowseX() wasn't updated to
@@ -2570,7 +2653,7 @@ which is loaded automatically at startup (assuming :set nocp).
 	v110: May 10, 2007 * added [ and ] maps to NetrwTreeListing
 	      May 25, 2007 * |g:netrw_preview| included
 	      May 29, 2007 * modifed netrw#NetBrowseX to consistently use
-			    |g:netrw_shq| instead of hardcoded quotes,
+			     g:netrw_shq instead of hardcoded quotes,
 			     and modified the snippet that sets up redir
 			     so Windows machines use "nul" instead of
 			     "/dev/null".

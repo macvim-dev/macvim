@@ -2845,7 +2845,7 @@ check_file_readonly(fname, perm)
  *
  * If "forceit" is true, we don't care for errors when attempting backups.
  * In case of an error everything possible is done to restore the original
- * file.  But when "forceit" is TRUE, we risk loosing it.
+ * file.  But when "forceit" is TRUE, we risk losing it.
  *
  * When "reset_changed" is TRUE and "append" == FALSE and "start" == 1 and
  * "end" == curbuf->b_ml.ml_line_count, reset curbuf->b_changed.
@@ -4442,7 +4442,7 @@ restore_backup:
 
 	/*
 	 * If we have a backup file, try to put it in place of the new file,
-	 * because the new file is probably corrupt.  This avoids loosing the
+	 * because the new file is probably corrupt.  This avoids losing the
 	 * original file when trying to make a backup when writing the file a
 	 * second time.
 	 * When "backup_copy" is set we need to copy the backup over the new
@@ -5541,7 +5541,7 @@ check_for_bom(p, size, lenp, flags)
     int		len = 2;
 
     if (p[0] == 0xef && p[1] == 0xbb && size >= 3 && p[2] == 0xbf
-	    && (flags == FIO_ALL || flags == 0))
+	    && (flags == FIO_ALL || flags == FIO_UTF8 || flags == 0))
     {
 	name = "utf-8";		/* EF BB BF */
 	len = 3;
@@ -8240,7 +8240,7 @@ ex_doautoall(eap)
      */
     for (buf = firstbuf; buf != NULL; buf = buf->b_next)
     {
-	if (curbuf->b_ml.ml_mfp != NULL)
+	if (buf->b_ml.ml_mfp != NULL)
 	{
 	    /* find a window for this buffer and save some values */
 	    aucmd_prepbuf(&aco, buf);

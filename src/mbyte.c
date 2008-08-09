@@ -2448,8 +2448,6 @@ dbcs_head_off(base, p)
     return (q == p) ? 0 : 1;
 }
 
-#if defined(FEAT_CLIPBOARD) || defined(FEAT_GUI) || defined(FEAT_RIGHTLEFT) \
-	|| defined(PROTO)
 /*
  * Special version of dbcs_head_off() that works for ScreenLines[], where
  * single-width DBCS_JPNU characters are stored separately.
@@ -2484,7 +2482,6 @@ dbcs_screen_head_off(base, p)
     }
     return (q == p) ? 0 : 1;
 }
-#endif
 
     int
 utf_head_off(base, p)
@@ -2934,11 +2931,9 @@ mb_lefthalve(row, col)
 					LineOffset[row] + screen_Columns) > 1;
 }
 
-# if defined(FEAT_CLIPBOARD) || defined(FEAT_GUI) || defined(FEAT_RIGHTLEFT) \
-	|| defined(PROTO)
 /*
- * Correct a position on the screen, if it's the right halve of a double-wide
- * char move it to the left halve.  Returns the corrected column.
+ * Correct a position on the screen, if it's the right half of a double-wide
+ * char move it to the left half.  Returns the corrected column.
  */
     int
 mb_fix_col(col, row)
@@ -2956,7 +2951,6 @@ mb_fix_col(col, row)
 	return col - 1;
     return col;
 }
-# endif
 #endif
 
 #if defined(FEAT_MBYTE) || defined(FEAT_POSTSCRIPT) || defined(PROTO)
@@ -3454,6 +3448,7 @@ init_preedit_start_col(void)
 # if defined(HAVE_GTK2) && !defined(PROTO)
 
 static int im_is_active	       = FALSE;	/* IM is enabled for current mode    */
+static int preedit_is_active   = FALSE;
 static int im_preedit_cursor   = 0;	/* cursor offset in characters       */
 static int im_preedit_trailing = 0;	/* number of characters after cursor */
 
@@ -3686,7 +3681,9 @@ im_preedit_start_cb(GtkIMContext *context, gpointer data)
 #endif
 
     im_is_active = TRUE;
+    preedit_is_active = TRUE;
     gui_update_cursor(TRUE, FALSE);
+    im_show_info();
 }
 
 /*
@@ -3707,9 +3704,11 @@ im_preedit_end_cb(GtkIMContext *context, gpointer data)
 
 #if 0
     /* Removal of this line suggested by Takuhiro Nishioka.  Fixes that IM was
-     * switched off unintentionally. */
+     * switched off unintentionally.  We now use preedit_is_active (added by
+     * SungHyun Nam). */
     im_is_active = FALSE;
 #endif
+    preedit_is_active = FALSE;
     gui_update_cursor(TRUE, FALSE);
     im_show_info();
 }
@@ -5722,6 +5721,14 @@ im_get_status()
 }
 
 # endif /* !HAVE_GTK2 */
+
+# if defined(HAVE_GTK2) || defined(PROTO)
+    int
+preedit_get_status(void)
+{
+    return preedit_is_active;
+}
+# endif
 
 # if defined(FEAT_GUI_GTK) || defined(PROTO)
     int

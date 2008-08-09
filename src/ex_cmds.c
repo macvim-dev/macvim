@@ -11,7 +11,7 @@
  * ex_cmds.c: some functions for command line commands
  */
 
-#if defined(MSDOS) || defined(MSWIN)
+#if defined(MSDOS) || defined(WIN16) || defined(WIN32) || defined(_WIN64)
 # include "vimio.h"	/* for mch_open(), must be before vim.h */
 #endif
 
@@ -479,10 +479,13 @@ ex_sort(eap)
 	    c = *s2;
 	    (*s2) = 0;
 	    /* Sorting on number: Store the number itself. */
+	    p = s + start_col;
 	    if (sort_hex)
-		s = skiptohex(s + start_col);
+		s = skiptohex(p);
 	    else
-		s = skiptodigit(s + start_col);
+		s = skiptodigit(p);
+	    if (s > p && s[-1] == '-')
+		--s;  /* include preceding negative sign */
 	    vim_str2nr(s, NULL, NULL, sort_oct, sort_hex,
 					&nrs[lnum - eap->line1].start_col_nr, NULL);
 	    (*s2) = c;
@@ -3141,10 +3144,11 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags)
 #ifdef FEAT_BROWSE
 	if (cmdmod.browse)
 	{
+# ifdef FEAT_AUTOCMD
 	    if (
-# ifdef FEAT_GUI
+#  ifdef FEAT_GUI
 		!gui.in_use &&
-# endif
+#  endif
 		    au_has_group((char_u *)"FileExplorer"))
 	    {
 		/* No browsing supported but we do have the file explorer:
@@ -3153,6 +3157,7 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags)
 		    ffname = (char_u *)".";
 	    }
 	    else
+# endif
 	    {
 		browse_file = do_browse(0, (char_u *)_("Edit File"), ffname,
 						    NULL, NULL, NULL, curbuf);
@@ -5894,10 +5899,15 @@ find_help_tags(arg, num_matches, matches, keep_lang)
 	flags |= TAG_KEEP_LANG;
     if (find_tags(IObuff, num_matches, matches, flags, (int)MAXCOL, NULL) == OK
 	    && *num_matches > 0)
+    {
 	/* Sort the matches found on the heuristic number that is after the
 	 * tag name. */
 	qsort((void *)*matches, (size_t)*num_matches,
 					      sizeof(char_u *), help_compare);
+	/* Delete more than TAG_MANY to reduce the size of the listing. */
+	while (*num_matches > TAG_MANY)
+	    vim_free((*matches)[--*num_matches]);
+    }
     return OK;
 }
 

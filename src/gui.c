@@ -988,9 +988,10 @@ gui_update_cursor(force, clear_selection)
     int		attr;
     attrentry_T *aep = NULL;
 
-    /* Don't update the cursor when halfway busy scrolling.
-     * ScreenLines[] isn't valid then. */
-    if (!can_update_cursor)
+    /* Don't update the cursor when halfway busy scrolling or the screen size
+     * doesn't match 'columns' and 'lines.  ScreenLines[] isn't valid then. */
+    if (!can_update_cursor || screen_Columns != gui.num_cols
+					       || screen_Rows != gui.num_rows)
 	return;
 
     gui_check_pos();
@@ -1045,7 +1046,13 @@ gui_update_cursor(force, clear_selection)
 		static int iid;
 		guicolor_T fg, bg;
 
-		if (im_get_status())
+		if (
+# ifdef HAVE_GTK2
+			preedit_get_status()
+# else
+			im_get_status()
+# endif
+			)
 		{
 		    iid = syn_name2id((char_u *)"CursorIM");
 		    if (iid > 0)
@@ -5226,6 +5233,16 @@ gui_handle_drop(x, y, modifiers, fnames, count)
 {
     int		i;
     char_u	*p;
+    static int	entered = FALSE;
+
+    /*
+     * This function is called by event handlers.  Just in case we get a
+     * second event before the first one is handled, ignore the second one.
+     * Not sure if this can ever happen, just in case.
+     */
+    if (entered)
+	return;
+    entered = TRUE;
 
     /*
      * When the cursor is at the command line, add the file names to the
@@ -5309,5 +5326,7 @@ gui_handle_drop(x, y, modifiers, fnames, count)
 	gui_update_cursor(FALSE, FALSE);
 	gui_mch_flush();
     }
+
+    entered = FALSE;
 }
 #endif

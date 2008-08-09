@@ -178,6 +178,9 @@
 # ifdef FEAT_X11
 #  undef FEAT_X11
 # endif
+# ifdef FEAT_GUI_X11
+#  undef FEAT_GUI_X11
+# endif
 # ifdef FEAT_XCLIPBOARD
 #  undef FEAT_XCLIPBOARD
 # endif
@@ -353,8 +356,8 @@ typedef unsigned char	char_u;
 typedef unsigned short	short_u;
 typedef unsigned int	int_u;
 /* Make sure long_u is big enough to hold a pointer.
- * On Win64 longs are 32 bit and pointers 64 bit.
- * For printf() and scanf() we need to take care of long_u specifically. */
+ * On Win64, longs are 32 bits and pointers are 64 bits.
+ * For printf() and scanf(), we need to take care of long_u specifically. */
 #ifdef _WIN64
 typedef unsigned __int64        long_u;
 typedef		 __int64        long_i;
@@ -362,8 +365,16 @@ typedef		 __int64        long_i;
 # define SCANF_DECIMAL_LONG_U   "%Iu"
 # define PRINTF_HEX_LONG_U      "0x%Ix"
 #else
-typedef unsigned long	        long_u;
-typedef		 long	        long_i;
+  /* Microsoft-specific. The __w64 keyword should be specified on any typedefs
+   * that change size between 32-bit and 64-bit platforms.  For any such type,
+   * __w64 should appear only on the 32-bit definition of the typedef.
+   * Define __w64 as an empty token for everything but MSVC 7.x or later.
+   */
+# if !defined(_MSC_VER)	|| (_MSC_VER < 1300)
+#  define __w64 
+# endif
+typedef unsigned long __w64	long_u;
+typedef		 long __w64     long_i;
 # define SCANF_HEX_LONG_U       "%lx"
 # define SCANF_DECIMAL_LONG_U   "%lu"
 # define PRINTF_HEX_LONG_U      "0x%lx"
@@ -1011,7 +1022,7 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define TAG_INS_COMP	64	/* Currently doing insert completion */
 #define TAG_KEEP_LANG	128	/* keep current language */
 
-#define TAG_MANY	200	/* When finding many tags (for completion),
+#define TAG_MANY	300	/* When finding many tags (for completion),
 				   find up to this many tags */
 
 /*
@@ -2009,8 +2020,9 @@ typedef int VimClipboard;	/* This is required for the prototypes. */
 # ifdef instr
 #  undef instr
 # endif
-  /* bool causes trouble on MACOS but is required on a few other systems */
-# if defined(bool) && defined(MACOS)
+  /* bool may cause trouble on MACOS but is required on a few other systems
+   * and for Perl */
+# if defined(bool) && defined(MACOS) && !defined(FEAT_PERL)
 #  undef bool
 # endif
 

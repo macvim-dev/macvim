@@ -6746,6 +6746,10 @@ handle_drop(filec, filev, split)
     if (curbuf_locked())
 	return;
 #endif
+    /* When the screen is being updated we should not change buffers and
+     * windows structures, it may cause freed memory to be used. */
+    if (updating_screen)
+	return;
 
     /* Check whether the current buffer is changed. If so, we will need
      * to split the current window or data could be lost.
@@ -7109,10 +7113,11 @@ ex_splitview(eap)
 # endif
 	    && eap->cmdidx != CMD_new)
     {
+# ifdef FEAT_AUTOCMD
 	if (
-# ifdef FEAT_GUI
+#  ifdef FEAT_GUI
 	    !gui.in_use &&
-# endif
+#  endif
 		au_has_group((char_u *)"FileExplorer"))
 	{
 	    /* No browsing supported but we do have the file explorer:
@@ -7121,6 +7126,7 @@ ex_splitview(eap)
 		eap->arg = (char_u *)".";
 	}
 	else
+# endif
 	{
 	    fname = do_browse(0, (char_u *)_("Edit File in new window"),
 					  eap->arg, NULL, NULL, NULL, curbuf);
@@ -8926,6 +8932,7 @@ ex_normal(eap)
     tasave_T	tabuf;
     int		save_insertmode = p_im;
     int		save_finish_op = finish_op;
+    int		save_opcount = opcount;
 #ifdef FEAT_MBYTE
     char_u	*arg = NULL;
     int		l;
@@ -9053,6 +9060,7 @@ ex_normal(eap)
     restart_edit = save_restart_edit;
     p_im = save_insertmode;
     finish_op = save_finish_op;
+    opcount = save_opcount;
     msg_didout |= save_msg_didout;	/* don't reset msg_didout now */
 
     /* Restore the state (needed when called from a function executed for

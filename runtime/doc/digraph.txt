@@ -1,15 +1,15 @@
-*digraph.txt*   For Vim version 7.2a.  Last change: 2007 Sep 10
+*digraph.txt*   For Vim version 7.2.  Last change: 2008 Aug 06
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
 
 
-Digraphs						*digraphs* *Digraphs*
+Digraphs					*digraph* *digraphs* *Digraphs*
 
 Digraphs are used to enter characters that normally cannot be entered by
-an ordinary keyboard.  These are mostly accented characters which have the
-eighth bit set.  The digraphs are easier to remember than the decimal number
-that can be entered with CTRL-V (see |i_CTRL-V|).
+an ordinary keyboard.  These are mostly printable non-ASCII characters.  The
+digraphs are easier to remember than the decimal number that can be entered
+with CTRL-V (see |i_CTRL-V|).
 
 There is a brief introduction on digraphs in the user manual: |24.9|
 An alternative is using the 'keymap' option.
@@ -53,7 +53,9 @@ this file.
 The decimal number normally is the Unicode number of the character.  Note that
 the meaning doesn't change when 'encoding' changes.  The character will be
 converted from Unicode to 'encoding' when needed.  This does require the
-conversion to be available, it might fail.
+conversion to be available, it might fail.  For the NUL character you will see
+"10".  That's because NUL characters are internally represented with a NL
+character.  When you write the file it will become a NUL character.
 
 When Vim was compiled without the +multi_byte feature, you need to specify the
 character in the encoding given with 'encoding'.  You might want to use
