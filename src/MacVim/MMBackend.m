@@ -2269,8 +2269,10 @@ static NSString *MMSymlinkWarningString =
     BOOL openFiles = ![[args objectForKey:@"dontOpen"] boolValue];
     int layout = [[args objectForKey:@"layout"] intValue];
 
-    // Change to directory of first file to open, unless editing remotely.
-    if (openFiles && numFiles > 0 && ![args objectForKey:@"remoteID"]) {
+    // Change to directory of first file to open if this is an "unused" editor
+    // (but do not do this if editing remotely).
+    if (openFiles && numFiles > 0 && ![args objectForKey:@"remoteID"]
+            && (starting || [self unusedEditor]) ) {
         char_u *s = [[filenames objectAtIndex:0] vimStringSave];
         vim_chdirfile(s);
         vim_free(s);
