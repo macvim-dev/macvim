@@ -161,6 +161,12 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
     NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
     [NSApp registerServicesMenuSendTypes:types returnTypes:types];
+
+    // NOTE: Set the current directory to user's home directory, otherwise it
+    // will default to the root directory.  (This matters since new Vim
+    // processes inherit MacVim's environment variables.)
+    [[NSFileManager defaultManager] changeCurrentDirectoryPath:
+            NSHomeDirectory()];
 }
 
 - (id)init

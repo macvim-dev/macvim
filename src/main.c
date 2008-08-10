@@ -464,6 +464,7 @@ main
     {
 	params.want_full_screen = FALSE;
 
+# ifndef FEAT_GUI_MACVIM
 	/* Avoid always using "/" as the current directory.  Note that when
 	 * started from Finder the arglist will be filled later in
 	 * HandleODocAE() and "fname" will be NULL. */
@@ -478,6 +479,7 @@ main
 		vim_chdir(NameBuff);
 	    }
 	}
+# endif
     }
 #endif
 
@@ -1916,7 +1918,7 @@ command_line_scan(parmp)
 		break;
 
 	    case 'p':		/* "-p[N]" open N tab pages */
-#ifdef TARGET_API_MAC_OSX
+#if defined(TARGET_API_MAC_OSX) && !defined(FEAT_GUI_MACVIM)
 		/* For some reason on MacOS X, an argument like:
 		   -psn_0_10223617 is passed in when invoke from Finder
 		   or with the 'open' command */

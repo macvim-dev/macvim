@@ -2267,6 +2267,13 @@ static NSString *MMSymlinkWarningString =
     BOOL openFiles = ![[args objectForKey:@"dontOpen"] boolValue];
     int layout = [[args objectForKey:@"layout"] intValue];
 
+    // Change to directory of first file to open, unless editing remotely.
+    if (openFiles && numFiles > 0 && ![args objectForKey:@"remoteID"]) {
+        char_u *s = [[filenames objectAtIndex:0] vimStringSave];
+        vim_chdirfile(s);
+        vim_free(s);
+    }
+
     if (starting > 0) {
         // When Vim is starting we simply add the files to be opened to the
         // global arglist and Vim will take care of opening them for us.
