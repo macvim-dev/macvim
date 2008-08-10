@@ -17,6 +17,8 @@
 				<string>id</string>
 				<key>newWindow</key>
 				<string>id</string>
+				<key>newWindowAndActivate</key>
+				<string>id</string>
 				<key>openWebsite</key>
 				<string>id</string>
 				<key>orderFrontPreferencePanel</key>

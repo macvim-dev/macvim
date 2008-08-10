@@ -110,6 +110,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (void)clearPreloadCacheWithCount:(int)count;
 - (NSDate *)rcFilesModificationDate;
 - (BOOL)openVimControllerWithArguments:(NSDictionary *)arguments;
+- (void)activateWhenNextWindowOpens;
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu;
@@ -724,6 +725,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
         [openSelectionString release];
         openSelectionString = nil;
     }
+
+    if (shouldActivateWhenNextWindowOpens) {
+        [NSApp activateIgnoringOtherApps:YES];
+        shouldActivateWhenNextWindowOpens = NO;
+    }
 }
 
 - (void)setMainMenu:(NSMenu *)mainMenu
@@ -847,6 +853,12 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     } else {
         [self launchVimProcessWithArguments:nil];
     }
+}
+
+- (IBAction)newWindowAndActivate:(id)sender
+{
+    [self activateWhenNextWindowOpens];
+    [self newWindow:sender];
 }
 
 - (IBAction)fileOpen:(id)sender
@@ -1581,6 +1593,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     }
 
     return YES;
+}
+
+- (void)activateWhenNextWindowOpens
+{
+    shouldActivateWhenNextWindowOpens = YES;
 }
 
 @end // MMAppController (Private)

@@ -27,6 +27,7 @@
     NSMenuItem          *recentFilesMenuItem;
     NSMutableArray      *cachedVimControllers;
     int                 preloadPid;
+    BOOL                shouldActivateWhenNextWindowOpens;
 
 #ifdef MM_ENABLE_PLUGINS
     NSMenuItem          *plugInMenuItem;
@@ -50,6 +51,7 @@
 - (void)setPreloadCacheSize:(int)size;
 
 - (IBAction)newWindow:(id)sender;
+- (IBAction)newWindowAndActivate:(id)sender;
 - (IBAction)fileOpen:(id)sender;
 - (IBAction)selectNextWindow:(id)sender;
 - (IBAction)selectPreviousWindow:(id)sender;
