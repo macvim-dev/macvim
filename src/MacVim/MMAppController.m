@@ -100,7 +100,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
                  replyEvent:(NSAppleEventDescriptor *)reply;
 #endif
 - (int)findLaunchingProcessWithoutArguments;
-- (MMVimController *)findUntitledWindow;
+- (MMVimController *)findUnusedEditor;
 - (NSMutableDictionary *)extractArgumentsFromOdocEvent:
     (NSAppleEventDescriptor *)desc;
 - (void)scheduleVimControllerPreloadAfterDelay:(NSTimeInterval)delay;
@@ -1302,20 +1302,13 @@ static int executeInLoginShell(NSString *path, NSArray *args);
     return -1;
 }
 
-- (MMVimController *)findUntitledWindow
+- (MMVimController *)findUnusedEditor
 {
     NSEnumerator *e = [vimControllers objectEnumerator];
     id vc;
     while ((vc = [e nextObject])) {
-        // TODO: This is a moronic test...should query the Vim process if there
-        // are any open buffers or something like that instead.
-        NSString *title = [[[vc windowController] window] title];
-
-        // TODO: this will not work in a localized MacVim
-        if ([title hasPrefix:@"[No Name] - VIM"]) {
-            //NSLog(@"found untitled window");
+        if ([[[vc vimState] objectForKey:@"unusedEditor"] boolValue])
             return vc;
-        }
     }
 
     return nil;
@@ -1558,20 +1551,11 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 - (BOOL)openVimControllerWithArguments:(NSDictionary *)arguments
 {
-    MMVimController *vc = [self findUntitledWindow];
+    MMVimController *vc = [self findUnusedEditor];
     if (vc) {
         // Open files in an already open window.
         [[[vc windowController] window] makeKeyAndOrderFront:self];
         [vc passArguments:arguments];
-
-        // HACK! Change window title so that findUntitledWindow does not think
-        // this window is untitled anymore, in case this method is called
-        // before the arguments have reached the Vim process and it in turn has
-        // responded by setting the window title.
-        //
-        // TODO: When the findUntitledWindow heuristic changes, this has to be
-        // fixed for real.
-        [[vc windowController] setTitle:@""];
     } else if ((vc = [self takeVimControllerFromCache])) {
         // Open files in a new window using a cached vim controller.  This
         // requires virtually no loading time so the new window will pop up

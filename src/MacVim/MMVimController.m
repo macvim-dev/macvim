@@ -273,6 +273,17 @@ static BOOL isUnsafeMessage(int msgid);
     if (!args) return;
 
     [self sendMessage:OpenWithArgumentsMsgID data:[args dictionaryAsData]];
+
+    // HACK! Fool findUnusedEditor into thinking that this controller is not
+    // unused anymore, in case it is called before the arguments have reached
+    // the Vim process.  This should be a "safe" hack since the next time the
+    // Vim process flushes its output queue the state will be updated again (at
+    // which time the "unusedEditor" state will have been properly set).
+    NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithDictionary:
+            vimState];
+    [dict setObject:[NSNumber numberWithBool:NO] forKey:@"unusedEditor"];
+    [vimState release];
+    vimState = [dict copy];
 }
 
 - (void)sendMessage:(int)msgid data:(NSData *)data

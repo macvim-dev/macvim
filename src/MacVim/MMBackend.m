@@ -107,6 +107,7 @@ static NSString *MMSymlinkWarningString =
 - (void)handleOpenWithArguments:(NSDictionary *)args;
 - (BOOL)checkForModifiedBuffers;
 - (void)addInput:(NSString *)input;
+- (BOOL)unusedEditor;
 @end
 
 
@@ -1616,6 +1617,7 @@ static NSString *MMSymlinkWarningString =
     NSDictionary *vimState = [NSDictionary dictionaryWithObjectsAndKeys:
         [[NSFileManager defaultManager] currentDirectoryPath], @"pwd",
         [NSNumber numberWithInt:p_mh], @"p_mh",
+        [NSNumber numberWithBool:[self unusedEditor]], @"unusedEditor",
         nil];
 
     [self queueMessage:SetVimStateMsgID data:[vimState dictionaryAsData]];
@@ -2305,7 +2307,7 @@ static NSString *MMSymlinkWarningString =
             BOOL bufChanged = NO;
             BOOL bufHasFilename = NO;
             if (curbuf) {
-                bufChanged = check_changed(curbuf, TRUE, FALSE, FALSE, FALSE);
+                bufChanged = curbufIsChanged();
                 bufHasFilename = curbuf->b_ffname != NULL;
             }
 
@@ -2465,6 +2467,22 @@ static NSString *MMSymlinkWarningString =
 #ifdef FEAT_MBYTE
     CONVERT_FROM_UTF8_FREE(s);
 #endif
+}
+
+- (BOOL)unusedEditor
+{
+    BOOL oneWindowInTab = topframe ? YES
+                                   : (topframe->fr_layout == FR_LEAF);
+    BOOL bufChanged = NO;
+    BOOL bufHasFilename = NO;
+    if (curbuf) {
+        bufChanged = curbufIsChanged();
+        bufHasFilename = curbuf->b_ffname != NULL;
+    }
+
+    BOOL onlyOneTab = (first_tabpage->tp_next == NULL);
+
+    return onlyOneTab && oneWindowInTab && !bufChanged && !bufHasFilename;
 }
 
 @end // MMBackend (Private)
