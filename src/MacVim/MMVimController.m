@@ -1260,8 +1260,11 @@ static BOOL isUnsafeMessage(int msgid);
     [item setAutovalidates:NO];
 
     NSImage *img = [NSImage imageNamed:icon];
-    if (!img)
+    if (!img) {
         img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
+        if (!(img && [img isValid]))
+            img = nil;
+    }
     if (!img) {
         NSLog(@"WARNING: Could not find image with name '%@' to use as toolbar"
                " image for identifier '%@';"
