@@ -65,6 +65,11 @@ static NSString *MMWebsiteString = @"http://code.google.com/p/macvim/";
 // microseconds.
 static useconds_t MMTerminationSleepPeriod = 10000;
 
+// Latency (in s) between FS event occuring and being reported to MacVim.
+// Should be small so that MacVim is notified of changes to the ~/.vim
+// directory more or less immediately.
+static CFTimeInterval MMEventStreamLatency = 0.1;
+
 
 #pragma options align=mac68k
 typedef struct
@@ -105,6 +110,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (NSMutableDictionary *)extractArgumentsFromOdocEvent:
     (NSAppleEventDescriptor *)desc;
 - (void)scheduleVimControllerPreloadAfterDelay:(NSTimeInterval)delay;
+- (void)cancelVimControllerPreloadRequests;
 - (void)preloadVimController:(id)sender;
 - (int)maxPreloadCacheSize;
 - (MMVimController *)takeVimControllerFromCache;
@@ -1426,6 +1432,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                afterDelay:delay];
 }
 
+- (void)cancelVimControllerPreloadRequests
+{
+    [NSObject cancelPreviousPerformRequestsWithTarget:self
+            selector:@selector(preloadVimController:)
+              object:nil];
+}
+
 - (void)preloadVimController:(id)sender
 {
     // We only allow preloading of one Vim process at a time (to avoid hogging
@@ -1480,11 +1493,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // the latest modification date for those files.  This ensures that the
         // latest rc-files are always sourced for new windows.
         [self clearPreloadCacheWithCount:i];
-        [self scheduleVimControllerPreloadAfterDelay:2.0];
     }
 
-    if ([cachedVimControllers count] == 0)
+    if ([cachedVimControllers count] == 0) {
+        [self scheduleVimControllerPreloadAfterDelay:2.0];
         return nil;
+    }
 
     MMVimController *vc = [cachedVimControllers objectAtIndex:0];
     [vimControllers addObject:vc];
@@ -1617,14 +1631,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (fsEventStream)
         return;
     if (NULL == FSEventStreamStart)
-        return; // FSStream functions are weakly linked
+        return; // FSEvent functions are weakly linked
 
     NSString *path = [@"~/.vim" stringByExpandingTildeInPath];
     NSArray *pathsToWatch = [NSArray arrayWithObject:path];
  
     fsEventStream = FSEventStreamCreate(NULL, &fsEventCallback, NULL,
-            (CFArrayRef)pathsToWatch, kFSEventStreamEventIdSinceNow, 1.0,
-            kFSEventStreamCreateFlagNone);
+            (CFArrayRef)pathsToWatch, kFSEventStreamEventIdSinceNow,
+            MMEventStreamLatency, kFSEventStreamCreateFlagNone);
 
     FSEventStreamScheduleWithRunLoop(fsEventStream,
             [[NSRunLoop currentRunLoop] getCFRunLoop],
@@ -1640,7 +1654,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSLog(@"%s", _cmd);
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (NULL == FSEventStreamStop)
-        return; // FSStream functions are weakly linked
+        return; // FSEvent functions are weakly linked
 
     if (fsEventStream) {
         FSEventStreamStop(fsEventStream);
@@ -1657,6 +1671,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     NSLog(@"%s", _cmd);
     [self clearPreloadCacheWithCount:-1];
+
+    // Several FS events may arrive in quick succession so make sure to cancel
+    // any previous preload requests before making a new one.
+    [self cancelVimControllerPreloadRequests];
     [self scheduleVimControllerPreloadAfterDelay:0.5];
 }
 
