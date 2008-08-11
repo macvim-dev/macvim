@@ -1641,7 +1641,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)startWatchingVimDir
 {
-    NSLog(@"%s", _cmd);
+    //NSLog(@"%s", _cmd);
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (fsEventStream)
         return;
@@ -1660,13 +1660,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             kCFRunLoopDefaultMode);
 
     FSEventStreamStart(fsEventStream);
-    NSLog(@"Started FS event stream");
+    //NSLog(@"Started FS event stream");
 #endif
 }
 
 - (void)stopWatchingVimDir
 {
-    NSLog(@"%s", _cmd);
+    //NSLog(@"%s", _cmd);
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (NULL == FSEventStreamStop)
         return; // FSEvent functions are weakly linked
@@ -1676,7 +1676,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         FSEventStreamInvalidate(fsEventStream);
         FSEventStreamRelease(fsEventStream);
         fsEventStream = NULL;
-        NSLog(@"Stopped FS event stream");
+        //NSLog(@"Stopped FS event stream");
     }
 #endif
 
@@ -1684,7 +1684,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)handleFSEvent
 {
-    NSLog(@"%s", _cmd);
+    //NSLog(@"%s", _cmd);
     [self clearPreloadCacheWithCount:-1];
 
     // Several FS events may arrive in quick succession so make sure to cancel
