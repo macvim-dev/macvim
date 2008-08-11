@@ -47,6 +47,27 @@
 		1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD20CBBD3B700102A1C /* MMVimView.m */; };
 		1D80FBE40CBBD6F200102A1C /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D80FBE30CBBD6F200102A1C /* Carbon.framework */; };
 		1D9918490D299F9900A96335 /* MMAtsuiTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D9918470D299F9900A96335 /* MMAtsuiTextView.m */; };
+		1DCD00BF0E50B2B700460166 /* Attention.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00AA0E50B2B700460166 /* Attention.png */; };
+		1DCD00C00E50B2B700460166 /* Copy.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00AB0E50B2B700460166 /* Copy.png */; };
+		1DCD00C10E50B2B700460166 /* Cut.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00AC0E50B2B700460166 /* Cut.png */; };
+		1DCD00C20E50B2B700460166 /* FindHelp.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00AD0E50B2B700460166 /* FindHelp.png */; };
+		1DCD00C30E50B2B700460166 /* FindNext.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00AE0E50B2B700460166 /* FindNext.png */; };
+		1DCD00C40E50B2B700460166 /* FindPrev.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00AF0E50B2B700460166 /* FindPrev.png */; };
+		1DCD00C50E50B2B700460166 /* Help.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B00E50B2B700460166 /* Help.png */; };
+		1DCD00C60E50B2B700460166 /* LoadSesn.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B10E50B2B700460166 /* LoadSesn.png */; };
+		1DCD00C70E50B2B700460166 /* Make.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B20E50B2B700460166 /* Make.png */; };
+		1DCD00C80E50B2B700460166 /* Open.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B30E50B2B700460166 /* Open.png */; };
+		1DCD00C90E50B2B700460166 /* Paste.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B40E50B2B700460166 /* Paste.png */; };
+		1DCD00CA0E50B2B700460166 /* Print.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B50E50B2B700460166 /* Print.png */; };
+		1DCD00CB0E50B2B700460166 /* Redo.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B60E50B2B700460166 /* Redo.png */; };
+		1DCD00CC0E50B2B700460166 /* Replace.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B70E50B2B700460166 /* Replace.png */; };
+		1DCD00CD0E50B2B700460166 /* RunCtags.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B80E50B2B700460166 /* RunCtags.png */; };
+		1DCD00CE0E50B2B700460166 /* RunScript.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00B90E50B2B700460166 /* RunScript.png */; };
+		1DCD00CF0E50B2B700460166 /* Save.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00BA0E50B2B700460166 /* Save.png */; };
+		1DCD00D00E50B2B700460166 /* SaveAll.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00BB0E50B2B700460166 /* SaveAll.png */; };
+		1DCD00D10E50B2B700460166 /* SaveSesn.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00BC0E50B2B700460166 /* SaveSesn.png */; };
+		1DCD00D20E50B2B700460166 /* TagJump.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00BD0E50B2B700460166 /* TagJump.png */; };
+		1DCD00D30E50B2B700460166 /* Undo.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00BE0E50B2B700460166 /* Undo.png */; };
 		1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1DD04DEB0C529C5E006CDC2B /* Credits.rtf */; };
 		1DD0C20C0C60FFB4008CD84A /* gvimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DD0C20A0C60FF9A008CD84A /* gvimrc */; };
 		1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DD3D51D0D82D4C9006E4320 /* ibeam.png */; };
@@ -60,27 +81,6 @@
 		1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DE8CC610C5E2AAD003F56E3 /* Actions.plist */; };
 		1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */; };
 		1DED78600C6DE43D0079945F /* vimrc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
-		1DEE0D9F0C4E150B008E82B2 /* Attention.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8A0C4E150B008E82B2 /* Attention.png */; };
-		1DEE0DA00C4E150B008E82B2 /* Copy.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8B0C4E150B008E82B2 /* Copy.png */; };
-		1DEE0DA10C4E150B008E82B2 /* Cut.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8C0C4E150B008E82B2 /* Cut.png */; };
-		1DEE0DA20C4E150B008E82B2 /* FindHelp.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8D0C4E150B008E82B2 /* FindHelp.png */; };
-		1DEE0DA30C4E150B008E82B2 /* FindNext.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8E0C4E150B008E82B2 /* FindNext.png */; };
-		1DEE0DA40C4E150B008E82B2 /* FindPrev.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D8F0C4E150B008E82B2 /* FindPrev.png */; };
-		1DEE0DA50C4E150B008E82B2 /* Help.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D900C4E150B008E82B2 /* Help.png */; };
-		1DEE0DA60C4E150B008E82B2 /* LoadSesn.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D910C4E150B008E82B2 /* LoadSesn.png */; };
-		1DEE0DA70C4E150B008E82B2 /* Make.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D920C4E150B008E82B2 /* Make.png */; };
-		1DEE0DA80C4E150B008E82B2 /* Open.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D930C4E150B008E82B2 /* Open.png */; };
-		1DEE0DA90C4E150B008E82B2 /* Paste.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D940C4E150B008E82B2 /* Paste.png */; };
-		1DEE0DAA0C4E150B008E82B2 /* Print.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D950C4E150B008E82B2 /* Print.png */; };
-		1DEE0DAB0C4E150B008E82B2 /* Redo.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D960C4E150B008E82B2 /* Redo.png */; };
-		1DEE0DAC0C4E150B008E82B2 /* Replace.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D970C4E150B008E82B2 /* Replace.png */; };
-		1DEE0DAD0C4E150B008E82B2 /* RunCtags.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D980C4E150B008E82B2 /* RunCtags.png */; };
-		1DEE0DAE0C4E150B008E82B2 /* RunScript.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D990C4E150B008E82B2 /* RunScript.png */; };
-		1DEE0DAF0C4E150B008E82B2 /* Save.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D9A0C4E150B008E82B2 /* Save.png */; };
-		1DEE0DB00C4E150B008E82B2 /* SaveAll.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D9B0C4E150B008E82B2 /* SaveAll.png */; };
-		1DEE0DB10C4E150B008E82B2 /* SaveSesn.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D9C0C4E150B008E82B2 /* SaveSesn.png */; };
-		1DEE0DB20C4E150B008E82B2 /* TagJump.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D9D0C4E150B008E82B2 /* TagJump.png */; };
-		1DEE0DB30C4E150B008E82B2 /* Undo.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEE0D9E0C4E150B008E82B2 /* Undo.png */; };
 		1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
 		8D11072A0486CEB800E47090 /* MainMenu.nib in Resources */ = {isa = PBXBuildFile; fileRef = 29B97318FDCFA39411CA2CEA /* MainMenu.nib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
@@ -229,6 +229,27 @@
 		1D80FBE30CBBD6F200102A1C /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /Developer/SDKs/MacOSX10.4u.sdk/System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
 		1D9918460D299F9900A96335 /* MMAtsuiTextView.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMAtsuiTextView.h; sourceTree = "<group>"; };
 		1D9918470D299F9900A96335 /* MMAtsuiTextView.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMAtsuiTextView.m; sourceTree = "<group>"; };
+		1DCD00AA0E50B2B700460166 /* Attention.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Attention.png; path = Toolbar/Attention.png; sourceTree = "<group>"; };
+		1DCD00AB0E50B2B700460166 /* Copy.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Copy.png; path = Toolbar/Copy.png; sourceTree = "<group>"; };
+		1DCD00AC0E50B2B700460166 /* Cut.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Cut.png; path = Toolbar/Cut.png; sourceTree = "<group>"; };
+		1DCD00AD0E50B2B700460166 /* FindHelp.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = FindHelp.png; path = Toolbar/FindHelp.png; sourceTree = "<group>"; };
+		1DCD00AE0E50B2B700460166 /* FindNext.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = FindNext.png; path = Toolbar/FindNext.png; sourceTree = "<group>"; };
+		1DCD00AF0E50B2B700460166 /* FindPrev.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = FindPrev.png; path = Toolbar/FindPrev.png; sourceTree = "<group>"; };
+		1DCD00B00E50B2B700460166 /* Help.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Help.png; path = Toolbar/Help.png; sourceTree = "<group>"; };
+		1DCD00B10E50B2B700460166 /* LoadSesn.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = LoadSesn.png; path = Toolbar/LoadSesn.png; sourceTree = "<group>"; };
+		1DCD00B20E50B2B700460166 /* Make.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Make.png; path = Toolbar/Make.png; sourceTree = "<group>"; };
+		1DCD00B30E50B2B700460166 /* Open.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Open.png; path = Toolbar/Open.png; sourceTree = "<group>"; };
+		1DCD00B40E50B2B700460166 /* Paste.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Paste.png; path = Toolbar/Paste.png; sourceTree = "<group>"; };
+		1DCD00B50E50B2B700460166 /* Print.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Print.png; path = Toolbar/Print.png; sourceTree = "<group>"; };
+		1DCD00B60E50B2B700460166 /* Redo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Redo.png; path = Toolbar/Redo.png; sourceTree = "<group>"; };
+		1DCD00B70E50B2B700460166 /* Replace.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Replace.png; path = Toolbar/Replace.png; sourceTree = "<group>"; };
+		1DCD00B80E50B2B700460166 /* RunCtags.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = RunCtags.png; path = Toolbar/RunCtags.png; sourceTree = "<group>"; };
+		1DCD00B90E50B2B700460166 /* RunScript.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = RunScript.png; path = Toolbar/RunScript.png; sourceTree = "<group>"; };
+		1DCD00BA0E50B2B700460166 /* Save.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Save.png; path = Toolbar/Save.png; sourceTree = "<group>"; };
+		1DCD00BB0E50B2B700460166 /* SaveAll.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = SaveAll.png; path = Toolbar/SaveAll.png; sourceTree = "<group>"; };
+		1DCD00BC0E50B2B700460166 /* SaveSesn.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = SaveSesn.png; path = Toolbar/SaveSesn.png; sourceTree = "<group>"; };
+		1DCD00BD0E50B2B700460166 /* TagJump.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = TagJump.png; path = Toolbar/TagJump.png; sourceTree = "<group>"; };
+		1DCD00BE0E50B2B700460166 /* Undo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Undo.png; path = Toolbar/Undo.png; sourceTree = "<group>"; };
 		1DD04DEB0C529C5E006CDC2B /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		1DD0C20A0C60FF9A008CD84A /* gvimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gvimrc; sourceTree = "<group>"; };
 		1DD3D51D0D82D4C9006E4320 /* ibeam.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ibeam.png; sourceTree = "<group>"; };
@@ -245,27 +266,6 @@
 		1DE9B94D0D341AB8008FEDD4 /* MMWindow.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMWindow.h; sourceTree = "<group>"; };
 		1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMWindow.m; sourceTree = "<group>"; };
 		1DED785F0C6DE43D0079945F /* vimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = vimrc; sourceTree = "<group>"; };
-		1DEE0D8A0C4E150B008E82B2 /* Attention.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Attention.png; path = Toolbar/Attention.png; sourceTree = "<group>"; };
-		1DEE0D8B0C4E150B008E82B2 /* Copy.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Copy.png; path = Toolbar/Copy.png; sourceTree = "<group>"; };
-		1DEE0D8C0C4E150B008E82B2 /* Cut.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Cut.png; path = Toolbar/Cut.png; sourceTree = "<group>"; };
-		1DEE0D8D0C4E150B008E82B2 /* FindHelp.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = FindHelp.png; path = Toolbar/FindHelp.png; sourceTree = "<group>"; };
-		1DEE0D8E0C4E150B008E82B2 /* FindNext.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = FindNext.png; path = Toolbar/FindNext.png; sourceTree = "<group>"; };
-		1DEE0D8F0C4E150B008E82B2 /* FindPrev.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = FindPrev.png; path = Toolbar/FindPrev.png; sourceTree = "<group>"; };
-		1DEE0D900C4E150B008E82B2 /* Help.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Help.png; path = Toolbar/Help.png; sourceTree = "<group>"; };
-		1DEE0D910C4E150B008E82B2 /* LoadSesn.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = LoadSesn.png; path = Toolbar/LoadSesn.png; sourceTree = "<group>"; };
-		1DEE0D920C4E150B008E82B2 /* Make.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Make.png; path = Toolbar/Make.png; sourceTree = "<group>"; };
-		1DEE0D930C4E150B008E82B2 /* Open.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Open.png; path = Toolbar/Open.png; sourceTree = "<group>"; };
-		1DEE0D940C4E150B008E82B2 /* Paste.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Paste.png; path = Toolbar/Paste.png; sourceTree = "<group>"; };
-		1DEE0D950C4E150B008E82B2 /* Print.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Print.png; path = Toolbar/Print.png; sourceTree = "<group>"; };
-		1DEE0D960C4E150B008E82B2 /* Redo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Redo.png; path = Toolbar/Redo.png; sourceTree = "<group>"; };
-		1DEE0D970C4E150B008E82B2 /* Replace.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Replace.png; path = Toolbar/Replace.png; sourceTree = "<group>"; };
-		1DEE0D980C4E150B008E82B2 /* RunCtags.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = RunCtags.png; path = Toolbar/RunCtags.png; sourceTree = "<group>"; };
-		1DEE0D990C4E150B008E82B2 /* RunScript.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = RunScript.png; path = Toolbar/RunScript.png; sourceTree = "<group>"; };
-		1DEE0D9A0C4E150B008E82B2 /* Save.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Save.png; path = Toolbar/Save.png; sourceTree = "<group>"; };
-		1DEE0D9B0C4E150B008E82B2 /* SaveAll.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = SaveAll.png; path = Toolbar/SaveAll.png; sourceTree = "<group>"; };
-		1DEE0D9C0C4E150B008E82B2 /* SaveSesn.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = SaveSesn.png; path = Toolbar/SaveSesn.png; sourceTree = "<group>"; };
-		1DEE0D9D0C4E150B008E82B2 /* TagJump.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = TagJump.png; path = Toolbar/TagJump.png; sourceTree = "<group>"; };
-		1DEE0D9E0C4E150B008E82B2 /* Undo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Undo.png; path = Toolbar/Undo.png; sourceTree = "<group>"; };
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		29B97319FDCFA39411CA2CEA /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/MainMenu.nib; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
@@ -467,27 +467,27 @@
 		1DE9726C0C48050600F96A9F /* Toolbar */ = {
 			isa = PBXGroup;
 			children = (
-				1DEE0D8A0C4E150B008E82B2 /* Attention.png */,
-				1DEE0D8B0C4E150B008E82B2 /* Copy.png */,
-				1DEE0D8C0C4E150B008E82B2 /* Cut.png */,
-				1DEE0D8D0C4E150B008E82B2 /* FindHelp.png */,
-				1DEE0D8E0C4E150B008E82B2 /* FindNext.png */,
-				1DEE0D8F0C4E150B008E82B2 /* FindPrev.png */,
-				1DEE0D900C4E150B008E82B2 /* Help.png */,
-				1DEE0D910C4E150B008E82B2 /* LoadSesn.png */,
-				1DEE0D920C4E150B008E82B2 /* Make.png */,
-				1DEE0D930C4E150B008E82B2 /* Open.png */,
-				1DEE0D940C4E150B008E82B2 /* Paste.png */,
-				1DEE0D950C4E150B008E82B2 /* Print.png */,
-				1DEE0D960C4E150B008E82B2 /* Redo.png */,
-				1DEE0D970C4E150B008E82B2 /* Replace.png */,
-				1DEE0D980C4E150B008E82B2 /* RunCtags.png */,
-				1DEE0D990C4E150B008E82B2 /* RunScript.png */,
-				1DEE0D9A0C4E150B008E82B2 /* Save.png */,
-				1DEE0D9B0C4E150B008E82B2 /* SaveAll.png */,
-				1DEE0D9C0C4E150B008E82B2 /* SaveSesn.png */,
-				1DEE0D9D0C4E150B008E82B2 /* TagJump.png */,
-				1DEE0D9E0C4E150B008E82B2 /* Undo.png */,
+				1DCD00AA0E50B2B700460166 /* Attention.png */,
+				1DCD00AB0E50B2B700460166 /* Copy.png */,
+				1DCD00AC0E50B2B700460166 /* Cut.png */,
+				1DCD00AD0E50B2B700460166 /* FindHelp.png */,
+				1DCD00AE0E50B2B700460166 /* FindNext.png */,
+				1DCD00AF0E50B2B700460166 /* FindPrev.png */,
+				1DCD00B00E50B2B700460166 /* Help.png */,
+				1DCD00B10E50B2B700460166 /* LoadSesn.png */,
+				1DCD00B20E50B2B700460166 /* Make.png */,
+				1DCD00B30E50B2B700460166 /* Open.png */,
+				1DCD00B40E50B2B700460166 /* Paste.png */,
+				1DCD00B50E50B2B700460166 /* Print.png */,
+				1DCD00B60E50B2B700460166 /* Redo.png */,
+				1DCD00B70E50B2B700460166 /* Replace.png */,
+				1DCD00B80E50B2B700460166 /* RunCtags.png */,
+				1DCD00B90E50B2B700460166 /* RunScript.png */,
+				1DCD00BA0E50B2B700460166 /* Save.png */,
+				1DCD00BB0E50B2B700460166 /* SaveAll.png */,
+				1DCD00BC0E50B2B700460166 /* SaveSesn.png */,
+				1DCD00BD0E50B2B700460166 /* TagJump.png */,
+				1DCD00BE0E50B2B700460166 /* Undo.png */,
 			);
 			name = Toolbar;
 			sourceTree = "<group>";
@@ -631,27 +631,6 @@
 				1D71ACBC0BC702AC002F2B60 /* doc-bm-txt.icns in Resources */,
 				1D71ACBD0BC702AC002F2B60 /* doc-bm-xml.icns in Resources */,
 				1D71ACBE0BC702AC002F2B60 /* doc-bm.icns in Resources */,
-				1DEE0D9F0C4E150B008E82B2 /* Attention.png in Resources */,
-				1DEE0DA00C4E150B008E82B2 /* Copy.png in Resources */,
-				1DEE0DA10C4E150B008E82B2 /* Cut.png in Resources */,
-				1DEE0DA20C4E150B008E82B2 /* FindHelp.png in Resources */,
-				1DEE0DA30C4E150B008E82B2 /* FindNext.png in Resources */,
-				1DEE0DA40C4E150B008E82B2 /* FindPrev.png in Resources */,
-				1DEE0DA50C4E150B008E82B2 /* Help.png in Resources */,
-				1DEE0DA60C4E150B008E82B2 /* LoadSesn.png in Resources */,
-				1DEE0DA70C4E150B008E82B2 /* Make.png in Resources */,
-				1DEE0DA80C4E150B008E82B2 /* Open.png in Resources */,
-				1DEE0DA90C4E150B008E82B2 /* Paste.png in Resources */,
-				1DEE0DAA0C4E150B008E82B2 /* Print.png in Resources */,
-				1DEE0DAB0C4E150B008E82B2 /* Redo.png in Resources */,
-				1DEE0DAC0C4E150B008E82B2 /* Replace.png in Resources */,
-				1DEE0DAD0C4E150B008E82B2 /* RunCtags.png in Resources */,
-				1DEE0DAE0C4E150B008E82B2 /* RunScript.png in Resources */,
-				1DEE0DAF0C4E150B008E82B2 /* Save.png in Resources */,
-				1DEE0DB00C4E150B008E82B2 /* SaveAll.png in Resources */,
-				1DEE0DB10C4E150B008E82B2 /* SaveSesn.png in Resources */,
-				1DEE0DB20C4E150B008E82B2 /* TagJump.png in Resources */,
-				1DEE0DB30C4E150B008E82B2 /* Undo.png in Resources */,
 				1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */,
 				1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */,
 				1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */,
@@ -665,6 +644,27 @@
 				1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */,
 				BD9DF0A00DB2BA020025C97C /* PlugInView.nib in Resources */,
 				1D22374B0E45DF4800E6FFFF /* Advanced.png in Resources */,
+				1DCD00BF0E50B2B700460166 /* Attention.png in Resources */,
+				1DCD00C00E50B2B700460166 /* Copy.png in Resources */,
+				1DCD00C10E50B2B700460166 /* Cut.png in Resources */,
+				1DCD00C20E50B2B700460166 /* FindHelp.png in Resources */,
+				1DCD00C30E50B2B700460166 /* FindNext.png in Resources */,
+				1DCD00C40E50B2B700460166 /* FindPrev.png in Resources */,
+				1DCD00C50E50B2B700460166 /* Help.png in Resources */,
+				1DCD00C60E50B2B700460166 /* LoadSesn.png in Resources */,
+				1DCD00C70E50B2B700460166 /* Make.png in Resources */,
+				1DCD00C80E50B2B700460166 /* Open.png in Resources */,
+				1DCD00C90E50B2B700460166 /* Paste.png in Resources */,
+				1DCD00CA0E50B2B700460166 /* Print.png in Resources */,
+				1DCD00CB0E50B2B700460166 /* Redo.png in Resources */,
+				1DCD00CC0E50B2B700460166 /* Replace.png in Resources */,
+				1DCD00CD0E50B2B700460166 /* RunCtags.png in Resources */,
+				1DCD00CE0E50B2B700460166 /* RunScript.png in Resources */,
+				1DCD00CF0E50B2B700460166 /* Save.png in Resources */,
+				1DCD00D00E50B2B700460166 /* SaveAll.png in Resources */,
+				1DCD00D10E50B2B700460166 /* SaveSesn.png in Resources */,
+				1DCD00D20E50B2B700460166 /* TagJump.png in Resources */,
+				1DCD00D30E50B2B700460166 /* Undo.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
