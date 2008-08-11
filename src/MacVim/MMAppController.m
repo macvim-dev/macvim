@@ -318,8 +318,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [[MMPlugInManager sharedManager] loadAllPlugIns];
 #endif
 
-    [self scheduleVimControllerPreloadAfterDelay:2];
-    [self startWatchingVimDir];
+    if ([self maxPreloadCacheSize] > 0) {
+        [self scheduleVimControllerPreloadAfterDelay:2];
+        [self startWatchingVimDir];
+    }
 }
 
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
@@ -865,12 +867,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (0 == size) {
         // Disable quickstart
         [self clearPreloadCacheWithCount:-1];
+        [self stopWatchingVimDir];
     } else if (count > size) {
         // Cache size decreased
         [self clearPreloadCacheWithCount:count-size];
     } else if (count < size) {
         // Cache size increased
         [self scheduleVimControllerPreloadAfterDelay:1.0];
+        [self startWatchingVimDir];
     }
 }
 
