@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		031AD5D40D4DE1F60026C5D7 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 031AD5D30D4DE1F60026C5D7 /* Sparkle.framework */; };
-		031AD5EE0D4DE2490026C5D7 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 031AD5D30D4DE1F60026C5D7 /* Sparkle.framework */; };
 		0395A8330D71ED7800881434 /* DBPrefsWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0395A8320D71ED7800881434 /* DBPrefsWindowController.m */; };
 		0395A8AA0D72D88B00881434 /* General.png in Resources */ = {isa = PBXBuildFile; fileRef = 0395A8A90D72D88B00881434 /* General.png */; };
 		0395A95A0D74D47B00881434 /* Integration.png in Resources */ = {isa = PBXBuildFile; fileRef = 0395A9590D74D47B00881434 /* Integration.png */; };
@@ -42,6 +40,8 @@
 		1D71ACBC0BC702AC002F2B60 /* doc-bm-txt.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACB10BC702AB002F2B60 /* doc-bm-txt.icns */; };
 		1D71ACBD0BC702AC002F2B60 /* doc-bm-xml.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACB20BC702AB002F2B60 /* doc-bm-xml.icns */; };
 		1D71ACBE0BC702AC002F2B60 /* doc-bm.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACB30BC702AB002F2B60 /* doc-bm.icns */; };
+		1D7F74580E4CE1AE003225C6 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D7F74570E4CE1AE003225C6 /* Sparkle.framework */; };
+		1D7F745B0E4CE1CD003225C6 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D7F74570E4CE1AE003225C6 /* Sparkle.framework */; };
 		1D80591F0E1185EA001699D1 /* Miscellaneous.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80591D0E1185EA001699D1 /* Miscellaneous.m */; };
 		1D80FBD40CBBD3B700102A1C /* MMFullscreenWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD00CBBD3B700102A1C /* MMFullscreenWindow.m */; };
 		1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD20CBBD3B700102A1C /* MMVimView.m */; };
@@ -154,7 +154,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				031AD5EE0D4DE2490026C5D7 /* Sparkle.framework in CopyFiles */,
+				1D7F745B0E4CE1CD003225C6 /* Sparkle.framework in CopyFiles */,
 				1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -174,7 +174,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		031AD5D30D4DE1F60026C5D7 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
 		0395A8310D71ED7800881434 /* DBPrefsWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DBPrefsWindowController.h; sourceTree = "<group>"; };
 		0395A8320D71ED7800881434 /* DBPrefsWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DBPrefsWindowController.m; sourceTree = "<group>"; };
 		0395A8A90D72D88B00881434 /* General.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = General.png; sourceTree = "<group>"; };
@@ -186,7 +185,6 @@
 		0395AA770D76E77800881434 /* Info */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = Info; path = "edit-in-odb/Info"; sourceTree = "<group>"; };
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
-		13E42FB307B3F0F600E4EEF1 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
 		1D09AB3F0C6A4D520045497E /* MMTypesetter.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMTypesetter.h; sourceTree = "<group>"; };
 		1D09AB400C6A4D520045497E /* MMTypesetter.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMTypesetter.m; sourceTree = "<group>"; };
 		1D0E051B0BA5F83800B6049E /* Colors.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = Colors.plist; sourceTree = "<group>"; };
@@ -220,6 +218,7 @@
 		1D71ACB10BC702AB002F2B60 /* doc-bm-txt.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm-txt.icns"; sourceTree = "<group>"; };
 		1D71ACB20BC702AB002F2B60 /* doc-bm-xml.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm-xml.icns"; sourceTree = "<group>"; };
 		1D71ACB30BC702AB002F2B60 /* doc-bm.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm.icns"; sourceTree = "<group>"; };
+		1D7F74570E4CE1AE003225C6 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
 		1D80591D0E1185EA001699D1 /* Miscellaneous.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Miscellaneous.m; sourceTree = "<group>"; };
 		1D8059220E118663001699D1 /* Miscellaneous.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Miscellaneous.h; sourceTree = "<group>"; };
 		1D80FBCF0CBBD3B700102A1C /* MMFullscreenWindow.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMFullscreenWindow.h; sourceTree = "<group>"; };
@@ -298,8 +297,8 @@
 				1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				1D80FBE40CBBD6F200102A1C /* Carbon.framework in Frameworks */,
-				031AD5D40D4DE1F60026C5D7 /* Sparkle.framework in Frameworks */,
 				0395A9C30D75D04D00881434 /* Security.framework in Frameworks */,
+				1D7F74580E4CE1AE003225C6 /* Sparkle.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -381,7 +380,6 @@
 		1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				031AD5D30D4DE1F60026C5D7 /* Sparkle.framework */,
 				1D80FBE30CBBD6F200102A1C /* Carbon.framework */,
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
 			);
@@ -392,7 +390,6 @@
 			isa = PBXGroup;
 			children = (
 				29B97324FDCFA39411CA2CEA /* AppKit.framework */,
-				13E42FB307B3F0F600E4EEF1 /* CoreData.framework */,
 				29B97325FDCFA39411CA2CEA /* Foundation.framework */,
 			);
 			name = "Other Frameworks";
@@ -530,6 +527,7 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				1D7F74570E4CE1AE003225C6 /* Sparkle.framework */,
 				0395AA980D76E86200881434 /* Edit in ODBEditor */,
 				0395A9C20D75D04D00881434 /* Security.framework */,
 				1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */,
@@ -760,9 +758,9 @@
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_3)",
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_2)",
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 				);
-				FRAMEWORK_SEARCH_PATHS_QUOTED_1 = "\"$(SRCROOT)\"";
-				FRAMEWORK_SEARCH_PATHS_QUOTED_2 = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/MacOSX10.4u.sdk/System/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)\"";
 				GCC_DYNAMIC_NO_PIC = YES;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
@@ -771,6 +769,7 @@
 				HEADER_SEARCH_PATHS = PSMTabBarControl/source/;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
 				PRODUCT_NAME = MacVim;
 				VERSIONING_SYSTEM = "apple-generic";
 				WRAPPER_EXTENSION = app;
@@ -784,7 +783,6 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Universal;
 		};
@@ -801,8 +799,8 @@
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_3)",
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_2)",
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 				);
-				FRAMEWORK_SEARCH_PATHS_QUOTED_2 = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/MacOSX10.4u.sdk/System/Library/Frameworks\"";
 				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)\"";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
@@ -812,6 +810,7 @@
 				HEADER_SEARCH_PATHS = PSMTabBarControl/source/;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
 				PRODUCT_NAME = MacVim;
 				VERSIONING_SYSTEM = "apple-generic";
 				WRAPPER_EXTENSION = app;
@@ -832,9 +831,9 @@
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_3)",
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_2)",
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 				);
-				FRAMEWORK_SEARCH_PATHS_QUOTED_1 = "\"$(SRCROOT)\"";
-				FRAMEWORK_SEARCH_PATHS_QUOTED_2 = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/MacOSX10.4u.sdk/System/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)\"";
 				GCC_DYNAMIC_NO_PIC = YES;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
@@ -843,6 +842,7 @@
 				HEADER_SEARCH_PATHS = PSMTabBarControl/source/;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
 				PRODUCT_NAME = MacVim;
 				VERSIONING_SYSTEM = "apple-generic";
 				WRAPPER_EXTENSION = app;
@@ -856,7 +856,6 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Debug;
 		};
@@ -866,7 +865,6 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Release;
 		};
