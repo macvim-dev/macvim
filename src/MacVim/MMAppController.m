@@ -48,6 +48,7 @@
 #endif
 
 #import <unistd.h>
+#import <CoreServices/CoreServices.h>
 
 
 #define MM_HANDLE_XCODE_MOD_EVENT 0
@@ -111,6 +112,9 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (NSDate *)rcFilesModificationDate;
 - (BOOL)openVimControllerWithArguments:(NSDictionary *)arguments;
 - (void)activateWhenNextWindowOpens;
+- (void)startWatchingVimDir;
+- (void)stopWatchingVimDir;
+- (void)handleFSEvent;
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu;
@@ -119,6 +123,19 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 @end
 
 
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    static void
+fsEventCallback(ConstFSEventStreamRef streamRef,
+                void *clientCallBackInfo,
+                size_t numEvents,
+                void *eventPaths,
+                const FSEventStreamEventFlags eventFlags[],
+                const FSEventStreamEventId eventIds[])
+{
+    [[MMAppController sharedInstance] handleFSEvent];
+}
+#endif
 
 @implementation MMAppController
 
@@ -296,6 +313,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 #endif
 
     [self scheduleVimControllerPreloadAfterDelay:2];
+    [self startWatchingVimDir];
 }
 
 - (BOOL)applicationShouldOpenUntitledFile:(NSApplication *)sender
@@ -619,6 +637,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 - (void)applicationWillTerminate:(NSNotification *)notification
 {
+    [self stopWatchingVimDir];
+
 #ifdef MM_ENABLE_PLUGINS
     [[MMPlugInManager sharedManager] unloadAllPlugIns];
 #endif
@@ -1588,6 +1608,56 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (void)activateWhenNextWindowOpens
 {
     shouldActivateWhenNextWindowOpens = YES;
+}
+
+- (void)startWatchingVimDir
+{
+    NSLog(@"%s", _cmd);
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    if (fsEventStream)
+        return;
+    if (NULL == FSEventStreamStart)
+        return; // FSStream functions are weakly linked
+
+    NSString *path = [@"~/.vim" stringByExpandingTildeInPath];
+    NSArray *pathsToWatch = [NSArray arrayWithObject:path];
+ 
+    fsEventStream = FSEventStreamCreate(NULL, &fsEventCallback, NULL,
+            (CFArrayRef)pathsToWatch, kFSEventStreamEventIdSinceNow, 1.0,
+            kFSEventStreamCreateFlagNone);
+
+    FSEventStreamScheduleWithRunLoop(fsEventStream,
+            [[NSRunLoop currentRunLoop] getCFRunLoop],
+            kCFRunLoopDefaultMode);
+
+    FSEventStreamStart(fsEventStream);
+    NSLog(@"Started FS event stream");
+#endif
+}
+
+- (void)stopWatchingVimDir
+{
+    NSLog(@"%s", _cmd);
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    if (NULL == FSEventStreamStop)
+        return; // FSStream functions are weakly linked
+
+    if (fsEventStream) {
+        FSEventStreamStop(fsEventStream);
+        FSEventStreamInvalidate(fsEventStream);
+        FSEventStreamRelease(fsEventStream);
+        fsEventStream = NULL;
+        NSLog(@"Stopped FS event stream");
+    }
+#endif
+
+}
+
+- (void)handleFSEvent
+{
+    NSLog(@"%s", _cmd);
+    [self clearPreloadCacheWithCount:-1];
+    [self scheduleVimControllerPreloadAfterDelay:0.5];
 }
 
 @end // MMAppController (Private)

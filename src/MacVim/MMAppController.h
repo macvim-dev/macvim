@@ -29,6 +29,10 @@
     int                 preloadPid;
     BOOL                shouldActivateWhenNextWindowOpens;
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    FSEventStreamRef    fsEventStream;
+#endif
+
 #ifdef MM_ENABLE_PLUGINS
     NSMenuItem          *plugInMenuItem;
 #endif
