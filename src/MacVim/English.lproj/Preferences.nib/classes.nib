@@ -64,8 +64,13 @@
 			<string>NSView</string>
 		</dict>
 		<dict>
+			<key>ACTIONS</key>
+			<dict>
+				<key>loginShellButtonClicked</key>
+				<string>id</string>
+			</dict>
 			<key>CLASS</key>
-			<string>NSMenu</string>
+			<string>FirstResponder</string>
 			<key>LANGUAGE</key>
 			<string>ObjC</string>
 			<key>SUPERCLASS</key>
@@ -73,7 +78,7 @@
 		</dict>
 		<dict>
 			<key>CLASS</key>
-			<string>FirstResponder</string>
+			<string>NSMenu</string>
 			<key>LANGUAGE</key>
 			<string>ObjC</string>
 			<key>SUPERCLASS</key>

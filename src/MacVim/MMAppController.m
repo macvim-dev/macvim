@@ -982,6 +982,17 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [NSApp makeWindowsPerform:@selector(performZoom:) inOrder:YES];
 }
 
+- (IBAction)loginShellButtonClicked:(id)sender
+{
+    // This action is called when the user clicks the "use login shell" button
+    // in the general preferences pane.
+    if ([self maxPreloadCacheSize] > 0) {
+        [self clearPreloadCacheWithCount:-1];
+        [self cancelVimControllerPreloadRequests];
+        [self scheduleVimControllerPreloadAfterDelay:1.0];
+    }
+}
+
 - (byref id <MMFrontendProtocol>)
     connectBackend:(byref in id <MMBackendProtocol>)backend
                pid:(int)pid
