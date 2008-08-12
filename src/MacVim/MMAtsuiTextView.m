@@ -107,6 +107,19 @@ enum {
 @end
 
 
+
+    static float
+defaultLineHeightForFont(NSFont *font)
+{
+    // HACK: -[NSFont defaultLineHeightForFont] is deprecated but since the
+    // ATSUI renderer does not use NSLayoutManager we create one temporarily.
+    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
+    float height = [lm defaultLineHeightForFont:font];
+    [lm release];
+
+    return height;
+}
+
 @implementation MMAtsuiTextView
 
 - (id)initWithFrame:(NSRect)frame
@@ -212,7 +225,9 @@ enum {
         [font release];
         font = [newFont retain];
 
-        float em = [newFont widthOfString:@"m"];
+        float em = [@"m" sizeWithAttributes:
+                [NSDictionary dictionaryWithObject:newFont
+                                            forKey:NSFontAttributeName]].width;
         float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
                 floatForKey:MMCellWidthMultiplierKey];
 
@@ -221,7 +236,7 @@ enum {
         // an integer here, otherwise the window width and the actual text
         // width will not match.
         cellSize.width = ceilf(em * cellWidthMultiplier);
-        cellSize.height = linespace + [newFont defaultLineHeightForFont];
+        cellSize.height = linespace + defaultLineHeightForFont(newFont);
 
         [self updateAtsuStyles];
     }
@@ -251,7 +266,7 @@ enum {
     // linespace when calculating the size of the text view etc.  When the
     // linespace is non-zero the baseline will be adjusted as well; check
     // MMTypesetter.
-    cellSize.height = linespace + [font defaultLineHeightForFont];
+    cellSize.height = linespace + defaultLineHeightForFont(font);
 }
 
 

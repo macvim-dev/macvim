@@ -75,8 +75,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         // NOTE!  It does not matter which font is set here, Vim will set its
         // own font on startup anyway.  Just set some bogus values.
         font = [[NSFont userFixedPitchFontOfSize:0] retain];
-        cellSize.height = [font pointSize];
-        cellSize.width = [font defaultLineHeightForFont];
+        cellSize.height = 16.0;
+        cellSize.width = 6.0;
     }
 
     return self;
@@ -219,6 +219,10 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 - (void)setLinespace:(float)newLinespace
 {
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
+    if (!lm) {
+        NSLog(@"WARNING: No layout manager available in call to %s", _cmd);
+        return;
+    }
 
     linespace = newLinespace;
 
@@ -228,8 +232,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     // linespace when calculating the size of the text view etc.  When the
     // linespace is non-zero the baseline will be adjusted as well; check
     // MMTypesetter.
-    cellSize.height = linespace + (lm ? [lm defaultLineHeightForFont:font]
-                                      : [font defaultLineHeightForFont]);
+    cellSize.height = linespace + [lm defaultLineHeightForFont:font];
 }
 
 - (void)getMaxRows:(int*)rows columns:(int*)cols
@@ -653,7 +656,9 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         // NOTE! When setting a new font we make sure that the advancement of
         // each glyph is fixed.
 
-        float em = [newFont widthOfString:@"m"];
+        float em = [@"m" sizeWithAttributes:
+                [NSDictionary dictionaryWithObject:newFont
+                                            forKey:NSFontAttributeName]].width;
         float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
                 floatForKey:MMCellWidthMultiplierKey];
 
@@ -674,8 +679,13 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         [font retain];
 
         NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
-        cellSize.height = linespace + (lm ? [lm defaultLineHeightForFont:font]
-                                          : [font defaultLineHeightForFont]);
+        if (lm) {
+            cellSize.height = linespace + [lm defaultLineHeightForFont:font];
+        } else {
+            // Should never happen, set some bogus value for cell height.
+            NSLog(@"WARNING: No layout manager available in call to %s", _cmd);
+            cellSize.height = linespace + 16.0;
+        }
 
         // NOTE: The font manager does not care about the 'font fixed advance'
         // attribute, so after converting the font we have to add this
