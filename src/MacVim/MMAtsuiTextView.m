@@ -27,6 +27,7 @@
 
 #import "MMAppController.h"
 #import "MMAtsuiTextView.h"
+#import "MMTextViewHelper.h"
 #import "MMVimController.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
@@ -49,17 +50,6 @@
 #define kUndercurlDotWidth          2
 #define kUndercurlDotDistance       2
 
-static char MMKeypadEnter[2] = { 'K', 'A' };
-static NSString *MMKeypadEnterString = @"KA";
-
-enum {
-    // These values are chosen so that the min size is not too small with the
-    // default font (they only affect resizing with the mouse, you can still
-    // use e.g. ":set lines=2" to go below these values).
-    MMMinRows = 4,
-    MMMinColumns = 30
-};
-
 
 @interface NSFont (AppKitPrivate)
 - (ATSUFontID) _atsFontID;
@@ -67,13 +57,9 @@ enum {
 
 
 @interface MMAtsuiTextView (Private)
-- (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 - (void)initAtsuStyles;
 - (void)disposeAtsuStyles;
 - (void)updateAtsuStyles;
-- (void)dispatchKeyEvent:(NSEvent *)event;
-- (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags;
-- (void)hideMouseCursor;
 - (MMWindowController *)windowController;
 - (MMVimController *)vimController;
 @end
@@ -124,21 +110,28 @@ defaultLineHeightForFont(NSFont *font)
 
 - (id)initWithFrame:(NSRect)frame
 {
-    if ((self = [super initWithFrame:frame])) {
-        // NOTE!  It does not matter which font is set here, Vim will set its
-        // own font on startup anyway.  Just set some bogus values.
-        font = [[NSFont userFixedPitchFontOfSize:0] retain];
-        cellSize.width = cellSize.height = 1;
-        contentImage = nil;
-        imageSize = NSZeroSize;
-        insetSize = NSZeroSize;
+    if (!(self = [super initWithFrame:frame]))
+        return nil;
 
-        // NOTE: If the default changes to 'NO' then the intialization of
-        // p_antialias in option.c must change as well.
-        antialias = YES;
+    // NOTE!  It does not matter which font is set here, Vim will set its
+    // own font on startup anyway.  Just set some bogus values.
+    font = [[NSFont userFixedPitchFontOfSize:0] retain];
+    cellSize.width = cellSize.height = 1;
+    contentImage = nil;
+    imageSize = NSZeroSize;
+    insetSize = NSZeroSize;
 
-        [self initAtsuStyles];
-    }
+    // NOTE: If the default changes to 'NO' then the intialization of
+    // p_antialias in option.c must change as well.
+    antialias = YES;
+
+    helper = [[MMTextViewHelper alloc] init];
+    [helper setTextView:self];
+
+    [self initAtsuStyles];
+
+    [self registerForDraggedTypes:[NSArray arrayWithObjects:
+            NSFilenamesPboardType, NSStringPboardType, nil]];
 
     return self;
 }
@@ -150,7 +143,15 @@ defaultLineHeightForFont(NSFont *font)
     [defaultBackgroundColor release];  defaultBackgroundColor = nil;
     [defaultForegroundColor release];  defaultForegroundColor = nil;
 
+    [helper setTextView:nil];
+    [helper dealloc];  helper = nil;
+
     [super dealloc];
+}
+
+- (int)maxRows
+{
+    return maxRows;
 }
 
 - (void)getMaxRows:(int*)rows columns:(int*)cols
@@ -286,6 +287,7 @@ defaultLineHeightForFont(NSFont *font)
 
 - (void)setMouseShape:(int)shape
 {
+    [helper setMouseShape:shape];
 }
 
 - (void)setAntialias:(BOOL)state
@@ -298,194 +300,148 @@ defaultLineHeightForFont(NSFont *font)
 
 - (void)keyDown:(NSEvent *)event
 {
-    //NSLog(@"%s %@", _cmd, event);
-    // HACK! If control modifier is held, don't pass the event along to
-    // interpretKeyEvents: since some keys are bound to multiple commands which
-    // means doCommandBySelector: is called several times.  Do the same for
-    // Alt+Function key presses (Alt+Up and Alt+Down are bound to two
-    // commands).  This hack may break input management, but unless we can
-    // figure out a way to disable key bindings there seems little else to do.
-    //
-    // TODO: Figure out a way to disable Cocoa key bindings entirely, without
-    // affecting input management.
-    int flags = [event modifierFlags];
-    if ((flags & NSControlKeyMask) ||
-            ((flags & NSAlternateKeyMask) && (flags & NSFunctionKeyMask))) {
-        NSString *unmod = [event charactersIgnoringModifiers];
-        if ([unmod length] == 1 && [unmod characterAtIndex:0] <= 0x7f
-                                && [unmod characterAtIndex:0] >= 0x60) {
-            // HACK! Send Ctrl-letter keys (and C-@, C-[, C-\, C-], C-^, C-_)
-            // as normal text to be added to the Vim input buffer.  This must
-            // be done in order for the backend to be able to separate e.g.
-            // Ctrl-i and Ctrl-tab.
-            [self insertText:[event characters]];
-        } else {
-            [self dispatchKeyEvent:event];
-        }
-    } else {
-        [self interpretKeyEvents:[NSArray arrayWithObject:event]];
-    }
+    [helper keyDown:event];
 }
 
 - (void)insertText:(id)string
 {
-    //NSLog(@"%s %@", _cmd, string);
-    // NOTE!  This method is called for normal key presses but also for
-    // Option-key presses --- even when Ctrl is held as well as Option.  When
-    // Ctrl is held, the AppKit translates the character to a Ctrl+key stroke,
-    // so 'string' need not be a printable character!  In this case it still
-    // works to pass 'string' on to Vim as a printable character (since
-    // modifiers are already included and should not be added to the input
-    // buffer using CSI, K_MODIFIER).
-
-    [self hideMarkedTextField];
-
-    NSEvent *event = [NSApp currentEvent];
-
-    // HACK!  In order to be able to bind to <S-Space>, <S-M-Tab>, etc. we have
-    // to watch for them here.
-    if ([event type] == NSKeyDown
-            && [[event charactersIgnoringModifiers] length] > 0
-            && [event modifierFlags]
-                & (NSShiftKeyMask|NSControlKeyMask|NSAlternateKeyMask)) {
-        unichar c = [[event charactersIgnoringModifiers] characterAtIndex:0];
-
-        // <S-M-Tab> translates to 0x19 
-        if (' ' == c || 0x19 == c) {
-            [self dispatchKeyEvent:event];
-            return;
-        }
-    }
-
-    [self hideMouseCursor];
-
-    // NOTE: 'string' is either an NSString or an NSAttributedString.  Since we
-    // do not support attributes, simply pass the corresponding NSString in the
-    // latter case.
-    if ([string isKindOfClass:[NSAttributedString class]])
-        string = [string string];
-
-    //NSLog(@"send InsertTextMsgID: %@", string);
-
-    [[self vimController] sendMessage:InsertTextMsgID
-                 data:[string dataUsingEncoding:NSUTF8StringEncoding]];
+    [helper insertText:string];
 }
 
 - (void)doCommandBySelector:(SEL)selector
 {
-    //NSLog(@"%s %@", _cmd, NSStringFromSelector(selector));
-    // By ignoring the selector we effectively disable the key binding
-    // mechanism of Cocoa.  Hopefully this is what the user will expect
-    // (pressing Ctrl+P would otherwise result in moveUp: instead of previous
-    // match, etc.).
-    //
-    // We usually end up here if the user pressed Ctrl+key (but not
-    // Ctrl+Option+key).
-
-    NSEvent *event = [NSApp currentEvent];
-
-    if (selector == @selector(cancelOperation:)
-            || selector == @selector(insertNewline:)) {
-        // HACK! If there was marked text which got abandoned as a result of
-        // hitting escape or enter, then 'insertText:' is called with the
-        // abandoned text but '[event characters]' includes the abandoned text
-        // as well.  Since 'dispatchKeyEvent:' looks at '[event characters]' we
-        // must intercept these keys here or the abandonded text gets inserted
-        // twice.
-        NSString *key = [event charactersIgnoringModifiers];
-        const char *chars = [key UTF8String];
-        int len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-
-        if (0x3 == chars[0]) {
-            // HACK! AppKit turns enter (not return) into Ctrl-C, so we need to
-            // handle it separately (else Ctrl-C doesn't work).
-            len = sizeof(MMKeypadEnter)/sizeof(MMKeypadEnter[0]);
-            chars = MMKeypadEnter;
-        }
-
-        [self sendKeyDown:chars length:len modifiers:[event modifierFlags]];
-    } else {
-        [self dispatchKeyEvent:event];
-    }
+    [helper doCommandBySelector:selector];
 }
 
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
-    //NSLog(@"%s %@", _cmd, event);
-    // Called for Cmd+key keystrokes, function keys, arrow keys, page
-    // up/down, home, end.
-    //
-    // NOTE: This message cannot be ignored since Cmd+letter keys never are
-    // passed to keyDown:.  It seems as if the main menu consumes Cmd-key
-    // strokes, unless the key is a function key.
+    return [helper performKeyEquivalent:event];
+}
 
-    // NOTE: If the event that triggered this method represents a function key
-    // down then we do nothing, otherwise the input method never gets the key
-    // stroke (some input methods use e.g. arrow keys).  The function key down
-    // event will still reach Vim though (via keyDown:).  The exceptions to
-    // this rule are: PageUp/PageDown (keycode 116/121).
-    int flags = [event modifierFlags];
-    if ([event type] != NSKeyDown || flags & NSFunctionKeyMask
-            && !(116 == [event keyCode] || 121 == [event keyCode]))
-        return NO;
+- (BOOL)hasMarkedText
+{
+    return NO;
+}
 
-    // HACK!  KeyCode 50 represent the key which switches between windows
-    // within an application (like Cmd+Tab is used to switch between
-    // applications).  Return NO here, else the window switching does not work.
-    if ([event keyCode] == 50)
-        return NO;
+- (void)unmarkText
+{
+}
 
-    // HACK!  Let the main menu try to handle any key down event, before
-    // passing it on to vim, otherwise key equivalents for menus will
-    // effectively be disabled.
-    if ([[NSApp mainMenu] performKeyEquivalent:event])
-        return YES;
+- (void)scrollWheel:(NSEvent *)event
+{
+    [helper scrollWheel:event];
+}
 
-    // HACK!  On Leopard Ctrl-key events end up here instead of keyDown:.
-    if (flags & NSControlKeyMask) {
-        [self keyDown:event];
-        return YES;
-    }
+- (void)mouseDown:(NSEvent *)event
+{
+    [helper mouseDown:event];
+}
 
-    // HACK!  Don't handle Cmd-? or the "Help" menu does not work on Leopard.
-    NSString *unmodchars = [event charactersIgnoringModifiers];
-    if ([unmodchars isEqual:@"?"])
-        return NO;
+- (void)rightMouseDown:(NSEvent *)event
+{
+    [helper mouseDown:event];
+}
 
-    //NSLog(@"%s%@", _cmd, event);
+- (void)otherMouseDown:(NSEvent *)event
+{
+    [helper mouseDown:event];
+}
 
-    NSString *chars = [event characters];
-    int len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-    NSMutableData *data = [NSMutableData data];
+- (void)mouseUp:(NSEvent *)event
+{
+    [helper mouseUp:event];
+}
 
-    if (len <= 0)
-        return NO;
+- (void)rightMouseUp:(NSEvent *)event
+{
+    [helper mouseUp:event];
+}
 
-    // If 'chars' and 'unmodchars' differs when shift flag is present, then we
-    // can clear the shift flag as it is already included in 'unmodchars'.
-    // Failing to clear the shift flag means <D-Bar> turns into <S-D-Bar> (on
-    // an English keyboard).
-    if (flags & NSShiftKeyMask && ![chars isEqual:unmodchars])
-        flags &= ~NSShiftKeyMask;
+- (void)otherMouseUp:(NSEvent *)event
+{
+    [helper mouseUp:event];
+}
 
-    if (0x3 == [unmodchars characterAtIndex:0]) {
-        // HACK! AppKit turns enter (not return) into Ctrl-C, so we need to
-        // handle it separately (else Cmd-enter turns into Ctrl-C).
-        unmodchars = MMKeypadEnterString;
-        len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-    }
+- (void)mouseDragged:(NSEvent *)event
+{
+    [helper mouseDragged:event];
+}
 
-    [data appendBytes:&flags length:sizeof(int)];
-    [data appendBytes:&len length:sizeof(int)];
-    [data appendBytes:[unmodchars UTF8String] length:len];
+- (void)rightMouseDragged:(NSEvent *)event
+{
+    [helper mouseDragged:event];
+}
 
-    [[self vimController] sendMessage:CmdKeyMsgID data:data];
+- (void)otherMouseDragged:(NSEvent *)event
+{
+    [helper mouseDragged:event];
+}
 
-    return YES;
+- (void)mouseMoved:(NSEvent *)event
+{
+    [helper mouseMoved:event];
+}
+
+- (void)mouseEntered:(NSEvent *)event
+{
+    [helper mouseEntered:event];
+}
+
+- (void)mouseExited:(NSEvent *)event
+{
+    [helper mouseExited:event];
+}
+
+- (void)setFrame:(NSRect)frame
+{
+    [super setFrame:frame];
+    [helper setFrame:frame];
+}
+
+- (void)viewDidMoveToWindow
+{
+    [helper viewDidMoveToWindow];
+}
+
+- (void)viewWillMoveToWindow:(NSWindow *)newWindow
+{
+    [helper viewWillMoveToWindow:newWindow];
+}
+
+- (NSMenu*)menuForEvent:(NSEvent *)event
+{
+    // HACK! Return nil to disable default popup menus (Vim provides its own).
+    // Called when user Ctrl-clicks in the view (this is already handled in
+    // rightMouseDown:).
+    return nil;
+}
+
+- (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
+{
+    return [helper performDragOperation:sender];
+}
+
+- (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
+{
+    return [helper draggingEntered:sender];
+}
+
+- (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)sender
+{
+    return [helper draggingUpdated:sender];
 }
 
 
 
+- (BOOL)mouseDownCanMoveWindow
+{
+    return NO;
+}
+
+- (BOOL)isOpaque
+{
+    return YES;
+}
 
 - (BOOL)acceptsFirstResponder
 {
@@ -741,34 +697,6 @@ defaultLineHeightForFont(NSFont *font)
     }
 }
 
-- (void)scrollWheel:(NSEvent *)event
-{
-    if ([event deltaY] == 0)
-        return;
-
-    int row, col;
-    NSPoint pt = [self convertPoint:[event locationInWindow] fromView:nil];
-
-    // View is not flipped, instead the atsui code draws to a flipped image;
-    // thus we need to 'flip' the coordinate here since the column number
-    // increases in an up-to-down order.
-    pt.y = [self frame].size.height - pt.y;
-
-    if (![self convertPoint:pt toRow:&row column:&col])
-        return;
-
-    int flags = [event modifierFlags];
-    float dy = [event deltaY];
-    NSMutableData *data = [NSMutableData data];
-
-    [data appendBytes:&row length:sizeof(int)];
-    [data appendBytes:&col length:sizeof(int)];
-    [data appendBytes:&flags length:sizeof(int)];
-    [data appendBytes:&dy length:sizeof(float)];
-
-    [[self vimController] sendMessage:ScrollWheelMsgID data:data];
-}
-
 
 //
 // NOTE: The menu items cut/copy/paste/undo/redo/select all/... must be bound
@@ -805,15 +733,13 @@ defaultLineHeightForFont(NSFont *font)
     [[self windowController] vimMenuItemAction:sender];
 }
 
-@end // MMAtsuiTextView
-
-
-
-
-@implementation MMAtsuiTextView (Private)
-
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column
 {
+    // View is not flipped, instead the atsui code draws to a flipped image;
+    // thus we need to 'flip' the coordinate here since the column number
+    // increases in an up-to-down order.
+    point.y = [self frame].size.height - point.y;
+
     NSPoint origin = { insetSize.width, insetSize.height };
 
     if (!(cellSize.width > 0 && cellSize.height > 0))
@@ -827,6 +753,13 @@ defaultLineHeightForFont(NSFont *font)
 
     return YES;
 }
+
+@end // MMAtsuiTextView
+
+
+
+
+@implementation MMAtsuiTextView (Private)
 
 - (void)initAtsuStyles
 {
@@ -904,76 +837,6 @@ defaultLineHeightForFont(NSFont *font)
                             sizeof(featureTypes) / sizeof(featureTypes[0]),
                             featureTypes, featureSelectors);
     }
-}
-
-- (void)dispatchKeyEvent:(NSEvent *)event
-{
-    // Only handle the command if it came from a keyDown event
-    if ([event type] != NSKeyDown)
-        return;
-
-    NSString *chars = [event characters];
-    NSString *unmodchars = [event charactersIgnoringModifiers];
-    unichar c = [chars characterAtIndex:0];
-    unichar imc = [unmodchars characterAtIndex:0];
-    int len = 0;
-    const char *bytes = 0;
-    int mods = [event modifierFlags];
-
-    //NSLog(@"%s chars[0]=0x%x unmodchars[0]=0x%x (chars=%@ unmodchars=%@)",
-    //        _cmd, c, imc, chars, unmodchars);
-
-    if (' ' == imc && 0xa0 != c) {
-        // HACK!  The AppKit turns <C-Space> into <C-@> which is not standard
-        // Vim behaviour, so bypass this problem.  (0xa0 is <M-Space>, which
-        // should be passed on as is.)
-        len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        bytes = [unmodchars UTF8String];
-    } else if (imc == c && '2' == c) {
-        // HACK!  Translate Ctrl+2 to <C-@>.
-        static char ctrl_at = 0;
-        len = 1;  bytes = &ctrl_at;
-    } else if (imc == c && '6' == c) {
-        // HACK!  Translate Ctrl+6 to <C-^>.
-        static char ctrl_hat = 0x1e;
-        len = 1;  bytes = &ctrl_hat;
-    } else if (c == 0x19 && imc == 0x19) {
-        // HACK! AppKit turns back tab into Ctrl-Y, so we need to handle it
-        // separately (else Ctrl-Y doesn't work).
-        static char tab = 0x9;
-        len = 1;  bytes = &tab;  mods |= NSShiftKeyMask;
-    } else {
-        len = [chars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        bytes = [chars UTF8String];
-    }
-
-    [self sendKeyDown:bytes length:len modifiers:mods];
-}
-
-- (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags
-{
-    if (chars && len > 0) {
-        NSMutableData *data = [NSMutableData data];
-
-        [data appendBytes:&flags length:sizeof(int)];
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:chars length:len];
-
-        [self hideMouseCursor];
-
-        //NSLog(@"%s len=%d chars=0x%x", _cmd, len, chars[0]);
-        [[self vimController] sendMessage:KeyDownMsgID data:data];
-    }
-}
-
-- (void)hideMouseCursor
-{
-    // Check 'mousehide' option
-    id mh = [[[self vimController] vimState] objectForKey:@"p_mh"];
-    if (mh && ![mh boolValue])
-        [NSCursor setHiddenUntilMouseMoves:NO];
-    else
-        [NSCursor setHiddenUntilMouseMoves:YES];
 }
 
 - (MMWindowController *)windowController

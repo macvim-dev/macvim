@@ -10,16 +10,11 @@
 
 #import <Cocoa/Cocoa.h>
 
+@class MMTextViewHelper;
+
 
 @interface MMTextView : NSTextView {
     BOOL                shouldDrawInsertionPoint;
-    NSTrackingRectTag   trackingRectTag;
-    BOOL                isDragging;
-    BOOL                isAutoscrolling;
-    int                 dragRow;
-    int                 dragColumn;
-    int                 dragFlags;
-    NSPoint             dragPoint;
     int                 insertionPointRow;
     int                 insertionPointColumn;
     int                 insertionPointShape;
@@ -30,10 +25,11 @@
     NSMutableAttributedString  *markedText;
     int                 preEditRow;
     int                 preEditColumn;
-    int                 mouseShape;
     BOOL                antialias;
     NSRect              *invertRects;
     int                 numInvertRects;
+
+    MMTextViewHelper    *helper;
 }
 
 - (id)initWithFrame:(NSRect)frame;
@@ -52,6 +48,7 @@
 - (void)setWideFont:(NSFont *)newFont;
 - (NSSize)cellSize;
 - (void)setLinespace:(float)newLinespace;
+- (int)maxRows;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
 - (NSRect)rectForRowsInRange:(NSRange)range;
@@ -62,5 +59,8 @@
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size;
 - (NSSize)desiredSize;
 - (NSSize)minSize;
+
+
+- (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 
 @end

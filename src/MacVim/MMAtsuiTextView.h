@@ -13,6 +13,8 @@
 
 enum { MMMaxCellsPerChar = 2 };
 
+@class MMTextViewHelper;
+
 
 @interface MMAtsuiTextView : NSView {
     // From MMTextStorage
@@ -31,6 +33,8 @@ enum { MMMaxCellsPerChar = 2 };
     NSSize                      imageSize;
     ATSUStyle                   atsuStyles[MMMaxCellsPerChar];
     BOOL                        antialias;
+
+    MMTextViewHelper            *helper;
 }
 
 - (id)initWithFrame:(NSRect)frame;
@@ -38,6 +42,7 @@ enum { MMMaxCellsPerChar = 2 };
 //
 // MMTextStorage methods
 //
+- (int)maxRows;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
@@ -59,6 +64,7 @@ enum { MMMaxCellsPerChar = 2 };
 - (void)hideMarkedTextField;
 - (void)setMouseShape:(int)shape;
 - (void)setAntialias:(BOOL)state;
+- (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 
 //
 // NSTextView methods
