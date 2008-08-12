@@ -858,26 +858,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 }
 #endif
 
-- (void)setPreloadCacheSize:(int)size
-{
-    if (size < 0) return;
-
-    int count = [cachedVimControllers count];
-
-    if (0 == size) {
-        // Disable quickstart
-        [self clearPreloadCacheWithCount:-1];
-        [self stopWatchingVimDir];
-    } else if (count > size) {
-        // Cache size decreased
-        [self clearPreloadCacheWithCount:count-size];
-    } else if (count < size) {
-        // Cache size increased
-        [self scheduleVimControllerPreloadAfterDelay:1.0];
-        [self startWatchingVimDir];
-    }
-}
-
 - (IBAction)newWindow:(id)sender
 {
     // A cached controller requires no loading times and results in the new
