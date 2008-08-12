@@ -130,6 +130,10 @@ gui_mch_init(void)
     // NOTE: If this call is left out the cursor is opaque.
     highlight_gui_started();
 
+    // Ensure 'linespace' option is passed along to MacVim in case it was set
+    // in [g]vimrc.
+    gui_mch_adjust_charheight();
+
     return OK;
 }
 
