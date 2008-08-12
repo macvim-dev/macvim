@@ -68,6 +68,8 @@
 			<dict>
 				<key>loginShellButtonClicked</key>
 				<string>id</string>
+				<key>quickstartButtonClicked</key>
+				<string>id</string>
 			</dict>
 			<key>CLASS</key>
 			<string>FirstResponder</string>

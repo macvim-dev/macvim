@@ -993,6 +993,18 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 }
 
+- (IBAction)quickstartButtonClicked:(id)sender
+{
+    if ([self maxPreloadCacheSize] > 0) {
+        [self scheduleVimControllerPreloadAfterDelay:1.0];
+        [self startWatchingVimDir];
+    } else {
+        [self cancelVimControllerPreloadRequests];
+        [self clearPreloadCacheWithCount:-1];
+        [self stopWatchingVimDir];
+    }
+}
+
 - (byref id <MMFrontendProtocol>)
     connectBackend:(byref in id <MMBackendProtocol>)backend
                pid:(int)pid

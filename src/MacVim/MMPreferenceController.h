@@ -35,7 +35,4 @@
 - (IBAction)installOdb:(id)sender;
 - (IBAction)uninstallOdb:(id)sender;
 
-// Advanced pane
-- (IBAction)changePreloadCacheSize:(id)sender;
-
 @end
