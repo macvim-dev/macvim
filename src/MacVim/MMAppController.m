@@ -65,10 +65,12 @@ static NSString *MMWebsiteString = @"http://code.google.com/p/macvim/";
 // microseconds.
 static useconds_t MMTerminationSleepPeriod = 10000;
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
 // Latency (in s) between FS event occuring and being reported to MacVim.
 // Should be small so that MacVim is notified of changes to the ~/.vim
 // directory more or less immediately.
 static CFTimeInterval MMEventStreamLatency = 0.1;
+#endif
 
 
 #pragma options align=mac68k
@@ -130,7 +132,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 
 
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
     static void
 fsEventCallback(ConstFSEventStreamRef streamRef,
                 void *clientCallBackInfo,
@@ -1634,7 +1636,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)startWatchingVimDir
 {
     //NSLog(@"%s", _cmd);
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
     if (fsEventStream)
         return;
     if (NULL == FSEventStreamStart)
@@ -1659,7 +1661,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)stopWatchingVimDir
 {
     //NSLog(@"%s", _cmd);
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
     if (NULL == FSEventStreamStop)
         return; // FSEvent functions are weakly linked
 

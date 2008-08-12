@@ -29,7 +29,7 @@
     int                 preloadPid;
     BOOL                shouldActivateWhenNextWindowOpens;
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
     FSEventStreamRef    fsEventStream;
 #endif
 
