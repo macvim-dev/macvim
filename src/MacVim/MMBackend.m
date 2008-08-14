@@ -93,7 +93,7 @@ static NSString *MMSymlinkWarningString =
 
 @interface MMBackend (Private)
 - (void)waitForDialogReturn;
-- (void)queueVimStateMessage;
+- (void)insertVimStateMessage;
 - (void)processInputQueue;
 - (void)handleInputEvent:(int)msgid data:(NSData *)data;
 + (NSDictionary *)specialKeys;
@@ -519,11 +519,8 @@ static NSString *MMSymlinkWarningString =
         [drawData setLength:0];
     }
 
-    if ([outputQueue count] > 0 || force) {
-        // When 'force' is set we always update the Vim state to ensure that
-        // MacVim has a copy of the latest state (since 'force' is typically
-        // set just before Vim takes a nap whilst waiting for input).
-        [self queueVimStateMessage];
+    if ([outputQueue count] > 0) {
+        [self insertVimStateMessage];
 
         @try {
             [frontendProxy processCommandQueue:outputQueue];
@@ -1612,7 +1609,7 @@ static NSString *MMSymlinkWarningString =
     }
 }
 
-- (void)queueVimStateMessage
+- (void)insertVimStateMessage
 {
     // NOTE: This is the place to add Vim state that needs to be accessed from
     // MacVim.  Do not add state that could potentially require lots of memory
@@ -1627,7 +1624,11 @@ static NSString *MMSymlinkWarningString =
         [NSNumber numberWithBool:[self unusedEditor]], @"unusedEditor",
         nil];
 
-    [self queueMessage:SetVimStateMsgID data:[vimState dictionaryAsData]];
+    // Put the state before all other messages.
+    int msgid = SetVimStateMsgID;
+    [outputQueue insertObject:[vimState dictionaryAsData] atIndex:0];
+    [outputQueue insertObject:[NSData dataWithBytes:&msgid length:sizeof(int)]
+                      atIndex:0];
 }
 
 - (void)processInputQueue
