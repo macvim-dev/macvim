@@ -158,8 +158,7 @@ enum {
     // HACK! The text storage is the principal owner of the text system, but we
     // keep only a reference to the text view, so release the text storage
     // first (unless we are using the ATSUI renderer).
-    if (![[NSUserDefaults standardUserDefaults]
-            boolForKey:MMAtsuiRendererKey])
+    if ([textView isKindOfClass:[MMTextView class]])
         [[textView textStorage] release];
 
     [textView release];  textView = nil;
