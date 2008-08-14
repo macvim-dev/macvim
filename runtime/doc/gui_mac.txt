@@ -523,18 +523,18 @@ In this section some general (not necessarily MacVim specific) hints are
 given.
 
 Scenario: ~
-You try opening a bunch of files in tabs but not all files get
-opened in their own tab.
+You try opening a bunch of files in tabs but not all files get opened in their
+own tab.
 Solution: ~
-To get around this, set 'tabpagemax' to something big in your
-.gvimrc file (e.g. ":set tabpagemax=100").
+To get around this, set 'tabpagemax' to something big in your .gvimrc file
+(e.g. ":set tabpagemax=100").
 
 Scenario: ~
-You want to open a file in a tab in an already opened window, but typing
-"mvim filename" in Terminal opens it up in a separate window.
+You want to open a file in a tab in an already opened window, but typing "mvim
+filename" in Terminal opens it up in a separate window.
 Solution: ~
-Use the |--remote-tab| switch.  If you have several windows open you
-might have to specify which window you want the file to open in by using the
+Use the |--remote-tab| switch.  If you have several windows open you might
+have to specify which window you want the file to open in by using the
 |--servername| switch.  The title of a window usually ends in something like
 "VIM" or "VIM3" --- this is the server name of that window.  So to open a file
 named "foobar.txt" in a window whose title ends in "VIM3" you would type (the
@@ -543,8 +543,8 @@ order of the arguments matters): >
 For more information, consult the |client-server| manual page.
 
 Scenario: ~
-You like to be able to select text by holding down shift and
-pressing the arrow keys and find the Vim way of selecting text strange.
+You like to be able to select text by holding down shift and pressing the
+arrow keys and find the Vim way of selecting text strange.
 Solution: ~
 See |macvim-shift-movement|.
 
@@ -556,14 +556,14 @@ See |macvim-movement|.
 Scenario: ~
 Enabling localized menus breaks the toolbar and the menus as well.
 Solution: ~
-This is a know problem, see |macvim-todo|.
+This is a known problem, see |macvim-todo|.
 
 Scenario: ~
 You dislike the default font (DejaVu Sans Mono).
 Solution: ~
-The standard fixed width font on other Mac OS X applications is
-Monaco.  If you prefer this font then add the following line to your
-"~/.gvimrc" (note that Monaco does not come in italic and bold variants): >
+The standard fixed width font on other Mac OS X applications is Monaco.  If
+you prefer this font then add the following line to your "~/.gvimrc" (note
+that Monaco does not come in italic and bold variants): >
 	set guifont=Monaco:h10
 The suffix ":h10" specifies the point size of the font should be "10" (see
 'guifont' for more information on how to set the font).
@@ -576,8 +576,8 @@ Hold down Cmd and click the zoom button.  If you prefer this to be the default
 action, then set the user default MMZoomBoth (see |macvim-prefs|).
 
 Scenario: ~
-Typing feels sluggish when the cursor is just before a right bracket (i.e. ')',
-'}', or ']').
+Typing feels sluggish when the cursor is just before a right bracket (i.e.
+')', '}', or ']').
 Solution: ~
 Disable the "matchparen" plugin (see |matchparen|) by typing :NoMatchParen.
 If that helps, then you can permanently disable "matchparen" by adding the
@@ -586,10 +586,9 @@ following line to your "~/.vimrc": >
 <
 
 Scenario: ~
-You can't find the information on MacVim you thought should be in
-this manual page.
+You can't find the information on MacVim you thought should be in this manual
+page.
 Solution: ~
-Post your question on the |vim_mac| mailing list and wait for an
-answer.
+Post your question on the |vim_mac| mailing list and wait for an answer.
 
  vim:tw=78:sw=4:ts=8:ft=help:norl:
