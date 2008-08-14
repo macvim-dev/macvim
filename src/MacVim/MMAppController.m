@@ -234,7 +234,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // NOTE!  If the name of the connection changes here it must also be
     // updated in MMBackend.m.
     NSString *name = [NSString stringWithFormat:@"%@-connection",
-             [[NSBundle mainBundle] bundleIdentifier]];
+             [[NSBundle mainBundle] bundlePath]];
     //NSLog(@"Registering connection with name '%@'", name);
     if (![connection registerName:name]) {
         NSLog(@"FATAL ERROR: Failed to register connection with name '%@'",

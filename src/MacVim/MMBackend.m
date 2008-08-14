@@ -229,7 +229,7 @@ static NSString *MMSymlinkWarningString =
         // NOTE!  If the name of the connection changes here it must also be
         // updated in MMAppController.m.
         NSString *name = [NSString stringWithFormat:@"%@-connection",
-               [[NSBundle mainBundle] bundleIdentifier]];
+               [[NSBundle mainBundle] bundlePath]];
 
         connection = [NSConnection connectionWithRegisteredName:name host:nil];
         [connection retain];
@@ -2503,9 +2503,9 @@ static NSString *MMSymlinkWarningString =
 
 - (NSString *)connectionNameFromServerName:(NSString *)name
 {
-    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+    NSString *bundlePath = [[NSBundle mainBundle] bundlePath];
 
-    return [[NSString stringWithFormat:@"%@.%@", bundleIdentifier, name]
+    return [[NSString stringWithFormat:@"%@.%@", bundlePath, name]
         lowercaseString];
 }
 
