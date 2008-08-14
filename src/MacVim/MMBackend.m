@@ -58,6 +58,12 @@ static int eventModifierFlagsToVimModMask(int modifierFlags);
 static int eventModifierFlagsToVimMouseModMask(int modifierFlags);
 static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
+// Before exiting process, sleep for this many microseconds.  This is to allow
+// any distributed object messages in transit to be received by MacVim before
+// the process dies (otherwise an error message is logged by Cocoa).  Note that
+// this delay is only necessary if an NSConnection to MacVim has been
+// established.
+static useconds_t MMExitProcessDelay = 300000;
 
 // In gui_macvim.m
 vimmenu_T *menu_for_descriptor(NSArray *desc);
@@ -590,7 +596,6 @@ static NSString *MMSymlinkWarningString =
             NSData *data = [NSData dataWithBytes:&msgid length:sizeof(int)];
             NSArray *q = [NSArray arrayWithObjects:data, [NSData data], nil];
             [frontendProxy processCommandQueue:q];
-            //usleep(10000);
         }
         @catch (NSException *e) {
             NSLog(@"Exception caught when sending CloseWindowMsgID: \"%@\"", e);
@@ -610,6 +615,7 @@ static NSString *MMSymlinkWarningString =
         fontContainerRef = 0;
     }
 
+    usleep(MMExitProcessDelay);
 }
 
 - (void)selectTab:(int)index
@@ -1544,6 +1550,7 @@ static NSString *MMSymlinkWarningString =
         // NOTE: We intentionally do not call mch_exit() since this in turn
         // will lead to -[MMBackend exit] getting called which we want to
         // avoid.
+        usleep(MMExitProcessDelay);
         exit(0);
     }
 
