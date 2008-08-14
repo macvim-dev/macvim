@@ -116,6 +116,7 @@ defaultLineHeightForFont(NSFont *font)
     // NOTE!  It does not matter which font is set here, Vim will set its
     // own font on startup anyway.  Just set some bogus values.
     font = [[NSFont userFixedPitchFontOfSize:0] retain];
+    ascender = 0;
     cellSize.width = cellSize.height = 1;
     contentImage = nil;
     imageSize = NSZeroSize;
@@ -225,6 +226,7 @@ defaultLineHeightForFont(NSFont *font)
     if (newFont && font != newFont) {
         [font release];
         font = [newFont retain];
+        ascender = roundf([font ascender]);
 
         float em = [@"m" sizeWithAttributes:
                 [NSDictionary dictionaryWithObject:newFont
@@ -972,7 +974,7 @@ defaultLineHeightForFont(NSFont *font)
                  kATSUFromTextBeginning,
                  kATSUToTextEnd,
                  X2Fix(rect.origin.x),
-                 X2Fix(rect.origin.y + [font ascender]));
+                 X2Fix(rect.origin.y + ascender));
     ATSUDisposeTextLayout(layout);
 
     if (flags & DRAW_UNDERL)

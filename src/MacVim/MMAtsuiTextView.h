@@ -24,6 +24,7 @@ enum { MMMaxCellsPerChar = 2 };
     NSSize                      cellSize;
     NSFont                      *font;
     float                       linespace;
+    float                       ascender;
 
     // From NSTextView
     NSSize                      insetSize;
