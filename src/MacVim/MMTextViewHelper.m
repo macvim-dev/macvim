@@ -27,11 +27,15 @@ static char MMKeypadEnter[2] = { 'K', 'A' };
 static NSString *MMKeypadEnterString = @"KA";
 
 // The max/min drag timer interval in seconds
-static NSTimeInterval MMDragTimerMaxInterval = .3f;
-static NSTimeInterval MMDragTimerMinInterval = .01f;
+static NSTimeInterval MMDragTimerMaxInterval = 0.3;
+static NSTimeInterval MMDragTimerMinInterval = 0.01;
 
 // The number of pixels in which the drag timer interval changes
 static float MMDragAreaSize = 73.0f;
+
+// Number of seconds to delay before sending scroll wheel events.  (A delay of
+// 0.05 seconds equals an update frequency of 20 Hz.)
+static NSTimeInterval MMScrollWheelDelay = 0.05;
 
 
 @interface MMTextViewHelper (Private)
@@ -44,6 +48,7 @@ static float MMDragAreaSize = 73.0f;
 - (void)dragTimerFired:(NSTimer *)timer;
 - (void)setCursor;
 - (NSRect)trackingRect;
+- (void)handleScrollWheelEvent:(id)event;
 @end
 
 
@@ -259,21 +264,16 @@ static float MMDragAreaSize = 73.0f;
     if ([event deltaY] == 0)
         return;
 
-    int row, col;
-    NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
-    if (![textView convertPoint:pt toRow:&row column:&col])
-        return;
+    // Don't send the event straight away because lots of these events may be
+    // received in rapid succession.  Instead, accumulate the events and send
+    // off the scroll total at a predetermined maximum rate.  This avoids
+    // clogging up the DO messaging system on faster machines.
+    if (0 == scrollWheelAccumulator)
+        [self performSelector:@selector(handleScrollWheelEvent:)
+                   withObject:event
+                   afterDelay:MMScrollWheelDelay];
 
-    int flags = [event modifierFlags];
-    float dy = [event deltaY];
-    NSMutableData *data = [NSMutableData data];
-
-    [data appendBytes:&row length:sizeof(int)];
-    [data appendBytes:&col length:sizeof(int)];
-    [data appendBytes:&flags length:sizeof(int)];
-    [data appendBytes:&dy length:sizeof(float)];
-
-    [[self vimController] sendMessage:ScrollWheelMsgID data:data];
+    scrollWheelAccumulator += [event deltaY];
 }
 
 - (void)mouseDown:(NSEvent *)event
@@ -704,6 +704,28 @@ static float MMDragAreaSize = 73.0f;
     rect.size.height -= top + bot - 1;
 
     return rect;
+}
+
+- (void)handleScrollWheelEvent:(id)event
+{
+    if (0 == scrollWheelAccumulator)
+        return;
+
+    int row, col;
+    NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
+    if ([textView convertPoint:pt toRow:&row column:&col]) {
+        int flags = [event modifierFlags];
+        NSMutableData *data = [NSMutableData data];
+
+        [data appendBytes:&row length:sizeof(int)];
+        [data appendBytes:&col length:sizeof(int)];
+        [data appendBytes:&flags length:sizeof(int)];
+        [data appendBytes:&scrollWheelAccumulator length:sizeof(float)];
+
+        [[self vimController] sendMessage:ScrollWheelMsgID data:data];
+    }
+
+    scrollWheelAccumulator = 0;
 }
 
 @end // MMTextViewHelper (Private)
