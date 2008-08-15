@@ -66,4 +66,21 @@
     [super sendEvent:event];
 }
 
+
+- (void)orderFrontStandardAboutPanel:(id)sender
+{
+    NSString *version = [[NSBundle mainBundle] objectForInfoDictionaryKey:
+            @"CFBundleVersion"];
+    NSString *marketingVersion = [[NSBundle mainBundle]
+            objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+    NSString *title = [NSString stringWithFormat:
+            @"Custom Version %@ (%@)", marketingVersion, version];
+
+    [self orderFrontStandardAboutPanelWithOptions:
+            [NSDictionary dictionaryWithObjectsAndKeys:
+                @"",    @"Version",
+                title,  @"ApplicationVersion",
+                nil]];
+}
+
 @end
