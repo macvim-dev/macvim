@@ -39,7 +39,43 @@
 
     Sparkle supports updates in zip, tar, tbz, tgz, or dmg format.
     -->
-    
+
+    <item>
+      <title>Snapshot 34 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 34 released</h1>
+
+<p> Notice that there are now two prebuilt binaries of MacVim: a stable build and the snapshot build.  The snapshot build will be updated fairly often whereas the stable build will not.</p>
+
+<p> This snapshot is based on the recently released Vim 7.2 and it contains some new features and bug fixes.  Here's a partial list of changes since snapshot 33:
+
+<ul>
+  <li> More options on how new files should open (in tabs/splits/etc.): Open the preferences to check this out. </li>
+  <li> Quickstart: With this feature enabled new windows open instantaneously (but _not_ if you use the 'mvim' script).  It is disabled by default so go to the Advanced preferences to enable it (and be sure to read the "disclaimer"...note that any changes to ~/.vim or its subdirectories are automatically detected on Leopard). </li>
+  <li> The ATSUI renderer has received a few bug fixes and it now includes mouse support (it can be enabled in the Advanced prefs).  (bug fixes by Jjgod Jiang) </li>
+  <li> Some of the old toolbar icons have been resurrected. </li>
+  <li> The current directory is handled more consistently: New windows always have the user's home directory set as current.  Opening a file in the Finder results in the current directory being set to the directory the file is in (unless the file opened in a window with other files already open). </li>
+  <li> Windows opened from the Dock menu are in focus. </li>
+  <li> Menu item to toggle the Plug-in drawer (Matt Tolton). </li>
+  <li> Now possible to set 'linespace' in [g]vimrc. </li>
+  <li> Help file cleanup (Michael Wookey). </li>
+  <li> Problems with ptys on Leopard fixed (Ben Schmidt). </li>
+  <li> (Hopefully) no more annoying "dropping incoming DO message ..." warnings. </li>
+  <li> Scroll wheel (track pad) should behave better with fast machines (Issue 100) </li>
+  <li> Various bug fixes...
+</ul>
+</p>
+      ]]></description>
+      <pubDate>Sat, 16 Aug 2008 16:59 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://macvim.googlecode.com/files/MacVim-snapshot-34.tbz"
+        length="7959893"
+        sparkle:version="34"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
     <item>
       <title>Snapshot 33 released</title>
       <description><![CDATA[
