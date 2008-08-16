@@ -74,6 +74,8 @@
 		<dict>
 			<key>ACTIONS</key>
 			<dict>
+				<key>atsuiButtonClicked</key>
+				<string>id</string>
 				<key>loginShellButtonClicked</key>
 				<string>id</string>
 				<key>quickstartButtonClicked</key>

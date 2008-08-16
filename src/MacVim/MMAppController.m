@@ -117,6 +117,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (int)maxPreloadCacheSize;
 - (MMVimController *)takeVimControllerFromCache;
 - (void)clearPreloadCacheWithCount:(int)count;
+- (void)rebuildPreloadCache;
 - (NSDate *)rcFilesModificationDate;
 - (BOOL)openVimControllerWithArguments:(NSDictionary *)arguments;
 - (void)activateWhenNextWindowOpens;
@@ -165,7 +166,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:YES],  MMTranslateCtrlClickKey,
         [NSNumber numberWithInt:0],     MMOpenInCurrentWindowKey,
         [NSNumber numberWithBool:NO],   MMNoFontSubstitutionKey,
-        [NSNumber numberWithBool:NO],   MMLoginShellKey,
+        [NSNumber numberWithBool:YES],  MMLoginShellKey,
         [NSNumber numberWithBool:NO],   MMAtsuiRendererKey,
         [NSNumber numberWithInt:MMUntitledWindowAlways],
                                         MMUntitledWindowKey,
@@ -964,15 +965,18 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [NSApp makeWindowsPerform:@selector(performZoom:) inOrder:YES];
 }
 
+- (IBAction)atsuiButtonClicked:(id)sender
+{
+    // This action is called when the user clicks the "use ATSUI renderer"
+    // button in the advanced preferences pane.
+    [self rebuildPreloadCache];
+}
+
 - (IBAction)loginShellButtonClicked:(id)sender
 {
     // This action is called when the user clicks the "use login shell" button
-    // in the general preferences pane.
-    if ([self maxPreloadCacheSize] > 0) {
-        [self clearPreloadCacheWithCount:-1];
-        [self cancelVimControllerPreloadRequests];
-        [self scheduleVimControllerPreloadAfterDelay:1.0];
-    }
+    // in the advanced preferences pane.
+    [self rebuildPreloadCache];
 }
 
 - (IBAction)quickstartButtonClicked:(id)sender
@@ -1557,6 +1561,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     n = count;
     while (n-- > 0 && [cachedVimControllers count] > 0)
         [cachedVimControllers removeObjectAtIndex:0];
+}
+
+- (void)rebuildPreloadCache
+{
+    if ([self maxPreloadCacheSize] > 0) {
+        [self clearPreloadCacheWithCount:-1];
+        [self cancelVimControllerPreloadRequests];
+        [self scheduleVimControllerPreloadAfterDelay:1.0];
+    }
 }
 
 - (NSDate *)rcFilesModificationDate
