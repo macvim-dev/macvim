@@ -15,8 +15,9 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
  6. Toolbar			|macvim-toolbar|
  7. Dialogs			|macvim-dialogs|
  8. System services		|macvim-services|
- 9. Known bugs/missing features	|macvim-todo|
-10. Hints			|macvim-hints|
+ 9. mvim:// URL handler		|macvim-url-handler|
+10. Known bugs/missing features	|macvim-todo|
+11. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -495,7 +496,32 @@ These are the currently supported services:
   window.
 
 ==============================================================================
-9. Known bugs/missing features				*macvim-todo*
+9. mvim:// URL handler				*mvim://* *macvim-url-handler*
+
+MacVim supports a custom URL handler for "mvim://" URLs. The handler is
+supposed to be compatible to TextMate's URL scheme as documented at
+http://blog.macromates.com/2007/the-textmate-url-scheme/.
+
+Currently, this means that the format is >
+	mvim://open?<arguments>
+< where arguments can be:
+
+* url — the actual file to open (i.e. a file://… URL), if you leave
+        out this argument, the frontmost document is implied.
+* line — line number to go to (one based).
+* column — column number to go to (one based).
+
+For example, the link >
+	mvim://open?url=file:///etc/profile&line=20
+< will open the file /etc/profile on line 20 when clicked in a web browser.
+
+Note that url has to be a file:// url pointing to an existing local file.
+
+XXX: The line and column arguments do not yet work.
+
+
+==============================================================================
+10. Known bugs/missing features				*macvim-todo*
 
 Here are some of the bigger bugs in MacVim.  Of course there are others, but
 these are ones that are know and/or which were judged major.
@@ -517,7 +543,7 @@ might be simple to implement, but unless somebody asks for a particular
 feature then there is little incentive to add it.
 
 ==============================================================================
-10. Hints						*macvim-hints*
+11. Hints						*macvim-hints*
 
 In this section some general (not necessarily MacVim specific) hints are
 given.

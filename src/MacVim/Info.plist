@@ -544,6 +544,19 @@
 	<string>7.2</string>
 	<key>CFBundleSignature</key>
 	<string>VIMM</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>org.vim.MacVim</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>mvim</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>34</string>
 	<key>NSMainNibFile</key>

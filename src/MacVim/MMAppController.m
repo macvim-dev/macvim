@@ -107,6 +107,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (void)handleXcodeModEvent:(NSAppleEventDescriptor *)event
                  replyEvent:(NSAppleEventDescriptor *)reply;
 #endif
+- (void)handleGetURLEvent:(NSAppleEventDescriptor *)event
+               replyEvent:(NSAppleEventDescriptor *)reply;
 - (int)findLaunchingProcessWithoutArguments;
 - (MMVimController *)findUnusedEditor;
 - (NSMutableDictionary *)extractArgumentsFromOdocEvent:
@@ -312,6 +314,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
               forEventClass:'KAHL'
                  andEventID:'MOD '];
 #endif
+
+    // Register 'mvim://' URL handler
+    [[NSAppleEventManager sharedAppleEventManager]
+            setEventHandler:self
+                andSelector:@selector(handleGetURLEvent:replyEvent:)
+              forEventClass:kInternetEventClass
+                 andEventID:kAEGetURL];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
@@ -1329,6 +1338,80 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #endif
 }
 #endif
+
+- (void)handleGetURLEvent:(NSAppleEventDescriptor *)event
+               replyEvent:(NSAppleEventDescriptor *)reply
+{
+    NSString *urlString = [[event paramDescriptorForKeyword:keyDirectObject]
+        stringValue];
+    NSURL *url = [NSURL URLWithString:urlString];
+
+    // We try to be compatible with TextMate's URL scheme here, as documented
+    // at http://blog.macromates.com/2007/the-textmate-url-scheme/ . Currently,
+    // this means that:
+    //
+    // The format is: mvim://open?<arguments> where arguments can be:
+    //
+    // * url — the actual file to open (i.e. a file://… URL), if you leave
+    //         out this argument, the frontmost document is implied.
+    // * line — line number to go to (one based).
+    // * column — column number to go to (one based).
+    //
+    // Example: mvim://open?url=file:///etc/profile&line=20
+
+    if ([[url host] isEqualToString:@"open"]) {
+        NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+
+        // Parse query ("url=file://...&line=14") into a dictionary
+        NSArray *queries = [[url query] componentsSeparatedByString:@"&"];
+        NSEnumerator *enumerator = [queries objectEnumerator];
+        NSString *param;
+        while( param = [enumerator nextObject] ) {
+            NSArray *arr = [param componentsSeparatedByString:@"="];
+            if ([arr count] == 2) {
+                [dict setValue:[[arr lastObject]
+                            stringByReplacingPercentEscapesUsingEncoding:
+                                NSUTF8StringEncoding]
+                        forKey:[[arr objectAtIndex:0]
+                            stringByReplacingPercentEscapesUsingEncoding:
+                                NSUTF8StringEncoding]];
+            }
+        }
+
+        // Actually open the file.
+        // XXX: support for line/column support still missing
+        NSString *file = [dict objectForKey:@"url"];
+        if (file != nil) {
+            NSURL *fileUrl= [NSURL URLWithString:file];
+            // TextMate only opens files that already exist.
+            if ([fileUrl isFileURL]
+                    && [[NSFileManager defaultManager] fileExistsAtPath:
+                           [fileUrl path]]) {
+                // Strip 'file://' path, else application:openFiles: might think
+                // the file is not yet open.
+                [self application:NSApp openFiles:
+                    [NSArray arrayWithObject:[fileUrl path]]];
+            }
+        }
+    } else {
+        NSAlert *alert = [[NSAlert alloc] init];
+        [alert addButtonWithTitle:NSLocalizedString(@"OK",
+            @"Dialog button")];
+
+        [alert setMessageText:NSLocalizedString(@"Unknown URL Scheme",
+            @"Unknown URL Scheme dialog, title")];
+        [alert setInformativeText:[NSString stringWithFormat:NSLocalizedString(
+            @"This version of MacVim does not support \"%@\""
+            @" in its URL scheme.",
+            @"Unknown URL Scheme dialog, text"),
+            [url host]]];
+
+        [alert setAlertStyle:NSWarningAlertStyle];
+        [alert runModal];
+        [alert release];
+    }
+}
+
 
 - (int)findLaunchingProcessWithoutArguments
 {
