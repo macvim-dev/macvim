@@ -45,7 +45,7 @@
       <description><![CDATA[
 <h1>MacVim snapshot 34 released</h1>
 
-<p> Notice that there are now two prebuilt binaries of MacVim: a stable build and the snapshot build.  The snapshot build will be updated fairly often whereas the stable build will not.</p>
+<p> Notice that there are now two prebuilt binaries of MacVim: a stable build and the snapshot build.  The snapshot build will be updated fairly often whereas the stable build will not.  If you want to use the stable build you will have to download it manually from <a href="http://code.google.com/p/macvim">http://code.google.com/p/macvim</a>.</p>
 
 <p> This snapshot is based on the recently released Vim 7.2 and it contains some new features and bug fixes.  Here's a partial list of changes since snapshot 33:
 
@@ -68,7 +68,7 @@
       ]]></description>
       <pubDate>Sat, 16 Aug 2008 16:59 CET</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://macvim.googlecode.com/files/MacVim-snapshot-34.tbz"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-34.tbz"
         length="7959893"
         sparkle:version="34"
         sparkle:shortVersionString="7.2"
