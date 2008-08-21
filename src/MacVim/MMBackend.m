@@ -589,10 +589,10 @@ static NSString *MMSymlinkWarningString =
 
     if ([connection isValid]) {
         @try {
-            int msgid = CloseWindowMsgID;
-            NSData *data = [NSData dataWithBytes:&msgid length:sizeof(int)];
-            NSArray *q = [NSArray arrayWithObjects:data, [NSData data], nil];
-            [frontendProxy processCommandQueue:q];
+            // Flush the entire queue in case a VimLeave autocommand added
+            // something to the queue.
+            [self queueMessage:CloseWindowMsgID data:nil];
+            [frontendProxy processCommandQueue:outputQueue];
         }
         @catch (NSException *e) {
             NSLog(@"Exception caught when sending CloseWindowMsgID: \"%@\"", e);

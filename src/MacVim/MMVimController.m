@@ -1457,16 +1457,25 @@ isUnsafeMessage(int msgid)
     // example, UpdateTabBarMsgID may delete NSTabViewItem objects so it goes
     // on this list.
     static int unsafeMessages[] = { // REASON MESSAGE IS ON THIS LIST:
-        //OpenWindowMsgID,            //   Changes lots of state
-        UpdateTabBarMsgID,          //   May delete NSTabViewItem
-        RemoveMenuItemMsgID,        //   Deletes NSMenuItem
-        DestroyScrollbarMsgID,      //   Deletes NSScroller
-        ExecuteActionMsgID,         //   Impossible to predict
-        ShowPopupMenuMsgID,         //   Enters modal loop
-        ActivateMsgID,              //   ?
-        EnterFullscreenMsgID,       //   Modifies delegate of window controller
-        LeaveFullscreenMsgID,       //   Modifies delegate of window controller
+        //OpenWindowMsgID,            // Changes lots of state
+        UpdateTabBarMsgID,          // May delete NSTabViewItem
+        RemoveMenuItemMsgID,        // Deletes NSMenuItem
+        DestroyScrollbarMsgID,      // Deletes NSScroller
+        ExecuteActionMsgID,         // Impossible to predict
+        ShowPopupMenuMsgID,         // Enters modal loop
+        ActivateMsgID,              // ?
+        EnterFullscreenMsgID,       // Modifies delegate of window controller
+        LeaveFullscreenMsgID,       // Modifies delegate of window controller
+        CloseWindowMsgID,           // See note below
     };
+
+    // NOTE about CloseWindowMsgID: If this arrives at the same time as say
+    // ExecuteActionMsgID, then the "execute" message will be lost due to it
+    // being queued and handled after the "close" message has caused the
+    // controller to cleanup...UNLESS we add CloseWindowMsgID to the list of
+    // unsafe messages.  This is the _only_ reason it is on this list (since
+    // all that happens in response to it is that we schedule another message
+    // for later handling).
 
     int i, count = sizeof(unsafeMessages)/sizeof(unsafeMessages[0]);
     for (i = 0; i < count; ++i)
