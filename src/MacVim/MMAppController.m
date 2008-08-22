@@ -394,6 +394,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (!(filenames && [filenames count] > 0))
         return;
 
+    // Sort filenames since the Finder doesn't take care in preserving the
+    // order in which files are selected anyway (and "sorted" is more
+    // predictable than "random").
+    if ([filenames count] > 1)
+        filenames = [filenames sortedArrayUsingSelector:
+                @selector(localizedCompare:)];
+
     //
     // a) Extract ODB/Xcode/Spotlight parameters from the current Apple event
     //
