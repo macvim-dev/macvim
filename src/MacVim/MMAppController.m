@@ -755,10 +755,20 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     if (!NSEqualPoints(topLeft, NSZeroPoint)) {
+        NSPoint oldTopLeft = topLeft;
         if (topWin)
             topLeft = [win cascadeTopLeftFromPoint:topLeft];
 
         [win setFrameTopLeftPoint:topLeft];
+
+        if ([win frame].origin.y < [[win screen] frame].origin.y) {
+            // Try to avoid shifting the new window downwards if it means that
+            // the bottom of the window will be off the screen.  E.g. if the
+            // user has set windows to open maximized in the vertical direction
+            // then the new window will cascade horizontally only.
+            topLeft.y = oldTopLeft.y;
+            [win setFrameTopLeftPoint:topLeft];
+        }
     }
 
     if (1 == [vimControllers count]) {
