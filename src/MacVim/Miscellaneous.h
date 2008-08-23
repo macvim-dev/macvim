@@ -30,7 +30,6 @@ extern NSString *MMTextInsetLeftKey;
 extern NSString *MMTextInsetRightKey;
 extern NSString *MMTextInsetTopKey;
 extern NSString *MMTextInsetBottomKey;
-extern NSString *MMTerminateAfterLastWindowClosedKey;
 extern NSString *MMTypesetterKey;
 extern NSString *MMCellWidthMultiplierKey;
 extern NSString *MMBaselineOffsetKey;
@@ -53,6 +52,7 @@ extern NSString *MMShowLeftPlugInContainerKey;
 extern NSString *MMOpenLayoutKey;
 extern NSString *MMVerticalSplitKey;
 extern NSString *MMPreloadCacheSizeKey;
+extern NSString *MMLastWindowClosedBehaviorKey;
 
 
 // Enum for MMUntitledWindowKey
@@ -63,7 +63,6 @@ enum {
     MMUntitledWindowAlways = 3
 };
 
-
 // Enum for MMOpenLayoutKey (first 4 must match WIN_* defines in main.c)
 enum {
     MMLayoutArglist = 0,
@@ -71,6 +70,13 @@ enum {
     MMLayoutVerticalSplit = 2,
     MMLayoutTabs = 3,
     MMLayoutWindows = 4,
+};
+
+// Enum for MMLastWindowClosedBehaviorKey
+enum {
+    MMDoNothingWhenLastWindowClosed = 0,
+    MMHideWhenLastWindowClosed = 1,
+    MMTerminateWhenLastWindowClosed = 2,
 };
 
 

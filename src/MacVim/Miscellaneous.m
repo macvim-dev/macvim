@@ -21,8 +21,6 @@ NSString *MMTextInsetLeftKey            = @"MMTextInsetLeft";
 NSString *MMTextInsetRightKey           = @"MMTextInsetRight";
 NSString *MMTextInsetTopKey             = @"MMTextInsetTop";
 NSString *MMTextInsetBottomKey          = @"MMTextInsetBottom";
-NSString *MMTerminateAfterLastWindowClosedKey
-                                        = @"MMTerminateAfterLastWindowClosed";
 NSString *MMTypesetterKey               = @"MMTypesetter";
 NSString *MMCellWidthMultiplierKey      = @"MMCellWidthMultiplier";
 NSString *MMBaselineOffsetKey           = @"MMBaselineOffset";
@@ -45,6 +43,7 @@ NSString *MMShowLeftPlugInContainerKey  = @"MMShowLeftPlugInContainer";
 NSString *MMOpenLayoutKey               = @"MMOpenLayout";
 NSString *MMVerticalSplitKey            = @"MMVerticalSplit";
 NSString *MMPreloadCacheSizeKey         = @"MMPreloadCacheSize";
+NSString *MMLastWindowClosedBehaviorKey = @"MMLastWindowClosedBehavior";
 
 
 

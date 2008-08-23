@@ -161,7 +161,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithInt:1],     MMTextInsetRightKey,
         [NSNumber numberWithInt:1],     MMTextInsetTopKey,
         [NSNumber numberWithInt:1],     MMTextInsetBottomKey,
-        [NSNumber numberWithBool:NO],   MMTerminateAfterLastWindowClosedKey,
         @"MMTypesetter",                MMTypesetterKey,
         [NSNumber numberWithFloat:1],   MMCellWidthMultiplierKey,
         [NSNumber numberWithFloat:-1],  MMBaselineOffsetKey,
@@ -183,6 +182,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithInt:3],     MMOpenLayoutKey,
         [NSNumber numberWithBool:NO],   MMVerticalSplitKey,
         [NSNumber numberWithInt:0],     MMPreloadCacheSizeKey,
+        [NSNumber numberWithInt:0],     MMLastWindowClosedBehaviorKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -537,8 +537,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
 {
-    return [[NSUserDefaults standardUserDefaults]
-            boolForKey:MMTerminateAfterLastWindowClosedKey];
+    return (MMTerminateWhenLastWindowClosed ==
+            [[NSUserDefaults standardUserDefaults]
+                integerForKey:MMLastWindowClosedBehaviorKey]);
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:
@@ -731,6 +732,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // The last editor window just closed so restore the main menu back to
         // its default state (which is defined in MainMenu.nib).
         [self setMainMenu:defaultMainMenu];
+
+        BOOL hide = (MMHideWhenLastWindowClosed ==
+                    [[NSUserDefaults standardUserDefaults]
+                        integerForKey:MMLastWindowClosedBehaviorKey]);
+        if (hide)
+            [NSApp hide:self];
     }
 }
 
