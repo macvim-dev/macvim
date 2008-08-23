@@ -1417,6 +1417,63 @@ browse_save_fname(buf)
 }
 #endif
 
+#ifdef FEAT_GUI_MACVIM
+/*
+ * "Save changes" dialog that conforms to the Apple HIG.
+ */
+    int
+vim_dialog_save_changes(buf)
+    buf_T	*buf;
+{
+    char_u	buff[IOSIZE];
+
+    dialog_msg(buff, _("Do you want to save the changes you made in the "
+			"document \"%s\"?"), buf->b_fname);
+    switch (do_dialog(VIM_QUESTION, buff,
+		(char_u*) _("Your changes will be lost if you don't save "
+			    "them."),
+		(buf->b_fname != NULL)
+		    ? (char_u *)_("&Save\n&Cancel\n&Don't Save")
+		    : (char_u *)_("&Save...\n&Cancel\n&Don't Save"),
+		1, NULL))
+    {
+	case 1: return VIM_YES;
+	case 3: return VIM_NO;
+    }
+
+    return VIM_CANCEL;
+}
+
+/*
+ * "Save all changes" dialog that tries to emulate the above "Save changes"
+ * dialog for the case of several modified buffers.
+ */
+    int
+vim_dialog_save_all_changes(buf)
+    buf_T	*buf;
+{
+    char_u	buff[IOSIZE];
+
+    dialog_msg(buff, _("There are several documents with unsaved changes. "
+			"Do you want to save the changes you made in the "
+			"document \"%s\"?"), buf->b_fname);
+    switch (do_dialog(VIM_QUESTION, buff,
+		(char_u*) _("Your changes will be lost if you don't save "
+			    "them."),
+		(char_u *)_("&Save\n&Don't Save\nS&ave All\nD&iscard All\n"
+			    "&Cancel"),
+		1, NULL))
+    {
+	case 1: return VIM_YES;
+	case 2: return VIM_NO;
+	case 3: return VIM_ALL;
+	case 4: return VIM_DISCARDALL;
+    }
+
+    return VIM_CANCEL;
+}
+#endif
+
 /*
  * Ask the user what to do when abondoning a changed buffer.
  * Must check 'write' option first!
@@ -1430,6 +1487,19 @@ dialog_changed(buf, checkall)
     int		ret;
     buf_T	*buf2;
 
+#ifdef FEAT_GUI_MACVIM
+    /* Save dialogs on Mac OS X are standardized so in case the GUI is enabled
+     * and "c" isn't in 'guioptions' we use a OS X specific dialog. */
+    if (gui.in_use && vim_strchr(p_go, GO_CONDIALOG) == NULL)
+    {
+	if (checkall)
+	    ret = vim_dialog_save_all_changes(buf);
+	else
+	    ret = vim_dialog_save_changes(buf);
+    }
+    else
+    {
+#endif
     dialog_msg(buff, _("Save changes to \"%s\"?"),
 			(buf->b_fname != NULL) ?
 			buf->b_fname : (char_u *)_("Untitled"));
@@ -1437,6 +1507,9 @@ dialog_changed(buf, checkall)
 	ret = vim_dialog_yesnoallcancel(VIM_QUESTION, NULL, buff, 1);
     else
 	ret = vim_dialog_yesnocancel(VIM_QUESTION, NULL, buff, 1);
+#ifdef FEAT_GUI_MACVIM
+    }
+#endif
 
     if (ret == VIM_YES)
     {
