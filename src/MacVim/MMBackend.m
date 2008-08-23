@@ -2258,17 +2258,20 @@ static NSString *MMSymlinkWarningString =
 
 - (void)handleOpenWithArguments:(NSDictionary *)args
 {
-    //   ARGUMENT:              DESCRIPTION:
-    //   -------------------------------------------------------------
-    //   filenames              list of filenames
-    //   dontOpen               don't open files specified in above argument
-    //   layout                 which layout to use to open files
-    //   selectionRange         range to select
-    //   searchText             string to search for
-    //   remoteID               ODB parameter
-    //   remotePath             ODB parameter
-    //   remoteTokenDescType    ODB parameter
-    //   remoteTokenData        ODB parameter
+    // ARGUMENT:                DESCRIPTION:
+    // -------------------------------------------------------------
+    // filenames                list of filenames
+    // dontOpen                 don't open files specified in above argument
+    // layout                   which layout to use to open files
+    // selectionRange           range of lines to select
+    // searchText               string to search for
+    // cursorLine               line to position the cursor on
+    // cursorColumn             column to position the cursor on
+    //                          (only valid when "cursorLine" is set)
+    // remoteID                 ODB parameter
+    // remotePath               ODB parameter
+    // remoteTokenDescType      ODB parameter
+    // remoteTokenData          ODB parameter
 
     //NSLog(@"%s%@ (starting=%d)", _cmd, args, starting);
 
@@ -2423,6 +2426,17 @@ static NSString *MMSymlinkWarningString =
         [self performSelectorOnMainThread:@selector(startOdbEditWithArguments:)
                                withObject:args
                             waitUntilDone:NO];
+    }
+
+    NSString *lineString = [args objectForKey:@"cursorLine"];
+    if (lineString && [lineString intValue] > 0) {
+        NSString *columnString = [args objectForKey:@"cursorColumn"];
+        if (!(columnString && [columnString intValue] > 0))
+            columnString = @"1";
+
+        NSString *cmd = [NSString stringWithFormat:@"<C-\\><C-N>:cal "
+                "cursor(%@,%@)|norm! zz<CR>:f<CR>", lineString, columnString];
+        [self addInput:cmd];
     }
 
     NSString *rangeString = [args objectForKey:@"selectionRange"];

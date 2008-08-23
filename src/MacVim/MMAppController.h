@@ -46,6 +46,8 @@
 - (void)windowControllerWillOpen:(MMWindowController *)windowController;
 - (void)setMainMenu:(NSMenu *)mainMenu;
 - (NSArray *)filterOpenFiles:(NSArray *)filenames;
+- (BOOL)openFiles:(NSArray *)filenames withArguments:(NSDictionary *)args;
+
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)addItemToPlugInMenu:(NSMenuItem *)item;

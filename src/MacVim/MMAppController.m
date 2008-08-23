@@ -377,19 +377,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)application:(NSApplication *)sender openFiles:(NSArray *)filenames
 {
-    // Opening files works like this:
-    //  a) extract ODB/Xcode/Spotlight parameters from the current Apple event
-    //  b) filter out any already open files
-    //  c) open any remaining files
-    //
-    // A file is opened in an untitled window if there is one (it may be
-    // currently launching, or it may already be visible), otherwise a new
-    // window is opened.
-    //
-    // Each launching Vim process has a dictionary of arguments that are passed
-    // to the process when in checks in (via connectBackend:pid:).  The
-    // arguments for each launching process can be looked up by its PID (in the
-    // pidArguments dictionary).
+    // Extract ODB/Xcode/Spotlight parameters from the current Apple event,
+    // sort the filenames, and then let openFiles:withArguments: do the heavy
+    // lifting.
 
     if (!(filenames && [filenames count] > 0))
         return;
@@ -401,133 +391,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         filenames = [filenames sortedArrayUsingSelector:
                 @selector(localizedCompare:)];
 
-    //
-    // a) Extract ODB/Xcode/Spotlight parameters from the current Apple event
-    //
+    // Extract ODB/Xcode/Spotlight parameters from the current Apple event
     NSMutableDictionary *arguments = [self extractArgumentsFromOdocEvent:
             [[NSAppleEventManager sharedAppleEventManager] currentAppleEvent]];
 
-    //
-    // b) Filter out any already open files
-    //
-    NSString *firstFile = [filenames objectAtIndex:0];
-    MMVimController *firstController = nil;
-    NSDictionary *openFilesDict = nil;
-    filenames = [self filterOpenFiles:filenames openFilesDict:&openFilesDict];
-
-    // Pass arguments to vim controllers that had files open.
-    id key;
-    NSEnumerator *e = [openFilesDict keyEnumerator];
-
-    // (Indicate that we do not wish to open any files at the moment.)
-    [arguments setObject:[NSNumber numberWithBool:YES] forKey:@"dontOpen"];
-
-    while ((key = [e nextObject])) {
-        NSArray *files = [openFilesDict objectForKey:key];
-        [arguments setObject:files forKey:@"filenames"];
-
-        MMVimController *vc = [key pointerValue];
-        [vc passArguments:arguments];
-
-        // If this controller holds the first file, then remember it for later.
-        if ([files containsObject:firstFile])
-            firstController = vc;
-    }
-
-    if ([filenames count] == 0) {
-        // Raise the window containing the first file that was already open,
-        // and make sure that the tab containing that file is selected.  Only
-        // do this when there are no more files to open, otherwise sometimes
-        // the window with 'firstFile' will be raised, other times it might be
-        // the window that will open with the files in the 'filenames' array.
-        firstFile = [firstFile stringByEscapingSpecialFilenameCharacters];
-        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
-                ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
-                "tab sb %@|let &swb=oldswb|unl oldswb|"
-                "cal foreground()|redr|f<CR>", firstFile];
-
-        [firstController addVimInput:input];
-
-        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
-        return;
-    }
-
-    // Add filenames to "Recent Files" menu, unless they are being edited
-    // remotely (using ODB).
-    if ([arguments objectForKey:@"remoteID"] == nil) {
-        [[NSDocumentController sharedDocumentController]
-                noteNewRecentFilePaths:filenames];
-    }
-
-    //
-    // c) Open any remaining files
-    //
-    MMVimController *vc;
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
-
-    // The meaning of "layout" is defined by the WIN_* defines in main.c.
-    int layout = [ud integerForKey:MMOpenLayoutKey];
-    BOOL splitVert = [ud boolForKey:MMVerticalSplitKey];
-    if (splitVert && MMLayoutHorizontalSplit == layout)
-        layout = MMLayoutVerticalSplit;
-    if (layout < 0 || (layout > MMLayoutTabs && openInCurrentWindow))
-        layout = MMLayoutTabs;
-
-    [arguments setObject:[NSNumber numberWithInt:layout] forKey:@"layout"];
-    [arguments setObject:filenames forKey:@"filenames"];
-    // (Indicate that files should be opened from now on.)
-    [arguments setObject:[NSNumber numberWithBool:NO] forKey:@"dontOpen"];
-
-    if (openInCurrentWindow && (vc = [self topmostVimController])) {
-        // Open files in an already open window.
-        [[[vc windowController] window] makeKeyAndOrderFront:self];
-        [vc passArguments:arguments];
-        [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
-        return;
-    }
-
-    BOOL openOk = YES;
-    int numFiles = [filenames count];
-    if (MMLayoutWindows == layout && numFiles > 1) {
-        // Open one file at a time in a new window, but don't open too many at
-        // once (at most cap+1 windows will open).  If the user has increased
-        // the preload cache size we'll take that as a hint that more windows
-        // should be able to open at once.
-        int cap = [self maxPreloadCacheSize] - 1;
-        if (cap < 4) cap = 4;
-        if (cap > numFiles) cap = numFiles;
-
-        int i;
-        for (i = 0; i < cap; ++i) {
-            NSArray *a = [NSArray arrayWithObject:[filenames objectAtIndex:i]];
-            [arguments setObject:a forKey:@"filenames"];
-
-            // NOTE: We have to copy the args since we'll mutate them in the
-            // next loop and the below call may retain the arguments while
-            // waiting for a process to start.
-            NSDictionary *args = [[arguments copy] autorelease];
-
-            openOk = [self openVimControllerWithArguments:args];
-            if (!openOk) break;
-        }
-
-        // Open remaining files in tabs in a new window.
-        if (openOk && numFiles > cap) {
-            NSRange range = { i, numFiles-cap };
-            NSArray *a = [filenames subarrayWithRange:range];
-            [arguments setObject:a forKey:@"filenames"];
-            [arguments setObject:[NSNumber numberWithInt:MMLayoutTabs]
-                          forKey:@"layout"];
-
-            openOk = [self openVimControllerWithArguments:arguments];
-        }
-    } else {
-        // Open all files at once.
-        openOk = [self openVimControllerWithArguments:arguments];
-    }
-
-    if (openOk) {
+    if ([self openFiles:filenames withArguments:arguments]) {
         [NSApp replyToOpenOrPrint:NSApplicationDelegateReplySuccess];
     } else {
         // TODO: Notify user of failure?
@@ -876,6 +744,145 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     return [self filterOpenFiles:filenames openFilesDict:nil];
 }
 
+- (BOOL)openFiles:(NSArray *)filenames withArguments:(NSDictionary *)args
+{
+    // Opening files works like this:
+    //  a) filter out any already open files
+    //  b) open any remaining files
+    //
+    // A file is opened in an untitled window if there is one (it may be
+    // currently launching, or it may already be visible), otherwise a new
+    // window is opened.
+    //
+    // Each launching Vim process has a dictionary of arguments that are passed
+    // to the process when in checks in (via connectBackend:pid:).  The
+    // arguments for each launching process can be looked up by its PID (in the
+    // pidArguments dictionary).
+
+    NSMutableDictionary *arguments = (args ? [args mutableCopy]
+                                           : [NSMutableDictionary dictionary]);
+
+    //
+    // a) Filter out any already open files
+    //
+    NSString *firstFile = [filenames objectAtIndex:0];
+    MMVimController *firstController = nil;
+    NSDictionary *openFilesDict = nil;
+    filenames = [self filterOpenFiles:filenames openFilesDict:&openFilesDict];
+
+    // Pass arguments to vim controllers that had files open.
+    id key;
+    NSEnumerator *e = [openFilesDict keyEnumerator];
+
+    // (Indicate that we do not wish to open any files at the moment.)
+    [arguments setObject:[NSNumber numberWithBool:YES] forKey:@"dontOpen"];
+
+    while ((key = [e nextObject])) {
+        NSArray *files = [openFilesDict objectForKey:key];
+        [arguments setObject:files forKey:@"filenames"];
+
+        MMVimController *vc = [key pointerValue];
+        [vc passArguments:arguments];
+
+        // If this controller holds the first file, then remember it for later.
+        if ([files containsObject:firstFile])
+            firstController = vc;
+    }
+
+    if ([filenames count] == 0) {
+        // Raise the window containing the first file that was already open,
+        // and make sure that the tab containing that file is selected.  Only
+        // do this when there are no more files to open, otherwise sometimes
+        // the window with 'firstFile' will be raised, other times it might be
+        // the window that will open with the files in the 'filenames' array.
+        firstFile = [firstFile stringByEscapingSpecialFilenameCharacters];
+        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
+                ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
+                "tab sb %@|let &swb=oldswb|unl oldswb|"
+                "cal foreground()|redr|f<CR>", firstFile];
+
+        [firstController addVimInput:input];
+
+        return YES;
+    }
+
+    // Add filenames to "Recent Files" menu, unless they are being edited
+    // remotely (using ODB).
+    if ([arguments objectForKey:@"remoteID"] == nil) {
+        [[NSDocumentController sharedDocumentController]
+                noteNewRecentFilePaths:filenames];
+    }
+
+    //
+    // b) Open any remaining files
+    //
+    MMVimController *vc;
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
+
+    // The meaning of "layout" is defined by the WIN_* defines in main.c.
+    int layout = [ud integerForKey:MMOpenLayoutKey];
+    BOOL splitVert = [ud boolForKey:MMVerticalSplitKey];
+    if (splitVert && MMLayoutHorizontalSplit == layout)
+        layout = MMLayoutVerticalSplit;
+    if (layout < 0 || (layout > MMLayoutTabs && openInCurrentWindow))
+        layout = MMLayoutTabs;
+
+    [arguments setObject:[NSNumber numberWithInt:layout] forKey:@"layout"];
+    [arguments setObject:filenames forKey:@"filenames"];
+    // (Indicate that files should be opened from now on.)
+    [arguments setObject:[NSNumber numberWithBool:NO] forKey:@"dontOpen"];
+
+    if (openInCurrentWindow && (vc = [self topmostVimController])) {
+        // Open files in an already open window.
+        [[[vc windowController] window] makeKeyAndOrderFront:self];
+        [vc passArguments:arguments];
+        return YES;
+    }
+
+    BOOL openOk = YES;
+    int numFiles = [filenames count];
+    if (MMLayoutWindows == layout && numFiles > 1) {
+        // Open one file at a time in a new window, but don't open too many at
+        // once (at most cap+1 windows will open).  If the user has increased
+        // the preload cache size we'll take that as a hint that more windows
+        // should be able to open at once.
+        int cap = [self maxPreloadCacheSize] - 1;
+        if (cap < 4) cap = 4;
+        if (cap > numFiles) cap = numFiles;
+
+        int i;
+        for (i = 0; i < cap; ++i) {
+            NSArray *a = [NSArray arrayWithObject:[filenames objectAtIndex:i]];
+            [arguments setObject:a forKey:@"filenames"];
+
+            // NOTE: We have to copy the args since we'll mutate them in the
+            // next loop and the below call may retain the arguments while
+            // waiting for a process to start.
+            NSDictionary *args = [[arguments copy] autorelease];
+
+            openOk = [self openVimControllerWithArguments:args];
+            if (!openOk) break;
+        }
+
+        // Open remaining files in tabs in a new window.
+        if (openOk && numFiles > cap) {
+            NSRange range = { i, numFiles-cap };
+            NSArray *a = [filenames subarrayWithRange:range];
+            [arguments setObject:a forKey:@"filenames"];
+            [arguments setObject:[NSNumber numberWithInt:MMLayoutTabs]
+                          forKey:@"layout"];
+
+            openOk = [self openVimControllerWithArguments:arguments];
+        }
+    } else {
+        // Open all files at once.
+        openOk = [self openVimControllerWithArguments:arguments];
+    }
+
+    return openOk;
+}
+
 #ifdef MM_ENABLE_PLUGINS
 - (void)addItemToPlugInMenu:(NSMenuItem *)item
 {
@@ -1169,7 +1176,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         if (vc) {
             [vc dropFiles:filenames forceOpen:YES];
         } else {
-            [self application:NSApp openFiles:filenames];
+            [self openFiles:filenames withArguments:nil];
         }
     }
 }
@@ -1403,7 +1410,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         }
 
         // Actually open the file.
-        // XXX: support for line/column support still missing
         NSString *file = [dict objectForKey:@"url"];
         if (file != nil) {
             NSURL *fileUrl= [NSURL URLWithString:file];
@@ -1413,8 +1419,24 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                            [fileUrl path]]) {
                 // Strip 'file://' path, else application:openFiles: might think
                 // the file is not yet open.
-                [self application:NSApp openFiles:
-                    [NSArray arrayWithObject:[fileUrl path]]];
+                NSArray *filenames = [NSArray arrayWithObject:[fileUrl path]];
+
+                // Look for the line and column options.
+                NSDictionary *args = nil;
+                NSString *line = [dict objectForKey:@"line"];
+                if (line) {
+                    NSString *column = [dict objectForKey:@"column"];
+                    if (column)
+                        args = [NSDictionary dictionaryWithObjectsAndKeys:
+                                line, @"cursorLine",
+                                column, @"cursorColumn",
+                                nil];
+                    else
+                        args = [NSDictionary dictionaryWithObject:line
+                                forKey:@"cursorLine"];
+                }
+
+                [self openFiles:filenames withArguments:args];
             }
         }
     } else {
