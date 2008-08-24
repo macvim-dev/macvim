@@ -2376,6 +2376,10 @@ static NSString *MMSymlinkWarningString =
                     [cmd appendString:file];
                 }
 
+                // Temporarily clear 'suffixes' so that the files are opened in
+                // the same order as they appear in the "filenames" array.
+                [self addInput:@":let t:mvim_oldsu=&su|set su=<CR>"];
+
                 [self addInput:cmd];
 
                 // Split the view into multiple windows if requested.
@@ -2383,6 +2387,9 @@ static NSString *MMSymlinkWarningString =
                     [self addInput:@"|sall"];
                 else if (WIN_VER == layout)
                     [self addInput:@"|vert sall"];
+
+                // Restore the old value of 'suffixes'.
+                [self addInput:@"|let &su=t:mvim_oldsu|unlet t:mvim_oldsu"];
 
                 // Adding "|redr|f" ensures a "Hit ENTER" prompt is not shown.
                 [self addInput:@"|redr|f<CR>"];
