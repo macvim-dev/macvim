@@ -517,9 +517,6 @@ For example, the link >
 
 Note that url has to be a file:// url pointing to an existing local file.
 
-XXX: The line and column arguments do not yet work.
-
-
 ==============================================================================
 10. Known bugs/missing features				*macvim-todo*
 
