@@ -3081,6 +3081,15 @@ A jump table for the options with a short description can be found at |Q_op|.
 	See 'fuoptions' for how Vim resizes and colors the background when 
 	entering and leaving fullscreen mode.
 
+	Note: Setting 'fullscreen' usually changes the size of the Vim
+	control. However, for technical reasons, 'lines' and 'columns' will
+	currently only be updated when Vim runs its event loop. As a
+	consequence, if you set 'fullscreen' and 'lines' or 'columns' in a
+	Vim script file, you should always set 'fullscreen' after setting
+	'lines' and 'columns', else 'lines' and 'columns' will be overwritten
+	with the values 'fullscreen' sets after the script has been executed
+	and the event loop is ran again.
+
 	XXX: Add fuenter/fuleave autocommands? You might want to display
 	a NERDTree or a Tlist only in fullscreen for example. Then again, this
 	could probably be in a sizechanged autocommand that triggers if the

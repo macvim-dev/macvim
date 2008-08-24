@@ -1685,17 +1685,31 @@ static NSString *MMSymlinkWarningString =
         int idx = *((int*)bytes);
 
         tabpage_move(idx);
-    } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid) {
+    } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid
+            || SetTextRowsMsgID == msgid || SetTextColumnsMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
-        int rows = *((int*)bytes);  bytes += sizeof(int);
-        int cols = *((int*)bytes);  bytes += sizeof(int);
+        int rows = Rows;
+        if (SetTextColumnsMsgID != msgid) {
+            rows = *((int*)bytes);  bytes += sizeof(int);
+        }
+        int cols = Columns;
+        if (SetTextRowsMsgID != msgid) {
+            cols = *((int*)bytes);  bytes += sizeof(int);
+        }
+
+        NSData *d = data;
+        if (SetTextRowsMsgID == msgid || SetTextColumnsMsgID == msgid) {
+            int dim[2] = { rows, cols };
+            d = [NSData dataWithBytes:dim length:2*sizeof(int)];
+            msgid = SetTextDimensionsMsgID;
+        }
 
         // NOTE! Vim doesn't call gui_mch_set_shellsize() after
         // gui_resize_shell(), so we have to manually set the rows and columns
         // here.  (MacVim doesn't change the rows and columns to avoid
         // inconsistent states between Vim and MacVim.)
-        [self queueMessage:msgid data:data];
+        [self queueMessage:msgid data:d];
 
         //NSLog(@"[VimTask] Resizing shell to %dx%d.", cols, rows);
         gui_resize_shell(cols, rows);

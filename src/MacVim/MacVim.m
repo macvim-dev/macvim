@@ -28,6 +28,8 @@ char *MessageStrings[] =
     "UpdateTabBarMsgID",
     "ShowTabBarMsgID",
     "HideTabBarMsgID",
+    "SetTextRowsMsgID",
+    "SetTextColumsMsgID",
     "SetTextDimensionsMsgID",
     "SetWindowTitleMsgID",
     "ScrollWheelMsgID",

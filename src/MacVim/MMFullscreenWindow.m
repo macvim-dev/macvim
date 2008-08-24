@@ -157,12 +157,30 @@ static int numFullscreenWindows = 0;
 
     // if necessary, resize vim to target fu size
     if (currRows != fuRows || currColumns != fuColumns) {
-        int newSize[2] = { fuRows, fuColumns };
-        NSData *data = [NSData dataWithBytes:newSize length:2*sizeof(int)];
+
+        // The size sent here is queued and sent to vim when it's in
+        // event processing mode again. Make sure to only send the values we
+        // care about, as they override any changes that were made to 'lines'
+        // and 'columns' after 'fu' was set but before the event loop is run.
+        NSData *data = nil;
+        int msgid = 0;
+        if (currRows != fuRows && currColumns != fuColumns) {
+            int newSize[2] = { fuRows, fuColumns };
+            data = [NSData dataWithBytes:newSize length:2*sizeof(int)];
+            msgid = SetTextDimensionsMsgID;
+        } else if (currRows != fuRows) {
+            data = [NSData dataWithBytes:&fuRows length:sizeof(int)];
+            msgid = SetTextRowsMsgID;
+        } else if (currColumns != fuColumns) {
+            data = [NSData dataWithBytes:&fuColumns length:sizeof(int)];
+            msgid = SetTextColumnsMsgID;
+        }
+        NSParameterAssert(data != nil && msgid != 0);
+
         MMVimController *vimController =
             [[self windowController] vimController];
 
-        [vimController sendMessage:SetTextDimensionsMsgID data:data];
+        [vimController sendMessage:msgid data:data];
         [[view textView] setMaxRows:fuRows columns:fuColumns];
     }
 

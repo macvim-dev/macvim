@@ -9897,6 +9897,14 @@ makeopens(fd, dirnow)
 	if (fprintf(fd, "set lines=%ld columns=%ld" , Rows, Columns) < 0
 		|| put_eol(fd) == FAIL)
 	    return FAIL;
+#ifdef FEAT_FULLSCREEN
+	/* fullscreen needs to be set after lines and columns */
+	if (p_fullscreen)
+	{
+	    if (fprintf(fd, "set fullscreen") < 0 || put_eol(fd) == FAIL)
+		return FAIL;
+	}
+#endif
     }
 
 #ifdef FEAT_GUI

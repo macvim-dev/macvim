@@ -1155,7 +1155,7 @@ static struct vimoption
 			    {(char_u *)FALSE, (char_u *)0L}
 #endif
 			    },
-    {"fullscreen",  "fu",   P_BOOL,
+    {"fullscreen",  "fu",   P_BOOL|P_NO_MKRC,
 #ifdef FEAT_FULLSCREEN
 			    (char_u *)&p_fullscreen, PV_NONE,
 #else

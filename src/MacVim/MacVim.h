@@ -121,6 +121,8 @@ enum {
     UpdateTabBarMsgID,
     ShowTabBarMsgID,
     HideTabBarMsgID,
+    SetTextRowsMsgID,
+    SetTextColumnsMsgID,
     SetTextDimensionsMsgID,
     SetWindowTitleMsgID,
     ScrollWheelMsgID,
