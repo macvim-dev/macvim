@@ -66,7 +66,7 @@ aunmenu Edit.Find\ and\ Replace
 an 20.410.10 Edit.Find.Find\.\.\.<Tab>/     /
 an 20.410.20 Edit.Find.Find\ Next           <Nop>
 an 20.410.30 Edit.Find.Find\ Previous       <Nop>
-vmenu 20.410.35 Edit.Find.Use\ Selection\ for\ Find y:let @/=@"<CR>n
+vmenu 20.410.35 Edit.Find.Use\ Selection\ for\ Find y:let @/=@"<CR>:<BS>
 an 20.410.40 Edit.Find.-SEP1-               <Nop>
 an 20.410.50 Edit.Find.Find\ and\ Replace\.\.\.<Tab>:%s   :%s/
 vunmenu      Edit.Find.Find\ and\ Replace\.\.\.<Tab>:%s
