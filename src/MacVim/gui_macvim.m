@@ -29,6 +29,7 @@ static NSString *MMDefaultFontName = @"DejaVu Sans Mono";
 static float MMDefaultFontSize = 12.0f;
 static float MMMinFontSize = 6.0f;
 static float MMMaxFontSize = 100.0f;
+static BOOL gui_mch_init_has_finished = NO;
 
 
 static NSFont *gui_macvim_font_with_name(char_u *name);
@@ -102,6 +103,15 @@ gui_mch_init(void)
 {
     //NSLog(@"gui_mch_init()");
 
+    // NOTE! Because OS X has to exec after fork we effectively end up doing
+    // the initialization twice (because this function is called before the
+    // fork).  To avoid all this extra work we check if Vim is about to fork,
+    // and if so do nothing for now.
+    //
+    // TODO: Is this check 100% foolproof?
+    if (gui.dofork && (vim_strchr(p_go, GO_FORG) == NULL))
+        return OK;
+
     if (![[MMBackend sharedInstance] checkin]) {
         // TODO: Kill the process if there is no terminal to fall back on,
         // otherwise the process will run outputting to the console.
@@ -134,6 +144,8 @@ gui_mch_init(void)
     // in [g]vimrc.
     gui_mch_adjust_charheight();
 
+    gui_mch_init_has_finished = YES;
+
     return OK;
 }
 
@@ -154,6 +166,12 @@ gui_mch_exit(int rc)
     int
 gui_mch_open(void)
 {
+    //NSLog(@"gui_mch_open()");
+
+    // This check is to avoid doing extra work when we're about to fork.
+    if (!gui_mch_init_has_finished)
+        return OK;
+
     return [[MMBackend sharedInstance] openGUIWindow];
 }
 
