@@ -457,19 +457,11 @@ defaultLineHeightForFont(NSFont *font)
 
 - (void)drawRect:(NSRect)rect
 {
-    NSRect srcRect = NSMakeRect(0, 0, imageSize.width, imageSize.height);
-    NSRect dstRect = srcRect;
-
-    dstRect.origin.x += insetSize.width;
-    dstRect.origin.y += insetSize.height;
-
     [defaultBackgroundColor set];
     NSRectFill(rect);
 
-    [contentImage drawInRect: dstRect
-                    fromRect: srcRect
-                   operation: NSCompositeCopy
-                    fraction: 1.0];
+    NSPoint pt = { insetSize.width, insetSize.height };
+    [contentImage compositeToPoint:pt operation:NSCompositeCopy];
 }
 
 - (BOOL) wantsDefaultClipping
