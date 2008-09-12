@@ -25,7 +25,6 @@
     NSDictionary        *colorDict;
     NSDictionary        *sysColorDict;
     NSDictionary        *actionDict;
-    BOOL                inputReceived;
     BOOL                tabBarVisible;
     unsigned            backgroundColor;
     unsigned            foregroundColor;

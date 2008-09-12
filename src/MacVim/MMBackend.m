@@ -477,13 +477,6 @@ static NSString *MMSymlinkWarningString =
     // waiting.
     [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                              beforeDate:[NSDate distantPast]];
-
-#if 0
-    // Keyboard and mouse input is handled directly, other input is queued and
-    // processed here.  This call may enter a blocking loop.
-    if ([inputQueue count] > 0)
-        [self processInputQueue];
-#endif
 }
 
 - (void)flushQueue:(BOOL)force
@@ -538,35 +531,35 @@ static NSString *MMSymlinkWarningString =
 
 - (BOOL)waitForInput:(int)milliseconds
 {
-    //NSLog(@"|ENTER| %s%d",  _cmd, milliseconds);
+    // Return NO if we timed out waiting for input, otherwise return YES.
+    BOOL inputReceived = NO;
 
     // Only start the run loop if the input queue is empty, otherwise process
     // the input first so that the input on queue isn't delayed.
     if ([inputQueue count]) {
         inputReceived = YES;
     } else {
-        NSDate *date = milliseconds > 0 ?
-                [NSDate dateWithTimeIntervalSinceNow:.001*milliseconds] : 
-                [NSDate distantFuture];
+        // Wait for the specified amount of time, unless 'milliseconds' is
+        // negative in which case we wait "forever" (1e6 seconds translates to
+        // approximately 11 days).
+        CFTimeInterval dt = (milliseconds >= 0 ? .001*milliseconds : 1e6);
 
-        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                 beforeDate:date];
+        while (CFRunLoopRunInMode(kCFRunLoopDefaultMode, dt, true)
+                == kCFRunLoopRunHandledSource) {
+            // In order to ensure that all input on the run-loop has been
+            // processed we set the timeout to 0 and keep processing until the
+            // run-loop times out.
+            dt = 0.0;
+            inputReceived = YES;
+        }
     }
 
-    // I know of no way to figure out if the run loop exited because input was
-    // found or because of a time out, so I need to manually indicate when
-    // input was received in processInput:data: and then reset it every time
-    // here.
-    BOOL yn = inputReceived;
-    inputReceived = NO;
-
-    // Keyboard and mouse input is handled directly, other input is queued and
-    // processed here.  This call may enter a blocking loop.
+    // The above calls may have placed messages on the input queue so process
+    // it now.  This call may enter a blocking loop.
     if ([inputQueue count] > 0)
         [self processInputQueue];
 
-    //NSLog(@"|LEAVE| %s input=%d", _cmd, yn);
-    return yn;
+    return inputReceived;
 }
 
 - (void)exit
@@ -1063,138 +1056,35 @@ static NSString *MMSymlinkWarningString =
 
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data
 {
-    // NOTE: This method might get called whenever the run loop is tended to.
-    // Normal keyboard and mouse input is added to input buffers, so there is
-    // no risk in handling these events directly (they return immediately, and
-    // do not call any other Vim functions).  However, other events such
-    // as 'VimShouldCloseMsgID' may enter blocking loops that wait for key
-    // events which would cause this method to be called recursively.  This
-    // in turn leads to various difficulties that we do not want to have to
-    // deal with.  To avoid recursive calls here we add all events except
-    // keyboard and mouse events to an input queue which is processed whenever
-    // gui_mch_update() is called (see processInputQueue).
+    // Remove all previous instances of this message from the input queue, else
+    // the input queue may fill up as a result of Vim not being able to keep up
+    // with the speed at which new messages are received.  This avoids annoying
+    // situations such as when the keyboard repeat rate is higher than what Vim
+    // can cope with (which would cause a 'stutter' when scrolling by holding
+    // down 'j' and then when 'j' was released the screen kept scrolling for a
+    // little while).
 
-    //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
-
-    // Don't flush too soon after receiving input or update speed will suffer.
-    [lastFlushDate release];
-    lastFlushDate = [[NSDate date] retain];
-
-    // Handle keyboard and mouse input now.  All other events are queued.
-    if (InsertTextMsgID == msgid) {
-        [self handleInsertText:data];
-    } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-        int mods = *((int*)bytes);  bytes += sizeof(int);
-        int len = *((int*)bytes);  bytes += sizeof(int);
-        NSString *key = [[NSString alloc] initWithBytes:bytes length:len
-                                              encoding:NSUTF8StringEncoding];
-        mods = eventModifierFlagsToVimModMask(mods);
-
-        [self handleKeyDown:key modifiers:mods];
-
-        [key release];
-    } else if (ScrollWheelMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
-        float dy = *((float*)bytes);  bytes += sizeof(float);
-
-        int button = MOUSE_5;
-        if (dy > 0) button = MOUSE_4;
-
-        flags = eventModifierFlagsToVimMouseModMask(flags);
-
-        int numLines = (int)round(dy);
-        if (numLines < 0) numLines = -numLines;
-        if (numLines == 0) numLines = 1;
-
-#ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
-        gui.scroll_wheel_force = numLines;
-#endif
-
-        gui_send_mouse_event(button, col, row, NO, flags);
-    } else if (MouseDownMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int button = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
-        int count = *((int*)bytes);  bytes += sizeof(int);
-
-        button = eventButtonNumberToVimMouseButton(button);
-        if (button >= 0) {
-            flags = eventModifierFlagsToVimMouseModMask(flags);
-            gui_send_mouse_event(button, col, row, count>1, flags);
+    int i, count = [inputQueue count];
+    for (i = 1; i < count; i+=2) {
+        if ([[inputQueue objectAtIndex:i-1] intValue] == msgid) {
+            [inputQueue removeObjectAtIndex:i];
+            [inputQueue removeObjectAtIndex:i-1];
+            break;
         }
-    } else if (MouseUpMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
-
-        flags = eventModifierFlagsToVimMouseModMask(flags);
-
-        gui_send_mouse_event(MOUSE_RELEASE, col, row, NO, flags);
-    } else if (MouseDraggedMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
-
-        flags = eventModifierFlagsToVimMouseModMask(flags);
-
-        gui_send_mouse_event(MOUSE_DRAG, col, row, NO, flags);
-    } else if (MouseMovedMsgID == msgid) {
-        const void *bytes = [data bytes];
-        int row = *((int*)bytes);  bytes += sizeof(int);
-        int col = *((int*)bytes);  bytes += sizeof(int);
-
-        gui_mouse_moved(col, row);
-    } else if (AddInputMsgID == msgid) {
-        NSString *string = [[NSString alloc] initWithData:data
-                encoding:NSUTF8StringEncoding];
-        if (string) {
-            [self addInput:string];
-            [string release];
-        }
-    } else if (TerminateNowMsgID == msgid) {
-        isTerminating = YES;
-    } else {
-        // Not keyboard or mouse event, queue it and handle later.
-        //NSLog(@"Add event %s to input event queue", MessageStrings[msgid]);
-        [inputQueue addObject:[NSNumber numberWithInt:msgid]];
-        [inputQueue addObject:(data ? (id)data : (id)[NSNull null])];
     }
 
-    // See waitForInput: for an explanation of this flag.
-    inputReceived = YES;
+    [inputQueue addObject:[NSNumber numberWithInt:msgid]];
+    [inputQueue addObject:(data ? (id)data : [NSNull null])];
 }
 
 - (oneway void)processInputAndData:(in bycopy NSArray *)messages
 {
-    // TODO: Get rid of this method?
-    //NSLog(@"%s%@", _cmd, messages);
-
-    unsigned i, count = [messages count];
-    for (i = 0; i < count; i += 2) {
-        int msgid = [[messages objectAtIndex:i] intValue];
-        id data = [messages objectAtIndex:i+1];
-        if ([data isEqual:[NSNull null]])
-            data = nil;
-
-        [self processInput:msgid data:data];
-    }
+    // This is just a convenience method that allows the frontend to delay
+    // sending messages.
+    int i, count = [messages count];
+    for (i = 1; i < count; i+=2)
+        [self processInput:[[messages objectAtIndex:i-1] intValue]
+                      data:[messages objectAtIndex:i]];
 }
 
 - (id)evaluateExpressionCocoa:(in bycopy NSString *)expr
@@ -1309,8 +1199,6 @@ static NSString *MMSymlinkWarningString =
 
     [self addInput:input];
     [self addClient:(id)client];
-
-    inputReceived = YES;
 }
 
 - (NSString *)evaluateExpression:(in bycopy NSString *)expr
@@ -1636,17 +1524,17 @@ static NSString *MMSymlinkWarningString =
     if ([inputQueue count] == 0) return;
 
     // NOTE: One of the input events may cause this method to be called
-    // recursively, so copy the input queue to a local variable and clear it
-    // before starting to process input events (otherwise we could get stuck in
-    // an endless loop).
+    // recursively, so copy the input queue to a local variable and clear the
+    // queue before starting to process input events (otherwise we could get
+    // stuck in an endless loop).
     NSArray *q = [inputQueue copy];
     unsigned i, count = [q count];
 
     [inputQueue removeAllObjects];
 
-    for (i = 0; i < count-1; i += 2) {
-        int msgid = [[q objectAtIndex:i] intValue];
-        id data = [q objectAtIndex:i+1];
+    for (i = 1; i < count; i+=2) {
+        int msgid = [[q objectAtIndex:i-1] intValue];
+        id data = [q objectAtIndex:i];
         if ([data isEqual:[NSNull null]])
             data = nil;
 
@@ -1660,9 +1548,96 @@ static NSString *MMSymlinkWarningString =
 
 - (void)handleInputEvent:(int)msgid data:(NSData *)data
 {
-    //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
+    if (InsertTextMsgID == msgid) {
+        [self handleInsertText:data];
+    } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+        int mods = *((int*)bytes);  bytes += sizeof(int);
+        int len = *((int*)bytes);  bytes += sizeof(int);
+        NSString *key = [[NSString alloc] initWithBytes:bytes length:len
+                                              encoding:NSUTF8StringEncoding];
+        mods = eventModifierFlagsToVimModMask(mods);
 
-    if (SelectTabMsgID == msgid) {
+        [self handleKeyDown:key modifiers:mods];
+
+        [key release];
+    } else if (ScrollWheelMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+        int flags = *((int*)bytes);  bytes += sizeof(int);
+        float dy = *((float*)bytes);  bytes += sizeof(float);
+
+        int button = MOUSE_5;
+        if (dy > 0) button = MOUSE_4;
+
+        flags = eventModifierFlagsToVimMouseModMask(flags);
+
+        int numLines = (int)round(dy);
+        if (numLines < 0) numLines = -numLines;
+        if (numLines == 0) numLines = 1;
+
+#ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
+        gui.scroll_wheel_force = numLines;
+#endif
+
+        gui_send_mouse_event(button, col, row, NO, flags);
+    } else if (MouseDownMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+        int button = *((int*)bytes);  bytes += sizeof(int);
+        int flags = *((int*)bytes);  bytes += sizeof(int);
+        int count = *((int*)bytes);  bytes += sizeof(int);
+
+        button = eventButtonNumberToVimMouseButton(button);
+        if (button >= 0) {
+            flags = eventModifierFlagsToVimMouseModMask(flags);
+            gui_send_mouse_event(button, col, row, count>1, flags);
+        }
+    } else if (MouseUpMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+        int flags = *((int*)bytes);  bytes += sizeof(int);
+
+        flags = eventModifierFlagsToVimMouseModMask(flags);
+
+        gui_send_mouse_event(MOUSE_RELEASE, col, row, NO, flags);
+    } else if (MouseDraggedMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+        int flags = *((int*)bytes);  bytes += sizeof(int);
+
+        flags = eventModifierFlagsToVimMouseModMask(flags);
+
+        gui_send_mouse_event(MOUSE_DRAG, col, row, NO, flags);
+    } else if (MouseMovedMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int row = *((int*)bytes);  bytes += sizeof(int);
+        int col = *((int*)bytes);  bytes += sizeof(int);
+
+        gui_mouse_moved(col, row);
+    } else if (AddInputMsgID == msgid) {
+        NSString *string = [[NSString alloc] initWithData:data
+                encoding:NSUTF8StringEncoding];
+        if (string) {
+            [self addInput:string];
+            [string release];
+        }
+    } else if (TerminateNowMsgID == msgid) {
+        isTerminating = YES;
+    } else if (SelectTabMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
