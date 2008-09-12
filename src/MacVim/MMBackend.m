@@ -466,10 +466,6 @@ static NSString *MMSymlinkWarningString =
 
 - (void)update
 {
-    // Tend to the run loop, returning immediately if there are no events
-    // waiting.
-    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                             beforeDate:[NSDate distantPast]];
 }
 
 - (void)flushQueue:(BOOL)force
