@@ -44,13 +44,6 @@
 #define WIN_VER     2       // "-O" vertically split windows
 #define WIN_TABS    3       // "-p" windows on tab pages
 
-// This constant controls how often the command queue may be flushed.  If it is
-// too small the app might feel unresponsive; if it is too large there might be
-// long periods without the screen updating (e.g. when sourcing a large session
-// file).  (The unit is seconds.)
-static float MMFlushTimeoutInterval = 0.1f;
-static int MMFlushQueueLenHint = 80*40;
-
 static unsigned MMServerMax = 1000;
 
 // TODO: Move to separate file.
@@ -487,14 +480,6 @@ static NSString *MMSymlinkWarningString =
     // NO.
     if (flushDisabled) return;
 
-    // NOTE! This method gets called a lot; if we were to flush every time it
-    // got called MacVim would feel unresponsive.  So there is a time out which
-    // ensures that the queue isn't flushed too often.
-    if (!force && lastFlushDate
-            && -[lastFlushDate timeIntervalSinceNow] < MMFlushTimeoutInterval
-            && [drawData length] < MMFlushQueueLenHint)
-        return;
-
     if ([drawData length] > 0) {
         // HACK!  Detect changes to 'guifontwide'.
         if (gui.wide_font != (GuiFont)oldWideFont) {
@@ -523,9 +508,6 @@ static NSString *MMSymlinkWarningString =
         }
 
         [outputQueue removeAllObjects];
-
-        [lastFlushDate release];
-        lastFlushDate = [[NSDate date] retain];
     }
 }
 

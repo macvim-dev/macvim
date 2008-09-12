@@ -31,7 +31,6 @@
     unsigned            specialColor;
     unsigned            defaultBackgroundColor;
     unsigned            defaultForegroundColor;
-    NSDate              *lastFlushDate;
     id                  dialogReturn;
     NSTimer             *blinkTimer;
     int                 blinkState;

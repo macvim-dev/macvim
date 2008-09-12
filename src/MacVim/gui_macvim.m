@@ -225,12 +225,14 @@ gui_mch_update(void)
     void
 gui_mch_flush(void)
 {
-    [[MMBackend sharedInstance] flushQueue:NO];
+    // This function is called way too often to be useful as a hint for
+    // flushing.  If we were to flush every time it was called the screen would
+    // flicker.
 }
 
 
 /* Force flush output to MacVim.  Do not call this method unless absolutely
- * necessary (use gui_mch_flush() instead). */
+ * necessary. */
     void
 gui_macvim_force_flush(void)
 {
