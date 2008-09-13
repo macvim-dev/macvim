@@ -184,10 +184,19 @@ gui_mch_open(void)
     void
 gui_mch_update(void)
 {
-    // This function is called extremely often.  By doing nothing here the
-    // frame-rate is increased dramatically in certain situations.  However,
-    // the downside is that it is often not possible to interrupt Vim with
-    // Ctrl-C when it is busy processing.
+    // This function is called extremely often.  It is tempting to do nothing
+    // here to avoid reduced frame-rates but then it would not be possible to
+    // interrupt Vim by presssing Ctrl-C during lengthy operations (e.g. after
+    // entering "10gs" it would not be possible to bring Vim out of the 10 s
+    // sleep prematurely).  As a compromise we check for Ctrl-C only once per
+    // second.
+    static CFAbsoluteTime lastTime = 0;
+
+    CFAbsoluteTime nowTime = CFAbsoluteTimeGetCurrent();
+    if (nowTime - lastTime > 1.0) {
+        [[MMBackend sharedInstance] update];
+        lastTime = nowTime;
+    }
 }
 
 

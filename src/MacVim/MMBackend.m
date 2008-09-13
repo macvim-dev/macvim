@@ -466,6 +466,10 @@ static NSString *MMSymlinkWarningString =
 
 - (void)update
 {
+    // Keep running the run-loop until there is no more input to process.
+    while (CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true)
+            == kCFRunLoopRunHandledSource)
+        ;
 }
 
 - (void)flushQueue:(BOOL)force
@@ -1034,6 +1038,20 @@ static NSString *MMSymlinkWarningString =
 
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data
 {
+    // Look for Ctrl-C immediately instead of waiting until the input queue is
+    // processed since that only happens in waitForInput: (and Vim regularly
+    // checks for Ctrl-C in between waiting for input).
+
+    if (InsertTextMsgID == msgid && data != nil && [data length] == 1) {
+        char_u *str = (char_u*)[data bytes];
+        if ((str[0] == Ctrl_C && ctrl_c_interrupts) ||
+                (str[0] == intr_char && intr_char != Ctrl_C)) {
+            got_int = TRUE;
+            [inputQueue removeAllObjects];
+            return;
+        }
+    }
+
     // Remove all previous instances of this message from the input queue, else
     // the input queue may fill up as a result of Vim not being able to keep up
     // with the speed at which new messages are received.  This avoids annoying
@@ -1737,12 +1755,6 @@ static NSString *MMSymlinkWarningString =
     }
 #endif
 
-    if (len == 1 && ((str[0] == Ctrl_C && ctrl_c_interrupts)
-            || (str[0] == intr_char && intr_char != Ctrl_C))) {
-        trash_input_buf();
-        got_int = TRUE;
-    }
-
     for (i = 0; i < len; ++i) {
         add_to_input_buf(str+i, 1);
         if (CSI == str[i]) {
@@ -1830,12 +1842,6 @@ static NSString *MMSymlinkWarningString =
 
         //NSLog(@"non-special: %@ (hex=%x, mods=%d)", key,
         //        [key characterAtIndex:0], mods);
-
-        if (length == 1 && ((c == Ctrl_C && ctrl_c_interrupts)
-                || (c == intr_char && intr_char != Ctrl_C))) {
-            trash_input_buf();
-            got_int = TRUE;
-        }
 
         // HACK!  In most circumstances the Ctrl and Shift modifiers should be
         // cleared since they are already added to the key by the AppKit.
