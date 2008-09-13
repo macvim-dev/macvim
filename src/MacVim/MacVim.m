@@ -80,6 +80,7 @@ char *MessageStrings[] =
     "SetDocumentFilenameMsgID",
     "OpenWithArgumentsMsgID",
     "CloseWindowMsgID",
+    "InterruptMsgID",
 };
 
 

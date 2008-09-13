@@ -1038,18 +1038,24 @@ static NSString *MMSymlinkWarningString =
 
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data
 {
-    // Look for Ctrl-C immediately instead of waiting until the input queue is
-    // processed since that only happens in waitForInput: (and Vim regularly
-    // checks for Ctrl-C in between waiting for input).
+    // Look for Cmd-. and Ctrl-C immediately instead of waiting until the input
+    // queue is processed since that only happens in waitForInput: (and Vim
+    // regularly checks for Ctrl-C in between waiting for input).
 
-    if (InsertTextMsgID == msgid && data != nil && [data length] == 1) {
+    BOOL interrupt = NO;
+    if (msgid == InterruptMsgID) {
+        interrupt = YES;
+    } else if (InsertTextMsgID == msgid && data != nil && [data length] == 1) {
         char_u *str = (char_u*)[data bytes];
         if ((str[0] == Ctrl_C && ctrl_c_interrupts) ||
-                (str[0] == intr_char && intr_char != Ctrl_C)) {
-            got_int = TRUE;
-            [inputQueue removeAllObjects];
-            return;
-        }
+                (str[0] == intr_char && intr_char != Ctrl_C))
+            interrupt = YES;
+    }
+
+    if (interrupt) {
+        got_int = TRUE;
+        [inputQueue removeAllObjects];
+        return;
     }
 
     // Remove all previous instances of this message from the input queue, else

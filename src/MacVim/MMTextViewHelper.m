@@ -227,6 +227,13 @@ static NSTimeInterval MMScrollWheelDelay = 0.05;
     if ([unmodchars isEqual:@"?"])
         return NO;
 
+    // Cmd-. is hard-wired to send an interrupt (like Ctrl-C).
+    if ((flags & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask &&
+            [unmodchars isEqual:@"."]) {
+        [[self vimController] sendMessage:InterruptMsgID data:nil];
+        return YES;
+    }
+
     //NSLog(@"%s%@", _cmd, event);
 
     NSString *chars = [event characters];

@@ -173,6 +173,7 @@ enum {
     SetDocumentFilenameMsgID,
     OpenWithArgumentsMsgID,
     CloseWindowMsgID,
+    InterruptMsgID,
 };
 
 
