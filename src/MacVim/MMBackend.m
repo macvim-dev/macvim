@@ -320,7 +320,7 @@ static NSString *MMSymlinkWarningString =
                 NSOrderedDescending == [timeOutDate compare:[NSDate date]])
             [[NSRunLoop currentRunLoop]
                     runMode:NSDefaultRunLoopMode
-                 beforeDate:[NSDate dateWithTimeIntervalSinceNow:1]];
+                 beforeDate:[NSDate dateWithTimeIntervalSinceNow:.1]];
 
         // NOTE: [self connection] will set 'connection' as a side-effect.
         if (!connection) {
