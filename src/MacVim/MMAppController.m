@@ -94,6 +94,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
                 error:(NSString **)error;
 - (void)openFile:(NSPasteboard *)pboard userData:(NSString *)userData
            error:(NSString **)error;
+- (void)newFileHere:(NSPasteboard *)pboard userData:(NSString *)userData
+              error:(NSString **)error;
 @end
 
 
@@ -1178,6 +1180,44 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         } else {
             [self openFiles:filenames withArguments:nil];
         }
+    }
+}
+
+- (void)newFileHere:(NSPasteboard *)pboard userData:(NSString *)userData
+              error:(NSString **)error
+{
+    if (![[pboard types] containsObject:NSStringPboardType]) {
+        NSLog(@"WARNING: Pasteboard contains no object of type "
+              "NSStringPboardType");
+        return;
+    }
+
+    NSString *path = [pboard stringForType:NSStringPboardType];
+
+    BOOL dirIndicator;
+    if (![[NSFileManager defaultManager] fileExistsAtPath:path
+                                              isDirectory:&dirIndicator]) {
+        NSLog(@"Invalid path. Cannot open new document at: %@", path);
+        return;
+    }
+
+    if (!dirIndicator)
+        path = [path stringByDeletingLastPathComponent];
+
+    path = [path stringByReplacingOccurrencesOfString:@" " withString:@"\\ "];
+
+    MMVimController *vc = [self topmostVimController];
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
+
+    if (vc && openInCurrentWindow) {
+        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
+                ":tabe|cd %@<CR>", path];
+        [vc addVimInput:input];
+    } else {
+        NSString *input = [NSString stringWithFormat:@":cd %@", path];
+        [self launchVimProcessWithArguments:[NSArray arrayWithObjects:
+                                             @"-c", input, nil]];
     }
 }
 
