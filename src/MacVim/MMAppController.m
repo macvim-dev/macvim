@@ -1136,16 +1136,17 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         return;
     }
 
-    MMVimController *vc = [self topmostVimController];
-    if (vc) {
-        // Open a new tab first, since dropString: does not do this.
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
+    MMVimController *vc;
+
+    if (openInCurrentWindow && (vc = [self topmostVimController])) {
         [vc sendMessage:AddNewTabMsgID data:nil];
         [vc dropString:[pboard stringForType:NSStringPboardType]];
     } else {
-        // NOTE: There is no window to paste the selection into, so save the
-        // text, open a new window, and paste the text when the next window
-        // opens.  (If this is called several times in a row, then all but the
-        // last call might be ignored.)
+        // Save the text, open a new window, and paste the text when the next
+        // window opens.  (If this is called several times in a row, then all
+        // but the last call may be ignored.)
         if (openSelectionString) [openSelectionString release];
         openSelectionString = [[pboard stringForType:NSStringPboardType] copy];
 
@@ -1170,16 +1171,17 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     NSArray *filenames = [self filterFilesAndNotify:
             [NSArray arrayWithObject:string]];
-    if ([filenames count] > 0) {
-        MMVimController *vc = nil;
-        if (userData && [userData isEqual:@"Tab"])
-            vc = [self topmostVimController];
+    if ([filenames count] == 0)
+        return;
 
-        if (vc) {
-            [vc dropFiles:filenames forceOpen:YES];
-        } else {
-            [self openFiles:filenames withArguments:nil];
-        }
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
+    MMVimController *vc;
+
+    if (openInCurrentWindow && (vc = [self topmostVimController])) {
+        [vc dropFiles:filenames forceOpen:YES];
+    } else {
+        [self openFiles:filenames withArguments:nil];
     }
 }
 
@@ -1206,11 +1208,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     path = [path stringByReplacingOccurrencesOfString:@" " withString:@"\\ "];
 
-    MMVimController *vc = [self topmostVimController];
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
+    MMVimController *vc;
 
-    if (vc && openInCurrentWindow) {
+    if (openInCurrentWindow && (vc = [self topmostVimController])) {
         NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
                 ":tabe|cd %@<CR>", path];
         [vc addVimInput:input];
