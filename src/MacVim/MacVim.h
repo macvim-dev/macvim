@@ -174,6 +174,7 @@ enum {
     OpenWithArgumentsMsgID,
     CloseWindowMsgID,
     InterruptMsgID,
+    SetFullscreenColorMsgID,
 };
 
 

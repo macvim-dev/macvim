@@ -1019,6 +1019,15 @@ static NSString *MMSymlinkWarningString =
     [self queueMessage:LeaveFullscreenMsgID data:nil];
 }
 
+- (void)setFullscreenBackgroundColor:(int)color
+{
+    NSMutableData *data = [NSMutableData data];
+    color = MM_COLOR(color);
+    [data appendBytes:&color length:sizeof(int)];
+
+    [self queueMessage:SetFullscreenColorMsgID data:data];
+}
+
 - (void)setAntialias:(BOOL)antialias
 {
     int msgid = antialias ? EnableAntialiasMsgID : DisableAntialiasMsgID;

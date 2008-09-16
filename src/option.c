@@ -10875,6 +10875,10 @@ check_fuoptions(p_fuoptions, flags, bgcolor)
 
     *flags = new_fuoptions_flags;
     *bgcolor = new_fuoptions_bgcolor;
+
+    /* Let the GUI know, in case the background color has changed. */
+    gui_mch_fuopt_update();
+
     return OK;
 }
 #endif

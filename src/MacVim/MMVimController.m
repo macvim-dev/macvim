@@ -923,6 +923,11 @@ static BOOL isUnsafeMessage(int msgid);
         }
     } else if (CloseWindowMsgID == msgid) {
         [self scheduleClose];
+    } else if (SetFullscreenColorMsgID == msgid) {
+        const int *bg = (const int*)[data bytes];
+        NSColor *color = [NSColor colorWithRgbInt:bg];
+
+        [windowController setFullscreenBackgroundColor:color];
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {

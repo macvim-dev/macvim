@@ -81,6 +81,7 @@ char *MessageStrings[] =
     "OpenWithArgumentsMsgID",
     "CloseWindowMsgID",
     "InterruptMsgID",
+    "SetFullscreenColorMsgID",
 };
 
 

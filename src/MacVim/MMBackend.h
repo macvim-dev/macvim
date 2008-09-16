@@ -111,6 +111,7 @@
 
 - (void)enterFullscreen:(int)fuoptions background:(int)bg;
 - (void)leaveFullscreen;
+- (void)setFullscreenBackgroundColor:(int)color;
 
 - (void)setAntialias:(BOOL)antialias;
 

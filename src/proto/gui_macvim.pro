@@ -192,6 +192,7 @@ int serverSendReply(char_u *serverid, char_u *str);
 
 void gui_mch_enter_fullscreen(int fuoptions_flags, guicolor_T bg);
 void gui_mch_leave_fullscreen(void);
+void gui_mch_fuopt_update(void);
 
 void gui_macvim_update_modified_flag();
 void gui_macvim_add_to_find_pboard(char_u *pat);

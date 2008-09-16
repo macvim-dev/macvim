@@ -571,6 +571,12 @@
     shouldResizeVimView = YES;
 }
 
+- (void)setFullscreenBackgroundColor:(NSColor *)back
+{
+    if (fullscreenEnabled)
+        [fullscreenWindow setBackgroundColor:back];
+}
+
 - (void)setBuffersModified:(BOOL)mod
 {
     // NOTE: We only set the document edited flag on the decorated window since

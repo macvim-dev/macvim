@@ -62,6 +62,8 @@
 
 - (void)enterFullscreen:(int)fuoptions backgroundColor:(NSColor *)back;
 - (void)leaveFullscreen;
+- (void)setFullscreenBackgroundColor:(NSColor *)back;
+
 - (void)setBuffersModified:(BOOL)mod;
 
 - (IBAction)addNewTab:(id)sender;
