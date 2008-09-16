@@ -21,7 +21,6 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
-|os_mac.txt|	For Mac specific items.
 
 {Vi does not have a GUI}
 
@@ -109,6 +108,10 @@ If a file is dropped on the Dock icon, it is always opened in a new tab
 regardless of the mode Vim is currently in.  The same holds if you
 double-click on a file in the Finder.
 
+The "Open files from applications" preference in the General preference pane
+gives more options on how dropped files should open, in case tabs are not
+desired.
+
 							*macvim-default-menu*
 The default menu in MacVim has been changed to conform better with the Apple
 Human Interface Guidelines (HIG).  At the moment this breaks the localized
@@ -162,8 +165,10 @@ formats.  This enables you to double-click a file to open it with MacVim (if
 it is not associated with another program), or to right-click a file to bring
 up the "Open with" menu.  You can also drag and drop files onto the Dock icon
 to open them in tabs in a new window, or you can drop them in an already open
-window to open the files in tabs in that specific window.  Finally, you can
-use Mac OS X System Services to open files in MacVim, see |macvim-services|.
+window to open the files in tabs in that specific window (it is possible to
+have files open in e.g. splits by changing the "Open files from applications"
+option in the General preference pane).  Finally, you can use Mac OS X System
+Services to open files in MacVim, see |macvim-services|.
 
 There are essentially two ways to start MacVim from Terminal: either call the
 Vim binary with the -g switch >
@@ -172,9 +177,8 @@ or use the "open" command (this method can not be used to pass parameters to
 Vim) >
 	open -a MacVim file ...
 The advantage of using the latter method is that the settings relating to file
-opening in the preferences panel are respected, and files open significantly
-faster if preloading of Vim processes is enabled (i.e. if the user default
-MMPreloadCacheSize is positive, see |macvim-user-defaults|).
+opening in the preferences panel are respected, and files open instantly if
+|Quickstart| is enabled.
 
 							*mvim*
 To save yourself from having to type the entire path to the Vim binary each
@@ -199,6 +203,20 @@ Once in terminal Vim it is possible to start MacVim by using the following
 command:
 	:gui [++opt] [+cmd] [-f|-b] [files...]
 Note: Forking ("-b") currently does not work.
+
+						*Quickstart*
+Quickstart ensures that new windows open instantaneously e.g. when <D-n> is
+pressed.  This feature can be enabled from the Advanced preferences pane (it
+is disabled by default).  Note that this setting does not affect the speed
+with which windows open using the |mvim| command.
+
+The main reason why this feature is not enabled by default is because on OS X
+10.4 changes to runtime files (e.g. those in "~/.vim") are not detected.  For
+example, if you install a new plugin and then press <D-n> to open a new
+window, then that first window will not notice the plugin (but any consecutive
+windows after the first one will).  On OS X 10.5 and later all modifications
+to runtime files in "~/.vim" are detected, so unless you keep runtime files in
+another folder there should be no problems.
 
 						*odbeditor* *external-editor*
 MacVim can act as an 'external editor' for Mac OS X applications that support
@@ -231,13 +249,11 @@ as general information regarding Mac OS X user defaults.
 Here is a list of relevant dictionary entries:
 
 KEY				VALUE ~
-MMAtsuiRenderer			enable ATSUI renderer [bool]
 MMCellWidthMultiplier		width of a normal glyph in em units [float]
 MMDialogsTrackPwd		open/save dialogs track the Vim pwd [bool]
 MMLoginShellArgument		login shell parameter [string]
 MMLoginShellCommand		which shell to use to launch Vim [string]
 MMNoFontSubstitution		disable automatic font substitution [bool]
-MMPreloadCacheSize		number of Vim processes to preload [int]
 MMTabMaxWidth			maximum width of a tab [int]
 MMTabMinWidth			minimum width of a tab [int]
 MMTabOptimumWidth		default width of a tab [int]
@@ -263,7 +279,7 @@ Terminal and type: >
 Applications opened from the Finder do not automatically source the user's
 environment variables (which are typically set in .profile or .bashrc).  This
 presents a problem when using |:!| to execute commands in the shell since e.g.
-$PATH might not be set properly.  To work around this problem MacVim can start
+$PATH might not be set properly.  To work around this problem MacVim starts
 new Vim processes via a login shell so that all environment variables are set.
 
 By default MacVim uses the $SHELL environment variable to determine which
@@ -371,7 +387,7 @@ can be used to send action messages.
 
 			The key equivalent is specified with the <D-..>
 			syntax.  Note that key equivalents must contain the
-			Cmd modifier flag (<D-...>), and they take precedence
+			Cmd modifier flag (<D-..>), and they take precedence
 			over normal mappings.
 			Use the syntax "key=<nop>" to clear the key equivalent
 			of a menu.  This can be used to free up a key
@@ -464,11 +480,12 @@ icon can be found a warning triangle is displayed instead.
 
 Dialogs can be controlled with the keyboard in two ways.  By default each
 button in a dialog is bound to a key.  The button that is highlighted by blue
-is bound to Enter, and any button with the title "Cancel" is bound to Escape.
-Other buttons are usually bound to the first letter in the title of the
-button.  There is no visual feedback to indicate which letter a button is
-bound to, so sometimes some experimentation might be required in order to
-figure out which key to press.
+is bound to Enter, any button with the title "Cancel" is bound to Escape, and
+any button with the tile "Don't Save" is bound to <D-d>.  Other buttons are
+usually bound to the first letter in the title of the button.  There is no
+visual feedback to indicate which letter a button is bound to, so sometimes
+some experimentation might be required in order to figure out which key to
+press.
 
 The second way of controlling dialogs with the keyboard is to enable "Full
 keyboard access" in the "Keyboard & Mouse" pane of the System Preferences (you
@@ -486,14 +503,17 @@ located in the /Applications folder.  (You might have to logout and then login
 again before Mac OS X detects the MacVim services.)
 
 These are the currently supported services:
-* New Tab Containing Selection: Opens a new tab in the topmost window and
-  pastes the currently selected text in that tab.  A new window will be
-  opened if necessary.
-* Open Selected File in Tab: If the selected text represents a file
-  name, then the corresponding file is opened in a new tab in the topmost
-  window.
-* Open Selected File in Window: Same as the above, but always open in a new
-  window.
+* New Document Here: Open a new window and set the current directory to that
+  of the selected text.  This is intended to be used from a Finder window to
+  open an empty document in the currently selected folder.
+* New Document Containing Selection: Open a new window and paste the currently
+  selected text.
+* Open Selected File: If the selected text represents a file name, then the
+  corresponding file is opened in a new window.
+
+If new files are set to open in the current window (in the General preference
+pane) then the above services will also reuse the topmost window, instead of
+opening a new window.
 
 ==============================================================================
 9. mvim:// URL handler				*mvim://* *macvim-url-handler*
@@ -530,7 +550,8 @@ these are ones that are know and/or which were judged major.
 - Sometimes multibyte characters look "too wide", i.e. they overlap the
   following character.  It might help to change 'ambiwidth', or override the
   automatic font substitution by setting 'guifontwide' manually.
-- Printing
+- Printing.  As a temporary solution <Cmd-p> creates a PostScript file which
+  is then opened in Preview where it may be printed.
 - No find/replace dialog
 
 If you find new bugs then add a new issue at http://code.google.com/p/macvim/
@@ -607,6 +628,32 @@ If that helps, then you can permanently disable "matchparen" by adding the
 following line to your "~/.vimrc": >
 	let loaded_matchparen=1
 <
+Scenario: ~
+You want to use MacVim as an editor for some external application.
+Solution: ~
+If the external application lets you set a program to execute then something
+like "mvim -f" might be all you need (the "-f" switch ensures that the "mvim"
+script returns only after you close the editor window, otherwise "mvim"
+returns immediately). If the external program honors the EDITOR environment
+variable (e.g Git does this) then you may get away by adding the following
+line to your "~/.profile": >
+	export EDITOR='mvim -f'
+If you have not installed the "mvim" script in your path you can provide the
+path to the Vim binary instead.  Thus, if "MacVim.app" resides in the
+Applications folder then you would use the following line: >
+	export EDITOR='/Applications/MacVim.app/Contents/MacOS/Vim -g -f'
+
+Scenario: ~
+You have set MacVim to open from an external program and when you finish
+editing (by closing the MacVim window) you want the external program to regain
+focus.
+Solution: ~
+Use the VimLeave autocommand to hide MacVim when the window closes: >
+	au VimLeave * maca hide:
+Assuming your external program has a setting for which command to execute to
+bring up an editor, you would set that option to something like: >
+	mvim -c "au VimLeave * maca hide:"
+(You may need to add the "-f" switch before the "-c", see the Scenario above.)
 
 Scenario: ~
 You can't find the information on MacVim you thought should be in this manual
