@@ -63,6 +63,7 @@ vimmenu_T *menu_for_descriptor(NSArray *desc);
 
 static id evalExprCocoa(NSString * expr, NSString ** errstr);
 
+
 enum {
     MMBlinkStateNone = 0,
     MMBlinkStateOn,
@@ -107,6 +108,7 @@ static NSString *MMSymlinkWarningString =
 - (BOOL)checkForModifiedBuffers;
 - (void)addInput:(NSString *)input;
 - (BOOL)unusedEditor;
+- (void)redrawScreen;
 @end
 
 
@@ -1991,13 +1993,7 @@ static NSString *MMSymlinkWarningString =
 
     set_option_value((char_u*)"guioptions", 0, go, 0);
 
-    // Force screen redraw (does it have to be this complicated?).
-    redraw_all_later(CLEAR);
-    update_screen(NOT_VALID);
-    setcursor();
-    out_flush();
-    gui_update_cursor(FALSE, FALSE);
-    gui_mch_flush();
+    [self redrawScreen];
 }
 
 - (void)handleScrollbarEvent:(NSData *)data
@@ -2089,13 +2085,7 @@ static NSString *MMSymlinkWarningString =
     CONVERT_FROM_UTF8_FREE(s);
 #endif
 
-    // Force screen redraw (does it have to be this complicated?).
-    redraw_all_later(CLEAR);
-    update_screen(NOT_VALID);
-    setcursor();
-    out_flush();
-    gui_update_cursor(FALSE, FALSE);
-    gui_mch_flush();
+    [self redrawScreen];
 }
 
 - (void)handleDropFiles:(NSData *)data
@@ -2411,7 +2401,6 @@ static NSString *MMSymlinkWarningString =
             maketitle();
 
             flushDisabled = NO;
-            gui_mch_flush();
         }
     }
 
@@ -2502,6 +2491,21 @@ static NSString *MMSymlinkWarningString =
     BOOL onlyOneTab = (first_tabpage->tp_next == NULL);
 
     return onlyOneTab && oneWindowInTab && !bufChanged && !bufHasFilename;
+}
+
+- (void)redrawScreen
+{
+    // Force screen redraw (does it have to be this complicated?).
+    redraw_all_later(CLEAR);
+    update_screen(NOT_VALID);
+    setcursor();
+    out_flush();
+    gui_update_cursor(FALSE, FALSE);
+
+    // HACK! The cursor is not put back at the command line by the above
+    // "redraw commands".  The following test seems to do the trick though.
+    if (State & CMDLINE)
+        redrawcmdline();
 }
 
 @end // MMBackend (Private)
@@ -2844,7 +2848,6 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
 
     return res;
 }
-
 
 
 
