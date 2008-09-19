@@ -30,7 +30,6 @@ enum {
     BOOL                isAutoscrolling;
     int                 mouseShape;
     NSTrackingRectTag   trackingRectTag;
-    float               scrollWheelAccumulator;
 }
 
 - (void)setTextView:(id)view;
