@@ -204,11 +204,11 @@ command:
 	:gui [++opt] [+cmd] [-f|-b] [files...]
 Note: Forking ("-b") currently does not work.
 
-						*Quickstart*
+							*Quickstart*
 Quickstart ensures that new windows open instantaneously e.g. when <D-n> is
 pressed.  This feature can be enabled from the Advanced preferences pane (it
 is disabled by default).  Note that this setting does not affect the speed
-with which windows open using the |mvim| command.
+with which windows open when using the |mvim| command.
 
 The main reason why this feature is not enabled by default is because on OS X
 10.4 changes to runtime files (e.g. those in "~/.vim") are not detected.  For
@@ -368,7 +368,7 @@ can be used to send action messages.
 			property list file called |Actions.plist|.
 
 						*:macm* *:macmenu*
-:mac[menu] {menu} {key}={arg} ...
+:macm[enu] {menu} {key}={arg} ...
 			Set Mac specific properties for {menu}.  The
 			properties that can be set are:
 			    action	the action this menu sends
@@ -481,7 +481,7 @@ icon can be found a warning triangle is displayed instead.
 Dialogs can be controlled with the keyboard in two ways.  By default each
 button in a dialog is bound to a key.  The button that is highlighted by blue
 is bound to Enter, any button with the title "Cancel" is bound to Escape, and
-any button with the tile "Don't Save" is bound to <D-d>.  Other buttons are
+any button with the title "Don't Save" is bound to <D-d>.  Other buttons are
 usually bound to the first letter in the title of the button.  There is no
 visual feedback to indicate which letter a button is bound to, so sometimes
 some experimentation might be required in order to figure out which key to
@@ -526,7 +526,7 @@ Currently, this means that the format is >
 	mvim://open?<arguments>
 < where arguments can be:
 
-* url — the actual file to open (i.e. a file://… URL), if you leave
+* url — the actual file to open (i.e. a file://... URL), if you leave
         out this argument, the frontmost document is implied.
 * line — line number to go to (one based).
 * column — column number to go to (one based).
@@ -550,8 +550,8 @@ these are ones that are know and/or which were judged major.
 - Sometimes multibyte characters look "too wide", i.e. they overlap the
   following character.  It might help to change 'ambiwidth', or override the
   automatic font substitution by setting 'guifontwide' manually.
-- Printing.  As a temporary solution <Cmd-p> creates a PostScript file which
-  is then opened in Preview where it may be printed.
+- Printing.  As a temporary solution <D-p> creates a PostScript file which is
+  then opened in Preview where it may be printed.
 - No find/replace dialog
 
 If you find new bugs then add a new issue at http://code.google.com/p/macvim/
