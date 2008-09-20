@@ -2034,7 +2034,7 @@ clip_x11_request_selection_cb(w, success, sel_atom, type, value, length,
 
     if (value == NULL || *length == 0)
     {
-	clip_free_selection(cbd);	/* ???  [what's the query?] */
+	clip_free_selection(cbd);	/* nothing received, clear register */
 	*(int *)success = FALSE;
 	return;
     }
@@ -2090,7 +2090,7 @@ clip_x11_request_selection_cb(w, success, sel_atom, type, value, length,
 	text_prop.value = (unsigned char *)value;
 	text_prop.encoding = *type;
 	text_prop.format = *format;
-	text_prop.nitems = STRLEN(value);
+	text_prop.nitems = len;
 	status = XmbTextPropertyToTextList(X_DISPLAY, &text_prop,
 							 &text_list, &n_text);
 	if (status != Success || n_text < 1)
@@ -2124,6 +2124,8 @@ clip_x11_request_selection(myShell, dpy, cbd)
     int		i;
     int		nbytes = 0;
     char_u	*buffer;
+    time_t	start_time;
+    int		timed_out = FALSE;
 
     for (i =
 #ifdef FEAT_MBYTE
@@ -2143,6 +2145,7 @@ clip_x11_request_selection(myShell, dpy, cbd)
 	    case 3:  type = text_atom;		break;
 	    default: type = XA_STRING;
 	}
+	success = MAYBE;
 	XtGetSelectionValue(myShell, cbd->sel_atom, type,
 	    clip_x11_request_selection_cb, (XtPointer)&success, CurrentTime);
 
@@ -2155,27 +2158,48 @@ clip_x11_request_selection(myShell, dpy, cbd)
 	 * characters, then they will appear before the one that requested the
 	 * paste!  Don't worry, we will catch up with any other events later.
 	 */
-	for (;;)
+	start_time = time(NULL);
+	while (success == MAYBE)
 	{
-	    if (XCheckTypedEvent(dpy, SelectionNotify, &event))
-		break;
-	    if (XCheckTypedEvent(dpy, SelectionRequest, &event))
-		/* We may get a SelectionRequest here and if we don't handle
-		 * it we hang.  KDE klipper does this, for example. */
+	    if (XCheckTypedEvent(dpy, SelectionNotify, &event)
+		    || XCheckTypedEvent(dpy, SelectionRequest, &event)
+		    || XCheckTypedEvent(dpy, PropertyNotify, &event))
+	    {
+		/* This is where clip_x11_request_selection_cb() should be
+		 * called.  It may actually happen a bit later, so we loop
+		 * until "success" changes.
+		 * We may get a SelectionRequest here and if we don't handle
+		 * it we hang.  KDE klipper does this, for example.
+		 * We need to handle a PropertyNotify for large selections. */
 		XtDispatchEvent(&event);
+		continue;
+	    }
+
+	    /* Time out after 2 to 3 seconds to avoid that we hang when the
+	     * other process doesn't respond.  Note that the SelectionNotify
+	     * event may still come later when the selection owner comes back
+	     * to life and the text gets inserted unexpectedly.  Don't know
+	     * why that happens or how to avoid that :-(. */
+	    if (time(NULL) > start_time + 2)
+	    {
+		timed_out = TRUE;
+		break;
+	    }
 
 	    /* Do we need this?  Probably not. */
 	    XSync(dpy, False);
 
-	    /* Bernhard Walle solved a slow paste response in an X terminal by
-	     * adding: usleep(10000); here. */
+	    /* Wait for 1 msec to avoid that we eat up all CPU time. */
+	    ui_delay(1L, TRUE);
 	}
 
-	/* this is where clip_x11_request_selection_cb() is actually called */
-	XtDispatchEvent(&event);
-
-	if (success)
+	if (success == TRUE)
 	    return;
+
+	/* don't do a retry with another type after timing out, otherwise we
+	 * hang for 15 seconds. */
+	if (timed_out)
+	    break;
     }
 
     /* Final fallback position - use the X CUT_BUFFER0 store */

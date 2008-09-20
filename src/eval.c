@@ -1256,23 +1256,26 @@ skip_expr(pp)
 
 /*
  * Top level evaluation function, returning a string.
+ * When "convert" is TRUE convert a List into a sequence of lines and convert
+ * a Float to a String.
  * Return pointer to allocated memory, or NULL for failure.
  */
     char_u *
-eval_to_string(arg, nextcmd, dolist)
+eval_to_string(arg, nextcmd, convert)
     char_u	*arg;
     char_u	**nextcmd;
-    int		dolist;		/* turn List into sequence of lines */
+    int		convert;
 {
     typval_T	tv;
     char_u	*retval;
     garray_T	ga;
+    char_u	numbuf[NUMBUFLEN];
 
     if (eval0(arg, &tv, nextcmd, TRUE) == FAIL)
 	retval = NULL;
     else
     {
-	if (dolist && tv.v_type == VAR_LIST)
+	if (convert && tv.v_type == VAR_LIST)
 	{
 	    ga_init2(&ga, (int)sizeof(char), 80);
 	    if (tv.vval.v_list != NULL)
@@ -1280,6 +1283,13 @@ eval_to_string(arg, nextcmd, dolist)
 	    ga_append(&ga, NUL);
 	    retval = (char_u *)ga.ga_data;
 	}
+#ifdef FEAT_FLOAT
+	else if (convert && tv.v_type == VAR_FLOAT)
+	{
+	    vim_snprintf((char *)numbuf, NUMBUFLEN, "%g", tv.vval.v_float);
+	    retval = vim_strsave(numbuf);
+	}
+#endif
 	else
 	    retval = vim_strsave(get_tv_string(&tv));
 	clear_tv(&tv);
@@ -3657,8 +3667,8 @@ item_lock(tv, deep, lock)
 }
 
 /*
- * Return TRUE if typeval "tv" is locked: Either tha value is locked itself or
- * it refers to a List or Dictionary that is locked.
+ * Return TRUE if typeval "tv" is locked: Either that value is locked itself
+ * or it refers to a List or Dictionary that is locked.
  */
     static int
 tv_islocked(tv)
@@ -15858,10 +15868,9 @@ item_compare2(s1, s2)
     if (res == FAIL)
 	res = ITEM_COMPARE_FAIL;
     else
-	/* return value has wrong type */
 	res = get_tv_number_chk(&rettv, &item_compare_func_err);
     if (item_compare_func_err)
-	res = ITEM_COMPARE_FAIL;
+	res = ITEM_COMPARE_FAIL;  /* return value has wrong type */
     clear_tv(&rettv);
     return res;
 }
@@ -16678,7 +16687,7 @@ f_synstack(argvars, rettv)
     col = get_tv_number(&argvars[1]) - 1;	/* -1 on type error */
 
     if (lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count
-	    && col >= 0 && col < (long)STRLEN(ml_get(lnum))
+	    && col >= 0 && (col == 0 || col < (long)STRLEN(ml_get(lnum)))
 	    && rettv_list_alloc(rettv) != FAIL)
     {
 	(void)syn_get_id(curwin, lnum, (colnr_T)col, FALSE, NULL, TRUE);
@@ -20610,6 +20619,9 @@ func_dump_profile(fd)
     int		st_len = 0;
 
     todo = (int)func_hashtab.ht_used;
+    if (todo == 0)
+	return;     /* nothing to dump */
+
     sorttab = (ufunc_T **)alloc((unsigned)(sizeof(ufunc_T) * todo));
 
     for (hi = func_hashtab.ht_array; todo > 0; ++hi)
@@ -20658,6 +20670,8 @@ func_dump_profile(fd)
 							      prof_self_cmp);
 	prof_sort_list(fd, sorttab, st_len, "SELF", TRUE);
     }
+
+    vim_free(sorttab);
 }
 
     static void
@@ -21224,7 +21238,7 @@ call_user_func(fp, argcount, argvars, rettv, firstline, lastline, selfdict)
 	if (!fp->uf_profiling && has_profiling(FALSE, fp->uf_name, NULL))
 	    func_do_profile(fp);
 	if (fp->uf_profiling
-		       || (fc.caller != NULL && &fc.caller->func->uf_profiling))
+		       || (fc.caller != NULL && fc.caller->func->uf_profiling))
 	{
 	    ++fp->uf_tm_count;
 	    profile_start(&call_start);
@@ -21255,13 +21269,13 @@ call_user_func(fp, argcount, argvars, rettv, firstline, lastline, selfdict)
 
 #ifdef FEAT_PROFILE
     if (do_profiling == PROF_YES && (fp->uf_profiling
-		    || (fc.caller != NULL && &fc.caller->func->uf_profiling)))
+		    || (fc.caller != NULL && fc.caller->func->uf_profiling)))
     {
 	profile_end(&call_start);
 	profile_sub_wait(&wait_start, &call_start);
 	profile_add(&fp->uf_tm_total, &call_start);
 	profile_self(&fp->uf_tm_self, &call_start, &fp->uf_tm_children);
-	if (fc.caller != NULL && &fc.caller->func->uf_profiling)
+	if (fc.caller != NULL && fc.caller->func->uf_profiling)
 	{
 	    profile_add(&fc.caller->func->uf_tm_children, &call_start);
 	    profile_add(&fc.caller->func->uf_tml_children, &call_start);
