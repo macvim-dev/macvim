@@ -695,16 +695,8 @@ static NSString *MMSymlinkWarningString =
 
         [self waitForDialogReturn];
 
-        if (dialogReturn && [dialogReturn isKindOfClass:[NSString class]]) {
-            char_u *ret = (char_u*)[dialogReturn UTF8String];
-#ifdef FEAT_MBYTE
-            ret = CONVERT_FROM_UTF8(ret);
-#endif
-            s = vim_strsave(ret);
-#ifdef FEAT_MBYTE
-            CONVERT_FROM_UTF8_FREE(ret);
-#endif
-        }
+        if (dialogReturn && [dialogReturn isKindOfClass:[NSString class]])
+            s = [dialogReturn vimStringSave];
 
         [dialogReturn release];  dialogReturn = nil;
     }
@@ -1241,15 +1233,8 @@ static NSString *MMSymlinkWarningString =
             //[svrConn setReplyTimeout:MMReplyTimeout];
             [svrConn setRootObject:self];
 
-            char_u *s = (char_u*)[svrName UTF8String];
-#ifdef FEAT_MBYTE
-            s = CONVERT_FROM_UTF8(s);
-#endif
             // NOTE: 'serverName' is a global variable
-            serverName = vim_strsave(s);
-#ifdef FEAT_MBYTE
-            CONVERT_FROM_UTF8_FREE(s);
-#endif
+            serverName = [svrName vimStringSave];
 #ifdef FEAT_EVAL
             set_vim_var_string(VV_SEND_SERVER, serverName, -1);
 #endif
@@ -1301,14 +1286,7 @@ static NSString *MMSymlinkWarningString =
             NSString *eval = [proxy evaluateExpression:string client:self];
             if (reply) {
                 if (eval) {
-                    char_u *r = (char_u*)[eval UTF8String];
-#ifdef FEAT_MBYTE
-                    r = CONVERT_FROM_UTF8(r);
-#endif
-                    *reply = vim_strsave(r);
-#ifdef FEAT_MBYTE
-                    CONVERT_FROM_UTF8_FREE(r);
-#endif
+                    *reply = [eval vimStringSave];
                 } else {
                     *reply = vim_strsave((char_u*)_(e_invexprmsg));
                 }

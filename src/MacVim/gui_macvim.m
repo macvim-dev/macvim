@@ -1750,14 +1750,7 @@ serverGetVimNames(void)
 
     if (list) {
         NSString *string = [list componentsJoinedByString:@"\n"];
-        char_u *s = (char_u*)[string UTF8String];
-#ifdef FEAT_MBYTE
-        s = CONVERT_FROM_UTF8(s);
-#endif
-        names = vim_strsave(s);
-#ifdef FEAT_MBYTE
-        CONVERT_FROM_UTF8_FREE(s);
-#endif
+        names = [string vimStringSave];
     }
 
     return names;
@@ -1825,14 +1818,7 @@ serverReadReply(int port, char_u **str)
 {
     NSString *reply = [[MMBackend sharedInstance] waitForReplyOnPort:port];
     if (reply && str) {
-        char_u *s = (char_u*)[reply UTF8String];
-#ifdef FEAT_MBYTE
-        s = CONVERT_FROM_UTF8(s);
-#endif
-        *str = vim_strsave(s);
-#ifdef FEAT_MBYTE
-        CONVERT_FROM_UTF8_FREE(s);
-#endif
+        *str = [reply vimStringSave];
         return 0;
     }
 
