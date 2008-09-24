@@ -19,12 +19,6 @@
     int                 insertionPointColumn;
     int                 insertionPointShape;
     int                 insertionPointFraction;
-    NSRange             imRange;
-    NSRange             markedRange;
-    NSDictionary        *markedTextAttributes;
-    NSMutableAttributedString  *markedText;
-    int                 preEditRow;
-    int                 preEditColumn;
     BOOL                antialias;
     NSRect              *invertRects;
     int                 numInvertRects;
@@ -34,7 +28,6 @@
 
 - (id)initWithFrame:(NSRect)frame;
 
-- (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)setPreEditRow:(int)row column:(int)col;
 - (void)performBatchDrawWithData:(NSData *)data;
 - (void)setMouseShape:(int)shape;
@@ -45,16 +38,20 @@
 //
 - (NSFont *)font;
 - (void)setFont:(NSFont *)newFont;
+- (NSFont *)fontWide;
 - (void)setWideFont:(NSFont *)newFont;
 - (NSSize)cellSize;
 - (void)setLinespace:(float)newLinespace;
 - (int)maxRows;
+- (int)maxColumns;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
 - (NSRect)rectForRowsInRange:(NSRange)range;
 - (NSRect)rectForColumnsInRange:(NSRange)range;
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
                         foreground:(NSColor *)fgColor;
+- (NSColor *)defaultBackgroundColor;
+- (NSColor *)defaultForegroundColor;
 
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size;
 - (NSSize)desiredSize;
@@ -62,5 +59,8 @@
 
 
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
+- (NSPoint)pointForRow:(int)row column:(int)col;
+- (NSRect)rectForRow:(int)row column:(int)col numRows:(int)nr
+          numColumns:(int)nc;
 
 @end

@@ -87,7 +87,7 @@
                    column:(int)col2 color:(NSColor *)color;
 - (void)clearAll;
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                       fraction:(int)percent color:(NSColor *)color;
+                       fraction:(int)percent;
 - (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nrows
                    numColumns:(int)ncols;
 @end
@@ -139,6 +139,8 @@ defaultLineHeightForFont(NSFont *font)
 
 - (void)dealloc
 {
+    LOG_DEALLOC
+
     [self disposeAtsuStyles];
     [font release];  font = nil;
     [defaultBackgroundColor release];  defaultBackgroundColor = nil;
@@ -153,6 +155,11 @@ defaultLineHeightForFont(NSFont *font)
 - (int)maxRows
 {
     return maxRows;
+}
+
+- (int)maxColumns
+{
+    return maxColumns;
 }
 
 - (void)getMaxRows:(int*)rows columns:(int*)cols
@@ -176,13 +183,20 @@ defaultLineHeightForFont(NSFont *font)
         defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
     }
 
-    // NOTE: The default foreground color isn't actually used for anything, but
-    // other class instances might want to be able to access it so it is stored
-    // here.
     if (defaultForegroundColor != fgColor) {
         [defaultForegroundColor release];
         defaultForegroundColor = fgColor ? [fgColor retain] : nil;
     }
+}
+
+- (NSColor *)defaultBackgroundColor
+{
+    return defaultBackgroundColor;
+}
+
+- (NSColor *)defaultForegroundColor
+{
+    return defaultForegroundColor;
 }
 
 - (void)setTextContainerInset:(NSSize)size
@@ -247,11 +261,28 @@ defaultLineHeightForFont(NSFont *font)
 
 - (void)setWideFont:(NSFont *)newFont
 {
+    if (!newFont) {
+        if (font) [self setWideFont:font];
+    } else if (newFont != fontWide) {
+        float pointSize = [newFont pointSize];
+        NSFontDescriptor *desc = [newFont fontDescriptor];
+        NSDictionary *dictWide = [NSDictionary
+            dictionaryWithObject:[NSNumber numberWithFloat:2*cellSize.width]
+                          forKey:NSFontFixedAdvanceAttribute];
+        desc = [desc fontDescriptorByAddingAttributes:dictWide];
+        fontWide = [NSFont fontWithDescriptor:desc size:pointSize];
+        [fontWide retain];
+    }
 }
 
 - (NSFont *)font
 {
     return font;
+}
+
+- (NSFont *)fontWide
+{
+    return fontWide;
 }
 
 - (NSSize)cellSize
@@ -274,17 +305,13 @@ defaultLineHeightForFont(NSFont *font)
 
 
 
-
 - (void)setShouldDrawInsertionPoint:(BOOL)on
 {
 }
 
 - (void)setPreEditRow:(int)row column:(int)col
 {
-}
-
-- (void)hideMarkedTextField
-{
+    [helper setPreEditRow:row column:col];
 }
 
 - (void)setMouseShape:(int)shape
@@ -296,9 +323,6 @@ defaultLineHeightForFont(NSFont *font)
 {
     antialias = state;
 }
-
-
-
 
 - (void)keyDown:(NSEvent *)event
 {
@@ -322,11 +346,32 @@ defaultLineHeightForFont(NSFont *font)
 
 - (BOOL)hasMarkedText
 {
-    return NO;
+    return [helper hasMarkedText];
+}
+
+- (NSRange)markedRange
+{
+    return [helper markedRange];
+}
+
+- (NSDictionary *)markedTextAttributes
+{
+    return [helper markedTextAttributes];
+}
+
+- (void)setMarkedTextAttributes:(NSDictionary *)attr
+{
+    [helper setMarkedTextAttributes:attr];
+}
+
+- (void)setMarkedText:(id)text selectedRange:(NSRange)range
+{
+    [helper setMarkedText:text selectedRange:range];
 }
 
 - (void)unmarkText
 {
+    [helper unmarkText];
 }
 
 - (void)scrollWheel:(NSEvent *)event
@@ -462,6 +507,63 @@ defaultLineHeightForFont(NSFont *font)
 
     NSPoint pt = { insetSize.width, insetSize.height };
     [contentImage compositeToPoint:pt operation:NSCompositeCopy];
+
+    if ([self hasMarkedText]) {
+        int len = [[helper markedText] length];
+        int rows = 0;
+        int cols = maxColumns - [helper preEditColumn];
+        NSFont *theFont = [[self markedTextAttributes]
+            valueForKey:NSFontAttributeName];
+        if (theFont == [self fontWide])
+            cols = cols / 2;
+        int done = 0;
+        int lend = cols > len ? len : cols;
+        NSAttributedString *aString = [[helper markedText]
+                attributedSubstringFromRange:NSMakeRange(done, lend)];
+        NSPoint pt = [self pointForRow:[helper preEditRow]
+                                column:[helper preEditColumn]];
+        [aString drawAtPoint:pt];
+        done = lend;
+        if (done != len) {
+            int r;
+            rows = (len - done) / (maxColumns / 2) + 1;
+            for (r = 1; r <= rows; r++) {
+            lend = len - done > maxColumns / 2
+                ? maxColumns / 2 : len - done;
+                aString = [[helper markedText] attributedSubstringFromRange:
+                        NSMakeRange(done, lend)];
+                NSPoint pt = [self pointForRow:[helper preEditRow]+r
+                                        column:0];
+                [aString drawAtPoint:pt];
+                done += lend;
+            }
+        }
+
+        rows = maxRows - 1 - [helper preEditRow];
+        cols = [helper preEditColumn];
+        if (theFont == fontWide) {
+            cols += ([helper imRange].location+[helper imRange].length) * 2;
+            if (cols >= maxColumns - 1) {
+                rows -= cols / maxColumns;
+                cols = cols % 2 ? cols % maxColumns + 1 :
+                                  cols % maxColumns;
+            }
+        } else {
+            cols += ([helper imRange].location+[helper imRange].length);
+            if (cols >= maxColumns) {
+                rows -= cols / maxColumns;
+                cols = cols % 2 ? cols % maxColumns + 1 :
+                                  cols % maxColumns;
+            }
+        }
+
+        // TODO: Could IM be in "right-left" mode?  If so the insertion point
+        // will be on the wrong side.
+        [self drawInsertionPointAtRow:rows
+                               column:cols
+                                shape:MMInsertionPointVertical
+                             fraction:25];
+    }
 }
 
 - (BOOL) wantsDefaultClipping
@@ -580,9 +682,9 @@ defaultLineHeightForFont(NSFont *font)
 #if MM_DEBUG_DRAWING
             NSLog(@"   Draw cursor at (%d,%d)", row, col);
 #endif
+            [helper setInsertionPointColor:[NSColor colorWithRgbInt:color]];
             [self drawInsertionPointAtRow:row column:col shape:shape
-                                     fraction:percent
-                                        color:[NSColor colorWithRgbInt:color]];
+                                 fraction:percent];
         } else if (DrawInvertedRectDrawType == type) {
             int row = *((int*)bytes);  bytes += sizeof(int);
             int col = *((int*)bytes);  bytes += sizeof(int);
@@ -742,10 +844,65 @@ defaultLineHeightForFont(NSFont *font)
     if (row) *row = floor((point.y-origin.y-1) / cellSize.height);
     if (column) *column = floor((point.x-origin.x-1) / cellSize.width);
 
-    //NSLog(@"convertPoint:%@ toRow:%d column:%d", NSStringFromPoint(point),
-    //        *row, *column);
-
     return YES;
+}
+
+- (NSPoint)pointForRow:(int)row column:(int)col
+{
+    // Return the lower left coordinate of the cell at (row,column).
+    NSPoint pt;
+
+    pt.x = insetSize.width + col*cellSize.width;
+    pt.y = [self frame].size.height -
+           (insetSize.height + (1+row)*cellSize.height);
+
+    return pt;
+}
+
+- (NSRect)rectForRow:(int)row column:(int)col numRows:(int)nr
+          numColumns:(int)nc
+{
+    // Return the rect for the block which covers the specified rows and
+    // columns.  The lower-left corner is the origin of this rect.
+    NSRect rect;
+
+    rect.origin.x = insetSize.width + col*cellSize.width;
+    rect.origin.y = [self frame].size.height -
+                    (insetSize.height + (nr+row)*cellSize.height);
+    rect.size.width = nc*cellSize.width;
+    rect.size.height = nr*cellSize.height;
+
+    return rect;
+}
+
+- (NSArray *)validAttributesForMarkedText
+{
+    return nil;
+}
+
+- (NSAttributedString *)attributedSubstringFromRange:(NSRange)range
+{
+    return nil;
+}
+
+- (NSUInteger)characterIndexForPoint:(NSPoint)point
+{
+    return NSNotFound;
+}
+
+- (NSInteger)conversationIdentifier
+{
+    return (NSInteger)self;
+}
+
+- (NSRange)selectedRange
+{
+    return [helper imRange];
+}
+
+- (NSRect)firstRectForCharacterRange:(NSRange)range
+{
+    return [helper firstRectForCharacterRange:range];
 }
 
 @end // MMAtsuiTextView
@@ -861,7 +1018,7 @@ defaultLineHeightForFont(NSFont *font)
 - (NSRect)rectFromRow:(int)row1 column:(int)col1
                 toRow:(int)row2 column:(int)col2
 {
-    NSPoint origin = [self originForRow: row1 column: col1];
+    NSPoint origin = [self originForRow:row1 column:col1];
     return NSMakeRect(origin.x, origin.y,
                       (col2 + 1 - col1) * cellSize.width,
                       (row2 + 1 - row1) * cellSize.height);
@@ -879,7 +1036,7 @@ defaultLineHeightForFont(NSFont *font)
     //NSLog(@"resizeContentImage");
     [contentImage release];
     contentImage = [[NSImage alloc] initWithSize:[self textAreaSize]];
-    [contentImage setFlipped: YES];
+    [contentImage setFlipped:YES];
     imageSize = [self textAreaSize];
 }
 
@@ -1057,7 +1214,7 @@ defaultLineHeightForFont(NSFont *font)
 }
 
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                       fraction:(int)percent color:(NSColor *)color
+                       fraction:(int)percent
 {
     NSPoint origin = [self originForRow:row column:col];
     NSRect rect = NSMakeRect(origin.x, origin.y,
@@ -1078,7 +1235,7 @@ defaultLineHeightForFont(NSFont *font)
         rect.size.width = frac;
     }
 
-    [color set];
+    [[helper insertionPointColor] set];
     if (MMInsertionPointHollow == shape) {
         NSFrameRect(rect);
     } else {

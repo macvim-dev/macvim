@@ -9,20 +9,21 @@
  */
 
 #import <Cocoa/Cocoa.h>
-
+#import "MMTextView.h"
 
 enum { MMMaxCellsPerChar = 2 };
 
 @class MMTextViewHelper;
 
 
-@interface MMAtsuiTextView : NSView {
+@interface MMAtsuiTextView : NSView <NSTextInput> {
     // From MMTextStorage
     int                         maxRows, maxColumns;
     NSColor                     *defaultBackgroundColor;
     NSColor                     *defaultForegroundColor;
     NSSize                      cellSize;
     NSFont                      *font;
+    NSFont                      *fontWide;
     float                       linespace;
     float                       ascender;
 
@@ -44,28 +45,33 @@ enum { MMMaxCellsPerChar = 2 };
 // MMTextStorage methods
 //
 - (int)maxRows;
+- (int)maxColumns;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;
 - (void)setMaxRows:(int)rows columns:(int)cols;
 - (void)setDefaultColorsBackground:(NSColor *)bgColor
                         foreground:(NSColor *)fgColor;
+- (NSColor *)defaultBackgroundColor;
+- (NSColor *)defaultForegroundColor;
 - (NSRect)rectForRowsInRange:(NSRange)range;
 - (NSRect)rectForColumnsInRange:(NSRange)range;
 
 - (void)setFont:(NSFont *)newFont;
 - (void)setWideFont:(NSFont *)newFont;
 - (NSFont *)font;
+- (NSFont *)fontWide;
 - (NSSize)cellSize;
 - (void)setLinespace:(float)newLinespace;
 
 //
 // MMTextView methods
 //
-- (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)setPreEditRow:(int)row column:(int)col;
-- (void)hideMarkedTextField;
 - (void)setMouseShape:(int)shape;
 - (void)setAntialias:(BOOL)state;
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
+- (NSPoint)pointForRow:(int)row column:(int)col;
+- (NSRect)rectForRow:(int)row column:(int)col numRows:(int)nr
+          numColumns:(int)nc;
 
 //
 // NSTextView methods

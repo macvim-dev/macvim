@@ -49,10 +49,30 @@ static float MMDragAreaSize = 73.0f;
 
 @implementation MMTextViewHelper
 
+- (void)dealloc
+{
+    [markedText release];  markedText = nil;
+
+    [super dealloc];
+}
+
 - (void)setTextView:(id)view
 {
     // Only keep a weak reference to owning text view.
     textView = view;
+}
+
+- (void)setInsertionPointColor:(NSColor *)color
+{
+    if (color != insertionPointColor) {
+        [insertionPointColor release];
+        insertionPointColor = [color retain];
+    }
+}
+
+- (NSColor *)insertionPointColor
+{
+    return insertionPointColor;
 }
 
 - (void)keyDown:(NSEvent *)event
@@ -513,6 +533,158 @@ static float MMDragAreaSize = 73.0f;
 {
     mouseShape = shape;
     [self setCursor];
+}
+
+- (BOOL)hasMarkedText
+{
+    return markedRange.length > 0 ? YES : NO;
+}
+
+- (NSRange)markedRange
+{
+    if ([self hasMarkedText])
+        return markedRange;
+    else
+        return NSMakeRange(NSNotFound, 0);
+}
+
+- (NSDictionary *)markedTextAttributes
+{
+    return markedTextAttributes;
+}
+
+- (void)setMarkedTextAttributes:(NSDictionary *)attr
+{
+    if (attr != markedTextAttributes) {
+        [markedTextAttributes release];
+        markedTextAttributes = [attr retain];
+    }
+}
+
+- (void)setMarkedText:(id)text selectedRange:(NSRange)range
+{
+    [self unmarkText];
+
+    if (!(text && [text length] > 0))
+        return;
+
+    // HACK! Determine if the marked text is wide or normal width.  This seems
+    // to always use 'wide' when there are both wide and normal width
+    // characters.
+    NSString *string = text;
+    NSFont *theFont = [textView font];
+    if ([text isKindOfClass:[NSAttributedString class]]) {
+        theFont = [textView fontWide];
+        string = [text string];
+    }
+
+    // TODO: Use special colors for marked text.
+    [self setMarkedTextAttributes:
+        [NSDictionary dictionaryWithObjectsAndKeys:
+            theFont, NSFontAttributeName,
+            [textView defaultBackgroundColor], NSBackgroundColorAttributeName,
+            [textView defaultForegroundColor], NSForegroundColorAttributeName,
+            nil]];
+
+    markedText = [[NSMutableAttributedString alloc]
+           initWithString:string
+               attributes:[self markedTextAttributes]];
+
+    markedRange = NSMakeRange(0, [markedText length]);
+    if (markedRange.length) {
+        [markedText addAttribute:NSUnderlineStyleAttributeName
+                           value:[NSNumber numberWithInt:1]
+                           range:markedRange];
+    }
+    imRange = range;
+    if (range.length) {
+        [markedText addAttribute:NSUnderlineStyleAttributeName
+                           value:[NSNumber numberWithInt:2]
+                           range:range];
+    }
+
+    [textView setNeedsDisplay:YES];
+}
+
+- (void)unmarkText
+{
+    imRange = NSMakeRange(0, 0);
+    markedRange = NSMakeRange(NSNotFound, 0);
+    [markedText release];
+    markedText = nil;
+}
+
+- (NSMutableAttributedString *)markedText
+{
+    return markedText;
+}
+
+- (void)setPreEditRow:(int)row column:(int)col
+{
+    preEditRow = row;
+    preEditColumn = col;
+}
+
+- (int)preEditRow
+{
+    return preEditRow;
+}
+
+- (int)preEditColumn
+{
+    return preEditColumn;
+}
+
+- (void)setImRange:(NSRange)range
+{
+    imRange = range;
+}
+
+- (NSRange)imRange
+{
+    return imRange;
+}
+
+- (void)setMarkedRange:(NSRange)range
+{
+    markedRange = range;
+}
+
+- (NSRect)firstRectForCharacterRange:(NSRange)range
+{
+    // This method is called when the input manager wants to pop up an
+    // auxiliary window.  The position where this should be is controlled by
+    // Vim by sending SetPreEditPositionMsgID so compute a position based on
+    // the pre-edit (row,column) pair.
+    int col = preEditColumn;
+    int row = preEditRow + 1;
+
+    NSFont *theFont = [[textView markedTextAttributes]
+            valueForKey:NSFontAttributeName];
+    if (theFont == [textView fontWide]) {
+        col += imRange.location * 2;
+        if (col >= [textView maxColumns] - 1) {
+            row += (col / [textView maxColumns]);
+            col = col % 2 ? col % [textView maxColumns] + 1 :
+                            col % [textView maxColumns];
+        }
+    } else {
+        col += imRange.location;
+        if (col >= [textView maxColumns]) {
+            row += (col / [textView maxColumns]);
+            col = col % [textView maxColumns];
+        }
+    }
+
+    NSRect rect = [textView rectForRow:row
+                                column:col
+                               numRows:1
+                            numColumns:range.length];
+
+    rect.origin = [textView convertPoint:rect.origin toView:nil];
+    rect.origin = [[textView window] convertBaseToScreen:rect.origin];
+
+    return rect;
 }
 
 @end // MMTextViewHelper

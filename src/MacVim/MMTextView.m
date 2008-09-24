@@ -35,13 +35,11 @@
 
 
 @interface MMTextView (Private)
-- (BOOL)convertRow:(int)row column:(int)column toPoint:(NSPoint *)point;
-- (BOOL)convertRow:(int)row column:(int)column numRows:(int)nr
-        numColumns:(int)nc toRect:(NSRect *)rect;
 - (MMWindowController *)windowController;
 - (MMVimController *)vimController;
+- (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                       fraction:(int)percent color:(NSColor *)color;
+                       fraction:(int)percent;
 - (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nrows
                    numColumns:(int)ncols invert:(int)invert;
 @end
@@ -103,8 +101,6 @@
     helper = [[MMTextViewHelper alloc] init];
     [helper setTextView:self];
 
-    imRange = NSMakeRange(0, 0);
-    markedRange = NSMakeRange(0, 0);
     // NOTE: If the default changes to 'NO' then the intialization of
     // p_antialias in option.c must change as well.
     antialias = YES;
@@ -115,12 +111,6 @@
 - (void)dealloc
 {
     LOG_DEALLOC
-
-     if (markedText) {
-         imRange = NSMakeRange(0, 0);
-         [markedText release];
-         markedText = nil;
-    }
 
     if (invertRects) {
         free(invertRects);
@@ -143,15 +133,9 @@
     return NO;
 }
 
-- (void)setShouldDrawInsertionPoint:(BOOL)on
-{
-    shouldDrawInsertionPoint = on;
-}
-
 - (void)setPreEditRow:(int)row column:(int)col
 {
-    preEditRow = row;
-    preEditColumn = col;
+    [helper setPreEditRow:row column:col];
 }
 
 #define MM_DEBUG_DRAWING 0
@@ -231,13 +215,8 @@
             // NOTE: If this is a call to draw the (block) cursor, then cancel
             // any previous request to draw the insertion point, or it might
             // get drawn as well.
-            if (flags & DRAW_CURSOR) {
+            if (flags & DRAW_CURSOR)
                 [self setShouldDrawInsertionPoint:NO];
-                //NSColor *color = [NSColor colorWithRgbInt:bg];
-                //[self drawInsertionPointAtRow:row column:col
-                //                            shape:MMInsertionPointBlock
-                //                            color:color];
-            }
 
             [textStorage drawString:string
                               atRow:row column:col cells:cells
@@ -271,9 +250,9 @@
 #if MM_DEBUG_DRAWING
             NSLog(@"   Draw cursor at (%d,%d)", row, col);
 #endif
+            [helper setInsertionPointColor:[NSColor colorWithRgbInt:color]];
             [self drawInsertionPointAtRow:row column:col shape:shape
-                                     fraction:percent
-                                        color:[NSColor colorWithRgbInt:color]];
+                                 fraction:percent];
         } else if (DrawInvertedRectDrawType == type) {
             int row = *((int*)bytes);  bytes += sizeof(int);
             int col = *((int*)bytes);  bytes += sizeof(int);
@@ -335,6 +314,11 @@
     [(MMTextStorage*)[self textStorage] setFont:newFont];
 }
 
+- (NSFont *)fontWide
+{
+    return [(MMTextStorage*)[self textStorage] fontWide];
+}
+
 - (void)setWideFont:(NSFont *)newFont
 {
     [(MMTextStorage*)[self textStorage] setWideFont:newFont];
@@ -354,6 +338,12 @@
 {
     MMTextStorage *ts = (MMTextStorage *)[self textStorage];
     return [ts maxRows];
+}
+
+- (int)maxColumns
+{
+    MMTextStorage *ts = (MMTextStorage *)[self textStorage];
+    return [ts maxColumns];
 }
 
 - (void)getMaxRows:(int*)rows columns:(int*)cols
@@ -382,6 +372,16 @@
     [self setBackgroundColor:bgColor];
     return [(MMTextStorage*)[self textStorage]
             setDefaultColorsBackground:bgColor foreground:fgColor];
+}
+
+- (NSColor *)defaultBackgroundColor
+{
+    return [(MMTextStorage*)[self textStorage] defaultBackgroundColor];
+}
+
+- (NSColor *)defaultForegroundColor
+{
+    return [(MMTextStorage*)[self textStorage] defaultForegroundColor];
 }
 
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size
@@ -449,6 +449,39 @@
     return YES;
 }
 
+- (NSPoint)pointForRow:(int)row column:(int)col
+{
+    // Return the upper-left coordinate for (row,column).
+    // NOTE: The coordinate system is flipped!
+    NSPoint pt = [self textContainerOrigin];
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    NSSize cellSize = [ts cellSize];
+
+    pt.x += col * cellSize.width;
+    pt.y += row * cellSize.height;
+
+    return pt;
+}
+
+- (NSRect)rectForRow:(int)row column:(int)col numRows:(int)nr
+          numColumns:(int)nc
+{
+    // Return the rect for the block which covers the specified rows and
+    // columns.  The upper-left corner is the origin of this rect.
+    // NOTE: The coordinate system is flipped!
+    NSRect rect;
+    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
+    NSSize cellSize = [ts cellSize];
+
+    rect.origin = [self textContainerOrigin];
+    rect.origin.x += col * cellSize.width;
+    rect.origin.y += row * cellSize.height;
+    rect.size.width = cellSize.width * nc;
+    rect.size.height = cellSize.height * nr;
+
+    return rect;
+}
+
 - (BOOL)isOpaque
 {
     return NO;
@@ -496,7 +529,7 @@
 
         inset.height -= baseline;
 
-        int len = [markedText length];
+        int len = [[helper markedText] length];
         // The following implementation should be re-written with
         // more efficient way...
 
@@ -509,11 +542,11 @@
             cols = cols / 2;
         int done = 0;
         int lend = cols > len ? len : cols;
-        NSAttributedString *aString = [markedText attributedSubstringFromRange:
-                NSMakeRange(done, lend)];
+        NSAttributedString *aString = [[helper markedText]
+                attributedSubstringFromRange:NSMakeRange(done, lend)];
         [aString drawAtPoint:NSMakePoint(
-                preEditColumn*[ts cellSize].width + inset.width,
-                preEditRow*[ts cellSize].height + inset.height)];
+                [helper preEditColumn]*[ts cellSize].width + inset.width,
+                [helper preEditRow]*[ts cellSize].height + inset.height)];
 
         done = lend;
         // Check whether there're charecters that aren't drawn at
@@ -527,11 +560,11 @@
             for (r = 1; r <= rows; r++) {
                 lend = len - done > [ts actualColumns] / 2
                         ? [ts actualColumns] / 2 : len - done;
-                aString = [markedText attributedSubstringFromRange:
+                aString = [[helper markedText] attributedSubstringFromRange:
                         NSMakeRange(done, lend)];
                 [aString drawAtPoint:NSMakePoint(
                         inset.width,
-                        (preEditRow + r)*[ts cellSize].height
+                        ([helper preEditRow] + r)*[ts cellSize].height
                             + inset.height)];
                 done += lend;
             }
@@ -541,8 +574,8 @@
     if (shouldDrawInsertionPoint) {
         MMTextStorage *ts = (MMTextStorage*)[self textStorage];
 
-        NSRect ipRect = [ts boundingRectForCharacterAtRow:preEditRow
-                                                   column:preEditColumn];
+        NSRect ipRect = [ts boundingRectForCharacterAtRow:[helper preEditRow]
+                                                   column:[helper preEditColumn]];
         ipRect.origin.x += [self textContainerOrigin].x;
         ipRect.origin.y += [self textContainerOrigin].y;
 
@@ -552,10 +585,12 @@
                     valueForKey:NSFontAttributeName];
             if (theFont == [ts font])
                 ipRect.origin.x += [ts cellSize].width *
-                                   (imRange.location + imRange.length);
+                                   ([helper imRange].location +
+                                   [helper imRange].length);
             else
                 ipRect.origin.x += [ts cellSize].width * 2 *
-                                   (imRange.location + imRange.length);
+                                   ([helper imRange].location +
+                                   [helper imRange].length);
         }
 
         if (MMInsertionPointHorizontal == insertionPointShape) {
@@ -571,7 +606,7 @@
             ipRect.size.width = frac;
         }
 
-        [[self insertionPointColor] set];
+        [[helper insertionPointColor] set];
         if (MMInsertionPointHollow == insertionPointShape) {
             NSFrameRect(ipRect);
         } else {
@@ -584,7 +619,7 @@
 
         //NSLog(@"%s draw insertion point %@ shape=%d color=%@", _cmd,
         //        NSStringFromRect(ipRect), insertionPointShape,
-        //        [self insertionPointColor]);
+        //        [helper insertionPointColor]);
     }
 
 #if 0
@@ -627,109 +662,37 @@
 
 - (BOOL)hasMarkedText
 {
-    //NSLog(@"%s", _cmd);
-    //return markedText && [markedText length] > 0;
-    return markedRange.length > 0 ? YES : NO;
+    return [helper hasMarkedText];
 }
 
 - (NSRange)markedRange
 {
-    if ([self hasMarkedText]) {
-        return markedRange;
-    } else
-        return NSMakeRange(NSNotFound, 0);
+    return [helper markedRange];
 }
 
 - (NSDictionary *)markedTextAttributes
 {
-    return markedTextAttributes;
+    return [helper markedTextAttributes];
 }
 
 - (void)setMarkedTextAttributes:(NSDictionary *)attr
 {
-    if (attr != markedTextAttributes) {
-        [markedTextAttributes release];
-        markedTextAttributes = [attr retain];
-    }
+    [helper setMarkedTextAttributes:attr];
 }
-
 
 - (void)setMarkedText:(id)text selectedRange:(NSRange)range
 {
-    //NSLog(@"setMarkedText:'%@' selectedRange:%@", text,
-    //        NSStringFromRange(range));
-
-    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-    if (!ts)
-        return;
-    [self unmarkText];
-
-    if (text && [text length] > 0) {
-        if ([text isKindOfClass:[NSAttributedString class]]) {
-            [self setMarkedTextAttributes:
-                [NSDictionary dictionaryWithObjectsAndKeys:
-                    [ts fontWide], NSFontAttributeName,
-                    [ts defaultBackgroundColor], NSBackgroundColorAttributeName,
-                    [ts defaultForegroundColor], NSForegroundColorAttributeName,
-                    nil]];
-            markedText = [[NSMutableAttributedString alloc]
-                    initWithString:[text string]
-                        attributes:[self markedTextAttributes]];
-        } else {
-            [self setMarkedTextAttributes:
-                [NSDictionary dictionaryWithObjectsAndKeys:
-                    [ts font], NSFontAttributeName,
-                    [ts defaultBackgroundColor], NSBackgroundColorAttributeName,
-                    [ts defaultForegroundColor], NSForegroundColorAttributeName,
-                    nil]];
-            markedText = [[NSMutableAttributedString alloc]
-                    initWithString:text
-                        attributes:[self markedTextAttributes]];
-        }
-
-        markedRange = NSMakeRange(0, [markedText length]);
-        if (markedRange.length) {
-            [markedText addAttribute:NSUnderlineStyleAttributeName
-                               value:[NSNumber numberWithInt:1]
-                               range:markedRange];
-        }
-        imRange = range;
-        if (range.length) {
-            [markedText addAttribute:NSUnderlineStyleAttributeName
-                               value:[NSNumber numberWithInt:2]
-                               range:range];
-        }
-    }
-    [self setNeedsDisplay: YES];
+    [helper setMarkedText:text selectedRange:range];
 }
 
 - (void)unmarkText
 {
-    //NSLog(@"%s", _cmd);
-    imRange = NSMakeRange(0, 0);
-    markedRange = NSMakeRange(NSNotFound, 0);
-    [markedText release];
-    markedText = nil;
+    [helper unmarkText];
 }
 
 - (NSRect)firstRectForCharacterRange:(NSRange)range
 {
-    //NSLog(@"%s%@", _cmd, NSStringFromRange(range));
-    // HACK!  This method is called when the input manager wants to pop up an
-    // auxiliary window.  The position where this should be is controller by
-    // Vim by sending SetPreEditPositionMsgID so compute a position based on
-    // the pre-edit (row,column) pair.
-    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-
-    NSRect rect = [ts boundingRectForCharacterAtRow:preEditRow
-                                             column:preEditColumn];
-    rect.origin.x += [self textContainerOrigin].x;
-    rect.origin.y += [self textContainerOrigin].y + [ts cellSize].height;
-
-    rect.origin = [self convertPoint:rect.origin toView:nil];
-    rect.origin = [[self window] convertBaseToScreen:rect.origin];
-
-    return rect;
+    return [helper firstRectForCharacterRange:range];
 }
 
 - (void)scrollWheel:(NSEvent *)event
@@ -926,43 +889,13 @@
 
     return YES;
 }
+
 @end // MMTextView
 
 
 
 
 @implementation MMTextView (Private)
-
-- (BOOL)convertRow:(int)row column:(int)column toPoint:(NSPoint *)point
-{
-    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-    NSSize cellSize = [ts cellSize];
-    if (!(point && cellSize.width > 0 && cellSize.height > 0))
-        return NO;
-
-    *point = [self textContainerOrigin];
-    point->x += column * cellSize.width;
-    point->y += row * cellSize.height;
-
-    return YES;
-}
-
-- (BOOL)convertRow:(int)row column:(int)column numRows:(int)nr
-        numColumns:(int)nc toRect:(NSRect *)rect
-{
-    MMTextStorage *ts = (MMTextStorage*)[self textStorage];
-    NSSize cellSize = [ts cellSize];
-    if (!(rect && cellSize.width > 0 && cellSize.height > 0))
-        return NO;
-
-    rect->origin = [self textContainerOrigin];
-    rect->origin.x += column * cellSize.width;
-    rect->origin.y += row * cellSize.height;
-    rect->size.width = cellSize.width * nc;
-    rect->size.height = cellSize.height * nr;
-
-    return YES;
-}
 
 - (MMWindowController *)windowController
 {
@@ -977,12 +910,14 @@
     return [[self windowController] vimController];
 }
 
-- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                       fraction:(int)percent color:(NSColor *)color
+- (void)setShouldDrawInsertionPoint:(BOOL)on
 {
-    //NSLog(@"drawInsertionPointAtRow:%d column:%d shape:%d color:%@",
-    //        row, col, shape, color);
+    shouldDrawInsertionPoint = on;
+}
 
+- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
+                       fraction:(int)percent
+{
     // This only stores where to draw the insertion point, the actual drawing
     // is done in drawRect:.
     shouldDrawInsertionPoint = YES;
@@ -990,8 +925,6 @@
     insertionPointColumn = col;
     insertionPointShape = shape;
     insertionPointFraction = percent;
-
-    [self setInsertionPointColor:color];
 }
 
 - (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nrows
@@ -1003,8 +936,8 @@
         invertRects = reallocf(invertRects,
                                numInvertRects*sizeof(NSRect));
         if (NULL != invertRects) {
-            [self convertRow:row column:col numRows:nrows numColumns:ncols
-                      toRect:&invertRects[n]];
+            invertRects[n] = [self rectForRow:row column:col numRows:nrows
+                                   numColumns:ncols];
             [self setNeedsDisplayInRect:invertRects[n]];
         } else {
             n = numInvertRects = 0;
@@ -1012,9 +945,8 @@
     } else {
         // The result should look normal; all we need to do is to mark
         // the rect for redrawing and Cocoa will redraw the text.
-        NSRect rect;
-        [self convertRow:row column:col numRows:nrows numColumns:ncols
-                  toRect:&rect];
+        NSRect rect = [self rectForRow:row column:col numRows:nrows
+                            numColumns:ncols];
         [self setNeedsDisplayInRect:rect];
     }
 }

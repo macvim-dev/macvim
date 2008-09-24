@@ -30,9 +30,20 @@ enum {
     BOOL                isAutoscrolling;
     int                 mouseShape;
     NSTrackingRectTag   trackingRectTag;
+    NSColor             *insertionPointColor;
+
+    // Input Manager
+    NSRange             imRange;
+    NSRange             markedRange;
+    NSDictionary        *markedTextAttributes;
+    NSMutableAttributedString  *markedText;
+    int                 preEditRow;
+    int                 preEditColumn;
 }
 
 - (void)setTextView:(id)view;
+- (void)setInsertionPointColor:(NSColor *)color;
+- (NSColor *)insertionPointColor;
 
 - (void)keyDown:(NSEvent *)event;
 - (void)insertText:(id)string;
@@ -52,5 +63,21 @@ enum {
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)sender;
 - (void)setMouseShape:(int)shape;
+
+// Input Manager
+- (BOOL)hasMarkedText;
+- (NSRange)markedRange;
+- (NSDictionary *)markedTextAttributes;
+- (void)setMarkedTextAttributes:(NSDictionary *)attr;
+- (void)setMarkedText:(id)text selectedRange:(NSRange)range;
+- (void)unmarkText;
+- (NSMutableAttributedString *)markedText;
+- (void)setPreEditRow:(int)row column:(int)col;
+- (int)preEditRow;
+- (int)preEditColumn;
+- (void)setImRange:(NSRange)range;
+- (NSRange)imRange;
+- (void)setMarkedRange:(NSRange)range;
+- (NSRect)firstRectForCharacterRange:(NSRange)range;
 
 @end
