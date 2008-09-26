@@ -41,6 +41,50 @@
     -->
 
     <item>
+      <title>Snapshot 35 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 35 released</h1>
+
+<p> With this snapshot I have focused on making MacVim faster, fixing bugs, and updating the documentation.  As a result MacVim now feels snappier, flickers less, takes less time to startup from Terminal, and in some cases there are tremendous speed increases. </p>
+
+<p> Here is a summary of the changes since snapshot 34:
+<ul>
+  <li> Faster startup times </li>
+  <li> Overall faster drawing </li>
+  <li> Quicker response to key presses </li>
+  <li> Fix bug where key presses were ignored when mouse was moved simultaneously </li>
+  <li> Update ":h macvim" docs </li>
+  <li> Add mvim:// URL handler support (Nico Weber) </li>
+  <li> The VimLeave autocommand works with :maca (see ":h macvim-hints") </li>
+  <li> Multiple files opened from Finder are sorted </li>
+  <li> Don't shift new windows downwards if they are vertically maximized </li>
+  <li> Add option to hide MacVim when last window closes </li>
+  <li> The "Save changes" dialog conforms to the Apple HIG (works with Cmd-D) </li>
+  <li> Fix problems with 'fullscreen' and :mksession (Nico Weber) </li>
+  <li> Cmd-e copies selection to Find Pasteboard without searching </li>
+  <li> Fix bug with blurry text in full-screen with ATSUI (Jjgod Jiang) </li>
+  <li> Cmd-. can be used to interrupt Vim (and to exit insert mode) </li>
+  <li> Add "New Document Here" system service (Ron Olson) </li>
+  <li> Simplify system services menu (honors the "Open files..." pref) </li>
+  <li> Full-screen background color is updated immediately when 'fuopt' changes </li>
+  <li> Cursor no longer escapes the command line on Cmd-=/Cmd-- </li>
+  <li> Add Input Manager support to ATSUI renderer (Kaoru Yoshida) </li>
+  <li> Use latest Vim source code and runtime files </li>
+  <li> Minor bug fixes </li>
+</ul>
+</p>
+      ]]></description>
+      <pubDate>Fri, 26 Sep 2008 20:29 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-35.tbz"
+        length="7986836"
+        sparkle:version="35"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 34 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 34 released</h1>
