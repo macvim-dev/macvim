@@ -91,7 +91,7 @@ static NSString *MMSymlinkWarningString =
 - (void)processInputQueue;
 - (void)handleInputEvent:(int)msgid data:(NSData *)data;
 + (NSDictionary *)specialKeys;
-- (void)handleInsertText:(NSData *)data;
+- (void)handleInsertText:(NSString *)text;
 - (void)handleKeyDown:(NSString *)key modifiers:(int)mods;
 - (void)queueMessage:(int)msgid data:(NSData *)data;
 - (void)connectionDidDie:(NSNotification *)notification;
@@ -1048,11 +1048,16 @@ static NSString *MMSymlinkWarningString =
     BOOL interrupt = NO;
     if (msgid == InterruptMsgID) {
         interrupt = YES;
-    } else if (InsertTextMsgID == msgid && data != nil && [data length] == 1) {
-        char_u *str = (char_u*)[data bytes];
-        if ((str[0] == Ctrl_C && ctrl_c_interrupts) ||
-                (str[0] == intr_char && intr_char != Ctrl_C))
-            interrupt = YES;
+    } else if (InsertTextMsgID == msgid && data != nil) {
+        const void *bytes = [data bytes];
+        bytes += sizeof(int);
+        int len = *((int*)bytes);  bytes += sizeof(int);
+        if (1 == len) {
+            char_u *str = (char_u*)bytes;
+            if ((str[0] == Ctrl_C && ctrl_c_interrupts) ||
+                    (str[0] == intr_char && intr_char != Ctrl_C))
+                interrupt = YES;
+        }
     }
 
     if (interrupt) {
@@ -1063,18 +1068,36 @@ static NSString *MMSymlinkWarningString =
 
     // Remove all previous instances of this message from the input queue, else
     // the input queue may fill up as a result of Vim not being able to keep up
-    // with the speed at which new messages are received.  This avoids annoying
-    // situations such as when the keyboard repeat rate is higher than what Vim
-    // can cope with (which would cause a 'stutter' when scrolling by holding
-    // down 'j' and then when 'j' was released the screen kept scrolling for a
-    // little while).
+    // with the speed at which new messages are received.
+    // Keyboard input is never dropped, unless the input represents and
+    // auto-repeated key.
 
-    int i, count = [inputQueue count];
-    for (i = 1; i < count; i+=2) {
-        if ([[inputQueue objectAtIndex:i-1] intValue] == msgid) {
-            [inputQueue removeObjectAtIndex:i];
-            [inputQueue removeObjectAtIndex:i-1];
-            break;
+    BOOL isKeyRepeat = NO;
+    BOOL isKeyboardInput = NO;
+
+    if (data && (InsertTextMsgID == msgid || KeyDownMsgID == msgid ||
+            CmdKeyMsgID == msgid)) {
+        isKeyboardInput = YES;
+
+        // The lowest bit of the first int is set if this key is a repeat.
+        int flags = *((int*)[data bytes]);
+        if (flags & 1)
+            isKeyRepeat = YES;
+    }
+
+    // Keyboard input is not removed from the queue; repeats are ignored if
+    // there already is keyboard input on the input queue.
+    if (isKeyRepeat || !isKeyboardInput) {
+        int i, count = [inputQueue count];
+        for (i = 1; i < count; i+=2) {
+            if ([[inputQueue objectAtIndex:i-1] intValue] == msgid) {
+                if (isKeyRepeat)
+                    return;
+
+                [inputQueue removeObjectAtIndex:i];
+                [inputQueue removeObjectAtIndex:i-1];
+                break;
+            }
         }
     }
 
@@ -1539,18 +1562,21 @@ static NSString *MMSymlinkWarningString =
 
 - (void)handleInputEvent:(int)msgid data:(NSData *)data
 {
-    if (InsertTextMsgID == msgid) {
-        [self handleInsertText:data];
-    } else if (KeyDownMsgID == msgid || CmdKeyMsgID == msgid) {
+    if (InsertTextMsgID == msgid || KeyDownMsgID == msgid ||
+            CmdKeyMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
         int mods = *((int*)bytes);  bytes += sizeof(int);
         int len = *((int*)bytes);  bytes += sizeof(int);
-        NSString *key = [[NSString alloc] initWithBytes:bytes length:len
-                                              encoding:NSUTF8StringEncoding];
+        NSString *key = [[NSString alloc] initWithBytes:bytes
+                                                 length:len
+                                               encoding:NSUTF8StringEncoding];
         mods = eventModifierFlagsToVimModMask(mods);
 
-        [self handleKeyDown:key modifiers:mods];
+        if (InsertTextMsgID == msgid)
+            [self handleInsertText:key];
+        else
+            [self handleKeyDown:key modifiers:mods];
 
         [key release];
     } else if (ScrollWheelMsgID == msgid) {
@@ -1732,14 +1758,12 @@ static NSString *MMSymlinkWarningString =
     return specialKeys;
 }
 
-- (void)handleInsertText:(NSData *)data
+- (void)handleInsertText:(NSString *)text
 {
-    if (!data) return;
+    if (!text) return;
 
-    NSString *key = [[NSString alloc] initWithData:data
-                                          encoding:NSUTF8StringEncoding];
-    char_u *str = (char_u*)[key UTF8String];
-    int i, len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    char_u *str = (char_u*)[text UTF8String];
+    int i, len = [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
 #ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
@@ -1765,7 +1789,6 @@ static NSString *MMSymlinkWarningString =
     if (conv_str)
         vim_free(conv_str);
 #endif
-    [key release];
 }
 
 - (void)handleKeyDown:(NSString *)key modifiers:(int)mods

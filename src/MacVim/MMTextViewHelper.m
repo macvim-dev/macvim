@@ -38,7 +38,8 @@ static float MMDragAreaSize = 73.0f;
 - (MMWindowController *)windowController;
 - (MMVimController *)vimController;
 - (void)dispatchKeyEvent:(NSEvent *)event;
-- (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags;
+- (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags
+          isARepeat:(BOOL)isARepeat;
 - (void)hideMouseCursor;
 - (void)startDragTimerWithInterval:(NSTimeInterval)t;
 - (void)dragTimerFired:(NSTimer *)timer;
@@ -157,8 +158,17 @@ static float MMDragAreaSize = 73.0f;
 
     //NSLog(@"send InsertTextMsgID: %@", string);
 
-    [[self vimController] sendMessage:InsertTextMsgID
-                 data:[string dataUsingEncoding:NSUTF8StringEncoding]];
+    NSMutableData *data = [NSMutableData data];
+    int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    int flags = [event modifierFlags] & 0xffff0000U;
+    if ([event isARepeat])
+        flags |= 1;
+
+    [data appendBytes:&flags length:sizeof(int)];
+    [data appendBytes:&len length:sizeof(int)];
+    [data appendBytes:[string UTF8String] length:len];
+
+    [[self vimController] sendMessage:InsertTextMsgID data:data];
 }
 
 - (void)doCommandBySelector:(SEL)selector
@@ -193,7 +203,8 @@ static float MMDragAreaSize = 73.0f;
             chars = MMKeypadEnter;
         }
 
-        [self sendKeyDown:chars length:len modifiers:[event modifierFlags]];
+        [self sendKeyDown:chars length:len modifiers:[event modifierFlags]
+                isARepeat:[event isARepeat]];
     } else {
         [self dispatchKeyEvent:event];
     }
@@ -214,7 +225,7 @@ static float MMDragAreaSize = 73.0f;
     // stroke (some input methods use e.g. arrow keys).  The function key down
     // event will still reach Vim though (via keyDown:).  The exceptions to
     // this rule are: PageUp/PageDown (keycode 116/121).
-    int flags = [event modifierFlags];
+    int flags = [event modifierFlags] & 0xffff0000U;
     if ([event type] != NSKeyDown || flags & NSFunctionKeyMask
             && !(116 == [event keyCode] || 121 == [event keyCode]))
         return NO;
@@ -271,6 +282,9 @@ static float MMDragAreaSize = 73.0f;
         unmodchars = MMKeypadEnterString;
         len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     }
+
+    if ([event isARepeat])
+        flags |= 1;
 
     [data appendBytes:&flags length:sizeof(int)];
     [data appendBytes:&len length:sizeof(int)];
@@ -748,13 +762,21 @@ static float MMDragAreaSize = 73.0f;
         bytes = [chars UTF8String];
     }
 
-    [self sendKeyDown:bytes length:len modifiers:mods];
+    [self sendKeyDown:bytes length:len modifiers:mods
+            isARepeat:[event isARepeat]];
 }
 
 - (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags
+          isARepeat:(BOOL)isARepeat
 {
     if (chars && len > 0) {
         NSMutableData *data = [NSMutableData data];
+
+        // The low 16 bits are not used for modifier flags by NSEvent.  Use
+        // these bits for custom flags.
+        flags &= 0xffff0000;
+        if (isARepeat)
+            flags |= 1;
 
         [data appendBytes:&flags length:sizeof(int)];
         [data appendBytes:&len length:sizeof(int)];
