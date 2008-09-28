@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2.  Last change: 2008 Jul 12
+*gui_mac.txt*	For Vim version 7.2.  Last change: 2008 Sep 28
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -16,8 +16,9 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
  7. Dialogs			|macvim-dialogs|
  8. System services		|macvim-services|
  9. mvim:// URL handler		|macvim-url-handler|
-10. Known bugs/missing features	|macvim-todo|
-11. Hints			|macvim-hints|
+10. Keyboard shortcuts		|macvim-shortcuts|
+11. Known bugs/missing features	|macvim-todo|
+12. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -75,16 +76,6 @@ see also |edit-binary|), you may want to prevent MacVim from re-encoding the
 file at all. In this situation, you will need to set both 'encoding' and
 'fileencodings' to a simple single-byte encoding such as Latin1 so that when
 the file is read into memory, the original bytes are left untouched.
-
-							*macvim-movement*
-Some Mac OS X standard key mappings involving Cmd or Option and an arrow key
-are set up by default in "$VIM/gvimrc".  You can quickly disable all of these
-by adding the following lines to your "~/.vimrc" (not .gvimrc) file: >
-	if has("gui_macvim")
-	  let macvim_skip_cmd_opt_movement = 1
-	endif
-Note: These are the only key mappings that MacVim makes (not counting menu key
-equivalents which are not set up with :map).
 
 							*macvim-shift-movement*
 Text editors on Mac OS X lets the user hold down shift+movement key to extend
@@ -538,7 +529,66 @@ For example, the link >
 Note that url has to be a file:// url pointing to an existing local file.
 
 ==============================================================================
-10. Known bugs/missing features				*macvim-todo*
+10. Keyboard shortcuts					*macvim-shortcuts*
+
+Most keyboard shortcuts in MacVim are bound to menu items and can be
+discovered by looking through the menus.  The remaining shortcuts are listed
+here:
+
+							*Cmd-.* *<D-.>*
+Cmd-.			Interrupt Vim.  This is synonymous with CTRL-C and can
+			hence be used instead of Esc to exit insert mode (in
+			case you find Esc a bit hard to reach).
+
+							*Cmd-`* *<D-`>*
+Cmd-`			Cycle to the next window.  On an American keyboard the
+			`-key is located under the Esc-key.  On European
+			keyboards this key is often adjacent to the left
+			Shift-key and it may be not even be marked with "`".
+
+							*Cmd-Left*  *<D-Left>*
+Cmd-Left		Move cursor to the beginning of the line
+			(see |cmd-movement|).
+
+							*Cmd-Right* *<D-Right>*
+Cmd-Right		Move cursor to the end of the line (see |cmd-movement|).
+
+							*Cmd-Up*    *<D-Up>*
+Cmd-Up			Move cursor to the first line (see |cmd-movement|).
+
+							*Cmd-Down*  *<D-Down>*
+Cmd-Down		Move cursor to the last line (see |cmd-movement|).
+
+							*Alt-Left*  *<M-Left>*
+Alt-Left		Move cursor to the beginning of the previous word
+			(see |alt-movement|).
+
+							*Alt-Right* *<M-Right>*
+Alt-Right		Move cursor to the beginning of the next word
+			(see |alt-movement|).
+
+							*Alt-Up*    *<M-Up>*
+Alt-Up			Move cursor one paragraph forward (see |alt-movement|).
+
+							*Alt-Down*  *<M-Down>*
+Alt-Down		Move cursor to the previous paragraph
+			(see |alt-movement|).
+
+						*cmd-movement* *alt-movement*
+The above mappings involving Cmd/Alt + arrow key are enabled by default in the
+system gvimrc file "$VIM/gvimrc".  You can quickly disable all of these by
+adding the following lines to your "~/.vimrc" (not .gvimrc) file: >
+	if has("gui_macvim")
+	  let macvim_skip_cmd_opt_movement = 1
+	endif
+Note: These are the only key mappings that MacVim makes (not counting menu key
+equivalents which are not set up with :map).
+
+See |macvim-shift-movement| if you want Shift to select text when used in
+conjunction with the above Cmd/Alt movement shortcuts.
+
+==============================================================================
+11. Known bugs/missing features				*macvim-todo*
 
 Here are some of the bigger bugs in MacVim.  Of course there are others, but
 these are ones that are know and/or which were judged major.
@@ -561,7 +611,7 @@ might be simple to implement, but unless somebody asks for a particular
 feature then there is little incentive to add it.
 
 ==============================================================================
-11. Hints						*macvim-hints*
+12. Hints						*macvim-hints*
 
 In this section some general (not necessarily MacVim specific) hints are
 given.
