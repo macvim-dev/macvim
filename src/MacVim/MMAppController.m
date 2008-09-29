@@ -761,7 +761,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // arguments for each launching process can be looked up by its PID (in the
     // pidArguments dictionary).
 
-    NSMutableDictionary *arguments = (args ? [args mutableCopy]
+    NSMutableDictionary *arguments = (args ? [[args mutableCopy] autorelease]
                                            : [NSMutableDictionary dictionary]);
 
     //
