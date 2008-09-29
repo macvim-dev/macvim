@@ -57,6 +57,8 @@
 
     // convenience
 - (id)cellForPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame;
+- (unsigned)indexOfCellAtPoint:(NSPoint)point;
+- (unsigned)indexOfCellAtPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame;
 - (PSMTabBarCell *)lastVisibleTab;
 - (int)numberOfVisibleTabs;
 
@@ -98,6 +100,7 @@
     
     // default config
     _allowsDragBetweenWindows = YES;
+    _delegateHandlingDrag = NO;
     _canCloseOnlyTab = NO;
     _showAddTabButton = NO;
     _hideForSingleTab = NO;
@@ -982,16 +985,28 @@
     return YES;
 }
 
+- (void)draggedImage:(NSImage *)anImage endedAt:(NSPoint)aPoint operation:(NSDragOperation)operation
+{
+    [[PSMTabDragAssistant sharedDragAssistant] draggedImageEndedAt:aPoint operation:operation];
+}
+
 // NSDraggingDestination
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
-{	
+{
+    NSPoint point = [self convertPoint:[sender draggingLocation] fromView:nil];
+    _delegateHandlingDrag = NO;
     if([[[sender draggingPasteboard] types] indexOfObject:@"PSMTabBarControlItemPBType"] != NSNotFound) {
 		
 		if ([sender draggingSource] != self && ![self allowsDragBetweenWindows])
 			return NSDragOperationNone;
 		
-        [[PSMTabDragAssistant sharedDragAssistant] draggingEnteredTabBar:self atPoint:[self convertPoint:[sender draggingLocation] fromView:nil]];
+        [[PSMTabDragAssistant sharedDragAssistant] draggingEnteredTabBar:self atPoint:point];
         return NSDragOperationMove;
+    } else if (delegate && [delegate respondsToSelector:@selector(tabBarControl:draggingEntered:forTabAtIndex:)]) {
+        NSDragOperation op = [delegate tabBarControl:self draggingEntered:sender forTabAtIndex:[self indexOfCellAtPoint:point]];
+        _delegateHandlingDrag = (op != NSDragOperationNone);
+        _delegateInitialDragOperation = op;
+        return op;
     }
         
     return NSDragOperationNone;
@@ -999,13 +1014,19 @@
 
 - (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)sender
 {
+    NSPoint point = [self convertPoint:[sender draggingLocation] fromView:nil];
     if ([[[sender draggingPasteboard] types] indexOfObject:@"PSMTabBarControlItemPBType"] != NSNotFound) {
 		
 		if ([sender draggingSource] != self && ![self allowsDragBetweenWindows])
 			return NSDragOperationNone;
 		
-        [[PSMTabDragAssistant sharedDragAssistant] draggingUpdatedInTabBar:self atPoint:[self convertPoint:[sender draggingLocation] fromView:nil]];
+        [[PSMTabDragAssistant sharedDragAssistant] draggingUpdatedInTabBar:self atPoint:point];
         return NSDragOperationMove;
+    } else if (_delegateHandlingDrag) {
+        if ([delegate respondsToSelector:@selector(tabBarControl:draggingUpdated:forTabAtIndex:)])
+            return [delegate tabBarControl:self draggingUpdated:sender forTabAtIndex:[self indexOfCellAtPoint:point]];
+        else
+            return _delegateInitialDragOperation;
     }
         
     return NSDragOperationNone;
@@ -1013,44 +1034,61 @@
 
 - (void)draggingExited:(id <NSDraggingInfo>)sender
 {
-    [[PSMTabDragAssistant sharedDragAssistant] draggingExitedTabBar:self];
+    if (!_delegateHandlingDrag) {
+        [[PSMTabDragAssistant sharedDragAssistant] draggingExitedTabBar:self];
+    } else if ([delegate respondsToSelector:@selector(tabBarControl:draggingExited:forTabAtIndex:)]) {
+        NSPoint point = [self convertPoint:[sender draggingLocation] fromView:nil];
+        [delegate tabBarControl:self draggingExited:sender forTabAtIndex:[self indexOfCellAtPoint:point]];
+    }
 }
 
 - (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender
 {
+    if (_delegateHandlingDrag && [delegate respondsToSelector:@selector(tabBarControl:prepareForDragOperation:forTabAtIndex:)]) {
+        NSPoint point = [self convertPoint:[sender draggingLocation] fromView:nil];
+        return [delegate tabBarControl:self prepareForDragOperation:sender forTabAtIndex:[self indexOfCellAtPoint:point]];
+    }
+    
     return YES;
 }
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
 {
+    if (!_delegateHandlingDrag) {
 #if 1
-    // HACK!  Used below.
-    NSTabViewItem *tvi = [[[PSMTabDragAssistant sharedDragAssistant] draggedCell] representedObject];
+        // HACK!  Used below.
+        NSTabViewItem *tvi = [[[PSMTabDragAssistant sharedDragAssistant] draggedCell] representedObject];
 #endif
 
-    [[PSMTabDragAssistant sharedDragAssistant] performDragOperation];
+        [[PSMTabDragAssistant sharedDragAssistant] performDragOperation];
 
 #if 1
-    // HACK!  Notify the delegate that a tab was dragged to a new position.
-    if (delegate && [delegate respondsToSelector:@selector(tabView:didDragTabViewItem:toIndex:)]) {
-        int idx = [[self representedTabViewItems] indexOfObject:tvi];
-        if (NSNotFound != idx) {
-            [delegate tabView:[self tabView] didDragTabViewItem:tvi toIndex:idx];
+        // HACK!  Notify the delegate that a tab was dragged to a new position.
+        if (delegate && [delegate respondsToSelector:@selector(tabView:didDragTabViewItem:toIndex:)]) {
+            int idx = [[self representedTabViewItems] indexOfObject:tvi];
+            if (NSNotFound != idx) {
+                [delegate tabView:[self tabView] didDragTabViewItem:tvi toIndex:idx];
+            }
+        }
+#endif
+    } else {
+        if ([delegate respondsToSelector:@selector(tabBarControl:performDragOperation:forTabAtIndex:)]) {
+            NSPoint point = [self convertPoint:[sender draggingLocation] fromView:nil];
+            return [delegate tabBarControl:self performDragOperation:sender forTabAtIndex:[self indexOfCellAtPoint:point]];
+        } else {
+            return NO;
         }
     }
-#endif
 
     return YES;
 }
 
-- (void)draggedImage:(NSImage *)anImage endedAt:(NSPoint)aPoint operation:(NSDragOperation)operation
-{
-    [[PSMTabDragAssistant sharedDragAssistant] draggedImageEndedAt:aPoint operation:operation];
-}
-
 - (void)concludeDragOperation:(id <NSDraggingInfo>)sender
 {
-
+    if (_delegateHandlingDrag && [delegate respondsToSelector:@selector(tabBarControl:concludeDragOperation:forTabAtIndex:)]) {
+        NSPoint point = [self convertPoint:[sender draggingLocation] fromView:nil];
+        [delegate tabBarControl:self concludeDragOperation:sender forTabAtIndex:[self indexOfCellAtPoint:point]];
+    }
 }
 
 #pragma mark -
@@ -1358,10 +1396,24 @@
 
 - (id)cellForPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame
 {
+    unsigned i = [self indexOfCellAtPoint:point cellFrame:outFrame];
+    if (i == NSNotFound)
+        return nil;
+    PSMTabBarCell *cell = [_cells objectAtIndex:i];
+    return cell;
+}
+
+- (unsigned)indexOfCellAtPoint:(NSPoint)point
+{
+    return [self indexOfCellAtPoint:point cellFrame:NULL];
+}
+
+- (unsigned)indexOfCellAtPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame
+{
     NSRect aRect = [self genericCellRect];
     
     if(!NSPointInRect(point,aRect)){
-        return nil;
+        return NSNotFound;
     }
     
     int i, cnt = [_cells count];
@@ -1374,11 +1426,11 @@
             if(outFrame){
                 *outFrame = aRect;
             }
-            return cell;
+            return i;
         }
         aRect.origin.x += width;
     }
-    return nil;
+    return NSNotFound;
 }
 
 - (PSMTabBarCell *)lastVisibleTab

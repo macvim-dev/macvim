@@ -255,6 +255,29 @@ static BOOL isUnsafeMessage(int msgid);
     [self sendMessage:DropFilesMsgID data:[args dictionaryAsData]];
 }
 
+- (void)file:(NSString *)filename draggedToTabAtIndex:(NSUInteger)tabIndex
+{
+    NSString *fnEsc = [filename stringByEscapingSpecialFilenameCharacters];
+    NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>:silent "
+                       "tabnext %d |"
+                       "edit! %@<CR>", tabIndex + 1, fnEsc];
+    [self addVimInput:input];
+}
+
+- (void)filesDraggedToTabBar:(NSArray *)filenames
+{
+    NSUInteger i, count = [filenames count];
+    NSMutableString *input = [NSMutableString stringWithString:@"<C-\\><C-N>"
+                              ":silent! tabnext 9999"];
+    for (i = 0; i < count; i++) {
+        NSString *fn = [filenames objectAtIndex:i];
+        NSString *fnEsc = [fn stringByEscapingSpecialFilenameCharacters];
+        [input appendFormat:@"|tabedit %@", fnEsc];
+    }
+    [input appendString:@"<CR>"];
+    [self addVimInput:input];
+}
+
 - (void)dropString:(NSString *)string
 {
     int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;

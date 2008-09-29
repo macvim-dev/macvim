@@ -55,6 +55,8 @@
 - (NSDate *)creationDate;
 - (void)cleanup;
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force;
+- (void)file:(NSString *)filename draggedToTabAtIndex:(NSUInteger)tabIndex;
+- (void)filesDraggedToTabBar:(NSArray *)filenames;
 - (void)dropString:(NSString *)string;
 - (void)passArguments:(NSDictionary *)args;
 - (void)sendMessage:(int)msgid data:(NSData *)data;
