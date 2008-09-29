@@ -644,7 +644,10 @@
             [self removeTrackingRect:[cell cellTrackingTag]];
         }
     }
-    
+
+    // nuke old tool tips
+    [self removeAllToolTips];
+
     // calculate number of cells to fit in control and cell widths
     float availableWidth = [self availableCellWidth];
     NSMutableArray *newWidths = [NSMutableArray arrayWithCapacity:cellCount];
@@ -757,7 +760,11 @@
             tag = [self addTrackingRect:cellRect owner:cell userData:nil assumeInside:NO];
             [cell setCellTrackingTag:tag];
             [cell setEnabled:YES];
-            
+
+            // add tool tip if label will be truncated
+            if ([cell desiredWidthOfCell] > NSWidth([cell frame]))
+                [self addToolTipRect:cellRect owner:[cell stringValue] userData:NULL];
+
             // selected? set tab states...
             if([[cell representedObject] isEqualTo:[tabView selectedTabViewItem]]){
                 [cell setState:NSOnState];
