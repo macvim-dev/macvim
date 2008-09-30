@@ -12,6 +12,13 @@
 
 
 @interface MMApplication : NSApplication {
+    CFAbsoluteTime  fakeEscTimeDown;
+    CFAbsoluteTime  fakeEscTimeout;
+    int             fakeEscKeyCode;
+    unsigned        fakeEscModifierMask;
+    BOOL            blockFakeEscEvent;
+    BOOL            blockKeyDown;
+    BOOL            fakeEscOnKeyDown;
 }
 
 @end

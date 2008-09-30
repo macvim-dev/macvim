@@ -53,6 +53,9 @@ extern NSString *MMOpenLayoutKey;
 extern NSString *MMVerticalSplitKey;
 extern NSString *MMPreloadCacheSizeKey;
 extern NSString *MMLastWindowClosedBehaviorKey;
+extern NSString *MMFakeEscModifierKey;
+extern NSString *MMFakeEscTimeoutKey;
+extern NSString *MMFakeEscOnKeyDownKey;
 
 
 // Enum for MMUntitledWindowKey
@@ -77,6 +80,14 @@ enum {
     MMDoNothingWhenLastWindowClosed = 0,
     MMHideWhenLastWindowClosed = 1,
     MMTerminateWhenLastWindowClosed = 2,
+};
+
+// Enum for MMFakeEscModifierKey
+enum {
+    MMDisableFakeEsc    = 0,
+    MMCtrlFakeEsc       = 1,
+    MMAltFakeEsc        = 2,
+    MMCmdFakeEsc        = 3
 };
 
 

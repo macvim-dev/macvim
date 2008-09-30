@@ -44,6 +44,9 @@ NSString *MMOpenLayoutKey               = @"MMOpenLayout";
 NSString *MMVerticalSplitKey            = @"MMVerticalSplit";
 NSString *MMPreloadCacheSizeKey         = @"MMPreloadCacheSize";
 NSString *MMLastWindowClosedBehaviorKey = @"MMLastWindowClosedBehavior";
+NSString *MMFakeEscModifierKey          = @"MMFakeEscModifier";
+NSString *MMFakeEscTimeoutKey           = @"MMFakeEscTimeout";
+NSString *MMFakeEscOnKeyDownKey         = @"MMFakeEscOnKeyDown";
 
 
 
