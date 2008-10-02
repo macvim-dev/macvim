@@ -29,26 +29,7 @@
 
 - (void)awakeFromNib
 {
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    switch ([ud integerForKey:MMFakeEscModifierKey]) {
-    case MMCtrlFakeEsc:
-        fakeEscKeyCode = 59;
-        fakeEscModifierMask = NSControlKeyMask;
-        break;
-    case MMAltFakeEsc:
-        fakeEscKeyCode = 58;
-        fakeEscModifierMask = NSAlternateKeyMask;
-        break;
-    case MMCmdFakeEsc:
-        fakeEscKeyCode = 55;
-        fakeEscModifierMask = NSCommandKeyMask;
-        break;
-    default:
-        fakeEscKeyCode = fakeEscModifierMask = 0;
-    }
-
-    fakeEscTimeout = [ud floatForKey:MMFakeEscTimeoutKey];
-    fakeEscOnKeyDown = [ud boolForKey:MMFakeEscOnKeyDownKey];
+    [self fakeEscModifierKeyChanged:nil];
 }
 
 - (void)sendEvent:(NSEvent *)event
@@ -181,6 +162,30 @@
                 @"",    @"Version",
                 title,  @"ApplicationVersion",
                 nil]];
+}
+
+- (IBAction)fakeEscModifierKeyChanged:(id)sender
+{
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    switch ([ud integerForKey:MMFakeEscModifierKey]) {
+    case MMCtrlFakeEsc:
+        fakeEscKeyCode = 59;
+        fakeEscModifierMask = NSControlKeyMask;
+        break;
+    case MMAltFakeEsc:
+        fakeEscKeyCode = 58;
+        fakeEscModifierMask = NSAlternateKeyMask;
+        break;
+    case MMCmdFakeEsc:
+        fakeEscKeyCode = 55;
+        fakeEscModifierMask = NSCommandKeyMask;
+        break;
+    default:
+        fakeEscKeyCode = fakeEscModifierMask = 0;
+    }
+
+    fakeEscTimeout = [ud floatForKey:MMFakeEscTimeoutKey];
+    fakeEscOnKeyDown = [ud boolForKey:MMFakeEscOnKeyDownKey];
 }
 
 @end

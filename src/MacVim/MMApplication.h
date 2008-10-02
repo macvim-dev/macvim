@@ -21,4 +21,6 @@
     BOOL            fakeEscOnKeyDown;
 }
 
+- (IBAction)fakeEscModifierKeyChanged:(id)sender;
+
 @end

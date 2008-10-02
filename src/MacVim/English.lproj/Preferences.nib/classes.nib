@@ -76,6 +76,8 @@
 			<dict>
 				<key>atsuiButtonClicked</key>
 				<string>id</string>
+				<key>fakeEscModifierKeyChanged</key>
+				<string>id</string>
 				<key>loginShellButtonClicked</key>
 				<string>id</string>
 				<key>quickstartButtonClicked</key>
