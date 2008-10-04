@@ -41,6 +41,32 @@
     -->
 
     <item>
+      <title>Snapshot 36 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 36 released</h1>
+
+<p> This snapshot fixes a problem with dropped characters that was introduced with snapshot 35. Other changes since snapshot 35: 
+  <ul>
+    <li> More help file updates </li>
+    <li> Fixed memory leak (Jonathon Mah) </li>
+    <li> Tool tips for truncated tab labels (Jonathon Mah) </li>
+    <li> Support drag and drop on tabs and on tabline (Jonathon Mah) </li>
+    <li> Modifier key can be used as Esc (useful for turning Caps Lock into Esc, see ":h macvim-esc") </li>
+    <li> Added "Find & Replace" dialog box (Cmd-f) </li>
+  </ul>
+</p>
+      ]]></description>
+      <pubDate>Sat, 04 Oct 2008 18:38 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-36.tbz"
+        length="8005820"
+        sparkle:version="36"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 35 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 35 released</h1>
