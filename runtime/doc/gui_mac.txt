@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2.  Last change: 2008 Sep 28
+*gui_mac.txt*	For Vim version 7.2.  Last change: 2008 Oct 04
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -616,8 +616,8 @@ conjunction with the above Cmd/Alt movement shortcuts.
 ==============================================================================
 11. Known bugs/missing features				*macvim-todo*
 
-Here are some of the bigger bugs in MacVim.  Of course there are others, but
-these are ones that are know and/or which were judged major.
+This list is by no means exhaustive, it only enumerates some of the more
+prominent bugs/missing features.
 
 - Localized menus are not supported.  Choosing anything but "English" in the
   "International" pane of "System Prefences" may break the menus (and
@@ -628,7 +628,7 @@ these are ones that are know and/or which were judged major.
   automatic font substitution by setting 'guifontwide' manually.
 - Printing.  As a temporary solution <D-p> creates a PostScript file which is
   then opened in Preview where it may be printed.
-- No find/replace dialog
+- The toolbar looks ugly and is not very useful.
 
 If you find new bugs then add a new issue at http://code.google.com/p/macvim/
 or post your findings to the |vim_mac| mailing list.  If you are missing

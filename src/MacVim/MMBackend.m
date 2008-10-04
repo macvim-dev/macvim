@@ -109,6 +109,7 @@ static NSString *MMSymlinkWarningString =
 - (void)addInput:(NSString *)input;
 - (BOOL)unusedEditor;
 - (void)redrawScreen;
+- (void)handleFindReplace:(NSDictionary *)args;
 @end
 
 
@@ -1739,6 +1740,8 @@ static NSString *MMSymlinkWarningString =
         [self handleXcodeMod:data];
     } else if (OpenWithArgumentsMsgID == msgid) {
         [self handleOpenWithArguments:[NSDictionary dictionaryWithData:data]];
+    } else if (FindReplaceMsgID == msgid) {
+        [self handleFindReplace:[NSDictionary dictionaryWithData:data]];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }
@@ -2507,6 +2510,24 @@ static NSString *MMSymlinkWarningString =
     // "redraw commands".  The following test seems to do the trick though.
     if (State & CMDLINE)
         redrawcmdline();
+}
+
+- (void)handleFindReplace:(NSDictionary *)args
+{
+    if (!args) return;
+
+    NSString *findString = [args objectForKey:@"find"];
+    if (!findString) return;
+
+    char_u *find = [findString vimStringSave];
+    char_u *replace = [[args objectForKey:@"replace"] vimStringSave];
+    int flags = [[args objectForKey:@"flags"] intValue];
+
+    // NOTE: The flag 0x100 is used to indicate a backward search.
+    gui_do_findrepl(flags, find, replace, (flags & 0x100) == 0);
+
+    vim_free(find);
+    vim_free(replace);
 }
 
 @end // MMBackend (Private)

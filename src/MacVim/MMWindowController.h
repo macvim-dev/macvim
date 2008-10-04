@@ -75,5 +75,6 @@
 - (IBAction)vimToolbarItemAction:(id)sender;
 - (IBAction)fontSizeUp:(id)sender;
 - (IBAction)fontSizeDown:(id)sender;
+- (IBAction)findAndReplace:(id)sender;
 
 @end

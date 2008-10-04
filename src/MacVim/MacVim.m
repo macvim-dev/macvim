@@ -82,6 +82,8 @@ char *MessageStrings[] =
     "CloseWindowMsgID",
     "InterruptMsgID",
     "SetFullscreenColorMsgID",
+    "ShowFindReplaceDialogMsgID",
+    "FindReplaceMsgID",
 };
 
 

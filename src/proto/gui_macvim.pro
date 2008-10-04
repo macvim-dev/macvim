@@ -207,3 +207,8 @@ int is_valid_macaction(char_u *action);
 
 void gui_macvim_wait_for_startup();
 void gui_macvim_get_window_layout(int *count, int *layout);
+
+    void
+gui_mch_find_dialog(exarg_T *eap);
+    void
+gui_mch_replace_dialog(exarg_T *eap);

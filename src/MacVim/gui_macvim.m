@@ -1231,6 +1231,48 @@ im_get_status(void)
 
 
 
+// -- Find & Replace dialog -------------------------------------------------
+
+#ifdef FIND_REPLACE_DIALOG
+
+    static void
+macvim_find_and_replace(char_u *arg, BOOL replace)
+{
+    // TODO: Specialized dialog for find without replace?
+    int wholeWord = FALSE;
+    int matchCase = !p_ic;
+    char_u *text  = get_find_dialog_text(arg, &wholeWord, &matchCase);
+
+    int flags = 0;
+    if (wholeWord) flags |= FRD_WHOLE_WORD;
+    if (matchCase) flags |= FRD_MATCH_CASE;
+
+    NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
+            [NSString stringWithVimString:text],    @"text",
+            [NSNumber numberWithInt:flags],         @"flags",
+            nil];
+
+    [[MMBackend sharedInstance] queueMessage:ShowFindReplaceDialogMsgID
+                                  properties:args];
+}
+
+    void
+gui_mch_find_dialog(exarg_T *eap)
+{
+    macvim_find_and_replace(eap->arg, NO);
+}
+
+    void
+gui_mch_replace_dialog(exarg_T *eap)
+{
+    macvim_find_and_replace(eap->arg, YES);
+}
+
+#endif // FIND_REPLACE_DIALOG
+
+
+
+
 // -- Unsorted --------------------------------------------------------------
 
 

@@ -57,6 +57,7 @@
 
 #import "MMAppController.h"
 #import "MMAtsuiTextView.h"
+#import "MMFindReplaceController.h"
 #import "MMFullscreenWindow.h"
 #import "MMTextView.h"
 #import "MMTypesetter.h"
@@ -658,6 +659,34 @@
 {
     [[NSFontManager sharedFontManager] modifyFont:
             [NSNumber numberWithInt:NSSizeDownFontAction]];
+}
+
+- (IBAction)findAndReplace:(id)sender
+{
+    int tag = [sender tag];
+    MMFindReplaceController *fr = [MMFindReplaceController sharedInstance];
+    int flags = 0;
+
+    // NOTE: The 'flags' values must match the FRD_ defines in gui.h (except
+    // for 0x100 which we use to indicate a backward search).
+    switch (tag) {
+        case 1: flags = 0x100; break;
+        case 2: flags = 3; break;
+        case 3: flags = 4; break;
+    }
+
+    if ([fr matchWord])
+        flags |= 0x08;
+    if (![fr ignoreCase])
+        flags |= 0x10;
+
+    NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
+            [fr findString],                @"find",
+            [fr replaceString],             @"replace",
+            [NSNumber numberWithInt:flags], @"flags",
+            nil];
+
+    [vimController sendMessage:FindReplaceMsgID data:[args dictionaryAsData]];
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem *)item

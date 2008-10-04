@@ -175,6 +175,8 @@ enum {
     CloseWindowMsgID,
     InterruptMsgID,
     SetFullscreenColorMsgID,
+    ShowFindReplaceDialogMsgID,
+    FindReplaceMsgID,
 };
 
 

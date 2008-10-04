@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sun Aug 03 2008
+" Last Change:	Sun Oct 04 2008
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -60,17 +60,21 @@ an 10.350 File.Save\ As\.\.\.<Tab>:sav	        :browse confirm saveas<CR>
 
 " Edit menu
 
+" The following function is aken from menu.vim
+fun! s:FixFText()
+  " Fix text in nameless register to be used with :promptfind.
+  return substitute(@", "[\r\n]", '\\n', 'g')
+endfun
+
 aunmenu Edit.Find
 aunmenu Edit.Find\ and\ Replace
 
-an 20.410.10 Edit.Find.Find\.\.\.<Tab>/     /
+an <silent> 20.410.10 Edit.Find.Find\.\.\.  :promptfind<CR>
+vunmenu Edit.Find.Find\.\.\.
+vnoremenu <silent> Edit.Find.Find\.\.\.     y:promptfind <C-R>=<SID>FixFText()<CR><CR>
 an 20.410.20 Edit.Find.Find\ Next           <Nop>
 an 20.410.30 Edit.Find.Find\ Previous       <Nop>
 vmenu 20.410.35 Edit.Find.Use\ Selection\ for\ Find y:let @/=@"<CR>:<BS>
-an 20.410.40 Edit.Find.-SEP1-               <Nop>
-an 20.410.50 Edit.Find.Find\ and\ Replace\.\.\.<Tab>:%s   :%s/
-vunmenu      Edit.Find.Find\ and\ Replace\.\.\.<Tab>:%s
-vnoremenu    Edit.Find.Find\ and\ Replace\.\.\.<Tab>:s    :s/
 
 an 20.460 Edit.-SEP4-                       <Nop>
 an 20.465.10 Edit.Font.Show\ Fonts          <Nop>

@@ -220,7 +220,8 @@ static void	ex_popup __ARGS((exarg_T *eap));
 #ifndef FEAT_GUI_MSWIN
 # define ex_simalt		ex_ni
 #endif
-#if !defined(FEAT_GUI_MSWIN) && !defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_MOTIF)
+#if !(defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) || \
+	defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_MACVIM))
 # define gui_mch_find_dialog	ex_ni
 # define gui_mch_replace_dialog ex_ni
 #endif

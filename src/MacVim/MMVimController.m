@@ -25,6 +25,7 @@
 
 #import "MMAppController.h"
 #import "MMAtsuiTextView.h"
+#import "MMFindReplaceController.h"
 #import "MMTextView.h"
 #import "MMVimController.h"
 #import "MMVimView.h"
@@ -951,6 +952,13 @@ static BOOL isUnsafeMessage(int msgid);
         NSColor *color = [NSColor colorWithRgbInt:*bg];
 
         [windowController setFullscreenBackgroundColor:color];
+    } else if (ShowFindReplaceDialogMsgID == msgid) {
+        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+        if (dict) {
+            [[MMFindReplaceController sharedInstance]
+                showWithText:[dict objectForKey:@"text"]
+                       flags:[[dict objectForKey:@"flags"] intValue]];
+        }
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {

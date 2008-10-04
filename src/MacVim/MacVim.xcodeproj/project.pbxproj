@@ -30,6 +30,8 @@
 		1D3D19140CA690FF0004A0A5 /* DejaVuSansMono.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */; };
 		1D493D580C5247BF00AB718C /* Vim in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D493D570C5247BF00AB718C /* Vim */; };
 		1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
+		1D6008830E96886D003763F0 /* FindAndReplace.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1D6008820E96886D003763F0 /* FindAndReplace.nib */; };
+		1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */; };
 		1D71ACB40BC702AB002F2B60 /* doc-bm-c.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACA90BC702AB002F2B60 /* doc-bm-c.icns */; };
 		1D71ACB50BC702AC002F2B60 /* doc-bm-h.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACAA0BC702AB002F2B60 /* doc-bm-h.icns */; };
 		1D71ACB60BC702AC002F2B60 /* doc-bm-html.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D71ACAB0BC702AB002F2B60 /* doc-bm-html.icns */; };
@@ -210,6 +212,9 @@
 		1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = DejaVuSansMono.ttf; path = "dejavu-ttf/DejaVuSansMono.ttf"; sourceTree = "<group>"; };
 		1D493D570C5247BF00AB718C /* Vim */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = Vim; path = ../Vim; sourceTree = SOURCE_ROOT; };
 		1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PSMTabBarControl.xcodeproj; path = PSMTabBarControl/PSMTabBarControl.xcodeproj; sourceTree = "<group>"; };
+		1D6008820E96886D003763F0 /* FindAndReplace.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = FindAndReplace.nib; sourceTree = "<group>"; };
+		1D6008890E96A0B2003763F0 /* MMFindReplaceController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMFindReplaceController.h; sourceTree = "<group>"; };
+		1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMFindReplaceController.m; sourceTree = "<group>"; };
 		1D71ACA90BC702AB002F2B60 /* doc-bm-c.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm-c.icns"; sourceTree = "<group>"; };
 		1D71ACAA0BC702AB002F2B60 /* doc-bm-h.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm-h.icns"; sourceTree = "<group>"; };
 		1D71ACAB0BC702AB002F2B60 /* doc-bm-html.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = "doc-bm-html.icns"; sourceTree = "<group>"; };
@@ -328,6 +333,8 @@
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
+				1D6008890E96A0B2003763F0 /* MMFindReplaceController.h */,
+				1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */,
 				1D145C7D0E5227CE00691AA0 /* MMTextViewHelper.h */,
 				1D145C7E0E5227CE00691AA0 /* MMTextViewHelper.m */,
 				1D8059220E118663001699D1 /* Miscellaneous.h */,
@@ -510,6 +517,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1D6008820E96886D003763F0 /* FindAndReplace.nib */,
 				1D22374A0E45DF4800E6FFFF /* Advanced.png */,
 				BD9DF09F0DB2BA020025C97C /* PlugInView.nib */,
 				1DD3D51D0D82D4C9006E4320 /* ibeam.png */,
@@ -668,6 +676,7 @@
 				1DCD00D10E50B2B700460166 /* SaveSesn.png in Resources */,
 				1DCD00D20E50B2B700460166 /* TagJump.png in Resources */,
 				1DCD00D30E50B2B700460166 /* Undo.png in Resources */,
+				1D6008830E96886D003763F0 /* FindAndReplace.nib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -702,6 +711,7 @@
 				BD9DF0B00DB41E780025C97C /* PlugInGUI.m in Sources */,
 				BD9DF0FB0DB48C860025C97C /* CTGradient.m in Sources */,
 				1D145C7F0E5227CE00691AA0 /* MMTextViewHelper.m in Sources */,
+				1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
