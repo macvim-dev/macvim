@@ -323,8 +323,10 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
     // wide and vice versa.
     for (i = 0; i < len; i += cl) {
         c = utf_ptr2char(s + i);
-        cl = utf_ptr2len(s + i);
         cn = utf_char2cells(c);
+        cl = utf_ptr2len(s + i);
+        if (0 == cl)
+            len = i;    // len must be wrong (shouldn't happen)
 
         if (!utf_iscomposing(c)) {
             if ((cn > 1 && !wide) || (cn <= 1 && wide)) {
