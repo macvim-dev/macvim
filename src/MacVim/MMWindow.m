@@ -140,4 +140,25 @@
     return YES;
 }
 
+- (IBAction)zoom:(id)sender
+{
+    NSRect frame = [self frame];
+    NSRect defaultFrame = [[self screen] visibleFrame];
+    defaultFrame = [[self delegate] windowWillUseStandardFrame:self
+                                                  defaultFrame:defaultFrame];
+
+    // TODO: Check if width & height differs by cellSize or more.
+    BOOL isZoomed = ((abs(frame.size.width - defaultFrame.size.width) < 8) &&
+                     (abs(frame.size.height - defaultFrame.size.height) < 8));
+
+    if (isZoomed) {
+        if (userFrame.size.width > 0 && userFrame.size.height > 0)
+            defaultFrame = userFrame;
+    } else {
+        userFrame = frame;
+    }
+
+    [self setFrame:defaultFrame display:YES];
+}
+
 @end // MMWindow
