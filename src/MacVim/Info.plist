@@ -617,6 +617,8 @@
 	</array>
 	<key>SUFeedURL</key>
 	<string>http://bjorn.winckler.googlepages.com/macvim_latest.xml</string>
+	<key>NSAppleScriptEnabled</key>
+	<true/>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
