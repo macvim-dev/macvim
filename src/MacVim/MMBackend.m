@@ -1521,10 +1521,13 @@ static NSString *MMSymlinkWarningString =
     // We take this approach of "pushing" the state to MacVim to avoid having
     // to make synchronous calls from MacVim to Vim in order to get state.
 
+    BOOL mmta = curbuf ? curbuf->b_p_mmta : NO;
+
     NSDictionary *vimState = [NSDictionary dictionaryWithObjectsAndKeys:
         [[NSFileManager defaultManager] currentDirectoryPath], @"pwd",
         [NSNumber numberWithInt:p_mh], @"p_mh",
         [NSNumber numberWithBool:[self unusedEditor]], @"unusedEditor",
+        [NSNumber numberWithBool:mmta], @"p_mmta",
         nil];
 
     // Put the state before all other messages.
@@ -1796,6 +1799,7 @@ static NSString *MMSymlinkWarningString =
 
 - (void)handleKeyDown:(NSString *)key modifiers:(int)mods
 {
+    // TODO: This code is a horrible mess -- clean up!
     char_u special[3];
     char_u modChars[3];
     char_u *chars = (char_u*)[key UTF8String];
@@ -1858,9 +1862,52 @@ static NSString *MMSymlinkWarningString =
             }
             mods &= ~MOD_MASK_ALT;
         }
+    } else if (1 == length && chars[0] < 0x80 && (mods & MOD_MASK_ALT)) {
+        // META key is treated separately.  This code was taken from gui_w48.c
+        // and gui_gtk_x11.c.
+        char_u string[7];
+        int ch = simplify_key(chars[0], &mods);
+
+        // Remove the SHIFT modifier for keys where it's already included,
+        // e.g., '(' and '*'
+        if (ch < 0x100 && !isalpha(ch) && isprint(ch))
+            mods &= ~MOD_MASK_SHIFT;
+
+        // Interpret the ALT key as making the key META, include SHIFT, etc.
+        ch = extract_modifiers(ch, &mods);
+        if (ch == CSI)
+            ch = K_CSI;
+
+        int len = 0;
+        if (mods) {
+            string[len++] = CSI;
+            string[len++] = KS_MODIFIER;
+            string[len++] = mods;
+        }
+
+        if (IS_SPECIAL(ch)) {
+            string[len++] = CSI;
+            string[len++] = K_SECOND(ch);
+            string[len++] = K_THIRD(ch);
+        } else {
+            string[len++] = ch;
+#ifdef FEAT_MBYTE
+            // TODO: What if 'enc' is not "utf-8"?
+            if (enc_utf8 && (ch & 0x80)) { // convert to utf-8
+                string[len++] = ch & 0xbf;
+                string[len-2] = ((unsigned)ch >> 6) + 0xc0;
+                if (string[len-1] == CSI) {
+                    string[len++] = KS_EXTRA;
+                    string[len++] = (int)KE_CSI;
+                }
+            }
+#endif
+        }
+
+        add_to_input_buf(string, len);
+        return;
     } else if (length > 0) {
         unichar c = [key characterAtIndex:0];
-
         //NSLog(@"non-special: %@ (hex=%x, mods=%d)", key,
         //        [key characterAtIndex:0], mods);
 
@@ -1873,14 +1920,6 @@ static NSString *MMSymlinkWarningString =
             mods &= ~MOD_MASK_SHIFT;
             mods &= ~MOD_MASK_CTRL;
             //NSLog(@"clear shift ctrl");
-        }
-
-        // HACK!  All Option+key presses go via 'insert text' messages, except
-        // for <M-Space>.  If the Alt flag is not cleared for <M-Space> it does
-        // not work to map to it.
-        if (0xa0 == c && !(mods & MOD_MASK_CMD)) {
-            //NSLog(@"clear alt");
-            mods &= ~MOD_MASK_ALT;
         }
 
 #ifdef FEAT_MBYTE

@@ -981,6 +981,9 @@ enum
     , BV_ML
     , BV_MOD
     , BV_MPS
+#ifdef FEAT_GUI_MACVIM
+    , BV_MMTA
+#endif
     , BV_NF
 #ifdef FEAT_OSFILETYPE
     , BV_OFT

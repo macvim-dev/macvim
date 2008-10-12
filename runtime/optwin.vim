@@ -623,6 +623,9 @@ if has("gui")
     call <SID>BinOptionG("fullscreen", &fullscreen)
     call append("$", "fuoptions\tcontrol how fullscreen mode should behave")
     call <SID>OptionG("fuoptions", &fuoptions)
+    call append("$", "macmeta\tuse option as meta key")
+    call append("$", "\t(local to buffer)")
+    call <SID>BinOptionL("mmta")
   endif
 endif
 

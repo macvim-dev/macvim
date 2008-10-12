@@ -1456,6 +1456,9 @@ struct file_buffer
     char_u	*b_p_dict;	/* 'dictionary' local value */
     char_u	*b_p_tsr;	/* 'thesaurus' local value */
 #endif
+#ifdef FEAT_GUI_MACVIM
+    int		b_p_mmta;	/* 'macmeta' local value */
+#endif
 
     /* end of buffer options */
 

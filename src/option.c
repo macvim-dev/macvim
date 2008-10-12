@@ -138,6 +138,9 @@
 #define PV_ML		OPT_BUF(BV_ML)
 #define PV_MOD		OPT_BUF(BV_MOD)
 #define PV_MPS		OPT_BUF(BV_MPS)
+#ifdef FEAT_GUI_MACVIM
+#define PV_MMTA		OPT_BUF(BV_MMTA)
+#endif
 #define PV_NF		OPT_BUF(BV_NF)
 #ifdef FEAT_OSFILETYPE
 # define PV_OFT		OPT_BUF(BV_OFT)
@@ -322,6 +325,9 @@ static int	p_lisp;
 #endif
 static int	p_ml;
 static int	p_ma;
+#ifdef FEAT_GUI_MACVIM
+static int	p_mmta;
+#endif
 static int	p_mod;
 static char_u	*p_mps;
 static char_u	*p_nf;
@@ -1658,6 +1664,13 @@ static struct vimoption
 			    (char_u *)&p_macatsui, PV_NONE,
 			    {(char_u *)TRUE, (char_u *)0L}},
 #endif
+    {"macmeta",	    "mmta", P_BOOL|P_VI_DEF,
+#ifdef FEAT_GUI_MACVIM
+			    (char_u *)&p_mmta, PV_MMTA,
+#else
+			    (char_u *)NULL, PV_NONE,
+#endif
+			    {(char_u *)FALSE, (char_u *)0L}},
     {"magic",	    NULL,   P_BOOL|P_VI_DEF,
 			    (char_u *)&p_magic, PV_NONE,
 			    {(char_u *)TRUE, (char_u *)0L}},
@@ -9235,6 +9248,9 @@ get_varp(p)
 #endif
 	case PV_ML:	return (char_u *)&(curbuf->b_p_ml);
 	case PV_MPS:	return (char_u *)&(curbuf->b_p_mps);
+#ifdef FEAT_GUI_MACVIM
+	case PV_MMTA:	return (char_u *)&(curbuf->b_p_mmta);
+#endif
 	case PV_MA:	return (char_u *)&(curbuf->b_p_ma);
 	case PV_MOD:	return (char_u *)&(curbuf->b_changed);
 	case PV_NF:	return (char_u *)&(curbuf->b_p_nf);
@@ -9606,6 +9622,9 @@ buf_copy_options(buf, flags)
 #ifdef FEAT_KEYMAP
 	    buf->b_p_keymap = vim_strsave(p_keymap);
 	    buf->b_kmap_state |= KEYMAP_INIT;
+#endif
+#ifdef FEAT_GUI_MACVIM
+	    buf->b_p_mmta = p_mmta;
 #endif
 	    /* This isn't really an option, but copying the langmap and IME
 	     * state from the current buffer is better than resetting it. */

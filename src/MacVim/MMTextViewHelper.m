@@ -111,6 +111,17 @@ static float MMDragAreaSize = 73.0f;
         } else {
             [self dispatchKeyEvent:event];
         }
+    } else if ((flags & NSAlternateKeyMask) &&
+            [[[[self vimController] vimState] objectForKey:@"p_mmta"]
+                                                                boolValue]) {
+        // If the 'macmeta' option is set, then send Alt+key presses directly
+        // to Vim without interpreting the key press.
+        NSString *unmod = [event charactersIgnoringModifiers];
+        int len = [unmod lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        const char *bytes = [unmod UTF8String];
+
+        [self sendKeyDown:bytes length:len modifiers:flags
+                isARepeat:[event isARepeat]];
     } else {
         [textView interpretKeyEvents:[NSArray arrayWithObject:event]];
     }

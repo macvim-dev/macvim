@@ -4493,6 +4493,18 @@ A jump table for the options with a short description can be found at |Q_op|.
 	'termencoding'.
 	Note: MacVim does not use this option.
 
+				*'macmeta'* *'mmta'* *'nomacmeta'* *'nommta'*
+'macmeta'		boolean	(default off)
+			local to buffer
+			{only available in MacVim GUI}
+	Use option (alt) as meta key.  When on, option-key presses are not
+	interpreted, thus enabling bindings to <M-..>.  When off, option-key
+	presses are interpreted by the selected input method and inserted as
+	text.
+	Note: Some keys (e.g. <M-F1>, <M-Tab>, <M-Return>, <M-Left>) can be
+	bound with the Meta flag even when this option is disabled, but this
+	is not the case for the majority of keys (e.g. <M-a>, <M-`>).
+
 						*'magic'* *'nomagic'*
 'magic'			boolean	(default on)
 			global
