@@ -736,6 +736,27 @@
     }
 }
 
+- (NSSize)windowWillResize:(NSWindow *)win toSize:(NSSize)proposedFrameSize
+{
+    // Make sure the window isn't resized to be larger than the "visible frame"
+    // for the current screen.  Do this here instead of setting the window max
+    // size in updateResizeConstraints since the screen's visible frame may
+    // change at any time (dock could move, resolution could change, window
+    // could be moved to another screen, ...).
+
+    NSRect maxFrame = [[win screen] visibleFrame];
+    NSRect rect = [win contentRectForFrameRect:maxFrame];
+    rect.size = [vimView constrainRows:NULL columns:NULL toSize:rect.size];
+    maxFrame = [win frameRectForContentRect:rect];
+
+    if (proposedFrameSize.width > maxFrame.size.width)
+        proposedFrameSize.width = maxFrame.size.width;
+    if (proposedFrameSize.height > maxFrame.size.height)
+        proposedFrameSize.height = maxFrame.size.height;
+
+    return proposedFrameSize;
+}
+
 - (void)windowDidResize:(id)sender
 {
     if (!setupDone || fullscreenEnabled) return;
