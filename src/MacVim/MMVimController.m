@@ -742,13 +742,16 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController showTabBar:YES];
     } else if (HideTabBarMsgID == msgid) {
         [windowController showTabBar:NO];
-    } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid) {
+    } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid ||
+            SetTextDimensionsReplyMsgID == msgid) {
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
         int cols = *((int*)bytes);  bytes += sizeof(int);
 
-        [windowController setTextDimensionsWithRows:rows columns:cols
-                                               live:(LiveResizeMsgID==msgid)];
+        [windowController setTextDimensionsWithRows:rows
+                                 columns:cols
+                                  isLive:(LiveResizeMsgID==msgid)
+                                 isReply:(SetTextDimensionsReplyMsgID==msgid)];
     } else if (SetWindowTitleMsgID == msgid) {
         const void *bytes = [data bytes];
         int len = *((int*)bytes);  bytes += sizeof(int);

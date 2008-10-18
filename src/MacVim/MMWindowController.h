@@ -22,6 +22,7 @@
     MMVimView           *vimView;
     BOOL                setupDone;
     BOOL                shouldResizeVimView;
+    BOOL                keepOnScreen;
     BOOL                fullscreenEnabled;
     NSString            *windowAutosaveKey;
     MMFullscreenWindow  *fullscreenWindow;
@@ -39,7 +40,8 @@
 - (void)showWindow;
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
-- (void)setTextDimensionsWithRows:(int)rows columns:(int)cols live:(BOOL)live;
+- (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
+                          isReply:(BOOL)reply;
 - (void)setTitle:(NSString *)title;
 - (void)setDocumentFilename:(NSString *)filename;
 - (void)setToolbar:(NSToolbar *)toolbar;

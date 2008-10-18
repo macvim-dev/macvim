@@ -72,7 +72,8 @@
 
 @interface MMWindowController (Private)
 - (NSSize)contentSize;
-- (void)resizeWindowToFitContentSize:(NSSize)contentSize;
+- (void)resizeWindowToFitContentSize:(NSSize)contentSize
+                        keepOnScreen:(BOOL)onScreen;
 - (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize;
 - (NSRect)constrainFrame:(NSRect)frame;
 - (void)updateResizeConstraints;
@@ -272,7 +273,8 @@
     setupDone = YES;
 
     [self updateResizeConstraints];
-    [self resizeWindowToFitContentSize:[vimView desiredSize]];
+    [self resizeWindowToFitContentSize:[vimView desiredSize]
+                          keepOnScreen:YES];
 }
 
 - (void)showWindow
@@ -296,10 +298,11 @@
     [vimView selectTabWithIndex:idx];
 }
 
-- (void)setTextDimensionsWithRows:(int)rows columns:(int)cols live:(BOOL)live
+- (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
+                          isReply:(BOOL)reply
 {
-    //NSLog(@"setTextDimensionsWithRows:%d columns:%d live:%s", rows, cols,
-    //        live ? "YES" : "NO");
+    //NSLog(@"setTextDimensionsWithRows:%d columns:%d isLive:%d isReply:%d",
+    //        rows, cols, live, reply);
 
     // NOTE: The only place where the (rows,columns) of the vim view are
     // modified is here and when entering/leaving full-screen.  Setting these
@@ -311,11 +314,17 @@
     // resize when this message is received.  We refrain from changing the view
     // size when this flag is set, otherwise the window might jitter when the
     // user drags to resize the window.
+    //
+    // The 'reply' flag indicates that this resize originated in MacVim and
+    // that Vim is now replying to that resize to make sure that it comes into
+    // effect.
 
     [vimView setDesiredRows:rows columns:cols];
 
-    if (setupDone && !live)
+    if (setupDone && !live) {
         shouldResizeVimView = YES;
+        keepOnScreen = !reply;
+    }
 }
 
 - (void)setTitle:(NSString *)title
@@ -433,8 +442,11 @@
             [[fullscreenWindow contentView] setNeedsDisplay:YES];
             [fullscreenWindow centerView];
         } else {
-            [self resizeWindowToFitContentSize:contentSize];
+            [self resizeWindowToFitContentSize:contentSize
+                                  keepOnScreen:keepOnScreen];
         }
+
+        keepOnScreen = NO;
     }
 }
 
@@ -534,7 +546,8 @@
         // Sending of synchronous message failed.  Force the window size to
         // match the last dimensions received from Vim, otherwise we end up
         // with inconsistent states.
-        [self resizeWindowToFitContentSize:[vimView desiredSize]];
+        [self resizeWindowToFitContentSize:[vimView desiredSize]
+                              keepOnScreen:NO];
     }
 
     // If we saved the original title while resizing, restore it.
@@ -836,6 +849,7 @@
 }
 
 - (void)resizeWindowToFitContentSize:(NSSize)contentSize
+                        keepOnScreen:(BOOL)onScreen
 {
     NSRect frame = [decoratedWindow frame];
     NSRect contentRect = [decoratedWindow contentRectForFrameRect:frame];
@@ -844,22 +858,29 @@
     contentRect.origin.y -= contentSize.height - contentRect.size.height;
     contentRect.size = contentSize;
 
-    frame = [decoratedWindow frameRectForContentRect:contentRect];
+    NSRect newFrame = [decoratedWindow frameRectForContentRect:contentRect];
 
     // Ensure that the window fits inside the visible part of the screen.
     NSRect maxFrame = [[decoratedWindow screen] visibleFrame];
     maxFrame = [self constrainFrame:maxFrame];
 
-    if (frame.size.width > maxFrame.size.width) {
-        frame.size.width = maxFrame.size.width;
-        frame.origin.x = maxFrame.origin.x;
+    if (newFrame.size.width > maxFrame.size.width) {
+        newFrame.size.width = maxFrame.size.width;
+        newFrame.origin.x = maxFrame.origin.x;
     }
-    if (frame.size.height > maxFrame.size.height) {
-        frame.size.height = maxFrame.size.height;
-        frame.origin.y = maxFrame.origin.y;
+    if (newFrame.size.height > maxFrame.size.height) {
+        newFrame.size.height = maxFrame.size.height;
+        newFrame.origin.y = maxFrame.origin.y;
     }
 
-    [decoratedWindow setFrame:frame display:YES];
+    if (onScreen) {
+        if (newFrame.origin.y < maxFrame.origin.y)
+            newFrame.origin.y = maxFrame.origin.y;
+        if (NSMaxX(newFrame) > NSMaxX(maxFrame))
+            newFrame.origin.x = NSMaxX(maxFrame) - newFrame.size.width;
+    }
+
+    [decoratedWindow setFrame:newFrame display:YES];
 }
 
 - (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize

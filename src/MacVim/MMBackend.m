@@ -1698,13 +1698,18 @@ static NSString *MMSymlinkWarningString =
         if (SetTextRowsMsgID == msgid || SetTextColumnsMsgID == msgid) {
             int dim[2] = { rows, cols };
             d = [NSData dataWithBytes:dim length:2*sizeof(int)];
-            msgid = SetTextDimensionsMsgID;
+            msgid = SetTextDimensionsReplyMsgID;
         }
+
+        if (SetTextDimensionsMsgID == msgid)
+            msgid = SetTextDimensionsReplyMsgID;
 
         // NOTE! Vim doesn't call gui_mch_set_shellsize() after
         // gui_resize_shell(), so we have to manually set the rows and columns
-        // here.  (MacVim doesn't change the rows and columns to avoid
-        // inconsistent states between Vim and MacVim.)
+        // here since MacVim doesn't change the rows and columns to avoid
+        // inconsistent states between Vim and MacVim.  The message sent back
+        // indicates that it is a reply to a message that originated in MacVim
+        // since we need to be able to determine where a message originated.
         [self queueMessage:msgid data:d];
 
         //NSLog(@"[VimTask] Resizing shell to %dx%d.", cols, rows);
