@@ -599,6 +599,13 @@ static BOOL isUnsafeMessage(int msgid);
     // that did happen anyway, the command queue could get processed out of
     // order.
 
+    // See comment below why this is called here and not later.
+    [windowController processCommandQueueDidFinish];
+
+    // NOTE: Ensure that no calls are made after this "if" clause that may call
+    // sendMessage::.  If this happens anyway, such messages will be put on the
+    // send queue and then the queue will not be flushed until the next time
+    // this method is called.
     if ([sendQueue count] > 0) {
         @try {
             [backendProxy processInputAndData:sendQueue];
@@ -611,7 +618,6 @@ static BOOL isUnsafeMessage(int msgid);
         [sendQueue removeAllObjects];
     }
 
-    [windowController processCommandQueueDidFinish];
     [receiveQueue removeAllObjects];
     inProcessCommandQueue = NO;
 }
