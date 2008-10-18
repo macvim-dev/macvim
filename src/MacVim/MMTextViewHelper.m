@@ -172,7 +172,7 @@ static float MMDragAreaSize = 73.0f;
     NSMutableData *data = [NSMutableData data];
     int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     int flags = [event modifierFlags] & 0xffff0000U;
-    if ([event isARepeat])
+    if ([event type] == NSKeyDown && [event isARepeat])
         flags |= 1;
 
     [data appendBytes:&flags length:sizeof(int)];
