@@ -74,6 +74,7 @@
 - (NSSize)contentSize;
 - (void)resizeWindowToFitContentSize:(NSSize)contentSize;
 - (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize;
+- (NSRect)constrainFrame:(NSRect)frame;
 - (void)updateResizeConstraints;
 - (NSTabViewItem *)addNewTabViewItem;
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
@@ -744,10 +745,7 @@
     // change at any time (dock could move, resolution could change, window
     // could be moved to another screen, ...).
 
-    NSRect maxFrame = [[win screen] visibleFrame];
-    NSRect rect = [win contentRectForFrameRect:maxFrame];
-    rect.size = [vimView constrainRows:NULL columns:NULL toSize:rect.size];
-    maxFrame = [win frameRectForContentRect:rect];
+    NSRect maxFrame = [self constrainFrame:[[win screen] visibleFrame]];
 
     if (proposedFrameSize.width > maxFrame.size.width)
         proposedFrameSize.width = maxFrame.size.width;
@@ -786,15 +784,7 @@
     // The "default frame" represents the maximal size of a zoomed window.
     // Constrain this frame so that the content fits an even number of rows and
     // columns.
-    NSRect contentRect = [decoratedWindow contentRectForFrameRect:frame];
-    NSSize constrainedSize = [vimView constrainRows:NULL
-                                            columns:NULL
-                                             toSize:contentRect.size];
-
-    contentRect.origin.y += contentRect.size.height - constrainedSize.height;
-    contentRect.size = constrainedSize;
-
-    frame = [decoratedWindow frameRectForContentRect:contentRect];
+    frame = [self constrainFrame:frame];
 
     if (!((zoomBoth && !cmdLeftClick) || (!zoomBoth && cmdLeftClick))) {
         // Zoom in horizontal direction only.
@@ -855,6 +845,20 @@
     contentRect.size = contentSize;
 
     frame = [decoratedWindow frameRectForContentRect:contentRect];
+
+    // Ensure that the window fits inside the visible part of the screen.
+    NSRect maxFrame = [[decoratedWindow screen] visibleFrame];
+    maxFrame = [self constrainFrame:maxFrame];
+
+    if (frame.size.width > maxFrame.size.width) {
+        frame.size.width = maxFrame.size.width;
+        frame.origin.x = maxFrame.origin.x;
+    }
+    if (frame.size.height > maxFrame.size.height) {
+        frame.size.height = maxFrame.size.height;
+        frame.origin.y = maxFrame.origin.y;
+    }
+
     [decoratedWindow setFrame:frame display:YES];
 }
 
@@ -869,6 +873,21 @@
         contentSize.width = rect.size.width;
 
     return contentSize;
+}
+
+- (NSRect)constrainFrame:(NSRect)frame
+{
+    // Constrain the given (window) frame so that it fits an even number of
+    // rows and columns.
+    NSRect contentRect = [decoratedWindow contentRectForFrameRect:frame];
+    NSSize constrainedSize = [vimView constrainRows:NULL
+                                            columns:NULL
+                                             toSize:contentRect.size];
+
+    contentRect.origin.y += contentRect.size.height - constrainedSize.height;
+    contentRect.size = constrainedSize;
+
+    return [decoratedWindow frameRectForContentRect:contentRect];
 }
 
 - (void)updateResizeConstraints
