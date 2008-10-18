@@ -762,6 +762,19 @@
     BOOL zoomBoth = [[NSUserDefaults standardUserDefaults]
             boolForKey:MMZoomBothKey];
 
+    // The "default frame" represents the maximal size of a zoomed window.
+    // Constrain this frame so that the content fits an even number of rows and
+    // columns.
+    NSRect contentRect = [decoratedWindow contentRectForFrameRect:frame];
+    NSSize constrainedSize = [vimView constrainRows:NULL
+                                            columns:NULL
+                                             toSize:contentRect.size];
+
+    contentRect.origin.y += contentRect.size.height - constrainedSize.height;
+    contentRect.size = constrainedSize;
+
+    frame = [decoratedWindow frameRectForContentRect:contentRect];
+
     if (!((zoomBoth && !cmdLeftClick) || (!zoomBoth && cmdLeftClick))) {
         // Zoom in horizontal direction only.
         NSRect currentFrame = [win frame];
