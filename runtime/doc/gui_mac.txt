@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2.  Last change: 2008 Oct 04
+*gui_mac.txt*	For Vim version 7.2.  Last change: 2008 Oct 25
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -704,6 +704,17 @@ Assuming your external program has a setting for which command to execute to
 bring up an editor, you would set that option to something like: >
 	mvim -c "au VimLeave * maca hide:"
 (You may need to add the "-f" switch before the "-c", see the Scenario above.)
+
+Scenario: ~
+You would like to remap Caps Lock to Esc.
+Solution: ~
+The free app "PCKeyboardHack" can be used to remap Caps Lock.  It is available
+as a free download from:
+	http://www.pqrs.org/tekezo/macosx/keyremap4macbook/extra.html
+On some Apple keyboards the Caps Lock key doesn't immediately register and
+this makes Caps Lock "drop" key presses.  To work around this problem go into
+the "Keyboard & Mouse" System Preference and remap Caps Lock to Ctrl first
+(click the "Modifier Keys..." button).
 
 Scenario: ~
 You can't find the information on MacVim you thought should be in this manual
