@@ -710,10 +710,12 @@ defaultLineHeightForFont(NSFont *font)
 
     [self endDrawing];
 
+    [self setNeedsDisplay:YES];
+
     // NOTE: During resizing, Cocoa only sends draw messages before Vim's rows
     // and columns are changed (due to ipc delays). Force a redraw here.
-    [self setNeedsDisplay:YES];
-    // [self displayIfNeeded];
+    if ([self inLiveResize])
+        [self display];
 
 #if MM_DEBUG_DRAWING
     NSLog(@"<==== END   %s", _cmd);
