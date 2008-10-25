@@ -22,6 +22,7 @@
 #import "MMTextView.h"
 #import "MMVimController.h"
 #import "MMVimView.h"
+#import "MMWindowController.h"
 #import "Miscellaneous.h"
 #import <PSMTabBarControl.h>
 
@@ -907,6 +908,26 @@ enum {
     NSView *vimView = [self superview];
     if ([vimView isKindOfClass:[MMVimView class]])
         [[(MMVimView*)vimView textView] scrollWheel:event];
+}
+
+- (void)mouseDown:(NSEvent *)event
+{
+    // TODO: This is an ugly way of getting the connection to the backend.
+    NSConnection *connection = nil;
+    id wc = [[self window] windowController];
+    if ([wc isKindOfClass:[MMWindowController class]]) {
+        MMVimController *vc = [(MMWindowController*)wc vimController];
+        id proxy = [vc backendProxy];
+        connection = [(NSDistantObject*)proxy connectionForProxy];
+    }
+
+    // NOTE: The scroller goes into "event tracking mode" when the user clicks
+    // (and holds) the mouse button.  We have to manually add the backend
+    // connection to this mode while the mouse button is held, else DO messages
+    // from Vim will not be processed until the mouse button is released.
+    [connection addRequestMode:NSEventTrackingRunLoopMode];
+    [super mouseDown:event];
+    [connection removeRequestMode:NSEventTrackingRunLoopMode];
 }
 
 @end // MMScroller

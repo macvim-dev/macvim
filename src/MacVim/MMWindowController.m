@@ -513,15 +513,32 @@
 
 - (void)liveResizeWillStart
 {
+    if (!setupDone) return;
+
     // Save the original title, if we haven't already.
     if (lastSetTitle == nil) {
         lastSetTitle = [[decoratedWindow title] retain];
     }
+
+    // NOTE: During live resize Cocoa goes into "event tracking mode".  We have
+    // to add the backend connection to this mode in order for resize messages
+    // from Vim to reach MacVim.  We do not wish to always listen to requests
+    // in event tracking mode since then MacVim could receive DO messages at
+    // unexpected times (e.g. when a key equivalent is pressed and the menu bar
+    // momentarily lights up).
+    id proxy = [vimController backendProxy];
+    NSConnection *connection = [(NSDistantObject*)proxy connectionForProxy];
+    [connection addRequestMode:NSEventTrackingRunLoopMode];
 }
 
 - (void)liveResizeDidEnd
 {
     if (!setupDone) return;
+
+    // See comment above regarding event tracking mode.
+    id proxy = [vimController backendProxy];
+    NSConnection *connection = [(NSDistantObject*)proxy connectionForProxy];
+    [connection removeRequestMode:NSEventTrackingRunLoopMode];
 
     // NOTE: During live resize messages from MacVim to Vim are often dropped
     // (because too many messages are sent at once).  This may lead to

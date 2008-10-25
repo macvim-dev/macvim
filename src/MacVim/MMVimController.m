@@ -673,12 +673,12 @@ static BOOL isUnsafeMessage(int msgid);
             BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
                                                 isEqual:NSDefaultRunLoopMode];
             if (!inDefaultMode && isUnsafeMessage(msgid)) {
-                // NOTE: Because we listen to DO messages in 'event tracking'
-                // mode we have to take extra care when doing things like
-                // releasing view items (and other Cocoa objects).  Messages
-                // that may be potentially "unsafe" are delayed until the run
-                // loop is back to default mode at which time they are safe to
-                // call again.
+                // NOTE: Because we may be listening to DO messages in "event
+                // tracking mode" we have to take extra care when doing things
+                // like releasing view items (and other Cocoa objects).
+                // Messages that may be potentially "unsafe" are delayed until
+                // the run loop is back to default mode at which time they are
+                // safe to call again.
                 //   A problem with this approach is that it is hard to
                 // classify which messages are unsafe.  As a rule of thumb, if
                 // a message may release an object used by the Cocoa framework

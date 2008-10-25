@@ -231,11 +231,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [connection setRequestTimeout:MMRequestTimeout];
     [connection setReplyTimeout:MMReplyTimeout];
 
-    // NOTE: When the user is resizing the window the AppKit puts the run
-    // loop in event tracking mode.  Unless the connection listens to
-    // request in this mode, live resizing won't work.
-    [connection addRequestMode:NSEventTrackingRunLoopMode];
-
     // NOTE!  If the name of the connection changes here it must also be
     // updated in MMBackend.m.
     NSString *name = [NSString stringWithFormat:@"%@-connection",
