@@ -242,8 +242,6 @@ Here is a list of relevant dictionary entries:
 KEY				VALUE ~
 MMCellWidthMultiplier		width of a normal glyph in em units [float]
 MMDialogsTrackPwd		open/save dialogs track the Vim pwd [bool]
-MMFakeEscTimeout		timeout for modifier to count as Esc [float]
-MMFakeEscOnKeyDown		send Esc when modifier is pressed [bool]
 MMLoginShellArgument		login shell parameter [string]
 MMLoginShellCommand		which shell to use to launch Vim [string]
 MMNoFontSubstitution		disable automatic font substitution [bool]
@@ -284,30 +282,6 @@ and need to pass it a parameter to make it a login shell then you can set the
 user default MMLoginShellArgument (e.g. to "-l").  Finally, if the "bash"
 shell is used, then "-l" is automatically added as an argument.  To override
 this behaviour set MMLoginShellArgument to "--".
-
-							*macvim-esc*
-MacVim can treat a modifier key as Esc in order to avoid having to reach for
-the Esc key all the time.  The actual modifier key to treat as Esc can be
-selected in the preferences (only the left modifier key is affected on
-keyboards which have a left and a right modifier key).  This is most useful if
-Caps Lock has also been remapped to the chosen modifier since it is then
-possible to use Caps Lock (which is very easy to reach) to go to normal mode
-instead of using Esc (which is somewhat harder to reach).  Caps Lock can be
-remapped in the "Keyboard & Mouse" System Preference by clicking on the
-"Modifier Keys..." button.
-
-This feature works by swapping the modifier key release event for an Esc key
-press event, so the Esc is only sent when the modifier is released.  Also, if
-the modifier is not released quickly enough no Esc event is sent.  This way it
-is possible to keep using the modifier key as a modifier (by holding the key
-down and pressing another key) as well as using it as Esc (by quickly pressing
-the key).  It is possible to make MacVim send Esc when the modifier is pressed
-(which makes the key feel more responsive) by setting the MMFakeEscOnKeyDown
-user default, but then that modifier key can only be used as Esc.  The timeout
-can also be change by setting the MMFakeEscTimeout user default to the desired
-timeout in seconds (e.g. if you want to be able to press the modifier more
-slowly but still having it count as Esc, then you could increase the timeout
-to 1.0).
 
 ==============================================================================
 4. Special colors					*macvim-colors*

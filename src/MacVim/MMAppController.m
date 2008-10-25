@@ -185,10 +185,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],   MMVerticalSplitKey,
         [NSNumber numberWithInt:0],     MMPreloadCacheSizeKey,
         [NSNumber numberWithInt:0],     MMLastWindowClosedBehaviorKey,
-        [NSNumber numberWithInt:MMDisableFakeEsc],
-                                        MMFakeEscModifierKey,
-        [NSNumber numberWithFloat:0.3], MMFakeEscTimeoutKey,
-        [NSNumber numberWithBool:NO],   MMFakeEscOnKeyDownKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
