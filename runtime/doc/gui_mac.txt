@@ -377,9 +377,11 @@ can be used to send action messages.
 			":maca name:".
 
 			The key equivalent is specified with the <D-..>
-			syntax.  Note that key equivalents must contain the
-			Cmd modifier flag (<D-..>), and they take precedence
-			over normal mappings.
+			syntax.  This is case-sensitive, so <D-a> means Cmd-a
+			whereas <D-A> means Cmd-Shift-a.
+			Note that key equivalents must contain the Cmd
+			modifier flag (<D-..>), and they take precedence over
+			normal mappings.
 			Use the syntax "key=<nop>" to clear the key equivalent
 			of a menu.  This can be used to free up a key
 			combination that is set in the system gvimrc so that
@@ -403,7 +405,12 @@ equivalent Cmd-n, which opens a new window when selected: >
 	:macm Window.Next\ Tab	    key=<D-Right>
 3. Create a mapping in normal mode which closes the current tab/window: >
 	:map <C-w> :maca performClose:<CR>
->
+4. Free up Cmd-t and remap it to open a file browser in a split view: >
+	macm File.New\ Tab key=<nop>
+	nmap <D-t> :sp .<CR>
+Note: These two lines must be added to .gvimrc else the first line will fail.
+The second line is case sensitive, so <D-T> (Cmd-Shift-t) is not the same as
+<D-t> (Cmd-t)!
 
 The standard Vim menus are modified in "$VIM/gvimrc".  Take a look at that
 file for more examples on how to set up menus.  Note: When no window is open a
@@ -532,8 +539,8 @@ Note that url has to be a file:// url pointing to an existing local file.
 10. Keyboard shortcuts					*macvim-shortcuts*
 
 Most keyboard shortcuts in MacVim are bound to menu items and can be
-discovered by looking through the menus.  The remaining shortcuts are listed
-here:
+discovered by looking through the menus (see |macvim-menus| on how to create
+your own menu shortcuts).  The remaining shortcuts are listed here:
 
 							*Cmd-.* *<D-.>*
 Cmd-.			Interrupt Vim.  This is synonymous with CTRL-C and can
