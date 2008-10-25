@@ -501,13 +501,14 @@ located in the /Applications folder.  (You might have to logout and then login
 again before Mac OS X detects the MacVim services.)
 
 These are the currently supported services:
-* New Document Here: Open a new window and set the current directory to that
-  of the selected text.  This is intended to be used from a Finder window to
-  open an empty document in the currently selected folder.
-* New Document Containing Selection: Open a new window and paste the currently
-  selected text.
-* Open Selected File: If the selected text represents a file name, then the
-  corresponding file is opened in a new window.
+	* New Document Containing Selection: Open a new window and paste the
+	  currently selected text.
+	* New Document Here: Open a new window and set the current directory
+	  to that of the selected text.  This is intended to be used from a
+	  Finder window to open an empty document in the currently selected
+	  folder.
+	* Open Selected File: If the selected text represents a file name,
+	  then the corresponding file is opened in a new window.
 
 If new files are set to open in the current window (in the General preference
 pane) then the above services will also reuse the topmost window, instead of
@@ -518,20 +519,19 @@ opening a new window.
 
 MacVim supports a custom URL handler for "mvim://" URLs. The handler is
 supposed to be compatible to TextMate's URL scheme as documented at
-http://blog.macromates.com/2007/the-textmate-url-scheme/.
+	http://blog.macromates.com/2007/the-textmate-url-scheme/.
 
 Currently, this means that the format is >
 	mvim://open?<arguments>
-< where arguments can be:
-
-* url — the actual file to open (i.e. a file://... URL), if you leave
-        out this argument, the frontmost document is implied.
-* line — line number to go to (one based).
-* column — column number to go to (one based).
+where "arguments" can be:
+	* url — the actual file to open (i.e. a file://... URL), if you leave
+		out this argument, the frontmost document is implied
+	* line — line number to go to (one based)
+	* column — column number to go to (one based)
 
 For example, the link >
 	mvim://open?url=file:///etc/profile&line=20
-< will open the file /etc/profile on line 20 when clicked in a web browser.
+will open the file /etc/profile on line 20 when clicked in a web browser.
 
 Note that url has to be a file:// url pointing to an existing local file.
 
@@ -652,7 +652,7 @@ See |macvim-shift-movement|.
 Scenario: ~
 You do not want MacVim to set up any key mappings.
 Solution: ~
-See |macvim-movement|.
+See |cmd-movement|.
 
 Scenario: ~
 Enabling localized menus breaks the toolbar and the menus as well.
@@ -709,8 +709,8 @@ Use the VimLeave autocommand to hide MacVim when the window closes: >
 	au VimLeave * maca hide:
 Assuming your external program has a setting for which command to execute to
 bring up an editor, you would set that option to something like: >
-	mvim -c "au VimLeave * maca hide:"
-(You may need to add the "-f" switch before the "-c", see the Scenario above.)
+	mvim -f -c "au VimLeave * maca hide:"
+(See the above Scenario for an explanation of the "-f" switch.)
 
 Scenario: ~
 You would like to remap Caps Lock to Esc.
