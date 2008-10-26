@@ -18,7 +18,7 @@
  *
  * Output from the backend is received in processCommandQueue:.  Input is sent
  * to the backend via sendMessage:data: or addVimInput:.  The latter allows
- * execution of arbitrary stings in the Vim process, much like the Vim script
+ * execution of arbitrary strings in the Vim process, much like the Vim script
  * function remote_send() does.  The messages that may be passed between
  * frontend and backend are defined in an enum in MacVim.h.
  */
