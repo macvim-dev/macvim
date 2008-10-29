@@ -39,18 +39,21 @@ gui=
 opts=
 
 # GUI mode, implies forking
-case "$name" in m*|g*|rg*) gui=true ;; esac
+case "$name" in m*|g*|rm*|rg*) gui=true ;; esac
 
 # Restricted mode
 case "$name" in r*) opts="$opts -Z";; esac
 
-# vimdiff and view
+# vimdiff, view, and ex mode
 case "$name" in
 	*vimdiff)
 		opts="$opts -dO"
 		;;
 	*view)
 		opts="$opts -R"
+		;;
+	*ex)
+		opts="$opts -e"
 		;;
 esac
 
