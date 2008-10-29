@@ -5451,7 +5451,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 <
 				*'runtimepath'* *'rtp'* *vimfiles*
 'runtimepath' 'rtp'	string	(default:
-					Unix: "$HOME/.vim,
+					Unix, Mac OS X: "$HOME/.vim,
 						$VIM/vimfiles,
 						$VIMRUNTIME,
 						$VIM/vimfiles/after,
@@ -5466,7 +5466,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 						$VIMRUNTIME,
 						$VIM/vimfiles/after,
 						$HOME/vimfiles/after"
-					Macintosh: "$VIM:vimfiles,
+					Macintosh (pre-OS X): "$VIM:vimfiles,
 						$VIMRUNTIME,
 						$VIM:vimfiles:after"
 					RISC-OS: "Choices:vimfiles,
