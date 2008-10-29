@@ -171,20 +171,33 @@ The advantage of using the latter method is that the settings relating to file
 opening in the preferences panel are respected, and files open instantly if
 |Quickstart| is enabled.
 
-							*mvim*
 To save yourself from having to type the entire path to the Vim binary each
 time you start MacVim, you could create an alias such as >
 	alias gvim='/Applications/MacVim.app/Contents/MacOS/Vim -g'
-and add that to "~/.profile".  A more flexible way to start MacVim is to use
-the shell script "mvim" which comes bundled with MacVim.  Put this script in a
-folder in your path and then simply type "mvim" to start MacVim.  This script
-will try to find MacVim.app in various typical folders such as >
+and add that to "~/.profile".
+
+							*mvim*
+A more flexible way to start MacVim is to use the shell script "mvim" which
+comes bundled with MacVim.  Put this script in a folder in your path and then
+simply type "mvim" to start MacVim.  This script will try to find MacVim.app
+in various typical folders such as >
 	~/Applications              ~/Applications/vim
 	/Applications               /Applications/vim
 	/Applications/Utilities     /Applications/Utilities/vim
 If you would rather put MacVim.app in some other directory then that is also
 possible, simply set the environment variable VIM_APP_DIR to whatever folder
 you have placed MacVim.app in.
+
+The "mvim" script can be symlinked to in order to start up MacVim in different
+modes as follows (assuming you placed "mvim" in "/usr/local/bin"): >
+	* Diff:		ln -s /usr/local/bin/mvim mvimdiff
+	* Read-only:	ln -s /usr/local/bin/mvim mview
+	* Ex:		ln -s /usr/local/bin/mvim mex
+	* Restricted:	ln -s /usr/local/bin/mvim rmvim
+If the symlink destination starts with "m" (or "g"), Vim will start in GUI
+mode.  Removing the initial "m" from the above destination names makes Vim
+start without the GUI.  (In the last case, the destination name can be
+"rmvim", "rgvim" or "rvim".)
 
 Note: Starting MacVim by creating a symlink to >
 	.../MacVim.app/Contents/MacOS/Vim
