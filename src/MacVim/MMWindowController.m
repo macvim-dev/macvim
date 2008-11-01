@@ -850,6 +850,20 @@
     return [self askBackendForStarRegister:pboard];
 }
 
+- (BOOL)readSelectionFromPasteboard:(NSPasteboard *)pboard
+{
+    // Replace the current selection with the text on the pasteboard.
+    NSArray *types = [pboard types];
+    if ([types containsObject:NSStringPboardType]) {
+        NSString *input = [NSString stringWithFormat:@"s%@",
+                 [pboard stringForType:NSStringPboardType]];
+        [vimController addVimInput:input];
+        return YES;
+    }
+
+    return NO;
+}
+
 @end // MMWindowController
 
 
