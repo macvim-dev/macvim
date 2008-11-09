@@ -2631,13 +2631,13 @@ static struct vimoption
 #ifdef FEAT_VIMINFO
 			    (char_u *)&p_viminfo, PV_NONE,
 #if defined(MSDOS) || defined(MSWIN) || defined(OS2)
-			    {(char_u *)"", (char_u *)"'20,<50,s10,h,rA:,rB:"}
+			    {(char_u *)"", (char_u *)"'100,<50,s10,h,rA:,rB:"}
 #else
 # ifdef AMIGA
 			    {(char_u *)"",
-				 (char_u *)"'20,<50,s10,h,rdf0:,rdf1:,rdf2:"}
+				 (char_u *)"'100,<50,s10,h,rdf0:,rdf1:,rdf2:"}
 # else
-			    {(char_u *)"", (char_u *)"'20,<50,s10,h"}
+			    {(char_u *)"", (char_u *)"'100,<50,s10,h"}
 # endif
 #endif
 #else
@@ -8101,6 +8101,11 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 	    curwin->w_p_scr = 1;
 	else /* curwin->w_p_scr > curwin->w_height */
 	    curwin->w_p_scr = curwin->w_height;
+    }
+    if (p_hi < 0)
+    {
+	errmsg = e_positive;
+	p_hi = 0;
     }
     if (p_report < 0)
     {
