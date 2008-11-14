@@ -154,6 +154,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 + (void)initialize
 {
+    // Avoid zombies (we fork Vim processes which we don't want to wait for).
+    signal(SIGCHLD, SIG_IGN);
+
     NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
         [NSNumber numberWithBool:NO],   MMNoWindowKey,
         [NSNumber numberWithInt:64],    MMTabMinWidthKey,
