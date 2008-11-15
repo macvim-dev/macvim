@@ -41,6 +41,46 @@
     -->
 
     <item>
+      <title>Snapshot 37 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 37 released</h1>
+
+<p> Changes since snapshot 36: 
+  <ul>
+    <li> Fix bug where Vim would crash when resizing a window with double-width characters </li>
+    <li> Add option 'macmeta' to use "alt/option" as meta key to allow bindings to &lt;M-..&gt; (see ":h 'macmeta') </li>
+    <li> Add basic support for AppleScript (Jason Foreman).  E.g. to zoom a window:
+<pre>
+tell application MacVim
+    set zoomed of first window to true
+end tell
+</pre>
+    </li>
+    <li> Fix various bugs relating to initial window positioning  </li>
+    <li> Keep window is visible on ":set lines=..." and "set columns=..." </li>
+    <li> Inserting text from "Special Characters" palette works again </li>
+    <li> Remove the functionality to use a modifier key as Esc (use the PCKeyboardHack app instead, see ":h macvim-hints | /esc") </li>
+    <li> More help on keyboard shortcuts (":h macvim-shortcuts") and the mvim script (see ":h mvim") </li>
+    <li> Speed up live resize </li>
+    <li> Support mvim script symlinks to [m|g]ex and rmvim (see ":h mvim") </li>
+    <li> Tentative support for receiving input from system services (Try this: insert "2+3", select the text, then hit Cmd-*.  Result: "2+3" is replaced with "5".  Sometimes it seems you have to choose "MacVim-&gt;Services-&gt;Script Editor-&gt;Get Result of AppleScript" instead of pressing Cmd-* for this to work.) </li>
+    <li> No more Vim zombie processes </li>
+    <li> Add "Reload"/"Ignore All" buttons to the file changed dialog </li>
+    <li> (Almost) Latest runtime files, and Vim patches </li>
+  </ul>
+</p>
+      ]]></description>
+      <pubDate>Sat, 15 Nov 2008 13:04 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-37.tbz"
+        length="8007921"
+        sparkle:version="37"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 36 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 36 released</h1>
