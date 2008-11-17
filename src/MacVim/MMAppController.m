@@ -1954,6 +1954,11 @@ executeInLoginShell(NSString *path, NSArray *args)
         return -1;
     } else if (pid == 0) {
         // Child process
+
+        // We need to undo our zombie avoidance as Vim waits for and needs
+        // the exit statuses of processes it spawns.
+        signal(SIGCHLD, SIG_DFL);
+
         if (close(ds[1]) == -1) exit(255);
         if (dup2(ds[0], 0) == -1) exit(255);
 
