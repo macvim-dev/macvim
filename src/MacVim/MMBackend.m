@@ -508,6 +508,14 @@ static NSString *MMSymlinkWarningString =
         }
         @catch (NSException *e) {
             NSLog(@"Exception caught when processing command queue: \"%@\"", e);
+            NSLog(@"outputQueue(len:%d)=%@", [outputQueue count]/2,
+                    outputQueue);
+            if (![connection isValid]) {
+                NSLog(@"WARNING! Connection is invalid, exit now!");
+                NSLog(@"waitForAck=%d got_int=%d isTerminating=%d",
+                        waitForAck, got_int, isTerminating);
+                mch_exit(-1);
+            }
         }
 
         [outputQueue removeAllObjects];
