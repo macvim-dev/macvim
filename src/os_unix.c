@@ -2907,7 +2907,7 @@ mch_early_init()
      * Ignore any errors.
      */
 #if defined(HAVE_SIGALTSTACK) || defined(HAVE_SIGSTACK)
-    signal_stack = malloc(SIGSTKSZ);
+    signal_stack = (char *)alloc(SIGSTKSZ);
     init_signal_stack();
 #endif
 }
@@ -2938,7 +2938,8 @@ mch_free_mem()
     }
 #  endif
 # endif
-# ifdef FEAT_X11
+    /* Don't close the display for GTK 1, it is done in exit(). */
+# if defined(FEAT_X11) && (!defined(FEAT_GUI_GTK) || defined(HAVE_GTK2))
     if (x11_display != NULL
 #  ifdef FEAT_XCLIPBOARD
 	    && x11_display != xterm_dpy
@@ -6816,7 +6817,8 @@ xsmp_close()
     if (xsmp_icefd != -1)
     {
 	SmcCloseConnection(xsmp.smcconn, 0, NULL);
-	vim_free(xsmp.clientid);
+	if (xsmp.clientid != NULL)
+	    free(xsmp.clientid);
 	xsmp.clientid = NULL;
 	xsmp_icefd = -1;
     }

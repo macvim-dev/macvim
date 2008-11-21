@@ -932,7 +932,10 @@ retry:
     else
     {
 	if (eap != NULL && eap->force_ff != 0)
+	{
 	    fileformat = get_fileformat_force(curbuf, eap);
+	    try_unix = try_dos = try_mac = FALSE;
+	}
 	else if (curbuf->b_p_bin)
 	    fileformat = EOL_UNIX;		/* binary: use Unix format */
 	else if (*p_ffs == NUL)
@@ -2339,11 +2342,6 @@ failed:
 	    if (ff_error == EOL_DOS)
 	    {
 		STRCAT(IObuff, _("[CR missing]"));
-		c = TRUE;
-	    }
-	    if (ff_error == EOL_MAC)
-	    {
-		STRCAT(IObuff, _("[NL found]"));
 		c = TRUE;
 	    }
 	    if (split)
@@ -5554,9 +5552,10 @@ check_for_bom(p, size, lenp, flags)
 	    name = "ucs-4le";	/* FF FE 00 00 */
 	    len = 4;
 	}
-	else if (flags == FIO_ALL || flags == (FIO_UCS2 | FIO_ENDIAN_L))
+	else if (flags == (FIO_UCS2 | FIO_ENDIAN_L))
 	    name = "ucs-2le";	/* FF FE */
-	else if (flags == (FIO_UTF16 | FIO_ENDIAN_L))
+	else if (flags == FIO_ALL || flags == (FIO_UTF16 | FIO_ENDIAN_L))
+	    /* utf-16le is preferred, it also works for ucs-2le text */
 	    name = "utf-16le";	/* FF FE */
     }
     else if (p[0] == 0xfe && p[1] == 0xff

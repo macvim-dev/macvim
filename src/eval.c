@@ -856,6 +856,7 @@ eval_clear()
 	}
     }
     hash_clear(&vimvarht);
+    hash_init(&vimvarht);  /* garbage_collect() will access it */
     hash_clear(&compat_hashtab);
 
     /* script-local variables */
@@ -18165,14 +18166,17 @@ get_vim_var_list(idx)
 }
 
 /*
- * Set v:count, v:count1 and v:prevcount.
+ * Set v:count to "count" and v:count1 to "count1".
+ * When "set_prevcount" is TRUE first set v:prevcount from v:count.
  */
     void
-set_vcount(count, count1)
+set_vcount(count, count1, set_prevcount)
     long	count;
     long	count1;
+    int		set_prevcount;
 {
-    vimvars[VV_PREVCOUNT].vv_nr = vimvars[VV_COUNT].vv_nr;
+    if (set_prevcount)
+	vimvars[VV_PREVCOUNT].vv_nr = vimvars[VV_COUNT].vv_nr;
     vimvars[VV_COUNT].vv_nr = count;
     vimvars[VV_COUNT1].vv_nr = count1;
 }
@@ -21169,8 +21173,11 @@ call_user_func(fp, argcount, argvars, rettv, firstline, lastline, selfdict)
     init_var_dict(&fc.l_avars, &fc.l_avars_var);
     add_nr_var(&fc.l_avars, &fc.fixvar[fixvar_idx++].var, "0",
 				(varnumber_T)(argcount - fp->uf_args.ga_len));
+    /* Use "name" to avoid a warning from some compiler that checks the
+     * destination size. */
     v = &fc.fixvar[fixvar_idx++].var;
-    STRCPY(v->di_key, "000");
+    name = v->di_key;
+    STRCPY(name, "000");
     v->di_flags = DI_FLAGS_RO | DI_FLAGS_FIX;
     hash_add(&fc.l_avars.dv_hashtab, DI2HIKEY(v));
     v->di_tv.v_type = VAR_LIST;

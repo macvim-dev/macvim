@@ -3131,7 +3131,7 @@ enc_locale()
 	else
 	    s = p + 1;
     }
-    for (i = 0; s[i] != NUL && s + i < buf + sizeof(buf) - 1; ++i)
+    for (i = 0; s[i] != NUL && i < sizeof(buf) - 1; ++i)
     {
 	if (s[i] == '_' || s[i] == '-')
 	    buf[i] = '-';
@@ -5384,7 +5384,7 @@ preedit_draw_cbproc(XIC xic, XPointer client_data, XPointer call_data)
 			draw_feedback = (char *)alloc(draw_data->chg_first
 							      + text->length);
 		    else
-			draw_feedback = realloc(draw_feedback,
+			draw_feedback = vim_realloc(draw_feedback,
 					 draw_data->chg_first + text->length);
 		    if (draw_feedback != NULL)
 		    {
@@ -6101,7 +6101,7 @@ string_convert_ext(vcp, ptr, lenp, unconvlenp)
 
 	    /* 1. codepage/UTF-8  ->  ucs-2. */
 	    if (vcp->vc_cpfrom == 0)
-		tmp_len = utf8_to_ucs2(ptr, len, NULL, NULL);
+		tmp_len = utf8_to_utf16(ptr, len, NULL, NULL);
 	    else
 		tmp_len = MultiByteToWideChar(vcp->vc_cpfrom, 0,
 							      ptr, len, 0, 0);
@@ -6109,13 +6109,13 @@ string_convert_ext(vcp, ptr, lenp, unconvlenp)
 	    if (tmp == NULL)
 		break;
 	    if (vcp->vc_cpfrom == 0)
-		utf8_to_ucs2(ptr, len, tmp, unconvlenp);
+		utf8_to_utf16(ptr, len, tmp, unconvlenp);
 	    else
 		MultiByteToWideChar(vcp->vc_cpfrom, 0, ptr, len, tmp, tmp_len);
 
 	    /* 2. ucs-2  ->  codepage/UTF-8. */
 	    if (vcp->vc_cpto == 0)
-		retlen = ucs2_to_utf8(tmp, tmp_len, NULL);
+		retlen = utf16_to_utf8(tmp, tmp_len, NULL);
 	    else
 		retlen = WideCharToMultiByte(vcp->vc_cpto, 0,
 						    tmp, tmp_len, 0, 0, 0, 0);
@@ -6123,7 +6123,7 @@ string_convert_ext(vcp, ptr, lenp, unconvlenp)
 	    if (retval != NULL)
 	    {
 		if (vcp->vc_cpto == 0)
-		    ucs2_to_utf8(tmp, tmp_len, retval);
+		    utf16_to_utf8(tmp, tmp_len, retval);
 		else
 		    WideCharToMultiByte(vcp->vc_cpto, 0,
 					  tmp, tmp_len, retval, retlen, 0, 0);
