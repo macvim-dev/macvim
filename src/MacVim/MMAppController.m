@@ -1962,6 +1962,12 @@ executeInLoginShell(NSString *path, NSArray *args)
         if (close(ds[1]) == -1) exit(255);
         if (dup2(ds[0], 0) == -1) exit(255);
 
+        // Without the following call warning messages like this appear on the
+        // console:
+        //     com.apple.launchd[69] : Stray process with PGID equal to this
+        //                             dead job: PID 1589 PPID 1 Vim
+        setsid();
+
         execv(shellPath, shellArgv);
 
         // Never reached unless execv fails
