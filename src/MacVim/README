@@ -70,14 +70,14 @@ MacVim:
 
 The main nib of MacVim.app is MainMenu.nib which contains the default menu and
 an instance of MMAppController, which is connected as the delegate of
-NSApplication.  That mens, when MacVim starts it will load this nib file and
+NSApplication.  That means, when MacVim starts it will load this nib file and
 automatically create an instance of the MMAppController singleton.
 
 A new editor window is opened by calling
 -[MMAppController launchVimProcessWithArguments:].  This functions starts a
 new Vim process (by executing the Vim binary).  The Vim process lets MacVim
 know when it has launched by calling -[MMAppController connectBackend:pid:]
-and MacVim responds to this message by calling a new frontend object
+and MacVim responds to this message by creating a new frontend object
 (MMVimController) and returns a proxy to this object back to the Vim process.
 From this point onward the Vim process communicates directly with the
 MMVimController.
@@ -87,8 +87,8 @@ It coordinates all communication with the Vim process and delegates output
 that affects visual presentation to a MMWindowController object.  Read the
 Cocoa documentation on the responsibilities of a window controller.
 
-Input (keyboard & mouse) handling and drawing is handled by a MMTextView
-object.
+Input (keyboard & mouse) handling and drawing is handled by a helper object
+(MMTextViewHelper) to the current text view (MMTextView, MMAtsuiTextView).
 
 
 Distributed Object dangers:
@@ -149,7 +149,7 @@ Steps to build MacVim.app (the text before the '$' shows the folder you should
 be in when executing these commands):
 
 1. Configure Vim
-    src/$ configure --enable-gui=macvim
+    src/$ ./configure --enable-gui=macvim
 
 2. Build Vim executable
     src/$ make
@@ -161,4 +161,4 @@ The application bundle can be found inside "src/MacVim/build/Release".
 
 
 Bjorn Winckler <bjorn.winckler@gmail.com>
-June 22, 2008
+November 22, 2008
