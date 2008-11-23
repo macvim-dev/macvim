@@ -41,37 +41,17 @@
     -->
 
     <item>
-      <title>Snapshot 38 released</title>
+      <title>Snapshot 39 released</title>
       <description><![CDATA[
-<h1>MacVim snapshot 38 released</h1>
+<h1>MacVim snapshot 39 released</h1>
 
-<p> Snapshot 37 had a problem with the "Login shell" option, so I've built a new snapshot containing a fix (by Ben Schmidt).</p>
-
-<p> Changes since snapshot 37:
+<p> Changes since snapshot 36 (snapshots 37 and 38 were skipped):
   <ul>
+    <li> Avoid "Stray process..." warning messages (Ben Schmidt) </li>
+    <li> Add Cmd-BackSpace and Alt-BackSpace insert mode mappings (Nico Weber) </li>
     <li> Dropping multiple files on a window no longer results in an error </li>
     <li> Fix "Login shell" problems (Ben Schmidt) </li>
     <li> Exit Vim process if connection becomes invalid -- this should avoid the system log filling up with error messages, but please let me know when it happens (and send me the output from Console.app) </li>
-  </ul>
-</p>
-      ]]></description>
-      <pubDate>Sat, 21 Nov 2008 16:26 CET</pubDate>
-      <enclosure type="application/octet-stream"
-        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-38.tbz"
-        length="8007082"
-        sparkle:version="38"
-        sparkle:shortVersionString="7.2"
-        />
-    </item>
-
-
-    <item>
-      <title>Snapshot 37 released</title>
-      <description><![CDATA[
-<h1>MacVim snapshot 37 released</h1>
-
-<p> Changes since snapshot 36: 
-  <ul>
     <li> Fix bug where Vim would crash when resizing a window with double-width characters </li>
     <li> Add option 'macmeta' to use "alt/option" as meta key to allow bindings to &lt;M-..&gt; (see ":h 'macmeta') </li>
     <li> Add basic support for AppleScript (Jason Foreman).  E.g. to zoom a window:
@@ -91,15 +71,15 @@ end tell
     <li> Tentative support for receiving input from system services (Try this: insert "2+3", select the text, then hit Cmd-*.  Result: "2+3" is replaced with "5".  Sometimes it seems you have to choose "MacVim-&gt;Services-&gt;Script Editor-&gt;Get Result of AppleScript" instead of pressing Cmd-* for this to work.) </li>
     <li> No more Vim zombie processes </li>
     <li> Add "Reload"/"Ignore All" buttons to the file changed dialog </li>
-    <li> (Almost) Latest runtime files, and Vim patches </li>
+    <li>  Latest runtime files, and Vim patches </li>
   </ul>
 </p>
       ]]></description>
-      <pubDate>Sat, 15 Nov 2008 13:04 CET</pubDate>
+      <pubDate>Sun, 23 Nov 2008 18:09 CET</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-37.tbz"
-        length="8007921"
-        sparkle:version="37"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-39.tbz"
+        length="8012682"
+        sparkle:version="39"
         sparkle:shortVersionString="7.2"
         />
     </item>
