@@ -1053,10 +1053,14 @@ static NSString *MMSymlinkWarningString =
     // Look for Cmd-. and Ctrl-C immediately instead of waiting until the input
     // queue is processed since that only happens in waitForInput: (and Vim
     // regularly checks for Ctrl-C in between waiting for input).
+    // Similarly, TerminateNowMsgID must be checked immediately otherwise code
+    // which waits on the run loop will fail to detect this message (e.g. in
+    // waitForConnectionAcknowledgement).
 
-    BOOL interrupt = NO;
-    if (msgid == InterruptMsgID) {
-        interrupt = YES;
+    BOOL shouldClearQueue = NO;
+    if (InterruptMsgID == msgid) {
+        shouldClearQueue = YES;
+        got_int = TRUE;
     } else if (InsertTextMsgID == msgid && data != nil) {
         const void *bytes = [data bytes];
         bytes += sizeof(int);
@@ -1064,13 +1068,17 @@ static NSString *MMSymlinkWarningString =
         if (1 == len) {
             char_u *str = (char_u*)bytes;
             if ((str[0] == Ctrl_C && ctrl_c_interrupts) ||
-                    (str[0] == intr_char && intr_char != Ctrl_C))
-                interrupt = YES;
+                    (str[0] == intr_char && intr_char != Ctrl_C)) {
+                shouldClearQueue = YES;
+                got_int = TRUE;
+            }
         }
+    } else if (TerminateNowMsgID == msgid) {
+        shouldClearQueue = YES;
+        isTerminating = YES;
     }
 
-    if (interrupt) {
-        got_int = TRUE;
+    if (shouldClearQueue) {
         [inputQueue removeAllObjects];
         return;
     }
@@ -1664,8 +1672,6 @@ static NSString *MMSymlinkWarningString =
             [self addInput:string];
             [string release];
         }
-    } else if (TerminateNowMsgID == msgid) {
-        isTerminating = YES;
     } else if (SelectTabMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
