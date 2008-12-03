@@ -1389,7 +1389,7 @@ static struct vimoption
 #else
 			    (char_u *)NULL, PV_NONE,
 #endif
-#ifdef __sgi
+#if defined(__sgi) || defined(FEAT_GUI_MACVIM)
 			    {(char_u *)TRUE, (char_u *)0L}
 #else
 			    {(char_u *)FALSE, (char_u *)0L}
