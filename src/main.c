@@ -721,6 +721,10 @@ main
     qnx_clip_init();
 #endif
 
+#if defined(FEAT_GUI_MACVIM) && defined(FEAT_CLIPBOARD)
+    clip_init(TRUE);
+#endif
+
 #ifdef FEAT_XCLIPBOARD
     /* Start using the X clipboard, unless the GUI was started. */
 # ifdef FEAT_GUI
