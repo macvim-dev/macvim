@@ -1212,7 +1212,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (!dirIndicator)
         path = [path stringByDeletingLastPathComponent];
 
-    path = [path stringByReplacingOccurrencesOfString:@" " withString:@"\\ "];
+    path = [path stringByEscapingSpecialFilenameCharacters];
 
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
