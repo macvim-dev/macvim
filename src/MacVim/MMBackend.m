@@ -621,28 +621,32 @@ static NSString *MMSymlinkWarningString =
 
     tabpage_T *tp;
     for (tp = first_tabpage; tp != NULL; tp = tp->tp_next) {
-        // This function puts the label of the tab in the global 'NameBuff'.
-        get_tabline_label(tp, FALSE);
-        char_u *s = NameBuff;
-        int len = STRLEN(s);
-        if (len <= 0) continue;
+        int tabProp = MMTabInfoCount;
+        [data appendBytes:&tabProp length:sizeof(int)];
+        for (tabProp = MMTabLabel; tabProp < MMTabInfoCount; ++tabProp) {
+            // This function puts the label of the tab in the global 'NameBuff'.
+            get_tabline_label(tp, (tabProp == MMTabToolTip));
+            char_u *s = NameBuff;
+            int len = STRLEN(s);
+            if (len <= 0) continue;
 
 #ifdef FEAT_MBYTE
-        s = CONVERT_TO_UTF8(s);
+            s = CONVERT_TO_UTF8(s);
 #endif
 
-        // Count the number of windows in the tabpage.
-        //win_T *wp = tp->tp_firstwin;
-        //int wincount;
-        //for (wincount = 0; wp != NULL; wp = wp->w_next, ++wincount);
+            // Count the number of windows in the tabpage.
+            //win_T *wp = tp->tp_firstwin;
+            //int wincount;
+            //for (wincount = 0; wp != NULL; wp = wp->w_next, ++wincount);
 
-        //[data appendBytes:&wincount length:sizeof(int)];
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:s length:len];
+            //[data appendBytes:&wincount length:sizeof(int)];
+            [data appendBytes:&len length:sizeof(int)];
+            [data appendBytes:s length:len];
 
 #ifdef FEAT_MBYTE
-        CONVERT_TO_UTF8_FREE(s);
+            CONVERT_TO_UTF8_FREE(s);
 #endif
+        }
     }
 
     [self queueMessage:UpdateTabBarMsgID data:data];

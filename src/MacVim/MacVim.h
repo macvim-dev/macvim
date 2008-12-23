@@ -209,6 +209,13 @@ enum {
     ToolbarSizeRegularFlag = 4
 };
 
+
+enum {
+    MMTabLabel = 0,
+    MMTabToolTip,
+    MMTabInfoCount
+};
+
 // Argument used to stop MacVim from opening an empty window on startup
 // (techincally this is a user default but should not be used as such).
 extern NSString *MMNoWindowKey;

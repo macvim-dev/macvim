@@ -281,24 +281,37 @@ enum {
     NSArray *tabViewItems = [[self tabBarControl] representedTabViewItems];
 
     while (p < end) {
+        NSTabViewItem *tvi = nil;
+
         //int wincount = *((int*)p);  p += sizeof(int);
-        int length = *((int*)p);  p += sizeof(int);
+        int infoCount = *((int*)p); p += sizeof(int);
+        unsigned i;
+        for (i = 0; i < infoCount; ++i) {
+            int length = *((int*)p);  p += sizeof(int);
 
-        NSString *label = [[NSString alloc]
-                initWithBytes:(void*)p length:length
-                     encoding:NSUTF8StringEncoding];
-        p += length;
+            NSString *val = [[NSString alloc]
+                    initWithBytes:(void*)p length:length
+                         encoding:NSUTF8StringEncoding];
+            p += length;
 
-        // Set the label of the tab;  add a new tab when needed.
-        NSTabViewItem *tvi = [[self tabView] numberOfTabViewItems] <= tabIdx
-                ? [self addNewTabViewItem]
-                : [tabViewItems objectAtIndex:tabIdx];
+            switch (i) {
+                case MMTabLabel:
+                    // Set the label of the tab, adding a new tab when needed.
+                    tvi = [[self tabView] numberOfTabViewItems] <= tabIdx
+                            ? [self addNewTabViewItem]
+                            : [tabViewItems objectAtIndex:tabIdx];
+                    [tvi setLabel:val];
+                    ++tabIdx;
+                    break;
+                case MMTabToolTip:
+                    [[self tabBarControl] setToolTip:val forTabViewItem:tvi];
+                    break;
+                default:
+                    NSLog(@"WARNING: Unknown tab info for index: %d", i);
+            }
 
-        [tvi setLabel:label];
-
-        [label release];
-
-        ++tabIdx;
+            [val release];
+        }
     }
 
     // Remove unused tabs from the NSTabView.  Note that when a tab is closed

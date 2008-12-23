@@ -72,6 +72,9 @@ enum {
     BOOL                        _delegateHandlingDrag;
     NSDragOperation             _delegateInitialDragOperation;
     
+    // tool tips
+    NSMutableDictionary         *_toolTips;
+
     // MVC help
     IBOutlet id                 delegate;
 }
@@ -98,6 +101,10 @@ enum {
 - (void)setSizeCellsToFit:(BOOL)value;
 - (BOOL)allowsDragBetweenWindows;
 - (void)setAllowsDragBetweenWindows:(BOOL)flag;
+
+// tool tips
+- (NSString *)toolTipForTabViewItem:(NSTabViewItem *)tvi;
+- (void)setToolTip:(NSString *)value forTabViewItem:(NSTabViewItem *)tvi;
 
 // accessors
 - (NSTabView *)tabView;

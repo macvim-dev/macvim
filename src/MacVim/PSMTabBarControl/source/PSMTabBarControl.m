@@ -146,6 +146,8 @@
         }
         [_addTabButton setNeedsDisplay:YES];
     }
+
+    _toolTips = [[NSMutableDictionary alloc] init];
 }
     
 - (id)initWithFrame:(NSRect)frame
@@ -169,6 +171,7 @@
     [partnerView release];
     [_lastMouseDownEvent release];
     [style release];
+    [_toolTips release];
     [delegate release];
     
     [self unregisterDraggedTypes];
@@ -381,6 +384,21 @@
 }
 
 #pragma mark -
+#pragma mark Tool tips
+- (NSString *)toolTipForTabViewItem:(NSTabViewItem *)tvi
+{
+    return [_toolTips objectForKey:[NSValue valueWithPointer:tvi]];
+}
+
+
+- (void)setToolTip:(NSString *)value forTabViewItem:(NSTabViewItem *)tvi
+{
+    [_toolTips setObject:value forKey:[NSValue valueWithPointer:tvi]];
+    [self update];
+}
+
+
+#pragma mark -
 #pragma mark Functionality
 - (void)addTabViewItem:(NSTabViewItem *)item
 {
@@ -457,6 +475,9 @@
     if([cell cellTrackingTag] != 0){
         [self removeTrackingRect:[cell cellTrackingTag]];
     }
+
+    // remove tool tip
+    [_toolTips removeObjectForKey:[NSValue valueWithPointer:[cell representedObject]]];
 
     // pull from collection
     [_cells removeObject:cell];
@@ -746,6 +767,7 @@
     NSRect cellRect = [self genericCellRect];
     for(i = 0; i < cellCount; i++){
         PSMTabBarCell *cell = [_cells objectAtIndex:i];
+        NSTabViewItem *tvi = [cell representedObject];
         int tabState = 0;
         if (i < numberOfVisibleCells) {
             // set cell frame
@@ -764,12 +786,13 @@
             [cell setCellTrackingTag:tag];
             [cell setEnabled:YES];
 
-            // add tool tip if label will be truncated
-            if ([cell desiredWidthOfCell] > NSWidth([cell frame]))
-                [self addToolTipRect:cellRect owner:[cell stringValue] userData:NULL];
+            // add tool tip
+            NSString *tt = [self toolTipForTabViewItem:tvi];
+            if (tt && [tt length] > 0)
+                [self addToolTipRect:cellRect owner:tt userData:NULL];
 
             // selected? set tab states...
-            if([[cell representedObject] isEqualTo:[tabView selectedTabViewItem]]){
+            if([tvi isEqualTo:[tabView selectedTabViewItem]]){
                 [cell setState:NSOnState];
                 tabState |= PSMTab_SelectedMask;
                 // previous cell
@@ -818,13 +841,13 @@
             }
             menuItem = [[[NSMenuItem alloc] initWithTitle:[[cell attributedStringValue] string] action:@selector(overflowMenuAction:) keyEquivalent:@""] autorelease];
             [menuItem setTarget:self];
-            [menuItem setRepresentedObject:[cell representedObject]];
+            [menuItem setRepresentedObject:tvi];
             [cell setIsInOverflowMenu:YES];
             [[cell indicator] removeFromSuperview];
-            if ([[cell representedObject] isEqualTo:[tabView selectedTabViewItem]])
+            if ([tvi isEqualTo:[tabView selectedTabViewItem]])
                 [menuItem setState:NSOnState];
             if([cell hasIcon])
-                [menuItem setImage:[[[[cell representedObject] identifier] content] icon]];
+                [menuItem setImage:[[[tvi identifier] content] icon]];
             if([cell count] > 0)
                 [menuItem setTitle:[[menuItem title] stringByAppendingFormat:@" (%d)",[cell count]]];
             [overflowMenu addItem:menuItem];
