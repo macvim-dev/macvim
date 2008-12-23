@@ -104,45 +104,200 @@ BACKGROUND = '/System/Library/CoreServices/CoreTypes.bundle/' + \
 APPICON = 'vim-noshadow-512.png'
 #APPICON = 'vim-noshadow-no-v-512.png'
 
+class Surface(object):
+  """Represents a simple bitmapped image."""
+
+  def __init__(self, *p, **kw):
+    if not 'premultiplyAlpha' in kw:
+      kw['premultiplyAlpha'] = True
+    if len(p) == 1 and isinstance(p[0], NSBitmapImageRep):
+      self.bitmapRep = p[0]
+    elif len(p) == 2 and isinstance(p[0], int) and isinstance(p[1], int):
+      format = NSAlphaFirstBitmapFormat
+      if not kw['premultiplyAlpha']:
+        format += NSAlphaNonpremultipliedBitmapFormat
+      self.bitmapRep = NSBitmapImageRep.alloc().initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bitmapFormat_bytesPerRow_bitsPerPixel_(
+          None, p[0], p[1], 8, 4, True, False, NSDeviceRGBColorSpace,
+          format, 0, 0)
+
+    if not hasattr(self, 'bitmapRep') or not self.bitmapRep:
+      raise Exception('Failed to create surface: ' + str(p))
+
+  def size(self):
+    return map(int, self.bitmapRep.size())  # cocoa returns floats. cocoa ftw
+
+  def data(self):
+    """Returns data in ARGB order (on intel, at least)."""
+    r = self.bitmapRep
+    if r.bitmapFormat() != (NSAlphaNonpremultipliedBitmapFormat |
+          NSAlphaFirstBitmapFormat) or \
+        r.bitsPerPixel() != 32 or \
+        r.isPlanar() or \
+        r.samplesPerPixel() != 4:
+      raise Exception("Unsupported image format")
+    return self.bitmapRep.bitmapData()
+
+  def save(self, filename):
+    """Saves image as png file."""
+    self.bitmapRep.representationUsingType_properties_(NSPNGFileType, None) \
+        .writeToFile_atomically_(filename, True)
+
+  def draw(self):
+    self.bitmapRep.draw()
+
+  def context(self):
+    # Note: Cocoa only supports contexts with premultiplied alpha
+    return NSGraphicsContext.graphicsContextWithBitmapImageRep_(self.bitmapRep)
+
+  def copy(self):
+    return Surface(self.bitmapRep.copy())
+
+
+class Image(object):
+  """Represents an image that can consist of several Surfaces."""
+
+  def __init__(self, param):
+    if isinstance(param, str):
+      self.image = NSImage.alloc().initWithContentsOfFile_(param)
+    elif isinstance(param, Surface):
+      self.image = NSImage.alloc().initWithSize_( param.size() )
+      self.image.addRepresentation_(param.bitmapRep)
+
+    if not self.image:
+      raise Exception('Failed to load image: ' + str(filename))
+
+  def surfaceOfSize(self, w, h):
+    """Returns an ARGB, non-premultiplied surface of size w*h or throws."""
+    r = None
+    for rep in self.image.representations():
+      if map(int, rep.size()) == [w, h]:
+        r = rep
+        break
+    if not r:
+      raise Exception('Unsupported size %dx%d', w, h)
+    return Surface(r)
+
+  def blend(self):
+    self.compositeInRect( ((0, 0), self.image.size()) )
+
+  def compositeInRect(self, r, mode=NSCompositeSourceOver):
+    self.image.drawInRect_fromRect_operation_fraction_(r, NSZeroRect,
+        mode, 1.0)
+
+
+class Context(object):
+  # Tiger has only Python2.3, so we can't use __enter__ / __exit__ for this :-(
+
+  def __init__(self, surface):
+    NSGraphicsContext.saveGraphicsState()
+    c = surface.context()
+    c.setShouldAntialias_(True);
+    c.setImageInterpolation_(NSImageInterpolationHigh);
+    NSGraphicsContext.setCurrentContext_(c)
+
+  def done(self):
+    NSGraphicsContext.restoreGraphicsState()
+
+
+class SplittableBackground(object):
+
+  def __init__(self, unsplitted, shouldSplit=True):
+    self.unsplitted = unsplitted
+    self.shouldSplit = shouldSplit
+    self.ground = {}
+    self.shadow = {}
+
+  def rawGroundAtSize(self, s):
+    return self.unsplitted.surfaceOfSize(s, s)
+
+  def groundAtSize(self, s):
+    if not self.shouldSplit:
+      return self.rawGroundAtSize(s)
+    self._performSplit(s)
+    return self.ground[s]
+
+  def shadowAtSize(self, s):
+    if not self.shouldSplit:
+      return None
+    self._performSplit(s)
+    return self.shadow[s]
+
+  def _performSplit(self, s):
+    if s in self.ground:
+      assert s in self.shadow
+      return
+    assert s not in self.shadow
+    ground, shadow = splitGenericDocumentIcon(self.unsplitted, s)
+    self.ground[s] = ground
+    self.shadow[s] = shadow
+
+
+class BackgroundRenderer(object):
+
+  def __init__(self, bg, icon=None):
+    self.bgRenderer = bg
+    self.icon = icon
+    self.cache = {}
+
+  def drawIcon(self, s):
+    if not self.icon:
+      return
+    # found by flow program, better than anything i came up with manually before
+    # (except for the 16x16 variant :-( )
+    transforms = {
+        512: [ 0.7049, 0.5653, -4.2432, 0.5656],
+        256: [ 0.5690, 0.5658, -1.9331, 0.5656],
+        128: [ 1.1461, 0.5684, -0.8482, 0.5681],
+
+         32: [-0.2682, 0.5895, -2.2130, 0.5701],  # intensity
+         #32: [-0.2731, 0.5898, -2.2262, 0.5729],  # rgb (no rmse difference)
+
+         #16: [-0.3033, 0.4909, -1.3235, 0.4790],  # program, intensity
+         #16: [-0.3087, 0.4920, -1.2990, 0.4750],  # program, rgb mode
+         16: [ 0.0000, 0.5000, -1.0000, 0.5000],  # manually, better
+        }
+
+    assert s in [16, 32, 128, 256, 512]
+    a = transforms[s]
+
+    # convert from `flow` coords to cocoa
+    a[2] = -a[2]  # mirror y
+
+    w, h = s*a[1], s*a[3]
+    self.icon.compositeInRect( (((s-w)/2 + a[0], (s-h)/2 + a[2]), (w, h)) )
+
+  def drawAtSize(self, s):
+    self.bgRenderer.groundAtSize(s).draw()
+    self.drawIcon(s)
+    if self.bgRenderer.shouldSplit:
+      # shadow needs to be composited, so it needs to be in an image
+      Image(self.bgRenderer.shadowAtSize(s)).blend()
+
+  def backgroundAtSize(self, s):
+    if not s in self.cache:
+      result = Surface(s, s)
+      context = Context(result)
+      self.drawAtSize(s)
+      context.done()
+      self.cache[s] = result
+    return self.cache[s]
+
 
 def splitGenericDocumentIcon(img, s):
   """Takes the generic document icon and splits it into a background and a
   shadow layer. For the 32x32 and 16x16 variants, the white pixels of the page
   curl are hardcoded into the otherwise transparent shadow layer."""
 
-  r = None
-  for rep in img.representations():
-    if map(int, rep.size()) == [s, s]:
-      r = rep
-      break
-
-  if not r:
-    raise Exception('Unsupported size %d', s)
-
-  # XXX: This is a bit slow in python, perhaps do this in C
-
-  if r.bitmapFormat() != (NSAlphaNonpremultipliedBitmapFormat |
-        NSAlphaFirstBitmapFormat) or \
-      r.bitsPerPixel() != 32 or \
-      r.isPlanar() or \
-      r.samplesPerPixel() != 4:
-    raise Exception("Unsupported image format")
-
-  w, h = map(int, r.size())  # cocoa returns floats. cocoa ftw.
+  w, h = s, s
+  r = img.surfaceOfSize(w, h)
   bps = 4*w
-  data = r.bitmapData()
+  data = r.data()
 
-  # These do not have alpha first!
-  ground = NSBitmapImageRep.alloc().initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bitmapFormat_bytesPerRow_bitsPerPixel_(
-      None, w, h, 8, 4, True, False, NSDeviceRGBColorSpace,
-      NSAlphaNonpremultipliedBitmapFormat, 0, 0)
+  ground = Surface(w, h, premultiplyAlpha=False)
+  shadow = Surface(w, h, premultiplyAlpha=False)
 
-  shadow = NSBitmapImageRep.alloc().initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bitmapFormat_bytesPerRow_bitsPerPixel_(
-      None, w, h, 8, 4, True, False, NSDeviceRGBColorSpace,
-      NSAlphaNonpremultipliedBitmapFormat, 0, 0)
-
-  grounddata = ground.bitmapData()
-  shadowdata = shadow.bitmapData()
+  grounddata = ground.data()
+  shadowdata = shadow.data()
 
   for y in xrange(h):
     for x in xrange(w):
@@ -150,10 +305,10 @@ def splitGenericDocumentIcon(img, s):
       ia, ir, ig, ib = data[idx:idx + 4]
       if ia != chr(255):
         # buffer objects don't support slice assignment :-(
-        grounddata[idx] = ir
-        grounddata[idx + 1] = ig
-        grounddata[idx + 2] = ib
-        grounddata[idx + 3] = ia
+        grounddata[idx] = ia
+        grounddata[idx + 1] = ir
+        grounddata[idx + 2] = ig
+        grounddata[idx + 3] = ib
         shadowdata[idx] = chr(0)
         shadowdata[idx + 1] = chr(0)
         shadowdata[idx + 2] = chr(0)
@@ -165,15 +320,13 @@ def splitGenericDocumentIcon(img, s):
       grounddata[idx + 1] = chr(255)
       grounddata[idx + 2] = chr(255)
       grounddata[idx + 3] = chr(255)
-      shadowdata[idx] = chr(0)
+      shadowdata[idx] = chr(255 - ord(ir))
       shadowdata[idx + 1] = chr(0)
       shadowdata[idx + 2] = chr(0)
-      shadowdata[idx + 3] = chr(255 - ord(ir))
-
+      shadowdata[idx + 3] = chr(0)
 
   # Special-case 16x16 and 32x32 cases: Make some pixels on the fold white.
   # Ideally, I could make the fold whiteish in all variants, but I can't.
-
   whitePix = { 16: [(10, 2), (10, 3), (11, 3), (10, 4), (11, 4), (12, 4)],
                32: [(21, 4), (21, 5), (22, 5), (21, 6), (22, 6), (23, 6)]}
   if (w, h) in [(16, 16), (32, 32)]:
@@ -187,137 +340,124 @@ def splitGenericDocumentIcon(img, s):
   return ground, shadow
 
 
-def drawText(text, s):
-  """Draws text `s` into the current context of size `s`."""
+class TextRenderer(object):
 
-  # This looks not exactly like the font on Preview.app's document icons,
-  # but I believe that's because Preview's icons are drawn by Photoshop,
-  # and Adobe's font rendering is different from Apple's.
-  fontname = 'LucidaGrande-Bold'
+  def __init__(self):
+    self.cache = {}
 
-  # Prepare text format
-  style = NSMutableParagraphStyle.new()
-  style.setParagraphStyle_(NSParagraphStyle.defaultParagraphStyle())
-  style.setAlignment_(NSCenterTextAlignment)
-  # http://developer.apple.com/documentation/Cocoa/Conceptual/AttributedStrings/Articles/standardAttributes.html#//apple_ref/doc/uid/TP40004903
-  attribs = {
-    NSParagraphStyleAttributeName: style,
-    NSForegroundColorAttributeName: NSColor.colorWithDeviceWhite_alpha_(
-        0.34, 1)
-  }
-  if s == 512:
-    attribs[NSFontAttributeName] = NSFont.fontWithName_size_(fontname, 72.0)
-    attribs[NSKernAttributeName] = -1.0  # tighten font a bit
-  elif s == 256:
-    attribs[NSFontAttributeName] = NSFont.fontWithName_size_(fontname, 36.0)
-    attribs[NSKernAttributeName] = -1.0  # tighten font a bit
-  elif s == 128:
-    attribs[NSFontAttributeName] = NSFont.fontWithName_size_(fontname, 18.0)
-  elif s == 32:
-    #attribs[NSFontAttributeName] = NSFont.fontWithName_size_(
-      #'LucidaSans-Demi', 7.0)
-    attribs[NSKernAttributeName] = -0.25  # tighten font a bit
-    if NSFontAttributeName not in attribs:
-      attribs[NSFontAttributeName] = NSFont.fontWithName_size_(fontname, 7.0)
-  elif s == 16:
-    attribs[NSFontAttributeName] = NSFont.fontWithName_size_(fontname, 3.0)
+  def attribsAtSize(self, s):
+    if s not in self.cache:
+      self.cache[s] = self._attribsAtSize(s)
+    return self.cache[s]
 
-  if not attribs[NSFontAttributeName]:
-    print 'Failed to load font', fontname
-    sys.exit(1)
+  def centeredStyle(self):
+    style = NSMutableParagraphStyle.new()
+    style.setParagraphStyle_(NSParagraphStyle.defaultParagraphStyle())
+    style.setAlignment_(NSCenterTextAlignment)
+    return style
 
-  textRects = {
-      512: ((0, 7), (512, 119)),
-      128: ((0, 6), (128, 26.5)),
-      256: ((0, 7), (256, 57)),
-      }
+  def _attribsAtSize(self, s):
+    # This looks not exactly like the font on Preview.app's document icons,
+    # but I believe that's because Preview's icons are drawn by Photoshop,
+    # and Adobe's font rendering is different from Apple's.
+    fontname = 'LucidaGrande-Bold'
 
-  if s in [128, 256, 512]:
-    text.drawInRect_withAttributes_(textRects[s], attribs)
-  elif s == 32:
-    #text.drawInRect_withAttributes_( ((1, 1), (31, 9)), attribs)
+    # Prepare text format
+    fontsizes = { 512: 72.0,  256: 36.0,  128: 18.0,  32: 7.0,  16: 3.0 }
+    # http://developer.apple.com/documentation/Cocoa/Conceptual/AttributedStrings/Articles/standardAttributes.html#//apple_ref/doc/uid/TP40004903
+    attribs = {
+      NSParagraphStyleAttributeName: self.centeredStyle(),
+      NSForegroundColorAttributeName: NSColor.colorWithDeviceWhite_alpha_(
+          0.34, 1),
+      NSFontAttributeName: NSFont.fontWithName_size_(fontname, fontsizes[s])
+    }
 
-    # Try to align text on pixel boundary:
-    ts = text.sizeWithAttributes_(attribs)
-    attribs[NSParagraphStyleAttributeName] = \
-        NSParagraphStyle.defaultParagraphStyle()
-    text.drawAtPoint_withAttributes_( (math.floor((32.0-ts[0])/2) + 0.5, 1.5),
-        attribs)
+    # tighten font a bit for some sizes
+    if s in [256, 512]:
+      attribs[NSKernAttributeName] = -1.0
+    elif s == 32:
+      attribs[NSKernAttributeName] = -0.25
 
-    # for demibold roman:
-    #text.drawInRect_withAttributes_( ((0, 1), (31, 11)), attribs)
-  elif s == 16:
-    text.drawInRect_withAttributes_( ((1, 1), (15, 5)), attribs)
+    if not attribs[NSFontAttributeName]:
+      raise Exception('Failed to load font %s' % fontname)
+    return attribs
 
+  def drawTextAtSize(self, text, s):
+    """Draws text `s` into the current context of size `s`."""
 
-def createIcon(outname, text, ground, icon, shadow=None, s=512,
-    shorttext=None):
+    textRects = {
+        512: ((0, 7), (512, 119)),
+        128: ((0, 6), (128, 26.5)),
+        256: ((0, 7), (256, 57)),
+         16: ((1, 1), (15, 5)),
+         #32: ((1, 1), (31, 9))
+        }
 
-  output = NSBitmapImageRep.alloc().initWithBitmapDataPlanes_pixelsWide_pixelsHigh_bitsPerSample_samplesPerPixel_hasAlpha_isPlanar_colorSpaceName_bitmapFormat_bytesPerRow_bitsPerPixel_(
-      None, s, s, 8, 4, True, False, NSDeviceRGBColorSpace, 0, 0, 0)
-
-  # Draw!
-  NSGraphicsContext.saveGraphicsState();
-  context = NSGraphicsContext. graphicsContextWithBitmapImageRep_(output);
-  context.setShouldAntialias_(True);
-  context.setImageInterpolation_(NSImageInterpolationHigh);
-  NSGraphicsContext.setCurrentContext_(context);
+    attribs = self.attribsAtSize(s)
+    text = NSString.stringWithString_(text)
+    if s in [16, 128, 256, 512]:
+      text.drawInRect_withAttributes_(textRects[s], attribs)
+    elif s == 32:
+      # Try to align text on pixel boundary:
+      attribs = attribs.copy()
+      attribs[NSParagraphStyleAttributeName] = \
+          NSParagraphStyle.defaultParagraphStyle()
+      ts = text.sizeWithAttributes_(attribs)
+      text.drawAtPoint_withAttributes_( (math.floor((32.0-ts[0])/2) + 0.5, 1.5),
+          attribs)
 
 
-  # luckily, cocoa simply copies the 128x128 version over for s = 128
-  # and does no resampling.
-  ground.draw()
-  #bg.drawInRect_fromRect_operation_fraction_(
-      #((0, 0), (s, s)),
-      #NSZeroRect, NSCompositeCopy, 1.0)
+class OfficeTextRenderer(TextRenderer):
+  """Uses Office's LucidaSans font for 32x32.
 
-  # found by flow program, better than anything i came up with manually before
-  # (except for the 16x16 variant :-( )
-  transforms = {
-      512: [ 0.7049, 0.5653, -4.2432, 0.5656],
-      256: [ 0.5690, 0.5658, -1.9331, 0.5656],
-      128: [ 1.1461, 0.5684, -0.8482, 0.5681],
+  This font looks much better for certain strings (e.g. "PDF") but much worse
+  for most others (e.g. "VIM", "JAVA") -- and office fonts are usually not
+  installed. Hence, this class is better not used.
+  """
 
-       32: [-0.2682, 0.5895, -2.2130, 0.5701],  # intensity
-       #32: [-0.2731, 0.5898, -2.2262, 0.5729],  # rgb (no rmse difference)
+  def _attribsAtSize(self, s):
+    self.useOfficeFont = False
+    attribs = TextRenderer._attribsAtSize(self, s)
+    if s == 32:
+      font = NSFont.fontWithName_size_('LucidaSans-Demi', 7.0)
+      if font:
+        attribs[NSFontAttributeName] = font
+        attribs[NSKernAttributeName] = 0
+        self.useOfficeFont = True
+    return attribs
 
-       #16: [-0.3033, 0.4909, -1.3235, 0.4790],  # program, intensity
-       #16: [-0.3087, 0.4920, -1.2990, 0.4750],  # program, rgb mode
-       16: [ 0.0000, 0.5000, -1.0000, 0.5000],  # manually, better
-      }
-
-  if s in [16, 32, 128, 256, 512]:
-    a = transforms[s]
-
-    # convert from `flow` coords to cocoa
-    a[2] = -a[2]  # mirror y
-
-    w, h = s*a[1], s*a[3]
-    icon.drawInRect_fromRect_operation_fraction_(
-        (((s-w)/2 + a[0], (s-h)/2 + a[2]), (w, h)),
-        NSZeroRect, NSCompositeSourceOver, 1.0)
+  def drawTextAtSize(self, text, s):
+    attribs = self.attribsAtSize(s)
+    if not self.useOfficeFont or s != 32:
+      TextRenderer.drawTextAtSize(self, text, s)
+      return
+    text = NSString.stringWithString_(text)
+    text.drawInRect_withAttributes_( ((0, 1), (31, 11)), attribs)
 
 
-  # Overlay shadow.
-  # shadow needs to be composited, so it needs to be in an nsimage
-  shadowImg = NSImage.alloc().initWithSize_( (s, s) )
-  shadowImg.addRepresentation_(shadow)
-  shadowImg.drawInRect_fromRect_operation_fraction_(
-      ((0, 0), (s, s)),
-      NSZeroRect, NSCompositeSourceOver, 1.0)
+def createIcon(outname, s, bg, textRenderer, text, shorttext=None):
 
+  # Fill in background
+  output = bg.backgroundAtSize(s).copy()
 
-  # draw text on top of shadow
+  # Draw text on top of shadow
+  context = Context(output)
   if s in [16, 32] and shorttext:
     text = shorttext
-  drawText(text, s)
-
-
-  NSGraphicsContext.restoreGraphicsState();
+  textRenderer.drawTextAtSize(text, s)
+  context.done()
 
   # Save
-  png = output.representationUsingType_properties_(NSPNGFileType, None)
-  png.writeToFile_atomically_(outname, True)
+  output.save(outname)
+
+
+def createLinks(icons, target):
+  assert len(icons) > 0
+  for name in icons:
+    icnsName = '%s.icns' % name
+    if os.access(icnsName, os.F_OK):
+      os.remove(icnsName)
+    os.symlink(target, icnsName)
 
 
 TMPFILE = 'make_icons_tmp_%d.png'
@@ -333,31 +473,24 @@ def main():
     print "PyObjC not found, only using a stock icon for document icons."
     import shutil
     shutil.copyfile(BACKGROUND, '%s.icns' % GENERIC_ICON_NAME)
-    for name in vimIcons:
-      if name == GENERIC_ICON_NAME: continue
-      icnsName = '%s.icns' % name
-      if os.access(icnsName, os.F_OK):
-        os.remove(icnsName)
-      os.symlink('%s.icns' % GENERIC_ICON_NAME, icnsName)
+    createLinks([name for name in vimIcons if name != GENERIC_ICON_NAME],
+        '%s.icns' % GENERIC_ICON_NAME)
     return
   # Make us not crash
   # http://www.cocoabuilder.com/archive/message/cocoa/2008/8/6/214964
   NSApplicationLoad()
 
+  textRenderer = TextRenderer()
+  #textRenderer = OfficeTextRenderer()
+
   # Prepare input images
-  bg = NSImage.alloc().initWithContentsOfFile_(BACKGROUND)
-  if not bg:
-    print 'Failed to load', bgname
-    sys.exit(1)
+  bgIcon = Image(BACKGROUND)
 
-  grounds, shadows = zip(*[splitGenericDocumentIcon(bg, s) for s in sizes])
-  grounds = dict(zip(sizes, grounds))
-  shadows = dict(zip(sizes, shadows))
+  #bg = SplittableBackground(bgIcon, shouldSplit=False)
+  bg = SplittableBackground(bgIcon, shouldSplit=True)
 
-  icon = NSImage.alloc().initWithContentsOfFile_(appIcon)
-  if not icon:
-    print 'Failed to load', appIcon
-    sys.exit(1)
+  icon = Image(appIcon)
+  bgRenderer = BackgroundRenderer(bg, icon)
 
   if not os.access(makeIcns, os.X_OK):
     print 'Cannot find makeicns at %s', makeIcns
@@ -370,33 +503,26 @@ def main():
     print name
     icnsName = '%s.icns' % name
 
-    for s in sizes:
-      st = shorttext.get(name)
-      if st: st = NSString.stringWithString_(st)
-      createIcon(TMPFILE % s, NSString.stringWithString_(text),
-          grounds[s], icon, shadows[s], s=s, shorttext=st)
+    if size == SMALL:
+      currSizes = [128, 32, 16]
+      args = '-128 %s -32 %s -16 %s' % (
+          TMPFILE % 128, TMPFILE % 32, TMPFILE % 16)
+    elif size == LARGE:
+      currSizes = [512, 128, 32, 16]
+      args = '-512 %s -128 %s -32 %s -16 %s' % (
+          TMPFILE % 512, TMPFILE % 128, TMPFILE % 32, TMPFILE % 16)
 
-    if size == LARGE:
-      os.system('%s -512 %s -128 %s -32 %s -16 %s -out %s' % (makeIcns,
-        TMPFILE % 512, TMPFILE % 128, TMPFILE % 32, TMPFILE % 16, icnsName))
-    elif size == SMALL:
-      os.system('%s -128 %s -32 %s -16 %s -out %s' % (makeIcns,
-        TMPFILE % 128, TMPFILE % 32, TMPFILE % 16, icnsName))
+    st = shorttext.get(name)
+    for s in currSizes:
+      createIcon(TMPFILE % s, s, bgRenderer, textRenderer, text, shorttext=st)
+
+    os.system('%s %s -out %s' % (makeIcns, args, icnsName))
 
   del text, size, name, t
 
   # ...create links later (to make sure the link targets exist)
-  for name, t in vimIcons.iteritems():
-    text, size = t
-    if size != LINK: continue
-    print 'symlinking', name
-    icnsName = '%s.icns' % name
-
-    # remove old version of icns
-    if os.access(icnsName, os.F_OK):
-      os.remove(icnsName)
-    os.symlink('%s.icns' % GENERIC_ICON_NAME, icnsName)
-
+  createLinks([name for (name, t) in vimIcons.items() if t[1] == LINK],
+      '%s.icns' % GENERIC_ICON_NAME)
 
 
 if __name__ == '__main__':
