@@ -69,6 +69,7 @@
 - (void)dealloc
 {
     [_indicator release];
+    [_toolTip release];
     [super dealloc];
 }
 
@@ -250,6 +251,19 @@
         value = (kPSMTabDragAnimationSteps - 1);
     
     _currentStep = value;
+}
+
+- (NSString *)toolTip
+{
+    return _toolTip;
+}
+
+- (void)setToolTip:(NSString *)tip
+{
+    if (tip != _toolTip) {
+        [_toolTip release];
+        _toolTip = [tip copy];
+    }
 }
 
 #pragma mark -

@@ -288,6 +288,8 @@ enum {
         unsigned i;
         for (i = 0; i < infoCount; ++i) {
             int length = *((int*)p);  p += sizeof(int);
+            if (length <= 0)
+                continue;
 
             NSString *val = [[NSString alloc]
                     initWithBytes:(void*)p length:length
@@ -304,7 +306,9 @@ enum {
                     ++tabIdx;
                     break;
                 case MMTabToolTip:
-                    [[self tabBarControl] setToolTip:val forTabViewItem:tvi];
+                    if (tvi)
+                        [[self tabBarControl] setToolTip:val
+                                          forTabViewItem:tvi];
                     break;
                 default:
                     NSLog(@"WARNING: Unknown tab info for index: %d", i);

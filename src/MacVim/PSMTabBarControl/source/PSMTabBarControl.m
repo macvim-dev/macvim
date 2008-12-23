@@ -146,10 +146,8 @@
         }
         [_addTabButton setNeedsDisplay:YES];
     }
-
-    _toolTips = [[NSMutableDictionary alloc] init];
 }
-    
+
 - (id)initWithFrame:(NSRect)frame
 {
     self = [super initWithFrame:frame];
@@ -171,7 +169,6 @@
     [partnerView release];
     [_lastMouseDownEvent release];
     [style release];
-    [_toolTips release];
     [delegate release];
     
     [self unregisterDraggedTypes];
@@ -385,15 +382,16 @@
 
 #pragma mark -
 #pragma mark Tool tips
-- (NSString *)toolTipForTabViewItem:(NSTabViewItem *)tvi
-{
-    return [_toolTips objectForKey:[NSValue valueWithPointer:tvi]];
-}
-
 
 - (void)setToolTip:(NSString *)value forTabViewItem:(NSTabViewItem *)tvi
 {
-    [_toolTips setObject:value forKey:[NSValue valueWithPointer:tvi]];
+    int i, cellCount = [_cells count];
+    for (i = 0; i < cellCount; i++) {
+        PSMTabBarCell *cell = [_cells objectAtIndex:i];
+        if ([cell representedObject] == tvi)
+            [cell setToolTip:value];
+    }
+
     [self update];
 }
 
@@ -475,9 +473,6 @@
     if([cell cellTrackingTag] != 0){
         [self removeTrackingRect:[cell cellTrackingTag]];
     }
-
-    // remove tool tip
-    [_toolTips removeObjectForKey:[NSValue valueWithPointer:[cell representedObject]]];
 
     // pull from collection
     [_cells removeObject:cell];
@@ -787,7 +782,7 @@
             [cell setEnabled:YES];
 
             // add tool tip
-            NSString *tt = [self toolTipForTabViewItem:tvi];
+            NSString *tt = [cell toolTip];
             if (tt && [tt length] > 0)
                 [self addToolTipRect:cellRect owner:tt userData:NULL];
 

@@ -31,6 +31,7 @@
     BOOL                _isCloseButtonSuppressed;
     BOOL                _hasIcon;
     int                 _count;
+    NSString            *_toolTip;
 }
 
 // creation/destruction
@@ -72,6 +73,8 @@
 - (void)setIsPlaceholder:(BOOL)value;
 - (int)currentStep;
 - (void)setCurrentStep:(int)value;
+- (NSString *)toolTip;
+- (void)setToolTip:(NSString *)tip;
 
 // component attributes
 - (NSRect)indicatorRectForFrame:(NSRect)cellFrame;
