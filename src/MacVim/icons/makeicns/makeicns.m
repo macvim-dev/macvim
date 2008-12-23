@@ -54,6 +54,9 @@ void usage() {
 NSBitmapImageRep* getBitmapImageRepOfSize(NSImage* img, int size) {
 
   // Don't resample if it's not necessary
+  // XXX: Seems as if this creates problems in some situations, disable this
+  // for now.
+#if 0
   NSEnumerator* e = [[img representations] objectEnumerator];
   NSImageRep* ir;
   while ((ir = [e nextObject])) {
@@ -68,6 +71,7 @@ NSBitmapImageRep* getBitmapImageRepOfSize(NSImage* img, int size) {
        )
       return br;
   }
+#endif
 
   NSLog(@"Resampling for size %d", size);
   NSBitmapImageRep* r = [[NSBitmapImageRep alloc]
