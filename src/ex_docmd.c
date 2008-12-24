@@ -8773,8 +8773,8 @@ ex_mkrc(eap)
 		else if (*dirnow != NUL
 			&& (ssop_flags & SSOP_CURDIR) && globaldir != NULL)
 		{
-		    (void)mch_chdir((char *)globaldir);
-		    shorten_fnames(TRUE);
+		    if (mch_chdir((char *)globaldir) == OK)
+			shorten_fnames(TRUE);
 		}
 
 		failed |= (makeopens(fd, dirnow) == FAIL);
@@ -10134,7 +10134,7 @@ makeopens(fd, dirnow)
      */
     if (put_line(fd, "let s:sx = expand(\"<sfile>:p:r\").\"x.vim\"") == FAIL
 	    || put_line(fd, "if file_readable(s:sx)") == FAIL
-	    || put_line(fd, "  exe \"source \" . s:sx") == FAIL
+	    || put_line(fd, "  exe \"source \" . fnameescape(s:sx)") == FAIL
 	    || put_line(fd, "endif") == FAIL)
 	return FAIL;
 

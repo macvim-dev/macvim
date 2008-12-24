@@ -769,11 +769,14 @@ messageFromNetbeans(gpointer clientData, gint unused1,
 	return; /* don't try to parse it */
     }
 
-#ifdef FEAT_GUI_GTK
+#if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_W32)
+    /* Let the main loop handle messages. */
+# ifdef FEAT_GUI_GTK
     if (gtk_main_level() > 0)
 	gtk_main_quit();
+# endif
 #else
-    /* Parse the messages, but avoid recursion. */
+    /* Parse the messages now, but avoid recursion. */
     if (level == 1)
 	netbeans_parse_messages();
 
@@ -1043,7 +1046,7 @@ netbeans_end(void)
 	nbdebug(("EVT: %s", buf));
 /*	nb_send(buf, "netbeans_end");    avoid "write failed" messages */
 	if (sd >= 0)
-	    sock_write(sd, buf, (int)STRLEN(buf));  /* ignore errors */
+	    ignored = sock_write(sd, buf, (int)STRLEN(buf));
     }
 }
 
@@ -2277,9 +2280,6 @@ nb_do_cmd(
 	    int serNum;
 	    int localTypeNum;
 	    int typeNum;
-# ifdef NBDEBUG
-	    int len;
-# endif
 	    pos_T *pos;
 
 	    if (buf == NULL || buf->bufp == NULL)
@@ -2303,13 +2303,10 @@ nb_do_cmd(
 	    pos = get_off_or_lnum(buf->bufp, &args);
 
 	    cp = (char *)args;
-# ifdef NBDEBUG
-	    len =
-# endif
-		strtol(cp, &cp, 10);
+	    ignored = (int)strtol(cp, &cp, 10);
 	    args = (char_u *)cp;
 # ifdef NBDEBUG
-	    if (len != -1)
+	    if (ignored != -1)
 	    {
 		nbdebug(("    partial line annotation -- Not Yet Implemented!\n"));
 	    }

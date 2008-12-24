@@ -692,6 +692,58 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    75,
+/**/
+    74,
+/**/
+    73,
+/**/
+    72,
+/**/
+    71,
+/**/
+    70,
+/**/
+    69,
+/**/
+    68,
+/**/
+    67,
+/**/
+    66,
+/**/
+    65,
+/**/
+    64,
+/**/
+    63,
+/**/
+    62,
+/**/
+    61,
+/**/
+    60,
+/**/
+    59,
+/**/
+    58,
+/**/
+    57,
+/**/
+    56,
+/**/
+    55,
+/**/
+    54,
+/**/
+    53,
+/**/
+    52,
+/**/
+    51,
+/**/
+    50,
+/**/
     49,
 /**/
     48,
@@ -791,6 +843,19 @@ static int included_patches[] =
     1,
 /**/
     0
+};
+
+/*
+ * Place to put a short description when adding a feature with a patch.
+ * Keep it short, e.g.,: "relative numbers", "persistent undo".
+ * Also add a comment marker to separate the lines.
+ * See the official Vim patches for the diff format: It must use a context of
+ * one line only.  Create it by hand or use "diff -C2" and edit the patch.
+ */
+static char *(extra_patches[]) =
+{   /* Add your patch description below this line */
+/**/
+    NULL
 };
 
     int
@@ -935,6 +1000,19 @@ list_version()
 		}
 		first = -1;
 	    }
+	}
+    }
+
+    /* Print the list of extra patch descriptions if there is at least one. */
+    if (extra_patches[0] != NULL)
+    {
+	MSG_PUTS(_("\nExtra patches: "));
+	s = "";
+	for (i = 0; extra_patches[i] != NULL; ++i)
+	{
+	    MSG_PUTS(s);
+	    s = ", ";
+	    MSG_PUTS(extra_patches[i]);
 	}
     }
 
