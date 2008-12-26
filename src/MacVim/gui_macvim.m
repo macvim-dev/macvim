@@ -695,6 +695,29 @@ gui_mch_add_menu(vimmenu_T *menu, int idx)
 }
 
 
+// Taken from gui_gtk.c (slightly modified)
+    static int
+lookup_menu_iconfile(char_u *iconfile, char_u *dest)
+{
+    expand_env(iconfile, dest, MAXPATHL);
+
+    if (mch_isFullName(dest))
+	return vim_fexists(dest);
+
+    static const char   suffixes[][4] = {"png", "bmp"};
+    char_u		buf[MAXPATHL];
+    unsigned int	i;
+
+    for (i = 0; i < sizeof(suffixes)/sizeof(suffixes[0]); ++i)
+        if (gui_find_bitmap(dest, buf, (char *)suffixes[i]) == OK) {
+            STRCPY(dest, buf);
+            return TRUE;
+        }
+
+    return FALSE;
+}
+
+
 /*
  * Add a menu item to a menu
  */
@@ -713,11 +736,17 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     if (menu_is_toolbar(menu->parent->name)) {
         char_u fname[MAXPATHL];
 
-        // TODO: Ensure menu->iconfile exists (if != NULL)
-        icon = menu->iconfile;
-        if (!icon && gui_find_bitmap(menu->name, fname, "bmp") == OK)
+        // Try to use the icon=.. argument
+        if (menu->iconfile && lookup_menu_iconfile(menu->iconfile, fname))
             icon = fname;
-        if (!icon && menu->iconidx >= 0)
+
+        // If not found and not builtin specified try using the menu name
+        if (!icon && !menu->icon_builtin
+                                    && lookup_menu_iconfile(menu->name, fname))
+            icon = fname;
+
+        // Last resort, use display name (usually signals a builtin icon)
+        if (!icon)
             icon = menu->dname;
     }
 
