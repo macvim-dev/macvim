@@ -5167,11 +5167,20 @@ handle_tabmenu()
     {
 	case TABLINE_MENU_CLOSE:
 	    if (current_tab == 0)
+#ifdef FEAT_GUI_MACVIM
+		do_cmdline_cmd((char_u *)"conf tabclose");
+#else
 		do_cmdline_cmd((char_u *)"tabclose");
+#endif
 	    else
 	    {
+#ifdef FEAT_GUI_MACVIM
+		vim_snprintf((char *)IObuff, IOSIZE, "conf tabclose %d",
+								 current_tab);
+#else
 		vim_snprintf((char *)IObuff, IOSIZE, "tabclose %d",
 								 current_tab);
+#endif
 		do_cmdline_cmd(IObuff);
 	    }
 	    break;
