@@ -119,7 +119,12 @@ strings like "((3) of 2)" to appear in the window title.
 
 							*macvim-options*
 These are the non-standard options that MacVim supports:
-	'fullscreen' 'fuoptions' 'toolbariconsize' 'transparency' 'antialias'
+	'antialias'	'fullscreen'		'fuoptions'
+	'macmeta'	'toolbariconsize'	'transparency'
+
+							*macvim-commands*
+These are the non-standard commands that MacVim supports:
+	|:macaction|	|:macmenu|
 
 							*macvim-find*
 Whenever you search for something in Vim (e.g. using "/") the search query is
