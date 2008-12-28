@@ -41,6 +41,35 @@
     -->
 
     <item>
+      <title>Snapshot 40 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 40 released</h1>
+
+<p> Changes since snapshot 39:
+  <ul>
+    <li> Fix problems with Quickstart "leaking" Vim processes </li>
+    <li> 'imdisable' now on by default (i.e. IM is disabled by default) </li>
+    <li> Clipboard support in non-GUI mode (Kent Sibilev) </li>
+    <li> New document icons, more filetype associations (Nico Weber) </li>
+    <li> Add support for 'guitabtooltip' (hint: add the line "set gtl=%t gtt=%F" to your .gvimrc to make tabs display the name of the file and have the tooltip display the full path) (Jonathon Mah) </li>
+    <li> Look for toolbar icons in runtime path (plugins such as TVO now display toolbar icons properly) </li>
+    <li> Show dialog when clicking to close tab with modified buffers </li>
+    <li> Update documentation </li>
+    <li> Latest runtime files, and Vim patches </li>
+  </ul>
+</p>
+      ]]></description>
+      <pubDate>Sun, 28 Dec 2008 17:26 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-40.tbz"
+        length="8138981"
+        sparkle:version="40"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 39 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 39 released</h1>
