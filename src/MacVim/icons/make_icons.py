@@ -10,6 +10,7 @@ try:
   dont_create = False
 except:
   dont_create = True  # most likely because we're on tiger
+  NSCompositeSourceOver = 2
 
 import math
 import os
@@ -435,7 +436,7 @@ class OfficeTextRenderer(TextRenderer):
     text.drawInRect_withAttributes_( ((0, 1), (31, 11)), attribs)
 
 
-def createIcon(outname, s, bg, textRenderer, text, shorttext=None):
+def createIcon(s, bg, textRenderer, text, shorttext=None):
 
   # Fill in background
   output = bg.backgroundAtSize(s).copy()
@@ -447,8 +448,7 @@ def createIcon(outname, s, bg, textRenderer, text, shorttext=None):
   textRenderer.drawTextAtSize(text, s)
   context.done()
 
-  # Save
-  output.save(outname)
+  return output
 
 
 def createLinks(icons, target):
@@ -458,6 +458,25 @@ def createLinks(icons, target):
     if os.access(icnsName, os.F_OK):
       os.remove(icnsName)
     os.symlink(target, icnsName)
+
+
+def saveIcns(icons, icnsName, makeIcns='./makeicns'):
+  """Creates an icns file with several variants.
+
+  Params:
+    icons: A dict that contains icon size as key and Surface as value.
+           Valid keys are 512, 256, 128, 32, 16
+    icnsname: Name of the output file
+  """
+  # XXX: Figure out how to call ObjC directly from Python, then this doesn't
+  # need to call a different process and do lots of i/o.
+  args = []
+  for s, icon in icons.items():
+    assert s in [512, 256, 128, 32, 16]
+    assert icon.size() == [s, s]
+    icon.save(TMPFILE % s)
+    args.append('-%d %s' % (s, TMPFILE % s))
+  os.system('%s %s -out %s' % (makeIcns, ' '.join(args), icnsName))
 
 
 TMPFILE = 'make_icons_tmp_%d.png'
@@ -505,18 +524,14 @@ def main():
 
     if size == SMALL:
       currSizes = [128, 32, 16]
-      args = '-128 %s -32 %s -16 %s' % (
-          TMPFILE % 128, TMPFILE % 32, TMPFILE % 16)
     elif size == LARGE:
       currSizes = [512, 128, 32, 16]
-      args = '-512 %s -128 %s -32 %s -16 %s' % (
-          TMPFILE % 512, TMPFILE % 128, TMPFILE % 32, TMPFILE % 16)
 
     st = shorttext.get(name)
-    for s in currSizes:
-      createIcon(TMPFILE % s, s, bgRenderer, textRenderer, text, shorttext=st)
-
-    os.system('%s %s -out %s' % (makeIcns, args, icnsName))
+    icons = [(s, createIcon(s, bgRenderer, textRenderer, text, shorttext=st))
+        for s in currSizes]
+    icons = dict(icons)
+    saveIcns(icons, '%s.icns' % name, makeIcns)
 
   del text, size, name, t
 
