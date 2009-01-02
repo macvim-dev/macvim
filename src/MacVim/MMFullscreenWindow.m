@@ -38,12 +38,10 @@
 #define FUOPT_BGCOLOR_HLGROUP 0x004
 
 
-static int numFullscreenWindows = 0;
-
 @interface MMFullscreenWindow (Private)
 - (BOOL)isOnPrimaryScreen;
-- (void)hideDockIfAppropriate;
-- (void)revealDockIfAppropriate;
+- (void)handleWindowDidBecomeMainNotification:(NSNotification *)notification;
+- (void)handleWindowDidResignMainNotification:(NSNotification *)notification;
 @end
 
 @implementation MMFullscreenWindow
@@ -79,12 +77,26 @@ static int numFullscreenWindows = 0;
     [self setBackgroundColor:back];
     [self setReleasedWhenClosed:NO];
 
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(handleWindowDidBecomeMainNotification:)
+               name:NSWindowDidBecomeMainNotification
+             object:self];
+
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(handleWindowDidResignMainNotification:)
+               name:NSWindowDidResignMainNotification
+             object:self];
+
     return self;
 }
 
 - (void)dealloc
 {
     LOG_DEALLOC
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     [target release];  target = nil;
     [view release];  view = nil;
@@ -94,8 +106,6 @@ static int numFullscreenWindows = 0;
 
 - (void)enterFullscreen:(int)fuoptions
 {
-    [self hideDockIfAppropriate];
-
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
@@ -277,8 +287,6 @@ static int numFullscreenWindows = 0;
         CGReleaseDisplayFadeReservation(token);
     }
     
-    [self revealDockIfAppropriate];
-
     [self autorelease]; // Balance the above retain
 }
 
@@ -347,38 +355,29 @@ static int numFullscreenWindows = 0;
     return [self screen] == [screens objectAtIndex:0];
 }
 
-- (void)hideDockIfAppropriate
+- (void)handleWindowDidBecomeMainNotification:(NSNotification *)notification
 {
     // Hide menu and dock, both appear on demand.
     //
-    // Don't hide the dock if going fullscreen on a non-primary screen. Also,
-    // if there are several fullscreen windows on the primary screen, only
-    // hide dock and friends for the first fullscreen window (and display
-    // them again after the last fullscreen window has been closed).
-    //
     // Another way to deal with several fullscreen windows would be to hide/
-    // reveal the dock each time a fullscreen window gets/loses focus, but
-    // this way it's less distracting.
+    // reveal the dock only when the first fullscreen window is created and
+    // show it again after the last one has been closed, but toggling on each
+    // focus gain/loss works better with Spaces. The downside is that the
+    // menu bar flashes shortly when switching between two fullscreen windows.
 
     // XXX: If you have a fullscreen window on a secondary monitor and unplug
     // the monitor, this will probably not work right.
 
     if ([self isOnPrimaryScreen]) {
-        if (numFullscreenWindows == 0) {
-            SetSystemUIMode(kUIModeAllSuppressed, 0); //requires 10.3
-        }
-        ++numFullscreenWindows;
+        SetSystemUIMode(kUIModeAllSuppressed, 0); //requires 10.3
     }
 }
 
-- (void)revealDockIfAppropriate
+- (void)handleWindowDidResignMainNotification:(NSNotification *)notification
 {
-     // order menu and dock back in
+    // order menu and dock back in
     if ([self isOnPrimaryScreen]) {
-        --numFullscreenWindows;
-        if (numFullscreenWindows == 0) {
-            SetSystemUIMode(kUIModeNormal, 0);
-        }
+        SetSystemUIMode(kUIModeNormal, 0);
     }
 }
 
