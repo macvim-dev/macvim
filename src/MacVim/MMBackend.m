@@ -2420,10 +2420,7 @@ static NSString *MMSymlinkWarningString =
                     [self addInput:@"|vert sall"];
 
                 // Restore the old value of 'suffixes'.
-                [self addInput:@"|let &su=mvim_oldsu|unlet mvim_oldsu"];
-
-                // Adding "|redr|f" ensures a "Hit ENTER" prompt is not shown.
-                [self addInput:@"|redr|f<CR>"];
+                [self addInput:@"|let &su=mvim_oldsu|unlet mvim_oldsu<CR>"];
             } else {
                 // When opening one file we try to reuse the current window,
                 // but not if its buffer is modified or has a filename.
@@ -2454,9 +2451,7 @@ static NSString *MMSymlinkWarningString =
                 }
 
                 [self addInput:cmd];
-
-                // Adding "|redr|f" ensures a "Hit ENTER" prompt is not shown.
-                [self addInput:@"|redr|f<CR>"];
+                [self addInput:@"<CR>"];
             }
 
             // Force screen redraw (does it have to be this complicated?).

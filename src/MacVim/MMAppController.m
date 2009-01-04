@@ -808,7 +808,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
                 ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
                 "tab sb %@|let &swb=oldswb|unl oldswb|"
-                "cal foreground()|redr|f<CR>", firstFile];
+                "cal foreground()<CR>", firstFile];
 
         [firstController addVimInput:input];
 
