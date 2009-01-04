@@ -1236,11 +1236,18 @@ static NSString *MMSymlinkWarningString =
 }
 
 - (void)addInput:(in bycopy NSString *)input
-                 client:(in byref id <MMVimClientProtocol>)client
+          client:(in byref id <MMVimClientProtocol>)client
 {
     //NSLog(@"addInput:%@ client:%@", input, (id)client);
 
-    [self addInput:input];
+    // NOTE: We don't call addInput: here because it differs from
+    // server_to_input_buf() in that it always sets the 'silent' flag and we
+    // don't want the MacVim client/server code to behave differently from
+    // other platforms.
+    char_u *s = [input vimStringSave];
+    server_to_input_buf(s);
+    vim_free(s);
+
     [self addClient:(id)client];
 }
 
@@ -2524,17 +2531,45 @@ static NSString *MMSymlinkWarningString =
 
 - (void)addInput:(NSString *)input
 {
-    char_u *s = (char_u*)[input UTF8String];
+    // NOTE: This code is essentially identical to server_to_input_buf(),
+    // except the 'silent' flag is TRUE in the call to ins_typebuf() below.
+    char_u      *str = [input vimStringSave];
+    char_u      *ptr = NULL;
+    char_u      *cpo_save = p_cpo;
 
-#ifdef FEAT_MBYTE
-    s = CONVERT_FROM_UTF8(s);
-#endif
+    if (!str) return;
 
-    server_to_input_buf(s);
+    /* Set 'cpoptions' the way we want it.
+     *    B set - backslashes are *not* treated specially
+     *    k set - keycodes are *not* reverse-engineered
+     *    < unset - <Key> sequences *are* interpreted
+     *  The last but one parameter of replace_termcodes() is TRUE so that the
+     *  <lt> sequence is recognised - needed for a real backslash.
+     */
+    p_cpo = (char_u *)"Bk";
+    str = replace_termcodes((char_u *)str, &ptr, FALSE, TRUE, FALSE);
+    p_cpo = cpo_save;
 
-#ifdef FEAT_MBYTE
-    CONVERT_FROM_UTF8_FREE(s);
-#endif
+    if (*ptr != NUL)	/* trailing CTRL-V results in nothing */
+    {
+	/*
+	 * Add the string to the input stream.
+	 * Can't use add_to_input_buf() here, we now have K_SPECIAL bytes.
+	 *
+	 * First clear typed characters from the typeahead buffer, there could
+	 * be half a mapping there.  Then append to the existing string, so
+	 * that multiple commands from a client are concatenated.
+	 */
+	if (typebuf.tb_maplen < typebuf.tb_len)
+	    del_typebuf(typebuf.tb_len - typebuf.tb_maplen, typebuf.tb_maplen);
+	(void)ins_typebuf(str, REMAP_NONE, typebuf.tb_len, TRUE, TRUE);
+
+	/* Let input_available() know we inserted text in the typeahead
+	 * buffer. */
+	typebuf_was_filled = TRUE;
+    }
+    vim_free((char_u *)ptr);
+    vim_free(str);
 }
 
 - (BOOL)unusedEditor
