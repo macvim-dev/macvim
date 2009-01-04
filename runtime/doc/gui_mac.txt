@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2.  Last change: 2008 Oct 25
+*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Jan 04
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -263,6 +263,7 @@ MMDialogsTrackPwd		open/save dialogs track the Vim pwd [bool]
 MMLoginShellArgument		login shell parameter [string]
 MMLoginShellCommand		which shell to use to launch Vim [string]
 MMNoFontSubstitution		disable automatic font substitution [bool]
+MMShowAddTabButton		enable "add tab" button on tabline [bool]
 MMTabMaxWidth			maximum width of a tab [int]
 MMTabMinWidth			minimum width of a tab [int]
 MMTabOptimumWidth		default width of a tab [int]

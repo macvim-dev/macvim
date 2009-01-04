@@ -88,7 +88,8 @@ enum {
     // frameSizeMayHaveChanged.
     [self setAutoresizesSubviews:YES];
 
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMAtsuiRendererKey]) {
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    if ([ud boolForKey:MMAtsuiRendererKey]) {
         // Use ATSUI for text rendering.
         //
         // HACK! 'textView' has type MMTextView, but MMAtsuiTextView is not
@@ -100,7 +101,6 @@ enum {
     }
 
     // Allow control of text view inset via MMTextInset* user defaults.
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     int left = [ud integerForKey:MMTextInsetLeftKey];
     int top = [ud integerForKey:MMTextInsetTopKey];
     [textView setTextContainerInset:NSMakeSize(left, top)];
@@ -129,7 +129,7 @@ enum {
     [tabBarControl setCellOptimumWidth:
                                      [ud integerForKey:MMTabOptimumWidthKey]];
 
-    [tabBarControl setShowAddTabButton:YES];
+    [tabBarControl setShowAddTabButton:[ud boolForKey:MMShowAddTabButtonKey]];
     [[tabBarControl addTabButton] setTarget:self];
     [[tabBarControl addTabButton] setAction:@selector(addNewTab:)];
     [tabBarControl setAllowsDragBetweenWindows:NO];
