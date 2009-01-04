@@ -1077,7 +1077,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // MacVim would steal the focus if another app was activated while the
         // untitled window was loading.
         if (!args || args != [NSNull null])
-            [NSApp activateIgnoringOtherApps:YES];
+            [self activateWhenNextWindowOpens];
 
         if (args)
             [pidArguments removeObjectForKey:pidKey];
