@@ -859,10 +859,14 @@ static BOOL isUnsafeMessage(int msgid);
                 initWithBytes:(void*)bytes length:len
                      encoding:NSUTF8StringEncoding];
         NSFont *font = [NSFont fontWithName:name size:size];
+        if (!font) {
+            // This should never happen, but if e.g. the default font was
+            // missing from the app bundle we might end up here.
+            NSLog(@"WARNING: Can't set font %@, using Cocoa default", name);
+            font = [NSFont userFixedPitchFontOfSize:0];
+        }
 
-        if (font)
-            [windowController setFont:font];
-
+        [windowController setFont:font];
         [name release];
     } else if (SetWideFontMsgID == msgid) {
         const void *bytes = [data bytes];

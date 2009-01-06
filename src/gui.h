@@ -235,7 +235,12 @@ typedef long	    guicolor_T;	/* handle for a GUI color; for X11 this should
 				   displays there is a tiny chance this is an
 				   actual color */
 
-#ifdef FEAT_GUI_GTK
+#if defined(FEAT_GUI_MACVIM)
+  typedef void		*GuiFont;
+  typedef void		*GuiFontset;
+# define NOFONT		(GuiFont)NULL
+# define NOFONTSET	(GuiFontset)NULL
+#elif defined(FEAT_GUI_GTK)
 # ifdef HAVE_GTK2
   typedef PangoFontDescription	*GuiFont;       /* handle for a GUI font */
   typedef PangoFontDescription  *GuiFontset;    /* handle for a GUI fontset */

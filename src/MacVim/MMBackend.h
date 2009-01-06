@@ -41,8 +41,7 @@
     NSMutableDictionary *clientProxyDict;
     NSMutableDictionary *serverReplyDict;
     NSString            *alternateServerName;
-    ATSFontContainerRef fontContainerRef;
-    NSFont              *oldWideFont;
+    GuiFont             oldWideFont;
     BOOL                isTerminating;
     BOOL                waitForAck;
     int                 initialWindowLayout;
@@ -95,8 +94,7 @@
 - (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident;
 - (void)setScrollbarThumbValue:(long)val size:(long)size max:(long)max
                     identifier:(long)ident;
-- (void)setFont:(NSFont *)font;
-- (void)setWideFont:(NSFont *)font;
+- (void)setFont:(GuiFont)font wide:(BOOL)wide;
 - (void)executeActionWithName:(NSString *)name;
 - (void)setMouseShape:(int)shape;
 - (void)setBlinkWait:(int)wait on:(int)on off:(int)off;

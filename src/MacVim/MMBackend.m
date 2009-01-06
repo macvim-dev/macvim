@@ -77,6 +77,9 @@ static NSString *MMSymlinkWarningString =
      "\ta symlink, then your MacVim.app bundle is incomplete.\n\n";
 
 
+extern GuiFont gui_mch_retain_font(GuiFont font);
+
+
 
 @interface NSString (MMServerNameCompare)
 - (NSComparisonResult)serverNameCompare:(NSString *)string;
@@ -138,8 +141,6 @@ static NSString *MMSymlinkWarningString =
     self = [super init];
     if (!self) return nil;
 
-    fontContainerRef = loadFonts();
-
     outputQueue = [[NSMutableArray alloc] init];
     inputQueue = [[NSMutableArray alloc] init];
     drawData = [[NSMutableData alloc] initWithCapacity:1024];
@@ -173,7 +174,7 @@ static NSString *MMSymlinkWarningString =
     //NSLog(@"%@ %s", [self className], _cmd);
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
-    [oldWideFont release];  oldWideFont = nil;
+    gui_mch_free_font(oldWideFont);  oldWideFont = NOFONT;
     [blinkTimer release];  blinkTimer = nil;
     [alternateServerName release];  alternateServerName = nil;
     [serverReplyDict release];  serverReplyDict = nil;
@@ -485,10 +486,10 @@ static NSString *MMSymlinkWarningString =
 
     if ([drawData length] > 0) {
         // HACK!  Detect changes to 'guifontwide'.
-        if (gui.wide_font != (GuiFont)oldWideFont) {
-            [oldWideFont release];
-            oldWideFont = [(NSFont*)gui.wide_font retain];
-            [self setWideFont:oldWideFont];
+        if (gui.wide_font != oldWideFont) {
+            gui_mch_free_font(oldWideFont);
+            oldWideFont = gui_mch_retain_font(gui.wide_font);
+            [self setFont:oldWideFont wide:YES];
         }
 
         int type = SetCursorPosDrawType;
@@ -592,11 +593,6 @@ static NSString *MMSymlinkWarningString =
     [[NSConnection defaultConnection] setRootObject:nil];
     [[NSConnection defaultConnection] invalidate];
 #endif
-
-    if (fontContainerRef) {
-        ATSFontDeactivate(fontContainerRef, NULL, kATSOptionFlagsDefault);
-        fontContainerRef = 0;
-    }
 
     usleep(MMExitProcessDelay);
 }
@@ -834,35 +830,27 @@ static NSString *MMSymlinkWarningString =
     [self queueMessage:SetScrollbarThumbMsgID data:data];
 }
 
-- (void)setFont:(NSFont *)font
+- (void)setFont:(GuiFont)font wide:(BOOL)wide
 {
-    NSString *fontName = [font displayName];
-    float size = [font pointSize];
-    int len = [fontName lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-    if (len > 0) {
-        NSMutableData *data = [NSMutableData data];
-
-        [data appendBytes:&size length:sizeof(float)];
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:[fontName UTF8String] length:len];
-
-        [self queueMessage:SetFontMsgID data:data];
+    NSString *fontName = (NSString *)font;
+    float size = 0;
+    NSArray *components = [fontName componentsSeparatedByString:@":"];
+    if ([components count] == 2) {
+        size = [[components lastObject] floatValue];
+        fontName = [components objectAtIndex:0];
     }
-}
 
-- (void)setWideFont:(NSFont *)font
-{
-    NSString *fontName = [font displayName];
-    float size = [font pointSize];
     int len = [fontName lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     NSMutableData *data = [NSMutableData data];
-
     [data appendBytes:&size length:sizeof(float)];
     [data appendBytes:&len length:sizeof(int)];
+
     if (len > 0)
         [data appendBytes:[fontName UTF8String] length:len];
+    else if (!wide)
+        return;     // Only the wide font can be set to nothing
 
-    [self queueMessage:SetWideFontMsgID data:data];
+    [self queueMessage:(wide ? SetWideFontMsgID : SetFontMsgID) data:data];
 }
 
 - (void)executeActionWithName:(NSString *)name
@@ -2139,7 +2127,7 @@ static NSString *MMSymlinkWarningString =
     bytes += sizeof(unsigned);  // len not used
 
     NSMutableString *name = [NSMutableString stringWithUTF8String:bytes];
-    [name appendString:[NSString stringWithFormat:@":h%.2f", pointSize]];
+    [name appendString:[NSString stringWithFormat:@":h%d", (int)pointSize]];
     char_u *s = (char_u*)[name UTF8String];
 
 #ifdef FEAT_MBYTE

@@ -22,13 +22,13 @@
 
 // NOTE: The default font is bundled with the application.
 static NSString *MMDefaultFontName = @"DejaVu Sans Mono";
-static float MMDefaultFontSize = 12.0f;
-static float MMMinFontSize = 6.0f;
-static float MMMaxFontSize = 100.0f;
+static int MMDefaultFontSize       = 12;
+static int MMMinFontSize           = 6;
+static int MMMaxFontSize           = 100;
 static BOOL gui_mch_init_has_finished = NO;
 
 
-static NSFont *gui_macvim_font_with_name(char_u *name);
+static GuiFont gui_macvim_font_with_name(char_u *name);
 static int specialKeyToNSKey(int key);
 static int vimModMaskToEventModifierFlags(int mods);
 
@@ -897,8 +897,15 @@ gui_mch_free_font(font)
 {
     if (font != NOFONT) {
         //NSLog(@"gui_mch_free_font(font=0x%x)", font);
-        [(NSFont*)font release];
+        [(id)font release];
     }
+}
+
+
+    GuiFont
+gui_mch_retain_font(GuiFont font)
+{
+    return (GuiFont)[(id)font retain];
 }
 
 
@@ -911,9 +918,9 @@ gui_mch_get_font(char_u *name, int giveErrorIfMissing)
     //NSLog(@"gui_mch_get_font(name=%s, giveErrorIfMissing=%d)", name,
     //        giveErrorIfMissing);
 
-    NSFont *font = gui_macvim_font_with_name(name);
-    if (font)
-        return (GuiFont)[font retain];
+    GuiFont font = gui_macvim_font_with_name(name);
+    if (font != NOFONT)
+        return font;
 
     if (giveErrorIfMissing)
         EMSG2(_(e_font), name);
@@ -925,14 +932,12 @@ gui_mch_get_font(char_u *name, int giveErrorIfMissing)
 #if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Return the name of font "font" in allocated memory.
- * Don't know how to get the actual name, thus use the provided name.
+ * TODO: use 'font' instead of 'name'?
  */
     char_u *
 gui_mch_get_fontname(GuiFont font, char_u *name)
 {
-    if (name == NULL)
-	return NULL;
-    return vim_strsave(name);
+    return name ? vim_strsave(name) : NULL;
 }
 #endif
 
@@ -952,24 +957,24 @@ gui_mch_init_font(char_u *font_name, int fontset)
         return FAIL;
     }
 
-    NSFont *font = gui_macvim_font_with_name(font_name);
-    if (font) {
-        [(NSFont*)gui.norm_font release];
-        gui.norm_font = (GuiFont)[font retain];
+    GuiFont font = gui_macvim_font_with_name(font_name);
+    if (font == NOFONT)
+        return FAIL;
 
-        // NOTE: MacVim keeps separate track of the normal and wide fonts.
-        // Unless the user changes 'guifontwide' manually, they are based on
-        // the same (normal) font.  Also note that each time the normal font is
-        // set, the advancement may change so the wide font needs to be updated
-        // as well (so that it is always twice the width of the normal font).
-        [[MMBackend sharedInstance] setFont:font];
-        [[MMBackend sharedInstance] setWideFont:
-               (NOFONT == gui.wide_font ? font : (NSFont*)gui.wide_font)];
+    gui_mch_free_font(gui.norm_font);
+    gui.norm_font = font;
 
-        return OK;
-    }
+    // NOTE: MacVim keeps separate track of the normal and wide fonts.
+    // Unless the user changes 'guifontwide' manually, they are based on
+    // the same (normal) font.  Also note that each time the normal font is
+    // set, the advancement may change so the wide font needs to be updated
+    // as well (so that it is always twice the width of the normal font).
+    [[MMBackend sharedInstance] setFont:font wide:NO];
+    [[MMBackend sharedInstance] setFont:(NOFONT != gui.wide_font ? gui.wide_font
+                                                                 : font)
+                                   wide:YES];
 
-    return FAIL;
+    return OK;
 }
 
 
@@ -983,63 +988,58 @@ gui_mch_set_font(GuiFont font)
 }
 
 
-    NSFont *
+/*
+ * Return GuiFont in allocated memory.  The caller must free it using
+ * gui_mch_free_font().
+ */
+    GuiFont
 gui_macvim_font_with_name(char_u *name)
 {
-    NSFont *font = nil;
-    NSString *fontName = MMDefaultFontName;
-    float size = MMDefaultFontSize;
+    if (!name)
+        return (GuiFont)[[NSString alloc] initWithFormat:@"%@:%d",
+                                        MMDefaultFontName, MMDefaultFontSize];
+
+    NSString *fontName = [NSString stringWithVimString:name];
+    int size = MMDefaultFontSize;
     BOOL parseFailed = NO;
 
-#ifdef FEAT_MBYTE
-    name = CONVERT_TO_UTF8(name);
-#endif
-
-    if (name) {
-        fontName = [NSString stringWithUTF8String:(char*)name];
-
-        NSArray *components = [fontName componentsSeparatedByString:@":"];
-        if ([components count] == 2) {
-            NSString *sizeString = [components lastObject];
-            if ([sizeString length] > 0
-                    && [sizeString characterAtIndex:0] == 'h') {
-                sizeString = [sizeString substringFromIndex:1];
-                if ([sizeString length] > 0) {
-                    size = [sizeString floatValue];
-                    fontName = [components objectAtIndex:0];
-                }
-            } else {
-                parseFailed = YES;
+    NSArray *components = [fontName componentsSeparatedByString:@":"];
+    if ([components count] == 2) {
+        NSString *sizeString = [components lastObject];
+        if ([sizeString length] > 0
+                && [sizeString characterAtIndex:0] == 'h') {
+            sizeString = [sizeString substringFromIndex:1];
+            if ([sizeString length] > 0) {
+                size = (int)round([sizeString floatValue]);
+                fontName = [components objectAtIndex:0];
             }
-        } else if ([components count] > 2) {
+        } else {
             parseFailed = YES;
         }
+    } else if ([components count] > 2) {
+        parseFailed = YES;
+    }
 
-        if (!parseFailed) {
-            // Replace underscores with spaces.
-            fontName = [[fontName componentsSeparatedByString:@"_"]
-                                     componentsJoinedByString:@" "];
-        }
+    if (!parseFailed) {
+        // Replace underscores with spaces.
+        fontName = [[fontName componentsSeparatedByString:@"_"]
+                                 componentsJoinedByString:@" "];
     }
 
     if (!parseFailed && [fontName length] > 0) {
         if (size < MMMinFontSize) size = MMMinFontSize;
         if (size > MMMaxFontSize) size = MMMaxFontSize;
 
-        font = [NSFont fontWithName:fontName size:size];
-
-        if (!font && MMDefaultFontName == fontName) {
-            // If for some reason the MacVim default font is not in the app
-            // bundle, then fall back on the system default font.
-            font = [NSFont userFixedPitchFontOfSize:0];
-        }
+        // If the default font is requested we don't check if NSFont can load
+        // it since the font most likely isn't loaded anyway (it may only be
+        // available to the MacVim binary).  If it is not the default font we
+        // ask NSFont if it can load it.
+        if ([fontName isEqualToString:MMDefaultFontName]
+                || [NSFont fontWithName:fontName size:size])
+            return [[NSString alloc] initWithFormat:@"%@:%d", fontName, size];
     }
 
-#ifdef FEAT_MBYTE
-    CONVERT_TO_UTF8_FREE(name);
-#endif
-
-    return font;
+    return NOFONT;
 }
 
 // -- Scrollbars ------------------------------------------------------------
