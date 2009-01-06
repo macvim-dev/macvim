@@ -225,11 +225,6 @@ extern NSString *VimPBoardType;
 
 
 
-// Loads all fonts in the Resouces folder of the app bundle and returns a font
-// container reference (which should be used to deactivate the loaded fonts).
-ATSFontContainerRef loadFonts();
-
-
 
 @interface NSString (MMExtras)
 - (NSString *)stringByEscapingSpecialFilenameCharacters;

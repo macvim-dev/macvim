@@ -128,6 +128,7 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (void)startWatchingVimDir;
 - (void)stopWatchingVimDir;
 - (void)handleFSEvent;
+- (void)loadDefaultFont;
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu;
@@ -207,7 +208,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     if (!(self = [super init])) return nil;
 
-    fontContainerRef = loadFonts();
+    [self loadDefaultFont];
 
     vimControllers = [NSMutableArray new];
     cachedVimControllers = [NSMutableArray new];
@@ -1876,6 +1877,49 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // any previous preload requests before making a new one.
     [self cancelVimControllerPreloadRequests];
     [self scheduleVimControllerPreloadAfterDelay:0.5];
+}
+
+- (void)loadDefaultFont
+{
+    if (fontContainerRef)
+        return;
+
+    // Load all fonts in the Resouces folder of the app bundle.
+    NSString *fontsFolder = [[NSBundle mainBundle] resourcePath];
+    if (fontsFolder) {
+        NSURL *fontsURL = [NSURL fileURLWithPath:fontsFolder];
+        if (fontsURL) {
+            FSRef fsRef;
+            CFURLGetFSRef((CFURLRef)fontsURL, &fsRef);
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+            // This is the font activation API for OS X 10.5.  Only compile
+            // this code if we're building on OS X 10.5 or later.
+            if (NULL != ATSFontActivateFromFileReference) { // Weakly linked
+                ATSFontActivateFromFileReference(&fsRef, kATSFontContextLocal,
+                                                 kATSFontFormatUnspecified,
+                                                 NULL, kATSOptionFlagsDefault,
+                                                 &fontContainerRef);
+            }
+#endif
+#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4)
+            // The following font activation API was deprecated in OS X 10.5.
+            // Don't compile this code unless we're targeting OS X 10.4.
+            FSSpec fsSpec;
+            if (fontContainerRef == 0 &&
+                    FSGetCatalogInfo(&fsRef, kFSCatInfoNone, NULL, NULL,
+                                     &fsSpec, NULL) == noErr) {
+                ATSFontActivateFromFileSpecification(&fsSpec,
+                        kATSFontContextLocal, kATSFontFormatUnspecified, NULL,
+                        kATSOptionFlagsDefault, &fontContainerRef);
+            }
+#endif
+        }
+    }
+
+    if (!fontContainerRef)
+        NSLog(@"WARNING: Failed to activate the default font (the app bundle "
+                "may be incomplete)");
 }
 
 @end // MMAppController (Private)
