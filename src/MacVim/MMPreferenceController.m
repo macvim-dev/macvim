@@ -40,9 +40,12 @@ static void loadSymbols()
 }
 
 
-static CFStringRef ODBEDITOR = CFSTR("org.slashpunt.edit_in_odbeditor");
-static CFStringRef ODB_BUNDLE_IDENTIFIER = CFSTR("ODBEditorBundleIdentifier");
-static CFStringRef ODB_EDITOR_NAME = CFSTR("ODBEditorName");
+// The compiler on OS X 10.4 balks at using CFSTR() for globals so we get
+// around with this some ugly type casting.
+static CFStringRef ODBEDITOR = (CFStringRef)@"org.slashpunt.edit_in_odbeditor";
+static CFStringRef ODB_BUNDLE_IDENTIFIER =
+                                    (CFStringRef)@"ODBEditorBundleIdentifier";
+static CFStringRef ODB_EDITOR_NAME = (CFStringRef)@"ODBEditorName";
 static NSString *ODBEDITOR_DIR = 
     @"/Library/InputManagers/Edit in ODBEditor";
 static NSString *ODBEDITOR_PATH =
