@@ -2528,11 +2528,8 @@ static NSString *MMSymlinkWarningString =
 {
     // NOTE: This code is essentially identical to server_to_input_buf(),
     // except the 'silent' flag is TRUE in the call to ins_typebuf() below.
-    char_u      *str = [input vimStringSave];
-    char_u      *ptr = NULL;
-    char_u      *cpo_save = p_cpo;
-
-    if (!str) return;
+    char_u *string = [input vimStringSave];
+    if (!string) return;
 
     /* Set 'cpoptions' the way we want it.
      *    B set - backslashes are *not* treated specially
@@ -2541,8 +2538,10 @@ static NSString *MMSymlinkWarningString =
      *  The last but one parameter of replace_termcodes() is TRUE so that the
      *  <lt> sequence is recognised - needed for a real backslash.
      */
+    char_u *ptr = NULL;
+    char_u *cpo_save = p_cpo;
     p_cpo = (char_u *)"Bk";
-    str = replace_termcodes((char_u *)str, &ptr, FALSE, TRUE, FALSE);
+    char_u *str = replace_termcodes((char_u *)string, &ptr, FALSE, TRUE, FALSE);
     p_cpo = cpo_save;
 
     if (*ptr != NUL)	/* trailing CTRL-V results in nothing */
@@ -2563,8 +2562,8 @@ static NSString *MMSymlinkWarningString =
 	 * buffer. */
 	typebuf_was_filled = TRUE;
     }
-    vim_free((char_u *)ptr);
-    vim_free(str);
+    vim_free(ptr);
+    vim_free(string);
 }
 
 - (BOOL)unusedEditor
