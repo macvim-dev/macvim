@@ -456,14 +456,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // Count the number of open tabs
         e = [vimControllers objectEnumerator];
         id vc;
-        while ((vc = [e nextObject])) {
-            NSString *eval = [vc evaluateVimExpression:@"tabpagenr('$')"];
-            if (eval) {
-                int count = [eval intValue];
-                if (count > 0 && count < INT_MAX)
-                    numTabs += count;
-            }
-        }
+        while ((vc = [e nextObject]))
+            numTabs += [[vc objectForVimStateKey:@"numTabs"] intValue];
 
         if (numWindows > 1 || numTabs > 1) {
             NSAlert *alert = [[NSAlert alloc] init];
@@ -939,7 +933,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             boolForKey:MMDialogsTrackPwdKey];
     if (trackPwd) {
         MMVimController *vc = [self keyVimController];
-        if (vc) dir = [[vc vimState] objectForKey:@"pwd"];
+        if (vc) dir = [vc objectForVimStateKey:@"pwd"];
     }
 
     NSOpenPanel *panel = [NSOpenPanel openPanel];
@@ -1525,7 +1519,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSEnumerator *e = [vimControllers objectEnumerator];
     id vc;
     while ((vc = [e nextObject])) {
-        if ([[[vc vimState] objectForKey:@"unusedEditor"] boolValue])
+        if ([[vc objectForVimStateKey:@"unusedEditor"] boolValue])
             return vc;
     }
 

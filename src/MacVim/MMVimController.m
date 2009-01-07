@@ -200,6 +200,11 @@ static BOOL isUnsafeMessage(int msgid);
     return vimState;
 }
 
+- (id)objectForVimStateKey:(NSString *)key
+{
+    return [vimState objectForKey:key];
+}
+
 - (NSMenu *)mainMenu
 {
     return mainMenu;

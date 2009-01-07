@@ -1526,12 +1526,16 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     // to make synchronous calls from MacVim to Vim in order to get state.
 
     BOOL mmta = curbuf ? curbuf->b_p_mmta : NO;
+    int numTabs = tabpage_index(NULL) - 1;
+    if (numTabs < 0)
+        numTabs = 0;
 
     NSDictionary *vimState = [NSDictionary dictionaryWithObjectsAndKeys:
         [[NSFileManager defaultManager] currentDirectoryPath], @"pwd",
         [NSNumber numberWithInt:p_mh], @"p_mh",
         [NSNumber numberWithBool:[self unusedEditor]], @"unusedEditor",
         [NSNumber numberWithBool:mmta], @"p_mmta",
+        [NSNumber numberWithInt:numTabs], @"numTabs",
         nil];
 
     // Put the state before all other messages.

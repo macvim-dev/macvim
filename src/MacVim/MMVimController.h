@@ -49,6 +49,7 @@
 - (NSString *)serverName;
 - (MMWindowController *)windowController;
 - (NSDictionary *)vimState;
+- (id)objectForVimStateKey:(NSString *)key;
 - (NSMenu *)mainMenu;
 - (BOOL)isPreloading;
 - (void)setIsPreloading:(BOOL)yn;
