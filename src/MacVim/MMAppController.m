@@ -61,10 +61,6 @@ static NSTimeInterval MMReplyTimeout = 5;
 
 static NSString *MMWebsiteString = @"http://code.google.com/p/macvim/";
 
-// When terminating, notify Vim processes then sleep for these many
-// microseconds.
-static useconds_t MMTerminationSleepPeriod = 10000;
-
 #if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
 // Latency (in s) between FS event occuring and being reported to MacVim.
 // Should be small so that MacVim is notified of changes to the ~/.vim
@@ -525,10 +521,23 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         while ((vc = [e nextObject]))
             [vc sendMessage:TerminateNowMsgID data:nil];
 
-        // Give Vim processes a chance to terminate before MacVim.  If they
-        // haven't terminated by the time applicationWillTerminate: is sent,
-        // they may be forced to quit (see below).
-        usleep(MMTerminationSleepPeriod);
+        // If a Vim process is being preloaded as we quit we have to forcibly
+        // kill it since we have not established a connection yet.
+        if (preloadPid > 0) {
+            //NSLog(@"INCOMPLETE preloaded process: preloadPid=%d", preloadPid);
+            kill(preloadPid, SIGKILL);
+        }
+
+        // If a Vim process was loading as we quit we also have to kill it.
+        e = [[pidArguments allKeys] objectEnumerator];
+        NSNumber *pidKey;
+        while ((pidKey = [e nextObject])) {
+            //NSLog(@"INCOMPLETE process: pid=%d", [pidKey intValue]);
+            kill([pidKey intValue], SIGKILL);
+        }
+
+        // Sleep a little to allow all the Vim processes to exit.
+        usleep(10000);
     }
 
     return reply;
@@ -551,17 +560,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // This will invalidate all connections (since they were spawned from this
     // connection).
     [connection invalidate];
-
-    // Send a SIGINT to all running Vim processes, so that they are sure to
-    // receive the connectionDidDie: notification (a process has to be checking
-    // the run-loop for this to happen).
-    unsigned i, count = [vimControllers count];
-    for (i = 0; i < count; ++i) {
-        MMVimController *controller = [vimControllers objectAtIndex:i];
-        int pid = [controller pid];
-        if (-1 != pid)
-            kill(pid, SIGINT);
-    }
 
     if (fontContainerRef) {
         ATSFontDeactivate(fontContainerRef, NULL, kATSOptionFlagsDefault);

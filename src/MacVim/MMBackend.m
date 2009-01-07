@@ -51,13 +51,6 @@ static int eventModifierFlagsToVimModMask(int modifierFlags);
 static int eventModifierFlagsToVimMouseModMask(int modifierFlags);
 static int eventButtonNumberToVimMouseButton(int buttonNumber);
 
-// Before exiting process, sleep for this many microseconds.  This is to allow
-// any distributed object messages in transit to be received by MacVim before
-// the process dies (otherwise an error message is logged by Cocoa).  Note that
-// this delay is only necessary if an NSConnection to MacVim has been
-// established.
-static useconds_t MMExitProcessDelay = 300000;
-
 // In gui_macvim.m
 vimmenu_T *menu_for_descriptor(NSArray *desc);
 
@@ -473,7 +466,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     // Keep running the run-loop until there is no more input to process.
     while (CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true)
             == kCFRunLoopRunHandledSource)
-        ;
+        ;   // do nothing
 }
 
 - (void)flushQueue:(BOOL)force
@@ -513,8 +506,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                     outputQueue);
             if (![connection isValid]) {
                 NSLog(@"WARNING! Connection is invalid, exit now!");
-                NSLog(@"waitForAck=%d got_int=%d isTerminating=%d",
-                        waitForAck, got_int, isTerminating);
+                NSLog(@"waitForAck=%d got_int=%d", waitForAck, got_int);
                 mch_exit(-1);
             }
         }
@@ -560,21 +552,17 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     // NOTE: This is called if mch_exit() is called.  Since we assume here that
     // the process has started properly, be sure to use exit() instead of
-    // mch_exit() to prematurely terminate a process.
-
-    // To notify MacVim that this Vim process is exiting we could simply
-    // invalidate the connection and it would automatically receive a
-    // connectionDidDie: notification.  However, this notification seems to
-    // take up to 300 ms to arrive which is quite a noticeable delay.  Instead
-    // we immediately send a message to MacVim asking it to close the window
-    // belonging to this process, and then we invalidate the connection (in
-    // case the message got lost).
+    // mch_exit() to prematurely terminate a process (or set 'isTerminating'
+    // first).
 
     // Make sure no connectionDidDie: notification is received now that we are
     // already exiting.
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
-    if ([connection isValid]) {
+    // The 'isTerminating' flag indicates that the frontend is also exiting so
+    // there is no need to flush any more output since the frontend won't look
+    // at it anyway.
+    if (!isTerminating && [connection isValid]) {
         @try {
             // Flush the entire queue in case a VimLeave autocommand added
             // something to the queue.
@@ -585,7 +573,15 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             NSLog(@"Exception caught when sending CloseWindowMsgID: \"%@\"", e);
         }
 
-        [connection invalidate];
+        // NOTE: If Cmd-w was pressed to close the window the menu is briefly
+        // highlighted and during this pause the frontend won't receive any DO
+        // messages.  If the Vim process exits before this highlighting has
+        // finished Cocoa will emit the following error message:
+        //   *** -[NSMachPort handlePortMessage:]: dropping incoming DO message
+        //   because the connection or ports are invalid
+        // To avoid this warning we delay here.  If the warning still appears
+        // this delay may need to be increased.
+        usleep(150000);
     }
 
 #ifdef MAC_CLIENTSERVER
@@ -593,8 +589,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [[NSConnection defaultConnection] setRootObject:nil];
     [[NSConnection defaultConnection] invalidate];
 #endif
-
-    usleep(MMExitProcessDelay);
 }
 
 - (void)selectTab:(int)index
@@ -1060,8 +1054,11 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             }
         }
     } else if (TerminateNowMsgID == msgid) {
-        shouldClearQueue = YES;
+        // Terminate immediately (the frontend is about to quit or this process
+        // was aborted).
         isTerminating = YES;
+        mch_exit(0);
+        return;
     }
 
     if (shouldClearQueue) {
@@ -1444,11 +1441,11 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     if (!waitForAck) return;
 
-    while (waitForAck && !got_int && [connection isValid] && !isTerminating) {
+    while (waitForAck && !got_int && [connection isValid]) {
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                                  beforeDate:[NSDate distantFuture]];
-        //NSLog(@"  waitForAck=%d got_int=%d isTerminating=%d isValid=%d",
-        //        waitForAck, got_int, isTerminating, [connection isValid]);
+        //NSLog(@"  waitForAck=%d got_int=%d isValid=%d",
+        //        waitForAck, got_int, [connection isValid]);
     }
 
     if (waitForAck) {
@@ -1459,7 +1456,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         // NOTE: We intentionally do not call mch_exit() since this in turn
         // will lead to -[MMBackend exit] getting called which we want to
         // avoid.
-        usleep(MMExitProcessDelay);
         exit(0);
     }
 
@@ -1488,8 +1484,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     // items while a sheet is being displayed, so we can't just wait for the
     // first message to arrive and assume that is the setDialogReturn: call.
 
-    while (nil == dialogReturn && !got_int && [connection isValid]
-            && !isTerminating)
+    while (nil == dialogReturn && !got_int && [connection isValid])
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                                  beforeDate:[NSDate distantFuture]];
 
@@ -1977,19 +1972,15 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (void)connectionDidDie:(NSNotification *)notification
 {
-    // If the main connection to MacVim is lost this means that MacVim was
-    // either quit (by the user chosing Quit on the MacVim menu), or it has
-    // crashed.  In the former case the flag 'isTerminating' is set and we then
-    // quit cleanly; in the latter case we make sure the swap files are left
-    // for recovery.
+    // If the main connection to MacVim is lost this means that either MacVim
+    // has crashed or this process did not receive its termination message
+    // properly (e.g. if the TerminateNowMsgID was dropped).
     //
     // NOTE: This is not called if a Vim controller invalidates its connection.
 
-    //NSLog(@"%s isTerminating=%d", _cmd, isTerminating);
-    if (isTerminating)
-        getout(0);
-    else
-        getout_preserve_modified(1);
+    NSLog(@"WARNING[%s]: Main connection was lost before process had a chance "
+            "to terminate; preserving swap files.", _cmd);
+    getout_preserve_modified(1);
 }
 
 - (void)blinkTimerFired:(NSTimer *)timer
