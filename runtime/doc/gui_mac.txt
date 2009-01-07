@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Jan 04
+*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Jan 07
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -260,6 +260,7 @@ Here is a list of relevant dictionary entries:
 KEY				VALUE ~
 MMCellWidthMultiplier		width of a normal glyph in em units [float]
 MMDialogsTrackPwd		open/save dialogs track the Vim pwd [bool]
+MMLoadDefaultFont		load font (disable for faster startup) [bool]
 MMLoginShellArgument		login shell parameter [string]
 MMLoginShellCommand		which shell to use to launch Vim [string]
 MMNoFontSubstitution		disable automatic font substitution [bool]

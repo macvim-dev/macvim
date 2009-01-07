@@ -190,6 +190,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],   MMVerticalSplitKey,
         [NSNumber numberWithInt:0],     MMPreloadCacheSizeKey,
         [NSNumber numberWithInt:0],     MMLastWindowClosedBehaviorKey,
+        [NSNumber numberWithBool:YES],  MMLoadDefaultFontKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -1881,7 +1882,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)loadDefaultFont
 {
-    if (fontContainerRef)
+    // It is possible to set a user default to avoid loading the default font
+    // (this cuts down on startup time).
+    if (![[NSUserDefaults standardUserDefaults] boolForKey:MMLoadDefaultFontKey]
+            || fontContainerRef)
         return;
 
     // Load all fonts in the Resouces folder of the app bundle.

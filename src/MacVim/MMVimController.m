@@ -860,10 +860,10 @@ static BOOL isUnsafeMessage(int msgid);
                      encoding:NSUTF8StringEncoding];
         NSFont *font = [NSFont fontWithName:name size:size];
         if (!font) {
-            // This should never happen, but if e.g. the default font was
-            // missing from the app bundle we might end up here.
-            NSLog(@"WARNING: Can't set font %@, using Cocoa default", name);
-            font = [NSFont userFixedPitchFontOfSize:0];
+            // This should only happen if the default font was not loaded in
+            // which case we fall back on using the Cocoa default fixed width
+            // font.
+            font = [NSFont userFixedPitchFontOfSize:size];
         }
 
         [windowController setFont:font];

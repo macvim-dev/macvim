@@ -45,6 +45,7 @@ NSString *MMOpenLayoutKey               = @"MMOpenLayout";
 NSString *MMVerticalSplitKey            = @"MMVerticalSplit";
 NSString *MMPreloadCacheSizeKey         = @"MMPreloadCacheSize";
 NSString *MMLastWindowClosedBehaviorKey = @"MMLastWindowClosedBehavior";
+NSString *MMLoadDefaultFontKey          = @"MMLoadDefaultFont";
 
 
 

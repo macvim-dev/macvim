@@ -54,6 +54,7 @@ extern NSString *MMOpenLayoutKey;
 extern NSString *MMVerticalSplitKey;
 extern NSString *MMPreloadCacheSizeKey;
 extern NSString *MMLastWindowClosedBehaviorKey;
+extern NSString *MMLoadDefaultFontKey;
 
 
 // Enum for MMUntitledWindowKey
