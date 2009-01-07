@@ -561,6 +561,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // connection).
     [connection invalidate];
 
+    // Deactivate the font we loaded from the app bundle.
+    // NOTE: This can take quite a while (~500 ms), so termination will be
+    // noticeably faster if loading of the default font is disabled.
     if (fontContainerRef) {
         ATSFontDeactivate(fontContainerRef, NULL, kATSOptionFlagsDefault);
         fontContainerRef = 0;
