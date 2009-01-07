@@ -1286,12 +1286,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     if (-1 != pid) {
-        // NOTE: If the process has no arguments, then add a null argument to
-        // the pidArguments dictionary.  This is later used to detect that a
-        // process without arguments is being launched.
-        if (!args)
-            [pidArguments setObject:[NSNull null]
-                             forKey:[NSNumber numberWithInt:pid]];
+        // Add a null argument to the pidArguments dictionary.  This is later
+        // used to detect that a process without arguments is being launched.
+        [pidArguments setObject:[NSNull null]
+                         forKey:[NSNumber numberWithInt:pid]];
     } else {
         NSLog(@"WARNING: %s%@ failed (useLoginShell=%d)", _cmd, args,
                 useLoginShell);
