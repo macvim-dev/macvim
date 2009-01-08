@@ -4434,6 +4434,10 @@ mch_call_shell(cmd, options)
 			windgoto(msg_row, msg_col);
 			cursor_on();
 			out_flush();
+# if FEAT_GUI_MACVIM
+			if (gui.in_use)
+			    fast_breakcheck();
+# endif
 			if (got_int)
 			    break;
 		    }
