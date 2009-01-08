@@ -82,8 +82,6 @@ typedef struct
 #pragma options align=reset
 
 
-static int executeInLoginShell(NSString *path, NSArray *args);
-
 
 @interface MMAppController (MMServices)
 - (void)openSelection:(NSPasteboard *)pboard userData:(NSString *)userData
@@ -125,6 +123,8 @@ static int executeInLoginShell(NSString *path, NSArray *args);
 - (void)stopWatchingVimDir;
 - (void)handleFSEvent;
 - (void)loadDefaultFont;
+- (int)executeInLoginShell:(NSString *)path arguments:(NSArray *)args;
+- (void)reapChildProcesses:(id)sender;
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu;
@@ -151,9 +151,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 + (void)initialize
 {
-    // Avoid zombies (we fork Vim processes which we don't want to wait for).
-    signal(SIGCHLD, SIG_IGN);
-
     NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
         [NSNumber numberWithBool:NO],   MMNoWindowKey,
         [NSNumber numberWithInt:64],    MMTabMinWidthKey,
@@ -508,12 +505,16 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (NSTerminateNow == reply) {
         e = [vimControllers objectEnumerator];
         id vc;
-        while ((vc = [e nextObject]))
+        while ((vc = [e nextObject])) {
+            //NSLog(@"Terminate pid=%d", [vc pid]);
             [vc sendMessage:TerminateNowMsgID data:nil];
+        }
 
         e = [cachedVimControllers objectEnumerator];
-        while ((vc = [e nextObject]))
+        while ((vc = [e nextObject])) {
+            //NSLog(@"Terminate pid=%d (cached)", [vc pid]);
             [vc sendMessage:TerminateNowMsgID data:nil];
+        }
 
         // If a Vim process is being preloaded as we quit we have to forcibly
         // kill it since we have not established a connection yet.
@@ -564,6 +565,32 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     [NSApp setDelegate:nil];
+
+    // Try to wait for all child processes to avoid leaving zombies behind (but
+    // don't wait around for too long).
+    NSDate *timeOutDate = [NSDate dateWithTimeIntervalSinceNow:2];
+    while ([timeOutDate timeIntervalSinceNow] > 0) {
+        [self reapChildProcesses:nil];
+        if (numChildProcesses <= 0)
+            break;
+
+        //NSLog(@"%d processes still left, sleep a bit...", numChildProcesses);
+
+        // Run in NSConnectionReplyMode while waiting instead of calling e.g.
+        // usleep().  Otherwise incoming messages may clog up the DO queues and
+        // the outgoing TerminateNowMsgID sent earlier never reaches the Vim
+        // process.
+        // This has at least one side-effect, namely we may receive the
+        // annoying "dropping incoming DO message".  (E.g. this may happen if
+        // you quickly hit Cmd-n several times in a row and then immediately
+        // press Cmd-q, Enter.)
+        while (CFRunLoopRunInMode((CFStringRef)NSConnectionReplyMode,
+                0.05, true) == kCFRunLoopRunHandledSource)
+            ;   // do nothing
+    }
+
+    if (numChildProcesses > 0)
+        NSLog(@"%d ZOMBIES left behind", numChildProcesses);
 }
 
 + (MMAppController *)sharedInstance
@@ -605,6 +632,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         if (hide)
             [NSApp hide:self];
     }
+
+    // There is a small delay before the Vim process actually exits so wait a
+    // little before trying to reap the child process.  If the process still
+    // hasn't exited after this wait it won't be reaped until the next time
+    // reapChildProcesses: is called (but this should be harmless).
+    [self performSelector:@selector(reapChildProcesses:)
+               withObject:nil
+               afterDelay:0.1];
 }
 
 - (void)windowControllerWillOpen:(MMWindowController *)windowController
@@ -1270,7 +1305,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (useLoginShell) {
         // Run process with a login shell, roughly:
         //   echo "exec Vim -g -f args" | ARGV0=-`basename $SHELL` $SHELL [-l]
-        pid = executeInLoginShell(path, taskArgs);
+        pid = [self executeInLoginShell:path arguments:taskArgs];
     } else {
         // Run process directly:
         //   Vim -g -f args
@@ -1734,6 +1769,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     n = count;
     while (n-- > 0 && [cachedVimControllers count] > 0)
         [cachedVimControllers removeObjectAtIndex:0];
+
+    // There is a small delay before the Vim process actually exits so wait a
+    // little before trying to reap the child process.  If the process still
+    // hasn't exited after this wait it won't be reaped until the next time
+    // reapChildProcesses: is called (but this should be harmless).
+    [self performSelector:@selector(reapChildProcesses:)
+               withObject:nil
+               afterDelay:0.1];
 }
 
 - (void)rebuildPreloadCache
@@ -1919,13 +1962,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 "may be incomplete)");
 }
 
-@end // MMAppController (Private)
-
-
-
-
-    static int
-executeInLoginShell(NSString *path, NSArray *args)
+- (int)executeInLoginShell:(NSString *)path arguments:(NSArray *)args
 {
     // Start a login shell and execute the command 'path' with arguments 'args'
     // in the shell.  This ensures that user environment variables are set even
@@ -1997,10 +2034,6 @@ executeInLoginShell(NSString *path, NSArray *args)
     } else if (pid == 0) {
         // Child process
 
-        // We need to undo our zombie avoidance as Vim waits for and needs
-        // the exit statuses of processes it spawns.
-        signal(SIGCHLD, SIG_DFL);
-
         if (close(ds[1]) == -1) exit(255);
         if (dup2(ds[0], 0) == -1) exit(255);
 
@@ -2024,7 +2057,30 @@ executeInLoginShell(NSString *path, NSArray *args)
 
         if (write(ds[1], [input UTF8String], bytes) != bytes) return -1;
         if (close(ds[1]) == -1) return -1;
+
+        ++numChildProcesses;
+        //NSLog(@"new process pid=%d (count=%d)", pid, numChildProcesses);
     }
 
     return pid;
 }
+
+- (void)reapChildProcesses:(id)sender
+{
+    // NOTE: numChildProcesses (currently) only counts the number of Vim
+    // processes that have been started with executeInLoginShell::.  If other
+    // processes are spawned this code may need to be adjusted (or
+    // numChildProcesses needs to be incremented when such a process is
+    // started).
+    while (numChildProcesses > 0) {
+        int status = 0;
+        int pid = waitpid(-1, &status, WNOHANG);
+        if (pid <= 0)
+            break;
+
+        //NSLog(@"WAIT for pid=%d complete", pid);
+        --numChildProcesses;
+    }
+}
+
+@end // MMAppController (Private)

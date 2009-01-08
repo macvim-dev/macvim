@@ -28,6 +28,7 @@
     NSMutableArray      *cachedVimControllers;
     int                 preloadPid;
     BOOL                shouldActivateWhenNextWindowOpens;
+    int                 numChildProcesses;
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
     FSEventStreamRef    fsEventStream;
