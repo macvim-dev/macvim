@@ -81,7 +81,6 @@ char *MessageStrings[] =
     "SetDocumentFilenameMsgID",
     "OpenWithArgumentsMsgID",
     "CloseWindowMsgID",
-    "InterruptMsgID",
     "SetFullscreenColorMsgID",
     "ShowFindReplaceDialogMsgID",
     "FindReplaceMsgID",

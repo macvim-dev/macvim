@@ -1037,11 +1037,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     // which waits on the run loop will fail to detect this message (e.g. in
     // waitForConnectionAcknowledgement).
 
-    BOOL shouldClearQueue = NO;
-    if (InterruptMsgID == msgid) {
-        shouldClearQueue = YES;
-        got_int = TRUE;
-    } else if (InsertTextMsgID == msgid && data != nil) {
+    if (InsertTextMsgID == msgid && data != nil) {
         const void *bytes = [data bytes];
         bytes += sizeof(int);
         int len = *((int*)bytes);  bytes += sizeof(int);
@@ -1049,8 +1045,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             char_u *str = (char_u*)bytes;
             if ((str[0] == Ctrl_C && ctrl_c_interrupts) ||
                     (str[0] == intr_char && intr_char != Ctrl_C)) {
-                shouldClearQueue = YES;
                 got_int = TRUE;
+                [inputQueue removeAllObjects];
+                return;
             }
         }
     } else if (TerminateNowMsgID == msgid) {
@@ -1058,11 +1055,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         // was aborted).
         isTerminating = YES;
         mch_exit(0);
-        return;
-    }
-
-    if (shouldClearQueue) {
-        [inputQueue removeAllObjects];
         return;
     }
 

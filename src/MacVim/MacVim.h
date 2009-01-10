@@ -174,7 +174,6 @@ enum {
     SetDocumentFilenameMsgID,
     OpenWithArgumentsMsgID,
     CloseWindowMsgID,
-    InterruptMsgID,
     SetFullscreenColorMsgID,
     ShowFindReplaceDialogMsgID,
     FindReplaceMsgID,

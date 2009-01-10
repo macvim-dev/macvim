@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Jan 07
+*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Jan 08
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -563,9 +563,11 @@ discovered by looking through the menus (see |macvim-menus| on how to create
 your own menu shortcuts).  The remaining shortcuts are listed here:
 
 							*Cmd-.* *<D-.>*
-Cmd-.			Interrupt Vim.  This is synonymous with CTRL-C and can
-			hence be used instead of Esc to exit insert mode (in
-			case you find Esc a bit hard to reach).
+Cmd-.			Interrupt Vim.  Unlike Ctrl-C which is sent as normal
+			keyboard input (and hence has to be received and then
+			interpreted) this sends a SIGINT signal to the Vim
+			process.  Use this shortcut if the Vim process appears
+			to have locked up and is not responding to key presses.
 
 							*Cmd-`* *<D-`>*
 Cmd-`			Cycle to the next window.  On an American keyboard the

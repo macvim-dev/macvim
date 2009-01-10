@@ -264,10 +264,14 @@ static float MMDragAreaSize = 73.0f;
     if ([unmodchars isEqual:@"?"])
         return NO;
 
-    // Cmd-. is hard-wired to send an interrupt (like Ctrl-C).
+    // Cmd-. is hard-wired to send SIGINT unlike Ctrl-C which is just another
+    // key press which Vim has to interpret.  This means that Cmd-. always
+    // works to interrupt a Vim process whereas Ctrl-C can suffer from problems
+    // such as dropped DO messages (or if Vim is stuck in a loop without
+    // checking for keyboard input).
     if ((flags & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask &&
             [unmodchars isEqual:@"."]) {
-        [[self vimController] sendMessage:InterruptMsgID data:nil];
+        kill([[self vimController] pid], SIGINT);
         return YES;
     }
 

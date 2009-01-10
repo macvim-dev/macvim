@@ -189,7 +189,8 @@ gui_mch_update(void)
     // interrupt Vim by presssing Ctrl-C during lengthy operations (e.g. after
     // entering "10gs" it would not be possible to bring Vim out of the 10 s
     // sleep prematurely).  As a compromise we check for Ctrl-C only once per
-    // second.
+    // second.  Note that Cmd-. sends SIGINT so it has higher success rate at
+    // interrupting Vim.
     static CFAbsoluteTime lastTime = 0;
 
     CFAbsoluteTime nowTime = CFAbsoluteTimeGetCurrent();
