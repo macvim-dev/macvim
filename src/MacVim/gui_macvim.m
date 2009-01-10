@@ -210,6 +210,48 @@ gui_mch_flush(void)
 }
 
 
+    void
+gui_macvim_flush(void)
+{
+    // This function counts how many times it is called and only flushes the
+    // draw queue if called sufficiently often.  The first few times it is
+    // called it will flush often, but the more it is called the less likely is
+    // it that anything will be flushed.  (The counter resets itself if the
+    // function isn't called for a second.)
+    //
+    // NOTE: Should only be used in loops where it is impossible to know how
+    // often Vim needs to flush.  It was written to handle output from external
+    // commands (see mch_call_shell() in os_unix.c).
+
+    static CFAbsoluteTime lastTime = 0;
+    static int delay = 1;
+    static int counter = 0;
+    static int scrolls = 0;
+
+    CFAbsoluteTime nowTime = CFAbsoluteTimeGetCurrent();
+    CFAbsoluteTime delta = nowTime - lastTime;
+    if (delta > 1.0)
+        delay = 1;
+
+    // We assume that each call corresponds roughly to one line out output.
+    // When one page has scrolled by we increase the delay before the next
+    // flush.
+    if (++scrolls > gui.num_rows) {
+        delay <<= 1;
+        if (delay > 0x10000)
+            delay = 0x10000;
+        scrolls = 0;
+    }
+
+    if (++counter > delay) {
+        gui_macvim_force_flush();
+        counter = 0;
+    }
+
+    lastTime = nowTime;
+}
+
+
 /* Force flush output to MacVim.  Do not call this method unless absolutely
  * necessary. */
     void

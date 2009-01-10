@@ -14,6 +14,8 @@ gui_mch_update(void);
     void
 gui_mch_flush(void);
     void
+gui_macvim_flush(void);
+    void
 gui_macvim_force_flush(void);
     int
 gui_mch_wait_for_chars(int wtime);
