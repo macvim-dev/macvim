@@ -46,6 +46,8 @@
     BOOL                waitForAck;
     int                 initialWindowLayout;
     BOOL                flushDisabled;
+    unsigned            numWholeLineChanges;
+    unsigned            offsetForDrawDataPrune;
 }
 
 + (MMBackend *)sharedInstance;

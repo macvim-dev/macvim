@@ -82,6 +82,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 
 @interface MMBackend (Private)
+- (void)clearDrawData;
+- (void)didChangeWholeLine;
 - (void)waitForDialogReturn;
 - (void)insertVimStateMessage;
 - (void)processInputQueue;
@@ -364,7 +366,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     // Any draw commands in queue are effectively obsolete since this clearAll
     // will negate any effect they have, therefore we may as well clear the
     // draw queue.
-    [drawData setLength:0];
+    [self clearDrawData];
 
     [drawData appendBytes:&type length:sizeof(int)];
 }
@@ -396,6 +398,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [drawData appendBytes:&bottom length:sizeof(int)];
     [drawData appendBytes:&left length:sizeof(int)];
     [drawData appendBytes:&right length:sizeof(int)];
+
+    if (left == 0 && right == gui.num_cols-1)
+        [self didChangeWholeLine];
 }
 
 - (void)drawString:(char*)s length:(int)len row:(int)row column:(int)col
@@ -431,6 +436,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [drawData appendBytes:&bottom length:sizeof(int)];
     [drawData appendBytes:&left length:sizeof(int)];
     [drawData appendBytes:&right length:sizeof(int)];
+
+    if (left == 0 && right == gui.num_cols-1)
+        [self didChangeWholeLine];
 }
 
 - (void)drawCursorAtRow:(int)row column:(int)col shape:(int)shape
@@ -491,7 +499,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [drawData appendBytes:&gui.col length:sizeof(gui.col)];
 
         [self queueMessage:BatchDrawMsgID data:[drawData copy]];
-        [drawData setLength:0];
+        [self clearDrawData];
     }
 
     if ([outputQueue count] > 0) {
@@ -1465,6 +1473,40 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 
 @implementation MMBackend (Private)
+
+- (void)clearDrawData
+{
+    [drawData setLength:0];
+    numWholeLineChanges = offsetForDrawDataPrune = 0;
+}
+
+- (void)didChangeWholeLine
+{
+    // It may happen that draw queue is filled up with lots of changes that
+    // affect a whole row.  If the number of such changes equals twice the
+    // number of visible rows then we can prune some commands off the queue.
+    //
+    // NOTE: If we don't perform this pruning the draw queue may grow
+    // indefinitely if Vim were to repeatedly send draw commands without ever
+    // waiting for new input (that's when the draw queue is flushed).  The one
+    // instance I know where this can happen is when a command is executed in
+    // the shell (think ":grep" with thousands of matches).
+
+    ++numWholeLineChanges;
+    if (numWholeLineChanges == gui.num_rows) {
+        // Remember the offset to prune up to.
+        offsetForDrawDataPrune = [drawData length];
+    } else if (numWholeLineChanges == 2*gui.num_rows) {
+        // Delete all the unnecessary draw commands.
+        NSMutableData *d = [[NSMutableData alloc]
+                    initWithBytes:[drawData bytes] + offsetForDrawDataPrune
+                           length:[drawData length] - offsetForDrawDataPrune];
+        offsetForDrawDataPrune = [d length];
+        numWholeLineChanges -= gui.num_rows;
+        [drawData release];
+        drawData = d;
+    }
+}
 
 - (void)waitForDialogReturn
 {
