@@ -41,9 +41,11 @@
     -->
 
     <item>
-      <title>Snapshot 41 released</title>
+      <title>Snapshot 42 released</title>
       <description><![CDATA[
-<h1>MacVim snapshot 41 released</h1>
+<h1>MacVim snapshot 42 released</h1>
+
+<p><b>The automatic updating feature is broken in snapshots 39 and 40.  If the automatic updating never finishes extracting then you are affected by this bug and will have to upgrade manually.  To do so, simply go to the <a href="http://code.google.com/p/macvim/wiki/Snapshot">Snapshot page</a> to download the latest version.</b></p>
 
 <p> Changes since snapshot 40:
   <ul>
@@ -52,7 +54,7 @@
     <li> Add user default to toggle the "add tab" button on the tabline (to disable, enter "defaults org.vim.MacVim MMShowAddTabButton 0" in Terminal) </li>
     <li> Avoid the "Press ENTER..." prompt when dragging and dropping </li>
     <li> Faster startup (and shutdown, but you're not likely to notice that unless you are me ;-) </li>
-    <li> Automatic updating works again (?) </li>
+    <li> Automatic updating works again </li>
     <li> Possible to interrupt external commands (e.g. you can Ctrl-C during a lenghty :grep now) </li>
     <li> The output from external commands is displayed "interactively" (i.e. you don't have to wait for the command to finish before any output is drawn; try ":!ls -l /usr/lib" and compare with snap 40 to see what I mean) </li>
     <li> Cmd-. sends SIGINT (so that if a Vim process is stuck you should always be able to interrupt it with Cmd-. even if Ctrl-C doesn't work) </li>
@@ -61,11 +63,11 @@
   </ul>
 </p>
       ]]></description>
-      <pubDate>Sat, 10 Jan 2009 10:12 CET</pubDate>
+      <pubDate>Sat, 12 Jan 2009 16:12 CET</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-41.tbz"
-        length="8132996"
-        sparkle:version="41"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-42.tbz"
+        length="8131516"
+        sparkle:version="42"
         sparkle:shortVersionString="7.2"
         />
     </item>
