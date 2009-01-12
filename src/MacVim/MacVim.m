@@ -29,7 +29,7 @@ char *MessageStrings[] =
     "ShowTabBarMsgID",
     "HideTabBarMsgID",
     "SetTextRowsMsgID",
-    "SetTextColumsMsgID",
+    "SetTextColumnsMsgID",
     "SetTextDimensionsMsgID",
     "LiveResizeMsgID",
     "SetTextDimensionsReplyMsgID",
