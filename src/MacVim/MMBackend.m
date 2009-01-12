@@ -2522,9 +2522,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     NSString *searchText = [args objectForKey:@"searchText"];
     if (searchText) {
-        // TODO: Searching is an exclusive motion, so if the pattern would
-        // match on row 0 column 0 then this pattern will miss that match.
-        [self addInput:[NSString stringWithFormat:@"<C-\\><C-N>gg/\\c%@<CR>",
+        [self addInput:[NSString stringWithFormat:@"<C-\\><C-N>gg/\\c%@/e<CR>",
                 searchText]];
     }
 }
