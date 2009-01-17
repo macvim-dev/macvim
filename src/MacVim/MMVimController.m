@@ -252,6 +252,10 @@ static BOOL isUnsafeMessage(int msgid);
     if (layout < 0 || layout > MMLayoutTabs)
         layout = MMLayoutTabs;
 
+    BOOL splitVert = [ud boolForKey:MMVerticalSplitKey];
+    if (splitVert && MMLayoutHorizontalSplit == layout)
+        layout = MMLayoutVerticalSplit;
+
     NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
             [NSNumber numberWithInt:layout],    @"layout",
             filenames,                          @"filenames",
