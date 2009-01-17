@@ -830,6 +830,17 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             firstController = vc;
     }
 
+    // The meaning of "layout" is defined by the WIN_* defines in main.c.
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int layout = [ud integerForKey:MMOpenLayoutKey];
+    BOOL splitVert = [ud boolForKey:MMVerticalSplitKey];
+    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
+
+    if (splitVert && MMLayoutHorizontalSplit == layout)
+        layout = MMLayoutVerticalSplit;
+    if (layout < 0 || (layout > MMLayoutTabs && openInCurrentWindow))
+        layout = MMLayoutTabs;
+
     if ([filenames count] == 0) {
         // Raise the window containing the first file that was already open,
         // and make sure that the tab containing that file is selected.  Only
@@ -837,10 +848,18 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // the window with 'firstFile' will be raised, other times it might be
         // the window that will open with the files in the 'filenames' array.
         firstFile = [firstFile stringByEscapingSpecialFilenameCharacters];
+
+        NSString *bufCmd = @"tab sb";
+        switch (layout) {
+            case MMLayoutHorizontalSplit: bufCmd = @"sb"; break;
+            case MMLayoutVerticalSplit:   bufCmd = @"vert sb"; break;
+            case MMLayoutArglist:         bufCmd = @"b"; break;
+        }
+
         NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
                 ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
-                "tab sb %@|let &swb=oldswb|unl oldswb|"
-                "cal foreground()<CR>", firstFile];
+                "%@ %@|let &swb=oldswb|unl oldswb|"
+                "cal foreground()<CR>", bufCmd, firstFile];
 
         [firstController addVimInput:input];
 
@@ -857,23 +876,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     //
     // b) Open any remaining files
     //
-    MMVimController *vc;
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
-
-    // The meaning of "layout" is defined by the WIN_* defines in main.c.
-    int layout = [ud integerForKey:MMOpenLayoutKey];
-    BOOL splitVert = [ud boolForKey:MMVerticalSplitKey];
-    if (splitVert && MMLayoutHorizontalSplit == layout)
-        layout = MMLayoutVerticalSplit;
-    if (layout < 0 || (layout > MMLayoutTabs && openInCurrentWindow))
-        layout = MMLayoutTabs;
 
     [arguments setObject:[NSNumber numberWithInt:layout] forKey:@"layout"];
     [arguments setObject:filenames forKey:@"filenames"];
     // (Indicate that files should be opened from now on.)
     [arguments setObject:[NSNumber numberWithBool:NO] forKey:@"dontOpen"];
 
+    MMVimController *vc;
     if (openInCurrentWindow && (vc = [self topmostVimController])) {
         // Open files in an already open window.
         [[[vc windowController] window] makeKeyAndOrderFront:self];
