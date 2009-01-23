@@ -54,9 +54,10 @@ void usage() {
 NSBitmapImageRep* getBitmapImageRepOfSize(NSImage* img, int size) {
 
   // Don't resample if it's not necessary
-  // XXX: Seems as if this creates problems in some situations, disable this
-  // for now.
 #if 0
+  // IconFamily does not work correctly with
+  // NSAlphaNonpremultipliedBitmapFormat images, so this has to stay disabled
+  // until IconFamily is fixed (if ever).
   NSEnumerator* e = [[img representations] objectEnumerator];
   NSImageRep* ir;
   while ((ir = [e nextObject])) {
