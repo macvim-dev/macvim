@@ -52,7 +52,9 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)dealloc
 {
+    [insertionPointColor release];  insertionPointColor = nil;
     [markedText release];  markedText = nil;
+    [markedTextAttributes release];  markedTextAttributes = nil;
 
     [super dealloc];
 }
