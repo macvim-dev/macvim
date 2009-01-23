@@ -8,4 +8,4 @@ $(OUTDIR)/MacVim-generic.icns: make_icons.py vim-noshadow-512.png
 
 clean:
 	$(MAKE) -C makeicns clean
-	rm -f $(OUTDIR)/MacVim-*.icns
+	rm -f $(OUTDIR)/MacVim-*.icns *.pyc
