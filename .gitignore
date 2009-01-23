@@ -3,6 +3,7 @@
 src/MacVim/MacVim.xcodeproj/*.mode1
 src/MacVim/MacVim.xcodeproj/*.mode1v3
 src/MacVim/MacVim.xcodeproj/*.pbxuser
+src/MacVim/icons/*.pyc
 src/MacVim/icons/makeicns/*.o
 src/MacVim/icons/makeicns/makeicns
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1
