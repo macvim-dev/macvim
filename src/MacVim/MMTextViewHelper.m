@@ -102,14 +102,13 @@ static float MMDragAreaSize = 73.0f;
     int flags = [event modifierFlags];
     if ((flags & NSControlKeyMask) ||
             ((flags & NSAlternateKeyMask) && (flags & NSFunctionKeyMask))) {
-        NSString *unmod = [event charactersIgnoringModifiers];
-        if ([unmod length] == 1 && [unmod characterAtIndex:0] <= 0x7f
-                                && [unmod characterAtIndex:0] >= 0x60) {
-            // HACK! Send Ctrl-letter keys (and C-@, C-[, C-\, C-], C-^, C-_)
-            // as normal text to be added to the Vim input buffer.  This must
-            // be done in order for the backend to be able to separate e.g.
-            // Ctrl-i and Ctrl-tab.
-            [self insertText:[event characters]];
+        NSString *chars = [event characters];
+        if ([chars length] == 1 && [chars characterAtIndex:0] < 0x20) {
+            // HACK! Send unprintable characters (such as C-@, C-[, C-\, C-],
+            // C-^, C-_) as normal text to be added to the Vim input buffer.
+            // This must be done in order for the backend to be able to
+            // separate e.g. Ctrl-i and Ctrl-tab.
+            [self insertText:chars];
         } else {
             [self dispatchKeyEvent:event];
         }
