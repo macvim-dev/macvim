@@ -445,13 +445,6 @@ def getOutname(options):
   return '%s-%s.icns' % (base, textPart)
 
 
-def makedocicon(**kwargs):
-  options, _ = getopts().parse_args([])  # get default options
-  for k in kwargs:
-    setattr(options, k, kwargs[k])
-  makedocicon_opts(options)
-
-
 def cachedImage(filename):
   absPath = os.path.abspath(filename)
   if not absPath in imageCache:
@@ -490,17 +483,45 @@ def getBgName(options):
     return options.background
 
 
-def makedocicon_opts(options):
-  textRenderer = TextRenderer()
-  
-  # Prepare input images
-  bgIcon = None
-  splitBackground = options.background == 'default-split'
-  bgIcon = cachedImage(getBgName(options))
+class IconGenerator(object):
+  def __init__(self, options):
+    if hasattr(options, 'textrenderer') and options.textrenderer:
+      self.textRenderer = options.textrenderer()
+    else:
+      self.textRenderer = TextRenderer()
+    
+    # Prepare input images
+    splitBackground = options.background == 'default-split'
+    self.bgIcon = cachedImage(getBgName(options))
 
-  testIcon = None
-  if options.appicon:
-    testIcon = cachedImage(options.appicon)
+    self.testIcon = None
+    if options.appicon:
+      self.testIcon = cachedImage(options.appicon)
+
+    rects = defaultRects.copy()
+    rects[16] = [ 0.0000, 0.5000, -1.0000, 0.5000]  # manually, better
+    if hasattr(options, 'rects'):
+      rects.update(options.rects)
+
+    bg = cachedBackground(self.bgIcon, splitBackground)
+
+    if hasattr(options, 'backgroundrenderer') and options.backgroundrenderer:
+      self.bgRenderer = options.backgroundrenderer(bg, self.testIcon, rects)
+    else:
+      self.bgRenderer = BackgroundRenderer(bg, self.testIcon, rects)
+
+    self.testtext = textDictFromTextList(options.text.split(','))
+
+  def createIconAtSize(self, s):
+    return createIcon(s, self.bgRenderer, self.textRenderer, self.testtext)
+
+
+def iconGenerator(**kwargs):
+  return IconGenerator(optsFromDict(**kwargs))
+
+
+def makedocicon_opts(options):
+  renderer = IconGenerator(options)
 
   if hasattr(options, 'sizes') and options.sizes:
     if isinstance(options.sizes, list):
@@ -508,23 +529,13 @@ def makedocicon_opts(options):
     else:
       sizes = map(int, options.sizes.split(','))
   else:
-    sizes = bgIcon.sizes()
-    if testIcon:
-      sizes = sizes.intersection(testIcon.sizes())
+    sizes = renderer.bgIcon.sizes()
+    if renderer.testIcon:
+      sizes = sizes.intersection(renderer.testIcon.sizes())
     sizes = sorted(map(operator.itemgetter(0), sizes))
 
-  if not hasattr(options, 'rects') or not options.rects:
-    rects = defaultRects.copy()
-    rects[16] = [ 0.0000, 0.5000, -1.0000, 0.5000]  # manually, better
-  else:
-    rects = options.rects
+  icons = dict([(s, renderer.createIconAtSize(s)) for s in sizes])
 
-  bg = cachedBackground(bgIcon, splitBackground)
-  bgRenderer = BackgroundRenderer(bg, testIcon, rects)
-
-  testtext = textDictFromTextList(options.text.split(','))
-  icons = dict([(s, createIcon(s, bgRenderer, textRenderer, testtext))
-    for s in sizes])
   if options.debug:
     for s, icon in icons.iteritems():
       icon.save(options.debug % s)
@@ -539,11 +550,15 @@ def makedocicon_opts(options):
     print 'Failed to write %s. Make sure makeicns is in your path.' % outname
 
 
-def makedocicons(**kwargs):
+def optsFromDict(**kwargs):
   options, _ = getopts().parse_args([])  # get default options
   for k in kwargs:
     setattr(options, k, kwargs[k])
-  makedocicons_opts(options)
+  return options
+
+
+def makedocicon(**kwargs):
+  makedocicon_opts(optsFromDict(**kwargs))
 
 
 def makedocicons_opts(options):
@@ -553,6 +568,10 @@ def makedocicons_opts(options):
   for text in texts:
     options.text = text
     makedocicon_opts(options)
+
+
+def makedocicons(**kwargs):
+  makedocicons_opts(optsFromDict(**kwargs))
 
 
 def getopts():

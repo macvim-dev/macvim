@@ -1,11 +1,24 @@
-# Creates a document icon from an app icon and an optional text.
-
-# The font is not quite right, use this script to create a document icon
-# for 'PDF' and compare the D with the D in Preview's pdf.icns
+# Creates all of MacVim document icons.
 
 # http://www.macresearch.org/cocoa-scientists-part-xx-python-scriptersmeet-cocoa
 try:
+  # Make us independent of sysprefs->appearance->antialias fonts smaller than...
+  # Needs to happen before docerator is imported.
+  from AppKit import NSUserDefaults
+  prefs = NSUserDefaults.standardUserDefaults()
+  prefs.setInteger_forKey_(4, 'AppleAntiAliasingThreshold')
+
   import docerator
+
+  # Load Envy Code R from a file and register it under its postscript name
+  # Thanks to DamienG for this font (redistributed with permission):
+  # http://damieng.com/blog/2008/05/26/envy-code-r-preview-7-coding-font-released
+  import loadfont
+  loadfont.loadfont('Envy Code R Bold.ttf')
+
+  from Foundation import NSString
+  from AppKit import *
+
   dont_create = False
 except:
   dont_create = True  # most likely because we're on tiger
@@ -43,7 +56,7 @@ vimIcons = {
     'MacVim-c': [u'C', SMALL],
     'MacVim-m': [u'M', SMALL],
     'MacVim-mm': [u'MM', SMALL],
-    'MacVim-cpp': [u'C\uff0b\uff0b', SMALL],  # fullwidth plusses
+    'MacVim-cpp': [u'C\uff0b\uff0b,C++,C++', SMALL],  # fullwidth plusses
     'MacVim-java': [u'JAVA', SMALL],
     'MacVim-f': [u'FTRAN', SMALL],
     'MacVim-html': [u'HTML', SMALL],
@@ -69,7 +82,7 @@ vimIcons = {
     'MacVim-dtd': [u'DTD', LINK],
     'MacVim-dylan': [u'DYLAN', LINK],
     'MacVim-erl': [u'ERLANG,ERL', SMALL],
-    'MacVim-fscript': [u'FSCPT,FSCR', SMALL],
+    'MacVim-fscript': [u'FSCPT,FSCR,FS', SMALL],
     'MacVim-hs': [u'HS', SMALL],
     'MacVim-inc': [u'INC', LINK],
     'MacVim-ics': [u'ICS', SMALL],
@@ -78,7 +91,7 @@ vimIcons = {
     'MacVim-bsh': [u'BSH', LINK],
     'MacVim-properties': [u'PROP', LINK],
     'MacVim-jsp': [u'JSP', SMALL],
-    'MacVim-lisp': [u'LISP', SMALL],
+    'MacVim-lisp': [u'LISP,LISP,LSP', SMALL],
     'MacVim-log': [u'LOG', SMALL],
     'MacVim-wiki': [u'WIKI', SMALL],
     'MacVim-ps': [u'PS', LINK],
@@ -89,7 +102,7 @@ vimIcons = {
     'MacVim-xsl': [u'XSL', LINK],
     'MacVim-vcf': [u'VCARD,VCF', SMALL],
     'MacVim-vb': [u'VBASIC,VB', LINK],
-    'MacVim-yaml': [u'YAML', SMALL],
+    'MacVim-yaml': [u'YAML,YAML,YML', SMALL],
     'MacVim-gtd': [u'GTD', LINK],
 }
 
@@ -101,6 +114,44 @@ def createLinks(icons, target):
     if os.access(icnsName, os.F_OK):
       os.remove(icnsName)
     os.symlink(target, icnsName)
+
+
+if not dont_create:
+  # define a few classes to render custom 16x16 icons
+
+  class NoTextRenderer(docerator.TextRenderer):
+    def drawTextAtSize(self, text, s):
+      if s == 16: return  # No text at 16x16
+      docerator.TextRenderer.drawTextAtSize(self, text, s)
+
+  class NoIconRenderer(docerator.BackgroundRenderer):
+    def drawIcon(self, s):
+      if s == 16: return  # no "MacVim" icon on the sheet at 16x16
+      docerator.BackgroundRenderer.drawIcon(self, s)
+
+  class SmallTextRenderer(docerator.TextRenderer):
+    def _attribsAtSize(self, s):
+      attribs = docerator.TextRenderer._attribsAtSize(self, s)
+      if s == 16:
+        font = NSFont.fontWithName_size_('EnvyCodeR-Bold', 7.0)
+        assert font
+        attribs[NSFontAttributeName] = font
+        attribs[NSForegroundColorAttributeName] = \
+            NSColor.colorWithDeviceRed_green_blue_alpha_(
+                0/255.0, 82/255.0, 0/255.0, 1)
+      return attribs
+
+    def drawTextAtSize(self, text, s):
+      if s != 16:
+        docerator.TextRenderer.drawTextAtSize(self, text, s)
+        return
+      text = NSString.stringWithString_(text.lower()[0:3])  # at most 3 chars
+      attribs = self.attribsAtSize(s)
+      if len(text) <= 2:
+        attribs[NSKernAttributeName] = 0  # we have some space
+      else:
+        attribs[NSKernAttributeName] = -1  # we need all the room we can get
+      text.drawInRect_withAttributes_( ((1, 2), (15, 11)), attribs)
 
 
 def main():
@@ -118,15 +169,22 @@ def main():
     os.chdir(sys.argv[1])
   appIcon = os.path.join(srcdir, APPICON)
   makeIcns = os.path.join(srcdir, MAKEICNS)
-  
 
   # create LARGE and SMALL icons first...
   for name, t in vimIcons.iteritems():
     text, size = t
     if size == LINK: continue
     print name
-    docerator.makedocicon(outname='%s.icns' % name, appicon=appIcon, text=text,
-        sizes=iconsizes[size], makeicns=makeIcns)
+    if name == GENERIC_ICON_NAME:
+      # The generic icon has no text; make the appicon a bit larger
+      docerator.makedocicon(outname='%s.icns' % name, appicon=appIcon,
+          text=text, sizes=iconsizes[size], makeicns=makeIcns,
+          textrenderer=NoTextRenderer, rects={16:(0.0, 0.5533, 0.0, 0.5533)})
+    else:
+      # For the other icons, leave out appicon and render text in Envy Code R
+      docerator.makedocicon(outname='%s.icns' % name, appicon=appIcon,
+          text=text, sizes=iconsizes[size], makeicns=makeIcns,
+          textrenderer=SmallTextRenderer, backgroundrenderer=NoIconRenderer)
 
   # ...create links later (to make sure the link targets exist)
   createLinks([name for (name, t) in vimIcons.items() if t[1] == LINK],
