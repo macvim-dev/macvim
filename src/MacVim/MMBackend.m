@@ -1060,9 +1060,11 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         }
     } else if (TerminateNowMsgID == msgid) {
         // Terminate immediately (the frontend is about to quit or this process
-        // was aborted).
+        // was aborted).  Don't preserve modified files since the user would
+        // already have been presented with a dialog warning if there were any
+        // modified files when we get here.
         isTerminating = YES;
-        mch_exit(0);
+        getout(0);
         return;
     }
 
