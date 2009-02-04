@@ -4,6 +4,11 @@ src/MacVim/MacVim.xcodeproj/*.mode1
 src/MacVim/MacVim.xcodeproj/*.mode1v3
 src/MacVim/MacVim.xcodeproj/*.pbxuser
 src/MacVim/icons/*.pyc
+src/MacVim/icons/*.ttf
+src/MacVim/icons/*.reg
+src/MacVim/icons/*.zip
+src/MacVim/icons/*.txt
+src/MacVim/icons/*.so
 src/MacVim/icons/makeicns/*.o
 src/MacVim/icons/makeicns/makeicns
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1
