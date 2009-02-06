@@ -11,6 +11,9 @@ loadfont.so: loadfont.c
 
 Envy\ Code\ R\ Bold.ttf: EnvyCodeR.zip
 	unzip -jo EnvyCodeR.zip
+	# unzip uses the file date from the zip file. Change the file date to
+	# "now", so that the zip is not unzipped in every `make` run.`
+	touch Envy\ Code\ R\ Bold.ttf
 
 ENVYCODE_URL=http://download.damieng.com/latest/EnvyCodeR
 EnvyCodeR.zip:
