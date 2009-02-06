@@ -9,6 +9,8 @@ src/MacVim/icons/*.reg
 src/MacVim/icons/*.zip
 src/MacVim/icons/*.txt
 src/MacVim/icons/*.so
+src/MacVim/icons/*.egg-info
+src/MacVim/icons/build
 src/MacVim/icons/makeicns/*.o
 src/MacVim/icons/makeicns/makeicns
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1
