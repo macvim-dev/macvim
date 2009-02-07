@@ -234,13 +234,13 @@ gui_macvim_flush(void)
     if (delta > 1.0)
         delay = 1;
 
-    // We assume that each call corresponds roughly to one line out output.
+    // We assume that each call corresponds roughly to one line of output.
     // When one page has scrolled by we increase the delay before the next
     // flush.
     if (++scrolls > gui.num_rows) {
         delay <<= 1;
-        if (delay > 0x10000)
-            delay = 0x10000;
+        if (delay > 2048)
+            delay = 2048;
         scrolls = 0;
     }
 
