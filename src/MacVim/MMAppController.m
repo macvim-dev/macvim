@@ -341,14 +341,17 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // The user default MMUntitledWindow can be set to control whether an
     // untitled window should open on 'Open' and 'Reopen' events.
     int untitledWindowFlag = [ud integerForKey:MMUntitledWindowKey];
-    if ([desc eventID] == kAEOpenApplication
-            && (untitledWindowFlag & MMUntitledWindowOnOpen) == 0)
+
+    BOOL isAppOpenEvent = [desc eventID] == kAEOpenApplication;
+    if (isAppOpenEvent && (untitledWindowFlag & MMUntitledWindowOnOpen) == 0)
         return NO;
-    else if ([desc eventID] == kAEReopenApplication
+
+    BOOL isAppReopenEvent = [desc eventID] == kAEReopenApplication;
+    if (isAppReopenEvent
             && (untitledWindowFlag & MMUntitledWindowOnReopen) == 0)
         return NO;
 
-    // When a process is started from the command line, the 'Open' event will
+    // When a process is started from the command line, the 'Open' event may
     // contain a parameter to surpress the opening of an untitled window.
     desc = [desc paramDescriptorForKeyword:keyAEPropData];
     desc = [desc paramDescriptorForKeyword:keyMMUntitledWindow];
@@ -361,8 +364,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         return NO;
 
     // NOTE!  This way it possible to start the app with the command-line
-    // argument '-nowindow yes' and no window will be opened by default.
-    return ![ud boolForKey:MMNoWindowKey];
+    // argument '-nowindow yes' and no window will be opened by default but
+    // this argument will only be heeded when the application is opening.
+    if (isAppOpenEvent && [ud boolForKey:MMNoWindowKey] == YES)
+        return NO;
+
+    return YES;
 }
 
 - (BOOL)applicationOpenUntitledFile:(NSApplication *)sender
