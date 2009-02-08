@@ -1331,10 +1331,21 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     if (-1 != pid) {
-        // Add a null argument to the pidArguments dictionary.  This is later
-        // used to detect that a process without arguments is being launched.
-        [pidArguments setObject:[NSNull null]
-                         forKey:[NSNumber numberWithInt:pid]];
+        // The 'pidArguments' dictionary keeps arguments to be passed to the
+        // process when it connects (this is in contrast to arguments which are
+        // passed on the command line, like '-f' and '-g').
+        // If this method is called with nil arguments we take this as a hint
+        // that this is an "untitled window" being launched and add a null
+        // object to the 'pidArguments' dictionary.  This way we can detect if
+        // an untitled window is being launched by looking for null objects in
+        // this dictionary.
+        // If this method is called with non-nil arguments then it is assumed
+        // that the caller takes care of adding items to 'pidArguments' as
+        // necessary (only some arguments are passed on connect, e.g. files to
+        // open).
+        if (!args)
+            [pidArguments setObject:[NSNull null]
+                             forKey:[NSNumber numberWithInt:pid]];
     } else {
         NSLog(@"WARNING: %s%@ failed (useLoginShell=%d)", _cmd, args,
                 useLoginShell);
