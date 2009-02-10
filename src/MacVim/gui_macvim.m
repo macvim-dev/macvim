@@ -1718,6 +1718,9 @@ gui_mch_leave_fullscreen()
     void
 gui_mch_fuopt_update()
 {
+    if (!gui.in_use)
+        return;
+
     guicolor_T fg, bg;
     if (fuoptions_flags & FUOPT_BGCOLOR_HLGROUP) {
         syn_id2colors(fuoptions_bgcolor, &fg, &bg);
