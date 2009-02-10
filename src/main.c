@@ -360,6 +360,11 @@ main
     command_line_scan(&params);
     TIME_MSG("parsing arguments");
 
+#ifdef MACOS_X
+    if (gui.starting && gui.dofork)
+	macosx_fork();	/* Never returns */
+#endif
+
     /*
      * On some systems, when we compile with the GUI, we always use it.  On Mac
      * there is no terminal version, and on Windows we can't fork one off with

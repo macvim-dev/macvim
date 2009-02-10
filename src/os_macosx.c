@@ -609,3 +609,67 @@ mch_textdomain(const char *domain)
     return (char*)domain;
 }
 #endif
+
+
+
+void macosx_fork()
+{
+    pid_t pid;
+    int   i;
+
+    /*
+     * On OS X, you have to exec after a fork, otherwise calls to frameworks
+     * will assert (and without Core Foundation, you can't start the gui. What
+     * fun.). See CAVEATS at:
+     *
+     *   http://developer.apple.com/documentation/Darwin/Reference/ManPages/
+     *							    man2/fork.2.html
+     *
+     * Since we have to go through this anyways, we might as well use vfork.
+     * But: then we can't detach from our starting shell, so stick with fork.
+     */
+
+    /* Stolen from http://paste.lisp.org/display/50906 */
+    extern int *_NSGetArgc(void);
+    extern char ***_NSGetArgv(void);
+
+    int argc = *_NSGetArgc();
+    char ** argv = *_NSGetArgv();
+    char * newargv[argc+2];
+
+    newargv[0] = argv[0];
+
+    /*
+     * Make sure "-f" is in front of potential "--remote" flags, else
+     * they would consume it.
+     */
+    newargv[1] = "-f";
+
+    for (i = 1; i < argc; i++) {
+	newargv[i + 1] = argv[i];
+    }
+    newargv[argc+1] = NULL;
+
+    pid = fork();
+    switch(pid) {
+	case -1:
+#  ifndef NDEBUG
+	    fprintf(stderr, "vim: Mac OS X workaround fork() failed!");
+#  endif
+	    _exit(255);
+	case 0:
+	    /* Child. */
+
+	    /* Make sure we survive our shell */
+	    setsid();
+
+	    /* Restarts the vim process, will not return. */
+	    execvp(argv[0], newargv);
+
+	    /* If we come here, exec has failed. bail. */
+	    _exit(255);
+	default:
+	    /* Parent */
+	    _exit(0);
+    }
+}
