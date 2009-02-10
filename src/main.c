@@ -1282,9 +1282,10 @@ getout_preserve_modified(exitval)
 #endif
 
 
-/* Prepare proper exit*/
+/* Exit properly */
     void
-prepare_getout()
+getout(exitval)
+    int		exitval;
 {
 #ifdef FEAT_AUTOCMD
     buf_T	*buf;
@@ -1293,6 +1294,12 @@ prepare_getout()
 #endif
 
     exiting = TRUE;
+
+    /* When running in Ex mode an error causes us to exit with a non-zero exit
+     * code.  POSIX requires this, although it's not 100% clear from the
+     * standard. */
+    if (exmode_active)
+	exitval += ex_exitval;
 
     /* Position the cursor on the last screen line, below all the text */
 #ifdef FEAT_GUI
@@ -1410,20 +1417,7 @@ prepare_getout()
     if (garbage_collect_at_exit)
 	garbage_collect();
 #endif
-}
 
-/* Exit properly */
-    void
-getout(exitval)
-    int		exitval;
-{
-    /* When running in Ex mode an error causes us to exit with a non-zero exit
-     * code.  POSIX requires this, although it's not 100% clear from the
-     * standard. */
-    if (exmode_active)
-	exitval += ex_exitval;
-
-    prepare_getout();
     mch_exit(exitval);
 }
 
