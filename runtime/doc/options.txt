@@ -3490,6 +3490,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 		foreground.  |gui-fork|
 		Note: Set this option in the vimrc file.  The forking may have
 		happened already when the |gvimrc| file is read.
+		MacVim does not support this flag due to limitations with
+		forking on Mac OS X.
 								*'go-i'*
 	  'i'	Use a Vim icon.  For GTK with KDE it is used in the left-upper
 		corner of the window.  It's black&white on non-GTK, because of

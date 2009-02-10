@@ -63,7 +63,8 @@ already running vim will never fork in MacVim.
 "gvim --nofork" does the same as "gvim -f".
 
 If you want the GUI to run in the foreground always, include the 'f'
-flag in 'guioptions'.  |-f|.
+flag in 'guioptions'.  |-f|.  MacVim does not support this flag in
+'guioptions'.
 
 ==============================================================================
 2. GUI Resources			*gui-resources* *.Xdefaults*
