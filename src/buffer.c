@@ -437,10 +437,6 @@ close_buffer(win, buf, action)
 	return;
 #endif
 
-#ifdef FEAT_NETBEANS_INTG
-    if (usingNetbeans)
-	netbeans_file_closed(buf);
-#endif
 #ifdef FEAT_ODB_EDITOR
     odb_buffer_close(buf);
 #endif
@@ -643,6 +639,10 @@ free_buffer_stuff(buf, free_options)
 #ifdef FEAT_SIGNS
     buf_delete_signs(buf);		/* delete any signs */
 #endif
+#ifdef FEAT_NETBEANS_INTG
+    if (usingNetbeans)
+        netbeans_file_killed(buf);
+#endif
 #ifdef FEAT_LOCALMAP
     map_clear_int(buf, MAP_ALL_MODES, TRUE, FALSE);  /* clear local mappings */
     map_clear_int(buf, MAP_ALL_MODES, TRUE, TRUE);   /* clear local abbrevs */
@@ -819,9 +819,6 @@ do_bufdel(command, arg, addr_count, start_bnr, end_bnr, forceit)
     int		bnr;		/* buffer number */
     char_u	*p;
 
-#ifdef FEAT_NETBEANS_INTG
-    netbeansCloseFile = 1;
-#endif
     if (addr_count == 0)
     {
 	(void)do_buffer(command, DOBUF_CURRENT, FORWARD, 0, forceit);
@@ -916,9 +913,6 @@ do_bufdel(command, arg, addr_count, start_bnr, end_bnr, forceit)
 	}
     }
 
-#ifdef FEAT_NETBEANS_INTG
-    netbeansCloseFile = 0;
-#endif
 
     return errormsg;
 }

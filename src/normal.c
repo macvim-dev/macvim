@@ -6811,6 +6811,8 @@ nv_replace(cap)
     /* Visual mode "r" */
     if (VIsual_active)
     {
+	if (got_int)
+	    reset_VIsual();
 	nv_operator(cap);
 	return;
     }
@@ -7867,7 +7869,7 @@ nv_g_cmd(cap)
 	else
 	    i = curwin->w_leftcol;
 	/* Go to the middle of the screen line.  When 'number' is on and lines
-	 * are wrapping the middle can be more to the left.*/
+	 * are wrapping the middle can be more to the left. */
 	if (cap->nchar == 'm')
 	    i += (W_WIDTH(curwin) - curwin_col_off()
 		    + ((curwin->w_p_wrap && i > 0)

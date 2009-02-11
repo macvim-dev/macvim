@@ -49,6 +49,7 @@ do_ascii(eap)
     exarg_T	*eap;
 {
     int		c;
+    int		cval;
     char	buf1[20];
     char	buf2[20];
     char_u	buf3[7];
@@ -75,6 +76,10 @@ do_ascii(eap)
     {
 	if (c == NL)	    /* NUL is stored as NL */
 	    c = NUL;
+	if (c == CAR && get_fileformat(curbuf) == EOL_MAC)
+	    cval = NL;	    /* NL is stored as CR */
+	else
+	    cval = c;
 	if (vim_isprintc_strict(c) && (c < ' '
 #ifndef EBCDIC
 		    || c > '~'
@@ -94,7 +99,7 @@ do_ascii(eap)
 	    buf2[0] = NUL;
 	vim_snprintf((char *)IObuff, IOSIZE,
 		_("<%s>%s%s  %d,  Hex %02x,  Octal %03o"),
-					   transchar(c), buf1, buf2, c, c, c);
+				  transchar(c), buf1, buf2, cval, cval, cval);
 #ifdef FEAT_MBYTE
 	if (enc_utf8)
 	    c = cc[ci++];
@@ -2412,8 +2417,8 @@ print_line(lnum, use_number, list)
 	cursor_on();		/* msg_start() switches it off */
 	out_flush();
 	silent_mode = save_silent;
-	info_message = FALSE;
     }
+    info_message = FALSE;
 }
 
 /*
@@ -2702,7 +2707,12 @@ do_write(eap)
 	if (eap->cmdidx == CMD_saveas)
 	{
 	    if (retval == OK)
+	    {
 		curbuf->b_p_ro = FALSE;
+#ifdef FEAT_WINDOWS
+		redraw_tabline = TRUE;
+#endif
+	    }
 	    /* Change directories when the 'acd' option is set. */
 	    DO_AUTOCHDIR
 	}
