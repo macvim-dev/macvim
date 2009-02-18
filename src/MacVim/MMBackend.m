@@ -342,7 +342,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         frontendProxy = [proxy connectBackend:self pid:pid];
         if (frontendProxy) {
             [frontendProxy retain];
-            [frontendProxy setProtocolForProxy:@protocol(MMAppProtocol)];
+            [frontendProxy setProtocolForProxy:@protocol(MMFrontendProtocol)];
             ok = YES;
         }
     }
