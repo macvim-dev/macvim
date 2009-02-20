@@ -41,6 +41,38 @@
     -->
 
     <item>
+      <title>Snapshot 43 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 43 released</h1>
+
+<p><b>The automatic updating feature is broken in snapshots 39 and 40.  If the automatic updating never finishes extracting then you are affected by this bug and will have to upgrade manually.  To do so, simply go to the <a href="http://code.google.com/p/macvim/wiki/Snapshot">Snapshot page</a> to download the latest version.</b></p>
+
+<p> Changes since snapshot 42:
+  <ul>
+    <li> Do inclusive search when opening files (Jonathon Mah) </li>
+    <li> Respect layout prefs when double-clicking an already open file </li>
+    <li> Fix two minor memory leaks </li>
+    <li> Ctrl-] works on German keyboard layout </li>
+    <li> The .viminfo file is written on Cmd-q </li>
+    <li> New 16x16 icons (Nico Weber) </li>
+    <li> Untitled window again opens on reopen event if requested in prefs </li>
+    <li> Fork earlier; fixes bug with 'autochdir', faster startup, "f" no longer supported in 'guioptions' </li>
+    <li> Some other minor bug fixes </li>
+    <li> Use latest runtime files and Vim patches </li>
+  </ul>
+</p>
+      ]]></description>
+      <pubDate>Fri, 20 Feb 2009 13:49 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-43.tbz"
+        length="8136440"
+        sparkle:version="43"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 42 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 42 released</h1>
