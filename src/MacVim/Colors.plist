@@ -1,311 +1,314 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
+<!-- generated from /usr/X11/bin/showrgb output by rgb2plist.py
+     with modifications by Bjorn Winckler (added darkyellow, lightmagenta,
+     lightred) -->
 <dict>
 	<key>aliceblue</key>
-	<integer>15792127</integer>
+	<integer>15792383</integer>
 	<key>antiquewhite</key>
-	<integer>16444374</integer>
+	<integer>16444375</integer>
 	<key>antiquewhite1</key>
-	<integer>16773082</integer>
+	<integer>16773083</integer>
 	<key>antiquewhite2</key>
-	<integer>15589068</integer>
+	<integer>15654860</integer>
 	<key>antiquewhite3</key>
-	<integer>13418416</integer>
+	<integer>13484208</integer>
 	<key>antiquewhite4</key>
-	<integer>9142904</integer>
+	<integer>9143160</integer>
 	<key>aquamarine</key>
-	<integer>8323028</integer>
+	<integer>8388564</integer>
 	<key>aquamarine1</key>
-	<integer>8323028</integer>
+	<integer>8388564</integer>
 	<key>aquamarine2</key>
-	<integer>7728582</integer>
+	<integer>7794374</integer>
 	<key>aquamarine3</key>
-	<integer>6737066</integer>
+	<integer>6737322</integer>
 	<key>aquamarine4</key>
-	<integer>4557683</integer>
+	<integer>4557684</integer>
 	<key>azure</key>
 	<integer>15794175</integer>
 	<key>azure1</key>
 	<integer>15794175</integer>
 	<key>azure2</key>
-	<integer>14675437</integer>
+	<integer>14741230</integer>
 	<key>azure3</key>
-	<integer>12700876</integer>
+	<integer>12701133</integer>
 	<key>azure4</key>
-	<integer>8555403</integer>
+	<integer>8620939</integer>
 	<key>beige</key>
-	<integer>16119259</integer>
+	<integer>16119260</integer>
 	<key>bisque</key>
-	<integer>16769987</integer>
+	<integer>16770244</integer>
 	<key>bisque1</key>
-	<integer>16769987</integer>
+	<integer>16770244</integer>
 	<key>bisque2</key>
-	<integer>15586742</integer>
+	<integer>15652279</integer>
 	<key>bisque3</key>
-	<integer>13416093</integer>
+	<integer>13481886</integer>
 	<key>bisque4</key>
-	<integer>9141610</integer>
+	<integer>9141611</integer>
 	<key>black</key>
 	<integer>0</integer>
 	<key>blanchedalmond</key>
-	<integer>16772044</integer>
+	<integer>16772045</integer>
 	<key>blue</key>
-	<integer>212</integer>
+	<integer>255</integer>
 	<key>blue1</key>
 	<integer>255</integer>
 	<key>blue2</key>
-	<integer>237</integer>
+	<integer>238</integer>
 	<key>blue3</key>
-	<integer>204</integer>
+	<integer>205</integer>
 	<key>blue4</key>
 	<integer>139</integer>
 	<key>blueviolet</key>
-	<integer>9054946</integer>
+	<integer>9055202</integer>
 	<key>brown</key>
-	<integer>8405056</integer>
+	<integer>10824234</integer>
 	<key>brown1</key>
 	<integer>16728128</integer>
 	<key>brown2</key>
-	<integer>15547195</integer>
+	<integer>15612731</integer>
 	<key>brown3</key>
-	<integer>13382451</integer>
+	<integer>13447987</integer>
 	<key>brown4</key>
 	<integer>9118499</integer>
 	<key>burlywood</key>
-	<integer>14596230</integer>
+	<integer>14596231</integer>
 	<key>burlywood1</key>
-	<integer>16765850</integer>
+	<integer>16765851</integer>
 	<key>burlywood2</key>
-	<integer>15582352</integer>
+	<integer>15648145</integer>
 	<key>burlywood3</key>
-	<integer>13412989</integer>
+	<integer>13478525</integer>
 	<key>burlywood4</key>
-	<integer>9139028</integer>
+	<integer>9139029</integer>
 	<key>cadetblue</key>
-	<integer>6200736</integer>
+	<integer>6266528</integer>
 	<key>cadetblue1</key>
 	<integer>10024447</integer>
 	<key>cadetblue2</key>
-	<integer>9364717</integer>
+	<integer>9364974</integer>
 	<key>cadetblue3</key>
-	<integer>7980236</integer>
+	<integer>8046029</integer>
 	<key>cadetblue4</key>
 	<integer>5473931</integer>
 	<key>chartreuse</key>
-	<integer>8322816</integer>
+	<integer>8388352</integer>
 	<key>chartreuse1</key>
-	<integer>8322816</integer>
+	<integer>8388352</integer>
 	<key>chartreuse2</key>
-	<integer>7728384</integer>
+	<integer>7794176</integer>
 	<key>chartreuse3</key>
-	<integer>6736896</integer>
+	<integer>6737152</integer>
 	<key>chartreuse4</key>
 	<integer>4557568</integer>
 	<key>chocolate</key>
-	<integer>13723933</integer>
+	<integer>13789470</integer>
 	<key>chocolate1</key>
-	<integer>16743972</integer>
+	<integer>16744228</integer>
 	<key>chocolate2</key>
-	<integer>15562016</integer>
+	<integer>15627809</integer>
 	<key>chocolate3</key>
-	<integer>13395484</integer>
+	<integer>13461021</integer>
 	<key>chocolate4</key>
-	<integer>9127186</integer>
+	<integer>9127187</integer>
 	<key>coral</key>
-	<integer>16744015</integer>
+	<integer>16744272</integer>
 	<key>coral1</key>
 	<integer>16740950</integer>
 	<key>coral2</key>
-	<integer>15559247</integer>
+	<integer>15624784</integer>
 	<key>coral3</key>
-	<integer>13392709</integer>
+	<integer>13458245</integer>
 	<key>coral4</key>
-	<integer>9125166</integer>
+	<integer>9125423</integer>
 	<key>cornflowerblue</key>
-	<integer>6591724</integer>
+	<integer>6591981</integer>
 	<key>cornsilk</key>
-	<integer>16775131</integer>
+	<integer>16775388</integer>
 	<key>cornsilk1</key>
-	<integer>16775131</integer>
+	<integer>16775388</integer>
 	<key>cornsilk2</key>
-	<integer>15591372</integer>
+	<integer>15657165</integer>
 	<key>cornsilk3</key>
-	<integer>13420464</integer>
+	<integer>13486257</integer>
 	<key>cornsilk4</key>
-	<integer>9144184</integer>
+	<integer>9144440</integer>
 	<key>cyan</key>
-	<integer>109545</integer>
+	<integer>65535</integer>
 	<key>cyan1</key>
 	<integer>65535</integer>
 	<key>cyan2</key>
-	<integer>60909</integer>
+	<integer>61166</integer>
 	<key>cyan3</key>
-	<integer>52428</integer>
+	<integer>52685</integer>
 	<key>cyan4</key>
 	<integer>35723</integer>
 	<key>darkblue</key>
-	<integer>128</integer>
+	<integer>139</integer>
 	<key>darkcyan</key>
-	<integer>32896</integer>
+	<integer>35723</integer>
 	<key>darkgoldenrod</key>
-	<integer>12092938</integer>
+	<integer>12092939</integer>
 	<key>darkgoldenrod1</key>
-	<integer>16759054</integer>
+	<integer>16759055</integer>
 	<key>darkgoldenrod2</key>
-	<integer>15576077</integer>
+	<integer>15641870</integer>
 	<key>darkgoldenrod3</key>
-	<integer>13407244</integer>
+	<integer>13473036</integer>
 	<key>darkgoldenrod4</key>
 	<integer>9135368</integer>
 	<key>darkgray</key>
-	<integer>8421504</integer>
+	<integer>11119017</integer>
 	<key>darkgreen</key>
-	<integer>32768</integer>
+	<integer>25600</integer>
 	<key>darkgrey</key>
-	<integer>8421504</integer>
+	<integer>11119017</integer>
 	<key>darkkhaki</key>
-	<integer>12433002</integer>
+	<integer>12433259</integer>
 	<key>darkmagenta</key>
-	<integer>8388736</integer>
+	<integer>9109643</integer>
 	<key>darkolivegreen</key>
-	<integer>5532206</integer>
+	<integer>5597999</integer>
 	<key>darkolivegreen1</key>
-	<integer>13303663</integer>
+	<integer>13303664</integer>
 	<key>darkolivegreen2</key>
-	<integer>12381543</integer>
+	<integer>12381800</integer>
 	<key>darkolivegreen3</key>
-	<integer>10669145</integer>
+	<integer>10669402</integer>
 	<key>darkolivegreen4</key>
-	<integer>7244604</integer>
+	<integer>7244605</integer>
 	<key>darkorange</key>
-	<integer>16747264</integer>
+	<integer>16747520</integer>
 	<key>darkorange1</key>
-	<integer>16743936</integer>
+	<integer>16744192</integer>
 	<key>darkorange2</key>
-	<integer>15561984</integer>
+	<integer>15627776</integer>
 	<key>darkorange3</key>
-	<integer>13395456</integer>
+	<integer>13460992</integer>
 	<key>darkorange4</key>
 	<integer>9127168</integer>
 	<key>darkorchid</key>
 	<integer>10040012</integer>
 	<key>darkorchid1</key>
-	<integer>12467711</integer>
+	<integer>12533503</integer>
 	<key>darkorchid2</key>
-	<integer>11614957</integer>
+	<integer>11680494</integer>
 	<key>darkorchid3</key>
-	<integer>10040012</integer>
+	<integer>10105549</integer>
 	<key>darkorchid4</key>
-	<integer>6758795</integer>
+	<integer>6824587</integer>
 	<key>darkred</key>
-	<integer>8388608</integer>
+	<integer>9109504</integer>
 	<key>darksalmon</key>
-	<integer>15242617</integer>
+	<integer>15308410</integer>
 	<key>darkseagreen</key>
 	<integer>9419919</integer>
 	<key>darkseagreen1</key>
 	<integer>12713921</integer>
 	<key>darkseagreen2</key>
-	<integer>11857332</integer>
+	<integer>11857588</integer>
 	<key>darkseagreen3</key>
-	<integer>10144922</integer>
+	<integer>10210715</integer>
 	<key>darkseagreen4</key>
 	<integer>6916969</integer>
 	<key>darkslateblue</key>
-	<integer>4734091</integer>
+	<integer>4734347</integer>
 	<key>darkslategray</key>
-	<integer>3034702</integer>
+	<integer>3100495</integer>
 	<key>darkslategray1</key>
 	<integer>9961471</integer>
 	<key>darkslategray2</key>
-	<integer>9235949</integer>
+	<integer>9301742</integer>
 	<key>darkslategray3</key>
-	<integer>7916748</integer>
+	<integer>7982541</integer>
 	<key>darkslategray4</key>
 	<integer>5409675</integer>
 	<key>darkslategrey</key>
-	<integer>3034702</integer>
+	<integer>3100495</integer>
 	<key>darkturquoise</key>
-	<integer>52688</integer>
+	<integer>52945</integer>
 	<key>darkviolet</key>
 	<integer>9699539</integer>
 	<key>darkyellow</key>
-	<integer>12237312</integer>
+	<integer>12303104</integer>
 	<key>deeppink</key>
-	<integer>16716691</integer>
+	<integer>16716947</integer>
 	<key>deeppink1</key>
-	<integer>16716691</integer>
+	<integer>16716947</integer>
 	<key>deeppink2</key>
-	<integer>15536777</integer>
+	<integer>15602313</integer>
 	<key>deeppink3</key>
-	<integer>13373301</integer>
+	<integer>13439094</integer>
 	<key>deeppink4</key>
-	<integer>9111887</integer>
+	<integer>9112144</integer>
 	<key>deepskyblue</key>
-	<integer>48895</integer>
+	<integer>49151</integer>
 	<key>deepskyblue1</key>
-	<integer>48895</integer>
+	<integer>49151</integer>
 	<key>deepskyblue2</key>
-	<integer>45549</integer>
+	<integer>45806</integer>
 	<key>deepskyblue3</key>
-	<integer>39372</integer>
+	<integer>39629</integer>
 	<key>deepskyblue4</key>
-	<integer>26507</integer>
+	<integer>26763</integer>
 	<key>dimgray</key>
 	<integer>6908265</integer>
 	<key>dimgrey</key>
 	<integer>6908265</integer>
 	<key>dodgerblue</key>
-	<integer>1937407</integer>
+	<integer>2003199</integer>
 	<key>dodgerblue1</key>
-	<integer>1937407</integer>
+	<integer>2003199</integer>
 	<key>dodgerblue2</key>
-	<integer>1804013</integer>
+	<integer>1869550</integer>
 	<key>dodgerblue3</key>
-	<integer>1536972</integer>
+	<integer>1602765</integer>
 	<key>dodgerblue4</key>
-	<integer>1003147</integer>
+	<integer>1068683</integer>
 	<key>firebrick</key>
-	<integer>11608353</integer>
+	<integer>11674146</integer>
 	<key>firebrick1</key>
-	<integer>16723759</integer>
+	<integer>16724016</integer>
 	<key>firebrick2</key>
-	<integer>15543083</integer>
+	<integer>15608876</integer>
 	<key>firebrick3</key>
-	<integer>13378853</integer>
+	<integer>13444646</integer>
 	<key>firebrick4</key>
 	<integer>9116186</integer>
 	<key>floralwhite</key>
 	<integer>16775920</integer>
 	<key>forestgreen</key>
-	<integer>2198305</integer>
+	<integer>2263842</integer>
 	<key>gainsboro</key>
-	<integer>14408667</integer>
+	<integer>14474460</integer>
 	<key>ghostwhite</key>
-	<integer>16250879</integer>
+	<integer>16316671</integer>
 	<key>gold</key>
-	<integer>16766464</integer>
+	<integer>16766720</integer>
 	<key>gold1</key>
-	<integer>16766464</integer>
+	<integer>16766720</integer>
 	<key>gold2</key>
-	<integer>15583232</integer>
+	<integer>15649024</integer>
 	<key>gold3</key>
-	<integer>13413376</integer>
+	<integer>13479168</integer>
 	<key>gold4</key>
-	<integer>9139200</integer>
+	<integer>9139456</integer>
 	<key>goldenrod</key>
-	<integer>14263584</integer>
+	<integer>14329120</integer>
 	<key>goldenrod1</key>
 	<integer>16761125</integer>
 	<key>goldenrod2</key>
-	<integer>15578145</integer>
+	<integer>15643682</integer>
 	<key>goldenrod3</key>
-	<integer>13408796</integer>
+	<integer>13474589</integer>
 	<key>goldenrod4</key>
-	<integer>9136403</integer>
+	<integer>9136404</integer>
 	<key>gray</key>
-	<integer>12566463</integer>
+	<integer>12500670</integer>
 	<key>gray0</key>
 	<integer>0</integer>
 	<key>gray1</key>
@@ -315,43 +318,43 @@
 	<key>gray100</key>
 	<integer>16777215</integer>
 	<key>gray11</key>
-	<integer>1776411</integer>
+	<integer>1842204</integer>
 	<key>gray12</key>
 	<integer>2039583</integer>
 	<key>gray13</key>
-	<integer>2105376</integer>
+	<integer>2171169</integer>
 	<key>gray14</key>
 	<integer>2368548</integer>
 	<key>gray15</key>
-	<integer>2434341</integer>
+	<integer>2500134</integer>
 	<key>gray16</key>
 	<integer>2697513</integer>
 	<key>gray17</key>
-	<integer>2763306</integer>
+	<integer>2829099</integer>
 	<key>gray18</key>
 	<integer>3026478</integer>
 	<key>gray19</key>
-	<integer>3092271</integer>
+	<integer>3158064</integer>
 	<key>gray2</key>
-	<integer>263172</integer>
+	<integer>328965</integer>
 	<key>gray20</key>
 	<integer>3355443</integer>
 	<key>gray21</key>
 	<integer>3552822</integer>
 	<key>gray22</key>
-	<integer>3618615</integer>
+	<integer>3684408</integer>
 	<key>gray23</key>
 	<integer>3881787</integer>
 	<key>gray24</key>
-	<integer>3947580</integer>
+	<integer>4013373</integer>
 	<key>gray25</key>
 	<integer>4210752</integer>
 	<key>gray26</key>
-	<integer>4276545</integer>
+	<integer>4342338</integer>
 	<key>gray27</key>
 	<integer>4539717</integer>
 	<key>gray28</key>
-	<integer>4605510</integer>
+	<integer>4671303</integer>
 	<key>gray29</key>
 	<integer>4868682</integer>
 	<key>gray3</key>
@@ -359,87 +362,87 @@
 	<key>gray30</key>
 	<integer>5066061</integer>
 	<key>gray31</key>
-	<integer>5131854</integer>
+	<integer>5197647</integer>
 	<key>gray32</key>
 	<integer>5395026</integer>
 	<key>gray33</key>
-	<integer>5460819</integer>
+	<integer>5526612</integer>
 	<key>gray34</key>
 	<integer>5723991</integer>
 	<key>gray35</key>
-	<integer>5789784</integer>
+	<integer>5855577</integer>
 	<key>gray36</key>
 	<integer>6052956</integer>
 	<key>gray37</key>
-	<integer>6118749</integer>
+	<integer>6184542</integer>
 	<key>gray38</key>
 	<integer>6381921</integer>
 	<key>gray39</key>
-	<integer>6447714</integer>
+	<integer>6513507</integer>
 	<key>gray4</key>
-	<integer>592137</integer>
+	<integer>657930</integer>
 	<key>gray40</key>
 	<integer>6710886</integer>
 	<key>gray41</key>
 	<integer>6908265</integer>
 	<key>gray42</key>
-	<integer>6974058</integer>
+	<integer>7039851</integer>
 	<key>gray43</key>
 	<integer>7237230</integer>
 	<key>gray44</key>
-	<integer>7303023</integer>
+	<integer>7368816</integer>
 	<key>gray45</key>
 	<integer>7566195</integer>
 	<key>gray46</key>
-	<integer>7631988</integer>
+	<integer>7697781</integer>
 	<key>gray47</key>
 	<integer>7895160</integer>
 	<key>gray48</key>
-	<integer>7960953</integer>
+	<integer>8026746</integer>
 	<key>gray49</key>
 	<integer>8224125</integer>
 	<key>gray5</key>
 	<integer>855309</integer>
 	<key>gray50</key>
-	<integer>8289918</integer>
+	<integer>8355711</integer>
 	<key>gray51</key>
-	<integer>8487297</integer>
+	<integer>8553090</integer>
 	<key>gray52</key>
 	<integer>8750469</integer>
 	<key>gray53</key>
-	<integer>8816262</integer>
+	<integer>8882055</integer>
 	<key>gray54</key>
 	<integer>9079434</integer>
 	<key>gray55</key>
-	<integer>9145227</integer>
+	<integer>9211020</integer>
 	<key>gray56</key>
 	<integer>9408399</integer>
 	<key>gray57</key>
-	<integer>9474192</integer>
+	<integer>9539985</integer>
 	<key>gray58</key>
 	<integer>9737364</integer>
 	<key>gray59</key>
-	<integer>9803157</integer>
+	<integer>9868950</integer>
 	<key>gray6</key>
-	<integer>921102</integer>
+	<integer>986895</integer>
 	<key>gray60</key>
 	<integer>10066329</integer>
 	<key>gray61</key>
 	<integer>10263708</integer>
 	<key>gray62</key>
-	<integer>10329501</integer>
+	<integer>10395294</integer>
 	<key>gray63</key>
 	<integer>10592673</integer>
 	<key>gray64</key>
-	<integer>10658466</integer>
+	<integer>10724259</integer>
 	<key>gray65</key>
 	<integer>10921638</integer>
 	<key>gray66</key>
-	<integer>10987431</integer>
+	<integer>11053224</integer>
 	<key>gray67</key>
 	<integer>11250603</integer>
 	<key>gray68</key>
-	<integer>11316396</integer>
+	<integer>11382189</integer>
 	<key>gray69</key>
 	<integer>11579568</integer>
 	<key>gray7</key>
@@ -447,81 +450,81 @@
 	<key>gray70</key>
 	<integer>11776947</integer>
 	<key>gray71</key>
-	<integer>11842740</integer>
+	<integer>11908533</integer>
 	<key>gray72</key>
 	<integer>12105912</integer>
 	<key>gray73</key>
-	<integer>12171705</integer>
+	<integer>12237498</integer>
 	<key>gray74</key>
 	<integer>12434877</integer>
 	<key>gray75</key>
-	<integer>12500670</integer>
+	<integer>12566463</integer>
 	<key>gray76</key>
 	<integer>12763842</integer>
 	<key>gray77</key>
-	<integer>12829635</integer>
+	<integer>12895428</integer>
 	<key>gray78</key>
 	<integer>13092807</integer>
 	<key>gray79</key>
-	<integer>13158600</integer>
+	<integer>13224393</integer>
 	<key>gray8</key>
-	<integer>1250067</integer>
+	<integer>1315860</integer>
 	<key>gray80</key>
 	<integer>13421772</integer>
 	<key>gray81</key>
 	<integer>13619151</integer>
 	<key>gray82</key>
-	<integer>13684944</integer>
+	<integer>13750737</integer>
 	<key>gray83</key>
 	<integer>13948116</integer>
 	<key>gray84</key>
-	<integer>14013909</integer>
+	<integer>14079702</integer>
 	<key>gray85</key>
 	<integer>14277081</integer>
 	<key>gray86</key>
-	<integer>14342874</integer>
+	<integer>14408667</integer>
 	<key>gray87</key>
 	<integer>14606046</integer>
 	<key>gray88</key>
-	<integer>14671839</integer>
+	<integer>14737632</integer>
 	<key>gray89</key>
 	<integer>14935011</integer>
 	<key>gray9</key>
 	<integer>1513239</integer>
 	<key>gray90</key>
-	<integer>15000804</integer>
+	<integer>15066597</integer>
 	<key>gray91</key>
-	<integer>15198183</integer>
+	<integer>15263976</integer>
 	<key>gray92</key>
 	<integer>15461355</integer>
 	<key>gray93</key>
-	<integer>15527148</integer>
+	<integer>15592941</integer>
 	<key>gray94</key>
 	<integer>15790320</integer>
 	<key>gray95</key>
-	<integer>15856113</integer>
+	<integer>15921906</integer>
 	<key>gray96</key>
 	<integer>16119285</integer>
 	<key>gray97</key>
-	<integer>16185078</integer>
+	<integer>16250871</integer>
 	<key>gray98</key>
 	<integer>16448250</integer>
 	<key>gray99</key>
-	<integer>16514043</integer>
+	<integer>16579836</integer>
 	<key>green</key>
-	<integer>25617</integer>
+	<integer>65280</integer>
 	<key>green1</key>
 	<integer>65280</integer>
 	<key>green2</key>
-	<integer>60672</integer>
+	<integer>60928</integer>
 	<key>green3</key>
-	<integer>52224</integer>
+	<integer>52480</integer>
 	<key>green4</key>
 	<integer>35584</integer>
 	<key>greenyellow</key>
-	<integer>11337518</integer>
+	<integer>11403055</integer>
 	<key>grey</key>
-	<integer>12566463</integer>
+	<integer>12500670</integer>
 	<key>grey0</key>
 	<integer>0</integer>
 	<key>grey1</key>
@@ -531,43 +534,43 @@
 	<key>grey100</key>
 	<integer>16777215</integer>
 	<key>grey11</key>
-	<integer>1776411</integer>
+	<integer>1842204</integer>
 	<key>grey12</key>
 	<integer>2039583</integer>
 	<key>grey13</key>
-	<integer>2105376</integer>
+	<integer>2171169</integer>
 	<key>grey14</key>
 	<integer>2368548</integer>
 	<key>grey15</key>
-	<integer>2434341</integer>
+	<integer>2500134</integer>
 	<key>grey16</key>
 	<integer>2697513</integer>
 	<key>grey17</key>
-	<integer>2763306</integer>
+	<integer>2829099</integer>
 	<key>grey18</key>
 	<integer>3026478</integer>
 	<key>grey19</key>
-	<integer>3092271</integer>
+	<integer>3158064</integer>
 	<key>grey2</key>
-	<integer>263172</integer>
+	<integer>328965</integer>
 	<key>grey20</key>
 	<integer>3355443</integer>
 	<key>grey21</key>
 	<integer>3552822</integer>
 	<key>grey22</key>
-	<integer>3618615</integer>
+	<integer>3684408</integer>
 	<key>grey23</key>
 	<integer>3881787</integer>
 	<key>grey24</key>
-	<integer>3947580</integer>
+	<integer>4013373</integer>
 	<key>grey25</key>
 	<integer>4210752</integer>
 	<key>grey26</key>
-	<integer>4276545</integer>
+	<integer>4342338</integer>
 	<key>grey27</key>
 	<integer>4539717</integer>
 	<key>grey28</key>
-	<integer>4605510</integer>
+	<integer>4671303</integer>
 	<key>grey29</key>
 	<integer>4868682</integer>
 	<key>grey3</key>
@@ -575,87 +578,87 @@
 	<key>grey30</key>
 	<integer>5066061</integer>
 	<key>grey31</key>
-	<integer>5131854</integer>
+	<integer>5197647</integer>
 	<key>grey32</key>
 	<integer>5395026</integer>
 	<key>grey33</key>
-	<integer>5460819</integer>
+	<integer>5526612</integer>
 	<key>grey34</key>
 	<integer>5723991</integer>
 	<key>grey35</key>
-	<integer>5789784</integer>
+	<integer>5855577</integer>
 	<key>grey36</key>
 	<integer>6052956</integer>
 	<key>grey37</key>
-	<integer>6118749</integer>
+	<integer>6184542</integer>
 	<key>grey38</key>
 	<integer>6381921</integer>
 	<key>grey39</key>
-	<integer>6447714</integer>
+	<integer>6513507</integer>
 	<key>grey4</key>
-	<integer>592137</integer>
+	<integer>657930</integer>
 	<key>grey40</key>
 	<integer>6710886</integer>
 	<key>grey41</key>
 	<integer>6908265</integer>
 	<key>grey42</key>
-	<integer>6974058</integer>
+	<integer>7039851</integer>
 	<key>grey43</key>
 	<integer>7237230</integer>
 	<key>grey44</key>
-	<integer>7303023</integer>
+	<integer>7368816</integer>
 	<key>grey45</key>
 	<integer>7566195</integer>
 	<key>grey46</key>
-	<integer>7631988</integer>
+	<integer>7697781</integer>
 	<key>grey47</key>
 	<integer>7895160</integer>
 	<key>grey48</key>
-	<integer>7960953</integer>
+	<integer>8026746</integer>
 	<key>grey49</key>
 	<integer>8224125</integer>
 	<key>grey5</key>
 	<integer>855309</integer>
 	<key>grey50</key>
-	<integer>8289918</integer>
+	<integer>8355711</integer>
 	<key>grey51</key>
-	<integer>8487297</integer>
+	<integer>8553090</integer>
 	<key>grey52</key>
 	<integer>8750469</integer>
 	<key>grey53</key>
-	<integer>8816262</integer>
+	<integer>8882055</integer>
 	<key>grey54</key>
 	<integer>9079434</integer>
 	<key>grey55</key>
-	<integer>9145227</integer>
+	<integer>9211020</integer>
 	<key>grey56</key>
 	<integer>9408399</integer>
 	<key>grey57</key>
-	<integer>9474192</integer>
+	<integer>9539985</integer>
 	<key>grey58</key>
 	<integer>9737364</integer>
 	<key>grey59</key>
-	<integer>9803157</integer>
+	<integer>9868950</integer>
 	<key>grey6</key>
-	<integer>921102</integer>
+	<integer>986895</integer>
 	<key>grey60</key>
 	<integer>10066329</integer>
 	<key>grey61</key>
 	<integer>10263708</integer>
 	<key>grey62</key>
-	<integer>10329501</integer>
+	<integer>10395294</integer>
 	<key>grey63</key>
 	<integer>10592673</integer>
 	<key>grey64</key>
-	<integer>10658466</integer>
+	<integer>10724259</integer>
 	<key>grey65</key>
 	<integer>10921638</integer>
 	<key>grey66</key>
-	<integer>10987431</integer>
+	<integer>11053224</integer>
 	<key>grey67</key>
 	<integer>11250603</integer>
 	<key>grey68</key>
-	<integer>11316396</integer>
+	<integer>11382189</integer>
 	<key>grey69</key>
 	<integer>11579568</integer>
 	<key>grey7</key>
@@ -663,95 +666,95 @@
 	<key>grey70</key>
 	<integer>11776947</integer>
 	<key>grey71</key>
-	<integer>11842740</integer>
+	<integer>11908533</integer>
 	<key>grey72</key>
 	<integer>12105912</integer>
 	<key>grey73</key>
-	<integer>12171705</integer>
+	<integer>12237498</integer>
 	<key>grey74</key>
 	<integer>12434877</integer>
 	<key>grey75</key>
-	<integer>12500670</integer>
+	<integer>12566463</integer>
 	<key>grey76</key>
 	<integer>12763842</integer>
 	<key>grey77</key>
-	<integer>12829635</integer>
+	<integer>12895428</integer>
 	<key>grey78</key>
 	<integer>13092807</integer>
 	<key>grey79</key>
-	<integer>13158600</integer>
+	<integer>13224393</integer>
 	<key>grey8</key>
-	<integer>1250067</integer>
+	<integer>1315860</integer>
 	<key>grey80</key>
 	<integer>13421772</integer>
 	<key>grey81</key>
 	<integer>13619151</integer>
 	<key>grey82</key>
-	<integer>13684944</integer>
+	<integer>13750737</integer>
 	<key>grey83</key>
 	<integer>13948116</integer>
 	<key>grey84</key>
-	<integer>14013909</integer>
+	<integer>14079702</integer>
 	<key>grey85</key>
 	<integer>14277081</integer>
 	<key>grey86</key>
-	<integer>14342874</integer>
+	<integer>14408667</integer>
 	<key>grey87</key>
 	<integer>14606046</integer>
 	<key>grey88</key>
-	<integer>14671839</integer>
+	<integer>14737632</integer>
 	<key>grey89</key>
 	<integer>14935011</integer>
 	<key>grey9</key>
 	<integer>1513239</integer>
 	<key>grey90</key>
-	<integer>15000804</integer>
+	<integer>15066597</integer>
 	<key>grey91</key>
-	<integer>15198183</integer>
+	<integer>15263976</integer>
 	<key>grey92</key>
 	<integer>15461355</integer>
 	<key>grey93</key>
-	<integer>15527148</integer>
+	<integer>15592941</integer>
 	<key>grey94</key>
 	<integer>15790320</integer>
 	<key>grey95</key>
-	<integer>15856113</integer>
+	<integer>15921906</integer>
 	<key>grey96</key>
 	<integer>16119285</integer>
 	<key>grey97</key>
-	<integer>16185078</integer>
+	<integer>16250871</integer>
 	<key>grey98</key>
 	<integer>16448250</integer>
 	<key>grey99</key>
-	<integer>16514043</integer>
+	<integer>16579836</integer>
 	<key>honeydew</key>
 	<integer>15794160</integer>
 	<key>honeydew1</key>
 	<integer>15794160</integer>
 	<key>honeydew2</key>
-	<integer>14675423</integer>
+	<integer>14741216</integer>
 	<key>honeydew3</key>
-	<integer>12700865</integer>
+	<integer>12701121</integer>
 	<key>honeydew4</key>
-	<integer>8555394</integer>
+	<integer>8620931</integer>
 	<key>hotpink</key>
 	<integer>16738740</integer>
 	<key>hotpink1</key>
 	<integer>16740020</integer>
 	<key>hotpink2</key>
-	<integer>15559334</integer>
+	<integer>15624871</integer>
 	<key>hotpink3</key>
-	<integer>13394063</integer>
+	<integer>13459600</integer>
 	<key>hotpink4</key>
-	<integer>9124449</integer>
+	<integer>9124450</integer>
 	<key>indianred</key>
-	<integer>13392988</integer>
+	<integer>13458524</integer>
 	<key>indianred1</key>
 	<integer>16738922</integer>
 	<key>indianred2</key>
-	<integer>15557218</integer>
+	<integer>15623011</integer>
 	<key>indianred3</key>
-	<integer>13390932</integer>
+	<integer>13456725</integer>
 	<key>indianred4</key>
 	<integer>9124410</integer>
 	<key>ivory</key>
@@ -759,19 +762,19 @@
 	<key>ivory1</key>
 	<integer>16777200</integer>
 	<key>ivory2</key>
-	<integer>15592927</integer>
+	<integer>15658720</integer>
 	<key>ivory3</key>
-	<integer>13421761</integer>
+	<integer>13487553</integer>
 	<key>ivory4</key>
-	<integer>9145218</integer>
+	<integer>9145219</integer>
 	<key>khaki</key>
-	<integer>15787659</integer>
+	<integer>15787660</integer>
 	<key>khaki1</key>
-	<integer>16774543</integer>
+	<integer>16774799</integer>
 	<key>khaki2</key>
-	<integer>15591045</integer>
+	<integer>15656581</integer>
 	<key>khaki3</key>
-	<integer>13420147</integer>
+	<integer>13485683</integer>
 	<key>khaki4</key>
 	<integer>9143886</integer>
 	<key>lavender</key>
@@ -781,209 +784,209 @@
 	<key>lavenderblush1</key>
 	<integer>16773365</integer>
 	<key>lavenderblush2</key>
-	<integer>15589348</integer>
+	<integer>15655141</integer>
 	<key>lavenderblush3</key>
-	<integer>13418948</integer>
+	<integer>13484485</integer>
 	<key>lavenderblush4</key>
-	<integer>9142918</integer>
+	<integer>9143174</integer>
 	<key>lawngreen</key>
-	<integer>8190720</integer>
+	<integer>8190976</integer>
 	<key>lemonchiffon</key>
-	<integer>16775884</integer>
+	<integer>16775885</integer>
 	<key>lemonchiffon1</key>
-	<integer>16775884</integer>
+	<integer>16775885</integer>
 	<key>lemonchiffon2</key>
-	<integer>15591614</integer>
+	<integer>15657407</integer>
 	<key>lemonchiffon3</key>
-	<integer>13420709</integer>
+	<integer>13486501</integer>
 	<key>lemonchiffon4</key>
-	<integer>9144687</integer>
+	<integer>9144688</integer>
 	<key>lightblue</key>
-	<integer>10526975</integer>
+	<integer>11393254</integer>
 	<key>lightblue1</key>
-	<integer>12513279</integer>
+	<integer>12578815</integer>
 	<key>lightblue2</key>
-	<integer>11656941</integer>
+	<integer>11722734</integer>
 	<key>lightblue3</key>
-	<integer>10076108</integer>
+	<integer>10141901</integer>
 	<key>lightblue4</key>
-	<integer>6783627</integer>
+	<integer>6849419</integer>
 	<key>lightcoral</key>
 	<integer>15761536</integer>
 	<key>lightcyan</key>
-	<integer>10551295</integer>
+	<integer>14745599</integer>
 	<key>lightcyan1</key>
-	<integer>14680063</integer>
+	<integer>14745599</integer>
 	<key>lightcyan2</key>
-	<integer>13692397</integer>
+	<integer>13758190</integer>
 	<key>lightcyan3</key>
-	<integer>11848908</integer>
+	<integer>11849165</integer>
 	<key>lightcyan4</key>
-	<integer>7965579</integer>
+	<integer>8031115</integer>
 	<key>lightgoldenrod</key>
-	<integer>15588737</integer>
+	<integer>15654274</integer>
 	<key>lightgoldenrod1</key>
 	<integer>16772235</integer>
 	<key>lightgoldenrod2</key>
-	<integer>15588225</integer>
+	<integer>15654018</integer>
 	<key>lightgoldenrod3</key>
-	<integer>13418095</integer>
+	<integer>13483632</integer>
 	<key>lightgoldenrod4</key>
-	<integer>9142603</integer>
+	<integer>9142604</integer>
 	<key>lightgoldenrodyellow</key>
-	<integer>16448209</integer>
+	<integer>16448210</integer>
 	<key>lightgray</key>
-	<integer>14671839</integer>
+	<integer>13882323</integer>
 	<key>lightgreen</key>
-	<integer>10551200</integer>
+	<integer>9498256</integer>
 	<key>lightgrey</key>
-	<integer>14671839</integer>
+	<integer>13882323</integer>
 	<key>lightmagenta</key>
-	<integer>15769840</integer>
+	<integer>16759807</integer>
 	<key>lightpink</key>
-	<integer>16758209</integer>
+	<integer>16758465</integer>
 	<key>lightpink1</key>
 	<integer>16756409</integer>
 	<key>lightpink2</key>
-	<integer>15573676</integer>
+	<integer>15639213</integer>
 	<key>lightpink3</key>
-	<integer>13405076</integer>
+	<integer>13470869</integer>
 	<key>lightpink4</key>
-	<integer>9133669</integer>
+	<integer>9133925</integer>
 	<key>lightred</key>
-	<integer>16752800</integer>
+	<integer>16759739</integer>
 	<key>lightsalmon</key>
-	<integer>16752761</integer>
+	<integer>16752762</integer>
 	<key>lightsalmon1</key>
-	<integer>16752761</integer>
+	<integer>16752762</integer>
 	<key>lightsalmon2</key>
-	<integer>15570034</integer>
+	<integer>15635826</integer>
 	<key>lightsalmon3</key>
-	<integer>13402465</integer>
+	<integer>13468002</integer>
 	<key>lightsalmon4</key>
-	<integer>9131841</integer>
+	<integer>9131842</integer>
 	<key>lightseagreen</key>
-	<integer>2142634</integer>
+	<integer>2142890</integer>
 	<key>lightskyblue</key>
-	<integer>8834554</integer>
+	<integer>8900346</integer>
 	<key>lightskyblue1</key>
 	<integer>11592447</integer>
 	<key>lightskyblue2</key>
-	<integer>10736621</integer>
+	<integer>10802158</integer>
 	<key>lightskyblue3</key>
-	<integer>9221580</integer>
+	<integer>9287373</integer>
 	<key>lightskyblue4</key>
 	<integer>6323083</integer>
 	<key>lightslateblue</key>
-	<integer>8613887</integer>
+	<integer>8679679</integer>
 	<key>lightslategray</key>
-	<integer>7833497</integer>
+	<integer>7833753</integer>
 	<key>lightslategrey</key>
-	<integer>7833497</integer>
+	<integer>7833753</integer>
 	<key>lightsteelblue</key>
-	<integer>11584478</integer>
+	<integer>11584734</integer>
 	<key>lightsteelblue1</key>
 	<integer>13296127</integer>
 	<key>lightsteelblue2</key>
-	<integer>12374509</integer>
+	<integer>12374766</integer>
 	<key>lightsteelblue3</key>
-	<integer>10663116</integer>
+	<integer>10663373</integer>
 	<key>lightsteelblue4</key>
 	<integer>7240587</integer>
 	<key>lightyellow</key>
-	<integer>16777120</integer>
+	<integer>16777184</integer>
 	<key>lightyellow1</key>
-	<integer>16777183</integer>
+	<integer>16777184</integer>
 	<key>lightyellow2</key>
-	<integer>15592912</integer>
+	<integer>15658705</integer>
 	<key>lightyellow3</key>
-	<integer>13421748</integer>
+	<integer>13487540</integer>
 	<key>lightyellow4</key>
-	<integer>9145209</integer>
+	<integer>9145210</integer>
 	<key>limegreen</key>
-	<integer>3329074</integer>
+	<integer>3329330</integer>
 	<key>linen</key>
 	<integer>16445670</integer>
 	<key>magenta</key>
-	<integer>15796355</integer>
+	<integer>16711935</integer>
 	<key>magenta1</key>
 	<integer>16711935</integer>
 	<key>magenta2</key>
-	<integer>15532269</integer>
+	<integer>15597806</integer>
 	<key>magenta3</key>
-	<integer>13369548</integer>
+	<integer>13435085</integer>
 	<key>magenta4</key>
 	<integer>9109643</integer>
 	<key>maroon</key>
-	<integer>11546464</integer>
+	<integer>11546720</integer>
 	<key>maroon1</key>
-	<integer>16724915</integer>
+	<integer>16725171</integer>
 	<key>maroon2</key>
-	<integer>15544230</integer>
+	<integer>15610023</integer>
 	<key>maroon3</key>
-	<integer>13379983</integer>
+	<integer>13445520</integer>
 	<key>maroon4</key>
-	<integer>9116513</integer>
+	<integer>9116770</integer>
 	<key>mediumaquamarine</key>
-	<integer>6737066</integer>
+	<integer>6737322</integer>
 	<key>mediumblue</key>
-	<integer>204</integer>
+	<integer>205</integer>
 	<key>mediumorchid</key>
-	<integer>12145875</integer>
+	<integer>12211667</integer>
 	<key>mediumorchid1</key>
-	<integer>14640895</integer>
+	<integer>14706431</integer>
 	<key>mediumorchid2</key>
-	<integer>13655789</integer>
+	<integer>13721582</integer>
 	<key>mediumorchid3</key>
-	<integer>11817676</integer>
+	<integer>11817677</integer>
 	<key>mediumorchid4</key>
-	<integer>7944075</integer>
+	<integer>8009611</integer>
 	<key>mediumpurple</key>
-	<integer>9662426</integer>
+	<integer>9662683</integer>
 	<key>mediumpurple1</key>
-	<integer>11239935</integer>
+	<integer>11240191</integer>
 	<key>mediumpurple2</key>
-	<integer>10385645</integer>
+	<integer>10451438</integer>
 	<key>mediumpurple3</key>
-	<integer>9005004</integer>
+	<integer>9005261</integer>
 	<key>mediumpurple4</key>
-	<integer>6047371</integer>
+	<integer>6113163</integer>
 	<key>mediumseagreen</key>
-	<integer>3978096</integer>
+	<integer>3978097</integer>
 	<key>mediumslateblue</key>
-	<integer>8087533</integer>
+	<integer>8087790</integer>
 	<key>mediumspringgreen</key>
-	<integer>64153</integer>
+	<integer>64154</integer>
 	<key>mediumturquoise</key>
-	<integer>4772044</integer>
+	<integer>4772300</integer>
 	<key>mediumvioletred</key>
 	<integer>13047173</integer>
 	<key>midnightblue</key>
-	<integer>1579119</integer>
+	<integer>1644912</integer>
 	<key>mintcream</key>
 	<integer>16121850</integer>
 	<key>mistyrose</key>
-	<integer>16770017</integer>
+	<integer>16770273</integer>
 	<key>mistyrose1</key>
-	<integer>16770017</integer>
+	<integer>16770273</integer>
 	<key>mistyrose2</key>
-	<integer>15586769</integer>
+	<integer>15652306</integer>
 	<key>mistyrose3</key>
-	<integer>13416116</integer>
+	<integer>13481909</integer>
 	<key>mistyrose4</key>
 	<integer>9141627</integer>
 	<key>moccasin</key>
-	<integer>16769972</integer>
+	<integer>16770229</integer>
 	<key>navajowhite</key>
-	<integer>16768684</integer>
+	<integer>16768685</integer>
 	<key>navajowhite1</key>
-	<integer>16768684</integer>
+	<integer>16768685</integer>
 	<key>navajowhite2</key>
-	<integer>15585185</integer>
+	<integer>15650721</integer>
 	<key>navajowhite3</key>
-	<integer>13415307</integer>
+	<integer>13480843</integer>
 	<key>navajowhite4</key>
-	<integer>9140317</integer>
+	<integer>9140574</integer>
 	<key>navy</key>
 	<integer>128</integer>
 	<key>navyblue</key>
@@ -991,131 +994,131 @@
 	<key>oldlace</key>
 	<integer>16643558</integer>
 	<key>olivedrab</key>
-	<integer>6983203</integer>
+	<integer>7048739</integer>
 	<key>olivedrab1</key>
-	<integer>12582717</integer>
+	<integer>12648254</integer>
 	<key>olivedrab2</key>
-	<integer>11791674</integer>
+	<integer>11791930</integer>
 	<key>olivedrab3</key>
-	<integer>10079282</integer>
+	<integer>10145074</integer>
 	<key>olivedrab4</key>
-	<integer>6916897</integer>
+	<integer>6916898</integer>
 	<key>orange</key>
-	<integer>16482304</integer>
+	<integer>16753920</integer>
 	<key>orange1</key>
 	<integer>16753920</integer>
 	<key>orange2</key>
-	<integer>15571200</integer>
+	<integer>15636992</integer>
 	<key>orange3</key>
-	<integer>13403392</integer>
+	<integer>13468928</integer>
 	<key>orange4</key>
-	<integer>9132288</integer>
+	<integer>9132544</integer>
 	<key>orangered</key>
 	<integer>16729344</integer>
 	<key>orangered1</key>
 	<integer>16729344</integer>
 	<key>orangered2</key>
-	<integer>15548416</integer>
+	<integer>15613952</integer>
 	<key>orangered3</key>
-	<integer>13383424</integer>
+	<integer>13448960</integer>
 	<key>orangered4</key>
 	<integer>9118976</integer>
 	<key>orchid</key>
-	<integer>14249941</integer>
+	<integer>14315734</integer>
 	<key>orchid1</key>
-	<integer>16745210</integer>
+	<integer>16745466</integer>
 	<key>orchid2</key>
-	<integer>15563240</integer>
+	<integer>15629033</integer>
 	<key>orchid3</key>
-	<integer>13396424</integer>
+	<integer>13461961</integer>
 	<key>orchid4</key>
-	<integer>9127561</integer>
+	<integer>9127817</integer>
 	<key>palegoldenrod</key>
-	<integer>15591338</integer>
+	<integer>15657130</integer>
 	<key>palegreen</key>
-	<integer>10025624</integer>
+	<integer>10025880</integer>
 	<key>palegreen1</key>
-	<integer>10092441</integer>
+	<integer>10157978</integer>
 	<key>palegreen2</key>
-	<integer>9432463</integer>
+	<integer>9498256</integer>
 	<key>palegreen3</key>
-	<integer>8178812</integer>
+	<integer>8179068</integer>
 	<key>palegreen4</key>
-	<integer>5475155</integer>
+	<integer>5540692</integer>
 	<key>paleturquoise</key>
-	<integer>11529709</integer>
+	<integer>11529966</integer>
 	<key>paleturquoise1</key>
-	<integer>12255231</integer>
+	<integer>12320767</integer>
 	<key>paleturquoise2</key>
-	<integer>11464173</integer>
+	<integer>11464430</integer>
 	<key>paleturquoise3</key>
-	<integer>9817292</integer>
+	<integer>9883085</integer>
 	<key>paleturquoise4</key>
 	<integer>6720395</integer>
 	<key>palevioletred</key>
-	<integer>14315411</integer>
+	<integer>14381203</integer>
 	<key>palevioletred1</key>
-	<integer>16744875</integer>
+	<integer>16745131</integer>
 	<key>palevioletred2</key>
-	<integer>15562910</integer>
+	<integer>15628703</integer>
 	<key>palevioletred3</key>
-	<integer>13395849</integer>
+	<integer>13461641</integer>
 	<key>palevioletred4</key>
-	<integer>9127516</integer>
+	<integer>9127773</integer>
 	<key>papayawhip</key>
 	<integer>16773077</integer>
 	<key>peachpuff</key>
-	<integer>16767417</integer>
+	<integer>16767673</integer>
 	<key>peachpuff1</key>
-	<integer>16767417</integer>
+	<integer>16767673</integer>
 	<key>peachpuff2</key>
-	<integer>15584172</integer>
+	<integer>15649709</integer>
 	<key>peachpuff3</key>
-	<integer>13414292</integer>
+	<integer>13479829</integer>
 	<key>peachpuff4</key>
 	<integer>9140069</integer>
 	<key>peru</key>
-	<integer>13403455</integer>
+	<integer>13468991</integer>
 	<key>pink</key>
-	<integer>16760779</integer>
+	<integer>16761035</integer>
 	<key>pink1</key>
-	<integer>16757956</integer>
+	<integer>16758213</integer>
 	<key>pink2</key>
-	<integer>15575224</integer>
+	<integer>15641016</integer>
 	<key>pink3</key>
-	<integer>13406365</integer>
+	<integer>13472158</integer>
 	<key>pink4</key>
-	<integer>9134699</integer>
+	<integer>9134956</integer>
 	<key>plum</key>
 	<integer>14524637</integer>
 	<key>plum1</key>
-	<integer>16759551</integer>
+	<integer>16759807</integer>
 	<key>plum2</key>
-	<integer>15576813</integer>
+	<integer>15642350</integer>
 	<key>plum3</key>
-	<integer>13407692</integer>
+	<integer>13473485</integer>
 	<key>plum4</key>
 	<integer>9135755</integer>
 	<key>powderblue</key>
-	<integer>11591654</integer>
+	<integer>11591910</integer>
 	<key>purple</key>
 	<integer>10494192</integer>
 	<key>purple1</key>
-	<integer>10104831</integer>
+	<integer>10170623</integer>
 	<key>purple2</key>
-	<integer>9448429</integer>
+	<integer>9514222</integer>
 	<key>purple3</key>
-	<integer>8201676</integer>
+	<integer>8201933</integer>
 	<key>purple4</key>
-	<integer>5511819</integer>
+	<integer>5577355</integer>
 	<key>red</key>
-	<integer>14485509</integer>
+	<integer>16711680</integer>
 	<key>red1</key>
 	<integer>16711680</integer>
 	<key>red2</key>
-	<integer>15532032</integer>
+	<integer>15597568</integer>
 	<key>red3</key>
-	<integer>13369344</integer>
+	<integer>13434880</integer>
 	<key>red4</key>
 	<integer>9109504</integer>
 	<key>rosybrown</key>
@@ -1123,204 +1126,204 @@
 	<key>rosybrown1</key>
 	<integer>16761281</integer>
 	<key>rosybrown2</key>
-	<integer>15578292</integer>
+	<integer>15643828</integer>
 	<key>rosybrown3</key>
-	<integer>13408922</integer>
+	<integer>13474715</integer>
 	<key>rosybrown4</key>
 	<integer>9136489</integer>
 	<key>royalblue</key>
-	<integer>4221409</integer>
+	<integer>4286945</integer>
 	<key>royalblue1</key>
-	<integer>4748799</integer>
+	<integer>4749055</integer>
 	<key>royalblue2</key>
-	<integer>4353773</integer>
+	<integer>4419310</integer>
 	<key>royalblue3</key>
-	<integer>3825356</integer>
+	<integer>3825613</integer>
 	<key>royalblue4</key>
-	<integer>2506891</integer>
+	<integer>2572427</integer>
 	<key>saddlebrown</key>
-	<integer>9127186</integer>
+	<integer>9127187</integer>
 	<key>salmon</key>
 	<integer>16416882</integer>
 	<key>salmon1</key>
-	<integer>16747369</integer>
+	<integer>16747625</integer>
 	<key>salmon2</key>
-	<integer>15565153</integer>
+	<integer>15630946</integer>
 	<key>salmon3</key>
-	<integer>13397843</integer>
+	<integer>13463636</integer>
 	<key>salmon4</key>
-	<integer>9128760</integer>
+	<integer>9129017</integer>
 	<key>sandybrown</key>
-	<integer>16032608</integer>
+	<integer>16032864</integer>
 	<key>seagreen</key>
 	<integer>3050327</integer>
 	<key>seagreen1</key>
-	<integer>5504926</integer>
+	<integer>5570463</integer>
 	<key>seagreen2</key>
-	<integer>5172628</integer>
+	<integer>5172884</integer>
 	<key>seagreen3</key>
-	<integer>4377728</integer>
+	<integer>4443520</integer>
 	<key>seagreen4</key>
 	<integer>3050327</integer>
 	<key>seashell</key>
-	<integer>16774637</integer>
+	<integer>16774638</integer>
 	<key>seashell1</key>
-	<integer>16774637</integer>
+	<integer>16774638</integer>
 	<key>seashell2</key>
-	<integer>15590622</integer>
+	<integer>15656414</integer>
 	<key>seashell3</key>
-	<integer>13419710</integer>
+	<integer>13485503</integer>
 	<key>seashell4</key>
-	<integer>9143937</integer>
+	<integer>9143938</integer>
 	<key>sienna</key>
 	<integer>10506797</integer>
 	<key>sienna1</key>
-	<integer>16744774</integer>
+	<integer>16745031</integer>
 	<key>sienna2</key>
-	<integer>15562817</integer>
+	<integer>15628610</integer>
 	<key>sienna3</key>
-	<integer>13395768</integer>
+	<integer>13461561</integer>
 	<key>sienna4</key>
-	<integer>9127461</integer>
+	<integer>9127718</integer>
 	<key>skyblue</key>
-	<integer>8834539</integer>
+	<integer>8900331</integer>
 	<key>skyblue1</key>
-	<integer>8834559</integer>
+	<integer>8900351</integer>
 	<key>skyblue2</key>
-	<integer>8241133</integer>
+	<integer>8306926</integer>
 	<key>skyblue3</key>
-	<integer>7055052</integer>
+	<integer>7120589</integer>
 	<key>skyblue4</key>
-	<integer>4878219</integer>
+	<integer>4878475</integer>
 	<key>slateblue</key>
-	<integer>6969804</integer>
+	<integer>6970061</integer>
 	<key>slateblue1</key>
-	<integer>8548351</integer>
+	<integer>8613887</integer>
 	<key>slateblue2</key>
-	<integer>7956205</integer>
+	<integer>8021998</integer>
 	<key>slateblue3</key>
-	<integer>6904012</integer>
+	<integer>6904269</integer>
 	<key>slateblue4</key>
-	<integer>4603019</integer>
+	<integer>4668555</integer>
 	<key>slategray</key>
-	<integer>7307407</integer>
+	<integer>7372944</integer>
 	<key>slategray1</key>
 	<integer>13034239</integer>
 	<key>slategray2</key>
-	<integer>12178413</integer>
+	<integer>12178414</integer>
 	<key>slategray3</key>
-	<integer>10401228</integer>
+	<integer>10467021</integer>
 	<key>slategray4</key>
-	<integer>7043979</integer>
+	<integer>7109515</integer>
 	<key>slategrey</key>
-	<integer>7307407</integer>
+	<integer>7372944</integer>
 	<key>snow</key>
 	<integer>16775930</integer>
 	<key>snow1</key>
 	<integer>16775930</integer>
 	<key>snow2</key>
-	<integer>15591656</integer>
+	<integer>15657449</integer>
 	<key>snow3</key>
-	<integer>13420744</integer>
+	<integer>13486537</integer>
 	<key>snow4</key>
 	<integer>9144713</integer>
 	<key>springgreen</key>
-	<integer>65406</integer>
+	<integer>65407</integer>
 	<key>springgreen1</key>
-	<integer>65406</integer>
+	<integer>65407</integer>
 	<key>springgreen2</key>
-	<integer>60789</integer>
+	<integer>61046</integer>
 	<key>springgreen3</key>
-	<integer>52326</integer>
+	<integer>52582</integer>
 	<key>springgreen4</key>
 	<integer>35653</integer>
 	<key>steelblue</key>
-	<integer>4555188</integer>
+	<integer>4620980</integer>
 	<key>steelblue1</key>
-	<integer>6469887</integer>
+	<integer>6535423</integer>
 	<key>steelblue2</key>
-	<integer>6073325</integer>
+	<integer>6073582</integer>
 	<key>steelblue3</key>
-	<integer>5149900</integer>
+	<integer>5215437</integer>
 	<key>steelblue4</key>
 	<integer>3564683</integer>
 	<key>tan</key>
-	<integer>13743243</integer>
+	<integer>13808780</integer>
 	<key>tan1</key>
-	<integer>16753998</integer>
+	<integer>16753999</integer>
 	<key>tan2</key>
-	<integer>15571273</integer>
+	<integer>15637065</integer>
 	<key>tan3</key>
-	<integer>13403455</integer>
+	<integer>13468991</integer>
 	<key>tan4</key>
-	<integer>9132330</integer>
+	<integer>9132587</integer>
 	<key>thistle</key>
-	<integer>14204632</integer>
+	<integer>14204888</integer>
 	<key>thistle1</key>
 	<integer>16769535</integer>
 	<key>thistle2</key>
-	<integer>15585773</integer>
+	<integer>15651566</integer>
 	<key>thistle3</key>
-	<integer>13415628</integer>
+	<integer>13481421</integer>
 	<key>thistle4</key>
 	<integer>9141131</integer>
 	<key>tomato</key>
-	<integer>16736838</integer>
+	<integer>16737095</integer>
 	<key>tomato1</key>
-	<integer>16736838</integer>
+	<integer>16737095</integer>
 	<key>tomato2</key>
-	<integer>15555649</integer>
+	<integer>15621186</integer>
 	<key>tomato3</key>
-	<integer>13389368</integer>
+	<integer>13455161</integer>
 	<key>tomato4</key>
-	<integer>9123365</integer>
+	<integer>9123366</integer>
 	<key>turquoise</key>
-	<integer>4251600</integer>
+	<integer>4251856</integer>
 	<key>turquoise1</key>
 	<integer>62975</integer>
 	<key>turquoise2</key>
-	<integer>58605</integer>
+	<integer>58862</integer>
 	<key>turquoise3</key>
-	<integer>50380</integer>
+	<integer>50637</integer>
 	<key>turquoise4</key>
 	<integer>34443</integer>
 	<key>violet</key>
-	<integer>9189320</integer>
+	<integer>15631086</integer>
 	<key>violetred</key>
-	<integer>13639823</integer>
+	<integer>13639824</integer>
 	<key>violetred1</key>
-	<integer>16727445</integer>
+	<integer>16727702</integer>
 	<key>violetred2</key>
-	<integer>15547019</integer>
+	<integer>15612556</integer>
 	<key>violetred3</key>
-	<integer>13382264</integer>
+	<integer>13447800</integer>
 	<key>violetred4</key>
-	<integer>9118034</integer>
+	<integer>9118290</integer>
 	<key>wheat</key>
 	<integer>16113331</integer>
 	<key>wheat1</key>
-	<integer>16771001</integer>
+	<integer>16771002</integer>
 	<key>wheat2</key>
-	<integer>15587502</integer>
+	<integer>15653038</integer>
 	<key>wheat3</key>
-	<integer>13416853</integer>
+	<integer>13482646</integer>
 	<key>wheat4</key>
-	<integer>9141606</integer>
+	<integer>9141862</integer>
 	<key>white</key>
 	<integer>16777215</integer>
 	<key>whitesmoke</key>
 	<integer>16119285</integer>
 	<key>yellow</key>
-	<integer>16511492</integer>
+	<integer>16776960</integer>
 	<key>yellow1</key>
 	<integer>16776960</integer>
 	<key>yellow2</key>
-	<integer>15592704</integer>
+	<integer>15658496</integer>
 	<key>yellow3</key>
-	<integer>13421568</integer>
+	<integer>13487360</integer>
 	<key>yellow4</key>
 	<integer>9145088</integer>
 	<key>yellowgreen</key>
-	<integer>10079282</integer>
+	<integer>10145074</integer>
 </dict>
 </plist>
