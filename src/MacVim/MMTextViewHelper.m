@@ -102,8 +102,14 @@ static float MMDragAreaSize = 73.0f;
     int flags = [event modifierFlags];
     if ((flags & NSControlKeyMask) ||
             ((flags & NSAlternateKeyMask) && (flags & NSFunctionKeyMask))) {
+        BOOL unmodIsPrintable = YES;
+        NSString *unmod = [event charactersIgnoringModifiers];
+        if (unmod && [unmod length] > 0 && [unmod characterAtIndex:0] < 0x20)
+            unmodIsPrintable = NO;
+
         NSString *chars = [event characters];
-        if ([chars length] == 1 && [chars characterAtIndex:0] < 0x20) {
+        if ([chars length] == 1 && [chars characterAtIndex:0] < 0x20
+                && unmodIsPrintable) {
             // HACK! Send unprintable characters (such as C-@, C-[, C-\, C-],
             // C-^, C-_) as normal text to be added to the Vim input buffer.
             // This must be done in order for the backend to be able to
