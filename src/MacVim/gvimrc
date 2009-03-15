@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sun Oct 04 2008
+" Last Change:	Sun Mar 15 2009
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -26,6 +26,9 @@ if !exists("colors_name")
     colorscheme macvim
 endif
 
+" To make tabs more readable, the label only contains the tail of the file
+" name and the buffer modified flag.
+set guitablabel=%M%t
 
 
 " Send print jobs to Preview.app.  This does not delete the temporary ps file
