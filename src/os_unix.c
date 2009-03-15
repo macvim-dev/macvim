@@ -4445,10 +4445,8 @@ mch_call_shell(cmd, options)
 			cursor_on();
 			out_flush();
 # if FEAT_GUI_MACVIM
-			if (gui.in_use) {
-			    fast_breakcheck();
+			if (gui.in_use)
 			    gui_macvim_flush();
-			}
 # endif
 			if (got_int)
 			    break;
