@@ -81,6 +81,7 @@
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
 - (void)hideTablineSeparator:(BOOL)hide;
 - (void)doFindNext:(BOOL)next;
+- (void)updateToolbar;
 @end
 
 
@@ -428,6 +429,9 @@
     // If we were to immediately resize then the vim view size would jitter
     // (e.g.  hiding/showing scrollbars often happens several time in one
     // update).
+    // Also delay toggling the toolbar until after scrollbars otherwise
+    // problems arise when showing toolbar and scrollbar at the same time, i.e.
+    // on "set go+=rT".
 
     if (shouldResizeVimView) {
         shouldResizeVimView = NO;
@@ -447,6 +451,11 @@
         }
 
         keepOnScreen = NO;
+    }
+
+    if (shouldUpdateToolbar != 0) {
+        [self updateToolbar];
+        shouldUpdateToolbar = 0;
     }
 }
 
@@ -481,20 +490,16 @@
 
     [toolbar setSizeMode:size];
     [toolbar setDisplayMode:mode];
-    [toolbar setVisible:on];
 
-    if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask) == 0) {
-        if (!on) {
-            [self hideTablineSeparator:YES];
-        } else {
-            [self hideTablineSeparator:![[vimView tabBarControl] isHidden]];
-        }
+    // NOTE: If the window is not visible we must toggle the toolbar
+    // immediately, otherwise "set go-=T" in .gvimrc will lead to the toolbar
+    // showing its hide animation every time a new window is opened.  (See
+    // processCommandQueueDidFinish for the reason why we need to delay
+    // toggling the toolbar when the window is visible.)
+    if ([decoratedWindow isVisible]) {
+        shouldUpdateToolbar = on ? 1 : -1;
     } else {
-        // Textured windows don't have a line below there title bar, so we
-        // need the separator in this case as well. In fact, the only case
-        // where we don't need the separator is when the tab bar control
-        // is visible (because it brings its own separator).
-        [self hideTablineSeparator:![[vimView tabBarControl] isHidden]];
+        [self updateToolbar];
     }
 }
 
@@ -1023,6 +1028,29 @@
     }
 
     [vimController addVimInput:input];
+}
+
+- (void)updateToolbar
+{
+    NSToolbar *toolbar = [decoratedWindow toolbar];
+    if (!toolbar) return;
+
+    BOOL on = shouldUpdateToolbar > 0 ? YES : NO;
+    [toolbar setVisible:on];
+
+    if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask) == 0) {
+        if (!on) {
+            [self hideTablineSeparator:YES];
+        } else {
+            [self hideTablineSeparator:![[vimView tabBarControl] isHidden]];
+        }
+    } else {
+        // Textured windows don't have a line below there title bar, so we
+        // need the separator in this case as well. In fact, the only case
+        // where we don't need the separator is when the tab bar control
+        // is visible (because it brings its own separator).
+        [self hideTablineSeparator:![[vimView tabBarControl] isHidden]];
+    }
 }
 
 @end // MMWindowController (Private)
