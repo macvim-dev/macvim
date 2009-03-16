@@ -7,7 +7,7 @@ $(OUTDIR)/MacVim-generic.icns: make_icons.py vim-noshadow-512.png loadfont.so En
 	/usr/bin/python make_icons.py $(OUTDIR)
 
 loadfont.so: loadfont.c
-	python setup.py install --install-lib .
+	/usr/bin/python setup.py install --install-lib .
 
 Envy\ Code\ R\ Bold.ttf: EnvyCodeR.zip
 	unzip -jo EnvyCodeR.zip
