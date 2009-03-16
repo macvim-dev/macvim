@@ -780,6 +780,8 @@
     // change at any time (dock could move, resolution could change, window
     // could be moved to another screen, ...).
 
+    // NOTE: Not called in full-screen mode so use "visibleFrame" instead of
+    // "frame".
     NSRect maxFrame = [self constrainFrame:[[win screen] visibleFrame]];
 
     if (proposedFrameSize.width > maxFrame.size.width)
@@ -897,6 +899,8 @@
     NSRect newFrame = [decoratedWindow frameRectForContentRect:contentRect];
 
     // Ensure that the window fits inside the visible part of the screen.
+    // NOTE: Not called in full-screen mode so use "visisbleFrame' instead of
+    // "frame".
     NSRect maxFrame = [[decoratedWindow screen] visibleFrame];
     maxFrame = [self constrainFrame:maxFrame];
 
@@ -921,8 +925,13 @@
 
 - (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize
 {
+    // NOTE: This may be called in both windowed and full-screen mode.  The
+    // "visibleFrame" method does not overlap menu and dock so should not be
+    // used in full-screen.
     NSWindow *win = [self window];
-    NSRect rect = [win contentRectForFrameRect:[[win screen] visibleFrame]];
+    NSRect screenRect = fullscreenEnabled ? [[win screen] frame]
+                                          : [[win screen] visibleFrame];
+    NSRect rect = [win contentRectForFrameRect:screenRect];
 
     if (contentSize.height > rect.size.height)
         contentSize.height = rect.size.height;

@@ -149,8 +149,10 @@
 
     int fuRows = currRows, fuColumns = currColumns;
 
+    // NOTE: Do not use [NSScreen visibleFrame] when determining the screen
+    // size since it compensates for menu and dock.
     int maxRows, maxColumns;
-    NSSize size = [[self screen] visibleFrame].size;
+    NSSize size = [[self screen] frame].size;
     [view constrainRows:&maxRows columns:&maxColumns toSize:size];
 
     // Store current pre-fu vim size
