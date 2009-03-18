@@ -5865,14 +5865,28 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
 	/* load or unload key mapping tables */
 	errmsg = keymap_init();
 
-	/* When successfully installed a new keymap switch on using it. */
-	if (*curbuf->b_p_keymap != NUL && errmsg == NULL)
+	if (errmsg == NULL)
 	{
-	    curbuf->b_p_iminsert = B_IMODE_LMAP;
-	    if (curbuf->b_p_imsearch != B_IMODE_USE_INSERT)
-		curbuf->b_p_imsearch = B_IMODE_LMAP;
-	    set_iminsert_global();
-	    set_imsearch_global();
+	    if (*curbuf->b_p_keymap != NUL)
+	    {
+		/* Installed a new keymap, switch on using it. */
+		curbuf->b_p_iminsert = B_IMODE_LMAP;
+		if (curbuf->b_p_imsearch != B_IMODE_USE_INSERT)
+		    curbuf->b_p_imsearch = B_IMODE_LMAP;
+	    }
+	    else
+	    {
+		/* Cleared the keymap, may reset 'iminsert' and 'imsearch'. */
+		if (curbuf->b_p_iminsert == B_IMODE_LMAP)
+		    curbuf->b_p_iminsert = B_IMODE_NONE;
+		if (curbuf->b_p_imsearch == B_IMODE_LMAP)
+		    curbuf->b_p_imsearch = B_IMODE_USE_INSERT;
+	    }
+	    if ((opt_flags & OPT_LOCAL) == 0)
+	    {
+		set_iminsert_global();
+		set_imsearch_global();
+	    }
 # ifdef FEAT_WINDOWS
 	    status_redraw_curbuf();
 # endif
@@ -6076,15 +6090,23 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
 	/* ":set t_Co=0" and ":set t_Co=1" do ":set t_Co=" */
 	if (varp == &T_CCO)
 	{
-	    t_colors = atoi((char *)T_CCO);
-	    if (t_colors <= 1)
+	    int colors = atoi((char *)T_CCO);
+
+	    /* Only reinitialize colors if t_Co value has really changed to
+	     * avoid expensive reload of colorscheme if t_Co is set to the
+	     * same value multiple times. */
+	    if (colors != t_colors)
 	    {
-		if (new_value_alloced)
-		    vim_free(T_CCO);
-		T_CCO = empty_option;
+		t_colors = colors;
+		if (t_colors <= 1)
+		{
+		    if (new_value_alloced)
+			vim_free(T_CCO);
+		    T_CCO = empty_option;
+		}
+		/* We now have a different color setup, initialize it again. */
+		init_highlight(TRUE, FALSE);
 	    }
-	    /* We now have a different color setup, initialize it again. */
-	    init_highlight(TRUE, FALSE);
 	}
 	ttest(FALSE);
 	if (varp == &T_ME)
@@ -7655,9 +7677,13 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 	     * set. */
 	    if (STRCMP(p_enc, "utf-8") != 0)
 	    {
+		static char *w_arabic = N_("W17: Arabic requires UTF-8, do ':set encoding=utf-8'");
+
 		msg_source(hl_attr(HLF_W));
-		MSG_ATTR(_("W17: Arabic requires UTF-8, do ':set encoding=utf-8'"),
-			hl_attr(HLF_W));
+		MSG_ATTR(_(w_arabic), hl_attr(HLF_W));
+#ifdef FEAT_EVAL
+		set_vim_var_string(VV_WARNINGMSG, (char_u *)_(w_arabic), -1);
+#endif
 	    }
 
 # ifdef FEAT_MBYTE
@@ -10287,25 +10313,110 @@ wc_use_keyname(varp, wcp)
 
 #ifdef FEAT_LANGMAP
 /*
- * Any character has an equivalent character.  This is used for keyboards that
- * have a special language mode that sends characters above 128 (although
- * other characters can be translated too).
+ * Any character has an equivalent 'langmap' character.  This is used for
+ * keyboards that have a special language mode that sends characters above
+ * 128 (although other characters can be translated too).  The "to" field is a
+ * Vim command character.  This avoids having to switch the keyboard back to
+ * ASCII mode when leaving Insert mode.
+ *
+ * langmap_mapchar[] maps any of 256 chars to an ASCII char used for Vim
+ * commands.
+ * When FEAT_MBYTE is defined langmap_mapga.ga_data is a sorted table of
+ * langmap_entry_T.  This does the same as langmap_mapchar[] for characters >=
+ * 256.
  */
+# ifdef FEAT_MBYTE
+/*
+ * With multi-byte support use growarray for 'langmap' chars >= 256
+ */
+typedef struct
+{
+    int	    from;
+    int     to;
+} langmap_entry_T;
+
+static garray_T langmap_mapga;
+static void langmap_set_entry __ARGS((int from, int to));
 
 /*
- * char_u langmap_mapchar[256];
- * Normally maps each of the 128 upper chars to an <128 ascii char; used to
- * "translate" native lang chars in normal mode or some cases of
- * insert mode without having to tediously switch lang mode back&forth.
+ * Search for an entry in "langmap_mapga" for "from".  If found set the "to"
+ * field.  If not found insert a new entry at the appropriate location.
  */
+    static void
+langmap_set_entry(from, to)
+    int    from;
+    int    to;
+{
+    langmap_entry_T *entries = (langmap_entry_T *)(langmap_mapga.ga_data);
+    int             a = 0;
+    int             b = langmap_mapga.ga_len;
+
+    /* Do a binary search for an existing entry. */
+    while (a != b)
+    {
+	int i = (a + b) / 2;
+	int d = entries[i].from - from;
+
+	if (d == 0)
+	{
+	    entries[i].to = to;
+	    return;
+	}
+	if (d < 0)
+	    a = i + 1;
+	else
+	    b = i;
+    }
+
+    if (ga_grow(&langmap_mapga, 1) != OK)
+	return;  /* out of memory */
+
+    /* insert new entry at position "a" */
+    entries = (langmap_entry_T *)(langmap_mapga.ga_data) + a;
+    mch_memmove(entries + 1, entries,
+			(langmap_mapga.ga_len - a) * sizeof(langmap_entry_T));
+    ++langmap_mapga.ga_len;
+    entries[0].from = from;
+    entries[0].to = to;
+}
+
+/*
+ * Apply 'langmap' to multi-byte character "c" and return the result.
+ */
+    int
+langmap_adjust_mb(c)
+    int c;
+{
+    langmap_entry_T *entries = (langmap_entry_T *)(langmap_mapga.ga_data);
+    int a = 0;
+    int b = langmap_mapga.ga_len;
+
+    while (a != b)
+    {
+	int i = (a + b) / 2;
+	int d = entries[i].from - c;
+
+	if (d == 0)
+	    return entries[i].to;  /* found matching entry */
+	if (d < 0)
+	    a = i + 1;
+	else
+	    b = i;
+    }
+    return c;  /* no entry found, return "c" unmodified */
+}
+# endif
 
     static void
 langmap_init()
 {
     int i;
 
-    for (i = 0; i < 256; i++)		/* we init with a-one-to one map */
-	langmap_mapchar[i] = i;
+    for (i = 0; i < 256; i++)
+	langmap_mapchar[i] = i;	 /* we init with a one-to-one map */
+# ifdef FEAT_MBYTE
+    ga_init2(&langmap_mapga, sizeof(langmap_entry_T), 8);
+# endif
 }
 
 /*
@@ -10319,7 +10430,10 @@ langmap_set()
     char_u  *p2;
     int	    from, to;
 
-    langmap_init();			    /* back to one-to-one map first */
+#ifdef FEAT_MBYTE
+    ga_clear(&langmap_mapga);		    /* clear the previous map first */
+#endif
+    langmap_init();			    /* back to one-to-one map */
 
     for (p = p_langmap; p[0] != NUL; )
     {
@@ -10369,7 +10483,13 @@ langmap_set()
 							     transchar(from));
 		return;
 	    }
-	    langmap_mapchar[from & 255] = to;
+
+#ifdef FEAT_MBYTE
+	    if (from >= 256)
+		langmap_set_entry(from, to);
+	    else
+#endif
+		langmap_mapchar[from & 255] = to;
 
 	    /* Advance to next pair */
 	    mb_ptr_adv(p);

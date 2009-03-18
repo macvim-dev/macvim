@@ -12,7 +12,7 @@
 static int path_is_url __ARGS((char_u *p));
 #if defined(FEAT_WINDOWS) || defined(PROTO)
 static int win_split_ins __ARGS((int size, int flags, win_T *newwin, int dir));
-static void win_init __ARGS((win_T *newp, win_T *oldp));
+static void win_init __ARGS((win_T *newp, win_T *oldp, int flags));
 static void frame_comp_pos __ARGS((frame_T *topfrp, int *row, int *col));
 static void frame_setheight __ARGS((frame_T *curfrp, int height));
 #ifdef FEAT_VERTSPLIT
@@ -594,9 +594,7 @@ wingotofile:
 		++allow_keys;   /* no mapping for xchar, but allow key codes */
 		if (xchar == NUL)
 		    xchar = plain_vgetc();
-#ifdef FEAT_LANGMAP
 		LANGMAP_ADJUST(xchar, TRUE);
-#endif
 		--no_mapping;
 		--allow_keys;
 #ifdef FEAT_CMDL_INFO
@@ -913,7 +911,7 @@ win_split_ins(size, flags, newwin, dir)
 	    return FAIL;
 
 	/* make the contents of the new window the same as the current one */
-	win_init(wp, curwin);
+	win_init(wp, curwin, flags);
     }
 
     /*
@@ -1162,11 +1160,15 @@ win_split_ins(size, flags, newwin, dir)
  * Initialize window "newp" from window "oldp".
  * Used when splitting a window and when creating a new tab page.
  * The windows will both edit the same buffer.
+ * WSP_NEWLOC may be specified in flags to prevent the location list from
+ * being copied.
  */
+/*ARGSUSED*/
     static void
-win_init(newp, oldp)
+win_init(newp, oldp, flags)
     win_T	*newp;
     win_T	*oldp;
+    int		 flags;
 {
     int		i;
 
@@ -1191,7 +1193,14 @@ win_init(newp, oldp)
     copy_jumplist(oldp, newp);
 #endif
 #ifdef FEAT_QUICKFIX
-    copy_loclist(oldp, newp);
+    if (flags & WSP_NEWLOC)
+    {
+	/* Don't copy the location list.  */
+	newp->w_llist = NULL;
+	newp->w_llist_ref = NULL;
+    }
+    else
+	copy_loclist(oldp, newp);
 #endif
     if (oldp->w_localdir != NULL)
 	newp->w_localdir = vim_strsave(oldp->w_localdir);
@@ -3221,7 +3230,7 @@ win_alloc_firstwin(oldwin)
     else
     {
 	/* First window in new tab page, initialize it from "oldwin". */
-	win_init(curwin, oldwin);
+	win_init(curwin, oldwin, 0);
 
 # ifdef FEAT_SCROLLBIND
 	/* We don't want scroll-binding in the first window. */

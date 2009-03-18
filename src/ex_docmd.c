@@ -3690,6 +3690,11 @@ set_one_cmd_context(xp, buff)
 	case CMD_highlight:
 	    set_context_in_highlight_cmd(xp, arg);
 	    break;
+#ifdef FEAT_CSCOPE
+	case CMD_cscope:
+	    set_context_in_cscope_cmd(xp, arg);
+	    break;
+#endif
 #ifdef FEAT_LISTCMDS
 	case CMD_bdelete:
 	case CMD_bwipeout:
@@ -5142,7 +5147,11 @@ uc_add_command(name, name_len, rep, argt, def, flags, compl, compl_arg, force)
 	    }
 
 	    vim_free(cmd->uc_rep);
-	    cmd->uc_rep = 0;
+	    cmd->uc_rep = NULL;
+#if defined(FEAT_EVAL) && defined(FEAT_CMDL_COMPL)
+	    vim_free(cmd->uc_compl_arg);
+	    cmd->uc_compl_arg = NULL;
+#endif
 	    break;
 	}
 
@@ -5201,6 +5210,9 @@ static struct
     {EXPAND_AUGROUP, "augroup"},
     {EXPAND_BUFFERS, "buffer"},
     {EXPAND_COMMANDS, "command"},
+#if defined(FEAT_CSCOPE)
+    {EXPAND_CSCOPE, "cscope"},
+#endif
 #if defined(FEAT_EVAL) && defined(FEAT_CMDL_COMPL)
     {EXPAND_USER_DEFINED, "custom"},
     {EXPAND_USER_LIST, "customlist"},
@@ -5934,7 +5946,7 @@ do_ucmd(eap)
     char_u	*q;
 
     char_u	*start;
-    char_u	*end;
+    char_u	*end = NULL;
     char_u	*ksp;
     size_t	len, totlen;
 
@@ -5959,7 +5971,7 @@ do_ucmd(eap)
     for (;;)
     {
 	p = cmd->uc_rep;    /* source */
-	q = buf;	    /* destinateion */
+	q = buf;	    /* destination */
 	totlen = 0;
 
 	for (;;)
@@ -7866,6 +7878,9 @@ free_cd_dir()
 {
     vim_free(prev_dir);
     prev_dir = NULL;
+
+    vim_free(globaldir);
+    globaldir = NULL;
 }
 #endif
 
@@ -7888,6 +7903,10 @@ ex_cd(eap)
     else
 #endif
     {
+#ifdef FEAT_AUTOCMD
+	if (allbuf_locked())
+	    return;
+#endif
 	if (vim_strchr(p_cpo, CPO_CHDIR) != NULL && curbufIsChanged()
 							     && !eap->forceit)
 	{
@@ -8812,7 +8831,7 @@ ex_mkrc(eap)
 		else if (*dirnow != NUL
 			&& (ssop_flags & SSOP_CURDIR) && globaldir != NULL)
 		{
-		    if (mch_chdir((char *)globaldir) == OK)
+		    if (mch_chdir((char *)globaldir) == 0)
 			shorten_fnames(TRUE);
 		}
 

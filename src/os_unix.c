@@ -181,7 +181,8 @@ static RETSIGTYPE catch_sigpwr __ARGS(SIGPROTOARG);
 	&& defined(FEAT_TITLE) && !defined(FEAT_GUI_GTK)
 # define SET_SIG_ALARM
 static RETSIGTYPE sig_alarm __ARGS(SIGPROTOARG);
-static int sig_alarm_called;
+/* volatile because it is used in signal handler sig_alarm(). */
+static volatile int sig_alarm_called;
 #endif
 static RETSIGTYPE deathtrap __ARGS(SIGPROTOARG);
 
@@ -201,13 +202,16 @@ static int save_patterns __ARGS((int num_pat, char_u **pat, int *num_file, char_
 # define SIG_ERR	((RETSIGTYPE (*)())-1)
 #endif
 
-static int	do_resize = FALSE;
+/* volatile because it is used in signal handler sig_winch(). */
+static volatile int do_resize = FALSE;
 #ifndef __EMX__
 static char_u	*extra_shell_arg = NULL;
 static int	show_shell_mess = TRUE;
 #endif
-static int	deadly_signal = 0;	    /* The signal we caught */
-static int	in_mch_delay = FALSE;	    /* sleeping in mch_delay() */
+/* volatile because it is used in signal handler deathtrap(). */
+static volatile int deadly_signal = 0;	    /* The signal we caught */
+/* volatile because it is used in signal handler deathtrap(). */
+static volatile int in_mch_delay = FALSE;    /* sleeping in mch_delay() */
 
 static int curr_tmode = TMODE_COOK;	/* contains current terminal mode */
 
@@ -802,7 +806,7 @@ init_signal_stack()
 #endif
 
 /*
- * We need correct potatotypes for a signal function, otherwise mean compilers
+ * We need correct prototypes for a signal function, otherwise mean compilers
  * will barf when the second argument to signal() is ``wrong''.
  * Let me try it with a few tricky defines from my own osdef.h	(jw).
  */
@@ -1068,13 +1072,18 @@ deathtrap SIGDEFARG(sigarg)
     SIGRETURN;
 }
 
-#ifdef _REENTRANT
+#if defined(_REENTRANT) && defined(SIGCONT)
 /*
  * On Solaris with multi-threading, suspending might not work immediately.
  * Catch the SIGCONT signal, which will be used as an indication whether the
  * suspending has been done or not.
+ *
+ * On Linux, signal is not always handled immediately either.
+ * See https://bugs.launchpad.net/bugs/291373
+ *
+ * volatile because it is used in in signal handler sigcont_handler().
  */
-static int sigcont_received;
+static volatile int sigcont_received;
 static RETSIGTYPE sigcont_handler __ARGS(SIGPROTOARG);
 
 /*
@@ -1118,15 +1127,28 @@ mch_suspend()
     }
 # endif
 
-# ifdef _REENTRANT
+# if defined(_REENTRANT) && defined(SIGCONT)
     sigcont_received = FALSE;
 # endif
     kill(0, SIGTSTP);	    /* send ourselves a STOP signal */
-# ifdef _REENTRANT
-    /* When we didn't suspend immediately in the kill(), do it now.  Happens
-     * on multi-threaded Solaris. */
-    if (!sigcont_received)
-	pause();
+# if defined(_REENTRANT) && defined(SIGCONT)
+    /*
+     * Wait for the SIGCONT signal to be handled. It generally happens
+     * immediately, but somehow not all the time. Do not call pause()
+     * because there would be race condition which would hang Vim if
+     * signal happened in between the test of sigcont_received and the
+     * call to pause(). If signal is not yet received, call sleep(0)
+     * to just yield CPU. Signal should then be received. If somehow
+     * it's still not received, sleep 1, 2, 3 ms. Don't bother waiting
+     * further if signal is not received after 1+2+3+4 ms (not expected
+     * to happen).
+     */
+    {
+	long wait;
+	for (wait = 0; !sigcont_received && wait <= 3L; wait++)
+	    /* Loop is not entered most of the time */
+	    mch_delay(wait, FALSE);
+    }
 # endif
 
 # ifdef FEAT_TITLE
@@ -1175,7 +1197,7 @@ set_signals()
 #ifdef SIGTSTP
     signal(SIGTSTP, restricted ? SIG_IGN : SIG_DFL);
 #endif
-#ifdef _REENTRANT
+#if defined(_REENTRANT) && defined(SIGCONT)
     signal(SIGCONT, sigcont_handler);
 #endif
 
@@ -1234,7 +1256,7 @@ catch_int_signal()
 reset_signals()
 {
     catch_signals(SIG_DFL, SIG_DFL);
-#ifdef _REENTRANT
+#if defined(_REENTRANT) && defined(SIGCONT)
     /* SIGCONT isn't in the list, because its default action is ignore */
     signal(SIGCONT, SIG_DFL);
 #endif
@@ -4094,6 +4116,9 @@ mch_call_shell(cmd, options)
 		int	    fromshell_fd;
 		garray_T    ga;
 		int	    noread_cnt;
+# if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_SYS_TIME_H)
+		struct timeval  start_tv;
+# endif
 
 # ifdef FEAT_GUI
 		if (pty_master_fd >= 0)
@@ -4203,7 +4228,9 @@ mch_call_shell(cmd, options)
 		    ga_init2(&ga, 1, BUFLEN);
 
 		noread_cnt = 0;
-
+# if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_SYS_TIME_H)
+		gettimeofday(&start_tv, NULL);
+# endif
 		for (;;)
 		{
 		    /*
@@ -4216,25 +4243,34 @@ mch_call_shell(cmd, options)
 		     * that a typed password is echoed for ssh or gpg command.
 		     * Don't get characters when the child has already
 		     * finished (wait_pid == 0).
-		     * Don't get extra characters when we already have one.
 		     * Don't read characters unless we didn't get output for a
-		     * while, avoids that ":r !ls" eats typeahead.
+		     * while (noread_cnt > 4), avoids that ":r !ls" eats
+		     * typeahead.
 		     */
 		    len = 0;
 		    if (!(options & SHELL_EXPAND)
 			    && ((options &
 					 (SHELL_READ|SHELL_WRITE|SHELL_COOKED))
 				      != (SHELL_READ|SHELL_WRITE|SHELL_COOKED)
-#ifdef FEAT_GUI
+# ifdef FEAT_GUI
 						    || gui.in_use
-#endif
+# endif
 						    )
 			    && wait_pid == 0
-			    && (ta_len > 0
-				|| (noread_cnt > 4
-				    && (len = ui_inchar(ta_buf,
-						       BUFLEN, 10L, 0)) > 0)))
+			    && (ta_len > 0 || noread_cnt > 4))
 		    {
+		      if (ta_len == 0)
+		      {
+			  /* Get extra characters when we don't have any.
+			   * Reset the counter and timer. */
+			  noread_cnt = 0;
+# if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_SYS_TIME_H)
+			  gettimeofday(&start_tv, NULL);
+# endif
+			  len = ui_inchar(ta_buf, BUFLEN, 10L, 0);
+		      }
+		      if (ta_len > 0 || len > 0)
+		      {
 			/*
 			 * For pipes:
 			 * Check for CTRL-C: send interrupt signal to child.
@@ -4336,9 +4372,9 @@ mch_call_shell(cmd, options)
 			    {
 				ta_len -= len;
 				mch_memmove(ta_buf, ta_buf + len, ta_len);
-				noread_cnt = 0;
 			    }
 			}
+		      }
 		    }
 
 		    if (got_int)
@@ -4450,6 +4486,25 @@ mch_call_shell(cmd, options)
 # endif
 			if (got_int)
 			    break;
+
+# if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_SYS_TIME_H)
+			{
+			    struct timeval  now_tv;
+			    long	    msec;
+
+			    /* Avoid that we keep looping here without
+			     * checking for a CTRL-C for a long time.  Don't
+			     * break out too often to avoid losing typeahead. */
+			    gettimeofday(&now_tv, NULL);
+			    msec = (now_tv.tv_sec - start_tv.tv_sec) * 1000L
+				+ (now_tv.tv_usec - start_tv.tv_usec) / 1000L;
+			    if (msec > 2000)
+			    {
+				noread_cnt = 5;
+				break;
+			    }
+			}
+# endif
 		    }
 
 		    /* If we already detected the child has finished break the
@@ -5872,7 +5927,9 @@ gpm_open()
 	     * we are going to suspend or starting an external process
 	     * so we shouldn't  have problem with this
 	     */
+# ifdef SIGTSTP
 	    signal(SIGTSTP, restricted ? SIG_IGN : SIG_DFL);
+# endif
 	    return 1; /* succeed */
 	}
 	if (gpm_fd == -2)

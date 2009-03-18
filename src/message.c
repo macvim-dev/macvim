@@ -976,7 +976,7 @@ wait_return(redraw)
 		    }
 		}
 		else if (msg_scrolled > Rows - 2
-				     && (c == 'j' || c == K_DOWN || c == 'd'))
+			 && (c == 'j' || c == K_DOWN || c == 'd' || c == 'f'))
 		    c = K_IGNORE;
 	    }
 	} while ((had_got_int && c == Ctrl_C)
@@ -2504,7 +2504,6 @@ do_more_prompt(typed_char)
 	    break;
 
 	case 'u':		/* Up half a page */
-	case K_PAGEUP:
 	    scroll = -(Rows / 2);
 	    break;
 
@@ -2513,10 +2512,12 @@ do_more_prompt(typed_char)
 	    break;
 
 	case 'b':		/* one page back */
+	case K_PAGEUP:
 	    scroll = -(Rows - 1);
 	    break;
 
 	case ' ':		/* one extra page */
+	case 'f':
 	case K_PAGEDOWN:
 	case K_LEFTMOUSE:
 	    scroll = Rows - 1;
@@ -2552,7 +2553,6 @@ do_more_prompt(typed_char)
 	    {
 		/* Jump to the choices of the dialog. */
 		retval = TRUE;
-		lines_left = Rows - 1;
 	    }
 	    else
 #endif
@@ -2560,6 +2560,9 @@ do_more_prompt(typed_char)
 		got_int = TRUE;
 		quit_more = TRUE;
 	    }
+	    /* When there is some more output (wrapping line) display that
+	     * without another prompt. */
+	    lines_left = Rows - 1;
 	    break;
 
 #ifdef FEAT_CLIPBOARD

@@ -69,7 +69,7 @@ static int apply_autocmds_exarg __ARGS((event_T event, char_u *fname, char_u *fn
 static int au_find_group __ARGS((char_u *name));
 
 # define AUGROUP_DEFAULT    -1	    /* default autocmd group */
-# define AUGROUP_ERROR	    -2	    /* errornouse autocmd group */
+# define AUGROUP_ERROR	    -2	    /* erroneous autocmd group */
 # define AUGROUP_ALL	    -3	    /* all autocmd groups */
 #endif
 
@@ -144,7 +144,9 @@ static int get_mac_fio_flags __ARGS((char_u *ptr));
 # endif
 #endif
 static int move_lines __ARGS((buf_T *frombuf, buf_T *tobuf));
-
+#ifdef FEAT_AUTOCMD
+static char *e_auchangedbuf = N_("E812: Autocommands changed buffer or buffer name");
+#endif
 
     void
 filemess(buf, name, s, attr)
@@ -295,6 +297,19 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
     int		conv_restlen = 0;	/* nr of bytes in conv_rest[] */
 #endif
 
+#ifdef FEAT_AUTOCMD
+    /* Remember the initial values of curbuf, curbuf->b_ffname and
+     * curbuf->b_fname to detect whether they are altered as a result of
+     * executing nasty autocommands.  Also check if "fname" and "sfname"
+     * point to one of these values. */
+    buf_T   *old_curbuf = curbuf;
+    char_u  *old_b_ffname = curbuf->b_ffname;
+    char_u  *old_b_fname = curbuf->b_fname;
+    int     using_b_ffname = (fname == curbuf->b_ffname)
+					      || (sfname == curbuf->b_ffname);
+    int     using_b_fname = (fname == curbuf->b_fname)
+					       || (sfname == curbuf->b_fname);
+#endif
     write_no_eol_lnum = 0;	/* in case it was set by the previous read */
 
     /*
@@ -589,7 +604,21 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 #ifdef FEAT_QUICKFIX
 		    if (!bt_dontwrite(curbuf))
 #endif
+		    {
 			check_need_swap(newfile);
+#ifdef FEAT_AUTOCMD
+			/* SwapExists autocommand may mess things up */
+			if (curbuf != old_curbuf
+				|| (using_b_ffname
+					&& (old_b_ffname != curbuf->b_ffname))
+				|| (using_b_fname
+					 && (old_b_fname != curbuf->b_fname)))
+			{
+			    EMSG(_(e_auchangedbuf));
+			    return FAIL;
+			}
+#endif
+		    }
 		    if (dir_of_file_exists(fname))
 			filemess(curbuf, sfname, (char_u *)_("[New File]"), 0);
 		    else
@@ -668,6 +697,17 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 #endif
     {
 	check_need_swap(newfile);
+#ifdef FEAT_AUTOCMD
+	if (!read_stdin && (curbuf != old_curbuf
+		|| (using_b_ffname && (old_b_ffname != curbuf->b_ffname))
+		|| (using_b_fname && (old_b_fname != curbuf->b_fname))))
+	{
+	    EMSG(_(e_auchangedbuf));
+	    if (!read_buffer)
+		close(fd);
+	    return FAIL;
+	}
+#endif
 #ifdef UNIX
 	/* Set swap file protection bits after creating it. */
 	if (swap_mode > 0 && curbuf->b_ml.ml_mfp->mf_fname != NULL)
@@ -698,7 +738,6 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
     {
 	int	m = msg_scroll;
 	int	n = msg_scrolled;
-	buf_T	*old_curbuf = curbuf;
 
 	/*
 	 * The file must be closed again, the autocommands may want to change
@@ -740,8 +779,13 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 	/*
 	 * Don't allow the autocommands to change the current buffer.
 	 * Try to re-open the file.
+	 *
+	 * Don't allow the autocommands to change the buffer name either
+	 * (cd for example) if it invalidates fname or sfname.
 	 */
 	if (!read_stdin && (curbuf != old_curbuf
+		|| (using_b_ffname && (old_b_ffname != curbuf->b_ffname))
+		|| (using_b_fname && (old_b_fname != curbuf->b_fname))
 		|| (fd = mch_open((char *)fname, O_RDONLY | O_EXTRA, 0)) < 0))
 	{
 	    --no_wait_return;
@@ -5248,13 +5292,16 @@ buf_write_bytes(ip)
 	    /* Convert with iconv(). */
 	    if (ip->bw_restlen > 0)
 	    {
+		char *fp;
+
 		/* Need to concatenate the remainder of the previous call and
 		 * the bytes of the current call.  Use the end of the
 		 * conversion buffer for this. */
 		fromlen = len + ip->bw_restlen;
-		from = (char *)ip->bw_conv_buf + ip->bw_conv_buflen - fromlen;
-		mch_memmove((void *)from, ip->bw_rest, (size_t)ip->bw_restlen);
-		mch_memmove((void *)(from + ip->bw_restlen), buf, (size_t)len);
+		fp = (char *)ip->bw_conv_buf + ip->bw_conv_buflen - fromlen;
+		mch_memmove(fp, ip->bw_rest, (size_t)ip->bw_restlen);
+		mch_memmove(fp + ip->bw_restlen, buf, (size_t)len);
+		from = fp;
 		tolen = ip->bw_conv_buflen - fromlen;
 	    }
 	    else
@@ -6328,7 +6375,7 @@ check_timestamps(focus)
 
     if (!stuff_empty() || global_busy || !typebuf_typed()
 #ifdef FEAT_AUTOCMD
-			|| autocmd_busy || curbuf_lock > 0
+			|| autocmd_busy || curbuf_lock > 0 || allbuf_lock > 0
 #endif
 					)
 	need_check_timestamps = TRUE;		/* check later */
@@ -6536,8 +6583,10 @@ buf_check_timestamp(buf, focus)
 	    set_vim_var_string(VV_FCS_REASON, (char_u *)reason, -1);
 	    set_vim_var_string(VV_FCS_CHOICE, (char_u *)"", -1);
 # endif
+	    ++allbuf_lock;
 	    n = apply_autocmds(EVENT_FILECHANGEDSHELL,
 				      buf->b_fname, buf->b_fname, FALSE, buf);
+	    --allbuf_lock;
 	    busy = FALSE;
 	    if (n)
 	    {
@@ -6612,6 +6661,11 @@ buf_check_timestamp(buf, focus)
 	    tbuf = alloc((unsigned)(STRLEN(path) + STRLEN(mesg)
 							+ STRLEN(mesg2) + 2));
 	    sprintf((char *)tbuf, mesg, path);
+#ifdef FEAT_EVAL
+	    /* Set warningmsg here, before the unimportant and output-specific
+	     * mesg2 has been appended. */
+	    set_vim_var_string(VV_WARNINGMSG, tbuf, -1);
+#endif
 #if defined(FEAT_CON_DIALOG) || defined(FEAT_GUI_DIALOG)
 	    if (can_reload)
 	    {

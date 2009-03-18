@@ -2596,6 +2596,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
     int		noinvcur = FALSE;	/* don't invert the cursor */
 #ifdef FEAT_VISUAL
     pos_T	*top, *bot;
+    int		lnum_in_visual_area = FALSE;
 #endif
     pos_T	pos;
     long	v;
@@ -2792,9 +2793,10 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    top = &VIsual;
 	    bot = &curwin->w_cursor;
 	}
+	lnum_in_visual_area = (lnum >= top->lnum && lnum <= bot->lnum);
 	if (VIsual_mode == Ctrl_V)	/* block mode */
 	{
-	    if (lnum >= top->lnum && lnum <= bot->lnum)
+	    if (lnum_in_visual_area)
 	    {
 		fromcol = wp->w_old_cursor_fcol;
 		tocol = wp->w_old_cursor_lcol;
@@ -2887,8 +2889,9 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	}
 	else
 	    tocol = MAXCOL;
-	if (fromcol == tocol)		/* do at least one character */
-	    tocol = fromcol + 1;	/* happens when past end of line */
+	/* do at least one character; happens when past end of line */
+	if (fromcol == tocol)
+	    tocol = fromcol + 1;
 	area_highlighting = TRUE;
 	attr = hl_attr(HLF_I);
     }
@@ -3420,6 +3423,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 			&& (*mb_ptr2cells)(ptr) > 1)
 #endif
 		    || ((int)vcol_prev == fromcol_prev
+			&& vcol_prev < vcol	/* not at margin */
 			&& vcol < tocol))
 		area_attr = attr;		/* start highlighting */
 	    else if (area_attr != 0
@@ -3552,7 +3556,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		/* Use line_attr when not in the Visual or 'incsearch' area
 		 * (area_attr may be 0 when "noinvcur" is set). */
 	    else if (line_attr != 0 && ((fromcol == -10 && tocol == MAXCOL)
-					|| (vcol < fromcol || vcol >= tocol)))
+				|| vcol < fromcol || vcol_prev < fromcol_prev
+				|| vcol >= tocol))
 		char_attr = line_attr;
 #endif
 	    else
@@ -4114,6 +4119,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 # endif
 				    (col < W_WIDTH(wp)))
 				&& !(noinvcur
+				    && lnum == wp->w_cursor.lnum
 				    && (colnr_T)vcol == wp->w_virtcol)))
 			&& lcs_eol_one >= 0)
 		{
@@ -4255,7 +4261,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	 * preedit_changed and commit.  Thus Vim can't set "im_is_active", use
 	 * im_is_preediting() here. */
 	if (xic != NULL
-		&& lnum == curwin->w_cursor.lnum
+		&& lnum == wp->w_cursor.lnum
 		&& (State & INSERT)
 		&& !p_imdisable
 		&& im_is_preediting()
@@ -4264,7 +4270,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    colnr_T tcol;
 
 	    if (preedit_end_col == MAXCOL)
-		getvcol(curwin, &(curwin->w_cursor), &tcol, NULL, NULL);
+		getvcol(curwin, &(wp->w_cursor), &tcol, NULL, NULL);
 	    else
 		tcol = preedit_end_col;
 	    if ((long)preedit_start_col <= vcol && vcol < (long)tcol)
@@ -4361,7 +4367,13 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    }
 #endif
 	    if (lcs_eol == lcs_eol_one
-		    && ((area_attr != 0 && vcol == fromcol && c == NUL)
+		    && ((area_attr != 0 && vcol == fromcol
+#ifdef FEAT_VISUAL
+			    && (VIsual_mode != Ctrl_V
+				|| lnum == VIsual.lnum
+				|| lnum == curwin->w_cursor.lnum)
+#endif
+			    && c == NUL)
 #ifdef FEAT_SEARCH_EXTRA
 			/* highlight 'hlsearch' match at end of line */
 			|| (prevcol_hl_flag == TRUE
@@ -4455,7 +4467,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	if (c == NUL)
 	{
 #ifdef FEAT_SYN_HL
-	    if (eol_hl_off > 0 && vcol - eol_hl_off == (long)wp->w_virtcol)
+	    if (eol_hl_off > 0 && vcol - eol_hl_off == (long)wp->w_virtcol
+		    && lnum == wp->w_cursor.lnum)
 	    {
 		/* highlight last char after line */
 		--col;
@@ -4557,7 +4570,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	 * highlight the cursor position itself. */
 	if (wp->w_p_cuc && vcol == (long)wp->w_virtcol
 		&& lnum != wp->w_cursor.lnum
-		&& draw_state == WL_LINE)
+		&& draw_state == WL_LINE
+		&& !lnum_in_visual_area)
 	{
 	    vcol_save_attr = char_attr;
 	    char_attr = hl_combine_attr(char_attr, hl_attr(HLF_CUC));
@@ -4660,7 +4674,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    --n_skip;
 
 	/* Only advance the "vcol" when after the 'number' column. */
-	if (draw_state >= WL_SBR
+	if (draw_state > WL_NR
 #ifdef FEAT_DIFF
 		&& filler_todo <= 0
 #endif
@@ -5127,8 +5141,8 @@ screen_line(row, coloff, endcol, clear_width
 #endif
 
 #if defined(FEAT_GUI) || defined(UNIX)
-	    /* The bold trick makes a single row of pixels appear in the next
-	     * character.  When a bold character is removed, the next
+	    /* The bold trick makes a single column of pixels appear in the
+	     * next character.  When a bold character is removed, the next
 	     * character should be redrawn too.  This happens for our own GUI
 	     * and for some xterms. */
 	    if (
@@ -6271,9 +6285,15 @@ screen_puts_len(text, len, row, col, attr)
     int		pcc[MAX_MCO];
 # endif
 #endif
+#if defined(FEAT_MBYTE) || defined(FEAT_GUI) || defined(UNIX)
+    int		force_redraw_this;
+    int		force_redraw_next = FALSE;
+#endif
+    int		need_redraw;
 
     if (ScreenLines == NULL || row >= screen_Rows)	/* safety check */
 	return;
+    off = LineOffset[row] + col;
 
 #ifdef FEAT_MBYTE
     /* When drawing over the right halve of a double-wide char clear out the
@@ -6283,10 +6303,21 @@ screen_puts_len(text, len, row, col, attr)
 	    && !gui.in_use
 # endif
 	    && mb_fix_col(col, row) != col)
-	screen_puts_len((char_u *)" ", 1, row, col - 1, 0);
+    {
+	ScreenLines[off - 1] = ' ';
+	ScreenAttrs[off - 1] = 0;
+	if (enc_utf8)
+	{
+	    ScreenLinesUC[off - 1] = 0;
+	    ScreenLinesC[0][off - 1] = 0;
+	}
+	/* redraw the previous cell, make it empty */
+	screen_char(off - 1, row, col - 1);
+	/* force the cell at "col" to be redrawn */
+	force_redraw_next = TRUE;
+    }
 #endif
 
-    off = LineOffset[row] + col;
 #ifdef FEAT_MBYTE
     max_off = LineOffset[row] + screen_Columns;
 #endif
@@ -6350,7 +6381,12 @@ screen_puts_len(text, len, row, col, attr)
 	}
 #endif
 
-	if (ScreenLines[off] != c
+#if defined(FEAT_MBYTE) || defined(FEAT_GUI) || defined(UNIX)
+	force_redraw_this = force_redraw_next;
+	force_redraw_next = FALSE;
+#endif
+
+	need_redraw = ScreenLines[off] != c
 #ifdef FEAT_MBYTE
 		|| (mbyte_cells == 2
 		    && ScreenLines[off + 1] != (enc_dbcs ? ptr[1] : 0))
@@ -6358,24 +6394,24 @@ screen_puts_len(text, len, row, col, attr)
 		    && c == 0x8e
 		    && ScreenLines2[off] != ptr[1])
 		|| (enc_utf8
-		    && (ScreenLinesUC[off] != (u8char_T)u8c
+		    && (ScreenLinesUC[off] != (u8char_T)(c >= 0x80 ? u8c : 0)
 			|| screen_comp_differs(off, u8cc)))
 #endif
 		|| ScreenAttrs[off] != attr
-		|| exmode_active
+		|| exmode_active;
+
+	if (need_redraw
+#if defined(FEAT_MBYTE) || defined(FEAT_GUI) || defined(UNIX)
+		|| force_redraw_this
+#endif
 		)
 	{
 #if defined(FEAT_GUI) || defined(UNIX)
 	    /* The bold trick makes a single row of pixels appear in the next
 	     * character.  When a bold character is removed, the next
 	     * character should be redrawn too.  This happens for our own GUI
-	     * and for some xterms.
-	     * Force the redraw by setting the attribute to a different value
-	     * than "attr", the contents of ScreenLines[] may be needed by
-	     * mb_off2cells() further on.
-	     * Don't do this for the last drawn character, because the next
-	     * character may not be redrawn. */
-	    if (
+	     * and for some xterms. */
+	    if (need_redraw && ScreenLines[off] != ' ' && (
 # ifdef FEAT_GUI
 		    gui.in_use
 # endif
@@ -6385,23 +6421,14 @@ screen_puts_len(text, len, row, col, attr)
 # ifdef UNIX
 		    term_is_xterm
 # endif
-	       )
+		    ))
 	    {
-		int		n;
+		int	n = ScreenAttrs[off];
 
-		n = ScreenAttrs[off];
-# ifdef FEAT_MBYTE
-		if (col + mbyte_cells < screen_Columns
-			&& (n > HL_ALL || (n & HL_BOLD))
-			&& (len < 0 ? ptr[mbyte_blen] != NUL
-					     : ptr + mbyte_blen < text + len))
-		    ScreenAttrs[off + mbyte_cells] = attr + 1;
-# else
-		if (col + 1 < screen_Columns
-			&& (n > HL_ALL || (n & HL_BOLD))
-			&& (len < 0 ? ptr[1] != NUL : ptr + 1 < text + len))
-		    ScreenLines[off + 1] = 0;
-# endif
+		if (n > HL_ALL)
+		    n = syn_attr2attr(n);
+		if (n & HL_BOLD)
+		    force_redraw_next = TRUE;
 	    }
 #endif
 #ifdef FEAT_MBYTE
@@ -6488,6 +6515,20 @@ screen_puts_len(text, len, row, col, attr)
 	    ++ptr;
 	}
     }
+
+#if defined(FEAT_MBYTE) || defined(FEAT_GUI) || defined(UNIX)
+    /* If we detected the next character needs to be redrawn, but the text
+     * doesn't extend up to there, update the character here. */
+    if (force_redraw_next && col < screen_Columns)
+    {
+# ifdef FEAT_MBYTE
+	if (enc_dbcs != 0 && dbcs_off2cells(off, max_off) > 1)
+	    screen_char_2(off, row, col);
+	else
+# endif
+	    screen_char(off, row, col);
+    }
+#endif
 }
 
 #ifdef FEAT_SEARCH_EXTRA
@@ -7364,7 +7405,11 @@ screenalloc(clear)
 #endif
     static int	    entered = FALSE;		/* avoid recursiveness */
     static int	    done_outofmem_msg = FALSE;	/* did outofmem message */
+#ifdef FEAT_AUTOCMD
+    int		    retry_count = 0;
 
+retry:
+#endif
     /*
      * Allocation of the screen buffers is done only when the size changes and
      * when Rows and Columns have been set and we have started doing full
@@ -7448,10 +7493,13 @@ screenalloc(clear)
 	{
 	    outofmem = TRUE;
 #ifdef FEAT_WINDOWS
-	    break;
+	    goto give_up;
 #endif
 	}
     }
+#ifdef FEAT_WINDOWS
+give_up:
+#endif
 
 #ifdef FEAT_MBYTE
     for (i = 0; i < p_mco; ++i)
@@ -7636,8 +7684,17 @@ screenalloc(clear)
     --RedrawingDisabled;
 
 #ifdef FEAT_AUTOCMD
-    if (starting == 0)
+    /*
+     * Do not apply autocommands more than 3 times to avoid an endless loop
+     * in case applying autocommands always changes Rows or Columns.
+     */
+    if (starting == 0 && ++retry_count <= 3)
+    {
 	apply_autocmds(EVENT_VIMRESIZED, NULL, NULL, FALSE, curbuf);
+	/* In rare cases, autocommands may have altered Rows or Columns,
+	 * jump back to check if we need to allocate the screen again. */
+	goto retry;
+    }
 #endif
 }
 

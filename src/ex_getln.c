@@ -2000,8 +2000,8 @@ text_locked_msg()
 
 #if defined(FEAT_AUTOCMD) || defined(PROTO)
 /*
- * Check if "curbuf_lock" is set and return TRUE when it is and give an error
- * message.
+ * Check if "curbuf_lock" or "allbuf_lock" is set and return TRUE when it is
+ * and give an error message.
  */
     int
 curbuf_locked()
@@ -2009,6 +2009,21 @@ curbuf_locked()
     if (curbuf_lock > 0)
     {
 	EMSG(_("E788: Not allowed to edit another buffer now"));
+	return TRUE;
+    }
+    return allbuf_locked();
+}
+
+/*
+ * Check if "allbuf_lock" is set and return TRUE when it is and give an error
+ * message.
+ */
+    int
+allbuf_locked()
+{
+    if (allbuf_lock > 0)
+    {
+	EMSG(_("E811: Not allowed to change buffer information now"));
 	return TRUE;
     }
     return FALSE;
@@ -4503,6 +4518,9 @@ ExpandFromContext(xp, pat, num_file, file, options)
 	    {EXPAND_EVENTS, get_event_name, TRUE},
 	    {EXPAND_AUGROUP, get_augroup_name, TRUE},
 #endif
+#ifdef FEAT_CSCOPE
+	    {EXPAND_CSCOPE, get_cscope_name, TRUE},
+#endif
 #if (defined(HAVE_LOCALE_H) || defined(X_LOCALE)) \
 	&& (defined(FEAT_GETTEXT) || defined(FEAT_MBYTE))
 	    {EXPAND_LANGUAGE, get_lang_arg, TRUE},
@@ -6050,9 +6068,7 @@ ex_window()
 # endif
 	return K_IGNORE;
     }
-    cmdwin_type = ccline.cmdfirstc;
-    if (cmdwin_type == NUL)
-	cmdwin_type = '-';
+    cmdwin_type = get_cmdline_type();
 
     /* Create the command-line buffer empty. */
     (void)do_ecmd(0, NULL, NULL, NULL, ECMD_ONE, ECMD_HIDE, NULL);
@@ -6076,7 +6092,7 @@ ex_window()
     /* Showing the prompt may have set need_wait_return, reset it. */
     need_wait_return = FALSE;
 
-    histtype = hist_char2type(ccline.cmdfirstc);
+    histtype = hist_char2type(cmdwin_type);
     if (histtype == HIST_CMD || histtype == HIST_DEBUG)
     {
 	if (p_wc == TAB)
