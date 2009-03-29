@@ -41,6 +41,33 @@
     -->
 
     <item>
+      <title>Snapshot 44 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 44 released</h1>
+
+<p> Changes since snapshot 43:
+  <ul>
+      <li> The color table had many erroneous entries which have been corrected (Zvezdan Petkovic) </li>
+      <li> Ctrl+tab works again </li>
+      <li> Tab labels only show file tail by default to make them more legible (reset to default by adding "set guitablabel&" to .gvimrc) </li>
+      <li> The number of columns does not change on ":set go+=rT" </li>
+      <li> Fixed problems with view not maximizing when entering full-screen and the Dock was visible </li>
+      <li> Fix various problems related to having windows on a screen that got unplugged (fixes Issue 162) </li>
+      <li> Latest source code version and runtime files (e.g. the Python syntax file is fixed, fixes Issue 160) </li>
+  </ul>
+</p>
+      ]]></description>
+      <pubDate>Sun, 29 Mar 2009 16:56 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-44.tbz"
+        length="8139075"
+        sparkle:version="44"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 43 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 43 released</h1>
