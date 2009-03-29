@@ -142,8 +142,18 @@
 
 - (IBAction)zoom:(id)sender
 {
+    NSScreen *screen = [self screen];
+    if (!screen) {
+        NSLog(@"[%s] WINDOW NOT ON SCREEN, zoom to main screen", _cmd);
+        screen = [NSScreen mainScreen];
+        if (!screen) {
+            NSLog(@"[%s] NO MAIN SCREEN, abort zoom", _cmd);
+            return;
+        }
+    }
+
     NSRect frame = [self frame];
-    NSRect defaultFrame = [[self screen] visibleFrame];
+    NSRect defaultFrame = [screen visibleFrame];
     defaultFrame = [[self delegate] windowWillUseStandardFrame:self
                                                   defaultFrame:defaultFrame];
 

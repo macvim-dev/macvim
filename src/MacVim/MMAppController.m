@@ -676,21 +676,26 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
         [win setFrameTopLeftPoint:topLeft];
 
-        NSPoint screenOrigin = [[win screen] frame].origin;
-        if ([win frame].origin.y < screenOrigin.y) {
-            // Try to avoid shifting the new window downwards if it means that
-            // the bottom of the window will be off the screen.  E.g. if the
-            // user has set windows to open maximized in the vertical direction
-            // then the new window will cascade horizontally only.
-            topLeft.y = oldTopLeft.y;
-            [win setFrameTopLeftPoint:topLeft];
-        }
+        if ([win screen]) {
+            NSPoint screenOrigin = [[win screen] frame].origin;
+            if ([win frame].origin.y < screenOrigin.y) {
+                // Try to avoid shifting the new window downwards if it means
+                // that the bottom of the window will be off the screen.  E.g.
+                // if the user has set windows to open maximized in the
+                // vertical direction then the new window will cascade
+                // horizontally only.
+                topLeft.y = oldTopLeft.y;
+                [win setFrameTopLeftPoint:topLeft];
+            }
 
-        if ([win frame].origin.y < screenOrigin.y) {
-            // Move the window to the top of the screen if the bottom of the
-            // window is still obscured.
-            topLeft.y = NSMaxY([[win screen] frame]);
-            [win setFrameTopLeftPoint:topLeft];
+            if ([win frame].origin.y < screenOrigin.y) {
+                // Move the window to the top of the screen if the bottom of
+                // the window is still obscured.
+                topLeft.y = NSMaxY([[win screen] frame]);
+                [win setFrameTopLeftPoint:topLeft];
+            }
+        } else {
+            NSLog(@"[%s] WINDOW NOT ON SCREEN, don't constrain position", _cmd);
         }
     }
 
