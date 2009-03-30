@@ -453,10 +453,8 @@
         keepOnScreen = NO;
     }
 
-    if (shouldUpdateToolbar != 0) {
+    if (updateToolbarFlag != 0)
         [self updateToolbar];
-        shouldUpdateToolbar = 0;
-    }
 }
 
 - (void)showTabBar:(BOOL)on
@@ -491,16 +489,16 @@
     [toolbar setSizeMode:size];
     [toolbar setDisplayMode:mode];
 
+    // Positive flag shows toolbar, negative hides it.
+    updateToolbarFlag = on ? 1 : -1;
+
     // NOTE: If the window is not visible we must toggle the toolbar
     // immediately, otherwise "set go-=T" in .gvimrc will lead to the toolbar
     // showing its hide animation every time a new window is opened.  (See
     // processCommandQueueDidFinish for the reason why we need to delay
     // toggling the toolbar when the window is visible.)
-    if ([decoratedWindow isVisible]) {
-        shouldUpdateToolbar = on ? 1 : -1;
-    } else {
+    if (![decoratedWindow isVisible])
         [self updateToolbar];
-    }
 }
 
 - (void)setMouseShape:(int)shape
@@ -1061,9 +1059,10 @@
 - (void)updateToolbar
 {
     NSToolbar *toolbar = [decoratedWindow toolbar];
-    if (!toolbar) return;
+    if (nil == toolbar || 0 == updateToolbarFlag) return;
 
-    BOOL on = shouldUpdateToolbar > 0 ? YES : NO;
+    // Positive flag shows toolbar, negative hides it.
+    BOOL on = updateToolbarFlag > 0 ? YES : NO;
     [toolbar setVisible:on];
 
     if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask) == 0) {
@@ -1079,6 +1078,8 @@
         // is visible (because it brings its own separator).
         [self hideTablineSeparator:![[vimView tabBarControl] isHidden]];
     }
+
+    updateToolbarFlag = 0;
 }
 
 @end // MMWindowController (Private)

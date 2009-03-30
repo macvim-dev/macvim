@@ -22,7 +22,7 @@
     MMVimView           *vimView;
     BOOL                setupDone;
     BOOL                shouldResizeVimView;
-    int                 shouldUpdateToolbar;
+    int                 updateToolbarFlag;
     BOOL                keepOnScreen;
     BOOL                fullscreenEnabled;
     NSString            *windowAutosaveKey;
