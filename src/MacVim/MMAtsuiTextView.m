@@ -1139,7 +1139,7 @@ defaultLineHeightForFont(NSFont *font)
 
     if (flags & DRAW_UNDERL)
     {
-        [fg set];
+        [sp set];
         NSRectFill(NSMakeRect(rect.origin.x,
                               (row + 1) * cellSize.height + kUnderlineOffset,
                               rect.size.width, kUnderlineHeight));
