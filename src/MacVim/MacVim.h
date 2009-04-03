@@ -177,6 +177,8 @@ enum {
     SetFullscreenColorMsgID,
     ShowFindReplaceDialogMsgID,
     FindReplaceMsgID,
+    ActivateKeyScriptID,
+    DeactivateKeyScriptID,
 };
 
 

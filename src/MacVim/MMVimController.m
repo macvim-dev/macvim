@@ -981,6 +981,10 @@ static BOOL isUnsafeMessage(int msgid);
                 showWithText:[dict objectForKey:@"text"]
                        flags:[[dict objectForKey:@"flags"] intValue]];
         }
+    } else if (ActivateKeyScriptID == msgid) {
+        KeyScript(smKeySysScript);
+    } else if (DeactivateKeyScriptID == msgid) {
+        KeyScript(smKeyRoman);
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {

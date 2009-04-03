@@ -84,6 +84,8 @@ char *MessageStrings[] =
     "SetFullscreenColorMsgID",
     "ShowFindReplaceDialogMsgID",
     "FindReplaceMsgID",
+    "ActivateKeyScriptID",
+    "DeactivateKeyScriptID",
 };
 
 
