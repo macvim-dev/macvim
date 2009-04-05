@@ -1176,6 +1176,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSNumber *key = [NSNumber numberWithUnsignedInt:identifier];
     NSArray *q = [inputQueues objectForKey:key];
     if (q) {
+        NSLog(@"[%s] Appending queue id=%d", _cmd, identifier);
         q = [q arrayByAddingObjectsFromArray:queue];
         [inputQueues setObject:q forKey:key];
     } else {
@@ -2139,23 +2140,46 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)processInputQueues:(id)sender
 {
+    // NOTE: Because we used distributed objects it is quite possible for this
+    // function to be re-entered.  This can cause all sorts of unexpected
+    // problems so we guard against it here so that the rest of the code does
+    // not need to worry about it.
+
+    // The processing flag is > 0 if this function is already on the call
+    // stack; < 0 if this function was re-entered.
+    if (processingFlag != 0) {
+        NSLog(@"[%s] BUSY!", _cmd);
+        processingFlag = -1;
+        return;
+    }
+
+    processingFlag = 1;
+
+    // NOTE: New input may arrive while we're busy processing; we deal with
+    // this by putting the current queue aside and creating a new input queue
+    // for future input.
+    NSDictionary *queues = inputQueues;
+    inputQueues = [NSMutableDictionary new];
+
     MMVimController *vc;
     NSEnumerator *e = [vimControllers objectEnumerator];
     while ((vc = [e nextObject])) {
         NSNumber *key = [NSNumber numberWithUnsignedInt:[vc identifier]];
-        NSArray *q = [inputQueues objectForKey:key];
-        if (q) {
-            // Remove queue from the dictionary before processing it because
-            // more input may arrive during processing of the queue (we have to
-            // retain/release the queue otherwise it will be deallocated when
-            // we remove it from the dictionary).
-            [q retain];
-            [inputQueues removeObjectForKey:key];
-
+        NSArray *q = [queues objectForKey:key];
+        if (q)
             [vc processInputQueue:q];
-            [q release];
-        }
     }
+
+    [queues release];
+
+    // If new input arrived while we were processing it would have been
+    // blocked so we have to schedule it to be processed again.
+    if (processingFlag < 0)
+        [self performSelector:@selector(processInputQueues:)
+                   withObject:nil
+                   afterDelay:0];
+
+    processingFlag = 0;
 }
 
 @end // MMAppController (Private)
