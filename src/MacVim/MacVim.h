@@ -42,27 +42,12 @@
 - (oneway void)acknowledgeConnection;
 @end
 
-#if 0
-//
-// This is the protocol MMVimController implements.
-//
-// Be very careful if you want to add methods to this protocol.  Since DO
-// messages may arrive while Cocoa is in the middle of processing some other
-// message be sure to consider reentrancy issues.  Look at processCommandQueue:
-// to see an example of how to deal with this.
-//
-@protocol MMFrontendProtocol
-- (oneway void)processCommandQueue:(in bycopy NSArray *)queue;
-- (oneway void)showSavePanelWithAttributes:(in bycopy NSDictionary *)attr;
-- (oneway void)presentDialogWithAttributes:(in bycopy NSDictionary *)attr;
-@end
-#endif
-
 
 //
 // This is the protocol MMAppController implements.
 //
-// It handles connections between MacVim and Vim.
+// It handles connections between MacVim and Vim and communication from Vim to
+// MacVim.
 //
 @protocol MMAppProtocol
 - (unsigned)connectBackend:(byref in id <MMBackendProtocol>)backend

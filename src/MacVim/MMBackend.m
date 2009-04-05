@@ -21,7 +21,7 @@
  *
  * It is very important to realize that all state is held by the backend, the
  * frontend must either ask for state [MMBackend evaluateExpression:] or wait
- * for the backend to update [MMVimController processCommandQueue:].
+ * for the backend to update [MMAppController processInput:forIdentifier:].
  *
  * The client/server functionality of Vim is handled by the backend.  It sets
  * up a named NSConnection to which other Vim processes can connect.

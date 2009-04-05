@@ -20,7 +20,7 @@
 
 
 
-@interface MMVimController : NSObject //<MMFrontendProtocol>
+@interface MMVimController : NSObject
 {
     BOOL                isInitialized;
     MMWindowController  *windowController;
