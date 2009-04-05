@@ -336,6 +336,11 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         appProxy = [[connection rootProxy] retain];
         [appProxy setProtocolForProxy:@protocol(MMAppProtocol)];
 
+        // NOTE: We do not set any new timeout values for the connection to the
+        // frontend.  This means that if the frontend is "stuck" (e.g. in a
+        // modal loop) then any calls to the frontend will block indefinitely
+        // (the default timeouts are huge).
+
         int pid = [[NSProcessInfo processInfo] processIdentifier];
 
         identifier = [appProxy connectBackend:self pid:pid];
