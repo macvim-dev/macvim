@@ -20,16 +20,16 @@ is very easy to pick up if you know C and some object oriented programming.)
 Each editor window in MacVim runs its own Vim process (but there is always
 only one MacVim process).  Communication between MacVim and a Vim process is
 done using Distributed Objects (DO).  Each Vim process is represented by a
-backend object (MMBackend) and it communicates with a frontend object in the
-Vim process (MMVimController).  The interface between the backend and frontend
+backend object (MMBackend) and it communicates with the frontend object in the
+Vim process (MMAppController).  The interface between the backend and frontend
 is defined in MacVim.h.
 
 The frontend sends input to the backend by calling 
 -[MMBackend processInput:data:].  The backend queues output on a command queue
 and sends it to the frontend at opportune times by calling
--[MMVimController processCommandQueue:].  These are both asynchronous calls so
-MacVim can keep drawing and receiving input while Vim is working away, thus
-always keeping the user interface responsive.
+-[MMAppController processInput:forIdentifier:].  These are both asynchronous
+calls so MacVim can keep drawing and receiving input while Vim is working away,
+thus always keeping the user interface responsive.
 
 The state of each editor window is kept entirely in the Vim process.  MacVim
 should remain "ignorant" in the sense that it knows nothing of the actual
@@ -46,7 +46,7 @@ to MacVim inside -[MMBackend queueVimStateMessage].
 
 Vim:
 
-Hooks from within Vim are implmented in gui_macvim.m, the name of such
+Hooks from within Vim are implemented in gui_macvim.m, the name of such
 functions usually start with "gui_mch_" and they should simply put a message
 on the output queue, by calling queueMessage:properties: on the singleton
 MMBackend object [MMBackend sharedInstance] (see e.g. gui_mch_destroy_menu()).
@@ -63,7 +63,7 @@ for some reason fails to update the run loop then incoming DO calls will not
 be processed and for this reason it is best to avoid making synchronous DO
 calls from MacVim.  (If synchronous calls must be made then it is important to
 set proper timeouts so that MacVim doesn't "hang", see
--[MMVimConroller sendMessageNow:::] to see how this can be done.)
+-[MMVimController sendMessageNow:::] to see how this can be done.)
 
 
 MacVim:
@@ -71,16 +71,15 @@ MacVim:
 The main nib of MacVim.app is MainMenu.nib which contains the default menu and
 an instance of MMAppController, which is connected as the delegate of
 NSApplication.  That means, when MacVim starts it will load this nib file and
-automatically create an instance of the MMAppController singleton.
+automatically create an instance of the MMAppController singleton.  All
+incoming distributed object calls go via MMAppController.
 
 A new editor window is opened by calling
 -[MMAppController launchVimProcessWithArguments:].  This functions starts a
 new Vim process (by executing the Vim binary).  The Vim process lets MacVim
 know when it has launched by calling -[MMAppController connectBackend:pid:]
-and MacVim responds to this message by creating a new frontend object
-(MMVimController) and returns a proxy to this object back to the Vim process.
-From this point onward the Vim process communicates directly with the
-MMVimController.
+and MacVim responds to this message by creating a new vim controller and
+returns an identifier for this object back to the Vim process.
 
 The MMVimController represents the frontend of a Vim process inside MacVim.
 It coordinates all communication with the Vim process and delegates output
@@ -88,7 +87,7 @@ that affects visual presentation to a MMWindowController object.  Read the
 Cocoa documentation on the responsibilities of a window controller.
 
 Input (keyboard & mouse) handling and drawing is handled by a helper object
-(MMTextViewHelper) to the current text view (MMTextView, MMAtsuiTextView).
+(MMTextViewHelper) to the current text view (MMTextView, MMAtsuiTextView, ...).
 
 
 Distributed Object dangers:
@@ -106,7 +105,7 @@ message may arrive.
 the menu flashes briefly.  During this "flash" a modal loop is entered.
 
 Item 1 can cause a problem if MacVim sends a synchronous message and before a
-reply reacheds MacVim another message is received.  From the source code it
+reply reaches MacVim another message is received.  From the source code it
 looks like the synchronous message blocks but in fact the other message is
 executed during this "block".  If the other message changes state radically
 something may go wrong after the synchronous DO message returns.
@@ -117,8 +116,8 @@ which may be even more puzzling.
 One way to alleviate these problems is to ensure a DO message isn't entered
 twice by setting a boolean at the beginning of the message and clearing it
 afterwards.  If the boolean is already set when entering the call must somehow
-be delayed.  See -[MMVimController processCommandQueue:] for a concrete
-example.
+be delayed.  See processInput:forIdentifier: and processInputQueues: inside
+MMAppController for a concrete example.
 
 Another danger is that we must take care when releasing objects that Cocoa may
 be using.  See -[MMVimController connectionDidDie:] how MacVim releases
@@ -133,7 +132,7 @@ what they contain:
     MMAppController.*       Everything related to running the application
     MMBackend.*             Object representing a Vim process in backend
     MMTextView.*            Handles input and drawing
-    MMVimController.*       Object representing a Vim Process in frontend
+    MMVimController.*       Object representing a Vim process in frontend
     MMVimView.*             Cocoa view object
     MMWindowController.*    Coordinates visual presentation
     MacVim.*                Code shared between MacVim and Vim
@@ -161,4 +160,4 @@ The application bundle can be found inside "src/MacVim/build/Release".
 
 
 Bjorn Winckler <bjorn.winckler@gmail.com>
-November 22, 2008
+April 5, 2009
