@@ -433,6 +433,9 @@ static unsigned identifierCounter = 1;
 {
     if (!isInitialized) return;
 
+    // Remove any delayed calls made on this object.
+    [NSObject cancelPreviousPerformRequestsWithTarget:self];
+
     isInitialized = NO;
     [toolbar setDelegate:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
