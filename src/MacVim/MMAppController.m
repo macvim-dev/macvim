@@ -1170,6 +1170,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (oneway void)processInput:(in bycopy NSArray *)queue
               forIdentifier:(unsigned)identifier
 {
+    // NOTE: Input is not handled immediately since this is a distribued object
+    // call and as such can arrive at unpredictable times.  Instead, queue the
+    // input and process it when the run loop is updated.
+
     if (!queue)
         return;
 
@@ -1183,9 +1187,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [inputQueues setObject:queue forKey:key];
     }
 
+    // NOTE: We must use "common modes" instead of "default mode", otherwise
+    // the input queue will not be processed e.g. during live resizing ("event
+    // tracking mode").
     [self performSelector:@selector(processInputQueues:)
                withObject:nil
-               afterDelay:0];
+               afterDelay:0
+                  inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 }
 
 - (MMVimController *)keyVimController
@@ -2177,7 +2185,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (processingFlag < 0)
         [self performSelector:@selector(processInputQueues:)
                    withObject:nil
-                   afterDelay:0];
+                   afterDelay:0
+                      inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 
     processingFlag = 0;
 }
