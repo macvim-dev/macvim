@@ -29,7 +29,6 @@
     int                 preloadPid;
     BOOL                shouldActivateWhenNextWindowOpens;
     int                 numChildProcesses;
-
     NSMutableDictionary *inputQueues;
     int                 processingFlag;
 

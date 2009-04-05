@@ -51,9 +51,9 @@
 @protocol MMAppProtocol
 - (unsigned)connectBackend:(byref in id <MMBackendProtocol>)backend
                        pid:(int)pid;
-- (NSArray *)serverList;
 - (oneway void)processInput:(in bycopy NSArray *)queue
               forIdentifier:(unsigned)identifier;
+- (NSArray *)serverList;
 @end
 
 

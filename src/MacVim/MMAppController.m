@@ -1096,6 +1096,21 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 }
 
+- (MMVimController *)keyVimController
+{
+    NSWindow *keyWindow = [NSApp keyWindow];
+    if (keyWindow) {
+        unsigned i, count = [vimControllers count];
+        for (i = 0; i < count; ++i) {
+            MMVimController *vc = [vimControllers objectAtIndex:i];
+            if ([[[vc windowController] window] isEqual:keyWindow])
+                return vc;
+        }
+    }
+
+    return nil;
+}
+
 - (unsigned)connectBackend:(byref in id <MMBackendProtocol>)backend
                        pid:(int)pid
 {
@@ -1153,20 +1168,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     return 0;
 }
 
-- (NSArray *)serverList
-{
-    NSMutableArray *array = [NSMutableArray array];
-
-    unsigned i, count = [vimControllers count];
-    for (i = 0; i < count; ++i) {
-        MMVimController *controller = [vimControllers objectAtIndex:i];
-        if ([controller serverName])
-            [array addObject:[controller serverName]];
-    }
-
-    return array;
-}
-
 - (oneway void)processInput:(in bycopy NSArray *)queue
               forIdentifier:(unsigned)identifier
 {
@@ -1205,19 +1206,18 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                   inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 }
 
-- (MMVimController *)keyVimController
+- (NSArray *)serverList
 {
-    NSWindow *keyWindow = [NSApp keyWindow];
-    if (keyWindow) {
-        unsigned i, count = [vimControllers count];
-        for (i = 0; i < count; ++i) {
-            MMVimController *vc = [vimControllers objectAtIndex:i];
-            if ([[[vc windowController] window] isEqual:keyWindow])
-                return vc;
-        }
+    NSMutableArray *array = [NSMutableArray array];
+
+    unsigned i, count = [vimControllers count];
+    for (i = 0; i < count; ++i) {
+        MMVimController *controller = [vimControllers objectAtIndex:i];
+        if ([controller serverName])
+            [array addObject:[controller serverName]];
     }
 
-    return nil;
+    return array;
 }
 
 @end // MMAppController
@@ -2157,7 +2157,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)processInputQueues:(id)sender
 {
-    // NOTE: Because we used distributed objects it is quite possible for this
+    // NOTE: Because we use distributed objects it is quite possible for this
     // function to be re-entered.  This can cause all sorts of unexpected
     // problems so we guard against it here so that the rest of the code does
     // not need to worry about it.

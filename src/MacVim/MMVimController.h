@@ -65,7 +65,8 @@
                timeout:(NSTimeInterval)timeout;
 - (void)addVimInput:(NSString *)string;
 - (NSString *)evaluateVimExpression:(NSString *)expr;
-- (id)evaluateVimExpressionCocoa:(NSString *)expr errorString:(NSString **)errstr;
+- (id)evaluateVimExpressionCocoa:(NSString *)expr
+                     errorString:(NSString **)errstr;
 - (void)processInputQueue:(NSArray *)queue;
 #ifdef MM_ENABLE_PLUGINS
 - (MMPlugInInstanceMediator *)instanceMediator;

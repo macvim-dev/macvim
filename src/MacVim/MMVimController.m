@@ -107,7 +107,9 @@ static unsigned identifierCounter = 1;
     if (!(self = [super init]))
         return nil;
 
+    // TODO: Come up with a better way of creating an identifier.
     identifier = identifierCounter++;
+
     windowController =
         [[MMWindowController alloc] initWithVimController:self];
     backendProxy = [backend retain];
@@ -392,7 +394,8 @@ static unsigned identifierCounter = 1;
     return eval;
 }
 
-- (id)evaluateVimExpressionCocoa:(NSString *)expr errorString:(NSString **)errstr
+- (id)evaluateVimExpressionCocoa:(NSString *)expr
+                     errorString:(NSString **)errstr
 {
     id eval = nil;
 
