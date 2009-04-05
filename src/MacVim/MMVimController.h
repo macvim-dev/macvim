@@ -25,9 +25,6 @@
     BOOL                isInitialized;
     MMWindowController  *windowController;
     id                  backendProxy;
-    BOOL                inProcessCommandQueue;
-    NSMutableArray      *sendQueue;
-    NSMutableArray      *receiveQueue;
     NSMenu              *mainMenu;
     NSMutableArray      *popupMenuItems;
     NSToolbar           *toolbar;

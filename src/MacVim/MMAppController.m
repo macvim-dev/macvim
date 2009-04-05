@@ -1180,10 +1180,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSNumber *key = [NSNumber numberWithUnsignedInt:identifier];
     NSArray *q = [inputQueues objectForKey:key];
     if (q) {
-        NSLog(@"[%s] Appending queue id=%d", _cmd, identifier);
         q = [q arrayByAddingObjectsFromArray:queue];
         [inputQueues setObject:q forKey:key];
 
+        NSLog(@"[%s] Appending queue id=%d", _cmd, identifier);
 #if 0   // More debug logging info
         unsigned i, count = [q count];
         for (i = 0; i < count; i += 2) {

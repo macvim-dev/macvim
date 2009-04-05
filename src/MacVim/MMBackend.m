@@ -502,10 +502,11 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self insertVimStateMessage];
 
         @try {
+            //NSLog(@"[%s] Flushing (count=%d)", _cmd, [outputQueue count]);
             [appProxy processInput:outputQueue forIdentifier:identifier];
         }
         @catch (NSException *e) {
-            NSLog(@"Exception caught when processing command queue: \"%@\"", e);
+            NSLog(@"[%s] Exception caught: \"%@\"", _cmd, e);
             NSLog(@"outputQueue(len:%d)=%@", [outputQueue count]/2,
                     outputQueue);
             if (![connection isValid]) {
@@ -1103,16 +1104,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     [inputQueue addObject:[NSNumber numberWithInt:msgid]];
     [inputQueue addObject:(data ? (id)data : [NSNull null])];
-}
-
-- (oneway void)processInputAndData:(in bycopy NSArray *)messages
-{
-    // This is just a convenience method that allows the frontend to delay
-    // sending messages.
-    int i, count = [messages count];
-    for (i = 1; i < count; i+=2)
-        [self processInput:[[messages objectAtIndex:i-1] intValue]
-                      data:[messages objectAtIndex:i]];
 }
 
 - (id)evaluateExpressionCocoa:(in bycopy NSString *)expr

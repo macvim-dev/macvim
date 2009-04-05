@@ -33,7 +33,6 @@
 //
 @protocol MMBackendProtocol
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data;
-- (oneway void)processInputAndData:(in bycopy NSArray *)messages;
 - (oneway void)setDialogReturn:(in bycopy id)obj;
 - (NSString *)evaluateExpression:(in bycopy NSString *)expr;
 - (id)evaluateExpressionCocoa:(in bycopy NSString *)expr

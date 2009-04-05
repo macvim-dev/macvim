@@ -16,7 +16,7 @@
  * MMVimController does not deal with visual presentation.  Essentially it
  * should be able to run with no window present.
  *
- * Output from the backend is received in processCommandQueue:.  Input is sent
+ * Output from the backend is received in processInputQueue:.  Input is sent
  * to the backend via sendMessage:data: or addVimInput:.  The latter allows
  * execution of arbitrary strings in the Vim process, much like the Vim script
  * function remote_send() does.  The messages that may be passed between
@@ -49,10 +49,6 @@ static NSTimeInterval MMBackendProxyRequestTimeout = 0;
 // Timeout used for setDialogReturn:.
 static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 
-// Maximum number of items in the receiveQueue.  (It is hard to predict what
-// consequences changing this number will have.)
-static int MMReceiveQueueCap = 100;
-
 static BOOL isUnsafeMessage(int msgid);
 
 static unsigned identifierCounter = 1;
@@ -67,7 +63,7 @@ static unsigned identifierCounter = 1;
 
 
 @interface MMVimController (Private)
-- (void)doProcessCommandQueue:(NSArray *)queue;
+- (void)doProcessInputQueue:(NSArray *)queue;
 - (void)handleMessage:(int)msgid data:(NSData *)data;
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
                 context:(void *)context;
@@ -115,8 +111,6 @@ static unsigned identifierCounter = 1;
     windowController =
         [[MMWindowController alloc] initWithVimController:self];
     backendProxy = [backend retain];
-    sendQueue = [NSMutableArray new];
-    receiveQueue = [NSMutableArray new];
     popupMenuItems = [[NSMutableArray alloc] init];
     toolbarItemDict = [[NSMutableDictionary alloc] init];
     pid = processIdentifier;
@@ -173,8 +167,6 @@ static unsigned identifierCounter = 1;
 
     [serverName release];  serverName = nil;
     [backendProxy release];  backendProxy = nil;
-    [sendQueue release];  sendQueue = nil;
-    [receiveQueue release];  receiveQueue = nil;
 
     [toolbarItemDict release];  toolbarItemDict = nil;
     [toolbar release];  toolbar = nil;
@@ -331,20 +323,10 @@ static unsigned identifierCounter = 1;
 
 - (void)sendMessage:(int)msgid data:(NSData *)data
 {
-    //NSLog(@"sendMessage:%s (isInitialized=%d inProcessCommandQueue=%d)",
-    //        MessageStrings[msgid], isInitialized, inProcessCommandQueue);
+    //NSLog(@"sendMessage:%s (isInitialized=%d)",
+    //        MessageStrings[msgid], isInitialized);
 
     if (!isInitialized) return;
-
-    if (inProcessCommandQueue) {
-        //NSLog(@"In process command queue; delaying message send.");
-        [sendQueue addObject:[NSNumber numberWithInt:msgid]];
-        if (data)
-            [sendQueue addObject:data];
-        else
-            [sendQueue addObject:[NSNull null]];
-        return;
-    }
 
     @try {
         [backendProxy processInput:msgid data:data];
@@ -363,7 +345,7 @@ static unsigned identifierCounter = 1;
     // ball forever.  In almost all circumstances sendMessage:data: should be
     // used instead.
 
-    if (!isInitialized || inProcessCommandQueue)
+    if (!isInitialized)
         return NO;
 
     if (timeout < 0) timeout = 0;
@@ -448,65 +430,8 @@ static unsigned identifierCounter = 1;
 {
     if (!isInitialized) return;
 
-    if (inProcessCommandQueue) {
-        // NOTE!  If a synchronous DO call is made during
-        // doProcessCommandQueue: below it may happen that this method is
-        // called a second time while the synchronous message is waiting for a
-        // reply (could also happen if doProcessCommandQueue: enters a modal
-        // loop, see comment below).  Since this method cannot be considered
-        // reentrant, we queue the input and return immediately.
-        //
-        // If doProcessCommandQueue: enters a modal loop (happens e.g. on
-        // ShowPopupMenuMsgID) then the receiveQueue could grow to become
-        // arbitrarily large because DO calls still get processed.  To avoid
-        // this we set a cap on the size of the queue and simply clear it if it
-        // becomes too large.  (That is messages will be dropped and hence Vim
-        // and MacVim will at least temporarily be out of sync.)
-        if ([receiveQueue count] >= MMReceiveQueueCap)
-            [receiveQueue removeAllObjects];
-
-        [receiveQueue addObject:queue];
-        return;
-    }
-
-    inProcessCommandQueue = YES;
-    [self doProcessCommandQueue:queue];
-
-    int i;
-    for (i = 0; i < [receiveQueue count]; ++i) {
-        // Note that doProcessCommandQueue: may cause the receiveQueue to grow
-        // or get cleared (due to cap being hit).  Make sure to retain the item
-        // to process or it may get released from under us.
-        NSArray *q = [[receiveQueue objectAtIndex:i] retain];
-        [self doProcessCommandQueue:q];
-        [q release];
-    }
-
-    // We assume that the remaining calls make no synchronous DO calls.  If
-    // that did happen anyway, the command queue could get processed out of
-    // order.
-
-    // See comment below why this is called here and not later.
-    [windowController processCommandQueueDidFinish];
-
-    // NOTE: Ensure that no calls are made after this "if" clause that may call
-    // sendMessage::.  If this happens anyway, such messages will be put on the
-    // send queue and then the queue will not be flushed until the next time
-    // this method is called.
-    if ([sendQueue count] > 0) {
-        @try {
-            [backendProxy processInputAndData:sendQueue];
-        }
-        @catch (NSException *e) {
-            // Connection timed out, just ignore this.
-            //NSLog(@"WARNING! Connection timed out in %s", _cmd);
-        }
-
-        [sendQueue removeAllObjects];
-    }
-
-    [receiveQueue removeAllObjects];
-    inProcessCommandQueue = NO;
+    [self doProcessInputQueue:queue];
+    [windowController processInputQueueDidFinish];
 }
 
 - (NSToolbarItem *)toolbar:(NSToolbar *)theToolbar
@@ -537,7 +462,7 @@ static unsigned identifierCounter = 1;
 
 @implementation MMVimController (Private)
 
-- (void)doProcessCommandQueue:(NSArray *)queue
+- (void)doProcessInputQueue:(NSArray *)queue
 {
     NSMutableArray *delayQueue = nil;
 
@@ -593,7 +518,7 @@ static unsigned identifierCounter = 1;
 
     if (delayQueue) {
         //NSLog(@"    Flushing delay queue (%d items)", [delayQueue count]/2);
-        [self performSelectorOnMainThread:@selector(processCommandQueue:)
+        [self performSelectorOnMainThread:@selector(processInputQueue:)
                                withObject:delayQueue
 			    waitUntilDone:NO
 			            modes:[NSArray arrayWithObject:
@@ -793,7 +718,7 @@ static unsigned identifierCounter = 1;
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
 
         // The popup menu enters a modal loop so delay this call so that we
-        // don't block inside processCommandQueue:.
+        // don't block inside processInputQueue:.
         [self performSelectorOnMainThread:@selector(popupMenuWithAttributes:)
                              withObject:attrs
 			  waitUntilDone:NO

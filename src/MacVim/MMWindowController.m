@@ -308,7 +308,7 @@
     // NOTE: The only place where the (rows,columns) of the vim view are
     // modified is here and when entering/leaving full-screen.  Setting these
     // values have no immediate effect, the actual resizing of the view is done
-    // in processCommandQueueDidFinish.
+    // in processInputQueueDidFinish.
     //
     // The 'live' flag indicates that this resize originated from a live
     // resize; it may very well happen that the view is no longer in live
@@ -419,11 +419,8 @@
     [[vimView textView] setWideFont:font];
 }
 
-- (void)processCommandQueueDidFinish
+- (void)processInputQueueDidFinish
 {
-    // IMPORTANT!  No synchronous DO calls are allowed in this method.  They
-    // may cause the command queue to get processed out of order.
-
     // NOTE: Resizing is delayed until after all commands have been processed
     // since it often happens that more than one command will cause a resize.
     // If we were to immediately resize then the vim view size would jitter
@@ -495,8 +492,8 @@
     // NOTE: If the window is not visible we must toggle the toolbar
     // immediately, otherwise "set go-=T" in .gvimrc will lead to the toolbar
     // showing its hide animation every time a new window is opened.  (See
-    // processCommandQueueDidFinish for the reason why we need to delay
-    // toggling the toolbar when the window is visible.)
+    // processInputQueueDidFinish for the reason why we need to delay toggling
+    // the toolbar when the window is visible.)
     if (![decoratedWindow isVisible])
         [self updateToolbar];
 }
