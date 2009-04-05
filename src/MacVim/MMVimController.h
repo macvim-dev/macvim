@@ -20,7 +20,7 @@
 
 
 
-@interface MMVimController : NSObject <MMFrontendProtocol>
+@interface MMVimController : NSObject //<MMFrontendProtocol>
 {
     BOOL                isInitialized;
     MMWindowController  *windowController;
@@ -40,9 +40,12 @@
 #endif
     BOOL                isPreloading;
     NSDate              *creationDate;
+
+    unsigned            identifier;
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
+- (unsigned)identifier;
 - (id)backendProxy;
 - (int)pid;
 - (void)setServerName:(NSString *)name;
@@ -66,6 +69,7 @@
 - (void)addVimInput:(NSString *)string;
 - (NSString *)evaluateVimExpression:(NSString *)expr;
 - (id)evaluateVimExpressionCocoa:(NSString *)expr errorString:(NSString **)errstr;
+- (void)processInputQueue:(NSArray *)queue;
 #ifdef MM_ENABLE_PLUGINS
 - (MMPlugInInstanceMediator *)instanceMediator;
 #endif

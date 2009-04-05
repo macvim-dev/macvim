@@ -178,7 +178,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [inputQueue release];  inputQueue = nil;
     [outputQueue release];  outputQueue = nil;
     [drawData release];  drawData = nil;
-    [frontendProxy release];  frontendProxy = nil;
     [connection release];  connection = nil;
     [actionDict release];  actionDict = nil;
     [sysColorDict release];  sysColorDict = nil;
@@ -334,17 +333,14 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                 selector:@selector(connectionDidDie:)
                     name:NSConnectionDidDieNotification object:connection];
 
-        id proxy = [connection rootProxy];
-        [proxy setProtocolForProxy:@protocol(MMAppProtocol)];
+        appProxy = [[connection rootProxy] retain];
+        [appProxy setProtocolForProxy:@protocol(MMAppProtocol)];
 
         int pid = [[NSProcessInfo processInfo] processIdentifier];
 
-        frontendProxy = [proxy connectBackend:self pid:pid];
-        if (frontendProxy) {
-            [frontendProxy retain];
-            [frontendProxy setProtocolForProxy:@protocol(MMFrontendProtocol)];
+        identifier = [appProxy connectBackend:self pid:pid];
+        if (identifier != 0)
             ok = YES;
-        }
     }
     @catch (NSException *e) {
         NSLog(@"Exception caught when trying to connect backend: \"%@\"", e);
@@ -506,7 +502,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self insertVimStateMessage];
 
         @try {
-            [frontendProxy processCommandQueue:outputQueue];
+            [appProxy processInput:outputQueue forIdentifier:identifier];
         }
         @catch (NSException *e) {
             NSLog(@"Exception caught when processing command queue: \"%@\"", e);
@@ -575,7 +571,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             // Flush the entire queue in case a VimLeave autocommand added
             // something to the queue.
             [self queueMessage:CloseWindowMsgID data:nil];
-            [frontendProxy processCommandQueue:outputQueue];
+            [appProxy processInput:outputQueue forIdentifier:identifier];
         }
         @catch (NSException *e) {
             NSLog(@"Exception caught when sending CloseWindowMsgID: \"%@\"", e);
@@ -695,6 +691,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     char_u *s = NULL;
 
+#if 0
     @try {
         [frontendProxy showSavePanelWithAttributes:attr];
 
@@ -708,7 +705,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     @catch (NSException *e) {
         NSLog(@"Exception caught when showing save panel: \"%@\"", e);
     }
-
+#endif
     return (char *)s;
 }
 
@@ -734,6 +731,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     int retval = 0;
 
+#if 0
     @try {
         [frontendProxy presentDialogWithAttributes:attr];
 
@@ -760,6 +758,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     @catch (NSException *e) {
         NSLog(@"Exception caught while showing alert dialog: \"%@\"", e);
     }
+#endif
 
     return retval;
 }
@@ -1453,7 +1452,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if (waitForAck) {
         // Never received a connection acknowledgement, so die.
         [[NSNotificationCenter defaultCenter] removeObserver:self];
-        [frontendProxy release];  frontendProxy = nil;
+        [appProxy release];  appProxy = nil;
 
         // NOTE: We intentionally do not call mch_exit() since this in turn
         // will lead to -[MMBackend exit] getting called which we want to

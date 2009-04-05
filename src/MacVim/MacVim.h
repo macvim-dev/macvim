@@ -42,6 +42,7 @@
 - (oneway void)acknowledgeConnection;
 @end
 
+#if 0
 //
 // This is the protocol MMVimController implements.
 //
@@ -55,6 +56,7 @@
 - (oneway void)showSavePanelWithAttributes:(in bycopy NSDictionary *)attr;
 - (oneway void)presentDialogWithAttributes:(in bycopy NSDictionary *)attr;
 @end
+#endif
 
 
 //
@@ -63,10 +65,11 @@
 // It handles connections between MacVim and Vim.
 //
 @protocol MMAppProtocol
-- (byref id <MMFrontendProtocol>)
-    connectBackend:(byref in id <MMBackendProtocol>)backend
-               pid:(int)pid;
+- (unsigned)connectBackend:(byref in id <MMBackendProtocol>)backend
+                       pid:(int)pid;
 - (NSArray *)serverList;
+- (oneway void)processInput:(in bycopy NSArray *)queue
+              forIdentifier:(unsigned)identifier;
 @end
 
 

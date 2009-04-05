@@ -125,6 +125,7 @@ typedef struct
 - (void)loadDefaultFont;
 - (int)executeInLoginShell:(NSString *)path arguments:(NSArray *)args;
 - (void)reapChildProcesses:(id)sender;
+- (void)processInputQueues:(id)sender;
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu;
@@ -208,6 +209,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     cachedVimControllers = [NSMutableArray new];
     preloadPid = -1;
     pidArguments = [NSMutableDictionary new];
+    inputQueues = [NSMutableDictionary new];
 
 #ifdef MM_ENABLE_PLUGINS
     NSString *plugInTitle = NSLocalizedString(@"Plug-In",
@@ -249,6 +251,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     //NSLog(@"MMAppController dealloc");
 
     [connection release];  connection = nil;
+    [inputQueues release];  inputQueues = nil;
     [pidArguments release];  pidArguments = nil;
     [vimControllers release];  vimControllers = nil;
     [cachedVimControllers release];  cachedVimControllers = nil;
@@ -1093,9 +1096,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 }
 
-- (byref id <MMFrontendProtocol>)
-    connectBackend:(byref in id <MMBackendProtocol>)backend
-               pid:(int)pid
+- (unsigned)connectBackend:(byref in id <MMBackendProtocol>)backend
+                       pid:(int)pid
 {
     //NSLog(@"Connect backend (pid=%d)", pid);
     NSNumber *pidKey = [NSNumber numberWithInt:pid];
@@ -1116,7 +1118,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             [cachedVimControllers addObject:vc];
             [self scheduleVimControllerPreloadAfterDelay:1];
 
-            return vc;
+            return [vc identifier];
         }
 
         [vimControllers addObject:vc];
@@ -1136,7 +1138,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         if (args)
             [pidArguments removeObjectForKey:pidKey];
 
-        return vc;
+        return [vc identifier];
     }
 
     @catch (NSException *e) {
@@ -1148,7 +1150,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [pidArguments removeObjectForKey:pidKey];
     }
 
-    return nil;
+    return 0;
 }
 
 - (NSArray *)serverList
@@ -1163,6 +1165,26 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     return array;
+}
+
+- (oneway void)processInput:(in bycopy NSArray *)queue
+              forIdentifier:(unsigned)identifier
+{
+    if (!queue)
+        return;
+
+    NSNumber *key = [NSNumber numberWithUnsignedInt:identifier];
+    NSArray *q = [inputQueues objectForKey:key];
+    if (q) {
+        q = [q arrayByAddingObjectsFromArray:queue];
+        [inputQueues setObject:q forKey:key];
+    } else {
+        [inputQueues setObject:queue forKey:key];
+    }
+
+    [self performSelector:@selector(processInputQueues:)
+               withObject:nil
+               afterDelay:0];
 }
 
 - (MMVimController *)keyVimController
@@ -2112,6 +2134,27 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
         //NSLog(@"WAIT for pid=%d complete", pid);
         --numChildProcesses;
+    }
+}
+
+- (void)processInputQueues:(id)sender
+{
+    MMVimController *vc;
+    NSEnumerator *e = [vimControllers objectEnumerator];
+    while ((vc = [e nextObject])) {
+        NSNumber *key = [NSNumber numberWithUnsignedInt:[vc identifier]];
+        NSArray *q = [inputQueues objectForKey:key];
+        if (q) {
+            // Remove queue from the dictionary before processing it because
+            // more input may arrive during processing of the queue (we have to
+            // retain/release the queue otherwise it will be deallocated when
+            // we remove it from the dictionary).
+            [q retain];
+            [inputQueues removeObjectForKey:key];
+
+            [vc processInputQueue:q];
+            [q release];
+        }
     }
 }
 

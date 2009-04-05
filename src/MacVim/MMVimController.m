@@ -55,6 +55,8 @@ static int MMReceiveQueueCap = 100;
 
 static BOOL isUnsafeMessage(int msgid);
 
+static unsigned identifierCounter = 1;
+
 
 @interface MMAlert : NSAlert {
     NSTextField *textField;
@@ -107,6 +109,7 @@ static BOOL isUnsafeMessage(int msgid);
     if (!(self = [super init]))
         return nil;
 
+    identifier = identifierCounter++;
     windowController =
         [[MMWindowController alloc] initWithVimController:self];
     backendProxy = [backend retain];
@@ -181,6 +184,11 @@ static BOOL isUnsafeMessage(int msgid);
     [creationDate release];  creationDate = nil;
 
     [super dealloc];
+}
+
+- (unsigned)identifier
+{
+    return identifier;
 }
 
 - (MMWindowController *)windowController
@@ -431,6 +439,7 @@ static BOOL isUnsafeMessage(int msgid);
     [windowController cleanup];
 }
 
+#if 0
 - (oneway void)showSavePanelWithAttributes:(in bycopy NSDictionary *)attr
 {
     if (!isInitialized) return;
@@ -565,8 +574,9 @@ static BOOL isUnsafeMessage(int msgid);
 
     [alert release];
 }
+#endif
 
-- (oneway void)processCommandQueue:(in bycopy NSArray *)queue
+- (void)processInputQueue:(NSArray *)queue
 {
     if (!isInitialized) return;
 

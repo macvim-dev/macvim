@@ -21,7 +21,8 @@
     NSMutableArray      *inputQueue;
     NSMutableData       *drawData;
     NSConnection        *connection;
-    id                  frontendProxy;
+    id                  appProxy;
+    unsigned            identifier;
     NSDictionary        *colorDict;
     NSDictionary        *sysColorDict;
     NSDictionary        *actionDict;
