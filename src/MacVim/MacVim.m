@@ -86,6 +86,8 @@ char *MessageStrings[] =
     "FindReplaceMsgID",
     "ActivateKeyScriptID",
     "DeactivateKeyScriptID",
+    "BrowseForFileMsgID",
+    "ShowDialogMsgID",
 };
 
 

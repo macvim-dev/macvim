@@ -691,10 +691,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     char_u *s = NULL;
 
-#if 0
-    @try {
-        [frontendProxy showSavePanelWithAttributes:attr];
+    [self queueMessage:BrowseForFileMsgID properties:attr];
+    [self flushQueue:YES];
 
+    @try {
         [self waitForDialogReturn];
 
         if (dialogReturn && [dialogReturn isKindOfClass:[NSString class]])
@@ -703,9 +703,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [dialogReturn release];  dialogReturn = nil;
     }
     @catch (NSException *e) {
-        NSLog(@"Exception caught when showing save panel: \"%@\"", e);
+        NSLog(@"[%s] Exception caught: \"%@\"", _cmd, e);
     }
-#endif
+
     return (char *)s;
 }
 
@@ -731,10 +731,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     int retval = 0;
 
-#if 0
-    @try {
-        [frontendProxy presentDialogWithAttributes:attr];
+    [self queueMessage:ShowDialogMsgID properties:attr];
+    [self flushQueue:YES];
 
+    @try {
         [self waitForDialogReturn];
 
         if (dialogReturn && [dialogReturn isKindOfClass:[NSArray class]]
@@ -756,9 +756,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [dialogReturn release]; dialogReturn = nil;
     }
     @catch (NSException *e) {
-        NSLog(@"Exception caught while showing alert dialog: \"%@\"", e);
+        NSLog(@"[%s] Exception caught: \"%@\"", _cmd, e);
     }
-#endif
 
     return retval;
 }

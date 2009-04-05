@@ -97,6 +97,8 @@ static unsigned identifierCounter = 1;
 - (void)popupMenuWithAttributes:(NSDictionary *)attrs;
 - (void)connectionDidDie:(NSNotification *)notification;
 - (void)scheduleClose;
+- (void)handleBrowseForFile:(NSDictionary *)attr;
+- (void)handleShowDialog:(NSDictionary *)attr;
 @end
 
 
@@ -438,143 +440,6 @@ static unsigned identifierCounter = 1;
     //[windowController close];
     [windowController cleanup];
 }
-
-#if 0
-- (oneway void)showSavePanelWithAttributes:(in bycopy NSDictionary *)attr
-{
-    if (!isInitialized) return;
-
-    BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
-                                        isEqual:NSDefaultRunLoopMode];
-    if (!inDefaultMode) {
-        // Delay call until run loop is in default mode.
-        [self performSelectorOnMainThread:
-                                        @selector(showSavePanelWithAttributes:)
-                               withObject:attr
-			    waitUntilDone:NO
-			            modes:[NSArray arrayWithObject:
-                                           NSDefaultRunLoopMode]];
-        return;
-    }
-
-    NSString *dir = [attr objectForKey:@"dir"];
-    BOOL saving = [[attr objectForKey:@"saving"] boolValue];
-
-    if (!dir) {
-        // 'dir == nil' means: set dir to the pwd of the Vim process, or let
-        // open dialog decide (depending on the below user default).
-        BOOL trackPwd = [[NSUserDefaults standardUserDefaults]
-                boolForKey:MMDialogsTrackPwdKey];
-        if (trackPwd)
-            dir = [vimState objectForKey:@"pwd"];
-    }
-
-    if (saving) {
-        [[NSSavePanel savePanel] beginSheetForDirectory:dir file:nil
-                modalForWindow:[windowController window]
-                 modalDelegate:self
-                didEndSelector:@selector(savePanelDidEnd:code:context:)
-                   contextInfo:NULL];
-    } else {
-        NSOpenPanel *panel = [NSOpenPanel openPanel];
-        [panel setAllowsMultipleSelection:NO];
-        [panel setAccessoryView:openPanelAccessoryView()];
-
-        [panel beginSheetForDirectory:dir file:nil types:nil
-                modalForWindow:[windowController window]
-                 modalDelegate:self
-                didEndSelector:@selector(savePanelDidEnd:code:context:)
-                   contextInfo:NULL];
-    }
-}
-
-- (oneway void)presentDialogWithAttributes:(in bycopy NSDictionary *)attr
-{
-    if (!isInitialized) return;
-
-    BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
-                                        isEqual:NSDefaultRunLoopMode];
-    if (!inDefaultMode) {
-        // Delay call until run loop is in default mode.
-        [self performSelectorOnMainThread:
-                                        @selector(presentDialogWithAttributes:)
-                               withObject:attr
-			    waitUntilDone:NO
-			            modes:[NSArray arrayWithObject:
-                                           NSDefaultRunLoopMode]];
-        return;
-    }
-
-    NSArray *buttonTitles = [attr objectForKey:@"buttonTitles"];
-    if (!(buttonTitles && [buttonTitles count])) return;
-
-    int style = [[attr objectForKey:@"alertStyle"] intValue];
-    NSString *message = [attr objectForKey:@"messageText"];
-    NSString *text = [attr objectForKey:@"informativeText"];
-    NSString *textFieldString = [attr objectForKey:@"textFieldString"];
-    MMAlert *alert = [[MMAlert alloc] init];
-
-    // NOTE! This has to be done before setting the informative text.
-    if (textFieldString)
-        [alert setTextFieldString:textFieldString];
-
-    [alert setAlertStyle:style];
-
-    if (message) {
-        [alert setMessageText:message];
-    } else {
-        // If no message text is specified 'Alert' is used, which we don't
-        // want, so set an empty string as message text.
-        [alert setMessageText:@""];
-    }
-
-    if (text) {
-        [alert setInformativeText:text];
-    } else if (textFieldString) {
-        // Make sure there is always room for the input text field.
-        [alert setInformativeText:@""];
-    }
-
-    unsigned i, count = [buttonTitles count];
-    for (i = 0; i < count; ++i) {
-        NSString *title = [buttonTitles objectAtIndex:i];
-        // NOTE: The title of the button may contain the character '&' to
-        // indicate that the following letter should be the key equivalent
-        // associated with the button.  Extract this letter and lowercase it.
-        NSString *keyEquivalent = nil;
-        NSRange hotkeyRange = [title rangeOfString:@"&"];
-        if (NSNotFound != hotkeyRange.location) {
-            if ([title length] > NSMaxRange(hotkeyRange)) {
-                NSRange keyEquivRange = NSMakeRange(hotkeyRange.location+1, 1);
-                keyEquivalent = [[title substringWithRange:keyEquivRange]
-                    lowercaseString];
-            }
-
-            NSMutableString *string = [NSMutableString stringWithString:title];
-            [string deleteCharactersInRange:hotkeyRange];
-            title = string;
-        }
-
-        [alert addButtonWithTitle:title];
-
-        // Set key equivalent for the button, but only if NSAlert hasn't
-        // already done so.  (Check the documentation for
-        // - [NSAlert addButtonWithTitle:] to see what key equivalents are
-        // automatically assigned.)
-        NSButton *btn = [[alert buttons] lastObject];
-        if ([[btn keyEquivalent] length] == 0 && keyEquivalent) {
-            [btn setKeyEquivalent:keyEquivalent];
-        }
-    }
-
-    [alert beginSheetModalForWindow:[windowController window]
-                      modalDelegate:self
-                     didEndSelector:@selector(alertDidEnd:code:context:)
-                        contextInfo:NULL];
-
-    [alert release];
-}
-#endif
 
 - (void)processInputQueue:(NSArray *)queue
 {
@@ -995,6 +860,14 @@ static unsigned identifierCounter = 1;
         KeyScript(smKeySysScript);
     } else if (DeactivateKeyScriptID == msgid) {
         KeyScript(smKeyRoman);
+    } else if (BrowseForFileMsgID == msgid) {
+        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+        if (dict)
+            [self handleBrowseForFile:dict];
+    } else if (ShowDialogMsgID == msgid) {
+        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+        if (dict)
+            [self handleShowDialog:dict];
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {
@@ -1448,6 +1321,140 @@ static unsigned identifierCounter = 1;
 			          modes:[NSArray arrayWithObject:
 					 NSDefaultRunLoopMode]];
 }
+
+- (void)handleBrowseForFile:(NSDictionary *)attr
+{
+    if (!isInitialized) return;
+
+    BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
+                                        isEqual:NSDefaultRunLoopMode];
+    if (!inDefaultMode) {
+        // Delay call until run loop is in default mode.
+        [self performSelectorOnMainThread:@selector(handleBrowseForFile:)
+                               withObject:attr
+			    waitUntilDone:NO
+			            modes:[NSArray arrayWithObject:
+                                           NSDefaultRunLoopMode]];
+        return;
+    }
+
+    NSString *dir = [attr objectForKey:@"dir"];
+    BOOL saving = [[attr objectForKey:@"saving"] boolValue];
+
+    if (!dir) {
+        // 'dir == nil' means: set dir to the pwd of the Vim process, or let
+        // open dialog decide (depending on the below user default).
+        BOOL trackPwd = [[NSUserDefaults standardUserDefaults]
+                boolForKey:MMDialogsTrackPwdKey];
+        if (trackPwd)
+            dir = [vimState objectForKey:@"pwd"];
+    }
+
+    if (saving) {
+        [[NSSavePanel savePanel] beginSheetForDirectory:dir file:nil
+                modalForWindow:[windowController window]
+                 modalDelegate:self
+                didEndSelector:@selector(savePanelDidEnd:code:context:)
+                   contextInfo:NULL];
+    } else {
+        NSOpenPanel *panel = [NSOpenPanel openPanel];
+        [panel setAllowsMultipleSelection:NO];
+        [panel setAccessoryView:openPanelAccessoryView()];
+
+        [panel beginSheetForDirectory:dir file:nil types:nil
+                modalForWindow:[windowController window]
+                 modalDelegate:self
+                didEndSelector:@selector(savePanelDidEnd:code:context:)
+                   contextInfo:NULL];
+    }
+}
+
+- (void)handleShowDialog:(NSDictionary *)attr
+{
+    if (!isInitialized) return;
+
+    BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
+                                        isEqual:NSDefaultRunLoopMode];
+    if (!inDefaultMode) {
+        // Delay call until run loop is in default mode.
+        [self performSelectorOnMainThread:@selector(handleShowDialog:)
+                               withObject:attr
+			    waitUntilDone:NO
+			            modes:[NSArray arrayWithObject:
+                                           NSDefaultRunLoopMode]];
+        return;
+    }
+
+    NSArray *buttonTitles = [attr objectForKey:@"buttonTitles"];
+    if (!(buttonTitles && [buttonTitles count])) return;
+
+    int style = [[attr objectForKey:@"alertStyle"] intValue];
+    NSString *message = [attr objectForKey:@"messageText"];
+    NSString *text = [attr objectForKey:@"informativeText"];
+    NSString *textFieldString = [attr objectForKey:@"textFieldString"];
+    MMAlert *alert = [[MMAlert alloc] init];
+
+    // NOTE! This has to be done before setting the informative text.
+    if (textFieldString)
+        [alert setTextFieldString:textFieldString];
+
+    [alert setAlertStyle:style];
+
+    if (message) {
+        [alert setMessageText:message];
+    } else {
+        // If no message text is specified 'Alert' is used, which we don't
+        // want, so set an empty string as message text.
+        [alert setMessageText:@""];
+    }
+
+    if (text) {
+        [alert setInformativeText:text];
+    } else if (textFieldString) {
+        // Make sure there is always room for the input text field.
+        [alert setInformativeText:@""];
+    }
+
+    unsigned i, count = [buttonTitles count];
+    for (i = 0; i < count; ++i) {
+        NSString *title = [buttonTitles objectAtIndex:i];
+        // NOTE: The title of the button may contain the character '&' to
+        // indicate that the following letter should be the key equivalent
+        // associated with the button.  Extract this letter and lowercase it.
+        NSString *keyEquivalent = nil;
+        NSRange hotkeyRange = [title rangeOfString:@"&"];
+        if (NSNotFound != hotkeyRange.location) {
+            if ([title length] > NSMaxRange(hotkeyRange)) {
+                NSRange keyEquivRange = NSMakeRange(hotkeyRange.location+1, 1);
+                keyEquivalent = [[title substringWithRange:keyEquivRange]
+                    lowercaseString];
+            }
+
+            NSMutableString *string = [NSMutableString stringWithString:title];
+            [string deleteCharactersInRange:hotkeyRange];
+            title = string;
+        }
+
+        [alert addButtonWithTitle:title];
+
+        // Set key equivalent for the button, but only if NSAlert hasn't
+        // already done so.  (Check the documentation for
+        // - [NSAlert addButtonWithTitle:] to see what key equivalents are
+        // automatically assigned.)
+        NSButton *btn = [[alert buttons] lastObject];
+        if ([[btn keyEquivalent] length] == 0 && keyEquivalent) {
+            [btn setKeyEquivalent:keyEquivalent];
+        }
+    }
+
+    [alert beginSheetModalForWindow:[windowController window]
+                      modalDelegate:self
+                     didEndSelector:@selector(alertDidEnd:code:context:)
+                        contextInfo:NULL];
+
+    [alert release];
+}
+
 
 @end // MMVimController (Private)
 

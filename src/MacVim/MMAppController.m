@@ -1183,6 +1183,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         NSLog(@"[%s] Appending queue id=%d", _cmd, identifier);
         q = [q arrayByAddingObjectsFromArray:queue];
         [inputQueues setObject:q forKey:key];
+
+#if 0   // More debug logging info
+        unsigned i, count = [q count];
+        for (i = 0; i < count; i += 2) {
+            NSData *value = [q objectAtIndex:i];
+            int msgid = *((int*)[value bytes]);
+            NSLog(@"    %s", MessageStrings[msgid]);
+        }
+#endif
     } else {
         [inputQueues setObject:queue forKey:key];
     }

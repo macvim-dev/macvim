@@ -182,6 +182,8 @@ enum {
     FindReplaceMsgID,
     ActivateKeyScriptID,
     DeactivateKeyScriptID,
+    BrowseForFileMsgID,
+    ShowDialogMsgID,
 };
 
 
