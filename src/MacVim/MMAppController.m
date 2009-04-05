@@ -126,6 +126,7 @@ typedef struct
 - (int)executeInLoginShell:(NSString *)path arguments:(NSArray *)args;
 - (void)reapChildProcesses:(id)sender;
 - (void)processInputQueues:(id)sender;
+- (void)addVimController:(MMVimController *)vc;
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu;
@@ -1111,61 +1112,28 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     return nil;
 }
 
-- (unsigned)connectBackend:(byref in id <MMBackendProtocol>)backend
-                       pid:(int)pid
+- (unsigned)connectBackend:(byref in id <MMBackendProtocol>)proxy pid:(int)pid
 {
-    //NSLog(@"Connect backend (pid=%d)", pid);
-    NSNumber *pidKey = [NSNumber numberWithInt:pid];
-    MMVimController *vc = nil;
+    //NSLog(@"[%s] pid=%d", _cmd, pid);
 
-    @try {
-        [(NSDistantObject*)backend
-                setProtocolForProxy:@protocol(MMBackendProtocol)];
+    [(NSDistantObject*)proxy setProtocolForProxy:@protocol(MMBackendProtocol)];
 
-        vc = [[[MMVimController alloc] initWithBackend:backend pid:pid]
-                autorelease];
+    // NOTE: Allocate the vim controller now but don't add it to the list of
+    // controllers since this is a distributed object call and as such can
+    // arrive at unpredictable times (e.g. while iterating the list of vim
+    // controllers).
+    // (What if input arrives before the vim controller is added to the list of
+    // controllers?  This is not a problem since the input isn't processed
+    // immediately (see processInput:forIdentifier:).)
+    MMVimController *vc = [[MMVimController alloc] initWithBackend:proxy
+                                                               pid:pid];
+    [self performSelector:@selector(addVimController:)
+               withObject:vc
+               afterDelay:0];
 
-        if (preloadPid == pid) {
-            // This backend was preloaded, so add it to the cache and schedule
-            // another vim process to be preloaded.
-            preloadPid = -1;
-            [vc setIsPreloading:YES];
-            [cachedVimControllers addObject:vc];
-            [self scheduleVimControllerPreloadAfterDelay:1];
+    [vc release];
 
-            return [vc identifier];
-        }
-
-        [vimControllers addObject:vc];
-
-        id args = [pidArguments objectForKey:pidKey];
-        if (args && [NSNull null] != args)
-            [vc passArguments:args];
-
-        // HACK!  MacVim does not get activated if it is launched from the
-        // terminal, so we forcibly activate here unless it is an untitled
-        // window opening.  Untitled windows are treated differently, else
-        // MacVim would steal the focus if another app was activated while the
-        // untitled window was loading.
-        if (!args || args != [NSNull null])
-            [self activateWhenNextWindowOpens];
-
-        if (args)
-            [pidArguments removeObjectForKey:pidKey];
-
-        return [vc identifier];
-    }
-
-    @catch (NSException *e) {
-        NSLog(@"Exception caught in %s: \"%@\"", _cmd, e);
-
-        if (vc)
-            [vimControllers removeObject:vc];
-
-        [pidArguments removeObjectForKey:pidKey];
-    }
-
-    return 0;
+    return [vc identifier];
 }
 
 - (oneway void)processInput:(in bycopy NSArray *)queue
@@ -1175,8 +1143,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // call and as such can arrive at unpredictable times.  Instead, queue the
     // input and process it when the run loop is updated.
 
-    if (!queue)
+    if (!(queue && identifier)) {
+        NSLog(@"[%s] Bad input for identifier=%d", _cmd, identifier);
         return;
+    }
 
     NSNumber *key = [NSNumber numberWithUnsignedInt:identifier];
     NSArray *q = [inputQueues objectForKey:key];
@@ -1184,7 +1154,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         q = [q arrayByAddingObjectsFromArray:queue];
         [inputQueues setObject:q forKey:key];
 
-        NSLog(@"[%s] Appending queue id=%d", _cmd, identifier);
+        //NSLog(@"[%s] Appending queue id=%d", _cmd, identifier);
 #if 0   // More debug logging info
         unsigned i, count = [q count];
         for (i = 0; i < count; i += 2) {
@@ -2198,6 +2168,38 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                       inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 
     processingFlag = 0;
+}
+
+- (void)addVimController:(MMVimController *)vc
+{
+    int pid = [vc pid];
+    NSNumber *pidKey = [NSNumber numberWithInt:pid];
+
+    if (preloadPid == pid) {
+        // This controller was preloaded, so add it to the cache and
+        // schedule another vim process to be preloaded.
+        preloadPid = -1;
+        [vc setIsPreloading:YES];
+        [cachedVimControllers addObject:vc];
+        [self scheduleVimControllerPreloadAfterDelay:1];
+    } else {
+        [vimControllers addObject:vc];
+
+        id args = [pidArguments objectForKey:pidKey];
+        if (args && [NSNull null] != args)
+            [vc passArguments:args];
+
+        // HACK!  MacVim does not get activated if it is launched from the
+        // terminal, so we forcibly activate here unless it is an untitled
+        // window opening.  Untitled windows are treated differently, else
+        // MacVim would steal the focus if another app was activated while the
+        // untitled window was loading.
+        if (!args || args != [NSNull null])
+            [self activateWhenNextWindowOpens];
+
+        if (args)
+            [pidArguments removeObjectForKey:pidKey];
+    }
 }
 
 @end // MMAppController (Private)

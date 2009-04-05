@@ -48,9 +48,14 @@
 // It handles connections between MacVim and Vim and communication from Vim to
 // MacVim.
 //
+// Do not add methods to this interface without a _very_ good reason (if
+// possible, instead add a new message to the *MsgID enum below and pass it via
+// processInput:forIdentifier).  Methods should not modify the state directly
+// but should instead delay any potential modifications (see
+// connectBackend:pid: and processInput:forIdentifier:).
+//
 @protocol MMAppProtocol
-- (unsigned)connectBackend:(byref in id <MMBackendProtocol>)backend
-                       pid:(int)pid;
+- (unsigned)connectBackend:(byref in id <MMBackendProtocol>)proxy pid:(int)pid;
 - (oneway void)processInput:(in bycopy NSArray *)queue
               forIdentifier:(unsigned)identifier;
 - (NSArray *)serverList;

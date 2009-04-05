@@ -327,7 +327,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         }
     }
 
-    BOOL ok = NO;
     @try {
         [[NSNotificationCenter defaultCenter] addObserver:self
                 selector:@selector(connectionDidDie:)
@@ -344,14 +343,13 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         int pid = [[NSProcessInfo processInfo] processIdentifier];
 
         identifier = [appProxy connectBackend:self pid:pid];
-        if (identifier != 0)
-            ok = YES;
+        return YES;
     }
     @catch (NSException *e) {
         NSLog(@"Exception caught when trying to connect backend: \"%@\"", e);
     }
 
-    return ok;
+    return NO;
 }
 
 - (BOOL)openGUIWindow
