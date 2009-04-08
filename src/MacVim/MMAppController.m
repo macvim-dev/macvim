@@ -2148,13 +2148,19 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSDictionary *queues = inputQueues;
     inputQueues = [NSMutableDictionary new];
 
-    MMVimController *vc;
-    NSEnumerator *e = [vimControllers objectEnumerator];
-    while ((vc = [e nextObject])) {
-        NSNumber *key = [NSNumber numberWithUnsignedInt:[vc identifier]];
-        NSArray *q = [queues objectForKey:key];
-        if (q)
-            [vc processInputQueue:q];
+    // Pass each input queue on to the vim controller with matching identifier.
+    NSEnumerator *e = [queues keyEnumerator];
+    NSNumber *key;
+    while ((key = [e nextObject])) {
+        unsigned ukey = [key unsignedIntValue];
+        int i = 0, count = [vimControllers count];
+        for (i = 0; i < count; ++i) {
+            MMVimController *vc = [vimControllers objectAtIndex:i];
+            if (ukey == [vc identifier]) {
+                [vc processInputQueue:[queues objectForKey:key]];
+                break;
+            }
+        }
     }
 
     [queues release];
