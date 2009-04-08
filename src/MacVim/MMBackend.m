@@ -2480,9 +2480,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if ([args objectForKey:@"remoteID"]) {
         // NOTE: We have to delay processing any ODB related arguments since
         // the file(s) may not be opened until the input buffer is processed.
-        [self performSelectorOnMainThread:@selector(startOdbEditWithArguments:)
-                               withObject:args
-                            waitUntilDone:NO];
+        [self performSelector:@selector(startOdbEditWithArguments:)
+                   withObject:args
+                   afterDelay:0];
     }
 
     NSString *lineString = [args objectForKey:@"cursorLine"];

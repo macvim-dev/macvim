@@ -521,11 +521,9 @@ static unsigned identifierCounter = 1;
 
     if (delayQueue) {
         //NSLog(@"    Flushing delay queue (%d items)", [delayQueue count]/2);
-        [self performSelectorOnMainThread:@selector(processInputQueue:)
-                               withObject:delayQueue
-			    waitUntilDone:NO
-			            modes:[NSArray arrayWithObject:
-                                           NSDefaultRunLoopMode]];
+        [self performSelector:@selector(processInputQueue:)
+                   withObject:delayQueue
+                   afterDelay:0];
     }
 }
 
@@ -722,11 +720,9 @@ static unsigned identifierCounter = 1;
 
         // The popup menu enters a modal loop so delay this call so that we
         // don't block inside processInputQueue:.
-        [self performSelectorOnMainThread:@selector(popupMenuWithAttributes:)
-                             withObject:attrs
-			  waitUntilDone:NO
-			          modes:[NSArray arrayWithObject:
-					 NSDefaultRunLoopMode]];
+        [self performSelector:@selector(popupMenuWithAttributes:)
+                   withObject:attrs
+                   afterDelay:0];
     } else if (SetMouseShapeMsgID == msgid) {
         const void *bytes = [data bytes];
         int shape = *((int*)bytes);  bytes += sizeof(int);
@@ -1246,11 +1242,9 @@ static unsigned identifierCounter = 1;
     // following call ensures that the vim controller is not released until the
     // run loop is back in the 'default' mode.
     [[MMAppController sharedInstance]
-            performSelectorOnMainThread:@selector(removeVimController:)
-                             withObject:self
-			  waitUntilDone:NO
-			          modes:[NSArray arrayWithObject:
-					 NSDefaultRunLoopMode]];
+            performSelector:@selector(removeVimController:)
+                 withObject:self
+                 afterDelay:0];
 }
 
 - (void)handleBrowseForFile:(NSDictionary *)attr
@@ -1261,11 +1255,9 @@ static unsigned identifierCounter = 1;
                                         isEqual:NSDefaultRunLoopMode];
     if (!inDefaultMode) {
         // Delay call until run loop is in default mode.
-        [self performSelectorOnMainThread:@selector(handleBrowseForFile:)
-                               withObject:attr
-			    waitUntilDone:NO
-			            modes:[NSArray arrayWithObject:
-                                           NSDefaultRunLoopMode]];
+        [self performSelector:@selector(handleBrowseForFile:)
+                   withObject:attr
+                   afterDelay:0];
         return;
     }
 
@@ -1308,11 +1300,9 @@ static unsigned identifierCounter = 1;
                                         isEqual:NSDefaultRunLoopMode];
     if (!inDefaultMode) {
         // Delay call until run loop is in default mode.
-        [self performSelectorOnMainThread:@selector(handleShowDialog:)
-                               withObject:attr
-			    waitUntilDone:NO
-			            modes:[NSArray arrayWithObject:
-                                           NSDefaultRunLoopMode]];
+        [self performSelector:@selector(handleShowDialog:)
+                   withObject:attr
+                   afterDelay:0];
         return;
     }
 

@@ -1123,8 +1123,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // arrive at unpredictable times (e.g. while iterating the list of vim
     // controllers).
     // (What if input arrives before the vim controller is added to the list of
-    // controllers?  This is not a problem since the input isn't processed
-    // immediately (see processInput:forIdentifier:).)
+    // controllers?  This should not be a problem since the input isn't
+    // processed immediately (see processInput:forIdentifier:).)
     MMVimController *vc = [[MMVimController alloc] initWithBackend:proxy
                                                                pid:pid];
     [self performSelector:@selector(addVimController:)
@@ -2133,7 +2133,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // not need to worry about it.
 
     // The processing flag is > 0 if this function is already on the call
-    // stack; < 0 if this function was re-entered.
+    // stack; < 0 if this function was also re-entered.
     if (processingFlag != 0) {
         NSLog(@"[%s] BUSY!", _cmd);
         processingFlag = -1;
