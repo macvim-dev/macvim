@@ -10,17 +10,20 @@
 /*
  * MMVimController
  *
- * Coordinates input/output to/from backend.  Each MMBackend communicates
- * directly with a MMVimController.
+ * Coordinates input/output to/from backend.  A MMVimController sends input
+ * directly to a MMBackend, but communication from MMBackend to MMVimController
+ * goes via MMAppController so that it can coordinate all incoming distributed
+ * object messages.
  *
  * MMVimController does not deal with visual presentation.  Essentially it
  * should be able to run with no window present.
  *
- * Output from the backend is received in processInputQueue:.  Input is sent
- * to the backend via sendMessage:data: or addVimInput:.  The latter allows
- * execution of arbitrary strings in the Vim process, much like the Vim script
- * function remote_send() does.  The messages that may be passed between
- * frontend and backend are defined in an enum in MacVim.h.
+ * Output from the backend is received in processInputQueue: (this message is
+ * called from MMAppController so it is not a DO call).  Input is sent to the
+ * backend via sendMessage:data: or addVimInput:.  The latter allows execution
+ * of arbitrary strings in the Vim process, much like the Vim script function
+ * remote_send() does.  The messages that may be passed between frontend and
+ * backend are defined in an enum in MacVim.h.
  */
 
 #import "MMAppController.h"
@@ -49,9 +52,9 @@ static NSTimeInterval MMBackendProxyRequestTimeout = 0;
 // Timeout used for setDialogReturn:.
 static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 
-static BOOL isUnsafeMessage(int msgid);
-
 static unsigned identifierCounter = 1;
+
+static BOOL isUnsafeMessage(int msgid);
 
 
 @interface MMAlert : NSAlert {
@@ -1251,16 +1254,6 @@ static unsigned identifierCounter = 1;
 {
     if (!isInitialized) return;
 
-    BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
-                                        isEqual:NSDefaultRunLoopMode];
-    if (!inDefaultMode) {
-        // Delay call until run loop is in default mode.
-        [self performSelector:@selector(handleBrowseForFile:)
-                   withObject:attr
-                   afterDelay:0];
-        return;
-    }
-
     NSString *dir = [attr objectForKey:@"dir"];
     BOOL saving = [[attr objectForKey:@"saving"] boolValue];
 
@@ -1295,16 +1288,6 @@ static unsigned identifierCounter = 1;
 - (void)handleShowDialog:(NSDictionary *)attr
 {
     if (!isInitialized) return;
-
-    BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
-                                        isEqual:NSDefaultRunLoopMode];
-    if (!inDefaultMode) {
-        // Delay call until run loop is in default mode.
-        [self performSelector:@selector(handleShowDialog:)
-                   withObject:attr
-                   afterDelay:0];
-        return;
-    }
 
     NSArray *buttonTitles = [attr objectForKey:@"buttonTitles"];
     if (!(buttonTitles && [buttonTitles count])) return;
@@ -1467,6 +1450,8 @@ isUnsafeMessage(int msgid)
         EnterFullscreenMsgID,       // Modifies delegate of window controller
         LeaveFullscreenMsgID,       // Modifies delegate of window controller
         CloseWindowMsgID,           // See note below
+        BrowseForFileMsgID,         // Enters modal loop
+        ShowDialogMsgID,            // Enters modal loop
     };
 
     // NOTE about CloseWindowMsgID: If this arrives at the same time as say

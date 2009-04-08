@@ -20,8 +20,8 @@
 
 
 
-@interface MMVimController : NSObject
-{
+@interface MMVimController : NSObject {
+    unsigned            identifier;
     BOOL                isInitialized;
     MMWindowController  *windowController;
     id                  backendProxy;
@@ -37,8 +37,6 @@
 #endif
     BOOL                isPreloading;
     NSDate              *creationDate;
-
-    unsigned            identifier;
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
