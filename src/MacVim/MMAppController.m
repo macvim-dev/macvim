@@ -1148,21 +1148,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         return;
     }
 
+    //NSLog(@"[%s] QUEUE for identifier=%d: <<< %@>>>", _cmd, identifier,
+    //        debugStringForMessageQueue(queue));
+
     NSNumber *key = [NSNumber numberWithUnsignedInt:identifier];
     NSArray *q = [inputQueues objectForKey:key];
     if (q) {
         q = [q arrayByAddingObjectsFromArray:queue];
         [inputQueues setObject:q forKey:key];
-
-        //NSLog(@"[%s] Appending queue id=%d", _cmd, identifier);
-#if 0   // More debug logging info
-        unsigned i, count = [q count];
-        for (i = 0; i < count; i += 2) {
-            NSData *value = [q objectAtIndex:i];
-            int msgid = *((int*)[value bytes]);
-            NSLog(@"    %s", MessageStrings[msgid]);
-        }
-#endif
     } else {
         [inputQueues setObject:queue forKey:key];
     }

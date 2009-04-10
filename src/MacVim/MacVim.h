@@ -101,7 +101,7 @@
 extern char *MessageStrings[];
 
 enum {
-    OpenWindowMsgID = 1,
+    OpenWindowMsgID = 1,    // NOTE: FIRST IN ENUM MUST BE 1
     InsertTextMsgID,
     KeyDownMsgID,
     CmdKeyMsgID,
@@ -173,6 +173,7 @@ enum {
     DeactivateKeyScriptID,
     BrowseForFileMsgID,
     ShowDialogMsgID,
+    LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
 };
 
 
@@ -210,6 +211,13 @@ enum {
     MMTabToolTip,
     MMTabInfoCount
 };
+
+
+// Create a string holding the labels of all messages in message queue for
+// debugging purposes (condense some messages since there may typically be LOTS
+// of them on a queue).
+NSString *debugStringForMessageQueue(NSArray *queue);
+
 
 // Argument used to stop MacVim from opening an empty window on startup
 // (techincally this is a user default but should not be used as such).

@@ -88,6 +88,7 @@ char *MessageStrings[] =
     "DeactivateKeyScriptID",
     "BrowseForFileMsgID",
     "ShowDialogMsgID",
+    "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 
 
@@ -99,6 +100,34 @@ NSString *MMNoWindowKey = @"MMNoWindow";
 
 // Vim pasteboard type (holds motion type + string)
 NSString *VimPBoardType = @"VimPBoardType";
+
+
+
+// Create a string holding the labels of all messages in message queue for
+// debugging purposes (condense some messages since there may typically be LOTS
+// of them on a queue).
+    NSString *
+debugStringForMessageQueue(NSArray *queue)
+{
+    NSMutableString *s = [NSMutableString new];
+    unsigned i, count = [queue count];
+    int item = 0, menu = 0, enable = 0;
+    for (i = 0; i < count; i += 2) {
+        NSData *value = [queue objectAtIndex:i];
+        int msgid = *((int*)[value bytes]);
+        if (msgid < 1 || msgid >= LastMsgID)
+            continue;
+        if (msgid == AddMenuItemMsgID) ++item;
+        else if (msgid == AddMenuMsgID) ++menu;
+        else if (msgid == EnableMenuItemMsgID) ++enable;
+        else [s appendFormat:@"%s ", MessageStrings[msgid]];
+    }
+    if (item > 0) [s appendFormat:@"AddMenuItemMsgID(%d) ", item];
+    if (menu > 0) [s appendFormat:@"AddMenuMsgID(%d) ", menu];
+    if (enable > 0) [s appendFormat:@"EnableMenuItemMsgID(%d) ", enable];
+
+    return [s autorelease];
+}
 
 
 
