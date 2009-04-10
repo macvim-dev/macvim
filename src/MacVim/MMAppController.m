@@ -2148,7 +2148,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSDictionary *queues = inputQueues;
     inputQueues = [NSMutableDictionary new];
 
-    // Pass each input queue on to the vim controller with matching identifier.
+    // Pass each input queue on to the vim controller with matching
+    // identifier (and note that it could be cached).
     NSEnumerator *e = [queues keyEnumerator];
     NSNumber *key;
     while ((key = [e nextObject])) {
@@ -2161,6 +2162,21 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 break;
             }
         }
+
+        if (i < count) continue;
+
+        count = [cachedVimControllers count];
+        for (i = 0; i < count; ++i) {
+            MMVimController *vc = [cachedVimControllers objectAtIndex:i];
+            if (ukey == [vc identifier]) {
+                [vc processInputQueue:[queues objectForKey:key]];
+                break;
+            }
+        }
+
+        if (i == count)
+            NSLog(@"[%s] WARNING: No Vim controller for identifier=%d",
+                    _cmd, ukey);
     }
 
     [queues release];
