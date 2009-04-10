@@ -436,8 +436,15 @@ static BOOL isUnsafeMessage(int msgid);
 {
     if (!isInitialized) return;
 
-    [self doProcessInputQueue:queue];
-    [windowController processInputQueueDidFinish];
+    // NOTE: This method must not raise any exceptions (see comment in the
+    // calling method).
+    @try {
+        [self doProcessInputQueue:queue];
+        [windowController processInputQueueDidFinish];
+    }
+    @catch (NSException *ex) {
+        NSLog(@"[%s] Caught exception (pid=%d): %@", _cmd, pid, ex);
+    }
 }
 
 - (NSToolbarItem *)toolbar:(NSToolbar *)theToolbar
@@ -472,55 +479,50 @@ static BOOL isUnsafeMessage(int msgid);
 {
     NSMutableArray *delayQueue = nil;
 
-    @try {
-        unsigned i, count = [queue count];
-        if (count % 2) {
-            NSLog(@"WARNING: Uneven number of components (%d) in command "
-                    "queue.  Skipping...", count);
-            return;
-        }
-
-        //NSLog(@"======== %s BEGIN ========", _cmd);
-        for (i = 0; i < count; i += 2) {
-            NSData *value = [queue objectAtIndex:i];
-            NSData *data = [queue objectAtIndex:i+1];
-
-            int msgid = *((int*)[value bytes]);
-            //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
-
-            BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
-                                                isEqual:NSDefaultRunLoopMode];
-            if (!inDefaultMode && isUnsafeMessage(msgid)) {
-                // NOTE: Because we may be listening to DO messages in "event
-                // tracking mode" we have to take extra care when doing things
-                // like releasing view items (and other Cocoa objects).
-                // Messages that may be potentially "unsafe" are delayed until
-                // the run loop is back to default mode at which time they are
-                // safe to call again.
-                //   A problem with this approach is that it is hard to
-                // classify which messages are unsafe.  As a rule of thumb, if
-                // a message may release an object used by the Cocoa framework
-                // (e.g. views) then the message should be considered unsafe.
-                //   Delaying messages may have undesired side-effects since it
-                // means that messages may not be processed in the order Vim
-                // sent them, so beware.
-                if (!delayQueue)
-                    delayQueue = [NSMutableArray array];
-
-                //NSLog(@"Adding unsafe message '%s' to delay queue (mode=%@)",
-                //        MessageStrings[msgid],
-                //        [[NSRunLoop currentRunLoop] currentMode]);
-                [delayQueue addObject:value];
-                [delayQueue addObject:data];
-            } else {
-                [self handleMessage:msgid data:data];
-            }
-        }
-        //NSLog(@"======== %s  END  ========", _cmd);
+    unsigned i, count = [queue count];
+    if (count % 2) {
+        NSLog(@"WARNING: Uneven number of components (%d) in command "
+                "queue.  Skipping...", count);
+        return;
     }
-    @catch (NSException *e) {
-        NSLog(@"Exception caught whilst processing command queue: %@", e);
+
+    //NSLog(@"======== %s BEGIN ========", _cmd);
+    for (i = 0; i < count; i += 2) {
+        NSData *value = [queue objectAtIndex:i];
+        NSData *data = [queue objectAtIndex:i+1];
+
+        int msgid = *((int*)[value bytes]);
+        //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
+
+        BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
+                                            isEqual:NSDefaultRunLoopMode];
+        if (!inDefaultMode && isUnsafeMessage(msgid)) {
+            // NOTE: Because we may be listening to DO messages in "event
+            // tracking mode" we have to take extra care when doing things
+            // like releasing view items (and other Cocoa objects).
+            // Messages that may be potentially "unsafe" are delayed until
+            // the run loop is back to default mode at which time they are
+            // safe to call again.
+            //   A problem with this approach is that it is hard to
+            // classify which messages are unsafe.  As a rule of thumb, if
+            // a message may release an object used by the Cocoa framework
+            // (e.g. views) then the message should be considered unsafe.
+            //   Delaying messages may have undesired side-effects since it
+            // means that messages may not be processed in the order Vim
+            // sent them, so beware.
+            if (!delayQueue)
+                delayQueue = [NSMutableArray array];
+
+            //NSLog(@"Adding unsafe message '%s' to delay queue (mode=%@)",
+            //        MessageStrings[msgid],
+            //        [[NSRunLoop currentRunLoop] currentMode]);
+            [delayQueue addObject:value];
+            [delayQueue addObject:data];
+        } else {
+            [self handleMessage:msgid data:data];
+        }
     }
+    //NSLog(@"======== %s  END  ========", _cmd);
 
     if (delayQueue) {
         //NSLog(@"    Flushing delay queue (%d items)", [delayQueue count]/2);

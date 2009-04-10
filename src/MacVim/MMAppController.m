@@ -2140,6 +2140,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         return;
     }
 
+    // NOTE: Be _very_ careful that no exceptions can be raised between here
+    // and the point at which 'processingFlag' is reset.  Otherwise the above
+    // test could end up always failing and no input queues would ever be
+    // processed!
     processingFlag = 1;
 
     // NOTE: New input may arrive while we're busy processing; we deal with
@@ -2158,7 +2162,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         for (i = 0; i < count; ++i) {
             MMVimController *vc = [vimControllers objectAtIndex:i];
             if (ukey == [vc identifier]) {
-                [vc processInputQueue:[queues objectForKey:key]];
+                [vc processInputQueue:[queues objectForKey:key]]; // !exceptions
                 break;
             }
         }
@@ -2169,7 +2173,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         for (i = 0; i < count; ++i) {
             MMVimController *vc = [cachedVimControllers objectAtIndex:i];
             if (ukey == [vc identifier]) {
-                [vc processInputQueue:[queues objectForKey:key]];
+                [vc processInputQueue:[queues objectForKey:key]]; // !exceptions
                 break;
             }
         }
