@@ -41,6 +41,31 @@
     -->
 
     <item>
+      <title>Snapshot 45 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 45 released</h1>
+
+<p> Changes since snapshot 44:
+  <ul>
+    <li> The toolbar is not hidden by default again (if you prefer having the toolbar hidden, then add the line "set go-=T" to your ~/.gvimrc file) </li>
+    <li> The ATSUI renderer honors the 'guisp' highlighting color </li>
+    <li> Fix the forever bouncing Dock icon bug (Kazuki Sakamoto) </li>
+    <li> Add the "Show Hidden Files" checkbox button to the Save dialog whenever the file browser is expanded </li>
+    <li> Frontend refactoring </li>
+  </ul>
+</p>
+      ]]></description>
+      <pubDate>Mon, 13 Apr 2009 19:19 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-45.tbz"
+        length="8135831"
+        sparkle:version="45"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 44 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 44 released</h1>
