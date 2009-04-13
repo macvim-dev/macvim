@@ -1160,13 +1160,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [inputQueues setObject:queue forKey:key];
     }
 
-    // NOTE: We must use "common modes" instead of "default mode", otherwise
-    // the input queue will not be processed e.g. during live resizing ("event
-    // tracking mode").
+    // NOTE: We must use "event tracking mode" as well as "default mode",
+    // otherwise the input queue will not be processed e.g. during live
+    // resizing.
     [self performSelector:@selector(processInputQueues:)
                withObject:nil
                afterDelay:0
-                  inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+                  inModes:[NSArray arrayWithObjects:NSDefaultRunLoopMode,
+                                            NSEventTrackingRunLoopMode, nil]];
 }
 
 - (NSArray *)serverList
@@ -2184,7 +2185,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [self performSelector:@selector(processInputQueues:)
                    withObject:nil
                    afterDelay:0
-                      inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+                      inModes:[NSArray arrayWithObjects:NSDefaultRunLoopMode,
+                                            NSEventTrackingRunLoopMode, nil]];
 
     processingFlag = 0;
 }
