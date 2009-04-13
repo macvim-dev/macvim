@@ -1252,6 +1252,18 @@ static BOOL isUnsafeMessage(int msgid);
                  afterDelay:0];
 }
 
+// NSSavePanel delegate
+- (void)panel:(id)sender willExpand:(BOOL)expanding
+{
+    // Show or hide the "show hidden files" button
+    if (expanding) {
+        [sender setAccessoryView:showHiddenFilesView()];
+    } else {
+        [sender setShowsHiddenFiles:NO];
+        [sender setAccessoryView:nil];
+    }
+}
+
 - (void)handleBrowseForFile:(NSDictionary *)attr
 {
     if (!isInitialized) return;
@@ -1269,7 +1281,16 @@ static BOOL isUnsafeMessage(int msgid);
     }
 
     if (saving) {
-        [[NSSavePanel savePanel] beginSheetForDirectory:dir file:nil
+        NSSavePanel *panel = [NSSavePanel savePanel];
+
+        // The delegate will be notified when the panel is expanded at which
+        // time we may hide/show the "show hidden files" button (this button is
+        // always visible for the open panel since it is always expanded).
+        [panel setDelegate:self];
+        if ([panel isExpanded])
+            [panel setAccessoryView:showHiddenFilesView()];
+
+        [panel beginSheetForDirectory:dir file:nil
                 modalForWindow:[windowController window]
                  modalDelegate:self
                 didEndSelector:@selector(savePanelDidEnd:code:context:)
@@ -1277,7 +1298,7 @@ static BOOL isUnsafeMessage(int msgid);
     } else {
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         [panel setAllowsMultipleSelection:NO];
-        [panel setAccessoryView:openPanelAccessoryView()];
+        [panel setAccessoryView:showHiddenFilesView()];
 
         [panel beginSheetForDirectory:dir file:nil types:nil
                 modalForWindow:[windowController window]

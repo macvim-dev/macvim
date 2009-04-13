@@ -95,7 +95,7 @@ enum {
 @end
 
 
-@interface NSOpenPanel (MMExtras)
+@interface NSSavePanel (MMExtras)
 - (void)hiddenFilesButtonToggled:(id)sender;
 - (void)setShowsHiddenFiles:(BOOL)show;
 @end
@@ -130,7 +130,8 @@ enum {
 
 
 
-// Create a view to be used as accessory for open panel.  This function assumes
-// ownership of the view so do not release it.
-NSView *openPanelAccessoryView();
+// Create a view with a "show hidden files" button to be used as accessory for
+// open/save panels.  This function assumes ownership of the view so do not
+// release it.
+NSView *showHiddenFilesView();
 

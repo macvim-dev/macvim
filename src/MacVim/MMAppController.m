@@ -998,7 +998,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     [panel setAllowsMultipleSelection:YES];
-    [panel setAccessoryView:openPanelAccessoryView()];
+    [panel setAccessoryView:showHiddenFilesView()];
 
     int result = [panel runModalForDirectory:dir file:nil types:nil];
     if (NSOKButton == result)

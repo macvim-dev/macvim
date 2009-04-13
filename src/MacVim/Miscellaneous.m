@@ -93,7 +93,7 @@ NSString *MMLoadDefaultFontKey          = @"MMLoadDefaultFont";
 
 
 
-@implementation NSOpenPanel (MMExtras)
+@implementation NSSavePanel (MMExtras)
 
 - (void)hiddenFilesButtonToggled:(id)sender
 {
@@ -122,7 +122,7 @@ NSString *MMLoadDefaultFontKey          = @"MMLoadDefaultFont";
     [invocation invoke];
 }
 
-@end // NSOpenPanel (MMExtras)
+@end // NSSavePanel (MMExtras)
 
 
 
@@ -263,7 +263,7 @@ NSString *MMLoadDefaultFontKey          = @"MMLoadDefaultFont";
 
 
     NSView *
-openPanelAccessoryView()
+showHiddenFilesView()
 {
     // Return a new button object for each NSOpenPanel -- several of them
     // could be displayed at once.
@@ -272,13 +272,13 @@ openPanelAccessoryView()
     NSButton *button = [[[NSButton alloc]
         initWithFrame:NSMakeRect(0, 0, 140, 18)] autorelease];
     [button setTitle:
-        NSLocalizedString(@"Show Hidden Files", @"Open File Dialog")];
+        NSLocalizedString(@"Show Hidden Files", @"Show Hidden Files Checkbox")];
     [button setButtonType:NSSwitchButton];
 
     [button setTarget:nil];
     [button setAction:@selector(hiddenFilesButtonToggled:)];
 
-    // use the regular control size (checkbox is a bit smaller without this)
+    // Use the regular control size (checkbox is a bit smaller without this)
     NSControlSize buttonSize = NSRegularControlSize;
     float fontSize = [NSFont systemFontSizeForControlSize:buttonSize];
     NSCell *theCell = [button cell];
