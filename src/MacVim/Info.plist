@@ -1122,6 +1122,20 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Markdown document</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>markdown</string>
+				<string>markd</string>
+				<string>mdown</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-markdown</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
