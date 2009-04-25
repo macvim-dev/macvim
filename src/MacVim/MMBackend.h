@@ -49,6 +49,7 @@
     BOOL                flushDisabled;
     unsigned            numWholeLineChanges;
     unsigned            offsetForDrawDataPrune;
+    BOOL                imState;
 }
 
 + (MMBackend *)sharedInstance;
@@ -130,6 +131,9 @@
 - (BOOL)waitForAck;
 - (void)setWaitForAck:(BOOL)yn;
 - (void)waitForConnectionAcknowledgement;
+
+- (BOOL)imState;
+- (void)setImState:(BOOL)activated;
 
 @end
 

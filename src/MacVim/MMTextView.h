@@ -32,6 +32,7 @@
 - (void)performBatchDrawWithData:(NSData *)data;
 - (void)setMouseShape:(int)shape;
 - (void)setAntialias:(BOOL)antialias;
+- (void)setImControl:(BOOL)enable;
 
 //
 // MMTextStorage methods

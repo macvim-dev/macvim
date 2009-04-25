@@ -1462,6 +1462,16 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     waitForAck = NO;
 }
 
+- (BOOL)imState
+{
+    return imState;
+}
+
+- (void)setImState:(BOOL)activated
+{
+    imState = activated;
+}
+
 @end // MMBackend
 
 
@@ -1784,6 +1794,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self handleOpenWithArguments:[NSDictionary dictionaryWithData:data]];
     } else if (FindReplaceMsgID == msgid) {
         [self handleFindReplace:[NSDictionary dictionaryWithData:data]];
+    } else if (ActivatedImMsgID == msgid) {
+        [self setImState:YES];
+    } else if (DeactivatedImMsgID == msgid) {
+        [self setImState:NO];
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

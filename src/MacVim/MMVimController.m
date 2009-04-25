@@ -788,10 +788,16 @@ static BOOL isUnsafeMessage(int msgid);
                 showWithText:[dict objectForKey:@"text"]
                        flags:[[dict objectForKey:@"flags"] intValue]];
         }
-    } else if (ActivateKeyScriptID == msgid) {
+    } else if (ActivateKeyScriptMsgID == msgid) {
+        // NOTE: The IM code is delegated to the frontend since calling it in
+        // the backend caused weird bugs (second dock icon appearing etc.).
         KeyScript(smKeySysScript);
-    } else if (DeactivateKeyScriptID == msgid) {
+    } else if (DeactivateKeyScriptMsgID == msgid) {
         KeyScript(smKeyRoman);
+    } else if (EnableImControlMsgID == msgid) {
+        [[[windowController vimView] textView] setImControl:YES];
+    } else if (DisableImControlMsgID == msgid) {
+        [[[windowController vimView] textView] setImControl:NO];
     } else if (BrowseForFileMsgID == msgid) {
         NSDictionary *dict = [NSDictionary dictionaryWithData:data];
         if (dict)

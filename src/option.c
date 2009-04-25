@@ -7568,6 +7568,9 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 	/* Only de-activate it here, it will be enabled when changing mode. */
 	if (p_imdisable)
 	    im_set_active(FALSE);
+#ifdef FEAT_GUI_MACVIM
+	im_set_control(!p_imdisable);
+#endif
     }
 #endif
 

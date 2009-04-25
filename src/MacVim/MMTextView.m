@@ -305,6 +305,11 @@
     antialias = state;
 }
 
+- (void)setImControl:(BOOL)enable
+{
+    [helper setImControl:enable];
+}
+
 - (NSFont *)font
 {
     return [(MMTextStorage*)[self textStorage] font];

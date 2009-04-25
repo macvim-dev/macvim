@@ -214,3 +214,5 @@ void gui_macvim_get_window_layout(int *count, int *layout);
 gui_mch_find_dialog(exarg_T *eap);
     void
 gui_mch_replace_dialog(exarg_T *eap);
+    void
+im_set_control(int enable);

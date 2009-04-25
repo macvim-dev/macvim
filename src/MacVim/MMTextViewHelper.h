@@ -39,6 +39,8 @@ enum {
     NSMutableAttributedString  *markedText;
     int                 preEditRow;
     int                 preEditColumn;
+    BOOL                imControl;
+    BOOL                imState;
 }
 
 - (void)setTextView:(id)view;
@@ -79,5 +81,6 @@ enum {
 - (NSRange)imRange;
 - (void)setMarkedRange:(NSRange)range;
 - (NSRect)firstRectForCharacterRange:(NSRange)range;
+- (void)setImControl:(BOOL)enable;
 
 @end

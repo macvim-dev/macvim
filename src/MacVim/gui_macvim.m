@@ -1259,14 +1259,22 @@ im_set_position(int row, int col)
 
 
     void
+im_set_control(int enable)
+{
+    // Tell frontend whether it should notify us when the input method changes
+    // or not (called when 'imd' is toggled).
+    int msgid = enable ? EnableImControlMsgID : DisableImControlMsgID;
+    [[MMBackend sharedInstance] queueMessage:msgid properties:nil];
+}
+
+
+    void
 im_set_active(int active)
 {
-    // Set roman or the system script if 'active' is TRUE or FALSE,
-    // respectively.
-    SInt32 systemScript = GetScriptManagerVariable(smSysScript);
-
-    if (!p_imdisable && smRoman != systemScript) {
-        int msgid = active ? ActivateKeyScriptID : DeactivateKeyScriptID;
+    // Tell frontend to enable/disable IM (called e.g. when the mode changes).
+    if (!p_imdisable) {
+        int msgid = active ? ActivateKeyScriptMsgID : DeactivateKeyScriptMsgID;
+        [[MMBackend sharedInstance] setImState:active];
         [[MMBackend sharedInstance] queueMessage:msgid properties:nil];
     }
 }
@@ -1275,13 +1283,7 @@ im_set_active(int active)
     int
 im_get_status(void)
 {
-    // IM is active whenever the current script is the system script and the
-    // system script isn't roman.  (Hence IM can only be active when using
-    // non-roman scripts.)
-    SInt32 currentScript = GetScriptManagerVariable(smKeyScript);
-    SInt32 systemScript = GetScriptManagerVariable(smSysScript);
-
-    return currentScript != smRoman && currentScript == systemScript;
+    return [[MMBackend sharedInstance] imState];
 }
 
 #endif // defined(USE_IM_CONTROL)

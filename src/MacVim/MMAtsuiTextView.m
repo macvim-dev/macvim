@@ -324,6 +324,11 @@ defaultLineHeightForFont(NSFont *font)
     antialias = state;
 }
 
+- (void)setImControl:(BOOL)enable
+{
+    [helper setImControl:enable];
+}
+
 - (void)keyDown:(NSEvent *)event
 {
     [helper keyDown:event];
