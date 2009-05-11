@@ -1136,6 +1136,18 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>reStructuredText document</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>rst</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-rst</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
