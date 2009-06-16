@@ -161,7 +161,7 @@ typedef int HANDLE;
 # endif
 
 /*
- * Declare HANDLE for perl.dll and function pointers.
+ * Declare HANDLE for tcl.dll and function pointers.
  */
 static HANDLE hTclLib = NULL;
 Tcl_Interp* (*dll_Tcl_CreateInterp)();
@@ -182,7 +182,7 @@ static struct {
  * Make all runtime-links of tcl.
  *
  * 1. Get module handle using LoadLibraryEx.
- * 2. Get pointer to perl function by GetProcAddress.
+ * 2. Get pointer to tcl function by GetProcAddress.
  * 3. Repeat 2, until get all functions will be used.
  *
  * Parameter 'libname' provides name of DLL.
@@ -290,10 +290,9 @@ tcl_end()
  */
 #define TCL_EXIT	5
 
-/* ARGSUSED */
     static int
 exitcmd(dummy, interp, objc, objv)
-    ClientData dummy;
+    ClientData dummy UNUSED;
     Tcl_Interp *interp;
     int objc;
     Tcl_Obj *CONST objv[];
@@ -315,10 +314,9 @@ exitcmd(dummy, interp, objc, objv)
     return TCL_ERROR;
 }
 
-/* ARGSUSED */
     static int
 catchcmd(dummy, interp, objc, objv)
-    ClientData	dummy;
+    ClientData	dummy UNUSED;
     Tcl_Interp	*interp;
     int		objc;
     Tcl_Obj	*CONST objv[];
@@ -356,10 +354,9 @@ catchcmd(dummy, interp, objc, objv)
 /*
  *  "::vim::beep" - what Vi[m] does best :-)
  */
-/* ARGSUSED */
     static int
 beepcmd(dummy, interp, objc, objv)
-    ClientData dummy;
+    ClientData dummy UNUSED;
     Tcl_Interp *interp;
     int objc;
     Tcl_Obj *CONST objv[];
@@ -378,10 +375,9 @@ beepcmd(dummy, interp, objc, objv)
  *  "::vim::buffer {N}" - create buffer command for buffer N.
  *  "::vim::buffer new" - create a new buffer (not implemented)
  */
-/* ARGSUSED */
     static int
 buffercmd(dummy, interp, objc, objv)
-    ClientData dummy;
+    ClientData dummy UNUSED;
     Tcl_Interp *interp;
     int objc;
     Tcl_Obj *CONST objv[];
@@ -475,10 +471,9 @@ buffercmd(dummy, interp, objc, objv)
 /*
  * "::vim::window list" - create list of window commands.
  */
-/* ARGSUSED */
     static int
 windowcmd(dummy, interp, objc, objv)
-    ClientData	dummy;
+    ClientData	dummy UNUSED;
     Tcl_Interp	*interp;
     int		objc;
     Tcl_Obj	*CONST objv[];
@@ -1130,10 +1125,9 @@ winselfcmd(ref, interp, objc, objv)
 }
 
 
-/* ARGSUSED */
     static int
 commandcmd(dummy, interp, objc, objv)
-    ClientData	dummy;
+    ClientData	dummy UNUSED;
     Tcl_Interp	*interp;
     int		objc;
     Tcl_Obj	*CONST objv[];
@@ -1145,10 +1139,9 @@ commandcmd(dummy, interp, objc, objv)
     return err;
 }
 
-/* ARGSUSED */
     static int
 optioncmd(dummy, interp, objc, objv)
-    ClientData	dummy;
+    ClientData	dummy UNUSED;
     Tcl_Interp	*interp;
     int		objc;
     Tcl_Obj	*CONST objv[];
@@ -1160,10 +1153,9 @@ optioncmd(dummy, interp, objc, objv)
     return err;
 }
 
-/* ARGSUSED */
     static int
 exprcmd(dummy, interp, objc, objv)
-    ClientData	dummy;
+    ClientData	dummy UNUSED;
     Tcl_Interp	*interp;
     int		objc;
     Tcl_Obj	*CONST objv[];
@@ -1584,11 +1576,10 @@ tclsetdelcmd(interp, reflist, vimobj, delcmd)
     I/O Channel
 ********************************************/
 
-/* ARGSUSED */
     static int
 channel_close(instance, interp)
     ClientData	instance;
-    Tcl_Interp	*interp;
+    Tcl_Interp	*interp UNUSED;
 {
     int		err = 0;
 
@@ -1602,12 +1593,11 @@ channel_close(instance, interp)
     return err;
 }
 
-/* ARGSUSED */
     static int
 channel_input(instance, buf, bufsiz, errptr)
-    ClientData	instance;
-    char	*buf;
-    int		bufsiz;
+    ClientData	instance UNUSED;
+    char	*buf UNUSED;
+    int		bufsiz UNUSED;
     int		*errptr;
 {
 
@@ -1659,21 +1649,19 @@ channel_output(instance, buf, bufsiz, errptr)
     return result;
 }
 
-/* ARGSUSED */
     static void
 channel_watch(instance, mask)
-    ClientData	instance;
-    int		mask;
+    ClientData	instance UNUSED;
+    int		mask UNUSED;
 {
     Tcl_SetErrno(EINVAL);
 }
 
-/* ARGSUSED */
     static int
 channel_gethandle(instance, direction, handleptr)
-    ClientData	instance;
-    int		direction;
-    ClientData	*handleptr;
+    ClientData	instance UNUSED;
+    int		direction UNUSED;
+    ClientData	*handleptr UNUSED;
 {
     Tcl_SetErrno(EINVAL);
     return EINVAL;
@@ -1682,16 +1670,31 @@ channel_gethandle(instance, direction, handleptr)
 
 static Tcl_ChannelType channel_type =
 {
-    "vimmessage",
-    NULL,   /* blockmode */
-    channel_close,
-    channel_input,
-    channel_output,
-    NULL,   /* seek */
-    NULL,   /* set option */
-    NULL,   /* get option */
-    channel_watch,
-    channel_gethandle
+    "vimmessage",	/* typeName */
+    NULL,		/* version */
+    channel_close,	/* closeProc */
+    channel_input,	/* inputProc */
+    channel_output,	/* outputProc */
+    NULL,		/* seekProc */
+    NULL,		/* setOptionProc */
+    NULL,		/* getOptionProc */
+    channel_watch,	/* watchProc */
+    channel_gethandle,	/* getHandleProc */
+    NULL,		/* close2Proc */
+    NULL,		/* blockModeProc */
+#ifdef TCL_CHANNEL_VERSION_2
+    NULL,		/* flushProc */
+    NULL,		/* handlerProc */
+#endif
+#ifdef TCL_CHANNEL_VERSION_3
+    NULL,		/* wideSeekProc */
+#endif
+#ifdef TCL_CHANNEL_VERSION_4
+    NULL,		/* threadActionProc */
+#endif
+#ifdef TCL_CHANNEL_VERSION_5
+    NULL		/* truncateProc */
+#endif
 };
 
 /**********************************

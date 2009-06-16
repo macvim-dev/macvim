@@ -2240,7 +2240,6 @@ ex_cwindow(eap)
  * ":cclose": close the window showing the list of errors.
  * ":lclose": close the window showing the location list
  */
-/*ARGSUSED*/
     void
 ex_cclose(eap)
     exarg_T	*eap;
@@ -2346,7 +2345,13 @@ ex_copen(eap)
 	    set_option_value((char_u *)"bt", 0L, (char_u *)"quickfix",
 								   OPT_LOCAL);
 	    set_option_value((char_u *)"bh", 0L, (char_u *)"wipe", OPT_LOCAL);
-	    set_option_value((char_u *)"diff", 0L, NULL, OPT_LOCAL);
+#ifdef FEAT_DIFF
+	    curwin->w_p_diff = FALSE;
+#endif
+#ifdef FEAT_FOLDING
+	    set_option_value((char_u *)"fdm", 0L, (char_u *)"manual",
+								   OPT_LOCAL);
+#endif
 	}
 
 	/* Only set the height when still in the same tab page and there is no
@@ -2607,10 +2612,12 @@ qf_fill_buffer(qi)
     curbuf->b_p_ma = FALSE;
 
 #ifdef FEAT_AUTOCMD
+    keep_filetype = TRUE;		/* don't detect 'filetype' */
     apply_autocmds(EVENT_BUFREADPOST, (char_u *)"quickfix", NULL,
 							       FALSE, curbuf);
     apply_autocmds(EVENT_BUFWINENTER, (char_u *)"quickfix", NULL,
 							       FALSE, curbuf);
+    keep_filetype = FALSE;
 #endif
 
     /* make sure it will be redrawn */
@@ -2766,7 +2773,7 @@ ex_make(eap)
     sprintf((char *)cmd, "%s%s%s", (char *)p_shq, (char *)eap->arg,
 							       (char *)p_shq);
     if (*p_sp != NUL)
-	append_redir(cmd, p_sp, fname);
+	append_redir(cmd, len, p_sp, fname);
     /*
      * Output a newline if there's something else than the :make command that
      * was typed (in which case the cursor is in column 0).
@@ -3203,7 +3210,7 @@ ex_vimgrep(eap)
 			break;
 		    col = regmatch.endpos[0].col
 					    + (col == regmatch.endpos[0].col);
-		    if (col > STRLEN(ml_get_buf(buf, lnum, FALSE)))
+		    if (col > (colnr_T)STRLEN(ml_get_buf(buf, lnum, FALSE)))
 			break;
 		}
 		line_breakcheck();

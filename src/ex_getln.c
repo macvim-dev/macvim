@@ -140,11 +140,10 @@ static int	ex_window __ARGS((void));
  * Return pointer to allocated string if there is a commandline, NULL
  * otherwise.
  */
-/*ARGSUSED*/
     char_u *
 getcmdline(firstc, count, indent)
     int		firstc;
-    long	count;		/* only used for incremental search */
+    long	count UNUSED;	/* only used for incremental search */
     int		indent;		/* indent for inside conditionals */
 {
     int		c;
@@ -325,7 +324,7 @@ getcmdline(firstc, count, indent)
 #endif
 
 #ifdef FEAT_DIGRAPHS
-    do_digraph(-1);		/* init digraph typahead */
+    do_digraph(-1);		/* init digraph typeahead */
 #endif
 
     /*
@@ -2113,11 +2112,10 @@ correct_cmdspos(idx, cells)
 /*
  * Get an Ex command line for the ":" command.
  */
-/* ARGSUSED */
     char_u *
-getexline(c, dummy, indent)
+getexline(c, cookie, indent)
     int		c;		/* normally ':', NUL for ":append" */
-    void	*dummy;		/* cookie not used */
+    void	*cookie UNUSED;
     int		indent;		/* indent for inside conditionals */
 {
     /* When executing a register, remove ':' that's in front of each line. */
@@ -2132,12 +2130,11 @@ getexline(c, dummy, indent)
  * mappings or abbreviations.
  * Returns a string in allocated memory or NULL.
  */
-/* ARGSUSED */
     char_u *
-getexmodeline(promptc, dummy, indent)
+getexmodeline(promptc, cookie, indent)
     int		promptc;	/* normally ':', NUL for ":append" and '?' for
 				   :s prompt */
-    void	*dummy;		/* cookie not used */
+    void	*cookie UNUSED;
     int		indent;		/* indent for inside conditionals */
 {
     garray_T	line_ga;
@@ -3832,11 +3829,10 @@ tilde_replace(orig_pat, num_files, files)
  * Returns EXPAND_NOTHING when the character that triggered expansion should
  * be inserted like a normal character.
  */
-/*ARGSUSED*/
     static int
 showmatches(xp, wildmenu)
     expand_T	*xp;
-    int		wildmenu;
+    int		wildmenu UNUSED;
 {
 #define L_SHOWFILE(m) (showtail ? sm_gettail(files_found[m]) : files_found[m])
     int		num_files;
@@ -4521,6 +4517,9 @@ ExpandFromContext(xp, pat, num_file, file, options)
 #ifdef FEAT_CSCOPE
 	    {EXPAND_CSCOPE, get_cscope_name, TRUE},
 #endif
+#ifdef FEAT_SIGNS
+	    {EXPAND_SIGN, get_sign_name, TRUE},
+#endif
 #if (defined(HAVE_LOCALE_H) || defined(X_LOCALE)) \
 	&& (defined(FEAT_GETTEXT) || defined(FEAT_MBYTE))
 	    {EXPAND_LANGUAGE, get_lang_arg, TRUE},
@@ -4537,7 +4536,7 @@ ExpandFromContext(xp, pat, num_file, file, options)
 	 * right function to do the expansion.
 	 */
 	ret = FAIL;
-	for (i = 0; i < sizeof(tab) / sizeof(struct expgen); ++i)
+	for (i = 0; i < (int)(sizeof(tab) / sizeof(struct expgen)); ++i)
 	    if (xp->xp_context == tab[i].context)
 	    {
 		if (tab[i].ic)
@@ -5689,7 +5688,7 @@ ex_history(eap)
 	histype1 = get_histtype(arg);
 	if (histype1 == -1)
 	{
-	    if (STRICMP(arg, "all") == 0)
+	    if (STRNICMP(arg, "all", STRLEN(arg)) == 0)
 	    {
 		histype1 = 0;
 		histype2 = HIST_COUNT-1;
@@ -6076,6 +6075,9 @@ ex_window()
     set_option_value((char_u *)"bt", 0L, (char_u *)"nofile", OPT_LOCAL);
     set_option_value((char_u *)"swf", 0L, NULL, OPT_LOCAL);
     curbuf->b_p_ma = TRUE;
+#ifdef FEAT_FOLDING
+    curwin->w_p_fen = FALSE;
+#endif
 # ifdef FEAT_RIGHTLEFT
     curwin->w_p_rl = cmdmsg_rl;
     cmdmsg_rl = FALSE;

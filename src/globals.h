@@ -509,6 +509,7 @@ EXTERN VimClipboard clip_plus;	/* CLIPBOARD selection in X11 */
 EXTERN int	clip_unnamed INIT(= FALSE);
 EXTERN int	clip_autoselect INIT(= FALSE);
 EXTERN int	clip_autoselectml INIT(= FALSE);
+EXTERN int	clip_html INIT(= FALSE);
 EXTERN regprog_T *clip_exclude_prog INIT(= NULL);
 #endif
 
@@ -524,7 +525,7 @@ EXTERN win_T	*lastwin;		/* last window */
 EXTERN win_T	*prevwin INIT(= NULL);	/* previous window */
 # define W_NEXT(wp) ((wp)->w_next)
 # define FOR_ALL_WINDOWS(wp) for (wp = firstwin; wp != NULL; wp = wp->w_next)
-#define FOR_ALL_TAB_WINDOWS(tp, wp) \
+# define FOR_ALL_TAB_WINDOWS(tp, wp) \
     for ((tp) = first_tabpage; (tp) != NULL; (tp) = (tp)->tp_next) \
 	for ((wp) = ((tp) == curtab) \
 		? firstwin : (tp)->tp_firstwin; (wp); (wp) = (wp)->w_next)
@@ -537,6 +538,10 @@ EXTERN win_T	*prevwin INIT(= NULL);	/* previous window */
 #endif
 
 EXTERN win_T	*curwin;	/* currently active window */
+
+#ifdef FEAT_AUTOCMD
+EXTERN win_T	*aucmd_win;	/* window used in aucmd_prepbuf() */
+#endif
 
 /*
  * The window layout is kept in a tree of frames.  topframe points to the top
@@ -718,7 +723,7 @@ EXTERN int	can_si_back INIT(= FALSE);
 
 EXTERN pos_T	saved_cursor		/* w_cursor before formatting text. */
 # ifdef DO_INIT
-	= INIT_POS_T
+	= INIT_POS_T(0, 0, 0)
 # endif
 	;
 
@@ -810,11 +815,14 @@ EXTERN vimconv_T output_conv;			/* type of output conversion */
  */
 /* length of char in bytes, including following composing chars */
 EXTERN int (*mb_ptr2len) __ARGS((char_u *p)) INIT(= latin_ptr2len);
+/* idem, with limit on string length */
+EXTERN int (*mb_ptr2len_len) __ARGS((char_u *p, int size)) INIT(= latin_ptr2len_len);
 /* byte length of char */
 EXTERN int (*mb_char2len) __ARGS((int c)) INIT(= latin_char2len);
 /* convert char to bytes, return the length */
 EXTERN int (*mb_char2bytes) __ARGS((int c, char_u *buf)) INIT(= latin_char2bytes);
 EXTERN int (*mb_ptr2cells) __ARGS((char_u *p)) INIT(= latin_ptr2cells);
+EXTERN int (*mb_ptr2cells_len) __ARGS((char_u *p, int size)) INIT(= latin_ptr2cells_len);
 EXTERN int (*mb_char2cells) __ARGS((int c)) INIT(= latin_char2cells);
 EXTERN int (*mb_off2cells) __ARGS((unsigned off, unsigned max_off)) INIT(= latin_off2cells);
 EXTERN int (*mb_ptr2char) __ARGS((char_u *p)) INIT(= latin_ptr2char);
@@ -960,7 +968,7 @@ EXTERN struct buffheader stuffbuff	/* stuff buffer */
 		    ;
 EXTERN typebuf_T typebuf		/* typeahead buffer */
 #ifdef DO_INIT
-		    = {NULL, NULL}
+		    = {NULL, NULL, 0, 0, 0, 0, 0, 0, 0}
 #endif
 		    ;
 #ifdef FEAT_EX_EXTRA
@@ -1039,7 +1047,7 @@ EXTERN char_u	*autocmd_match INIT(= NULL); /* name for <amatch> on cmdline */
 EXTERN int	did_cursorhold INIT(= FALSE); /* set when CursorHold t'gerd */
 EXTERN pos_T	last_cursormoved	    /* for CursorMoved event */
 # ifdef DO_INIT
-			= INIT_POS_T
+			= INIT_POS_T(0, 0, 0)
 # endif
 			;
 #endif

@@ -43,10 +43,9 @@ static int
 /*
  * ":ascii" and "ga".
  */
-/*ARGSUSED*/
     void
 do_ascii(eap)
-    exarg_T	*eap;
+    exarg_T	*eap UNUSED;
 {
     int		c;
     int		cval;
@@ -87,13 +86,14 @@ do_ascii(eap)
 			       ))
 	{
 	    transchar_nonprint(buf3, c);
-	    sprintf(buf1, "  <%s>", (char *)buf3);
+	    vim_snprintf(buf1, sizeof(buf1), "  <%s>", (char *)buf3);
 	}
 	else
 	    buf1[0] = NUL;
 #ifndef EBCDIC
 	if (c >= 0x80)
-	    sprintf(buf2, "  <M-%s>", transchar(c & 0x7f));
+	    vim_snprintf(buf2, sizeof(buf2), "  <M-%s>",
+						 (char *)transchar(c & 0x7f));
 	else
 #endif
 	    buf2[0] = NUL;
@@ -358,7 +358,7 @@ ex_sort(eap)
     linenr_T	lnum;
     long	maxlen = 0;
     sorti_T	*nrs;
-    size_t	count = eap->line2 - eap->line1 + 1;
+    size_t	count = (size_t)(eap->line2 - eap->line1 + 1);
     size_t	i;
     char_u	*p;
     char_u	*s;
@@ -957,7 +957,7 @@ do_bang(addr_count, eap, forceit, do_in, do_out)
 	    }
 	    len += (int)STRLEN(prevcmd);
 	}
-	if ((t = alloc(len)) == NULL)
+	if ((t = alloc((unsigned)len)) == NULL)
 	{
 	    vim_free(newcmd);
 	    return;
@@ -1548,7 +1548,7 @@ make_filter_cmd(cmd, itmp, otmp)
      * redirecting input and/or output.
      */
     if (itmp != NULL || otmp != NULL)
-	sprintf((char *)buf, "(%s)", (char *)cmd);
+	vim_snprintf((char *)buf, len, "(%s)", (char *)cmd);
     else
 	STRCPY(buf, cmd);
     if (itmp != NULL)
@@ -1597,37 +1597,41 @@ make_filter_cmd(cmd, itmp, otmp)
     }
 #endif
     if (otmp != NULL)
-	append_redir(buf, p_srr, otmp);
+	append_redir(buf, (int)len, p_srr, otmp);
 
     return buf;
 }
 
 /*
- * Append output redirection for file "fname" to the end of string buffer "buf"
+ * Append output redirection for file "fname" to the end of string buffer
+ * "buf[buflen]"
  * Works with the 'shellredir' and 'shellpipe' options.
  * The caller should make sure that there is enough room:
  *	STRLEN(opt) + STRLEN(fname) + 3
  */
     void
-append_redir(buf, opt, fname)
+append_redir(buf, buflen, opt, fname)
     char_u	*buf;
+    int		buflen;
     char_u	*opt;
     char_u	*fname;
 {
     char_u	*p;
+    char_u	*end;
 
-    buf += STRLEN(buf);
+    end = buf + STRLEN(buf);
     /* find "%s", skipping "%%" */
     for (p = opt; (p = vim_strchr(p, '%')) != NULL; ++p)
 	if (p[1] == 's')
 	    break;
     if (p != NULL)
     {
-	*buf = ' '; /* not really needed? Not with sh, ksh or bash */
-	sprintf((char *)buf + 1, (char *)opt, (char *)fname);
+	*end = ' '; /* not really needed? Not with sh, ksh or bash */
+	vim_snprintf((char *)end + 1, (size_t)(buflen - (end + 1 - buf)),
+						  (char *)opt, (char *)fname);
     }
     else
-	sprintf((char *)buf,
+	vim_snprintf((char *)end, (size_t)(buflen - (end - buf)),
 #ifdef FEAT_QUICKFIX
 # ifndef RISCOS
 		opt != p_sp ? " %s%s" :
@@ -1789,7 +1793,7 @@ write_viminfo(file, forceit)
 	 * overwrite a user's viminfo file after a "su root", with a
 	 * viminfo file that the user can't read.
 	 */
-	st_old.st_dev = 0;
+	st_old.st_dev = (dev_t)0;
 	st_old.st_ino = 0;
 	st_old.st_mode = 0600;
 	if (mch_stat((char *)fname, &st_old) == 0
@@ -2251,12 +2255,11 @@ viminfo_readline(virp)
  *
  * Return the string in allocated memory (NULL when out of memory).
  */
-/*ARGSUSED*/
     char_u *
 viminfo_readstring(virp, off, convert)
     vir_T	*virp;
     int		off;		    /* offset for virp->vir_line */
-    int		convert;	    /* convert the string */
+    int		convert UNUSED;	    /* convert the string */
 {
     char_u	*retval;
     char_u	*s, *d;
@@ -2368,10 +2371,9 @@ viminfo_writestring(fd, p)
  *   ^?		^H
  * not ^?	^?
  */
-/*ARGSUSED*/
     void
 do_fixdel(eap)
-    exarg_T	*eap;
+    exarg_T	*eap UNUSED;
 {
     char_u  *p;
 
@@ -2390,7 +2392,8 @@ print_line_no_prefix(lnum, use_number, list)
 
     if (curwin->w_p_nu || use_number)
     {
-	sprintf((char *)numbuf, "%*ld ", number_width(curwin), (long)lnum);
+	vim_snprintf((char *)numbuf, sizeof(numbuf),
+				   "%*ld ", number_width(curwin), (long)lnum);
 	msg_puts_attr(numbuf, hl_attr(HLF_N));	/* Highlight line nrs */
     }
     msg_prt_line(ml_get(lnum), list);
@@ -2732,7 +2735,6 @@ theend:
  * May set eap->forceit if a dialog says it's OK to overwrite.
  * Return OK if it's OK, FAIL if it is not.
  */
-/*ARGSUSED*/
     static int
 check_overwrite(eap, buf, fname, ffname, other)
     exarg_T	*eap;
@@ -3715,7 +3717,7 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags, oldwin)
     /* If the window options were changed may need to set the spell language.
      * Can only do this after the buffer has been properly setup. */
     if (did_get_winopts && curwin->w_p_spell && *curbuf->b_p_spl != NUL)
-	did_set_spelllang(curbuf);
+	(void)did_set_spelllang(curbuf);
 #endif
 
     if (command == NULL)
@@ -3788,7 +3790,7 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags, oldwin)
 
 #ifdef FEAT_KEYMAP
     if (curbuf->b_kmap_state & KEYMAP_INIT)
-	keymap_init();
+	(void)keymap_init();
 #endif
 
     --RedrawingDisabled;
@@ -4036,8 +4038,10 @@ ex_z(eap)
 	bigness = curwin->w_height;
     else if (firstwin == lastwin)
 	bigness = curwin->w_p_scr * 2;
+#ifdef FEAT_WINDOWS
     else
 	bigness = curwin->w_height - 3;
+#endif
     if (bigness < 1)
 	bigness = 1;
 
@@ -4486,7 +4490,7 @@ do_sub(eap)
 	    char_u	*p1;
 	    int		did_sub = FALSE;
 	    int		lastone;
-	    unsigned	len, needed_len;
+	    int		len, copy_len, needed_len;
 	    long	nmatch_tl = 0;	/* nr of lines matched below lnum */
 	    int		do_again;	/* do it again after joining lines */
 	    int		skip_match = FALSE;
@@ -4631,6 +4635,8 @@ do_sub(eap)
 
 		if (do_ask)
 		{
+		    int typed = 0;
+
 		    /* change State to CONFIRM, so that the mouse works
 		     * properly */
 		    save_State = State;
@@ -4669,7 +4675,7 @@ do_sub(eap)
 			    resp = getexmodeline('?', NULL, 0);
 			    if (resp != NULL)
 			    {
-				i = *resp;
+				typed = *resp;
 				vim_free(resp);
 			    }
 			}
@@ -4721,7 +4727,7 @@ do_sub(eap)
 #endif
 			    ++no_mapping;	/* don't map this key */
 			    ++allow_keys;	/* allow special keys */
-			    i = plain_vgetc();
+			    typed = plain_vgetc();
 			    --allow_keys;
 			    --no_mapping;
 
@@ -4732,35 +4738,35 @@ do_sub(eap)
 			}
 
 			need_wait_return = FALSE; /* no hit-return prompt */
-			if (i == 'q' || i == ESC || i == Ctrl_C
+			if (typed == 'q' || typed == ESC || typed == Ctrl_C
 #ifdef UNIX
-				|| i == intr_char
+				|| typed == intr_char
 #endif
 				)
 			{
 			    got_quit = TRUE;
 			    break;
 			}
-			if (i == 'n')
+			if (typed == 'n')
 			    break;
-			if (i == 'y')
+			if (typed == 'y')
 			    break;
-			if (i == 'l')
+			if (typed == 'l')
 			{
 			    /* last: replace and then stop */
 			    do_all = FALSE;
 			    line2 = lnum;
 			    break;
 			}
-			if (i == 'a')
+			if (typed == 'a')
 			{
 			    do_ask = FALSE;
 			    break;
 			}
 #ifdef FEAT_INS_EXPAND
-			if (i == Ctrl_E)
+			if (typed == Ctrl_E)
 			    scrollup_clamp();
-			else if (i == Ctrl_Y)
+			else if (typed == Ctrl_Y)
 			    scrolldown_clamp();
 #endif
 		    }
@@ -4771,7 +4777,7 @@ do_sub(eap)
 		    if (vim_strchr(p_cpo, CPO_UNDO) != NULL)
 			--no_u_sync;
 
-		    if (i == 'n')
+		    if (typed == 'n')
 		    {
 			/* For a multi-line match, put matchcol at the NUL at
 			 * the end of the line and set nmatch to one, so that
@@ -4822,9 +4828,9 @@ do_sub(eap)
 		    p1 = ml_get(sub_firstlnum + nmatch - 1);
 		    nmatch_tl += nmatch - 1;
 		}
-		i = regmatch.startpos[0].col - copycol;
-		needed_len = i + ((unsigned)STRLEN(p1) - regmatch.endpos[0].col)
-								 + sublen + 1;
+		copy_len = regmatch.startpos[0].col - copycol;
+		needed_len = copy_len + ((unsigned)STRLEN(p1)
+				       - regmatch.endpos[0].col) + sublen + 1;
 		if (new_start == NULL)
 		{
 		    /*
@@ -4847,7 +4853,7 @@ do_sub(eap)
 		     */
 		    len = (unsigned)STRLEN(new_start);
 		    needed_len += len;
-		    if (needed_len > new_start_len)
+		    if (needed_len > (int)new_start_len)
 		    {
 			new_start_len = needed_len + 50;
 			if ((p1 = alloc_check(new_start_len)) == NULL)
@@ -4865,8 +4871,8 @@ do_sub(eap)
 		/*
 		 * copy the text up to the part that matched
 		 */
-		mch_memmove(new_end, sub_firstline + copycol, (size_t)i);
-		new_end += i;
+		mch_memmove(new_end, sub_firstline + copycol, (size_t)copy_len);
+		new_end += copy_len;
 
 		(void)vim_regsub_multi(&regmatch,
 				    sub_firstlnum - regmatch.startpos[0].lnum,
@@ -5790,7 +5796,7 @@ find_help_tags(arg, num_matches, matches, keep_lang)
      * Recognize a few exceptions to the rule.	Some strings that contain '*'
      * with "star".  Otherwise '*' is recognized as a wildcard.
      */
-    for (i = sizeof(mtable) / sizeof(char *); --i >= 0; )
+    for (i = (int)(sizeof(mtable) / sizeof(char *)); --i >= 0; )
 	if (STRCMP(arg, mtable[i]) == 0)
 	{
 	    STRCPY(d, rtable[i]);
@@ -6114,10 +6120,9 @@ fix_help_buffer()
 /*
  * ":exusage"
  */
-/*ARGSUSED*/
     void
 ex_exusage(eap)
-    exarg_T	*eap;
+    exarg_T	*eap UNUSED;
 {
     do_cmdline_cmd((char_u *)"help ex-cmd-index");
 }
@@ -6125,10 +6130,9 @@ ex_exusage(eap)
 /*
  * ":viusage"
  */
-/*ARGSUSED*/
     void
 ex_viusage(eap)
-    exarg_T	*eap;
+    exarg_T	*eap UNUSED;
 {
     do_cmdline_cmd((char_u *)"help normal-index");
 }
@@ -6540,8 +6544,46 @@ struct sign
 static sign_T	*first_sign = NULL;
 static int	last_sign_typenr = MAX_TYPENR;	/* is decremented */
 
+static int sign_cmd_idx __ARGS((char_u *begin_cmd, char_u *end_cmd));
 static void sign_list_defined __ARGS((sign_T *sp));
 static void sign_undefine __ARGS((sign_T *sp, sign_T *sp_prev));
+
+static char *cmds[] = {
+			"define",
+#define SIGNCMD_DEFINE	0
+			"undefine",
+#define SIGNCMD_UNDEFINE 1
+			"list",
+#define SIGNCMD_LIST	2
+			"place",
+#define SIGNCMD_PLACE	3
+			"unplace",
+#define SIGNCMD_UNPLACE	4
+			"jump",
+#define SIGNCMD_JUMP	5
+			NULL
+#define SIGNCMD_LAST	6
+};
+
+/*
+ * Find index of a ":sign" subcmd from its name.
+ * "*end_cmd" must be writable.
+ */
+    static int
+sign_cmd_idx(begin_cmd, end_cmd)
+    char_u	*begin_cmd;	/* begin of sign subcmd */
+    char_u	*end_cmd;	/* just after sign subcmd */
+{
+    int		idx;
+    char	save = *end_cmd;
+
+    *end_cmd = NUL;
+    for (idx = 0; ; ++idx)
+	if (cmds[idx] == NULL || STRCMP(begin_cmd, cmds[idx]) == 0)
+	    break;
+    *end_cmd = save;
+    return idx;
+}
 
 /*
  * ":sign" command
@@ -6556,35 +6598,14 @@ ex_sign(eap)
     sign_T	*sp;
     sign_T	*sp_prev;
     buf_T	*buf;
-    static char	*cmds[] = {
-			"define",
-#define SIGNCMD_DEFINE	0
-			"undefine",
-#define SIGNCMD_UNDEFINE 1
-			"list",
-#define SIGNCMD_LIST	2
-			"place",
-#define SIGNCMD_PLACE	3
-			"unplace",
-#define SIGNCMD_UNPLACE	4
-			"jump",
-#define SIGNCMD_JUMP	5
-#define SIGNCMD_LAST	6
-    };
 
     /* Parse the subcommand. */
     p = skiptowhite(arg);
-    if (*p != NUL)
-	*p++ = NUL;
-    for (idx = 0; ; ++idx)
+    idx = sign_cmd_idx(arg, p);
+    if (idx == SIGNCMD_LAST)
     {
-	if (idx == SIGNCMD_LAST)
-	{
-	    EMSG2(_("E160: Unknown sign command: %s"), arg);
-	    return;
-	}
-	if (STRCMP(arg, cmds[idx]) == 0)
-	    break;
+	EMSG2(_("E160: Unknown sign command: %s"), arg);
+	return;
     }
     arg = skipwhite(p);
 
@@ -7110,6 +7131,185 @@ free_signs()
 }
 #endif
 
+#if defined(FEAT_CMDL_COMPL) || defined(PROTO)
+static enum
+{
+    EXP_SUBCMD,		/* expand :sign sub-commands */
+    EXP_DEFINE,		/* expand :sign define {name} args */
+    EXP_PLACE,		/* expand :sign place {id} args */
+    EXP_UNPLACE,	/* expand :sign unplace" */
+    EXP_SIGN_NAMES	/* expand with name of placed signs */
+} expand_what;
+
+/*
+ * Function given to ExpandGeneric() to obtain the sign command
+ * expansion.
+ */
+    char_u *
+get_sign_name(xp, idx)
+    expand_T	*xp UNUSED;
+    int		idx;
+{
+    sign_T	*sp;
+    int		current_idx;
+
+    switch (expand_what)
+    {
+    case EXP_SUBCMD:
+	return (char_u *)cmds[idx];
+    case EXP_DEFINE:
+	{
+	    char *define_arg[] =
+	    {
+		"icon=", "linehl=", "text=", "texthl=", NULL
+	    };
+	    return (char_u *)define_arg[idx];
+	}
+    case EXP_PLACE:
+	{
+	    char *place_arg[] =
+	    {
+		"line=", "name=", "file=", "buffer=", NULL
+	    };
+	    return (char_u *)place_arg[idx];
+	}
+    case EXP_UNPLACE:
+	{
+	    char *unplace_arg[] = { "file=", "buffer=", NULL };
+	    return (char_u *)unplace_arg[idx];
+	}
+    case EXP_SIGN_NAMES:
+	/* Complete with name of signs already defined */
+	current_idx = 0;
+	for (sp = first_sign; sp != NULL; sp = sp->sn_next)
+	    if (current_idx++ == idx)
+		return sp->sn_name;
+	return NULL;
+    default:
+	return NULL;
+    }
+}
+
+/*
+ * Handle command line completion for :sign command.
+ */
+    void
+set_context_in_sign_cmd(xp, arg)
+    expand_T	*xp;
+    char_u	*arg;
+{
+    char_u	*p;
+    char_u	*end_subcmd;
+    char_u	*last;
+    int		cmd_idx;
+    char_u	*begin_subcmd_args;
+
+    /* Default: expand subcommands. */
+    xp->xp_context = EXPAND_SIGN;
+    expand_what = EXP_SUBCMD;
+    xp->xp_pattern = arg;
+
+    end_subcmd = skiptowhite(arg);
+    if (*end_subcmd == NUL)
+	/* expand subcmd name
+	 * :sign {subcmd}<CTRL-D>*/
+	return;
+
+    cmd_idx = sign_cmd_idx(arg, end_subcmd);
+
+    /* :sign {subcmd} {subcmd_args}
+     *                |
+     *                begin_subcmd_args */
+    begin_subcmd_args = skipwhite(end_subcmd);
+    p = skiptowhite(begin_subcmd_args);
+    if (*p == NUL)
+    {
+	/*
+	 * Expand first argument of subcmd when possible.
+	 * For ":jump {id}" and ":unplace {id}", we could
+	 * possibly expand the ids of all signs already placed.
+	 */
+	xp->xp_pattern = begin_subcmd_args;
+	switch (cmd_idx)
+	{
+	    case SIGNCMD_LIST:
+	    case SIGNCMD_UNDEFINE:
+		/* :sign list <CTRL-D>
+		 * :sign undefine <CTRL-D> */
+		expand_what = EXP_SIGN_NAMES;
+		break;
+	    default:
+		xp->xp_context = EXPAND_NOTHING;
+	}
+	return;
+    }
+
+    /* expand last argument of subcmd */
+
+    /* :sign define {name} {args}...
+     *              |
+     *              p */
+
+    /* Loop until reaching last argument. */
+    do
+    {
+	p = skipwhite(p);
+	last = p;
+	p = skiptowhite(p);
+    } while (*p != NUL);
+
+    p = vim_strchr(last, '=');
+
+    /* :sign define {name} {args}... {last}=
+     *                               |     |
+     *                            last     p */
+    if (p == NUL)
+    {
+	/* Expand last argument name (before equal sign). */
+	xp->xp_pattern = last;
+	switch (cmd_idx)
+	{
+	    case SIGNCMD_DEFINE:
+		expand_what = EXP_DEFINE;
+		break;
+	    case SIGNCMD_PLACE:
+		expand_what = EXP_PLACE;
+		break;
+	    case SIGNCMD_JUMP:
+	    case SIGNCMD_UNPLACE:
+		expand_what = EXP_UNPLACE;
+		break;
+	    default:
+		xp->xp_context = EXPAND_NOTHING;
+	}
+    }
+    else
+    {
+	/* Expand last argument value (after equal sign). */
+	xp->xp_pattern = p + 1;
+	switch (cmd_idx)
+	{
+	    case SIGNCMD_DEFINE:
+		if (STRNCMP(last, "texthl", p - last) == 0 ||
+		    STRNCMP(last, "linehl", p - last) == 0)
+		    xp->xp_context = EXPAND_HIGHLIGHT;
+		else if (STRNCMP(last, "icon", p - last) == 0)
+		    xp->xp_context = EXPAND_FILES;
+		else
+		    xp->xp_context = EXPAND_NOTHING;
+		break;
+	    case SIGNCMD_PLACE:
+		if (STRNCMP(last, "name", p - last) == 0)
+		    expand_what = EXP_SIGN_NAMES;
+		else
+		    xp->xp_context = EXPAND_NOTHING;
+		break;
+	    default:
+		xp->xp_context = EXPAND_NOTHING;
+	}
+    }
+}
+#endif
 #endif
 
 #if defined(FEAT_GUI) || defined(FEAT_CLIENTSERVER) || defined(PROTO)

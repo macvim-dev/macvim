@@ -454,10 +454,9 @@ mch_char_avail()
  * Return total amount of memory available in Kbyte.
  * Doesn't change when memory has been allocated.
  */
-/* ARGSUSED */
     long_u
 mch_total_mem(special)
-    int special;
+    int special UNUSED;
 {
 # ifdef __EMX__
     return ulimit(3, 0L) >> 10;   /* always 32MB? */
@@ -811,7 +810,6 @@ init_signal_stack()
  * Let me try it with a few tricky defines from my own osdef.h	(jw).
  */
 #if defined(SIGWINCH)
-/* ARGSUSED */
     static RETSIGTYPE
 sig_winch SIGDEFARG(sigarg)
 {
@@ -823,7 +821,6 @@ sig_winch SIGDEFARG(sigarg)
 #endif
 
 #if defined(SIGINT)
-/* ARGSUSED */
     static RETSIGTYPE
 catch_sigint SIGDEFARG(sigarg)
 {
@@ -835,7 +832,6 @@ catch_sigint SIGDEFARG(sigarg)
 #endif
 
 #if defined(SIGPWR)
-/* ARGSUSED */
     static RETSIGTYPE
 catch_sigpwr SIGDEFARG(sigarg)
 {
@@ -855,7 +851,6 @@ catch_sigpwr SIGDEFARG(sigarg)
 /*
  * signal function for alarm().
  */
-/* ARGSUSED */
     static RETSIGTYPE
 sig_alarm SIGDEFARG(sigarg)
 {
@@ -1089,7 +1084,6 @@ static RETSIGTYPE sigcont_handler __ARGS(SIGPROTOARG);
 /*
  * signal handler for SIGCONT
  */
-/* ARGSUSED */
     static RETSIGTYPE
 sigcont_handler SIGDEFARG(sigarg)
 {
@@ -1351,11 +1345,10 @@ vim_handle_signal(sig)
 /*
  * Check_win checks whether we have an interactive stdout.
  */
-/* ARGSUSED */
     int
 mch_check_win(argc, argv)
-    int	    argc;
-    char    **argv;
+    int	    argc UNUSED;
+    char    **argv UNUSED;
 {
 #ifdef OS2
     /*
@@ -1439,11 +1432,10 @@ x_error_handler(dpy, error_event)
 /*
  * Another X Error handler, just used to check for errors.
  */
-/* ARGSUSED */
     static int
 x_error_check(dpy, error_event)
-    Display *dpy;
-    XErrorEvent	*error_event;
+    Display *dpy UNUSED;
+    XErrorEvent	*error_event UNUSED;
 {
     got_x_error = TRUE;
     return 0;
@@ -1456,15 +1448,12 @@ x_error_check(dpy, error_event)
  */
 static int x_IOerror_check __ARGS((Display *dpy));
 
-/* ARGSUSED */
     static int
 x_IOerror_check(dpy)
-    Display *dpy;
+    Display *dpy UNUSED;
 {
     /* This function should not return, it causes exit().  Longjump instead. */
     LONGJMP(lc_jump_env, 1);
-    /*NOTREACHED*/
-    return 0;
 }
 # endif
 
@@ -1473,10 +1462,9 @@ x_IOerror_check(dpy)
  */
 static int x_IOerror_handler __ARGS((Display *dpy));
 
-/* ARGSUSED */
     static int
 x_IOerror_handler(dpy)
-    Display *dpy;
+    Display *dpy UNUSED;
 {
     xterm_dpy = NULL;
     x11_window = 0;
@@ -1485,8 +1473,6 @@ x_IOerror_handler(dpy)
 
     /* This function should not return, it causes exit().  Longjump instead. */
     LONGJMP(x_jump_env, 1);
-    /*NOTREACHED*/
-    return 0;
 }
 #endif
 
@@ -1922,10 +1908,9 @@ set_x11_icon(icon)
 
 #else  /* FEAT_X11 */
 
-/*ARGSUSED*/
     static int
 get_x11_title(test_only)
-    int	    test_only;
+    int	    test_only UNUSED;
 {
     return FALSE;
 }
@@ -2465,7 +2450,7 @@ mch_FullName(fname, buf, len, force)
     }
 
     /* Catch file names which are too long. */
-    if (retval == FAIL || STRLEN(buf) + STRLEN(fname) >= len)
+    if (retval == FAIL || (int)(STRLEN(buf) + STRLEN(fname)) >= len)
 	return FAIL;
 
     /* Do not append ".", "/dir/." is equal to "/dir". */
@@ -2502,11 +2487,10 @@ mch_isFullName(fname)
  * file name to remain exactly the same.
  * Only required for file systems where case is ignored and preserved.
  */
-/*ARGSUSED*/
     void
 fname_case(name, len)
     char_u	*name;
-    int		len;	    /* buffer size, only used when name gets longer */
+    int		len UNUSED;  /* buffer size, only used when name gets longer */
 {
     struct stat st;
     char_u	*slash, *tail;
@@ -2684,7 +2668,7 @@ mch_copy_sec(from_file, to_file)
  */
     vim_acl_T
 mch_get_acl(fname)
-    char_u	*fname;
+    char_u	*fname UNUSED;
 {
     vim_acl_T	ret = NULL;
 #ifdef HAVE_POSIX_ACL
@@ -2744,7 +2728,7 @@ mch_get_acl(fname)
  */
     void
 mch_set_acl(fname, aclent)
-    char_u	*fname;
+    char_u	*fname UNUSED;
     vim_acl_T	aclent;
 {
     if (aclent == NULL)
@@ -2787,10 +2771,9 @@ mch_free_acl(aclent)
 /*
  * Set hidden flag for "name".
  */
-/* ARGSUSED */
     void
 mch_hide(name)
-    char_u	*name;
+    char_u	*name UNUSED;
 {
     /* can't hide a file */
 }
@@ -3479,10 +3462,9 @@ check_mouse_termcode()
 /*
  * set screen mode, always fails.
  */
-/* ARGSUSED */
     int
 mch_screenmode(arg)
-    char_u   *arg;
+    char_u   *arg UNUSED;
 {
     EMSG(_(e_screenmode));
     return FAIL;
@@ -4187,9 +4169,10 @@ mch_call_shell(cmd, options)
 			    {
 				s = vim_strchr(lp + written, NL);
 				len = write(toshell_fd, (char *)lp + written,
-					   s == NULL ? l : s - (lp + written));
+					   s == NULL ? l
+					      : (size_t)(s - (lp + written)));
 			    }
-			    if (len == l)
+			    if (len == (int)l)
 			    {
 				/* Finished a line, add a NL, unless this line
 				 * should not have one. */
@@ -4324,7 +4307,8 @@ mch_call_shell(cmd, options)
 				ta_buf[i] = '\n';
 # ifdef FEAT_MBYTE
 			    if (has_mbyte)
-				i += (*mb_ptr2len)(ta_buf + i) - 1;
+				i += (*mb_ptr2len_len)(ta_buf + i,
+							ta_len + len - i) - 1;
 # endif
 			}
 
@@ -4748,7 +4732,6 @@ WaitForChar(msec)
  * Returns also, when a request from Sniff is waiting -- toni.
  * Or when a Linux GPM mouse event is waiting.
  */
-/* ARGSUSED */
 #if defined(__BEOS__)
     int
 #else
@@ -4757,7 +4740,7 @@ WaitForChar(msec)
 RealWaitForChar(fd, msec, check_for_gpm)
     int		fd;
     long	msec;
-    int		*check_for_gpm;
+    int		*check_for_gpm UNUSED;
 {
     int		ret;
 #if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME)
@@ -5152,7 +5135,6 @@ mch_expandpath(gap, path, flags)
 
 #define SHELL_SPECIAL (char_u *)"\t \"&'$;<>()\\|"
 
-/* ARGSUSED */
     int
 mch_expand_wildcards(num_pat, pat, num_file, file, flags)
     int		   num_pat;
@@ -5574,7 +5556,7 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
     i = fread((char *)buffer, 1, len, fd);
     fclose(fd);
     mch_remove(tempname);
-    if (i != len)
+    if (i != (int)len)
     {
 	/* unexpected read error */
 	EMSG2(_(e_notread), tempname);
@@ -5635,7 +5617,7 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
 	if (shell_style == STYLE_PRINT && !did_find_nul)
 	{
 	    /* If there is a NUL, set did_find_nul, else set check_spaces */
-	    if (len && (int)STRLEN(buffer) < len - 1)
+	    if (len && (int)STRLEN(buffer) < (int)len - 1)
 		did_find_nul = TRUE;
 	    else
 		check_spaces = TRUE;
@@ -6079,7 +6061,6 @@ sysmouse_close()
 /*
  * Gets info from sysmouse and adds special keys to input buf.
  */
-/* ARGSUSED */
     static RETSIGTYPE
 sig_sysmouse SIGDEFARG(sigarg)
 {
@@ -6643,11 +6624,10 @@ static void xsmp_handle_interaction __ARGS((SmcConn smc_conn, SmPointer client_d
  * This is our chance to ask the user if they want to save,
  * or abort the logout
  */
-/*ARGSUSED*/
     static void
 xsmp_handle_interaction(smc_conn, client_data)
     SmcConn	smc_conn;
-    SmPointer	client_data;
+    SmPointer	client_data UNUSED;
 {
     cmdmod_T	save_cmdmod;
     int		cancel_shutdown = False;
@@ -6680,16 +6660,15 @@ xsmp_handle_interaction(smc_conn, client_data)
 /*
  * Callback that starts save-yourself.
  */
-/*ARGSUSED*/
     static void
 xsmp_handle_save_yourself(smc_conn, client_data, save_type,
 					       shutdown, interact_style, fast)
     SmcConn	smc_conn;
-    SmPointer	client_data;
-    int		save_type;
+    SmPointer	client_data UNUSED;
+    int		save_type UNUSED;
     Bool	shutdown;
-    int		interact_style;
-    Bool	fast;
+    int		interact_style UNUSED;
+    Bool	fast UNUSED;
 {
     /* Handle already being in saveyourself */
     if (xsmp.save_yourself)
@@ -6723,11 +6702,10 @@ xsmp_handle_save_yourself(smc_conn, client_data, save_type,
 /*
  * Callback to warn us of imminent death.
  */
-/*ARGSUSED*/
     static void
 xsmp_die(smc_conn, client_data)
-    SmcConn	smc_conn;
-    SmPointer	client_data;
+    SmcConn	smc_conn UNUSED;
+    SmPointer	client_data UNUSED;
 {
     xsmp_close();
 
@@ -6739,11 +6717,10 @@ xsmp_die(smc_conn, client_data)
 /*
  * Callback to tell us that save-yourself has completed.
  */
-/*ARGSUSED*/
     static void
 xsmp_save_complete(smc_conn, client_data)
-    SmcConn	smc_conn;
-    SmPointer	client_data;
+    SmcConn	smc_conn UNUSED;
+    SmPointer	client_data UNUSED;
 {
     xsmp.save_yourself = False;
 }
@@ -6753,11 +6730,10 @@ xsmp_save_complete(smc_conn, client_data)
  * Callback to tell us that an instigated shutdown was cancelled
  * (maybe even by us)
  */
-/*ARGSUSED*/
     static void
 xsmp_shutdown_cancelled(smc_conn, client_data)
     SmcConn	smc_conn;
-    SmPointer	client_data;
+    SmPointer	client_data UNUSED;
 {
     if (xsmp.save_yourself)
 	SmcSaveYourselfDone(smc_conn, True);
@@ -6769,13 +6745,12 @@ xsmp_shutdown_cancelled(smc_conn, client_data)
 /*
  * Callback to tell us that a new ICE connection has been established.
  */
-/*ARGSUSED*/
     static void
 xsmp_ice_connection(iceConn, clientData, opening, watchData)
     IceConn	iceConn;
-    IcePointer	clientData;
+    IcePointer	clientData UNUSED;
     Bool	opening;
-    IcePointer	*watchData;
+    IcePointer	*watchData UNUSED;
 {
     /* Intercept creation of ICE connection fd */
     if (opening)

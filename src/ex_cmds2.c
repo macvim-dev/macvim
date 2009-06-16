@@ -28,7 +28,8 @@ typedef struct scriptitem_S
 {
     char_u	*sn_name;
 # ifdef UNIX
-    int		sn_dev;
+    int		sn_dev_valid;
+    dev_t	sn_dev;
     ino_t	sn_ino;
 # endif
 # ifdef FEAT_PROFILE
@@ -680,10 +681,9 @@ ex_breakdel(eap)
 /*
  * ":breaklist".
  */
-/*ARGSUSED*/
     void
 ex_breaklist(eap)
-    exarg_T	*eap;
+    exarg_T	*eap UNUSED;
 {
     struct debuggy *bp;
     int		i;
@@ -1342,14 +1342,13 @@ autowrite_all()
 /*
  * return TRUE if buffer was changed and cannot be abandoned.
  */
-/*ARGSUSED*/
     int
 check_changed(buf, checkaw, mult_win, forceit, allbuf)
     buf_T	*buf;
     int		checkaw;	/* do autowrite if buffer was changed */
     int		mult_win;	/* check also when several wins for the buf */
     int		forceit;
-    int		allbuf;		/* may write all buffers */
+    int		allbuf UNUSED;	/* may write all buffers */
 {
     if (       !forceit
 	    && bufIsChanged(buf)
@@ -1832,12 +1831,11 @@ set_arglist(str)
  *
  * Return FAIL for failure, OK otherwise.
  */
-/*ARGSUSED*/
     static int
 do_arglist(str, what, after)
     char_u	*str;
-    int		what;
-    int		after;		/* 0 means before first one */
+    int		what UNUSED;
+    int		after UNUSED;		/* 0 means before first one */
 {
     garray_T	new_ga;
     int		exp_count;
@@ -2622,11 +2620,10 @@ ex_runtime(eap)
 
 static void source_callback __ARGS((char_u *fname, void *cookie));
 
-/*ARGSUSED*/
     static void
 source_callback(fname, cookie)
     char_u	*fname;
-    void	*cookie;
+    void	*cookie UNUSED;
 {
     (void)do_source(fname, FALSE, DOSO_NONE);
 }
@@ -2753,10 +2750,9 @@ do_in_runtimepath(name, all, callback, cookie)
 /*
  * ":options"
  */
-/*ARGSUSED*/
     void
 ex_options(eap)
-    exarg_T	*eap;
+    exarg_T	*eap UNUSED;
 {
     cmd_source((char_u *)SYS_OPTWIN_FILE, NULL);
 }
@@ -3127,7 +3123,7 @@ do_source(fname, check_other, is_vimrc)
 		    /* Compare dev/ino when possible, it catches symbolic
 		     * links.  Also compare file names, the inode may change
 		     * when the file was edited. */
-		    ((stat_ok && si->sn_dev != -1)
+		    ((stat_ok && si->sn_dev_valid)
 			&& (si->sn_dev == st.st_dev
 			    && si->sn_ino == st.st_ino)) ||
 # endif
@@ -3154,11 +3150,12 @@ do_source(fname, check_other, is_vimrc)
 # ifdef UNIX
 	if (stat_ok)
 	{
+	    si->sn_dev_valid = TRUE;
 	    si->sn_dev = st.st_dev;
 	    si->sn_ino = st.st_ino;
 	}
 	else
-	    si->sn_dev = -1;
+	    si->sn_dev_valid = FALSE;
 # endif
 
 	/* Allocate the local script variables to use for this script. */
@@ -3263,10 +3260,9 @@ theend:
 /*
  * ":scriptnames"
  */
-/*ARGSUSED*/
     void
 ex_scriptnames(eap)
-    exarg_T	*eap;
+    exarg_T	*eap UNUSED;
 {
     int i;
 
@@ -3390,12 +3386,11 @@ fgets_cr(s, n, stream)
  * Return a pointer to the line in allocated memory.
  * Return NULL for end-of-file or some error.
  */
-/* ARGSUSED */
     char_u *
 getsourceline(c, cookie, indent)
-    int		c;		/* not used */
+    int		c UNUSED;
     void	*cookie;
-    int		indent;		/* not used */
+    int		indent UNUSED;
 {
     struct source_cookie *sp = (struct source_cookie *)cookie;
     char_u		*line;
@@ -3446,7 +3441,7 @@ getsourceline(c, cookie, indent)
 	    p = skipwhite(sp->nextline);
 	    if (*p != '\\')
 		break;
-	    s = alloc((int)(STRLEN(line) + STRLEN(p)));
+	    s = alloc((unsigned)(STRLEN(line) + STRLEN(p)));
 	    if (s == NULL)	/* out of memory */
 		break;
 	    STRCPY(s, line);
@@ -3722,10 +3717,9 @@ script_line_end()
  * ":scriptencoding": Set encoding conversion for a sourced script.
  * Without the multi-byte feature it's simply ignored.
  */
-/*ARGSUSED*/
     void
 ex_scriptencoding(eap)
-    exarg_T	*eap;
+    exarg_T	*eap UNUSED;
 {
 #ifdef FEAT_MBYTE
     struct source_cookie	*sp;
@@ -4174,10 +4168,9 @@ ex_language(eap)
  * Function given to ExpandGeneric() to obtain the possible arguments of the
  * ":language" command.
  */
-/*ARGSUSED*/
     char_u *
 get_lang_arg(xp, idx)
-    expand_T	*xp;
+    expand_T	*xp UNUSED;
     int		idx;
 {
     if (idx == 0)

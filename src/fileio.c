@@ -3498,7 +3498,7 @@ buf_write(buf, fname, sfname, start, end, eap, append, forceit,
 		    if (mch_stat((char *)IObuff, &st) < 0
 			    || st.st_uid != st_old.st_uid
 			    || st.st_gid != st_old.st_gid
-			    || st.st_mode != perm)
+			    || (long)st.st_mode != perm)
 			backup_copy = TRUE;
 # endif
 		    /* Close the file before removing it, on MS-Windows we
@@ -4416,7 +4416,7 @@ restore_backup:
 # endif
 	buf_setino(buf);
     }
-    else if (buf->b_dev < 0)
+    else if (!buf->b_dev_valid)
 	/* Set the inode when creating a new file. */
 	buf_setino(buf);
 #endif
@@ -4828,6 +4828,8 @@ set_rw_fname(fname, sfname)
     char_u	*sfname;
 {
 #ifdef FEAT_AUTOCMD
+    buf_T	*buf = curbuf;
+
     /* It's like the unnamed buffer is deleted.... */
     if (curbuf->b_p_bl)
 	apply_autocmds(EVENT_BUFDELETE, NULL, NULL, FALSE, curbuf);
@@ -4836,6 +4838,12 @@ set_rw_fname(fname, sfname)
     if (aborting())	    /* autocmds may abort script processing */
 	return FAIL;
 # endif
+    if (curbuf != buf)
+    {
+	/* We are in another buffer now, don't do the renaming. */
+	EMSG(_(e_auchangedbuf));
+	return FAIL;
+    }
 #endif
 
     if (setfname(curbuf, fname, sfname, FALSE) == OK)
@@ -5968,7 +5976,7 @@ buf_modname(shortname, fname, ext, prepend_dot)
 	else if (*ext == '.')
 #endif
 	{
-	    if (s - ptr > (size_t)8)
+	    if ((size_t)(s - ptr) > (size_t)8)
 	    {
 		s = ptr + 8;
 		*s = '\0';
@@ -6474,11 +6482,10 @@ move_lines(frombuf, tobuf)
  * return 2 if a message has been displayed.
  * return 0 otherwise.
  */
-/*ARGSUSED*/
     int
 buf_check_timestamp(buf, focus)
     buf_T	*buf;
-    int		focus;		/* called for GUI focus event */
+    int		focus UNUSED;	/* called for GUI focus event */
 {
     struct stat	st;
     int		stat_res;
@@ -6884,10 +6891,11 @@ buf_reload(buf, orig_mode)
 #endif
 #ifdef FEAT_FOLDING
 	{
-	    win_T *wp;
+	    win_T	*wp;
+	    tabpage_T	*tp;
 
 	    /* Update folds unless they are defined manually. */
-	    FOR_ALL_WINDOWS(wp)
+	    FOR_ALL_TAB_WINDOWS(tp, wp)
 		if (wp->w_buffer == curwin->w_buffer
 			&& !foldmethodIsManual(wp))
 		    foldUpdateAll(wp);
@@ -6905,12 +6913,11 @@ buf_reload(buf, orig_mode)
     /* Careful: autocommands may have made "buf" invalid! */
 }
 
-/*ARGSUSED*/
     void
 buf_store_time(buf, st, fname)
     buf_T	*buf;
     struct stat	*st;
-    char_u	*fname;
+    char_u	*fname UNUSED;
 {
     buf->b_mtime = (long)st->st_mtime;
     buf->b_orig_size = (size_t)st->st_size;
@@ -6973,10 +6980,9 @@ vim_deltempdir()
  * The returned pointer is to allocated memory.
  * The returned pointer is NULL if no valid name was found.
  */
-/*ARGSUSED*/
     char_u  *
 vim_tempname(extra_char)
-    int	    extra_char;	    /* character to use in the name instead of '?' */
+    int	    extra_char UNUSED;  /* char to use in the name instead of '?' */
 {
 #ifdef USE_TMPNAM
     char_u	itmp[L_tmpnam];	/* use tmpnam() */
@@ -7005,7 +7011,7 @@ vim_tempname(extra_char)
 	/*
 	 * Try the entries in TEMPDIRNAMES to create the temp directory.
 	 */
-	for (i = 0; i < sizeof(tempdirs) / sizeof(char *); ++i)
+	for (i = 0; i < (int)(sizeof(tempdirs) / sizeof(char *)); ++i)
 	{
 	    /* expand $TMP, leave room for "/v1100000/999999999" */
 	    expand_env((char_u *)tempdirs[i], itmp, TEMPNAMELEN - 20);
@@ -8397,7 +8403,7 @@ ex_doautoall(eap)
 
 	    /* Execute the modeline settings, but don't set window-local
 	     * options if we are using the current window for another buffer. */
-	    do_modelines(aco.save_curwin == NULL ? OPT_NOWIN : 0);
+	    do_modelines(curwin == aucmd_win ? OPT_NOWIN : 0);
 
 	    /* restore the current window */
 	    aucmd_restbuf(&aco);
@@ -8413,8 +8419,8 @@ ex_doautoall(eap)
 
 /*
  * Prepare for executing autocommands for (hidden) buffer "buf".
- * Search a window for the current buffer.  Save the cursor position and
- * screen offset.
+ * Search for a visible window containing the current buffer.  If there isn't
+ * one then use "aucmd_win".
  * Set "curbuf" and "curwin" to match "buf".
  * When FEAT_AUTOCMD is not defined another version is used, see below.
  */
@@ -8424,8 +8430,9 @@ aucmd_prepbuf(aco, buf)
     buf_T	*buf;		/* new curbuf */
 {
     win_T	*win;
-
-    aco->new_curbuf = buf;
+#ifdef FEAT_WINDOWS
+    int		save_ea;
+#endif
 
     /* Find a window that is for the new buffer */
     if (buf == curbuf)		/* be quick when buf is curbuf */
@@ -8439,42 +8446,53 @@ aucmd_prepbuf(aco, buf)
 	win = NULL;
 #endif
 
-    /*
-     * Prefer to use an existing window for the buffer, it has the least side
-     * effects (esp. if "buf" is curbuf).
-     * Otherwise, use curwin for "buf".  It might make some items in the
-     * window invalid.  At least save the cursor and topline.
-     */
+    /* Allocate "aucmd_win" when needed.  If this fails (out of memory) fall
+     * back to using the current window. */
+    if (win == NULL && aucmd_win == NULL)
+    {
+	win_alloc_aucmd_win();
+	if (aucmd_win == NULL)
+	    win = curwin;
+    }
+
+    aco->save_curwin = curwin;
+    aco->save_curbuf = curbuf;
     if (win != NULL)
     {
-	/* there is a window for "buf", make it the curwin */
-	aco->save_curwin = curwin;
+	/* There is a window for "buf" in the current tab page, make it the
+	 * curwin.  This is preferred, it has the least side effects (esp. if
+	 * "buf" is curbuf). */
 	curwin = win;
-	aco->save_buf = win->w_buffer;
-	aco->new_curwin = win;
     }
     else
     {
-	/* there is no window for "buf", use curwin */
-	aco->save_curwin = NULL;
-	aco->save_buf = curbuf;
-	--curbuf->b_nwindows;
+	/* There is no window for "buf", use "aucmd_win".  To minimize the side
+	 * effects, insert it in a the current tab page.
+	 * Anything related to a window (e.g., setting folds) may have
+	 * unexpected results. */
+	curwin = aucmd_win;
 	curwin->w_buffer = buf;
 	++buf->b_nwindows;
 
-	/* save cursor and topline, set them to safe values */
-	aco->save_cursor = curwin->w_cursor;
-	curwin->w_cursor.lnum = 1;
-	curwin->w_cursor.col = 0;
-	aco->save_topline = curwin->w_topline;
-	curwin->w_topline = 1;
-#ifdef FEAT_DIFF
-	aco->save_topfill = curwin->w_topfill;
-	curwin->w_topfill = 0;
+#ifdef FEAT_WINDOWS
+	/* Split the current window, put the aucmd_win in the upper half. */
+	make_snapshot(SNAP_AUCMD_IDX);
+	save_ea = p_ea;
+	p_ea = FALSE;
+	(void)win_split_ins(0, WSP_TOP, aucmd_win, 0);
+	(void)win_comp_pos();   /* recompute window positions */
+	p_ea = save_ea;
+#endif
+	/* set cursor and topline to safe values */
+	curwin_init();
+#ifdef FEAT_VERTSPLIT
+	curwin->w_wincol = 0;
+	curwin->w_width = Columns;
 #endif
     }
-
     curbuf = buf;
+    aco->new_curwin = curwin;
+    aco->new_curbuf = curbuf;
 }
 
 /*
@@ -8486,55 +8504,92 @@ aucmd_prepbuf(aco, buf)
 aucmd_restbuf(aco)
     aco_save_T	*aco;		/* structure holding saved values */
 {
-    if (aco->save_curwin != NULL)
+#ifdef FEAT_WINDOWS
+    int dummy;
+#endif
+
+    if (aco->new_curwin == aucmd_win)
+    {
+	--curbuf->b_nwindows;
+#ifdef FEAT_WINDOWS
+	/* Find "aucmd_win", it can't be closed, but it may be in another tab
+	 * page. */
+	if (curwin != aucmd_win)
+	{
+	    tabpage_T	*tp;
+	    win_T	*wp;
+
+	    FOR_ALL_TAB_WINDOWS(tp, wp)
+	    {
+		if (wp == aucmd_win)
+		{
+		    if (tp != curtab)
+			goto_tabpage_tp(tp);
+		    win_goto(aucmd_win);
+		    break;
+		}
+	    }
+	}
+
+	/* Remove the window and frame from the tree of frames. */
+	(void)winframe_remove(curwin, &dummy, NULL);
+	win_remove(curwin, NULL);
+	last_status(FALSE);	    /* may need to remove last status line */
+	restore_snapshot(SNAP_AUCMD_IDX, FALSE);
+	(void)win_comp_pos();   /* recompute window positions */
+
+	if (win_valid(aco->save_curwin))
+	    curwin = aco->save_curwin;
+	else
+	    /* Hmm, original window disappeared.  Just use the first one. */
+	    curwin = firstwin;
+# ifdef FEAT_EVAL
+	vars_clear(&aucmd_win->w_vars.dv_hashtab);  /* free all w: variables */
+# endif
+#else
+	curwin = aco->save_curwin;
+#endif
+	curbuf = curwin->w_buffer;
+
+	/* the buffer contents may have changed */
+	check_cursor();
+	if (curwin->w_topline > curbuf->b_ml.ml_line_count)
+	{
+	    curwin->w_topline = curbuf->b_ml.ml_line_count;
+#ifdef FEAT_DIFF
+	    curwin->w_topfill = 0;
+#endif
+	}
+#if defined(FEAT_GUI)
+	/* Hide the scrollbars from the aucmd_win and update. */
+	gui_mch_enable_scrollbar(&aucmd_win->w_scrollbars[SBAR_LEFT], FALSE);
+	gui_mch_enable_scrollbar(&aucmd_win->w_scrollbars[SBAR_RIGHT], FALSE);
+	gui_may_update_scrollbars();
+#endif
+    }
+    else
     {
 	/* restore curwin */
 #ifdef FEAT_WINDOWS
 	if (win_valid(aco->save_curwin))
 #endif
 	{
-	    /* restore the buffer which was previously edited by curwin, if
-	     * it's still the same window and it's valid */
+	    /* Restore the buffer which was previously edited by curwin, if
+	     * it was chagned, we are still the same window and the buffer is
+	     * valid. */
 	    if (curwin == aco->new_curwin
-		    && buf_valid(aco->save_buf)
-		    && aco->save_buf->b_ml.ml_mfp != NULL)
+		    && curbuf != aco->new_curbuf
+		    && buf_valid(aco->new_curbuf)
+		    && aco->new_curbuf->b_ml.ml_mfp != NULL)
 	    {
 		--curbuf->b_nwindows;
-		curbuf = aco->save_buf;
+		curbuf = aco->new_curbuf;
 		curwin->w_buffer = curbuf;
 		++curbuf->b_nwindows;
 	    }
 
 	    curwin = aco->save_curwin;
 	    curbuf = curwin->w_buffer;
-	}
-    }
-    else
-    {
-	/* restore buffer for curwin if it still exists and is loaded */
-	if (buf_valid(aco->save_buf) && aco->save_buf->b_ml.ml_mfp != NULL)
-	{
-	    --curbuf->b_nwindows;
-	    curbuf = aco->save_buf;
-	    curwin->w_buffer = curbuf;
-	    ++curbuf->b_nwindows;
-	    curwin->w_cursor = aco->save_cursor;
-	    check_cursor();
-	    /* check topline < line_count, in case lines got deleted */
-	    if (aco->save_topline <= curbuf->b_ml.ml_line_count)
-	    {
-		curwin->w_topline = aco->save_topline;
-#ifdef FEAT_DIFF
-		curwin->w_topfill = aco->save_topfill;
-#endif
-	    }
-	    else
-	    {
-		curwin->w_topline = curbuf->b_ml.ml_line_count;
-#ifdef FEAT_DIFF
-		curwin->w_topfill = 0;
-#endif
-	    }
 	}
     }
 }
@@ -8822,9 +8877,11 @@ apply_autocmds_group(event, fname, fname_io, force, group, buf, eap)
     else
     {
 	sfname = vim_strsave(fname);
-	/* Don't try expanding FileType, Syntax, WindowID or QuickFixCmd* */
+	/* Don't try expanding FileType, Syntax, FuncUndefined, WindowID or
+	 * QuickFixCmd* */
 	if (event == EVENT_FILETYPE
 		|| event == EVENT_SYNTAX
+		|| event == EVENT_FUNCUNDEFINED
 		|| event == EVENT_REMOTEREPLY
 		|| event == EVENT_SPELLFILEMISSING
 		|| event == EVENT_QUICKFIXCMDPRE
@@ -9123,12 +9180,11 @@ auto_next_pat(apc, stop_at_last)
  * Called by do_cmdline() to get the next line for ":if".
  * Returns allocated string, or NULL for end of autocommands.
  */
-/* ARGSUSED */
     static char_u *
 getnextac(c, cookie, indent)
-    int	    c;		    /* not used */
+    int	    c UNUSED;
     void    *cookie;
-    int	    indent;	    /* not used */
+    int	    indent UNUSED;
 {
     AutoPatCmd	    *acp = (AutoPatCmd *)cookie;
     char_u	    *retval;
@@ -9239,10 +9295,9 @@ has_autocmd(event, sfname, buf)
  * Function given to ExpandGeneric() to obtain the list of autocommand group
  * names.
  */
-/*ARGSUSED*/
     char_u *
 get_augroup_name(xp, idx)
-    expand_T	*xp;
+    expand_T	*xp UNUSED;
     int		idx;
 {
     if (idx == augroups.ga_len)		/* add "END" add the end */
@@ -9308,10 +9363,9 @@ set_context_in_autocmd(xp, arg, doautocmd)
 /*
  * Function given to ExpandGeneric() to obtain the list of event names.
  */
-/*ARGSUSED*/
     char_u *
 get_event_name(xp, idx)
-    expand_T	*xp;
+    expand_T	*xp UNUSED;
     int		idx;
 {
     if (idx < augroups.ga_len)		/* First list group names, if wanted */
@@ -9452,9 +9506,11 @@ aucmd_prepbuf(aco, buf)
     aco_save_T	*aco;		/* structure to save values in */
     buf_T	*buf;		/* new curbuf */
 {
-    aco->save_buf = curbuf;
+    aco->save_curbuf = curbuf;
+    --curbuf->b_nwindows;
     curbuf = buf;
     curwin->w_buffer = buf;
+    ++curbuf->b_nwindows;
 }
 
 /*
@@ -9465,8 +9521,10 @@ aucmd_prepbuf(aco, buf)
 aucmd_restbuf(aco)
     aco_save_T	*aco;		/* structure holding saved values */
 {
-    curbuf = aco->save_buf;
+    --curbuf->b_nwindows;
+    curbuf = aco->save_curbuf;
     curwin->w_buffer = curbuf;
+    ++curbuf->b_nwindows;
 }
 
 #endif	/* FEAT_AUTOCMD */
@@ -9623,13 +9681,12 @@ match_file_list(list, sfname, ffname)
  *
  * Returns NULL when out of memory.
  */
-/*ARGSUSED*/
     char_u *
 file_pat_to_reg_pat(pat, pat_end, allow_dirs, no_bslash)
     char_u	*pat;
     char_u	*pat_end;	/* first char after pattern or NULL */
     char	*allow_dirs;	/* Result passed back out in here */
-    int		no_bslash;	/* Don't use a backward slash as pathsep */
+    int		no_bslash UNUSED; /* Don't use a backward slash as pathsep */
 {
     int		size;
     char_u	*endp;

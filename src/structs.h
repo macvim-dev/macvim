@@ -16,7 +16,7 @@
  */
 #if defined(SASC) && SASC < 658
 typedef long		linenr_T;
-typedef unsigned	colnr_T;
+typedef int		colnr_T;
 typedef unsigned short	short_u;
 #endif
 
@@ -33,9 +33,9 @@ typedef struct
 } pos_T;
 
 #ifdef FEAT_VIRTUALEDIT
-# define INIT_POS_T {0, 0, 0}
+# define INIT_POS_T(l, c, ca) {l, c, ca}
 #else
-# define INIT_POS_T {0, 0}
+# define INIT_POS_T(l, c, ca) {l, c}
 #endif
 
 /*
@@ -1166,7 +1166,8 @@ struct file_buffer
     char_u	*b_fname;	/* current file name */
 
 #ifdef UNIX
-    int		b_dev;		/* device number (-1 if not set) */
+    int		b_dev_valid;	/* TRUE when b_dev has a valid number */
+    dev_t	b_dev;		/* device number */
     ino_t	b_ino;		/* inode number */
 #endif
 #ifdef FEAT_CW_EDITOR
@@ -1628,6 +1629,14 @@ struct diffblock_S
 };
 #endif
 
+#define SNAP_HELP_IDX	0
+#ifdef FEAT_AUTOCMD
+# define SNAP_AUCMD_IDX 1
+# define SNAP_COUNT	2
+#else
+# define SNAP_COUNT	1
+#endif
+
 /*
  * Tab pages point to the top frame of each tab page.
  * Note: Most values are NOT valid for the current tab page!  Use "curwin",
@@ -1656,7 +1665,7 @@ struct tabpage_S
     buf_T	    *(tp_diffbuf[DB_COUNT]);
     int		    tp_diff_invalid;	/* list of diffs is outdated */
 #endif
-    frame_T	    *tp_snapshot;    /* window layout snapshot */
+    frame_T	    *(tp_snapshot[SNAP_COUNT]);  /* window layout snapshots */
 #ifdef FEAT_EVAL
     dictitem_T	    tp_winvar;	    /* variable for "t:" Dictionary */
     dict_T	    tp_vars;	    /* internal variables, local to tab page */
@@ -2290,16 +2299,11 @@ typedef int vimmenu_T;
  */
 typedef struct
 {
-    buf_T	*save_buf;	/* saved curbuf */
+    buf_T	*save_curbuf;	/* saved curbuf */
 #ifdef FEAT_AUTOCMD
-    buf_T	*new_curbuf;	/* buffer to be used */
-    win_T	*save_curwin;	/* saved curwin, NULL if it didn't change */
-    win_T	*new_curwin;	/* new curwin if save_curwin != NULL */
-    pos_T	save_cursor;	/* saved cursor pos of save_curwin */
-    linenr_T	save_topline;	/* saved topline of save_curwin */
-# ifdef FEAT_DIFF
-    int		save_topfill;	/* saved topfill of save_curwin */
-# endif
+    win_T	*save_curwin;	/* saved curwin */
+    win_T	*new_curwin;	/* new curwin */
+    buf_T	*new_curbuf;	/* new curbuf */
 #endif
 } aco_save_T;
 

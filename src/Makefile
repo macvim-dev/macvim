@@ -105,8 +105,8 @@
 # 4. "make test"  {{{1
 #	This is optional.  This will run Vim scripts on a number of test
 #	files, and compare the produced output with the expected output.
-#	If all is well, you will get the "ALL DONE" message in the end.  See
-#	below (search for "/^test").
+#	If all is well, you will get the "ALL DONE" message in the end.  If a
+#	test fails you get "TEST FAILURE".  See below (search for "/^test").
 #
 # 5. "make install"  {{{1
 #	If the new Vim seems to be working OK you can install it and the
@@ -533,6 +533,11 @@ CClink = $(CC)
 #CFLAGS = -g -DDEBUG -Wall -Wshadow -Wmissing-prototypes
 #CFLAGS = -g -O2 '-DSTARTUPTIME="vimstartup"' -fno-strength-reduce -Wall -Wmissing-prototypes
 
+# Use this with GCC to check for mistakes, unused arguments, etc.
+#CFLAGS = -g -Wall -Wextra -Wmissing-prototypes -Wunreachable-code
+#PYTHON_CFLAGS_EXTRA = -Wno-missing-field-initializers
+#MZSCHEME_CFLAGS_EXTRA = -Wno-unreachable-code -Wno-unused-parameter
+
 # EFENCE - Electric-Fence malloc debugging: catches memory accesses beyond
 # allocated memory (and makes every malloc()/free() very slow).
 # Electric Fence is free (search ftp sites).
@@ -551,7 +556,13 @@ CClink = $(CC)
 # }}}
 
 # LINT - for running lint
+#  For standard Unix lint
+LINT = lint
 LINT_OPTIONS = -beprxzF
+#  For splint
+#  It doesn't work well, crashes on include files and non-ascii characters.
+#LINT = splint
+#LINT_OPTIONS = +unixlib -weak -macrovarprefixexclude -showfunc -linelen 9999
 
 # PROFILING - Uncomment the next two lines to do profiling with gcc and gprof.
 # Might not work with GUI or Perl.
@@ -1275,16 +1286,16 @@ CPP_DEPEND = $(CC) -I$(srcdir) -M$(CPP_MM) \
 #     This is for cproto 3 patchlevel 8 or below
 #     __inline, __attribute__ and __extension__ are not recognized by cproto
 #     G_IMPLEMENT_INLINES is to avoid functions defined in glib/gutils.h.
-NO_ATTR = -D__inline= -D__inline__= -DG_IMPLEMENT_INLINES \
-	  -D"__attribute__\\(x\\)=" -D"__asm__\\(x\\)=" \
-	  -D__extension__= -D__restrict="" \
-	  -D__gnuc_va_list=char -D__builtin_va_list=char
+#NO_ATTR = -D__inline= -D__inline__= -DG_IMPLEMENT_INLINES \
+#	  -D"__attribute__\\(x\\)=" -D"__asm__\\(x\\)=" \
+#	  -D__extension__= -D__restrict="" \
+#	  -D__gnuc_va_list=char -D__builtin_va_list=char
 
 #
-#     This is for cproto 3 patchlevel 9 or above (currently 4.6)
+#     This is for cproto 3 patchlevel 9 or above (currently 4.6, 4.7g)
 #     __inline and __attribute__ are now recognized by cproto
 #     -D"foo()=" is not supported by all compilers so do not use it
-# NO_ATTR=
+NO_ATTR=
 #
 #     maybe the "/usr/bin/cc -E" has to be adjusted for some systems
 # This is for cproto 3.5 patchlevel 3:
@@ -1448,6 +1459,7 @@ LINT_SRC = $(BASIC_SRC) $(GUI_SRC) $(HANGULIN_SRC) $(PYTHON_SRC) $(TCL_SRC) \
 	$(SNIFF_SRC) $(WORKSHOP_SRC) $(WSDEBUG_SRC) $(NETBEANS_SRC)
 #LINT_SRC = $(SRC)
 #LINT_SRC = $(ALL_SRC)
+#LINT_SRC = $(BASIC_SRC)
 
 OBJ = \
 	objects/buffer.o \
@@ -1753,7 +1765,8 @@ types.vim: $(TAGS_SRC) $(TAGS_INCL)
 # messages.  Don't worry about that.
 # If there is a real error, there will be a difference between "test.out" and
 # a "test99.ok" file.
-# If everything is alright, the final message will be "ALL DONE".
+# If everything is alright, the final message will be "ALL DONE".  If not you
+# get "TEST FAILURE".
 #
 test check:
 	$(MAKE) -f Makefile $(VIMTARGET)
@@ -2203,6 +2216,7 @@ clean celan: testclean
 	-rm -f $(TOOLS) auto/osdef.h auto/pathdef.c auto/if_perl.c
 	-rm -f conftest* *~ auto/link.sed
 	-rm -rf $(APPDIR)
+	-rm -rf mzscheme_base.c
 	if test -d $(PODIR); then \
 		cd $(PODIR); $(MAKE) prefix=$(DESTDIR)$(prefix) clean; \
 	fi
@@ -2288,12 +2302,12 @@ depend:
 
 # Run lint.  Clean up the *.ln files that are sometimes left behind.
 lint:
-	lint $(LINT_OPTIONS) $(LINT_CFLAGS) $(LINT_EXTRA) $(LINT_SRC)
+	$(LINT) $(LINT_OPTIONS) $(LINT_CFLAGS) $(LINT_EXTRA) $(LINT_SRC)
 	-rm -f *.ln
 
 # Check dosinst.c with lint.
 lintinstall:
-	lint $(LINT_OPTIONS) -DWIN32 -DUNIX_LINT dosinst.c
+	$(LINT) $(LINT_OPTIONS) -DWIN32 -DUNIX_LINT dosinst.c
 	-rm -f dosinst.ln
 
 ###########################################################################
@@ -2445,8 +2459,11 @@ objects/if_cscope.o: if_cscope.c
 objects/if_xcmdsrv.o: if_xcmdsrv.c
 	$(CCC) -o $@ if_xcmdsrv.c
 
-objects/if_mzsch.o: if_mzsch.c
-	$(CCC) -o $@ if_mzsch.c
+objects/if_mzsch.o: if_mzsch.c $(MZSCHEME_EXTRA)
+	$(CCC) -o $@ $(MZSCHEME_CFLAGS_EXTRA) if_mzsch.c
+ 
+mzscheme_base.c:
+	$(MZSCHEME_MZC) --c-mods mzscheme_base.c ++lib scheme/base
 
 objects/if_perl.o: auto/if_perl.c
 	$(CCC) -o $@ auto/if_perl.c
@@ -2455,7 +2472,7 @@ objects/if_perlsfio.o: if_perlsfio.c
 	$(CCC) -o $@ if_perlsfio.c
 
 objects/if_python.o: if_python.c
-	$(CCC) -o $@ if_python.c
+	$(CCC) -o $@ $(PYTHON_CFLAGS_EXTRA) if_python.c
 
 objects/if_ruby.o: if_ruby.c
 	$(CCC) -o $@ if_ruby.c

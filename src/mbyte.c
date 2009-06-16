@@ -127,7 +127,10 @@ static int enc_canon_search __ARGS((char_u *name));
 static int dbcs_char2len __ARGS((int c));
 static int dbcs_char2bytes __ARGS((int c, char_u *buf));
 static int dbcs_ptr2len __ARGS((char_u *p));
+static int dbcs_ptr2len_len __ARGS((char_u *p, int size));
+static int utf_ptr2cells_len __ARGS((char_u *p, int size));
 static int dbcs_char2cells __ARGS((int c));
+static int dbcs_ptr2cells_len __ARGS((char_u *p, int size));
 static int dbcs_ptr2char __ARGS((char_u *p));
 
 /* Lookup table to quickly get the length in bytes of a UTF-8 character from
@@ -606,9 +609,11 @@ codepage_invalid:
     if (enc_utf8)
     {
 	mb_ptr2len = utfc_ptr2len;
+	mb_ptr2len_len = utfc_ptr2len_len;
 	mb_char2len = utf_char2len;
 	mb_char2bytes = utf_char2bytes;
 	mb_ptr2cells = utf_ptr2cells;
+	mb_ptr2cells_len = utf_ptr2cells_len;
 	mb_char2cells = utf_char2cells;
 	mb_off2cells = utf_off2cells;
 	mb_ptr2char = utf_ptr2char;
@@ -617,9 +622,11 @@ codepage_invalid:
     else if (enc_dbcs != 0)
     {
 	mb_ptr2len = dbcs_ptr2len;
+	mb_ptr2len_len = dbcs_ptr2len_len;
 	mb_char2len = dbcs_char2len;
 	mb_char2bytes = dbcs_char2bytes;
 	mb_ptr2cells = dbcs_ptr2cells;
+	mb_ptr2cells_len = dbcs_ptr2cells_len;
 	mb_char2cells = dbcs_char2cells;
 	mb_off2cells = dbcs_off2cells;
 	mb_ptr2char = dbcs_ptr2char;
@@ -628,9 +635,11 @@ codepage_invalid:
     else
     {
 	mb_ptr2len = latin_ptr2len;
+	mb_ptr2len_len = latin_ptr2len_len;
 	mb_char2len = latin_char2len;
 	mb_char2bytes = latin_char2bytes;
 	mb_ptr2cells = latin_ptr2cells;
+	mb_ptr2cells_len = latin_ptr2cells_len;
 	mb_char2cells = latin_char2cells;
 	mb_off2cells = latin_off2cells;
 	mb_ptr2char = latin_ptr2char;
@@ -1015,10 +1024,9 @@ dbcs_class(lead, trail)
  * Return length in bytes of character "c".
  * Returns 1 for a single-byte character.
  */
-/* ARGSUSED */
     int
 latin_char2len(c)
-    int		c;
+    int		c UNUSED;
 {
     return 1;
 }
@@ -1070,7 +1078,6 @@ dbcs_char2bytes(c, buf)
  * Get byte length of character at "*p" but stop at a NUL.
  * For UTF-8 this includes following composing characters.
  * Returns 0 when *p is NUL.
- *
  */
     int
 latin_ptr2len(p)
@@ -1086,6 +1093,40 @@ dbcs_ptr2len(p)
     int		len;
 
     /* Check if second byte is not missing. */
+    len = MB_BYTE2LEN(*p);
+    if (len == 2 && p[1] == NUL)
+	len = 1;
+    return len;
+}
+
+/*
+ * mb_ptr2len_len() function pointer.
+ * Like mb_ptr2len(), but limit to read "size" bytes.
+ * Returns 0 for an empty string.
+ * Returns 1 for an illegal char or an incomplete byte sequence.
+ */
+    int
+latin_ptr2len_len(p, size)
+    char_u	*p;
+    int		size;
+{
+    if (size < 1 || *p == NUL)
+	return 0;
+    return 1;
+}
+
+    static int
+dbcs_ptr2len_len(p, size)
+    char_u	*p;
+    int		size;
+{
+    int		len;
+
+    if (size < 1 || *p == NUL)
+	return 0;
+    if (size == 1)
+	return 1;
+    /* Check that second byte is not missing. */
     len = MB_BYTE2LEN(*p);
     if (len == 2 && p[1] == NUL)
 	len = 1;
@@ -1248,10 +1289,9 @@ utf_char2cells(c)
  * Return the number of display cells character at "*p" occupies.
  * This doesn't take care of unprintable characters, use ptr2cells() for that.
  */
-/*ARGSUSED*/
     int
 latin_ptr2cells(p)
-    char_u	*p;
+    char_u	*p UNUSED;
 {
     return 1;
 }
@@ -1289,14 +1329,62 @@ dbcs_ptr2cells(p)
 }
 
 /*
+ * mb_ptr2cells_len() function pointer.
+ * Like mb_ptr2cells(), but limit string length to "size".
+ * For an empty string or truncated character returns 1.
+ */
+    int
+latin_ptr2cells_len(p, size)
+    char_u	*p UNUSED;
+    int		size UNUSED;
+{
+    return 1;
+}
+
+    static int
+utf_ptr2cells_len(p, size)
+    char_u	*p;
+    int		size;
+{
+    int		c;
+
+    /* Need to convert to a wide character. */
+    if (size > 0 && *p >= 0x80)
+    {
+	if (utf_ptr2len_len(p, size) < utf8len_tab[*p])
+	    return 1;
+	c = utf_ptr2char(p);
+	/* An illegal byte is displayed as <xx>. */
+	if (utf_ptr2len(p) == 1 || c == NUL)
+	    return 4;
+	/* If the char is ASCII it must be an overlong sequence. */
+	if (c < 0x80)
+	    return char2cells(c);
+	return utf_char2cells(c);
+    }
+    return 1;
+}
+
+    static int
+dbcs_ptr2cells_len(p, size)
+    char_u	*p;
+    int		size;
+{
+    /* Number of cells is equal to number of bytes, except for euc-jp when
+     * the first byte is 0x8e. */
+    if (size <= 1 || (enc_dbcs == DBCS_JPNU && *p == 0x8e))
+	return 1;
+    return MB_BYTE2LEN(*p);
+}
+
+/*
  * mb_char2cells() function pointer.
  * Return the number of display cells character "c" occupies.
  * Only takes care of multi-byte chars, not "^C" and such.
  */
-/*ARGSUSED*/
     int
 latin_char2cells(c)
-    int		c;
+    int		c UNUSED;
 {
     return 1;
 }
@@ -1318,11 +1406,10 @@ dbcs_char2cells(c)
  * Return number of display cells for char at ScreenLines[off].
  * We make sure that the offset used is less than "max_off".
  */
-/*ARGSUSED*/
     int
 latin_off2cells(off, max_off)
-    unsigned	off;
-    unsigned	max_off;
+    unsigned	off UNUSED;
+    unsigned	max_off UNUSED;
 {
     return 1;
 }
@@ -1720,6 +1807,7 @@ utfc_ptr2len(p)
 /*
  * Return the number of bytes the UTF-8 encoding of the character at "p[size]"
  * takes.  This includes following composing characters.
+ * Returns 0 for an empty string.
  * Returns 1 for an illegal char or an incomplete byte sequence.
  */
     int
@@ -1732,7 +1820,7 @@ utfc_ptr2len_len(p, size)
     int		prevlen;
 #endif
 
-    if (*p == NUL)
+    if (size < 1 || *p == NUL)
 	return 0;
     if (p[0] < 0x80 && (size == 1 || p[1] < 0x80)) /* be quick for ASCII */
 	return 1;
@@ -2419,11 +2507,10 @@ show_utf8()
  * Return offset from "p" to the first byte of the character it points into.
  * Returns 0 when already at the first byte of a character.
  */
-/*ARGSUSED*/
     int
 latin_head_off(base, p)
-    char_u	*base;
-    char_u	*p;
+    char_u	*base UNUSED;
+    char_u	*p UNUSED;
 {
     return 0;
 }
@@ -3131,7 +3218,7 @@ enc_locale()
 	else
 	    s = p + 1;
     }
-    for (i = 0; s[i] != NUL && i < sizeof(buf) - 1; ++i)
+    for (i = 0; s[i] != NUL && i < (int)sizeof(buf) - 1; ++i)
     {
 	if (s[i] == '_' || s[i] == '-')
 	    buf[i] = '-';
@@ -3178,7 +3265,7 @@ encname2codepage(name)
 
 # if defined(USE_ICONV) || defined(PROTO)
 
-static char_u *iconv_string __ARGS((vimconv_T *vcp, char_u *str, int slen, int *unconvlenp));
+static char_u *iconv_string __ARGS((vimconv_T *vcp, char_u *str, int slen, int *unconvlenp, int *resultlenp));
 
 /*
  * Call iconv_open() with a check if iconv() works properly (there are broken
@@ -3239,13 +3326,15 @@ my_iconv_open(to, from)
  * If "unconvlenp" is not NULL handle the string ending in an incomplete
  * sequence and set "*unconvlenp" to the length of it.
  * Returns the converted string in allocated memory.  NULL for an error.
+ * If resultlenp is not NULL, sets it to the result length in bytes.
  */
     static char_u *
-iconv_string(vcp, str, slen, unconvlenp)
+iconv_string(vcp, str, slen, unconvlenp, resultlenp)
     vimconv_T	*vcp;
     char_u	*str;
     int		slen;
     int		*unconvlenp;
+    int		*resultlenp;
 {
     const char	*from;
     size_t	fromlen;
@@ -3331,6 +3420,9 @@ iconv_string(vcp, str, slen, unconvlenp)
 	/* Not enough room or skipping illegal sequence. */
 	done = to - (char *)result;
     }
+
+    if (resultlenp != NULL)
+	*resultlenp = (int)(to - (char *)result);
     return result;
 }
 
@@ -3582,9 +3674,10 @@ im_show_info(void)
  * Callback invoked when the user finished preediting.
  * Put the final string into the input buffer.
  */
-/*ARGSUSED0*/
     static void
-im_commit_cb(GtkIMContext *context, const gchar *str, gpointer data)
+im_commit_cb(GtkIMContext *context UNUSED,
+	     const gchar *str,
+	     gpointer data UNUSED)
 {
     int	slen = (int)STRLEN(str);
     int	add_to_input = TRUE;
@@ -3670,9 +3763,8 @@ im_commit_cb(GtkIMContext *context, const gchar *str, gpointer data)
 /*
  * Callback invoked after start to the preedit.
  */
-/*ARGSUSED*/
     static void
-im_preedit_start_cb(GtkIMContext *context, gpointer data)
+im_preedit_start_cb(GtkIMContext *context UNUSED, gpointer data UNUSED)
 {
 #ifdef XIM_DEBUG
     xim_log("im_preedit_start_cb()\n");
@@ -3687,9 +3779,8 @@ im_preedit_start_cb(GtkIMContext *context, gpointer data)
 /*
  * Callback invoked after end to the preedit.
  */
-/*ARGSUSED*/
     static void
-im_preedit_end_cb(GtkIMContext *context, gpointer data)
+im_preedit_end_cb(GtkIMContext *context UNUSED, gpointer data UNUSED)
 {
 #ifdef XIM_DEBUG
     xim_log("im_preedit_end_cb()\n");
@@ -3748,9 +3839,8 @@ im_preedit_end_cb(GtkIMContext *context, gpointer data)
  * remaining input from within the "retrieve_surrounding" signal handler, this
  * might not be necessary.  Gotta ask on vim-dev for opinions.
  */
-/*ARGSUSED1*/
     static void
-im_preedit_changed_cb(GtkIMContext *context, gpointer data)
+im_preedit_changed_cb(GtkIMContext *context, gpointer data UNUSED)
 {
     char    *preedit_string = NULL;
     int	    cursor_index    = 0;
@@ -4616,11 +4706,10 @@ xim_set_focus(focus)
     }
 }
 
-/*ARGSUSED*/
     void
 im_set_position(row, col)
-    int		row;
-    int		col;
+    int		row UNUSED;
+    int		col UNUSED;
 {
     xim_set_preedit();
 }
@@ -4927,12 +5016,11 @@ static int xim_real_init __ARGS((Window x11_window, Display *x11_display));
 static void xim_instantiate_cb __ARGS((Display *display, XPointer client_data, XPointer	call_data));
 static void xim_destroy_cb __ARGS((XIM im, XPointer client_data, XPointer call_data));
 
-/*ARGSUSED*/
     static void
 xim_instantiate_cb(display, client_data, call_data)
     Display	*display;
-    XPointer	client_data;
-    XPointer	call_data;
+    XPointer	client_data UNUSED;
+    XPointer	call_data UNUSED;
 {
     Window	x11_window;
     Display	*x11_display;
@@ -4952,12 +5040,11 @@ xim_instantiate_cb(display, client_data, call_data)
 					 xim_instantiate_cb, NULL);
 }
 
-/*ARGSUSED*/
     static void
 xim_destroy_cb(im, client_data, call_data)
-    XIM		im;
-    XPointer	client_data;
-    XPointer	call_data;
+    XIM		im UNUSED;
+    XPointer	client_data UNUSED;
+    XPointer	call_data UNUSED;
 {
     Window	x11_window;
     Display	*x11_display;
@@ -5276,9 +5363,10 @@ xim_decide_input_style()
     }
 }
 
-/*ARGSUSED*/
     static void
-preedit_start_cbproc(XIC thexic, XPointer client_data, XPointer call_data)
+preedit_start_cbproc(XIC thexic UNUSED,
+	             XPointer client_data UNUSED,
+		     XPointer call_data UNUSED)
 {
 #ifdef XIM_DEBUG
     xim_log("xim_decide_input_style()\n");
@@ -5310,9 +5398,10 @@ xim_back_delete(int n)
 static GSList *key_press_event_queue = NULL;
 static gboolean processing_queued_event = FALSE;
 
-/*ARGSUSED*/
     static void
-preedit_draw_cbproc(XIC thexic, XPointer client_data, XPointer call_data)
+preedit_draw_cbproc(XIC thexic UNUSED,
+		    XPointer client_data UNUSED,
+		    XPointer call_data)
 {
     XIMPreeditDrawCallbackStruct *draw_data;
     XIMText	*text;
@@ -5451,18 +5540,20 @@ im_get_feedback_attr(int col)
     return -1;
 }
 
-/*ARGSUSED*/
     static void
-preedit_caret_cbproc(XIC thexic, XPointer client_data, XPointer call_data)
+preedit_caret_cbproc(XIC thexic UNUSED,
+		     XPointer client_data UNUSED,
+		     XPointer call_data UNUSED)
 {
 #ifdef XIM_DEBUG
     xim_log("preedit_caret_cbproc()\n");
 #endif
 }
 
-/*ARGSUSED*/
     static void
-preedit_done_cbproc(XIC thexic, XPointer client_data, XPointer call_data)
+preedit_done_cbproc(XIC thexic UNUSED,
+		    XPointer client_data UNUSED,
+		    XPointer call_data UNUSED)
 {
 #ifdef XIM_DEBUG
     xim_log("preedit_done_cbproc()\n");
@@ -5501,9 +5592,8 @@ xim_reset(void)
     }
 }
 
-/*ARGSUSED*/
     int
-xim_queue_key_press_event(GdkEventKey *event, int down)
+xim_queue_key_press_event(GdkEventKey *event, int down UNUSED)
 {
 #ifdef XIM_DEBUG
     xim_log("xim_queue_key_press_event()\n");
@@ -5519,9 +5609,8 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
     return TRUE;
 }
 
-/*ARGSUSED*/
     static void
-preedit_callback_setup(GdkIC *ic)
+preedit_callback_setup(GdkIC *ic UNUSED)
 {
     XIC xxic;
     XVaNestedList preedit_attr;
@@ -5546,9 +5635,8 @@ preedit_callback_setup(GdkIC *ic)
     XFree(preedit_attr);
 }
 
-/*ARGSUSED*/
     static void
-reset_state_setup(GdkIC *ic)
+reset_state_setup(GdkIC *ic UNUSED)
 {
 #ifdef USE_X11R6_XIM
     /* don't change the input context when we call reset */
@@ -5754,8 +5842,25 @@ convert_setup(vcp, from, to)
     char_u	*from;
     char_u	*to;
 {
+    return convert_setup_ext(vcp, from, TRUE, to, TRUE);
+}
+
+/*
+ * As convert_setup(), but only when from_unicode_is_utf8 is TRUE will all
+ * "from" unicode charsets be considered utf-8.  Same for "to".
+ */
+    int
+convert_setup_ext(vcp, from, from_unicode_is_utf8, to, to_unicode_is_utf8)
+    vimconv_T	*vcp;
+    char_u	*from;
+    int		from_unicode_is_utf8;
+    char_u	*to;
+    int		to_unicode_is_utf8;
+{
     int		from_prop;
     int		to_prop;
+    int		from_is_utf8;
+    int		to_is_utf8;
 
     /* Reset to no conversion. */
 # ifdef USE_ICONV
@@ -5773,37 +5878,46 @@ convert_setup(vcp, from, to)
 
     from_prop = enc_canon_props(from);
     to_prop = enc_canon_props(to);
-    if ((from_prop & ENC_LATIN1) && (to_prop & ENC_UNICODE))
+    if (from_unicode_is_utf8)
+	from_is_utf8 = from_prop & ENC_UNICODE;
+    else
+	from_is_utf8 = from_prop == ENC_UNICODE;
+    if (to_unicode_is_utf8)
+	to_is_utf8 = to_prop & ENC_UNICODE;
+    else
+	to_is_utf8 = to_prop == ENC_UNICODE;
+
+    if ((from_prop & ENC_LATIN1) && to_is_utf8)
     {
 	/* Internal latin1 -> utf-8 conversion. */
 	vcp->vc_type = CONV_TO_UTF8;
 	vcp->vc_factor = 2;	/* up to twice as long */
     }
-    else if ((from_prop & ENC_LATIN9) && (to_prop & ENC_UNICODE))
+    else if ((from_prop & ENC_LATIN9) && to_is_utf8)
     {
 	/* Internal latin9 -> utf-8 conversion. */
 	vcp->vc_type = CONV_9_TO_UTF8;
 	vcp->vc_factor = 3;	/* up to three as long (euro sign) */
     }
-    else if ((from_prop & ENC_UNICODE) && (to_prop & ENC_LATIN1))
+    else if (from_is_utf8 && (to_prop & ENC_LATIN1))
     {
 	/* Internal utf-8 -> latin1 conversion. */
 	vcp->vc_type = CONV_TO_LATIN1;
     }
-    else if ((from_prop & ENC_UNICODE) && (to_prop & ENC_LATIN9))
+    else if (from_is_utf8 && (to_prop & ENC_LATIN9))
     {
 	/* Internal utf-8 -> latin9 conversion. */
 	vcp->vc_type = CONV_TO_LATIN9;
     }
 #ifdef WIN3264
     /* Win32-specific codepage <-> codepage conversion without iconv. */
-    else if (((from_prop & ENC_UNICODE) || encname2codepage(from) > 0)
-	    && ((to_prop & ENC_UNICODE) || encname2codepage(to) > 0))
+    else if ((from_is_utf8 || encname2codepage(from) > 0)
+	    && (to_is_utf8 || encname2codepage(to) > 0))
     {
 	vcp->vc_type = CONV_CODEPAGE;
 	vcp->vc_factor = 2;	/* up to twice as long */
-	vcp->vc_cpfrom = (from_prop & ENC_UNICODE) ? 0 : encname2codepage(from);
-	vcp->vc_cpto = (to_prop & ENC_UNICODE) ? 0 : encname2codepage(to);
+	vcp->vc_cpfrom = from_is_utf8 ? 0 : encname2codepage(from);
+	vcp->vc_cpto = to_is_utf8 ? 0 : encname2codepage(to);
     }
 #endif
 #ifdef MACOS_X
@@ -5811,7 +5925,7 @@ convert_setup(vcp, from, to)
     {
 	vcp->vc_type = CONV_MAC_LATIN1;
     }
-    else if ((from_prop & ENC_MACROMAN) && (to_prop & ENC_UNICODE))
+    else if ((from_prop & ENC_MACROMAN) && to_is_utf8)
     {
 	vcp->vc_type = CONV_MAC_UTF8;
 	vcp->vc_factor = 2;	/* up to twice as long */
@@ -5820,7 +5934,7 @@ convert_setup(vcp, from, to)
     {
 	vcp->vc_type = CONV_LATIN1_MAC;
     }
-    else if ((from_prop & ENC_UNICODE) && (to_prop & ENC_MACROMAN))
+    else if (from_is_utf8 && (to_prop & ENC_MACROMAN))
     {
 	vcp->vc_type = CONV_UTF8_MAC;
     }
@@ -5830,8 +5944,8 @@ convert_setup(vcp, from, to)
     {
 	/* Use iconv() for conversion. */
 	vcp->vc_fd = (iconv_t)my_iconv_open(
-		(to_prop & ENC_UNICODE) ? (char_u *)"utf-8" : to,
-		(from_prop & ENC_UNICODE) ? (char_u *)"utf-8" : from);
+		to_is_utf8 ? (char_u *)"utf-8" : to,
+		from_is_utf8 ? (char_u *)"utf-8" : from);
 	if (vcp->vc_fd != (iconv_t)-1)
 	{
 	    vcp->vc_type = CONV_ICONV;
@@ -6087,9 +6201,7 @@ string_convert_ext(vcp, ptr, lenp, unconvlenp)
 
 # ifdef USE_ICONV
 	case CONV_ICONV:	/* conversion with output_conv.vc_fd */
-	    retval = iconv_string(vcp, ptr, len, unconvlenp);
-	    if (retval != NULL && lenp != NULL)
-		*lenp = (int)STRLEN(retval);
+	    retval = iconv_string(vcp, ptr, len, unconvlenp, lenp);
 	    break;
 # endif
 # ifdef WIN3264

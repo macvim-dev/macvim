@@ -683,11 +683,10 @@ gui_shell_closed()
  * Return OK when able to set the font.  When it failed FAIL is returned and
  * the fonts are unchanged.
  */
-/*ARGSUSED*/
     int
 gui_init_font(font_list, fontset)
     char_u	*font_list;
-    int		fontset;
+    int		fontset UNUSED;
 {
 #define FONTLEN 320
     char_u	font_name[FONTLEN];
@@ -1155,10 +1154,9 @@ gui_position_menu()
  * Position the various GUI components (text area, menu).  The vertical
  * scrollbars are NOT handled here.  See gui_update_scrollbars().
  */
-/*ARGSUSED*/
     static void
 gui_position_components(total_width)
-    int	    total_width;
+    int	    total_width UNUSED;
 {
     int	    text_area_x;
     int	    text_area_y;
@@ -1392,10 +1390,9 @@ gui_get_shellsize()
  * If "fit_to_display" is TRUE then the size may be reduced to fit the window
  * on the screen.
  */
-/*ARGSUSED*/
     void
 gui_set_shellsize(mustset, fit_to_display, direction)
-    int		mustset;		/* set by the user */
+    int		mustset UNUSED;		/* set by the user */
     int		fit_to_display;
     int		direction;		/* RESIZE_HOR, RESIZE_VER */
 {
@@ -3141,10 +3138,9 @@ static int	prev_which_scrollbars[3];
  * If "oldval" is not NULL, "oldval" is the previous value, the new value is
  * in p_go.
  */
-/*ARGSUSED*/
     void
 gui_init_which_components(oldval)
-    char_u	*oldval;
+    char_u	*oldval UNUSED;
 {
 #ifdef FEAT_MENU
     static int	prev_menu_is_active = -1;
@@ -3904,6 +3900,21 @@ gui_drag_scrollbar(sb, value, still_dragging)
  * Scrollbar stuff:
  */
 
+/*
+ * Called when something in the window layout has changed.
+ */
+    void
+gui_may_update_scrollbars()
+{
+    if (gui.in_use && starting == 0)
+    {
+	out_flush();
+	gui_init_which_components(NULL);
+	gui_update_scrollbars(TRUE);
+    }
+    need_mouse_correct = TRUE;
+}
+
     void
 gui_update_scrollbars(force)
     int		force;	    /* Force all scrollbars to get updated */
@@ -4433,7 +4444,7 @@ gui_do_horiz_scroll()
     if (curwin->w_p_wrap)
 	return FALSE;
 
-    if (curwin->w_leftcol == scrollbar_value)
+    if ((long_u)curwin->w_leftcol == scrollbar_value)
 	return FALSE;
 
     curwin->w_leftcol = (colnr_T)scrollbar_value;
@@ -4446,7 +4457,7 @@ gui_do_horiz_scroll()
 	    && longest_lnum < curwin->w_botline
 	    && !virtual_active())
     {
-	if (scrollbar_value > scroll_line_len(curwin->w_cursor.lnum))
+	if (scrollbar_value > (long_u)scroll_line_len(curwin->w_cursor.lnum))
 	{
 	    curwin->w_cursor.lnum = longest_lnum;
 	    curwin->w_cursor.col = 0;
@@ -4692,11 +4703,10 @@ gui_mouse_correct()
 /*
  * Find window where the mouse pointer "y" coordinate is in.
  */
-/*ARGSUSED*/
     static win_T *
 xy2win(x, y)
-    int		x;
-    int		y;
+    int		x UNUSED;
+    int		y UNUSED;
 {
 #ifdef FEAT_WINDOWS
     int		row;
@@ -5150,11 +5160,10 @@ gui_wingoto_xy(x, y)
  * of dropped files, they will be freed in this function, and caller can't use
  * fnames after call this function.
  */
-/*ARGSUSED*/
     void
 gui_handle_drop(x, y, modifiers, fnames, count)
-    int		x;
-    int		y;
+    int		x UNUSED;
+    int		y UNUSED;
     int_u	modifiers;
     char_u	**fnames;
     int		count;

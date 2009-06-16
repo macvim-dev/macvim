@@ -83,7 +83,7 @@ static cscmd_T	    cs_cmds[] =
 		N_("Reinit all connections"), "reset", 0 },
     { "show",	cs_show,
 		N_("Show connections"),       "show", 0 },
-    { NULL }
+    { NULL, NULL, NULL, NULL, 0 }
 };
 
     static void
@@ -98,6 +98,7 @@ cs_usage_msg(x)
 static enum
 {
     EXP_CSCOPE_SUBCMD,	/* expand ":cscope" sub-commands */
+    EXP_SCSCOPE_SUBCMD,	/* expand ":scscope" sub-commands */
     EXP_CSCOPE_FIND,	/* expand ":cscope find" arguments */
     EXP_CSCOPE_KILL	/* expand ":cscope kill" arguments */
 } expand_what;
@@ -106,18 +107,28 @@ static enum
  * Function given to ExpandGeneric() to obtain the cscope command
  * expansion.
  */
-/*ARGSUSED*/
     char_u *
 get_cscope_name(xp, idx)
-    expand_T	*xp;
+    expand_T	*xp UNUSED;
     int		idx;
 {
+    int		current_idx;
+    int		i;
+
     switch (expand_what)
     {
     case EXP_CSCOPE_SUBCMD:
 	/* Complete with sub-commands of ":cscope":
 	 * add, find, help, kill, reset, show */
 	return (char_u *)cs_cmds[idx].name;
+    case EXP_SCSCOPE_SUBCMD:
+	/* Complete with sub-commands of ":scscope": same sub-commands as
+	 * ":cscope" but skip commands which don't support split windows */
+	for (i = 0, current_idx = 0; cs_cmds[i].name != NULL; i++)
+	    if (cs_cmds[i].cansplit)
+		if (current_idx++ == idx)
+		    break;
+	return (char_u *)cs_cmds[i].name;
     case EXP_CSCOPE_FIND:
 	{
 	    const char *query_type[] =
@@ -133,15 +144,13 @@ get_cscope_name(xp, idx)
 	}
     case EXP_CSCOPE_KILL:
 	{
-	    int			i;
-	    int			current_idx = 0;
 	    static char_u	connection[2];
 
 	    /* ":cscope kill" accepts connection numbers or partial names of
 	     * the pathname of the cscope database as argument.  Only complete
 	     * with connection numbers. -1 can also be used to kill all
 	     * connections. */
-	    for (i = 0; i < CSCOPE_MAX_CONNECTIONS; i++)
+	    for (i = 0, current_idx = 0; i < CSCOPE_MAX_CONNECTIONS; i++)
 	    {
 		if (csinfo[i].fname == NULL)
 		    continue;
@@ -165,16 +174,18 @@ get_cscope_name(xp, idx)
  * Handle command line completion for :cscope command.
  */
     void
-set_context_in_cscope_cmd(xp, arg)
+set_context_in_cscope_cmd(xp, arg, cmdidx)
     expand_T	*xp;
     char_u	*arg;
+    cmdidx_T	cmdidx;
 {
     char_u	*p;
 
     /* Default: expand subcommands */
     xp->xp_context = EXPAND_CSCOPE;
-    expand_what = EXP_CSCOPE_SUBCMD;
     xp->xp_pattern = arg;
+    expand_what = (cmdidx == CMD_scscope)
+			? EXP_SCSCOPE_SUBCMD : EXP_CSCOPE_SUBCMD;
 
     /* (part of) subcommand already typed */
     if (*arg != NUL)
@@ -484,10 +495,9 @@ cs_connection(num, dbpath, ppath)
  *
  * MAXPATHL 256
  */
-/* ARGSUSED */
     static int
 cs_add(eap)
-    exarg_T *eap;
+    exarg_T *eap UNUSED;
 {
     char *fname, *ppath, *flags = NULL;
 
@@ -982,7 +992,7 @@ err_closing:
 	vim_free(ppath);
 
 #if defined(UNIX)
-	if (execl("/bin/sh", "sh", "-c", cmd, NULL) == -1)
+	if (execl("/bin/sh", "sh", "-c", cmd, (char *)NULL) == -1)
 	    PERROR(_("cs_create_connection exec failed"));
 
 	exit(127);
@@ -1280,10 +1290,9 @@ cs_find_common(opt, pat, forceit, verbose, use_ll)
  *
  * print help
  */
-/* ARGSUSED */
     static int
 cs_help(eap)
-    exarg_T *eap;
+    exarg_T *eap UNUSED;
 {
     cscmd_T *cmdp = cs_cmds;
 
@@ -1387,13 +1396,12 @@ GetWin32Error()
  *
  * insert a new cscope database filename into the filelist
  */
-/*ARGSUSED*/
     static int
 cs_insert_filelist(fname, ppath, flags, sb)
     char *fname;
     char *ppath;
     char *flags;
-    struct stat *sb;
+    struct stat *sb UNUSED;
 {
     short	i, j;
 #ifndef UNIX
@@ -1549,10 +1557,9 @@ cs_lookup_cmd(eap)
  *
  * nuke em
  */
-/* ARGSUSED */
     static int
 cs_kill(eap)
-    exarg_T *eap;
+    exarg_T *eap UNUSED;
 {
     char *stok;
     short i;
@@ -2229,7 +2236,6 @@ cs_read_prompt(i)
 /*
  * Used to catch and ignore SIGALRM below.
  */
-/* ARGSUSED */
     static RETSIGTYPE
 sig_handler SIGDEFARG(sigarg)
 {
@@ -2369,10 +2375,9 @@ cs_release_csp(i, freefnpp)
  *
  * calls cs_kill on all cscope connections then reinits
  */
-/* ARGSUSED */
     static int
 cs_reset(eap)
-    exarg_T *eap;
+    exarg_T *eap UNUSED;
 {
     char	**dblist = NULL, **pplist = NULL, **fllist = NULL;
     int	i;
@@ -2485,10 +2490,9 @@ cs_resolve_file(i, name)
  *
  * show all cscope connections
  */
-/* ARGSUSED */
     static int
 cs_show(eap)
-    exarg_T *eap;
+    exarg_T *eap UNUSED;
 {
     short i;
     if (cs_cnt_connections() == 0)

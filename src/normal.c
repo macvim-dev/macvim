@@ -493,14 +493,14 @@ init_normal_cmds()
     int		i;
 
     /* Fill the index table with a one to one relation. */
-    for (i = 0; i < NV_CMDS_SIZE; ++i)
+    for (i = 0; i < (int)NV_CMDS_SIZE; ++i)
 	nv_cmd_idx[i] = i;
 
     /* Sort the commands by the command character.  */
     qsort((void *)&nv_cmd_idx, (size_t)NV_CMDS_SIZE, sizeof(short), nv_compare);
 
     /* Find the first entry that can't be indexed by the command character. */
-    for (i = 0; i < NV_CMDS_SIZE; ++i)
+    for (i = 0; i < (int)NV_CMDS_SIZE; ++i)
 	if (i != nv_cmds[nv_cmd_idx[i]].cmd_char)
 	    break;
     nv_max_linear = i - 1;
@@ -561,11 +561,10 @@ find_command(cmdchar)
 /*
  * Execute a command in Normal mode.
  */
-/*ARGSUSED*/
     void
 normal_cmd(oap, toplevel)
     oparg_T	*oap;
-    int		toplevel;		/* TRUE when called from main() */
+    int		toplevel UNUSED;	/* TRUE when called from main() */
 {
     cmdarg_T	ca;			/* command arguments */
     int		c;
@@ -2188,10 +2187,9 @@ op_colon(oap)
 /*
  * Handle the "g@" operator: call 'operatorfunc'.
  */
-/*ARGSUSED*/
     static void
 op_function(oap)
-    oparg_T	*oap;
+    oparg_T	*oap UNUSED;
 {
 #ifdef FEAT_EVAL
     char_u	*(argv[1]);
@@ -3711,13 +3709,13 @@ clear_showcmd()
 #ifdef FEAT_VISUAL
     if (VIsual_active && !char_avail())
     {
-	int		i = lt(VIsual, curwin->w_cursor);
+	int		cursor_bot = lt(VIsual, curwin->w_cursor);
 	long		lines;
 	colnr_T		leftcol, rightcol;
 	linenr_T	top, bot;
 
 	/* Show the size of the Visual area. */
-	if (i)
+	if (cursor_bot)
 	{
 	    top = VIsual.lnum;
 	    bot = curwin->w_cursor.lnum;
@@ -3736,14 +3734,23 @@ clear_showcmd()
 
 	if (VIsual_mode == Ctrl_V)
 	{
+#ifdef FEAT_LINEBREAK
+	    char_u *saved_sbr = p_sbr;
+
+	    /* Make 'sbr' empty for a moment to get the correct size. */
+	    p_sbr = empty_option;
+#endif
 	    getvcols(curwin, &curwin->w_cursor, &VIsual, &leftcol, &rightcol);
+#ifdef FEAT_LINEBREAK
+	    p_sbr = saved_sbr;
+#endif
 	    sprintf((char *)showcmd_buf, "%ldx%ld", lines,
 					      (long)(rightcol - leftcol + 1));
 	}
 	else if (VIsual_mode == 'V' || VIsual.lnum != curwin->w_cursor.lnum)
 	    sprintf((char *)showcmd_buf, "%ld", lines);
 	else
-	    sprintf((char *)showcmd_buf, "%ld", (long)(i
+	    sprintf((char *)showcmd_buf, "%ld", (long)(cursor_bot
 		    ? curwin->w_cursor.col - VIsual.col
 		    : VIsual.col - curwin->w_cursor.col) + (*p_sel != 'e'));
 	showcmd_buf[SHOWCMD_COLS] = NUL;	/* truncate */
@@ -4093,10 +4100,9 @@ nv_ignore(cap)
  * Command character that doesn't do anything, but unlike nv_ignore() does
  * start edit().  Used for "startinsert" executed while starting up.
  */
-/*ARGSUSED */
     static void
 nv_nop(cap)
-    cmdarg_T	*cap;
+    cmdarg_T	*cap UNUSED;
 {
 }
 
@@ -5260,7 +5266,7 @@ nv_colon(cap)
 	if (cap->oap->op_type != OP_NOP
 		&& (cap->oap->start.lnum > curbuf->b_ml.ml_line_count
 		    || cap->oap->start.col >
-					 STRLEN(ml_get(cap->oap->start.lnum))))
+			       (colnr_T)STRLEN(ml_get(cap->oap->start.lnum))))
 	    clearopbeep(cap->oap);
     }
 }
@@ -5835,7 +5841,10 @@ nv_right(cap)
     for (n = cap->count1; n > 0; --n)
     {
 	if ((!PAST_LINE && oneright() == FAIL)
-		|| (PAST_LINE && *ml_get_cursor() == NUL))
+#ifdef FEAT_VISUAL
+		|| (PAST_LINE && *ml_get_cursor() == NUL)
+#endif
+		)
 	{
 	    /*
 	     *	  <Space> wraps to next line if 'whichwrap' has 's'.
@@ -9262,10 +9271,9 @@ nv_open(cap)
 }
 
 #ifdef FEAT_SNIFF
-/*ARGSUSED*/
     static void
 nv_sniff(cap)
-    cmdarg_T	*cap;
+    cmdarg_T	*cap UNUSED;
 {
     ProcessSniffRequests();
 }
@@ -9281,10 +9289,9 @@ nv_nbcmd(cap)
 #endif
 
 #ifdef FEAT_DND
-/*ARGSUSED*/
     static void
 nv_drop(cap)
-    cmdarg_T	*cap;
+    cmdarg_T	*cap UNUSED;
 {
     do_put('~', BACKWARD, 1L, PUT_CURSEND);
 }
@@ -9296,7 +9303,6 @@ nv_drop(cap)
  * When waiting for a character for 'updatetime' K_CURSORHOLD is put in the
  * input buffer.  "did_cursorhold" is set to avoid retriggering.
  */
-/*ARGSUSED*/
     static void
 nv_cursorhold(cap)
     cmdarg_T	*cap;

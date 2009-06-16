@@ -392,7 +392,6 @@ shift_block(oap, amount)
     colnr_T		ws_vcol;
     int			i = 0, j = 0;
     int			len;
-
 #ifdef FEAT_RIGHTLEFT
     int			old_p_ri = p_ri;
 
@@ -495,10 +494,11 @@ shift_block(oap, amount)
 	block_space_width = non_white_col - oap->start_vcol;
 	/* We will shift by "total" or "block_space_width", whichever is less.
 	 */
-	shift_amount = (block_space_width < total? block_space_width: total);
+	shift_amount = (block_space_width < (size_t)total
+					 ? block_space_width : (size_t)total);
 
 	/* The column to which we will shift the text.  */
-	destination_col = non_white_col - shift_amount;
+	destination_col = (colnr_T)(non_white_col - shift_amount);
 
 	/* Now let's find out how much of the beginning of the line we can
 	 * reuse without modification.  */
@@ -1143,6 +1143,8 @@ stuff_yank(regname, p)
     return OK;
 }
 
+static int execreg_lastc = NUL;
+
 /*
  * execute a yank register: copy it into the stuff buffer
  *
@@ -1155,7 +1157,6 @@ do_execreg(regname, colon, addcr, silent)
     int	    addcr;		/* always add '\n' to end of line */
     int	    silent;		/* set "silent" flag in typeahead buffer */
 {
-    static int	lastc = NUL;
     long	i;
     char_u	*p;
     int		retval = OK;
@@ -1163,12 +1164,12 @@ do_execreg(regname, colon, addcr, silent)
 
     if (regname == '@')			/* repeat previous one */
     {
-	if (lastc == NUL)
+	if (execreg_lastc == NUL)
 	{
 	    EMSG(_("E748: No previously used register"));
 	    return FAIL;
 	}
-	regname = lastc;
+	regname = execreg_lastc;
     }
 					/* check for valid regname */
     if (regname == '%' || regname == '#' || !valid_yank_reg(regname, FALSE))
@@ -1176,7 +1177,7 @@ do_execreg(regname, colon, addcr, silent)
 	emsg_invreg(regname);
 	return FAIL;
     }
-    lastc = regname;
+    execreg_lastc = regname;
 
 #ifdef FEAT_CLIPBOARD
     regname = may_get_selection(regname);
@@ -5337,11 +5338,14 @@ read_viminfo_register(virp, force)
 
     /* We only get here (hopefully) if line[0] == '"' */
     str = virp->vir_line + 1;
+
+    /* If the line starts with "" this is the y_previous register. */
     if (*str == '"')
     {
 	set_prev = TRUE;
 	str++;
     }
+
     if (!ASCII_ISALNUM(*str) && *str != '-')
     {
 	if (viminfo_error("E577: ", _("Illegal register name"), virp->vir_line))
@@ -5351,6 +5355,14 @@ read_viminfo_register(virp, force)
     get_yank_register(*str++, FALSE);
     if (!force && y_current->y_array != NULL)
 	do_it = FALSE;
+
+    if (*str == '@')
+    {
+	/* "x@: register x used for @@ */
+	if (force || execreg_lastc == NUL)
+	    execreg_lastc = str[-1];
+    }
+
     size = 0;
     limit = 100;	/* Optimized for registers containing <= 100 lines */
     if (do_it)
@@ -5360,7 +5372,7 @@ read_viminfo_register(virp, force)
 	vim_free(y_current->y_array);
 	array = y_current->y_array =
 		       (char_u **)alloc((unsigned)(limit * sizeof(char_u *)));
-	str = skipwhite(str);
+	str = skipwhite(skiptowhite(str));
 	if (STRNCMP(str, "CHAR", 4) == 0)
 	    y_current->y_type = MCHAR;
 #ifdef FEAT_VISUAL
@@ -5443,6 +5455,7 @@ write_viminfo_registers(fp)
     max_kbyte = get_viminfo_parameter('s');
     if (max_kbyte == 0)
 	return;
+
     for (i = 0; i < NUM_REGISTERS; i++)
     {
 	if (y_regs[i].y_array == NULL)
@@ -5497,7 +5510,10 @@ write_viminfo_registers(fp)
 	if (y_previous == &y_regs[i])
 	    fprintf(fp, "\"");
 	c = get_register_name(i);
-	fprintf(fp, "\"%c\t%s\t%d\n", c, type,
+	fprintf(fp, "\"%c", c);
+	if (c == execreg_lastc)
+	    fprintf(fp, "@");
+	fprintf(fp, "\t%s\t%d\n", type,
 #ifdef FEAT_VISUAL
 		    (int)y_regs[i].y_width
 #else
@@ -6283,11 +6299,20 @@ cursor_pos_info()
 
 	    if (VIsual_mode == Ctrl_V)
 	    {
+#ifdef FEAT_LINEBREAK
+		char_u * saved_sbr = p_sbr;
+
+		/* Make 'sbr' empty for a moment to get the correct size. */
+		p_sbr = empty_option;
+#endif
 		oparg.is_VIsual = 1;
 		oparg.block_mode = TRUE;
 		oparg.op_type = OP_NOP;
 		getvcols(curwin, &min_pos, &max_pos,
 					  &oparg.start_vcol, &oparg.end_vcol);
+#ifdef FEAT_LINEBREAK
+		p_sbr = saved_sbr;
+#endif
 		if (curwin->w_curswant == MAXCOL)
 		    oparg.end_vcol = MAXCOL;
 		/* Swap the start, end vcol if needed */
@@ -6391,7 +6416,7 @@ cursor_pos_info()
 	    {
 		getvcols(curwin, &min_pos, &max_pos, &min_pos.col,
 								&max_pos.col);
-		sprintf((char *)buf1, _("%ld Cols; "),
+		vim_snprintf((char *)buf1, sizeof(buf1), _("%ld Cols; "),
 			(long)(oparg.end_vcol - oparg.start_vcol + 1));
 	    }
 	    else
@@ -6399,13 +6424,15 @@ cursor_pos_info()
 
 	    if (char_count_cursor == byte_count_cursor
 						  && char_count == byte_count)
-		sprintf((char *)IObuff, _("Selected %s%ld of %ld Lines; %ld of %ld Words; %ld of %ld Bytes"),
+		vim_snprintf((char *)IObuff, IOSIZE,
+			_("Selected %s%ld of %ld Lines; %ld of %ld Words; %ld of %ld Bytes"),
 			buf1, line_count_selected,
 			(long)curbuf->b_ml.ml_line_count,
 			word_count_cursor, word_count,
 			byte_count_cursor, byte_count);
 	    else
-		sprintf((char *)IObuff, _("Selected %s%ld of %ld Lines; %ld of %ld Words; %ld of %ld Chars; %ld of %ld Bytes"),
+		vim_snprintf((char *)IObuff, IOSIZE,
+			_("Selected %s%ld of %ld Lines; %ld of %ld Words; %ld of %ld Chars; %ld of %ld Bytes"),
 			buf1, line_count_selected,
 			(long)curbuf->b_ml.ml_line_count,
 			word_count_cursor, word_count,
@@ -6417,20 +6444,22 @@ cursor_pos_info()
 	{
 	    p = ml_get_curline();
 	    validate_virtcol();
-	    col_print(buf1, (int)curwin->w_cursor.col + 1,
+	    col_print(buf1, sizeof(buf1), (int)curwin->w_cursor.col + 1,
 		    (int)curwin->w_virtcol + 1);
-	    col_print(buf2, (int)STRLEN(p), linetabsize(p));
+	    col_print(buf2, sizeof(buf2), (int)STRLEN(p), linetabsize(p));
 
 	    if (char_count_cursor == byte_count_cursor
 		    && char_count == byte_count)
-		sprintf((char *)IObuff, _("Col %s of %s; Line %ld of %ld; Word %ld of %ld; Byte %ld of %ld"),
+		vim_snprintf((char *)IObuff, IOSIZE,
+		    _("Col %s of %s; Line %ld of %ld; Word %ld of %ld; Byte %ld of %ld"),
 		    (char *)buf1, (char *)buf2,
 		    (long)curwin->w_cursor.lnum,
 		    (long)curbuf->b_ml.ml_line_count,
 		    word_count_cursor, word_count,
 		    byte_count_cursor, byte_count);
 	    else
-		sprintf((char *)IObuff, _("Col %s of %s; Line %ld of %ld; Word %ld of %ld; Char %ld of %ld; Byte %ld of %ld"),
+		vim_snprintf((char *)IObuff, IOSIZE,
+		    _("Col %s of %s; Line %ld of %ld; Word %ld of %ld; Char %ld of %ld; Byte %ld of %ld"),
 		    (char *)buf1, (char *)buf2,
 		    (long)curwin->w_cursor.lnum,
 		    (long)curbuf->b_ml.ml_line_count,

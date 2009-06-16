@@ -263,6 +263,14 @@
 # define __PARMS(x) __ARGS(x)
 #endif
 
+/* Mark unused function arguments with UNUSED, so that gcc -Wunused-parameter
+ * can be used to check for mistakes. */
+#ifdef HAVE_ATTRIBUTE_UNUSED
+# define UNUSED __attribute__((unused))
+#else
+# define UNUSED
+#endif
+
 /* if we're compiling in C++ (currently only KVim), the system
  * headers must have the correct prototypes or nothing will build.
  * conversely, our prototypes might clash due to throw() specifiers and
@@ -711,7 +719,8 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define EXPAND_USER_LIST	31
 #define EXPAND_SHELLCMD		32
 #define EXPAND_CSCOPE		33
-#define EXPAND_MACACTION	34
+#define EXPAND_SIGN		34
+#define EXPAND_MACACTION	35
 
 /* Values for exmode_active (0 is no exmode) */
 #define EXMODE_NORMAL		1
@@ -1339,11 +1348,11 @@ typedef enum
 # define MSG_BUF_CLEN  MSG_BUF_LEN	    /* cell length */
 #endif
 
-#if defined(AMIGA) || defined(__linux__) || defined(__QNX__) || defined(__CYGWIN32__) || defined(_AIX)
-# define TBUFSZ 2048		/* buffer size for termcap entry */
-#else
-# define TBUFSZ 1024		/* buffer size for termcap entry */
-#endif
+/* Size of the buffer used for tgetent().  Unfortunately this is largely
+ * undocumented, some systems use 1024.  Using a buffer that is too small
+ * causes a buffer overrun and a crash.  Use the maximum known value to stay
+ * on the safe side. */
+#define TBUFSZ 2048		/* buffer size for termcap entry */
 
 /*
  * Maximum length of key sequence to be mapped.
@@ -1462,8 +1471,8 @@ typedef enum
 # define PERROR(msg)		    perror(msg)
 #endif
 
-typedef long	    linenr_T;		/* line number type */
-typedef unsigned    colnr_T;		/* column number type */
+typedef long	linenr_T;		/* line number type */
+typedef int	colnr_T;		/* column number type */
 typedef unsigned short disptick_T;	/* display tick type */
 
 #define MAXLNUM (0x7fffffffL)		/* maximum (invalid) line number */

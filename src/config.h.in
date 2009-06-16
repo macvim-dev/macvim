@@ -30,11 +30,17 @@
 /* Define when __DATE__ " " __TIME__ can be used */
 #undef HAVE_DATE_TIME
 
+/* Define when __attribute__((unused)) can be used */
+#undef HAVE_ATTRIBUTE_UNUSED
+
 /* defined always when using configure */
 #undef UNIX
 
 /* Defined to the size of an int */
 #undef SIZEOF_INT
+
+/* Define when wchar_t is only 2 bytes. */
+#undef SMALL_WCHAR_T
 
 /*
  * If we cannot trust one of the following from the libraries, we use our

@@ -124,7 +124,7 @@
 #  define SIGDUMMYARG	0, 0, (struct sigcontext *)0
 # else
 #  define SIGPROTOARG	(int)
-#  define SIGDEFARG(s)	(s) int s;
+#  define SIGDEFARG(s)	(s) int s UNUSED;
 #  define SIGDUMMYARG	0
 # endif
 #else

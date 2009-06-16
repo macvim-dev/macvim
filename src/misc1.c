@@ -2188,12 +2188,11 @@ del_chars(count, fixpos)
  *
  * return FAIL for failure, OK otherwise
  */
-/*ARGSUSED*/
     int
 del_bytes(count, fixpos_arg, use_delcombine)
     long	count;
     int		fixpos_arg;
-    int		use_delcombine;	    /* 'delcombine' option applies */
+    int		use_delcombine UNUSED;	    /* 'delcombine' option applies */
 {
     char_u	*oldp, *newp;
     colnr_T	oldlen;
@@ -2717,6 +2716,9 @@ changed_common(lnum, col, lnume, xtra)
     long	xtra;
 {
     win_T	*wp;
+#ifdef FEAT_WINDOWS
+    tabpage_T	*tp;
+#endif
     int		i;
 #ifdef FEAT_JUMPLIST
     int		cols;
@@ -2769,7 +2771,7 @@ changed_common(lnum, col, lnume, xtra)
 		    curbuf->b_changelistlen = JUMPLISTSIZE - 1;
 		    mch_memmove(curbuf->b_changelist, curbuf->b_changelist + 1,
 					  sizeof(pos_T) * (JUMPLISTSIZE - 1));
-		    FOR_ALL_WINDOWS(wp)
+		    FOR_ALL_TAB_WINDOWS(tp, wp)
 		    {
 			/* Correct position in changelist for other windows on
 			 * this buffer. */
@@ -2777,7 +2779,7 @@ changed_common(lnum, col, lnume, xtra)
 			    --wp->w_changelistidx;
 		    }
 		}
-		FOR_ALL_WINDOWS(wp)
+		FOR_ALL_TAB_WINDOWS(tp, wp)
 		{
 		    /* For other windows, if the position in the changelist is
 		     * at the end it stays at the end. */
@@ -2796,7 +2798,7 @@ changed_common(lnum, col, lnume, xtra)
 #endif
     }
 
-    FOR_ALL_WINDOWS(wp)
+    FOR_ALL_TAB_WINDOWS(tp, wp)
     {
 	if (wp->w_buffer == curbuf)
 	{
@@ -4145,10 +4147,9 @@ vim_setenv(name, val)
 /*
  * Function given to ExpandGeneric() to obtain an environment variable name.
  */
-/*ARGSUSED*/
     char_u *
 get_env_name(xp, idx)
-    expand_T	*xp;
+    expand_T	*xp UNUSED;
     int		idx;
 {
 # if defined(AMIGA) || defined(__MRC__) || defined(__SC__)
@@ -4740,9 +4741,9 @@ find_start_comment(ind_maxcomment)	    /* XXX */
 	 * If it is then restrict the search to below this line and try again.
 	 */
 	line = ml_get(pos->lnum);
-	for (p = line; *p && (unsigned)(p - line) < pos->col; ++p)
+	for (p = line; *p && (colnr_T)(p - line) < pos->col; ++p)
 	    p = skip_string(p);
-	if ((unsigned)(p - line) <= pos->col)
+	if ((colnr_T)(p - line) <= pos->col)
 	    break;
 	cur_maxcomment = curwin->w_cursor.lnum - pos->lnum - 1;
 	if (cur_maxcomment <= 0)
@@ -6273,7 +6274,7 @@ get_c_indent()
      * check for that.
      */
     if ((State & INSERT)
-	    && curwin->w_cursor.col < STRLEN(linecopy)
+	    && curwin->w_cursor.col < (colnr_T)STRLEN(linecopy)
 	    && linecopy[curwin->w_cursor.col] == ')')
 	linecopy[curwin->w_cursor.col] = NUL;
 

@@ -270,11 +270,10 @@ redraw_buf_later(buf, type)
  * Note that when also inserting/deleting lines w_redraw_top and w_redraw_bot
  * may become invalid and the whole window will have to be redrawn.
  */
-/*ARGSUSED*/
     void
 redrawWinline(lnum, invalid)
     linenr_T	lnum;
-    int		invalid;	/* window line height is invalid now */
+    int		invalid UNUSED;	/* window line height is invalid now */
 {
 #ifdef FEAT_FOLDING
     int		i;
@@ -2413,7 +2412,7 @@ fold_line(wp, fold_count, foldinfo, lnum, row)
 			&& (lnume < bot->lnum
 			    || (lnume == bot->lnum
 				&& (bot->col - (*p_sel == 'e'))
-		>= STRLEN(ml_get_buf(wp->w_buffer, lnume, FALSE)))))))
+		>= (colnr_T)STRLEN(ml_get_buf(wp->w_buffer, lnume, FALSE)))))))
 	{
 	    if (VIsual_mode == Ctrl_V)
 	    {
@@ -2549,14 +2548,13 @@ fill_foldcolumn(p, wp, closed, lnum)
  *
  * Return the number of last row the line occupies.
  */
-/* ARGSUSED */
     static int
 win_line(wp, lnum, startrow, endrow, nochange)
     win_T	*wp;
     linenr_T	lnum;
     int		startrow;
     int		endrow;
-    int		nochange;		/* not updating for changed text */
+    int		nochange UNUSED;	/* not updating for changed text */
 {
     int		col;			/* visual column on screen */
     unsigned	off;			/* offset in ScreenLines/ScreenAttrs */
@@ -5745,6 +5743,13 @@ win_redr_status(wp)
     int		fillchar;
     int		attr;
     int		this_ru_col;
+    static int  busy = FALSE;
+
+    /* It's possible to get here recursively when 'statusline' (indirectly)
+     * invokes ":redrawstatus".  Simply ignore the call then. */
+    if (busy)
+	return;
+    busy = TRUE;
 
     wp->w_redr_status = FALSE;
     if (wp->w_status_height == 0)
@@ -5883,6 +5888,7 @@ win_redr_status(wp)
 									attr);
     }
 #endif
+    busy = FALSE;
 }
 
 #ifdef FEAT_STL_OPT
@@ -6098,7 +6104,7 @@ win_redr_custom(wp, draw_ruler)
 				fillchar, maxwidth, hltab, tabtab);
     len = (int)STRLEN(buf);
 
-    while (width < maxwidth && len < sizeof(buf) - 1)
+    while (width < maxwidth && len < (int)sizeof(buf) - 1)
     {
 #ifdef FEAT_MBYTE
 	len += (*mb_char2bytes)(fillchar, buf + len);
@@ -7497,6 +7503,10 @@ retry:
 #endif
 	}
     }
+#ifdef FEAT_AUTOCMD
+    if (aucmd_win != NULL && win_alloc_lines(aucmd_win) == FAIL)
+	outofmem = TRUE;
+#endif
 #ifdef FEAT_WINDOWS
 give_up:
 #endif
@@ -8655,7 +8665,6 @@ screen_ins_lines(off, row, line_count, end, wp)
  *
  * Return OK for success, FAIL if the lines are not deleted.
  */
-/*ARGSUSED*/
     int
 screen_del_lines(off, row, line_count, end, force, wp)
     int		off;
@@ -8663,7 +8672,7 @@ screen_del_lines(off, row, line_count, end, force, wp)
     int		line_count;
     int		end;
     int		force;		/* even when line_count > p_ttyscroll */
-    win_T	*wp;		/* NULL or window to use width from */
+    win_T	*wp UNUSED;	/* NULL or window to use width from */
 {
     int		j;
     int		i;
@@ -9481,13 +9490,15 @@ win_redr_ruler(wp, always)
     win_T	*wp;
     int		always;
 {
-    char_u	buffer[70];
+#define RULER_BUF_LEN 70
+    char_u	buffer[RULER_BUF_LEN];
     int		row;
     int		fillchar;
     int		attr;
     int		empty_line = FALSE;
     colnr_T	virtcol;
     int		i;
+    size_t	len;
     int		o;
 #ifdef FEAT_VERTSPLIT
     int		this_ru_col;
@@ -9602,11 +9613,12 @@ win_redr_ruler(wp, always)
 	 * Some sprintfs return the length, some return a pointer.
 	 * To avoid portability problems we use strlen() here.
 	 */
-	sprintf((char *)buffer, "%ld,",
+	vim_snprintf((char *)buffer, RULER_BUF_LEN, "%ld,",
 		(wp->w_buffer->b_ml.ml_flags & ML_EMPTY)
 		    ? 0L
 		    : (long)(wp->w_cursor.lnum));
-	col_print(buffer + STRLEN(buffer),
+	len = STRLEN(buffer);
+	col_print(buffer + len, RULER_BUF_LEN - len,
 			empty_line ? 0 : (int)wp->w_cursor.col + 1,
 			(int)virtcol + 1);
 
@@ -9616,7 +9628,7 @@ win_redr_ruler(wp, always)
 	 * screen up on some terminals).
 	 */
 	i = (int)STRLEN(buffer);
-	get_rel_pos(wp, buffer + i + 1);
+	get_rel_pos(wp, buffer + i + 1, RULER_BUF_LEN - i - 1);
 	o = i + vim_strsize(buffer + i + 1);
 #ifdef FEAT_WINDOWS
 	if (wp->w_status_height == 0)	/* can't use last char of screen */
@@ -9643,7 +9655,7 @@ win_redr_ruler(wp, always)
 		    buffer[i++] = fillchar;
 		++o;
 	    }
-	    get_rel_pos(wp, buffer + i);
+	    get_rel_pos(wp, buffer + i, RULER_BUF_LEN - i);
 	}
 	/* Truncate at window boundary. */
 #ifdef FEAT_MBYTE

@@ -1,18 +1,18 @@
 # Makefile for Vim on Win32 (Windows NT/2000/XP/2003 and Windows 95/98/Me)
 # and Win64, using the Microsoft Visual C++ compilers. Known to work with
 # VC5, VC6 (VS98), VC7.0 (VS2002), VC7.1 (VS2003), VC8 (VS2005),
-# and VC9 (VS2008).
+# VC9 (VS2008), and VC10 (VS2010).
 #
 # To build using other Windows compilers, see INSTALLpc.txt
 #
 # This makefile can build the console, GUI, OLE-enable, Perl-enabled and
-# Python-enabled versions of vim for Win32 platforms.
+# Python-enabled versions of Vim for Win32 platforms.
 #
-# The basic command line to build vim is:
+# The basic command line to build Vim is:
 #
 #	nmake -f Make_mvc.mak
 #
-# This will build the console version of vim with no additional interfaces.
+# This will build the console version of Vim with no additional interfaces.
 # To add features, define any of the following:
 #
 #	!!!!  After changing features do "nmake clean" first  !!!!
@@ -34,6 +34,7 @@
 #	  MZSCHEME=[Path to MzScheme directory]
 #	  DYNAMIC_MZSCHEME=yes (to load the MzScheme DLLs dynamically)
 #	  MZSCHEME_VER=[version, 205_000, ...]
+#	  MZSCHEME_DEBUG=no
 #
 #	Perl interface:
 #	  PERL=[Path to Perl directory]
@@ -357,6 +358,9 @@ MSVCVER = 9.0
 !if "$(_NMAKE_VER)" == "9.00.30729.01"
 MSVCVER = 9.0
 !endif
+!if "$(_NMAKE_VER)" == "10.00.20506.01"
+MSVCVER = 10.0
+!endif
 !endif
 
 # Abort bulding VIM if version of VC is unrecognised.
@@ -371,7 +375,7 @@ MSVCVER = 9.0
 !endif
 
 # Convert processor ID to MVC-compatible number
-!if ("$(MSVCVER)" != "8.0") && ("$(MSVCVER)" != "9.0")
+!if ("$(MSVCVER)" != "8.0") && ("$(MSVCVER)" != "9.0") && ("$(MSVCVER)" != "10.0")
 !if "$(CPUNR)" == "i386"
 CPUARG = /G3
 !elseif "$(CPUNR)" == "i486"
@@ -404,7 +408,7 @@ OPTFLAG = /O2
 !else # MAXSPEED
 OPTFLAG = /Ox
 !endif
-!if ("$(MSVCVER)" == "8.0") || ("$(MSVCVER)" == "9.0")
+!if ("$(MSVCVER)" == "8.0") || ("$(MSVCVER)" == "9.0") || ("$(MSVCVER)" == "10.0")
 # Use link time code generation if not worried about size
 !if "$(OPTIMIZE)" != "SPACE"
 OPTFLAG = $(OPTFLAG) /GL
@@ -621,14 +625,36 @@ PYTHON_LIB = $(PYTHON)\libs\python$(PYTHON_VER).lib
 MZSCHEME_VER = 205_000
 !endif
 CFLAGS = $(CFLAGS) -DFEAT_MZSCHEME -I $(MZSCHEME)\include
+!if EXIST("$(MZSCHEME)\collects\scheme\base.ss")
+# for MzScheme 4.x we need to include byte code for basic Scheme stuff
+MZSCHEME_EXTRA_DEP = mzscheme_base.c
+CFLAGS = $(CFLAGS) -DINCLUDE_MZSCHEME_BASE
+!endif
+!if EXIST("$(MZSCHEME)\lib\msvc\libmzsch$(MZSCHEME_VER).lib") \
+	&& !EXIST("$(MZSCHEME)\lib\msvc\libmzgc$(MZSCHEME_VER).lib")
+!message Building with Precise GC
+MZSCHEME_PRECISE_GC = yes
+CFLAGS = $(CFLAGS) -DMZ_PRECISE_GC
+!endif
 !if "$(DYNAMIC_MZSCHEME)" == "yes"
+!if "$(MZSCHEME_PRECISE_GC)" == "yes"
+!error MzScheme with Precise GC cannot be loaded dynamically
+!endif
 !message MzScheme DLLs will be loaded dynamically
 CFLAGS = $(CFLAGS) -DDYNAMIC_MZSCHEME \
 		-DDYNAMIC_MZSCH_DLL=\"libmzsch$(MZSCHEME_VER).dll\" \
 		-DDYNAMIC_MZGC_DLL=\"libmzgc$(MZSCHEME_VER).dll\"
 !else
+!if "$(MZSCHEME_DEBUG)" == "yes"
+CFLAGS = $(CFLAGS) -DMZSCHEME_FORCE_GC
+!endif
+!if "$(MZSCHEME_PRECISE_GC)" == "yes"
+# Precise GC does not use separate dll
+MZSCHEME_LIB = $(MZSCHEME)\lib\msvc\libmzsch$(MZSCHEME_VER).lib
+!else
 MZSCHEME_LIB = $(MZSCHEME)\lib\msvc\libmzgc$(MZSCHEME_VER).lib \
 		$(MZSCHEME)\lib\msvc\libmzsch$(MZSCHEME_VER).lib
+!endif
 !endif
 MZSCHEME_OBJ = $(OUTDIR)\if_mzsch.obj
 !endif
@@ -770,7 +796,7 @@ LINKARGS2 = $(CON_LIB) $(GUI_LIB) $(LIBC) $(OLE_LIB)  user32.lib $(SNIFF_LIB) \
 
 # Report link time code generation progress if used. 
 !ifdef NODEBUG
-!if ("$(MSVCVER)" == "8.0") || ("$(MSVCVER)" == "9.0")
+!if ("$(MSVCVER)" == "8.0") || ("$(MSVCVER)" == "9.0") || ("$(MSVCVER)" == "10.0")
 !if "$(OPTIMIZE)" != "SPACE"
 LINKARGS1 = $(LINKARGS1) /LTCG:STATUS
 !endif
@@ -930,9 +956,11 @@ $(OUTDIR)/if_perl.obj: $(OUTDIR) if_perl.c  $(INCL)
 $(OUTDIR)/if_perlsfio.obj: $(OUTDIR) if_perlsfio.c  $(INCL)
 	$(CC) $(CFLAGS) $(PERL_INC) if_perlsfio.c
 
-$(OUTDIR)/if_mzsch.obj: $(OUTDIR) if_mzsch.c  $(INCL)
+$(OUTDIR)/if_mzsch.obj: $(OUTDIR) if_mzsch.c  $(INCL) $(MZSCHEME_EXTRA_DEP)
 	$(CC) $(CFLAGS) if_mzsch.c \
 		-DMZSCHEME_COLLECTS=\"$(MZSCHEME:\=\\)\\collects\"
+mzscheme_base.c:
+	$(MZSCHEME)\mzc --c-mods mzscheme_base.c ++lib scheme/base
 
 $(OUTDIR)/if_python.obj: $(OUTDIR) if_python.c  $(INCL)
 	$(CC) $(CFLAGS) $(PYTHON_INC) if_python.c
@@ -1012,7 +1040,7 @@ $(OUTDIR)/window.obj:	$(OUTDIR) window.c  $(INCL)
 $(OUTDIR)/xpm_w32.obj: $(OUTDIR) xpm_w32.c
 	$(CC) $(CFLAGS) $(XPM_INC) xpm_w32.c
 
-$(OUTDIR)/vim.res:	$(OUTDIR) vim.rc version.h tools.bmp tearoff.bmp \
+$(OUTDIR)/vim.res:	$(OUTDIR) vim.rc gvim.exe.mnf version.h tools.bmp tearoff.bmp \
 		vim.ico vim_error.ico vim_alert.ico vim_info.ico vim_quest.ico
 	$(RC) /l 0x409 /Fo$(OUTDIR)/vim.res $(RCFLAGS) vim.rc
 
