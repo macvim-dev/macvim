@@ -1139,9 +1139,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (oneway void)processInput:(in bycopy NSArray *)queue
               forIdentifier:(unsigned)identifier
 {
-    // NOTE: Input is not handled immediately since this is a distribued object
-    // call and as such can arrive at unpredictable times.  Instead, queue the
-    // input and process it when the run loop is updated.
+    // NOTE: Input is not handled immediately since this is a distributed
+    // object call and as such can arrive at unpredictable times.  Instead,
+    // queue the input and process it when the run loop is updated.
 
     if (!(queue && identifier)) {
         NSLog(@"[%s] Bad input for identifier=%d", _cmd, identifier);
