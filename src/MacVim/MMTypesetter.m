@@ -89,6 +89,8 @@
 
 
 
+#if MM_USE_ROW_CACHE
+
 @implementation MMTypesetter2
 
 //
@@ -187,4 +189,6 @@
 }
 
 @end // MMTypesetter2
+
+#endif // MM_USE_ROW_CACHE
 

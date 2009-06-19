@@ -63,10 +63,12 @@
         NSTypesetter *typesetter = [[MMTypesetter alloc] init];
         [lm setTypesetter:typesetter];
         [typesetter release];
+#if MM_USE_ROW_CACHE
     } else if ([typesetterString isEqual:@"MMTypesetter2"]) {
         NSTypesetter *typesetter = [[MMTypesetter2 alloc] init];
         [lm setTypesetter:typesetter];
         [typesetter release];
+#endif // MM_USE_ROW_CACHE
     } else {
         // Only MMTypesetter supports different cell width multipliers.
         [[NSUserDefaults standardUserDefaults]

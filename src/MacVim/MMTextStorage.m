@@ -253,6 +253,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
    foregroundColor:(NSColor *)fg backgroundColor:(NSColor *)bg
       specialColor:(NSColor *)sp
 {
+    //NSLog(@"%@(%d,%d,%d,%d)", string, row, col, cells, flags);
     //NSLog(@"replaceString:atRow:%d column:%d withFlags:%d "
     //          "foreground:%@ background:%@ special:%@",
     //          row, col, flags, fg, bg, sp);
@@ -1009,15 +1010,16 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         return NSMakeRange(row*(actualColumns+1) + col, cells);
 
     NSString *string = [attribString string];
+    unsigned stringLen = [string length];
     NSRange r, range = { NSNotFound, 0 };
-    unsigned idx, rowEnd;
+    unsigned idx;
     int i;
 
     if (row < 0 || row >= actualRows || col < 0 || col >= actualColumns
             || col+cells > actualColumns) {
 #if MM_TS_PARANOIA_LOG
         NSLog(@"%s row=%d col=%d cells=%d is out of range (length=%d)",
-                _cmd, row, col, cells, [string length]);
+                _cmd, row, col, cells, stringLen);
 #endif
         return range;
     }
@@ -1029,12 +1031,12 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     for (i = 0; i < row; ++i, ++cache)
         idx += cache->length;
 
-    rowEnd = idx + cache->length;
+    int rowEnd = idx + cache->length;
 #else
     // Locate the beginning of the row by scanning for EOL characters.
     r.location = 0;
     for (i = 0; i < row; ++i) {
-        r.length = [string length] - r.location;
+        r.length = stringLen - r.location;
         r = [string rangeOfString:@"\n" options:NSLiteralSearch range:r];
         if (NSNotFound == r.location)
             return range;
@@ -1070,6 +1072,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         if (col > i) {
             // Forward search
             while (col > i) {
+                if (idx >= stringLen)
+                    return NSMakeRange(NSNotFound, 0);
                 r = [string rangeOfComposedCharacterSequenceAtIndex:idx];
 
                 // Wide chars take up two display cells.
@@ -1084,6 +1088,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         } else if (col < i) {
             // Backward search
             while (col < i) {
+                if (idx-1 >= stringLen)
+                    return NSMakeRange(NSNotFound, 0);
                 r = [string rangeOfComposedCharacterSequenceAtIndex:idx-1];
                 idx -= r.length;
                 --i;
@@ -1111,6 +1117,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
         // Forward search
         while (col > i) {
+            if (idx >= stringLen)
+                return NSMakeRange(NSNotFound, 0);
             r = [string rangeOfComposedCharacterSequenceAtIndex:idx];
 
             // Wide chars take up two display cells.
@@ -1131,6 +1139,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 #else
     idx = r.location;
     for (i = 0; i < col; ++i) {
+        if (idx >= stringLen)
+            return NSMakeRange(NSNotFound, 0);
         r = [string rangeOfComposedCharacterSequenceAtIndex:idx];
 
         // Wide chars take up two display cells.
@@ -1146,6 +1156,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     // Count the number of characters that cover the cells.
     range.location = idx;
     for (i = 0; i < cells; ++i) {
+        if (idx >= stringLen)
+            return NSMakeRange(NSNotFound, 0);
         r = [string rangeOfComposedCharacterSequenceAtIndex:idx];
 
         // Wide chars take up two display cells.
@@ -1174,7 +1186,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     }
 #endif
 
-    if (NSMaxRange(range) > [string length]) {
+    if (NSMaxRange(range) > stringLen) {
         NSLog(@"INTERNAL ERROR [%s] : row=%d col=%d cells=%d --> range=%@",
                 _cmd, row, col, cells, NSStringFromRange(range));
         range.location = NSNotFound;
