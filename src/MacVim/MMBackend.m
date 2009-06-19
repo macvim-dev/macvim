@@ -2159,21 +2159,45 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if (!data) return;
 
     const void *bytes = [data bytes];
-    float pointSize = *((float*)bytes);  bytes += sizeof(float);
-    //unsigned len = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-    bytes += sizeof(unsigned);  // len not used
+    int pointSize = (int)*((float*)bytes);  bytes += sizeof(float);
 
+    unsigned len = *((unsigned*)bytes);  bytes += sizeof(unsigned);
     NSMutableString *name = [NSMutableString stringWithUTF8String:bytes];
-    [name appendString:[NSString stringWithFormat:@":h%d", (int)pointSize]];
+    bytes += len;
+
+    [name appendString:[NSString stringWithFormat:@":h%d", pointSize]];
     char_u *s = (char_u*)[name UTF8String];
+
+    unsigned wlen = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+    char_u *ws = NULL;
+    if (wlen > 0) {
+        NSMutableString *wname = [NSMutableString stringWithUTF8String:bytes];
+        bytes += wlen;
+
+        [wname appendString:[NSString stringWithFormat:@":h%d", pointSize]];
+        ws = (char_u*)[wname UTF8String];
+    }
 
 #ifdef FEAT_MBYTE
     s = CONVERT_FROM_UTF8(s);
+    if (ws) {
+        ws = CONVERT_FROM_UTF8(ws);
+    }
 #endif
 
     set_option_value((char_u*)"guifont", 0, s, 0);
 
+    if (ws && gui.wide_font != NOFONT) {
+        // NOTE: This message is sent on Cmd-+/Cmd-- and as such should only
+        // change the wide font if 'gfw' is non-empty (the frontend always has
+        // some wide font set, even if 'gfw' is empty).
+        set_option_value((char_u*)"guifontwide", 0, ws, 0);
+    }
+
 #ifdef FEAT_MBYTE
+    if (ws) {
+        CONVERT_FROM_UTF8_FREE(ws);
+    }
     CONVERT_FROM_UTF8_FREE(s);
 #endif
 

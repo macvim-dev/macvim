@@ -578,6 +578,40 @@ static float MMDragAreaSize = 73.0f;
     [self setCursor];
 }
 
+- (void)changeFont:(id)sender
+{
+    NSFont *newFont = [sender convertFont:[textView font]];
+    NSFont *newFontWide = [sender convertFont:[textView fontWide]];
+
+    if (newFont) {
+        NSString *name = [newFont displayName];
+        NSString *wideName = [newFontWide displayName];
+        unsigned len = [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        unsigned wideLen = [wideName lengthOfBytesUsingEncoding:
+                                                        NSUTF8StringEncoding];
+        if (len > 0) {
+            NSMutableData *data = [NSMutableData data];
+            float pointSize = [newFont pointSize];
+
+            [data appendBytes:&pointSize length:sizeof(float)];
+
+            ++len;  // include NUL byte
+            [data appendBytes:&len length:sizeof(unsigned)];
+            [data appendBytes:[name UTF8String] length:len];
+
+            if (wideLen > 0) {
+                ++wideLen;  // include NUL byte
+                [data appendBytes:&wideLen length:sizeof(unsigned)];
+                [data appendBytes:[wideName UTF8String] length:wideLen];
+            } else {
+                [data appendBytes:&wideLen length:sizeof(unsigned)];
+            }
+
+            [[self vimController] sendMessage:SetFontMsgID data:data];
+        }
+    }
+}
+
 - (BOOL)hasMarkedText
 {
     return markedRange.length > 0 ? YES : NO;

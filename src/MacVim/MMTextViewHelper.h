@@ -65,6 +65,7 @@ enum {
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)sender;
 - (void)setMouseShape:(int)shape;
+- (void)changeFont:(id)sender;
 
 // Input Manager
 - (BOOL)hasMarkedText;

@@ -780,24 +780,7 @@ defaultLineHeightForFont(NSFont *font)
 
 - (void)changeFont:(id)sender
 {
-    NSFont *newFont = [sender convertFont:font];
-
-    if (newFont) {
-        NSString *name = [newFont displayName];
-        unsigned len = [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        if (len > 0) {
-            NSMutableData *data = [NSMutableData data];
-            float pointSize = [newFont pointSize];
-
-            [data appendBytes:&pointSize length:sizeof(float)];
-
-            ++len;  // include NUL byte
-            [data appendBytes:&len length:sizeof(unsigned)];
-            [data appendBytes:[name UTF8String] length:len];
-
-            [[self vimController] sendMessage:SetFontMsgID data:data];
-        }
-    }
+    [helper changeFont:sender];
 }
 
 
