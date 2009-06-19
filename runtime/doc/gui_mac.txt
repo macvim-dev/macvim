@@ -573,12 +573,15 @@ Cmd-.			Interrupt Vim.  Unlike Ctrl-C which is sent as normal
 			interpreted) this sends a SIGINT signal to the Vim
 			process.  Use this shortcut if the Vim process appears
 			to have locked up and is not responding to key presses.
+			This Cmd-key combination cannot be unmapped.
 
 							*Cmd-`* *<D-`>*
 Cmd-`			Cycle to the next window.  On an American keyboard the
 			`-key is located under the Esc-key.  On European
 			keyboards this key is often adjacent to the left
 			Shift-key and it may be not even be marked with "`".
+			This Cmd-key combination can only be unmapped via the
+			"Keyboard & Mouse" System Preferences.
 
 							*Cmd-Left*  *<D-Left>*
 Cmd-Left		Move cursor to the beginning of the line
@@ -749,6 +752,16 @@ On some Apple keyboards the Caps Lock key doesn't immediately register and
 this makes Caps Lock "drop" key presses.  To work around this problem go into
 the "Keyboard & Mouse" System Preference and remap Caps Lock to Ctrl first
 (click the "Modifier Keys..." button).
+
+Scenario: ~
+You have problems creating custom mappings involving the Cmd key.
+Solution: ~
+To bind to a key involving Cmd you use the "<D-..>" syntax.  Many Cmd-key
+mappings are already used by the menus so if your mapping doesn't work then
+the solution is usually to first unmap the menu binding (see |macvim-menus|,
+in particular read the end of that section).  Also see the section on
+|macvim-shortcuts| for some Cmd-key combinations which are not used by the
+menus but still need to be freed up before they can be used in custom bindings.
 
 Scenario: ~
 You can't find the information on MacVim you thought should be in this manual
