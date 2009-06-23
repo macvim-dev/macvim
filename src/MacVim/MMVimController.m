@@ -263,6 +263,10 @@ static BOOL isUnsafeMessage(int msgid);
     if (splitVert && MMLayoutHorizontalSplit == layout)
         layout = MMLayoutVerticalSplit;
 
+    // Filenames on HFS+ are in NFD but Vim does not handle this form very well
+    // so normalize to NFKC first.
+    filenames = normalizeFilenames(filenames);
+
     NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
             [NSNumber numberWithInt:layout],    @"layout",
             filenames,                          @"filenames",

@@ -135,3 +135,10 @@ enum {
 // release it.
 NSView *showHiddenFilesView();
 
+
+// Convert filenames (which are in decomposed form, NFD, on HFS+) to
+// normalization form combatibility C (NFKC).  (This is necessary because Vim
+// does not automatically compose NFD.  We choose NFKC instead of NFC for the
+// somewhat random reason that this is what is used on Windows and hence
+// hopefully Vim is better prepared for it.)
+NSArray *normalizeFilenames(NSArray *filenames);

@@ -290,3 +290,23 @@ showHiddenFilesView()
 
     return button;
 }
+
+
+
+
+    NSArray *
+normalizeFilenames(NSArray *filenames)
+{
+    NSMutableArray *outnames = [NSMutableArray array];
+    if (!filenames)
+        return outnames;
+
+    unsigned i, count = [filenames count];
+    for (i = 0; i < count; ++i) {
+        NSString *nfkc = [filenames objectAtIndex:i];
+        nfkc = [nfkc precomposedStringWithCompatibilityMapping];
+        [outnames addObject:nfkc];
+    }
+
+    return outnames;
+}
