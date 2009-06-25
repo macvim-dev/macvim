@@ -50,6 +50,8 @@
     unsigned            numWholeLineChanges;
     unsigned            offsetForDrawDataPrune;
     BOOL                imState;
+    CFSocketRef         netbeansSocket;
+    CFRunLoopSourceRef  netbeansRunLoopSource;
 }
 
 + (MMBackend *)sharedInstance;
@@ -134,6 +136,9 @@
 
 - (BOOL)imState;
 - (void)setImState:(BOOL)activated;
+
+- (void)messageFromNetbeans;
+- (void)setNetbeansSocket:(int)socket;
 
 @end
 

@@ -1,6 +1,7 @@
 /* netbeans.c */
 void netbeans_parse_messages __ARGS((void));
 void messageFromNetbeansW32 __ARGS((void));
+void messageFromNetbeansMacVim __ARGS((void));
 int isNetbeansBuffer __ARGS((buf_T *bufp));
 int isNetbeansModified __ARGS((buf_T *bufp));
 void netbeans_end __ARGS((void));

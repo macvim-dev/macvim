@@ -118,6 +118,10 @@ static void netbeans_gtk_connect __ARGS((void));
 #ifdef FEAT_GUI_W32
 static void netbeans_w32_connect __ARGS((void));
 #endif
+#ifdef FEAT_GUI_MACVIM
+static void netbeans_macvim_connect __ARGS((void));
+static int sock_select(int s);
+#endif
 
 static int dosetvisible = FALSE;
 
@@ -224,6 +228,50 @@ netbeans_disconnect(void)
 # endif
 }
 #endif /* FEAT_GUI_W32 */
+
+#if defined(FEAT_GUI_MACVIM) || defined(PROTO)
+    static void
+netbeans_macvim_connect(void)
+{
+    netbeans_connect();
+    if (sd > 0)
+    {
+	/*
+	 * Tell Core Foundation we are interested in being called when there
+	 * is input on the editor connection socket
+	 */
+	gui_macvim_set_netbeans_socket(sd);
+    }
+}
+
+    static void
+netbeans_disconnect(void)
+{
+    if (sd != -1)
+    {
+	sd = -1;
+	gui_macvim_set_netbeans_socket(sd);
+    }
+    haveConnection = FALSE;
+# ifdef FEAT_BEVAL
+    bevalServers &= ~BEVAL_NETBEANS;
+# endif
+}
+
+    static int
+sock_select(int s)
+{
+    fd_set readset;
+    struct timeval timeout;
+
+    FD_ZERO(&readset);
+    FD_SET(s, &readset);
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+
+    return select(s + 1, &readset, NULL, NULL, &timeout);
+}
+#endif /* FEAT_GUI_MACVIM */
 
 #define NB_DEF_HOST "localhost"
 #define NB_DEF_ADDR "3219"
@@ -705,19 +753,22 @@ netbeans_parse_messages(void)
 /* Use this one when generating prototypes, the others are static. */
     void
 messageFromNetbeansW32()
-#else
-# ifdef FEAT_GUI_MOTIF
+#endif
+#ifdef FEAT_GUI_MOTIF
     static void
 messageFromNetbeans(XtPointer clientData UNUSED,
 		    int *unused1 UNUSED,
 		    XtInputId *unused2 UNUSED)
-# endif
-# ifdef FEAT_GUI_GTK
+#endif
+#ifdef FEAT_GUI_GTK
     static void
 messageFromNetbeans(gpointer clientData UNUSED,
 		    gint unused1 UNUSED,
 		    GdkInputCondition unused2 UNUSED)
-# endif
+#endif
+#if defined(FEAT_GUI_MACVIM) || defined(PROTO)
+    void
+messageFromNetbeansMacVim()
 #endif
 {
     static char_u	*buf = NULL;
@@ -732,6 +783,13 @@ messageFromNetbeans(gpointer clientData UNUSED,
 	nbdebug(("messageFromNetbeans() called without a socket\n"));
 	return;
     }
+
+#ifdef FEAT_GUI_MACVIM
+    /* It may happen that socket is not readable because socket has been already
+     * read by timing of CFRunLoop callback. So check socket using select. */
+    if (sock_select(sd) <= 0)
+	return;
+#endif
 
 #ifndef FEAT_GUI_GTK
     ++level;  /* recursion guard; this will be called from the X event loop */
@@ -2806,6 +2864,10 @@ netbeans_startup_done(void)
 # else
 #  ifdef FEAT_GUI_W32
 	netbeans_w32_connect();
+#  else
+#   ifdef FEAT_GUI_MACVIM
+	netbeans_macvim_connect();
+#   endif
 #  endif
 # endif
 #endif

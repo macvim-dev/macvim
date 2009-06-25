@@ -177,6 +177,7 @@ enum {
     DeactivatedImMsgID,
     BrowseForFileMsgID,
     ShowDialogMsgID,
+    NetBeansMsgID,
     LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
 };
 

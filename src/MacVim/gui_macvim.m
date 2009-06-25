@@ -74,6 +74,19 @@ gui_mch_prepare(int *argc, char **argv)
             break;
         }
     }
+
+#ifdef FEAT_NETBEANS_INTG
+    for (i = 0; i < *argc; ++i) {
+        if (strncmp(argv[i], "-nb", 3) == 0) {
+            usingNetbeans++;
+            netbeansArg = argv[i];
+            --*argc;
+            if (*argc > i)
+                mch_memmove(&argv[i], &argv[i+1], (*argc-i) * sizeof(char*));
+            break;
+        }
+    }
+#endif
 }
 
 
@@ -2180,3 +2193,18 @@ static int vimModMaskToEventModifierFlags(int mods)
 
     return flags;
 }
+
+
+
+// -- NetBeans Support ------------------------------------------------------
+
+#ifdef FEAT_NETBEANS_INTG
+
+/* Set NetBeans socket to CFRunLoop */
+    void
+gui_macvim_set_netbeans_socket(int socket)
+{
+    [[MMBackend sharedInstance] setNetbeansSocket:socket];
+}
+
+#endif // FEAT_NETBEANS_INTG

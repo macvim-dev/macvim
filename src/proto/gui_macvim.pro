@@ -216,3 +216,6 @@ gui_mch_find_dialog(exarg_T *eap);
 gui_mch_replace_dialog(exarg_T *eap);
     void
 im_set_control(int enable);
+
+    void
+gui_macvim_set_netbeans_socket(int socket);

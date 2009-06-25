@@ -1472,6 +1472,51 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     imState = activated;
 }
 
+static void netbeansReadCallback(CFSocketRef s,
+                                 CFSocketCallBackType callbackType,
+                                 CFDataRef address,
+                                 const void *data,
+                                 void *info)
+{
+    // NetBeans socket is readable.
+    [[MMBackend sharedInstance] messageFromNetbeans];
+}
+
+- (void)messageFromNetbeans
+{
+    [inputQueue addObject:[NSNumber numberWithInt:NetBeansMsgID]];
+    [inputQueue addObject:[NSNull null]];
+}
+
+- (void)setNetbeansSocket:(int)socket
+{
+    if (netbeansSocket) {
+        CFRelease(netbeansSocket);
+        netbeansSocket = NULL;
+    }
+
+    if (netbeansRunLoopSource) {
+        CFRunLoopSourceInvalidate(netbeansRunLoopSource);
+        netbeansRunLoopSource = NULL;
+    }
+
+    if (socket == -1)
+        return;
+
+    // Tell CFRunLoop that we are interested in NetBeans socket input.
+    netbeansSocket = CFSocketCreateWithNative(kCFAllocatorDefault,
+                                              socket,
+                                              kCFSocketReadCallBack,
+                                              &netbeansReadCallback,
+                                              NULL);
+    netbeansRunLoopSource = CFSocketCreateRunLoopSource(NULL,
+                                                        netbeansSocket,
+                                                        0);
+    CFRunLoopAddSource(CFRunLoopGetCurrent(),
+                       netbeansRunLoopSource,
+                       kCFRunLoopCommonModes);
+}
+
 @end // MMBackend
 
 
@@ -1798,6 +1843,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self setImState:YES];
     } else if (DeactivatedImMsgID == msgid) {
         [self setImState:NO];
+    } else if (NetBeansMsgID == msgid) {
+#ifdef FEAT_NETBEANS_INTG
+        messageFromNetbeansMacVim();
+#endif
     } else {
         NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
     }

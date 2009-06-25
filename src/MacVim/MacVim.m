@@ -92,6 +92,7 @@ char *MessageStrings[] =
     "DeactivatedImMsgID",
     "BrowseForFileMsgID",
     "ShowDialogMsgID",
+    "NetBeansMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 
