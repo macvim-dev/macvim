@@ -153,6 +153,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 + (void)initialize
 {
+    static BOOL initDone = NO;
+    if (initDone) return;
+    initDone = YES;
+
+    ASLInit();
+
     NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
         [NSNumber numberWithBool:NO],   MMNoWindowKey,
         [NSNumber numberWithInt:64],    MMTabMinWidthKey,

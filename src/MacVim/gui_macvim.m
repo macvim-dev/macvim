@@ -42,6 +42,7 @@ vimmenu_T *menu_for_descriptor(NSArray *desc);
  * Parse the GUI related command-line arguments.  Any arguments used are
  * deleted from argv, and *argc is decremented accordingly.  This is called
  * when vim is started, whether or not the GUI has been started.
+ * NOTE: This function will be called twice if the Vim process forks.
  */
     void
 gui_mch_prepare(int *argc, char **argv)
@@ -110,6 +111,7 @@ gui_mch_init_check(void)
 gui_mch_init(void)
 {
     //NSLog(@"gui_mch_init()");
+    ASLInit();
 
     if (![[MMBackend sharedInstance] checkin]) {
         // TODO: Kill the process if there is no terminal to fall back on,
