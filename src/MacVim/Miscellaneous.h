@@ -12,14 +12,6 @@
 #import <Cocoa/Cocoa.h>
 #import "MacVim.h"
 
-#define MM_LOG_DEALLOCATIONS 0
-
-
-#if MM_LOG_DEALLOCATIONS
-# define LOG_DEALLOC NSLog(@"%s %@", _cmd, [self className]);
-#else
-# define LOG_DEALLOC
-#endif
 
 
 // NSUserDefaults keys

@@ -157,16 +157,17 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if (path)
         actionDict = [[NSDictionary dictionaryWithContentsOfFile:path] retain];
 
-    if (!(colorDict && sysColorDict && actionDict))
-        NSLog(@"ERROR: Failed to load dictionaries.%@",
-                MMSymlinkWarningString);
+    if (!(colorDict && sysColorDict && actionDict)) {
+        ASLogNotice(@"Failed to load dictionaries.%@", MMSymlinkWarningString);
+    }
 
     return self;
 }
 
 - (void)dealloc
 {
-    //NSLog(@"%@ %s", [self className], _cmd);
+    ASLogDebug(@"");
+
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     gui_mch_free_font(oldWideFont);  oldWideFont = NOFONT;
@@ -282,8 +283,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         }
 
         if (noErr != status) {
-        NSLog(@"ERROR: Failed to launch MacVim (path=%@).%@",
-                path, MMSymlinkWarningString);
+        ASLogCrit(@"Failed to launch MacVim (path=%@).%@",
+                  path, MMSymlinkWarningString);
             return NO;
         }
 #else
@@ -302,8 +303,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                 objectForKey:@"CFBundleExecutable"];
         NSString *path = [mainBundle pathForAuxiliaryExecutable:exeName];
         if (!path) {
-            NSLog(@"ERROR: Could not find MacVim executable in bundle.%@",
-                    MMSymlinkWarningString);
+            ASLogCrit(@"Could not find MacVim executable in bundle.%@",
+                      MMSymlinkWarningString);
             return NO;
         }
 
@@ -322,7 +323,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
         // NOTE: [self connection] will set 'connection' as a side-effect.
         if (!connection) {
-            NSLog(@"WARNING: Timed-out waiting for GUI to launch.");
+            ASLogCrit(@"Timed-out waiting for GUI to launch.");
             return NO;
         }
     }
@@ -346,7 +347,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         return YES;
     }
     @catch (NSException *e) {
-        NSLog(@"Exception caught when trying to connect backend: \"%@\"", e);
+        ASLogWarn(@"Exception caught when trying to connect backend: %@", e);
     }
 
     return NO;
@@ -505,16 +506,15 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self insertVimStateMessage];
 
         @try {
-            //NSLog(@"[%s] Flushing (count=%d)", _cmd, [outputQueue count]);
+            ASLogDebug(@"Flushing queue: %@",
+                       debugStringForMessageQueue(outputQueue));
             [appProxy processInput:outputQueue forIdentifier:identifier];
         }
         @catch (NSException *e) {
-            NSLog(@"[%s] Exception caught: \"%@\"", _cmd, e);
-            NSLog(@"outputQueue(len:%d)=%@", [outputQueue count]/2,
-                    outputQueue);
+            ASLogWarn(@"Exception caught: %@", e);
             if (![connection isValid]) {
-                NSLog(@"WARNING! Connection is invalid, exit now!");
-                NSLog(@"waitForAck=%d got_int=%d", waitForAck, got_int);
+                ASLogNotice(@"Connection is invalid, exit now!");
+                ASLogDebug(@"waitForAck=%d got_int=%d", waitForAck, got_int);
                 mch_exit(-1);
             }
         }
@@ -575,10 +575,12 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             // Flush the entire queue in case a VimLeave autocommand added
             // something to the queue.
             [self queueMessage:CloseWindowMsgID data:nil];
+            ASLogDebug(@"Flush output queue before exit: %@",
+                       debugStringForMessageQueue(outputQueue));
             [appProxy processInput:outputQueue forIdentifier:identifier];
         }
         @catch (NSException *e) {
-            NSLog(@"Exception caught when sending CloseWindowMsgID: \"%@\"", e);
+            ASLogWarn(@"Exception caught when sending CloseWindowMsgID: %@", e);
         }
 
         // NOTE: If Cmd-w was pressed to close the window the menu is briefly
@@ -601,8 +603,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (void)selectTab:(int)index
 {
-    //NSLog(@"%s%d", _cmd, index);
-
     index -= 1;
     NSData *data = [NSData dataWithBytes:&index length:sizeof(int)];
     [self queueMessage:SelectTabMsgID data:data];
@@ -610,8 +610,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (void)updateTabBar
 {
-    //NSLog(@"%s", _cmd);
-
     NSMutableData *data = [NSMutableData data];
 
     int idx = tabpage_index(curtab) - 1;
@@ -659,8 +657,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (void)setRows:(int)rows columns:(int)cols
 {
-    //NSLog(@"[VimTask] setRows:%d columns:%d", rows, cols);
-
     int dim[] = { rows, cols };
     NSData *data = [NSData dataWithBytes:&dim length:2*sizeof(int)];
 
@@ -707,7 +703,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [dialogReturn release];  dialogReturn = nil;
     }
     @catch (NSException *e) {
-        NSLog(@"[%s] Exception caught: \"%@\"", _cmd, e);
+        ASLogWarn(@"Exception caught: %@", e);
     }
 
     return (char *)s;
@@ -715,6 +711,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (oneway void)setDialogReturn:(in bycopy id)obj
 {
+    ASLogDebug(@"%@", obj);
+
     // NOTE: This is called by
     //   - [MMVimController panelDidEnd:::], and
     //   - [MMVimController alertDidEnd:::],
@@ -760,7 +758,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [dialogReturn release]; dialogReturn = nil;
     }
     @catch (NSException *e) {
-        NSLog(@"[%s] Exception caught: \"%@\"", _cmd, e);
+        ASLogWarn(@"Exception caught: %@", e);
     }
 
     return retval;
@@ -981,7 +979,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         }
     }
 
-    //NSLog(@"WARNING: No color with key %@ found.", stripKey);
+    ASLogNotice(@"No color with key %@ found.", stripKey);
     return INVALCOLOR;
 }
 
@@ -1195,7 +1193,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (oneway void)addReply:(in bycopy NSString *)reply
                  server:(in byref id <MMVimServerProtocol>)server
 {
-    //NSLog(@"addReply:%@ server:%@", reply, (id)server);
+    ASLogDebug(@"reply=%@ server=%@", reply, (id)server);
 
     // Replies might come at any time and in any order so we keep them in an
     // array inside a dictionary with the send port used as key.
@@ -1217,7 +1215,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)addInput:(in bycopy NSString *)input
           client:(in byref id <MMVimClientProtocol>)client
 {
-    //NSLog(@"addInput:%@ client:%@", input, (id)client);
+    ASLogDebug(@"input=%@ client=%@", input, (id)client);
 
     // NOTE: We don't call addInput: here because it differs from
     // server_to_input_buf() in that it always sets the 'silent' flag and we
@@ -1247,7 +1245,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         NSString *connName = [self connectionNameFromServerName:svrName];
 
         if ([svrConn registerName:connName]) {
-            //NSLog(@"Registered server with name: %@", svrName);
+            ASLogInfo(@"Registered server with name: %@", svrName);
 
             // TODO: Set request/reply time-outs to something else?
             //
@@ -1323,7 +1321,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         }
     }
     @catch (NSException *e) {
-        NSLog(@"WARNING: Caught exception in %s: \"%@\"", _cmd, e);
+        ASLogWarn(@"Caught exception: %@", e);
         return NO;
     }
 
@@ -1342,7 +1340,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             list = [proxy serverList];
         }
         @catch (NSException *e) {
-            NSLog(@"Exception caught when listing servers: \"%@\"", e);
+            ASLogWarn(@"Exception caught when listing servers: %@", e);
         }
     } else {
         EMSG(_("E???: No connection to MacVim, server listing not possible."));
@@ -1353,23 +1351,23 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (NSString *)peekForReplyOnPort:(int)port
 {
-    //NSLog(@"%s%d", _cmd, port);
+    ASLogDebug(@"port=%d", port);
 
     NSNumber *key = [NSNumber numberWithInt:port];
     NSMutableArray *replies = [serverReplyDict objectForKey:key];
     if (replies && [replies count]) {
-        //NSLog(@"    %d replies, topmost is: %@", [replies count],
-        //        [replies objectAtIndex:0]);
+        ASLogDebug(@"    %d replies, topmost is: %@", [replies count],
+                   [replies objectAtIndex:0]);
         return [replies objectAtIndex:0];
     }
 
-    //NSLog(@"    No replies");
+    ASLogDebug(@"    No replies");
     return nil;
 }
 
 - (NSString *)waitForReplyOnPort:(int)port
 {
-    //NSLog(@"%s%d", _cmd, port);
+    ASLogDebug(@"port=%d", port);
     
     NSConnection *conn = [self connectionForServerPort:port];
     if (!conn)
@@ -1390,7 +1388,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if (replies) {
         if ([replies count] > 0) {
             reply = [[replies objectAtIndex:0] retain];
-            //NSLog(@"    Got reply: %@", reply);
+            ASLogDebug(@"    Got reply: %@", reply);
             [replies removeObjectAtIndex:0];
             [reply autorelease];
         }
@@ -1407,12 +1405,12 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     id client = [clientProxyDict objectForKey:[NSNumber numberWithInt:port]];
     if (client) {
         @try {
-            //NSLog(@"sendReply:%@ toPort:%d", reply, port);
+            ASLogDebug(@"reply=%@ port=%d", reply, port);
             [client addReply:reply server:self];
             return YES;
         }
         @catch (NSException *e) {
-            NSLog(@"WARNING: Exception caught in %s: \"%@\"", _cmd, e);
+            ASLogWarn(@"Exception caught: %@", e);
         }
     } else {
         EMSG2(_("E???: server2client failed; no client with id 0x%x"), port);
@@ -1438,12 +1436,12 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     while (waitForAck && !got_int && [connection isValid]) {
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                                  beforeDate:[NSDate distantFuture]];
-        //NSLog(@"  waitForAck=%d got_int=%d isValid=%d",
-        //        waitForAck, got_int, [connection isValid]);
+        ASLogDebug(@"  waitForAck=%d got_int=%d isValid=%d",
+                   waitForAck, got_int, [connection isValid]);
     }
 
     if (waitForAck) {
-        // Never received a connection acknowledgement, so die.
+        ASLogDebug(@"Never received a connection acknowledgement");
         [[NSNotificationCenter defaultCenter] removeObserver:self];
         [appProxy release];  appProxy = nil;
 
@@ -1453,12 +1451,13 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         exit(0);
     }
 
+    ASLogInfo(@"Connection acknowledgement received");
     [self processInputQueue];
 }
 
 - (oneway void)acknowledgeConnection
 {
-    //NSLog(@"%s", _cmd);
+    ASLogDebug(@"");
     waitForAck = NO;
 }
 
@@ -1647,12 +1646,11 @@ static void netbeansReadCallback(CFSocketRef s,
         if ([data isEqual:[NSNull null]])
             data = nil;
 
-        //NSLog(@"(%d) %s:%s", i, _cmd, MessageStrings[msgid]);
+        ASLogDebug(@"(%d) %s", i, MessageStrings[msgid]);
         [self handleInputEvent:msgid data:data];
     }
 
     [q release];
-    //NSLog(@"Clear input event queue");
 }
 
 - (void)handleInputEvent:(int)msgid data:(NSData *)data
@@ -1751,16 +1749,13 @@ static void netbeansReadCallback(CFSocketRef s,
         if (!data) return;
         const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
-        //NSLog(@"Selecting tab %d", idx);
         send_tabline_event(idx);
     } else if (CloseTabMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
-        //NSLog(@"Closing tab %d", idx);
         send_tabline_menu_event(idx, TABLINE_MENU_CLOSE);
     } else if (AddNewTabMsgID == msgid) {
-        //NSLog(@"Adding new tab");
         send_tabline_menu_event(0, TABLINE_MENU_NEW);
     } else if (DraggedTabMsgID == msgid) {
         if (!data) return;
@@ -1801,7 +1796,6 @@ static void netbeansReadCallback(CFSocketRef s,
         // since we need to be able to determine where a message originated.
         [self queueMessage:msgid data:d];
 
-        //NSLog(@"[VimTask] Resizing shell to %dx%d.", cols, rows);
         gui_resize_shell(cols, rows);
     } else if (ExecuteMenuMsgID == msgid) {
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
@@ -1848,7 +1842,7 @@ static void netbeansReadCallback(CFSocketRef s,
         messageFromNetbeansMacVim();
 #endif
     } else {
-        NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
+        ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }
 }
 
@@ -1915,7 +1909,7 @@ static void netbeansReadCallback(CFSocketRef s,
     NSString *specialString = [[MMBackend specialKeys]
             objectForKey:key];
     if (specialString && [specialString length] > 1) {
-        //NSLog(@"special key: %@", specialString);
+        //ASLogDebug(@"special key: %@", specialString);
         int ikey = TO_SPECIAL([specialString characterAtIndex:0],
                 [specialString characterAtIndex:1]);
 
@@ -2010,8 +2004,8 @@ static void netbeansReadCallback(CFSocketRef s,
         return;
     } else if (length > 0) {
         unichar c = [key characterAtIndex:0];
-        //NSLog(@"non-special: %@ (hex=%x, mods=%d)", key,
-        //        [key characterAtIndex:0], mods);
+        //ASLogDebug(@"non-special: %@ (hex=%x, mods=%d)", key,
+        //           [key characterAtIndex:0], mods);
 
         // HACK!  In most circumstances the Ctrl and Shift modifiers should be
         // cleared since they are already added to the key by the AppKit.
@@ -2021,7 +2015,7 @@ static void netbeansReadCallback(CFSocketRef s,
                     || 0x9 == c || 0xd == c || ESC == c) ) {
             mods &= ~MOD_MASK_SHIFT;
             mods &= ~MOD_MASK_CTRL;
-            //NSLog(@"clear shift ctrl");
+            //ASLogDebug(@"clear shift ctrl");
         }
 
 #ifdef FEAT_MBYTE
@@ -2035,14 +2029,14 @@ static void netbeansReadCallback(CFSocketRef s,
 
     if (chars && length > 0) {
         if (mods) {
-            //NSLog(@"adding mods: %d", mods);
+            //ASLogDebug(@"adding mods: %d", mods);
             modChars[0] = CSI;
             modChars[1] = KS_MODIFIER;
             modChars[2] = mods;
             add_to_input_buf(modChars, 3);
         }
 
-        //NSLog(@"add to input buf: 0x%x", chars[0]);
+        //ASLogDebug(@"add to input buf: 0x%x", chars[0]);
         // TODO: Check for CSI bytes?
         add_to_input_buf(chars, length);
     }
@@ -2055,9 +2049,6 @@ static void netbeansReadCallback(CFSocketRef s,
 
 - (void)queueMessage:(int)msgid data:(NSData *)data
 {
-    //if (msgid != EnableMenuItemMsgID)
-    //    NSLog(@"queueMessage:%s", MessageStrings[msgid]);
-
     [outputQueue addObject:[NSData dataWithBytes:&msgid length:sizeof(int)]];
     if (data)
         [outputQueue addObject:data];
@@ -2073,8 +2064,8 @@ static void netbeansReadCallback(CFSocketRef s,
     //
     // NOTE: This is not called if a Vim controller invalidates its connection.
 
-    NSLog(@"WARNING[%s]: Main connection was lost before process had a chance "
-            "to terminate; preserving swap files.", _cmd);
+    ASLogNotice(@"Main connection was lost before process had a chance "
+                "to terminate; preserving swap files.");
     getout_preserve_modified(1);
 }
 
@@ -2179,7 +2170,6 @@ static void netbeansReadCallback(CFSocketRef s,
             break;
         }
 
-        //NSLog(@"value %d -> %d", sb_info->value, value);
         gui_drag_scrollbar(sb, value, isStillDragging);
 
         if (updateKnob) {
@@ -2376,8 +2366,7 @@ static void netbeansReadCallback(CFSocketRef s,
             if (remotePath)
                 buf->b_odb_fname = [remotePath vimStringSave];
         } else {
-            NSLog(@"WARNING: Could not find buffer '%@' for ODB editing.",
-                    filename);
+            ASLogWarn(@"Could not find buffer '%@' for ODB editing.", filename);
         }
     }
 #endif // FEAT_ODB_EDITOR
@@ -2416,7 +2405,7 @@ static void netbeansReadCallback(CFSocketRef s,
     // remoteTokenDescType      ODB parameter
     // remoteTokenData          ODB parameter
 
-    //NSLog(@"%s%@ (starting=%d)", _cmd, args, starting);
+    ASLogDebug(@"args=%@ (starting=%d)", args, starting);
 
     NSArray *filenames = [args objectForKey:@"filenames"];
     int i, numFiles = filenames ? [filenames count] : 0;
@@ -2737,8 +2726,8 @@ static void netbeansReadCallback(CFSocketRef s,
                                                            host:nil];
         // Try alternate server...
         if (!svrConn && alternateServerName) {
-            //NSLog(@"  trying to connect to alternate server: %@",
-            //        alternateServerName);
+            ASLogInfo(@"  trying to connect to alternate server: %@",
+                      alternateServerName);
             connName = [self connectionNameFromServerName:alternateServerName];
             svrConn = [NSConnection connectionWithRegisteredName:connName
                                                             host:nil];
@@ -2746,10 +2735,10 @@ static void netbeansReadCallback(CFSocketRef s,
 
         // Try looking for alternate servers...
         if (!svrConn) {
-            //NSLog(@"  looking for alternate servers...");
+            ASLogInfo(@"  looking for alternate servers...");
             NSString *alt = [self alternateServerNameForName:name];
             if (alt != alternateServerName) {
-                //NSLog(@"  found alternate server: %@", string);
+                ASLogInfo(@"  found alternate server: %@", alt);
                 [alternateServerName release];
                 alternateServerName = [alt copy];
             }
@@ -2757,8 +2746,8 @@ static void netbeansReadCallback(CFSocketRef s,
 
         // Try alternate server again...
         if (!svrConn && alternateServerName) {
-            //NSLog(@"  trying to connect to alternate server: %@",
-            //        alternateServerName);
+            ASLogInfo(@"  trying to connect to alternate server: %@",
+                      alternateServerName);
             connName = [self connectionNameFromServerName:alternateServerName];
             svrConn = [NSConnection connectionWithRegisteredName:connName
                                                             host:nil];
@@ -2767,7 +2756,8 @@ static void netbeansReadCallback(CFSocketRef s,
         if (svrConn) {
             [connectionNameDict setObject:svrConn forKey:connName];
 
-            //NSLog(@"Adding %@ as connection observer for %@", self, svrConn);
+            ASLogDebug(@"Adding %@ as connection observer for %@",
+                       self, svrConn);
             [[NSNotificationCenter defaultCenter] addObserver:self
                     selector:@selector(serverConnectionDidDie:)
                         name:NSConnectionDidDieNotification object:svrConn];
@@ -2793,11 +2783,11 @@ static void netbeansReadCallback(CFSocketRef s,
 
 - (void)serverConnectionDidDie:(NSNotification *)notification
 {
-    //NSLog(@"%s%@", _cmd, notification);
+    ASLogDebug(@"notification=%@", notification);
 
     NSConnection *svrConn = [notification object];
 
-    //NSLog(@"Removing %@ as connection observer from %@", self, svrConn);
+    ASLogDebug(@"Removing %@ as connection observer from %@", self, svrConn);
     [[NSNotificationCenter defaultCenter]
             removeObserver:self
                       name:NSConnectionDidDieNotification

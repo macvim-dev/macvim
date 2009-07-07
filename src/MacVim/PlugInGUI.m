@@ -120,7 +120,7 @@ NSString *MMPlugInViewPboardType = @"MMPlugInViewPboardType";
     if ((self = [super init]) == nil) return nil;
 
     if (![NSBundle loadNibNamed:@"PlugInView" owner:self])
-        NSLog(@"Error loading PlugIn nib");
+        ASLogErr(@"Error loading PlugIn nib");
 
     [titleField setStringValue:title];
 
@@ -196,6 +196,8 @@ NSString *MMPlugInViewPboardType = @"MMPlugInViewPboardType";
 
 - (void)dealloc
 {
+    ASLogDebug(@"");
+
     [fillerView release]; fillerView = nil;
     [super dealloc];
 }

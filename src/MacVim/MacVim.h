@@ -332,7 +332,7 @@ void ASLInit();
 
 #define ASLog(level, fmt, ...) \
     if (level <= ASLogLevel) { \
-        asl_log(NULL, NULL, level, "%s@%d %s", \
+        asl_log(NULL, NULL, level, "%s@%d: %s", \
             __PRETTY_FUNCTION__, __LINE__, \
             [[NSString stringWithFormat:fmt, ##__VA_ARGS__] UTF8String]); \
     }

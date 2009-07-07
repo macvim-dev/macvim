@@ -139,7 +139,7 @@ defaultLineHeightForFont(NSFont *font)
 
 - (void)dealloc
 {
-    LOG_DEALLOC
+    ASLogDebug(@"");
 
     [self disposeAtsuStyles];
     [font release];  font = nil;
@@ -588,7 +588,7 @@ defaultLineHeightForFont(NSFont *font)
         [self resizeContentImage];
 
 #if MM_DEBUG_DRAWING
-    NSLog(@"====> BEGIN %s", _cmd);
+    ASLogDebug(@"====> BEGIN %s", _cmd);
 #endif
     [self beginDrawing];
 
@@ -599,7 +599,7 @@ defaultLineHeightForFont(NSFont *font)
 
         if (ClearAllDrawType == type) {
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Clear all");
+            ASLogDebug(@"   Clear all");
 #endif
             [self clearAll];
         } else if (ClearBlockDrawType == type) {
@@ -610,8 +610,8 @@ defaultLineHeightForFont(NSFont *font)
             int col2 = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Clear block (%d,%d) -> (%d,%d)", row1, col1,
-                    row2,col2);
+            ASLogDebug(@"   Clear block (%d,%d) -> (%d,%d)", row1, col1,
+                       row2,col2);
 #endif
             [self clearBlockFromRow:row1 column:col1
                     toRow:row2 column:col2
@@ -625,7 +625,7 @@ defaultLineHeightForFont(NSFont *font)
             int right = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Delete %d line(s) from %d", count, row);
+            ASLogDebug(@"   Delete %d line(s) from %d", count, row);
 #endif
             [self deleteLinesFromRow:row lineCount:count
                     scrollBottom:bot left:left right:right
@@ -647,8 +647,8 @@ defaultLineHeightForFont(NSFont *font)
                            freeWhenDone:NO];
             bytes += len;
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Draw string at (%d,%d) length=%d flags=%d fg=0x%x "
-                    "bg=0x%x sp=0x%x", row, col, len, flags, fg, bg, sp);
+            ASLogDebug(@"   Draw string at (%d,%d) length=%d flags=%d fg=0x%x "
+                       "bg=0x%x sp=0x%x", row, col, len, flags, fg, bg, sp);
 #endif
             unichar *characters = malloc(sizeof(unichar) * [string length]);
             [string getCharacters:characters];
@@ -672,7 +672,7 @@ defaultLineHeightForFont(NSFont *font)
             int right = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Insert %d line(s) at row %d", count, row);
+            ASLogDebug(@"   Insert %d line(s) at row %d", count, row);
 #endif
             [self insertLinesAtRow:row lineCount:count
                              scrollBottom:bot left:left right:right
@@ -685,7 +685,7 @@ defaultLineHeightForFont(NSFont *font)
             int percent = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Draw cursor at (%d,%d)", row, col);
+            ASLogDebug(@"   Draw cursor at (%d,%d)", row, col);
 #endif
             [helper setInsertionPointColor:[NSColor colorWithRgbInt:color]];
             [self drawInsertionPointAtRow:row column:col shape:shape
@@ -698,8 +698,8 @@ defaultLineHeightForFont(NSFont *font)
             /*int invert = *((int*)bytes);*/  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Draw inverted rect: row=%d col=%d nrows=%d ncols=%d",
-                    row, col, nr, nc);
+            ASLogDebug(@"   Draw inverted rect: row=%d col=%d nrows=%d "
+                       "ncols=%d", row, col, nr, nc);
 #endif
             [self drawInvertedRectAtRow:row column:col numRows:nr
                              numColumns:nc];
@@ -709,7 +709,7 @@ defaultLineHeightForFont(NSFont *font)
             /*cursorRow = *((int*)bytes);*/  bytes += sizeof(int);
             /*cursorCol = *((int*)bytes);*/  bytes += sizeof(int);
         } else {
-            NSLog(@"WARNING: Unknown draw type (type=%d)", type);
+            ASLogWarn(@"Unknown draw type (type=%d)", type);
         }
     }
 
@@ -723,7 +723,7 @@ defaultLineHeightForFont(NSFont *font)
         [self display];
 
 #if MM_DEBUG_DRAWING
-    NSLog(@"<==== END   %s", _cmd);
+    ASLogDebug(@"<==== END   %s", _cmd);
 #endif
 }
 
@@ -1032,7 +1032,6 @@ defaultLineHeightForFont(NSFont *font)
 
 - (void)resizeContentImage
 {
-    //NSLog(@"resizeContentImage");
     [contentImage release];
     contentImage = [[NSImage alloc] initWithSize:[self textAreaSize]];
     [contentImage setFlipped:YES];
@@ -1089,8 +1088,6 @@ defaultLineHeightForFont(NSFont *font)
 
     ATSUSetAttributes(style, sizeof(attribValues) / sizeof(attribValues[0]),
                       attribTags, attribSizes, attribValues);
-
-    // NSLog(@"drawString: %d", length);
 
     ATSUCreateTextLayout(&layout);
     ATSUSetTextPointerLocation(layout, string,
@@ -1218,8 +1215,6 @@ defaultLineHeightForFont(NSFont *font)
     NSPoint origin = [self originForRow:row column:col];
     NSRect rect = NSMakeRect(origin.x, origin.y,
                              cellSize.width, cellSize.height);
-
-    // NSLog(@"shape = %d, fraction: %d", shape, percent);
 
     if (MMInsertionPointHorizontal == shape) {
         int frac = (cellSize.height * percent + 99)/100;

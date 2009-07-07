@@ -112,7 +112,7 @@
 
 - (void)dealloc
 {
-    LOG_DEALLOC
+    ASLogDebug(@"");
 
     if (invertRects) {
         free(invertRects);
@@ -153,7 +153,7 @@
     int cursorRow = -1, cursorCol = 0;
 
 #if MM_DEBUG_DRAWING
-    NSLog(@"====> BEGIN %s", _cmd);
+    ASLogDebug(@"====> BEGIN %s", _cmd);
 #endif
     [textStorage beginEditing];
 
@@ -164,7 +164,7 @@
 
         if (ClearAllDrawType == type) {
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Clear all");
+            ASLogDebug(@"   Clear all");
 #endif
             [textStorage clearAll];
         } else if (ClearBlockDrawType == type) {
@@ -175,8 +175,8 @@
             int col2 = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Clear block (%d,%d) -> (%d,%d)", row1, col1,
-                    row2,col2);
+            ASLogDebug(@"   Clear block (%d,%d) -> (%d,%d)", row1, col1,
+                       row2,col2);
 #endif
             [textStorage clearBlockFromRow:row1 column:col1
                     toRow:row2 column:col2
@@ -190,7 +190,7 @@
             int right = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Delete %d line(s) from %d", count, row);
+            ASLogDebug(@"   Delete %d line(s) from %d", count, row);
 #endif
             [textStorage deleteLinesFromRow:row lineCount:count
                     scrollBottom:bot left:left right:right
@@ -210,9 +210,9 @@
             bytes += len;
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Draw string at (%d,%d) length=%d flags=%d fg=0x%x "
-                    "bg=0x%x sp=0x%x (%@)", row, col, len, flags, fg, bg, sp,
-                    len > 0 ? [string substringToIndex:1] : @"");
+            ASLogDebug(@"   Draw string at (%d,%d) length=%d flags=%d fg=0x%x "
+                       "bg=0x%x sp=0x%x (%@)", row, col, len, flags, fg, bg, sp,
+                       len > 0 ? [string substringToIndex:1] : @"");
 #endif
             // NOTE: If this is a call to draw the (block) cursor, then cancel
             // any previous request to draw the insertion point, or it might
@@ -237,7 +237,7 @@
             int right = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Insert %d line(s) at row %d", count, row);
+            ASLogDebug(@"   Insert %d line(s) at row %d", count, row);
 #endif
             [textStorage insertLinesAtRow:row lineCount:count
                              scrollBottom:bot left:left right:right
@@ -250,7 +250,7 @@
             int percent = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Draw cursor at (%d,%d)", row, col);
+            ASLogDebug(@"   Draw cursor at (%d,%d)", row, col);
 #endif
             [helper setInsertionPointColor:[NSColor colorWithRgbInt:color]];
             [self drawInsertionPointAtRow:row column:col shape:shape
@@ -263,8 +263,8 @@
             int invert = *((int*)bytes);  bytes += sizeof(int);
 
 #if MM_DEBUG_DRAWING
-            NSLog(@"   Draw inverted rect: row=%d col=%d nrows=%d ncols=%d",
-                    row, col, nr, nc);
+            ASLogDebug(@"   Draw inverted rect: row=%d col=%d nrows=%d "
+                       "ncols=%d", row, col, nr, nc);
 #endif
             [self drawInvertedRectAtRow:row column:col numRows:nr numColumns:nc
                                  invert:invert];
@@ -272,7 +272,7 @@
             cursorRow = *((int*)bytes);  bytes += sizeof(int);
             cursorCol = *((int*)bytes);  bytes += sizeof(int);
         } else {
-            NSLog(@"WARNING: Unknown draw type (type=%d)", type);
+            ASLogWarn(@"Unknown draw type (type=%d)", type);
         }
     }
 
@@ -293,7 +293,7 @@
         [self display];
 
 #if MM_DEBUG_DRAWING
-    NSLog(@"<==== END   %s", _cmd);
+    ASLogDebug(@"<==== END   %s", _cmd);
 #endif
 }
 
@@ -450,9 +450,6 @@
 
     if (row) *row = floor((point.y-origin.y-1) / cellSize.height);
     if (column) *column = floor((point.x-origin.x-1) / cellSize.width);
-
-    //NSLog(@"convertPoint:%@ toRow:%d column:%d", NSStringFromPoint(point),
-    //        *row, *column);
 
     return YES;
 }
@@ -624,10 +621,6 @@
         // NOTE: We only draw the cursor once and rely on Vim to say when it
         // should be drawn again.
         shouldDrawInsertionPoint = NO;
-
-        //NSLog(@"%s draw insertion point %@ shape=%d color=%@", _cmd,
-        //        NSStringFromRect(ipRect), insertionPointShape,
-        //        [helper insertionPointColor]);
     }
 
 #if 0

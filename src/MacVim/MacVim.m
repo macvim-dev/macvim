@@ -122,7 +122,8 @@ debugStringForMessageQueue(NSArray *queue)
 {
     NSMutableString *s = [NSMutableString new];
     unsigned i, count = [queue count];
-    int item = 0, menu = 0, enable = 0;
+    int item = 0, menu = 0, enable = 0, remove = 0;
+    int sets = 0, sett = 0, shows = 0, cres = 0, dess = 0;
     for (i = 0; i < count; i += 2) {
         NSData *value = [queue objectAtIndex:i];
         int msgid = *((int*)[value bytes]);
@@ -131,11 +132,23 @@ debugStringForMessageQueue(NSArray *queue)
         if (msgid == AddMenuItemMsgID) ++item;
         else if (msgid == AddMenuMsgID) ++menu;
         else if (msgid == EnableMenuItemMsgID) ++enable;
+        else if (msgid == RemoveMenuItemMsgID) ++remove;
+        else if (msgid == SetScrollbarPositionMsgID) ++sets;
+        else if (msgid == SetScrollbarThumbMsgID) ++sett;
+        else if (msgid == ShowScrollbarMsgID) ++shows;
+        else if (msgid == CreateScrollbarMsgID) ++cres;
+        else if (msgid == DestroyScrollbarMsgID) ++dess;
         else [s appendFormat:@"%s ", MessageStrings[msgid]];
     }
     if (item > 0) [s appendFormat:@"AddMenuItemMsgID(%d) ", item];
     if (menu > 0) [s appendFormat:@"AddMenuMsgID(%d) ", menu];
     if (enable > 0) [s appendFormat:@"EnableMenuItemMsgID(%d) ", enable];
+    if (remove > 0) [s appendFormat:@"RemoveMenuItemMsgID(%d) ", remove];
+    if (sets > 0) [s appendFormat:@"SetScrollbarPositionMsgID(%d) ", sets];
+    if (sett > 0) [s appendFormat:@"SetScrollbarThumbMsgID(%d) ", sett];
+    if (shows > 0) [s appendFormat:@"ShowScrollbarMsgID(%d) ", shows];
+    if (cres > 0) [s appendFormat:@"CreateScrollbarMsgID(%d) ", cres];
+    if (dess > 0) [s appendFormat:@"DestroyScrollbarMsgID(%d) ", dess];
 
     return [s autorelease];
 }

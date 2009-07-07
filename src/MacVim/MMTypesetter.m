@@ -60,7 +60,6 @@
 - (NSTypesetterControlCharacterAction)
     actionForControlCharacterAtIndex:(unsigned)charIndex
 {
-    //NSLog(@"%s%d", _cmd, charIndex);
     /*NSTextStorage *ts = [[self layoutManager] textStorage];
 
     if ('\n' == [[ts string] characterAtIndex:charIndex])
@@ -75,9 +74,9 @@
         withAdvancements:(const float *)advancements
     forStartOfGlyphRange:(NSRange)glyphRange
 {
-    NSLog(@"setLocation:%@ withAdvancements:%f forStartOfGlyphRange:%@",
-            NSStringFromPoint(location), advancements ? *advancements : 0,
-            NSStringFromRange(glyphRange));
+    ASLogDebug(@"setLocation:%@ withAdvancements:%f forStartOfGlyphRange:%@",
+               NSStringFromPoint(location), advancements ? *advancements : 0,
+               NSStringFromRange(glyphRange));
     [super setLocation:location withAdvancements:advancements
             forStartOfGlyphRange:glyphRange];
 }

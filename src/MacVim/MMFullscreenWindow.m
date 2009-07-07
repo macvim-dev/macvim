@@ -94,7 +94,7 @@
 
 - (void)dealloc
 {
-    LOG_DEALLOC
+    ASLogDebug(@"");
 
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
@@ -308,7 +308,6 @@
 - (void)centerView
 {
     NSRect outer = [self frame], inner = [view frame];
-    //NSLog(@"%s %@%@", _cmd, NSStringFromRect(outer), NSStringFromRect(inner));
  
     NSPoint origin = NSMakePoint((outer.size.width - inner.size.width)/2,
                                  (outer.size.height - inner.size.height)/2);

@@ -50,6 +50,8 @@ static MMPlugInManager *plugInManager = nil;
 
 - (void)dealloc
 {
+    ASLogDebug(@"");
+
     [plugInClasses release]; plugInClasses = nil;
     [super dealloc];
 }
@@ -123,13 +125,13 @@ static MMPlugInManager *plugInManager = nil;
             if(currPrincipalClass && [self plugInClassIsValid:currPrincipalClass]) {
                 if ([currPrincipalClass initializePlugIn:
                     [MMPlugInAppMediator sharedAppMediator]]) {
-                    //NSLog(@"Plug-in initialized: %@", currPath);
+                    ASLogInfo(@"Plug-in initialized: %@", currPath);
                     [plugInClasses addObject:currPrincipalClass];
                 } else {
-                    NSLog(@"Plug-in failed to initialize: %@", currPath);
+                    ASLogErr(@"Plug-in failed to initialize: %@", currPath);
                 }
             } else {
-                NSLog(@"Plug-in did not conform to protocol: %@", currPath);
+                ASLogErr(@"Plug-in did not conform to protocol: %@", currPath);
             }
         }
     }

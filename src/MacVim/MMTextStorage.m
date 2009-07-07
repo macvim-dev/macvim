@@ -84,7 +84,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
 - (void)dealloc
 {
-    LOG_DEALLOC
+    ASLogDebug(@"");
 
 #if MM_USE_ROW_CACHE
     if (rowCache) {
@@ -135,15 +135,13 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
                       withString:(NSString *)string
 {
 #if MM_TS_PARANOIA_LOG
-    NSLog(@"WARNING: calling %s on MMTextStorage is unsupported", _cmd);
+    ASLogWarn(@"Calling %s on MMTextStorage is unsupported", _cmd);
 #endif
     //[attribString replaceCharactersInRange:range withString:string];
 }
 
 - (void)setAttributes:(NSDictionary *)attributes range:(NSRange)range
 {
-    //NSLog(@"%s%@", _cmd, NSStringFromRange(range));
-
     // NOTE!  This method must be implemented since the text system calls it
     // constantly to 'fix attributes', apply font substitution, etc.
 #if 0
@@ -185,7 +183,6 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
         [attribString setAttributes:newAttr range:range];
     } else {
-        //NSLog(@"NOT fixing font attribute!");
         [attribString setAttributes:attributes range:range];
     }
 #endif
@@ -220,7 +217,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 {
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
     if (!lm) {
-        NSLog(@"WARNING: No layout manager available in call to %s", _cmd);
+        ASLogWarn(@"No layout manager available");
         return;
     }
 
@@ -253,10 +250,6 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
    foregroundColor:(NSColor *)fg backgroundColor:(NSColor *)bg
       specialColor:(NSColor *)sp
 {
-    //NSLog(@"%@(%d,%d,%d,%d)", string, row, col, cells, flags);
-    //NSLog(@"replaceString:atRow:%d column:%d withFlags:%d "
-    //          "foreground:%@ background:%@ special:%@",
-    //          row, col, flags, fg, bg, sp);
     [self lazyResize:NO];
 
     if (row < 0 || row >= maxRows || col < 0 || col >= maxColumns
@@ -279,7 +272,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     NSRange range = [self charRangeForRow:row column:&acol cells:&acells];
     if (NSNotFound == range.location) {
 #if MM_TS_PARANOIA_LOG
-        NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+        ASLogErr(@"INTERNAL ERROR: Out of bounds");
 #endif
         return;
     }
@@ -345,13 +338,11 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             ++changeInLength;
 #if 0
         } else if (acol == col - 1) {
-            NSLog(@"acol == col - 1");
             [attribString replaceCharactersInRange:NSMakeRange(r.location,0)
                 withAttributedString:[emptyRowString
                     attributedSubstringFromRange:NSMakeRange(0,1)]];
             ++changeInLength;
         } else if (acol == col + 1) {
-            NSLog(@"acol == col + 1");
             [attribString replaceCharactersInRange:NSMakeRange(r.location-1,1)
                 withAttributedString:[emptyRowString
                     attributedSubstringFromRange:NSMakeRange(0,2)]];
@@ -361,8 +352,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             // NOTE: It seems that this never gets called.  If it ever does,
             // then there is another case to treat.
 #if MM_TS_PARANOIA_LOG
-            NSLog(@"row=%d col=%d acol=%d cells=%d acells=%d", row, col, acol,
-                    cells, acells);
+            ASLogWarn(@"row=%d col=%d acol=%d cells=%d acells=%d", row, col,
+                      acol, cells, acells);
 #endif
         }
     }
@@ -388,7 +379,6 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
               scrollBottom:(int)bottom left:(int)left right:(int)right
                      color:(NSColor *)color
 {
-    //NSLog(@"deleteLinesFromRow:%d lineCount:%d color:%@", row, count, color);
     [self lazyResize:NO];
 
     if (row < 0 || row+count > maxRows || bottom > maxRows || left < 0
@@ -408,7 +398,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         destRange = [self charRangeForRow:destRow column:&acol cells:&acells];
 #if MM_TS_PARANOIA_LOG
         if (acells != width || acol != left)
-            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+            ASLogErr(@"INTERNAL ERROR");
 #endif
 
         acol = left; acells = width;
@@ -416,13 +406,13 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
                                    cells:&acells];
 #if MM_TS_PARANOIA_LOG
         if (acells != width || acol != left)
-            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+            ASLogErr(@"INTERNAL ERROR");
 #endif
 
         if (NSNotFound == destRange.location || NSNotFound == srcRange.location)
         {
 #if MM_TS_PARANOIA_LOG
-            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+            ASLogErr(@"INTERNAL ERROR: Out of bounds");
 #endif
             return;
         }
@@ -454,11 +444,11 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         destRange = [self charRangeForRow:destRow column:&acol cells:&acells];
 #if MM_TS_PARANOIA_LOG
         if (acells != width || acol != left)
-            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+            ASLogErr(@"INTERNAL ERROR");
 #endif
         if (NSNotFound == destRange.location) {
 #if MM_TS_PARANOIA_LOG
-            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+            ASLogErr(@"INTERNAL ERROR: Out of bounds");
 #endif
             return;
         }
@@ -486,7 +476,6 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             scrollBottom:(int)bottom left:(int)left right:(int)right
                    color:(NSColor *)color
 {
-    //NSLog(@"insertLinesAtRow:%d lineCount:%d color:%@", row, count, color);
     [self lazyResize:NO];
 
     if (row < 0 || row+count > maxRows || bottom > maxRows || left < 0
@@ -507,19 +496,19 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         destRange = [self charRangeForRow:destRow column:&acol cells:&acells];
 #if MM_TS_PARANOIA_LOG
         if (acells != width || acol != left)
-            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+            ASLogErr(@"INTERNAL ERROR");
 #endif
 
         acol = left; acells = width;
         srcRange = [self charRangeForRow:srcRow column:&acol cells:&acells];
 #if MM_TS_PARANOIA_LOG
         if (acells != width || acol != left)
-            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+            ASLogErr(@"INTERNAL ERROR");
 #endif
         if (NSNotFound == destRange.location || NSNotFound == srcRange.location)
         {
 #if MM_TS_PARANOIA_LOG
-            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+            ASLogErr(@"INTERNAL ERROR: Out of bounds");
 #endif
             return;
         }
@@ -550,11 +539,11 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         destRange = [self charRangeForRow:destRow column:&acol cells:&acells];
 #if MM_TS_PARANOIA_LOG
         if (acells != width || acol != left)
-            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+            ASLogErr(@"INTERNAL ERROR");
 #endif
         if (NSNotFound == destRange.location) {
 #if MM_TS_PARANOIA_LOG
-            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+            ASLogErr(@"INTERNAL ERROR: Out of bounds");
 #endif
             return;
         }
@@ -577,8 +566,6 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 - (void)clearBlockFromRow:(int)row1 column:(int)col1 toRow:(int)row2
                    column:(int)col2 color:(NSColor *)color
 {
-    //NSLog(@"clearBlockFromRow:%d column:%d toRow:%d column:%d color:%@",
-    //        row1, col1, row2, col2, color);
     [self lazyResize:NO];
 
     if (row1 < 0 || row2 >= maxRows || col1 < 0 || col2 > maxColumns)
@@ -599,11 +586,11 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         range = [self charRangeForRow:r column:&acol cells:&acells];
 #if MM_TS_PARANOIA_LOG
         if (acells != cells || acol != col1)
-            NSLog(@"INTERNAL ERROR [%s]", _cmd);
+            ASLogErr(@"INTERNAL ERROR");
 #endif
         if (NSNotFound == range.location) {
 #if MM_TS_PARANOIA_LOG
-            NSLog(@"INTERNAL ERROR [%s] Out of bounds", _cmd);
+            ASLogErr(@"INTERNAL ERROR: Out of bounds");
 #endif
             return;
         }
@@ -625,7 +612,6 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
 - (void)clearAll
 {
-    //NSLog(@"%s", _cmd);
     [self lazyResize:YES];
 }
 
@@ -684,7 +670,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
             cellSize.height = linespace + [lm defaultLineHeightForFont:font];
         } else {
             // Should never happen, set some bogus value for cell height.
-            NSLog(@"WARNING: No layout manager available in call to %s", _cmd);
+            ASLogWarn(@"No layout manager available");
             cellSize.height = linespace + 16.0;
         }
 
@@ -1018,8 +1004,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     if (row < 0 || row >= actualRows || col < 0 || col >= actualColumns
             || col+cells > actualColumns) {
 #if MM_TS_PARANOIA_LOG
-        NSLog(@"%s row=%d col=%d cells=%d is out of range (length=%d)",
-                _cmd, row, col, cells, stringLen);
+        ASLogErr(@"row=%d col=%d cells=%d is out of range (length=%d)",
+                 row, col, cells, stringLen);
 #endif
         return range;
     }
@@ -1175,20 +1161,20 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 #if MM_TS_PARANOIA_LOG
 #if MM_USE_ROW_CACHE
     if (range.location >= rowEnd-1) {
-        NSLog(@"INTERNAL ERROR [%s] : row=%d col=%d cells=%d --> range=%@",
-                _cmd, row, col, cells, NSStringFromRange(range));
+        ASLogErr(@"INTERNAL ERROR: row=%d col=%d cells=%d --> range=%@",
+                 row, col, cells, NSStringFromRange(range));
         range.location = rowEnd - 2;
         range.length = 1;
     } else if (NSMaxRange(range) >= rowEnd) {
-        NSLog(@"INTERNAL ERROR [%s] : row=%d col=%d cells=%d --> range=%@",
-                _cmd, row, col, cells, NSStringFromRange(range));
+        ASLogErr(@"INTERNAL ERROR: row=%d col=%d cells=%d --> range=%@",
+                 row, col, cells, NSStringFromRange(range));
         range.length = rowEnd - range.location - 1;
     }
 #endif
 
     if (NSMaxRange(range) > stringLen) {
-        NSLog(@"INTERNAL ERROR [%s] : row=%d col=%d cells=%d --> range=%@",
-                _cmd, row, col, cells, NSStringFromRange(range));
+        ASLogErr(@"INTERNAL ERROR: row=%d col=%d cells=%d --> range=%@",
+                 row, col, cells, NSStringFromRange(range));
         range.location = NSNotFound;
         range.length = 0;
     }

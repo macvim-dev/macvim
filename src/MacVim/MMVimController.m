@@ -162,7 +162,7 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)dealloc
 {
-    LOG_DEALLOC
+    ASLogDebug(@"");
 
     isInitialized = NO;
 
@@ -252,6 +252,8 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force
 {
+    ASLogInfo(@"filenames=%@ force=%d", filenames, force);
+
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
 
     // Default to opening in tabs if layout is invalid or set to "windows".
@@ -316,6 +318,8 @@ static BOOL isUnsafeMessage(int msgid);
 {
     if (!args) return;
 
+    ASLogDebug(@"args=%@", args);
+
     [self sendMessage:OpenWithArgumentsMsgID data:[args dictionaryAsData]];
 
     // HACK! Fool findUnusedEditor into thinking that this controller is not
@@ -332,8 +336,8 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)sendMessage:(int)msgid data:(NSData *)data
 {
-    //NSLog(@"sendMessage:%s (isInitialized=%d)",
-    //        MessageStrings[msgid], isInitialized);
+    ASLogDebug(@"msg=%s (isInitialized=%d)",
+               MessageStrings[msgid], isInitialized);
 
     if (!isInitialized) return;
 
@@ -341,8 +345,7 @@ static BOOL isUnsafeMessage(int msgid);
         [backendProxy processInput:msgid data:data];
     }
     @catch (NSException *e) {
-        //NSLog(@"%@ %s Exception caught during DO call: %@",
-        //        [self className], _cmd, e);
+        ASLogWarn(@"Exception caught during DO call: %@", e);
     }
 }
 
@@ -353,6 +356,9 @@ static BOOL isUnsafeMessage(int msgid);
     // messages in rapid succession with a timeout may cause MacVim to beach
     // ball forever.  In almost all circumstances sendMessage:data: should be
     // used instead.
+
+    ASLogDebug(@"msg=%s (isInitialized=%d)",
+               MessageStrings[msgid], isInitialized);
 
     if (!isInitialized)
         return NO;
@@ -380,6 +386,8 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)addVimInput:(NSString *)string
 {
+    ASLogDebug(@"%@", string);
+
     // This is a very general method of adding input to the Vim process.  It is
     // basically the same as calling remote_send() on the process (see
     // ':h remote_send').
@@ -395,8 +403,11 @@ static BOOL isUnsafeMessage(int msgid);
 
     @try {
         eval = [backendProxy evaluateExpression:expr];
+        ASLogDebug(@"eval(%@)=%@", expr, eval);
     }
-    @catch (NSException *ex) { /* do nothing */ }
+    @catch (NSException *ex) {
+        ASLogWarn(@"Exception caught: %@", ex);
+    }
 
     return eval;
 }
@@ -409,7 +420,9 @@ static BOOL isUnsafeMessage(int msgid);
     @try {
         eval = [backendProxy evaluateExpressionCocoa:expr
                                          errorString:errstr];
+        ASLogDebug(@"eval(%@)=%@", expr, eval);
     } @catch (NSException *ex) {
+        ASLogWarn(@"Exception caught: %@", ex);
         *errstr = [ex reason];
     }
 
@@ -447,7 +460,7 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController processInputQueueDidFinish];
     }
     @catch (NSException *ex) {
-        NSLog(@"[%s] Caught exception (pid=%d): %@", _cmd, pid, ex);
+        ASLogWarn(@"Caught exception (pid=%d): %@", pid, ex);
     }
 }
 
@@ -457,7 +470,7 @@ static BOOL isUnsafeMessage(int msgid);
 {
     NSToolbarItem *item = [toolbarItemDict objectForKey:itemId];
     if (!item) {
-        NSLog(@"WARNING:  No toolbar item with id '%@'", itemId);
+        ASLogWarn(@"No toolbar item with id '%@'", itemId);
     }
 
     return item;
@@ -485,18 +498,16 @@ static BOOL isUnsafeMessage(int msgid);
 
     unsigned i, count = [queue count];
     if (count % 2) {
-        NSLog(@"WARNING: Uneven number of components (%d) in command "
-                "queue.  Skipping...", count);
+        ASLogWarn(@"Uneven number of components (%d) in command queue.  "
+                  "Skipping...", count);
         return;
     }
 
-    //NSLog(@"======== %s BEGIN ========", _cmd);
     for (i = 0; i < count; i += 2) {
         NSData *value = [queue objectAtIndex:i];
         NSData *data = [queue objectAtIndex:i+1];
 
         int msgid = *((int*)[value bytes]);
-        //NSLog(@"%s%s", _cmd, MessageStrings[msgid]);
 
         BOOL inDefaultMode = [[[NSRunLoop currentRunLoop] currentMode]
                                             isEqual:NSDefaultRunLoopMode];
@@ -517,19 +528,19 @@ static BOOL isUnsafeMessage(int msgid);
             if (!delayQueue)
                 delayQueue = [NSMutableArray array];
 
-            //NSLog(@"Adding unsafe message '%s' to delay queue (mode=%@)",
-            //        MessageStrings[msgid],
-            //        [[NSRunLoop currentRunLoop] currentMode]);
+            ASLogDebug(@"Adding unsafe message '%s' to delay queue (mode=%@)",
+                       MessageStrings[msgid],
+                       [[NSRunLoop currentRunLoop] currentMode]);
             [delayQueue addObject:value];
             [delayQueue addObject:data];
         } else {
             [self handleMessage:msgid data:data];
         }
     }
-    //NSLog(@"======== %s  END  ========", _cmd);
 
     if (delayQueue) {
-        //NSLog(@"    Flushing delay queue (%d items)", [delayQueue count]/2);
+        ASLogDebug(@"    Flushing delay queue (%d items)",
+                   [delayQueue count]/2);
         [self performSelector:@selector(processInputQueue:)
                    withObject:delayQueue
                    afterDelay:0];
@@ -538,10 +549,6 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)handleMessage:(int)msgid data:(NSData *)data
 {
-    //if (msgid != AddMenuMsgID && msgid != AddMenuItemMsgID &&
-    //        msgid != EnableMenuItemMsgID)
-    //    NSLog(@"%@ %s%s", [self className], _cmd, MessageStrings[msgid]);
-
     if (OpenWindowMsgID == msgid) {
         [windowController openWindow];
 
@@ -555,7 +562,6 @@ static BOOL isUnsafeMessage(int msgid);
 #if 0   // NOTE: Tab selection is done inside updateTabsWithData:.
         const void *bytes = [data bytes];
         int idx = *((int*)bytes);
-        //NSLog(@"Selecting tab with index %d", idx);
         [windowController selectTabWithIndex:idx];
 #endif
     } else if (UpdateTabBarMsgID == msgid) {
@@ -743,7 +749,6 @@ static BOOL isUnsafeMessage(int msgid);
 
         [windowController adjustLinespace:linespace];
     } else if (ActivateMsgID == msgid) {
-        //NSLog(@"ActivateMsgID");
         [NSApp activateIgnoringOtherApps:YES];
         [[windowController window] makeKeyAndOrderFront:self];
     } else if (SetServerNameMsgID == msgid) {
@@ -813,7 +818,7 @@ static BOOL isUnsafeMessage(int msgid);
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {
-        NSLog(@"WARNING: Unknown message received (msgid=%d)", msgid);
+        ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }
 }
 
@@ -821,6 +826,8 @@ static BOOL isUnsafeMessage(int msgid);
                 context:(void *)context
 {
     NSString *path = (code == NSOKButton) ? [panel filename] : nil;
+
+    ASLogDebug(@"Open/save panel path=%@", path);
 
     // NOTE! setDialogReturn: is a synchronous call so set a proper timeout to
     // avoid waiting forever for it to finish.  We make this a synchronous call
@@ -840,7 +847,7 @@ static BOOL isUnsafeMessage(int msgid);
                     noteNewRecentFilePath:path];
     }
     @catch (NSException *e) {
-        NSLog(@"Exception caught in %s %@", _cmd, e);
+        ASLogWarn(@"Exception caught: %@", e);
     }
     @finally {
         [conn setRequestTimeout:oldTimeout];
@@ -860,11 +867,13 @@ static BOOL isUnsafeMessage(int msgid);
         ret = [NSArray arrayWithObject:[NSNumber numberWithInt:code]];
     }
 
+    ASLogDebug(@"Alert return=%@", ret);
+
     @try {
         [backendProxy setDialogReturn:ret];
     }
     @catch (NSException *e) {
-        NSLog(@"Exception caught in %s %@", _cmd, e);
+        ASLogWarn(@"Exception caught: %@", e);
     }
 }
 
@@ -1024,8 +1033,8 @@ static BOOL isUnsafeMessage(int msgid);
 
     NSMenu *parent = [self parentMenuForDescriptor:desc];
     if (!parent) {
-        NSLog(@"WARNING: Menu item '%@' has no parent",
-                [desc componentsJoinedByString:@"->"]);
+        ASLogWarn(@"Menu item '%@' has no parent",
+                  [desc componentsJoinedByString:@"->"]);
         return;
     }
 
@@ -1087,8 +1096,8 @@ static BOOL isUnsafeMessage(int msgid);
 
     NSMenuItem *item = [self menuItemForDescriptor:desc];
     if (!item) {
-        NSLog(@"Failed to remove menu item, descriptor not found: %@",
-                [desc componentsJoinedByString:@"->"]);
+        ASLogWarn(@"Failed to remove menu item, descriptor not found: %@",
+                  [desc componentsJoinedByString:@"->"]);
         return;
     }
 
@@ -1110,9 +1119,6 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)enableMenuItemWithDescriptor:(NSArray *)desc state:(BOOL)on
 {
     if (!(desc && [desc count] > 0)) return;
-
-    /*NSLog(@"%sable item %@", on ? "En" : "Dis",
-            [desc componentsJoinedByString:@"->"]);*/
 
     NSString *rootName = [desc objectAtIndex:0];
     if ([rootName isEqual:@"ToolBar"]) {
@@ -1153,10 +1159,10 @@ static BOOL isUnsafeMessage(int msgid);
             img = nil;
     }
     if (!img) {
-        NSLog(@"WARNING: Could not find image with name '%@' to use as toolbar"
-               " image for identifier '%@';"
-               " using default toolbar icon '%@' instead.",
-               icon, title, MMDefaultToolbarImageName);
+        ASLogNotice(@"Could not find image with name '%@' to use as toolbar"
+            " image for identifier '%@';"
+            " using default toolbar icon '%@' instead.",
+            icon, title, MMDefaultToolbarImageName);
 
         img = [NSImage imageNamed:MMDefaultToolbarImageName];
     }
@@ -1243,7 +1249,7 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)connectionDidDie:(NSNotification *)notification
 {
-    //NSLog(@"%@ %s%@", [self className], _cmd, notification);
+    ASLogDebug(@"%@", notification);
     [self scheduleClose];
 }
 
@@ -1399,8 +1405,11 @@ static BOOL isUnsafeMessage(int msgid);
 
 
 @implementation MMAlert
+
 - (void)dealloc
 {
+    ASLogDebug(@"");
+
     [textField release];  textField = nil;
     [super dealloc];
 }

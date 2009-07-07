@@ -53,6 +53,8 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)dealloc
 {
+    ASLogDebug(@"");
+
     [insertionPointColor release];  insertionPointColor = nil;
     [markedText release];  markedText = nil;
     [markedTextAttributes release];  markedTextAttributes = nil;
@@ -81,7 +83,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)keyDown:(NSEvent *)event
 {
-    //NSLog(@"%s %@", _cmd, event);
+    //ASLogDebug(@"%@", event);
     // HACK! If control modifier is held, don't pass the event along to
     // interpretKeyEvents: since some keys are bound to multiple commands which
     // means doCommandBySelector: is called several times.  Do the same for
@@ -140,7 +142,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)insertText:(id)string
 {
-    //NSLog(@"%s %@", _cmd, string);
+    //ASLogDebug(@"%@", string);
     // NOTE!  This method is called for normal key presses but also for
     // Option-key presses --- even when Ctrl is held as well as Option.  When
     // Ctrl is held, the AppKit translates the character to a Ctrl+key stroke,
@@ -178,8 +180,6 @@ static float MMDragAreaSize = 73.0f;
     if ([string isKindOfClass:[NSAttributedString class]])
         string = [string string];
 
-    //NSLog(@"send InsertTextMsgID: %@", string);
-
     NSMutableData *data = [NSMutableData data];
     int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     int flags = [event modifierFlags] & 0xffff0000U;
@@ -195,7 +195,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)doCommandBySelector:(SEL)selector
 {
-    //NSLog(@"%s %@", _cmd, NSStringFromSelector(selector));
+    //ASLogDebug(@"%@", NSStringFromSelector(selector));
     // By ignoring the selector we effectively disable the key binding
     // mechanism of Cocoa.  Hopefully this is what the user will expect
     // (pressing Ctrl+P would otherwise result in moveUp: instead of previous
@@ -234,7 +234,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
-    //NSLog(@"%s %@", _cmd, event);
+    //ASLogDebug(@"%@", event);
     // Called for Cmd+key keystrokes, function keys, arrow keys, page
     // up/down, home, end.
     //
@@ -288,8 +288,6 @@ static float MMDragAreaSize = 73.0f;
         kill([[self vimController] pid], SIGINT);
         return YES;
     }
-
-    //NSLog(@"%s%@", _cmd, event);
 
     NSString *chars = [event characters];
     int len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
@@ -451,15 +449,11 @@ static float MMDragAreaSize = 73.0f;
         [data appendBytes:&col length:sizeof(int)];
 
         [[self vimController] sendMessage:MouseMovedMsgID data:data];
-
-        //NSLog(@"Moved %d %d\n", col, row);
     }
 }
 
 - (void)mouseEntered:(NSEvent *)event
 {
-    //NSLog(@"%s", _cmd);
-
     // NOTE: This event is received even when the window is not key; thus we
     // have to take care not to enable mouse moved events unless our window is
     // key.
@@ -470,8 +464,6 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)mouseExited:(NSEvent *)event
 {
-    //NSLog(@"%s", _cmd);
-
     [[textView window] setAcceptsMouseMovedEvents:NO];
 
     // NOTE: This event is received even when the window is not key; if the
@@ -487,8 +479,6 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)setFrame:(NSRect)frame
 {
-    //NSLog(@"%s", _cmd);
-
     // When the frame changes we also need to update the tracking rect.
     [textView removeTrackingRect:trackingRectTag];
     trackingRectTag = [textView addTrackingRect:[self trackingRect]
@@ -499,8 +489,6 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)viewDidMoveToWindow
 {
-    //NSLog(@"%s (window=%@)", _cmd, [self window]);
-
     // Set a tracking rect which covers the text.
     // NOTE: While the mouse cursor is in this rect the view will receive
     // 'mouseMoved:' events so that Vim can take care of updating the mouse
@@ -516,8 +504,6 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)viewWillMoveToWindow:(NSWindow *)newWindow
 {
-    //NSLog(@"%s%@", _cmd, newWindow);
-
     // Remove tracking rect if view moves or is removed.
     if ([textView window] && trackingRectTag) {
         [textView removeTrackingRect:trackingRectTag];
@@ -806,8 +792,8 @@ static float MMDragAreaSize = 73.0f;
     const char *bytes = 0;
     int mods = [event modifierFlags];
 
-    //NSLog(@"%s chars[0]=0x%x unmodchars[0]=0x%x (chars=%@ unmodchars=%@)",
-    //        _cmd, c, imc, chars, unmodchars);
+    //ASLogDebug(@"chars[0]=0x%x unmodchars[0]=0x%x (chars=%@ unmodchars=%@)",
+    //           c, imc, chars, unmodchars);
 
     if (' ' == imc && 0xa0 != c) {
         // HACK!  The AppKit turns <C-Space> into <C-@> which is not standard
@@ -855,7 +841,7 @@ static float MMDragAreaSize = 73.0f;
 
         [self hideMouseCursor];
 
-        //NSLog(@"%s len=%d chars=0x%x", _cmd, len, chars[0]);
+        //ASLogDebug(@"len=%d chars=0x%x", len, chars[0]);
         [[self vimController] sendMessage:KeyDownMsgID data:data];
     }
 }
@@ -954,7 +940,7 @@ static float MMDragAreaSize = 73.0f;
                     initWithImage:ibeamImage hotSpot:hotSpot];
         }
         if (!customIbeamCursor) {
-            NSLog(@"WARNING: Failed to load custom Ibeam cursor");
+            ASLogWarn(@"Failed to load custom Ibeam cursor");
             customIbeamCursor = [NSCursor IBeamCursor];
         }
     }

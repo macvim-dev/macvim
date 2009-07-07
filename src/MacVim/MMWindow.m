@@ -63,7 +63,7 @@
 
 - (void)dealloc
 {
-    LOG_DEALLOC
+    ASLogDebug(@"");
 
     // TODO: Is there any reason why we would want the following call?
     //[tablineSeparator removeFromSuperviewWithoutNeedingDisplay];
@@ -144,10 +144,10 @@
 {
     NSScreen *screen = [self screen];
     if (!screen) {
-        NSLog(@"[%s] WINDOW NOT ON SCREEN, zoom to main screen", _cmd);
+        ASLogNotice(@"Window not on screen, zoom to main screen");
         screen = [NSScreen mainScreen];
         if (!screen) {
-            NSLog(@"[%s] NO MAIN SCREEN, abort zoom", _cmd);
+            ASLogNotice(@"No main screen, abort zoom");
             return;
         }
     }

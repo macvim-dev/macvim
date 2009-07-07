@@ -152,7 +152,7 @@ enum {
 
 - (void)dealloc
 {
-    LOG_DEALLOC
+    ASLogDebug(@"");
 
     [tabBarControl release];  tabBarControl = nil;
     [tabView release];  tabView = nil;
@@ -311,7 +311,7 @@ enum {
                                           forTabViewItem:tvi];
                     break;
                 default:
-                    NSLog(@"WARNING: Unknown tab info for index: %d", i);
+                    ASLogWarn(@"Unknown tab info for index: %d", i);
             }
 
             [val release];
@@ -326,7 +326,6 @@ enum {
     int i, count = [[self tabView] numberOfTabViewItems];
     for (i = count-1; i >= tabIdx; --i) {
         id tvi = [tabViewItems objectAtIndex:i];
-        //NSLog(@"Removing tab with index %d", i);
         [[self tabView] removeTabViewItem:tvi];
     }
     vimTaskSelectedTab = NO;
@@ -336,11 +335,9 @@ enum {
 
 - (void)selectTabWithIndex:(int)idx
 {
-    //NSLog(@"%s%d", _cmd, idx);
-
     NSArray *tabViewItems = [[self tabBarControl] representedTabViewItems];
     if (idx < 0 || idx >= [tabViewItems count]) {
-        NSLog(@"WARNING: No tab with index %d exists.", idx);
+        ASLogWarn(@"No tab with index %d exists.", idx);
         return;
     }
 
@@ -376,8 +373,6 @@ enum {
 
 - (void)createScrollbarWithIdentifier:(long)ident type:(int)type
 {
-    //NSLog(@"Create scroller %d of type %d", ident, type);
-
     MMScroller *scroller = [[MMScroller alloc] initWithIdentifier:ident
                                                              type:type];
     [scroller setTarget:self];
@@ -390,8 +385,6 @@ enum {
 
 - (BOOL)destroyScrollbarWithIdentifier:(long)ident
 {
-    //NSLog(@"Destroy scroller %d", ident);
-
     unsigned idx = 0;
     MMScroller *scroller = [self scrollbarForIdentifier:ident index:&idx];
     if (!scroller) return NO;
@@ -410,8 +403,6 @@ enum {
     if (!scroller) return NO;
 
     BOOL wasVisible = ![scroller isHidden];
-    //NSLog(@"%s scroller %d (was %svisible)", visible ? "Show" : "Hide",
-    //      ident, wasVisible ? "" : "in");
     [scroller setHidden:!visible];
 
     // If a scroller was hidden or shown then the vim view must resize.  This
@@ -423,8 +414,6 @@ enum {
                     identifier:(long)ident
 {
     MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
-    //NSLog(@"Set thumb value %.2f proportion %.2f for scroller %d",
-    //        val, prop, ident);
     [scroller setFloatValue:val knobProportion:prop];
     [scroller setEnabled:prop != 1.f];
 }
@@ -449,8 +438,6 @@ enum {
     MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
     NSRange range = NSMakeRange(pos, len);
     if (!NSEqualRanges(range, [scroller range])) {
-        //NSLog(@"Set range %@ for scroller %d",
-        //        NSStringFromRange(range), ident);
         [scroller setRange:range];
         // TODO!  Should only do this once per update.
 
@@ -502,7 +489,6 @@ enum {
     // on the tab.  Instead of letting the tab bar close the tab, we return NO
     // and pass a message on to Vim to let it handle the closing.
     int idx = [self representedIndexOfTabViewItem:tabViewItem];
-    //NSLog(@"Closing tab with index %d", idx);
     NSData *data = [NSData dataWithBytes:&idx length:sizeof(int)];
     [vimController sendMessage:CloseTabMsgID data:data];
 
@@ -743,7 +729,6 @@ enum {
                 rect.size.height = 0;
         }
 
-        //NSLog(@"set scroller #%d frame = %@", i, NSStringFromRect(rect));
         NSRect oldRect = [scroller frame];
         if (!NSEqualRects(oldRect, rect)) {
             [scroller setFrame:rect];
@@ -856,9 +841,9 @@ enum {
         int msgid = [self inLiveResize] ? LiveResizeMsgID
                                         : SetTextDimensionsMsgID;
 
-        //NSLog(@"Notify Vim that text dimensions changed from %dx%d to %dx%d"
-        //       " (%s)", cols, rows, constrained[1], constrained[0],
-        //       MessageStrings[msgid]);
+        ASLogDebug(@"Notify Vim that text dimensions changed from %dx%d to "
+                   "%dx%d (%s)", cols, rows, constrained[1], constrained[0],
+                   MessageStrings[msgid]);
 
         [vimController sendMessage:msgid data:data];
 

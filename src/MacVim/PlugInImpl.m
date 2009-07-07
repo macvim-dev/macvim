@@ -98,7 +98,7 @@ static int MMPlugInArchMinorVersion = 0;
 
 - (void)dealloc
 {
-    //NSLog(@"%@ %s", [self className], _cmd);
+    ASLogDebug(@"");
 
     [plugInViews release]; plugInViews = nil;
     [instances release]; instances = nil;
@@ -126,8 +126,6 @@ static int MMPlugInArchMinorVersion = 0;
 
 - (void)addPlugInView:(NSView *)view withTitle:(NSString *)title
 {
-    //NSLog(@"%@ %s", [self className], _cmd);
-
     // Do this here so that the drawer is never opened automatically when there
     // are no plugin views.
     if ([[NSUserDefaults standardUserDefaults]

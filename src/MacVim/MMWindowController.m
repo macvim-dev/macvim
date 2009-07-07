@@ -201,7 +201,7 @@
 
 - (void)dealloc
 {
-    LOG_DEALLOC
+    ASLogDebug(@"");
 
     [decoratedWindow release];  decoratedWindow = nil;
     [windowAutosaveKey release];  windowAutosaveKey = nil;
@@ -241,7 +241,7 @@
 
 - (void)cleanup
 {
-    //NSLog(@"%@ %s", [self className], _cmd);
+    ASLogDebug(@"%@ %s", [self className], _cmd);
 
     if (fullscreenEnabled) {
         // If we are closed while still in fullscreen, end fullscreen mode,
@@ -302,8 +302,8 @@
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
                           isReply:(BOOL)reply
 {
-    //NSLog(@"setTextDimensionsWithRows:%d columns:%d isLive:%d isReply:%d",
-    //        rows, cols, live, reply);
+    ASLogDebug(@"setTextDimensionsWithRows:%d columns:%d isLive:%d isReply:%d",
+               rows, cols, live, reply);
 
     // NOTE: The only place where the (rows,columns) of the vim view are
     // modified is here and when entering/leaving full-screen.  Setting these
@@ -551,8 +551,8 @@
     [[vimView textView] constrainRows:&constrained[0] columns:&constrained[1]
                                toSize:textViewSize];
 
-    //NSLog(@"End of live resize, notify Vim that text dimensions are %dx%d",
-    //       constrained[1], constrained[0]);
+    ASLogDebug(@"End of live resize, notify Vim that text dimensions are %dx%d",
+               constrained[1], constrained[0]);
 
     NSData *data = [NSData dataWithBytes:constrained length:2*sizeof(int)];
     BOOL sendOk = [vimController sendMessageNow:SetTextDimensionsMsgID
@@ -999,7 +999,7 @@
             reply = [backendProxy starRegisterToPasteboard:pb];
         }
         @catch (NSException *e) {
-            NSLog(@"WARNING: Caught exception in %s: \"%@\"", _cmd, e);
+            ASLogWarn(@"Caught exception: \"%@\"", e);
         }
     }
 

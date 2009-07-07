@@ -115,6 +115,8 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
 
 - (void)dealloc
 {
+    ASLogDebug(@"");
+
     [supportedOdbEditors release]; supportedOdbEditors = nil;
     [super dealloc];
 }
@@ -383,7 +385,7 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
             [self setOdbEditorByName:kOdbEditorNameMacVim];
         }
     } else {
-        NSLog(@"Failed to install input manager, error is %d", err);
+        ASLogErr(@"Failed to install input manager, error is %d", err);
     }
     [au release];
 
@@ -402,7 +404,7 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
         initWithCommands:cmd];
     OSStatus err = [au run];
     if (err != errAuthorizationSuccess)
-        NSLog(@"Failed to uninstall input manager, error is %d", err);
+        ASLogErr(@"Failed to uninstall input manager, error is %d", err);
     [au release];
 
     [self updateIntegrationPane];
