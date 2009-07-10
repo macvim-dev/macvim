@@ -41,6 +41,36 @@
     -->
 
     <item>
+      <title>Snapshot 46 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 46 released</h1>
+
+<p> Changes since snapshot 45:
+  <ul>
+    <li> Markdown (Nico Weber) and reStructuredText (Travis Jeffery) are supported file types </li>
+    <li> The forever bouncing Dock icon bug should now really really be fixed (Kazuki Sakamoto) </li>
+    <li> Fixed bug when file name contained decomposed UTF8 characters </li>
+    <li> Quick Look should work for most/all supported filetypes now (although the preview is simple text and is not syntax highlighted) </li>
+    <li> Update the help file </li>
+    <li> 'guifontwide' is updated on Cmd-+/Cmd-- </li>
+    <li> The titles of the next/previous tab menu items now match other apps </li>
+    <li> Add NetBeans support (Kazuki Sakamoto) </li>
+    <li> Add simple logging facility </li>
+    <li> Update to latest Vim patches and runtime files </li>
+  </ul>
+</p>
+      ]]></description>
+      <pubDate>Fri, 10 Jul 2009 23:50 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-46.tbz"
+        length="8198862"
+        sparkle:version="46"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 45 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 45 released</h1>
