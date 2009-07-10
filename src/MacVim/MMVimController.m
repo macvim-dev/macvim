@@ -252,6 +252,7 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force
 {
+    filenames = normalizeFilenames(filenames);
     ASLogInfo(@"filenames=%@ force=%d", filenames, force);
 
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
@@ -265,10 +266,6 @@ static BOOL isUnsafeMessage(int msgid);
     if (splitVert && MMLayoutHorizontalSplit == layout)
         layout = MMLayoutVerticalSplit;
 
-    // Filenames on HFS+ are in NFD but Vim does not handle this form very well
-    // so normalize to NFKC first.
-    filenames = normalizeFilenames(filenames);
-
     NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
             [NSNumber numberWithInt:layout],    @"layout",
             filenames,                          @"filenames",
@@ -280,6 +277,9 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)file:(NSString *)filename draggedToTabAtIndex:(NSUInteger)tabIndex
 {
+    filename = normalizeFilename(filename);
+    ASLogInfo(@"filename=%@ index=%d", filename, tabIndex);
+
     NSString *fnEsc = [filename stringByEscapingSpecialFilenameCharacters];
     NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>:silent "
                        "tabnext %d |"
@@ -289,6 +289,9 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)filesDraggedToTabBar:(NSArray *)filenames
 {
+    filenames = normalizeFilenames(filenames);
+    ASLogInfo(@"%@", filenames);
+
     NSUInteger i, count = [filenames count];
     NSMutableString *input = [NSMutableString stringWithString:@"<C-\\><C-N>"
                               ":silent! tabnext 9999"];
@@ -303,6 +306,7 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)dropString:(NSString *)string
 {
+    ASLogInfo(@"%@", string);
     int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
     if (len > 0) {
         NSMutableData *data = [NSMutableData data];

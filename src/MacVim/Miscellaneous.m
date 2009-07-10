@@ -294,6 +294,12 @@ showHiddenFilesView()
 
 
 
+    NSString *
+normalizeFilename(NSString *filename)
+{
+    return [filename precomposedStringWithCanonicalMapping];
+}
+
     NSArray *
 normalizeFilenames(NSArray *filenames)
 {
@@ -303,8 +309,7 @@ normalizeFilenames(NSArray *filenames)
 
     unsigned i, count = [filenames count];
     for (i = 0; i < count; ++i) {
-        NSString *nfkc = [filenames objectAtIndex:i];
-        nfkc = [nfkc precomposedStringWithCompatibilityMapping];
+        NSString *nfkc = normalizeFilename([filenames objectAtIndex:i]);
         [outnames addObject:nfkc];
     }
 

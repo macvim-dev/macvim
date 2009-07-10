@@ -836,8 +836,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSMutableDictionary *arguments = (args ? [[args mutableCopy] autorelease]
                                            : [NSMutableDictionary dictionary]);
 
-    // Filenames on HFS+ are in NFD but Vim does not handle this form very well
-    // so normalize to NFKC first.
     filenames = normalizeFilenames(filenames);
 
     //

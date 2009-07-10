@@ -128,9 +128,12 @@ enum {
 NSView *showHiddenFilesView();
 
 
-// Convert filenames (which are in decomposed form, NFD, on HFS+) to
-// normalization form combatibility C (NFKC).  (This is necessary because Vim
-// does not automatically compose NFD.  We choose NFKC instead of NFC for the
-// somewhat random reason that this is what is used on Windows and hence
-// hopefully Vim is better prepared for it.)
+// Convert filenames (which are in a variant of decomposed form, NFD, on HFS+)
+// to normalization form C (NFC).  (This is necessary because Vim does not
+// automatically compose NFD.)  For more information see:
+//     http://developer.apple.com/technotes/tn/tn1150.html
+//     http://developer.apple.com/technotes/tn/tn1150table.html
+//     http://developer.apple.com/qa/qa2001/qa1235.html
+//     http://www.unicode.org/reports/tr15/
+NSString *normalizeFilename(NSString *filename);
 NSArray *normalizeFilenames(NSArray *filenames);
