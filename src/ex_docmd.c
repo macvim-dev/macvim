@@ -1684,8 +1684,8 @@ do_one_cmd(cmdlinep, sourcing,
     char_u		*errormsg = NULL;	/* error message */
     exarg_T		ea;			/* Ex command arguments */
     long		verbose_save = -1;
-    int			save_msg_scroll = 0;
-    int			did_silent = 0;
+    int			save_msg_scroll = msg_scroll;
+    int			save_msg_silent = -1;
     int			did_esilent = 0;
 #ifdef HAVE_SANDBOX
     int			did_sandbox = FALSE;
@@ -1863,9 +1863,9 @@ do_one_cmd(cmdlinep, sourcing,
 			}
 			if (!checkforcmd(&ea.cmd, "silent", 3))
 			    break;
-			++did_silent;
+			if (save_msg_silent == -1)
+			    save_msg_silent = msg_silent;
 			++msg_silent;
-			save_msg_scroll = msg_scroll;
 			if (*ea.cmd == '!' && !vim_iswhite(ea.cmd[-1]))
 			{
 			    /* ":silent!", but not "silent !cmd" */
@@ -1891,6 +1891,13 @@ do_one_cmd(cmdlinep, sourcing,
 #ifdef FEAT_WINDOWS
 			cmdmod.split |= WSP_TOP;
 #endif
+			continue;
+
+	    case 'u':	if (!checkforcmd(&ea.cmd, "unsilent", 3))
+			    break;
+			if (save_msg_silent == -1)
+			    save_msg_silent = msg_silent;
+			msg_silent = 0;
 			continue;
 
 	    case 'v':	if (checkforcmd(&ea.cmd, "vertical", 4))
@@ -2691,13 +2698,12 @@ doend:
 
     cmdmod = save_cmdmod;
 
-    if (did_silent > 0)
+    if (save_msg_silent != -1)
     {
 	/* messages could be enabled for a serious error, need to check if the
 	 * counters don't become negative */
-	msg_silent -= did_silent;
-	if (msg_silent < 0)
-	    msg_silent = 0;
+	if (!did_emsg)
+	    msg_silent = save_msg_silent;
 	emsg_silent -= did_esilent;
 	if (emsg_silent < 0)
 	    emsg_silent = 0;
@@ -2994,6 +3000,7 @@ static struct cmdmod
     {"silent", 3, FALSE},
     {"tab", 3, TRUE},
     {"topleft", 2, FALSE},
+    {"unsilent", 3, FALSE},
     {"verbose", 4, TRUE},
     {"vertical", 4, FALSE},
 };
@@ -7858,10 +7865,10 @@ ex_read(eap)
 		if (*ml_get(lnum) == NUL && u_savedel(lnum, 1L) == OK)
 		{
 		    ml_delete(lnum, FALSE);
-		    deleted_lines_mark(lnum, 1L);
 		    if (curwin->w_cursor.lnum > 1
 					     && curwin->w_cursor.lnum >= lnum)
 			--curwin->w_cursor.lnum;
+		    deleted_lines_mark(lnum, 1L);
 		}
 	    }
 	    redraw_curbuf_later(VALID);
@@ -7977,7 +7984,7 @@ ex_cd(eap)
 	    shorten_fnames(TRUE);
 
 	    /* Echo the new current directory if the command was typed. */
-	    if (KeyTyped)
+	    if (KeyTyped || p_verbose >= 5)
 		ex_pwd(eap);
 	}
 	vim_free(tofree);
@@ -8706,6 +8713,8 @@ ex_mkrc(eap)
     }
 
 #ifdef FEAT_SESSION
+    /* Use the short file name until ":lcd" is used.  We also don't use the
+     * short file name when 'acd' is set, that is checked later. */
     did_lcd = FALSE;
 
     /* ":mkview" or ":mkview 9": generate file name with 'viewdir' */
@@ -10601,6 +10610,9 @@ ses_fname(fd, buf, flagp)
     if (buf->b_sfname != NULL
 	    && flagp == &ssop_flags
 	    && (ssop_flags & (SSOP_CURDIR | SSOP_SESDIR))
+#ifdef FEAT_AUTOCHDIR
+	    && !p_acd
+#endif
 	    && !did_lcd)
 	name = buf->b_sfname;
     else

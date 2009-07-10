@@ -1040,7 +1040,7 @@ mzscheme_init(void)
 #ifdef DYNAMIC_MZSCHEME
 	if (!mzscheme_enabled(TRUE))
 	{
-	    EMSG(_("E812: Sorry, this command is disabled, the MzScheme libraries could not be loaded."));
+	    EMSG(_("E815: Sorry, this command is disabled, the MzScheme libraries could not be loaded."));
 	    return -1;
 	}
 #endif
@@ -2169,9 +2169,9 @@ set_buffer_line(void *data, int argc, Scheme_Object **argv)
 	    curbuf = savebuf;
 	    raise_vim_exn(_("cannot delete line"));
 	}
-	deleted_lines_mark((linenr_T)n, 1L);
 	if (buf->buf == curwin->w_buffer)
 	    mz_fix_cursor(n, n + 1, -1);
+	deleted_lines_mark((linenr_T)n, 1L);
 
 	curbuf = savebuf;
 
@@ -2299,9 +2299,9 @@ set_buffer_line_list(void *data, int argc, Scheme_Object **argv)
 		    curbuf = savebuf;
 		    raise_vim_exn(_("cannot delete line"));
 		}
-	    deleted_lines_mark((linenr_T)lo, (long)old_len);
 	    if (buf->buf == curwin->w_buffer)
 		mz_fix_cursor(lo, hi, -old_len);
+	    deleted_lines_mark((linenr_T)lo, (long)old_len);
 	}
 
 	curbuf = savebuf;

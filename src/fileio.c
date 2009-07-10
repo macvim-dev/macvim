@@ -710,7 +710,8 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 #endif
 #ifdef UNIX
 	/* Set swap file protection bits after creating it. */
-	if (swap_mode > 0 && curbuf->b_ml.ml_mfp->mf_fname != NULL)
+	if (swap_mode > 0 && curbuf->b_ml.ml_mfp != NULL
+			  && curbuf->b_ml.ml_mfp->mf_fname != NULL)
 	    (void)mch_setperm(curbuf->b_ml.ml_mfp->mf_fname, (long)swap_mode);
 #endif
     }
@@ -6641,7 +6642,10 @@ buf_check_timestamp(buf, focus)
 			mesg = _("W16: Warning: Mode of file \"%s\" has changed since editing started");
 			mesg2 = _("See \":help W16\" for more info.");
 		    }
-		    /* Else: only timestamp changed, ignored */
+		    else
+			/* Only timestamp changed, store it to avoid a warning
+			 * in check_mtime() later. */
+			buf->b_mtime_read = buf->b_mtime;
 		}
 	    }
 	}
@@ -8470,25 +8474,23 @@ aucmd_prepbuf(aco, buf)
 	 * effects, insert it in a the current tab page.
 	 * Anything related to a window (e.g., setting folds) may have
 	 * unexpected results. */
-	curwin = aucmd_win;
-	curwin->w_buffer = buf;
+	aucmd_win->w_buffer = buf;
 	++buf->b_nwindows;
+	win_init_empty(aucmd_win); /* set cursor and topline to safe values */
 
 #ifdef FEAT_WINDOWS
-	/* Split the current window, put the aucmd_win in the upper half. */
+	/* Split the current window, put the aucmd_win in the upper half.
+	 * We don't want the BufEnter or WinEnter autocommands. */
+	block_autocmds();
 	make_snapshot(SNAP_AUCMD_IDX);
 	save_ea = p_ea;
 	p_ea = FALSE;
 	(void)win_split_ins(0, WSP_TOP, aucmd_win, 0);
 	(void)win_comp_pos();   /* recompute window positions */
 	p_ea = save_ea;
+	unblock_autocmds();
 #endif
-	/* set cursor and topline to safe values */
-	curwin_init();
-#ifdef FEAT_VERTSPLIT
-	curwin->w_wincol = 0;
-	curwin->w_width = Columns;
-#endif
+	curwin = aucmd_win;
     }
     curbuf = buf;
     aco->new_curwin = curwin;
@@ -8513,7 +8515,8 @@ aucmd_restbuf(aco)
 	--curbuf->b_nwindows;
 #ifdef FEAT_WINDOWS
 	/* Find "aucmd_win", it can't be closed, but it may be in another tab
-	 * page. */
+	 * page. Do not trigger autocommands here. */
+	block_autocmds();
 	if (curwin != aucmd_win)
 	{
 	    tabpage_T	*tp;
@@ -8537,6 +8540,7 @@ aucmd_restbuf(aco)
 	last_status(FALSE);	    /* may need to remove last status line */
 	restore_snapshot(SNAP_AUCMD_IDX, FALSE);
 	(void)win_comp_pos();   /* recompute window positions */
+	unblock_autocmds();
 
 	if (win_valid(aco->save_curwin))
 	    curwin = aco->save_curwin;
