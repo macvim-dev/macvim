@@ -830,8 +830,14 @@ static BOOL isUnsafeMessage(int msgid);
                 context:(void *)context
 {
     NSString *path = (code == NSOKButton) ? [panel filename] : nil;
-
     ASLogDebug(@"Open/save panel path=%@", path);
+
+    // NOTE!  This causes the sheet animation to run its course BEFORE the rest
+    // of this function is executed.  If we do not wait for the sheet to
+    // disappear before continuing it can happen that the controller is
+    // released from under us (i.e. we'll crash and burn) because this
+    // animation is otherwise performed in the default run loop mode!
+    [panel orderOut:self];
 
     // NOTE! setDialogReturn: is a synchronous call so set a proper timeout to
     // avoid waiting forever for it to finish.  We make this a synchronous call
@@ -872,6 +878,13 @@ static BOOL isUnsafeMessage(int msgid);
     }
 
     ASLogDebug(@"Alert return=%@", ret);
+
+    // NOTE!  This causes the sheet animation to run its course BEFORE the rest
+    // of this function is executed.  If we do not wait for the sheet to
+    // disappear before continuing it can happen that the controller is
+    // released from under us (i.e. we'll crash and burn) because this
+    // animation is otherwise performed in the default run loop mode!
+    [[alert window] orderOut:self];
 
     @try {
         [backendProxy setDialogReturn:ret];
