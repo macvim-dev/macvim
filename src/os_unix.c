@@ -319,6 +319,23 @@ static struct signalinfo
     {-1,	    "Unknown!", FALSE}
 };
 
+    int
+mch_chdir(path)
+    char *path;
+{
+    if (p_verbose >= 5)
+    {
+	verbose_enter();
+	smsg((char_u *)"chdir(%s)", path);
+	verbose_leave();
+    }
+# ifdef VMS
+    return chdir(vms_fixfilename(path));
+# else
+    return chdir(path);
+# endif
+}
+
 /*
  * Write s[len] to the screen.
  */
@@ -1138,10 +1155,10 @@ mch_suspend()
      * to happen).
      */
     {
-	long wait;
-	for (wait = 0; !sigcont_received && wait <= 3L; wait++)
+	long wait_time;
+	for (wait_time = 0; !sigcont_received && wait_time <= 3L; wait_time++)
 	    /* Loop is not entered most of the time */
-	    mch_delay(wait, FALSE);
+	    mch_delay(wait_time, FALSE);
     }
 # endif
 
@@ -2426,6 +2443,12 @@ mch_FullName(fname, buf, len, force)
 #ifdef HAVE_FCHDIR
 	    if (fd >= 0)
 	    {
+		if (p_verbose >= 5)
+		{
+		    verbose_enter();
+		    MSG("fchdir() to previous dir");
+		    verbose_leave();
+		}
 		l = fchdir(fd);
 		close(fd);
 	    }
