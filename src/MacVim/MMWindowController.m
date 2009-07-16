@@ -998,8 +998,9 @@
         @try {
             reply = [backendProxy starRegisterToPasteboard:pb];
         }
-        @catch (NSException *e) {
-            ASLogWarn(@"Caught exception: \"%@\"", e);
+        @catch (NSException *ex) {
+            ASLogNotice(@"starRegisterToPasteboard: failed: pid=%d reason=%@",
+                    [vimController pid], ex);
         }
     }
 

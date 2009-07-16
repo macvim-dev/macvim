@@ -636,12 +636,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)removeVimController:(id)controller
 {
-    ASLogDebug(@"Remove Vim controller pid=%d id=%d",
-               [controller pid], [controller identifier]);
+    ASLogDebug(@"Remove Vim controller pid=%d id=%d (processingFlag=%d)",
+               [controller pid], [controller identifier], processingFlag);
 
     int idx = [vimControllers indexOfObject:controller];
     if (NSNotFound == idx) {
-        ASLogWarn(@"Controller at index=%d not found", idx);
+        ASLogDebug(@"Controller not found, probably due to duplicate removal");
         return;
     }
 

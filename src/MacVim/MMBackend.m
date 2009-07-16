@@ -346,8 +346,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         identifier = [appProxy connectBackend:self pid:pid];
         return YES;
     }
-    @catch (NSException *e) {
-        ASLogWarn(@"Exception caught when trying to connect backend: %@", e);
+    @catch (NSException *ex) {
+        ASLogNotice(@"Connect backend failed: reason=%@", ex);
     }
 
     return NO;
@@ -510,8 +510,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                        debugStringForMessageQueue(outputQueue));
             [appProxy processInput:outputQueue forIdentifier:identifier];
         }
-        @catch (NSException *e) {
-            ASLogWarn(@"Exception caught: %@", e);
+        @catch (NSException *ex) {
+            ASLogNotice(@"processInput:forIdentifer failed: reason=%@", ex);
             if (![connection isValid]) {
                 ASLogNotice(@"Connection is invalid, exit now!");
                 ASLogDebug(@"waitForAck=%d got_int=%d", waitForAck, got_int);
@@ -579,8 +579,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                        debugStringForMessageQueue(outputQueue));
             [appProxy processInput:outputQueue forIdentifier:identifier];
         }
-        @catch (NSException *e) {
-            ASLogWarn(@"Exception caught when sending CloseWindowMsgID: %@", e);
+        @catch (NSException *ex) {
+            ASLogNotice(@"CloseWindowMsgID send failed: reason=%@", ex);
         }
 
         // NOTE: If Cmd-w was pressed to close the window the menu is briefly
@@ -702,8 +702,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
         [dialogReturn release];  dialogReturn = nil;
     }
-    @catch (NSException *e) {
-        ASLogWarn(@"Exception caught: %@", e);
+    @catch (NSException *ex) {
+        ASLogNotice(@"Exception: reason=%@", ex);
     }
 
     return (char *)s;
@@ -757,8 +757,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
         [dialogReturn release]; dialogReturn = nil;
     }
-    @catch (NSException *e) {
-        ASLogWarn(@"Exception caught: %@", e);
+    @catch (NSException *ex) {
+        ASLogNotice(@"Exception: reason=%@", ex);
     }
 
     return retval;
@@ -1320,8 +1320,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             [proxy addInput:string client:self];
         }
     }
-    @catch (NSException *e) {
-        ASLogWarn(@"Caught exception: %@", e);
+    @catch (NSException *ex) {
+        ASLogNotice(@"Exception: reason=%@", ex);
         return NO;
     }
 
@@ -1339,8 +1339,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         @try {
             list = [proxy serverList];
         }
-        @catch (NSException *e) {
-            ASLogWarn(@"Exception caught when listing servers: %@", e);
+        @catch (NSException *ex) {
+            ASLogNotice(@"serverList failed: reason=%@", ex);
         }
     } else {
         EMSG(_("E???: No connection to MacVim, server listing not possible."));
@@ -1409,8 +1409,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             [client addReply:reply server:self];
             return YES;
         }
-        @catch (NSException *e) {
-            ASLogWarn(@"Exception caught: %@", e);
+        @catch (NSException *ex) {
+            ASLogNotice(@"addReply:server: failed: reason=%@", ex);
         }
     } else {
         EMSG2(_("E???: server2client failed; no client with id 0x%x"), port);

@@ -348,8 +348,9 @@ static BOOL isUnsafeMessage(int msgid);
     @try {
         [backendProxy processInput:msgid data:data];
     }
-    @catch (NSException *e) {
-        ASLogWarn(@"Exception caught during DO call: %@", e);
+    @catch (NSException *ex) {
+        ASLogNotice(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
+                pid, identifier, MessageStrings[msgid], ex);
     }
 }
 
@@ -378,8 +379,10 @@ static BOOL isUnsafeMessage(int msgid);
     @try {
         [backendProxy processInput:msgid data:data];
     }
-    @catch (NSException *e) {
+    @catch (NSException *ex) {
         sendOk = NO;
+        ASLogNotice(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
+                pid, identifier, MessageStrings[msgid], ex);
     }
     @finally {
         [conn setRequestTimeout:oldTimeout];
@@ -410,7 +413,8 @@ static BOOL isUnsafeMessage(int msgid);
         ASLogDebug(@"eval(%@)=%@", expr, eval);
     }
     @catch (NSException *ex) {
-        ASLogWarn(@"Exception caught: %@", ex);
+        ASLogNotice(@"evaluateExpression: failed: pid=%d id=%d reason=%@",
+                pid, identifier, ex);
     }
 
     return eval;
@@ -426,7 +430,8 @@ static BOOL isUnsafeMessage(int msgid);
                                          errorString:errstr];
         ASLogDebug(@"eval(%@)=%@", expr, eval);
     } @catch (NSException *ex) {
-        ASLogWarn(@"Exception caught: %@", ex);
+        ASLogNotice(@"evaluateExpressionCocoa: failed: pid=%d id=%d reason=%@",
+                pid, identifier, ex);
         *errstr = [ex reason];
     }
 
@@ -464,7 +469,7 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController processInputQueueDidFinish];
     }
     @catch (NSException *ex) {
-        ASLogWarn(@"Caught exception (pid=%d): %@", pid, ex);
+        ASLogNotice(@"Exception: pid=%d id=%d reason=%@", pid, identifier, ex);
     }
 }
 
@@ -856,8 +861,8 @@ static BOOL isUnsafeMessage(int msgid);
             [[NSDocumentController sharedDocumentController]
                     noteNewRecentFilePath:path];
     }
-    @catch (NSException *e) {
-        ASLogWarn(@"Exception caught: %@", e);
+    @catch (NSException *ex) {
+        ASLogNotice(@"Exception: pid=%d id=%d reason=%@", pid, identifier, ex);
     }
     @finally {
         [conn setRequestTimeout:oldTimeout];
@@ -889,8 +894,9 @@ static BOOL isUnsafeMessage(int msgid);
     @try {
         [backendProxy setDialogReturn:ret];
     }
-    @catch (NSException *e) {
-        ASLogWarn(@"Exception caught: %@", e);
+    @catch (NSException *ex) {
+        ASLogNotice(@"setDialogReturn: failed: pid=%d id=%d reason=%@",
+                pid, identifier, ex);
     }
 }
 
@@ -1272,6 +1278,8 @@ static BOOL isUnsafeMessage(int msgid);
 
 - (void)scheduleClose
 {
+    ASLogDebug(@"pid=%d id=%d", pid, identifier);
+
     // NOTE!  This message can arrive at pretty much anytime, e.g. while
     // the run loop is the 'event tracking' mode.  This means that Cocoa may
     // well be in the middle of processing some message while this message is
