@@ -41,9 +41,9 @@
     -->
 
     <item>
-      <title>Snapshot 46 released</title>
+      <title>Snapshot 47 released</title>
       <description><![CDATA[
-<h1>MacVim snapshot 46 released</h1>
+<h1>MacVim snapshot 47 released</h1>
 
 <p> Changes since snapshot 45:
   <ul>
@@ -56,15 +56,16 @@
     <li> The titles of the next/previous tab menu items now match other apps </li>
     <li> Add NetBeans support (Kazuki Sakamoto) </li>
     <li> Add simple logging facility </li>
+    <li> Fix a bug which could cause a crash when a dialog sheet was used </li>
     <li> Update to latest Vim patches and runtime files </li>
   </ul>
 </p>
       ]]></description>
-      <pubDate>Fri, 10 Jul 2009 23:50 CET</pubDate>
+      <pubDate>Fri, 16 Jul 2009 19:43 CET</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-46.tbz"
-        length="8198862"
-        sparkle:version="46"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-47.tbz"
+        length="8200839"
+        sparkle:version="47"
         sparkle:shortVersionString="7.2"
         />
     </item>
