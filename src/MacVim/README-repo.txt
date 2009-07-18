@@ -1,5 +1,3 @@
-### MacVim ###
-
 MacVim is a port of the text editor Vim to Mac OS X.  More information can be
 found on the [project webpage][gcode].  The file `src/MacVim/README` gives an
 overview of the MacVim source code.
@@ -19,7 +17,7 @@ overview of the MacVim source code.
 :   display issues)
 `feat/input`
 :   Refactored input code (improved input manager support, e.g. Kotoeri
-:   shortcuts like Cmd-Shift-; work, etc.)
+:   shortcuts like Ctrl-Shift-j work, etc.)
 
 _Note:_ Branches starting with `feat/` are experimental and will be rebased
 against master occasionally (other branches will not be rebased).
