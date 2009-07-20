@@ -1101,6 +1101,11 @@ defaultLineHeightForFont(NSFont *font)
         rect.size.width = rect.size.width * 2;
     CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
 
+    // Clip drawing to avoid text bleeding into adjacent display cells when
+    // antialiasing is enabled.
+    CGContextSaveGState(context);
+    CGContextClipToRect(context, *(CGRect*)&rect);
+
     ATSUAttributeTag tags[] = { kATSUCGContextTag };
     ByteCount sizes[] = { sizeof(CGContextRef) };
     ATSUAttributeValuePtr values[] = { &context };
@@ -1150,6 +1155,8 @@ defaultLineHeightForFont(NSFont *font)
             i++;
         }
     }
+
+    CGContextRestoreGState(context);
 }
 
 - (void)scrollRect:(NSRect)rect lineCount:(int)count
