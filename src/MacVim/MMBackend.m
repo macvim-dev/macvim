@@ -2417,7 +2417,11 @@ static void netbeansReadCallback(CFSocketRef s,
     if (openFiles && numFiles > 0 && ![args objectForKey:@"remoteID"]
             && (starting || [self unusedEditor]) ) {
         char_u *s = [[filenames objectAtIndex:0] vimStringSave];
-        vim_chdirfile(s);
+        if (mch_isdir(s)) {
+            mch_chdir((char*)s);
+        } else {
+            vim_chdirfile(s);
+        }
         vim_free(s);
     }
 
