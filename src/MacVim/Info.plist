@@ -1158,6 +1158,18 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Vimball Archive</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>vba</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-vba</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
@@ -2546,6 +2558,23 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>rst</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Vimball Archive</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.vim.vba-file</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>vba</string>
 				</array>
 			</dict>
 		</dict>

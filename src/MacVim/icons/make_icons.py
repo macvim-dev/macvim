@@ -106,6 +106,7 @@ vimIcons = {
     'MacVim-gtd': [u'GTD', LINK],
     'MacVim-markdown': [u'MARK\u2193,M\u2193', LINK],  # down arrow
     'MacVim-rst': [u'RST', LINK],
+    'MacVim-vba': [u'VBA', LINK],
 }
 
 
