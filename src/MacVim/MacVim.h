@@ -103,9 +103,7 @@ extern char *MessageStrings[];
 
 enum {
     OpenWindowMsgID = 1,    // NOTE: FIRST IN ENUM MUST BE 1
-    InsertTextMsgID,
     KeyDownMsgID,
-    CmdKeyMsgID,
     BatchDrawMsgID,
     SelectTabMsgID,
     CloseTabMsgID,
@@ -294,6 +292,9 @@ typedef unsigned int NSUInteger;
 # endif
 #endif
 
+#ifndef NSAppKitVersionNumber10_4  // Needed for pre-10.5 SDK
+# define NSAppKitVersionNumber10_4 824
+#endif
 
 
 // Logging related functions and macros.

@@ -70,6 +70,81 @@ static NSString *MMSymlinkWarningString =
      "\ta symlink, then your MacVim.app bundle is incomplete.\n\n";
 
 
+// Keycodes recognized by Vim (struct taken from gui_x11.c and gui_w48.c)
+// (The key codes were taken from Carbon/HIToolbox/Events.)
+static struct specialkey
+{
+    unsigned    key_sym;
+    char_u      vim_code0;
+    char_u      vim_code1;
+} special_keys[] =
+{
+    {0x7e /*kVK_UpArrow*/,       'k', 'u'},
+    {0x7d /*kVK_DownArrow*/,     'k', 'd'},
+    {0x7b /*kVK_LeftArrow*/,     'k', 'l'},
+    {0x7c /*kVK_RightArrow*/,    'k', 'r'},
+
+    {0x7a /*kVK_F1*/,            'k', '1'},
+    {0x78 /*kVK_F2*/,            'k', '2'},
+    {0x63 /*kVK_F3*/,            'k', '3'},
+    {0x76 /*kVK_F4*/,            'k', '4'},
+    {0x60 /*kVK_F5*/,            'k', '5'},
+    {0x61 /*kVK_F6*/,            'k', '6'},
+    {0x62 /*kVK_F7*/,            'k', '7'},
+    {0x64 /*kVK_F8*/,            'k', '8'},
+    {0x65 /*kVK_F9*/,            'k', '9'},
+    {0x6d /*kVK_F10*/,           'k', ';'},
+
+    {0x67 /*kVK_F11*/,           'F', '1'},
+    {0x6f /*kVK_F12*/,           'F', '2'},
+    {0x69 /*kVK_F13*/,           'F', '3'},
+    {0x6b /*kVK_F14*/,           'F', '4'},
+    {0x71 /*kVK_F15*/,           'F', '5'},
+    {0x6a /*kVK_F16*/,           'F', '6'},
+    {0x40 /*kVK_F17*/,           'F', '7'},
+    {0x4f /*kVK_F18*/,           'F', '8'},
+    {0x50 /*kVK_F19*/,           'F', '9'},
+    {0x5a /*kVK_F20*/,           'F', 'A'},
+
+    {0x72 /*kVK_Help*/,          '%', '1'},
+    {0x33 /*kVK_Delete*/,        'k', 'b'},
+    {0x75 /*kVK_ForwardDelete*/, 'k', 'D'},
+    {0x73 /*kVK_Home*/,          'k', 'h'},
+    {0x77 /*kVK_End*/,           '@', '7'},
+    {0x74 /*kVK_PageUp*/,        'k', 'P'},
+    {0x79 /*kVK_PageDown*/,      'k', 'N'},
+
+    /* Keypad keys: */
+    {0x45 /*kVK_ANSI_KeypadPlus*/,       'K', '6'},
+    {0x4e /*kVK_ANSI_KeypadMinus*/,      'K', '7'},
+    {0x4b /*kVK_ANSI_KeypadDivide*/,     'K', '8'},
+    {0x43 /*kVK_ANSI_KeypadMultiply*/,   'K', '9'},
+    {0x4c /*kVK_ANSI_KeypadEnter*/,      'K', 'A'},
+    {0x41 /*kVK_ANSI_KeypadDecimal*/,    'K', 'B'},
+    {0x47 /*kVK_ANSI_KeypadClear*/,      KS_EXTRA, (char_u)KE_KDEL},
+
+    {0x52 /*kVK_ANSI_Keypad0*/,  'K', 'C'},
+    {0x53 /*kVK_ANSI_Keypad1*/,  'K', 'D'},
+    {0x54 /*kVK_ANSI_Keypad2*/,  'K', 'E'},
+    {0x55 /*kVK_ANSI_Keypad3*/,  'K', 'F'},
+    {0x56 /*kVK_ANSI_Keypad4*/,  'K', 'G'},
+    {0x57 /*kVK_ANSI_Keypad5*/,  'K', 'H'},
+    {0x58 /*kVK_ANSI_Keypad6*/,  'K', 'I'},
+    {0x59 /*kVK_ANSI_Keypad7*/,  'K', 'J'},
+    {0x5b /*kVK_ANSI_Keypad8*/,  'K', 'K'},
+    {0x5c /*kVK_ANSI_Keypad9*/,  'K', 'L'},
+
+    /* Keys that we want to be able to use any modifier with: */
+    {0x31 /*kVK_Space*/,         ' ', NUL},
+    {0x30 /*kVK_Tab*/,           TAB, NUL},
+    {0x35 /*kVK_Escape*/,        ESC, NUL},
+    {0x24 /*kVK_Return*/,        CAR, NUL},
+
+    /* End of list marker: */
+    {0, 0, 0}
+};
+
+
 extern GuiFont gui_mch_retain_font(GuiFont font);
 
 
@@ -88,9 +163,13 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)insertVimStateMessage;
 - (void)processInputQueue;
 - (void)handleInputEvent:(int)msgid data:(NSData *)data;
-+ (NSDictionary *)specialKeys;
-- (void)handleInsertText:(NSString *)text;
-- (void)handleKeyDown:(NSString *)key modifiers:(int)mods;
+- (void)doKeyDown:(NSString *)key
+          keyCode:(unsigned)code
+        modifiers:(int)mods;
+- (BOOL)handleSpecialKey:(NSString *)key
+                 keyCode:(unsigned)code
+               modifiers:(int)mods;
+- (BOOL)handleMacMetaKey:(int)ikey modifiers:(int)mods;
 - (void)queueMessage:(int)msgid data:(NSData *)data;
 - (void)connectionDidDie:(NSNotification *)notification;
 - (void)blinkTimerFired:(NSTimer *)timer;
@@ -983,13 +1062,12 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     return INVALCOLOR;
 }
 
-- (BOOL)hasSpecialKeyWithValue:(NSString *)value
+- (BOOL)hasSpecialKeyWithValue:(char_u *)value
 {
-    NSEnumerator *e = [[MMBackend specialKeys] objectEnumerator];
-    id obj;
-
-    while ((obj = [e nextObject])) {
-        if ([value isEqual:obj])
+    int i;
+    for (i = 0; special_keys[i].key_sym != 0; i++) {
+        if (value[0] == special_keys[i].vim_code0
+                && value[1] == special_keys[i].vim_code1)
             return YES;
     }
 
@@ -1038,17 +1116,18 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data
 {
-    // Look for Cmd-. and Ctrl-C immediately instead of waiting until the input
-    // queue is processed since that only happens in waitForInput: (and Vim
-    // regularly checks for Ctrl-C in between waiting for input).
+    // Look for Ctrl-C immediately instead of waiting until the input queue is
+    // processed since that only happens in waitForInput: (and Vim regularly
+    // checks for Ctrl-C in between waiting for input).
     // Similarly, TerminateNowMsgID must be checked immediately otherwise code
     // which waits on the run loop will fail to detect this message (e.g. in
     // waitForConnectionAcknowledgement).
 
-    if (InsertTextMsgID == msgid && data != nil) {
+    if (KeyDownMsgID == msgid && data != nil) {
         const void *bytes = [data bytes];
-        bytes += sizeof(int);
-        int len = *((int*)bytes);  bytes += sizeof(int);
+        /*unsigned mods = *((unsigned*)bytes);*/  bytes += sizeof(unsigned);
+        /*unsigned code = *((unsigned*)bytes);*/  bytes += sizeof(unsigned);
+        unsigned len  = *((unsigned*)bytes);  bytes += sizeof(unsigned);
         if (1 == len) {
             char_u *str = (char_u*)bytes;
             if ((str[0] == Ctrl_C && ctrl_c_interrupts) ||
@@ -1071,14 +1150,13 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     // Remove all previous instances of this message from the input queue, else
     // the input queue may fill up as a result of Vim not being able to keep up
     // with the speed at which new messages are received.
-    // Keyboard input is never dropped, unless the input represents and
+    // Keyboard input is never dropped, unless the input represents an
     // auto-repeated key.
 
     BOOL isKeyRepeat = NO;
     BOOL isKeyboardInput = NO;
 
-    if (data && (InsertTextMsgID == msgid || KeyDownMsgID == msgid ||
-            CmdKeyMsgID == msgid)) {
+    if (data && KeyDownMsgID == msgid) {
         isKeyboardInput = YES;
 
         // The lowest bit of the first int is set if this key is a repeat.
@@ -1655,22 +1733,18 @@ static void netbeansReadCallback(CFSocketRef s,
 
 - (void)handleInputEvent:(int)msgid data:(NSData *)data
 {
-    if (InsertTextMsgID == msgid || KeyDownMsgID == msgid ||
-            CmdKeyMsgID == msgid) {
+    if (KeyDownMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
-        int mods = *((int*)bytes);  bytes += sizeof(int);
-        int len = *((int*)bytes);  bytes += sizeof(int);
+        unsigned mods = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+        unsigned code = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+        unsigned len  = *((unsigned*)bytes);  bytes += sizeof(unsigned);
         NSString *key = [[NSString alloc] initWithBytes:bytes
                                                  length:len
                                                encoding:NSUTF8StringEncoding];
         mods = eventModifierFlagsToVimModMask(mods);
 
-        if (InsertTextMsgID == msgid)
-            [self handleInsertText:key];
-        else
-            [self handleKeyDown:key modifiers:mods];
-
+        [self doKeyDown:key keyCode:code modifiers:mods];
         [key release];
     } else if (ScrollWheelMsgID == msgid) {
         if (!data) return;
@@ -1846,26 +1920,19 @@ static void netbeansReadCallback(CFSocketRef s,
     }
 }
 
-+ (NSDictionary *)specialKeys
+- (void)doKeyDown:(NSString *)key
+          keyCode:(unsigned)code
+        modifiers:(int)mods
 {
-    static NSDictionary *specialKeys = nil;
+    ASLogDebug(@"key='%@' code=%#x mods=%#x length=%d", key, code, mods,
+            [key length]);
+    if (!key) return;
 
-    if (!specialKeys) {
-        NSBundle *mainBundle = [NSBundle mainBundle];
-        NSString *path = [mainBundle pathForResource:@"SpecialKeys"
-                                              ofType:@"plist"];
-        specialKeys = [[NSDictionary alloc] initWithContentsOfFile:path];
-    }
+    char_u *str = (char_u*)[key UTF8String];
+    int i, len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
-    return specialKeys;
-}
-
-- (void)handleInsertText:(NSString *)text
-{
-    if (!text) return;
-
-    char_u *str = (char_u*)[text UTF8String];
-    int i, len = [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    if ([self handleSpecialKey:key keyCode:code modifiers:mods])
+        return;
 
 #ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
@@ -1876,13 +1943,34 @@ static void netbeansReadCallback(CFSocketRef s,
     }
 #endif
 
+    if (mods & MOD_MASK_CMD) {
+        // NOTE: For normal input (non-special, 'macmeta' off) the modifier
+        // flags are already included in the key event.  However, the Cmd key
+        // flag is special and must always be added manually.  The frontend is
+        // responsible for clearing unnecessary flags when Cmd is held.
+        ASLogDebug(@"add mods=%#x", mods);
+        char_u modChars[3] = { CSI, KS_MODIFIER, mods };
+        add_to_input_buf(modChars, 3);
+    } else if (mods & MOD_MASK_ALT && 1 == len && str[0] < 0x80
+            && curbuf && curbuf->b_p_mmta) {
+        // HACK! The 'macmeta' is set so we have to handle Alt key presses
+        // separately.  Normally Alt key presses are interpreted by the
+        // frontend but now we have to manually set the 8th bit and deal with
+        // UTF-8 conversion.
+        if ([self handleMacMetaKey:str[0] modifiers:mods])
+            return;
+    }
+
+
     for (i = 0; i < len; ++i) {
+        ASLogDebug(@"add byte [%d/%d]: %#x", i, len, str[i]);
         add_to_input_buf(str+i, 1);
         if (CSI == str[i]) {
             // NOTE: If the converted string contains the byte CSI, then it
             // must be followed by the bytes KS_EXTRA, KE_CSI or things
             // won't work.
             static char_u extra[2] = { KS_EXTRA, KE_CSI };
+            ASLogDebug(@"add KS_EXTRA, KE_CSI");
             add_to_input_buf(extra, 2);
         }
     }
@@ -1893,158 +1981,127 @@ static void netbeansReadCallback(CFSocketRef s,
 #endif
 }
 
-- (void)handleKeyDown:(NSString *)key modifiers:(int)mods
+- (BOOL)handleSpecialKey:(NSString *)key
+                 keyCode:(unsigned)code
+               modifiers:(int)mods
 {
-    // TODO: This code is a horrible mess -- clean up!
-    char_u special[3];
-    char_u modChars[3];
-    char_u *chars = (char_u*)[key UTF8String];
+    int i;
+    for (i = 0; special_keys[i].key_sym != 0; i++) {
+        if (special_keys[i].key_sym == code) {
+            ASLogDebug(@"Special key: %#x", code);
+            break;
+        }
+    }
+    if (special_keys[i].key_sym == 0)
+        return NO;
+
+    int ikey = special_keys[i].vim_code1 == NUL ? special_keys[i].vim_code0 :
+            TO_SPECIAL(special_keys[i].vim_code0, special_keys[i].vim_code1);
+    ikey = simplify_key(ikey, &mods);
+    if (ikey == CSI)
+        ikey = K_CSI;
+
+    char_u chars[4];
+    int len = 0;
+
+    if (IS_SPECIAL(ikey)) {
+        chars[0] = CSI;
+        chars[1] = K_SECOND(ikey);
+        chars[2] = K_THIRD(ikey);
+        len = 3;
+    } else if (mods & MOD_MASK_ALT && special_keys[i].vim_code1 == 0
 #ifdef FEAT_MBYTE
-    char_u *conv_str = NULL;
+            && !enc_dbcs    // TODO: ?  (taken from gui_gtk_x11.c)
 #endif
-    int length = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+            ) {
+        ASLogDebug(@"Alt special=%d", ikey);
 
-    // Special keys (arrow keys, function keys, etc.) are stored in a plist so
-    // that new keys can easily be added.
-    NSString *specialString = [[MMBackend specialKeys]
-            objectForKey:key];
-    if (specialString && [specialString length] > 1) {
-        //ASLogDebug(@"special key: %@", specialString);
-        int ikey = TO_SPECIAL([specialString characterAtIndex:0],
-                [specialString characterAtIndex:1]);
-
-        ikey = simplify_key(ikey, &mods);
-        if (ikey == CSI)
-            ikey = K_CSI;
-
-        special[0] = CSI;
-        special[1] = K_SECOND(ikey);
-        special[2] = K_THIRD(ikey);
-
-        chars = special;
-        length = 3;
-    } else if (1 == length && TAB == chars[0]) {
-        // Tab is a trouble child:
-        // - <Tab> is added to the input buffer as is
-        // - <S-Tab> is translated to, {CSI,'k','B'} (i.e. 'Back-tab')
-        // - <M-Tab> should be 0x80|TAB but this is not valid utf-8 so it needs
-        //   to be converted to utf-8
-        // - <S-M-Tab> is translated to <S-Tab> with ALT modifier
-        // - <C-Tab> is reserved by Mac OS X
-        // - <D-Tab> is reserved by Mac OS X
-        chars = special;
-        special[0] = TAB;
-        length = 1;
-
-        if (mods & MOD_MASK_SHIFT) {
-            mods &= ~MOD_MASK_SHIFT;
-            special[0] = CSI;
-            special[1] = K_SECOND(K_S_TAB);
-            special[2] = K_THIRD(K_S_TAB);
-            length = 3;
-        } else if (mods & MOD_MASK_ALT) {
-            int mtab = 0x80 | TAB;
+        // NOTE: The last entries in the special_keys struct when pressed
+        // together with Alt need to be handled separately or they will not
+        // work.
+        // The following code was gleaned from gui_gtk_x11.c.
+        mods &= ~MOD_MASK_ALT;
+        int mkey = 0x80 | ikey;
 #ifdef FEAT_MBYTE
-            if (enc_utf8) {
-                // Convert to utf-8
-                special[0] = (mtab >> 6) + 0xc0;
-                special[1] = mtab & 0xbf;
-                length = 2;
-            } else
-#endif
-            {
-                special[0] = mtab;
-                length = 1;
+        if (enc_utf8) {  // TODO: What about other encodings?
+            // Convert to utf-8
+            chars[0] = (mkey >> 6) + 0xc0;
+            chars[1] = mkey & 0xbf;
+            if (chars[1] == CSI) {
+                // We end up here when ikey == ESC
+                chars[2] = KS_EXTRA;
+                chars[3] = KE_CSI;
+                len = 4;
+            } else {
+                len = 2;
             }
-            mods &= ~MOD_MASK_ALT;
-        }
-    } else if (1 == length && chars[0] < 0x80 && (mods & MOD_MASK_ALT)) {
-        // META key is treated separately.  This code was taken from gui_w48.c
-        // and gui_gtk_x11.c.
-        char_u string[7];
-        int ch = simplify_key(chars[0], &mods);
-
-        // Remove the SHIFT modifier for keys where it's already included,
-        // e.g., '(' and '*'
-        if (ch < 0x100 && !isalpha(ch) && isprint(ch))
-            mods &= ~MOD_MASK_SHIFT;
-
-        // Interpret the ALT key as making the key META, include SHIFT, etc.
-        ch = extract_modifiers(ch, &mods);
-        if (ch == CSI)
-            ch = K_CSI;
-
-        int len = 0;
-        if (mods) {
-            string[len++] = CSI;
-            string[len++] = KS_MODIFIER;
-            string[len++] = mods;
-        }
-
-        if (IS_SPECIAL(ch)) {
-            string[len++] = CSI;
-            string[len++] = K_SECOND(ch);
-            string[len++] = K_THIRD(ch);
-        } else {
-            string[len++] = ch;
-#ifdef FEAT_MBYTE
-            // TODO: What if 'enc' is not "utf-8"?
-            if (enc_utf8 && (ch & 0x80)) { // convert to utf-8
-                string[len++] = ch & 0xbf;
-                string[len-2] = ((unsigned)ch >> 6) + 0xc0;
-                if (string[len-1] == CSI) {
-                    string[len++] = KS_EXTRA;
-                    string[len++] = (int)KE_CSI;
-                }
-            }
+        } else
 #endif
+        {
+            chars[0] = mkey;
+            len = 1;
         }
-
-        add_to_input_buf(string, len);
-        return;
-    } else if (length > 0) {
-        unichar c = [key characterAtIndex:0];
-        //ASLogDebug(@"non-special: %@ (hex=%x, mods=%d)", key,
-        //           [key characterAtIndex:0], mods);
-
-        // HACK!  In most circumstances the Ctrl and Shift modifiers should be
-        // cleared since they are already added to the key by the AppKit.
-        // Unfortunately, the only way to deal with when to clear the modifiers
-        // or not seems to be to have hard-wired rules like this.
-        if ( !((' ' == c) || (0xa0 == c) || (mods & MOD_MASK_CMD)
-                    || 0x9 == c || 0xd == c || ESC == c) ) {
-            mods &= ~MOD_MASK_SHIFT;
-            mods &= ~MOD_MASK_CTRL;
-            //ASLogDebug(@"clear shift ctrl");
-        }
-
-#ifdef FEAT_MBYTE
-        if (input_conv.vc_type != CONV_NONE) {
-            conv_str = string_convert(&input_conv, chars, &length);
-            if (conv_str)
-                chars = conv_str;
-        }
-#endif
+    } else {
+        ASLogDebug(@"Just ikey=%d", ikey);
+        chars[0] = ikey;
+        len = 1;
     }
 
-    if (chars && length > 0) {
+    if (len > 0) {
         if (mods) {
-            //ASLogDebug(@"adding mods: %d", mods);
-            modChars[0] = CSI;
-            modChars[1] = KS_MODIFIER;
-            modChars[2] = mods;
+            ASLogDebug(@"Adding mods to special: %d", mods);
+            char_u modChars[3] = { CSI, KS_MODIFIER, (char_u)mods };
             add_to_input_buf(modChars, 3);
         }
 
-        //ASLogDebug(@"add to input buf: 0x%x", chars[0]);
-        // TODO: Check for CSI bytes?
-        add_to_input_buf(chars, length);
+        ASLogDebug(@"Adding special (%d): %x,%x,%x", len,
+                chars[0], chars[1], chars[2]);
+        add_to_input_buf(chars, len);
     }
 
+    return YES;
+}
+
+- (BOOL)handleMacMetaKey:(int)ikey modifiers:(int)mods
+{
+    ASLogDebug(@"ikey=%d mods=%d", ikey, mods);
+
+    // This code was taken from gui_w48.c and gui_gtk_x11.c.
+    char_u string[7];
+    int ch = simplify_key(ikey, &mods);
+
+    // Remove the SHIFT modifier for keys where it's already included,
+    // e.g., '(' and '*'
+    if (ch < 0x100 && !isalpha(ch) && isprint(ch))
+        mods &= ~MOD_MASK_SHIFT;
+
+    // Interpret the ALT key as making the key META, include SHIFT, etc.
+    ch = extract_modifiers(ch, &mods);
+    if (ch == CSI)
+        ch = K_CSI;
+
+    int len = 0;
+    if (mods) {
+        string[len++] = CSI;
+        string[len++] = KS_MODIFIER;
+        string[len++] = mods;
+    }
+
+    string[len++] = ch;
 #ifdef FEAT_MBYTE
-    if (conv_str)
-        vim_free(conv_str);
+    // TODO: What if 'enc' is not "utf-8"?
+    if (enc_utf8 && (ch & 0x80)) { // convert to utf-8
+        string[len++] = ch & 0xbf;
+        string[len-2] = ((unsigned)ch >> 6) + 0xc0;
+        if (string[len-1] == CSI) {
+            string[len++] = KS_EXTRA;
+            string[len++] = (int)KE_CSI;
+        }
+    }
 #endif
+
+    add_to_input_buf(string, len);
+    return YES;
 }
 
 - (void)queueMessage:(int)msgid data:(NSData *)data

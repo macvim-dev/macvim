@@ -111,7 +111,7 @@
 - (void)setPreEditRow:(int)row column:(int)col;
 
 - (int)lookupColorWithKey:(NSString *)key;
-- (BOOL)hasSpecialKeyWithValue:(NSString *)value;
+- (BOOL)hasSpecialKeyWithValue:(char_u *)value;
 
 - (void)enterFullscreen:(int)fuoptions background:(int)bg;
 - (void)leaveFullscreen;

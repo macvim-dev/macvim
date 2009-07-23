@@ -23,9 +23,6 @@
 #import "Miscellaneous.h"
 
 
-static char MMKeypadEnter[2] = { 'K', 'A' };
-static NSString *MMKeypadEnterString = @"KA";
-
 // The max/min drag timer interval in seconds
 static NSTimeInterval MMDragTimerMaxInterval = 0.3;
 static NSTimeInterval MMDragTimerMinInterval = 0.01;
@@ -37,9 +34,8 @@ static float MMDragAreaSize = 73.0f;
 @interface MMTextViewHelper (Private)
 - (MMWindowController *)windowController;
 - (MMVimController *)vimController;
-- (void)dispatchKeyEvent:(NSEvent *)event;
-- (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags
-          isARepeat:(BOOL)isARepeat;
+- (void)doKeyDown:(NSString *)key;
+- (void)doInsertText:(NSString *)text;
 - (void)checkImState;
 - (void)hideMouseCursor;
 - (void)startDragTimerWithInterval:(NSTimeInterval)t;
@@ -47,6 +43,8 @@ static float MMDragAreaSize = 73.0f;
 - (void)setCursor;
 - (NSRect)trackingRect;
 @end
+
+
 
 
 @implementation MMTextViewHelper
@@ -83,96 +81,85 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)keyDown:(NSEvent *)event
 {
-    //ASLogDebug(@"%@", event);
-    // HACK! If control modifier is held, don't pass the event along to
-    // interpretKeyEvents: since some keys are bound to multiple commands which
-    // means doCommandBySelector: is called several times.  Do the same for
-    // Alt+Function key presses (Alt+Up and Alt+Down are bound to two
-    // commands).  This hack may break input management, but unless we can
-    // figure out a way to disable key bindings there seems little else to do.
-    //
-    // TODO: Figure out a way to disable Cocoa key bindings entirely, without
-    // affecting input management.
+    ASLogDebug(@"%@", event);
+
+    // NOTE: Keyboard handling is complicated by the fact that we must call
+    // interpretKeyEvents: otherwise key equivalents set up by input methods do
+    // not work (e.g. Ctrl-Shift-; would not work under Kotoeri).
+
+    // NOTE: insertText: and doCommandBySelector: may need to extract data from
+    // the key down event so keep a local reference to the event.  This is
+    // released and set to nil at the end of this method.  Don't make any early
+    // returns from this method without releasing and resetting this reference!
+    currentEvent = [event retain];
 
     if (imControl)
         [self checkImState];
 
-    // When the Input Method is activated, some special key inputs
-    // should be treated as key inputs for Input Method.
-    if ([textView hasMarkedText]) {
-        [textView interpretKeyEvents:[NSArray arrayWithObject:event]];
+    if ([self hasMarkedText]) {
+        // HACK! Need to redisplay manually otherwise the marked text may not
+        // be correctly displayed (e.g. it is still visible after pressing Esc
+        // even though the text has been unmarked).
         [textView setNeedsDisplay:YES];
-        return;
     }
 
-    int flags = [event modifierFlags];
-    if ((flags & NSControlKeyMask) ||
-            ((flags & NSAlternateKeyMask) && (flags & NSFunctionKeyMask))) {
-        BOOL unmodIsPrintable = YES;
-        NSString *unmod = [event charactersIgnoringModifiers];
-        if (unmod && [unmod length] > 0 && [unmod characterAtIndex:0] < 0x20)
-            unmodIsPrintable = NO;
+    [self hideMouseCursor];
 
-        NSString *chars = [event characters];
-        if ([chars length] == 1 && [chars characterAtIndex:0] < 0x20
-                && unmodIsPrintable) {
-            // HACK! Send unprintable characters (such as C-@, C-[, C-\, C-],
-            // C-^, C-_) as normal text to be added to the Vim input buffer.
-            // This must be done in order for the backend to be able to
-            // separate e.g. Ctrl-i and Ctrl-tab.
-            [self insertText:chars];
-        } else {
-            [self dispatchKeyEvent:event];
-        }
-    } else if ((flags & NSAlternateKeyMask) &&
-            [[[[self vimController] vimState] objectForKey:@"p_mmta"]
-                                                                boolValue]) {
-        // If the 'macmeta' option is set, then send Alt+key presses directly
-        // to Vim without interpreting the key press.
-        NSString *unmod = [event charactersIgnoringModifiers];
-        int len = [unmod lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        const char *bytes = [unmod UTF8String];
+    unsigned flags = [event modifierFlags];
+    id mmta = [[[self vimController] vimState] objectForKey:@"p_mmta"];
+    NSString *string = [event characters];
+    NSString *unmod  = [event charactersIgnoringModifiers];
 
-        [self sendKeyDown:bytes length:len modifiers:flags
-                isARepeat:[event isARepeat]];
+    // Alt key presses should not be interpreted if the 'macmeta' option is
+    // set.  We still have to call interpretKeyEvents: for keys
+    // like Enter, Esc, etc. to work as usual so only skip interpretation for
+    // ASCII chars in the range after space (0x20) and before backspace (0x7f).
+    // Note that this implies that 'mmta' (if enabled) breaks input methods
+    // when the Alt key is held.
+    if ((flags & NSAlternateKeyMask) && [mmta boolValue] && [unmod length] == 1
+            && [unmod characterAtIndex:0] > 0x20
+            && [unmod characterAtIndex:0] < 0x7f) {
+        ASLogDebug(@"MACMETA key, don't interpret it");
+        string = unmod;
     } else {
+        // HACK!  interpretKeyEvents: may call insertText: or
+        // doCommandBySelector:, or it may swallow the key (most likely the
+        // current input method used it).  In the first two cases we have to
+        // manually set the below flag to NO if the key wasn't handled.
+        interpretKeyEventsSwallowedKey = YES;
         [textView interpretKeyEvents:[NSArray arrayWithObject:event]];
+        if (interpretKeyEventsSwallowedKey)
+            string = nil;
+        else if (flags & NSCommandKeyMask) {
+            // HACK! When Command is held we have to more or less guess whether
+            // we should use characters or charactersIgnoringModifiers.  The
+            // following heuristic seems to work but it may have to change.
+            // Note that the Shift and Alt flags may be cleared before passing
+            // the event on to Vim (see doKeyDown:).
+            if ((flags & NSShiftKeyMask && !(flags & NSAlternateKeyMask))
+                    || flags & NSControlKeyMask)
+                string = unmod;
+        }
     }
+
+    if (string)
+        [self doKeyDown:string];
+
+    [currentEvent release];
+    currentEvent = nil;
 }
 
 - (void)insertText:(id)string
 {
-    //ASLogDebug(@"%@", string);
-    // NOTE!  This method is called for normal key presses but also for
-    // Option-key presses --- even when Ctrl is held as well as Option.  When
-    // Ctrl is held, the AppKit translates the character to a Ctrl+key stroke,
-    // so 'string' need not be a printable character!  In this case it still
-    // works to pass 'string' on to Vim as a printable character (since
-    // modifiers are already included and should not be added to the input
-    // buffer using CSI, K_MODIFIER).
-
-    if ([textView hasMarkedText]) {
-        [textView unmarkText];
+    if ([self hasMarkedText]) {
+        // NOTE: If this call is left out then the marked text isn't properly
+        // erased when Return is used to accept the text.
+        // The input manager only ever sets new marked text, it never actually
+        // calls to have it unmarked.  It seems that whenever insertText: is
+        // called the input manager expects the marked text to be unmarked
+        // automatically, hence the explicit unmarkText: call here.
+        [self unmarkText];
     }
-
-    NSEvent *event = [NSApp currentEvent];
-
-    // HACK!  In order to be able to bind to <S-Space>, <S-M-Tab>, etc. we have
-    // to watch for them here.
-    if ([event type] == NSKeyDown
-            && [[event charactersIgnoringModifiers] length] > 0
-            && [event modifierFlags]
-                & (NSShiftKeyMask|NSControlKeyMask|NSAlternateKeyMask)) {
-        unichar c = [[event charactersIgnoringModifiers] characterAtIndex:0];
-
-        // <S-M-Tab> translates to 0x19 
-        if (' ' == c || 0x19 == c) {
-            [self dispatchKeyEvent:event];
-            return;
-        }
-    }
-
-    [self hideMouseCursor];
 
     // NOTE: 'string' is either an NSString or an NSAttributedString.  Since we
     // do not support attributes, simply pass the corresponding NSString in the
@@ -180,145 +167,99 @@ static float MMDragAreaSize = 73.0f;
     if ([string isKindOfClass:[NSAttributedString class]])
         string = [string string];
 
-    NSMutableData *data = [NSMutableData data];
-    int len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-    int flags = [event modifierFlags] & 0xffff0000U;
-    if ([event type] == NSKeyDown && [event isARepeat])
-        flags |= 1;
+    //int len = [string length];
+    //ASLogDebug(@"len=%d char[0]=%#x char[1]=%#x string='%@'", [string length],
+    //        [string characterAtIndex:0],
+    //        len > 1 ? [string characterAtIndex:1] : 0, string);
 
-    [data appendBytes:&flags length:sizeof(int)];
-    [data appendBytes:&len length:sizeof(int)];
-    [data appendBytes:[string UTF8String] length:len];
-
-    [[self vimController] sendMessage:InsertTextMsgID data:data];
+    [self doInsertText:string];
 }
 
-- (void)doCommandBySelector:(SEL)selector
+- (void)doCommandBySelector:(SEL)sel
 {
-    //ASLogDebug(@"%@", NSStringFromSelector(selector));
-    // By ignoring the selector we effectively disable the key binding
-    // mechanism of Cocoa.  Hopefully this is what the user will expect
-    // (pressing Ctrl+P would otherwise result in moveUp: instead of previous
-    // match, etc.).
+    ASLogDebug(@"%@", NSStringFromSelector(sel));
+
+    // Translate Ctrl-2 -> Ctrl-@ (see also Resources/KeyBinding.plist)
+    if (@selector(keyCtrlAt:) == sel)
+        [self doKeyDown:@"\x00"];
+    // Translate Ctrl-6 -> Ctrl-^ (see also Resources/KeyBinding.plist)
+    else if (@selector(keyCtrlHat:) == sel)
+        [self doKeyDown:@"\x1e"];
     //
-    // We usually end up here if the user pressed Ctrl+key (but not
-    // Ctrl+Option+key).
-
-    NSEvent *event = [NSApp currentEvent];
-
-    if (selector == @selector(cancelOperation:)
-            || selector == @selector(insertNewline:)) {
-        // HACK! If there was marked text which got abandoned as a result of
-        // hitting escape or enter, then 'insertText:' is called with the
-        // abandoned text but '[event characters]' includes the abandoned text
-        // as well.  Since 'dispatchKeyEvent:' looks at '[event characters]' we
-        // must intercept these keys here or the abandonded text gets inserted
-        // twice.
-        NSString *key = [event charactersIgnoringModifiers];
-        const char *chars = [key UTF8String];
-        int len = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-
-        if (0x3 == chars[0]) {
-            // HACK! AppKit turns enter (not return) into Ctrl-C, so we need to
-            // handle it separately (else Ctrl-C doesn't work).
-            len = sizeof(MMKeypadEnter)/sizeof(MMKeypadEnter[0]);
-            chars = MMKeypadEnter;
-        }
-
-        [self sendKeyDown:chars length:len modifiers:[event modifierFlags]
-                isARepeat:[event isARepeat]];
-    } else {
-        [self dispatchKeyEvent:event];
-    }
+    // Check for selectors from AppKit.framework/StandardKeyBinding.dict and
+    // send the corresponding key directly on to the backend.  The reason for
+    // not just letting all of these fall through is that -[NSEvent characters]
+    // sometimes includes marked text as well as the actual key, but the marked
+    // text is also passed to insertText:.  For example, pressing Ctrl-i Return
+    // on a US keyboard would call insertText:@"^" but the key event for the
+    // Return press will contain "^\x0d" -- if we fell through the result would
+    // be that "^^\x0d" got sent to the backend (i.e. one extra "^" would
+    // appear).
+    // For this reason we also have to make sure that there are key bindings to
+    // all combinations of modifier with certain keys (these are set up in
+    // KeyBinding.plist in the Resources folder).
+    else if (@selector(insertTab:) == sel ||
+             @selector(selectNextKeyView:) == sel ||
+             @selector(insertTabIgnoringFieldEditor:) == sel)
+        [self doKeyDown:@"\x09"];
+    else if (@selector(insertNewline:) == sel ||
+             @selector(insertLineBreak:) == sel ||
+             @selector(insertNewlineIgnoringFieldEditor:) == sel)
+        [self doKeyDown:@"\x0d"];
+    else if (@selector(cancelOperation:) == sel ||
+             @selector(complete:) == sel)
+        [self doKeyDown:@"\x1b"];
+    else if (@selector(insertBackTab:) == sel ||
+             @selector(selectPreviousKeyView:) == sel)
+        [self doKeyDown:@"\x19"];
+    else if (@selector(deleteBackward:) == sel ||
+             @selector(deleteWordBackward:) == sel ||
+             @selector(deleteBackwardByDecomposingPreviousCharacter:) == sel ||
+             @selector(deleteToBeginningOfLine:) == sel)
+        [self doKeyDown:@"\x7f"];
+    else if (@selector(keySpace:) == sel)
+        [self doKeyDown:@" "];
+    else if (@selector(cancel:) == sel)
+        kill([[self vimController] pid], SIGINT);
+    else interpretKeyEventsSwallowedKey = NO;
 }
 
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
-    //ASLogDebug(@"%@", event);
-    // Called for Cmd+key keystrokes, function keys, arrow keys, page
-    // up/down, home, end.
-    //
-    // NOTE: This message cannot be ignored since Cmd+letter keys never are
-    // passed to keyDown:.  It seems as if the main menu consumes Cmd-key
-    // strokes, unless the key is a function key.
+    ASLogDebug(@"");
 
-    if (imControl)
-        [self checkImState];
-
-    // NOTE: If the event that triggered this method represents a function key
-    // down then we do nothing, otherwise the input method never gets the key
-    // stroke (some input methods use e.g. arrow keys).  The function key down
-    // event will still reach Vim though (via keyDown:).  The exceptions to
-    // this rule are: PageUp/PageDown (keycode 116/121).
-    int flags = [event modifierFlags] & 0xffff0000U;
-    if ([event type] != NSKeyDown || flags & NSFunctionKeyMask
-            && !(116 == [event keyCode] || 121 == [event keyCode]))
+    // NOTE: Key equivalent handling was fixed in Leopard.  That is, an
+    // unhandled key equivalent is passed to keyDown: -- contrast this with
+    // pre-Leopard where unhandled key equivalents would simply disappear
+    // (hence the ugly hack below for Tiger).
+    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_4)
         return NO;
 
-    // HACK!  KeyCode 50 represent the key which switches between windows
+    // HACK! KeyCode 50 represent the key which switches between windows
     // within an application (like Cmd+Tab is used to switch between
     // applications).  Return NO here, else the window switching does not work.
     if ([event keyCode] == 50)
         return NO;
 
-    // HACK!  Let the main menu try to handle any key down event, before
+    // HACK! The -[NSRespoder cancelOperation:] indicates that Cmd-. is handled
+    // in a special way by the key window.  Indeed, if we pass this event on to
+    // keyDown: it will result in doCommandBySelector: being called with
+    // cancelOperation: as selector, otherwise it is called with cancel: as the
+    // selector (and we respond to cancel: there).
+    int flags = [event modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+    NSString *unmod = [event charactersIgnoringModifiers];
+    if (flags == NSCommandKeyMask && [unmod isEqual:@"."])
+        return NO;
+
+    // HACK! Let the main menu try to handle any key down event, before
     // passing it on to vim, otherwise key equivalents for menus will
     // effectively be disabled.
     if ([[NSApp mainMenu] performKeyEquivalent:event])
         return YES;
 
-    // HACK!  On Leopard Ctrl-key events end up here instead of keyDown:.
-    if (flags & NSControlKeyMask) {
-        [self keyDown:event];
-        return YES;
-    }
-
-    // HACK!  Don't handle Cmd-? or the "Help" menu does not work on Leopard.
-    NSString *unmodchars = [event charactersIgnoringModifiers];
-    if ([unmodchars isEqual:@"?"])
-        return NO;
-
-    // Cmd-. is hard-wired to send SIGINT unlike Ctrl-C which is just another
-    // key press which Vim has to interpret.  This means that Cmd-. always
-    // works to interrupt a Vim process whereas Ctrl-C can suffer from problems
-    // such as dropped DO messages (or if Vim is stuck in a loop without
-    // checking for keyboard input).
-    if ((flags & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask &&
-            [unmodchars isEqual:@"."]) {
-        kill([[self vimController] pid], SIGINT);
-        return YES;
-    }
-
-    NSString *chars = [event characters];
-    int len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-    NSMutableData *data = [NSMutableData data];
-
-    if (len <= 0)
-        return NO;
-
-    // If 'chars' and 'unmodchars' differs when shift flag is present, then we
-    // can clear the shift flag as it is already included in 'unmodchars'.
-    // Failing to clear the shift flag means <D-Bar> turns into <S-D-Bar> (on
-    // an English keyboard).
-    if (flags & NSShiftKeyMask && ![chars isEqual:unmodchars])
-        flags &= ~NSShiftKeyMask;
-
-    if (0x3 == [unmodchars characterAtIndex:0]) {
-        // HACK! AppKit turns enter (not return) into Ctrl-C, so we need to
-        // handle it separately (else Cmd-enter turns into Ctrl-C).
-        unmodchars = MMKeypadEnterString;
-        len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-    }
-
-    if ([event isARepeat])
-        flags |= 1;
-
-    [data appendBytes:&flags length:sizeof(int)];
-    [data appendBytes:&len length:sizeof(int)];
-    [data appendBytes:[unmodchars UTF8String] length:len];
-
-    [[self vimController] sendMessage:CmdKeyMsgID data:data];
-
+    // HACK! Pass the event on or it may disappear (Tiger does not pass Cmd-key
+    // events to keyDown:).
+    [self keyDown:event];
     return YES;
 }
 
@@ -618,6 +559,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)setMarkedTextAttributes:(NSDictionary *)attr
 {
+    ASLogDebug(@"%@", attr);
     if (attr != markedTextAttributes) {
         [markedTextAttributes release];
         markedTextAttributes = [attr retain];
@@ -626,6 +568,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)setMarkedText:(id)text selectedRange:(NSRange)range
 {
+    ASLogDebug(@"text='%@' range=%@", text, NSStringFromRange(range));
     [self unmarkText];
 
     if (!(text && [text length] > 0))
@@ -671,6 +614,7 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)unmarkText
 {
+    ASLogDebug(@"");
     imRange = NSMakeRange(0, 0);
     markedRange = NSMakeRange(NSNotFound, 0);
     [markedText release];
@@ -778,72 +722,71 @@ static float MMDragAreaSize = 73.0f;
     return [[self windowController] vimController];
 }
 
-- (void)dispatchKeyEvent:(NSEvent *)event
+- (void)doKeyDown:(NSString *)key
 {
-    // Only handle the command if it came from a keyDown event
-    if ([event type] != NSKeyDown)
+    if (!currentEvent) {
+        ASLogDebug(@"No current event; ignore key");
         return;
-
-    NSString *chars = [event characters];
-    NSString *unmodchars = [event charactersIgnoringModifiers];
-    unichar c = [chars characterAtIndex:0];
-    unichar imc = [unmodchars length] > 0 ? [unmodchars characterAtIndex:0] : 0;
-    int len = 0;
-    const char *bytes = 0;
-    int mods = [event modifierFlags];
-
-    //ASLogDebug(@"chars[0]=0x%x unmodchars[0]=0x%x (chars=%@ unmodchars=%@)",
-    //           c, imc, chars, unmodchars);
-
-    if (' ' == imc && 0xa0 != c) {
-        // HACK!  The AppKit turns <C-Space> into <C-@> which is not standard
-        // Vim behaviour, so bypass this problem.  (0xa0 is <M-Space>, which
-        // should be passed on as is.)
-        len = [unmodchars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        bytes = [unmodchars UTF8String];
-    } else if (imc == c && '2' == c) {
-        // HACK!  Translate Ctrl+2 to <C-@>.
-        static char ctrl_at = 0;
-        len = 1;  bytes = &ctrl_at;
-    } else if (imc == c && '6' == c) {
-        // HACK!  Translate Ctrl+6 to <C-^>.
-        static char ctrl_hat = 0x1e;
-        len = 1;  bytes = &ctrl_hat;
-    } else if (c == 0x19 && imc == 0x19) {
-        // HACK! AppKit turns back tab into Ctrl-Y, so we need to handle it
-        // separately (else Ctrl-Y doesn't work).
-        static char tab = 0x9;
-        len = 1;  bytes = &tab;  mods |= NSShiftKeyMask;
-    } else {
-        len = [chars lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-        bytes = [chars UTF8String];
     }
 
-    [self sendKeyDown:bytes length:len modifiers:mods
-            isARepeat:[event isARepeat]];
+    const char *chars = [key UTF8String];
+    unsigned length = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    unsigned keyCode = [currentEvent keyCode];
+    unsigned flags = [currentEvent modifierFlags];
+
+    if (flags & NSCommandKeyMask) {
+        // The Shift flag is already included in the key when the Command key
+        // is held.  The same goes for Alt, unless Ctrl is held or 'macmeta' is
+        // set.
+        flags &= ~NSShiftKeyMask;
+        if (!(flags & NSControlKeyMask)) {
+            id mmta = [[[self vimController] vimState] objectForKey:@"p_mmta"];
+            if (![mmta boolValue])
+                flags &= ~NSAlternateKeyMask;
+        }
+    }
+
+    // The low 16 bits are not used for modifier flags by NSEvent.  Use
+    // these bits for custom flags.
+    flags &= NSDeviceIndependentModifierFlagsMask;
+    if ([currentEvent isARepeat])
+        flags |= 1;
+
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&flags length:sizeof(unsigned)];
+    [data appendBytes:&keyCode length:sizeof(unsigned)];
+    [data appendBytes:&length length:sizeof(unsigned)];
+    if (length > 0)
+        [data appendBytes:chars length:length];
+
+    [[self vimController] sendMessage:KeyDownMsgID data:data];
 }
 
-- (void)sendKeyDown:(const char *)chars length:(int)len modifiers:(int)flags
-          isARepeat:(BOOL)isARepeat
+- (void)doInsertText:(NSString *)text
 {
-    if (chars && len > 0) {
-        NSMutableData *data = [NSMutableData data];
+    unsigned length = [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    if (0 == length)
+        return;
 
-        // The low 16 bits are not used for modifier flags by NSEvent.  Use
-        // these bits for custom flags.
-        flags &= 0xffff0000;
-        if (isARepeat)
-            flags |= 1;
+    const char *chars = [text UTF8String];
+    unsigned keyCode = 0;
+    unsigned flags = 0;
 
-        [data appendBytes:&flags length:sizeof(int)];
-        [data appendBytes:&len length:sizeof(int)];
-        [data appendBytes:chars length:len];
+    // HACK! insertText: can be called from outside a keyDown: event in which
+    // case currentEvent is nil.  This happens e.g. when the "Special
+    // Characters" palette is used to insert text.  In this situation we assume
+    // that the key is not a repeat (if there was a palette that did auto
+    // repeat of input we might have to rethink this).
+    if (currentEvent && [currentEvent isARepeat])
+        flags |= 1;
 
-        [self hideMouseCursor];
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&flags length:sizeof(unsigned)];
+    [data appendBytes:&keyCode length:sizeof(unsigned)];
+    [data appendBytes:&length length:sizeof(unsigned)];
+    [data appendBytes:chars length:length];
 
-        //ASLogDebug(@"len=%d chars=0x%x", len, chars[0]);
-        [[self vimController] sendMessage:KeyDownMsgID data:data];
-    }
+    [[self vimController] sendMessage:KeyDownMsgID data:data];
 }
 
 - (void)checkImState

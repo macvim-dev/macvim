@@ -82,6 +82,13 @@ typedef struct
 #pragma options align=reset
 
 
+// This is a private AppKit API gleaned from class-dump.
+@interface NSKeyBindingManager : NSObject
++ (id)sharedKeyBindingManager;
+- (id)dictionary;
+- (void)setDictionary:(id)arg1;
+@end
+
 
 @interface MMAppController (MMServices)
 - (void)openSelection:(NSPasteboard *)pboard userData:(NSString *)userData
@@ -159,6 +166,16 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     ASLInit();
 
+    // HACK! The following user default must be reset, else Ctrl-q (or
+    // whichever key is specified by the default) will be blocked by the input
+    // manager (interpretKeyEvents: swallows that key).  (We can't use
+    // NSUserDefaults since it only allows us to write to the registration
+    // domain and this preference has "higher precedence" than that so such a
+    // change would have no effect.)
+    CFPreferencesSetAppValue(CFSTR("NSQuotedKeystrokeBinding"),
+                             CFSTR(""),
+                             kCFPreferencesCurrentApplication);
+    
     NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
         [NSNumber numberWithBool:NO],   MMNoWindowKey,
         [NSNumber numberWithInt:64],    MMTabMinWidthKey,
@@ -325,6 +342,40 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 andSelector:@selector(handleGetURLEvent:replyEvent:)
               forEventClass:kInternetEventClass
                  andEventID:kAEGetURL];
+
+    // Disable the default Cocoa "Key Bindings" since they interfere with the
+    // way Vim handles keyboard input.  Cocoa reads bindings from
+    //     /System/Library/Frameworks/AppKit.framework/Resources/
+    //                                                  StandardKeyBinding.dict
+    // and
+    //     ~/Library/KeyBindings/DefaultKeyBinding.dict
+    // To avoid having the user accidentally break keyboard handling (by
+    // modifying the latter in some unexpected way) in MacVim we load our own
+    // key binding dictionary from Resource/KeyBinding.plist.  We can't disable
+    // the bindings completely since it would break keyboard handling in
+    // dialogs so the our custom dictionary contains all the entries from the
+    // former location.
+    //
+    // It is possible to disable key bindings completely by not calling
+    // interpretKeyEvents: in keyDown: but this also disables key bindings used
+    // by certain input methods.  E.g.  Ctrl-Shift-; would no longer work in
+    // the Kotoeri input manager.
+    //
+    // To solve this problem we access a private API and set the key binding
+    // dictionary to our own custom dictionary here.  At this time Cocoa will
+    // have already read the above mentioned dictionaries so it (hopefully)
+    // won't try to change the key binding dictionary again after this point.
+    NSKeyBindingManager *mgr = [NSKeyBindingManager sharedKeyBindingManager];
+    NSBundle *mainBundle = [NSBundle mainBundle];
+    NSString *path = [mainBundle pathForResource:@"KeyBinding"
+                                          ofType:@"plist"];
+    NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:path];
+    if (mgr && dict) {
+        [mgr setDictionary:dict];
+    } else {
+        ASLogNotice(@"Failed to override the Cocoa key bindings.  Keyboard "
+                "input may behave strangely as a result (path=%@).", path);
+    }
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification

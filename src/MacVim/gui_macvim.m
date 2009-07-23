@@ -1589,21 +1589,7 @@ gui_mch_get_winpos(int *x, int *y)
     int
 gui_mch_haskey(char_u *name)
 {
-    BOOL ok = NO;
-
-#ifdef FEAT_MBYTE
-    name = CONVERT_TO_UTF8(name);
-#endif
-
-    NSString *value = [NSString stringWithUTF8String:(char*)name];
-    if (value)
-        ok =  [[MMBackend sharedInstance] hasSpecialKeyWithValue:value];
-
-#ifdef FEAT_MBYTE
-    CONVERT_TO_UTF8_FREE(name);
-#endif
-
-    return ok;
+    return [[MMBackend sharedInstance] hasSpecialKeyWithValue:name];
 }
 
 

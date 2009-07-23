@@ -31,6 +31,8 @@ enum {
     int                 mouseShape;
     NSTrackingRectTag   trackingRectTag;
     NSColor             *insertionPointColor;
+    BOOL                interpretKeyEventsSwallowedKey;
+    NSEvent             *currentEvent;
 
     // Input Manager
     NSRange             imRange;

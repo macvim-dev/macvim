@@ -122,9 +122,6 @@
 
 - (id)initWithVimController:(MMVimController *)controller
 {
-#ifndef NSAppKitVersionNumber10_4  // needed for non-10.5 sdk
-# define NSAppKitVersionNumber10_4 824
-#endif
     unsigned styleMask = NSTitledWindowMask | NSClosableWindowMask
             | NSMiniaturizableWindowMask | NSResizableWindowMask
             | NSUnifiedTitleAndToolbarWindowMask;

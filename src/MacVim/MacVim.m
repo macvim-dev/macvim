@@ -18,9 +18,7 @@ char *MessageStrings[] =
 {
     "INVALID MESSAGE ID",
     "OpenWindowMsgID",
-    "InsertTextMsgID",
     "KeyDownMsgID",
-    "CmdKeyMsgID",
     "BatchDrawMsgID",
     "SelectTabMsgID",
     "CloseTabMsgID",
