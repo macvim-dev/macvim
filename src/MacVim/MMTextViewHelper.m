@@ -777,8 +777,18 @@ static float MMDragAreaSize = 73.0f;
     // Characters" palette is used to insert text.  In this situation we assume
     // that the key is not a repeat (if there was a palette that did auto
     // repeat of input we might have to rethink this).
-    if (currentEvent && [currentEvent isARepeat])
-        flags |= 1;
+    if (currentEvent) {
+        // HACK! Keys on the numeric key pad are treated as special keys by Vim
+        // so we need to pass on key code and modifier flags in this situation.
+        unsigned mods = [currentEvent modifierFlags];
+        if (mods & NSNumericPadKeyMask) {
+            flags = mods & NSDeviceIndependentModifierFlagsMask;
+            keyCode = [currentEvent keyCode];
+        }
+
+        if ([currentEvent isARepeat])
+            flags |= 1;
+    }
 
     NSMutableData *data = [NSMutableData data];
     [data appendBytes:&flags length:sizeof(unsigned)];
