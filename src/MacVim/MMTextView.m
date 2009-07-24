@@ -312,6 +312,11 @@
     [helper setImControl:enable];
 }
 
+- (void)activateIm:(BOOL)enable
+{
+    [helper activateIm:enable];
+}
+
 - (NSFont *)font
 {
     return [(MMTextStorage*)[self textStorage] font];

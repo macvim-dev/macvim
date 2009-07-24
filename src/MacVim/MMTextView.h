@@ -33,6 +33,7 @@
 - (void)setMouseShape:(int)shape;
 - (void)setAntialias:(BOOL)antialias;
 - (void)setImControl:(BOOL)enable;
+- (void)activateIm:(BOOL)enable;
 
 //
 // MMTextStorage methods

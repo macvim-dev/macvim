@@ -57,6 +57,17 @@ static float MMDragAreaSize = 73.0f;
     [markedText release];  markedText = nil;
     [markedTextAttributes release];  markedTextAttributes = nil;
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+    if (lastAsciiImSource) {
+        CFRelease(lastAsciiImSource);
+        lastAsciiImSource = NULL;
+    }
+    if (lastImSource) {
+        CFRelease(lastImSource);
+        lastImSource = NULL;
+    }
+#endif
+
     [super dealloc];
 }
 
@@ -92,9 +103,6 @@ static float MMDragAreaSize = 73.0f;
     // released and set to nil at the end of this method.  Don't make any early
     // returns from this method without releasing and resetting this reference!
     currentEvent = [event retain];
-
-    if (imControl)
-        [self checkImState];
 
     if ([self hasMarkedText]) {
         // HACK! Need to redisplay manually otherwise the marked text may not
@@ -144,6 +152,11 @@ static float MMDragAreaSize = 73.0f;
 
     if (string)
         [self doKeyDown:string];
+
+    // NOTE: Check IM state _after_ key has been interpreted or we'll pick up
+    // the old IM state when it has been switched via a keyboard shortcut.
+    if (imControl)
+        [self checkImState];
 
     [currentEvent release];
     currentEvent = nil;
@@ -698,8 +711,88 @@ static float MMDragAreaSize = 73.0f;
 {
     // This flag corresponds to the (negation of the) 'imd' option.  When
     // enabled changes to the input method are detected and forwarded to the
-    // backend.
+    // backend.  On 10.5 and later we do not forward changes to the input
+    // method, instead we let Vim be in complete control.
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+    // The TIS symbols are weakly linked.
+    if (NULL != TISCopyCurrentKeyboardInputSource) {
+        // We get here when compiled on 10.5 and running on 10.5 (or later).
+
+        // Save current input source for use when IM is on and get an ASCII
+        // source for use when IM is off.
+        if (lastAsciiImSource) CFRelease(lastAsciiImSource);
+        lastAsciiImSource = TISCopyCurrentASCIICapableKeyboardInputSource();
+        if (lastImSource) CFRelease(lastImSource);
+        lastImSource = TISCopyCurrentKeyboardInputSource();
+    }
+#endif
+
+    // The imControl flag is only used on 10.4 -- on 10.5 we wait for Vim to
+    // call activateIm: and never explicitly check if the input source changes.
     imControl = enable;
+    ASLogInfo(@"IM control %sabled", enable ? "en" : "dis");
+}
+
+- (void)activateIm:(BOOL)enable
+{
+    ASLogDebug(@"Activate IM=%d", enable);
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+    // The TIS symbols are weakly linked.
+    if (NULL != TISCopyCurrentKeyboardInputSource) {
+        // We get here when compiled for 10.5 and running on 10.5 (or later)
+
+        TISInputSourceRef ref = NULL;
+        if (enable) {
+            // Enable IM: switch back to input source used when IM was last on.
+            if (lastImSource)
+                ref = lastImSource;
+
+            // Remember current input source if it is ASCII capable so we can
+            // switch back to it when IM is once more disabled.
+            TISInputSourceRef curRef = TISCopyCurrentKeyboardInputSource();
+            if (curRef) {
+                CFBooleanRef boolRef = (CFBooleanRef)TISGetInputSourceProperty(
+                                curRef, kTISPropertyInputSourceIsASCIICapable);
+                BOOL curIsAscii = boolRef ? CFBooleanGetValue(boolRef) : NO;
+
+                if (curIsAscii) {
+                    if (lastAsciiImSource) CFRelease(lastAsciiImSource);
+                    lastAsciiImSource = curRef;
+                } else {
+                    CFRelease(curRef);
+                }
+            }
+        } else {
+            // Disable IM: switch back to ASCII input source that was used when
+            // IM was last off.
+            if (lastAsciiImSource)
+                ref = lastAsciiImSource;
+
+            // Remember current input source so we can switch back to it when
+            // IM is once more enabled.
+            if (lastImSource) CFRelease(lastImSource);
+            lastImSource = TISCopyCurrentKeyboardInputSource();
+        }
+
+        if (ref) {
+            ASLogDebug(@"Change input source: %@",
+                    TISGetInputSourceProperty(ref, kTISPropertyInputSourceID));
+            TISSelectInputSource(ref);
+        }
+
+        return;
+    }
+
+    // We get here when compiled on 10.5 but running on 10.4 -- fall through
+    // and use old IM code...
+#endif
+#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4)
+    // NOTE: The IM code is delegated to the frontend since calling it in
+    // the backend caused weird bugs (second dock icon appearing etc.).
+    KeyScript(enable ? smKeySysScript : smKeyRoman);
+#endif
 }
 
 @end // MMTextViewHelper
@@ -801,6 +894,13 @@ static float MMDragAreaSize = 73.0f;
 
 - (void)checkImState
 {
+#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+    if (NULL != TISCopyCurrentKeyboardInputSource)
+        return; // Compiled for 10.4 -- 10.5, running on 10.5
+#endif
+    // Compiled for 10.4 or higher, running on 10.4
+
     // IM is active whenever the current script is the system script and the
     // system script isn't roman.  (Hence IM can only be active when using
     // non-roman scripts.)
@@ -815,6 +915,7 @@ static float MMDragAreaSize = 73.0f;
         int msgid = state ? ActivatedImMsgID : DeactivatedImMsgID;
         [[self vimController] sendMessage:msgid data:nil];
     }
+#endif
 }
 
 - (void)hideMouseCursor

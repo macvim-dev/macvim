@@ -329,6 +329,11 @@ defaultLineHeightForFont(NSFont *font)
     [helper setImControl:enable];
 }
 
+- (void)activateIm:(BOOL)enable
+{
+    [helper activateIm:enable];
+}
+
 - (void)keyDown:(NSEvent *)event
 {
     [helper keyDown:event];

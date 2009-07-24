@@ -10,6 +10,11 @@
 
 #import <Cocoa/Cocoa.h>
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+// Need Carbon for TIS...() functions
+#import <Carbon/Carbon.h>
+#endif
+
 
 enum {
     // These values are chosen so that the min text view size is not too small
@@ -43,6 +48,10 @@ enum {
     int                 preEditColumn;
     BOOL                imControl;
     BOOL                imState;
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+    TISInputSourceRef   lastImSource;
+    TISInputSourceRef   lastAsciiImSource;
+#endif
 }
 
 - (void)setTextView:(id)view;
@@ -85,5 +94,6 @@ enum {
 - (void)setMarkedRange:(NSRange)range;
 - (NSRect)firstRectForCharacterRange:(NSRange)range;
 - (void)setImControl:(BOOL)enable;
+- (void)activateIm:(BOOL)enable;
 
 @end
