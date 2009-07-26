@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Mar 15
+*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Aug 8
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -17,8 +17,9 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
  8. System services		|macvim-services|
  9. mvim:// URL handler		|macvim-url-handler|
 10. Keyboard shortcuts		|macvim-shortcuts|
-11. Known bugs/missing features	|macvim-todo|
-12. Hints			|macvim-hints|
+11. International		|macvim-international|
+12. Known bugs/missing features	|macvim-todo|
+13. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -625,7 +626,28 @@ See |macvim-shift-movement| if you want Shift to select text when used in
 conjunction with the above Cmd/Alt movement shortcuts.
 
 ==============================================================================
-11. Known bugs/missing features				*macvim-todo*
+11. International					*macvim-international*
+
+When editing non-English text it may be convenient to keep separate keyboard
+layouts for normal and insert mode.  This is supported via the 'imd' option on
+Mac OS X 10.5 or later (on 10.4 the 'imd' option support is not as useful as
+it only switches between Roman and non-Roman input sources and it has been
+known not to work very reliably).
+
+For example: When 'noimd' is enabled (i.e. IM is enabled) the input source is
+saved when toggling between normal and insert mode, so you can use a US layout
+in normal mode then switch to insert mode and choose a Swedish layout.  When
+you go back to normal mode the US layout will be selected and when you enter
+insert mode the Swedish layout is selected.  This also works when searching
+for text etc. see 'imc', 'imi', 'ims'.
+
+Note that the layout used in normal mode is the layout used when 'noimd' is
+set (i.e when IM is enabled).  If you find that MacVim switches to the
+wrong layout when going back to normal mode, then select the layout you want
+to use in normal mode and type ":set imd" followed by ":set noimd".
+
+==============================================================================
+12. Known bugs/missing features				*macvim-todo*
 
 This list is by no means exhaustive, it only enumerates some of the more
 prominent bugs/missing features.
@@ -648,7 +670,7 @@ might be simple to implement, but unless somebody asks for a particular
 feature then there is little incentive to add it.
 
 ==============================================================================
-12. Hints						*macvim-hints*
+13. Hints						*macvim-hints*
 
 In this section some general (not necessarily MacVim specific) hints are
 given.

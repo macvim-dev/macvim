@@ -3881,11 +3881,12 @@ A jump table for the options with a short description can be found at |Q_op|.
 			global
 			{not in Vi}
 			{only available when compiled with the |+xim|
-			|+multi_byte_ime| or |global-ime| feature}
+			|+multi_byte_ime| or |global-ime| feature, always
+			available in MacVim}
 	When set the Input Method is never used.  This is useful to disable
 	the IM when it doesn't work properly.
-	Currently this option is on by default for SGI/IRIX and MacVim.  This
-	may change in later releases.
+	Currently this option is on by default for SGI/IRIX.  This may change
+	in later releases.
 
 						*'iminsert'* *'imi'*
 'iminsert' 'imi'	number (default 0, 2 when an input method is supported)
