@@ -121,6 +121,8 @@ struct bw_info
     char_u	*bw_conv_buf;	/* buffer for writing converted chars */
     int		bw_conv_buflen; /* size of bw_conv_buf */
     int		bw_conv_error;	/* set for conversion error */
+    linenr_T	bw_conv_error_lnum;  /* first line with error or zero */
+    linenr_T	bw_start_lnum;  /* line number at start of buffer */
 # ifdef USE_ICONV
     iconv_t	bw_iconv_fd;	/* descriptor for iconv() or -1 */
 # endif
@@ -132,7 +134,7 @@ static int  buf_write_bytes __ARGS((struct bw_info *ip));
 #ifdef FEAT_MBYTE
 static linenr_T readfile_linenr __ARGS((linenr_T linecnt, char_u *p, char_u *endp));
 static int ucs2bytes __ARGS((unsigned c, char_u **pp, int flags));
-static int same_encoding __ARGS((char_u *a, char_u *b));
+static int need_conversion __ARGS((char_u *fenc));
 static int get_fio_flags __ARGS((char_u *ptr));
 static char_u *check_for_bom __ARGS((char_u *p, long size, int *lenp, int flags));
 static int make_bom __ARGS((char_u *buf, char_u *name));
@@ -1041,13 +1043,12 @@ retry:
     }
 
     /*
-     * Conversion is required when the encoding of the file is different
-     * from 'encoding' or 'encoding' is UTF-16, UCS-2 or UCS-4 (requires
-     * conversion to UTF-8).
+     * Conversion may be required when the encoding of the file is different
+     * from 'encoding' or 'encoding' is UTF-16, UCS-2 or UCS-4.
      */
     fio_flags = 0;
-    converted = (*fenc != NUL && !same_encoding(p_enc, fenc));
-    if (converted || enc_unicode != 0)
+    converted = need_conversion(fenc);
+    if (converted)
     {
 
 	/* "ucs-bom" means we need to check the first bytes of the file
@@ -2924,6 +2925,7 @@ buf_write(buf, fname, sfname, start, end, eap, append, forceit,
     linenr_T	    lnum;
     long	    nchars;
     char_u	    *errmsg = NULL;
+    int		    errmsg_allocated = FALSE;
     char_u	    *errnum = NULL;
     char_u	    *buffer;
     char_u	    smallbuf[SMBUFSIZE];
@@ -2987,6 +2989,7 @@ buf_write(buf, fname, sfname, start, end, eap, append, forceit,
     /* must init bw_conv_buf and bw_iconv_fd before jumping to "fail" */
     write_info.bw_conv_buf = NULL;
     write_info.bw_conv_error = FALSE;
+    write_info.bw_conv_error_lnum = 0;
     write_info.bw_restlen = 0;
 # ifdef USE_ICONV
     write_info.bw_iconv_fd = (iconv_t)-1;
@@ -3965,10 +3968,9 @@ buf_write(buf, fname, sfname, start, end, eap, append, forceit,
 	fenc = buf->b_p_fenc;
 
     /*
-     * The file needs to be converted when 'fileencoding' is set and
-     * 'fileencoding' differs from 'encoding'.
+     * Check if the file needs to be converted.
      */
-    converted = (*fenc != NUL && !same_encoding(p_enc, fenc));
+    converted = need_conversion(fenc);
 
     /*
      * Check if UTF-8 to UCS-2/4 or Latin1 conversion needs to be done.  Or
@@ -4243,6 +4245,7 @@ restore_backup:
 		nchars += write_info.bw_len;
 	}
     }
+    write_info.bw_start_lnum = start;
 #endif
 
     write_info.bw_len = bufsize;
@@ -4278,6 +4281,9 @@ restore_backup:
 	    nchars += bufsize;
 	    s = buffer;
 	    len = 0;
+#ifdef FEAT_MBYTE
+	    write_info.bw_start_lnum = lnum;
+#endif
 	}
 	/* write failed or last line has no EOL: stop here */
 	if (end == 0
@@ -4474,7 +4480,17 @@ restore_backup:
 	{
 #ifdef FEAT_MBYTE
 	    if (write_info.bw_conv_error)
-		errmsg = (char_u *)_("E513: write error, conversion failed (make 'fenc' empty to override)");
+	    {
+		if (write_info.bw_conv_error_lnum == 0)
+		    errmsg = (char_u *)_("E513: write error, conversion failed (make 'fenc' empty to override)");
+		else
+		{
+		    errmsg_allocated = TRUE;
+		    errmsg = alloc(300);
+		    vim_snprintf((char *)errmsg, 300, _("E513: write error, conversion failed in line %ld (make 'fenc' empty to override)"),
+					 (long)write_info.bw_conv_error_lnum);
+		}
+	    }
 	    else
 #endif
 		if (got_int)
@@ -4550,6 +4566,12 @@ restore_backup:
 	{
 	    STRCAT(IObuff, _(" CONVERSION ERROR"));
 	    c = TRUE;
+	    if (write_info.bw_conv_error_lnum != 0)
+	    {
+		int l = STRLEN(IObuff);
+		vim_snprintf((char *)IObuff + l, IOSIZE - l, _(" in line %ld;"),
+			(long)write_info.bw_conv_error_lnum);
+	    }
 	}
 	else if (notconverted)
 	{
@@ -4746,6 +4768,8 @@ nofail:
 	}
 	STRCAT(IObuff, errmsg);
 	emsg(IObuff);
+	if (errmsg_allocated)
+	    vim_free(errmsg);
 
 	retval = FAIL;
 	if (end == 0)
@@ -5109,7 +5133,13 @@ buf_write_bytes(ip)
 			c = buf[wlen];
 		}
 
-		ip->bw_conv_error |= ucs2bytes(c, &p, flags);
+		if (ucs2bytes(c, &p, flags) && !ip->bw_conv_error)
+		{
+		    ip->bw_conv_error = TRUE;
+		    ip->bw_conv_error_lnum = ip->bw_start_lnum;
+		}
+		if (c == NL)
+		    ++ip->bw_start_lnum;
 	    }
 	    if (flags & FIO_LATIN1)
 		len = (int)(p - buf);
@@ -5390,6 +5420,7 @@ buf_write_bytes(ip)
 #ifdef FEAT_MBYTE
 /*
  * Convert a Unicode character to bytes.
+ * Return TRUE for an error, FALSE when it's OK.
  */
     static int
 ucs2bytes(c, pp, flags)
@@ -5473,20 +5504,37 @@ ucs2bytes(c, pp, flags)
 }
 
 /*
- * Return TRUE if "a" and "b" are the same 'encoding'.
- * Ignores difference between "ansi" and "latin1", "ucs-4" and "ucs-4be", etc.
+ * Return TRUE if file encoding "fenc" requires conversion from or to
+ * 'encoding'.
  */
     static int
-same_encoding(a, b)
-    char_u	*a;
-    char_u	*b;
+need_conversion(fenc)
+    char_u	*fenc;
 {
-    int		f;
+    int		same_encoding;
+    int		enc_flags;
+    int		fenc_flags;
 
-    if (STRCMP(a, b) == 0)
-	return TRUE;
-    f = get_fio_flags(a);
-    return (f != 0 && get_fio_flags(b) == f);
+    if (*fenc == NUL || STRCMP(p_enc, fenc) == 0)
+	same_encoding = TRUE;
+    else
+    {
+	/* Ignore difference between "ansi" and "latin1", "ucs-4" and
+	 * "ucs-4be", etc. */
+	enc_flags = get_fio_flags(p_enc);
+	fenc_flags = get_fio_flags(fenc);
+	same_encoding = (enc_flags != 0 && fenc_flags == enc_flags);
+    }
+    if (same_encoding)
+    {
+	/* Specified encoding matches with 'encoding'.  This requires
+	 * conversion when 'encoding' is Unicode but not UTF-8. */
+	return enc_unicode != 0;
+    }
+
+    /* Encodings differ.  However, conversion is not needed when 'enc' is any
+     * Unicode encoding and the file is UTF-8. */
+    return !(enc_utf8 && fenc_flags == FIO_UTF8);
 }
 
 /*
@@ -8458,6 +8506,10 @@ aucmd_prepbuf(aco, buf)
 	if (aucmd_win == NULL)
 	    win = curwin;
     }
+    if (win == NULL && aucmd_win_used)
+	/* Strange recursive autocommand, fall back to using the current
+	 * window.  Expect a few side effects... */
+	win = curwin;
 
     aco->save_curwin = curwin;
     aco->save_curbuf = curbuf;
@@ -8466,6 +8518,7 @@ aucmd_prepbuf(aco, buf)
 	/* There is a window for "buf" in the current tab page, make it the
 	 * curwin.  This is preferred, it has the least side effects (esp. if
 	 * "buf" is curbuf). */
+	aco->use_aucmd_win = FALSE;
 	curwin = win;
     }
     else
@@ -8474,9 +8527,20 @@ aucmd_prepbuf(aco, buf)
 	 * effects, insert it in a the current tab page.
 	 * Anything related to a window (e.g., setting folds) may have
 	 * unexpected results. */
+	aco->use_aucmd_win = TRUE;
+	aucmd_win_used = TRUE;
 	aucmd_win->w_buffer = buf;
 	++buf->b_nwindows;
 	win_init_empty(aucmd_win); /* set cursor and topline to safe values */
+	vim_free(aucmd_win->w_localdir);
+	aucmd_win->w_localdir = NULL;
+
+	/* Make sure w_localdir and globaldir are NULL to avoid a chdir() in
+	 * win_enter_ext(). */
+	aucmd_win->w_localdir = NULL;
+	aco->globaldir = globaldir;
+	globaldir = NULL;
+
 
 #ifdef FEAT_WINDOWS
 	/* Split the current window, put the aucmd_win in the upper half.
@@ -8510,7 +8574,7 @@ aucmd_restbuf(aco)
     int dummy;
 #endif
 
-    if (aco->new_curwin == aucmd_win)
+    if (aco->use_aucmd_win)
     {
 	--curbuf->b_nwindows;
 #ifdef FEAT_WINDOWS
@@ -8537,6 +8601,7 @@ aucmd_restbuf(aco)
 	/* Remove the window and frame from the tree of frames. */
 	(void)winframe_remove(curwin, &dummy, NULL);
 	win_remove(curwin, NULL);
+	aucmd_win_used = FALSE;
 	last_status(FALSE);	    /* may need to remove last status line */
 	restore_snapshot(SNAP_AUCMD_IDX, FALSE);
 	(void)win_comp_pos();   /* recompute window positions */
@@ -8554,6 +8619,9 @@ aucmd_restbuf(aco)
 	curwin = aco->save_curwin;
 #endif
 	curbuf = curwin->w_buffer;
+
+	vim_free(globaldir);
+	globaldir = aco->globaldir;
 
 	/* the buffer contents may have changed */
 	check_cursor();
@@ -8579,7 +8647,7 @@ aucmd_restbuf(aco)
 #endif
 	{
 	    /* Restore the buffer which was previously edited by curwin, if
-	     * it was chagned, we are still the same window and the buffer is
+	     * it was changed, we are still the same window and the buffer is
 	     * valid. */
 	    if (curwin == aco->new_curwin
 		    && curbuf != aco->new_curbuf
