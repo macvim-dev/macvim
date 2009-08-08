@@ -15,9 +15,6 @@ overview of the MacVim source code.
 `feat/core-text`
 :   Core Text renderer (fast with improved Unicode rendering, but has some
 :   display issues)
-`feat/input`
-:   Refactored input code (improved input manager support, e.g. Kotoeri
-:   shortcuts like Ctrl-Shift-j work, etc.)
 
 _Note:_ Branches starting with `feat/` are experimental and will be rebased
 against master occasionally (other branches will not be rebased).
