@@ -95,5 +95,6 @@ enum {
 - (NSRect)firstRectForCharacterRange:(NSRange)range;
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
+- (BOOL)useInlineIm;
 
 @end

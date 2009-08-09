@@ -185,9 +185,8 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 - (void)insertText:(id)string
 {
     if ([self hasMarkedText]) {
-        // Clear marked text
         [self sendMarkedText:nil position:0];
-        
+
         // NOTE: If this call is left out then the marked text isn't properly
         // erased when Return is used to accept the text.
         // The input manager only ever sets new marked text, it never actually
@@ -627,7 +626,20 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     ASLogDebug(@"text='%@' range=%@", text, NSStringFromRange(range));
     [self unmarkText];
 
-#ifdef USE_OLD_IM
+    if ([self useInlineIm]) {
+        if ([text isKindOfClass:[NSAttributedString class]])
+            text = [text string];
+
+        if ([text length] > 0) {
+            markedRange = NSMakeRange(0, [text length]);
+            imRange = range;
+        }
+
+        [self sendMarkedText:text position:range.location];
+        return;
+    }
+
+#ifdef INCLUDE_OLD_IM_CODE
     if (!(text && [text length] > 0))
         return;
 
@@ -667,17 +679,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     }
 
     [textView setNeedsDisplay:YES];
-#else // USE_OLD_IM
-    if ([text isKindOfClass:[NSAttributedString class]])
-        text = [text string];
-
-    if ([text length] > 0) {
-        markedRange = NSMakeRange(0, [text length]);
-        imRange = range;
-    }
-
-    [self sendMarkedText:text position:range.location];
-#endif
+#endif // INCLUDE_OLD_IM_CODE
 }
 
 - (void)unmarkText
@@ -849,6 +851,16 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // the backend caused weird bugs (second dock icon appearing etc.).
     KeyScript(enable ? smKeySysScript : smKeyRoman);
 #endif
+}
+
+- (BOOL)useInlineIm
+{
+#ifdef INCLUDE_OLD_IM_CODE
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    return [ud boolForKey:MMUseInlineImKey];
+#else
+    return YES;
+#endif // INCLUDE_OLD_IM_CODE
 }
 
 @end // MMTextViewHelper
@@ -1107,6 +1119,9 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)sendMarkedText:(NSString *)text position:(unsigned)pos
 {
+    if (![self useInlineIm])
+        return;
+
     NSMutableData *data = [NSMutableData data];
     unsigned len = text == nil ? 0
                     : [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];

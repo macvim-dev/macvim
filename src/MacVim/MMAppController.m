@@ -209,6 +209,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithInt:0],     MMPreloadCacheSizeKey,
         [NSNumber numberWithInt:0],     MMLastWindowClosedBehaviorKey,
         [NSNumber numberWithBool:YES],  MMLoadDefaultFontKey,
+#ifdef INCLUDE_OLD_IM_CODE
+        [NSNumber numberWithBool:YES],  MMUseInlineImKey,
+#endif // INCLUDE_OLD_IM_CODE
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];

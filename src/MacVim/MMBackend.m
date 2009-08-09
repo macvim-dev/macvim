@@ -56,11 +56,9 @@ vimmenu_T *menu_for_descriptor(NSArray *desc);
 
 static id evalExprCocoa(NSString * expr, NSString ** errstr);
 
-#ifndef USE_OLD_IM
 extern void im_preedit_start_macvim();
 extern void im_preedit_end_macvim();
 extern void im_preedit_changed_macvim(char *preedit_string, int cursor_index);
-#endif
 
 enum {
     MMBlinkStateNone = 0,
@@ -2771,8 +2769,6 @@ static void netbeansReadCallback(CFSocketRef s,
 }
 
 
-#ifndef USE_OLD_IM
-
 - (void)handleMarkedText:(NSData *)data
 {
     const void *bytes = [data bytes];
@@ -2791,8 +2787,6 @@ static void netbeansReadCallback(CFSocketRef s,
 	im_preedit_changed_macvim(chars, pos);
     }
 }
-
-#endif // USE_OLD_IM
 
 @end // MMBackend (Private)
 
