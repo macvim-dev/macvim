@@ -495,7 +495,7 @@ typedef struct Gui
     PhEvent_t	*event_buffer;
 #endif
 
-#ifdef FEAT_XIM
+#if defined(FEAT_XIM) && !defined(FEAT_GUI_MACVIM)
     char	*rsrc_input_method;
     char	*rsrc_preedit_type_name;
 #endif

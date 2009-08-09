@@ -1206,7 +1206,7 @@ gui_position_components(total_width)
 			      text_area_y,
 			      text_area_width,
 			      text_area_height
-#if defined(FEAT_XIM) && !defined(HAVE_GTK2)
+#if defined(FEAT_XIM) && !(defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM))
 				  + xim_get_status_area_height()
 #endif
 			      );
@@ -1337,7 +1337,7 @@ again:
 
     gui_update_scrollbars(TRUE);
     gui_update_cursor(FALSE, TRUE);
-#if defined(FEAT_XIM) && !defined(HAVE_GTK2)
+#if defined(FEAT_XIM) && !(defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM))
     xim_set_status_area();
 #endif
 

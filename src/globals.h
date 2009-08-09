@@ -841,10 +841,10 @@ EXTERN int* (*iconv_errno) (void);
 #endif /* FEAT_MBYTE */
 
 #ifdef FEAT_XIM
-# ifdef FEAT_GUI_GTK
+# if defined(FEAT_GUI_GTK) || defined (FEAT_GUI_MACVIM)
 #  ifdef HAVE_GTK2
 EXTERN GtkIMContext	*xic INIT(= NULL);
-#  else
+#  elif !defined(FEAT_GUI_MACVIM)
 EXTERN GdkICAttr	*xic_attr INIT(= NULL);
 EXTERN GdkIC		*xic INIT(= NULL);
 EXTERN char		*draw_feedback INIT(= NULL);

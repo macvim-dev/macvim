@@ -2541,12 +2541,6 @@ fill_foldcolumn(p, wp, closed, lnum)
 }
 #endif /* FEAT_FOLDING */
 
-
-#ifdef FEAT_GUI_MACVIM
-extern int numMarkedChars;
-extern colnr_T preedit_start_col;
-#endif
-
 /*
  * Display line "lnum" of window 'wp' on the screen.
  * Start at row "startrow", stop when "endrow" is reached.
@@ -2701,7 +2695,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 #endif
 #define WL_LINE		WL_SBR + 1	/* text in the line */
     int		draw_state = WL_START;	/* what to draw next */
-#if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
+#if defined(FEAT_XIM) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
     int		feedback_col = 0;
     int		feedback_old_attr = -1;
 #endif
@@ -4260,12 +4254,15 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		&& !attr_pri)
 	    char_attr = extra_attr;
 
-#if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
+#if defined(FEAT_XIM) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
 	/* XIM don't send preedit_start and preedit_end, but they send
 	 * preedit_changed and commit.  Thus Vim can't set "im_is_active", use
 	 * im_is_preediting() here. */
-	if (xic != NULL
-		&& lnum == wp->w_cursor.lnum
+	if (
+# ifndef FEAT_GUI_MACVIM
+		xic != NULL &&
+# endif
+		lnum == wp->w_cursor.lnum
 		&& (State & INSERT)
 		&& !p_imdisable
 		&& im_is_preediting()
@@ -4294,19 +4291,6 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		char_attr = feedback_old_attr;
 		feedback_old_attr = -1;
 		feedback_col = 0;
-	    }
-	}
-#endif
-#ifdef FEAT_GUI_MACVIM
-	if (preedit_start_col != MAXCOL && numMarkedChars > 0)
-	{
-	    colnr_T tcol;
-
-	    getvcol(curwin, &(wp->w_cursor), &tcol, NULL, NULL);
-
-	    if ((long)preedit_start_col <= vcol && vcol < (long)tcol)
-	    {
-		char_attr = HL_UNDERLINE;
 	    }
 	}
 #endif
@@ -8992,14 +8976,15 @@ showmode()
 					&& curbuf->b_p_iminsert == B_IMODE_IM)
 # else
 	    if (
-#  ifdef HAVE_GTK2
+#  if defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM)
 		    preedit_get_status()
 #  else
 		    im_get_status()
 #  endif
 	       )
 # endif
-# ifdef HAVE_GTK2 /* most of the time, it's not XIM being used */
+# if defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM)
+		/* most of the time, it's not XIM being used */
 		MSG_PUTS_ATTR(" IM", attr);
 # else
 		MSG_PUTS_ATTR(" XIM", attr);

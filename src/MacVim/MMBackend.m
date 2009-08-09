@@ -56,6 +56,11 @@ vimmenu_T *menu_for_descriptor(NSArray *desc);
 
 static id evalExprCocoa(NSString * expr, NSString ** errstr);
 
+#ifndef USE_OLD_IM
+extern void im_preedit_start_macvim();
+extern void im_preedit_end_macvim();
+extern void im_preedit_changed_macvim(char *preedit_string, int cursor_index);
+#endif
 
 enum {
     MMBlinkStateNone = 0,
@@ -2768,32 +2773,22 @@ static void netbeansReadCallback(CFSocketRef s,
 
 #ifndef USE_OLD_IM
 
-int numMarkedChars = 0;
-colnr_T preedit_start_col = MAXCOL;
-
 - (void)handleMarkedText:(NSData *)data
 {
     const void *bytes = [data bytes];
+    unsigned pos = *((unsigned*)bytes);  bytes += sizeof(unsigned);
     unsigned len = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-    char_u *chars = (char_u *)bytes;
+    char *chars = (char *)bytes;
 
-    //ASLogTmp(@"num=%d len=%d chars=%s", numMarkedChars, len, chars);
+    ASLogDebug(@"pos=%d len=%d chars=%s", pos, len, chars);
 
-    if (numMarkedChars > 0) {
-        for (; numMarkedChars > 0; --numMarkedChars)
-            add_to_input_buf((char_u*)"\x9bkb",3);
+    if (len == 0) {
+	im_preedit_end_macvim();
     } else {
-        getvcol(curwin, &curwin->w_cursor, &preedit_start_col, NULL, NULL);
-    }
+        if (!preedit_get_status())
+            im_preedit_start_macvim();
 
-    if (len > 0) {
-        add_to_input_buf(chars, len);
-        numMarkedChars = MB_CHARLEN(chars);
-        //ASLogTmp(@"added chars, num=%d", numMarkedChars);
-        if (numMarkedChars < 0)
-            numMarkedChars = 0;
-    } else {
-        preedit_start_col = MAXCOL;
+	im_preedit_changed_macvim(chars, pos);
     }
 }
 

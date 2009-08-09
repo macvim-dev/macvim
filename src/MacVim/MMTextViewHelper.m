@@ -42,6 +42,8 @@ static float MMDragAreaSize = 73.0f;
 - (void)dragTimerFired:(NSTimer *)timer;
 - (void)setCursor;
 - (NSRect)trackingRect;
+- (BOOL)inputManagerHandleMouseEvent:(NSEvent *)event;
+- (void)sendMarkedText:(NSString *)text position:(unsigned)pos;
 @end
 
 
@@ -184,12 +186,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 {
     if ([self hasMarkedText]) {
         // Clear marked text
-        NSMutableData *data = [NSMutableData data];
-        unsigned len = 0;
-
-        [data appendBytes:&len length:sizeof(unsigned)];
-        [data appendBytes:"\x00" length:1];
-        [[self vimController] sendMessage:SetMarkedTextMsgID data:data];
+        [self sendMarkedText:nil position:0];
         
         // NOTE: If this call is left out then the marked text isn't properly
         // erased when Return is used to accept the text.
@@ -304,6 +301,14 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)scrollWheel:(NSEvent *)event
 {
+    if ([self hasMarkedText]) {
+        // We must clear the marked text since the cursor may move if the
+        // marked text moves outside the view as a result of scrolling.
+        [self sendMarkedText:nil position:0];
+        [self unmarkText];
+        [[NSInputManager currentInputManager] markedTextAbandoned:self];
+    }
+
     if ([event deltaY] == 0)
         return;
 
@@ -325,6 +330,9 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)mouseDown:(NSEvent *)event
 {
+    if ([self inputManagerHandleMouseEvent:event])
+        return;
+
     int row, col;
     NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
     if (![textView convertPoint:pt toRow:&row column:&col])
@@ -357,6 +365,9 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)mouseUp:(NSEvent *)event
 {
+    if ([self inputManagerHandleMouseEvent:event])
+        return;
+
     int row, col;
     NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
     if (![textView convertPoint:pt toRow:&row column:&col])
@@ -376,6 +387,9 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)mouseDragged:(NSEvent *)event
 {
+    if ([self inputManagerHandleMouseEvent:event])
+        return;
+
     int flags = [event modifierFlags];
     int row, col;
     NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
@@ -406,6 +420,9 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)mouseMoved:(NSEvent *)event
 {
+    if ([self inputManagerHandleMouseEvent:event])
+        return;
+
     // HACK! NSTextView has a nasty habit of resetting the cursor to the
     // default I-beam cursor at random moments.  The only reliable way we know
     // of to work around this is to set the cursor each time the mouse moves.
@@ -659,16 +676,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         imRange = range;
     }
 
-    NSMutableData *data = [NSMutableData data];
-    unsigned len = [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-
-    [data appendBytes:&len length:sizeof(unsigned)];
-    if (len > 0) {
-        [data appendBytes:[text UTF8String] length:len];
-        [data appendBytes:"\x00" length:1];
-    }
-
-    [[self vimController] sendMessage:SetMarkedTextMsgID data:data];
+    [self sendMarkedText:text position:range.location];
 #endif
 }
 
@@ -1081,6 +1089,36 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     rect.size.height -= top + bot - 1;
 
     return rect;
+}
+
+- (BOOL)inputManagerHandleMouseEvent:(NSEvent *)event
+{
+    // NOTE: The input manager usually handles events like mouse clicks (e.g.
+    // the Kotoeri manager "commits" the text on left clicks).
+
+    if (event) {
+        NSInputManager *imgr = [NSInputManager currentInputManager];
+        if ([imgr wantsToHandleMouseEvents])
+            return [imgr handleMouseEvent:event];
+    }
+
+    return NO;
+}
+
+- (void)sendMarkedText:(NSString *)text position:(unsigned)pos
+{
+    NSMutableData *data = [NSMutableData data];
+    unsigned len = text == nil ? 0
+                    : [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+    [data appendBytes:&pos length:sizeof(unsigned)];
+    [data appendBytes:&len length:sizeof(unsigned)];
+    if (len > 0) {
+        [data appendBytes:[text UTF8String] length:len];
+        [data appendBytes:"\x00" length:1];
+    }
+
+    [[self vimController] sendMessage:SetMarkedTextMsgID data:data];
 }
 
 @end // MMTextViewHelper (Private)

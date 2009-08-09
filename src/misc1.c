@@ -2473,7 +2473,7 @@ skip_to_option_part(p)
     void
 changed()
 {
-#if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
+#if defined(FEAT_XIM) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
     /* The text of the preediting area is inserted, but this doesn't
      * mean a change of the buffer yet.  That is delayed until the
      * text is committed. (this means preedit becomes empty) */

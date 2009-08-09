@@ -3173,7 +3173,7 @@ im_save_status(psave)
      * And don't save when the GUI is running but our window doesn't have
      * input focus (e.g., when a find dialog is open). */
     if (!p_imdisable && KeyTyped && !KeyStuffed
-# ifdef FEAT_XIM
+# if defined(FEAT_XIM) && !defined(FEAT_GUI_MACVIM)
 	    && xic != NULL
 # endif
 # ifdef FEAT_GUI

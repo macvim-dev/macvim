@@ -666,10 +666,13 @@
  * Both are for Unix and VMS only.
  */
 #ifndef FEAT_XIM
+# if defined(FEAT_GUI_MACVIM) && defined(FEAT_MBYTE)
+#  define FEAT_XIM
+# endif
 /* #define FEAT_XIM */
 #endif
 
-#if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
+#if defined(FEAT_XIM) && defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_MACVIM)
 # define USE_XIM 1		/* needed for GTK include files */
 #endif
 
