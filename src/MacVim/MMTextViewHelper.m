@@ -47,6 +47,7 @@ static float MMDragAreaSize = 73.0f;
 
 
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
     static BOOL
 KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 {
@@ -61,6 +62,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     return [as isEqualToString:bs];
 }
+#endif
 
 
 @implementation MMTextViewHelper
