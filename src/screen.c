@@ -2541,6 +2541,12 @@ fill_foldcolumn(p, wp, closed, lnum)
 }
 #endif /* FEAT_FOLDING */
 
+
+#ifdef FEAT_GUI_MACVIM
+extern int numMarkedChars;
+extern colnr_T preedit_start_col;
+#endif
+
 /*
  * Display line "lnum" of window 'wp' on the screen.
  * Start at row "startrow", stop when "endrow" is reached.
@@ -4288,6 +4294,19 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		char_attr = feedback_old_attr;
 		feedback_old_attr = -1;
 		feedback_col = 0;
+	    }
+	}
+#endif
+#ifdef FEAT_GUI_MACVIM
+	if (preedit_start_col != MAXCOL && numMarkedChars > 0)
+	{
+	    colnr_T tcol;
+
+	    getvcol(curwin, &(wp->w_cursor), &tcol, NULL, NULL);
+
+	    if ((long)preedit_start_col <= vcol && vcol < (long)tcol)
+	    {
+		char_attr = HL_UNDERLINE;
 	    }
 	}
 #endif

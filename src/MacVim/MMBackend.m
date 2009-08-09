@@ -187,6 +187,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (BOOL)unusedEditor;
 - (void)redrawScreen;
 - (void)handleFindReplace:(NSDictionary *)args;
+- (void)handleMarkedText:(NSData *)data;
 @end
 
 
@@ -1731,6 +1732,7 @@ static void netbeansReadCallback(CFSocketRef s,
     [q release];
 }
 
+
 - (void)handleInputEvent:(int)msgid data:(NSData *)data
 {
     if (KeyDownMsgID == msgid) {
@@ -1915,6 +1917,8 @@ static void netbeansReadCallback(CFSocketRef s,
 #ifdef FEAT_NETBEANS_INTG
         messageFromNetbeansMacVim();
 #endif
+    } else if (SetMarkedTextMsgID == msgid) {
+        [self handleMarkedText:data];
     } else {
         ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }
@@ -2760,6 +2764,40 @@ static void netbeansReadCallback(CFSocketRef s,
     vim_free(find);
     vim_free(replace);
 }
+
+
+#ifndef USE_OLD_IM
+
+int numMarkedChars = 0;
+colnr_T preedit_start_col = MAXCOL;
+
+- (void)handleMarkedText:(NSData *)data
+{
+    const void *bytes = [data bytes];
+    unsigned len = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+    char_u *chars = (char_u *)bytes;
+
+    //ASLogTmp(@"num=%d len=%d chars=%s", numMarkedChars, len, chars);
+
+    if (numMarkedChars > 0) {
+        for (; numMarkedChars > 0; --numMarkedChars)
+            add_to_input_buf((char_u*)"\x9bkb",3);
+    } else {
+        getvcol(curwin, &curwin->w_cursor, &preedit_start_col, NULL, NULL);
+    }
+
+    if (len > 0) {
+        add_to_input_buf(chars, len);
+        numMarkedChars = MB_CHARLEN(chars);
+        //ASLogTmp(@"added chars, num=%d", numMarkedChars);
+        if (numMarkedChars < 0)
+            numMarkedChars = 0;
+    } else {
+        preedit_start_col = MAXCOL;
+    }
+}
+
+#endif // USE_OLD_IM
 
 @end // MMBackend (Private)
 

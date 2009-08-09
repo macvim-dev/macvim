@@ -522,6 +522,7 @@
         numInvertRects = 0;
     }
 
+#ifdef USE_OLD_IM
     if ([self hasMarkedText]) {
         shouldDrawInsertionPoint = YES;
         MMTextStorage *ts = (MMTextStorage*)[self textStorage];
@@ -580,6 +581,7 @@
             }
         }
     }
+#endif
 
     if (shouldDrawInsertionPoint) {
         MMTextStorage *ts = (MMTextStorage*)[self textStorage];
@@ -589,6 +591,7 @@
         ipRect.origin.x += [self textContainerOrigin].x;
         ipRect.origin.y += [self textContainerOrigin].y;
 
+#ifdef USE_OLD_IM
         // Draw insertion point inside marked text.
         if ([self hasMarkedText]) {
             NSFont *theFont = [[self markedTextAttributes]
@@ -602,6 +605,7 @@
                                    ([helper imRange].location +
                                    [helper imRange].length);
         }
+#endif
 
         if (MMInsertionPointHorizontal == insertionPointShape) {
             int frac = ([ts cellSize].height * insertionPointFraction + 99)/100;

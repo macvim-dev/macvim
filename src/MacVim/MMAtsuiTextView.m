@@ -518,6 +518,7 @@ defaultLineHeightForFont(NSFont *font)
     NSPoint pt = { insetSize.width, insetSize.height };
     [contentImage compositeToPoint:pt operation:NSCompositeCopy];
 
+#ifdef USE_OLD_IM
     if ([self hasMarkedText]) {
         int len = [[helper markedText] length];
         int rows = 0;
@@ -574,6 +575,7 @@ defaultLineHeightForFont(NSFont *font)
                                 shape:MMInsertionPointVertical
                              fraction:25];
     }
+#endif // USE_OLD_IM
 }
 
 - (BOOL) wantsDefaultClipping

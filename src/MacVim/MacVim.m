@@ -92,6 +92,7 @@ char *MessageStrings[] =
     "BrowseForFileMsgID",
     "ShowDialogMsgID",
     "NetBeansMsgID",
+    "SetMarkedTextMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 

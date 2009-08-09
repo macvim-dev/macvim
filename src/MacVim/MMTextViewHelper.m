@@ -183,6 +183,14 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 - (void)insertText:(id)string
 {
     if ([self hasMarkedText]) {
+        // Clear marked text
+        NSMutableData *data = [NSMutableData data];
+        unsigned len = 0;
+
+        [data appendBytes:&len length:sizeof(unsigned)];
+        [data appendBytes:"\x00" length:1];
+        [[self vimController] sendMessage:SetMarkedTextMsgID data:data];
+        
         // NOTE: If this call is left out then the marked text isn't properly
         // erased when Return is used to accept the text.
         // The input manager only ever sets new marked text, it never actually
@@ -602,6 +610,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     ASLogDebug(@"text='%@' range=%@", text, NSStringFromRange(range));
     [self unmarkText];
 
+#ifdef USE_OLD_IM
     if (!(text && [text length] > 0))
         return;
 
@@ -641,6 +650,26 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     }
 
     [textView setNeedsDisplay:YES];
+#else // USE_OLD_IM
+    if ([text isKindOfClass:[NSAttributedString class]])
+        text = [text string];
+
+    if ([text length] > 0) {
+        markedRange = NSMakeRange(0, [text length]);
+        imRange = range;
+    }
+
+    NSMutableData *data = [NSMutableData data];
+    unsigned len = [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+    [data appendBytes:&len length:sizeof(unsigned)];
+    if (len > 0) {
+        [data appendBytes:[text UTF8String] length:len];
+        [data appendBytes:"\x00" length:1];
+    }
+
+    [[self vimController] sendMessage:SetMarkedTextMsgID data:data];
+#endif
 }
 
 - (void)unmarkText
