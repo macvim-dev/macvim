@@ -15,6 +15,8 @@ overview of the MacVim source code.
 `feat/core-text`
 :   Core Text renderer (fast with improved Unicode rendering, but has some
 :   display issues)
+`feat/inline-im`
+:   Inline IM support (Vim draws marked text)
 
 _Note:_ Branches starting with `feat/` are experimental and will be rebased
 against master occasionally (other branches will not be rebased).
