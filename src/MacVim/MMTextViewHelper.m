@@ -47,6 +47,22 @@ static float MMDragAreaSize = 73.0f;
 
 
 
+    static BOOL
+KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
+{
+    // Define two sources to be equal iff both are non-NULL and they have
+    // identical source ID strings.
+
+    if (!(a && b))
+        return NO;
+
+    NSString *as = TISGetInputSourceProperty(a, kTISPropertyInputSourceID);
+    NSString *bs = TISGetInputSourceProperty(b, kTISPropertyInputSourceID);
+
+    return [as isEqualToString:bs];
+}
+
+
 @implementation MMTextViewHelper
 
 - (void)dealloc
@@ -760,10 +776,21 @@ static float MMDragAreaSize = 73.0f;
             // IM was last off.
             ref = asciiImSource;
 
-            // Remember current input source so we can switch back to it when
-            // IM is once more enabled.
-            if (lastImSource) CFRelease(lastImSource);
-            lastImSource = TISCopyCurrentKeyboardInputSource();
+            TISInputSourceRef cur = TISCopyCurrentKeyboardInputSource();
+            if (!KeyboardInputSourcesEqual(asciiImSource, cur)) {
+                // Remember current input source so we can switch back to it
+                // when IM is once more enabled.  Note that Vim will call this
+                // method with "enable=NO" even when the ASCII input source is
+                // in use which is why we only remember the current input
+                // source unless it is the ASCII source.
+                ASLogDebug(@"Remember last input source: %@",
+                    TISGetInputSourceProperty(cur, kTISPropertyInputSourceID));
+                if (lastImSource) CFRelease(lastImSource);
+                lastImSource = cur;
+            } else {
+                CFRelease(cur);
+                cur = NULL;
+            }
         }
 
         if (ref) {
