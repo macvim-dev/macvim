@@ -41,6 +41,34 @@
     -->
 
     <item>
+      <title>Snapshot 48 released</title>
+      <description><![CDATA[
+<h1>MacVim snapshot 48 released</h1>
+
+<p> Changes since snapshot 47:
+  <ul>
+    <li> ATSUI clips text to display cell to avoid "bleeding" </li>
+    <li> The pwd is set properly when dropping a folder on the Dock </li>
+    <li> Add Vimball (.vba) as a supported filetype </li>
+    <li> Refactored input code (e.g. can now bind to numeric keypad) </li>
+    <li> Improved IM support (separate keyboard layouts in normal/insert modes using the 'noimd' option, see ":h macvim-international") </li>
+    <li> Draw marked text inline (listed as +xim in ":ver") </li>
+    <li> Add user default MMUseInlineIm (use to disable above feature) </li>
+    <li> Update Vim source and runtime files </li>
+  </ul>
+</p>
+      ]]></description>
+      <pubDate>Sat, 15 Aug 2009 00:27 CET</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-48.tbz"
+        length="8212911"
+        sparkle:version="48"
+        sparkle:shortVersionString="7.2"
+        />
+    </item>
+
+
+    <item>
       <title>Snapshot 47 released</title>
       <description><![CDATA[
 <h1>MacVim snapshot 47 released</h1>
