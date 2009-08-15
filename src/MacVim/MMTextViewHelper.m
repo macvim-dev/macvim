@@ -294,7 +294,9 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     // HACK! Pass the event on or it may disappear (Tiger does not pass Cmd-key
     // events to keyDown:).
-    [self keyDown:event];
+    if ([event type] == NSKeyDown)
+        [self keyDown:event];
+
     return YES;
 }
 
