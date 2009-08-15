@@ -41,9 +41,9 @@
     -->
 
     <item>
-      <title>Snapshot 48 released</title>
+      <title>Snapshot 49 released</title>
       <description><![CDATA[
-<h1>MacVim snapshot 48 released</h1>
+<h1>MacVim snapshot 49 released</h1>
 
 <p> Changes since snapshot 47:
   <ul>
@@ -58,11 +58,11 @@
   </ul>
 </p>
       ]]></description>
-      <pubDate>Sat, 15 Aug 2009 00:27 CET</pubDate>
+      <pubDate>Sun, 16 Aug 2009 01:17 CET</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-48.tbz"
-        length="8212911"
-        sparkle:version="48"
+        url="http://newmacvim.muskokamug.org/mirror/files/MacVim-snapshot-49.tbz"
+        length="8212194"
+        sparkle:version="49"
         sparkle:shortVersionString="7.2"
         />
     </item>
