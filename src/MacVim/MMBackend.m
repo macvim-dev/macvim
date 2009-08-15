@@ -1135,7 +1135,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         if (1 == len) {
             char_u *str = (char_u*)bytes;
             if ((str[0] == Ctrl_C && ctrl_c_interrupts) ||
-                    (str[0] == intr_char && intr_char != Ctrl_C)) {
+                    (str[0] == intr_char && intr_char != 0)) {
+                ASLogDebug(@"Got INT, str[0]=%#x", str[0]);
                 got_int = TRUE;
                 [inputQueue removeAllObjects];
                 return;

@@ -251,7 +251,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
              @selector(deleteWordBackward:) == sel ||
              @selector(deleteBackwardByDecomposingPreviousCharacter:) == sel ||
              @selector(deleteToBeginningOfLine:) == sel)
-        [self doKeyDown:@"\x7f"];
+        [self doKeyDown:@"\x08"];
     else if (@selector(keySpace:) == sel)
         [self doKeyDown:@" "];
     else if (@selector(cancel:) == sel)
@@ -262,6 +262,8 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 - (BOOL)performKeyEquivalent:(NSEvent *)event
 {
     ASLogDebug(@"");
+    if ([event type] != NSKeyDown)
+        return NO;
 
     // NOTE: Key equivalent handling was fixed in Leopard.  That is, an
     // unhandled key equivalent is passed to keyDown: -- contrast this with
@@ -294,9 +296,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     // HACK! Pass the event on or it may disappear (Tiger does not pass Cmd-key
     // events to keyDown:).
-    if ([event type] == NSKeyDown)
-        [self keyDown:event];
-
+    [self keyDown:event];
     return YES;
 }
 

@@ -150,11 +150,11 @@
 	<string>centerSelectionInVisibleArea:</string>
 	<key>^n</key>
 	<string>moveDown:</string>
-	<key>^o</key>
+        <!-- <key>^o</key>
 	<array>
 		<string>insertNewlineIgnoringFieldEditor:</string>
 		<string>moveBackward:</string>
-	</array>
+        </array> -->
 	<key>^p</key>
 	<string>moveUp:</string>
 	<key>^t</key>
@@ -370,7 +370,7 @@
 	<string>moveToBeginningOfLineAndModifySelection:</string>
 	<key>^$</key>
 	<string>moveToEndOfLineAndModifySelection:</string>
-	<key>~</key>
+        <!-- <key>~</key>
 	<array>
 		<string>moveBackward:</string>
 		<string>moveToBeginningOfParagraph:</string>
@@ -379,7 +379,7 @@
 	<array>
 		<string>moveForward:</string>
 		<string>moveToEndOfParagraph:</string>
-	</array>
+        </array> -->
 	<key>~</key>
 	<string>moveWordLeft:</string>
 	<key>~</key>
