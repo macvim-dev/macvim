@@ -699,9 +699,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         return;
     }
 
-    [controller cleanup];
-
+    [controller retain];
     [vimControllers removeObjectAtIndex:idx];
+    [controller cleanup];
+    [controller release];
 
     if (![vimControllers count]) {
         // The last editor window just closed so restore the main menu back to
@@ -1213,11 +1214,16 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // (What if input arrives before the vim controller is added to the list of
     // controllers?  This should not be a problem since the input isn't
     // processed immediately (see processInput:forIdentifier:).)
+    // Also, since the app may be multithreaded (e.g. as a result of showing
+    // the open panel) we have to ensure this call happens on the main thread,
+    // else there is a race condition that may lead to a crash.
     MMVimController *vc = [[MMVimController alloc] initWithBackend:proxy
                                                                pid:pid];
-    [self performSelector:@selector(addVimController:)
-               withObject:vc
-               afterDelay:0];
+    [self performSelectorOnMainThread:@selector(addVimController:)
+                           withObject:vc
+                        waitUntilDone:NO
+                                modes:[NSArray arrayWithObject:
+                                       NSDefaultRunLoopMode]];
 
     [vc release];
 
@@ -1251,11 +1257,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // NOTE: We must use "event tracking mode" as well as "default mode",
     // otherwise the input queue will not be processed e.g. during live
     // resizing.
-    [self performSelector:@selector(processInputQueues:)
-               withObject:nil
-               afterDelay:0
-                  inModes:[NSArray arrayWithObjects:NSDefaultRunLoopMode,
-                                            NSEventTrackingRunLoopMode, nil]];
+    // Also, since the app may be multithreaded (e.g. as a result of showing
+    // the open panel) we have to ensure this call happens on the main thread,
+    // else there is a race condition that may lead to a crash.
+    [self performSelectorOnMainThread:@selector(processInputQueues:)
+                           withObject:nil
+                        waitUntilDone:NO
+                                modes:[NSArray arrayWithObjects:
+                                       NSDefaultRunLoopMode,
+                                       NSEventTrackingRunLoopMode, nil]];
 }
 
 - (NSArray *)serverList
@@ -2270,11 +2280,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // If new input arrived while we were processing it would have been
     // blocked so we have to schedule it to be processed again.
     if (processingFlag < 0)
-        [self performSelector:@selector(processInputQueues:)
-                   withObject:nil
-                   afterDelay:0
-                      inModes:[NSArray arrayWithObjects:NSDefaultRunLoopMode,
-                                            NSEventTrackingRunLoopMode, nil]];
+        [self performSelectorOnMainThread:@selector(processInputQueues:)
+                               withObject:nil
+                            waitUntilDone:NO
+                                    modes:[NSArray arrayWithObjects:
+                                           NSDefaultRunLoopMode,
+                                           NSEventTrackingRunLoopMode, nil]];
 
     processingFlag = 0;
 }

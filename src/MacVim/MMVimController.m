@@ -1285,10 +1285,15 @@ static BOOL isUnsafeMessage(int msgid);
     // free objects that Cocoa is currently using (e.g. view objects).  The
     // following call ensures that the vim controller is not released until the
     // run loop is back in the 'default' mode.
+    // Also, since the app may be multithreaded (e.g. as a result of showing
+    // the open panel) we have to ensure this call happens on the main thread,
+    // else there is a race condition that may lead to a crash.
     [[MMAppController sharedInstance]
-            performSelector:@selector(removeVimController:)
-                 withObject:self
-                 afterDelay:0];
+            performSelectorOnMainThread:@selector(removeVimController:)
+                             withObject:self
+                          waitUntilDone:NO
+                                  modes:[NSArray arrayWithObject:
+                                         NSDefaultRunLoopMode]];
 }
 
 // NSSavePanel delegate
