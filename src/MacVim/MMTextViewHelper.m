@@ -162,8 +162,8 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
             // HACK! When Command is held we have to more or less guess whether
             // we should use characters or charactersIgnoringModifiers.  The
             // following heuristic seems to work but it may have to change.
-            // Note that the Shift and Alt flags may be cleared before passing
-            // the event on to Vim (see doKeyDown:).
+            // Note that the Shift and Alt flags may also need to be cleared
+            // (see doKeyDown:keyCode:modifiers: in MMBackend).
             if ((flags & NSShiftKeyMask && !(flags & NSAlternateKeyMask))
                     || flags & NSControlKeyMask)
                 string = unmod;
@@ -896,18 +896,6 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     unsigned length = [key lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     unsigned keyCode = [currentEvent keyCode];
     unsigned flags = [currentEvent modifierFlags];
-
-    if (flags & NSCommandKeyMask) {
-        // The Shift flag is already included in the key when the Command key
-        // is held.  The same goes for Alt, unless Ctrl is held or 'macmeta' is
-        // set.
-        flags &= ~NSShiftKeyMask;
-        if (!(flags & NSControlKeyMask)) {
-            id mmta = [[[self vimController] vimState] objectForKey:@"p_mmta"];
-            if (![mmta boolValue])
-                flags &= ~NSAlternateKeyMask;
-        }
-    }
 
     // The low 16 bits are not used for modifier flags by NSEvent.  Use
     // these bits for custom flags.

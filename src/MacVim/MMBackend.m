@@ -1954,8 +1954,19 @@ static void netbeansReadCallback(CFSocketRef s,
     if (mods & MOD_MASK_CMD) {
         // NOTE: For normal input (non-special, 'macmeta' off) the modifier
         // flags are already included in the key event.  However, the Cmd key
-        // flag is special and must always be added manually.  The frontend is
-        // responsible for clearing unnecessary flags when Cmd is held.
+        // flag is special and must always be added manually.
+        // The Shift flag is already included in the key when the Command
+        // key is held.  The same goes for Alt, unless Ctrl is held or
+        // 'macmeta' is set.  It is important that these flags are cleared
+        // _after_ special keys have been handled, since they should never be
+        // cleared for special keys.
+        mods &= ~MOD_MASK_SHIFT;
+        if (!(mods & MOD_MASK_CTRL)) {
+            BOOL mmta = curbuf ? curbuf->b_p_mmta : YES;
+            if (!mmta)
+                mods &= ~MOD_MASK_ALT;
+        }
+
         ASLogDebug(@"add mods=%#x", mods);
         char_u modChars[3] = { CSI, KS_MODIFIER, mods };
         add_to_input_buf(modChars, 3);
