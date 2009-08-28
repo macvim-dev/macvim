@@ -114,6 +114,12 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 {
     ASLogDebug(@"%@", event);
 
+    // NOTE: Check IM state _before_ key has been interpreted or we'll pick up
+    // the old IM state when it has been switched via a keyboard shortcut that
+    // MacVim cannot handle.
+    if (imControl)
+        [self checkImState];
+
     // NOTE: Keyboard handling is complicated by the fact that we must call
     // interpretKeyEvents: otherwise key equivalents set up by input methods do
     // not work (e.g. Ctrl-Shift-; would not work under Kotoeri).
@@ -149,6 +155,15 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
             && [unmod characterAtIndex:0] < 0x7f) {
         ASLogDebug(@"MACMETA key, don't interpret it");
         string = unmod;
+    } else if (imState && (flags & NSControlKeyMask)
+            && !(flags & (NSAlternateKeyMask|NSCommandKeyMask))
+            && [unmod length] == 1
+            && ([unmod characterAtIndex:0] == '6' ||
+                [unmod characterAtIndex:0] == '^')) {
+        // HACK!  interpretKeyEvents: does not call doCommandBySelector:
+        // with Ctrl-6 or Ctrl-^ when IM is active.
+        [self doKeyDown:@"\x1e"];
+        string = nil;
     } else {
         // HACK!  interpretKeyEvents: may call insertText: or
         // doCommandBySelector:, or it may swallow the key (most likely the
@@ -172,11 +187,6 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     if (string)
         [self doKeyDown:string];
-
-    // NOTE: Check IM state _after_ key has been interpreted or we'll pick up
-    // the old IM state when it has been switched via a keyboard shortcut.
-    if (imControl)
-        [self checkImState];
 
     [currentEvent release];
     currentEvent = nil;
@@ -776,7 +786,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 #if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
     // The TIS symbols are weakly linked.
     if (NULL != TISCopyCurrentKeyboardInputSource) {
-        // We get here when compiled on =>10.5 and running on >=10.5.
+        // We get here when compiled on >=10.5 and running on >=10.5.
 
         if (asciiImSource) {
             CFRelease(asciiImSource);
@@ -787,16 +797,15 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
             lastImSource = NULL;
         }
         if (enable) {
-            // Save current input source for use when IM is active and get an
-            // ASCII source for use when IM is deactivated (by Vim).
+            // Save current locale input source for use when IM is active and
+            // get an ASCII source for use when IM is deactivated (by Vim).
             asciiImSource = TISCopyCurrentASCIICapableKeyboardInputSource();
-            lastImSource = TISCopyCurrentKeyboardInputSource();
+            NSString *locale = [[NSLocale currentLocale] localeIdentifier];
+            lastImSource = TISCopyInputSourceForLanguage((CFStringRef)locale);
         }
     }
 #endif
 
-    // The imControl flag is only used on 10.4 -- on >=10.5 we wait for Vim to
-    // call activateIm: and never explicitly check if the input source changes.
     imControl = enable;
     ASLogInfo(@"IM control %sabled", enable ? "en" : "dis");
 }
@@ -804,38 +813,16 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 - (void)activateIm:(BOOL)enable
 {
     ASLogInfo(@"Activate IM=%d", enable);
+    imState = enable;
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
     // The TIS symbols are weakly linked.
     if (NULL != TISCopyCurrentKeyboardInputSource) {
         // We get here when compiled on >=10.5 and running on >=10.5.
 
-        TISInputSourceRef ref = NULL;
-        if (enable) {
-            // Enable IM: switch back to input source used when IM was last on.
-            ref = lastImSource;
-        } else {
-            // Disable IM: switch back to ASCII input source that was used when
-            // IM was last off.
-            ref = asciiImSource;
-
-            TISInputSourceRef cur = TISCopyCurrentKeyboardInputSource();
-            if (!KeyboardInputSourcesEqual(asciiImSource, cur)) {
-                // Remember current input source so we can switch back to it
-                // when IM is once more enabled.  Note that Vim will call this
-                // method with "enable=NO" even when the ASCII input source is
-                // in use which is why we only remember the current input
-                // source unless it is the ASCII source.
-                ASLogDebug(@"Remember last input source: %@",
-                    TISGetInputSourceProperty(cur, kTISPropertyInputSourceID));
-                if (lastImSource) CFRelease(lastImSource);
-                lastImSource = cur;
-            } else {
-                CFRelease(cur);
-                cur = NULL;
-            }
-        }
-
+        // Enable IM: switch back to input source used when IM was last on
+        // Disable IM: switch back to ASCII input source (set in setImControl:)
+        TISInputSourceRef ref = enable ? lastImSource : asciiImSource;
         if (ref) {
             ASLogDebug(@"Change input source: %@",
                     TISGetInputSourceProperty(ref, kTISPropertyInputSourceID));
@@ -952,12 +939,32 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)checkImState
 {
-#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4)
 #if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
-    if (NULL != TISCopyCurrentKeyboardInputSource)
-        return; // Compiled for >=10.4, running on >=10.5
+    if (NULL != TISCopyCurrentKeyboardInputSource) {
+        // We get here when compiled on >=10.5 and running on >=10.5.
+        TISInputSourceRef cur = TISCopyCurrentKeyboardInputSource();
+        BOOL state = !KeyboardInputSourcesEqual(asciiImSource, cur);
+        BOOL isChanged = !KeyboardInputSourcesEqual(lastImSource, cur);
+        if (state && isChanged) {
+            // Remember current input source so we can switch back to it
+            // when IM is once more enabled.
+            ASLogDebug(@"Remember last input source: %@",
+                TISGetInputSourceProperty(cur, kTISPropertyInputSourceID));
+            if (lastImSource) CFRelease(lastImSource);
+            lastImSource = cur;
+        } else {
+            CFRelease(cur);
+        }
+        if (imState != state) {
+            imState = state;
+            int msgid = state ? ActivatedImMsgID : DeactivatedImMsgID;
+            [[self vimController] sendMessage:msgid data:nil];
+        }
+        return;
+    }
 #endif
-    // Compiled for >=10.4, running on 10.4
+#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4)
+    // Compiled for <=10.4, running on 10.4
 
     // IM is active whenever the current script is the system script and the
     // system script isn't roman.  (Hence IM can only be active when using
