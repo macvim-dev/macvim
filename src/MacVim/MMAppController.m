@@ -68,6 +68,9 @@ static NSString *MMWebsiteString = @"http://code.google.com/p/macvim/";
 static CFTimeInterval MMEventStreamLatency = 0.1;
 #endif
 
+static float MMCascadeHorizontalOffset = 21;
+static float MMCascadeVerticalOffset = 23;
+
 
 #pragma options align=mac68k
 typedef struct
@@ -746,33 +749,34 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     if (!NSEqualPoints(topLeft, NSZeroPoint)) {
-        NSPoint oldTopLeft = topLeft;
-        if (topWin)
-            topLeft = [win cascadeTopLeftFromPoint:topLeft];
+        if (topWin) {
+            // Do manual cascading instead of using
+            // -[MMWindow cascadeTopLeftFromPoint:] since it is rather
+            // unpredictable.
+            topLeft.x += MMCascadeHorizontalOffset;
+            topLeft.y -= MMCascadeVerticalOffset;
+        }
 
-        [win setFrameTopLeftPoint:topLeft];
+        NSScreen *screen = [win screen];
+        if (screen) {
+            // Constrain the window so that it is entirely visible on the
+            // screen.  If it sticks out on the right, move it all the way
+            // left.  If it sticks out on the bottom, move it all the way up.
+            // (Assumption: the cascading offsets are positive.)
+            NSRect screenFrame = [screen frame];
+            NSSize winSize = [win frame].size;
+            NSRect winFrame =
+                { { topLeft.x, topLeft.y - winSize.height }, winSize };
 
-        if ([win screen]) {
-            NSPoint screenOrigin = [[win screen] frame].origin;
-            if ([win frame].origin.y < screenOrigin.y) {
-                // Try to avoid shifting the new window downwards if it means
-                // that the bottom of the window will be off the screen.  E.g.
-                // if the user has set windows to open maximized in the
-                // vertical direction then the new window will cascade
-                // horizontally only.
-                topLeft.y = oldTopLeft.y;
-                [win setFrameTopLeftPoint:topLeft];
-            }
-
-            if ([win frame].origin.y < screenOrigin.y) {
-                // Move the window to the top of the screen if the bottom of
-                // the window is still obscured.
-                topLeft.y = NSMaxY([[win screen] frame]);
-                [win setFrameTopLeftPoint:topLeft];
-            }
+            if (NSMaxX(winFrame) > NSMaxX(screenFrame))
+                topLeft.x = NSMinX(screenFrame);
+            if (NSMinY(winFrame) < NSMinY(screenFrame))
+                topLeft.y = NSMaxY(screenFrame);
         } else {
             ASLogNotice(@"Window not on screen, don't constrain position");
         }
+
+        [win setFrameTopLeftPoint:topLeft];
     }
 
     if (1 == [vimControllers count]) {
