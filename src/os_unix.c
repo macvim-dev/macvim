@@ -2941,6 +2941,10 @@ mch_early_init()
     signal_stack = (char *)alloc(SIGSTKSZ);
     init_signal_stack();
 #endif
+
+#ifdef FEAT_GUI_MACVIM
+    macvim_early_init();
+#endif
 }
 
 #if defined(EXITFREE) || defined(PROTO)

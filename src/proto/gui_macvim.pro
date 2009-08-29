@@ -1,5 +1,7 @@
 
     void
+macvim_early_init();
+    void
 gui_mch_prepare(int *argc, char **argv);
     int
 gui_mch_init_check(void);

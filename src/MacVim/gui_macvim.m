@@ -38,6 +38,43 @@ vimmenu_T *menu_for_descriptor(NSArray *desc);
 
 // -- Initialization --------------------------------------------------------
 
+    void
+macvim_early_init()
+{
+    NSBundle *bundle = [NSBundle mainBundle];
+    if (bundle) {
+        // Set environment variables $VIM and $VIMRUNTIME
+        NSString *path = [[bundle resourcePath]
+                                        stringByAppendingPathComponent:@"vim"];
+        vim_setenv((char_u*)"VIM", (char_u*)[path UTF8String]);
+
+        path = [path stringByAppendingPathComponent:@"runtime"];
+        vim_setenv((char_u*)"VIMRUNTIME", (char_u*)[path UTF8String]);
+    }
+
+#if 0   // NOTE: setlocale(LC_ALL, "") seems to work after a restart so this is
+        // not necessary.  The locale used depends on what "Region" is set
+        // inside the "Formats" tab of the "International" System Preferences
+        // pane.
+    // Try to ensure that the locale is set to match that used by NSBundle to
+    // load localized resources.  If there is a mismatch e.g. between the
+    // MacVim menu and other menus, then this code needs to change (nb. the
+    // MacVim menu is set up inside a nib file so the locale used for it is
+    // chosen by NSBundle and the other menus are set up by Vim so their locale
+    // matches whatever we set here).
+    NSLocale *loc = [NSLocale currentLocale];
+    if (loc) {
+        NSString *s = [NSString stringWithFormat:@"%@_%@.UTF-8",
+                                    [loc objectForKey:NSLocaleLanguageCode],
+                                    [loc objectForKey:NSLocaleCountryCode]];
+        setlocale(LC_ALL, [s UTF8String]);
+        fprintf(stderr, "locale=%s\n", [s UTF8String]);
+        fflush(stderr);
+    }
+#endif
+}
+
+
 /*
  * Parse the GUI related command-line arguments.  Any arguments used are
  * deleted from argv, and *argc is decremented accordingly.  This is called
@@ -47,22 +84,6 @@ vimmenu_T *menu_for_descriptor(NSArray *desc);
     void
 gui_mch_prepare(int *argc, char **argv)
 {
-    // Set environment variables $VIM and $VIMRUNTIME
-    // NOTE!  If vim_getenv is called with one of these as parameters before
-    // they have been set here, they will most likely end up with the wrong
-    // values!
-    //
-    // TODO:
-    // - ensure this is called first to avoid above problem
-    // - encoding
-
-    NSString *path = [[[NSBundle mainBundle] resourcePath]
-        stringByAppendingPathComponent:@"vim"];
-    vim_setenv((char_u*)"VIM", (char_u*)[path UTF8String]);
-
-    path = [path stringByAppendingPathComponent:@"runtime"];
-    vim_setenv((char_u*)"VIMRUNTIME", (char_u*)[path UTF8String]);
-
     int i;
     for (i = 0; i < *argc; ++i) {
         if (strncmp(argv[i], "--mmwaitforack", 14) == 0) {
