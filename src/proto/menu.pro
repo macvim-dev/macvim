@@ -22,5 +22,6 @@ void ex_menutranslate __ARGS((exarg_T *eap));
 #ifdef FEAT_GUI_MACVIM
 void ex_macmenu __ARGS((exarg_T *eap));
 void ex_macmenukey __ARGS((exarg_T *eap));
+char_u *lookup_toolbar_item __ARGS((int idx));
 #endif
 /* vim: set ft=c : */

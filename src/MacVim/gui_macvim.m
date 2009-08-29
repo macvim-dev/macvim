@@ -781,9 +781,10 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
                                     && lookup_menu_iconfile(menu->name, fname))
             icon = fname;
 
-        // Last resort, use display name (usually signals a builtin icon)
+        // Still no icon found, try using a builtin icon.  (If this also fails,
+        // then a warning icon will be displayed).
         if (!icon)
-            icon = menu->dname;
+            icon = lookup_toolbar_item(menu->iconidx);
     }
 
     [[MMBackend sharedInstance] queueMessage:AddMenuItemMsgID properties:

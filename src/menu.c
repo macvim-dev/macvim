@@ -2859,6 +2859,17 @@ theend:
 #endif
 
 }
+
+    char_u *
+lookup_toolbar_item(idx)
+    int idx;
+{
+    if (idx >= 0 && idx < TOOLBAR_NAME_COUNT)
+        return (char_u*)toolbar_names[idx];
+
+    return NULL;
+}
+
 #endif /* FEAT_GUI_MACVIM */
 
 #endif /* FEAT_MENU */
