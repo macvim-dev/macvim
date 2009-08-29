@@ -17,8 +17,7 @@ if !exists("did_install_default_menus")
 let did_install_default_menus = 1
 
 
-" Localized menus currently not supported in MacVim
-if !has("gui_macvim") && (exists("v:lang") || &langmenu != "")
+if (exists("v:lang") || &langmenu != "")
   " Try to find a menu translation file for the current language.
   if &langmenu != ""
     if &langmenu =~ "none"
@@ -68,7 +67,27 @@ if !has("gui_macvim") && (exists("v:lang") || &langmenu != "")
 endif
 
 
+" MacVim Window menu (should be next to Help so give it a high priority)
+if has("gui_macvim")
+  an <silent> 9998.300 Window.Minimize		    <Nop>
+  an <silent> 9998.301 Window.Minimize\ All	    <Nop>
+  an <silent> 9998.310 Window.Zoom		    <Nop>
+  an <silent> 9998.311 Window.Zoom\ All		    <Nop>
+  an <silent> 9998.320 Window.Toggle\ Full\ Screen\ Mode :set invfullscreen<CR>
+  an 9998.330 Window.-SEP1-			    <Nop>
+  " TODO! Grey out if no tabs are visible.
+  an <silent> 9998.340 Window.Select\ Next\ Tab	    :tabnext<CR>
+  an <silent> 9998.350 Window.Select\ Previous\ Tab :tabprevious<CR>
+  an 9998.360 Window.-SEP2-			    <Nop>
+  an <silent> 9998.370 Window.Bring\ All\ To\ Front <Nop>
+endif
+
 " Help menu
+if has("gui_macvim")
+  an 9999.1 &Help.MacVim\ Help		    :h gui_mac<CR>
+  an <silent> 9999.2 Help.MacVim\ Website   <Nop>
+  an 9999.3 &Help.-sep0-		    <Nop>
+endif
 an 9999.10 &Help.&Overview<Tab><F1>	:help<CR>
 an 9999.20 &Help.&User\ Manual		:help usr_toc<CR>
 an 9999.30 &Help.&How-to\ links		:help how-to<CR>
@@ -97,16 +116,32 @@ fun! s:Helpfind()
 endfun
 
 " File menu
-an 10.310 &File.&Open\.\.\.<Tab>:e		:browse confirm e<CR>
+if has("gui_macvim")
+  an <silent> 10.290 &File.New\ Window		    <Nop>
+  an  10.295 &File.New\ Tab			    :tabnew<CR>
+  an <silent> 10.310 &File.Open\.\.\.		    <Nop>
+  an <silent> 10.325 &File.Open\ Recent		    <Nop>
+  an 10.328 &File.-SEP0-			    <Nop>
+  an <silent> 10.330 &File.Close\ Window<Tab>:qa    :conf qa<CR>
+  an <silent> 10.332 &File.Close		    :conf q<CR>
+  an <silent> 10.341 &File.Save\ All		    :browse conf wa<CR>
+  an 10.350 &File.Save\ As\.\.\.<Tab>:sav	    :browse confirm saveas<CR>
+else
+endif
+if !has("gui_macvim")
+  an 10.310 &File.&Open\.\.\.<Tab>:e		:browse confirm e<CR>
+endif
 an 10.320 &File.Sp&lit-Open\.\.\.<Tab>:sp	:browse sp<CR>
 an 10.320 &File.Open\ Tab\.\.\.<Tab>:tabnew	:browse tabnew<CR>
-an 10.325 &File.&New<Tab>:enew			:confirm enew<CR>
-an <silent> 10.330 &File.&Close<Tab>:close
+if !has("gui_macvim")
+  an 10.325 &File.&New<Tab>:enew		:confirm enew<CR>
+  an <silent> 10.330 &File.&Close<Tab>:close
 	\ :if winheight(2) < 0 <Bar>
 	\   confirm enew <Bar>
 	\ else <Bar>
 	\   confirm close <Bar>
 	\ endif<CR>
+endif
 an 10.335 &File.-SEP1-				<Nop>
 an <silent> 10.340 &File.&Save<Tab>:w		:if expand("%") == ""<Bar>browse confirm w<Bar>else<Bar>confirm w<Bar>endif<CR>
 an 10.350 &File.Save\ &As\.\.\.<Tab>:sav	:browse confirm saveas<CR>
@@ -128,9 +163,11 @@ elseif has("unix")
   vunmenu   &File.&Print
   vnoremenu &File.&Print			:w !lpr<CR>
 endif
-an 10.600 &File.-SEP4-				<Nop>
-an 10.610 &File.Sa&ve-Exit<Tab>:wqa		:confirm wqa<CR>
-an 10.620 &File.E&xit<Tab>:qa			:confirm qa<CR>
+if !has("gui_macvim")
+  an 10.600 &File.-SEP4-				<Nop>
+  an 10.610 &File.Sa&ve-Exit<Tab>:wqa		:confirm wqa<CR>
+  an 10.620 &File.E&xit<Tab>:qa			:confirm qa<CR>
+endif
 
 func! <SID>SelectAll()
   exe "norm gg" . (&slm == "" ? "VG" : "gH\<C-O>G")
@@ -167,13 +204,20 @@ inoremenu <script> <silent> 20.400 &Edit.&Select\ All<Tab>ggVG	<C-O>:call <SID>S
 cnoremenu <script> <silent> 20.400 &Edit.&Select\ All<Tab>ggVG	<C-U>call <SID>SelectAll()<CR>
 
 an 20.405	 &Edit.-SEP2-				<Nop>
-if has("win32")  || has("win16") || has("gui_gtk") || has("gui_kde") || has("gui_motif")
+if has("win32") || has("win16") || has("gui_gtk") || has("gui_kde") || has("gui_motif")
   an 20.410	 &Edit.&Find\.\.\.			:promptfind<CR>
   vunmenu	 &Edit.&Find\.\.\.
   vnoremenu <silent>	 &Edit.&Find\.\.\.		y:promptfind <C-R>=<SID>FixFText()<CR><CR>
   an 20.420	 &Edit.Find\ and\ Rep&lace\.\.\.	:promptrepl<CR>
   vunmenu	 &Edit.Find\ and\ Rep&lace\.\.\.
   vnoremenu <silent>	 &Edit.Find\ and\ Rep&lace\.\.\. y:promptrepl <C-R>=<SID>FixFText()<CR><CR>
+elseif has("gui_macvim")
+  an <silent> 20.410.10 &Edit.Find.Find\.\.\.	:promptfind<CR>
+  vunmenu &Edit.Find.Find\.\.\.
+  vnoremenu <silent> &Edit.Find.Find\.\.\.	y:promptfind <C-R>=<SID>FixFText()<CR><CR>
+  an 20.410.20 &Edit.Find.Find\ Next			<Nop>
+  an 20.410.30 &Edit.Find.Find\ Previous		<Nop>
+  vmenu 20.410.35 &Edit.Find.Use\ Selection\ for\ Find	y:let @/=@"<CR>:<BS>
 else
   an 20.410	 &Edit.&Find<Tab>/			/
   an 20.420	 &Edit.Find\ and\ Rep&lace<Tab>:%s	:%s/
@@ -386,6 +430,13 @@ if has("keymap")
 endif
 if has("win32") || has("win16") || has("gui_motif") || has("gui_gtk") || has("gui_kde") || has("gui_photon") || has("gui_mac")
   an 20.470 &Edit.Select\ Fo&nt\.\.\.	:set guifont=*<CR>
+elseif has("gui_macvim")
+  an 20.470 &Edit.-SEP4-                       <Nop>
+  an 20.475.10 &Edit.Font.Show\ Fonts          <Nop>
+  an 20.475.20 &Edit.Font.-SEP5-               <Nop>
+  an 20.475.30 &Edit.Font.Bigger               <Nop>
+  an 20.475.40 &Edit.Font.Smaller              <Nop>
+  an 20.480 &Edit.Special\ Characters\.\.\.    <Nop>
 endif
 
 " Programming menu
@@ -803,6 +854,7 @@ endif
 endif " !exists("no_buffers_menu")
 
 " Window menu
+if !has("gui_macvim")
 an 70.300 &Window.&New<Tab>^Wn			<C-W>n
 an 70.310 &Window.S&plit<Tab>^Ws		<C-W>s
 an 70.320 &Window.Sp&lit\ To\ #<Tab>^W^^	<C-W><C-^>
@@ -835,6 +887,7 @@ an 70.380 &Window.&Max\ Height<Tab>^W_			<C-W>_
 an 70.390 &Window.M&in\ Height<Tab>^W1_			<C-W>1_
 an 70.400 &Window.Max\ &Width<Tab>^W\|			<C-W>\|
 an 70.410 &Window.Min\ Widt&h<Tab>^W1\|			<C-W>1\|
+endif " !has("gui_macvim")
 
 " The popup menu
 an 1.10 PopUp.&Undo			u
@@ -980,7 +1033,7 @@ if has("toolbar")
   exe 'vnoremenu <script>	 ToolBar.Paste	' . paste#paste_cmd['v']
   exe 'inoremenu <script>	 ToolBar.Paste	' . paste#paste_cmd['i']
 
-  if !has("gui_athena")
+  if !has("gui_athena") && !has("gui_macvim")
     an 1.95   ToolBar.-sep3-		<Nop>
     an 1.100  ToolBar.Replace		:promptrepl<CR>
     vunmenu   ToolBar.Replace
@@ -989,19 +1042,27 @@ if has("toolbar")
     an 1.120  ToolBar.FindPrev		N
   endif
 
-  an 1.215 ToolBar.-sep5-		<Nop>
+  if !has("gui_macvim")
+    an 1.215 ToolBar.-sep5-		<Nop>
+  endif
   an <silent> 1.220 ToolBar.LoadSesn	:call <SID>LoadVimSesn()<CR>
   an <silent> 1.230 ToolBar.SaveSesn	:call <SID>SaveVimSesn()<CR>
   an 1.240 ToolBar.RunScript		:browse so<CR>
 
-  an 1.245 ToolBar.-sep6-		<Nop>
+  if !has("gui_macvim")
+    an 1.245 ToolBar.-sep6-		<Nop>
+  endif
   an 1.250 ToolBar.Make			:make<CR>
-  an 1.270 ToolBar.RunCtags		:exe "!" . g:ctags_command<CR>
-  an 1.280 ToolBar.TagJump		g<C-]>
+  if !has("gui_macvim")
+    an 1.270 ToolBar.RunCtags		:exe "!" . g:ctags_command<CR>
+    an 1.280 ToolBar.TagJump		g<C-]>
+  endif
 
   an 1.295 ToolBar.-sep7-		<Nop>
   an 1.300 ToolBar.Help			:help<CR>
-  an <silent> 1.310 ToolBar.FindHelp	:call <SID>Helpfind()<CR>
+  if !has("gui_macvim")
+    an <silent> 1.310 ToolBar.FindHelp	:call <SID>Helpfind()<CR>
+  endif
 
 " Only set the tooltips here if not done in a language menu file
 if exists("*Do_toolbar_tmenu")
@@ -1103,5 +1164,63 @@ endif " !exists("did_install_syntax_menu")
 " Restore the previous value of 'cpoptions'.
 let &cpo = s:cpo_save
 unlet s:cpo_save
+
+
+if has("gui_macvim")
+  "
+  " Set up menu key equivalents (these should always have the 'D' modifier
+  " set), action bindings, and alternate items.
+  "
+  " Note: menu items which should execute an action are bound to <Nop>; the
+  " action message is specified here via the :macmenu command.
+  "
+  macm File.New\ Window				key=<D-n> action=newWindow:
+  macm File.New\ Tab				key=<D-t>
+  macm File.Open\.\.\.				key=<D-o> action=fileOpen:
+  macm File.Open\ Tab\.\.\.<Tab>:tabnew		key=<D-T>
+  macm File.Open\ Recent			action=recentFilesDummy:
+  macm File.Close\ Window<Tab>:qa		key=<D-W>
+  macm File.Close				key=<D-w> action=performClose:
+  macm File.Save<Tab>:w				key=<D-s>
+  macm File.Save\ All				key=<D-M-s> alt=YES
+  macm File.Save\ As\.\.\.<Tab>:sav		key=<D-S>
+  macm File.Print				key=<D-p>
+
+  macm Edit.Undo<Tab>u				key=<D-z> action=undo:
+  macm Edit.Redo<Tab>^R				key=<D-Z> action=redo:
+  macm Edit.Cut<Tab>"+x				key=<D-x> action=cut:
+  macm Edit.Copy<Tab>"+y			key=<D-c> action=copy:
+  macm Edit.Paste<Tab>"+gP			key=<D-v> action=paste:
+  macm Edit.Select\ All<Tab>ggVG		key=<D-a> action=selectAll:
+  macm Edit.Find.Find\.\.\.			key=<D-f>
+  macm Edit.Find.Find\ Next			key=<D-g> action=findNext:
+  macm Edit.Find.Find\ Previous			key=<D-G> action=findPrevious:
+  macm Edit.Find.Use\ Selection\ for\ Find	key=<D-e>
+  macm Edit.Font.Show\ Fonts			action=orderFrontFontPanel:
+  macm Edit.Font.Bigger				key=<D-=> action=fontSizeUp:
+  macm Edit.Font.Smaller			key=<D--> action=fontSizeDown:
+  macm Edit.Special\ Characters\.\.\.		key=<D-M-t> action=orderFrontCharacterPalette:
+
+  macm Tools.Spelling.To\ Next\ error<Tab>]s	key=<D-;>
+  macm Tools.Spelling.Suggest\ Corrections<Tab>z=   key=<D-:>
+  macm Tools.Make<Tab>:make			key=<D-b>
+  macm Tools.List\ Errors<Tab>:cl		key=<D-l>
+  macm Tools.Next\ Error<Tab>:cn		key=<D-C-Right>
+  macm Tools.Previous\ Error<Tab>:cp		key=<D-C-Left>
+  macm Tools.Older\ List<Tab>:cold		key=<D-C-Up>
+  macm Tools.Newer\ List<Tab>:cnew		key=<D-C-Down>
+
+  macm Window.Minimize		key=<D-m>	action=performMiniaturize:
+  macm Window.Minimize\ All	key=<D-M-m>	action=miniaturizeAll:	alt=YES
+  macm Window.Zoom		key=<D-C-z>	action=performZoom:
+  macm Window.Zoom\ All		key=<D-M-C-z>	action=zoomAll:		alt=YES
+  macm Window.Toggle\ Full\ Screen\ Mode	key=<D-F>
+  macm Window.Select\ Next\ Tab			key=<D-}>
+  macm Window.Select\ Previous\ Tab		key=<D-{>
+  macm Window.Bring\ All\ To\ Front		action=arrangeInFront:
+
+  macm Help.MacVim\ Help			key=<D-?>
+  macm Help.MacVim\ Website			action=openWebsite:
+endif
 
 " vim: set sw=2 :
