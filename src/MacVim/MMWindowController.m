@@ -66,7 +66,7 @@
 #import "MMWindow.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
-#import <PSMTabBarControl.h>
+#import <PSMTabBarControl/PSMTabBarControl.h>
 
 
 

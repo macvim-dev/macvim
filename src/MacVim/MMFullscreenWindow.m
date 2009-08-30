@@ -30,7 +30,7 @@
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
 #import <Carbon/Carbon.h>
-#import <PSMTabBarControl.h>
+#import <PSMTabBarControl/PSMTabBarControl.h>
 
 // These have to be the same as in option.h
 #define FUOPT_MAXVERT         0x001
