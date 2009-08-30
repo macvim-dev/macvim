@@ -14,6 +14,7 @@ src/MacVim/icons/build
 src/MacVim/icons/makeicns/*.o
 src/MacVim/icons/makeicns/makeicns
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1
+src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1v3
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.pbxuser
 src/MacVim/PSMTabBarControl/build
 src/MacVim/build
