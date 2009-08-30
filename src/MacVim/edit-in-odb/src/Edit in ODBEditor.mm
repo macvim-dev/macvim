@@ -256,7 +256,7 @@ struct PBX_SelectionRange
 	{
 		[editMenu addItem:[NSMenuItem separatorItem]];
 		NSString* ellips = [NSString stringWithUTF8String:"\xe2\x80\xa6"]; // utf-8 for the '...' character (literal utf8 is not allowed in source code)
-		id <NSMenuItem> menuItem = [editMenu addItemWithTitle:[NSString stringWithFormat:@"Edit in %@%@", ODBEditorName, ellips] action:@selector(editInODBEditor:) keyEquivalent:@"E"];
+		NSMenuItem *menuItem = [editMenu addItemWithTitle:[NSString stringWithFormat:@"Edit in %@%@", ODBEditorName, ellips] action:@selector(editInODBEditor:) keyEquivalent:@"E"];
 		[menuItem setKeyEquivalentModifierMask:NSControlKeyMask | NSCommandKeyMask];
 	}
 }

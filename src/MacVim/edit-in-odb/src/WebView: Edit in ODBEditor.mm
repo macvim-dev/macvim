@@ -313,7 +313,11 @@ static DOMHTMLTextAreaElement* find_active_text_area (WebView* view)
 
 		if(selection)
 		{
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+			str = convert_dom_to_text([[[self mainFrame] DOMDocument] createTreeWalker:selection whatToShow:DOM_SHOW_ALL filter:nil expandEntityReferences:YES]);
+#else
 			str = convert_dom_to_text([[[self mainFrame] DOMDocument] createTreeWalker:selection :DOM_SHOW_ALL :nil :YES]);
+#endif
 			while([str hasSuffix:@"\n\n"])
 				str = [str substringToIndex:[str length]-1];
 
