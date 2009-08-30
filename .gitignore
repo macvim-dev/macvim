@@ -17,6 +17,11 @@ src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1v3
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.pbxuser
 src/MacVim/PSMTabBarControl/build
+src/MacVim/edit-in-odb/Edit in ODBEditor.xcodeproj/*.mode1
+src/MacVim/edit-in-odb/Edit in ODBEditor.xcodeproj/*.mode1v3
+src/MacVim/edit-in-odb/Edit in ODBEditor.xcodeproj/*.pbxuser
+src/MacVim/edit-in-odb/build
+src/MacVim/PSMTabBarControl/build
 src/MacVim/build
 src/TAGS
 src/Vim
