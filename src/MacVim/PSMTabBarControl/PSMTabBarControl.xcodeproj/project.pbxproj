@@ -93,7 +93,7 @@
 		13F8B88A07B434F6008AE28D /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		32DBCF980370C29C00C91783 /* PSMTabBarControl_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PSMTabBarControl_Prefix.pch; path = source/PSMTabBarControl_Prefix.pch; sourceTree = "<group>"; };
 		53DF68FD067E5B5A0090B5B0 /* PSMTabBarControl.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PSMTabBarControl.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		53DF68FE067E5B5A0090B5B0 /* PSMTabBarControlFramework-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "PSMTabBarControlFramework-Info.plist"; sourceTree = "<group>"; };
+		53DF68FE067E5B5A0090B5B0 /* PSMTabBarControlFramework-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "PSMTabBarControlFramework-Info.plist"; sourceTree = "<group>"; };
 		54D33B2806778E3300C9C163 /* PSMTabBarControl.ibclassdescription */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PSMTabBarControl.ibclassdescription; sourceTree = "<group>"; };
 		8D1AC9730486D14A00FE50C9 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1AC97B0486D23100FE50C9 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -123,7 +123,7 @@
 		A251BE930959A23A0058BC7F /* TabClose_Front_Rollover.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; name = TabClose_Front_Rollover.tif; path = images/TabClose_Front_Rollover.tif; sourceTree = "<group>"; };
 		A251BE940959A23A0058BC7F /* TabClose_Front.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; name = TabClose_Front.tif; path = images/TabClose_Front.tif; sourceTree = "<group>"; };
 		A251BE9B0959A2530058BC7F /* ReadMe.rtfd */ = {isa = PBXFileReference; lastKnownFileType = wrapper.rtfd; path = ReadMe.rtfd; sourceTree = "<group>"; };
-		A251BEA20959BB5B0058BC7F /* TabBarControlDemo-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "TabBarControlDemo-Info.plist"; sourceTree = "<group>"; };
+		A251BEA20959BB5B0058BC7F /* TabBarControlDemo-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "TabBarControlDemo-Info.plist"; sourceTree = "<group>"; };
 		A251BEC30959BC0E0058BC7F /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/MainMenu.nib; sourceTree = "<group>"; };
 		A268E7F809A9822900E082AA /* AquaTabNew.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = AquaTabNew.png; path = images/AquaTabNew.png; sourceTree = "<group>"; };
 		A268E7F909A9822900E082AA /* AquaTabNewPressed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = AquaTabNewPressed.png; path = images/AquaTabNewPressed.png; sourceTree = "<group>"; };
@@ -582,7 +582,6 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Universal;
 		};
@@ -676,7 +675,6 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Debug;
 		};
@@ -686,7 +684,6 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 			};
 			name = Release;
 		};
