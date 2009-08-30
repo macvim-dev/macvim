@@ -412,7 +412,7 @@
                 [bindingOptions setObject:NSNegateBooleanTransformerName forKey:@"NSValueTransformerName"];
                 [[cell indicator] bind:@"animate" toObject:[item identifier] withKeyPath:@"selection.isProcessing" options:nil];
                 [[cell indicator] bind:@"hidden" toObject:[item identifier] withKeyPath:@"selection.isProcessing" options:bindingOptions];
-                [[item identifier] addObserver:self forKeyPath:@"selection.isProcessing" options:nil context:nil];
+                [[item identifier] addObserver:self forKeyPath:@"selection.isProcessing" options:0 context:nil];
             } 
         } 
     } 
@@ -425,7 +425,7 @@
                 NSMutableDictionary *bindingOptions = [NSMutableDictionary dictionary];
                 [bindingOptions setObject:NSIsNotNilTransformerName forKey:@"NSValueTransformerName"];
                 [cell bind:@"hasIcon" toObject:[item identifier] withKeyPath:@"selection.icon" options:bindingOptions];
-                [[item identifier] addObserver:self forKeyPath:@"selection.icon" options:nil context:nil];
+                [[item identifier] addObserver:self forKeyPath:@"selection.icon" options:0 context:nil];
             } 
         } 
     }
@@ -436,7 +436,7 @@
         if([[item identifier] respondsToSelector:@selector(content)]){
             if([[[[cell representedObject] identifier] content] respondsToSelector:@selector(objectCount)]){
                 [cell bind:@"count" toObject:[item identifier] withKeyPath:@"selection.objectCount" options:nil];
-                [[item identifier] addObserver:self forKeyPath:@"selection.objectCount" options:nil context:nil];
+                [[item identifier] addObserver:self forKeyPath:@"selection.objectCount" options:0 context:nil];
             } 
         } 
     }
