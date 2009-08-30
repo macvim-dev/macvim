@@ -1441,29 +1441,30 @@ if test "x$SKIP_MACVIM" != "xYES" -a "$enable_gui_canon" != "macvim"; then
 fi
 
 if test "x$MACOSX" = "xyes"; then
-  if test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
-    AC_MSG_CHECKING(for Carbon GUI)
-    dnl already did the check, just give the message
-    AC_MSG_RESULT(yes);
-    GUITYPE=CARBONGUI
-  elif test -z "$SKIP_MACVIM" -a "x$COCOA" = "xyes"; then
-    AC_MSG_CHECKING(for MacVim GUI)
-    dnl already did the check, just give the message
-    AC_MSG_RESULT(yes);
-    GUITYPE=MACVIMGUI
-  fi
-
-  if test "$VIMNAME" = "vim"; then
-    VIMNAME=Vim
-  fi
-
   dnl Default install directory is not /usr/local
   if test x$prefix = xNONE; then
     prefix=/Applications
   fi
 
-  dnl Sorry for the hard coded default
-  datadir='${prefix}/Vim.app/Contents/Resources'
+  if test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
+    AC_MSG_CHECKING(for Carbon GUI)
+    dnl already did the check, just give the message
+    AC_MSG_RESULT(yes);
+    GUITYPE=CARBONGUI
+    dnl Sorry for the hard coded default
+    datadir='${prefix}/Vim.app/Contents/Resources'
+  elif test -z "$SKIP_MACVIM" -a "x$COCOA" = "xyes"; then
+    AC_MSG_CHECKING(for MacVim GUI)
+    dnl already did the check, just give the message
+    AC_MSG_RESULT(yes);
+    GUITYPE=MACVIMGUI
+    dnl Sorry for the hard coded default
+    datadir='${prefix}/MacVim.app/Contents/Resources'
+  fi
+
+  if test "$VIMNAME" = "vim"; then
+    VIMNAME=Vim
+  fi
 
   dnl skip everything else
   SKIP_GTK=YES;
