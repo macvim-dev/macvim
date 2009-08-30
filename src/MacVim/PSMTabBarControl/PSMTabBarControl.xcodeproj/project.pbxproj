@@ -549,10 +549,7 @@
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
 				INFOPLIST_FILE = "PSMTabBarControlFramework-Info.plist";
 				INSTALL_PATH = "@executable_path/../Frameworks";
-				OTHER_LDFLAGS = (
-					"-seg1addr",
-					0xc0000000,
-				);
+				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = PSMTabBarControl;
 				SYMROOT = ../build;
 			};
@@ -601,10 +598,7 @@
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
 				INFOPLIST_FILE = "PSMTabBarControlFramework-Info.plist";
 				INSTALL_PATH = "@executable_path/../Frameworks";
-				OTHER_LDFLAGS = (
-					"-seg1addr",
-					0xc0000000,
-				);
+				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = PSMTabBarControl;
 				SYMROOT = ../build;
 				ZERO_LINK = NO;
@@ -624,10 +618,7 @@
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
 				INFOPLIST_FILE = "PSMTabBarControlFramework-Info.plist";
 				INSTALL_PATH = "@executable_path/../Frameworks";
-				OTHER_LDFLAGS = (
-					"-seg1addr",
-					0xc0000000,
-				);
+				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = PSMTabBarControl;
 				SYMROOT = ../build;
 			};
