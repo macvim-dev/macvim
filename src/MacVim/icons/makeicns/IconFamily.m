@@ -1498,6 +1498,7 @@ enum {
 
 @end
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED <= 1050  // Scrap Manager has been nixed on Snow Leopard
 // Methods for interfacing with the Carbon Scrap Manager (analogous to and
 // interoperable with the Cocoa Pasteboard).
 
@@ -1573,4 +1574,4 @@ enum {
 
 @end
 
-
+#endif
