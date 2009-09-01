@@ -235,6 +235,9 @@ extern NSString *MMLogToStdErrKey;
 // (techincally this is a user default but should not be used as such).
 extern NSString *MMNoWindowKey;
 
+extern NSString *MMAutosaveRowsKey;
+extern NSString *MMAutosaveColumnsKey;
+
 
 // Vim pasteboard type (holds motion type + string)
 extern NSString *VimPBoardType;

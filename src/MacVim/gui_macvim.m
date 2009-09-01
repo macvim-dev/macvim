@@ -117,6 +117,29 @@ gui_mch_prepare(int *argc, char **argv)
     int
 gui_mch_init_check(void)
 {
+    ASLInit();
+    ASLogDebug(@"");
+
+    // Restore autosaved rows & columns
+    CFNumberRef rowsRef, colsRef;
+    rowsRef = CFPreferencesCopyAppValue((CFStringRef)MMAutosaveRowsKey,
+                                        kCFPreferencesCurrentApplication);
+    colsRef = CFPreferencesCopyAppValue((CFStringRef)MMAutosaveColumnsKey,
+                                        kCFPreferencesCurrentApplication);
+    if (rowsRef && colsRef) {
+        int rows, cols;
+        if (CFNumberGetValue(rowsRef, kCFNumberIntType, &rows)
+                && CFNumberGetValue(colsRef, kCFNumberIntType, &cols)) {
+            if (rows > 4 && rows < 1000 && cols > 29 && cols < 4000) {
+                Rows = rows;
+                Columns = cols;
+            } else {
+                ASLogWarn(@"Autosaved window dimensions invalid: %dx%d",
+                        cols, rows);
+            }
+        }
+    }
+
     return OK;
 }
 
@@ -128,7 +151,6 @@ gui_mch_init_check(void)
     int
 gui_mch_init(void)
 {
-    ASLInit();
     ASLogDebug(@"");
 
     if (![[MMBackend sharedInstance] checkin]) {

@@ -323,6 +323,18 @@
         shouldResizeVimView = YES;
         keepOnScreen = !reply;
     }
+
+    if (windowAutosaveKey) {
+        // Autosave rows and columns (only done for window which also autosaves
+        // window position).
+        id tv = [vimView textView];
+        int rows = [tv maxRows];
+        int cols = [tv maxColumns];
+        NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+        [ud setInteger:rows forKey:MMAutosaveRowsKey];
+        [ud setInteger:cols forKey:MMAutosaveColumnsKey];
+        [ud synchronize];
+    }
 }
 
 - (void)setTitle:(NSString *)title

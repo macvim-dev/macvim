@@ -106,6 +106,9 @@ NSString *MMLogToStdErrKey  = @"MMLogToStdErr";
 // (techincally this is a user default but should not be used as such).
 NSString *MMNoWindowKey = @"MMNoWindow";
 
+NSString *MMAutosaveRowsKey    = @"MMAutosaveRows";
+NSString *MMAutosaveColumnsKey = @"MMAutosaveColumns";
+
 // Vim pasteboard type (holds motion type + string)
 NSString *VimPBoardType = @"VimPBoardType";
 
