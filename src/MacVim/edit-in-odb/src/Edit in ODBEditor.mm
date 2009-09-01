@@ -220,7 +220,11 @@ struct PBX_SelectionRange
 	}
 	else
 	{
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+		[[NSFileManager defaultManager] removeItemAtPath:fileName error:NULL];
+#else
 		[[NSFileManager defaultManager] removeFileAtPath:fileName handler:nil];
+#endif
 		[[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
 	}
 
