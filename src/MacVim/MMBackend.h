@@ -21,6 +21,7 @@
     NSMutableArray      *inputQueue;
     NSMutableData       *drawData;
     NSConnection        *connection;
+    NSConnection        *vimServerConnection;
     id                  appProxy;
     unsigned            identifier;
     NSDictionary        *colorDict;

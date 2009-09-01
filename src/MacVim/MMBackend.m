@@ -266,6 +266,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [actionDict release];  actionDict = nil;
     [sysColorDict release];  sysColorDict = nil;
     [colorDict release];  colorDict = nil;
+    [vimServerConnection release];  vimServerConnection = nil;
 
     [super dealloc];
 }
@@ -679,8 +680,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 #ifdef MAC_CLIENTSERVER
     // The default connection is used for the client/server code.
-    [[NSConnection defaultConnection] setRootObject:nil];
-    [[NSConnection defaultConnection] invalidate];
+    if (vimServerConnection) {
+        [vimServerConnection setRootObject:nil];
+        [vimServerConnection invalidate];
+    }
 #endif
 }
 
@@ -1321,22 +1324,28 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)registerServerWithName:(NSString *)name
 {
     NSString *svrName = name;
-    NSConnection *svrConn = [NSConnection defaultConnection];
     unsigned i;
+
+    if (vimServerConnection) // Paranoia check, should always be nil
+        [vimServerConnection release];
+
+    vimServerConnection = [[NSConnection alloc]
+                                            initWithReceivePort:[NSPort port]
+                                                       sendPort:nil];
 
     for (i = 0; i < MMServerMax; ++i) {
         NSString *connName = [self connectionNameFromServerName:svrName];
 
-        if ([svrConn registerName:connName]) {
+        if ([vimServerConnection registerName:connName]) {
             ASLogInfo(@"Registered server with name: %@", svrName);
 
             // TODO: Set request/reply time-outs to something else?
             //
             // Don't wait for requests (time-out means that the message is
             // dropped).
-            [svrConn setRequestTimeout:0];
-            //[svrConn setReplyTimeout:MMReplyTimeout];
-            [svrConn setRootObject:self];
+            [vimServerConnection setRequestTimeout:0];
+            //[vimServerConnection setReplyTimeout:MMReplyTimeout];
+            [vimServerConnection setRootObject:self];
 
             // NOTE: 'serverName' is a global variable
             serverName = [svrName vimStringSave];
@@ -1346,8 +1355,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 #ifdef FEAT_TITLE
 	    need_maketitle = TRUE;
 #endif
-            [self queueMessage:SetServerNameMsgID data:
-                    [svrName dataUsingEncoding:NSUTF8StringEncoding]];
+            [self queueMessage:SetServerNameMsgID
+                        data:[svrName dataUsingEncoding:NSUTF8StringEncoding]];
             break;
         }
 
