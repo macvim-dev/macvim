@@ -17,7 +17,12 @@
 @class MMVimController;
 @class MMVimView;
 
-@interface MMWindowController : NSWindowController {
+@interface MMWindowController : NSWindowController
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5)
+    // 10.6 has turned delegate messages into formal protocols
+    <NSWindowDelegate>
+#endif
+{
     MMVimController     *vimController;
     MMVimView           *vimView;
     BOOL                setupDone;

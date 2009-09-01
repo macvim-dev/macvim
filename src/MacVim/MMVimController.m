@@ -27,7 +27,6 @@
  */
 
 #import "MMAppController.h"
-#import "MMAtsuiTextView.h"
 #import "MMFindReplaceController.h"
 #import "MMTextView.h"
 #import "MMVimController.h"

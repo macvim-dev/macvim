@@ -113,8 +113,10 @@ static int MMPlugInArchMinorVersion = 0;
     NSString *errstr = nil;
     id res = [vimController evaluateVimExpressionCocoa:vimExpression
                                            errorString:&errstr];
-    if (!res)
-        [NSException raise:@"VimEvaluationException" format:errstr];
+    if (!res) {
+        // Setting format to %@ instead of just passing errstr avoids warning.
+        [NSException raise:@"VimEvaluationException" format:@"%@", errstr];
+    }
 
     return res;
 }
