@@ -1460,6 +1460,11 @@ if test "x$MACOSX" = "xyes"; then
     GUITYPE=MACVIMGUI
     dnl Sorry for the hard coded default
     datadir='${prefix}/MacVim.app/Contents/Resources'
+
+    dnl Mac OS X 10.6 compiles 64 bit by default, but the MacVim binary is 32
+    dnl bit.  This ensures Vim is 32 bit as well.
+    CFLAGS="$CFLAGS -m32"
+    LDFLAGS="$LDFLAGS -m32"
   fi
 
   if test "$VIMNAME" = "vim"; then
