@@ -1560,7 +1560,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (openFiles != nil)
         *openFiles = dict;
 
-    return files;
+    return [files autorelease];
 }
 
 #if MM_HANDLE_XCODE_MOD_EVENT

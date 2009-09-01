@@ -227,7 +227,7 @@ NSString *kOdbEditorIdentifierWriteRoom = @"com.hogbaysoftware.WriteRoom";
     // user changes settings in terminal, the changes are reflected in the
     // dialog)
 
-    NSString *versionString;
+    NSString *versionString = @"";
 
     // Check if ODB path exists before calling isFilePackageAtPath: otherwise
     // an error is output to stderr on Tiger.

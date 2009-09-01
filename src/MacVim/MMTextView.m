@@ -937,7 +937,7 @@
                                    numColumns:ncols];
             [self setNeedsDisplayInRect:invertRects[n]];
         } else {
-            n = numInvertRects = 0;
+            numInvertRects = 0;
         }
     } else {
         // The result should look normal; all we need to do is to mark
