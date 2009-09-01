@@ -25,6 +25,8 @@
  * resized.
  */
 
+#if ENABLE_ATSUI
+
 #import "MMAppController.h"
 #import "MMAtsuiTextView.h"
 #import "MMTextViewHelper.h"
@@ -1268,3 +1270,5 @@ defaultLineHeightForFont(NSFont *font)
 }
 
 @end // MMAtsuiTextView (Drawing)
+
+#endif // ENABLE_ATSUI

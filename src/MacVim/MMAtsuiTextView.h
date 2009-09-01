@@ -8,6 +8,8 @@
  * See README.txt for an overview of the Vim source code.
  */
 
+#if ENABLE_ATSUI
+
 #import <Cocoa/Cocoa.h>
 #import "MMTextView.h"
 
@@ -97,3 +99,5 @@ enum { MMMaxCellsPerChar = 2 };
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size;
 
 @end
+
+#endif // ENABLE_ATSUI
