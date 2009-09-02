@@ -43,7 +43,7 @@
 
 
 @interface DBPrefsWindowController : NSWindowController
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= 1060)
     // 10.6 has turned delegate messages into formal protocols
     <NSAnimationDelegate, NSToolbarDelegate>
 #endif
