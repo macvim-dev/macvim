@@ -891,7 +891,7 @@ defaultLineHeightForFont(NSFont *font)
 
 // The return type of this message changed with OS X 10.5 so we need this
 // kludge in order to avoid compiler warnings on OS X 10.4.
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
 - (NSInteger)conversationIdentifier
 {
     return (NSInteger)self;

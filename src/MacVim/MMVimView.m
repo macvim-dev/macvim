@@ -417,7 +417,7 @@ enum {
                     identifier:(long)ident
 {
     MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
-#if (MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
     [scroller setDoubleValue:val];
     [scroller setKnobProportion:prop];
 #else

@@ -49,7 +49,7 @@ static float MMDragAreaSize = 73.0f;
 
 
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     static BOOL
 KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 {
@@ -77,7 +77,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [markedText release];  markedText = nil;
     [markedTextAttributes release];  markedTextAttributes = nil;
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (asciiImSource) {
         CFRelease(asciiImSource);
         asciiImSource = NULL;
@@ -783,7 +783,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // backend.  On >=10.5 and later we do not forward changes to the input
     // method, instead we let Vim be in complete control.
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     // The TIS symbols are weakly linked.
     if (NULL != TISCopyCurrentKeyboardInputSource) {
         // We get here when compiled on >=10.5 and running on >=10.5.
@@ -815,7 +815,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     ASLogInfo(@"Activate IM=%d", enable);
     imState = enable;
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     // The TIS symbols are weakly linked.
     if (NULL != TISCopyCurrentKeyboardInputSource) {
         // We get here when compiled on >=10.5 and running on >=10.5.
@@ -835,7 +835,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // We get here when compiled on >=10.5 but running on 10.4 -- fall through
     // and use old IM code...
 #endif
-#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5)
     // NOTE: The IM code is delegated to the frontend since calling it in
     // the backend caused weird bugs (second dock icon appearing etc.).
     KeyScript(enable ? smKeySysScript : smKeyRoman);
@@ -939,7 +939,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)checkImState
 {
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (NULL != TISCopyCurrentKeyboardInputSource) {
         // We get here when compiled on >=10.5 and running on >=10.5.
         TISInputSourceRef cur = TISCopyCurrentKeyboardInputSource();
@@ -963,7 +963,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         return;
     }
 #endif
-#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5)
     // Compiled for <=10.4, running on 10.4
 
     // IM is active whenever the current script is the system script and the

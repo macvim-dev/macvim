@@ -18,7 +18,7 @@
 @class MMVimView;
 
 @interface MMWindowController : NSWindowController
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
     // 10.6 has turned delegate messages into formal protocols
     <NSWindowDelegate>
 #endif

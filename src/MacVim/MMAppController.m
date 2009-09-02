@@ -61,7 +61,7 @@ static NSTimeInterval MMReplyTimeout = 5;
 
 static NSString *MMWebsiteString = @"http://code.google.com/p/macvim/";
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
 // Latency (in s) between FS event occuring and being reported to MacVim.
 // Should be small so that MacVim is notified of changes to the ~/.vim
 // directory more or less immediately.
@@ -146,7 +146,7 @@ typedef struct
 
 
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     static void
 fsEventCallback(ConstFSEventStreamRef streamRef,
                 void *clientCallBackInfo,
@@ -1929,7 +1929,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 
 // HACK: fileAttributesAtPath was deprecated in 10.5
-#if (MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
 #define MM_fileAttributes(fm,p) [fm attributesOfItemAtPath:p error:NULL]
 #else
 #define MM_fileAttributes(fm,p) [fm fileAttributesAtPath:p traverseLink:YES]
@@ -2012,7 +2012,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)startWatchingVimDir
 {
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (fsEventStream)
         return;
     if (NULL == FSEventStreamStart)
@@ -2036,7 +2036,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)stopWatchingVimDir
 {
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (NULL == FSEventStreamStop)
         return; // FSEvent functions are weakly linked
 
@@ -2081,7 +2081,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             FSRef fsRef;
             CFURLGetFSRef((CFURLRef)fontsURL, &fsRef);
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
             // This is the font activation API for OS X 10.5.  Only compile
             // this code if we're building on OS X 10.5 or later.
             if (NULL != ATSFontActivateFromFileReference) { // Weakly linked
@@ -2091,7 +2091,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                                                  &fontContainerRef);
             }
 #endif
-#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5)
             // The following font activation API was deprecated in OS X 10.5.
             // Don't compile this code unless we're targeting OS X 10.4.
             FSSpec fsSpec;

@@ -16,7 +16,7 @@
 #import "MMApplication.h"
 
 // Ctrl-Tab is broken on pre 10.5, so we add a hack to make it work.
-#if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_4
+#if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_5
 # import "MMTextView.h"
 # define MM_CTRL_TAB_HACK 1
 #endif
