@@ -1222,6 +1222,8 @@
 			<array>
 				<string>NSStringPboardType</string>
 			</array>
+			<key>NSRequiredContext</key>
+			<dict></dict>
 		</dict>
 		<dict>
 			<key>NSMenuItem</key>
@@ -1239,6 +1241,11 @@
 			</array>
 			<key>NSUserData</key>
 			<string>Window</string>
+			<key>NSRequiredContext</key>
+			<dict>
+			    <key>NSTextContent</key>
+			    <string>FilePath</string>
+			</dict>
 		</dict>
 		<dict>
 			<key>NSMenuItem</key>
@@ -1256,6 +1263,11 @@
 			</array>
 			<key>NSUserData</key>
 			<string>Window</string>
+			<key>NSRequiredContext</key>
+			<dict>
+			    <key>NSTextContent</key>
+			    <string>FilePath</string>
+			</dict>
 		</dict>
 	</array>
 	<key>SUFeedURL</key>
