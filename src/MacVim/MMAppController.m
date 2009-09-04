@@ -1362,6 +1362,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     NSString *path = [pboard stringForType:NSStringPboardType];
+    path = [path stringByExpandingTildeInPath];
 
     BOOL dirIndicator;
     if (![[NSFileManager defaultManager] fileExistsAtPath:path
