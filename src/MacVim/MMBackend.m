@@ -1125,21 +1125,25 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     // Look for Ctrl-C immediately instead of waiting until the input queue is
     // processed since that only happens in waitForInput: (and Vim regularly
-    // checks for Ctrl-C in between waiting for input).
+    // checks for Ctrl-C in between waiting for input).  Note that the flag
+    // ctrl_c_interrupts is 0 e.g. when the user has mappings to something like
+    // <C-c>g.  Also it seems the flag intr_char is 0 when MacVim was started
+    // from Finder whereas it is 0x03 (= Ctrl_C) when started from Terminal.
+    //
     // Similarly, TerminateNowMsgID must be checked immediately otherwise code
     // which waits on the run loop will fail to detect this message (e.g. in
     // waitForConnectionAcknowledgement).
 
-    if (KeyDownMsgID == msgid && data != nil) {
+    if (KeyDownMsgID == msgid && data != nil && ctrl_c_interrupts) {
         const void *bytes = [data bytes];
         /*unsigned mods = *((unsigned*)bytes);*/  bytes += sizeof(unsigned);
         /*unsigned code = *((unsigned*)bytes);*/  bytes += sizeof(unsigned);
         unsigned len  = *((unsigned*)bytes);  bytes += sizeof(unsigned);
         if (1 == len) {
             char_u *str = (char_u*)bytes;
-            if ((str[0] == Ctrl_C && ctrl_c_interrupts) ||
-                    (str[0] == intr_char && intr_char != 0)) {
-                ASLogDebug(@"Got INT, str[0]=%#x", str[0]);
+            if (str[0] == Ctrl_C || (str[0] == intr_char && intr_char != 0)) {
+                ASLogDebug(@"Got INT, str[0]=%#x ctrl_c_interrupts=%d "
+                        "intr_char=%#x", str[0], ctrl_c_interrupts, intr_char);
                 got_int = TRUE;
                 [inputQueue removeAllObjects];
                 return;
