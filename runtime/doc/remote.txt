@@ -208,7 +208,7 @@ When using gvim, the --remote-wait only works properly this way: >
 MacVim uses distributed objects for interprocess communication.  A server
 listens to a named port for new connections, and clients connect to this port
 to send messages.  Server listings are made possible by the frontend (MacVim)
-keeping a list of all currently running servers.  Thus, server are not aware
+keeping a list of all currently running servers.  Thus, servers are not aware
 of each other directly; only MacVim knows which servers are running.
 
 A client is any object which implements the MMVimClientProtocol (see
