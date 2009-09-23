@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Aug 8
+*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Sep 23
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -512,8 +512,8 @@ some experimentation might be required in order to figure out which key to
 press.
 
 The second way of controlling dialogs with the keyboard is to enable "Full
-keyboard access" in the "Keyboard & Mouse" pane of the System Preferences (you
-can also toggle this on or off by pressing Ctrl-F7).  Once keyboard access is
+keyboard access" in the "Keyboard" pane of the System Preferences (you can
+also toggle this on or off by pressing Ctrl-F7).  Once keyboard access is
 enabled it is possible to move between buttons with Tab and pressing Space to
 select the current button.  The current button is indicated with a blue
 outline.
@@ -582,7 +582,7 @@ Cmd-`			Cycle to the next window.  On an American keyboard the
 			keyboards this key is often adjacent to the left
 			Shift-key and it may be not even be marked with "`".
 			This Cmd-key combination can only be unmapped via the
-			"Keyboard & Mouse" System Preferences.
+			"Keyboard" System Preferences.
 
 							*Cmd-Left*  *<D-Left>*
 Cmd-Left		Move cursor to the beginning of the line
@@ -714,11 +714,11 @@ This is a known problem, see |macvim-todo|.
 Scenario: ~
 You dislike the default font (DejaVu Sans Mono).
 Solution: ~
-The standard fixed width font on other Mac OS X applications is Monaco.  If
-you prefer this font then add the following line to your "~/.gvimrc" (note
-that Monaco does not come in italic and bold variants): >
-	set guifont=Monaco:h10
-The suffix ":h10" specifies the point size of the font should be "10" (see
+The standard fixed width font on Mac OS X is Menlo (it used to be Monaco prior
+to OS X 10.6).  If you prefer this font then add the following line to your
+"~/.gvimrc": >
+	set guifont=Menlo:h11
+The suffix ":h11" specifies the point size of the font should be "11" (see
 'guifont' for more information on how to set the font).
 
 Scenario: ~
@@ -767,13 +767,14 @@ bring up an editor, you would set that option to something like: >
 Scenario: ~
 You would like to remap Caps Lock to Esc.
 Solution: ~
-The free app "PCKeyboardHack" can be used to remap Caps Lock.  It is available
-as a free download from:
+The app "PCKeyboardHack" can be used to remap Caps Lock.  It is available as a
+free download from:
 	http://www.pqrs.org/tekezo/macosx/keyremap4macbook/extra.html
 On some Apple keyboards the Caps Lock key doesn't immediately register and
 this makes Caps Lock "drop" key presses.  To work around this problem go into
-the "Keyboard & Mouse" System Preference and remap Caps Lock to Ctrl first
-(click the "Modifier Keys..." button).
+the "Keyboard" System Preference and remap Caps Lock to Ctrl first (click the
+"Modifier Keys..." button).  This trick may also be necessary if the Caps Lock
+light turns on/off despite having remapped to Esc.
 
 Scenario: ~
 You have problems creating custom mappings involving the Cmd key.
