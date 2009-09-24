@@ -20,7 +20,8 @@ try:
   from AppKit import *
 
   dont_create = False
-except:
+except Exception, e:
+  print e
   dont_create = True  # most likely because we're on tiger
 
 import os

@@ -49,13 +49,20 @@ class Surface(object):
   def data(self):
     """Returns data in ARGB order (on intel, at least)."""
     r = self.bitmapRep
-    if r.bitmapFormat() != (NSAlphaNonpremultipliedBitmapFormat |
-          NSAlphaFirstBitmapFormat) or \
+    if (r.bitmapFormat() & ~NSAlphaFirstBitmapFormat !=
+            NSAlphaNonpremultipliedBitmapFormat) or \
         r.bitsPerPixel() != 32 or \
         r.isPlanar() or \
         r.samplesPerPixel() != 4:
       raise Exception("Unsupported image format")
     return self.bitmapRep.bitmapData()
+
+  def rgbaIndices(self):
+    r = self.bitmapRep
+    if r.bitmapFormat() & NSAlphaFirstBitmapFormat != 0:
+      return 1, 2, 3, 0
+    else:
+      return 0, 1, 2, 3
 
   def save(self, filename):
     """Saves image as png file."""
@@ -216,6 +223,7 @@ def splitGenericDocumentIcon(img, s):
   r = img.surfaceOfSize(w, h)
   bps = 4*w
   data = r.data()
+  dr, dg, db, da = r.rgbaIndices()
 
   ground = Surface(w, h, premultiplyAlpha=False)
   shadow = Surface(w, h, premultiplyAlpha=False)
@@ -226,7 +234,10 @@ def splitGenericDocumentIcon(img, s):
   for y in xrange(h):
     for x in xrange(w):
       idx = y*bps + 4*x
-      ia, ir, ig, ib = data[idx:idx + 4]
+      ia = data[idx + da]
+      ir = data[idx + dr]
+      ig = data[idx + dg]
+      ib = data[idx + db]
       if ia != chr(255):
         # buffer objects don't support slice assignment :-(
         grounddata[idx] = ia
