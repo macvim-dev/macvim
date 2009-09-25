@@ -993,10 +993,10 @@ if test "$enable_rubyinterp" = "yes"; then
 	fi
 	rubyldflags=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["LDFLAGS"]]'`
 	if test "X$rubyldflags" != "X"; then
-	  dnl Ruby on Mac OS X 10.5 adds "-arch" flags but these should only
-	  dnl be included if requested by passing --with-mac-arch to
-	  dnl configure, so strip these flags first (if present)
-	  rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//'`
+	  dnl Ruby on Mac OS X 10.5 and later adds "-arch" flags but these
+	  dnl should only be included if requested by passing --with-mac-arch
+	  dnl to configure, so strip these flags first (if present)
+	  rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
 	  if test "X$rubyldflags" != "X"; then
 	    LDFLAGS="$rubyldflags $LDFLAGS"
 	  fi
