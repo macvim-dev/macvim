@@ -38,12 +38,12 @@ enum {
 
 // TODO:  Move!
 @interface MMScroller : NSScroller {
-    long identifier;
+    int32_t identifier;
     int type;
     NSRange range;
 }
-- (id)initWithIdentifier:(long)ident type:(int)type;
-- (long)identifier;
+- (id)initWithIdentifier:(int32_t)ident type:(int)type;
+- (int32_t)identifier;
 - (int)type;
 - (NSRange)range;
 - (void)setRange:(NSRange)newRange;
@@ -56,7 +56,7 @@ enum {
 - (BOOL)rightScrollbarVisible;
 - (void)placeScrollbars;
 - (int)representedIndexOfTabViewItem:(NSTabViewItem *)tvi;
-- (MMScroller *)scrollbarForIdentifier:(long)ident index:(unsigned *)idx;
+- (MMScroller *)scrollbarForIdentifier:(int32_t)ident index:(unsigned *)idx;
 - (NSSize)vimViewSizeForTextViewSize:(NSSize)textViewSize;
 - (NSRect)textViewRectForVimViewSize:(NSSize)contentSize;
 - (NSTabView *)tabView;
@@ -374,7 +374,7 @@ enum {
     return tvi;
 }
 
-- (void)createScrollbarWithIdentifier:(long)ident type:(int)type
+- (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type
 {
     MMScroller *scroller = [[MMScroller alloc] initWithIdentifier:ident
                                                              type:type];
@@ -386,7 +386,7 @@ enum {
     [scroller release];
 }
 
-- (BOOL)destroyScrollbarWithIdentifier:(long)ident
+- (BOOL)destroyScrollbarWithIdentifier:(int32_t)ident
 {
     unsigned idx = 0;
     MMScroller *scroller = [self scrollbarForIdentifier:ident index:&idx];
@@ -400,7 +400,7 @@ enum {
     return ![scroller isHidden];
 }
 
-- (BOOL)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible
+- (BOOL)showScrollbarWithIdentifier:(int32_t)ident state:(BOOL)visible
 {
     MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
     if (!scroller) return NO;
@@ -414,7 +414,7 @@ enum {
 }
 
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
-                    identifier:(long)ident
+                    identifier:(int32_t)ident
 {
     MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
@@ -430,18 +430,18 @@ enum {
 - (void)scroll:(id)sender
 {
     NSMutableData *data = [NSMutableData data];
-    long ident = [(MMScroller*)sender identifier];
+    int32_t ident = [(MMScroller*)sender identifier];
     int hitPart = [sender hitPart];
     float value = [sender floatValue];
 
-    [data appendBytes:&ident length:sizeof(long)];
+    [data appendBytes:&ident length:sizeof(int32_t)];
     [data appendBytes:&hitPart length:sizeof(int)];
     [data appendBytes:&value length:sizeof(float)];
 
     [vimController sendMessage:ScrollbarEventMsgID data:data];
 }
 
-- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident
+- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(int32_t)ident
 {
     MMScroller *scroller = [self scrollbarForIdentifier:ident index:NULL];
     NSRange range = NSMakeRange(pos, len);
@@ -754,7 +754,7 @@ enum {
     return [tabViewItems indexOfObject:tvi];
 }
 
-- (MMScroller *)scrollbarForIdentifier:(long)ident index:(unsigned *)idx
+- (MMScroller *)scrollbarForIdentifier:(int32_t)ident index:(unsigned *)idx
 {
     unsigned i, count = [scrollbars count];
     for (i = 0; i < count; ++i) {
@@ -871,7 +871,7 @@ enum {
 
 @implementation MMScroller
 
-- (id)initWithIdentifier:(long)ident type:(int)theType
+- (id)initWithIdentifier:(int32_t)ident type:(int)theType
 {
     // HACK! NSScroller creates a horizontal scroller if it is init'ed with a
     // frame whose with exceeds its height; so create a bogus rect and pass it
@@ -892,7 +892,7 @@ enum {
     return self;
 }
 
-- (long)identifier
+- (int32_t)identifier
 {
     return identifier;
 }

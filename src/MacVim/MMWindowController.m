@@ -371,12 +371,12 @@
     }
 }
 
-- (void)createScrollbarWithIdentifier:(long)ident type:(int)type
+- (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type
 {
     [vimView createScrollbarWithIdentifier:ident type:type];
 }
 
-- (BOOL)destroyScrollbarWithIdentifier:(long)ident
+- (BOOL)destroyScrollbarWithIdentifier:(int32_t)ident
 {
     BOOL scrollbarHidden = [vimView destroyScrollbarWithIdentifier:ident];   
     shouldResizeVimView = shouldResizeVimView || scrollbarHidden;
@@ -384,7 +384,7 @@
     return scrollbarHidden;
 }
 
-- (BOOL)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible
+- (BOOL)showScrollbarWithIdentifier:(int32_t)ident state:(BOOL)visible
 {
     BOOL scrollbarToggled = [vimView showScrollbarWithIdentifier:ident
                                                            state:visible];
@@ -393,13 +393,13 @@
     return scrollbarToggled;
 }
 
-- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident
+- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(int32_t)ident
 {
     [vimView setScrollbarPosition:pos length:len identifier:ident];
 }
 
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
-                    identifier:(long)ident
+                    identifier:(int32_t)ident
 {
     [vimView setScrollbarThumbValue:val proportion:prop identifier:ident];
 }

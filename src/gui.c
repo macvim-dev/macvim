@@ -3627,7 +3627,12 @@ gui_create_scrollbar(sb, type, wp)
     int		type;
     win_T	*wp;
 {
+#ifdef FEAT_GUI_MACVIM
+    /* This is passed over to another process, make sure it fits in 32 bit */
+    static int32_t sbar_ident = 0;
+#else
     static int	sbar_ident = 0;
+#endif
 
     sb->ident = sbar_ident++;	/* No check for too big, but would it happen? */
     sb->wp = wp;

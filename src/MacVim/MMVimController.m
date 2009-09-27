@@ -656,24 +656,24 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController showToolbar:enable size:size mode:mode];
     } else if (CreateScrollbarMsgID == msgid) {
         const void *bytes = [data bytes];
-        long ident = *((long*)bytes);  bytes += sizeof(long);
+        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
         int type = *((int*)bytes);  bytes += sizeof(int);
 
         [windowController createScrollbarWithIdentifier:ident type:type];
     } else if (DestroyScrollbarMsgID == msgid) {
         const void *bytes = [data bytes];
-        long ident = *((long*)bytes);  bytes += sizeof(long);
+        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
 
         [windowController destroyScrollbarWithIdentifier:ident];
     } else if (ShowScrollbarMsgID == msgid) {
         const void *bytes = [data bytes];
-        long ident = *((long*)bytes);  bytes += sizeof(long);
+        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
         int visible = *((int*)bytes);  bytes += sizeof(int);
 
         [windowController showScrollbarWithIdentifier:ident state:visible];
     } else if (SetScrollbarPositionMsgID == msgid) {
         const void *bytes = [data bytes];
-        long ident = *((long*)bytes);  bytes += sizeof(long);
+        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
         int pos = *((int*)bytes);  bytes += sizeof(int);
         int len = *((int*)bytes);  bytes += sizeof(int);
 
@@ -681,7 +681,7 @@ static BOOL isUnsafeMessage(int msgid);
                                     identifier:ident];
     } else if (SetScrollbarThumbMsgID == msgid) {
         const void *bytes = [data bytes];
-        long ident = *((long*)bytes);  bytes += sizeof(long);
+        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
         float val = *((float*)bytes);  bytes += sizeof(float);
         float prop = *((float*)bytes);  bytes += sizeof(float);
 

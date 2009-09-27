@@ -860,39 +860,39 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self queueMessage:ShowToolbarMsgID data:data];
 }
 
-- (void)createScrollbarWithIdentifier:(long)ident type:(int)type
+- (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type
 {
     NSMutableData *data = [NSMutableData data];
 
-    [data appendBytes:&ident length:sizeof(long)];
+    [data appendBytes:&ident length:sizeof(int32_t)];
     [data appendBytes:&type length:sizeof(int)];
 
     [self queueMessage:CreateScrollbarMsgID data:data];
 }
 
-- (void)destroyScrollbarWithIdentifier:(long)ident
+- (void)destroyScrollbarWithIdentifier:(int32_t)ident
 {
     NSMutableData *data = [NSMutableData data];
-    [data appendBytes:&ident length:sizeof(long)];
+    [data appendBytes:&ident length:sizeof(int32_t)];
 
     [self queueMessage:DestroyScrollbarMsgID data:data];
 }
 
-- (void)showScrollbarWithIdentifier:(long)ident state:(int)visible
+- (void)showScrollbarWithIdentifier:(int32_t)ident state:(int)visible
 {
     NSMutableData *data = [NSMutableData data];
 
-    [data appendBytes:&ident length:sizeof(long)];
+    [data appendBytes:&ident length:sizeof(int32_t)];
     [data appendBytes:&visible length:sizeof(int)];
 
     [self queueMessage:ShowScrollbarMsgID data:data];
 }
 
-- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident
+- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(int32_t)ident
 {
     NSMutableData *data = [NSMutableData data];
 
-    [data appendBytes:&ident length:sizeof(long)];
+    [data appendBytes:&ident length:sizeof(int32_t)];
     [data appendBytes:&pos length:sizeof(int)];
     [data appendBytes:&len length:sizeof(int)];
 
@@ -900,7 +900,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 }
 
 - (void)setScrollbarThumbValue:(long)val size:(long)size max:(long)max
-                    identifier:(long)ident
+                    identifier:(int32_t)ident
 {
     float fval = max-size+1 > 0 ? (float)val/(max-size+1) : 0;
     float prop = (float)size/(max+1);
@@ -911,7 +911,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     NSMutableData *data = [NSMutableData data];
 
-    [data appendBytes:&ident length:sizeof(long)];
+    [data appendBytes:&ident length:sizeof(int32_t)];
     [data appendBytes:&fval length:sizeof(float)];
     [data appendBytes:&prop length:sizeof(float)];
 
@@ -2222,7 +2222,7 @@ static void netbeansReadCallback(CFSocketRef s,
     if (!data) return;
 
     const void *bytes = [data bytes];
-    long ident = *((long*)bytes);  bytes += sizeof(long);
+    int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
     int hitPart = *((int*)bytes);  bytes += sizeof(int);
     float fval = *((float*)bytes);  bytes += sizeof(float);
     scrollbar_T *sb = gui_find_scrollbar(ident);
@@ -2267,12 +2267,12 @@ static void netbeansReadCallback(CFSocketRef s,
             // need to set the knob position in the other cases.
             if (sb->wp) {
                 // Update both the left&right vertical scrollbars.
-                long identLeft = sb->wp->w_scrollbars[SBAR_LEFT].ident;
-                long identRight = sb->wp->w_scrollbars[SBAR_RIGHT].ident;
+                int32_t idL = (int32_t)sb->wp->w_scrollbars[SBAR_LEFT].ident;
+                int32_t idR = (int32_t)sb->wp->w_scrollbars[SBAR_RIGHT].ident;
                 [self setScrollbarThumbValue:value size:size max:max
-                                  identifier:identLeft];
+                                  identifier:idL];
                 [self setScrollbarThumbValue:value size:size max:max
-                                  identifier:identRight];
+                                  identifier:idR];
             } else {
                 // Update the horizontal scrollbar.
                 [self setScrollbarThumbValue:value size:size max:max

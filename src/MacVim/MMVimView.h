@@ -43,12 +43,12 @@
 - (void)selectTabWithIndex:(int)idx;
 - (NSTabViewItem *)addNewTabViewItem;
 
-- (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
-- (BOOL)destroyScrollbarWithIdentifier:(long)ident;
-- (BOOL)showScrollbarWithIdentifier:(long)ident state:(BOOL)visible;
+- (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type;
+- (BOOL)destroyScrollbarWithIdentifier:(int32_t)ident;
+- (BOOL)showScrollbarWithIdentifier:(int32_t)ident state:(BOOL)visible;
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
-                    identifier:(long)ident;
-- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident;
+                    identifier:(int32_t)ident;
+- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(int32_t)ident;
 
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
 

@@ -95,12 +95,12 @@
 - (char *)browseForFileWithAttributes:(NSDictionary *)attr;
 - (int)showDialogWithAttributes:(NSDictionary *)attr textField:(char *)txtfield;
 - (void)showToolbar:(int)enable flags:(int)flags;
-- (void)createScrollbarWithIdentifier:(long)ident type:(int)type;
-- (void)destroyScrollbarWithIdentifier:(long)ident;
-- (void)showScrollbarWithIdentifier:(long)ident state:(int)visible;
-- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(long)ident;
+- (void)createScrollbarWithIdentifier:(int32_t)ident type:(int)type;
+- (void)destroyScrollbarWithIdentifier:(int32_t)ident;
+- (void)showScrollbarWithIdentifier:(int32_t)ident state:(int)visible;
+- (void)setScrollbarPosition:(int)pos length:(int)len identifier:(int32_t)ident;
 - (void)setScrollbarThumbValue:(long)val size:(long)size max:(long)max
-                    identifier:(long)ident;
+                    identifier:(int32_t)ident;
 - (void)setFont:(GuiFont)font wide:(BOOL)wide;
 - (void)executeActionWithName:(NSString *)name;
 - (void)setMouseShape:(int)shape;
