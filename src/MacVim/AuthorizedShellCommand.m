@@ -54,8 +54,7 @@
     NSEnumerator* myIterator = [commands objectEnumerator];
     NSDictionary* currCommand;
 
-    while (currCommand = [myIterator nextObject])
-    {
+    while ((currCommand = [myIterator nextObject])) {
         /* do something useful with currCommand */
         FILE *ioPipe = NULL;
         char junk[256];

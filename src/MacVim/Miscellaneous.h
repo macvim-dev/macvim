@@ -116,8 +116,8 @@ enum {
 
 
 @interface NSToolbar (MMExtras)
-- (int)indexOfItemWithItemIdentifier:(NSString *)identifier;
-- (NSToolbarItem *)itemAtIndex:(int)idx;
+- (NSUInteger)indexOfItemWithItemIdentifier:(NSString *)identifier;
+- (NSToolbarItem *)itemAtIndex:(NSUInteger)idx;
 - (NSToolbarItem *)itemWithItemIdentifier:(NSString *)identifier;
 @end
 
@@ -128,7 +128,8 @@ enum {
 
 
 @interface NSNumber (MMExtras)
-- (int)tag;
+// HACK to allow font size to be changed via menu (bound to Cmd+/Cmd-)
+- (NSInteger)tag;
 @end
 
 

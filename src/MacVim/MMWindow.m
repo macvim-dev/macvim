@@ -35,7 +35,7 @@
 @implementation MMWindow
 
 - (id)initWithContentRect:(NSRect)rect
-                styleMask:(unsigned int)style
+                styleMask:(NSUInteger)style
                   backing:(NSBackingStoreType)bufferingType
                     defer:(BOOL)flag
 {
@@ -47,7 +47,7 @@
 
     [self setReleasedWhenClosed:NO];
 
-    NSRect tabSepRect = { 0, rect.size.height - 1, rect.size.width, 1 };
+    NSRect tabSepRect = { {0, rect.size.height - 1}, {rect.size.width, 1} };
     tablineSeparator = [[NSBox alloc] initWithFrame:tabSepRect];
     
     [tablineSeparator setBoxType:NSBoxSeparator];

@@ -44,7 +44,7 @@
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
-- (unsigned)identifier;
+- (unsigned)vimControllerId;
 - (id)backendProxy;
 - (int)pid;
 - (void)setServerName:(NSString *)name;

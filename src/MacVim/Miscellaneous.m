@@ -203,10 +203,10 @@ NSString *MMUseInlineImKey              = @"MMUseInlineIm";
 
 @implementation NSToolbar (MMExtras)
 
-- (int)indexOfItemWithItemIdentifier:(NSString *)identifier
+- (NSUInteger)indexOfItemWithItemIdentifier:(NSString *)identifier
 {
     NSArray *items = [self items];
-    int i, count = [items count];
+    NSUInteger i, count = [items count];
     for (i = 0; i < count; ++i) {
         id item = [items objectAtIndex:i];
         if ([[item itemIdentifier] isEqual:identifier])
@@ -216,7 +216,7 @@ NSString *MMUseInlineImKey              = @"MMUseInlineIm";
     return NSNotFound;
 }
 
-- (NSToolbarItem *)itemAtIndex:(int)idx
+- (NSToolbarItem *)itemAtIndex:(NSUInteger)idx
 {
     NSArray *items = [self items];
     if (idx < 0 || idx >= [items count])
@@ -227,7 +227,7 @@ NSString *MMUseInlineImKey              = @"MMUseInlineIm";
 
 - (NSToolbarItem *)itemWithItemIdentifier:(NSString *)identifier
 {
-    int idx = [self indexOfItemWithItemIdentifier:identifier];
+    NSUInteger idx = [self indexOfItemWithItemIdentifier:identifier];
     return idx != NSNotFound ? [self itemAtIndex:idx] : nil;
 }
 
@@ -243,7 +243,7 @@ NSString *MMUseInlineImKey              = @"MMUseInlineIm";
     NSArray *existingItems = [self tabViewItems];
     NSEnumerator *e = [existingItems objectEnumerator];
     NSTabViewItem *item;
-    while (item = [e nextObject]){
+    while ((item = [e nextObject])) {
         [self removeTabViewItem:item];
     }
 }
@@ -255,7 +255,8 @@ NSString *MMUseInlineImKey              = @"MMUseInlineIm";
 
 @implementation NSNumber (MMExtras)
 
-- (int)tag
+// HACK to allow font size to be changed via menu (bound to Cmd+/Cmd-)
+- (NSInteger)tag
 {
     return [self intValue];
 }

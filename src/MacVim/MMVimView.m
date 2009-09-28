@@ -43,7 +43,7 @@ enum {
     NSRange range;
 }
 - (id)initWithIdentifier:(int32_t)ident type:(int)type;
-- (int32_t)identifier;
+- (int32_t)scrollerId;
 - (int)type;
 - (NSRange)range;
 - (void)setRange:(NSRange)newRange;
@@ -55,7 +55,7 @@ enum {
 - (BOOL)leftScrollbarVisible;
 - (BOOL)rightScrollbarVisible;
 - (void)placeScrollbars;
-- (int)representedIndexOfTabViewItem:(NSTabViewItem *)tvi;
+- (NSUInteger)representedIndexOfTabViewItem:(NSTabViewItem *)tvi;
 - (MMScroller *)scrollbarForIdentifier:(int32_t)ident index:(unsigned *)idx;
 - (NSSize)vimViewSizeForTextViewSize:(NSSize)textViewSize;
 - (NSRect)textViewRectForVimViewSize:(NSSize)contentSize;
@@ -430,7 +430,7 @@ enum {
 - (void)scroll:(id)sender
 {
     NSMutableData *data = [NSMutableData data];
-    int32_t ident = [(MMScroller*)sender identifier];
+    int32_t ident = [(MMScroller*)sender scrollerId];
     int hitPart = [sender hitPart];
     float value = [sender floatValue];
 
@@ -478,9 +478,10 @@ enum {
     // flag is set when Vim initiated the selection.
     if (!vimTaskSelectedTab) {
         // Propagate the selection message to Vim.
-        int idx = [self representedIndexOfTabViewItem:tabViewItem];
+        NSUInteger idx = [self representedIndexOfTabViewItem:tabViewItem];
         if (NSNotFound != idx) {
-            NSData *data = [NSData dataWithBytes:&idx length:sizeof(int)];
+            int i = (int)idx;   // HACK! Never more than MAXINT tabs?!
+            NSData *data = [NSData dataWithBytes:&i length:sizeof(int)];
             [vimController sendMessage:SelectTabMsgID data:data];
         }
     }
@@ -496,8 +497,9 @@ enum {
     // HACK!  This method is only called when the user clicks the close button
     // on the tab.  Instead of letting the tab bar close the tab, we return NO
     // and pass a message on to Vim to let it handle the closing.
-    int idx = [self representedIndexOfTabViewItem:tabViewItem];
-    NSData *data = [NSData dataWithBytes:&idx length:sizeof(int)];
+    NSUInteger idx = [self representedIndexOfTabViewItem:tabViewItem];
+    int i = (int)idx;   // HACK! Never more than MAXINT tabs?!
+    NSData *data = [NSData dataWithBytes:&i length:sizeof(int)];
     [vimController sendMessage:CloseTabMsgID data:data];
 
     return NO;
@@ -514,7 +516,7 @@ enum {
 
 - (NSDragOperation)tabBarControl:(PSMTabBarControl *)theTabBarControl
         draggingEntered:(id <NSDraggingInfo>)sender
-        forTabAtIndex:(unsigned)tabIndex
+        forTabAtIndex:(NSUInteger)tabIndex
 {
     NSPasteboard *pb = [sender draggingPasteboard];
     return [[pb types] containsObject:NSFilenamesPboardType]
@@ -524,7 +526,7 @@ enum {
 
 - (BOOL)tabBarControl:(PSMTabBarControl *)theTabBarControl
         performDragOperation:(id <NSDraggingInfo>)sender
-        forTabAtIndex:(unsigned)tabIndex
+        forTabAtIndex:(NSUInteger)tabIndex
 {
     NSPasteboard *pb = [sender draggingPasteboard];
     if ([[pb types] containsObject:NSFilenamesPboardType]) {
@@ -748,7 +750,7 @@ enum {
     }
 }
 
-- (int)representedIndexOfTabViewItem:(NSTabViewItem *)tvi
+- (NSUInteger)representedIndexOfTabViewItem:(NSTabViewItem *)tvi
 {
     NSArray *tabViewItems = [[self tabBarControl] representedTabViewItems];
     return [tabViewItems indexOfObject:tvi];
@@ -759,7 +761,7 @@ enum {
     unsigned i, count = [scrollbars count];
     for (i = 0; i < count; ++i) {
         MMScroller *scroller = [scrollbars objectAtIndex:i];
-        if ([scroller identifier] == ident) {
+        if ([scroller scrollerId] == ident) {
             if (idx) *idx = i;
             return scroller;
         }
@@ -787,7 +789,7 @@ enum {
 
 - (NSRect)textViewRectForVimViewSize:(NSSize)contentSize
 {
-    NSRect rect = { 0, 0, contentSize.width, contentSize.height };
+    NSRect rect = { {0, 0}, {contentSize.width, contentSize.height} };
 
     if (![[self tabBarControl] isHidden])
         rect.size.height -= [[self tabBarControl] frame].size.height;
@@ -892,7 +894,7 @@ enum {
     return self;
 }
 
-- (int32_t)identifier
+- (int32_t)scrollerId
 {
     return identifier;
 }

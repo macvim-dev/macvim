@@ -26,7 +26,7 @@
 - (void)willSetLineFragmentRect:(NSRectPointer)lineRect
                   forGlyphRange:(NSRange)glyphRange
                        usedRect:(NSRectPointer)usedRect
-                 baselineOffset:(float *)baselineOffset
+                 baselineOffset:(CGFloat *)baselineOffset
 {
     MMTextStorage *ts = (MMTextStorage*)[[self layoutManager] textStorage];
     float h = [ts cellSize].height;
@@ -103,9 +103,9 @@
 // height and that EOL glyphs are hidden.
 //
 - (void)layoutGlyphsInLayoutManager:(NSLayoutManager *)lm
-               startingAtGlyphIndex:(unsigned)startGlyphIdx
-           maxNumberOfLineFragments:(unsigned)maxNumLines
-                     nextGlyphIndex:(unsigned *)nextGlyph
+               startingAtGlyphIndex:(NSUInteger)startGlyphIdx
+           maxNumberOfLineFragments:(NSUInteger)maxNumLines
+                     nextGlyphIndex:(NSUInteger *)nextGlyph
 {
     // TODO: Check that it really is an MMTextStorage?
     MMTextStorage *ts = (MMTextStorage*)[lm textStorage];
@@ -160,8 +160,8 @@
 
     NSRange lineRange = { lineIdx, 0 };
     NSRange glyphRange = { startGlyphIdx, 0 };
-    NSRect lineRect = { 0, line*cellSize.height,
-            [ts actualColumns]*cellSize.width, cellSize.height };
+    NSRect lineRect = { {0, line*cellSize.height},
+                        {[ts actualColumns]*cellSize.width, cellSize.height} };
     int endLine = line + maxNumLines;
     if (endLine > actualRows)
         endLine = actualRows;

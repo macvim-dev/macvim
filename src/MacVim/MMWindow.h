@@ -18,7 +18,7 @@
 }
 
 - (id)initWithContentRect:(NSRect)rect
-                styleMask:(unsigned int)style
+                styleMask:(NSUInteger)style
                   backing:(NSBackingStoreType)bufferingType
                     defer:(BOOL)flag;
 

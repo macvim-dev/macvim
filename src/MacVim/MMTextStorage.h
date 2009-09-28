@@ -48,7 +48,7 @@ typedef struct {
 }
 
 - (NSString *)string;
-- (NSDictionary *)attributesAtIndex:(unsigned)index
+- (NSDictionary *)attributesAtIndex:(NSUInteger)index
                      effectiveRange:(NSRangePointer)aRange;
 - (id)attribute:(NSString *)attrib atIndex:(unsigned)index
         effectiveRange:(NSRangePointer)range;
@@ -89,7 +89,7 @@ typedef struct {
 - (NSSize)cellSize;
 - (NSRect)rectForRowsInRange:(NSRange)range;
 - (NSRect)rectForColumnsInRange:(NSRange)range;
-- (unsigned)characterIndexForRow:(int)row column:(int)col;
+- (NSUInteger)characterIndexForRow:(int)row column:(int)col;
 - (BOOL)resizeToFitSize:(NSSize)size;
 - (NSSize)fitToSize:(NSSize)size;
 - (NSSize)fitToSize:(NSSize)size rows:(int *)rows columns:(int *)columns;

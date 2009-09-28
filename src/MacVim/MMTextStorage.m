@@ -112,7 +112,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     return [attribString string];
 }
 
-- (NSDictionary *)attributesAtIndex:(unsigned)index
+- (NSDictionary *)attributesAtIndex:(NSUInteger)index
                      effectiveRange:(NSRangePointer)range
 {
     if (index >= [attribString length]) {
@@ -777,7 +777,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
 - (NSRect)rectForRowsInRange:(NSRange)range
 {
-    NSRect rect = { 0, 0, 0, 0 };
+    NSRect rect = { {0, 0}, {0, 0} };
     unsigned start = range.location > maxRows ? maxRows : range.location;
     unsigned length = range.length;
 
@@ -792,7 +792,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
 - (NSRect)rectForColumnsInRange:(NSRange)range
 {
-    NSRect rect = { 0, 0, 0, 0 };
+    NSRect rect = { {0, 0}, {0, 0} };
     unsigned start = range.location > maxColumns ? maxColumns : range.location;
     unsigned length = range.length;
 
@@ -805,7 +805,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     return rect;
 }
 
-- (unsigned)characterIndexForRow:(int)row column:(int)col
+- (NSUInteger)characterIndexForRow:(int)row column:(int)col
 {
     int cells = 1;
     NSRange range = [self charRangeForRow:row column:&col cells:&cells];

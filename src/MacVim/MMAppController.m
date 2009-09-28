@@ -72,17 +72,19 @@ static float MMCascadeHorizontalOffset = 21;
 static float MMCascadeVerticalOffset = 23;
 
 
-#pragma options align=mac68k
+#pragma pack(push,1)
+// The alignment and sizes of these fields are based on trial-and-error.  It
+// may be necessary to adjust them to fit if Xcode ever changes this struct.
 typedef struct
 {
-    short unused1;      // 0 (not used)
-    short lineNum;      // line to select (< 0 to specify range)
-    long  startRange;   // start of selection range (if line < 0)
-    long  endRange;     // end of selection range (if line < 0)
-    long  unused2;      // 0 (not used)
-    long  theDate;      // modification date/time
-} MMSelectionRange;
-#pragma options align=reset
+    int16_t unused1;      // 0 (not used)
+    int16_t lineNum;      // line to select (< 0 to specify range)
+    int32_t startRange;   // start of selection range (if line < 0)
+    int32_t endRange;     // end of selection range (if line < 0)
+    int32_t unused2;      // 0 (not used)
+    int32_t theDate;      // modification date/time
+} MMXcodeSelectionRange;
+#pragma pack(pop)
 
 
 // This is a private AppKit API gleaned from class-dump.
@@ -694,9 +696,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)removeVimController:(id)controller
 {
     ASLogDebug(@"Remove Vim controller pid=%d id=%d (processingFlag=%d)",
-               [controller pid], [controller identifier], processingFlag);
+               [controller pid], [controller vimControllerId], processingFlag);
 
-    int idx = [vimControllers indexOfObject:controller];
+    NSUInteger idx = [vimControllers indexOfObject:controller];
     if (NSNotFound == idx) {
         ASLogDebug(@"Controller not found, probably due to duplicate removal");
         return;
@@ -1231,7 +1233,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     [vc release];
 
-    return [vc identifier];
+    return [vc vimControllerId];
 }
 
 - (oneway void)processInput:(in bycopy NSArray *)queue
@@ -1618,7 +1620,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         NSArray *queries = [[url query] componentsSeparatedByString:@"&"];
         NSEnumerator *enumerator = [queries objectEnumerator];
         NSString *param;
-        while( param = [enumerator nextObject] ) {
+        while ((param = [enumerator nextObject])) {
             NSArray *arr = [param componentsSeparatedByString:@"="];
             if ([arr count] == 2) {
                 [dict setValue:[[arr lastObject]
@@ -1739,19 +1741,30 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             [desc paramDescriptorForKeyword:keyAEPosition];
     if (xcodedesc) {
         NSRange range;
-        MMSelectionRange *sr = (MMSelectionRange*)[[xcodedesc data] bytes];
+        NSData *data = [xcodedesc data];
+        NSUInteger length = [data length];
 
-        if (sr->lineNum < 0) {
-            // Should select a range of lines.
-            range.location = sr->startRange + 1;
-            range.length = sr->endRange - sr->startRange + 1;
+        if (length == sizeof(MMXcodeSelectionRange)) {
+            MMXcodeSelectionRange *sr = (MMXcodeSelectionRange*)[data bytes];
+            ASLogDebug(@"Xcode selection range (%d,%d,%d,%d,%d,%d)",
+                    sr->unused1, sr->lineNum, sr->startRange, sr->endRange,
+                    sr->unused2, sr->theDate);
+
+            if (sr->lineNum < 0) {
+                // Should select a range of lines.
+                range.location = sr->startRange + 1;
+                range.length = sr->endRange - sr->startRange + 1;
+            } else {
+                // Should only move cursor to a line.
+                range.location = sr->lineNum + 1;
+                range.length = 0;
+            }
+
+            [dict setObject:NSStringFromRange(range) forKey:@"selectionRange"];
         } else {
-            // Should only move cursor to a line.
-            range.location = sr->lineNum + 1;
-            range.length = 0;
+            ASLogErr(@"Xcode selection range size mismatch! got=%d expected=%d",
+                    length, sizeof(MMXcodeSelectionRange));
         }
-
-        [dict setObject:NSStringFromRange(range) forKey:@"selectionRange"];
     }
 
     // 3. Extract Spotlight search text (if any)
@@ -2266,7 +2279,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         int i = 0, count = [vimControllers count];
         for (i = 0; i < count; ++i) {
             MMVimController *vc = [vimControllers objectAtIndex:i];
-            if (ukey == [vc identifier]) {
+            if (ukey == [vc vimControllerId]) {
                 [vc processInputQueue:[queues objectForKey:key]]; // !exceptions
                 break;
             }
@@ -2277,7 +2290,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         count = [cachedVimControllers count];
         for (i = 0; i < count; ++i) {
             MMVimController *vc = [cachedVimControllers objectAtIndex:i];
-            if (ukey == [vc identifier]) {
+            if (ukey == [vc vimControllerId]) {
                 [vc processInputQueue:[queues objectForKey:key]]; // !exceptions
                 break;
             }
@@ -2305,7 +2318,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)addVimController:(MMVimController *)vc
 {
-    ASLogDebug(@"Add Vim controller pid=%d id=%d", [vc pid], [vc identifier]);
+    ASLogDebug(@"Add Vim controller pid=%d id=%d",
+            [vc pid], [vc vimControllerId]);
 
     int pid = [vc pid];
     NSNumber *pidKey = [NSNumber numberWithInt:pid];

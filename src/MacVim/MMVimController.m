@@ -184,7 +184,7 @@ static BOOL isUnsafeMessage(int msgid);
     [super dealloc];
 }
 
-- (unsigned)identifier
+- (unsigned)vimControllerId
 {
     return identifier;
 }
@@ -986,7 +986,7 @@ static BOOL isUnsafeMessage(int msgid);
         if (!toolbar) {
             // NOTE! Each toolbar must have a unique identifier, else each
             // window will have the same toolbar.
-            NSString *ident = [NSString stringWithFormat:@"%d", (int)self];
+            NSString *ident = [NSString stringWithFormat:@"%d", identifier];
             toolbar = [[NSToolbar alloc] initWithIdentifier:ident];
 
             [toolbar setShowsBaselineSeparator:NO];
@@ -1106,7 +1106,7 @@ static BOOL isUnsafeMessage(int msgid);
             // Only remove toolbar items, never actually remove the toolbar
             // itself or strange things may happen.
             if ([desc count] == 2) {
-                int idx = [toolbar indexOfItemWithItemIdentifier:title];
+                NSUInteger idx = [toolbar indexOfItemWithItemIdentifier:title];
                 if (idx != NSNotFound)
                     [toolbar removeItemAtIndex:idx];
             }
