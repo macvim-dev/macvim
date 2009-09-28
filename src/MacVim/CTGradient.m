@@ -7,6 +7,7 @@
 //  Released into public domain on 4/10/08.
 //
 //  Version: 1.8
+#ifdef MM_ENABLE_PLUGINS
 
 #import "CTGradient.h"
 
@@ -1266,3 +1267,5 @@ void resolveHSV(float *color1, float *color2)	//H value may be undefined (i.e. g
 	}
 
 @end
+
+#endif // MM_ENABLE_PLUGINS

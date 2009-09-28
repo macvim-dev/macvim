@@ -6,6 +6,7 @@
 //  Copyright 2004-2006 Rainer Brockerhoff.
 //	Some Rights Reserved under the Creative Commons Attribution License, version 2.5, and/or the MIT License.
 //
+#ifdef MM_ENABLE_PLUGINS
 
 #import "RBSplitView.h"
 #import "RBSplitViewPrivateDefines.h"
@@ -1732,3 +1733,4 @@ static inline float fMAX(float a,float b) {
 
 @end
 
+#endif // MM_ENABLE_PLUGINS

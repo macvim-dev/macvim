@@ -13,9 +13,10 @@
 
 
 //
-// Enable support for MacVim plugins (not to be confused with Vim plugins!).
+// Uncomment to enable support for MacVim plugins (not to be confused with Vim
+// plugins!).
 //
-#define MM_ENABLE_PLUGINS
+//#define MM_ENABLE_PLUGINS
 
 
 // Taken from /usr/include/AvailabilityMacros.h
