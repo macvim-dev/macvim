@@ -132,10 +132,10 @@ enum {
 - (void)tabView:(NSTabView *)aTabView didCloseTabViewItem:(NSTabViewItem *)tabViewItem;
 - (void)tabView:(NSTabView *)aTabView didDragTabViewItem:(NSTabViewItem *)tabViewItem toIndex:(int)idx;
 
-- (NSDragOperation)tabBarControl:(PSMTabBarControl *)theTabBarControl draggingEntered:(id <NSDraggingInfo>)sender forTabAtIndex:(unsigned)tabIndex;
-- (NSDragOperation)tabBarControl:(PSMTabBarControl *)theTabBarControl draggingUpdated:(id <NSDraggingInfo>)sender forTabAtIndex:(unsigned)tabIndex;
-- (void)tabBarControl:(PSMTabBarControl *)theTabBarControl draggingExited:(id <NSDraggingInfo>)sender forTabAtIndex:(unsigned)tabIndex;
-- (BOOL)tabBarControl:(PSMTabBarControl *)theTabBarControl prepareForDragOperation:(id <NSDraggingInfo>)sender forTabAtIndex:(unsigned)tabIndex;
-- (BOOL)tabBarControl:(PSMTabBarControl *)theTabBarControl performDragOperation:(id <NSDraggingInfo>)sender forTabAtIndex:(unsigned)tabIndex;
-- (void)tabBarControl:(PSMTabBarControl *)theTabBarControl concludeDragOperation:(id <NSDraggingInfo>)sender forTabAtIndex:(unsigned)tabIndex;
+- (NSDragOperation)tabBarControl:(PSMTabBarControl *)theTabBarControl draggingEntered:(id <NSDraggingInfo>)sender forTabAtIndex:(NSUInteger)tabIndex;
+- (NSDragOperation)tabBarControl:(PSMTabBarControl *)theTabBarControl draggingUpdated:(id <NSDraggingInfo>)sender forTabAtIndex:(NSUInteger)tabIndex;
+- (void)tabBarControl:(PSMTabBarControl *)theTabBarControl draggingExited:(id <NSDraggingInfo>)sender forTabAtIndex:(NSUInteger)tabIndex;
+- (BOOL)tabBarControl:(PSMTabBarControl *)theTabBarControl prepareForDragOperation:(id <NSDraggingInfo>)sender forTabAtIndex:(NSUInteger)tabIndex;
+- (BOOL)tabBarControl:(PSMTabBarControl *)theTabBarControl performDragOperation:(id <NSDraggingInfo>)sender forTabAtIndex:(NSUInteger)tabIndex;
+- (void)tabBarControl:(PSMTabBarControl *)theTabBarControl concludeDragOperation:(id <NSDraggingInfo>)sender forTabAtIndex:(NSUInteger)tabIndex;
 @end

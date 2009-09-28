@@ -57,8 +57,8 @@
 
     // convenience
 - (id)cellForPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame;
-- (unsigned)indexOfCellAtPoint:(NSPoint)point;
-- (unsigned)indexOfCellAtPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame;
+- (NSUInteger)indexOfCellAtPoint:(NSPoint)point;
+- (NSUInteger)indexOfCellAtPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame;
 - (PSMTabBarCell *)lastVisibleTab;
 - (int)numberOfVisibleTabs;
 
@@ -993,7 +993,7 @@
 }
 
 // NSDraggingSource
-- (unsigned int)draggingSourceOperationMaskForLocal:(BOOL)isLocal
+- (NSDragOperation)draggingSourceOperationMaskForLocal:(BOOL)isLocal
 {
     return (isLocal ? NSDragOperationMove : NSDragOperationNone);
 }
@@ -1083,7 +1083,7 @@
 #if 1
         // HACK!  Notify the delegate that a tab was dragged to a new position.
         if (delegate && [delegate respondsToSelector:@selector(tabView:didDragTabViewItem:toIndex:)]) {
-            int idx = [[self representedTabViewItems] indexOfObject:tvi];
+            NSUInteger idx = [[self representedTabViewItems] indexOfObject:tvi];
             if (NSNotFound != idx) {
                 [delegate tabView:[self tabView] didDragTabViewItem:tvi toIndex:idx];
             }
@@ -1252,7 +1252,9 @@
 {
     if([self delegate]){
         if([[self delegate] respondsToSelector:@selector(tabView:shouldSelectTabViewItem:)]){
-            return (int)[[self delegate] performSelector:@selector(tabView:shouldSelectTabViewItem:) withObject:aTabView withObject:tabViewItem];
+            // This is an ugly hack.  tabView:shouldSelectTabViewItem: returns
+            // a BOOL and performSelector: assumes that it returns an id.
+            return nil != [[self delegate] performSelector:@selector(tabView:shouldSelectTabViewItem:) withObject:aTabView withObject:tabViewItem];
         } else {
             return YES;
         }
@@ -1414,19 +1416,19 @@
 
 - (id)cellForPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame
 {
-    unsigned i = [self indexOfCellAtPoint:point cellFrame:outFrame];
+    NSUInteger i = [self indexOfCellAtPoint:point cellFrame:outFrame];
     if (i == NSNotFound)
         return nil;
     PSMTabBarCell *cell = [_cells objectAtIndex:i];
     return cell;
 }
 
-- (unsigned)indexOfCellAtPoint:(NSPoint)point
+- (NSUInteger)indexOfCellAtPoint:(NSPoint)point
 {
     return [self indexOfCellAtPoint:point cellFrame:NULL];
 }
 
-- (unsigned)indexOfCellAtPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame
+- (NSUInteger)indexOfCellAtPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame
 {
     NSRect aRect = [self genericCellRect];
     
@@ -1434,7 +1436,7 @@
         return NSNotFound;
     }
     
-    int i, cnt = [_cells count];
+    NSUInteger i, cnt = [_cells count];
     for(i = 0; i < cnt; i++){
         PSMTabBarCell *cell = [_cells objectAtIndex:i];
         float width = [cell width];
