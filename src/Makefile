@@ -1265,7 +1265,7 @@ MACVIMGUI_INSTALL = install_normal
 MACVIMGUI_TARGETS =
 MACVIMGUI_MAN_TARGETS =
 MACVIMGUI_TESTTARGET = gui
-MACVIMGUI_BUNDLE = 
+MACVIMGUI_BUNDLE = macvim
 
 # All GUI files
 ALL_GUI_SRC  = gui.c gui_gtk.c gui_gtk_f.c gui_motif.c gui_xmdlg.c gui_xmebw.c gui_athena.c gui_gtk_x11.c gui_x11.c gui_at_sb.c gui_at_fs.c pty.c
@@ -2211,7 +2211,7 @@ uninstall_runtime:
 
 # Clean up all the files that have been produced, except configure's.
 # We support common typing mistakes for Juergen! :-)
-clean celan: testclean
+clean celan: testclean macvimclean
 	-rm -f *.o objects/* core $(VIMTARGET).core $(VIMTARGET) vim xxd/*.o
 	-rm -f $(TOOLS) auto/osdef.h auto/pathdef.c auto/if_perl.c
 	-rm -f conftest* *~ auto/link.sed
@@ -2684,6 +2684,18 @@ bundle-language: bundle-dir
 $(APPDIR)/Contents:
 	-$(SHELL) ./mkinstalldirs $(APPDIR)/Contents/MacOS
 	-$(SHELL) ./mkinstalldirs $(RESDIR)/English.lproj
+
+
+##############################################################################
+### MacVim GUI
+.PHONY: macvim macvimclean
+macvim: $(VIMTARGET)
+	xcodebuild -project MacVim/MacVim.xcodeproj $(XCODEFLAGS)
+
+macvimclean:
+	if test -d MacVim; then \
+		xcodebuild -project MacVim/MacVim.xcodeproj clean; \
+	fi
 
 
 ###############################################################################
