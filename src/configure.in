@@ -3260,6 +3260,36 @@ if test "x$MACOSX" = "xyes"; then
     [ AC_MSG_RESULT(using default) ])
 
 
+     dnl This is an attempt to support choice of SDKs, however it does not
+     dnl work to compile with different SDKs.  Must figure out how to fix
+     dnl this before this option can be used.
+dnl  AC_MSG_CHECKING(--with-macsdk argument)
+dnl  AC_ARG_WITH(macsdk,
+dnl    [  --with-macsdk=SDK       SDK version (10.4, 10.5, 10.6, ...)],
+dnl    [ macsdk="$withval"; AC_MSG_RESULT($macsdk) ],
+dnl    [ macsdk=""; AC_MSG_RESULT(using default) ])
+dnl
+dnl  if test -n "$macsdk"; then
+dnl    AC_MSG_CHECKING(if SDK is supported)
+dnl    save_cflags="$CFLAGS"
+dnl    save_ldflags="$LDFLAGS"
+dnl    sdkflags="/Developer/SDKs/MacOSX$macsdk"
+dnl    if test "x$macsdk" = "x10.4"; then
+dnl      sdkflags="$sdkflags""u"
+dnl    fi
+dnl    sdkflags="$sdkflags.sdk -mmacosx-version-min=$macsdk"
+dnl    CFLAGS="$CFLAGS -isysroot $sdkflags"
+dnl    LDFLAGS="$LDFLAGS -Wl,-syslibroot,$sdkflags"
+dnl    AC_TRY_LINK([ ], [ ],
+dnl      [ AC_MSG_RESULT([yes])
+dnl        XCODEFLAGS="$XCODEFLAGS -sdk macosx$macsdk" ],
+dnl      [ AC_MSG_RESULT([no])
+dnl        ARCHS=""
+dnl        CFLAGS="$save_cflags"
+dnl        LDFLAGS="$save_ldflags" ])
+dnl  fi
+
+
   AC_MSG_CHECKING(--with-archs argument)
   AC_ARG_WITH(archs,
     [  --with-archs=ARCHS      space separated list of archs (i386 x86_64 ppc ...)],
