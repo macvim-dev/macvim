@@ -8212,14 +8212,7 @@ if test "x$MACOSX" = "xyes"; then
     prefix=/Applications
   fi
 
-  if test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
-    { echo "$as_me:$LINENO: checking for Carbon GUI" >&5
-echo $ECHO_N "checking for Carbon GUI... $ECHO_C" >&6; }
-        { echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6; };
-    GUITYPE=CARBONGUI
-        datadir='${prefix}/Vim.app/Contents/Resources'
-  elif test -z "$SKIP_MACVIM" -a "x$COCOA" = "xyes"; then
+  if test -z "$SKIP_MACVIM" -a "x$COCOA" = "xyes"; then
     { echo "$as_me:$LINENO: checking for MacVim GUI" >&5
 echo $ECHO_N "checking for MacVim GUI... $ECHO_C" >&6; }
         { echo "$as_me:$LINENO: result: yes" >&5
@@ -8229,6 +8222,13 @@ echo "${ECHO_T}yes" >&6; };
 
             CFLAGS="$CFLAGS -m32"
     LDFLAGS="$LDFLAGS -m32"
+  elif test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
+    { echo "$as_me:$LINENO: checking for Carbon GUI" >&5
+echo $ECHO_N "checking for Carbon GUI... $ECHO_C" >&6; }
+        { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; };
+    GUITYPE=CARBONGUI
+        datadir='${prefix}/Vim.app/Contents/Resources'
   fi
 
   if test "$VIMNAME" = "vim"; then

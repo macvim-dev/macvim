@@ -1446,14 +1446,7 @@ if test "x$MACOSX" = "xyes"; then
     prefix=/Applications
   fi
 
-  if test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
-    AC_MSG_CHECKING(for Carbon GUI)
-    dnl already did the check, just give the message
-    AC_MSG_RESULT(yes);
-    GUITYPE=CARBONGUI
-    dnl Sorry for the hard coded default
-    datadir='${prefix}/Vim.app/Contents/Resources'
-  elif test -z "$SKIP_MACVIM" -a "x$COCOA" = "xyes"; then
+  if test -z "$SKIP_MACVIM" -a "x$COCOA" = "xyes"; then
     AC_MSG_CHECKING(for MacVim GUI)
     dnl already did the check, just give the message
     AC_MSG_RESULT(yes);
@@ -1465,6 +1458,13 @@ if test "x$MACOSX" = "xyes"; then
     dnl bit.  This ensures Vim is 32 bit as well.
     CFLAGS="$CFLAGS -m32"
     LDFLAGS="$LDFLAGS -m32"
+  elif test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
+    AC_MSG_CHECKING(for Carbon GUI)
+    dnl already did the check, just give the message
+    AC_MSG_RESULT(yes);
+    GUITYPE=CARBONGUI
+    dnl Sorry for the hard coded default
+    datadir='${prefix}/Vim.app/Contents/Resources'
   fi
 
   if test "$VIMNAME" = "vim"; then
