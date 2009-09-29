@@ -744,6 +744,7 @@ INSTALL_LANGS
 INSTALL_TOOL_LANGS
 MSGFMT
 MAKEMO
+XCODEFLAGS
 DEPEND_CFLAGS_FILTER
 LIBOBJS
 LTLIBOBJS'
@@ -1386,6 +1387,7 @@ Optional Packages:
   --with-gnome            Specify prefix for GNOME files
   --with-motif-lib=STRING   Library for Motif
   --with-tlib=library     terminal library to be used
+  --with-archs=ARCHS      space separated list of archs (i386 x86_64 ppc ...)
 
 Some influential environment variables:
   CC          C compiler command
@@ -8219,9 +8221,6 @@ echo $ECHO_N "checking for MacVim GUI... $ECHO_C" >&6; }
 echo "${ECHO_T}yes" >&6; };
     GUITYPE=MACVIMGUI
         datadir='${prefix}/MacVim.app/Contents/Resources'
-
-            CFLAGS="$CFLAGS -m32"
-    LDFLAGS="$LDFLAGS -m32"
   elif test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
     { echo "$as_me:$LINENO: checking for Carbon GUI" >&5
 echo $ECHO_N "checking for Carbon GUI... $ECHO_C" >&6; }
@@ -16482,6 +16481,86 @@ if test "x$MACARCH" = "xboth"; then
   LDFLAGS="$LDFLAGS -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc"
 fi
 
+if test "x$MACOSX" = "xyes"; then
+  { echo "$as_me:$LINENO: checking --with-archs argument" >&5
+echo $ECHO_N "checking --with-archs argument... $ECHO_C" >&6; }
+
+# Check whether --with-archs was given.
+if test "${with_archs+set}" = set; then
+  withval=$with_archs;  ARCHS="$withval"; { echo "$as_me:$LINENO: result: $ARCHS" >&5
+echo "${ECHO_T}$ARCHS" >&6; }
+else
+   ARCHS=""; { echo "$as_me:$LINENO: result: defaulting to native arch" >&5
+echo "${ECHO_T}defaulting to native arch" >&6; }
+fi
+
+
+  if test -n "$ARCHS"; then
+    { echo "$as_me:$LINENO: checking if architectures are supported" >&5
+echo $ECHO_N "checking if architectures are supported... $ECHO_C" >&6; }
+    save_cflags="$CFLAGS"
+    save_ldflags="$LDFLAGS"
+    archflags=`echo "$ARCHS" | sed -e 's/[[:<:]]/-arch /g'`
+    CFLAGS="$CFLAGS $archflags"
+    LDFLAGS="$LDFLAGS $archflags"
+    cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+   { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+        XCODEFLAGS="ARCHS=\"$ARCHS\" ONLY_ACTIVE_ARCH=\"NO\""
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	 { echo "$as_me:$LINENO: result: no, will build for native arch only" >&5
+echo "${ECHO_T}no, will build for native arch only" >&6; }
+        ARCHS=""
+        CFLAGS="$save_cflags"
+        LDFLAGS="$save_ldflags"
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+  fi
+  if test -z "$ARCHS"; then
+                CFLAGS="$CFLAGS -m32"
+    LDFLAGS="$LDFLAGS -m32"
+  fi
+fi
+
+
 DEPEND_CFLAGS_FILTER=
 if test "$GCC" = yes; then
   { echo "$as_me:$LINENO: checking for GCC 3 or later" >&5
@@ -17297,12 +17376,13 @@ INSTALL_LANGS!$INSTALL_LANGS$ac_delim
 INSTALL_TOOL_LANGS!$INSTALL_TOOL_LANGS$ac_delim
 MSGFMT!$MSGFMT$ac_delim
 MAKEMO!$MAKEMO$ac_delim
+XCODEFLAGS!$XCODEFLAGS$ac_delim
 DEPEND_CFLAGS_FILTER!$DEPEND_CFLAGS_FILTER$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 37; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 38; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

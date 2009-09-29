@@ -1453,11 +1453,6 @@ if test "x$MACOSX" = "xyes"; then
     GUITYPE=MACVIMGUI
     dnl Sorry for the hard coded default
     datadir='${prefix}/MacVim.app/Contents/Resources'
-
-    dnl Mac OS X 10.6 compiles 64 bit by default, but the MacVim binary is 32
-    dnl bit.  This ensures Vim is 32 bit as well.
-    CFLAGS="$CFLAGS -m32"
-    LDFLAGS="$LDFLAGS -m32"
   elif test -z "$SKIP_CARBON" -a "x$CARBON" = "xyes"; then
     AC_MSG_CHECKING(for Carbon GUI)
     dnl already did the check, just give the message
@@ -3255,6 +3250,39 @@ fi
 if test "x$MACARCH" = "xboth"; then
   LDFLAGS="$LDFLAGS -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc"
 fi
+
+if test "x$MACOSX" = "xyes"; then
+  AC_MSG_CHECKING(--with-archs argument)
+  AC_ARG_WITH(archs,
+    [  --with-archs=ARCHS      space separated list of archs (i386 x86_64 ppc ...)],
+    [ ARCHS="$withval"; AC_MSG_RESULT($ARCHS) ],
+    [ ARCHS=""; AC_MSG_RESULT(defaulting to native arch) ])
+
+  if test -n "$ARCHS"; then
+    AC_MSG_CHECKING(if architectures are supported)
+    save_cflags="$CFLAGS"
+    save_ldflags="$LDFLAGS"
+    archflags=`echo "$ARCHS" | sed -e 's/[[[:<:]]]/-arch /g'`
+    CFLAGS="$CFLAGS $archflags"
+    LDFLAGS="$LDFLAGS $archflags"
+    AC_TRY_LINK([ ], [ ],
+      [ AC_MSG_RESULT([yes])
+        XCODEFLAGS="ARCHS=\"$ARCHS\" ONLY_ACTIVE_ARCH=\"NO\""
+        AC_SUBST(XCODEFLAGS) ],
+      [ AC_MSG_RESULT([no, will build for native arch only])
+        ARCHS=""
+        CFLAGS="$save_cflags"
+        LDFLAGS="$save_ldflags" ])
+  fi
+  if test -z "$ARCHS"; then
+    dnl Mac OS X 10.6 compiles 64 bit by default, but 64 bit is currently not
+    dnl supported.  Compile 32 bit unless an architecture has been selected
+    dnl manually.
+    CFLAGS="$CFLAGS -m32"
+    LDFLAGS="$LDFLAGS -m32"
+  fi
+fi
+
 
 dnl gcc 3.1 changed the meaning of -MM.  The only solution appears to be to
 dnl use "-isystem" instead of "-I" for all non-Vim include dirs.
