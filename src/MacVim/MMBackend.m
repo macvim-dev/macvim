@@ -1055,7 +1055,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         if (obj) {
             NSColor *col = [NSColor performSelector:NSSelectorFromString(obj)];
             if (col) {
-                float r, g, b, a;
+                CGFloat r, g, b, a;
                 col = [col colorUsingColorSpaceName:NSCalibratedRGBColorSpace];
                 [col getRed:&r green:&g blue:&b alpha:&a];
                 return (((int)(r*255+.5f) & 0xff) << 16)
@@ -1509,7 +1509,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             ASLogNotice(@"addReply:server: failed: reason=%@", ex);
         }
     } else {
-        EMSG2(_("E???: server2client failed; no client with id 0x%x"), port);
+        ASLogNotice(@"server2client failed; no client with id %d", port);
     }
 
     return NO;
