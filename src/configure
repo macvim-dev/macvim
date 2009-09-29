@@ -3808,11 +3808,6 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
     OS_EXTRA_SRC="os_macosx.c os_mac_conv.c";
     OS_EXTRA_OBJ="objects/os_macosx.o objects/os_mac_conv.o"
         CPPFLAGS="$CPPFLAGS -DMACOS_X_UNIX -no-cpp-precomp"
-    if test "x$MACARCH" = "xboth"; then
-      CPPFLAGS="$CPPFLAGS -I/Developer/SDKs/MacOSX10.4u.sdk/Developer/Headers/FlatCarbon"
-    else
-      CPPFLAGS="$CPPFLAGS -I/Developer/Headers/FlatCarbon"
-    fi
 
                 # On IRIX 5.3, sys/types and inttypes.h are conflicting.
 
@@ -8229,6 +8224,12 @@ echo $ECHO_N "checking for Carbon GUI... $ECHO_C" >&6; }
 echo "${ECHO_T}yes" >&6; };
     GUITYPE=CARBONGUI
         datadir='${prefix}/Vim.app/Contents/Resources'
+
+    if test "x$MACARCH" = "xboth"; then
+      CPPFLAGS="$CPPFLAGS -I/Developer/SDKs/MacOSX10.4u.sdk/Developer/Headers/FlatCarbon"
+    else
+      CPPFLAGS="$CPPFLAGS -I/Developer/Headers/FlatCarbon"
+    fi
   fi
 
   if test "$VIMNAME" = "vim"; then

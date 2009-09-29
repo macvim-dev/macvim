@@ -23,17 +23,21 @@
  * files have many conflicts).
  */
 #ifndef FEAT_X11
-# include <Quickdraw.h>	    /* Apple calls it QuickDraw.h... */
-# include <ToolUtils.h>
-# include <LowMem.h>
-# include <Scrap.h>
-# include <Sound.h>
-# include <TextUtils.h>
-# include <Memory.h>
-# include <OSUtils.h>
-# include <Files.h>
-# ifdef FEAT_MBYTE
-#  include <Script.h>
+# ifdef FEAT_GUI_MACVIM
+#  include <Carbon/Carbon.h>
+# else
+#  include <Quickdraw.h>	    /* Apple calls it QuickDraw.h... */
+#  include <ToolUtils.h>
+#  include <LowMem.h>
+#  include <Scrap.h>
+#  include <Sound.h>
+#  include <TextUtils.h>
+#  include <Memory.h>
+#  include <OSUtils.h>
+#  include <Files.h>
+#  ifdef FEAT_MBYTE
+#   include <Script.h>
+#  endif
 # endif
 #endif
 

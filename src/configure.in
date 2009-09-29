@@ -156,11 +156,6 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
     OS_EXTRA_OBJ="objects/os_macosx.o objects/os_mac_conv.o"
     dnl TODO: use -arch i386 on Intel machines
     CPPFLAGS="$CPPFLAGS -DMACOS_X_UNIX -no-cpp-precomp"
-    if test "x$MACARCH" = "xboth"; then
-      CPPFLAGS="$CPPFLAGS -I/Developer/SDKs/MacOSX10.4u.sdk/Developer/Headers/FlatCarbon"
-    else
-      CPPFLAGS="$CPPFLAGS -I/Developer/Headers/FlatCarbon"
-    fi
 
     dnl If Carbon or Cocoa is found, assume we don't want
     dnl X11 unless it was specifically asked for (--with-x)
@@ -1460,6 +1455,12 @@ if test "x$MACOSX" = "xyes"; then
     GUITYPE=CARBONGUI
     dnl Sorry for the hard coded default
     datadir='${prefix}/Vim.app/Contents/Resources'
+
+    if test "x$MACARCH" = "xboth"; then
+      CPPFLAGS="$CPPFLAGS -I/Developer/SDKs/MacOSX10.4u.sdk/Developer/Headers/FlatCarbon"
+    else
+      CPPFLAGS="$CPPFLAGS -I/Developer/Headers/FlatCarbon"
+    fi
   fi
 
   if test "$VIMNAME" = "vim"; then
