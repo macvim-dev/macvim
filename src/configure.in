@@ -3252,6 +3252,14 @@ if test "x$MACARCH" = "xboth"; then
 fi
 
 if test "x$MACOSX" = "xyes"; then
+  AC_MSG_CHECKING(--with-xcodecfg argument)
+  AC_ARG_WITH(xcodecfg,
+    [  --with-xcodecfg=CFG     Debug, Release (default: Release)],
+    [ XCODEFLAGS="$XCODEFLAGS -configuration $withval"
+      AC_MSG_RESULT($withval) ],
+    [ AC_MSG_RESULT(using default) ])
+
+
   AC_MSG_CHECKING(--with-archs argument)
   AC_ARG_WITH(archs,
     [  --with-archs=ARCHS      space separated list of archs (i386 x86_64 ppc ...)],
@@ -3267,8 +3275,7 @@ if test "x$MACOSX" = "xyes"; then
     LDFLAGS="$LDFLAGS $archflags"
     AC_TRY_LINK([ ], [ ],
       [ AC_MSG_RESULT([yes])
-        XCODEFLAGS="ARCHS=\"$ARCHS\" ONLY_ACTIVE_ARCH=\"NO\""
-        AC_SUBST(XCODEFLAGS) ],
+        XCODEFLAGS="$XCODEFLAGS ARCHS=\"$ARCHS\" ONLY_ACTIVE_ARCH=\"NO\"" ],
       [ AC_MSG_RESULT([no, will build for native arch only])
         ARCHS=""
         CFLAGS="$save_cflags"
@@ -3281,6 +3288,8 @@ if test "x$MACOSX" = "xyes"; then
     CFLAGS="$CFLAGS -m32"
     LDFLAGS="$LDFLAGS -m32"
   fi
+
+  AC_SUBST(XCODEFLAGS)
 fi
 
 

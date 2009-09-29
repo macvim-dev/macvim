@@ -1387,6 +1387,7 @@ Optional Packages:
   --with-gnome            Specify prefix for GNOME files
   --with-motif-lib=STRING   Library for Motif
   --with-tlib=library     terminal library to be used
+  --with-xcodecfg=CFG     Debug, Release (default: Release)
   --with-archs=ARCHS      space separated list of archs (i386 x86_64 ppc ...)
 
 Some influential environment variables:
@@ -16482,6 +16483,21 @@ if test "x$MACARCH" = "xboth"; then
 fi
 
 if test "x$MACOSX" = "xyes"; then
+  { echo "$as_me:$LINENO: checking --with-xcodecfg argument" >&5
+echo $ECHO_N "checking --with-xcodecfg argument... $ECHO_C" >&6; }
+
+# Check whether --with-xcodecfg was given.
+if test "${with_xcodecfg+set}" = set; then
+  withval=$with_xcodecfg;  XCODEFLAGS="$XCODEFLAGS -configuration $withval"
+      { echo "$as_me:$LINENO: result: $withval" >&5
+echo "${ECHO_T}$withval" >&6; }
+else
+   { echo "$as_me:$LINENO: result: using default" >&5
+echo "${ECHO_T}using default" >&6; }
+fi
+
+
+
   { echo "$as_me:$LINENO: checking --with-archs argument" >&5
 echo $ECHO_N "checking --with-archs argument... $ECHO_C" >&6; }
 
@@ -16538,8 +16554,7 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
        $as_test_x conftest$ac_exeext; then
    { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
-        XCODEFLAGS="ARCHS=\"$ARCHS\" ONLY_ACTIVE_ARCH=\"NO\""
-
+        XCODEFLAGS="$XCODEFLAGS ARCHS=\"$ARCHS\" ONLY_ACTIVE_ARCH=\"NO\""
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
@@ -16558,6 +16573,8 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
                 CFLAGS="$CFLAGS -m32"
     LDFLAGS="$LDFLAGS -m32"
   fi
+
+
 fi
 
 
