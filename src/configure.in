@@ -111,44 +111,62 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
     AC_MSG_RESULT([yes, Darwin support excluded])
   fi
 
-  AC_MSG_CHECKING(--with-mac-arch argument)
-  AC_ARG_WITH(mac-arch, [  --with-mac-arch=ARCH    current, intel, ppc or both],
-	MACARCH="$withval"; AC_MSG_RESULT($MACARCH),
-	MACARCH="current"; AC_MSG_RESULT(defaulting to $MACARCH))
 
-  if test "x$MACARCH" = "xboth"; then
-    AC_MSG_CHECKING(for 10.4 universal SDK)
-    dnl There is a terrible inconsistency (but we appear to get away with it):
-    dnl $CFLAGS uses the 10.4u SDK library for the headers, while $CPPFLAGS
-    dnl doesn't, because "gcc -E" doesn't grok it.  That means the configure
-    dnl tests using the preprocessor are actually done with the wrong header
-    dnl files. $LDFLAGS is set at the end, because configure uses it together
-    dnl with $CFLAGS and we can only have one -sysroot argument.
-    save_cppflags="$CPPFLAGS"
+  AC_MSG_CHECKING(--with-macsdk argument)
+  AC_ARG_WITH(macsdk,
+    [  --with-macsdk=SDK       SDK version (10.4, 10.5, 10.6, ...)],
+    [ MACSDK="$withval"; AC_MSG_RESULT($MACSDK) ],
+    [ MACSDK=""; AC_MSG_RESULT(using default) ])
+
+  if test -n "$MACSDK"; then
+    AC_MSG_CHECKING(if SDK is supported)
     save_cflags="$CFLAGS"
     save_ldflags="$LDFLAGS"
-    CFLAGS="$CFLAGS -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc"
+    sdkflags="/Developer/SDKs/MacOSX$MACSDK"
+    if test "x$MACSDK" = "x10.4"; then
+      sdkflags="$sdkflags""u"
+    fi
+    sdkflags="$sdkflags.sdk -mmacosx-version-min=$MACSDK"
+    CFLAGS="$CFLAGS -isysroot $sdkflags"
+    LDFLAGS="$LDFLAGS -Wl,-syslibroot,$sdkflags"
     AC_TRY_LINK([ ], [ ],
-	AC_MSG_RESULT(found, will make universal binary),
-
-	AC_MSG_RESULT(not found)
-	CFLAGS="$save_cflags"
-	AC_MSG_CHECKING(if Intel architecture is supported)
-	CPPFLAGS="$CPPFLAGS -arch i386"
-	LDFLAGS="$save_ldflags -arch i386"
-	AC_TRY_LINK([ ], [ ],
-	    AC_MSG_RESULT(yes); MACARCH="intel",
-	    AC_MSG_RESULT(no, using PowerPC)
-		MACARCH="ppc"
-		CPPFLAGS="$save_cppflags -arch ppc"
-		LDFLAGS="$save_ldflags -arch ppc"))
-  elif test "x$MACARCH" = "xintel"; then
-    CPPFLAGS="$CPPFLAGS -arch intel"
-    LDFLAGS="$LDFLAGS -arch intel"
-  elif test "x$MACARCH" = "xppc"; then
-    CPPFLAGS="$CPPFLAGS -arch ppc"
-    LDFLAGS="$LDFLAGS -arch ppc"
+      [ AC_MSG_RESULT([yes])
+        XCODEFLAGS="$XCODEFLAGS -sdk macosx$MACSDK MACOSX_DEPLOYMENT_TARGET=$MACSDK" ],
+      [ AC_MSG_RESULT([no])
+        CFLAGS="$save_cflags"
+        LDFLAGS="$save_ldflags" ])
   fi
+
+
+  AC_MSG_CHECKING(--with-macarchs argument)
+  AC_ARG_WITH(macarchs,
+    [  --with-macarchs=ARCHS   space separated list of archs (i386 x86_64 ppc ...)],
+    [ ARCHS="$withval"; AC_MSG_RESULT($ARCHS) ],
+    [ ARCHS=""; AC_MSG_RESULT(defaulting to native arch) ])
+
+  if test -n "$ARCHS"; then
+    AC_MSG_CHECKING(if architectures are supported)
+    save_cflags="$CFLAGS"
+    save_ldflags="$LDFLAGS"
+    archflags=`echo "$ARCHS" | sed -e 's/[[[:<:]]]/-arch /g'`
+    CFLAGS="$CFLAGS $archflags"
+    LDFLAGS="$LDFLAGS $archflags"
+    AC_TRY_LINK([ ], [ ],
+      [ AC_MSG_RESULT([yes])
+        XCODEFLAGS="$XCODEFLAGS ARCHS=\"$ARCHS\" ONLY_ACTIVE_ARCH=\"NO\"" ],
+      [ AC_MSG_RESULT([no, will build for native arch only])
+        ARCHS=""
+        CFLAGS="$save_cflags"
+        LDFLAGS="$save_ldflags" ])
+  fi
+  if test -z "$ARCHS"; then
+    dnl Mac OS X 10.6 compiles 64 bit by default, but 64 bit is currently not
+    dnl supported.  Compile 32 bit unless an architecture has been selected
+    dnl manually.
+    CFLAGS="$CFLAGS -m32"
+    LDFLAGS="$LDFLAGS -m32"
+  fi
+
 
   if test "$enable_darwin" = "yes"; then
     MACOSX=yes
@@ -176,14 +194,6 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
       fi
     fi
   fi
-
-  dnl Avoid a bug with -O2 with gcc 4.0.1.  Symptom: malloc() reports double
-  dnl free.  This happens in expand_filename(), because the optimizer swaps
-  dnl two blocks of code, both using "repl", that can't be swapped.
-  if test "$MACARCH" = "intel" -o "$MACARCH" = "both"; then
-    CFLAGS=`echo "$CFLAGS" | sed 's/-O[[23456789]]/-Oz/'`
-  fi
-
 else
   AC_MSG_RESULT(no)
 fi
@@ -1435,7 +1445,7 @@ fi
 if test "x$SKIP_MACVIM" != "xYES" -a "$enable_gui_canon" != "macvim"; then
   AC_MSG_CHECKING(whether or not to look for MacVim)
   AC_ARG_ENABLE(macvim-check,
-	[  --enable-macvim-check    If auto-select GUI, check for MacVim [default=yes]],
+	[  --enable-macvim-check   If auto-select GUI, check for MacVim [default=yes]],
 	, enable_macvim_check="yes")
   AC_MSG_RESULT($enable_macvim_check);
   if test "x$enable_macvim_check" = "xno"; then
@@ -1464,11 +1474,7 @@ if test "x$MACOSX" = "xyes"; then
     dnl Sorry for the hard coded default
     datadir='${prefix}/Vim.app/Contents/Resources'
 
-    if test "x$MACARCH" = "xboth"; then
-      CPPFLAGS="$CPPFLAGS -I/Developer/SDKs/MacOSX10.4u.sdk/Developer/Headers/FlatCarbon"
-    else
-      CPPFLAGS="$CPPFLAGS -I/Developer/Headers/FlatCarbon"
-    fi
+    CPPFLAGS="$CPPFLAGS -I/Developer/Headers/FlatCarbon"
   fi
 
   if test "$VIMNAME" = "vim"; then
@@ -3256,9 +3262,6 @@ if test "x$MACOSX" = "xyes" && test "x$CARBON" = "xyes" \
     AC_MSG_RESULT(no)
   fi
 fi
-if test "x$MACARCH" = "xboth"; then
-  LDFLAGS="$LDFLAGS -isysroot /Developer/SDKs/MacOSX10.4u.sdk -arch i386 -arch ppc"
-fi
 
 if test "x$MACOSX" = "xyes"; then
   AC_MSG_CHECKING(--with-xcodecfg argument)
@@ -3267,66 +3270,6 @@ if test "x$MACOSX" = "xyes"; then
     [ XCODEFLAGS="$XCODEFLAGS -configuration $withval"
       AC_MSG_RESULT($withval) ],
     [ AC_MSG_RESULT(using default) ])
-
-
-     dnl This is an attempt to support choice of SDKs, however it does not
-     dnl work to compile with different SDKs.  Must figure out how to fix
-     dnl this before this option can be used.
-dnl  AC_MSG_CHECKING(--with-macsdk argument)
-dnl  AC_ARG_WITH(macsdk,
-dnl    [  --with-macsdk=SDK       SDK version (10.4, 10.5, 10.6, ...)],
-dnl    [ macsdk="$withval"; AC_MSG_RESULT($macsdk) ],
-dnl    [ macsdk=""; AC_MSG_RESULT(using default) ])
-dnl
-dnl  if test -n "$macsdk"; then
-dnl    AC_MSG_CHECKING(if SDK is supported)
-dnl    save_cflags="$CFLAGS"
-dnl    save_ldflags="$LDFLAGS"
-dnl    sdkflags="/Developer/SDKs/MacOSX$macsdk"
-dnl    if test "x$macsdk" = "x10.4"; then
-dnl      sdkflags="$sdkflags""u"
-dnl    fi
-dnl    sdkflags="$sdkflags.sdk -mmacosx-version-min=$macsdk"
-dnl    CFLAGS="$CFLAGS -isysroot $sdkflags"
-dnl    LDFLAGS="$LDFLAGS -Wl,-syslibroot,$sdkflags"
-dnl    AC_TRY_LINK([ ], [ ],
-dnl      [ AC_MSG_RESULT([yes])
-dnl        XCODEFLAGS="$XCODEFLAGS -sdk macosx$macsdk" ],
-dnl      [ AC_MSG_RESULT([no])
-dnl        ARCHS=""
-dnl        CFLAGS="$save_cflags"
-dnl        LDFLAGS="$save_ldflags" ])
-dnl  fi
-
-
-  AC_MSG_CHECKING(--with-archs argument)
-  AC_ARG_WITH(archs,
-    [  --with-archs=ARCHS      space separated list of archs (i386 x86_64 ppc ...)],
-    [ ARCHS="$withval"; AC_MSG_RESULT($ARCHS) ],
-    [ ARCHS=""; AC_MSG_RESULT(defaulting to native arch) ])
-
-  if test -n "$ARCHS"; then
-    AC_MSG_CHECKING(if architectures are supported)
-    save_cflags="$CFLAGS"
-    save_ldflags="$LDFLAGS"
-    archflags=`echo "$ARCHS" | sed -e 's/[[[:<:]]]/-arch /g'`
-    CFLAGS="$CFLAGS $archflags"
-    LDFLAGS="$LDFLAGS $archflags"
-    AC_TRY_LINK([ ], [ ],
-      [ AC_MSG_RESULT([yes])
-        XCODEFLAGS="$XCODEFLAGS ARCHS=\"$ARCHS\" ONLY_ACTIVE_ARCH=\"NO\"" ],
-      [ AC_MSG_RESULT([no, will build for native arch only])
-        ARCHS=""
-        CFLAGS="$save_cflags"
-        LDFLAGS="$save_ldflags" ])
-  fi
-  if test -z "$ARCHS"; then
-    dnl Mac OS X 10.6 compiles 64 bit by default, but 64 bit is currently not
-    dnl supported.  Compile 32 bit unless an architecture has been selected
-    dnl manually.
-    CFLAGS="$CFLAGS -m32"
-    LDFLAGS="$LDFLAGS -m32"
-  fi
 
   AC_SUBST(XCODEFLAGS)
 fi
