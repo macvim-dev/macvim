@@ -3825,10 +3825,6 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
       conftest$ac_exeext conftest.$ac_ext
   fi
-  if test -z "$ARCHS"; then
-                CFLAGS="$CFLAGS -m32"
-    LDFLAGS="$LDFLAGS -m32"
-  fi
 
 
   if test "$enable_darwin" = "yes"; then
