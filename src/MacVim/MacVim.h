@@ -31,7 +31,6 @@
 #endif
 
 
-
 //
 // This is the protocol MMBackend implements.
 //
@@ -298,7 +297,7 @@ extern NSString *VimPBoardType;
 
 
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_4
+#ifndef NSINTEGER_DEFINED
 // NSInteger was introduced in 10.5
 # if __LP64__ || NS_BUILD_32_LIKE_64
 typedef long NSInteger;
@@ -307,10 +306,23 @@ typedef unsigned long NSUInteger;
 typedef int NSInteger;
 typedef unsigned int NSUInteger;
 # endif
+# define NSINTEGER_DEFINED 1
 #endif
 
 #ifndef NSAppKitVersionNumber10_4  // Needed for pre-10.5 SDK
 # define NSAppKitVersionNumber10_4 824
+#endif
+
+#ifndef CGFLOAT_DEFINED
+    // On Leopard, CGFloat is float on 32bit and double on 64bit. On Tiger,
+    // we can't use this anyways, so it's just here to keep the compiler happy.
+    // However, when we're compiling for Tiger and running on Leopard, we
+    // might need the correct typedef, so this piece is copied from ATSTypes.h
+# ifdef __LP64__
+    typedef double CGFloat;
+# else
+    typedef float CGFloat;
+# endif
 #endif
 
 

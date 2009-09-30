@@ -8,7 +8,7 @@
  * See README.txt for an overview of the Vim source code.
  */
 
-#import <Cocoa/Cocoa.h>
+#import "MacVim.h"
 
 
 #define MM_USE_ROW_CACHE 1

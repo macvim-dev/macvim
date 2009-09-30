@@ -12,6 +12,18 @@
 
 #import <Cocoa/Cocoa.h>
 
+#ifndef NSINTEGER_DEFINED
+// NSInteger was introduced in 10.5
+# if __LP64__ || NS_BUILD_32_LIKE_64
+typedef long NSInteger;
+typedef unsigned long NSUInteger;
+# else
+typedef int NSInteger;
+typedef unsigned int NSUInteger;
+# endif
+# define NSINTEGER_DEFINED 1
+#endif
+
 #define kPSMTabBarControlHeight 22
 // internal cell border
 #define MARGIN_X        6

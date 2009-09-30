@@ -99,18 +99,6 @@
 @interface NSWindow (NSLeopardOnly)
 // Note: These functions are Leopard-only, use -[NSObject respondsToSelector:]
 // before calling them to make sure everything works on Tiger too.
-
-#ifndef CGFLOAT_DEFINED
-    // On Leopard, CGFloat is float on 32bit and double on 64bit. On Tiger,
-    // we can't use this anyways, so it's just here to keep the compiler happy.
-    // However, when we're compiling for Tiger and running on Leopard, we
-    // might need the correct typedef, so this piece is copied from ATSTypes.h
-# ifdef __LP64__
-    typedef double CGFloat;
-# else
-    typedef float CGFloat;
-# endif
-#endif
 - (void)setAutorecalculatesContentBorderThickness:(BOOL)b forEdge:(NSRectEdge)e;
 - (void)setContentBorderThickness:(CGFloat)b forEdge:(NSRectEdge)e;
 @end
