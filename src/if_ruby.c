@@ -48,7 +48,11 @@
 # endif
 #endif
 
-#include <ruby.h>
+#ifdef FEAT_GUI_MACVIM
+# include <Ruby/Ruby.h>
+#else
+# include <ruby.h>
+#endif
 
 #undef EXTERN
 #undef _

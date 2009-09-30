@@ -3745,6 +3745,7 @@ sed 's/^/| /' conftest.$ac_ext >&5
 
 	 { echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
+                        MACSDK=""
         CFLAGS="$save_cflags"
         LDFLAGS="$save_ldflags"
 fi
@@ -5254,6 +5255,13 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
 echo "${ECHO_T}no" >&6; }
 	fi
 
+                                if test -n "$MACSDK"; then
+          PYTHON_CFLAGS=
+          PYTHON_LIBS=-framework Python
+          PYTHON_CONFDIR=
+          PYTHON_GETPATH_CFLAGS=
+        fi
+
 			{ echo "$as_me:$LINENO: checking if compile and link flags for Python are sane" >&5
 echo $ECHO_N "checking if compile and link flags for Python are sane... $ECHO_C" >&6; }
 	cflags_save=$CFLAGS
@@ -5751,7 +5759,10 @@ echo "${ECHO_T}$rubyhdrdir" >&6; }
 	  librubyarg="$rubyhdrdir/$librubyarg"
 	else
 	  rubylibdir=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG["libdir"])'`
-	  if test -f "$rubylibdir/$librubyarg"; then
+          if test -d "/System/Library/Frameworks/Ruby.framework"; then
+                        RUBY_LIBS="-framework Ruby"
+            librubyarg=
+          elif test -f "$rubylibdir/$librubyarg"; then
 	    librubyarg="$rubylibdir/$librubyarg"
 	  elif test "$librubyarg" = "libruby.a"; then
 	    	    librubyarg="-lruby"
@@ -5773,6 +5784,12 @@ echo "${ECHO_T}$rubyhdrdir" >&6; }
 	RUBY_SRC="if_ruby.c"
 	RUBY_OBJ="objects/if_ruby.o"
 	RUBY_PRO="if_ruby.pro"
+
+                                if test -n "$MACSDK"; then
+          RUBY_CFLAGS=
+          RUBY_LIBS="-framework Ruby"
+        fi
+
 	cat >>confdefs.h <<\_ACEOF
 #define FEAT_RUBY 1
 _ACEOF

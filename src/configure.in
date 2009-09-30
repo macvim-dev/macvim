@@ -133,6 +133,9 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
       [ AC_MSG_RESULT([yes])
         XCODEFLAGS="$XCODEFLAGS -sdk macosx$MACSDK MACOSX_DEPLOYMENT_TARGET=$MACSDK" ],
       [ AC_MSG_RESULT([no])
+        dnl Important to clear MACSDK so later on in the script we can assume
+        dnl that no SDK was chosen if it is empty.
+        MACSDK=""
         CFLAGS="$save_cflags"
         LDFLAGS="$save_ldflags" ])
   fi
@@ -797,6 +800,16 @@ eof
 	  AC_MSG_RESULT(no)
 	fi
 
+        dnl On Mac OS X, when an SDK has been explicitly chosen we can't rely
+        dnl on any of the search paths set above.  The -framework flag does it
+        dnl all for us.
+        if test -n "$MACSDK"; then
+          PYTHON_CFLAGS=
+          PYTHON_LIBS=-framework Python
+          PYTHON_CONFDIR=
+          PYTHON_GETPATH_CFLAGS=
+        fi
+
 	dnl check that compiling a simple program still works with the flags
 	dnl added for Python.
 	AC_MSG_CHECKING([if compile and link flags for Python are sane])
@@ -984,7 +997,11 @@ if test "$enable_rubyinterp" = "yes"; then
 	  librubyarg="$rubyhdrdir/$librubyarg"
 	else
 	  rubylibdir=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG[["libdir"]])'`
-	  if test -f "$rubylibdir/$librubyarg"; then
+          if test -d "/System/Library/Frameworks/Ruby.framework"; then
+            dnl On Mac OS X it is safer to just use the -framework flag
+            RUBY_LIBS="-framework Ruby"
+            librubyarg=
+          elif test -f "$rubylibdir/$librubyarg"; then
 	    librubyarg="$rubylibdir/$librubyarg"
 	  elif test "$librubyarg" = "libruby.a"; then
 	    dnl required on Mac OS 10.3 where libruby.a doesn't exist
@@ -1010,6 +1027,15 @@ if test "$enable_rubyinterp" = "yes"; then
 	RUBY_SRC="if_ruby.c"
 	RUBY_OBJ="objects/if_ruby.o"
 	RUBY_PRO="if_ruby.pro"
+
+        dnl On Mac OS X, when an SDK has been explicitly chosen we can't rely
+        dnl on any of the search paths set above.  The -framework flag does it
+        dnl all for us.
+        if test -n "$MACSDK"; then
+          RUBY_CFLAGS=
+          RUBY_LIBS="-framework Ruby"
+        fi
+
 	AC_DEFINE(FEAT_RUBY)
       else
 	AC_MSG_RESULT(not found, disabling Ruby)
