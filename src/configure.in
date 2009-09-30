@@ -573,6 +573,14 @@ if test "$enable_perlinterp" = "yes"; then
       perlldflags=`cd $srcdir; $vi_cv_path_perl -MExtUtils::Embed \
 		-e 'ccdlflags' | sed -e 's/-bE:perl.exp//'`
 
+      if test "x$MACOSX" = "xyes"; then
+        dnl Perl on Mac OS X 10.5 and later adds "-arch" flags but these
+        dnl should only be included if requested by passing --with-archs
+        dnl to configure, so strip these flags first (if present)
+        perllibs=`echo "$perllibs" | sed -e 's/-arch[[^-]]*//g'`
+        perlcppflags=`echo "$perlcppflags" | sed -e 's/-arch[[^-]]*//g'`
+      fi
+
       dnl check that compiling a simple program still works with the flags
       dnl added for Perl.
       AC_MSG_CHECKING([if compile and link flags for Perl are sane])
@@ -987,15 +995,15 @@ if test "$enable_rubyinterp" = "yes"; then
 	  RUBY_LIBS="$librubyarg $RUBY_LIBS"
 	fi
 	rubyldflags=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["LDFLAGS"]]'`
-	if test "X$rubyldflags" != "X"; then
+        if test "x$MACOSX" = "xyes"; then
 	  dnl Ruby on Mac OS X 10.5 and later adds "-arch" flags but these
-	  dnl should only be included if requested by passing --with-mac-arch
+	  dnl should only be included if requested by passing --with-archs
 	  dnl to configure, so strip these flags first (if present)
-	  rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
-	  if test "X$rubyldflags" != "X"; then
-	    LDFLAGS="$rubyldflags $LDFLAGS"
-	  fi
+          rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch[[^-]]*//g'`
 	fi
+        if test "X$rubyldflags" != "X"; then
+          LDFLAGS="$rubyldflags $LDFLAGS"
+        fi
 	RUBY_SRC="if_ruby.c"
 	RUBY_OBJ="objects/if_ruby.o"
 	RUBY_PRO="if_ruby.pro"

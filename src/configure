@@ -4864,6 +4864,11 @@ echo "${ECHO_T}OK" >&6; }
                   perlldflags=`cd $srcdir; $vi_cv_path_perl -MExtUtils::Embed \
 		-e 'ccdlflags' | sed -e 's/-bE:perl.exp//'`
 
+      if test "x$MACOSX" = "xyes"; then
+                                perllibs=`echo "$perllibs" | sed -e 's/-arch[^-]*//g'`
+        perlcppflags=`echo "$perlcppflags" | sed -e 's/-arch[^-]*//g'`
+      fi
+
                   { echo "$as_me:$LINENO: checking if compile and link flags for Perl are sane" >&5
 echo $ECHO_N "checking if compile and link flags for Perl are sane... $ECHO_C" >&6; }
       cflags_save=$CFLAGS
@@ -5740,12 +5745,12 @@ echo "${ECHO_T}$rubyhdrdir" >&6; }
 	  RUBY_LIBS="$librubyarg $RUBY_LIBS"
 	fi
 	rubyldflags=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["LDFLAGS"]'`
-	if test "X$rubyldflags" != "X"; then
-	  	  	  	  rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
-	  if test "X$rubyldflags" != "X"; then
-	    LDFLAGS="$rubyldflags $LDFLAGS"
-	  fi
+        if test "x$MACOSX" = "xyes"; then
+	  	  	            rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch[^-]*//g'`
 	fi
+        if test "X$rubyldflags" != "X"; then
+          LDFLAGS="$rubyldflags $LDFLAGS"
+        fi
 	RUBY_SRC="if_ruby.c"
 	RUBY_OBJ="objects/if_ruby.o"
 	RUBY_PRO="if_ruby.pro"
