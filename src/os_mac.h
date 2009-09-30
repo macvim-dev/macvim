@@ -24,7 +24,8 @@
  */
 #ifndef FEAT_X11
 # ifdef FEAT_GUI_MACVIM
-#  include <Carbon/Carbon.h>
+/* Don't include Carbon here to avoid polluting the global namespace. */
+/* #  include <Carbon/Carbon.h> */
 # else
 #  include <Quickdraw.h>	    /* Apple calls it QuickDraw.h... */
 #  include <ToolUtils.h>

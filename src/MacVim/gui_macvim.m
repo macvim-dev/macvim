@@ -2026,7 +2026,7 @@ serverSendReply(char_u *serverid, char_u *reply)
  * All communication between MacVim and the server goes via Apple Events.
  */
 
-    static OSErr
+    static int16_t
 odb_event(buf_T *buf, const AEEventID action)
 {
     if (!(buf->b_odb_server_id && buf->b_ffname))
@@ -2035,7 +2035,7 @@ odb_event(buf_T *buf, const AEEventID action)
     NSAppleEventDescriptor *targetDesc = [NSAppleEventDescriptor
             descriptorWithDescriptorType:typeApplSignature
                                    bytes:&buf->b_odb_server_id
-                                  length:sizeof(OSType)];
+                                  length:sizeof(uint32_t)];
 
     // TODO: Convert b_ffname to UTF-8?
     NSString *path = [NSString stringWithUTF8String:(char*)buf->b_ffname];
@@ -2060,10 +2060,10 @@ odb_event(buf_T *buf, const AEEventID action)
             kAEDefaultTimeout);
 }
 
-    OSErr
+    int16_t
 odb_buffer_close(buf_T *buf)
 {
-    OSErr err = noErr;
+    int16_t err = noErr;
     if (buf) {
         err = odb_event(buf, kAEClosedFile);
 
@@ -2083,7 +2083,7 @@ odb_buffer_close(buf_T *buf)
     return err;
 }
 
-    OSErr
+    int16_t
 odb_post_buffer_write(buf_T *buf)
 {
     return buf ? odb_event(buf, kAEModifiedFile) : noErr;

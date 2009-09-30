@@ -16,6 +16,12 @@
 #define NO_X11_INCLUDES
 #include "vim.h"
 
+#ifdef FEAT_GUI_MACVIM
+/* Include Carbon here instead of in one of the header files to avoid polluting
+ * the global namespace. */
+# include <Carbon/Carbon.h>
+#endif
+
 #if defined(MACOS_CONVERT) || defined(PROTO)
 # ifdef PROTO
 /* A few dummy types to be able to generate function prototypes. */

@@ -202,8 +202,8 @@ void gui_macvim_update_modified_flag();
 void gui_macvim_add_to_find_pboard(char_u *pat);
 void gui_macvim_set_antialias(int antialias);
 
-OSErr odb_buffer_close(buf_T *buf);
-OSErr odb_post_buffer_write(buf_T *buf);
+int16_t odb_buffer_close(buf_T *buf);
+int16_t odb_post_buffer_write(buf_T *buf);
 void odb_end(void);
 
 char_u *get_macaction_name(expand_T *xp, int idx);
