@@ -115,20 +115,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 - (NSDictionary *)attributesAtIndex:(NSUInteger)index
                      effectiveRange:(NSRangePointer)range
 {
-    if (index >= [attribString length]) {
-        if (range)
-            *range = NSMakeRange(NSNotFound, 0);
-
-        return [NSDictionary dictionary];
-    }
-
     return [attribString attributesAtIndex:index effectiveRange:range];
-}
-
-- (id)attribute:(NSString *)attrib atIndex:(unsigned)index
-        effectiveRange:(NSRangePointer)range
-{
-    return [attribString attribute:attrib atIndex:index effectiveRange:range];
 }
 
 - (void)replaceCharactersInRange:(NSRange)range
@@ -326,7 +313,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     [attribString replaceCharactersInRange:range withString:string];
     [attribString setAttributes:attributes range:r];
 
-    unsigned changeInLength = [string length] - range.length;
+    NSInteger changeInLength = [string length] - range.length;
     if (acells != cells || acol != col) {
         if (acells == cells + 1) {
             // NOTE: A normal width character replaced a double width
@@ -363,6 +350,11 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
 
     [self fixInvalidCharactersInRange:r];
 
+#if 0
+    ASLogDebug(@"length=%d row=%d col=%d cells=%d replaceRange=%@ change=%d",
+            [string length], row, col, cells,
+            NSStringFromRange(r), changeInLength);
+#endif
     [self edited:(NSTextStorageEditedCharacters|NSTextStorageEditedAttributes)
            range:range changeInLength:changeInLength];
 

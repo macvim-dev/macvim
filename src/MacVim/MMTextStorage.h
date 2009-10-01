@@ -50,8 +50,6 @@ typedef struct {
 - (NSString *)string;
 - (NSDictionary *)attributesAtIndex:(NSUInteger)index
                      effectiveRange:(NSRangePointer)aRange;
-- (id)attribute:(NSString *)attrib atIndex:(unsigned)index
-        effectiveRange:(NSRangePointer)range;
 - (void)replaceCharactersInRange:(NSRange)aRange
                       withString:(NSString *)aString;
 - (void)setAttributes:(NSDictionary *)attributes range:(NSRange)aRange;
