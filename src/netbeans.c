@@ -1557,7 +1557,8 @@ nb_do_cmd(
 		    return FAIL;
 		}
 		first = *pos;
-		nbdebug(("    FIRST POS: line %d, col %d\n", first.lnum, first.col));
+		nbdebug(("    FIRST POS: line %d, col %d\n",
+						      first.lnum, first.col));
 		pos = off2pos(buf->bufp, off+count-1);
 		if (!pos)
 		{
@@ -1568,7 +1569,8 @@ nb_do_cmd(
 		    return FAIL;
 		}
 		last = *pos;
-		nbdebug(("    LAST POS: line %d, col %d\n", last.lnum, last.col));
+		nbdebug(("    LAST POS: line %d, col %d\n",
+							last.lnum, last.col));
 		del_from_lnum = first.lnum;
 		del_to_lnum = last.lnum;
 		doupdate = 1;
@@ -1579,7 +1581,8 @@ nb_do_cmd(
 		next = off2pos(buf->bufp, off + count);
 
 		/* Remove part of the first line. */
-		if (first.col != 0 || (next != NULL && first.lnum == next->lnum))
+		if (first.col != 0
+				|| (next != NULL && first.lnum == next->lnum))
 		{
 		    if (first.lnum != last.lnum
 			    || (next != NULL && first.lnum != next->lnum))
@@ -1642,7 +1645,8 @@ nb_do_cmd(
 			int id = buf_findsign_id(buf->bufp, (linenr_T)i);
 			if (id > 0)
 			{
-			    nbdebug(("    Deleting sign %d on line %d\n", id, i));
+			    nbdebug(("    Deleting sign %d on line %d\n",
+								      id, i));
 			    buf_delsign(buf->bufp, id);
 			}
 			else
@@ -1651,7 +1655,8 @@ nb_do_cmd(
 			}
 		    }
 
-		    nbdebug(("    Deleting lines %d through %d\n", del_from_lnum, del_to_lnum));
+		    nbdebug(("    Deleting lines %d through %d\n",
+						 del_from_lnum, del_to_lnum));
 		    curwin->w_cursor.lnum = del_from_lnum;
 		    curwin->w_cursor.col = 0;
 		    del_lines(del_to_lnum - del_from_lnum + 1, FALSE);
@@ -3576,7 +3581,8 @@ get_buf_size(buf_T *bufp)
 	    eol_size = 1;
 	for (lnum = 1; lnum <= bufp->b_ml.ml_line_count; ++lnum)
 	{
-	    char_count += (long)STRLEN(ml_get(lnum)) + eol_size;
+	    char_count += (long)STRLEN(ml_get_buf(bufp, lnum, FALSE))
+								   + eol_size;
 	    /* Check for a CTRL-C every 100000 characters */
 	    if (char_count > last_check)
 	    {

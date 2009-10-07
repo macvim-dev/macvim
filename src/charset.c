@@ -174,6 +174,11 @@ buf_init_chartab(buf, global)
 	    if (VIM_ISDIGIT(*p))
 		c = getdigits(&p);
 	    else
+#ifdef FEAT_MBYTE
+		 if (has_mbyte)
+		c = mb_ptr2char_adv(&p);
+	    else
+#endif
 		c = *p++;
 	    c2 = -1;
 	    if (*p == '-' && p[1] != NUL)
@@ -1213,6 +1218,8 @@ in_win_border(wp, vcol)
     if ((int)vcol == width1 - 1)
 	return TRUE;
     width2 = width1 + win_col_off2(wp);
+    if (width2 <= 0)
+	return FALSE;
     return ((vcol - width1) % width2 == width2 - 1);
 }
 #endif /* FEAT_MBYTE */

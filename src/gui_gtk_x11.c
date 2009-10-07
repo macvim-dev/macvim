@@ -4066,6 +4066,8 @@ gui_mch_open(void)
 {
     guicolor_T fg_pixel = INVALCOLOR;
     guicolor_T bg_pixel = INVALCOLOR;
+    guint		pixel_width;
+    guint		pixel_height;
 
 #ifdef HAVE_GTK2
     /*
@@ -4106,8 +4108,6 @@ gui_mch_open(void)
 	unsigned int	w, h;
 	int		x = 0;
 	int		y = 0;
-	guint		pixel_width;
-	guint		pixel_height;
 
 	mask = XParseGeometry((char *)gui.geom, &x, &y, &w, &h);
 
@@ -4160,9 +4160,16 @@ gui_mch_open(void)
 	}
     }
 
-    gtk_form_set_size(GTK_FORM(gui.formwin),
-	    (guint)(gui_get_base_width() + Columns * gui.char_width),
-	    (guint)(gui_get_base_height() + Rows * gui.char_height));
+    pixel_width = (guint)(gui_get_base_width() + Columns * gui.char_width);
+    pixel_height = (guint)(gui_get_base_height() + Rows * gui.char_height);
+#ifdef HAVE_GTK2
+    /* For GTK2 changing the size of the form widget doesn't cause window
+     * resizing. */
+    if (gtk_socket_id == 0) 
+	gtk_window_resize(GTK_WINDOW(gui.mainwin), pixel_width, pixel_height);
+#else
+    gtk_form_set_size(GTK_FORM(gui.formwin), pixel_width, pixel_height);
+#endif
     update_window_manager_hints(0, 0);
 
     if (foreground_argument != NULL)
@@ -4368,6 +4375,29 @@ force_shell_resize_idle(gpointer data)
 }
 #endif
 #endif /* HAVE_GTK2 */
+
+#if defined(HAVE_GTK2) || defined(PROTO)
+/*
+ * Return TRUE if the main window is maximized.
+ */
+    int
+gui_mch_maximized()
+{
+    return (gui.mainwin != NULL && gui.mainwin->window != NULL
+	    && (gdk_window_get_state(gui.mainwin->window)
+					       & GDK_WINDOW_STATE_MAXIMIZED));
+}
+
+/*
+ * Unmaximize the main window
+ */
+    void
+gui_mch_unmaximize()
+{
+    if (gui.mainwin != NULL)
+	gtk_window_unmaximize(GTK_WINDOW(gui.mainwin));
+}
+#endif
 
 /*
  * Set the windows size.
@@ -4729,6 +4759,9 @@ gui_mch_font_dialog(char_u *oldval)
     if (oldval != NULL && *oldval != NUL)
 	gtk_font_selection_dialog_set_font_name(
 		GTK_FONT_SELECTION_DIALOG(gui.fontdlg), (char *)oldval);
+    else
+	gtk_font_selection_dialog_set_font_name(
+		GTK_FONT_SELECTION_DIALOG(gui.fontdlg), DEFAULT_FONT);
 
     if (gui.fontname)
     {
@@ -4816,6 +4849,9 @@ gui_mch_font_dialog(char_u *oldval)
 	if (oldname != oldval)
 	    vim_free(oldname);
     }
+    else
+	gtk_font_selection_dialog_set_font_name(
+		GTK_FONT_SELECTION_DIALOG(dialog), DEFAULT_FONT);
 
     response = gtk_dialog_run(GTK_DIALOG(dialog));
 
