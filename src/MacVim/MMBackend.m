@@ -1439,7 +1439,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             ASLogNotice(@"serverList failed: reason=%@", ex);
         }
     } else {
-        EMSG(_("E???: No connection to MacVim, server listing not possible."));
+        // We get here if a --remote flag is used before MacVim has started.
+        ASLogInfo(@"No connection to MacVim, server listing not possible.");
     }
 
     return list;
