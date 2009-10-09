@@ -1140,6 +1140,7 @@
 				<string>markdown</string>
 				<string>markd</string>
 				<string>mdown</string>
+				<string>md</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>MacVim-markdown</string>
@@ -1276,8 +1277,8 @@
 	<true/>
 
 	<!-- In order for Quick Look to work we must add entries to
-	     UTExportedTypeDeclarations.  Instead of trying to come up with
-	     "proper" values for UTTypeIdentifier just use "org.vim.*-file".
+             UTExportedTypeDeclarations.  When possible a "proper" UTI is used,
+             but in case one could not be found just use "org.vim.*-file".
 	     This array is quite huge and it would be nice to come up with
 	     another way of supporting Quick Look without this.
 	-->
@@ -1291,7 +1292,7 @@
 			<key>UTTypeDescription</key>
 			<string>Vim Script File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.vim-file</string>
+			<string>org.vim.vim-script</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1308,7 +1309,7 @@
 			<key>UTTypeDescription</key>
 			<string>Plain Text File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.text-file</string>
+			<string>public.plain-text</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1349,7 +1350,7 @@
 			<key>UTTypeDescription</key>
 			<string>C Header Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.h-file</string>
+			<string>public.c-header</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1383,7 +1384,7 @@
 			<key>UTTypeDescription</key>
 			<string>C++ Header Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.hh-file</string>
+			<string>public.c-plus-plus-header</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1421,7 +1422,7 @@
 			<key>UTTypeDescription</key>
 			<string>C Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.c-file</string>
+			<string>public.c-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1438,7 +1439,7 @@
 			<key>UTTypeDescription</key>
 			<string>Objective-C Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.m-file</string>
+			<string>public.objective-c-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1455,7 +1456,7 @@
 			<key>UTTypeDescription</key>
 			<string>Objective-C++ Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.mm-file</string>
+			<string>public.objective-c-plus-plus-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1472,7 +1473,7 @@
 			<key>UTTypeDescription</key>
 			<string>C++ Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.cc-file</string>
+			<string>public.c-plus-plus-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1493,7 +1494,7 @@
 			<key>UTTypeDescription</key>
 			<string>Assembly Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.asm-file</string>
+			<string>public.assembly-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1511,7 +1512,7 @@
 			<key>UTTypeDescription</key>
 			<string>Rez Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.r-file</string>
+			<string>com.apple.rez-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1528,7 +1529,7 @@
 			<key>UTTypeDescription</key>
 			<string>Java Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.java-file</string>
+			<string>com.sun.java-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1546,7 +1547,7 @@
 			<key>UTTypeDescription</key>
 			<string>Lex Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.l-file</string>
+			<string>com.apple.xcode.lex-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1567,7 +1568,7 @@
 			<key>UTTypeDescription</key>
 			<string>Yacc Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.y-file</string>
+			<string>com.apple.xcode.yacc-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1588,7 +1589,7 @@
 			<key>UTTypeDescription</key>
 			<string>Mig Definition File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.defs-file</string>
+			<string>public.mig-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1605,7 +1606,7 @@
 			<key>UTTypeDescription</key>
 			<string>Symbol Export File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.exp-file</string>
+			<string>com.apple.symbol-export</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1622,7 +1623,7 @@
 			<key>UTTypeDescription</key>
 			<string>Fortran Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.f-file</string>
+			<string>com.apple.xcode.fortran-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1644,7 +1645,7 @@
 			<key>UTTypeDescription</key>
 			<string>Pascal Source file</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.pas-file</string>
+			<string>com.apple.xcode.pascal-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1661,7 +1662,7 @@
 			<key>UTTypeDescription</key>
 			<string>Ada Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.ada-file</string>
+			<string>com.apple.xcode.ada-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1680,7 +1681,7 @@
 			<key>UTTypeDescription</key>
 			<string>HTML Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.html-file</string>
+			<string>public.html</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1707,7 +1708,7 @@
 			<key>UTTypeDescription</key>
 			<string>XML Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.xml-file</string>
+			<string>public.xml</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1729,7 +1730,7 @@
 			<key>UTTypeDescription</key>
 			<string>JavaScript Source File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.js-file</string>
+			<string>com.netscape.javascript-source</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1749,7 +1750,7 @@
 			<key>UTTypeDescription</key>
 			<string>Perl source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.pl-file</string>
+			<string>public.perl-script</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1769,7 +1770,7 @@
 			<key>UTTypeDescription</key>
 			<string>Python source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.py-file</string>
+			<string>public.python-script</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1789,7 +1790,7 @@
 			<key>UTTypeDescription</key>
 			<string>PHP source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.php-file</string>
+			<string>public.php-script</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1812,7 +1813,7 @@
 			<key>UTTypeDescription</key>
 			<string>Ruby source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.rb-file</string>
+			<string>public.ruby-script</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1833,7 +1834,7 @@
 			<key>UTTypeDescription</key>
 			<string>Shell script</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.sh-file</string>
+			<string>public.shell-script</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1858,7 +1859,7 @@
 			<key>UTTypeDescription</key>
 			<string>Java Class File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.class-file</string>
+			<string>com.sun.java-class</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1893,7 +1894,7 @@
 			<key>UTTypeDescription</key>
 			<string>Strings File</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.strings-file</string>
+			<string>com.apple.xcode.strings-text</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1910,7 +1911,7 @@
 			<key>UTTypeDescription</key>
 			<string>AppleScript source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.applescript-file</string>
+			<string>com.apple.applescript.text</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2386,7 +2387,7 @@
 			<key>UTTypeDescription</key>
 			<string>PostScript source</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.ps-file</string>
+			<string>com.adobe.postscript</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2474,7 +2475,7 @@
 			<key>UTTypeDescription</key>
 			<string>Electronic business card</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.vcf-file</string>
+			<string>public.vcard</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2545,7 +2546,7 @@
 			<key>UTTypeDescription</key>
 			<string>Markdown document</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.vim.markdown-file</string>
+			<string>net.daringfireball.markdown</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2553,6 +2554,7 @@
 					<string>markdown</string>
 					<string>markd</string>
 					<string>mdown</string>
+					<string>md</string>
 				</array>
 			</dict>
 		</dict>
