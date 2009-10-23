@@ -121,7 +121,7 @@
     }
 
     [helper setTextView:nil];
-    [helper dealloc];  helper = nil;
+    [helper release];  helper = nil;
 
     [super dealloc];
 }

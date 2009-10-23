@@ -149,7 +149,7 @@ defaultLineHeightForFont(NSFont *font)
     [defaultForegroundColor release];  defaultForegroundColor = nil;
 
     [helper setTextView:nil];
-    [helper dealloc];  helper = nil;
+    [helper release];  helper = nil;
 
     [super dealloc];
 }
