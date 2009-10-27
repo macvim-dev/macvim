@@ -139,6 +139,7 @@ typedef struct
 - (void)reapChildProcesses:(id)sender;
 - (void)processInputQueues:(id)sender;
 - (void)addVimController:(MMVimController *)vc;
+- (NSScreen *)screenContainingPoint:(NSPoint)pt;
 
 #ifdef MM_ENABLE_PLUGINS
 - (void)removePlugInMenu;
@@ -751,6 +752,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 
     if (!NSEqualPoints(topLeft, NSZeroPoint)) {
+        // Try to tile from the correct screen in case the user has multiple
+        // monitors ([win screen] always seems to return the "main" screen).
+        NSScreen *screen = [self screenContainingPoint:topLeft];
+        if (!screen)
+            screen = [win screen];
+
         if (topWin) {
             // Do manual cascading instead of using
             // -[MMWindow cascadeTopLeftFromPoint:] since it is rather
@@ -759,7 +766,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             topLeft.y -= MMCascadeVerticalOffset;
         }
 
-        NSScreen *screen = [win screen];
         if (screen) {
             // Constrain the window so that it is entirely visible on the
             // screen.  If it sticks out on the right, move it all the way
@@ -2349,6 +2355,20 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         if (args)
             [pidArguments removeObjectForKey:pidKey];
     }
+}
+
+- (NSScreen *)screenContainingPoint:(NSPoint)pt
+{
+    NSArray *screens = [NSScreen screens];
+    NSUInteger i, count = [screens count];
+    for (i = 0; i < count; ++i) {
+        NSScreen *screen = [screens objectAtIndex:i];
+        NSRect frame = [screen frame];
+        if (NSPointInRect(pt, frame))
+            return screen;
+    }
+
+    return nil;
 }
 
 @end // MMAppController (Private)
