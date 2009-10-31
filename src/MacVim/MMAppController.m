@@ -181,6 +181,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     CFPreferencesSetAppValue(CFSTR("NSQuotedKeystrokeBinding"),
                              CFSTR(""),
                              kCFPreferencesCurrentApplication);
+
+    // Also disable NSRepeatCountBinding -- it is not enabled by default, but
+    // it does not make much sense to support it since Vim has its own way of
+    // dealing with repeat counts.
+    CFPreferencesSetAppValue(CFSTR("NSRepeatCountBinding"),
+                             CFSTR(""),
+                             kCFPreferencesCurrentApplication);
     
     NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
         [NSNumber numberWithBool:NO],   MMNoWindowKey,
