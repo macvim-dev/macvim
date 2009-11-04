@@ -5761,6 +5761,7 @@ echo "${ECHO_T}$rubyhdrdir" >&6; }
 	  rubylibdir=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG["libdir"])'`
           if test -d "/System/Library/Frameworks/Ruby.framework"; then
                         RUBY_LIBS="-framework Ruby"
+                        RUBY_CFLAGS=
             librubyarg=
           elif test -f "$rubylibdir/$librubyarg"; then
 	    librubyarg="$rubylibdir/$librubyarg"
@@ -5784,11 +5785,6 @@ echo "${ECHO_T}$rubyhdrdir" >&6; }
 	RUBY_SRC="if_ruby.c"
 	RUBY_OBJ="objects/if_ruby.o"
 	RUBY_PRO="if_ruby.pro"
-
-                                if test -n "$MACSDK"; then
-          RUBY_CFLAGS=
-          RUBY_LIBS="-framework Ruby"
-        fi
 
 	cat >>confdefs.h <<\_ACEOF
 #define FEAT_RUBY 1
@@ -16552,7 +16548,7 @@ echo "${ECHO_T}no" >&6; }
       { echo "$as_me:$LINENO: checking whether we need -D_FORTIFY_SOURCE=1" >&5
 echo $ECHO_N "checking whether we need -D_FORTIFY_SOURCE=1... $ECHO_C" >&6; }
   if test "$gccmajor" -gt "3"; then
-    CFLAGS="$CFLAGS -D_FORTIFY_SOURCE=1"
+    CFLAGS=`echo "$CFLAGS -D_FORTIFY_SOURCE=1" | sed -e 's/-Wp,-D_FORTIFY_SOURCE=2//g' -e 's/-D_FORTIFY_SOURCE=2//g'`
     { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
   else

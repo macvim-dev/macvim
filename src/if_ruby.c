@@ -49,7 +49,7 @@
 #endif
 
 #ifdef FEAT_GUI_MACVIM
-# include <Ruby/Ruby.h>
+# include <Ruby/ruby.h>
 #else
 # include <ruby.h>
 #endif

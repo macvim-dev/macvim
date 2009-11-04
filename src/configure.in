@@ -1000,6 +1000,8 @@ if test "$enable_rubyinterp" = "yes"; then
           if test -d "/System/Library/Frameworks/Ruby.framework"; then
             dnl On Mac OS X it is safer to just use the -framework flag
             RUBY_LIBS="-framework Ruby"
+            dnl Don't include the -I flag when -framework is set
+            RUBY_CFLAGS=
             librubyarg=
           elif test -f "$rubylibdir/$librubyarg"; then
 	    librubyarg="$rubylibdir/$librubyarg"
@@ -1027,14 +1029,6 @@ if test "$enable_rubyinterp" = "yes"; then
 	RUBY_SRC="if_ruby.c"
 	RUBY_OBJ="objects/if_ruby.o"
 	RUBY_PRO="if_ruby.pro"
-
-        dnl On Mac OS X, when an SDK has been explicitly chosen we can't rely
-        dnl on any of the search paths set above.  The -framework flag does it
-        dnl all for us.
-        if test -n "$MACSDK"; then
-          RUBY_CFLAGS=
-          RUBY_LIBS="-framework Ruby"
-        fi
 
 	AC_DEFINE(FEAT_RUBY)
       else
