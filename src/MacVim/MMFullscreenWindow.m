@@ -308,9 +308,13 @@
 - (void)centerView
 {
     NSRect outer = [self frame], inner = [view frame];
- 
-    NSPoint origin = NSMakePoint((outer.size.width - inner.size.width)/2,
-                                 (outer.size.height - inner.size.height)/2);
+
+    // NOTE!  Make sure the origin coordinates are integral or very strange
+    // rendering issues may arise (screen looks blurry, each redraw clears the
+    // entire window, etc.).
+    NSPoint origin = { floor((outer.size.width - inner.size.width)/2),
+                       floor((outer.size.height - inner.size.height)/2) };
+
     [view setFrameOrigin:origin];
 }
 
