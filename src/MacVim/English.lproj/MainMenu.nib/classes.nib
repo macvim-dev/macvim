@@ -1,120 +1,50 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>IBClasses</key>
-	<array>
-		<dict>
-			<key>ACTIONS</key>
-			<dict>
-				<key>fileOpen</key>
-				<string>id</string>
-				<key>fontSizeDown</key>
-				<string>id</string>
-				<key>fontSizeUp</key>
-				<string>id</string>
-				<key>forceNewWindow</key>
-				<string>id</string>
-				<key>newWindow</key>
-				<string>id</string>
-				<key>newWindowAndActivate</key>
-				<string>id</string>
-				<key>openWebsite</key>
-				<string>id</string>
-				<key>orderFrontPreferencePanel</key>
-				<string>id</string>
-				<key>selectNextWindow</key>
-				<string>id</string>
-				<key>selectPreviousWindow</key>
-				<string>id</string>
-				<key>showHelp</key>
-				<string>id</string>
-				<key>showVimHelp</key>
-				<string>id</string>
-				<key>zoomAll</key>
-				<string>id</string>
-			</dict>
-			<key>CLASS</key>
-			<string>MMAppController</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-			<key>SUPERCLASS</key>
-			<string>NSObject</string>
-		</dict>
-		<dict>
-			<key>CLASS</key>
-			<string>RBSplitView</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-			<key>OUTLETS</key>
-			<dict>
-				<key>delegate</key>
-				<string>id</string>
-			</dict>
-			<key>SUPERCLASS</key>
-			<string>RBSplitSubview</string>
-		</dict>
-		<dict>
-			<key>CLASS</key>
-			<string>RBSplitSubview</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-			<key>SUPERCLASS</key>
-			<string>NSView</string>
-		</dict>
-		<dict>
-			<key>CLASS</key>
-			<string>NSMenu</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-			<key>SUPERCLASS</key>
-			<string>NSObject</string>
-		</dict>
-		<dict>
-			<key>ACTIONS</key>
-			<dict>
-				<key>_cycleWindows</key>
-				<string>id</string>
-				<key>_cycleWindowsBackwards</key>
-				<string>id</string>
-				<key>addNewTab</key>
-				<string>id</string>
-			</dict>
-			<key>CLASS</key>
-			<string>FirstResponder</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-			<key>SUPERCLASS</key>
-			<string>NSObject</string>
-		</dict>
-		<dict>
-			<key>ACTIONS</key>
-			<dict>
-				<key>didAdjustSubviews</key>
-				<string>RBSplitView</string>
-				<key>willAdjustSubviews</key>
-				<string>RBSplitView</string>
-			</dict>
-			<key>CLASS</key>
-			<string>NSObject</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-		</dict>
-		<dict>
-			<key>ACTIONS</key>
-			<dict>
-				<key>checkForUpdates</key>
-				<string>id</string>
-			</dict>
-			<key>CLASS</key>
-			<string>SUUpdater</string>
-			<key>LANGUAGE</key>
-			<string>ObjC</string>
-			<key>SUPERCLASS</key>
-			<string>NSObject</string>
-		</dict>
-	</array>
-	<key>IBVersion</key>
-	<string>1</string>
-</dict>
-</plist>
+{
+    IBClasses = (
+        {
+            ACTIONS = {"_cycleWindows" = id; "_cycleWindowsBackwards" = id; addNewTab = id; }; 
+            CLASS = FirstResponder; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }, 
+        {
+            ACTIONS = {
+                fileOpen = id; 
+                fontSizeDown = id; 
+                fontSizeUp = id; 
+                forceNewWindow = id; 
+                newWindow = id; 
+                newWindowAndActivate = id; 
+                openWebsite = id; 
+                orderFrontPreferencePanel = id; 
+                selectNextWindow = id; 
+                selectPreviousWindow = id; 
+                showHelp = id; 
+                showVimHelp = id; 
+                zoomAll = id; 
+            }; 
+            CLASS = MMAppController; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }, 
+        {CLASS = NSMenu; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {
+            ACTIONS = {didAdjustSubviews = RBSplitView; willAdjustSubviews = RBSplitView; }; 
+            CLASS = NSObject; 
+            LANGUAGE = ObjC; 
+        }, 
+        {CLASS = RBSplitSubview; LANGUAGE = ObjC; SUPERCLASS = NSView; }, 
+        {
+            CLASS = RBSplitView; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {delegate = id; }; 
+            SUPERCLASS = RBSplitSubview; 
+        }, 
+        {
+            ACTIONS = {checkForUpdates = id; }; 
+            CLASS = SUUpdater; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }
+    ); 
+    IBVersion = 1; 
+}
