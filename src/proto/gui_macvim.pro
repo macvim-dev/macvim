@@ -3,6 +3,8 @@
 macvim_early_init();
     void
 gui_mch_prepare(int *argc, char **argv);
+    void
+gui_macvim_after_fork_init();
     int
 gui_mch_init_check(void);
     int

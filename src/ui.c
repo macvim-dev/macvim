@@ -308,7 +308,11 @@ ui_get_shellsize()
     int	    retval;
 
 #ifdef FEAT_GUI
-    if (gui.in_use)
+    if (gui.in_use
+# ifdef FEAT_GUI_MACVIM
+            || gui.starting     /* TODO: Do this check for all GUIs? */
+# endif
+            )
 	retval = gui_get_shellsize();
     else
 #endif

@@ -110,6 +110,30 @@ gui_mch_prepare(int *argc, char **argv)
 }
 
 
+/* Called directly after forking (even if we didn't fork). */
+    void
+gui_macvim_after_fork_init()
+{
+    ASLInit();
+    ASLogDebug(@"");
+
+    // Restore autosaved rows & columns
+    CFIndex rows, cols;
+    Boolean rowsValid, colsValid;
+    rows = CFPreferencesGetAppIntegerValue((CFStringRef)MMAutosaveRowsKey,
+                                        kCFPreferencesCurrentApplication,
+                                        &rowsValid);
+    cols = CFPreferencesGetAppIntegerValue((CFStringRef)MMAutosaveColumnsKey,
+                                        kCFPreferencesCurrentApplication,
+                                        &colsValid);
+    if (rowsValid && colsValid
+            && (rows > 4 && rows < 1000 && cols > 29 && cols < 4000)) {
+        gui.num_rows = rows;
+        gui.num_cols = cols;
+    }
+}
+
+
 /*
  * Check if the GUI can be started.  Called before gvimrc is sourced.
  * Return OK or FAIL.
@@ -117,29 +141,6 @@ gui_mch_prepare(int *argc, char **argv)
     int
 gui_mch_init_check(void)
 {
-    ASLInit();
-    ASLogDebug(@"");
-
-    // Restore autosaved rows & columns
-    CFNumberRef rowsRef, colsRef;
-    rowsRef = CFPreferencesCopyAppValue((CFStringRef)MMAutosaveRowsKey,
-                                        kCFPreferencesCurrentApplication);
-    colsRef = CFPreferencesCopyAppValue((CFStringRef)MMAutosaveColumnsKey,
-                                        kCFPreferencesCurrentApplication);
-    if (rowsRef && colsRef) {
-        int rows, cols;
-        if (CFNumberGetValue(rowsRef, kCFNumberIntType, &rows)
-                && CFNumberGetValue(colsRef, kCFNumberIntType, &cols)) {
-            if (rows > 4 && rows < 1000 && cols > 29 && cols < 4000) {
-                Rows = rows;
-                Columns = cols;
-            } else {
-                ASLogWarn(@"Autosaved window dimensions invalid: %dx%d",
-                        cols, rows);
-            }
-        }
-    }
-
     return OK;
 }
 

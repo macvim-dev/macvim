@@ -363,6 +363,9 @@ main
 #ifdef MACOS_X
     if (gui.starting && gui.dofork)
 	macosx_fork();	/* Never returns */
+# ifdef FEAT_GUI_MACVIM
+    gui_macvim_after_fork_init();
+# endif
 #endif
 
     /*
@@ -452,7 +455,8 @@ main
      * For GTK we can't be sure, but when started from the desktop it doesn't
      * make sense to try using a terminal.
      */
-#if defined(ALWAYS_USE_GUI) || defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK)
+#if defined(ALWAYS_USE_GUI) || defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK) \
+	|| defined(FEAT_GUI_MACVIM)
     if (gui.starting
 # ifdef FEAT_GUI_GTK
 	    && !isatty(2)
@@ -461,7 +465,7 @@ main
 	params.want_full_screen = FALSE;
 #endif
 
-#if (defined(FEAT_GUI_MAC) || defined(FEAT_GUI_MACVIM)) && defined(MACOS_X_UNIX)
+#if defined(FEAT_GUI_MAC) && defined(MACOS_X_UNIX)
     /* When the GUI is started from Finder, need to display messages in a
      * message box.  isatty(2) returns TRUE anyway, thus we need to check the
      * name to know we're not started from a terminal. */
@@ -469,7 +473,6 @@ main
     {
 	params.want_full_screen = FALSE;
 
-# ifndef FEAT_GUI_MACVIM
 	/* Avoid always using "/" as the current directory.  Note that when
 	 * started from Finder the arglist will be filled later in
 	 * HandleODocAE() and "fname" will be NULL. */
@@ -484,7 +487,6 @@ main
 		vim_chdir(NameBuff);
 	    }
 	}
-# endif
     }
 #endif
 
