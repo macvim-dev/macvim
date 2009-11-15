@@ -487,10 +487,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self didChangeWholeLine];
 }
 
-- (void)drawString:(char*)s length:(int)len row:(int)row column:(int)col
-             cells:(int)cells flags:(int)flags
+- (void)drawString:(char_u*)s length:(int)len row:(int)row
+            column:(int)col cells:(int)cells flags:(int)flags
 {
-    if (len <= 0 || cells <= 0) return;
+    if (len <= 0) return;
 
     int type = DrawStringDrawType;
 

@@ -194,8 +194,6 @@ enum {
 };
 
 
-#define DRAW_WIDE   0x40    /* draw wide text */
-
 enum {
     ClearAllDrawType = 1,
     ClearBlockDrawType,

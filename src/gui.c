@@ -2237,7 +2237,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 #ifdef HAVE_GTK2
     /* The value returned is the length in display cells */
     len = gui_gtk2_draw_string(gui.row, col, s, len, draw_flags);
-#elif defined(FEAT_GUI_MACVIM) && defined(FEAT_MBYTE)
+#elif 0 /* defined(FEAT_GUI_MACVIM) && defined(FEAT_MBYTE) */
     /* The value returned is the length in display cells */
     len = gui_macvim_draw_string(gui.row, col, s, len, draw_flags);
 #else
@@ -2263,20 +2263,25 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 	{
 	    c = utf_ptr2char(s + i);
 	    cn = utf_char2cells(c);
-	    if (cn > 1
-#  ifdef FEAT_XFONTSET
-		    && fontset == NOFONTSET
-#  endif
-		    && gui.wide_font != NOFONT)
-		dowide = TRUE;
-	    else
-		dowide = FALSE;
 	    comping = utf_iscomposing(c);
 	    if (!comping)	/* count cells from non-composing chars */
 		cells += cn;
 	    cl = utf_ptr2len(s + i);
 	    if (cl == 0)	/* hit end of string */
 		len = i + cl;	/* len must be wrong "cannot happen" */
+
+#  ifdef FEAT_GUI_MACVIM
+	    dowide = (cn > 1);
+#  else
+	    if (cn > 1
+#   ifdef FEAT_XFONTSET
+		    && fontset == NOFONTSET
+#   endif
+		    && gui.wide_font != NOFONT)
+		dowide = TRUE;
+	    else
+		dowide = FALSE;
+#  endif
 
 	    /* print the string so far if it's the last character or there is
 	     * a composing character. */
@@ -2299,7 +2304,10 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 		if (thislen > 0)
 		{
 		    gui_mch_draw_string(gui.row, scol, s + start, thislen,
-								  draw_flags);
+#  ifdef FEAT_GUI_MACVIM
+								cells,
+#  endif
+								draw_flags);
 		    start += thislen;
 		}
 		scol += cells;
@@ -2307,8 +2315,11 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 		if (dowide)
 		{
 		    gui_mch_set_font(gui.wide_font);
-		    gui_mch_draw_string(gui.row, scol - cn,
-						   s + start, cl, draw_flags);
+		    gui_mch_draw_string(gui.row, scol - cn, s + start, cl,
+#  ifdef FEAT_GUI_MACVIM
+							cn,
+#  endif
+							draw_flags | DRAW_WIDE);
 		    gui_mch_set_font(font);
 		    start += cl;
 		}
@@ -2328,13 +2339,17 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 	    /* Draw a composing char on top of the previous char. */
 	    if (comping)
 	    {
-#  if (defined(__APPLE_CC__) || defined(__MRC__)) && TARGET_API_MAC_CARBON
+#  if !defined(FEAT_GUI_MACVIM) && \
+	(defined(__APPLE_CC__) || defined(__MRC__)) && TARGET_API_MAC_CARBON
 		/* Carbon ATSUI autodraws composing char over previous char */
 		gui_mch_draw_string(gui.row, scol, s + i, cl,
 						    draw_flags | DRAW_TRANSP);
 #  else
 		gui_mch_draw_string(gui.row, scol - cn, s + i, cl,
-						    draw_flags | DRAW_TRANSP);
+#  ifdef FEAT_GUI_MACVIM
+					0,
+#  endif
+					draw_flags | DRAW_TRANSP | DRAW_COMP);
 #  endif
 		start = i + cl;
 	    }
@@ -2345,7 +2360,11 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
     else
 # endif
     {
-	gui_mch_draw_string(gui.row, col, s, len, draw_flags);
+	gui_mch_draw_string(gui.row, col, s, len,
+#  ifdef FEAT_GUI_MACVIM
+						len,
+#  endif
+						draw_flags);
 # ifdef FEAT_MBYTE
 	if (enc_dbcs == DBCS_JPNU)
 	{

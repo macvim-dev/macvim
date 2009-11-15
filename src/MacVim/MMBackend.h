@@ -73,8 +73,8 @@
                     toRow:(int)row2 column:(int)col2;
 - (void)deleteLinesFromRow:(int)row count:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right;
-- (void)drawString:(char*)s length:(int)len row:(int)row column:(int)col
-             cells:(int)cells flags:(int)flags;
+- (void)drawString:(char_u*)s length:(int)len row:(int)row
+            column:(int)col cells:(int)cells flags:(int)flags;
 - (void)insertLinesFromRow:(int)row count:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right;
 - (void)drawCursorAtRow:(int)row column:(int)col shape:(int)shape

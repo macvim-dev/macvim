@@ -16,10 +16,9 @@
 // TODO: Remove this when the inline IM code has been tested
 #define INCLUDE_OLD_IM_CODE
 
-// Disable ATSUI when compiling on 10.6.  This is because ATSUI is deprecated
-// on 10.6 and hence spews out masses of warning messages when building.  Also,
-// the ATSUI code currently does not work on 10.6.
-#define MM_ENABLE_ATSUI (MAC_OS_X_VERSION_MIN_REQUIRED<MAC_OS_X_VERSION_10_6)
+// Use Core Text instead of ATSUI when compiling on 10.5+.
+// Note: Core Text was introduced with 10.5, ATSUI was deprecated on 10.6.
+#define MM_ENABLE_ATSUI (MAC_OS_X_VERSION_MIN_REQUIRED<MAC_OS_X_VERSION_10_5)
 
 
 // NSUserDefaults keys

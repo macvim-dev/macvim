@@ -360,7 +360,7 @@ gui_mch_delete_lines(int row, int num_lines)
 
 
     void
-gui_mch_draw_string(int row, int col, char_u *s, int len, int flags)
+gui_mch_draw_string(int row, int col, char_u *s, int len, int cells, int flags)
 {
 #ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
@@ -371,9 +371,12 @@ gui_mch_draw_string(int row, int col, char_u *s, int len, int flags)
     }
 #endif
 
-    [[MMBackend sharedInstance] drawString:(char*)s length:len row:row
-                                    column:col cells:len flags:flags];
-
+    [[MMBackend sharedInstance] drawString:s
+                                    length:len
+                                       row:row
+                                    column:col
+                                     cells:cells
+                                     flags:flags];
 #ifdef FEAT_MBYTE
     if (conv_str)
         vim_free(conv_str);
