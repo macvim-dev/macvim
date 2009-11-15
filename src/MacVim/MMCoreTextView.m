@@ -1088,10 +1088,11 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
         // when clearing the background (this code is also called to draw the
         // cursor sometimes) so disable it temporarily.
         CGContextSetShouldAntialias(context, NO);
+        CGContextSetBlendMode(context, kCGBlendModeCopy);
         CGContextFillRect(context, rect);
         CGContextSetShouldAntialias(context, antialias);
+        CGContextSetBlendMode(context, kCGBlendModeNormal);
     }
-
 
     if (flags & DRAW_UNDERL) {
         // Draw underline
@@ -1211,7 +1212,10 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
 
     CGContextSetRGBFillColor(context, RED(color), GREEN(color), BLUE(color),
                              ALPHA(color));
+
+    CGContextSetBlendMode(context, kCGBlendModeCopy);
     CGContextFillRect(context, *(CGRect*)&rect);
+    CGContextSetBlendMode(context, kCGBlendModeNormal);
 }
 
 - (void)clearAll
@@ -1223,8 +1227,10 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
     float b = [defaultBackgroundColor blueComponent];
     float a = [defaultBackgroundColor alphaComponent];
 
+    CGContextSetBlendMode(context, kCGBlendModeCopy);
     CGContextSetRGBFillColor(context, r, g, b, a);
     CGContextFillRect(context, *(CGRect*)&rect);
+    CGContextSetBlendMode(context, kCGBlendModeNormal);
 }
 
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
