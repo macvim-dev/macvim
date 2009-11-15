@@ -207,6 +207,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],   MMNoFontSubstitutionKey,
         [NSNumber numberWithBool:YES],  MMLoginShellKey,
         [NSNumber numberWithBool:NO],   MMAtsuiRendererKey,
+        [NSNumber numberWithInt:0],     MMRendererKey,
         [NSNumber numberWithInt:MMUntitledWindowAlways],
                                         MMUntitledWindowKey,
         [NSNumber numberWithBool:NO],   MMTexturedWindowKey,
@@ -1179,6 +1180,27 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (IBAction)atsuiButtonClicked:(id)sender
 {
     ASLogDebug(@"Toggle ATSUI renderer");
+    NSInteger renderer = MMRendererDefault;
+    BOOL enable = ([sender state] == NSOnState);
+
+    if (enable) {
+#if MM_ENABLE_ATSUI
+        renderer = MMRendererATSUI;
+#else
+        renderer = MMRendererCoreText;
+#endif
+    }
+
+    // Update the user default MMRenderer and synchronize the change so that
+    // any new Vim process will pick up on the changed setting.
+    CFPreferencesSetAppValue(
+            (CFStringRef)MMRendererKey,
+            (CFPropertyListRef)[NSNumber numberWithInt:renderer],
+            kCFPreferencesCurrentApplication);
+    CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
+
+    ASLogInfo(@"Use renderer=%d", renderer);
+
     // This action is called when the user clicks the "use ATSUI renderer"
     // button in the advanced preferences pane.
     [self rebuildPreloadCache];

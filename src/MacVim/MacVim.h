@@ -247,6 +247,13 @@ extern NSString *MMNoWindowKey;
 
 extern NSString *MMAutosaveRowsKey;
 extern NSString *MMAutosaveColumnsKey;
+extern NSString *MMRendererKey;
+
+enum {
+    MMRendererDefault = 0,
+    MMRendererATSUI,
+    MMRendererCoreText
+};
 
 
 // Vim pasteboard type (holds motion type + string)

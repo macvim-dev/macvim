@@ -108,6 +108,7 @@ NSString *MMNoWindowKey = @"MMNoWindow";
 
 NSString *MMAutosaveRowsKey    = @"MMAutosaveRows";
 NSString *MMAutosaveColumnsKey = @"MMAutosaveColumns";
+NSString *MMRendererKey	       = @"MMRenderer";
 
 // Vim pasteboard type (holds motion type + string)
 NSString *VimPBoardType = @"VimPBoardType";

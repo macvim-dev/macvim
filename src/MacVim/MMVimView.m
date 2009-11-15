@@ -93,15 +93,18 @@ enum {
     [self setAutoresizesSubviews:YES];
 
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    if ([ud boolForKey:MMAtsuiRendererKey]) {
-        // Use ATSUI or CoreText for text rendering.
-        //
-        // HACK! 'textView' has type MMTextView, but MM[Atsui|Core]TextView
-        // is not derived from MMTextView.
-#if MM_ENABLE_ATSUI
-        textView = [[MMAtsuiTextView alloc] initWithFrame:frame];
-#else
+    NSInteger renderer = [ud integerForKey:MMRendererKey];
+    ASLogInfo(@"Use renderer=%d", renderer);
+
+    if (MMRendererCoreText == renderer) {
+        // HACK! 'textView' has type MMTextView, but MMCoreTextView is not
+        // derived from MMTextView.
         textView = [[MMCoreTextView alloc] initWithFrame:frame];
+#if MM_ENABLE_ATSUI
+    } else if (MMRendererATSUI == renderer) {
+        // HACK! 'textView' has type MMTextView, but MMAtsuiTextView is not
+        // derived from MMTextView.
+        textView = [[MMAtsuiTextView alloc] initWithFrame:frame];
 #endif
     } else {
         // Use Cocoa text system for text rendering.

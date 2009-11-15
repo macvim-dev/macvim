@@ -2237,11 +2237,16 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 #ifdef HAVE_GTK2
     /* The value returned is the length in display cells */
     len = gui_gtk2_draw_string(gui.row, col, s, len, draw_flags);
-#elif 0 /* defined(FEAT_GUI_MACVIM) && defined(FEAT_MBYTE) */
-    /* The value returned is the length in display cells */
-    len = gui_macvim_draw_string(gui.row, col, s, len, draw_flags);
 #else
 # ifdef FEAT_MBYTE
+#  ifdef FEAT_GUI_MACVIM
+    if (use_gui_macvim_draw_string)
+    {
+	/* The value returned is the length in display cells */
+	len = gui_macvim_draw_string(gui.row, col, s, len, draw_flags);
+    }
+    else
+#  endif
     if (enc_utf8)
     {
 	int	start;		/* index of bytes to be drawn */
