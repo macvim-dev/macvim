@@ -1932,7 +1932,7 @@ get_foldtext(wp, lnum, lnume, foldinfo, buf)
 #ifdef FEAT_EVAL
     if (*wp->w_p_fdt != NUL)
     {
-	char_u	dashes[51];
+	char_u	dashes[MAX_LEVEL + 2];
 	win_T	*save_curwin;
 	int	level;
 	char_u	*p;
@@ -1944,8 +1944,8 @@ get_foldtext(wp, lnum, lnume, foldinfo, buf)
 	/* Set "v:folddashes" to a string of "level" dashes. */
 	/* Set "v:foldlevel" to "level". */
 	level = foldinfo->fi_level;
-	if (level > 50)
-	    level = 50;
+	if (level > (int)sizeof(dashes) - 1)
+	    level = (int)sizeof(dashes) - 1;
 	vim_memset(dashes, '-', (size_t)level);
 	dashes[level] = NUL;
 	set_vim_var_string(VV_FOLDDASHES, dashes, -1);
@@ -2253,6 +2253,40 @@ foldUpdateIEMS(wp, top, bot)
 	    getlevel(&fline);
 	    if (fline.lvl >= 0)
 		break;
+	}
+    }
+
+    /*
+     * If folding is defined by the syntax, it is possible that a change in
+     * one line will cause all sub-folds of the current fold to change (e.g.,
+     * closing a C-style comment can cause folds in the subsequent lines to
+     * appear). To take that into account we should adjust the value of "bot"
+     * to point to the end of the current fold:
+     */
+    if (foldlevelSyntax == getlevel)
+    {
+	garray_T *gap = &wp->w_folds;
+	fold_T	 *fp = NULL;
+	int	  current_fdl = 0;
+	linenr_T  fold_start_lnum = 0;
+	linenr_T  lnum_rel = fline.lnum;
+
+	while (current_fdl < fline.lvl)
+	{
+	    if (!foldFind(gap, lnum_rel, &fp))
+		break;
+	    ++current_fdl;
+
+	    fold_start_lnum += fp->fd_top;
+	    gap = &fp->fd_nested;
+	    lnum_rel -= fp->fd_top;
+	}
+	if (fp != NULL && current_fdl == fline.lvl)
+	{
+	    linenr_T fold_end_lnum = fold_start_lnum + fp->fd_len;
+
+	    if (fold_end_lnum > bot)
+		bot = fold_end_lnum;
 	}
     }
 
@@ -2817,6 +2851,8 @@ foldSplit(gap, i, top, bot)
     fp[1].fd_top = bot + 1;
     fp[1].fd_len = fp->fd_len - (fp[1].fd_top - fp->fd_top);
     fp[1].fd_flags = fp->fd_flags;
+    fp[1].fd_small = MAYBE;
+    fp->fd_small = MAYBE;
 
     /* Move nested folds below bot to new fold.  There can't be
      * any between top and bot, they have been removed by the caller. */

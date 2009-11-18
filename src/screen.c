@@ -132,7 +132,7 @@ static void screen_line __ARGS((int row, int coloff, int endcol, int clear_width
 static void draw_vsep_win __ARGS((win_T *wp, int row));
 #endif
 #ifdef FEAT_STL_OPT
-static void redraw_custum_statusline __ARGS((win_T *wp));
+static void redraw_custom_statusline __ARGS((win_T *wp));
 #endif
 #ifdef FEAT_SEARCH_EXTRA
 #define SEARCH_HL_PRIORITY 0
@@ -3008,11 +3008,33 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    mb_ptr_adv(ptr);
 	}
 
-#ifdef FEAT_VIRTUALEDIT
-	/* When 'virtualedit' is set the end of the line may be before the
-	 * start of the displayed part. */
-	if (vcol < v && *ptr == NUL && virtual_active())
+#if defined(FEAT_SYN_HL) || defined(FEAT_VIRTUALEDIT) || defined(FEAT_VISUAL)
+	/* When:
+	 * - 'cuc' is set, or
+	 * - 'virtualedit' is set, or
+	 * - the visual mode is active,
+	 * the end of the line may be before the start of the displayed part.
+	 */
+	if (vcol < v && (
+# ifdef FEAT_SYN_HL
+	     wp->w_p_cuc
+#  if defined(FEAT_VIRTUALEDIT) || defined(FEAT_VISUAL)
+	     ||
+#  endif
+# endif
+# ifdef FEAT_VIRTUALEDIT
+	     virtual_active()
+#  ifdef FEAT_VISUAL
+	     ||
+#  endif
+# endif
+# ifdef FEAT_VISUAL
+	     (VIsual_active && wp->w_buffer == curwin->w_buffer)
+# endif
+	     ))
+	{
 	    vcol = v;
+	}
 #endif
 
 	/* Handle a character that's not completely on the screen: Put ptr at
@@ -5775,7 +5797,7 @@ win_redr_status(wp)
     else if (*p_stl != NUL || *wp->w_p_stl != NUL)
     {
 	/* redraw custom status line */
-	redraw_custum_statusline(wp);
+	redraw_custom_statusline(wp);
     }
 #endif
     else
@@ -5900,18 +5922,31 @@ win_redr_status(wp)
  * errors encountered.
  */
     static void
-redraw_custum_statusline(wp)
+redraw_custom_statusline(wp)
     win_T	    *wp;
 {
-    int	save_called_emsg = called_emsg;
+    static int	    entered = FALSE;
+    int		    save_called_emsg = called_emsg;
+
+    /* When called recursively return.  This can happen when the statusline
+     * contains an expression that triggers a redraw. */
+    if (entered)
+	return;
+    entered = TRUE;
 
     called_emsg = FALSE;
     win_redr_custom(wp, FALSE);
     if (called_emsg)
+    {
+	/* When there is an error disable the statusline, otherwise the
+	 * display is messed up with errors and a redraw triggers the problem
+	 * again and again. */
 	set_string_option_direct((char_u *)"statusline", -1,
 		(char_u *)"", OPT_FREE | (*wp->w_p_stl != NUL
 					? OPT_LOCAL : OPT_GLOBAL), SID_ERROR);
+    }
     called_emsg |= save_called_emsg;
+    entered = FALSE;
 }
 #endif
 
@@ -6019,6 +6054,7 @@ win_redr_custom(wp, draw_ruler)
     int		len;
     int		fillchar;
     char_u	buf[MAXPATHL];
+    char_u	*stl;
     char_u	*p;
     struct	stl_hlrec hltab[STL_MAX_ITEM];
     struct	stl_hlrec tabtab[STL_MAX_ITEM];
@@ -6028,7 +6064,7 @@ win_redr_custom(wp, draw_ruler)
     if (wp == NULL)
     {
 	/* Use 'tabline'.  Always at the first line of the screen. */
-	p = p_tal;
+	stl = p_tal;
 	row = 0;
 	fillchar = ' ';
 	attr = hl_attr(HLF_TPF);
@@ -6045,17 +6081,17 @@ win_redr_custom(wp, draw_ruler)
 
 	if (draw_ruler)
 	{
-	    p = p_ruf;
+	    stl = p_ruf;
 	    /* advance past any leading group spec - implicit in ru_col */
-	    if (*p == '%')
+	    if (*stl == '%')
 	    {
-		if (*++p == '-')
-		    p++;
-		if (atoi((char *) p))
-		    while (VIM_ISDIGIT(*p))
-			p++;
-		if (*p++ != '(')
-		    p = p_ruf;
+		if (*++stl == '-')
+		    stl++;
+		if (atoi((char *)stl))
+		    while (VIM_ISDIGIT(*stl))
+			stl++;
+		if (*stl++ != '(')
+		    stl = p_ruf;
 	    }
 #ifdef FEAT_VERTSPLIT
 	    col = ru_col - (Columns - W_WIDTH(wp));
@@ -6084,9 +6120,9 @@ win_redr_custom(wp, draw_ruler)
 	else
 	{
 	    if (*wp->w_p_stl != NUL)
-		p = wp->w_p_stl;
+		stl = wp->w_p_stl;
 	    else
-		p = p_stl;
+		stl = p_stl;
 # ifdef FEAT_EVAL
 	    use_sandbox = was_set_insecurely((char_u *)"statusline",
 					 *wp->w_p_stl == NUL ? 0 : OPT_LOCAL);
@@ -6101,10 +6137,14 @@ win_redr_custom(wp, draw_ruler)
     if (maxwidth <= 0)
 	return;
 
+    /* Make a copy, because the statusline may include a function call that
+     * might change the option value and free the memory. */
+    stl = vim_strsave(stl);
     width = build_stl_str_hl(wp == NULL ? curwin : wp,
 				buf, sizeof(buf),
-				p, use_sandbox,
+				stl, use_sandbox,
 				fillchar, maxwidth, hltab, tabtab);
+    vim_free(stl);
     len = (int)STRLEN(buf);
 
     while (width < maxwidth && len < (int)sizeof(buf) - 1)
@@ -6376,7 +6416,8 @@ screen_puts_len(text, len, row, col, attr)
 		    }
 		    else
 		    {
-			nc = utfc_ptr2char(ptr + mbyte_blen, pcc);
+			nc = utfc_ptr2char_len(ptr + mbyte_blen, pcc,
+				      (int)((text + len) - ptr - mbyte_blen));
 			nc1 = pcc[0];
 		    }
 		    pc = prev_c;
@@ -9469,7 +9510,7 @@ showruler(always)
 #if defined(FEAT_STL_OPT) && defined(FEAT_WINDOWS)
     if ((*p_stl != NUL || *curwin->w_p_stl != NUL) && curwin->w_status_height)
     {
-	redraw_custum_statusline(curwin);
+	redraw_custom_statusline(curwin);
     }
     else
 #endif

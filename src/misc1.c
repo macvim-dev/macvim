@@ -1026,12 +1026,14 @@ open_line(dir, flags, old_indent)
 		    int		c = 0;
 		    int		off = 0;
 
-		    for (p = lead_flags; *p && *p != ':'; ++p)
+		    for (p = lead_flags; *p != NUL && *p != ':'; )
 		    {
 			if (*p == COM_RIGHT || *p == COM_LEFT)
-			    c = *p;
+			    c = *p++;
 			else if (VIM_ISDIGIT(*p) || *p == '-')
 			    off = getdigits(&p);
+			else
+			    ++p;
 		    }
 		    if (c == COM_RIGHT)    /* right adjusted leader */
 		    {
@@ -1119,7 +1121,7 @@ open_line(dir, flags, old_indent)
 			    if (i != lead_repl_len)
 			    {
 				mch_memmove(p + lead_repl_len, p + i,
-				       (size_t)(lead_len - i - (leader - p)));
+				       (size_t)(lead_len - i - (p - leader)));
 				lead_len += lead_repl_len - i;
 			    }
 			}
@@ -2886,6 +2888,13 @@ changed_common(lnum, col, lnume, xtra)
 		    }
 #endif
 		}
+
+#ifdef FEAT_FOLDING
+	    /* Take care of side effects for setting w_topline when folds have
+	     * changed.  Esp. when the buffer was changed in another window. */
+	    if (hasAnyFolding(wp))
+		set_topline(wp, wp->w_topline);
+#endif
 	}
     }
 

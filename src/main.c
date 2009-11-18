@@ -134,10 +134,6 @@ static char_u *serverMakeName __ARGS((char_u *arg, char *cmd));
 #endif
 
 
-#ifdef STARTUPTIME
-static FILE *time_fd = NULL;
-#endif
-
 /*
  * Different types of error messages.
  */
@@ -177,6 +173,9 @@ main
     char_u	*fname = NULL;		/* file name from command line */
     mparm_T	params;			/* various parameters passed between
 					 * main() and other functions. */
+#ifdef STARTUPTIME
+    int		i;
+#endif
 
 #if FEAT_GUI_MACVIM
     // Cocoa needs an NSAutoreleasePool in place or it will leak memory.
@@ -216,8 +215,15 @@ main
 #endif
 
 #ifdef STARTUPTIME
-    time_fd = mch_fopen(STARTUPTIME, "a");
-    TIME_MSG("--- VIM STARTING ---");
+    for (i = 1; i < argc; ++i)
+    {
+	if (STRICMP(argv[i], "--startuptime") == 0 && i + 1 < argc)
+	{
+	    time_fd = mch_fopen(argv[i + 1], "a");
+	    TIME_MSG("--- VIM STARTING ---");
+	    break;
+	}
+    }
 #endif
     starttime = time(NULL);
 
@@ -1227,6 +1233,18 @@ main_loop(cmdwin, noexmode)
 	    cursor_on();
 
 	    do_redraw = FALSE;
+
+#ifdef STARTUPTIME
+	    /* Now that we have drawn the first screen all the startup stuff
+	     * has been done, close any file for startup messages. */
+	    if (time_fd != NULL)
+	    {
+		TIME_MSG("first screen update");
+		TIME_MSG("--- VIM STARTED ---");
+		fclose(time_fd);
+		time_fd = NULL;
+	    }
+#endif
 	}
 #ifdef FEAT_GUI
 	if (need_mouse_correct)
@@ -1795,6 +1813,11 @@ command_line_scan(parmp)
 		    want_argument = TRUE;
 		    argv_idx += 3;
 		}
+		else if (STRNICMP(argv[0] + argv_idx, "startuptime", 11) == 0)
+		{
+		    want_argument = TRUE;
+		    argv_idx += 11;
+		}
 #ifdef FEAT_CLIENTSERVER
 		else if (STRNICMP(argv[0] + argv_idx, "serverlist", 10) == 0)
 		    ; /* already processed -- no arg */
@@ -2126,7 +2149,7 @@ command_line_scan(parmp)
 		    mainerr(ME_GARBAGE, (char_u *)argv[0]);
 
 		--argc;
-		if (argc < 1 && c != 'S')
+		if (argc < 1 && c != 'S')  /* -S has an optional argument */
 		    mainerr_arg_missing((char_u *)argv[0]);
 		++argv;
 		argv_idx = -1;
@@ -2167,11 +2190,16 @@ command_line_scan(parmp)
 							    (char_u *)argv[0];
 		    break;
 
-		case '-':	/* "--cmd {command}" execute command */
-		    if (parmp->n_pre_commands >= MAX_ARG_CMDS)
-			mainerr(ME_EXTRA_CMD, NULL);
-		    parmp->pre_commands[parmp->n_pre_commands++] =
+		case '-':
+		    if (argv[-1][2] == 'c')
+		    {
+			/* "--cmd {command}" execute command */
+			if (parmp->n_pre_commands >= MAX_ARG_CMDS)
+			    mainerr(ME_EXTRA_CMD, NULL);
+			parmp->pre_commands[parmp->n_pre_commands++] =
 							    (char_u *)argv[0];
+		    }
+		    /* "--startuptime <file>" already handled */
 		    break;
 
 	    /*	case 'd':   -d {device} is handled in mch_check_win() for the
@@ -3209,6 +3237,9 @@ usage()
     main_msg(_("--serverlist\t\tList available Vim server names and exit"));
     main_msg(_("--servername <name>\tSend to/become the Vim server <name>"));
 #endif
+#ifdef STARTUPTIME
+    main_msg(_("--startuptime <file>\tWrite startup timing messages to <file>"));
+#endif
 #ifdef FEAT_VIMINFO
     main_msg(_("-i <viminfo>\t\tUse <viminfo> instead of .viminfo"));
 #endif
@@ -3298,6 +3329,20 @@ static void time_diff __ARGS((struct timeval *then, struct timeval *now));
 
 static struct timeval	prev_timeval;
 
+# ifdef WIN3264
+/*
+ * Windows doesn't have gettimeofday(), although it does have struct timeval.
+ */
+    static int
+gettimeofday(struct timeval *tv, char *dummy)
+{
+    long t = clock();
+    tv->tv_sec = t / CLOCKS_PER_SEC;
+    tv->tv_usec = (t - tv->tv_sec * CLOCKS_PER_SEC) * 1000000 / CLOCKS_PER_SEC;
+    return 0;
+}
+# endif
+
 /*
  * Save the previous time before doing something that could nest.
  * set "*tv_rel" to the time elapsed so far.
@@ -3385,20 +3430,6 @@ time_msg(msg, tv_start)
 	fprintf(time_fd, ": %s\n", msg);
     }
 }
-
-# ifdef WIN3264
-/*
- * Windows doesn't have gettimeofday(), although it does have struct timeval.
- */
-    int
-gettimeofday(struct timeval *tv, char *dummy)
-{
-    long t = clock();
-    tv->tv_sec = t / CLOCKS_PER_SEC;
-    tv->tv_usec = (t - tv->tv_sec * CLOCKS_PER_SEC) * 1000000 / CLOCKS_PER_SEC;
-    return 0;
-}
-# endif
 
 #endif
 

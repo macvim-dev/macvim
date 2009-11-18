@@ -3802,7 +3802,8 @@ map({expr}, {string})					*map()*
 		Replace each item in {expr} with the result of evaluating
 		{string}.
 		Inside {string} |v:val| has the value of the current item.
-		For a |Dictionary| |v:key| has the key of the current item.
+		For a |Dictionary| |v:key| has the key of the current item
+		and for a |List| |v:key| has the index of the current item.
 		Example: >
 			:call map(mylist, '"> " . v:val . " <"')
 <		This puts "> " before and " <" after each item in "mylist".
@@ -5872,6 +5873,7 @@ showcmd			Compiled with 'showcmd' support.
 signs			Compiled with |:sign| support.
 smartindent		Compiled with 'smartindent' support.
 sniff			Compiled with SNiFF interface support.
+startuptime		Compiled with |--startuptime| support.
 statusline		Compiled with support for 'statusline', 'rulerformat'
 			and special formats of 'titlestring' and 'iconstring'.
 sun_workshop		Compiled with support for Sun |workshop|.

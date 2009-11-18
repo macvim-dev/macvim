@@ -8378,6 +8378,7 @@ ex_at(eap)
     exarg_T	*eap;
 {
     int		c;
+    int		prev_len = typebuf.tb_len;
 
     curwin->w_cursor.lnum = eap->line2;
 
@@ -8403,11 +8404,10 @@ ex_at(eap)
 
 	/*
 	 * Execute from the typeahead buffer.
-	 * Originally this didn't check for the typeahead buffer to be empty,
-	 * thus could read more Ex commands from stdin.  It's not clear why,
-	 * it is certainly unexpected.
+	 * Continue until the stuff buffer is empty and all added characters
+	 * have been consumed.
 	 */
-	while ((!stuff_empty() || typebuf.tb_len > 0) && vpeekc() == ':')
+	while (!stuff_empty() || typebuf.tb_len > prev_len)
 	    (void)do_cmdline(NULL, getexline, NULL, DOCMD_NOWAIT|DOCMD_VERBOSE);
 
 	exec_from_reg = save_efr;

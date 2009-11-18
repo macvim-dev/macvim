@@ -37,6 +37,12 @@
 #ifdef HAVE_STDARG_H
 # undef HAVE_STDARG_H	/* Python's config.h defines it as well. */
 #endif
+#ifdef _POSIX_C_SOURCE
+# undef _POSIX_C_SOURCE	/* pyconfig.h defines it as well. */
+#endif
+#ifdef _XOPEN_SOURCE
+# undef _XOPEN_SOURCE	/* pyconfig.h defines it as well. */
+#endif
 
 #define PY_SSIZE_T_CLEAN
 
@@ -2063,6 +2069,7 @@ WindowSetattr(PyObject *self, char *name, PyObject *val)
     {
 	long lnum;
 	long col;
+	long len;
 
 	if (!PyArg_Parse(val, "(ll)", &lnum, &col))
 	    return -1;
@@ -2077,10 +2084,16 @@ WindowSetattr(PyObject *self, char *name, PyObject *val)
 	if (VimErrorCheck())
 	    return -1;
 
-	/* NO CHECK ON COLUMN - SEEMS NOT TO MATTER */
+	/* When column is out of range silently correct it. */
+	len = STRLEN(ml_get_buf(this->win->w_buffer, lnum, FALSE));
+	if (col > len)
+	    col = len;
 
 	this->win->w_cursor.lnum = lnum;
 	this->win->w_cursor.col = col;
+#ifdef FEAT_VIRTUALEDIT
+	this->win->w_cursor.coladd = 0;
+#endif
 	update_screen(VALID);
 
 	return 0;
