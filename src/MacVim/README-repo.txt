@@ -12,9 +12,6 @@ overview of the MacVim source code.
 :   files from the Vim FTP included
 `stable`
 :   Used to build the Stable binary distribution
-`feat/core-text`
-:   Core Text renderer (fast with improved Unicode rendering, but has some
-:   display issues)
 
 _Note:_ Branches starting with `feat/` are experimental and will be rebased
 against master occasionally (other branches will not be rebased).
