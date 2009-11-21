@@ -38,7 +38,6 @@ extern NSString *MMTopLeftPointKey;
 extern NSString *MMOpenInCurrentWindowKey;
 extern NSString *MMNoFontSubstitutionKey;
 extern NSString *MMLoginShellKey;
-extern NSString *MMAtsuiRendererKey;
 extern NSString *MMUntitledWindowKey;
 extern NSString *MMTexturedWindowKey;
 extern NSString *MMZoomBothKey;
