@@ -310,7 +310,9 @@ ui_get_shellsize()
 #ifdef FEAT_GUI
     if (gui.in_use
 # ifdef FEAT_GUI_MACVIM
-            || gui.starting     /* TODO: Do this check for all GUIs? */
+            /* Avoid using terminal dimensions for GUI window.  MacVim
+             * autosaves the dimensions of the first window. */
+            || gui.starting
 # endif
             )
 	retval = gui_get_shellsize();

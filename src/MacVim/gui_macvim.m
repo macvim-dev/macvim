@@ -133,6 +133,11 @@ gui_macvim_after_fork_init()
             && (rows > 4 && rows < 1000 && cols > 29 && cols < 4000)) {
         gui.num_rows = rows;
         gui.num_cols = cols;
+    } else {
+        // Use the defaults (typically 80x24), if there are no autosaved rows &
+        // columns.
+        gui.num_rows = Rows;
+        gui.num_cols = Columns;
     }
 
     // Check which code path to take for string drawing.
