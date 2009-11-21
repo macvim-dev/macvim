@@ -23,7 +23,6 @@
 		1D1474B00C5678370038FA2B /* MMTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474AE0C5678370038FA2B /* MMTextView.m */; };
 		1D1474B60C56796D0038FA2B /* MMVimController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474B40C56796D0038FA2B /* MMVimController.m */; };
 		1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474BA0C567A910038FA2B /* MMWindowController.m */; };
-		1D22121E104B04530086DFF1 /* Sparkle.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 1D8B5A88104AFF2A002E59D5 /* Sparkle.framework */; };
 		1D22374B0E45DF4800E6FFFF /* Advanced.png in Resources */ = {isa = PBXBuildFile; fileRef = 1D22374A0E45DF4800E6FFFF /* Advanced.png */; };
 		1D384A0E100D671700D3C22F /* KeyBinding.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1D384A0D100D671700D3C22F /* KeyBinding.plist */; };
 		1D3D19110CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */; };
@@ -37,7 +36,6 @@
 		1D80FBD40CBBD3B700102A1C /* MMFullscreenWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD00CBBD3B700102A1C /* MMFullscreenWindow.m */; };
 		1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD20CBBD3B700102A1C /* MMVimView.m */; };
 		1D8B5A53104AF9FF002E59D5 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D8B5A52104AF9FF002E59D5 /* Carbon.framework */; };
-		1D8B5A89104AFF2A002E59D5 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D8B5A88104AFF2A002E59D5 /* Sparkle.framework */; };
 		1D8BEA74104992290069B072 /* FindAndReplace.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1D8BEA73104992290069B072 /* FindAndReplace.nib */; };
 		1D9918490D299F9900A96335 /* MMAtsuiTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D9918470D299F9900A96335 /* MMAtsuiTextView.m */; };
 		1D9C60520EF79C0C0034AD44 /* MacVim.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D9C602E0EF79C0C0034AD44 /* MacVim.icns */; };
@@ -149,7 +147,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				1D22121E104B04530086DFF1 /* Sparkle.framework in Copy Frameworks */,
 				1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in Copy Frameworks */,
 			);
 			name = "Copy Frameworks";
@@ -217,7 +214,6 @@
 		1D80FBD10CBBD3B700102A1C /* MMVimView.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMVimView.h; sourceTree = "<group>"; };
 		1D80FBD20CBBD3B700102A1C /* MMVimView.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMVimView.m; sourceTree = "<group>"; };
 		1D8B5A52104AF9FF002E59D5 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
-		1D8B5A88104AFF2A002E59D5 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
 		1D9918460D299F9900A96335 /* MMAtsuiTextView.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMAtsuiTextView.h; sourceTree = "<group>"; };
 		1D9918470D299F9900A96335 /* MMAtsuiTextView.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMAtsuiTextView.m; sourceTree = "<group>"; };
 		1D9C602E0EF79C0C0034AD44 /* MacVim.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = MacVim.icns; path = icons/MacVim.icns; sourceTree = "<group>"; };
@@ -291,7 +287,6 @@
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				0395A9C30D75D04D00881434 /* Security.framework in Frameworks */,
 				1D8B5A53104AF9FF002E59D5 /* Carbon.framework in Frameworks */,
-				1D8B5A89104AFF2A002E59D5 /* Sparkle.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -507,7 +502,6 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				1D8B5A88104AFF2A002E59D5 /* Sparkle.framework */,
 				1D8B5A52104AF9FF002E59D5 /* Carbon.framework */,
 				0395AA980D76E86200881434 /* Edit in ODBEditor */,
 				0395A9C20D75D04D00881434 /* Security.framework */,
