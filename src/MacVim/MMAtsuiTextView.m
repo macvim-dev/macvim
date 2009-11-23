@@ -25,15 +25,13 @@
  * resized.
  */
 
-#if ENABLE_ATSUI
-
 #import "MMAppController.h"
 #import "MMAtsuiTextView.h"
 #import "MMTextViewHelper.h"
 #import "MMVimController.h"
 #import "MMWindowController.h"
-#import "Miscellaneous.h"
 
+#if MM_ENABLE_ATSUI
 
 // TODO: What does DRAW_TRANSP flag do?  If the background isn't drawn when
 // this flag is set, then sometimes the character after the cursor becomes
@@ -1272,4 +1270,4 @@ defaultLineHeightForFont(NSFont *font)
 
 @end // MMAtsuiTextView (Drawing)
 
-#endif // ENABLE_ATSUI
+#endif // MM_ENABLE_ATSUI

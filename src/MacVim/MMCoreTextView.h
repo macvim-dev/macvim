@@ -9,7 +9,9 @@
  */
 
 #import <Cocoa/Cocoa.h>
+#import "Miscellaneous.h" // Defines MM_ENABLE_ATSUI
 
+#if !MM_ENABLE_ATSUI
 
 @class MMTextViewHelper;
 
@@ -95,3 +97,5 @@
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size;
 
 @end
+
+#endif // !MM_ENABLE_ATSUI

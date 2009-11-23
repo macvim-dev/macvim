@@ -18,6 +18,8 @@
  * the view is filled by the text view.
  */
 
+#import "Miscellaneous.h"   // Defines MM_ENABLE_ATSUI
+
 #if MM_ENABLE_ATSUI
 # import "MMAtsuiTextView.h"
 #else
@@ -27,7 +29,6 @@
 #import "MMVimController.h"
 #import "MMVimView.h"
 #import "MMWindowController.h"
-#import "Miscellaneous.h"
 #import <PSMTabBarControl/PSMTabBarControl.h>
 
 
@@ -96,17 +97,20 @@ enum {
     NSInteger renderer = [ud integerForKey:MMRendererKey];
     ASLogInfo(@"Use renderer=%d", renderer);
 
+#if MM_ENABLE_ATSUI
+    if (MMRendererATSUI == renderer) {
+        // HACK! 'textView' has type MMTextView, but MMAtsuiTextView is not
+        // derived from MMTextView.
+        textView = [[MMAtsuiTextView alloc] initWithFrame:frame];
+    }
+#else
     if (MMRendererCoreText == renderer) {
         // HACK! 'textView' has type MMTextView, but MMCoreTextView is not
         // derived from MMTextView.
         textView = [[MMCoreTextView alloc] initWithFrame:frame];
-#if MM_ENABLE_ATSUI
-    } else if (MMRendererATSUI == renderer) {
-        // HACK! 'textView' has type MMTextView, but MMAtsuiTextView is not
-        // derived from MMTextView.
-        textView = [[MMAtsuiTextView alloc] initWithFrame:frame];
+    }
 #endif
-    } else {
+    else {
         // Use Cocoa text system for text rendering.
         textView = [[MMTextView alloc] initWithFrame:frame];
     }

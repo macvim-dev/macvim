@@ -25,12 +25,15 @@
  * resized.
  */
 
+#import "Miscellaneous.h" // Defines MM_ENABLE_ATSUI
+
+#if !MM_ENABLE_ATSUI
+
 #import "MMAppController.h"
 #import "MMCoreTextView.h"
 #import "MMTextViewHelper.h"
 #import "MMVimController.h"
 #import "MMWindowController.h"
-#import "Miscellaneous.h"
 
 
 // TODO: What does DRAW_TRANSP flag do?  If the background isn't drawn when
@@ -1292,3 +1295,5 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
 }
 
 @end // MMCoreTextView (Drawing)
+
+#endif // !MM_ENABLE_ATSUI

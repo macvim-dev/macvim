@@ -8,10 +8,11 @@
  * See README.txt for an overview of the Vim source code.
  */
 
-#if ENABLE_ATSUI
 
 #import <Cocoa/Cocoa.h>
-#import "MMTextView.h"
+#import "Miscellaneous.h"
+
+#if MM_ENABLE_ATSUI
 
 enum { MMMaxCellsPerChar = 2 };
 
@@ -100,4 +101,4 @@ enum { MMMaxCellsPerChar = 2 };
 
 @end
 
-#endif // ENABLE_ATSUI
+#endif // MM_ENABLE_ATSUI
