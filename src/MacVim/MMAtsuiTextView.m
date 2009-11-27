@@ -335,6 +335,17 @@ defaultLineHeightForFont(NSFont *font)
     [helper activateIm:enable];
 }
 
+- (BOOL)_wantsKeyDownForEvent:(id)event
+{
+    // HACK! This is an undocumented method which is called from within
+    // -[NSWindow sendEvent] (and perhaps in other places as well) when the
+    // user presses e.g. Ctrl-Tab or Ctrl-Esc .  Returning YES here effectively
+    // disables the Cocoa "key view loop" (which is undesirable).  It may have
+    // other side-effects, but we really _do_ want to process all key down
+    // events so it seems safe to always return YES.
+    return YES;
+}
+
 - (void)keyDown:(NSEvent *)event
 {
     [helper keyDown:event];
