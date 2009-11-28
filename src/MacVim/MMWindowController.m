@@ -1039,8 +1039,15 @@
     if (!query) {
         // Use find pasteboard for next query.
         NSPasteboard *pb = [NSPasteboard pasteboardWithName:NSFindPboard];
-        NSArray *types = [NSArray arrayWithObject:NSStringPboardType];
-        if ([pb availableTypeFromArray:types])
+        NSArray *supportedTypes = [NSArray arrayWithObjects:VimFindPboardType,
+                NSStringPboardType, nil];
+        NSString *bestType = [pb availableTypeFromArray:supportedTypes];
+
+        // See gui_macvim_add_to_find_pboard() for an explanation of these
+        // types.
+        if ([bestType isEqual:VimFindPboardType])
+            query = [pb stringForType:VimFindPboardType];
+        else
             query = [pb stringForType:NSStringPboardType];
     }
 

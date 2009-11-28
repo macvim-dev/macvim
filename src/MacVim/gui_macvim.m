@@ -611,7 +611,7 @@ clip_mch_own_selection(VimClipboard *cbd)
 clip_mch_request_selection(VimClipboard *cbd)
 {
     NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    NSArray *supportedTypes = [NSArray arrayWithObjects:VimPBoardType,
+    NSArray *supportedTypes = [NSArray arrayWithObjects:VimPboardType,
             NSStringPboardType, nil];
     NSString *bestType = [pb availableTypeFromArray:supportedTypes];
     if (!bestType) return;
@@ -619,12 +619,12 @@ clip_mch_request_selection(VimClipboard *cbd)
     int motion_type = MCHAR;
     NSString *string = nil;
 
-    if ([bestType isEqual:VimPBoardType]) {
+    if ([bestType isEqual:VimPboardType]) {
         // This type should consist of an array with two objects:
         //   1. motion type (NSNumber)
         //   2. text (NSString)
         // If this is not the case we fall back on using NSStringPboardType.
-        id plist = [pb propertyListForType:VimPBoardType];
+        id plist = [pb propertyListForType:VimPboardType];
         if ([plist isKindOfClass:[NSArray class]] && [plist count] == 2) {
             id obj = [plist objectAtIndex:1];
             if ([obj isKindOfClass:[NSString class]]) {
@@ -718,13 +718,13 @@ clip_mch_set_selection(VimClipboard *cbd)
 
         // See clip_mch_request_selection() for info on pasteboard types.
         NSPasteboard *pb = [NSPasteboard generalPasteboard];
-        NSArray *supportedTypes = [NSArray arrayWithObjects:VimPBoardType,
+        NSArray *supportedTypes = [NSArray arrayWithObjects:VimPboardType,
                 NSStringPboardType, nil];
         [pb declareTypes:supportedTypes owner:nil];
 
         NSNumber *motion = [NSNumber numberWithInt:motion_type];
         NSArray *plist = [NSArray arrayWithObjects:motion, string, nil];
-        [pb setPropertyList:plist forType:VimPBoardType];
+        [pb setPropertyList:plist forType:VimPboardType];
 
         [pb setString:string forType:NSStringPboardType];
         
@@ -1818,8 +1818,17 @@ gui_macvim_add_to_find_pboard(char_u *pat)
     if (!s) return;
 
     NSPasteboard *pb = [NSPasteboard pasteboardWithName:NSFindPboard];
-    [pb declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:nil];
-    [pb setString:s forType:NSStringPboardType];
+    NSArray *supportedTypes = [NSArray arrayWithObjects:VimFindPboardType,
+            NSStringPboardType, nil];
+    [pb declareTypes:supportedTypes owner:nil];
+
+    // Put two entries on the Find pasteboard:
+    //   * the pattern Vim uses
+    //   * same as above but with some backslash escaped characters removed
+    // The second entry will be used by other applications when taking entries
+    // off the Find pasteboard, whereas MacVim will use the first if present.
+    [pb setString:s forType:VimFindPboardType];
+    [pb setString:[s stringByRemovingFindPatterns] forType:NSStringPboardType];
 }
 
     void

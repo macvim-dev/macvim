@@ -257,13 +257,15 @@ enum {
 
 
 // Vim pasteboard type (holds motion type + string)
-extern NSString *VimPBoardType;
+extern NSString *VimPboardType;
+extern NSString *VimFindPboardType;
 
 
 
 
 @interface NSString (MMExtras)
 - (NSString *)stringByEscapingSpecialFilenameCharacters;
+- (NSString *)stringByRemovingFindPatterns;
 @end
 
 

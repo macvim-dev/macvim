@@ -111,7 +111,9 @@ NSString *MMAutosaveColumnsKey = @"MMAutosaveColumns";
 NSString *MMRendererKey	       = @"MMRenderer";
 
 // Vim pasteboard type (holds motion type + string)
-NSString *VimPBoardType = @"VimPBoardType";
+NSString *VimPboardType = @"VimPboardType";
+// Vim find pasteboard type (string contains Vim regex patterns)
+NSString *VimFindPboardType = @"VimFindPboardType";
 
 int ASLogLevel = ASL_LEVEL_NOTICE;
 
@@ -193,6 +195,36 @@ debugStringForMessageQueue(NSArray *queue)
     [string replaceOccurrencesOfString:@"\""
                             withString:@"\\\""
                                options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+
+    return [string autorelease];
+}
+
+- (NSString *)stringByRemovingFindPatterns
+{
+    // Remove some common patterns added to search strings that other apps are
+    // not aware of.
+
+    NSMutableString *string = [self mutableCopy];
+
+    // Added when doing * search
+    [string replaceOccurrencesOfString:@"\\<"
+                            withString:@""
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+    [string replaceOccurrencesOfString:@"\\>"
+                            withString:@""
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+    // \V = match whole word
+    [string replaceOccurrencesOfString:@"\\V"
+                            withString:@""
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+    // \c = case insensitive, \C = case sensitive
+    [string replaceOccurrencesOfString:@"\\c"
+                            withString:@""
+                               options:NSCaseInsensitiveSearch|NSLiteralSearch
                                  range:NSMakeRange(0, [string length])];
 
     return [string autorelease];
