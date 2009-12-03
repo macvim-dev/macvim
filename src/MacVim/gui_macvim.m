@@ -603,7 +603,11 @@ clip_mch_lose_selection(VimClipboard *cbd)
     int
 clip_mch_own_selection(VimClipboard *cbd)
 {
-    return 0;
+    // This is called whenever there is a new selection and 'guioptions'
+    // contains the "a" flag (automatically copy selection).  Return TRUE, else
+    // the "a" flag does nothing.  Note that there is no concept of "ownership"
+    // of the clipboard in Mac OS X.
+    return TRUE;
 }
 
 
