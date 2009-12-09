@@ -78,7 +78,7 @@ A new editor window is opened by calling
 -[MMAppController launchVimProcessWithArguments:].  This functions starts a
 new Vim process (by executing the Vim binary).  The Vim process lets MacVim
 know when it has launched by calling -[MMAppController connectBackend:pid:]
-and MacVim responds to this message by creating a new vim controller and
+and MacVim responds to this message by creating a new Vim controller and
 returns an identifier for this object back to the Vim process.
 
 The MMVimController represents the frontend of a Vim process inside MacVim.
@@ -87,7 +87,7 @@ that affects visual presentation to a MMWindowController object.  Read the
 Cocoa documentation on the responsibilities of a window controller.
 
 Input (keyboard & mouse) handling and drawing is handled by a helper object
-(MMTextViewHelper) to the current text view (MMTextView, MMAtsuiTextView, ...).
+(MMTextViewHelper) to the current text view (MMTextView, MMCoreTextView, ...).
 
 
 Distributed Object dangers:
@@ -104,6 +104,8 @@ message may arrive.
 2. When a modal loop is entered.  For example, when a user presses a Cmd-key
 the menu flashes briefly.  During this "flash" a modal loop is entered.
 
+3. From a secondary thread.
+
 Item 1 can cause a problem if MacVim sends a synchronous message and before a
 reply reaches MacVim another message is received.  From the source code it
 looks like the synchronous message blocks but in fact the other message is
@@ -119,8 +121,17 @@ afterwards.  If the boolean is already set when entering the call must somehow
 be delayed.  See processInput:forIdentifier: and processInputQueues: inside
 MMAppController for a concrete example.
 
+Item 3 may seem harmless since MacVim does not spawn any secondary threads.
+However, when an "open file" dialog is displayed, Cocoa spawns several new
+threads.  From then onwards, it seems that DO messages may arrive in a thread
+which isn't the "main thread" (or is it only notifications such as
+NSConnectionDidDieNotification that may arrive in secondary threads?).  The
+message
+-[NSObject performSelector:onThread:withObject:waitUntilDone:modes:]is often
+used to work around this problem (see e.g. -[MMVimController scheduleClose]).
+
 Another danger is that we must take care when releasing objects that Cocoa may
-be using.  See -[MMVimController connectionDidDie:] how MacVim releases
+be using.  See -[MMVimController scheduleClose] how MacVim releases
 MMVimControllers when the Vim process they control exits.
 
 
@@ -136,6 +147,7 @@ what they contain:
     MMVimView.*             Cocoa view object
     MMWindowController.*    Coordinates visual presentation
     MacVim.*                Code shared between MacVim and Vim
+    Miscellaneous.*         Miscellaneous code only used inside MacVim
     gui_macvim.m            Hooks from Vim
 
 
@@ -147,17 +159,14 @@ Nothing else needs to be installed in order to build MacVim.
 Steps to build MacVim.app (the text before the '$' shows the folder you should
 be in when executing these commands):
 
-1. Configure Vim
-    src/$ ./configure --enable-gui=macvim
+1. Configure Vim (call "./configure --help" to see a list of flags)
+    src/$ ./configure
 
-2. Build Vim executable
+2. Build
     src/$ make
-
-3. Build MacVim.app application bundle
-    src/MacVim/$ xcodebuild
 
 The application bundle can be found inside "src/MacVim/build/Release".
 
 
 Bjorn Winckler <bjorn.winckler@gmail.com>
-April 5, 2009
+December 9, 2009
