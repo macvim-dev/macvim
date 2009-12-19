@@ -242,7 +242,7 @@ debugStringForMessageQueue(NSArray *queue)
     float g = ((rgb>>8) & 0xff)/255.0f;
     float b = (rgb & 0xff)/255.0f;
 
-    return [NSColor colorWithCalibratedRed:r green:g blue:b alpha:1.0f];
+    return [NSColor colorWithDeviceRed:r green:g blue:b alpha:1.0f];
 }
 
 + (NSColor *)colorWithArgbInt:(unsigned)argb
@@ -252,7 +252,7 @@ debugStringForMessageQueue(NSArray *queue)
     float g = ((argb>>8) & 0xff)/255.0f;
     float b = (argb & 0xff)/255.0f;
 
-    return [NSColor colorWithCalibratedRed:r green:g blue:b alpha:a];
+    return [NSColor colorWithDeviceRed:r green:g blue:b alpha:a];
 }
 
 @end // NSColor (MMExtras)
