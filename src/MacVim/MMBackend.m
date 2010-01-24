@@ -431,7 +431,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         return YES;
     }
     @catch (NSException *ex) {
-        ASLogNotice(@"Connect backend failed: reason=%@", ex);
+        ASLogDebug(@"Connect backend failed: reason=%@", ex);
     }
 
     return NO;
@@ -595,9 +595,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             [appProxy processInput:outputQueue forIdentifier:identifier];
         }
         @catch (NSException *ex) {
-            ASLogNotice(@"processInput:forIdentifer failed: reason=%@", ex);
+            ASLogDebug(@"processInput:forIdentifer failed: reason=%@", ex);
             if (![connection isValid]) {
-                ASLogNotice(@"Connection is invalid, exit now!");
+                ASLogDebug(@"Connection is invalid, exit now!");
                 ASLogDebug(@"waitForAck=%d got_int=%d", waitForAck, got_int);
                 mch_exit(-1);
             }
@@ -664,7 +664,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             [appProxy processInput:outputQueue forIdentifier:identifier];
         }
         @catch (NSException *ex) {
-            ASLogNotice(@"CloseWindowMsgID send failed: reason=%@", ex);
+            ASLogDebug(@"CloseWindowMsgID send failed: reason=%@", ex);
         }
 
         // NOTE: If Cmd-w was pressed to close the window the menu is briefly
@@ -789,7 +789,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [dialogReturn release];  dialogReturn = nil;
     }
     @catch (NSException *ex) {
-        ASLogNotice(@"Exception: reason=%@", ex);
+        ASLogDebug(@"Exception: reason=%@", ex);
     }
 
     return (char *)s;
@@ -844,7 +844,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [dialogReturn release]; dialogReturn = nil;
     }
     @catch (NSException *ex) {
-        ASLogNotice(@"Exception: reason=%@", ex);
+        ASLogDebug(@"Exception: reason=%@", ex);
     }
 
     return retval;
@@ -1417,7 +1417,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         }
     }
     @catch (NSException *ex) {
-        ASLogNotice(@"Exception: reason=%@", ex);
+        ASLogDebug(@"Exception: reason=%@", ex);
         return NO;
     }
 
@@ -1436,7 +1436,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             list = [proxy serverList];
         }
         @catch (NSException *ex) {
-            ASLogNotice(@"serverList failed: reason=%@", ex);
+            ASLogDebug(@"serverList failed: reason=%@", ex);
         }
     } else {
         // We get here if a --remote flag is used before MacVim has started.
@@ -1507,7 +1507,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             return YES;
         }
         @catch (NSException *ex) {
-            ASLogNotice(@"addReply:server: failed: reason=%@", ex);
+            ASLogDebug(@"addReply:server: failed: reason=%@", ex);
         }
     } else {
         ASLogNotice(@"server2client failed; no client with id %d", port);

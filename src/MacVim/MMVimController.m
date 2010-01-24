@@ -348,7 +348,7 @@ static BOOL isUnsafeMessage(int msgid);
         [backendProxy processInput:msgid data:data];
     }
     @catch (NSException *ex) {
-        ASLogNotice(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
+        ASLogDebug(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
                 pid, identifier, MessageStrings[msgid], ex);
     }
 }
@@ -380,7 +380,7 @@ static BOOL isUnsafeMessage(int msgid);
     }
     @catch (NSException *ex) {
         sendOk = NO;
-        ASLogNotice(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
+        ASLogDebug(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
                 pid, identifier, MessageStrings[msgid], ex);
     }
     @finally {
@@ -412,7 +412,7 @@ static BOOL isUnsafeMessage(int msgid);
         ASLogDebug(@"eval(%@)=%@", expr, eval);
     }
     @catch (NSException *ex) {
-        ASLogNotice(@"evaluateExpression: failed: pid=%d id=%d reason=%@",
+        ASLogDebug(@"evaluateExpression: failed: pid=%d id=%d reason=%@",
                 pid, identifier, ex);
     }
 
@@ -429,7 +429,7 @@ static BOOL isUnsafeMessage(int msgid);
                                          errorString:errstr];
         ASLogDebug(@"eval(%@)=%@", expr, eval);
     } @catch (NSException *ex) {
-        ASLogNotice(@"evaluateExpressionCocoa: failed: pid=%d id=%d reason=%@",
+        ASLogDebug(@"evaluateExpressionCocoa: failed: pid=%d id=%d reason=%@",
                 pid, identifier, ex);
         *errstr = [ex reason];
     }
@@ -468,7 +468,7 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController processInputQueueDidFinish];
     }
     @catch (NSException *ex) {
-        ASLogNotice(@"Exception: pid=%d id=%d reason=%@", pid, identifier, ex);
+        ASLogDebug(@"Exception: pid=%d id=%d reason=%@", pid, identifier, ex);
     }
 }
 
@@ -859,7 +859,7 @@ static BOOL isUnsafeMessage(int msgid);
                     noteNewRecentFilePath:path];
     }
     @catch (NSException *ex) {
-        ASLogNotice(@"Exception: pid=%d id=%d reason=%@", pid, identifier, ex);
+        ASLogDebug(@"Exception: pid=%d id=%d reason=%@", pid, identifier, ex);
     }
     @finally {
         [conn setRequestTimeout:oldTimeout];
@@ -892,7 +892,7 @@ static BOOL isUnsafeMessage(int msgid);
         [backendProxy setDialogReturn:ret];
     }
     @catch (NSException *ex) {
-        ASLogNotice(@"setDialogReturn: failed: pid=%d id=%d reason=%@",
+        ASLogDebug(@"setDialogReturn: failed: pid=%d id=%d reason=%@",
                 pid, identifier, ex);
     }
 }

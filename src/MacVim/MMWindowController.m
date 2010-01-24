@@ -1004,7 +1004,7 @@
             reply = [backendProxy starRegisterToPasteboard:pb];
         }
         @catch (NSException *ex) {
-            ASLogNotice(@"starRegisterToPasteboard: failed: pid=%d reason=%@",
+            ASLogDebug(@"starRegisterToPasteboard: failed: pid=%d reason=%@",
                     [vimController pid], ex);
         }
     }
