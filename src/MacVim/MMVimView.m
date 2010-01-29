@@ -219,6 +219,19 @@ enum {
 
     [[NSColor secondarySelectedControlColor] set];
     [path stroke];
+
+    if ([self leftScrollbarVisible]) {
+        // If the left scrollbar is visible there is an empty square under it.
+        // Fill it in just like on the right hand corner.  The half pixel
+        // offset ensures the outline goes on the top and right side of the
+        // square; the left and bottom parts are clipped.
+        sizerRect = NSMakeRect(-.5,-.5,sw,sw);
+        path = [NSBezierPath bezierPathWithRect:sizerRect];
+        [[NSColor controlBackgroundColor] set];
+        [path fill];
+        [[NSColor secondarySelectedControlColor] set];
+        [path stroke];
+    }
 }
 
 - (MMTextView *)textView
