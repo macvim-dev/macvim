@@ -270,6 +270,7 @@
     // later).
     if (!setupDone) return;
 
+    [vimView markDirty];
     [[MMAppController sharedInstance] windowControllerWillOpen:self];
     [[self window] makeKeyAndOrderFront:self];
 }

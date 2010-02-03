@@ -191,6 +191,23 @@ enum {
 
 - (void)drawRect:(NSRect)rect
 {
+    if (isDirty) {
+        // Clear the entire view
+        CGContextRef ctx = [[NSGraphicsContext currentContext] graphicsPort];
+        NSRect rect = [self bounds];
+        NSColor *color = [textView defaultBackgroundColor];
+        CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+        CGContextSetRGBFillColor(ctx,
+                                 [color redComponent],
+                                 [color greenComponent],
+                                 [color blueComponent],
+                                 [color alphaComponent]);
+        CGContextFillRect(ctx, *(CGRect*)&rect);
+        CGContextSetBlendMode(ctx, kCGBlendModeNormal);
+
+        isDirty = NO;
+    }
+
     NSRect textViewFrame = [textView frame];
     if (!NSEqualRects(lastTextViewFrame, textViewFrame)) {
         // If the text view's frame changes we copy the contents of the old
@@ -625,6 +642,13 @@ enum {
     // See comment in setFrameSize: above.
     [super setFrame:frame];
     [self frameSizeMayHaveChanged];
+}
+
+- (void)markDirty
+{
+    // When the view is marked as dirty, the entire background will be cleared
+    // the next time the view is redrawn.
+    isDirty = YES;
 }
 
 @end // MMVimView
