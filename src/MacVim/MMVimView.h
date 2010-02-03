@@ -25,6 +25,7 @@
     BOOL                vimTaskSelectedTab;
     MMTextView          *textView;
     NSMutableArray      *scrollbars;
+    NSRect              lastTextViewFrame;
 }
 
 - (MMVimView *)initWithFrame:(NSRect)frame vimController:(MMVimController *)c;

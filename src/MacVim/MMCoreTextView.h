@@ -37,8 +37,6 @@
     unsigned                    maxlen;
     CGGlyph                     *glyphs;
     CGSize                      *advances;
-
-    NSRect                      lastClearRect;
 }
 
 - (id)initWithFrame:(NSRect)frame;

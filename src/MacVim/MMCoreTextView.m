@@ -567,21 +567,6 @@ defaultAdvanceForFont(CTFontRef fontRef)
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
     [context setShouldAntialias:antialias];
 
-    NSRect frame = [self frame];
-    if (!NSEqualRects(lastClearRect, frame)) {
-        // HACK! If the view frame changes then clear the entire frame
-        // otherwise the screen flickers e.g. when the window is resized.
-#if 1
-        [self clearAll];
-#else
-        float y = frame.size.height - lastClearRect.size.height;
-        if (y > 0 && y < frame.size.height) {
-            NSCopyBits(0, lastClearRect, NSMakePoint(0, y));
-        }
-#endif
-        lastClearRect = frame;
-    }
-
     id data;
     NSEnumerator *e = [drawData objectEnumerator];
     while ((data = [e nextObject]))
@@ -726,7 +711,7 @@ defaultAdvanceForFont(CTFontRef fontRef)
     // View is not flipped, instead the atsui code draws to a flipped image;
     // thus we need to 'flip' the coordinate here since the column number
     // increases in an up-to-down order.
-    point.y = [self frame].size.height - point.y;
+    point.y = [self bounds].size.height - point.y;
 
     NSPoint origin = { insetSize.width, insetSize.height };
 
@@ -801,7 +786,7 @@ defaultAdvanceForFont(CTFontRef fontRef)
 
 - (NSPoint)pointForRow:(int)row column:(int)col
 {
-    NSRect frame = [self frame];
+    NSRect frame = [self bounds];
     return NSMakePoint(
             col*cellSize.width + insetSize.width,
             frame.size.height - (row+1)*cellSize.height - insetSize.height);
@@ -811,7 +796,7 @@ defaultAdvanceForFont(CTFontRef fontRef)
           numColumns:(int)nc
 {
     NSRect rect;
-    NSRect frame = [self frame];
+    NSRect frame = [self bounds];
 
     rect.origin.x = col*cellSize.width + insetSize.width;
     rect.origin.y = frame.size.height - (row+nr)*cellSize.height -
@@ -825,7 +810,7 @@ defaultAdvanceForFont(CTFontRef fontRef)
 - (NSRect)rectFromRow:(int)row1 column:(int)col1
                 toRow:(int)row2 column:(int)col2
 {
-    NSRect frame = [self frame];
+    NSRect frame = [self bounds];
     return NSMakeRect(
             insetSize.width + col1*cellSize.width,
             frame.size.height - insetSize.height - (row2+1)*cellSize.height,
@@ -1069,7 +1054,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
    backgroundColor:(int)bg specialColor:(int)sp
 {
     CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
-    NSRect frame = [self frame];
+    NSRect frame = [self bounds];
     float x = col*cellSize.width + insetSize.width;
     float y = frame.size.height - insetSize.height - (1+row)*cellSize.height;
     float w = cellSize.width;
@@ -1232,7 +1217,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
 - (void)clearAll
 {
     CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
-    NSRect rect = [self frame];
+    NSRect rect = [self bounds];
     float r = [defaultBackgroundColor redComponent];
     float g = [defaultBackgroundColor greenComponent];
     float b = [defaultBackgroundColor blueComponent];
