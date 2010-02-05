@@ -193,18 +193,8 @@ enum {
 {
     if (isDirty) {
         // Clear the entire view
-        CGContextRef ctx = [[NSGraphicsContext currentContext] graphicsPort];
-        NSRect rect = [self bounds];
-        NSColor *color = [textView defaultBackgroundColor];
-        CGContextSetBlendMode(ctx, kCGBlendModeCopy);
-        CGContextSetRGBFillColor(ctx,
-                                 [color redComponent],
-                                 [color greenComponent],
-                                 [color blueComponent],
-                                 [color alphaComponent]);
-        CGContextFillRect(ctx, *(CGRect*)&rect);
-        CGContextSetBlendMode(ctx, kCGBlendModeNormal);
-
+        [[textView defaultBackgroundColor] set];
+        NSRectFill([self bounds]);
         isDirty = NO;
     }
 
@@ -215,7 +205,42 @@ enum {
         // Vim expects the contents of its view not to change unless Vim
         // changes it.  (Omitting this code causes the view contents to get
         // messed up e.g. when the left scrollbar is shown.)
-        NSCopyBits(0, lastTextViewFrame, textViewFrame.origin);
+        NSPoint pt = textViewFrame.origin;
+        CGFloat d = textViewFrame.size.height - lastTextViewFrame.size.height;
+        NSRect r = lastTextViewFrame;
+        if (d >= 0) {
+            // Thew view became larger.  Copy the old view to the top of the
+            // new view.
+            pt.y += d;
+            NSCopyBits(0, r, pt);
+
+            // Clear the part of the view that has been exposed.
+            r = textViewFrame;
+            r.size.height = d;
+            [[textView defaultBackgroundColor] set];
+            NSRectFill(r);
+
+            r = textViewFrame;
+            r.size.width -= lastTextViewFrame.size.width;
+            if (r.size.width > 0) {
+                // The width of the view has grown to the right (i.e. user
+                // clicked maximize button whilst holding Cmd).
+                r.origin.x += lastTextViewFrame.size.width;
+                NSRectFill(r);
+            }
+        } else {
+            // The view became smaller.
+            // TODO: Should copy the top of the old view into the new view, but
+            // this does not work since the view has already been resized and
+            // the top of the old view is lost.  Could perhaps work to cache
+            // the view to an offscreen surface before it resizes and then draw
+            // from that?
+            // As a temporary hack we just clear the view instead.
+            NSRectFill(textViewFrame);
+            // r.origin.y -= d;
+            // r.size.height = textViewFrame.size.height;
+        }
+
         lastTextViewFrame = textViewFrame;
     }
 
