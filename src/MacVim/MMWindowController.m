@@ -286,10 +286,10 @@
 }
 
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
-                          isReply:(BOOL)reply
+                     keepOnScreen:(BOOL)onScreen
 {
-    ASLogDebug(@"setTextDimensionsWithRows:%d columns:%d isLive:%d isReply:%d",
-               rows, cols, live, reply);
+    //ASLogDebug(@"setTextDimensionsWithRows:%d columns:%d isLive:%d "
+    //        "keepOnScreen:%d", rows, cols, live, onScreen);
 
     // NOTE: The only place where the (rows,columns) of the vim view are
     // modified is here and when entering/leaving full-screen.  Setting these
@@ -301,16 +301,12 @@
     // resize when this message is received.  We refrain from changing the view
     // size when this flag is set, otherwise the window might jitter when the
     // user drags to resize the window.
-    //
-    // The 'reply' flag indicates that this resize originated in MacVim and
-    // that Vim is now replying to that resize to make sure that it comes into
-    // effect.
 
     [vimView setDesiredRows:rows columns:cols];
 
     if (setupDone && !live) {
         shouldResizeVimView = YES;
-        keepOnScreen = !reply;
+        keepOnScreen = onScreen;
     }
 
     if (windowAutosaveKey) {
@@ -324,6 +320,24 @@
         [ud setInteger:cols forKey:MMAutosaveColumnsKey];
         [ud synchronize];
     }
+}
+
+- (void)zoomWithRows:(int)rows columns:(int)cols state:(int)state
+{
+    [self setTextDimensionsWithRows:rows
+                            columns:cols
+                             isLive:NO
+                       keepOnScreen:YES];
+
+    // NOTE: If state==0 then the window should be put in the non-zoomed
+    // "user state".  That is, move the window back to the last stored
+    // position.  If the window is in the zoomed state, the call to change the
+    // dimensions above will also reposition the window to ensure it fits on
+    // the screen.  However, since resizing of the window is delayed we also
+    // delay repositioning so that both happen at the same time (this avoid
+    // situations where the window woud appear to "jump").
+    if (!state && !NSEqualPoints(NSZeroPoint, userTopLeft))
+        shouldRestoreUserTopLeft = YES;
 }
 
 - (void)setTitle:(NSString *)title
@@ -818,36 +832,69 @@
     [vimView setFrameSize:[self contentSize]];
 }
 
-- (NSRect)windowWillUseStandardFrame:(NSWindow *)win
-                        defaultFrame:(NSRect)frame
+// This is not an NSWindow delegate method, our custom MMWindow class calls it
+// instead of the usual windowWillUseStandardFrame:defaultFrame:.
+- (IBAction)zoom:(id)sender
 {
-    // By default the window is maximized in the vertical direction only.
-    // Holding down the Cmd key maximizes the window in the horizontal
-    // direction.  If the MMZoomBoth user default is set, then the window
-    // maximizes in both directions by default, unless the Cmd key is held in
-    // which case the window only maximizes in the vertical direction.
-
-    NSEvent *event = [NSApp currentEvent];
-    BOOL cmdLeftClick = [event type] == NSLeftMouseUp
-            && [event modifierFlags] & NSCommandKeyMask;
-    BOOL zoomBoth = [[NSUserDefaults standardUserDefaults]
-            boolForKey:MMZoomBothKey];
-
-    // The "default frame" represents the maximal size of a zoomed window.
-    // Constrain this frame so that the content fits an even number of rows and
-    // columns.
-    frame = [self constrainFrame:frame];
-
-    if (!((zoomBoth && !cmdLeftClick) || (!zoomBoth && cmdLeftClick))) {
-        // Zoom in horizontal direction only.
-        NSRect currentFrame = [win frame];
-        frame.size.width = currentFrame.size.width;
-        frame.origin.x = currentFrame.origin.x;
+    NSScreen *screen = [decoratedWindow screen];
+    if (!screen) {
+        ASLogNotice(@"Window not on screen, zoom to main screen");
+        screen = [NSScreen mainScreen];
+        if (!screen) {
+            ASLogNotice(@"No main screen, abort zoom");
+            return;
+        }
     }
 
-    return frame;
-}
+    // Decide whether too zoom horizontally or not (always zoom vertically).
+    NSEvent *event = [NSApp currentEvent];
+    BOOL cmdLeftClick = [event type] == NSLeftMouseUp &&
+                        [event modifierFlags] & NSCommandKeyMask;
+    BOOL zoomBoth = [[NSUserDefaults standardUserDefaults]
+                                                    boolForKey:MMZoomBothKey];
+    zoomBoth = (zoomBoth && !cmdLeftClick) || (!zoomBoth && cmdLeftClick);
 
+    // Figure out how many rows/columns can fit while zoomed.
+    int rowsZoomed, colsZoomed;
+    NSRect maxFrame = [screen visibleFrame];
+    NSRect contentRect = [decoratedWindow contentRectForFrameRect:maxFrame];
+    [vimView constrainRows:&rowsZoomed
+                   columns:&colsZoomed
+                    toSize:contentRect.size];
+
+    int curRows, curCols;
+    [[vimView textView] getMaxRows:&curRows columns:&curCols];
+
+    int rows, cols;
+    BOOL isZoomed = zoomBoth ? curRows >= rowsZoomed && curCols >= colsZoomed
+                             : curRows >= rowsZoomed;
+    if (isZoomed) {
+        rows = userRows > 0 ? userRows : curRows;
+        cols = userCols > 0 ? userCols : curCols;
+    } else {
+        rows = rowsZoomed;
+        cols = zoomBoth ? colsZoomed : curCols;
+
+        if (curRows+2 < rows || curCols+2 < cols) {
+            // The window is being zoomed so save the current "user state".
+            // Note that if the window does not enlarge by a 'significant'
+            // number of rows/columns then we don't save the current state.
+            // This is done to take into account toolbar/scrollbars
+            // showing/hiding.
+            userRows = curRows;
+            userCols = curCols;
+            NSRect frame = [decoratedWindow frame];
+            userTopLeft = NSMakePoint(frame.origin.x, NSMaxY(frame));
+        }
+    }
+
+    // NOTE: Instead of resizing the window immediately we send a zoom message
+    // to the backend so that it gets a chance to resize before the window
+    // does.  This avoids problems with the window flickering when zooming.
+    int info[3] = { rows, cols, !isZoomed };
+    NSData *data = [NSData dataWithBytes:info length:3*sizeof(int)];
+    [vimController sendMessage:ZoomMsgID data:data];
+}
 
 
 
@@ -912,6 +959,14 @@
     contentRect.size = contentSize;
 
     NSRect newFrame = [decoratedWindow frameRectForContentRect:contentRect];
+
+    if (shouldRestoreUserTopLeft) {
+        // Restore user top left window position (which is saved when zooming).
+        CGFloat dy = userTopLeft.y - NSMaxY(newFrame);
+        newFrame.origin.x = userTopLeft.x;
+        newFrame.origin.y += dy;
+        shouldRestoreUserTopLeft = NO;
+    }
 
     if ([decoratedWindow screen]) {
         // Ensure that the window fits inside the visible part of the screen.

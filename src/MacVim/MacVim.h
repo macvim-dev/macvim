@@ -190,6 +190,7 @@ enum {
     ShowDialogMsgID,
     NetBeansMsgID,
     SetMarkedTextMsgID,
+    ZoomMsgID,
     LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
 };
 

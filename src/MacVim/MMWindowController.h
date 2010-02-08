@@ -27,6 +27,7 @@
     MMVimView           *vimView;
     BOOL                setupDone;
     BOOL                shouldResizeVimView;
+    BOOL                shouldRestoreUserTopLeft;
     int                 updateToolbarFlag;
     BOOL                keepOnScreen;
     BOOL                fullscreenEnabled;
@@ -34,6 +35,9 @@
     MMFullscreenWindow  *fullscreenWindow;
     MMWindow            *decoratedWindow;
     NSString            *lastSetTitle;
+    int                 userRows;
+    int                 userCols;
+    NSPoint             userTopLeft;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
@@ -47,7 +51,8 @@
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
-                          isReply:(BOOL)reply;
+                     keepOnScreen:(BOOL)onScreen;
+- (void)zoomWithRows:(int)rows columns:(int)cols state:(int)state;
 - (void)setTitle:(NSString *)title;
 - (void)setDocumentFilename:(NSString *)filename;
 - (void)setToolbar:(NSToolbar *)toolbar;
@@ -84,5 +89,6 @@
 - (IBAction)fontSizeUp:(id)sender;
 - (IBAction)fontSizeDown:(id)sender;
 - (IBAction)findAndReplace:(id)sender;
+- (IBAction)zoom:(id)sender;
 
 @end

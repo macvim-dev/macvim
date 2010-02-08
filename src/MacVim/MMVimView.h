@@ -25,7 +25,6 @@
     BOOL                vimTaskSelectedTab;
     MMTextView          *textView;
     NSMutableArray      *scrollbars;
-    NSRect              lastTextViewFrame;
     BOOL                isDirty;
 }
 

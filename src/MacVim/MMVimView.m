@@ -198,52 +198,6 @@ enum {
         isDirty = NO;
     }
 
-    NSRect textViewFrame = [textView frame];
-    if (!NSEqualRects(lastTextViewFrame, textViewFrame)) {
-        // If the text view's frame changes we copy the contents of the old
-        // frame to the origin of the new frame.  The reason for this is that
-        // Vim expects the contents of its view not to change unless Vim
-        // changes it.  (Omitting this code causes the view contents to get
-        // messed up e.g. when the left scrollbar is shown.)
-        NSPoint pt = textViewFrame.origin;
-        CGFloat d = textViewFrame.size.height - lastTextViewFrame.size.height;
-        NSRect r = lastTextViewFrame;
-        if (d >= 0) {
-            // Thew view became larger.  Copy the old view to the top of the
-            // new view.
-            pt.y += d;
-            NSCopyBits(0, r, pt);
-
-            // Clear the part of the view that has been exposed.
-            r = textViewFrame;
-            r.size.height = d;
-            [[textView defaultBackgroundColor] set];
-            NSRectFill(r);
-
-            r = textViewFrame;
-            r.size.width -= lastTextViewFrame.size.width;
-            if (r.size.width > 0) {
-                // The width of the view has grown to the right (i.e. user
-                // clicked maximize button whilst holding Cmd).
-                r.origin.x += lastTextViewFrame.size.width;
-                NSRectFill(r);
-            }
-        } else {
-            // The view became smaller.
-            // TODO: Should copy the top of the old view into the new view, but
-            // this does not work since the view has already been resized and
-            // the top of the old view is lost.  Could perhaps work to cache
-            // the view to an offscreen surface before it resizes and then draw
-            // from that?
-            // As a temporary hack we just clear the view instead.
-            NSRectFill(textViewFrame);
-            // r.origin.y -= d;
-            // r.size.height = textViewFrame.size.height;
-        }
-
-        lastTextViewFrame = textViewFrame;
-    }
-
     // On Leopard, we want to have a textured window background for nice
     // looking tabs. However, the textured window background looks really
     // weird behind the window resize throbber, so emulate the look of an

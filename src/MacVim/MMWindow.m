@@ -142,33 +142,11 @@
 
 - (IBAction)zoom:(id)sender
 {
-    NSScreen *screen = [self screen];
-    if (!screen) {
-        ASLogNotice(@"Window not on screen, zoom to main screen");
-        screen = [NSScreen mainScreen];
-        if (!screen) {
-            ASLogNotice(@"No main screen, abort zoom");
-            return;
-        }
-    }
+    // NOTE: We shortcut the usual zooming behavior and provide custom zooming
+    // in the window controller.
 
-    NSRect frame = [self frame];
-    NSRect defaultFrame = [screen visibleFrame];
-    defaultFrame = [[self delegate] windowWillUseStandardFrame:self
-                                                  defaultFrame:defaultFrame];
-
-    // TODO: Check if width & height differs by cellSize or more.
-    BOOL isZoomed = ((abs(frame.size.width - defaultFrame.size.width) < 8) &&
-                     (abs(frame.size.height - defaultFrame.size.height) < 8));
-
-    if (isZoomed) {
-        if (userFrame.size.width > 0 && userFrame.size.height > 0)
-            defaultFrame = userFrame;
-    } else {
-        userFrame = frame;
-    }
-
-    [self setFrame:defaultFrame display:YES];
+    // (Use performSelector:: to avoid compilation warning.)
+    [[self delegate] performSelector:@selector(zoom:) withObject:sender];
 }
 
 @end // MMWindow

@@ -584,10 +584,15 @@ static BOOL isUnsafeMessage(int msgid);
         int rows = *((int*)bytes);  bytes += sizeof(int);
         int cols = *((int*)bytes);  bytes += sizeof(int);
 
+        // NOTE: When a resize message originated in the frontend, Vim
+        // acknowledges it with a reply message.  When this happens the window
+        // should not move (the frontend would already have moved the window).
+        BOOL onScreen = SetTextDimensionsReplyMsgID!=msgid;
+
         [windowController setTextDimensionsWithRows:rows
                                  columns:cols
                                   isLive:(LiveResizeMsgID==msgid)
-                                 isReply:(SetTextDimensionsReplyMsgID==msgid)];
+                            keepOnScreen:onScreen];
     } else if (SetWindowTitleMsgID == msgid) {
         const void *bytes = [data bytes];
         int len = *((int*)bytes);  bytes += sizeof(int);
@@ -821,6 +826,15 @@ static BOOL isUnsafeMessage(int msgid);
         NSDictionary *dict = [NSDictionary dictionaryWithData:data];
         if (dict)
             [self handleShowDialog:dict];
+    } else if (ZoomMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int rows = *((int*)bytes);  bytes += sizeof(int);
+        int cols = *((int*)bytes);  bytes += sizeof(int);
+        int state = *((int*)bytes);  bytes += sizeof(int);
+
+        [windowController zoomWithRows:rows
+                               columns:cols
+                                 state:state];
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {

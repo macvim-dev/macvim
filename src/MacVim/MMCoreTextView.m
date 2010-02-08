@@ -562,7 +562,8 @@ defaultAdvanceForFont(CTFontRef fontRef)
 
 - (void)drawRect:(NSRect)rect
 {
-    //ASLogNotice(@"drawData count=%d", [drawData count]);
+    //ASLogTmp(@"count=%d  rect=%@", [drawData count],
+    //        NSStringFromRect(rect));
 
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
     [context setShouldAntialias:antialias];
@@ -593,7 +594,7 @@ defaultAdvanceForFont(CTFontRef fontRef)
     // - Desired rows/columns shold not be 'too small'
 
     // Constrain the desired size to the given size.  Values for the minimum
-    // rows and columns is taken from Vim.
+    // rows and columns are taken from Vim.
     NSSize desiredSize = [self desiredSize];
     int desiredRows = maxRows;
     int desiredCols = maxColumns;

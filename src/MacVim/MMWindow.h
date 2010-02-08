@@ -14,7 +14,6 @@
 
 @interface MMWindow : NSWindow {
     NSBox       *tablineSeparator;
-    NSRect      userFrame;
 }
 
 - (id)initWithContentRect:(NSRect)rect

@@ -93,6 +93,7 @@ char *MessageStrings[] =
     "ShowDialogMsgID",
     "NetBeansMsgID",
     "SetMarkedTextMsgID",
+    "ZoomMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 

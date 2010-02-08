@@ -1937,6 +1937,21 @@ static void netbeansReadCallback(CFSocketRef s,
 #endif
     } else if (SetMarkedTextMsgID == msgid) {
         [self handleMarkedText:data];
+    } else if (ZoomMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+        int rows = *((int*)bytes);  bytes += sizeof(int);
+        int cols = *((int*)bytes);  bytes += sizeof(int);
+        //int zoom = *((int*)bytes);  bytes += sizeof(int);
+
+        // NOTE: The frontend sends zoom messages here causing us to
+        // immediately resize the shell and mirror the message back to the
+        // frontend.  This is done to ensure that the draw commands reach the
+        // frontend before the window actually changes size in order to avoid
+        // flickering.  (Also see comment in SetTextDimensionsReplyMsgID
+        // regarding resizing.)
+        [self queueMessage:ZoomMsgID data:data];
+        gui_resize_shell(cols, rows);
     } else {
         ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }
