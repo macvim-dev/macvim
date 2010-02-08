@@ -1277,7 +1277,13 @@ static struct vimoption
 			    (char_u *)NULL, PV_NONE,
 #endif
 			    {(char_u *)50L, (char_u *)0L} SCRIPTID_INIT},
-    {"guioptions",  "go",   P_STRING|P_VI_DEF|P_RALL|P_FLAGLIST,
+    {"guioptions",  "go",   P_STRING|P_VI_DEF|P_RALL|P_FLAGLIST
+# ifdef FEAT_GUI_MACVIM
+	/* Scrollbars etc. may change the view, if this happens without a
+	 * redraw the display may get corrupted, so always redraw. */
+			    |P_RCLR
+# endif
+			    ,
 #if defined(FEAT_GUI)
 			    (char_u *)&p_go, PV_NONE,
 # if defined(UNIX) && !defined(MACOS)

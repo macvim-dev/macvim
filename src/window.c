@@ -1097,7 +1097,12 @@ win_split_ins(size, flags, newwin, dir)
      */
     redraw_win_later(wp, NOT_VALID);
     wp->w_redr_status = TRUE;
+#ifdef FEAT_GUI_MACVIM
+    /* The view may have moved, so clear all or display may get corrupted. */
+    redraw_win_later(oldwin, CLEAR);
+#else
     redraw_win_later(oldwin, NOT_VALID);
+#endif
     oldwin->w_redr_status = TRUE;
 
     if (need_status)
@@ -5575,7 +5580,12 @@ win_new_width(wp, width)
 	update_topline();
 	curs_columns(TRUE);	/* validate w_wrow */
     }
+#ifdef FEAT_GUI_MACVIM
+    /* The view may have moved, so clear all or display may get corrupted. */
+    redraw_win_later(wp, CLEAR);
+#else
     redraw_win_later(wp, NOT_VALID);
+#endif
     wp->w_redr_status = TRUE;
 }
 #endif
