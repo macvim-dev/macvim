@@ -447,7 +447,8 @@
 
         NSSize originalSize = [vimView frame].size;
         NSSize contentSize = [vimView desiredSize];
-        contentSize = [self constrainContentSizeToScreenSize:contentSize];
+        if (keepOnScreen)
+            contentSize = [self constrainContentSizeToScreenSize:contentSize];
         contentSize = [vimView constrainRows:NULL columns:NULL
                                       toSize:contentSize];
         [vimView setFrameSize:contentSize];
@@ -799,28 +800,6 @@
     }
 }
 
-- (NSSize)windowWillResize:(NSWindow *)win toSize:(NSSize)proposedFrameSize
-{
-    // Make sure the window isn't resized to be larger than the "visible frame"
-    // for the current screen.  Do this here instead of setting the window max
-    // size in updateResizeConstraints since the screen's visible frame may
-    // change at any time (dock could move, resolution could change, window
-    // could be moved to another screen, ...).
-    if (![win screen])
-        return proposedFrameSize;
-
-    // NOTE: Not called in full-screen mode so use "visibleFrame" instead of
-    // "frame".
-    NSRect maxFrame = [self constrainFrame:[[win screen] visibleFrame]];
-
-    if (proposedFrameSize.width > maxFrame.size.width)
-        proposedFrameSize.width = maxFrame.size.width;
-    if (proposedFrameSize.height > maxFrame.size.height)
-        proposedFrameSize.height = maxFrame.size.height;
-
-    return proposedFrameSize;
-}
-
 - (void)windowDidResize:(id)sender
 {
     if (!setupDone || fullscreenEnabled) return;
@@ -968,8 +947,10 @@
         shouldRestoreUserTopLeft = NO;
     }
 
-    if ([decoratedWindow screen]) {
+    if (onScreen && [decoratedWindow screen]) {
         // Ensure that the window fits inside the visible part of the screen.
+        // If there are more than one screen the window will be moved to fit
+        // entirely in the screen that most of it occupies.
         // NOTE: Not called in full-screen mode so use "visibleFrame' instead
         // of "frame".
         NSRect maxFrame = [[decoratedWindow screen] visibleFrame];
@@ -984,12 +965,14 @@
             newFrame.origin.y = maxFrame.origin.y;
         }
 
-        if (onScreen) {
-            if (newFrame.origin.y < maxFrame.origin.y)
-                newFrame.origin.y = maxFrame.origin.y;
-            if (NSMaxX(newFrame) > NSMaxX(maxFrame))
-                newFrame.origin.x = NSMaxX(maxFrame) - newFrame.size.width;
-        }
+        if (newFrame.origin.y < maxFrame.origin.y)
+            newFrame.origin.y = maxFrame.origin.y;
+        if (NSMaxY(newFrame) > NSMaxY(maxFrame))
+            newFrame.origin.y = NSMaxY(maxFrame) - newFrame.size.height;
+        if (newFrame.origin.x < maxFrame.origin.x)
+            newFrame.origin.x = maxFrame.origin.x;
+        if (NSMaxX(newFrame) > NSMaxX(maxFrame))
+            newFrame.origin.x = NSMaxX(maxFrame) - newFrame.size.width;
     }
 
     [decoratedWindow setFrame:newFrame display:YES];
