@@ -207,30 +207,53 @@ defaultLineHeightForFont(NSFont *font)
 
 - (NSRect)rectForRowsInRange:(NSRange)range
 {
-    NSRect rect = { 0, 0, 0, 0 };
+    // Compute rect whose vertical dimensions cover the rows in the given
+    // range.
+    // NOTE: The rect should be in _flipped_ coordinates and the first row must
+    // include the top inset as well.  (This method is only used to place the
+    // scrollbars inside MMVimView.)
+
+    NSRect rect = { {0, 0}, {0, 0} };
     unsigned start = range.location > maxRows ? maxRows : range.location;
     unsigned length = range.length;
 
     if (start + length > maxRows)
         length = maxRows - start;
 
-    rect.origin.y = cellSize.height * start + insetSize.height;
-    rect.size.height = cellSize.height * length;
+    if (start > 0) {
+        rect.origin.y = cellSize.height * start + insetSize.height;
+        rect.size.height = cellSize.height * length;
+    } else {
+        // Include top inset
+        rect.origin.y = 0;
+        rect.size.height = cellSize.height * length + insetSize.height;
+    }
 
     return rect;
 }
 
 - (NSRect)rectForColumnsInRange:(NSRange)range
 {
-    NSRect rect = { 0, 0, 0, 0 };
+    // Compute rect whose horizontal dimensions cover the columns in the given
+    // range.
+    // NOTE: The first column must include the left inset.  (This method is
+    // only used to place the scrollbars inside MMVimView.)
+
+    NSRect rect = { {0, 0}, {0, 0} };
     unsigned start = range.location > maxColumns ? maxColumns : range.location;
     unsigned length = range.length;
 
     if (start+length > maxColumns)
         length = maxColumns - start;
 
-    rect.origin.x = cellSize.width * start + insetSize.width;
-    rect.size.width = cellSize.width * length;
+    if (start > 0) {
+        rect.origin.x = cellSize.width * start + insetSize.width;
+        rect.size.width = cellSize.width * length;
+    } else {
+        // Include left inset
+        rect.origin.x = 0;
+        rect.size.width = cellSize.width * length + insetSize.width;
+    }
 
     return rect;
 }
