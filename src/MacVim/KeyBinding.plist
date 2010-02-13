@@ -29,8 +29,14 @@
 	<string>insertBackTab:</string>
 	<key>^ </key>
 	<string>keySpace:</string>
+	<!-- Alt+Space can be bound without the following entry.  However, if
+	     we add this entry then Alt+Space does not work in Keyboard Layouts
+	     (e.g. French Dvorak assigns it to underscore but it will produce
+	     space if this entry is included) -->
+	<!--
 	<key>~ </key>
 	<string>keySpace:</string>
+	-->
 	<key>$ </key>
 	<string>keySpace:</string>
 	<key>^~ </key>
