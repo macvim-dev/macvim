@@ -144,6 +144,7 @@ defaultLineHeightForFont(NSFont *font)
 
     [self disposeAtsuStyles];
     [font release];  font = nil;
+    [fontWide release];  fontWide = nil;
     [defaultBackgroundColor release];  defaultBackgroundColor = nil;
     [defaultForegroundColor release];  defaultForegroundColor = nil;
 
@@ -288,6 +289,8 @@ defaultLineHeightForFont(NSFont *font)
     if (!newFont) {
         if (font) [self setWideFont:font];
     } else if (newFont != fontWide) {
+        [fontWide release];
+
         float pointSize = [newFont pointSize];
         NSFontDescriptor *desc = [newFont fontDescriptor];
         NSDictionary *dictWide = [NSDictionary
