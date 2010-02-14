@@ -442,6 +442,11 @@
     // problems arise when showing toolbar and scrollbar at the same time, i.e.
     // on "set go+=rT".
 
+    // Update toolbar before resizing, since showing the toolbar may require
+    // the view size to become smaller.
+    if (updateToolbarFlag != 0)
+        [self updateToolbar];
+
     if (shouldResizeVimView) {
         shouldResizeVimView = NO;
 
@@ -470,9 +475,6 @@
 
         keepOnScreen = NO;
     }
-
-    if (updateToolbarFlag != 0)
-        [self updateToolbar];
 }
 
 - (void)showTabBar:(BOOL)on

@@ -2229,8 +2229,6 @@ static void netbeansReadCallback(CFSocketRef s,
     }
 
     set_option_value((char_u*)"guioptions", 0, go, 0);
-
-    [self redrawScreen];
 }
 
 - (void)handleScrollbarEvent:(NSData *)data
