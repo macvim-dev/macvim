@@ -1392,13 +1392,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)newFileHere:(NSPasteboard *)pboard userData:(NSString *)userData
               error:(NSString **)error
 {
-    if (![[pboard types] containsObject:NSStringPboardType]) {
-        ASLogNotice(@"Pasteboard contains no NSStringPboardType");
+    if (![[pboard types] containsObject:NSFilenamesPboardType]) {
+        ASLogNotice(@"Pasteboard contains no NSFilenamesPboardType");
         return;
     }
 
-    NSString *path = [pboard stringForType:NSStringPboardType];
-    path = [path stringByExpandingTildeInPath];
+    NSArray *filenames = [pboard propertyListForType:NSFilenamesPboardType];
+    NSString *path = [filenames lastObject];
 
     BOOL dirIndicator;
     if (![[NSFileManager defaultManager] fileExistsAtPath:path
