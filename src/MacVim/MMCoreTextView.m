@@ -159,6 +159,7 @@ defaultAdvanceForFont(CTFontRef fontRef)
 - (void)dealloc
 {
     [font release];  font = nil;
+    [fontWide release];  fontWide = nil;
     [defaultBackgroundColor release];  defaultBackgroundColor = nil;
     [defaultForegroundColor release];  defaultForegroundColor = nil;
     [drawData release];  drawData = nil;
@@ -335,6 +336,16 @@ defaultAdvanceForFont(CTFontRef fontRef)
 
 - (void)setWideFont:(NSFont *)newFont
 {
+    if (!newFont) {
+        // Use the normal font as the wide font (note that the normal font may
+        // very well include wide characters.)
+        if (font) [self setWideFont:font];
+    } else if (newFont != fontWide) {
+        // NOTE: No need to set point size etc. since this is taken from the
+        // regular font when drawing.
+        [fontWide release];
+        fontWide = [newFont retain];
+    }
 }
 
 - (NSFont *)font
@@ -344,7 +355,7 @@ defaultAdvanceForFont(CTFontRef fontRef)
 
 - (NSFont *)fontWide
 {
-    return nil;
+    return fontWide;
 }
 
 - (NSSize)cellSize
@@ -1156,8 +1167,8 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
     for (i = 0; i < length; ++i)
         advances[i].width = w;
 
-    CTFontRef fontRef = (CTFontRef)[font retain];
-
+    CTFontRef fontRef = (CTFontRef)(flags & DRAW_WIDE ? [fontWide retain]
+                                                      : [font retain]);
     unsigned traits = 0;
     if (flags & DRAW_ITALIC)
         traits |= kCTFontItalicTrait;

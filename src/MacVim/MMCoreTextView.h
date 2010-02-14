@@ -23,6 +23,7 @@
     NSColor                     *defaultForegroundColor;
     NSSize                      cellSize;
     NSFont                      *font;
+    NSFont                      *fontWide;
     float                       linespace;
 
     // From NSTextView
