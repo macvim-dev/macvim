@@ -3833,6 +3833,18 @@ im_preedit_end_macvim()
     im_show_info();
 }
 
+#ifdef FEAT_GUI_MACVIM
+    void
+im_preedit_abandon_macvim()
+{
+    /* Abandon preedit text, don't send any backspace sequences. */
+    im_preedit_cursor = 0;
+    im_preedit_trailing = 0;
+
+    im_preedit_end_macvim();
+}
+#endif
+
 /*
  * Callback invoked after changes to the preedit string.  If the preedit
  * string was empty before, remember the preedit start column so we know

@@ -43,7 +43,8 @@ static float MMDragAreaSize = 73.0f;
 - (void)setCursor;
 - (NSRect)trackingRect;
 - (BOOL)inputManagerHandleMouseEvent:(NSEvent *)event;
-- (void)sendMarkedText:(NSString *)text position:(unsigned)pos;
+- (void)sendMarkedText:(NSString *)text position:(int32_t)pos;
+- (void)abandonMarkedText;
 @end
 
 
@@ -813,6 +814,11 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 - (void)activateIm:(BOOL)enable
 {
     ASLogInfo(@"Activate IM=%d", enable);
+
+    // HACK: If there is marked text when switching IM it will be inserted as
+    // normal text.  To avoid this we abandon the marked text before switching.
+    [self abandonMarkedText];
+
     imState = enable;
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
@@ -1114,7 +1120,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     return NO;
 }
 
-- (void)sendMarkedText:(NSString *)text position:(unsigned)pos
+- (void)sendMarkedText:(NSString *)text position:(int32_t)pos
 {
     if (![self useInlineIm])
         return;
@@ -1123,7 +1129,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     unsigned len = text == nil ? 0
                     : [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
 
-    [data appendBytes:&pos length:sizeof(unsigned)];
+    [data appendBytes:&pos length:sizeof(int32_t)];
     [data appendBytes:&len length:sizeof(unsigned)];
     if (len > 0) {
         [data appendBytes:[text UTF8String] length:len];
@@ -1131,6 +1137,17 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     }
 
     [[self vimController] sendMessage:SetMarkedTextMsgID data:data];
+}
+
+- (void)abandonMarkedText
+{
+    [self unmarkText];
+
+    // Send an empty marked text message with position set to -1 to indicate
+    // that the marked text should be abandoned.  (If pos is set to 0 Vim will
+    // send backspace sequences to delete the old marked text.)
+    [self sendMarkedText:nil position:-1];
+    [[NSInputManager currentInputManager] markedTextAbandoned:self];
 }
 
 @end // MMTextViewHelper (Private)
