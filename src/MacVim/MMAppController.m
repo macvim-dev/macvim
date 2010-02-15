@@ -117,7 +117,6 @@ typedef struct
 #endif
 - (void)handleGetURLEvent:(NSAppleEventDescriptor *)event
                replyEvent:(NSAppleEventDescriptor *)reply;
-- (int)findLaunchingProcessWithoutArguments;
 - (MMVimController *)findUnusedEditor;
 - (NSMutableDictionary *)extractArgumentsFromOdocEvent:
     (NSAppleEventDescriptor *)desc;
@@ -139,6 +138,8 @@ typedef struct
 - (void)reapChildProcesses:(id)sender;
 - (void)processInputQueues:(id)sender;
 - (void)addVimController:(MMVimController *)vc;
+- (NSDictionary *)convertVimControllerArguments:(NSDictionary *)args
+                                  toCommandLine:(NSArray **)cmdline;
 - (NSScreen *)screenContainingPoint:(NSPoint)pt;
 
 #ifdef MM_ENABLE_PLUGINS
@@ -1715,16 +1716,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 }
 
-
-- (int)findLaunchingProcessWithoutArguments
-{
-    NSArray *keys = [pidArguments allKeysForObject:[NSNull null]];
-    if ([keys count] > 0)
-        return [[keys objectAtIndex:0] intValue];
-
-    return -1;
-}
-
 - (MMVimController *)findUnusedEditor
 {
     NSEnumerator *e = [vimControllers objectEnumerator];
@@ -2021,6 +2012,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     MMVimController *vc = [self findUnusedEditor];
     if (vc) {
         // Open files in an already open window.
+        // TODO: If the file is encrypted (with -x) then opening in an unused
+        // window will fail if there are more arguments than just the filename
+        // (the same goes with cached Vim controllers).
         [[[vc windowController] window] makeKeyAndOrderFront:self];
         [vc passArguments:arguments];
     } else if ((vc = [self takeVimControllerFromCache])) {
@@ -2030,15 +2024,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [vc passArguments:arguments];
         [[vc backendProxy] acknowledgeConnection];
     } else {
-        // Open files in a launching Vim process or start a new process.  This
-        // may take 1-2 seconds so there will be a visible delay before the
-        // window appears on screen.
-        int pid = [self findLaunchingProcessWithoutArguments];
-        if (-1 == pid) {
-            pid = [self launchVimProcessWithArguments:nil];
-            if (-1 == pid)
-                return NO;
-        }
+        NSArray *cmdline = nil;
+        arguments = [self convertVimControllerArguments:arguments
+                                          toCommandLine:&cmdline];
+        int pid = [self launchVimProcessWithArguments:cmdline];
+        if (-1 == pid)
+            return NO;
 
         // TODO: If the Vim process fails to start, or if it changes PID,
         // then the memory allocated for these parameters will leak.
@@ -2383,6 +2374,104 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         if (args)
             [pidArguments removeObjectForKey:pidKey];
     }
+}
+
+- (NSDictionary *)convertVimControllerArguments:(NSDictionary *)args
+                                  toCommandLine:(NSArray **)cmdline
+{
+    // Take all arguments out of 'args' and put them on an array suitable to
+    // pass as arguments to launchVimProcessWithArguments:.  The untouched
+    // dictionary items are returned in a new autoreleased dictionary.
+
+    if (cmdline)
+        *cmdline = nil;
+
+    NSArray *filenames = [args objectForKey:@"filenames"];
+    int numFiles = filenames ? [filenames count] : 0;
+    BOOL openFiles = ![[args objectForKey:@"dontOpen"] boolValue];
+
+    if (numFiles <= 0 || !openFiles)
+        return args;
+
+    NSMutableArray *a = [NSMutableArray array];
+    NSMutableDictionary *d = [[args mutableCopy] autorelease];
+
+    // Search for text using "+/text".
+    NSString *searchText = [args objectForKey:@"searchText"];
+    if (searchText) {
+        // TODO: If the search pattern is not found an error is shown when
+        // starting.  Figure out a way to get rid of this message (The help
+        // says to use ':silent exe "normal /pat\<CR>"' but this does not
+        // work.)
+        [a addObject:[NSString stringWithFormat:@"+/%@", searchText]];
+
+        [d removeObjectForKey:@"searchText"];
+    }
+
+    // Position cursor using "+line" or "-c :cal cursor(line,column)".
+    NSString *lineString = [args objectForKey:@"cursorLine"];
+    if (lineString && [lineString intValue] > 0) {
+        NSString *columnString = [args objectForKey:@"cursorColumn"];
+        if (columnString && [columnString intValue] > 0) {
+            [a addObject:@"-c"];
+            [a addObject:[NSString stringWithFormat:@":cal cursor(%@,%@)",
+                          lineString, columnString]];
+
+            [d removeObjectForKey:@"cursorColumn"];
+        } else {
+            [a addObject:[NSString stringWithFormat:@"+%@", lineString]];
+        }
+
+        [d removeObjectForKey:@"cursorLine"];
+    }
+
+    // Set selection using normal mode commands.
+    NSString *rangeString = [args objectForKey:@"selectionRange"];
+    if (rangeString) {
+        NSRange r = NSRangeFromString(rangeString);
+        [a addObject:@"-c"];
+        if (r.length > 0) {
+            // Select given range.
+            [a addObject:[NSString stringWithFormat:@"norm %dGV%dGz.0",
+                                                NSMaxRange(r), r.location]];
+        } else {
+            // Position cursor on start of range.
+            [a addObject:[NSString stringWithFormat:@"norm %dGz.0",
+                                                                r.location]];
+        }
+
+        [d removeObjectForKey:@"selectionRange"];
+    }
+
+    // Choose file layout using "-[o|O|p]".
+    int layout = [[args objectForKey:@"layout"] intValue];
+    switch (layout) {
+        case MMLayoutHorizontalSplit: [a addObject:@"-o"]; break;
+        case MMLayoutVerticalSplit:   [a addObject:@"-O"]; break;
+        case MMLayoutTabs:            [a addObject:@"-p"]; break;
+    }
+    [d removeObjectForKey:@"layout"];
+
+
+    // Last of all add the names of all files to open (DO NOT add more args
+    // after this point).
+    [a addObjectsFromArray:filenames];
+
+    if ([args objectForKey:@"remoteID"]) {
+        // These files should be edited remotely so keep the filenames on the
+        // argument list -- they will need to be passed back to Vim when it
+        // checks in.  Also set the 'dontOpen' flag or the files will be
+        // opened twice.
+        [d setObject:[NSNumber numberWithBool:YES] forKey:@"dontOpen"];
+    } else {
+        [d removeObjectForKey:@"dontOpen"];
+        [d removeObjectForKey:@"filenames"];
+    }
+
+    if (cmdline)
+        *cmdline = a;
+
+    return d;
 }
 
 - (NSScreen *)screenContainingPoint:(NSPoint)pt
