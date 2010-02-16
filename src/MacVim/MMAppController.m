@@ -107,7 +107,8 @@ typedef struct
 
 @interface MMAppController (Private)
 - (MMVimController *)topmostVimController;
-- (int)launchVimProcessWithArguments:(NSArray *)args;
+- (int)launchVimProcessWithArguments:(NSArray *)args
+                    workingDirectory:(NSString *)cwd;
 - (NSArray *)filterFilesAndNotify:(NSArray *)files;
 - (NSArray *)filterOpenFiles:(NSArray *)filenames
                openFilesDict:(NSDictionary **)openFiles;
@@ -139,6 +140,7 @@ typedef struct
 - (void)addVimController:(MMVimController *)vc;
 - (NSDictionary *)convertVimControllerArguments:(NSDictionary *)args
                                   toCommandLine:(NSArray **)cmdline;
+- (NSString *)workingDirectoryForArguments:(NSDictionary *)args;
 - (NSScreen *)screenContainingPoint:(NSPoint)pt;
 
 #ifdef MM_ENABLE_PLUGINS
@@ -1071,7 +1073,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (vc) {
         [[vc backendProxy] acknowledgeConnection];
     } else {
-        [self launchVimProcessWithArguments:nil];
+        [self launchVimProcessWithArguments:nil workingDirectory:nil];
     }
 }
 
@@ -1167,7 +1169,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     ASLogDebug(@"Open window with Vim help");
     // Open a new window with the help window maximized.
     [self launchVimProcessWithArguments:[NSArray arrayWithObjects:
-            @"-c", @":h gui_mac", @"-c", @":res", nil]];
+                                    @"-c", @":h gui_mac", @"-c", @":res", nil]
+                       workingDirectory:nil];
 }
 
 - (IBAction)zoomAll:(id)sender
@@ -1423,9 +1426,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 ":tabe|cd %@<CR>", path];
         [vc addVimInput:input];
     } else {
-        NSString *input = [NSString stringWithFormat:@":cd %@", path];
-        [self launchVimProcessWithArguments:[NSArray arrayWithObjects:
-                                             @"-c", input, nil]];
+        [self launchVimProcessWithArguments:nil workingDirectory:path];
     }
 }
 
@@ -1454,6 +1455,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 }
 
 - (int)launchVimProcessWithArguments:(NSArray *)args
+                    workingDirectory:(NSString *)cwd
 {
     int pid = -1;
     NSString *path = [[NSBundle mainBundle] pathForAuxiliaryExecutable:@"Vim"];
@@ -1461,6 +1463,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (!path) {
         ASLogCrit(@"Vim executable could not be found inside app bundle!");
         return -1;
+    }
+
+    // Change current working directory so that the child process picks it up.
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *restoreCwd = nil;
+    if (cwd) {
+        restoreCwd = [fm currentDirectoryPath];
+        [fm changeCurrentDirectoryPath:cwd];
     }
 
     NSArray *taskArgs = [NSArray arrayWithObjects:@"-g", @"-f", nil];
@@ -1501,6 +1511,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         ASLogWarn(@"Failed to launch Vim process: args=%@, useLoginShell=%d",
                   args, useLoginShell);
     }
+
+    // Now that child has launched, restore the current working directory.
+    if (restoreCwd)
+        [fm changeCurrentDirectoryPath:restoreCwd];
 
     return pid;
 }
@@ -1838,7 +1852,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         return;
 
     preloadPid = [self launchVimProcessWithArguments:
-            [NSArray arrayWithObject:@"--mmwaitforack"]];
+                                    [NSArray arrayWithObject:@"--mmwaitforack"]
+                                    workingDirectory:nil];
 }
 
 - (int)maxPreloadCacheSize
@@ -2005,9 +2020,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [[vc backendProxy] acknowledgeConnection];
     } else {
         NSArray *cmdline = nil;
+        NSString *cwd = [self workingDirectoryForArguments:arguments];
         arguments = [self convertVimControllerArguments:arguments
                                           toCommandLine:&cmdline];
-        int pid = [self launchVimProcessWithArguments:cmdline];
+        int pid = [self launchVimProcessWithArguments:cmdline
+                                     workingDirectory:cwd];
         if (-1 == pid)
             return NO;
 
@@ -2452,6 +2469,24 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         *cmdline = a;
 
     return d;
+}
+
+- (NSString *)workingDirectoryForArguments:(NSDictionary *)args
+{
+    // Find the "filenames" argument and pick the first path that actually
+    // exists and return it.
+    // TODO: Return common parent directory in the case of multiple files?
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSArray *filenames = [args objectForKey:@"filenames"];
+    NSUInteger i, count = [filenames count];
+    for (i = 0; i < count; ++i) {
+        BOOL isdir;
+        NSString *file = [filenames objectAtIndex:i];
+        if ([fm fileExistsAtPath:file isDirectory:&isdir])
+            return isdir ? file : [file stringByDeletingLastPathComponent];
+    }
+
+    return nil;
 }
 
 - (NSScreen *)screenContainingPoint:(NSPoint)pt
