@@ -117,7 +117,6 @@ typedef struct
 #endif
 - (void)handleGetURLEvent:(NSAppleEventDescriptor *)event
                replyEvent:(NSAppleEventDescriptor *)reply;
-- (MMVimController *)findUnusedEditor;
 - (NSMutableDictionary *)extractArgumentsFromOdocEvent:
     (NSAppleEventDescriptor *)desc;
 - (void)scheduleVimControllerPreloadAfterDelay:(NSTimeInterval)delay;
@@ -1716,18 +1715,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     }
 }
 
-- (MMVimController *)findUnusedEditor
-{
-    NSEnumerator *e = [vimControllers objectEnumerator];
-    id vc;
-    while ((vc = [e nextObject])) {
-        if ([[vc objectForVimStateKey:@"unusedEditor"] boolValue])
-            return vc;
-    }
-
-    return nil;
-}
-
 - (NSMutableDictionary *)extractArgumentsFromOdocEvent:
     (NSAppleEventDescriptor *)desc
 {
@@ -2009,15 +1996,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (BOOL)openVimControllerWithArguments:(NSDictionary *)arguments
 {
-    MMVimController *vc = [self findUnusedEditor];
+    MMVimController *vc = [self takeVimControllerFromCache];
     if (vc) {
-        // Open files in an already open window.
-        // TODO: If the file is encrypted (with -x) then opening in an unused
-        // window will fail if there are more arguments than just the filename
-        // (the same goes with cached Vim controllers).
-        [[[vc windowController] window] makeKeyAndOrderFront:self];
-        [vc passArguments:arguments];
-    } else if ((vc = [self takeVimControllerFromCache])) {
         // Open files in a new window using a cached vim controller.  This
         // requires virtually no loading time so the new window will pop up
         // instantaneously.

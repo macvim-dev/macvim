@@ -1713,7 +1713,6 @@ static void netbeansReadCallback(CFSocketRef s,
     NSDictionary *vimState = [NSDictionary dictionaryWithObjectsAndKeys:
         [[NSFileManager defaultManager] currentDirectoryPath], @"pwd",
         [NSNumber numberWithInt:p_mh], @"p_mh",
-        [NSNumber numberWithBool:[self unusedEditor]], @"unusedEditor",
         [NSNumber numberWithBool:mmta], @"p_mmta",
         [NSNumber numberWithInt:numTabs], @"numTabs",
         nil];
