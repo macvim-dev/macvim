@@ -53,6 +53,8 @@
     BOOL                imState;
     CFSocketRef         netbeansSocket;
     CFRunLoopSourceRef  netbeansRunLoopSource;
+    int                 winposX;
+    int                 winposY;
 }
 
 + (MMBackend *)sharedInstance;
@@ -64,6 +66,8 @@
 - (NSConnection *)connection;
 - (NSDictionary *)actionDict;
 - (int)initialWindowLayout;
+- (void)getWindowPositionX:(int*)x Y:(int*)y;
+- (void)setWindowPositionX:(int)x Y:(int)y;
 
 - (void)queueMessage:(int)msgid properties:(NSDictionary *)props;
 - (BOOL)checkin;

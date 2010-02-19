@@ -38,6 +38,7 @@
     int                 userRows;
     int                 userCols;
     NSPoint             userTopLeft;
+    NSPoint             defaultTopLeft;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
@@ -78,6 +79,8 @@
 - (void)setFullscreenBackgroundColor:(NSColor *)back;
 
 - (void)setBuffersModified:(BOOL)mod;
+- (void)setTopLeft:(NSPoint)pt;
+- (BOOL)getDefaultTopLeft:(NSPoint*)pt;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;

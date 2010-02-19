@@ -191,6 +191,7 @@ enum {
     NetBeansMsgID,
     SetMarkedTextMsgID,
     ZoomMsgID,
+    SetWindowPositionMsgID,
     LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
 };
 

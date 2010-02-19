@@ -1655,17 +1655,6 @@ gui_mch_get_screen_dimensions(int *screen_w, int *screen_h)
 
 
 /*
- * Get the position of the top left corner of the window.
- */
-    int
-gui_mch_get_winpos(int *x, int *y)
-{
-    *x = *y = 0;
-    return OK;
-}
-
-
-/*
  * Return OK if the key with the termcap name "name" is supported.
  */
     int
@@ -1714,17 +1703,30 @@ gui_mch_set_shellsize(
 }
 
 
-    void
-gui_mch_set_text_area_pos(int x, int y, int w, int h)
-{
-}
-
 /*
  * Set the position of the top left corner of the window to the given
  * coordinates.
  */
     void
 gui_mch_set_winpos(int x, int y)
+{
+    [[MMBackend sharedInstance] setWindowPositionX:x Y:y];
+}
+
+
+/*
+ * Get the position of the top left corner of the window.
+ */
+    int
+gui_mch_get_winpos(int *x, int *y)
+{
+    [[MMBackend sharedInstance] getWindowPositionX:x Y:y];
+    return OK;
+}
+
+
+    void
+gui_mch_set_text_area_pos(int x, int y, int w, int h)
 {
 }
 

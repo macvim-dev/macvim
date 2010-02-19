@@ -824,6 +824,12 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController zoomWithRows:rows
                                columns:cols
                                  state:state];
+    } else if (SetWindowPositionMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int x = *((int*)bytes);  bytes += sizeof(int);
+        int y = *((int*)bytes);  bytes += sizeof(int);
+
+        [windowController setTopLeft:NSMakePoint(x,y)];
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {

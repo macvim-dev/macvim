@@ -640,6 +640,30 @@
     [decoratedWindow setDocumentEdited:mod];
 }
 
+- (void)setTopLeft:(NSPoint)pt
+{
+    if (setupDone) {
+        [decoratedWindow setFrameTopLeftPoint:pt];
+    } else {
+        // Window has not been "opened" yet (see openWindow:) but remember this
+        // value to be used when the window opens.
+        defaultTopLeft = pt;
+    }
+}
+
+- (BOOL)getDefaultTopLeft:(NSPoint*)pt
+{
+    // A default top left point may be set in .[g]vimrc with the :winpos
+    // command.  (If this has not been done the top left point will be the zero
+    // point.)
+    if (pt && !NSEqualPoints(defaultTopLeft, NSZeroPoint)) {
+        *pt = defaultTopLeft;
+        return YES;
+    }
+
+    return NO;
+}
+
 
 - (IBAction)addNewTab:(id)sender
 {
@@ -792,14 +816,20 @@
         return;
     }
 
+    NSRect frame = [decoratedWindow frame];
+    NSPoint topLeft = { frame.origin.x, NSMaxY(frame) };
     if (windowAutosaveKey) {
-        NSRect frame = [decoratedWindow frame];
-        NSPoint topLeft = { frame.origin.x, NSMaxY(frame) };
         NSString *topLeftString = NSStringFromPoint(topLeft);
 
         [[NSUserDefaults standardUserDefaults]
             setObject:topLeftString forKey:windowAutosaveKey];
     }
+
+    // NOTE: This method is called when the user drags the window, but not when
+    // the top left point changes programmatically.
+    int pos[2] = { (int)topLeft.x, (int)topLeft.y };
+    NSData *data = [NSData dataWithBytes:pos length:2*sizeof(int)];
+    [vimController sendMessage:SetWindowPositionMsgID data:data];
 }
 
 - (void)windowDidResize:(id)sender
@@ -978,6 +1008,17 @@
     }
 
     [decoratedWindow setFrame:newFrame display:YES];
+
+    NSPoint oldTopLeft = { frame.origin.x, NSMaxY(frame) };
+    NSPoint newTopLeft = { newFrame.origin.x, NSMaxY(newFrame) };
+    if (!NSEqualPoints(oldTopLeft, newTopLeft)) {
+        // NOTE: The window top left position may change due to the window
+        // being moved e.g. when the tabline is shown so we must tell Vim what
+        // the new window position is here.
+        int pos[2] = { (int)newTopLeft.x, (int)newTopLeft.y };
+        NSData *data = [NSData dataWithBytes:pos length:2*sizeof(int)];
+        [vimController sendMessage:SetWindowPositionMsgID data:data];
+    }
 }
 
 - (NSSize)constrainContentSizeToScreenSize:(NSSize)contentSize

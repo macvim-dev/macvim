@@ -326,6 +326,24 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     return initialWindowLayout;
 }
 
+- (void)getWindowPositionX:(int*)x Y:(int*)y
+{
+    // NOTE: winposX and winposY are set by the SetWindowPositionMsgID message.
+    if (x) *x = winposX;
+    if (y) *y = winposY;
+}
+
+- (void)setWindowPositionX:(int)x Y:(int)y
+{
+    // NOTE: Setting the window position has no immediate effect on the cached
+    // variables winposX and winposY.  These are set by the frontend when the
+    // window actually moves (see SetWindowPositionMsgID).
+    ASLogDebug(@"x=%d y=%d", x, y);
+    int pos[2] = { x, y };
+    NSData *data = [NSData dataWithBytes:pos length:2*sizeof(int)];
+    [self queueMessage:SetWindowPositionMsgID data:data];
+}
+
 - (void)queueMessage:(int)msgid properties:(NSDictionary *)props
 {
     [self queueMessage:msgid data:[props dictionaryAsData]];
@@ -440,7 +458,21 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (BOOL)openGUIWindow
 {
+    if (gui_win_x != -1 && gui_win_y != -1) {
+        // NOTE: the gui_win_* coordinates are both set to -1 if no :winpos
+        // command is in .[g]vimrc.  (This way of detecting if :winpos has been
+        // used may cause problems if a second monitor is located to the left
+        // and underneath the main monitor as it will have negative
+        // coordinates.  However, this seems like a minor problem that is not
+        // worth fixing since all GUIs work this way.)
+        ASLogDebug(@"default x=%d y=%d", gui_win_x, gui_win_y);
+        int pos[2] = { gui_win_x, gui_win_y };
+        NSData *data = [NSData dataWithBytes:pos length:2*sizeof(int)];
+        [self queueMessage:SetWindowPositionMsgID data:data];
+    }
+
     [self queueMessage:OpenWindowMsgID data:nil];
+
     return YES;
 }
 
@@ -1952,6 +1984,12 @@ static void netbeansReadCallback(CFSocketRef s,
         // regarding resizing.)
         [self queueMessage:ZoomMsgID data:data];
         gui_resize_shell(cols, rows);
+    } else if (SetWindowPositionMsgID == msgid) {
+        if (!data) return;
+        const void *bytes = [data bytes];
+        winposX = *((int*)bytes);  bytes += sizeof(int);
+        winposY = *((int*)bytes);  bytes += sizeof(int);
+        ASLogDebug(@"SetWindowPositionMsgID: x=%d y=%d", winposX, winposY);
     } else {
         ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }

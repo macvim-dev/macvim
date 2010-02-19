@@ -743,15 +743,23 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)windowControllerWillOpen:(MMWindowController *)windowController
 {
     NSPoint topLeft = NSZeroPoint;
-    NSWindow *topWin = [[[self topmostVimController] windowController] window];
+    NSWindow *cascadeFrom = [[[self topmostVimController] windowController]
+                                                                    window];
     NSWindow *win = [windowController window];
 
     if (!win) return;
 
-    // If there is a window belonging to a Vim process, cascade from it,
-    // otherwise use the autosaved window position (if any).
-    if (topWin) {
-        NSRect frame = [topWin frame];
+    // Heuristic to determine where to position the window:
+    //   1. Use the default top left position (set using :winpos in .[g]vimrc)
+    //   2. Cascade from an existing window
+    //   3. Use autosaved position
+    // If all of the above fail, then the window position is not changed.
+    if ([windowController getDefaultTopLeft:&topLeft]) {
+        // Make sure the window is not cascaded (note that topLeft was set in
+        // the above call).
+        cascadeFrom = nil;
+    } else if (cascadeFrom) {
+        NSRect frame = [cascadeFrom frame];
         topLeft = NSMakePoint(frame.origin.x, NSMaxY(frame));
     } else {
         NSString *topLeftString = [[NSUserDefaults standardUserDefaults]
@@ -767,7 +775,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         if (!screen)
             screen = [win screen];
 
-        if (topWin) {
+        if (cascadeFrom) {
             // Do manual cascading instead of using
             // -[MMWindow cascadeTopLeftFromPoint:] since it is rather
             // unpredictable.
