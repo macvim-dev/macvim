@@ -1,4 +1,4 @@
-*indent.txt*    For Vim version 7.2.  Last change: 2008 Jul 30
+*indent.txt*    For Vim version 7.2.  Last change: 2010 Jan 27
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -437,7 +437,7 @@ assume a 'shiftwidth' of 4.
 
 	*N    Vim searches for unclosed comments at most N lines away.  This
 	      limits the time needed to search for the start of a comment.
-	      (default 30 lines).
+	      (default 70 lines).
 
 	#N    When N is non-zero recognize shell/Perl comments, starting with
 	      '#'.  Default N is zero: don't recognizes '#' comments.  Note
@@ -609,8 +609,9 @@ b:sh_indent_options['continuation-line']
 
 b:sh_indent_options['case-labels']
 				Amount of indent to add for case labels.
+				(not actually implemented)
 
-b:sh_indent_options['case-statement']
+b:sh_indent_options['case-statements']
 				Amount of indent to add for case statements.
 
 b:sh_indent_options['case-breaks']

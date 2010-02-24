@@ -52,7 +52,9 @@
 
 /* user ID of root is usually zero, but not for everybody */
 #ifdef __TANDEM
-# define _TANDEM_SOURCE
+# ifndef _TANDEM_SOURCE
+#  define _TANDEM_SOURCE
+# endif
 # include <floss.h>
 # define ROOT_UID 65535
 #else
@@ -720,7 +722,8 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define EXPAND_SHELLCMD		32
 #define EXPAND_CSCOPE		33
 #define EXPAND_SIGN		34
-#define EXPAND_MACACTION	35
+#define EXPAND_PROFILE		35
+#define EXPAND_MACACTION	36
 
 /* Values for exmode_active (0 is no exmode) */
 #define EXMODE_NORMAL		1

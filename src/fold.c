@@ -849,7 +849,7 @@ foldUpdate(wp, top, bot)
     fold_T	*fp;
 
     /* Mark all folds from top to bot as maybe-small. */
-    (void)foldFind(&curwin->w_folds, curwin->w_cursor.lnum, &fp);
+    (void)foldFind(&curwin->w_folds, top, &fp);
     while (fp < (fold_T *)curwin->w_folds.ga_data + curwin->w_folds.ga_len
 	    && fp->fd_top < bot)
     {
@@ -3239,8 +3239,8 @@ foldlevelMarker(flp)
 		    flp->lvl = n;
 		    flp->lvl_next = n - 1;
 		    /* never start a fold with an end marker */
-		    if (flp->lvl_next > flp->lvl)
-			flp->lvl_next = flp->lvl;
+		    if (flp->lvl_next > start_lvl)
+			flp->lvl_next = start_lvl;
 		}
 	    }
 	    else

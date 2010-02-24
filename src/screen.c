@@ -323,6 +323,7 @@ update_screen(type)
     int		did_one;
 #endif
 
+    /* Don't do anything if the screen structures are (not yet) valid. */
     if (!screen_valid(TRUE))
 	return;
 
@@ -342,7 +343,9 @@ update_screen(type)
     if (curwin->w_lines_valid == 0 && type < NOT_VALID)
 	type = NOT_VALID;
 
-    if (!redrawing())
+    /* Postpone the redrawing when it's not needed and when being called
+     * recursively. */
+    if (!redrawing() || updating_screen)
     {
 	redraw_later(type);		/* remember type for next time */
 	must_redraw = type;
@@ -582,6 +585,7 @@ static void update_finish __ARGS((void));
 
 /*
  * Prepare for updating one or more windows.
+ * Caller must check for "updating_screen" already set to avoid recursiveness.
  */
     static void
 update_prepare()
@@ -663,7 +667,9 @@ update_debug_sign(buf, lnum)
 	    doit = TRUE;
     }
 
-    if (!doit)
+    /* Return when there is nothing to do or screen updating already
+     * happening. */
+    if (!doit || updating_screen)
 	return;
 
     /* update all windows that need updating */
@@ -696,6 +702,10 @@ update_debug_sign(buf, lnum)
 updateWindow(wp)
     win_T	*wp;
 {
+    /* return if already busy updating */
+    if (updating_screen)
+	return;
+
     update_prepare();
 
 #ifdef FEAT_CLIPBOARD
@@ -2325,13 +2335,12 @@ fold_line(wp, fold_count, foldinfo, lnum, row)
 		if (cells > 1)
 		    ScreenLines[idx + 1] = 0;
 	    }
-	    else if (cells > 1)	    /* double-byte character */
-	    {
-		if (enc_dbcs == DBCS_JPNU && *p == 0x8e)
-		    ScreenLines2[idx] = p[1];
-		else
-		    ScreenLines[idx + 1] = p[1];
-	    }
+	    else if (enc_dbcs == DBCS_JPNU && *p == 0x8e)
+		/* double-byte single width character */
+		ScreenLines2[idx] = p[1];
+	    else if (cells > 1)
+		/* double-width character */
+		ScreenLines[idx + 1] = p[1];
 	    col += cells;
 	    idx += cells;
 	    p += c_len;
@@ -4624,7 +4633,11 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    ScreenLines[off] = c;
 #ifdef FEAT_MBYTE
 	    if (enc_dbcs == DBCS_JPNU)
+	    {
+		if ((mb_c & 0xff00) == 0x8e00)
+		    ScreenLines[off] = 0x8e;
 		ScreenLines2[off] = mb_c & 0xff;
+	    }
 	    else if (enc_utf8)
 	    {
 		if (mb_utf8)
@@ -6427,6 +6440,13 @@ screen_puts_len(text, len, row, col, attr)
 		else
 		    prev_c = u8c;
 # endif
+		if (col + mbyte_cells > screen_Columns)
+		{
+		    /* Only 1 cell left, but character requires 2 cells:
+		     * display a '>' in the last column to avoid wrapping. */
+		    c = '>';
+		    mbyte_cells = 1;
+		}
 	    }
 	}
 #endif
@@ -9204,7 +9224,7 @@ unshowmode(force)
     int	    force;
 {
     /*
-     * Don't delete it right now, when not redrawing or insided a mapping.
+     * Don't delete it right now, when not redrawing or inside a mapping.
      */
     if (!redrawing() || (!force && char_avail() && !KeyTyped))
 	redraw_cmdline = TRUE;		/* delete mode later */

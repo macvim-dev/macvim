@@ -212,12 +212,14 @@ typedef struct _DllVersionInfo
     DWORD dwPlatformID;
 } DLLVERSIONINFO;
 
+#include <poppack.h>
+
 typedef struct tagTOOLINFOA_NEW
 {
 	UINT cbSize;
 	UINT uFlags;
 	HWND hwnd;
-	UINT uId;
+	UINT_PTR uId;
 	RECT rect;
 	HINSTANCE hinst;
 	LPSTR lpszText;
@@ -227,14 +229,12 @@ typedef struct tagTOOLINFOA_NEW
 typedef struct tagNMTTDISPINFO_NEW
 {
     NMHDR      hdr;
-    LPTSTR     lpszText;
+    LPSTR      lpszText;
     char       szText[80];
     HINSTANCE  hinst;
     UINT       uFlags;
     LPARAM     lParam;
 } NMTTDISPINFO_NEW;
-
-#include <poppack.h>
 
 typedef HRESULT (WINAPI* DLLGETVERSIONPROC)(DLLVERSIONINFO *);
 #ifndef TTM_SETMAXTIPWIDTH
@@ -1329,6 +1329,7 @@ gui_mch_init(void)
     WNDCLASS wndclass;
 #ifdef FEAT_MBYTE
     const WCHAR szVimWndClassW[] = VIM_CLASSW;
+    const WCHAR szTextAreaClassW[] = L"VimTextArea";
     WNDCLASSW wndclassw;
 #endif
 #ifdef GLOBAL_IME
@@ -1479,6 +1480,28 @@ gui_mch_init(void)
 #endif
 
     /* Create the text area window */
+#ifdef FEAT_MBYTE
+    if (wide_WindowProc)
+    {
+	if (GetClassInfoW(s_hinst, szTextAreaClassW, &wndclassw) == 0)
+	{
+	    wndclassw.style = CS_OWNDC;
+	    wndclassw.lpfnWndProc = _TextAreaWndProc;
+	    wndclassw.cbClsExtra = 0;
+	    wndclassw.cbWndExtra = 0;
+	    wndclassw.hInstance = s_hinst;
+	    wndclassw.hIcon = NULL;
+	    wndclassw.hCursor = LoadCursor(NULL, IDC_ARROW);
+	    wndclassw.hbrBackground = NULL;
+	    wndclassw.lpszMenuName = NULL;
+	    wndclassw.lpszClassName = szTextAreaClassW;
+
+	    if (RegisterClassW(&wndclassw) == 0)
+		return FAIL;
+	}
+    }
+    else
+#endif
     if (GetClassInfo(s_hinst, szTextAreaClass, &wndclass) == 0)
     {
 	wndclass.style = CS_OWNDC;

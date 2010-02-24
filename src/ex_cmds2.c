@@ -1092,7 +1092,7 @@ ex_profile(eap)
 	set_vim_var_nr(VV_PROFILING, 1L);
     }
     else if (do_profiling == PROF_NONE)
-	EMSG(_("E750: First use :profile start <fname>"));
+	EMSG(_("E750: First use \":profile start {fname}\""));
     else if (STRCMP(eap->arg, "pause") == 0)
     {
 	if (do_profiling == PROF_YES)
@@ -1113,6 +1113,79 @@ ex_profile(eap)
 	/* The rest is similar to ":breakadd". */
 	ex_breakadd(eap);
     }
+}
+
+/* Command line expansion for :profile. */
+static enum
+{
+    PEXP_SUBCMD,	/* expand :profile sub-commands */
+    PEXP_FUNC,		/* expand :profile func {funcname} */
+} pexpand_what;
+
+static char *pexpand_cmds[] = {
+			"start",
+#define PROFCMD_START	0
+			"pause",
+#define PROFCMD_PAUSE	1
+			"continue",
+#define PROFCMD_CONTINUE 2
+			"func",
+#define PROFCMD_FUNC	3
+			"file",
+#define PROFCMD_FILE	4
+			NULL
+#define PROFCMD_LAST	5
+};
+
+/*
+ * Function given to ExpandGeneric() to obtain the profile command
+ * specific expansion.
+ */
+    char_u *
+get_profile_name(xp, idx)
+    expand_T	*xp UNUSED;
+    int		idx;
+{
+    switch (pexpand_what)
+    {
+    case PEXP_SUBCMD:
+	return (char_u *)pexpand_cmds[idx];
+    /* case PEXP_FUNC: TODO */
+    default:
+	return NULL;
+    }
+}
+
+/*
+ * Handle command line completion for :profile command.
+ */
+    void
+set_context_in_profile_cmd(xp, arg)
+    expand_T	*xp;
+    char_u	*arg;
+{
+    char_u	*end_subcmd;
+    int		len;
+
+    /* Default: expand subcommands. */
+    xp->xp_context = EXPAND_PROFILE;
+    pexpand_what = PEXP_SUBCMD;
+    xp->xp_pattern = arg;
+
+    end_subcmd = skiptowhite(arg);
+    if (*end_subcmd == NUL)
+	return;
+
+    len = end_subcmd - arg;
+    if (len == 5 && STRNCMP(arg, "start", 5) == 0)
+    {
+	xp->xp_context = EXPAND_FILES;
+	xp->xp_pattern = skipwhite(end_subcmd);
+	return;
+    }
+
+    /* TODO: expand function names after "func" */
+    xp->xp_context = EXPAND_NOTHING;
 }
 
 /*
@@ -2569,14 +2642,15 @@ ex_compiler(eap)
 		 * To remain backwards compatible "current_compiler" is always
 		 * used.  A user's compiler plugin may set it, the distributed
 		 * plugin will then skip the settings.  Afterwards set
-		 * "b:current_compiler" and restore "current_compiler". */
-		old_cur_comp = get_var_value((char_u *)"current_compiler");
+		 * "b:current_compiler" and restore "current_compiler".
+		 * Explicitly prepend "g:" to make it work in a function. */
+		old_cur_comp = get_var_value((char_u *)"g:current_compiler");
 		if (old_cur_comp != NULL)
 		    old_cur_comp = vim_strsave(old_cur_comp);
 		do_cmdline_cmd((char_u *)
 			      "command -nargs=* CompilerSet setlocal <args>");
 	    }
-	    do_unlet((char_u *)"current_compiler", TRUE);
+	    do_unlet((char_u *)"g:current_compiler", TRUE);
 	    do_unlet((char_u *)"b:current_compiler", TRUE);
 
 	    sprintf((char *)buf, "compiler/%s.vim", eap->arg);
@@ -2587,7 +2661,7 @@ ex_compiler(eap)
 	    do_cmdline_cmd((char_u *)":delcommand CompilerSet");
 
 	    /* Set "b:current_compiler" from "current_compiler". */
-	    p = get_var_value((char_u *)"current_compiler");
+	    p = get_var_value((char_u *)"g:current_compiler");
 	    if (p != NULL)
 		set_internal_string_var((char_u *)"b:current_compiler", p);
 
@@ -2596,12 +2670,12 @@ ex_compiler(eap)
 	    {
 		if (old_cur_comp != NULL)
 		{
-		    set_internal_string_var((char_u *)"current_compiler",
+		    set_internal_string_var((char_u *)"g:current_compiler",
 								old_cur_comp);
 		    vim_free(old_cur_comp);
 		}
 		else
-		    do_unlet((char_u *)"current_compiler", TRUE);
+		    do_unlet((char_u *)"g:current_compiler", TRUE);
 	    }
 	}
     }
@@ -2874,20 +2948,35 @@ source_level(cookie)
 
 static char_u *get_one_sourceline __ARGS((struct source_cookie *sp));
 
-#if defined(WIN32) && defined(FEAT_CSCOPE)
+#if (defined(WIN32) && defined(FEAT_CSCOPE)) || defined(HAVE_FD_CLOEXEC)
+# define USE_FOPEN_NOINH
 static FILE *fopen_noinh_readbin __ARGS((char *filename));
 
 /*
  * Special function to open a file without handle inheritance.
+ * When possible the handle is closed on exec().
  */
     static FILE *
 fopen_noinh_readbin(filename)
     char    *filename;
 {
+# ifdef WIN32
     int	fd_tmp = mch_open(filename, O_RDONLY | O_BINARY | O_NOINHERIT, 0);
+# else
+    int	fd_tmp = mch_open(filename, O_RDONLY, 0);
+# endif
 
     if (fd_tmp == -1)
 	return NULL;
+
+# ifdef HAVE_FD_CLOEXEC
+    {
+	int fdflags = fcntl(fd_tmp, F_GETFD);
+	if (fdflags >= 0 && (fdflags & FD_CLOEXEC) == 0)
+	    fcntl(fd_tmp, F_SETFD, fdflags | FD_CLOEXEC);
+    }
+# endif
+
     return fdopen(fd_tmp, READBIN);
 }
 #endif
@@ -2967,7 +3056,7 @@ do_source(fname, check_other, is_vimrc)
     apply_autocmds(EVENT_SOURCEPRE, fname_exp, fname_exp, FALSE, curbuf);
 #endif
 
-#if defined(WIN32) && defined(FEAT_CSCOPE)
+#ifdef USE_FOPEN_NOINH
     cookie.fp = fopen_noinh_readbin((char *)fname_exp);
 #else
     cookie.fp = mch_fopen((char *)fname_exp, READBIN);
@@ -2988,7 +3077,7 @@ do_source(fname, check_other, is_vimrc)
 		*p = '.';
 	    else
 		*p = '_';
-#if defined(WIN32) && defined(FEAT_CSCOPE)
+#ifdef USE_FOPEN_NOINH
 	    cookie.fp = fopen_noinh_readbin((char *)fname_exp);
 #else
 	    cookie.fp = mch_fopen((char *)fname_exp, READBIN);
@@ -3093,7 +3182,8 @@ do_source(fname, check_other, is_vimrc)
 #endif
 
 #ifdef STARTUPTIME
-    time_push(&tv_rel, &tv_start);
+    if (time_fd != NULL)
+	time_push(&tv_rel, &tv_start);
 #endif
 
 #ifdef FEAT_EVAL
@@ -3219,9 +3309,12 @@ do_source(fname, check_other, is_vimrc)
 	verbose_leave();
     }
 #ifdef STARTUPTIME
-    vim_snprintf((char *)IObuff, IOSIZE, "sourcing %s", fname);
-    time_msg((char *)IObuff, &tv_start);
-    time_pop(&tv_rel);
+    if (time_fd != NULL)
+    {
+	vim_snprintf((char *)IObuff, IOSIZE, "sourcing %s", fname);
+	time_msg((char *)IObuff, &tv_start);
+	time_pop(&tv_rel);
+    }
 #endif
 
 #ifdef FEAT_EVAL

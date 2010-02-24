@@ -583,6 +583,7 @@ static int	re_has_z;	/* \z item detected */
 #endif
 static char_u	*regcode;	/* Code-emit pointer, or JUST_CALC_SIZE */
 static long	regsize;	/* Code size. */
+static int	reg_toolong;	/* TRUE when offset out of range */
 static char_u	had_endbrace[NSUBEXP];	/* flags, TRUE if end of () found */
 static unsigned	regflags;	/* RF_ flags for prog */
 static long	brace_min[10];	/* Minimums for complex brace repeats */
@@ -1028,9 +1029,11 @@ vim_regcomp(expr, re_flags)
     regcomp_start(expr, re_flags);
     regcode = r->program;
     regc(REGMAGIC);
-    if (reg(REG_NOPAREN, &flags) == NULL)
+    if (reg(REG_NOPAREN, &flags) == NULL || reg_toolong)
     {
 	vim_free(r);
+	if (reg_toolong)
+	    EMSG_RET_NULL(_("E339: Pattern too long"));
 	return NULL;
     }
 
@@ -1141,6 +1144,7 @@ regcomp_start(expr, re_flags)
     re_has_z = 0;
 #endif
     regsize = 0L;
+    reg_toolong = FALSE;
     regflags = 0;
 #if defined(FEAT_SYN_HL) || defined(PROTO)
     had_eol = FALSE;
@@ -1228,7 +1232,7 @@ reg(paren, flagp)
     {
 	skipchr();
 	br = regbranch(&flags);
-	if (br == NULL)
+	if (br == NULL || reg_toolong)
 	    return NULL;
 	regtail(ret, br);	/* BRANCH -> BRANCH. */
 	if (!(flags & HASWIDTH))
@@ -1313,6 +1317,8 @@ regbranch(flagp)
 	    break;
 	skipchr();
 	regtail(latest, regnode(END)); /* operand ends */
+	if (reg_toolong)
+	    break;
 	reginsert(MATCH, latest);
 	chain = latest;
     }
@@ -1382,7 +1388,7 @@ regconcat(flagp)
 			    break;
 	    default:
 			    latest = regpiece(&flags);
-			    if (latest == NULL)
+			    if (latest == NULL || reg_toolong)
 				return NULL;
 			    *flagp |= flags & (HASWIDTH | HASNL | HASLOOKBH);
 			    if (chain == NULL)	/* First piece. */
@@ -2540,8 +2546,16 @@ regtail(p, val)
 	offset = (int)(scan - val);
     else
 	offset = (int)(val - scan);
-    *(scan + 1) = (char_u) (((unsigned)offset >> 8) & 0377);
-    *(scan + 2) = (char_u) (offset & 0377);
+    /* When the offset uses more than 16 bits it can no longer fit in the two
+     * bytes avaliable.  Use a global flag to avoid having to check return
+     * values in too many places. */
+    if (offset > 0xffff)
+	reg_toolong = TRUE;
+    else
+    {
+	*(scan + 1) = (char_u) (((unsigned)offset >> 8) & 0377);
+	*(scan + 2) = (char_u) (offset & 0377);
+    }
 }
 
 /*
@@ -5764,6 +5778,8 @@ do_class:
 
 /*
  * regnext - dig the "next" pointer out of a node
+ * Returns NULL when calculating size, when there is no next item and when
+ * there is an error.
  */
     static char_u *
 regnext(p)
@@ -5771,7 +5787,7 @@ regnext(p)
 {
     int	    offset;
 
-    if (p == JUST_CALC_SIZE)
+    if (p == JUST_CALC_SIZE || reg_toolong)
 	return NULL;
 
     offset = NEXT(p);
@@ -6812,6 +6828,8 @@ static int can_f_submatch = FALSE;	/* TRUE when submatch() can be used */
  * that contains a call to substitute() and submatch(). */
 static regmatch_T	*submatch_match;
 static regmmatch_T	*submatch_mmatch;
+static linenr_T		submatch_firstlnum;
+static linenr_T		submatch_maxline;
 #endif
 
 #if defined(FEAT_MODIFY_FNAME) || defined(FEAT_EVAL) || defined(PROTO)
@@ -6925,7 +6943,6 @@ vim_regsub_both(source, dest, copy, magic, backslash)
 	}
 	else
 	{
-	    linenr_T	save_reg_maxline;
 	    win_T	*save_reg_win;
 	    int		save_ireg_ic;
 
@@ -6937,7 +6954,8 @@ vim_regsub_both(source, dest, copy, magic, backslash)
 	     * vim_regexec_multi() can't be called recursively. */
 	    submatch_match = reg_match;
 	    submatch_mmatch = reg_mmatch;
-	    save_reg_maxline = reg_maxline;
+	    submatch_firstlnum = reg_firstlnum;
+	    submatch_maxline = reg_maxline;
 	    save_reg_win = reg_win;
 	    save_ireg_ic = ireg_ic;
 	    can_f_submatch = TRUE;
@@ -6960,7 +6978,8 @@ vim_regsub_both(source, dest, copy, magic, backslash)
 
 	    reg_match = submatch_match;
 	    reg_mmatch = submatch_mmatch;
-	    reg_maxline = save_reg_maxline;
+	    reg_firstlnum = submatch_firstlnum;
+	    reg_maxline = submatch_maxline;
 	    reg_win = save_reg_win;
 	    ireg_ic = save_ireg_ic;
 	    can_f_submatch = FALSE;
@@ -7195,6 +7214,31 @@ exit:
 }
 
 #ifdef FEAT_EVAL
+static char_u *reg_getline_submatch __ARGS((linenr_T lnum));
+
+/*
+ * Call reg_getline() with the line numbers from the submatch.  If a
+ * substitute() was used the reg_maxline and other values have been
+ * overwritten.
+ */
+    static char_u *
+reg_getline_submatch(lnum)
+    linenr_T	lnum;
+{
+    char_u *s;
+    linenr_T save_first = reg_firstlnum;
+    linenr_T save_max = reg_maxline;
+
+    reg_firstlnum = submatch_firstlnum;
+    reg_maxline = submatch_maxline;
+
+    s = reg_getline(lnum);
+
+    reg_firstlnum = save_first;
+    reg_maxline = save_max;
+    return s;
+}
+
 /*
  * Used for the submatch() function: get the string from the n'th submatch in
  * allocated memory.
@@ -7225,7 +7269,7 @@ reg_submatch(no)
 	    if (lnum < 0 || submatch_mmatch->endpos[no].lnum < 0)
 		return NULL;
 
-	    s = reg_getline(lnum) + submatch_mmatch->startpos[no].col;
+	    s = reg_getline_submatch(lnum) + submatch_mmatch->startpos[no].col;
 	    if (s == NULL)  /* anti-crash check, cannot happen? */
 		break;
 	    if (submatch_mmatch->endpos[no].lnum == lnum)
@@ -7251,7 +7295,7 @@ reg_submatch(no)
 		++lnum;
 		while (lnum < submatch_mmatch->endpos[no].lnum)
 		{
-		    s = reg_getline(lnum++);
+		    s = reg_getline_submatch(lnum++);
 		    if (round == 2)
 			STRCPY(retval + len, s);
 		    len += (int)STRLEN(s);
@@ -7260,7 +7304,7 @@ reg_submatch(no)
 		    ++len;
 		}
 		if (round == 2)
-		    STRNCPY(retval + len, reg_getline(lnum),
+		    STRNCPY(retval + len, reg_getline_submatch(lnum),
 					     submatch_mmatch->endpos[no].col);
 		len += submatch_mmatch->endpos[no].col;
 		if (round == 2)

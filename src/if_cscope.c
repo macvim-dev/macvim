@@ -2069,7 +2069,7 @@ cs_print_tags_priv(matches, cntxts, num_matches)
 	    continue;
 	(void)strcpy(tbuf, matches[idx]);
 
-	if ((fname = strtok(tbuf, (const char *)"\t")) == NULL)
+	if (strtok(tbuf, (const char *)"\t") == NULL)
 	    continue;
 	if ((fname = strtok(NULL, (const char *)"\t")) == NULL)
 	    continue;
@@ -2278,7 +2278,11 @@ cs_release_csp(i, freefnpp)
 	/* Use sigaction() to limit the waiting time to two seconds. */
 	sigemptyset(&sa.sa_mask);
 	sa.sa_handler = sig_handler;
+#  ifdef SA_NODEFER
 	sa.sa_flags = SA_NODEFER;
+#  else
+	sa.sa_flags = 0;
+#  endif
 	sigaction(SIGALRM, &sa, &old);
 	alarm(2); /* 2 sec timeout */
 

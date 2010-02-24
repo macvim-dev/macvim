@@ -115,7 +115,7 @@ open_buffer(read_stdin, eap)
 #endif
 
     /* mark cursor position as being invalid */
-    changed_line_abv_curs();
+    curwin->w_valid = 0;
 
     if (curbuf->b_ffname != NULL
 #ifdef FEAT_NETBEANS_INTG
@@ -315,7 +315,7 @@ close_buffer(win, buf, action)
 {
 #ifdef FEAT_AUTOCMD
     int		is_curbuf;
-    int		nwindows = buf->b_nwindows;
+    int		nwindows;
 #endif
     int		unload_buf = (action != 0);
     int		del_buf = (action == DOBUF_DEL || action == DOBUF_WIPE);
@@ -1402,6 +1402,9 @@ enter_buffer(buf)
 #ifdef FEAT_AUTOCMD
     curwin->w_topline_was_set = FALSE;
 #endif
+
+    /* mark cursor position as being invalid */
+    curwin->w_valid = 0;
 
     /* Make sure the buffer is loaded. */
     if (curbuf->b_ml.ml_mfp == NULL)	/* need to load the file */

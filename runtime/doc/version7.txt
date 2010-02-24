@@ -1,4 +1,4 @@
-*version7.txt*  For Vim version 7.2.  Last change: 2008 Aug 09
+*version7.txt*  For Vim version 7.2.  Last change: 2009 Dec 02
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -224,7 +224,7 @@ The 'spelllang'    option is used to specify the accepted language(s)
 The 'spellfile'    option specifies where new words are added
 The 'spellsuggest' option specifies the methods used for making suggestions
 
-The |[s| and |]s| commands can be used to move to the next or previous error
+The |]s| and |[s| commands can be used to move to the next or previous error
 The |zg| and |zw| commands can be used to add good and wrong words
 The |z=|	  command can be used to list suggestions and correct the word
 The |:mkspell|    command is used to generate a Vim spell file from word lists
@@ -1870,7 +1870,7 @@ message for the next buffer.  Temporarily clear 'shortmess' to avoid that.
 Win32: Cannot edit a file starting with # with --remote.  Do escape % and #
 when building the ":drop" command.
 
-A comment or | just after a expression-backtick argument was not recognized.
+A comment or | just after an expression-backtick argument was not recognized.
 E.g. in :e `="foo"`"comment.
 
 "(" does not stop at an empty sentence (single dot and white space) while ")"
@@ -4736,14 +4736,14 @@ New keymap files:
 Other new runtime files:
 	Esperanto menu and message translations. (Dominique Pelle)
 	Finnish menu and message translations. (Flammie Pirinen)
-	Brazilian Portugese message translations. (Eduardo Dobay)
+	Brazilian Portuguese message translations. (Eduardo Dobay)
 
 Added floating point support. |Float|
 
 Added argument to mode() to return a bit more detail about the current mode.
 (Ben Schmidt)
 
-Added support for BSD console mouse: |sysmouse|.  (Paul Mahol)
+Added support for BSD console mouse: |sysmouse|.  (Paul B. Mahol)
 
 Added the "newtab" value for the 'switchbuf' option.  (partly by Yegappan
 Lakshmanan)
@@ -4927,7 +4927,7 @@ Files:	    src/fileio.c, src/os_unix.h
 
 Patch 7.1.028
 Problem:    Can't use last search pattern for ":sort". (Brian McKee)
-Solution:   When the pattern is emtpy use the last search pattern. (Martin
+Solution:   When the pattern is empty use the last search pattern. (Martin
 	    Toft)
 Files:	    runtime/doc/change.txt, src/ex_cmds.c
 
@@ -5465,7 +5465,7 @@ Solution:   Remove the replacement with a question mark when UNICODE16 is not
 Files:	    src/screen.c
 
 Patch 7.1.117
-Problem:    Can't check wether Vim was compiled with Gnome. (Tony Mechelynck)
+Problem:    Can't check whether Vim was compiled with Gnome. (Tony Mechelynck)
 Solution:   Add gui_gnome to the has() list.
 Files:	    src/eval.c
 
@@ -5905,7 +5905,7 @@ Files:	    src/ex_getln.c
 
 Patch 7.1.188
 Problem:    When 'showmode' is off the message for changing a readonly file is
-	    given in the second column instead of the first.  (Payl B.  Mahol)
+	    given in the second column instead of the first.  (Payl B. Mahol)
 Solution:   Put the W10 message in the first column.
 Files:	    src/edit.c
 

@@ -889,6 +889,7 @@ validate_cursor_col()
 {
     colnr_T off;
     colnr_T col;
+    int     width;
 
     validate_virtcol();
     if (!(curwin->w_valid & VALID_WCOL))
@@ -896,15 +897,14 @@ validate_cursor_col()
 	col = curwin->w_virtcol;
 	off = curwin_col_off();
 	col += off;
+	width = W_WIDTH(curwin) - off + curwin_col_off2();
 
 	/* long line wrapping, adjust curwin->w_wrow */
 	if (curwin->w_p_wrap
 		&& col >= (colnr_T)W_WIDTH(curwin)
-		&& W_WIDTH(curwin) - off + curwin_col_off2() > 0)
-	{
-	    col -= W_WIDTH(curwin);
-	    col = col % (W_WIDTH(curwin) - off + curwin_col_off2());
-	}
+		&& width > 0)
+	    /* use same formula as what is used in curs_columns() */
+	    col -= ((col - W_WIDTH(curwin)) / width + 1) * width;
 	if (col > (int)curwin->w_leftcol)
 	    col -= curwin->w_leftcol;
 	else
@@ -1041,6 +1041,7 @@ curs_columns(scroll)
 	/* long line wrapping, adjust curwin->w_wrow */
 	if (curwin->w_wcol >= W_WIDTH(curwin))
 	{
+	    /* this same formula is used in validate_cursor_col() */
 	    n = (curwin->w_wcol - W_WIDTH(curwin)) / width + 1;
 	    curwin->w_wcol -= n * width;
 	    curwin->w_wrow += n;
@@ -1609,7 +1610,7 @@ scrollup_clamp()
  * Add one line above "lp->lnum".  This can be a filler line, a closed fold or
  * a (wrapped) text line.  Uses and sets "lp->fill".
  * Returns the height of the added line in "lp->height".
- * Lines above the first one are incredibly high.
+ * Lines above the first one are incredibly high: MAXCOL.
  */
     static void
 topline_back(lp)
@@ -1941,7 +1942,7 @@ scroll_cursor_bot(min_scroll, set_topbot)
 	{
 	    loff.lnum = curwin->w_topline;
 	    topline_back(&loff);
-	    if (used + loff.height > curwin->w_height)
+	    if (loff.height == MAXCOL || used + loff.height > curwin->w_height)
 		break;
 	    used += loff.height;
 #ifdef FEAT_DIFF
@@ -2020,7 +2021,10 @@ scroll_cursor_bot(min_scroll, set_topbot)
 
 	/* Add one line above */
 	topline_back(&loff);
-	used += loff.height;
+	if (loff.height == MAXCOL)
+	    used = MAXCOL;
+	else
+	    used += loff.height;
 	if (used > curwin->w_height)
 	    break;
 	if (loff.lnum >= curwin->w_botline
@@ -2174,7 +2178,10 @@ scroll_cursor_halfway(atend)
 	if (below > above)	    /* add a line above the cursor */
 	{
 	    topline_back(&loff);
-	    used += loff.height;
+	    if (loff.height == MAXCOL)
+		used = MAXCOL;
+	    else
+		used += loff.height;
 	    if (used > curwin->w_height)
 		break;
 	    above += loff.height;
@@ -2471,9 +2478,12 @@ onepage(dir, count)
 	    while (n <= curwin->w_height && loff.lnum >= 1)
 	    {
 		topline_back(&loff);
-		n += loff.height;
+		if (loff.height == MAXCOL)
+		    n = MAXCOL;
+		else
+		    n += loff.height;
 	    }
-	    if (n <= curwin->w_height)		    /* at begin of file */
+	    if (loff.lnum < 1)			/* at begin of file */
 	    {
 		curwin->w_topline = 1;
 #ifdef FEAT_DIFF

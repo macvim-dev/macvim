@@ -70,14 +70,6 @@ typedef struct
     Scheme_Object   *port;
 } Port_Info;
 
-/* info for do_apply */
-typedef struct
-{
-    Scheme_Object   *proc;
-    int		    argc;
-    Scheme_Object   **argv;
-} Apply_Info;
-
 /*
  *========================================================================
  *  Vim-Control Commands
@@ -160,7 +152,6 @@ static Scheme_Object *_apply_thunk_catch_exceptions(
 static Scheme_Object *extract_exn_message(Scheme_Object *v);
 static Scheme_Object *do_eval(void *, int noargc, Scheme_Object **noargv);
 static Scheme_Object *do_load(void *, int noargc, Scheme_Object **noargv);
-static Scheme_Object *do_apply(void *, int noargc, Scheme_Object **noargv);
 static void register_vim_exn(void);
 static vim_mz_buffer *get_buffer_arg(const char *fname, int argnum,
 	int argc, Scheme_Object **argv);
@@ -178,6 +169,8 @@ static int mzscheme_env_main(Scheme_Env *env, int argc, char **argv);
 static int mzscheme_init(void);
 #ifdef FEAT_EVAL
 static Scheme_Object *vim_to_mzscheme(typval_T *vim_value, int depth,
+	Scheme_Hash_Table *visited);
+static int mzscheme_to_vim(Scheme_Object *obj, typval_T *tv, int depth,
 	Scheme_Hash_Table *visited);
 #endif
 
@@ -1056,7 +1049,7 @@ mzscheme_init(void)
 	MZ_GC_REG();
 	config = scheme_config;
 	MZ_GC_CHECK();
-	/* recreate ports each call effectivelly clearing these ones */
+	/* recreate ports each call effectively clearing these ones */
 	curout = scheme_make_string_output_port();
 	MZ_GC_CHECK();
 	curerr = scheme_make_string_output_port();
@@ -1196,36 +1189,6 @@ ex_mzscheme(exarg_T *eap)
     }
 }
 
-/*
- * apply MzScheme procedure with arguments,
- * handling errors
- */
-    Scheme_Object *
-mzvim_apply(Scheme_Object *proc, int argc, Scheme_Object **argv)
-{
-    if (mzscheme_init())
-	return FAIL;
-    else
-    {
-	Apply_Info	data = {NULL, 0, NULL};
-	Scheme_Object	*ret = NULL;
-
-	MZ_GC_DECL_REG(5);
-	MZ_GC_VAR_IN_REG(0, ret);
-	MZ_GC_VAR_IN_REG(1, data.proc);
-	MZ_GC_ARRAY_VAR_IN_REG(2, data.argv, argc);
-	MZ_GC_REG();
-
-	data.proc = proc;
-	data.argc = argc;
-	data.argv = argv;
-
-	eval_with_exn_handling(&data, do_apply, &ret);
-	MZ_GC_UNREG();
-	return ret;
-    }
-}
-
     static Scheme_Object *
 do_load(void *data, int noargc, Scheme_Object **noargv)
 {
@@ -1257,7 +1220,7 @@ do_load(void *data, int noargc, Scheme_Object **noargv)
 	MZ_GC_CHECK();
     }
 
-    /* errors will be caught in do_mzscheme_comamnd and ex_mzfile */
+    /* errors will be caught in do_mzscheme_command and ex_mzfile */
     scheme_close_input_port(pinfo->port);
     MZ_GC_CHECK();
     pinfo->port = NULL;
@@ -1346,13 +1309,6 @@ extract_exn_message(Scheme_Object *v)
 do_eval(void *s, int noargc, Scheme_Object **noargv)
 {
     return scheme_eval_string_all((char *)s, environment, TRUE);
-}
-
-    static Scheme_Object *
-do_apply(void *a, int noargc, Scheme_Object **noargv)
-{
-    Apply_Info	*info = (Apply_Info *)a;
-    return scheme_apply(info->proc, info->argc, info->argv);
 }
 
 /*
@@ -2128,7 +2084,7 @@ get_buffer_line_list(void *data, int argc, Scheme_Object **argv)
     static Scheme_Object *
 set_buffer_line(void *data, int argc, Scheme_Object **argv)
 {
-    /* First of all, we check the the of the supplied MzScheme object.
+    /* First of all, we check the value of the supplied MzScheme object.
      * There are three cases:
      *	  1. #f - this is a deletion.
      *	  2. A string	   - this is a replacement.
@@ -2428,7 +2384,7 @@ set_buffer_line_list(void *data, int argc, Scheme_Object **argv)
 /*
  * (insert-buff-line-list {linenr} {string/string-list} [buffer])
  *
- * Insert a number of lines into the specified buffer after the specifed line.
+ * Insert a number of lines into the specified buffer after the specified line.
  * The line number is in Vim format (1-based). The lines to be inserted are
  * given as an MzScheme list of string objects or as a single string. The lines
  * to be added are checked for validity and correct format. Errors are
@@ -2778,6 +2734,225 @@ vim_to_mzscheme(typval_T *vim_value, int depth, Scheme_Hash_Table *visited)
     }
     MZ_GC_UNREG();
     return result;
+}
+
+    static int
+mzscheme_to_vim(Scheme_Object *obj, typval_T *tv, int depth,
+	Scheme_Hash_Table *visited)
+{
+    int		status = OK;
+    typval_T	*found;
+    MZ_GC_CHECK();
+    if (depth > 100) /* limit the deepest recursion level */
+    {
+	tv->v_type = VAR_NUMBER;
+	tv->vval.v_number = 0;
+	return FAIL;
+    }
+
+    found = (typval_T *)scheme_hash_get(visited, obj);
+    if (found != NULL)
+	copy_tv(found, tv);
+    else if (SCHEME_VOIDP(obj))
+    {
+	tv->v_type = VAR_NUMBER;
+	tv->vval.v_number = 0;
+    }
+    else if (SCHEME_INTP(obj))
+    {
+	tv->v_type = VAR_NUMBER;
+	tv->vval.v_number = SCHEME_INT_VAL(obj);
+    }
+    else if (SCHEME_BOOLP(obj))
+    {
+	tv->v_type = VAR_NUMBER;
+	tv->vval.v_number = SCHEME_TRUEP(obj);
+    }
+# ifdef FEAT_FLOAT
+    else if (SCHEME_DBLP(obj))
+    {
+	tv->v_type = VAR_FLOAT;
+	tv->vval.v_float = SCHEME_DBL_VAL(obj);
+    }
+# endif
+    else if (SCHEME_STRINGP(obj))
+    {
+	tv->v_type = VAR_STRING;
+	tv->vval.v_string = vim_strsave((char_u *)SCHEME_STR_VAL(obj));
+    }
+    else if (SCHEME_VECTORP(obj) || SCHEME_NULLP(obj)
+	    || SCHEME_PAIRP(obj) || SCHEME_MUTABLE_PAIRP(obj))
+    {
+	list_T  *list = list_alloc();
+	if (list == NULL)
+	    status = FAIL;
+	else
+	{
+	    int		    i;
+	    Scheme_Object   *curr = NULL;
+	    Scheme_Object   *cval = NULL;
+	    /* temporary var to hold current element of vectors and pairs */
+	    typval_T	    *v;
+
+	    MZ_GC_DECL_REG(2);
+	    MZ_GC_VAR_IN_REG(0, curr);
+	    MZ_GC_VAR_IN_REG(1, cval);
+	    MZ_GC_REG();
+
+	    tv->v_type = VAR_LIST;
+	    tv->vval.v_list = list;
+	    ++list->lv_refcount;
+
+	    v = (typval_T *)alloc(sizeof(typval_T));
+	    if (v == NULL)
+		status = FAIL;
+	    else
+	    {
+		/* add the value in advance to allow handling of self-referencial
+		 * data structures */
+		typval_T    *visited_tv = (typval_T *)alloc(sizeof(typval_T));
+		copy_tv(tv, visited_tv);
+		scheme_hash_set(visited, obj, (Scheme_Object *)visited_tv);
+
+		if (SCHEME_VECTORP(obj))
+		{
+		    for (i = 0; i < SCHEME_VEC_SIZE(obj); ++i)
+		    {
+			cval = SCHEME_VEC_ELS(obj)[i];
+			status = mzscheme_to_vim(cval, v, depth + 1, visited);
+			if (status == FAIL)
+			    break;
+			status = list_append_tv(list, v);
+			clear_tv(v);
+			if (status == FAIL)
+			    break;
+		    }
+		}
+		else if (SCHEME_PAIRP(obj) || SCHEME_MUTABLE_PAIRP(obj))
+		{
+		    for (curr = obj;
+			    SCHEME_PAIRP(curr) || SCHEME_MUTABLE_PAIRP(curr);
+			    curr = SCHEME_CDR(curr))
+		    {
+			cval = SCHEME_CAR(curr);
+			status = mzscheme_to_vim(cval, v, depth + 1, visited);
+			if (status == FAIL)
+			    break;
+			status = list_append_tv(list, v);
+			clear_tv(v);
+			if (status == FAIL)
+			    break;
+		    }
+		    /* impoper list not terminated with null
+		     * need to handle the last element */
+		    if (status == OK && !SCHEME_NULLP(curr))
+		    {
+			status = mzscheme_to_vim(cval, v, depth + 1, visited);
+			if (status == OK)
+			{
+			    status = list_append_tv(list, v);
+			    clear_tv(v);
+			}
+		    }
+		}
+		/* nothing to do for scheme_null */
+		vim_free(v);
+	    }
+	    MZ_GC_UNREG();
+	}
+    }
+    else if (SCHEME_HASHTP(obj))
+    {
+	int		i;
+	dict_T		*dict;
+	Scheme_Object   *key = NULL;
+	Scheme_Object   *val = NULL;
+
+	MZ_GC_DECL_REG(2);
+	MZ_GC_VAR_IN_REG(0, key);
+	MZ_GC_VAR_IN_REG(1, val);
+	MZ_GC_REG();
+
+	dict = dict_alloc();
+	if (dict == NULL)
+	    status = FAIL;
+	else
+	{
+	    typval_T    *visited_tv = (typval_T *)alloc(sizeof(typval_T));
+
+	    tv->v_type = VAR_DICT;
+	    tv->vval.v_dict = dict;
+	    ++dict->dv_refcount;
+
+	    copy_tv(tv, visited_tv);
+	    scheme_hash_set(visited, obj, (Scheme_Object *)visited_tv);
+
+	    for (i = 0; i < ((Scheme_Hash_Table *)obj)->size; ++i)
+	    {
+		if (((Scheme_Hash_Table *) obj)->vals[i] != NULL)
+		{
+		    /* generate item for `diplay'ed Scheme key */
+		    dictitem_T  *item = dictitem_alloc((char_u *)string_to_line(
+				((Scheme_Hash_Table *) obj)->keys[i]));
+		    /* convert Scheme val to Vim and add it to the dict */
+		    if (mzscheme_to_vim(((Scheme_Hash_Table *) obj)->vals[i],
+				    &item->di_tv, depth + 1, visited) == FAIL
+			    || dict_add(dict, item) == FAIL)
+		    {
+			dictitem_free(item);
+			status = FAIL;
+			break;
+		    }
+		}
+
+	    }
+	}
+	MZ_GC_UNREG();
+    }
+    else
+    {
+	/* `display' any other value to string */
+	tv->v_type = VAR_STRING;
+	tv->vval.v_string = (char_u *)string_to_line(obj);
+    }
+    return status;
+}
+
+    void
+do_mzeval(char_u *str, typval_T *rettv)
+{
+    int i;
+    Scheme_Object	*ret = NULL;
+    Scheme_Hash_Table	*visited = NULL;
+
+    MZ_GC_DECL_REG(2);
+    MZ_GC_VAR_IN_REG(0, ret);
+    MZ_GC_VAR_IN_REG(0, visited);
+    MZ_GC_REG();
+
+    if (mzscheme_init())
+    {
+	MZ_GC_UNREG();
+	return;
+    }
+
+    MZ_GC_CHECK();
+    visited = scheme_make_hash_table(SCHEME_hash_ptr);
+    MZ_GC_CHECK();
+
+    if (eval_with_exn_handling(str, do_eval, &ret) == OK)
+	mzscheme_to_vim(ret, rettv, 1, visited);
+
+    for (i = 0; i < visited->size; ++i)
+    {
+	/* free up remembered objects */
+	if (visited->vals[i] != NULL)
+	{
+	    free_tv((typval_T *)visited->vals[i]);
+	}
+    }
+
+    MZ_GC_UNREG();
 }
 #endif
 

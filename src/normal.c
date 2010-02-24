@@ -5434,6 +5434,7 @@ nv_ident(cap)
     int		n = 0;		/* init for GCC */
     int		cmdchar;
     int		g_cmd;		/* "g" command */
+    int		tag_cmd = FALSE;
     char_u	*aux_ptr;
     int		isman;
     int		isman_s;
@@ -5543,6 +5544,7 @@ nv_ident(cap)
 	    break;
 
 	case ']':
+	    tag_cmd = TRUE;
 #ifdef FEAT_CSCOPE
 	    if (p_cst)
 		STRCPY(buf, "cstag ");
@@ -5554,10 +5556,14 @@ nv_ident(cap)
 	default:
 	    if (curbuf->b_help)
 		STRCPY(buf, "he! ");
-	    else if (g_cmd)
-		STRCPY(buf, "tj ");
 	    else
-		sprintf((char *)buf, "%ldta ", cap->count0);
+	    {
+		tag_cmd = TRUE;
+		if (g_cmd)
+		    STRCPY(buf, "tj ");
+		else
+		    sprintf((char *)buf, "%ldta ", cap->count0);
+	    }
     }
 
     /*
@@ -5590,8 +5596,10 @@ nv_ident(cap)
 	    aux_ptr = (char_u *)(p_magic ? "/.*~[^$\\" : "/^$\\");
 	else if (cmdchar == '#')
 	    aux_ptr = (char_u *)(p_magic ? "/?.*~[^$\\" : "/?^$\\");
-	else
+	else if (tag_cmd)
 	    /* Don't escape spaces and Tabs in a tag with a backslash */
+	    aux_ptr = (char_u *)"\\|\"\n[";
+	else
 	    aux_ptr = (char_u *)"\\|\"\n*?[";
 
 	p = buf + STRLEN(buf);
@@ -5630,6 +5638,7 @@ nv_ident(cap)
 	    STRCAT(buf, "\\>");
 #ifdef FEAT_CMDHIST
 	/* put pattern in search history */
+	init_history();
 	add_to_history(HIST_SEARCH, buf, TRUE, NUL);
 #endif
 	normal_search(cap, cmdchar == '*' ? '/' : '?', buf, 0);
@@ -7900,6 +7909,9 @@ nv_g_cmd(cap)
 				    && vim_iswhite(ptr[curwin->w_cursor.col]))
 		--curwin->w_cursor.col;
 	    curwin->w_set_curswant = TRUE;
+#ifdef FEAT_VISUAL
+	    adjust_for_sel(cap);
+#endif
 	}
 	break;
 
