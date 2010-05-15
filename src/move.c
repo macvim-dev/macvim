@@ -696,7 +696,7 @@ validate_cline_row()
 
 /*
  * Compute wp->w_cline_row and wp->w_cline_height, based on the current value
- * of wp->w_topline.
+ * of wp->w_topine.
  *
  * Returns OK when cursor is in the window, FAIL when it isn't.
  */

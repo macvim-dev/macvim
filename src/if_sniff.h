@@ -1,5 +1,7 @@
 /*
  * if_sniff.h Interface between Vim and SNiFF+
+ *
+ * $Id$
  */
 
 #ifndef __if_sniff_h__
