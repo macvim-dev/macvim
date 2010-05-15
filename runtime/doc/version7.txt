@@ -1,4 +1,4 @@
-*version7.txt*  For Vim version 7.3a.  Last change: 2010 May 14
+*version7.txt*  For Vim version 7.2.  Last change: 2010 May 14
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -7160,11 +7160,6 @@ Changed							*changed-7.3*
 
 The extra and language files are no longer distributed separately.
 The files for all systems are included in one distribution.
-
-After using ":recover" or recovering a file in another way, ":x" and "ZZ"
-don't save what you see.  This could result in work being lost.  Now the text
-after recovery is compared to the original file contents.  When they differ
-the buffer is marked as modified.
 
 
 Added							*added-7.3*

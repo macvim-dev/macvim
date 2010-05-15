@@ -63,7 +63,7 @@ char	*(compat_choices[]) =
 {
     "\nChoose the default way to run Vim:",
     "Vi compatible",
-    "with some Vim enhancements",
+    "with some Vim ehancements",
     "with syntax highlighting and other features switched on",
 };
 int	compat_choice = (int)compat_all_enhancements;
@@ -554,7 +554,7 @@ uninstall_check(void)
 			}
 			run_command(temp_string_buffer);
 
-			/* Check if an uninstall reg key was deleted.
+			/* Check if an unistall reg key was deleted.
 			 * if it was, we want to decrement key_index.
 			 * if we don't do this, we will skip the key
 			 * immediately after any key that we delete.  */
@@ -1131,6 +1131,7 @@ init_bat_choices(void)
 /*
  * Install the vimrc file.
  */
+/*ARGSUSED*/
     static void
 install_vimrc(int idx)
 {
