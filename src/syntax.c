@@ -3090,7 +3090,7 @@ syn_add_start_off(result, regmatch, spp, idx, extra)
     {
 	/* a "\n" at the end of the pattern may take us below the last line */
 	result->lnum = syn_buf->b_ml.ml_line_count;
-	col = STRLEN(ml_get_buf(syn_buf, result->lnum, FALSE));
+	col = (int)STRLEN(ml_get_buf(syn_buf, result->lnum, FALSE));
     }
     if (off != 0)
     {
@@ -6205,10 +6205,8 @@ static char *(highlight_init_both[]) =
     {
 	CENT("ErrorMsg term=standout ctermbg=DarkRed ctermfg=White",
 	     "ErrorMsg term=standout ctermbg=DarkRed ctermfg=White guibg=Red guifg=White"),
-#ifdef FEAT_SEARCH_EXTRA
 	CENT("IncSearch term=reverse cterm=reverse",
 	     "IncSearch term=reverse cterm=reverse gui=reverse"),
-#endif
 	CENT("ModeMsg term=bold cterm=bold",
 	     "ModeMsg term=bold cterm=bold gui=bold"),
 	CENT("NonText term=bold ctermfg=Blue",
@@ -7139,7 +7137,8 @@ do_highlight(line, forceit, init)
 		    }
 		}
 	    }
-	    /* Add one to the argument, to avoid zero */
+	    /* Add one to the argument, to avoid zero.  Zero is used for
+	     * "NONE", then "color" is -1. */
 	    if (key[5] == 'F')
 	    {
 		HL_TABLE()[idx].sg_cterm_fg = color + 1;
@@ -7153,7 +7152,7 @@ do_highlight(line, forceit, init)
 #endif
 		    {
 			must_redraw = CLEAR;
-			if (termcap_active)
+			if (termcap_active && color >= 0)
 			    term_fg_color(color);
 		    }
 		}
@@ -7170,16 +7169,21 @@ do_highlight(line, forceit, init)
 #endif
 		    {
 			must_redraw = CLEAR;
-			if (termcap_active)
-			    term_bg_color(color);
-			if (t_colors < 16)
-			    i = (color == 0 || color == 4);
-			else
-			    i = (color < 7 || color == 8);
-			/* Set the 'background' option if the value is wrong. */
-			if (i != (*p_bg == 'd'))
-			    set_option_value((char_u *)"bg", 0L,
-				 i ? (char_u *)"dark" : (char_u *)"light", 0);
+			if (color >= 0)
+			{
+			    if (termcap_active)
+				term_bg_color(color);
+			    if (t_colors < 16)
+				i = (color == 0 || color == 4);
+			    else
+				i = (color < 7 || color == 8);
+			    /* Set the 'background' option if the value is
+			     * wrong. */
+			    if (i != (*p_bg == 'd'))
+				set_option_value((char_u *)"bg", 0L,
+					i ?  (char_u *)"dark"
+					  : (char_u *)"light", 0);
+			}
 		    }
 		}
 	    }
@@ -8327,7 +8331,7 @@ highlight_has_attr(id, flag, modec)
     char_u *
 highlight_color(id, what, modec)
     int		id;
-    char_u	*what;	/* "fg", "bg", "sp", "fg#", "bg#" or "sp#" */
+    char_u	*what;	/* "font", "fg", "bg", "sp", "fg#", "bg#" or "sp#" */
     int		modec;	/* 'g' for GUI, 'c' for cterm, 't' for term */
 {
     static char_u	name[20];
@@ -8335,20 +8339,30 @@ highlight_color(id, what, modec)
     int			fg = FALSE;
 # ifdef FEAT_GUI
     int			sp = FALSE;
+    int			font = FALSE;
 # endif
 
     if (id <= 0 || id > highlight_ga.ga_len)
 	return NULL;
 
-    if (TOLOWER_ASC(what[0]) == 'f')
+    if (TOLOWER_ASC(what[0]) == 'f' && TOLOWER_ASC(what[1]) == 'g')
 	fg = TRUE;
 # ifdef FEAT_GUI
-    else if (TOLOWER_ASC(what[0]) == 's')
+    else if (TOLOWER_ASC(what[0]) == 'f' && TOLOWER_ASC(what[1]) == 'o'
+             && TOLOWER_ASC(what[2]) == 'n' && TOLOWER_ASC(what[3]) == 't')
+	font = TRUE;
+    else if (TOLOWER_ASC(what[0]) == 's' && TOLOWER_ASC(what[1]) == 'p')
 	sp = TRUE;
+    else if (!(TOLOWER_ASC(what[0]) == 'b' && TOLOWER_ASC(what[1]) == 'g'))
+	return NULL;
     if (modec == 'g')
     {
+	/* return font name */
+	if (font)
+	    return HL_TABLE()[id - 1].sg_font_name;
+
 	/* return #RRGGBB form (only possible when GUI is running) */
-	if (gui.in_use && what[1] && what[2] == '#')
+	if (gui.in_use && what[2] == '#')
 	{
 	    guicolor_T		color;
 	    long_u		rgb;
@@ -8375,6 +8389,8 @@ highlight_color(id, what, modec)
 	    return (HL_TABLE()[id - 1].sg_gui_sp_name);
 	return (HL_TABLE()[id - 1].sg_gui_bg_name);
     }
+    if (font || sp)
+	return NULL;
 # endif
     if (modec == 'c')
     {

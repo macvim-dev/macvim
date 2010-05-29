@@ -1,4 +1,4 @@
-*fold.txt*      For Vim version 7.2.  Last change: 2009 Dec 22
+*fold.txt*      For Vim version 7.2.  Last change: 2010 May 13
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -126,6 +126,9 @@ backwards for a line for which the fold level is defined.  This can be slow.
 fold level.  But note that foldlevel() may return -1 if the level is not known
 yet.  And it returns the level at the start of the line, while a fold might
 end in that line.
+
+It may happened that folds are not updated properly.  You can use |zx| or |zX|
+to force updating folds.
 
 
 SYNTAX						*fold-syntax*
@@ -274,7 +277,7 @@ zf{motion}  or
 		Also see |fold-create-marker|.
 
 							*zF*
-zF		Create a fold for N lines.  Works like "zf".
+zF		Create a fold for [count] lines.  Works like "zf".
 
 :{range}fo[ld]						*:fold* *:fo*
 		Create a fold for the lines in {range}.  Works like "zf".
@@ -352,9 +355,13 @@ zv		View cursor line: Open just enough folds to make the line in
 							*zx*
 zx		Update folds: Undo manually opened and closed folds: re-apply
 		'foldlevel', then do "zv": View cursor line.
+		Also forces recomputing folds.  This is useful when using
+		'foldexpr' and the buffer is changed in a way that results in
+		folds not to be updated properly.
 
 							*zX*
 zX		Undo manually opened and closed folds: re-apply 'foldlevel'.
+		Also forces recomputing folds, like |zx|.
 
 							*zm*
 zm		Fold more: Subtract one from 'foldlevel'.  If 'foldlevel' was
@@ -399,24 +406,24 @@ MOVING OVER FOLDS ~
 [z		Move to the start of the current open fold.  If already at the
 		start, move to the start of the fold that contains it.  If
 		there is no containing fold, the command fails.
-		When a count is used, repeats the command N times.
+		When a count is used, repeats the command [count] times.
 
 							*]z*
 ]z		Move to the end of the current open fold.  If already at the
 		end, move to the end of the fold that contains it.  If there
 		is no containing fold, the command fails.
-		When a count is used, repeats the command N times.
+		When a count is used, repeats the command [count] times.
 
 							*zj*
 zj		Move downwards to the start of the next fold.  A closed fold
 		is counted as one fold.
-		When a count is used, repeats the command N times.
+		When a count is used, repeats the command [count] times.
 		This command can be used after an |operator|.
 
 							*zk*
 zk		Move upwards to the end of the previous fold.  A closed fold
 		is counted as one fold.
-		When a count is used, repeats the command N times.
+		When a count is used, repeats the command [count] times.
 		This command can be used after an |operator|.
 
 

@@ -664,6 +664,7 @@ EGREP
 AWK
 STRIP
 CPP_MM
+XCODE_SELECT
 OS_EXTRA_SRC
 OS_EXTRA_OBJ
 VIMNAME
@@ -1358,6 +1359,7 @@ Optional Features:
   --enable-carbon-check   If auto-select GUI, check for Carbon default=yes
   --enable-macvim-check   If auto-select GUI, check for MacVim default=yes
   --disable-gtktest       Do not try to compile and run a test GTK program
+  --disable-largefile     omit support for large files
   --disable-acl           Don't check for ACL support.
   --disable-gpm           Don't use gpm (Linux mouse daemon).
   --disable-sysmouse    Don't use sysmouse (mouse in *BSD console).
@@ -1366,6 +1368,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-developer-dir=PATH    use PATH as location for Xcode developer tools
   --with-macsdk=SDK       SDK version (10.4, 10.5, 10.6, ...)
   --with-macarchs=ARCHS   space separated list of archs (i386 x86_64 ppc ...)
   --with-local-dir=PATH   search PATH instead of /usr/local for local libraries.
@@ -1380,6 +1383,7 @@ Optional Packages:
   --with-plthome=PLTHOME   Use PLTHOME.
   --with-python-config-dir=PATH  Python's config directory
   --with-tclsh=PATH       which tclsh to use (default: tclsh8.0)
+  --with-ruby-command=RUBY  name of the Ruby command (default: ruby)
   --with-x                use the X Window System
   --with-gtk-prefix=PFX   Prefix where GTK is installed (optional)
   --with-gtk-exec-prefix=PFX Exec prefix where GTK is installed (optional)
@@ -3677,6 +3681,70 @@ echo "${ECHO_T}no, Darwin support disabled" >&6; }
 echo "${ECHO_T}yes, Darwin support excluded" >&6; }
   fi
 
+  { echo "$as_me:$LINENO: checking --with-developer-dir argument" >&5
+echo $ECHO_N "checking --with-developer-dir argument... $ECHO_C" >&6; }
+
+# Check whether --with-developer-dir was given.
+if test "${with_developer_dir+set}" = set; then
+  withval=$with_developer_dir; DEVELOPER_DIR="$withval"; { echo "$as_me:$LINENO: result: $DEVELOPER_DIR" >&5
+echo "${ECHO_T}$DEVELOPER_DIR" >&6; }
+else
+  DEVELOPER_DIR=""; { echo "$as_me:$LINENO: result: not present" >&5
+echo "${ECHO_T}not present" >&6; }
+fi
+
+
+  if test "x$DEVELOPER_DIR" = "x"; then
+    # Extract the first word of "xcode-select", so it can be a program name with args.
+set dummy xcode-select; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_path_XCODE_SELECT+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $XCODE_SELECT in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_XCODE_SELECT="$XCODE_SELECT" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_XCODE_SELECT="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+XCODE_SELECT=$ac_cv_path_XCODE_SELECT
+if test -n "$XCODE_SELECT"; then
+  { echo "$as_me:$LINENO: result: $XCODE_SELECT" >&5
+echo "${ECHO_T}$XCODE_SELECT" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+    if test "x$XCODE_SELECT" != "x"; then
+      { echo "$as_me:$LINENO: checking for developer dir using xcode-select" >&5
+echo $ECHO_N "checking for developer dir using xcode-select... $ECHO_C" >&6; }
+      DEVELOPER_DIR=`$XCODE_SELECT -print-path`
+      { echo "$as_me:$LINENO: result: $DEVELOPER_DIR" >&5
+echo "${ECHO_T}$DEVELOPER_DIR" >&6; }
+    else
+      DEVELOPER_DIR=/Developer
+    fi
+  fi
 
   { echo "$as_me:$LINENO: checking --with-macsdk argument" >&5
 echo $ECHO_N "checking --with-macsdk argument... $ECHO_C" >&6; }
@@ -3696,7 +3764,7 @@ fi
 echo $ECHO_N "checking if SDK is supported... $ECHO_C" >&6; }
     save_cflags="$CFLAGS"
     save_ldflags="$LDFLAGS"
-    sdkflags="/Developer/SDKs/MacOSX$MACSDK"
+    sdkflags="$DEVELOPER_DIR/SDKs/MacOSX$MACSDK"
     if test "x$MACSDK" = "x10.4"; then
       sdkflags="$sdkflags""u"
     fi
@@ -5120,7 +5188,7 @@ else
 
 	vi_cv_path_python_conf=
 	for path in "${vi_cv_path_python_pfx}" "${vi_cv_path_python_epfx}"; do
-	  for subdir in lib share; do
+	  for subdir in lib64 lib share; do
 	    d="${path}/${subdir}/python${vi_cv_var_python_version}/config"
 	    if test -d "$d" && test -f "$d/config.c"; then
 	      vi_cv_path_python_conf="$d"
@@ -5696,9 +5764,21 @@ fi
 { echo "$as_me:$LINENO: result: $enable_rubyinterp" >&5
 echo "${ECHO_T}$enable_rubyinterp" >&6; }
 if test "$enable_rubyinterp" = "yes"; then
+  { echo "$as_me:$LINENO: checking --with-ruby-command argument" >&5
+echo $ECHO_N "checking --with-ruby-command argument... $ECHO_C" >&6; }
 
-  # Extract the first word of "ruby", so it can be a program name with args.
-set dummy ruby; ac_word=$2
+# Check whether --with-ruby-command was given.
+if test "${with_ruby_command+set}" = set; then
+  withval=$with_ruby_command; RUBY_CMD="$withval"; { echo "$as_me:$LINENO: result: $RUBY_CMD" >&5
+echo "${ECHO_T}$RUBY_CMD" >&6; }
+else
+  RUBY_CMD="ruby"; { echo "$as_me:$LINENO: result: defaulting to $RUBY_CMD" >&5
+echo "${ECHO_T}defaulting to $RUBY_CMD" >&6; }
+fi
+
+
+  # Extract the first word of "$RUBY_CMD", so it can be a program name with args.
+set dummy $RUBY_CMD; ac_word=$2
 { echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
 if test "${ac_cv_path_vi_cv_path_ruby+set}" = set; then
@@ -5745,11 +5825,17 @@ echo $ECHO_N "checking Ruby version... $ECHO_C" >&6; }
 echo "${ECHO_T}OK" >&6; }
       { echo "$as_me:$LINENO: checking Ruby header files" >&5
 echo $ECHO_N "checking Ruby header files... $ECHO_C" >&6; }
-      rubyhdrdir=`$vi_cv_path_ruby -r mkmf -e 'print Config::CONFIG["archdir"] || $hdrdir' 2>/dev/null`
+      rubyhdrdir=`$vi_cv_path_ruby -r mkmf -e 'print Config::CONFIG["rubyhdrdir"] || Config::CONFIG["archdir"] || $hdrdir' 2>/dev/null`
       if test "X$rubyhdrdir" != "X"; then
 	{ echo "$as_me:$LINENO: result: $rubyhdrdir" >&5
 echo "${ECHO_T}$rubyhdrdir" >&6; }
 	RUBY_CFLAGS="-I$rubyhdrdir"
+        rubyarch=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["arch"]'`
+        if test -d "$rubyhdrdir/$rubyarch"; then
+          RUBY_CFLAGS="$RUBY_CFLAGS -I$rubyhdrdir/$rubyarch"
+        fi
+        rubyversion=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["ruby_version"].gsub(/\./, "")[0,2]'`
+        RUBY_CFLAGS="$RUBY_CFLAGS -DRUBY_VERSION=$rubyversion"
 	rubylibs=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["LIBS"]'`
 	if test "X$rubylibs" != "X"; then
 	  RUBY_LIBS="$rubylibs"
@@ -5791,8 +5877,8 @@ echo "${ECHO_T}$rubyhdrdir" >&6; }
 _ACEOF
 
       else
-	{ echo "$as_me:$LINENO: result: not found" >&5
-echo "${ECHO_T}not found" >&6; }
+	{ echo "$as_me:$LINENO: result: not found; disabling Ruby" >&5
+echo "${ECHO_T}not found; disabling Ruby" >&6; }
       fi
     else
       { echo "$as_me:$LINENO: result: too old; need Ruby version 1.6.0 or later" >&5
@@ -8262,7 +8348,7 @@ echo "${ECHO_T}yes" >&6; };
     GUITYPE=CARBONGUI
         datadir='${prefix}/Vim.app/Contents/Resources'
 
-    CPPFLAGS="$CPPFLAGS -I/Developer/Headers/FlatCarbon"
+    CPPFLAGS="$CPPFLAGS -I$DEVELOPER_DIR/Headers/FlatCarbon"
   fi
 
   if test "$VIMNAME" = "vim"; then
@@ -13266,8 +13352,8 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 echo "${ECHO_T}pty mode: $vim_cv_tty_mode, group: $vim_cv_tty_group" >&6; }
       else
 	vim_cv_tty_group=world
-	{ echo "$as_me:$LINENO: result: ptys are world accessable" >&5
-echo "${ECHO_T}ptys are world accessable" >&6; }
+	{ echo "$as_me:$LINENO: result: ptys are world accessible" >&5
+echo "${ECHO_T}ptys are world accessible" >&6; }
       fi
 
 else
@@ -13278,8 +13364,8 @@ sed 's/^/| /' conftest.$ac_ext >&5
 ( exit $ac_status )
 
       vim_cv_tty_group=world
-      { echo "$as_me:$LINENO: result: can't determine - assume ptys are world accessable" >&5
-echo "${ECHO_T}can't determine - assume ptys are world accessable" >&6; }
+      { echo "$as_me:$LINENO: result: can't determine - assume ptys are world accessible" >&5
+echo "${ECHO_T}can't determine - assume ptys are world accessible" >&6; }
 
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
@@ -13560,10 +13646,9 @@ fi
 
 
 
-
-for ac_func in bcmp fchdir fchown fseeko fsync ftello getcwd getpseudotty \
+for ac_func in bcmp fchdir fchown fsync getcwd getpseudotty \
 	getpwnam getpwuid getrlimit gettimeofday getwd lstat memcmp \
-	memset nanosleep opendir putenv qsort readlink select setenv \
+	memset mkdtemp nanosleep opendir putenv qsort readlink select setenv \
 	setpgid setsid sigaltstack sigstack sigset sigsetjmp sigaction \
 	sigvec strcasecmp strerror strftime stricmp strncasecmp \
 	strnicmp strpbrk strtol tgetent towlower towupper iswupper \
@@ -13659,6 +13744,477 @@ _ACEOF
 
 fi
 done
+
+{ echo "$as_me:$LINENO: checking for _LARGEFILE_SOURCE value needed for large files" >&5
+echo $ECHO_N "checking for _LARGEFILE_SOURCE value needed for large files... $ECHO_C" >&6; }
+if test "${ac_cv_sys_largefile_source+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  while :; do
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <stdio.h>
+int
+main ()
+{
+return fseeko (stdin, 0, 0) && (fseeko) (stdin, 0, 0);
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_sys_largefile_source=no; break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#define _LARGEFILE_SOURCE 1
+#include <stdio.h>
+int
+main ()
+{
+return fseeko (stdin, 0, 0) && (fseeko) (stdin, 0, 0);
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_sys_largefile_source=1; break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+  ac_cv_sys_largefile_source=unknown
+  break
+done
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_sys_largefile_source" >&5
+echo "${ECHO_T}$ac_cv_sys_largefile_source" >&6; }
+case $ac_cv_sys_largefile_source in #(
+  no | unknown) ;;
+  *)
+cat >>confdefs.h <<_ACEOF
+#define _LARGEFILE_SOURCE $ac_cv_sys_largefile_source
+_ACEOF
+;;
+esac
+rm -f -r conftest*
+
+# We used to try defining _XOPEN_SOURCE=500 too, to work around a bug
+# in glibc 2.1.3, but that breaks too many other things.
+# If you want fseeko and ftello with glibc, upgrade to a fixed glibc.
+if test $ac_cv_sys_largefile_source != unknown; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_FSEEKO 1
+_ACEOF
+
+fi
+
+
+# Check whether --enable-largefile was given.
+if test "${enable_largefile+set}" = set; then
+  enableval=$enable_largefile;
+fi
+
+if test "$enable_largefile" != no; then
+
+  { echo "$as_me:$LINENO: checking for special C compiler options needed for large files" >&5
+echo $ECHO_N "checking for special C compiler options needed for large files... $ECHO_C" >&6; }
+if test "${ac_cv_sys_largefile_CC+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_cv_sys_largefile_CC=no
+     if test "$GCC" != yes; then
+       ac_save_CC=$CC
+       while :; do
+	 # IRIX 6.2 and later do not support large files by default,
+	 # so use the C compiler's -n32 option if that helps.
+	 cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <sys/types.h>
+ /* Check that off_t can represent 2**63 - 1 correctly.
+    We can't simply define LARGE_OFF_T to be 9223372036854775807,
+    since some C++ compilers masquerading as C compilers
+    incorrectly reject 9223372036854775807.  */
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+		       && LARGE_OFF_T % 2147483647 == 1)
+		      ? 1 : -1];
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+	 rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext
+	 CC="$CC -n32"
+	 rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_cv_sys_largefile_CC=' -n32'; break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext
+	 break
+       done
+       CC=$ac_save_CC
+       rm -f conftest.$ac_ext
+    fi
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_sys_largefile_CC" >&5
+echo "${ECHO_T}$ac_cv_sys_largefile_CC" >&6; }
+  if test "$ac_cv_sys_largefile_CC" != no; then
+    CC=$CC$ac_cv_sys_largefile_CC
+  fi
+
+  { echo "$as_me:$LINENO: checking for _FILE_OFFSET_BITS value needed for large files" >&5
+echo $ECHO_N "checking for _FILE_OFFSET_BITS value needed for large files... $ECHO_C" >&6; }
+if test "${ac_cv_sys_file_offset_bits+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  while :; do
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <sys/types.h>
+ /* Check that off_t can represent 2**63 - 1 correctly.
+    We can't simply define LARGE_OFF_T to be 9223372036854775807,
+    since some C++ compilers masquerading as C compilers
+    incorrectly reject 9223372036854775807.  */
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+		       && LARGE_OFF_T % 2147483647 == 1)
+		      ? 1 : -1];
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_cv_sys_file_offset_bits=no; break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#define _FILE_OFFSET_BITS 64
+#include <sys/types.h>
+ /* Check that off_t can represent 2**63 - 1 correctly.
+    We can't simply define LARGE_OFF_T to be 9223372036854775807,
+    since some C++ compilers masquerading as C compilers
+    incorrectly reject 9223372036854775807.  */
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+		       && LARGE_OFF_T % 2147483647 == 1)
+		      ? 1 : -1];
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_cv_sys_file_offset_bits=64; break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  ac_cv_sys_file_offset_bits=unknown
+  break
+done
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_sys_file_offset_bits" >&5
+echo "${ECHO_T}$ac_cv_sys_file_offset_bits" >&6; }
+case $ac_cv_sys_file_offset_bits in #(
+  no | unknown) ;;
+  *)
+cat >>confdefs.h <<_ACEOF
+#define _FILE_OFFSET_BITS $ac_cv_sys_file_offset_bits
+_ACEOF
+;;
+esac
+rm -f -r conftest*
+  if test $ac_cv_sys_file_offset_bits = unknown; then
+    { echo "$as_me:$LINENO: checking for _LARGE_FILES value needed for large files" >&5
+echo $ECHO_N "checking for _LARGE_FILES value needed for large files... $ECHO_C" >&6; }
+if test "${ac_cv_sys_large_files+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  while :; do
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <sys/types.h>
+ /* Check that off_t can represent 2**63 - 1 correctly.
+    We can't simply define LARGE_OFF_T to be 9223372036854775807,
+    since some C++ compilers masquerading as C compilers
+    incorrectly reject 9223372036854775807.  */
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+		       && LARGE_OFF_T % 2147483647 == 1)
+		      ? 1 : -1];
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_cv_sys_large_files=no; break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#define _LARGE_FILES 1
+#include <sys/types.h>
+ /* Check that off_t can represent 2**63 - 1 correctly.
+    We can't simply define LARGE_OFF_T to be 9223372036854775807,
+    since some C++ compilers masquerading as C compilers
+    incorrectly reject 9223372036854775807.  */
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
+  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+		       && LARGE_OFF_T % 2147483647 == 1)
+		      ? 1 : -1];
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_cv_sys_large_files=1; break
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  ac_cv_sys_large_files=unknown
+  break
+done
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_sys_large_files" >&5
+echo "${ECHO_T}$ac_cv_sys_large_files" >&6; }
+case $ac_cv_sys_large_files in #(
+  no | unknown) ;;
+  *)
+cat >>confdefs.h <<_ACEOF
+#define _LARGE_FILES $ac_cv_sys_large_files
+_ACEOF
+;;
+esac
+rm -f -r conftest*
+  fi
+fi
 
 
 { echo "$as_me:$LINENO: checking for st_blksize" >&5
@@ -14651,6 +15207,57 @@ else
   { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
 fi
+
+{ echo "$as_me:$LINENO: checking for FD_CLOEXEC" >&5
+echo $ECHO_N "checking for FD_CLOEXEC... $ECHO_C" >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#if HAVE_FCNTL_H
+# include <fcntl.h>
+#endif
+int
+main ()
+{
+	int flag = FD_CLOEXEC;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }; cat >>confdefs.h <<\_ACEOF
+#define HAVE_FD_CLOEXEC 1
+_ACEOF
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	{ echo "$as_me:$LINENO: result: not usable" >&5
+echo "${ECHO_T}not usable" >&6; }
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
 { echo "$as_me:$LINENO: checking for rename" >&5
 echo $ECHO_N "checking for rename... $ECHO_C" >&6; }
@@ -16545,10 +17152,10 @@ echo "${ECHO_T}yes" >&6; }
     { echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
   fi
-      { echo "$as_me:$LINENO: checking whether we need -D_FORTIFY_SOURCE=1" >&5
+        { echo "$as_me:$LINENO: checking whether we need -D_FORTIFY_SOURCE=1" >&5
 echo $ECHO_N "checking whether we need -D_FORTIFY_SOURCE=1... $ECHO_C" >&6; }
   if test "$gccmajor" -gt "3"; then
-    CFLAGS=`echo "$CFLAGS -D_FORTIFY_SOURCE=1" | sed -e 's/-Wp,-D_FORTIFY_SOURCE=2//g' -e 's/-D_FORTIFY_SOURCE=2//g'`
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//g' -e 's/-D_FORTIFY_SOURCE=.//g' -e 's/$/ -D_FORTIFY_SOURCE=1/'`
     { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
   else
@@ -17226,6 +17833,7 @@ EGREP!$EGREP$ac_delim
 AWK!$AWK$ac_delim
 STRIP!$STRIP$ac_delim
 CPP_MM!$CPP_MM$ac_delim
+XCODE_SELECT!$XCODE_SELECT$ac_delim
 OS_EXTRA_SRC!$OS_EXTRA_SRC$ac_delim
 OS_EXTRA_OBJ!$OS_EXTRA_OBJ$ac_delim
 VIMNAME!$VIMNAME$ac_delim
@@ -17271,7 +17879,6 @@ RUBY_PRO!$RUBY_PRO$ac_delim
 RUBY_CFLAGS!$RUBY_CFLAGS$ac_delim
 RUBY_LIBS!$RUBY_LIBS$ac_delim
 WORKSHOP_SRC!$WORKSHOP_SRC$ac_delim
-WORKSHOP_OBJ!$WORKSHOP_OBJ$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -17313,6 +17920,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+WORKSHOP_OBJ!$WORKSHOP_OBJ$ac_delim
 NETBEANS_SRC!$NETBEANS_SRC$ac_delim
 NETBEANS_OBJ!$NETBEANS_OBJ$ac_delim
 SNIFF_SRC!$SNIFF_SRC$ac_delim
@@ -17353,7 +17961,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 38; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 39; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

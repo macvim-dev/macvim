@@ -111,6 +111,21 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
     AC_MSG_RESULT([yes, Darwin support excluded])
   fi
 
+  AC_MSG_CHECKING(--with-developer-dir argument)
+  AC_ARG_WITH(developer-dir, [  --with-developer-dir=PATH    use PATH as location for Xcode developer tools],
+	DEVELOPER_DIR="$withval"; AC_MSG_RESULT($DEVELOPER_DIR),
+        DEVELOPER_DIR=""; AC_MSG_RESULT(not present))
+  
+  if test "x$DEVELOPER_DIR" = "x"; then
+    AC_PATH_PROG(XCODE_SELECT, xcode-select)
+    if test "x$XCODE_SELECT" != "x"; then
+      AC_MSG_CHECKING(for developer dir using xcode-select)
+      DEVELOPER_DIR=`$XCODE_SELECT -print-path`
+      AC_MSG_RESULT([$DEVELOPER_DIR])
+    else
+      DEVELOPER_DIR=/Developer
+    fi
+  fi
 
   AC_MSG_CHECKING(--with-macsdk argument)
   AC_ARG_WITH(macsdk,
@@ -122,7 +137,7 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
     AC_MSG_CHECKING(if SDK is supported)
     save_cflags="$CFLAGS"
     save_ldflags="$LDFLAGS"
-    sdkflags="/Developer/SDKs/MacOSX$MACSDK"
+    sdkflags="$DEVELOPER_DIR/SDKs/MacOSX$MACSDK"
     if test "x$MACSDK" = "x10.4"; then
       sdkflags="$sdkflags""u"
     fi
@@ -1497,7 +1512,7 @@ if test "x$MACOSX" = "xyes"; then
     dnl Sorry for the hard coded default
     datadir='${prefix}/Vim.app/Contents/Resources'
 
-    CPPFLAGS="$CPPFLAGS -I/Developer/Headers/FlatCarbon"
+    CPPFLAGS="$CPPFLAGS -I$DEVELOPER_DIR/Headers/FlatCarbon"
   fi
 
   if test "$VIMNAME" = "vim"; then
@@ -2717,6 +2732,10 @@ AC_CHECK_FUNCS(bcmp fchdir fchown fsync getcwd getpseudotty \
 	strnicmp strpbrk strtol tgetent towlower towupper iswupper \
 	usleep utime utimes)
 AC_FUNC_FSEEKO
+
+dnl define _LARGE_FILES, _FILE_OFFSET_BITS and _LARGEFILE_SOURCE when
+dnl appropriate, so that off_t is 64 bits when needed.
+AC_SYS_LARGEFILE
 
 dnl fstatfs() can take 2 to 4 arguments, try to use st_blksize if possible
 AC_MSG_CHECKING(for st_blksize)

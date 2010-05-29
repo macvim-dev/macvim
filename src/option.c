@@ -3763,9 +3763,32 @@ set_init_3()
      * Isolate the name of the shell:
      * - Skip beyond any path.  E.g., "/usr/bin/csh -f" -> "csh -f".
      * - Remove any argument.  E.g., "csh -f" -> "csh".
+     * But don't allow a space in the path, so that this works:
+     *   "/usr/bin/csh --rcfile ~/.cshrc"
+     * But don't do that for Windows, it's common to have a space in the path.
      */
+#ifdef WIN3264
     p = gettail(p_sh);
     p = vim_strnsave(p, (int)(skiptowhite(p) - p));
+#else
+    p = skiptowhite(p_sh);
+    if (*p == NUL)
+    {
+	/* No white space, use the tail. */
+	p = vim_strsave(gettail(p_sh));
+    }
+    else
+    {
+	char_u  *p1, *p2;
+
+	/* Find the last path separator before the space. */
+	p1 = p_sh;
+	for (p2 = p_sh; p2 < p; mb_ptr_adv(p2))
+	    if (vim_ispathsep(*p2))
+		p1 = p2 + 1;
+	p = vim_strnsave(p1, (int)(p - p1));
+    }
+#endif
     if (p != NULL)
     {
 	/*
@@ -10554,6 +10577,11 @@ langmap_set()
 	    p2 = NULL;	    /* aAbBcCdD form, p2 is NULL */
 	while (p[0])
 	{
+	    if (p[0] == ',')
+	    {
+		++p;
+		break;
+	    }
 	    if (p[0] == '\\' && p[1] != NUL)
 		++p;
 #ifdef FEAT_MBYTE
@@ -10561,26 +10589,33 @@ langmap_set()
 #else
 	    from = p[0];
 #endif
+	    to = NUL;
 	    if (p2 == NULL)
 	    {
 		mb_ptr_adv(p);
-		if (p[0] == '\\')
-		    ++p;
+		if (p[0] != ',')
+		{
+		    if (p[0] == '\\')
+			++p;
 #ifdef FEAT_MBYTE
-		to = (*mb_ptr2char)(p);
+		    to = (*mb_ptr2char)(p);
 #else
-		to = p[0];
+		    to = p[0];
 #endif
+		}
 	    }
 	    else
 	    {
-		if (p2[0] == '\\')
-		    ++p2;
+		if (p2[0] != ',')
+		{
+		    if (p2[0] == '\\')
+			++p2;
 #ifdef FEAT_MBYTE
-		to = (*mb_ptr2char)(p2);
+		    to = (*mb_ptr2char)(p2);
 #else
-		to = p2[0];
+		    to = p2[0];
 #endif
+		}
 	    }
 	    if (to == NUL)
 	    {
@@ -10598,15 +10633,7 @@ langmap_set()
 
 	    /* Advance to next pair */
 	    mb_ptr_adv(p);
-	    if (p2 == NULL)
-	    {
-		if (p[0] == ',')
-		{
-		    ++p;
-		    break;
-		}
-	    }
-	    else
+	    if (p2 != NULL)
 	    {
 		mb_ptr_adv(p2);
 		if (*p == ';')

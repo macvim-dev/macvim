@@ -595,7 +595,11 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 #endif
 	    if (newfile)
 	    {
-		if (perm < 0)
+		if (perm < 0
+#ifdef ENOENT
+			&& errno == ENOENT
+#endif
+		   )
 		{
 		    /*
 		     * Set the 'new-file' flag, so that when the file has
@@ -663,6 +667,9 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 		    filemess(curbuf, sfname, (char_u *)(
 # ifdef EFBIG
 			    (errno == EFBIG) ? _("[File too big]") :
+# endif
+# ifdef EOVERFLOW
+			    (errno == EOVERFLOW) ? _("[File too big]") :
 # endif
 						_("[Permission Denied]")), 0);
 		    curbuf->b_p_ro = TRUE;	/* must use "w!" now */
@@ -7963,7 +7970,10 @@ au_event_disable(what)
 	new_ei = vim_strnsave(p_ei, (int)(STRLEN(p_ei) + STRLEN(what)));
 	if (new_ei != NULL)
 	{
-	    STRCAT(new_ei, what);
+	    if (*what == ',' && *p_ei == NUL)
+		STRCPY(new_ei, what + 1);
+	    else
+		STRCAT(new_ei, what);
 	    set_string_option_direct((char_u *)"ei", -1, new_ei,
 							  OPT_FREE, SID_NONE);
 	    vim_free(new_ei);

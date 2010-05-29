@@ -3198,7 +3198,7 @@ get_mouse_class(p)
      * There are a few special cases where we want certain combinations of
      * characters to be considered as a single word.  These are things like
      * "->", "/ *", "*=", "+=", "&=", "<=", ">=", "!=" etc.  Otherwise, each
-     * character is in it's own class.
+     * character is in its own class.
      */
     if (c != NUL && vim_strchr((char_u *)"-+*/%<>&|^!=", c) != NULL)
 	return 1;
@@ -4087,7 +4087,7 @@ check_scrollbind(topline_diff, leftcol_diff)
 /*
  * Command character that's ignored.
  * Used for CTRL-Q and CTRL-S to avoid problems with terminals that use
- * xon/xoff
+ * xon/xoff.
  */
     static void
 nv_ignore(cap)
@@ -4955,13 +4955,15 @@ dozet:
 
 		/* "zx": re-apply 'foldlevel' and open folds at the cursor */
     case 'x':	curwin->w_p_fen = TRUE;
-		newFoldLevel();		/* update right now */
+		curwin->w_foldinvalid = TRUE;	/* recompute folds */
+		newFoldLevel();			/* update right now */
 		foldOpenCursor();
 		break;
 
 		/* "zX": undo manual opens/closes, re-apply 'foldlevel' */
     case 'X':	curwin->w_p_fen = TRUE;
-		old_fdl = -1;		/* force an update */
+		curwin->w_foldinvalid = TRUE;	/* recompute folds */
+		old_fdl = -1;			/* force an update */
 		break;
 
 		/* "zm": fold more */
@@ -5554,11 +5556,11 @@ nv_ident(cap)
 	    break;
 
 	default:
+	    tag_cmd = TRUE;
 	    if (curbuf->b_help)
 		STRCPY(buf, "he! ");
 	    else
 	    {
-		tag_cmd = TRUE;
 		if (g_cmd)
 		    STRCPY(buf, "tj ");
 		else
@@ -6551,7 +6553,7 @@ nv_brackets(cap)
      * [ or ] followed by a middle mouse click: put selected text with
      * indent adjustment.  Any other button just does as usual.
      */
-    else if (cap->nchar >= K_LEFTMOUSE && cap->nchar <= K_RIGHTRELEASE)
+    else if (cap->nchar >= K_RIGHTRELEASE && cap->nchar <= K_LEFTMOUSE)
     {
 	(void)do_mouse(cap->oap, cap->nchar,
 		       (cap->cmdchar == ']') ? FORWARD : BACKWARD,

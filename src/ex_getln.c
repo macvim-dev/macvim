@@ -3951,8 +3951,26 @@ showmatches(xp, wildmenu)
 					  || xp->xp_context == EXPAND_SHELLCMD
 					  || xp->xp_context == EXPAND_BUFFERS)
 		{
-			    /* highlight directories */
-		    j = (mch_isdir(files_found[k]));
+		    /* highlight directories */
+		    if (xp->xp_numfiles != -1)
+		    {
+			char_u	*halved_slash;
+			char_u	*exp_path;
+
+			/* Expansion was done before and special characters
+			 * were escaped, need to halve backslashes.  Also
+			 * $HOME has been replaced with ~/. */
+			exp_path = expand_env_save_opt(files_found[k], TRUE);
+			halved_slash = backslash_halve_save(
+				exp_path != NULL ? exp_path : files_found[k]);
+			j = mch_isdir(halved_slash != NULL ? halved_slash
+							    : files_found[k]);
+			vim_free(exp_path);
+			vim_free(halved_slash);
+		    }
+		    else
+			/* Expansion was done here, file names are literal. */
+			j = mch_isdir(files_found[k]);
 		    if (showtail)
 			p = L_SHOWFILE(k);
 		    else
@@ -4495,6 +4513,7 @@ ExpandFromContext(xp, pat, num_file, file, options)
 	} tab[] =
 	{
 	    {EXPAND_COMMANDS, get_command_name, FALSE},
+	    {EXPAND_BEHAVE, get_behave_arg, TRUE},
 #ifdef FEAT_USR_CMDS
 	    {EXPAND_USER_COMMANDS, get_user_commands, FALSE},
 	    {EXPAND_USER_CMD_FLAGS, get_user_cmd_flags, FALSE},
@@ -6257,7 +6276,11 @@ ex_window()
 	bp = curbuf;
 	win_goto(old_curwin);
 	win_close(wp, TRUE);
-	close_buffer(NULL, bp, DOBUF_WIPE);
+
+	/* win_close() may have already wiped the buffer when 'bh' is
+	 * set to 'wipe' */
+	if (buf_valid(bp))
+	    close_buffer(NULL, bp, DOBUF_WIPE);
 
 	/* Restore window sizes. */
 	win_size_restore(&winsizes);

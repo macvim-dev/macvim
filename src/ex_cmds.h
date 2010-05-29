@@ -52,7 +52,7 @@
 #define ARGOPT	      0x40000L	/* allow "++opt=val" argument */
 #define SBOXOK	      0x80000L	/* allowed in the sandbox */
 #define CMDWIN	     0x100000L	/* allowed in cmdline window */
-#define MODIFY       0x200000L  /* forbidden in non-'modifiable' buffer */
+#define MODIFY       0x200000L	/* forbidden in non-'modifiable' buffer */
 #define EXFLAGS      0x400000L	/* allow flags after count in argument */
 #define FILES	(XFILE | EXTRA)	/* multiple extra files allowed */
 #define WORD1	(EXTRA | NOSPC)	/* one extra word allowed */
@@ -74,7 +74,7 @@ typedef struct exarg exarg_T;
 # undef EX	    /* just in case */
 #endif
 #ifdef DO_DECLARE_EXCMD
-# define EX(a, b, c, d)  {(char_u *)b, c, d}
+# define EX(a, b, c, d)  {(char_u *)b, c, (long_u)(d)}
 
 typedef void (*ex_func_T) __ARGS((exarg_T *eap));
 
@@ -116,7 +116,7 @@ EX(CMD_argdelete,	"argdelete",	ex_argdelete,
 EX(CMD_argdo,		"argdo",	ex_listdo,
 			BANG|NEEDARG|EXTRA|NOTRLCOM),
 EX(CMD_argedit,		"argedit",	ex_argedit,
-			BANG|NEEDARG|RANGE|NOTADR|FILE1|EDITCMD|TRLBAR),
+			BANG|NEEDARG|RANGE|NOTADR|FILE1|EDITCMD|ARGOPT|TRLBAR),
 EX(CMD_argglobal,	"argglobal",	ex_args,
 			BANG|FILES|EDITCMD|ARGOPT|TRLBAR),
 EX(CMD_arglocal,	"arglocal",	ex_args,
@@ -256,7 +256,7 @@ EX(CMD_copy,		"copy",		ex_copymove,
 EX(CMD_colder,		"colder",	qf_age,
 			RANGE|NOTADR|COUNT|TRLBAR),
 EX(CMD_colorscheme,	"colorscheme",	ex_colorscheme,
-			NEEDARG|WORD1|TRLBAR|CMDWIN),
+			WORD1|TRLBAR|CMDWIN),
 EX(CMD_command,		"command",	ex_command,
 			EXTRA|BANG|NOTRLCOM|USECTRLV|CMDWIN),
 EX(CMD_comclear,	"comclear",	ex_comclear,
@@ -1156,7 +1156,8 @@ struct exarg
     int		force_ff;	/* ++ff= argument (index in cmd[]) */
 #ifdef FEAT_MBYTE
     int		force_enc;	/* ++enc= argument (index in cmd[]) */
-    int		bad_char;	/* ++bad= argument (index in cmd[]) */
+    int		bad_char_idx;	/* ++bad= argument (index in cmd[]) */
+    int		bad_char;	/* BAD_KEEP, BAD_DROP or replacement char */
 #endif
 #ifdef FEAT_USR_CMDS
     int		useridx;	/* user command index */

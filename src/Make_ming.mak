@@ -212,23 +212,27 @@ ifndef RUBY_VER_LONG
 RUBY_VER_LONG = 1.6
 endif
 
+ifndef RUBY_PLATFORM
 ifeq ($(RUBY_VER), 16)
-ifndef RUBY_PLATFORM
 RUBY_PLATFORM = i586-mswin32
-endif
-ifndef RUBY_INSTALL_NAME
-RUBY_INSTALL_NAME = mswin32-ruby$(RUBY_VER)
-endif
 else
-ifndef RUBY_PLATFORM
+ifneq ($(wildcard $(RUBY)/lib/ruby/$(RUBY_VER_LONG)/i386-mingw32),)
+RUBY_PLATFORM = i386-mingw32
+else
 RUBY_PLATFORM = i386-mswin32
 endif
+endif
+endif
+
 ifndef RUBY_INSTALL_NAME
+ifeq ($(RUBY_VER), 16)
+RUBY_INSTALL_NAME = mswin32-ruby$(RUBY_VER)
+else
 RUBY_INSTALL_NAME = msvcrt-ruby$(RUBY_VER)
 endif
 endif
 
-RUBYINC =-I $(RUBY)/lib/ruby/$(RUBY_VER_LONG)/$(RUBY_PLATFORM)
+RUBYINC =-I $(RUBY)/lib/ruby/$(RUBY_VER_LONG)/$(RUBY_PLATFORM) -I $(RUBY)/include/ruby-$(RUBY_VER_LONG) -I $(RUBY)/include/ruby-$(RUBY_VER_LONG)/$(RUBY_PLATFORM)
 ifeq (no, $(DYNAMIC_RUBY))
 RUBYLIB = -L$(RUBY)/lib -l$(RUBY_INSTALL_NAME)
 endif
@@ -248,8 +252,8 @@ MKDIR = mkdir -p
 DIRSLASH = /
 else
 # normal (Windows) compilation:
-ifneq (sh.exe, $(SHELL))
 CROSS_COMPILE =
+ifneq (sh.exe, $(SHELL))
 DEL = rm
 MKDIR = mkdir -p
 DIRSLASH = /
@@ -553,7 +557,6 @@ xxd/xxd.exe: xxd/xxd.c
 	$(MAKE) -C xxd -f Make_cyg.mak CC=$(CC)
 
 GvimExt/gvimext.dll: GvimExt/gvimext.cpp GvimExt/gvimext.rc GvimExt/gvimext.h
-	$(MAKE) -C GvimExt -f Make_ming.mak
 	$(MAKE) -C GvimExt -f Make_ming.mak CROSS=$(CROSS) CROSS_COMPILE=$(CROSS_COMPILE)
 
 clean:

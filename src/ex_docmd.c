@@ -26,10 +26,12 @@ typedef struct ucmd
     long_u	uc_argt;	/* The argument type */
     char_u	*uc_rep;	/* The command's replacement string */
     long	uc_def;		/* The default value for a range/count */
-    scid_T	uc_scriptID;	/* SID where the command was defined */
     int		uc_compl;	/* completion type */
-# if defined(FEAT_EVAL) && defined(FEAT_CMDL_COMPL)
+# ifdef FEAT_EVAL
+    scid_T	uc_scriptID;	/* SID where the command was defined */
+#  ifdef FEAT_CMDL_COMPL
     char_u	*uc_compl_arg;	/* completion argument if any */
+#  endif
 # endif
 } ucmd_T;
 
@@ -3163,17 +3165,15 @@ set_one_cmd_context(xp, buff)
 	    return NULL;
 	}
 	for (ea.cmdidx = (cmdidx_T)0; (int)ea.cmdidx < (int)CMD_SIZE;
-					 ea.cmdidx = (cmdidx_T)((int)ea.cmdidx + 1))
-	    if (STRNCMP(cmdnames[(int)ea.cmdidx].cmd_name, cmd, (size_t)len) == 0)
+				   ea.cmdidx = (cmdidx_T)((int)ea.cmdidx + 1))
+	    if (STRNCMP(cmdnames[(int)ea.cmdidx].cmd_name, cmd,
+							    (size_t)len) == 0)
 		break;
 
 #ifdef FEAT_USR_CMDS
 	if (cmd[0] >= 'A' && cmd[0] <= 'Z')
-	{
 	    while (ASCII_ISALNUM(*p) || *p == '*')	/* Allow * wild card */
 		++p;
-	    len = (int)(p - cmd);
-	}
 #endif
     }
 
@@ -3819,6 +3819,9 @@ set_one_cmd_context(xp, buff)
 	    set_context_in_profile_cmd(xp, arg);
 	    break;
 #endif
+	case CMD_behave:
+	    xp->xp_context = EXPAND_BEHAVE;
+	    break;
 
 #ifdef FEAT_GUI_MACVIM
 	case CMD_macaction:
@@ -4754,7 +4757,7 @@ getargopt(eap)
     else if (STRNCMP(arg, "bad", 3) == 0)
     {
 	arg += 3;
-	pp = &eap->bad_char;
+	pp = &eap->bad_char_idx;
     }
 #endif
 
@@ -4785,7 +4788,7 @@ getargopt(eap)
     {
 	/* Check ++bad= argument.  Must be a single-byte character, "keep" or
 	 * "drop". */
-	p = eap->cmd + eap->bad_char;
+	p = eap->cmd + eap->bad_char_idx;
 	if (STRICMP(p, "keep") == 0)
 	    eap->bad_char = BAD_KEEP;
 	else if (STRICMP(p, "drop") == 0)
@@ -6241,7 +6244,31 @@ parse_compl_arg(value, vallen, complp, argt, compl_arg)
 ex_colorscheme(eap)
     exarg_T	*eap;
 {
-    if (load_colors(eap->arg) == FAIL)
+    if (*eap->arg == NUL)
+    {
+#ifdef FEAT_EVAL
+	char_u *expr = vim_strsave((char_u *)"g:colors_name");
+	char_u *p = NULL;
+
+	if (expr != NULL)
+	{
+	    ++emsg_off;
+	    p = eval_to_string(expr, NULL, FALSE);
+	    --emsg_off;
+	    vim_free(expr);
+	}
+	if (p != NULL)
+	{
+	    MSG(p);
+	    vim_free(p);
+	}
+	else
+	    MSG("default");
+#else
+	MSG(_("unknown"));
+#endif
+    }
+    else if (load_colors(eap->arg) == FAIL)
 	EMSG2(_("E185: Cannot find color scheme %s"), eap->arg);
 }
 
@@ -10874,6 +10901,24 @@ ex_behave(eap)
     else
 	EMSG2(_(e_invarg2), eap->arg);
 }
+
+#if defined(FEAT_CMDL_COMPL) || defined(PROTO)
+/*
+ * Function given to ExpandGeneric() to obtain the possible arguments of the
+ * ":behave {mswin,xterm}" command.
+ */
+    char_u *
+get_behave_arg(xp, idx)
+    expand_T	*xp UNUSED;
+    int		idx;
+{
+    if (idx == 0)
+	return (char_u *)"mswin";
+    if (idx == 1)
+	return (char_u *)"xterm";
+    return NULL;
+}
+#endif
 
 #ifdef FEAT_AUTOCMD
 static int filetype_detect = FALSE;
