@@ -73,6 +73,8 @@
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
+- (NSRect)rectForRow:(int)row column:(int)column numRows:(int)nr
+          numColumns:(int)nc;
 
 //
 // NSTextView methods

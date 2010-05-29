@@ -747,7 +747,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // Vim by sending SetPreEditPositionMsgID so compute a position based on
     // the pre-edit (row,column) pair.
     int col = preEditColumn;
-    int row = preEditRow + 1;
+    int row = preEditRow;
 
     NSFont *theFont = [[textView markedTextAttributes]
             valueForKey:NSFontAttributeName];
@@ -770,6 +770,14 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
                                 column:col
                                numRows:1
                             numColumns:range.length];
+
+    // NOTE: If the text view is flipped then 'rect' has its origin in the top
+    // left corner of the rect, but the methods below expect it to be in the
+    // lower left corner.  Compensate for this here.
+    // TODO: Maybe the above method should always return rects where the origin
+    // is in the lower left corner?
+    if ([textView isFlipped])
+        rect.origin.y += rect.size.height;
 
     rect.origin = [textView convertPoint:rect.origin toView:nil];
     rect.origin = [[textView window] convertBaseToScreen:rect.origin];

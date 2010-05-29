@@ -63,8 +63,6 @@
 
 @interface MMCoreTextView (Drawing)
 - (NSPoint)pointForRow:(int)row column:(int)column;
-- (NSRect)rectForRow:(int)row column:(int)column numRows:(int)nr
-          numColumns:(int)nc;
 - (NSRect)rectFromRow:(int)row1 column:(int)col1
                 toRow:(int)row2 column:(int)col2;
 - (NSSize)textAreaSize;
@@ -385,6 +383,7 @@ defaultAdvanceForFont(CTFontRef fontRef)
 
 - (void)setPreEditRow:(int)row column:(int)col
 {
+    [helper setPreEditRow:row column:col];
 }
 
 - (void)setMouseShape:(int)shape
@@ -743,9 +742,6 @@ defaultAdvanceForFont(CTFontRef fontRef)
 
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column
 {
-    // View is not flipped, instead the atsui code draws to a flipped image;
-    // thus we need to 'flip' the coordinate here since the column number
-    // increases in an up-to-down order.
     point.y = [self bounds].size.height - point.y;
 
     NSPoint origin = { insetSize.width, insetSize.height };
@@ -760,6 +756,24 @@ defaultAdvanceForFont(CTFontRef fontRef)
     //      NSStringFromPoint(point), *row, *column);
 
     return YES;
+}
+
+- (NSRect)rectForRow:(int)row column:(int)col numRows:(int)nr
+          numColumns:(int)nc
+{
+    // Return the rect for the block which covers the specified rows and
+    // columns.  The lower-left corner is the origin of this rect.
+    // NOTE: The coordinate system is _NOT_ flipped!
+    NSRect rect;
+    NSRect frame = [self bounds];
+
+    rect.origin.x = col*cellSize.width + insetSize.width;
+    rect.origin.y = frame.size.height - (row+nr)*cellSize.height -
+                    insetSize.height;
+    rect.size.width = nc*cellSize.width;
+    rect.size.height = nr*cellSize.height;
+
+    return rect;
 }
 
 - (NSArray *)validAttributesForMarkedText
@@ -825,21 +839,6 @@ defaultAdvanceForFont(CTFontRef fontRef)
     return NSMakePoint(
             col*cellSize.width + insetSize.width,
             frame.size.height - (row+1)*cellSize.height - insetSize.height);
-}
-
-- (NSRect)rectForRow:(int)row column:(int)col numRows:(int)nr
-          numColumns:(int)nc
-{
-    NSRect rect;
-    NSRect frame = [self bounds];
-
-    rect.origin.x = col*cellSize.width + insetSize.width;
-    rect.origin.y = frame.size.height - (row+nr)*cellSize.height -
-                    insetSize.height;
-    rect.size.width = nc*cellSize.width;
-    rect.size.height = nr*cellSize.height;
-
-    return rect;
 }
 
 - (NSRect)rectFromRow:(int)row1 column:(int)col1
