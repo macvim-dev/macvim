@@ -3217,7 +3217,9 @@ maketitle()
 		STRCAT(buf, ")");
 	    }
 
+#ifndef FEAT_GUI_MACVIM
 	    append_arg_number(curwin, buf, IOSIZE, FALSE);
+#endif
 
 #if defined(FEAT_CLIENTSERVER)
 	    if (serverName != NULL)
