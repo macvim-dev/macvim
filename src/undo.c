@@ -100,7 +100,6 @@ static void u_freebranch __ARGS((buf_T *buf, u_header_T *uhp, u_header_T **uhpp)
 static void u_freeentries __ARGS((buf_T *buf, u_header_T *uhp, u_header_T **uhpp));
 static void u_freeentry __ARGS((u_entry_T *, long));
 #ifdef FEAT_PERSISTENT_UNDO
-static char_u *u_get_undo_file_name __ARGS((char_u *, int reading));
 static void corruption_error __ARGS((char *msg, char_u *file_name));
 static void u_free_uhp __ARGS((u_header_T *uhp));
 static int serialize_uep __ARGS((u_entry_T *uep, FILE *fp));
@@ -698,7 +697,7 @@ u_compute_hash(hash)
  * When "reading" is FALSE use the first name where the directory exists.
  * Returns NULL when there is no place to write or no file to read.
  */
-    static char_u *
+    char_u *
 u_get_undo_file_name(buf_ffname, reading)
     char_u	*buf_ffname;
     int		reading;
@@ -858,6 +857,8 @@ unserialize_uep(fp, error, file_name)
 	}
 	vim_memset(array, 0, sizeof(char_u *) * uep->ue_size);
     }
+    else
+	array = NULL;
     uep->ue_array = array;
 
     for (i = 0; i < uep->ue_size; ++i)
@@ -996,7 +997,12 @@ u_write_undo(name, forceit, buf, hash)
 	if (file_name == NULL)
 	{
 	    if (p_verbose > 0)
-		smsg((char_u *)_("Cannot write undo file in any directory in 'undodir'"));
+	    {
+		verbose_enter();
+		smsg((char_u *)
+		   _("Cannot write undo file in any directory in 'undodir'"));
+		verbose_leave();
+	    }
 	    return;
 	}
     }
@@ -1038,8 +1044,15 @@ u_write_undo(name, forceit, buf, hash)
 	    if (fd < 0)
 	    {
 		if (name != NULL || p_verbose > 0)
-		    smsg((char_u *)_("Will not overwrite with undo file, cannot read: %s"),
+		{
+		    if (name == NULL)
+			verbose_enter();
+		    smsg((char_u *)
+		      _("Will not overwrite with undo file, cannot read: %s"),
 								   file_name);
+		    if (name == NULL)
+			verbose_leave();
+		}
 		goto theend;
 	    }
 	    else
@@ -1053,13 +1066,28 @@ u_write_undo(name, forceit, buf, hash)
 		      || memcmp(buf, UF_START_MAGIC, UF_START_MAGIC_LEN) != 0)
 		{
 		    if (name != NULL || p_verbose > 0)
+		    {
+			if (name == NULL)
+			    verbose_enter();
 			smsg((char_u *)_("Will not overwrite, this is not an undo file: %s"),
 								   file_name);
+			if (name == NULL)
+			    verbose_leave();
+		    }
 		    goto theend;
 		}
 	    }
 	}
 	mch_remove(file_name);
+    }
+
+    /* If there is no undo information at all, quit here after deleting any
+     * existing undo file. */
+    if (buf->b_u_numhead == 0)
+    {
+	if (p_verbose > 0)
+	    verb_msg((char_u *)_("Skipping undo file write, noting to undo"));
+	goto theend;
     }
 
     fd = mch_open((char *)file_name,
@@ -1071,7 +1099,16 @@ u_write_undo(name, forceit, buf, hash)
     }
     (void)mch_setperm(file_name, perm);
     if (p_verbose > 0)
+    {
+	verbose_enter();
 	smsg((char_u *)_("Writing undo file: %s"), file_name);
+	verbose_leave();
+    }
+
+#ifdef U_DEBUG
+    /* Check there is no problem in undo info before writing. */
+    u_check(FALSE);
+#endif
 
 #ifdef UNIX
     /*
@@ -1100,6 +1137,9 @@ u_write_undo(name, forceit, buf, hash)
 	mch_remove(file_name);
 	goto theend;
     }
+
+    /* Undo must be synced. */
+    u_sync(TRUE);
 
     /* Start writing, first the undo file header. */
     if (fwrite(UF_START_MAGIC, (size_t)UF_START_MAGIC_LEN, (size_t)1, fp) != 1)
@@ -1280,7 +1320,11 @@ u_read_undo(name, hash)
         file_name = name;
 
     if (p_verbose > 0)
+    {
+	verbose_enter();
 	smsg((char_u *)_("Reading undo file: %s"), file_name);
+	verbose_leave();
+    }
     fp = mch_fopen((char *)file_name, "r");
     if (fp == NULL)
     {
@@ -1316,9 +1360,11 @@ u_read_undo(name, hash)
     {
         if (p_verbose > 0 || name != NULL)
         {
-            verbose_enter();
+	    if (name == NULL)
+		verbose_enter();
             give_warning((char_u *)_("File contents changed, cannot use undo info"), TRUE);
-            verbose_leave();
+	    if (name == NULL)
+		verbose_leave();
         }
         goto error;
     }
@@ -1357,7 +1403,6 @@ u_read_undo(name, hash)
 					     num_head * sizeof(u_header_T *));
 	if (uhp_table == NULL)
 	    goto error;
-	vim_memset(uhp_table, 0, num_head * sizeof(u_header_T *));
     }
 
     while ((c = get2c(fp)) == UF_HEADER_MAGIC)
@@ -1365,7 +1410,6 @@ u_read_undo(name, hash)
 	if (num_read_uhps >= num_head)
 	{
 	    corruption_error("num_head", file_name);
-	    u_free_uhp(uhp);
 	    goto error;
 	}
 
@@ -1435,37 +1479,13 @@ u_read_undo(name, hash)
             goto error;
         }
 
-        /* Insertion sort the uhp into the table by its uh_seq. This is
-         * required because, while the number of uhps is limited to
-         * num_head, and the uh_seq order is monotonic with respect to
-         * creation time, the starting uh_seq can be > 0 if any undolevel
-         * culling was done at undofile write time, and there can be uh_seq
-         * gaps in the uhps.
-         */
-        for (i = num_read_uhps - 1; i >= -1; i--)
-        {
-            /* if i == -1, we've hit the leftmost side of the table, so insert
-             * at uhp_table[0]. */
-            if (i == -1 || uhp->uh_seq > uhp_table[i]->uh_seq)
-            {
-                /* If we've had to move from the rightmost side of the table,
-                 * we have to shift everything to the right by one spot. */
-                if (num_read_uhps - i - 1 > 0)
-                {
-                    memmove(uhp_table + i + 2, uhp_table + i + 1,
-			      (num_read_uhps - i - 1) * sizeof(u_header_T *));
-                }
-                uhp_table[i + 1] = uhp;
-                break;
-            }
-            else if (uhp->uh_seq == uhp_table[i]->uh_seq)
-            {
-		corruption_error("duplicate uh_seq", file_name);
-		u_free_uhp(uhp);
-                goto error;
-            }
-        }
-        num_read_uhps++;
+	uhp_table[num_read_uhps++] = uhp;
+    }
+
+    if (num_read_uhps != num_head)
+    {
+	corruption_error("num_head", file_name);
+	goto error;
     }
 
     if (c != UF_HEADER_END_MAGIC)
@@ -1482,11 +1502,9 @@ u_read_undo(name, hash)
 # define SET_FLAG(j)
 #endif
 
-    /* We've organized all of the uhps into a table sorted by uh_seq. Now we
-     * iterate through the table and swizzle each sequence number we've
-     * stored in uh_* into a pointer corresponding to the header with that
-     * sequence number. Then free curbuf's old undo structure, give curbuf
-     * the updated {old,new,cur}head pointers, and then free the table. */
+    /* We have put all of the uhps into a table. Now we iterate through the
+     * table and swizzle each sequence number we've stored in uh_* into a
+     * pointer corresponding to the header with that sequence number. */
     for (i = 0; i < num_head; i++)
     {
         uhp = uhp_table[i];
@@ -1496,6 +1514,12 @@ u_read_undo(name, hash)
         {
             if (uhp_table[j] == NULL)
                 continue;
+            if (i != j && uhp_table[i]->uh_seq == uhp_table[j]->uh_seq)
+            {
+		corruption_error("duplicate uh_seq", file_name);
+                goto error;
+	    }
+
             if (uhp_table[j]->uh_seq == (long)uhp->uh_next)
 	    {
                 uhp->uh_next = uhp_table[j];
@@ -1540,6 +1564,10 @@ u_read_undo(name, hash)
     curbuf->b_u_oldhead = old_idx < 0 ? NULL : uhp_table[old_idx];
     curbuf->b_u_newhead = new_idx < 0 ? NULL : uhp_table[new_idx];
     curbuf->b_u_curhead = cur_idx < 0 ? NULL : uhp_table[cur_idx];
+#ifdef U_DEBUG
+    if (curbuf->b_u_curhead != NULL)
+	corruption_error("curhead not NULL", file_name);
+#endif
     curbuf->b_u_line_ptr = line_ptr;
     curbuf->b_u_line_lnum = line_lnum;
     curbuf->b_u_line_colnr = line_colnr;
@@ -1547,6 +1575,8 @@ u_read_undo(name, hash)
     curbuf->b_u_seq_last = seq_last;
     curbuf->b_u_seq_cur = seq_cur;
     curbuf->b_u_seq_time = seq_time;
+
+    curbuf->b_u_synced = TRUE;
     vim_free(uhp_table);
 
 #ifdef U_DEBUG
@@ -1565,7 +1595,7 @@ error:
     vim_free(line_ptr);
     if (uhp_table != NULL)
     {
-        for (i = 0; i < num_head; i++)
+        for (i = 0; i < num_read_uhps; i++)
             if (uhp_table[i] != NULL)
 		u_free_uhp(uhp_table[i]);
         vim_free(uhp_table);
@@ -1924,6 +1954,8 @@ undo_time(step, sec, absolute)
 		last->uh_alt_next = uhp;
 		uhp->uh_alt_prev = last;
 
+		if (curbuf->b_u_oldhead == uhp)
+		    curbuf->b_u_oldhead = last;
 		uhp = last;
 		if (uhp->uh_next != NULL)
 		    uhp->uh_next->uh_prev = uhp;
