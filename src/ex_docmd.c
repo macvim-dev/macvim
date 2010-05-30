@@ -245,6 +245,10 @@ static void	ex_popup __ARGS((exarg_T *eap));
 # define ex_spellinfo		ex_ni
 # define ex_spellrepall		ex_ni
 #endif
+#ifndef FEAT_PERSISTENT_UNDO
+# define ex_rundo		ex_ni
+# define ex_wundo		ex_ni
+#endif
 #ifndef FEAT_MZSCHEME
 # define ex_mzscheme		ex_script_ni
 # define ex_mzfile		ex_ni
@@ -300,6 +304,10 @@ static void	ex_join __ARGS((exarg_T *eap));
 static void	ex_at __ARGS((exarg_T *eap));
 static void	ex_bang __ARGS((exarg_T *eap));
 static void	ex_undo __ARGS((exarg_T *eap));
+#ifdef FEAT_PERSISTENT_UNDO
+static void	ex_wundo __ARGS((exarg_T *eap));
+static void	ex_rundo __ARGS((exarg_T *eap));
+#endif
 static void	ex_redo __ARGS((exarg_T *eap));
 static void	ex_later __ARGS((exarg_T *eap));
 static void	ex_redir __ARGS((exarg_T *eap));
@@ -441,7 +449,9 @@ static void	ex_folddo __ARGS((exarg_T *eap));
 # define ex_wsverb		ex_ni
 #endif
 #ifndef FEAT_NETBEANS_INTG
+# define ex_nbclose		ex_ni
 # define ex_nbkey		ex_ni
+# define ex_nbstart		ex_ni
 #endif
 
 #ifndef FEAT_EVAL
@@ -844,7 +854,7 @@ do_cmdline(cmdline, getline, cookie, flags)
     if (flags & DOCMD_EXCRESET)
 	save_dbg_stuff(&debug_saved);
     else
-	memset(&debug_saved, 0, 1);
+	vim_memset(&debug_saved, 0, 1);
 
     initial_trylevel = trylevel;
 
@@ -4706,6 +4716,7 @@ getargopt(eap)
     char_u	*arg = eap->arg + 2;
     int		*pp = NULL;
 #ifdef FEAT_MBYTE
+    int		bad_char_idx;
     char_u	*p;
 #endif
 
@@ -4757,7 +4768,7 @@ getargopt(eap)
     else if (STRNCMP(arg, "bad", 3) == 0)
     {
 	arg += 3;
-	pp = &eap->bad_char_idx;
+	pp = &bad_char_idx;
     }
 #endif
 
@@ -4788,7 +4799,7 @@ getargopt(eap)
     {
 	/* Check ++bad= argument.  Must be a single-byte character, "keep" or
 	 * "drop". */
-	p = eap->cmd + eap->bad_char_idx;
+	p = eap->cmd + bad_char_idx;
 	if (STRICMP(p, "keep") == 0)
 	    eap->bad_char = BAD_KEEP;
 	else if (STRICMP(p, "drop") == 0)
@@ -8469,6 +8480,28 @@ ex_undo(eap)
 	u_undo(1);
 }
 
+#ifdef FEAT_PERSISTENT_UNDO
+    void
+ex_wundo(eap)
+    exarg_T *eap;
+{
+    char_u hash[UNDO_HASH_SIZE];
+
+    u_compute_hash(hash);
+    u_write_undo(eap->arg, eap->forceit, curbuf, hash);
+}
+
+    void
+ex_rundo(eap)
+    exarg_T *eap;
+{
+    char_u hash[UNDO_HASH_SIZE];
+
+    u_compute_hash(hash);
+    u_read_undo(eap->arg, hash);
+}
+#endif
+
 /*
  * ":redo".
  */
@@ -11150,7 +11183,8 @@ ex_match(eap)
 ex_X(eap)
     exarg_T	*eap UNUSED;
 {
-    (void)get_crypt_key(TRUE, TRUE);
+    if (curbuf->b_p_cm == 0 || blowfish_self_test() == OK)
+	(void)get_crypt_key(TRUE, TRUE);
 }
 #endif
 

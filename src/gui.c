@@ -597,11 +597,6 @@ gui_init()
 	    gui_mch_disable_beval_area(balloonEval);
 #endif
 
-#ifdef FEAT_NETBEANS_INTG
-	if (starting == 0 && usingNetbeans)
-	    /* Tell the client that it can start sending commands. */
-	    netbeans_startup_done();
-#endif
 #if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
 	if (!im_xim_isvalid_imactivate())
 	    EMSG(_("E599: Value of 'imactivatekey' is invalid"));
@@ -2412,7 +2407,8 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
     if (draw_sign)
 	/* Draw the sign on top of the spaces. */
 	gui_mch_drawsign(gui.row, col, gui.highlight_mask);
-# ifdef FEAT_NETBEANS_INTG
+# if defined(FEAT_NETBEANS_INTG) && (defined(FEAT_GUI_MOTIF) \
+	|| defined(FEAT_GUI_GTK) || defined(FEAT_GUI_W32))
     if (multi_sign)
 	netbeans_draw_multisign_indicator(gui.row);
 # endif
@@ -2725,16 +2721,14 @@ gui_wait_for_chars(wtime)
 {
     int	    retval;
 
+#ifdef FEAT_MENU
     /*
      * If we're going to wait a bit, update the menus and mouse shape for the
      * current State.
      */
     if (wtime != 0)
-    {
-#ifdef FEAT_MENU
 	gui_update_menus(0);
 #endif
-    }
 
     gui_mch_update();
     if (input_available())	/* Got char, return immediately */
@@ -4463,7 +4457,7 @@ gui_update_horiz_scrollbar(force)
 	max += W_WIDTH(curwin) - 1;
 #endif
 	/* The line number isn't scrolled, thus there is less space when
-	 * 'number' is set (also for 'foldcolumn'). */
+	 * 'number' or 'relativenumber' is set (also for 'foldcolumn'). */
 	size -= curwin_col_off();
 #ifndef SCROLL_PAST_END
 	max -= curwin_col_off();
@@ -4839,6 +4833,9 @@ ex_gui(eap)
 	 * of the argument ending up after the shell prompt. */
 	msg_clr_eos_force();
 	gui_start();
+#ifdef FEAT_NETBEANS_INTG
+	netbeans_gui_register();
+#endif
     }
     if (!ends_excmd(*eap->arg))
 	ex_next(eap);
@@ -5336,6 +5333,9 @@ gui_handle_drop(x, y, modifiers, fnames, count)
 # ifdef FEAT_MENU
 	gui_update_menus(0);
 # endif
+#ifdef FEAT_TITLE
+	maketitle();
+#endif
 	setcursor();
 	out_flush();
 	gui_update_cursor(FALSE, FALSE);

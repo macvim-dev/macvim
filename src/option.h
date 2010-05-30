@@ -831,6 +831,7 @@ static char *(p_ttym_values[]) = {"xterm", "xterm2", "dec", "netterm", "jsbterm"
 # define TTYM_JSBTERM		0x10
 # define TTYM_PTERM		0x20
 #endif
+EXTERN char_u	*p_udir;	/* 'undodir' */
 EXTERN long	p_ul;		/* 'undolevels' */
 EXTERN long	p_uc;		/* 'updatecount' */
 EXTERN long	p_ut;		/* 'updatetime' */
@@ -924,6 +925,7 @@ enum
 #if defined(FEAT_SMARTINDENT) || defined(FEAT_CINDENT)
     , BV_CINW
 #endif
+    , BV_CM
 #ifdef FEAT_FOLDING
     , BV_CMS
 #endif
@@ -1022,6 +1024,7 @@ enum
     , BV_TS
     , BV_TW
     , BV_TX
+    , BV_UDF
     , BV_WM
     , BV_COUNT	    /* must be the last one */
 };
@@ -1058,6 +1061,7 @@ enum
     , WV_LBR
 #endif
     , WV_NU
+    , WV_RNU
 #ifdef FEAT_LINEBREAK
     , WV_NUW
 #endif

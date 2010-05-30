@@ -4,6 +4,8 @@ syntax: glob
 *.o
 src/vim
 src/xxd/xxd
+src/auto/if_perl.c
+src/tags
 
 # We do need src/auto/configure and src/auto/config.mk.
 src/auto/osdef.h
@@ -38,4 +40,5 @@ gvimext.lib
 *.rej
 *.orig
 *.mo
+*.swp
 *~

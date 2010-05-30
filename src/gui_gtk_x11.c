@@ -567,7 +567,6 @@ gui_mch_prepare(int *argc, char **argv)
 #endif
 #ifdef FEAT_NETBEANS_INTG
 		case ARG_NETBEANS:
-		    ++usingNetbeans;
 		    gui.dofork = FALSE; /* don't fork() when starting GUI */
 		    netbeansArg = argv[i];
 		    break;
@@ -948,6 +947,10 @@ modifiers_gdk2vim(guint state)
 	modifiers |= MOD_MASK_CTRL;
     if (state & GDK_MOD1_MASK)
 	modifiers |= MOD_MASK_ALT;
+#ifdef GDK_SUPER_MASK
+    if (state & GDK_SUPER_MASK)
+	modifiers |= MOD_MASK_META;
+#endif
     if (state & GDK_MOD4_MASK)
 	modifiers |= MOD_MASK_META;
 
@@ -1121,7 +1124,11 @@ key_press_event(GtkWidget *widget UNUSED,
      * Don't do this for double-byte encodings, it turns the char into a lead
      * byte. */
     if (len == 1
-	    && (state & GDK_MOD1_MASK)
+	    && ((state & GDK_MOD1_MASK)
+#ifdef GDK_SUPER_MASK
+		|| (state & GDK_SUPER_MASK)
+#endif
+		)
 	    && !(key_sym == GDK_BackSpace || key_sym == GDK_Delete)
 	    && (string[0] & 0x80) == 0
 	    && !(key_sym == GDK_Tab && (state & GDK_SHIFT_MASK))
@@ -1182,7 +1189,11 @@ key_press_event(GtkWidget *widget UNUSED,
 	    || key_sym == GDK_Escape || key_sym == GDK_KP_Tab
 	    || key_sym == GDK_ISO_Enter || key_sym == GDK_3270_Enter
 #ifdef FEAT_MBYTE
-	    || (enc_dbcs && len == 1 && (state & GDK_MOD1_MASK))
+	    || (enc_dbcs && len == 1 && ((state & GDK_MOD1_MASK)
+# ifdef GDK_SUPER_MASK
+		    || (state & GDK_SUPER_MASK)
+# endif
+		    ))
 #endif
 	    )
     {
@@ -2214,10 +2225,10 @@ drag_data_received_cb(GtkWidget		*widget,
  * necessary.
  */
     static void
-sm_client_check_changed_any(GnomeClient	    *client,
+sm_client_check_changed_any(GnomeClient	    *client UNUSED,
 			    gint	    key,
-			    GnomeDialogType type,
-			    gpointer	    data)
+			    GnomeDialogType type UNUSED,
+			    gpointer	    data UNUSED)
 {
     cmdmod_T	save_cmdmod;
     gboolean	shutdown_cancelled;
@@ -2322,12 +2333,12 @@ write_session_file(char_u *filename)
  */
     static gboolean
 sm_client_save_yourself(GnomeClient	    *client,
-			gint		    phase,
-			GnomeSaveStyle	    save_style,
-			gboolean	    shutdown,
+			gint		    phase UNUSED,
+			GnomeSaveStyle	    save_style UNUSED,
+			gboolean	    shutdown UNUSED,
 			GnomeInteractStyle  interact_style,
-			gboolean	    fast,
-			gpointer	    data)
+			gboolean	    fast UNUSED,
+			gpointer	    data UNUSED)
 {
     static const char	suffix[] = "-session.vim";
     char		*session_file;
@@ -2408,7 +2419,7 @@ sm_client_save_yourself(GnomeClient	    *client,
  * is happening).
  */
     static void
-sm_client_die(GnomeClient *client, gpointer data)
+sm_client_die(GnomeClient *client UNUSED, gpointer data UNUSED)
 {
     /* Don't write messages to the GUI anymore */
     full_screen = FALSE;
@@ -4428,7 +4439,7 @@ gui_mch_set_shellsize(int width, int height,
     /* this will cause the proper resizement to happen too */
     update_window_manager_hints(0, 0);
 
-#else  /* HAVE_GTK2 */
+#else
     /* this will cause the proper resizement to happen too */
     if (gtk_socket_id == 0)
 	update_window_manager_hints(0, 0);
@@ -4444,14 +4455,14 @@ gui_mch_set_shellsize(int width, int height,
     else
 	update_window_manager_hints(width, height);
 
-#if 0
+# if 0
     if (!resize_idle_installed)
     {
 	g_idle_add_full(GDK_PRIORITY_EVENTS + 10,
 			&force_shell_resize_idle, NULL, NULL);
 	resize_idle_installed = TRUE;
     }
-#endif
+# endif
     /*
      * Wait until all events are processed to prevent a crash because the
      * real size of the drawing area doesn't reflect Vim's internal ideas.
@@ -6584,7 +6595,7 @@ gui_mch_wait_for_chars(long wtime)
 
 #if defined(FEAT_NETBEANS_INTG)
 	/* Process the queued netbeans messages. */
-	netbeans_parse_messages();
+        netbeans_parse_messages();
 #endif
 
 	/*

@@ -1,4 +1,4 @@
-*netbeans.txt*  For Vim version 7.2.  Last change: 2009 Jan 06
+*netbeans.txt*  For Vim version 7.3a.  Last change: 2009 Jan 06
 
 
 		  VIM REFERENCE MANUAL    by Gordon Prieur et al.
@@ -14,7 +14,7 @@ Vim NetBeans Protocol: a socket interface for Vim integration into an IDE.
 4.  Error Messages				|netbeans-messages|
 5.  Running Vim in NetBeans mode		|netbeans-run|
 6.  NetBeans protocol				|netbeans-protocol|
-7.  NetBeans key				|netbeans-key|
+7.  NetBeans commands				|netbeans-commands|
 8.  Known problems				|netbeans-problems|
 9.  Debugging NetBeans protocol			|netbeans-debugging|
 10. NetBeans External Editor
@@ -48,6 +48,8 @@ Current projects using the NetBeans protocol of Vim are:
 	http://www.a-a-p.org
 - Clewn, a gdb integration into Vim, written in C:
 	http://clewn.sourceforge.net/
+- Pyclewn, a gdb integration into Vim, written in Python:
+	http://pyclewn.sourceforge.net/
 - VimPlugin, integration of Vim inside Eclipse:
 	http://vimplugin.sourceforge.net/wiki/pmwiki.php
 - PIDA, IDE written in Python integrating Vim:
@@ -101,7 +103,8 @@ use the |clientserver| interface.
 ==============================================================================
 3. Configuring Vim for NetBeans			*netbeans-configure*
 
-For more help installing Vim, please read |usr_90.txt| in the Vim User Manual.
+For more help about installing Vim, please read |usr_90.txt| in the Vim User
+Manual.
 
 
 On Unix:
@@ -114,9 +117,8 @@ the required features succeeds.
 In case you do not want the NetBeans interface you can disable it by
 uncommenting a line with "--disable-netbeans" in the Makefile.
 
-Currently, only GVim is supported in this integration as NetBeans does not
-have means to supply a terminal emulator for the Vim command.  Furthermore,
-there is only GUI support for GTK, GNOME, and Motif.
+Currently the NetBeans interface is supported by Vim running in a terminal and
+by GVim when it is run with one of the following GUIs: GTK, GNOME, and Motif.
 
 If Motif support is required the user must supply XPM libraries.  See
 |workshop-xpm| for details on obtaining the latest version of XPM.
@@ -150,6 +152,12 @@ Region is guarded, cannot modify
 		which you cannot change.  Also sets the current buffer, if
 		necessary.
 
+							*E532*
+The defineAnnoType highlighting color name is too long
+		The maximum length of the "fg" or "bg" color argument in the
+		defineAnnoType command is 32 characters.
+		New in version 2.5.
+
 							*E656*
 Writes of unmodified buffers forbidden
 		Writes of unmodified buffers that were opened from the
@@ -180,25 +188,37 @@ Read-only file
 ==============================================================================
 5. Running Vim in NetBeans mode				*netbeans-run*
 
-Vim must be started with the |-nb| argument.  Three forms can be used, that
-differ in the way the information for the connection is specified:
+There are two different ways to run Vim in NetBeans mode:
+
+	+ an IDE may start Vim with the|-nb|command line argument
+	+ NetBeans can be started from within Vim with the|:nbstart|command
+
+							*netbeans-parameters*
+Three forms can be used to setup the NetBeans connection parameters.
+When started from the command line, the|-nb|command line argument may be:
 
 	-nb={fname}				from a file
 	-nb:{hostname}:{addr}:{password}	directly
 	-nb					from a file or environment
 
+When started from within Vim, the|:nbstart|optional argument may be:
+
+	={fname}				from a file
+	:{hostname}:{addr}:{password}	        directly
+	<MISSING ARGUMENT>			from a file or environment
+
 							*E660* *E668*
-For security reasons, the best method is to write the information in a file
-readable only by the user.  The name of the file can be passed with the
-"-nb={fname}" argument or, when "-nb" is used without a parameter, the
-environment variable "__NETBEANS_CONINFO".  The file must contain these three
-lines, in any order:
+When NetBeans is started from the command line, for security reasons, the best
+method is to write the information in a file readable only by the user.  The
+name of the file can be passed with the "-nb={fname}" argument or, when "-nb"
+is used without a parameter, the environment variable "__NETBEANS_CONINFO".
+The file must contain these three lines, in any order:
 
 	host={hostname}
 	port={addr}
 	auth={password}
 
-Other lines are ignored.  The caller of Vim is responsible for deleting the
+Other lines are ignored.  The Vim Controller is responsible for deleting the
 file afterwards.
 
 {hostname} is the name of the machine where Vim Controller is running.  When
@@ -235,8 +255,8 @@ problems and has been fixed in 2.2.  To decrease the likelihood of this
 confusion happening again, netbeans_saved() has been renamed to
 netbeans_save_buffer().
 
-We are now at version 2.4.  For the differences between 2.3 and 2.4 search for
-"2.4" below.
+We are now at version 2.5.  For the differences between 2.4 and 2.5 search for
+"2.5" below.
 
 The messages are currently sent over a socket.  Since the messages are in
 plain UTF-8 text this protocol could also be used with any other communication
@@ -303,8 +323,11 @@ boolean		Argument with two possible values:
 
 number		Argument with a decimal number.
 
-optnum		Argument with either a decimal number or "none" (without the
-		quotes).
+color		Argument with either a decimal number, "none" (without the
+		quotes) or the name of a color (without the quotes) defined
+		both in the color list in|highlight-ctermfg| and in the color
+		list in|gui-colors|.
+		New in version 2.5.
 
 offset		A number argument that indicates a byte position in a buffer.
 		The first byte has offset zero.  Line breaks are counted for
@@ -365,9 +388,14 @@ defineAnnoType typeNum typeName tooltip glyphFile fg bg
 		   typeName	string	name that identifies this annotation
 		   tooltip	string	not used
 		   glyphFile	string	name of icon file
-		   fg		optnum	foreground color for line highlighting
-		   bg		optnum	background color for line highlighting
+		   fg		color	foreground color for line highlighting
+		   bg		color	background color for line highlighting
 		Vim will define a sign for the annotation.
+		When color is a number, this is the "#rrggbb" Red, Green and
+		Blue values of the color (see |gui-colors|) and the
+		highlighting is only defined for GVim.
+		When color is a name, this color is defined both for Vim
+		running in a color terminal and for GVim.
 		When both "fg" and "bg" are "none" no line highlighting is
 		used (new in version 2.1).
 		When "glyphFile" is empty, no text sign is used (new in
@@ -431,6 +459,7 @@ putBufferNumber pathname
 		New in version 2.1.
 
 raise		Bring the editor to the foreground.
+		Only when Vim is run with a GUI.
 		New in version 2.1.
 
 removeAnno serNum
@@ -520,6 +549,7 @@ showBalloon text
 		Show a balloon (popup window) at the mouse pointer position,
 		containing "text", a string argument.  The balloon should
 		disappear when the mouse is moved more than a few pixels.
+		Only when Vim is run with a GUI.
 		New in version 2.1.
 
 specialKeys
@@ -653,6 +683,7 @@ balloonText text
 		Used when 'ballooneval' is set and the mouse pointer rests on
 		some text for a moment.  "text" is a string, the text under
 		the mouse pointer.
+		Only when Vim is run with a GUI.
 		New in version 2.1.
 
 buttonRelease button lnum col
@@ -786,10 +817,22 @@ These errors occur when a message violates the protocol:
 
 
 ==============================================================================
-7. NetBeans key						*netbeans-key*
+7. NetBeans commands					*netbeans-commands*
+
+							*:nbstart* *E511*
+:nbs[tart] {connection}	Start a new Netbeans session with {connection} as the
+			socket connection parameters.  The format of
+			{connection} is described in|netbeans-parameters|.
+			At any time, one may check if the netbeans socket is
+			connected by running the command:
+			':echo has("netbeans_enabled")'
+
+							*:nbclose*
+:nbc[lose]		Close the current NetBeans session. Remove all placed
+			signs.
 
 							*:nbkey*
-:nbkey key		Pass the key to the Vim Controller for processing
+:nb[key] {key}		Pass the {key} to the Vim Controller for processing
 
 When a hot-key has been installed with the specialKeys command, this command
 can be used to generate a hotkey messages to the Vim Controller. The events
@@ -801,6 +844,13 @@ newDotAndMark, keyCommand and keyAtPos are generated (in this order).
 
 NUL bytes are not possible.  For editor -> IDE they will appear as NL
 characters.  For IDE -> editor they cannot be inserted.
+
+A NetBeans session may be initiated with Vim running in a terminal, and
+continued later in a GUI environment after running the |:gui|command. In this
+case, the highlighting defined for the NetBeans annotations may be cleared
+when the ":gui" command sources .gvimrc and this file loads a colorscheme
+that runs the command ":highlight clear".
+New in version 2.5.
 
 
 ==============================================================================

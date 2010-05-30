@@ -50,6 +50,7 @@ EXTERN char_u	*LineWraps INIT(= NULL);	/* line wraps to next line */
  * ScreenLinesUC[] contains the Unicode for the character at this position, or
  * NUL when the character in ScreenLines[] is to be used (ASCII char).
  * The composing characters are to be drawn on top of the original character.
+ * ScreenLinesC[0][off] is only to be used when ScreenLinesUC[off] != 0.
  * Note: These three are only allocated when enc_utf8 is set!
  */
 EXTERN u8char_T	*ScreenLinesUC INIT(= NULL);	/* decoded UTF-8 characters */
@@ -103,6 +104,10 @@ EXTERN int	cmdline_star INIT(= FALSE);	/* cmdline is crypted */
 EXTERN int	exec_from_reg INIT(= FALSE);	/* executing register */
 
 EXTERN int	screen_cleared INIT(= FALSE);	/* screen has been cleared */
+
+#ifdef FEAT_CRYPT
+EXTERN int      use_crypt_method INIT(= 0);
+#endif
 
 /*
  * When '$' is included in 'cpoptions' option set:
@@ -1366,7 +1371,6 @@ EXTERN int netbeansFireChanges INIT(= 1); /* send buffer changes if != 0 */
 EXTERN int netbeansForcedQuit INIT(= 0);/* don't write modified files */
 EXTERN int netbeansReadFile INIT(= 1);	/* OK to read from disk if != 0 */
 EXTERN int netbeansSuppressNoLines INIT(= 0); /* skip "No lines in buffer" */
-EXTERN int usingNetbeans INIT(= 0);	/* set if -nb flag is used */
 #endif
 
 /*

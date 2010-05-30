@@ -10,6 +10,16 @@ $VIM	starting.txt	/*$VIM*
 $VIM-use	version5.txt	/*$VIM-use*
 $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 %	motion.txt	/*%*
+%:.	cmdline.txt	/*%:.*
+%:8	cmdline.txt	/*%:8*
+%:e	cmdline.txt	/*%:e*
+%:gs	cmdline.txt	/*%:gs*
+%:h	cmdline.txt	/*%:h*
+%:p	cmdline.txt	/*%:p*
+%:r	cmdline.txt	/*%:r*
+%:s	cmdline.txt	/*%:s*
+%:t	cmdline.txt	/*%:t*
+%:~	cmdline.txt	/*%:~*
 &	change.txt	/*&*
 '	motion.txt	/*'*
 ''	motion.txt	/*''*
@@ -110,6 +120,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'cinw'	options.txt	/*'cinw'*
 'cinwords'	options.txt	/*'cinwords'*
 'clipboard'	options.txt	/*'clipboard'*
+'cm'	options.txt	/*'cm'*
 'cmdheight'	options.txt	/*'cmdheight'*
 'cmdwinheight'	options.txt	/*'cmdwinheight'*
 'cmp'	options.txt	/*'cmp'*
@@ -132,6 +143,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'cpo'	options.txt	/*'cpo'*
 'cpoptions'	options.txt	/*'cpoptions'*
 'cpt'	options.txt	/*'cpt'*
+'cryptmethod'	options.txt	/*'cryptmethod'*
 'cscopepathcomp'	options.txt	/*'cscopepathcomp'*
 'cscopeprg'	options.txt	/*'cscopeprg'*
 'cscopequickfix'	options.txt	/*'cscopequickfix'*
@@ -571,6 +583,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'noprompt'	options.txt	/*'noprompt'*
 'nopvw'	options.txt	/*'nopvw'*
 'noreadonly'	options.txt	/*'noreadonly'*
+'norelativenumber'	options.txt	/*'norelativenumber'*
 'noremap'	options.txt	/*'noremap'*
 'norestorescreen'	options.txt	/*'norestorescreen'*
 'norevins'	options.txt	/*'norevins'*
@@ -579,6 +592,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'norightleftcmd'	options.txt	/*'norightleftcmd'*
 'norl'	options.txt	/*'norl'*
 'norlc'	options.txt	/*'norlc'*
+'nornu'	options.txt	/*'nornu'*
 'noro'	options.txt	/*'noro'*
 'nors'	options.txt	/*'nors'*
 'noru'	options.txt	/*'noru'*
@@ -720,6 +734,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'readonly'	options.txt	/*'readonly'*
 'redraw'	vi_diff.txt	/*'redraw'*
 'redrawtime'	options.txt	/*'redrawtime'*
+'relativenumber'	options.txt	/*'relativenumber'*
 'remap'	options.txt	/*'remap'*
 'report'	options.txt	/*'report'*
 'restorescreen'	options.txt	/*'restorescreen'*
@@ -729,6 +744,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'rightleftcmd'	options.txt	/*'rightleftcmd'*
 'rl'	options.txt	/*'rl'*
 'rlc'	options.txt	/*'rlc'*
+'rnu'	options.txt	/*'rnu'*
 'ro'	options.txt	/*'ro'*
 'rs'	options.txt	/*'rs'*
 'rtp'	options.txt	/*'rtp'*
@@ -1013,7 +1029,11 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'tw'	options.txt	/*'tw'*
 'tx'	options.txt	/*'tx'*
 'uc'	options.txt	/*'uc'*
+'udf'	options.txt	/*'udf'*
+'udir'	options.txt	/*'udir'*
 'ul'	options.txt	/*'ul'*
+'undodir'	options.txt	/*'undodir'*
+'undofile'	options.txt	/*'undofile'*
 'undolevels'	options.txt	/*'undolevels'*
 'updatecount'	options.txt	/*'updatecount'*
 'updatetime'	options.txt	/*'updatetime'*
@@ -1173,6 +1193,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 +path_extra	various.txt	/*+path_extra*
 +perl	various.txt	/*+perl*
 +perl/dyn	various.txt	/*+perl\/dyn*
++persistent_undo	various.txt	/*+persistent_undo*
 +postscript	various.txt	/*+postscript*
 +printer	various.txt	/*+printer*
 +profile	various.txt	/*+profile*
@@ -2432,7 +2453,9 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :mzfile	if_mzsch.txt	/*:mzfile*
 :mzscheme	if_mzsch.txt	/*:mzscheme*
 :n	editing.txt	/*:n*
+:nbclose	netbeans.txt	/*:nbclose*
 :nbkey	netbeans.txt	/*:nbkey*
+:nbstart	netbeans.txt	/*:nbstart*
 :ne	editing.txt	/*:ne*
 :new	windows.txt	/*:new*
 :next	editing.txt	/*:next*
@@ -2595,6 +2618,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :rubydo	if_ruby.txt	/*:rubydo*
 :rubyf	if_ruby.txt	/*:rubyf*
 :rubyfile	if_ruby.txt	/*:rubyfile*
+:rundo	undo.txt	/*:rundo*
 :runtime	repeat.txt	/*:runtime*
 :rv	starting.txt	/*:rv*
 :rviminfo	starting.txt	/*:rviminfo*
@@ -2977,6 +3001,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :write_f	editing.txt	/*:write_f*
 :ws	workshop.txt	/*:ws*
 :wsverb	workshop.txt	/*:wsverb*
+:wundo	undo.txt	/*:wundo*
 :wv	starting.txt	/*:wv*
 :wviminfo	starting.txt	/*:wviminfo*
 :x	editing.txt	/*:x*
@@ -3842,6 +3867,7 @@ E508	editing.txt	/*E508*
 E509	editing.txt	/*E509*
 E51	pattern.txt	/*E51*
 E510	editing.txt	/*E510*
+E511	netbeans.txt	/*E511*
 E512	editing.txt	/*E512*
 E513	options.txt	/*E513*
 E514	editing.txt	/*E514*
@@ -3864,6 +3890,7 @@ E529	options.txt	/*E529*
 E53	pattern.txt	/*E53*
 E530	options.txt	/*E530*
 E531	options.txt	/*E531*
+E532	netbeans.txt	/*E532*
 E533	options.txt	/*E533*
 E534	options.txt	/*E534*
 E535	options.txt	/*E535*
@@ -3936,6 +3963,7 @@ E595	options.txt	/*E595*
 E596	options.txt	/*E596*
 E597	options.txt	/*E597*
 E598	options.txt	/*E598*
+E599	options.txt	/*E599*
 E60	pattern.txt	/*E60*
 E600	eval.txt	/*E600*
 E601	eval.txt	/*E601*
@@ -4175,8 +4203,20 @@ E813	editing.txt	/*E813*
 E814	editing.txt	/*E814*
 E815	if_mzsch.txt	/*E815*
 E816	diff.txt	/*E816*
+E817	editing.txt	/*E817*
+E818	editing.txt	/*E818*
+E819	editing.txt	/*E819*
 E82	message.txt	/*E82*
+E820	editing.txt	/*E820*
+E821	options.txt	/*E821*
+E822	undo.txt	/*E822*
+E823	undo.txt	/*E823*
+E824	undo.txt	/*E824*
+E825	undo.txt	/*E825*
+E828	undo.txt	/*E828*
+E829	undo.txt	/*E829*
 E83	message.txt	/*E83*
+E830	undo.txt	/*E830*
 E84	windows.txt	/*E84*
 E85	options.txt	/*E85*
 E86	windows.txt	/*E86*
@@ -4583,6 +4623,7 @@ abandon	editing.txt	/*abandon*
 abbreviations	map.txt	/*abbreviations*
 abel.vim	syntax.txt	/*abel.vim*
 abs()	eval.txt	/*abs()*
+acos()	eval.txt	/*acos()*
 active-buffer	windows.txt	/*active-buffer*
 ada#Create_Tags()	ft_ada.txt	/*ada#Create_Tags()*
 ada#Jump_Tag()	ft_ada.txt	/*ada#Jump_Tag()*
@@ -4648,11 +4689,13 @@ arglist-quit	usr_07.txt	/*arglist-quit*
 argument-list	editing.txt	/*argument-list*
 argv()	eval.txt	/*argv()*
 as	motion.txt	/*as*
+asin()	eval.txt	/*asin()*
 asm.vim	syntax.txt	/*asm.vim*
 asm68k	syntax.txt	/*asm68k*
 asmh8300.vim	syntax.txt	/*asmh8300.vim*
 at	motion.txt	/*at*
 atan()	eval.txt	/*atan()*
+atan2()	eval.txt	/*atan2()*
 athena-intellimouse	gui.txt	/*athena-intellimouse*
 attr-list	syntax.txt	/*attr-list*
 author	intro.txt	/*author*
@@ -4734,6 +4777,7 @@ blockwise-examples	visual.txt	/*blockwise-examples*
 blockwise-operators	visual.txt	/*blockwise-operators*
 blockwise-register	change.txt	/*blockwise-register*
 blockwise-visual	visual.txt	/*blockwise-visual*
+blowfish	options.txt	/*blowfish*
 bold	syntax.txt	/*bold*
 bom-bytes	mbyte.txt	/*bom-bytes*
 book	intro.txt	/*book*
@@ -4975,6 +5019,7 @@ copy-move	change.txt	/*copy-move*
 copying	uganda.txt	/*copying*
 copyright	uganda.txt	/*copyright*
 cos()	eval.txt	/*cos()*
+cosh()	eval.txt	/*cosh()*
 count	intro.txt	/*count*
 count()	eval.txt	/*count()*
 count-bytes	tips.txt	/*count-bytes*
@@ -5295,6 +5340,7 @@ executable()	eval.txt	/*executable()*
 execute-menus	gui.txt	/*execute-menus*
 exim	starting.txt	/*exim*
 exists()	eval.txt	/*exists()*
+exp()	eval.txt	/*exp()*
 expand()	eval.txt	/*expand()*
 expand-env	options.txt	/*expand-env*
 expand-environment-var	options.txt	/*expand-environment-var*
@@ -5426,6 +5472,7 @@ float2nr()	eval.txt	/*float2nr()*
 floating-point-format	eval.txt	/*floating-point-format*
 floating-point-precision	eval.txt	/*floating-point-precision*
 floor()	eval.txt	/*floor()*
+fmod()	eval.txt	/*fmod()*
 fname_diff-variable	eval.txt	/*fname_diff-variable*
 fname_in-variable	eval.txt	/*fname_in-variable*
 fname_new-variable	eval.txt	/*fname_new-variable*
@@ -5835,6 +5882,7 @@ getscript-data	pi_getscript.txt	/*getscript-data*
 getscript-history	pi_getscript.txt	/*getscript-history*
 getscript-plugins	pi_getscript.txt	/*getscript-plugins*
 getscript-start	pi_getscript.txt	/*getscript-start*
+gettabvar()	eval.txt	/*gettabvar()*
 gettabwinvar()	eval.txt	/*gettabwinvar()*
 getwinposx()	eval.txt	/*getwinposx()*
 getwinposy()	eval.txt	/*getwinposy()*
@@ -6378,6 +6426,7 @@ locale-name	mbyte.txt	/*locale-name*
 localtime()	eval.txt	/*localtime()*
 location-list	quickfix.txt	/*location-list*
 location-list-window	quickfix.txt	/*location-list-window*
+log()	eval.txt	/*log()*
 log10()	eval.txt	/*log10()*
 long-lines	version5.txt	/*long-lines*
 lowercase	change.txt	/*lowercase*
@@ -6603,14 +6652,15 @@ nb-special	netbeans.txt	/*nb-special*
 nb-terms	netbeans.txt	/*nb-terms*
 ncf.vim	syntax.txt	/*ncf.vim*
 netbeans	netbeans.txt	/*netbeans*
+netbeans-commands	netbeans.txt	/*netbeans-commands*
 netbeans-configure	netbeans.txt	/*netbeans-configure*
 netbeans-debugging	netbeans.txt	/*netbeans-debugging*
 netbeans-download	netbeans.txt	/*netbeans-download*
 netbeans-integration	netbeans.txt	/*netbeans-integration*
 netbeans-intro	netbeans.txt	/*netbeans-intro*
-netbeans-key	netbeans.txt	/*netbeans-key*
 netbeans-keybindings	netbeans.txt	/*netbeans-keybindings*
 netbeans-messages	netbeans.txt	/*netbeans-messages*
+netbeans-parameters	netbeans.txt	/*netbeans-parameters*
 netbeans-preparation	netbeans.txt	/*netbeans-preparation*
 netbeans-problems	netbeans.txt	/*netbeans-problems*
 netbeans-protocol	netbeans.txt	/*netbeans-protocol*
@@ -6972,6 +7022,7 @@ perl-overview	if_perl.txt	/*perl-overview*
 perl-patterns	pattern.txt	/*perl-patterns*
 perl-using	if_perl.txt	/*perl-using*
 perl.vim	syntax.txt	/*perl.vim*
+persistent-undo	undo.txt	/*persistent-undo*
 pexpr-option	print.txt	/*pexpr-option*
 pfn-option	print.txt	/*pfn-option*
 pheader-option	print.txt	/*pheader-option*
@@ -6991,6 +7042,7 @@ pi_spec.txt	pi_spec.txt	/*pi_spec.txt*
 pi_tar.txt	pi_tar.txt	/*pi_tar.txt*
 pi_vimball.txt	pi_vimball.txt	/*pi_vimball.txt*
 pi_zip.txt	pi_zip.txt	/*pi_zip.txt*
+pkzip	options.txt	/*pkzip*
 plaintex.vim	syntax.txt	/*plaintex.vim*
 plsql	ft_sql.txt	/*plsql*
 plugin	usr_05.txt	/*plugin*
@@ -7303,6 +7355,7 @@ setmatches()	eval.txt	/*setmatches()*
 setpos()	eval.txt	/*setpos()*
 setqflist()	eval.txt	/*setqflist()*
 setreg()	eval.txt	/*setreg()*
+settabvar()	eval.txt	/*settabvar()*
 settabwinvar()	eval.txt	/*settabwinvar()*
 setting-guifont	gui.txt	/*setting-guifont*
 setting-guitablabel	tabpage.txt	/*setting-guitablabel*
@@ -7329,6 +7382,7 @@ simplify()	eval.txt	/*simplify()*
 simulated-command	vi_diff.txt	/*simulated-command*
 sin()	eval.txt	/*sin()*
 single-repeat	repeat.txt	/*single-repeat*
+sinh()	eval.txt	/*sinh()*
 skeleton	autocmd.txt	/*skeleton*
 slice	eval.txt	/*slice*
 slow-fast-terminal	term.txt	/*slow-fast-terminal*
@@ -7762,6 +7816,8 @@ tags-file-format	tagsrch.txt	/*tags-file-format*
 tags-option	tagsrch.txt	/*tags-option*
 tagsrch.txt	tagsrch.txt	/*tagsrch.txt*
 tagstack	tagsrch.txt	/*tagstack*
+tan()	eval.txt	/*tan()*
+tanh()	eval.txt	/*tanh()*
 tar	pi_tar.txt	/*tar*
 tar-contents	pi_tar.txt	/*tar-contents*
 tar-copyright	pi_tar.txt	/*tar-copyright*
@@ -7889,6 +7945,7 @@ undo	undo.txt	/*undo*
 undo-blocks	undo.txt	/*undo-blocks*
 undo-branches	undo.txt	/*undo-branches*
 undo-commands	undo.txt	/*undo-commands*
+undo-persistence	undo.txt	/*undo-persistence*
 undo-redo	undo.txt	/*undo-redo*
 undo-remarks	undo.txt	/*undo-remarks*
 undo-tree	undo.txt	/*undo-tree*
@@ -8133,6 +8190,7 @@ version-6.1	version6.txt	/*version-6.1*
 version-6.2	version6.txt	/*version-6.2*
 version-6.3	version6.txt	/*version-6.3*
 version-6.4	version6.txt	/*version-6.4*
+version-7.0	version7.txt	/*version-7.0*
 version-7.1	version7.txt	/*version-7.1*
 version-7.2	version7.txt	/*version-7.2*
 version-7.3	version7.txt	/*version-7.3*
@@ -8140,6 +8198,10 @@ version-variable	eval.txt	/*version-variable*
 version4.txt	version4.txt	/*version4.txt*
 version5.txt	version5.txt	/*version5.txt*
 version6.txt	version6.txt	/*version6.txt*
+version7.0	version7.txt	/*version7.0*
+version7.1	version7.txt	/*version7.1*
+version7.2	version7.txt	/*version7.2*
+version7.3	version7.txt	/*version7.3*
 version7.txt	version7.txt	/*version7.txt*
 vi	intro.txt	/*vi*
 vi-differences	vi_diff.txt	/*vi-differences*

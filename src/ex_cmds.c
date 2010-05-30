@@ -3488,6 +3488,7 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags, oldwin)
 	curbuf->b_p_ma = FALSE;		/* not modifiable */
 	curbuf->b_p_bin = FALSE;	/* reset 'bin' before reading file */
 	curwin->w_p_nu = 0;		/* no line numbers */
+	curwin->w_p_rnu = 0;		/* no relative line numbers */
 #ifdef FEAT_SCROLLBIND
 	curwin->w_p_scb = FALSE;	/* no scroll binding */
 #endif
@@ -3814,14 +3815,14 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags, oldwin)
     DO_AUTOCHDIR
 
 #if defined(FEAT_SUN_WORKSHOP) || defined(FEAT_NETBEANS_INTG)
-    if (gui.in_use && curbuf->b_ffname != NULL)
+    if (curbuf->b_ffname != NULL)
     {
 # ifdef FEAT_SUN_WORKSHOP
-	if (usingSunWorkShop)
+	if (gui.in_use && usingSunWorkShop)
 	    workshop_file_opened((char *)curbuf->b_ffname, curbuf->b_p_ro);
 # endif
 # ifdef FEAT_NETBEANS_INTG
-	if (usingNetbeans && ((flags & ECMD_SET_HELP) != ECMD_SET_HELP))
+	if ((flags & ECMD_SET_HELP) != ECMD_SET_HELP)
 	    netbeans_file_opened(curbuf);
 # endif
     }

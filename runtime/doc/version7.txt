@@ -1,9 +1,9 @@
-*version7.txt*  For Vim version 7.2.  Last change: 2010 May 14
+*version7.txt*  For Vim version 7.3a.  Last change: 2010 May 14
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
 
-									*vim7*
+					*vim7* *version-7.0* *version7.0*
 Welcome to Vim 7!  A large number of features has been added.  This file
 mentions all the new items, changes to existing features and bug fixes
 since Vim 6.x.  Use this command to see the version you are using: >
@@ -643,8 +643,8 @@ Options: ~
 'maxmempattern'		maximum amount of memory to use for pattern matching
 'mkspellmem'		parameters for |:mkspell| memory use
 'mzquantum'		Time in msec to schedule MzScheme threads.
-'numberwidth'		Minimal width of the space used for the 'number'
-			option. (Emmanuel Renieris)
+'numberwidth'		Minimal width of the space used for the 'number' and
+			'relativenumber' option. (Emmanuel Renieris)
 'omnifunc'		The name of the function used for omni completion.
 'operatorfunc'		function to be called for |g@| operator
 'printmbcharset'	CJK character set to be used for :hardcopy
@@ -1245,7 +1245,7 @@ the cursor position.  Likewise for "1gD" and "gD".
 'scrolljump' can be set to a negative number to scroll a percentage of the
 window height.
 
-The |v:scrollstart| variable has been added to help finding the location in
+The |v:scrollstart| variable has been added to help find the location in
 your script that causes the hit-enter prompt.
 
 To make it possible to handle the situation that a file is being edited that
@@ -2986,7 +2986,7 @@ CTRL-N or a printable character while still searching for matches.
 
 
 ==============================================================================
-VERSION 7.1						*version-7.1*
+VERSION 7.1					*version-7.1* *version7.1*
 
 This section is about improvements made between version 7.0 and 7.1.
 
@@ -4628,7 +4628,7 @@ Solution:   Use the same mechanism as in mch_total_mem(): first reduce the
 Files:	    src/memfile.c
 
 ==============================================================================
-VERSION 7.2						*version-7.2*
+VERSION 7.2					*version-7.2* *version7.2*
 
 This section is about improvements made between version 7.1 and 7.2.
 
@@ -7150,7 +7150,7 @@ Pelle)
 Mac: Could not build with Perl interface.
 
 ==============================================================================
-VERSION 7.3						*version-7.3*
+VERSION 7.3					*version-7.3* *version7.3*
 
 This section is about improvements made between version 7.2 and 7.3.
 
@@ -7163,20 +7163,67 @@ Changed							*changed-7.3*
 The extra and language files are no longer distributed separately.
 The files for all systems are included in one distribution.
 
+After using ":recover" or recovering a file in another way, ":x" and "ZZ"
+don't save what you see.  This could result in work being lost.  Now the text
+after recovery is compared to the original file contents.  When they differ
+the buffer is marked as modified.
+
+When Vim is exiting because of a deadly signal, when v:dying is 2 or more,
+VimLeavePre, VimLeave, BufWinLeave and BufUnload autocommands are not
+executed.
+
 
 Added							*added-7.3*
 -----
 
+Persistent undo: store undo information in a file.  Can undo to before when
+the file was read, also for unloaded buffers. |undo-persistence|
+(partly by Jordan Lewis)
+
+Added the 'relativenumber' option. (Markus Heidelberg)
+
+Support for Blowfish encryption.  Added the 'cryptmethod' option.
+Mostly by Moshin Ahmed.
+
+Added support for NetBeans in a terminal.  Added |:nbstart| and |:nbclose|.
+(Xavier de Gaye)
+
+More floating point functions: acos(), asin(), atan2(), cosh(), exp(), fmod(),
+log(), sinh(), tan(), tanh().  (Bill McCarthy)
+
+gettabvar() and settabvar() functions. (Yegappan Lakshmanan)
+
 New syntax files:
+TODO
+
+New filetype plugins:
+TODO
 
 New spell files:
-
+TODO
 Breton. (Dominique Pelle)
+
+
+Support GDK_SUPER_MASK for GTK on Mac. (Stephan Schulz)
 
 
 Fixed							*fixed-7.3*
 -----
 
+When writing a file, switching tab pages and selecting a word the file write
+message would be displayed again.  This in Insert mode and with 'cmdheight'
+set to 2.
+
+When using ":lang" to set a locale that uses a comma for decimal separator and
+using GTK floating point numbers stop working.  Use gtk_disable_setlocale().
+(James Vega)
+
+"g8" didn't produce the right value on a NUL. (Dominique Pelle)
+
+Use BASEMODLIBS instead of MODLIBS for Python configuration to pick up the
+right compiler flags. (Michael Bienia)
+
+Window title is not updated after dropping a file on Vim. (Hari G)
 
 
  vim:tw=78:ts=8:ft=help:norl:

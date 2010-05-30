@@ -1,4 +1,4 @@
-*gui.txt*       For Vim version 7.2.  Last change: 2010 May 14
+*gui.txt*       For Vim version 7.3a.  Last change: 2010 May 14
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -679,7 +679,7 @@ default toolbar is setup in menu.vim.  (Note: The MacVim toolbar is modified
 in "$VIM/gvimrc".)
 The display of the toolbar is controlled by the 'guioptions' letter 'T'.  You
 can thus have menu & toolbar together, or either on its own, or neither.
-The appearance is controlled by the 'toolbar' option.  You can chose between
+The appearance is controlled by the 'toolbar' option.  You can choose between
 an image, text or both.
 
 							*toolbar-icon*

@@ -210,6 +210,7 @@ ALL : .\$(VIM).exe vimrun.exe install.exe uninstal.exe xxd/xxd.exe GvimExt/gvime
 
 LINK32_OBJS= \
 	$(EXTRAS) \
+	"$(INTDIR)/blowfish.obj" \
 	"$(INTDIR)/buffer.obj" \
 	"$(INTDIR)/charset.obj" \
 	"$(INTDIR)/diff.obj" \
@@ -246,6 +247,7 @@ LINK32_OBJS= \
 	"$(INTDIR)/regexp.obj" \
 	"$(INTDIR)/screen.obj" \
 	"$(INTDIR)/search.obj" \
+	"$(INTDIR)/sha256.obj" \
 	"$(INTDIR)/spell.obj" \
 	"$(INTDIR)/syntax.obj" \
 	"$(INTDIR)/tag.obj" \
@@ -286,7 +288,7 @@ CLEAN :
 
 
 install.exe: dosinst.c
-	$(CPP) /Fe$@ /nologo /W3 -DNDEBUG -DWIN32 dosinst.c kernel32.lib shell32.lib ole32.lib advapi32.lib uuid.lib
+	$(CPP) /Fe$@ /nologo /W3 -DNDEBUG -DWIN32 dosinst.c kernel32.lib shell32.lib user32.lib ole32.lib advapi32.lib uuid.lib
 
 uninstal.exe: uninstal.c
 	$(CPP) /nologo /W3 -DNDEBUG -DWIN32 uninstal.c shell32.lib advapi32.lib

@@ -1,4 +1,4 @@
-*quickref.txt*  For Vim version 7.2.  Last change: 2009 Jan 22
+*quickref.txt*  For Vim version 7.3a.  Last change: 2009 Jan 22
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -651,6 +651,7 @@ Short explanation of each option:		*option-list*
 'conskey'	  'consk'   get keys directly from console (MS-DOS only)
 'copyindent'	  'ci'	    make 'autoindent' use existing indent structure
 'cpoptions'	  'cpo'     flags for Vi-compatible behavior
+'cryptmethod'	  'cm'	    type of encryption to use for file writing
 'cscopepathcomp'  'cspc'    how many components of the path to show
 'cscopeprg'       'csprg'   command to execute cscope
 'cscopequickfix'  'csqf'    use quickfix window for cscope results
@@ -821,6 +822,7 @@ Short explanation of each option:		*option-list*
 'quoteescape'	  'qe'	    escape characters used in a string
 'readonly'	  'ro'	    disallow writing the buffer
 'redrawtime'	  'rdt'     timeout for 'hlsearch' and |:match| highlighting
+'relativenumber'  'rnu'	    show relative line number in front of each line
 'remap'			    allow mappings to work recursively
 'report'		    threshold for reporting nr. of lines changed
 'restorescreen'   'rs'	    Win32: restore screen when exiting
@@ -914,6 +916,8 @@ Short explanation of each option:		*option-list*
 'ttymouse'	  'ttym'    type of mouse codes generated
 'ttyscroll'	  'tsl'     maximum number of lines for a scroll
 'ttytype'	  'tty'     alias for 'term'
+'undodir'	  'udir'    where to store undo files
+'undofile'	  'udf'	    save undo information in a file
 'undolevels'	  'ul'	    maximum number of changes that can be undone
 'updatecount'	  'uc'	    after this many characters flush swap file
 'updatetime'	  'ut'	    after this many milliseconds flush swap file

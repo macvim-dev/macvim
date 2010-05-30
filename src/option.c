@@ -77,6 +77,7 @@
 #if defined(FEAT_SMARTINDENT) || defined(FEAT_CINDENT)
 # define PV_CINW	OPT_BUF(BV_CINW)
 #endif
+#define PV_CM		OPT_BUF(BV_CM)
 #ifdef FEAT_FOLDING
 # define PV_CMS		OPT_BUF(BV_CMS)
 #endif
@@ -179,6 +180,9 @@
 #define PV_TS		OPT_BUF(BV_TS)
 #define PV_TW		OPT_BUF(BV_TW)
 #define PV_TX		OPT_BUF(BV_TX)
+#ifdef FEAT_PERSISTENT_UNDO
+# define PV_UDF		OPT_BUF(BV_UDF)
+#endif
 #define PV_WM		OPT_BUF(BV_WM)
 
 /*
@@ -210,6 +214,7 @@
 # define PV_LBR		OPT_WIN(WV_LBR)
 #endif
 #define PV_NU		OPT_WIN(WV_NU)
+#define PV_RNU		OPT_WIN(WV_RNU)
 #ifdef FEAT_LINEBREAK
 # define PV_NUW		OPT_WIN(WV_NUW)
 #endif
@@ -278,6 +283,9 @@ static char_u	*p_cino;
 #endif
 #if defined(FEAT_SMARTINDENT) || defined(FEAT_CINDENT)
 static char_u	*p_cinw;
+#endif
+#ifdef FEAT_CRYPT
+static long	p_cm;
 #endif
 #ifdef FEAT_COMMENTS
 static char_u	*p_com;
@@ -363,6 +371,9 @@ static char_u	*p_spl;
 static long	p_ts;
 static long	p_tw;
 static int	p_tx;
+#ifdef FEAT_PERSISTENT_UNDO
+static int	p_udf;
+#endif
 static long	p_wm;
 #ifdef FEAT_KEYMAP
 static char_u	*p_keymap;
@@ -842,6 +853,13 @@ static struct vimoption
 			    (char_u *)&p_cpo, PV_NONE,
 			    {(char_u *)CPO_VI, (char_u *)CPO_VIM}
 			    SCRIPTID_INIT},
+    {"cryptmethod", "cm",   P_NUM|P_VI_DEF|P_VIM,
+#ifdef FEAT_CRYPT
+			    (char_u *)&p_cm, PV_CM,
+#else
+			    (char_u *)NULL, PV_NONE,
+#endif
+			    {(char_u *)0L, (char_u *)0L} SCRIPTID_INIT},
     {"cscopepathcomp", "cspc", P_NUM|P_VI_DEF|P_VIM,
 #ifdef FEAT_CSCOPE
 			    (char_u *)&p_cspc, PV_NONE,
@@ -2053,6 +2071,9 @@ static struct vimoption
 			    (char_u *)NULL, PV_NONE,
 #endif
 			    {(char_u *)2000L, (char_u *)0L} SCRIPTID_INIT},
+    {"relativenumber", "rnu", P_BOOL|P_VI_DEF|P_RWIN,
+			    (char_u *)VAR_WIN, PV_RNU,
+			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
     {"remap",	    NULL,   P_BOOL|P_VI_DEF,
 			    (char_u *)&p_remap, PV_NONE,
 			    {(char_u *)TRUE, (char_u *)0L} SCRIPTID_INIT},
@@ -2617,6 +2638,22 @@ static struct vimoption
     {"ttytype",	    "tty",  P_STRING|P_EXPAND|P_NODEFAULT|P_NO_MKRC|P_VI_DEF|P_RALL,
 			    (char_u *)&T_NAME, PV_NONE,
 			    {(char_u *)"", (char_u *)0L} SCRIPTID_INIT},
+    {"undodir",     "udir", P_STRING|P_EXPAND|P_COMMA|P_NODUP|P_SECURE|P_VI_DEF,
+#ifdef FEAT_PERSISTENT_UNDO
+			    (char_u *)&p_udir, PV_NONE,
+			    {(char_u *)".", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
+    {"undofile",    "udf",  P_BOOL|P_VI_DEF|P_VIM,
+#ifdef FEAT_PERSISTENT_UNDO
+			    (char_u *)&p_udf, PV_UDF,
+#else
+			    (char_u *)NULL, PV_NONE,
+#endif
+			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
     {"undolevels",  "ul",   P_NUM|P_VI_DEF,
 			    (char_u *)&p_ul, PV_NONE,
 			    {
@@ -7318,10 +7355,18 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 
     /* 'list', 'number' */
     else if ((int *)varp == &curwin->w_p_list
-	  || (int *)varp == &curwin->w_p_nu)
+	  || (int *)varp == &curwin->w_p_nu
+	  || (int *)varp == &curwin->w_p_rnu)
     {
 	if (curwin->w_curswant != MAXCOL)
 	    curwin->w_set_curswant = TRUE;
+
+	/* If 'number' is set, reset 'relativenumber'. */
+	/* If 'relativenumber' is set, reset 'number'. */
+	if ((int *)varp == &curwin->w_p_nu && curwin->w_p_nu)
+	    curwin->w_p_rnu = FALSE;
+	if ((int *)varp == &curwin->w_p_rnu && curwin->w_p_rnu)
+	    curwin->w_p_nu = FALSE;
     }
 
     else if ((int *)varp == &curbuf->b_p_ro)
@@ -7981,6 +8026,24 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
     }
 # endif
 
+#endif
+
+#ifdef FEAT_CRYPT
+    else if (pp == &curbuf->b_p_cm)
+    {
+	if (curbuf->b_p_cm < 0)
+	{
+	    errmsg = e_positive;
+	    curbuf->b_p_cm = 0;
+	}
+	if (curbuf->b_p_cm > 1)
+	{
+	    errmsg = e_invarg;
+	    curbuf->b_p_cm = 1;
+	}
+	if (curbuf->b_p_cm > 0 && blowfish_self_test() == FAIL)
+	    curbuf->b_p_cm = 0;
+    }
 #endif
 
 #ifdef FEAT_WINDOWS
@@ -9371,6 +9434,7 @@ get_varp(p)
 	case PV_FMR:	return (char_u *)&(curwin->w_p_fmr);
 #endif
 	case PV_NU:	return (char_u *)&(curwin->w_p_nu);
+	case PV_RNU:	return (char_u *)&(curwin->w_p_rnu);
 #ifdef FEAT_LINEBREAK
 	case PV_NUW:	return (char_u *)&(curwin->w_p_nuw);
 #endif
@@ -9411,6 +9475,9 @@ get_varp(p)
 	case PV_CIN:	return (char_u *)&(curbuf->b_p_cin);
 	case PV_CINK:	return (char_u *)&(curbuf->b_p_cink);
 	case PV_CINO:	return (char_u *)&(curbuf->b_p_cino);
+#endif
+#ifdef FEAT_CRYPT
+	case PV_CM:	return (char_u *)&(curbuf->b_p_cm);
 #endif
 #if defined(FEAT_SMARTINDENT) || defined(FEAT_CINDENT)
 	case PV_CINW:	return (char_u *)&(curbuf->b_p_cinw);
@@ -9501,6 +9568,9 @@ get_varp(p)
 	case PV_TS:	return (char_u *)&(curbuf->b_p_ts);
 	case PV_TW:	return (char_u *)&(curbuf->b_p_tw);
 	case PV_TX:	return (char_u *)&(curbuf->b_p_tx);
+#ifdef FEAT_PERSISTENT_UNDO
+	case PV_UDF:	return (char_u *)&(curbuf->b_p_udf);
+#endif
 	case PV_WM:	return (char_u *)&(curbuf->b_p_wm);
 #ifdef FEAT_KEYMAP
 	case PV_KMAP:	return (char_u *)&(curbuf->b_p_keymap);
@@ -9559,6 +9629,7 @@ copy_winopt(from, to)
 #endif
     to->wo_list = from->wo_list;
     to->wo_nu = from->wo_nu;
+    to->wo_rnu = from->wo_rnu;
 #ifdef FEAT_LINEBREAK
     to->wo_nuw = from->wo_nuw;
 #endif
@@ -9872,6 +9943,9 @@ buf_copy_options(buf, flags)
 #endif
 #if defined(FEAT_BEVAL) && defined(FEAT_EVAL)
 	    buf->b_p_bexpr = empty_option;
+#endif
+#ifdef FEAT_PERSISTENT_UNDO
+	    buf->b_p_udf = p_udf;
 #endif
 
 	    /*

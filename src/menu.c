@@ -463,7 +463,7 @@ add_menu_path(menu_path, menuarg, pri_tab, call_data
 	 * name (without mnemonic and accelerator text). */
 	next_name = menu_name_skip(name);
 #ifdef	FEAT_MULTI_LANG
-	map_to = menutrans_lookup(name,STRLEN(name));
+	map_to = menutrans_lookup(name, (int)STRLEN(name));
 	if (map_to != NULL)
 	{
 	    en_name = name;
@@ -1344,7 +1344,9 @@ get_menu_name(xp, idx)
     if (idx == 0)	    /* first call: start at first item */
     {
 	menu = expand_menu;
+#ifdef FEAT_MULTI_LANG
 	should_advance = FALSE;
+#endif
     }
 
     /* Skip PopUp[nvoci]. */
@@ -1405,7 +1407,9 @@ get_menu_names(xp, idx)
     if (idx == 0)	    /* first call: start at first item */
     {
 	menu = expand_menu;
+#ifdef FEAT_MULTI_LANG
 	should_advance = FALSE;
+#endif
     }
 
     /* Skip Browse-style entries, popup menus and separators. */
@@ -1510,10 +1514,12 @@ menu_name_equal(name, menu)
     char_u	*name;
     vimmenu_T	*menu;
 {
+#ifdef FEAT_MULTI_LANG
     if (menu->en_name != NULL
 	    && (menu_namecmp(name,menu->en_name)
 		|| menu_namecmp(name,menu->en_dname)))
         return TRUE;
+#endif
     return menu_namecmp(name, menu->name) || menu_namecmp(name, menu->dname);
 }
 

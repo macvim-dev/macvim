@@ -1965,7 +1965,7 @@ static void netbeansReadCallback(CFSocketRef s,
         [self setImState:NO];
     } else if (NetBeansMsgID == msgid) {
 #ifdef FEAT_NETBEANS_INTG
-        messageFromNetbeansMacVim();
+        netbeans_read();
 #endif
     } else if (SetMarkedTextMsgID == msgid) {
         [self handleMarkedText:data];

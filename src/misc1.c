@@ -1742,7 +1742,7 @@ plines_win_nofold(wp, lnum)
 	col += 1;
 
     /*
-     * Add column offset for 'number' and 'foldcolumn'.
+     * Add column offset for 'number', 'relativenumber' and 'foldcolumn'.
      */
     width = W_WIDTH(wp) - win_col_off(wp);
     if (width <= 0)
@@ -1803,7 +1803,7 @@ plines_win_col(wp, lnum, column)
 	col += win_lbr_chartabsize(wp, s, (colnr_T)col, NULL) - 1;
 
     /*
-     * Add column offset for 'number', 'foldcolumn', etc.
+     * Add column offset for 'number', 'relativenumber', 'foldcolumn', etc.
      */
     width = W_WIDTH(wp) - win_col_off(wp);
     if (width <= 0)
@@ -2277,7 +2277,7 @@ del_bytes(count, fixpos_arg, use_delcombine)
      * care of notifiying Netbeans.
      */
 #ifdef FEAT_NETBEANS_INTG
-    if (usingNetbeans)
+    if (netbeans_active())
 	was_alloced = FALSE;
     else
 #endif
@@ -2514,17 +2514,26 @@ changed()
 		msg_scroll = save_msg_scroll;
 	    }
 	}
-	curbuf->b_changed = TRUE;
-	ml_setflags(curbuf);
-#ifdef FEAT_WINDOWS
-	check_status(curbuf);
-	redraw_tabline = TRUE;
-#endif
-#ifdef FEAT_TITLE
-	need_maketitle = TRUE;	    /* set window title later */
-#endif
+	changed_int();
     }
     ++curbuf->b_changedtick;
+}
+
+/*
+ * Internal part of changed(), no user interaction.
+ */
+    void
+changed_int()
+{
+    curbuf->b_changed = TRUE;
+    ml_setflags(curbuf);
+#ifdef FEAT_WINDOWS
+    check_status(curbuf);
+    redraw_tabline = TRUE;
+#endif
+#ifdef FEAT_TITLE
+    need_maketitle = TRUE;	    /* set window title later */
+#endif
 }
 
 static void changedOneline __ARGS((buf_T *buf, linenr_T lnum));

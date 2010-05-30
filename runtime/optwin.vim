@@ -365,6 +365,9 @@ call <SID>OptionG("lcs", &lcs)
 call append("$", "number\tshow the line number for each line")
 call append("$", "\t(local to window)")
 call <SID>BinOptionL("nu")
+call append("$", "relativenumber\tshow the relative line number for each line")
+call append("$", "\t(local to window)")
+call <SID>BinOptionL("rnu")
 if has("linebreak")
   call append("$", "numberwidth\tnumber of columns to use for the line number")
   call append("$", "\t(local to window)")
@@ -983,6 +986,9 @@ if !has("msdos")
   call append("$", "\t(local to buffer)")
   call <SID>BinOptionL("sn")
 endif
+call append("$", "cryptmethod\tsimple (0) or complex (1) encryption method for file writing")
+call append("$", "\t(local to buffer)")
+call <SID>OptionL("cm")
 
 
 call <SID>Header("the swap file")
@@ -1037,6 +1043,10 @@ if has("vertsplit")
   call append("$", "cmdwinheight\theight of the command-line window")
   call <SID>OptionG("cwh", &cwh)
 endif
+call append("$", "undofile\tautomatically save and restore undo history")
+call <SID>BinOptionG("udf", &udf)
+call append("$", "undodir\tlist of directories for undo files")
+call <SID>OptionG("udir", &udir)
 
 
 call <SID>Header("executing external commands")

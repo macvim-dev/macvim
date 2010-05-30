@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 7.2.  Last change: 2010 May 13
+*options.txt*	For Vim version 7.3a.  Last change: 2010 May 13
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1889,8 +1889,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 			parenthesis match.  When included "%" ignores
 			backslashes, which is Vi compatible.
 								*cpo-n*
-		n	When included, the column used for 'number' will also
-			be used for text of wrapped lines.
+		n	When included, the column used for 'number' and
+			'relativenumber' will also be used for text of wrapped
+			lines.
 								*cpo-o*
 		o	Line offset to search command is not remembered for
 			next search.
@@ -2051,6 +2052,30 @@ A jump table for the options with a short description can be found at |Q_op|.
 		|	The value of the $LINES and $COLUMNS environment
 			variables overrule the terminal size values obtained
 			with system specific functions.
+
+
+						*'cryptmethod'* *'cm'*
+'cryptmethod'		number	(default 0)
+			local to buffer
+			{not in Vi}
+	Method used for encryption when the buffer is written to a file:
+							*pkzip*
+		0	PkZip compatible method.  A weak kind of encryption.
+			Backwards compatible with Vim 7.2 and older.
+							*blowfish*
+		1	Blowfish method.  Strong encryption.  Requires Vim 7.3
+			or later, files can NOT be read by Vim 7.2 and older.
+			This adds a "seed" to the file, every time you write
+			the file the encrypted bytes will be different.
+
+	When reading an encrypted file 'cryptmethod' will be set automatically
+	to the detected method of the file being read.  Thus if you write it
+	without changing 'cryptmethod' the same method will be used.
+	Changing 'cryptmethod' does not mark the file as modified, you have to
+	explicitly write it when not making modifications.
+	Also see |:X|.
+	When a new encryption method is added in a later version of Vim, and
+	the current version does not recognize it, you will get	*E821* .
 
 
 						*'cscopepathcomp'* *'cspc'*
@@ -3708,7 +3733,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	|hl-Search|	 l  last search pattern highlighting (see 'hlsearch')
 	|hl-MoreMsg|	 m  |more-prompt|
 	|hl-ModeMsg|	 M  Mode (e.g., "-- INSERT --")
-	|hl-LineNr|	 n  line number for ":number" and ":#" commands
+	|hl-LineNr|	 n  line number for ":number" and ":#" commands, and
+			    when 'number' or 'relativenumber' option is set.
 	|hl-Question|	 r  |hit-enter| prompt and yes/no questions
 	|hl-StatusLine|	 s  status line of current window |status-line|
 	|hl-StatusLineNC| S  status lines of not-current windows
@@ -3860,7 +3886,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			global
 			{not in Vi}
 			{only available when compiled with |+xim| and
-			|+GUI_GTK|}
+			|+GUI_GTK|}				*E599*
 	Specifies the key that your Input Method in X-Windows uses for
 	activation.  When this is specified correctly, vim can fully control
 	IM with 'imcmdline', 'iminsert' and 'imsearch'.
@@ -4240,7 +4266,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			local to buffer
 			{not in Vi}
 	The key that is used for encrypting and decrypting the current buffer.
-	See |encryption|.
+	See |encryption| and 'cryptmethod'.
 	Careful: Do not set the key value by hand, someone might see the typed
 	key.  Use the |:X| command.  But you can make 'key' empty: >
 		:set key=
@@ -4985,6 +5011,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	When a long, wrapped line doesn't start with the first character, '-'
 	characters are put before the number.
 	See |hl-LineNr| for the highlighting used for the number.
+	When setting this option, 'relativenumber' is reset.
 
 						*'numberwidth'* *'nuw'*
 'numberwidth' 'nuw'	number	(Vim default: 4  Vi default: 8)
@@ -4993,13 +5020,14 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{only available when compiled with the |+linebreak|
 			feature}
 	Minimal number of columns to use for the line number.  Only relevant
-	when the 'number' option is set or printing lines with a line number.
-	Since one space is always between the number and the text, there is
-	one less character for the number itself.
+	when the 'number' or 'relativenumber' option is set or printing lines
+	with a line number. Since one space is always between the number and
+	the text, there is one less character for the number itself.
 	The value is the minimum width.  A bigger width is used when needed to
-	fit the highest line number in the buffer.  Thus with the Vim default
-	of 4 there is room for a line number up to 999.  When the buffer has
-	1000 lines five columns will be used.
+	fit the highest line number in the buffer respectively the number of
+	rows in the window, depending on whether 'number' or 'relativenumber'
+	is set. Thus with the Vim default of 4 there is room for a line number
+	up to 999. When the buffer has 1000 lines five columns will be used.
 	The minimum value is 1, the maximum value is 10.
 	NOTE: 'numberwidth' is reset to 8 when 'compatible' is set.
 
@@ -5372,6 +5400,25 @@ A jump table for the options with a short description can be found at |Q_op|.
 	When redrawing takes more than this many milliseconds no further
 	matches will be highlighted.  This is used to avoid that Vim hangs
 	when using a very complicated pattern.
+
+		*'relativenumber'* *'rnu'* *'norelativenumber'* *'nornu'*
+'relativenumber' 'rnu'	boolean	(default off)
+			local to window
+			{not in Vi}
+	Show the line number relative to the line with the cursor in front of
+	each line. Relative line numbers help you use the |count| you can
+	precede some vertical motion commands (e.g. j k + -) with, without
+	having to calculate it yourself. Especially useful in combination with
+	other commands (e.g. y d c < > gq gw =).
+	When the 'n' option is excluded from 'cpoptions' a wrapped
+	line will not use the column of line numbers (this is the default when
+	'compatible' isn't set).
+	The 'numberwidth' option can be used to set the room used for the line
+	number.
+	When a long, wrapped line doesn't start with the first character, '-'
+	characters are put before the number.
+	See |hl-LineNr| for the highlighting used for the number.
+	When setting this option, 'number' is reset.
 
 						*'remap'* *'noremap'*
 'remap'			boolean	(default on)
@@ -7298,6 +7345,36 @@ A jump table for the options with a short description can be found at |Q_op|.
 'ttytype' 'tty'		string	(default from $TERM)
 			global
 	Alias for 'term', see above.
+
+						*'undodir'* *'udir'*
+'undodir' 'udir'	string	(default ".")
+			global
+			{not in Vi}
+			{only when compiled with the +persistent_undo feature}
+	List of directory names for undo files, separated with commas.
+	See |'backupdir'| for details of the format.
+	"." means using the directory of the file.  The undo file name for
+	"file.txt" is ".file.txt.un~".
+	For other directories the file name is the full path of the edited
+	file, with path separators replaced with "%".
+	When writing: The first directory that exists is used. "." always
+	works, no directories after "." will be used for writing.
+	When reading all entries are tried to find an undo file.  The first
+	undo file that exists is used.  When it cannot be read an error is
+	given, no further entry is used.
+	See |undo-persistence|.
+
+						*'undofile'* *'udf'*
+'undofile' 'udf'	boolean	(default off)
+			local to buffer
+			{not in Vi}
+			{only when compiled with the +persistent_undo feature}
+	When on, Vim automatically saves undo history to an undo file when
+	writing a buffer to a file, and restores undo history from the same
+	file on buffer read.
+	The directory where the undo file is stored is specified by 'undodir'.
+	For more information about this feature see |undo-persistence|.
+	WARNING: this is a very new feature.  Use at your own risk!
 
 						*'undolevels'* *'ul'*
 'undolevels' 'ul'	number	(default 100, 1000 for Unix, VMS,

@@ -169,6 +169,8 @@ typedef struct
 #define w_p_list w_onebuf_opt.wo_list	/* 'list' */
     int		wo_nu;
 #define w_p_nu w_onebuf_opt.wo_nu	/* 'number' */
+    int		wo_rnu;
+#define w_p_rnu w_onebuf_opt.wo_rnu	/* 'relativenumber' */
 #ifdef FEAT_LINEBREAK
     long	wo_nuw;
 # define w_p_nuw w_onebuf_opt.wo_nuw	/* 'numberwidth' */
@@ -327,7 +329,7 @@ struct u_header
 typedef struct m_info minfo_T;
 
 /*
- * stucture used to link chunks in one of the free chunk lists.
+ * structure used to link chunks in one of the free chunk lists.
  */
 struct m_info
 {
@@ -795,9 +797,9 @@ struct syn_state
 	garray_T	sst_ga;	/* growarray for long state stack */
     } sst_union;
     int		sst_next_flags;	/* flags for sst_next_list */
+    int		sst_stacksize;	/* number of states on the stack */
     short	*sst_next_list;	/* "nextgroup" list in this state
 				 * (this is a copy, don't free it! */
-    short	sst_stacksize;	/* number of states on the stack */
     disptick_T	sst_tick;	/* tick when last displayed */
     linenr_T	sst_change_lnum;/* when non-zero, change in this line
 				 * may have made the state invalid */
@@ -1356,6 +1358,9 @@ struct file_buffer
 #ifdef FEAT_INS_EXPAND
     char_u	*b_p_cpt;	/* 'complete' */
 #endif
+#ifdef FEAT_CRYPT
+    long	b_p_cm;		/* 'cryptmethod' */
+#endif
 #ifdef FEAT_COMPL_FUNC
     char_u	*b_p_cfu;	/* 'completefunc' */
     char_u	*b_p_ofu;	/* 'omnifunc' */
@@ -1459,6 +1464,9 @@ struct file_buffer
 #ifdef FEAT_INS_EXPAND
     char_u	*b_p_dict;	/* 'dictionary' local value */
     char_u	*b_p_tsr;	/* 'thesaurus' local value */
+#endif
+#ifdef FEAT_PERSISTENT_UNDO
+    int		b_p_udf;	/* 'undofile' */
 #endif
 #ifdef FEAT_GUI_MACVIM
     int		b_p_mmta;	/* 'macmeta' local value */
@@ -1915,7 +1923,8 @@ struct window_S
 				       recomputed */
 #endif
 #ifdef FEAT_LINEBREAK
-    int		w_nrwidth;	    /* width of 'number' column being used */
+    int		w_nrwidth;	    /* width of 'number' and 'relativenumber'
+				       column being used */
 #endif
 
     /*
@@ -2146,7 +2155,7 @@ typedef struct cmdarg_S
 #define SHAPE_IDX_CI	5	/* Command line Insert mode */
 #define SHAPE_IDX_CR	6	/* Command line Replace mode */
 #define SHAPE_IDX_O	7	/* Operator-pending mode */
-#define SHAPE_IDX_VE	8	/* Visual mode with 'seleciton' exclusive */
+#define SHAPE_IDX_VE	8	/* Visual mode with 'selection' exclusive */
 #define SHAPE_IDX_CLINE	9	/* On command line */
 #define SHAPE_IDX_STATUS 10	/* A status line */
 #define SHAPE_IDX_SDRAG 11	/* dragging a status line */
@@ -2275,7 +2284,7 @@ struct VimMenu
 /*  short	index;	*/	    /* the item index within the father menu */
     short	menu_id;	    /* the menu id to which this item belong */
     short	submenu_id;	    /* the menu id of the children (could be
-				       get throught some tricks) */
+				       get through some tricks) */
     MenuHandle	menu_handle;
     MenuHandle	submenu_handle;
 #endif
@@ -2401,3 +2410,9 @@ typedef struct
 #define CPT_KIND    2	/* "kind" */
 #define CPT_INFO    3	/* "info" */
 #define CPT_COUNT   4	/* Number of entries */
+
+typedef struct {
+  UINT32_T total[2];
+  UINT32_T state[8];
+  char_u   buffer[64];
+} context_sha256_T;

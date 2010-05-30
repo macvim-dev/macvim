@@ -635,8 +635,8 @@ gui_x11_expose_cb(w, dud, event, dum)
     gui_mch_update();
 }
 
-#if (defined(FEAT_NETBEANS_INTG) || defined(FEAT_SUN_WORKSHOP)) \
-	|| defined(PROTO)
+#if ((defined(FEAT_NETBEANS_INTG) || defined(FEAT_SUN_WORKSHOP)) \
+	&& defined(FEAT_GUI_MOTIF)) || defined(PROTO)
 /*
  * This function fills in the XRectangle object with the current x,y
  * coordinates and height, width so that an XtVaSetValues to the same shell of
@@ -709,8 +709,8 @@ gui_x11_resize_window_cb(w, dud, event, dum)
 	workshop_frame_moved(rec.x, rec.y, rec.width, rec.height);
     }
 #endif
-#ifdef FEAT_NETBEANS_INTG
-    if (usingNetbeans)
+#if defined(FEAT_NETBEANS_INTG) && defined(FEAT_GUI_MOTIF)
+    if (netbeans_active())
     {
 	XRectangle  rec;
 
@@ -1253,7 +1253,6 @@ gui_mch_prepare(argc, argv)
 #ifdef FEAT_NETBEANS_INTG
 	    if (strncmp("-nb", argv[arg], 3) == 0)
 	{
-	    usingNetbeans++;
 	    gui.dofork = FALSE;	/* don't fork() when starting GUI */
 	    netbeansArg = argv[arg];
 	    mch_memmove(&argv[arg], &argv[arg + 1],

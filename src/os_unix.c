@@ -220,7 +220,7 @@ typedef struct
 {
     SmcConn smcconn;	    /* The SM connection ID */
     IceConn iceconn;	    /* The ICE connection ID */
-    char *clientid;         /* The client ID for the current smc session */
+    char *clientid;	    /* The client ID for the current smc session */
     Bool save_yourself;     /* If we're in the middle of a save_yourself */
     Bool shutdown;	    /* If we're in shutdown mode */
 } xsmp_config_T;
@@ -366,6 +366,11 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
 {
     int		len;
 
+#ifdef FEAT_NETBEANS_INTG
+    /* Process the queued netbeans messages. */
+    netbeans_parse_messages();
+#endif
+
     /* Check if window changed size while we were busy, perhaps the ":set
      * columns=99" command was used. */
     while (do_resize)
@@ -378,6 +383,10 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
 	    if (!do_resize)	/* return if not interrupted by resize */
 		return 0;
 	    handle_resize();
+#ifdef FEAT_NETBEANS_INTG
+	    /* Process the queued netbeans messages. */
+            netbeans_parse_messages();
+#endif
 	}
     }
     else	/* wtime == -1 */
@@ -407,12 +416,21 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
     {
 	while (do_resize)    /* window changed size */
 	    handle_resize();
+
+#ifdef FEAT_NETBEANS_INTG
+	/* Process the queued netbeans messages. */
+        netbeans_parse_messages();
+#endif
 	/*
 	 * we want to be interrupted by the winch signal
+	 * or by an event on the monitored file descriptors
 	 */
-	WaitForChar(-1L);
-	if (do_resize)	    /* interrupted by SIGWINCH signal */
-	    continue;
+	if (WaitForChar(-1L) == 0)
+	{
+	    if (do_resize)	    /* interrupted by SIGWINCH signal */
+		handle_resize();
+	    return 0;
+	}
 
 	/* If input was put directly in typeahead buffer bail out here. */
 	if (typebuf_changed(tb_change_cnt))
@@ -1324,7 +1342,7 @@ catch_signals(func_deadly, func_other)
  *			     return TRUE
  * "when" == SIGNAL_BLOCK:   Going to be busy, block signals
  * "when" == SIGNAL_UNBLOCK: Going to wait, unblock signals, use postponed
- *                           signal
+ *			     signal
  * Returns TRUE when Vim should exit.
  */
     int
@@ -3093,8 +3111,7 @@ mch_exit(r)
 #endif
 
 #ifdef FEAT_NETBEANS_INTG
-    if (usingNetbeans)
-	netbeans_send_disconnect();
+    netbeans_send_disconnect();
 #endif
 
 #ifdef EXITFREE
@@ -4776,6 +4793,9 @@ RealWaitForChar(fd, msec, check_for_gpm)
     int		*check_for_gpm UNUSED;
 {
     int		ret;
+#ifdef FEAT_NETBEANS_INTG
+    int		nb_fd = netbeans_filedesc();
+#endif
 #if defined(FEAT_XCLIPBOARD) || defined(USE_XSMP) || defined(FEAT_MZSCHEME)
     static int	busy = FALSE;
 
@@ -4825,7 +4845,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 # endif
 #endif
 #ifndef HAVE_SELECT
-	struct pollfd   fds[5];
+	struct pollfd   fds[6];
 	int		nfd;
 # ifdef FEAT_XCLIPBOARD
 	int		xterm_idx = -1;
@@ -4835,6 +4855,9 @@ RealWaitForChar(fd, msec, check_for_gpm)
 # endif
 # ifdef USE_XSMP
 	int		xsmp_idx = -1;
+# endif
+# ifdef FEAT_NETBEANS_INTG
+	int		nb_idx = -1;
 # endif
 	int		towait = (int)msec;
 
@@ -4886,6 +4909,15 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	    nfd++;
 	}
 # endif
+#ifdef FEAT_NETBEANS_INTG
+	if (nb_fd != -1)
+	{
+	    nb_idx = nfd;
+	    fds[nfd].fd = nb_fd;
+	    fds[nfd].events = POLLIN;
+	    nfd++;
+	}
+#endif
 
 	ret = poll(fds, nfd, towait);
 # ifdef FEAT_MZSCHEME
@@ -4939,6 +4971,13 @@ RealWaitForChar(fd, msec, check_for_gpm)
 		finished = FALSE;	/* Try again */
 	}
 # endif
+#ifdef FEAT_NETBEANS_INTG
+	if (ret > 0 && nb_idx != -1 && fds[nb_idx].revents & POLLIN)
+	{
+	    netbeans_read();
+	    --ret;
+	}
+#endif
 
 
 #else /* HAVE_SELECT */
@@ -5020,6 +5059,14 @@ RealWaitForChar(fd, msec, check_for_gpm)
 		maxfd = xsmp_icefd;
 	}
 # endif
+#ifdef FEAT_NETBEANS_INTG
+	if (nb_fd != -1)
+	{
+	    FD_SET(nb_fd, &rfds);
+	    if (maxfd < nb_fd)
+		maxfd = nb_fd;
+	}
+#endif
 
 # ifdef OLD_VMS
 	/* Old VMS as v6.2 and older have broken select(). It waits more than
@@ -5097,6 +5144,13 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	    }
 	}
 # endif
+#ifdef FEAT_NETBEANS_INTG
+	if (ret > 0 && nb_fd != -1 && FD_ISSET(nb_fd, &rfds))
+	{
+	    netbeans_read();
+	    --ret;
+	}
+#endif
 
 #endif /* HAVE_SELECT */
 

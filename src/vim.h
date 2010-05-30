@@ -48,6 +48,20 @@
 # if defined(__CYGWIN32__) && defined(HAVE_FCHDIR)
 #  undef HAVE_FCHDIR
 # endif
+
+/* We may need to define the uint32_t on non-Unix system, but using the same
+ * identifier causes conflicts.  Therefore use UINT32_T. */
+# define UINT32_TYPEDEF uint32_t
+#endif
+
+#if !defined(UINT32_TYPEDEF)
+# if defined(uint32_t)  /* this doesn't catch typedefs, unfortunately */
+#  define UINT32_TYPEDEF uint32_t
+# else
+  /* Fall back to assuming unsigned int is 32 bit.  If this is wrong then the
+   * test in blowfish.c will fail. */
+#  define UINT32_TYPEDEF unsigned int
+# endif
 #endif
 
 /* user ID of root is usually zero, but not for everybody */
@@ -471,6 +485,12 @@ typedef unsigned long u8char_T;	    /* long should be 32 bits or more */
 
 #include <assert.h>
 
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
 #ifdef HAVE_WCTYPE_H
 # include <wctype.h>
 #endif
@@ -1300,6 +1320,10 @@ typedef enum
 
 #define MAYBE	2	    /* sometimes used for a variant on TRUE */
 
+#ifndef UINT32_T
+typedef UINT32_TYPEDEF UINT32_T;
+#endif
+
 /*
  * Operator IDs; The order must correspond to opchars[] in ops.c!
  */
@@ -1380,6 +1404,9 @@ typedef enum
  * Must be able to hold an Amiga resize report.
  */
 #define MAXMAPLEN   50
+
+/* Size in bytes of the hash used in the undo file. */
+#define UNDO_HASH_SIZE 32
 
 #ifdef HAVE_FCNTL_H
 # include <fcntl.h>
@@ -1917,6 +1944,11 @@ typedef int VimClipboard;	/* This is required for the prototypes. */
 /* stop using fastcall for Borland */
 #if defined(__BORLANDC__) && defined(WIN32) && !defined(DEBUG)
  #pragma option -p.
+#endif
+
+#ifdef _MSC_VER
+/* Avoid useless warning "conversion from X to Y of greater size". */
+ #pragma warning(disable : 4312)
 #endif
 
 #if defined(MEM_PROFILE)

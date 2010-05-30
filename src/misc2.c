@@ -469,6 +469,57 @@ decl(lp)
 }
 
 /*
+ * Get the line number relative to the current cursor position, i.e. the
+ * difference between line number and cursor position. Only look for lines that
+ * can be visible, folded lines don't count.
+ */
+    linenr_T
+get_cursor_rel_lnum(wp, lnum)
+    win_T	*wp;
+    linenr_T	lnum;		    /* line number to get the result for */
+{
+    linenr_T	cursor = wp->w_cursor.lnum;
+    linenr_T	retval = 0;
+
+#ifdef FEAT_FOLDING
+    if (hasAnyFolding(wp))
+    {
+	if (lnum > cursor)
+	{
+	    while (lnum > cursor)
+	    {
+		(void)hasFolding(lnum, &lnum, NULL);
+		/* if lnum and cursor are in the same fold,
+		 * now lnum <= cursor */
+		if (lnum > cursor)
+		    retval++;
+		lnum--;
+	    }
+	}
+	else if (lnum < cursor)
+	{
+	    while (lnum < cursor)
+	    {
+		(void)hasFolding(lnum, NULL, &lnum);
+		/* if lnum and cursor are in the same fold,
+		 * now lnum >= cursor */
+		if (lnum < cursor)
+		    retval--;
+		lnum++;
+	    }
+	}
+	/* else if (lnum == cursor)
+	 *     retval = 0;
+	 */
+    }
+    else
+#endif
+	retval = lnum - cursor;
+
+    return retval;
+}
+
+/*
  * Make sure curwin->w_cursor.lnum is valid.
  */
     void
@@ -3634,6 +3685,11 @@ update_mouseshape(shape_idx)
  * NOTE FOR USA: Since 2000 exporting this code from the USA is allowed to
  * most countries.  There are a few exceptions, but that still should not be a
  * problem since this code was originally created in Europe and India.
+ *
+ * Blowfish addition originally made by Mohsin Ahmed,
+ * http://www.cs.albany.edu/~mosh 2010-03-14
+ * Based on blowfish by Bruce Schneier (http://www.schneier.com/blowfish.html)
+ * and sha256 by Christophe Devine.
  */
 
 /* from zip.h */
@@ -3679,6 +3735,8 @@ decrypt_byte()
 {
     ush temp;
 
+    if (use_crypt_method > 0)
+	return bf_ranbyte();
     temp = (ush)keys[2] | 2;
     return (int)(((unsigned)(temp * (temp ^ 1)) >> 8) & 0xff);
 }
@@ -3686,15 +3744,19 @@ decrypt_byte()
 /*
  * Update the encryption keys with the next byte of plain text
  */
-    int
+    void
 update_keys(c)
     int c;			/* byte of plain text */
 {
-    keys[0] = CRC32(keys[0], c);
-    keys[1] += keys[0] & 0xff;
-    keys[1] = keys[1] * 134775813L + 1;
-    keys[2] = CRC32(keys[2], (int)(keys[1] >> 24));
-    return c;
+    if (use_crypt_method > 0)
+	bf_ofb_update( (unsigned char) c);
+    else
+    {
+	keys[0] = CRC32(keys[0], c);
+	keys[1] += keys[0] & 0xff;
+	keys[1] = keys[1] * 134775813L + 1;
+	keys[2] = CRC32(keys[2], (int)(keys[1] >> 24));
+    }
 }
 
 /*
@@ -3718,8 +3780,26 @@ crypt_init_keys(passwd)
 }
 
 /*
+ * Free an allocated crypt key.  Clear the text to make sure it doesn't stay
+ * in memory anywhere.
+ */
+    void
+free_crypt_key(key)
+    char_u *key;
+{
+    char_u *p;
+
+    if (key != NULL)
+    {
+	for (p = key; *p != NUL; ++p)
+	    *p = 0;
+	vim_free(key);
+    }
+}
+
+/*
  * Ask the user for a crypt key.
- * When "store" is TRUE, the new key in stored in the 'key' option, and the
+ * When "store" is TRUE, the new key is stored in the 'key' option, and the
  * 'key' option value is returned: Don't free it.
  * When "store" is FALSE, the typed key is returned in allocated memory.
  * Returns NULL on failure.
@@ -3750,16 +3830,17 @@ get_crypt_key(store, twice)
 	    if (p2 != NULL && STRCMP(p1, p2) != 0)
 	    {
 		MSG(_("Keys don't match!"));
-		vim_free(p1);
-		vim_free(p2);
+		free_crypt_key(p1);
+		free_crypt_key(p2);
 		p2 = NULL;
 		round = -1;		/* do it again */
 		continue;
 	    }
+
 	    if (store)
 	    {
 		set_option_value((char_u *)"key", 0L, p1, OPT_LOCAL);
-		vim_free(p1);
+		free_crypt_key(p1);
 		p1 = curbuf->b_p_key;
 	    }
 	    break;
@@ -3771,7 +3852,7 @@ get_crypt_key(store, twice)
     need_wait_return = FALSE;
     msg_didout = FALSE;
 
-    vim_free(p2);
+    free_crypt_key(p2);
     return p1;
 }
 
@@ -4019,7 +4100,7 @@ vim_findnext()
 /*
  * Initialization routine for vim_findfile.
  *
- * Returns the newly allocated search context or NULL if an error occured.
+ * Returns the newly allocated search context or NULL if an error occurred.
  *
  * Don't forget to clean up by calling vim_findfile_cleanup() if you are done
  * with the search context.
@@ -4040,7 +4121,7 @@ vim_findnext()
  *
  * If the 'path' is relative, the starting dir for the search is either VIM's
  * current dir or if the path starts with "./" the current files dir.
- * If the 'path' is absolut, the starting dir is that part of the path before
+ * If the 'path' is absolute, the starting dir is that part of the path before
  * the first wildcard.
  *
  * Upward search is only done on the starting dir.
@@ -4097,7 +4178,7 @@ vim_findfile_init(path, filename, stopdirs, level, free_visited, find_what,
 	search_ctx = (ff_search_ctx_T*)alloc((unsigned)sizeof(ff_search_ctx_T));
 	if (search_ctx == NULL)
 	    goto error_return;
-	memset(search_ctx, 0, sizeof(ff_search_ctx_T));
+	vim_memset(search_ctx, 0, sizeof(ff_search_ctx_T));
     }
     search_ctx->ffsc_find_what = find_what;
 
@@ -6044,3 +6125,165 @@ emsgn(s, n)
     vim_snprintf((char *)IObuff, IOSIZE, (char *)s, n);
     return emsg(IObuff);
 }
+
+#if defined(FEAT_SPELL) || defined(FEAT_PERSISTENT_UNDO) || defined(PROTO)
+/*
+ * Read 2 bytes from "fd" and turn them into an int, MSB first.
+ */
+    int
+get2c(fd)
+    FILE	*fd;
+{
+    int		n;
+
+    n = getc(fd);
+    n = (n << 8) + getc(fd);
+    return n;
+}
+
+/*
+ * Read 3 bytes from "fd" and turn them into an int, MSB first.
+ */
+    int
+get3c(fd)
+    FILE	*fd;
+{
+    int		n;
+
+    n = getc(fd);
+    n = (n << 8) + getc(fd);
+    n = (n << 8) + getc(fd);
+    return n;
+}
+
+/*
+ * Read 4 bytes from "fd" and turn them into an int, MSB first.
+ */
+    int
+get4c(fd)
+    FILE	*fd;
+{
+    int		n;
+
+    n = getc(fd);
+    n = (n << 8) + getc(fd);
+    n = (n << 8) + getc(fd);
+    n = (n << 8) + getc(fd);
+    return n;
+}
+
+/*
+ * Read 8 bytes from "fd" and turn them into a time_t, MSB first.
+ */
+    time_t
+get8ctime(fd)
+    FILE	*fd;
+{
+    time_t	n = 0;
+    int		i;
+
+    for (i = 0; i < 8; ++i)
+	n = (n << 8) + getc(fd);
+    return n;
+}
+
+/*
+ * Read a string of length "cnt" from "fd" into allocated memory.
+ * Returns NULL when out of memory or unable to read that many bytes.
+ */
+    char_u *
+read_string(fd, cnt)
+    FILE	*fd;
+    int		cnt;
+{
+    char_u	*str;
+    int		i;
+    int		c;
+
+    /* allocate memory */
+    str = alloc((unsigned)cnt + 1);
+    if (str != NULL)
+    {
+	/* Read the string.  Quit when running into the EOF. */
+	for (i = 0; i < cnt; ++i)
+	{
+	    c = getc(fd);
+	    if (c == EOF)
+	    {
+		vim_free(str);
+		return NULL;
+	    }
+	    str[i] = c;
+	}
+	str[i] = NUL;
+    }
+    return str;
+}
+
+/*
+ * Write a number to file "fd", MSB first, in "len" bytes.
+ */
+    int
+put_bytes(fd, nr, len)
+    FILE    *fd;
+    long_u  nr;
+    int	    len;
+{
+    int	    i;
+
+    for (i = len - 1; i >= 0; --i)
+	if (putc((int)(nr >> (i * 8)), fd) == EOF)
+	    return FAIL;
+    return OK;
+}
+
+#ifdef _MSC_VER
+# if (_MSC_VER <= 1200)
+/* This line is required for VC6 without the service pack.  Also see the
+ * matching #pragma below. */
+ #  pragma optimize("", off)
+# endif
+#endif
+
+/*
+ * Write time_t to file "fd" in 8 bytes.
+ */
+    void
+put_time(fd, the_time)
+    FILE	*fd;
+    time_t	the_time;
+{
+    int		c;
+    int		i;
+    time_t	wtime = the_time;
+
+    /* time_t can be up to 8 bytes in size, more than long_u, thus we
+     * can't use put_bytes() here.
+     * Another problem is that ">>" may do an arithmetic shift that keeps the
+     * sign.  A cast to long_u may truncate if time_t is 8 bytes.  So only use
+     * a cast when it is 4 bytes, it's safe to assume that long_u is 4 bytes
+     * or more and when using 8 bytes the top bit won't be set. */
+    for (i = 7; i >= 0; --i)
+    {
+	if (i + 1 > (int)sizeof(time_t))
+	    /* ">>" doesn't work well when shifting more bits than avail */
+	    putc(0, fd);
+	else
+	{
+	    /* use "i" in condition to avoid compiler warning */
+	    if (i >= 0 && sizeof(time_t) > 4)
+		c = wtime >> (i * 8);
+	    else
+		c = (long_u)wtime >> (i * 8);
+	    putc(c, fd);
+	}
+    }
+}
+
+#ifdef _MSC_VER
+# if (_MSC_VER <= 1200)
+ #  pragma optimize("", on)
+# endif
+#endif
+
+#endif

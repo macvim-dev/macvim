@@ -364,6 +364,9 @@ MSVCVER = 10.0
 !if "$(_NMAKE_VER)" == "10.00.30128.01"
 MSVCVER = 10.0
 !endif
+!if "$(_NMAKE_VER)" == "10.00.30319.01"
+MSVCVER = 10.0
+!endif
 !endif
 
 # Abort bulding VIM if version of VC is unrecognised.
@@ -453,6 +456,7 @@ INCL =	vim.h os_win32.h ascii.h feature.h globals.h keymap.h macros.h \
 	$(NBDEBUG_INCL)
 
 OBJ = \
+	$(OUTDIR)\blowfish.obj \
 	$(OUTDIR)\buffer.obj \
 	$(OUTDIR)\charset.obj \
 	$(OUTDIR)\diff.obj \
@@ -490,6 +494,7 @@ OBJ = \
 	$(OUTDIR)\regexp.obj \
 	$(OUTDIR)\screen.obj \
 	$(OUTDIR)\search.obj \
+	$(OUTDIR)\sha256.obj \
 	$(OUTDIR)\spell.obj \
 	$(OUTDIR)\syntax.obj \
 	$(OUTDIR)\tag.obj \
@@ -825,7 +830,7 @@ $(OUTDIR):
 
 install.exe: dosinst.c
 	$(CC) /nologo -DNDEBUG -DWIN32 dosinst.c kernel32.lib shell32.lib \
-		ole32.lib advapi32.lib uuid.lib
+		user32.lib ole32.lib advapi32.lib uuid.lib
 	- if exist install.exe del install.exe
 	ren dosinst.exe install.exe
 
@@ -909,6 +914,8 @@ testclean:
 .cpp{$(OUTDIR)/}.obj::
 !ENDIF
 	$(CC) $(CFLAGS) $<
+
+$(OUTDIR)/blowfish.obj:	$(OUTDIR) blowfish.c  $(INCL)
 
 $(OUTDIR)/buffer.obj:	$(OUTDIR) buffer.c  $(INCL)
 
@@ -1027,6 +1034,8 @@ $(OUTDIR)/screen.obj:	$(OUTDIR) screen.c  $(INCL)
 
 $(OUTDIR)/search.obj:	$(OUTDIR) search.c  $(INCL)
 
+$(OUTDIR)/sha256.obj:	$(OUTDIR) sha256.c  $(INCL)
+
 $(OUTDIR)/spell.obj:	$(OUTDIR) spell.c  $(INCL)
 
 $(OUTDIR)/syntax.obj:	$(OUTDIR) syntax.c  $(INCL)
@@ -1080,6 +1089,7 @@ auto:
 
 # End Custom Build
 proto.h: \
+	proto/blowfish.pro \
 	proto/buffer.pro \
 	proto/charset.pro \
 	proto/diff.pro \
@@ -1115,6 +1125,7 @@ proto.h: \
 	proto/regexp.pro \
 	proto/screen.pro \
 	proto/search.pro \
+	proto/sha256.pro \
 	proto/spell.pro \
 	proto/syntax.pro \
 	proto/tag.pro \

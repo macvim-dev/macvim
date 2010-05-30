@@ -183,9 +183,10 @@
 # define ID_BEVAL_TOOLTIP   200
 # define BEVAL_TEXT_LEN	    MAXPATHL
 
-#if _MSC_VER < 1300
+#if (defined(_MSC_VER) && _MSC_VER < 1300) || !defined(MAXULONG_PTR)
 /* Work around old versions of basetsd.h which wrongly declares
  * UINT_PTR as unsigned long. */
+# undef  UINT_PTR
 # define UINT_PTR UINT
 #endif
 
@@ -1278,24 +1279,12 @@ gui_mch_prepare(int *argc, char **argv)
 	for (arg = 1; arg < *argc; arg++)
 	    if (strncmp("-nb", argv[arg], 3) == 0)
 	    {
-		usingNetbeans++;
 		netbeansArg = argv[arg];
 		mch_memmove(&argv[arg], &argv[arg + 1],
 					    (--*argc - arg) * sizeof(char *));
 		argv[*argc] = NULL;
 		break;	/* enough? */
 	    }
-
-	if (usingNetbeans)
-	{
-	    WSADATA wsaData;
-	    int wsaerr;
-
-	    /* Init WinSock */
-	    wsaerr = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	    if (wsaerr == 0)
-		WSInitialized = TRUE;
-	}
     }
 #endif
 
@@ -4709,7 +4698,7 @@ gui_mch_enable_beval_area(beval)
     if (beval == NULL)
 	return;
     // TRACE0("gui_mch_enable_beval_area {{{");
-    BevalTimerId = SetTimer(s_textArea, 0, p_bdlay / 2, BevalTimerProc);
+    BevalTimerId = SetTimer(s_textArea, 0, (UINT)(p_bdlay / 2), BevalTimerProc);
     // TRACE0("gui_mch_enable_beval_area }}}");
 }
 
@@ -4777,9 +4766,7 @@ gui_mch_create_beval_area(target, mesg, mesgCB, clientData)
 
 /*ARGSUSED*/
     static void
-Handle_WM_Notify(hwnd, pnmh)
-    HWND hwnd;
-    LPNMHDR pnmh;
+Handle_WM_Notify(HWND hwnd, LPNMHDR pnmh)
 {
     if (pnmh->idFrom != ID_BEVAL_TOOLTIP) /* it is not our tooltip */
 	return;
@@ -4840,6 +4827,9 @@ netbeans_draw_multisign_indicator(int row)
     int y;
     int x;
 
+    if (!netbeans_active())
+        return;
+
     x = 0;
     y = TEXT_Y(row);
 
@@ -4853,5 +4843,22 @@ netbeans_draw_multisign_indicator(int row)
     SetPixel(s_hdc, x+2, y, gui.currFgColor);
     SetPixel(s_hdc, x+3, y++, gui.currFgColor);
     SetPixel(s_hdc, x+2, y, gui.currFgColor);
+}
+
+/*
+ * Initialize the Winsock dll.
+ */
+    void
+netbeans_init_winsock()
+{
+    WSADATA wsaData;
+    int wsaerr;
+
+    if (WSInitialized)
+        return;
+
+    wsaerr = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (wsaerr == 0)
+        WSInitialized = TRUE;
 }
 #endif

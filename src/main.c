@@ -398,10 +398,6 @@ main
 	    if (params.evim_mode)
 		mch_exit(1);
 	}
-#  if defined(HAVE_LOCALE_H) || defined(X_LOCALE)
-	/* Re-initialize locale, it may have been altered by gui_init_check() */
-	init_locale();
-#  endif
     }
 # endif
 #endif
@@ -554,10 +550,6 @@ main
      * Set the default values for the options that use Rows and Columns.
      */
     ui_get_shellsize();		/* inits Rows and Columns */
-#ifdef FEAT_NETBEANS_INTG
-    if (usingNetbeans)
-	Columns += 2;		/* leave room for glyph gutter */
-#endif
     win_init_size();
 #ifdef FEAT_DIFF
     /* Set the 'diff' option now, so that it can be checked for in a .vimrc
@@ -823,6 +815,7 @@ main
 #ifdef FEAT_CRYPT
     if (params.ask_for_key)
     {
+	(void)blowfish_self_test();
 	(void)get_crypt_key(TRUE, TRUE);
 	TIME_MSG("getting crypt key");
     }
@@ -992,9 +985,21 @@ main
 	stuffcharReadbuff(K_NOP);
 
 #ifdef FEAT_NETBEANS_INTG
-    if (usingNetbeans)
+    if (netbeansArg != NULL && strncmp("-nb", netbeansArg, 3) == 0)
+    {
+# ifdef FEAT_GUI
+#  if !defined(FEAT_GUI_MOTIF) && !defined(FEAT_GUI_GTK)  \
+		&& !defined(FEAT_GUI_W32) && !defined(FEAT_GUI_MACVIM)
+	if (gui.in_use)
+	{
+	    mch_errmsg(_("netbeans is not supported with this GUI\n"));
+	    mch_exit(2);
+	}
+#  endif
+# endif
 	/* Tell the client that it can start sending commands. */
-	netbeans_startup_done();
+	netbeans_open(netbeansArg + 3, TRUE);
+    }
 #endif
 
     TIME_MSG("before starting main loop");
@@ -1355,40 +1360,44 @@ getout(exitval)
 #endif
 
 #ifdef FEAT_AUTOCMD
-    /* Trigger BufWinLeave for all windows, but only once per buffer. */
-# if defined FEAT_WINDOWS
-    for (tp = first_tabpage; tp != NULL; tp = next_tp)
+    if (get_vim_var_nr(VV_DYING) <= 1)
     {
-	next_tp = tp->tp_next;
-	for (wp = (tp == curtab)
-		    ? firstwin : tp->tp_firstwin; wp != NULL; wp = wp->w_next)
+	/* Trigger BufWinLeave for all windows, but only once per buffer. */
+# if defined FEAT_WINDOWS
+	for (tp = first_tabpage; tp != NULL; tp = next_tp)
 	{
-	    buf = wp->w_buffer;
-	    if (buf->b_changedtick != -1)
+	    next_tp = tp->tp_next;
+	    for (wp = (tp == curtab)
+		    ? firstwin : tp->tp_firstwin; wp != NULL; wp = wp->w_next)
 	    {
-		apply_autocmds(EVENT_BUFWINLEAVE, buf->b_fname, buf->b_fname,
-								  FALSE, buf);
-		buf->b_changedtick = -1;    /* note that we did it already */
-		/* start all over, autocommands may mess up the lists */
-		next_tp = first_tabpage;
-		break;
+		buf = wp->w_buffer;
+		if (buf->b_changedtick != -1)
+		{
+		    apply_autocmds(EVENT_BUFWINLEAVE, buf->b_fname,
+						    buf->b_fname, FALSE, buf);
+		    buf->b_changedtick = -1;    /* note that we did it already */
+		    /* start all over, autocommands may mess up the lists */
+		    next_tp = first_tabpage;
+		    break;
+		}
 	    }
 	}
-    }
 # else
-    apply_autocmds(EVENT_BUFWINLEAVE, curbuf, curbuf->b_fname, FALSE, curbuf);
+	apply_autocmds(EVENT_BUFWINLEAVE, curbuf, curbuf->b_fname,
+							       FALSE, curbuf);
 # endif
 
-    /* Trigger BufUnload for buffers that are loaded */
-    for (buf = firstbuf; buf != NULL; buf = buf->b_next)
-	if (buf->b_ml.ml_mfp != NULL)
-	{
-	    apply_autocmds(EVENT_BUFUNLOAD, buf->b_fname, buf->b_fname,
+	/* Trigger BufUnload for buffers that are loaded */
+	for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+	    if (buf->b_ml.ml_mfp != NULL)
+	    {
+		apply_autocmds(EVENT_BUFUNLOAD, buf->b_fname, buf->b_fname,
 								  FALSE, buf);
-	    if (!buf_valid(buf))	/* autocmd may delete the buffer */
-		break;
-	}
-    apply_autocmds(EVENT_VIMLEAVEPRE, NULL, NULL, FALSE, curbuf);
+		if (!buf_valid(buf))	/* autocmd may delete the buffer */
+		    break;
+	    }
+	apply_autocmds(EVENT_VIMLEAVEPRE, NULL, NULL, FALSE, curbuf);
+    }
 #endif
 
 #ifdef FEAT_VIMINFO
@@ -1398,7 +1407,8 @@ getout(exitval)
 #endif
 
 #ifdef FEAT_AUTOCMD
-    apply_autocmds(EVENT_VIMLEAVE, NULL, NULL, FALSE, curbuf);
+    if (get_vim_var_nr(VV_DYING) <= 1)
+	apply_autocmds(EVENT_VIMLEAVE, NULL, NULL, FALSE, curbuf);
 #endif
 
 #ifdef FEAT_PROFILE
@@ -1486,6 +1496,10 @@ init_locale()
 {
     setlocale(LC_ALL, "");
 
+# ifdef FEAT_GUI_GTK
+    /* Tell Gtk not to change our locale settings. */
+    gtk_disable_setlocale();
+# endif
 # if defined(FEAT_FLOAT) && defined(LC_NUMERIC)
     /* Make sure strtod() uses a decimal point, not a comma. */
     setlocale(LC_NUMERIC, "C");
@@ -1702,10 +1716,10 @@ early_arg_scan(parmp)
 # endif
 # ifndef FEAT_NETBEANS_INTG
 	else if (strncmp(argv[i], "-nb", (size_t)3) == 0)
-        {
-            mch_errmsg(_("'-nb' cannot be used: not enabled at compile time\n"));
-            mch_exit(2);
-        }
+	{
+	    mch_errmsg(_("'-nb' cannot be used: not enabled at compile time\n"));
+	    mch_exit(2);
+	}
 # endif
 
     }
@@ -1965,6 +1979,15 @@ command_line_scan(parmp)
 		break;
 
 	    case 'n':		/* "-n" no swap file */
+#ifdef FEAT_NETBEANS_INTG
+		/* checking for "-nb", netbeans parameters */
+		if (argv[0][argv_idx] == 'b')
+		{
+		    netbeansArg = argv[0];
+		    argv_idx = -1;	    /* skip to next argument */
+		}
+		else
+#endif
 		parmp->no_swap_file = TRUE;
 		break;
 
@@ -2453,7 +2476,7 @@ check_tty(parmp)
 	 * input buffer so fast I can't even kill the process in under 2
 	 * minutes (and it beeps continuously the whole time :-)
 	 */
-	if (usingNetbeans && (!parmp->stdout_isatty || !input_isatty))
+	if (netbeans_active() && (!parmp->stdout_isatty || !input_isatty))
 	{
 	    mch_errmsg(_("Vim: Error: Failure to start gvim from NetBeans\n"));
 	    exit(1);
@@ -3714,7 +3737,7 @@ cmdsrv_main(argc, argv, serverName_arg, serverStr)
 # endif
 
 		/* Wait for all files to unload in remote */
-		memset(done, 0, numFiles);
+		vim_memset(done, 0, numFiles);
 		while (memchr(done, 0, numFiles) != NULL)
 		{
 # ifdef WIN32

@@ -89,6 +89,7 @@ CFLAGS4 = $(DEFINES) DATAMEMORY=$(MEMORYTYPE)
 PROPT = DEF=PROTO GPROTO GPPARM MAXIMUMERRORS=999 GENPROTOSTATICS GENPROTOPARAMETERS
 
 SRC = \
+	blowfish.c \
 	buffer.c \
 	charset.c \
 	diff.c \
@@ -124,6 +125,7 @@ SRC = \
 	regexp.c \
 	screen.c \
 	search.c \
+	sha256.c \
 	spell.c \
 	syntax.c \
 	tag.c \
@@ -134,6 +136,7 @@ SRC = \
 	version.c
 
 OBJ = \
+	blowfish.o \
 	buffer.o \
 	charset.o \
 	diff.o \
@@ -169,6 +172,7 @@ OBJ = \
 	regexp.o \
 	screen.o \
 	search.o \
+	sha256.o \
 	spell.o \
 	syntax.o \
 	tag.o \
@@ -179,6 +183,7 @@ OBJ = \
 	$(TERMLIB)
 
 PRO = \
+	proto/blowfish.pro \
 	proto/buffer.pro \
 	proto/charset.pro \
 	proto/diff.pro \
@@ -214,6 +219,7 @@ PRO = \
 	proto/regexp.pro \
 	proto/screen.pro \
 	proto/search.pro \
+	proto/sha256.pro \
 	proto/spell.pro \
 	proto/syntax.pro \
 	proto/tag.pro \
@@ -278,6 +284,8 @@ $(PRO): $(GST) vim.h
 	$(CC) $(CFLAGS) GPFILE=proto/$*.pro $(PROPT) $*.c
 
 # dependancies
+blowfish.o:		blowfish.c
+proto/blowfish.pro:	blowfish.c
 buffer.o:		buffer.c
 proto/buffer.pro:	buffer.c
 charset.o:		charset.c
@@ -348,6 +356,8 @@ screen.o:		screen.c
 proto/screen.pro:	screen.c
 search.o:		search.c
 proto/search.pro:	search.c
+sha256.o:		sha256.c
+proto/sha256.pro:	sha256.c
 spell.o:		spell.c
 proto/spell.pro:	spell.c
 syntax.o:		syntax.c

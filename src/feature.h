@@ -592,7 +592,7 @@
 /*
  * +cryptv		Encryption (by Mohsin Ahmed <mosh@sasi.com>).
  */
-#if defined(FEAT_NORMAL) || defined(PROTO)
+#if defined(FEAT_NORMAL) && !defined(FEAT_CRYPT) || defined(PROTO)
 # define FEAT_CRYPT
 #endif
 
@@ -1207,12 +1207,9 @@
 #endif
 
 /*
- * The Netbeans features currently only work with Motif, GTK, Win32 and MacVim.
- * It also requires +listcmds and +eval.
+ * The Netbeans feature requires +listcmds and +eval.
  */
-#if ((!defined(FEAT_GUI_MOTIF) && !defined(FEAT_GUI_GTK) \
-		&& !defined(FEAT_GUI_W32) && !defined(FEAT_GUI_MACVIM)) \
-		|| !defined(FEAT_LISTCMDS) || !defined(FEAT_EVAL)) \
+#if (!defined(FEAT_LISTCMDS) || !defined(FEAT_EVAL)) \
 	&& defined(FEAT_NETBEANS_INTG)
 # undef FEAT_NETBEANS_INTG
 #endif
@@ -1294,6 +1291,14 @@
 #endif
 
 /*
+ * +persistent_undo	'undofile', 'undodir' options, :wundo and :rundo, and
+ * implementation.
+ */
+#ifdef FEAT_NORMAL
+# define FEAT_PERSISTENT_UNDO
+#endif
+
+/*
  * +transparency        'transparency' option.
  */
 #if defined(FEAT_GUI_MACVIM)
@@ -1318,12 +1323,12 @@
  * Scroll wheel supports a 'force' attribute (how many lines to scroll)
  */
 #ifdef FEAT_GUI_MACVIM
-#define FEAT_GUI_SCROLL_WHEEL_FORCE
+# define FEAT_GUI_SCROLL_WHEEL_FORCE
 #endif
 
 /*
  * Support for enabling/disabling antialiased text.
  */
 #if defined(FEAT_GUI) && defined(MACOS_X)
-#define FEAT_ANTIALIAS
+# define FEAT_ANTIALIAS
 #endif

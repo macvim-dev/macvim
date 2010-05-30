@@ -2732,7 +2732,7 @@ do_mouse(oap, c, dir, count, fixindent)
 #endif
 
 #ifdef FEAT_NETBEANS_INTG
-    if (usingNetbeans && isNetbeansBuffer(curbuf)
+    if (isNetbeansBuffer(curbuf)
 			    && !(jump_flags & (IN_STATUS_LINE | IN_SEP_LINE)))
     {
 	int key = KEY2TERMCAP1(c);
@@ -6942,12 +6942,12 @@ nv_replace(cap)
 		++curwin->w_cursor.col;
 	    }
 #ifdef FEAT_NETBEANS_INTG
-	    if (usingNetbeans)
+	    if (netbeans_active())
 	    {
-		colnr_T start = (colnr_T)(curwin->w_cursor.col - cap->count1);
+		colnr_T  start = (colnr_T)(curwin->w_cursor.col - cap->count1);
 
 		netbeans_removed(curbuf, curwin->w_cursor.lnum, start,
-							    (long)cap->count1);
+							   (long)cap->count1);
 		netbeans_inserted(curbuf, curwin->w_cursor.lnum, start,
 					       &ptr[start], (int)cap->count1);
 	    }
@@ -7138,7 +7138,7 @@ n_swapchar(cap)
 		    && curwin->w_cursor.lnum < curbuf->b_ml.ml_line_count)
 	    {
 #ifdef FEAT_NETBEANS_INTG
-		if (usingNetbeans)
+		if (netbeans_active())
 		{
 		    if (did_change)
 		    {
@@ -7167,7 +7167,7 @@ n_swapchar(cap)
 	}
     }
 #ifdef FEAT_NETBEANS_INTG
-    if (did_change && usingNetbeans)
+    if (did_change && netbeans_active())
     {
 	ptr = ml_get(pos.lnum);
 	count = curwin->w_cursor.col - pos.col;
@@ -7873,8 +7873,9 @@ nv_g_cmd(cap)
 	}
 	else
 	    i = curwin->w_leftcol;
-	/* Go to the middle of the screen line.  When 'number' is on and lines
-	 * are wrapping the middle can be more to the left. */
+	/* Go to the middle of the screen line.  When 'number' or
+	 * 'relativenumber' is on and lines are wrapping the middle can be more
+	 * to the left. */
 	if (cap->nchar == 'm')
 	    i += (W_WIDTH(curwin) - curwin_col_off()
 		    + ((curwin->w_p_wrap && i > 0)

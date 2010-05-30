@@ -63,7 +63,7 @@ char	*(compat_choices[]) =
 {
     "\nChoose the default way to run Vim:",
     "Vi compatible",
-    "with some Vim ehancements",
+    "with some Vim enhancements",
     "with syntax highlighting and other features switched on",
 };
 int	compat_choice = (int)compat_all_enhancements;
@@ -446,12 +446,31 @@ get_vim_env(void)
     }
 }
 
+static int num_windows;
+
+/*
+ * Callback used for EnumWindows():
+ * Count the window if the title looks like it is for the uninstaller.
+ */
+/*ARGSUSED*/
+    static BOOL CALLBACK
+window_cb(HWND hwnd, LPARAM lparam)
+{
+    char title[256];
+
+    title[0] = 0;
+    GetWindowText(hwnd, title, 256);
+    if (strstr(title, "Vim ") != NULL && strstr(title, "Uninstall:") != NULL)
+	++num_windows;
+    return TRUE;
+}
+
 /*
  * Check for already installed Vims.
  * Return non-zero when found one.
  */
     static int
-uninstall_check(void)
+uninstall_check(int skip_question)
 {
     HKEY	key_handle;
     HKEY	uninstall_key_handle;
@@ -502,7 +521,10 @@ uninstall_check(void)
 	    printf("(The batch files used in a console and the \"Edit with Vim\" entry in\n");
 	    printf("the popup menu will use the new version)\n");
 
-	    printf("\nDo you want to uninstall \"%s\" now?\n(y)es/(n)o)  ", temp_string_buffer);
+	    if (skip_question)
+		printf("\nRunning uninstall program for \"%s\"\n", temp_string_buffer);
+	    else
+		printf("\nDo you want to uninstall \"%s\" now?\n(y)es/(n)o)  ", temp_string_buffer);
 	    fflush(stdout);
 
 	    /* get the UninstallString */
@@ -523,8 +545,13 @@ uninstall_check(void)
 		if (input != 'n')
 		    printf("%c is an invalid reply.  Please enter either 'y' or 'n'\n", input);
 
-		rewind(stdin);
-		scanf("%c", &input);
+		if (skip_question)
+		    input = 'y';
+		else
+		{
+		    rewind(stdin);
+		    scanf("%c", &input);
+		}
 		switch (input)
 		{
 		    case 'y':
@@ -535,26 +562,53 @@ uninstall_check(void)
 					     &orig_num_keys, NULL, NULL, NULL,
 						      NULL, NULL, NULL, NULL);
 
-			/* Delete the uninstall key.  It has no subkeys, so
-			 * this is easy.  Do this before uninstalling, that
-			 * may try to delete the key as well. */
-			RegDeleteKey(key_handle, subkey_name_buff);
-
-			/* Find existing .bat files before deleting them.  */
+			/* Find existing .bat files before deleting them. */
 			find_bat_exe(TRUE);
 
 			/* Execute the uninstall program.  Put it in double
 			 * quotes if there is an embedded space. */
-			if (strchr(temp_string_buffer, ' ') != NULL)
 			{
 			    char buf[BUFSIZE];
 
-			    strcpy(buf, temp_string_buffer);
-			    sprintf(temp_string_buffer, "\"%s\"", buf);
+			    if (strchr(temp_string_buffer, ' ') != NULL)
+				sprintf(buf, "\"%s\"", temp_string_buffer);
+			    else
+				strcpy(buf, temp_string_buffer);
+			    run_command(buf);
 			}
-			run_command(temp_string_buffer);
 
-			/* Check if an unistall reg key was deleted.
+			/* Count the number of windows with a title that match
+			 * the installer, so that we can check when it's done.
+			 * The uninstaller copies itself, executes the copy
+			 * and exits, thus we can't wait for the process to
+			 * finish. */
+			Sleep(1000);  /* wait for uninstaller to start up */
+			num_windows = 0;
+			EnumWindows(window_cb, 0);
+			Sleep(1000);  /* wait for windows to be counted */
+			if (num_windows == 0)
+			{
+			    /* Did not find the uninstaller, ask user to press
+			     * Enter when done. Just in case. */
+			    printf("Press Enter when the uninstaller is finished\n");
+			    rewind(stdin);
+			    (void)getchar();
+			}
+			else
+			{
+			    printf("Waiting for the uninstaller to finish (press CTRL-C to abort).");
+			    do
+			    {
+				printf(".");
+				fflush(stdout);
+				num_windows = 0;
+				EnumWindows(window_cb, 0);
+				Sleep(1000);  /* wait for windows to be counted */
+			    } while (num_windows > 0);
+			}
+			printf("\nDone!\n");
+
+			/* Check if an uninstall reg key was deleted.
 			 * if it was, we want to decrement key_index.
 			 * if we don't do this, we will skip the key
 			 * immediately after any key that we delete.  */
@@ -1131,7 +1185,6 @@ init_bat_choices(void)
 /*
  * Install the vimrc file.
  */
-/*ARGSUSED*/
     static void
 install_vimrc(int idx)
 {
@@ -2377,16 +2430,16 @@ main(int argc, char **argv)
     if (argc > 1 && strcmp(argv[1], "-uninstall-check") == 0)
     {
 	/* Only check for already installed Vims.  Used by NSIS installer. */
-	i = uninstall_check();
+	i = uninstall_check(1);
 
 	/* Find the value of $VIM, because NSIS isn't able to do this by
 	 * itself. */
 	get_vim_env();
 
 	/* When nothing found exit quietly.  If something found wait for
-	 * return pressed. */
+	 * a little while, so that the user can read the messages. */
 	if (i)
-	    myexit(0);
+	    Sleep(3000);
 	exit(0);
     }
 #endif
@@ -2400,7 +2453,7 @@ main(int argc, char **argv)
 #ifdef WIN3264
     /* Check for already installed Vims. */
     if (interactive)
-	uninstall_check();
+	uninstall_check(0);
 #endif
 
     /* Find out information about the system. */
@@ -2450,6 +2503,7 @@ main(int argc, char **argv)
 	    }
 	}
 	printf("\n");
+	myexit(0);
     }
     else
     {
@@ -2458,9 +2512,11 @@ main(int argc, char **argv)
 	 */
 	command_line_setup_choices(argc, argv);
 	install();
+
+	/* Avoid that the user has to hit Enter, just wait a little bit to
+	 * allow reading the messages. */
+	Sleep(2000);
     }
 
-    myexit(0);
-    /*NOTREACHED*/
     return 0;
 }

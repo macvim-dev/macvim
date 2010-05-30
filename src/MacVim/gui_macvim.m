@@ -101,7 +101,6 @@ gui_mch_prepare(int *argc, char **argv)
 #ifdef FEAT_NETBEANS_INTG
     for (i = 0; i < *argc; ++i) {
         if (strncmp(argv[i], "-nb", 3) == 0) {
-            usingNetbeans++;
             netbeansArg = argv[i];
             --*argc;
             if (*argc > i)
