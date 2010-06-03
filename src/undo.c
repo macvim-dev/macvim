@@ -102,7 +102,10 @@ static void u_freeentry __ARGS((u_entry_T *, long));
 #ifdef FEAT_PERSISTENT_UNDO
 static void corruption_error __ARGS((char *msg, char_u *file_name));
 static void u_free_uhp __ARGS((u_header_T *uhp));
-static int serialize_uep __ARGS((u_entry_T *uep, FILE *fp));
+static int serialize_header __ARGS((FILE *fp, buf_T *buf, char_u *hash));
+static int serialize_uhp __ARGS((FILE *fp, buf_T *buf, u_header_T *uhp));
+static u_header_T *unserialize_uhp __ARGS((FILE *fp, char_u *file_name));
+static int serialize_uep __ARGS((FILE *fp, buf_T *buf, u_entry_T *uep));
 static u_entry_T *unserialize_uep __ARGS((FILE *fp, int *error, char_u *file_name));
 static void serialize_pos __ARGS((pos_T pos, FILE *fp));
 static void unserialize_pos __ARGS((pos_T *pos, FILE *fp));
@@ -159,17 +162,17 @@ u_check_tree(u_header_T *uhp,
     else
     {
 	/* Check pointers back are correct. */
-	if (uhp->uh_next != exp_uh_next)
+	if (uhp->uh_next.ptr != exp_uh_next)
 	{
 	    EMSG("uh_next wrong");
 	    smsg((char_u *)"expected: 0x%x, actual: 0x%x",
-						   exp_uh_next, uhp->uh_next);
+					       exp_uh_next, uhp->uh_next.ptr);
 	}
-	if (uhp->uh_alt_prev != exp_uh_alt_prev)
+	if (uhp->uh_alt_prev.ptr != exp_uh_alt_prev)
 	{
 	    EMSG("uh_alt_prev wrong");
 	    smsg((char_u *)"expected: 0x%x, actual: 0x%x",
-					   exp_uh_alt_prev, uhp->uh_alt_prev);
+				       exp_uh_alt_prev, uhp->uh_alt_prev.ptr);
 	}
 
 	/* Check the undo tree at this header. */
@@ -183,10 +186,10 @@ u_check_tree(u_header_T *uhp,
 	}
 
 	/* Check the next alt tree. */
-	u_check_tree(uhp->uh_alt_next, uhp->uh_next, uhp);
+	u_check_tree(uhp->uh_alt_next.ptr, uhp->uh_next.ptr, uhp);
 
 	/* Check the next header in this branch. */
-	u_check_tree(uhp->uh_prev, uhp, NULL);
+	u_check_tree(uhp->uh_prev.ptr, uhp, NULL);
     }
 }
 
@@ -411,7 +414,7 @@ u_savecommon(top, bot, newbot)
 	old_curhead = curbuf->b_u_curhead;
 	if (old_curhead != NULL)
 	{
-	    curbuf->b_u_newhead = old_curhead->uh_next;
+	    curbuf->b_u_newhead = old_curhead->uh_next.ptr;
 	    curbuf->b_u_curhead = NULL;
 	}
 
@@ -425,14 +428,14 @@ u_savecommon(top, bot, newbot)
 	    if (uhfree == old_curhead)
 		/* Can't reconnect the branch, delete all of it. */
 		u_freebranch(curbuf, uhfree, &old_curhead);
-	    else if (uhfree->uh_alt_next == NULL)
+	    else if (uhfree->uh_alt_next.ptr == NULL)
 		/* There is no branch, only free one header. */
 		u_freeheader(curbuf, uhfree, &old_curhead);
 	    else
 	    {
 		/* Free the oldest alternate branch as a whole. */
-		while (uhfree->uh_alt_next != NULL)
-		    uhfree = uhfree->uh_alt_next;
+		while (uhfree->uh_alt_next.ptr != NULL)
+		    uhfree = uhfree->uh_alt_next.ptr;
 		u_freebranch(curbuf, uhfree, &old_curhead);
 	    }
 #ifdef U_DEBUG
@@ -448,22 +451,22 @@ u_savecommon(top, bot, newbot)
 	    return OK;
 	}
 
-	uhp->uh_prev = NULL;
-	uhp->uh_next = curbuf->b_u_newhead;
-	uhp->uh_alt_next = old_curhead;
+	uhp->uh_prev.ptr = NULL;
+	uhp->uh_next.ptr = curbuf->b_u_newhead;
+	uhp->uh_alt_next.ptr = old_curhead;
 	if (old_curhead != NULL)
 	{
-	    uhp->uh_alt_prev = old_curhead->uh_alt_prev;
-	    if (uhp->uh_alt_prev != NULL)
-		uhp->uh_alt_prev->uh_alt_next = uhp;
-	    old_curhead->uh_alt_prev = uhp;
+	    uhp->uh_alt_prev.ptr = old_curhead->uh_alt_prev.ptr;
+	    if (uhp->uh_alt_prev.ptr != NULL)
+		uhp->uh_alt_prev.ptr->uh_alt_next.ptr = uhp;
+	    old_curhead->uh_alt_prev.ptr = uhp;
 	    if (curbuf->b_u_oldhead == old_curhead)
 		curbuf->b_u_oldhead = uhp;
 	}
 	else
-	    uhp->uh_alt_prev = NULL;
+	    uhp->uh_alt_prev.ptr = NULL;
 	if (curbuf->b_u_newhead != NULL)
-	    curbuf->b_u_newhead->uh_prev = uhp;
+	    curbuf->b_u_newhead->uh_prev.ptr = uhp;
 
 	uhp->uh_seq = ++curbuf->b_u_seq_last;
 	curbuf->b_u_seq_cur = uhp->uh_seq;
@@ -667,6 +670,7 @@ nomem:
 # define UF_ENTRY_MAGIC		0xf518	/* magic at start of entry */
 # define UF_ENTRY_END_MAGIC	0x3581	/* magic after last entry */
 # define UF_VERSION		1	/* 2-byte undofile version number */
+# define UF_VERSION_CRYPT	0x8001	/* idem, encrypted */
 
 static char_u e_not_open[] = N_("E828: Cannot open undo file for writing: %s");
 
@@ -797,13 +801,200 @@ u_free_uhp(uhp)
     vim_free(uhp);
 }
 
+    static int
+serialize_header(fp, buf, hash)
+    FILE	*fp;
+    buf_T	*buf;
+    char_u	*hash;
+{
+    int len;
+
+    /* Start writing, first the magic marker and undo info version. */
+    if (fwrite(UF_START_MAGIC, (size_t)UF_START_MAGIC_LEN, (size_t)1, fp) != 1)
+	return FAIL;
+
+    /* If the buffer is encrypted then all text bytes following will be
+     * encrypted.  Numbers and other info is not crypted. */
+#ifdef FEAT_CRYPT
+    if (*buf->b_p_key)
+    {
+	char_u *header;
+	int    header_len;
+
+	put_bytes(fp, (long_u)UF_VERSION_CRYPT, 2);
+	header = prepare_crypt_write(buf, &header_len);
+	if (header == NULL)
+	    return FAIL;
+	len = (int)fwrite(header, (size_t)header_len, (size_t)1, fp);
+	vim_free(header);
+	if (len != 1)
+	    return FAIL;
+    }
+    else
+#endif
+	put_bytes(fp, (long_u)UF_VERSION, 2);
+
+
+    /* Write a hash of the buffer text, so that we can verify it is still the
+     * same when reading the buffer text. */
+    if (fwrite(hash, (size_t)UNDO_HASH_SIZE, (size_t)1, fp) != 1)
+	return FAIL;
+
+    /* buffer-specific data */
+    put_bytes(fp, (long_u)buf->b_ml.ml_line_count, 4);
+    len = buf->b_u_line_ptr != NULL ? (int)STRLEN(buf->b_u_line_ptr) : 0;
+    put_bytes(fp, (long_u)len, 4);
+    if (len > 0 && fwrite_crypt(buf, buf->b_u_line_ptr, (size_t)len, fp) != 1)
+	return FAIL;
+    put_bytes(fp, (long_u)buf->b_u_line_lnum, 4);
+    put_bytes(fp, (long_u)buf->b_u_line_colnr, 4);
+
+    /* Undo structures header data */
+    put_header_ptr(fp, buf->b_u_oldhead);
+    put_header_ptr(fp, buf->b_u_newhead);
+    put_header_ptr(fp, buf->b_u_curhead);
+
+    put_bytes(fp, (long_u)buf->b_u_numhead, 4);
+    put_bytes(fp, (long_u)buf->b_u_seq_last, 4);
+    put_bytes(fp, (long_u)buf->b_u_seq_cur, 4);
+    put_time(fp, buf->b_u_seq_time);
+
+    return OK;
+}
+
+    static int
+serialize_uhp(fp, buf, uhp)
+    FILE	*fp;
+    buf_T	*buf;
+    u_header_T	*uhp;
+{
+    int		i;
+    u_entry_T	*uep;
+
+    if (put_bytes(fp, (long_u)UF_HEADER_MAGIC, 2) == FAIL)
+	return FAIL;
+
+    put_header_ptr(fp, uhp->uh_next.ptr);
+    put_header_ptr(fp, uhp->uh_prev.ptr);
+    put_header_ptr(fp, uhp->uh_alt_next.ptr);
+    put_header_ptr(fp, uhp->uh_alt_prev.ptr);
+    put_bytes(fp, uhp->uh_seq, 4);
+    serialize_pos(uhp->uh_cursor, fp);
+#ifdef FEAT_VIRTUALEDIT
+    put_bytes(fp, (long_u)uhp->uh_cursor_vcol, 4);
+#else
+    put_bytes(fp, (long_u)0, 4);
+#endif
+    put_bytes(fp, (long_u)uhp->uh_flags, 2);
+    /* Assume NMARKS will stay the same. */
+    for (i = 0; i < NMARKS; ++i)
+	serialize_pos(uhp->uh_namedm[i], fp);
+#ifdef FEAT_VISUAL
+    serialize_visualinfo(&uhp->uh_visual, fp);
+#else
+    {
+	visualinfo_T info;
+
+	memset(&info, 0, sizeof(visualinfo_T));
+	serialize_visualinfo(&info, fp);
+    }
+#endif
+    put_time(fp, uhp->uh_time);
+
+    /* Write all the entries. */
+    for (uep = uhp->uh_entry; uep != NULL; uep = uep->ue_next)
+    {
+	put_bytes(fp, (long_u)UF_ENTRY_MAGIC, 2);
+	if (serialize_uep(fp, buf, uep) == FAIL)
+	    return FAIL;
+    }
+    put_bytes(fp, (long_u)UF_ENTRY_END_MAGIC, 2);
+    return OK;
+}
+
+    static u_header_T *
+unserialize_uhp(fp, file_name)
+    FILE	*fp;
+    char_u	*file_name;
+{
+    u_header_T	*uhp;
+    int		i;
+    u_entry_T	*uep, *last_uep;
+    int		c;
+    int		error;
+
+    uhp = (u_header_T *)U_ALLOC_LINE(sizeof(u_header_T));
+    if (uhp == NULL)
+	return NULL;
+    vim_memset(uhp, 0, sizeof(u_header_T));
+#ifdef U_DEBUG
+    uhp->uh_magic = UH_MAGIC;
+#endif
+    uhp->uh_next.seq = get4c(fp);
+    uhp->uh_prev.seq = get4c(fp);
+    uhp->uh_alt_next.seq = get4c(fp);
+    uhp->uh_alt_prev.seq = get4c(fp);
+    uhp->uh_seq = get4c(fp);
+    if (uhp->uh_seq <= 0)
+    {
+	corruption_error("uh_seq", file_name);
+	vim_free(uhp);
+	return NULL;
+    }
+    unserialize_pos(&uhp->uh_cursor, fp);
+#ifdef FEAT_VIRTUALEDIT
+    uhp->uh_cursor_vcol = get4c(fp);
+#else
+    (void)get4c(fp);
+#endif
+    uhp->uh_flags = get2c(fp);
+    for (i = 0; i < NMARKS; ++i)
+	unserialize_pos(&uhp->uh_namedm[i], fp);
+#ifdef FEAT_VISUAL
+    unserialize_visualinfo(&uhp->uh_visual, fp);
+#else
+    {
+	visualinfo_T info;
+	unserialize_visualinfo(&info, fp);
+    }
+#endif
+    uhp->uh_time = get8ctime(fp);
+
+    /* Unserialize the uep list. */
+    last_uep = NULL;
+    while ((c = get2c(fp)) == UF_ENTRY_MAGIC)
+    {
+	error = FALSE;
+	uep = unserialize_uep(fp, &error, file_name);
+	if (last_uep == NULL)
+	    uhp->uh_entry = uep;
+	else
+	    last_uep->ue_next = uep;
+	last_uep = uep;
+	if (uep == NULL || error)
+	{
+	    u_free_uhp(uhp);
+	    return NULL;
+	}
+    }
+    if (c != UF_ENTRY_END_MAGIC)
+    {
+	corruption_error("entry end", file_name);
+	u_free_uhp(uhp);
+	return NULL;
+    }
+
+    return uhp;
+}
+
 /*
  * Serialize "uep" to "fp".
  */
     static int
-serialize_uep(uep, fp)
-    u_entry_T	*uep;
+serialize_uep(fp, buf, uep)
     FILE	*fp;
+    buf_T	*buf;
+    u_entry_T	*uep;
 {
     int		i;
     size_t	len;
@@ -817,7 +1008,7 @@ serialize_uep(uep, fp)
 	len = STRLEN(uep->ue_array[i]);
         if (put_bytes(fp, (long_u)len, 4) == FAIL)
 	    return FAIL;
-        if (len > 0 && fwrite(uep->ue_array[i], len, (size_t)1, fp) != 1)
+        if (len > 0 && fwrite_crypt(buf, uep->ue_array[i], len, fp) != 1)
 	    return FAIL;
     }
     return OK;
@@ -830,7 +1021,6 @@ unserialize_uep(fp, error, file_name)
     char_u	*file_name;
 {
     int		i;
-    int		j;
     u_entry_T	*uep;
     char_u	**array;
     char_u	*line;
@@ -865,7 +1055,7 @@ unserialize_uep(fp, error, file_name)
     {
 	line_len = get4c(fp);
 	if (line_len >= 0)
-	    line = (char_u *)U_ALLOC_LINE(line_len + 1);
+	    line = read_string_decrypt(curbuf, fp, line_len);
 	else
 	{
 	    line = NULL;
@@ -876,9 +1066,6 @@ unserialize_uep(fp, error, file_name)
 	    *error = TRUE;
 	    return uep;
 	}
-	for (j = 0; j < line_len; j++)
-	    line[j] = getc(fp);
-	line[j] = NUL;
 	array[i] = line;
     }
     return uep;
@@ -910,9 +1097,15 @@ unserialize_pos(pos, fp)
     FILE  *fp;
 {
     pos->lnum = get4c(fp);
+    if (pos->lnum < 0)
+	pos->lnum = 0;
     pos->col = get4c(fp);
+    if (pos->col < 0)
+	pos->col = 0;
 #ifdef FEAT_VIRTUALEDIT
     pos->coladd = get4c(fp);
+    if (pos->coladd < 0)
+	pos->coladd = 0;
 #else
     (void)get4c(fp);
 #endif
@@ -975,9 +1168,8 @@ u_write_undo(name, forceit, buf, hash)
     char_u	*hash;
 {
     u_header_T	*uhp;
-    u_entry_T	*uep;
     char_u	*file_name;
-    int		str_len, i, mark;
+    int		mark;
 #ifdef U_DEBUG
     int		headers_written = 0;
 #endif
@@ -1069,7 +1261,8 @@ u_write_undo(name, forceit, buf, hash)
 		    {
 			if (name == NULL)
 			    verbose_enter();
-			smsg((char_u *)_("Will not overwrite, this is not an undo file: %s"),
+			smsg((char_u *)
+			_("Will not overwrite, this is not an undo file: %s"),
 								   file_name);
 			if (name == NULL)
 			    verbose_leave();
@@ -1083,7 +1276,7 @@ u_write_undo(name, forceit, buf, hash)
 
     /* If there is no undo information at all, quit here after deleting any
      * existing undo file. */
-    if (buf->b_u_numhead == 0)
+    if (buf->b_u_numhead == 0 && buf->b_u_line_ptr == NULL)
     {
 	if (p_verbose > 0)
 	    verb_msg((char_u *)_("Skipping undo file write, noting to undo"));
@@ -1141,36 +1334,11 @@ u_write_undo(name, forceit, buf, hash)
     /* Undo must be synced. */
     u_sync(TRUE);
 
-    /* Start writing, first the undo file header. */
-    if (fwrite(UF_START_MAGIC, (size_t)UF_START_MAGIC_LEN, (size_t)1, fp) != 1)
+    /*
+     * Write the header.
+     */
+    if (serialize_header(fp, buf, hash) == FAIL)
 	goto write_error;
-    put_bytes(fp, (long_u)UF_VERSION, 2);
-
-    /* Write a hash of the buffer text, so that we can verify it is still the
-     * same when reading the buffer text. */
-    if (fwrite(hash, (size_t)UNDO_HASH_SIZE, (size_t)1, fp) != 1)
-	goto write_error;
-    put_bytes(fp, (long_u)buf->b_ml.ml_line_count, 4);
-
-    /* Begin undo data for U */
-    str_len = buf->b_u_line_ptr != NULL ? (int)STRLEN(buf->b_u_line_ptr) : 0;
-    put_bytes(fp, (long_u)str_len, 4);
-    if (str_len > 0 && fwrite(buf->b_u_line_ptr, (size_t)str_len,
-							  (size_t)1, fp) != 1)
-	goto write_error;
-
-    put_bytes(fp, (long_u)buf->b_u_line_lnum, 4);
-    put_bytes(fp, (long_u)buf->b_u_line_colnr, 4);
-
-    /* Begin general undo data */
-    put_header_ptr(fp, buf->b_u_oldhead);
-    put_header_ptr(fp, buf->b_u_newhead);
-    put_header_ptr(fp, buf->b_u_curhead);
-
-    put_bytes(fp, (long_u)buf->b_u_numhead, 4);
-    put_bytes(fp, (long_u)buf->b_u_seq_last, 4);
-    put_bytes(fp, (long_u)buf->b_u_seq_cur, 4);
-    put_time(fp, buf->b_u_seq_time);
 
     /*
      * Iteratively serialize UHPs and their UEPs from the top down.
@@ -1186,59 +1354,23 @@ u_write_undo(name, forceit, buf, hash)
 #ifdef U_DEBUG
 	    ++headers_written;
 #endif
-
-	    if (put_bytes(fp, (long_u)UF_HEADER_MAGIC, 2) == FAIL)
+	    if (serialize_uhp(fp, buf, uhp) == FAIL)
 		goto write_error;
-
-	    put_header_ptr(fp, uhp->uh_next);
-	    put_header_ptr(fp, uhp->uh_prev);
-	    put_header_ptr(fp, uhp->uh_alt_next);
-	    put_header_ptr(fp, uhp->uh_alt_prev);
-            put_bytes(fp, uhp->uh_seq, 4);
-            serialize_pos(uhp->uh_cursor, fp);
-#ifdef FEAT_VIRTUALEDIT
-            put_bytes(fp, (long_u)uhp->uh_cursor_vcol, 4);
-#else
-            put_bytes(fp, (long_u)0, 4);
-#endif
-            put_bytes(fp, (long_u)uhp->uh_flags, 2);
-            /* Assume NMARKS will stay the same. */
-            for (i = 0; i < NMARKS; ++i)
-                serialize_pos(uhp->uh_namedm[i], fp);
-#ifdef FEAT_VISUAL
-            serialize_visualinfo(&uhp->uh_visual, fp);
-#else
-	    {
-		visualinfo_T info;
-
-		memset(&info, 0, sizeof(visualinfo_T));
-		serialize_visualinfo(&info, fp);
-	    }
-#endif
-            put_time(fp, uhp->uh_time);
-
-	    /* Write all the entries. */
-	    for (uep = uhp->uh_entry; uep != NULL; uep = uep->ue_next)
-	    {
-		put_bytes(fp, (long_u)UF_ENTRY_MAGIC, 2);
-                if (serialize_uep(uep, fp) == FAIL)
-		    goto write_error;
-	    }
-	    put_bytes(fp, (long_u)UF_ENTRY_END_MAGIC, 2);
         }
 
-        /* Now walk through the tree - algorithm from undo_time */
-        if (uhp->uh_prev != NULL && uhp->uh_prev->uh_walk != mark)
-            uhp = uhp->uh_prev;
-        else if (uhp->uh_alt_next != NULL && uhp->uh_alt_next->uh_walk != mark)
-            uhp = uhp->uh_alt_next;
-        else if (uhp->uh_next != NULL && uhp->uh_alt_prev == NULL
-					     && uhp->uh_next->uh_walk != mark)
-            uhp = uhp->uh_next;
-        else if (uhp->uh_alt_prev != NULL)
-            uhp = uhp->uh_alt_prev;
+        /* Now walk through the tree - algorithm from undo_time(). */
+        if (uhp->uh_prev.ptr != NULL && uhp->uh_prev.ptr->uh_walk != mark)
+            uhp = uhp->uh_prev.ptr;
+        else if (uhp->uh_alt_next.ptr != NULL
+				     && uhp->uh_alt_next.ptr->uh_walk != mark)
+            uhp = uhp->uh_alt_next.ptr;
+        else if (uhp->uh_next.ptr != NULL && uhp->uh_alt_prev.ptr == NULL
+					 && uhp->uh_next.ptr->uh_walk != mark)
+            uhp = uhp->uh_next.ptr;
+        else if (uhp->uh_alt_prev.ptr != NULL)
+            uhp = uhp->uh_alt_prev.ptr;
         else
-            uhp = uhp->uh_next;
+            uhp = uhp->uh_next.ptr;
     }
 
     if (put_bytes(fp, (long_u)UF_HEADER_END_MAGIC, 2) == OK)
@@ -1255,6 +1387,8 @@ write_error:
         EMSG2(_("E829: write error in undo file: %s"), file_name);
 
 #if defined(MACOS_CLASSIC) || defined(WIN3264)
+    /* Copy file attributes; for systems where this can only be done after
+     * closing the file. */
     if (buf->b_ffname != NULL)
 	(void)mch_copy_file_attribute(buf->b_ffname, file_name);
 #endif
@@ -1282,9 +1416,10 @@ theend:
  * "hash[UNDO_HASH_SIZE]" must be the hash value of the buffer text.
  */
     void
-u_read_undo(name, hash)
+u_read_undo(name, hash, orig_name)
     char_u *name;
     char_u *hash;
+    char_u *orig_name;
 {
     char_u	*file_name;
     FILE	*fp;
@@ -1301,7 +1436,6 @@ u_read_undo(name, hash)
     time_t	seq_time;
     int		i, j;
     int		c;
-    u_entry_T	*uep, *last_uep;
     u_header_T	*uhp;
     u_header_T	**uhp_table = NULL;
     char_u	read_hash[UNDO_HASH_SIZE];
@@ -1309,12 +1443,34 @@ u_read_undo(name, hash)
 #ifdef U_DEBUG
     int		*uhp_table_used;
 #endif
+#ifdef UNIX
+    struct stat	st_orig;
+    struct stat	st_undo;
+#endif
 
     if (name == NULL)
     {
         file_name = u_get_undo_file_name(curbuf->b_ffname, TRUE);
 	if (file_name == NULL)
 	    return;
+
+#ifdef UNIX
+	/* For safety we only read an undo file if the owner is equal to the
+	 * owner of the text file. */
+	if (mch_stat((char *)orig_name, &st_orig) >= 0
+		&& mch_stat((char *)file_name, &st_undo) >= 0
+		&& st_orig.st_uid != st_undo.st_uid)
+	{
+	    if (p_verbose > 0)
+	    {
+		verbose_enter();
+		smsg((char_u *)_("Not reading undo file, owner differs: %s"),
+								   file_name);
+		verbose_leave();
+	    }
+	    return;
+	}
+#endif
     }
     else
         file_name = name;
@@ -1325,6 +1481,7 @@ u_read_undo(name, hash)
 	smsg((char_u *)_("Reading undo file: %s"), file_name);
 	verbose_leave();
     }
+
     fp = mch_fopen((char *)file_name, "r");
     if (fp == NULL)
     {
@@ -1343,7 +1500,20 @@ u_read_undo(name, hash)
         goto error;
     }
     version = get2c(fp);
-    if (version != UF_VERSION)
+    if (version == UF_VERSION_CRYPT)
+    {
+#ifdef FEAT_CRYPT
+	if (prepare_crypt_read(fp) == FAIL)
+	{
+	    EMSG2(_("E826: Undo file decryption failed: %s"), file_name);
+	    goto error;
+	}
+#else
+        EMSG2(_("E826: Undo file is encrypted: %s"), file_name);
+        goto error;
+#endif
+    }
+    else if (version != UF_VERSION)
     {
         EMSG2(_("E824: Incompatible undo file: %s"), file_name);
         goto error;
@@ -1362,27 +1532,27 @@ u_read_undo(name, hash)
         {
 	    if (name == NULL)
 		verbose_enter();
-            give_warning((char_u *)_("File contents changed, cannot use undo info"), TRUE);
+            give_warning((char_u *)
+		      _("File contents changed, cannot use undo info"), TRUE);
 	    if (name == NULL)
 		verbose_leave();
         }
         goto error;
     }
 
-    /* Begin undo data for U */
+    /* Read undo data for "U" command. */
     str_len = get4c(fp);
     if (str_len < 0)
         goto error;
-    else if (str_len > 0)
-    {
-        if ((line_ptr = U_ALLOC_LINE(str_len + 1)) == NULL)
-            goto error;
-        for (i = 0; i < str_len; i++)
-            line_ptr[i] = (char_u)getc(fp);
-        line_ptr[i] = NUL;
-    }
+    if (str_len > 0)
+	line_ptr = read_string_decrypt(curbuf, fp, str_len);
     line_lnum = (linenr_T)get4c(fp);
     line_colnr = (colnr_T)get4c(fp);
+    if (line_lnum < 0 || line_colnr < 0)
+    {
+	corruption_error("line lnum/col", file_name);
+	goto error;
+    }
 
     /* Begin general undo data */
     old_header_seq = get4c(fp);
@@ -1409,76 +1579,13 @@ u_read_undo(name, hash)
     {
 	if (num_read_uhps >= num_head)
 	{
-	    corruption_error("num_head", file_name);
+	    corruption_error("num_head too small", file_name);
 	    goto error;
 	}
 
-        uhp = (u_header_T *)U_ALLOC_LINE(sizeof(u_header_T));
-        if (uhp == NULL)
-            goto error;
-        vim_memset(uhp, 0, sizeof(u_header_T));
-#ifdef U_DEBUG
-	uhp->uh_magic = UH_MAGIC;
-#endif
-        /* We're not actually trying to store pointers here. We're just storing
-         * IDs so we can swizzle them into pointers later - hence the type
-	 * cast. */
-        uhp->uh_next = (u_header_T *)(long_u)get4c(fp);
-        uhp->uh_prev = (u_header_T *)(long_u)get4c(fp);
-        uhp->uh_alt_next = (u_header_T *)(long_u)get4c(fp);
-        uhp->uh_alt_prev = (u_header_T *)(long_u)get4c(fp);
-        uhp->uh_seq = get4c(fp);
-        if (uhp->uh_seq <= 0)
-        {
-	    corruption_error("uh_seq", file_name);
-            vim_free(uhp);
-            goto error;
-        }
-        uhp->uh_walk = 0;
-        unserialize_pos(&uhp->uh_cursor, fp);
-#ifdef FEAT_VIRTUALEDIT
-        uhp->uh_cursor_vcol = get4c(fp);
-#else
-        (void)get4c(fp);
-#endif
-        uhp->uh_flags = get2c(fp);
-        for (i = 0; i < NMARKS; ++i)
-            unserialize_pos(&uhp->uh_namedm[i], fp);
-#ifdef FEAT_VISUAL
-        unserialize_visualinfo(&uhp->uh_visual, fp);
-#else
-	{
-	    visualinfo_T info;
-	    unserialize_visualinfo(&info, fp);
-	}
-#endif
-        uhp->uh_time = get8ctime(fp);
-
-        /* Unserialize the uep list. */
-        last_uep = NULL;
-        while ((c = get2c(fp)) == UF_ENTRY_MAGIC)
-        {
-	    int error = FALSE;
-
-	    uep = unserialize_uep(fp, &error, file_name);
-            if (last_uep == NULL)
-                uhp->uh_entry = uep;
-	    else
-                last_uep->ue_next = uep;
-            last_uep = uep;
-	    if (uep == NULL || error)
-	    {
-		u_free_uhp(uhp);
-                goto error;
-	    }
-        }
-	if (c != UF_ENTRY_END_MAGIC)
-        {
-	    corruption_error("entry end", file_name);
-            u_free_uhp(uhp);
-            goto error;
-        }
-
+	uhp = unserialize_uhp(fp, file_name);
+	if (uhp == NULL)
+	    goto error;
 	uhp_table[num_read_uhps++] = uhp;
     }
 
@@ -1487,7 +1594,6 @@ u_read_undo(name, hash)
 	corruption_error("num_head", file_name);
 	goto error;
     }
-
     if (c != UF_HEADER_END_MAGIC)
     {
 	corruption_error("end marker", file_name);
@@ -1502,45 +1608,53 @@ u_read_undo(name, hash)
 # define SET_FLAG(j)
 #endif
 
-    /* We have put all of the uhps into a table. Now we iterate through the
-     * table and swizzle each sequence number we've stored in uh_* into a
-     * pointer corresponding to the header with that sequence number. */
+    /* We have put all of the headers into a table. Now we iterate through the
+     * table and swizzle each sequence number we have stored in uh_*_seq into
+     * a pointer corresponding to the header with that sequence number. */
     for (i = 0; i < num_head; i++)
     {
         uhp = uhp_table[i];
         if (uhp == NULL)
             continue;
         for (j = 0; j < num_head; j++)
-        {
-            if (uhp_table[j] == NULL)
-                continue;
-            if (i != j && uhp_table[i]->uh_seq == uhp_table[j]->uh_seq)
+            if (uhp_table[j] != NULL && i != j
+			      && uhp_table[i]->uh_seq == uhp_table[j]->uh_seq)
             {
 		corruption_error("duplicate uh_seq", file_name);
                 goto error;
 	    }
-
-            if (uhp_table[j]->uh_seq == (long)uhp->uh_next)
+        for (j = 0; j < num_head; j++)
+            if (uhp_table[j] != NULL
+				  && uhp_table[j]->uh_seq == uhp->uh_next.seq)
 	    {
-                uhp->uh_next = uhp_table[j];
+                uhp->uh_next.ptr = uhp_table[j];
 		SET_FLAG(j);
+		break;
 	    }
-            if (uhp_table[j]->uh_seq == (long)uhp->uh_prev)
+        for (j = 0; j < num_head; j++)
+            if (uhp_table[j] != NULL
+				  && uhp_table[j]->uh_seq == uhp->uh_prev.seq)
 	    {
-                uhp->uh_prev = uhp_table[j];
+                uhp->uh_prev.ptr = uhp_table[j];
 		SET_FLAG(j);
+		break;
 	    }
-            if (uhp_table[j]->uh_seq == (long)uhp->uh_alt_next)
+        for (j = 0; j < num_head; j++)
+            if (uhp_table[j] != NULL
+			      && uhp_table[j]->uh_seq == uhp->uh_alt_next.seq)
 	    {
-                uhp->uh_alt_next = uhp_table[j];
+                uhp->uh_alt_next.ptr = uhp_table[j];
 		SET_FLAG(j);
+		break;
 	    }
-            if (uhp_table[j]->uh_seq == (long)uhp->uh_alt_prev)
+        for (j = 0; j < num_head; j++)
+            if (uhp_table[j] != NULL
+			      && uhp_table[j]->uh_seq == uhp->uh_alt_prev.seq)
 	    {
-                uhp->uh_alt_prev = uhp_table[j];
+                uhp->uh_alt_prev.ptr = uhp_table[j];
 		SET_FLAG(j);
+		break;
 	    }
-        }
         if (old_header_seq > 0 && old_idx < 0 && uhp->uh_seq == old_header_seq)
 	{
             old_idx = i;
@@ -1564,10 +1678,6 @@ u_read_undo(name, hash)
     curbuf->b_u_oldhead = old_idx < 0 ? NULL : uhp_table[old_idx];
     curbuf->b_u_newhead = new_idx < 0 ? NULL : uhp_table[new_idx];
     curbuf->b_u_curhead = cur_idx < 0 ? NULL : uhp_table[cur_idx];
-#ifdef U_DEBUG
-    if (curbuf->b_u_curhead != NULL)
-	corruption_error("curhead not NULL", file_name);
-#endif
     curbuf->b_u_line_ptr = line_ptr;
     curbuf->b_u_line_lnum = line_lnum;
     curbuf->b_u_line_colnr = line_colnr;
@@ -1675,7 +1785,7 @@ u_doit(startcount)
 		curbuf->b_u_curhead = curbuf->b_u_newhead;
 	    else if (p_ul > 0)				/* multi level undo */
 		/* get next undo */
-		curbuf->b_u_curhead = curbuf->b_u_curhead->uh_next;
+		curbuf->b_u_curhead = curbuf->b_u_curhead->uh_next.ptr;
 	    /* nothing to undo */
 	    if (curbuf->b_u_numhead == 0 || curbuf->b_u_curhead == NULL)
 	    {
@@ -1709,9 +1819,9 @@ u_doit(startcount)
 
 	    /* Advance for next redo.  Set "newhead" when at the end of the
 	     * redoable changes. */
-	    if (curbuf->b_u_curhead->uh_prev == NULL)
+	    if (curbuf->b_u_curhead->uh_prev.ptr == NULL)
 		curbuf->b_u_newhead = curbuf->b_u_curhead;
-	    curbuf->b_u_curhead = curbuf->b_u_curhead->uh_prev;
+	    curbuf->b_u_curhead = curbuf->b_u_curhead->uh_prev.ptr;
 	}
     }
     u_undo_end(undo_undoes, FALSE);
@@ -1847,36 +1957,36 @@ undo_time(step, sec, absolute)
 		break;
 
 	    /* go down in the tree if we haven't been there */
-	    if (uhp->uh_prev != NULL && uhp->uh_prev->uh_walk != nomark
-					     && uhp->uh_prev->uh_walk != mark)
-		uhp = uhp->uh_prev;
+	    if (uhp->uh_prev.ptr != NULL && uhp->uh_prev.ptr->uh_walk != nomark
+					 && uhp->uh_prev.ptr->uh_walk != mark)
+		uhp = uhp->uh_prev.ptr;
 
 	    /* go to alternate branch if we haven't been there */
-	    else if (uhp->uh_alt_next != NULL
-		    && uhp->uh_alt_next->uh_walk != nomark
-		    && uhp->uh_alt_next->uh_walk != mark)
-		uhp = uhp->uh_alt_next;
+	    else if (uhp->uh_alt_next.ptr != NULL
+		    && uhp->uh_alt_next.ptr->uh_walk != nomark
+		    && uhp->uh_alt_next.ptr->uh_walk != mark)
+		uhp = uhp->uh_alt_next.ptr;
 
 	    /* go up in the tree if we haven't been there and we are at the
 	     * start of alternate branches */
-	    else if (uhp->uh_next != NULL && uhp->uh_alt_prev == NULL
-		    && uhp->uh_next->uh_walk != nomark
-		    && uhp->uh_next->uh_walk != mark)
+	    else if (uhp->uh_next.ptr != NULL && uhp->uh_alt_prev.ptr == NULL
+		    && uhp->uh_next.ptr->uh_walk != nomark
+		    && uhp->uh_next.ptr->uh_walk != mark)
 	    {
 		/* If still at the start we don't go through this change. */
 		if (uhp == curbuf->b_u_curhead)
 		    uhp->uh_walk = nomark;
-		uhp = uhp->uh_next;
+		uhp = uhp->uh_next.ptr;
 	    }
 
 	    else
 	    {
 		/* need to backtrack; mark this node as useless */
 		uhp->uh_walk = nomark;
-		if (uhp->uh_alt_prev != NULL)
-		    uhp = uhp->uh_alt_prev;
+		if (uhp->uh_alt_prev.ptr != NULL)
+		    uhp = uhp->uh_alt_prev.ptr;
 		else
-		    uhp = uhp->uh_next;
+		    uhp = uhp->uh_next.ptr;
 	    }
 	}
 
@@ -1916,7 +2026,7 @@ undo_time(step, sec, absolute)
 	    if (uhp == NULL)
 		uhp = curbuf->b_u_newhead;
 	    else
-		uhp = uhp->uh_next;
+		uhp = uhp->uh_next.ptr;
 	    if (uhp == NULL || uhp->uh_walk != mark
 					 || (uhp->uh_seq == target && !above))
 		break;
@@ -1932,33 +2042,34 @@ undo_time(step, sec, absolute)
 	while (uhp != NULL)
 	{
 	    /* Go back to the first branch with a mark. */
-	    while (uhp->uh_alt_prev != NULL
-					&& uhp->uh_alt_prev->uh_walk == mark)
-		uhp = uhp->uh_alt_prev;
+	    while (uhp->uh_alt_prev.ptr != NULL
+				     && uhp->uh_alt_prev.ptr->uh_walk == mark)
+		uhp = uhp->uh_alt_prev.ptr;
 
 	    /* Find the last branch with a mark, that's the one. */
 	    last = uhp;
-	    while (last->uh_alt_next != NULL
-					&& last->uh_alt_next->uh_walk == mark)
-		last = last->uh_alt_next;
+	    while (last->uh_alt_next.ptr != NULL
+				    && last->uh_alt_next.ptr->uh_walk == mark)
+		last = last->uh_alt_next.ptr;
 	    if (last != uhp)
 	    {
 		/* Make the used branch the first entry in the list of
 		 * alternatives to make "u" and CTRL-R take this branch. */
-		while (uhp->uh_alt_prev != NULL)
-		    uhp = uhp->uh_alt_prev;
-		if (last->uh_alt_next != NULL)
-		    last->uh_alt_next->uh_alt_prev = last->uh_alt_prev;
-		last->uh_alt_prev->uh_alt_next = last->uh_alt_next;
-		last->uh_alt_prev = NULL;
-		last->uh_alt_next = uhp;
-		uhp->uh_alt_prev = last;
+		while (uhp->uh_alt_prev.ptr != NULL)
+		    uhp = uhp->uh_alt_prev.ptr;
+		if (last->uh_alt_next.ptr != NULL)
+		    last->uh_alt_next.ptr->uh_alt_prev.ptr =
+							last->uh_alt_prev.ptr;
+		last->uh_alt_prev.ptr->uh_alt_next.ptr = last->uh_alt_next.ptr;
+		last->uh_alt_prev.ptr = NULL;
+		last->uh_alt_next.ptr = uhp;
+		uhp->uh_alt_prev.ptr = last;
 
 		if (curbuf->b_u_oldhead == uhp)
 		    curbuf->b_u_oldhead = last;
 		uhp = last;
-		if (uhp->uh_next != NULL)
-		    uhp->uh_next->uh_prev = uhp;
+		if (uhp->uh_next.ptr != NULL)
+		    uhp->uh_next.ptr->uh_prev.ptr = uhp;
 	    }
 	    curbuf->b_u_curhead = uhp;
 
@@ -1977,15 +2088,15 @@ undo_time(step, sec, absolute)
 
 	    /* Advance "curhead" to below the header we last used.  If it
 	     * becomes NULL then we need to set "newhead" to this leaf. */
-	    if (uhp->uh_prev == NULL)
+	    if (uhp->uh_prev.ptr == NULL)
 		curbuf->b_u_newhead = uhp;
-	    curbuf->b_u_curhead = uhp->uh_prev;
+	    curbuf->b_u_curhead = uhp->uh_prev.ptr;
 	    did_undo = FALSE;
 
 	    if (uhp->uh_seq == target)	/* found it! */
 		break;
 
-	    uhp = uhp->uh_prev;
+	    uhp = uhp->uh_prev.ptr;
 	    if (uhp == NULL || uhp->uh_walk != mark)
 	    {
 		/* Need to redo more but can't find it... */
@@ -2314,15 +2425,15 @@ u_undo_end(did_undo, absolute)
     if (curbuf->b_u_curhead != NULL)
     {
 	/* For ":undo N" we prefer a "after #N" message. */
-	if (absolute && curbuf->b_u_curhead->uh_next != NULL)
+	if (absolute && curbuf->b_u_curhead->uh_next.ptr != NULL)
 	{
-	    uhp = curbuf->b_u_curhead->uh_next;
+	    uhp = curbuf->b_u_curhead->uh_next.ptr;
 	    did_undo = FALSE;
 	}
 	else if (did_undo)
 	    uhp = curbuf->b_u_curhead;
 	else
-	    uhp = curbuf->b_u_curhead->uh_next;
+	    uhp = curbuf->b_u_curhead->uh_next.ptr;
     }
     else
 	uhp = curbuf->b_u_newhead;
@@ -2389,7 +2500,7 @@ ex_undolist(eap)
     uhp = curbuf->b_u_oldhead;
     while (uhp != NULL)
     {
-	if (uhp->uh_prev == NULL && uhp->uh_walk != nomark
+	if (uhp->uh_prev.ptr == NULL && uhp->uh_walk != nomark
 						      && uhp->uh_walk != mark)
 	{
 	    if (ga_grow(&ga, 1) == FAIL)
@@ -2404,26 +2515,26 @@ ex_undolist(eap)
 	uhp->uh_walk = mark;
 
 	/* go down in the tree if we haven't been there */
-	if (uhp->uh_prev != NULL && uhp->uh_prev->uh_walk != nomark
-					 && uhp->uh_prev->uh_walk != mark)
+	if (uhp->uh_prev.ptr != NULL && uhp->uh_prev.ptr->uh_walk != nomark
+					 && uhp->uh_prev.ptr->uh_walk != mark)
 	{
-	    uhp = uhp->uh_prev;
+	    uhp = uhp->uh_prev.ptr;
 	    ++changes;
 	}
 
 	/* go to alternate branch if we haven't been there */
-	else if (uhp->uh_alt_next != NULL
-		&& uhp->uh_alt_next->uh_walk != nomark
-		&& uhp->uh_alt_next->uh_walk != mark)
-	    uhp = uhp->uh_alt_next;
+	else if (uhp->uh_alt_next.ptr != NULL
+		&& uhp->uh_alt_next.ptr->uh_walk != nomark
+		&& uhp->uh_alt_next.ptr->uh_walk != mark)
+	    uhp = uhp->uh_alt_next.ptr;
 
 	/* go up in the tree if we haven't been there and we are at the
 	 * start of alternate branches */
-	else if (uhp->uh_next != NULL && uhp->uh_alt_prev == NULL
-		&& uhp->uh_next->uh_walk != nomark
-		&& uhp->uh_next->uh_walk != mark)
+	else if (uhp->uh_next.ptr != NULL && uhp->uh_alt_prev.ptr == NULL
+		&& uhp->uh_next.ptr->uh_walk != nomark
+		&& uhp->uh_next.ptr->uh_walk != mark)
 	{
-	    uhp = uhp->uh_next;
+	    uhp = uhp->uh_next.ptr;
 	    --changes;
 	}
 
@@ -2431,11 +2542,11 @@ ex_undolist(eap)
 	{
 	    /* need to backtrack; mark this node as done */
 	    uhp->uh_walk = nomark;
-	    if (uhp->uh_alt_prev != NULL)
-		uhp = uhp->uh_alt_prev;
+	    if (uhp->uh_alt_prev.ptr != NULL)
+		uhp = uhp->uh_alt_prev.ptr;
 	    else
 	    {
-		uhp = uhp->uh_next;
+		uhp = uhp->uh_next.ptr;
 		--changes;
 	    }
 	}
@@ -2529,11 +2640,11 @@ u_unch_branch(uhp)
 {
     u_header_T	*uh;
 
-    for (uh = uhp; uh != NULL; uh = uh->uh_prev)
+    for (uh = uhp; uh != NULL; uh = uh->uh_prev.ptr)
     {
 	uh->uh_flags |= UH_CHANGED;
-	if (uh->uh_alt_next != NULL)
-	    u_unch_branch(uh->uh_alt_next);	    /* recursive */
+	if (uh->uh_alt_next.ptr != NULL)
+	    u_unch_branch(uh->uh_alt_next.ptr);	    /* recursive */
     }
 }
 
@@ -2604,23 +2715,24 @@ u_freeheader(buf, uhp, uhpp)
 
     /* When there is an alternate redo list free that branch completely,
      * because we can never go there. */
-    if (uhp->uh_alt_next != NULL)
-	u_freebranch(buf, uhp->uh_alt_next, uhpp);
+    if (uhp->uh_alt_next.ptr != NULL)
+	u_freebranch(buf, uhp->uh_alt_next.ptr, uhpp);
 
-    if (uhp->uh_alt_prev != NULL)
-	uhp->uh_alt_prev->uh_alt_next = NULL;
+    if (uhp->uh_alt_prev.ptr != NULL)
+	uhp->uh_alt_prev.ptr->uh_alt_next.ptr = NULL;
 
     /* Update the links in the list to remove the header. */
-    if (uhp->uh_next == NULL)
-	buf->b_u_oldhead = uhp->uh_prev;
+    if (uhp->uh_next.ptr == NULL)
+	buf->b_u_oldhead = uhp->uh_prev.ptr;
     else
-	uhp->uh_next->uh_prev = uhp->uh_prev;
+	uhp->uh_next.ptr->uh_prev.ptr = uhp->uh_prev.ptr;
 
-    if (uhp->uh_prev == NULL)
-	buf->b_u_newhead = uhp->uh_next;
+    if (uhp->uh_prev.ptr == NULL)
+	buf->b_u_newhead = uhp->uh_next.ptr;
     else
-	for (uhap = uhp->uh_prev; uhap != NULL; uhap = uhap->uh_alt_next)
-	    uhap->uh_next = uhp->uh_next;
+	for (uhap = uhp->uh_prev.ptr; uhap != NULL;
+						 uhap = uhap->uh_alt_next.ptr)
+	    uhap->uh_next.ptr = uhp->uh_next.ptr;
 
     u_freeentries(buf, uhp, uhpp);
 }
@@ -2644,16 +2756,16 @@ u_freebranch(buf, uhp, uhpp)
 	return;
     }
 
-    if (uhp->uh_alt_prev != NULL)
-	uhp->uh_alt_prev->uh_alt_next = NULL;
+    if (uhp->uh_alt_prev.ptr != NULL)
+	uhp->uh_alt_prev.ptr->uh_alt_next.ptr = NULL;
 
     next = uhp;
     while (next != NULL)
     {
 	tofree = next;
-	if (tofree->uh_alt_next != NULL)
-	    u_freebranch(buf, tofree->uh_alt_next, uhpp);   /* recursive */
-	next = tofree->uh_prev;
+	if (tofree->uh_alt_next.ptr != NULL)
+	    u_freebranch(buf, tofree->uh_alt_next.ptr, uhpp);   /* recursive */
+	next = tofree->uh_prev.ptr;
 	u_freeentries(buf, tofree, uhpp);
     }
 }

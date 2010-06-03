@@ -287,10 +287,24 @@ struct u_entry
 
 struct u_header
 {
-    u_header_T	*uh_next;	/* pointer to next undo header in list */
-    u_header_T	*uh_prev;	/* pointer to previous header in list */
-    u_header_T	*uh_alt_next;	/* pointer to next header for alt. redo */
-    u_header_T	*uh_alt_prev;	/* pointer to previous header for alt. redo */
+    /* The following have a pointer and a number. The number is used when
+     * reading the undo file in u_read_undo() */
+    union {
+	u_header_T *ptr;	/* pointer to next undo header in list */
+	long	   seq;
+    } uh_next;
+    union {
+	u_header_T *ptr;	/* pointer to previous header in list */
+	long	   seq;
+    } uh_prev;
+    union {
+	u_header_T *ptr;	/* pointer to next header for alt. redo */
+	long	   seq;
+    } uh_alt_next;
+    union {
+	u_header_T *ptr;	/* pointer to previous header for alt. redo */
+	long	   seq;
+    } uh_alt_prev;
     long	uh_seq;		/* sequence number, higher == newer undo */
     int		uh_walk;	/* used by undo_time() */
     u_entry_T	*uh_entry;	/* pointer to first entry */
@@ -1200,7 +1214,7 @@ struct file_buffer
 
     long	b_mtime;	/* last change time of original file */
     long	b_mtime_read;	/* last change time when reading */
-    size_t	b_orig_size;	/* size of original file in bytes */
+    off_t	b_orig_size;	/* size of original file in bytes */
     int		b_orig_mode;	/* mode of original file */
 
     pos_T	b_namedm[NMARKS]; /* current named marks (mark.c) */

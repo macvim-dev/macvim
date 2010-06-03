@@ -3958,6 +3958,7 @@ gui_drag_scrollbar(sb, value, still_dragging)
  * Scrollbar stuff:
  */
 
+#if defined(FEAT_AUTOCMD) || defined(FEAT_WINDOWS) || defined(PROTO)
 /*
  * Called when something in the window layout has changed.
  */
@@ -3972,6 +3973,7 @@ gui_may_update_scrollbars()
     }
     need_mouse_correct = TRUE;
 }
+#endif
 
     void
 gui_update_scrollbars(force)
