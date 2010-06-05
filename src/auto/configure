@@ -671,6 +671,7 @@ VIMNAME
 EXNAME
 VIEWNAME
 line_break
+QUOTESED
 dovimdiff
 dogvimdiff
 compiledby
@@ -4445,10 +4446,10 @@ esac
 
 
 if test "$cf_cv_ebcdic" = "yes"; then
-{ echo "$as_me:$LINENO: checking for OS/390 Unix" >&5
-echo $ECHO_N "checking for OS/390 Unix... $ECHO_C" >&6; }
+{ echo "$as_me:$LINENO: checking for z/OS Unix" >&5
+echo $ECHO_N "checking for z/OS Unix... $ECHO_C" >&6; }
 case `uname` in
-    OS/390)	OS390Unix="yes";
+    OS/390)	zOSUnix="yes";
 										if test "$CC" = "cc"; then
 		  ccm="$_CC_CCMODE"
 		  ccn="CC"
@@ -4463,7 +4464,7 @@ case `uname` in
 		if test "$ccm" != "1"; then
 		  echo ""
 		  echo "------------------------------------------"
-		  echo " On OS/390 Unix, the environment variable"
+		  echo " On z/OS Unix, the environment variable"
 		  echo " __CC_${ccn}MODE must be set to \"1\"!"
 		  echo " Do:"
 		  echo "    export _CC_${ccn}MODE=1"
@@ -4471,16 +4472,25 @@ case `uname` in
 		  echo "------------------------------------------"
 		  exit 1
 		fi
-		CFLAGS="$CFLAGS -D_ALL_SOURCE"; LDFLAGS="$LDFLAGS -Wl,EDIT=NO"
+		CFLAGS="$CFLAGS -D_ALL_SOURCE -Wc,float\\(IEEE\\)";
+                LDFLAGS="$LDFLAGS -Wl,EDIT=NO"
 		{ echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
 		;;
-    *)		OS390Unix="no";
+    *)		zOSUnix="no";
 		{ echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
 		;;
 esac
 fi
+
+if test "$zOSUnix" = "yes"; then
+    QUOTESED="sed -e 's/[\\\\\"]/\\\\\\\\&/g' -e 's/\\\\\\\\\"/\"/' -e 's/\\\\\\\\\";\$\$/\";/'"
+else
+    QUOTESED="sed -e 's/[\\\\\"]/\\\\&/g' -e 's/\\\\\"/\"/' -e 's/\\\\\";\$\$/\";/'"
+fi
+
+
 
 { echo "$as_me:$LINENO: checking --disable-selinux argument" >&5
 echo $ECHO_N "checking --disable-selinux argument... $ECHO_C" >&6; }
@@ -7617,7 +7627,7 @@ fi
 fi
 
 
-        if test "$OS390Unix" = "yes"; then
+        if test "$zOSUnix" = "yes"; then
     CFLAGS="$CFLAGS -W c,dll"
     LDFLAGS="$LDFLAGS -W l,dll"
     X_EXTRA_LIBS="$X_EXTRA_LIBS -lSM -lICE -lXmu"
@@ -19773,6 +19783,7 @@ VIMNAME!$VIMNAME$ac_delim
 EXNAME!$EXNAME$ac_delim
 VIEWNAME!$VIEWNAME$ac_delim
 line_break!$line_break$ac_delim
+QUOTESED!$QUOTESED$ac_delim
 dovimdiff!$dovimdiff$ac_delim
 dogvimdiff!$dogvimdiff$ac_delim
 compiledby!$compiledby$ac_delim
@@ -19811,7 +19822,6 @@ RUBY_SRC!$RUBY_SRC$ac_delim
 RUBY_OBJ!$RUBY_OBJ$ac_delim
 RUBY_PRO!$RUBY_PRO$ac_delim
 RUBY_CFLAGS!$RUBY_CFLAGS$ac_delim
-RUBY_LIBS!$RUBY_LIBS$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -19853,6 +19863,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+RUBY_LIBS!$RUBY_LIBS$ac_delim
 WORKSHOP_SRC!$WORKSHOP_SRC$ac_delim
 WORKSHOP_OBJ!$WORKSHOP_OBJ$ac_delim
 NETBEANS_SRC!$NETBEANS_SRC$ac_delim
@@ -19895,7 +19906,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 40; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 41; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
