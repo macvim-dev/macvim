@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"> 
+  <channel>
+    <title>MacVim 7.3</title>
+    <link>http://b4winckler.github.com/macvim/appcast/unstable73.xml</link>
+    <description>BETA releases of MacVim 7.3</description>
+
+    <!--
+    To add a new release:
+
+    * add a new <item> below (copy an old one)
+    * Adapt the <title>
+    * Adapt the <description>
+    * Adapt the <pubDate> (format 'Day, dd Mon yyyy hh:mm CET')
+    * Adapte <enclosure>, make sure to update the url, length, saprkle:version
+      and sparkle:shortVersionString attributes.
+
+    Sparkle honors the following user defaults:
+
+    * SUFeedURL overrides the value in Info.plist (if we want to offer several
+      appcasts in the preferences one day ("latest", "stable" for example).
+
+      This means that for testing you can do
+
+          defaults read org.vim.MacVim SUFeedURL  # note this down
+          defaults write org.vim.MacVim SUFeedURL file:///Users/you/testcast.xml
+            # !!! note the three '/' after 'file:
+          # test test test
+          defaults write org.vim.MacVim SUFeedURL previousvalue
+          # or, to use some default setting for the url,
+          defaults delete org.vim.MacVim SUFeedURL
+
+    Sparkle usually assumes a naming scheme of name_versionnumber.tar.bz2 .
+    Instead, you can also provide a sparkle:version="2.0_rc2" attribute on
+    the enclosure and name the package as you like. You can (and should) also
+    provide a sparkle:shortVersionString="User-facing version string"
+    attribute that corresponds to CFBundleShortVersionString. Sparkle uses
+    CFBundleVersion to determine the current application version.
+
+    Sparkle supports updates in zip, tar, tbz, tgz, or dmg format.
+    -->
+
+    <item>
+      <title>Version 7.3a BETA</title>
+      <!--
+      <sparkle:releaseNotesLink>
+          http://b4winckler.github.com/test/index.html
+      </sparkle:releaseNotesLink>
+      -->
+      <description><![CDATA[
+<p> This is an <emp>unstable</emph> release of MacVim based on Vim 7.3a BETA. </p>
+      ]]></description>
+      <pubDate>Sun Jun 6 18:37 CEST 2010</pubDate>
+      <enclosure type="application/octet-stream"
+        url="http://github.com/downloads/b4winckler/macvim/MacVim-7_3a-BETA-52_1.tar.bz2"
+        length="9323898"
+        sparkle:version="52.1"
+        sparkle:shortVersionString="7.3a BETA"
+        sparkle:dsaSignature="MCwCFDexZiAPzkl/aMKedt5ia01p7w2cAhQFg4gin55Cu0wM1CkzFt3r1IvkHQ=="
+        />
+    </item>
+  </channel>
+</rss>
