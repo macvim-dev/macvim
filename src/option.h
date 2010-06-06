@@ -1040,6 +1040,12 @@ enum
 #ifdef FEAT_ARABIC
     , WV_ARAB
 #endif
+#ifdef FEAT_CONCEAL
+    , WV_CONCEAL
+#endif
+#ifdef FEAT_CURSORBIND
+    , WV_CRBIND
+#endif
 #ifdef FEAT_DIFF
     , WV_DIFF
 #endif

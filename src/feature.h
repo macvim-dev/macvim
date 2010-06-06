@@ -535,10 +535,17 @@
 #endif
 
 /*
+ * +conceal		'conceal' option.  Needs syntax highlighting
+ *			as this is how the concealed text is defined.
+ */
+#if defined(FEAT_BIG) && defined(FEAT_SYN_HL)
+# define FEAT_CONCEAL
+#endif
+
+/*
  * +spell		spell checking
  *
- * Disabled for EBCDIC:
- * Doesn't work (SIGSEGV). 
+ * Disabled for EBCDIC: * Doesn't work (SIGSEGV).
  */
 #if (defined(FEAT_NORMAL) || defined(PROTO)) && !defined(EBCDIC)
 # define FEAT_SPELL
@@ -734,6 +741,13 @@
 #endif
 
 /*
+ * +cursorbind		synchronization of split windows
+ */
+#if defined(FEAT_NORMAL) && defined(FEAT_WINDOWS)
+# define FEAT_CURSORBIND
+#endif
+
+/*
  * +menu		":menu" command
  */
 #ifdef FEAT_NORMAL
@@ -776,7 +790,8 @@
         || defined(FEAT_GUI_MACVIM) \
 	|| (defined(FEAT_GUI_MOTIF) && defined(HAVE_XM_NOTEBOOK_H)) \
 	|| defined(FEAT_GUI_MAC) \
-	|| (defined(FEAT_GUI_MSWIN) && (!defined(_MSC_VER) || _MSC_VER > 1020)))
+	|| (defined(FEAT_GUI_MSWIN) && !defined(WIN16) \
+	    && (!defined(_MSC_VER) || _MSC_VER > 1020)))
 # define FEAT_GUI_TABLINE
 #endif
 
