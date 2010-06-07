@@ -235,7 +235,7 @@ static char_u **syn_cmdlinep;
 
 /*
  * Another Annoying Hack(TM):  To prevent rules from other ":syn include"'d
- * files from from leaking into ALLBUT lists, we assign a unique ID to the
+ * files from leaking into ALLBUT lists, we assign a unique ID to the
  * rules in each ":syn include"'d file.
  */
 static int current_syn_inc_tag = 0;
@@ -3421,6 +3421,21 @@ syntax_clear(block)
 }
 
 /*
+ * Get rid of ownsyntax for window "wp".
+ */
+    void
+reset_synblock(wp)
+    win_T *wp;
+{
+    if (wp->w_s != &wp->w_buffer->b_s)
+    {
+	syntax_clear(wp->w_s);
+	vim_free(wp->w_s);
+	wp->w_s = &wp->w_buffer->b_s;
+    }
+}
+
+/*
  * Clear syncing info for one buffer.
  */
     static void
@@ -3537,9 +3552,7 @@ syn_cmd_clear(eap, syncing)
 	    syntax_clear(curwin->w_s);
 	    if (curwin->w_s == &curwin->w_buffer->b_s)
 		do_unlet((char_u *)"b:current_syntax", TRUE);
-	    else
-		do_unlet((char_u *)"w:current_syntax", TRUE);
-
+	    do_unlet((char_u *)"w:current_syntax", TRUE);
 	}
     }
     else
@@ -4500,11 +4513,13 @@ get_syn_options(arg, opt, conceal_char)
 	    }
 	    else
 #endif
+	    {
 #ifdef FEAT_CONCEAL
 		*conceal_char = arg[6];
 #else
 		;
 #endif
+	    }
 	    arg = skipwhite(arg + 7);
 	}
 	else
@@ -6155,6 +6170,9 @@ ex_syntax(eap)
 ex_ownsyntax(eap)
     exarg_T	*eap;
 {
+    char_u	*old_value;
+    char_u	*new_value;
+
     if (curwin->w_s == &curwin->w_buffer->b_s)
     {
 	curwin->w_s = (synblock_T *)alloc(sizeof(synblock_T));
@@ -6168,7 +6186,29 @@ ex_ownsyntax(eap)
 	clear_string_option(&curwin->w_s->b_p_spl);
 #endif
     }
+
+    /* save value of b:current_syntax */
+    old_value = get_var_value((char_u *)"b:current_syntax");
+    if (old_value != NULL)
+	old_value = vim_strsave(old_value);
+
+    /* Apply the "syntax" autocommand event, this finds and loads the syntax
+     * file. */
     apply_autocmds(EVENT_SYNTAX, eap->arg, curbuf->b_fname, TRUE, curbuf);
+
+    /* move value of b:current_syntax to w:current_syntax */
+    new_value = get_var_value((char_u *)"b:current_syntax");
+    if (new_value != NULL)
+	set_internal_string_var((char_u *)"w:current_syntax", new_value);
+
+    /* restore value of b:current_syntax */
+    if (old_value == NULL)
+	do_unlet((char_u *)"b:current_syntax", TRUE);
+    else
+    {
+	set_internal_string_var((char_u *)"b:current_syntax", old_value);
+	vim_free(old_value);
+    }
 }
 
     int
