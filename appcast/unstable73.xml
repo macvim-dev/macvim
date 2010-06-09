@@ -50,13 +50,13 @@
       <description><![CDATA[
 <p> This is an <emp>unstable</emph> release of MacVim based on Vim 7.3a BETA. </p>
       ]]></description>
-      <pubDate>Sun Jun 6 18:37 CEST 2010</pubDate>
+      <pubDate>Wed Jun 9 19:28 CEST 2010</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://github.com/downloads/b4winckler/macvim/MacVim-7_3a-BETA-52_1.tar.bz2"
-        length="9323898"
-        sparkle:version="52.1"
+        url="http://github.com/downloads/b4winckler/macvim/MacVim-7_3a-BETA-52_2.tar.bz2"
+        length="9323004"
+        sparkle:version="52.2"
         sparkle:shortVersionString="7.3a BETA"
-        sparkle:dsaSignature="MCwCFDexZiAPzkl/aMKedt5ia01p7w2cAhQFg4gin55Cu0wM1CkzFt3r1IvkHQ=="
+        sparkle:dsaSignature="MCwCFGre/IogQJNOtXeiMqVq88TowI3kAhQDr/hAdjY3aOUy3bWC/FzqZOkycg=="
         />
     </item>
   </channel>
