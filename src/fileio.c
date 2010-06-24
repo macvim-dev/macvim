@@ -37,7 +37,12 @@
 static char	*crypt_magic[] = {"VimCrypt~01!", "VimCrypt~02!"};
 static char	crypt_magic_head[] = "VimCrypt~";
 # define CRYPT_MAGIC_LEN	12		/* must be multiple of 4! */
+
+/* For blowfish, after the magic header, we store 8 bytes of salt and then 8
+ * bytes of seed (initialisation vector). */
+static int	crypt_salt_len[] = {0, 8};
 static int	crypt_seed_len[] = {0, 8};
+#define CRYPT_SALT_LEN_MAX 8
 #define CRYPT_SEED_LEN_MAX 8
 #endif
 
@@ -59,7 +64,7 @@ static void check_marks_read __ARGS((void));
 #endif
 #ifdef FEAT_CRYPT
 static int get_crypt_method __ARGS((char *ptr, int len));
-static char_u *check_for_cryptkey __ARGS((char_u *cryptkey, char_u *ptr, long *sizep, off_t *filesizep, int newfile, int *did_ask));
+static char_u *check_for_cryptkey __ARGS((char_u *cryptkey, char_u *ptr, long *sizep, off_t *filesizep, int newfile, char_u *fname, int *did_ask));
 #endif
 #ifdef UNIX
 static void set_file_time __ARGS((char_u *fname, time_t atime, time_t mtime));
@@ -990,6 +995,13 @@ retry:
 #endif
     }
 
+#ifdef FEAT_CRYPT
+    if (cryptkey != NULL)
+	/* Need to reset the state, but keep the key, don't want to ask for it
+	 * again. */
+	crypt_pop_state();
+#endif
+
     /*
      * When retrying with another "fenc" and the first time "fileformat"
      * will be reset.
@@ -1421,7 +1433,8 @@ retry:
 		 */
 		if (filesize == 0)
 		    cryptkey = check_for_cryptkey(cryptkey, ptr, &size,
-					&filesize, newfile, &did_ask_for_key);
+					&filesize, newfile, sfname,
+					&did_ask_for_key);
 		/*
 		 * Decrypt the read bytes.
 		 */
@@ -1441,6 +1454,7 @@ retry:
 	    if ((filesize == 0
 # ifdef FEAT_CRYPT
 		   || (filesize == (CRYPT_MAGIC_LEN
+					   + crypt_salt_len[use_crypt_method]
 					   + crypt_seed_len[use_crypt_method])
 							  && cryptkey != NULL)
 # endif
@@ -2271,8 +2285,14 @@ failed:
 	save_file_ff(curbuf);		/* remember the current file format */
 
 #ifdef FEAT_CRYPT
-    if (cryptkey != curbuf->b_p_key)
-	free_crypt_key(cryptkey);
+    if (cryptkey != NULL)
+    {
+	crypt_pop_state();
+	if (cryptkey != curbuf->b_p_key)
+	    free_crypt_key(cryptkey);
+	/* don't set cryptkey to NULL, it's used below as a flag that
+	 * encryption was used */
+    }
 #endif
 
 #ifdef FEAT_MBYTE
@@ -2488,7 +2508,9 @@ failed:
 #ifdef FEAT_CRYPT
 	    if (cryptkey != NULL)
 		msg_add_lines(c, (long)linecnt, filesize
-			- CRYPT_MAGIC_LEN - crypt_seed_len[use_crypt_method]);
+			- CRYPT_MAGIC_LEN
+			- crypt_salt_len[use_crypt_method]
+			- crypt_seed_len[use_crypt_method]);
 	    else
 #endif
 		msg_add_lines(c, (long)linecnt, filesize);
@@ -2841,7 +2863,7 @@ get_crypt_method(ptr, len)
 
     for (i = 0; i < (int)(sizeof(crypt_magic) / sizeof(crypt_magic[0])); i++)
     {
-	if (len < (CRYPT_MAGIC_LEN + crypt_seed_len[i]))
+	if (len < (CRYPT_MAGIC_LEN + crypt_salt_len[i] + crypt_seed_len[i]))
 	    continue;
 	if (memcmp(ptr, crypt_magic[i], CRYPT_MAGIC_LEN) == 0)
 	    return i;
@@ -2861,12 +2883,13 @@ get_crypt_method(ptr, len)
  * Return the (new) encryption key, NULL for no encryption.
  */
     static char_u *
-check_for_cryptkey(cryptkey, ptr, sizep, filesizep, newfile, did_ask)
+check_for_cryptkey(cryptkey, ptr, sizep, filesizep, newfile, fname, did_ask)
     char_u	*cryptkey;	/* previous encryption key or NULL */
     char_u	*ptr;		/* pointer to read bytes */
     long	*sizep;		/* length of read bytes */
     off_t	*filesizep;	/* nr of bytes used from file */
     int		newfile;	/* editing a new buffer */
+    char_u	*fname;		/* file name to display */
     int		*did_ask;	/* flag: whether already asked for key */
 {
     int method = get_crypt_method((char *)ptr, *sizep);
@@ -2874,7 +2897,6 @@ check_for_cryptkey(cryptkey, ptr, sizep, filesizep, newfile, did_ask)
     if (method >= 0)
     {
 	curbuf->b_p_cm = method;
-	use_crypt_method = method;
 	if (method > 0)
 	    (void)blowfish_self_test();
 	if (cryptkey == NULL && !*did_ask)
@@ -2887,6 +2909,8 @@ check_for_cryptkey(cryptkey, ptr, sizep, filesizep, newfile, did_ask)
 		 * option and don't free it.  bf needs hash of the key saved.
 		 * Don't ask for the key again when first time Enter was hit.
 		 * Happens when retrying to detect encoding. */
+		smsg((char_u *)_(need_key_msg), fname);
+		msg_scroll = TRUE;
 		cryptkey = get_crypt_key(newfile, FALSE);
 		*did_ask = TRUE;
 
@@ -2903,19 +2927,23 @@ check_for_cryptkey(cryptkey, ptr, sizep, filesizep, newfile, did_ask)
 	if (cryptkey != NULL)
 	{
 	    int seed_len = crypt_seed_len[method];
+	    int salt_len = crypt_salt_len[method];
 
+	    crypt_push_state();
+	    use_crypt_method = method;
 	    if (method == 0)
 		crypt_init_keys(cryptkey);
 	    else
 	    {
-		bf_key_init(cryptkey);
-		bf_ofb_init(ptr + CRYPT_MAGIC_LEN, seed_len);
+		bf_key_init(cryptkey, ptr + CRYPT_MAGIC_LEN, salt_len);
+		bf_ofb_init(ptr + CRYPT_MAGIC_LEN + salt_len, seed_len);
 	    }
 
 	    /* Remove magic number from the text */
-	    *filesizep += CRYPT_MAGIC_LEN + seed_len;
-	    *sizep -= CRYPT_MAGIC_LEN + seed_len;
-	    mch_memmove(ptr, ptr + CRYPT_MAGIC_LEN + seed_len, (size_t)*sizep);
+	    *filesizep += CRYPT_MAGIC_LEN + salt_len + seed_len;
+	    *sizep -= CRYPT_MAGIC_LEN + salt_len + seed_len;
+	    mch_memmove(ptr, ptr + CRYPT_MAGIC_LEN + salt_len + seed_len,
+							      (size_t)*sizep);
 	}
     }
     /* When starting to edit a new file which does not have encryption, clear
@@ -2935,25 +2963,30 @@ prepare_crypt_read(fp)
     FILE	*fp;
 {
     int		method;
-    char_u	buffer[CRYPT_MAGIC_LEN + CRYPT_SEED_LEN_MAX + 2];
+    char_u	buffer[CRYPT_MAGIC_LEN + CRYPT_SALT_LEN_MAX
+						    + CRYPT_SEED_LEN_MAX + 2];
 
     if (fread(buffer, CRYPT_MAGIC_LEN, 1, fp) != 1)
 	return FAIL;
     method = get_crypt_method((char *)buffer,
-					CRYPT_MAGIC_LEN + CRYPT_SEED_LEN_MAX);
+					CRYPT_MAGIC_LEN +
+                                        CRYPT_SEED_LEN_MAX +
+                                        CRYPT_SALT_LEN_MAX);
     if (method < 0 || method != curbuf->b_p_cm)
 	return FAIL;
 
+    crypt_push_state();
     if (method == 0)
 	crypt_init_keys(curbuf->b_p_key);
     else
     {
+	int salt_len = crypt_salt_len[method];
 	int seed_len = crypt_seed_len[method];
 
-	if (fread(buffer, seed_len, 1, fp) != 1)
+	if (fread(buffer, salt_len + seed_len, 1, fp) != 1)
 	    return FAIL;
-	bf_key_init(curbuf->b_p_key);
-	bf_ofb_init(buffer, seed_len);
+	bf_key_init(curbuf->b_p_key, buffer, salt_len);
+	bf_ofb_init(buffer + salt_len, seed_len);
     }
     return OK;
 }
@@ -2961,6 +2994,8 @@ prepare_crypt_read(fp)
 /*
  * Prepare for writing encrypted bytes for buffer "buf".
  * Returns a pointer to an allocated header of length "*lenp".
+ * When out of memory returns NULL.
+ * Otherwise calls crypt_push_state(), call crypt_pop_state() later.
  */
     char_u *
 prepare_crypt_write(buf, lenp)
@@ -2969,10 +3004,15 @@ prepare_crypt_write(buf, lenp)
 {
     char_u  *header;
     int	    seed_len = crypt_seed_len[buf->b_p_cm];
+    int     salt_len = crypt_salt_len[buf->b_p_cm];
+    char_u  *salt;
+    char_u  *seed;
 
-    header = alloc_clear(CRYPT_MAGIC_LEN + CRYPT_SEED_LEN_MAX + 2);
+    header = alloc_clear(CRYPT_MAGIC_LEN + CRYPT_SALT_LEN_MAX
+						    + CRYPT_SEED_LEN_MAX + 2);
     if (header != NULL)
     {
+	crypt_push_state();
 	use_crypt_method = buf->b_p_cm;  /* select pkzip or blowfish */
 	vim_strncpy(header, (char_u *)crypt_magic[use_crypt_method],
 							     CRYPT_MAGIC_LEN);
@@ -2980,64 +3020,16 @@ prepare_crypt_write(buf, lenp)
 	    crypt_init_keys(buf->b_p_key);
 	else
 	{
-	    /* Using blowfish, add seed. */
-	    sha2_seed(header + CRYPT_MAGIC_LEN, seed_len); /* create iv */
-	    bf_ofb_init(header + CRYPT_MAGIC_LEN, seed_len);
-	    bf_key_init(buf->b_p_key);
+	    /* Using blowfish, add salt and seed. */
+	    salt = header + CRYPT_MAGIC_LEN;
+	    seed = salt + salt_len;
+	    sha2_seed(salt, salt_len, seed, seed_len);
+	    bf_key_init(buf->b_p_key, salt, salt_len);
+	    bf_ofb_init(seed, seed_len);
 	}
     }
-    *lenp = CRYPT_MAGIC_LEN + seed_len;
+    *lenp = CRYPT_MAGIC_LEN + salt_len + seed_len;
     return header;
-}
-
-/*
- * Like fwrite() but crypt the bytes when 'key' is set.
- * Returns 1 if successful.
- */
-    size_t
-fwrite_crypt(buf, ptr, len, fp)
-    buf_T	*buf;
-    char_u	*ptr;
-    size_t	len;
-    FILE	*fp;
-{
-    char_u  *copy;
-    char_u  small_buf[100];
-    size_t  i;
-
-    if (*buf->b_p_key == NUL)
-	return fwrite(ptr, len, (size_t)1, fp);
-    if (len < 100)
-	copy = small_buf;  /* no malloc()/free() for short strings */
-    else
-    {
-	copy = lalloc(len, FALSE);
-	if (copy == NULL)
-	    return 0;
-    }
-    crypt_encode(ptr, len, copy);
-    i = fwrite(copy, len, (size_t)1, fp);
-    if (copy != small_buf)
-	vim_free(copy);
-    return i;
-}
-
-/*
- * Read a string of length "len" from "fd".
- * When 'key' is set decrypt the bytes.
- */
-    char_u *
-read_string_decrypt(buf, fd, len)
-    buf_T   *buf;
-    FILE    *fd;
-    int	    len;
-{
-    char_u  *ptr;
-
-    ptr = read_string(fd, len);
-    if (ptr != NULL || *buf->b_p_key != NUL)
-	crypt_decode(ptr, len);
-    return ptr;
 }
 
 #endif  /* FEAT_CRYPT */
@@ -4435,7 +4427,7 @@ restore_backup:
     write_info.bw_fd = fd;
 
 #ifdef FEAT_CRYPT
-    if (*buf->b_p_key && !filtering)
+    if (*buf->b_p_key != NUL && !filtering)
     {
 	char_u *header;
 	int    header_len;
@@ -4704,6 +4696,10 @@ restore_backup:
      * ACL on a file the user doesn't own). */
     if (!backup_copy)
 	mch_set_acl(wfname, acl);
+#endif
+#ifdef FEAT_CRYPT
+    if (wb_flags & FIO_ENCRYPTED)
+	crypt_pop_state();
 #endif
 
 

@@ -100,8 +100,10 @@ static void u_freebranch __ARGS((buf_T *buf, u_header_T *uhp, u_header_T **uhpp)
 static void u_freeentries __ARGS((buf_T *buf, u_header_T *uhp, u_header_T **uhpp));
 static void u_freeentry __ARGS((u_entry_T *, long));
 #ifdef FEAT_PERSISTENT_UNDO
-static void corruption_error __ARGS((char *msg, char_u *file_name));
+static void corruption_error __ARGS((char *mesg, char_u *file_name));
 static void u_free_uhp __ARGS((u_header_T *uhp));
+static size_t fwrite_crypt __ARGS((buf_T *buf UNUSED, char_u *ptr, size_t len, FILE *fp));
+static char_u *read_string_decrypt __ARGS((buf_T *buf UNUSED, FILE *fd, int len));
 static int serialize_header __ARGS((FILE *fp, buf_T *buf, char_u *hash));
 static int serialize_uhp __ARGS((FILE *fp, buf_T *buf, u_header_T *uhp));
 static u_header_T *unserialize_uhp __ARGS((FILE *fp, char_u *file_name));
@@ -661,7 +663,7 @@ nomem:
     return FAIL;
 }
 
-#ifdef FEAT_PERSISTENT_UNDO
+#if defined(FEAT_PERSISTENT_UNDO) || defined(PROTO)
 
 # define UF_START_MAGIC	    "Vim\237UnDo\345"  /* magic at start of undofile */
 # define UF_START_MAGIC_LEN	9
@@ -777,11 +779,11 @@ u_get_undo_file_name(buf_ffname, reading)
 }
 
     static void
-corruption_error(msg, file_name)
-    char *msg;
+corruption_error(mesg, file_name)
+    char *mesg;
     char_u *file_name;
 {
-    EMSG3(_("E825: Corrupted undo file (%s): %s"), msg, file_name);
+    EMSG3(_("E825: Corrupted undo file (%s): %s"), mesg, file_name);
 }
 
     static void
@@ -799,6 +801,62 @@ u_free_uhp(uhp)
 	uep = nuep;
     }
     vim_free(uhp);
+}
+
+/*
+ * Like fwrite() but crypt the bytes when 'key' is set.
+ * Returns 1 if successful.
+ */
+    static size_t
+fwrite_crypt(buf, ptr, len, fp)
+    buf_T	*buf UNUSED;
+    char_u	*ptr;
+    size_t	len;
+    FILE	*fp;
+{
+#ifdef FEAT_CRYPT
+    char_u  *copy;
+    char_u  small_buf[100];
+    size_t  i;
+
+    if (*buf->b_p_key == NUL)
+	return fwrite(ptr, len, (size_t)1, fp);
+    if (len < 100)
+	copy = small_buf;  /* no malloc()/free() for short strings */
+    else
+    {
+	copy = lalloc(len, FALSE);
+	if (copy == NULL)
+	    return 0;
+    }
+    crypt_encode(ptr, len, copy);
+    i = fwrite(copy, len, (size_t)1, fp);
+    if (copy != small_buf)
+	vim_free(copy);
+    return i;
+#else
+    return fwrite(ptr, len, (size_t)1, fp);
+#endif
+}
+
+/*
+ * Read a string of length "len" from "fd".
+ * When 'key' is set decrypt the bytes.
+ */
+    static char_u *
+read_string_decrypt(buf, fd, len)
+    buf_T   *buf UNUSED;
+    FILE    *fd;
+    int	    len;
+{
+    char_u  *ptr;
+
+    ptr = read_string(fd, len);
+#ifdef FEAT_CRYPT
+    if (ptr != NULL || *buf->b_p_key != NUL)
+	crypt_decode(ptr, len);
+#endif
+    return ptr;
 }
 
     static int
@@ -828,7 +886,10 @@ serialize_header(fp, buf, hash)
 	len = (int)fwrite(header, (size_t)header_len, (size_t)1, fp);
 	vim_free(header);
 	if (len != 1)
+	{
+	    crypt_pop_state();
 	    return FAIL;
+	}
     }
     else
 #endif
@@ -1182,6 +1243,9 @@ u_write_undo(name, forceit, buf, hash)
     struct stat	st_old;
     struct stat	st_new;
 #endif
+#ifdef FEAT_CRYPT
+    int		do_crypt = FALSE;
+#endif
 
     if (name == NULL)
     {
@@ -1249,13 +1313,13 @@ u_write_undo(name, forceit, buf, hash)
 	    }
 	    else
 	    {
-		char_u	buf[UF_START_MAGIC_LEN];
+		char_u	mbuf[UF_START_MAGIC_LEN];
 		int	len;
 
-		len = vim_read(fd, buf, UF_START_MAGIC_LEN);
+		len = vim_read(fd, mbuf, UF_START_MAGIC_LEN);
 		close(fd);
 		if (len < UF_START_MAGIC_LEN
-		      || memcmp(buf, UF_START_MAGIC, UF_START_MAGIC_LEN) != 0)
+		      || memcmp(mbuf, UF_START_MAGIC, UF_START_MAGIC_LEN) != 0)
 		{
 		    if (name != NULL || p_verbose > 0)
 		    {
@@ -1339,6 +1403,10 @@ u_write_undo(name, forceit, buf, hash)
      */
     if (serialize_header(fp, buf, hash) == FAIL)
 	goto write_error;
+#ifdef FEAT_CRYPT
+    if (*buf->b_p_key)
+	do_crypt = TRUE;
+#endif
 
     /*
      * Iteratively serialize UHPs and their UEPs from the top down.
@@ -1404,6 +1472,10 @@ write_error:
 #endif
 
 theend:
+#ifdef FEAT_CRYPT
+    if (do_crypt)
+	crypt_pop_state();
+#endif
     if (file_name != name)
 	vim_free(file_name);
 }
@@ -1446,6 +1518,9 @@ u_read_undo(name, hash, orig_name)
 #ifdef UNIX
     struct stat	st_orig;
     struct stat	st_undo;
+#endif
+#ifdef FEAT_CRYPT
+    int		do_decrypt = FALSE;
 #endif
 
     if (name == NULL)
@@ -1514,6 +1589,7 @@ u_read_undo(name, hash, orig_name)
 	    EMSG2(_("E826: Undo file decryption failed: %s"), file_name);
 	    goto error;
 	}
+	do_decrypt = TRUE;
 #else
         EMSG2(_("E827: Undo file is encrypted: %s"), file_name);
         goto error;
@@ -1718,6 +1794,10 @@ error:
     }
 
 theend:
+#ifdef FEAT_CRYPT
+    if (do_decrypt)
+	crypt_pop_state();
+#endif
     if (fp != NULL)
         fclose(fp);
     if (file_name != name)

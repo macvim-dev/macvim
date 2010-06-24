@@ -39,7 +39,7 @@ typedef union {
 
 static void bf_e_block __ARGS((UINT32_T *p_xl, UINT32_T *p_xr));
 static void bf_e_cblock __ARGS((char_u *block));
-static int bf_check_tables __ARGS((UINT32_T ipa[18], UINT32_T sbi[4][256], UINT32_T val));
+static int bf_check_tables __ARGS((UINT32_T a_ipa[18], UINT32_T a_sbi[4][256], UINT32_T val));
 static int bf_self_test __ARGS((void));
 
 /* Blowfish code */
@@ -402,29 +402,41 @@ bf_d_cblock(block)
 }
 #endif
 
+/*
+ * Initialize the crypt method using "password" as the encryption key and
+ * "salt[salt_len]" as the salt.
+ */
     void
-bf_key_init(password)
+bf_key_init(password, salt, salt_len)
     char_u *password;
+    char_u *salt;
+    int    salt_len;
 {
     int      i, j, keypos = 0;
     UINT32_T val, data_l, data_r;
     char_u   *key;
     int      keylen;
 
-    key = sha256_key(password);
-    keylen = (int)STRLEN(key);
+    /* Process the key 1000 times.
+     * See http://en.wikipedia.org/wiki/Key_strengthening. */
+    key = sha256_key(password, salt, salt_len);
+    for (i = 0; i < 1000; i++)
+        key = sha256_key(key, salt, salt_len);
+
+    /* Convert the key from 64 hex chars to 32 binary chars. */
+    keylen = (int)STRLEN(key) / 2;
     if (keylen == 0)
     {
 	EMSG(_("E831: bf_key_init() called with empty password"));
 	return;
     }
-    for (i = 0; i < 256; ++i)
+    for (i = 0; i < keylen; i++)
     {
-	sbx[0][i] = sbi[0][i];
-	sbx[1][i] = sbi[1][i];
-	sbx[2][i] = sbi[2][i];
-	sbx[3][i] = sbi[3][i];
+        sscanf((char *)&key[i * 2], "%2x", &j);
+        key[i] = j;
     }
+
+    mch_memmove(sbx, sbi, 4 * 4 * 256);
 
     for (i = 0; i < 18; ++i)
     {
@@ -457,27 +469,28 @@ bf_key_init(password)
  * BF Self test for corrupted tables or instructions
  */
     static int
-bf_check_tables(ipa, sbi, val)
-    UINT32_T ipa[18];
-    UINT32_T sbi[4][256];
+bf_check_tables(a_ipa, a_sbi, val)
+    UINT32_T a_ipa[18];
+    UINT32_T a_sbi[4][256];
     UINT32_T val;
 {
     int i, j;
     UINT32_T c = 0;
 
     for (i = 0; i < 18; i++)
-	c ^= ipa[i];
+	c ^= a_ipa[i];
     for (i = 0; i < 4; i++)
 	for (j = 0; j < 256; j++)
-	    c ^= sbi[i][j];
+	    c ^= a_sbi[i][j];
     return c == val;
 }
 
 typedef struct {
     char_u   password[64];
-    char_u   plaintxt[8];
-    char_u   cryptxt[8];
-    char_u   badcryptxt[8]; /* cryptxt when big/little endian is wrong */
+    char_u   salt[9];
+    char_u   plaintxt[9];
+    char_u   cryptxt[9];
+    char_u   badcryptxt[9]; /* cryptxt when big/little endian is wrong */
     UINT32_T keysum;
 } struct_bf_test_data;
 
@@ -488,10 +501,11 @@ typedef struct {
 static struct_bf_test_data bf_test_data[] = {
   {
       "password",
+      "salt",
       "plaintxt",
-      "\x55\xca\x56\x3a\xef\xe1\x9c\x73", /* cryptxt */
-      "\x47\xd9\x67\x49\x91\xc5\x9a\x95", /* badcryptxt */
-      0x5de01bdbu, /* keysum */
+      "\xad\x3d\xfa\x7f\xe8\xea\x40\xf6", /* cryptxt */
+      "\x72\x50\x3b\x38\x10\x60\x22\xa7", /* badcryptxt */
+      0x56701b5du /* keysum */
   },
 };
 
@@ -519,7 +533,9 @@ bf_self_test()
     bn = ARRAY_LENGTH(bf_test_data);
     for (i = 0; i < bn; i++)
     {
-	bf_key_init((char_u *)(bf_test_data[i].password));
+	bf_key_init((char_u *)(bf_test_data[i].password),
+                    bf_test_data[i].salt,
+		    (int)STRLEN(bf_test_data[i].salt));
 	if (!bf_check_tables(pax, sbx, bf_test_data[i].keysum))
 	    err++;
 
@@ -631,6 +647,40 @@ bf_crypt_init_keys(passwd)
     {
 	BF_OFB_UPDATE(*p);
     }
+}
+
+static int save_randbyte_offset;
+static int save_update_offset;
+static char_u save_ofb_buffer[BF_OFB_LEN];
+static UINT32_T save_pax[18];
+static UINT32_T save_sbx[4][256];
+
+/*
+ * Save the current crypt state.  Can only be used once before
+ * bf_crypt_restore().
+ */
+    void
+bf_crypt_save()
+{
+    save_randbyte_offset = randbyte_offset;
+    save_update_offset = update_offset;
+    mch_memmove(save_ofb_buffer, ofb_buffer, BF_OFB_LEN);
+    mch_memmove(save_pax, pax, 4 * 18);
+    mch_memmove(save_sbx, sbx, 4 * 4 * 256);
+}
+
+/*
+ * Restore the current crypt state.  Can only be used after
+ * bf_crypt_save().
+ */
+    void
+bf_crypt_restore()
+{
+    randbyte_offset = save_randbyte_offset;
+    update_offset = save_update_offset;
+    mch_memmove(ofb_buffer, save_ofb_buffer, BF_OFB_LEN);
+    mch_memmove(pax, save_pax, 4 * 18);
+    mch_memmove(sbx, save_sbx, 4 * 4 * 256);
 }
 
 /*

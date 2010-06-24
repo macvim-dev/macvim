@@ -6476,6 +6476,7 @@ setup_term_clip()
 	    return;
 
 	x11_setup_atoms(xterm_dpy);
+	x11_setup_selection(xterm_Shell);
 	if (x11_display == NULL)
 	    x11_display = xterm_dpy;
 
