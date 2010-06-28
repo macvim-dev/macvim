@@ -332,20 +332,22 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         [[NSInputManager currentInputManager] markedTextAbandoned:self];
     }
 
-    if ([event deltaY] == 0)
+    float dx = [event deltaX];
+    float dy = [event deltaY];
+    if (dx == 0 && dy == 0)
         return;
 
     int row, col;
     NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
     if ([textView convertPoint:pt toRow:&row column:&col]) {
         int flags = [event modifierFlags];
-        float dy = [event deltaY];
         NSMutableData *data = [NSMutableData data];
 
         [data appendBytes:&row length:sizeof(int)];
         [data appendBytes:&col length:sizeof(int)];
         [data appendBytes:&flags length:sizeof(int)];
         [data appendBytes:&dy length:sizeof(float)];
+        [data appendBytes:&dx length:sizeof(float)];
 
         [[self vimController] sendMessage:ScrollWheelMsgID data:data];
     }

@@ -1829,13 +1829,17 @@ static void netbeansReadCallback(CFSocketRef s,
         int col = *((int*)bytes);  bytes += sizeof(int);
         int flags = *((int*)bytes);  bytes += sizeof(int);
         float dy = *((float*)bytes);  bytes += sizeof(float);
+        float dx = *((float*)bytes);  bytes += sizeof(float);
 
         int button = MOUSE_5;
-        if (dy > 0) button = MOUSE_4;
+        if (dy < 0) button = MOUSE_5;
+        else if (dy > 0) button = MOUSE_4;
+        else if (dx < 0) button = MOUSE_6;
+        else if (dx > 0) button = MOUSE_7;
 
         flags = eventModifierFlagsToVimMouseModMask(flags);
 
-        int numLines = (int)round(dy);
+        int numLines = (dy != 0) ? (int)round(dy) : (int)round(dx);
         if (numLines < 0) numLines = -numLines;
         if (numLines == 0) numLines = 1;
 
