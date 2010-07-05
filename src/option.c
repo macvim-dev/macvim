@@ -2620,8 +2620,7 @@ static struct vimoption
 			    {(char_u *)"icons,tooltips", (char_u *)0L}
 			    SCRIPTID_INIT},
 #endif
-#if defined(FEAT_TOOLBAR) && ((defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)) \
-        || defined(FEAT_GUI_MACVIM))
+#if defined(FEAT_TOOLBAR) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
     {"toolbariconsize",	"tbis", P_STRING|P_VI_DEF,
 			    (char_u *)&p_tbis, PV_NONE,
 			    {(char_u *)"small", (char_u *)0L} SCRIPTID_INIT},
@@ -5223,8 +5222,7 @@ didset_options()
 #if defined(FEAT_TOOLBAR) && !defined(FEAT_GUI_W32)
     (void)opt_strings_flags(p_toolbar, p_toolbar_values, &toolbar_flags, TRUE);
 #endif
-#if defined(FEAT_TOOLBAR) && ((defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)) \
-        || defined(FEAT_GUI_MACVIM))
+#if defined(FEAT_TOOLBAR) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
     (void)opt_strings_flags(p_tbis, p_tbis_values, &tbis_flags, FALSE);
 #endif
 #ifdef FEAT_CMDWIN
@@ -5897,7 +5895,7 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
 	    }
 	}
 
-# if (defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)) || defined(FEAT_GUI_MACVIM)
+# if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
 	if (errmsg == NULL && varp == &p_tenc && gui.in_use)
 	{
 	    /* MacVim and GTK+ 2 GUIs force 'tenc' to UTF-8. */
@@ -6679,8 +6677,7 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
     }
 #endif
 
-#if defined(FEAT_TOOLBAR) && ((defined(FEAT_GUI_GTK) && defined(HAVE_GTK2)) \
-        || defined(FEAT_GUI_MACVIM))
+#if defined(FEAT_TOOLBAR) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
     /* 'toolbariconsize': GTK+ 2 and MacVim only */
     else if (varp == &p_tbis)
     {

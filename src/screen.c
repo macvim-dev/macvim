@@ -9301,14 +9301,14 @@ showmode()
 					&& curbuf->b_p_iminsert == B_IMODE_IM)
 # else
 	    if (
-#  if defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM)
+#  if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
 		    preedit_get_status()
 #  else
 		    im_get_status()
 #  endif
 	       )
 # endif
-# if defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM)
+# if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
 		/* most of the time, it's not XIM being used */
 		MSG_PUTS_ATTR(" IM", attr);
 # else

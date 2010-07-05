@@ -13,14 +13,14 @@
 /* Structure containing all the GUI information */
 gui_T gui;
 
-#if defined(FEAT_MBYTE) && !defined(HAVE_GTK2)
+#if defined(FEAT_MBYTE) && !defined(FEAT_GUI_GTK)
 static void set_guifontwide __ARGS((char_u *font_name));
 #endif
 static void gui_check_pos __ARGS((void));
 static void gui_position_components __ARGS((int));
 static void gui_outstr __ARGS((char_u *, int));
 static int gui_screenchar __ARGS((int off, int flags, guicolor_T fg, guicolor_T bg, int back));
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
 static int gui_screenstr __ARGS((int off, int len, int flags, guicolor_T fg, guicolor_T bg, int back));
 #endif
 static void gui_delete_lines __ARGS((int row, int count));
@@ -254,7 +254,7 @@ gui_init_check()
     gui.border_width = 0;
 
     gui.norm_font = NOFONT;
-#ifndef HAVE_GTK2
+#ifndef FEAT_GUI_GTK
     gui.bold_font = NOFONT;
     gui.ital_font = NOFONT;
     gui.boldital_font = NOFONT;
@@ -264,7 +264,7 @@ gui_init_check()
 #endif
 
 #ifdef FEAT_MENU
-# ifndef HAVE_GTK2
+# ifndef FEAT_GUI_GTK
 #  ifdef FONTSET_ALWAYS
     gui.menu_fontset = NOFONTSET;
 #  else
@@ -725,7 +725,7 @@ gui_init_font(font_list, fontset)
 		 * longer be used! */
 		if (gui_mch_init_font(font_name, FALSE) == OK)
 		{
-#if defined(FEAT_MBYTE) && !defined(HAVE_GTK2)
+#if defined(FEAT_MBYTE) && !defined(FEAT_GUI_GTK)
 		    /* If it's a Unicode font, try setting 'guifontwide' to a
 		     * similar double-width font. */
 		    if ((p_guifontwide == NULL || *p_guifontwide == NUL)
@@ -752,7 +752,7 @@ gui_init_font(font_list, fontset)
 
     if (ret == OK)
     {
-#ifndef HAVE_GTK2
+#ifndef FEAT_GUI_GTK
 	/* Set normal font as current font */
 # ifdef FEAT_XFONTSET
 	if (gui.fontset != NOFONTSET)
@@ -774,7 +774,7 @@ gui_init_font(font_list, fontset)
 }
 
 #if defined(FEAT_MBYTE) || defined(PROTO)
-# ifndef HAVE_GTK2
+# ifndef FEAT_GUI_GTK
 /*
  * Try setting 'guifontwide' to a font twice as wide as "name".
  */
@@ -822,7 +822,7 @@ set_guifontwide(name)
 	}
     }
 }
-# endif /* !HAVE_GTK2 */
+# endif /* !FEAT_GUI_GTK */
 
 /*
  * Get the font for 'guifontwide'.
@@ -853,7 +853,7 @@ gui_get_wide_font()
     }
 
     gui_mch_free_font(gui.wide_font);
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
     /* Avoid unnecessary overhead if 'guifontwide' is equal to 'guifont'. */
     if (font != NOFONT && gui.norm_font != NOFONT
 			 && pango_font_description_equal(font, gui.norm_font))
@@ -970,7 +970,7 @@ gui_update_cursor(force, clear_selection)
 		guicolor_T fg, bg;
 
 		if (
-# if defined(HAVE_GTK2) && !defined(FEAT_HANGULIN)
+# if defined(FEAT_GUI_GTK) && !defined(FEAT_HANGULIN)
 			preedit_get_status()
 # else
 			im_get_status()
@@ -1201,7 +1201,7 @@ gui_position_components(total_width)
 			      text_area_y,
 			      text_area_width,
 			      text_area_height
-#if defined(FEAT_XIM) && !(defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM))
+#if defined(FEAT_XIM) && !defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_MACVIM)
 				  + xim_get_status_area_height()
 #endif
 			      );
@@ -1332,7 +1332,7 @@ again:
 
     gui_update_scrollbars(TRUE);
     gui_update_cursor(FALSE, TRUE);
-#if defined(FEAT_XIM) && !(defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM))
+#if defined(FEAT_XIM) && !defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_MACVIM)
     xim_set_status_area();
 #endif
 
@@ -1399,7 +1399,7 @@ gui_set_shellsize(mustset, fit_to_display, direction)
     int		min_height;
     int		screen_w;
     int		screen_h;
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
     int		un_maximize = mustset;
     int         did_adjust = 0;
 #endif
@@ -1447,7 +1447,7 @@ gui_set_shellsize(mustset, fit_to_display, direction)
 	    if (Columns < MIN_COLUMNS)
 		Columns = MIN_COLUMNS;
 	    width = Columns * gui.char_width + base_width;
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
 	    ++did_adjust;
 #endif
 	}
@@ -1456,11 +1456,11 @@ gui_set_shellsize(mustset, fit_to_display, direction)
 	    Rows = (screen_h - base_height) / gui.char_height;
 	    check_shellsize();
 	    height = Rows * gui.char_height + base_height;
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
 	    ++did_adjust;
 #endif
 	}
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
 	if (did_adjust == 2 || (width + gui.char_width >= screen_w
 				     && height + gui.char_height >= screen_h))
 	    /* don't unmaximize if at maximum size */
@@ -1476,7 +1476,7 @@ gui_set_shellsize(mustset, fit_to_display, direction)
     min_height += tabline_height() * gui.char_height;
 #endif
 
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
     if (un_maximize)
     {
 	/* If the window size is smaller than the screen unmaximize the
@@ -1936,7 +1936,7 @@ gui_screenchar(off, flags, fg, bg, back)
 #endif
 }
 
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
 /*
  * Output the string at the given screen position.  This is used in place
  * of gui_screenchar() where possible because Pango needs as much context
@@ -2010,7 +2010,7 @@ gui_screenstr(off, len, flags, fg, bg, back)
 				 flags, fg, bg, back);
     }
 }
-#endif /* HAVE_GTK2 */
+#endif /* FEAT_GUI_GTK */
 
 /*
  * Output the given string at the current cursor position.  If the string is
@@ -2038,7 +2038,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
     guicolor_T	fg_color;
     guicolor_T	bg_color;
     guicolor_T	sp_color;
-#if !defined(MSWIN16_FASTTEXT) && !defined(HAVE_GTK2)
+#if !defined(MSWIN16_FASTTEXT) && !defined(FEAT_GUI_GTK)
     GuiFont	font = NOFONT;
 # ifdef FEAT_XFONTSET
     GuiFontset	fontset = NOFONTSET;
@@ -2092,7 +2092,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 	highlight_mask = gui.highlight_mask;
     hl_mask_todo = highlight_mask;
 
-#if !defined(MSWIN16_FASTTEXT) && !defined(HAVE_GTK2)
+#if !defined(MSWIN16_FASTTEXT) && !defined(FEAT_GUI_GTK)
     /* Set the font */
     if (aep != NULL && aep->ae_u.gui.font != NOFONT)
 	font = aep->ae_u.gui.font;
@@ -2206,7 +2206,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
     if (back != 0 && ((draw_flags & DRAW_BOLD) || (highlight_mask & HL_ITALIC)))
 	return FAIL;
 
-#if defined(RISCOS) || defined(HAVE_GTK2) || defined(FEAT_GUI_MACVIM)
+#if defined(RISCOS) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
     /* If there's no italic font, then fake it.
      * For GTK2, we don't need a different font for italic style. */
     if (hl_mask_todo & HL_ITALIC)
@@ -2235,7 +2235,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
     /*
      * Draw the text.
      */
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
     /* The value returned is the length in display cells */
     len = gui_gtk2_draw_string(gui.row, col, s, len, draw_flags);
 #else
@@ -2292,7 +2292,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 	    /* print the string so far if it's the last character or there is
 	     * a composing character. */
 	    if (i + cl >= len || (comping && i > start) || dowide
-#  if defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK)
+#  if defined(FEAT_GUI_X11)
 		    || (cn > 1
 #   ifdef FEAT_XFONTSET
 			/* No fontset: At least draw char after wide char at
@@ -2330,7 +2330,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 		    start += cl;
 		}
 
-#  if defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK)
+#  if defined(FEAT_GUI_X11)
 		/* No fontset: draw a space to fill the gap after a wide char
 		 * */
 		if (cn > 1 && (draw_flags & DRAW_TRANSP) == 0
@@ -2385,7 +2385,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 	}
 # endif
     }
-#endif /* !HAVE_GTK2 */
+#endif /* !FEAT_GUI_GTK */
 
     if (!(flags & (GUI_MON_IS_CURSOR | GUI_MON_TRS_CURSOR)))
 	gui.col = col + len;
@@ -2544,7 +2544,7 @@ gui_redraw_block(row1, col1, row2, col2, flags)
 	{
 	    if (ScreenLines[off + col1] == 0)
 		--col1;
-# ifdef HAVE_GTK2
+# ifdef FEAT_GUI_GTK
 	    if (col2 + 1 < Columns && ScreenLines[off + col2 + 1] == 0)
 		++col2;
 # endif
@@ -2569,7 +2569,7 @@ gui_redraw_block(row1, col1, row2, col2, flags)
 	{
 	    first_attr = ScreenAttrs[off];
 	    gui.highlight_mask = first_attr;
-#if defined(FEAT_MBYTE) && !defined(HAVE_GTK2)
+#if defined(FEAT_MBYTE) && !defined(FEAT_GUI_GTK)
 	    if (enc_utf8 && ScreenLinesUC[off] != 0)
 	    {
 		/* output multi-byte character separately */
@@ -2590,7 +2590,7 @@ gui_redraw_block(row1, col1, row2, col2, flags)
 	    else
 #endif
 	    {
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
 		for (idx = 0; idx < len; ++idx)
 		{
 		    if (enc_utf8 && ScreenLines[off + idx] == 0)
@@ -3134,7 +3134,7 @@ button_set:
      * We need to make sure this is cleared since Athena doesn't tell us when
      * he is done dragging.  Neither does GTK+ 2 -- at least for now.
      */
-#if defined(FEAT_GUI_ATHENA) || defined(HAVE_GTK2)
+#if defined(FEAT_GUI_ATHENA) || defined(FEAT_GUI_GTK)
     gui.dragged_sb = SBAR_NONE;
 #endif
 }
@@ -3789,7 +3789,7 @@ gui_drag_scrollbar(sb, value, still_dragging)
     else
     {
 	gui.dragged_sb = SBAR_NONE;
-#ifdef HAVE_GTK2
+#ifdef FEAT_GUI_GTK
 	/* Keep the "dragged_wp" value until after the scrolling, for when the
 	 * moust button is released.  GTK2 doesn't send the button-up event. */
 	gui.dragged_wp = NULL;
@@ -4886,7 +4886,7 @@ gui_find_bitmap(name, buffer, ext)
     return OK;
 }
 
-# if !defined(HAVE_GTK2) || defined(PROTO)
+# if !defined(FEAT_GUI_GTK) || defined(PROTO)
 /*
  * Given the name of the "icon=" argument, try finding the bitmap file for the
  * icon.  If it is an absolute path name, use it as it is.  Otherwise append
@@ -4962,19 +4962,57 @@ no_console_input()
     void
 gui_update_screen()
 {
+#ifdef FEAT_CONCEAL
+    linenr_T	conceal_old_cursor_line = 0;
+    linenr_T	conceal_new_cursor_line = 0;
+    int		conceal_update_lines = FALSE;
+#endif
+
     update_topline();
     validate_cursor();
-#ifdef FEAT_AUTOCMD
+
+#if defined(FEAT_AUTOCMD) || defined(FEAT_CONCEAL)
     /* Trigger CursorMoved if the cursor moved. */
-    if (!finish_op && has_cursormoved()
-	    && !equalpos(last_cursormoved, curwin->w_cursor))
+    if (!finish_op && (
+# ifdef FEAT_AUTOCMD
+		has_cursormoved()
+# endif
+# if defined(FEAT_AUTOCMD) && defined(FEAT_CONCEAL)
+		||
+# endif
+# ifdef FEAT_CONCEAL
+		curwin->w_p_conceal
+# endif
+		)
+		     && !equalpos(last_cursormoved, curwin->w_cursor))
     {
-	apply_autocmds(EVENT_CURSORMOVED, NULL, NULL, FALSE, curbuf);
+# ifdef FEAT_AUTOCMD
+	if (has_cursormoved())
+	    apply_autocmds(EVENT_CURSORMOVED, NULL, NULL, FALSE, curbuf);
+# endif
+# ifdef FEAT_CONCEAL
+	if (curwin->w_p_conceal)
+	{
+	    conceal_old_cursor_line = last_cursormoved.lnum;
+	    conceal_new_cursor_line = curwin->w_cursor.lnum;
+	    conceal_update_lines = TRUE;
+	}
+# endif
 	last_cursormoved = curwin->w_cursor;
     }
 #endif
+
     update_screen(0);	/* may need to update the screen */
     setcursor();
+# if defined(FEAT_CONCEAL)
+    if (conceal_update_lines
+	    && conceal_old_cursor_line != conceal_new_cursor_line)
+    {
+	update_single_line(curwin, conceal_old_cursor_line);
+	update_single_line(curwin, conceal_new_cursor_line);
+	curwin->w_valid &= ~VALID_CROW;
+    }
+# endif
     out_flush();		/* make sure output has been written */
     gui_update_cursor(TRUE, FALSE);
     gui_mch_flush();

@@ -724,8 +724,6 @@ X_PRE_LIBS
 X_LIBS
 X_EXTRA_LIBS
 X_LIB
-GTK_CONFIG
-GTK12_CONFIG
 PKG_CONFIG
 GTK_CFLAGS
 GTK_LIBS
@@ -733,7 +731,6 @@ GTK_LIBNAME
 GNOME_LIBS
 GNOME_LIBDIR
 GNOME_INCLUDEDIR
-GNOME_CONFIG
 MOTIF_LIBNAME
 NARROW_PROTO
 GUI_INC_LOC
@@ -1351,9 +1348,8 @@ Optional Features:
   --enable-hangulinput    Include Hangul input support.
   --enable-xim            Include XIM input support.
   --enable-fontset        Include X fontset output support.
-  --enable-gui=OPTS       X11 GUI default=auto OPTS=auto/no/gtk/gtk2/gnome/gnome2/motif/athena/neXtaw/photon/carbon/macvim
-  --enable-gtk-check      If auto-select GUI, check for GTK default=yes
-  --enable-gtk2-check     If GTK GUI, check for GTK+ 2 default=yes
+  --enable-gui=OPTS     X11 GUI default=auto OPTS=auto/no/gtk2/gnome2/motif/athena/neXtaw/photon/carbon/macvim
+  --enable-gtk2-check     If auto-select GUI, check for GTK+ 2 default=yes
   --enable-gnome-check    If GTK GUI, check for GNOME default=no
   --enable-motif-check    If auto-select GUI, check for Motif default=yes
   --enable-athena-check   If auto-select GUI, check for Athena default=yes
@@ -1387,8 +1383,6 @@ Optional Packages:
   --with-tclsh=PATH       which tclsh to use (default: tclsh8.0)
   --with-ruby-command=RUBY  name of the Ruby command (default: ruby)
   --with-x                use the X Window System
-  --with-gtk-prefix=PFX   Prefix where GTK is installed (optional)
-  --with-gtk-exec-prefix=PFX Exec prefix where GTK is installed (optional)
   --with-gnome-includes=DIR Specify location of GNOME headers
   --with-gnome-libs=DIR   Specify location of GNOME libs
   --with-gnome            Specify prefix for GNOME files
@@ -4242,7 +4236,7 @@ fi
     CFLAGS=$SAVE_CFLAGS
 
     if test "x$CARBON" = "xyes" -o "x$COCOA" = "xyes"; then
-      if test -z "$with_x" -a "X$enable_gui" != Xmotif -a "X$enable_gui" != Xathena -a "X$enable_gui" != Xgtk -a "X$enable_gui" != Xgtk2; then
+      if test -z "$with_x" -a "X$enable_gui" != Xmotif -a "X$enable_gui" != Xathena -a "X$enable_gui" != Xgtk2; then
 	with_x=no
       fi
     fi
@@ -8105,7 +8099,6 @@ fi
 enable_gui_canon=`echo "_$enable_gui" | \
 	sed 's/[ _+-]//g;y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/'`
 
-SKIP_GTK=YES
 SKIP_GTK2=YES
 SKIP_GNOME=YES
 SKIP_MOTIF=YES
@@ -8141,10 +8134,9 @@ elif test "x$MACOSX" = "xyes" -a "x$with_x" = "xno" ; then
 echo "${ECHO_T}no GUI support" >&6; }
 		SKIP_CARBON=YES
 		SKIP_MACVIM=YES ;;
-    yes|"")	{ echo "$as_me:$LINENO: result: yes - automatic GUI support" >&5
-echo "${ECHO_T}yes - automatic GUI support" >&6; } ;;
-    auto)	{ echo "$as_me:$LINENO: result: auto - automatic GUI support" >&5
-echo "${ECHO_T}auto - automatic GUI support" >&6; } ;;
+    yes|""|auto)	{ echo "$as_me:$LINENO: result: yes/auto - automatic GUI support" >&5
+echo "${ECHO_T}yes/auto - automatic GUI support" >&6; }
+		SKIP_CARBON=YES ;;
     carbon)	{ echo "$as_me:$LINENO: result: Carbon GUI support" >&5
 echo "${ECHO_T}Carbon GUI support" >&6; }
 		SKIP_MACVIM=YES ;;
@@ -8164,7 +8156,6 @@ else
 echo "${ECHO_T}no GUI support" >&6; } ;;
     yes|""|auto)	{ echo "$as_me:$LINENO: result: yes/auto - automatic GUI support" >&5
 echo "${ECHO_T}yes/auto - automatic GUI support" >&6; }
-		SKIP_GTK=
 		SKIP_GTK2=
 		SKIP_GNOME=
 		SKIP_MOTIF=
@@ -8172,21 +8163,12 @@ echo "${ECHO_T}yes/auto - automatic GUI support" >&6; }
 		SKIP_NEXTAW=
 		SKIP_MACVIM=
 		SKIP_CARBON=;;
-    gtk)	{ echo "$as_me:$LINENO: result: GTK+ 1.x GUI support" >&5
-echo "${ECHO_T}GTK+ 1.x GUI support" >&6; }
-		SKIP_GTK=;;
     gtk2)	{ echo "$as_me:$LINENO: result: GTK+ 2.x GUI support" >&5
 echo "${ECHO_T}GTK+ 2.x GUI support" >&6; }
-		SKIP_GTK=
 		SKIP_GTK2=;;
-    gnome)	{ echo "$as_me:$LINENO: result: GNOME 1.x GUI support" >&5
-echo "${ECHO_T}GNOME 1.x GUI support" >&6; }
-		SKIP_GNOME=
-		SKIP_GTK=;;
     gnome2)	{ echo "$as_me:$LINENO: result: GNOME 2.x GUI support" >&5
 echo "${ECHO_T}GNOME 2.x GUI support" >&6; }
 		SKIP_GNOME=
-		SKIP_GTK=
 		SKIP_GTK2=;;
     motif)	{ echo "$as_me:$LINENO: result: Motif GUI support" >&5
 echo "${ECHO_T}Motif GUI support" >&6; }
@@ -8201,24 +8183,6 @@ echo "${ECHO_T}neXtaw GUI support" >&6; }
 echo "${ECHO_T}Sorry, $enable_gui GUI is not supported" >&6; } ;;
   esac
 
-fi
-
-if test "x$SKIP_GTK" != "xYES" -a "$enable_gui_canon" != "gtk" -a "$enable_gui_canon" != "gtk2"; then
-  { echo "$as_me:$LINENO: checking whether or not to look for GTK" >&5
-echo $ECHO_N "checking whether or not to look for GTK... $ECHO_C" >&6; }
-  # Check whether --enable-gtk-check was given.
-if test "${enable_gtk_check+set}" = set; then
-  enableval=$enable_gtk_check;
-else
-  enable_gtk_check="yes"
-fi
-
-  { echo "$as_me:$LINENO: result: $enable_gtk_check" >&5
-echo "${ECHO_T}$enable_gtk_check" >&6; }
-  if test "x$enable_gtk_check" = "xno"; then
-    SKIP_GTK=YES
-    SKIP_GNOME=YES
-  fi
 fi
 
 if test "x$SKIP_GTK2" != "xYES" -a "$enable_gui_canon" != "gtk2" \
@@ -8236,11 +8200,11 @@ fi
 echo "${ECHO_T}$enable_gtk2_check" >&6; }
   if test "x$enable_gtk2_check" = "xno"; then
     SKIP_GTK2=YES
+    SKIP_GNOME=YES
   fi
 fi
 
-if test "x$SKIP_GNOME" != "xYES" -a "$enable_gui_canon" != "gnome" \
-				 -a "$enable_gui_canon" != "gnome2"; then
+if test "x$SKIP_GNOME" != "xYES" -a "$enable_gui_canon" != "gnome2"; then
   { echo "$as_me:$LINENO: checking whether or not to look for GNOME" >&5
 echo $ECHO_N "checking whether or not to look for GNOME... $ECHO_C" >&6; }
   # Check whether --enable-gnome-check was given.
@@ -8369,15 +8333,12 @@ echo "${ECHO_T}yes" >&6; };
     VIMNAME=Vim
   fi
 
-    SKIP_GTK=YES;
-  SKIP_GTK2=YES;
+    SKIP_GTK2=YES;
   SKIP_GNOME=YES;
   SKIP_MOTIF=YES;
   SKIP_ATHENA=YES;
   SKIP_NEXTAW=YES;
   SKIP_PHOTON=YES;
-  SKIP_MACVIM=YES;
-  SKIP_CARBON=YES
 fi
 
 
@@ -8387,34 +8348,7 @@ fi
 
 
 
-
-if test -z "$SKIP_GTK"; then
-
-  { echo "$as_me:$LINENO: checking --with-gtk-prefix argument" >&5
-echo $ECHO_N "checking --with-gtk-prefix argument... $ECHO_C" >&6; }
-
-# Check whether --with-gtk-prefix was given.
-if test "${with_gtk_prefix+set}" = set; then
-  withval=$with_gtk_prefix; gtk_config_prefix="$withval"; { echo "$as_me:$LINENO: result: $gtk_config_prefix" >&5
-echo "${ECHO_T}$gtk_config_prefix" >&6; }
-else
-  gtk_config_prefix=""; { echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-fi
-
-
-  { echo "$as_me:$LINENO: checking --with-gtk-exec-prefix argument" >&5
-echo $ECHO_N "checking --with-gtk-exec-prefix argument... $ECHO_C" >&6; }
-
-# Check whether --with-gtk-exec-prefix was given.
-if test "${with_gtk_exec_prefix+set}" = set; then
-  withval=$with_gtk_exec_prefix; gtk_config_exec_prefix="$withval"; { echo "$as_me:$LINENO: result: $gtk_config_prefix" >&5
-echo "${ECHO_T}$gtk_config_prefix" >&6; }
-else
-  gtk_config_exec_prefix=""; { echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-fi
-
+if test -z "$SKIP_GTK2"; then
 
   { echo "$as_me:$LINENO: checking --disable-gtktest argument" >&5
 echo $ECHO_N "checking --disable-gtktest argument... $ECHO_C" >&6; }
@@ -8433,104 +8367,6 @@ echo "${ECHO_T}gtk test enabled" >&6; }
 echo "${ECHO_T}gtk test disabled" >&6; }
   fi
 
-  if test "x$gtk_config_prefix" != "x" ; then
-    gtk_config_args="$gtk_config_args --prefix=$gtk_config_prefix"
-    GTK_CONFIG=$gtk_config_prefix/bin/gtk-config
-  fi
-  if test "x$gtk_config_exec_prefix" != "x" ; then
-    gtk_config_args="$gtk_config_args --exec-prefix=$gtk_config_exec_prefix"
-    GTK_CONFIG=$gtk_config_exec_prefix/bin/gtk-config
-  fi
-  if test "X$GTK_CONFIG" = "X"; then
-    # Extract the first word of "gtk-config", so it can be a program name with args.
-set dummy gtk-config; ac_word=$2
-{ echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
-if test "${ac_cv_path_GTK_CONFIG+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $GTK_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_GTK_CONFIG="$GTK_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_GTK_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_path_GTK_CONFIG" && ac_cv_path_GTK_CONFIG="no"
-  ;;
-esac
-fi
-GTK_CONFIG=$ac_cv_path_GTK_CONFIG
-if test -n "$GTK_CONFIG"; then
-  { echo "$as_me:$LINENO: result: $GTK_CONFIG" >&5
-echo "${ECHO_T}$GTK_CONFIG" >&6; }
-else
-  { echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-fi
-
-
-    if test "X$GTK_CONFIG" = "Xno"; then
-            # Extract the first word of "gtk12-config", so it can be a program name with args.
-set dummy gtk12-config; ac_word=$2
-{ echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
-if test "${ac_cv_path_GTK12_CONFIG+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $GTK12_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_GTK12_CONFIG="$GTK12_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_GTK12_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_path_GTK12_CONFIG" && ac_cv_path_GTK12_CONFIG="no"
-  ;;
-esac
-fi
-GTK12_CONFIG=$ac_cv_path_GTK12_CONFIG
-if test -n "$GTK12_CONFIG"; then
-  { echo "$as_me:$LINENO: result: $GTK12_CONFIG" >&5
-echo "${ECHO_T}$GTK12_CONFIG" >&6; }
-else
-  { echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-fi
-
-
-      GTK_CONFIG="$GTK12_CONFIG"
-    fi
-  else
-    { echo "$as_me:$LINENO: result: Using GTK configuration program $GTK_CONFIG" >&5
-echo "${ECHO_T}Using GTK configuration program $GTK_CONFIG" >&6; }
-  fi
   if test "X$PKG_CONFIG" = "X"; then
     # Extract the first word of "pkg-config", so it can be a program name with args.
 set dummy pkg-config; ac_word=$2
@@ -8575,8 +8411,7 @@ fi
 
   fi
 
-  if test "x$GTK_CONFIG:$PKG_CONFIG" != "xno:no"; then
-            if test "X$SKIP_GTK2" != "XYES"; then
+  if test "x$PKG_CONFIG" != "xno"; then
 
   if test "X$GTK_CONFIG" != "Xno" -o "X$PKG_CONFIG" != "Xno"; then
   {
@@ -8597,18 +8432,6 @@ echo $ECHO_N "checking for GTK - version >= $min_gtk_version... $ECHO_C" >&6; }
       gtk_micro_version=`$PKG_CONFIG --modversion gtk+-2.0 | \
 	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\3/'`
     }
-    elif test "X$GTK_CONFIG" != "Xno"; then
-    {
-      GTK_CFLAGS=`$GTK_CONFIG $gtk_config_args --cflags`
-      GTK_LIBDIR=
-      GTK_LIBS=`$GTK_CONFIG $gtk_config_args --libs`
-      gtk_major_version=`$GTK_CONFIG $gtk_config_args --version | \
-	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\1/'`
-      gtk_minor_version=`$GTK_CONFIG $gtk_config_args --version | \
-	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\2/'`
-      gtk_micro_version=`$GTK_CONFIG $gtk_config_args --version | \
-	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\3/'`
-    }
     else
       no_gtk=yes
     fi
@@ -8620,7 +8443,7 @@ echo $ECHO_N "checking for GTK - version >= $min_gtk_version... $ECHO_C" >&6; }
       CFLAGS="$CFLAGS $GTK_CFLAGS"
       LIBS="$LIBS $GTK_LIBS"
 
-                              rm -f conf.gtktest
+                        rm -f conf.gtktest
       if test "$cross_compiling" = yes; then
   echo $ac_n "cross compiling; assumed OK... $ac_c"
 else
@@ -8710,8 +8533,8 @@ echo "${ECHO_T}yes; found version $gtk_major_version.$gtk_minor_version.$gtk_mic
 echo "${ECHO_T}found version $gtk_major_version.$gtk_minor_version.$gtk_micro_version" >&6; }
       fi
       GUI_LIB_LOC="$GTK_LIBDIR"
-		   GTK_LIBNAME="$GTK_LIBS"
-		  GUI_INC_LOC="$GTK_CFLAGS"
+		 GTK_LIBNAME="$GTK_LIBS"
+		GUI_INC_LOC="$GTK_CFLAGS"
     else
     {
       { echo "$as_me:$LINENO: result: no" >&5
@@ -8731,202 +8554,24 @@ echo "${ECHO_T}no" >&6; }
 
   rm -f conf.gtktest
 
-      if test "x$GTK_CFLAGS" != "x"; then
-	SKIP_ATHENA=YES
-	SKIP_NEXTAW=YES
-	SKIP_MOTIF=YES
-	GUITYPE=GTK
+    if test "x$GTK_CFLAGS" != "x"; then
+      SKIP_ATHENA=YES
+      SKIP_NEXTAW=YES
+      SKIP_MOTIF=YES
+      GUITYPE=GTK
 
-      fi
-    fi
-
-                if test "x$GUITYPE" != "xGTK"; then
-      SKIP_GTK2=YES
-
-  if test "X$GTK_CONFIG" != "Xno" -o "X$PKG_CONFIG" != "Xno"; then
-  {
-    min_gtk_version=1.1.16
-    { echo "$as_me:$LINENO: checking for GTK - version >= $min_gtk_version" >&5
-echo $ECHO_N "checking for GTK - version >= $min_gtk_version... $ECHO_C" >&6; }
-    no_gtk=""
-    if (test "X$SKIP_GTK2" != "XYES" -a "X$PKG_CONFIG" != "Xno") \
-	  && $PKG_CONFIG --exists gtk+-2.0; then
-    {
-                        GTK_CFLAGS=`$PKG_CONFIG --cflags gtk+-2.0`
-      GTK_LIBDIR=`$PKG_CONFIG --libs-only-L gtk+-2.0`
-      GTK_LIBS=`$PKG_CONFIG --libs gtk+-2.0`
-      gtk_major_version=`$PKG_CONFIG --modversion gtk+-2.0 | \
-	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\1/'`
-      gtk_minor_version=`$PKG_CONFIG --modversion gtk+-2.0 | \
-	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\2/'`
-      gtk_micro_version=`$PKG_CONFIG --modversion gtk+-2.0 | \
-	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\3/'`
-    }
-    elif test "X$GTK_CONFIG" != "Xno"; then
-    {
-      GTK_CFLAGS=`$GTK_CONFIG $gtk_config_args --cflags`
-      GTK_LIBDIR=
-      GTK_LIBS=`$GTK_CONFIG $gtk_config_args --libs`
-      gtk_major_version=`$GTK_CONFIG $gtk_config_args --version | \
-	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\1/'`
-      gtk_minor_version=`$GTK_CONFIG $gtk_config_args --version | \
-	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\2/'`
-      gtk_micro_version=`$GTK_CONFIG $gtk_config_args --version | \
-	     sed 's/\([0-9]*\)\.\([0-9]*\)\.\([0-9]*\)/\3/'`
-    }
-    else
-      no_gtk=yes
-    fi
-
-    if test "x$enable_gtktest" = "xyes" -a "x$no_gtk" = "x"; then
-    {
-      ac_save_CFLAGS="$CFLAGS"
-      ac_save_LIBS="$LIBS"
-      CFLAGS="$CFLAGS $GTK_CFLAGS"
-      LIBS="$LIBS $GTK_LIBS"
-
-                              rm -f conf.gtktest
-      if test "$cross_compiling" = yes; then
-  echo $ac_n "cross compiling; assumed OK... $ac_c"
-else
-  cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-#include <gtk/gtk.h>
-#include <stdio.h>
-#if STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#endif
-
-int
-main ()
-{
-int major, minor, micro;
-char *tmp_version;
-
-system ("touch conf.gtktest");
-
-/* HP/UX 9 (%@#!) writes to sscanf strings */
-tmp_version = g_strdup("$min_gtk_version");
-if (sscanf(tmp_version, "%d.%d.%d", &major, &minor, &micro) != 3) {
-   printf("%s, bad version string\n", "$min_gtk_version");
-   exit(1);
- }
-
-if ((gtk_major_version > major) ||
-    ((gtk_major_version == major) && (gtk_minor_version > minor)) ||
-    ((gtk_major_version == major) && (gtk_minor_version == minor) &&
-				     (gtk_micro_version >= micro)))
-{
-    return 0;
-}
-return 1;
-}
-
-_ACEOF
-rm -f conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_link") 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
-  { (case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_try") 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  :
-else
-  echo "$as_me: program exited with status $ac_status" >&5
-echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-( exit $ac_status )
-no_gtk=yes
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
-fi
-
-
-      CFLAGS="$ac_save_CFLAGS"
-      LIBS="$ac_save_LIBS"
-    }
-    fi
-    if test "x$no_gtk" = x ; then
-      if test "x$enable_gtktest" = "xyes"; then
-	{ echo "$as_me:$LINENO: result: yes; found version $gtk_major_version.$gtk_minor_version.$gtk_micro_version" >&5
-echo "${ECHO_T}yes; found version $gtk_major_version.$gtk_minor_version.$gtk_micro_version" >&6; }
-      else
-	{ echo "$as_me:$LINENO: result: found version $gtk_major_version.$gtk_minor_version.$gtk_micro_version" >&5
-echo "${ECHO_T}found version $gtk_major_version.$gtk_minor_version.$gtk_micro_version" >&6; }
-      fi
-      GTK_LIBNAME="$GTK_LIBS"
-		  GUI_INC_LOC="$GTK_CFLAGS"
-    else
-    {
-      { echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-      GTK_CFLAGS=""
-      GTK_LIBS=""
-      :
-    }
-    fi
-  }
-  else
-    GTK_CFLAGS=""
-    GTK_LIBS=""
-    :
-  fi
-
-
-  rm -f conf.gtktest
-
-      if test "x$GTK_CFLAGS" != "x"; then
-	SKIP_ATHENA=YES
-	SKIP_NEXTAW=YES
-	SKIP_MOTIF=YES
-	GUITYPE=GTK
-
-      fi
     fi
   fi
-    if test "x$GUITYPE" = "xGTK"; then
-    if test "$gtk_major_version" = 1 -a "0$gtk_minor_version" -lt 2 \
-	 -o "$gtk_major_version" = 1 -a "$gtk_minor_version" = 2 -a "0$gtk_micro_version" -lt 3; then
-      { echo "$as_me:$LINENO: result: this GTK version is old; version 1.2.3 or later is recommended" >&5
-echo "${ECHO_T}this GTK version is old; version 1.2.3 or later is recommended" >&6; }
-    else
-    {
-      if test "0$gtk_major_version" -ge 2; then
-	cat >>confdefs.h <<\_ACEOF
-#define HAVE_GTK2 1
-_ACEOF
-
-	if test "$gtk_minor_version" = 1 -a "0$gtk_micro_version" -ge 1 \
-		|| test "0$gtk_minor_version" -ge 2 \
-		|| test "0$gtk_major_version" -gt 2; then
-	  cat >>confdefs.h <<\_ACEOF
+  if test "x$GUITYPE" = "xGTK"; then
+    if test "$gtk_minor_version" = 1 -a "0$gtk_micro_version" -ge 1 \
+	|| test "0$gtk_minor_version" -ge 2; then
+      cat >>confdefs.h <<\_ACEOF
 #define HAVE_GTK_MULTIHEAD 1
 _ACEOF
 
-	fi
-      fi
-                        if test -z "$SKIP_GNOME"; then
-      {
+    fi
+                if test -z "$SKIP_GNOME"; then
+    {
 
 
 
@@ -8969,7 +8614,7 @@ else
 fi
 
 
-  if test "x$want_gnome" = xyes -a "0$gtk_major_version" -ge 2; then
+  if test "x$want_gnome" = xyes; then
   {
     { echo "$as_me:$LINENO: checking for libgnomeui-2.0" >&5
 echo $ECHO_N "checking for libgnomeui-2.0... $ECHO_C" >&6; }
@@ -9002,110 +8647,15 @@ echo "$as_me: error: Could not find libgnomeui-2.0 via pkg-config" >&2;}
       fi
     fi
   }
-  elif test "x$want_gnome" = xyes; then
-  {
-    # Extract the first word of "gnome-config", so it can be a program name with args.
-set dummy gnome-config; ac_word=$2
-{ echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
-if test "${ac_cv_path_GNOME_CONFIG+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $GNOME_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_GNOME_CONFIG="$GNOME_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_GNOME_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_path_GNOME_CONFIG" && ac_cv_path_GNOME_CONFIG="no"
-  ;;
-esac
-fi
-GNOME_CONFIG=$ac_cv_path_GNOME_CONFIG
-if test -n "$GNOME_CONFIG"; then
-  { echo "$as_me:$LINENO: result: $GNOME_CONFIG" >&5
-echo "${ECHO_T}$GNOME_CONFIG" >&6; }
-else
-  { echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-fi
-
-
-    if test "$GNOME_CONFIG" = "no"; then
-      no_gnome_config="yes"
-    else
-      { echo "$as_me:$LINENO: checking if $GNOME_CONFIG works" >&5
-echo $ECHO_N "checking if $GNOME_CONFIG works... $ECHO_C" >&6; }
-      if $GNOME_CONFIG --libs-only-l gnome >/dev/null 2>&1; then
-	{ echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6; }
-	GNOME_LIBS="`$GNOME_CONFIG --libs-only-l gnome gnomeui`"
-	GNOME_LIBDIR="`$GNOME_CONFIG --libs-only-L gnorba gnomeui`"
-	GNOME_INCLUDEDIR="`$GNOME_CONFIG --cflags gnorba gnomeui`"
-	have_gnome=yes
-      else
-	{ echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-	no_gnome_config="yes"
-      fi
-    fi
-
-    if test x$exec_prefix = xNONE; then
-      if test x$prefix = xNONE; then
-	gnome_prefix=$ac_default_prefix/lib
-      else
-	gnome_prefix=$prefix/lib
-      fi
-    else
-      gnome_prefix=`eval echo \`echo $libdir\``
-    fi
-
-    if test "$no_gnome_config" = "yes"; then
-      { echo "$as_me:$LINENO: checking for gnomeConf.sh file in $gnome_prefix" >&5
-echo $ECHO_N "checking for gnomeConf.sh file in $gnome_prefix... $ECHO_C" >&6; }
-      if test -f $gnome_prefix/gnomeConf.sh; then
-	{ echo "$as_me:$LINENO: result: found" >&5
-echo "${ECHO_T}found" >&6; }
-	echo "loading gnome configuration from" \
-	  "$gnome_prefix/gnomeConf.sh"
-	. $gnome_prefix/gnomeConf.sh
-	have_gnome=yes
-      else
-	{ echo "$as_me:$LINENO: result: not found" >&5
-echo "${ECHO_T}not found" >&6; }
-	if test x = xfail; then
-	  { { echo "$as_me:$LINENO: error: Could not find the gnomeConf.sh file that is generated by gnome-libs install" >&5
-echo "$as_me: error: Could not find the gnomeConf.sh file that is generated by gnome-libs install" >&2;}
-   { (exit 1); exit 1; }; }
-	fi
-      fi
-    fi
-  }
   fi
 
-	if test x$have_gnome = xyes ; then
-	  cat >>confdefs.h <<\_ACEOF
+      if test "x$have_gnome" = xyes ; then
+	cat >>confdefs.h <<\_ACEOF
 #define FEAT_GUI_GNOME 1
 _ACEOF
 
-	  GUI_INC_LOC="$GUI_INC_LOC $GNOME_INCLUDEDIR"
-	  GTK_LIBNAME="$GTK_LIBNAME $GNOME_LIBDIR $GNOME_LIBS"
-	fi
-      }
+	GUI_INC_LOC="$GUI_INC_LOC $GNOME_INCLUDEDIR"
+	GTK_LIBNAME="$GTK_LIBNAME $GNOME_LIBDIR $GNOME_LIBS"
       fi
     }
     fi
@@ -9833,8 +9383,7 @@ done
   CPPFLAGS=$cppflags_save
 fi
 
-
-if test -z "$SKIP_ATHENA" -o -z "$SKIP_NEXTAW" -o -z "$SKIP_MOTIF" -o -z "$SKIP_GTK"; then
+if test -z "$SKIP_ATHENA" -o -z "$SKIP_NEXTAW" -o -z "$SKIP_MOTIF" -o -z "$SKIP_GTK2"; then
     cppflags_save=$CPPFLAGS
   CPPFLAGS="$CPPFLAGS $X_CFLAGS"
 
@@ -10291,7 +9840,7 @@ if test "x$GUITYPE" = "xNONE" -a "$enable_fontset" = "yes"; then
 echo "${ECHO_T}no GUI selected; fontset has been disabled" >&6; }
   enable_fontset="no"
 fi
-if test "x$GUITYPE:$enable_fontset" = "xGTK:yes" -a "0$gtk_major_version" -ge 2; then
+if test "x$GUITYPE:$enable_fontset" = "xGTK:yes"; then
   { echo "$as_me:$LINENO: result: GTK+ 2 GUI selected; fontset has been disabled" >&5
 echo "${ECHO_T}GTK+ 2 GUI selected; fontset has been disabled" >&6; }
   enable_fontset="no"
@@ -19877,8 +19426,6 @@ X_PRE_LIBS!$X_PRE_LIBS$ac_delim
 X_LIBS!$X_LIBS$ac_delim
 X_EXTRA_LIBS!$X_EXTRA_LIBS$ac_delim
 X_LIB!$X_LIB$ac_delim
-GTK_CONFIG!$GTK_CONFIG$ac_delim
-GTK12_CONFIG!$GTK12_CONFIG$ac_delim
 PKG_CONFIG!$PKG_CONFIG$ac_delim
 GTK_CFLAGS!$GTK_CFLAGS$ac_delim
 GTK_LIBS!$GTK_LIBS$ac_delim
@@ -19886,7 +19433,6 @@ GTK_LIBNAME!$GTK_LIBNAME$ac_delim
 GNOME_LIBS!$GNOME_LIBS$ac_delim
 GNOME_LIBDIR!$GNOME_LIBDIR$ac_delim
 GNOME_INCLUDEDIR!$GNOME_INCLUDEDIR$ac_delim
-GNOME_CONFIG!$GNOME_CONFIG$ac_delim
 MOTIF_LIBNAME!$MOTIF_LIBNAME$ac_delim
 NARROW_PROTO!$NARROW_PROTO$ac_delim
 GUI_INC_LOC!$GUI_INC_LOC$ac_delim
@@ -19906,7 +19452,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 41; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 38; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

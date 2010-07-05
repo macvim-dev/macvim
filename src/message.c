@@ -3778,7 +3778,7 @@ do_browse(flags, title, dflt, ext, initdir, filter, buf)
 	    filter = BROWSE_FILTER_DEFAULT;
 	if (flags & BROWSE_DIR)
 	{
-#  if defined(HAVE_GTK2) || defined(WIN3264)
+#  if defined(FEAT_GUI_GTK) || defined(WIN3264)
 	    /* For systems that have a directory dialog. */
 	    fname = gui_mch_browsedir(title, initdir);
 #  else
@@ -3786,7 +3786,7 @@ do_browse(flags, title, dflt, ext, initdir, filter, buf)
 	     * remove the file name. */
 	    fname = gui_mch_browse(0, title, dflt, ext, initdir, (char_u *)"");
 #  endif
-#  if !defined(HAVE_GTK2)
+#  if !defined(FEAT_GUI_GTK)
 	    /* Win32 adds a dummy file name, others return an arbitrary file
 	     * name.  GTK+ 2 returns only the directory, */
 	    if (fname != NULL && *fname != NUL && !mch_isdir(fname))
@@ -3973,6 +3973,47 @@ tv_float(tvs, idxp)
 /* When generating prototypes all of this is skipped, cproto doesn't
  * understand this. */
 #ifndef PROTO
+
+# ifdef HAVE_STDARG_H
+/* Like vim_vsnprintf() but append to the string. */
+    int
+vim_snprintf_add(char *str, size_t str_m, char *fmt, ...)
+{
+    va_list	ap;
+    int		str_l;
+    size_t	len = STRLEN(str);
+    size_t	space;
+
+    if (str_m <= len)
+	space = 0;
+    else
+	space = str_m - len;
+    va_start(ap, fmt);
+    str_l = vim_vsnprintf(str + len, space, fmt, ap, NULL);
+    va_end(ap);
+    return str_l;
+}
+# else
+/* Like vim_vsnprintf() but append to the string. */
+    int
+vim_snprintf_add(str, str_m, fmt, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10)
+    char	*str;
+    size_t	str_m;
+    char	*fmt;
+    long	a1, a2, a3, a4, a5, a6, a7, a8, a9, a10;
+{
+    size_t	len = STRLEN(str);
+    size_t	space;
+
+    if (str_m <= len)
+	space = 0;
+    else
+	space = str_m - len;
+    return vim_vsnprintf(str + len, space, fmt,
+				     a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
+}
+# endif
+
 # ifdef HAVE_STDARG_H
     int
 vim_snprintf(char *str, size_t str_m, char *fmt, ...)

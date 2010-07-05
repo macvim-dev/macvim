@@ -8481,7 +8481,7 @@ ex_undo(eap)
     exarg_T	*eap UNUSED;
 {
     if (eap->addr_count == 1)	    /* :undo 123 */
-	undo_time(eap->line2, FALSE, TRUE);
+	undo_time(eap->line2, FALSE, FALSE, TRUE);
     else
 	u_undo(1);
 }
@@ -8527,6 +8527,7 @@ ex_later(eap)
 {
     long	count = 0;
     int		sec = FALSE;
+    int		file = FALSE;
     char_u	*p = eap->arg;
 
     if (*p == NUL)
@@ -8539,13 +8540,16 @@ ex_later(eap)
 	    case 's': ++p; sec = TRUE; break;
 	    case 'm': ++p; sec = TRUE; count *= 60; break;
 	    case 'h': ++p; sec = TRUE; count *= 60 * 60; break;
+	    case 'd': ++p; sec = TRUE; count *= 24 * 60 * 60; break;
+	    case 'f': ++p; file = TRUE; break;
 	}
     }
 
     if (*p != NUL)
 	EMSG2(_(e_invarg2), eap->arg);
     else
-	undo_time(eap->cmdidx == CMD_earlier ? -count : count, sec, FALSE);
+	undo_time(eap->cmdidx == CMD_earlier ? -count : count,
+							    sec, file, FALSE);
 }
 
 /*
@@ -10458,7 +10462,7 @@ put_view(fd, wp, add_edit, flagp, current_arg_idx)
 
     /* Only when part of a session: restore the argument index.  Some
      * arguments may have been deleted, check if the index is valid. */
-    if (wp->w_arg_idx != current_arg_idx && wp->w_arg_idx <= WARGCOUNT(wp)
+    if (wp->w_arg_idx != current_arg_idx && wp->w_arg_idx < WARGCOUNT(wp)
 						      && flagp == &ssop_flags)
     {
 	if (fprintf(fd, "%ldargu", (long)wp->w_arg_idx + 1) < 0

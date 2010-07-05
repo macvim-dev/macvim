@@ -2298,9 +2298,6 @@ do_mouse(oap, c, dir, count, fixindent)
     int		old_mode = VIsual_mode;
 #endif
     int		regname;
-#ifdef FEAT_CONCEAL
-    linenr_T	oldline = curwin->w_cursor.lnum;
-#endif
 
 #if defined(FEAT_FOLDING)
     save_cursor = curwin->w_cursor;
@@ -2773,14 +2770,6 @@ do_mouse(oap, c, dir, count, fixindent)
 	/* don't move the cursor if still in the same window */
 	if (curwin == old_curwin)
 	    curwin->w_cursor = save_cursor;
-    }
-#endif
-#ifdef FEAT_CONCEAL
-    if (curwin->w_p_conceal && moved
-		&& (old_curwin != curwin || oldline != curwin->w_cursor.lnum))
-    {
-	update_single_line(old_curwin, oldline);
-	update_single_line(curwin, curwin->w_cursor.lnum);
     }
 #endif
 
@@ -5741,9 +5730,6 @@ nv_scroll(cap)
     linenr_T	lnum;
 #endif
     int		half;
-#ifdef FEAT_CONCEAL
-    linenr_T	oldline = curwin->w_cursor.lnum;
-#endif
 
     cap->oap->motion_type = MLINE;
     setpcmark();
@@ -5831,13 +5817,6 @@ nv_scroll(cap)
 
     cursor_correct();	/* correct for 'so' */
     beginline(BL_SOL | BL_FIX);
-#ifdef FEAT_CONCEAL
-    if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-    {
-	update_single_line(curwin, oldline);
-	update_single_line(curwin, curwin->w_cursor.lnum);
-    }
-#endif
 }
 
 /*
@@ -5852,9 +5831,6 @@ nv_right(cap)
     int		PAST_LINE;
 #else
 # define PAST_LINE 0
-#endif
-#ifdef FEAT_CONCEAL
-    linenr_T	oldline = curwin->w_cursor.lnum;
 #endif
 
     if (mod_mask & (MOD_MASK_SHIFT | MOD_MASK_CTRL))
@@ -5960,13 +5936,6 @@ nv_right(cap)
 					       && cap->oap->op_type == OP_NOP)
 	foldOpenCursor();
 #endif
-#ifdef FEAT_CONCEAL
-    if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-    {
-	update_single_line(curwin, oldline);
-	update_single_line(curwin, curwin->w_cursor.lnum);
-    }
-#endif
 }
 
 /*
@@ -5979,9 +5948,6 @@ nv_left(cap)
     cmdarg_T	*cap;
 {
     long	n;
-#ifdef FEAT_CONCEAL
-    linenr_T	oldline = curwin->w_cursor.lnum;
-#endif
 
     if (mod_mask & (MOD_MASK_SHIFT | MOD_MASK_CTRL))
     {
@@ -6040,13 +6006,6 @@ nv_left(cap)
 					       && cap->oap->op_type == OP_NOP)
 	foldOpenCursor();
 #endif
-#ifdef FEAT_CONCEAL
-    if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-    {
-	update_single_line(curwin, oldline);
-	update_single_line(curwin, curwin->w_cursor.lnum);
-    }
-#endif
 }
 
 /*
@@ -6065,21 +6024,11 @@ nv_up(cap)
     }
     else
     {
-#ifdef FEAT_CONCEAL
-	linenr_T	oldline = curwin->w_cursor.lnum;
-#endif
 	cap->oap->motion_type = MLINE;
 	if (cursor_up(cap->count1, cap->oap->op_type == OP_NOP) == FAIL)
 	    clearopbeep(cap->oap);
 	else if (cap->arg)
 	    beginline(BL_WHITE | BL_FIX);
-#ifdef FEAT_CONCEAL
-	if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-	{
-	    update_single_line(curwin, oldline);
-	    update_single_line(curwin, curwin->w_cursor.lnum);
-	}
-#endif
     }
 }
 
@@ -6108,10 +6057,6 @@ nv_down(cap)
     else
 #endif
     {
-#ifdef FEAT_CONCEAL
-	linenr_T	oldline = curwin->w_cursor.lnum;
-	linenr_T	oldbotline = curwin->w_botline;
-#endif
 #ifdef FEAT_CMDWIN
 	/* In the cmdline window a <CR> executes the command. */
 	if (cmdwin_type != 0 && cap->cmdchar == CAR)
@@ -6124,16 +6069,6 @@ nv_down(cap)
 		clearopbeep(cap->oap);
 	    else if (cap->arg)
 		beginline(BL_WHITE | BL_FIX);
-#ifdef FEAT_CONCEAL
-	    if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-	    {
-		update_single_line(curwin, oldline);
-		/* Don't do this if we've scrolled, the line is already
-		 * drawn */
-		if (oldbotline == curwin->w_botline)
-		    update_single_line(curwin, curwin->w_cursor.lnum);
-	    }
-#endif
 	}
     }
 }
@@ -6692,7 +6627,7 @@ nv_percent(cap)
     cmdarg_T	*cap;
 {
     pos_T	*pos;
-#if defined(FEAT_FOLDING) || defined(FEAT_CONCEAL)
+#if defined(FEAT_FOLDING)
     linenr_T	lnum = curwin->w_cursor.lnum;
 #endif
 
@@ -6743,13 +6678,6 @@ nv_percent(cap)
 	    && (fdo_flags & FDO_PERCENT)
 	    && KeyTyped)
 	foldOpenCursor();
-#endif
-#ifdef FEAT_CONCEAL
-	if (curwin->w_p_conceal && lnum != curwin->w_cursor.lnum)
-	{
-	    update_single_line(curwin, lnum);
-	    update_single_line(curwin, curwin->w_cursor.lnum);
-	}
 #endif
 }
 
@@ -6805,9 +6733,6 @@ nv_mark(cap)
 nv_findpar(cap)
     cmdarg_T	*cap;
 {
-#ifdef FEAT_CONCEAL
-    linenr_T	oldline = curwin->w_cursor.lnum;
-#endif
     cap->oap->motion_type = MCHAR;
     cap->oap->inclusive = FALSE;
     cap->oap->use_reg_one = TRUE;
@@ -6822,13 +6747,6 @@ nv_findpar(cap)
 #ifdef FEAT_FOLDING
 	if ((fdo_flags & FDO_BLOCK) && KeyTyped && cap->oap->op_type == OP_NOP)
 	    foldOpenCursor();
-#endif
-#ifdef FEAT_CONCEAL
-	if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-	{
-	    update_single_line(curwin, oldline);
-	    update_single_line(curwin, curwin->w_cursor.lnum);
-	}
 #endif
     }
 }
@@ -7751,9 +7669,6 @@ nv_g_cmd(cap)
 #endif
     int		i;
     int		flag = FALSE;
-#ifdef FEAT_CONCEAL
-    linenr_T	oldline;
-#endif
 
     switch (cap->nchar)
     {
@@ -7895,9 +7810,6 @@ nv_g_cmd(cap)
     case K_DOWN:
 	/* with 'nowrap' it works just like the normal "j" command; also when
 	 * in a closed fold */
-#ifdef FEAT_CONCEAL
-	oldline = curwin->w_cursor.lnum;
-#endif
 	if (!curwin->w_p_wrap
 #ifdef FEAT_FOLDING
 		|| hasFolding(curwin->w_cursor.lnum, NULL, NULL)
@@ -7911,22 +7823,12 @@ nv_g_cmd(cap)
 	    i = nv_screengo(oap, FORWARD, cap->count1);
 	if (i == FAIL)
 	    clearopbeep(oap);
-#ifdef FEAT_CONCEAL
-	else if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-	{
-	    update_single_line(curwin, oldline);
-	    update_single_line(curwin, curwin->w_cursor.lnum);
-	}
-#endif
 	break;
 
     case 'k':
     case K_UP:
 	/* with 'nowrap' it works just like the normal "k" command; also when
 	 * in a closed fold */
-#ifdef FEAT_CONCEAL
-	oldline = curwin->w_cursor.lnum;
-#endif
 	if (!curwin->w_p_wrap
 #ifdef FEAT_FOLDING
 		|| hasFolding(curwin->w_cursor.lnum, NULL, NULL)
@@ -7940,13 +7842,6 @@ nv_g_cmd(cap)
 	    i = nv_screengo(oap, BACKWARD, cap->count1);
 	if (i == FAIL)
 	    clearopbeep(oap);
-#ifdef FEAT_CONCEAL
-	else if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-	{
-	    update_single_line(curwin, oldline);
-	    update_single_line(curwin, curwin->w_cursor.lnum);
-	}
-#endif
 	break;
 
     /*
@@ -8322,7 +8217,7 @@ nv_g_cmd(cap)
     case '-': /* "g+" and "g-": undo or redo along the timeline */
 	if (!checkclearopq(oap))
 	    undo_time(cap->nchar == '-' ? -cap->count1 : cap->count1,
-								FALSE, FALSE);
+							 FALSE, FALSE, FALSE);
 	break;
 
     default:
@@ -8573,9 +8468,6 @@ nv_pipe(cap)
 nv_bck_word(cap)
     cmdarg_T	*cap;
 {
-#ifdef FEAT_CONCEAL
-    linenr_T	oldline = curwin->w_cursor.lnum;
-#endif
     cap->oap->motion_type = MCHAR;
     cap->oap->inclusive = FALSE;
     curwin->w_set_curswant = TRUE;
@@ -8584,13 +8476,6 @@ nv_bck_word(cap)
 #ifdef FEAT_FOLDING
     else if ((fdo_flags & FDO_HOR) && KeyTyped && cap->oap->op_type == OP_NOP)
 	foldOpenCursor();
-#endif
-#ifdef FEAT_CONCEAL
-    if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-    {
-	update_single_line(curwin, oldline);
-	update_single_line(curwin, curwin->w_cursor.lnum);
-    }
 #endif
 }
 
@@ -8606,9 +8491,6 @@ nv_wordcmd(cap)
     int		word_end;
     int		flag = FALSE;
     pos_T	startpos = curwin->w_cursor;
-#ifdef FEAT_CONCEAL
-    linenr_T	oldline = startpos.lnum;
-#endif
 
     /*
      * Set inclusive for the "E" and "e" command.
@@ -8686,13 +8568,6 @@ nv_wordcmd(cap)
 	    foldOpenCursor();
 #endif
     }
-#ifdef FEAT_CONCEAL
-    if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-    {
-	update_single_line(curwin, oldline);
-	update_single_line(curwin, curwin->w_cursor.lnum);
-    }
-#endif
 }
 
 /*
@@ -8854,10 +8729,6 @@ nv_goto(cap)
 #ifdef FEAT_FOLDING
     if ((fdo_flags & FDO_JUMP) && KeyTyped && cap->oap->op_type == OP_NOP)
 	foldOpenCursor();
-#endif
-#ifdef FEAT_CONCEAL
-    if (curwin->w_p_conceal)
-	changed_window_setting();
 #endif
 }
 
@@ -9284,9 +9155,6 @@ nv_put(cap)
     int		empty = FALSE;
     int		was_visual = FALSE;
 #endif
-#ifdef FEAT_CONCEAL
-    linenr_T	oldline = curwin->w_cursor.lnum;
-#endif
     int		dir;
     int		flags = 0;
 
@@ -9406,13 +9274,6 @@ nv_put(cap)
 	}
 #endif
 	auto_format(FALSE, TRUE);
-#ifdef FEAT_CONCEAL
-	if (curwin->w_p_conceal && oldline != curwin->w_cursor.lnum)
-	{
-	    update_single_line(curwin, oldline);
-	    update_single_line(curwin, curwin->w_cursor.lnum);
-	}
-#endif
     }
 }
 

@@ -846,13 +846,9 @@ EXTERN int* (*iconv_errno) (void);
 #endif /* FEAT_MBYTE */
 
 #ifdef FEAT_XIM
-# if defined(FEAT_GUI_GTK) || defined (FEAT_GUI_MACVIM)
-#  ifdef HAVE_GTK2
+# if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
+#  ifndef FEAT_GUI_MACVIM
 EXTERN GtkIMContext	*xic INIT(= NULL);
-#  elif !defined(FEAT_GUI_MACVIM)
-EXTERN GdkICAttr	*xic_attr INIT(= NULL);
-EXTERN GdkIC		*xic INIT(= NULL);
-EXTERN char		*draw_feedback INIT(= NULL);
 #  endif
 /*
  * Start and end column of the preedit area in virtual columns from the start
@@ -1404,7 +1400,7 @@ EXTERN char_u e_fontset[]	INIT(= N_("E234: Unknown fontset: %s"));
 	|| defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MSWIN)
 EXTERN char_u e_font[]		INIT(= N_("E235: Unknown font: %s"));
 #endif
-#if (defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK)) && !defined(HAVE_GTK2)
+#if defined(FEAT_GUI_X11) && !defined(FEAT_GUI_GTK)
 EXTERN char_u e_fontwidth[]	INIT(= N_("E236: Font \"%s\" is not fixed-width"));
 #endif
 EXTERN char_u e_internal[]	INIT(= N_("E473: Internal error"));
@@ -1516,7 +1512,7 @@ EXTERN char_u e_screenmode[]	INIT(= N_("E359: Screen mode setting not supported"
 #endif
 EXTERN char_u e_scroll[]	INIT(= N_("E49: Invalid scroll size"));
 EXTERN char_u e_shellempty[]	INIT(= N_("E91: 'shell' option is empty"));
-#if defined(FEAT_SIGN_ICONS) && !defined(HAVE_GTK2)
+#if defined(FEAT_SIGN_ICONS) && !defined(FEAT_GUI_GTK)
 EXTERN char_u e_signdata[]	INIT(= N_("E255: Couldn't read in sign data!"));
 #endif
 EXTERN char_u e_swapclose[]	INIT(= N_("E72: Close error on swap file"));
