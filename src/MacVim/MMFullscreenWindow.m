@@ -230,14 +230,16 @@
     [[view textView] getMaxRows:&currRows columns:&currColumns];
     int newRows = currRows, newColumns = currColumns;
 
-    // compute desired non-fu size.
-    // if current fu size is equal to fu size at fu enter time,
-    // restore the old size
+    // Compute desired non-fu size.
     //
-    if (startFuFlags & FUOPT_MAXVERT && startFuRows == currRows)
+    // If current fu size is almost equal to fu size at fu enter time,
+    // restore the old size.  Don't check for sizes to match exactly since then
+    // the non-fu size will not be restored if e.g. the tabline or scrollbars
+    // were toggled while in fu-mode.
+    if (startFuFlags & FUOPT_MAXVERT && abs(startFuRows-currRows)<5)
         newRows = nonFuRows;
 
-    if (startFuFlags & FUOPT_MAXHORZ && startFuColumns == currColumns)
+    if (startFuFlags & FUOPT_MAXHORZ && abs(startFuColumns-currColumns)<5)
         newColumns = nonFuColumns;
 
     // resize vim if necessary

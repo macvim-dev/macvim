@@ -1914,11 +1914,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [cachedVimControllers removeObjectAtIndex:0];
     [vc setIsPreloading:NO];
 
-    // If the Vim process has finished loading then the window will displayed
-    // now, otherwise it will be displayed when the OpenWindowMsgID message is
-    // received.
-    [[vc windowController] showWindow];
-
     // Since we've taken one controller from the cache we take the opportunity
     // to preload another.
     [self scheduleVimControllerPreloadAfterDelay:1];

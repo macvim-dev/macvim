@@ -3599,10 +3599,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 		Exception: Athena will always use grey menu items.
 								*'go-t'*
 	  't'	Include tearoff menu items.  Currently only works for Win32,
-		GTK+, MacVim, and Motif 1.2 GUI.
+		GTK+ and Motif 1.2 GUI.
 								*'go-T'*
-	  'T'	Include Toolbar.  Currently only in Win32, GTK+, Motif, Photon
-		and Athena GUIs.
+	  'T'	Include Toolbar.  Currently only in Win32, GTK+, Motif,
+		Photon, MacVim and Athena GUIs.
 								*'go-r'*
 	  'r'	Right-hand scrollbar is always present.
 	  							*'go-R'*

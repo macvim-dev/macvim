@@ -548,13 +548,14 @@ static BOOL isUnsafeMessage(int msgid);
 {
     if (OpenWindowMsgID == msgid) {
         [windowController openWindow];
-
-        // If the vim controller is preloading then the window will be
-        // displayed when it is taken off the preload cache.
-        if (!isPreloading)
-            [windowController showWindow];
     } else if (BatchDrawMsgID == msgid) {
         [[[windowController vimView] textView] performBatchDrawWithData:data];
+
+        // HACK! In order to avoid the window flashing white on startup we take
+        // care to only present the window on screen once something has been
+        // drawn to it.
+        if (!windowHasBeenPresented)
+            windowHasBeenPresented = [windowController presentWindow];
     } else if (SelectTabMsgID == msgid) {
 #if 0   // NOTE: Tab selection is done inside updateTabsWithData:.
         const void *bytes = [data bytes];

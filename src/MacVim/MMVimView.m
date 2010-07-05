@@ -191,13 +191,6 @@ enum {
 
 - (void)drawRect:(NSRect)rect
 {
-    if (isDirty) {
-        // Clear the entire view
-        [[textView defaultBackgroundColor] set];
-        NSRectFill([self bounds]);
-        isDirty = NO;
-    }
-
     // On Leopard, we want to have a textured window background for nice
     // looking tabs. However, the textured window background looks really
     // weird behind the window resize throbber, so emulate the look of an
@@ -621,13 +614,6 @@ enum {
     // See comment in setFrameSize: above.
     [super setFrame:frame];
     [self frameSizeMayHaveChanged];
-}
-
-- (void)markDirty
-{
-    // When the view is marked as dirty, the entire background will be cleared
-    // the next time the view is redrawn.
-    isDirty = YES;
 }
 
 @end // MMVimView

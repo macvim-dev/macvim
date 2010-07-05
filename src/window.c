@@ -5572,7 +5572,12 @@ win_new_height(wp, height)
     wp->w_prev_fraction_row = wp->w_wrow;
 
     win_comp_scroll(wp);
+#ifdef FEAT_GUI_MACVIM
+    /* The view may have moved, so clear all or display may get corrupted. */
+    redraw_win_later(wp, CLEAR);
+#else
     redraw_win_later(wp, SOME_VALID);
+#endif
 #ifdef FEAT_WINDOWS
     wp->w_redr_status = TRUE;
 #endif

@@ -41,6 +41,7 @@
 #endif
     BOOL                isPreloading;
     NSDate              *creationDate;
+    BOOL                windowHasBeenPresented;
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;

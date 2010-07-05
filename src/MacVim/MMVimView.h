@@ -25,7 +25,6 @@
     BOOL                vimTaskSelectedTab;
     MMTextView          *textView;
     NSMutableArray      *scrollbars;
-    BOOL                isDirty;
 }
 
 - (MMVimView *)initWithFrame:(NSRect)frame vimController:(MMVimController *)c;
@@ -57,6 +56,5 @@
 - (void)viewDidEndLiveResize;
 - (void)setFrameSize:(NSSize)size;
 - (void)setFrame:(NSRect)frame;
-- (void)markDirty;
 
 @end
