@@ -438,7 +438,7 @@ Note: These two lines must be added to .gvimrc else the first line will fail.
 The second line is case sensitive, so <D-T> (Cmd-Shift-t) is not the same as
 <D-t> (Cmd-t)!
 
-The standard Vim menus are modified in "$VIM/gvimrc".  Take a look at that
+The default menus are set up in "$VIMRUNTIME/menu.vim".  Take a look at that
 file for more examples on how to set up menus.  Note: When no window is open a
 minimal default menu is used.  The default menu is set up in MainMenu.nib
 which resides in "Resources/English.lproj/" folder inside the app bundle.
