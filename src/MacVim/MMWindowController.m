@@ -263,16 +263,17 @@
                           keepOnScreen:YES];
 }
 
-- (void)showWindow
+- (BOOL)presentWindow
 {
     // Actually show the window on screen.  However, if openWindow hasn't
     // already been called nothing will happen (the window will be displayed
     // later).
-    if (!setupDone) return;
+    if (!setupDone) return NO;
 
-    [vimView markDirty];
     [[MMAppController sharedInstance] windowControllerWillOpen:self];
     [[self window] makeKeyAndOrderFront:self];
+
+    return YES;
 }
 
 - (void)updateTabsWithData:(NSData *)data
