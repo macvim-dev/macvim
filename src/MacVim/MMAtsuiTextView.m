@@ -336,6 +336,10 @@ defaultLineHeightForFont(NSFont *font)
 {
 }
 
+- (void)deleteSign:(NSString *)signName
+{
+}
+
 - (void)setPreEditRow:(int)row column:(int)col
 {
     [helper setPreEditRow:row column:col];

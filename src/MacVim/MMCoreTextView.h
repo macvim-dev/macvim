@@ -66,6 +66,7 @@
 //
 // MMTextView methods
 //
+- (void)deleteSign:(NSString *)signName;
 - (void)setShouldDrawInsertionPoint:(BOOL)on;
 - (void)setPreEditRow:(int)row column:(int)col;
 - (void)setMouseShape:(int)shape;

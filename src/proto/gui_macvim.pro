@@ -224,3 +224,13 @@ im_set_control(int enable);
 
     void
 gui_macvim_set_netbeans_socket(int socket);
+
+    void
+gui_mch_drawsign(int row, int col, int typenr);
+
+    void *
+gui_mch_register_sign(char_u *signfile);
+
+    void
+gui_mch_destroy_sign(void *sign);
+

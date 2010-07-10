@@ -22,6 +22,7 @@
 // HACK! Used in gui.c to determine which string drawing code to use.
 int use_gui_macvim_draw_string = 1;
 
+static int use_graphical_sign = 0;
 
 // NOTE: The default font is bundled with the application.
 static NSString *MMDefaultFontName = @"DejaVu Sans Mono";
@@ -149,6 +150,10 @@ gui_macvim_after_fork_init()
     if (keyValid) {
         ASLogInfo(@"Use renderer=%d", val);
         use_gui_macvim_draw_string = (val != MMRendererCoreText);
+
+        // For now only the Core Text renderer knows how to render graphical
+        // signs.
+        use_graphical_sign = (val == MMRendererCoreText);
     }
 }
 
@@ -2283,3 +2288,69 @@ gui_macvim_set_netbeans_socket(int socket)
 }
 
 #endif // FEAT_NETBEANS_INTG
+
+
+
+// -- Graphical Sign Support ------------------------------------------------
+
+#if defined(FEAT_SIGN_ICONS)
+    void
+gui_mch_drawsign(int row, int col, int typenr)
+{
+    if (!gui.in_use)
+        return;
+
+    NSString *imgName = (NSString *)sign_get_image(typenr);
+    if (!imgName)
+        return;
+
+    char_u *txt = sign_get_text(typenr);
+    int txtSize = txt ? strlen((char*)txt) : 2;
+
+    [[MMBackend sharedInstance] drawSign:imgName
+                                   atRow:row
+                                  column:col
+                                   width:txtSize
+                                  height:1];
+}
+
+    void *
+gui_mch_register_sign(char_u *signfile)
+{
+    if (!use_graphical_sign)
+        return NULL;
+
+    NSString *imgName = [NSString stringWithVimString:signfile];
+    NSImage *img = [[NSImage alloc] initWithContentsOfFile:imgName];
+    if (!img) {
+        EMSG(_(e_signdata));
+        return NULL;
+    }
+
+    [img release];
+
+    return (void*)[imgName retain];
+}
+
+    void
+gui_mch_destroy_sign(void *sign)
+{
+    NSString *imgName = (NSString *)sign;
+    if (!imgName)
+        return;
+
+    [[MMBackend sharedInstance]
+            queueMessage:DeleteSignMsgID
+              properties:[NSDictionary dictionaryWithObjectsAndKeys:
+                                                    imgName, @"imgName", nil]];
+    [imgName release];
+}
+
+# ifdef FEAT_NETBEANS_INTG
+    void
+netbeans_draw_multisign_indicator(int row)
+{
+}
+# endif // FEAT_NETBEANS_INTG
+
+#endif // FEAT_SIGN_ICONS

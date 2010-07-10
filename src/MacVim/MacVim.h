@@ -192,6 +192,7 @@ enum {
     SetMarkedTextMsgID,
     ZoomMsgID,
     SetWindowPositionMsgID,
+    DeleteSignMsgID,
     LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
 };
 
@@ -205,6 +206,7 @@ enum {
     DrawCursorDrawType,
     SetCursorPosDrawType,
     DrawInvertedRectDrawType,
+    DrawSignDrawType,
 };
 
 enum {

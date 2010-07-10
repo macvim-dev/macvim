@@ -95,6 +95,7 @@ char *MessageStrings[] =
     "SetMarkedTextMsgID",
     "ZoomMsgID",
     "SetWindowPositionMsgID",
+    "DeleteSignMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 

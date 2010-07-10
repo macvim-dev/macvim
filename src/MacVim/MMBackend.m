@@ -589,6 +589,26 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [drawData appendBytes:&invert length:sizeof(int)];
 }
 
+- (void)drawSign:(NSString *)imgName
+           atRow:(int)row
+          column:(int)col
+           width:(int)width
+          height:(int)height
+{
+    int type = DrawSignDrawType;
+    [drawData appendBytes:&type length:sizeof(int)];
+
+    const char* utf8String = [imgName UTF8String];
+    int strSize = (int)strlen(utf8String) + 1;
+    [drawData appendBytes:&strSize length:sizeof(int)];
+    [drawData appendBytes:utf8String length:strSize];
+
+    [drawData appendBytes:&col length:sizeof(int)];
+    [drawData appendBytes:&row length:sizeof(int)];
+    [drawData appendBytes:&width length:sizeof(int)];
+    [drawData appendBytes:&height length:sizeof(int)];
+}
+
 - (void)update
 {
     // Keep running the run-loop until there is no more input to process.
