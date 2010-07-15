@@ -675,6 +675,12 @@ QUOTESED
 dovimdiff
 dogvimdiff
 compiledby
+vi_cv_path_lua
+LUA_SRC
+LUA_OBJ
+LUA_PRO
+LUA_LIBS
+LUA_CFLAGS
 vi_cv_path_mzscheme
 MZSCHEME_SRC
 MZSCHEME_OBJ
@@ -696,7 +702,6 @@ PYTHON_CONFDIR
 PYTHON_LIBS
 PYTHON_GETPATH_CFLAGS
 PYTHON_CFLAGS
-PYTHON_NOPROTO
 PYTHON_SRC
 PYTHON_OBJ
 vi_cv_path_tcl
@@ -1335,6 +1340,7 @@ Optional Features:
   --disable-selinux	  Don't check for SELinux support.
   --disable-xsmp          Disable XSMP session management
   --disable-xsmp-interact Disable XSMP interaction
+  --enable-luainterp      Include Lua interpreter.
   --enable-mzschemeinterp   Include MzScheme interpreter.
   --enable-perlinterp     Include Perl interpreter.
   --enable-pythoninterp   Include Python interpreter.
@@ -1378,6 +1384,7 @@ Optional Packages:
   --with-modified-by=NAME       name of who modified a release version
   --with-features=TYPE    tiny, small, normal, big or huge (default: normal)
   --with-compiledby=NAME  name to show in :version message
+  --with-lua-prefix=PFX   Prefix where Lua is installed.
   --with-plthome=PLTHOME   Use PLTHOME.
   --with-python-config-dir=PATH  Python's config directory
   --with-tclsh=PATH       which tclsh to use (default: tclsh8.0)
@@ -3664,7 +3671,7 @@ fi
 echo "${ECHO_T}no" >&6; }
     { echo "$as_me:$LINENO: checking if Darwin files are there" >&5
 echo $ECHO_N "checking if Darwin files are there... $ECHO_C" >&6; }
-    if test -f os_macosx.c; then
+    if test -f os_macosx.m; then
       { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
     else
@@ -3894,7 +3901,7 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
 
   if test "$enable_darwin" = "yes"; then
     MACOSX=yes
-    OS_EXTRA_SRC="os_macosx.c os_mac_conv.c";
+    OS_EXTRA_SRC="os_macosx.m os_mac_conv.c";
     OS_EXTRA_OBJ="objects/os_macosx.o objects/os_mac_conv.o"
         CPPFLAGS="$CPPFLAGS -DMACOS_X_UNIX -no-cpp-precomp"
 
@@ -4671,6 +4678,147 @@ else
 echo "${ECHO_T}yes" >&6; }
 fi
 
+{ echo "$as_me:$LINENO: checking --enable-luainterp argument" >&5
+echo $ECHO_N "checking --enable-luainterp argument... $ECHO_C" >&6; }
+# Check whether --enable-luainterp was given.
+if test "${enable_luainterp+set}" = set; then
+  enableval=$enable_luainterp;
+else
+  enable_luainterp="no"
+fi
+
+{ echo "$as_me:$LINENO: result: $enable_luainterp" >&5
+echo "${ECHO_T}$enable_luainterp" >&6; }
+
+if test "$enable_luainterp" = "yes"; then
+
+
+  { echo "$as_me:$LINENO: checking --with-lua-prefix argument" >&5
+echo $ECHO_N "checking --with-lua-prefix argument... $ECHO_C" >&6; }
+
+# Check whether --with-lua_prefix was given.
+if test "${with_lua_prefix+set}" = set; then
+  withval=$with_lua_prefix; with_lua_prefix="$withval"; { echo "$as_me:$LINENO: result: $with_lua_prefix" >&5
+echo "${ECHO_T}$with_lua_prefix" >&6; }
+else
+  with_lua_prefix="";{ echo "$as_me:$LINENO: result: \"no\"" >&5
+echo "${ECHO_T}\"no\"" >&6; }
+fi
+
+
+  if test "X$with_lua_prefix" != "X"; then
+       vi_cv_path_lua_pfx="$with_lua_prefix"
+  else
+    { echo "$as_me:$LINENO: checking LUA_PREFIX environment var" >&5
+echo $ECHO_N "checking LUA_PREFIX environment var... $ECHO_C" >&6; }
+    if test "X$LUA_PREFIX" != "X"; then
+	{ echo "$as_me:$LINENO: result: \"$LUA_PREFIX\"" >&5
+echo "${ECHO_T}\"$LUA_PREFIX\"" >&6; }
+	vi_cv_path_lua_pfx="$LUA_PREFIX"
+    else
+	{ echo "$as_me:$LINENO: result: \"not set\"" >&5
+echo "${ECHO_T}\"not set\"" >&6; }
+    fi
+  fi
+
+  LUA_INC=
+  if test "X$vi_cv_path_lua_pfx" != "X"; then
+    { echo "$as_me:$LINENO: checking if lua.h can be found in $vi_cv_path_lua_pfx/include" >&5
+echo $ECHO_N "checking if lua.h can be found in $vi_cv_path_lua_pfx/include... $ECHO_C" >&6; }
+    if test -f $vi_cv_path_lua_pfx/include/lua.h; then
+      { echo "$as_me:$LINENO: result: \"yes\"" >&5
+echo "${ECHO_T}\"yes\"" >&6; }
+    else
+      { echo "$as_me:$LINENO: result: \"no\"" >&5
+echo "${ECHO_T}\"no\"" >&6; }
+            # Extract the first word of "lua", so it can be a program name with args.
+set dummy lua; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_path_vi_cv_path_lua+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $vi_cv_path_lua in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_vi_cv_path_lua="$vi_cv_path_lua" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_vi_cv_path_lua="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+vi_cv_path_lua=$ac_cv_path_vi_cv_path_lua
+if test -n "$vi_cv_path_lua"; then
+  { echo "$as_me:$LINENO: result: $vi_cv_path_lua" >&5
+echo "${ECHO_T}$vi_cv_path_lua" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+      if test "X$vi_cv_path_lua" != "X"; then
+                { echo "$as_me:$LINENO: checking Lua version" >&5
+echo $ECHO_N "checking Lua version... $ECHO_C" >&6; }
+if test "${vi_cv_version_lua+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+   vi_cv_version_lua=`${vi_cv_path_lua} -e "print(_VERSION:sub(5,7))"`
+fi
+{ echo "$as_me:$LINENO: result: $vi_cv_version_lua" >&5
+echo "${ECHO_T}$vi_cv_version_lua" >&6; }
+        { echo "$as_me:$LINENO: checking if lua.h can be found in $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua" >&5
+echo $ECHO_N "checking if lua.h can be found in $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua... $ECHO_C" >&6; }
+        if test -f $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua/lua.h; then
+          { echo "$as_me:$LINENO: result: \"yes\"" >&5
+echo "${ECHO_T}\"yes\"" >&6; }
+          LUA_INC=/lua$vi_cv_version_lua
+        else
+          { echo "$as_me:$LINENO: result: \"no\"" >&5
+echo "${ECHO_T}\"no\"" >&6; }
+          vi_cv_path_lua_pfx=
+        fi
+      fi
+    fi
+  fi
+
+  if test "X$vi_cv_path_lua_pfx" != "X"; then
+    if test "X$vi_cv_version_lua" != "X"; then
+            LUA_LIBS="-L${vi_cv_path_lua_pfx}/lib -llua$vi_cv_version_lua"
+    else
+      LUA_LIBS="-L${vi_cv_path_lua_pfx}/lib -llua"
+    fi
+    LUA_CFLAGS="-I${vi_cv_path_lua_pfx}/include${LUA_INC}"
+    LUA_SRC="if_lua.c"
+    LUA_OBJ="objects/if_lua.o"
+    LUA_PRO="if_lua.pro"
+    cat >>confdefs.h <<\_ACEOF
+#define FEAT_LUA 1
+_ACEOF
+
+  fi
+
+
+
+
+
+fi
+
+
 { echo "$as_me:$LINENO: checking --enable-mzschemeinterp argument" >&5
 echo $ECHO_N "checking --enable-mzschemeinterp argument... $ECHO_C" >&6; }
 # Check whether --enable-mzschemeinterp was given.
@@ -5249,7 +5397,6 @@ fi
 	else
 	  PYTHON_CFLAGS="-I${vi_cv_path_python_pfx}/include/python${vi_cv_var_python_version} -I${vi_cv_path_python_epfx}/include/python${vi_cv_var_python_version}"
 	fi
-	PYTHON_NOPROTO=
 	PYTHON_SRC="if_python.c"
 		if test "x$MACOSX" = "xyes"; then
 	  PYTHON_OBJ="objects/if_python.o"
@@ -5261,7 +5408,7 @@ fi
 	fi
 	PYTHON_GETPATH_CFLAGS="-DPYTHONPATH='\"${vi_cv_path_pythonpath}\"' -DPREFIX='\"${vi_cv_path_python_pfx}\"' -DEXEC_PREFIX='\"${vi_cv_path_python_epfx}\"'"
 
-										{ echo "$as_me:$LINENO: checking if -pthread should be used" >&5
+								{ echo "$as_me:$LINENO: checking if -pthread should be used" >&5
 echo $ECHO_N "checking if -pthread should be used... $ECHO_C" >&6; }
 	threadsafe_flag=
 	thread_lib=
@@ -5311,7 +5458,7 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
        } && test -s conftest$ac_exeext &&
        $as_test_x conftest$ac_exeext; then
   { echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6; }; PYTHON_NOPROTO="$threadsafe_flag"
+echo "${ECHO_T}yes" >&6; }; PYTHON_CFLAGS="$PYTHON_CFLAGS $threadsafe_flag"
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
@@ -5340,7 +5487,7 @@ echo "${ECHO_T}no" >&6; }
 echo $ECHO_N "checking if compile and link flags for Python are sane... $ECHO_C" >&6; }
 	cflags_save=$CFLAGS
 	libs_save=$LIBS
-	CFLAGS="$CFLAGS $PYTHON_CFLAGS $PYTHON_NOPROTO"
+	CFLAGS="$CFLAGS $PYTHON_CFLAGS"
 	LIBS="$LIBS $PYTHON_LIBS"
 	cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
@@ -5400,7 +5547,6 @@ _ACEOF
 	  PYTHON_OBJ=
 	  PYTHON_LIBS=
 	  PYTHON_CFLAGS=
-	  PYTHON_NOPROTO=
 	fi
 
       fi
@@ -5410,7 +5556,6 @@ echo "${ECHO_T}too old" >&6; }
     fi
   fi
 fi
-
 
 
 
@@ -18597,13 +18742,11 @@ if test "x$MACOSX" = "xyes" -a -n "$PERL"; then
   fi
 fi
 
-if test "x$MACOSX" = "xyes" && test "x$CARBON" = "xyes" \
-	&& test "x$GUITYPE" != "xCARBONGUI" && test "x$GUITYPE" != "xMACVIMGUI"; then
-  { echo "$as_me:$LINENO: checking whether we need -framework Carbon" >&5
-echo $ECHO_N "checking whether we need -framework Carbon... $ECHO_C" >&6; }
-    if test "x$enable_multibyte" = "xyes" || test "x$features" = "xbig" \
-	|| test "x$features" = "xhuge"; then
-    LIBS="$LIBS -framework Carbon"
+if test "x$MACOSX" = "xyes"; then
+  { echo "$as_me:$LINENO: checking whether we need -framework Cocoa" >&5
+echo $ECHO_N "checking whether we need -framework Cocoa... $ECHO_C" >&6; }
+      if test "x$features" != "xtiny" || test "x$enable_multibyte" = "xyes"; then
+    LIBS=$"$LIBS -framework Cocoa"
     { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
   else
@@ -19336,6 +19479,12 @@ QUOTESED!$QUOTESED$ac_delim
 dovimdiff!$dovimdiff$ac_delim
 dogvimdiff!$dogvimdiff$ac_delim
 compiledby!$compiledby$ac_delim
+vi_cv_path_lua!$vi_cv_path_lua$ac_delim
+LUA_SRC!$LUA_SRC$ac_delim
+LUA_OBJ!$LUA_OBJ$ac_delim
+LUA_PRO!$LUA_PRO$ac_delim
+LUA_LIBS!$LUA_LIBS$ac_delim
+LUA_CFLAGS!$LUA_CFLAGS$ac_delim
 vi_cv_path_mzscheme!$vi_cv_path_mzscheme$ac_delim
 MZSCHEME_SRC!$MZSCHEME_SRC$ac_delim
 MZSCHEME_OBJ!$MZSCHEME_OBJ$ac_delim
@@ -19357,7 +19506,6 @@ PYTHON_CONFDIR!$PYTHON_CONFDIR$ac_delim
 PYTHON_LIBS!$PYTHON_LIBS$ac_delim
 PYTHON_GETPATH_CFLAGS!$PYTHON_GETPATH_CFLAGS$ac_delim
 PYTHON_CFLAGS!$PYTHON_CFLAGS$ac_delim
-PYTHON_NOPROTO!$PYTHON_NOPROTO$ac_delim
 PYTHON_SRC!$PYTHON_SRC$ac_delim
 PYTHON_OBJ!$PYTHON_OBJ$ac_delim
 vi_cv_path_tcl!$vi_cv_path_tcl$ac_delim
@@ -19366,11 +19514,6 @@ TCL_OBJ!$TCL_OBJ$ac_delim
 TCL_PRO!$TCL_PRO$ac_delim
 TCL_CFLAGS!$TCL_CFLAGS$ac_delim
 TCL_LIBS!$TCL_LIBS$ac_delim
-vi_cv_path_ruby!$vi_cv_path_ruby$ac_delim
-RUBY_SRC!$RUBY_SRC$ac_delim
-RUBY_OBJ!$RUBY_OBJ$ac_delim
-RUBY_PRO!$RUBY_PRO$ac_delim
-RUBY_CFLAGS!$RUBY_CFLAGS$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -19412,6 +19555,11 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+vi_cv_path_ruby!$vi_cv_path_ruby$ac_delim
+RUBY_SRC!$RUBY_SRC$ac_delim
+RUBY_OBJ!$RUBY_OBJ$ac_delim
+RUBY_PRO!$RUBY_PRO$ac_delim
+RUBY_CFLAGS!$RUBY_CFLAGS$ac_delim
 RUBY_LIBS!$RUBY_LIBS$ac_delim
 WORKSHOP_SRC!$WORKSHOP_SRC$ac_delim
 WORKSHOP_OBJ!$WORKSHOP_OBJ$ac_delim
@@ -19452,7 +19600,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 38; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 43; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

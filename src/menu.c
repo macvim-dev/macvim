@@ -1369,7 +1369,7 @@ get_menu_name(xp, idx)
 	    str = menu->dname;
 #ifdef FEAT_MULTI_LANG
 	    if (menu->en_dname == NULL)
-                should_advance = TRUE;
+		should_advance = TRUE;
 	}
 #endif
     else
@@ -1378,8 +1378,8 @@ get_menu_name(xp, idx)
 #ifdef FEAT_MULTI_LANG
     if (should_advance)
 #endif
-        /* Advance to next menu entry. */
-        menu = menu->next;
+	/* Advance to next menu entry. */
+	menu = menu->next;
 
 #ifdef FEAT_MULTI_LANG
     should_advance = !should_advance;
@@ -1449,18 +1449,18 @@ get_menu_names(xp, idx)
 	}
 	else
 #ifdef FEAT_MULTI_LANG
-        {
-            if (should_advance)
-                str = menu->en_dname;
-            else
-            {
+	{
+	    if (should_advance)
+		str = menu->en_dname;
+	    else
+	    {
 #endif
-                str = menu->dname;
+		str = menu->dname;
 #ifdef FEAT_MULTI_LANG
-                if (menu->en_dname == NULL)
-                    should_advance = TRUE;
-            }
-        }
+		if (menu->en_dname == NULL)
+		    should_advance = TRUE;
+	    }
+	}
 #endif
     }
     else
@@ -1469,8 +1469,8 @@ get_menu_names(xp, idx)
 #ifdef FEAT_MULTI_LANG
     if (should_advance)
 #endif
-        /* Advance to next menu entry. */
-        menu = menu->next;
+	/* Advance to next menu entry. */
+	menu = menu->next;
 
 #ifdef FEAT_MULTI_LANG
     should_advance = !should_advance;
@@ -1518,7 +1518,7 @@ menu_name_equal(name, menu)
     if (menu->en_name != NULL
 	    && (menu_namecmp(name,menu->en_name)
 		|| menu_namecmp(name,menu->en_dname)))
-        return TRUE;
+	return TRUE;
 #endif
     return menu_namecmp(name, menu->name) || menu_namecmp(name, menu->dname);
 }

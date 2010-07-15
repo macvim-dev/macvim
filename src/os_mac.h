@@ -22,23 +22,18 @@
  * Include the Mac header files, unless also compiling with X11 (the header
  * files have many conflicts).
  */
-#ifndef FEAT_X11
-# ifdef FEAT_GUI_MACVIM
-/* Don't include Carbon here to avoid polluting the global namespace. */
-/* #  include <Carbon/Carbon.h> */
-# else
-#  include <Quickdraw.h>	    /* Apple calls it QuickDraw.h... */
-#  include <ToolUtils.h>
-#  include <LowMem.h>
-#  include <Scrap.h>
-#  include <Sound.h>
-#  include <TextUtils.h>
-#  include <Memory.h>
-#  include <OSUtils.h>
-#  include <Files.h>
-#  ifdef FEAT_MBYTE
-#   include <Script.h>
-#  endif
+#ifdef FEAT_GUI_MAC
+# include <Quickdraw.h>	    /* Apple calls it QuickDraw.h... */
+# include <ToolUtils.h>
+# include <LowMem.h>
+# include <Scrap.h>
+# include <Sound.h>
+# include <TextUtils.h>
+# include <Memory.h>
+# include <OSUtils.h>
+# include <Files.h>
+# ifdef FEAT_MBYTE
+#  include <Script.h>
 # endif
 #endif
 
@@ -304,15 +299,3 @@
 
 /* A Mac constant causing big problem to syntax highlighting */
 #define UNKNOWN_CREATOR '\?\?\?\?'
-
-/*
- * for debugging
- */
-#ifdef MACOS_X
-# ifdef _DEBUG
-#  define TRACE			Trace
-   void Trace(char *fmt, ...);
-# else
-#  define TRACE			1 ? (void)0 : printf
-# endif
-#endif

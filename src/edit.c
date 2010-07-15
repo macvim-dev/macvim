@@ -1547,6 +1547,8 @@ ins_ctrl_v()
 #endif
 
     c = get_literal();
+    edit_unputchar();  /* when line fits in 'columns' the '^' is at the start
+			  of the next line and will not be redrawn */
 #ifdef FEAT_CMDL_INFO
     clear_showcmd();
 #endif
@@ -7545,7 +7547,8 @@ in_cinkeys(keytyped, when, line_is_empty)
 	    if (try_match && keytyped == ':')
 	    {
 		p = ml_get_curline();
-		if (cin_iscase(p) || cin_isscopedecl(p) || cin_islabel(30))
+		if (cin_iscase(p, FALSE) || cin_isscopedecl(p)
+							   || cin_islabel(30))
 		    return TRUE;
 		/* Need to get the line again after cin_islabel(). */
 		p = ml_get_curline();
@@ -7554,7 +7557,7 @@ in_cinkeys(keytyped, when, line_is_empty)
 			&& p[curwin->w_cursor.col - 2] == ':')
 		{
 		    p[curwin->w_cursor.col - 1] = ' ';
-		    i = (cin_iscase(p) || cin_isscopedecl(p)
+		    i = (cin_iscase(p, FALSE) || cin_isscopedecl(p)
 							  || cin_islabel(30));
 		    p = ml_get_curline();
 		    p[curwin->w_cursor.col - 1] = ':';
@@ -8366,9 +8369,7 @@ ins_del()
     {
 	temp = curwin->w_cursor.col;
 	if (!can_bs(BS_EOL)		/* only if "eol" included */
-		|| u_save((linenr_T)(curwin->w_cursor.lnum - 1),
-		    (linenr_T)(curwin->w_cursor.lnum + 2)) == FAIL
-		|| do_join(FALSE) == FAIL)
+		|| do_join(2, FALSE, TRUE) == FAIL)
 	    vim_beep();
 	else
 	    curwin->w_cursor.col = temp;
@@ -8549,7 +8550,7 @@ ins_bs(c, mode, inserted_space_p)
 			ptr[len - 1] = NUL;
 		}
 
-		(void)do_join(FALSE);
+		(void)do_join(2, FALSE, FALSE);
 		if (temp == NUL && gchar_cursor() != NUL)
 		    inc_cursor();
 	    }
@@ -9621,6 +9622,9 @@ ins_digraph()
     c = plain_vgetc();
     --no_mapping;
     --allow_keys;
+    edit_unputchar();  /* when line fits in 'columns' the '?' is at the start
+			  of the next line and will not be redrawn */
+
     if (IS_SPECIAL(c) || mod_mask)	    /* special key */
     {
 #ifdef FEAT_CMDL_INFO
@@ -9653,6 +9657,8 @@ ins_digraph()
 	cc = plain_vgetc();
 	--no_mapping;
 	--allow_keys;
+	edit_unputchar();  /* when line fits in 'columns' the '?' is at the
+			      start of the next line and will not be redrawn */
 	if (cc != ESC)
 	{
 	    AppendToRedobuff((char_u *)CTRL_V_STR);
@@ -9663,7 +9669,6 @@ ins_digraph()
 	    return c;
 	}
     }
-    edit_unputchar();
 #ifdef FEAT_CMDL_INFO
     clear_showcmd();
 #endif

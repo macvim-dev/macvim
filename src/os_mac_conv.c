@@ -15,6 +15,10 @@
 
 #define NO_X11_INCLUDES
 #include "vim.h"
+#ifndef FEAT_GUI_MAC
+# include <CoreServices/CoreServices.h>
+#endif
+
 
 #ifdef FEAT_GUI_MACVIM
 /* Include Carbon here instead of in one of the header files to avoid polluting
@@ -23,6 +27,7 @@
 #endif
 
 #if defined(MACOS_CONVERT) || defined(PROTO)
+
 # ifdef PROTO
 /* A few dummy types to be able to generate function prototypes. */
 typedef int UniChar;

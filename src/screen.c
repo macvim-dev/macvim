@@ -139,6 +139,7 @@ static void redraw_custom_statusline __ARGS((win_T *wp));
 #define SEARCH_HL_PRIORITY 0
 static void start_search_hl __ARGS((void));
 static void end_search_hl __ARGS((void));
+static void init_search_hl __ARGS((win_T *wp));
 static void prepare_search_hl __ARGS((win_T *wp, linenr_T lnum));
 static void next_search_hl __ARGS((win_T *win, match_T *shl, linenr_T lnum, colnr_T mincol));
 #endif
@@ -609,7 +610,8 @@ update_single_line(wp, lnum)
 	    if (lnum == wp->w_lines[j].wl_lnum)
 	    {
 		screen_start();	/* not sure of screen cursor */
-# if defined(FEAT_SEARCH_EXTRA)
+# ifdef FEAT_SEARCH_EXTRA
+		init_search_hl(wp);
 		start_search_hl();
 		prepare_search_hl(wp, lnum);
 # endif
@@ -898,29 +900,7 @@ win_update(wp)
 #endif
 
 #ifdef FEAT_SEARCH_EXTRA
-    /* Setup for match and 'hlsearch' highlighting.  Disable any previous
-     * match */
-    cur = wp->w_match_head;
-    while (cur != NULL)
-    {
-	cur->hl.rm = cur->match;
-	if (cur->hlg_id == 0)
-	    cur->hl.attr = 0;
-	else
-	    cur->hl.attr = syn_id2attr(cur->hlg_id);
-	cur->hl.buf = buf;
-	cur->hl.lnum = 0;
-	cur->hl.first_lnum = 0;
-# ifdef FEAT_RELTIME
-	/* Set the time limit to 'redrawtime'. */
-	profile_setlimit(p_rdt, &(cur->hl.tm));
-# endif
-	cur = cur->next;
-    }
-    search_hl.buf = buf;
-    search_hl.lnum = 0;
-    search_hl.first_lnum = 0;
-    /* time limit is set at the toplevel, for all windows */
+    init_search_hl(wp);
 #endif
 
 #ifdef FEAT_LINEBREAK
@@ -2146,6 +2126,23 @@ win_draw_end(wp, c1, c2, row, endrow, hl)
     set_empty_rows(wp, row);
 }
 
+#ifdef FEAT_SYN_HL
+static int advance_color_col __ARGS((int vcol, int **color_cols));
+
+/*
+ * Advance **color_cols and return TRUE when there are columns to draw.
+ */
+    static int
+advance_color_col(vcol, color_cols)
+    int	    vcol;
+    int	    **color_cols;
+{
+    while (**color_cols >= 0 && vcol > **color_cols)
+	++*color_cols;
+    return (**color_cols >= 0);
+}
+#endif
+
 #ifdef FEAT_FOLDING
 /*
  * Display one folded line.
@@ -2686,6 +2683,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
     int		has_syntax = FALSE;	/* this buffer has syntax highl. */
     int		save_did_emsg;
     int		eol_hl_off = 0;		/* 1 if highlighted char after EOL */
+    int		draw_color_col = FALSE;	/* highlight colorcolumn */
+    int		*color_cols = NULL;	/* pointer to according columns array */
 #endif
 #ifdef FEAT_SPELL
     int		has_spell = FALSE;	/* this buffer has spell checking */
@@ -2815,6 +2814,11 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    extra_check = TRUE;
 	}
     }
+
+    /* Check for columns to display for 'colorcolumn'. */
+    color_cols = wp->w_p_cc_cols;
+    if (color_cols != NULL)
+	draw_color_col = advance_color_col(vcol, &color_cols);
 #endif
 
 #ifdef FEAT_SPELL
@@ -3093,6 +3097,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 #if defined(FEAT_SYN_HL) || defined(FEAT_VIRTUALEDIT) || defined(FEAT_VISUAL)
 	/* When:
 	 * - 'cuc' is set, or
+	 * - 'colorcolumn' is set, or
 	 * - 'virtualedit' is set, or
 	 * - the visual mode is active,
 	 * the end of the line may be before the start of the displayed part.
@@ -3100,6 +3105,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	if (vcol < v && (
 # ifdef FEAT_SYN_HL
 	     wp->w_p_cuc
+	     || draw_color_col
 #  if defined(FEAT_VIRTUALEDIT) || defined(FEAT_VISUAL)
 	     ||
 #  endif
@@ -4368,10 +4374,10 @@ win_line(wp, lnum, startrow, endrow, nochange)
 
 #ifdef FEAT_CONCEAL
 	    if (    wp->w_p_conceal
-		    && (!area_highlighting)
-		    && ((lnum != wp->w_cursor.lnum)
-			|| (curwin != wp) || (wp->w_buffer->b_p_ma == FALSE))
-		    && ((syntax_flags & HL_CONCEAL) != 0))
+		    && !area_highlighting
+		    && (lnum != wp->w_cursor.lnum
+			|| curwin != wp || wp->w_buffer->b_p_ma == FALSE)
+		    && (syntax_flags & HL_CONCEAL) != 0)
 
 	    {
 		char_attr = conceal_attr;
@@ -4664,25 +4670,41 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		--vcol;
 	    }
 
-	    /* Highlight 'cursorcolumn' past end of the line. */
+	    /* Highlight 'cursorcolumn' & 'colorcolumn' past end of the line. */
 	    if (wp->w_p_wrap)
 		v = wp->w_skipcol;
 	    else
 		v = wp->w_leftcol;
+
 	    /* check if line ends before left margin */
 	    if (vcol < v + col - win_col_off(wp))
-
 		vcol = v + col - win_col_off(wp);
-	    if (wp->w_p_cuc
-		    && (int)wp->w_virtcol >= vcol - eol_hl_off
-		    && (int)wp->w_virtcol < W_WIDTH(wp) * (row - startrow + 1)
+
+	    if (draw_color_col)
+		draw_color_col = advance_color_col(vcol, &color_cols);
+
+	    if (((wp->w_p_cuc
+		      && (int)wp->w_virtcol >= vcol - eol_hl_off
+		      && (int)wp->w_virtcol < W_WIDTH(wp) * (row - startrow + 1)
 									   + v
-		    && lnum != wp->w_cursor.lnum
+		      && lnum != wp->w_cursor.lnum)
+		    || draw_color_col)
 # ifdef FEAT_RIGHTLEFT
 		    && !wp->w_p_rl
 # endif
 		    )
 	    {
+		int	rightmost_vcol = 0;
+		int	i;
+
+		if (wp->w_p_cuc)
+		    rightmost_vcol = wp->w_virtcol;
+		if (draw_color_col)
+		    /* determine rightmost colorcolumn to possibly draw */
+		    for (i = 0; color_cols[i] >= 0; ++i)
+			if (rightmost_vcol < color_cols[i])
+			    rightmost_vcol = color_cols[i];
+
 		while (col < W_WIDTH(wp))
 		{
 		    ScreenLines[off] = ' ';
@@ -4691,12 +4713,19 @@ win_line(wp, lnum, startrow, endrow, nochange)
 			ScreenLinesUC[off] = 0;
 #endif
 		    ++col;
-		    if (vcol == (long)wp->w_virtcol)
-		    {
-			ScreenAttrs[off] = hl_attr(HLF_CUC);
+		    if (wp->w_p_cuc && vcol == (long)wp->w_virtcol)
+			ScreenAttrs[off++] = hl_attr(HLF_CUC);
+		    else if (draw_color_col && vcol == *color_cols)
+			ScreenAttrs[off++] = hl_attr(HLF_MC);
+		    else
+			ScreenAttrs[off++] = 0;
+
+		    if (vcol >= rightmost_vcol)
 			break;
-		    }
-		    ScreenAttrs[off++] = 0;
+
+		    if (draw_color_col)
+			draw_color_col = advance_color_col(vcol, &color_cols);
+
 		    ++vcol;
 		}
 	    }
@@ -4760,18 +4789,29 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	}
 
 #ifdef FEAT_SYN_HL
+	/* advance to the next 'colorcolumn' */
+	if (draw_color_col)
+	    draw_color_col = advance_color_col(vcol, &color_cols);
+
 	/* Highlight the cursor column if 'cursorcolumn' is set.  But don't
-	 * highlight the cursor position itself. */
-	if (wp->w_p_cuc && vcol == (long)wp->w_virtcol
-		&& lnum != wp->w_cursor.lnum
-		&& draw_state == WL_LINE
-		&& !lnum_in_visual_area)
+	 * highlight the cursor position itself.
+	 * Also highlight the 'colorcolumn' if it is different than
+	 * 'cursorcolumn' */
+	vcol_save_attr = -1;
+	if (draw_state == WL_LINE && !lnum_in_visual_area)
 	{
-	    vcol_save_attr = char_attr;
-	    char_attr = hl_combine_attr(char_attr, hl_attr(HLF_CUC));
+	    if (wp->w_p_cuc && vcol == (long)wp->w_virtcol
+						 && lnum != wp->w_cursor.lnum)
+	    {
+		vcol_save_attr = char_attr;
+		char_attr = hl_combine_attr(char_attr, hl_attr(HLF_CUC));
+	    }
+	    else if (draw_color_col && vcol == *color_cols)
+	    {
+		vcol_save_attr = char_attr;
+		char_attr = hl_combine_attr(char_attr, hl_attr(HLF_MC));
+	    }
 	}
-	else
-	    vcol_save_attr = -1;
 #endif
 
 	/*
@@ -6894,6 +6934,40 @@ end_search_hl()
 	vim_free(search_hl.rm.regprog);
 	search_hl.rm.regprog = NULL;
     }
+}
+
+/*
+ * Init for calling prepare_search_hl().
+ */
+    static void
+init_search_hl(wp)
+    win_T	*wp;
+{
+    matchitem_T *cur;
+
+    /* Setup for match and 'hlsearch' highlighting.  Disable any previous
+     * match */
+    cur = wp->w_match_head;
+    while (cur != NULL)
+    {
+	cur->hl.rm = cur->match;
+	if (cur->hlg_id == 0)
+	    cur->hl.attr = 0;
+	else
+	    cur->hl.attr = syn_id2attr(cur->hlg_id);
+	cur->hl.buf = wp->w_buffer;
+	cur->hl.lnum = 0;
+	cur->hl.first_lnum = 0;
+# ifdef FEAT_RELTIME
+	/* Set the time limit to 'redrawtime'. */
+	profile_setlimit(p_rdt, &(cur->hl.tm));
+# endif
+	cur = cur->next;
+    }
+    search_hl.buf = wp->w_buffer;
+    search_hl.lnum = 0;
+    search_hl.first_lnum = 0;
+    /* time limit is set at the toplevel, for all windows */
 }
 
 /*

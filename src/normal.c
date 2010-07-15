@@ -1908,7 +1908,7 @@ do_pending_operator(cap, old_col, gui_yank)
 		beep_flush();
 	    else
 	    {
-		do_do_join(oap->line_count, oap->op_type == OP_JOIN);
+		(void)do_join(oap->line_count, oap->op_type == OP_JOIN, TRUE);
 		auto_format(FALSE, TRUE);
 	    }
 	    break;
@@ -5438,6 +5438,7 @@ nv_ident(cap)
 {
     char_u	*ptr = NULL;
     char_u	*buf;
+    char_u	*newbuf;
     char_u	*p;
     char_u	*kp;		/* value of 'keywordprg' */
     int		kp_help;	/* 'keywordprg' is ":help" */
@@ -5590,13 +5591,14 @@ nv_ident(cap)
 	    vim_free(buf);
 	    return;
 	}
-	buf = (char_u *)vim_realloc(buf, STRLEN(buf) + STRLEN(p) + 1);
-	if (buf == NULL)
+	newbuf = (char_u *)vim_realloc(buf, STRLEN(buf) + STRLEN(p) + 1);
+	if (newbuf == NULL)
 	{
 	    vim_free(buf);
 	    vim_free(p);
 	    return;
 	}
+	buf = newbuf;
 	STRCAT(buf, p);
 	vim_free(p);
     }
@@ -9137,7 +9139,7 @@ nv_join(cap)
 	{
 	    prep_redo(cap->oap->regname, cap->count0,
 			 NUL, cap->cmdchar, NUL, NUL, cap->nchar);
-	    do_do_join(cap->count0, cap->nchar == NUL);
+	    (void)do_join(cap->count0, cap->nchar == NUL, TRUE);
 	}
     }
 }

@@ -250,6 +250,11 @@ static void	ex_popup __ARGS((exarg_T *eap));
 # define ex_rundo		ex_ni
 # define ex_wundo		ex_ni
 #endif
+#ifndef FEAT_LUA
+# define ex_lua			ex_script_ni
+# define ex_luado		ex_ni
+# define ex_luafile		ex_ni
+#endif
 #ifndef FEAT_MZSCHEME
 # define ex_mzscheme		ex_script_ni
 # define ex_mzfile		ex_ni
@@ -2550,6 +2555,7 @@ do_one_cmd(cmdlinep, sourcing,
 	    case CMD_leftabove:
 	    case CMD_let:
 	    case CMD_lockmarks:
+	    case CMD_lua:
 	    case CMD_match:
 	    case CMD_mzscheme:
 	    case CMD_perl:
@@ -3449,6 +3455,11 @@ set_one_cmd_context(xp, buff)
  */
     switch (ea.cmdidx)
     {
+	case CMD_find:
+	case CMD_sfind:
+	case CMD_tabfind:
+	    xp->xp_context = EXPAND_FILES_IN_PATH;
+	    break;
 	case CMD_cd:
 	case CMD_chdir:
 	case CMD_lcd:
@@ -8414,7 +8425,7 @@ ex_join(eap)
 	}
 	++eap->line2;
     }
-    do_do_join(eap->line2 - eap->line1 + 1, !eap->forceit);
+    (void)do_join(eap->line2 - eap->line1 + 1, !eap->forceit, TRUE);
     beginline(BL_WHITE | BL_FIX);
     ex_may_print(eap);
 }

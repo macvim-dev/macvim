@@ -7171,6 +7171,12 @@ When Vim is exiting because of a deadly signal, when v:dying is 2 or more,
 VimLeavePre, VimLeave, BufWinLeave and BufUnload autocommands are not
 executed.
 
+Removed support for GTK 1.  It was no longer maintained and required a lot of
+#ifdefs in the source code.  GTK 2 should be available for every system.
+
+It is no longer allowed to set the 'encoding' option from a modeline.  It
+would corrupt the text.
+
 
 Added							*added-7.3*
 -----
@@ -7182,7 +7188,13 @@ the file was read, also for unloaded buffers. |undo-persistence|
 Added the 'relativenumber' option. (Markus Heidelberg)
 
 Support for Blowfish encryption.  Added the 'cryptmethod' option.
-Mostly by Moshin Ahmed.
+Mostly by Moshin Ahmed.  Also encrypt the text in the swap file and the undo
+file.
+
+Added the |+conceal| feature.  (Vince Negri)
+
+Added the 'colorcolumn' option: highlight one or more columns in a window.
+E.g. to highlight the column after 'textwidth'. (partly by Gregor Uhlenheuer)
 
 Added support for NetBeans in a terminal.  Added |:nbstart| and |:nbclose|.
 (Xavier de Gaye)
@@ -7191,6 +7203,9 @@ More floating point functions: acos(), asin(), atan2(), cosh(), exp(), fmod(),
 log(), sinh(), tan(), tanh().  (Bill McCarthy)
 
 gettabvar() and settabvar() functions. (Yegappan Lakshmanan)
+
+Added the |Lua| interface.
+
 
 New syntax files:
 TODO
@@ -7223,6 +7238,13 @@ Use BASEMODLIBS instead of MODLIBS for Python configuration to pick up the
 right compiler flags. (Michael Bienia)
 
 Window title is not updated after dropping a file on Vim. (Hari G)
+
+MS-Windows: The self-installing executable now also works on 64-bit systems.
+The gvim executable is 32 bits, the installed gvimext.dll is either a 32 or 64
+bit version. (George Reilly)
+
+synstack() did not return anything when just past the end of the line.  Useful
+when using the cursor position in Insert mode.
 
 
  vim:tw=78:ts=8:ft=help:norl:

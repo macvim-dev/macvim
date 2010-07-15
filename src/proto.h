@@ -174,6 +174,10 @@ void qsort __ARGS((void *base, size_t elm_count, size_t elm_size, int (*cmp)(con
 # include "version.pro"
 # include "window.pro"
 
+# ifdef FEAT_LUA
+#  include "if_lua.pro"
+# endif
+
 # ifdef FEAT_MZSCHEME
 #  include "if_mzsch.pro"
 # endif
@@ -280,8 +284,12 @@ extern char *vim_SelFile __ARGS((Widget toplevel, char *prompt, char *init_path,
 #ifdef MACOS_CONVERT
 # include "os_mac_conv.pro"
 #endif
-#ifdef MACOS_X
-# include "os_macosx.pro"
+#if defined(MACOS_X_UNIX) && defined(FEAT_CLIPBOARD) && !defined(FEAT_GUI)
+/* functions in os_macosx.m */
+void clip_mch_lose_selection(VimClipboard *cbd);
+int clip_mch_own_selection(VimClipboard *cbd);
+void clip_mch_request_selection(VimClipboard *cbd);
+void clip_mch_set_selection(VimClipboard *cbd);
 #endif
 
 #ifdef __BORLANDC__

@@ -126,6 +126,9 @@ static dictitem_T	globvars_var;
  */
 static hashtab_T	compat_hashtab;
 
+/* When using exists() don't auto-load a script. */
+static int		no_autoload = FALSE;
+
 /*
  * When recursively copying lists and dicts we need to remember which ones we
  * have done to avoid endless recursiveness.  This unique ID is used for that.
@@ -5909,7 +5912,7 @@ list_equal(l1, l2, ic)
 }
 
 #if defined(FEAT_RUBY) || defined(FEAT_PYTHON) || defined(FEAT_MZSCHEME) \
-	|| defined(PROTO) || defined(FEAT_GUI_MACVIM)
+	|| defined(FEAT_GUI_MACVIM) || defined(FEAT_LUA) || defined(PROTO)
 /*
  * Return the dictitem that an entry in a hashtable points to.
  */
@@ -9724,6 +9727,8 @@ f_exists(argvars, rettv)
     int		n = FALSE;
     int		len = 0;
 
+    no_autoload = TRUE;
+
     p = get_tv_string(&argvars[0]);
     if (*p == '$')			/* environment variable */
     {
@@ -9790,6 +9795,8 @@ f_exists(argvars, rettv)
     }
 
     rettv->vval.v_number = n;
+
+    no_autoload = FALSE;
 }
 
 #ifdef FEAT_FLOAT
@@ -11911,6 +11918,11 @@ f_has(argvars, rettv)
 #ifdef FEAT_LOCALMAP
 	"localmap",
 #endif
+#ifdef FEAT_LUA
+# ifndef DYNAMIC_LUA
+	"lua",
+# endif
+#endif
 #ifdef FEAT_MENU
 	"menu",
 #endif
@@ -12171,6 +12183,10 @@ f_has(argvars, rettv)
 #if defined(USE_ICONV) && defined(DYNAMIC_ICONV)
 	else if (STRICMP(name, "iconv") == 0)
 	    n = iconv_enabled(FALSE);
+#endif
+#ifdef DYNAMIC_LUA
+	else if (STRICMP(name, "lua") == 0)
+	    n = lua_enabled(FALSE);
 #endif
 #ifdef DYNAMIC_MZSCHEME
 	else if (STRICMP(name, "mzscheme") == 0)
@@ -16966,11 +16982,7 @@ f_synIDattr(argvars, rettv)
     {
 	mode = get_tv_string_buf(&argvars[2], modebuf);
 	modec = TOLOWER_ASC(mode[0]);
-	if (modec != 't' && modec != 'c'
-#ifdef FEAT_GUI
-		&& modec != 'g'
-#endif
-		)
+	if (modec != 't' && modec != 'c' && modec != 'g')
 	    modec = 0;	/* replace invalid with current */
     }
     else
@@ -17084,7 +17096,7 @@ f_synstack(argvars, rettv)
     col = get_tv_number(&argvars[1]) - 1;	/* -1 on type error */
 
     if (lnum >= 1 && lnum <= curbuf->b_ml.ml_line_count
-	    && col >= 0 && (col == 0 || col < (long)STRLEN(ml_get(lnum)))
+	    && col >= 0 && col <= (long)STRLEN(ml_get(lnum))
 	    && rettv_list_alloc(rettv) != FAIL)
     {
 	(void)syn_get_id(curwin, lnum, (colnr_T)col, FALSE, NULL, TRUE);
@@ -21300,6 +21312,10 @@ script_autoload(name, reload)
     char_u	*scriptname, *tofree;
     int		ret = FALSE;
     int		i;
+
+    /* Return quickly when autoload disabled. */
+    if (no_autoload)
+	return FALSE;
 
     /* If there is no '#' after name[0] there is no package name. */
     p = vim_strchr(name, AUTOLOAD_CHAR);

@@ -1411,6 +1411,11 @@ getcmdline(firstc, count, indent)
 				   && !equalpos(curwin->w_cursor, old_cursor))
 		    {
 			c = gchar_cursor();
+			/* If 'ignorecase' and 'smartcase' are set and the
+			* command line has no uppercase characters, convert
+			* the character to lowercase */
+			if (p_ic && p_scs && !pat_has_uppercase(ccline.cmdbuff))
+			    c = MB_TOLOWER(c);
 			if (c != NUL)
 			{
 			    if (c == firstc || vim_strchr((char_u *)(
@@ -4097,6 +4102,7 @@ addstar(fname, len, context)
     int		ends_in_star;
 
     if (context != EXPAND_FILES
+	    && context != EXPAND_FILES_IN_PATH
 	    && context != EXPAND_SHELLCMD
 	    && context != EXPAND_DIRECTORIES)
     {
@@ -4421,7 +4427,9 @@ ExpandFromContext(xp, pat, num_file, file, options)
     if (options & WILD_SILENT)
 	flags |= EW_SILENT;
 
-    if (xp->xp_context == EXPAND_FILES || xp->xp_context == EXPAND_DIRECTORIES)
+    if (xp->xp_context == EXPAND_FILES
+	    || xp->xp_context == EXPAND_DIRECTORIES
+	    || xp->xp_context == EXPAND_FILES_IN_PATH)
     {
 	/*
 	 * Expand file or directory names.
@@ -4451,6 +4459,8 @@ ExpandFromContext(xp, pat, num_file, file, options)
 
 	if (xp->xp_context == EXPAND_FILES)
 	    flags |= EW_FILE;
+	else if (xp->xp_context == EXPAND_FILES_IN_PATH)
+	    flags |= (EW_FILE | EW_PATH);
 	else
 	    flags = (flags | EW_DIR) & ~EW_FILE;
 	/* Expand wildcards, supporting %:h and the like. */

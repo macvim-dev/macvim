@@ -38,6 +38,7 @@
 #	  could be lost.
 #	- Uncomment one or more of these lines to include an interface;
 #	  each makes Vim quite a bit bigger:
+#		--enable-luainterp	for Lua interpreter
 #		--enable-perlinterp	for Perl interpreter
 #		--enable-pythoninterp	for Python interpreter
 #		--enable-rubyinterp	for Ruby interpreter
@@ -394,6 +395,13 @@ CClink = $(CC)
 # Note: you need the development package (e.g., ruby1.9.1-dev on Ubuntu).
 #CONF_OPT_RUBY = --enable-rubyinterp
 #CONF_OPT_RUBY = --enable-rubyinterp --with-ruby-command=ruby1.9.1
+
+# LUA
+# Uncomment this when you want to include the Lua interface.
+#CONF_OPT_LUA = --enable-luainterp
+# Lua installation dir (also in LUA_PREFIX environment variable)
+#CONF_OPT_LUA_PREFIX = --with-lua-prefix=/usr/local
+#CONF_OPT_LUA_PREFIX = --with-lua-prefix=/usr
 
 # MZSCHEME
 # Uncomment this when you want to include the MzScheme interface.
@@ -1295,10 +1303,6 @@ CPP_DEPEND = $(CC) -I$(srcdir) -M$(CPP_MM) \
 #     -D"foo()=" is not supported by all compilers so do not use it
 NO_ATTR=
 #
-#     maybe the "/usr/bin/cc -E" has to be adjusted for some systems
-# This is for cproto 3.5 patchlevel 3:
-# PROTO_FLAGS = -f4 -m__ARGS -d -E"$(CPP)" $(NO_ATTR)
-#
 # Use this for cproto 3 patchlevel 6 or below (use "cproto -V" to check):
 # PROTO_FLAGS = -f4 -m__ARGS -d -E"$(CPP)" $(NO_ATTR)
 #
@@ -1316,10 +1320,9 @@ SHELL = /bin/sh
 .SUFFIXES: .c .o .pro
 
 PRE_DEFS = -Iproto $(DEFS) $(GUI_DEFS) $(GUI_IPATH) $(CPPFLAGS) $(EXTRA_IPATHS)
-POST_DEFS = $(X_CFLAGS) $(MZSCHEME_CFLAGS) $(PERL_CFLAGS) $(PYTHON_CFLAGS) $(TCL_CFLAGS) $(RUBY_CFLAGS) $(EXTRA_DEFS)
-NOPROTO_DEFS = $(PYTHON_NOPROTO)
+POST_DEFS = $(X_CFLAGS) $(LUA_CFLAGS) $(MZSCHEME_CFLAGS) $(PERL_CFLAGS) $(ECL_CFLAGS) $(PYTHON_CFLAGS) $(TCL_CFLAGS) $(RUBY_CFLAGS) $(EXTRA_DEFS)
 
-ALL_CFLAGS = $(PRE_DEFS) $(CFLAGS) $(PROFILE_CFLAGS) $(POST_DEFS) $(NOPROTO_DEFS)
+ALL_CFLAGS = $(PRE_DEFS) $(CFLAGS) $(PROFILE_CFLAGS) $(POST_DEFS)
 
 # Exclude $CFLAGS for osdef.sh, for Mac 10.4 some flags don't work together
 # with "-E".
@@ -1331,13 +1334,8 @@ LINT_EXTRA = -DUSE_SNIFF -DHANGUL_INPUT -D"__attribute__(x)="
 
 DEPEND_CFLAGS = -DPROTO -DDEPEND -DFEAT_GUI $(LINT_CFLAGS)
 
-# If you have problems with flags that cproto doesn't support, and you are
-# using GNU make, you can try using the other line to filter out arguments.
-#PFLAGS = $(PROTO_FLAGS) -DPROTO $(filter -D% -I%, $(LINT_CFLAGS))
-PFLAGS = $(PROTO_FLAGS) -DPROTO $(LINT_CFLAGS)
-
 ALL_LIB_DIRS = $(GUI_LIBS_DIR) $(X_LIBS_DIR)
-ALL_LIBS = $(GUI_LIBS1) $(GUI_X_LIBS) $(GUI_LIBS2) $(X_PRE_LIBS) $(X_LIBS) $(X_EXTRA_LIBS) $(LIBS) $(EXTRA_LIBS) $(MZSCHEME_LIBS) $(PERL_LIBS) $(PYTHON_LIBS) $(TCL_LIBS) $(RUBY_LIBS) $(PROFILE_LIBS)
+ALL_LIBS = $(GUI_LIBS1) $(GUI_X_LIBS) $(GUI_LIBS2) $(X_PRE_LIBS) $(X_LIBS) $(X_EXTRA_LIBS) $(LIBS) $(EXTRA_LIBS) $(LUA_LIBS) $(MZSCHEME_LIBS) $(PERL_LIBS) $(PYTHON_LIBS) $(TCL_LIBS) $(RUBY_LIBS) $(PROFILE_LIBS)
 
 # abbreviations
 DEST_BIN = $(DESTDIR)$(BINDIR)
@@ -1440,13 +1438,13 @@ BASIC_SRC = \
 	window.c \
 	$(OS_EXTRA_SRC)
 
-SRC =	$(BASIC_SRC) $(GUI_SRC) $(HANGULIN_SRC) $(MZSCHEME_SRC) \
+SRC =	$(BASIC_SRC) $(GUI_SRC) $(HANGULIN_SRC) $(LUA_SRC) $(MZSCHEME_SRC) \
 	$(PERL_SRC) $(PYTHON_SRC) $(TCL_SRC) $(RUBY_SRC) \
 	$(SNIFF_SRC) $(WORKSHOP_SRC) $(WSDEBUG_SRC)
 
 TAGS_SRC = *.c *.cpp if_perl.xs
 
-EXTRA_SRC = hangulin.c if_mzsch.c auto/if_perl.c if_perlsfio.c \
+EXTRA_SRC = hangulin.c if_lua.c if_mzsch.c auto/if_perl.c if_perlsfio.c \
 	    if_python.c if_tcl.c if_ruby.c if_sniff.c gui_beval.c \
 	    workshop.c wsdebug.c integration.c netbeans.c
 
@@ -1513,6 +1511,7 @@ OBJ = \
 	objects/undo.o \
 	objects/window.o \
 	$(GUI_OBJ) \
+	$(LUA_OBJ) \
 	$(MZSCHEME_OBJ) \
 	$(PERL_OBJ) \
 	$(PYTHON_OBJ) \
@@ -1613,6 +1612,7 @@ config auto/config.mk: auto/configure config.mk.in config.h.in
 		$(CONF_OPT_SNIFF) $(CONF_OPT_FEAT) $(CONF_TERM_LIB) \
 		$(CONF_OPT_COMPBY) $(CONF_OPT_ACL)  $(CONF_OPT_NETBEANS) \
 		$(CONF_ARGS) $(CONF_OPT_MZSCHEME) $(CONF_OPT_PLTHOME) \
+		$(CONF_OPT_LUA) $(CONF_OPT_LUA_PREFIX) \
 		$(CONF_OPT_SYSMOUSE)
 
 # Use "make reconfig" to rerun configure without cached values.
@@ -1696,46 +1696,53 @@ update-po:
 
 proto: $(PRO_AUTO) $(PRO_MANUAL)
 
+# Filter out arguments that cproto doesn't support.
+# Don't pass "-pthread" to cproto, it sees it as a list of individual flags.
+# The -E"gcc -E" argument must be separate to avoid problems with shell
+# quoting.
+CPROTO = cproto $(PROTO_FLAGS) -DPROTO \
+	 `echo '$(LINT_CFLAGS)' | sed -e 's/-pthread//g'` 
+
 ### Would be nice if this would work for "normal" make.
 ### Currently it only works for (Free)BSD make.
 #$(PRO_AUTO): $$(*F).c
-#	cproto $(PFLAGS) -DFEAT_GUI $(*F).c > $@
+#	$(CPROTO) -DFEAT_GUI $(*F).c > $@
 
 # Always define FEAT_GUI.  This may generate a few warnings if it's also
 # defined in auto/config.h, you can ignore that.
 .c.pro:
-	cproto $(PFLAGS) -DFEAT_GUI $< > proto/$@
+	$(CPROTO) -DFEAT_GUI $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 
 os_amiga.pro: os_amiga.c
-	cproto $(PFLAGS) -DAMIGA -UHAVE_CONFIG_H -DBPTR=char* $< > proto/$@
+	$(CPROTO) -DAMIGA -UHAVE_CONFIG_H -DBPTR=char* $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 
 os_msdos.pro: os_msdos.c
-	cproto $(PFLAGS) -DMSDOS -UHAVE_CONFIG_H $< > proto/$@
+	$(CPROTO) -DMSDOS -UHAVE_CONFIG_H $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 
 os_win16.pro: os_win16.c
-	cproto $(PFLAGS) -DWIN16 -UHAVE_CONFIG_H $< > proto/$@
+	$(CPROTO) -DWIN16 -UHAVE_CONFIG_H $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 
 os_win32.pro: os_win32.c
-	cproto $(PFLAGS) -DWIN32 -UHAVE_CONFIG_H $< > proto/$@
+	$(CPROTO) -DWIN32 -UHAVE_CONFIG_H $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 
 os_mswin.pro: os_mswin.c
-	cproto $(PFLAGS) -DWIN16 -DWIN32 -UHAVE_CONFIG_H $< > proto/$@
+	$(CPROTO) -DWIN16 -DWIN32 -UHAVE_CONFIG_H $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 
 os_beos.pro: os_beos.c
-	cproto $(PFLAGS) -D__BEOS__ -UHAVE_CONFIG_H $< > proto/$@
+	$(CPROTO) -D__BEOS__ -UHAVE_CONFIG_H $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 
 os_vms.pro: os_vms.c
 # must use os_vms_conf.h for auto/config.h
 	mv auto/config.h auto/config.h.save
 	cp os_vms_conf.h auto/config.h
-	cproto $(PFLAGS) -DVMS -UFEAT_GUI_ATHENA -UFEAT_GUI_NEXTAW -UFEAT_GUI_MOTIF -UFEAT_GUI_GTK $< > proto/$@
+	$(CPROTO) -DVMS -UFEAT_GUI_ATHENA -UFEAT_GUI_NEXTAW -UFEAT_GUI_MOTIF -UFEAT_GUI_GTK $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 	rm auto/config.h
 	mv auto/config.h.save auto/config.h
@@ -1743,7 +1750,7 @@ os_vms.pro: os_vms.c
 # if_perl.pro is special: Use the generated if_perl.c for input and remove
 # prototypes for local functions.
 if_perl.pro: auto/if_perl.c
-	cproto $(PFLAGS) -DFEAT_GUI auto/if_perl.c | sed "/_VI/d" > proto/$@
+	$(CPROTO) -DFEAT_GUI auto/if_perl.c | sed "/_VI/d" > proto/$@
 
 
 notags:
@@ -2467,6 +2474,9 @@ objects/if_cscope.o: if_cscope.c
 objects/if_xcmdsrv.o: if_xcmdsrv.c
 	$(CCC) -o $@ if_xcmdsrv.c
 
+objects/if_lua.o: if_lua.c
+	$(CCC) -o $@ if_lua.c
+
 objects/if_mzsch.o: if_mzsch.c $(MZSCHEME_EXTRA)
 	$(CCC) -o $@ $(MZSCHEME_CFLAGS_EXTRA) if_mzsch.c
  
@@ -2539,8 +2549,8 @@ objects/os_beos.o: os_beos.c
 objects/os_qnx.o: os_qnx.c
 	$(CCC) -o $@ os_qnx.c
 
-objects/os_macosx.o: os_macosx.c
-	$(CCC) -o $@ os_macosx.c
+objects/os_macosx.o: os_macosx.m
+	$(CCC) -o $@ os_macosx.m
 
 objects/os_mac_conv.o: os_mac_conv.c
 	$(CCC) -o $@ os_mac_conv.c
@@ -2982,6 +2992,10 @@ objects/pty.o: pty.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h ascii.
  keymap.h term.h macros.h option.h structs.h regexp.h gui.h gui_beval.h \
  proto/gui_beval.pro ex_cmds.h proto.h globals.h farsi.h arabic.h
 objects/hangulin.o: hangulin.c vim.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
+ regexp.h gui.h gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h \
+ globals.h farsi.h arabic.h
+objects/if_lua.o: if_lua.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h \
  globals.h farsi.h arabic.h

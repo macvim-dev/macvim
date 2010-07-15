@@ -112,8 +112,6 @@ NSString *MMAutosaveRowsKey    = @"MMAutosaveRows";
 NSString *MMAutosaveColumnsKey = @"MMAutosaveColumns";
 NSString *MMRendererKey	       = @"MMRenderer";
 
-// Vim pasteboard type (holds motion type + string)
-NSString *VimPboardType = @"VimPboardType";
 // Vim find pasteboard type (string contains Vim regex patterns)
 NSString *VimFindPboardType = @"VimFindPboardType";
 

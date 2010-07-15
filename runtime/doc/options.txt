@@ -1174,7 +1174,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			Win32 GUI}
 	Which directory to use for the file browser:
 	   last		Use same directory as with last file browser, where a
-	   		file was opened or saved.
+			file was opened or saved.
 	   buffer	Use the directory of the related buffer.
 	   current	Use the current directory.
 	   {path}	Use the specified directory
@@ -2168,7 +2168,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	column.  This option is useful for viewing the
 	differences between two versions of a file (see 'diff'); in diff mode,
 	inserted and deleted lines (though not characters within a line) are
-	taken into account. 
+	taken into account.
 
 
 			*'cursorcolumn'* *'cuc'* *'nocursorcolumn'* *'nocuc'*
@@ -2441,6 +2441,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	It should normally be kept at its default value, or set when Vim
 	starts up.  See |multibyte|.  To reload the menus see |:menutrans|.
 
+	This option cannot be set from a |modeline|.  It would most likely
+	corrupt the text.
+
 	NOTE: For MacVim and GTK+ 2 it is highly recommended to set 'encoding'
 	to "utf-8".  Although care has been taken to allow different values of
 	'encoding', "utf-8" is the natural choice for the environment and
@@ -2624,6 +2627,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			feature}
 			{not in Vi}
 	Sets the character encoding for the file of this buffer.
+
 	When 'fileencoding' is different from 'encoding', conversion will be
 	done when writing the file.  For reading see below.
 	When 'fileencoding' is empty, the same value as 'encoding' will be
@@ -2636,24 +2640,32 @@ A jump table for the options with a short description can be found at |Q_op|.
 		is most likely done in a way that the reverse conversion
 		results in the same text.  When 'encoding' is not "utf-8" some
 		characters may be lost!
+
 	See 'encoding' for the possible values.  Additionally, values may be
 	specified that can be handled by the converter, see
 	|mbyte-conversion|.
+
 	When reading a file 'fileencoding' will be set from 'fileencodings'.
 	To read a file in a certain encoding it won't work by setting
 	'fileencoding', use the |++enc| argument.  One exception: when
 	'fileencodings' is empty the value of 'fileencoding' is used.
 	For a new file the global value of 'fileencoding' is used.
+
 	Prepending "8bit-" and "2byte-" has no meaning here, they are ignored.
 	When the option is set, the value is converted to lowercase.  Thus
 	you can set it with uppercase values too.  '_' characters are
 	replaced with '-'.  If a name is recognized from the list for
 	'encoding', it is replaced by the standard name.  For example
 	"ISO8859-2" becomes "iso-8859-2".
+
 	When this option is set, after starting to edit a file, the 'modified'
 	option is set, because the file would be different when written.
-	If you do this in a modeline, you might want to set 'nomodified' to
-	avoid this.
+
+	Keep in mind that changing 'fenc' from a modeline happens
+	AFTER the text has been read, thus it applies to when the file will be
+	written.  If you do set 'fenc' in a modeline, you might want to set
+	'nomodified' to avoid not being able to ":q".
+
 	This option can not be changed when 'modifiable' is off.
 
 							*'fe'*
@@ -3131,8 +3143,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 	text beyond that limit.  This happens under the same conditions as
 	when internal formatting is used.  Make sure the cursor is kept in the
 	same spot relative to the text then!  The |mode()| function will
-	return "i" or "R" in this situation.  When the function returns
-	non-zero Vim will fall back to using the internal format mechanism.
+	return "i" or "R" in this situation.
+	
+	When the expression evaluates to non-zero Vim will fall back to using
+	the internal format mechanism.
 
 	The expression may be evaluated in the |sandbox|, see
 	|sandbox-option|.
@@ -3585,15 +3599,15 @@ A jump table for the options with a short description can be found at |Q_op|.
 	  'i'	Use a Vim icon.  For GTK with KDE it is used in the left-upper
 		corner of the window.  It's black&white on non-GTK, because of
 		limitations of X11.  For a color icon, see |X11-icon|.
-	  							*'go-m'*
+								*'go-m'*
 	  'm'	Menu bar is present.
-	  							*'go-M'*
+								*'go-M'*
 	  'M'	The system menu "$VIMRUNTIME/menu.vim" is not sourced.  Note
 		that this flag must be added in the .vimrc file, before
 		switching on syntax or filetype recognition (when the |gvimrc|
 		file is sourced the system menu has already been loaded; the
 		":syntax on" and ":filetype on" commands load the menu too).
-	  							*'go-g'*
+								*'go-g'*
 	  'g'	Grey menu items: Make menu items that are not active grey.  If
 		'g' is not included inactive menu items are not shown at all.
 		Exception: Athena will always use grey menu items.
@@ -3605,36 +3619,36 @@ A jump table for the options with a short description can be found at |Q_op|.
 		Photon, MacVim and Athena GUIs.
 								*'go-r'*
 	  'r'	Right-hand scrollbar is always present.
-	  							*'go-R'*
+								*'go-R'*
 	  'R'	Right-hand scrollbar is present when there is a vertically
 		split window.
-	  							*'go-l'*
+								*'go-l'*
 	  'l'	Left-hand scrollbar is always present.
-	  							*'go-L'*
+								*'go-L'*
 	  'L'	Left-hand scrollbar is present when there is a vertically
 		split window.
 								*'go-b'*
 	  'b'	Bottom (horizontal) scrollbar is present.  Its size depends on
 		the longest visible line, or on the cursor line if the 'h'
 		flag is included. |gui-horiz-scroll|
-	  							*'go-h'*
+								*'go-h'*
 	  'h'	Limit horizontal scrollbar size to the length of the cursor
 		line.  Reduces computations. |gui-horiz-scroll|
 
 	And yes, you may even have scrollbars on the left AND the right if
 	you really want to :-).  See |gui-scrollbars| for more information.
 
-	  							*'go-v'*
+								*'go-v'*
 	  'v'	Use a vertical button layout for dialogs.  When not included,
 		a horizontal layout is preferred, but when it doesn't fit a
 		vertical layout is used anyway.
-	  							*'go-p'*
+								*'go-p'*
 	  'p'	Use Pointer callbacks for X11 GUI.  This is required for some
 		window managers.  If the cursor is not blinking or hollow at
 		the right moment, try adding this flag.  This must be done
 		before starting the GUI.  Set it in your |gvimrc|.  Adding or
 		removing it after the GUI has started has no effect.
-	  							*'go-F'*
+								*'go-F'*
 	  'F'	Add a footer.  Only for Motif.  See |gui-footer|.
 
 
@@ -4075,7 +4089,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	The highlighting can be set with the 'i' flag in 'highlight'.
 	See also: 'hlsearch'.
 	CTRL-L can be used to add one character from after the current match
-	to the command line.
+	to the command line.  If 'ignorecase' and 'smartcase' are set and the
+	command line has no uppercase characters, the added character is
+	converted to lowercase.
 	CTRL-R CTRL-W can be used to add the word at the end of the current
 	match, excluding the characters that were already typed.
 	NOTE: This option is reset when 'compatible' is set.
@@ -4555,7 +4571,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			is off and there is text preceding the character
 			visible in the first column.
 	  conceal:c	Character to show in place of concealed text, when
-	  		'conceallevel' is set to 1.
+			'conceallevel' is set to 1.
 	  nbsp:c	Character to show for a non-breakable space (character
 			0xA0, 160).  Left blank when omitted.
 
@@ -4656,6 +4672,25 @@ A jump table for the options with a short description can be found at |Q_op|.
 	    :set makeprg=latex\ \\\\nonstopmode\ \\\\input\\{$*}
 <	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
+
+						*'colorcolumn'* *'cc'*
+'colorcolumn' 'cc'	string	(default "")
+			local to window
+			{not in Vi}
+			{not available when compiled without the |+syntax|
+			feature}
+	'colorcolumn' is a comma separated list of screen columns that are
+	highlighted with ColorColumn |hl-ColorColumn|.  Useful to align
+	text.  Will make screen redrawing slower.
+	The screen column can be an absolute number, or a number preceded with
+	'+' or '-', which is added to or subtracted from 'textwidth'. >
+
+		:set cc=+1  " highlight column after 'textwidth'
+		:set cc=+1,+2,+3  " highlight three columns after 'textwidth'
+		:hi ColorColumn ctermbg=lightgrey guibg=lightgrey
+<
+	When 'textwidth' is zero then the items with '-' and '+' are not used.
+	A maximum of 256 columns are highlighted.
 
 						*'matchpairs'* *'mps'*
 'matchpairs' 'mps'	string	(default "(:),{:},[:]")
@@ -5031,7 +5066,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	respectively; see |CTRL-A| for more info on these commands.
 	alpha	If included, single alphabetical characters will be
 		incremented or decremented.  This is useful for a list with a
-		letter index a), b), etc.
+		letter index a), b), etc.			*octal-number*
 	octal	If included, numbers that start with a zero will be considered
 		to be octal.  Example: Using CTRL-A on "007" results in "010".
 	hex	If included, numbers starting with "0x" or "0X" will be
@@ -6123,7 +6158,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 		:set showbreak=>\ 
 <	Note the backslash to escape the trailing space.  It's easier like
 	this: >
-		:let &showbreak = '+++ ' 
+		:let &showbreak = '+++ '
 <	Only printable single-cell characters are allowed, excluding <Tab> and
 	comma (in a future version the comma might be used to separate the
 	part that is shown at the end and at the start of a line).
@@ -6742,7 +6777,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			a buffer.  Otherwise: do not split, use current window.
 			Supported in |quickfix| commands that display errors.
 	   newtab	Like "split", but open a new tab page.  Overrules
-	   		"split" when both are present.
+			"split" when both are present.
 
 						*'synmaxcol'* *'smc'*
 'synmaxcol' 'smc'	number	(default 3000)

@@ -1,9 +1,9 @@
-*** sv_SE.orig.aff	Thu Feb 23 20:02:32 2006
---- sv_SE.aff	Thu Feb 23 20:02:32 2006
+*** sv_SE.orig.aff	2010-07-10 14:45:33.000000000 +0200
+--- sv_SE.aff	2010-07-11 17:42:38.000000000 +0200
 ***************
 *** 6,7 ****
---- 6,22 ----
-  
+--- 6,21 ----
+  NOSUGGEST !
 + FOL  ‗אבגדהוזחטיךכלםמןנסעףפץצרשתûü‎‏ÿ
 + LOW  ‗אבגדהוזחטיךכלםמןנסעףפץצרשתûü‎‏ÿ
 + UPP  ‗ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞÿ
@@ -18,27 +18,11 @@
 + MAP cח
 + MAP yÿ‎
 + MAP s‗
-+ 
-  SFX  A  Y  1
-***************
-*** 15,17 ****
   
-! SFX  C  Y  16
-  SFX  C  0  t  [aeiouyוהצי]
---- 30,32 ----
-  
-! SFX  C  Y  15
-  SFX  C  0  t  [aeiouyוהצי]
 ***************
-*** 30,32 ****
-  SFX  C  en nets en
-- SFX  C  0  net  nets [^e]n
-  SFX  C  0  nets  [^e]n
---- 45,46 ----
-***************
-*** 427 ****
---- 441,541 ----
-  SFX  T  el  la  el
+*** 649 ****
+--- 663,763 ----
+  SFX  t  el  la/WXZ  el
 + 
 + # soundslike mapping from Aspell
 + # swedish_phonet.dat - Swedish phonetic transformation rules for aspell
@@ -139,21 +123,21 @@
 + SAL Ä	E
 + SAL ÖG(IE)-6	ÖK	# vokal+g(ie) ger ej j-ljud
 + SAL Ö	Ö
-*** sv_SE.orig.dic	Thu Feb 23 20:02:32 2006
---- sv_SE.dic	Thu Feb 23 20:02:32 2006
+*** sv_SE.orig.dic	2010-07-10 14:45:33.000000000 +0200
+--- sv_SE.dic	2010-07-10 14:45:33.000000000 +0200
 ***************
-*** 4317,4319 ****
-  dvaldes/S
+*** 11786,11788 ****
+  DVD
 ! dvs
-  dvהljas/S
---- 4317,4319 ----
-  dvaldes/S
+  dvהljas
+--- 11786,11788 ----
+  DVD
 ! #dvs Removed by Stefan.
-  dvהljas/S
+  dvהljas
 ***************
-*** 24490 ****
---- 24490,24554 ----
-  וvila/MS
+*** 31959,31960 ****
+--- 31959,32024 ----
+  korsning/ADGvY
 + 
 + # Additions by Stefan:
 + SEK
@@ -218,3 +202,4 @@
 + vard.
 + vd
 + vol.
+  korsningsfri/OY

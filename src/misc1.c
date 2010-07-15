@@ -2467,10 +2467,12 @@ skip_to_option_part(p)
 }
 
 /*
- * changed() is called when something in the current buffer is changed.
+ * Call this function when something in the current buffer is changed.
  *
  * Most often called through changed_bytes() and changed_lines(), which also
  * mark the area of the display to be redrawn.
+ *
+ * Careful: may trigger autocommands that reload the buffer.
  */
     void
 changed()
@@ -2545,6 +2547,7 @@ static void changed_common __ARGS((linenr_T lnum, colnr_T col, linenr_T lnume, l
  * - marks the windows on this buffer to be redisplayed
  * - marks the buffer changed by calling changed()
  * - invalidates cached values
+ * Careful: may trigger autocommands that reload the buffer.
  */
     void
 changed_bytes(lnum, col)
@@ -2658,6 +2661,7 @@ deleted_lines_mark(lnum, count)
  * below the changed lines (BEFORE the change).
  * When only inserting lines, "lnum" and "lnume" are equal.
  * Takes care of calling changed() and updating b_mod_*.
+ * Careful: may trigger autocommands that reload the buffer.
  */
     void
 changed_lines(lnum, col, lnume, xtra)
@@ -2725,6 +2729,11 @@ changed_lines_buf(buf, lnum, lnume, xtra)
     }
 }
 
+/*
+ * Common code for when a change is was made.
+ * See changed_lines() for the arguments.
+ * Careful: may trigger autocommands that reload the buffer.
+ */
     static void
 changed_common(lnum, col, lnume, xtra)
     linenr_T	lnum;
@@ -2975,6 +2984,7 @@ check_status(buf)
  * Don't use emsg(), because it flushes the macro buffer.
  * If we have undone all changes b_changed will be FALSE, but "b_did_warn"
  * will be TRUE.
+ * Careful: may trigger autocommands that reload the buffer.
  */
     void
 change_warning(col)
@@ -5040,7 +5050,7 @@ cin_islabel(ind_maxcomment)		/* XXX */
 	    curwin->w_cursor = cursor_save;
 	    if (cin_isterminated(line, TRUE, FALSE)
 		    || cin_isscopedecl(line)
-		    || cin_iscase(line)
+		    || cin_iscase(line, TRUE)
 		    || (cin_islabel_skip(&line) && cin_nocode(line)))
 		return TRUE;
 	    return FALSE;
@@ -5079,8 +5089,9 @@ cin_isinit(void)
  * Recognize a switch label: "case .*:" or "default:".
  */
      int
-cin_iscase(s)
+cin_iscase(s, strict)
     char_u *s;
+    int strict; /* Allow relaxed check of case statement for JS */
 {
     s = cin_skipcomment(s);
     if (STRNCMP(s, "case", 4) == 0 && !vim_isIDc(s[4]))
@@ -5096,11 +5107,17 @@ cin_iscase(s)
 		    return TRUE;
 	    }
 	    if (*s == '\'' && s[1] && s[2] == '\'')
-		s += 2;			/* skip over '.' */
+		s += 2;			/* skip over ':' */
 	    else if (*s == '/' && (s[1] == '*' || s[1] == '/'))
 		return FALSE;		/* stop at comment */
 	    else if (*s == '"')
-		return FALSE;		/* stop at string */
+	    {
+		/* JS etc. */
+		if (strict)
+		    return FALSE;		/* stop at string */
+		else
+		    return TRUE;
+	    }
 	}
 	return FALSE;
     }
@@ -5159,7 +5176,7 @@ after_label(l)
 	{
 	    if (l[1] == ':')	    /* skip over "::" for C++ */
 		++l;
-	    else if (!cin_iscase(l + 1))
+	    else if (!cin_iscase(l + 1, FALSE))
 		break;
 	}
 	else if (*l == '\'' && l[1] && l[2] == '\'')
@@ -5217,7 +5234,8 @@ skip_label(lnum, pp, ind_maxcomment)
     curwin->w_cursor.lnum = lnum;
     l = ml_get_curline();
 				    /* XXX */
-    if (cin_iscase(l) || cin_isscopedecl(l) || cin_islabel(ind_maxcomment))
+    if (cin_iscase(l, FALSE) || cin_isscopedecl(l)
+					       || cin_islabel(ind_maxcomment))
     {
 	amount = get_indent_nolabel(lnum);
 	l = after_label(ml_get_curline());
@@ -6164,6 +6182,11 @@ get_c_indent()
     int	ind_java = 0;
 
     /*
+     * not to confuse JS object properties with labels
+     */
+    int ind_js = 0;
+
+    /*
      * handle blocked cases correctly
      */
     int ind_keep_case_label = 0;
@@ -6276,6 +6299,7 @@ get_c_indent()
 	    case 'g': ind_scopedecl = n; break;
 	    case 'h': ind_scopedecl_code = n; break;
 	    case 'j': ind_java = n; break;
+	    case 'J': ind_js = n; break;
 	    case 'l': ind_keep_case_label = n; break;
 	    case '#': ind_hash_comment = n; break;
 	}
@@ -6285,6 +6309,10 @@ get_c_indent()
 
     /* remember where the cursor was when we started */
     cur_curpos = curwin->w_cursor;
+
+    /* if we are at line 1 0 is fine, right? */
+    if (cur_curpos.lnum == 1)
+	return 0;
 
     /* Get a copy of the current contents of the line.
      * This is required, because only the most recent line obtained with
@@ -6320,9 +6348,9 @@ get_c_indent()
     }
 
     /*
-     * Is it a non-case label?	Then that goes at the left margin too.
+     * Is it a non-case label?	Then that goes at the left margin too unless JS flag is set.
      */
-    else if (cin_islabel(ind_maxcomment))	    /* XXX */
+    else if (!ind_js && cin_islabel(ind_maxcomment))	    /* XXX */
     {
 	amount = 0;
     }
@@ -6773,7 +6801,8 @@ get_c_indent()
 	     *			ldfd) {
 	     *		    }
 	     */
-	    if (ind_keep_case_label && cin_iscase(skipwhite(ml_get_curline())))
+	    if ((ind_keep_case_label
+			   && cin_iscase(skipwhite(ml_get_curline()), FALSE)))
 		amount = get_indent();
 	    else
 		amount = skip_label(lnum, &l, ind_maxcomment);
@@ -6851,7 +6880,7 @@ get_c_indent()
 
 	    lookfor_break = FALSE;
 
-	    if (cin_iscase(theline))	/* it's a switch() label */
+	    if (cin_iscase(theline, FALSE))	/* it's a switch() label */
 	    {
 		lookfor = LOOKFOR_CASE;	/* find a previous switch() label */
 		amount += ind_case;
@@ -6912,7 +6941,7 @@ get_c_indent()
 			     * initialization) */
 			    if (cont_amount > 0)
 				amount = cont_amount;
-			    else
+			    else if (!ind_js)
 				amount += ind_continuation;
 			    break;
 			}
@@ -7036,7 +7065,7 @@ get_c_indent()
 		 * If this is a switch() label, may line up relative to that.
 		 * If this is a C++ scope declaration, do the same.
 		 */
-		iscase = cin_iscase(l);
+		iscase = cin_iscase(l, FALSE);
 		if (iscase || cin_isscopedecl(l))
 		{
 		    /* we are only looking for cpp base class
@@ -7160,7 +7189,7 @@ get_c_indent()
 		/*
 		 * Ignore jump labels with nothing after them.
 		 */
-		if (cin_islabel(ind_maxcomment))
+		if (!ind_js && cin_islabel(ind_maxcomment))
 		{
 		    l = after_label(ml_get_curline());
 		    if (l == NULL || cin_nocode(l))
@@ -7271,7 +7300,7 @@ get_c_indent()
 			 */
 			curwin->w_cursor = *trypos;
 			l = ml_get_curline();
-			if (cin_iscase(l) || cin_isscopedecl(l))
+			if (cin_iscase(l, FALSE) || cin_isscopedecl(l))
 			{
 			    ++curwin->w_cursor.lnum;
 			    curwin->w_cursor.col = 0;
@@ -7302,9 +7331,11 @@ get_c_indent()
 		     * Get indent and pointer to text for current line,
 		     * ignoring any jump label.	    XXX
 		     */
-		    cur_amount = skip_label(curwin->w_cursor.lnum,
+		    if (!ind_js)
+			cur_amount = skip_label(curwin->w_cursor.lnum,
 							  &l, ind_maxcomment);
-
+		    else
+			cur_amount = get_indent();
 		    /*
 		     * If this is just above the line we are indenting, and it
 		     * starts with a '{', line it up with this line.
@@ -7630,7 +7661,7 @@ term_again:
 			     */
 			    curwin->w_cursor = *trypos;
 			    l = ml_get_curline();
-			    if (cin_iscase(l) || cin_isscopedecl(l))
+			    if (cin_iscase(l, FALSE) || cin_isscopedecl(l))
 			    {
 				++curwin->w_cursor.lnum;
 				curwin->w_cursor.col = 0;
@@ -7647,7 +7678,7 @@ term_again:
 			 *	stat;
 			 * }
 			 */
-			iscase = (ind_keep_case_label && cin_iscase(l));
+			iscase = (ind_keep_case_label && cin_iscase(l, FALSE));
 
 			/*
 			 * Get indent and pointer to text for current line,
@@ -9186,6 +9217,205 @@ unix_expandpath(gap, path, wildoff, flags, didstar)
 }
 #endif
 
+#if defined(FEAT_SEARCHPATH)
+static int find_previous_pathsep __ARGS((char_u *path, char_u **psep));
+static int is_unique __ARGS((char_u *maybe_unique, garray_T *gap, int i));
+static void uniquefy_paths __ARGS((garray_T *gap, char_u *pattern));
+static int expand_in_path __ARGS((garray_T *gap, char_u	*pattern, int flags));
+
+/*
+ * Moves psep to the previous path separator in path, starting from the
+ * end of path.
+ * Returns FAIL is psep ends up at the beginning of path.
+ */
+    static int
+find_previous_pathsep(path, psep)
+    char_u *path;
+    char_u **psep;
+{
+    /* skip the current separator */
+    if (*psep > path && vim_ispathsep(**psep))
+	(*psep)--;
+
+    /* find the previous separator */
+    while (*psep > path && !vim_ispathsep(**psep))
+	(*psep)--;
+
+    if (*psep != path && vim_ispathsep(**psep))
+	return OK;
+
+    return FAIL;
+}
+
+/*
+ * Returns TRUE if maybe_unique is unique wrt other_paths in gap. maybe_unique
+ * is the end portion of ((char_u **)gap->ga_data)[i].
+ */
+    static int
+is_unique(maybe_unique, gap, i)
+    char_u	*maybe_unique;
+    garray_T	*gap;
+    int		i;
+{
+    int	    j;
+    int	    candidate_len;
+    int	    other_path_len;
+    char_u  *rival;
+    char_u  **other_paths;
+
+    other_paths = (gap->ga_data != NULL) ? (char_u **)gap->ga_data
+							      : (char_u **)"";
+
+    for (j = 0; j < gap->ga_len && !got_int; j++)
+    {
+	ui_breakcheck();
+	/* don't compare it with itself */
+	if (j == i)
+	    continue;
+
+	candidate_len = STRLEN(maybe_unique);
+	other_path_len = STRLEN(other_paths[j]);
+
+	if (other_path_len < candidate_len)
+	    continue;  /* it's different */
+
+	rival = other_paths[j] + other_path_len - candidate_len;
+
+	if (fnamecmp(maybe_unique, rival) == 0)
+	    return FALSE;
+    }
+
+    return TRUE;
+}
+
+/*
+ * Sorts, removes duplicates and modifies all the fullpath names in gap so that
+ * they are unique with respect to each other while conserving the part that
+ * matches the pattern. Beware, this is at least O(n^2) wrt gap->ga_len.
+ */
+    static void
+uniquefy_paths(gap, pattern)
+    garray_T *gap;
+    char_u *pattern;
+{
+    int	    i;
+    int	    j;
+    int	    len;
+    char_u  *pathsep_p;
+    char_u  *path;
+    char_u  **fnames = (char_u **) gap->ga_data;
+
+    int		sort_again = 0;
+    char_u	*pat;
+    char_u      *file_pattern;
+    regmatch_T	regmatch;
+
+    /* Remove duplicate entries */
+    sort_strings(fnames, gap->ga_len);
+    for (i = 0; i < gap->ga_len - 1; i++)
+	if (fnamecmp(fnames[i], fnames[i+1]) == 0)
+	{
+	    vim_free(fnames[i]);
+	    for (j = i+1; j < gap->ga_len; j++)
+		fnames[j-1] = fnames[j];
+	    gap->ga_len--;
+	    i--;
+	}
+
+    /*
+     * We need to prepend a '*' at the beginning of file_pattern so that the
+     * regex matches anywhere in the path. FIXME: is this valid for all
+     * possible pattern?
+     */
+    len = STRLEN(pattern);
+    file_pattern = alloc(len + 2);
+    file_pattern[0] = '*';
+    file_pattern[1] = '\0';
+    STRCAT(file_pattern, pattern);
+    pat = file_pat_to_reg_pat(file_pattern, NULL, NULL, TRUE);
+    vim_free(file_pattern);
+    regmatch.rm_ic = TRUE;		/* always ignore case */
+
+    if (pat != NULL)
+    {
+	regmatch.regprog = vim_regcomp(pat, RE_MAGIC + RE_STRING);
+	vim_free(pat);
+    }
+    if (pat == NULL || regmatch.regprog == NULL)
+	return;
+
+    for (i = 0; i < gap->ga_len; i++)
+    {
+	path = fnames[i];
+	len = STRLEN(path);
+
+	/* we start at the end of the path */
+	pathsep_p = path + len - 1;
+
+	while (find_previous_pathsep(path, &pathsep_p))
+	    if (vim_regexec(&regmatch, pathsep_p + 1, (colnr_T)0)
+					      && is_unique(pathsep_p, gap, i))
+	    {
+		sort_again = 1;
+		mch_memmove(path, pathsep_p + 1, STRLEN(pathsep_p));
+		break;
+	    }
+    }
+
+    if (sort_again)
+	sort_strings(fnames, gap->ga_len);
+}
+
+/*
+ * Calls globpath with 'path' values for the given pattern and stores
+ * the result in gap.
+ * Returns the total number of matches.
+ */
+    static int
+expand_in_path(gap, pattern, flags)
+    garray_T	*gap;
+    char_u	*pattern;
+    int		flags;		/* EW_* flags */
+{
+    int		c = 0;
+    char_u	*path_option = *curbuf->b_p_path == NUL
+						  ? p_path : curbuf->b_p_path;
+    char_u	*files;
+    char_u	*s;	/* start */
+    char_u	*e;	/* end */
+
+    files = globpath(path_option, pattern, 0);
+    if (files == NULL)
+	return 0;
+
+    /* Copy each path in files into gap */
+    s = e = files;
+    while (*s != '\0')
+    {
+	while (*e != '\n' && *e != '\0')
+	    e++;
+	if (*e == '\0')
+	{
+	    addfile(gap, s, flags);
+	    break;
+	}
+	else
+	{
+	    /* *e is '\n' */
+	    *e = '\0';
+	    addfile(gap, s, flags);
+	    e++;
+	    s = e;
+	}
+    }
+
+    c = gap->ga_len;
+    vim_free(files);
+
+    return c;
+}
+#endif
+
 /*
  * Generic wildcard expansion code.
  *
@@ -9294,7 +9524,14 @@ gen_expand_wildcards(num_pat, pat, num_file, file, flags)
 	     * when EW_NOTFOUND is given.
 	     */
 	    if (mch_has_exp_wildcard(p))
-		add_pat = mch_expandpath(&ga, p, flags);
+	    {
+#if defined(FEAT_SEARCHPATH)
+		if (*p != '.' && !vim_ispathsep(*p) && (flags & EW_PATH))
+		    add_pat = expand_in_path(&ga, p, flags);
+		else
+#endif
+		    add_pat = mch_expandpath(&ga, p, flags);
+	    }
 	}
 
 	if (add_pat == -1 || (add_pat == 0 && (flags & EW_NOTFOUND)))
@@ -9313,6 +9550,10 @@ gen_expand_wildcards(num_pat, pat, num_file, file, flags)
 	    vim_free(t);
 	}
 
+#if defined(FEAT_SEARCHPATH)
+	if (flags & EW_PATH)
+	    uniquefy_paths(&ga, p);
+#endif
 	if (p != pat[i])
 	    vim_free(p);
     }
@@ -9575,7 +9816,7 @@ FreeWild(count, files)
 }
 
 /*
- * return TRUE when need to go to Insert mode because of 'insertmode'.
+ * Return TRUE when need to go to Insert mode because of 'insertmode'.
  * Don't do this when still processing a command or a mapping.
  * Don't do this when inside a ":normal" command.
  */

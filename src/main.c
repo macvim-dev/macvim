@@ -733,7 +733,7 @@ main
     qnx_clip_init();
 #endif
 
-#if defined(FEAT_GUI_MACVIM) && defined(FEAT_CLIPBOARD)
+#if defined(MACOS_X) && defined(FEAT_CLIPBOARD)
     clip_init(TRUE);
 #endif
 
@@ -1470,6 +1470,9 @@ getout(exitval)
 	windgoto((int)Rows - 1, 0);
 #endif
 
+#ifdef FEAT_LUA
+    lua_end();
+#endif
 #ifdef FEAT_MZSCHEME
     mzscheme_end();
 #endif
