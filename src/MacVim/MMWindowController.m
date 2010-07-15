@@ -263,7 +263,7 @@
                           keepOnScreen:YES];
 }
 
-- (BOOL)presentWindow
+- (BOOL)presentWindow:(id)unused
 {
     // Actually show the window on screen.  However, if openWindow hasn't
     // already been called nothing will happen (the window will be displayed

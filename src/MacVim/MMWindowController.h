@@ -48,7 +48,7 @@
 - (void)setWindowAutosaveKey:(NSString *)key;
 - (void)cleanup;
 - (void)openWindow;
-- (BOOL)presentWindow;
+- (BOOL)presentWindow:(id)unused;
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
