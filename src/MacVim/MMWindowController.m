@@ -453,8 +453,7 @@
 
         NSSize originalSize = [vimView frame].size;
         NSSize contentSize = [vimView desiredSize];
-        if (keepOnScreen)
-            contentSize = [self constrainContentSizeToScreenSize:contentSize];
+        contentSize = [self constrainContentSizeToScreenSize:contentSize];
         contentSize = [vimView constrainRows:NULL columns:NULL
                                       toSize:contentSize];
         [vimView setFrameSize:contentSize];
@@ -569,6 +568,10 @@
     // inconsistent states between Vim and MacVim; to avoid this we send a
     // synchronous resize message to Vim now (this is not fool-proof, but it
     // does seem to work quite well).
+    // Do NOT send a SetTextDimensionsMsgID message (as opposed to
+    // LiveResizeMsgID) since then the view is constrained to not be larger
+    // than the screen the window mostly occupies; this makes it impossible to
+    // resize the window across multiple screens.
 
     int constrained[2];
     NSSize textViewSize = [[vimView textView] frame].size;
@@ -579,7 +582,7 @@
                constrained[1], constrained[0]);
 
     NSData *data = [NSData dataWithBytes:constrained length:2*sizeof(int)];
-    BOOL sendOk = [vimController sendMessageNow:SetTextDimensionsMsgID
+    BOOL sendOk = [vimController sendMessageNow:LiveResizeMsgID
                                            data:data
                                         timeout:.5];
 
