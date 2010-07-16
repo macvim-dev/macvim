@@ -473,6 +473,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     [self queueMessage:OpenWindowMsgID data:nil];
 
+    // HACK: Clear window immediately upon opening to avoid it flashing white.
+    [self clearAll];
+
     return YES;
 }
 

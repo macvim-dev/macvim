@@ -548,14 +548,17 @@ static BOOL isUnsafeMessage(int msgid);
 {
     if (OpenWindowMsgID == msgid) {
         [windowController openWindow];
+
+        // HACK: Delay actually presenting the window onscreen until after
+        // processing the queue since it contains drawing commands that need to
+        // be issued before presentation; otherwise the window may flash white
+        // just as it opens.
+        if (!isPreloading)
+            [windowController performSelector:@selector(presentWindow:)
+                                   withObject:nil
+                                   afterDelay:0];
     } else if (BatchDrawMsgID == msgid) {
         [[[windowController vimView] textView] performBatchDrawWithData:data];
-
-        // HACK! In order to avoid the window flashing white on startup we take
-        // care to only present the window on screen once something has been
-        // drawn to it.
-        if (!windowHasBeenPresented)
-            windowHasBeenPresented = [windowController presentWindow];
     } else if (SelectTabMsgID == msgid) {
 #if 0   // NOTE: Tab selection is done inside updateTabsWithData:.
         const void *bytes = [data bytes];
