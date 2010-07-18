@@ -8878,6 +8878,9 @@ ins_mousescroll(dir)
 # ifdef FEAT_INS_EXPAND
     int		did_scroll = FALSE;
 # endif
+# ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
+    int		scroll_wheel_force = 0;
+# endif
 
     tpos = curwin->w_cursor;
 
@@ -8907,19 +8910,35 @@ ins_mousescroll(dir)
 	    )
 # endif
     {
+# ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
+	if (gui.in_use && gui.scroll_wheel_force >= 1)
+	{
+	    scroll_wheel_force = gui.scroll_wheel_force;
+	    if (scroll_wheel_force > 1000) scroll_wheel_force = 1000;
+	}
+	else
+	    scroll_wheel_force = dir >= 0 ? 3 : 6;
+# endif
 	if (dir == MSCR_DOWN || dir == MSCR_UP)
 	{
 	    if (mod_mask & (MOD_MASK_SHIFT | MOD_MASK_CTRL))
 		scroll_redraw(dir,
 			(long)(curwin->w_botline - curwin->w_topline));
 	    else
+# ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
+		scroll_redraw(dir, scroll_wheel_force);
+# else
 		scroll_redraw(dir, 3L);
+# endif
 	}
 #ifdef FEAT_GUI
 	else
 	{
 	    int val, step = 6;
 
+#  ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
+	    step = scroll_wheel_force;
+#  endif
 	    if (mod_mask & (MOD_MASK_SHIFT | MOD_MASK_CTRL))
 		step = W_WIDTH(curwin);
 	    val = curwin->w_leftcol + (dir == MSCR_RIGHT ? -step : step);
