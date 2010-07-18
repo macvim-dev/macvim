@@ -42,18 +42,20 @@
 # undef _DEBUG
 #endif
 
-#ifdef HAVE_STDARG_H
-# undef HAVE_STDARG_H   /* Python's config.h defines it as well. */
-#endif
-
 #define PY_SSIZE_T_CLEAN
 
 #ifdef F_BLANK
 # undef F_BLANK
 #endif
 
+#ifdef HAVE_STDARG_H
+# undef HAVE_STDARG_H   /* Python's config.h defines it as well. */
+#endif
 #ifdef _POSIX_C_SOURCE  /* defined in feature.h */
 # undef _POSIX_C_SOURCE
+#endif
+#ifdef _XOPEN_SOURCE
+# undef _XOPEN_SOURCE	/* pyconfig.h defines it as well. */
 #endif
 
 #include <Python.h>
@@ -319,6 +321,7 @@ static void end_dynamic_python3(void)
 static int py3_runtime_link_init(char *libname, int verbose)
 {
     int i;
+    void *ucs_from_string, *ucs_from_string_and_size;
 
     if (hinstPy3)
 	return OK;
@@ -344,11 +347,8 @@ static int py3_runtime_link_init(char *libname, int verbose)
 	}
     }
 
-    /* load unicode functions separately as only the ucs2 or the ucs4 functions
-     * will be present in the library
-     */
-    void *ucs_from_string, *ucs_from_string_and_size;
-
+    /* Load unicode functions separately as only the ucs2 or the ucs4 functions
+     * will be present in the library. */
     ucs_from_string = symbol_from_dll(hinstPy3, "PyUnicodeUCS2_FromString");
     ucs_from_string_and_size = symbol_from_dll(hinstPy3,
 	    "PyUnicodeUCS2_FromStringAndSize");
@@ -630,7 +630,7 @@ theend:
 }
 
 /*
- * ":python"
+ * ":python3"
  */
 void ex_python3(exarg_T *eap)
 {
@@ -650,7 +650,7 @@ void ex_python3(exarg_T *eap)
 #define BUFFER_SIZE 2048
 
 /*
- * ":pyfile"
+ * ":py3file"
  */
     void
 ex_py3file(exarg_T *eap)
@@ -2220,6 +2220,7 @@ PyDoc_STRVAR(vim_module_doc,"vim python interface\n");
 
 static struct PyModuleDef vimmodule;
 
+#ifndef PROTO
 PyMODINIT_FUNC Py3Init_vim(void)
 {
     PyObject *mod;
@@ -2253,6 +2254,7 @@ PyMODINIT_FUNC Py3Init_vim(void)
 
     return mod;
 }
+#endif
 
 /*************************************************************************
  * 4. Utility functions for handling the interface between Vim and Python.

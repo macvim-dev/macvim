@@ -1718,9 +1718,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not in Vi}
 			{not available when compiled without the |+conceal|
 			feature}
-	Determine how text with the "conceal" syntax attribute is shown:
+	Determine how text with the "conceal" syntax attribute |:syn-conceal|
+	is shown:
 
-	'conceallevel'	Effect
+	Value		Effect ~
 	0		Text is shown normally
 	1		Each block of concealed text is replaced with the
 			character defined in 'listchars' (default is a dash)
@@ -5555,7 +5556,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	and left-to-right strings so that both sets are displayed properly
 	in different windows).  Also see |rileft.txt|.
 
-			*'rightleftcmd'* *'rlc'* *'norightleftcmd'* *'norlc'*
+			*'rightleftcmd'* *'rlc'*
 'rightleftcmd' 'rlc'	string	(default "search")
 			local to window
 			{not in Vi}

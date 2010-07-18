@@ -8511,7 +8511,7 @@ ex_undo(eap)
 }
 
 #ifdef FEAT_PERSISTENT_UNDO
-    void
+    static void
 ex_wundo(eap)
     exarg_T *eap;
 {
@@ -8521,7 +8521,7 @@ ex_wundo(eap)
     u_write_undo(eap->arg, eap->forceit, curbuf, hash);
 }
 
-    void
+    static void
 ex_rundo(eap)
     exarg_T *eap;
 {

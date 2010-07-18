@@ -91,6 +91,8 @@ Jumplist doesn't work properly in Insert mode? (Jean Johner, 2010 Mar 20)
 Problem with transparent cmdline.  Also: Terminal title is wrong with
 non-ASCII character. (Lily White, 2010 Mar 7)
 
+Patch for horizontal mouse wheel. (Bjorn Winckler, 2010 Jul 18)
+
 iconv() doesn't fail on an illegal character, as documented. (Yongwei Wu, 2009
 Nov 15, example Nov 26)  Add argument to specify whether iconv() should fail
 or replace with a character and continue?
@@ -1086,11 +1088,7 @@ Patch to support horizontal scroll wheel in GTK. Untested. (Bjorn Winckler,
 
 
 Before (beta) release 7.3:
-- Add fixes for 7.2 to version7.txt
-- Add hg history to version7.txt
-- Remove UF_VERSION_CRYPT_PREV and UF_VERSION_PREV.
 - Documentation for Python 3 support.
-- Build the MS-Windows version with Python 2.6.5 and 3.1.2?
 
 Before release 7.3:
 - Rename vim73 branch to default (hints: Xavier de Gaye, 2010 May 23)
@@ -1140,6 +1138,7 @@ More patches:
     Comments from Andreas Bernauer 24th, Dominique Pelle 24th
     Docs patch by Dominique Pelle, Mar 25
     Can we put the strings in a window-local variable?
+-   Patch to access screen under Python. (Marko Mahni, 2010 Jul 18)
 
 
 Awaiting updated patches:
