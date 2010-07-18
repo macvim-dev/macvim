@@ -173,6 +173,7 @@ ATSUStyle   gFontStyle;
 ATSUStyle   gWideFontStyle;
 # endif
 Boolean	    gIsFontFallbackSet;
+UInt32      useAntialias_cached = 0x0;
 #endif
 
 /* Colors Macros */
@@ -3982,13 +3983,8 @@ draw_string_QD(int row, int col, char_u *s, int len, int flags)
 	/* Multibyte computation taken from gui_w32.c */
 	if (has_mbyte)
 	{
-	    int cell_len = 0;
-	    int n;
-
 	    /* Compute the length in display cells. */
-	    for (n = 0; n < len; n += MB_BYTE2LEN(s[n]))
-		cell_len += (*mb_ptr2cells)(s + n);
-	    rc.right = FILL_X(col + cell_len);
+	    rc.right = FILL_X(col + mb_string2cells(s, len));
 	}
 	else
 #endif
@@ -4086,13 +4082,8 @@ draw_string_ATSUI(int row, int col, char_u *s, int len, int flags)
 	/* Multibyte computation taken from gui_w32.c */
 	if (has_mbyte)
 	{
-	    int cell_len = 0;
-	    int n;
-
 	    /* Compute the length in display cells. */
-	    for (n = 0; n < len; n += MB_BYTE2LEN(s[n]))
-		cell_len += (*mb_ptr2cells)(s + n);
-	    rc.right = FILL_X(col + cell_len);
+	    rc.right = FILL_X(col + mb_string2cells(s, len));
 	}
 	else
 	    rc.right = FILL_X(col + len) + (col + len == Columns);
@@ -4121,6 +4112,24 @@ draw_string_ATSUI(int row, int col, char_u *s, int len, int flags)
 	    ATSUAttributeValuePtr attribValues[] = { &attValue };
 
 	    ATSUSetAttributes(gFontStyle, 1, attribTags, attribSizes, attribValues);
+	}
+
+	UInt32 useAntialias = p_antialias ? kATSStyleApplyAntiAliasing
+					  : kATSStyleNoAntiAliasing;
+	if (useAntialias != useAntialias_cached)
+	{
+	    ATSUAttributeTag attribTags[] = { kATSUStyleRenderingOptionsTag };
+	    ByteCount attribSizes[] = { sizeof(UInt32) };
+	    ATSUAttributeValuePtr attribValues[] = { &useAntialias };
+
+	    if (gFontStyle)
+		ATSUSetAttributes(gFontStyle, 1, attribTags,
+						   attribSizes, attribValues);
+	    if (gWideFontStyle)
+		ATSUSetAttributes(gWideFontStyle, 1, attribTags,
+						   attribSizes, attribValues);
+
+	    useAntialias_cached = useAntialias;
 	}
 
 #ifdef FEAT_MBYTE

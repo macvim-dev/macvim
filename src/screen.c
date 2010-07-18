@@ -2780,6 +2780,10 @@ win_line(wp, lnum, startrow, endrow, nochange)
     int		is_concealing	= FALSE;
     int		boguscols	= 0;	/* nonexistent columns added to force
 					   wrapping */
+    int		vcol_off = 0;		/* offset for concealed characters */
+# define VCOL_HLC (vcol - vcol_off)
+#else
+# define VCOL_HLC (vcol)
 #endif
 
     if (startrow > endrow)		/* past the end already! */
@@ -2818,7 +2822,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
     /* Check for columns to display for 'colorcolumn'. */
     color_cols = wp->w_p_cc_cols;
     if (color_cols != NULL)
-	draw_color_col = advance_color_col(vcol, &color_cols);
+	draw_color_col = advance_color_col(VCOL_HLC, &color_cols);
 #endif
 
 #ifdef FEAT_SPELL
@@ -4393,10 +4397,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 
 		    first_conceal = FALSE;
 
-# ifdef FEAT_HLCOLUMN
-		    if (hlc > 0 && n_extra > 0)
-			hlc += n_extra;
-# endif
+		    if (n_extra > 0)
+			vcol_off += n_extra;
 		    vcol += n_extra;
 		    if (wp->w_p_wrap && n_extra > 0)
 		    {
@@ -4538,7 +4540,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		++prevcol;
 #endif
 
-	    /* invert at least one char, used for Visual and empty line or
+	    /* Invert at least one char, used for Visual and empty line or
 	     * highlight match at end of line. If it's beyond the last
 	     * char on the screen, just overwrite that one (tricky!)  Not
 	     * needed when a '$' was displayed for 'list'. */
@@ -4679,14 +4681,20 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    /* check if line ends before left margin */
 	    if (vcol < v + col - win_col_off(wp))
 		vcol = v + col - win_col_off(wp);
+#ifdef FEAT_CONCEAL
+	    /* Get rid of the boguscols now, we want to draw until the right
+	     * edge for 'cursorcolumn'. */
+	    col -= boguscols;
+	    boguscols = 0;
+#endif
 
 	    if (draw_color_col)
-		draw_color_col = advance_color_col(vcol, &color_cols);
+		draw_color_col = advance_color_col(VCOL_HLC, &color_cols);
 
 	    if (((wp->w_p_cuc
-		      && (int)wp->w_virtcol >= vcol - eol_hl_off
-		      && (int)wp->w_virtcol < W_WIDTH(wp) * (row - startrow + 1)
-									   + v
+		      && (int)wp->w_virtcol >= VCOL_HLC - eol_hl_off
+		      && (int)wp->w_virtcol <
+					W_WIDTH(wp) * (row - startrow + 1) + v
 		      && lnum != wp->w_cursor.lnum)
 		    || draw_color_col)
 # ifdef FEAT_RIGHTLEFT
@@ -4713,32 +4721,27 @@ win_line(wp, lnum, startrow, endrow, nochange)
 			ScreenLinesUC[off] = 0;
 #endif
 		    ++col;
-		    if (wp->w_p_cuc && vcol == (long)wp->w_virtcol)
+		    if (wp->w_p_cuc && VCOL_HLC == (long)wp->w_virtcol)
 			ScreenAttrs[off++] = hl_attr(HLF_CUC);
-		    else if (draw_color_col && vcol == *color_cols)
+		    else if (draw_color_col && VCOL_HLC == *color_cols)
 			ScreenAttrs[off++] = hl_attr(HLF_MC);
 		    else
 			ScreenAttrs[off++] = 0;
 
-		    if (vcol >= rightmost_vcol)
+		    if (VCOL_HLC >= rightmost_vcol)
 			break;
 
 		    if (draw_color_col)
-			draw_color_col = advance_color_col(vcol, &color_cols);
+			draw_color_col = advance_color_col(VCOL_HLC,
+								 &color_cols);
 
 		    ++vcol;
 		}
 	    }
 #endif
 
-#ifdef FEAT_CONCEAL
-	    SCREEN_LINE(screen_row, W_WINCOL(wp), col - boguscols,
-						(int)W_WIDTH(wp), wp->w_p_rl);
-	    boguscols = 0;
-#else
 	    SCREEN_LINE(screen_row, W_WINCOL(wp), col,
 						(int)W_WIDTH(wp), wp->w_p_rl);
-#endif
 	    row++;
 
 	    /*
@@ -4791,7 +4794,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 #ifdef FEAT_SYN_HL
 	/* advance to the next 'colorcolumn' */
 	if (draw_color_col)
-	    draw_color_col = advance_color_col(vcol, &color_cols);
+	    draw_color_col = advance_color_col(VCOL_HLC, &color_cols);
 
 	/* Highlight the cursor column if 'cursorcolumn' is set.  But don't
 	 * highlight the cursor position itself.
@@ -4800,7 +4803,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	vcol_save_attr = -1;
 	if (draw_state == WL_LINE && !lnum_in_visual_area)
 	{
-	    if (wp->w_p_cuc && vcol == (long)wp->w_virtcol
+	    if (wp->w_p_cuc && VCOL_HLC == (long)wp->w_virtcol
 						 && lnum != wp->w_cursor.lnum)
 	    {
 		vcol_save_attr = char_attr;
@@ -4909,17 +4912,12 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    }
 	}
 #ifdef FEAT_CONCEAL
-	else if (wp->w_p_conceal && is_concealing)
+	else if (wp->w_p_conceal > 0 && is_concealing)
 	{
 	    --n_skip;
-# ifdef FEAT_HLCOLUMN
-	    if (hlc)
-	    {
-		++hlc;
-		if (n_extra > 0)
-		    hlc += n_extra;
-	    }
-# endif
+	    ++vcol_off;
+	    if (n_extra > 0)
+		vcol_off += n_extra;
 	    if (wp->w_p_wrap)
 	    {
 		/*
@@ -6173,8 +6171,8 @@ win_redr_status(wp)
 		int	clen = 0, i;
 
 		/* Count total number of display cells. */
-		for (i = 0; p[i] != NUL; i += (*mb_ptr2len)(p + i))
-		    clen += (*mb_ptr2cells)(p + i);
+		clen = mb_string2cells(p, -1);
+
 		/* Find first character that will fit.
 		 * Going from start to end is much faster for DBCS. */
 		for (i = 0; p[i] != NUL && clen >= this_ru_col - 1;

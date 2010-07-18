@@ -11,7 +11,7 @@ endif
 syn match helpHeadline		"^[-A-Z .][-A-Z0-9 .()]*[ \t]\+\*"me=e-1
 syn match helpSectionDelim	"^=\{3,}.*===$"
 syn match helpSectionDelim	"^-\{3,}.*--$"
-syn region helpExample		matchgroup=helpIgnore start=" >$" start="^>$" end="^[^ \t]"me=e-1 end="^<"
+syn region helpExample		matchgroup=helpIgnore start=" >$" start="^>$" end="^[^ \t]"me=e-1 end="^<" concealends
 if has("ebcdic")
   syn match helpHyperTextJump	"\\\@<!|[^"*|]\+|" contains=helpBar
   syn match helpHyperTextEntry	"\*[^"*|]\+\*\s"he=e-1 contains=helpStar
@@ -21,8 +21,8 @@ else
   syn match helpHyperTextEntry	"\*[#-)!+-~]\+\*\s"he=e-1 contains=helpStar
   syn match helpHyperTextEntry	"\*[#-)!+-~]\+\*$" contains=helpStar
 endif
-syn match helpBar		contained "|"
-syn match helpStar		contained "\*"
+syn match helpBar		contained "|" conceal
+syn match helpStar		contained "\*" conceal
 syn match helpNormal		"|.*====*|"
 syn match helpNormal		":|vim:|"	" for :help modeline
 syn match helpVim		"Vim version [0-9.a-z]\+"
@@ -30,7 +30,7 @@ syn match helpVim		"VIM REFERENCE.*"
 syn match helpOption		"'[a-z]\{2,\}'"
 syn match helpOption		"'t_..'"
 syn match helpHeader		"\s*\zs.\{-}\ze\s\=\~$" nextgroup=helpIgnore
-syn match helpIgnore		"." contained
+syn match helpIgnore		"." contained conceal
 syn keyword helpNote		note Note NOTE note: Note: NOTE: Notes Notes:
 syn match helpSpecial		"\<N\>"
 syn match helpSpecial		"\<N\.$"me=e-1
@@ -132,7 +132,6 @@ syn sync minlines=40
 
 " Define the default highlighting.
 " Only used when an item doesn't have highlighting yet
-hi def link helpExampleStart	helpIgnore
 hi def link helpIgnore		Ignore
 hi def link helpHyperTextJump	Subtitle
 hi def link helpBar		Ignore
