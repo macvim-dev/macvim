@@ -492,6 +492,10 @@
     return rect;
 }
 
+- (void)deleteSign:(NSString *)signName
+{
+}
+
 - (BOOL)isOpaque
 {
     return NO;

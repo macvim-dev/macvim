@@ -97,6 +97,7 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)scheduleClose;
 - (void)handleBrowseForFile:(NSDictionary *)attr;
 - (void)handleShowDialog:(NSDictionary *)attr;
+- (void)handleDeleteSign:(NSDictionary *)attr;
 @end
 
 
@@ -819,6 +820,10 @@ static BOOL isUnsafeMessage(int msgid);
         NSDictionary *dict = [NSDictionary dictionaryWithData:data];
         if (dict)
             [self handleShowDialog:dict];
+    } else if (DeleteSignMsgID == msgid) {
+        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+        if (dict)
+            [self handleDeleteSign:dict];
     } else if (ZoomMsgID == msgid) {
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
@@ -1438,6 +1443,11 @@ static BOOL isUnsafeMessage(int msgid);
     [alert release];
 }
 
+- (void)handleDeleteSign:(NSDictionary *)attr
+{
+    MMTextView *view = [[windowController vimView] textView];
+    [view deleteSign:[attr objectForKey:@"imgName"]];
+}
 
 @end // MMVimController (Private)
 

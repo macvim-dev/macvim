@@ -85,6 +85,11 @@
                fraction:(int)percent color:(int)color;
 - (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nr
                    numColumns:(int)nc invert:(int)invert;
+- (void)drawSign:(NSString *)imgName
+           atRow:(int)row
+          column:(int)col
+           width:(int)width
+          height:(int)height;
 - (void)update;
 - (void)flushQueue:(BOOL)force;
 - (BOOL)waitForInput:(int)milliseconds;

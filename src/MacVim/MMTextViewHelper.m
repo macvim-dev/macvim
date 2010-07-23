@@ -70,6 +70,16 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 @implementation MMTextViewHelper
 
+- (id)init
+{
+    if (!(self = [super init]))
+        return nil;
+
+    signImages = [[NSMutableDictionary alloc] init];
+
+    return self;
+}
+
 - (void)dealloc
 {
     ASLogDebug(@"");
@@ -77,6 +87,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [insertionPointColor release];  insertionPointColor = nil;
     [markedText release];  markedText = nil;
     [markedTextAttributes release];  markedTextAttributes = nil;
+    [signImages release];  signImages = nil;
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (asciiImSource) {
@@ -605,6 +616,26 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
             [[self vimController] sendMessage:SetFontMsgID data:data];
         }
     }
+}
+
+- (NSImage *)signImageForName:(NSString *)imgName
+{
+    NSImage *img = [signImages objectForKey:imgName];
+    if (img)
+        return img;
+
+    img = [[NSImage alloc] initWithContentsOfFile:imgName];
+    if (img) {
+        [signImages setObject:img forKey:imgName];
+        [img autorelease];
+    }
+
+    return img;
+}
+
+- (void)deleteImage:(NSString *)imgName
+{
+    [signImages removeObjectForKey:imgName];
 }
 
 - (BOOL)hasMarkedText
