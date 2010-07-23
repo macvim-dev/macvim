@@ -288,12 +288,8 @@ extern char *vim_SelFile __ARGS((Widget toplevel, char *prompt, char *init_path,
 #ifdef MACOS_CONVERT
 # include "os_mac_conv.pro"
 #endif
-#if defined(MACOS_X_UNIX) && defined(FEAT_CLIPBOARD) && !defined(FEAT_GUI)
-/* functions in os_macosx.m */
-void clip_mch_lose_selection(VimClipboard *cbd);
-int clip_mch_own_selection(VimClipboard *cbd);
-void clip_mch_request_selection(VimClipboard *cbd);
-void clip_mch_set_selection(VimClipboard *cbd);
+#ifdef MACOS_X
+# include "os_macosx.pro"
 #endif
 
 #ifdef __BORLANDC__
