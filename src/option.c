@@ -7573,7 +7573,7 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 #endif
     }
 
-#ifdef FEAT_GUI
+#if defined(FEAT_GUI) && !defined(FEAT_GUI_MACVIM)
     else if ((int *)varp == &p_mh)
     {
 	if (!p_mh)
