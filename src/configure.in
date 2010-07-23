@@ -227,7 +227,7 @@ if test "$cross_compiling" = no; then
     */*) ;;
     no)
       # avoid adding local dir to LDFLAGS and CPPFLAGS
-      have_local_dir=yes
+      have_local_include=yes
       have_local_lib=yes
       ;;
     *) AC_MSG_ERROR(must pass path argument to --with-local-dir) ;;
@@ -427,11 +427,11 @@ fi
 dnl Check for Lua feature.
 AC_MSG_CHECKING(--enable-luainterp argument)
 AC_ARG_ENABLE(luainterp,
-	[  --enable-luainterp      Include Lua interpreter.], ,
+	[  --enable-luainterp[=OPTS]     Include Lua interpreter.  [default=no] [OPTS=no/yes/dynamic]], ,
 	[enable_luainterp="no"])
 AC_MSG_RESULT($enable_luainterp)
 
-if test "$enable_luainterp" = "yes"; then
+if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
   dnl -- find the lua executable
   AC_SUBST(vi_cv_path_lua)
 
@@ -491,6 +491,11 @@ if test "$enable_luainterp" = "yes"; then
     LUA_OBJ="objects/if_lua.o"
     LUA_PRO="if_lua.pro"
     AC_DEFINE(FEAT_LUA)
+    if test "$enable_luainterp" = "dynamic"; then
+      AC_DEFINE(DYNAMIC_LUA)
+      LUA_LIBS=""
+      LUA_CFLAGS="-DDYNAMIC_LUA_DLL=\\\"liblua${vi_cv_version_lua}.so\\\" $LUA_CFLAGS"
+    fi
   fi
   AC_SUBST(LUA_SRC)
   AC_SUBST(LUA_OBJ)
@@ -634,16 +639,17 @@ fi
 
 AC_MSG_CHECKING(--enable-perlinterp argument)
 AC_ARG_ENABLE(perlinterp,
-	[  --enable-perlinterp     Include Perl interpreter.], ,
+	[  --enable-perlinterp[=OPTS]     Include Perl interpreter.  [default=no] [OPTS=no/yes/dynamic]], ,
 	[enable_perlinterp="no"])
 AC_MSG_RESULT($enable_perlinterp)
-if test "$enable_perlinterp" = "yes"; then
+if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
   AC_SUBST(vi_cv_path_perl)
   AC_PATH_PROG(vi_cv_path_perl, perl)
   if test "X$vi_cv_path_perl" != "X"; then
     AC_MSG_CHECKING(Perl version)
     if $vi_cv_path_perl -e 'require 5.003_01' >/dev/null 2>/dev/null; then
      eval `$vi_cv_path_perl -V:usethreads`
+     eval `$vi_cv_path_perl -V:libperl`
      if test "X$usethreads" = "XUNKNOWN" -o "X$usethreads" = "Xundef"; then
        badthreads=no
      else
@@ -742,6 +748,12 @@ if test "$enable_perlinterp" = "yes"; then
       PERL_CFLAGS="-DFEAT_PERL -I$darwindir/CORE"
       PERL_OBJ="objects/if_perl.o objects/if_perlsfio.o $darwindir/auto/DynaLoader/DynaLoader.a"
       PERL_LIBS="-L$darwindir/CORE -lperl"
+    fi
+  fi
+  if test "$enable_perlinterp" = "dynamic"; then
+    if test "$perl_ok" = "yes" -a "X$libperl" != "X"; then
+      AC_DEFINE(DYNAMIC_PERL)
+      PERL_CFLAGS="-DDYNAMIC_PERL_DLL=\\\"$libperl\\\" $PERL_CFLAGS"
     fi
   fi
 fi
@@ -961,7 +973,7 @@ if test "$enable_python3interp" = "yes"; then
     dnl -- get its version number
     AC_CACHE_CHECK(Python version,vi_cv_var_python3_version,
     [[vi_cv_var_python3_version=`
-          ${vi_cv_path_python3} -c 'import sys; print(sys.version[1:3])'`
+          ${vi_cv_path_python3} -c 'import sys; print(sys.version[:3])'`
     ]])
 
     dnl -- find where python3 thinks it was installed
@@ -995,7 +1007,7 @@ if test "$enable_python3interp" = "yes"; then
      vi_cv_path_python3_conf=
      for path in "${vi_cv_path_python3_pfx}" "${vi_cv_path_python3_epfx}"; do
        for subdir in lib share; do
-         d="${path}/${subdir}/python3${vi_cv_var_python3_version}/config"
+         d="${path}/${subdir}/python${vi_cv_var_python3_version}/config"
          if test -d "$d" && test -f "$d/config.c"; then
            vi_cv_path_python3_conf="$d"
          fi
@@ -1017,7 +1029,7 @@ if test "$enable_python3interp" = "yes"; then
           tmp_mkf="$pwd/config-PyMake$$"
           cat -- "${PYTHON3_CONFDIR}/Makefile" - <<'eof' >"${tmp_mkf}"
 __:
-	@echo "python3_MODLIBS='$(MODLIBS)'"
+	@echo "python3_BASEMODLIBS='$(BASEMODLIBS)'"
 	@echo "python3_LIBS='$(LIBS)'"
 	@echo "python3_SYSLIBS='$(SYSLIBS)'"
 	@echo "python3_LINKFORSHARED='$(LINKFORSHARED)'"
@@ -1025,8 +1037,8 @@ eof
           dnl -- delete the lines from make about Entering/Leaving directory
           eval "`cd ${PYTHON3_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
           rm -f -- "${tmp_mkf}"
-          vi_cv_path_python3_plibs="-L${PYTHON3_CONFDIR} -lpython3${vi_cv_var_python3_version}"
-          vi_cv_path_python3_plibs="${vi_cv_path_python3_plibs} ${python3_MODLIBS} ${python3_LIBS} ${python3_SYSLIBS} ${python3_LINKFORSHARED}"
+          vi_cv_path_python3_plibs="-L${PYTHON3_CONFDIR} -lpython${vi_cv_var_python3_version}"
+          vi_cv_path_python3_plibs="${vi_cv_path_python3_plibs} ${python3_BASEMODLIBS} ${python3_LIBS} ${python3_SYSLIBS} ${python3_LINKFORSHARED}"
           dnl remove -ltermcap, it can conflict with an earlier -lncurses
           vi_cv_path_python3_plibs=`echo $vi_cv_path_python3_plibs | sed s/-ltermcap//`
           vi_cv_path_python3_plibs=`echo $vi_cv_path_python3_plibs | sed s/-lffi//`
@@ -1034,9 +1046,9 @@ eof
 
       PYTHON3_LIBS="${vi_cv_path_python3_plibs}"
       if test "${vi_cv_path_python3_pfx}" = "${vi_cv_path_python3_epfx}"; then
-        PYTHON3_CFLAGS="-I${vi_cv_path_python3_pfx}/include/python3${vi_cv_var_python3_version}"
+        PYTHON3_CFLAGS="-I${vi_cv_path_python3_pfx}/include/python${vi_cv_var_python3_version}"
       else
-        PYTHON3_CFLAGS="-I${vi_cv_path_python3_pfx}/include/python3${vi_cv_var_python3_version} -I${vi_cv_path_python3_epfx}/include/python3${vi_cv_var_python3_version}"
+        PYTHON3_CFLAGS="-I${vi_cv_path_python3_pfx}/include/python${vi_cv_var_python3_version} -I${vi_cv_path_python3_epfx}/include/python${vi_cv_var_python3_version}"
       fi
       PYTHON3_SRC="if_python3.c"
       dnl For Mac OSX 10.2 config.o is included in the Python library.
@@ -1120,7 +1132,7 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
   PYTHON_LIBS=
   PYTHON3_SRC="if_python3.c"
   PYTHON3_OBJ="objects/if_python3.o"
-  PYTHON3_CFLAGS="$PYTHON3_CFLAGS -DDYNAMIC_PYTHON3_DLL=\\\"libpython3${vi_cv_var_python3_version}.so\\\""
+  PYTHON3_CFLAGS="$PYTHON3_CFLAGS -DDYNAMIC_PYTHON3_DLL=\\\"libpython${vi_cv_var_python3_version}.so\\\""
   PYTHON3_LIBS=
 fi
 

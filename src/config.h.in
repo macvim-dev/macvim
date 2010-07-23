@@ -319,11 +319,17 @@
 /* Define if you want to include the Lua interpreter. */
 #undef FEAT_LUA
 
+/* Define for linking via dlopen() or LoadLibrary() */
+#undef DYNAMIC_LUA
+
 /* Define if you want to include the MzScheme interpreter. */
 #undef FEAT_MZSCHEME
 
 /* Define if you want to include the Perl interpreter. */
 #undef FEAT_PERL
+
+/* Define for linking via dlopen() or LoadLibrary() */
+#undef DYNAMIC_PERL
 
 /* Define if you want to include the Python interpreter. */
 #undef FEAT_PYTHON

@@ -1038,7 +1038,8 @@ free_all_mem()
 # endif
 
 # ifdef FEAT_WINDOWS
-    /* close all tabs and windows */
+    /* Close all tabs and windows.  Reset 'equalalways' to avoid redraws. */
+    p_ea = FALSE;
     if (first_tabpage->tp_next != NULL)
 	do_cmdline_cmd((char_u *)"tabonly!");
     if (firstwin != lastwin)
@@ -3749,6 +3750,41 @@ static ulg keys[3]; /* keys defining the pseudo-random sequence */
 static int crypt_busy = 0;
 static ulg saved_keys[3];
 static int saved_crypt_method;
+
+/*
+ * Return int value for crypt method string:
+ * 0 for "zip", the old method.  Also for any non-valid value.
+ * 1 for "blowfish".
+ */
+    int
+crypt_method_from_string(s)
+    char_u  *s;
+{
+    return *s == 'b' ? 1 : 0;
+}
+
+/*
+ * Get the crypt method for buffer "buf" as a number.
+ */
+    int
+get_crypt_method(buf)
+    buf_T *buf;
+{
+    return crypt_method_from_string(*buf->b_p_cm == NUL ? p_cm : buf->b_p_cm);
+}
+
+/*
+ * Set the crypt method for buffer "buf" to "method" using the int value as
+ * returned by crypt_method_from_string().
+ */
+    void
+set_crypt_method(buf, method)
+    buf_T   *buf;
+    int	    method;
+{
+    free_string_option(buf->b_p_cm);
+    buf->b_p_cm = vim_strsave((char_u *)(method == 0 ? "zip" : "blowfish"));
+}
 
 /*
  * Prepare for initializing encryption.  If already doing encryption then save

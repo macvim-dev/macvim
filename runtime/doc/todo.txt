@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3a.  Last change: 2010 May 15
+*todo.txt*      For Vim version 7.3b.  Last change: 2010 Jul 22
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -30,7 +30,14 @@ be worked on, but only if you sponsor Vim development.  See |sponsor|.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-GTK: torn-off menu doesn't work.
+Conceal in help files doesn't work nice.  How about adding an 'concealcursor'
+option, when on:
+- cursorline is concealed.
+- line is redrawn on every movement
+- display function corrects cursor position.
+
+Include patch for horizontal scoll wheel? (Bjorn Winckler, 2010 Jul 20)
+Additional patch Jul 21.
 
 Cursor positioning wrong with 0x200e character. (John Becket, 2010 May 6)
 
@@ -85,6 +92,9 @@ Jun 29)  Caused by 7.2.433?
 I often see pasted text (from Firefox, to Vim in xterm) appear twice.
 Also, Vim in xterm sometimes loses copy/paste ability (probably after running
 an external command).
+
+Win32: The "4913" file is sometimes not deleted.  Perhaps another program has
+opened it?  Use FILE_FLAG_DELETE_ON_CLOSE? (Craig Barkhouse, 2009 Nov 6)
 
 Jumplist doesn't work properly in Insert mode? (Jean Johner, 2010 Mar 20)
 
@@ -435,9 +445,6 @@ an alternate solution, also for src/ex_getln.c.
 This also fails when the file or directory name contains "%". (Thoml, 2008
 July 7)
 
-Win32: The "4913" file is sometimes not deleted.  Perhaps another program has
-opened it?  Use FILE_FLAG_DELETE_ON_CLOSE? (Craig Barkhouse, 2009 Nov 6)
-
 The str2special() function doesn't handle multi-byte characters properly.
 Patch from Vladimir Vichniakov, 2007 Apr 24.
 Should clean up the whole function.  Also allow modifiers like <S-Char-32>?
@@ -680,9 +687,6 @@ label.  (Tsakiridis, 2007 Feb 18)  Patch from Ian Kelling, 2008 Aug 6.
 Win32: using "gvim --remote-tab-silent fname" sometimes gives an empty screen
 with the more prompt.  Caused by setting the guitablabel?  (Thomas Michael
 Engelke, 2007 Dec 20 - 2008 Jan 17)
-
-Win64: diff.exe crashes on Win64. (Julianne Bailey, 2006 Dec 12)
-Build another diff.exe somehow?
 
 Win64: Seek error in swap file for a very big file (3 Gbyte).  Check storing
 pointer in long and seek offset in 64 bit var.
@@ -1125,8 +1129,6 @@ More patches:
     Sep 13)
 -   Patch for adding "space" item in 'listchars'. (Jérémie Roquet, 2009 Oct 29,
     Docs patch Oct 30)
--   Patch for supporting #rrggbb in color terminals.  (Matt Wozniski)
-    Where is a recent version of this patch?  Or use CSApprox plugin?
 -   Replace ccomplete.vim by cppcomplete.vim from www.vim.org?  script 1520 by
     Vissale Neang.  (Martin Stubenschrott) Asked Vissale to make the scripts
     more friendly for the Vim distribution.
@@ -2320,6 +2322,7 @@ Spell checking:
 Diff mode:
 9   Instead invoking an external diff program, use builtin code.  One can be
     found here: http://www.ioplex.com/~miallen/libmba/dl/src/diff.c
+    It's quite big and badly documented though.
 8   Use diff mode to show the changes made in a buffer (compared to the file).
     Use an unnamed buffer, like doing:
 	new | set bt=nofile | r # | 0d_ | diffthis | wincmd p | diffthis
@@ -3924,8 +3927,6 @@ Undo:
     storing the differences.
     Alternative: before reloading a buffer, store it somewhere.  Keep a list
     of about 10 last reloaded buffers.
-    OR: before unloading, write a backup file with the current text, as if
-    doing ":w" twice before reloading.
 -   Make it possible to undo all the commands from a mapping, including a
     trailing unfinished command, e.g. for ":map K iX^[r".
 -   When accidentally hitting "R" instead of Ctrl-R, further Ctrl-R is not
@@ -4665,7 +4666,6 @@ Various improvements:
 From Elvis:
 -   Use "instman.sh" to install manpages?
 -   Add ":alias" command.
--   fontchanges recognized "\\fB" etc.
 -   Search patterns:
       \@	match word under cursor.
     but do:
@@ -4680,23 +4680,6 @@ From Elvis:
     :win name	to window editing buffer "name"
 7   ":cc" compiles a single file (default: current one).  'ccprg'   option is
     program to use with ":cc".  Use ":compile" instead of ":cc"?
-
-
-From Nvi:
--   'searchincr' option, alias for 'incsearch'?
--   'leftright' option, alias for 'nowrap'?
--   Have a look at "vi/doc/vi.chart", for Nvi specialties.
-8   Add 'keytime', time in 1/10 sec for mapping timeout?
--   Add 'filec' option as an alternative for 'wildchar'.
-6   Support Nvi command names as an alias:
-    :bg		    :hide
-    :fg	fname	    :buf fname (with 'hidden' set?)
-    :dis b	    :ls
-    :Edit fname	    :split fname
-    :Fg fname	    :sbuf fname (with 'hidden' set?)
-    :Next	    :snext (can't do this, already use :Next)
-    :Previous	    :sprevious
-    :Tag	    :stag
 
 
 From xvi:

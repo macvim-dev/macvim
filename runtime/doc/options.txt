@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 7.3a.  Last change: 2010 May 13
+*options.txt*	For Vim version 7.3b.  Last change: 2010 Jul 20
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1731,6 +1731,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 			|:syn-cchar|.
 	3		Concealed text is completely hidden.
 
+	Note: in the cursor line concealed text is not hidden, so that you can
+	edit and copy the text.
 
 				*'confirm'* *'cf'* *'noconfirm'* *'nocf'*
 'confirm' 'cf'		boolean (default off)
@@ -2077,15 +2079,15 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 
 						*'cryptmethod'* *'cm'*
-'cryptmethod'		number	(default 0)
-			local to buffer
+'cryptmethod'		string	(default "zip")
+			global or local to buffer |global-local|
 			{not in Vi}
 	Method used for encryption when the buffer is written to a file:
 							*pkzip*
-		0	PkZip compatible method.  A weak kind of encryption.
+	   zip		PkZip compatible method.  A weak kind of encryption.
 			Backwards compatible with Vim 7.2 and older.
 							*blowfish*
-		1	Blowfish method.  Strong encryption.  Requires Vim 7.3
+	   blowfish	Blowfish method.  Strong encryption.  Requires Vim 7.3
 			or later, files can NOT be read by Vim 7.2 and older.
 			This adds a "seed" to the file, every time you write
 			the file the encrypted bytes will be different.
@@ -2094,10 +2096,16 @@ A jump table for the options with a short description can be found at |Q_op|.
 	to the detected method of the file being read.  Thus if you write it
 	without changing 'cryptmethod' the same method will be used.
 	Changing 'cryptmethod' does not mark the file as modified, you have to
-	explicitly write it when not making modifications.
-	Also see |:X|.
+	explicitly write it, you don't get a warning unless there are other
+	modifications.  Also see |:X|.
+
+	When setting the global value to an empty string, it will end up with
+	the value "zip".  When setting the local value to an empty string the
+	buffer will use the global value.
+
 	When a new encryption method is added in a later version of Vim, and
 	the current version does not recognize it, you will get	*E821* .
+	You need to edit this file with the later version of Vim.
 
 
 						*'cscopepathcomp'* *'cspc'*
@@ -3128,12 +3136,15 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not available when compiled without the |+eval|
 			feature}
 	Expression which is evaluated to format a range of lines for the |gq|
-	operator.  When this option is empty 'formatprg' is used.
+	operator or automatic formatting (see 'formatoptions').  When this
+	option is empty 'formatprg' is used.
 
 	The |v:lnum|  variable holds the first line to be formatted.
 	The |v:count| variable holds the number of lines to be formatted.
 	The |v:char|  variable holds the character that is going to be
-		      inserted.  This can be empty.  Don't insert it yet!
+		      inserted if the expression is being evaluated due to
+		      automatic formatting.  This can be empty.  Don't insert
+		      it yet!
 
 	Example: >
 		:set formatexpr=mylang#Format()

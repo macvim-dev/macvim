@@ -77,7 +77,7 @@
 #if defined(FEAT_SMARTINDENT) || defined(FEAT_CINDENT)
 # define PV_CINW	OPT_BUF(BV_CINW)
 #endif
-#define PV_CM		OPT_BUF(BV_CM)
+#define PV_CM		OPT_BOTH(OPT_BUF(BV_CM))
 #ifdef FEAT_FOLDING
 # define PV_CMS		OPT_BUF(BV_CMS)
 #endif
@@ -289,9 +289,6 @@ static char_u	*p_cino;
 #endif
 #if defined(FEAT_SMARTINDENT) || defined(FEAT_CINDENT)
 static char_u	*p_cinw;
-#endif
-#ifdef FEAT_CRYPT
-static long	p_cm;
 #endif
 #ifdef FEAT_COMMENTS
 static char_u	*p_com;
@@ -875,13 +872,15 @@ static struct vimoption
 			    (char_u *)&p_cpo, PV_NONE,
 			    {(char_u *)CPO_VI, (char_u *)CPO_VIM}
 			    SCRIPTID_INIT},
-    {"cryptmethod", "cm",   P_NUM|P_VI_DEF|P_VIM,
+    {"cryptmethod", "cm",   P_STRING|P_ALLOCED|P_VI_DEF,
 #ifdef FEAT_CRYPT
 			    (char_u *)&p_cm, PV_CM,
+			    {(char_u *)"zip", (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L}
 #endif
-			    {(char_u *)0L, (char_u *)0L} SCRIPTID_INIT},
+			    SCRIPTID_INIT},
     {"cscopepathcomp", "cspc", P_NUM|P_VI_DEF|P_VIM,
 #ifdef FEAT_CSCOPE
 			    (char_u *)&p_cspc, PV_NONE,
@@ -2960,6 +2959,9 @@ static char *(p_ambw_values[]) = {"single", "double", NULL};
 static char *(p_bg_values[]) = {"light", "dark", NULL};
 static char *(p_nf_values[]) = {"octal", "hex", "alpha", NULL};
 static char *(p_ff_values[]) = {FF_UNIX, FF_DOS, FF_MAC, NULL};
+#ifdef FEAT_CRYPT
+static char *(p_cm_values[]) = {"zip", "blowfish", NULL};
+#endif
 #ifdef FEAT_CMDL_COMPL
 static char *(p_wop_values[]) = {"tagfile", NULL};
 #endif
@@ -5285,6 +5287,9 @@ check_buf_options(buf)
 #if defined(FEAT_BEVAL) && defined(FEAT_EVAL)
     check_string_option(&buf->b_p_bexpr);
 #endif
+#if defined(FEAT_CRYPT)
+    check_string_option(&buf->b_p_cm);
+#endif
 #if defined(FEAT_EVAL)
     check_string_option(&buf->b_p_fex);
 #endif
@@ -6072,7 +6077,57 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
 # endif
 	if (STRCMP(curbuf->b_p_key, oldval) != 0)
 	    /* Need to update the swapfile. */
-	    ml_set_crypt_key(curbuf, oldval, curbuf->b_p_cm);
+	    ml_set_crypt_key(curbuf, oldval, get_crypt_method(curbuf));
+    }
+
+    else if (gvarp == &p_cm)
+    {
+	if (opt_flags & OPT_LOCAL)
+	    p = curbuf->b_p_cm;
+	else
+	    p = p_cm;
+	if (check_opt_strings(p, p_cm_values, TRUE) != OK)
+	    errmsg = e_invarg;
+	else if (get_crypt_method(curbuf) > 0 && blowfish_self_test() == FAIL)
+	    errmsg = e_invarg;
+	else
+	{
+	    /* When setting the global value to empty, make it "zip". */
+	    if (*p_cm == NUL)
+	    {
+		if (new_value_alloced)
+		    free_string_option(p_cm);
+		p_cm = vim_strsave((char_u *)"zip");
+		new_value_alloced = TRUE;
+	    }
+
+	    /* Need to update the swapfile when the effective method changed.
+	     * Set "s" to the effective old value, "p" to the effective new
+	     * method and compare. */
+	    if ((opt_flags & OPT_LOCAL) && *oldval == NUL)
+		s = p_cm;  /* was previously using the global value */
+	    else
+		s = oldval;
+	    if (*curbuf->b_p_cm == NUL)
+		p = p_cm;  /* is now using the global value */
+	    else
+		p = curbuf->b_p_cm;
+	    if (STRCMP(s, p) != 0)
+		ml_set_crypt_key(curbuf, curbuf->b_p_key,
+						 crypt_method_from_string(s));
+
+	    /* If the global value changes need to update the swapfile for all
+	     * buffers using that value. */
+	    if ((opt_flags & OPT_GLOBAL) && STRCMP(p_cm, oldval) != 0)
+	    {
+		buf_T	*buf;
+
+		for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+		    if (buf != curbuf && *buf->b_p_cm == NUL)
+			ml_set_crypt_key(buf, buf->b_p_key,
+					    crypt_method_from_string(oldval));
+	    }
+	}
     }
 #endif
 
@@ -7518,6 +7573,14 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 #endif
     }
 
+#ifdef FEAT_GUI
+    else if ((int *)varp == &p_mh)
+    {
+	if (!p_mh)
+	    gui_mch_mousehide(FALSE);
+    }
+#endif
+
 #if defined(FEAT_TITLE) || defined(FEAT_CONCEAL)
     /* when 'modifiable' is changed, redraw the window title and
      * update current line for concealable items */
@@ -7527,7 +7590,7 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 	redraw_titles();
 # endif
 # ifdef FEAT_CONCEAL
-	if (curwin->w_p_conceal)
+	if (curwin->w_p_conc > 0)
 	    update_single_line(curwin, curwin->w_cursor.lnum);
 # endif
     }
@@ -8170,28 +8233,6 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 
 #endif
 
-#ifdef FEAT_CRYPT
-    else if (pp == &curbuf->b_p_cm)
-    {
-	if (curbuf->b_p_cm < 0)
-	{
-	    errmsg = e_positive;
-	    curbuf->b_p_cm = old_value;
-	}
-	if (curbuf->b_p_cm > 1)
-	{
-	    errmsg = e_invarg;
-	    curbuf->b_p_cm = old_value;
-	}
-	if (curbuf->b_p_cm > 0 && blowfish_self_test() == FAIL)
-	    curbuf->b_p_cm = old_value;
-
-	if (curbuf->b_p_cm != old_value && *curbuf->b_p_key != NUL)
-	    /* Need to update the swapfile. */
-	    ml_set_crypt_key(curbuf, curbuf->b_p_key, old_value);
-    }
-#endif
-
 #ifdef FEAT_WINDOWS
     /* (re)set last window status line */
     else if (pp == &p_ls)
@@ -8354,17 +8395,17 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 	    ml_open_files();
     }
 #ifdef FEAT_CONCEAL
-    else if (pp == &curwin->w_p_conceal)
+    else if (pp == &curwin->w_p_conc)
     {
-	if (curwin->w_p_conceal < 0)
+	if (curwin->w_p_conc < 0)
 	{
 	    errmsg = e_positive;
-	    curwin->w_p_conceal = 0;
+	    curwin->w_p_conc = 0;
 	}
-	else if (curwin->w_p_conceal > 3)
+	else if (curwin->w_p_conc > 3)
 	{
 	    errmsg = e_invarg;
-	    curwin->w_p_conceal = 3;
+	    curwin->w_p_conc = 3;
 	}
     }
 #endif
@@ -9519,6 +9560,9 @@ get_varp_scope(p, opt_flags)
 #if defined(FEAT_BEVAL) && defined(FEAT_EVAL)
 	    case PV_BEXPR: return (char_u *)&(curbuf->b_p_bexpr);
 #endif
+#if defined(FEAT_CRYPT)
+	    case PV_CM:	  return (char_u *)&(curbuf->b_p_cm);
+#endif
 #ifdef FEAT_STL_OPT
 	    case PV_STL:  return (char_u *)&(curwin->w_p_stl);
 #endif
@@ -9577,6 +9621,10 @@ get_varp(p)
 #if defined(FEAT_BEVAL) && defined(FEAT_EVAL)
 	case PV_BEXPR:	return *curbuf->b_p_bexpr != NUL
 				    ? (char_u *)&(curbuf->b_p_bexpr) : p->var;
+#endif
+#if defined(FEAT_CRYPT)
+	case PV_CM:	return *curbuf->b_p_cm != NUL
+				    ? (char_u *)&(curbuf->b_p_cm) : p->var;
 #endif
 #ifdef FEAT_STL_OPT
 	case PV_STL:	return *curwin->w_p_stl != NUL
@@ -9642,7 +9690,7 @@ get_varp(p)
 	case PV_CRBIND: return (char_u *)&(curwin->w_p_crb);
 #endif
 #ifdef FEAT_CONCEAL
-	case PV_CONCEAL:    return (char_u *)&(curwin->w_p_conceal);
+	case PV_CONCEAL:    return (char_u *)&(curwin->w_p_conc);
 #endif
 
 	case PV_AI:	return (char_u *)&(curbuf->b_p_ai);
@@ -9660,9 +9708,6 @@ get_varp(p)
 	case PV_CIN:	return (char_u *)&(curbuf->b_p_cin);
 	case PV_CINK:	return (char_u *)&(curbuf->b_p_cink);
 	case PV_CINO:	return (char_u *)&(curbuf->b_p_cino);
-#endif
-#ifdef FEAT_CRYPT
-	case PV_CM:	return (char_u *)&(curbuf->b_p_cm);
 #endif
 #if defined(FEAT_SMARTINDENT) || defined(FEAT_CINDENT)
 	case PV_CINW:	return (char_u *)&(curbuf->b_p_cinw);
@@ -10135,6 +10180,9 @@ buf_copy_options(buf, flags)
 #endif
 #if defined(FEAT_BEVAL) && defined(FEAT_EVAL)
 	    buf->b_p_bexpr = empty_option;
+#endif
+#if defined(FEAT_CRYPT)
+	    buf->b_p_cm = empty_option;
 #endif
 #ifdef FEAT_PERSISTENT_UNDO
 	    buf->b_p_udf = p_udf;

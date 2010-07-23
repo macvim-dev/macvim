@@ -1,4 +1,4 @@
-*if_pyth.txt*   For Vim version 7.3a.  Last change: 2008 Aug 16
+*if_pyth.txt*   For Vim version 7.3b.  Last change: 2010 Jul 21
 
 
 		  VIM REFERENCE MANUAL    by Paul Moore
@@ -16,8 +16,10 @@ The Python Interface to Vim				*python* *Python*
 
 {Vi does not have any of these commands}
 
-The Python interface is available only when Vim was compiled with the
+The Python 2.x interface is available only when Vim was compiled with the
 |+python| feature.
+The Python 3 interface is available only when Vim was compiled with the
+|+python3| feature.
 
 ==============================================================================
 1. Commands						*python-commands*

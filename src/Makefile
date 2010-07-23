@@ -370,8 +370,10 @@ CClink = $(CC)
 #CONF_OPT_DARWIN = --with-mac-arch=both
 
 # LUA
-# Uncomment this when you want to include the Lua interface.
+# Uncomment one of these when you want to include the Lua interface.
+# First one is for static linking, second one for dynamic loading.
 #CONF_OPT_LUA = --enable-luainterp
+#CONF_OPT_LUA = --enable-luainterp=dynamic
 # Lua installation dir (when not set uses $LUA_PREFIX or defaults to /usr)
 #CONF_OPT_LUA_PREFIX = --with-lua-prefix=/usr/local
 
@@ -384,8 +386,10 @@ CClink = $(CC)
 #CONF_OPT_PLTHOME  = --with-plthome=/home/me/mz
 
 # PERL
-# Uncomment this when you want to include the Perl interface.
+# Uncomment one of these when you want to include the Perl interface.
+# First one is for static linking, second one for dynamic loading.
 # The Perl option sometimes causes problems, because it adds extra flags
+#
 # to the command line.	If you see strange flags during compilation, check in
 # auto/config.mk where they come from.  If it's PERL_CFLAGS, try commenting
 # the next line.
@@ -393,6 +397,7 @@ CClink = $(CC)
 # one: "touch perl.exp".
 # This requires at least "small" features, "tiny" doesn't work.
 #CONF_OPT_PERL = --enable-perlinterp
+#CONF_OPT_PERL = --enable-perlinterp=dynamic
 
 # PYTHON
 # Uncomment this when you want to include the Python interface.
@@ -925,7 +930,7 @@ MAN1DIR = /man1
 
 ### Vim version (adjusted by a script)
 VIMMAJOR = 7
-VIMMINOR = 3a
+VIMMINOR = 3b
 
 ### Location of Vim files (should not need to be changed, and  {{{1
 ### some things might not work when they are changed!)
@@ -1327,7 +1332,7 @@ SHELL = /bin/sh
 .SUFFIXES: .c .o .pro
 
 PRE_DEFS = -Iproto $(DEFS) $(GUI_DEFS) $(GUI_IPATH) $(CPPFLAGS) $(EXTRA_IPATHS)
-POST_DEFS = $(X_CFLAGS) $(LUA_CFLAGS) $(MZSCHEME_CFLAGS) $(PERL_CFLAGS) $(ECL_CFLAGS) $(TCL_CFLAGS) $(RUBY_CFLAGS) $(EXTRA_DEFS)
+POST_DEFS = $(X_CFLAGS) $(MZSCHEME_CFLAGS) $(TCL_CFLAGS) $(RUBY_CFLAGS) $(EXTRA_DEFS)
 
 ALL_CFLAGS = $(PRE_DEFS) $(CFLAGS) $(PROFILE_CFLAGS) $(POST_DEFS)
 
@@ -1335,7 +1340,7 @@ ALL_CFLAGS = $(PRE_DEFS) $(CFLAGS) $(PROFILE_CFLAGS) $(POST_DEFS)
 # with "-E".
 OSDEF_CFLAGS = $(PRE_DEFS) $(POST_DEFS)
 
-LINT_CFLAGS = -DLINT -I. $(PRE_DEFS) $(POST_DEFS) $(PYTHON_CFLAGS) -Dinline= -D__extension__= -Dalloca=alloca
+LINT_CFLAGS = -DLINT -I. $(PRE_DEFS) $(POST_DEFS) $(LUA_CFLAGS) $(PERL_CFLAGS) $(PYTHON_CFLAGS) -Dinline= -D__extension__= -Dalloca=alloca
 
 LINT_EXTRA = -DUSE_SNIFF -DHANGUL_INPUT -D"__attribute__(x)="
 
@@ -2510,7 +2515,7 @@ objects/if_xcmdsrv.o: if_xcmdsrv.c
 	$(CCC) -o $@ if_xcmdsrv.c
 
 objects/if_lua.o: if_lua.c
-	$(CCC) -o $@ if_lua.c
+	$(CCC) $(LUA_CFLAGS) -o $@ if_lua.c
 
 objects/if_mzsch.o: if_mzsch.c $(MZSCHEME_EXTRA)
 	$(CCC) -o $@ $(MZSCHEME_CFLAGS_EXTRA) if_mzsch.c
@@ -2519,10 +2524,10 @@ mzscheme_base.c:
 	$(MZSCHEME_MZC) --c-mods mzscheme_base.c ++lib scheme/base
 
 objects/if_perl.o: auto/if_perl.c
-	$(CCC) -o $@ auto/if_perl.c
+	$(CCC) $(PERL_CFLAGS) -o $@ auto/if_perl.c
 
 objects/if_perlsfio.o: if_perlsfio.c
-	$(CCC) -o $@ if_perlsfio.c
+	$(CCC) $(PERL_CFLAGS) -o $@ if_perlsfio.c
 
 objects/py_config.o: $(PYTHON_CONFDIR)/config.c
 	$(CCC) $(PYTHON_CFLAGS) -o $@ $(PYTHON_CONFDIR)/config.c \

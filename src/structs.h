@@ -216,8 +216,8 @@ typedef struct
     int		wo_wrap;
 #define w_p_wrap w_onebuf_opt.wo_wrap	/* 'wrap' */
 #ifdef FEAT_CONCEAL
-    long	wo_conceal;		/* 'conceal' */
-# define w_p_conceal w_onebuf_opt.wo_conceal
+    long	wo_conc;		/* 'conceal' */
+# define w_p_conc w_onebuf_opt.wo_conc
 #endif
 #ifdef FEAT_CURSORBIND
     int		wo_crb;
@@ -1450,9 +1450,6 @@ struct file_buffer
 #ifdef FEAT_INS_EXPAND
     char_u	*b_p_cpt;	/* 'complete' */
 #endif
-#ifdef FEAT_CRYPT
-    long	b_p_cm;		/* 'cryptmethod' */
-#endif
 #ifdef FEAT_COMPL_FUNC
     char_u	*b_p_cfu;	/* 'completefunc' */
     char_u	*b_p_ofu;	/* 'omnifunc' */
@@ -1576,6 +1573,9 @@ struct file_buffer
 #if defined(FEAT_BEVAL) && defined(FEAT_EVAL)
     char_u	*b_p_bexpr;	/* 'balloonexpr' local value */
     long_u	b_p_bexpr_flags;/* flags for 'balloonexpr' */
+#endif
+#ifdef FEAT_CRYPT
+    char_u	*b_p_cm;	/* 'cryptmethod' */
 #endif
 
     /* When a buffer is created, it starts without a swap file.  b_may_swap is
