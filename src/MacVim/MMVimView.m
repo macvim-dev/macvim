@@ -663,6 +663,7 @@ enum {
 {
     NSRect textViewFrame = [textView frame];
     BOOL lsbVisible = [self leftScrollbarVisible];
+    BOOL botOrRightSbVisible = NO;
 
     // HACK!  Find the lowest left&right vertical scrollbars, as well as the
     // rightmost horizontal scrollbar.  This hack continues further down.
@@ -686,10 +687,12 @@ enum {
                     && range.location >= rowMaxRight) {
                 rowMaxRight = range.location;
                 lowestRightSbIdx = i;
+                botOrRightSbVisible = YES;
             } else if ([scroller type] == MMScrollerTypeBottom
                     && range.location >= colMax) {
                 colMax = range.location;
                 rightmostSbIdx = i;
+                botOrRightSbVisible = YES;
             }
         }
     }
@@ -778,6 +781,11 @@ enum {
             [scroller setNeedsDisplay:YES];
         }
     }
+
+    // HACK: If there is no bottom or right scrollbar the resize indicator will
+    // cover the bottom-right corner of the text view so tell NSWindow not to
+    // draw it in this situation.
+    [[self window] setShowsResizeIndicator:botOrRightSbVisible];
 }
 
 - (NSUInteger)representedIndexOfTabViewItem:(NSTabViewItem *)tvi
