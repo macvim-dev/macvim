@@ -13,6 +13,11 @@
 #import "vim.h"
 
 
+#ifdef FEAT_BEVAL
+// Seconds to delay balloon evaluation after mouse event (subtracted from
+// p_bdlay).
+extern NSTimeInterval MMBalloonEvalInternalDelay;
+#endif
 
 
 @interface MMBackend : NSObject <MMBackendProtocol, MMVimServerProtocol,
@@ -55,6 +60,9 @@
     CFRunLoopSourceRef  netbeansRunLoopSource;
     int                 winposX;
     int                 winposY;
+#ifdef FEAT_BEVAL
+    NSString            *lastToolTip;
+#endif
 }
 
 + (MMBackend *)sharedInstance;
@@ -149,6 +157,10 @@
 
 - (void)messageFromNetbeans;
 - (void)setNetbeansSocket:(int)socket;
+
+#ifdef FEAT_BEVAL
+- (void)setLastToolTip:(NSString *)toolTip;
+#endif
 
 @end
 

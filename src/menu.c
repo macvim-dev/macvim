@@ -773,6 +773,7 @@ add_menu_path(menu_path, menuarg, pri_tab, call_data
 	    }
 	}
 #if defined(FEAT_TOOLBAR) && !defined(FEAT_GUI_W32) \
+	&& !defined(FEAT_GUI_MACVIM) \
 	&& (defined(FEAT_BEVAL) || defined(FEAT_GUI_GTK))
 	/* Need to update the menu tip. */
 	if (modes & MENU_TIP_MODE)
@@ -968,6 +969,7 @@ remove_menu(menup, name, modes, silent)
 	{
 	    free_menu_string(menu, MENU_INDEX_TIP);
 #if defined(FEAT_TOOLBAR) && !defined(FEAT_GUI_W32) \
+	    && !defined(FEAT_GUI_MACVIM) \
 	    && (defined(FEAT_BEVAL) || defined(FEAT_GUI_GTK))
 	    /* Need to update the menu tip. */
 	    if (gui.in_use)

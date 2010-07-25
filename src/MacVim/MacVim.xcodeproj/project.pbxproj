@@ -24,6 +24,7 @@
 		1D3D19120CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */; };
 		1D3D19130CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */; };
 		1D3D19140CA690FF0004A0A5 /* DejaVuSansMono.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */; };
+		1D44972211FCA9B400B0630F /* MMCoreTextView+ToolTip.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */; };
 		1D493D580C5247BF00AB718C /* Vim in Copy Executables */ = {isa = PBXBuildFile; fileRef = 1D493D570C5247BF00AB718C /* Vim */; };
 		1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
 		1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */; };
@@ -159,6 +160,7 @@
 		1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-BoldOblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-BoldOblique.ttf"; sourceTree = "<group>"; };
 		1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Oblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-Oblique.ttf"; sourceTree = "<group>"; };
 		1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = DejaVuSansMono.ttf; path = "dejavu-ttf/DejaVuSansMono.ttf"; sourceTree = "<group>"; };
+		1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "MMCoreTextView+ToolTip.m"; sourceTree = "<group>"; };
 		1D493D570C5247BF00AB718C /* Vim */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = Vim; path = ../Vim; sourceTree = SOURCE_ROOT; };
 		1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PSMTabBarControl.xcodeproj; path = PSMTabBarControl/PSMTabBarControl.xcodeproj; sourceTree = "<group>"; };
 		1D6008820E96886D003763F0 /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/FindAndReplace.nib; sourceTree = "<group>"; };
@@ -245,6 +247,7 @@
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
+				1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */,
 				1D6008890E96A0B2003763F0 /* MMFindReplaceController.h */,
 				1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */,
 				1DE63FF90E71820F00959BDB /* MMCoreTextView.h */,
@@ -583,6 +586,7 @@
 				1D145C7F0E5227CE00691AA0 /* MMTextViewHelper.m in Sources */,
 				1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */,
 				1DE63FFB0E71820F00959BDB /* MMCoreTextView.m in Sources */,
+				1D44972211FCA9B400B0630F /* MMCoreTextView+ToolTip.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

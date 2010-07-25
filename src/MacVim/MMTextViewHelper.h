@@ -40,7 +40,6 @@ enum {
     NSPoint             dragPoint;
     BOOL                isAutoscrolling;
     int                 mouseShape;
-    NSTrackingRectTag   trackingRectTag;
     NSColor             *insertionPointColor;
     BOOL                interpretKeyEventsSwallowedKey;
     NSEvent             *currentEvent;
@@ -75,11 +74,6 @@ enum {
 - (void)mouseUp:(NSEvent *)event;
 - (void)mouseDragged:(NSEvent *)event;
 - (void)mouseMoved:(NSEvent *)event;
-- (void)mouseEntered:(NSEvent *)event;
-- (void)mouseExited:(NSEvent *)event;
-- (void)setFrame:(NSRect)frame;
-- (void)viewDidMoveToWindow;
-- (void)viewWillMoveToWindow:(NSWindow *)newWindow;
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)sender;

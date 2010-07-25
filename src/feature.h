@@ -1239,14 +1239,15 @@
  *			Only for GUIs where it was implemented.
  */
 #if (defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA) \
-	|| defined(FEAT_GUI_GTK) || defined(FEAT_GUI_W32)) \
+	|| defined(FEAT_GUI_GTK) || defined(FEAT_GUI_W32) \
+	|| defined(FEAT_GUI_MACVIM)) \
 	&& (   ((defined(FEAT_TOOLBAR) || defined(FEAT_GUI_TABLINE)) \
 		&& !defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_W32)) \
 	    || defined(FEAT_SUN_WORKSHOP) \
 	    || defined(FEAT_NETBEANS_INTG) || defined(FEAT_EVAL))
 # define FEAT_BEVAL
 # if !defined(FEAT_XFONTSET) && !defined(FEAT_GUI_GTK) \
-	&& !defined(FEAT_GUI_W32)
+	&& !defined(FEAT_GUI_W32) && !defined(FEAT_GUI_MACVIM)
 #  define FEAT_XFONTSET
 # endif
 #endif

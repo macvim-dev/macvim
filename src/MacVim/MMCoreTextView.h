@@ -38,6 +38,12 @@
     unsigned                    maxlen;
     CGGlyph                     *glyphs;
     CGSize                      *advances;
+
+    // These are used in MMCoreTextView+ToolTip.m
+    id trackingRectOwner_;              // (not retained)
+    void *trackingRectUserData_;
+    NSTrackingRectTag lastToolTipTag_;
+    NSString* toolTip_;
 }
 
 - (id)initWithFrame:(NSRect)frame;
@@ -97,7 +103,14 @@
 - (NSSize)desiredSize;
 - (NSSize)minSize;
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size;
+@end
 
+
+//
+// This category is defined in MMCoreTextView+ToolTip.m
+//
+@interface MMCoreTextView (ToolTip)
+- (void)setToolTipAtMousePoint:(NSString *)string;
 @end
 
 #endif // !MM_ENABLE_ATSUI

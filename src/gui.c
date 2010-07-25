@@ -579,6 +579,9 @@ gui_init()
 # ifdef FEAT_GUI_GTK
 	balloonEval = gui_mch_create_beval_area(gui.drawarea, NULL,
 						     &general_beval_cb, NULL);
+# elif defined(FEAT_GUI_MACVIM)
+	balloonEval = gui_mch_create_beval_area(NULL, NULL,
+						     &general_beval_cb, NULL);
 # else
 #  if defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA)
 	{

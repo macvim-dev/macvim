@@ -89,6 +89,9 @@
                name:NSWindowDidResignMainNotification
              object:self];
 
+    // NOTE: Vim needs to process mouse moved events, so enable them here.
+    [self setAcceptsMouseMovedEvents:YES];
+
     return self;
 }
 

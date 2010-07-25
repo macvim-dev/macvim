@@ -186,6 +186,8 @@ enum {
     ZoomMsgID,
     SetWindowPositionMsgID,
     DeleteSignMsgID,
+    SetTooltipMsgID,
+    SetTooltipDelayMsgID,
     LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
 };
 

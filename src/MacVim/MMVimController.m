@@ -33,6 +33,7 @@
 #import "MMVimView.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
+#import "MMCoreTextView.h"
 
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
@@ -51,6 +52,16 @@ static NSTimeInterval MMSetDialogReturnTimeout = 1.0;
 static unsigned identifierCounter = 1;
 
 static BOOL isUnsafeMessage(int msgid);
+
+
+// HACK! AppKit private methods from NSToolTipManager.  As an alternative to
+// using private methods, it would be possible to set the user default
+// NSInitialToolTipDelay (in ms) on app startup, but then it is impossible to
+// change the balloon delay without closing/reopening a window.
+@interface NSObject (NSToolTipManagerPrivateAPI)
++ (id)sharedToolTipManager;
+- (void)setInitialToolTipDelay:(double)arg1;
+@end
 
 
 @interface MMAlert : NSAlert {
@@ -95,6 +106,7 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)handleBrowseForFile:(NSDictionary *)attr;
 - (void)handleShowDialog:(NSDictionary *)attr;
 - (void)handleDeleteSign:(NSDictionary *)attr;
+- (void)setToolTipDelay:(NSTimeInterval)seconds;
 @end
 
 
@@ -820,6 +832,20 @@ static BOOL isUnsafeMessage(int msgid);
         int y = *((int*)bytes);  bytes += sizeof(int);
 
         [windowController setTopLeft:NSMakePoint(x,y)];
+    } else if (SetTooltipMsgID == msgid) {
+        id textView = [[windowController vimView] textView];
+        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+        NSString *toolTip = dict ? [dict objectForKey:@"toolTip"] : nil;
+        if (toolTip && [toolTip length] > 0)
+            [textView setToolTipAtMousePoint:toolTip];
+        else
+            [textView setToolTipAtMousePoint:nil];
+    } else if (SetTooltipDelayMsgID == msgid) {
+        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+        NSNumber *delay = dict ? [dict objectForKey:@"delay"] : nil;
+        if (delay)
+            [self setToolTipDelay:[delay floatValue]];
+
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {
@@ -1428,6 +1454,23 @@ static BOOL isUnsafeMessage(int msgid);
 {
     MMTextView *view = [[windowController vimView] textView];
     [view deleteSign:[attr objectForKey:@"imgName"]];
+}
+
+- (void)setToolTipDelay:(NSTimeInterval)seconds
+{
+    // HACK! NSToolTipManager is an AppKit private class.
+    static Class TTM = nil;
+    if (!TTM)
+        TTM = NSClassFromString(@"NSToolTipManager");
+
+    if (seconds < 0)
+        seconds = 0;
+
+    if (TTM) {
+        [[TTM sharedToolTipManager] setInitialToolTipDelay:seconds];
+    } else {
+        ASLogNotice(@"Failed to get NSToolTipManager");
+    }
 }
 
 @end // MMVimController (Private)
