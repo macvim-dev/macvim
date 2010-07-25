@@ -117,7 +117,7 @@
     || defined(FEAT_GUI_W32) \
     || defined(FEAT_GUI_W16) \
     || defined(FEAT_GUI_PHOTON)
-# if !defined(FEAT_GUI) && !defined(NO_X11_INCLUDES)
+# if !defined(FEAT_GUI)
 #  define FEAT_GUI
 # endif
 #endif
