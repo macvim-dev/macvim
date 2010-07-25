@@ -662,18 +662,15 @@ enum {
 - (void)placeScrollbars
 {
     NSRect textViewFrame = [textView frame];
-    BOOL lsbVisible = [self leftScrollbarVisible];
-    BOOL botOrRightSbVisible = NO;
+    BOOL leftSbVisible = NO;
+    BOOL rightSbVisible = NO;
+    BOOL botSbVisible = NO;
 
-    // HACK!  Find the lowest left&right vertical scrollbars, as well as the
-    // rightmost horizontal scrollbar.  This hack continues further down.
-    //
-    // TODO!  Can there be no more than one horizontal scrollbar?  If so, the
-    // code can be simplified.
+    // HACK!  Find the lowest left&right vertical scrollbars This hack
+    // continues further down.
     unsigned lowestLeftSbIdx = (unsigned)-1;
     unsigned lowestRightSbIdx = (unsigned)-1;
-    unsigned rightmostSbIdx = (unsigned)-1;
-    unsigned rowMaxLeft = 0, rowMaxRight = 0, colMax = 0;
+    unsigned rowMaxLeft = 0, rowMaxRight = 0;
     unsigned i, count = [scrollbars count];
     for (i = 0; i < count; ++i) {
         MMScroller *scroller = [scrollbars objectAtIndex:i];
@@ -683,16 +680,14 @@ enum {
                     && range.location >= rowMaxLeft) {
                 rowMaxLeft = range.location;
                 lowestLeftSbIdx = i;
+                leftSbVisible = YES;
             } else if ([scroller type] == MMScrollerTypeRight
                     && range.location >= rowMaxRight) {
                 rowMaxRight = range.location;
                 lowestRightSbIdx = i;
-                botOrRightSbVisible = YES;
-            } else if ([scroller type] == MMScrollerTypeBottom
-                    && range.location >= colMax) {
-                colMax = range.location;
-                rightmostSbIdx = i;
-                botOrRightSbVisible = YES;
+                rightSbVisible = YES;
+            } else if ([scroller type] == MMScrollerTypeBottom) {
+                botSbVisible = YES;
             }
         }
     }
@@ -707,25 +702,27 @@ enum {
         if ([scroller type] == MMScrollerTypeBottom) {
             rect = [textView rectForColumnsInRange:[scroller range]];
             rect.size.height = [NSScroller scrollerWidth];
-            if (lsbVisible)
+            if (leftSbVisible)
                 rect.origin.x += [NSScroller scrollerWidth];
 
-            // HACK!  Make sure the rightmost horizontal scrollbar covers the
-            // text view all the way to the right, otherwise it looks ugly when
-            // the user drags the window to resize.
-            if (i == rightmostSbIdx) {
-                float w = NSMaxX(textViewFrame) - NSMaxX(rect);
-                if (w > 0)
-                    rect.size.width += w;
-            }
+            // HACK!  Make sure the horizontal scrollbar covers the text view
+            // all the way to the right, otherwise it looks ugly when the user
+            // drags the window to resize.
+            float w = NSMaxX(textViewFrame) - NSMaxX(rect);
+            if (w > 0)
+                rect.size.width += w;
 
             // Make sure scrollbar rect is bounded by the text view frame.
+            // Also leave some room for the resize indicator on the right in
+            // case there is no right scrollbar.
             if (rect.origin.x < textViewFrame.origin.x)
                 rect.origin.x = textViewFrame.origin.x;
             else if (rect.origin.x > NSMaxX(textViewFrame))
                 rect.origin.x = NSMaxX(textViewFrame);
             if (NSMaxX(rect) > NSMaxX(textViewFrame))
                 rect.size.width -= NSMaxX(rect) - NSMaxX(textViewFrame);
+            if (!rightSbVisible)
+                rect.size.width -= [NSScroller scrollerWidth];
             if (rect.size.width < 0)
                 rect.size.width = 0;
         } else {
@@ -785,7 +782,7 @@ enum {
     // HACK: If there is no bottom or right scrollbar the resize indicator will
     // cover the bottom-right corner of the text view so tell NSWindow not to
     // draw it in this situation.
-    [[self window] setShowsResizeIndicator:botOrRightSbVisible];
+    [[self window] setShowsResizeIndicator:(rightSbVisible||botSbVisible)];
 }
 
 - (NSUInteger)representedIndexOfTabViewItem:(NSTabViewItem *)tvi
