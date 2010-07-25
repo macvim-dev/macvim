@@ -189,6 +189,8 @@
 #define MOUSE_NONE	' '		/* don't use Visual selection */
 #define MOUSE_NONEF	'x'		/* forced modeless selection */
 
+#define COCU_ALL	"nvic"		/* flags for 'concealcursor' */
+
 /* characters for p_shm option: */
 #define SHM_RO		'r'		/* readonly */
 #define SHM_MOD		'm'		/* modified */
@@ -271,6 +273,7 @@
 #define STL_PREVIEWFLAG_ALT 'W'		/* - other display */
 #define STL_MODIFIED	'm'		/* modified flag */
 #define STL_MODIFIED_ALT 'M'		/* - other display */
+#define STL_QUICKFIX	'q'		/* quickfix window description */
 #define STL_PERCENTAGE	'p'		/* percentage through file */
 #define STL_ALTPERCENT	'P'		/* percentage as TOP BOT ALL or NN% */
 #define STL_ARGLISTSTAT	'a'		/* argument list status as (x of y) */
@@ -282,7 +285,7 @@
 #define STL_HIGHLIGHT	'#'		/* highlight name */
 #define STL_TABPAGENR	'T'		/* tab page label nr */
 #define STL_TABCLOSENR	'X'		/* tab page close nr */
-#define STL_ALL		((char_u *) "fFtcvVlLknoObBrRhHmYyWwMpPaN{#")
+#define STL_ALL		((char_u *) "fFtcvVlLknoObBrRhHmYyWwMqpPaN{#")
 
 /* flags used for parsed 'wildmode' */
 #define WIM_FULL	1
@@ -839,6 +842,7 @@ static char *(p_ttym_values[]) = {"xterm", "xterm2", "dec", "netterm", "jsbterm"
 #endif
 EXTERN char_u	*p_udir;	/* 'undodir' */
 EXTERN long	p_ul;		/* 'undolevels' */
+EXTERN long	p_ur;		/* 'undoreload' */
 EXTERN long	p_uc;		/* 'updatecount' */
 EXTERN long	p_ut;		/* 'updatetime' */
 #if defined(FEAT_WINDOWS) || defined(FEAT_FOLDING)
@@ -1047,7 +1051,8 @@ enum
     , WV_ARAB
 #endif
 #ifdef FEAT_CONCEAL
-    , WV_CONCEAL
+    , WV_COCU
+    , WV_COLE
 #endif
 #ifdef FEAT_CURSORBIND
     , WV_CRBIND

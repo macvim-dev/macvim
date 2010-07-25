@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 7.3b.  Last change: 2010 Jul 20
+*options.txt*	For Vim version 7.3c.  Last change: 2010 Jul 25
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -273,10 +273,10 @@ You will not get back the 'list' value as it was the last time you edited
 			current buffer or window.  Not all options have a
 			local value.  If the option does not have a local
 			value the global value is set.
-			With the "all" argument: display all local option's
-			local values.
-			Without argument: Display all local option's local
-			values which are different from the default.
+			With the "all" argument: display local values for all
+			local options.
+			Without argument: Display local values for all local
+			options which are different from the default.
 			When displaying a specific local option, show the
 			local value.  For a global/local boolean option, when
 			the global value is being used, "--" is displayed
@@ -298,10 +298,10 @@ You will not get back the 'list' value as it was the last time you edited
 :setg[lobal] ...	Like ":set" but set only the global value for a local
 			option without changing the local value.
 			When displaying an option, the global value is shown.
-			With the "all" argument: display all local option's
-			global values.
-			Without argument: display all local option's global
-			values which are different from the default.
+			With the "all" argument: display global values for all
+			local options.
+			Without argument: display global values for all local
+			options which are different from the default.
 			{not in Vi}
 
 For buffer-local and window-local options:
@@ -1712,7 +1712,30 @@ A jump table for the options with a short description can be found at |Q_op|.
 		    combination with "menu" or "menuone".
 
 
-'conceallevel' 'conc'		*'conceallevel'* *'conc'*
+						*'concealcursor'* *'cocu'*
+'concealcursor' 'cocu'	string (default: "")
+			local to window
+			{not in Vi}
+			{not available when compiled without the |+conceal|
+			feature}
+	Sets the modes in which text in the cursor line can also be concealed.
+	When the current mode is listed then concealing happens just like in
+	other lines.
+	  n		Normal mode
+	  v		Visual mode
+	  i		Insert mode
+	  c		Command line editing, for 'incsearch'
+
+	'v' applies to all lines in the Visual area, not only the cursor.
+	A useful value is "nc".  This is used in help files.  So long as you
+	are moving around text is concealed, but when starting to insert text
+	or selecting a Visual area the concealed text is displayed, so that
+	you can see what you are doing.
+	Keep in mind that the cursor position is not always where it's
+	displayed.  E.g., when moving vertically it may change column.
+
+
+'conceallevel' 'cole'		*'conceallevel'* *'cole'*
 			number (default 0)
 			local to window
 			{not in Vi}
@@ -1732,7 +1755,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	3		Concealed text is completely hidden.
 
 	Note: in the cursor line concealed text is not hidden, so that you can
-	edit and copy the text.
+	edit and copy the text.  This can be changed with the 'concealcursor'
+	option.
 
 				*'confirm'* *'cf'* *'noconfirm'* *'nocf'*
 'confirm' 'cf'		boolean (default off)
@@ -6613,6 +6637,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	y F   Type of file in the buffer, e.g., "[vim]".  See 'filetype'.
 	Y F   Type of file in the buffer, e.g., ",VIM".  See 'filetype'.
 	      {not available when compiled without |+autocmd| feature}
+	q S   "[Quickfix List]", "[Location List]" or empty.
 	k S   Value of "b:keymap_name" or 'keymap' when |:lmap| mappings are
 	      being used: "<keymap>"
 	n N   Buffer number.
@@ -7464,6 +7489,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	file on buffer read.
 	The directory where the undo file is stored is specified by 'undodir'.
 	For more information about this feature see |undo-persistence|.
+	The undo file is not read when 'undoreload' causes the buffer from
+	before a reload to be saved for undo.
 	WARNING: this is a very new feature.  Use at your own risk!
 
 						*'undolevels'* *'ul'*
@@ -7484,6 +7511,22 @@ A jump table for the options with a short description can be found at |Q_op|.
 		set ul=-1
 <	This helps when you run out of memory for a single change.
 	Also see |clear-undo|.
+
+						*'undoreload'* *'ur'*
+'undoreload' 'ur'	number	(default 10000)
+			global
+			{not in Vi}
+	Save the whole buffer for undo when reloading it.  This applies to the
+	":e!" command and reloading for when the buffer changed outside of
+	Vim. |FileChangedShell|
+	The save only happens when this options is negative or when the number
+	of lines is smaller than the value of this option.
+	Set this option to zero to disable undo for a reload.
+
+	When saving undo for a reload, any undo file is not read.
+
+	Note that this causes the whole buffer to be stored in memory.  Set
+	this option to a lower value if you run out of memory.
 
 						*'updatecount'* *'uc'*
 'updatecount' 'uc'	number	(default: 200)

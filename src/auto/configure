@@ -7896,6 +7896,32 @@ if test $ac_cv_lib_posix_remove = yes; then
   X_EXTRA_LIBS="$X_EXTRA_LIBS -lposix"
 fi
 
+<<<<<<< HEAD
+=======
+
+      if test "X$vi_cv_path_lua" != "X"; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking Lua version" >&5
+$as_echo_n "checking Lua version... " >&6; }
+if test "${vi_cv_version_lua+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+   vi_cv_version_lua=`${vi_cv_path_lua} -e "print(_VERSION)" | sed 's/.* //'`
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $vi_cv_version_lua" >&5
+$as_echo "$vi_cv_version_lua" >&6; }
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking if lua.h can be found in $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua" >&5
+$as_echo_n "checking if lua.h can be found in $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua... " >&6; }
+        if test -f $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua/lua.h; then
+          { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+          LUA_INC=/lua$vi_cv_version_lua
+        else
+          { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+          vi_cv_path_lua_pfx=
+        fi
+      fi
+>>>>>>> vim73
     fi
 
     # BSDI BSD/OS 2.1 needs -lipc for XOpenDisplay.
@@ -7914,6 +7940,7 @@ cat >>conftest.$ac_ext <<_ACEOF
    For example, HP-UX 11i <limits.h> declares gettimeofday.  */
 #define shmat innocuous_shmat
 
+<<<<<<< HEAD
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char shmat (); below.
     Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
@@ -7924,6 +7951,21 @@ cat >>conftest.$ac_ext <<_ACEOF
 #else
 # include <assert.h>
 #endif
+=======
+    if test "$enable_luainterp" = "dynamic"; then
+                  for i in 0 1 2 3 4 5 6 7 8 9; do
+	if test -f "${vi_cv_path_lua_pfx}/lib/liblua${vi_cv_version_lua}.so.$i"; then
+	  LUA_SONAME=".$i"
+	  break
+	fi
+      done
+      $as_echo "#define DYNAMIC_LUA 1" >>confdefs.h
+
+      LUA_LIBS=""
+      LUA_CFLAGS="-DDYNAMIC_LUA_DLL=\\\"liblua${vi_cv_version_lua}.so$LUA_SONAME\\\" $LUA_CFLAGS"
+    fi
+  fi
+>>>>>>> vim73
 
 #undef shmat
 
@@ -8420,6 +8462,33 @@ if test $ac_cv_lib_Xpm_XpmCreatePixmapFromData = yes; then
   X_PRE_LIBS="$X_PRE_LIBS -lXpm"
 fi
 
+<<<<<<< HEAD
+=======
+  if test "x$MACOSX" = "xyes"; then
+        dir=/System/Library/Perl
+    darwindir=$dir/darwin
+    if test -d $darwindir; then
+      PERL=/usr/bin/perl
+    else
+            dir=/System/Library/Perl/5.8.1
+      darwindir=$dir/darwin-thread-multi-2level
+      if test -d $darwindir; then
+	PERL=/usr/bin/perl
+      fi
+    fi
+    if test -n "$PERL"; then
+      PERL_DIR="$dir"
+      PERL_CFLAGS="-DFEAT_PERL -I$darwindir/CORE"
+      PERL_OBJ="objects/if_perl.o objects/if_perlsfio.o $darwindir/auto/DynaLoader/DynaLoader.a"
+      PERL_LIBS="-L$darwindir/CORE -lperl"
+    fi
+                PERL_LIBS=`echo "$PERL_LIBS" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
+    PERL_CFLAGS=`echo "$PERL_CFLAGS" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
+  fi
+  if test "$enable_perlinterp" = "dynamic"; then
+    if test "$perl_ok" = "yes" -a "X$libperl" != "X"; then
+      $as_echo "#define DYNAMIC_PERL 1" >>confdefs.h
+>>>>>>> vim73
 
         { echo "$as_me:$LINENO: checking if X11 header files implicitly declare return values" >&5
 echo $ECHO_N "checking if X11 header files implicitly declare return values... $ECHO_C" >&6; }
@@ -8722,11 +8791,39 @@ else
   enable_gnome_check="no"
 fi
 
+<<<<<<< HEAD
   { echo "$as_me:$LINENO: result: $enable_gnome_check" >&5
 echo "${ECHO_T}$enable_gnome_check" >&6; }
   if test "x$enable_gnome_check" = "xno"; then
     SKIP_GNOME=YES
   fi
+=======
+	    pwd=`pwd`
+	    tmp_mkf="$pwd/config-PyMake$$"
+	    cat -- "${PYTHON_CONFDIR}/Makefile" - <<'eof' >"${tmp_mkf}"
+__:
+	@echo "python_BASEMODLIBS='$(BASEMODLIBS)'"
+	@echo "python_LIBS='$(LIBS)'"
+	@echo "python_SYSLIBS='$(SYSLIBS)'"
+	@echo "python_LINKFORSHARED='$(LINKFORSHARED)'"
+	@echo "python_INSTSONAME='$(INSTSONAME)'"
+eof
+	    	    eval "`cd ${PYTHON_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
+	    rm -f -- "${tmp_mkf}"
+	    if test "x$MACOSX" = "xyes" && ${vi_cv_path_python} -c \
+		"import sys; sys.exit(${vi_cv_var_python_version} < 2.3)"; then
+	      vi_cv_path_python_plibs="-framework Python"
+	    else
+	      if test "${vi_cv_var_python_version}" = "1.4"; then
+		  vi_cv_path_python_plibs="${PYTHON_CONFDIR}/libModules.a ${PYTHON_CONFDIR}/libPython.a ${PYTHON_CONFDIR}/libObjects.a ${PYTHON_CONFDIR}/libParser.a"
+	      else
+		  vi_cv_path_python_plibs="-L${PYTHON_CONFDIR} -lpython${vi_cv_var_python_version}"
+	      fi
+	      vi_cv_path_python_plibs="${vi_cv_path_python_plibs} ${python_BASEMODLIBS} ${python_LIBS} ${python_SYSLIBS} ${python_LINKFORSHARED}"
+	      	      vi_cv_path_python_plibs=`echo $vi_cv_path_python_plibs | sed s/-ltermcap//`
+	    fi
+
+>>>>>>> vim73
 fi
 
 if test "x$SKIP_MOTIF" != "xYES" -a "$enable_gui_canon" != "motif"; then
@@ -8917,7 +9014,29 @@ echo "${ECHO_T}no" >&6; }
 fi
 
 
+<<<<<<< HEAD
   fi
+=======
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking Python's configuration directory" >&5
+$as_echo_n "checking Python's configuration directory... " >&6; }
+if test "${vi_cv_path_python3_conf+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+     vi_cv_path_python3_conf=
+     for path in "${vi_cv_path_python3_pfx}" "${vi_cv_path_python3_epfx}"; do
+       for subdir in lib64 lib share; do
+         d="${path}/${subdir}/python${vi_cv_var_python3_version}/config"
+         if test -d "$d" && test -f "$d/config.c"; then
+           vi_cv_path_python3_conf="$d"
+         fi
+       done
+     done
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $vi_cv_path_python3_conf" >&5
+$as_echo "$vi_cv_path_python3_conf" >&6; }
+>>>>>>> vim73
 
   if test "x$PKG_CONFIG" != "xno"; then
 
@@ -8944,12 +9063,51 @@ echo $ECHO_N "checking for GTK - version >= $min_gtk_version... $ECHO_C" >&6; }
       no_gtk=yes
     fi
 
+<<<<<<< HEAD
     if test "x$enable_gtktest" = "xyes" -a "x$no_gtk" = "x"; then
     {
       ac_save_CFLAGS="$CFLAGS"
       ac_save_LIBS="$LIBS"
       CFLAGS="$CFLAGS $GTK_CFLAGS"
       LIBS="$LIBS $GTK_LIBS"
+=======
+                  if test "${vi_cv_path_python3_plibs+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+          pwd=`pwd`
+          tmp_mkf="$pwd/config-PyMake$$"
+          cat -- "${PYTHON3_CONFDIR}/Makefile" - <<'eof' >"${tmp_mkf}"
+__:
+	@echo "python3_BASEMODLIBS='$(BASEMODLIBS)'"
+	@echo "python3_LIBS='$(LIBS)'"
+	@echo "python3_SYSLIBS='$(SYSLIBS)'"
+	@echo "python3_LINKFORSHARED='$(LINKFORSHARED)'"
+	@echo "python3_INSTSONAME='$(INSTSONAME)'"
+eof
+                    eval "`cd ${PYTHON3_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
+          rm -f -- "${tmp_mkf}"
+          vi_cv_path_python3_plibs="-L${PYTHON3_CONFDIR} -lpython${vi_cv_var_python3_version}"
+          vi_cv_path_python3_plibs="${vi_cv_path_python3_plibs} ${python3_BASEMODLIBS} ${python3_LIBS} ${python3_SYSLIBS} ${python3_LINKFORSHARED}"
+                    vi_cv_path_python3_plibs=`echo $vi_cv_path_python3_plibs | sed s/-ltermcap//`
+          vi_cv_path_python3_plibs=`echo $vi_cv_path_python3_plibs | sed s/-lffi//`
+
+fi
+
+
+      PYTHON3_LIBS="${vi_cv_path_python3_plibs}"
+      if test "${vi_cv_path_python3_pfx}" = "${vi_cv_path_python3_epfx}"; then
+        PYTHON3_CFLAGS="-I${vi_cv_path_python3_pfx}/include/python${vi_cv_var_python3_version}"
+      else
+        PYTHON3_CFLAGS="-I${vi_cv_path_python3_pfx}/include/python${vi_cv_var_python3_version} -I${vi_cv_path_python3_epfx}/include/python${vi_cv_var_python3_version}"
+      fi
+      PYTHON3_SRC="if_python3.c"
+            if test "x$MACOSX" = "xyes"; then
+        PYTHON3_OBJ="objects/if_python3.o"
+      else
+        PYTHON3_OBJ="objects/if_python3.o objects/py3_config.o"
+      fi
+>>>>>>> vim73
 
                         rm -f conf.gtktest
       if test "$cross_compiling" = yes; then
@@ -9086,9 +9244,21 @@ _ACEOF
 
 
 
+<<<<<<< HEAD
 # Check whether --with-gnome-includes was given.
 if test "${with_gnome_includes+set}" = set; then
   withval=$with_gnome_includes; CFLAGS="$CFLAGS -I$withval"
+=======
+  PYTHON_SRC="if_python.c"
+  PYTHON_OBJ="objects/if_python.o"
+  PYTHON_CFLAGS="$PYTHON_CFLAGS -DDYNAMIC_PYTHON_DLL=\\\"${python_INSTSONAME}\\\""
+  PYTHON_LIBS=
+  PYTHON3_SRC="if_python3.c"
+  PYTHON3_OBJ="objects/if_python3.o"
+  PYTHON3_CFLAGS="$PYTHON3_CFLAGS -DDYNAMIC_PYTHON3_DLL=\\\"${python3_INSTSONAME}\\\""
+  PYTHON3_LIBS=
+fi
+>>>>>>> vim73
 
 fi
 
@@ -9365,8 +9535,67 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
   { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
 else
+<<<<<<< HEAD
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
+=======
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  if test "X$vi_cv_path_ruby" != "X"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking Ruby version" >&5
+$as_echo_n "checking Ruby version... " >&6; }
+    if $vi_cv_path_ruby -e '(VERSION rescue RUBY_VERSION) >= "1.6.0" or exit 1' >/dev/null 2>/dev/null; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: OK" >&5
+$as_echo "OK" >&6; }
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking Ruby header files" >&5
+$as_echo_n "checking Ruby header files... " >&6; }
+      rubyhdrdir=`$vi_cv_path_ruby -r mkmf -e 'print Config::CONFIG["rubyhdrdir"] || Config::CONFIG["archdir"] || $hdrdir' 2>/dev/null`
+      if test "X$rubyhdrdir" != "X"; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $rubyhdrdir" >&5
+$as_echo "$rubyhdrdir" >&6; }
+	RUBY_CFLAGS="-I$rubyhdrdir"
+        rubyarch=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["arch"]'`
+        if test -d "$rubyhdrdir/$rubyarch"; then
+          RUBY_CFLAGS="$RUBY_CFLAGS -I$rubyhdrdir/$rubyarch"
+        fi
+        rubyversion=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["ruby_version"].gsub(/\./, "")[0,2]'`
+        RUBY_CFLAGS="$RUBY_CFLAGS -DRUBY_VERSION=$rubyversion"
+	rubylibs=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["LIBS"]'`
+	if test "X$rubylibs" != "X"; then
+	  RUBY_LIBS="$rubylibs"
+	fi
+	librubyarg=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG["LIBRUBYARG"])'`
+	if test -f "$rubyhdrdir/$librubyarg"; then
+	  librubyarg="$rubyhdrdir/$librubyarg"
+	else
+	  rubylibdir=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG["libdir"])'`
+	  if test -f "$rubylibdir/$librubyarg"; then
+	    librubyarg="$rubylibdir/$librubyarg"
+	  elif test "$librubyarg" = "libruby.a"; then
+	    	    librubyarg="-lruby"
+	  else
+	    librubyarg=`$vi_cv_path_ruby -r rbconfig -e "print '$librubyarg'.gsub(/-L\./, %'-L#{Config.expand(Config::CONFIG[\"libdir\"])}')"`
+	  fi
+	fi
+
+	if test "X$librubyarg" != "X"; then
+	  RUBY_LIBS="$librubyarg $RUBY_LIBS"
+	fi
+	rubyldflags=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG["LDFLAGS"]'`
+	if test "X$rubyldflags" != "X"; then
+	  	  	  	  rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
+	  if test "X$rubyldflags" != "X"; then
+	    LDFLAGS="$rubyldflags $LDFLAGS"
+	  fi
+	fi
+	RUBY_SRC="if_ruby.c"
+	RUBY_OBJ="objects/if_ruby.o"
+	RUBY_PRO="if_ruby.pro"
+	$as_echo "#define FEAT_RUBY 1" >>confdefs.h
+>>>>>>> vim73
 
 	{ echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }; SKIP_NEXTAW=YES

@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3b.  Last change: 2010 Jul 22
+*todo.txt*      For Vim version 7.3c.  Last change: 2010 Jul 25
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -30,14 +30,15 @@ be worked on, but only if you sponsor Vim development.  See |sponsor|.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-Conceal in help files doesn't work nice.  How about adding an 'concealcursor'
-option, when on:
-- cursorline is concealed.
-- line is redrawn on every movement
-- display function corrects cursor position.
+Access to free memory with :redir command. (Dominique Pelle, 2010 Jul 25)
 
-Include patch for horizontal scoll wheel? (Bjorn Winckler, 2010 Jul 20)
-Additional patch Jul 21.
+Patch for :find completion. (Nazri Ramliy)
+But I prefer to keep term.h and include/term.h  Nazri will work on it.
+
+Move more common code from if_python.c and if_python3.c to if_py_both.h
+
+Before release 7.3:
+- Rename vim73 branch to default (hints: Xavier de Gaye, 2010 May 23)
 
 Cursor positioning wrong with 0x200e character. (John Becket, 2010 May 6)
 
@@ -66,6 +67,8 @@ accented character. (Tony Mechelynck, 2010 Apr 15)
 
 Better Czech keymap. (Stepnem, 2010 May 4)  Use if no response from Jiri
 Tobisek.
+
+":drop" does not respect 'autochdir'. (Peter Odding, 2010 Jul 24)
 
 Use Dutch spell files from:
 http://extensions.services.openoffice.org/en/project/dict-nl
@@ -271,6 +274,10 @@ Win32: use different args for SearchPath()? (Yasuhiro Matsumoto, 2009 Jan 30)
 
 Win32: completion of file name ":e c:\!test" results in ":e c:\\!test", which
 does not work. (Nieko Maatjes, 2009 Jan 8, Ingo Karkat, 2009 Jan 22)
+
+opening/closing window causes other window with 'winfixheight' to change
+height.  Also happens when there is another window in the frame, if it's not
+very high. (Yegappan Lakshmanan, 2010 Jul 22, Michael Peeters, 2010 Jul 22)
 
 Directory wrong in session file, caused by ":lcd" in BufEnter autocommand.
 (Felix Kater, 2009 Mar 3)
@@ -1075,11 +1082,6 @@ Also: Get an error message from free() in the process that owns the selection.
 Seems to happen when the selection is requested the second time, but before
 clip_x11_convert_selection_cb() is invoked, thus in X library code.
 
-Add 'lazysize' option: Above this size Vim doesn't load everything before
-starting to edit a file.  Things like 'fileencodings' only work up to this
-size, modelines only work at the top.  Useful for large log files where you
-only want to look at the first few pages.  Use zero to disable it.
-
 ":vimgrep" does not recognize a recursive symlink.  Is it possible to detect
 this, at least for Unix (using device/inode)?
 
@@ -1090,12 +1092,6 @@ restored. (Luc St-Louis)
 Patch to support horizontal scroll wheel in GTK. Untested. (Bjorn Winckler,
 2010 Jun 30)
 
-
-Before (beta) release 7.3:
-- Documentation for Python 3 support.
-
-Before release 7.3:
-- Rename vim73 branch to default (hints: Xavier de Gaye, 2010 May 23)
 
 More patches:
 -   Another patch for Javascript indenting. (Hari Kumar, 2010 Jul 11)
@@ -1134,12 +1130,6 @@ More patches:
     more friendly for the Vim distribution.
     New version received 2008 Jan 6.
     No maintenance in two years...
-6   In the quickfix window statusline add the command used to get the list of
-    errors, e.g. ":make foo", ":grep something *.c".
-    Patch by Lech Lorens, 2009 Apri 17.
-    Comments from Andreas Bernauer 24th, Dominique Pelle 24th
-    Docs patch by Dominique Pelle, Mar 25
-    Can we put the strings in a window-local variable?
 -   Patch to access screen under Python. (Marko Mahni, 2010 Jul 18)
 
 
@@ -2385,6 +2375,9 @@ Multi-byte characters:
     display is messed up (Yasuhiro Matsumoto).  Should check for illegal
     double-byte characters and display them differently (display each single
     byte).
+9   'fenc' in modeline problem: add option to reload the file when 'fenc' is
+    set to a different value in a modeline?  Option can be default on.  Could
+    it be done with an autocommand?
 8   Add an item in 'fileencodings' to check the first lines of a file for
     the encoding.  See Python PEP: http://www.python.org/peps/pep-0263.html.
     To avoid getting a wrong encoding only accept something Emacs-like:
@@ -2776,6 +2769,10 @@ Robustness:
 Performance:
 7   For string variables up to 3 bytes don't allocate memory, use v_list
     itself as a character array.  Use VAR_SSTRING (short string).
+7   Add 'lazysize' option: Above this size Vim doesn't load everything before
+    starting to edit a file.  Things like 'fileencodings' only work up to this
+    size, modelines only work at the top.  Useful for large log files where
+    you only want to look at the first few pages.  Use zero to disable it.
 8   move_lines() copies every line into allocated memory, making reloading a
     buffer a lot slower than re-editing the file.  Can the memline be locked
     so that we don't need to make a copy?  Or avoid invoking ml_updatechunk(),

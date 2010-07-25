@@ -409,7 +409,7 @@ CClink = $(CC)
 # If both python2.x and python3.x are enabled then the linking will be via
 # dlopen(), dlsym(), dlclose(), i.e. pythonX.Y.so must be available
 #CONF_OPT_PYTHON = --enable-pythoninterp
-CONF_OPT_PYTHON3 = --enable-python3interp
+#CONF_OPT_PYTHON3 = --enable-python3interp
 
 # RUBY
 # Uncomment this when you want to include the Ruby interface.
@@ -930,7 +930,7 @@ MAN1DIR = /man1
 
 ### Vim version (adjusted by a script)
 VIMMAJOR = 7
-VIMMINOR = 3b
+VIMMINOR = 3c
 
 ### Location of Vim files (should not need to be changed, and  {{{1
 ### some things might not work when they are changed!)
@@ -2542,10 +2542,10 @@ objects/py3_config.o: $(PYTHON3_CONFDIR)/config.c
 	$(CCC) $(PYTHON3_CFLAGS) -o $@ $(PYTHON3_CONFDIR)/config.c \
 		-I$(PYTHON3_CONFDIR) -DHAVE_CONFIG_H -DNO_MAIN
 
-objects/if_python.o: if_python.c 
+objects/if_python.o: if_python.c if_py_both.h
 	$(CCC) $(PYTHON_CFLAGS) $(PYTHON_CFLAGS_EXTRA) -o $@ if_python.c
 
-objects/if_python3.o: if_python3.c 
+objects/if_python3.o: if_python3.c if_py_both.h
 	$(CCC) $(PYTHON3_CFLAGS) $(PYTHON3_CFLAGS_EXTRA) -o $@ if_python3.c
 
 objects/if_ruby.o: if_ruby.c
@@ -3061,11 +3061,11 @@ objects/if_perlsfio.o: if_perlsfio.c vim.h auto/config.h feature.h os_unix.h \
 objects/if_python.o: if_python.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h \
- globals.h farsi.h arabic.h
+ globals.h farsi.h arabic.h if_py_both.h
 objects/if_python3.o: if_python3.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h \
- globals.h farsi.h arabic.h
+ globals.h farsi.h arabic.h if_py_both.h
 objects/if_tcl.o: if_tcl.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h globals.h farsi.h \

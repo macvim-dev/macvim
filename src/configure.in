@@ -466,7 +466,7 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
       if test "X$vi_cv_path_lua" != "X"; then
         dnl -- find Lua version
         AC_CACHE_CHECK(Lua version, vi_cv_version_lua,
-        [ vi_cv_version_lua=`${vi_cv_path_lua} -e "print(_VERSION:sub(5,7))"` ])
+        [ vi_cv_version_lua=`${vi_cv_path_lua} -e "print(_VERSION)" | sed 's/.* //'` ])
         AC_MSG_CHECKING(if lua.h can be found in $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua)
         if test -f $vi_cv_path_lua_pfx/include/lua$vi_cv_version_lua/lua.h; then
           AC_MSG_RESULT(yes)
@@ -492,9 +492,17 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
     LUA_PRO="if_lua.pro"
     AC_DEFINE(FEAT_LUA)
     if test "$enable_luainterp" = "dynamic"; then
+      dnl Determine the SONAME for the current version, but fallback to
+      dnl liblua${vi_cv_version_lua}.so if no SONAME-versioned file is found.
+      for i in 0 1 2 3 4 5 6 7 8 9; do
+	if test -f "${vi_cv_path_lua_pfx}/lib/liblua${vi_cv_version_lua}.so.$i"; then
+	  LUA_SONAME=".$i"
+	  break
+	fi
+      done
       AC_DEFINE(DYNAMIC_LUA)
       LUA_LIBS=""
-      LUA_CFLAGS="-DDYNAMIC_LUA_DLL=\\\"liblua${vi_cv_version_lua}.so\\\" $LUA_CFLAGS"
+      LUA_CFLAGS="-DDYNAMIC_LUA_DLL=\\\"liblua${vi_cv_version_lua}.so$LUA_SONAME\\\" $LUA_CFLAGS"
     fi
   fi
   AC_SUBST(LUA_SRC)
@@ -749,6 +757,11 @@ if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
       PERL_OBJ="objects/if_perl.o objects/if_perlsfio.o $darwindir/auto/DynaLoader/DynaLoader.a"
       PERL_LIBS="-L$darwindir/CORE -lperl"
     fi
+    dnl Perl on Mac OS X 10.5 adds "-arch" flags but these should only
+    dnl be included if requested by passing --with-mac-arch to
+    dnl configure, so strip these flags first (if present)
+    PERL_LIBS=`echo "$PERL_LIBS" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
+    PERL_CFLAGS=`echo "$PERL_CFLAGS" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
   fi
   if test "$enable_perlinterp" = "dynamic"; then
     if test "$perl_ok" = "yes" -a "X$libperl" != "X"; then
@@ -844,6 +857,7 @@ __:
 	@echo "python_LIBS='$(LIBS)'"
 	@echo "python_SYSLIBS='$(SYSLIBS)'"
 	@echo "python_LINKFORSHARED='$(LINKFORSHARED)'"
+	@echo "python_INSTSONAME='$(INSTSONAME)'"
 eof
 	    dnl -- delete the lines from make about Entering/Leaving directory
 	    eval "`cd ${PYTHON_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
@@ -1006,7 +1020,7 @@ if test "$enable_python3interp" = "yes"; then
     [
      vi_cv_path_python3_conf=
      for path in "${vi_cv_path_python3_pfx}" "${vi_cv_path_python3_epfx}"; do
-       for subdir in lib share; do
+       for subdir in lib64 lib share; do
          d="${path}/${subdir}/python${vi_cv_var_python3_version}/config"
          if test -d "$d" && test -f "$d/config.c"; then
            vi_cv_path_python3_conf="$d"
@@ -1033,6 +1047,7 @@ __:
 	@echo "python3_LIBS='$(LIBS)'"
 	@echo "python3_SYSLIBS='$(SYSLIBS)'"
 	@echo "python3_LINKFORSHARED='$(LINKFORSHARED)'"
+	@echo "python3_INSTSONAME='$(INSTSONAME)'"
 eof
           dnl -- delete the lines from make about Entering/Leaving directory
           eval "`cd ${PYTHON3_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
@@ -1128,11 +1143,11 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
   AC_DEFINE(DYNAMIC_PYTHON3)
   PYTHON_SRC="if_python.c"
   PYTHON_OBJ="objects/if_python.o"
-  PYTHON_CFLAGS="$PYTHON_CFLAGS -DDYNAMIC_PYTHON_DLL=\\\"libpython${vi_cv_var_python_version}.so\\\""
+  PYTHON_CFLAGS="$PYTHON_CFLAGS -DDYNAMIC_PYTHON_DLL=\\\"${python_INSTSONAME}\\\""
   PYTHON_LIBS=
   PYTHON3_SRC="if_python3.c"
   PYTHON3_OBJ="objects/if_python3.o"
-  PYTHON3_CFLAGS="$PYTHON3_CFLAGS -DDYNAMIC_PYTHON3_DLL=\\\"libpython${vi_cv_var_python3_version}.so\\\""
+  PYTHON3_CFLAGS="$PYTHON3_CFLAGS -DDYNAMIC_PYTHON3_DLL=\\\"${python3_INSTSONAME}\\\""
   PYTHON3_LIBS=
 fi
 
@@ -1318,11 +1333,14 @@ if test "$enable_rubyinterp" = "yes"; then
 	  RUBY_LIBS="$librubyarg $RUBY_LIBS"
 	fi
 	rubyldflags=`$vi_cv_path_ruby -r rbconfig -e 'print Config::CONFIG[["LDFLAGS"]]'`
-        if test "x$MACOSX" = "xyes"; then
-	  dnl Ruby on Mac OS X 10.5 and later adds "-arch" flags but these
-	  dnl should only be included if requested by passing --with-archs
-	  dnl to configure, so strip these flags first (if present)
-          rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch[[^-]]*//g'`
+	if test "X$rubyldflags" != "X"; then
+	  dnl Ruby on Mac OS X 10.5 adds "-arch" flags but these should only
+	  dnl be included if requested by passing --with-mac-arch to
+	  dnl configure, so strip these flags first (if present)
+	  rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
+	  if test "X$rubyldflags" != "X"; then
+	    LDFLAGS="$rubyldflags $LDFLAGS"
+	  fi
 	fi
         if test "X$rubyldflags" != "X"; then
           LDFLAGS="$rubyldflags $LDFLAGS"

@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 7.3b.  Last change: 2010 Jul 21
+*syntax.txt*	For Vim version 7.3c.  Last change: 2010 Jul 25
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -256,7 +256,7 @@ you can see the actual color, except for "Ignore"):
 
 	*Underlined	text that stands out, HTML links
 
-	*Ignore		left blank, hidden
+	*Ignore		left blank, hidden  |hl-Ignore|
 
 	*Error		any erroneous construct
 
@@ -274,6 +274,10 @@ can be used for the same group.
 
 The following names are reserved and cannot be used as a group name:
 	NONE   ALL   ALLBUT   contains	 contained
+
+							*hl-Ignore*
+When using the Ignore group, you may also consider using the conceal
+mechanism.  See |conceal|.
 
 ==============================================================================
 3. Syntax loading procedure				*syntax-loading*
@@ -424,8 +428,14 @@ cascading style sheets (CSS1) for the attributes (resulting in considerably
 shorter and valid HTML 4 file), use: >
    :let g:html_use_css = 1
 
-Closed folds are put in the HTML as they are displayed.  If you don't want
-this, use the |zR| command before invoking 2html, or use: >
+Concealed text is removed from the HTML and replaced with the appropriate
+character from |:syn-cchar| or 'listchars' depending on the current value of
+'conceallevel'. If you always want to display all text in your document,
+either set 'conceallevel' to before invoking 2html, or use: >
+   :let g:html_ignore_conceal = 1
+
+Similarly, closed folds are put in the HTML as they are displayed.  If you
+don't want this, use the |zR| command before invoking 2html, or use: >
    :let g:html_ignore_folding = 1
 
 You may want to generate HTML that includes all the data within the folds, and
@@ -1083,8 +1093,8 @@ FORTRAN					*fortran.vim* *ft-fortran-syntax*
 Default highlighting and dialect ~
 Highlighting appropriate for f95 (Fortran 95) is used by default.  This choice
 should be appropriate for most users most of the time because Fortran 95 is a
-superset of Fortran 90 and almost a superset of Fortran 77.  Preliminary
-support for Fortran 2003 and Fortran 2008 features has been introduced and is
+superset of Fortran 90 and almost a superset of Fortran 77. Support for 
+Fortran 2003 and Fortran 2008 features has been introduced and is
 automatically available in the default (f95) highlighting.
 
 Fortran source code form ~
@@ -1588,6 +1598,13 @@ gives no clue as to what section follows.  Consequently, the value for >
 may be changed by the user if s/he is experiencing synchronization
 difficulties (such as may happen with large lex files).
 
+
+LIFELINES				*lifelines.vim* *ft-lifelines-syntax*
+
+To highlight deprecated functions as errors, add in your .vimrc: >
+
+	:let g:lifelines_deprecated = 1
+<
 
 LISP						*lisp.vim* *ft-lisp-syntax*
 
@@ -3149,9 +3166,9 @@ conceal						*conceal* *:syn-conceal*
 
 When the "conceal" argument is given, the item is marked as concealable.
 Whether or not it is actually concealed depends on the value of the
-'conceallevel' option.  If 'modifiable' option is on, concealable items
-in the current line are always displayed unconcealed to be able to edit
-the line.
+'conceallevel' option.  The 'concealcursor' option is used to decide whether
+concealable items in the current line are displayed unconcealed to be able to
+edit the line.
 
 concealends						*:syn-concealends*
 
