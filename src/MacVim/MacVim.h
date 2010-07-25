@@ -12,13 +12,6 @@
 #import <asl.h>
 
 
-//
-// Uncomment to enable support for MacVim plugins (not to be confused with Vim
-// plugins!).
-//
-//#define MM_ENABLE_PLUGINS
-
-
 // Taken from /usr/include/AvailabilityMacros.h
 #ifndef MAC_OS_X_VERSION_10_4
 # define MAC_OS_X_VERSION_10_4 1040
