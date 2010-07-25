@@ -338,6 +338,12 @@ defaultLineHeightForFont(NSFont *font)
 
 - (void)deleteSign:(NSString *)signName
 {
+    // ONLY in Core Text!
+}
+
+- (void)setToolTipAtMousePoint:(NSString *)string
+{
+    // ONLY in Core Text!
 }
 
 - (void)setPreEditRow:(int)row column:(int)col
@@ -479,32 +485,6 @@ defaultLineHeightForFont(NSFont *font)
 - (void)mouseMoved:(NSEvent *)event
 {
     [helper mouseMoved:event];
-}
-
-- (void)mouseEntered:(NSEvent *)event
-{
-    [helper mouseEntered:event];
-}
-
-- (void)mouseExited:(NSEvent *)event
-{
-    [helper mouseExited:event];
-}
-
-- (void)setFrame:(NSRect)frame
-{
-    [super setFrame:frame];
-    [helper setFrame:frame];
-}
-
-- (void)viewDidMoveToWindow
-{
-    [helper viewDidMoveToWindow];
-}
-
-- (void)viewWillMoveToWindow:(NSWindow *)newWindow
-{
-    [helper viewWillMoveToWindow:newWindow];
 }
 
 - (NSMenu*)menuForEvent:(NSEvent *)event

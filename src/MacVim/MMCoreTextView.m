@@ -519,32 +519,6 @@ defaultAdvanceForFont(CTFontRef fontRef)
     [helper mouseMoved:event];
 }
 
-- (void)mouseEntered:(NSEvent *)event
-{
-    [helper mouseEntered:event];
-}
-
-- (void)mouseExited:(NSEvent *)event
-{
-    [helper mouseExited:event];
-}
-
-- (void)setFrame:(NSRect)frame
-{
-    [super setFrame:frame];
-    [helper setFrame:frame];
-}
-
-- (void)viewDidMoveToWindow
-{
-    [helper viewDidMoveToWindow];
-}
-
-- (void)viewWillMoveToWindow:(NSWindow *)newWindow
-{
-    [helper viewWillMoveToWindow:newWindow];
-}
-
 - (NSMenu*)menuForEvent:(NSEvent *)event
 {
     // HACK! Return nil to disable default popup menus (Vim provides its own).
@@ -592,9 +566,6 @@ defaultAdvanceForFont(CTFontRef fontRef)
 
 - (void)drawRect:(NSRect)rect
 {
-    //ASLogTmp(@"count=%d  rect=%@", [drawData count],
-    //        NSStringFromRect(rect));
-
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
     [context setShouldAntialias:antialias];
 

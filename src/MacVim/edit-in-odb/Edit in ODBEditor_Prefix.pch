@@ -1,7 +1,0 @@
-//
-// Prefix header for all source files of the 'Edit in ODBEditor' target in the 'Edit in ODBEditor' project.
-//
-
-#ifdef __OBJC__
-    #import <Cocoa/Cocoa.h>
-#endif

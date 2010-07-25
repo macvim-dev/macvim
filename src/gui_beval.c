@@ -109,8 +109,8 @@ general_beval_cb(beval, state)
     recursive = FALSE;
 }
 
-/* on Win32 only get_beval_info() is required */
-#if !defined(FEAT_GUI_W32) || defined(PROTO)
+/* on Win32 and MacVim only get_beval_info() is required */
+#if !(defined(FEAT_GUI_W32) || defined(FEAT_GUI_MACVIM)) || defined(PROTO)
 
 #ifdef FEAT_GUI_GTK
 # include <gdk/gdkkeysyms.h>
@@ -295,7 +295,7 @@ gui_mch_currently_showing_beval()
     return current_beval;
 }
 #endif
-#endif /* !FEAT_GUI_W32 */
+#endif /* !(FEAT_GUI_W32 || FEAT_GUI_MACVIM) */
 
 #if defined(FEAT_SUN_WORKSHOP) || defined(FEAT_NETBEANS_INTG) \
     || defined(FEAT_EVAL) || defined(PROTO)
@@ -408,7 +408,7 @@ get_beval_info(beval, getword, winp, lnump, textp, colp)
     return FAIL;
 }
 
-# if !defined(FEAT_GUI_W32) || defined(PROTO)
+# if !(defined(FEAT_GUI_W32) || defined(FEAT_GUI_MACVIM)) || defined(PROTO)
 
 /*
  * Show a balloon with "mesg".
@@ -424,10 +424,10 @@ gui_mch_post_balloon(beval, mesg)
     else
 	undrawBalloon(beval);
 }
-# endif /* FEAT_GUI_W32 */
+# endif /* FEAT_GUI_W32 || FEAT_GUI_MACVIM */
 #endif /* FEAT_SUN_WORKSHOP || FEAT_NETBEANS_INTG || PROTO */
 
-#if !defined(FEAT_GUI_W32) || defined(PROTO)
+#if !(defined(FEAT_GUI_W32) || defined(FEAT_GUI_MACVIM)) || defined(PROTO)
 #if defined(FEAT_BEVAL_TIP) || defined(PROTO)
 /*
  * Hide the given balloon.
@@ -1336,6 +1336,6 @@ createBalloonEvalWindow(beval)
 }
 
 #endif /* !FEAT_GUI_GTK */
-#endif /* !FEAT_GUI_W32 */
+#endif /* !(FEAT_GUI_W32 || FEAT_GUI_MACVIM) */
 
 #endif /* FEAT_BEVAL */

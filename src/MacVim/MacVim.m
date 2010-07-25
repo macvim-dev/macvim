@@ -96,6 +96,8 @@ char *MessageStrings[] =
     "ZoomMsgID",
     "SetWindowPositionMsgID",
     "DeleteSignMsgID",
+    "SetTooltipMsgID",
+    "SetTooltipDelayMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 

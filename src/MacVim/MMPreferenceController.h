@@ -12,27 +12,14 @@
 #import <DBPrefsWindowController.h>
 
 @interface MMPreferenceController : DBPrefsWindowController {
-
     IBOutlet NSView *generalPreferences;
-    IBOutlet NSView *integrationPreferences;
     IBOutlet NSView *advancedPreferences;
 
     // General pane
     IBOutlet NSPopUpButton *layoutPopUpButton;
-
-    // Integration pane
-    NSDictionary *supportedOdbEditors;
-    IBOutlet NSPopUpButton *editors;
-    IBOutlet NSButton *installOdbButton;
-    IBOutlet NSButton *uninstallOdbButton;
-    IBOutlet NSTextField* obdBundleVersionLabel;
 }
 
 // General pane
 - (IBAction)openInCurrentWindowSelectionChanged:(id)sender;
-
-// Integration pane
-- (IBAction)installOdb:(id)sender;
-- (IBAction)uninstallOdb:(id)sender;
 
 @end

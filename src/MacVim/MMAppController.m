@@ -42,11 +42,6 @@
 #import "MMVimController.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
-
-#ifdef MM_ENABLE_PLUGINS
-#import "MMPlugInManager.h"
-#endif
-
 #import <unistd.h>
 #import <CoreServices/CoreServices.h>
 
@@ -142,11 +137,6 @@ typedef struct
                                   toCommandLine:(NSArray **)cmdline;
 - (NSString *)workingDirectoryForArguments:(NSDictionary *)args;
 - (NSScreen *)screenContainingPoint:(NSPoint)pt;
-
-#ifdef MM_ENABLE_PLUGINS
-- (void)removePlugInMenu;
-- (void)addPlugInMenuToMenu:(NSMenu *)mainMenu;
-#endif
 @end
 
 
@@ -216,9 +206,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         @"",                            MMLoginShellCommandKey,
         @"",                            MMLoginShellArgumentKey,
         [NSNumber numberWithBool:YES],  MMDialogsTrackPwdKey,
-#ifdef MM_ENABLE_PLUGINS
-        [NSNumber numberWithBool:YES],  MMShowLeftPlugInContainerKey,
-#endif
         [NSNumber numberWithInt:3],     MMOpenLayoutKey,
         [NSNumber numberWithBool:NO],   MMVerticalSplitKey,
         [NSNumber numberWithInt:0],     MMPreloadCacheSizeKey,
@@ -252,17 +239,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     preloadPid = -1;
     pidArguments = [NSMutableDictionary new];
     inputQueues = [NSMutableDictionary new];
-
-#ifdef MM_ENABLE_PLUGINS
-    NSString *plugInTitle = NSLocalizedString(@"Plug-In",
-                                              @"Plug-In menu title");
-    plugInMenuItem = [[NSMenuItem alloc] initWithTitle:plugInTitle
-                                                action:NULL
-                                         keyEquivalent:@""];
-    NSMenu *submenu = [[NSMenu alloc] initWithTitle:plugInTitle];
-    [plugInMenuItem setSubmenu:submenu];
-    [submenu release];
-#endif
 
     // NOTE: Do not use the default connection since the Logitech Control
     // Center (LCC) input manager steals and this would cause MacVim to
@@ -298,9 +274,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [openSelectionString release];  openSelectionString = nil;
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
     [defaultMainMenu release];  defaultMainMenu = nil;
-#ifdef MM_ENABLE_PLUGINS
-    [plugInMenuItem release];  plugInMenuItem = nil;
-#endif
     [appMenuItemTemplate release];  appMenuItemTemplate = nil;
 
     [super dealloc];
@@ -399,9 +372,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
     [NSApp setServicesProvider:self];
-#ifdef MM_ENABLE_PLUGINS
-    [[MMPlugInManager sharedManager] loadAllPlugIns];
-#endif
 
     if ([self maxPreloadCacheSize] > 0) {
         [self scheduleVimControllerPreloadAfterDelay:2];
@@ -632,10 +602,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     ASLogInfo(@"Terminating MacVim...");
 
     [self stopWatchingVimDir];
-
-#ifdef MM_ENABLE_PLUGINS
-    [[MMPlugInManager sharedManager] unloadAllPlugIns];
-#endif
 
 #if MM_HANDLE_XCODE_MOD_EVENT
     [[NSAppleEventManager sharedAppleEventManager]
@@ -889,12 +855,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         }
     }
     [NSApp setWindowsMenu:windowsMenu];
-
-#ifdef MM_ENABLE_PLUGINS
-    // Move plugin menu from old to new main menu.
-    [self removePlugInMenu];
-    [self addPlugInMenuToMenu:mainMenu];
-#endif
 }
 
 - (NSArray *)filterOpenFiles:(NSArray *)filenames
@@ -1051,24 +1011,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     return openOk;
 }
-
-#ifdef MM_ENABLE_PLUGINS
-- (void)addItemToPlugInMenu:(NSMenuItem *)item
-{
-    NSMenu *menu = [plugInMenuItem submenu];
-    [menu addItem:item];
-    if ([menu numberOfItems] == 1)
-        [self addPlugInMenuToMenu:[NSApp mainMenu]];
-}
-
-- (void)removeItemFromPlugInMenu:(NSMenuItem *)item
-{
-    NSMenu *menu = [plugInMenuItem submenu];
-    [menu removeItem:item];
-    if ([menu numberOfItems] == 0)
-        [self removePlugInMenu];
-}
-#endif
 
 - (IBAction)newWindow:(id)sender
 {
@@ -1809,29 +1751,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     return dict;
 }
-
-#ifdef MM_ENABLE_PLUGINS
-- (void)removePlugInMenu
-{
-    if ([plugInMenuItem menu])
-        [[plugInMenuItem menu] removeItem:plugInMenuItem];
-}
-
-- (void)addPlugInMenuToMenu:(NSMenu *)mainMenu
-{
-    NSMenu *windowsMenu = [mainMenu findWindowsMenu];
-
-    if ([[plugInMenuItem submenu] numberOfItems] > 0) {
-        int idx = windowsMenu ? [mainMenu indexOfItemWithSubmenu:windowsMenu]
-                              : -1;
-        if (idx > 0) {
-            [mainMenu insertItem:plugInMenuItem atIndex:idx];
-        } else {
-            [mainMenu addItem:plugInMenuItem];
-        }
-    }
-}
-#endif
 
 - (void)scheduleVimControllerPreloadAfterDelay:(NSTimeInterval)delay
 {

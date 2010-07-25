@@ -10,10 +10,6 @@
 
 #import "MacVim.h"
 
-#ifdef MM_ENABLE_PLUGINS
-#import "PlugInImpl.h"
-#endif
-
 
 @class MMWindowController;
 
@@ -36,9 +32,6 @@
     int                 pid;
     NSString            *serverName;
     NSDictionary        *vimState;
-#ifdef MM_ENABLE_PLUGINS
-    MMPlugInInstanceMediator *instanceMediator;
-#endif
     BOOL                isPreloading;
     NSDate              *creationDate;
 }
@@ -70,7 +63,4 @@
 - (id)evaluateVimExpressionCocoa:(NSString *)expr
                      errorString:(NSString **)errstr;
 - (void)processInputQueue:(NSArray *)queue;
-#ifdef MM_ENABLE_PLUGINS
-- (MMPlugInInstanceMediator *)instanceMediator;
-#endif
 @end

@@ -2205,3 +2205,64 @@ netbeans_draw_multisign_indicator(int row)
 # endif // FEAT_NETBEANS_INTG
 
 #endif // FEAT_SIGN_ICONS
+
+
+
+// -- Balloon Eval Support ---------------------------------------------------
+
+#ifdef FEAT_BEVAL
+
+    BalloonEval *
+gui_mch_create_beval_area(target, mesg, mesgCB, clientData)
+    void	*target;
+    char_u	*mesg;
+    void	(*mesgCB)__ARGS((BalloonEval *, int));
+    void	*clientData;
+{
+    BalloonEval	*beval;
+
+    beval = (BalloonEval *)calloc(1, sizeof(BalloonEval));
+    if (NULL == beval)
+        return NULL;
+
+    beval->msg = mesg;
+    beval->msgCB = mesgCB;
+    beval->clientData = clientData;
+
+    return beval;
+}
+
+    void
+gui_mch_enable_beval_area(beval)
+    BalloonEval	*beval;
+{
+    // Set the balloon delay when enabling balloon eval.
+    float delay = p_bdlay/1000.0f - MMBalloonEvalInternalDelay;
+    if (delay < 0) delay = 0;
+    [[MMBackend sharedInstance] queueMessage:SetTooltipDelayMsgID properties:
+        [NSDictionary dictionaryWithObject:[NSNumber numberWithFloat:delay]
+                                    forKey:@"delay"]];
+}
+
+    void
+gui_mch_disable_beval_area(beval)
+    BalloonEval	*beval;
+{
+    // NOTE: An empty tool tip indicates that the tool tip window should hide.
+    [[MMBackend sharedInstance] queueMessage:SetTooltipMsgID properties:
+        [NSDictionary dictionaryWithObject:@"" forKey:@"toolTip"]];
+}
+
+/*
+ * Show a balloon with "mesg".
+ */
+    void
+gui_mch_post_balloon(beval, mesg)
+    BalloonEval	*beval;
+    char_u	*mesg;
+{
+    NSString *toolTip = [NSString stringWithVimString:mesg];
+    [[MMBackend sharedInstance] setLastToolTip:toolTip];
+}
+
+#endif // FEAT_BEVAL

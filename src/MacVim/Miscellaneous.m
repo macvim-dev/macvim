@@ -37,9 +37,6 @@ NSString *MMCurrentPreferencePaneKey    = @"MMCurrentPreferencePane";
 NSString *MMLoginShellCommandKey        = @"MMLoginShellCommand";
 NSString *MMLoginShellArgumentKey       = @"MMLoginShellArgument";
 NSString *MMDialogsTrackPwdKey          = @"MMDialogsTrackPwd";
-#ifdef MM_ENABLE_PLUGINS
-NSString *MMShowLeftPlugInContainerKey  = @"MMShowLeftPlugInContainer";
-#endif
 NSString *MMOpenLayoutKey               = @"MMOpenLayout";
 NSString *MMVerticalSplitKey            = @"MMVerticalSplit";
 NSString *MMPreloadCacheSizeKey         = @"MMPreloadCacheSize";

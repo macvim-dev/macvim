@@ -9,11 +9,6 @@
 /* Begin PBXBuildFile section */
 		0395A8330D71ED7800881434 /* DBPrefsWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0395A8320D71ED7800881434 /* DBPrefsWindowController.m */; };
 		0395A8AA0D72D88B00881434 /* General.png in Resources */ = {isa = PBXBuildFile; fileRef = 0395A8A90D72D88B00881434 /* General.png */; };
-		0395A95A0D74D47B00881434 /* Integration.png in Resources */ = {isa = PBXBuildFile; fileRef = 0395A9590D74D47B00881434 /* Integration.png */; };
-		0395A9BF0D75D02400881434 /* AuthorizedShellCommand.m in Sources */ = {isa = PBXBuildFile; fileRef = 0395A9BE0D75D02400881434 /* AuthorizedShellCommand.m */; };
-		0395A9C30D75D04D00881434 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0395A9C20D75D04D00881434 /* Security.framework */; };
-		0395AA780D76E77800881434 /* Info in Copy ODBEditor */ = {isa = PBXBuildFile; fileRef = 0395AA770D76E77800881434 /* Info */; };
-		0395AAAD0D76E94000881434 /* Edit in ODBEditor.bundle in Copy ODBEditor */ = {isa = PBXBuildFile; fileRef = 0395AA210D76E22700881434 /* Edit in ODBEditor.bundle */; };
 		1D09AB420C6A4D520045497E /* MMTypesetter.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D09AB400C6A4D520045497E /* MMTypesetter.m */; };
 		1D0E051C0BA5F83800B6049E /* Colors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1D0E051B0BA5F83800B6049E /* Colors.plist */; };
 		1D145C7F0E5227CE00691AA0 /* MMTextViewHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D145C7E0E5227CE00691AA0 /* MMTextViewHelper.m */; };
@@ -29,6 +24,7 @@
 		1D3D19120CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */; };
 		1D3D19130CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */; };
 		1D3D19140CA690FF0004A0A5 /* DejaVuSansMono.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */; };
+		1D44972211FCA9B400B0630F /* MMCoreTextView+ToolTip.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */; };
 		1D493D580C5247BF00AB718C /* Vim in Copy Executables */ = {isa = PBXBuildFile; fileRef = 1D493D570C5247BF00AB718C /* Vim */; };
 		1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
 		1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */; };
@@ -78,30 +74,9 @@
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		B59228A611F7572F00E7F584 /* MacVim.sdef in Resources */ = {isa = PBXBuildFile; fileRef = B59228A511F7572F00E7F584 /* MacVim.sdef */; };
-		BD476E300DAAD74400F08A5C /* RBSplitSubview.m in Sources */ = {isa = PBXBuildFile; fileRef = BD476E2C0DAAD74400F08A5C /* RBSplitSubview.m */; };
-		BD476E310DAAD74400F08A5C /* RBSplitView.m in Sources */ = {isa = PBXBuildFile; fileRef = BD476E2E0DAAD74400F08A5C /* RBSplitView.m */; };
-		BD943D530DA3050B00A02D9B /* PlugInImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = BD943D520DA3050B00A02D9B /* PlugInImpl.m */; };
-		BD9DF0A00DB2BA020025C97C /* PlugInView.nib in Resources */ = {isa = PBXBuildFile; fileRef = BD9DF09F0DB2BA020025C97C /* PlugInView.nib */; };
-		BD9DF0B00DB41E780025C97C /* PlugInGUI.m in Sources */ = {isa = PBXBuildFile; fileRef = BD9DF0AF0DB41E780025C97C /* PlugInGUI.m */; };
-		BD9DF0FB0DB48C860025C97C /* CTGradient.m in Sources */ = {isa = PBXBuildFile; fileRef = BD9DF0FA0DB48C860025C97C /* CTGradient.m */; };
-		BDA8B1120D9F8A8500B3511A /* MMPlugInManager.m in Sources */ = {isa = PBXBuildFile; fileRef = BDA8B1110D9F8A8500B3511A /* MMPlugInManager.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		0395AA200D76E22700881434 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 8D5B49B6048680CD000E48DA;
-			remoteInfo = "Edit in ODBEditor";
-		};
-		0395AA230D76E2F300881434 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 8D5B49AC048680CD000E48DA;
-			remoteInfo = "Edit in ODBEditor";
-		};
 		1D493DB80C52533B00AB718C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
@@ -119,18 +94,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		0395AA790D76E77800881434 /* Copy ODBEditor */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "Edit in ODBEditor";
-			dstSubfolderSpec = 7;
-			files = (
-				0395AAAD0D76E94000881434 /* Edit in ODBEditor.bundle in Copy ODBEditor */,
-				0395AA780D76E77800881434 /* Info in Copy ODBEditor */,
-			);
-			name = "Copy ODBEditor";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		1D0DCAD80BA3604D00B6CCFA /* Copy Executables */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -172,12 +135,6 @@
 		0395A8310D71ED7800881434 /* DBPrefsWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DBPrefsWindowController.h; sourceTree = "<group>"; };
 		0395A8320D71ED7800881434 /* DBPrefsWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DBPrefsWindowController.m; sourceTree = "<group>"; };
 		0395A8A90D72D88B00881434 /* General.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = General.png; sourceTree = "<group>"; };
-		0395A9590D74D47B00881434 /* Integration.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Integration.png; sourceTree = "<group>"; };
-		0395A9BD0D75D02400881434 /* AuthorizedShellCommand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AuthorizedShellCommand.h; sourceTree = "<group>"; };
-		0395A9BE0D75D02400881434 /* AuthorizedShellCommand.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AuthorizedShellCommand.m; sourceTree = "<group>"; };
-		0395A9C20D75D04D00881434 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = /System/Library/Frameworks/Security.framework; sourceTree = "<absolute>"; };
-		0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "Edit in ODBEditor.xcodeproj"; path = "edit-in-odb/Edit in ODBEditor.xcodeproj"; sourceTree = "<group>"; };
-		0395AA770D76E77800881434 /* Info */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = Info; path = "edit-in-odb/Info"; sourceTree = "<group>"; };
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		1D09AB3F0C6A4D520045497E /* MMTypesetter.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMTypesetter.h; sourceTree = "<group>"; };
@@ -203,6 +160,7 @@
 		1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-BoldOblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-BoldOblique.ttf"; sourceTree = "<group>"; };
 		1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Oblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-Oblique.ttf"; sourceTree = "<group>"; };
 		1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = DejaVuSansMono.ttf; path = "dejavu-ttf/DejaVuSansMono.ttf"; sourceTree = "<group>"; };
+		1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "MMCoreTextView+ToolTip.m"; sourceTree = "<group>"; };
 		1D493D570C5247BF00AB718C /* Vim */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = Vim; path = ../Vim; sourceTree = SOURCE_ROOT; };
 		1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PSMTabBarControl.xcodeproj; path = PSMTabBarControl/PSMTabBarControl.xcodeproj; sourceTree = "<group>"; };
 		1D6008820E96886D003763F0 /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/FindAndReplace.nib; sourceTree = "<group>"; };
@@ -263,21 +221,6 @@
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B59228A511F7572F00E7F584 /* MacVim.sdef */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.sdef; path = MacVim.sdef; sourceTree = "<group>"; };
-		BD476E2B0DAAD74400F08A5C /* RBSplitSubview.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RBSplitSubview.h; sourceTree = "<group>"; };
-		BD476E2C0DAAD74400F08A5C /* RBSplitSubview.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RBSplitSubview.m; sourceTree = "<group>"; };
-		BD476E2D0DAAD74400F08A5C /* RBSplitView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RBSplitView.h; sourceTree = "<group>"; };
-		BD476E2E0DAAD74400F08A5C /* RBSplitView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RBSplitView.m; sourceTree = "<group>"; };
-		BD476E2F0DAAD74400F08A5C /* RBSplitViewPrivateDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RBSplitViewPrivateDefines.h; sourceTree = "<group>"; };
-		BD943D310DA2EA2500A02D9B /* PlugInInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlugInInterface.h; sourceTree = "<group>"; };
-		BD943D510DA3050B00A02D9B /* PlugInImpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlugInImpl.h; sourceTree = "<group>"; };
-		BD943D520DA3050B00A02D9B /* PlugInImpl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PlugInImpl.m; sourceTree = "<group>"; };
-		BD9DF09F0DB2BA020025C97C /* PlugInView.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = PlugInView.nib; sourceTree = "<group>"; };
-		BD9DF0AE0DB41E780025C97C /* PlugInGUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlugInGUI.h; sourceTree = "<group>"; };
-		BD9DF0AF0DB41E780025C97C /* PlugInGUI.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PlugInGUI.m; sourceTree = "<group>"; };
-		BD9DF0F90DB48C860025C97C /* CTGradient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTGradient.h; sourceTree = "<group>"; };
-		BD9DF0FA0DB48C860025C97C /* CTGradient.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CTGradient.m; sourceTree = "<group>"; };
-		BDA8B1100D9F8A8500B3511A /* MMPlugInManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMPlugInManager.h; sourceTree = "<group>"; };
-		BDA8B1110D9F8A8500B3511A /* MMPlugInManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMPlugInManager.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -287,7 +230,6 @@
 			files = (
 				1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
-				0395A9C30D75D04D00881434 /* Security.framework in Frameworks */,
 				1D8B5A53104AF9FF002E59D5 /* Carbon.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -295,19 +237,9 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0395AA1A0D76E22700881434 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				0395AA210D76E22700881434 /* Edit in ODBEditor.bundle */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		0395AA980D76E86200881434 /* Edit in ODBEditor */ = {
 			isa = PBXGroup;
 			children = (
-				0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */,
-				0395AA770D76E77800881434 /* Info */,
 			);
 			name = "Edit in ODBEditor";
 			sourceTree = "<group>";
@@ -315,6 +247,7 @@
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
+				1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */,
 				1D6008890E96A0B2003763F0 /* MMFindReplaceController.h */,
 				1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */,
 				1DE63FF90E71820F00959BDB /* MMCoreTextView.h */,
@@ -323,15 +256,6 @@
 				1D145C7E0E5227CE00691AA0 /* MMTextViewHelper.m */,
 				1D8059220E118663001699D1 /* Miscellaneous.h */,
 				1D80591D0E1185EA001699D1 /* Miscellaneous.m */,
-				BD9DF0F90DB48C860025C97C /* CTGradient.h */,
-				BD9DF0FA0DB48C860025C97C /* CTGradient.m */,
-				BD476E2B0DAAD74400F08A5C /* RBSplitSubview.h */,
-				BD476E2C0DAAD74400F08A5C /* RBSplitSubview.m */,
-				BD476E2D0DAAD74400F08A5C /* RBSplitView.h */,
-				BD476E2E0DAAD74400F08A5C /* RBSplitView.m */,
-				BD476E2F0DAAD74400F08A5C /* RBSplitViewPrivateDefines.h */,
-				0395A9BD0D75D02400881434 /* AuthorizedShellCommand.h */,
-				0395A9BE0D75D02400881434 /* AuthorizedShellCommand.m */,
 				0395A8310D71ED7800881434 /* DBPrefsWindowController.h */,
 				0395A8320D71ED7800881434 /* DBPrefsWindowController.m */,
 				1DE3F8E80D50F84600052B9E /* MMPreferenceController.h */,
@@ -362,13 +286,6 @@
 				1D1474960C56703C0038FA2B /* MacVim.m */,
 				32CA4F630368D1EE00C91783 /* MacVim_Prefix.pch */,
 				29B97316FDCFA39411CA2CEA /* main.m */,
-				BDA8B1100D9F8A8500B3511A /* MMPlugInManager.h */,
-				BDA8B1110D9F8A8500B3511A /* MMPlugInManager.m */,
-				BD943D310DA2EA2500A02D9B /* PlugInInterface.h */,
-				BD943D510DA3050B00A02D9B /* PlugInImpl.h */,
-				BD943D520DA3050B00A02D9B /* PlugInImpl.m */,
-				BD9DF0AE0DB41E780025C97C /* PlugInGUI.h */,
-				BD9DF0AF0DB41E780025C97C /* PlugInGUI.m */,
 			);
 			name = "MacVim Source";
 			sourceTree = "<group>";
@@ -484,9 +401,7 @@
 				1D9C602E0EF79C0C0034AD44 /* MacVim.icns */,
 				1D8BEA73104992290069B072 /* FindAndReplace.nib */,
 				0395A8A90D72D88B00881434 /* General.png */,
-				0395A9590D74D47B00881434 /* Integration.png */,
 				1D22374A0E45DF4800E6FFFF /* Advanced.png */,
-				BD9DF09F0DB2BA020025C97C /* PlugInView.nib */,
 				1DD3D51D0D82D4C9006E4320 /* ibeam.png */,
 				1D0F11480D58C77800D5DA09 /* Font */,
 				1DE9726C0C48050600F96A9F /* Toolbar */,
@@ -507,7 +422,6 @@
 			children = (
 				1D8B5A52104AF9FF002E59D5 /* Carbon.framework */,
 				0395AA980D76E86200881434 /* Edit in ODBEditor */,
-				0395A9C20D75D04D00881434 /* Security.framework */,
 				1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */,
 				1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */,
 				1058C7A2FEA54F0111CA2CBB /* Other Frameworks */,
@@ -528,14 +442,12 @@
 				1D0DCAD80BA3604D00B6CCFA /* Copy Executables */,
 				1D9EB2840C366D7B0074B739 /* Copy Frameworks */,
 				1DE608B80C58807F0055263D /* Copy Vim Runtime Files */,
-				0395AA790D76E77800881434 /* Copy ODBEditor */,
 				1D1C31F00EFFBFD6003FE9A5 /* Make Document Icons */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				1D493DCD0C5254A400AB718C /* PBXTargetDependency */,
-				0395AA240D76E2F300881434 /* PBXTargetDependency */,
 			);
 			name = MacVim;
 			productInstallPath = "$(HOME)/Applications";
@@ -562,10 +474,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 0395AA1A0D76E22700881434 /* Products */;
-					ProjectRef = 0395AA190D76E22700881434 /* Edit in ODBEditor.xcodeproj */;
-				},
-				{
 					ProductGroup = 1D493DB40C52533B00AB718C /* Products */;
 					ProjectRef = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
 				},
@@ -578,13 +486,6 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		0395AA210D76E22700881434 /* Edit in ODBEditor.bundle */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.cfbundle;
-			path = "Edit in ODBEditor.bundle";
-			remoteRef = 0395AA200D76E22700881434 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.framework;
@@ -611,9 +512,7 @@
 				1D3D19140CA690FF0004A0A5 /* DejaVuSansMono.ttf in Resources */,
 				1DE3F8E70D50F80500052B9E /* Preferences.nib in Resources */,
 				0395A8AA0D72D88B00881434 /* General.png in Resources */,
-				0395A95A0D74D47B00881434 /* Integration.png in Resources */,
 				1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */,
-				BD9DF0A00DB2BA020025C97C /* PlugInView.nib in Resources */,
 				1D22374B0E45DF4800E6FFFF /* Advanced.png in Resources */,
 				1DCD00BF0E50B2B700460166 /* Attention.png in Resources */,
 				1DCD00C00E50B2B700460166 /* Copy.png in Resources */,
@@ -683,28 +582,17 @@
 				1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */,
 				1DE3F8EB0D50F84600052B9E /* MMPreferenceController.m in Sources */,
 				0395A8330D71ED7800881434 /* DBPrefsWindowController.m in Sources */,
-				0395A9BF0D75D02400881434 /* AuthorizedShellCommand.m in Sources */,
 				1D80591F0E1185EA001699D1 /* Miscellaneous.m in Sources */,
-				BDA8B1120D9F8A8500B3511A /* MMPlugInManager.m in Sources */,
-				BD943D530DA3050B00A02D9B /* PlugInImpl.m in Sources */,
-				BD476E300DAAD74400F08A5C /* RBSplitSubview.m in Sources */,
-				BD476E310DAAD74400F08A5C /* RBSplitView.m in Sources */,
-				BD9DF0B00DB41E780025C97C /* PlugInGUI.m in Sources */,
-				BD9DF0FB0DB48C860025C97C /* CTGradient.m in Sources */,
 				1D145C7F0E5227CE00691AA0 /* MMTextViewHelper.m in Sources */,
 				1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */,
 				1DE63FFB0E71820F00959BDB /* MMCoreTextView.m in Sources */,
+				1D44972211FCA9B400B0630F /* MMCoreTextView+ToolTip.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		0395AA240D76E2F300881434 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "Edit in ODBEditor";
-			targetProxy = 0395AA230D76E2F300881434 /* PBXContainerItemProxy */;
-		};
 		1D493DCD0C5254A400AB718C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = PSMTabBarControlFramework;

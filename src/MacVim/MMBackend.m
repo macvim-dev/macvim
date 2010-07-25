@@ -46,6 +46,12 @@
 
 static unsigned MMServerMax = 1000;
 
+#ifdef FEAT_BEVAL
+// Seconds to delay balloon evaluation after mouse event (subtracted from
+// p_bdlay so that this effectively becomes the smallest possible delay).
+NSTimeInterval MMBalloonEvalInternalDelay = 0.1;
+#endif
+
 // TODO: Move to separate file.
 static int eventModifierFlagsToVimModMask(int modifierFlags);
 static int eventModifierFlagsToVimMouseModMask(int modifierFlags);
@@ -152,7 +158,6 @@ static struct specialkey
 extern GuiFont gui_mch_retain_font(GuiFont font);
 
 
-
 @interface NSString (MMServerNameCompare)
 - (NSComparisonResult)serverNameCompare:(NSString *)string;
 @end
@@ -192,6 +197,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)redrawScreen;
 - (void)handleFindReplace:(NSDictionary *)args;
 - (void)handleMarkedText:(NSData *)data;
+#ifdef FEAT_BEVAL
+- (void)bevalCallback:(id)sender;
+#endif
 @end
 
 
@@ -268,6 +276,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [sysColorDict release];  sysColorDict = nil;
     [colorDict release];  colorDict = nil;
     [vimServerConnection release];  vimServerConnection = nil;
+#ifdef FEAT_BEVAL
+    [lastToolTip release];  lastToolTip = nil;
+#endif
 
     [super dealloc];
 }
@@ -1669,6 +1680,16 @@ static void netbeansReadCallback(CFSocketRef s,
                        kCFRunLoopCommonModes);
 }
 
+#ifdef FEAT_BEVAL
+- (void)setLastToolTip:(NSString *)toolTip
+{
+    if (toolTip != lastToolTip) {
+        [lastToolTip release];
+        lastToolTip = [toolTip copy];
+    }
+}
+#endif
+
 @end // MMBackend
 
 
@@ -1891,6 +1912,22 @@ static void netbeansReadCallback(CFSocketRef s,
         int col = *((int*)bytes);  bytes += sizeof(int);
 
         gui_mouse_moved(col, row);
+
+#ifdef FEAT_BEVAL
+        if (p_beval && balloonEval) {
+            balloonEval->x = col;
+            balloonEval->y = row;
+
+            // Update the balloon eval message after a slight delay (to avoid
+            // calling it too often).
+            [NSObject cancelPreviousPerformRequestsWithTarget:self
+                                             selector:@selector(bevalCallback:)
+                                               object:nil];
+            [self performSelector:@selector(bevalCallback:)
+                       withObject:nil
+                       afterDelay:MMBalloonEvalInternalDelay];
+        }
+#endif
     } else if (AddInputMsgID == msgid) {
         NSString *string = [[NSString alloc] initWithData:data
                 encoding:NSUTF8StringEncoding];
@@ -2893,6 +2930,33 @@ static void netbeansReadCallback(CFSocketRef s,
 	im_preedit_changed_macvim(chars, pos);
     }
 }
+
+#ifdef FEAT_BEVAL
+- (void)bevalCallback:(id)sender
+{
+    if (!(p_beval && balloonEval))
+        return;
+
+    if (balloonEval->msgCB != NULL) {
+        // HACK! We have no way of knowing whether the balloon evaluation
+        // worked or not, so we keep track of it using a local tool tip
+        // variable.  (The reason we need to know is due to how the Cocoa tool
+        // tips work: if there is no tool tip we must set it to nil explicitly
+        // or it might never go away.)
+        [self setLastToolTip:nil];
+
+        (*balloonEval->msgCB)(balloonEval, 0);
+
+        [[MMBackend sharedInstance] queueMessage:SetTooltipMsgID properties:
+            [NSDictionary dictionaryWithObject:(lastToolTip ? lastToolTip : @"")
+                                        forKey:@"toolTip"]];
+
+        // NOTE: We have to explicitly stop the run loop since timer events do
+        // not cause CFRunLoopRunInMode() to exit.
+        CFRunLoopStop(CFRunLoopGetCurrent());
+    }
+}
+#endif
 
 @end // MMBackend (Private)
 

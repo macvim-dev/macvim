@@ -458,79 +458,12 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     if (![textView convertPoint:pt toRow:&row column:&col])
         return;
 
-    // HACK! It seems impossible to get the tracking rects set up before the
-    // view is visible, which means that the first mouseEntered: or
-    // mouseExited: events are never received.  This forces us to check if the
-    // mouseMoved: event really happened over the text.
-    int rows, cols;
-    [textView getMaxRows:&rows columns:&cols];
-    if (row >= 0 && row < rows && col >= 0 && col < cols) {
-        NSMutableData *data = [NSMutableData data];
+    NSMutableData *data = [NSMutableData data];
 
-        [data appendBytes:&row length:sizeof(int)];
-        [data appendBytes:&col length:sizeof(int)];
+    [data appendBytes:&row length:sizeof(int)];
+    [data appendBytes:&col length:sizeof(int)];
 
-        [[self vimController] sendMessage:MouseMovedMsgID data:data];
-    }
-}
-
-- (void)mouseEntered:(NSEvent *)event
-{
-    // NOTE: This event is received even when the window is not key; thus we
-    // have to take care not to enable mouse moved events unless our window is
-    // key.
-    if ([[textView window] isKeyWindow]) {
-        [[textView window] setAcceptsMouseMovedEvents:YES];
-    }
-}
-
-- (void)mouseExited:(NSEvent *)event
-{
-    [[textView window] setAcceptsMouseMovedEvents:NO];
-
-    // NOTE: This event is received even when the window is not key; if the
-    // mouse shape is set when our window is not key, the hollow (unfocused)
-    // cursor will become a block (focused) cursor.
-    if ([[textView window] isKeyWindow]) {
-        int shape = 0;
-        NSMutableData *data = [NSMutableData data];
-        [data appendBytes:&shape length:sizeof(int)];
-        [[self vimController] sendMessage:SetMouseShapeMsgID data:data];
-    }
-}
-
-- (void)setFrame:(NSRect)frame
-{
-    // When the frame changes we also need to update the tracking rect.
-    [textView removeTrackingRect:trackingRectTag];
-    trackingRectTag = [textView addTrackingRect:[self trackingRect]
-                                          owner:textView
-                                       userData:NULL
-                                   assumeInside:YES];
-}
-
-- (void)viewDidMoveToWindow
-{
-    // Set a tracking rect which covers the text.
-    // NOTE: While the mouse cursor is in this rect the view will receive
-    // 'mouseMoved:' events so that Vim can take care of updating the mouse
-    // cursor.
-    if ([textView window]) {
-        [[textView window] setAcceptsMouseMovedEvents:YES];
-        trackingRectTag = [textView addTrackingRect:[self trackingRect]
-                                              owner:textView
-                                           userData:NULL
-                                       assumeInside:YES];
-    }
-}
-
-- (void)viewWillMoveToWindow:(NSWindow *)newWindow
-{
-    // Remove tracking rect if view moves or is removed.
-    if ([textView window] && trackingRectTag) {
-        [textView removeTrackingRect:trackingRectTag];
-        trackingRectTag = 0;
-    }
+    [[self vimController] sendMessage:MouseMovedMsgID data:data];
 }
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
