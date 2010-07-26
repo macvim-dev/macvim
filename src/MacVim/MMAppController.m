@@ -128,7 +128,6 @@ typedef struct
 - (void)startWatchingVimDir;
 - (void)stopWatchingVimDir;
 - (void)handleFSEvent;
-- (void)loadDefaultFont;
 - (int)executeInLoginShell:(NSString *)path arguments:(NSArray *)args;
 - (void)reapChildProcesses:(id)sender;
 - (void)processInputQueues:(id)sender;
@@ -210,7 +209,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],   MMVerticalSplitKey,
         [NSNumber numberWithInt:0],     MMPreloadCacheSizeKey,
         [NSNumber numberWithInt:0],     MMLastWindowClosedBehaviorKey,
-        [NSNumber numberWithBool:YES],  MMLoadDefaultFontKey,
 #ifdef INCLUDE_OLD_IM_CODE
         [NSNumber numberWithBool:YES],  MMUseInlineImKey,
 #endif // INCLUDE_OLD_IM_CODE
@@ -231,8 +229,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (id)init
 {
     if (!(self = [super init])) return nil;
-
-    [self loadDefaultFont];
 
     vimControllers = [NSMutableArray new];
     cachedVimControllers = [NSMutableArray new];
@@ -612,14 +608,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // This will invalidate all connections (since they were spawned from this
     // connection).
     [connection invalidate];
-
-    // Deactivate the font we loaded from the app bundle.
-    // NOTE: This can take quite a while (~500 ms), so termination will be
-    // noticeably faster if loading of the default font is disabled.
-    if (fontContainerRef) {
-        ATSFontDeactivate(fontContainerRef, NULL, kATSOptionFlagsDefault);
-        fontContainerRef = 0;
-    }
 
     [NSApp setDelegate:nil];
 
@@ -2022,57 +2010,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // any previous preload requests before making a new one.
     [self cancelVimControllerPreloadRequests];
     [self scheduleVimControllerPreloadAfterDelay:0.5];
-}
-
-- (void)loadDefaultFont
-{
-    // It is possible to set a user default to avoid loading the default font
-    // (this cuts down on startup time).
-    if (![[NSUserDefaults standardUserDefaults] boolForKey:MMLoadDefaultFontKey]
-            || fontContainerRef) {
-        ASLogInfo(@"Skip loading of the default font...");
-        return;
-    }
-
-    ASLogInfo(@"Loading the default font...");
-
-    // Load all fonts in the Resouces folder of the app bundle.
-    NSString *fontsFolder = [[NSBundle mainBundle] resourcePath];
-    if (fontsFolder) {
-        NSURL *fontsURL = [NSURL fileURLWithPath:fontsFolder];
-        if (fontsURL) {
-            FSRef fsRef;
-            CFURLGetFSRef((CFURLRef)fontsURL, &fsRef);
-
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
-            // This is the font activation API for OS X 10.5.  Only compile
-            // this code if we're building on OS X 10.5 or later.
-            if (NULL != ATSFontActivateFromFileReference) { // Weakly linked
-                ATSFontActivateFromFileReference(&fsRef, kATSFontContextLocal,
-                                                 kATSFontFormatUnspecified,
-                                                 NULL, kATSOptionFlagsDefault,
-                                                 &fontContainerRef);
-            }
-#endif
-#if (MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5)
-            // The following font activation API was deprecated in OS X 10.5.
-            // Don't compile this code unless we're targeting OS X 10.4.
-            FSSpec fsSpec;
-            if (fontContainerRef == 0 &&
-                    FSGetCatalogInfo(&fsRef, kFSCatInfoNone, NULL, NULL,
-                                     &fsSpec, NULL) == noErr) {
-                ATSFontActivateFromFileSpecification(&fsSpec,
-                        kATSFontContextLocal, kATSFontFormatUnspecified, NULL,
-                        kATSOptionFlagsDefault, &fontContainerRef);
-            }
-#endif
-        }
-    }
-
-    if (!fontContainerRef) {
-        ASLogNotice(@"Failed to activate the default font (the app bundle "
-                    "may be incomplete)");
-    }
 }
 
 - (int)executeInLoginShell:(NSString *)path arguments:(NSArray *)args

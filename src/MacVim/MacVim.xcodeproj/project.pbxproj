@@ -20,10 +20,6 @@
 		1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D1474BA0C567A910038FA2B /* MMWindowController.m */; };
 		1D22374B0E45DF4800E6FFFF /* Advanced.png in Resources */ = {isa = PBXBuildFile; fileRef = 1D22374A0E45DF4800E6FFFF /* Advanced.png */; };
 		1D384A0E100D671700D3C22F /* KeyBinding.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1D384A0D100D671700D3C22F /* KeyBinding.plist */; };
-		1D3D19110CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */; };
-		1D3D19120CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */; };
-		1D3D19130CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */; };
-		1D3D19140CA690FF0004A0A5 /* DejaVuSansMono.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */; };
 		1D44972211FCA9B400B0630F /* MMCoreTextView+ToolTip.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */; };
 		1D493D580C5247BF00AB718C /* Vim in Copy Executables */ = {isa = PBXBuildFile; fileRef = 1D493D570C5247BF00AB718C /* Vim */; };
 		1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
@@ -156,10 +152,6 @@
 		1D1474BA0C567A910038FA2B /* MMWindowController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMWindowController.m; sourceTree = "<group>"; };
 		1D22374A0E45DF4800E6FFFF /* Advanced.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Advanced.png; sourceTree = "<group>"; };
 		1D384A0D100D671700D3C22F /* KeyBinding.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = KeyBinding.plist; sourceTree = "<group>"; };
-		1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Bold.ttf"; path = "dejavu-ttf/DejaVuSansMono-Bold.ttf"; sourceTree = "<group>"; };
-		1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-BoldOblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-BoldOblique.ttf"; sourceTree = "<group>"; };
-		1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DejaVuSansMono-Oblique.ttf"; path = "dejavu-ttf/DejaVuSansMono-Oblique.ttf"; sourceTree = "<group>"; };
-		1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = DejaVuSansMono.ttf; path = "dejavu-ttf/DejaVuSansMono.ttf"; sourceTree = "<group>"; };
 		1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "MMCoreTextView+ToolTip.m"; sourceTree = "<group>"; };
 		1D493D570C5247BF00AB718C /* Vim */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = Vim; path = ../Vim; sourceTree = SOURCE_ROOT; };
 		1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PSMTabBarControl.xcodeproj; path = PSMTabBarControl/PSMTabBarControl.xcodeproj; sourceTree = "<group>"; };
@@ -318,10 +310,6 @@
 		1D0F11480D58C77800D5DA09 /* Font */ = {
 			isa = PBXGroup;
 			children = (
-				1D3D190D0CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf */,
-				1D3D190E0CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf */,
-				1D3D190F0CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf */,
-				1D3D19100CA690FF0004A0A5 /* DejaVuSansMono.ttf */,
 			);
 			name = Font;
 			sourceTree = "<group>";
@@ -506,10 +494,6 @@
 				1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */,
 				1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */,
 				1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */,
-				1D3D19110CA690FF0004A0A5 /* DejaVuSansMono-Bold.ttf in Resources */,
-				1D3D19120CA690FF0004A0A5 /* DejaVuSansMono-BoldOblique.ttf in Resources */,
-				1D3D19130CA690FF0004A0A5 /* DejaVuSansMono-Oblique.ttf in Resources */,
-				1D3D19140CA690FF0004A0A5 /* DejaVuSansMono.ttf in Resources */,
 				1DE3F8E70D50F80500052B9E /* Preferences.nib in Resources */,
 				0395A8AA0D72D88B00881434 /* General.png in Resources */,
 				1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */,
