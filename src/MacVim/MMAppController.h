@@ -20,7 +20,6 @@
     NSConnection        *connection;
     NSMutableArray      *vimControllers;
     NSString            *openSelectionString;
-    ATSFontContainerRef fontContainerRef;
     NSMutableDictionary *pidArguments;
     NSMenu              *defaultMainMenu;
     NSMenuItem          *appMenuItemTemplate;

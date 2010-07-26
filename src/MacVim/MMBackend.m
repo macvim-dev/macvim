@@ -1869,6 +1869,19 @@ static void netbeansReadCallback(CFSocketRef s,
 #endif
 
         gui_send_mouse_event(button, col, row, NO, flags);
+
+#ifdef FEAT_BEVAL
+        if (p_beval && balloonEval) {
+            // Update the balloon eval message after a slight delay (to avoid
+            // calling it too often).
+            [NSObject cancelPreviousPerformRequestsWithTarget:self
+                                             selector:@selector(bevalCallback:)
+                                               object:nil];
+            [self performSelector:@selector(bevalCallback:)
+                       withObject:nil
+                       afterDelay:MMBalloonEvalInternalDelay];
+        }
+#endif
     } else if (MouseDownMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];

@@ -4804,8 +4804,17 @@ xy2win(x, y)
 
     row = Y_2_ROW(y);
     col = X_2_COL(x);
+# ifdef FEAT_GUI_MACVIM
+    /* Mouse cursor should always be an arrow when outside all windows */
+    if (row < 0 || col < 0 || col >= Columns || row >= Rows)
+    {
+	update_mouseshape(SHAPE_IDX_N);
+	return NULL;
+    }
+# else
     if (row < 0 || col < 0)		/* before first window */
 	return NULL;
+# endif
     wp = mouse_find_win(&row, &col);
 # ifdef FEAT_MOUSESHAPE
     if (State == HITRETURN || State == ASKMORE)

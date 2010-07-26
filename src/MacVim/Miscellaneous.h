@@ -49,7 +49,6 @@ extern NSString *MMOpenLayoutKey;
 extern NSString *MMVerticalSplitKey;
 extern NSString *MMPreloadCacheSizeKey;
 extern NSString *MMLastWindowClosedBehaviorKey;
-extern NSString *MMLoadDefaultFontKey;
 #ifdef INCLUDE_OLD_IM_CODE
 extern NSString *MMUseInlineImKey;
 #endif // INCLUDE_OLD_IM_CODE

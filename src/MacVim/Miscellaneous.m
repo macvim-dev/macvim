@@ -41,7 +41,6 @@ NSString *MMOpenLayoutKey               = @"MMOpenLayout";
 NSString *MMVerticalSplitKey            = @"MMVerticalSplit";
 NSString *MMPreloadCacheSizeKey         = @"MMPreloadCacheSize";
 NSString *MMLastWindowClosedBehaviorKey = @"MMLastWindowClosedBehavior";
-NSString *MMLoadDefaultFontKey          = @"MMLoadDefaultFont";
 #ifdef INCLUDE_OLD_IM_CODE
 NSString *MMUseInlineImKey              = @"MMUseInlineIm";
 #endif // INCLUDE_OLD_IM_CODE

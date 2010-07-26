@@ -266,7 +266,6 @@ Here is a list of relevant dictionary entries:
 KEY				VALUE ~
 MMCellWidthMultiplier		width of a normal glyph in em units [float]
 MMDialogsTrackPwd		open/save dialogs track the Vim pwd [bool]
-MMLoadDefaultFont		load font (disable for faster startup) [bool]
 MMLoginShellArgument		login shell parameter [string]
 MMLoginShellCommand		which shell to use to launch Vim [string]
 MMNoFontSubstitution		disable automatic font substitution [bool]
@@ -710,16 +709,6 @@ Scenario: ~
 Enabling localized menus breaks the toolbar and the menus as well.
 Solution: ~
 This is a known problem, see |macvim-todo|.
-
-Scenario: ~
-You dislike the default font (DejaVu Sans Mono).
-Solution: ~
-The standard fixed width font on Mac OS X is Menlo (it used to be Monaco prior
-to OS X 10.6).  If you prefer this font then add the following line to your
-"~/.gvimrc": >
-	set guifont=Menlo:h11
-The suffix ":h11" specifies the point size of the font should be "11" (see
-'guifont' for more information on how to set the font).
 
 Scenario: ~
 When you click the (green) zoom button you want the window to maximize

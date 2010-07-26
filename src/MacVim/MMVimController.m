@@ -688,9 +688,9 @@ static BOOL isUnsafeMessage(int msgid);
                      encoding:NSUTF8StringEncoding];
         NSFont *font = [NSFont fontWithName:name size:size];
         if (!font) {
-            // This should only happen if the default font was not loaded in
-            // which case we fall back on using the Cocoa default fixed width
-            // font.
+            // This should only happen if the system default font has changed
+            // name since MacVim was compiled in which case we fall back on
+            // using the user fixed width font.
             font = [NSFont userFixedPitchFontOfSize:size];
         }
 

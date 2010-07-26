@@ -24,9 +24,8 @@ int use_gui_macvim_draw_string = 1;
 
 static int use_graphical_sign = 0;
 
-// NOTE: The default font is bundled with the application.
-static NSString *MMDefaultFontName = @"DejaVu Sans Mono";
-static int MMDefaultFontSize       = 12;
+static NSString *MMDefaultFontName = @"Menlo Regular";
+static int MMDefaultFontSize       = 11;
 static int MMMinFontSize           = 6;
 static int MMMaxFontSize           = 100;
 
@@ -992,10 +991,8 @@ gui_macvim_font_with_name(char_u *name)
         if (size < MMMinFontSize) size = MMMinFontSize;
         if (size > MMMaxFontSize) size = MMMaxFontSize;
 
-        // If the default font is requested we don't check if NSFont can load
-        // it since the font most likely isn't loaded anyway (it may only be
-        // available to the MacVim binary).  If it is not the default font we
-        // ask NSFont if it can load it.
+        // If the default font is requested we don't need to check if NSFont
+        // can load it.  Otherwise we ask NSFont if it can load it.
         if ([fontName isEqualToString:MMDefaultFontName]
                 || [NSFont fontWithName:fontName size:size])
             return [[NSString alloc] initWithFormat:@"%@:%d", fontName, size];
