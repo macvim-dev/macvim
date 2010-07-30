@@ -69,7 +69,6 @@
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
-		B59228A611F7572F00E7F584 /* MacVim.sdef in Resources */ = {isa = PBXBuildFile; fileRef = B59228A511F7572F00E7F584 /* MacVim.sdef */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -212,7 +211,6 @@
 		32CA4F630368D1EE00C91783 /* MacVim_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacVim_Prefix.pch; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		B59228A511F7572F00E7F584 /* MacVim.sdef */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.sdef; path = MacVim.sdef; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -384,7 +382,6 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				B59228A511F7572F00E7F584 /* MacVim.sdef */,
 				1D384A0D100D671700D3C22F /* KeyBinding.plist */,
 				1D9C602E0EF79C0C0034AD44 /* MacVim.icns */,
 				1D8BEA73104992290069B072 /* FindAndReplace.nib */,
@@ -522,7 +519,6 @@
 				1D8BEA74104992290069B072 /* FindAndReplace.nib in Resources */,
 				1D9C60520EF79C0C0034AD44 /* MacVim.icns in Resources */,
 				1D384A0E100D671700D3C22F /* KeyBinding.plist in Resources */,
-				B59228A611F7572F00E7F584 /* MacVim.sdef in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
