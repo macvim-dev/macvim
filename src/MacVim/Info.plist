@@ -1251,8 +1251,6 @@
 	<string>http://bjorn.winckler.googlepages.com/macvim_latest.xml</string>
 	<key>NSAppleScriptEnabled</key>
 	<true/>
-	<key>OSAScriptingDefinition</key>
-	<string>MacVim.sdef</string>
 
 	<!-- In order for Quick Look to work we must add entries to
              UTExportedTypeDeclarations.  When possible a "proper" UTI is used,
