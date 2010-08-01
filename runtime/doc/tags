@@ -6411,7 +6411,6 @@ macvim-drag-n-drop	gui_mac.txt	/*macvim-drag-n-drop*
 macvim-encoding	gui_mac.txt	/*macvim-encoding*
 macvim-find	gui_mac.txt	/*macvim-find*
 macvim-hints	gui_mac.txt	/*macvim-hints*
-macvim-important	gui_mac.txt	/*macvim-important*
 macvim-international	gui_mac.txt	/*macvim-international*
 macvim-login-shell	gui_mac.txt	/*macvim-login-shell*
 macvim-menus	gui_mac.txt	/*macvim-menus*
