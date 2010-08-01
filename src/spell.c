@@ -9439,7 +9439,8 @@ spell_add_word(word, len, bad, idx, undo)
 		    fseek(fd, fpos_next, SEEK_SET);
 		}
 	    }
-	    fclose(fd);
+	    if (fd != NULL)
+		fclose(fd);
 	}
     }
 
@@ -11657,7 +11658,7 @@ suggest_trie_walk(su, lp, fword, soundfold)
 		     * words, the edit distance and then add them. */
 		    add_sound_suggest(su, preword, sp->ts_score, lp);
 		}
-		else
+		else if (sp->ts_fidx > 0)
 		{
 		    /* Give a penalty when changing non-word char to word
 		     * char, e.g., "thes," -> "these". */
@@ -14492,8 +14493,11 @@ spell_soundfold_wsal(slang, inword, res)
 
 	if (n >= 0)
 	{
-	    /* check all rules for the same index byte */
-	    for (; ((ws = smp[n].sm_lead_w)[0] & 0xff) == (c & 0xff); ++n)
+	    /* Check all rules for the same index byte.
+	     * If c is 0x300 need extra check for the end of the array, as
+	     * (c & 0xff) is NUL. */
+	    for (; ((ws = smp[n].sm_lead_w)[0] & 0xff) == (c & 0xff)
+							 && ws[0] != NUL; ++n)
 	    {
 		/* Quickly skip entries that don't match the word.  Most
 		 * entries are less then three chars, optimize for that. */
@@ -14750,10 +14754,18 @@ soundalike_score(goodstart, badstart)
     char_u	*pl2, *ps2;
     int		score = 0;
 
-    /* adding/inserting "*" at the start (word starts with vowel) shouldn't be
+    /* Adding/inserting "*" at the start (word starts with vowel) shouldn't be
      * counted so much, vowels halfway the word aren't counted at all. */
     if ((*badsound == '*' || *goodsound == '*') && *badsound != *goodsound)
     {
+	if ((badsound[0] == NUL && goodsound[1] == NUL)
+	    || (goodsound[0] == NUL && badsound[1] == NUL))
+	    /* changing word with vowel to word without a sound */
+	    return SCORE_DEL;
+	if (badsound[0] == NUL || goodsound[0] == NUL)
+	    /* more than two changes */
+	    return SCORE_MAXMAX;
+
 	if (badsound[1] == goodsound[1]
 		|| (badsound[1] != NUL
 		    && goodsound[1] != NUL

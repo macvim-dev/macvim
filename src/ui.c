@@ -1934,7 +1934,7 @@ ui_cursor_shape()
 # endif
 
 # ifdef FEAT_CONCEAL
-    conceal_check_cursur_line_redraw();
+    conceal_check_cursur_line();
 # endif
 }
 #endif
@@ -3121,6 +3121,9 @@ get_fpos_of_mouse(mpos)
 
     if (mpos->col > 0)
 	--mpos->col;
+#ifdef FEAT_VIRTUALEDIT
+    mpos->coladd = 0;
+#endif
     return IN_BUFFER;
 }
 

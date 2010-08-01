@@ -1,4 +1,4 @@
-README_ole.txt for version 7.3c of Vim: Vi IMproved.
+README_ole.txt for version 7.3d of Vim: Vi IMproved.
 
 This archive contains gvim.exe with OLE interface and VisVim.
 This version of gvim.exe can also load a number of interface dynamically (you
@@ -16,5 +16,5 @@ Win32 with OLE - "MS-Windows 32 bit GUI version with OLE support"
 For further information, type this inside Vim:
 	:help if_ole
 
-Futhermore, this archive contains VISVIM.DLL.  It can be used to integrate
+Furthermore, this archive contains VISVIM.DLL.  It can be used to integrate
 the OLE gvim with Microsoft Visual Developer Studio.  See VisVim/README.txt.

@@ -1,5 +1,5 @@
 #
-# Makefile to run al tests for Vim, on Dos-like machines.
+# Makefile to run all tests for Vim, on Dos-like machines.
 #
 # Requires a set of Unix tools: echo, diff, etc.
 
@@ -49,6 +49,7 @@ win32:	fixff $(SCRIPTS16) $(SCRIPTS) $(SCRIPTS32)
 
 fixff:
 	-$(VIMPROG) -u dos.vim --noplugin "+argdo set ff=dos|upd" +q *.in *.ok
+	-$(VIMPROG) -u dos.vim --noplugin "+argdo set ff=unix|upd" +q dotest.in
 
 clean:
 	-del *.out

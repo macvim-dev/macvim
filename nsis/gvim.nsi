@@ -1,6 +1,6 @@
 # NSIS file to create a self-installing exe for Vim.
 # It requires NSIS version 2.0 or later.
-# Last change:	2004 May 02
+# Last Change:	2010 Jul 30
 
 # WARNING: if you make changes to this script, look out for $0 to be valid,
 # because uninstall deletes most files in $0.
@@ -22,7 +22,7 @@
 !define HAVE_NLS
 
 !define VER_MAJOR 7
-!define VER_MINOR 3c
+!define VER_MINOR 3d
 
 # ----------- No configurable settings below this line -----------
 
@@ -450,7 +450,7 @@ Section Uninstall
 	  AskRemove:
 	    MessageBox MB_YESNO|MB_ICONQUESTION \
 	      "Remove all files in your $1\vimfiles directory? \
-	      $\nIf you have created something there that you want to keep, click No" IDNO Fin
+	      $\nCAREFUL: If you have created something there that you want to keep, click No" IDNO Fin
 	    RMDir /r $1\vimfiles
 	  NoRemove:
 

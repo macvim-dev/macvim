@@ -6,7 +6,8 @@ STARTTEST
 :so small.vim
 :"
 :" Test 'undofile': first a simple one-line change.
-:set nocp ul=100 undofile nomore
+:set nocompatible viminfo+=nviminfo
+:set ul=100 undofile nomore
 :e! Xtestfile
 ggdGithis is one line:set ul=100
 :s/one/ONE/
@@ -24,6 +25,7 @@ u:.w! test.out
 :set undofile
 :bwipe!
 :e Xtestfile
+:" TODO: this beeps
 u:.w >>test.out
 :"
 :" Test 'undofile', add 10 lines, delete 6 lines, undo 3
@@ -49,11 +51,10 @@ dd:set ul=100
 :e Xtestfile
 uuu:w >>test.out
 :"
-:" And now with encryption, cryptmethod=0
+:" And now with encryption, cryptmethod=zip
 :e! Xtestfile
-:set undofile cm=0
-ggdG
-imonday
+:set undofile cm=zip
+ggdGimonday
 tuesday
 wednesday
 thursday
@@ -72,11 +73,10 @@ foobar
 uu:w >>test.out
 :"
 :"
-:" With encryption, cryptmethod=1
+:" With encryption, cryptmethod=blowfish
 :e! Xtestfile
-:set undofile cm=1
-ggdG
-ijan
+:set undofile cm=blowfish
+ggdGijan
 feb
 mar
 apr

@@ -3263,6 +3263,8 @@ set_init_1()
 		    options[opt_idx].def_val[VI_DEFAULT] = buf;
 		    options[opt_idx].flags |= P_DEF_ALLOCED;
 		}
+		else
+		    vim_free(buf); /* cannot happen */
 	    }
 	    if (mustfree)
 		vim_free(cdpath);
@@ -4328,6 +4330,7 @@ do_set(arg, opt_flags)
 		 * 'foldmethod' becomes "marker" instead of "diff" and that
 		 * "wrap" gets set. */
 		if (curwin->w_p_diff
+			&& opt_idx >= 0  /* shut up coverity warning */
 			&& (options[opt_idx].indir == PV_FDM
 			    || options[opt_idx].indir == PV_WRAP))
 		    goto skip;
@@ -7598,21 +7601,12 @@ set_bool_option(opt_idx, varp, value, opt_flags)
     }
 #endif
 
-#if defined(FEAT_TITLE) || defined(FEAT_CONCEAL)
-    /* when 'modifiable' is changed, redraw the window title and
-     * update current line for concealable items */
+#ifdef FEAT_TITLE
+    /* when 'modifiable' is changed, redraw the window title */
     else if ((int *)varp == &curbuf->b_p_ma)
     {
-# ifdef FEAT_TITLE
 	redraw_titles();
-# endif
-# ifdef FEAT_CONCEAL
-	if (curwin->w_p_cole > 0)
-	    update_single_line(curwin, curwin->w_cursor.lnum);
-# endif
     }
-#endif
-#ifdef FEAT_TITLE
     /* when 'endofline' is changed, redraw the window title */
     else if ((int *)varp == &curbuf->b_p_eol)
     {

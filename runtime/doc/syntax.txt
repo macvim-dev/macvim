@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 7.3c.  Last change: 2010 Jul 25
+*syntax.txt*	For Vim version 7.3d.  Last change: 2010 Jul 28
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -431,7 +431,7 @@ shorter and valid HTML 4 file), use: >
 Concealed text is removed from the HTML and replaced with the appropriate
 character from |:syn-cchar| or 'listchars' depending on the current value of
 'conceallevel'. If you always want to display all text in your document,
-either set 'conceallevel' to before invoking 2html, or use: >
+either set 'conceallevel' to zero before invoking 2html, or use: >
    :let g:html_ignore_conceal = 1
 
 Similarly, closed folds are put in the HTML as they are displayed.  If you
@@ -2699,6 +2699,19 @@ such use of @ as an error.  To solve this: >
 
 Putting "let g:tex_stylish=1" into your <.vimrc> will make <syntax/tex.vim>
 always accept such use of @.
+
+					*tex-cchar* *tex-cole* *tex-conceal*
+Taking Advantage of Conceal Mode~
+
+If you have |'conceallevel'| set to 2 and if your encoding is utf-8, then a
+number of character sequences can be translated into appropriate utf-8 glyphs,
+including various accented characters, Greek characters in MathZones, and
+superscripts and subscripts in MathZones.  Not all characters can be made into
+superscripts or subscripts; the constraint is due to what utf-8 supports.
+In fact, only a few characters are supported as subscripts.
+
+One way to use this is to have vertically split windows (see |CTRL-W_v|); one
+with |'conceallevel'| at 0 and the other at 2; and both using |'scrollbind'|.
 
 
 TF						*tf.vim* *ft-tf-syntax*

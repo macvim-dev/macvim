@@ -3783,7 +3783,7 @@ vim_strsave_fnameescape(fname, shell)
 
     /* '>' and '+' are special at the start of some commands, e.g. ":edit" and
      * ":write".  "cd -" has a special meaning. */
-    if (*p == '>' || *p == '+' || (*p == '-' && p[1] == NUL))
+    if (p != NULL && (*p == '>' || *p == '+' || (*p == '-' && p[1] == NUL)))
 	escape_fname(&p);
 
     return p;
@@ -4119,6 +4119,7 @@ addstar(fname, len, context)
 	if (context == EXPAND_HELP
 		|| context == EXPAND_COLORS
 		|| context == EXPAND_COMPILER
+		|| context == EXPAND_OWNSYNTAX
 		|| context == EXPAND_FILETYPE
 		|| (context == EXPAND_TAGS && fname[0] == '/'))
 	    retval = vim_strnsave(fname, len);
@@ -4505,8 +4506,10 @@ ExpandFromContext(xp, pat, num_file, file, options)
 	return ExpandRTDir(pat, num_file, file, "colors");
     if (xp->xp_context == EXPAND_COMPILER)
 	return ExpandRTDir(pat, num_file, file, "compiler");
-    if (xp->xp_context == EXPAND_FILETYPE)
+    if (xp->xp_context == EXPAND_OWNSYNTAX)
 	return ExpandRTDir(pat, num_file, file, "syntax");
+    if (xp->xp_context == EXPAND_FILETYPE)
+	return ExpandRTDir(pat, num_file, file, "{syntax,indent,ftplugin}");
 # if defined(FEAT_USR_CMDS) && defined(FEAT_EVAL)
     if (xp->xp_context == EXPAND_USER_LIST)
 	return ExpandUserList(xp, num_file, file);
@@ -4950,14 +4953,16 @@ ExpandUserList(xp, num_file, file)
 
 /*
  * Expand color scheme, compiler or filetype names:
- * 'runtimepath'/{dirname}/{pat}.vim
+ * 'runtimepath'/{dirnames}/{pat}.vim
+ * dirnames may contain one directory (ex: "colorscheme") or can be a glob
+ * expression matching multiple directories (ex: "{syntax,ftplugin,indent}").
  */
     static int
-ExpandRTDir(pat, num_file, file, dirname)
+ExpandRTDir(pat, num_file, file, dirnames)
     char_u	*pat;
     int		*num_file;
     char_u	***file;
-    char	*dirname;	/* "colors", "compiler" or "syntax" */
+    char	*dirnames;
 {
     char_u	*all;
     char_u	*s;
@@ -4966,10 +4971,10 @@ ExpandRTDir(pat, num_file, file, dirname)
 
     *num_file = 0;
     *file = NULL;
-    s = alloc((unsigned)(STRLEN(pat) + STRLEN(dirname) + 7));
+    s = alloc((unsigned)(STRLEN(pat) + STRLEN(dirnames) + 7));
     if (s == NULL)
 	return FAIL;
-    sprintf((char *)s, "%s/%s*.vim", dirname, pat);
+    sprintf((char *)s, "%s/%s*.vim", dirnames, pat);
     all = globpath(p_rtp, s, 0);
     vim_free(s);
     if (all == NULL)
@@ -4997,6 +5002,13 @@ ExpandRTDir(pat, num_file, file, dirname)
 	    ++e;
     }
     vim_free(all);
+
+    /* Sort and remove duplicates which can happen when specifying multiple
+     * directories in dirnames such as "{syntax,ftplugin,indent}".
+     */
+    sort_strings((char_u **)ga.ga_data, ga.ga_len);
+    remove_duplicates(&ga);
+
     *file = ga.ga_data;
     *num_file = ga.ga_len;
     return OK;
@@ -5039,6 +5051,12 @@ globpath(path, file, expand_options)
     {
 	/* Copy one item of the path to buf[] and concatenate the file name. */
 	copy_option_part(&path, buf, MAXPATHL, ",");
+	if (path_with_url(buf))
+	    continue;
+	/*
+	 * FIXME: should we proactively skip 'path' with limiter (/usr/ **N)
+	 * and upward search (;) notations, just like we did with url above?
+	 */
 	if (STRLEN(buf) + STRLEN(file) + 2 < MAXPATHL)
 	{
 	    add_pathsep(buf);

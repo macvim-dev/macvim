@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3c.  Last change: 2010 Jul 25
+*todo.txt*      For Vim version 7.3d.  Last change: 2010 Aug 01
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -30,20 +30,16 @@ be worked on, but only if you sponsor Vim development.  See |sponsor|.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-Access to free memory with :redir command. (Dominique Pelle, 2010 Jul 25)
-
-Patch for :find completion. (Nazri Ramliy)
-But I prefer to keep term.h and include/term.h  Nazri will work on it.
-
-Move more common code from if_python.c and if_python3.c to if_py_both.h
+Windows installer doesn't delete the uninstall key on 64 bit systems.
 
 Before release 7.3:
 - Rename vim73 branch to default (hints: Xavier de Gaye, 2010 May 23)
 
+test72 causes a beep for using "u" when it doesn't work.
+
 Cursor positioning wrong with 0x200e character. (John Becket, 2010 May 6)
 
-Test 69 breaks on MS-Windows, both 32 and 64 builds. (George Reilly, 2010 Feb
-26)
+Should readfile() ignore BOM when not in binary mode?
 
 Bug: searching for tags file uses 'suffixesadd', should not happen. (Dominique
 Pelle, 2010 June 28)
@@ -64,6 +60,9 @@ Results in E670. (Tony Mechelynck, 2010 May 2)
 
 ":helpgrep" does not put the cursor in the correct column when preceded by
 accented character. (Tony Mechelynck, 2010 Apr 15)
+
+Patch: Let rare word highlighting overrule good word highlighting.
+(Jakson A. Aquino, 2010 Jul 30)
 
 Better Czech keymap. (Stepnem, 2010 May 4)  Use if no response from Jiri
 Tobisek.
@@ -103,8 +102,6 @@ Jumplist doesn't work properly in Insert mode? (Jean Johner, 2010 Mar 20)
 
 Problem with transparent cmdline.  Also: Terminal title is wrong with
 non-ASCII character. (Lily White, 2010 Mar 7)
-
-Patch for horizontal mouse wheel. (Bjorn Winckler, 2010 Jul 18)
 
 iconv() doesn't fail on an illegal character, as documented. (Yongwei Wu, 2009
 Nov 15, example Nov 26)  Add argument to specify whether iconv() should fail
@@ -654,6 +651,8 @@ Netbeans problem.  Use "nc -l 127.0.0.1 55555" for the server, then run gvim
 with "gvim -nb:localhost:55555:foo".  From nc do: '1:editFile!0 "foo"'.  Then
 go to Insert mode and add a few lines.  Then backspacing every other time
 moves the cursor instead of deleting. (Chris Kaiser, 2007 Sep 25)
+
+Patch to use Modern UI 2.0 for the Nsis installer. (Guopeng Wen, 2010 Jul 30)
 
 Changes for Win32 makefile. (Mike Williams, 2007 Jan 22, Alexei Alexandrov,
 2007 Feb 8)

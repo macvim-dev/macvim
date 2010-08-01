@@ -1439,7 +1439,7 @@ stuffescaped(arg, literally)
 	{
 #ifdef FEAT_MBYTE
 	    if (has_mbyte)
-		c = mb_ptr2char_adv(&arg);
+		c = mb_cptr2char_adv(&arg);
 	    else
 #endif
 		c = *arg++;
@@ -2433,7 +2433,8 @@ swapchar(op_type, pos)
 	    pos_T   sp = curwin->w_cursor;
 
 	    curwin->w_cursor = *pos;
-	    del_char(FALSE);
+	    /* don't use del_char(), it also removes composing chars */
+	    del_bytes(utf_ptr2len(ml_get_cursor()), FALSE, FALSE);
 	    ins_char(nc);
 	    curwin->w_cursor = sp;
 	}
