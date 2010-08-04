@@ -27,7 +27,7 @@ SCRIPTS =	test3.out test4.out test5.out test6.out test7.out \
 		test30.out test31.out test32.out test33.out test34.out \
 		test37.out test38.out test39.out test40.out test41.out \
 		test42.out test52.out test65.out test66.out test67.out \
-		test68.out test69.out test71.out test72.out
+		test68.out test69.out test71.out test72.out test73.out
 
 SCRIPTS32 =	test50.out test70.out
 
@@ -59,6 +59,7 @@ clean:
 	-if exist mbyte.vim del mbyte.vim
 	-if exist mzscheme.vim del mzscheme.vim
 	-del X*
+	-del X*.*
 	-if exist viminfo del viminfo
 
 .in.out:

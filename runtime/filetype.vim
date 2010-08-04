@@ -617,6 +617,9 @@ au BufNewFile,BufRead *.def			setf def
 " Dracula
 au BufNewFile,BufRead *.drac,*.drc,*lvs,*lpe	setf dracula
 
+" Datascript
+au BufNewFile,BufRead *.ds			setf datascript
+
 " dsl
 au BufNewFile,BufRead *.dsl			setf dsl
 
@@ -702,9 +705,9 @@ au BufNewFile,BufRead *.frt			setf reva
 
 " Fortran
 if has("fname_case")
-  au BufNewFile,BufRead *.F,*.FOR,*.FPP,*.FTN,*.F77,*.F90,*.F95	 setf fortran
+  au BufNewFile,BufRead *.F,*.FOR,*.FPP,*.FTN,*.F77,*.F90,*.F95,*.F03,*.F08	 setf fortran
 endif
-au BufNewFile,BufRead   *.f,*.for,*.fortran,*.fpp,*.ftn,*.f77,*.f90,*.f95  setf fortran
+au BufNewFile,BufRead   *.f,*.for,*.fortran,*.fpp,*.ftn,*.f77,*.f90,*.f95,*.f03,*.f08  setf fortran
 
 " Framescript
 au BufNewFile,BufRead *.fsl			setf framescript

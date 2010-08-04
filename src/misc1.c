@@ -9317,10 +9317,11 @@ expand_path_option(curdir, gap)
     char_u	*path_option = *curbuf->b_p_path == NUL
 						  ? p_path : curbuf->b_p_path;
     char_u	*buf;
+    char_u	*p;
 
     ga_init2(gap, (int)sizeof(char_u *), 1);
 
-    if ((buf = alloc((int)(MAXPATHL))) == NULL)
+    if ((buf = alloc((int)MAXPATHL)) == NULL)
 	return;
 
     while (*path_option != NUL)
@@ -9346,11 +9347,21 @@ expand_path_option(curdir, gap)
 		continue;
 	    STRMOVE(buf + curdir_len + 1, buf);
 	    STRCPY(buf, curdir);
-	    add_pathsep(buf);
-	    STRMOVE(buf + curdir_len, buf + curdir_len + 1);
+	    buf[curdir_len] = PATHSEP;
+	    /*
+	     * 'path' may have "./baz" as one of the items.
+	     * If curdir is "/foo/bar", p will end up being "/foo/bar/./baz".
+	     * Simplify it.
+	     */
+	    simplify_filename(buf);
 	}
 
-	addfile(gap, buf, EW_NOTFOUND|EW_DIR|EW_FILE);
+	if (ga_grow(gap, 1) == FAIL)
+	    break;
+	p = vim_strsave(buf);
+	if (p == NULL)
+	    break;
+	((char_u **)gap->ga_data)[gap->ga_len++] = p;
     }
 
     vim_free(buf);
@@ -9378,8 +9389,11 @@ get_path_cutoff(fname, gap)
     {
 	int j = 0;
 
-	while (fname[j] == path_part[i][j] && fname[j] != NUL
-						   && path_part[i][j] != NUL)
+	while ((fname[j] == path_part[i][j]
+#if defined(WIN3264)
+		|| (vim_ispathsep(fname[j]) && vim_ispathsep(path_part[i][j]))
+#endif
+			     ) && fname[j] != NUL && path_part[i][j] != NUL)
 	    j++;
 	if (j > maxlen)
 	{
@@ -9389,8 +9403,15 @@ get_path_cutoff(fname, gap)
     }
 
     /* Skip to the file or directory name */
-    while (cutoff != NULL && vim_ispathsep(*cutoff) && *cutoff != NUL)
-	mb_ptr_adv(cutoff);
+    if (cutoff != NULL)
+	while (
+#if defined(WIN3264)
+		*cutoff == '/'
+#else
+		vim_ispathsep(*cutoff)
+#endif
+	      )
+	    mb_ptr_adv(cutoff);
 
     return cutoff;
 }
@@ -9454,7 +9475,13 @@ uniquefy_paths(gap, pattern)
 	char_u	    *dir_end = gettail(path);
 
 	len = (int)STRLEN(path);
-	while (dir_end > path && !vim_ispathsep(*dir_end))
+	while (dir_end > path &&
+#if defined(WIN3264)
+		*dir_end != '/'
+#else
+		!vim_ispathsep(*dir_end)
+#endif
+		)
 	    mb_ptr_back(path, dir_end);
 	is_in_curdir = STRNCMP(curdir, path, dir_end - path) == 0
 					     && curdir[dir_end - path] == NUL;
@@ -9537,8 +9564,8 @@ theend:
 }
 
 /*
- * Calls globpath with 'path' values for the given pattern and stores
- * the result in gap.
+ * Calls globpath() with 'path' values for the given pattern and stores the
+ * result in "gap".
  * Returns the total number of matches.
  */
     static int
@@ -9547,44 +9574,29 @@ expand_in_path(gap, pattern, flags)
     char_u	*pattern;
     int		flags;		/* EW_* flags */
 {
-    int		c = 0;
+    char_u	*curdir;
+    garray_T	path_ga;
     char_u	*files = NULL;
     char_u	*s;	/* start */
     char_u	*e;	/* end */
     char_u	*paths = NULL;
-    char_u	**path_list;
-    char_u	*curdir;
-    garray_T	path_ga;
-    int		i;
 
-    if ((curdir = alloc((int)(MAXPATHL))) == NULL)
+    if ((curdir = alloc((unsigned)MAXPATHL)) == NULL)
 	return 0;
     mch_dirname(curdir, MAXPATHL);
 
     expand_path_option(curdir, &path_ga);
     vim_free(curdir);
-    path_list = (char_u **)(path_ga.ga_data);
-    for (i = 0; i < path_ga.ga_len; i++)
-    {
-	if (paths == NULL)
-	{
-	    if ((paths = alloc((int)(STRLEN(path_list[i]) + 1))) == NULL)
-		return 0;
-	    STRCPY(paths, path_list[i]);
-	}
-	else
-	{
-	    if ((paths = realloc(paths, (int)(STRLEN(paths)
-					  + STRLEN(path_list[i]) + 2))) == NULL)
-		return 0;
-	    STRCAT(paths, ",");
-	    STRCAT(paths, path_list[i]);
-	}
-    }
+    if (path_ga.ga_len == 0)
+	return 0;
+
+    paths = ga_concat_strings(&path_ga);
+    ga_clear_strings(&path_ga);
+    if (paths == NULL)
+	return 0;
 
     files = globpath(paths, pattern, 0);
     vim_free(paths);
-
     if (files == NULL)
 	return 0;
 
@@ -9608,11 +9620,9 @@ expand_in_path(gap, pattern, flags)
 	    s = e;
 	}
     }
-
-    c = gap->ga_len;
     vim_free(files);
 
-    return c;
+    return gap->ga_len;
 }
 #endif
 
@@ -9751,7 +9761,12 @@ gen_expand_wildcards(num_pat, pat, num_file, file, flags)
 	    {
 #if defined(FEAT_SEARCHPATH)
 		if (*p != '.' && !vim_ispathsep(*p) && (flags & EW_PATH))
+		{
+		    /* recursiveness is OK here */
+		    recursive = FALSE;
 		    add_pat = expand_in_path(&ga, p, flags);
+		    recursive = TRUE;
+		}
 		else
 #endif
 		    add_pat = mch_expandpath(&ga, p, flags);

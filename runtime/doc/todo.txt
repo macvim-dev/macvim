@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3d.  Last change: 2010 Aug 01
+*todo.txt*      For Vim version 7.3d.  Last change: 2010 Aug 04
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -30,14 +30,16 @@ be worked on, but only if you sponsor Vim development.  See |sponsor|.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-Windows installer doesn't delete the uninstall key on 64 bit systems.
-
 Before release 7.3:
 - Rename vim73 branch to default (hints: Xavier de Gaye, 2010 May 23)
+
+test73 doesn't work on MS-Windows.
 
 test72 causes a beep for using "u" when it doesn't work.
 
 Cursor positioning wrong with 0x200e character. (John Becket, 2010 May 6)
+
+Patch to make more characters work in dialogs. (Yankwei Jia, 2010 Aug 4)
 
 Should readfile() ignore BOM when not in binary mode?
 
@@ -1130,7 +1132,7 @@ More patches:
     New version received 2008 Jan 6.
     No maintenance in two years...
 -   Patch to access screen under Python. (Marko Mahni, 2010 Jul 18)
-
+-   Patch to open dropped files in new tabs. (Michael Trim, 2010 Aug 3)
 
 Awaiting updated patches:
 9   Mac unicode patch (Da Woon Jung, Eckehard Berns):
