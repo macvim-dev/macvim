@@ -51,7 +51,6 @@
 <p> This is an <emp>unstable</emph> release of MacVim based on Vim 7.3d BETA. </p>
 <p> We are nearing the end of the BETA phase. Please put this build through its paces and report any problems on the vim_mac mailing list. </p>
       ]]></description>
-      ]]></description>
       <pubDate>Wed Aug 4 19:42 CEST 2010</pubDate>
       <enclosure type="application/octet-stream"
         url="http://github.com/downloads/b4winckler/macvim/MacVim-7_3d-BETA-52_6.tar.bz2"
