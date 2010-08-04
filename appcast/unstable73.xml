@@ -41,22 +41,24 @@
     -->
 
     <item>
-      <title>Version 7.3c BETA</title>
+      <title>Version 7.3d BETA</title>
       <!--
       <sparkle:releaseNotesLink>
           http://b4winckler.github.com/test/index.html
       </sparkle:releaseNotesLink>
       -->
       <description><![CDATA[
-<p> This is an <emp>unstable</emph> release of MacVim based on Vim 7.3c BETA. </p>
+<p> This is an <emp>unstable</emph> release of MacVim based on Vim 7.3d BETA. </p>
+<p> We are nearing the end of the BETA phase. Please put this build through its paces and report any problems on the vim_mac mailing list. </p>
       ]]></description>
-      <pubDate>Sun Aug 1 21:41 CEST 2010</pubDate>
+      ]]></description>
+      <pubDate>Wed Aug 4 19:42 CEST 2010</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://github.com/downloads/b4winckler/macvim/MacVim-7_3c-BETA-52_5.tar.bz2"
-        length="8723393"
-        sparkle:version="52.5"
-        sparkle:shortVersionString="7.3c BETA"
-        sparkle:dsaSignature="MCwCFBvDEJlFG9h9vL+ulYou2L+pA/WKAhQn/xCgauBCGsetSeo61+CeD0f1ZA=="
+        url="http://github.com/downloads/b4winckler/macvim/MacVim-7_3d-BETA-52_6.tar.bz2"
+        length="8727893"
+        sparkle:version="52.6"
+        sparkle:shortVersionString="7.3d BETA"
+        sparkle:dsaSignature="MC0CFEpQT/aIzaAZn0GNRM3GDFzin+65AhUAiffety2PWeyBf/Il+0TkPuWZC+A="
         />
     </item>
   </channel>
