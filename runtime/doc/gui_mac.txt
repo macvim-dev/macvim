@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.2.  Last change: 2009 Sep 23
+*gui_mac.txt*	For Vim version 7.3.  Last change: 2010 Aug 1
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -6,7 +6,6 @@
 
 The MacVim Graphical User Interface			*macvim* *gui-macvim*
 
- 0. Important!			|macvim-important|
  1. MacVim differences		|macvim-differences|
  2. Starting MacVim		|macvim-start|
  3. Preferences			|macvim-preferences|
@@ -27,21 +26,6 @@ Other relevant documentation:
 {Vi does not have a GUI}
 
 ==============================================================================
-0. Important!						*macvim-important*
-
-MacVim is still under development...this is not the finished product!  If you
-have problems with MacVim then make it known either by adding an issue report
-on the MacVim project page >
-	http://code.google.com/p/macvim
-or by posting to the vim_mac mailing list 		*vim_mac*  >
-	http://groups.google.com/group/vim_mac
-
-Remember to keep checking the project page for new snapshots or use the
-automatic updating feature which can be enabled in the preferences pane.  (If
-you downloaded this copy from somewhere else, you might want to go there now
-to make sure that you have got the latest version.)
-
-==============================================================================
 1. MacVim differences					*macvim-differences*
 
 One of the goals of MacVim is to make Vim behave like a proper Mac OS X
@@ -50,7 +34,7 @@ ports of Vim.  Most of the modifications are provided in the system gvimrc
 file; you can quickly open this file and look at it yourself by typing: >
 	:tabe $VIM/gvimrc
 Note that this file will be overwritten each time you update MacVim, so it is
-better to keep your own modifications inside "~/.gvimrc".
+best to keep your own modifications inside "~/.gvimrc".
 
 							*macvim-windows*
 There is some confusion regarding the term "window" in MacVim since it means
@@ -350,9 +334,6 @@ The color scheme uses the the system "Highlight Color", which can be changed in
 the "Appearance" pane of the System Preferences.  It also changes the
 highlight color when a window becomes inactive.
 
-If you have any comments regarding this color scheme (is it better or worse
-than the default?) then post them to |vim_mac|.
-
 ==============================================================================
 5. Menus						*macvim-menus*
 
@@ -543,7 +524,7 @@ opening a new window.
 9. mvim:// URL handler				*mvim://* *macvim-url-handler*
 
 MacVim supports a custom URL handler for "mvim://" URLs. The handler is
-supposed to be compatible to TextMate's URL scheme as documented at
+supposed to be compatible to TextMate's URL scheme as documented at >
 	http://blog.macromates.com/2007/the-textmate-url-scheme/.
 
 Currently, this means that the format is >
@@ -662,11 +643,12 @@ prominent bugs/missing features.
   then opened in Preview where it may be printed.
 - The toolbar looks ugly and is not very useful.
 
-If you find new bugs then add a new issue at http://code.google.com/p/macvim/
-or post your findings to the |vim_mac| mailing list.  If you are missing
-feature X in MacVim then voice your opinion on the |vim_mac| mailing list; it
-might be simple to implement, but unless somebody asks for a particular
-feature then there is little incentive to add it.
+If you find new bugs then please post your findings to the vim_mac mailing
+list:							*vim_mac*   >
+	http://groups.google.com/group/vim_mac
+
+This is also the best place for making feature requests as well as for asking
+general questions about MacVim.
 
 ==============================================================================
 13. Hints						*macvim-hints*
@@ -757,8 +739,8 @@ Scenario: ~
 You would like to remap Caps Lock to Esc.
 Solution: ~
 The app "PCKeyboardHack" can be used to remap Caps Lock.  It is available as a
-free download from:
-	http://www.pqrs.org/tekezo/macosx/keyremap4macbook/extra.html
+free download from: >
+	http://pqrs.org/macosx/keyremap4macbook/extra.html
 On some Apple keyboards the Caps Lock key doesn't immediately register and
 this makes Caps Lock "drop" key presses.  To work around this problem go into
 the "Keyboard" System Preference and remap Caps Lock to Ctrl first (click the
