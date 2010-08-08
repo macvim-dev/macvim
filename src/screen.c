@@ -4005,8 +4005,9 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		    ptr += mb_l - 1;
 
 		/* If a double-width char doesn't fit at the left side display
-		 * a '<' in the first column. */
-		if (n_skip > 0 && mb_l > 1)
+		 * a '<' in the first column.  Don't do this for unprintable
+		 * charactes. */
+		if (n_skip > 0 && mb_l > 1 && n_extra == 0)
 		{
 		    n_extra = 1;
 		    c_extra = '<';
@@ -9431,18 +9432,13 @@ showmode()
 	{
 	    MSG_PUTS_ATTR("--", attr);
 #if defined(FEAT_XIM)
-# if 0  /* old version, changed by SungHyun Nam July 2008 */
-	    if (xic != NULL && im_get_status() && !p_imdisable
-					&& curbuf->b_p_iminsert == B_IMODE_IM)
-# else
 	    if (
-#  if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
+# if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
 		    preedit_get_status()
-#  else
+# else
 		    im_get_status()
-#  endif
-	       )
 # endif
+	       )
 # if defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM)
 		/* most of the time, it's not XIM being used */
 		MSG_PUTS_ATTR(" IM", attr);

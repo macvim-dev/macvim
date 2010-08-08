@@ -3778,7 +3778,6 @@ E392	syntax.txt	/*E392*
 E393	syntax.txt	/*E393*
 E394	syntax.txt	/*E394*
 E395	syntax.txt	/*E395*
-E396	syntax.txt	/*E396*
 E397	syntax.txt	/*E397*
 E398	syntax.txt	/*E398*
 E399	syntax.txt	/*E399*
@@ -4259,6 +4258,8 @@ E830	undo.txt	/*E830*
 E831	editing.txt	/*E831*
 E832	undo.txt	/*E832*
 E833	editing.txt	/*E833*
+E834	options.txt	/*E834*
+E835	options.txt	/*E835*
 E84	windows.txt	/*E84*
 E85	options.txt	/*E85*
 E86	windows.txt	/*E86*
@@ -5848,6 +5849,7 @@ g:netrw_use_nt_rcp	pi_netrw.txt	/*g:netrw_use_nt_rcp*
 g:netrw_win95ftp	pi_netrw.txt	/*g:netrw_win95ftp*
 g:netrw_winsize	pi_netrw.txt	/*g:netrw_winsize*
 g:netrw_xstrlen	pi_netrw.txt	/*g:netrw_xstrlen*
+g:syntax_on	syntax.txt	/*g:syntax_on*
 g:tar_browseoptions	pi_tar.txt	/*g:tar_browseoptions*
 g:tar_cmd	pi_tar.txt	/*g:tar_cmd*
 g:tar_copycmd	pi_tar.txt	/*g:tar_copycmd*
@@ -7999,6 +8001,7 @@ tex-package	syntax.txt	/*tex-package*
 tex-runon	syntax.txt	/*tex-runon*
 tex-slow	syntax.txt	/*tex-slow*
 tex-style	syntax.txt	/*tex-style*
+tex-verb	syntax.txt	/*tex-verb*
 tex.vim	syntax.txt	/*tex.vim*
 text-functions	usr_41.txt	/*text-functions*
 text-objects	motion.txt	/*text-objects*

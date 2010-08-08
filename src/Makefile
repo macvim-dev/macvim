@@ -930,7 +930,7 @@ MAN1DIR = /man1
 
 ### Vim version (adjusted by a script)
 VIMMAJOR = 7
-VIMMINOR = 3d
+VIMMINOR = 3e
 
 ### Location of Vim files (should not need to be changed, and  {{{1
 ### some things might not work when they are changed!)
@@ -1960,7 +1960,8 @@ installmacros: $(DEST_VIM) $(DEST_RT) $(DEST_MACRO)
 	chmod $(FILEMOD) `find $(DEST_MACRO) -type f -print`
 	chmod $(SCRIPTMOD) $(DEST_MACRO)/less.sh
 # When using CVS some CVS directories might have been copied.
-	cvs=`find $(DEST_MACRO) \( -name CVS -o -name AAPDIR \) -print`; \
+# Also delete AAPDIR and *.info files.
+	cvs=`find $(DEST_MACRO) \( -name CVS -o -name AAPDIR -o -name "*.info" \) -print`; \
 	      if test -n "$$cvs"; then \
 		 rm -rf $$cvs; \
 	      fi
@@ -1976,6 +1977,7 @@ installgtutorbin: $(DEST_VIM)
 
 installtutor: $(DEST_RT) $(DEST_TUTOR)
 	-$(INSTALL_DATA) $(TUTORSOURCE)/README* $(TUTORSOURCE)/tutor* $(DEST_TUTOR)
+	-rm -f $(DEST_TUTOR)/*.info
 	chmod $(HELPMOD) $(DEST_TUTOR)/*
 
 # Install the spell files, if they exist.  This assumes at least the English

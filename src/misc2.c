@@ -1824,27 +1824,6 @@ vim_strnicmp(s1, s2, len)
 }
 #endif
 
-#if 0	/* currently not used */
-/*
- * Check if string "s2" appears somewhere in "s1" while ignoring case.
- * Return NULL if not, a pointer to the first occurrence if it does.
- */
-    char_u *
-vim_stristr(s1, s2)
-    char_u	*s1;
-    char_u	*s2;
-{
-    char_u	*p;
-    int		len = STRLEN(s2);
-    char_u	*end = s1 + STRLEN(s1) - len;
-
-    for (p = s1; p <= end; ++p)
-	if (STRNICMP(p, s2, len) == 0)
-	    return p;
-    return NULL;
-}
-#endif
-
 /*
  * Version of strchr() and strrchr() that handle unsigned char strings
  * with characters from 128 to 255 correctly.  It also doesn't return a
@@ -4016,9 +3995,9 @@ get_crypt_key(store, twice)
     }
 
     /* since the user typed this, no need to wait for return */
-    need_wait_return = FALSE;
     if (msg_didout)
 	msg_putchar('\n');
+    need_wait_return = FALSE;
     msg_didout = FALSE;
 
     free_crypt_key(p2);
@@ -4184,6 +4163,7 @@ typedef struct ff_visited_list_hdr
  *   ffsc_level:	how many levels of dirs to search downwards
  *   ffsc_stopdirs_v:	array of stop directories for upward search
  *   ffsc_find_what:	FINDFILE_BOTH, FINDFILE_DIR or FINDFILE_FILE
+ *   ffsc_tagfile:	searching for tags file, don't use 'suffixesadd'
  */
 typedef struct ff_search_ctx_T
 {
@@ -4201,6 +4181,7 @@ typedef struct ff_search_ctx_T
      char_u			**ffsc_stopdirs_v;
 #endif
      int			ffsc_find_what;
+     int			ffsc_tagfile;
 } ff_search_ctx_T;
 
 /* locally needed functions */
@@ -4267,7 +4248,7 @@ vim_findnext()
 #endif
 
 /*
- * Initialization routine for vim_findfile.
+ * Initialization routine for vim_findfile().
  *
  * Returns the newly allocated search context or NULL if an error occurred.
  *
@@ -4328,7 +4309,7 @@ vim_findfile_init(path, filename, stopdirs, level, free_visited, find_what,
     int		free_visited;
     int		find_what;
     void	*search_ctx_arg;
-    int		tagfile;
+    int		tagfile;	/* expanding names of tags files */
     char_u	*rel_fname;	/* file name to use for "." */
 {
 #ifdef FEAT_PATH_EXTRA
@@ -4350,6 +4331,7 @@ vim_findfile_init(path, filename, stopdirs, level, free_visited, find_what,
 	vim_memset(search_ctx, 0, sizeof(ff_search_ctx_T));
     }
     search_ctx->ffsc_find_what = find_what;
+    search_ctx->ffsc_tagfile = tagfile;
 
     /* clear the search context, but NOT the visited lists */
     ff_clear(search_ctx);
@@ -4920,7 +4902,10 @@ vim_findfile(search_ctx_arg)
 			 */
 #ifdef FEAT_SEARCHPATH
 			len = (int)STRLEN(file_path);
-			suf = curbuf->b_p_sua;
+			if (search_ctx->ffsc_tagfile)
+			    suf = (char_u *)"";
+			else
+			    suf = curbuf->b_p_sua;
 			for (;;)
 #endif
 			{

@@ -1,4 +1,4 @@
-README.txt for version 7.3d of Vim: Vi IMproved.
+README.txt for version 7.3e of Vim: Vi IMproved.
 
 
 WHAT IS VIM
@@ -103,7 +103,7 @@ There are several mailing lists for Vim, see http://www.vim.org/maillist.php.
 
 MAIN AUTHOR
 
-Send any other comments, patches, pizza and suggestions to:
+Send any other comments, patches, flowers and suggestions to:
 
 	Bram Moolenaar		E-mail:	Bram@vim.org
 	Finsterruetihof 1

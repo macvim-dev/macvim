@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 7.3d.  Last change: 2010 Jul 28
+*syntax.txt*	For Vim version 7.3e.  Last change: 2010 Aug 08
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -92,12 +92,12 @@ highlighting, include the ":gui" command in the |gvimrc|: >
 NOTE: Using ":gui" in the |gvimrc| means that "gvim -f" won't start in the
 foreground!  Use ":gui -f" then.
 
-
-You can toggle the syntax on/off with this command >
-   :if exists("syntax_on") | syntax off | else | syntax enable | endif
+							*g:syntax_on*
+You can toggle the syntax on/off with this command: >
+   :if exists("g:syntax_on") | syntax off | else | syntax enable | endif
 
 To put this into a mapping, you can use: >
-   :map <F7> :if exists("syntax_on") <Bar>
+   :map <F7> :if exists("g:syntax_on") <Bar>
 	\   syntax off <Bar>
 	\ else <Bar>
 	\   syntax enable <Bar>
@@ -423,10 +423,10 @@ Force to omit the line numbers by using a zero value: >
 Go back to the default to use 'number' by deleting the variable: >
    :unlet g:html_number_lines
 
-By default, HTML optimized for old browsers is generated.  If you prefer using
-cascading style sheets (CSS1) for the attributes (resulting in considerably
-shorter and valid HTML 4 file), use: >
-   :let g:html_use_css = 1
+By default, valid HTML 4.01 using cascading style sheets (CSS1) is generated.
+If you need to generate markup for really old browsers or some other user
+agent that lacks basic CSS support, use: >
+   :let g:html_use_css = 0
 
 Concealed text is removed from the HTML and replaced with the appropriate
 character from |:syn-cchar| or 'listchars' depending on the current value of
@@ -496,16 +496,18 @@ And to go back to displaying up to three lines again: >
 <
 					    *convert-to-XML* *convert-to-XHTML*
 An alternative is to have the script generate XHTML (XML compliant HTML).  To
-do this set the "use_xhtml" variable: >
-    :let use_xhtml = 1
-To disable it again delete the variable: >
-    :unlet use_xhtml
+do this set the "html_use_xhtml" variable: >
+    :let g:html_use_xhtml = 1
+
+Any of these options can be enabled or disabled by setting them explicitly to
+the desired value, or restored to their default by removing the variable using
+|:unlet|.
 
 Remarks:
 - This only works in a version with GUI support.  If the GUI is not actually
   running (possible for X11) it still works, but not very well (the colors
   may be wrong).
-- Older browsers will not show the background colors.
+- Some truly ancient browsers may not show the background colors.
 - From most browsers you can also print the file (in color)!
 
 Here is an example how to run the script over all .c and .h files from a
@@ -923,7 +925,7 @@ Example: >
 or >
 	// vim:syntax=c.doxygen
 
-It can also be done automatically for c, cpp and idl files by setting the
+It can also be done automatically for C, C++, C# and IDL files by setting the
 global or buffer-local variable load_doxygen_syntax.  This is done by adding
 the following to your .vimrc. >
 	:let g:load_doxygen_syntax=1
@@ -2628,6 +2630,14 @@ prefer that spell checking be disabled in comments in LaTeX files.  To do
 this, put the following in your <.vimrc>: >
       let g:tex_comment_nospell= 1
 <
+								*tex-verb*
+Want Spell Checking in Verbatim Zones?~
+
+Often verbatim regions are used for things like source code; seldom does
+one want source code spell-checked.  However, for those of you who do
+want your verbatim zones spell-checked, put the following in your <.vimrc>: >
+	let g:tex_verbspell= 1
+
 								*tex-runon*
 Run-on Comments/Math? ~
 
@@ -3158,7 +3168,7 @@ and may be mixed with patterns.
 
 Not all commands accept all arguments.	This table shows which arguments
 can not be used for all commands:
-							*E395* *E396*
+							*E395*
 		    contains  oneline	fold  display  extend concealends~
 :syntax keyword		 -	 -	 -	 -	 -      -
 :syntax match		yes	 -	yes	yes	yes     -
