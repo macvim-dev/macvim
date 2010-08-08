@@ -41,7 +41,7 @@
     -->
 
     <item>
-      <title>Version 7.3d BETA</title>
+      <title>Version 7.3e BETA</title>
       <!--
       <sparkle:releaseNotesLink>
           http://b4winckler.github.com/test/index.html
@@ -51,13 +51,13 @@
 <p> This is an <emp>unstable</emph> release of MacVim based on Vim 7.3d BETA. </p>
 <p> We are nearing the end of the BETA phase. Please put this build through its paces and report any problems on the vim_mac mailing list. </p>
       ]]></description>
-      <pubDate>Wed Aug 4 19:42 CEST 2010</pubDate>
+      <pubDate>Sun Aug 8 23:21 CEST 2010</pubDate>
       <enclosure type="application/octet-stream"
-        url="http://github.com/downloads/b4winckler/macvim/MacVim-7_3d-BETA-52_6.tar.bz2"
-        length="8727893"
-        sparkle:version="52.6"
-        sparkle:shortVersionString="7.3d BETA"
-        sparkle:dsaSignature="MC0CFEpQT/aIzaAZn0GNRM3GDFzin+65AhUAiffety2PWeyBf/Il+0TkPuWZC+A="
+        url="http://github.com/downloads/b4winckler/macvim/MacVim-7_3e-BETA-52_7.tar.bz2"
+        length="8363979"
+        sparkle:version="52.7"
+        sparkle:shortVersionString="7.3e BETA"
+        sparkle:dsaSignature="MCwCFA92notLvzD//vb5ff+acJZiBV/JAhQtb9cJvYt+95pOrua/TAUuLNw/8g=="
         />
     </item>
   </channel>
