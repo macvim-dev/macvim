@@ -13,8 +13,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vim 7.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-07-27 07:35+0200\n"
-"PO-Revision-Date:  2010-07-28 06:46+0200\n"
+"POT-Creation-Date: 2010-08-09 12:53+0200\n"
+"PO-Revision-Date:  2010-08-09 21:00+0200\n"
 "Last-Translator:   Vlad Sandrini   <vlad.gently@gmail.com>\n"
 "Language-Team:     Italian"
 "                   Antonio Colombo <azc100@gmail.com>"
@@ -2604,8 +2604,11 @@ msgstr "numero linea non nell'intervallo"
 msgid "not allowed in the Vim sandbox"
 msgstr "non ammesso in ambiente protetto"
 
-msgid "E999: Python: Cannot use :py and :py3 in one session"
-msgstr "E999: Python: Impossibile usare :py e :py3 nella stessa sessione"
+msgid "E836: This Vim cannot execute :python after using :py3"
+msgstr "E836: Python: Impossibile usare :py e :py3 nella stessa sessione"
+
+msgid "E837: This Vim cannot execute :py3 after using :python"
+msgstr "E837: Python: Impossibile usare :py e :py3 nella stessa sessione"
 
 msgid ""
 "E263: Sorry, this command is disabled, the Python library could not be "
@@ -4309,6 +4312,12 @@ msgstr "E531: Usa \":gui\" per far partire la GUI"
 
 msgid "E589: 'backupext' and 'patchmode' are equal"
 msgstr "E589: 'backupext' e 'patchmode' sono uguali"
+
+msgid "E834: Conflicts with value of 'listchars'"
+msgstr "E834: Conflitto con il valore di 'listchars'"
+
+msgid "E835: Conflicts with value of 'fillchars'"
+msgstr "E835: Conflitto con il valore di 'fillchars'"
 
 msgid "E617: Cannot be changed in the GTK+ 2 GUI"
 msgstr "E617: Non può essere cambiato nella GUI GTK+ 2"
@@ -6517,3 +6526,9 @@ msgstr "raggiunto il FONDO nella ricerca, continuo dalla CIMA"
 #, c-format
 msgid "Need encryption key for \"%s\""
 msgstr "Serve una chiave di cifratura per \"%s\""
+
+msgid "writelines() requires list of strings"
+msgstr "writelines() richiede una lista di stringhe"
+
+msgid "E264: Python: Error initialising I/O objects"
+msgstr "E264: Python: Errore di inizializzazione oggetti I/O"

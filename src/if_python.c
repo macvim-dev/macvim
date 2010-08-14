@@ -98,32 +98,36 @@ struct PyMethodDef { Py_ssize_t a; };
 # define PY_CAN_RECURSE
 #endif
 
-#if defined(DYNAMIC_PYTHON) || defined(PROTO)
-# ifndef DYNAMIC_PYTHON
-#  define HINSTANCE long_u		/* for generating prototypes */
-# endif
+# if defined(DYNAMIC_PYTHON) || defined(PROTO)
+#  ifndef DYNAMIC_PYTHON
+#   define HINSTANCE long_u		/* for generating prototypes */
+#  endif
 
-#ifndef WIN3264
-# include <dlfcn.h>
-# define FARPROC void*
-# define HINSTANCE void*
-# define load_dll(n) dlopen((n), RTLD_LAZY|RTLD_GLOBAL)
-# define close_dll dlclose
-# define symbol_from_dll dlsym
-#else
-# define load_dll LoadLibrary
-# define close_dll FreeLibrary
-# define symbol_from_dll GetProcAddress
-#endif
+# ifndef WIN3264
+#  include <dlfcn.h>
+#  define FARPROC void*
+#  define HINSTANCE void*
+#  ifdef PY_NO_RTLD_GLOBAL
+#   define load_dll(n) dlopen((n), RTLD_LAZY)
+#  else
+#   define load_dll(n) dlopen((n), RTLD_LAZY|RTLD_GLOBAL)
+#  endif
+#  define close_dll dlclose
+#  define symbol_from_dll dlsym
+# else
+#  define load_dll LoadLibrary
+#  define close_dll FreeLibrary
+#  define symbol_from_dll GetProcAddress
+# endif
 
 /* This makes if_python.c compile without warnings against Python 2.5
  * on Win32 and Win64. */
-#undef PyRun_SimpleString
-#undef PyArg_Parse
-#undef PyArg_ParseTuple
-#undef Py_BuildValue
-#undef Py_InitModule4
-#undef Py_InitModule4_64
+# undef PyRun_SimpleString
+# undef PyArg_Parse
+# undef PyArg_ParseTuple
+# undef Py_BuildValue
+# undef Py_InitModule4
+# undef Py_InitModule4_64
 
 /*
  * Wrapper defines
@@ -350,12 +354,13 @@ python_runtime_link_init(char *libname, int verbose)
 {
     int i;
 
-#if defined(UNIX) && defined(FEAT_PYTHON3)
-    /* Can't have Python and Python3 loaded at the same time, it may cause a
-     * crash. */
+#if !defined(PY_NO_RTLD_GLOBAL) && defined(UNIX) && defined(FEAT_PYTHON3)
+    /* Can't have Python and Python3 loaded at the same time.
+     * It cause a crash, because RTLD_GLOBAL is needed for
+     * standard C extension libraries of one or both python versions. */
     if (python3_loaded())
     {
-	EMSG(_("E999: Python: Cannot use :py and :py3 in one session"));
+	EMSG(_("E836: This Vim cannot execute :python after using :py3"));
 	return FAIL;
     }
 #endif

@@ -5092,7 +5092,7 @@ write_viminfo_bufferlist(fp)
     set_last_cursor(curwin);
 #endif
 
-    fprintf(fp, _("\n# Buffer list:\n"));
+    fputs(_("\n# Buffer list:\n"), fp);
     for (buf = firstbuf; buf != NULL ; buf = buf->b_next)
     {
 	if (buf->b_fname == NULL
