@@ -51,7 +51,7 @@
 <p>This is a minor release of Vim.  It consists of Vim 7.2 plus all
 patches, updated runtime files and some more, see below.  It has been
 two years since the 7.2 release, thus it's not that "minor".  But not
-"major" either.  Something in between, don't know how to call that.</p>.
+"major" either.  Something in between, don't know how to call that.</p>
 
 <p>The most notable additions since 7.2:
   <ul>
@@ -64,7 +64,7 @@ two years since the 7.2 release, thus it's not that "minor".  But not
 </p>
 
 <p>Once you have installed Vim 7.3 you can find all the details about the
-changes since Vim 7.2 with ":help version-7.3"</p>
+changes since Vim 7.2 with ":help version-7.3".</p>
       ]]></description>
       <pubDate>Sun Aug 15 22:17 CEST 2010</pubDate>
       <enclosure type="application/octet-stream"
