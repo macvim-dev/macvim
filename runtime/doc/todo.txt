@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3f.  Last change: 2010 Aug 13
+*todo.txt*      For Vim version 7.3.  Last change: 2010 Aug 15
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -30,8 +30,9 @@ be worked on, but only if you sponsor Vim development.  See |sponsor|.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-Before release 7.3:
-- Rename vim73 branch to default (hints: Xavier de Gaye, 2010 May 23)
+":find e" completion, editing a file in the Vim source directory, 'path' set
+to "./proto", does not shorten ./proto/eval.pro, probably because of
+./proto/ex_eval.pro.
 
 Problem with \NL in Ex script. (Ray Frish, 2010 Aug 10)
 
@@ -52,7 +53,7 @@ Editing a file with a ^M with 'ff' set to "mac", opening a help file, then the
 Problem producing tags file when hebrew.frx is present.  It has a BOM.
 Results in E670. (Tony Mechelynck, 2010 May 2)
 
-setpos() does not resture cursor position after :normal. (Tyru, 2010 Aug 11)
+setpos() does not restore cursor position after :normal. (Tyru, 2010 Aug 11)
 
 Test 73 fails on MS-Windows when compiled with DJGPP and run twice.  How to
 delete the Xfind directory?  Add an rmdir() function, just like we have
@@ -113,12 +114,19 @@ path.
 like it has ":keepjumps" before it.
 
 Coverity: ask someone to create new user: Dominique.
-look into reported defects: http://scan.coverity.com/rung2.html
+Check if there are new reported defects: http://scan.coverity.com/rung2.html
+
+When setting 'undofile' while the file is already loaded, but unchanged, try
+to read the undo file.  Requires computing a checksum of the text. (Andy
+Wokula)
 
 Bug with 'incsearch' going to wrong line. (Wolfram Kresse, 2009 Aug 17)
 Only with "vim -u NONE".
 
 Problem with editing file in binary mode. (Ingo Krabbe, 2009 Oct 8)
+
+Display error when 'tabline' that includes a file name with double-width
+characters. (2010 Aug 14, bootleq)
 
 Problem with stop directory in findfile(). (Adam Simpkins, 2009 Aug 26)
 

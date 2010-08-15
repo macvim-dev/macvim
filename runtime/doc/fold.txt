@@ -1,4 +1,4 @@
-*fold.txt*      For Vim version 7.3f.  Last change: 2010 May 13
+*fold.txt*      For Vim version 7.3.  Last change: 2010 May 13
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -15,7 +15,7 @@ You can find an introduction on folding in chapter 28 of the user manual.
 4. Behavior of folds	|fold-behavior|
 
 {Vi has no Folding}
-{not available when compiled without the +folding feature}
+{not available when compiled without the |+folding| feature}
 
 ==============================================================================
 1. Fold methods					*fold-methods*

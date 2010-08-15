@@ -357,6 +357,9 @@ CClink = $(CC)
 #CONF_OPT_GUI = --enable-gui=athena
 #CONF_OPT_GUI = --enable-gui=nextaw
 
+# Carbon GUI for Mac OS X
+#CONF_OPT_GUI = --enable-gui=carbon
+
 # DARWIN - detecting Mac OS X
 # Uncomment this line when you want to compile a Unix version of Vim on
 # Darwin.  None of the Mac specific options or files will be used.
@@ -932,7 +935,7 @@ MAN1DIR = /man1
 
 ### Vim version (adjusted by a script)
 VIMMAJOR = 7
-VIMMINOR = 3f
+VIMMINOR = 3
 
 ### Location of Vim files (should not need to be changed, and  {{{1
 ### some things might not work when they are changed!)

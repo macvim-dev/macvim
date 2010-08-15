@@ -1,4 +1,4 @@
-*mbyte.txt*     For Vim version 7.3f.  Last change: 2010 Jul 26
+*mbyte.txt*     For Vim version 7.3.  Last change: 2010 Jul 26
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar et al.
@@ -14,7 +14,7 @@ For an introduction to the most common features, see |usr_45.txt| in the user
 manual.
 For changing the language of messages and menus see |mlang.txt|.
 
-{not available when compiled without the +multi_byte feature}
+{not available when compiled without the |+multi_byte| feature}
 
 
 1.  Getting started			|mbyte-first|
