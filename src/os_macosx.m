@@ -202,7 +202,7 @@ releasepool:
     void
 macosx_fork()
 {
-    pid_t pid, nextpid;
+    pid_t pid;
     int   i;
 
     /*
@@ -251,36 +251,11 @@ macosx_fork()
 	    /* Make sure we survive our shell */
 	    setsid();
 
-	    close(0);
-	    close(1);
-	    close(2);
+	    /* Restarts the vim process, will not return. */
+	    execvp(argv[0], newargv);
 
-	    /* Now, do fork() again. This way, the child becomes a child of the
-	     * init process.  It is the responsibility of init process to do
-	     * cleanup when child dies.  This way, MacVim will never be able to
-	     * acquire the controlling terminal.
-	     * This fixes a bug where Vim would hang forever when using zsh.
-	     */
-	    nextpid = fork();
-	    switch(nextpid) {
-	    case -1:
-#ifndef NDEBUG
-		/* This probably won't work, since stderr is closed */
-		fprintf(stderr, "vim: Mac OS X workaround for fork() failed!");
-#endif
-		_exit(255);
-	    case 0:
-		/* Grandchild */
-
-		/* Restarts the vim process, will not return. */
-		execvp(argv[0], newargv);
-
-		/* If we come here, exec has failed. bail. */
-		_exit(255);
-	    default:
-		/* Child, again */
-		_exit(0);
-	    }
+	    /* If we come here, exec has failed. bail. */
+	    _exit(255);
 	default:
 	    /* Parent */
 	    _exit(0);
