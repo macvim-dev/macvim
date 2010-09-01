@@ -74,6 +74,11 @@ enum {
 - (void)mouseUp:(NSEvent *)event;
 - (void)mouseDragged:(NSEvent *)event;
 - (void)mouseMoved:(NSEvent *)event;
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
+- (void)swipeWithEvent:(NSEvent *)event;
+- (void)magnifyWithEvent:(NSEvent *)event;
+- (void)rotateWithEvent:(NSEvent *)event;
+#endif
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)sender;

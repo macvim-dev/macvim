@@ -98,6 +98,7 @@ char *MessageStrings[] =
     "DeleteSignMsgID",
     "SetTooltipMsgID",
     "SetTooltipDelayMsgID",
+    "GestureMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 

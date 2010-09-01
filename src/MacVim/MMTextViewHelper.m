@@ -45,6 +45,9 @@ static float MMDragAreaSize = 73.0f;
 - (BOOL)inputManagerHandleMouseEvent:(NSEvent *)event;
 - (void)sendMarkedText:(NSString *)text position:(int32_t)pos;
 - (void)abandonMarkedText;
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
+- (void)sendGestureEvent:(int)gesture flags:(int)flags;
+#endif
 @end
 
 
@@ -465,6 +468,44 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     [[self vimController] sendMessage:MouseMovedMsgID data:data];
 }
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
+- (void)swipeWithEvent:(NSEvent *)event
+{
+    CGFloat dx = [event deltaX];
+    CGFloat dy = [event deltaY];
+    int type;
+    if (dx > 0)	     type = MMGestureSwipeLeft;
+    else if (dx < 0) type = MMGestureSwipeRight;
+    else if (dy > 0) type = MMGestureSwipeUp;
+    else if (dy < 0) type = MMGestureSwipeDown;
+    else return;
+
+    [self sendGestureEvent:type flags:[event modifierFlags]];
+}
+
+- (void)magnifyWithEvent:(NSEvent *)event
+{
+    CGFloat m = [event magnification];
+    int type;
+    if (m > 0)      type = MMGesturePinchOut;
+    else if (m < 0) type = MMGesturePinchIn;
+    else return;
+
+    [self sendGestureEvent:type flags:[event modifierFlags]];
+}
+
+- (void)rotateWithEvent:(NSEvent *)event
+{
+    CGFloat r = [event rotation];
+    int type;
+    if (r > 0)      type = MMGestureRotateCCW;
+    else if (r < 0) type = MMGestureRotateCW;
+    else return;
+
+    [self sendGestureEvent:type flags:[event modifierFlags]];
+}
+#endif
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
 {
@@ -1123,5 +1164,17 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [self sendMarkedText:nil position:-1];
     [[NSInputManager currentInputManager] markedTextAbandoned:self];
 }
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
+- (void)sendGestureEvent:(int)gesture flags:(int)flags
+{
+    NSMutableData *data = [NSMutableData data];
+
+    [data appendBytes:&flags length:sizeof(int)];
+    [data appendBytes:&gesture length:sizeof(int)];
+
+    [[self vimController] sendMessage:GestureMsgID data:data];
+}
+#endif
 
 @end // MMTextViewHelper (Private)

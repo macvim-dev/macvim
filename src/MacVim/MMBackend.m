@@ -197,6 +197,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)redrawScreen;
 - (void)handleFindReplace:(NSDictionary *)args;
 - (void)handleMarkedText:(NSData *)data;
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
+- (void)handleGesture:(NSData *)data;
+#endif
 #ifdef FEAT_BEVAL
 - (void)bevalCallback:(id)sender;
 #endif
@@ -2067,6 +2070,10 @@ static void netbeansReadCallback(CFSocketRef s,
         winposX = *((int*)bytes);  bytes += sizeof(int);
         winposY = *((int*)bytes);  bytes += sizeof(int);
         ASLogDebug(@"SetWindowPositionMsgID: x=%d y=%d", winposX, winposY);
+    } else if (GestureMsgID == msgid) {
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
+        [self handleGesture:data];
+#endif
     } else {
         ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }
@@ -2946,6 +2953,40 @@ static void netbeansReadCallback(CFSocketRef s,
 	im_preedit_changed_macvim(chars, pos);
     }
 }
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
+- (void)handleGesture:(NSData *)data
+{
+    const void *bytes = [data bytes];
+    int flags = *((int*)bytes);  bytes += sizeof(int);
+    int gesture = *((int*)bytes);  bytes += sizeof(int);
+    int modifiers = eventModifierFlagsToVimModMask(flags);
+    char_u string[6];
+
+    string[3] = CSI;
+    string[4] = KS_EXTRA;
+    switch (gesture) {
+        case MMGestureSwipeLeft:    string[5] = KE_SWIPELEFT;	break;
+        case MMGestureSwipeRight:   string[5] = KE_SWIPERIGHT;	break;
+        case MMGestureSwipeUp:	    string[5] = KE_SWIPEUP;	break;
+        case MMGestureSwipeDown:    string[5] = KE_SWIPEDOWN;	break;
+        case MMGesturePinchIn:      string[5] = KE_PINCHIN;     break;
+        case MMGesturePinchOut:     string[5] = KE_PINCHOUT;    break;
+        case MMGestureRotateCW:     string[5] = KE_ROTATECW;    break;
+        case MMGestureRotateCCW:    string[5] = KE_ROTATECCW;   break;
+        default: return;
+    }
+
+    if (modifiers == 0) {
+        add_to_input_buf(string + 3, 3);
+    } else {
+        string[0] = CSI;
+        string[1] = KS_MODIFIER;
+        string[2] = modifiers;
+        add_to_input_buf(string, 6);
+    }
+}
+#endif
 
 #ifdef FEAT_BEVAL
 - (void)bevalCallback:(id)sender

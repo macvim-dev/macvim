@@ -519,6 +519,24 @@ defaultAdvanceForFont(CTFontRef fontRef)
     [helper mouseMoved:event];
 }
 
+// Gesture event are new for OS X 10.6
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
+- (void)swipeWithEvent:(NSEvent *)event
+{
+    [helper swipeWithEvent:event];
+}
+
+- (void)magnifyWithEvent:(NSEvent *)event
+{
+    [helper magnifyWithEvent:event];
+}
+
+- (void)rotateWithEvent:(NSEvent *)event
+{
+    [helper rotateWithEvent:event];
+}
+#endif
+
 - (NSMenu*)menuForEvent:(NSEvent *)event
 {
     // HACK! Return nil to disable default popup menus (Vim provides its own).
