@@ -263,6 +263,7 @@ extern NSString *VimFindPboardType;
 @interface NSString (MMExtras)
 - (NSString *)stringByEscapingSpecialFilenameCharacters;
 - (NSString *)stringByRemovingFindPatterns;
+- (NSString *)stringBySanitizingSpotlightSearch;
 @end
 
 

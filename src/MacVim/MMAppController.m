@@ -1734,8 +1734,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // 3. Extract Spotlight search text (if any)
     NSAppleEventDescriptor *spotlightdesc = 
             [desc paramDescriptorForKeyword:keyAESearchText];
-    if (spotlightdesc)
-        [dict setObject:[spotlightdesc stringValue] forKey:@"searchText"];
+    if (spotlightdesc) {
+        NSString *s = [[spotlightdesc stringValue]
+                                            stringBySanitizingSpotlightSearch];
+        if (s && [s length] > 0)
+            [dict setObject:s forKey:@"searchText"];
+    }
 
     return dict;
 }
@@ -2257,14 +2261,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSMutableArray *a = [NSMutableArray array];
     NSMutableDictionary *d = [[args mutableCopy] autorelease];
 
-    // Search for text using "+/text".
+    // Search for text and highlight it (this Vim script avoids warnings in
+    // case there is no match for the search text).
     NSString *searchText = [args objectForKey:@"searchText"];
-    if (searchText) {
-        // TODO: If the search pattern is not found an error is shown when
-        // starting.  Figure out a way to get rid of this message (The help
-        // says to use ':silent exe "normal /pat\<CR>"' but this does not
-        // work.)
-        [a addObject:[NSString stringWithFormat:@"+/%@", searchText]];
+    if (searchText && [searchText length] > 0) {
+        [a addObject:@"-c"];
+        NSString *s = [NSString stringWithFormat:@"if search('\\V\\c%@','cW')"
+                "|let @/='\\V\\c%@'|set hls|endif", searchText, searchText];
+        [a addObject:s];
 
         [d removeObjectForKey:@"searchText"];
     }

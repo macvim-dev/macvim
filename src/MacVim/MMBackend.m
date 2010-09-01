@@ -2814,8 +2814,11 @@ static void netbeansReadCallback(CFSocketRef s,
 
     NSString *searchText = [args objectForKey:@"searchText"];
     if (searchText) {
-        [self addInput:[NSString stringWithFormat:@"<C-\\><C-N>gg/\\c%@/e<CR>",
-                searchText]];
+        // NOTE: This command may be overkill to simply search for some text,
+        // but it is consistent with what is used in MMAppController.
+        [self addInput:[NSString stringWithFormat:@"<C-\\><C-N>:if search("
+                        "'\\V\\c%@','cW')|let @/='\\V\\c%@'|set hls|endif<CR>",
+                        searchText, searchText]];
     }
 }
 

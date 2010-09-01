@@ -233,6 +233,39 @@ debugStringForMessageQueue(NSArray *queue)
     return [string autorelease];
 }
 
+- (NSString *)stringBySanitizingSpotlightSearch
+{
+    // Limit length of search text
+    NSUInteger len = [self length];
+    if (len > 1024) len = 1024;
+    else if (len == 0) return self;
+
+    NSMutableString *string = [[[self substringToIndex:len] mutableCopy]
+                                                                autorelease];
+
+    // Ignore strings with control characters
+    NSCharacterSet *controlChars = [NSCharacterSet controlCharacterSet];
+    NSRange r = [string rangeOfCharacterFromSet:controlChars];
+    if (r.location != NSNotFound)
+        return nil;
+
+    // Replace ' with '' since it is used as a string delimeter in the command
+    // that we pass on to Vim to perform the search.
+    [string replaceOccurrencesOfString:@"'"
+                            withString:@"''"
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+
+    // Replace \ with \\ to avoid Vim interpreting it as the beginning of a
+    // character class.
+    [string replaceOccurrencesOfString:@"\\"
+                            withString:@"\\\\"
+                               options:NSLiteralSearch
+                                 range:NSMakeRange(0, [string length])];
+
+    return string;
+}
+
 @end // NSString (MMExtras)
 
 
