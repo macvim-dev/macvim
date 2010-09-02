@@ -15,5 +15,11 @@ let b:undo_ftplugin = "setl fo< tw< cole< cocu<"
 
 setlocal formatoptions+=tcroql textwidth=78 cole=2 cocu=nc
 
+if has("gui_macvim")
+  " Use swipe gesture to navigate back/forward
+  nmap <buffer> <silent> <SwipeLeft>  :po<CR>
+  nmap <buffer> <silent> <SwipeRight> :ta<CR>
+endif
+
 let &cpo = s:cpo_save
 unlet s:cpo_save
