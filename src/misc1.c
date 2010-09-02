@@ -3152,6 +3152,16 @@ get_keystroke()
 		    || n == K_VER_SCROLLBAR
 		    || n == K_HOR_SCROLLBAR
 # endif
+# ifdef FEAT_GUI_MACVIM
+		    || K_SWIPELEFT
+		    || K_SWIPERIGHT
+		    || K_SWIPEUP
+		    || K_SWIPEDOWN
+		    || K_PINCHIN
+		    || K_PINCHOUT
+		    || K_ROTATECW
+		    || K_ROTATECCW
+# endif
 #endif
 	       )
 	    {
