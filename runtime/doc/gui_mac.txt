@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.3.  Last change: 2010 Aug 1
+*gui_mac.txt*	For Vim version 7.3.  Last change: 2010 Sep 2
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -16,9 +16,10 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
  8. System services		|macvim-services|
  9. mvim:// URL handler		|macvim-url-handler|
 10. Keyboard shortcuts		|macvim-shortcuts|
-11. International		|macvim-international|
-12. Known bugs/missing features	|macvim-todo|
-13. Hints			|macvim-hints|
+11. Trackpad gestures		|macvim-gestures|
+12. International		|macvim-international|
+13. Known bugs/missing features	|macvim-todo|
+14. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -606,7 +607,40 @@ See |macvim-shift-movement| if you want Shift to select text when used in
 conjunction with the above Cmd/Alt movement shortcuts.
 
 ==============================================================================
-11. International					*macvim-international*
+11. Trackpad gestures					*macvim-gestures*
+
+MacVim supports swipe, pinch, and rotate gestures.  The swipe gesture can be
+used to navigate back/forward in the help (try it!).  Currently no other
+gestures are set up by default.
+
+Each gesture generates a Vim pseudo key according to the following list:
+
+		    *<SwipeLeft>* *<SwipeRight>* *<SwipeUp>* *<SwipeDown>*
+	Generated when swiping three fingers across the trackpad in a
+	horizontal or vertical direction.
+
+		    *<PinchIn>*	  *<PinchOut>*
+	Generated when moving two fingers together or apart in a pinch
+	movement.  Note that the keys are generated continuously as the
+	fingers move, not only when the gesture has finished.
+
+		    *<RotateCW>*  *<RotateCCW>*
+	Generated when rotating two fingers in a clockwise (CW) or
+	counterclockwise (CCW) direction.  Note that the keys are generated
+	continuously as the fingers move, not only when the gesture has
+	finished.
+
+You can map these keys like with any other key using the |:map| family of
+commands.  For example, the following commands map left/right swipe to change
+to the previous/next tab in normal mode: >
+
+	nmap <SwipeLeft> gT
+	nmap <SwipeRight> gt
+
+See the section on |key-mapping| for more help on how to map keys.
+
+==============================================================================
+12. International					*macvim-international*
 
 When editing non-English text it may be convenient to keep separate keyboard
 layouts for normal and insert mode.  This is supported via the 'imd' option on
@@ -627,7 +661,7 @@ wrong layout when going back to normal mode, then select the layout you want
 to use in normal mode and type ":set imd" followed by ":set noimd".
 
 ==============================================================================
-12. Known bugs/missing features				*macvim-todo*
+13. Known bugs/missing features				*macvim-todo*
 
 This list is by no means exhaustive, it only enumerates some of the more
 prominent bugs/missing features.
@@ -651,7 +685,7 @@ This is also the best place for making feature requests as well as for asking
 general questions about MacVim.
 
 ==============================================================================
-13. Hints						*macvim-hints*
+14. Hints						*macvim-hints*
 
 In this section some general (not necessarily MacVim specific) hints are
 given.
