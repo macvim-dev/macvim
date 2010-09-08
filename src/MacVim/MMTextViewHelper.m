@@ -483,28 +483,6 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     [self sendGestureEvent:type flags:[event modifierFlags]];
 }
-
-- (void)magnifyWithEvent:(NSEvent *)event
-{
-    CGFloat m = [event magnification];
-    int type;
-    if (m > 0)      type = MMGesturePinchOut;
-    else if (m < 0) type = MMGesturePinchIn;
-    else return;
-
-    [self sendGestureEvent:type flags:[event modifierFlags]];
-}
-
-- (void)rotateWithEvent:(NSEvent *)event
-{
-    CGFloat r = [event rotation];
-    int type;
-    if (r > 0)      type = MMGestureRotateCCW;
-    else if (r < 0) type = MMGestureRotateCW;
-    else return;
-
-    [self sendGestureEvent:type flags:[event modifierFlags]];
-}
 #endif
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender

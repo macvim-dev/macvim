@@ -609,26 +609,19 @@ conjunction with the above Cmd/Alt movement shortcuts.
 ==============================================================================
 11. Trackpad gestures					*macvim-gestures*
 
-MacVim supports swipe, pinch, and rotate gestures.  The swipe gesture can be
-used to navigate back/forward in the help (try it!).  Currently no other
-gestures are set up by default.
+MacVim supports trackpad swipe gestures.  By default this can be used to
+navigate back/forward in the help (try it!).
 
-Each gesture generates a Vim pseudo key according to the following list:
+Each gesture generates one of the following Vim pseudo keys:
 
-		    *<SwipeLeft>* *<SwipeRight>* *<SwipeUp>* *<SwipeDown>*
+						 *<SwipeLeft>* *<SwipeRight>*
 	Generated when swiping three fingers across the trackpad in a
-	horizontal or vertical direction.
+	horizontal direction.  The Apple Magic Mouse generates these
+	events when swiping two fingers in a horizontal direction.
 
-		    *<PinchIn>*	  *<PinchOut>*
-	Generated when moving two fingers together or apart in a pinch
-	movement.  Note that the keys are generated continuously as the
-	fingers move, not only when the gesture has finished.
-
-		    *<RotateCW>*  *<RotateCCW>*
-	Generated when rotating two fingers in a clockwise (CW) or
-	counterclockwise (CCW) direction.  Note that the keys are generated
-	continuously as the fingers move, not only when the gesture has
-	finished.
+						 *<SwipeUp>*   *<SwipeDown>*
+	Generated when swiping three fingers across the trackpad in a
+	vertical direction.  (Not supported by the Apple Magic Mouse.)
 
 You can map these keys like with any other key using the |:map| family of
 commands.  For example, the following commands map left/right swipe to change
@@ -636,6 +629,11 @@ to the previous/next tab in normal mode: >
 
 	nmap <SwipeLeft> gT
 	nmap <SwipeRight> gt
+
+As another example, here is how to switch buffers by swiping left/right: >
+
+	nmap <SwipeLeft> :bN<CR>
+	nmap <SwipeRight> :bn<CR>
 
 See the section on |key-mapping| for more help on how to map keys.
 

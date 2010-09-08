@@ -267,10 +267,6 @@ enum key_extra
     , KE_SWIPERIGHT	/* Swipe trackpad right */
     , KE_SWIPEUP	/* Swipe trackpad up */
     , KE_SWIPEDOWN	/* Swipe trackpad down */
-    , KE_PINCHIN	/* Pinch two fingers together on trackpad */
-    , KE_PINCHOUT	/* Pinch two fingers apart on trackpad */
-    , KE_ROTATECW	/* Rotate two fingers clockwise on trackpad */
-    , KE_ROTATECCW	/* Rotate two finger counter clockwise on trackpad */
 #endif
 };
 
@@ -475,10 +471,6 @@ enum key_extra
 # define K_SWIPERIGHT	TERMCAP2KEY(KS_EXTRA, KE_SWIPERIGHT)
 # define K_SWIPEUP	TERMCAP2KEY(KS_EXTRA, KE_SWIPEUP)
 # define K_SWIPEDOWN	TERMCAP2KEY(KS_EXTRA, KE_SWIPEDOWN)
-# define K_PINCHIN	TERMCAP2KEY(KS_EXTRA, KE_PINCHIN)
-# define K_PINCHOUT	TERMCAP2KEY(KS_EXTRA, KE_PINCHOUT)
-# define K_ROTATECW	TERMCAP2KEY(KS_EXTRA, KE_ROTATECW)
-# define K_ROTATECCW	TERMCAP2KEY(KS_EXTRA, KE_ROTATECCW)
 #endif
 
 /* Bits for modifier mask */

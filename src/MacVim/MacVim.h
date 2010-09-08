@@ -232,10 +232,6 @@ enum {
     MMGestureSwipeRight,
     MMGestureSwipeUp,
     MMGestureSwipeDown,
-    MMGesturePinchIn,
-    MMGesturePinchOut,
-    MMGestureRotateCW,
-    MMGestureRotateCCW,
 };
 
 

@@ -3147,16 +3147,12 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 <Nul>	intro.txt	/*<Nul>*
 <PageDown>	scroll.txt	/*<PageDown>*
 <PageUp>	scroll.txt	/*<PageUp>*
-<PinchIn>	gui_mac.txt	/*<PinchIn>*
-<PinchOut>	gui_mac.txt	/*<PinchOut>*
 <Plug>	map.txt	/*<Plug>*
 <Return>	intro.txt	/*<Return>*
 <Right>	motion.txt	/*<Right>*
 <RightDrag>	term.txt	/*<RightDrag>*
 <RightMouse>	visual.txt	/*<RightMouse>*
 <RightRelease>	term.txt	/*<RightRelease>*
-<RotateCCW>	gui_mac.txt	/*<RotateCCW>*
-<RotateCW>	gui_mac.txt	/*<RotateCW>*
 <S-	intro.txt	/*<S-*
 <S-Del>	os_dos.txt	/*<S-Del>*
 <S-Down>	scroll.txt	/*<S-Down>*

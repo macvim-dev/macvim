@@ -1130,10 +1130,6 @@ doESCkey:
 	case K_SWIPERIGHT:
 	case K_SWIPEUP:
 	case K_SWIPEDOWN:
-	case K_PINCHIN:
-	case K_PINCHOUT:
-	case K_ROTATECW:
-	case K_ROTATECCW:
 	    break;
 # endif
 #endif
@@ -3526,8 +3522,7 @@ ins_compl_prep(c)
 	    || c == K_MOUSELEFT || c == K_MOUSERIGHT
 # ifdef FEAT_GUI_MACVIM
 	    || c == K_SWIPELEFT || c == K_SWIPERIGHT || c == K_SWIPEUP
-	    || c == K_SWIPEDOWN || c == K_PINCHIN || c == K_PINCHOUT
-	    || c == K_ROTATECW || c == K_ROTATECCW
+	    || c == K_SWIPEDOWN
 # endif
 		    )
 	return retval;

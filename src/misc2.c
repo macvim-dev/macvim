@@ -2394,10 +2394,6 @@ static struct key_name_entry
     {K_SWIPERIGHT,	(char_u *)"SwipeRight"},
     {K_SWIPEUP,		(char_u *)"SwipeUp"},
     {K_SWIPEDOWN,	(char_u *)"SwipeDown"},
-    {K_PINCHIN,		(char_u *)"PinchIn"},
-    {K_PINCHOUT,	(char_u *)"PinchOut"},
-    {K_ROTATECW,	(char_u *)"RotateCW"},
-    {K_ROTATECCW,	(char_u *)"RotateCCW"},
 #endif
     {0,			NULL}
 };

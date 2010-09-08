@@ -999,8 +999,6 @@ wait_return(redraw)
 # ifdef FEAT_GUI_MACVIM
 				|| c == K_SWIPELEFT || c == K_SWIPERIGHT
 				|| c == K_SWIPEUP   || c == K_SWIPEDOWN
-				|| c == K_PINCHIN   || c == K_PINCHOUT
-				|| c == K_ROTATECW  || c == K_ROTATECCW
 # endif
 #endif
 				);

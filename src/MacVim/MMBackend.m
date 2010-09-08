@@ -2970,10 +2970,6 @@ static void netbeansReadCallback(CFSocketRef s,
         case MMGestureSwipeRight:   string[5] = KE_SWIPERIGHT;	break;
         case MMGestureSwipeUp:	    string[5] = KE_SWIPEUP;	break;
         case MMGestureSwipeDown:    string[5] = KE_SWIPEDOWN;	break;
-        case MMGesturePinchIn:      string[5] = KE_PINCHIN;     break;
-        case MMGesturePinchOut:     string[5] = KE_PINCHOUT;    break;
-        case MMGestureRotateCW:     string[5] = KE_ROTATECW;    break;
-        case MMGestureRotateCCW:    string[5] = KE_ROTATECCW;   break;
         default: return;
     }
 

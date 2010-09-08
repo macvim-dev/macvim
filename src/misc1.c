@@ -3157,10 +3157,6 @@ get_keystroke()
 		    || K_SWIPERIGHT
 		    || K_SWIPEUP
 		    || K_SWIPEDOWN
-		    || K_PINCHIN
-		    || K_PINCHOUT
-		    || K_ROTATECW
-		    || K_ROTATECCW
 # endif
 #endif
 	       )

@@ -10957,10 +10957,6 @@ f_getchar(argvars, rettv)
                 || n == K_SWIPERIGHT
                 || n == K_SWIPEUP
                 || n == K_SWIPEDOWN
-                || n == K_PINCHIN
-                || n == K_PINCHOUT
-                || n == K_ROTATECW
-                || n == K_ROTATECCW
 # endif
                 )
 	{

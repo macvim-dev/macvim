@@ -1346,10 +1346,6 @@ getcmdline(firstc, count, indent)
 	case K_SWIPERIGHT:
 	case K_SWIPEUP:
 	case K_SWIPEDOWN:
-	case K_PINCHIN:
-	case K_PINCHOUT:
-	case K_ROTATECW:
-	case K_ROTATECCW:
 		goto cmdline_not_changed;
 # endif
 #endif	/* FEAT_MOUSE */

@@ -776,16 +776,6 @@
 {
     [helper swipeWithEvent:event];
 }
-
-- (void)magnifyWithEvent:(NSEvent *)event
-{
-    [helper magnifyWithEvent:event];
-}
-
-- (void)rotateWithEvent:(NSEvent *)event
-{
-    [helper rotateWithEvent:event];
-}
 #endif
 
 - (NSMenu*)menuForEvent:(NSEvent *)event
