@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.3.  Last change: 2010 Sep 2
+*gui_mac.txt*	For Vim version 7.3.  Last change: 2010 Sep 17
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -210,13 +210,15 @@ pressed.  This feature can be enabled from the Advanced preferences pane (it
 is disabled by default).  Note that this setting does not affect the speed
 with which windows open when using the |mvim| command.
 
-The main reason why this feature is not enabled by default is because on OS X
-10.4 changes to runtime files (e.g. those in "~/.vim") are not detected.  For
-example, if you install a new plugin and then press <D-n> to open a new
-window, then that first window will not notice the plugin (but any consecutive
-windows after the first one will).  On OS X 10.5 and later all modifications
-to runtime files in "~/.vim" are detected, so unless you keep runtime files in
-another folder there should be no problems.
+Note that any changes to runtime files that are kept in an non-standard
+location (i.e. not in ~/.vim) will not be picked up for the first window that
+opens after any changes.  Also, there are some issues related to reading and
+writing of the |viminfo| file which can lead to the command line history
+appearing to be lost (as well as any other information stored in the |viminfo|
+file).  For example, if you open a window, edit some files then close the
+window, then the next window that opens will not have the same command line
+history as the window you just closed (however the next window you open will).
+For these reasons Quickstart is disabled by default.
 
 						*odbeditor* *external-editor*
 MacVim can act as an 'external editor' for Mac OS X applications that support
