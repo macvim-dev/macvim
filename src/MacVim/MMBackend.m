@@ -1193,23 +1193,36 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data
 {
-    // Look for Ctrl-C immediately instead of waiting until the input queue is
-    // processed since that only happens in waitForInput: (and Vim regularly
-    // checks for Ctrl-C in between waiting for input).  Note that the flag
-    // ctrl_c_interrupts is 0 e.g. when the user has mappings to something like
-    // <C-c>g.  Also it seems the flag intr_char is 0 when MacVim was started
-    // from Finder whereas it is 0x03 (= Ctrl_C) when started from Terminal.
+    //
+    // This is a DO method which is called from inside MacVim to add new input
+    // to this Vim process.  It may get called when the run loop is updated.
+    //
+    // Add keyboard input to Vim's input buffer immediately.  We have to do
+    // this because in many places Vim polls the input buffer whilst waiting
+    // for keyboard input (so Vim may lock up forever otherwise).
     //
     // Similarly, TerminateNowMsgID must be checked immediately otherwise code
     // which waits on the run loop will fail to detect this message (e.g. in
     // waitForConnectionAcknowledgement).
+    //
+    // All other input is processed when processInputQueue is called (typically
+    // this happens in waitForInput:).
+    //
+    // TODO: Process mouse events here as well?  Anything else?
+    //
 
-    if (KeyDownMsgID == msgid && data != nil && ctrl_c_interrupts) {
+    if (KeyDownMsgID == msgid) {
+        if (!data) return;
         const void *bytes = [data bytes];
-        /*unsigned mods = *((unsigned*)bytes);*/  bytes += sizeof(unsigned);
-        /*unsigned code = *((unsigned*)bytes);*/  bytes += sizeof(unsigned);
+        unsigned mods = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+        unsigned code = *((unsigned*)bytes);  bytes += sizeof(unsigned);
         unsigned len  = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-        if (1 == len) {
+
+        if (ctrl_c_interrupts && 1 == len) {
+            // NOTE: the flag ctrl_c_interrupts is 0 e.g. when the user has
+            // mappings to something like <C-c>g.  Also it seems the flag
+            // intr_char is 0 when MacVim was started from Finder whereas it is
+            // 0x03 (= Ctrl_C) when started from Terminal.
             char_u *str = (char_u*)bytes;
             if (str[0] == Ctrl_C || (str[0] == intr_char && intr_char != 0)) {
                 ASLogDebug(@"Got INT, str[0]=%#x ctrl_c_interrupts=%d "
@@ -1219,6 +1232,24 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                 return;
             }
         }
+
+        // The lowest bit of the modifiers is set if this key is a repeat.
+        BOOL isKeyRepeat = (mods & 1) != 0;
+
+        // Ignore key press if the input buffer has something in it and this
+        // key is a repeat (since this means Vim can't keep up with the speed
+        // with which new input is being received).
+        if (!isKeyRepeat || vim_is_input_buf_empty()) {
+            NSString *key = [[NSString alloc] initWithBytes:bytes
+                                                 length:len
+                                               encoding:NSUTF8StringEncoding];
+            mods = eventModifierFlagsToVimModMask(mods);
+
+            [self doKeyDown:key keyCode:code modifiers:mods];
+            [key release];
+        } else {
+            ASLogDebug(@"Dropping repeated keyboard input");
+        }
     } else if (TerminateNowMsgID == msgid) {
         // Terminate immediately (the frontend is about to quit or this process
         // was aborted).  Don't preserve modified files since the user would
@@ -1226,45 +1257,27 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         // modified files when we get here.
         isTerminating = YES;
         getout(0);
-        return;
-    }
-
-    // Remove all previous instances of this message from the input queue, else
-    // the input queue may fill up as a result of Vim not being able to keep up
-    // with the speed at which new messages are received.
-    // Keyboard input is never dropped, unless the input represents an
-    // auto-repeated key.
-
-    BOOL isKeyRepeat = NO;
-    BOOL isKeyboardInput = NO;
-
-    if (data && KeyDownMsgID == msgid) {
-        isKeyboardInput = YES;
-
-        // The lowest bit of the first int is set if this key is a repeat.
-        int flags = *((int*)[data bytes]);
-        if (flags & 1)
-            isKeyRepeat = YES;
-    }
-
-    // Keyboard input is not removed from the queue; repeats are ignored if
-    // there already is keyboard input on the input queue.
-    if (isKeyRepeat || !isKeyboardInput) {
+    } else {
+        // First remove previous instances of this message from the input
+        // queue, else the input queue may fill up as a result of Vim not being
+        // able to keep up with the speed at which new messages are received.
+        // TODO: Remove all previous instances (there could be many)?
         int i, count = [inputQueue count];
-        for (i = 1; i < count; i+=2) {
+        for (i = 1; i < count; i += 2) {
             if ([[inputQueue objectAtIndex:i-1] intValue] == msgid) {
-                if (isKeyRepeat)
-                    return;
-
+                ASLogDebug(@"Input queue filling up, remove message: %s",
+                                                        MessageStrings[msgid]);
                 [inputQueue removeObjectAtIndex:i];
                 [inputQueue removeObjectAtIndex:i-1];
                 break;
             }
         }
-    }
 
-    [inputQueue addObject:[NSNumber numberWithInt:msgid]];
-    [inputQueue addObject:(data ? (id)data : [NSNull null])];
+        // Now add message to input queue.  Add null data if necessary to
+        // ensure that input queue has even length.
+        [inputQueue addObject:[NSNumber numberWithInt:msgid]];
+        [inputQueue addObject:(data ? (id)data : [NSNull null])];
+    }
 }
 
 - (id)evaluateExpressionCocoa:(in bycopy NSString *)expr
@@ -1832,20 +1845,7 @@ static void netbeansReadCallback(CFSocketRef s,
 
 - (void)handleInputEvent:(int)msgid data:(NSData *)data
 {
-    if (KeyDownMsgID == msgid) {
-        if (!data) return;
-        const void *bytes = [data bytes];
-        unsigned mods = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-        unsigned code = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-        unsigned len  = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-        NSString *key = [[NSString alloc] initWithBytes:bytes
-                                                 length:len
-                                               encoding:NSUTF8StringEncoding];
-        mods = eventModifierFlagsToVimModMask(mods);
-
-        [self doKeyDown:key keyCode:code modifiers:mods];
-        [key release];
-    } else if (ScrollWheelMsgID == msgid) {
+    if (ScrollWheelMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
 
