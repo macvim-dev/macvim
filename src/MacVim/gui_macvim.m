@@ -248,13 +248,17 @@ gui_mch_update(void)
     // here to avoid reduced frame-rates but then it would not be possible to
     // interrupt Vim by presssing Ctrl-C during lengthy operations (e.g. after
     // entering "10gs" it would not be possible to bring Vim out of the 10 s
-    // sleep prematurely).  As a compromise we check for Ctrl-C only once per
-    // second.  Note that Cmd-. sends SIGINT so it has higher success rate at
-    // interrupting Vim.
+    // sleep prematurely).  Furthermore, Vim sometimes goes into a loop waiting
+    // for keyboard input (e.g. during a "more prompt") where not checking for
+    // input could cause Vim to lock up indefinitely.
+    //
+    // As a compromise we check for new input only every now and then. Note
+    // that Cmd-. sends SIGINT so it has higher success rate at interrupting
+    // Vim than Ctrl-C.
     static CFAbsoluteTime lastTime = 0;
 
     CFAbsoluteTime nowTime = CFAbsoluteTimeGetCurrent();
-    if (nowTime - lastTime > 1.0) {
+    if (nowTime - lastTime > 0.2) {
         [[MMBackend sharedInstance] update];
         lastTime = nowTime;
     }
