@@ -358,6 +358,7 @@
         filename = @"";
 
     [decoratedWindow setRepresentedFilename:filename];
+    [fullscreenWindow setRepresentedFilename:filename];
 }
 
 - (void)setToolbar:(NSToolbar *)toolbar
@@ -610,6 +611,8 @@
         initWithWindow:decoratedWindow view:vimView backgroundColor:back];
     [fullscreenWindow enterFullscreen:fuoptions];    
     [fullscreenWindow setDelegate:self];
+    [fullscreenWindow setRepresentedFilename:
+                                        [decoratedWindow representedFilename]];
     fullscreenEnabled = YES;
 
     // The resize handle disappears so the vim view needs to update the
