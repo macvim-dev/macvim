@@ -1712,6 +1712,12 @@ static void netbeansReadCallback(CFSocketRef s,
 }
 #endif
 
+- (void)addToMRU:(NSString *)filename
+{
+    [self queueMessage:AddToMRUMsgID properties:
+            [NSDictionary dictionaryWithObject:filename forKey:@"filename"]];
+}
+
 @end // MMBackend
 
 

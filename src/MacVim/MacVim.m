@@ -98,6 +98,7 @@ char *MessageStrings[] =
     "SetTooltipMsgID",
     "SetTooltipDelayMsgID",
     "GestureMsgID",
+    "AddToMRUMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 

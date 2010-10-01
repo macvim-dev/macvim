@@ -234,3 +234,4 @@ gui_mch_register_sign(char_u *signfile);
     void
 gui_mch_destroy_sign(void *sign);
 
+void gui_macvim_add_to_mru(char_u *fname);

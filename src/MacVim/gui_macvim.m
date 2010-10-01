@@ -2267,3 +2267,17 @@ gui_mch_post_balloon(beval, mesg)
 }
 
 #endif // FEAT_BEVAL
+
+
+    void
+gui_macvim_add_to_mru(char_u *fname)
+{
+    // Expand to a full file name (including the full path).
+    char_u *ffname = fix_fname(fname);
+    if (!ffname)
+        return;
+
+    NSString *s = [NSString stringWithVimString:ffname];
+    [[MMBackend sharedInstance] addToMRU:s];
+    vim_free(ffname);
+}

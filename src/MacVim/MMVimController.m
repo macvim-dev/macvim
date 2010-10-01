@@ -271,6 +271,10 @@ static BOOL isUnsafeMessage(int msgid);
             nil];
 
     [self sendMessage:DropFilesMsgID data:[args dictionaryAsData]];
+
+    // Add dropped files to the "Recent Files" menu.
+    [[NSDocumentController sharedDocumentController]
+                                            noteNewRecentFilePaths:filenames];
 }
 
 - (void)file:(NSString *)filename draggedToTabAtIndex:(NSUInteger)tabIndex
@@ -861,6 +865,12 @@ static BOOL isUnsafeMessage(int msgid);
         NSNumber *delay = dict ? [dict objectForKey:@"delay"] : nil;
         if (delay)
             [self setToolTipDelay:[delay floatValue]];
+    } else if (AddToMRUMsgID == msgid) {
+        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+        NSString *filename = dict ? [dict objectForKey:@"filename"] : nil;
+        if (filename)
+            [[NSDocumentController sharedDocumentController]
+                                            noteNewRecentFilePath:filename];
 
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
@@ -897,7 +907,7 @@ static BOOL isUnsafeMessage(int msgid);
         // are opened/saved from a :browse command are added to this menu).
         if (path)
             [[NSDocumentController sharedDocumentController]
-                    noteNewRecentFilePath:path];
+                                                noteNewRecentFilePath:path];
     }
     @catch (NSException *ex) {
         ASLogDebug(@"Exception: pid=%d id=%d reason=%@", pid, identifier, ex);

@@ -2442,6 +2442,11 @@ scripterror:
 		    2		/* add buffer number now and use curbuf */
 #endif
 		    );
+#ifdef FEAT_GUI_MACVIM
+	    /* Add files opened from command line to the MRU (most recently
+	     * used) files. */
+	    gui_macvim_add_to_mru(p);
+#endif
 
 #if defined(FEAT_MBYTE) && defined(WIN32)
 	    {
