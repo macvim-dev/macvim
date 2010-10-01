@@ -2803,7 +2803,7 @@ ex_nbstart(eap)
 {
 #ifdef FEAT_GUI
 # if !defined(FEAT_GUI_X11) && !defined(FEAT_GUI_GTK)  \
-                && !defined(FEAT_GUI_W32)
+                && !defined(FEAT_GUI_W32) && !defined(FEAT_GUI_MACVIM)
     if (gui.in_use)
     {
         EMSG(_("E838: netbeans is not supported with this GUI"));
