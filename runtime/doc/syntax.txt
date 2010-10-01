@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 7.3.  Last change: 2010 Aug 10
+*syntax.txt*	For Vim version 7.3.  Last change: 2010 Sep 23
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2258,7 +2258,7 @@ For highlighted builtin functions: >
 For highlighted standard exceptions: >
 	:let python_highlight_exceptions = 1
 
-For highlighted trailing whitespace and mix of spaces and tabs:
+For highlighted trailing whitespace and mix of spaces and tabs: >
 	:let python_highlight_space_errors = 1
 
 If you want all possible Python highlighting (the same as setting the
@@ -3953,7 +3953,7 @@ To show the syntax items for one syntax group: >
 
     :sy[ntax] list {group-name}
 
-To list the syntax groups in one cluster:			*E392*	>
+To list the syntax groups in one cluster:			*E392*	 >
 
     :sy[ntax] list @{cluster-name}
 
@@ -4612,7 +4612,7 @@ is loaded into that window or the file is reloaded.
 When splitting the window, the new window will use the original syntax.
 
 ==============================================================================
-16. Color xterms				*xterm-color* *color-xterm*
+17. Color xterms				*xterm-color* *color-xterm*
 
 Most color xterms have only eight colors.  If you don't get colors with the
 default setup, it should work with these lines in your .vimrc: >

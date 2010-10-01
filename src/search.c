@@ -5084,9 +5084,7 @@ search_line:
 			if (win_split(0, 0) == FAIL)
 #endif
 			    break;
-#ifdef FEAT_SCROLLBIND
-			curwin->w_p_scb = FALSE;
-#endif
+			RESET_BINDING(curwin);
 		    }
 		    if (depth == -1)
 		    {

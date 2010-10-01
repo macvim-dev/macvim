@@ -485,7 +485,7 @@ clip_own_selection(cbd)
      */
 #ifdef FEAT_X11
     /* Always own the selection, we might have lost it without being
-     * notified. */
+     * notified, e.g. during a ":sh" command. */
     if (cbd->available)
     {
 	int was_owned = cbd->owned;
@@ -1964,10 +1964,9 @@ x11_setup_atoms(dpy)
  */
 
 static Boolean	clip_x11_convert_selection_cb __ARGS((Widget, Atom *, Atom *, Atom *, XtPointer *, long_u *, int *));
-
 static void  clip_x11_lose_ownership_cb __ARGS((Widget, Atom *));
-
 static void clip_x11_timestamp_cb __ARGS((Widget w, XtPointer n, XEvent *event, Boolean *cont));
+static void  clip_x11_request_selection_cb __ARGS((Widget, XtPointer, Atom *, Atom *, XtPointer, long_u *, int *));
 
 /*
  * Property callback to get a timestamp for XtOwnSelection.
@@ -2005,8 +2004,17 @@ clip_x11_timestamp_cb(w, n, event, cont)
 	return;
 
     /* Get the selection, using the event timestamp. */
-    XtOwnSelection(w, xproperty->atom, xproperty->time,
-	    clip_x11_convert_selection_cb, clip_x11_lose_ownership_cb, NULL);
+    if (XtOwnSelection(w, xproperty->atom, xproperty->time,
+	    clip_x11_convert_selection_cb, clip_x11_lose_ownership_cb,
+	    NULL) == OK)
+    {
+	/* Set the "owned" flag now, there may have been a call to
+	 * lose_ownership_cb in between. */
+	if (xproperty->atom == clip_plus.sel_atom)
+	    clip_plus.owned = TRUE;
+	else
+	    clip_star.owned = TRUE;
+    }
 }
 
     void
@@ -2016,8 +2024,6 @@ x11_setup_selection(w)
     XtAddEventHandler(w, PropertyChangeMask, False,
 	    /*(XtEventHandler)*/clip_x11_timestamp_cb, (XtPointer)NULL);
 }
-
-static void  clip_x11_request_selection_cb __ARGS((Widget, XtPointer, Atom *, Atom *, XtPointer, long_u *, int *));
 
     static void
 clip_x11_request_selection_cb(w, success, sel_atom, type, value, length,
@@ -2356,7 +2362,7 @@ clip_x11_lose_ownership_cb(w, sel_atom)
 
     void
 clip_x11_lose_selection(myShell, cbd)
-    Widget	myShell;
+    Widget		myShell;
     VimClipboard	*cbd;
 {
     XtDisownSelection(myShell, cbd->sel_atom, CurrentTime);
@@ -2364,14 +2370,29 @@ clip_x11_lose_selection(myShell, cbd)
 
     int
 clip_x11_own_selection(myShell, cbd)
-    Widget	myShell;
+    Widget		myShell;
     VimClipboard	*cbd;
 {
-    /* Get the time by a zero-length append, clip_x11_timestamp_cb will be
-     * called with the current timestamp.  */
-    if (!XChangeProperty(XtDisplay(myShell), XtWindow(myShell), cbd->sel_atom,
-	    timestamp_atom, 32, PropModeAppend, NULL, 0))
+    /* When using the GUI we have proper timestamps, use the one of the last
+     * event.  When in the console we don't get events (the terminal gets
+     * them), Get the time by a zero-length append, clip_x11_timestamp_cb will
+     * be called with the current timestamp.  */
+#ifdef FEAT_GUI
+    if (gui.in_use)
+    {
+	if (XtOwnSelection(myShell, cbd->sel_atom,
+	       XtLastTimestampProcessed(XtDisplay(myShell)),
+	       clip_x11_convert_selection_cb, clip_x11_lose_ownership_cb,
+	       NULL) == False)
 	return FAIL;
+    }
+    else
+#endif
+    {
+	if (!XChangeProperty(XtDisplay(myShell), XtWindow(myShell),
+		  cbd->sel_atom, timestamp_atom, 32, PropModeAppend, NULL, 0))
+	return FAIL;
+    }
     /* Flush is required in a terminal as nothing else is doing it. */
     XFlush(XtDisplay(myShell));
     return OK;

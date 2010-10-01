@@ -2350,15 +2350,31 @@ redraw:
 	windgoto(msg_row, msg_col);
 	pend = (char_u *)(line_ga.ga_data) + line_ga.ga_len;
 
-	/* we are done when a NL is entered, but not when it comes after a
-	 * backslash */
-	if (line_ga.ga_len > 0 && pend[-1] == '\n'
-		&& (line_ga.ga_len <= 1 || pend[-2] != '\\'))
+	/* We are done when a NL is entered, but not when it comes after an
+	 * odd number of backslashes, that results in a NUL. */
+	if (line_ga.ga_len > 0 && pend[-1] == '\n')
 	{
-	    --line_ga.ga_len;
-	    --pend;
-	    *pend = NUL;
-	    break;
+	    int bcount = 0;
+
+	    while (line_ga.ga_len - 2 >= bcount && pend[-2 - bcount] == '\\')
+		++bcount;
+
+	    if (bcount > 0)
+	    {
+		/* Halve the number of backslashes: "\NL" -> "NUL", "\\NL" ->
+		 * "\NL", etc. */
+		line_ga.ga_len -= (bcount + 1) / 2;
+		pend -= (bcount + 1) / 2;
+		pend[-1] = '\n';
+	    }
+
+	    if ((bcount & 1) == 0)
+	    {
+		--line_ga.ga_len;
+		--pend;
+		*pend = NUL;
+		break;
+	    }
 	}
     }
 
@@ -6161,9 +6177,7 @@ ex_window()
     curwin->w_p_rl = cmdmsg_rl;
     cmdmsg_rl = FALSE;
 # endif
-# ifdef FEAT_SCROLLBIND
-    curwin->w_p_scb = FALSE;
-# endif
+    RESET_BINDING(curwin);
 
 # ifdef FEAT_AUTOCMD
     /* Do execute autocommands for setting the filetype (load syntax). */

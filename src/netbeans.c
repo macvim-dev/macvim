@@ -87,7 +87,7 @@ static int getConnInfo __ARGS((char *file, char **host, char **port, char **pass
 static void nb_init_graphics __ARGS((void));
 static void coloncmd __ARGS((char *cmd, ...));
 static void nb_set_curbuf __ARGS((buf_T *buf));
-#ifdef FEAT_GUI_MOTIF
+#ifdef FEAT_GUI_X11
 static void messageFromNetbeans __ARGS((XtPointer, int *, XtInputId *));
 #endif
 #ifdef FEAT_GUI_GTK
@@ -112,7 +112,7 @@ typedef int NBSOCK;
 static NBSOCK nbsock = -1;		/* socket fd for Netbeans connection */
 #define NETBEANS_OPEN (nbsock != -1)
 
-#ifdef FEAT_GUI_MOTIF
+#ifdef FEAT_GUI_X11
 static XtInputId inputHandler = (XtInputId)NULL;  /* Cookie for input */
 #endif
 #ifdef FEAT_GUI_GTK
@@ -147,7 +147,7 @@ netbeans_close(void)
 
     netbeans_send_disconnect();
 
-#ifdef FEAT_GUI_MOTIF
+#ifdef FEAT_GUI_X11
     if (inputHandler != (XtInputId)NULL)
     {
 	XtRemoveInput(inputHandler);
@@ -722,7 +722,7 @@ netbeans_parse_messages(void)
 /*
  * Read a command from netbeans.
  */
-#ifdef FEAT_GUI_MOTIF
+#ifdef FEAT_GUI_X11
     static void
 messageFromNetbeans(XtPointer clientData UNUSED,
 		    int *unused1 UNUSED,
@@ -2801,6 +2801,16 @@ ex_nbkey(eap)
 ex_nbstart(eap)
     exarg_T	*eap;
 {
+#ifdef FEAT_GUI
+# if !defined(FEAT_GUI_X11) && !defined(FEAT_GUI_GTK)  \
+                && !defined(FEAT_GUI_W32)
+    if (gui.in_use)
+    {
+        EMSG(_("E838: netbeans is not supported with this GUI"));
+        return;
+    }
+# endif
+#endif
     netbeans_open((char *)eap->arg, FALSE);
 }
 
@@ -2965,7 +2975,7 @@ netbeans_gui_register(void)
     if (!NB_HAS_GUI || !NETBEANS_OPEN)
 	return;
 
-# ifdef FEAT_GUI_MOTIF
+# ifdef FEAT_GUI_X11
     /* tell notifier we are interested in being called
      * when there is input on the editor connection socket
      */
@@ -3061,7 +3071,7 @@ netbeans_send_disconnect()
     }
 }
 
-#if defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_W32) || defined(PROTO)
+#if defined(FEAT_GUI_X11) || defined(FEAT_GUI_W32) || defined(PROTO)
 /*
  * Tell netbeans that the window was moved or resized.
  */
@@ -3492,7 +3502,7 @@ netbeans_is_guarded(linenr_T top, linenr_T bot)
     return FALSE;
 }
 
-#if defined(FEAT_GUI_MOTIF) || defined(PROTO)
+#if defined(FEAT_GUI_X11) || defined(PROTO)
 /*
  * We have multiple signs to draw at the same location. Draw the
  * multi-sign indicator instead. This is the Motif version.
@@ -3521,7 +3531,7 @@ netbeans_draw_multisign_indicator(int row)
     XDrawPoint(gui.dpy, gui.wid, gui.text_gc, x+3, y++);
     XDrawPoint(gui.dpy, gui.wid, gui.text_gc, x+2, y);
 }
-#endif /* FEAT_GUI_MOTIF */
+#endif /* FEAT_GUI_X11 */
 
 #if defined(FEAT_GUI_GTK) && !defined(PROTO)
 /*
