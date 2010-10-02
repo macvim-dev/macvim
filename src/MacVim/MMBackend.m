@@ -1250,6 +1250,15 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         } else {
             ASLogDebug(@"Dropping repeated keyboard input");
         }
+    } else if (SetMarkedTextMsgID == msgid) {
+        // NOTE: This message counts as keyboard input...
+        [self handleMarkedText:data];
+    } else if (ActivatedImMsgID == msgid) {
+        // NOTE: This message counts as keyboard input...
+        [self setImState:YES];
+    } else if (DeactivatedImMsgID == msgid) {
+        // NOTE: This message counts as keyboard input...
+        [self setImState:NO];
     } else if (TerminateNowMsgID == msgid) {
         // Terminate immediately (the frontend is about to quit or this process
         // was aborted).  Don't preserve modified files since the user would
@@ -2039,16 +2048,10 @@ static void netbeansReadCallback(CFSocketRef s,
         [self handleOpenWithArguments:[NSDictionary dictionaryWithData:data]];
     } else if (FindReplaceMsgID == msgid) {
         [self handleFindReplace:[NSDictionary dictionaryWithData:data]];
-    } else if (ActivatedImMsgID == msgid) {
-        [self setImState:YES];
-    } else if (DeactivatedImMsgID == msgid) {
-        [self setImState:NO];
     } else if (NetBeansMsgID == msgid) {
 #ifdef FEAT_NETBEANS_INTG
         netbeans_read();
 #endif
-    } else if (SetMarkedTextMsgID == msgid) {
-        [self handleMarkedText:data];
     } else if (ZoomMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
