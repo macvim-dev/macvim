@@ -193,7 +193,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)handleOpenWithArguments:(NSDictionary *)args;
 - (BOOL)checkForModifiedBuffers;
 - (void)addInput:(NSString *)input;
-- (BOOL)unusedEditor;
 - (void)redrawScreen;
 - (void)handleFindReplace:(NSDictionary *)args;
 - (void)handleMarkedText:(NSData *)data;
@@ -2640,19 +2639,6 @@ static void netbeansReadCallback(CFSocketRef s,
     BOOL openFiles = ![[args objectForKey:@"dontOpen"] boolValue];
     int layout = [[args objectForKey:@"layout"] intValue];
 
-    // Change to directory of first file to open if this is an "unused" editor
-    // (but do not do this if editing remotely).
-    if (openFiles && numFiles > 0 && ![args objectForKey:@"remoteID"]
-            && (starting || [self unusedEditor]) ) {
-        char_u *s = [[filenames objectAtIndex:0] vimStringSave];
-        if (mch_isdir(s)) {
-            mch_chdir((char*)s);
-        } else {
-            vim_chdirfile(s);
-        }
-        vim_free(s);
-    }
-
     if (starting > 0) {
         // When Vim is starting we simply add the files to be opened to the
         // global arglist and Vim will take care of opening them for us.
@@ -2672,6 +2658,20 @@ static void netbeansReadCallback(CFSocketRef s,
             // in windows or tabs; all we must do is to specify which layout to
             // use.
             initialWindowLayout = layout;
+
+            // Change to directory of first file to open.
+            // NOTE: This is only done when Vim is starting to avoid confusion:
+            // if a window is already open the pwd is never touched.
+            if (openFiles && numFiles > 0 && ![args objectForKey:@"remoteID"])
+            {
+                char_u *s = [[filenames objectAtIndex:0] vimStringSave];
+                if (mch_isdir(s)) {
+                    mch_chdir((char*)s);
+                } else {
+                    vim_chdirfile(s);
+                }
+                vim_free(s);
+            }
         }
     } else {
         // When Vim is already open we resort to some trickery to open the
