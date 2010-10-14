@@ -4174,9 +4174,6 @@ mch_call_shell(cmd, options)
 # ifdef FEAT_GUI
 		if (pty_master_fd >= 0)
 		{
-#  ifndef FEAT_GUI_MACVIM
-		    close(pty_slave_fd);        /* close slave side of pty */
-#  endif
 		    fromshell_fd = pty_master_fd;
 		    toshell_fd = dup(pty_master_fd);
 		}
@@ -4649,10 +4646,14 @@ finished:
 		    break;
 	    }
 
-#ifdef FEAT_GUI_MACVIM
-	    if (pty_slave_fd >= 0)
-		close(pty_slave_fd);	/* close slave side of pty */
-#endif
+# ifdef FEAT_GUI
+	    /* Close slave side of pty.  Only do this after the child has
+	     * exited, otherwise the child may hang when it tries to write on
+	     * the pty. */
+	    if (pty_master_fd >= 0)
+		close(pty_slave_fd);
+# endif
+
 	    /* Make sure the child that writes to the external program is
 	     * dead. */
 	    if (wpid > 0)
