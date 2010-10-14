@@ -273,6 +273,13 @@
     [[MMAppController sharedInstance] windowControllerWillOpen:self];
     [[self window] makeKeyAndOrderFront:self];
 
+    if (fullscreenWindow) {
+        // Delayed entering of full screen happens here (a ":set fu" in a
+        // GUIEnter auto command could cause this).
+        [fullscreenWindow enterFullscreen];
+        fullscreenEnabled = YES;
+    }
+
     return YES;
 }
 
@@ -607,17 +614,28 @@
 {
     if (fullscreenEnabled) return;
 
+    // fullscreenWindow could be nil here if this is called multiple times
+    // during startup.
+    [fullscreenWindow release];
+
     fullscreenWindow = [[MMFullscreenWindow alloc]
-        initWithWindow:decoratedWindow view:vimView backgroundColor:back];
-    [fullscreenWindow enterFullscreen:fuoptions];    
-    [fullscreenWindow setDelegate:self];
+            initWithWindow:decoratedWindow view:vimView backgroundColor:back];
+    [fullscreenWindow setOptions:fuoptions];
     [fullscreenWindow setRepresentedFilename:
                                         [decoratedWindow representedFilename]];
-    fullscreenEnabled = YES;
 
-    // The resize handle disappears so the vim view needs to update the
-    // scrollbars.
-    shouldResizeVimView = YES;
+    // If the window is not visible then delay entering full screen until the
+    // window is presented.
+    if ([decoratedWindow isVisible]) {
+        [fullscreenWindow enterFullscreen];
+        fullscreenEnabled = YES;
+
+        // The resize handle disappears so the vim view needs to update the
+        // scrollbars.
+        shouldResizeVimView = YES;
+    } else {
+        ASLogDebug(@"Delay enter full screen");
+    }
 }
 
 - (void)leaveFullscreen
@@ -635,7 +653,7 @@
 
 - (void)setFullscreenBackgroundColor:(NSColor *)back
 {
-    if (fullscreenEnabled)
+    if (fullscreenWindow)
         [fullscreenWindow setBackgroundColor:back];
 }
 

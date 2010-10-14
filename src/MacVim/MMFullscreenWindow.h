@@ -19,6 +19,7 @@
     MMVimView   *view;
     NSPoint     oldPosition;
     NSString    *oldTabBarStyle;
+    int         options;
 
     // These are only valid in fullscreen mode and store pre-fu vim size 
     int         nonFuRows, nonFuColumns;
@@ -32,8 +33,8 @@
 
 - (MMFullscreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v
                                backgroundColor:(NSColor *)back;
-
-- (void)enterFullscreen:(int)fuoptions;
+- (void)setOptions:(int)opt;
+- (void)enterFullscreen;
 - (void)leaveFullscreen;
 - (void)centerView;
 

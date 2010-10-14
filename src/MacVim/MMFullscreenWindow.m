@@ -107,8 +107,15 @@
     [super dealloc];
 }
 
-- (void)enterFullscreen:(int)fuoptions
+- (void)setOptions:(int)opt
 {
+    options = opt;
+}
+
+- (void)enterFullscreen
+{
+    ASLogDebug(@"Enter full screen now");
+
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
@@ -117,7 +124,11 @@
             kCGDisplayBlendSolidColor, .0, .0, .0, true);
         didBlend = YES;
     }
-    
+
+    // NOTE: The window may have moved to another screen in between init.. and
+    // this call so set the frame again just in case.
+    [self setFrame:[[target screen] frame] display:NO];
+
     // fool delegate
     id delegate = [target delegate];
     [target setDelegate:nil];
@@ -146,7 +157,7 @@
     // focus gained message  
     [self setDelegate:delegate];
 
-    // resize vim view according to fuoptions
+    // resize vim view according to options
     int currRows, currColumns;
     [[view textView] getMaxRows:&currRows columns:&currColumns];
 
@@ -163,12 +174,12 @@
     nonFuColumns = currColumns;
 
     // Compute current fu size
-    if (fuoptions & FUOPT_MAXVERT)
+    if (options & FUOPT_MAXVERT)
         fuRows = maxRows;
-    if (fuoptions & FUOPT_MAXHORZ)
+    if (options & FUOPT_MAXHORZ)
         fuColumns = maxColumns;
 
-    startFuFlags = fuoptions;
+    startFuFlags = options;
 
     // if necessary, resize vim to target fu size
     if (currRows != fuRows || currColumns != fuColumns) {
