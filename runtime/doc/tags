@@ -4987,7 +4987,9 @@ clearmatches()	eval.txt	/*clearmatches()*
 client-server	remote.txt	/*client-server*
 clientserver	remote.txt	/*clientserver*
 clipboard	gui.txt	/*clipboard*
+cmd-key	gui_mac.txt	/*cmd-key*
 cmd-movement	gui_mac.txt	/*cmd-movement*
+cmd-shortcuts	gui_mac.txt	/*cmd-shortcuts*
 cmdarg-variable	eval.txt	/*cmdarg-variable*
 cmdbang-variable	eval.txt	/*cmdbang-variable*
 cmdline-arguments	vi_diff.txt	/*cmdline-arguments*

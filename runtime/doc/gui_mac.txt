@@ -172,6 +172,8 @@ time you start MacVim, you could create an alias such as >
 	alias gvim='/Applications/MacVim.app/Contents/MacOS/Vim -g'
 and add that to "~/.profile".
 
+Note: Do NOT call the MacVim binary inside the app bundle to start MacVim.
+
 							*mvim*
 A more flexible way to start MacVim is to use the shell script "mvim" which
 comes bundled with MacVim.  Put this script in a folder in your path and then
@@ -549,7 +551,8 @@ Note that url has to be a file:// url pointing to an existing local file.
 
 Most keyboard shortcuts in MacVim are bound to menu items and can be
 discovered by looking through the menus (see |macvim-menus| on how to create
-your own menu shortcuts).  The remaining shortcuts are listed here:
+your own menu shortcuts, see |cmd-key| on how to map your own commands to
+Cmd-key shortcuts).  The remaining shortcuts are listed here:
 
 							*Cmd-.* *<D-.>*
 Cmd-.			Interrupt Vim.  Unlike Ctrl-C which is sent as normal
@@ -607,6 +610,21 @@ equivalents which are not set up with :map).
 
 See |macvim-shift-movement| if you want Shift to select text when used in
 conjunction with the above Cmd/Alt movement shortcuts.
+
+						*cmd-key* *cmd-shortcuts*
+Creating key mappings that involve the Cmd key (<D-..> in Vim notation) can
+sometimes be slightly involved.  Here are all the things you need to consider:
+
+- Make sure the shortcut is not used by a menu item by looking through the
+  menus.  If it is then you need to unbind it before you can map to it.  This
+  is described under the help for the |:macmenu| command.
+- Bindings to <D-..> are case sensitive: <D-d> is not the same as <D-D>.  If
+  you want to map something to Cmd+Shift+d, then you need to use <D-D>, not
+  <D-S-d> or <D-S-D>.
+- Some command key shortcuts are reserved by Mac OS X and cannot be mapped to
+  (e.g. <D-Tab>).  However, some of these shortcuts can be freed up in the
+  System Preferences under Keyboard (e.g. Cmd+Space).
+- A few command key mappings are set up by MacVim, see |cmd-movement|.
 
 ==============================================================================
 11. Trackpad gestures					*macvim-gestures*
