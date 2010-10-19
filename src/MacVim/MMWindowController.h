@@ -26,6 +26,7 @@
     MMVimController     *vimController;
     MMVimView           *vimView;
     BOOL                setupDone;
+    BOOL                windowPresented;
     BOOL                shouldResizeVimView;
     BOOL                shouldRestoreUserTopLeft;
     int                 updateToolbarFlag;
