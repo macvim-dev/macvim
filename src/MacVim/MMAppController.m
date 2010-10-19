@@ -135,7 +135,7 @@ typedef struct
 - (NSDictionary *)convertVimControllerArguments:(NSDictionary *)args
                                   toCommandLine:(NSArray **)cmdline;
 - (NSString *)workingDirectoryForArguments:(NSDictionary *)args;
-- (NSScreen *)screenContainingPoint:(NSPoint)pt;
+- (NSScreen *)screenContainingTopLeftPoint:(NSPoint)pt;
 @end
 
 
@@ -725,7 +725,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (!NSEqualPoints(topLeft, NSZeroPoint)) {
         // Try to tile from the correct screen in case the user has multiple
         // monitors ([win screen] always seems to return the "main" screen).
-        NSScreen *screen = [self screenContainingPoint:topLeft];
+        //
+        // TODO: Check for screen _closest_ to top left?
+        NSScreen *screen = [self screenContainingTopLeftPoint:topLeft];
         if (!screen)
             screen = [win screen];
 
@@ -2357,14 +2359,22 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     return nil;
 }
 
-- (NSScreen *)screenContainingPoint:(NSPoint)pt
+- (NSScreen *)screenContainingTopLeftPoint:(NSPoint)pt
 {
+    // NOTE: The top left point has y-coordinate which lies one pixel above the
+    // window which must be taken into consideration (this method used to be
+    // called screenContainingPoint: but that method is "off by one" in
+    // y-coordinate).
+
     NSArray *screens = [NSScreen screens];
     NSUInteger i, count = [screens count];
     for (i = 0; i < count; ++i) {
         NSScreen *screen = [screens objectAtIndex:i];
         NSRect frame = [screen frame];
-        if (NSPointInRect(pt, frame))
+        if (pt.x >= frame.origin.x && pt.x < NSMaxX(frame)
+                // NOTE: inequalities below are correct due to this being a top
+                // left test (see comment above)
+                && pt.y > frame.origin.y && pt.y <= NSMaxY(frame))
             return screen;
     }
 
