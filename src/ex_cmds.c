@@ -323,7 +323,8 @@ sort_compare(s1, s2)
     /* When sorting numbers "start_col_nr" is the number, not the column
      * number. */
     if (sort_nr)
-	result = l1.start_col_nr - l2.start_col_nr;
+	result = l1.start_col_nr == l2.start_col_nr ? 0
+				 : l1.start_col_nr > l2.start_col_nr ? 1 : -1;
     else
     {
 	/* We need to copy one line into "sortbuf1", because there is no
@@ -482,7 +483,7 @@ ex_sort(eap)
 	     * of the match, by temporarily terminating the string there */
 	    s2 = s + end_col;
 	    c = *s2;
-	    (*s2) = 0;
+	    *s2 = NUL;
 	    /* Sorting on number: Store the number itself. */
 	    p = s + start_col;
 	    if (sort_hex)
@@ -491,9 +492,13 @@ ex_sort(eap)
 		s = skiptodigit(p);
 	    if (s > p && s[-1] == '-')
 		--s;  /* include preceding negative sign */
-	    vim_str2nr(s, NULL, NULL, sort_oct, sort_hex,
-					&nrs[lnum - eap->line1].start_col_nr, NULL);
-	    (*s2) = c;
+	    if (*s == NUL)
+		/* empty line should sort before any number */
+		nrs[lnum - eap->line1].start_col_nr = -MAXLNUM;
+	    else
+		vim_str2nr(s, NULL, NULL, sort_oct, sort_hex,
+				  &nrs[lnum - eap->line1].start_col_nr, NULL);
+	    *s2 = c;
 	}
 	else
 	{
@@ -6556,8 +6561,7 @@ typedef struct sign sign_T;
 struct sign
 {
     sign_T	*sn_next;	/* next sign in list */
-    int		sn_typenr;	/* type number of sign (negative if not equal
-				   to name) */
+    int		sn_typenr;	/* type number of sign */
     char_u	*sn_name;	/* name of sign */
     char_u	*sn_icon;	/* name of pixmap */
 #ifdef FEAT_SIGN_ICONS
@@ -6569,7 +6573,7 @@ struct sign
 };
 
 static sign_T	*first_sign = NULL;
-static int	last_sign_typenr = MAX_TYPENR;	/* is decremented */
+static int	next_sign_typenr = 1;
 
 static int sign_cmd_idx __ARGS((char_u *begin_cmd, char_u *end_cmd));
 static void sign_list_defined __ARGS((sign_T *sp));
@@ -6651,9 +6655,14 @@ ex_sign(eap)
 	    EMSG(_("E156: Missing sign name"));
 	else
 	{
+	    /* Isolate the sign name.  If it's a number skip leading zeroes,
+	     * so that "099" and "99" are the same sign.  But keep "0". */
 	    p = skiptowhite(arg);
 	    if (*p != NUL)
 		*p++ = NUL;
+	    while (arg[0] == '0' && arg[1] != NUL)
+		++arg;
+
 	    sp_prev = NULL;
 	    for (sp = first_sign; sp != NULL; sp = sp->sn_next)
 	    {
@@ -6666,41 +6675,45 @@ ex_sign(eap)
 		/* ":sign define {name} ...": define a sign */
 		if (sp == NULL)
 		{
+		    sign_T	*lp;
+		    int		start = next_sign_typenr;
+
 		    /* Allocate a new sign. */
 		    sp = (sign_T *)alloc_clear((unsigned)sizeof(sign_T));
 		    if (sp == NULL)
 			return;
 
-		    /* If the name is a number use that for the typenr,
-		     * otherwise use a negative number. */
-		    if (VIM_ISDIGIT(*arg))
-			sp->sn_typenr = atoi((char *)arg);
-		    else
+		    /* Check that next_sign_typenr is not already being used.
+		     * This only happens after wrapping around.  Hopefully
+		     * another one got deleted and we can use its number. */
+		    for (lp = first_sign; lp != NULL; )
 		    {
-			sign_T	*lp;
-			int	start = last_sign_typenr;
-
-			for (lp = first_sign; lp != NULL; lp = lp->sn_next)
+			if (lp->sn_typenr == next_sign_typenr)
 			{
-			    if (lp->sn_typenr == -last_sign_typenr)
+			    ++next_sign_typenr;
+			    if (next_sign_typenr == MAX_TYPENR)
+				next_sign_typenr = 1;
+			    if (next_sign_typenr == start)
 			    {
-				--last_sign_typenr;
-				if (last_sign_typenr == 0)
-				    last_sign_typenr = MAX_TYPENR;
-				if (last_sign_typenr == start)
-				{
-				    vim_free(sp);
-				    EMSG(_("E612: Too many signs defined"));
-				    return;
-				}
-				lp = first_sign;
-				continue;
+				vim_free(sp);
+				EMSG(_("E612: Too many signs defined"));
+				return;
 			    }
+			    lp = first_sign;  /* start all over */
+			    continue;
 			}
+			lp = lp->sn_next;
+		    }
 
-			sp->sn_typenr = -last_sign_typenr;
-			if (--last_sign_typenr == 0)
-			    last_sign_typenr = MAX_TYPENR; /* wrap around */
+		    sp->sn_typenr = next_sign_typenr;
+		    if (++next_sign_typenr == MAX_TYPENR)
+			next_sign_typenr = 1; /* wrap around */
+
+		    sp->sn_name = vim_strsave(arg);
+		    if (sp->sn_name == NULL)  /* out of memory */
+		    {
+			vim_free(sp);
+			return;
 		    }
 
 		    /* add the new sign to the list of signs */
@@ -6708,7 +6721,6 @@ ex_sign(eap)
 			first_sign = sp;
 		    else
 			sp_prev->sn_next = sp;
-		    sp->sn_name = vim_strnsave(arg, (int)(p - arg));
 		}
 
 		/* set values for a defined sign. */
@@ -6886,6 +6898,8 @@ ex_sign(eap)
 		arg = skiptowhite(arg);
 		if (*arg != NUL)
 		    *arg++ = NUL;
+		while (sign_name[0] == '0' && sign_name[1] != NUL)
+		    ++sign_name;
 	    }
 	    else if (STRNCMP(arg, "file=", 5) == 0)
 	    {

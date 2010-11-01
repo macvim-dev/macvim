@@ -289,13 +289,13 @@ typedef struct tagNMTTDISPINFOW {
 
 #ifdef FEAT_MENU
 static UINT	s_menu_id = 100;
+#endif
 
 /*
  * Use the system font for dialogs and tear-off menus.  Remove this line to
  * use DLG_FONT_NAME.
  */
-# define USE_SYSMENU_FONT
-#endif
+#define USE_SYSMENU_FONT
 
 #define VIM_NAME	"vim"
 #define VIM_CLASS	"Vim"
@@ -1260,7 +1260,7 @@ gui_mch_prepare(int *argc, char **argv)
 
     /* try and load the user32.dll library and get the entry points for
      * multi-monitor-support. */
-    if ((user32_lib = LoadLibrary("User32.dll")) != NULL)
+    if ((user32_lib = vimLoadLib("User32.dll")) != NULL)
     {
 	pMonitorFromWindow = (TMonitorFromWindow)GetProcAddress(user32_lib,
 							 "MonitorFromWindow");
@@ -1571,6 +1571,11 @@ gui_mch_init(void)
     s_findrep_struct_w.wFindWhatLen = MSWIN_FR_BUFSIZE;
     s_findrep_struct_w.wReplaceWithLen = MSWIN_FR_BUFSIZE;
 # endif
+#endif
+
+#ifdef FEAT_EVAL
+    /* set the v:windowid variable */
+    set_vim_var_nr(VV_WINDOWID, (long)s_hwnd);
 #endif
 
 theend:
@@ -4188,7 +4193,7 @@ gui_mch_set_foreground(void)
     static void
 dyn_imm_load(void)
 {
-    hLibImm = LoadLibrary("imm32.dll");
+    hLibImm = vimLoadLib("imm32.dll");
     if (hLibImm == NULL)
 	return;
 

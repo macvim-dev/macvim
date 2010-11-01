@@ -3124,6 +3124,9 @@ mb_strnicmp(s1, s2, nn)
 		/* If one of the two characters is incomplete return -1. */
 		if (incomplete || i + utf_byte2len(s2[i]) > n)
 		    return -1;
+		/* Don't case-fold illegal bytes or truncated characters. */
+		if (utf_ptr2len(s1 + i) < l || utf_ptr2len(s2 + i) < l)
+		    return -1;
 		cdiff = utf_fold(utf_ptr2char(s1 + i))
 					     - utf_fold(utf_ptr2char(s2 + i));
 		if (cdiff != 0)
@@ -4159,11 +4162,11 @@ iconv_enabled(verbose)
 {
     if (hIconvDLL != 0 && hMsvcrtDLL != 0)
 	return TRUE;
-    hIconvDLL = LoadLibrary(DYNAMIC_ICONV_DLL);
+    hIconvDLL = vimLoadLib(DYNAMIC_ICONV_DLL);
     if (hIconvDLL == 0)		/* sometimes it's called libiconv.dll */
-	hIconvDLL = LoadLibrary(DYNAMIC_ICONV_DLL_ALT);
+	hIconvDLL = vimLoadLib(DYNAMIC_ICONV_DLL_ALT);
     if (hIconvDLL != 0)
-	hMsvcrtDLL = LoadLibrary(DYNAMIC_MSVCRT_DLL);
+	hMsvcrtDLL = vimLoadLib(DYNAMIC_MSVCRT_DLL);
     if (hIconvDLL == 0 || hMsvcrtDLL == 0)
     {
 	/* Only give the message when 'verbose' is set, otherwise it might be

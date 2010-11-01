@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.3.  Last change: 2010 Sep 29
+*eval.txt*	For Vim version 7.3.  Last change: 2010 Oct 27
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1657,6 +1657,15 @@ v:version	Version number of Vim: Major version number times 100 plus
 					*v:warningmsg* *warningmsg-variable*
 v:warningmsg	Last given warning message.  It's allowed to set this variable.
 
+					*v:windowid* *windowid-variable*
+v:windowid	When any X11 based GUI is running or when running in a
+		terminal and Vim connects to the X server (|-X|) this will be
+		set to the window ID.
+		When an MS-Windows GUI is running this will be set to the
+		window handle.
+		Otherwise the value is zero.
+		Note: for windows inside Vim use |winnr()|.
+
 ==============================================================================
 4. Builtin Functions					*functions*
 
@@ -1822,7 +1831,7 @@ localtime()			Number	current time
 log( {expr})			Float	natural logarithm (base e) of {expr}
 log10( {expr})			Float	logarithm of Float {expr} to base 10
 map( {expr}, {string})		List/Dict  change each item in {expr} to {expr}
-maparg( {name}[, {mode} [, {abbr}]])
+maparg( {name}[, {mode} [, {abbr} [, {dict}]]])
 				String	rhs of mapping {name} in mode {mode}
 mapcheck( {name}[, {mode} [, {abbr}]])
 				String	check for mappings matching {name}
@@ -1934,6 +1943,7 @@ synID( {lnum}, {col}, {trans})	Number	syntax ID at {lnum} and {col}
 synIDattr( {synID}, {what} [, {mode}])
 				String	attribute {what} of syntax ID {synID}
 synIDtrans( {synID})		Number	translated syntax ID of {synID}
+synconcealed( {lnum}, {col})	List    info about concealing
 synstack( {lnum}, {col})	List	stack of syntax IDs at {lnum} and {col}
 system( {expr} [, {input}])	String	output of shell command/filter {expr}
 tabpagebuflist( [{arg}])	List	list of buffer numbers in tab page
@@ -3966,23 +3976,51 @@ map({expr}, {string})					*map()*
 		further items in {expr} are processed.
 
 
-maparg({name}[, {mode} [, {abbr}]])			*maparg()*
-		Return the rhs of mapping {name} in mode {mode}.  When there
-		is no mapping for {name}, an empty String is returned.
+maparg({name}[, {mode} [, {abbr} [, {dict}]]])			*maparg()*
+		When {dict} is omitted or zero: Return the rhs of mapping
+		{name} in mode {mode}.  The returned String has special
+		characters translated like in the output of the ":map" command
+		listing.
+		
+		When there is no mapping for {name}, an empty String is
+		returned.
+
+		The {name} can have special key names, like in the ":map"
+		command.
+
 		{mode} can be one of these strings:
 			"n"	Normal
-			"v"	Visual
+			"v"	Visual (including Select)
 			"o"	Operator-pending
 			"i"	Insert
 			"c"	Cmd-line
+			"s"	Select
+			"x"	Visual
 			"l"	langmap |language-mapping|
 			""	Normal, Visual and Operator-pending
 		When {mode} is omitted, the modes for "" are used.
+
 		When {abbr} is there and it is non-zero use abbreviations
 		instead of mappings.
-		The {name} can have special key names, like in the ":map"
-		command.  The returned String has special characters
-		translated like in the output of the ":map" command listing.
+
+		When {dict} is there and it is non-zero return a dictionary
+		containing all the information of the mapping with the
+		following items:
+		  "lhs"	     The {lhs} of the mapping.
+		  "rhs"	     The {rhs} of the mapping as typed.
+		  "silent"   1 for a |:map-silent| mapping, else 0.
+		  "noremap"  1 if the {rhs} of the mapping is not remappable.
+		  "expr"     1 for an expression mapping (|:map-<expr>|).
+		  "buffer"   1 for a buffer local mapping (|:map-local|).
+		  "mode"     Modes for which the mapping is defined. In
+			     addition to the modes mentioned above, these
+			     characters will be used:
+			     " "     Normal, Visual and Operator-pending
+			     "!"     Insert and Commandline mode
+				     (|mapmpde-ic|)
+		  "sid"	     The script local ID, used for <sid> mappings
+			     (|<SID>|).
+
 		The mappings local to the current buffer are checked first,
 		then the global mappings.
 		This function can be used to map a key even when it's already
@@ -5558,20 +5596,6 @@ synID({lnum}, {col}, {trans})				*synID()*
 			:echo synIDattr(synID(line("."), col("."), 1), "name")
 <
 
-synconcealed({lnum}, {col})				*synconcealed()*
-		The result is a List. The first item in the list is 0 if the
-		character at the position {lnum} and {col} is not part of a
-		concealable region, 1 if it is. The second item in the list is
-		a string. If the first item is 1, the second item contains the
-		text which will be displayed in place of the concealed text,
-		depending on the current setting of 'conceallevel'. The third
-		and final item in the list is a unique number representing the
-		specific syntax region matched. This allows detection of the
-		beginning of a new concealable region if there are two
-		consecutive regions with the same replacement character.
-		For an example use see $VIMRUNTIME/syntax/2html.vim .
-
-
 synIDattr({synID}, {what} [, {mode}])			*synIDattr()*
 		The result is a String, which is the {what} attribute of
 		syntax ID {synID}.  This can be used to obtain information
@@ -5611,6 +5635,20 @@ synIDtrans({synID})					*synIDtrans()*
 		{synID}.  This is the syntax group ID of what is being used to
 		highlight the character.  Highlight links given with
 		":highlight link" are followed.
+
+synconcealed({lnum}, {col})				*synconcealed()*
+		The result is a List. The first item in the list is 0 if the
+		character at the position {lnum} and {col} is not part of a
+		concealable region, 1 if it is. The second item in the list is
+		a string. If the first item is 1, the second item contains the
+		text which will be displayed in place of the concealed text,
+		depending on the current setting of 'conceallevel'. The third
+		and final item in the list is a unique number representing the
+		specific syntax region matched. This allows detection of the
+		beginning of a new concealable region if there are two
+		consecutive regions with the same replacement character.
+		For an example use see $VIMRUNTIME/syntax/2html.vim .
+
 
 synstack({lnum}, {col})					*synstack()*
 		Return a |List|, which is the stack of syntax items at the
