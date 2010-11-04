@@ -403,6 +403,11 @@ defaultAdvanceForFont(CTFontRef fontRef)
     [helper activateIm:enable];
 }
 
+- (void)checkImState
+{
+    [helper checkImState];
+}
+
 - (BOOL)_wantsKeyDownForEvent:(id)event
 {
     // HACK! This is an undocumented method which is called from within

@@ -10,7 +10,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5)
 // Need Carbon for TIS...() functions
 #import <Carbon/Carbon.h>
 #endif
@@ -103,5 +103,8 @@ enum {
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
 - (BOOL)useInlineIm;
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+- (void)checkImState;
+#endif
 
 @end

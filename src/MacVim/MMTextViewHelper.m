@@ -36,7 +36,7 @@ static float MMDragAreaSize = 73.0f;
 - (MMVimController *)vimController;
 - (void)doKeyDown:(NSString *)key;
 - (void)doInsertText:(NSString *)text;
-- (void)checkImState;
+- (void)pollImState;
 - (void)hideMouseCursor;
 - (void)startDragTimerWithInterval:(NSTimeInterval)t;
 - (void)dragTimerFired:(NSTimer *)timer;
@@ -129,11 +129,19 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 {
     ASLogDebug(@"%@", event);
 
-    // NOTE: Check IM state _before_ key has been interpreted or we'll pick up
-    // the old IM state when it has been switched via a keyboard shortcut that
-    // MacVim cannot handle.
-    if (imControl)
-        [self checkImState];
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    if (NULL == TISCopyCurrentKeyboardInputSource) {
+#endif
+
+        // NOTE: Check IM state _before_ key has been interpreted or we'll pick
+        // up the old IM state when it has been switched via a keyboard shortcut
+        // that MacVim cannot handle.
+        if (imControl)
+            [self pollImState];
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    }
+#endif
 
     // NOTE: Keyboard handling is complicated by the fact that we must call
     // interpretKeyEvents: otherwise key equivalents set up by input methods do
@@ -851,6 +859,34 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 #endif // INCLUDE_OLD_IM_CODE
 }
 
+- (void)checkImState
+{
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    if (imControl && NULL != TISCopyCurrentKeyboardInputSource) {
+        // We get here when compiled on >=10.5 and running on >=10.5.
+        TISInputSourceRef cur = TISCopyCurrentKeyboardInputSource();
+        BOOL state = !KeyboardInputSourcesEqual(asciiImSource, cur);
+        BOOL isChanged = !KeyboardInputSourcesEqual(lastImSource, cur);
+        if (state && isChanged) {
+            // Remember current input source so we can switch back to it
+            // when IM is once more enabled.
+            ASLogDebug(@"Remember last input source: %@",
+                TISGetInputSourceProperty(cur, kTISPropertyInputSourceID));
+            if (lastImSource) CFRelease(lastImSource);
+            lastImSource = cur;
+        } else {
+            CFRelease(cur);
+        }
+        if (imState != state) {
+            imState = state;
+            int msgid = state ? ActivatedImMsgID : DeactivatedImMsgID;
+            [[self vimController] sendMessage:msgid data:nil];
+        }
+        return;
+    }
+#endif
+}
+
 @end // MMTextViewHelper
 
 
@@ -936,32 +972,8 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [[self vimController] sendMessage:KeyDownMsgID data:data];
 }
 
-- (void)checkImState
+- (void)pollImState
 {
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
-    if (NULL != TISCopyCurrentKeyboardInputSource) {
-        // We get here when compiled on >=10.5 and running on >=10.5.
-        TISInputSourceRef cur = TISCopyCurrentKeyboardInputSource();
-        BOOL state = !KeyboardInputSourcesEqual(asciiImSource, cur);
-        BOOL isChanged = !KeyboardInputSourcesEqual(lastImSource, cur);
-        if (state && isChanged) {
-            // Remember current input source so we can switch back to it
-            // when IM is once more enabled.
-            ASLogDebug(@"Remember last input source: %@",
-                TISGetInputSourceProperty(cur, kTISPropertyInputSourceID));
-            if (lastImSource) CFRelease(lastImSource);
-            lastImSource = cur;
-        } else {
-            CFRelease(cur);
-        }
-        if (imState != state) {
-            imState = state;
-            int msgid = state ? ActivatedImMsgID : DeactivatedImMsgID;
-            [[self vimController] sendMessage:msgid data:nil];
-        }
-        return;
-    }
-#endif
 #if (MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5)
     // Compiled for <=10.4, running on 10.4
 

@@ -75,6 +75,7 @@ enum { MMMaxCellsPerChar = 2 };
 - (void)setAntialias:(BOOL)state;
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
+- (void)checkImState;
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 - (NSPoint)pointForRow:(int)row column:(int)col;
 - (NSRect)rectForRow:(int)row column:(int)col numRows:(int)nr

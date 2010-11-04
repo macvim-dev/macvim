@@ -79,6 +79,7 @@
 - (void)setAntialias:(BOOL)state;
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
+- (void)checkImState;
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 - (NSRect)rectForRow:(int)row column:(int)column numRows:(int)nr
           numColumns:(int)nc;
