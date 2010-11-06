@@ -1657,6 +1657,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)setImState:(BOOL)activated
 {
     imState = activated;
+
+    gui_update_cursor(TRUE, FALSE);
+    [self flushQueue:YES];
 }
 
 static void netbeansReadCallback(CFSocketRef s,
