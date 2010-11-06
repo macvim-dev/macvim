@@ -1196,6 +1196,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     // This is a DO method which is called from inside MacVim to add new input
     // to this Vim process.  It may get called when the run loop is updated.
     //
+    // NOTE: DO NOT MODIFY VIM STATE IN THIS METHOD! (Adding data to input
+    // buffers is OK however.)
+    //
     // Add keyboard input to Vim's input buffer immediately.  We have to do
     // this because in many places Vim polls the input buffer whilst waiting
     // for keyboard input (so Vim may lock up forever otherwise).
@@ -1252,12 +1255,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     } else if (SetMarkedTextMsgID == msgid) {
         // NOTE: This message counts as keyboard input...
         [self handleMarkedText:data];
-    } else if (ActivatedImMsgID == msgid) {
-        // NOTE: This message counts as keyboard input...
-        [self setImState:YES];
-    } else if (DeactivatedImMsgID == msgid) {
-        // NOTE: This message counts as keyboard input...
-        [self setImState:NO];
     } else if (TerminateNowMsgID == msgid) {
         // Terminate immediately (the frontend is about to quit or this process
         // was aborted).  Don't preserve modified files since the user would
@@ -2079,6 +2076,10 @@ static void netbeansReadCallback(CFSocketRef s,
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
         [self handleGesture:data];
 #endif
+    } else if (ActivatedImMsgID == msgid) {
+        [self setImState:YES];
+    } else if (DeactivatedImMsgID == msgid) {
+        [self setImState:NO];
     } else {
         ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }
