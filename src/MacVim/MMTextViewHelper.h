@@ -10,7 +10,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4)
 // Need Carbon for TIS...() functions
 #import <Carbon/Carbon.h>
 #endif
