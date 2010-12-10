@@ -139,14 +139,12 @@ static int dosetvisible = FALSE;
 static int needupdate = 0;
 static int inAtomic = 0;
 
+/*
+ * Close the socket and remove the input handlers.
+ */
     static void
-netbeans_close(void)
+nb_close_socket(void)
 {
-    if (!NETBEANS_OPEN)
-	return;
-
-    netbeans_send_disconnect();
-
 #ifdef FEAT_GUI_X11
     if (inputHandler != (XtInputId)NULL)
     {
@@ -173,12 +171,26 @@ netbeans_close(void)
 # endif
 #endif
 
+    sock_close(nbsock);
+    nbsock = -1;
+}
+
+/*
+ * Close the connection and cleanup.
+ * May be called when nb_close_socket() was called earlier.
+ */
+    static void
+netbeans_close(void)
+{
+    if (NETBEANS_OPEN)
+    {
+	netbeans_send_disconnect();
+	nb_close_socket();
+    }
+
 #ifdef FEAT_BEVAL
     bevalServers &= ~BEVAL_NETBEANS;
 #endif
-
-    sock_close(nbsock);
-    nbsock = -1;
 
     needupdate = 0;
     inAtomic = 0;
@@ -653,9 +665,7 @@ netbeans_parse_messages(void)
 {
     char_u	*p;
     queue_T	*node;
-
-    if (!NETBEANS_OPEN)
-	return;
+    int		own_node;
 
     while (head.next != NULL && head.next != &head)
     {
@@ -694,20 +704,25 @@ netbeans_parse_messages(void)
 	    *p++ = NUL;
 	    if (*p == NUL)
 	    {
+		own_node = TRUE;
 		head.next = node->next;
 		node->next->prev = node->prev;
 	    }
+	    else
+		own_node = FALSE;
 
 	    /* now, parse and execute the commands */
 	    nb_parse_cmd(node->buffer);
 
-	    if (*p == NUL)
+	    if (own_node)
 	    {
 		/* buffer finished, dispose of the node and buffer */
 		vim_free(node->buffer);
 		vim_free(node);
 	    }
-	    else
+	    /* Check that "head" wasn't changed under our fingers, e.g. when a
+	     * DETACH command was handled. */
+	    else if (head.next == node)
 	    {
 		/* more follows, move to the start */
 		STRMOVE(node->buffer, p);
@@ -742,15 +757,14 @@ messageFromNetbeans(gpointer clientData UNUSED,
 }
 #endif
 
+#define DETACH_MSG "DETACH\n"
+
     void
 netbeans_read()
 {
     static char_u	*buf = NULL;
     int			len = 0;
     int			readlen = 0;
-#if defined(NB_HAS_GUI) && !defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_W32)
-    static int		level = 0;
-#endif
 #ifdef HAVE_SELECT
     struct timeval	tval;
     fd_set		rfds;
@@ -771,12 +785,6 @@ netbeans_read()
      * read by timing of CFRunLoop callback. So check socket using select. */
     if (sock_select(nbsock) <= 0)
 	return;
-#endif
-#if defined(NB_HAS_GUI) && !defined(FEAT_GUI_GTK) && !defined(FEAT_GUI_W32)
-    /* recursion guard; this will be called from the X event loop at unknown
-     * moments */
-    if (NB_HAS_GUI)
-	++level;
 #endif
 
     /* Allocate a buffer to read into. */
@@ -818,34 +826,32 @@ netbeans_read()
 	    break;	/* did read everything that's available */
     }
 
+    /* Reading a socket disconnection (readlen == 0), or a socket error. */
     if (readlen <= 0)
     {
-	/* read error or didn't read anything */
-	netbeans_close();
-	nbdebug(("messageFromNetbeans: Error in read() from socket\n"));
+	/* Queue a "DETACH" netbeans message in the command queue in order to
+	 * terminate the netbeans session later. Do not end the session here
+	 * directly as we may be running in the context of a call to
+	 * netbeans_parse_messages():
+	 *	netbeans_parse_messages
+	 *	    -> autocmd triggered while processing the netbeans cmd
+	 *		-> ui_breakcheck
+	 *		    -> gui event loop or select loop
+	 *			-> netbeans_read()
+	 */
+	save((char_u *)DETACH_MSG, strlen(DETACH_MSG));
+	nb_close_socket();
+
 	if (len < 0)
 	{
 	    nbdebug(("read from Netbeans socket\n"));
 	    PERROR(_("read from Netbeans socket"));
 	}
-	return; /* don't try to parse it */
     }
 
-#if defined(NB_HAS_GUI) && !defined(FEAT_GUI_W32)
-    /* Let the main loop handle messages. */
-    if (NB_HAS_GUI)
-    {
-# ifdef FEAT_GUI_GTK
-	if (gtk_main_level() > 0)
-	    gtk_main_quit();
-# else
-	/* Parse the messages now, but avoid recursion. */
-	if (level == 1)
-	    netbeans_parse_messages();
-
-	--level;
-# endif
-    }
+#if defined(NB_HAS_GUI) && defined(FEAT_GUI_GTK)
+    if (NB_HAS_GUI && gtk_main_level() > 0)
+	gtk_main_quit();
 #endif
 }
 
@@ -983,7 +989,6 @@ nb_free()
     keyQ_T *key_node = keyHead.next;
     queue_T *cmd_node = head.next;
     nbbuf_T buf;
-    buf_T *bufp;
     int i;
 
     /* free the netbeans buffer list */
@@ -992,7 +997,7 @@ nb_free()
 	buf = buf_list[i];
 	vim_free(buf.displayname);
 	vim_free(buf.signmap);
-	if ((bufp=buf.bufp) != NULL)
+	if (buf.bufp != NULL)
 	{
 	    buf.bufp->b_netbeans_file = FALSE;
 	    buf.bufp->b_was_netbeans_file = FALSE;
@@ -1213,6 +1218,10 @@ nb_reply_nil(int cmdno)
     char reply[32];
 
     nbdebug(("REP %d: <none>\n", cmdno));
+
+    /* Avoid printing an annoying error message. */
+    if (!NETBEANS_OPEN)
+	return;
 
     sprintf(reply, "%d\n", cmdno);
     nb_send(reply, "nb_reply_nil");
@@ -2803,11 +2812,11 @@ ex_nbstart(eap)
 {
 #ifdef FEAT_GUI
 # if !defined(FEAT_GUI_X11) && !defined(FEAT_GUI_GTK)  \
-                && !defined(FEAT_GUI_W32) && !defined(FEAT_GUI_MACVIM)
+		&& !defined(FEAT_GUI_W32) && !defined(FEAT_GUI_MACVIM)
     if (gui.in_use)
     {
-        EMSG(_("E838: netbeans is not supported with this GUI"));
-        return;
+	EMSG(_("E838: netbeans is not supported with this GUI"));
+	return;
     }
 # endif
 #endif

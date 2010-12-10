@@ -58,6 +58,10 @@ static char *ctrl_x_msgs[] =
 };
 
 static char e_hitend[] = N_("Hit end of paragraph");
+#ifdef FEAT_COMPL_FUNC
+static char e_complwin[] = N_("E839: Completion function changed window");
+static char e_compldel[] = N_("E840: Completion function deleted text");
+#endif
 
 /*
  * Structure used to store one match for insert completion.
@@ -2668,6 +2672,7 @@ set_completion(startcol, list)
     if (stop_arrow() == FAIL)
 	return;
 
+    compl_direction = FORWARD;
     if (startcol > curwin->w_cursor.col)
 	startcol = curwin->w_cursor.col;
     compl_col = startcol;
@@ -3848,6 +3853,8 @@ expand_by_function(type, base)
     char_u	*args[2];
     char_u	*funcname;
     pos_T	pos;
+    win_T	*curwin_save;
+    buf_T	*curbuf_save;
 
     funcname = (type == CTRL_X_FUNCTION) ? curbuf->b_p_cfu : curbuf->b_p_ofu;
     if (*funcname == NUL)
@@ -3858,13 +3865,27 @@ expand_by_function(type, base)
     args[1] = base;
 
     pos = curwin->w_cursor;
+    curwin_save = curwin;
+    curbuf_save = curbuf;
     matchlist = call_func_retlist(funcname, 2, args, FALSE);
+    if (curwin_save != curwin || curbuf_save != curbuf)
+    {
+	EMSG(_(e_complwin));
+	goto theend;
+    }
     curwin->w_cursor = pos;	/* restore the cursor position */
-    if (matchlist == NULL)
-	return;
+    check_cursor();
+    if (!equalpos(curwin->w_cursor, pos))
+    {
+	EMSG(_(e_compldel));
+	goto theend;
+    }
+    if (matchlist != NULL)
+	ins_compl_add_list(matchlist);
 
-    ins_compl_add_list(matchlist);
-    list_unref(matchlist);
+theend:
+    if (matchlist != NULL)
+	list_unref(matchlist);
 }
 #endif /* FEAT_COMPL_FUNC */
 
@@ -3904,6 +3925,7 @@ ins_compl_add_tv(tv, dir)
     char_u	*word;
     int		icase = FALSE;
     int		adup = FALSE;
+    int		aempty = FALSE;
     char_u	*(cptext[CPT_COUNT]);
 
     if (tv->v_type == VAR_DICT && tv->vval.v_dict != NULL)
@@ -3921,13 +3943,15 @@ ins_compl_add_tv(tv, dir)
 	    icase = get_dict_number(tv->vval.v_dict, (char_u *)"icase");
 	if (get_dict_string(tv->vval.v_dict, (char_u *)"dup", FALSE) != NULL)
 	    adup = get_dict_number(tv->vval.v_dict, (char_u *)"dup");
+	if (get_dict_string(tv->vval.v_dict, (char_u *)"empty", FALSE) != NULL)
+	    aempty = get_dict_number(tv->vval.v_dict, (char_u *)"empty");
     }
     else
     {
 	word = get_tv_string_chk(tv);
 	vim_memset(cptext, 0, sizeof(cptext));
     }
-    if (word == NULL || *word == NUL)
+    if (word == NULL || (!aempty && *word == NUL))
 	return FAIL;
     return ins_compl_add(word, -1, icase, NULL, cptext, dir, 0, adup);
 }
@@ -5009,6 +5033,8 @@ ins_complete(c)
 	    int		col;
 	    char_u	*funcname;
 	    pos_T	pos;
+	    win_T	*curwin_save;
+	    buf_T	*curbuf_save;
 
 	    /* Call 'completefunc' or 'omnifunc' and get pattern length as a
 	     * string */
@@ -5024,8 +5050,21 @@ ins_complete(c)
 	    args[0] = (char_u *)"1";
 	    args[1] = NULL;
 	    pos = curwin->w_cursor;
+	    curwin_save = curwin;
+	    curbuf_save = curbuf;
 	    col = call_func_retnr(funcname, 2, args, FALSE);
+	    if (curwin_save != curwin || curbuf_save != curbuf)
+	    {
+		EMSG(_(e_complwin));
+		return FAIL;
+	    }
 	    curwin->w_cursor = pos;	/* restore the cursor position */
+	    check_cursor();
+	    if (!equalpos(curwin->w_cursor, pos))
+	    {
+		EMSG(_(e_compldel));
+		return FAIL;
+	    }
 
 	    if (col < 0)
 		col = curs_col;

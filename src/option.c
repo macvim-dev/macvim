@@ -2785,7 +2785,7 @@ static struct vimoption
 			    (char_u *)&p_wc, PV_NONE,
 			    {(char_u *)(long)Ctrl_E, (char_u *)(long)TAB}
 			    SCRIPTID_INIT},
-    {"wildcharm",   "wcm",   P_NUM|P_VI_DEF,
+    {"wildcharm",   "wcm",  P_NUM|P_VI_DEF,
 			    (char_u *)&p_wcm, PV_NONE,
 			    {(char_u *)0L, (char_u *)0L} SCRIPTID_INIT},
     {"wildignore",  "wig",  P_STRING|P_VI_DEF|P_COMMA|P_NODUP,
@@ -2795,6 +2795,9 @@ static struct vimoption
 			    (char_u *)NULL, PV_NONE,
 #endif
 			    {(char_u *)"", (char_u *)0L} SCRIPTID_INIT},
+    {"wildignorecase", "wic", P_BOOL|P_VI_DEF,
+			    (char_u *)&p_wic, PV_NONE,
+			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
     {"wildmenu",    "wmnu", P_BOOL|P_VI_DEF,
 #ifdef FEAT_WILDMENU
 			    (char_u *)&p_wmnu, PV_NONE,
@@ -7389,7 +7392,7 @@ check_stl_option(s)
     static char_u *
 check_clipboard_option()
 {
-    int		new_unnamed = FALSE;
+    int		new_unnamed = 0;
     int		new_autoselect = FALSE;
     int		new_autoselectml = FALSE;
     int		new_html = FALSE;
@@ -7401,8 +7404,14 @@ check_clipboard_option()
     {
 	if (STRNCMP(p, "unnamed", 7) == 0 && (p[7] == ',' || p[7] == NUL))
 	{
-	    new_unnamed = TRUE;
+	    new_unnamed |= CLIP_UNNAMED;
 	    p += 7;
+	}
+        else if (STRNCMP(p, "unnamedplus", 11) == 0
+					    && (p[11] == ',' || p[11] == NUL))
+	{
+	    new_unnamed |= CLIP_UNNAMED_PLUS;
+	    p += 11;
 	}
 	else if (STRNCMP(p, "autoselect", 10) == 0
 					&& (p[10] == ',' || p[10] == NUL))
@@ -9894,6 +9903,9 @@ copy_winopt(from, to)
 #endif
 #ifdef FEAT_SCROLLBIND
     to->wo_scb = from->wo_scb;
+#endif
+#ifdef FEAT_CURSORBIND
+    to->wo_crb = from->wo_crb;
 #endif
 #ifdef FEAT_SPELL
     to->wo_spell = from->wo_spell;

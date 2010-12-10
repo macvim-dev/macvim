@@ -211,13 +211,16 @@ static char_u *exe_path = NULL;
     static void
 get_exe_name(void)
 {
-    char	temp[MAXPATHL];
+    /* Maximum length of $PATH is more than MAXPATHL.  8191 is often mentioned
+     * as the maximum length that works (plus a NUL byte). */
+#define MAX_ENV_PATH_LEN 8192
+    char	temp[MAX_ENV_PATH_LEN];
     char_u	*p;
 
     if (exe_name == NULL)
     {
 	/* store the name of the executable, may be used for $VIM */
-	GetModuleFileName(NULL, temp, MAXPATHL - 1);
+	GetModuleFileName(NULL, temp, MAX_ENV_PATH_LEN - 1);
 	if (*temp != NUL)
 	    exe_name = FullName_save((char_u *)temp, FALSE);
     }
@@ -232,10 +235,16 @@ get_exe_name(void)
 	     * "!xxd" it's found in our starting directory.  Needed because
 	     * SearchPath() also looks there. */
 	    p = mch_getenv("PATH");
-	    if (STRLEN(p) + STRLEN(exe_path) + 2 < MAXPATHL)
+	    if (p == NULL
+		       || STRLEN(p) + STRLEN(exe_path) + 2 < MAX_ENV_PATH_LEN)
 	    {
-		STRCPY(temp, p);
-		STRCAT(temp, ";");
+		if (p == NULL || *p == NUL)
+		    temp[0] = NUL;
+		else
+		{
+		    STRCPY(temp, p);
+		    STRCAT(temp, ";");
+		}
 		STRCAT(temp, exe_path);
 		vim_setenv((char_u *)"PATH", temp);
 	    }
@@ -3176,9 +3185,10 @@ mch_system(char *cmd, int options)
      * It's nicer to run a filter command in a minimized window, but in
      * Windows 95 this makes the command MUCH slower.  We can't do it under
      * Win32s either as it stops the synchronous spawn workaround working.
+     * Don't activate the window to keep focus on Vim.
      */
     if ((options & SHELL_DOOUT) && !mch_windows95() && !gui_is_win32s())
-	si.wShowWindow = SW_SHOWMINIMIZED;
+	si.wShowWindow = SW_SHOWMINNOACTIVE;
     else
 	si.wShowWindow = SW_SHOWNORMAL;
     si.cbReserved2 = 0;

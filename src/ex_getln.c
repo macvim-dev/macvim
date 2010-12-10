@@ -712,7 +712,11 @@ getcmdline(firstc, count, indent)
 		    }
 		}
 		beep_flush();
-		c = ESC;
+		got_int = FALSE;	/* don't abandon the command line */
+		did_emsg = FALSE;
+		emsg_on_display = FALSE;
+		redrawcmd();
+		goto cmdline_not_changed;
 	    }
 #endif
 	    else
@@ -3346,10 +3350,14 @@ nextwild(xp, type, options)
 	    p2 = NULL;
 	else
 	{
+	    int use_options = options |
+		    WILD_HOME_REPLACE|WILD_ADD_SLASH|WILD_SILENT|WILD_ESCAPE;
+
+	    if (p_wic)
+		use_options += WILD_ICASE;
 	    p2 = ExpandOne(xp, p1,
 			 vim_strnsave(&ccline.cmdbuff[i], xp->xp_pattern_len),
-		    WILD_HOME_REPLACE|WILD_ADD_SLASH|WILD_SILENT|WILD_ESCAPE
-							      |options, type);
+							   use_options, type);
 	    vim_free(p1);
 	    /* longest match: make sure it is not shorter, happens with :help */
 	    if (p2 != NULL && type == WILD_LONGEST)
@@ -3435,6 +3443,7 @@ nextwild(xp, type, options)
  * options = WILD_KEEP_ALL:	    don't remove 'wildignore' entries
  * options = WILD_SILENT:	    don't print warning messages
  * options = WILD_ESCAPE:	    put backslash before special chars
+ * options = WILD_ICASE:	    ignore case for files
  *
  * The variables xp->xp_context and xp->xp_backslash must have been set!
  */
@@ -4368,6 +4377,7 @@ expand_cmdline(xp, str, col, matchcount, matches)
     char_u	***matches;	/* return: array of pointers to matches */
 {
     char_u	*file_str = NULL;
+    int		options = WILD_ADD_SLASH|WILD_SILENT;
 
     if (xp->xp_context == EXPAND_UNSUCCESSFUL)
     {
@@ -4386,9 +4396,11 @@ expand_cmdline(xp, str, col, matchcount, matches)
     if (file_str == NULL)
 	return EXPAND_UNSUCCESSFUL;
 
+    if (p_wic)
+	options += WILD_ICASE;
+
     /* find all files that match the description */
-    if (ExpandFromContext(xp, file_str, matchcount, matches,
-					  WILD_ADD_SLASH|WILD_SILENT) == FAIL)
+    if (ExpandFromContext(xp, file_str, matchcount, matches, options) == FAIL)
     {
 	*matchcount = 0;
 	*matches = NULL;
@@ -4440,7 +4452,7 @@ ExpandFromContext(xp, pat, num_file, file, options)
     char_u	*pat;
     int		*num_file;
     char_u	***file;
-    int		options;
+    int		options;  /* EW_ flags */
 {
 #ifdef FEAT_CMDL_COMPL
     regmatch_T	regmatch;
@@ -4494,6 +4506,9 @@ ExpandFromContext(xp, pat, num_file, file, options)
 	    flags |= (EW_FILE | EW_PATH);
 	else
 	    flags = (flags | EW_DIR) & ~EW_FILE;
+	if (options & WILD_ICASE)
+	    flags |= EW_ICASE;
+
 	/* Expand wildcards, supporting %:h and the like. */
 	ret = expand_wildcards_eval(&pat, num_file, file, flags);
 	if (free_pat)
@@ -4761,7 +4776,11 @@ expand_shellcmd(filepat, num_file, file, flagsarg)
 			    || (pat[1] == '.' && vim_ispathsep(pat[2])))))
 	path = (char_u *)".";
     else
+    {
 	path = vim_getenv((char_u *)"PATH", &mustfree);
+	if (path == NULL)
+	    path = (char_u *)"";
+    }
 
     /*
      * Go over all directories in $PATH.  Expand matches in that directory and
