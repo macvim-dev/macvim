@@ -927,6 +927,10 @@ defaultAdvanceForFont(CTFontRef fontRef)
             // Convert UTF-8 chars to UTF-16
             CFStringRef sref = CFStringCreateWithBytesNoCopy(NULL, s, len,
                                 kCFStringEncodingUTF8, false, kCFAllocatorNull);
+            if (sref == NULL) {
+                ASLogWarn(@"Conversion error: some text may not be rendered");
+                continue;
+            }
             CFIndex unilength = CFStringGetLength(sref);
             const UniChar *unichars = CFStringGetCharactersPtr(sref);
             UniChar *buffer = NULL;
