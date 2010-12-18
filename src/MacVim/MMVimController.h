@@ -34,6 +34,7 @@
     NSDictionary        *vimState;
     BOOL                isPreloading;
     NSDate              *creationDate;
+    BOOL                hasModifiedBuffer;
 }
 
 - (id)initWithBackend:(id)backend pid:(int)processIdentifier;
@@ -48,6 +49,7 @@
 - (NSMenu *)mainMenu;
 - (BOOL)isPreloading;
 - (void)setIsPreloading:(BOOL)yn;
+- (BOOL)hasModifiedBuffer;
 - (NSDate *)creationDate;
 - (void)cleanup;
 - (void)dropFiles:(NSArray *)filenames forceOpen:(BOOL)force;

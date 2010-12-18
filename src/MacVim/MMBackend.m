@@ -191,7 +191,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)startOdbEditWithArguments:(NSDictionary *)args;
 - (void)handleXcodeMod:(NSData *)data;
 - (void)handleOpenWithArguments:(NSDictionary *)args;
-- (BOOL)checkForModifiedBuffers;
+- (int)checkForModifiedBuffers;
 - (void)addInput:(NSString *)input;
 - (void)redrawScreen;
 - (void)handleFindReplace:(NSDictionary *)args;
@@ -1182,12 +1182,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (void)updateModifiedFlag
 {
-    // Notify MacVim if _any_ buffer has changed from unmodified to modified or
-    // vice versa.
-    int msgid = [self checkForModifiedBuffers]
-            ? BuffersModifiedMsgID : BuffersNotModifiedMsgID;
-
-    [self queueMessage:msgid data:nil];
+    int state = [self checkForModifiedBuffers];
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&state length:sizeof(int)];
+    [self queueMessage:SetBuffersModifiedMsgID data:data];
 }
 
 - (oneway void)processInput:(int)msgid data:(in bycopy NSData *)data
@@ -1818,6 +1816,8 @@ static void netbeansReadCallback(CFSocketRef s,
         nil];
 
     // Put the state before all other messages.
+    // TODO: If called multiple times the oldest state will be used! Should
+    // remove any current Vim state messages from the queue first.
     int msgid = SetVimStateMsgID;
     [outputQueue insertObject:[vimState dictionaryAsData] atIndex:0];
     [outputQueue insertObject:[NSData dataWithBytes:&msgid length:sizeof(int)]
@@ -2836,16 +2836,22 @@ static void netbeansReadCallback(CFSocketRef s,
     }
 }
 
-- (BOOL)checkForModifiedBuffers
+- (int)checkForModifiedBuffers
 {
+    // Return 1 if current buffer is modified, -1 if other buffer is modified,
+    // otherwise return 0.
+
+    if (curbuf && bufIsChanged(curbuf))
+        return 1;
+
     buf_T *buf;
     for (buf = firstbuf; buf != NULL; buf = buf->b_next) {
         if (bufIsChanged(buf)) {
-            return YES;
+            return -1;
         }
     }
 
-    return NO;
+    return 0;
 }
 
 - (void)addInput:(NSString *)input

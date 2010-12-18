@@ -220,6 +220,11 @@ static BOOL isUnsafeMessage(int msgid);
     isPreloading = yn;
 }
 
+- (BOOL)hasModifiedBuffer
+{
+    return hasModifiedBuffer;
+}
+
 - (NSDate *)creationDate
 {
     return creationDate;
@@ -765,10 +770,21 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController enterFullscreen:fuoptions backgroundColor:back];
     } else if (LeaveFullscreenMsgID == msgid) {
         [windowController leaveFullscreen];
-    } else if (BuffersNotModifiedMsgID == msgid) {
-        [windowController setBuffersModified:NO];
-    } else if (BuffersModifiedMsgID == msgid) {
-        [windowController setBuffersModified:YES];
+    } else if (SetBuffersModifiedMsgID == msgid) {
+        const void *bytes = [data bytes];
+        // state < 0  <->  some buffer modified
+        // state > 0  <->  current buffer modified
+        int state = *((int*)bytes); bytes += sizeof(int);
+
+        // NOTE: The window controller tracks whether current buffer is
+        // modified or not (and greys out the proxy icon as well as putting a
+        // dot in the red "close button" if necessary).  The Vim controller
+        // tracks whether any buffer has been modified (used to decide whether
+        // to show a warning or not when quitting).
+        //
+        // TODO: Make 'hasModifiedBuffer' part of the Vim state?
+        [windowController setBufferModified:(state > 0)];
+        hasModifiedBuffer = (state != 0);
     } else if (SetPreEditPositionMsgID == msgid) {
         const int *dim = (const int*)[data bytes];
         [[[windowController vimView] textView] setPreEditRow:dim[0]

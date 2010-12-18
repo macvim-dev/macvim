@@ -79,7 +79,7 @@
 - (void)leaveFullscreen;
 - (void)setFullscreenBackgroundColor:(NSColor *)back;
 
-- (void)setBuffersModified:(BOOL)mod;
+- (void)setBufferModified:(BOOL)mod;
 - (void)setTopLeft:(NSPoint)pt;
 - (BOOL)getDefaultTopLeft:(NSPoint*)pt;
 

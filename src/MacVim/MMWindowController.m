@@ -670,7 +670,7 @@
         [fullscreenWindow setBackgroundColor:back];
 }
 
-- (void)setBuffersModified:(BOOL)mod
+- (void)setBufferModified:(BOOL)mod
 {
     // NOTE: We only set the document edited flag on the decorated window since
     // the full-screen window has no close button anyway.  (It also saves us
