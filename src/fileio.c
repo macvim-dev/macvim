@@ -11,14 +11,6 @@
  * fileio.c: read from and write to a file
  */
 
-#if defined(MSDOS) || defined(WIN16) || defined(WIN32) || defined(_WIN64)
-# include "vimio.h"	/* for lseek(), must be before vim.h */
-#endif
-
-#if defined __EMX__
-# include "vimio.h"	/* for mktemp(), CJW 1997-12-03 */
-#endif
-
 #include "vim.h"
 
 #if defined(__TANDEM) || defined(__MINT__)
@@ -918,7 +910,7 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 	    {
 		/* Read the first line (and a bit more).  Immediately rewind to
 		 * the start of the file.  If the read() fails "len" is -1. */
-		len = vim_read(fd, firstline, 80);
+		len = read_eintr(fd, firstline, 80);
 		lseek(fd, (off_t)0L, SEEK_SET);
 		for (p = firstline; p < firstline + len; ++p)
 		    if (*p >= 0x80)
@@ -1373,7 +1365,7 @@ retry:
 		    /*
 		     * Read bytes from the file.
 		     */
-		    size = vim_read(fd, ptr, size);
+		    size = read_eintr(fd, ptr, size);
 		}
 
 		if (size <= 0)
@@ -4000,7 +3992,7 @@ buf_write(buf, fname, sfname, start, end, eap, append, forceit,
 #ifdef HAS_BW_FLAGS
 			write_info.bw_flags = FIO_NOCONVERT;
 #endif
-			while ((write_info.bw_len = vim_read(fd, copybuf,
+			while ((write_info.bw_len = read_eintr(fd, copybuf,
 								BUFSIZE)) > 0)
 			{
 			    if (buf_write_bytes(&write_info) == FAIL)
@@ -4813,7 +4805,7 @@ restore_backup:
 #ifdef HAS_BW_FLAGS
 			write_info.bw_flags = FIO_NOCONVERT;
 #endif
-			while ((write_info.bw_len = vim_read(fd, smallbuf,
+			while ((write_info.bw_len = read_eintr(fd, smallbuf,
 						      SMBUFSIZE)) > 0)
 			    if (buf_write_bytes(&write_info) == FAIL)
 				break;
@@ -5334,7 +5326,7 @@ time_differs(t1, t2)
 
 /*
  * Call write() to write a number of bytes to the file.
- * Also handles encryption and 'encoding' conversion.
+ * Handles encryption and 'encoding' conversion.
  *
  * Return FAIL for failure, OK otherwise.
  */
@@ -5706,16 +5698,8 @@ buf_write_bytes(ip)
 	crypt_encode(buf, len, buf);
 #endif
 
-    /* Repeat the write(), it may be interrupted by a signal. */
-    while (len > 0)
-    {
-	wlen = vim_write(ip->bw_fd, buf, len);
-	if (wlen <= 0)		    /* error! */
-	    return FAIL;
-	len -= wlen;
-	buf += wlen;
-    }
-    return OK;
+    wlen = write_eintr(ip->bw_fd, buf, len);
+    return (wlen < len) ? FAIL : OK;
 }
 
 #ifdef FEAT_MBYTE
@@ -6667,8 +6651,8 @@ vim_rename(from, to)
 	return -1;
     }
 
-    while ((n = vim_read(fd_in, buffer, BUFSIZE)) > 0)
-	if (vim_write(fd_out, buffer, n) != n)
+    while ((n = read_eintr(fd_in, buffer, BUFSIZE)) > 0)
+	if (write_eintr(fd_out, buffer, n) != n)
 	{
 	    errmsg = _("E208: Error writing to \"%s\"");
 	    break;
@@ -10342,3 +10326,55 @@ file_pat_to_reg_pat(pat, pat_end, allow_dirs, no_bslash)
     }
     return reg_pat;
 }
+
+#if defined(EINTR) || defined(PROTO)
+/*
+ * Version of read() that retries when interrupted by EINTR (possibly
+ * by a SIGWINCH).
+ */
+    long
+read_eintr(fd, buf, bufsize)
+    int	    fd;
+    void    *buf;
+    size_t  bufsize;
+{
+    long ret;
+
+    for (;;)
+    {
+	ret = vim_read(fd, buf, bufsize);
+	if (ret >= 0 || errno != EINTR)
+	    break;
+    }
+    return ret;
+}
+
+/*
+ * Version of write() that retries when interrupted by EINTR (possibly
+ * by a SIGWINCH).
+ */
+    long
+write_eintr(fd, buf, bufsize)
+    int	    fd;
+    void    *buf;
+    size_t  bufsize;
+{
+    long    ret = 0;
+    long    wlen;
+
+    /* Repeat the write() so long it didn't fail, other than being interrupted
+     * by a signal. */
+    while (ret < (long)bufsize)
+    {
+	wlen = vim_write(fd, (char *)buf + ret, bufsize - ret);
+	if (wlen < 0)
+	{
+	    if (errno != EINTR)
+		break;
+	}
+	else
+	    ret += wlen;
+    }
+    return ret;
+}
+#endif

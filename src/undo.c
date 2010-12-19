@@ -81,10 +81,6 @@
 #define UH_MAGIC 0x18dade	/* value for uh_magic when in use */
 #define UE_MAGIC 0xabc123	/* value for ue_magic when in use */
 
-#if defined(MSDOS) || defined(WIN16) || defined(WIN32) || defined(_WIN64)
-# include "vimio.h"	/* for vim_read(), must be before vim.h */
-#endif
-
 #include "vim.h"
 
 static void u_unch_branch __ARGS((u_header_T *uhp));
@@ -1386,7 +1382,7 @@ u_write_undo(name, forceit, buf, hash)
 		char_u	mbuf[UF_START_MAGIC_LEN];
 		int	len;
 
-		len = vim_read(fd, mbuf, UF_START_MAGIC_LEN);
+		len = read_eintr(fd, mbuf, UF_START_MAGIC_LEN);
 		close(fd);
 		if (len < UF_START_MAGIC_LEN
 		      || memcmp(mbuf, UF_START_MAGIC, UF_START_MAGIC_LEN) != 0)

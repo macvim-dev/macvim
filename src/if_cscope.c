@@ -13,16 +13,11 @@
 
 #if defined(FEAT_CSCOPE) || defined(PROTO)
 
-#include <string.h>
-#include <errno.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #if defined(UNIX)
 # include <sys/wait.h>
-#else
-    /* not UNIX, must be WIN32 */
-# include "vimio.h"
 #endif
 #include "if_cscope.h"
 

@@ -22,7 +22,6 @@
 # endif
 #endif
 
-#include "vimio.h"
 #include "vim.h"
 
 #ifdef WIN16
@@ -31,7 +30,6 @@
 # include <string.h>
 #endif
 #include <sys/types.h>
-#include <errno.h>
 #include <signal.h>
 #include <limits.h>
 #include <process.h>

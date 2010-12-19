@@ -27,6 +27,11 @@
 # endif
 #endif
 
+#if defined(MSDOS) || defined(WIN16) || defined(WIN32) || defined(_WIN64) \
+	|| defined(__EMX__)
+# include "vimio.h"
+#endif
+
 /* ============ the header file puzzle (ca. 50-100 pieces) ========= */
 
 #ifdef HAVE_CONFIG_H	/* GNU autoconf (or something else) was here */
@@ -474,6 +479,11 @@ typedef unsigned long u8char_T;	    /* long should be 32 bits or more */
 #endif
 #if defined(MSDOS) || defined(MSWIN)
 # include <sys/stat.h>
+#endif
+
+#if defined(HAVE_ERRNO_H) || defined(DJGPP) || defined(WIN16) \
+	|| defined(WIN32) || defined(_WIN64) || defined(__EMX__)
+# include <errno.h>
 #endif
 
 /*
@@ -1643,6 +1653,11 @@ int vim_memcmp __ARGS((void *, void *, size_t));
 #if defined(UNIX) || defined(FEAT_GUI) || defined(OS2) || defined(VMS) \
 	|| defined(FEAT_CLIENTSERVER)
 # define USE_INPUT_BUF
+#endif
+
+#ifndef EINTR
+# define read_eintr(fd, buf, count) vim_read((fd), (buf), (count))
+# define write_eintr(fd, buf, count) vim_write((fd), (buf), (count))
 #endif
 
 #ifdef MSWIN

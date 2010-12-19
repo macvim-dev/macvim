@@ -32,10 +32,6 @@
  * file is opened.
  */
 
-#if defined(MSDOS) || defined(WIN16) || defined(WIN32) || defined(_WIN64)
-# include "vimio.h"	/* for lseek(), must be before vim.h */
-#endif
-
 #include "vim.h"
 
 /*
@@ -1049,7 +1045,7 @@ mf_read(mfp, hp)
 	PERROR(_("E294: Seek error in swap file read"));
 	return FAIL;
     }
-    if ((unsigned)vim_read(mfp->mf_fd, hp->bh_data, size) != size)
+    if ((unsigned)read_eintr(mfp->mf_fd, hp->bh_data, size) != size)
     {
 	PERROR(_("E295: Read error in swap file"));
 	return FAIL;
@@ -1168,7 +1164,7 @@ mf_write_block(mfp, hp, offset, size)
     }
 #endif
 
-    if ((unsigned)vim_write(mfp->mf_fd, data, size) != size)
+    if ((unsigned)write_eintr(mfp->mf_fd, data, size) != size)
 	result = FAIL;
 
 #ifdef FEAT_CRYPT
