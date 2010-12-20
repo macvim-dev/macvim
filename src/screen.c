@@ -5432,7 +5432,9 @@ screen_line(row, coloff, endcol, clear_width
 	    hl = ScreenAttrs[off_to + CHAR_CELLS];
 	    if (hl > HL_ALL)
 		hl = syn_attr2attr(hl);
+# ifndef FEAT_GUI_MACVIM /* see comment on subpixel antialiasing */
 	    if (hl & HL_BOLD)
+# endif
 		redraw_this = TRUE;
 	}
 #endif
@@ -5563,7 +5565,9 @@ screen_line(row, coloff, endcol, clear_width
 		hl = ScreenAttrs[off_to];
 		if (hl > HL_ALL)
 		    hl = syn_attr2attr(hl);
+# ifndef FEAT_GUI_MACVIM /* see comment on subpixel antialiasing */
 		if (hl & HL_BOLD)
+# endif
 		    redraw_next = TRUE;
 	    }
 #endif
@@ -5649,7 +5653,9 @@ screen_line(row, coloff, endcol, clear_width
 	    if (gui.in_use && (col > startCol || !redraw_this))
 	    {
 		hl = ScreenAttrs[off_to];
+# ifndef FEAT_GUI_MACVIM /* see comment on subpixel antialiasing */
 		if (hl > HL_ALL || (hl & HL_BOLD))
+# endif
 		{
 		    int prev_cells = 1;
 # ifdef FEAT_MBYTE
@@ -6876,7 +6882,9 @@ screen_puts_len(text, len, row, col, attr)
 
 		if (n > HL_ALL)
 		    n = syn_attr2attr(n);
+# ifndef FEAT_GUI_MACVIM /* see comment on subpixel antialiasing */
 		if (n & HL_BOLD)
+# endif
 		    force_redraw_next = TRUE;
 	    }
 #endif
@@ -7752,6 +7760,12 @@ screen_fill(start_row, end_row, start_col, end_col, c1, c2, attr)
 #if defined(FEAT_GUI) || defined(UNIX)
 		    || force_next
 #endif
+#ifdef FEAT_GUI_MACVIM
+		    /* force a clear if the next char will be cleared (see
+		     * comment on subpixel antialiasing) */
+		    || (gui.in_use && col+1 < end_col
+						&& ScreenLines[off+1] != c)
+#endif
 		    )
 	    {
 #if defined(FEAT_GUI) || defined(UNIX)
@@ -7771,12 +7785,21 @@ screen_fill(start_row, end_row, start_col, end_col, c1, c2, attr)
 # endif
 		   )
 		{
+# ifndef FEAT_GUI_MACVIM
 		    if (ScreenLines[off] != ' '
 			    && (ScreenAttrs[off] > HL_ALL
 				|| ScreenAttrs[off] & HL_BOLD))
 			force_next = TRUE;
 		    else
 			force_next = FALSE;
+# else
+		    /* Mac OS X does subpixel antialiasing which often causes a
+		     * glyph to spill over into neighboring cells.  For this
+		     * reason we always clear the neighboring glyphs whenever a
+		     * glyph is cleared, just like other GUIs cope with the
+		     * bold trick. */
+		    force_next = (ScreenLines[off] != ' ');
+# endif
 		}
 #endif
 		ScreenLines[off] = c;
