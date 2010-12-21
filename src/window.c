@@ -1104,7 +1104,7 @@ win_split_ins(size, flags, newwin, dir)
     wp->w_redr_status = TRUE;
 #ifdef FEAT_GUI_MACVIM
     /* The view may have moved, so clear all or display may get corrupted. */
-    redraw_win_later(oldwin, CLEAR);
+    redraw_win_later(oldwin, gui.in_use ? CLEAR : NOT_VALID);
 #else
     redraw_win_later(oldwin, NOT_VALID);
 #endif
@@ -5639,7 +5639,7 @@ win_new_width(wp, width)
     }
 #ifdef FEAT_GUI_MACVIM
     /* The view may have moved, so clear all or display may get corrupted. */
-    redraw_win_later(wp, CLEAR);
+    redraw_win_later(wp, gui.in_use ? CLEAR : NOT_VALID);
 #else
     redraw_win_later(wp, NOT_VALID);
 #endif
