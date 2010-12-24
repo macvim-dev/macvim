@@ -22,8 +22,10 @@ src/os_beos.*		Files for the BeOS port.
 src/os_msdos.*
 src/os_dos.*		Files for the MS-DOS port.
 
-src/gui_mac.*
-src/os_mac.*		Files for the Mac port.
+src/gui_mac.*           Carbon GUI (not used)
+src/os_mac*		Shared files for the different Mac ports.
+
+src/MacVim/*		Files for the MacVim port.
 
 src/os_mint.8		Files for the Atari Mint port.
 
