@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.3.  Last change: 2010 Sep 17
+*gui_mac.txt*	For Vim version 7.3.  Last change: 2010 Dec 28
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -212,7 +212,7 @@ pressed.  This feature can be enabled from the Advanced preferences pane (it
 is disabled by default).  Note that this setting does not affect the speed
 with which windows open when using the |mvim| command.
 
-Note that any changes to runtime files that are kept in an non-standard
+Note that any changes to runtime files that are kept in a non-standard
 location (i.e. not in ~/.vim) will not be picked up for the first window that
 opens after any changes.  Also, there are some issues related to reading and
 writing of the |viminfo| file which can lead to the command line history
@@ -238,8 +238,8 @@ is sent back to the server application.
 3. Preferences				    *macvim-prefs* *macvim-preferences*
 
 Some settings are global to the MacVim application and would not make sense as
-Vim options.  These settings are stored in a user default database and can be
-accessed via the "MacVim.Preferences..." menu item.
+Vim options.  These settings are stored in the user defaults database and can
+be accessed via the "MacVim.Preferences..." menu item.
 
 							*macvim-user-defaults*
 Not all entries in the user defaults database are exposed via the preference
@@ -506,24 +506,20 @@ outline.
 ==============================================================================
 8. System services					*macvim-services*
 
-MacVim supports a few system services.  These can be accessed from the MacVim
-submenu in the Services menu.  For services to work, MacVim.app should be
-located in the /Applications folder.  (You might have to logout and then login
-again before Mac OS X detects the MacVim services.)
+MacVim supports two system services.  These can be accessed from the MacVim
+submenu in the Services menu or by right-clicking a selection.  For services
+to work, MacVim.app should be located in the /Applications folder.  (You might
+have to logout and then login again before Mac OS X detects the MacVim
+services.)
 
 These are the currently supported services:
-	* New Document Containing Selection: Open a new window and paste the
+	* New MacVim Buffer With Selection: Create a new buffer and paste the
 	  currently selected text.
-	* New Document Here: Open a new window and set the current directory
-	  to that of the selected text.  This is intended to be used from a
-	  Finder window to open an empty document in the currently selected
-	  folder.
-	* Open Selected File: If the selected text represents a file name,
-	  then the corresponding file is opened in a new window.
+	* New MacVim Buffer Here: Create a new buffer and set the current
+	  directory to the file or folder that is selected in the Finder.
 
-If new files are set to open in the current window (in the General preference
-pane) then the above services will also reuse the topmost window, instead of
-opening a new window.
+The services respect the "Open files from applications" setting in the general
+preferences.
 
 ==============================================================================
 9. mvim:// URL handler				*mvim://* *macvim-url-handler*
