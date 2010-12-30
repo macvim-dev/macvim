@@ -116,6 +116,12 @@
 {
     ASLogDebug(@"Enter full screen now");
 
+    // HACK! Put window on all Spaces to avoid Spaces from moving the full
+    // screen window to a separate Space from the one the decorated window is
+    // occupying.  The collection behavior is restored further down.
+    NSWindowCollectionBehavior wcb = [self collectionBehavior];
+    [self setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
+
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
@@ -231,6 +237,9 @@
             kCGDisplayBlendNormal, .0, .0, .0, false);
         CGReleaseDisplayFadeReservation(token);
     }
+
+    // Restore collection behavior (see hack at start of this method).
+    [self setCollectionBehavior:wcb];
 }
 
 - (void)leaveFullscreen
