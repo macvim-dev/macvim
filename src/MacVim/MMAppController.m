@@ -1390,7 +1390,16 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (MMVimController *)topmostVimController
 {
-    // Find the topmost visible window which has an associated vim controller.
+    // Find the topmost visible window which has an associated vim controller
+    // as follows:
+    //
+    // 1. Search through ordered windows as determined by NSApp.  Unfortunately
+    //    this method can fail, e.g. if a full screen window is on another
+    //    "Space" (in this case NSApp returns no windows at all), so we have to
+    //    fall back on ...
+    // 2. Search through all Vim controllers and return the first visible
+    //    window.
+
     NSEnumerator *e = [[NSApp orderedWindows] objectEnumerator];
     id window;
     while ((window = [e nextObject]) && [window isVisible]) {
@@ -1399,6 +1408,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             MMVimController *vc = [vimControllers objectAtIndex:i];
             if ([[[vc windowController] window] isEqual:window])
                 return vc;
+        }
+    }
+
+    unsigned i, count = [vimControllers count];
+    for (i = 0; i < count; ++i) {
+        MMVimController *vc = [vimControllers objectAtIndex:i];
+        if ([[[vc windowController] window] isVisible]) {
+            return vc;
         }
     }
 
