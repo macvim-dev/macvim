@@ -148,8 +148,13 @@
     
     // NOTE: Calling setTitle:nil causes an exception to be raised (and it is
     // possible that 'target' has no title when we get here).
-    if ([target title])
+    if ([target title]) {
         [self setTitle:[target title]];
+
+        // NOTE: Cocoa does not add borderless windows to the "Window" menu so
+        // we have to do it manually.
+        [NSApp changeWindowsItem:self title:[target title] filename:NO];
+    }
 
     [self setOpaque:[target isOpaque]];
 
