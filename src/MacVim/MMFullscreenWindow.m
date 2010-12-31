@@ -116,12 +116,6 @@
 {
     ASLogDebug(@"Enter full screen now");
 
-    // HACK! Put window on all Spaces to avoid Spaces from moving the full
-    // screen window to a separate Space from the one the decorated window is
-    // occupying.  The collection behavior is restored further down.
-    NSWindowCollectionBehavior wcb = [self collectionBehavior];
-    [self setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
-
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
@@ -227,9 +221,23 @@
     // move vim view to the window's center
     [self centerView];
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    // HACK! Put window on all Spaces to avoid Spaces (available on OS X 10.5
+    // and later) from moving the full screen window to a separate Space from
+    // the one the decorated window is occupying.  The collection behavior is
+    // restored further down.
+    NSWindowCollectionBehavior wcb = [self collectionBehavior];
+    [self setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
+#endif
+
     // make us visible and target invisible
     [target orderOut:self];
     [self makeKeyAndOrderFront:self];
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    // Restore collection behavior (see hack above).
+    [self setCollectionBehavior:wcb];
+#endif
 
     // fade back in
     if (didBlend) {
@@ -237,9 +245,6 @@
             kCGDisplayBlendNormal, .0, .0, .0, false);
         CGReleaseDisplayFadeReservation(token);
     }
-
-    // Restore collection behavior (see hack at start of this method).
-    [self setCollectionBehavior:wcb];
 }
 
 - (void)leaveFullscreen
