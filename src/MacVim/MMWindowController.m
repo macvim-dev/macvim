@@ -855,11 +855,10 @@
         return;
 
     if (fullscreenEnabled) {
-        // HACK! The full-screen is not supposed to be able to be moved.  If we
+        // NOTE: The full-screen is not supposed to be able to be moved.  If we
         // do get here while in full-screen something unexpected happened (e.g.
         // the full-screen window was on an external display that got
-        // unplugged) and we handle this situation by leaving full-screen.
-        [self leaveFullscreen];
+        // unplugged).
         return;
     }
 
