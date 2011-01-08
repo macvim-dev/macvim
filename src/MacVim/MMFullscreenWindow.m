@@ -273,7 +273,22 @@
     // button on the tabline steals the first responder status.
     [target setInitialFirstResponder:[view textView]];
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    // HACK! Put decorated window on all Spaces (available on OS X 10.5 and
+    // later) so that the decorated window stays on the same Space as the full
+    // screen window (they may occupy different Spaces e.g. if the full screen
+    // window was dragged to another Space).  The collection behavior is
+    // restored further down.
+    NSWindowCollectionBehavior wcb = [target collectionBehavior];
+    [target setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
+#endif
+
     [target makeKeyAndOrderFront:self];
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+    // Restore collection behavior (see hack above).
+    [target setCollectionBehavior:wcb];
+#endif
 
     // ...but we don't want a focus gained message either, so don't set this
     // sooner
