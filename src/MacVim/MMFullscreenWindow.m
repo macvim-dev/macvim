@@ -42,6 +42,7 @@
 - (BOOL)isOnPrimaryScreen;
 - (void)handleWindowDidBecomeMainNotification:(NSNotification *)notification;
 - (void)handleWindowDidResignMainNotification:(NSNotification *)notification;
+- (void)windowDidMove:(NSNotification *)notification;
 - (void)applicationDidChangeScreenParameters:(NSNotification *)notification;
 - (void)resizeVimView;
 @end
@@ -88,6 +89,11 @@
     [nc addObserver:self
            selector:@selector(handleWindowDidResignMainNotification:)
                name:NSWindowDidResignMainNotification
+             object:self];
+
+    [nc addObserver:self
+           selector:@selector(windowDidMove:)
+               name:NSWindowDidMoveNotification
              object:self];
 
     [nc addObserver:self
@@ -377,6 +383,17 @@
     if ([self isOnPrimaryScreen]) {
         SetSystemUIMode(kUIModeNormal, 0);
     }
+}
+
+- (void)windowDidMove:(NSNotification *)notification
+{
+    // Window may move as a result of being dragged between Spaces.
+    ASLogDebug(@"Full screen window moved, ensuring it covers the screen...");
+
+    // Ensure the full screen window is still covering the entire screen and
+    // then resize view according to 'fuopt'.
+    [self setFrame:[[self screen] frame] display:NO];
+    [self resizeVimView];
 }
 
 - (void)applicationDidChangeScreenParameters:(NSNotification *)notification
