@@ -47,8 +47,8 @@ enum {
 
 @interface MMFullscreenWindow (Private)
 - (BOOL)isOnPrimaryScreen;
-- (void)handleWindowDidBecomeMainNotification:(NSNotification *)notification;
-- (void)handleWindowDidResignMainNotification:(NSNotification *)notification;
+- (void)windowDidBecomeMain:(NSNotification *)notification;
+- (void)windowDidResignMain:(NSNotification *)notification;
 - (void)windowDidMove:(NSNotification *)notification;
 - (void)applicationDidChangeScreenParameters:(NSNotification *)notification;
 - (void)resizeVimView;
@@ -89,12 +89,12 @@ enum {
 
     NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
     [nc addObserver:self
-           selector:@selector(handleWindowDidBecomeMainNotification:)
+           selector:@selector(windowDidBecomeMain:)
                name:NSWindowDidBecomeMainNotification
              object:self];
 
     [nc addObserver:self
-           selector:@selector(handleWindowDidResignMainNotification:)
+           selector:@selector(windowDidResignMain:)
                name:NSWindowDidResignMainNotification
              object:self];
 
@@ -134,6 +134,11 @@ enum {
 - (void)enterFullscreen
 {
     ASLogDebug(@"Enter full screen now");
+
+    // Hide Dock and menu bar now to avoid the hide animation from playing
+    // after the fade to black (see also windowDidBecomeMain:).
+    if ([self isOnPrimaryScreen])
+        SetSystemUIMode(kUIModeAllSuppressed, 0);
 
     // fade to black
     Boolean didBlend = NO;
@@ -384,7 +389,7 @@ enum {
     return [self screen] == [screens objectAtIndex:0];
 }
 
-- (void)handleWindowDidBecomeMainNotification:(NSNotification *)notification
+- (void)windowDidBecomeMain:(NSNotification *)notification
 {
     // Hide menu and dock, both appear on demand.
     //
@@ -402,7 +407,7 @@ enum {
     }
 }
 
-- (void)handleWindowDidResignMainNotification:(NSNotification *)notification
+- (void)windowDidResignMain:(NSNotification *)notification
 {
     // order menu and dock back in
     if ([self isOnPrimaryScreen]) {
