@@ -343,6 +343,7 @@ netbeans_connect(char *params, int doabort)
     {
 	nbdebug(("error in gethostbyname() in netbeans_connect()\n"));
 	PERROR("gethostbyname() in netbeans_connect()");
+	sock_close(sd);
 	goto theend;
     }
     memcpy((char *)&server.sin_addr, host->h_addr, host->h_length);
@@ -392,15 +393,12 @@ netbeans_connect(char *params, int doabort)
 							 || (errno == EINTR)))
 		{
 		    nbdebug(("retrying...\n"));
-		    sleep(5);
-		    if (!doabort)
+		    mch_delay(3000L, TRUE);
+		    ui_breakcheck();
+		    if (got_int)
 		    {
-			ui_breakcheck();
-			if (got_int)
-			{
-			    errno = EINTR;
-			    break;
-			}
+			errno = EINTR;
+			break;
 		    }
 		    if (connect(sd, (struct sockaddr *)&server,
 							 sizeof(server)) == 0)
@@ -415,6 +413,7 @@ netbeans_connect(char *params, int doabort)
 		    /* Get here when the server can't be found. */
 		    nbdebug(("Cannot connect to Netbeans #2\n"));
 		    PERROR(_("Cannot connect to Netbeans #2"));
+		    sock_close(sd);
 		    if (doabort)
 			getout(1);
 		    goto theend;
@@ -425,6 +424,7 @@ netbeans_connect(char *params, int doabort)
 	{
 	    nbdebug(("Cannot connect to Netbeans\n"));
 	    PERROR(_("Cannot connect to Netbeans"));
+	    sock_close(sd);
 	    if (doabort)
 		getout(1);
 	    goto theend;
@@ -829,7 +829,7 @@ netbeans_read()
 	 *		    -> gui event loop or select loop
 	 *			-> netbeans_read()
 	 */
-	save((char_u *)DETACH_MSG, strlen(DETACH_MSG));
+	save((char_u *)DETACH_MSG, (int)strlen(DETACH_MSG));
 	nb_close_socket();
 
 	if (len < 0)
