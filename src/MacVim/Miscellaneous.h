@@ -52,6 +52,7 @@ extern NSString *MMLastWindowClosedBehaviorKey;
 #ifdef INCLUDE_OLD_IM_CODE
 extern NSString *MMUseInlineImKey;
 #endif // INCLUDE_OLD_IM_CODE
+extern NSString *MMSuppressTerminationAlertKey;
 
 
 // Enum for MMUntitledWindowKey

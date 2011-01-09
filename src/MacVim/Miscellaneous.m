@@ -44,6 +44,7 @@ NSString *MMLastWindowClosedBehaviorKey = @"MMLastWindowClosedBehavior";
 #ifdef INCLUDE_OLD_IM_CODE
 NSString *MMUseInlineImKey              = @"MMUseInlineIm";
 #endif // INCLUDE_OLD_IM_CODE
+NSString *MMSuppressTerminationAlertKey = @"MMSuppressTerminationAlert";
 
 
 

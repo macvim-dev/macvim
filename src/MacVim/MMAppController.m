@@ -222,6 +222,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #ifdef INCLUDE_OLD_IM_CODE
         [NSNumber numberWithBool:YES],  MMUseInlineImKey,
 #endif // INCLUDE_OLD_IM_CODE
+        [NSNumber numberWithBool:NO],   MMSuppressTerminationAlertKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -509,7 +510,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             reply = NSTerminateCancel;
 
         [alert release];
-    } else {
+    } else if (![[NSUserDefaults standardUserDefaults]
+                                boolForKey:MMSuppressTerminationAlertKey]) {
         // No unmodified buffers, but give a warning if there are multiple
         // windows and/or tabs open.
         int numWindows = [vimControllers count];
@@ -530,6 +532,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             [alert setMessageText:NSLocalizedString(
                     @"Are you sure you want to quit MacVim?",
                     @"Quit dialog with no changed buffers, title")];
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+            [alert setShowsSuppressionButton:YES];
+#endif
 
             NSString *info = nil;
             if (numWindows > 1) {
@@ -558,6 +563,13 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
             if ([alert runModal] != NSAlertFirstButtonReturn)
                 reply = NSTerminateCancel;
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+            if ([[alert suppressionButton] state] == NSOnState) {
+                [[NSUserDefaults standardUserDefaults]
+                            setBool:YES forKey:MMSuppressTerminationAlertKey];
+            }
+#endif
 
             [alert release];
         }
