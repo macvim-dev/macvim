@@ -6535,15 +6535,15 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
   { echo "$as_me:$LINENO: checking --with-ruby-command argument" >&5
 echo $ECHO_N "checking --with-ruby-command argument... $ECHO_C" >&6; }
 
+
 # Check whether --with-ruby-command was given.
 if test "${with_ruby_command+set}" = set; then
-  withval=$with_ruby_command; RUBY_CMD="$withval"; { echo "$as_me:$LINENO: result: $RUBY_CMD" >&5
+  withval=$with_ruby_command; RUBY_CMD="$withval"; vi_cv_path_ruby="$withval"; { echo "$as_me:$LINENO: result: $RUBY_CMD" >&5
 echo "${ECHO_T}$RUBY_CMD" >&6; }
 else
   RUBY_CMD="ruby"; { echo "$as_me:$LINENO: result: defaulting to $RUBY_CMD" >&5
 echo "${ECHO_T}defaulting to $RUBY_CMD" >&6; }
 fi
-
 
   # Extract the first word of "$RUBY_CMD", so it can be a program name with args.
 set dummy $RUBY_CMD; ac_word=$2
@@ -6609,21 +6609,15 @@ echo "${ECHO_T}$rubyhdrdir" >&6; }
 	  RUBY_LIBS="$rubylibs"
 	fi
 	librubyarg=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG["LIBRUBYARG"])'`
-	if test -f "$rubyhdrdir/$librubyarg"; then
-	  librubyarg="$rubyhdrdir/$librubyarg"
-	else
-	  rubylibdir=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG["libdir"])'`
-          if test -d "/System/Library/Frameworks/Ruby.framework"; then
+	librubya=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG["LIBRUBY_A"])'`
+	rubylibdir=`$vi_cv_path_ruby -r rbconfig -e 'print Config.expand(Config::CONFIG["libdir"])'`
+	if test -f "$rubylibdir/$librubya"; then
+	  librubyarg="$librubyarg"
+	  RUBY_LIBS="$RUBY_LIBS -L$rubylibdir"
+        elif test -d "/System/Library/Frameworks/Ruby.framework"; then
                         RUBY_LIBS="-framework Ruby"
                         RUBY_CFLAGS=
             librubyarg=
-          elif test -f "$rubylibdir/$librubyarg"; then
-	    librubyarg="$rubylibdir/$librubyarg"
-	  elif test "$librubyarg" = "libruby.a"; then
-	    	    librubyarg="-lruby"
-	  else
-	    librubyarg=`$vi_cv_path_ruby -r rbconfig -e "print '$librubyarg'.gsub(/-L\./, %'-L#{Config.expand(Config::CONFIG[\"libdir\"])}')"`
-	  fi
 	fi
 
 	if test "X$librubyarg" != "X"; then
