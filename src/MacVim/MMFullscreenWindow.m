@@ -37,6 +37,13 @@
 #define FUOPT_MAXHORZ         0x002
 #define FUOPT_BGCOLOR_HLGROUP 0x004
 
+// Used for 'state' variable
+enum {
+    BeforeFullScreen = 0,
+    InFullScreen,
+    LeftFullScreen
+};
+
 
 @interface MMFullscreenWindow (Private)
 - (BOOL)isOnPrimaryScreen;
@@ -207,6 +214,8 @@
             kCGDisplayBlendNormal, .0, .0, .0, false);
         CGReleaseDisplayFadeReservation(token);
     }
+
+    state = InFullScreen;
 }
 
 - (void)leaveFullscreen
@@ -303,6 +312,7 @@
     
     [self autorelease]; // Balance the above retain
 
+    state = LeftFullScreen;
     ASLogDebug(@"Left full screen");
 }
 
@@ -402,6 +412,9 @@
 
 - (void)windowDidMove:(NSNotification *)notification
 {
+    if (state != InFullScreen)
+        return;
+
     // Window may move as a result of being dragged between Spaces.
     ASLogDebug(@"Full screen window moved, ensuring it covers the screen...");
 
@@ -413,9 +426,13 @@
 
 - (void)applicationDidChangeScreenParameters:(NSNotification *)notification
 {
+    if (state != InFullScreen)
+        return;
+
     // This notification is sent when screen resolution may have changed (e.g.
     // due to a monitor being unplugged or the resolution being changed
-    // manually).
+    // manually) but it also seems to get called when the Dock is
+    // hidden/displayed.
     ASLogDebug(@"Screen unplugged / resolution changed");
 
     NSScreen *screen = [target screen];

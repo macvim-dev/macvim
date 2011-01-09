@@ -20,6 +20,7 @@
     NSPoint     oldPosition;
     NSString    *oldTabBarStyle;
     int         options;
+    int         state;
 
     // These are only valid in fullscreen mode and store pre-fu vim size 
     int         nonFuRows, nonFuColumns;
