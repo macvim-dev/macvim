@@ -903,6 +903,43 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSDictionary *openFilesDict = nil;
     filenames = [self filterOpenFiles:filenames openFilesDict:&openFilesDict];
 
+    // The meaning of "layout" is defined by the WIN_* defines in main.c.
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    int layout = [ud integerForKey:MMOpenLayoutKey];
+    BOOL splitVert = [ud boolForKey:MMVerticalSplitKey];
+    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
+
+    if (splitVert && MMLayoutHorizontalSplit == layout)
+        layout = MMLayoutVerticalSplit;
+    if (layout < 0 || (layout > MMLayoutTabs && openInCurrentWindow))
+        layout = MMLayoutTabs;
+
+    if ([filenames count] == 0) {
+        // Raise the window containing the first file that was already open,
+        // and make sure that the tab containing that file is selected.  Only
+        // do this when there are no more files to open, otherwise sometimes
+        // the window with 'firstFile' will be raised, other times it might be
+        // the window that will open with the files in the 'filenames' array.
+        //
+        // NOTE: Raise window before passing arguments, otherwise the selection
+        // will be lost when selectionRange is set.
+        firstFile = [firstFile stringByEscapingSpecialFilenameCharacters];
+
+        NSString *bufCmd = @"tab sb";
+        switch (layout) {
+            case MMLayoutHorizontalSplit: bufCmd = @"sb"; break;
+            case MMLayoutVerticalSplit:   bufCmd = @"vert sb"; break;
+            case MMLayoutArglist:         bufCmd = @"b"; break;
+        }
+
+        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
+                ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
+                "%@ %@|let &swb=oldswb|unl oldswb|"
+                "cal foreground()<CR>", bufCmd, firstFile];
+
+        [firstController addVimInput:input];
+    }
+
     // Pass arguments to vim controllers that had files open.
     id key;
     NSEnumerator *e = [openFilesDict keyEnumerator];
@@ -922,48 +959,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             firstController = vc;
     }
 
-    // The meaning of "layout" is defined by the WIN_* defines in main.c.
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    int layout = [ud integerForKey:MMOpenLayoutKey];
-    BOOL splitVert = [ud boolForKey:MMVerticalSplitKey];
-    BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
-
-    if (splitVert && MMLayoutHorizontalSplit == layout)
-        layout = MMLayoutVerticalSplit;
-    if (layout < 0 || (layout > MMLayoutTabs && openInCurrentWindow))
-        layout = MMLayoutTabs;
-
-    if ([filenames count] == 0) {
-        // Raise the window containing the first file that was already open,
-        // and make sure that the tab containing that file is selected.  Only
-        // do this when there are no more files to open, otherwise sometimes
-        // the window with 'firstFile' will be raised, other times it might be
-        // the window that will open with the files in the 'filenames' array.
-        firstFile = [firstFile stringByEscapingSpecialFilenameCharacters];
-
-        NSString *bufCmd = @"tab sb";
-        switch (layout) {
-            case MMLayoutHorizontalSplit: bufCmd = @"sb"; break;
-            case MMLayoutVerticalSplit:   bufCmd = @"vert sb"; break;
-            case MMLayoutArglist:         bufCmd = @"b"; break;
-        }
-
-        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
-                ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
-                "%@ %@|let &swb=oldswb|unl oldswb|"
-                "cal foreground()<CR>", bufCmd, firstFile];
-
-        [firstController addVimInput:input];
-
-        return YES;
-    }
-
     // Add filenames to "Recent Files" menu, unless they are being edited
     // remotely (using ODB).
     if ([arguments objectForKey:@"remoteID"] == nil) {
         [[NSDocumentController sharedDocumentController]
                 noteNewRecentFilePaths:filenames];
     }
+
+    if ([filenames count] == 0)
+        return YES; // No files left to open (all were already open)
 
     //
     // b) Open any remaining files
@@ -1757,9 +1761,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                     sr->unused2, sr->theDate);
 
             if (sr->lineNum < 0) {
-                // Should select a range of lines.
+                // Should select a range of characters.
                 range.location = sr->startRange + 1;
-                range.length = sr->endRange - sr->startRange + 1;
+                range.length = sr->endRange > sr->startRange
+                             ? sr->endRange - sr->startRange : 1;
             } else {
                 // Should only move cursor to a line.
                 range.location = sr->lineNum + 1;
@@ -2338,11 +2343,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         NSRange r = NSRangeFromString(rangeString);
         [a addObject:@"-c"];
         if (r.length > 0) {
-            // Select given range.
-            [a addObject:[NSString stringWithFormat:@"norm %dGV%dGz.0",
-                                                NSMaxRange(r), r.location]];
+            // Select given range of characters.
+            // TODO: This only works for encodings where 1 byte == 1 character
+            [a addObject:[NSString stringWithFormat:@"norm %dgov%dgo",
+                                                r.location, NSMaxRange(r)-1]];
         } else {
-            // Position cursor on start of range.
+            // Position cursor on line at start of range.
             [a addObject:[NSString stringWithFormat:@"norm %dGz.0",
                                                                 r.location]];
         }

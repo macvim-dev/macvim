@@ -2626,7 +2626,7 @@ static void netbeansReadCallback(CFSocketRef s,
     // filenames                list of filenames
     // dontOpen                 don't open files specified in above argument
     // layout                   which layout to use to open files
-    // selectionRange           range of lines to select
+    // selectionRange           range of characters to select
     // searchText               string to search for
     // cursorLine               line to position the cursor on
     // cursorColumn             column to position the cursor on
@@ -2811,13 +2811,14 @@ static void netbeansReadCallback(CFSocketRef s,
     NSString *rangeString = [args objectForKey:@"selectionRange"];
     if (rangeString) {
         // Build a command line string that will select the given range of
-        // lines.  If range.length == 0, then position the cursor on the given
-        // line but do not select.
+        // characters.  If range.length == 0, then position the cursor on the
+        // line at start of range but do not select.
         NSRange range = NSRangeFromString(rangeString);
         NSString *cmd;
         if (range.length > 0) {
-            cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGV%dGz.0",
-                    NSMaxRange(range), range.location];
+            // TODO: This only works for encodings where 1 byte == 1 character
+            cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dgov%dgo",
+                    range.location, NSMaxRange(range)-1];
         } else {
             cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGz.0",
                     range.location];
