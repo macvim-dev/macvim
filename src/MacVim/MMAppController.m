@@ -881,10 +881,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     //  a) filter out any already open files
     //  b) open any remaining files
     //
-    // A file is opened in an untitled window if there is one (it may be
-    // currently launching, or it may already be visible), otherwise a new
-    // window is opened.
-    //
     // Each launching Vim process has a dictionary of arguments that are passed
     // to the process when in checks in (via connectBackend:pid:).  The
     // arguments for each launching process can be looked up by its PID (in the
@@ -1479,18 +1475,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // The 'pidArguments' dictionary keeps arguments to be passed to the
         // process when it connects (this is in contrast to arguments which are
         // passed on the command line, like '-f' and '-g').
-        // If this method is called with nil arguments we take this as a hint
-        // that this is an "untitled window" being launched and add a null
-        // object to the 'pidArguments' dictionary.  This way we can detect if
-        // an untitled window is being launched by looking for null objects in
-        // this dictionary.
-        // If this method is called with non-nil arguments then it is assumed
-        // that the caller takes care of adding items to 'pidArguments' as
-        // necessary (only some arguments are passed on connect, e.g. files to
-        // open).
-        if (!args)
-            [pidArguments setObject:[NSNull null]
-                             forKey:[NSNumber numberWithInt:pid]];
+        // NOTE: If there are no arguments to pass we still add a null object
+        // so that we can use this dictionary to check if there are any
+        // processes loading.
+        NSNumber *pidKey = [NSNumber numberWithInt:pid];
+        if (![pidArguments objectForKey:pidKey])
+            [pidArguments setObject:[NSNull null] forKey:pidKey];
     } else {
         ASLogWarn(@"Failed to launch Vim process: args=%@, useLoginShell=%d",
                   args, useLoginShell);
@@ -2276,12 +2266,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             [vc passArguments:args];
 
         // HACK!  MacVim does not get activated if it is launched from the
-        // terminal, so we forcibly activate here unless it is an untitled
-        // window opening.  Untitled windows are treated differently, else
-        // MacVim would steal the focus if another app was activated while the
-        // untitled window was loading.
-        if (!args || args != [NSNull null])
-            [self activateWhenNextWindowOpens];
+        // terminal, so we forcibly activate here.  Note that each process
+        // launched from MacVim has an entry in the pidArguments dictionary,
+        // which is how we detect if the process was launched from the
+        // terminal.
+        if (!args) [self activateWhenNextWindowOpens];
 
         if (args)
             [pidArguments removeObjectForKey:pidKey];
