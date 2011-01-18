@@ -94,29 +94,17 @@ defaultLineHeightForFont(NSFont *font)
 }
 
     static double
-defaultAdvanceForFont(CTFontRef fontRef)
+defaultAdvanceForFont(NSFont *font)
 {
-    // We measure the default advance of a font as the advance of its glyph for
-    // 'm'.
-    double advance = 0.0;
-    UniChar characters[] = { 'm' };
-    int count = 1;
-    CGGlyph glyphs[] = { 0 };
+    // NOTE: Previously we used CTFontGetAdvancesForGlyphs() to get the advance
+    // for 'm' but this sometimes returned advances that were too small making
+    // the font spacing look too tight.
+    // Instead use the same method to query the width of 'm' as MMTextStorage
+    // uses to make things consistent across renderers.
 
-    if (CTFontGetGlyphsForCharacters(fontRef, characters, glyphs, count)) {
-        advance = CTFontGetAdvancesForGlyphs(fontRef,
-                                             kCTFontDefaultOrientation,
-                                             glyphs,
-                                             NULL,
-                                             count);
-    }
-
-    if (advance < 1.0) {
-        ASLogWarn(@"Could not determine default advance for current font");
-        advance = 10.0f;
-    }
-
-    return advance;
+    NSDictionary *a = [NSDictionary dictionaryWithObject:font
+                                                  forKey:NSFontAttributeName];
+    return [@"m" sizeWithAttributes:a].width;
 }
 
 @implementation MMCoreTextView
@@ -274,34 +262,15 @@ defaultAdvanceForFont(CTFontRef fontRef)
 
 - (void)setFont:(NSFont *)newFont
 {
-#if 0
-    if (newFont && font != newFont) {
-        [font release];
-        font = [newFont retain];
-
-        float em = 7.0; //[newFont widthOfString:@"m"];
-        float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
-                floatForKey:MMCellWidthMultiplierKey];
-
-        // NOTE! Even though NSFontFixedAdvanceAttribute is a float, it will
-        // only render at integer sizes.  Hence, we restrict the cell width to
-        // an integer here, otherwise the window width and the actual text
-        // width will not match.
-        cellSize.width = ceilf(em * cellWidthMultiplier);
-        cellSize.height = linespace + 15.0; //[newFont defaultLineHeightForFont];
-    }
-#else
     if (!(newFont && font != newFont))
         return;
 
-    double em = round(defaultAdvanceForFont((CTFontRef)newFont));
+    double em = round(defaultAdvanceForFont(newFont));
     double pt = round([newFont pointSize]);
 
     NSDictionary *attr = [NSDictionary dictionaryWithObjectsAndKeys:
         [newFont displayName], (NSString*)kCTFontNameAttribute,
-        [NSNumber numberWithFloat:pt], (NSString*)kCTFontSizeAttribute,
-        //[NSNumber numberWithFloat:em], (NSString*)kCTFontFixedAdvanceAttribute,
-        nil];
+        [NSNumber numberWithFloat:pt], (NSString*)kCTFontSizeAttribute, nil];
     CTFontDescriptorRef desc = CTFontDescriptorCreateWithAttributes(
             (CFDictionaryRef)attr);
     CTFontRef fontRef = CTFontCreateWithFontDescriptor(desc, pt, NULL);
@@ -321,7 +290,6 @@ defaultAdvanceForFont(CTFontRef fontRef)
     cellSize.height = linespace + defaultLineHeightForFont(font);
 
     fontDescent = ceil(CTFontGetDescent(fontRef));
-#endif
 }
 
 - (void)setWideFont:(NSFont *)newFont
