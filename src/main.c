@@ -1783,6 +1783,9 @@ command_line_scan(parmp)
     int		c;
     char_u	*p = NULL;
     long	n;
+#ifdef FEAT_GUI_MACVIM
+    int		nomru = FALSE;
+#endif
 
     --argc;
     ++argv;
@@ -1915,6 +1918,10 @@ command_line_scan(parmp)
 		{
 		    /* already processed, skip */
 		}
+#endif
+#ifdef FEAT_GUI_MACVIM
+		else if (STRNICMP(argv[0] + argv_idx, "nomru", 5) == 0)
+		    nomru = TRUE;
 #endif
 		else
 		{
@@ -2445,7 +2452,8 @@ scripterror:
 #ifdef FEAT_GUI_MACVIM
 	    /* Add files opened from command line to the MRU (most recently
 	     * used) files. */
-	    gui_macvim_add_to_mru(p);
+	    if (!nomru)
+		gui_macvim_add_to_mru(p);
 #endif
 
 #if defined(FEAT_MBYTE) && defined(WIN32)
