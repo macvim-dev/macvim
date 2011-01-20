@@ -895,7 +895,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // a) Filter out any already open files
     //
     NSString *firstFile = [filenames objectAtIndex:0];
-    MMVimController *firstController = nil;
     NSDictionary *openFilesDict = nil;
     filenames = [self filterOpenFiles:filenames openFilesDict:&openFilesDict];
 
@@ -910,32 +909,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (layout < 0 || (layout > MMLayoutTabs && openInCurrentWindow))
         layout = MMLayoutTabs;
 
-    if ([filenames count] == 0) {
-        // Raise the window containing the first file that was already open,
-        // and make sure that the tab containing that file is selected.  Only
-        // do this when there are no more files to open, otherwise sometimes
-        // the window with 'firstFile' will be raised, other times it might be
-        // the window that will open with the files in the 'filenames' array.
-        //
-        // NOTE: Raise window before passing arguments, otherwise the selection
-        // will be lost when selectionRange is set.
-        firstFile = [firstFile stringByEscapingSpecialFilenameCharacters];
-
-        NSString *bufCmd = @"tab sb";
-        switch (layout) {
-            case MMLayoutHorizontalSplit: bufCmd = @"sb"; break;
-            case MMLayoutVerticalSplit:   bufCmd = @"vert sb"; break;
-            case MMLayoutArglist:         bufCmd = @"b"; break;
-        }
-
-        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
-                ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
-                "%@ %@|let &swb=oldswb|unl oldswb|"
-                "cal foreground()<CR>", bufCmd, firstFile];
-
-        [firstController addVimInput:input];
-    }
-
     // Pass arguments to vim controllers that had files open.
     id key;
     NSEnumerator *e = [openFilesDict keyEnumerator];
@@ -944,15 +917,38 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [arguments setObject:[NSNumber numberWithBool:YES] forKey:@"dontOpen"];
 
     while ((key = [e nextObject])) {
+        MMVimController *vc = [key pointerValue];
         NSArray *files = [openFilesDict objectForKey:key];
         [arguments setObject:files forKey:@"filenames"];
 
-        MMVimController *vc = [key pointerValue];
-        [vc passArguments:arguments];
+        if ([filenames count] == 0 && [files containsObject:firstFile]) {
+            // Raise the window containing the first file that was already
+            // open, and make sure that the tab containing that file is
+            // selected.  Only do this when there are no more files to open,
+            // otherwise sometimes the window with 'firstFile' will be raised,
+            // other times it might be the window that will open with the files
+            // in the 'filenames' array.
+            //
+            // NOTE: Raise window before passing arguments, otherwise the
+            // selection will be lost when selectionRange is set.
+            firstFile = [firstFile stringByEscapingSpecialFilenameCharacters];
 
-        // If this controller holds the first file, then remember it for later.
-        if ([files containsObject:firstFile])
-            firstController = vc;
+            NSString *bufCmd = @"tab sb";
+            switch (layout) {
+                case MMLayoutHorizontalSplit: bufCmd = @"sb"; break;
+                case MMLayoutVerticalSplit:   bufCmd = @"vert sb"; break;
+                case MMLayoutArglist:         bufCmd = @"b"; break;
+            }
+
+            NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
+                    ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
+                    "%@ %@|let &swb=oldswb|unl oldswb|"
+                    "cal foreground()<CR>", bufCmd, firstFile];
+
+            [vc addVimInput:input];
+        }
+
+        [vc passArguments:arguments];
     }
 
     // Add filenames to "Recent Files" menu, unless they are being edited
