@@ -7759,7 +7759,7 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 
 #ifdef FEAT_FULLSCREEN
     /* when 'fullscreen' changes, forward it to the gui */
-    else if ((int *)varp == &p_fullscreen && gui.in_use)
+    else if ((int *)varp == &p_fullscreen && (gui.in_use || gui.starting))
     {
 	if (p_fullscreen && !old_value)
 	{
