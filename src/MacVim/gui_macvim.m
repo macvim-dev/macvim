@@ -24,6 +24,13 @@ int use_gui_macvim_draw_string = 1;
 
 static int use_graphical_sign = 0;
 
+// Max number of files to add to MRU in one go (this matches the maximum that
+// Cocoa displays in the MRU -- if this changes in Cocoa then update this
+// number as well).
+static int MMMaxMRU = 10;
+// Enabled when files passed on command line should not be added to MRU.
+static BOOL MMNoMRU = NO;
+
 static NSString *MMDefaultFontName = @"Menlo Regular";
 static int MMDefaultFontSize       = 11;
 static int MMMinFontSize           = 6;
@@ -87,28 +94,45 @@ macvim_early_init()
     void
 gui_mch_prepare(int *argc, char **argv)
 {
-    int i;
-    for (i = 0; i < *argc; ++i) {
-        if (strncmp(argv[i], "--mmwaitforack", 14) == 0) {
-            [[MMBackend sharedInstance] setWaitForAck:YES];
-            --*argc;
-            if (*argc > i)
-                mch_memmove(&argv[i], &argv[i+1], (*argc-i) * sizeof(char*));
-            break;
-        }
-    }
+    // NOTE! Vim expects this method to remove args that it handles from the
+    // arg list but if the process then forks then these arguments will not
+    // reach the child process due to the way forking is handled on Mac OS X.
+    //
+    // Thus, only delete arguments that imply that no forking is done.
+    //
+    // If you add an argument that does not imply no forking, then do not
+    // delete it from the arg list.  Such arguments must be ignored in main.c
+    // command_line_scan() or Vim will issue an error on startup when that
+    // argument is used.
 
+    int i = 0;
+    while (i < *argc) {
+        BOOL delarg = NO;
+        if (strncmp(argv[i], "--mmwaitforack", 14) == 0) {
+            // Implies -f (only called from front end)
+            [[MMBackend sharedInstance] setWaitForAck:YES];
+            delarg = YES;
+        }
 #ifdef FEAT_NETBEANS_INTG
-    for (i = 0; i < *argc; ++i) {
-        if (strncmp(argv[i], "-nb", 3) == 0) {
+        else if (strncmp(argv[i], "-nb", 3) == 0) {
+            // TODO: Can this be used without -f?  If so, should not del arg.
             netbeansArg = argv[i];
+            delarg = YES;
+        }
+#endif
+        else if (strncmp(argv[i], "--nomru", 7) == 0) {
+            // Can be used without -f, do not delete from arg list!
+            MMNoMRU = YES;
+        }
+
+        if (delarg) {
+            // NOTE: See comment above about when to delete arguments!
             --*argc;
             if (*argc > i)
                 mch_memmove(&argv[i], &argv[i+1], (*argc-i) * sizeof(char*));
-            break;
-        }
+        } else
+            ++i;
     }
-#endif
 }
 
 
@@ -207,6 +231,25 @@ gui_mch_init(void)
     // Ensure 'linespace' option is passed along to MacVim in case it was set
     // in [g]vimrc.
     gui_mch_adjust_charheight();
+
+    if (!MMNoMRU && GARGCOUNT > 0) {
+        // Add files passed on command line to MRU.
+        NSMutableArray *filenames = [NSMutableArray array];
+        int i, count = GARGCOUNT > MMMaxMRU ? MMMaxMRU : GARGCOUNT;
+        for (i = 0; i < count; ++i) {
+            char_u *fname = GARGLIST[i].ae_fname;
+            if (!fname) continue;
+
+            // Expand to a full file name (including the full path).
+            char_u *ffname = fix_fname(fname);
+            if (!ffname) continue;
+
+            [filenames addObject:[NSString stringWithVimString:ffname]];
+            vim_free(ffname);
+        }
+
+        [[MMBackend sharedInstance] addToMRU:filenames];
+    }
 
     return OK;
 }
@@ -2267,17 +2310,3 @@ gui_mch_post_balloon(beval, mesg)
 }
 
 #endif // FEAT_BEVAL
-
-
-    void
-gui_macvim_add_to_mru(char_u *fname)
-{
-    // Expand to a full file name (including the full path).
-    char_u *ffname = fix_fname(fname);
-    if (!ffname)
-        return;
-
-    NSString *s = [NSString stringWithVimString:ffname];
-    [[MMBackend sharedInstance] addToMRU:s];
-    vim_free(ffname);
-}

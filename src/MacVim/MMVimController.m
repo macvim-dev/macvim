@@ -867,10 +867,10 @@ static BOOL isUnsafeMessage(int msgid);
             [self setToolTipDelay:[delay floatValue]];
     } else if (AddToMRUMsgID == msgid) {
         NSDictionary *dict = [NSDictionary dictionaryWithData:data];
-        NSString *filename = dict ? [dict objectForKey:@"filename"] : nil;
-        if (filename)
+        NSArray *filenames = dict ? [dict objectForKey:@"filenames"] : nil;
+        if (filenames)
             [[NSDocumentController sharedDocumentController]
-                                            noteNewRecentFilePath:filename];
+                                            noteNewRecentFilePaths:filenames];
 
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!

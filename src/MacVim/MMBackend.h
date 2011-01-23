@@ -162,7 +162,7 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
 - (void)setLastToolTip:(NSString *)toolTip;
 #endif
 
-- (void)addToMRU:(NSString *)filename;
+- (void)addToMRU:(NSArray *)filenames;
 
 @end
 
