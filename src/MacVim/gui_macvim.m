@@ -1431,7 +1431,8 @@ gui_mch_dialog(
     char_u	*message,
     char_u	*buttons,
     int		dfltbutton,
-    char_u	*textfield)
+    char_u	*textfield,
+    int         ex_cmd)     // UNUSED
 {
     ASLogDebug(@"type=%d title='%s' message='%s' buttons='%s' dfltbutton=%d "
                "textfield='%s'", type, title, message, buttons, dfltbutton,

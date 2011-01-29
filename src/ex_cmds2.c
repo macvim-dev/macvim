@@ -1501,7 +1501,7 @@ vim_dialog_save_changes(buf)
 		(buf->b_fname != NULL)
 		    ? (char_u *)_("&Save\n&Cancel\n&Don't Save")
 		    : (char_u *)_("&Save...\n&Cancel\n&Don't Save"),
-		1, NULL))
+		1, NULL, FALSE))
     {
 	case 1: return VIM_YES;
 	case 3: return VIM_NO;
@@ -1528,7 +1528,7 @@ vim_dialog_save_all_changes(buf)
 			    "them."),
 		(char_u *)_("&Save\n&Don't Save\nS&ave All\nD&iscard All\n"
 			    "&Cancel"),
-		1, NULL))
+		1, NULL, FALSE))
     {
 	case 1: return VIM_YES;
 	case 2: return VIM_NO;
