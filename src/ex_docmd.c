@@ -9330,7 +9330,7 @@ exec_normal_cmd(cmd, remap, silent)
 								  && !got_int)
     {
 	update_topline_cursor();
-	normal_cmd(&oa, FALSE);	/* execute a Normal mode cmd */
+	normal_cmd(&oa, TRUE);	/* execute a Normal mode cmd */
     }
 }
 #endif

@@ -2884,7 +2884,7 @@ u_add_time(buf, buflen, tt)
 	    (void)strftime((char *)buf, buflen, "%m/%d %H:%M:%S", curtime);
 	else
 	    /* long ago */
-	    (void)strftime((char *)buf, buflen, "%y/%m/%d %H:%M:%S", curtime);
+	    (void)strftime((char *)buf, buflen, "%Y/%m/%d %H:%M:%S", curtime);
     }
     else
 #endif
@@ -3304,7 +3304,7 @@ bufIsChanged(buf)
 #ifdef FEAT_QUICKFIX
 	    !bt_dontwrite(buf) &&
 #endif
-	    (buf->b_changed || file_ff_differs(buf));
+	    (buf->b_changed || file_ff_differs(buf, TRUE));
 }
 
     int
@@ -3314,7 +3314,7 @@ curbufIsChanged()
 #ifdef FEAT_QUICKFIX
 	!bt_dontwrite(curbuf) &&
 #endif
-	(curbuf->b_changed || file_ff_differs(curbuf));
+	(curbuf->b_changed || file_ff_differs(curbuf, TRUE));
 }
 
 #if defined(FEAT_EVAL) || defined(PROTO)

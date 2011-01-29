@@ -9324,7 +9324,7 @@ f_confirm(argvars, rettv)
 
     if (!error)
 	rettv->vval.v_number = do_dialog(type, NULL, message, buttons,
-								   def, NULL);
+							    def, NULL, FALSE);
 #endif
 }
 
@@ -10867,6 +10867,11 @@ f_getbufvar(argvars, rettv)
 
 	if (*varname == '&')	/* buffer-local-option */
 	    get_option_tv(&varname, rettv, TRUE);
+	else if (STRCMP(varname, "changedtick") == 0)
+	{
+	    rettv->v_type = VAR_NUMBER;
+	    rettv->vval.v_number = curbuf->b_changedtick;
+	}
 	else
 	{
 	    if (*varname == NUL)
@@ -12764,7 +12769,7 @@ f_inputdialog(argvars, rettv)
 	    IObuff[0] = NUL;
 	if (message != NULL && defstr != NULL
 		&& do_dialog(VIM_QUESTION, NULL, message,
-				(char_u *)_("&OK\n&Cancel"), 1, IObuff) == 1)
+			  (char_u *)_("&OK\n&Cancel"), 1, IObuff, FALSE) == 1)
 	    rettv->vval.v_string = vim_strsave(IObuff);
 	else
 	{
