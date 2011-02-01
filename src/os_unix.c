@@ -3725,6 +3725,12 @@ mch_call_shell(cmd, options)
 # endif
 
     out_flush();
+#ifdef FEAT_GUI_MACVIM
+    /* It is conceivable that the shell command will take a long time to finish
+     * so force a flush now. */
+    if (gui.in_use)
+	gui_macvim_force_flush();
+#endif
 
     if (options & SHELL_COOKED)
 	settmode(TMODE_COOK);	    /* set to normal mode */
@@ -3846,6 +3852,12 @@ mch_call_shell(cmd, options)
 	goto error;
 
     out_flush();
+#ifdef FEAT_GUI_MACVIM
+    /* It is conceivable that the shell command will take a long time to finish
+     * so force a flush now. */
+    if (gui.in_use)
+	gui_macvim_force_flush();
+#endif
     if (options & SHELL_COOKED)
 	settmode(TMODE_COOK);		/* set to normal mode */
 
