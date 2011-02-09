@@ -1616,6 +1616,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     NSString *urlString = [[event paramDescriptorForKeyword:keyDirectObject]
         stringValue];
+    // NOTE: URLWithString requires string to be percent escaped.
+    urlString = [urlString stringByAddingPercentEscapesUsingEncoding:
+                                                        NSUTF8StringEncoding];
     NSURL *url = [NSURL URLWithString:urlString];
 
     // We try to be compatible with TextMate's URL scheme here, as documented
