@@ -13121,9 +13121,9 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
 else
   { echo "$as_me:$LINENO: result: empty: automatic terminal library selection" >&5
 echo "${ECHO_T}empty: automatic terminal library selection" >&6; }
-              case "`uname -s 2>/dev/null`" in
-	OSF1|SCO_SV)	tlibs="ncurses curses termlib termcap";;
-	*)	tlibs="ncurses termlib termcap curses";;
+                case "`uname -s 2>/dev/null`" in
+	OSF1|SCO_SV)	tlibs="tinfo ncurses curses termlib termcap";;
+	*)	tlibs="tinfo ncurses termlib termcap curses";;
   esac
   for libname in $tlibs; do
 

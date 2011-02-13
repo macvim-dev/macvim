@@ -869,7 +869,11 @@ static char *(p_ve_values[]) = {"block", "insert", "all", "onemore", NULL};
 # define VE_ONEMORE	8
 #endif
 EXTERN long	p_verbose;	/* 'verbose' */
-EXTERN char_u	*p_vfile;	/* 'verbosefile' */
+#ifdef IN_OPTION_C
+char_u	*p_vfile = (char_u *)""; /* used before options are initialized */
+#else
+extern char_u	*p_vfile;	/* 'verbosefile' */
+#endif
 EXTERN int	p_warn;		/* 'warn' */
 #ifdef FEAT_CMDL_COMPL
 EXTERN char_u	*p_wop;		/* 'wildoptions' */
