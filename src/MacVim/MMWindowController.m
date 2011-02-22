@@ -326,18 +326,6 @@
         shouldResizeVimView = YES;
         keepOnScreen = onScreen;
     }
-
-    if (windowAutosaveKey) {
-        // Autosave rows and columns (only done for window which also autosaves
-        // window position).
-        id tv = [vimView textView];
-        int rows = [tv maxRows];
-        int cols = [tv maxColumns];
-        NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-        [ud setInteger:rows forKey:MMAutosaveRowsKey];
-        [ud setInteger:cols forKey:MMAutosaveColumnsKey];
-        [ud synchronize];
-    }
 }
 
 - (void)zoomWithRows:(int)rows columns:(int)cols state:(int)state
@@ -484,7 +472,8 @@
         NSSize originalSize = [vimView frame].size;
         NSSize contentSize = [vimView desiredSize];
         contentSize = [self constrainContentSizeToScreenSize:contentSize];
-        contentSize = [vimView constrainRows:NULL columns:NULL
+        int rows = 0, cols = 0;
+        contentSize = [vimView constrainRows:&rows columns:&cols
                                       toSize:contentSize];
         [vimView setFrameSize:contentSize];
 
@@ -501,6 +490,18 @@
         } else {
             [self resizeWindowToFitContentSize:contentSize
                                   keepOnScreen:keepOnScreen];
+
+            if (windowAutosaveKey && rows > 0 && cols > 0) {
+                // Autosave rows and columns now that they should have been
+                // constrained to fit on screen.  We only do this for the
+                // window which also autosaves window position and we avoid
+                // autosaving when in fullscreen since the rows usually won't
+                // fit when in windowed mode.
+                NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+                [ud setInteger:rows forKey:MMAutosaveRowsKey];
+                [ud setInteger:cols forKey:MMAutosaveColumnsKey];
+                [ud synchronize];
+            }
         }
 
         keepOnScreen = NO;
