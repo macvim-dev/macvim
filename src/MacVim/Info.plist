@@ -1171,6 +1171,19 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>VHDL Source File</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>vhd</string>
+				<string>vhdl</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-vhd</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
@@ -2565,6 +2578,24 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>vba</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>VHDL source file</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.vim.vhdl-file</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>vhdl</string>
+					<string>vhd</string>
 				</array>
 			</dict>
 		</dict>
