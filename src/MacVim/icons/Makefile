@@ -15,7 +15,7 @@ Envy\ Code\ R\ Bold.ttf: EnvyCodeR.zip
 	# "now", so that the zip is not unzipped in every `make` run.`
 	touch Envy\ Code\ R\ Bold.ttf
 
-ENVYCODE_URL=http://download.damieng.com/latest/EnvyCodeR
+ENVYCODE_URL=http://download.damieng.com/fonts/original/EnvyCodeR-PR7.zip
 EnvyCodeR.zip:
 	curl ${ENVYCODE_URL} --location -o EnvyCodeR.zip
 
