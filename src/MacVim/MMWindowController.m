@@ -874,7 +874,10 @@
 
     // NOTE: This method is called when the user drags the window, but not when
     // the top left point changes programmatically.
-    int pos[2] = { (int)topLeft.x, (int)topLeft.y };
+    // NOTE 2: Vim counts Y-coordinates from the top of the screen.
+    int pos[2] = {
+            (int)topLeft.x,
+            (int)(NSMaxY([[decoratedWindow screen] frame]) - topLeft.y) };
     NSData *data = [NSData dataWithBytes:pos length:2*sizeof(int)];
     [vimController sendMessage:SetWindowPositionMsgID data:data];
 }
@@ -1062,7 +1065,10 @@
         // NOTE: The window top left position may change due to the window
         // being moved e.g. when the tabline is shown so we must tell Vim what
         // the new window position is here.
-        int pos[2] = { (int)newTopLeft.x, (int)newTopLeft.y };
+        // NOTE 2: Vim measures Y-coordinates from top of screen.
+        int pos[2] = {
+            (int)newTopLeft.x,
+            (int)(NSMaxY([[decoratedWindow screen] frame]) - newTopLeft.y) };
         NSData *data = [NSData dataWithBytes:pos length:2*sizeof(int)];
         [vimController sendMessage:SetWindowPositionMsgID data:data];
     }

@@ -851,6 +851,10 @@ static BOOL isUnsafeMessage(int msgid);
         int x = *((int*)bytes);  bytes += sizeof(int);
         int y = *((int*)bytes);  bytes += sizeof(int);
 
+        // NOTE: Vim measures Y-coordinates from top of screen.
+        NSRect frame = [[[windowController window] screen] frame];
+        y = NSMaxY(frame) - y;
+
         [windowController setTopLeft:NSMakePoint(x,y)];
     } else if (SetTooltipMsgID == msgid) {
         id textView = [[windowController vimView] textView];
