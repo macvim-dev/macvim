@@ -1,5 +1,11 @@
 # Creates all of MacVim document icons.
 
+import os
+import sys
+
+fontname = ''
+facename = None
+
 # http://www.macresearch.org/cocoa-scientists-part-xx-python-scriptersmeet-cocoa
 try:
   # Make us independent of sysprefs->appearance->antialias fonts smaller than...
@@ -9,12 +15,7 @@ try:
   prefs.setInteger_forKey_(4, 'AppleAntiAliasingThreshold')
 
   import docerator
-
-  # Load Envy Code R from a file and register it under its postscript name
-  # Thanks to DamienG for this font (redistributed with permission):
-  # http://damieng.com/blog/2008/05/26/envy-code-r-preview-7-coding-font-released
   import loadfont
-  loadfont.loadfont('Envy Code R Bold.ttf')
 
   from Foundation import NSString
   from AppKit import *
@@ -23,9 +24,6 @@ try:
 except Exception, e:
   print e
   dont_create = True  # most likely because we're on tiger
-
-import os
-import sys
 
 
 # icon types
@@ -119,7 +117,6 @@ def createLinks(icons, target):
       os.remove(icnsName)
     os.symlink(target, icnsName)
 
-
 if not dont_create:
   # define a few classes to render custom 16x16 icons
 
@@ -135,9 +132,10 @@ if not dont_create:
 
   class SmallTextRenderer(docerator.TextRenderer):
     def _attribsAtSize(self, s):
+      global facename
       attribs = docerator.TextRenderer._attribsAtSize(self, s)
-      if s == 16:
-        font = NSFont.fontWithName_size_('EnvyCodeR-Bold', 7.0)
+      if s == 16 and facename is not None:
+        font = NSFont.fontWithName_size_(facename, 7.0)
         assert font
         attribs[NSFontAttributeName] = font
         attribs[NSForegroundColorAttributeName] = \
@@ -157,7 +155,6 @@ if not dont_create:
         attribs[NSKernAttributeName] = -1  # we need all the room we can get
       text.drawInRect_withAttributes_( ((1, 2), (15, 11)), attribs)
 
-
 def main():
   if dont_create:
     print "PyObjC not found, only using a stock icon for document icons."
@@ -167,6 +164,18 @@ def main():
     createLinks([name for name in vimIcons if name != GENERIC_ICON_NAME],
         '%s.icns' % GENERIC_ICON_NAME)
     return
+
+  # choose an icon font
+  global fontname, facename
+  # Thanks to DamienG for Envy Code R (redistributed with permission):
+  # http://damieng.com/blog/2008/05/26/envy-code-r-preview-7-coding-font-released
+  fonts = [('Envy Code R Bold.ttf', 'EnvyCodeR-Bold'), 
+           ('/System/Library/Fonts/Monaco.dfont', 'Monaco')]
+  for font in fonts:
+    if loadfont.loadfont(font[0]):
+      fontname, facename = font
+      break
+  print "Building icons with font '" + fontname + "'."
 
   srcdir = os.getcwd()
   if len(sys.argv) > 1:
