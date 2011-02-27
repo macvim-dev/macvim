@@ -362,7 +362,7 @@ main
     command_line_scan(&params);
     TIME_MSG("parsing arguments");
 
-#ifdef MACOS_X
+#if defined(MACOS_X) && defined(FEAT_GUI)
     if (gui.starting && gui.dofork)
 	macosx_fork();	/* Never returns */
 # ifdef FEAT_GUI_MACVIM
