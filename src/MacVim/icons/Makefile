@@ -2,7 +2,24 @@
 
 OUTDIR ?= .
 
-$(OUTDIR)/MacVim-generic.icns: make_icons.py vim-noshadow-512.png loadfont.so 
+# This script is called during the build phase with OUTDIR set to the Resources
+# folder of the app bundle.  The default action is to simply copy all files
+# named MacVim-*.icns to OUTDIR.
+#
+# The files in version control are all links to the MacVim-generic.icns file.
+# In order to get prettier document icons, call "make all" in this folder
+# before building.  This will call the document generation program which
+# overwrites the MacVim-*.icns links with actual icons (see make_icons.py).
+#
+# The Envy Code R font can be used to render small icons that are more legible.
+# In order to use ECR, call "make getenvy" before calling "make all".  This
+# step requires an internet connection.
+
+$(OUTDIR)/MacVim-generic.icns:
+	cp -pR MacVim-*.icns $(OUTDIR)/
+
+all: make_icons.py vim-noshadow-512.png loadfont.so
+	rm -f MacVim-*.icns
 	$(MAKE) -C makeicns
 	/usr/bin/python make_icons.py $(OUTDIR)
 
