@@ -4418,7 +4418,7 @@ do_set(arg, opt_flags)
 		    p = find_termcode(key_name);
 		    if (p == NULL)
 		    {
-			errmsg = (char_u *)N_("E518: Unknown option");
+			errmsg = (char_u *)N_("E846: Key code not set");
 			goto skip;
 		    }
 		    else
@@ -4766,8 +4766,8 @@ do_set(arg, opt_flags)
 						|| s[i] == ','
 						|| s[i] == NUL))
 					break;
-				    /* Count backspaces.  Only a comma with an
-				     * even number of backspaces before it is
+				    /* Count backslashes.  Only a comma with an
+				     * even number of backslashes before it is
 				     * recognized as a separator */
 				    if (s > origval && s[-1] == '\\')
 					++bs;

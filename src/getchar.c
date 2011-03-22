@@ -2710,8 +2710,11 @@ vgetorpeek(advance)
 		 * are still available.  But when those available characters
 		 * are part of a mapping, and we are going to do a blocking
 		 * wait here.  Need to update the screen to display the
-		 * changed text so far. */
-		if ((State & INSERT) && advance && must_redraw != 0)
+		 * changed text so far. Also for when 'lazyredraw' is set and
+		 * redrawing was postponed because there was something in the
+		 * input buffer (e.g., termresponse). */
+		if (((State & INSERT) != 0 || p_lz) && (State & CMDLINE) == 0
+			  && advance && must_redraw != 0 && !need_wait_return)
 		{
 		    update_screen(0);
 		    setcursor(); /* put cursor back where it belongs */

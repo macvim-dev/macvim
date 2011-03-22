@@ -86,8 +86,9 @@ extern void bonobo_dock_item_set_behavior(BonoboDockItem *dock_item, BonoboDockI
 
 #ifdef HAVE_X11_SUNKEYSYM_H
 # include <X11/Sunkeysym.h>
-static guint32 clipboard_event_time = CurrentTime;
 #endif
+
+static guint32 clipboard_event_time = CurrentTime;
 
 /*
  * Easy-to-use macro for multihead support.
@@ -3093,7 +3094,7 @@ gui_gtk_set_dnd_targets(void)
     gtk_drag_dest_set(gui.drawarea,
 		      GTK_DEST_DEFAULT_ALL,
 		      targets, n_targets,
-		      GDK_ACTION_COPY);
+		      GDK_ACTION_COPY | GDK_ACTION_MOVE);
 }
 
 /*
@@ -5419,7 +5420,7 @@ gui_mch_wait_for_chars(long wtime)
 	}
 
 #if defined(FEAT_NETBEANS_INTG)
-	/* Process the queued netbeans messages. */
+	/* Process any queued netbeans messages. */
 	netbeans_parse_messages();
 #endif
 
