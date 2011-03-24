@@ -1180,7 +1180,7 @@
 				<string>vhdl</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>MacVim-vhd</string>
+			<string>MacVim-generic</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 		</dict>
