@@ -56,10 +56,17 @@ macvim_early_init()
         // Set environment variables $VIM and $VIMRUNTIME
         NSString *path = [[bundle resourcePath]
                                         stringByAppendingPathComponent:@"vim"];
-        vim_setenv((char_u*)"VIM", (char_u*)[path UTF8String]);
 
-        path = [path stringByAppendingPathComponent:@"runtime"];
-        vim_setenv((char_u*)"VIMRUNTIME", (char_u*)[path UTF8String]);
+        char_u *p = mch_getenv((char_u *)"VIM");
+        if (p == NULL || *p == NUL) {
+            vim_setenv((char_u*)"VIM", (char_u*)[path UTF8String]);
+        }
+
+        p = mch_getenv((char_u *)"VIMRUNTIME");
+        if (p == NULL || *p == NUL) {
+            path = [path stringByAppendingPathComponent:@"runtime"];
+            vim_setenv((char_u*)"VIMRUNTIME", (char_u*)[path UTF8String]);
+        }
     }
 
 #if 0   // NOTE: setlocale(LC_ALL, "") seems to work after a restart so this is
