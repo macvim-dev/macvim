@@ -5111,12 +5111,14 @@ check_more(message, forceit)
 #if defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG)
 	    if ((p_confirm || cmdmod.confirm) && curbuf->b_fname != NULL)
 	    {
-		char_u	buff[IOSIZE];
+		char_u	buff[DIALOG_MSG_SIZE];
 
 		if (n == 1)
-		    STRCPY(buff, _("1 more file to edit.  Quit anyway?"));
+		    vim_strncpy(buff,
+			    (char_u *)_("1 more file to edit.  Quit anyway?"),
+							 DIALOG_MSG_SIZE - 1);
 		else
-		    vim_snprintf((char *)buff, IOSIZE,
+		    vim_snprintf((char *)buff, DIALOG_MSG_SIZE,
 			      _("%d more files to edit.  Quit anyway?"), n);
 		if (vim_dialog_yesno(VIM_QUESTION, NULL, buff, 1) == VIM_YES)
 		    return OK;
@@ -8944,35 +8946,42 @@ ex_mkrc(eap)
 		failed = TRUE;
 	    if (eap->cmdidx == CMD_mksession)
 	    {
-		char_u dirnow[MAXPATHL];	/* current directory */
+		char_u *dirnow;	 /* current directory */
 
-		/*
-		 * Change to session file's dir.
-		 */
-		if (mch_dirname(dirnow, MAXPATHL) == FAIL
+		dirnow = alloc(MAXPATHL);
+		if (dirnow == NULL)
+		    failed = TRUE;
+		else
+		{
+		    /*
+		     * Change to session file's dir.
+		     */
+		    if (mch_dirname(dirnow, MAXPATHL) == FAIL
 					    || mch_chdir((char *)dirnow) != 0)
-		    *dirnow = NUL;
-		if (*dirnow != NUL && (ssop_flags & SSOP_SESDIR))
-		{
-		    if (vim_chdirfile(fname) == OK)
-			shorten_fnames(TRUE);
-		}
-		else if (*dirnow != NUL
-			&& (ssop_flags & SSOP_CURDIR) && globaldir != NULL)
-		{
-		    if (mch_chdir((char *)globaldir) == 0)
-			shorten_fnames(TRUE);
-		}
+			*dirnow = NUL;
+		    if (*dirnow != NUL && (ssop_flags & SSOP_SESDIR))
+		    {
+			if (vim_chdirfile(fname) == OK)
+			    shorten_fnames(TRUE);
+		    }
+		    else if (*dirnow != NUL
+			   && (ssop_flags & SSOP_CURDIR) && globaldir != NULL)
+		    {
+			if (mch_chdir((char *)globaldir) == 0)
+			    shorten_fnames(TRUE);
+		    }
 
-		failed |= (makeopens(fd, dirnow) == FAIL);
+		    failed |= (makeopens(fd, dirnow) == FAIL);
 
-		/* restore original dir */
-		if (*dirnow != NUL && ((ssop_flags & SSOP_SESDIR)
+		    /* restore original dir */
+		    if (*dirnow != NUL && ((ssop_flags & SSOP_SESDIR)
 			|| ((ssop_flags & SSOP_CURDIR) && globaldir != NULL)))
-		{
-		    if (mch_chdir((char *)dirnow) != 0)
-			EMSG(_(e_prev_dir));
-		    shorten_fnames(TRUE);
+		    {
+			if (mch_chdir((char *)dirnow) != 0)
+			    EMSG(_(e_prev_dir));
+			shorten_fnames(TRUE);
+		    }
+		    vim_free(dirnow);
 		}
 	    }
 	    else
@@ -9003,10 +9012,15 @@ ex_mkrc(eap)
 	else if (eap->cmdidx == CMD_mksession)
 	{
 	    /* successful session write - set this_session var */
-	    char_u	tbuf[MAXPATHL];
+	    char_u	*tbuf;
 
-	    if (vim_FullName(fname, tbuf, MAXPATHL, FALSE) == OK)
-		set_vim_var_string(VV_THIS_SESSION, tbuf, -1);
+	    tbuf = alloc(MAXPATHL);
+	    if (tbuf != NULL)
+	    {
+		if (vim_FullName(fname, tbuf, MAXPATHL, FALSE) == OK)
+		    set_vim_var_string(VV_THIS_SESSION, tbuf, -1);
+		vim_free(tbuf);
+	    }
 	}
 #endif
 #ifdef MKSESSION_NL
@@ -10703,7 +10717,7 @@ ses_arglist(fd, cmd, gap, fullname, flagp)
     unsigned	*flagp;
 {
     int		i;
-    char_u	buf[MAXPATHL];
+    char_u	*buf = NULL;
     char_u	*s;
 
     if (gap->ga_len == 0)
@@ -10718,11 +10732,19 @@ ses_arglist(fd, cmd, gap, fullname, flagp)
 	{
 	    if (fullname)
 	    {
-		(void)vim_FullName(s, buf, MAXPATHL, FALSE);
-		s = buf;
+		buf = alloc(MAXPATHL);
+		if (buf != NULL)
+		{
+		    (void)vim_FullName(s, buf, MAXPATHL, FALSE);
+		    s = buf;
+		}
 	    }
 	    if (fputs(" ", fd) < 0 || ses_put_fname(fd, s, flagp) == FAIL)
+	    {
+		vim_free(buf);
 		return FAIL;
+	    }
+	    vim_free(buf);
 	}
     }
     return put_eol(fd);
@@ -10951,7 +10973,7 @@ ex_viminfo(eap)
 
 #if defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG) || defined(PROTO)
 /*
- * Make a dialog message in "buff[IOSIZE]".
+ * Make a dialog message in "buff[DIALOG_MSG_SIZE]".
  * "format" must contain "%s".
  */
     void
@@ -10962,7 +10984,7 @@ dialog_msg(buff, format, fname)
 {
     if (fname == NULL)
 	fname = (char_u *)_("Untitled");
-    vim_snprintf((char *)buff, IOSIZE, format, fname);
+    vim_snprintf((char *)buff, DIALOG_MSG_SIZE, format, fname);
 }
 #endif
 

@@ -170,6 +170,7 @@ struct PyMethodDef { Py_ssize_t a; };
 # define PySys_SetObject dll_PySys_SetObject
 # define PySys_SetArgv dll_PySys_SetArgv
 # define PyType_Type (*dll_PyType_Type)
+# define PyType_Ready (*dll_PyType_Ready)
 # define Py_BuildValue dll_Py_BuildValue
 # define Py_FindMethod dll_Py_FindMethod
 # define Py_InitModule4 dll_Py_InitModule4
@@ -229,6 +230,7 @@ static PyTypeObject* dll_PyString_Type;
 static int(*dll_PySys_SetObject)(char *, PyObject *);
 static int(*dll_PySys_SetArgv)(int, char **);
 static PyTypeObject* dll_PyType_Type;
+static int (*dll_PyType_Ready)(PyTypeObject *type);
 static PyObject*(*dll_Py_BuildValue)(char *, ...);
 static PyObject*(*dll_Py_FindMethod)(struct PyMethodDef[], PyObject *, char *);
 static PyObject*(*dll_Py_InitModule4)(char *, struct PyMethodDef *, char *, PyObject *, int);
@@ -310,6 +312,7 @@ static struct
     {"PySys_SetObject", (PYTHON_PROC*)&dll_PySys_SetObject},
     {"PySys_SetArgv", (PYTHON_PROC*)&dll_PySys_SetArgv},
     {"PyType_Type", (PYTHON_PROC*)&dll_PyType_Type},
+    {"PyType_Ready", (PYTHON_PROC*)&dll_PyType_Ready},
     {"Py_BuildValue", (PYTHON_PROC*)&dll_Py_BuildValue},
     {"Py_FindMethod", (PYTHON_PROC*)&dll_Py_FindMethod},
 # if (PY_VERSION_HEX >= 0x02050000) && SIZEOF_SIZE_T != SIZEOF_INT
@@ -785,7 +788,7 @@ OutputSetattr(PyObject *self, char *name, PyObject *val)
 PythonIO_Init(void)
 {
     /* Fixups... */
-    OutputType.ob_type = &PyType_Type;
+    PyType_Ready(&OutputType);
 
     return PythonIO_Init_io();
 }
@@ -1407,12 +1410,12 @@ PythonMod_Init(void)
     static char *(argv[2]) = {"/must>not&exist/foo", NULL};
 
     /* Fixups... */
-    BufferType.ob_type = &PyType_Type;
-    RangeType.ob_type = &PyType_Type;
-    WindowType.ob_type = &PyType_Type;
-    BufListType.ob_type = &PyType_Type;
-    WinListType.ob_type = &PyType_Type;
-    CurrentType.ob_type = &PyType_Type;
+    PyType_Ready(&BufferType);
+    PyType_Ready(&RangeType);
+    PyType_Ready(&WindowType);
+    PyType_Ready(&BufListType);
+    PyType_Ready(&WinListType);
+    PyType_Ready(&CurrentType);
 
     /* Set sys.argv[] to avoid a crash in warn(). */
     PySys_SetArgv(1, argv);
