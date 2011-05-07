@@ -1164,7 +1164,7 @@ copy_loclist(from, to)
 
 	/* When no valid entries are present in the list, qf_ptr points to
 	 * the first item in the list */
-	if (to_qfl->qf_nonevalid == TRUE)
+	if (to_qfl->qf_nonevalid)
 	    to_qfl->qf_ptr = to_qfl->qf_start;
     }
 
@@ -2243,6 +2243,7 @@ ex_cwindow(eap)
      * it if we have errors; otherwise, leave it closed.
      */
     if (qi->qf_lists[qi->qf_curlist].qf_nonevalid
+	    || qi->qf_lists[qi->qf_curlist].qf_count == 0
 	    || qi->qf_curlist >= qi->qf_listcount)
     {
 	if (win != NULL)
@@ -2742,6 +2743,13 @@ ex_make(eap)
 #ifdef FEAT_AUTOCMD
     char_u	*au_name = NULL;
 
+    /* Redirect ":grep" to ":vimgrep" if 'grepprg' is "internal". */
+    if (grep_internal(eap->cmdidx))
+    {
+	ex_vimgrep(eap);
+	return;
+    }
+
     switch (eap->cmdidx)
     {
 	case CMD_make:	    au_name = (char_u *)"make"; break;
@@ -2762,13 +2770,6 @@ ex_make(eap)
 # endif
     }
 #endif
-
-    /* Redirect ":grep" to ":vimgrep" if 'grepprg' is "internal". */
-    if (grep_internal(eap->cmdidx))
-    {
-	ex_vimgrep(eap);
-	return;
-    }
 
     if (eap->cmdidx == CMD_lmake || eap->cmdidx == CMD_lgrep
 	|| eap->cmdidx == CMD_lgrepadd)
@@ -3057,10 +3058,14 @@ ex_vimgrep(eap)
 
     switch (eap->cmdidx)
     {
-	case CMD_vimgrep: au_name = (char_u *)"vimgrep"; break;
-	case CMD_lvimgrep: au_name = (char_u *)"lvimgrep"; break;
-	case CMD_vimgrepadd: au_name = (char_u *)"vimgrepadd"; break;
+	case CMD_vimgrep:     au_name = (char_u *)"vimgrep"; break;
+	case CMD_lvimgrep:    au_name = (char_u *)"lvimgrep"; break;
+	case CMD_vimgrepadd:  au_name = (char_u *)"vimgrepadd"; break;
 	case CMD_lvimgrepadd: au_name = (char_u *)"lvimgrepadd"; break;
+	case CMD_grep:	      au_name = (char_u *)"grep"; break;
+	case CMD_lgrep:	      au_name = (char_u *)"lgrep"; break;
+	case CMD_grepadd:     au_name = (char_u *)"grepadd"; break;
+	case CMD_lgrepadd:    au_name = (char_u *)"lgrepadd"; break;
 	default: break;
     }
     if (au_name != NULL)
@@ -3707,7 +3712,7 @@ set_errorlist(wp, list, action, title)
     }
 
     if (qi->qf_lists[qi->qf_curlist].qf_index == 0)
-	/* empty list or no valid entry */
+	/* no valid entry */
 	qi->qf_lists[qi->qf_curlist].qf_nonevalid = TRUE;
     else
 	qi->qf_lists[qi->qf_curlist].qf_nonevalid = FALSE;

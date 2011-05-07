@@ -2531,6 +2531,9 @@ get_winopts(buf)
     if (p_fdls >= 0)
 	curwin->w_p_fdl = p_fdls;
 #endif
+#ifdef FEAT_SYN_HL
+    check_colorcolumn(curwin);
+#endif
 }
 
 /*

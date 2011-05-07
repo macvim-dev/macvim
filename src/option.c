@@ -3912,6 +3912,8 @@ set_init_3()
 # ifndef OS2	/* Always use bourne shell style redirection if we reach this */
 	    if (       fnamecmp(p, "sh") == 0
 		    || fnamecmp(p, "ksh") == 0
+		    || fnamecmp(p, "mksh") == 0
+		    || fnamecmp(p, "pdksh") == 0
 		    || fnamecmp(p, "zsh") == 0
 		    || fnamecmp(p, "zsh-beta") == 0
 		    || fnamecmp(p, "bash") == 0
@@ -3919,6 +3921,8 @@ set_init_3()
 		    || fnamecmp(p, "cmd") == 0
 		    || fnamecmp(p, "sh.exe") == 0
 		    || fnamecmp(p, "ksh.exe") == 0
+		    || fnamecmp(p, "mksh.exe") == 0
+		    || fnamecmp(p, "pdksh.exe") == 0
 		    || fnamecmp(p, "zsh.exe") == 0
 		    || fnamecmp(p, "zsh-beta.exe") == 0
 		    || fnamecmp(p, "bash.exe") == 0
@@ -9317,7 +9321,7 @@ put_setstring(fd, cmd, name, valuep, expand)
     int		expand;
 {
     char_u	*s;
-    char_u	buf[MAXPATHL];
+    char_u	*buf;
 
     if (fprintf(fd, "%s %s=", cmd, name) < 0)
 	return FAIL;
@@ -9335,9 +9339,16 @@ put_setstring(fd, cmd, name, valuep, expand)
 	}
 	else if (expand)
 	{
+	    buf = alloc(MAXPATHL);
+	    if (buf == NULL)
+		return FAIL;
 	    home_replace(NULL, *valuep, buf, MAXPATHL, FALSE);
 	    if (put_escstr(fd, buf, 2) == FAIL)
+	    {
+		vim_free(buf);
 		return FAIL;
+	    }
+	    vim_free(buf);
 	}
 	else if (put_escstr(fd, *valuep, 2) == FAIL)
 	    return FAIL;
