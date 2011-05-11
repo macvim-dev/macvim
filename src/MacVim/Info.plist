@@ -1173,7 +1173,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>VHDL Source File</string>
+			<string>VHDL source</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>vhd</string>
@@ -1184,6 +1184,23 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Lua source</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>lua</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-generic</string>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>text/x-lua-script</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
+
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
@@ -2587,7 +2604,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>VHDL source file</string>
+			<string>VHDL source</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.vhdl-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2596,6 +2613,23 @@
 				<array>
 					<string>vhdl</string>
 					<string>vhd</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Lua source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.lua.lua-source</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>lua</string>
 				</array>
 			</dict>
 		</dict>
