@@ -367,7 +367,7 @@
 				<string>pas</string>
 			</array>
 			<key>CFBundleTypeName</key>
-			<string>Pascal Source file</string>
+			<string>Pascal Source File</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSIsAppleDefaultForType</key>
@@ -481,7 +481,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Perl source</string>
+			<string>Perl Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>pl</string>
@@ -504,7 +504,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Python source</string>
+			<string>Python Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>py</string>
@@ -527,7 +527,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>PHP source</string>
+			<string>PHP Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>php</string>
@@ -553,7 +553,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Ruby source</string>
+			<string>Ruby Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>rb</string>
@@ -660,7 +660,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>AppleScript source</string>
+			<string>AppleScript Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>applescript</string>
@@ -676,7 +676,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>ActionScript source</string>
+			<string>ActionScript Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>as</string>
@@ -728,7 +728,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>C# source</string>
+			<string>C# Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>cs</string>
@@ -828,7 +828,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Dylan source</string>
+			<string>Dylan Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>dylan</string>
@@ -840,7 +840,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Erlang source</string>
+			<string>Erlang Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>erl</string>
@@ -853,7 +853,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>F-Script source</string>
+			<string>F-Script Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>fscript</string>
@@ -865,7 +865,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Haskell source</string>
+			<string>Haskell Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>hs</string>
@@ -914,7 +914,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Io source</string>
+			<string>Io Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>io</string>
@@ -962,7 +962,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>LISP source</string>
+			<string>LISP Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>lisp</string>
@@ -1005,7 +1005,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>PostScript source</string>
+			<string>PostScript Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>ps</string>
@@ -1033,7 +1033,7 @@
           </dict>-->
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Scheme source</string>
+			<string>Scheme Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>scm</string>
@@ -1046,7 +1046,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>SQL source</string>
+			<string>SQL Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>sql</string>
@@ -1058,7 +1058,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Tcl source</string>
+			<string>Tcl Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>tcl</string>
@@ -1096,7 +1096,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Visual Basic source</string>
+			<string>Visual Basic Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>vb</string>
@@ -1173,7 +1173,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>VHDL source</string>
+			<string>VHDL Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>vhd</string>
@@ -1186,7 +1186,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Lua source</string>
+			<string>Lua Source File</string>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>lua</string>
@@ -1754,7 +1754,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Perl source</string>
+			<string>Perl Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.perl-script</string>
 			<key>UTTypeTagSpecification</key>
@@ -1774,7 +1774,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Python source</string>
+			<string>Python Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.python-script</string>
 			<key>UTTypeTagSpecification</key>
@@ -1794,7 +1794,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>PHP source</string>
+			<string>PHP Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.php-script</string>
 			<key>UTTypeTagSpecification</key>
@@ -1817,7 +1817,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Ruby source</string>
+			<string>Ruby Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>public.ruby-script</string>
 			<key>UTTypeTagSpecification</key>
@@ -1915,7 +1915,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>AppleScript source</string>
+			<string>AppleScript Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.apple.applescript.text</string>
 			<key>UTTypeTagSpecification</key>
@@ -1932,7 +1932,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>ActionScript source</string>
+			<string>ActionScript Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.as-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2004,7 +2004,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>C# source</string>
+			<string>C# Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.cs-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2144,7 +2144,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Dylan source</string>
+			<string>Dylan Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.dylan-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2161,7 +2161,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Erlang source</string>
+			<string>Erlang Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.erl-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2179,7 +2179,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>F-Script source</string>
+			<string>F-Script Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.fscript-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2196,7 +2196,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Haskell source</string>
+			<string>Haskell Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.hs-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2265,7 +2265,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Io source</string>
+			<string>Io Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.io-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2333,7 +2333,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>LISP source</string>
+			<string>LISP Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.lisp-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2391,7 +2391,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>PostScript source</string>
+			<string>PostScript Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.adobe.postscript</string>
 			<key>UTTypeTagSpecification</key>
@@ -2409,7 +2409,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Scheme source</string>
+			<string>Scheme Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.scm-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2427,7 +2427,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>SQL source</string>
+			<string>SQL Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.sql-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2444,7 +2444,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Tcl source</string>
+			<string>Tcl Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.tcl-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2497,7 +2497,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Visual Basic source</string>
+			<string>Visual Basic Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.vb-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2604,7 +2604,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>VHDL source</string>
+			<string>VHDL Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.vim.vhdl-file</string>
 			<key>UTTypeTagSpecification</key>
@@ -2622,7 +2622,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>Lua source</string>
+			<string>Lua Source File</string>
 			<key>UTTypeIdentifier</key>
 			<string>org.lua.lua-source</string>
 			<key>UTTypeTagSpecification</key>
