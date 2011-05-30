@@ -787,6 +787,69 @@ main()
 	   df */
 	hello
 }
+
+/* valid namespaces with normal indent */
+namespace
+{
+	{
+		111111111111;
+	}
+}
+namespace /* test */
+{
+	11111111111111111;
+}
+namespace // test
+{
+	111111111111111111;
+}
+namespace
+{
+	111111111111111111;
+}
+namespace test
+{
+	111111111111111111;
+}
+namespace{
+	111111111111111111;
+}
+namespace test{
+	111111111111111111;
+}
+namespace {
+	111111111111111111;
+}
+namespace test {
+	111111111111111111;
+	namespace test2 {
+		22222222222222222;
+	}
+}
+
+/* invalid namespaces use block indent */
+namespace test test2 {
+	111111111111111111111;
+}
+namespace11111111111 {
+	111111111111;
+}
+namespace() {
+	1111111111111;
+}
+namespace()
+{
+	111111111111111111;
+}
+namespace test test2
+{
+	1111111111111111111;
+}
+namespace111111111
+{
+	111111111111111111;
+}
+
 /* end of AUTO */
 
 
@@ -1203,4 +1266,138 @@ func(int a
 	)
 {
 }
+
+
+void func(void)
+{
+	if(x==y)
+		if(y==z)
+			foo=1;
+		else { bar=1;
+			baz=2;
+		}
+	printf("Foo!\n");
+}
+
+void func1(void)
+{
+	char* tab[] = {"foo", "bar",
+		"baz", "quux",
+		"this line used", "to be indented incorrectly"};
+	foo();
+}
+
+void func2(void)
+{
+	int tab[] =
+	{1, 2,
+		3, 4,
+		5, 6};
+
+	printf("This line used to be indented incorrectly.\n");
+}
+
+void func3(void)
+{
+	int tab[] = {
+		1, 2,
+		3, 4,
+		5, 6};
+
+	printf("Don't you dare indent this line incorrectly!\n);
+}
+
+
+void func(void)
+{
+	cout << "a"
+		<< "b"
+		<< ") :"
+		<< "c";
+}
+
+
+void func(void)
+{
+	/*
+	 * This is a comment.
+	 */
+	foo();
+}
+
+
+void func(void)
+{
+	for (int i = 0; i < 10; ++i)
+		if (i & 1) {
+			foo(1);
+		} else
+			foo(0);
+	baz();
+}
+
+
+/* valid namespaces with normal indent */
+namespace
+{
+{
+	111111111111;
+}
+}
+namespace /* test */
+{
+11111111111111111;
+}
+namespace // test
+{
+111111111111111111;
+}
+namespace
+{
+111111111111111111;
+}
+namespace test
+{
+111111111111111111;
+}
+namespace{
+111111111111111111;
+}
+namespace test{
+111111111111111111;
+}
+namespace {
+111111111111111111;
+}
+namespace test {
+111111111111111111;
+namespace test2 {
+22222222222222222;
+}
+}
+
+/* invalid namespaces use block indent */
+namespace test test2 {
+	111111111111111111111;
+}
+namespace11111111111 {
+	111111111111;
+}
+namespace() {
+	1111111111111;
+}
+namespace()
+{
+	111111111111111111;
+}
+namespace test test2
+{
+	1111111111111111111;
+}
+namespace111111111
+{
+	111111111111111111;
+}
+NAMESPACEEND
+
 

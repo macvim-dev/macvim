@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.3.  Last change: 2011 Mar 18
+*eval.txt*	For Vim version 7.3.  Last change: 2011 May 17
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1293,6 +1293,7 @@ v:beval_winnr	The number of the window, over which the mouse pointer is. Only
 					*v:char* *char-variable*
 v:char		Argument for evaluating 'formatexpr' and used for the typed
 		character when using <expr> in an abbreviation |:map-<expr>|.
+		It is also used by the |InsertPreChar| event.
 
 			*v:charconvert_from* *charconvert_from-variable*
 v:charconvert_from
@@ -1545,7 +1546,9 @@ v:progname	Contains the name (with path removed) with which Vim was
 
 					*v:register* *register-variable*
 v:register	The name of the register in effect for the current normal mode
-		command.  If none is supplied it is the default register.
+		command.  If none is supplied it is the default register '"',
+		unless 'clipboard' contains "unnamed" or "unnamedplus", then
+		it is '*' or '+'.
 		Also see |getreg()| and |setreg()|
 
 					*v:scrollstart* *scrollstart-variable*
@@ -4074,6 +4077,7 @@ match({expr}, {pat}[, {start}[, {count}]])			*match()*
 		{pat} matches.
 		A match at the first character or |List| item returns zero.
 		If there is no match -1 is returned.
+		For getting submatches see |matchlist()|.
 		Example: >
 			:echo match("testing", "ing")	" results in 4
 			:echo match([1, 'x'], '\a')	" results in 1
@@ -5579,6 +5583,10 @@ substitute({expr}, {pat}, {sub}, {flags})		*substitute()*
 <		This removes the last component of the 'path' option. >
 			:echo substitute("testing", ".*", "\\U\\0", "")
 <		results in "TESTING".
+		The {sub} argument can start with \=, just like with
+		|:substitute|.  Example: >
+			:echo substitute(s, '%\(\x\x\)',
+			   \ '\=nr2char("0x" . submatch(1))', 'g')
 
 synID({lnum}, {col}, {trans})				*synID()*
 		The result is a Number, which is the syntax ID at the position
@@ -6225,7 +6233,8 @@ persistent_undo		Compiled with support for persistent undo history.
 postscript		Compiled with PostScript file printing.
 printer			Compiled with |:hardcopy| support.
 profile			Compiled with |:profile| support.
-python			Compiled with Python interface.
+python			Compiled with Python 2.x interface. |has-python|
+python3			Compiled with Python 3.x interface. |has-python|
 qnx			QNX version of Vim.
 quickfix		Compiled with |quickfix| support.
 reltime			Compiled with |reltime()| support.

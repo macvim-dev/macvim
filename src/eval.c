@@ -352,7 +352,7 @@ static struct vimvar
     {VV_NAME("swapname",	 VAR_STRING), VV_RO},
     {VV_NAME("swapchoice",	 VAR_STRING), 0},
     {VV_NAME("swapcommand",	 VAR_STRING), VV_RO},
-    {VV_NAME("char",		 VAR_STRING), VV_RO},
+    {VV_NAME("char",		 VAR_STRING), 0},
     {VV_NAME("mouse_win",	 VAR_NUMBER), 0},
     {VV_NAME("mouse_lnum",	 VAR_NUMBER), 0},
     {VV_NAME("mouse_col",	 VAR_NUMBER), 0},
@@ -911,6 +911,7 @@ eval_clear()
     hash_clear(&compat_hashtab);
 
     free_scriptnames();
+    free_locales();
 
     /* global variables */
     vars_clear(&globvarht);
@@ -11826,9 +11827,6 @@ f_has(argvars, rettv)
 #ifdef __QNX__
 	"qnx",
 #endif
-#ifdef RISCOS
-	"riscos",
-#endif
 #ifdef UNIX
 	"unix",
 #endif
@@ -12092,9 +12090,6 @@ f_has(argvars, rettv)
 #endif
 #ifdef FEAT_OLE
 	"ole",
-#endif
-#ifdef FEAT_OSFILETYPE
-	"osfiletype",
 #endif
 #ifdef FEAT_PATH_EXTRA
 	"path_extra",
@@ -15014,7 +15009,10 @@ f_resolve(argvars, rettv)
 
 	len = STRLEN(p);
 	if (len > 0 && after_pathsep(p, p + len))
+	{
 	    has_trailing_pathsep = TRUE;
+	    p[len - 1] = NUL; /* the trailing slash breaks readlink() */
+	}
 
 	q = getnextcomp(p);
 	if (*q != NUL)

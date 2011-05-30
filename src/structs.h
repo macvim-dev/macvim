@@ -1530,9 +1530,6 @@ struct file_buffer
     int		b_p_ml_nobin;	/* b_p_ml saved for binary mode */
     int		b_p_ma;		/* 'modifiable' */
     char_u	*b_p_nf;	/* 'nrformats' */
-#ifdef FEAT_OSFILETYPE
-    char_u	*b_p_oft;	/* 'osfiletype' */
-#endif
     int		b_p_pi;		/* 'preserveindent' */
 #ifdef FEAT_TEXTOBJ
     char_u	*b_p_qe;	/* 'quoteescape' */
@@ -2373,11 +2370,6 @@ struct VimMenu
 				       get through some tricks) */
     MenuHandle	menu_handle;
     MenuHandle	submenu_handle;
-#endif
-#ifdef RISCOS
-    int		*id;		    /* Not used, but gui.c needs it */
-    int		greyed_out;	    /* Flag */
-    int		hidden;
 #endif
 #ifdef FEAT_GUI_PHOTON
     PtWidget_t	*id;

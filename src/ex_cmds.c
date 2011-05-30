@@ -899,9 +899,6 @@ free_prev_shellcmd()
  * Handle the ":!cmd" command.	Also for ":r !cmd" and ":w !cmd"
  * Bangs in the argument are replaced with the previously entered command.
  * Remember the argument.
- *
- * RISCOS: Bangs only replaced when followed by a space, since many
- * pathnames contain one.
  */
     void
 do_bang(addr_count, eap, forceit, do_in, do_out)
@@ -980,11 +977,7 @@ do_bang(addr_count, eap, forceit, do_in, do_out)
 	trailarg = NULL;
 	while (*p)
 	{
-	    if (*p == '!'
-#ifdef RISCOS
-			&& (p[1] == ' ' || p[1] == NUL)
-#endif
-					)
+	    if (*p == '!')
 	    {
 		if (p > newcmd && p[-1] == '\\')
 		    STRMOVE(p - 1, p);
@@ -1578,14 +1571,8 @@ make_filter_cmd(cmd, itmp, otmp)
 	    if (p != NULL)
 		*p = NUL;
 	}
-# ifdef RISCOS
-	STRCAT(buf, " { < ");	/* Use RISC OS notation for input. */
-	STRCAT(buf, itmp);
-	STRCAT(buf, " } ");
-# else
 	STRCAT(buf, " <");	/* " < " causes problems on Amiga */
 	STRCAT(buf, itmp);
-# endif
 	if (*p_shq == NUL)
 	{
 	    p = vim_strchr(cmd, '|');
@@ -1634,16 +1621,9 @@ append_redir(buf, buflen, opt, fname)
     else
 	vim_snprintf((char *)end, (size_t)(buflen - (end - buf)),
 #ifdef FEAT_QUICKFIX
-# ifndef RISCOS
-		opt != p_sp ? " %s%s" :
-# endif
 		" %s %s",
 #else
-# ifndef RISCOS
 		" %s%s",	/* " > %s" causes problems on Amiga */
-# else
-		" %s %s",	/* But is needed for 'shellpipe' and RISC OS */
-# endif
 #endif
 		(char *)opt, (char *)fname);
 }
@@ -1844,11 +1824,7 @@ write_viminfo(file, forceit)
 #ifdef VMS
 				    (char_u *)"-tmp",
 #else
-# ifdef RISCOS
-				    (char_u *)"/tmp",
-# else
 				    (char_u *)".tmp",
-# endif
 #endif
 				    FALSE);
 	    if (tempname == NULL)		/* out of memory */
@@ -4649,7 +4625,15 @@ do_sub(eap)
 			 * for a match in this line again. */
 			skip_match = TRUE;
 		    else
-			++matchcol; /* search for a match at next column */
+		    {
+			 /* search for a match at next column */
+#ifdef FEAT_MBYTE
+			if (has_mbyte)
+			    matchcol += mb_ptr2len(sub_firstline + matchcol);
+			else
+#endif
+			    ++matchcol;
+		    }
 		    goto skip;
 		}
 
@@ -5365,8 +5349,9 @@ ex_global(eap)
 global_exe(cmd)
     char_u	*cmd;
 {
-    linenr_T	old_lcount;	/* b_ml.ml_line_count before the command */
-    linenr_T	lnum;		/* line number according to old situation */
+    linenr_T old_lcount;	/* b_ml.ml_line_count before the command */
+    buf_T    *old_buf = curbuf;	/* remember what buffer we started in */
+    linenr_T lnum;		/* line number according to old situation */
 
     /*
      * Set current position only once for a global command.
@@ -5410,8 +5395,10 @@ global_exe(cmd)
 	msg_didout = FALSE;
 
     /* If substitutes done, report number of substitutes, otherwise report
-     * number of extra or deleted lines. */
-    if (!do_sub_msg(FALSE))
+     * number of extra or deleted lines.
+     * Don't report extra or deleted lines in the edge case where the buffer
+     * we are in after execution is different from the buffer we started in. */
+    if (!do_sub_msg(FALSE) && curbuf == old_buf)
 	msgmore(curbuf->b_ml.ml_line_count - old_lcount);
 }
 
