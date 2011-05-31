@@ -416,10 +416,18 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (desc && ![desc booleanValue])
         return NO;
 
-    // Never open an untitled window if there is at least one open window or if
-    // there are processes that are currently launching.
-    if ([vimControllers count] > 0 || [pidArguments count] > 0)
+    // Never open an untitled window if there is at least one open window.
+    if ([vimControllers count] > 0)
         return NO;
+
+    // Don't open an untitled window if there are processes about to launch...
+    NSUInteger numLaunching = [pidArguments count];
+    if (numLaunching > 0) {
+        // ...unless the launching process is being preloaded
+        NSNumber *key = [NSNumber numberWithInt:preloadPid];
+        if (numLaunching != 1 || [pidArguments objectForKey:key] == nil)
+            return NO;
+    }
 
     // NOTE!  This way it possible to start the app with the command-line
     // argument '-nowindow yes' and no window will be opened by default but
@@ -2249,6 +2257,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     int pid = [vc pid];
     NSNumber *pidKey = [NSNumber numberWithInt:pid];
+    id args = [pidArguments objectForKey:pidKey];
 
     if (preloadPid == pid) {
         // This controller was preloaded, so add it to the cache and
@@ -2260,7 +2269,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     } else {
         [vimControllers addObject:vc];
 
-        id args = [pidArguments objectForKey:pidKey];
         if (args && [NSNull null] != args)
             [vc passArguments:args];
 
@@ -2270,10 +2278,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // which is how we detect if the process was launched from the
         // terminal.
         if (!args) [self activateWhenNextWindowOpens];
-
-        if (args)
-            [pidArguments removeObjectForKey:pidKey];
     }
+
+    if (args)
+        [pidArguments removeObjectForKey:pidKey];
 }
 
 - (NSDictionary *)convertVimControllerArguments:(NSDictionary *)args
