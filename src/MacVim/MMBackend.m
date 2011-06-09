@@ -651,7 +651,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [drawData appendBytes:&gui.row length:sizeof(gui.row)];
         [drawData appendBytes:&gui.col length:sizeof(gui.col)];
 
-        [self queueMessage:BatchDrawMsgID data:[drawData copy]];
+        [self queueMessage:BatchDrawMsgID data:[[drawData copy] autorelease]];
         [self clearDrawData];
     }
 
