@@ -1,4 +1,4 @@
-*various.txt*   For Vim version 7.3.  Last change: 2011 Mar 03
+*various.txt*   For Vim version 7.3.  Last change: 2011 May 19
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -362,8 +362,6 @@ m  *+mzscheme/dyn*	Mzscheme interface |mzscheme-dynamic| |/dyn|
 m  *+netbeans_intg*	|netbeans|
 m  *+odbeditor*         MacVim only: ODB Editor Protocol support |odbeditor|
 m  *+ole*		Win32 GUI only: |ole-interface|
-   *+osfiletype*	Support for the 'osfiletype' option and filetype
-			checking in automatic commands.  |autocmd-osfiletypes|
 N  *+path_extra*	Up/downwards search in 'path' and 'tags'
 m  *+perl*		Perl interface |perl|
 m  *+perl/dyn*		Perl interface |perl-dynamic| |/dyn|

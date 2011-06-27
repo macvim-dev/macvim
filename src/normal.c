@@ -4538,6 +4538,7 @@ nv_screengo(oap, dir, dist)
 		}
 		curwin->w_cursor.lnum++;
 		curwin->w_curswant %= width2;
+		linelen = linetabsize(ml_get_curline());
 	    }
 	}
       }
