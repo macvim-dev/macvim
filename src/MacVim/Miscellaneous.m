@@ -99,6 +99,9 @@ NSString *MMSuppressTerminationAlertKey = @"MMSuppressTerminationAlert";
     [self setShowsHiddenFiles:[sender intValue]];
 }
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6)
+// This method is a part of a public API as of Mac OS X 10.6.  Only use this
+// hack for earlier versions of Mac OS X.
 - (void)setShowsHiddenFiles:(BOOL)show
 {
     // This is undocumented stuff, so be careful. This does the same as
@@ -120,6 +123,7 @@ NSString *MMSuppressTerminationAlertKey = @"MMSuppressTerminationAlert";
     [invocation setArgument:&show atIndex:2];
     [invocation invoke];
 }
+#endif
 
 @end // NSSavePanel (MMExtras)
 

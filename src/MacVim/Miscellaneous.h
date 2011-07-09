@@ -95,7 +95,11 @@ enum {
 
 @interface NSSavePanel (MMExtras)
 - (void)hiddenFilesButtonToggled:(id)sender;
+#if (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6)
+// This method is a part of a public API as of Mac OS X 10.6.  Only use this
+// hack for earlier versions of Mac OS X.
 - (void)setShowsHiddenFiles:(BOOL)show;
+#endif
 @end
 
 
