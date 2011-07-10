@@ -181,6 +181,10 @@
     if ([win respondsToSelector:@selector(_setContentHasShadow:)])
         [win _setContentHasShadow:NO];
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
+    [win setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+#endif
+
     return self;
 }
 
@@ -956,6 +960,14 @@
     NSData *data = [NSData dataWithBytes:info length:3*sizeof(int)];
     [vimController sendMessage:ZoomMsgID data:data];
 }
+
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
+- (NSApplicationPresentationOptions)window:(NSWindow *)window
+    willUseFullScreenPresentationOptions:(NSApplicationPresentationOptions)opt
+{
+    return opt | NSApplicationPresentationAutoHideToolbar;
+}
+#endif
 
 
 
