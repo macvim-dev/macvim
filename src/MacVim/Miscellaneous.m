@@ -219,7 +219,7 @@ NSString *MMSuppressTerminationAlertKey = @"MMSuppressTerminationAlert";
 - (NSToolbarItem *)itemAtIndex:(NSUInteger)idx
 {
     NSArray *items = [self items];
-    if (idx < 0 || idx >= [items count])
+    if (idx >= [items count])
         return nil;
 
     return [items objectAtIndex:idx];
