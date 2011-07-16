@@ -3187,10 +3187,10 @@ get_keystroke()
 		    || n == K_HOR_SCROLLBAR
 # endif
 # ifdef FEAT_GUI_MACVIM
-		    || K_SWIPELEFT
-		    || K_SWIPERIGHT
-		    || K_SWIPEUP
-		    || K_SWIPEDOWN
+		    || n == K_SWIPELEFT
+		    || n == K_SWIPERIGHT
+		    || n == K_SWIPEUP
+		    || n == K_SWIPEDOWN
 # endif
 #endif
 	       )
