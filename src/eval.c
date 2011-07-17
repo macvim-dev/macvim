@@ -3430,6 +3430,9 @@ ex_call(eap)
 	{
 	    curwin->w_cursor.lnum = lnum;
 	    curwin->w_cursor.col = 0;
+#ifdef FEAT_VIRTUALEDIT
+	    curwin->w_cursor.coladd = 0;
+#endif
 	}
 	arg = startarg;
 	if (get_func_tv(name, (int)STRLEN(name), &rettv, &arg,
@@ -11939,7 +11942,7 @@ f_has(argvars, rettv)
 #ifdef FEAT_SEARCHPATH
 	"file_in_path",
 #endif
-#if defined(UNIX) && !defined(USE_SYSTEM)
+#if (defined(UNIX) && !defined(USE_SYSTEM)) || defined(WIN3264)
 	"filterpipe",
 #endif
 #ifdef FEAT_FIND_ID
@@ -14338,7 +14341,7 @@ f_readfile(argvars, rettv)
 	tolist = 0;
 	for ( ; filtd < buflen || readlen <= 0; ++filtd)
 	{
-	    if (buf[filtd] == '\n' || readlen <= 0)
+	    if (readlen <= 0 || buf[filtd] == '\n')
 	    {
 		/* In binary mode add an empty list item when the last
 		 * non-empty line ends in a '\n'. */
