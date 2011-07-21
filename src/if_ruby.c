@@ -773,6 +773,10 @@ static VALUE vim_message(VALUE self UNUSED, VALUE str)
 	if (p) *p = '\0';
 	MSG(buff);
     }
+    else
+    {
+	MSG("");
+    }
     return Qnil;
 }
 
