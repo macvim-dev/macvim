@@ -894,7 +894,12 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
                 context:(void *)context
 {
-    NSString *path = (code == NSOKButton) ? [panel filename] : nil;
+    NSString *path = nil;
+    if (code == NSOKButton) {
+        NSURL *url = [panel URL];
+        if ([url isFileURL])
+            path = [url path];
+    }
     ASLogDebug(@"Open/save panel path=%@", path);
 
     // NOTE!  This causes the sheet animation to run its course BEFORE the rest
@@ -1386,6 +1391,12 @@ static BOOL isUnsafeMessage(int msgid);
             dir = [vimState objectForKey:@"pwd"];
     }
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
+    // 10.6+ APIs uses URLs instead of paths
+    dir = [dir stringByExpandingTildeInPath];
+    NSURL *dirURL = dir ? [NSURL fileURLWithPath:dir isDirectory:YES] : nil;
+#endif
+
     if (saving) {
         NSSavePanel *panel = [NSSavePanel savePanel];
 
@@ -1395,22 +1406,47 @@ static BOOL isUnsafeMessage(int msgid);
         [panel setDelegate:self];
         if ([panel isExpanded])
             [panel setAccessoryView:showHiddenFilesView()];
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
+        // NOTE: -[NSSavePanel beginSheetForDirectory::::::] is deprecated on
+        // 10.6 but -[NSSavePanel setDirectoryURL:] requires 10.6 so jump
+        // through the following hoops on 10.6+.
+        if (dirURL)
+            [panel setDirectoryURL:dirURL];
 
+        [panel beginSheetModalForWindow:[windowController window]
+                      completionHandler:^(NSInteger result) {
+            [self savePanelDidEnd:panel code:result context:nil];
+        }];
+#else
         [panel beginSheetForDirectory:dir file:nil
                 modalForWindow:[windowController window]
                  modalDelegate:self
                 didEndSelector:@selector(savePanelDidEnd:code:context:)
                    contextInfo:NULL];
+#endif
     } else {
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         [panel setAllowsMultipleSelection:NO];
         [panel setAccessoryView:showHiddenFilesView()];
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
+        // NOTE: -[NSOpenPanel beginSheetForDirectory:::::::] is deprecated on
+        // 10.6 but -[NSOpenPanel setDirectoryURL:] requires 10.6 so jump
+        // through the following hoops on 10.6+.
+        if (dirURL)
+            [panel setDirectoryURL:dirURL];
+
+        [panel beginSheetModalForWindow:[windowController window]
+                      completionHandler:^(NSInteger result) {
+            [self savePanelDidEnd:panel code:result context:nil];
+        }];
+#else
         [panel beginSheetForDirectory:dir file:nil types:nil
                 modalForWindow:[windowController window]
                  modalDelegate:self
                 didEndSelector:@selector(savePanelDidEnd:code:context:)
                    contextInfo:NULL];
+#endif
     }
 }
 

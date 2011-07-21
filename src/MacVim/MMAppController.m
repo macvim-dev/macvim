@@ -1070,10 +1070,40 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     [panel setAllowsMultipleSelection:YES];
     [panel setAccessoryView:showHiddenFilesView()];
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
+    // NOTE: -[NSOpenPanel runModalForDirectory:file:types:] is deprecated on
+    // 10.7 but -[NSOpenPanel setDirectoryURL:] requires 10.6 so jump through
+    // the following hoops on 10.6+.
+    dir = [dir stringByExpandingTildeInPath];
+    if (dir) {
+        NSURL *dirURL = [NSURL fileURLWithPath:dir isDirectory:YES];
+        if (dirURL)
+            [panel setDirectoryURL:dirURL];
+    }
 
-    int result = [panel runModalForDirectory:dir file:nil types:nil];
-    if (NSOKButton == result)
-        [self application:NSApp openFiles:[panel filenames]];
+    NSInteger result = [panel runModal];
+#else
+    NSInteger result = [panel runModalForDirectory:dir file:nil types:nil];
+#endif
+    if (NSOKButton == result) {
+        // NOTE: -[NSOpenPanel filenames] is deprecated on 10.7 so use
+        // -[NSOpenPanel URLs] instead.  The downside is that we have to check
+        // that each URL is really a path first.
+        NSMutableArray *filenames = [NSMutableArray array];
+        NSArray *urls = [panel URLs];
+        NSUInteger i, count = [urls count];
+        for (i = 0; i < count; ++i) {
+            NSURL *url = [urls objectAtIndex:i];
+            if ([url isFileURL]) {
+                NSString *path = [url path];
+                if (path)
+                    [filenames addObject:path];
+            }
+        }
+
+        if ([filenames count] > 0)
+            [self application:NSApp openFiles:filenames];
+    }
 }
 
 - (IBAction)selectNextWindow:(id)sender
