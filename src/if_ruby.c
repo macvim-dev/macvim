@@ -765,11 +765,14 @@ static VALUE vim_message(VALUE self UNUSED, VALUE str)
     char *buff, *p;
 
     str = rb_obj_as_string(str);
-    buff = ALLOCA_N(char, RSTRING_LEN(str));
-    strcpy(buff, RSTRING_PTR(str));
-    p = strchr(buff, '\n');
-    if (p) *p = '\0';
-    MSG(buff);
+    if (RSTRING_LEN(str) > 0)
+    {
+	buff = ALLOCA_N(char, RSTRING_LEN(str));
+	strcpy(buff, RSTRING_PTR(str));
+	p = strchr(buff, '\n');
+	if (p) *p = '\0';
+	MSG(buff);
+    }
     return Qnil;
 }
 
