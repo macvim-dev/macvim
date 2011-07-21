@@ -418,6 +418,7 @@
         labelPosition += closeButtonSize.width + kPSMTabBarCellPadding;
     }
     
+#if 0   // MacVim: disable this code.  It is unused and calling 'content' on the represented object's identifier seems dangerous at best.
     // icon
     if([cell hasIcon]){
         NSRect iconRect = [self iconRectForTabCell:cell];
@@ -430,7 +431,8 @@
         // scoot label over
         labelPosition += iconRect.size.width + kPSMTabBarCellPadding;
     }
-    
+#endif
+
     // object counter
     if([cell count] > 0){
         [[NSColor colorWithCalibratedWhite:0.3 alpha:0.45] set];
@@ -451,8 +453,7 @@
         counterStringRect.origin.y = myRect.origin.y + ((myRect.size.height - counterStringRect.size.height) / 2.0) + 0.5;
         [counterString drawInRect:counterStringRect];
     }
-    
-    
+
     // label rect
     NSRect labelRect;
     labelRect.origin.x = labelPosition;
