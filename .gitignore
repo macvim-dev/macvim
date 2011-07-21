@@ -3,6 +3,8 @@
 src/MacVim/MacVim.xcodeproj/*.mode1
 src/MacVim/MacVim.xcodeproj/*.mode1v3
 src/MacVim/MacVim.xcodeproj/*.pbxuser
+src/MacVim/MacVim.xcodeproj/project.xcworkspace
+src/MacVim/MacVim.xcodeproj/xcuserdata
 src/MacVim/icons/*.pyc
 src/MacVim/icons/*.ttf
 src/MacVim/icons/*.reg
@@ -16,6 +18,7 @@ src/MacVim/icons/makeicns/makeicns
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1v3
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.pbxuser
+src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/xcuserdata
 src/MacVim/PSMTabBarControl/build
 src/MacVim/PSMTabBarControl/build
 src/MacVim/build
@@ -35,3 +38,4 @@ src/po/*.mo
 src/tags
 src/xxd/xxd
 src/xxd/xxd.dSYM
+src/a.out.dSYM
