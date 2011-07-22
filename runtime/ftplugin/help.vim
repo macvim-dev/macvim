@@ -13,7 +13,10 @@ set cpo&vim
 
 let b:undo_ftplugin = "setl fo< tw< cole< cocu<"
 
-setlocal formatoptions+=tcroql textwidth=78 cole=2 cocu=nc
+setlocal formatoptions+=tcroql textwidth=78
+if has("conceal")
+  setlocal cole=2 cocu=nc
+endif
 
 if has("gui_macvim")
   " Use swipe gesture to navigate back/forward

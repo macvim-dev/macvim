@@ -5315,7 +5315,9 @@ static struct
 {
     {EXPAND_AUGROUP, "augroup"},
     {EXPAND_BUFFERS, "buffer"},
+    {EXPAND_COLORS, "color"},
     {EXPAND_COMMANDS, "command"},
+    {EXPAND_COMPILER, "compiler"},
 #if defined(FEAT_CSCOPE)
     {EXPAND_CSCOPE, "cscope"},
 #endif
@@ -5328,10 +5330,15 @@ static struct
     {EXPAND_EVENTS, "event"},
     {EXPAND_EXPRESSION, "expression"},
     {EXPAND_FILES, "file"},
+    {EXPAND_FILES_IN_PATH, "file_in_path"},
     {EXPAND_FILETYPE, "filetype"},
     {EXPAND_FUNCTIONS, "function"},
     {EXPAND_HELP, "help"},
     {EXPAND_HIGHLIGHT, "highlight"},
+#if (defined(HAVE_LOCALE_H) || defined(X_LOCALE)) \
+        && (defined(FEAT_GETTEXT) || defined(FEAT_MBYTE))
+    {EXPAND_LOCALES, "locale"},
+#endif
     {EXPAND_MAPPINGS, "mapping"},
     {EXPAND_MENUS, "menu"},
     {EXPAND_OWNSYNTAX, "syntax"},
@@ -7088,7 +7095,7 @@ alist_expand(fnum_list, fnum_len)
 	old_arg_count = GARGCOUNT;
 	if (expand_wildcards(old_arg_count, old_arg_files,
 		    &new_arg_file_count, &new_arg_files,
-		    EW_FILE|EW_NOTFOUND|EW_ADDSLASH) == OK
+		    EW_FILE|EW_NOTFOUND|EW_ADDSLASH|EW_NOERROR) == OK
 		&& new_arg_file_count > 0)
 	{
 	    alist_set(&global_alist, new_arg_file_count, new_arg_files,
