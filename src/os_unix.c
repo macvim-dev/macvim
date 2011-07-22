@@ -3907,11 +3907,20 @@ mch_call_shell(cmd, options)
 	if (p_guipty && !(options & (SHELL_READ|SHELL_WRITE)))
 	{
 	    pty_master_fd = OpenPTY(&tty_name);	    /* open pty */
-	    if (pty_master_fd >= 0 && ((pty_slave_fd =
-				    open(tty_name, O_RDWR | O_EXTRA, 0)) < 0))
+	    if (pty_master_fd >= 0)
 	    {
-		close(pty_master_fd);
-		pty_master_fd = -1;
+#if !defined(MACOS) || defined(USE_CARBONIZED)
+		pty_slave_fd = open(tty_name, O_RDWR | O_EXTRA, 0);
+#else
+		/* Leaving out O_NOCTTY may lead to waitpid() always returning
+		 * 0 on Mac OS X 10.7 thereby causing freezes. */
+		pty_slave_fd = open(tty_name, O_RDWR | O_NOCTTY | O_EXTRA);
+#endif
+		if (pty_slave_fd < 0)
+		{
+		    close(pty_master_fd);
+		    pty_master_fd = -1;
+		}
 	    }
 	}
 	/*
