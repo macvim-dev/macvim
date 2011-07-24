@@ -78,6 +78,7 @@
 - (void)enterFullscreen:(int)fuoptions backgroundColor:(NSColor *)back;
 - (void)leaveFullscreen;
 - (void)setFullscreenBackgroundColor:(NSColor *)back;
+- (void)invFullscreen:(id)sender;
 
 - (void)setBufferModified:(BOOL)mod;
 - (void)setTopLeft:(NSPoint)pt;

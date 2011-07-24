@@ -684,6 +684,11 @@
         [fullscreenWindow setBackgroundColor:back];
 }
 
+- (void)invFullscreen:(id)sender
+{
+    [vimController addVimInput:@"<C-\\><C-N>:set invfu<CR>"];
+}
+
 - (void)setBufferModified:(BOOL)mod
 {
     // NOTE: We only set the document edited flag on the decorated window since

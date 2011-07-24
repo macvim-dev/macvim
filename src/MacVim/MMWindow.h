@@ -29,4 +29,9 @@
 - (void)setContentMaxSize:(NSSize)size;
 - (void)setContentSize:(NSSize)size;
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+- (IBAction)toggleFullScreen:(id)sender;
+- (IBAction)realToggleFullScreen:(id)sender;
+#endif
+
 @end

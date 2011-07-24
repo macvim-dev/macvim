@@ -34,6 +34,7 @@
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
 #import "MMCoreTextView.h"
+#import "MMWindow.h"
 
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
@@ -767,7 +768,10 @@ static BOOL isUnsafeMessage(int msgid);
         [name release];
     } else if (EnterFullscreenMsgID == msgid) {
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-        [[windowController window] toggleFullScreen:self];
+        NSWindow *win = [windowController window];
+        if ([win respondsToSelector:@selector(realToggleFullScreen:)])
+            [win performSelector:@selector(realToggleFullScreen:)
+                      withObject:self];
 #else
         const void *bytes = [data bytes];
         int fuoptions = *((int*)bytes); bytes += sizeof(int);
@@ -778,7 +782,10 @@ static BOOL isUnsafeMessage(int msgid);
 #endif
     } else if (LeaveFullscreenMsgID == msgid) {
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-        [[windowController window] toggleFullScreen:self];
+        NSWindow *win = [windowController window];
+        if ([win respondsToSelector:@selector(realToggleFullScreen:)])
+            [win performSelector:@selector(realToggleFullScreen:)
+                      withObject:self];
 #else
         [windowController leaveFullscreen];
 #endif
