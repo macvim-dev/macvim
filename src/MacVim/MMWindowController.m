@@ -183,6 +183,7 @@
 
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
     [win setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+    [win setAnimationBehavior:NSWindowAnimationBehaviorDocumentWindow];
 #endif
 
     return self;
