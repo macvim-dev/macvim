@@ -250,7 +250,16 @@
     // dialog is displayed.
     [decoratedWindow setDocumentEdited:NO];
 
-    [[self window] orderOut:self];
+    NSWindow *win = [self window];
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+    if (([win styleMask] & NSFullScreenWindowMask) &&
+            [win respondsToSelector:@selector(realToggleFullScreen:)]) {
+        [win setAlphaValue:0];
+        [win performSelector:@selector(realToggleFullScreen:) withObject:self];
+    }
+#endif
+
+    [win orderOut:self];
 }
 
 - (void)openWindow
@@ -1245,3 +1254,4 @@
 }
 
 @end // MMWindowController (Private)
+
