@@ -1000,14 +1000,6 @@
     [vimController sendMessage:ZoomMsgID data:data];
 }
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-- (NSApplicationPresentationOptions)window:(NSWindow *)window
-    willUseFullScreenPresentationOptions:(NSApplicationPresentationOptions)opt
-{
-    return opt | NSApplicationPresentationAutoHideToolbar;
-}
-#endif
-
 
 
 // -- Services menu delegate -------------------------------------------------
@@ -1050,6 +1042,12 @@
 
 // -- Full screen delegate ---------------------------------------------------
 
+- (NSApplicationPresentationOptions)window:(NSWindow *)window
+    willUseFullScreenPresentationOptions:(NSApplicationPresentationOptions)opt
+{
+    return opt | NSApplicationPresentationAutoHideToolbar;
+}
+
 - (NSArray *)customWindowsToEnterFullScreenForWindow:(NSWindow *)window
 {
     return [NSArray arrayWithObject:decoratedWindow];
@@ -1069,6 +1067,7 @@
         [[window animator] setAlphaValue:0];
     } completionHandler:^{
         [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
+        [[vimView tabBarControl] setStyleNamed:@"Unified"];
         [self maximizeWindow:fullscreenOptions];
 
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
@@ -1086,6 +1085,7 @@
     ASLogNotice(@"Failed to ENTER full screen, restoring window frame...");
 
     [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
+    [[vimView tabBarControl] setStyleNamed:@"Metal"];
     [window setFrame:preFullscreenFrame display:YES];
 }
 
@@ -1114,6 +1114,7 @@
         [[window animator] setAlphaValue:0];
     } completionHandler:^{
         [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
+        [[vimView tabBarControl] setStyleNamed:@"Metal"];
         [window setFrame:preFullscreenFrame display:YES];
 
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
@@ -1131,6 +1132,7 @@
     ASLogNotice(@"Failed to EXIT full screen, maximizing window...");
 
     [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
+    [[vimView tabBarControl] setStyleNamed:@"Unified"];
     [self maximizeWindow:fullscreenOptions];
 }
 
