@@ -203,6 +203,7 @@
     [decoratedWindow release];  decoratedWindow = nil;
     [windowAutosaveKey release];  windowAutosaveKey = nil;
     [vimView release];  vimView = nil;
+    [toolbar release];  toolbar = nil;
 
     [super dealloc];
 }
@@ -389,9 +390,14 @@
     [fullscreenWindow setRepresentedFilename:filename];
 }
 
-- (void)setToolbar:(NSToolbar *)toolbar
+- (void)setToolbar:(NSToolbar *)theToolbar
 {
-    // The full-screen window has no toolbar.
+    if (theToolbar != toolbar) {
+        [toolbar release];
+        toolbar = [theToolbar retain];
+    }
+
+    // NOTE: Toolbar must be set here or it won't work to show it later.
     [decoratedWindow setToolbar:toolbar];
 
     // HACK! Redirect the pill button so that we can ask Vim to hide the
@@ -530,10 +536,9 @@
     // Showing the tabline may result in the tabline separator being hidden or
     // shown; this does not apply to full-screen mode.
     if (!on) {
-        NSToolbar *toolbar = [decoratedWindow toolbar]; 
         if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask)
                 == 0) {
-            [self hideTablineSeparator:![toolbar isVisible]];
+            [self hideTablineSeparator:![decoratedWindow toolbar]];
         } else {
             [self hideTablineSeparator:NO];
         }
@@ -549,7 +554,6 @@
 
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode
 {
-    NSToolbar *toolbar = [decoratedWindow toolbar];
     if (!toolbar) return;
 
     [toolbar setSizeMode:size];
@@ -1350,12 +1354,11 @@
 
 - (void)updateToolbar
 {
-    NSToolbar *toolbar = [decoratedWindow toolbar];
     if (nil == toolbar || 0 == updateToolbarFlag) return;
 
     // Positive flag shows toolbar, negative hides it.
     BOOL on = updateToolbarFlag > 0 ? YES : NO;
-    [toolbar setVisible:on];
+    [decoratedWindow setToolbar:(on ? toolbar : nil)];
 
     if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask) == 0) {
         if (!on) {
@@ -1420,5 +1423,4 @@
 }
 
 @end // MMWindowController (Private)
-
 

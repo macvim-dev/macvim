@@ -42,6 +42,7 @@
     int                 userCols;
     NSPoint             userTopLeft;
     NSPoint             defaultTopLeft;
+    NSToolbar           *toolbar;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
