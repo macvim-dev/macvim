@@ -767,28 +767,14 @@ static BOOL isUnsafeMessage(int msgid);
         [self setServerName:name];
         [name release];
     } else if (EnterFullscreenMsgID == msgid) {
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-        NSWindow *win = [windowController window];
-        if ([win respondsToSelector:@selector(realToggleFullScreen:)])
-            [win performSelector:@selector(realToggleFullScreen:)
-                      withObject:self];
-#else
         const void *bytes = [data bytes];
         int fuoptions = *((int*)bytes); bytes += sizeof(int);
         int bg = *((int*)bytes);
         NSColor *back = [NSColor colorWithArgbInt:bg];
 
         [windowController enterFullscreen:fuoptions backgroundColor:back];
-#endif
     } else if (LeaveFullscreenMsgID == msgid) {
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-        NSWindow *win = [windowController window];
-        if ([win respondsToSelector:@selector(realToggleFullScreen:)])
-            [win performSelector:@selector(realToggleFullScreen:)
-                      withObject:self];
-#else
         [windowController leaveFullscreen];
-#endif
     } else if (SetBuffersModifiedMsgID == msgid) {
         const void *bytes = [data bytes];
         // state < 0  <->  some buffer modified

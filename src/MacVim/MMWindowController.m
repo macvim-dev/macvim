@@ -69,6 +69,12 @@
 #import <PSMTabBarControl/PSMTabBarControl.h>
 
 
+// These have to be the same as in option.h
+#define FUOPT_MAXVERT         0x001
+#define FUOPT_MAXHORZ         0x002
+#define FUOPT_BGCOLOR_HLGROUP 0x004
+
+
 
 @interface MMWindowController (Private)
 - (NSSize)contentSize;
@@ -82,6 +88,7 @@
 - (void)hideTablineSeparator:(BOOL)hide;
 - (void)doFindNext:(BOOL)next;
 - (void)updateToolbar;
+- (void)maximizeWindow:(int)options;
 @end
 
 
@@ -231,7 +238,10 @@
 
 - (void)cleanup
 {
-    ASLogDebug(@"%@ %s", [self className], _cmd);
+    ASLogDebug(@"");
+
+    // NOTE: Must set this before possibly leaving full screen.
+    setupDone = NO;
 
     if (fullscreenEnabled) {
         // If we are closed while still in fullscreen, end fullscreen mode,
@@ -240,7 +250,6 @@
         [self leaveFullscreen];
     }
 
-    setupDone = NO;
     vimController = nil;
 
     [vimView removeFromSuperviewWithoutNeedingDisplay];
@@ -251,16 +260,7 @@
     // dialog is displayed.
     [decoratedWindow setDocumentEdited:NO];
 
-    NSWindow *win = [self window];
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    if (([win styleMask] & NSFullScreenWindowMask) &&
-            [win respondsToSelector:@selector(realToggleFullScreen:)]) {
-        [win setAlphaValue:0];
-        [win performSelector:@selector(realToggleFullScreen:) withObject:self];
-    }
-#endif
-
-    [win orderOut:self];
+    [[self window] orderOut:self];
 }
 
 - (void)openWindow
@@ -366,7 +366,7 @@
         return;
 
     [decoratedWindow setTitle:title];
-    if (fullscreenEnabled) {
+    if (fullscreenWindow) {
         [fullscreenWindow setTitle:title];
 
         // NOTE: Cocoa does not update the "Window" menu for borderless windows
@@ -443,7 +443,7 @@
     // flag on the window here (should be faster if the window is opaque).
     BOOL isOpaque = [back alphaComponent] == 1.0f;
     [decoratedWindow setOpaque:isOpaque];
-    if (fullscreenEnabled)
+    if (fullscreenWindow)
         [fullscreenWindow setOpaque:isOpaque];
 
     [vimView setDefaultColorsBackground:back foreground:fore];
@@ -491,7 +491,7 @@
                                       toSize:contentSize];
         [vimView setFrameSize:contentSize];
 
-        if (fullscreenEnabled) {
+        if (fullscreenWindow) {
             // NOTE! Don't mark the fullscreen content view as needing an
             // update unless absolutely necessary since when it is updated the
             // entire screen is cleared.  This may cause some parts of the Vim
@@ -505,7 +505,8 @@
             [self resizeWindowToFitContentSize:contentSize
                                   keepOnScreen:keepOnScreen];
 
-            if (windowAutosaveKey && rows > 0 && cols > 0) {
+            if (!fullscreenEnabled && windowAutosaveKey && rows > 0 &&
+                    cols > 0) {
                 // Autosave rows and columns now that they should have been
                 // constrained to fit on screen.  We only do this for the
                 // window which also autosaves window position and we avoid
@@ -651,6 +652,15 @@
 {
     if (fullscreenEnabled) return;
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+    NSWindow *win = [self window];
+    if ([win respondsToSelector:@selector(realToggleFullScreen:)]) {
+        [win performSelector:@selector(realToggleFullScreen:)
+                  withObject:self];
+        fullscreenOptions = fuoptions;
+        fullscreenEnabled = YES;
+    }
+#else
     // fullscreenWindow could be nil here if this is called multiple times
     // during startup.
     [fullscreenWindow release];
@@ -673,12 +683,21 @@
     } else {
         ASLogDebug(@"Delay enter full screen");
     }
+#endif
 }
 
 - (void)leaveFullscreen
 {
     if (!fullscreenEnabled) return;
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+    NSWindow *win = [self window];
+    if ([win respondsToSelector:@selector(realToggleFullScreen:)]) {
+        [win performSelector:@selector(realToggleFullScreen:)
+                  withObject:self];
+        fullscreenEnabled = NO;
+    }
+#else
     fullscreenEnabled = NO;
     [fullscreenWindow leaveFullscreen];    
     [fullscreenWindow release];
@@ -686,6 +705,7 @@
 
     // The vim view may be too large to fit the screen, so update it.
     shouldResizeVimView = YES;
+#endif
 }
 
 - (void)setFullscreenBackgroundColor:(NSColor *)back
@@ -1021,6 +1041,97 @@
     return NO;
 }
 
+
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+
+// -- Full screen delegate ---------------------------------------------------
+
+- (NSArray *)customWindowsToEnterFullScreenForWindow:(NSWindow *)window
+{
+    return [NSArray arrayWithObject:decoratedWindow];
+}
+
+- (void)window:(NSWindow *)window
+    startCustomAnimationToEnterFullScreenWithDuration:(NSTimeInterval)duration
+{
+    // Store window frame and use it when exiting full screen.
+    preFullscreenFrame = [window frame];
+
+    // Fade out window, remove title bar and maximize, then fade back in.
+    // (There is a small delay before window is maximized but usually this is
+    // not noticeable on a relatively modern Mac.)
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+        [context setDuration:0.5*duration];
+        [[window animator] setAlphaValue:0];
+    } completionHandler:^{
+        [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
+        [self maximizeWindow:fullscreenOptions];
+
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            [context setDuration:0.5*duration];
+            [[window animator] setAlphaValue:1];
+        } completionHandler:^{
+            // Do nothing
+        }];
+    }];
+}
+
+- (void)windowDidFailToEnterFullScreen:(NSWindow *)window
+{
+    // TODO: Is this the correct way to deal with this message?
+    ASLogNotice(@"Failed to ENTER full screen, restoring window frame...");
+
+    [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
+    [window setFrame:preFullscreenFrame display:YES];
+}
+
+- (NSArray *)customWindowsToExitFullScreenForWindow:(NSWindow *)window
+{
+    return [NSArray arrayWithObject:decoratedWindow];
+}
+
+- (void)window:(NSWindow *)window
+    startCustomAnimationToExitFullScreenWithDuration:(NSTimeInterval)duration
+{
+    if (!setupDone) {
+        // HACK! The window has closed but Cocoa still brings it back to life
+        // and shows a grey box the size of the window unless we explicitly
+        // hide it by setting its alpha to 0 here.
+        [window setAlphaValue:0];
+        return;
+    }
+
+    // Fade out window, add back title bar and restore window frame, then fade
+    // back in.  (There is a small delay before window contents is drawn after
+    // the window frame is set but usually this is not noticeable on a
+    // relatively modern Mac.)
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+        [context setDuration:0.5*duration];
+        [[window animator] setAlphaValue:0];
+    } completionHandler:^{
+        [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
+        [window setFrame:preFullscreenFrame display:YES];
+
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            [context setDuration:0.5*duration];
+            [[window animator] setAlphaValue:1];
+        } completionHandler:^{
+            // Do nothing
+        }];
+    }];
+}
+
+- (void)windowDidFailToExitFullScreen:(NSWindow *)window
+{
+    // TODO: Is this the correct way to deal with this message?
+    ASLogNotice(@"Failed to EXIT full screen, maximizing window...");
+
+    [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
+    [self maximizeWindow:fullscreenOptions];
+}
+
+#endif // MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
+
 @end // MMWindowController
 
 
@@ -1056,13 +1167,13 @@
         shouldRestoreUserTopLeft = NO;
     }
 
-    if (onScreen && [decoratedWindow screen]) {
+    NSScreen *screen = [decoratedWindow screen];
+    if (onScreen && screen) {
         // Ensure that the window fits inside the visible part of the screen.
         // If there are more than one screen the window will be moved to fit
         // entirely in the screen that most of it occupies.
-        // NOTE: Not called in full-screen mode so use "visibleFrame' instead
-        // of "frame".
-        NSRect maxFrame = [[decoratedWindow screen] visibleFrame];
+        NSRect maxFrame = fullscreenEnabled ? [screen frame]
+                                            : [screen visibleFrame];
         maxFrame = [self constrainFrame:maxFrame];
 
         if (newFrame.size.width > maxFrame.size.width) {
@@ -1082,6 +1193,15 @@
             newFrame.origin.x = maxFrame.origin.x;
         if (NSMaxX(newFrame) > NSMaxX(maxFrame))
             newFrame.origin.x = NSMaxX(maxFrame) - newFrame.size.width;
+    }
+
+    if (fullscreenEnabled && screen) {
+        // Keep window centered when in full screen.
+        NSRect screenFrame = [screen frame];
+        newFrame.origin.y = screenFrame.origin.y +
+            round(0.5*(screenFrame.size.height - newFrame.size.height));
+        newFrame.origin.x = screenFrame.origin.x +
+            round(0.5*(screenFrame.size.width - newFrame.size.width));
     }
 
     [decoratedWindow setFrame:newFrame display:YES];
@@ -1254,5 +1374,51 @@
     updateToolbarFlag = 0;
 }
 
+- (void)maximizeWindow:(int)options
+{
+    int currRows, currColumns;
+    [[vimView textView] getMaxRows:&currRows columns:&currColumns];
+
+    // NOTE: Do not use [NSScreen visibleFrame] when determining the screen
+    // size since it compensates for menu and dock.
+    int maxRows, maxColumns;
+    NSSize size = [[NSScreen mainScreen] frame].size;
+    [vimView constrainRows:&maxRows columns:&maxColumns toSize:size];
+
+    // Compute current fu size
+    int fuRows = currRows, fuColumns = currColumns;
+    if (options & FUOPT_MAXVERT)
+        fuRows = maxRows;
+    if (options & FUOPT_MAXHORZ)
+        fuColumns = maxColumns;
+
+    // If necessary, resize vim to target fu size
+    if (currRows != fuRows || currColumns != fuColumns) {
+        // The size sent here is queued and sent to vim when it's in
+        // event processing mode again. Make sure to only send the values we
+        // care about, as they override any changes that were made to 'lines'
+        // and 'columns' after 'fu' was set but before the event loop is run.
+        NSData *data = nil;
+        int msgid = 0;
+        if (currRows != fuRows && currColumns != fuColumns) {
+            int newSize[2] = { fuRows, fuColumns };
+            data = [NSData dataWithBytes:newSize length:2*sizeof(int)];
+            msgid = SetTextDimensionsMsgID;
+        } else if (currRows != fuRows) {
+            data = [NSData dataWithBytes:&fuRows length:sizeof(int)];
+            msgid = SetTextRowsMsgID;
+        } else if (currColumns != fuColumns) {
+            data = [NSData dataWithBytes:&fuColumns length:sizeof(int)];
+            msgid = SetTextColumnsMsgID;
+        }
+        NSParameterAssert(data != nil && msgid != 0);
+
+        MMVimController *vc = [self vimController];
+        [vc sendMessage:msgid data:data];
+        [[vimView textView] setMaxRows:fuRows columns:fuColumns];
+    }
+}
+
 @end // MMWindowController (Private)
+
 

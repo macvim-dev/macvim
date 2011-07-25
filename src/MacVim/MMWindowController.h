@@ -34,6 +34,8 @@
     BOOL                fullscreenEnabled;
     NSString            *windowAutosaveKey;
     MMFullscreenWindow  *fullscreenWindow;
+    int                 fullscreenOptions;
+    NSRect              preFullscreenFrame;
     MMWindow            *decoratedWindow;
     NSString            *lastSetTitle;
     int                 userRows;
