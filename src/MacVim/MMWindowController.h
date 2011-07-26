@@ -35,6 +35,7 @@
     NSString            *windowAutosaveKey;
     MMFullscreenWindow  *fullscreenWindow;
     int                 fullscreenOptions;
+    BOOL                delayEnterFullscreen;
     NSRect              preFullscreenFrame;
     MMWindow            *decoratedWindow;
     NSString            *lastSetTitle;

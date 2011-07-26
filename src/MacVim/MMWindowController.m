@@ -298,6 +298,19 @@
     // code to depend on the screen state.  (Such as constraining views etc.)
     windowPresented = YES;
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+    if (delayEnterFullscreen) {
+        NSWindow *win = [self window];
+        if ([win respondsToSelector:@selector(realToggleFullScreen:)]) {
+            // Set alpha to zero so that the decorated window doesn't pop up
+            // before we enter full screen.
+            [win setAlphaValue:0];
+            [win performSelector:@selector(realToggleFullScreen:)
+                      withObject:self];
+            fullscreenEnabled = YES;
+        }
+    }
+#endif
     if (fullscreenWindow) {
         // Delayed entering of full screen happens here (a ":set fu" in a
         // GUIEnter auto command could cause this).
@@ -657,12 +670,16 @@
     if (fullscreenEnabled) return;
 
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    NSWindow *win = [self window];
-    if ([win respondsToSelector:@selector(realToggleFullScreen:)]) {
-        [win performSelector:@selector(realToggleFullScreen:)
-                  withObject:self];
-        fullscreenOptions = fuoptions;
-        fullscreenEnabled = YES;
+    fullscreenOptions = fuoptions;
+    if (windowPresented) {
+        NSWindow *win = [self window];
+        if ([win respondsToSelector:@selector(realToggleFullScreen:)]) {
+            [win performSelector:@selector(realToggleFullScreen:)
+                      withObject:self];
+            fullscreenEnabled = YES;
+        }
+    } else {
+        delayEnterFullscreen = YES;
     }
 #else
     // fullscreenWindow could be nil here if this is called multiple times
@@ -1084,6 +1101,7 @@
     // TODO: Is this the correct way to deal with this message?
     ASLogNotice(@"Failed to ENTER full screen, restoring window frame...");
 
+    [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
     [[vimView tabBarControl] setStyleNamed:@"Metal"];
     [window setFrame:preFullscreenFrame display:YES];
@@ -1131,6 +1149,7 @@
     // TODO: Is this the correct way to deal with this message?
     ASLogNotice(@"Failed to EXIT full screen, maximizing window...");
 
+    [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
     [[vimView tabBarControl] setStyleNamed:@"Unified"];
     [self maximizeWindow:fullscreenOptions];
