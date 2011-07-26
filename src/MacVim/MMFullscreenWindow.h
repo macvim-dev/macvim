@@ -42,4 +42,5 @@
 - (BOOL)canBecomeKeyWindow;
 - (BOOL)canBecomeMainWindow;
 
+- (void)applicationDidChangeScreenParameters:(NSNotification *)notification;
 @end

@@ -89,6 +89,7 @@
 - (void)doFindNext:(BOOL)next;
 - (void)updateToolbar;
 - (void)maximizeWindow:(int)options;
+- (void)applicationDidChangeScreenParameters:(NSNotification *)notification;
 @end
 
 
@@ -193,6 +194,12 @@
     [win setAnimationBehavior:NSWindowAnimationBehaviorDocumentWindow];
 #endif
 
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(applicationDidChangeScreenParameters:)
+               name:NSApplicationDidChangeScreenParametersNotification
+             object:NSApp];
+
     return self;
 }
 
@@ -243,6 +250,8 @@
 
     // NOTE: Must set this before possibly leaving full screen.
     setupDone = NO;
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     if (fullscreenEnabled) {
         // If we are closed while still in fullscreen, end fullscreen mode,
@@ -1439,6 +1448,9 @@
     NSSize size = [[NSScreen mainScreen] frame].size;
     [vimView constrainRows:&maxRows columns:&maxColumns toSize:size];
 
+    ASLogDebug(@"max: %dx%d  curr: %dx%d",
+            maxRows, maxColumns, currRows, currColumns);
+
     // Compute current fu size
     int fuRows = currRows, fuColumns = currColumns;
     if (options & FUOPT_MAXVERT)
@@ -1473,6 +1485,17 @@
     }
 }
 
-@end // MMWindowController (Private)
+- (void)applicationDidChangeScreenParameters:(NSNotification *)notification
+{
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+    if (fullscreenEnabled) {
+        ASLogInfo(@"Re-maximizing full screen window...");
+        [self maximizeWindow:fullscreenOptions];
+    }
+#endif
+    if (fullscreenWindow)
+        [fullscreenWindow applicationDidChangeScreenParameters:notification];
+}
 
+@end // MMWindowController (Private)
 

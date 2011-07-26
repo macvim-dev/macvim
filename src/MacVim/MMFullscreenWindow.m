@@ -50,7 +50,6 @@ enum {
 - (void)windowDidBecomeMain:(NSNotification *)notification;
 - (void)windowDidResignMain:(NSNotification *)notification;
 - (void)windowDidMove:(NSNotification *)notification;
-- (void)applicationDidChangeScreenParameters:(NSNotification *)notification;
 - (void)resizeVimView;
 @end
 
@@ -102,11 +101,6 @@ enum {
            selector:@selector(windowDidMove:)
                name:NSWindowDidMoveNotification
              object:self];
-
-    [nc addObserver:self
-           selector:@selector(applicationDidChangeScreenParameters:)
-               name:NSApplicationDidChangeScreenParametersNotification
-             object:NSApp];
 
     // NOTE: Vim needs to process mouse moved events, so enable them here.
     [self setAcceptsMouseMovedEvents:YES];
@@ -334,6 +328,33 @@ enum {
     return YES;
 }
 
+- (void)applicationDidChangeScreenParameters:(NSNotification *)notification
+{
+    if (state != InFullScreen)
+        return;
+
+    // This notification is sent when screen resolution may have changed (e.g.
+    // due to a monitor being unplugged or the resolution being changed
+    // manually) but it also seems to get called when the Dock is
+    // hidden/displayed.
+    ASLogDebug(@"Screen unplugged / resolution changed");
+
+    NSScreen *screen = [target screen];
+    if (!screen) {
+        // Paranoia: if window we originally used for full screen is gone, try
+        // screen window is on now, and failing that (not sure this can happen)
+        // use main screen.
+        screen = [self screen];
+        if (!screen)
+            screen = [NSScreen mainScreen];
+    }
+
+    // Ensure the full screen window is still covering the entire screen and
+    // then resize view according to 'fuopt'.
+    [self setFrame:[screen frame] display:NO];
+    [self resizeVimView];
+}
+
 - (void)centerView
 {
     NSRect outer = [self frame], inner = [view frame];
@@ -426,33 +447,6 @@ enum {
     // Ensure the full screen window is still covering the entire screen and
     // then resize view according to 'fuopt'.
     [self setFrame:[[self screen] frame] display:NO];
-    [self resizeVimView];
-}
-
-- (void)applicationDidChangeScreenParameters:(NSNotification *)notification
-{
-    if (state != InFullScreen)
-        return;
-
-    // This notification is sent when screen resolution may have changed (e.g.
-    // due to a monitor being unplugged or the resolution being changed
-    // manually) but it also seems to get called when the Dock is
-    // hidden/displayed.
-    ASLogDebug(@"Screen unplugged / resolution changed");
-
-    NSScreen *screen = [target screen];
-    if (!screen) {
-        // Paranoia: if window we originally used for full screen is gone, try
-        // screen window is on now, and failing that (not sure this can happen)
-        // use main screen.
-        screen = [self screen];
-        if (!screen)
-            screen = [NSScreen mainScreen];
-    }
-
-    // Ensure the full screen window is still covering the entire screen and
-    // then resize view according to 'fuopt'.
-    [self setFrame:[screen frame] display:NO];
     [self resizeVimView];
 }
 
