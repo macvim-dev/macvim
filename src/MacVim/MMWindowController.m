@@ -292,7 +292,38 @@
     [self updateResizeConstraints];
     [self resizeWindowToFitContentSize:[vimView desiredSize]
                           keepOnScreen:YES];
+
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+    // HACK! If the app is in full screen when makeKeyAndOrderFront: is called,
+    // then Cocoa will enter full screen without calling toggleFullScreen:.
+    // This circumvents our way of entering full screen by asking Vim to ":set
+    // fu" causing all sorts of problems.  By changing the collection behavior
+    // before calling makeKeyAndOrderFront: we stop Cocoa from entering full
+    // screen but unfortunately this has the side effect of opening the window
+    // on the full screen space (it does not switch to the main space), so we
+    // enter full screen after calling makeKeyAndOrderFront:.
+    // TODO: Figure out a way to switch back to main space?
+    NSWindow *win = [self window];
+    BOOL inFullScreen = ([NSApp presentationOptions] &
+                         NSApplicationPresentationFullScreen) != 0;
+    if (inFullScreen)
+        [win setCollectionBehavior:NSWindowCollectionBehaviorDefault];
+#endif
+
     [[self window] makeKeyAndOrderFront:self];
+
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+    // HACK! See comment above.
+    if (inFullScreen) {
+        [win setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+        if (!delayEnterFullscreen) {
+            // Set alpha to zero so that the decorated window doesn't pop up
+            // before we enter full screen.
+            [win setAlphaValue:0];
+            [self invFullscreen:nil];
+        }
+    }
+#endif
 
     // Flag that the window is now placed on screen.  From now on it is OK for
     // code to depend on the screen state.  (Such as constraining views etc.)
@@ -300,7 +331,6 @@
 
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
     if (delayEnterFullscreen) {
-        NSWindow *win = [self window];
         if ([win respondsToSelector:@selector(realToggleFullScreen:)]) {
             // Set alpha to zero so that the decorated window doesn't pop up
             // before we enter full screen.
