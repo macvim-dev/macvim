@@ -1,7 +1,7 @@
 " System gvimrc file for MacVim
 "
 " Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sun Aug 29 2009
+" Last Change:	Tue Jul 26 2011
 "
 " This is a work in progress.  If you feel so inclined, please help me improve
 " this file.
@@ -63,6 +63,10 @@ if !exists("macvim_skip_cmd_opt_movement")
 
   imap <M-BS>         <C-w>
   imap <D-BS>         <C-u>
+
+  " Make the 'delete' key delete selection in visual+select mode instead of
+  " moving cursor to the left.
+  vmap <Backspace>    d
 endif " !exists("macvim_skip_cmd_opt_movement")
 
 

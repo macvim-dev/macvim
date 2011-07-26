@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.3.  Last change: 2010 Dec 28
+*gui_mac.txt*	For Vim version 7.3.  Last change: 2011 Jul 26
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -594,10 +594,17 @@ Alt-Up			Move cursor one paragraph forward (see |alt-movement|).
 Alt-Down		Move cursor to the previous paragraph
 			(see |alt-movement|).
 
+					      *delete-key* *macvim-<Backspace>*
+Delete key		Delete selection in visual mode.  (This overrides the
+			default behavior of moving the cursor left.)
+			Note that the key labeled "delete" on a Mac keyboard
+			is known to Vim as <Backspace>.
+
 						*cmd-movement* *alt-movement*
-The above mappings involving Cmd/Alt + arrow key are enabled by default in the
-system gvimrc file "$VIM/gvimrc".  You can quickly disable all of these by
-adding the following lines to your "~/.vimrc" (not .gvimrc) file: >
+The above mappings involving Cmd/Alt + arrow key (including the delete key)
+are enabled by default in the system gvimrc file "$VIM/gvimrc".  You can
+disable all of these by adding the following lines to your "~/.vimrc" (not
+.gvimrc) file: >
 	if has("gui_macvim")
 	  let macvim_skip_cmd_opt_movement = 1
 	endif
