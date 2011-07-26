@@ -304,7 +304,7 @@
     // enter full screen after calling makeKeyAndOrderFront:.
     // TODO: Figure out a way to switch back to main space?
     NSWindow *win = [self window];
-    BOOL inFullScreen = ([NSApp presentationOptions] &
+    BOOL inFullScreen = ([NSApp currentSystemPresentationOptions] &
                          NSApplicationPresentationFullScreen) != 0;
     if (inFullScreen)
         [win setCollectionBehavior:NSWindowCollectionBehaviorDefault];
@@ -1474,4 +1474,5 @@
 }
 
 @end // MMWindowController (Private)
+
 
