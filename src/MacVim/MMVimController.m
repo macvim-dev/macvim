@@ -34,6 +34,7 @@
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
 #import "MMCoreTextView.h"
+#import "MMWindow.h"
 
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
@@ -765,15 +766,15 @@ static BOOL isUnsafeMessage(int msgid);
                                                encoding:NSUTF8StringEncoding];
         [self setServerName:name];
         [name release];
-    } else if (EnterFullscreenMsgID == msgid) {
+    } else if (EnterFullScreenMsgID == msgid) {
         const void *bytes = [data bytes];
         int fuoptions = *((int*)bytes); bytes += sizeof(int);
         int bg = *((int*)bytes);
         NSColor *back = [NSColor colorWithArgbInt:bg];
 
-        [windowController enterFullscreen:fuoptions backgroundColor:back];
-    } else if (LeaveFullscreenMsgID == msgid) {
-        [windowController leaveFullscreen];
+        [windowController enterFullScreen:fuoptions backgroundColor:back];
+    } else if (LeaveFullScreenMsgID == msgid) {
+        [windowController leaveFullScreen];
     } else if (SetBuffersModifiedMsgID == msgid) {
         const void *bytes = [data bytes];
         // state < 0  <->  some buffer modified
@@ -805,11 +806,11 @@ static BOOL isUnsafeMessage(int msgid);
         }
     } else if (CloseWindowMsgID == msgid) {
         [self scheduleClose];
-    } else if (SetFullscreenColorMsgID == msgid) {
+    } else if (SetFullScreenColorMsgID == msgid) {
         const int *bg = (const int*)[data bytes];
         NSColor *color = [NSColor colorWithRgbInt:*bg];
 
-        [windowController setFullscreenBackgroundColor:color];
+        [windowController setFullScreenBackgroundColor:color];
     } else if (ShowFindReplaceDialogMsgID == msgid) {
         NSDictionary *dict = [NSDictionary dictionaryWithData:data];
         if (dict) {
@@ -886,7 +887,12 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)savePanelDidEnd:(NSSavePanel *)panel code:(int)code
                 context:(void *)context
 {
-    NSString *path = (code == NSOKButton) ? [panel filename] : nil;
+    NSString *path = nil;
+    if (code == NSOKButton) {
+        NSURL *url = [panel URL];
+        if ([url isFileURL])
+            path = [url path];
+    }
     ASLogDebug(@"Open/save panel path=%@", path);
 
     // NOTE!  This causes the sheet animation to run its course BEFORE the rest
@@ -1378,6 +1384,12 @@ static BOOL isUnsafeMessage(int msgid);
             dir = [vimState objectForKey:@"pwd"];
     }
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
+    // 10.6+ APIs uses URLs instead of paths
+    dir = [dir stringByExpandingTildeInPath];
+    NSURL *dirURL = dir ? [NSURL fileURLWithPath:dir isDirectory:YES] : nil;
+#endif
+
     if (saving) {
         NSSavePanel *panel = [NSSavePanel savePanel];
 
@@ -1387,22 +1399,47 @@ static BOOL isUnsafeMessage(int msgid);
         [panel setDelegate:self];
         if ([panel isExpanded])
             [panel setAccessoryView:showHiddenFilesView()];
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
+        // NOTE: -[NSSavePanel beginSheetForDirectory::::::] is deprecated on
+        // 10.6 but -[NSSavePanel setDirectoryURL:] requires 10.6 so jump
+        // through the following hoops on 10.6+.
+        if (dirURL)
+            [panel setDirectoryURL:dirURL];
 
+        [panel beginSheetModalForWindow:[windowController window]
+                      completionHandler:^(NSInteger result) {
+            [self savePanelDidEnd:panel code:result context:nil];
+        }];
+#else
         [panel beginSheetForDirectory:dir file:nil
                 modalForWindow:[windowController window]
                  modalDelegate:self
                 didEndSelector:@selector(savePanelDidEnd:code:context:)
                    contextInfo:NULL];
+#endif
     } else {
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         [panel setAllowsMultipleSelection:NO];
         [panel setAccessoryView:showHiddenFilesView()];
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
+        // NOTE: -[NSOpenPanel beginSheetForDirectory:::::::] is deprecated on
+        // 10.6 but -[NSOpenPanel setDirectoryURL:] requires 10.6 so jump
+        // through the following hoops on 10.6+.
+        if (dirURL)
+            [panel setDirectoryURL:dirURL];
+
+        [panel beginSheetModalForWindow:[windowController window]
+                      completionHandler:^(NSInteger result) {
+            [self savePanelDidEnd:panel code:result context:nil];
+        }];
+#else
         [panel beginSheetForDirectory:dir file:nil types:nil
                 modalForWindow:[windowController window]
                  modalDelegate:self
                 didEndSelector:@selector(savePanelDidEnd:code:context:)
                    contextInfo:NULL];
+#endif
     }
 }
 
@@ -1593,8 +1630,8 @@ isUnsafeMessage(int msgid)
         ExecuteActionMsgID,         // Impossible to predict
         ShowPopupMenuMsgID,         // Enters modal loop
         ActivateMsgID,              // ?
-        EnterFullscreenMsgID,       // Modifies delegate of window controller
-        LeaveFullscreenMsgID,       // Modifies delegate of window controller
+        EnterFullScreenMsgID,       // Modifies delegate of window controller
+        LeaveFullScreenMsgID,       // Modifies delegate of window controller
         CloseWindowMsgID,           // See note below
         BrowseForFileMsgID,         // Enters modal loop
         ShowDialogMsgID,            // Enters modal loop

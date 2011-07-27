@@ -29,4 +29,7 @@
 - (void)setContentMaxSize:(NSSize)size;
 - (void)setContentSize:(NSSize)size;
 
+- (IBAction)toggleFullScreen:(id)sender;
+- (IBAction)realToggleFullScreen:(id)sender;
+
 @end

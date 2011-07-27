@@ -407,7 +407,7 @@
     [[cell indicator] setHidden:YES];
     if([item identifier] != nil){
         if([[item identifier] respondsToSelector:@selector(content)]){
-            if([[[[cell representedObject] identifier] content] respondsToSelector:@selector(isProcessing)]){
+            if([[[[cell representedObject] identifier] performSelector:@selector(content)] respondsToSelector:@selector(isProcessing)]){
                 NSMutableDictionary *bindingOptions = [NSMutableDictionary dictionary];
                 [bindingOptions setObject:NSNegateBooleanTransformerName forKey:@"NSValueTransformerName"];
                 [[cell indicator] bind:@"animate" toObject:[item identifier] withKeyPath:@"selection.isProcessing" options:nil];
@@ -421,7 +421,7 @@
     [cell setHasIcon:NO];
     if([item identifier] != nil){
         if([[item identifier] respondsToSelector:@selector(content)]){
-            if([[[[cell representedObject] identifier] content] respondsToSelector:@selector(icon)]){
+            if([[[[cell representedObject] identifier] performSelector:@selector(content)] respondsToSelector:@selector(icon)]){
                 NSMutableDictionary *bindingOptions = [NSMutableDictionary dictionary];
                 [bindingOptions setObject:NSIsNotNilTransformerName forKey:@"NSValueTransformerName"];
                 [cell bind:@"hasIcon" toObject:[item identifier] withKeyPath:@"selection.icon" options:bindingOptions];
@@ -434,7 +434,7 @@
     [cell setCount:0];
     if([item identifier] != nil){
         if([[item identifier] respondsToSelector:@selector(content)]){
-            if([[[[cell representedObject] identifier] content] respondsToSelector:@selector(objectCount)]){
+            if([[[[cell representedObject] identifier] performSelector:@selector(content)] respondsToSelector:@selector(objectCount)]){
                 [cell bind:@"count" toObject:[item identifier] withKeyPath:@"selection.objectCount" options:nil];
                 [[item identifier] addObserver:self forKeyPath:@"selection.objectCount" options:0 context:nil];
             } 

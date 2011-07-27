@@ -3308,7 +3308,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	XXX: Think about how 'fullscreen' and 'transparency' should interact. 
 
 						*'fuoptions'* *'fuopt'*
-'fuoptions' 'fuopt'	string (default "maxvert")
+'fuoptions' 'fuopt'	string (default "maxvert,maxhorz")
 			global
 			{not in Vi}
 			{only in MacVim GUI}
@@ -3328,6 +3328,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 		number of columns, it is restored to the value it had before
 		entering fullscreen.
 	background:color
+		{not supported in Mac OS X native full screen}
 		When entering fullscreen, 'color' defines the color of the part
 		of the screen that is not occupied by the Vim control. If
 		'color' is an 8-digit hexadecimal number preceded by '#',
@@ -3339,15 +3340,15 @@ A jump table for the options with a short description can be found at |Q_op|.
 		scheme.
 
 	Examples: 
-	Don't change size of Vim when entering fullscreen: >
+	Don't change size when entering fullscreen: >
 	  :set fuoptions=
-<	Maximize Vim when entering fullscreen: >
-	  :set fuoptions=maxvert,maxhorz
-<	Maximize Vim only vertically when entering fullscreen, and color the
+<	Only maximize vertically when entering fullscreen: >
+	  :set fuoptions=maxvert
+<	Maximize only vertically when entering fullscreen, and color the
 	background dark blue: >
 	  :set fuoptions=maxvert,background:#FF003042
-<	Don't change the size of Vim when entering fullscreen, and color the
-	background like the current text background: >
+<	Don't change size when entering fullscreen, and color the background
+	like the current text background: >
 	  :set fuoptions=background:Normal
 <
 	XXX: what if the font size is changed? you probably never want to

@@ -22,6 +22,9 @@
 #ifndef MAC_OS_X_VERSION_10_6
 # define MAC_OS_X_VERSION_10_6 1060
 #endif
+#ifndef MAC_OS_X_VERSION_10_7
+# define MAC_OS_X_VERSION_10_7 1070
+#endif
 
 
 //
@@ -156,8 +159,8 @@ enum {
     AdjustLinespaceMsgID,
     ActivateMsgID,
     SetServerNameMsgID,
-    EnterFullscreenMsgID,
-    LeaveFullscreenMsgID,
+    EnterFullScreenMsgID,
+    LeaveFullScreenMsgID,
     SetBuffersModifiedMsgID,
     AddInputMsgID,
     SetPreEditPositionMsgID,
@@ -169,7 +172,7 @@ enum {
     SetDocumentFilenameMsgID,
     OpenWithArgumentsMsgID,
     CloseWindowMsgID,
-    SetFullscreenColorMsgID,
+    SetFullScreenColorMsgID,
     ShowFindReplaceDialogMsgID,
     FindReplaceMsgID,
     ActivateKeyScriptMsgID,

@@ -809,12 +809,12 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 #endif
 
     imControl = enable;
-    ASLogInfo(@"IM control %sabled", enable ? "en" : "dis");
+    ASLogDebug(@"IM control %sabled", enable ? "en" : "dis");
 }
 
 - (void)activateIm:(BOOL)enable
 {
-    ASLogInfo(@"Activate IM=%d", enable);
+    ASLogDebug(@"Activate IM=%d", enable);
 
     // HACK: If there is marked text when switching IM it will be inserted as
     // normal text.  To avoid this we abandon the marked text before switching.
