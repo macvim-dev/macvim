@@ -290,9 +290,24 @@ enum {
     NSWindowCollectionBehavior wcb = [target collectionBehavior];
     [target setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
 #endif
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
+    // HACK! On Mac OS X 10.7 windows animate when makeKeyAndOrderFront: is
+    // called.  This is distracting here, so disable the animation and restore
+    // animation behavior after calling makeKeyAndOrderFront:.
+    NSWindowAnimationBehavior a = NSWindowAnimationBehaviorNone;
+    if ([target respondsToSelector:@selector(animationBehavior)]) {
+        a = [target animationBehavior];
+        [target setAnimationBehavior:NSWindowAnimationBehaviorNone];
+    }
+#endif
 
     [target makeKeyAndOrderFront:self];
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
+    // HACK! Restore animation behavior.
+    if (NSWindowAnimationBehaviorNone != a)
+        [target setAnimationBehavior:a];
+#endif
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     // Restore collection behavior (see hack above).
     [target setCollectionBehavior:wcb];
