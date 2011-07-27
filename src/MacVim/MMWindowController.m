@@ -341,10 +341,14 @@
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
     // HACK! See comment above.
     if (inFullScreen) {
-        // NOTE: If we get here the following API must be supported.
+        // NOTE: If we get here the following APIs must be supported.
         [decoratedWindow setCollectionBehavior:
                                 NSWindowCollectionBehaviorFullScreenPrimary];
-        if (!delayEnterFullscreen) {
+        // Double-check if we're still in full-screen before turning the window
+        // itself into a full-screen window.
+        BOOL stillInFullScreen = ([NSApp currentSystemPresentationOptions] &
+                                  NSApplicationPresentationFullScreen) != 0;
+        if (stillInFullScreen && !delayEnterFullscreen) {
             // Set alpha to zero so that the decorated window doesn't pop up
             // before we enter full-screen.
             [decoratedWindow setAlphaValue:0];
