@@ -25,7 +25,7 @@
 		1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
 		1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */; };
 		1D80591F0E1185EA001699D1 /* Miscellaneous.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80591D0E1185EA001699D1 /* Miscellaneous.m */; };
-		1D80FBD40CBBD3B700102A1C /* MMFullscreenWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD00CBBD3B700102A1C /* MMFullscreenWindow.m */; };
+		1D80FBD40CBBD3B700102A1C /* MMFullScreenWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD00CBBD3B700102A1C /* MMFullScreenWindow.m */; };
 		1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD20CBBD3B700102A1C /* MMVimView.m */; };
 		1D8B5A53104AF9FF002E59D5 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D8B5A52104AF9FF002E59D5 /* Carbon.framework */; };
 		1D8BEA74104992290069B072 /* FindAndReplace.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1D8BEA73104992290069B072 /* FindAndReplace.nib */; };
@@ -159,8 +159,8 @@
 		1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMFindReplaceController.m; sourceTree = "<group>"; };
 		1D80591D0E1185EA001699D1 /* Miscellaneous.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Miscellaneous.m; sourceTree = "<group>"; };
 		1D8059220E118663001699D1 /* Miscellaneous.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Miscellaneous.h; sourceTree = "<group>"; };
-		1D80FBCF0CBBD3B700102A1C /* MMFullscreenWindow.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMFullscreenWindow.h; sourceTree = "<group>"; };
-		1D80FBD00CBBD3B700102A1C /* MMFullscreenWindow.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMFullscreenWindow.m; sourceTree = "<group>"; };
+		1D80FBCF0CBBD3B700102A1C /* MMFullScreenWindow.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMFullScreenWindow.h; sourceTree = "<group>"; };
+		1D80FBD00CBBD3B700102A1C /* MMFullScreenWindow.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMFullScreenWindow.m; sourceTree = "<group>"; };
 		1D80FBD10CBBD3B700102A1C /* MMVimView.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMVimView.h; sourceTree = "<group>"; };
 		1D80FBD20CBBD3B700102A1C /* MMVimView.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMVimView.m; sourceTree = "<group>"; };
 		1D8B5A52104AF9FF002E59D5 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
@@ -254,8 +254,8 @@
 				1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */,
 				1D9918460D299F9900A96335 /* MMAtsuiTextView.h */,
 				1D9918470D299F9900A96335 /* MMAtsuiTextView.m */,
-				1D80FBCF0CBBD3B700102A1C /* MMFullscreenWindow.h */,
-				1D80FBD00CBBD3B700102A1C /* MMFullscreenWindow.m */,
+				1D80FBCF0CBBD3B700102A1C /* MMFullScreenWindow.h */,
+				1D80FBD00CBBD3B700102A1C /* MMFullScreenWindow.m */,
 				1D80FBD10CBBD3B700102A1C /* MMVimView.h */,
 				1D80FBD20CBBD3B700102A1C /* MMVimView.m */,
 				1DD66ECB0C803D3600EBDAB3 /* MMApplication.h */,
@@ -557,7 +557,7 @@
 				1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */,
 				1D09AB420C6A4D520045497E /* MMTypesetter.m in Sources */,
 				1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */,
-				1D80FBD40CBBD3B700102A1C /* MMFullscreenWindow.m in Sources */,
+				1D80FBD40CBBD3B700102A1C /* MMFullScreenWindow.m in Sources */,
 				1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */,
 				1D9918490D299F9900A96335 /* MMAtsuiTextView.m in Sources */,
 				1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */,
