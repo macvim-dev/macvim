@@ -131,9 +131,9 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
 - (int)lookupColorWithKey:(NSString *)key;
 - (BOOL)hasSpecialKeyWithValue:(char_u *)value;
 
-- (void)enterFullscreen:(int)fuoptions background:(int)bg;
-- (void)leaveFullscreen;
-- (void)setFullscreenBackgroundColor:(int)color;
+- (void)enterFullScreen:(int)fuoptions background:(int)bg;
+- (void)leaveFullScreen;
+- (void)setFullScreenBackgroundColor:(int)color;
 
 - (void)setAntialias:(BOOL)antialias;
 

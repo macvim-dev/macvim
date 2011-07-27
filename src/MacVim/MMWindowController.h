@@ -13,7 +13,7 @@
 
 
 @class MMWindow;
-@class MMFullscreenWindow;
+@class MMFullScreenWindow;
 @class MMVimController;
 @class MMVimView;
 
@@ -32,11 +32,11 @@
     int                 updateToolbarFlag;
     BOOL                keepOnScreen;
     NSString            *windowAutosaveKey;
-    BOOL                fullscreenEnabled;
-    MMFullscreenWindow  *fullscreenWindow;
-    int                 fullscreenOptions;
-    BOOL                delayEnterFullscreen;
-    NSRect              preFullscreenFrame;
+    BOOL                fullScreenEnabled;
+    MMFullScreenWindow  *fullScreenWindow;
+    int                 fullScreenOptions;
+    BOOL                delayEnterFullScreen;
+    NSRect              preFullScreenFrame;
     MMWindow            *decoratedWindow;
     NSString            *lastSetTitle;
     int                 userRows;
@@ -79,10 +79,10 @@
 - (void)liveResizeWillStart;
 - (void)liveResizeDidEnd;
 
-- (void)enterFullscreen:(int)fuoptions backgroundColor:(NSColor *)back;
-- (void)leaveFullscreen;
-- (void)setFullscreenBackgroundColor:(NSColor *)back;
-- (void)invFullscreen:(id)sender;
+- (void)enterFullScreen:(int)fuoptions backgroundColor:(NSColor *)back;
+- (void)leaveFullScreen;
+- (void)setFullScreenBackgroundColor:(NSColor *)back;
+- (void)invFullScreen:(id)sender;
 
 - (void)setBufferModified:(BOOL)mod;
 - (void)setTopLeft:(NSPoint)pt;

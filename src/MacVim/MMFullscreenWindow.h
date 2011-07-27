@@ -14,7 +14,7 @@
 
 @class MMVimView;
 
-@interface MMFullscreenWindow : NSWindow {
+@interface MMFullScreenWindow : NSWindow {
     NSWindow    *target;
     MMVimView   *view;
     NSPoint     oldPosition;
@@ -22,7 +22,7 @@
     int         options;
     int         state;
 
-    // These are only valid in fullscreen mode and store pre-fu vim size 
+    // These are only valid in full-screen mode and store pre-fu vim size 
     int         nonFuRows, nonFuColumns;
 
     // These store the size vim had right after entering fu mode
@@ -32,11 +32,11 @@
     int         startFuFlags;
 }
 
-- (MMFullscreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v
+- (MMFullScreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v
                                backgroundColor:(NSColor *)back;
 - (void)setOptions:(int)opt;
-- (void)enterFullscreen;
-- (void)leaveFullscreen;
+- (void)enterFullScreen;
+- (void)leaveFullScreen;
 - (void)centerView;
 
 - (BOOL)canBecomeKeyWindow;

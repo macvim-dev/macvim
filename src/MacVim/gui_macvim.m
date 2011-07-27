@@ -1675,14 +1675,14 @@ gui_mch_toggle_tearoffs(int enable)
     void
 gui_mch_enter_fullscreen(int fuoptions_flags, guicolor_T bg)
 {
-    [[MMBackend sharedInstance] enterFullscreen:fuoptions_flags background:bg];
+    [[MMBackend sharedInstance] enterFullScreen:fuoptions_flags background:bg];
 }
 
 
     void
 gui_mch_leave_fullscreen()
 {
-    [[MMBackend sharedInstance] leaveFullscreen];
+    [[MMBackend sharedInstance] leaveFullScreen];
 }
 
 
@@ -1699,7 +1699,7 @@ gui_mch_fuopt_update()
         bg = fuoptions_bgcolor;
     }
 
-    [[MMBackend sharedInstance] setFullscreenBackgroundColor:bg];
+    [[MMBackend sharedInstance] setFullScreenBackgroundColor:bg];
 }
 
 

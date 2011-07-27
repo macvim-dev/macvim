@@ -154,16 +154,16 @@
 
 - (IBAction)toggleFullScreen:(id)sender
 {
-    // HACK! This is an NSWindow method used to enter full screen on OS X 10.7.
+    // HACK! This is an NSWindow method used to enter full-screen on OS X 10.7.
     // We override it so that we can interrupt and pass this on to Vim first.
     // An alternative hack would be to reroute the action message sent by the
-    // full screen button in the top right corner of a window, but there could
+    // full-screen button in the top right corner of a window, but there could
     // be other places where this action message is sent from.
-    // To get to the original method (and enter Lion full screen) we need to
+    // To get to the original method (and enter Lion full-screen) we need to
     // call realToggleFullScreen: defined below.
 
     // (Use performSelector:: to avoid compilation warning.)
-    [[self delegate] performSelector:@selector(invFullscreen:) withObject:nil];
+    [[self delegate] performSelector:@selector(invFullScreen:) withObject:nil];
 }
 
 - (IBAction)realToggleFullScreen:(id)sender
