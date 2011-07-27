@@ -1819,6 +1819,7 @@ static void netbeansReadCallback(CFSocketRef s,
         [NSNumber numberWithInt:p_mh], @"p_mh",
         [NSNumber numberWithBool:mmta], @"p_mmta",
         [NSNumber numberWithInt:numTabs], @"numTabs",
+        [NSNumber numberWithInt:fuoptions_flags], @"fullScreenOptions",
         nil];
 
     // Put the state before all other messages.
