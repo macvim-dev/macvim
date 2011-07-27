@@ -223,6 +223,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:YES],  MMUseInlineImKey,
 #endif // INCLUDE_OLD_IM_CODE
         [NSNumber numberWithBool:NO],   MMSuppressTerminationAlertKey,
+        [NSNumber numberWithBool:YES],  MMNativeFullScreenKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
@@ -241,9 +242,10 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
     if (!(self = [super init])) return nil;
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
     // Disable automatic relaunching
-    [NSApp disableRelaunchOnLogin];
+    if ([NSApp respondsToSelector:@selector(disableRelaunchOnLogin)])
+        [NSApp disableRelaunchOnLogin];
 #endif
 
     vimControllers = [NSMutableArray new];

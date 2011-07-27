@@ -31,8 +31,8 @@
     BOOL                shouldRestoreUserTopLeft;
     int                 updateToolbarFlag;
     BOOL                keepOnScreen;
-    BOOL                fullscreenEnabled;
     NSString            *windowAutosaveKey;
+    BOOL                fullscreenEnabled;
     MMFullscreenWindow  *fullscreenWindow;
     int                 fullscreenOptions;
     BOOL                delayEnterFullscreen;

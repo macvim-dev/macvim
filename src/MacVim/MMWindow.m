@@ -152,7 +152,6 @@
     [[self delegate] performSelector:@selector(zoom:) withObject:sender];
 }
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
 - (IBAction)toggleFullScreen:(id)sender
 {
     // HACK! This is an NSWindow method used to enter full screen on OS X 10.7.
@@ -172,6 +171,5 @@
     // HACK! See toggleFullScreen: comment above.
     [super toggleFullScreen:sender];
 }
-#endif
 
 @end // MMWindow

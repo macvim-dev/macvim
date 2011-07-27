@@ -44,7 +44,7 @@
  *        YES        &       YES        =>   NO
  *
  *
- * Resizing in full-screen mode:
+ * Resizing in custom full-screen mode:
  *
  * The window never resizes since it fills the screen, however the vim view may
  * change size, e.g. when the user types ":set lines=60", or when a scrollbar
@@ -52,6 +52,12 @@
  *
  * It is ensured that the vim view never becomes larger than the screen size
  * and that it always stays in the center of the screen.
+ *
+ *
+ * Resizing in native full-screen mode (Mac OS X 10.7+):
+ *
+ * The window is always kept centered and resizing works more or less the same
+ * way as in windowed mode.
  *  
  */
 
@@ -189,9 +195,16 @@
     if ([win respondsToSelector:@selector(_setContentHasShadow:)])
         [win _setContentHasShadow:NO];
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    [win setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
-    [win setAnimationBehavior:NSWindowAnimationBehaviorDocumentWindow];
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
+    // Building on Mac OS X 10.7 or greater.
+
+    // This puts the full-screen button in the top right of each window
+    if ([win respondsToSelector:@selector(setCollectionBehavior:)])
+        [win setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+
+    // This makes windows animate when opened
+    if ([win respondsToSelector:@selector(setAnimationBehavior:)])
+        [win setAnimationBehavior:NSWindowAnimationBehaviorDocumentWindow];
 #endif
 
     [[NSNotificationCenter defaultCenter]
@@ -248,13 +261,13 @@
 {
     ASLogDebug(@"");
 
-    // NOTE: Must set this before possibly leaving full screen.
+    // NOTE: Must set this before possibly leaving full-screen.
     setupDone = NO;
 
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     if (fullscreenEnabled) {
-        // If we are closed while still in fullscreen, end fullscreen mode,
+        // If we are closed while still in full-screen, end full-screen mode,
         // release ourselves (because this won't happen in MMWindowController)
         // and perform close operation on the original window.
         [self leaveFullscreen];
@@ -302,33 +315,39 @@
     [self resizeWindowToFitContentSize:[vimView desiredSize]
                           keepOnScreen:YES];
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    // HACK! If the app is in full screen when makeKeyAndOrderFront: is called,
-    // then Cocoa will enter full screen without calling toggleFullScreen:.
-    // This circumvents our way of entering full screen by asking Vim to ":set
-    // fu" causing all sorts of problems.  By changing the collection behavior
-    // before calling makeKeyAndOrderFront: we stop Cocoa from entering full
-    // screen but unfortunately this has the side effect of opening the window
-    // on the full screen space (it does not switch to the main space), so we
-    // enter full screen after calling makeKeyAndOrderFront:.
-    // TODO: Figure out a way to switch back to main space?
-    NSWindow *win = [self window];
-    BOOL inFullScreen = ([NSApp currentSystemPresentationOptions] &
-                         NSApplicationPresentationFullScreen) != 0;
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
+    // HACK! If the app is in native full-screen when makeKeyAndOrderFront: is
+    // called, then Cocoa will enter full-screen without calling
+    // toggleFullScreen:.  This circumvents our way of entering full-screen by
+    // asking Vim to ":set fu" causing all sorts of problems.  By changing the
+    // collection behavior before calling makeKeyAndOrderFront: we stop Cocoa
+    // from entering full-screen but unfortunately this has the side effect of
+    // opening the window on the full-screen space (it does not switch to the
+    // main space), so we enter full-screen after calling
+    // makeKeyAndOrderFront:.
+    // TODO: Figure out a way to switch back to main space instead?
+    BOOL inFullScreen = NO;
+    if ([NSApp respondsToSelector:@selector(currentSystemPresentationOptions)])
+        inFullScreen = ([NSApp currentSystemPresentationOptions] &
+                        NSApplicationPresentationFullScreen) != 0;
     if (inFullScreen)
-        [win setCollectionBehavior:NSWindowCollectionBehaviorDefault];
+        // NOTE: If we get here the following API must be supported.
+        [decoratedWindow setCollectionBehavior:
+                                            NSWindowCollectionBehaviorDefault];
 #endif
 
-    [[self window] makeKeyAndOrderFront:self];
+    [decoratedWindow makeKeyAndOrderFront:self];
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
     // HACK! See comment above.
     if (inFullScreen) {
-        [win setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+        // NOTE: If we get here the following API must be supported.
+        [decoratedWindow setCollectionBehavior:
+                                NSWindowCollectionBehaviorFullScreenPrimary];
         if (!delayEnterFullscreen) {
             // Set alpha to zero so that the decorated window doesn't pop up
-            // before we enter full screen.
-            [win setAlphaValue:0];
+            // before we enter full-screen.
+            [decoratedWindow setAlphaValue:0];
             [self invFullscreen:nil];
         }
     }
@@ -338,22 +357,16 @@
     // code to depend on the screen state.  (Such as constraining views etc.)
     windowPresented = YES;
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    if (delayEnterFullscreen) {
-        if ([win respondsToSelector:@selector(realToggleFullScreen:)]) {
-            // Set alpha to zero so that the decorated window doesn't pop up
-            // before we enter full screen.
-            [win setAlphaValue:0];
-            [win performSelector:@selector(realToggleFullScreen:)
-                      withObject:self];
-            fullscreenEnabled = YES;
-        }
-    }
-#endif
     if (fullscreenWindow) {
-        // Delayed entering of full screen happens here (a ":set fu" in a
+        // Delayed entering of full-screen happens here (a ":set fu" in a
         // GUIEnter auto command could cause this).
         [fullscreenWindow enterFullscreen];
+        fullscreenEnabled = YES;
+    } else if (delayEnterFullscreen) {
+        // Set alpha to zero so that the decorated window doesn't pop up
+        // before we enter full-screen.
+        [decoratedWindow setAlphaValue:0];
+        [decoratedWindow realToggleFullScreen:self];
         fullscreenEnabled = YES;
     }
 
@@ -550,7 +563,7 @@
         [vimView setFrameSize:contentSize];
 
         if (fullscreenWindow) {
-            // NOTE! Don't mark the fullscreen content view as needing an
+            // NOTE! Don't mark the full-screen content view as needing an
             // update unless absolutely necessary since when it is updated the
             // entire screen is cleared.  This may cause some parts of the Vim
             // view to be cleared but not redrawn since Vim does not realize
@@ -568,7 +581,7 @@
                 // Autosave rows and columns now that they should have been
                 // constrained to fit on screen.  We only do this for the
                 // window which also autosaves window position and we avoid
-                // autosaving when in fullscreen since the rows usually won't
+                // autosaving when in full-screen since the rows usually won't
                 // fit when in windowed mode.
                 NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
                 [ud setInteger:rows forKey:MMAutosaveRowsKey];
@@ -708,64 +721,74 @@
 {
     if (fullscreenEnabled) return;
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    fullscreenOptions = fuoptions;
-    if (windowPresented) {
-        NSWindow *win = [self window];
-        if ([win respondsToSelector:@selector(realToggleFullScreen:)]) {
-            [win performSelector:@selector(realToggleFullScreen:)
-                      withObject:self];
+    BOOL useNativeFullScreen = [[NSUserDefaults standardUserDefaults]
+                                            boolForKey:MMNativeFullScreenKey];
+    // Make sure user is not trying to use native full screen on systems that
+    // do not support it.
+    if (![NSWindow instancesRespondToSelector:@selector(toggleFullScreen:)])
+        useNativeFullScreen = NO;
+
+
+    if (useNativeFullScreen) {
+        // Enter native full-screen mode.  Only supported on Mac OS X 10.7+.
+        ASLogDebug(@"Enter native full-screen");
+
+        fullscreenOptions = fuoptions;
+        if (windowPresented) {
+            [decoratedWindow realToggleFullScreen:self];
             fullscreenEnabled = YES;
+        } else {
+            delayEnterFullscreen = YES;
         }
     } else {
-        delayEnterFullscreen = YES;
-    }
-#else
-    // fullscreenWindow could be nil here if this is called multiple times
-    // during startup.
-    [fullscreenWindow release];
+        // Enter custom full-screen mode.  Always supported.
+        ASLogDebug(@"Enter custom full-screen");
 
-    fullscreenWindow = [[MMFullscreenWindow alloc]
+        // fullscreenWindow could be non-nil here if this is called multiple
+        // times during startup.
+        [fullscreenWindow release];
+
+        fullscreenWindow = [[MMFullscreenWindow alloc]
             initWithWindow:decoratedWindow view:vimView backgroundColor:back];
-    [fullscreenWindow setOptions:fuoptions];
-    [fullscreenWindow setRepresentedFilename:
-                                        [decoratedWindow representedFilename]];
+        [fullscreenWindow setOptions:fuoptions];
+        [fullscreenWindow setRepresentedFilename:
+            [decoratedWindow representedFilename]];
 
-    // NOTE: Do not enter full screen until the window has been presented since
-    // we don't actually know which screen to use before then.
-    if (windowPresented) {
-        [fullscreenWindow enterFullscreen];
-        fullscreenEnabled = YES;
+        // NOTE: Do not enter full-screen until the window has been presented
+        // since we don't actually know which screen to use before then.  (The
+        // custom full-screen can appear on any screen, as opposed to native
+        // full-screen which always uses the main screen.)
+        if (windowPresented) {
+            [fullscreenWindow enterFullscreen];
+            fullscreenEnabled = YES;
 
-        // The resize handle disappears so the vim view needs to update the
-        // scrollbars.
-        shouldResizeVimView = YES;
-    } else {
-        ASLogDebug(@"Delay enter full screen");
+            // The resize handle disappears so the vim view needs to update the
+            // scrollbars.
+            shouldResizeVimView = YES;
+        }
     }
-#endif
 }
 
 - (void)leaveFullscreen
 {
     if (!fullscreenEnabled) return;
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    NSWindow *win = [self window];
-    if ([win respondsToSelector:@selector(realToggleFullScreen:)]) {
-        [win performSelector:@selector(realToggleFullScreen:)
-                  withObject:self];
-        fullscreenEnabled = NO;
-    }
-#else
-    fullscreenEnabled = NO;
-    [fullscreenWindow leaveFullscreen];    
-    [fullscreenWindow release];
-    fullscreenWindow = nil;
+    ASLogDebug(@"Exit full-screen");
 
-    // The vim view may be too large to fit the screen, so update it.
-    shouldResizeVimView = YES;
-#endif
+    if (fullscreenWindow) {
+        // Using custom full-screen
+        [fullscreenWindow leaveFullscreen];
+        [fullscreenWindow release];
+        fullscreenWindow = nil;
+
+        // The vim view may be too large to fit the screen, so update it.
+        shouldResizeVimView = YES;
+    } else {
+        // Using native full-screen
+        [decoratedWindow realToggleFullScreen:self];
+    }
+
+    fullscreenEnabled = NO;
 }
 
 - (void)setFullscreenBackgroundColor:(NSColor *)back
@@ -782,8 +805,8 @@
 - (void)setBufferModified:(BOOL)mod
 {
     // NOTE: We only set the document edited flag on the decorated window since
-    // the full-screen window has no close button anyway.  (It also saves us
-    // from keeping track of the flag in two different places.)
+    // the custom full-screen window has no close button anyway.  (It also
+    // saves us from keeping track of the flag in two different places.)
     [decoratedWindow setDocumentEdited:mod];
 }
 
@@ -1094,7 +1117,7 @@
 }
 
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
 
 // -- Full screen delegate ---------------------------------------------------
 
@@ -1112,7 +1135,7 @@
 - (void)window:(NSWindow *)window
     startCustomAnimationToEnterFullScreenWithDuration:(NSTimeInterval)duration
 {
-    // Store window frame and use it when exiting full screen.
+    // Store window frame and use it when exiting full-screen.
     preFullscreenFrame = [window frame];
 
     // Fade out window, remove title bar and maximize, then fade back in.
@@ -1138,7 +1161,7 @@
 - (void)windowDidFailToEnterFullScreen:(NSWindow *)window
 {
     // TODO: Is this the correct way to deal with this message?
-    ASLogNotice(@"Failed to ENTER full screen, restoring window frame...");
+    ASLogNotice(@"Failed to ENTER full-screen, restoring window frame...");
 
     [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
@@ -1186,7 +1209,7 @@
 - (void)windowDidFailToExitFullScreen:(NSWindow *)window
 {
     // TODO: Is this the correct way to deal with this message?
-    ASLogNotice(@"Failed to EXIT full screen, maximizing window...");
+    ASLogNotice(@"Failed to EXIT full-screen, maximizing window...");
 
     [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
@@ -1194,7 +1217,7 @@
     [self maximizeWindow:fullscreenOptions];
 }
 
-#endif // MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
+#endif // (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
 
 @end // MMWindowController
 
@@ -1260,7 +1283,7 @@
     }
 
     if (fullscreenEnabled && screen) {
-        // Keep window centered when in full screen.
+        // Keep window centered when in native full-screen.
         NSRect screenFrame = [screen frame];
         newFrame.origin.y = screenFrame.origin.y +
             round(0.5*(screenFrame.size.height - newFrame.size.height));
@@ -1487,14 +1510,12 @@
 
 - (void)applicationDidChangeScreenParameters:(NSNotification *)notification
 {
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    if (fullscreenEnabled) {
-        ASLogInfo(@"Re-maximizing full screen window...");
+    if (fullscreenWindow) {
+        [fullscreenWindow applicationDidChangeScreenParameters:notification];
+    } else if (fullscreenEnabled) {
+        ASLogDebug(@"Re-maximizing full-screen window...");
         [self maximizeWindow:fullscreenOptions];
     }
-#endif
-    if (fullscreenWindow)
-        [fullscreenWindow applicationDidChangeScreenParameters:notification];
 }
 
 @end // MMWindowController (Private)
