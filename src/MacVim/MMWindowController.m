@@ -735,7 +735,7 @@
 
     if (useNativeFullScreen) {
         // Enter native full-screen mode.  Only supported on Mac OS X 10.7+.
-        ASLogDebug(@"Enter native full-screen");
+        ASLogInfo(@"Enter native full-screen");
 
         fullscreenOptions = fuoptions;
         if (windowPresented) {
@@ -746,7 +746,7 @@
         }
     } else {
         // Enter custom full-screen mode.  Always supported.
-        ASLogDebug(@"Enter custom full-screen");
+        ASLogInfo(@"Enter custom full-screen");
 
         // fullscreenWindow could be non-nil here if this is called multiple
         // times during startup.
@@ -777,7 +777,7 @@
 {
     if (!fullscreenEnabled) return;
 
-    ASLogDebug(@"Exit full-screen");
+    ASLogInfo(@"Exit full-screen");
 
     if (fullscreenWindow) {
         // Using custom full-screen
@@ -1139,9 +1139,6 @@
 - (void)window:(NSWindow *)window
     startCustomAnimationToEnterFullScreenWithDuration:(NSTimeInterval)duration
 {
-    // Store window frame and use it when exiting full-screen.
-    preFullscreenFrame = [window frame];
-
     // Fade out window, remove title bar and maximize, then fade back in.
     // (There is a small delay before window is maximized but usually this is
     // not noticeable on a relatively modern Mac.)
@@ -1162,11 +1159,21 @@
     }];
 }
 
+- (void)windowWillEnterFullScreen:(NSNotification *)notification
+{
+    // Store window frame and use it when exiting full-screen.
+    preFullscreenFrame = [decoratedWindow frame];
+}
+
 - (void)windowDidFailToEnterFullScreen:(NSWindow *)window
 {
-    // TODO: Is this the correct way to deal with this message?
+    // NOTE: This message can be called without
+    // window:startCustomAnimationToEnterFullScreenWithDuration: ever having
+    // been called so any state to store before entering full-screen must be
+    // stored in windowWillEnterFullScreen: which always gets called.
     ASLogNotice(@"Failed to ENTER full-screen, restoring window frame...");
 
+    fullscreenEnabled = NO;
     [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
     [[vimView tabBarControl] setStyleNamed:@"Metal"];
@@ -1212,9 +1219,11 @@
 
 - (void)windowDidFailToExitFullScreen:(NSWindow *)window
 {
-    // TODO: Is this the correct way to deal with this message?
+    // TODO: Is this the correct way to deal with this message?  Are we still
+    // in full-screen at this point?
     ASLogNotice(@"Failed to EXIT full-screen, maximizing window...");
 
+    fullscreenEnabled = YES;
     [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
     [[vimView tabBarControl] setStyleNamed:@"Unified"];
