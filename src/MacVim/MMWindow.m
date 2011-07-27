@@ -168,8 +168,11 @@
 
 - (IBAction)realToggleFullScreen:(id)sender
 {
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
     // HACK! See toggleFullScreen: comment above.
-    [super toggleFullScreen:sender];
+    if ([NSWindow instancesRespondToSelector:@selector(toggleFullScreen:)])
+        [super toggleFullScreen:sender];
+#endif
 }
 
 @end // MMWindow
