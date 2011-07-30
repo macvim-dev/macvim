@@ -91,6 +91,7 @@
 - (void)updateResizeConstraints;
 - (NSTabViewItem *)addNewTabViewItem;
 - (BOOL)askBackendForStarRegister:(NSPasteboard *)pb;
+- (void)updateTablineSeparator;
 - (void)hideTablineSeparator:(BOOL)hide;
 - (void)doFindNext:(BOOL)next;
 - (void)updateToolbar;
@@ -584,24 +585,7 @@
 - (void)showTabBar:(BOOL)on
 {
     [[vimView tabBarControl] setHidden:!on];
-
-    // Showing the tabline may result in the tabline separator being hidden or
-    // shown; this does not apply to full-screen mode.
-    if (!on) {
-        if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask)
-                == 0) {
-            [self hideTablineSeparator:![decoratedWindow toolbar]];
-        } else {
-            [self hideTablineSeparator:NO];
-        }
-    } else {
-        if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask)
-                == 0) {
-            [self hideTablineSeparator:on];
-        } else {
-            [self hideTablineSeparator:YES];
-        }
-    }
+    [self updateTablineSeparator];
 }
 
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode
@@ -1130,6 +1114,7 @@
     } completionHandler:^{
         [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
         [[vimView tabBarControl] setStyleNamed:@"Unified"];
+        [self updateTablineSeparator];
         [self maximizeWindow:fullScreenOptions];
 
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
@@ -1173,6 +1158,7 @@
     [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
     [[vimView tabBarControl] setStyleNamed:@"Metal"];
+    [self updateTablineSeparator];
     [window setFrame:preFullScreenFrame display:YES];
 }
 
@@ -1202,6 +1188,7 @@
     } completionHandler:^{
         [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
         [[vimView tabBarControl] setStyleNamed:@"Metal"];
+        [self updateTablineSeparator];
         [window setFrame:preFullScreenFrame display:YES];
 
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
@@ -1237,6 +1224,7 @@
     [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
     [[vimView tabBarControl] setStyleNamed:@"Unified"];
+    [self updateTablineSeparator];
     [self maximizeWindow:fullScreenOptions];
 }
 
@@ -1405,6 +1393,22 @@
     return reply;
 }
 
+- (void)updateTablineSeparator
+{
+    BOOL tabBarVisible  = ![[vimView tabBarControl] isHidden];
+    BOOL toolbarHidden  = [decoratedWindow toolbar] == nil;
+    BOOL windowTextured = ([decoratedWindow styleMask] &
+                            NSTexturedBackgroundWindowMask) != 0;
+    BOOL hideSeparator  = NO;
+
+    if (fullScreenEnabled || tabBarVisible)
+        hideSeparator = YES;
+    else
+        hideSeparator = toolbarHidden && !windowTextured;
+
+    [self hideTablineSeparator:hideSeparator];
+}
+
 - (void)hideTablineSeparator:(BOOL)hide
 {
     // The full-screen window has no tabline separator so we operate on
@@ -1466,20 +1470,7 @@
     // Positive flag shows toolbar, negative hides it.
     BOOL on = updateToolbarFlag > 0 ? YES : NO;
     [decoratedWindow setToolbar:(on ? toolbar : nil)];
-
-    if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask) == 0) {
-        if (!on) {
-            [self hideTablineSeparator:YES];
-        } else {
-            [self hideTablineSeparator:![[vimView tabBarControl] isHidden]];
-        }
-    } else {
-        // Textured windows don't have a line below there title bar, so we
-        // need the separator in this case as well. In fact, the only case
-        // where we don't need the separator is when the tab bar control
-        // is visible (because it brings its own separator).
-        [self hideTablineSeparator:![[vimView tabBarControl] isHidden]];
-    }
+    [self updateTablineSeparator];
 
     updateToolbarFlag = 0;
 }
