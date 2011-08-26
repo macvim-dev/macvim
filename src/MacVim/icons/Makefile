@@ -16,12 +16,12 @@ OUTDIR ?= .
 # step requires an internet connection.
 
 $(OUTDIR)/MacVim-generic.icns:
-	cp -pR MacVim-*.icns $(OUTDIR)/
+	cp -pR MacVim-*.icns "$(OUTDIR)"/
 
 all: make_icons.py vim-noshadow-512.png loadfont.so
 	rm -f MacVim-*.icns
 	$(MAKE) -C makeicns
-	/usr/bin/python make_icons.py $(OUTDIR)
+	/usr/bin/python make_icons.py "$(OUTDIR)"
 
 loadfont.so: loadfont.c
 	/usr/bin/python setup.py install --install-lib .
@@ -40,6 +40,6 @@ EnvyCodeR.zip:
 
 clean:
 	$(MAKE) -C makeicns clean
-	rm -f $(OUTDIR)/MacVim-*.icns loadfont.so *.pyc \
+	rm -f "$(OUTDIR)"/MacVim-*.icns loadfont.so *.pyc \
 	  EnvyCodeR.zip *.ttf *.reg *.txt
 	rm -rf *.egginfo build  # Created by setup.py
