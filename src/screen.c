@@ -4526,7 +4526,9 @@ win_line(wp, lnum, startrow, endrow, nochange)
 # endif
 		lnum == wp->w_cursor.lnum
 		&& (State & INSERT)
+# ifndef FEAT_GUI_MACVIM
 		&& !p_imdisable
+# endif
 		&& im_is_preediting()
 		&& draw_state == WL_LINE)
 	{
