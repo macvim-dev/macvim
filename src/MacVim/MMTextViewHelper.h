@@ -22,15 +22,6 @@
 #define ALPHA(argb)     (((argb>>24) & 0xff)/255.0f)
 
 
-enum {
-    // These values are chosen so that the min text view size is not too small
-    // with the default font (they only affect resizing with the mouse, you can
-    // still use e.g. ":set lines=2" to go below these values).
-    MMMinRows = 4,
-    MMMinColumns = 30
-};
-
-
 @interface MMTextViewHelper : NSObject {
     id                  textView;
     BOOL                isDragging;
