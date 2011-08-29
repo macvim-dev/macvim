@@ -481,6 +481,7 @@
 {
     BOOL scrollbarHidden = [vimView destroyScrollbarWithIdentifier:ident];   
     shouldResizeVimView = shouldResizeVimView || scrollbarHidden;
+    shouldMaximizeWindow = shouldMaximizeWindow || scrollbarHidden;
 
     return scrollbarHidden;
 }
@@ -490,6 +491,7 @@
     BOOL scrollbarToggled = [vimView showScrollbarWithIdentifier:ident
                                                            state:visible];
     shouldResizeVimView = shouldResizeVimView || scrollbarToggled;
+    shouldMaximizeWindow = shouldMaximizeWindow || scrollbarToggled;
 
     return scrollbarToggled;
 }
@@ -522,6 +524,7 @@
     [[NSFontManager sharedFontManager] setSelectedFont:font isMultiple:NO];
     [[vimView textView] setFont:font];
     [self updateResizeConstraints];
+    shouldMaximizeWindow = YES;
 }
 
 - (void)setWideFont:(NSFont *)font
@@ -553,10 +556,13 @@
 
         // Make sure full-screen window stays maximized (e.g. when scrollbar or
         // tabline is hidden) according to 'fuopt'.
+
         BOOL didMaximize = NO;
-        if (fullScreenEnabled &&
+        if (shouldMaximizeWindow && fullScreenEnabled &&
                 (fullScreenOptions & (FUOPT_MAXVERT|FUOPT_MAXHORZ)) != 0)
             didMaximize = [self maximizeWindow:fullScreenOptions];
+
+        shouldMaximizeWindow = NO;
 
         // Resize Vim view and window, but don't do this now if the window was
         // just reszied because this would make the window "jump" unpleasantly.
@@ -596,6 +602,7 @@
 {
     [[vimView tabBarControl] setHidden:!on];
     [self updateTablineSeparator];
+    shouldMaximizeWindow = YES;
 }
 
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode
@@ -626,7 +633,7 @@
 {
     if (vimView && [vimView textView]) {
         [[vimView textView] setLinespace:(float)linespace];
-        shouldResizeVimView = YES;
+        shouldMaximizeWindow = shouldResizeVimView = YES;
     }
 }
 
