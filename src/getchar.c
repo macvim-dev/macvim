@@ -5174,14 +5174,17 @@ static struct initmap
 # endif
 #endif
 
-#if defined(MACOS) && !defined(FEAT_GUI_MACVIM)
+#if defined(MACOS)
+# if !defined(FEAT_GUI_MACVIM)
 	/* Use the Standard MacOS binding. */
 	/* paste, copy and cut */
+	/* (These are menu bindings in MacVim, so don't bind them here.) */
 	{(char_u *)"<D-v> \"*P", NORMAL},
 	{(char_u *)"<D-v> \"-d\"*P", VIS_SEL},
 	{(char_u *)"<D-v> <C-R>*", INSERT+CMDLINE},
 	{(char_u *)"<D-c> \"*y", VIS_SEL},
 	{(char_u *)"<D-x> \"*d", VIS_SEL},
+# endif
 	{(char_u *)"<Backspace> \"-d", VIS_SEL},
 #endif
 };
