@@ -12,7 +12,8 @@ install in (usually `/Applications').
 How to build and install
 ========================
 
-Run `./configure` in the `src/` directory with the flags you want, e.g.:
+Run `./configure` in the `src/` directory with the flags you want (call
+`./configure --help` to see a list of flags) e.g.:
 
     $ cd src
     $ ./configure --with-features=huge \
