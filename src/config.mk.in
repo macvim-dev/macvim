@@ -54,6 +54,7 @@ MZSCHEME_MZC	= @MZSCHEME_MZC@
 
 PERL		= @vi_cv_path_perl@
 PERLLIB		= @vi_cv_perllib@
+PERLSITELIB	= @vi_cv_perlsitelib@
 PERL_LIBS	= @PERL_LIBS@
 SHRPENV		= @shrpenv@
 PERL_SRC	= @PERL_SRC@
