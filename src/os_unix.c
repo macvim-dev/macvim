@@ -154,6 +154,13 @@ static int	did_set_icon = FALSE;
 
 static void may_core_dump __ARGS((void));
 
+#ifdef HAVE_UNION_WAIT
+typedef union wait waitstatus;
+#else
+typedef int waitstatus;
+#endif
+static pid_t wait4pid __ARGS((pid_t, waitstatus *));
+
 static int  WaitForChar __ARGS((long));
 #if defined(__BEOS__)
 int  RealWaitForChar __ARGS((int, long, int *));
@@ -3666,6 +3673,47 @@ mch_new_shellsize()
     /* Nothing to do. */
 }
 
+/*
+ * Wait for process "child" to end.
+ * Return "child" if it exited properly, <= 0 on error.
+ */
+    static pid_t
+wait4pid(child, status)
+    pid_t	child;
+    waitstatus	*status;
+{
+    pid_t wait_pid = 0;
+
+    while (wait_pid != child)
+    {
+# ifdef _THREAD_SAFE
+	/* Ugly hack: when compiled with Python threads are probably
+	 * used, in which case wait() sometimes hangs for no obvious
+	 * reason.  Use waitpid() instead and loop (like the GUI). */
+#  ifdef __NeXT__
+	wait_pid = wait4(child, status, WNOHANG, (struct rusage *)0);
+#  else
+	wait_pid = waitpid(child, status, WNOHANG);
+#  endif
+	if (wait_pid == 0)
+	{
+	    /* Wait for 1/100 sec before trying again. */
+	    mch_delay(10L, TRUE);
+	    continue;
+	}
+# else
+	wait_pid = wait(status);
+# endif
+	if (wait_pid <= 0
+# ifdef ECHILD
+		&& errno == ECHILD
+# endif
+	   )
+	    break;
+    }
+    return wait_pid;
+}
+
     int
 mch_call_shell(cmd, options)
     char_u	*cmd;
@@ -3807,8 +3855,10 @@ mch_call_shell(cmd, options)
     int		retval = -1;
     char	**argv = NULL;
     int		argc;
+    char_u	*p_shcf_copy = NULL;
     int		i;
     char_u	*p;
+    char_u	*s;
     int		inquote;
     int		pty_master_fd = -1;	    /* for pty's */
 # ifdef FEAT_GUI
@@ -3873,6 +3923,19 @@ mch_call_shell(cmd, options)
 	}
 	if (argv == NULL)
 	{
+	    /*
+	     * Account for possible multiple args in p_shcf.
+	     */
+	    p = p_shcf;
+	    for (;;)
+	    {
+		p = skiptowhite(p);
+		if (*p == NUL)
+		    break;
+		++argc;
+		p = skipwhite(p);
+	    }
+
 	    argv = (char **)alloc((unsigned)((argc + 4) * sizeof(char *)));
 	    if (argv == NULL)	    /* out of memory */
 		goto error;
@@ -3882,7 +3945,23 @@ mch_call_shell(cmd, options)
     {
 	if (extra_shell_arg != NULL)
 	    argv[argc++] = (char *)extra_shell_arg;
-	argv[argc++] = (char *)p_shcf;
+
+	/* Break 'shellcmdflag' into white separated parts.  This doesn't
+	 * handle quoted strings, they are very unlikely to appear. */
+	p_shcf_copy = alloc((unsigned)STRLEN(p_shcf) + 1);
+	if (p_shcf_copy == NULL)    /* out of memory */
+	    goto error;
+	s = p_shcf_copy;
+	p = p_shcf;
+	while (*p != NUL)
+	{
+	    argv[argc++] = (char *)s;
+	    while (*p && *p != ' ' && *p != TAB)
+		*s++ = *p++;
+	    *s++ = NUL;
+	    p = skipwhite(p);
+	}
+
 	argv[argc++] = (char *)cmd;
     }
     argv[argc] = NULL;
@@ -3909,12 +3988,13 @@ mch_call_shell(cmd, options)
 	    pty_master_fd = OpenPTY(&tty_name);	    /* open pty */
 	    if (pty_master_fd >= 0)
 	    {
-#if !defined(MACOS) || defined(USE_CARBONIZED)
-		pty_slave_fd = open(tty_name, O_RDWR | O_EXTRA, 0);
-#else
 		/* Leaving out O_NOCTTY may lead to waitpid() always returning
-		 * 0 on Mac OS X 10.7 thereby causing freezes. */
-		pty_slave_fd = open(tty_name, O_RDWR | O_NOCTTY | O_EXTRA);
+		 * 0 on Mac OS X 10.7 thereby causing freezes. Let's assume
+		 * adding O_NOCTTY always works when defined. */
+#ifdef O_NOCTTY
+		pty_slave_fd = open(tty_name, O_RDWR | O_NOCTTY | O_EXTRA, 0);
+#else
+		pty_slave_fd = open(tty_name, O_RDWR | O_EXTRA, 0);
 #endif
 		if (pty_slave_fd < 0)
 		{
@@ -4220,7 +4300,7 @@ mch_call_shell(cmd, options)
 		    {
 			MSG_PUTS(_("\nCannot fork\n"));
 		    }
-		    else if (wpid == 0)
+		    else if (wpid == 0) /* child */
 		    {
 			linenr_T    lnum = curbuf->b_op_start.lnum;
 			int	    written = 0;
@@ -4228,7 +4308,6 @@ mch_call_shell(cmd, options)
 			char_u	    *s;
 			size_t	    l;
 
-			/* child */
 			close(fromshell_fd);
 			for (;;)
 			{
@@ -4273,7 +4352,7 @@ mch_call_shell(cmd, options)
 			}
 			_exit(0);
 		    }
-		    else
+		    else /* parent */
 		    {
 			close(toshell_fd);
 			toshell_fd = -1;
@@ -4574,7 +4653,7 @@ mch_call_shell(cmd, options)
 		     * typed characters (otherwise we would lose typeahead).
 		     */
 # ifdef __NeXT__
-		    wait_pid = wait4(pid, &status, WNOHANG, (struct rusage *) 0);
+		    wait_pid = wait4(pid, &status, WNOHANG, (struct rusage *)0);
 # else
 		    wait_pid = waitpid(pid, &status, WNOHANG);
 # endif
@@ -4623,33 +4702,8 @@ finished:
 	     * Don't wait if wait_pid was already set above, indicating the
 	     * child already exited.
 	     */
-	    while (wait_pid != pid)
-	    {
-# ifdef _THREAD_SAFE
-		/* Ugly hack: when compiled with Python threads are probably
-		 * used, in which case wait() sometimes hangs for no obvious
-		 * reason.  Use waitpid() instead and loop (like the GUI). */
-#  ifdef __NeXT__
-		wait_pid = wait4(pid, &status, WNOHANG, (struct rusage *)0);
-#  else
-		wait_pid = waitpid(pid, &status, WNOHANG);
-#  endif
-		if (wait_pid == 0)
-		{
-		    /* Wait for 1/100 sec before trying again. */
-		    mch_delay(10L, TRUE);
-		    continue;
-		}
-# else
-		wait_pid = wait(&status);
-# endif
-		if (wait_pid <= 0
-# ifdef ECHILD
-			&& errno == ECHILD
-# endif
-		   )
-		    break;
-	    }
+	    if (wait_pid != pid)
+		wait_pid = wait4pid(pid, &status);
 
 # ifdef FEAT_GUI
 	    /* Close slave side of pty.  Only do this after the child has
@@ -4662,7 +4716,10 @@ finished:
 	    /* Make sure the child that writes to the external program is
 	     * dead. */
 	    if (wpid > 0)
+	    {
 		kill(wpid, SIGKILL);
+		wait4pid(wpid, NULL);
+	    }
 
 	    /*
 	     * Set to raw mode right now, otherwise a CTRL-C after
@@ -4698,6 +4755,7 @@ finished:
 	}
     }
     vim_free(argv);
+    vim_free(p_shcf_copy);
 
 error:
     if (!did_settmode)
@@ -4808,7 +4866,8 @@ WaitForChar(msec)
 
 /*
  * Wait "msec" msec until a character is available from file descriptor "fd".
- * Time == -1 will block forever.
+ * "msec" == 0 will check for characters once.
+ * "msec" == -1 will block until a character is available.
  * When a GUI is being used, this will not be used for input -- webb
  * Returns also, when a request from Sniff is waiting -- toni.
  * Or when a Linux GPM mouse event is waiting.
@@ -5046,7 +5105,8 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	/*
 	 * Select on ready for reading and exceptional condition (end of file).
 	 */
-	FD_ZERO(&rfds); /* calls bzero() on a sun */
+select_eintr:
+	FD_ZERO(&rfds);
 	FD_ZERO(&efds);
 	FD_SET(fd, &rfds);
 # if !defined(__QNX__) && !defined(__CYGWIN32__)
@@ -5106,6 +5166,14 @@ RealWaitForChar(fd, msec, check_for_gpm)
 # else
 	ret = select(maxfd + 1, &rfds, NULL, &efds, tvp);
 # endif
+# ifdef EINTR
+	if (ret == -1 && errno == EINTR)
+	    /* Interrupted by a signal, need to try again.  We ignore msec
+	     * here, because we do want to check even after a timeout if
+	     * characters are available.  Needed for reading output of an
+	     * external command after the process has finished. */
+	    goto select_eintr;
+# endif
 # ifdef __TANDEM
 	if (ret == -1 && errno == ENOTSUP)
 	{
@@ -5113,7 +5181,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	    FD_ZERO(&efds);
 	    ret = 0;
 	}
-#endif
+# endif
 # ifdef FEAT_MZSCHEME
 	if (ret == 0 && mzquantum_used)
 	    /* loop if MzThreads must be scheduled and timeout occurred */

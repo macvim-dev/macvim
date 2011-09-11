@@ -147,7 +147,12 @@ typedef int perl_key;
 # define Perl_save_int dll_Perl_save_int
 # define Perl_stack_grow dll_Perl_stack_grow
 # define Perl_set_context dll_Perl_set_context
+# if (PERL_REVISION == 5) && (PERL_VERSION >= 14)
+# define Perl_sv_2bool_flags dll_Perl_sv_2bool_flags
+# define Perl_xs_apiversion_bootcheck dll_Perl_xs_apiversion_bootcheck 
+# else
 # define Perl_sv_2bool dll_Perl_sv_2bool
+# endif
 # define Perl_sv_2iv dll_Perl_sv_2iv
 # define Perl_sv_2mortal dll_Perl_sv_2mortal
 # if (PERL_REVISION == 5) && (PERL_VERSION >= 8)
@@ -252,7 +257,12 @@ static void (*Perl_push_scope)(pTHX);
 static void (*Perl_save_int)(pTHX_ int*);
 static SV** (*Perl_stack_grow)(pTHX_ SV**, SV**p, int);
 static SV** (*Perl_set_context)(void*);
+#if (PERL_REVISION == 5) && (PERL_VERSION >= 14)
+static bool (*Perl_sv_2bool_flags)(pTHX_ SV*, I32);
+static void (*Perl_xs_apiversion_bootcheck)(pTHX_ SV *module, const char *api_p, STRLEN api_len);
+#else
 static bool (*Perl_sv_2bool)(pTHX_ SV*);
+#endif
 static IV (*Perl_sv_2iv)(pTHX_ SV*);
 static SV* (*Perl_sv_2mortal)(pTHX_ SV*);
 #if (PERL_REVISION == 5) && (PERL_VERSION >= 8)
@@ -360,7 +370,12 @@ static struct {
     {"Perl_save_int", (PERL_PROC*)&Perl_save_int},
     {"Perl_stack_grow", (PERL_PROC*)&Perl_stack_grow},
     {"Perl_set_context", (PERL_PROC*)&Perl_set_context},
+#if (PERL_REVISION == 5) && (PERL_VERSION >= 14)
+    {"Perl_sv_2bool_flags", (PERL_PROC*)&Perl_sv_2bool_flags},
+    {"Perl_xs_apiversion_bootcheck",(PERL_PROC*)&Perl_xs_apiversion_bootcheck},
+#else
     {"Perl_sv_2bool", (PERL_PROC*)&Perl_sv_2bool},
+#endif
     {"Perl_sv_2iv", (PERL_PROC*)&Perl_sv_2iv},
     {"Perl_sv_2mortal", (PERL_PROC*)&Perl_sv_2mortal},
 #if (PERL_REVISION == 5) && (PERL_VERSION >= 8)
@@ -407,6 +422,9 @@ static struct {
     {"Perl_sv_free2", (PERL_PROC*)&Perl_sv_free2},
     {"Perl_sys_init", (PERL_PROC*)&Perl_sys_init},
     {"Perl_sys_term", (PERL_PROC*)&Perl_sys_term},
+    {"Perl_call_list", (PERL_PROC*)&Perl_call_list},
+# if (PERL_REVISION == 5) && (PERL_VERSION >= 14)
+# else
     {"Perl_ISv_ptr", (PERL_PROC*)&Perl_ISv_ptr},
     {"Perl_Istack_max_ptr", (PERL_PROC*)&Perl_Istack_max_ptr},
     {"Perl_Istack_base_ptr", (PERL_PROC*)&Perl_Istack_base_ptr},
@@ -418,15 +436,18 @@ static struct {
     {"Perl_Imarkstack_max_ptr", (PERL_PROC*)&Perl_Imarkstack_max_ptr},
     {"Perl_Istack_sp_ptr", (PERL_PROC*)&Perl_Istack_sp_ptr},
     {"Perl_Iop_ptr", (PERL_PROC*)&Perl_Iop_ptr},
-    {"Perl_call_list", (PERL_PROC*)&Perl_call_list},
     {"Perl_Iscopestack_ix_ptr", (PERL_PROC*)&Perl_Iscopestack_ix_ptr},
     {"Perl_Iunitcheckav_ptr", (PERL_PROC*)&Perl_Iunitcheckav_ptr},
+# endif
 #endif
+#if (PERL_REVISION == 5) && (PERL_VERSION >= 14)
+#else
     {"Perl_Idefgv_ptr", (PERL_PROC*)&Perl_Idefgv_ptr},
     {"Perl_Ierrgv_ptr", (PERL_PROC*)&Perl_Ierrgv_ptr},
     {"Perl_Isv_yes_ptr", (PERL_PROC*)&Perl_Isv_yes_ptr},
-    {"boot_DynaLoader", (PERL_PROC*)&boot_DynaLoader},
     {"Perl_Gthr_key_ptr", (PERL_PROC*)&Perl_Gthr_key_ptr},
+#endif
+    {"boot_DynaLoader", (PERL_PROC*)&boot_DynaLoader},
     {"", NULL},
 };
 
@@ -755,7 +776,7 @@ ex_perl(eap)
 #ifdef HAVE_SANDBOX
     if (sandbox)
     {
-	safe = perl_get_sv( "VIM::safe", FALSE );
+	safe = perl_get_sv("VIM::safe", FALSE);
 # ifndef MAKE_TEST  /* avoid a warning for unreachable code */
 	if (safe == NULL || !SvTRUE(safe))
 	    EMSG(_("E299: Perl evaluation forbidden in sandbox without the Safe module"));
@@ -1108,7 +1129,7 @@ Cursor(win, ...)
     VIWIN win
 
     PPCODE:
-    if(items == 1)
+    if (items == 1)
     {
       EXTEND(sp, 2);
       if (!win_valid(win))
@@ -1116,7 +1137,7 @@ Cursor(win, ...)
       PUSHs(sv_2mortal(newSViv(win->w_cursor.lnum)));
       PUSHs(sv_2mortal(newSViv(win->w_cursor.col)));
     }
-    else if(items == 3)
+    else if (items == 3)
     {
       int lnum, col;
 
@@ -1249,9 +1270,9 @@ Delete(vimbuf, ...)
 	{
 	    lnum = SvIV(ST(1));
 	    count = 1 + SvIV(ST(2)) - lnum;
-	    if(count == 0)
+	    if (count == 0)
 		count = 1;
-	    if(count < 0)
+	    if (count < 0)
 	    {
 		lnum -= count;
 		count = -count;

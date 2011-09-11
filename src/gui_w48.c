@@ -390,7 +390,7 @@ _OnBlinkTimer(
     KillTimer(NULL, idEvent);
 
     /* Eat spurious WM_TIMER messages */
-    while (PeekMessage(&msg, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
+    while (pPeekMessage(&msg, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
 	;
 
     if (blink_state == BLINK_ON)
@@ -418,7 +418,7 @@ gui_mswin_rm_blink_timer(void)
     {
 	KillTimer(NULL, blink_timer);
 	/* Eat spurious WM_TIMER messages */
-	while (PeekMessage(&msg, s_hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
+	while (pPeekMessage(&msg, s_hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
 	    ;
 	blink_timer = 0;
     }
@@ -476,7 +476,7 @@ _OnTimer(
     s_timed_out = TRUE;
 
     /* Eat spurious WM_TIMER messages */
-    while (PeekMessage(&msg, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
+    while (pPeekMessage(&msg, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
 	;
     if (idEvent == s_wait_timer)
 	s_wait_timer = 0;
@@ -1411,12 +1411,12 @@ gui_mch_get_color(char_u *name)
     static guicolor_tTable table[] =
     {
 	{"Black",		RGB(0x00, 0x00, 0x00)},
-	{"DarkGray",		RGB(0x80, 0x80, 0x80)},
-	{"DarkGrey",		RGB(0x80, 0x80, 0x80)},
+	{"DarkGray",		RGB(0xA9, 0xA9, 0xA9)},
+	{"DarkGrey",		RGB(0xA9, 0xA9, 0xA9)},
 	{"Gray",		RGB(0xC0, 0xC0, 0xC0)},
 	{"Grey",		RGB(0xC0, 0xC0, 0xC0)},
-	{"LightGray",		RGB(0xE0, 0xE0, 0xE0)},
-	{"LightGrey",		RGB(0xE0, 0xE0, 0xE0)},
+	{"LightGray",		RGB(0xD3, 0xD3, 0xD3)},
+	{"LightGrey",		RGB(0xD3, 0xD3, 0xD3)},
 	{"Gray10",		RGB(0x1A, 0x1A, 0x1A)},
 	{"Grey10",		RGB(0x1A, 0x1A, 0x1A)},
 	{"Gray20",		RGB(0x33, 0x33, 0x33)},
@@ -1441,19 +1441,19 @@ gui_mch_get_color(char_u *name)
 	{"LightRed",		RGB(0xFF, 0xA0, 0xA0)},
 	{"DarkBlue",		RGB(0x00, 0x00, 0x80)},
 	{"Blue",		RGB(0x00, 0x00, 0xFF)},
-	{"LightBlue",		RGB(0xA0, 0xA0, 0xFF)},
+	{"LightBlue",		RGB(0xAD, 0xD8, 0xE6)},
 	{"DarkGreen",		RGB(0x00, 0x80, 0x00)},
 	{"Green",		RGB(0x00, 0xFF, 0x00)},
-	{"LightGreen",		RGB(0xA0, 0xFF, 0xA0)},
+	{"LightGreen",		RGB(0x90, 0xEE, 0x90)},
 	{"DarkCyan",		RGB(0x00, 0x80, 0x80)},
 	{"Cyan",		RGB(0x00, 0xFF, 0xFF)},
-	{"LightCyan",		RGB(0xA0, 0xFF, 0xFF)},
+	{"LightCyan",		RGB(0xE0, 0xFF, 0xFF)},
 	{"DarkMagenta",		RGB(0x80, 0x00, 0x80)},
 	{"Magenta",		RGB(0xFF, 0x00, 0xFF)},
 	{"LightMagenta",	RGB(0xFF, 0xA0, 0xFF)},
 	{"Brown",		RGB(0x80, 0x40, 0x40)},
 	{"Yellow",		RGB(0xFF, 0xFF, 0x00)},
-	{"LightYellow",		RGB(0xFF, 0xFF, 0xA0)},
+	{"LightYellow",		RGB(0xFF, 0xFF, 0xE0)},
 	{"DarkYellow",		RGB(0xBB, 0xBB, 0x00)},
 	{"SeaGreen",		RGB(0x2E, 0x8B, 0x57)},
 	{"Orange",		RGB(0xFF, 0xA5, 0x00)},
@@ -1707,7 +1707,7 @@ process_message(void)
     static char_u k10[] = {K_SPECIAL, 'k', ';', 0};
 #endif
 
-    GetMessage(&msg, NULL, 0, 0);
+    pGetMessage(&msg, NULL, 0, 0);
 
 #ifdef FEAT_OLE
     /* Look after OLE Automation commands */
@@ -1718,7 +1718,7 @@ process_message(void)
 	{
 	    /* Message can't be ours, forward it.  Fixes problem with Ultramon
 	     * 3.0.4 */
-	    DispatchMessage(&msg);
+	    pDispatchMessage(&msg);
 	}
 	else
 	{
@@ -1749,14 +1749,14 @@ process_message(void)
     if (msg.message == WM_USER)
     {
 	MyTranslateMessage(&msg);
-	DispatchMessage(&msg);
+	pDispatchMessage(&msg);
 	return;
     }
 #endif
 
 #ifdef MSWIN_FIND_REPLACE
     /* Don't process messages used by the dialog */
-    if (s_findrep_hwnd != NULL && IsDialogMessage(s_findrep_hwnd, &msg))
+    if (s_findrep_hwnd != NULL && pIsDialogMessage(s_findrep_hwnd, &msg))
     {
 	HandleMouseHide(msg.message, msg.lParam);
 	return;
@@ -1928,7 +1928,7 @@ process_message(void)
     if (vk != VK_F10 || check_map(k10, State, FALSE, TRUE, FALSE,
 							  NULL, NULL) == NULL)
 #endif
-	DispatchMessage(&msg);
+	pDispatchMessage(&msg);
 }
 
 /*
@@ -1943,7 +1943,7 @@ gui_mch_update(void)
     MSG	    msg;
 
     if (!s_busy_processing)
-	while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)
+	while (pPeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)
 						  && !vim_is_input_buf_full())
 	    process_message();
 }
@@ -2019,7 +2019,7 @@ gui_mch_wait_for_chars(int wtime)
 		KillTimer(NULL, s_wait_timer);
 
 		/* Eat spurious WM_TIMER messages */
-		while (PeekMessage(&msg, s_hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
+		while (pPeekMessage(&msg, s_hwnd, WM_TIMER, WM_TIMER, PM_REMOVE))
 		    ;
 		s_wait_timer = 0;
 	    }

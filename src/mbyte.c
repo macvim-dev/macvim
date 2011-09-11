@@ -838,6 +838,27 @@ bomb_size()
 }
 
 /*
+ * Remove all BOM from "s" by moving remaining text.
+ */
+    void
+remove_bom(s)
+    char_u *s;
+{
+    if (enc_utf8)
+    {
+	char_u *p = s;
+
+	while ((p = vim_strbyte(p, 0xef)) != NULL)
+	{
+	    if (p[1] == 0xbb && p[2] == 0xbf)
+		STRMOVE(p, p + 3);
+	    else
+		++p;
+	}
+    }
+}
+
+/*
  * Get class of pointer:
  * 0 for blank or NUL
  * 1 for punctuation
@@ -5238,6 +5259,10 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 	    if (xim_expected_char != NUL && xim_ignored_char)
 		/* We had a keypad key, and XIM tried to thieve it */
 		return FALSE;
+
+	    /* This is supposed to fix a problem with iBus, that space
+	     * characters don't work in input mode. */
+	    xim_expected_char = NUL;
 
 	    /* Normal processing */
 	    return imresult;

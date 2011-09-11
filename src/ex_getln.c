@@ -67,7 +67,7 @@ static int	hislen = 0;		/* actual length of history tables */
 
 static int	hist_char2type __ARGS((int c));
 
-static int	in_history __ARGS((int, char_u *, int));
+static int	in_history __ARGS((int, char_u *, int, int));
 # ifdef FEAT_EVAL
 static int	calc_hist_idx __ARGS((int histype, int num));
 # endif
@@ -1977,8 +1977,12 @@ getcmdline_prompt(firstc, prompt, attr, xp_context, xp_arg)
 # endif
     s = getcmdline(firstc, 1L, 0);
     restore_cmdline(&save_ccline);
-    /* Restore msg_col, the prompt from input() may have changed it. */
-    msg_col = msg_col_save;
+    /* Restore msg_col, the prompt from input() may have changed it.
+     * But only if called recursively and the commandline is therefore being
+     * restored to an old one; if not, the input() prompt stays on the screen,
+     * so we need its modified msg_col left intact. */
+    if (ccline.cmdbuff != NULL)
+	msg_col = msg_col_save;
 
     return s;
 }
@@ -5303,13 +5307,15 @@ init_history()
  * If 'move_to_front' is TRUE, matching entry is moved to end of history.
  */
     static int
-in_history(type, str, move_to_front)
+in_history(type, str, move_to_front, sep)
     int	    type;
     char_u  *str;
     int	    move_to_front;	/* Move the entry to the front if it exists */
+    int	    sep;
 {
     int	    i;
     int	    last_i = -1;
+    char_u  *p;
 
     if (hisidx[type] < 0)
 	return FALSE;
@@ -5318,7 +5324,12 @@ in_history(type, str, move_to_front)
     {
 	if (history[type][i].hisstr == NULL)
 	    return FALSE;
-	if (STRCMP(str, history[type][i].hisstr) == 0)
+
+	/* For search history, check that the separator character matches as
+	 * well. */
+	p = history[type][i].hisstr;
+	if (STRCMP(str, p) == 0
+		&& (type != HIST_SEARCH || sep == p[STRLEN(p) + 1]))
 	{
 	    if (!move_to_front)
 		return TRUE;
@@ -5412,7 +5423,7 @@ add_to_history(histype, new_entry, in_map, sep)
 	}
 	last_maptick = -1;
     }
-    if (!in_history(histype, new_entry, TRUE))
+    if (!in_history(histype, new_entry, TRUE, sep))
     {
 	if (++hisidx[histype] == hislen)
 	    hisidx[histype] = 0;
@@ -5991,7 +6002,7 @@ read_viminfo_history(virp)
 	if (val != NULL && *val != NUL)
 	{
 	    if (!in_history(type, val + (type == HIST_SEARCH),
-							viminfo_add_at_front))
+						  viminfo_add_at_front, *val))
 	    {
 		/* Need to re-allocate to append the separator byte. */
 		len = STRLEN(val);
