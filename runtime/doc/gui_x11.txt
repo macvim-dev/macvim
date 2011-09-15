@@ -1,4 +1,4 @@
-*gui_x11.txt*   For Vim version 7.3.  Last change: 2010 Jul 20
+*gui_x11.txt*   For Vim version 7.3.  Last change: 2011 Sep 14
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -61,6 +61,8 @@ launches the gui but doesn't fork (see |mvim|). However, doing |:gui| in an
 already running vim will never fork in MacVim.
 
 "gvim --nofork" does the same as "gvim -f".
+								*E851* *E852*
+When starting the GUI fails Vim will try to continue running in the terminal.
 
 If you want the GUI to run in the foreground always, include the 'f'
 flag in 'guioptions'.  |-f|.  MacVim does not support this flag in
