@@ -691,6 +691,7 @@ MZSCHEME_EXTRA
 MZSCHEME_MZC
 vi_cv_path_perl
 vi_cv_perllib
+vi_cv_perlsitelib
 shrpenv
 PERL_SRC
 PERL_OBJ
@@ -5161,6 +5162,8 @@ echo "${ECHO_T}OK" >&6; }
 	shrpenv=""
       fi
       vi_cv_perllib=`$vi_cv_path_perl -MConfig -e 'print $Config{privlibexp}'`
+      vi_cv_perlsitelib=`$vi_cv_path_perl -MConfig -e 'print $Config{sitelibexp}'`
+
 
             perlcppflags=`$vi_cv_path_perl -Mlib=$srcdir -MExtUtils::Embed \
 	      -e 'ccflags;perl_inc;print"\n"' | sed -e 's/-fno[^ ]*//'`
@@ -20157,6 +20160,7 @@ MZSCHEME_EXTRA!$MZSCHEME_EXTRA$ac_delim
 MZSCHEME_MZC!$MZSCHEME_MZC$ac_delim
 vi_cv_path_perl!$vi_cv_path_perl$ac_delim
 vi_cv_perllib!$vi_cv_perllib$ac_delim
+vi_cv_perlsitelib!$vi_cv_perlsitelib$ac_delim
 shrpenv!$shrpenv$ac_delim
 PERL_SRC!$PERL_SRC$ac_delim
 PERL_OBJ!$PERL_OBJ$ac_delim
@@ -20175,7 +20179,6 @@ PYTHON3_CONFDIR!$PYTHON3_CONFDIR$ac_delim
 PYTHON3_LIBS!$PYTHON3_LIBS$ac_delim
 PYTHON3_CFLAGS!$PYTHON3_CFLAGS$ac_delim
 PYTHON3_SRC!$PYTHON3_SRC$ac_delim
-PYTHON3_OBJ!$PYTHON3_OBJ$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -20217,6 +20220,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+PYTHON3_OBJ!$PYTHON3_OBJ$ac_delim
 vi_cv_path_tcl!$vi_cv_path_tcl$ac_delim
 TCL_SRC!$TCL_SRC$ac_delim
 TCL_OBJ!$TCL_OBJ$ac_delim
@@ -20269,7 +20273,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 50; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 51; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
