@@ -227,13 +227,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0395AA980D76E86200881434 /* Edit in ODBEditor */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = "Edit in ODBEditor";
-			sourceTree = "<group>";
-		};
 		080E96DDFE201D6D7F000001 /* MacVim Source */ = {
 			isa = PBXGroup;
 			children = (
@@ -406,7 +399,6 @@
 			isa = PBXGroup;
 			children = (
 				1D8B5A52104AF9FF002E59D5 /* Carbon.framework */,
-				0395AA980D76E86200881434 /* Edit in ODBEditor */,
 				1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */,
 				1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */,
 				1058C7A2FEA54F0111CA2CBB /* Other Frameworks */,
@@ -633,6 +625,7 @@
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_VERSION = "";
 				GCC_WARN_PEDANTIC = NO;
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = Info.plist;
@@ -663,6 +656,7 @@
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_VERSION = "";
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
