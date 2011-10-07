@@ -3377,7 +3377,10 @@ ex_call(eap)
 	/* trans_function_name() doesn't work well when skipping, use eval0()
 	 * instead to skip to any following command, e.g. for:
 	 *   :if 0 | call dict.foo().bar() | endif  */
-	eval0(eap->arg, &rettv, &eap->nextcmd, FALSE);
+	++emsg_skip;
+	if (eval0(eap->arg, &rettv, &eap->nextcmd, FALSE) != FAIL)
+	    clear_tv(&rettv);
+	--emsg_skip;
 	return;
     }
 
@@ -20489,6 +20492,7 @@ ex_function(eap)
     exarg_T	*eap;
 {
     char_u	*theline;
+    int		i;
     int		j;
     int		c;
     int		saved_did_emsg;
@@ -20735,6 +20739,15 @@ ex_function(eap)
 	    arg = vim_strsave(arg);
 	    if (arg == NULL)
 		goto erret;
+
+	    /* Check for duplicate argument name. */
+	    for (i = 0; i < newargs.ga_len; ++i)
+		if (STRCMP(((char_u **)(newargs.ga_data))[i], arg) == 0)
+		{
+		    EMSG2(_("E853: Duplicate argument name: %s"), arg);
+		    goto erret;
+		}
+
 	    ((char_u **)(newargs.ga_data))[newargs.ga_len] = arg;
 	    *p = c;
 	    newargs.ga_len++;

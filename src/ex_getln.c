@@ -2881,6 +2881,7 @@ put_on_cmdline(str, len, redraw)
 	{
 	    msg_no_more = TRUE;
 	    i = cmdline_row;
+	    cursorcmd();
 	    draw_cmdline(ccline.cmdpos, ccline.cmdlen - ccline.cmdpos);
 	    /* Avoid clearing the rest of the line too often. */
 	    if (cmdline_row != i || ccline.overstrike)
@@ -4557,7 +4558,7 @@ ExpandFromContext(xp, pat, num_file, file, options)
     }
     if (xp->xp_context == EXPAND_COMPILER)
     {
-	char *directories[] = {"colors", NULL};
+	char *directories[] = {"compiler", NULL};
 	return ExpandRTDir(pat, num_file, file, directories);
     }
     if (xp->xp_context == EXPAND_OWNSYNTAX)
