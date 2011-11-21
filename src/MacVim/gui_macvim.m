@@ -392,6 +392,11 @@ gui_mch_wait_for_chars(int wtime)
     // called, so force a flush of the command queue here.
     [[MMBackend sharedInstance] flushQueue:YES];
 
+#if defined(FEAT_NETBEANS_INTG)
+    /* Process any queued netbeans messages. */
+    netbeans_parse_messages();
+#endif
+
     return [[MMBackend sharedInstance] waitForInput:wtime];
 }
 
