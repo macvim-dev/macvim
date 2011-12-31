@@ -474,6 +474,7 @@ static void f_abs __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_acos __ARGS((typval_T *argvars, typval_T *rettv));
 #endif
 static void f_add __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_and __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_append __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_argc __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_argidx __ARGS((typval_T *argvars, typval_T *rettv));
@@ -602,6 +603,7 @@ static void f_inputrestore __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_inputsave __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_inputsecret __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_insert __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_invert __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_isdirectory __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_islocked __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_items __ARGS((typval_T *argvars, typval_T *rettv));
@@ -640,6 +642,7 @@ static void f_mzeval __ARGS((typval_T *argvars, typval_T *rettv));
 #endif
 static void f_nextnonblank __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_nr2char __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_or __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_pathshorten __ARGS((typval_T *argvars, typval_T *rettv));
 #ifdef FEAT_FLOAT
 static void f_pow __ARGS((typval_T *argvars, typval_T *rettv));
@@ -751,6 +754,7 @@ static void f_winrestview __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_winsaveview __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_winwidth __ARGS((typval_T *argvars, typval_T *rettv));
 static void f_writefile __ARGS((typval_T *argvars, typval_T *rettv));
+static void f_xor __ARGS((typval_T *argvars, typval_T *rettv));
 
 static int list2fpos __ARGS((typval_T *arg, pos_T *posp, int *fnump));
 static pos_T *var2fpos __ARGS((typval_T *varp, int dollar_lnum, int *fnum));
@@ -875,7 +879,7 @@ eval_init()
 
 #ifdef EBCDIC
     /*
-     * Sort the function table, to enable binary sort.
+     * Sort the function table, to enable binary search.
      */
     sortFunctions();
 #endif
@@ -7716,6 +7720,7 @@ static struct fst
     {"acos",		1, 1, f_acos},	/* WJMc */
 #endif
     {"add",		2, 2, f_add},
+    {"and",		2, 2, f_and},
     {"append",		2, 2, f_append},
     {"argc",		0, 0, f_argc},
     {"argidx",		0, 0, f_argidx},
@@ -7851,6 +7856,7 @@ static struct fst
     {"inputsave",	0, 0, f_inputsave},
     {"inputsecret",	1, 2, f_inputsecret},
     {"insert",		2, 3, f_insert},
+    {"invert",		1, 1, f_invert},
     {"isdirectory",	1, 1, f_isdirectory},
     {"islocked",	1, 1, f_islocked},
     {"items",		1, 1, f_items},
@@ -7889,6 +7895,7 @@ static struct fst
 #endif
     {"nextnonblank",	1, 1, f_nextnonblank},
     {"nr2char",		1, 1, f_nr2char},
+    {"or",		2, 2, f_or},
     {"pathshorten",	1, 1, f_pathshorten},
 #ifdef FEAT_FLOAT
     {"pow",		2, 2, f_pow},
@@ -8000,6 +8007,7 @@ static struct fst
     {"winsaveview",	0, 0, f_winsaveview},
     {"winwidth",	1, 1, f_winwidth},
     {"writefile",	2, 3, f_writefile},
+    {"xor",		2, 2, f_xor},
 };
 
 #if defined(FEAT_CMDL_COMPL) || defined(PROTO)
@@ -8570,6 +8578,18 @@ f_add(argvars, rettv)
     }
     else
 	EMSG(_(e_listreq));
+}
+
+/*
+ * "and(expr, expr)" function
+ */
+    static void
+f_and(argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    rettv->vval.v_number = get_tv_number_chk(&argvars[0], NULL)
+					& get_tv_number_chk(&argvars[1], NULL);
 }
 
 /*
@@ -12978,6 +12998,17 @@ f_insert(argvars, rettv)
 }
 
 /*
+ * "invert(expr)" function
+ */
+    static void
+f_invert(argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    rettv->vval.v_number = ~get_tv_number_chk(&argvars[0], NULL);
+}
+
+/*
  * "isdirectory()" function
  */
     static void
@@ -14125,6 +14156,18 @@ f_nr2char(argvars, rettv)
     }
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = vim_strsave(buf);
+}
+
+/*
+ * "or(expr, expr)" function
+ */
+    static void
+f_or(argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    rettv->vval.v_number = get_tv_number_chk(&argvars[0], NULL)
+					| get_tv_number_chk(&argvars[1], NULL);
 }
 
 /*
@@ -18422,6 +18465,19 @@ f_writefile(argvars, rettv)
 }
 
 /*
+ * "xor(expr, expr)" function
+ */
+    static void
+f_xor(argvars, rettv)
+    typval_T	*argvars;
+    typval_T	*rettv;
+{
+    rettv->vval.v_number = get_tv_number_chk(&argvars[0], NULL)
+					^ get_tv_number_chk(&argvars[1], NULL);
+}
+
+
+/*
  * Translate a String variable into a position.
  * Returns NULL when there is an error.
  */
@@ -19617,9 +19673,14 @@ find_var_in_ht(ht, varname, writing)
 	 * worked find the variable again.  Don't auto-load a script if it was
 	 * loaded already, otherwise it would be loaded every time when
 	 * checking if a function name is a Funcref variable. */
-	if (ht == &globvarht && !writing
-			    && script_autoload(varname, FALSE) && !aborting())
+	if (ht == &globvarht && !writing)
+	{
+	    /* Note: script_autoload() may make "hi" invalid. It must either
+	     * be obtained again or not used. */
+	    if (!script_autoload(varname, FALSE) || aborting())
+		return NULL;
 	    hi = hash_find(ht, varname);
+	}
 	if (HASHITEM_EMPTY(hi))
 	    return NULL;
     }
@@ -21764,6 +21825,9 @@ get_user_func_name(xp, idx)
 	while (HASHITEM_EMPTY(hi))
 	    ++hi;
 	fp = HI2UF(hi);
+
+	if (fp->uf_flags & FC_DICT)
+	    return NULL; /* don't show dict functions */
 
 	if (STRLEN(fp->uf_name) + 4 >= IOSIZE)
 	    return fp->uf_name;	/* prevents overflow */

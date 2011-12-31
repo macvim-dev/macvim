@@ -299,17 +299,24 @@ char *(array[100]) = {
 
 enum soppie
 {
-	yes = 0,
-	no,
-	maybe
+yes = 0,
+no,
+maybe
 };
 
 typedef enum soppie
 {
-	yes = 0,
-	no,
-	maybe
+yes = 0,
+no,
+maybe
 };
+
+static enum
+{
+yes = 0,
+no,
+maybe
+} soppie;
 
 {
 	int a,
@@ -1422,7 +1429,7 @@ func(int a
 
 STARTTEST
 :set cino&
-2kdd=4][
+2kdd=7][
 ENDTEST
 
 void func(void)
@@ -1454,6 +1461,16 @@ void func2(void)
 		printf("This line used to be indented incorrectly.\n");
 }
 
+int foo[]
+#ifdef BAR
+
+= { 1, 2, 3,
+	4, 5, 6 }
+
+#endif
+;
+	int baz;
+
 void func3(void)
 {
 	int tab[] = {
@@ -1461,7 +1478,29 @@ void func3(void)
 	3, 4,
 	5, 6};
 
-printf("Don't you dare indent this line incorrectly!\n);
+printf("Don't you dare indent this line incorrectly!\n");
+}
+
+void
+func4(a, b,
+		c)
+int a;
+int b;
+int c;
+{
+}
+
+void
+func5(
+		int a,
+		int b)
+{
+}
+
+void
+func6(
+		int a)
+{
 }
 
 STARTTEST

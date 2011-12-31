@@ -4633,6 +4633,31 @@ do_set(arg, opt_flags)
 				arg = errbuf;
 			    }
 			    /*
+			     * Convert 'backspace' number to string, for
+			     * adding, prepending and removing string.
+			     */
+			    else if (varp == (char_u *)&p_bs
+					 && VIM_ISDIGIT(**(char_u **)varp))
+			    {
+				i = getdigits((char_u **)varp);
+				switch (i)
+				{
+				    case 0:
+					*(char_u **)varp = empty_option;
+					break;
+				    case 1:
+					*(char_u **)varp = vim_strsave(
+						      (char_u *)"indent,eol");
+					break;
+				    case 2:
+					*(char_u **)varp = vim_strsave(
+						(char_u *)"indent,eol,start");
+					break;
+				}
+				vim_free(oldval);
+				oldval = *(char_u **)varp;
+			    }
+			    /*
 			     * Convert 'whichwrap' number to string, for
 			     * backwards compatibility with Vim 3.0.
 			     * Misuse errbuf[] for the resulting string.
@@ -7890,9 +7915,9 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 #ifdef FEAT_BEVAL
     else if ((int *)varp == &p_beval)
     {
-	if (p_beval == TRUE)
+	if (p_beval && !old_value)
 	    gui_mch_enable_beval_area(balloonEval);
-	else
+	else if (!p_beval && old_value)
 	    gui_mch_disable_beval_area(balloonEval);
     }
 #endif

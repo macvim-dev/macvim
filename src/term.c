@@ -1996,6 +1996,7 @@ set_termname(term)
 #  define HMT_DEC	4
 #  define HMT_JSBTERM	8
 #  define HMT_PTERM	16
+#  define HMT_URXVT	32
 static int has_mouse_termcode = 0;
 # endif
 
@@ -2029,6 +2030,11 @@ set_mouse_termcode(n, s)
 #   ifdef FEAT_MOUSE_PTERM
     if (n == KS_PTERM_MOUSE)
 	has_mouse_termcode |= HMT_PTERM;
+    else
+#   endif
+#   ifdef FEAT_MOUSE_URXVT
+    if (n == KS_URXVT_MOUSE)
+	has_mouse_termcode |= HMT_URXVT;
     else
 #   endif
 	has_mouse_termcode |= HMT_NORMAL;
@@ -2066,6 +2072,11 @@ del_mouse_termcode(n)
 #   ifdef FEAT_MOUSE_PTERM
     if (n == KS_PTERM_MOUSE)
 	has_mouse_termcode &= ~HMT_PTERM;
+    else
+#   endif
+#   ifdef FEAT_MOUSE_URXVT
+    if (n == KS_URXVT_MOUSE)
+	has_mouse_termcode &= ~HMT_URXVT;
     else
 #   endif
 	has_mouse_termcode &= ~HMT_NORMAL;
@@ -4049,7 +4060,11 @@ check_termcode(max_offset, buf, buflen)
 		    if (tp[1 + (tp[0] != CSI)] == '>' && j == 2)
 		    {
 			/* if xterm version >= 95 use mouse dragging */
-			if (extra >= 95 && ttym_flags != TTYM_URXVT)
+			if (extra >= 95
+# ifdef TTYM_URXVT
+				&& ttym_flags != TTYM_URXVT
+# endif
+				)
 			    set_option_value((char_u *)"ttym", 0L,
 						       (char_u *)"xterm2", 0);
 			/* if xterm version >= 141 try to get termcap codes */

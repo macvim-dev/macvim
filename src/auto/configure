@@ -1344,6 +1344,8 @@ if test -n "$ac_init_help"; then
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-fail-if-missing    Fail if dependencies on additional features
+     specified on the command line are missing.
   --disable-darwin        Disable Darwin (Mac OS X) support.
   --disable-selinux	  Don't check for SELinux support.
   --disable-xsmp          Disable XSMP session management
@@ -3605,6 +3607,19 @@ _ACEOF
 fi
 
 
+
+{ echo "$as_me:$LINENO: checking --enable-fail-if-missing argument" >&5
+echo $ECHO_N "checking --enable-fail-if-missing argument... $ECHO_C" >&6; }
+# Check whether --enable-fail_if_missing was given.
+if test "${enable_fail_if_missing+set}" = set; then
+  enableval=$enable_fail_if_missing; fail_if_missing="yes"
+else
+  fail_if_missing="no"
+fi
+
+{ echo "$as_me:$LINENO: result: $fail_if_missing" >&5
+echo "${ECHO_T}$fail_if_missing" >&6; }
+
 if test -z "$CFLAGS"; then
   CFLAGS="-O"
   test "$GCC" = yes && CFLAGS="-O2 -fno-strength-reduce -Wall"
@@ -4836,6 +4851,11 @@ _ACEOF
       LUA_CFLAGS="-DDYNAMIC_LUA_DLL=\\\"liblua${vi_cv_version_lua}.so$LUA_SONAME\\\" $LUA_CFLAGS"
     fi
   fi
+  if test "$fail_if_missing" = "yes" -a -z "$LUA_SRC"; then
+    { { echo "$as_me:$LINENO: error: could not configure lua" >&5
+echo "$as_me: error: could not configure lua" >&2;}
+   { (exit 1); exit 1; }; }
+  fi
 
 
 
@@ -5287,6 +5307,12 @@ _ACEOF
       PERL_CFLAGS="-DDYNAMIC_PERL_DLL=\\\"$libperl\\\" $PERL_CFLAGS"
     fi
   fi
+
+  if test "$fail_if_missing" = "yes" -a "$perl_ok" != "yes"; then
+    { { echo "$as_me:$LINENO: error: could not configure perl" >&5
+echo "$as_me: error: could not configure perl" >&2;}
+   { (exit 1); exit 1; }; }
+  fi
 fi
 
 
@@ -5634,6 +5660,12 @@ _ACEOF
       { echo "$as_me:$LINENO: result: too old" >&5
 echo "${ECHO_T}too old" >&6; }
     fi
+  fi
+
+  if test "$fail_if_missing" = "yes" -a "$python_ok" != "yes"; then
+    { { echo "$as_me:$LINENO: error: could not configure python" >&5
+echo "$as_me: error: could not configure python" >&2;}
+   { (exit 1); exit 1; }; }
   fi
 fi
 
@@ -6536,6 +6568,11 @@ _ACEOF
 echo "${ECHO_T}too old; need Tcl version 8.0 or later" >&6; }
     fi
   fi
+  if test "$fail_if_missing" = "yes" -a -z "$TCL_SRC"; then
+    { { echo "$as_me:$LINENO: error: could not configure Tcl" >&5
+echo "$as_me: error: could not configure Tcl" >&2;}
+   { (exit 1); exit 1; }; }
+  fi
 fi
 
 
@@ -6681,6 +6718,12 @@ echo "${ECHO_T}not found; disabling Ruby" >&6; }
       { echo "$as_me:$LINENO: result: too old; need Ruby version 1.6.0 or later" >&5
 echo "${ECHO_T}too old; need Ruby version 1.6.0 or later" >&6; }
     fi
+  fi
+
+  if test "$fail_if_missing" = "yes" -a -z "$RUBY_OBJ"; then
+    { { echo "$as_me:$LINENO: error: could not configure Ruby" >&5
+echo "$as_me: error: could not configure Ruby" >&2;}
+   { (exit 1); exit 1; }; }
   fi
 fi
 
@@ -17818,9 +17861,8 @@ _ACEOF
 { echo "$as_me:$LINENO: checking uint32_t is 32 bits" >&5
 echo $ECHO_N "checking uint32_t is 32 bits... $ECHO_C" >&6; }
 if test "$cross_compiling" = yes; then
-  { { echo "$as_me:$LINENO: error: could not compile program using uint32_t." >&5
-echo "$as_me: error: could not compile program using uint32_t." >&2;}
-   { (exit 1); exit 1; }; }
+  { echo "$as_me:$LINENO: WARNING: cannot check uint32_t when cross-compiling." >&5
+echo "$as_me: WARNING: cannot check uint32_t when cross-compiling." >&2;}
 else
   cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
@@ -19435,10 +19477,10 @@ echo "${ECHO_T}yes" >&6; }
     { echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
   fi
-        { echo "$as_me:$LINENO: checking whether we need -D_FORTIFY_SOURCE=1" >&5
+          { echo "$as_me:$LINENO: checking whether we need -D_FORTIFY_SOURCE=1" >&5
 echo $ECHO_N "checking whether we need -D_FORTIFY_SOURCE=1... $ECHO_C" >&6; }
   if test "$gccmajor" -gt "3"; then
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//g' -e 's/-D_FORTIFY_SOURCE=.//g' -e 's/$/ -D_FORTIFY_SOURCE=1/'`
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//g' -e 's/-D_FORTIFY_SOURCE=.//g' -e 's/$/ -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1/'`
     { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
   else

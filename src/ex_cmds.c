@@ -820,7 +820,13 @@ do_move(line1, line2, dest)
 	curwin->w_cursor.lnum = dest + (line2 - line1) + 1;
 
     if (line1 < dest)
-	changed_lines(line1, 0, dest + num_lines + 1, 0L);
+    {
+	dest += num_lines + 1;
+	last_line = curbuf->b_ml.ml_line_count;
+	if (dest > last_line + 1)
+	    dest = last_line + 1;
+	changed_lines(line1, 0, dest, 0L);
+    }
     else
 	changed_lines(dest + 1, 0, line1 + num_lines, 0L);
 
@@ -3384,6 +3390,13 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags, oldwin)
 				      (flags & ECMD_HIDE) ? 0 : DOBUF_UNLOAD);
 
 #ifdef FEAT_AUTOCMD
+		/* Autocommands may open a new window and leave oldwin open
+		 * which leads to crashes since the above call sets
+		 * oldwin->w_buffer to NULL. */
+		if (curwin != oldwin && oldwin != aucmd_win
+			     && win_valid(oldwin) && oldwin->w_buffer == NULL)
+		    win_close(oldwin, FALSE);
+
 # ifdef FEAT_EVAL
 		if (aborting())	    /* autocmds may abort script processing */
 		{

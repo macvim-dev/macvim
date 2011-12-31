@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.3.  Last change: 2011 Sep 30
+*eval.txt*	For Vim version 7.3.  Last change: 2011 Dec 19
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -615,7 +615,6 @@ Expression syntax summary, from least to most significant:
 	- expr7			unary minus
 	+ expr7			unary plus
 
-
 |expr8|	expr8[expr1]		byte of a String or item of a |List|
 	expr8[expr1 : expr1]	substring of a String or sublist of a |List|
 	expr8.name		entry in a |Dictionary|
@@ -801,11 +800,12 @@ expr6 .	 expr6 ..	String concatenation			*expr-.*
 For |Lists| only "+" is possible and then both expr6 must be a list.  The
 result is a new list with the two lists Concatenated.
 
-expr7 *	 expr7 ..	number multiplication			*expr-star*
-expr7 /	 expr7 ..	number division				*expr-/*
-expr7 %	 expr7 ..	number modulo				*expr-%*
+expr7 *	 expr7 ..	Number multiplication			*expr-star*
+expr7 /	 expr7 ..	Number division				*expr-/*
+expr7 %	 expr7 ..	Number modulo				*expr-%*
 
 For all, except ".", Strings are converted to Numbers.
+For bitwise operators see |and()|, |or()| and |xor()|.
 
 Note the difference between "+" and ".":
 	"123" + "456" = 579
@@ -945,7 +945,8 @@ When expr8 is a |Funcref| type variable, invoke the function it refers to.
 							*expr9*
 number
 ------
-number			number constant		*expr-number*
+number			number constant			*expr-number* 
+						*hex-number* *octal-number*
 
 Decimal, Hexadecimal (starting with 0x or 0X), or Octal (starting with 0).
 
@@ -1687,6 +1688,7 @@ USAGE				RESULT	DESCRIPTION	~
 abs( {expr})			Float or Number  absolute value of {expr}
 acos( {expr})			Float	arc cosine of {expr}
 add( {list}, {item})		List	append {item} to |List| {list}
+and( {expr}, {expr})		Number  bitwise AND
 append( {lnum}, {string})	Number	append {string} below line {lnum}
 append( {lnum}, {list})		Number	append lines {list} below line {lnum}
 argc()				Number	number of files in the argument list
@@ -1766,7 +1768,7 @@ foldtext( )			String	line displayed for closed fold
 foldtextresult( {lnum})		String	text for closed fold at {lnum}
 foreground( )			Number	bring the Vim window to the foreground
 function( {name})		Funcref reference to function {name}
-garbagecollect( [at_exit])	none	free memory, breaking cyclic references
+garbagecollect( [{atexit}])	none	free memory, breaking cyclic references
 get( {list}, {idx} [, {def}])	any	get item {idx} from {list} or {def}
 get( {dict}, {key} [, {def}])	any	get item {key} from {dict} or {def}
 getbufline( {expr}, {lnum} [, {end}])
@@ -1825,6 +1827,7 @@ inputrestore()			Number	restore typeahead
 inputsave()			Number	save and clear typeahead
 inputsecret( {prompt} [, {text}]) String  like input() but hiding the text
 insert( {list}, {item} [, {idx}]) List	insert {item} in {list} [before {idx}]
+invert( {expr})			Number  bitwise invert
 isdirectory( {directory})	Number	TRUE if {directory} is a directory
 islocked( {expr})		Number	TRUE if {expr} is locked
 items( {dict})			List	key-value pairs in {dict}
@@ -1841,7 +1844,8 @@ log( {expr})			Float	natural logarithm (base e) of {expr}
 log10( {expr})			Float	logarithm of Float {expr} to base 10
 map( {expr}, {string})		List/Dict  change each item in {expr} to {expr}
 maparg( {name}[, {mode} [, {abbr} [, {dict}]]])
-				String	rhs of mapping {name} in mode {mode}
+				String or Dict
+					rhs of mapping {name} in mode {mode}
 mapcheck( {name}[, {mode} [, {abbr}]])
 				String	check for mappings matching {name}
 match( {expr}, {pat}[, {start}[, {count}]])
@@ -1864,6 +1868,7 @@ mode( [expr])			String	current editing mode
 mzeval( {expr})			any	evaluate |MzScheme| expression
 nextnonblank( {lnum})		Number	line nr of non-blank line >= {lnum}
 nr2char( {expr})		String	single char with ASCII value {expr}
+or( {expr}, {expr})		Number  bitwise OR
 pathshorten( {expr})		String	shorten directory names in a path
 pow( {x}, {y})			Float	{x} to the power of {y}
 prevnonblank( {lnum})		Number	line nr of non-blank line <= {lnum}
@@ -1987,6 +1992,7 @@ winsaveview()			Dict	save view of current window
 winwidth( {nr})			Number	width of window {nr}
 writefile( {list}, {fname} [, {binary}])
 				Number	write list of lines to file {fname}
+xor( {expr}, {expr})		Number  bitwise XOR
 
 abs({expr})							*abs()*
 		Return the absolute value of {expr}.  When {expr} evaluates to
@@ -2024,6 +2030,13 @@ add({list}, {expr})					*add()*
 <		Note that when {expr} is a |List| it is appended as a single
 		item.  Use |extend()| to concatenate |Lists|.
 		Use |insert()| to add an item at another position.
+
+
+and({expr}, {expr})					*and()*
+		Bitwise AND on the two arguments.  The arguments are converted
+		to a number.  A List, Dict or Float argument causes an error.
+		Example: >
+			:let flag = and(bits, 0x80)
 
 
 append({lnum}, {expr})					*append()*
@@ -3065,7 +3078,7 @@ function({name})					*function()* *E700*
 		{name} can be a user defined function or an internal function.
 
 
-garbagecollect([at_exit])				*garbagecollect()*
+garbagecollect([{atexit}])				*garbagecollect()*
 		Cleanup unused |Lists| and |Dictionaries| that have circular
 		references.  There is hardly ever a need to invoke this
 		function, as it is automatically done when Vim runs out of
@@ -3075,7 +3088,7 @@ garbagecollect([at_exit])				*garbagecollect()*
 		This is useful if you have deleted a very big |List| and/or
 		|Dictionary| with circular references in a script that runs
 		for a long time.
-		When the optional "at_exit" argument is one, garbage
+		When the optional {atexit} argument is one, garbage
 		collection will also be done when exiting Vim, if it wasn't
 		done before.  This is useful when checking for memory leaks.
 
@@ -3151,6 +3164,8 @@ getchar([expr])						*getchar()*
 		one-byte character it is the character itself as a number.
 		Use nr2char() to convert it to a String.
 
+		Use getcharmod() to obtain any additional modifiers.
+
 		When the user clicks a mouse button, the mouse event will be
 		returned.  The position can then be found in |v:mouse_col|,
 		|v:mouse_lnum| and |v:mouse_win|.  This example positions the
@@ -3189,10 +3204,11 @@ getcharmod()						*getcharmod()*
 			2	shift
 			4	control
 			8	alt (meta)
-			16	mouse double click
-			32	mouse triple click
-			64	mouse quadruple click
-			128	Macintosh only: command
+			16	meta (when it's different from ALT)
+			32	mouse double click
+			64	mouse triple click
+			96	mouse quadruple click (== 32 + 64)
+			128	command (Macintosh only)
 		Only the modifiers that have not been included in the
 		character itself are obtained.	Thus Shift-a results in "A"
 		without a modifier.
@@ -3782,6 +3798,11 @@ insert({list}, {item} [, {idx}])			*insert()*
 		Note that when {item} is a |List| it is inserted as a single
 		item.  Use |extend()| to concatenate |Lists|.
 
+invert({expr})						*invert()*
+		Bitwise invert.  The argument is converted to a number.  A
+		List, Dict or Float argument causes an error.  Example: >
+			:let bits = invert(bits)
+
 isdirectory({directory})				*isdirectory()*
 		The result is a Number, which is non-zero when a directory
 		with the name {directory} exists.  If {directory} doesn't
@@ -3920,11 +3941,12 @@ line2byte({lnum})					*line2byte()*
 		Return the byte count from the start of the buffer for line
 		{lnum}.  This includes the end-of-line character, depending on
 		the 'fileformat' option for the current buffer.  The first
-		line returns 1.
+		line returns 1. 'encoding' matters, 'fileencoding' is ignored.
 		This can also be used to get the byte count for the line just
 		below the last line: >
 			line2byte(line("$") + 1)
-<		This is the file size plus one.
+<		This is the buffer size plus one.  If 'fileencoding' is empty
+		it is the file size plus one.
 		When {lnum} is invalid, or the |+byte_offset| feature has been
 		disabled at compile time, -1 is returned.
 		Also see |byte2line()|, |go| and |:goto|.
@@ -4346,6 +4368,13 @@ getpos({expr})	Get the position for {expr}.  For possible values of {expr}
 			MoveTheCursorAround
 			call setpos('.', save_cursor)
 <		Also see |setpos()|.
+
+or({expr}, {expr})					*or()*
+		Bitwise OR on the two arguments.  The arguments are converted
+		to a number.  A List, Dict or Float argument causes an error.
+		Example: >
+			:let bits = or(bits, 0x80)
+
 
 pathshorten({expr})					*pathshorten()*
 		Shorten directory names in the path {expr} and return the
@@ -6121,7 +6150,15 @@ writefile({list}, {fname} [, {binary}])
 		To copy a file byte for byte: >
 			:let fl = readfile("foo", "b")
 			:call writefile(fl, "foocopy", "b")
-<
+
+
+xor({expr}, {expr})					*xor()*
+		Bitwise XOR on the two arguments.  The arguments are converted
+		to a number.  A List, Dict or Float argument causes an error.
+		Example: >
+			:let bits = xor(bits, 0x80)
+
+
 
 							*feature-list*
 There are three types of features:
@@ -6228,6 +6265,7 @@ mouse_gpm		Compiled with support for gpm (Linux console mouse)
 mouse_netterm		Compiled with support for netterm mouse.
 mouse_pterm		Compiled with support for qnx pterm mouse.
 mouse_sysmouse		Compiled with support for sysmouse (*BSD console mouse)
+mouse_urxvt		Compiled with support for urxvt mouse.
 mouse_xterm		Compiled with support for xterm mouse.
 mouseshape		Compiled with support for 'mouseshape'.
 multi_byte		Compiled with support for 'encoding'

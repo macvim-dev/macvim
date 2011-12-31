@@ -1854,7 +1854,7 @@ line_read_in:
 
 		if (state == TS_BINARY && orgpat.regmatch.rm_ic && !sortic)
 		{
-		    /* binary search won't work for ignoring case, use linear
+		    /* Binary search won't work for ignoring case, use linear
 		     * search. */
 		    linear = TRUE;
 		    state = TS_LINEAR;
@@ -1906,12 +1906,39 @@ line_read_in:
 		tagp.tagname = lbuf;
 #ifdef FEAT_TAG_ANYWHITE
 		tagp.tagname_end = skiptowhite(lbuf);
-		if (*tagp.tagname_end == NUL)	    /* corrupted tag line */
+		if (*tagp.tagname_end == NUL)
 #else
 		tagp.tagname_end = vim_strchr(lbuf, TAB);
-		if (tagp.tagname_end == NULL)	    /* corrupted tag line */
+		if (tagp.tagname_end == NULL)
 #endif
 		{
+		    if (vim_strchr(lbuf, NL) == NULL)
+		    {
+			/* Truncated line, ignore it.  Has been reported for
+			 * Mozilla JS with extremely long names. */
+			if (p_verbose >= 5)
+			{
+			    verbose_enter();
+			    MSG(_("Ignoring long line in tags file"));
+			    verbose_leave();
+			}
+#ifdef FEAT_TAG_BINS
+			if (state != TS_LINEAR)
+			{
+			    /* Avoid getting stuck. */
+			    linear = TRUE;
+			    state = TS_LINEAR;
+# ifdef HAVE_FSEEKO
+			    fseeko(fp, search_info.low_offset, SEEK_SET);
+# else
+			    fseek(fp, (long)search_info.low_offset, SEEK_SET);
+# endif
+			}
+#endif
+			continue;
+		    }
+
+		    /* Corrupted tag line. */
 		    line_error = TRUE;
 		    break;
 		}

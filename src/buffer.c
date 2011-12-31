@@ -419,6 +419,8 @@ close_buffer(win, buf, action)
     if (
 #ifdef FEAT_WINDOWS
 	win_valid(win) &&
+#else
+	win != NULL &&
 #endif
 			  win->w_buffer == buf)
 	win->w_buffer = NULL;  /* make sure we don't use the buffer now */
@@ -571,8 +573,9 @@ buf_freeall(buf, flags)
     diff_buf_delete(buf);	    /* Can't use 'diff' for unloaded buffer. */
 #endif
 #ifdef FEAT_SYN_HL
-    if (curwin->w_buffer == buf)
-	reset_synblock(curwin);	    /* remove any ownsyntax */
+    /* Remove any ownsyntax, unless exiting. */
+    if (firstwin != NULL && curwin->w_buffer == buf)
+	reset_synblock(curwin);
 #endif
 
 #ifdef FEAT_FOLDING

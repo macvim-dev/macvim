@@ -1,4 +1,4 @@
-*various.txt*   For Vim version 7.3.  Last change: 2011 Oct 1st
+*various.txt*   For Vim version 7.3.  Last change: 2011 Dec 29
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -135,6 +135,9 @@ g8			Print the hex values of the bytes used in the
 			how many lines you'll see; if there is only one window
 			then twice the value of the 'scroll' option is used,
 			otherwise the current window height minus 3 is used.
+
+			If there is a {count} the 'window' option is set to
+			its value.
 
 			:z can be used either alone or followed by any of
 			several punctuation marks.  These have the following
@@ -351,12 +354,13 @@ N  *+mouseshape*	|'mouseshape'|
 B  *+mouse_dec*		Unix only: Dec terminal mouse handling |dec-mouse|
 N  *+mouse_gpm*		Unix only: Linux console mouse handling |gpm-mouse|
 B  *+mouse_netterm*	Unix only: netterm mouse handling |netterm-mouse|
-N  *+mouse_pterm*	QNX only: pterm mouse handling |qnx-terminal|
+N  *+mouse_pterm*		QNX only: pterm mouse handling |qnx-terminal|
 N  *+mouse_sysmouse*	Unix only: *BSD console mouse handling |sysmouse|
-N  *+mouse_xterm*	Unix only: xterm mouse handling |xterm-mouse|
-B  *+multi_byte*	16 and 32 bit characters |multibyte|
+N  *+mouse_urxvt*		Unix only: urxvt mouse handling |urxvt-mouse|
+N  *+mouse_xterm*		Unix only: xterm mouse handling |xterm-mouse|
+B  *+multi_byte*		16 and 32 bit characters |multibyte|
    *+multi_byte_ime*	Win32 input method for multibyte chars |multibyte-ime|
-N  *+multi_lang*	non-English language support |multi-lang|
+N  *+multi_lang*		non-English language support |multi-lang|
 m  *+mzscheme*		Mzscheme interface |mzscheme|
 m  *+mzscheme/dyn*	Mzscheme interface |mzscheme-dynamic| |/dyn|
 m  *+netbeans_intg*	|netbeans|

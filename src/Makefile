@@ -389,6 +389,11 @@ CClink = $(CC)
 #CONF_OPT_PLTHOME  = --with-plthome=/usr/local/drscheme
 #CONF_OPT_PLTHOME  = --with-plthome=/home/me/mz
 
+# Uncomment the next line to fail if one of the requested language interfaces
+# cannot be configured.  Without this Vim will be build anyway, without
+# the failing interfaces.
+#CONF_OPT_FAIL = --enable-fail-if-missing
+
 # PERL
 # Uncomment one of these when you want to include the Perl interface.
 # First one is for static linking, second one for dynamic loading.
@@ -561,8 +566,8 @@ CClink = $(CC)
 #CFLAGS = -g -O2 '-DSTARTUPTIME="vimstartup"' -fno-strength-reduce -Wall -Wmissing-prototypes
 
 # Use this with GCC to check for mistakes, unused arguments, etc.
-#CFLAGS = -g -Wall -Wextra -Wmissing-prototypes -Wunreachable-code -D_FORTIFY_SOURCE=1
-#CFLAGS = -g -O2 -Wall -Wextra -Wmissing-prototypes -D_FORTIFY_SOURCE=1 -DU_DEBUG
+#CFLAGS = -g -Wall -Wextra -Wmissing-prototypes -Wunreachable-code -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1
+#CFLAGS = -g -O2 -Wall -Wextra -Wmissing-prototypes -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1 -DU_DEBUG
 #PYTHON_CFLAGS_EXTRA = -Wno-missing-field-initializers
 #MZSCHEME_CFLAGS_EXTRA = -Wno-unreachable-code -Wno-unused-parameter
 
@@ -1664,7 +1669,8 @@ config auto/config.mk: auto/configure config.mk.in config.h.in
 		CC="$(CC)" CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" \
 		LDFLAGS="$(LDFLAGS)" $(CONF_SHELL) srcdir="$(srcdir)" \
 		./configure $(CONF_OPT_GUI) $(CONF_OPT_X) $(CONF_OPT_XSMP) \
-		$(CONF_OPT_DARWIN) $(CONF_OPT_PERL) $(CONF_OPT_PYTHON) $(CONF_OPT_PYTHON3) \
+		$(CONF_OPT_DARWIN) $(CONF_OPT_FAIL) \
+		$(CONF_OPT_PERL) $(CONF_OPT_PYTHON) $(CONF_OPT_PYTHON3) \
 		$(CONF_OPT_TCL) $(CONF_OPT_RUBY) $(CONF_OPT_NLS) \
 		$(CONF_OPT_CSCOPE) $(CONF_OPT_MULTIBYTE) $(CONF_OPT_INPUT) \
 		$(CONF_OPT_OUTPUT) $(CONF_OPT_GPM) $(CONF_OPT_WORKSHOP) \
