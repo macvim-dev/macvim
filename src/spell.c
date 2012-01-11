@@ -5020,7 +5020,6 @@ static void aff_check_string __ARGS((char_u *spinval, char_u *affval, char *name
 static int str_equal __ARGS((char_u *s1, char_u	*s2));
 static void add_fromto __ARGS((spellinfo_T *spin, garray_T *gap, char_u	*from, char_u *to));
 static int sal_to_bool __ARGS((char_u *s));
-static int has_non_ascii __ARGS((char_u *s));
 static void spell_free_aff __ARGS((afffile_T *aff));
 static int spell_read_dic __ARGS((spellinfo_T *spin, char_u *fname, afffile_T *affile));
 static int get_affix_flags __ARGS((afffile_T *affile, char_u *afflist));
@@ -5050,7 +5049,7 @@ static int sug_filltable __ARGS((spellinfo_T *spin, wordnode_T *node, int startw
 static int offset2bytes __ARGS((int nr, char_u *buf));
 static int bytes2offset __ARGS((char_u **pp));
 static void sug_write __ARGS((spellinfo_T *spin, char_u *fname));
-static void mkspell __ARGS((int fcount, char_u **fnames, int ascii, int overwrite, int added_word));
+static void mkspell __ARGS((int fcount, char_u **fnames, int ascii, int over_write, int added_word));
 static void spell_message __ARGS((spellinfo_T *spin, char_u *str));
 static void init_spellfile __ARGS((void));
 
@@ -6482,23 +6481,6 @@ sal_to_bool(s)
     char_u	*s;
 {
     return STRCMP(s, "1") == 0 || STRCMP(s, "true") == 0;
-}
-
-/*
- * Return TRUE if string "s" contains a non-ASCII character (128 or higher).
- * When "s" is NULL FALSE is returned.
- */
-    static int
-has_non_ascii(s)
-    char_u	*s;
-{
-    char_u	*p;
-
-    if (s != NULL)
-	for (p = s; *p != NUL; ++p)
-	    if (*p >= 128)
-		return TRUE;
-    return FALSE;
 }
 
 /*
@@ -9103,11 +9085,11 @@ close_spellbuf(buf)
  * and ".spl" is appended to make the output file name.
  */
     static void
-mkspell(fcount, fnames, ascii, overwrite, added_word)
+mkspell(fcount, fnames, ascii, over_write, added_word)
     int		fcount;
     char_u	**fnames;
     int		ascii;		    /* -ascii argument given */
-    int		overwrite;	    /* overwrite existing output file */
+    int		over_write;	    /* overwrite existing output file */
     int		added_word;	    /* invoked through "zg" */
 {
     char_u	*fname = NULL;
@@ -9191,7 +9173,7 @@ mkspell(fcount, fnames, ascii, overwrite, added_word)
     {
 	/* Check for overwriting before doing things that may take a lot of
 	 * time. */
-	if (!overwrite && mch_stat((char *)wfname, &st) >= 0)
+	if (!over_write && mch_stat((char *)wfname, &st) >= 0)
 	{
 	    EMSG(_(e_exists));
 	    goto theend;
