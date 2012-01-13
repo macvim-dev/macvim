@@ -21,8 +21,11 @@ if !exists("syntax_on")
   syntax on
 endif
 
-if !exists("colors_name")
-    " Use the macvim color scheme by default
+" Load the MacVim color scheme.  This can be disabled by loading another color
+" scheme with the :colorscheme command, or by adding the line
+"   let macvim_skip_colorscheme=1
+" to ~/.vimrc.
+if !exists("macvim_skip_colorscheme") && !exists("colors_name")
     colorscheme macvim
 endif
 
@@ -38,8 +41,7 @@ set printexpr=system('open\ -a\ Preview\ '.v:fname_in)\ +\ v:shell_error
 " This is so that HIG Cmd and Option movement mappings can be disabled by
 " adding the line
 "   let macvim_skip_cmd_opt_movement = 1
-" to the user .vimrc
-"
+" to ~/.vimrc.
 if !exists("macvim_skip_cmd_opt_movement")
   no   <D-Left>       <Home>
   no!  <D-Left>       <Home>
@@ -69,8 +71,7 @@ endif " !exists("macvim_skip_cmd_opt_movement")
 " This is so that the HIG shift movement related settings can be enabled by
 " adding the line
 "   let macvim_hig_shift_movement = 1
-" to the user .vimrc (not .gvimrc!).
-"
+" to ~/.vimrc.
 if exists("macvim_hig_shift_movement")
   " Shift + special movement key (<S-Left>, etc.) and mouse starts insert mode
   set selectmode=mouse,key
