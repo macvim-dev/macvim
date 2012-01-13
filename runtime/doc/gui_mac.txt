@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 7.3.  Last change: 2010 Dec 28
+*gui_mac.txt*	For Vim version 7.3.  Last change: 2012 Jan 13
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
@@ -335,7 +335,15 @@ If you prefer a dark background color, then type >
 	:set bg=dark
 after having loaded the "macvim" color scheme.
 
-The color scheme uses the the system "Highlight Color", which can be changed in
+Use the |:colorscheme| command if you want to use another color scheme.  Note
+that if you want to set syntax highlight colors manually, then you must either
+create your own color scheme or add the line >
+	let macvim_skip_colorscheme=1
+to your ~/.vimrc (~/.gvimrc will not work).  Otherwise the "macvim" color
+scheme will be loaded when the system gvimrc file is sourced and mess up your
+changes.
+
+The color scheme uses the system "Highlight Color", which can be changed in
 the "Appearance" pane of the System Preferences.  It also changes the
 highlight color when a window becomes inactive.
 
