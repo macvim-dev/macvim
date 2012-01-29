@@ -5154,6 +5154,12 @@ exit_matched:
 		goto search_line;
 	}
 	line_breakcheck();
+#ifdef FEAT_GUI_MACVIM
+	/* This loop could potentially take a long time, so make sure MacVim
+	 * gets a chance to flush its output. */
+	if (gui.in_use)
+	    gui_macvim_flush();
+#endif
 #ifdef FEAT_INS_EXPAND
 	if (action == ACTION_EXPAND)
 	    ins_compl_check_keys(30);
