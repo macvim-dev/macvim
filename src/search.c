@@ -2510,8 +2510,8 @@ showmatch(c)
 	    save_siso = p_siso;
 	    /* Handle "$" in 'cpo': If the ')' is typed on top of the "$",
 	     * stop displaying the "$". */
-	    if (dollar_vcol > 0 && dollar_vcol == curwin->w_virtcol)
-		dollar_vcol = 0;
+	    if (dollar_vcol >= 0 && dollar_vcol == curwin->w_virtcol)
+		dollar_vcol = -1;
 	    ++curwin->w_virtcol;	/* do display ')' just before "$" */
 	    update_screen(VALID);	/* show the new char first */
 
@@ -3927,7 +3927,7 @@ again:
 	curwin->w_cursor = old_pos;
 	goto theend;
     }
-    spat = alloc(len + 29);
+    spat = alloc(len + 31);
     epat = alloc(len + 9);
     if (spat == NULL || epat == NULL)
     {
@@ -3936,7 +3936,7 @@ again:
 	curwin->w_cursor = old_pos;
 	goto theend;
     }
-    sprintf((char *)spat, "<%.*s\\>\\%%(\\_[^>]\\{-}[^/]>\\|>\\)\\c", len, p);
+    sprintf((char *)spat, "<%.*s\\>\\%%(\\s\\_[^>]\\{-}[^/]>\\|>\\)\\c", len, p);
     sprintf((char *)epat, "</%.*s>\\c", len, p);
 
     r = do_searchpair(spat, (char_u *)"", epat, FORWARD, (char_u *)"",

@@ -2311,6 +2311,15 @@ static struct vimoption
 			    (char_u *)"",
 #endif
 				(char_u *)0L} SCRIPTID_INIT},
+    {"shellxescape", "sxe", P_STRING|P_VI_DEF|P_SECURE,
+			    (char_u *)&p_sxe, PV_NONE,
+			    {
+#if defined(MSDOS) || defined(WIN16) || defined(WIN3264)
+			    (char_u *)"\"&|<>()@^",
+#else
+			    (char_u *)"",
+#endif
+				(char_u *)0L} SCRIPTID_INIT},
     {"shiftround",  "sr",   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_sr, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
@@ -3949,7 +3958,8 @@ set_init_3()
 
 #if defined(MSDOS) || defined(WIN3264) || defined(OS2)
     /*
-     * Set 'shellcmdflag and 'shellquote' depending on the 'shell' option.
+     * Set 'shellcmdflag', 'shellxquote', and 'shellquote' depending on the
+     * 'shell' option.
      * This is done after other initializations, where 'shell' might have been
      * set, but only if they have not been set before.  Default for p_shcf is
      * "/c", for p_shq is "".  For "sh" like  shells it is changed here to
@@ -3985,6 +3995,37 @@ set_init_3()
 	}
 #  endif
 # endif
+    }
+    else if (strstr((char *)gettail(p_sh), "cmd.exe") != NULL)
+    {
+	int	idx3;
+
+	/*
+	 * cmd.exe on Windows will strip the first and last double quote given
+	 * on the command line, e.g. most of the time things like:
+	 *   cmd /c "my path/to/echo" "my args to echo"
+	 * become:
+	 *   my path/to/echo" "my args to echo
+	 * when executed.
+	 *
+	 * To avoid this, set shellxquote to surround the command in
+	 * parenthesis.  This appears to make most commands work, without
+	 * breaking commands that worked previously, such as
+	 * '"path with spaces/cmd" "a&b"'.
+	 */
+	idx3 = findoption((char_u *)"sxq");
+	if (idx3 >= 0 && !(options[idx3].flags & P_WAS_SET))
+	{
+	    p_sxq = (char_u *)"(";
+	    options[idx3].def_val[VI_DEFAULT] = p_sxq;
+	}
+
+	idx3 = findoption((char_u *)"shcf");
+	if (idx3 >= 0 && !(options[idx3].flags & P_WAS_SET))
+	{
+	    p_shcf = (char_u *)"/c";
+	    options[idx3].def_val[VI_DEFAULT] = p_shcf;
+	}
     }
 #endif
 
@@ -7612,10 +7653,11 @@ set_bool_option(opt_idx, varp, value, opt_flags)
 	{
 	    /* When 'undofile' is set globally: for every buffer, otherwise
 	     * only for the current buffer: Try to read in the undofile, if
-	     * one exists and the buffer wasn't changed. */
+	     * one exists and the buffer wasn't changed and the buffer was
+	     * loaded. */
 	    if ((curbuf == save_curbuf
 				|| (opt_flags & OPT_GLOBAL) || opt_flags == 0)
-		    && !curbufIsChanged())
+		    && !curbufIsChanged() && curbuf->b_ml.ml_mfp != NULL)
 	    {
 		u_compute_hash(hash);
 		u_read_undo(NULL, hash, curbuf->b_fname);

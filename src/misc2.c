@@ -1173,7 +1173,7 @@ free_all_mem()
     for (buf = firstbuf; buf != NULL; )
     {
 	nextbuf = buf->b_next;
-	close_buffer(NULL, buf, DOBUF_WIPE);
+	close_buffer(NULL, buf, DOBUF_WIPE, FALSE);
 	if (buf_valid(buf))
 	    buf = nextbuf;	/* didn't work, try next one */
 	else
@@ -2064,24 +2064,22 @@ ga_grow(gap, n)
     garray_T	*gap;
     int		n;
 {
-    size_t	len;
+    size_t	old_len;
+    size_t	new_len;
     char_u	*pp;
 
     if (gap->ga_maxlen - gap->ga_len < n)
     {
 	if (n < gap->ga_growsize)
 	    n = gap->ga_growsize;
-	len = gap->ga_itemsize * (gap->ga_len + n);
-	pp = alloc_clear((unsigned)len);
+	new_len = gap->ga_itemsize * (gap->ga_len + n);
+	pp = (gap->ga_data == NULL)
+			? alloc(new_len) : vim_realloc(gap->ga_data, new_len);
 	if (pp == NULL)
 	    return FAIL;
+	old_len = gap->ga_itemsize * gap->ga_maxlen;
+	vim_memset(pp + old_len, 0, new_len - old_len);
 	gap->ga_maxlen = gap->ga_len + n;
-	if (gap->ga_data != NULL)
-	{
-	    mch_memmove(pp, gap->ga_data,
-				      (size_t)(gap->ga_itemsize * gap->ga_len));
-	    vim_free(gap->ga_data);
-	}
 	gap->ga_data = pp;
     }
     return OK;
@@ -2416,10 +2414,21 @@ static struct key_name_entry
     {'<',		(char_u *)"lt"},
 
     {K_MOUSE,		(char_u *)"Mouse"},
+#ifdef FEAT_MOUSE_NET
     {K_NETTERM_MOUSE,	(char_u *)"NetMouse"},
+#endif
+#ifdef FEAT_MOUSE_DEC
     {K_DEC_MOUSE,	(char_u *)"DecMouse"},
+#endif
+#ifdef FEAT_MOUSE_JSB
     {K_JSBTERM_MOUSE,	(char_u *)"JsbMouse"},
+#endif
+#ifdef FEAT_MOUSE_PTERM
     {K_PTERM_MOUSE,	(char_u *)"PtermMouse"},
+#endif
+#ifdef FEAT_MOUSE_URXVT
+    {K_URXVT_MOUSE,	(char_u *)"UrxvtMouse"},
+#endif
     {K_LEFTMOUSE,	(char_u *)"LeftMouse"},
     {K_LEFTMOUSE_NM,	(char_u *)"LeftMouseNM"},
     {K_LEFTDRAG,	(char_u *)"LeftDrag"},
@@ -3220,17 +3229,31 @@ call_shell(cmd, opt)
 	    retval = mch_call_shell(cmd, opt);
 	else
 	{
-	    ncmd = alloc((unsigned)(STRLEN(cmd) + STRLEN(p_sxq) * 2 + 1));
+	    char_u *ecmd = cmd;
+
+	    if (*p_sxe != NUL && STRCMP(p_sxq, "(") == 0)
+	    {
+		ecmd = vim_strsave_escaped_ext(cmd, p_sxe, '^', FALSE);
+		if (ecmd == NULL)
+		    ecmd = cmd;
+	    }
+	    ncmd = alloc((unsigned)(STRLEN(ecmd) + STRLEN(p_sxq) * 2 + 1));
 	    if (ncmd != NULL)
 	    {
 		STRCPY(ncmd, p_sxq);
-		STRCAT(ncmd, cmd);
-		STRCAT(ncmd, p_sxq);
+		STRCAT(ncmd, ecmd);
+		/* When 'shellxquote' is ( append ).
+		 * When 'shellxquote' is "( append )". */
+		STRCAT(ncmd, STRCMP(p_sxq, "(") == 0 ? (char_u *)")"
+			   : STRCMP(p_sxq, "\"(") == 0 ? (char_u *)")\""
+			   : p_sxq);
 		retval = mch_call_shell(ncmd, opt);
 		vim_free(ncmd);
 	    }
 	    else
 		retval = -1;
+	    if (ecmd != cmd)
+		vim_free(ecmd);
 	}
 #ifdef FEAT_GUI
 	--hold_gui_events;

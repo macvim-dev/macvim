@@ -1773,9 +1773,9 @@ display_dollar(col)
     static void
 undisplay_dollar()
 {
-    if (dollar_vcol)
+    if (dollar_vcol >= 0)
     {
-	dollar_vcol = 0;
+	dollar_vcol = -1;
 	redrawWinline(curwin->w_cursor.lnum, FALSE);
     }
 }
@@ -3475,11 +3475,17 @@ ins_compl_addleader(c)
     if (ins_compl_need_restart())
 	ins_compl_restart();
 
-    vim_free(compl_leader);
-    compl_leader = vim_strnsave(ml_get_curline() + compl_col,
+    /* When 'always' is set, don't reset compl_leader. While completing,
+     * cursor don't point original position, changing compl_leader would
+     * break redo. */
+    if (!compl_opt_refresh_always)
+    {
+	vim_free(compl_leader);
+	compl_leader = vim_strnsave(ml_get_curline() + compl_col,
 				     (int)(curwin->w_cursor.col - compl_col));
-    if (compl_leader != NULL)
-	ins_compl_new_leader();
+	if (compl_leader != NULL)
+	    ins_compl_new_leader();
+    }
 }
 
 /*
@@ -4569,6 +4575,11 @@ ins_compl_next(allow_get_expansion, count, insert_match)
     int	    found_end = FALSE;
     int	    advance;
 
+    /* When user complete function return -1 for findstart which is next
+     * time of 'always', compl_shown_match become NULL. */
+    if (compl_shown_match == NULL)
+	return -1;
+
     if (compl_leader != NULL
 			&& (compl_shown_match->cp_flags & ORIGINAL_TEXT) == 0)
     {
@@ -5193,6 +5204,11 @@ ins_complete(c)
 		return FAIL;
 	    }
 
+	    /* Return value -2 means the user complete function wants to
+	     * cancel the complete without an error. */
+	    if (col == -2)
+		return FAIL;
+
 	    /*
 	     * Reset extended parameters of completion, when start new
 	     * completion.
@@ -5440,7 +5456,7 @@ ins_complete(c)
 				compl_curr_match->cp_number);
 		edit_submode_extra = match_ref;
 		edit_submode_highl = HLF_R;
-		if (dollar_vcol)
+		if (dollar_vcol >= 0)
 		    curs_columns(FALSE);
 	    }
 	}
@@ -8960,7 +8976,7 @@ ins_bs(c, mode, inserted_space_p)
      * We can emulate the vi behaviour by pretending there is a dollar
      * displayed even when there isn't.
      *  --pkv Sun Jan 19 01:56:40 EST 2003 */
-    if (vim_strchr(p_cpo, CPO_BACKSPACE) != NULL && dollar_vcol == 0)
+    if (vim_strchr(p_cpo, CPO_BACKSPACE) != NULL && dollar_vcol == -1)
 	dollar_vcol = curwin->w_virtcol;
 
 #ifdef FEAT_FOLDING

@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3.  Last change: 2012 Jan 10
+*todo.txt*      For Vim version 7.3.  Last change: 2012 Feb 22
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -38,47 +38,29 @@ Go through more coverity reports.
 
 Discussion about canonicalization of Hebrew. (Ron Aaron, 2011 April 10)
 
-Compilation problem on z/OS, POUND is equal to '#', duplicate case.
-(Stephen Bovy, 2011 Dec 16)
+Stack trace of crash: http://vpaste.net/GBt9S
+(Alexandre Provencio)
 
 Once syntax and other runtime files have been fixed: add "set cp" to
 check.vim.  Use a function to run both with 'cp' and 'nocp'.
 
-Patch to fix regression caused by 7.3.251. (Christian Brabandt, 2012 Jan 5)
+Undo broken when pasting close to the last line. (Andrey Radev, 2012 Feb 14)
+Patch by Christian Brabandt, 2012 Feb 14.
 
-Patch to make ":helpgrep" work with non-UTF-8 encoding. (Yasuhiro Matsumoto,
-2011 Nov 28, update later that day)
-
-Patch to fix messing up terminal when redrawing too early. (Christian
-Brabandt, 2012 Jan 5)
-
-Patch to fix member confusion in Lua interface. (Taro Muraoka, 2012 Jan 8)
-Update Jan 9.
-Carvalho will merge the patch.
-
-Possible quickfix bug: Audrius Kažukauskas, 2012 Jan 6
-
-Problem reading german spell file? (Jan Stocker, 2012 Jan 5)
+GTK: problem with 'L' in 'guioptions' changing the window width.
+(Aaron Cornelius, 2012 Feb 6)
 
 Win32: When a directory name contains an exclamation mark, completion doesn't
 complete the contents of the directory.  No escaping for the "!"? (Jan
 Stocker, 2012 Jan 5)
 
-":doau" says it triggers modeline.  Should this only happen for events used
-when loading a buffer?  (Kana Natsuno, 2011 Nov 7)
+Patch to speed up ga_grow(). (Dominique Pelle, 2012 Feb 13)
 
-Patch to fix "it" and "at" when there is a dash in the tag name.
-(Christian Brabandt, 2011 Nov 20)
-
-Patch to make 'shcf' default work better. (Benjamin Fritz, 2011 Nov 18)
-    Win32: When 'shell' is cmd.exe this command fails:
-	    echo system('"c:/path/echo.exe" "foo bar"')
-    Should we set the default for 'shellxquote' to a double quote, when 'shell'
-    contains "cmd" in the tail?  (Benjamin Fritz, 2008 Oct 13)
-    Also set 'shellcmdflag' to include /s.
-
-Other way to start Mzscheme. Tim Brown, 2011 Oct 5: change main call.
-Later patch by Sergey Khorev, 2011 Oct 9.
+Patch for "tab drop hoge" moving current window. (Higashi, 2012 Jan 31)
+":tab drop buffer.c" always opens a new tab, also if buffer.c is already in an
+open window. (Herb Sitz, 2011 Nov 17)
+":tab drop filename" doesn't work nicely when "filename" is open in a window
+in another tab. (Tony Mechelynck, 2009 Feb 13)
 
 Patch to make InsertCharPre work better. (Yasuhiro Matsumoto, 2011 Oct 21)
 
@@ -90,27 +72,55 @@ Or use expand('<sid>')?
 Patch for glob() returning a list. (Christian Brabandt, 2011 Aug 24, second
 one)
 
+Win32: When the taskbar is at the top of the screen creating the tabbar causes
+the window to move unnecessarily. (William E. Skeith III, 2012 Jan 12)
+Patch: 2012 Jan 13  Needs more work (2012 Feb 2)
+
 Patch to highlight cursor line number. (Howard Buchholz (lhb), 2011 Oct 18)
 
-Patch for urxvt mouse support after shell command. (Issue 31)
+URXVT:
+- will get stuck if byte sequence does not containe expected semicolon.
+- Patch for urxvt mouse support after shell command. (Issue 31)
+- Use urxvt mouse support also in xterm.  Explanations:
+  http://www.midnight-commander.org/ticket/2662
+
+Patch for using QuickFixCmdPre for more commands. (Marcin Szamotulski, 2012
+Feb 1, update Feb 2)
+
+Patch for pasting in the Ex command line is slow. (Dominique Pelle, 2012 Feb
+19)
+
+When running Vim in silent ex mode, an existing swapfile causes Vim to wait
+for a user action without a prompt. (Maarten Billemont, 2012 Feb 3)
+Do give the prompt? Quit with an error?
 
 When exiting with unsaved changes, selecting an existing file in the file
 dialog, there is no dialog to ask whether the existing file should be
 overwritten. (Felipe G. Nievinski, 2011 Dec 22)
+
+Patch for improved ":qa" behavior. (Hirohito Higashi, 2012 Feb 18)
+
+Recognize objcpp. (Austin Ziegler, 2012 Feb 15)
 
 7   Setting an option always sets "w_set_curswant", while this is only
     required for a few options.  Only do it for those options to avoid the
     side effect.
 Patch by Kana Natsuno, 2011 Nov 12.
 
+Patch to fix member confusion in Lua interface. (Taro Muraoka, 2012 Jan 8)
+Update Jan 9.
+Carvalho merged the patch:  New version 2012 Jan 19.
+
 Patch for option in 'cino' to specify more indent for continued conditions.
 (Lech Lorens, 2011 Nov 27)
-Isn't this already possible?
+Isn't this already possible?  Update 2012 Feb 15.
 
 Patch for using objcpp file type for headers files. Issue 44.
 
 Docs fix for v:register. (Ingo Karkat, 2011 Sep 26, 27)
 v:register doesn't work exactly as expected. (David Fishburn, 2011 Sep 20)
+
+Patch for: vimgrep fails when 'autochdir' is set. (Ben Fritz, 2012 Feb 4)
 
 Patch for: (Christian Brabandt, 2011 Aug 22)
 -   Make it possible to enter "r<C-E>" and "r<C-Y>" (get character from line
@@ -121,12 +131,14 @@ Patch for: (Christian Brabandt, 2011 Aug 24, updated patch)
     buffer={bufnr}".  So one can remove all signs for one file/buffer.
 
 Patch to add "onselected" callback for completion. (Taro Muraoka, 2011 Sep 24)
+Another for CompleteFuncOk. (Florian Klein, 2012 Jan 31)
+Name it "CompleteFuncDone".
+
+Patch for Make_mvc.mak and Make_ming.mak for Ruby support. (Yasuhiro
+Matsumoto, 2012 Jan 30)
 
 Use a count before "v" and "V" to select that many characters or lines?
 (Kikyous)
-
-":tab drop buffer.c" always opens a new tab, also if buffer.c is already in an
-open window. (Herb Sitz, 2011 Nov 17)
 
 Problem with winfixheight and resizing. (Yukihiro Nakadaira, 2011 Sep 17)
 Patch Sep 18.
@@ -134,10 +146,18 @@ Patch Sep 18.
 Patch for has('unnamedplus') docs. (Tony Mechelynck, 2011 Sep 27)
 And one for gui_x11.txt.
 
+":cd" doesn't work when current directory path contains "**".
+finddir() has the same problem.  (Yukihiro Nakadaira, 2012 Jan 10)
+Requires a rewrite of the file_file_in_path code.
+
 Problem with l: dictionary being locked in a function. (ZyX, 2011 Jul 21)
+
+Issue 48: foldopen error can't be caught by try/catch
 
 Patch to sort functions starting with '<' after others.  Omit dict functions,
 they can't be called. (Yasuhiro Matsumoto, 2011 Oct 11)
+
+Patch to pass list to or(), and() and xor(). (Yasuhiro Matsumoto, 2012 Feb 8)
 
 Patch to improve "it" and "at" text object matching. (Christian Brabandt, 2011
 Nov 20)
@@ -149,6 +169,9 @@ Plugin for Modeleasy. (Massimiliano Tripoli, 2011 Nov 29)
 
 Updated syntax file for ssh_config, maintainer doesn't respond.
 (Leonard Ehrenfried, 2011 Sep 26)
+
+BufWinLeave triggers too late when quitting last window in a tab page. (Lech
+Lorens, 2012 Feb 21)
 
 "fC" doesn't position the cursor correctly when there are concealed
 characters.  Patch by Christian Brabandt, 2011 Oct 11)
@@ -179,6 +202,9 @@ New feature, requires testing.  Made some remarks.
 
 Win32: Patch for alpha-blended icons and toolbar height. (Sergiu Dotenco, 2011
 Sep 17)  Asked for feedback from others.
+
+Win32: Cannot cd into a directory that starts with a space. (Andy Wokula, 2012
+Jan 19)
 
 Need to escape $HOME on Windows?  (ZyX, 2011 Jul 21)
 
@@ -276,6 +302,8 @@ Patch to support sorting on floating point number.  (Alex Jakushev, 2010 Oct
 
 Patch to addd TextDeletePost and TextYankPost events. (Philippe Vaucher, 2011
 May 24)  Update May 26.
+
+Patch for :tabrecently. (Hirokazu Yoshida, 2012 Jan 30)
 
 When a script contains "redir => s:foo" but doesn't end redirection, a
 following "redir" command gives an error for not being able to access s:foo.
@@ -578,6 +606,8 @@ Win32: Expanding 'path' runs into a maximum size limit. (bgold12, 2009 Nov 15)
 Win32: Patch for enabling quick edit mode in console. (Craig Barkhouse, 2010
 Sep 1)
 
+Win32: Patch for using .png files for icons. (Charles Peacech, 2012 Feb 5)
+
 Putting a Visual block while 'visualedit' is "all" does not leave the cursor
 on the first character. (John Beckett, 2010 Aug 7)
 
@@ -803,8 +833,6 @@ the buffer to be unmodified.
 Unfinished patch by Ian Kelling, 2008 Jul 11.  Followup Jul 14, need to have
 another look at it.
 
-Patch for c.vim and cpp.vim syntax files. (Chung-chieh Shan, 2008 Nov 26)
-
 c.vim: XXX in a comment is colored yellow, but not when it's after "#if 0".
 (Ilya Dogolazky, 2009 Aug 7)
 
@@ -939,9 +967,6 @@ try/catch not working when inside a for loop. (ZyX, 2011 Jan 25)
 ":tab help" always opens a new tab, while ":help" re-uses an existing window.
 Would be more consistent when an existing tab is re-used. (Tony Mechelynck)
 
-":tab drop filename" doesn't work nicely when "filename" is open in a window
-in another tab. (Tony Mechelynck, 2009 Feb 13)
-
 Add ":nofold".  Range will apply without expanding to closed fold.
 
 Including NFA regexp code:
@@ -952,6 +977,7 @@ Performance tests:
 - ~/vim/test/slowsearch
 - ~/vim/test/rgb.vim
 - ~/vim/text/FeiqCfg.xml (file from Netjune)
+- ~/vim/text/edl.svg  (also XML)
 - search for  a.*e*exn  in the vim executable.  Go to last line to use
   'hlsearch'.
 
@@ -3218,10 +3244,6 @@ Performance:
     Add command to compile a vim script and add it to the file in-place.
     Split Ex command executing into a parsing and executing phase.
     Use compiled code for functions, while loops, etc.
-8   When editing a file with extremely long lines (e.g., an executable), the
-    "linerest" in readfile() is allocated twice to be able to copy what was
-    read so far.  Use realloc() instead?  Or split the line when allocating
-    memory fails and "linerest" is big (> 100000)?
 8   When defining autocommands (e.g., from $VIMRUNTIME/filetype.vim), need to
     compare each pattern with all existing patterns.  Use a hash code to avoid
     using strcmp() too often?

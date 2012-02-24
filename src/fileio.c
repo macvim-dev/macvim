@@ -8777,6 +8777,8 @@ ex_doautoall(eap)
     int		retval;
     aco_save_T	aco;
     buf_T	*buf;
+    char_u	*arg = eap->arg;
+    int		call_do_modelines = check_nomodeline(&arg);
 
     /*
      * This is a bit tricky: For some commands curwin->w_buffer needs to be
@@ -8793,11 +8795,15 @@ ex_doautoall(eap)
 	    aucmd_prepbuf(&aco, buf);
 
 	    /* execute the autocommands for this buffer */
-	    retval = do_doautocmd(eap->arg, FALSE);
+	    retval = do_doautocmd(arg, FALSE);
 
-	    /* Execute the modeline settings, but don't set window-local
-	     * options if we are using the current window for another buffer. */
-	    do_modelines(curwin == aucmd_win ? OPT_NOWIN : 0);
+	    if (call_do_modelines)
+	    {
+		/* Execute the modeline settings, but don't set window-local
+		 * options if we are using the current window for another
+		 * buffer. */
+		do_modelines(curwin == aucmd_win ? OPT_NOWIN : 0);
+	    }
 
 	    /* restore the current window */
 	    aucmd_restbuf(&aco);
@@ -8809,6 +8815,23 @@ ex_doautoall(eap)
     }
 
     check_cursor();	    /* just in case lines got deleted */
+}
+
+/*
+ * Check *argp for <nomodeline>.  When it is present return FALSE, otherwise
+ * return TRUE and advance *argp to after it.
+ * Thus return TRUE when do_modelines() should be called.
+ */
+    int
+check_nomodeline(argp)
+    char_u **argp;
+{
+    if (STRNCMP(*argp, "<nomodeline>", 12) == 0)
+    {
+	*argp = skipwhite(*argp + 12);
+	return FALSE;
+    }
+    return TRUE;
 }
 
 /*
@@ -8936,10 +8959,11 @@ aucmd_restbuf(aco)
 		    if (tp != curtab)
 			goto_tabpage_tp(tp);
 		    win_goto(aucmd_win);
-		    break;
+		    goto win_found;
 		}
 	    }
 	}
+win_found:
 
 	/* Remove the window and frame from the tree of frames. */
 	(void)winframe_remove(curwin, &dummy, NULL);

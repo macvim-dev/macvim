@@ -2012,7 +2012,7 @@ alist_check_arg_idx()
 }
 
 /*
- * Return TRUE if window "win" is editing then file at the current argument
+ * Return TRUE if window "win" is editing the file at the current argument
  * index.
  */
     static int
@@ -3473,7 +3473,7 @@ getsourceline(c, cookie, indent)
 {
     struct source_cookie *sp = (struct source_cookie *)cookie;
     char_u		*line;
-    char_u		*p, *s;
+    char_u		*p;
 
 #ifdef FEAT_EVAL
     /* If breakpoints have been added/deleted need to check for it. */
@@ -3512,28 +3512,49 @@ getsourceline(c, cookie, indent)
     {
 	/* compensate for the one line read-ahead */
 	--sourcing_lnum;
-	for (;;)
+
+	/* Get the next line and concatenate it when it starts with a
+	 * backslash. We always need to read the next line, keep it in
+	 * sp->nextline. */
+	sp->nextline = get_one_sourceline(sp);
+	if (sp->nextline != NULL && *(p = skipwhite(sp->nextline)) == '\\')
 	{
-	    sp->nextline = get_one_sourceline(sp);
-	    if (sp->nextline == NULL)
-		break;
-	    p = skipwhite(sp->nextline);
-	    if (*p != '\\')
-		break;
-	    s = alloc((unsigned)(STRLEN(line) + STRLEN(p)));
-	    if (s == NULL)	/* out of memory */
-		break;
-	    STRCPY(s, line);
-	    STRCAT(s, p + 1);
+	    garray_T    ga;
+
+	    ga_init2(&ga, (int)sizeof(char_u), 400);
+	    ga_concat(&ga, line);
+	    ga_concat(&ga, p + 1);
+	    for (;;)
+	    {
+		vim_free(sp->nextline);
+		sp->nextline = get_one_sourceline(sp);
+		if (sp->nextline == NULL)
+		    break;
+		p = skipwhite(sp->nextline);
+		if (*p != '\\')
+		    break;
+		/* Adjust the growsize to the current length to speed up
+		 * concatenating many lines. */
+		if (ga.ga_len > 400)
+		{
+		    if (ga.ga_len > 8000)
+			ga.ga_growsize = 8000;
+		    else
+			ga.ga_growsize = ga.ga_len;
+		}
+		ga_concat(&ga, p + 1);
+	    }
+	    ga_append(&ga, NUL);
 	    vim_free(line);
-	    line = s;
-	    vim_free(sp->nextline);
+	    line = ga.ga_data;
 	}
     }
 
 #ifdef FEAT_MBYTE
     if (line != NULL && sp->conv.vc_type != CONV_NONE)
     {
+	char_u	*s;
+
 	/* Convert the encoding of the script line. */
 	s = string_convert(&sp->conv, line, NULL);
 	if (s != NULL)

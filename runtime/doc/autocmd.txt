@@ -1,4 +1,4 @@
-*autocmd.txt*   For Vim version 7.3.  Last change: 2011 Oct 26
+*autocmd.txt*   For Vim version 7.3.  Last change: 2012 Feb 22
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -33,7 +33,7 @@ files matching *.c.  You can also use autocommands to implement advanced
 features, such as editing compressed files (see |gzip-example|).  The usual
 place to put autocommands is in your .vimrc or .exrc file.
 
-							*E203* *E204* *E143*
+						*E203* *E204* *E143* *E855*
 WARNING: Using autocommands is very powerful, and may lead to unexpected side
 effects.  Be careful not to destroy your text.
 - It's a good idea to do some testing on an expendable copy of a file first.
@@ -699,7 +699,8 @@ MenuPopup			Just before showing the popup menu (under the
 QuickFixCmdPre			Before a quickfix command is run (|:make|,
 				|:lmake|, |:grep|, |:lgrep|, |:grepadd|,
 				|:lgrepadd|, |:vimgrep|, |:lvimgrep|,
-				|:vimgrepadd|, |:lvimgrepadd|, |:cscope|).
+				|:vimgrepadd|, |:lvimgrepadd|, |:cscope|,
+				|:helpgrep|, |:lhelpgrep|).
 				The pattern is matched against the command
 				being run.  When |:grep| is used but 'grepprg'
 				is set to "internal" it still matches "grep".
@@ -1052,7 +1053,7 @@ Note that the 'eventignore' option applies here too.  Events listed in this
 option will not cause any commands to be executed.
 
 					*:do* *:doau* *:doautocmd* *E217*
-:do[autocmd] [group] {event} [fname]
+:do[autocmd] [<nomodeline>] [group] {event} [fname]
 			Apply the autocommands matching [fname] (default:
 			current file name) for {event} to the current buffer.
 			You can use this when the current file name does not
@@ -1071,14 +1072,17 @@ option will not cause any commands to be executed.
 			argument is included, Vim executes only the matching
 			autocommands for that group.  Note: if you use an
 			undefined group name, Vim gives you an error message.
-
+							*<nomodeline>*
 			After applying the autocommands the modelines are
 			processed, so that their settings overrule the
 			settings from autocommands, like what happens when
-			editing a file.
+			editing a file. This is skipped when the <nomodeline>
+			argument is present. You probably want to use
+			<nomodeline> for events that are not used when loading
+			a buffer, such as |User|.
 
 						*:doautoa* *:doautoall*
-:doautoa[ll] [group] {event} [fname]
+:doautoa[ll] [<nomodeline>] [group] {event} [fname]
 			Like ":doautocmd", but apply the autocommands to each
 			loaded buffer.  Note that [fname] is used to select
 			the autocommands, not the buffers to which they are

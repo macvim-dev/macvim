@@ -2748,6 +2748,13 @@ mch_get_acl(fname)
 #ifdef HAVE_POSIX_ACL
     ret = (vim_acl_T)acl_get_file((char *)fname, ACL_TYPE_ACCESS);
 #else
+#ifdef HAVE_SOLARIS_ZFS_ACL
+    acl_t *aclent;
+
+    if (acl_get((char *)fname, 0, &aclent) < 0)
+	return NULL;
+    ret = (vim_acl_T)aclent;
+#else
 #ifdef HAVE_SOLARIS_ACL
     vim_acl_solaris_T   *aclent;
 
@@ -2793,6 +2800,7 @@ mch_get_acl(fname)
     ret = (vim_acl_T)aclent;
 #endif /* HAVE_AIX_ACL */
 #endif /* HAVE_SOLARIS_ACL */
+#endif /* HAVE_SOLARIS_ZFS_ACL */
 #endif /* HAVE_POSIX_ACL */
     return ret;
 }
@@ -2810,6 +2818,9 @@ mch_set_acl(fname, aclent)
 #ifdef HAVE_POSIX_ACL
     acl_set_file((char *)fname, ACL_TYPE_ACCESS, (acl_t)aclent);
 #else
+#ifdef HAVE_SOLARIS_ZFS_ACL
+    acl_set((char *)fname, (acl_t *)aclent);
+#else
 #ifdef HAVE_SOLARIS_ACL
     acl((char *)fname, SETACL, ((vim_acl_solaris_T *)aclent)->acl_cnt,
 	    ((vim_acl_solaris_T *)aclent)->acl_entry);
@@ -2818,6 +2829,7 @@ mch_set_acl(fname, aclent)
     chacl((char *)fname, aclent, ((struct acl *)aclent)->acl_len);
 #endif /* HAVE_AIX_ACL */
 #endif /* HAVE_SOLARIS_ACL */
+#endif /* HAVE_SOLARIS_ZFS_ACL */
 #endif /* HAVE_POSIX_ACL */
 }
 
@@ -2830,6 +2842,9 @@ mch_free_acl(aclent)
 #ifdef HAVE_POSIX_ACL
     acl_free((acl_t)aclent);
 #else
+#ifdef HAVE_SOLARIS_ZFS_ACL
+    acl_free((acl_t *)aclent);
+#else
 #ifdef HAVE_SOLARIS_ACL
     free(((vim_acl_solaris_T *)aclent)->acl_entry);
     free(aclent);
@@ -2838,6 +2853,7 @@ mch_free_acl(aclent)
     free(aclent);
 #endif /* HAVE_AIX_ACL */
 #endif /* HAVE_SOLARIS_ACL */
+#endif /* HAVE_SOLARIS_ZFS_ACL */
 #endif /* HAVE_POSIX_ACL */
 }
 #endif

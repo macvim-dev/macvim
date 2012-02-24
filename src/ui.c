@@ -1937,6 +1937,7 @@ open_app_context()
 static Atom	vim_atom;	/* Vim's own special selection format */
 #ifdef FEAT_MBYTE
 static Atom	vimenc_atom;	/* Vim's extended selection format */
+static Atom	utf8_atom;
 #endif
 static Atom	compound_text_atom;
 static Atom	text_atom;
@@ -1950,6 +1951,7 @@ x11_setup_atoms(dpy)
     vim_atom	       = XInternAtom(dpy, VIM_ATOM_NAME,   False);
 #ifdef FEAT_MBYTE
     vimenc_atom	       = XInternAtom(dpy, VIMENC_ATOM_NAME,False);
+    utf8_atom	       = XInternAtom(dpy, "UTF8_STRING",   False);
 #endif
     compound_text_atom = XInternAtom(dpy, "COMPOUND_TEXT", False);
     text_atom	       = XInternAtom(dpy, "TEXT",	   False);
@@ -2094,7 +2096,11 @@ clip_x11_request_selection_cb(w, success, sel_atom, type, value, length,
     }
 #endif
 
-    else if (*type == compound_text_atom || (
+    else if (*type == compound_text_atom
+#ifdef FEAT_MBYTE
+	    || *type == utf8_atom
+#endif
+	    || (
 #ifdef FEAT_MBYTE
 		enc_dbcs != 0 &&
 #endif
@@ -2148,7 +2154,7 @@ clip_x11_request_selection(myShell, dpy, cbd)
 #else
 	    1
 #endif
-	    ; i < 5; i++)
+	    ; i < 6; i++)
     {
 	switch (i)
 	{
@@ -2156,10 +2162,18 @@ clip_x11_request_selection(myShell, dpy, cbd)
 	    case 0:  type = vimenc_atom;	break;
 #endif
 	    case 1:  type = vim_atom;		break;
-	    case 2:  type = compound_text_atom; break;
-	    case 3:  type = text_atom;		break;
+#ifdef FEAT_MBYTE
+	    case 2:  type = utf8_atom;		break;
+#endif
+	    case 3:  type = compound_text_atom; break;
+	    case 4:  type = text_atom;		break;
 	    default: type = XA_STRING;
 	}
+#ifdef FEAT_MBYTE
+	if (type == utf8_atom && !enc_utf8)
+	    /* Only request utf-8 when 'encoding' is utf8. */
+	    continue;
+#endif
 	success = MAYBE;
 	XtGetSelectionValue(myShell, cbd->sel_atom, type,
 	    clip_x11_request_selection_cb, (XtPointer)&success, CurrentTime);
@@ -2250,18 +2264,23 @@ clip_x11_convert_selection_cb(w, sel_atom, target, type, value, length, format)
     {
 	Atom *array;
 
-	if ((array = (Atom *)XtMalloc((unsigned)(sizeof(Atom) * 6))) == NULL)
+	if ((array = (Atom *)XtMalloc((unsigned)(sizeof(Atom) * 7))) == NULL)
 	    return False;
 	*value = (XtPointer)array;
 	i = 0;
-	array[i++] = XA_STRING;
 	array[i++] = targets_atom;
 #ifdef FEAT_MBYTE
 	array[i++] = vimenc_atom;
 #endif
 	array[i++] = vim_atom;
+#ifdef FEAT_MBYTE
+	if (enc_utf8)
+	    array[i++] = utf8_atom;
+#endif
+	array[i++] = XA_STRING;
 	array[i++] = text_atom;
 	array[i++] = compound_text_atom;
+
 	*type = XA_ATOM;
 	/* This used to be: *format = sizeof(Atom) * 8; but that caused
 	 * crashes on 64 bit machines. (Peter Derr) */
@@ -2273,6 +2292,7 @@ clip_x11_convert_selection_cb(w, sel_atom, target, type, value, length, format)
     if (       *target != XA_STRING
 #ifdef FEAT_MBYTE
 	    && *target != vimenc_atom
+	    && *target != utf8_atom
 #endif
 	    && *target != vim_atom
 	    && *target != text_atom
@@ -2302,13 +2322,16 @@ clip_x11_convert_selection_cb(w, sel_atom, target, type, value, length, format)
 	return False;
     }
 
-    if (*target == XA_STRING)
+    if (*target == XA_STRING
+#ifdef FEAT_MBYTE
+	    || (*target == utf8_atom && enc_utf8)
+#endif
+	    )
     {
 	mch_memmove(result, string, (size_t)(*length));
-	*type = XA_STRING;
+	*type = *target;
     }
-    else if (*target == compound_text_atom
-	    || *target == text_atom)
+    else if (*target == compound_text_atom || *target == text_atom)
     {
 	XTextProperty	text_prop;
 	char		*string_nt = (char *)alloc((unsigned)*length + 1);
@@ -2383,14 +2406,14 @@ clip_x11_own_selection(myShell, cbd)
 	       XtLastTimestampProcessed(XtDisplay(myShell)),
 	       clip_x11_convert_selection_cb, clip_x11_lose_ownership_cb,
 	       NULL) == False)
-	return FAIL;
+	    return FAIL;
     }
     else
 #endif
     {
 	if (!XChangeProperty(XtDisplay(myShell), XtWindow(myShell),
 		  cbd->sel_atom, timestamp_atom, 32, PropModeAppend, NULL, 0))
-	return FAIL;
+	    return FAIL;
     }
     /* Flush is required in a terminal as nothing else is doing it. */
     XFlush(XtDisplay(myShell));

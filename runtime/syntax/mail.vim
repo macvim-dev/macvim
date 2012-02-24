@@ -2,12 +2,15 @@
 " Language:		Mail file
 " Previous Maintainer:	Felix von Leitner <leitner@math.fu-berlin.de>
 " Maintainer:		GI <a@b.c>, where a='gi1242+vim', b='gmail', c='com'
-" Last Change:		Sat 03 Dec 2011 10:34:27 PM EST
+" Last Change:		Thu 02 Feb 2012 08:47:04 PM EST
 
 " Quit when a syntax file was already loaded
 if exists("b:current_syntax")
   finish
 endif
+
+let s:cpo_save = &cpo
+set cpo&vim
 
 " The mail header is recognized starting with a "keyword:" line and ending
 " with an empty line or other line that can't be in the header. All lines of
@@ -104,3 +107,6 @@ hi def link mailQuoteExp5	mailQuoted5
 hi def link mailQuoteExp6	mailQuoted6
 
 let b:current_syntax = "mail"
+
+let &cpo = s:cpo_save
+unlet s:cpo_save
