@@ -730,6 +730,34 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    470,
+/**/
+    469,
+/**/
+    468,
+/**/
+    467,
+/**/
+    466,
+/**/
+    465,
+/**/
+    464,
+/**/
+    463,
+/**/
+    462,
+/**/
+    461,
+/**/
+    460,
+/**/
+    459,
+/**/
+    458,
+/**/
+    457,
+/**/
     456,
 /**/
     455,
@@ -2197,12 +2225,9 @@ do_intro_line(row, mesg, add_version, attr)
 	    /* Check for 9.9x or 9.9xx, alpha/beta version */
 	    if (isalpha((int)vers[3]))
 	    {
-		if (isalpha((int)vers[4]))
-		    sprintf((char *)vers + 5, ".%d%s", highest_patch(),
-							   mediumVersion + 5);
-		else
-		    sprintf((char *)vers + 4, ".%d%s", highest_patch(),
-							   mediumVersion + 4);
+		int len = (isalpha((int)vers[4])) ? 5 : 4;
+		sprintf((char *)vers + len, ".%d%s", highest_patch(),
+							 mediumVersion + len);
 	    }
 	    else
 		sprintf((char *)vers + 3, ".%d", highest_patch());
