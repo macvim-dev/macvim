@@ -1880,13 +1880,13 @@ static void netbeansReadCallback(CFSocketRef s,
 
         int numLines = (dy != 0) ? (int)round(dy) : (int)round(dx);
         if (numLines < 0) numLines = -numLines;
-        if (numLines == 0) numLines = 1;
 
+        if (numLines != 0) {
 #ifdef FEAT_GUI_SCROLL_WHEEL_FORCE
-        gui.scroll_wheel_force = numLines;
+            gui.scroll_wheel_force = numLines;
 #endif
-
-        gui_send_mouse_event(button, col, row, NO, flags);
+            gui_send_mouse_event(button, col, row, NO, flags);
+        }
 
 #ifdef FEAT_BEVAL
         if (p_beval && balloonEval) {
