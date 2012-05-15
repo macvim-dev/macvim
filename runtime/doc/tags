@@ -2638,6 +2638,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :resize	windows.txt	/*:resize*
 :ret	change.txt	/*:ret*
 :retab	change.txt	/*:retab*
+:retab!	change.txt	/*:retab!*
 :retu	eval.txt	/*:retu*
 :return	eval.txt	/*:return*
 :rew	editing.txt	/*:rew*
@@ -4795,6 +4796,7 @@ autocmds-kept	version5.txt	/*autocmds-kept*
 autocommand	autocmd.txt	/*autocommand*
 autocommand-events	autocmd.txt	/*autocommand-events*
 autocommand-pattern	autocmd.txt	/*autocommand-pattern*
+autoformat	change.txt	/*autoformat*
 autoload	eval.txt	/*autoload*
 autoload-functions	eval.txt	/*autoload-functions*
 avoid-hit-enter	version5.txt	/*avoid-hit-enter*
@@ -6623,6 +6625,7 @@ lua-luaeval	if_lua.txt	/*lua-luaeval*
 lua-vim	if_lua.txt	/*lua-vim*
 lua-window	if_lua.txt	/*lua-window*
 lua.vim	syntax.txt	/*lua.vim*
+luaeval()	eval.txt	/*luaeval()*
 m	motion.txt	/*m*
 m'	motion.txt	/*m'*
 m[	motion.txt	/*m[*

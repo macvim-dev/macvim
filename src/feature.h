@@ -1334,6 +1334,14 @@
 #endif
 
 /*
+ * +filterpipe
+ */
+#if (defined(UNIX) && !defined(USE_SYSTEM)) \
+	    || (defined(WIN3264) && defined(FEAT_GUI_W32))
+# define FEAT_FILTERPIPE
+#endif
+
+/*
  * +transparency        'transparency' option.
  */
 #if defined(FEAT_GUI_MACVIM)

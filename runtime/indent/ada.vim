@@ -39,6 +39,8 @@ setlocal indentkeys+=0=~then,0=~end,0=~elsif,0=~when,0=~exception,0=~begin,0=~is
 if exists("*GetAdaIndent")
    finish
 endif
+let s:keepcpo= &cpo
+set cpo&vim
 
 if exists("g:ada_with_gnat_project_files")
    let s:AdaBlockStart = '^\s*\(if\>\|while\>\|else\>\|elsif\>\|loop\>\|for\>.*\<\(loop\|use\)\>\|declare\>\|begin\>\|type\>.*\<is\>[^;]*$\|\(type\>.*\)\=\<record\>\|procedure\>\|function\>\|accept\>\|do\>\|task\>\|package\>\|project\>\|then\>\|when\>\|is\>\)'
@@ -291,6 +293,9 @@ function GetAdaIndent()
 
    return ind
 endfunction GetAdaIndent
+
+let &cpo = s:keepcpo
+unlet s:keepcpo
 
 finish " 1}}}
 

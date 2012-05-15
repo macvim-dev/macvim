@@ -783,7 +783,8 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define EXPAND_FILES_IN_PATH	38
 #define EXPAND_OWNSYNTAX	39
 #define EXPAND_LOCALES		40
-#define EXPAND_MACACTION	41
+#define EXPAND_HISTORY		41
+#define EXPAND_MACACTION	42
 
 /* Values for exmode_active (0 is no exmode) */
 #define EXMODE_NORMAL		1
