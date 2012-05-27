@@ -1,6 +1,6 @@
 " Vim script to work like "less"
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2006 Dec 05
+" Last Change:	2012 May 18
 
 " Avoid loading this file twice, allow the user to define his own script.
 if exists("loaded_less")
@@ -92,7 +92,8 @@ map <Esc><Space> <Space>
 fun! s:NextPage()
   if line(".") == line("$")
     if argidx() + 1 >= argc()
-      quit
+      " Don't quit at the end of the last file
+      return
     endif
     next
     1

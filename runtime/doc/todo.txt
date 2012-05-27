@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3.  Last change: 2012 May 01
+*todo.txt*      For Vim version 7.3.  Last change: 2012 May 18
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -34,20 +34,26 @@ not be repeated below, unless there is extra information.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-patch to fix helphelp.txt from Ken Takata.  https://gist.github.com/2559599
-
 Go through more coverity reports.
 
 Discussion about canonicalization of Hebrew. (Ron Aaron, 2011 April 10)
 
-Stack trace of crash: http://vpaste.net/GBt9S
-(Alexandre Provencio)
+Bug caused by patch 7.3.449. (Alex Afros, May 16)
+
+Add link to i/OS version on download page:
+http://applidium.com/en/applications/vim/
 
 GTK: problem with 'L' in 'guioptions' changing the window width.
 (Aaron Cornelius, 2012 Feb 6)
 
 Patch: home_replace() does not work whtn 8.3 filename. (Yasuhiro
 Matsumoto, 2012 Apr 18)  Asked for another version of the patch.
+Again May 18.
+
+Javascript file where indent gets stuck on: GalaxyMaster, 2012 May 3.
+
+Spell checking: "zg" doesn't pick up the "ß" character. (Axel Bender, 2012 May
+1)
 
 Win32: When a directory name contains an exclamation mark, completion doesn't
 complete the contents of the directory.  No escaping for the "!"? (Jan
@@ -56,6 +62,8 @@ Stocker, 2012 Jan 5)
 Issue 54: document behavior of -complete, also expands arg.
 
 Cursor on wrong line after ":copen". (John Beckett, 2012 Apr 30)
+Fix by Christian Brabandt, 2012 May 2.  But calling changed_window_setting()
+would be a simpler solution.
 
 Syntax update problem in one buffer opened in two windows, bottom window is
 not correctly updated. (Paul Harris, 2012 Feb 27)
@@ -71,6 +79,13 @@ URXVT:
 - will get stuck if byte sequence does not containe expected semicolon.
 - Use urxvt mouse support also in xterm.  Explanations:
   http://www.midnight-commander.org/ticket/2662
+
+Patches from Debian for python ftplugin. (Thilo Six, 2012 May 6)
+Also patches from Debian for Spanish translations.
+
+Patch for IBM z/OS makefile. (Stephen Bovy, 2012 Apr 26)
+Patch for configure (Stephen Bovy, 2012 Apr 28)
+Updates later. Context diff May 7.
 
 When running Vim in silent ex mode, an existing swapfile causes Vim to wait
 for a user action without a prompt. (Maarten Billemont, 2012 Feb 3)
@@ -106,8 +121,8 @@ Patch Sep 18.
 Patch for has('unnamedplus') docs. (Tony Mechelynck, 2011 Sep 27)
 And one for gui_x11.txt.
 
-Patch for Python: add pyeval()(zyx, 2012 Apr 15, update Apr 16)
-Also changes for Lua.  Update Apr 19.  Update Apr 22.
+Patch for Python: add pyeval() and vim.bindeval() (zyx, 2012 Apr 15, update
+Apr 16) Also changes for Lua.  Update Apr 19.  Update Apr 22.
 
 ":cd" doesn't work when current directory path contains "**".
 finddir() has the same problem.  (Yukihiro Nakadaira, 2012 Jan 10)
@@ -138,9 +153,6 @@ Updated syntax file for ssh_config, maintainer doesn't respond.
 BufWinLeave triggers too late when quitting last window in a tab page. (Lech
 Lorens, 2012 Feb 21)
 
-"fC" doesn't position the cursor correctly when there are concealed
-characters.  Patch by Christian Brabandt, 2011 Oct 11)
-
 Patch for 'transparency' option. (Sergiu Dotenco, 2011 Sep 17)
 Only for MS-Windows.  No documentation.  Do we want this?
 
@@ -153,12 +165,12 @@ Needs more work.  Pinged 2012 Jan 4.
 'list' is set.  (Dennis Preiser)
 Patch 7.3.116 was the wrong solution.
 Christian Brabandt has another incomplete patch. (2011 Jul 13)
-
-'cursorline' is drawn incorrectly in diff mode. Patch by Christian Brabandt,
-2012 Apr 2.
-
-'cursorline' works on a text line only.  Add 'cursorscreenline' for
-highlighting the screen line. (Christian Brabandt, 2012 Mar 31)
+Also: Alignment in help with tabs gets messed up, esp. at ":help index".
+Probably need to make a tab work like there was no concealing.  Possibly with
+an option.  Like line wrapping works as if there is no concealing.
+Patch by Dominique Pelle, Also fixes "fC" problem.
+    "fC" doesn't position the cursor correctly when there are concealed
+    characters.  Patch by Christian Brabandt, 2011 Oct 11)
 
 With concealed text mouse click doesn't put the cursor in the right position.
 (Herb Sitz)  Fix by Christian Brabandt, 2011 Jun 16.  Doesn't work properly,
@@ -167,6 +179,12 @@ need to make the change in where RET_WIN_BUF_CHARTABSIZE() is called.
 Syntax region with 'concealends' and a 'cchar' value, 'conceallevel' set to 2,
 only one of the two ends gets the cchar displayed. (Brett Stahlman, 2010 Aug
 21, Ben Fritz, 2010 Sep 14)
+
+'cursorline' is drawn incorrectly in diff mode. Patch by Christian Brabandt,
+2012 Apr 2.
+
+'cursorline' works on a text line only.  Add 'cursorscreenline' for
+highlighting the screen line. (Christian Brabandt, 2012 Mar 31)
 
 Win32: Does building a 64 bit version with VC9 give warnings for int
 conversions? (Mike Williams)
@@ -270,10 +288,6 @@ it: Pablo Contreras, 2010 Oct 12  Windows XP and 7.  Font is never freed?
 When setting a local option value from the global value, add a script ID that
 indicates this, so that ":verbose set" can give a hint.  Check with options in
 the help file.
-
-Patch for IBM z/OS makefile. (Stephen Bovy, 2012 Apr 26)
-Patch for configure (Stephen Bovy, 2012 Apr 28)
-Updates later.
 
 After patch 7.3.097 still get E15. (Yukihiro Nakadaira, 2011 Jan 18)
 Also for another example (ZyX, 2011 Jan 24)
@@ -1094,6 +1108,7 @@ Latest version: 2011 May 18
 8   Windows install with NSIS: make it possible to do a silent install, see
     http://nsis.sourceforge.net/Docs/Chapter4.html#4.12
     Version from Guopeng Wen that does this (2010 Dec 27)
+Alternative: MSI installer: https://github.com/petrkle/vim-msi/
 
 Windows installer should install 32-bit version of right-click handler also on
 64-bit systems. (Brian Cunningham, 2011 Dec 28)

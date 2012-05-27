@@ -10192,7 +10192,7 @@ f_extend(argvars, rettv)
 			EMSG2(_("E737: Key already exists: %s"), hi2->hi_key);
 			break;
 		    }
-		    else if (*action == 'f')
+		    else if (*action == 'f' && HI2DI(hi2) != di1)
 		    {
 			clear_tv(&di1->di_tv);
 			copy_tv(&HI2DI(hi2)->di_tv, &di1->di_tv);
@@ -14663,7 +14663,9 @@ f_readfile(argvars, rettv)
 		    long growmin  = (long)((p - start) * 2 + prevlen);
 		    prevsize = grow50pc > growmin ? grow50pc : growmin;
 		}
-		if ((newprev = vim_realloc(prev, prevsize)) == NULL)
+		newprev = prev == NULL ? alloc(prevsize)
+						: vim_realloc(prev, prevsize);
+		if (newprev == NULL)
 		{
 		    do_outofmem_msg((long_u)prevsize);
 		    failed = TRUE;
