@@ -1854,6 +1854,21 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     preloadPid = [self launchVimProcessWithArguments:
                                     [NSArray arrayWithObject:@"--mmwaitforack"]
                                     workingDirectory:nil];
+
+    // This method is kicked off via FSEvents, so if MacVim is in the
+    // background, the runloop won't bother flushing the autorelease pool.
+    // Triggering an NSEvent works around this.
+    // http://www.mikeash.com/pyblog/more-fun-with-autorelease.html
+    NSEvent* event = [NSEvent otherEventWithType:NSApplicationDefined
+                                        location:NSZeroPoint
+                                   modifierFlags:0
+                                       timestamp:0
+                                    windowNumber:0
+                                         context:nil
+                                         subtype:0
+                                           data1:0
+                                           data2:0];
+    [NSApp postEvent:event atStart:NO];
 }
 
 - (int)maxPreloadCacheSize
