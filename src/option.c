@@ -3205,7 +3205,7 @@ set_init_1()
 	{
 #ifdef HAVE_AVAIL_MEM
 	    /* Use amount of memory available at this moment. */
-	    n = (mch_avail_mem(FALSE) >> 11);
+	    n = (mch_avail_mem(FALSE) >> 1);
 #else
 # ifdef HAVE_TOTAL_MEM
 	    /* Use amount of memory available to Vim. */
@@ -6777,7 +6777,7 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
     {
 	for (s = *varp; *s;)
 	{
-	    while(*s == ',' || *s == ' ')
+	    while (*s == ',' || *s == ' ')
 		s++;
 	    if (!*s)
 		break;
@@ -7462,7 +7462,8 @@ check_stl_option(s)
 check_clipboard_option()
 {
     int		new_unnamed = 0;
-    int		new_autoselect = FALSE;
+    int		new_autoselect_star = FALSE;
+    int		new_autoselect_plus = FALSE;
     int		new_autoselectml = FALSE;
     int		new_html = FALSE;
     regprog_T	*new_exclude_prog = NULL;
@@ -7476,20 +7477,26 @@ check_clipboard_option()
 	    new_unnamed |= CLIP_UNNAMED;
 	    p += 7;
 	}
-        else if (STRNCMP(p, "unnamedplus", 11) == 0
+	else if (STRNCMP(p, "unnamedplus", 11) == 0
 					    && (p[11] == ',' || p[11] == NUL))
 	{
 	    new_unnamed |= CLIP_UNNAMED_PLUS;
 	    p += 11;
 	}
 	else if (STRNCMP(p, "autoselect", 10) == 0
-					&& (p[10] == ',' || p[10] == NUL))
+					    && (p[10] == ',' || p[10] == NUL))
 	{
-	    new_autoselect = TRUE;
+	    new_autoselect_star = TRUE;
 	    p += 10;
 	}
+	else if (STRNCMP(p, "autoselectplus", 14) == 0
+					    && (p[14] == ',' || p[14] == NUL))
+	{
+	    new_autoselect_plus = TRUE;
+	    p += 14;
+	}
 	else if (STRNCMP(p, "autoselectml", 12) == 0
-					&& (p[12] == ',' || p[12] == NUL))
+					    && (p[12] == ',' || p[12] == NUL))
 	{
 	    new_autoselectml = TRUE;
 	    p += 12;
@@ -7518,7 +7525,8 @@ check_clipboard_option()
     if (errmsg == NULL)
     {
 	clip_unnamed = new_unnamed;
-	clip_autoselect = new_autoselect;
+	clip_autoselect_star = new_autoselect_star;
+	clip_autoselect_plus = new_autoselect_plus;
 	clip_autoselectml = new_autoselectml;
 	clip_html = new_html;
 	vim_free(clip_exclude_prog);

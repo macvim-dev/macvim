@@ -5862,8 +5862,14 @@ uc_split_args(arg, lenp)
 	}
 	else
 	{
+#ifdef FEAT_MBYTE
+	    int charlen = (*mb_ptr2len)(p);
+	    len += charlen;
+	    p += charlen;
+#else
 	    ++len;
 	    ++p;
+#endif
 	}
     }
 
@@ -5906,7 +5912,7 @@ uc_split_args(arg, lenp)
 	}
 	else
 	{
-	    *q++ = *p++;
+	    MB_COPY_CHAR(p, q);
 	}
     }
     *q++ = '"';
@@ -6475,7 +6481,10 @@ ex_quit(eap)
 	return;
     }
 #ifdef FEAT_AUTOCMD
-    if (curbuf_locked())
+    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, curbuf);
+    /* Refuse to quick when locked or when the buffer in the last window is
+     * being closed (can only happen in autocommands). */
+    if (curbuf_locked() || (curbuf->b_nwindows == 1 && curbuf->b_closing))
 	return;
 #endif
 
@@ -7493,7 +7502,42 @@ ex_tabnext(eap)
 ex_tabmove(eap)
     exarg_T	*eap;
 {
-    tabpage_move(eap->addr_count == 0 ? 9999 : (int)eap->line2);
+    int tab_number = 9999;
+
+    if (eap->arg && *eap->arg != NUL)
+    {
+	char_u *p = eap->arg;
+	int    relative = 0; /* argument +N/-N means: move N places to the
+			      * right/left relative to the current position. */
+
+	if (*eap->arg == '-')
+	{
+	    relative = -1;
+	    p = eap->arg + 1;
+	}
+	else if (*eap->arg == '+')
+	{
+	    relative = 1;
+	    p = eap->arg + 1;
+	}
+	else
+	    p = eap->arg;
+
+	if (p == skipdigits(p))
+	{
+	    /* No numbers as argument. */
+	    eap->errmsg = e_invarg;
+	    return;
+	}
+
+	tab_number = getdigits(&p);
+	if (relative != 0)
+	    tab_number = tab_number * relative + tabpage_index(curtab) - 1;;
+    }
+    else if (eap->addr_count != 0)
+	tab_number = eap->line2;
+
+    tabpage_move(tab_number);
 }
 
 /*
@@ -8564,7 +8608,7 @@ ex_join(eap)
 	}
 	++eap->line2;
     }
-    (void)do_join(eap->line2 - eap->line1 + 1, !eap->forceit, TRUE);
+    (void)do_join(eap->line2 - eap->line1 + 1, !eap->forceit, TRUE, TRUE);
     beginline(BL_WHITE | BL_FIX);
     ex_may_print(eap);
 }

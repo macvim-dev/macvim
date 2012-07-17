@@ -51,6 +51,38 @@ a b
 }
 
 STARTTEST
+/^{/+1
+:set tw=5 fo=tcn comments=:#
+A bjA b
+ENDTEST
+
+{
+  1 a
+# 1 a
+}
+
+STARTTEST
+/^{/+1
+:set tw=5 fo=qn comments=:#
+gwap
+ENDTEST
+
+{
+# 1 a b
+}
+
+STARTTEST
+/^{/+1
+:set tw=5 fo=q2 comments=:#
+gwap
+ENDTEST
+
+{
+# x
+#   a b
+}
+
+STARTTEST
 /^{/+2
 :set tw& fo=a
 I^^
@@ -60,6 +92,14 @@ ENDTEST
    1aa
    2bb
 }
+
+STARTTEST
+/^#/
+:setl tw=12 fo=tqnc comments=:#
+A foobar
+ENDTEST
+
+# 1 xxxxx
 
 STARTTEST
 :g/^STARTTEST/.,/^ENDTEST/d

@@ -1451,7 +1451,7 @@ do_pending_operator(cap, old_col, gui_yank)
      * This could call do_pending_operator() recursively, but that's OK
      * because gui_yank will be TRUE for the nested call.
      */
-    if (clip_star.available
+    if ((clip_star.available || clip_plus.available)
 	    && oap->op_type != OP_NOP
 	    && !gui_yank
 # ifdef FEAT_VISUAL
@@ -1968,7 +1968,7 @@ do_pending_operator(cap, old_col, gui_yank)
 		beep_flush();
 	    else
 	    {
-		(void)do_join(oap->line_count, oap->op_type == OP_JOIN, TRUE);
+		(void)do_join(oap->line_count, oap->op_type == OP_JOIN, TRUE, TRUE);
 		auto_format(FALSE, TRUE);
 	    }
 	    break;
@@ -4431,7 +4431,7 @@ find_decl(ptr, len, locally, thisblock, searchflags)
 	    break;
 	}
 #ifdef FEAT_COMMENTS
-	if (get_leader_len(ml_get_curline(), NULL, FALSE) > 0)
+	if (get_leader_len(ml_get_curline(), NULL, FALSE, TRUE) > 0)
 	{
 	    /* Ignore this line, continue at start of next line. */
 	    ++curwin->w_cursor.lnum;
@@ -8427,10 +8427,12 @@ nv_g_cmd(cap)
 
 #ifdef FEAT_WINDOWS
     case 't':
-	goto_tabpage((int)cap->count0);
+	if (!checkclearop(oap))
+	    goto_tabpage((int)cap->count0);
 	break;
     case 'T':
-	goto_tabpage(-(int)cap->count1);
+	if (!checkclearop(oap))
+	    goto_tabpage(-(int)cap->count1);
 	break;
 #endif
 
@@ -9358,7 +9360,7 @@ nv_join(cap)
 	{
 	    prep_redo(cap->oap->regname, cap->count0,
 			 NUL, cap->cmdchar, NUL, NUL, cap->nchar);
-	    (void)do_join(cap->count0, cap->nchar == NUL, TRUE);
+	    (void)do_join(cap->count0, cap->nchar == NUL, TRUE, TRUE);
 	}
     }
 }

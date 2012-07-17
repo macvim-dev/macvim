@@ -573,61 +573,55 @@ ServerWait(dpy, w, endCond, endData, localLoop, seconds)
 {
     time_t	    start;
     time_t	    now;
-    time_t	    lastChk = 0;
     XEvent	    event;
-    XPropertyEvent *e = (XPropertyEvent *)&event;
-#   define SEND_MSEC_POLL 50
+
+#define UI_MSEC_DELAY 50
+#define SEND_MSEC_POLL 500
+#ifndef HAVE_SELECT
+    struct pollfd   fds;
+
+    fds.fd = ConnectionNumber(dpy);
+    fds.events = POLLIN;
+#else
+    fd_set	    fds;
+    struct timeval  tv;
+
+    tv.tv_sec = 0;
+    tv.tv_usec =  SEND_MSEC_POLL * 1000;
+    FD_ZERO(&fds);
+    FD_SET(ConnectionNumber(dpy), &fds);
+#endif
 
     time(&start);
-    while (endCond(endData) == 0)
+    while (TRUE)
     {
+	while (XCheckWindowEvent(dpy, commWindow, PropertyChangeMask, &event))
+	    serverEventProc(dpy, &event);
+
+	if (endCond(endData) != 0)
+	    break;
+	if (!WindowValid(dpy, w))
+	    break;
 	time(&now);
 	if (seconds >= 0 && (now - start) >= seconds)
 	    break;
-	if (now != lastChk)
-	{
-	    lastChk = now;
-	    if (!WindowValid(dpy, w))
-		break;
-	    /*
-	     * Sometimes the PropertyChange event doesn't come.
-	     * This can be seen in eg: vim -c 'echo remote_expr("gvim", "3+2")'
-	     */
-	    serverEventProc(dpy, NULL);
-	}
+
+	/* Just look out for the answer without calling back into Vim */
 	if (localLoop)
 	{
-	    /* Just look out for the answer without calling back into Vim */
 #ifndef HAVE_SELECT
-	    struct pollfd   fds;
-
-	    fds.fd = ConnectionNumber(dpy);
-	    fds.events = POLLIN;
 	    if (poll(&fds, 1, SEND_MSEC_POLL) < 0)
 		break;
 #else
-	    fd_set	    fds;
-	    struct timeval  tv;
-
-	    tv.tv_sec = 0;
-	    tv.tv_usec =  SEND_MSEC_POLL * 1000;
-	    FD_ZERO(&fds);
-	    FD_SET(ConnectionNumber(dpy), &fds);
-	    if (select(ConnectionNumber(dpy) + 1, &fds, NULL, NULL, &tv) < 0)
+	    if (select(FD_SETSIZE, &fds, NULL, NULL, &tv) < 0)
 		break;
 #endif
-	    while (XEventsQueued(dpy, QueuedAfterReading) > 0)
-	    {
-		XNextEvent(dpy, &event);
-		if (event.type == PropertyNotify && e->window == commWindow)
-		    serverEventProc(dpy, &event);
-	    }
 	}
 	else
 	{
 	    if (got_int)
 		break;
-	    ui_delay((long)SEND_MSEC_POLL, TRUE);
+	    ui_delay((long)UI_MSEC_DELAY, TRUE);
 	    ui_breakcheck();
 	}
     }
@@ -656,7 +650,6 @@ serverGetVimNames(dpy)
 	if (SendInit(dpy) < 0)
 	    return NULL;
     }
-    ga_init2(&ga, 1, 100);
 
     /*
      * Read the registry property.
@@ -1199,9 +1192,8 @@ serverEventProc(dpy, eventPtr)
 	if ((*p == 'c' || *p == 'k') && (p[1] == 0))
 	{
 	    Window	resWindow;
-	    char_u	*name, *script, *serial, *end, *res;
+	    char_u	*name, *script, *serial, *end;
 	    Bool	asKeys = *p == 'k';
-	    garray_T	reply;
 	    char_u	*enc;
 
 	    /*
@@ -1257,50 +1249,52 @@ serverEventProc(dpy, eventPtr)
 	    if (script == NULL || name == NULL)
 		continue;
 
-	    /*
-	     * Initialize the result property, so that we're ready at any
-	     * time if we need to return an error.
-	     */
-	    if (resWindow != None)
-	    {
-		ga_init2(&reply, 1, 100);
+            if (serverName != NULL && STRICMP(name, serverName) == 0)
+            {
+                script = serverConvert(enc, script, &tofree);
+                if (asKeys)
+                    server_to_input_buf(script);
+                else
+                {
+                    char_u      *res;
+
+                    res = eval_client_expr_to_string(script);
+		    if (resWindow != None)
+		    {
+			garray_T    reply;
+
+			/* Initialize the result property. */
+			ga_init2(&reply, 1, 100);
 #ifdef FEAT_MBYTE
-		ga_grow(&reply, 50 + STRLEN(p_enc));
-		sprintf(reply.ga_data, "%cr%c-E %s%c-s %s%c-r ",
+			ga_grow(&reply, 50 + STRLEN(p_enc));
+			sprintf(reply.ga_data, "%cr%c-E %s%c-s %s%c-r ",
 						   0, 0, p_enc, 0, serial, 0);
-		reply.ga_len = 14 + STRLEN(p_enc) + STRLEN(serial);
+			reply.ga_len = 14 + STRLEN(p_enc) + STRLEN(serial);
 #else
-		ga_grow(&reply, 50);
-		sprintf(reply.ga_data, "%cr%c-s %s%c-r ", 0, 0, serial, 0);
-		reply.ga_len = 10 + STRLEN(serial);
+			ga_grow(&reply, 50);
+			sprintf(reply.ga_data, "%cr%c-s %s%c-r ",
+							     0, 0, serial, 0);
+			reply.ga_len = 10 + STRLEN(serial);
 #endif
-	    }
-	    res = NULL;
-	    if (serverName != NULL && STRICMP(name, serverName) == 0)
-	    {
-		script = serverConvert(enc, script, &tofree);
-		if (asKeys)
-		    server_to_input_buf(script);
-		else
-		    res = eval_client_expr_to_string(script);
-		vim_free(tofree);
-	    }
-	    if (resWindow != None)
-	    {
-		if (res != NULL)
-		    ga_concat(&reply, res);
-		else if (asKeys == 0)
-		{
-		    ga_concat(&reply, (char_u *)_(e_invexprmsg));
-		    ga_append(&reply, 0);
-		    ga_concat(&reply, (char_u *)"-c 1");
-		}
-		ga_append(&reply, NUL);
-		(void)AppendPropCarefully(dpy, resWindow, commProperty,
-					   reply.ga_data, reply.ga_len);
-		ga_clear(&reply);
-	    }
-	    vim_free(res);
+
+			/* Evaluate the expression and return the result. */
+			if (res != NULL)
+			    ga_concat(&reply, res);
+			else
+			{
+			    ga_concat(&reply, (char_u *)_(e_invexprmsg));
+			    ga_append(&reply, 0);
+			    ga_concat(&reply, (char_u *)"-c 1");
+			}
+			ga_append(&reply, NUL);
+			(void)AppendPropCarefully(dpy, resWindow, commProperty,
+						 reply.ga_data, reply.ga_len);
+			ga_clear(&reply);
+		    }
+                    vim_free(res);
+                }
+                vim_free(tofree);
+            }
 	}
 	else if (*p == 'r' && p[1] == 0)
 	{

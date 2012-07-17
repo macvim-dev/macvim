@@ -423,27 +423,36 @@ get_number_indent(lnum)
 {
     colnr_T	col;
     pos_T	pos;
-    regmmatch_T	regmatch;
+
+    regmatch_T	regmatch;
+    int		lead_len = 0;	/* length of comment leader */
 
     if (lnum > curbuf->b_ml.ml_line_count)
 	return -1;
     pos.lnum = 0;
+
+#ifdef FEAT_COMMENTS
+    /* In format_lines() (i.e. not insert mode), fo+=q is needed too...  */
+    if ((State & INSERT) || has_format_option(FO_Q_COMS))
+	lead_len = get_leader_len(ml_get(lnum), NULL, FALSE, TRUE);
+#endif
     regmatch.regprog = vim_regcomp(curbuf->b_p_flp, RE_MAGIC);
     if (regmatch.regprog != NULL)
     {
-	regmatch.rmm_ic = FALSE;
-	regmatch.rmm_maxcol = 0;
-	if (vim_regexec_multi(&regmatch, curwin, curbuf, lnum,
-							    (colnr_T)0, NULL))
+	regmatch.rm_ic = FALSE;
+
+	/* vim_regexec() expects a pointer to a line.  This lets us
+	 * start matching for the flp beyond any comment leader...  */
+	if (vim_regexec(&regmatch, ml_get(lnum) + lead_len, (colnr_T)0))
 	{
-	    pos.lnum = regmatch.endpos[0].lnum + lnum;
-	    pos.col = regmatch.endpos[0].col;
+	    pos.lnum = lnum;
+	    pos.col = (colnr_T)(*regmatch.endp - ml_get(lnum));
 #ifdef FEAT_VIRTUALEDIT
 	    pos.coladd = 0;
 #endif
 	}
-	vim_free(regmatch.regprog);
     }
+    vim_free(regmatch.regprog);
 
     if (pos.lnum == 0 || *ml_get_pos(&pos) == NUL)
 	return -1;
@@ -502,14 +511,18 @@ cin_is_cinword(line)
  *	    OPENLINE_DO_COM	format comments
  *	    OPENLINE_KEEPTRAIL	keep trailing spaces
  *	    OPENLINE_MARKFIX	adjust mark positions after the line break
+ *	    OPENLINE_COM_LIST	format comments with list or 2nd line indent
+ *
+ * "second_line_indent": indent for after ^^D in Insert mode or if flag
+ *			  OPENLINE_COM_LIST
  *
  * Return TRUE for success, FALSE for failure
  */
     int
-open_line(dir, flags, old_indent)
+open_line(dir, flags, second_line_indent)
     int		dir;		/* FORWARD or BACKWARD */
     int		flags;
-    int		old_indent;	/* indent for after ^^D in Insert mode */
+    int		second_line_indent;
 {
     char_u	*saved_line;		/* copy of the original line */
     char_u	*next_line = NULL;	/* copy of the next line */
@@ -650,8 +663,8 @@ open_line(dir, flags, old_indent)
 	 * count white space on current line
 	 */
 	newindent = get_indent_str(saved_line, (int)curbuf->b_p_ts);
-	if (newindent == 0)
-	    newindent = old_indent;	/* for ^^D command in insert mode */
+	if (newindent == 0 && !(flags & OPENLINE_COM_LIST))
+	    newindent = second_line_indent; /* for ^^D command in insert mode */
 
 #ifdef FEAT_SMARTINDENT
 	/*
@@ -671,7 +684,7 @@ open_line(dir, flags, old_indent)
 	    ptr = saved_line;
 # ifdef FEAT_COMMENTS
 	    if (flags & OPENLINE_DO_COM)
-		lead_len = get_leader_len(ptr, NULL, FALSE);
+		lead_len = get_leader_len(ptr, NULL, FALSE, TRUE);
 	    else
 		lead_len = 0;
 # endif
@@ -693,7 +706,7 @@ open_line(dir, flags, old_indent)
 		}
 # ifdef FEAT_COMMENTS
 		if (flags & OPENLINE_DO_COM)
-		    lead_len = get_leader_len(ptr, NULL, FALSE);
+		    lead_len = get_leader_len(ptr, NULL, FALSE, TRUE);
 		else
 		    lead_len = 0;
 		if (lead_len > 0)
@@ -836,7 +849,7 @@ open_line(dir, flags, old_indent)
      */
     end_comment_pending = NUL;
     if (flags & OPENLINE_DO_COM)
-	lead_len = get_leader_len(saved_line, &lead_flags, dir == BACKWARD);
+	lead_len = get_leader_len(saved_line, &lead_flags, dir == BACKWARD, TRUE);
     else
 	lead_len = 0;
     if (lead_len > 0)
@@ -1007,9 +1020,9 @@ open_line(dir, flags, old_indent)
 	}
 	if (lead_len)
 	{
-	    /* allocate buffer (may concatenate p_exta later) */
-	    leader = alloc(lead_len + lead_repl_len + extra_space +
-							      extra_len + 1);
+	    /* allocate buffer (may concatenate p_extra later) */
+	    leader = alloc(lead_len + lead_repl_len + extra_space + extra_len
+		     + (second_line_indent > 0 ? second_line_indent : 0) + 1);
 	    allocated = leader;		    /* remember to free it later */
 
 	    if (leader == NULL)
@@ -1304,6 +1317,21 @@ open_line(dir, flags, old_indent)
     /* concatenate leader and p_extra, if there is a leader */
     if (lead_len)
     {
+	if (flags & OPENLINE_COM_LIST && second_line_indent > 0)
+	{
+	    int i;
+	    int padding = second_line_indent
+					  - (newindent + (int)STRLEN(leader));
+
+	    /* Here whitespace is inserted after the comment char.
+	     * Below, set_indent(newindent, SIN_INSERT) will insert the
+	     * whitespace needed before the comment char. */
+	    for (i = 0; i < padding; i++)
+	    {
+		STRCAT(leader, " ");
+		newcol++;
+	    }
+	}
 	STRCAT(leader, p_extra);
 	p_extra = leader;
 	did_ai = TRUE;	    /* So truncating blanks works with comments */
@@ -1548,14 +1576,18 @@ theend:
  * When "flags" is not NULL, it is set to point to the flags of the recognized
  * comment leader.
  * "backward" must be true for the "O" command.
+ * If "include_space" is set, include trailing whitespace while calculating the
+ * length.
  */
     int
-get_leader_len(line, flags, backward)
+get_leader_len(line, flags, backward, include_space)
     char_u	*line;
     char_u	**flags;
     int		backward;
+    int		include_space;
 {
     int		i, j;
+    int		result;
     int		got_com = FALSE;
     int		found_one;
     char_u	part_buf[COM_MAX_LEN];	/* buffer for one option part */
@@ -1565,7 +1597,7 @@ get_leader_len(line, flags, backward)
     char_u	*prev_list;
     char_u	*saved_flags = NULL;
 
-    i = 0;
+    result = i = 0;
     while (vim_iswhite(line[i]))    /* leading white space is ignored */
 	++i;
 
@@ -1668,17 +1700,167 @@ get_leader_len(line, flags, backward)
 	if (!found_one)
 	    break;
 
+	result = i;
+
 	/* Include any trailing white space. */
 	while (vim_iswhite(line[i]))
 	    ++i;
+
+	if (include_space)
+	    result = i;
 
 	/* If this comment doesn't nest, stop here. */
 	got_com = TRUE;
 	if (vim_strchr(part_buf, COM_NEST) == NULL)
 	    break;
     }
+    return result;
+}
 
-    return (got_com ? i : 0);
+/*
+ * Return the offset at which the last comment in line starts. If there is no
+ * comment in the whole line, -1 is returned.
+ *
+ * When "flags" is not null, it is set to point to the flags describing the
+ * recognized comment leader.
+ */
+    int
+get_last_leader_offset(line, flags)
+    char_u	*line;
+    char_u	**flags;
+{
+    int		result = -1;
+    int		i, j;
+    int		lower_check_bound = 0;
+    char_u	*string;
+    char_u	*com_leader;
+    char_u	*com_flags;
+    char_u	*list;
+    int		found_one;
+    char_u	part_buf[COM_MAX_LEN];	/* buffer for one option part */
+
+    /*
+     * Repeat to match several nested comment strings.
+     */
+    i = (int)STRLEN(line);
+    while (--i >= lower_check_bound)
+    {
+	/*
+	 * scan through the 'comments' option for a match
+	 */
+	found_one = FALSE;
+	for (list = curbuf->b_p_com; *list; )
+	{
+	    char_u *flags_save = list;
+
+	    /*
+	     * Get one option part into part_buf[].  Advance list to next one.
+	     * put string at start of string.
+	     */
+	    (void)copy_option_part(&list, part_buf, COM_MAX_LEN, ",");
+	    string = vim_strchr(part_buf, ':');
+	    if (string == NULL)	/* If everything is fine, this cannot actually
+				 * happen. */
+	    {
+		continue;
+	    }
+	    *string++ = NUL;	/* Isolate flags from string. */
+	    com_leader = string;
+
+	    /*
+	     * Line contents and string must match.
+	     * When string starts with white space, must have some white space
+	     * (but the amount does not need to match, there might be a mix of
+	     * TABs and spaces).
+	     */
+	    if (vim_iswhite(string[0]))
+	    {
+		if (i == 0 || !vim_iswhite(line[i - 1]))
+		    continue;
+		while (vim_iswhite(string[0]))
+		    ++string;
+	    }
+	    for (j = 0; string[j] != NUL && string[j] == line[i + j]; ++j)
+		/* do nothing */;
+	    if (string[j] != NUL)
+		continue;
+
+	    /*
+	     * When 'b' flag used, there must be white space or an
+	     * end-of-line after the string in the line.
+	     */
+	    if (vim_strchr(part_buf, COM_BLANK) != NULL
+		    && !vim_iswhite(line[i + j]) && line[i + j] != NUL)
+	    {
+		continue;
+	    }
+
+	    /*
+	     * We have found a match, stop searching.
+	     */
+	    found_one = TRUE;
+
+	    if (flags)
+		*flags = flags_save;
+	    com_flags = flags_save;
+
+	    break;
+	}
+
+	if (found_one)
+	{
+	    char_u  part_buf2[COM_MAX_LEN];	/* buffer for one option part */
+	    int     len1, len2, off;
+
+	    result = i;
+	    /*
+	     * If this comment nests, continue searching.
+	     */
+	    if (vim_strchr(part_buf, COM_NEST) != NULL)
+		continue;
+
+	    lower_check_bound = i;
+
+	    /* Let's verify whether the comment leader found is a substring
+	     * of other comment leaders. If it is, let's adjust the
+	     * lower_check_bound so that we make sure that we have determined
+	     * the comment leader correctly.
+	     */
+
+	    while (vim_iswhite(*com_leader))
+		++com_leader;
+	    len1 = (int)STRLEN(com_leader);
+
+	    for (list = curbuf->b_p_com; *list; )
+	    {
+		char_u *flags_save = list;
+
+		(void)copy_option_part(&list, part_buf2, COM_MAX_LEN, ",");
+		if (flags_save == com_flags)
+		    continue;
+		string = vim_strchr(part_buf2, ':');
+		++string;
+		while (vim_iswhite(*string))
+		    ++string;
+		len2 = (int)STRLEN(string);
+		if (len2 == 0)
+		    continue;
+
+		/* Now we have to verify whether string ends with a substring
+		 * beginning the com_leader. */
+		for (off = (len2 > i ? i : len2); off > 0 && off + len1 > len2;)
+		{
+		    --off;
+		    if (!STRNCMP(string + off, com_leader, len2 - off))
+		    {
+			if (i - off < lower_check_bound)
+			    lower_check_bound = i - off;
+		    }
+		}
+	    }
+	}
+    }
+    return result;
 }
 #endif
 
@@ -1932,7 +2114,7 @@ ins_char(c)
     int		c;
 {
 #if defined(FEAT_MBYTE) || defined(PROTO)
-    char_u	buf[MB_MAXBYTES];
+    char_u	buf[MB_MAXBYTES + 1];
     int		n;
 
     n = (*mb_char2bytes)(c, buf);
@@ -3127,7 +3309,7 @@ get_keystroke()
 	    buf = alloc(buflen);
 	else if (maxlen < 10)
 	{
-	    /* Need some more space. This migth happen when receiving a long
+	    /* Need some more space. This might happen when receiving a long
 	     * escape sequence. */
 	    buflen += 100;
 	    buf = vim_realloc(buf, buflen);
@@ -4290,7 +4472,7 @@ home_replace(buf, src, dst, dstlen, one)
 {
     size_t	dirlen = 0, envlen = 0;
     size_t	len;
-    char_u	*homedir_env;
+    char_u	*homedir_env, *homedir_env_orig;
     char_u	*p;
 
     if (src == NULL)
@@ -4316,13 +4498,31 @@ home_replace(buf, src, dst, dstlen, one)
 	dirlen = STRLEN(homedir);
 
 #ifdef VMS
-    homedir_env = mch_getenv((char_u *)"SYS$LOGIN");
+    homedir_env_orig = homedir_env = mch_getenv((char_u *)"SYS$LOGIN");
 #else
-    homedir_env = mch_getenv((char_u *)"HOME");
+    homedir_env_orig = homedir_env = mch_getenv((char_u *)"HOME");
 #endif
-
+    /* Empty is the same as not set. */
     if (homedir_env != NULL && *homedir_env == NUL)
 	homedir_env = NULL;
+
+#if defined(FEAT_MODIFY_FNAME) || defined(WIN3264)
+    if (homedir_env != NULL && vim_strchr(homedir_env, '~') != NULL)
+    {
+	int	usedlen = 0;
+	int	flen;
+	char_u	*fbuf = NULL;
+
+	flen = (int)STRLEN(homedir_env);
+	(void)modify_fname((char_u *)":p", &usedlen,
+						  &homedir_env, &fbuf, &flen);
+	flen = (int)STRLEN(homedir_env);
+	if (flen > 0 && vim_ispathsep(homedir_env[flen - 1]))
+	    /* Remove the trailing / that is added to a directory. */
+	    homedir_env[flen - 1] = NUL;
+    }
+#endif
+
     if (homedir_env != NULL)
 	envlen = STRLEN(homedir_env);
 
@@ -4376,6 +4576,9 @@ home_replace(buf, src, dst, dstlen, one)
     /* if (dstlen == 0) out of space, what to do??? */
 
     *dst = NUL;
+
+    if (homedir_env != homedir_env_orig)
+	vim_free(homedir_env);
 }
 
 /*
@@ -4818,8 +5021,8 @@ add_pathsep(p)
     char_u  *
 FullName_save(fname, force)
     char_u	*fname;
-    int		force;	    /* force expansion, even when it already looks
-			       like a full path name */
+    int		force;		/* force expansion, even when it already looks
+				 * like a full path name */
 {
     char_u	*buf;
     char_u	*new_fname = NULL;
@@ -6487,6 +6690,7 @@ get_c_indent()
     int		whilelevel;
     linenr_T	lnum;
     char_u	*options;
+    char_u	*digits;
     int		fraction = 0;	    /* init for GCC */
     int		divider;
     int		n;
@@ -6502,6 +6706,7 @@ get_c_indent()
 	l = options++;
 	if (*options == '-')
 	    ++options;
+	digits = options;	    /* remember where the digits start */
 	n = getdigits(&options);
 	divider = 0;
 	if (*options == '.')	    /* ".5s" means a fraction */
@@ -6518,7 +6723,7 @@ get_c_indent()
 	}
 	if (*options == 's')	    /* "2s" means two times 'shiftwidth' */
 	{
-	    if (n == 0 && fraction == 0)
+	    if (options == digits)
 		n = curbuf->b_p_sw;	/* just "s" is one 'shiftwidth' */
 	    else
 	    {

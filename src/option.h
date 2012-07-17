@@ -104,10 +104,11 @@
 #define FO_ONE_LETTER	'1'
 #define FO_WHITE_PAR	'w'	/* trailing white space continues paragr. */
 #define FO_AUTO		'a'	/* automatic formatting */
+#define FO_REMOVE_COMS	'j'	/* remove comment leaders when joining lines */
 
 #define DFLT_FO_VI	"vt"
 #define DFLT_FO_VIM	"tcq"
-#define FO_ALL		"tcroq2vlb1mMBn,aw"	/* for do_set() */
+#define FO_ALL		"tcroq2vlb1mMBn,awj"	/* for do_set() */
 
 /* characters for the p_cpo option: */
 #define CPO_ALTREAD	'a'	/* ":read" sets alternate file name */
@@ -228,6 +229,7 @@
 #define GO_MENUS	'm'		/* use menu bar */
 #define GO_NOSYSMENU	'M'		/* don't source system menu */
 #define GO_POINTER	'p'		/* pointer enter/leave callbacks */
+#define GO_ASELPLUS	'P'		/* autoselectPlus */
 #define GO_RIGHT	'r'		/* use right scrollbar */
 #define GO_VRIGHT	'R'		/* right scrollbar with vert split */
 #define GO_TEAROFF	't'		/* add tear-off menu items */

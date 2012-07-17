@@ -561,7 +561,9 @@ commands can be combined to create a NewGrep command: >
 					*:vim* *:vimgrep* *E682* *E683*
 :vim[grep][!] /{pattern}/[g][j] {file} ...
 			Search for {pattern} in the files {file} ... and set
-			the error list to the matches.
+			the error list to the matches.  Files matching
+			'wildignore' are ignored; files in 'suffixes' are
+			searched last.
 			Without the 'g' flag each line is added only once.
 			With 'g' every match is added.
 
@@ -913,8 +915,8 @@ Basic items
 	%n		error number (finds a number)
 	%m		error message (finds a string)
 	%r		matches the "rest" of a single-line file message %O/P/Q
-	%p		pointer line (finds a sequence of '-', '.' or ' ' and
-			uses the length for the column number)
+	%p		pointer line (finds a sequence of '-', '.', ' ' or
+			tabs and uses the length for the column number)
 	%*{conv}	any scanf non-assignable conversion
 	%%		the single '%' character
 	%s		search text (finds a string)

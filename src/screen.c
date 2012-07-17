@@ -89,6 +89,9 @@
 
 #include "vim.h"
 
+#define MB_FILLER_CHAR '<'  /* character used when a double-width character
+			     * doesn't fit. */
+
 /*
  * The attributes that are actually active for writing to the screen.
  */
@@ -516,8 +519,10 @@ update_screen(type)
 # endif
 # ifdef FEAT_CLIPBOARD
 		/* When Visual area changed, may have to update selection. */
-		if (clip_star.available && clip_isautosel())
-		    clip_update_selection();
+		if (clip_star.available && clip_isautosel_star())
+		    clip_update_selection(&clip_star);
+		if (clip_plus.available && clip_isautosel_plus())
+		    clip_update_selection(&clip_plus);
 # endif
 #ifdef FEAT_GUI
 		/* Remove the cursor before starting to do anything, because
@@ -811,8 +816,10 @@ updateWindow(wp)
 
 #ifdef FEAT_CLIPBOARD
     /* When Visual area changed, may have to update selection. */
-    if (clip_star.available && clip_isautosel())
-	clip_update_selection();
+    if (clip_star.available && clip_isautosel_star())
+	clip_update_selection(&clip_star);
+    if (clip_plus.available && clip_isautosel_plus())
+	clip_update_selection(&clip_plus);
 #endif
 
     win_update(wp);
@@ -2997,7 +3004,10 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    area_highlighting = TRUE;
 	    attr = hl_attr(HLF_V);
 #if defined(FEAT_CLIPBOARD) && defined(FEAT_X11)
-	    if (clip_star.available && !clip_star.owned && clip_isautosel())
+	    if ((clip_star.available && !clip_star.owned
+						     && clip_isautosel_star())
+		    || (clip_plus.available && !clip_plus.owned
+						    && clip_isautosel_plus()))
 		attr = hl_attr(HLF_VNC);
 #endif
 	}
@@ -3228,8 +3238,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		/* no bad word found at line start, don't check until end of a
 		 * word */
 		spell_hlf = HLF_COUNT;
-		word_end = (int)(spell_to_word_end(ptr, wp)
-								  - line + 1);
+		word_end = (int)(spell_to_word_end(ptr, wp) - line + 1);
 	    }
 	    else
 	    {
@@ -4017,7 +4026,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		if (n_skip > 0 && mb_l > 1 && n_extra == 0)
 		{
 		    n_extra = 1;
-		    c_extra = '<';
+		    c_extra = MB_FILLER_CHAR;
 		    c = ' ';
 		    if (area_attr == 0 && search_attr == 0)
 		    {
@@ -4582,6 +4591,15 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    c = lcs_prec;
 	    lcs_prec_todo = NUL;
 #ifdef FEAT_MBYTE
+	    if (has_mbyte && (*mb_char2cells)(mb_c) > 1)
+	    {
+		/* Double-width character being overwritten by the "precedes"
+		 * character, need to fill up half the character. */
+		c_extra = MB_FILLER_CHAR;
+		n_extra = 1;
+		n_attr = 2;
+		extra_attr = hl_attr(HLF_AT);
+	    }
 	    mb_c = c;
 	    if (enc_utf8 && (*mb_char2len)(c) > 1)
 	    {
@@ -6632,16 +6650,17 @@ screen_putchar(c, row, col, attr)
     int	    row, col;
     int	    attr;
 {
-#ifdef FEAT_MBYTE
     char_u	buf[MB_MAXBYTES + 1];
 
-    buf[(*mb_char2bytes)(c, buf)] = NUL;
-#else
-    char_u	buf[2];
-
-    buf[0] = c;
-    buf[1] = NUL;
+#ifdef FEAT_MBYTE
+    if (has_mbyte)
+	buf[(*mb_char2bytes)(c, buf)] = NUL;
+    else
 #endif
+    {
+	buf[0] = c;
+	buf[1] = NUL;
+    }
     screen_puts(buf, row, col, attr);
 }
 
@@ -9076,7 +9095,7 @@ screen_ins_lines(off, row, line_count, end, wp)
 	    || (wp != NULL && wp->w_width != Columns)
 # endif
        )
-	clip_clear_selection();
+	clip_clear_selection(&clip_star);
     else
 	clip_scroll_selection(-line_count);
 #endif
@@ -9297,7 +9316,7 @@ screen_del_lines(off, row, line_count, end, force, wp)
 	    || (wp != NULL && wp->w_width != Columns)
 # endif
        )
-	clip_clear_selection();
+	clip_clear_selection(&clip_star);
     else
 	clip_scroll_selection(line_count);
 #endif

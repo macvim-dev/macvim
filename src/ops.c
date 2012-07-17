@@ -112,6 +112,9 @@ static void	may_set_selection __ARGS((void));
 # endif
 #endif
 static void	dis_msg __ARGS((char_u *p, int skip_esc));
+#if defined(FEAT_COMMENTS) || defined(PROTO)
+static char_u	*skip_comment __ARGS((char_u *line, int process, int include_space, int *is_comment));
+#endif
 #ifdef FEAT_VISUAL
 static void	block_prep __ARGS((oparg_T *oap, struct block_def *, linenr_T, int));
 #endif
@@ -959,8 +962,14 @@ get_register(name, copy)
      * selection too. */
     if (name == '*' && clip_star.available)
     {
-	if (clip_isautosel())
-	    clip_update_selection();
+	if (clip_isautosel_star())
+	    clip_update_selection(&clip_star);
+	may_get_selection(name);
+    }
+    if (name == '+' && clip_plus.available)
+    {
+	if (clip_isautosel_plus())
+	    clip_update_selection(&clip_plus);
 	may_get_selection(name);
     }
 #endif
@@ -1724,8 +1733,8 @@ op_delete(oap)
 	 * and the delete is within one line. */
 	if ((
 #ifdef FEAT_CLIPBOARD
-            ((clip_unnamed & CLIP_UNNAMED) && oap->regname == '*') ||
-            ((clip_unnamed & CLIP_UNNAMED_PLUS) && oap->regname == '+') ||
+	    ((clip_unnamed & CLIP_UNNAMED) && oap->regname == '*') ||
+	    ((clip_unnamed & CLIP_UNNAMED_PLUS) && oap->regname == '+') ||
 #endif
 	    oap->regname == 0) && oap->motion_type != MLINE
 						      && oap->line_count == 1)
@@ -1987,7 +1996,7 @@ op_delete(oap)
 		curwin->w_cursor = curpos;	/* restore curwin->w_cursor */
 	    }
 	    if (curwin->w_cursor.lnum < curbuf->b_ml.ml_line_count)
-		(void)do_join(2, FALSE, FALSE);
+		(void)do_join(2, FALSE, FALSE, FALSE);
 	}
     }
 
@@ -3187,7 +3196,8 @@ op_yank(oap, deleting, mess)
 
 	clip_own_selection(&clip_plus);
 	clip_gen_set_selection(&clip_plus);
-	if (!clip_isautosel() && !did_star && curr == &(y_regs[PLUS_REGISTER]))
+	if (!clip_isautosel_star() && !did_star
+					  && curr == &(y_regs[PLUS_REGISTER]))
 	{
 	    copy_yank_reg(&(y_regs[STAR_REGISTER]));
 	    clip_own_selection(&clip_star);
@@ -4197,17 +4207,95 @@ dis_msg(p, skip_esc)
     ui_breakcheck();
 }
 
+#if defined(FEAT_COMMENTS) || defined(PROTO)
+/*
+ * If "process" is TRUE and the line begins with a comment leader (possibly
+ * after some white space), return a pointer to the text after it. Put a boolean
+ * value indicating whether the line ends with an unclosed comment in
+ * "is_comment".
+ * line - line to be processed,
+ * process - if FALSE, will only check whether the line ends with an unclosed
+ *	     comment,
+ * include_space - whether to also skip space following the comment leader,
+ * is_comment - will indicate whether the current line ends with an unclosed
+ *		comment.
+ */
+    static char_u *
+skip_comment(line, process, include_space, is_comment)
+    char_u   *line;
+    int      process;
+    int	     include_space;
+    int      *is_comment;
+{
+    char_u *comment_flags = NULL;
+    int    lead_len;
+    int    leader_offset = get_last_leader_offset(line, &comment_flags);
+
+    *is_comment = FALSE;
+    if (leader_offset != -1)
+    {
+	/* Let's check whether the line ends with an unclosed comment.
+	 * If the last comment leader has COM_END in flags, there's no comment.
+	 */
+	while (*comment_flags)
+	{
+	    if (*comment_flags == COM_END
+		    || *comment_flags == ':')
+		break;
+	    ++comment_flags;
+	}
+	if (*comment_flags != COM_END)
+	    *is_comment = TRUE;
+    }
+
+    if (process == FALSE)
+	return line;
+
+    lead_len = get_leader_len(line, &comment_flags, FALSE, include_space);
+
+    if (lead_len == 0)
+	return line;
+
+    /* Find:
+     * - COM_END,
+     * - colon,
+     * whichever comes first.
+     */
+    while (*comment_flags)
+    {
+	if (*comment_flags == COM_END
+		|| *comment_flags == ':')
+	{
+	    break;
+	}
+	++comment_flags;
+    }
+
+    /* If we found a colon, it means that we are not processing a line
+     * starting with a closing part of a three-part comment. That's good,
+     * because we don't want to remove those as this would be annoying.
+     */
+    if (*comment_flags == ':' || *comment_flags == NUL)
+	line += lead_len;
+
+    return line;
+}
+#endif
+
 /*
  * Join 'count' lines (minimal 2) at cursor position.
  * When "save_undo" is TRUE save lines for undo first.
+ * Set "use_formatoptions" to FALSE when e.g. processing
+ * backspace and comment leaders should not be removed.
  *
  * return FAIL for failure, OK otherwise
  */
     int
-do_join(count, insert_space, save_undo)
+do_join(count, insert_space, save_undo, use_formatoptions)
     long    count;
     int	    insert_space;
     int	    save_undo;
+    int	    use_formatoptions UNUSED;
 {
     char_u	*curr = NULL;
     char_u      *curr_start = NULL;
@@ -4221,6 +4309,13 @@ do_join(count, insert_space, save_undo)
     linenr_T	t;
     colnr_T	col = 0;
     int		ret = OK;
+#if defined(FEAT_COMMENTS) || defined(PROTO)
+    int		*comments = NULL;
+    int		remove_comments = (use_formatoptions == TRUE)
+				  && has_format_option(FO_REMOVE_COMS);
+    int		prev_was_comment;
+#endif
+
 
     if (save_undo && u_save((linenr_T)(curwin->w_cursor.lnum - 1),
 			    (linenr_T)(curwin->w_cursor.lnum + count)) == FAIL)
@@ -4232,6 +4327,17 @@ do_join(count, insert_space, save_undo)
     spaces = lalloc_clear((long_u)count, TRUE);
     if (spaces == NULL)
 	return FAIL;
+#if defined(FEAT_COMMENTS) || defined(PROTO)
+    if (remove_comments)
+    {
+	comments = (int *)lalloc_clear((long_u)count * sizeof(int), TRUE);
+	if (comments == NULL)
+	{
+	    vim_free(spaces);
+	    return FAIL;
+	}
+    }
+#endif
 
     /*
      * Don't move anything, just compute the final line length
@@ -4240,6 +4346,25 @@ do_join(count, insert_space, save_undo)
     for (t = 0; t < count; ++t)
     {
 	curr = curr_start = ml_get((linenr_T)(curwin->w_cursor.lnum + t));
+#if defined(FEAT_COMMENTS) || defined(PROTO)
+	if (remove_comments)
+	{
+	    /* We don't want to remove the comment leader if the
+	     * previous line is not a comment. */
+	    if (t > 0 && prev_was_comment)
+	    {
+
+		char_u *new_curr = skip_comment(curr, TRUE, insert_space,
+							   &prev_was_comment);
+		comments[t] = (int)(new_curr - curr);
+		curr = new_curr;
+	    }
+	    else
+		curr = skip_comment(curr, FALSE, insert_space,
+							   &prev_was_comment);
+	}
+#endif
+
 	if (insert_space && t > 0)
 	{
 	    curr = skipwhite(curr);
@@ -4327,6 +4452,10 @@ do_join(count, insert_space, save_undo)
 	if (t == 0)
 	    break;
 	curr = curr_start = ml_get((linenr_T)(curwin->w_cursor.lnum + t - 1));
+#if defined(FEAT_COMMENTS) || defined(PROTO)
+	if (remove_comments)
+	    curr += comments[t - 1];
+#endif
 	if (insert_space && t > 1)
 	    curr = skipwhite(curr);
 	currsize = (int)STRLEN(curr);
@@ -4364,6 +4493,10 @@ do_join(count, insert_space, save_undo)
 
 theend:
     vim_free(spaces);
+#if defined(FEAT_COMMENTS) || defined(PROTO)
+    if (remove_comments)
+	vim_free(comments);
+#endif
     return ret;
 }
 
@@ -4597,9 +4730,11 @@ format_lines(line_count, avoid_fex)
     char_u	*leader_flags = NULL;	/* flags for leader of current line */
     char_u	*next_leader_flags;	/* flags for leader of next line */
     int		do_comments;		/* format comments */
+    int		do_comments_list = 0;	/* format comments with 'n' or '2' */
 #endif
     int		advance = TRUE;
-    int		second_indent = -1;
+    int		second_indent = -1;	/* indent for second line (comment
+					 * aware) */
     int		do_second_indent;
     int		do_number_indent;
     int		do_trail_white;
@@ -4702,18 +4837,46 @@ format_lines(line_count, avoid_fex)
 	    if (first_par_line
 		    && (do_second_indent || do_number_indent)
 		    && prev_is_end_par
-		    && curwin->w_cursor.lnum < curbuf->b_ml.ml_line_count
-#ifdef FEAT_COMMENTS
-		    && leader_len == 0
-		    && next_leader_len == 0
-#endif
-		    )
+		    && curwin->w_cursor.lnum < curbuf->b_ml.ml_line_count)
 	    {
-		if (do_second_indent
-			&& !lineempty(curwin->w_cursor.lnum + 1))
-		    second_indent = get_indent_lnum(curwin->w_cursor.lnum + 1);
+		if (do_second_indent && !lineempty(curwin->w_cursor.lnum + 1))
+		{
+#ifdef FEAT_COMMENTS
+		    if (leader_len == 0 && next_leader_len == 0)
+		    {
+			/* no comment found */
+#endif
+			second_indent =
+				   get_indent_lnum(curwin->w_cursor.lnum + 1);
+#ifdef FEAT_COMMENTS
+		    }
+		    else
+		    {
+			second_indent = next_leader_len;
+			do_comments_list = 1;
+		    }
+#endif
+		}
 		else if (do_number_indent)
-		    second_indent = get_number_indent(curwin->w_cursor.lnum);
+		{
+#ifdef FEAT_COMMENTS
+		    if (leader_len == 0 && next_leader_len == 0)
+		    {
+			/* no comment found */
+#endif
+			second_indent =
+				     get_number_indent(curwin->w_cursor.lnum);
+#ifdef FEAT_COMMENTS
+		    }
+		    else
+		    {
+			/* get_number_indent() is now "comment aware"... */
+			second_indent =
+				     get_number_indent(curwin->w_cursor.lnum);
+			do_comments_list = 1;
+		    }
+#endif
+		}
 	    }
 
 	    /*
@@ -4752,6 +4915,8 @@ format_lines(line_count, avoid_fex)
 		insertchar(NUL, INSCHAR_FORMAT
 #ifdef FEAT_COMMENTS
 			+ (do_comments ? INSCHAR_DO_COM : 0)
+			+ (do_comments && do_comments_list
+						       ? INSCHAR_COM_LIST : 0)
 #endif
 			+ (avoid_fex ? INSCHAR_NO_FEX : 0), second_indent);
 		State = old_State;
@@ -4788,7 +4953,7 @@ format_lines(line_count, avoid_fex)
 						      (long)-next_leader_len);
 #endif
 		curwin->w_cursor.lnum--;
-		if (do_join(2, TRUE, FALSE) == FAIL)
+		if (do_join(2, TRUE, FALSE, FALSE) == FAIL)
 		{
 		    beep_flush();
 		    break;
@@ -4844,7 +5009,7 @@ fmt_check_par(lnum, leader_len, leader_flags, do_comments)
 
     ptr = ml_get(lnum);
     if (do_comments)
-	*leader_len = get_leader_len(ptr, leader_flags, FALSE);
+	*leader_len = get_leader_len(ptr, leader_flags, FALSE, TRUE);
     else
 	*leader_len = 0;
 
@@ -6300,7 +6465,7 @@ line_count_info(line, wc, cc, limit, eol_size)
     long	chars = 0;
     int		is_word = 0;
 
-    for (i = 0; line[i] && i < limit; )
+    for (i = 0; i < limit && line[i] != NUL; )
     {
 	if (is_word)
 	{
