@@ -1330,7 +1330,12 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         if (!pboard)
             return YES;
 
-        clip_copy_selection();
+        // The code below used to be clip_copy_selection() but it is now
+        // static, so do it manually.
+        clip_update_selection(&clip_star);
+        clip_free_selection(&clip_star);
+        clip_get_selection(&clip_star);
+        clip_gen_set_selection(&clip_star);
 
         // Get the text to put on the pasteboard.
         long_u llen = 0; char_u *str = 0;
