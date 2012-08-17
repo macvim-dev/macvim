@@ -1205,7 +1205,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             kCFPreferencesCurrentApplication);
     CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
 
-    ASLogInfo(@"Use renderer=%d", renderer);
+    ASLogInfo(@"Use renderer=%ld", renderer);
 
     // This action is called when the user clicks the "use ATSUI renderer"
     // button in the advanced preferences pane.
@@ -1807,8 +1807,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
             [dict setObject:NSStringFromRange(range) forKey:@"selectionRange"];
         } else {
-            ASLogErr(@"Xcode selection range size mismatch! got=%d expected=%d",
-                    length, sizeof(MMXcodeSelectionRange));
+            ASLogErr(@"Xcode selection range size mismatch! got=%ld "
+                     "expected=%ld", length, sizeof(MMXcodeSelectionRange));
         }
     }
 
@@ -2393,11 +2393,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         if (r.length > 0) {
             // Select given range of characters.
             // TODO: This only works for encodings where 1 byte == 1 character
-            [a addObject:[NSString stringWithFormat:@"norm %dgov%dgo",
+            [a addObject:[NSString stringWithFormat:@"norm %ldgov%ldgo",
                                                 r.location, NSMaxRange(r)-1]];
         } else {
             // Position cursor on line at start of range.
-            [a addObject:[NSString stringWithFormat:@"norm %dGz.0",
+            [a addObject:[NSString stringWithFormat:@"norm %ldGz.0",
                                                                 r.location]];
         }
 

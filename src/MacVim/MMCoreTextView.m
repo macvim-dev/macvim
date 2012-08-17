@@ -1033,12 +1033,11 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
             CFStringRef strRef = CFStringCreateWithCharactersNoCopy(
                     NULL, chars, count, kCFAllocatorNull);
             CTFontRef newFontRef = CTFontCreateForString(fontRef, strRef, r);
+            CFRelease(strRef);
             if (!newFontRef) {
-                ASLogNotice(@"Cannot find font to draw chars: %@", strRef);
                 CGFontRelease(cgFontRef);
                 return;
             }
-            CFRelease(strRef);
 
             recurseDraw(chars, glyphs, advances, count, context, newFontRef,
                         x0, y);

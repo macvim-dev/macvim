@@ -95,7 +95,7 @@
     // system.  Releasing the text storage will in turn release the layout
     // manager, the text container, and finally the text view (self).  This
     // complicates deallocation somewhat, see -[MMVimView dealloc].
-    if (![super initWithFrame:frame textContainer:tc]) {
+    if (!(self = [super initWithFrame:frame textContainer:tc])) {
         [textStorage release];
         return nil;
     }

@@ -1544,7 +1544,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     NSNumber *key = [NSNumber numberWithInt:port];
     NSMutableArray *replies = [serverReplyDict objectForKey:key];
     if (replies && [replies count]) {
-        ASLogDebug(@"    %d replies, topmost is: %@", [replies count],
+        ASLogDebug(@"    %ld replies, topmost is: %@", [replies count],
                    [replies objectAtIndex:0]);
         return [replies objectAtIndex:0];
     }
@@ -2101,7 +2101,7 @@ static void netbeansReadCallback(CFSocketRef s,
           keyCode:(unsigned)code
         modifiers:(int)mods
 {
-    ASLogDebug(@"key='%@' code=%#x mods=%#x length=%d", key, code, mods,
+    ASLogDebug(@"key='%@' code=%#x mods=%#x length=%ld", key, code, mods,
             [key length]);
     if (!key) return;
 
@@ -2829,10 +2829,10 @@ static void netbeansReadCallback(CFSocketRef s,
         NSString *cmd;
         if (range.length > 0) {
             // TODO: This only works for encodings where 1 byte == 1 character
-            cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dgov%dgo",
+            cmd = [NSString stringWithFormat:@"<C-\\><C-N>%ldgov%ldgo",
                     range.location, NSMaxRange(range)-1];
         } else {
-            cmd = [NSString stringWithFormat:@"<C-\\><C-N>%dGz.0",
+            cmd = [NSString stringWithFormat:@"<C-\\><C-N>%ldGz.0",
                     range.location];
         }
 

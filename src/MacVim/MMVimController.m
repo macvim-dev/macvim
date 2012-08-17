@@ -281,11 +281,11 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)file:(NSString *)filename draggedToTabAtIndex:(NSUInteger)tabIndex
 {
     filename = normalizeFilename(filename);
-    ASLogInfo(@"filename=%@ index=%d", filename, tabIndex);
+    ASLogInfo(@"filename=%@ index=%ld", filename, tabIndex);
 
     NSString *fnEsc = [filename stringByEscapingSpecialFilenameCharacters];
     NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>:silent "
-                       "tabnext %d |"
+                       "tabnext %ld |"
                        "edit! %@<CR>", tabIndex + 1, fnEsc];
     [self addVimInput:input];
 }
@@ -540,7 +540,7 @@ static BOOL isUnsafeMessage(int msgid);
     }
 
     if (delayQueue) {
-        ASLogDebug(@"    Flushing delay queue (%d items)",
+        ASLogDebug(@"    Flushing delay queue (%ld items)",
                    [delayQueue count]/2);
         [self performSelector:@selector(processInputQueue:)
                    withObject:delayQueue
@@ -579,7 +579,7 @@ static BOOL isUnsafeMessage(int msgid);
             SetTextDimensionsReplyMsgID == msgid) {
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
-        int cols = *((int*)bytes);  bytes += sizeof(int);
+        int cols = *((int*)bytes);
 
         // NOTE: When a resize message originated in the frontend, Vim
         // acknowledges it with a reply message.  When this happens the window
@@ -642,7 +642,7 @@ static BOOL isUnsafeMessage(int msgid);
     } else if (ShowToolbarMsgID == msgid) {
         const void *bytes = [data bytes];
         int enable = *((int*)bytes);  bytes += sizeof(int);
-        int flags = *((int*)bytes);  bytes += sizeof(int);
+        int flags = *((int*)bytes);
 
         int mode = NSToolbarDisplayModeDefault;
         if (flags & ToolbarLabelFlag) {
@@ -659,25 +659,25 @@ static BOOL isUnsafeMessage(int msgid);
     } else if (CreateScrollbarMsgID == msgid) {
         const void *bytes = [data bytes];
         int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
-        int type = *((int*)bytes);  bytes += sizeof(int);
+        int type = *((int*)bytes);
 
         [windowController createScrollbarWithIdentifier:ident type:type];
     } else if (DestroyScrollbarMsgID == msgid) {
         const void *bytes = [data bytes];
-        int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
+        int32_t ident = *((int32_t*)bytes);
 
         [windowController destroyScrollbarWithIdentifier:ident];
     } else if (ShowScrollbarMsgID == msgid) {
         const void *bytes = [data bytes];
         int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
-        int visible = *((int*)bytes);  bytes += sizeof(int);
+        int visible = *((int*)bytes);
 
         [windowController showScrollbarWithIdentifier:ident state:visible];
     } else if (SetScrollbarPositionMsgID == msgid) {
         const void *bytes = [data bytes];
         int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
         int pos = *((int*)bytes);  bytes += sizeof(int);
-        int len = *((int*)bytes);  bytes += sizeof(int);
+        int len = *((int*)bytes);
 
         [windowController setScrollbarPosition:pos length:len
                                     identifier:ident];
@@ -685,7 +685,7 @@ static BOOL isUnsafeMessage(int msgid);
         const void *bytes = [data bytes];
         int32_t ident = *((int32_t*)bytes);  bytes += sizeof(int32_t);
         float val = *((float*)bytes);  bytes += sizeof(float);
-        float prop = *((float*)bytes);  bytes += sizeof(float);
+        float prop = *((float*)bytes);
 
         [windowController setScrollbarThumbValue:val proportion:prop
                                       identifier:ident];
@@ -724,7 +724,7 @@ static BOOL isUnsafeMessage(int msgid);
     } else if (SetDefaultColorsMsgID == msgid) {
         const void *bytes = [data bytes];
         unsigned bg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-        unsigned fg = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+        unsigned fg = *((unsigned*)bytes);
         NSColor *back = [NSColor colorWithArgbInt:bg];
         NSColor *fore = [NSColor colorWithRgbInt:fg];
 
@@ -750,12 +750,12 @@ static BOOL isUnsafeMessage(int msgid);
                    afterDelay:0];
     } else if (SetMouseShapeMsgID == msgid) {
         const void *bytes = [data bytes];
-        int shape = *((int*)bytes);  bytes += sizeof(int);
+        int shape = *((int*)bytes);
 
         [windowController setMouseShape:shape];
     } else if (AdjustLinespaceMsgID == msgid) {
         const void *bytes = [data bytes];
-        int linespace = *((int*)bytes);  bytes += sizeof(int);
+        int linespace = *((int*)bytes);
 
         [windowController adjustLinespace:linespace];
     } else if (ActivateMsgID == msgid) {
@@ -779,7 +779,7 @@ static BOOL isUnsafeMessage(int msgid);
         const void *bytes = [data bytes];
         // state < 0  <->  some buffer modified
         // state > 0  <->  current buffer modified
-        int state = *((int*)bytes); bytes += sizeof(int);
+        int state = *((int*)bytes);
 
         // NOTE: The window controller tracks whether current buffer is
         // modified or not (and greys out the proxy icon as well as putting a
@@ -842,7 +842,7 @@ static BOOL isUnsafeMessage(int msgid);
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
         int cols = *((int*)bytes);  bytes += sizeof(int);
-        int state = *((int*)bytes);  bytes += sizeof(int);
+        int state = *((int*)bytes);
 
         [windowController zoomWithRows:rows
                                columns:cols
@@ -850,7 +850,7 @@ static BOOL isUnsafeMessage(int msgid);
     } else if (SetWindowPositionMsgID == msgid) {
         const void *bytes = [data bytes];
         int x = *((int*)bytes);  bytes += sizeof(int);
-        int y = *((int*)bytes);  bytes += sizeof(int);
+        int y = *((int*)bytes);
 
         // NOTE: Vim measures Y-coordinates from top of screen.
         NSRect frame = [[[windowController window] screen] frame];

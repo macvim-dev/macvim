@@ -123,7 +123,8 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
                       withString:(NSString *)string
 {
 #if MM_TS_PARANOIA_LOG
-    ASLogWarn(@"Calling %s on MMTextStorage is unsupported", _cmd);
+    ASLogWarn(@"Calling %@ on MMTextStorage is unsupported",
+              NSStringFromSelector(_cmd));
 #endif
     //[attribString replaceCharactersInRange:range withString:string];
 }
