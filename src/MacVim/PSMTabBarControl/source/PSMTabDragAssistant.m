@@ -280,14 +280,14 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
     BOOL removeFlag = YES;
     NSMutableArray *cells = [control cells];
     int i, cellCount = [cells count];
-    float xPos = [[control style] leftMarginForTabBarControl];
+    float xPos = [[control psmTabStyle] leftMarginForTabBarControl];
     
     // identify target cell
     // mouse at beginning of tabs
     NSPoint mouseLoc = [self currentMouseLoc];
     if([self destinationTabBar] == control){
         removeFlag = NO;
-        if(mouseLoc.x < [[control style] leftMarginForTabBarControl]){
+        if(mouseLoc.x < [[control psmTabStyle] leftMarginForTabBarControl]){
             [self setTargetCell:[cells objectAtIndex:0]];
             goto layout;
         }
@@ -342,7 +342,7 @@ layout:
         newRect.origin.x = xPos;
         [cell setFrame:newRect];
         if([cell indicator])
-            [[cell indicator] setFrame:[[control style] indicatorRectForTabCell:cell]];
+            [[cell indicator] setFrame:[[control psmTabStyle] indicatorRectForTabCell:cell]];
         xPos += newRect.size.width;
     }
     if(removeFlag){

@@ -74,7 +74,7 @@
 
 @interface PSMTabBarControl (DragAccessors)
 
-- (id<PSMTabStyle>)style;
+- (id<PSMTabStyle>)psmTabStyle;
 - (NSMutableArray *)cells;
 - (void)setControlView:(id)view;
 - (id)cellForPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame;

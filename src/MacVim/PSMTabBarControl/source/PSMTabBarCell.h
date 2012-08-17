@@ -100,6 +100,6 @@
 
 @interface PSMTabBarControl (CellAccessors)
 
-- (id<PSMTabStyle>)style;
+- (id<PSMTabStyle>)psmTabStyle;
 
 @end

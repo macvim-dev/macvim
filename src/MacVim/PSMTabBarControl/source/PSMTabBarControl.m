@@ -242,7 +242,7 @@
     tabView = view;
 }
 
-- (id<PSMTabStyle>)style
+- (id<PSMTabStyle>)psmTabStyle
 {
     return style;
 }
