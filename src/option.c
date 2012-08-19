@@ -1347,6 +1347,8 @@ static struct vimoption
 			    (char_u *)&p_go, PV_NONE,
 # if defined(UNIX) && !defined(MACOS)
 			    {(char_u *)"aegimrLtT", (char_u *)0L}
+# elif defined(FEAT_GUI_MACVIM)
+			    {(char_u *)"egmrL", (char_u *)0L}
 # else
 			    {(char_u *)"egmrLtT", (char_u *)0L}
 # endif
