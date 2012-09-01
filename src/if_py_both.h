@@ -12,6 +12,10 @@
  * Common code for if_python.c and if_python3.c.
  */
 
+#if PY_VERSION_HEX < 0x02050000
+typedef int Py_ssize_t;  /* Python 2.4 and earlier don't have this type. */
+#endif
+
 #ifdef FEAT_MBYTE
 # define ENC_OPT p_enc
 #else
@@ -1284,9 +1288,10 @@ FunctionCall(PyObject *self, PyObject *argsObject, PyObject *kwargs)
 	selfdictObject = PyDict_GetItemString(kwargs, "self");
 	if (selfdictObject != NULL)
 	{
-	    if (!PyDict_Check(selfdictObject))
+	    if (!PyMapping_Check(selfdictObject))
 	    {
-		PyErr_SetString(PyExc_TypeError, _("'self' argument must be a dictionary"));
+		PyErr_SetString(PyExc_TypeError,
+				   _("'self' argument must be a dictionary"));
 		clear_tv(&args);
 		return NULL;
 	    }

@@ -3429,7 +3429,7 @@ current_sent(oap, count, include)
 
 #ifdef FEAT_VISUAL
     /*
-     * When visual area is bigger than one character: Extend it.
+     * When the Visual area is bigger than one character: Extend it.
      */
     if (VIsual_active && !equalpos(start_pos, VIsual))
     {
@@ -3517,8 +3517,8 @@ extend:
 #endif
 
     /*
-     * If cursor started on blank, check if it is just before the start of the
-     * next sentence.
+     * If the cursor started on a blank, check if it is just before the start
+     * of the next sentence.
      */
     while (c = gchar_pos(&pos), vim_iswhite(c))	/* vim_iswhite() is a macro */
 	incl(&pos);
@@ -3567,7 +3567,7 @@ extend:
 #ifdef FEAT_VISUAL
     if (VIsual_active)
     {
-	/* avoid getting stuck with "is" on a single space before a sent. */
+	/* Avoid getting stuck with "is" on a single space before a sentence. */
 	if (equalpos(start_pos, curwin->w_cursor))
 	    goto extend;
 	if (*p_sel == 'e')
@@ -4534,6 +4534,199 @@ current_quote(oap, count, include, quotechar)
 
 #endif /* FEAT_TEXTOBJ */
 
+#if defined(FEAT_VISUAL) || defined(PROTO)
+static int is_zerowidth __ARGS((char_u *pattern));
+
+/*
+ * Find next search match under cursor, cursor at end.
+ * Used while an operator is pending, and in Visual mode.
+ * TODO: redo only works when used in operator pending mode
+ */
+    int
+current_search(count, forward)
+    long	count;
+    int		forward;	/* move forward or backwards */
+{
+    pos_T	start_pos;	/* position before the pattern */
+    pos_T	orig_pos;	/* position of the cursor at beginning */
+    pos_T	pos;		/* position after the pattern */
+    int		i;
+    int		dir;
+    int		result;		/* result of various function calls */
+    char_u	old_p_ws = p_ws;
+    int		visual_active = FALSE;
+    int		flags = 0;
+    pos_T	save_VIsual;
+    int		zerowidth = FALSE;
+
+    /* wrapping should not occur */
+    p_ws = FALSE;
+
+    /* Correct cursor when 'selection' is exclusive */
+    if (VIsual_active && *p_sel == 'e' && lt(VIsual, curwin->w_cursor))
+	dec_cursor();
+
+    if (VIsual_active)
+    {
+	orig_pos = curwin->w_cursor;
+	save_VIsual = VIsual;
+	visual_active = TRUE;
+
+	/* just started visual selection, only one character */
+	if (equalpos(VIsual, curwin->w_cursor))
+	    visual_active = FALSE;
+
+	pos = curwin->w_cursor;
+	start_pos = VIsual;
+
+	/* make sure, searching further will extend the match */
+	if (VIsual_active)
+	{
+	    if (forward)
+		incl(&pos);
+	    else
+		decl(&pos);
+	}
+    }
+    else
+	orig_pos = pos = start_pos = curwin->w_cursor;
+
+    /* Is the pattern is zero-width? */
+    zerowidth = is_zerowidth(spats[last_idx].pat);
+    if (zerowidth == -1)
+	return FAIL;
+
+    /*
+     * The trick is to first search backwards and then search forward again,
+     * so that a match at the current cursor position will be correctly
+     * captured.
+     */
+    for (i = 0; i < 2; i++)
+    {
+	if (forward)
+	    dir = i;
+	else
+	    dir = !i;
+
+	flags = 0;
+	if (!dir && !zerowidth)
+	    flags = SEARCH_END;
+
+	result = searchit(curwin, curbuf, &pos, (dir ? FORWARD : BACKWARD),
+		spats[last_idx].pat, (long) (i ? count : 1),
+		SEARCH_KEEP | flags, RE_SEARCH, 0, NULL);
+
+	/* First search may fail, but then start searching from the
+	 * beginning of the file (cursor might be on the search match)
+	 * except when Visual mode is active, so that extending the visual
+	 * selection works. */
+	if (!result && i) /* not found, abort */
+	{
+	    curwin->w_cursor = orig_pos;
+	    if (VIsual_active)
+		VIsual = save_VIsual;
+	    p_ws = old_p_ws;
+	    return FAIL;
+	}
+	else if (!i && !result && !visual_active)
+	{
+	    if (forward) /* try again from start of buffer */
+	    {
+		clearpos(&pos);
+	    }
+	    else /* try again from end of buffer */
+	    {
+		/* searching backwards, so set pos to last line and col */
+		pos.lnum = curwin->w_buffer->b_ml.ml_line_count;
+		pos.col  = (colnr_T)STRLEN(
+				ml_get(curwin->w_buffer->b_ml.ml_line_count));
+	    }
+	}
+
+    }
+
+    start_pos = pos;
+    flags = forward ? SEARCH_END : 0;
+
+    /* move to match, except for zero-width matches, in which case, we are
+     * already on the next match */
+    if (!zerowidth)
+	result = searchit(curwin, curbuf, &pos, (forward ? FORWARD : BACKWARD),
+	    spats[last_idx].pat, 0L, flags | SEARCH_KEEP, RE_SEARCH, 0, NULL);
+
+    if (!VIsual_active)
+	VIsual = start_pos;
+
+    p_ws = old_p_ws;
+    curwin->w_cursor = pos;
+    VIsual_active = TRUE;
+    VIsual_mode = 'v';
+
+    if (VIsual_active)
+    {
+	redraw_curbuf_later(INVERTED);	/* update the inversion */
+	if (*p_sel == 'e' && ltoreq(VIsual, curwin->w_cursor))
+	    inc_cursor();
+    }
+
+#ifdef FEAT_FOLDING
+    if (fdo_flags & FDO_SEARCH && KeyTyped)
+	foldOpenCursor();
+#endif
+
+    may_start_select('c');
+#ifdef FEAT_MOUSE
+    setmouse();
+#endif
+#ifdef FEAT_CLIPBOARD
+    /* Make sure the clipboard gets updated.  Needed because start and
+     * end are still the same, and the selection needs to be owned */
+    clip_star.vmode = NUL;
+#endif
+    redraw_curbuf_later(INVERTED);
+    showmode();
+
+    return OK;
+}
+
+/*
+ * Check if the pattern is zero-width.
+ * Returns TRUE, FALSE or -1 for failure.
+ */
+    static int
+is_zerowidth(pattern)
+    char_u	*pattern;
+{
+    regmmatch_T	regmatch;
+    int		nmatched = 0;
+    int		result = -1;
+    pos_T       pos;
+
+    if (search_regcomp(pattern, RE_SEARCH, RE_SEARCH,
+					      SEARCH_KEEP, &regmatch) == FAIL)
+	return -1;
+
+    /* move to match */
+    clearpos(&pos);
+    if (searchit(curwin, curbuf, &pos, FORWARD, spats[last_idx].pat, 1,
+				     SEARCH_KEEP, RE_SEARCH, 0, NULL) != FAIL)
+    {
+	/* Zero-width pattern should match somewhere, then we can check if
+	 * start and end are in the same position. */
+	nmatched = vim_regexec_multi(&regmatch, curwin, curbuf,
+						  pos.lnum, (colnr_T)0, NULL);
+
+	if (!called_emsg)
+	    result = (nmatched != 0
+		    && regmatch.startpos[0].lnum == regmatch.endpos[0].lnum
+		    && regmatch.startpos[0].col == regmatch.endpos[0].col);
+    }
+
+    vim_free(regmatch.regprog);
+    return result;
+}
+#endif /* FEAT_VISUAL */
+
 #if defined(FEAT_LISP) || defined(FEAT_CINDENT) || defined(FEAT_TEXTOBJ) \
 	|| defined(PROTO)
 /*
@@ -4749,17 +4942,33 @@ find_pattern_in_path(ptr, dir, len, whole, skip_comments,
 			 * Isolate the file name.
 			 * Include the surrounding "" or <> if present.
 			 */
-			for (p = incl_regmatch.endp[0]; !vim_isfilec(*p); p++)
-			    ;
-			for (i = 0; vim_isfilec(p[i]); i++)
-			    ;
+			if (inc_opt != NULL
+				   && strstr((char *)inc_opt, "\\zs") != NULL)
+			{
+			    /* pattern contains \zs, use the match */
+			    p = incl_regmatch.startp[0];
+			    i = (int)(incl_regmatch.endp[0]
+						   - incl_regmatch.startp[0]);
+			}
+			else
+			{
+			    /* find the file name after the end of the match */
+			    for (p = incl_regmatch.endp[0];
+						  *p && !vim_isfilec(*p); p++)
+				;
+			    for (i = 0; vim_isfilec(p[i]); i++)
+				;
+			}
+
 			if (i == 0)
 			{
 			    /* Nothing found, use the rest of the line. */
 			    p = incl_regmatch.endp[0];
 			    i = (int)STRLEN(p);
 			}
-			else
+			/* Avoid checking before the start of the line, can
+			 * happen if \zs appears in the regexp. */
+			else if (p > line)
 			{
 			    if (p[-1] == '"' || p[-1] == '<')
 			    {
@@ -5150,7 +5359,7 @@ exit_matched:
 		    && !(compl_cont_status & CONT_SOL)
 #endif
 		    && *startp != NUL
-		    && *(p = startp + 1) != NUL)
+		    && *(p = startp + MB_PTR2LEN(startp)) != NUL)
 		goto search_line;
 	}
 	line_breakcheck();

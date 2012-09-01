@@ -3025,7 +3025,7 @@ foldlevelIndent(flp)
 	    flp->lvl = -1;
     }
     else
-	flp->lvl = get_indent_buf(buf, lnum) / buf->b_p_sw;
+	flp->lvl = get_indent_buf(buf, lnum) / get_sw_value();
     if (flp->lvl > flp->wp->w_p_fdn)
     {
 	flp->lvl = flp->wp->w_p_fdn;
@@ -3373,7 +3373,7 @@ put_foldopen_recurse(fd, wp, gap, off)
 		/* open nested folds while this fold is open */
 		if (fprintf(fd, "%ld", fp->fd_top + off) < 0
 			|| put_eol(fd) == FAIL
-			|| put_line(fd, "normal zo") == FAIL)
+			|| put_line(fd, "normal! zo") == FAIL)
 		    return FAIL;
 		if (put_foldopen_recurse(fd, wp, &fp->fd_nested,
 							     off + fp->fd_top)
@@ -3417,7 +3417,7 @@ put_fold_open_close(fd, fp, off)
 {
     if (fprintf(fd, "%ld", fp->fd_top + off) < 0
 	    || put_eol(fd) == FAIL
-	    || fprintf(fd, "normal z%c",
+	    || fprintf(fd, "normal! z%c",
 			   fp->fd_flags == FD_CLOSED ? 'c' : 'o') < 0
 	    || put_eol(fd) == FAIL)
 	return FAIL;

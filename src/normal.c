@@ -1780,10 +1780,18 @@ do_pending_operator(cap, old_col, gui_yank)
 	    {
 		/* Prepare for redoing.  Only use the nchar field for "r",
 		 * otherwise it might be the second char of the operator. */
-		prep_redo(oap->regname, 0L, NUL, 'v',
-				get_op_char(oap->op_type),
-				get_extra_op_char(oap->op_type),
-				oap->op_type == OP_REPLACE ? cap->nchar : NUL);
+		if (cap->cmdchar == 'g' && (cap->nchar == 'n'
+							|| cap->nchar == 'N'))
+		    /* "gn" and "gN" are a bit different */
+		    prep_redo(oap->regname, 0L, NUL, cap->cmdchar, cap->nchar,
+					get_op_char(oap->op_type),
+					get_extra_op_char(oap->op_type));
+		else
+		    prep_redo(oap->regname, 0L, NUL, 'v',
+					get_op_char(oap->op_type),
+					get_extra_op_char(oap->op_type),
+					oap->op_type == OP_REPLACE
+							  ? cap->nchar : NUL);
 		if (!redo_VIsual_busy)
 		{
 		    redo_VIsual_mode = resel_VIsual_mode;
@@ -7812,7 +7820,10 @@ n_start_visual_mode(c)
      * virtualedit.  Recalculate curwin->w_cursor to avoid bad hilighting.
      */
     if (c == Ctrl_V && (ve_flags & VE_BLOCK) && gchar_cursor() == TAB)
+    {
+	validate_virtcol();
 	coladvance(curwin->w_virtcol);
+    }
 #endif
     VIsual = curwin->w_cursor;
 
@@ -8022,6 +8033,18 @@ nv_g_cmd(cap)
 	nv_visual(cap);
 	break;
 #endif /* FEAT_VISUAL */
+
+    /* "gn", "gN" visually select next/previous search match
+     * "gn" selects next match
+     * "gN" selects previous match
+     */
+    case 'N':
+    case 'n':
+#ifdef FEAT_VISUAL
+	if (!current_search(cap->count1, cap->nchar == 'n'))
+#endif
+	    beep_flush();
+	break;
 
     /*
      * "gj" and "gk" two new funny movement keys -- up and down

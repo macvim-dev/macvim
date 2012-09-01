@@ -63,6 +63,8 @@
 #	  RUBY_VER=[Ruby version, eg 16, 17] (default is 18)
 #	  RUBY_VER_LONG=[Ruby version, eg 1.6, 1.7] (default is 1.8)
 #	    You must set RUBY_VER_LONG when change RUBY_VER.
+#	    You must set RUBY_API_VER to RUBY_VER_LONG.
+#	    Don't set ruby API version to RUBY_VER like 191.
 #
 #	Tcl interface:
 #	  TCL=[Path to Tcl directory]
@@ -87,6 +89,8 @@
 #       Netbeans Support: NETBEANS=[yes or no] (default is yes if GUI is yes)
 #
 #       XPM Image Support: XPM=[path to XPM directory]
+#       Default is "xpm", using the files included in the distribution.
+#       Use "no" to disable this feature.
 #
 #       Optimization: OPTIMIZE=[SPACE, SPEED, MAXSPEED] (default is MAXSPEED)
 #
@@ -277,13 +281,21 @@ NBDEBUG_SRC	= nbdebug.c
 NETBEANS_LIB	= WSock32.lib
 !endif
 
-!ifdef XPM
+!ifndef XPM
+# XPM is not set, use the included xpm files, depending on the architecture.
+!if ("$(CPU)" == "AMD64") || ("$(CPU)" == "IA64")
+XPM = xpm\x64
+!else
+XPM = xpm\x86
+!endif
+!endif
+!if "$(XPM)" != "no"
 # XPM - Include support for XPM signs
-# you can get xpm.lib from http://iamphet.nm.ru/xpm or create it yourself
+# See the xpm directory for more information.
 XPM_OBJ   = $(OBJDIR)/xpm_w32.obj
 XPM_DEFS  = -DFEAT_XPM_W32
 XPM_LIB   = $(XPM)\lib\libXpm.lib
-XPM_INC	  = -I $(XPM)\include
+XPM_INC	  = -I $(XPM)\include -I $(XPM)\..\include
 !endif
 !endif
 
@@ -807,28 +819,31 @@ RUBY_VER = 18
 !ifndef RUBY_VER_LONG
 RUBY_VER_LONG = 1.8
 !endif
+!ifndef RUBY_API_VER
+RUBY_API_VER = $(RUBY_VER_LONG:.=)
+!endif
 
 !if $(RUBY_VER) >= 18
 !ifndef RUBY_PLATFORM
 RUBY_PLATFORM = i386-mswin32
 !endif
 !ifndef RUBY_INSTALL_NAME
-RUBY_INSTALL_NAME = msvcrt-ruby$(RUBY_VER)
+RUBY_INSTALL_NAME = msvcrt-ruby$(RUBY_API_VER)
 !endif
 !else
 !ifndef RUBY_PLATFORM
 RUBY_PLATFORM = i586-mswin32
 !endif
 !ifndef RUBY_INSTALL_NAME
-RUBY_INSTALL_NAME = mswin32-ruby$(RUBY_VER)
+RUBY_INSTALL_NAME = mswin32-ruby$(RUBY_API_VER)
 !endif
 !endif # $(RUBY_VER) >= 18
 
 !message Ruby requested (version $(RUBY_VER)) - root dir is "$(RUBY)"
 CFLAGS = $(CFLAGS) -DFEAT_RUBY
 RUBY_OBJ = $(OUTDIR)\if_ruby.obj
-!if $(RUBY_VER) >= 190
-RUBY_INC = /I "$(RUBY)\include\ruby-$(RUBY_VER_LONG)\$(RUBY_PLATFORM)" /I "$(RUBY)\include\ruby-$(RUBY_VER_LONG)"
+!if $(RUBY_VER) >= 19
+RUBY_INC = /I "$(RUBY)\lib\ruby\$(RUBY_VER_LONG)\$(RUBY_PLATFORM)" /I "$(RUBY)\include\ruby-$(RUBY_VER_LONG)" /I "$(RUBY)\include\ruby-$(RUBY_VER_LONG)\$(RUBY_PLATFORM)"
 !else
 RUBY_INC = /I "$(RUBY)\lib\ruby\$(RUBY_VER_LONG)\$(RUBY_PLATFORM)"
 !endif

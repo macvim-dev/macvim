@@ -3974,7 +3974,7 @@ expand_by_function(type, base)
     curbuf_save = curbuf;
 
     /* Call a function, which returns a list or dict. */
-    if (call_vim_function(funcname, 2, args, FALSE, &rettv) == OK)
+    if (call_vim_function(funcname, 2, args, FALSE, FALSE, &rettv) == OK)
     {
 	switch (rettv.v_type)
 	{
@@ -8914,9 +8914,9 @@ ins_bs(c, mode, inserted_space_p)
 
 	    *inserted_space_p = FALSE;
 	    if (p_sta && in_indent)
-		ts = curbuf->b_p_sw;
+		ts = (int)get_sw_value();
 	    else
-		ts = curbuf->b_p_sts;
+		ts = (int)curbuf->b_p_sts;
 	    /* Compute the virtual column where we want to be.  Since
 	     * 'showbreak' may get in the way, need to get the last column of
 	     * the previous character. */
@@ -9623,7 +9623,7 @@ ins_tab()
      * When nothing special, insert TAB like a normal character
      */
     if (!curbuf->b_p_et
-	    && !(p_sta && ind && curbuf->b_p_ts != curbuf->b_p_sw)
+	    && !(p_sta && ind && curbuf->b_p_ts != get_sw_value())
 	    && curbuf->b_p_sts == 0)
 	return TRUE;
 
@@ -9639,7 +9639,7 @@ ins_tab()
     AppendToRedobuff((char_u *)"\t");
 
     if (p_sta && ind)		/* insert tab in indent, use 'shiftwidth' */
-	temp = (int)curbuf->b_p_sw;
+	temp = (int)get_sw_value();
     else if (curbuf->b_p_sts > 0) /* use 'softtabstop' when set */
 	temp = (int)curbuf->b_p_sts;
     else			/* otherwise use 'tabstop' */

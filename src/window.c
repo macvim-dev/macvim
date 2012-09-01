@@ -54,7 +54,6 @@ static void frame_append __ARGS((frame_T *after, frame_T *frp));
 static void frame_insert __ARGS((frame_T *before, frame_T *frp));
 static void frame_remove __ARGS((frame_T *frp));
 #ifdef FEAT_VERTSPLIT
-static void win_new_width __ARGS((win_T *wp, int width));
 static void win_goto_ver __ARGS((int up, long count));
 static void win_goto_hor __ARGS((int left, long count));
 #endif
@@ -71,7 +70,6 @@ static win_T *restore_snapshot_rec __ARGS((frame_T *sn, frame_T *fr));
 
 static win_T *win_alloc __ARGS((win_T *after, int hidden));
 static void set_fraction __ARGS((win_T *wp));
-static void win_new_height __ARGS((win_T *wp, int height));
 
 #define URL_SLASH	1		/* path_is_url() has found "://" */
 #define URL_BACKSLASH	2		/* path_is_url() has found ":\\" */
@@ -2276,7 +2274,7 @@ win_close(win, free_buf)
 #ifdef FEAT_AUTOCMD
 	win->w_closing = TRUE;
 #endif
-	close_buffer(win, win->w_buffer, free_buf ? DOBUF_UNLOAD : 0, FALSE);
+	close_buffer(win, win->w_buffer, free_buf ? DOBUF_UNLOAD : 0, TRUE);
 #ifdef FEAT_AUTOCMD
 	if (win_valid(win))
 	    win->w_closing = FALSE;
@@ -5562,7 +5560,7 @@ set_fraction(wp)
  * This takes care of the things inside the window, not what happens to the
  * window position, the frame or to other windows.
  */
-    static void
+    void
 win_new_height(wp, height)
     win_T	*wp;
     int		height;
@@ -5702,7 +5700,7 @@ win_new_height(wp, height)
 /*
  * Set the width of a window.
  */
-    static void
+    void
 win_new_width(wp, width)
     win_T	*wp;
     int		width;

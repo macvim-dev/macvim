@@ -18,6 +18,11 @@ static char_u *vim_version_dir __ARGS((char_u *vimdir));
 static char_u *remove_tail __ARGS((char_u *p, char_u *pend, char_u *name));
 static int copy_indent __ARGS((int size, char_u	*src));
 
+/* All user names (for ~user completion as done by shell). */
+#if defined(FEAT_CMDL_COMPL) || defined(PROTO)
+static garray_T	ga_users;
+#endif
+
 /*
  * Count the size (in window cells) of the indent in the current line.
  */
@@ -1329,6 +1334,7 @@ open_line(dir, flags, second_line_indent)
 	    for (i = 0; i < padding; i++)
 	    {
 		STRCAT(leader, " ");
+		less_cols--;
 		newcol++;
 	    }
 	}
@@ -1388,9 +1394,11 @@ open_line(dir, flags, second_line_indent)
 #ifdef FEAT_SMARTINDENT
 	if (did_si)
 	{
+	    int        sw = (int)get_sw_value();
+
 	    if (p_sr)
-		newindent -= newindent % (int)curbuf->b_p_sw;
-	    newindent += (int)curbuf->b_p_sw;
+		newindent -= newindent % sw;
+	    newindent += sw;
 	}
 #endif
 	/* Copy the indent */
@@ -3785,6 +3793,14 @@ free_homedir()
 {
     vim_free(homedir);
 }
+
+# ifdef FEAT_CMDL_COMPL
+    void
+free_users()
+{
+    ga_clear_strings(&ga_users);
+}
+# endif
 #endif
 
 /*
@@ -4453,6 +4469,80 @@ get_env_name(xp, idx)
     name[n] = NUL;
     return name;
 # endif
+}
+
+/*
+ * Find all user names for user completion.
+ * Done only once and then cached.
+ */
+    static void
+init_users() {
+    static int	lazy_init_done = FALSE;
+
+    if (lazy_init_done)
+	return;
+
+    lazy_init_done = TRUE;
+    ga_init2(&ga_users, sizeof(char_u *), 20);
+
+# if defined(HAVE_GETPWENT) && defined(HAVE_PWD_H)
+    {
+	char_u*		user;
+	struct passwd*	pw;
+
+	setpwent();
+	while ((pw = getpwent()) != NULL)
+	    /* pw->pw_name shouldn't be NULL but just in case... */
+	    if (pw->pw_name != NULL)
+	    {
+		if (ga_grow(&ga_users, 1) == FAIL)
+		    break;
+		user = vim_strsave((char_u*)pw->pw_name);
+		if (user == NULL)
+		    break;
+		((char_u **)(ga_users.ga_data))[ga_users.ga_len++] = user;
+	    }
+	endpwent();
+    }
+# endif
+}
+
+/*
+ * Function given to ExpandGeneric() to obtain an user names.
+ */
+    char_u*
+get_users(xp, idx)
+    expand_T	*xp UNUSED;
+    int		idx;
+{
+    init_users();
+    if (idx < ga_users.ga_len)
+	return ((char_u **)ga_users.ga_data)[idx];
+    return NULL;
+}
+
+/*
+ * Check whether name matches a user name. Return:
+ * 0 if name does not match any user name.
+ * 1 if name partially matches the beginning of a user name.
+ * 2 is name fully matches a user name.
+ */
+int match_user(name)
+    char_u* name;
+{
+    int i;
+    int n = (int)STRLEN(name);
+    int result = 0;
+
+    init_users();
+    for (i = 0; i < ga_users.ga_len; i++)
+    {
+	if (STRCMP(((char_u **)ga_users.ga_data)[i], name) == 0)
+	    return 2; /* full match */
+	if (STRNCMP(((char_u **)ga_users.ga_data)[i], name, n) == 0)
+	    result = 1; /* partial match */
+    }
+    return result;
 }
 #endif
 
@@ -6466,11 +6556,14 @@ find_last_paren(l, start, end)
     int
 get_c_indent()
 {
+    int sw = (int)get_sw_value();
+
     /*
      * spaces from a block's opening brace the prevailing indent for that
      * block should be
      */
-    int ind_level = curbuf->b_p_sw;
+
+    int ind_level = sw;
 
     /*
      * spaces from the edge of the line an open brace that's at the end of a
@@ -6517,12 +6610,12 @@ get_c_indent()
     /*
      * spaces from the switch() indent a "case xx" label should be located
      */
-    int ind_case = curbuf->b_p_sw;
+    int ind_case = sw;
 
     /*
      * spaces from the "case xx:" code after a switch() should be located
      */
-    int ind_case_code = curbuf->b_p_sw;
+    int ind_case_code = sw;
 
     /*
      * lineup break at end of case in switch() with case label
@@ -6533,45 +6626,45 @@ get_c_indent()
      * spaces from the class declaration indent a scope declaration label
      * should be located
      */
-    int ind_scopedecl = curbuf->b_p_sw;
+    int ind_scopedecl = sw;
 
     /*
      * spaces from the scope declaration label code should be located
      */
-    int ind_scopedecl_code = curbuf->b_p_sw;
+    int ind_scopedecl_code = sw;
 
     /*
      * amount K&R-style parameters should be indented
      */
-    int ind_param = curbuf->b_p_sw;
+    int ind_param = sw;
 
     /*
      * amount a function type spec should be indented
      */
-    int ind_func_type = curbuf->b_p_sw;
+    int ind_func_type = sw;
 
     /*
      * amount a cpp base class declaration or constructor initialization
      * should be indented
      */
-    int ind_cpp_baseclass = curbuf->b_p_sw;
+    int ind_cpp_baseclass = sw;
 
     /*
      * additional spaces beyond the prevailing indent a continuation line
      * should be located
      */
-    int ind_continuation = curbuf->b_p_sw;
+    int ind_continuation = sw;
 
     /*
      * spaces from the indent of the line with an unclosed parentheses
      */
-    int ind_unclosed = curbuf->b_p_sw * 2;
+    int ind_unclosed = sw * 2;
 
     /*
      * spaces from the indent of the line with an unclosed parentheses, which
      * itself is also unclosed
      */
-    int ind_unclosed2 = curbuf->b_p_sw;
+    int ind_unclosed2 = sw;
 
     /*
      * suppress ignoring spaces from the indent of a line starting with an
@@ -6724,12 +6817,12 @@ get_c_indent()
 	if (*options == 's')	    /* "2s" means two times 'shiftwidth' */
 	{
 	    if (options == digits)
-		n = curbuf->b_p_sw;	/* just "s" is one 'shiftwidth' */
+		n = sw;	/* just "s" is one 'shiftwidth' */
 	    else
 	    {
-		n *= curbuf->b_p_sw;
+		n *= sw;
 		if (divider)
-		    n += (curbuf->b_p_sw * fraction + divider / 2) / divider;
+		    n += (sw * fraction + divider / 2) / divider;
 	    }
 	    ++options;
 	}

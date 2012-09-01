@@ -3319,6 +3319,8 @@ mch_system_classic(char *cmd, int options)
 	    {
 		TranslateMessage(&msg);
 		pDispatchMessage(&msg);
+		delay = 1;
+		continue;
 	    }
 	    if (WaitForSingleObject(pi.hProcess, delay) != WAIT_TIMEOUT)
 		break;
@@ -4999,21 +5001,26 @@ mch_breakcheck(void)
     long_u
 mch_avail_mem(int special)
 {
-    if (g_PlatformId != VER_PLATFORM_WIN32_NT)
+#ifdef MEMORYSTATUSEX
+    PlatformId();
+    if (g_PlatformId == VER_PLATFORM_WIN32_NT)
+    {
+	MEMORYSTATUSEX	ms;
+
+	/* Need to use GlobalMemoryStatusEx() when there is more memory than
+	 * what fits in 32 bits. But it's not always available. */
+	ms.dwLength = sizeof(MEMORYSTATUSEX);
+	GlobalMemoryStatusEx(&ms);
+	return (long_u)((ms.ullAvailPhys + ms.ullAvailPageFile) >> 10);
+    }
+    else
+#endif
     {
 	MEMORYSTATUS	ms;
 
 	ms.dwLength = sizeof(MEMORYSTATUS);
 	GlobalMemoryStatus(&ms);
 	return (long_u)((ms.dwAvailPhys + ms.dwAvailPageFile) >> 10);
-    }
-    else
-    {
-	MEMORYSTATUSEX	ms;
-
-	ms.dwLength = sizeof(MEMORYSTATUSEX);
-	GlobalMemoryStatusEx(&ms);
-	return (long_u)((ms.ullAvailPhys + ms.ullAvailPageFile) >> 10);
     }
 }
 
