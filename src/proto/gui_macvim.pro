@@ -92,6 +92,8 @@ gui_mch_browse(
     char_u *ext,
     char_u *initdir,
     char_u *filter);
+    char_u *
+gui_mch_browsedir(char_u *title, char_u *initdir);
     void
 gui_mch_create_scrollbar(
 	scrollbar_T *sb,

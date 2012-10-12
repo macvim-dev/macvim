@@ -1374,6 +1374,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     NSString *dir = [attr objectForKey:@"dir"];
     BOOL saving = [[attr objectForKey:@"saving"] boolValue];
+    BOOL browsedir = [[attr objectForKey:@"browsedir"] boolValue];
 
     if (!dir) {
         // 'dir == nil' means: set dir to the pwd of the Vim process, or let
@@ -1421,6 +1422,11 @@ static BOOL isUnsafeMessage(int msgid);
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         [panel setAllowsMultipleSelection:NO];
         [panel setAccessoryView:showHiddenFilesView()];
+
+        if (browsedir) {
+            [panel setCanChooseDirectories:YES];
+            [panel setCanChooseFiles:NO];
+        }
 
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
         // NOTE: -[NSOpenPanel beginSheetForDirectory:::::::] is deprecated on
