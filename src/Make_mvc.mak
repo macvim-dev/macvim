@@ -1,7 +1,7 @@
 # Makefile for Vim on Win32 (Windows NT/2000/XP/2003 and Windows 95/98/Me)
 # and Win64, using the Microsoft Visual C++ compilers. Known to work with
 # VC5, VC6 (VS98), VC7.0 (VS2002), VC7.1 (VS2003), VC8 (VS2005),
-# VC9 (VS2008), and VC10 (VS2010).
+# VC9 (VS2008), VC10 (VS2010) and VC11 (VS2012)
 #
 # To build using other Windows compilers, see INSTALLpc.txt
 #
@@ -14,6 +14,9 @@
 #
 # This will build the console version of Vim with no additional interfaces.
 # To add features, define any of the following:
+#
+# 	For MSVC 11 you need to specify where the Win32.mak file is, e.g.:
+# 	   SDK_INCLUDE_DIR="C:\Program Files\Microsoft SDKs\Windows\v7.1\Include"
 #
 #	!!!!  After changing features do "nmake clean" first  !!!!
 #
@@ -213,6 +216,7 @@ CPU = i386
 # We're on Windows 95
 CPU = i386
 !endif # !PROCESSOR_ARCHITECTURE
+OBJDIR = $(OBJDIR)$(CPU)
 
 # Build a retail version by default
 
@@ -226,7 +230,12 @@ MAKEFLAGS_GVIMEXT = DEBUG=yes
 
 # Get all sorts of useful, standard macros from the Platform SDK.
 
+!ifdef SDK_INCLUDE_DIR
+!include $(SDK_INCLUDE_DIR)\Win32.mak
+!else
 !include <Win32.mak>
+!endif
+
 
 # Flag to turn on Win64 compatibility warnings for VC7.x and VC8.
 WP64CHECK = /Wp64
@@ -283,10 +292,12 @@ NETBEANS_LIB	= WSock32.lib
 
 !ifndef XPM
 # XPM is not set, use the included xpm files, depending on the architecture.
-!if ("$(CPU)" == "AMD64") || ("$(CPU)" == "IA64")
+!if "$(CPU)" == "AMD64"
 XPM = xpm\x64
-!else
+!elseif "$(CPU)" == "i386"
 XPM = xpm\x86
+!else
+XPM = no
 !endif
 !endif
 !if "$(XPM)" != "no"
@@ -362,6 +373,10 @@ MSVCVER = 5.0
 MSVCVER = 6.0
 CPU = ix86
 !endif
+!if "$(_NMAKE_VER)" == "6.00.9782.0"
+MSVCVER = 6.0
+CPU = ix86
+!endif
 !if "$(_NMAKE_VER)" == "7.00.9466"
 MSVCVER = 7.0
 !endif
@@ -392,6 +407,12 @@ MSVCVER = 10.0
 !if "$(_NMAKE_VER)" == "10.00.30319.01"
 MSVCVER = 10.0
 !endif
+!if "$(_NMAKE_VER)" == "10.00.40219.01"
+MSVCVER = 10.0
+!endif
+!if "$(_NMAKE_VER)" == "11.00.50727.1"
+MSVCVER = 11.0
+!endif
 !endif
 
 # Abort bulding VIM if version of VC is unrecognised.
@@ -406,7 +427,7 @@ MSVCVER = 10.0
 !endif
 
 # Convert processor ID to MVC-compatible number
-!if ("$(MSVCVER)" != "8.0") && ("$(MSVCVER)" != "9.0") && ("$(MSVCVER)" != "10.0")
+!if ("$(MSVCVER)" != "8.0") && ("$(MSVCVER)" != "9.0") && ("$(MSVCVER)" != "10.0") && ("$(MSVCVER)" != "11.0")
 !if "$(CPUNR)" == "i386"
 CPUARG = /G3
 !elseif "$(CPUNR)" == "i486"
@@ -440,7 +461,7 @@ OPTFLAG = /O2
 OPTFLAG = /Ox
 !endif
 
-!if ("$(MSVCVER)" == "8.0") || ("$(MSVCVER)" == "9.0") || ("$(MSVCVER)" == "10.0")
+!if ("$(MSVCVER)" == "8.0") || ("$(MSVCVER)" == "9.0") || ("$(MSVCVER)" == "10.0") || ("$(MSVCVER)" == "11.0")
 # Use link time code generation if not worried about size
 !if "$(OPTIMIZE)" != "SPACE"
 OPTFLAG = $(OPTFLAG) /GL
@@ -905,7 +926,7 @@ LINKARGS2 = $(CON_LIB) $(GUI_LIB) $(LIBC) $(OLE_LIB)  user32.lib $(SNIFF_LIB) \
 
 # Report link time code generation progress if used. 
 !ifdef NODEBUG
-!if ("$(MSVCVER)" == "8.0") || ("$(MSVCVER)" == "9.0") || ("$(MSVCVER)" == "10.0")
+!if ("$(MSVCVER)" == "8.0") || ("$(MSVCVER)" == "9.0") || ("$(MSVCVER)" == "10.0") || ("$(MSVCVER)" == "11.0")
 !if "$(OPTIMIZE)" != "SPACE"
 LINKARGS1 = $(LINKARGS1) /LTCG:STATUS
 !endif

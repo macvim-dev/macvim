@@ -1,4 +1,4 @@
-*usr_41.txt*	For Vim version 7.3.  Last change: 2012 Mar 16
+*usr_41.txt*	For Vim version 7.3.  Last change: 2012 Oct 13
 
 		     VIM USER MANUAL - by Bram Moolenaar
 
@@ -1581,7 +1581,7 @@ Here the comment part will be ignored.  However, Vim will try to unmap
 
 RESTORING THE VIEW
 
-Sometimes you want to make a change and go back to where cursor was.
+Sometimes you want to make a change and go back to where the cursor was.
 Restoring the relative position would also be nice, so that the same line
 appears at the top of the window.
    This example yanks the current line, puts it above the first line in the
@@ -1681,7 +1681,7 @@ in your plugin file!
 HEADER
 
 You will probably add new corrections to the plugin and soon have several
-versions laying around.  And when distributing this file, people will want to
+versions lying around.  And when distributing this file, people will want to
 know who wrote this wonderful plugin and where they can send remarks.
 Therefore, put a header at the top of your plugin: >
 

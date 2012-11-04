@@ -71,19 +71,39 @@ static struct PyMethodDef OutputMethods[] = {
 /* Output buffer management
  */
 
+    static int
+OutputSetattr(PyObject *self, char *name, PyObject *val)
+{
+    if (val == NULL)
+    {
+	PyErr_SetString(PyExc_AttributeError, _("can't delete OutputObject attributes"));
+	return -1;
+    }
+
+    if (strcmp(name, "softspace") == 0)
+    {
+	if (!PyInt_Check(val))
+	{
+	    PyErr_SetString(PyExc_TypeError, _("softspace must be an integer"));
+	    return -1;
+	}
+
+	((OutputObject *)(self))->softspace = PyInt_AsLong(val);
+	return 0;
+    }
+
+    PyErr_SetString(PyExc_AttributeError, _("invalid attribute"));
+    return -1;
+}
+
     static PyObject *
 OutputWrite(PyObject *self, PyObject *args)
 {
-    int len;
+    Py_ssize_t len = 0;
     char *str = NULL;
     int error = ((OutputObject *)(self))->error;
 
     if (!PyArg_ParseTuple(args, "et#", ENC_OPT, &str, &len))
-	return NULL;
-
-    /* TODO: This works around a gcc optimizer problem and avoids Vim
-     * from crashing.  Should find a real solution. */
-    if (str == NULL)
 	return NULL;
 
     Py_BEGIN_ALLOW_THREADS
@@ -331,7 +351,8 @@ VimToPython(typval_T *our_tv, int depth, PyObject *lookupDict)
 
     if (our_tv->v_type == VAR_STRING)
     {
-	result = Py_BuildValue("s", our_tv->vval.v_string);
+	result = Py_BuildValue("s", our_tv->vval.v_string == NULL
+					? "" : (char *)our_tv->vval.v_string);
     }
     else if (our_tv->v_type == VAR_NUMBER)
     {
@@ -612,6 +633,14 @@ pyll_add(PyObject *self, pylinkedlist_T *ref, pylinkedlist_T **last)
 
 static PyTypeObject DictionaryType;
 
+#define DICTKEY_GET_NOTEMPTY(err) \
+    DICTKEY_GET(err) \
+    if (*key == NUL) \
+    { \
+	PyErr_SetString(PyExc_ValueError, _("empty keys are not allowed")); \
+	return err; \
+    }
+
 typedef struct
 {
     PyObject_HEAD
@@ -664,7 +693,7 @@ pydict_to_tv(PyObject *obj, typval_T *tv, PyObject *lookupDict)
 	if (valObject == NULL)
 	    return -1;
 
-	DICTKEY_GET(-1)
+	DICTKEY_GET_NOTEMPTY(-1)
 
 	di = dictitem_alloc(key);
 
@@ -735,7 +764,7 @@ pymap_to_tv(PyObject *obj, typval_T *tv, PyObject *lookupDict)
 	    return -1;
 	}
 
-	DICTKEY_GET(-1)
+	DICTKEY_GET_NOTEMPTY(-1)
 
 	valObject = PyTuple_GetItem(litem, 1);
 	if (valObject == NULL)
@@ -780,6 +809,44 @@ pymap_to_tv(PyObject *obj, typval_T *tv, PyObject *lookupDict)
 }
 
     static PyInt
+DictionarySetattr(DictionaryObject *self, char *name, PyObject *val)
+{
+    if (val == NULL)
+    {
+	PyErr_SetString(PyExc_AttributeError, _("Cannot delete DictionaryObject attributes"));
+	return -1;
+    }
+
+    if (strcmp(name, "locked") == 0)
+    {
+	if (self->dict->dv_lock == VAR_FIXED)
+	{
+	    PyErr_SetString(PyExc_TypeError, _("Cannot modify fixed dictionary"));
+	    return -1;
+	}
+	else
+	{
+	    if (!PyBool_Check(val))
+	    {
+		PyErr_SetString(PyExc_TypeError, _("Only boolean objects are allowed"));
+		return -1;
+	    }
+
+	    if (val == Py_True)
+		self->dict->dv_lock = VAR_LOCKED;
+	    else
+		self->dict->dv_lock = 0;
+	}
+	return 0;
+    }
+    else
+    {
+	PyErr_SetString(PyExc_AttributeError, _("Cannot set this attribute"));
+	return -1;
+    }
+}
+
+    static PyInt
 DictionaryLength(PyObject *self)
 {
     return ((PyInt) ((((DictionaryObject *)(self))->dict->dv_hashtab.ht_used)));
@@ -789,16 +856,22 @@ DictionaryLength(PyObject *self)
 DictionaryItem(PyObject *self, PyObject *keyObject)
 {
     char_u	*key;
-    dictitem_T	*val;
+    dictitem_T	*di;
     DICTKEY_DECL
 
-    DICTKEY_GET(NULL)
+    DICTKEY_GET_NOTEMPTY(NULL)
 
-    val = dict_find(((DictionaryObject *) (self))->dict, key, -1);
+    di = dict_find(((DictionaryObject *) (self))->dict, key, -1);
 
     DICTKEY_UNREF
 
-    return ConvertToPyObject(&val->di_tv);
+    if (di == NULL)
+    {
+	PyErr_SetString(PyExc_IndexError, _("no such key in dictionary"));
+	return NULL;
+    }
+
+    return ConvertToPyObject(&di->di_tv);
 }
 
     static PyInt
@@ -816,7 +889,7 @@ DictionaryAssItem(PyObject *self, PyObject *keyObject, PyObject *valObject)
 	return -1;
     }
 
-    DICTKEY_GET(-1)
+    DICTKEY_GET_NOTEMPTY(-1)
 
     di = dict_find(d, key, -1);
 
@@ -826,6 +899,7 @@ DictionaryAssItem(PyObject *self, PyObject *keyObject, PyObject *valObject)
 
 	if (di == NULL)
 	{
+	    DICTKEY_UNREF
 	    PyErr_SetString(PyExc_IndexError, _("no such key in dictionary"));
 	    return -1;
 	}
@@ -850,6 +924,7 @@ DictionaryAssItem(PyObject *self, PyObject *keyObject, PyObject *valObject)
 
 	if (dict_add(d, di) == FAIL)
 	{
+	    DICTKEY_UNREF
 	    vim_free(di);
 	    PyErr_SetVim(_("failed to add key to dictionary"));
 	    return -1;
@@ -1233,6 +1308,44 @@ ListConcatInPlace(PyObject *self, PyObject *obj)
 
     Py_INCREF(self);
     return self;
+}
+
+    static int
+ListSetattr(ListObject *self, char *name, PyObject *val)
+{
+    if (val == NULL)
+    {
+	PyErr_SetString(PyExc_AttributeError, _("Cannot delete DictionaryObject attributes"));
+	return -1;
+    }
+
+    if (strcmp(name, "locked") == 0)
+    {
+	if (self->list->lv_lock == VAR_FIXED)
+	{
+	    PyErr_SetString(PyExc_TypeError, _("Cannot modify fixed list"));
+	    return -1;
+	}
+	else
+	{
+	    if (!PyBool_Check(val))
+	    {
+		PyErr_SetString(PyExc_TypeError, _("Only boolean objects are allowed"));
+		return -1;
+	    }
+
+	    if (val == Py_True)
+		self->list->lv_lock = VAR_LOCKED;
+	    else
+		self->list->lv_lock = 0;
+	}
+	return 0;
+    }
+    else
+    {
+	PyErr_SetString(PyExc_AttributeError, _("Cannot set this attribute"));
+	return -1;
+    }
 }
 
 static struct PyMethodDef ListMethods[] = {
@@ -2521,8 +2634,10 @@ _ConvertFromPyObject(PyObject *obj, typval_T *tv, PyObject *lookupDict)
 #if PY_MAJOR_VERSION >= 3
     else if (PyBytes_Check(obj))
     {
-	char_u	*result = (char_u *) PyBytes_AsString(obj);
+	char_u	*result;
 
+	if (PyString_AsStringAndSize(obj, (char **) &result, NULL) == -1)
+	    return -1;
 	if (result == NULL)
 	    return -1;
 
@@ -2540,7 +2655,8 @@ _ConvertFromPyObject(PyObject *obj, typval_T *tv, PyObject *lookupDict)
 	if (bytes == NULL)
 	    return -1;
 
-	result = (char_u *) PyBytes_AsString(bytes);
+	if(PyString_AsStringAndSize(bytes, (char **) &result, NULL) == -1)
+	    return -1;
 	if (result == NULL)
 	    return -1;
 
@@ -2563,7 +2679,8 @@ _ConvertFromPyObject(PyObject *obj, typval_T *tv, PyObject *lookupDict)
 	if (bytes == NULL)
 	    return -1;
 
-	result=(char_u *) PyString_AsString(bytes);
+	if(PyString_AsStringAndSize(bytes, (char **) &result, NULL) == -1)
+	    return -1;
 	if (result == NULL)
 	    return -1;
 
@@ -2578,8 +2695,10 @@ _ConvertFromPyObject(PyObject *obj, typval_T *tv, PyObject *lookupDict)
     }
     else if (PyString_Check(obj))
     {
-	char_u	*result = (char_u *) PyString_AsString(obj);
+	char_u	*result;
 
+	if(PyString_AsStringAndSize(obj, (char **) &result, NULL) == -1)
+	    return -1;
 	if (result == NULL)
 	    return -1;
 
@@ -2633,7 +2752,8 @@ ConvertToPyObject(typval_T *tv)
     switch (tv->v_type)
     {
 	case VAR_STRING:
-	    return PyBytes_FromString((char *) tv->vval.v_string);
+	    return PyBytes_FromString(tv->vval.v_string == NULL
+					    ? "" : (char *)tv->vval.v_string);
 	case VAR_NUMBER:
 	    return PyLong_FromLong((long) tv->vval.v_number);
 #ifdef FEAT_FLOAT
@@ -2645,7 +2765,8 @@ ConvertToPyObject(typval_T *tv)
 	case VAR_DICT:
 	    return DictionaryNew(tv->vval.v_dict);
 	case VAR_FUNC:
-	    return FunctionNew(tv->vval.v_string);
+	    return FunctionNew(tv->vval.v_string == NULL
+					  ? (char_u *)"" : tv->vval.v_string);
 	case VAR_UNKNOWN:
 	    Py_INCREF(Py_None);
 	    return Py_None;

@@ -7660,24 +7660,30 @@ set_bool_option(opt_idx, varp, value, opt_flags)
     /* 'undofile' */
     else if ((int *)varp == &curbuf->b_p_udf || (int *)varp == &p_udf)
     {
-	char_u	hash[UNDO_HASH_SIZE];
-	buf_T	*save_curbuf = curbuf;
-
-	for (curbuf = firstbuf; curbuf != NULL; curbuf = curbuf->b_next)
+	/* Only take action when the option was set. When reset we do not
+	 * delete the undo file, the option may be set again without making
+	 * any changes in between. */
+	if (curbuf->b_p_udf || p_udf)
 	{
-	    /* When 'undofile' is set globally: for every buffer, otherwise
-	     * only for the current buffer: Try to read in the undofile, if
-	     * one exists and the buffer wasn't changed and the buffer was
-	     * loaded. */
-	    if ((curbuf == save_curbuf
-				|| (opt_flags & OPT_GLOBAL) || opt_flags == 0)
-		    && !curbufIsChanged() && curbuf->b_ml.ml_mfp != NULL)
+	    char_u	hash[UNDO_HASH_SIZE];
+	    buf_T	*save_curbuf = curbuf;
+
+	    for (curbuf = firstbuf; curbuf != NULL; curbuf = curbuf->b_next)
 	    {
-		u_compute_hash(hash);
-		u_read_undo(NULL, hash, curbuf->b_fname);
+		/* When 'undofile' is set globally: for every buffer, otherwise
+		 * only for the current buffer: Try to read in the undofile,
+		 * if one exists, the buffer wasn't changed and the buffer was
+		 * loaded */
+		if ((curbuf == save_curbuf
+				|| (opt_flags & OPT_GLOBAL) || opt_flags == 0)
+			&& !curbufIsChanged() && curbuf->b_ml.ml_mfp != NULL)
+		{
+		    u_compute_hash(hash);
+		    u_read_undo(NULL, hash, curbuf->b_fname);
+		}
 	    }
+	    curbuf = save_curbuf;
 	}
-	curbuf = save_curbuf;
     }
 #endif
 
@@ -8647,11 +8653,6 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 	    p_window = Rows - 1;
     }
 
-    if (curbuf->b_p_sts < 0)
-    {
-	errmsg = e_positive;
-	curbuf->b_p_sts = 0;
-    }
     if (curbuf->b_p_ts <= 0)
     {
 	errmsg = e_positive;
@@ -11572,6 +11573,16 @@ check_ff_value(p)
 get_sw_value()
 {
     return curbuf->b_p_sw ? curbuf->b_p_sw : curbuf->b_p_ts;
+}
+
+/*
+ * Return the effective softtabstop value for the current buffer, using the
+ * 'tabstop' value when 'softtabstop' is negative.
+ */
+    long
+get_sts_value()
+{
+    return curbuf->b_p_sts < 0 ? get_sw_value() : curbuf->b_p_sts;
 }
 
 #ifdef FEAT_FULLSCREEN

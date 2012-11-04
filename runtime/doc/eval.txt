@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.3.  Last change: 2012 Aug 02
+*eval.txt*	For Vim version 7.3.  Last change: 2012 Oct 21
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -91,8 +91,8 @@ For boolean operators Numbers are used.  Zero is FALSE, non-zero is TRUE.
 Note that in the command >
 	:if "foo"
 "foo" is converted to 0, which means FALSE.  To test for a non-empty string,
-use strlen(): >
-	:if strlen("foo")
+use empty(): >
+	:if !empty("foo")
 <				*E745* *E728* *E703* *E729* *E730* *E731*
 List, Dictionary and Funcref types are not automatically converted.
 
@@ -759,7 +759,7 @@ of a |List| is different from the original |List|.  When using "is" without
 a |List| or a |Dictionary| it is equivalent to using "equal", using "isnot"
 equivalent to using "not equal".  Except that a different type means the
 values are different: "4 == '4'" is true, "4 is '4'" is false and "0 is []" is
-false and not a error. "is#"/"isnot#" and "is?"/"isnot?" can be used to match
+false and not an error. "is#"/"isnot#" and "is?"/"isnot?" can be used to match
 and ignore case.
 
 When comparing a String with a Number, the String is converted to a Number,
@@ -1932,6 +1932,7 @@ setwinvar( {nr}, {varname}, {val})	set {varname} in window {nr} to {val}
 shellescape( {string} [, {special}])
 				String	escape {string} for use as shell
 					command argument
+shiftwidth()			Number	effective value of 'shiftwidth'
 simplify( {filename})		String	simplify filename as much as possible
 sin( {expr})			Float	sine of {expr}
 sinh( {expr})			Float	hyperbolic sine of {expr}
@@ -3754,10 +3755,10 @@ inputdialog({prompt} [, {text} [, {cancelreturn}]])		*inputdialog()*
 		Like |input()|, but when the GUI is running and text dialogs
 		are supported, a dialog window pops up to input the text.
 		Example: >
-			:let n = inputdialog("value for shiftwidth", &sw)
-			:if n != ""
-			:  let &sw = n
-			:endif
+		   :let n = inputdialog("value for shiftwidth", shiftwidth())
+		   :if n != ""
+		   :  let &sw = n
+		   :endif
 <		When the dialog is cancelled {cancelreturn} is returned.  When
 		omitted an empty string is returned.
 		Hitting <Enter> works like pressing the OK button.  Hitting
@@ -4635,8 +4636,8 @@ pyeval({expr})						*pyeval()*
 		Numbers and strings are returned as they are (strings are 
 		copied though).
 		Lists are represented as Vim |List| type.
-		Dictionaries are represented as Vim |Dictionary| type with 
-		keys converted to strings.
+		Dictionaries are represented as Vim |Dictionary| type, 
+		non-string keys result in error.
 		{only available when compiled with the |+python| feature}
 
 							*E726* *E727*
@@ -5253,8 +5254,9 @@ setreg({regname}, {value} [,{options}])
 
 		If {options} contains no register settings, then the default
 		is to use character mode unless {value} ends in a <NL>.
-		Setting the '=' register is not possible.
-		Returns zero for success, non-zero for failure.
+		Setting the '=' register is not possible, but you can use >
+			:let @= = var_expr
+<		Returns zero for success, non-zero for failure.
 
 		Examples: >
 			:call setreg(v:register, @*)
@@ -5328,6 +5330,23 @@ shellescape({string} [, {special}])			*shellescape()*
 <		This results in a directory listing for the file under the
 		cursor.  Example of use with |system()|: >
 		    :call system("chmod +w -- " . shellescape(expand("%")))
+
+
+shiftwidth()						*shiftwidth()*
+		Returns the effective value of 'shiftwidth'. This is the
+		'shiftwidth' value unless it is zero, in which case it is the
+		'tabstop' value.  To be backwards compatible in indent
+		plugins, use this: >
+			if exists('*shiftwidth')
+			  func s:sw()
+			    return shiftwidth()
+			  endfunc
+			else
+			  func s:sw()
+			    return &sw
+			  endfunc
+			endif
+<		And then use s:sw() instead of &sw.
 
 
 simplify({filename})					*simplify()*

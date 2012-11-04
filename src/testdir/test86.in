@@ -176,28 +176,97 @@ STARTTEST
 :else
 :   $put ='[0.0, 0.0]'
 :endif
+:let messages=[]
+:py <<EOF
+d=vim.bindeval('{}')
+m=vim.bindeval('messages')
+try:
+    d['abc']
+except Exception as e:
+    m.extend([e.__class__.__name__])
+
+try:
+    d['abc']="\0"
+except Exception as e:
+    m.extend([e.__class__.__name__])
+
+try:
+    d['abc']=vim
+except Exception as e:
+    m.extend([e.__class__.__name__])
+
+try:
+    d['']=1
+except Exception as e:
+    m.extend([e.__class__.__name__])
+
+try:
+    d['a\0b']=1
+except Exception as e:
+    m.extend([e.__class__.__name__])
+
+try:
+    d[b'a\0b']=1
+except Exception as e:
+    m.extend([e.__class__.__name__])
+EOF
+:$put =messages
+:unlet messages
+:" locked and scope attributes
+:let d={} | let dl={} | lockvar dl
+:for s in split("d dl v: g:")
+:    let name=tr(s, ':', 's')
+:    execute 'py '.name.'=vim.bindeval("'.s.'")'
+:    let toput=s.' : '.join(map(['locked', 'scope'], 'v:val.":".pyeval(name.".".v:val)'), ';')
+:    $put =toput
+:endfor
+:silent! let d.abc=1
+:silent! let dl.abc=1
+:py d.locked=True
+:py dl.locked=False
+:silent! let d.def=1
+:silent! let dl.def=1
+:put ='d:'.string(d)
+:put ='dl:'.string(dl)
+:unlet d dl
+:
+:let l=[] | let ll=[] | lockvar ll
+:for s in split("l ll")
+:    let name=tr(s, ':', 's')
+:    execute 'py '.name.'=vim.bindeval("'.s.'")'
+:    let toput=s.' : locked:'.pyeval(name.'.locked')
+:    $put =toput
+:endfor
+:silent! call extend(l, [0])
+:silent! call extend(ll, [0])
+:py l.locked=True
+:py ll.locked=False
+:silent! call extend(l, [1])
+:silent! call extend(ll, [1])
+:put ='l:'.string(l)
+:put ='ll:'.string(ll)
+:unlet l ll
 :"
 :" pyeval()
 :let l=pyeval('range(3)')
 :$put =string(l)
 :let d=pyeval('{"a": "b", "c": 1, "d": ["e"]}')
 :$put =sort(items(d))
-:try
-:   let undef=pyeval('undefined_name')
-:catch
-:   $put =v:exception[:13]
-:endtry
-:try
-:   let vim=pyeval('vim')
-:catch
-:   $put =v:exception[:13]
-:endtry
 :if has('float')
 :   let f=pyeval('0.0')
 :   $put =string(f)
 :else
 :   $put ='0.0'
 :endif
+:" Invalid values:
+:for e in ['"\0"', '{"\0": 1}', 'undefined_name', 'vim']
+:   try
+:      let v=pyeval(e)
+:   catch
+:      let toput=e.":\t".v:exception[:13]
+:      $put =toput
+:   endtry
+:endfor
 :endfun
 :"
 :call Test()
@@ -206,6 +275,7 @@ STARTTEST
 :call garbagecollect(1)
 :"
 :/^start:/,$wq! test.out
+:call getchar()
 ENDTEST
 
 start:

@@ -4554,7 +4554,6 @@ current_search(count, forward)
     int		dir;
     int		result;		/* result of various function calls */
     char_u	old_p_ws = p_ws;
-    int		visual_active = FALSE;
     int		flags = 0;
     pos_T	save_VIsual;
     int		zerowidth = FALSE;
@@ -4570,11 +4569,6 @@ current_search(count, forward)
     {
 	orig_pos = curwin->w_cursor;
 	save_VIsual = VIsual;
-	visual_active = TRUE;
-
-	/* just started visual selection, only one character */
-	if (equalpos(VIsual, curwin->w_cursor))
-	    visual_active = FALSE;
 
 	pos = curwin->w_cursor;
 	start_pos = VIsual;
@@ -4628,7 +4622,7 @@ current_search(count, forward)
 	    p_ws = old_p_ws;
 	    return FAIL;
 	}
-	else if (!i && !result && !visual_active)
+	else if (!i && !result)
 	{
 	    if (forward) /* try again from start of buffer */
 	    {
@@ -4665,8 +4659,15 @@ current_search(count, forward)
     if (VIsual_active)
     {
 	redraw_curbuf_later(INVERTED);	/* update the inversion */
-	if (*p_sel == 'e' && ltoreq(VIsual, curwin->w_cursor))
-	    inc_cursor();
+	if (*p_sel == 'e')
+	{
+	    /* Correction for exclusive selection depends on the direction. */
+	    if (forward && ltoreq(VIsual, curwin->w_cursor))
+		inc_cursor();
+	    else if (!forward && ltoreq(curwin->w_cursor, VIsual))
+		inc(&VIsual);
+	}
+
     }
 
 #ifdef FEAT_FOLDING
@@ -4700,7 +4701,8 @@ is_zerowidth(pattern)
     regmmatch_T	regmatch;
     int		nmatched = 0;
     int		result = -1;
-    pos_T       pos;
+    pos_T	pos;
+    int		save_called_emsg = called_emsg;
 
     if (search_regcomp(pattern, RE_SEARCH, RE_SEARCH,
 					      SEARCH_KEEP, &regmatch) == FAIL)
@@ -4713,15 +4715,17 @@ is_zerowidth(pattern)
     {
 	/* Zero-width pattern should match somewhere, then we can check if
 	 * start and end are in the same position. */
+	called_emsg = FALSE;
 	nmatched = vim_regexec_multi(&regmatch, curwin, curbuf,
 						  pos.lnum, (colnr_T)0, NULL);
 
 	if (!called_emsg)
 	    result = (nmatched != 0
-		    && regmatch.startpos[0].lnum == regmatch.endpos[0].lnum
-		    && regmatch.startpos[0].col == regmatch.endpos[0].col);
+		&& regmatch.startpos[0].lnum == regmatch.endpos[0].lnum
+		&& regmatch.startpos[0].col == regmatch.endpos[0].col);
     }
 
+    called_emsg |= save_called_emsg;
     vim_free(regmatch.regprog);
     return result;
 }
