@@ -3026,13 +3026,10 @@ static void netbeansReadCallback(CFSocketRef s,
 
         (*balloonEval->msgCB)(balloonEval, 0);
 
-        [[MMBackend sharedInstance] queueMessage:SetTooltipMsgID properties:
+        [self queueMessage:SetTooltipMsgID properties:
             [NSDictionary dictionaryWithObject:(lastToolTip ? lastToolTip : @"")
                                         forKey:@"toolTip"]];
-
-        // NOTE: We have to explicitly stop the run loop since timer events do
-        // not cause CFRunLoopRunInMode() to exit.
-        CFRunLoopStop(CFRunLoopGetCurrent());
+        [self flushQueue:YES];
     }
 }
 #endif
