@@ -339,7 +339,7 @@ static void (*ruby_init_stack)(VALUE*);
 static void* (*ruby_process_options)(int, char**);
 #endif
 
-#ifdef RUBY19_OR_LATER
+#if defined(RUBY19_OR_LATER) && !defined(PROTO)
 SIGNED_VALUE rb_num2long_stub(VALUE x)
 {
     return dll_rb_num2long(x);

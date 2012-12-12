@@ -2124,13 +2124,23 @@ qf_free(qi, idx)
     int		idx;
 {
     qfline_T	*qfp;
+    int		stop = FALSE;
 
     while (qi->qf_lists[idx].qf_count)
     {
 	qfp = qi->qf_lists[idx].qf_start->qf_next;
-	vim_free(qi->qf_lists[idx].qf_start->qf_text);
-	vim_free(qi->qf_lists[idx].qf_start->qf_pattern);
-	vim_free(qi->qf_lists[idx].qf_start);
+	if (qi->qf_lists[idx].qf_title != NULL && !stop)
+	{
+	    vim_free(qi->qf_lists[idx].qf_start->qf_text);
+	    stop = (qi->qf_lists[idx].qf_start == qfp);
+	    vim_free(qi->qf_lists[idx].qf_start->qf_pattern);
+	    vim_free(qi->qf_lists[idx].qf_start);
+	    if (stop)
+		/* Somehow qf_count may have an incorrect value, set it to 1
+		 * to avoid crashing when it's wrong.
+		 * TODO: Avoid qf_count being incorrect. */
+		qi->qf_lists[idx].qf_count = 1;
+	}
 	qi->qf_lists[idx].qf_start = qfp;
 	--qi->qf_lists[idx].qf_count;
     }
@@ -2340,8 +2350,10 @@ ex_copen(eap)
 	/* The current window becomes the previous window afterwards. */
 	win = curwin;
 
-	if (eap->cmdidx == CMD_copen || eap->cmdidx == CMD_cwindow)
-	    /* Create the new window at the very bottom. */
+	if ((eap->cmdidx == CMD_copen || eap->cmdidx == CMD_cwindow)
+		&& cmdmod.split == 0)
+	    /* Create the new window at the very bottom, except when
+	     * :belowright or :aboveleft is used. */
 	    win_goto(lastwin);
 	if (win_split(height, WSP_BELOW | WSP_NEWLOC) == FAIL)
 	    return;		/* not enough room for window */
@@ -3510,6 +3522,7 @@ restore_start_dir(dirname_start)
 	    ea.cmdidx = (curwin->w_localdir == NULL) ? CMD_cd : CMD_lcd;
 	    ex_cd(&ea);
 	}
+	vim_free(dirname_now);
     }
 }
 

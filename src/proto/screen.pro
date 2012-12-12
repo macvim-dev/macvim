@@ -31,8 +31,8 @@ void reset_cterm_colors __ARGS((void));
 void screen_draw_rectangle __ARGS((int row, int col, int height, int width, int invert));
 void screen_fill __ARGS((int start_row, int end_row, int start_col, int end_col, int c1, int c2, int attr));
 void check_for_delay __ARGS((int check_msg_scroll));
-int screen_valid __ARGS((int clear));
-void screenalloc __ARGS((int clear));
+int screen_valid __ARGS((int doclear));
+void screenalloc __ARGS((int doclear));
 void free_screenlines __ARGS((void));
 void screenclear __ARGS((void));
 int can_clear __ARGS((char_u *p));
@@ -50,4 +50,6 @@ int redrawing __ARGS((void));
 int messaging __ARGS((void));
 void showruler __ARGS((int always));
 int number_width __ARGS((win_T *wp));
+int screen_screencol __ARGS((void));
+int screen_screenrow __ARGS((void));
 /* vim: set ft=c : */

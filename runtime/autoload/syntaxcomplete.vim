@@ -1,11 +1,31 @@
 " Vim completion script
 " Language:    All languages, uses existing syntax highlighting rules
 " Maintainer:  David Fishburn <dfishburn dot vim at gmail dot com>
-" Version:     8.0
-" Last Change: 2011 Nov 02
-" Usage:       For detailed help, ":help ft-syntax-omni" 
+" Version:     11.0
+" Last Change: 2012 Dec 04
+" Usage:       For detailed help, ":help ft-syntax-omni"
 
 " History
+"
+" Version 11.0
+"     Corrected which characters required escaping during
+"     substitution calls.
+"
+" Version 10.0
+"     Cycle through all the character ranges specified in the
+"     iskeyword option and build a list of valid word separators.
+"     Prior to this change, only actual characters were used,
+"     where for example ASCII "45" == "-".  If "45" were used
+"     in iskeyword the hyphen would not be picked up.
+"     This introduces a new option, since the character ranges
+"     specified could be multibyte:
+"         let g:omni_syntax_use_single_byte = 1
+"     This by default will only allow single byte ASCII
+"     characters to be added and an additional check to ensure
+"     the charater is printable (see documentation for isprint).
+"
+" Version 9.0
+"     Add the check for cpo.
 "
 " Version 8.0
 "     Updated SyntaxCSyntaxGroupItems()
@@ -16,7 +36,7 @@
 " Version 7.0
 "     Updated syntaxcomplete#OmniSyntaxList()
 "         - Looking up the syntax groups defined from a syntax file
-"           looked for only 1 format of {filetype}GroupName, but some 
+"           looked for only 1 format of {filetype}GroupName, but some
 "           syntax writers use this format as well:
 "               {b:current_syntax}GroupName
 "           OmniSyntaxList() will now check for both if the first
@@ -24,11 +44,11 @@
 "
 " Version 6.0
 "     Added syntaxcomplete#OmniSyntaxList()
-"         - Allows other plugins to use this for their own 
+"         - Allows other plugins to use this for their own
 "           purposes.
 "         - It will return a List of all syntax items for the
-"           syntax group name passed in.  
-"         - XPTemplate for SQL will use this function via the 
+"           syntax group name passed in.
+"         - XPTemplate for SQL will use this function via the
 "           sqlcomplete plugin to populate a Choose box.
 "
 " Version 5.0
@@ -38,7 +58,7 @@
 "
 " Set completion with CTRL-X CTRL-O to autoloaded function.
 " This check is in place in case this script is
-" sourced directly instead of using the autoload feature. 
+" sourced directly instead of using the autoload feature.
 if exists('+omnifunc')
     " Do not set the option if already set since this
     " results in an E117 warning.
@@ -48,9 +68,13 @@ if exists('+omnifunc')
 endif
 
 if exists('g:loaded_syntax_completion')
-    finish 
+    finish
 endif
-let g:loaded_syntax_completion = 80
+let g:loaded_syntax_completion = 110
+
+" Turn on support for line continuations when creating the script
+let s:cpo_save = &cpo
+set cpo&vim
 
 " Set ignorecase to the ftplugin standard
 " This is the default setting, but if you define a buffer local
@@ -65,6 +89,18 @@ endif
 " variable you can override this on a per filetype.
 if !exists('g:omni_syntax_use_iskeyword')
     let g:omni_syntax_use_iskeyword = 1
+endif
+
+" When using iskeyword, this setting controls whether the characters
+" should be limited to single byte characters.
+if !exists('g:omni_syntax_use_single_byte')
+    let g:omni_syntax_use_single_byte = 1
+endif
+
+" When using iskeyword, this setting controls whether the characters
+" should be limited to single byte characters.
+if !exists('g:omni_syntax_use_iskeyword_numeric')
+    let g:omni_syntax_use_iskeyword_numeric = 1
 endif
 
 " Only display items in the completion window that are at least
@@ -158,7 +194,7 @@ endfunc
 function! syntaxcomplete#OmniSyntaxList(...)
     if a:0 > 0
         let parms = []
-        if 3 == type(a:1) 
+        if 3 == type(a:1)
             let parms = a:1
         elseif 1 == type(a:1)
             let parms = split(a:1, ',')
@@ -172,7 +208,7 @@ endfunc
 function! OmniSyntaxList(...)
     let list_parms = []
     if a:0 > 0
-        if 3 == type(a:1) 
+        if 3 == type(a:1)
             let list_parms = a:1
         elseif 1 == type(a:1)
             let list_parms = split(a:1, ',')
@@ -208,18 +244,18 @@ function! OmniSyntaxList(...)
 
     let saveL = @l
     let filetype = substitute(&filetype, '\.', '_', 'g')
-    
+
     if empty(list_parms)
         " Default the include group to include the requested syntax group
         let syntax_group_include_{filetype} = ''
         " Check if there are any overrides specified for this filetype
         if exists('g:omni_syntax_group_include_'.filetype)
             let syntax_group_include_{filetype} =
-                        \ substitute( g:omni_syntax_group_include_{filetype},'\s\+','','g') 
+                        \ substitute( g:omni_syntax_group_include_{filetype},'\s\+','','g')
             let list_parms = split(g:omni_syntax_group_include_{filetype}, ',')
             if syntax_group_include_{filetype} =~ '\w'
-                let syntax_group_include_{filetype} = 
-                            \ substitute( syntax_group_include_{filetype}, 
+                let syntax_group_include_{filetype} =
+                            \ substitute( syntax_group_include_{filetype},
                             \ '\s*,\s*', '\\|', 'g'
                             \ )
             endif
@@ -229,11 +265,11 @@ function! OmniSyntaxList(...)
     endif
 
     " Loop through all the syntax groupnames, and build a
-    " syntax file which contains these names.  This can 
+    " syntax file which contains these names.  This can
     " work generically for any filetype that does not already
     " have a plugin defined.
     " This ASSUMES the syntax groupname BEGINS with the name
-    " of the filetype.  From my casual viewing of the vim7\syntax 
+    " of the filetype.  From my casual viewing of the vim7\syntax
     " directory this is true for almost all syntax definitions.
     " As an example, the SQL syntax groups have this pattern:
     "     sqlType
@@ -246,7 +282,7 @@ function! OmniSyntaxList(...)
     let syntax_full = "\n".@l
     let @l = saveL
 
-    if syntax_full =~ 'E28' 
+    if syntax_full =~ 'E28'
                 \ || syntax_full =~ 'E411'
                 \ || syntax_full =~ 'E415'
                 \ || syntax_full =~ 'No Syntax items'
@@ -256,7 +292,7 @@ function! OmniSyntaxList(...)
     let filetype = substitute(&filetype, '\.', '_', 'g')
 
     let list_exclude_groups = []
-    if a:0 > 0 
+    if a:0 > 0
         " Do nothing since we have specific a specific list of groups
     else
         " Default the exclude group to nothing
@@ -264,11 +300,11 @@ function! OmniSyntaxList(...)
         " Check if there are any overrides specified for this filetype
         if exists('g:omni_syntax_group_exclude_'.filetype)
             let syntax_group_exclude_{filetype} =
-                        \ substitute( g:omni_syntax_group_exclude_{filetype},'\s\+','','g') 
+                        \ substitute( g:omni_syntax_group_exclude_{filetype},'\s\+','','g')
             let list_exclude_groups = split(g:omni_syntax_group_exclude_{filetype}, ',')
-            if syntax_group_exclude_{filetype} =~ '\w' 
-                let syntax_group_exclude_{filetype} = 
-                            \ substitute( syntax_group_exclude_{filetype}, 
+            if syntax_group_exclude_{filetype} =~ '\w'
+                let syntax_group_exclude_{filetype} =
+                            \ substitute( syntax_group_exclude_{filetype},
                             \ '\s*,\s*', '\\|', 'g'
                             \ )
             endif
@@ -285,14 +321,14 @@ function! OmniSyntaxList(...)
     while ftindex > -1
         let ft_part_name = matchstr( &filetype, '\w\+', ftindex )
 
-        " Syntax rules can contain items for more than just the current 
+        " Syntax rules can contain items for more than just the current
         " filetype.  They can contain additional items added by the user
         " via autocmds or their vimrc.
         " Some syntax files can be combined (html, php, jsp).
         " We want only items that begin with the filetype we are interested in.
         let next_group_regex = '\n' .
                     \ '\zs'.ft_part_name.'\w\+\ze'.
-                    \ '\s\+xxx\s\+' 
+                    \ '\s\+xxx\s\+'
         let index    = 0
         let index    = match(syntax_full, next_group_regex, index)
 
@@ -306,11 +342,11 @@ function! OmniSyntaxList(...)
             "     syn keyword {syntax_filename}Keyword  values ...
             "     let b:current_syntax = "mysql"
             " So, we will make the format of finding the syntax group names
-            " a bit more flexible and look for both if the first fails to 
+            " a bit more flexible and look for both if the first fails to
             " find a match.
             let next_group_regex = '\n' .
                         \ '\zs'.b:current_syntax.'\w\+\ze'.
-                        \ '\s\+xxx\s\+' 
+                        \ '\s\+xxx\s\+'
             let index    = 0
             let index    = match(syntax_full, next_group_regex, index)
         endif
@@ -324,9 +360,9 @@ function! OmniSyntaxList(...)
                     let get_syn_list = 0
                 endif
             endfor
-        
+
             " This code is no longer needed in version 6.0 since we have
-            " augmented the syntax list command to only retrieve the syntax 
+            " augmented the syntax list command to only retrieve the syntax
             " groups we are interested in.
             "
             " if get_syn_list == 1
@@ -338,7 +374,7 @@ function! OmniSyntaxList(...)
             " endif
 
             if get_syn_list == 1
-                " Pass in the full syntax listing, plus the group name we 
+                " Pass in the full syntax listing, plus the group name we
                 " are interested in.
                 let extra_syn_list = s:SyntaxCSyntaxGroupItems(group_name, syntax_full)
                 let syn_list = syn_list . extra_syn_list . "\n"
@@ -392,7 +428,7 @@ function! s:SyntaxCSyntaxGroupItems( group_name, syntax_full )
     "     \|           - 2nd potential match
     "     \%$          - matches end of the file or string
     "     \)           - end a group
-    let syntax_group = matchstr(a:syntax_full, 
+    let syntax_group = matchstr(a:syntax_full,
                 \ "\n".a:group_name.'\s\+xxx\s\+\zs.\{-}\ze\(\n\w\|\%$\)'
                 \ )
 
@@ -402,42 +438,42 @@ function! s:SyntaxCSyntaxGroupItems( group_name, syntax_full )
 
         " We only want the words for the lines begining with
         " containedin, but there could be other items.
-        
+
         " Tried to remove all lines that do not begin with contained
         " but this does not work in all cases since you can have
         "    contained nextgroup=...
         " So this will strip off the ending of lines with known
         " keywords.
-        let syn_list = substitute( 
+        let syn_list = substitute(
                     \    syntax_group, '\<\('.
                     \    substitute(
                     \      escape(s:syn_remove_words, '\\/.*$^~[]')
                     \      , ',', '\\|', 'g'
                     \    ).
                     \    '\).\{-}\%($\|'."\n".'\)'
-                    \    , "\n", 'g' 
+                    \    , "\n", 'g'
                     \  )
 
         " Now strip off the newline + blank space + contained.
         " Also include lines with nextgroup=@someName skip_key_words syntax_element
-        let syn_list = substitute( 
+        let syn_list = substitute(
                     \    syn_list, '\%(^\|\n\)\@<=\s*\<\(contained\|nextgroup=\)'
-                    \    , "", 'g' 
+                    \    , "", 'g'
                     \ )
 
         " This can leave lines like this
         "     =@vimMenuList  skipwhite onoremenu
         " Strip the special option keywords first
         "     :h :syn-skipwhite*
-        let syn_list = substitute( 
+        let syn_list = substitute(
                     \    syn_list, '\<\(skipwhite\|skipnl\|skipempty\)\>'
-                    \    , "", 'g' 
+                    \    , "", 'g'
                     \ )
 
         " Now remove the remainder of the nextgroup=@someName lines
-        let syn_list = substitute( 
+        let syn_list = substitute(
                     \    syn_list, '\%(^\|\n\)\@<=\s*\(@\w\+\)'
-                    \    , "", 'g' 
+                    \    , "", 'g'
                     \ )
 
         if b:omni_syntax_use_iskeyword == 0
@@ -446,19 +482,74 @@ function! s:SyntaxCSyntaxGroupItems( group_name, syntax_full )
             " This will replace non-word characters with spaces.
             let syn_list = substitute( syn_list, '[^0-9A-Za-z_ ]', ' ', 'g' )
         else
-            let accept_chars = ','.&iskeyword.','
-            " Remove all character ranges
-            " let accept_chars = substitute(accept_chars, ',[^,]\+-[^,]\+,', ',', 'g')
-            let accept_chars = substitute(accept_chars, ',\@<=[^,]\+-[^,]\+,', '', 'g')
-            " Remove all numeric specifications
-            " let accept_chars = substitute(accept_chars, ',\d\{-},', ',', 'g')
-            let accept_chars = substitute(accept_chars, ',\@<=\d\{-},', '', 'g')
-            " Remove all commas
-            let accept_chars = substitute(accept_chars, ',', '', 'g')
-            " Escape special regex characters
-            let accept_chars = escape(accept_chars, '\\/.*$^~[]' )
-            " Remove all characters that are not acceptable
-            let syn_list = substitute( syn_list, '[^0-9A-Za-z_ '.accept_chars.']', ' ', 'g' )
+            if g:omni_syntax_use_iskeyword_numeric == 1
+                " iskeyword can contain value like this
+                " 38,42,43,45,47-58,60-62,64-90,97-122,_,+,-,*,/,%,<,=,>,:,$,?,!,@-@,94
+                " Numeric values convert to their ASCII equivalent using the
+                " nr2char() function.
+                "     &       38
+                "     *       42
+                "     +       43
+                "     -       45
+                "     ^       94
+                " Iterate through all numeric specifications and convert those
+                " to their ascii equivalent ensuring the character is printable.
+                " If so, add it to the list.
+                let accepted_chars = ''
+                for item in split(&iskeyword, ',')
+                    if item =~ '-'
+                        " This is a character range (ie 47-58),
+                        " cycle through each character within the range
+                        let [b:start, b:end] = split(item, '-')
+                        for range_item in range( b:start, b:end )
+                            if range_item <= 127 || g:omni_syntax_use_single_byte == 0
+                                if nr2char(range_item) =~ '\p'
+                                    let accepted_chars = accepted_chars . nr2char(range_item)
+                                endif
+                            endif
+                        endfor
+                    elseif item =~ '^\d\+$'
+                        " Only numeric, translate to a character
+                        if item < 127 || g:omni_syntax_use_single_byte == 0
+                            if nr2char(item) =~ '\p'
+                                let accepted_chars = accepted_chars . nr2char(item)
+                            endif
+                        endif
+                    else
+                        if char2nr(item) < 127 || g:omni_syntax_use_single_byte == 0
+                            if item =~ '\p'
+                                let accepted_chars = accepted_chars . item
+                            endif
+                        endif
+                    endif
+                endfor
+                " Escape special regex characters
+                " Looks like the wrong chars are escaped.  In a collection,
+                "      :h /[]
+                "      only `]', `\', `-' and `^' are special:
+                " let accepted_chars = escape(accepted_chars, '\\/.*$^~[]' )
+                let accepted_chars = escape(accepted_chars, ']\-^' )
+                " Remove all characters that are not acceptable
+                let syn_list = substitute( syn_list, '[^A-Za-z'.accepted_chars.']', ' ', 'g' )
+            else
+                let accept_chars = ','.&iskeyword.','
+                " Remove all character ranges
+                " let accept_chars = substitute(accept_chars, ',[^,]\+-[^,]\+,', ',', 'g')
+                let accept_chars = substitute(accept_chars, ',\@<=[^,]\+-[^,]\+,', '', 'g')
+                " Remove all numeric specifications
+                " let accept_chars = substitute(accept_chars, ',\d\{-},', ',', 'g')
+                let accept_chars = substitute(accept_chars, ',\@<=\d\{-},', '', 'g')
+                " Remove all commas
+                let accept_chars = substitute(accept_chars, ',', '', 'g')
+                " Escape special regex characters
+                " Looks like the wrong chars are escaped.  In a collection,
+                "      :h /[]
+                "      only `]', `\', `-' and `^' are special:
+                " let accept_chars = escape(accept_chars, '\\/.*$^~[]' )
+                let accept_chars = escape(accept_chars, ']\-^' )
+                " Remove all characters that are not acceptable
+                let syn_list = substitute( syn_list, '[^0-9A-Za-z_'.accept_chars.']', ' ', 'g' )
+            endif
         endif
 
         if b:omni_syntax_minimum_length > 0
@@ -471,3 +562,27 @@ function! s:SyntaxCSyntaxGroupItems( group_name, syntax_full )
 
     return syn_list
 endfunction
+
+function! OmniSyntaxShowChars(spec)
+  let result = []
+  for item in split(a:spec, ',')
+    if len(item) > 1
+      if item == '@-@'
+        call add(result, char2nr(item))
+      else
+        call extend(result, call('range', split(item, '-')))
+      endif
+    else
+      if item == '@'  " assume this is [A-Za-z]
+        for [c1, c2] in [['A', 'Z'], ['a', 'z']]
+          call extend(result, range(char2nr(c1), char2nr(c2)))
+        endfor
+      else
+        call add(result, char2nr(item))
+      endif
+    endif
+  endfor
+  return join(map(result, 'nr2char(v:val)'), ', ')
+endfunction
+let &cpo = s:cpo_save
+unlet s:cpo_save
