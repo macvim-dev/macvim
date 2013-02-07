@@ -284,7 +284,12 @@ buf_init_chartab(buf, global)
 		}
 		++c;
 	    }
+
+	    c = *p;
 	    p = skip_to_option_part(p);
+	    if (c == ',' && *p == NUL)
+		/* Trailing comma is not allowed. */
+		return FAIL;
 	}
     }
     chartab_initialized = TRUE;
@@ -905,6 +910,14 @@ vim_isIDc(c)
 vim_iswordc(c)
     int c;
 {
+    return vim_iswordc_buf(c, curbuf);
+}
+
+    int
+vim_iswordc_buf(c, buf)
+    int		c;
+    buf_T	*buf;
+{
 #ifdef FEAT_MBYTE
     if (c >= 0x100)
     {
@@ -914,7 +927,7 @@ vim_iswordc(c)
 	    return utf_class(c) >= 2;
     }
 #endif
-    return (c > 0 && c < 0x100 && GET_CHARTAB(curbuf, c) != 0);
+    return (c > 0 && c < 0x100 && GET_CHARTAB(buf, c) != 0);
 }
 
 /*
@@ -931,19 +944,17 @@ vim_iswordp(p)
     return GET_CHARTAB(curbuf, *p) != 0;
 }
 
-#if defined(FEAT_SYN_HL) || defined(PROTO)
     int
-vim_iswordc_buf(p, buf)
+vim_iswordp_buf(p, buf)
     char_u	*p;
     buf_T	*buf;
 {
-# ifdef FEAT_MBYTE
+#ifdef FEAT_MBYTE
     if (has_mbyte && MB_BYTE2LEN(*p) > 1)
 	return mb_get_class(p) >= 2;
-# endif
+#endif
     return (GET_CHARTAB(buf, *p) != 0);
 }
-#endif
 
 /*
  * return TRUE if 'c' is a valid file-name character

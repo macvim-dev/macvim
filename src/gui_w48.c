@@ -323,10 +323,15 @@ static void TrackUserActivity __ARGS((UINT uMsg));
 
 /*
  * For control IME.
+ *
+ * These LOGFONT used for IME.
  */
 #ifdef FEAT_MBYTE
 # ifdef USE_IM_CONTROL
+/* holds LOGFONT for 'guifontwide' if available, otherwise 'guifont' */
 static LOGFONT norm_logfont;
+/* holds LOGFONT for 'guifont' always. */
+static LOGFONT sub_logfont;
 # endif
 #endif
 
@@ -2452,7 +2457,6 @@ gui_mch_update_tabline(void)
     TCITEM	tie;
     int		nr = 0;
     int		curtabidx = 0;
-    RECT	rc;
 #ifdef FEAT_MBYTE
     static int	use_unicode = FALSE;
     int		uu;
@@ -2479,13 +2483,16 @@ gui_mch_update_tabline(void)
     tie.mask = TCIF_TEXT;
     tie.iImage = -1;
 
+    /* Disable redraw for tab updates to eliminate O(N^2) draws. */
+    SendMessage(s_tabhwnd, WM_SETREDRAW, (WPARAM)FALSE, 0);
+
     /* Add a label for each tab page.  They all contain the same text area. */
     for (tp = first_tabpage; tp != NULL; tp = tp->tp_next, ++nr)
     {
 	if (tp == curtab)
 	    curtabidx = nr;
 
-	if (!TabCtrl_GetItemRect(s_tabhwnd, nr, &rc))
+	if (nr >= TabCtrl_GetItemCount(s_tabhwnd))
 	{
 	    /* Add the tab */
 	    tie.pszText = "-Empty-";
@@ -2519,11 +2526,16 @@ gui_mch_update_tabline(void)
     }
 
     /* Remove any old labels. */
-    while (TabCtrl_GetItemRect(s_tabhwnd, nr, &rc))
+    while (nr < TabCtrl_GetItemCount(s_tabhwnd))
 	TabCtrl_DeleteItem(s_tabhwnd, nr);
 
     if (TabCtrl_GetCurSel(s_tabhwnd) != curtabidx)
 	TabCtrl_SetCurSel(s_tabhwnd, curtabidx);
+
+    /* Re-enable redraw and redraw. */
+    SendMessage(s_tabhwnd, WM_SETREDRAW, (WPARAM)TRUE, 0);
+    RedrawWindow(s_tabhwnd, NULL, NULL,
+		    RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 /*
@@ -3083,6 +3095,40 @@ logfont2name(LOGFONT lf)
     return res;
 }
 
+
+#ifdef FEAT_MBYTE_IME
+/*
+ * Set correct LOGFONT to IME.  Use 'guifontwide' if available, otherwise use
+ * 'guifont'
+ */
+    static void
+update_im_font()
+{
+    LOGFONT	lf_wide;
+
+    if (p_guifontwide != NULL && *p_guifontwide != NUL
+	    && gui.wide_font != NOFONT
+	    && GetObject((HFONT)gui.wide_font, sizeof(lf_wide), &lf_wide))
+	norm_logfont = lf_wide;
+    else
+	norm_logfont = sub_logfont;
+    im_set_font(&norm_logfont);
+}
+#endif
+
+#ifdef FEAT_MBYTE
+/*
+ * Handler of gui.wide_font (p_guifontwide) changed notification.
+ */
+    void
+gui_mch_wide_font_changed()
+{
+# ifdef FEAT_MBYTE_IME
+    update_im_font();
+# endif
+}
+#endif
+
 /*
  * Initialise vim to use the font with the given name.
  * Return FAIL if the font could not be loaded, OK otherwise.
@@ -3105,9 +3151,10 @@ gui_mch_init_font(char_u *font_name, int fontset)
 	font_name = lf.lfFaceName;
 #if defined(FEAT_MBYTE_IME) || defined(GLOBAL_IME)
     norm_logfont = lf;
+    sub_logfont = lf;
 #endif
 #ifdef FEAT_MBYTE_IME
-    im_set_font(&lf);
+    update_im_font();
 #endif
     gui_mch_free_font(gui.norm_font);
     gui.norm_font = font;

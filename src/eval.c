@@ -7855,7 +7855,7 @@ static struct fst
     {"ceil",		1, 1, f_ceil},
 #endif
     {"changenr",	0, 0, f_changenr},
-    {"char2nr",		1, 1, f_char2nr},
+    {"char2nr",		1, 2, f_char2nr},
     {"cindent",		1, 1, f_cindent},
     {"clearmatches",	0, 0, f_clearmatches},
     {"col",		1, 1, f_col},
@@ -8004,7 +8004,7 @@ static struct fst
     {"mzeval",		1, 1, f_mzeval},
 #endif
     {"nextnonblank",	1, 1, f_nextnonblank},
-    {"nr2char",		1, 1, f_nr2char},
+    {"nr2char",		1, 2, f_nr2char},
     {"or",		2, 2, f_or},
     {"pathshorten",	1, 1, f_pathshorten},
 #ifdef FEAT_FLOAT
@@ -9304,7 +9304,17 @@ f_char2nr(argvars, rettv)
 {
 #ifdef FEAT_MBYTE
     if (has_mbyte)
-	rettv->vval.v_number = (*mb_ptr2char)(get_tv_string(&argvars[0]));
+    {
+	int	utf8 = 0;
+
+	if (argvars[1].v_type != VAR_UNKNOWN)
+	    utf8 = get_tv_number_chk(&argvars[1], NULL);
+
+	if (utf8)
+	    rettv->vval.v_number = (*utf_ptr2char)(get_tv_string(&argvars[0]));
+	else
+	    rettv->vval.v_number = (*mb_ptr2char)(get_tv_string(&argvars[0]));
+    }
     else
 #endif
     rettv->vval.v_number = get_tv_string(&argvars[0])[0];
@@ -14343,6 +14353,22 @@ f_mzeval(argvars, rettv)
     str = get_tv_string_buf(&argvars[0], buf);
     do_mzeval(str, rettv);
 }
+
+    void
+mzscheme_call_vim(name, args, rettv)
+    char_u	*name;
+    typval_T	*args;
+    typval_T	*rettv;
+{
+    typval_T argvars[3];
+
+    argvars[0].v_type = VAR_STRING;
+    argvars[0].vval.v_string = name;
+    copy_tv(args, &argvars[1]);
+    argvars[2].v_type = VAR_UNKNOWN;
+    f_call(argvars, rettv);
+    clear_tv(&argvars[1]);
+}
 #endif
 
 /*
@@ -14380,7 +14406,16 @@ f_nr2char(argvars, rettv)
 
 #ifdef FEAT_MBYTE
     if (has_mbyte)
-	buf[(*mb_char2bytes)((int)get_tv_number(&argvars[0]), buf)] = NUL;
+    {
+	int	utf8 = 0;
+
+	if (argvars[1].v_type != VAR_UNKNOWN)
+	    utf8 = get_tv_number_chk(&argvars[1], NULL);
+	if (utf8)
+	    buf[(*utf_char2bytes)((int)get_tv_number(&argvars[0]), buf)] = NUL;
+	else
+	    buf[(*mb_char2bytes)((int)get_tv_number(&argvars[0]), buf)] = NUL;
+    }
     else
 #endif
     {
@@ -18912,7 +18947,7 @@ var2fpos(varp, dollar_lnum, fnum)
 #endif
     if (name[0] == '\'')			/* mark */
     {
-	pp = getmark_fnum(name[1], FALSE, fnum);
+	pp = getmark_buf_fnum(curbuf, name[1], FALSE, fnum);
 	if (pp == NULL || pp == (pos_T *)-1 || pp->lnum <= 0)
 	    return NULL;
 	return pp;

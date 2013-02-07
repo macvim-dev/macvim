@@ -798,6 +798,15 @@
 #endif
 
 /*
+ * On some systems, when we compile with the GUI, we always use it.  On Mac
+ * there is no terminal version, and on Windows we can't figure out how to
+ * fork one off with :gui.
+ */
+#if defined(FEAT_GUI_MSWIN) || (defined(FEAT_GUI_MAC) && !defined(MACOS_X_UNIX))
+# define ALWAYS_USE_GUI
+#endif
+
+/*
  * +dialog_gui		Use GUI dialog.
  * +dialog_con		May use Console dialog.
  *			When none of these defined there is no dialog support.
@@ -828,6 +837,9 @@
 	 || defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MAC) \
 	 || defined(FEAT_GUI_MACVIM))
 # define FEAT_GUI_TEXTDIALOG
+# ifndef ALWAYS_USE_GUI
+#  define FEAT_CON_DIALOG
+# endif
 #endif
 
 /* Mac specific thing: Codewarrior interface. */

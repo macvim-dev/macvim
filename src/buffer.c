@@ -1445,6 +1445,10 @@ set_curbuf(buf, action)
 enter_buffer(buf)
     buf_T	*buf;
 {
+#ifdef FEAT_SYN_HL
+    long old_tw = curbuf->b_p_tw;
+#endif
+
     /* Copy buffer and window local option values.  Not for a help buffer. */
     buf_copy_options(buf, BCO_ENTER | BCO_NOHELP);
     if (!buf->b_help)
@@ -1468,6 +1472,8 @@ enter_buffer(buf)
 
 #ifdef FEAT_SYN_HL
     curwin->w_s = &(buf->b_s);
+    if (old_tw != buf->b_p_tw)
+	check_colorcolumn(curwin);
 #endif
 
     /* Cursor on first line by default. */

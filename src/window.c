@@ -2281,9 +2281,15 @@ win_close(win, free_buf)
 #endif
     }
 
+    if (only_one_window() && win_valid(win) && win->w_buffer == NULL
+	    && (last_window() || curtab != prev_curtab
+		|| close_last_window_tabpage(win, free_buf, prev_curtab)))
+	/* Autocommands have close all windows, quit now. */
+	getout(0);
+
     /* Autocommands may have closed the window already, or closed the only
      * other window or moved to another tab page. */
-    if (!win_valid(win) || last_window() || curtab != prev_curtab
+    else if (!win_valid(win) || last_window() || curtab != prev_curtab
 	    || close_last_window_tabpage(win, free_buf, prev_curtab))
 	return;
 
@@ -3990,9 +3996,10 @@ win_goto(wp)
 
 #ifdef FEAT_CONCEAL
     /* Conceal cursor line in previous window, unconceal in current window. */
-    if (win_valid(owp))
+    if (win_valid(owp) && owp->w_p_cole > 0 && !msg_scrolled)
 	update_single_line(owp, owp->w_cursor.lnum);
-    update_single_line(curwin, curwin->w_cursor.lnum);
+    if (curwin->w_p_cole > 0 && !msg_scrolled)
+	need_cursor_line_redraw = TRUE;
 #endif
 }
 
@@ -6292,7 +6299,8 @@ only_one_window()
 	return FALSE;
 
     for (wp = firstwin; wp != NULL; wp = wp->w_next)
-	if ((!((wp->w_buffer->b_help && !curbuf->b_help)
+	if (wp->w_buffer != NULL
+		&& (!((wp->w_buffer->b_help && !curbuf->b_help)
 # ifdef FEAT_QUICKFIX
 		    || wp->w_p_pvw
 # endif

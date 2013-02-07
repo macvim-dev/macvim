@@ -510,13 +510,15 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
       else
 	dnl Determine the SONAME for the current version, but fallback to
 	dnl liblua${vi_cv_version_lua}.so if no SONAME-versioned file is found.
-	for i in 0 1 2 3 4 5 6 7 8 9; do
-	  if test -f "${vi_cv_path_lua_pfx}/lib/liblua${vi_cv_version_lua}.so.$i"; then
-	    LUA_SONAME=".$i"
-	    break
-	  fi
+	for LUA_SOVER in "${vi_cv_version_lua}.so" ".so.${vi_cv_version_lua}"; do
+	  for i in 0 1 2 3 4 5 6 7 8 9; do
+	    if test -f "${vi_cv_path_lua_pfx}/lib/liblua${LUA_SOVER}.$i"; then
+	      LUA_SONAME=".$i"
+	      break
+	    fi
+	  done
+	  vi_cv_dll_name_lua="liblua${LUA_SOVER}$LUA_SONAME"
 	done
-	vi_cv_dll_name_lua="liblua${vi_cv_version_lua}.so$LUA_SONAME"
       fi
       AC_DEFINE(DYNAMIC_LUA)
       LUA_LIBS=""
@@ -631,7 +633,8 @@ if test "$enable_mzschemeinterp" = "yes"; then
 
   if test "X$vi_cv_path_mzscheme_pfx" != "X"; then
     if test "x$MACOSX" = "xyes"; then
-      MZSCHEME_LIBS="-framework PLT_MzScheme"
+      MZSCHEME_LIBS="-framework Racket"
+      MZSCHEME_CFLAGS="-DMZ_PRECISE_GC"
     elif test -f "${vi_cv_path_mzscheme_pfx}/lib/libmzscheme3m.a"; then
       MZSCHEME_LIBS="${vi_cv_path_mzscheme_pfx}/lib/libmzscheme3m.a"
       MZSCHEME_CFLAGS="-DMZ_PRECISE_GC"
@@ -674,6 +677,10 @@ if test "$enable_mzschemeinterp" = "yes"; then
       else
 	if test -d $vi_cv_path_mzscheme_pfx/share/racket/collects; then
 	  SCHEME_COLLECTS=$vi_cv_path_mzscheme_pfx/share/racket/
+	else
+	  if test -d $vi_cv_path_mzscheme_pfx/collects; then
+	    SCHEME_COLLECTS=$vi_cv_path_mzscheme_pfx/
+	  fi
 	fi
       fi
     fi
@@ -862,7 +869,7 @@ AC_ARG_ENABLE(pythoninterp,
 AC_MSG_RESULT($enable_pythoninterp)
 if test "$enable_pythoninterp" = "yes" -o "$enable_pythoninterp" = "dynamic"; then
   dnl -- find the python executable
-  AC_PATH_PROG(vi_cv_path_python, python)
+  AC_PATH_PROGS(vi_cv_path_python, python2 python)
   if test "X$vi_cv_path_python" != "X"; then
 
     dnl -- get its version number
@@ -1062,7 +1069,7 @@ AC_ARG_ENABLE(python3interp,
 AC_MSG_RESULT($enable_python3interp)
 if test "$enable_python3interp" = "yes" -o "$enable_python3interp" = "dynamic"; then
   dnl -- find the python3 executable
-  AC_PATH_PROG(vi_cv_path_python3, python3)
+  AC_PATH_PROGS(vi_cv_path_python3, python3 python)
   if test "X$vi_cv_path_python3" != "X"; then
 
     dnl -- get its version number

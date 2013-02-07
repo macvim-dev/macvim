@@ -144,6 +144,32 @@ ENDTEST
 TEST_8:
 
 STARTTEST
+:set magic&
+:set cpo&
+:$put =\"\n\nTEST_8:\"
+:$put =',,X'
+:s/\(^\|,\)\ze\(,\|X\)/\1N/g
+:$put =',,Y'
+:s/\(^\|,\)\ze\(,\|Y\)/\1N/gc
+a:$put =',,Z'
+:s/\(^\|,\)\ze\(,\|Z\)/\1N/gc
+yy/^TEST_9:
+ENDTEST
+
+TEST_9:
+
+STARTTEST
+:set magic&
+:set cpo&
+:$put =\"\n\nTEST_9:\"
+:$put ='xxx'
+:s/x/X/gc
+yyq/^TEST_10:
+ENDTEST
+
+TEST_10:
+
+STARTTEST
 :/^Results/,$wq! test.out
 ENDTEST
 

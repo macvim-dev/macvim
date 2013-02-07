@@ -1017,6 +1017,9 @@ gui_get_wide_font()
     else
 #endif
 	gui.wide_font = font;
+#ifdef FEAT_GUI_MSWIN
+    gui_mch_wide_font_changed();
+#endif
     return OK;
 }
 #endif
@@ -2405,7 +2408,9 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 	int	cl;		/* byte length of current char */
 	int	comping;	/* current char is composing */
 	int	scol = col;	/* screen column */
-	int	dowide;		/* use 'guifontwide' */
+	int	curr_wide;	/* use 'guifontwide' */
+	int	prev_wide = FALSE;
+	int	wide_changed;
 
 	/* Break the string at a composing character, it has to be drawn on
 	 * top of the previous character. */
@@ -2415,6 +2420,18 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 	{
 	    c = utf_ptr2char(s + i);
 	    cn = utf_char2cells(c);
+#  ifdef FEAT_GUI_MACVIM
+	    curr_wide = (cn > 1);
+#  else
+	    if (cn > 1
+#  ifdef FEAT_XFONTSET
+		    && fontset == NOFONTSET
+#  endif
+		    && gui.wide_font != NOFONT)
+		curr_wide = TRUE;
+	    else
+		curr_wide = FALSE;
+#  endif
 	    comping = utf_iscomposing(c);
 	    if (!comping)	/* count cells from non-composing chars */
 		cells += cn;
@@ -2422,22 +2439,11 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 	    if (cl == 0)	/* hit end of string */
 		len = i + cl;	/* len must be wrong "cannot happen" */
 
-#  ifdef FEAT_GUI_MACVIM
-	    dowide = (cn > 1);
-#  else
-	    if (cn > 1
-#   ifdef FEAT_XFONTSET
-		    && fontset == NOFONTSET
-#   endif
-		    && gui.wide_font != NOFONT)
-		dowide = TRUE;
-	    else
-		dowide = FALSE;
-#  endif
+	    wide_changed = curr_wide != prev_wide;
 
-	    /* print the string so far if it's the last character or there is
+	    /* Print the string so far if it's the last character or there is
 	     * a composing character. */
-	    if (i + cl >= len || (comping && i > start) || dowide
+	    if (i + cl >= len || (comping && i > start) || wide_changed
 #  if defined(FEAT_GUI_X11)
 		    || (cn > 1
 #   ifdef FEAT_XFONTSET
@@ -2449,31 +2455,31 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 #  endif
 	       )
 	    {
-		if (comping || dowide)
+		if (comping || wide_changed)
 		    thislen = i - start;
 		else
 		    thislen = i - start + cl;
 		if (thislen > 0)
 		{
+		    if (prev_wide)
+			gui_mch_set_font(gui.wide_font);
 		    gui_mch_draw_string(gui.row, scol, s + start, thislen,
 #  ifdef FEAT_GUI_MACVIM
-								cells,
+								  cells,
 #  endif
-								draw_flags);
+								  draw_flags);
+		    if (prev_wide)
+			gui_mch_set_font(font);
 		    start += thislen;
 		}
 		scol += cells;
 		cells = 0;
-		if (dowide)
+		/* Adjust to not draw a character which width is changed
+		 * against with last one. */
+		if (wide_changed && !comping)
 		{
-		    gui_mch_set_font(gui.wide_font);
-		    gui_mch_draw_string(gui.row, scol - cn, s + start, cl,
-#  ifdef FEAT_GUI_MACVIM
-							cn,
-#  endif
-							draw_flags | DRAW_WIDE);
-		    gui_mch_set_font(font);
-		    start += cl;
+		    scol -= cn;
+		    cl = 0;
 		}
 
 #  if defined(FEAT_GUI_X11)
@@ -2483,7 +2489,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 #   ifdef FEAT_XFONTSET
 			&& fontset == NOFONTSET
 #   endif
-			&& !dowide)
+			&& !wide_changed)
 		    gui_mch_draw_string(gui.row, scol - 1, (char_u *)" ",
 							       1, draw_flags);
 #  endif
@@ -2505,6 +2511,7 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 #  endif
 		start = i + cl;
 	    }
+	    prev_wide = curr_wide;
 	}
 	/* The stuff below assumes "len" is the length in screen columns. */
 	len = scol - col;
