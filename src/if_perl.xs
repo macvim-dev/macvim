@@ -600,9 +600,9 @@ msg_split(s, attr)
  */
     char_u *
 eval_to_string(arg, nextcmd, dolist)
-    char_u	*arg;
-    char_u	**nextcmd;
-    int		dolist;
+    char_u	*arg UNUSED;
+    char_u	**nextcmd UNUSED;
+    int		dolist UNUSED;
 {
     return NULL;
 }
@@ -657,7 +657,7 @@ newBUFrv(rv, ptr)
 
 /*
  * perl_win_free
- *	Remove all refences to the window to be destroyed
+ *	Remove all references to the window to be destroyed
  */
     void
 perl_win_free(wp)
@@ -1056,7 +1056,7 @@ Buffers(...)
 
 		pat = (char_u *)SvPV(sv, len);
 		++emsg_off;
-		b = buflist_findpat(pat, pat+len, FALSE, FALSE);
+		b = buflist_findpat(pat, pat+len, FALSE, FALSE, FALSE);
 		--emsg_off;
 	    }
 

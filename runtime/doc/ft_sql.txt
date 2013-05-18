@@ -1,4 +1,4 @@
-*ft_sql.txt*	For Vim version 7.3.  Last change: 2010 Jul 20
+*ft_sql.txt*	For Vim version 7.3.  Last change: 2013 May 15
 
 by David Fishburn
 
@@ -349,6 +349,7 @@ may not work properly on all platforms: >
 The static maps (which are based on the syntax highlight groups) follow this
 format: >
     imap <buffer> <C-C>k <C-\><C-O>:call sqlcomplete#Map('sqlKeyword')<CR><C-X><C-O>
+    imap <buffer> <C-C>k <C-\><C-O>:call sqlcomplete#Map('sqlKeyword\w*')<CR><C-X><C-O>
 
 This command breaks down as: >
     imap		   - Create an insert map
@@ -369,6 +370,9 @@ This command breaks down as: >
 			     command while editing a SQL file.
     'sqlKeyword'	   - Display the items for the sqlKeyword highlight
 			     group
+    'sqlKeyword\w*'	   - A second option available with Vim 7.4 which
+                             uses a regular expression to determine which
+			     syntax groups to use
     )<CR>		   - Execute the :let command
     <C-X><C-O>		   - Trigger the standard omni completion key stroke.
 			     Passing in 'sqlKeyword' instructs the SQL
@@ -435,7 +439,7 @@ the space bar):
 			     of columns, you can press <Left>, this will
 			     replace the column list with the list of tables.
 			   - This allows you to quickly drill down into a
-			     table to view it's columns and back again.
+			     table to view its columns and back again.
 			   - <Right> and <Left> can be also be chosen via
 			     your |.vimrc| >
                                 let g:ftplugin_sql_omni_key_right = '<Right>'
@@ -645,7 +649,7 @@ your |vimrc|: >
 	- When completing tables, procedure or views and using dbext.vim 3.00
 	  or higher the list of objects will also include the owner name.
 	  When completing these objects and omni_sql_include_owner is enabled
-	  the owner name will be be replaced. >
+	  the owner name will be replaced. >
 
     omni_sql_precache_syntax_groups
 <	- Default:

@@ -1428,7 +1428,7 @@ docomplete:
 
 normalchar:
 	    /*
-	     * Insert a nomal character.
+	     * Insert a normal character.
 	     */
 #ifdef FEAT_AUTOCMD
 	    if (!p_paste)
@@ -1601,6 +1601,21 @@ ins_redraw(ready)
 	    }
 # endif
 	    last_cursormoved = curwin->w_cursor;
+	}
+#endif
+#ifdef FEAT_AUTOCMD
+	/* Trigger TextChangedI if b_changedtick differs. */
+	if (!ready && has_textchangedI()
+		&& last_changedtick != curbuf->b_changedtick
+# ifdef FEAT_INS_EXPAND
+		&& !pum_visible()
+# endif
+		)
+	{
+	    if (last_changedtick_buf == curbuf)
+		apply_autocmds(EVENT_TEXTCHANGEDI, NULL, NULL, FALSE, curbuf);
+	    last_changedtick_buf = curbuf;
+	    last_changedtick = curbuf->b_changedtick;
 	}
 #endif
 	if (must_redraw)
@@ -3390,6 +3405,9 @@ ins_compl_bs()
     if (compl_leader != NULL)
     {
 	ins_compl_new_leader();
+	if (compl_shown_match != NULL)
+	    /* Make sure current match is not a hidden item. */
+	    compl_curr_match = compl_shown_match;
 	return NUL;
     }
     return K_BS;
@@ -3861,6 +3879,12 @@ ins_compl_prep(c)
 #endif
 	}
     }
+#ifdef FEAT_AUTOCMD
+    else if (ctrl_x_mode == CTRL_X_LOCAL_MSG)
+	/* Trigger the CompleteDone event to give scripts a chance to act
+	 * upon the (possibly failed) completion. */
+	apply_autocmds(EVENT_COMPLETEDONE, NULL, NULL, FALSE, curbuf);
+#endif
 
     /* reset continue_* if we left expansion-mode, if we stay they'll be
      * (re)set properly in ins_complete() */
@@ -4327,13 +4351,7 @@ ins_compl_get_exp(ini)
 
 		/* May change home directory back to "~". */
 		tilde_replace(compl_pattern, num_matches, matches);
-		ins_compl_add_matches(num_matches, matches,
-#ifdef CASE_INSENSITIVE_FILENAME
-			TRUE
-#else
-			FALSE
-#endif
-			);
+		ins_compl_add_matches(num_matches, matches, p_fic || p_wic);
 	    }
 	    break;
 
@@ -7159,7 +7177,7 @@ cursor_up(n, upd_topline)
 	    /*
 	     * Count each sequence of folded lines as one logical line.
 	     */
-	    /* go to the the start of the current fold */
+	    /* go to the start of the current fold */
 	    (void)hasFolding(lnum, &lnum, NULL);
 
 	    while (n--)
@@ -7210,7 +7228,7 @@ cursor_down(n, upd_topline)
 	(void)hasFolding(lnum, NULL, &lnum);
 #endif
 	/* This fails if the cursor is already in the last line or would move
-	 * beyound the last line and '-' is in 'cpoptions' */
+	 * beyond the last line and '-' is in 'cpoptions' */
 	if (lnum >= curbuf->b_ml.ml_line_count
 		|| (lnum + n > curbuf->b_ml.ml_line_count
 		    && vim_strchr(p_cpo, CPO_MINUS) != NULL))
@@ -7712,7 +7730,7 @@ fix_indent()
 /*
  * return TRUE if 'cinkeys' contains the key "keytyped",
  * when == '*':	    Only if key is preceded with '*'	(indent before insert)
- * when == '!':	    Only if key is prededed with '!'	(don't insert)
+ * when == '!':	    Only if key is preceded with '!'	(don't insert)
  * when == ' ':	    Only if key is not preceded with '*'(indent afterwards)
  *
  * "keytyped" can have a few special values:
@@ -8538,7 +8556,7 @@ ins_start_select(c)
 #endif
 
 /*
- * <Insert> key in Insert mode: toggle insert/remplace mode.
+ * <Insert> key in Insert mode: toggle insert/replace mode.
  */
     static void
 ins_insert(replaceState)
@@ -9151,9 +9169,8 @@ ins_mousescroll(dir)
 
     tpos = curwin->w_cursor;
 
-# if defined(FEAT_GUI) && defined(FEAT_WINDOWS)
-    /* Currently the mouse coordinates are only known in the GUI. */
-    if (gui.in_use && mouse_row >= 0 && mouse_col >= 0)
+# ifdef FEAT_WINDOWS
+    if (mouse_row >= 0 && mouse_col >= 0)
     {
 	int row, col;
 
@@ -9219,7 +9236,7 @@ ins_mousescroll(dir)
 # endif
     }
 
-# if defined(FEAT_GUI) && defined(FEAT_WINDOWS)
+# ifdef FEAT_WINDOWS
     curwin->w_redr_status = TRUE;
 
     curwin = old_curwin;

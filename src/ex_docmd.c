@@ -270,10 +270,12 @@ static void	ex_popup __ARGS((exarg_T *eap));
 #endif
 #ifndef FEAT_PYTHON
 # define ex_python		ex_script_ni
+# define ex_pydo		ex_ni
 # define ex_pyfile		ex_ni
 #endif
 #ifndef FEAT_PYTHON3
 # define ex_py3			ex_script_ni
+# define ex_py3do		ex_ni
 # define ex_py3file		ex_ni
 #endif
 #ifndef FEAT_TCL
@@ -1100,7 +1102,7 @@ do_cmdline(cmdline, fgetline, cookie, flags)
 		msg_didany = FALSE; /* no output yet */
 		msg_start();
 		msg_scroll = TRUE;  /* put messages below each other */
-		++no_wait_return;   /* dont wait for return until finished */
+		++no_wait_return;   /* don't wait for return until finished */
 		++RedrawingDisabled;
 		did_inc = TRUE;
 	    }
@@ -1305,7 +1307,7 @@ do_cmdline(cmdline, fgetline, cookie, flags)
 	    && !(did_emsg
 #ifdef FEAT_EVAL
 		/* Keep going when inside try/catch, so that the error can be
-		 * dealth with, except when it is a syntax error, it may cause
+		 * deal with, except when it is a syntax error, it may cause
 		 * the :endtry to be missed. */
 		&& (cstack.cs_trylevel == 0 || did_emsg_syntax)
 #endif
@@ -1741,6 +1743,8 @@ do_one_cmd(cmdlinep, sourcing,
 #ifdef FEAT_EVAL
 	    /* avoid that a function call in 'statusline' does this */
 	    && !getline_equal(fgetline, cookie, get_func_line)
+#endif
+#ifdef FEAT_AUTOCMD
 	    /* avoid that an autocommand, e.g. QuitPre, does this */
 	    && !getline_equal(fgetline, cookie, getnextac)
 #endif
@@ -2650,7 +2654,8 @@ do_one_cmd(cmdlinep, sourcing,
 	    while (p > ea.arg && vim_iswhite(p[-1]))
 		--p;
 	}
-	ea.line2 = buflist_findpat(ea.arg, p, (ea.argt & BUFUNL) != 0, FALSE);
+	ea.line2 = buflist_findpat(ea.arg, p, (ea.argt & BUFUNL) != 0,
+								FALSE, FALSE);
 	if (ea.line2 < 0)	    /* failed */
 	    goto doend;
 	ea.addr_count = 1;
@@ -3893,6 +3898,8 @@ set_one_cmd_context(xp, buff)
 	case CMD_imap:	    case CMD_inoremap:
 	case CMD_cmap:	    case CMD_cnoremap:
 	case CMD_lmap:	    case CMD_lnoremap:
+	case CMD_smap:	    case CMD_snoremap:
+	case CMD_xmap:	    case CMD_xnoremap:
 	    return set_context_in_map_cmd(xp, cmd, arg, forceit,
 						     FALSE, FALSE, ea.cmdidx);
 	case CMD_unmap:
@@ -3902,6 +3909,8 @@ set_one_cmd_context(xp, buff)
 	case CMD_iunmap:
 	case CMD_cunmap:
 	case CMD_lunmap:
+	case CMD_sunmap:
+	case CMD_xunmap:
 	    return set_context_in_map_cmd(xp, cmd, arg, forceit,
 						      FALSE, TRUE, ea.cmdidx);
 	case CMD_abbreviate:	case CMD_noreabbrev:
@@ -5392,7 +5401,9 @@ fail:
 #endif
     return FAIL;
 }
+#endif
 
+#if defined(FEAT_USR_CMDS) || defined(FEAT_EVAL) || defined(PROTO)
 /*
  * List of names for completion for ":command" with the EXPAND_ flag.
  * Must be alphabetical for completion.
@@ -5447,7 +5458,9 @@ static struct
     {EXPAND_USER_VARS, "var"},
     {0, NULL}
 };
+#endif
 
+#if defined(FEAT_USR_CMDS) || defined(PROTO)
     static void
 uc_list(name, name_len)
     char_u	*name;
@@ -6392,10 +6405,12 @@ parse_compl_arg(value, vallen, complp, argt, compl_arg)
     int		vallen;
     int		*complp;
     long	*argt;
-    char_u	**compl_arg;
+    char_u	**compl_arg UNUSED;
 {
     char_u	*arg = NULL;
+# if defined(FEAT_EVAL) && defined(FEAT_CMDL_COMPL)
     size_t	arglen = 0;
+# endif
     int		i;
     int		valend = vallen;
 
@@ -6405,7 +6420,9 @@ parse_compl_arg(value, vallen, complp, argt, compl_arg)
 	if (value[i] == ',')
 	{
 	    arg = &value[i + 1];
+# if defined(FEAT_EVAL) && defined(FEAT_CMDL_COMPL)
 	    arglen = vallen - i - 1;
+# endif
 	    valend = i;
 	    break;
 	}
@@ -6533,7 +6550,7 @@ ex_quit(eap)
     }
 #ifdef FEAT_AUTOCMD
     apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, curbuf);
-    /* Refuse to quick when locked or when the buffer in the last window is
+    /* Refuse to quit when locked or when the buffer in the last window is
      * being closed (can only happen in autocommands). */
     if (curbuf_locked() || (curbuf->b_nwindows == 1 && curbuf->b_closing))
 	return;
@@ -6607,7 +6624,10 @@ ex_quit_all(eap)
 	return;
     }
 #ifdef FEAT_AUTOCMD
-    if (curbuf_locked())
+    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, curbuf);
+    /* Refuse to quit when locked or when the buffer in the last window is
+     * being closed (can only happen in autocommands). */
+    if (curbuf_locked() || (curbuf->b_nwindows == 1 && curbuf->b_closing))
 	return;
 #endif
 
@@ -6943,7 +6963,10 @@ ex_exit(eap)
 	return;
     }
 #ifdef FEAT_AUTOCMD
-    if (curbuf_locked())
+    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, curbuf);
+    /* Refuse to quit when locked or when the buffer in the last window is
+     * being closed (can only happen in autocommands). */
+    if (curbuf_locked() || (curbuf->b_nwindows == 1 && curbuf->b_closing))
 	return;
 #endif
 
@@ -10846,24 +10869,24 @@ put_view(fd, wp, add_edit, flagp, current_arg_idx)
 	    {
 		if (fprintf(fd,
 			  "let s:c = %ld - ((%ld * winwidth(0) + %ld) / %ld)",
-			    (long)wp->w_cursor.col,
-			    (long)(wp->w_cursor.col - wp->w_leftcol),
+			    (long)wp->w_virtcol + 1,
+			    (long)(wp->w_virtcol - wp->w_leftcol),
 			    (long)wp->w_width / 2, (long)wp->w_width) < 0
 			|| put_eol(fd) == FAIL
 			|| put_line(fd, "if s:c > 0") == FAIL
 			|| fprintf(fd,
-			    "  exe 'normal! 0' . s:c . 'lzs' . (%ld - s:c) . 'l'",
-			    (long)wp->w_cursor.col) < 0
+			    "  exe 'normal! ' . s:c . '|zs' . %ld . '|'",
+			    (long)wp->w_virtcol + 1) < 0
 			|| put_eol(fd) == FAIL
 			|| put_line(fd, "else") == FAIL
-			|| fprintf(fd, "  normal! 0%dl", wp->w_cursor.col) < 0
+			|| fprintf(fd, "  normal! 0%d|", wp->w_virtcol + 1) < 0
 			|| put_eol(fd) == FAIL
 			|| put_line(fd, "endif") == FAIL)
 		    return FAIL;
 	    }
 	    else
 	    {
-		if (fprintf(fd, "normal! 0%dl", wp->w_cursor.col) < 0
+		if (fprintf(fd, "normal! 0%d|", wp->w_virtcol + 1) < 0
 			|| put_eol(fd) == FAIL)
 		    return FAIL;
 	    }
@@ -10992,7 +11015,7 @@ ses_put_fname(fd, name, flagp)
 		*p = '/';
     }
 
-    /* escapse special characters */
+    /* escape special characters */
     p = vim_strsave_fnameescape(sname, FALSE);
     vim_free(sname);
     if (p == NULL)

@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 7.3.  Last change: 2013 Jan 30
+*syntax.txt*	For Vim version 7.3.  Last change: 2013 Apr 05
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -999,6 +999,14 @@ comment highlighting, add the following line to your startup file: >
 The ColdFusion syntax file is based on the HTML syntax file.
 
 
+CPP						*cpp.vim* *ft-cpp-syntax*
+
+Most of things are same as |ft-c-syntax|.
+
+Variable		Highlight ~
+cpp_no_c11		don't highlight C++11 standard items
+
+
 CSH						*csh.vim* *ft-csh-syntax*
 
 This covers the shell named "csh".  Note that on some systems tcsh is actually
@@ -1231,17 +1239,17 @@ to your startup file.
 
 ERLANG						*erlang.vim* *ft-erlang-syntax*
 
-The erlang highlighting supports Erlang (ERicsson LANGuage).
-Erlang is case sensitive and default extension is ".erl".
+Erlang is a functional programming language developed by Ericsson.  Files with
+the following extentions are recognized as Erlang files: erl, hrl, yaws.
 
-If you want to disable keywords highlighting, put in your .vimrc: >
-	:let erlang_keywords = 1
-If you want to disable built-in-functions highlighting, put in your
-.vimrc file: >
-	:let erlang_functions = 1
-If you want to disable special characters highlighting, put in
-your .vimrc: >
-	:let erlang_characters = 1
+The BIFs (built-in functions) are highlighted by default. To disable this,
+put the following line in your vimrc: >
+
+      :let g:erlang_highlight_bifs = 0
+
+To enable highlighting some special atoms, put this in your vimrc: >
+
+      :let g:erlang_highlight_special_atoms = 1
 
 
 FLEXWIKI				*flexwiki.vim* *ft-flexwiki-syntax*
@@ -2061,7 +2069,7 @@ Therefore, you should be careful about not using more space between sentences
 than you intend to have in your final document.  For this reason, the common
 practice is to insert a carriage return immediately after all punctuation
 marks.  If you want to have "even" text in your final processed output, you
-need to maintaining regular spacing in the input text.  To mark both trailing
+need to maintain regular spacing in the input text.  To mark both trailing
 spaces and two or more spaces after a punctuation as an error, use: >
 
   :let nroff_space_errors = 1
@@ -2440,23 +2448,32 @@ Pascal.  Use this if you don't use assembly and Pascal: >
 
 PYTHON						*python.vim* *ft-python-syntax*
 
-There are four options to control Python syntax highlighting.
+There are six options to control Python syntax highlighting.
 
 For highlighted numbers: >
-	:let python_highlight_numbers = 1
+	:let python_no_number_highlight = 1
 
 For highlighted builtin functions: >
-	:let python_highlight_builtins = 1
+	:let python_no_builtin_highlight = 1
 
 For highlighted standard exceptions: >
-	:let python_highlight_exceptions = 1
+	:let python_no_exception_highlight = 1
+
+For highlighted doctests and code inside: >
+	:let python_no_doctest_highlight = 1
+or >
+	:let python_no_doctest_code_highlight = 1
+(first option implies second one).
 
 For highlighted trailing whitespace and mix of spaces and tabs: >
-	:let python_highlight_space_errors = 1
+	:let python_space_error_highlight = 1
 
 If you want all possible Python highlighting (the same as setting the
-preceding three options): >
+preceding last option and unsetting all other ones): >
 	:let python_highlight_all = 1
+
+Note: only existence of these options matter, not their value. You can replace 
+      1 above with anything.
 
 
 QUAKE						*quake.vim* *ft-quake-syntax*
@@ -2910,6 +2927,35 @@ if any, is the text at the top of the screen supposed to be in?).
 
 Another cause of slow highlighting is due to syntax-driven folding; see
 |tex-folding| for a way around this.
+
+								*g:tex_fast*
+
+Finally, if syntax highlighting is still too slow, you may set >
+
+	:let g:tex_fast= ""
+
+in your .vimrc.  Used this way, the g:tex_fast variable causes the syntax
+highlighting script to avoid defining any regions and associated
+synchronization.  The result will be much faster syntax highlighting; the
+price: you will no longer have as much highlighting or any syntax-based
+folding, and you will be missing syntax-based error checking.
+
+You may decide that some syntax is acceptable; you may use the following table
+selectively to enable just some syntax highlighting: >
+
+    b : allow bold and italic syntax
+    c : allow texComment syntax
+    m : allow texMatcher syntax (ie. {...} and [...])
+    M : allow texMath syntax
+    p : allow parts, chapter, section, etc syntax
+    r : allow texRefZone syntax (nocite, bibliography, label, pageref, eqref)
+    s : allow superscript/subscript regions
+    S : allow texStyle syntax
+    v : allow verbatim syntax
+    V : allow texNewEnv and texNewCmd syntax
+<
+As an example, let g:tex_fast= "M" will allow math-associated highlighting
+but suppress all the other region-based syntax highlighting.
 
 					    *tex-morecommands* *tex-package*
  Tex: Want To Highlight More Commands? ~
@@ -3805,7 +3851,7 @@ s-{nr}	start of the matched pattern plus {nr} chars to the left
 e	end of the matched pattern
 e+{nr}	end of the matched pattern plus {nr} chars to the right
 e-{nr}	end of the matched pattern plus {nr} chars to the left
-{nr}	(for "lc" only): start matching {nr} chars to the left
+{nr}	(for "lc" only): start matching {nr} chars right of the start
 
 Examples: "ms=s+1", "hs=e-2", "lc=3".
 
@@ -4882,7 +4928,7 @@ restoring "b:current_syntax", since the syntax files do set
 
 Once a window has its own syntax, syntax commands executed from other windows
 on the same buffer (including :syntax clear) have no effect. Conversely, 
-syntax commands executed from that window do not effect other windows on the
+syntax commands executed from that window do not affect other windows on the
 same buffer.
 
 A window with its own syntax reverts to normal behavior when another buffer

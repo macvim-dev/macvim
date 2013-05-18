@@ -34,6 +34,9 @@ static char	*mediumVersion = VIM_VERSION_MEDIUM;
 # if (defined(VMS) && defined(VAXC)) || defined(PROTO)
 char	longVersion[sizeof(VIM_VERSION_LONG_DATE) + sizeof(__DATE__)
 						      + sizeof(__TIME__) + 3];
+
+static void list_features __ARGS((void));
+
     void
 make_version()
 {
@@ -740,6 +743,328 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    967,
+/**/
+    966,
+/**/
+    965,
+/**/
+    964,
+/**/
+    963,
+/**/
+    962,
+/**/
+    961,
+/**/
+    960,
+/**/
+    959,
+/**/
+    958,
+/**/
+    957,
+/**/
+    956,
+/**/
+    955,
+/**/
+    954,
+/**/
+    953,
+/**/
+    952,
+/**/
+    951,
+/**/
+    950,
+/**/
+    949,
+/**/
+    948,
+/**/
+    947,
+/**/
+    946,
+/**/
+    945,
+/**/
+    944,
+/**/
+    943,
+/**/
+    942,
+/**/
+    941,
+/**/
+    940,
+/**/
+    939,
+/**/
+    938,
+/**/
+    937,
+/**/
+    936,
+/**/
+    935,
+/**/
+    934,
+/**/
+    933,
+/**/
+    932,
+/**/
+    931,
+/**/
+    930,
+/**/
+    929,
+/**/
+    928,
+/**/
+    927,
+/**/
+    926,
+/**/
+    925,
+/**/
+    924,
+/**/
+    923,
+/**/
+    922,
+/**/
+    921,
+/**/
+    920,
+/**/
+    919,
+/**/
+    918,
+/**/
+    917,
+/**/
+    916,
+/**/
+    915,
+/**/
+    914,
+/**/
+    913,
+/**/
+    912,
+/**/
+    911,
+/**/
+    910,
+/**/
+    909,
+/**/
+    908,
+/**/
+    907,
+/**/
+    906,
+/**/
+    905,
+/**/
+    904,
+/**/
+    903,
+/**/
+    902,
+/**/
+    901,
+/**/
+    900,
+/**/
+    899,
+/**/
+    898,
+/**/
+    897,
+/**/
+    896,
+/**/
+    895,
+/**/
+    894,
+/**/
+    893,
+/**/
+    892,
+/**/
+    891,
+/**/
+    890,
+/**/
+    889,
+/**/
+    888,
+/**/
+    887,
+/**/
+    886,
+/**/
+    885,
+/**/
+    884,
+/**/
+    883,
+/**/
+    882,
+/**/
+    881,
+/**/
+    880,
+/**/
+    879,
+/**/
+    878,
+/**/
+    877,
+/**/
+    876,
+/**/
+    875,
+/**/
+    874,
+/**/
+    873,
+/**/
+    872,
+/**/
+    871,
+/**/
+    870,
+/**/
+    869,
+/**/
+    868,
+/**/
+    867,
+/**/
+    866,
+/**/
+    865,
+/**/
+    864,
+/**/
+    863,
+/**/
+    862,
+/**/
+    861,
+/**/
+    860,
+/**/
+    859,
+/**/
+    858,
+/**/
+    857,
+/**/
+    856,
+/**/
+    855,
+/**/
+    854,
+/**/
+    853,
+/**/
+    852,
+/**/
+    851,
+/**/
+    850,
+/**/
+    849,
+/**/
+    848,
+/**/
+    847,
+/**/
+    846,
+/**/
+    845,
+/**/
+    844,
+/**/
+    843,
+/**/
+    842,
+/**/
+    841,
+/**/
+    840,
+/**/
+    839,
+/**/
+    838,
+/**/
+    837,
+/**/
+    836,
+/**/
+    835,
+/**/
+    834,
+/**/
+    833,
+/**/
+    832,
+/**/
+    831,
+/**/
+    830,
+/**/
+    829,
+/**/
+    828,
+/**/
+    827,
+/**/
+    826,
+/**/
+    825,
+/**/
+    824,
+/**/
+    823,
+/**/
+    822,
+/**/
+    821,
+/**/
+    820,
+/**/
+    819,
+/**/
+    818,
+/**/
+    817,
+/**/
+    816,
+/**/
+    815,
+/**/
+    814,
+/**/
+    813,
+/**/
+    812,
+/**/
+    811,
+/**/
+    810,
+/**/
+    809,
+/**/
+    808,
+/**/
+    807,
 /**/
     806,
 /**/
@@ -2412,6 +2737,76 @@ ex_version(eap)
     }
 }
 
+/*
+ * List all features aligned in columns, dictionary style.
+ */
+    static void
+list_features()
+{
+    int		i;
+    int		ncol;
+    int		nrow;
+    int		nfeat = 0;
+    int		width = 0;
+
+    /* Find the length of the longest feature name, use that + 1 as the column
+     * width */
+    for (i = 0; features[i] != NULL; ++i)
+    {
+	int l = (int)STRLEN(features[i]);
+
+	if (l > width)
+	    width = l;
+	++nfeat;
+    }
+    width += 1;
+
+    if (Columns < width)
+    {
+	/* Not enough screen columns - show one per line */
+	for (i = 0; features[i] != NULL; ++i)
+	{
+	    version_msg(features[i]);
+	    if (msg_col > 0)
+		msg_putchar('\n');
+	}
+	return;
+    }
+
+    /* The rightmost column doesn't need a separator.
+     * Sacrifice it to fit in one more column if possible. */
+    ncol = (int) (Columns + 1) / width;
+    nrow = nfeat / ncol + (nfeat % ncol ? 1 : 0);
+
+    /* i counts columns then rows.  idx counts rows then columns. */
+    for (i = 0; !got_int && i < nrow * ncol; ++i)
+    {
+	int idx = (i / ncol) + (i % ncol) * nrow;
+
+	if (idx < nfeat)
+	{
+	    int last_col = (i + 1) % ncol == 0;
+
+	    msg_puts((char_u *)features[idx]);
+	    if (last_col)
+	    {
+		if (msg_col > 0)
+		    msg_putchar('\n');
+	    }
+	    else
+	    {
+		while (msg_col % width)
+		    msg_putchar(' ');
+	    }
+	}
+	else
+	{
+	    if (msg_col > 0)
+		msg_putchar('\n');
+	}
+    }
+}
+
     void
 list_version()
 {
@@ -2613,15 +3008,8 @@ list_version()
 #endif
     version_msg(_("  Features included (+) or not (-):\n"));
 
-    /* print all the features */
-    for (i = 0; features[i] != NULL; ++i)
-    {
-	version_msg(features[i]);
-	if (msg_col > 0)
-	    version_msg(" ");
-    }
+    list_features();
 
-    version_msg("\n");
 #ifdef SYS_VIMRC_FILE
     version_msg(_("   system vimrc file: \""));
     version_msg(SYS_VIMRC_FILE);

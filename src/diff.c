@@ -1110,7 +1110,7 @@ ex_diffsplit(eap)
 }
 
 /*
- * Set options to show difs for the current window.
+ * Set options to show diffs for the current window.
  */
     void
 ex_diffthis(eap)
@@ -2152,7 +2152,7 @@ ex_diffgetput(eap)
 	    i = atol((char *)eap->arg);
 	else
 	{
-	    i = buflist_findpat(eap->arg, p, FALSE, TRUE);
+	    i = buflist_findpat(eap->arg, p, FALSE, TRUE, FALSE);
 	    if (i < 0)
 		return;		/* error message already given */
 	}

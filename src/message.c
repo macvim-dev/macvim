@@ -939,6 +939,12 @@ wait_return(redraw)
 #ifdef USE_ON_FLY_SCROLL
 	dont_scroll = TRUE;		/* disallow scrolling here */
 #endif
+	/* Avoid the sequence that the user types ":" at the hit-return prompt
+	 * to start an Ex command, but the file-changed dialog gets in the
+	 * way. */
+	if (need_check_timestamps)
+	    check_timestamps(FALSE);
+
 	hit_return_msg();
 
 	do
@@ -976,10 +982,22 @@ wait_return(redraw)
 	     */
 	    if (p_more && !p_cp)
 	    {
-		if (c == 'b' || c == 'k' || c == 'u' || c == 'g' || c == K_UP)
+		if (c == 'b' || c == 'k' || c == 'u' || c == 'g'
+						|| c == K_UP || c == K_PAGEUP)
 		{
-		    /* scroll back to show older messages */
-		    do_more_prompt(c);
+		    if (msg_scrolled > Rows)
+			/* scroll back to show older messages */
+			do_more_prompt(c);
+		    else
+		    {
+			msg_didout = FALSE;
+			c = K_IGNORE;
+			msg_col =
+#ifdef FEAT_RIGHTLEFT
+			    cmdmsg_rl ? Columns - 1 :
+#endif
+			    0;
+		    }
 		    if (quit_more)
 		    {
 			c = CAR;		/* just pretend CR was hit */
@@ -993,7 +1011,8 @@ wait_return(redraw)
 		    }
 		}
 		else if (msg_scrolled > Rows - 2
-			 && (c == 'j' || c == K_DOWN || c == 'd' || c == 'f'))
+			 && (c == 'j' || c == 'd' || c == 'f'
+					   || c == K_DOWN || c == K_PAGEDOWN))
 		    c = K_IGNORE;
 	    }
 	} while ((had_got_int && c == Ctrl_C)

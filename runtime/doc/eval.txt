@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.3.  Last change: 2013 Jan 23
+*eval.txt*	For Vim version 7.3.  Last change: 2013 May 17
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -503,7 +503,7 @@ This removes all entries from "dict" with a value not matching 'x'.
 
 
 Dictionary function ~
-					*Dictionary-function* *self* *E725*
+				*Dictionary-function* *self* *E725* *E862*
 When a function is defined with the "dict" attribute it can be used in a
 special way with a dictionary.	Example: >
 	:function Mylen() dict
@@ -1150,14 +1150,14 @@ delete all script-local variables: >
 	:    unlet s:[k]
 	:endfor
 <
-						*buffer-variable* *b:var*
+						*buffer-variable* *b:var* *b:*
 A variable name that is preceded with "b:" is local to the current buffer.
 Thus you can have several "b:foo" variables, one for each buffer.
 This kind of variable is deleted when the buffer is wiped out or deleted with
 |:bdelete|.
 
 One local buffer variable is predefined:
-					*b:changedtick-variable* *changetick*
+					*b:changedtick* *changetick*
 b:changedtick	The total number of changes to the current buffer.  It is
 		incremented for each change.  An undo command is also a change
 		in this case.  This can be used to perform an action only when
@@ -1167,21 +1167,21 @@ b:changedtick	The total number of changes to the current buffer.  It is
 		    :	call My_Update()
 		    :endif
 <
-						*window-variable* *w:var*
+						*window-variable* *w:var* *w:*
 A variable name that is preceded with "w:" is local to the current window.  It
 is deleted when the window is closed.
 
-						*tabpage-variable* *t:var*
+						*tabpage-variable* *t:var* *t:*
 A variable name that is preceded with "t:" is local to the current tab page,
 It is deleted when the tab page is closed. {not available when compiled
 without the |+windows| feature}
 
-						*global-variable* *g:var*
+						*global-variable* *g:var* *g:*
 Inside functions global variables are accessed with "g:".  Omitting this will
 access a variable local to a function.	But "g:" can also be used in any other
 place if you like.
 
-						*local-variable* *l:var*
+						*local-variable* *l:var* *l:*
 Inside functions local variables are accessed without prepending anything.
 But you can also prepend "l:" if you like.  However, without prepending "l:"
 you may run into reserved variable names.  For example "count".  By itself it
@@ -1264,7 +1264,7 @@ Note that this means that filetype plugins don't get a different set of script
 variables for each buffer.  Use local buffer variables instead |b:var|.
 
 
-Predefined Vim variables:			*vim-variable* *v:var*
+Predefined Vim variables:			*vim-variable* *v:var* *v:*
 
 					*v:beval_col* *beval_col-variable*
 v:beval_col	The number of the column, over which the mouse pointer is.
@@ -1777,7 +1777,8 @@ get( {list}, {idx} [, {def}])	any	get item {idx} from {list} or {def}
 get( {dict}, {key} [, {def}])	any	get item {key} from {dict} or {def}
 getbufline( {expr}, {lnum} [, {end}])
 				List	lines {lnum} to {end} of buffer {expr}
-getbufvar( {expr}, {varname})	any	variable {varname} in buffer {expr}
+getbufvar( {expr}, {varname} [, {def}])
+				any	variable {varname} in buffer {expr}
 getchar( [expr])		Number	get one character from the user
 getcharmod( )			Number	modifiers for the last typed character
 getcmdline()			String	return the current command-line
@@ -1798,12 +1799,14 @@ getpos( {expr})			List	position of cursor, mark, etc.
 getqflist()			List	list of quickfix items
 getreg( [{regname} [, 1]])	String	contents of register
 getregtype( [{regname}])	String	type of register
-gettabvar( {nr}, {varname})	any	variable {varname} in tab {nr}
-gettabwinvar( {tabnr}, {winnr}, {name})
+gettabvar( {nr}, {varname} [, {def}])
+				any	variable {varname} in tab {nr} or {def}
+gettabwinvar( {tabnr}, {winnr}, {name} [, {def}])
 				any	{name} in {winnr} in tab page {tabnr}
 getwinposx()			Number	X coord in pixels of GUI Vim window
 getwinposy()			Number	Y coord in pixels of GUI Vim window
-getwinvar( {nr}, {varname})	any	variable {varname} in window {nr}
+getwinvar( {nr}, {varname} [, {def}])
+				any	variable {varname} in window {nr}
 glob( {expr} [, {nosuf} [, {list}]])
 				any	expand file wildcards in {expr}
 globpath( {path}, {expr} [, {flag}])
@@ -1931,6 +1934,7 @@ settabvar( {nr}, {varname}, {val})	set {varname} in tab page {nr} to {val}
 settabwinvar( {tabnr}, {winnr}, {varname}, {val})    set {varname} in window
 					{winnr} in tab page {tabnr} to {val}
 setwinvar( {nr}, {varname}, {val})	set {varname} in window {nr} to {val}
+sha256( {string})		String	SHA256 checksum of {string}
 shellescape( {string} [, {special}])
 				String	escape {string} for use as shell
 					command argument
@@ -1992,6 +1996,7 @@ undotree()			List	undo file tree
 values( {dict})			List	values in {dict}
 virtcol( {expr})		Number	screen column of cursor or mark
 visualmode( [expr])		String	last visual mode used
+wildmenumode()			Number	whether 'wildmenu' mode is active
 winbufnr( {nr})			Number	buffer number of window {nr}
 wincol()			Number	window column of the cursor
 winheight( {nr})		Number	height of window {nr}
@@ -2578,6 +2583,8 @@ delete({fname})							*delete()*
 		which is 0 if the file was deleted successfully, and non-zero
 		when the deletion failed.
 		Use |remove()| to delete an item from a |List|.
+		To delete a line from the buffer use |:delete|.  Use |:exe|
+		when the line number is in a variable.
 
 							*did_filetype()*
 did_filetype()	Returns non-zero when autocommands are being executed and the
@@ -3141,7 +3148,7 @@ getbufline({expr}, {lnum} [, {end}])
 		Example: >
 			:let lines = getbufline(bufnr("myfile"), 1, "$")
 
-getbufvar({expr}, {varname})				*getbufvar()*
+getbufvar({expr}, {varname} [, {def}])				*getbufvar()*
 		The result is the value of option or local buffer variable
 		{varname} in buffer {expr}.  Note that the name without "b:"
 		must be used.
@@ -3151,8 +3158,8 @@ getbufvar({expr}, {varname})				*getbufvar()*
 		doesn't work for a global variable, window-local variable or
 		window-local option.
 		For the use of {expr}, see |bufname()| above.
-		When the buffer or variable doesn't exist an empty string is
-		returned, there is no error message.
+		When the buffer or variable doesn't exist {def} or an empty
+		string is returned, there is no error message.
 		Examples: >
 			:let bufmodified = getbufvar(1, "&mod")
 			:echo "todo myvar = " . getbufvar("todo", "myvar")
@@ -3429,26 +3436,30 @@ getregtype([{regname}])					*getregtype()*
 		<CTRL-V> is one character with value 0x16.
 		If {regname} is not specified, |v:register| is used.
 
-gettabvar({tabnr}, {varname})				*gettabvar()*
+gettabvar({tabnr}, {varname} [, {def}])				*gettabvar()*
 		Get the value of a tab-local variable {varname} in tab page
 		{tabnr}. |t:var|
 		Tabs are numbered starting with one.
 		Note that the name without "t:" must be used.
+		When the tab or variable doesn't exist {def} or an empty
+		string is returned, there is no error message.
 
-gettabwinvar({tabnr}, {winnr}, {varname})		*gettabwinvar()*
+gettabwinvar({tabnr}, {winnr}, {varname} [, {def}])		*gettabwinvar()*
 		Get the value of window-local variable {varname} in window
 		{winnr} in tab page {tabnr}.
 		When {varname} starts with "&" get the value of a window-local
 		option.
+		When {varname} is empty a dictionary with all window-local
+		variables is returned.
+		Note that {varname} must be the name without "w:".
 		Tabs are numbered starting with one.  For the current tabpage
 		use |getwinvar()|.
 		When {winnr} is zero the current window is used.
 		This also works for a global option, buffer-local option and
 		window-local option, but it doesn't work for a global variable
 		or buffer-local variable.
-		When {varname} is empty a dictionary with all window-local
-		variables is returned.
-		Note that {varname} must be the name without "w:".
+		When the tab, window or variable doesn't exist {def} or an
+		empty string is returned, there is no error message.
 		Examples: >
 			:let list_is_on = gettabwinvar(1, 2, '&list')
 			:echo "myvar = " . gettabwinvar(3, 1, 'myvar')
@@ -3463,7 +3474,7 @@ getwinposy()	The result is a Number, which is the Y coordinate in pixels of
 		the top of the GUI Vim window.	The result will be -1 if the
 		information is not available.
 
-getwinvar({winnr}, {varname})				*getwinvar()*
+getwinvar({winnr}, {varname} [, {def}])				*getwinvar()*
 		Like |gettabwinvar()| for the current tabpage.
 		Examples: >
 			:let list_is_on = getwinvar(2, '&list')
@@ -5309,8 +5320,6 @@ settabvar({tabnr}, {varname}, {val})			*settabvar()*
 		|t:var|
 		Note that the variable name without "t:" must be used.
 		Tabs are numbered starting with one.
-		Vim briefly goes to the tab page {tabnr}, this may trigger
-		TabLeave and TabEnter autocommands.
 		This function is not available in the |sandbox|.
 
 settabwinvar({tabnr}, {winnr}, {varname}, {val})	*settabwinvar()*
@@ -5323,8 +5332,6 @@ settabwinvar({tabnr}, {winnr}, {varname}, {val})	*settabwinvar()*
 		doesn't work for a global or local buffer variable.
 		For a local buffer option the global value is unchanged.
 		Note that the variable name without "w:" must be used.
-		Vim briefly goes to the tab page {tabnr}, this may trigger
-		TabLeave and TabEnter autocommands.
 		Examples: >
 			:call settabwinvar(1, 1, "&list", 0)
 			:call settabwinvar(3, 2, "myvar", "foobar")
@@ -5335,6 +5342,11 @@ setwinvar({nr}, {varname}, {val})			*setwinvar()*
 		Examples: >
 			:call setwinvar(1, "&list", 0)
 			:call setwinvar(2, "myvar", "foobar")
+
+sha256({string})						*sha256()*
+		Returns a String with 64 hex charactes, which is the SHA256
+		checksum of {string}.
+		{only available when compiled with the |+cryptv| feature}
 
 shellescape({string} [, {special}])			*shellescape()*
 		Escape {string} for use as a shell command argument.
@@ -6155,6 +6167,18 @@ visualmode([expr])						*visualmode()*
 		non-empty strings, thus cause the mode to be cleared.  A List,
 		Dictionary or Float is not a Number or String, thus does not
 		cause the mode to be cleared.
+
+wildmenumode()					*wildmenumode()*
+		Returns non-zero when the wildmenu is active and zero
+		otherwise.  See 'wildmenu' and 'wildmode'.
+		This can be used in mappings to handle the 'wildcharm' option
+		gracefully. (Makes only sense with |mapmode-c| mappings).
+
+		For example to make <c-j> work like <down> in wildmode, use: >
+    :cnoremap <expr> <C-j> wildmenumode() ? "\<Down>\<Tab>" : "\<c-j>"
+<
+		(Note, this needs the 'wildcharm' option set appropriately).
+
 
 							*winbufnr()*
 winbufnr({nr})	The result is a Number, which is the number of the buffer

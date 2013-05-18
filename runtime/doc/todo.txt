@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.3.  Last change: 2013 Feb 06
+*todo.txt*      For Vim version 7.3.  Last change: 2013 May 17
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -34,11 +34,133 @@ not be repeated below, unless there is extra information.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-Substitute with confirmation and then "q" does not replace anything.
-(John McGowan)
+--- Python interface
 
-Download counter for scripts no longer incremented?
-Looks like it.
+Python SystemExit exception is not handled properly.  Patch to catch the
+exception and give an error. (Yasuhiro Matsumoto)
+Does not work, tests fail.
+
+Patch to print the result of a :python command. (Maxim Philippov
+<philippovmi@gmail.com>, 2012 Aug 16)  Update Aug 17.
+Patch no longer applies.
+
+":python os.chdir('/tmp')" makes short buffer names invalid. (Xavier de Gaye)
+Check directory and call shorten_fnames()?  Better: make os.chdir()
+invoke the interal :cd implementation, that takes care of all side
+effects.
+
+Mac: OS/X 10.4 with Python 2.5 installed: configure finds an extra argument
+that breaks the build. (Brian Victor, 2008 Sep 1)
+
+Patch to access screen under Python. (Marko Mahni, 2010 Jul 18)
+
+Python: ":py raw_input('prompt')" doesn't work. (Manu Hack)
+
+Win32: The Python interface only works with one version of Python, selected at
+compile time.  Can this be made to work with version 2.1 and 2.2 dynamically?
+
+Python: Be able to define a Python function that can be called directly from
+Vim script.  Requires converting the arguments and return value.
+
+--- runtime files
+
+Syntax file for protocol buffers. (Feng Xiao, 2013 May 9)
+Has an ugly copyright notice.  No conflict with Vim license?
+
+Patch for JavaScript syntax. (Kevin Locke, 2013 May 9)
+Claudio didn't respond yet.
+
+--- Fast regexp engine
+
+Including NFA regexp code.  Latest version probably is:
+https://code.google.com/p/vim-soc2008-regexp/source/browse/trunk/vim72-re/src/regexp_nfa.c
+Patch updated by Ken Takata. (May 13)
+
+To be able to run tests:
+- set defaultre=old / nfa / auto
+- In pattern use "\%#= to set the engine: 0 = automatic, 1 = old 2 = nfa
+
+Get example files for many languages. Compare syntax highlighting with old and
+new regexp, find regexp constructs where NFA does not work correctly.
+Idea for comparing output: use format.vim (ZyX, 2013 May 12)
+MakeSynChk from Charles Campbell. (May 14)
+
+Performance tests:
+- ~/vim/test/veryslow.js (file from Daniel Fetchinson)
+- ~/vim/test/slowsearch
+- ~/vim/test/rgb.vim
+- ~/vim/text/FeiqCfg.xml (file from Netjune)
+- ~/vim/text/edl.svg  (also XML)
+- search for  a.*e*exn  in the vim executable.  Go to last line to use
+  'hlsearch'.
+
+--- bug fixes
+
+Patch to avoid wrong error message for 1.0[0]. (Yasuhiro Matsumoto, 2013 May
+1)
+
+Patch for if_lua. (Luis Carvalho, 2012 Aug 26, update Aug 29, another Aug 30,
+then Sep 1, reminder Oct 14)
+
+Patch to check if 'foldexpr' sets did_emsg. (Christian Brabandt, 2013 Mar 20)
+
+Patch for 'backupcopy' default behavior for symlinks on Windows. (David Pope,
+2012 Mar 21, update Mar 31)
+With fix for memory leak: Ken Takata, 2012 Aug 24
+Another update Sep 24.
+Also patch from Joerg Bornemann, 2013 Apr 30.
+
+Undo problem: line not removed as expected when using setline() from Insert
+mode. (Israel Chauca, 2010 May 13, more in second msg)
+Break undo when CTRL-R = changes the text?  Or save more lines?
+Patch by Christian Brabandt, 2012 Nov 16.
+
+Do allow real tags above the !_TAG entries. Undo older patch. Issue 90.
+
+Matches might be highlighted correctly. Inefficient patch by Christian
+Brabandt, 2013 Feb 26.
+
+Patch to use bold/italic fonts when 'guifontewide' is set. (Ken Takata, 2013
+Mar 31)
+
+Problem with winfixheight and resizing. (Yukihiro Nakadaira, 2011 Sep 17)
+Patch Sep 18.
+
+Patch for IME problems. Remove hacking code for old IM. (Yukihiro Nakadaira,
+2012 Jul 20)
+
+Patch to fix finding toolbar bitmaps.  Issue 129.
+
+Combining characters are not used when executing a register with :@w.
+(William Fugh, 2013 Apr 5, more info from Ben Fritz)
+Patch by Christian Brabandt, 2013 Apr 6.  Second one.
+
+MS-Windows ACL support doesn't work well.  Patch from Ken Takata, 2012 Aug 29.
+Update Aug 31.
+Another patch for MingW, 2012 Dec 29.
+
+Bug in completion menu. (Olivier Teuliere, 2013 Feb 15)
+Patch by Christian Brabandt, Feb 16.
+
+'cursorline' is drawn incorrectly in diff mode. Patch by Christian Brabandt,
+2012 Apr 2.
+
+--- slightly incompatible changes
+
+Patch to load ~/.vim/vimrc when ~/.vimrc isn't found. (Lech Lorens, 2013 Apr
+13)
+
+It's probably a good idea to make a negative value for 'sts' use the value of
+'sw'.  Patch by So8res, Oct 3 2012
+
+When a buffer-local mapping is used, but a global mapping starts with the same
+characters, Vim currently waits for the next typed character to find out if
+the global mapping matches.  It is probably better to let the local mapping
+win and not wait. (discussion with Andy Wokula, 2013 Jan 30)
+Patch by Michael Henry, 2013 Jan 30, update Feb 15.
+
+
+---- Fixes to be included before 7.4 above, less important stuff below ----
 
 Several syntax file match "^\s*" which may get underlined if that's in the
 highlight group.  Add a "\zs" after it?
@@ -49,76 +171,47 @@ Discussion about canonicalization of Hebrew. (Ron Aaron, 2011 April 10)
 
 Checking runtime scripts: Thilo Six, 2012 Jun 6.
 
-Patch for doc indenting. (Ken Takata, Feb 4)
-
 GTK: problem with 'L' in 'guioptions' changing the window width.
 (Aaron Cornelius, 2012 Feb 6)
 
-Configure change to detect Lua 5.2. (lilydjwg, 2013 Jan 31)
-
 Javascript file where indent gets stuck on: GalaxyMaster, 2012 May 3.
-
-Patch to avoid warnings in Perl code. (Christian Brabandt, 2013 Jan 30)
-
-The " mark is not updated for lines inserted above it. (Roland Eggner, 2013
-Feb 5)
-
-Look into patch to add 'linenumber' option. (Nazri Ramliy, 2013 Feb 4)
-
-Another patch for Python threads, 2 and 3. (Ken Takata, 2013 Jan 31)
-Does this really work?
-
-Patch for 'relativenumber' being reset unexpectedly. (Christian Brabandt, 2013
-Feb 1)  Tests Feb 2.
-
-Patch to avoid useless compare. (Hayaki Saito, 2013 Feb 2)
 
 The CompleteDone autocommand needs some info passed to it:
 - The word that was selected (empty if abandoned complete)
 - Type of completion: tag, omnifunc, user func.
 
-Patch to make multibyte input work on Win32 console when codepage differs from
-'encoding'. (Ken Takata, 2012 Sep 29)
-
-Patch for building with Ruby and Cygwin. (Ken Takata, 2013 Jan 9)
-
-Patch to make 'relativenumber' show the current lnum instead of zero.
-(Nazri Ramliy, 2013 Jan 29)
-
-It's possible to define an input() function that overrides the built-in one.
-(ZyX, 2012 Sep 28)
-
-Patch to add sha256() function. (Tyru, 2013 Jan 8)
-Test by Higashi, 2013 Feb 2.
-All together (tyru, 2013 Feb 5)
-
-Patch to make pyeval() print error messages. (ZyX, 2013 Jan 12)
+Using ":call foo#d.f()" doesn't autoload the "foo.vim" file.
+That is, calling a dictionary function on an autoloaded dict.
+Works OK for echo, just not for  ":call" and ":call call()". (Ted, 2011 Mar
+17)
+Patch by Christian Brabandt, 2013 Mar 23.
+Not 100% sure this is the right solution.
 
 Win32: When a directory name contains an exclamation mark, completion doesn't
 complete the contents of the directory.  No escaping for the "!"? (Jan
 Stocker, 2012 Jan 5)
 
-Patch for Win32 clipboard under Cygwin. (Frodak Baksik, Feb 15)
-    Sutcliffe says it works well.
-    Update 2007 May 22 for Vim 7.1
-    Update 2008 Dec 2008 for Vim 7.2.xx (Sharonov)
-    Update by Ken Takata (2012 Dec 31, 2013 Jan 4, 2013 Jan 26)
-
-Problem parsing expression with function(). (Andy Wokula, 2012 Nov 22)
-Patch by Christian Brabandt, Nov 22.  Tests in another patch, Nov 23.
-
-Patch to add default value to getbufvar() et al. (Shougo Matsushita, Hirohito
-Higashi, 2013 Jan 1)
-
 Problem caused by patch 7.3.638: window->open does not update window
 correctly. Issue 91.
 
-Patch to fix compiler warnings for MingW 4.5.3. (Ken Takata, 2013 Jan 26)
+Patch to fix that 'cedit' is recognized after :normal. (Christian Brabandt,
+2013 Mar 19, later message)
 
-Do allow real tags above the !_TAG entries. Undo older patch. Issue 90.
+Patch to view coverage of the tests. (Nazri Ramliy, 2013 Feb 15)
+
+Patch to invert characters differently in GTK. (Yukihiro Nakadaira, 2013 May
+5)
+
+Patch to add the bufferlist() function. (Yegappan Lakshmanan, 2013 May 5)
+
+Patch to allow setting w:quickfix_title via setqflist() and setloclist()
+functions. (Christian Brabandt, 2013 May 8, update May 11)
 
 Patch to support 'u' in interactive substitute. (Christian Brabandt, 2012 Sep
 28)  With tests: Oct 9.
+
+Patch to add getlocstack() / setlocstack(). (Christian Brabandt, 2013 May 14)
+Second one.
 
 Patch to make fold updates much faster. (Christian Brabandt, 2012 Dec)
 
@@ -128,19 +221,23 @@ Patch to improve IME handling. (Yasuhiro Matsumoto, 2012 Jul 18)
 
 Issue 54: document behavior of -complete, also expands arg.
 
-New syntax files for apt. (quidame, 2012 Sep 21)
+-   Add regex for 'paragraphs' and 'sections': 'parare' and 'sectre'.  Combine
+    the two into a regex for searching. (Ned Konz)
+Patch by Christian Brabandt, 2013 Apr 20, unfinished.
+
+Bug: findfile("any", "http://;") returns http://any. (Andrew Pimlott, 2013 May
+7)  Not sure if that can be fixed, but when using "file://" it should be
+possible to check if the file exists.
+
+v:register is not directly reset to " after a delete command that specifies a
+register.  It is reset after the next command. (Steve Vermeulen, 2013 Mar 16)
 
 'ff' is wrong for one-line file without EOL. (Issue 77)
 
-Patch for if_lua. (Luis Carvalho, 2012 Aug 26, update Aug 29, another Aug 30,
-then Sep 1, reminder Oct 14)
+Patch to set antialiasing style on Windows. (Ondrej Balaz, 2013 Mar 14)
+Needs a different check for CLEARTYPE_QUALITY.
 
 Issue 72: 'autochdir' causes problems for :vimgrep.
-
-Undo problem: line not removed as expected when using setline() from Insert
-mode. (Israel Chauca, 2010 May 13, more in second msg)
-Break undo when CTRL-R = changes the text?  Or save more lines?
-Patch by Christian Brabandt, 2012 Nov 16.
 
 In the ATTENTION message about an existing swap file, mention the name of the
 process that is running.  It might actually be some other program, e.g. after
@@ -148,9 +245,6 @@ a reboot.
 
 MS-Windows: Crash opening very long file name starting with "\\".
 (Christian Brock, 2012 Jun 29)
-
-It's probably a good idea to make a negative value for 'sts' use the value of
-'sw'.  Patch by So8res, Oct 3 2012
 
 patch to add "combine" flag to  syntax commands. (so8res, 2012 Dec 6)
 
@@ -165,10 +259,12 @@ Or use expand('<sid>')?
 
 Patch to make confirm() display colors. (Christian Brabandt, 2012 Nov 9)
 
-Patch to add functions for signs. (Christian Brabandt,, 2013 Jan 27)
+Patch to add functions for signs. (Christian Brabandt, 2013 Jan 27)
 
-Patch to use directX to draw text on Windows.  Adds the 'directx' option.
-(Taro Muraoka, 2013 Jan 25)
+Patch to use directX to draw text on Windows.  Adds the 'renderoptions'
+option.  (Taro Muraoka, 2013 Jan 25, update 2013 Apr 3, May 14)
+
+Problem with refresh:always in completion. (Tyler Wade, 2013 Mar 17)
 
 b:undo_ftplugin cannot call a script-local function. (Boris Danilov, 2013 Jan
 7)
@@ -182,16 +278,15 @@ Patch to improve equivalence classes in regexp patterns.
 Patch with suggestions for starting.txt. (Tony Mechelynck, 2012 Oct 24)
 But use Gnome instead of GTK?
 
+Patch to make FocusGained and FocusLost work in modern terminals. (Hayaki
+Saito, 2013 Apr 24)
+
 Should be possible to enable/disable matchparen per window or buffer.
 Add a check for b:no_match_paren in Highlight_matching_Pair() (Marcin
 Szamotulski, 2012 Nov 8)
 
 Crash in autocmd that unloads buffers in a BufUnload event. (Andrew Pimlott,
 2012 Aug 11)  Disallow :new when BufUnload is being handled?
-
-MS-Windows ACL support doesn't work well.  Patch from Ken Takata, 2012 Aug 29.
-Update Aug 31.
-Another patch for MingW, 2012 Dec 29.
 
 MS-Windows resizing problems:
 - Windows window on screen positioning: Patch by Yukihiro Nakadaira, 2012 Jun
@@ -202,7 +297,10 @@ MS-Windows resizing problems:
 
 'iminsert' global value set when using ":setlocal iminsert"? (Wu, 2012 Jun 23)
 
-Help for b:undo_indent'. (Thilo Six, 2012 May 28)
+Patch to append regexp to tag commands to make it possible to select one out
+of many matches. (Cody Cutler, 2013 Mar 28)
+
+Help for 'b:undo_indent'. (Thilo Six, 2012 May 28)
 Also question if examples are correct.
 
 It should be possible to make globpath() return a list instead of a string,
@@ -236,23 +334,12 @@ When running Vim in silent ex mode, an existing swapfile causes Vim to wait
 for a user action without a prompt. (Maarten Billemont, 2012 Feb 3)
 Do give the prompt? Quit with an error?
 
-Patch for 'backupcopy' default behavior for symlinks on Windows. (David Pope,
-2012 Mar 21, update Mar 31)
-With fix for memory leak: Ken Takata, 2012 Aug 24
-Another update Sep 24.
-
 Patch to list user digraphs. (Christian Brabandt, 2012 Apr 14)
 
 Patch for input method status. (Hirohito Higashi, 2012 Apr 18)
 
-Patch to print the result of a :python command. (Maxim Philippov
-<philippovmi@gmail.com>, 2012 Aug 16)  Update Aug 17.
-
-Problem with winfixheight and resizing. (Yukihiro Nakadaira, 2011 Sep 17)
-Patch Sep 18.
-
-Patch for IME problems. Remove hacking code for old IM. (Yukihiro Nakadaira,
-2012 Jul 20)
+Patch to use .png icons for the toolbar on MS-Windows. (Martin Gieseking, 2013
+Apr 18)
 
 Patch for has('unnamedplus') docs. (Tony Mechelynck, 2011 Sep 27)
 And one for gui_x11.txt.
@@ -263,9 +350,6 @@ And one for gui_x11.txt.
     More recent version: https://retracile.net/wiki/VimBreakIndent
     Posted to vim-dev by Taylor Hedberg, 2011 Nov 25
 
-Problem with starting Visual block mode with :norm when 'virtualedit' is set.
-(David glts, 2012 Jun 5)
-
 ":cd" doesn't work when current directory path contains "**".
 finddir() has the same problem.  (Yukihiro Nakadaira, 2012 Jan 10)
 Requires a rewrite of the file_file_in_path code.
@@ -274,10 +358,9 @@ Problem with l: dictionary being locked in a function. (ZyX, 2011 Jul 21)
 
 Should use has("browsefilter") in ftplugins.  Requires patch 7.3.593.
 
-Issue 48: foldopen error can't be caught by try/catch
+Update for vim2html.pl. (Tyru, 2013 Feb 22)
 
-"dg_" deletes including the last character, "d:normal! g_" doesn't.
-(Nomen Nescio, 2012 Jun 27)
+Issue 48: foldopen error can't be caught by try/catch
 
 Patch to sort functions starting with '<' after others.  Omit dict functions,
 they can't be called. (Yasuhiro Matsumoto, 2011 Oct 11)
@@ -290,15 +373,10 @@ Nov 20)
 Patch to improve GUI find/replace dialog. (Christian Brabandt, 2012 May 26)
 Update Jun 2.
 
-Patch to add ":py3do". (Lilydjwg, 2012 Apr 7)
-
 `] moves to character after insert, instead of the last inserted character.
 (Yukihiro Nakadaira, 2011 Dec 9)
 
 Plugin for Modeleasy. (Massimiliano Tripoli, 2011 Nov 29)
-
-Updated syntax file for ssh_config, maintainer doesn't respond.
-(Leonard Ehrenfried, 2011 Sep 26)
 
 BufWinLeave triggers too late when quitting last window in a tab page. (Lech
 Lorens, 2012 Feb 21)
@@ -329,14 +407,8 @@ Syntax region with 'concealends' and a 'cchar' value, 'conceallevel' set to 2,
 only one of the two ends gets the cchar displayed. (Brett Stahlman, 2010 Aug
 21, Ben Fritz, 2010 Sep 14)
 
-'cursorline' is drawn incorrectly in diff mode. Patch by Christian Brabandt,
-2012 Apr 2.
-
 'cursorline' works on a text line only.  Add 'cursorscreenline' for
 highlighting the screen line. (Christian Brabandt, 2012 Mar 31)
-
-Win32: Does building a 64 bit version with VC9 give warnings for int
-conversions? (Mike Williams)
 
 Win32: Patch to use task dialogs when available. (Sergiu Dotenco, 2011 Sep 17)
 New feature, requires testing.  Made some remarks.
@@ -378,9 +450,6 @@ The error was 'RenderBadPicture (invalid Picture parameter)'.
    backtrace from your debugger if you break on the gdk_x_error() function.)
 Check that number of pixels doesn't go above 65535?
 
-popup completion menu closes quickly when there is a fold in the buffer. (Jan
-Christoph Ebersbach, 2011 Jul 3)
-
 Windows keys not set properly on Windows 7?  (cncyber, 2010 Aug 26)
 
 When using a Vim server, a # in the path causes an error message.
@@ -419,12 +488,6 @@ string() can't parse back "inf" and "nan".  Fix documentation or fix code?
 (ZyX, 2010 Aug 23)
 
 Make 'formatprg' global-local. (Sung Pae)
-
-When a buffer-local mapping is used, but a global mapping starts with the same
-characters, Vim currently waits for the next typed character to find out if
-the global mapping matches.  It is probably better to let the local mapping
-win and not wait. (discussion with Andy Wokula, 2013 Jan 30)
-Patch by Michael Henry, 2013 Jan 30.
 
 When doing "redir => s:foo" in a script and then "redir END" somewhere else
 (e.g. in a function) it can't find s:foo.
@@ -525,6 +588,9 @@ New esperanto spell file can't be processed. (Dominique Pelle, 2011 Jan 30)
 "L'Italie" noted as a spell error at start of the sentence. (Dominique Pelle,
 2011 Feb 27)
 
+Functions to read the actual contents of the screen, so that things like
+conceal can be tested. (Nazri Ramliy, 2013 Feb 18)
+
 Copy/paste between Vim and Google chrome doesn't work well for multi-byte
 characters. (Ben Haskell, 2010 Sep 17)
 When putting text in the cut buffer (when exiting) and conversion doesn't work
@@ -536,6 +602,9 @@ Experimental patch by Christian Brabandt, 2012 Apr 19.
 Editing a file with a ^M with 'ff' set to "mac", opening a help file, then the
 ^M is displayed as ^J sometimes.  Getting 'ff' value from wrong window/buffer?
 
+'colorcolumn' has higher priority than hlsearch.  Should probably be the other
+way around. (Nazri Ramliy, 2013 Feb 19)
+
 When Vim is put in the background (SIGTSTP) and then gets a SIGHUP it doesn't
 exit.  It exists as soon as back in the foreground. (Stephen Liang, 2011 Jan
 9)  Caused by vim_handle_signal(SIGNAL_BLOCK); in ui.c.
@@ -545,9 +614,6 @@ the command line. (Ingo Karkat, 2011 Jan 25)
 
 Since patch 7.2.46 Yankring plugin has become very slow, eventually make Vim
 crash? (Raiwil, 2010 Nov 17)
-
-Python: Adding line to buffer other than the current one doesn't work
-correctly. (Rozbujnik, 2010 Dec 19)
 
 Patch to add 'systemencoding', convert between 'encoding' and this for file
 names, shell commands and the like.  (Kikuchan, 2010 Oct 14)
@@ -723,9 +789,6 @@ Syntax priority problem. (Charles Campbell, 2011 Sep 15)
 
 When completion inserts the first match, it may trigger the line to be folded.
 Disable updating folds while completion is active? (Peter Odding, 2010 Jun 9)
-
-Using ":call foo#d.f()" doesn't autoload the "foo.vim" file.  Works OK for
-echo, just not for  ":call" and ":call call()". (Ted, 2011 Mar 17)
 
 When a:base in 'completefunc' starts with a number it's passed as a number,
 not a string. (Sean Ma)  Need to add flag to call_func_retlist() to force a
@@ -911,9 +974,6 @@ shellescape() depends on 'shellshash' for quoting.  That doesn't work when
 Use a different option or let it depend on whether 'shell' looks like a
 unix-like shell?
 
-Allow patches to add something to version.c, like with an official patch, so
-that :version output shows which patches have been applied.
-
 Bug: in Ex mode (after "Q") backslash before line break, when yanked into a
 register and executed, results in <Nul>: instead of line break.
 (Konrad Schwarz, 2010 Apr 16)
@@ -940,6 +1000,7 @@ ATTENTION message?  (Tony Mechelynck, 2008 Dec 1)
 Also: swap files are in ~/tmp/  One has relative file name ".mozilla/...".
 
 Add v:motion_force. (Kana Natsuno, 2008 Dec 6)
+Maybe call it v:motiontype.
 
 Runtime files for Clojure. (Toralf Wittner, 2008 Jun 25)
 
@@ -1126,18 +1187,6 @@ try/catch not working when inside a for loop. (ZyX, 2011 Jan 25)
 Would be more consistent when an existing tab is re-used. (Tony Mechelynck)
 
 Add ":nofold".  Range will apply without expanding to closed fold.
-
-Including NFA regexp code:
-Use "\%#= to set the engine: 0 = automatic, 1 = backtracking, 2 = new.
-Useful in tests.
-Performance tests:
-- ~/vim/test/veryslow.js (file from Daniel Fetchinson)
-- ~/vim/test/slowsearch
-- ~/vim/test/rgb.vim
-- ~/vim/text/FeiqCfg.xml (file from Netjune)
-- ~/vim/text/edl.svg  (also XML)
-- search for  a.*e*exn  in the vim executable.  Go to last line to use
-  'hlsearch'.
 
 Using Aap to build Vim: add remarks about how to set personal preferences.
 Example on http://www.calmar.ws/tmp/aap.html
@@ -1371,9 +1420,6 @@ if_ruby.c.
 
 ":helpgrep" should use the directory from 'helpfile'.
 
-Patch to dynamically load Python on Solaris. (Danek Duvall, 2009 Feb 16)
-Needs more work.
-
 The need_fileinfo flag is messy.  Instead make the message right away and put
 it in keep_msg?
 
@@ -1415,9 +1461,6 @@ When doing ":quit" the Netbeans "killed" event isn't sent.  (Xavier de Gaye,
 2008 Nov 10)  call netbeans_file_closed() at the end of buf_freeall(), or in
 all places where buf_freeall() is called?
 
-":python os.chdir('/tmp')" makes short buffer names invalid. (Xavier de Gaye)
-Check directory and call shorten_fnames()?
-
 aucmd_prepbuf() should also use a window in another tab page.
 
 When unloading a buffer in a BufHidden autocommand the hidden flag is reset?
@@ -1452,9 +1495,6 @@ Spell menu: When using the Popup menu to select a replacement word,
 somehow?  Or use a new function.
 
 Mac: Using gvim: netrw window disappears. (Nick Lo, 2006 Jun 21)
-
-Mac: OS/X 10.4 with Python 2.5 installed: configure finds an extra argument
-that breaks the build. (Brian Victor, 2008 Sep 1)
 
 Add an option to specify the character to use when a double-width character is
 moved to the next line.  Default '>', set to a space to blank it out.  Check
@@ -1591,9 +1631,6 @@ resulting in highlighted "{" in that window, not in the other.
 
 In mswin.vim: Instead of mapping <C-V> for Insert mode in a complicated way,
 can it be done like ":imap <C-V> <MiddleMouse>" without negative side effects?
-
-Completion menu disappears when using 'cursorcolumn'. (Sven-Hendrik Haase,
-2011 May 23)
 
 GTK: when the Tab pages bar appears or disappears while the window is
 maximized the window is no longer maximized.  Patch that has some idea but
@@ -1745,7 +1782,6 @@ More patches:
     more friendly for the Vim distribution.
     New version received 2008 Jan 6.
     No maintenance in two years...
--   Patch to access screen under Python. (Marko Mahni, 2010 Jul 18)
 -   Patch to open dropped files in new tabs. (Michael Trim, 2010 Aug 3)
 
 Awaiting updated patches:
@@ -2297,8 +2333,6 @@ Macintosh:
     the :catch commands are always executed, also when the file is edited
     normally.  Should reset did_emsg and undo side effects.  Also make sure
     the ATTENTION message shows up.  Servatius Brandt works on this.
-8   ":g//" gives "Pattern not found error" with E486.  Should not use the
-    error number, it's not a regular error message.
 7   Vimtutor leaves escape sequence in terminal. This is the xterm response to
     requesting the version number.  (Yasuhiro Matsumoto)
 8   When redirecting and using ":silent" the current column for displaying and
@@ -2326,7 +2360,6 @@ Macintosh:
 8   When doing Insert mode completion a mapping cannot recursively call
     edit(), because the completion information is global.  Put everything in
     an allocated structure?
-6   Python: ":py raw_input('prompt')" doesn't work. (Manu Hack)
 8   Command line completion: buffers "foo.txt" and "../b/foo.txt", completing
     ":buf foo<Tab>" doesn't find the second one. (George V. Reilly)
 7   mb_off2cells() doesn't work correctly on the tail byte of a double-byte
@@ -3623,9 +3656,6 @@ Tags:
 Win32 GUI:
 8   Make debug mode work while starting up (vim -D).  Open console window for
     the message and input?
-7   The Python interface only works with one version of Python, selected at
-    compile time.  Can this be made to work with version 2.1 and 2.2
-    dynamically?
 7   GvimExt: when there are several existing Vims, move the list to a submenu.
     (Mike McCollister)
 8   When using "Edit with Vim" for one file it changes directory, when several
@@ -3987,9 +4017,6 @@ Command line completion:
 
 
 Command line history:
-9   Remember which command lines were actually typed and were not loaded from
-    viminfo.  When writing viminfo append only these lines, so that lines from
-    other Vim's are not overwritten.
 -   Add "KeyWasTyped" flag: It's reset before each command and set when a
     character from the keyboard is consumed. Value is used to decide to put a
     command line in history or not. Put line in history if it didn't
@@ -4178,7 +4205,7 @@ Select mode:
 8   In blockwise mode, typed characters are inserted in front of the block,
     backspace deletes a column before the block. (Steve Hall)
 7   Alt-leftmouse starts block mode selection in MS Word.
-    See http://www.vim.org/tips/tip.php?tip_id=743
+    See http://vim.wikia.com/wiki/Use_Alt-Mouse_to_select_blockwise.
 7   Add Cmdline-select mode.  Like Select mode, but used on the command line.
     - Change gui_send_mouse_event() to pass on mouse events when 'mouse'
       contains 'C' or 'A'.
@@ -4843,8 +4870,6 @@ Debug mode:
 
 
 Various improvements:
-9   Python: be able to define a Python function that can be called directly
-    from Vim script.  Requires converting the arguments and return value.
 7   Add plugins for formatting?  Should be able to make a choice depending on
     the language of a file (English/Korean/Japanese/etc.).
     Setting the 'langformat' option to "chinese" would load the
@@ -4869,7 +4894,6 @@ Various improvements:
 7   Allow a window not to have a statusline.  Makes it possible to use a
     window as a buffer-tab selection.
 8   Allow non-active windows to have a different statusline. (Yakov Lerner)
-6   Python interface: add vim.message() function. (Michal Vitecek, 2002 Nov 5)
 7   Support using ":vert" with User commands.  Add expandable items <vert>.
     Do the same for ":browse" and ":confirm"?
     For ":silent" and ":debug" apply to the whole user command.
@@ -5100,8 +5124,6 @@ Various improvements:
 -   Add a variant of CTRL-V that stops interpretation of more than one
     character.	For entering mappings on the command line where a key contains
     several special characters, e.g. a trailing newline.
--   Add regex for 'paragraphs' and 'sections': 'parare' and 'sectre'.  Combine
-    the two into a regex for searching. (Ned Konz)
 -   Make '2' option in 'formatoptions' also work inside comments.
 -   Add 's' flag to 'formatoptions': Do not break when inside a string. (Dodt)
 -   When window size changed (with the mouse) and made too small, set it back

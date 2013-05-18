@@ -375,7 +375,7 @@ get_vim_env(void)
 
     /* First get $VIMRUNTIME.  If it's set, remove the tail. */
     vim = getenv("VIMRUNTIME");
-    if (vim != NULL && *vim != 0)
+    if (vim != NULL && *vim != 0 && strlen(vim) < BUFSIZE)
     {
 	strcpy(buf, vim);
 	remove_tail(buf);
@@ -1609,7 +1609,7 @@ change_openwith_choice(int idx)
 
 /*
  * Only add the choice for the open-with menu entry when gvim.exe was found
- * and and regedit.exe exist.
+ * and regedit.exe exist.
  */
     static void
 init_openwith_choice(void)

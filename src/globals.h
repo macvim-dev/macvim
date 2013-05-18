@@ -180,6 +180,8 @@ EXTERN int	emsg_skip INIT(= 0);	    /* don't display errors for
 EXTERN int	emsg_severe INIT(= FALSE);   /* use message of next of several
 					       emsg() calls for throw */
 EXTERN int	did_endif INIT(= FALSE);    /* just had ":endif" */
+EXTERN dict_T	vimvardict;		    /* Dictionary with v: variables */
+EXTERN dict_T	globvardict;		    /* Dictionary with g: variables */
 #endif
 EXTERN int	did_emsg;		    /* set by emsg() when the message
 					       is displayed or thrown */
@@ -802,7 +804,7 @@ EXTERN int	enc_dbcs INIT(= 0);		/* One of DBCS_xxx values if
 EXTERN int	enc_unicode INIT(= 0);	/* 2: UCS-2 or UTF-16, 4: UCS-4 */
 EXTERN int	enc_utf8 INIT(= FALSE);		/* UTF-8 encoded Unicode */
 EXTERN int	enc_latin1like INIT(= TRUE);	/* 'encoding' is latin1 comp. */
-# ifdef WIN3264
+# if defined(WIN3264) || defined(FEAT_CYGWIN_WIN32_CLIPBOARD)
 /* Codepage nr of 'encoding'.  Negative means it's not been set yet, zero
  * means 'encoding' is not a valid codepage. */
 EXTERN int	enc_codepage INIT(= -1);
@@ -1059,11 +1061,13 @@ EXTERN int	autocmd_fname_full;	     /* autocmd_fname is full path */
 EXTERN int	autocmd_bufnr INIT(= 0);     /* fnum for <abuf> on cmdline */
 EXTERN char_u	*autocmd_match INIT(= NULL); /* name for <amatch> on cmdline */
 EXTERN int	did_cursorhold INIT(= FALSE); /* set when CursorHold t'gerd */
-EXTERN pos_T	last_cursormoved	    /* for CursorMoved event */
+EXTERN pos_T	last_cursormoved	      /* for CursorMoved event */
 # ifdef DO_INIT
 			= INIT_POS_T(0, 0, 0)
 # endif
 			;
+EXTERN int	last_changedtick INIT(= 0);   /* for TextChanged event */
+EXTERN buf_T	*last_changedtick_buf INIT(= NULL);
 #endif
 
 #ifdef FEAT_WINDOWS

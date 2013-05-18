@@ -1999,11 +1999,7 @@ do_arglist(str, what, after)
 	 * Delete the items: use each item as a regexp and find a match in the
 	 * argument list.
 	 */
-#ifdef CASE_INSENSITIVE_FILENAME
-	regmatch.rm_ic = TRUE;		/* Always ignore case */
-#else
-	regmatch.rm_ic = FALSE;		/* Never ignore case */
-#endif
+	regmatch.rm_ic = p_fic;	/* ignore case when 'fileignorecase' is set */
 	for (i = 0; i < new_ga.ga_len && !got_int; ++i)
 	{
 	    p = ((char_u **)new_ga.ga_data)[i];
@@ -2559,7 +2555,7 @@ ex_listdo(eap)
 		/* go to window "tp" */
 		if (!valid_tabpage(tp))
 		    break;
-		goto_tabpage_tp(tp, TRUE);
+		goto_tabpage_tp(tp, TRUE, TRUE);
 		tp = tp->tp_next;
 	    }
 #endif
@@ -2928,7 +2924,7 @@ cmd_source(fname, eap)
 	EMSG(_(e_argreq));
 
     else if (eap != NULL && eap->forceit)
-	/* ":source!": read Normal mdoe commands
+	/* ":source!": read Normal mode commands
 	 * Need to execute the commands directly.  This is required at least
 	 * for:
 	 * - ":g" command busy

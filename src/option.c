@@ -1117,6 +1117,15 @@ static struct vimoption
 			    (char_u *)&p_ffs, PV_NONE,
 			    {(char_u *)DFLT_FFS_VI, (char_u *)DFLT_FFS_VIM}
 			    SCRIPTID_INIT},
+    {"fileignorecase", "fic", P_BOOL|P_VI_DEF,
+			    (char_u *)&p_fic, PV_NONE,
+			    {
+#ifdef CASE_INSENSITIVE_FILENAME
+				    (char_u *)TRUE,
+#else
+				    (char_u *)FALSE,
+#endif
+					(char_u *)0L} SCRIPTID_INIT},
     {"filetype",    "ft",   P_STRING|P_ALLOCED|P_VI_DEF|P_NOGLOB|P_NFNAME,
 #ifdef FEAT_AUTOCMD
 			    (char_u *)&p_ft, PV_FT,
@@ -2947,6 +2956,7 @@ static struct vimoption
     p_term("t_op", T_OP)
     p_term("t_RI", T_CRI)
     p_term("t_RV", T_CRV)
+    p_term("t_u7", T_U7)
     p_term("t_Sb", T_CSB)
     p_term("t_Sf", T_CSF)
     p_term("t_se", T_SE)
@@ -7196,7 +7206,7 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
     return errmsg;
 }
 
-#ifdef FEAT_SYN_HL
+#if defined(FEAT_SYN_HL) || defined(PROTO)
 /*
  * Simple int comparison function for use with qsort()
  */
@@ -7717,17 +7727,33 @@ set_bool_option(opt_idx, varp, value, opt_flags)
     }
 #endif
 
-    /* 'list', 'number' */
-    else if ((int *)varp == &curwin->w_p_list
-	  || (int *)varp == &curwin->w_p_nu
-	  || (int *)varp == &curwin->w_p_rnu)
+    /* If 'number' is set, reset 'relativenumber'. */
+    /* If 'relativenumber' is set, reset 'number'. */
+    else if ((int *)varp == &curwin->w_p_nu && curwin->w_p_nu)
     {
-	/* If 'number' is set, reset 'relativenumber'. */
-	/* If 'relativenumber' is set, reset 'number'. */
-	if ((int *)varp == &curwin->w_p_nu && curwin->w_p_nu)
-	    curwin->w_p_rnu = FALSE;
-	if ((int *)varp == &curwin->w_p_rnu && curwin->w_p_rnu)
-	    curwin->w_p_nu = FALSE;
+	curwin->w_p_rnu = FALSE;
+
+	/* Only reset the global value if the own value is set globally. */
+	if (((opt_flags & (OPT_LOCAL | OPT_GLOBAL)) == 0))
+	    curwin->w_allbuf_opt.wo_rnu = FALSE;
+    }
+    else if ((int *)varp == &curwin->w_p_rnu && curwin->w_p_rnu)
+    {
+	curwin->w_p_nu = FALSE;
+
+	/* Only reset the global value if the own value is set globally. */
+	if (((opt_flags & (OPT_LOCAL | OPT_GLOBAL)) == 0))
+	    curwin->w_allbuf_opt.wo_nu = FALSE;
+    }
+    else if ((int *)varp == &curwin->w_allbuf_opt.wo_nu
+						&& curwin->w_allbuf_opt.wo_nu)
+    {
+        curwin->w_allbuf_opt.wo_rnu = FALSE;
+    }
+    else if ((int *)varp == &curwin->w_allbuf_opt.wo_rnu
+					       && curwin->w_allbuf_opt.wo_rnu)
+    {
+        curwin->w_allbuf_opt.wo_nu = FALSE;
     }
 
     else if ((int *)varp == &curbuf->b_p_ro)
@@ -8932,6 +8958,144 @@ get_option_value(name, numval, stringval, opt_flags)
 }
 #endif
 
+#if defined(FEAT_PYTHON) || defined(FEAT_PYTHON3)
+/*
+ * Returns the option attributes and its value. Unlike the above function it
+ * will return either global value or local value of the option depending on
+ * what was requested, but it will never return global value if it was
+ * requested to return local one and vice versa. Neither it will return
+ * buffer-local value if it was requested to return window-local one.
+ *
+ * Pretends that option is absent if it is not present in the requested scope
+ * (i.e. has no global, window-local or buffer-local value depending on
+ * opt_type). Uses
+ *
+ * Returned flags:
+ *       0 hidden or unknown option
+ *  see SOPT_* in vim.h for other flags
+ *
+ * Possible opt_type values: see SREQ_* in vim.h
+ */
+    int
+get_option_value_strict(name, numval, stringval, opt_type, from)
+    char_u	*name;
+    long	*numval;
+    char_u	**stringval;	    /* NULL when only obtaining attributes */
+    int		opt_type;
+    void	*from;
+{
+    int		opt_idx;
+    char_u	*varp = NULL;
+    struct vimoption *p;
+    int		r = 0;
+
+    opt_idx = findoption(name);
+    if (opt_idx < 0)
+	return 0;
+
+    p = &(options[opt_idx]);
+
+    /* Hidden option */
+    if (p->var == NULL)
+	return 0;
+
+    if (p->flags & P_BOOL)
+	r |= SOPT_BOOL;
+    else if (p->flags & P_NUM)
+	r |= SOPT_NUM;
+    else if (p->flags & P_STRING)
+	r |= SOPT_STRING;
+
+    if (p->indir == PV_NONE)
+    {
+	if (opt_type == SREQ_GLOBAL)
+	    r |= SOPT_GLOBAL;
+	else
+	    return 0; /* Did not request global-only option */
+    }
+    else
+    {
+	if (p->indir & PV_BOTH)
+	    r |= SOPT_GLOBAL;
+	else if (opt_type == SREQ_GLOBAL)
+	    return 0; /* Requested global option */
+
+	if (p->indir & PV_WIN)
+	{
+	    if (opt_type == SREQ_BUF)
+		return 0; /* Did not request window-local option */
+	    else
+		r |= SOPT_WIN;
+	}
+	else if (p->indir & PV_BUF)
+	{
+	    if (opt_type == SREQ_WIN)
+		return 0; /* Did not request buffer-local option */
+	    else
+		r |= SOPT_BUF;
+	}
+    }
+
+    if (stringval == NULL)
+	return r;
+
+    if (opt_type == SREQ_GLOBAL)
+	varp = p->var;
+    else
+    {
+	if (opt_type == SREQ_BUF)
+	{
+	    /* Special case: 'modified' is b_changed, but we also want to
+	     * consider it set when 'ff' or 'fenc' changed. */
+	    if (p->indir == PV_MOD)
+	    {
+		*numval = bufIsChanged((buf_T *) from);
+		varp = NULL;
+	    }
+#ifdef FEAT_CRYPT
+	    else if (p->indir == PV_KEY)
+	    {
+		/* never return the value of the crypt key */
+		*stringval = NULL;
+		varp = NULL;
+	    }
+#endif
+	    else
+	    {
+		aco_save_T	aco;
+		aucmd_prepbuf(&aco, (buf_T *) from);
+		varp = get_varp(p);
+		aucmd_restbuf(&aco);
+	    }
+	}
+	else if (opt_type == SREQ_WIN)
+	{
+	    win_T	*save_curwin;
+	    save_curwin = curwin;
+	    curwin = (win_T *) from;
+	    curbuf = curwin->w_buffer;
+	    varp = get_varp(p);
+	    curwin = save_curwin;
+	    curbuf = curwin->w_buffer;
+	}
+	if (varp == p->var)
+	    return (r | SOPT_UNSET);
+    }
+
+    if (varp != NULL)
+    {
+	if (p->flags & P_STRING)
+	    *stringval = vim_strsave(*(char_u **)(varp));
+	else if (p->flags & P_NUM)
+	    *numval = *(long *) varp;
+	else
+	    *numval = *(int *)varp;
+    }
+
+    return r;
+}
+#endif
+
 /*
  * Set the value of option "name".
  * Use "string" for string options, use "number" for other options.
@@ -9666,6 +9830,85 @@ comp_col()
     sc_col = Columns;
     ru_col = Columns;
 #endif
+}
+
+/*
+ * Unset local option value, similar to ":set opt<".
+ */
+
+    void
+unset_global_local_option(name, from)
+    char_u	*name;
+    void	*from;
+{
+    struct vimoption *p;
+    int		opt_idx;
+    buf_T	*buf = (buf_T *)from;
+
+    opt_idx = findoption(name);
+    p = &(options[opt_idx]);
+
+    switch ((int)p->indir)
+    {
+	/* global option with local value: use local value if it's been set */
+	case PV_EP:
+	    clear_string_option(&buf->b_p_ep);
+	    break;
+	case PV_KP:
+	    clear_string_option(&buf->b_p_kp);
+	    break;
+	case PV_PATH:
+	    clear_string_option(&buf->b_p_path);
+	    break;
+	case PV_AR:
+	    buf->b_p_ar = -1;
+	    break;
+	case PV_TAGS:
+	    clear_string_option(&buf->b_p_tags);
+	    break;
+#ifdef FEAT_FIND_ID
+	case PV_DEF:
+	    clear_string_option(&buf->b_p_def);
+	    break;
+	case PV_INC:
+	    clear_string_option(&buf->b_p_inc);
+	    break;
+#endif
+#ifdef FEAT_INS_EXPAND
+	case PV_DICT:
+	    clear_string_option(&buf->b_p_dict);
+	    break;
+	case PV_TSR:
+	    clear_string_option(&buf->b_p_tsr);
+	    break;
+#endif
+#ifdef FEAT_QUICKFIX
+	case PV_EFM:
+	    clear_string_option(&buf->b_p_efm);
+	    break;
+	case PV_GP:
+	    clear_string_option(&buf->b_p_gp);
+	    break;
+	case PV_MP:
+	    clear_string_option(&buf->b_p_mp);
+	    break;
+#endif
+#if defined(FEAT_BEVAL) && defined(FEAT_EVAL)
+	case PV_BEXPR:
+	    clear_string_option(&buf->b_p_bexpr);
+	    break;
+#endif
+#if defined(FEAT_CRYPT)
+	case PV_CM:
+	    clear_string_option(&buf->b_p_cm);
+	    break;
+#endif
+#ifdef FEAT_STL_OPT
+	case PV_STL:
+	    clear_string_option(&((win_T *)from)->w_p_stl);
+	    break;
+#endif
+    }
 }
 
 /*

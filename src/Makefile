@@ -200,7 +200,7 @@
 #Solaris 2.5 (sun4m)  cc (SC4.0)     +X11R6 +GUI (CDE)	4.6b (E) Andrew Large
 #Solaris 2.5	      cc	     +X11 +GUI Athena	4.2  (9) Sonia Heimann
 #Solaris 2.5	      gcc 2.5.6      +X11 Motif		5.0m (R) Ant. Colombo
-#Solaris 2.6	      gcc 2.8.1      ncursus		5.3  (G) Larry W. Virden
+#Solaris 2.6	      gcc 2.8.1      ncurses		5.3  (G) Larry W. Virden
 #Solaris with -lthread					5.5  (W) K. Nagano
 #Solaris	      gcc				     (b) Riccardo
 #SunOS 4.1.x			     +X11 -GUI		5.1b (J) Bram Moolenaar
@@ -231,8 +231,8 @@
 # (D)  Uncomment lines below for QNX
 # (E)  You might want to use termlib instead of termcap, see below.
 # (F)  See below for instructions.
-# (G)  Using ncursus version 4.2 has reported to cause a crash.  Use the
-#      Sun cursus library instead.
+# (G)  Using ncurses version 4.2 has reported to cause a crash.  Use the
+#      Sun curses library instead.
 # (H)  See line for EXTRA_LIBS below.
 # (I)  SINIX-N 5.42 and 5.43 need some EXTRA_LIBS.  Also for Reliant-Unix.
 # (J)  If you get undefined symbols, see below for a solution.
@@ -402,7 +402,7 @@ CClink = $(CC)
 # to the command line.	If you see strange flags during compilation, check in
 # auto/config.mk where they come from.  If it's PERL_CFLAGS, try commenting
 # the next line.
-# When you get an error for a missing "perl.exp" file, try creating an emtpy
+# When you get an error for a missing "perl.exp" file, try creating an empty
 # one: "touch perl.exp".
 # This requires at least "small" features, "tiny" doesn't work.
 #CONF_OPT_PERL = --enable-perlinterp
@@ -601,7 +601,7 @@ LINT_OPTIONS = -beprxzF
 # Might not work with GUI or Perl.
 # For unknown reasons adding "-lc" fixes a linking problem with some versions
 # of GCC.  That's probably a bug in the "-pg" implementation.
-# After running Vim see the profile result with: gmon vim gmon.out | vim -
+# After running Vim see the profile result with: gprof vim gmon.out | vim -
 # Need to recompile everything after changing this: "make clean" "make".
 #PROFILE_CFLAGS = -pg -g -DWE_ARE_PROFILING
 #PROFILE_LIBS = -pg
@@ -1310,7 +1310,7 @@ ALL_GUI_PRO  = gui.pro gui_gtk.pro gui_motif.pro gui_xmdlg.pro gui_athena.pro gu
 ### prototype headers are ignored due to -DPROTO, system
 ### headers #include <...> are ignored if we use the -MM option, as
 ### e.g. provided by gcc-cpp.
-### Include FEAT_GUI to get gependency on gui.h
+### Include FEAT_GUI to get dependency on gui.h
 ### Need to change "-I /<path>" to "-isystem /<path>" for GCC 3.x.
 CPP_DEPEND = $(CC) -I$(srcdir) -M$(CPP_MM) \
 		`echo "$(DEPEND_CFLAGS)" $(DEPEND_CFLAGS_FILTER)`
@@ -1654,7 +1654,7 @@ PRO_AUTO = \
 RSRC_DIR = os_mac_rsrc
 
 PRO_MANUAL = os_amiga.pro os_msdos.pro os_win16.pro os_win32.pro \
-	os_mswin.pro os_beos.pro os_vms.pro $(PERL_PRO)
+	os_mswin.pro winclip.pro os_beos.pro os_vms.pro $(PERL_PRO)
 
 # Default target is making the executable and tools
 all: $(VIMTARGET) $(TOOLS) languages $(GUI_BUNDLE)
@@ -1733,7 +1733,7 @@ CCC = $(CC) -c -I$(srcdir) $(ALL_CFLAGS)
 
 
 # Link the target for normal use or debugging.
-# A shell script is used to try linking without unneccesary libraries.
+# A shell script is used to try linking without unnecessary libraries.
 $(VIMTARGET): auto/config.mk objects $(OBJ) version.c version.h
 	$(CCC) version.c -o objects/version.o
 	@LINK="$(PURIFY) $(SHRPENV) $(CClink) $(ALL_LIB_DIRS) $(LDFLAGS) \
@@ -1808,6 +1808,10 @@ os_mswin.pro: os_mswin.c
 	$(CPROTO) -DWIN16 -DWIN32 -UHAVE_CONFIG_H $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 
+winclip.pro: winclip.c
+	$(CPROTO) -DWIN16 -DWIN32 -UHAVE_CONFIG_H $< > proto/$@
+	echo "/* vim: set ft=c : */" >> proto/$@
+
 os_beos.pro: os_beos.c
 	$(CPROTO) -D__BEOS__ -UHAVE_CONFIG_H $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
@@ -1849,8 +1853,8 @@ types.vim: $(TAGS_SRC) $(TAGS_INCL)
 #
 # This will produce a lot of garbage on your screen, including a few error
 # messages.  Don't worry about that.
-# If there is a real error, there will be a difference between "test.out" and
-# a "test99.ok" file.
+# If there is a real error, there will be a difference between "testXX.out" and
+# a "testXX.ok" file.
 # If everything is alright, the final message will be "ALL DONE".  If not you
 # get "TEST FAILURE".
 #
@@ -2672,6 +2676,12 @@ objects/os_mac_conv.o: os_mac_conv.c
 objects/os_unix.o: os_unix.c
 	$(CCC) -o $@ os_unix.c
 
+objects/os_mswin.o: os_mswin.c
+	$(CCC) -o $@ os_mswin.c
+
+objects/winclip.o: winclip.c
+	$(CCC) -o $@ winclip.c
+
 objects/pathdef.o: auto/pathdef.c
 	$(CCC) -o $@ auto/pathdef.c
 
@@ -2799,9 +2809,9 @@ bundle-rsrc: os_mac.rsr.hqx
 	mv gui_mac.rsrc.rsrcfork $(RESDIR)/$(VIMNAME).rsrc
 
 # po/Make_osx.pl says something about generating a Mac message file
-# for Ukrananian.  Would somebody using Mac OS X in Ukranian
+# for Ukrainian.  Would somebody using Mac OS X in Ukrainian
 # *really* be upset that Carbon Vim was not localised in
-# Ukranian?
+# Ukrainian?
 #
 #bundle-language: bundle-dir po/Make_osx.pl
 #	cd po && perl Make_osx.pl --outdir ../$(RESDIR) $(MULTILANG)
@@ -3012,6 +3022,10 @@ objects/version.o: version.c vim.h auto/config.h feature.h os_unix.h auto/osdef.
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h globals.h farsi.h \
  arabic.h version.h
+objects/winclip.o: winclip.c vimio.h vim.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
+ regexp.h gui.h ex_cmds.h proto.h globals.h farsi.h arabic.h \
+ proto/winclip.pro
 objects/window.o: window.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h globals.h farsi.h \

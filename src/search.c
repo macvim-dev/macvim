@@ -73,7 +73,7 @@ struct spat
 {
     char_u	    *pat;	/* the pattern (in allocated memory) or NULL */
     int		    magic;	/* magicness of the pattern */
-    int		    no_scs;	/* no smarcase for this pattern */
+    int		    no_scs;	/* no smartcase for this pattern */
     struct soffset  off;
 };
 
@@ -736,6 +736,8 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
 					++matchcol;
 				}
 			    }
+			    if (matchcol == 0 && (options & SEARCH_START))
+				break;
 			    if (ptr[matchcol] == NUL
 				    || (nmatched = vim_regexec_multi(&regmatch,
 					      win, buf, lnum + matchpos.lnum,
@@ -876,7 +878,7 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
 		    /* With the SEARCH_END option move to the last character
 		     * of the match.  Don't do it for an empty match, end
 		     * should be same as start then. */
-		    if (options & SEARCH_END && !(options & SEARCH_NOOF)
+		    if ((options & SEARCH_END) && !(options & SEARCH_NOOF)
 			    && !(matchpos.lnum == endpos.lnum
 				&& matchpos.col == endpos.col))
 		    {
@@ -2440,12 +2442,10 @@ showmatch(c)
     /* 'matchpairs' is "x:y,x:y" */
     for (p = curbuf->b_p_mps; *p != NUL; ++p)
     {
-	if (PTR2CHAR(p) == c
 #ifdef FEAT_RIGHTLEFT
-		    && (curwin->w_p_rl ^ p_ri)
-#endif
-	   )
+	if (PTR2CHAR(p) == c && (curwin->w_p_rl ^ p_ri))
 	    break;
+#endif
 	p += MB_PTR2LEN(p) + 1;
 	if (PTR2CHAR(p) == c
 #ifdef FEAT_RIGHTLEFT
@@ -2460,7 +2460,7 @@ showmatch(c)
 
     if ((lpos = findmatch(NULL, NUL)) == NULL)	    /* no match, so beep */
 	vim_beep();
-    else if (lpos->lnum >= curwin->w_topline)
+    else if (lpos->lnum >= curwin->w_topline && lpos->lnum < curwin->w_botline)
     {
 	if (!curwin->w_p_wrap)
 	    getvcol(curwin, lpos, NULL, &vcol, NULL);
@@ -3555,7 +3555,7 @@ extend:
 
 /*
  * Find block under the cursor, cursor at end.
- * "what" and "other" are two matching parenthesis/paren/etc.
+ * "what" and "other" are two matching parenthesis/brace/etc.
  */
     int
 current_block(oap, count, include, what, other)

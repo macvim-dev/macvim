@@ -548,6 +548,11 @@ update_screen(type)
 #if defined(FEAT_SEARCH_EXTRA)
     end_search_hl();
 #endif
+#ifdef FEAT_INS_EXPAND
+    /* May need to redraw the popup menu. */
+    if (pum_visible())
+	pum_redraw();
+#endif
 
 #ifdef FEAT_WINDOWS
     /* Reset b_mod_set flags.  Going through all windows is probably faster
@@ -4039,7 +4044,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 
 		/* If a double-width char doesn't fit at the left side display
 		 * a '<' in the first column.  Don't do this for unprintable
-		 * charactes. */
+		 * characters. */
 		if (n_skip > 0 && mb_l > 1 && n_extra == 0)
 		{
 		    n_extra = 1;

@@ -1476,6 +1476,21 @@ clip_gen_request_selection(cbd)
 #endif
 }
 
+    int
+clip_gen_owner_exists(cbd)
+    VimClipboard	*cbd UNUSED;
+{
+#ifdef FEAT_XCLIPBOARD
+# ifdef FEAT_GUI_GTK
+    if (gui.in_use)
+	return clip_gtk_owner_exists(cbd);
+    else
+# endif
+	return clip_x11_owner_exists(cbd);
+#endif
+    return TRUE;
+}
+
 #endif /* FEAT_CLIPBOARD */
 
 /*****************************************************************************
@@ -2139,7 +2154,13 @@ clip_x11_request_selection_cb(w, success, sel_atom, type, value, length,
 	text_prop.encoding = *type;
 	text_prop.format = *format;
 	text_prop.nitems = len;
-	status = XmbTextPropertyToTextList(X_DISPLAY, &text_prop,
+#if defined(FEAT_MBYTE) && defined(X_HAVE_UTF8_STRING)
+	if (*type == utf8_atom)
+	    status = Xutf8TextPropertyToTextList(X_DISPLAY, &text_prop,
+							 &text_list, &n_text);
+	else
+#endif
+	    status = XmbTextPropertyToTextList(X_DISPLAY, &text_prop,
 							 &text_list, &n_text);
 	if (status != Success || n_text < 1)
 	{
@@ -2195,8 +2216,13 @@ clip_x11_request_selection(myShell, dpy, cbd)
 	    default: type = XA_STRING;
 	}
 #ifdef FEAT_MBYTE
-	if (type == utf8_atom && !enc_utf8)
-	    /* Only request utf-8 when 'encoding' is utf8. */
+	if (type == utf8_atom
+# if defined(X_HAVE_UTF8_STRING)
+		&& !enc_utf8
+# endif
+		)
+	    /* Only request utf-8 when 'encoding' is utf8 and
+	     * Xutf8TextPropertyToTextList is available. */
 	    continue;
 #endif
 	success = MAYBE;
@@ -2412,7 +2438,8 @@ clip_x11_lose_selection(myShell, cbd)
     Widget		myShell;
     VimClipboard	*cbd;
 {
-    XtDisownSelection(myShell, cbd->sel_atom, CurrentTime);
+    XtDisownSelection(myShell, cbd->sel_atom,
+				XtLastTimestampProcessed(XtDisplay(myShell)));
 }
 
     int
@@ -2453,6 +2480,13 @@ clip_x11_own_selection(myShell, cbd)
 clip_x11_set_selection(cbd)
     VimClipboard *cbd UNUSED;
 {
+}
+
+    int
+clip_x11_owner_exists(cbd)
+    VimClipboard	*cbd;
+{
+    return XGetSelectionOwner(X_DISPLAY, cbd->sel_atom) != None;
 }
 #endif
 

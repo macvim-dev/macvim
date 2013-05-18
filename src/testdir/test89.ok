@@ -1,0 +1,22 @@
+results:
+
+nonumber
+  relativenumber
+
+nonumber
+  relativenumber
+:setlocal must NOT reset the other global value
+
+  number
+
+  relativenumber
+:setglobal MUST reset the other global value
+
+nonumber
+
+norelativenumber
+:set MUST reset the other global value
+
+nonumber
+
+norelativenumber

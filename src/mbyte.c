@@ -613,7 +613,7 @@ codepage_invalid:
     enc_dbcs = enc_dbcs_new;
     has_mbyte = (enc_dbcs != 0 || enc_utf8);
 
-#ifdef WIN3264
+#if defined(WIN3264) || defined(FEAT_CYGWIN_WIN32_CLIPBOARD)
     enc_codepage = encname2codepage(p_enc);
     enc_latin9 = (STRCMP(p_enc, "iso-8859-15") == 0);
 #endif
@@ -903,7 +903,7 @@ dbcs_class(lead, trail)
 {
     switch (enc_dbcs)
     {
-	/* please add classfy routine for your language in here */
+	/* please add classify routine for your language in here */
 
 	case DBCS_JPNU:	/* ? */
 	case DBCS_JPN:
@@ -1003,7 +1003,7 @@ dbcs_class(lead, trail)
 		 * 26 : Box Drawings
 		 * 27 : Unit Symbols
 		 * 28 : Circled/Parenthesized Letter
-		 * 29 : Hirigana/Katakana
+		 * 29 : Hiragana/Katakana
 		 * 30 : Cyrillic Letter
 		 */
 
@@ -1054,7 +1054,7 @@ dbcs_class(lead, trail)
 			    return 28;
 		    case 0xAA:
 		    case 0xAB:
-			/* Hirigana/Katakana */
+			/* Hiragana/Katakana */
 			return 29;
 		    case 0xAC:
 			/* Cyrillic Letter */
@@ -4089,7 +4089,7 @@ enc_locale()
     return enc_canonize((char_u *)buf);
 }
 
-#if defined(WIN3264) || defined(PROTO)
+#if defined(WIN3264) || defined(PROTO) || defined(FEAT_CYGWIN_WIN32_CLIPBOARD)
 /*
  * Convert an encoding name to an MS-Windows codepage.
  * Returns zero if no codepage can be figured out.
@@ -4619,7 +4619,7 @@ im_commit_cb(GtkIMContext *context UNUSED,
     }
 
     /* The thing which setting "preedit_start_col" to MAXCOL means that
-     * "preedit_start_col" will be set forcely when calling
+     * "preedit_start_col" will be set forcedly when calling
      * preedit_changed_cb() next time.
      * "preedit_start_col" should not reset with MAXCOL on this part. Vim
      * is simulating the preediting by using add_to_input_str(). when
@@ -6328,8 +6328,23 @@ string_convert_ext(vcp, ptr, lenp, unconvlenp)
 	    if (vcp->vc_cpfrom == 0)
 		tmp_len = utf8_to_utf16(ptr, len, NULL, NULL);
 	    else
-		tmp_len = MultiByteToWideChar(vcp->vc_cpfrom, 0,
-							      ptr, len, 0, 0);
+	    {
+		tmp_len = MultiByteToWideChar(vcp->vc_cpfrom,
+					unconvlenp ? MB_ERR_INVALID_CHARS : 0,
+					ptr, len, 0, 0);
+		if (tmp_len == 0
+			&& GetLastError() == ERROR_NO_UNICODE_TRANSLATION)
+		{
+		    if (lenp != NULL)
+			*lenp = 0;
+		    if (unconvlenp != NULL)
+			*unconvlenp = len;
+		    retval = alloc(1);
+		    if (retval)
+			retval[0] = NUL;
+		    return retval;
+		}
+	    }
 	    tmp = (short_u *)alloc(sizeof(short_u) * tmp_len);
 	    if (tmp == NULL)
 		break;

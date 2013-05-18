@@ -1257,7 +1257,7 @@ selection_received_cb(GtkWidget		*widget UNUSED,
 	}
     }
 
-    /* Chop off any traiing NUL bytes.  OpenOffice sends these. */
+    /* Chop off any trailing NUL bytes.  OpenOffice sends these. */
     while (len > 0 && text[len - 1] == NUL)
 	--len;
 
@@ -5164,8 +5164,7 @@ gui_mch_haskey(char_u *name)
     return FAIL;
 }
 
-#if defined(FEAT_TITLE) \
-	|| defined(PROTO)
+#if defined(FEAT_TITLE) || defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Return the text window-id and display.  Only required for X-based GUI's
  */
@@ -5675,12 +5674,8 @@ clip_mch_request_selection(VimClipboard *cbd)
     void
 clip_mch_lose_selection(VimClipboard *cbd UNUSED)
 {
-    /* WEIRD: when using NULL to actually disown the selection, we lose the
-     * selection the first time we own it. */
-    /*
-    gtk_selection_owner_set(NULL, cbd->gtk_sel_atom, (guint32)GDK_CURRENT_TIME);
+    gtk_selection_owner_set(NULL, cbd->gtk_sel_atom, gui.event_time);
     gui_mch_update();
-     */
 }
 
 /*
@@ -5704,6 +5699,12 @@ clip_mch_own_selection(VimClipboard *cbd)
     void
 clip_mch_set_selection(VimClipboard *cbd UNUSED)
 {
+}
+
+    int
+clip_gtk_owner_exists(VimClipboard *cbd)
+{
+    return gdk_selection_owner_get(cbd->gtk_sel_atom) != NULL;
 }
 
 

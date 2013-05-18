@@ -1380,6 +1380,8 @@ retry:
 # endif
 			   )
 			{
+			    if (can_retry)
+				goto rewind_retry;
 			    if (conv_error == 0)
 				conv_error = curbuf->b_ml.ml_line_count
 								- linecnt + 1;
@@ -3277,7 +3279,7 @@ buf_write(buf, fname, sfname, start, end, eap, append, forceit,
 	overwriting = FALSE;
 
     if (exiting)
-	settmode(TMODE_COOK);	    /* when exiting allow typahead now */
+	settmode(TMODE_COOK);	    /* when exiting allow typeahead now */
 
     ++no_wait_return;		    /* don't wait for return yet */
 
@@ -3301,7 +3303,7 @@ buf_write(buf, fname, sfname, start, end, eap, append, forceit,
 	int		empty_memline = (buf->b_ml.ml_mfp == NULL);
 
 	/*
-	 * Apply PRE aucocommands.
+	 * Apply PRE autocommands.
 	 * Set curbuf to the buffer to be written.
 	 * Careful: The autocommands may call buf_write() recursively!
 	 */
@@ -6490,9 +6492,7 @@ vim_rename(from, to)
 #ifdef HAVE_ACL
     vim_acl_T	acl;		/* ACL from original file */
 #endif
-#if defined(UNIX) || defined(CASE_INSENSITIVE_FILENAME)
     int		use_tmp_file = FALSE;
-#endif
 
     /*
      * When the names are identical, there is nothing to do.  When they refer
@@ -6501,11 +6501,9 @@ vim_rename(from, to)
      */
     if (fnamecmp(from, to) == 0)
     {
-#ifdef CASE_INSENSITIVE_FILENAME
-	if (STRCMP(gettail(from), gettail(to)) != 0)
+	if (p_fic && STRCMP(gettail(from), gettail(to)) != 0)
 	    use_tmp_file = TRUE;
 	else
-#endif
 	    return 0;
     }
 
@@ -6544,7 +6542,6 @@ vim_rename(from, to)
     }
 #endif
 
-#if defined(UNIX) || defined(CASE_INSENSITIVE_FILENAME)
     if (use_tmp_file)
     {
 	char	tempname[MAXPATHL + 1];
@@ -6577,7 +6574,6 @@ vim_rename(from, to)
 	}
 	return -1;
     }
-#endif
 
     /*
      * Delete the "to" file, this is required on some systems to make the
@@ -7751,6 +7747,8 @@ static struct event_name
     {"TabLeave",	EVENT_TABLEAVE},
     {"TermChanged",	EVENT_TERMCHANGED},
     {"TermResponse",	EVENT_TERMRESPONSE},
+    {"TextChanged",	EVENT_TEXTCHANGED},
+    {"TextChangedI",	EVENT_TEXTCHANGEDI},
     {"User",		EVENT_USER},
     {"VimEnter",	EVENT_VIMENTER},
     {"VimLeave",	EVENT_VIMLEAVE},
@@ -8906,7 +8904,7 @@ aucmd_prepbuf(aco, buf)
     else
     {
 	/* There is no window for "buf", use "aucmd_win".  To minimize the side
-	 * effects, insert it in a the current tab page.
+	 * effects, insert it in the current tab page.
 	 * Anything related to a window (e.g., setting folds) may have
 	 * unexpected results. */
 	aco->use_aucmd_win = TRUE;
@@ -8974,7 +8972,7 @@ aucmd_restbuf(aco)
 		if (wp == aucmd_win)
 		{
 		    if (tp != curtab)
-			goto_tabpage_tp(tp, TRUE);
+			goto_tabpage_tp(tp, TRUE, TRUE);
 		    win_goto(aucmd_win);
 		    goto win_found;
 		}
@@ -8997,8 +8995,8 @@ win_found:
 	    /* Hmm, original window disappeared.  Just use the first one. */
 	    curwin = firstwin;
 # ifdef FEAT_EVAL
-	vars_clear(&aucmd_win->w_vars.dv_hashtab);  /* free all w: variables */
-	hash_init(&aucmd_win->w_vars.dv_hashtab);   /* re-use the hashtab */
+	vars_clear(&aucmd_win->w_vars->dv_hashtab);  /* free all w: variables */
+	hash_init(&aucmd_win->w_vars->dv_hashtab);   /* re-use the hashtab */
 # endif
 #else
 	curwin = aco->save_curwin;
@@ -9173,6 +9171,24 @@ has_cursormoved()
 has_cursormovedI()
 {
     return (first_autopat[(int)EVENT_CURSORMOVEDI] != NULL);
+}
+
+/*
+ * Return TRUE when there is a TextChanged autocommand defined.
+ */
+    int
+has_textchanged()
+{
+    return (first_autopat[(int)EVENT_TEXTCHANGED] != NULL);
+}
+
+/*
+ * Return TRUE when there is a TextChangedI autocommand defined.
+ */
+    int
+has_textchangedI()
+{
+    return (first_autopat[(int)EVENT_TEXTCHANGEDI] != NULL);
 }
 
 /*
@@ -10025,11 +10041,7 @@ match_file_pat(pattern, prog, fname, sfname, tail, allow_dirs)
     int		match = FALSE;
 #endif
 
-#ifdef CASE_INSENSITIVE_FILENAME
-    regmatch.rm_ic = TRUE;		/* Always ignore case */
-#else
-    regmatch.rm_ic = FALSE;		/* Don't ever ignore case */
-#endif
+    regmatch.rm_ic = p_fic; /* ignore case if 'fileignorecase' is set */
 #ifdef FEAT_OSFILETYPE
     if (*pattern == '<')
     {

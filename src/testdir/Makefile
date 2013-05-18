@@ -27,7 +27,9 @@ SCRIPTS = test1.out test2.out test3.out test4.out test5.out test6.out \
 		test69.out test70.out test71.out test72.out test73.out \
 		test74.out test75.out test76.out test77.out test78.out \
 		test79.out test80.out test81.out test82.out test83.out \
-		test84.out test85.out test86.out test87.out test88.out
+		test84.out test85.out test86.out test87.out test88.out \
+		test89.out test90.out test91.out test92.out test93.out \
+		test94.out
 
 SCRIPTS_GUI = test16.out
 
@@ -67,8 +69,10 @@ test1.out: test1.in
 .in.out:
 	-rm -rf $*.failed test.ok $(RM_ON_RUN)
 	cp $*.ok test.ok
-	# Sleep a moment to avoid that the xterm title is messed up
-	@-sleep .2
+	# Sleep a moment to avoid that the xterm title is messed up.
+	# 200 msec is sufficient, but only modern sleep supports a fraction of
+	# a second, fall back to a second if it fails.
+	@-/bin/sh -c "sleep .2 > /dev/null 2>&1 || sleep 1"
 	-$(RUN_VIM) $*.in
 
 	# For flaky tests retry one time.

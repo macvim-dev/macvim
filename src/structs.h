@@ -1215,7 +1215,7 @@ typedef struct {
 #ifdef FEAT_SYN_HL
     hashtab_T	b_keywtab;		/* syntax keywords hash table */
     hashtab_T	b_keywtab_ic;		/* idem, ignore case */
-    int		b_syn_error;		/* TRUE when error occured in HL */
+    int		b_syn_error;		/* TRUE when error occurred in HL */
     int		b_syn_ic;		/* ignore case for :syn cmds */
     int		b_syn_spell;		/* SYNSPL_ values */
     garray_T	b_syn_patterns;		/* table for syntax patterns */
@@ -1614,7 +1614,7 @@ struct file_buffer
 
 #ifdef FEAT_EVAL
     dictitem_T	b_bufvar;	/* variable for "b:" Dictionary */
-    dict_T	b_vars;		/* internal variables, local to buffer */
+    dict_T	*b_vars;	/* internal variables, local to buffer */
 #endif
 
 #if defined(FEAT_BEVAL) && defined(FEAT_EVAL)
@@ -1765,7 +1765,15 @@ struct tabpage_S
     frame_T	    *(tp_snapshot[SNAP_COUNT]);  /* window layout snapshots */
 #ifdef FEAT_EVAL
     dictitem_T	    tp_winvar;	    /* variable for "t:" Dictionary */
-    dict_T	    tp_vars;	    /* internal variables, local to tab page */
+    dict_T	    *tp_vars;	    /* internal variables, local to tab page */
+#endif
+
+#ifdef FEAT_PYTHON
+    void	    *tp_python_ref;	/* The Python value for this tab page */
+#endif
+
+#ifdef FEAT_PYTHON3
+    void	    *tp_python3_ref;	/* The Python value for this tab page */
 #endif
 };
 
@@ -2088,7 +2096,7 @@ struct window_S
 
 #ifdef FEAT_EVAL
     dictitem_T	w_winvar;	/* variable for "w:" Dictionary */
-    dict_T	w_vars;		/* internal variables, local to window */
+    dict_T	*w_vars;	/* internal variables, local to window */
 #endif
 
 #if defined(FEAT_RIGHTLEFT) && defined(FEAT_FKMAP)

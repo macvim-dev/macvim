@@ -2913,7 +2913,7 @@ extract_modifiers(key, modp)
     int	modifiers = *modp;
 
 #ifdef MACOS
-    /* Command-key really special, No fancynest */
+    /* Command-key really special, no fancynest */
     if (!(modifiers & MOD_MASK_CMD))
 #endif
     if ((modifiers & MOD_MASK_SHIFT) && ASCII_ISALPHA(key))
@@ -2940,7 +2940,7 @@ extract_modifiers(key, modp)
 	    key = K_ZERO;
     }
 #ifdef MACOS
-    /* Command-key really special, No fancynest */
+    /* Command-key really special, no fancynest */
     if (!(modifiers & MOD_MASK_CMD))
 #endif
     if ((modifiers & MOD_MASK_ALT) && key < 0x80
@@ -5358,6 +5358,8 @@ ff_wc_equal(s1, s2)
     char_u	*s2;
 {
     int		i;
+    int		prev1 = NUL;
+    int		prev2 = NUL;
 
     if (s1 == s2)
 	return TRUE;
@@ -5368,22 +5370,16 @@ ff_wc_equal(s1, s2)
     if (STRLEN(s1) != STRLEN(s2))
 	return FAIL;
 
-    for (i = 0; s1[i] != NUL && s2[i] != NUL; i++)
+    for (i = 0; s1[i] != NUL && s2[i] != NUL; i += MB_PTR2LEN(s1 + i))
     {
-	if (s1[i] != s2[i]
-#ifdef CASE_INSENSITIVE_FILENAME
-		&& TOUPPER_LOC(s1[i]) != TOUPPER_LOC(s2[i])
-#endif
-		)
-	{
-	    if (i >= 2)
-		if (s1[i-1] == '*' && s1[i-2] == '*')
-		    continue;
-		else
-		    return FAIL;
-	    else
-		return FAIL;
-	}
+	int c1 = PTR2CHAR(s1 + i);
+	int c2 = PTR2CHAR(s2 + i);
+
+	if ((p_fic ? MB_TOLOWER(c1) != MB_TOLOWER(c2) : c1 != c2)
+		&& (prev1 != '*' || prev2 != '*'))
+	    return FAIL;
+	prev2 = prev1;
+	prev1 = c1;
     }
     return TRUE;
 }
@@ -6109,57 +6105,59 @@ pathcmp(p, q, maxlen)
     int maxlen;
 {
     int		i;
+    int		c1, c2;
     const char	*s = NULL;
 
-    for (i = 0; maxlen < 0 || i < maxlen; ++i)
+    for (i = 0; maxlen < 0 || i < maxlen; i += MB_PTR2LEN((char_u *)p + i))
     {
+	c1 = PTR2CHAR((char_u *)p + i);
+	c2 = PTR2CHAR((char_u *)q + i);
+
 	/* End of "p": check if "q" also ends or just has a slash. */
-	if (p[i] == NUL)
+	if (c1 == NUL)
 	{
-	    if (q[i] == NUL)  /* full match */
+	    if (c2 == NUL)  /* full match */
 		return 0;
 	    s = q;
 	    break;
 	}
 
 	/* End of "q": check if "p" just has a slash. */
-	if (q[i] == NUL)
+	if (c2 == NUL)
 	{
 	    s = p;
 	    break;
 	}
 
-	if (
-#ifdef CASE_INSENSITIVE_FILENAME
-		TOUPPER_LOC(p[i]) != TOUPPER_LOC(q[i])
-#else
-		p[i] != q[i]
-#endif
+	if ((p_fic ? MB_TOUPPER(c1) != MB_TOUPPER(c2) : c1 != c2)
 #ifdef BACKSLASH_IN_FILENAME
 		/* consider '/' and '\\' to be equal */
-		&& !((p[i] == '/' && q[i] == '\\')
-		    || (p[i] == '\\' && q[i] == '/'))
+		&& !((c1 == '/' && c2 == '\\')
+		    || (c1 == '\\' && c2 == '/'))
 #endif
 		)
 	{
-	    if (vim_ispathsep(p[i]))
+	    if (vim_ispathsep(c1))
 		return -1;
-	    if (vim_ispathsep(q[i]))
+	    if (vim_ispathsep(c2))
 		return 1;
-	    return ((char_u *)p)[i] - ((char_u *)q)[i];	    /* no match */
+	    return p_fic ? MB_TOUPPER(c1) - MB_TOUPPER(c2)
+		    : c1 - c2;  /* no match */
 	}
     }
     if (s == NULL)	/* "i" ran into "maxlen" */
 	return 0;
 
+    c1 = PTR2CHAR((char_u *)s + i);
+    c2 = PTR2CHAR((char_u *)s + i + MB_PTR2LEN((char_u *)s + i));
     /* ignore a trailing slash, but not "//" or ":/" */
-    if (s[i + 1] == NUL
+    if (c2 == NUL
 	    && i > 0
 	    && !after_pathsep((char_u *)s, (char_u *)s + i)
 #ifdef BACKSLASH_IN_FILENAME
-	    && (s[i] == '/' || s[i] == '\\')
+	    && (c1 == '/' || c1 == '\\')
 #else
-	    && s[i] == '/'
+	    && c1 == '/'
 #endif
        )
 	return 0;   /* match with trailing slash */

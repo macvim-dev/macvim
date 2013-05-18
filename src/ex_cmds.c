@@ -415,8 +415,15 @@ ex_sort(eap)
 	    }
 	    *s = NUL;
 	    /* Use last search pattern if sort pattern is empty. */
-	    if (s == p + 1 && last_search_pat() != NULL)
+	    if (s == p + 1)
+	    {
+		if (last_search_pat() == NULL)
+		{
+		    EMSG(_(e_noprevre));
+		    goto sortend;
+		}
 		regmatch.regprog = vim_regcomp(last_search_pat(), RE_MAGIC);
+	    }
 	    else
 		regmatch.regprog = vim_regcomp(p + 1, RE_MAGIC);
 	    if (regmatch.regprog == NULL)
@@ -2106,7 +2113,7 @@ read_viminfo_up_to_marks(virp, forceit, writing)
     buf_T	*buf;
 
 #ifdef FEAT_CMDHIST
-    prepare_viminfo_history(forceit ? 9999 : 0);
+    prepare_viminfo_history(forceit ? 9999 : 0, writing);
 #endif
     eof = viminfo_readline(virp);
     while (!eof && virp->vir_line[0] != '>')
@@ -2154,7 +2161,7 @@ read_viminfo_up_to_marks(virp, forceit, writing)
 	    case '=':
 	    case '@':
 #ifdef FEAT_CMDHIST
-		eof = read_viminfo_history(virp);
+		eof = read_viminfo_history(virp, writing);
 #else
 		eof = viminfo_readline(virp);
 #endif
@@ -2175,7 +2182,8 @@ read_viminfo_up_to_marks(virp, forceit, writing)
 
 #ifdef FEAT_CMDHIST
     /* Finish reading history items. */
-    finish_viminfo_history();
+    if (!writing)
+	finish_viminfo_history();
 #endif
 
     /* Change file names to buffer numbers for fmarks. */
@@ -5411,7 +5419,7 @@ ex_global(eap)
 	if (type == 'v')
 	    smsg((char_u *)_("Pattern found in every line: %s"), pat);
 	else
-	    smsg((char_u *)_(e_patnotf2), pat);
+	    smsg((char_u *)_("Pattern not found: %s"), pat);
     }
     else
 	global_exe(cmd);
