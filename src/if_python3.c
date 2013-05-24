@@ -68,8 +68,6 @@
 # define PY_SSIZE_T_CLEAN
 #endif
 
-static void init_structs(void);
-
 /* The "surrogateescape" error handler is new in Python 3.1 */
 #if PY_VERSION_HEX >= 0x030100f0
 # define CODEC_ERROR_HANDLER "surrogateescape"
@@ -215,6 +213,9 @@ static void init_structs(void);
 #  define PyObject_Malloc py3_PyObject_Malloc
 #  define PyObject_Free py3_PyObject_Free
 # endif
+# define _PyObject_GC_New py3__PyObject_GC_New
+# define PyObject_GC_Del py3_PyObject_GC_Del
+# define PyObject_GC_UnTrack py3_PyObject_GC_UnTrack
 # define PyType_GenericAlloc py3_PyType_GenericAlloc
 # define PyType_GenericNew py3_PyType_GenericNew
 # define PyModule_Create2 py3_PyModule_Create2
@@ -336,6 +337,9 @@ static void* (*py3_PyCapsule_GetPointer)(PyObject *, char *);
     static void (*py3_PyObject_Free)(void*);
     static void* (*py3_PyObject_Malloc)(size_t);
 # endif
+static PyObject*(*py3__PyObject_GC_New)(PyTypeObject *);
+static void(*py3_PyObject_GC_Del)(void *);
+static void(*py3_PyObject_GC_UnTrack)(void *);
 static int (*py3_PyType_IsSubtype)(PyTypeObject *, PyTypeObject *);
 
 static HINSTANCE hinstPy3 = 0; /* Instance of python.dll */
@@ -465,6 +469,9 @@ static struct
     {"PyObject_Malloc", (PYTHON_PROC*)&py3_PyObject_Malloc},
     {"PyObject_Free", (PYTHON_PROC*)&py3_PyObject_Free},
 # endif
+    {"_PyObject_GC_New", (PYTHON_PROC*)&py3__PyObject_GC_New},
+    {"PyObject_GC_Del", (PYTHON_PROC*)&py3_PyObject_GC_Del},
+    {"PyObject_GC_UnTrack", (PYTHON_PROC*)&py3_PyObject_GC_UnTrack},
     {"PyType_IsSubtype", (PYTHON_PROC*)&py3_PyType_IsSubtype},
     {"PyCapsule_New", (PYTHON_PROC*)&py3_PyCapsule_New},
     {"PyCapsule_GetPointer", (PYTHON_PROC*)&py3_PyCapsule_GetPointer},
@@ -610,8 +617,6 @@ get_py3_exceptions()
 }
 #endif /* DYNAMIC_PYTHON3 */
 
-static PyObject *BufferDir(PyObject *, PyObject *);
-
 static int py3initialised = 0;
 
 #define PYINITIALISED py3initialised
@@ -642,7 +647,7 @@ static int py3initialised = 0;
     if (bytes != NULL) \
 	Py_XDECREF(bytes);
 
-#define DESTRUCTOR_FINISH(self) Py_TYPE(self)->tp_free((PyObject*)self);
+#define DESTRUCTOR_FINISH(self) Py_TYPE(self)->tp_free((PyObject*)self)
 
 #define WIN_PYTHON_REF(win) win->w_python3_ref
 #define BUF_PYTHON_REF(buf) buf->b_python3_ref
@@ -670,6 +675,7 @@ call_PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
     return PyType_GenericAlloc(type,nitems);
 }
 
+static PyObject *BufferDir(PyObject *);
 static PyObject *OutputGetattro(PyObject *, PyObject *);
 static int OutputSetattro(PyObject *, PyObject *, PyObject *);
 static PyObject *BufferGetattro(PyObject *, PyObject *);
@@ -687,6 +693,8 @@ static PyObject *FunctionGetattro(PyObject *, PyObject *);
 
 static struct PyModuleDef vimmodule;
 
+#define PY_CAN_RECURSE
+
 /*
  * Include the code shared with if_python.c
  */
@@ -703,9 +711,6 @@ static struct PyModuleDef vimmodule;
  * Internal function prototypes.
  */
 
-static PyObject *globals;
-
-static int PythonIO_Init(void);
 static PyObject *Py3Init_vim(void);
 
 /******************************************************
@@ -785,7 +790,7 @@ Python3_Init(void)
 	get_py3_exceptions();
 #endif
 
-	if (PythonIO_Init())
+	if (PythonIO_Init_io())
 	    goto fail;
 
 	globals = PyModule_GetDict(PyImport_AddModule("__main__"));
@@ -816,7 +821,7 @@ Python3_Init(void)
 fail:
     /* We call PythonIO_Flush() here to print any Python errors.
      * This is OK, as it is possible to call this function even
-     * if PythonIO_Init() has not completed successfully (it will
+     * if PythonIO_Init_io() has not completed successfully (it will
      * not do anything in this case).
      */
     PythonIO_Flush();
@@ -827,7 +832,7 @@ fail:
  * External interface
  */
     static void
-DoPy3Command(exarg_T *eap, const char *cmd, typval_T *rettv)
+DoPyCommand(const char *cmd, rangeinitializer init_range, runner run, void *arg)
 {
 #if defined(MACOS) && !defined(MACOS_X_UNIX)
     GrafPtr		oldPort;
@@ -848,16 +853,8 @@ DoPy3Command(exarg_T *eap, const char *cmd, typval_T *rettv)
     if (Python3_Init())
 	goto theend;
 
-    if (rettv == NULL)
-    {
-	RangeStart = eap->line1;
-	RangeEnd = eap->line2;
-    }
-    else
-    {
-	RangeStart = (PyInt) curwin->w_cursor.lnum;
-	RangeEnd = RangeStart;
-    }
+    init_range(arg);
+
     Python_Release_Vim();	    /* leave vim */
 
 #if defined(HAVE_LOCALE_H) || defined(X_LOCALE)
@@ -881,28 +878,8 @@ DoPy3Command(exarg_T *eap, const char *cmd, typval_T *rettv)
 					(char *)ENC_OPT, CODEC_ERROR_HANDLER);
     cmdbytes = PyUnicode_AsEncodedString(cmdstr, "utf-8", CODEC_ERROR_HANDLER);
     Py_XDECREF(cmdstr);
-    if (rettv == NULL)
-	PyRun_SimpleString(PyBytes_AsString(cmdbytes));
-    else
-    {
-	PyObject	*r;
 
-	r = PyRun_String(PyBytes_AsString(cmdbytes), Py_eval_input,
-			 globals, globals);
-	if (r == NULL)
-	{
-	    if (PyErr_Occurred() && !msg_silent)
-		PyErr_PrintEx(0);
-	    EMSG(_("E860: Eval did not return a valid python 3 object"));
-	}
-	else
-	{
-	    if (ConvertFromPyObject(r, rettv) == -1)
-		EMSG(_("E861: Failed to convert returned python 3 object to vim value"));
-	    Py_DECREF(r);
-	}
-	PyErr_Clear();
-    }
+    run(PyBytes_AsString(cmdbytes), arg, &pygilstate);
     Py_XDECREF(cmdbytes);
 
     PyGILState_Release(pygilstate);
@@ -936,10 +913,10 @@ ex_py3(exarg_T *eap)
     script = script_get(eap, eap->arg);
     if (!eap->skip)
     {
-	if (script == NULL)
-	    DoPy3Command(eap, (char *)eap->arg, NULL);
-	else
-	    DoPy3Command(eap, (char *)script, NULL);
+	DoPyCommand(script == NULL ? (char *) eap->arg : (char *) script,
+		(rangeinitializer) init_range_cmd,
+		(runner) run_cmd,
+		(void *) eap);
     }
     vim_free(script);
 }
@@ -1000,101 +977,19 @@ ex_py3file(exarg_T *eap)
 
 
     /* Execute the file */
-    DoPy3Command(eap, buffer, NULL);
+    DoPyCommand(buffer,
+	    (rangeinitializer) init_range_cmd,
+	    (runner) run_cmd,
+	    (void *) eap);
 }
 
     void
 ex_py3do(exarg_T *eap)
 {
-    linenr_T		i;
-    const char		*code_hdr = "def " DOPY_FUNC "(line, linenr):\n ";
-    const char		*s = (const char *) eap->arg;
-    size_t		len;
-    char		*code;
-    int			status;
-    PyObject		*pyfunc, *pymain;
-    PyGILState_STATE	pygilstate;
-
-    if (Python3_Init())
-	goto theend;
-
-    if (u_save(eap->line1 - 1, eap->line2 + 1) != OK)
-    {
-	EMSG(_("cannot save undo information"));
-	return;
-    }
-    len = strlen(code_hdr) + strlen(s);
-    code = malloc(len + 1);
-    STRCPY(code, code_hdr);
-    STRNCAT(code, s, len + 1);
-    pygilstate = PyGILState_Ensure();
-    status = PyRun_SimpleString(code);
-    vim_free(code);
-    if (status)
-    {
-	EMSG(_("failed to run the code"));
-	return;
-    }
-    status = 0; /* good */
-    pymain = PyImport_AddModule("__main__");
-    pyfunc = PyObject_GetAttrString(pymain, DOPY_FUNC);
-    PyGILState_Release(pygilstate);
-
-    for (i = eap->line1; i <= eap->line2; i++)
-    {
-	const char *line;
-	PyObject *pyline, *pylinenr, *pyret, *pybytes;
-
-	line = (char *)ml_get(i);
-	pygilstate = PyGILState_Ensure();
-	pyline = PyUnicode_Decode(line, strlen(line),
-		(char *)ENC_OPT, CODEC_ERROR_HANDLER);
-	pylinenr = PyLong_FromLong(i);
-	pyret = PyObject_CallFunctionObjArgs(pyfunc, pyline, pylinenr, NULL);
-	Py_DECREF(pyline);
-	Py_DECREF(pylinenr);
-	if (!pyret)
-	{
-	    PyErr_PrintEx(0);
-	    PythonIO_Flush();
-	    status = 1;
-	    goto out;
-	}
-
-	if (pyret && pyret != Py_None)
-	{
-	    if (!PyUnicode_Check(pyret))
-	    {
-		EMSG(_("E863: return value must be an instance of str"));
-		Py_XDECREF(pyret);
-		status = 1;
-		goto out;
-	    }
-	    pybytes = PyUnicode_AsEncodedString(pyret,
-		    (char *)ENC_OPT, CODEC_ERROR_HANDLER);
-	    ml_replace(i, (char_u *) PyBytes_AsString(pybytes), 1);
-	    Py_DECREF(pybytes);
-	    changed();
-#ifdef SYNTAX_HL
-	    syn_changed(i); /* recompute syntax hl. for this line */
-#endif
-	}
-	Py_XDECREF(pyret);
-	PythonIO_Flush();
-	PyGILState_Release(pygilstate);
-    }
-    pygilstate = PyGILState_Ensure();
-out:
-    Py_DECREF(pyfunc);
-    PyObject_SetAttrString(pymain, DOPY_FUNC, NULL);
-    PyGILState_Release(pygilstate);
-    if (status)
-	return;
-    check_cursor();
-    update_curbuf(NOT_VALID);
-
-theend:
-    return;
+    DoPyCommand((char *)eap->arg,
+	    (rangeinitializer)init_range_cmd,
+	    (runner)run_do,
+	    (void *)eap);
 }
 
 /******************************************************
@@ -1120,16 +1015,7 @@ OutputSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
     GET_ATTR_STRING(name, nameobj);
 
-    return OutputSetattr(self, name, val);
-}
-
-/***************/
-
-    static int
-PythonIO_Init(void)
-{
-    PyType_Ready(&OutputType);
-    return PythonIO_Init_io();
+    return OutputSetattr((OutputObject *)(self), name, val);
 }
 
 /******************************************************
@@ -1148,11 +1034,8 @@ PythonIO_Init(void)
 
 #define BufferType_Check(obj) ((obj)->ob_base.ob_type == &BufferType)
 
-static Py_ssize_t BufferLength(PyObject *);
-static PyObject *BufferItem(PyObject *, Py_ssize_t);
 static PyObject* BufferSubscript(PyObject *self, PyObject *idx);
 static Py_ssize_t BufferAsSubscript(PyObject *self, PyObject *idx, PyObject *val);
-
 
 /* Line range type - Implementation functions
  * --------------------------------------
@@ -1209,7 +1092,7 @@ BufferGetattro(PyObject *self, PyObject*nameobj)
 }
 
     static PyObject *
-BufferDir(PyObject *self UNUSED, PyObject *args UNUSED)
+BufferDir(PyObject *self UNUSED)
 {
     return Py_BuildValue("[sssss]", "name", "number",
 						   "append", "mark", "range");
@@ -1223,7 +1106,7 @@ BufferSubscript(PyObject *self, PyObject* idx)
     if (PyLong_Check(idx))
     {
 	long _idx = PyLong_AsLong(idx);
-	return BufferItem(self,_idx);
+	return BufferItem((BufferObject *)(self), _idx);
     } else if (PySlice_Check(idx))
     {
 	Py_ssize_t start, stop, step, slicelen;
@@ -1238,7 +1121,7 @@ BufferSubscript(PyObject *self, PyObject* idx)
 	{
 	    return NULL;
 	}
-	return BufferSlice(self, start, stop);
+	return BufferSlice((BufferObject *)(self), start, stop);
     }
     else
     {
@@ -1342,7 +1225,7 @@ RangeSubscript(PyObject *self, PyObject* idx)
     if (PyLong_Check(idx))
     {
 	long _idx = PyLong_AsLong(idx);
-	return RangeItem(self,_idx);
+	return RangeItem((RangeObject *)(self), _idx);
     } else if (PySlice_Check(idx))
     {
 	Py_ssize_t start, stop, step, slicelen;
@@ -1354,7 +1237,7 @@ RangeSubscript(PyObject *self, PyObject* idx)
 	{
 	    return NULL;
 	}
-	return RangeSlice(self, start, stop);
+	return RangeSlice((RangeObject *)(self), start, stop);
     }
     else
     {
@@ -1435,7 +1318,7 @@ WindowSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
     GET_ATTR_STRING(name, nameobj);
 
-    return WindowSetattr(self, name, val);
+    return WindowSetattr((WindowObject *)(self), name, val);
 }
 
 /* Tab page list object - Definitions
@@ -1489,8 +1372,6 @@ CurrentSetattro(PyObject *self, PyObject *nameobj, PyObject *value)
 /* Dictionary object - Definitions
  */
 
-static PyInt DictionaryLength(PyObject *);
-
     static PyObject *
 DictionaryGetattro(PyObject *self, PyObject *nameobj)
 {
@@ -1510,14 +1391,11 @@ DictionaryGetattro(PyObject *self, PyObject *nameobj)
 DictionarySetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
     GET_ATTR_STRING(name, nameobj);
-    return DictionarySetattr(self, name, val);
+    return DictionarySetattr((DictionaryObject *)(self), name, val);
 }
 
 /* List object - Definitions
  */
-
-static PyInt ListLength(PyObject *);
-static PyObject *ListItem(PyObject *, Py_ssize_t);
 
 static PySequenceMethods ListAsSeq = {
     (lenfunc)		ListLength,	 /* sq_length,	  len(x)   */
@@ -1542,21 +1420,21 @@ static PyMappingMethods ListAsMapping = {
 };
 
     static PyObject *
-ListSubscript(PyObject *self, PyObject* idxObject)
+ListSubscript(PyObject *self, PyObject* idx)
 {
-    if (PyLong_Check(idxObject))
+    if (PyLong_Check(idx))
     {
-	long idx = PyLong_AsLong(idxObject);
-	return ListItem(self, idx);
+	long _idx = PyLong_AsLong(idx);
+	return ListItem((ListObject *)(self), _idx);
     }
-    else if (PySlice_Check(idxObject))
+    else if (PySlice_Check(idx))
     {
 	Py_ssize_t start, stop, step, slicelen;
 
-	if (PySlice_GetIndicesEx(idxObject, ListLength(self), &start, &stop,
-				 &step, &slicelen) < 0)
+	if (PySlice_GetIndicesEx(idx, ListLength((ListObject *)(self)),
+				 &start, &stop, &step, &slicelen) < 0)
 	    return NULL;
-	return ListSlice(self, start, stop);
+	return ListSlice((ListObject *)(self), start, stop);
     }
     else
     {
@@ -1566,21 +1444,21 @@ ListSubscript(PyObject *self, PyObject* idxObject)
 }
 
     static Py_ssize_t
-ListAsSubscript(PyObject *self, PyObject *idxObject, PyObject *obj)
+ListAsSubscript(PyObject *self, PyObject *idx, PyObject *obj)
 {
-    if (PyLong_Check(idxObject))
+    if (PyLong_Check(idx))
     {
-	long idx = PyLong_AsLong(idxObject);
-	return ListAssItem(self, idx, obj);
+	long _idx = PyLong_AsLong(idx);
+	return ListAssItem((ListObject *)(self), _idx, obj);
     }
-    else if (PySlice_Check(idxObject))
+    else if (PySlice_Check(idx))
     {
 	Py_ssize_t start, stop, step, slicelen;
 
-	if (PySlice_GetIndicesEx(idxObject, ListLength(self), &start, &stop,
-				 &step, &slicelen) < 0)
+	if (PySlice_GetIndicesEx(idx, ListLength((ListObject *)(self)),
+				 &start, &stop, &step, &slicelen) < 0)
 	    return -1;
-	return ListAssSlice(self, start, stop, obj);
+	return ListAssSlice((ListObject *)(self), start, stop, obj);
     }
     else
     {
@@ -1604,7 +1482,7 @@ ListGetattro(PyObject *self, PyObject *nameobj)
 ListSetattro(PyObject *self, PyObject *nameobj, PyObject *val)
 {
     GET_ATTR_STRING(name, nameobj);
-    return ListSetattr(self, name, val);
+    return ListSetattr((ListObject *)(self), name, val);
 }
 
 /* Function object - Definitions
@@ -1661,48 +1539,16 @@ python3_tabpage_free(tabpage_T *tab)
 }
 #endif
 
-static BufMapObject TheBufferMap =
-{
-    PyObject_HEAD_INIT(&BufMapType)
-};
-
-static WinListObject TheWindowList =
-{
-    PyObject_HEAD_INIT(&WinListType)
-    NULL
-};
-
-static CurrentObject TheCurrent =
-{
-    PyObject_HEAD_INIT(&CurrentType)
-};
-
-static TabListObject TheTabPageList =
-{
-    PyObject_HEAD_INIT(&TabListType)
-};
-
     static PyObject *
 Py3Init_vim(void)
 {
     PyObject *mod;
-    PyObject *tmp;
+
     /* The special value is removed from sys.path in Python3_Init(). */
     static wchar_t *(argv[2]) = {L"/must>not&exist/foo", NULL};
 
-    PyType_Ready(&IterType);
-    PyType_Ready(&BufferType);
-    PyType_Ready(&RangeType);
-    PyType_Ready(&WindowType);
-    PyType_Ready(&TabPageType);
-    PyType_Ready(&BufMapType);
-    PyType_Ready(&WinListType);
-    PyType_Ready(&TabListType);
-    PyType_Ready(&CurrentType);
-    PyType_Ready(&DictionaryType);
-    PyType_Ready(&ListType);
-    PyType_Ready(&FunctionType);
-    PyType_Ready(&OptionsType);
+    if (init_types())
+	return NULL;
 
     /* Set sys.argv[] to avoid a crash in warn(). */
     PySys_SetArgv(1, argv);
@@ -1711,35 +1557,7 @@ Py3Init_vim(void)
     if (mod == NULL)
 	return NULL;
 
-    VimError = PyErr_NewException("vim.error", NULL, NULL);
-
-    Py_INCREF(VimError);
-    PyModule_AddObject(mod, "error", VimError);
-    Py_INCREF((PyObject *)(void *)&TheBufferMap);
-    PyModule_AddObject(mod, "buffers", (PyObject *)(void *)&TheBufferMap);
-    Py_INCREF((PyObject *)(void *)&TheCurrent);
-    PyModule_AddObject(mod, "current", (PyObject *)(void *)&TheCurrent);
-    Py_INCREF((PyObject *)(void *)&TheWindowList);
-    PyModule_AddObject(mod, "windows", (PyObject *)(void *)&TheWindowList);
-    Py_INCREF((PyObject *)(void *)&TheTabPageList);
-    PyModule_AddObject(mod, "tabpages", (PyObject *)(void *)&TheTabPageList);
-
-    PyModule_AddObject(mod, "vars", DictionaryNew(&globvardict));
-    PyModule_AddObject(mod, "vvars", DictionaryNew(&vimvardict));
-    PyModule_AddObject(mod, "options",
-	    OptionsNew(SREQ_GLOBAL, NULL, dummy_check, NULL));
-
-#define ADD_INT_CONSTANT(name, value) \
-    tmp = PyLong_FromLong(value); \
-    Py_INCREF(tmp); \
-    PyModule_AddObject(mod, name, tmp)
-
-    ADD_INT_CONSTANT("VAR_LOCKED",     VAR_LOCKED);
-    ADD_INT_CONSTANT("VAR_FIXED",      VAR_FIXED);
-    ADD_INT_CONSTANT("VAR_SCOPE",      VAR_SCOPE);
-    ADD_INT_CONSTANT("VAR_DEF_SCOPE",  VAR_DEF_SCOPE);
-
-    if (PyErr_Occurred())
+    if (populate_module(mod, PyModule_AddObject))
 	return NULL;
 
     return mod;
@@ -1790,7 +1608,10 @@ LineToString(const char *str)
     void
 do_py3eval (char_u *str, typval_T *rettv)
 {
-    DoPy3Command(NULL, (char *) str, rettv);
+    DoPyCommand((char *) str,
+	    (rangeinitializer) init_range_eval,
+	    (runner) run_eval,
+	    (void *) rettv);
     switch(rettv->v_type)
     {
 	case VAR_DICT: ++rettv->vval.v_dict->dv_refcount; break;

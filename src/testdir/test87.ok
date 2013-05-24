@@ -59,10 +59,10 @@ ll:[1]
 ['c', 1]
 ['d', ['e']]
 0.0
-"\0":	Vim(let):E861:
-{"\0": 1}:	Vim(let):E861:
+"\0":	Vim(let):E859:
+{"\0": 1}:	Vim(let):E859:
 undefined_name:	Vim(let):Trace
-vim:	Vim(let):E861:
+vim:	Vim(let):E859:
 [1]
 [1, 10, 11, 10, 11, 10, 11, 10, 11, 10, 11, 10, 1]
 Abc
@@ -155,6 +155,7 @@ jkl
   inv: -100! KeyError
   gopts1! KeyError
   p/wopts1: 8
+  inv: -100! error
   p/bopts1! KeyError
   inv: -100! KeyError
   bopts1! KeyError
@@ -173,6 +174,7 @@ jkl
   inv: 'abc'! KeyError
   gopts1! KeyError
   p/wopts1: b''
+  inv: 'abc'! error
   p/bopts1! KeyError
   inv: 'abc'! KeyError
   bopts1! KeyError
@@ -322,7 +324,7 @@ Number of tabs: 4
 Current tab pages:
   <tabpage 0>(1): 1 windows, current is <window object (unknown)>
   Windows:
-    <window object (unknown)>(1): displays buffer <buffer test87.in>; cursor is at (930, 0)
+    <window object (unknown)>(1): displays buffer <buffer test87.in>; cursor is at (27, 0)
   <tabpage 1>(2): 1 windows, current is <window object (unknown)>
   Windows:
     <window object (unknown)>(1): displays buffer <buffer 0>; cursor is at (1, 0)
@@ -348,3 +350,18 @@ Current tab page: <tabpage 2>
 Current window: <window 0>
 Current buffer: <buffer test87.in>
 Current line: 'Type error at assigning None to vim.current.buffer'
+vim.vars:Dictionary:True
+vim.options:Options:True
+vim.bindeval("{}"):Dictionary:True
+vim.bindeval("[]"):List:True
+vim.bindeval("function('tr')"):Function:True
+vim.current.buffer:Buffer:True
+vim.current.range:Range:True
+vim.current.window:Window:True
+vim.current.tabpage:TabPage:True
+(<class 'vim.error'>, error('abc',))
+(<class 'vim.error'>, error('def',))
+(<class 'vim.error'>, error('ghi',))
+(<class 'vim.error'>, error('Vim(echoerr):jkl',))
+(<class 'vim.error'>, error('Vim:E492: Not an editor command: xxx_non_existent_command_xxx',))
+(<class 'vim.error'>, error('Vim:E492: Not an editor command: xxx_non_existent_command_xxx',))

@@ -2117,6 +2117,9 @@ static struct vimoption
 			    (char_u *)NULL, PV_NONE,
 #endif
 			    {(char_u *)2000L, (char_u *)0L} SCRIPTID_INIT},
+    {"regexpengine", "re",  P_NUM|P_VI_DEF,
+			    (char_u *)&p_re, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L} SCRIPTID_INIT},
     {"relativenumber", "rnu", P_BOOL|P_VI_DEF|P_RWIN,
 			    (char_u *)VAR_WIN, PV_RNU,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
@@ -3062,7 +3065,7 @@ static long_u *insecure_flag __ARGS((int opt_idx, int opt_flags));
 # define insecure_flag(opt_idx, opt_flags) (&options[opt_idx].flags)
 #endif
 static void set_string_option_global __ARGS((int opt_idx, char_u **varp));
-static void set_string_option __ARGS((int opt_idx, char_u *value, int opt_flags));
+static char_u *set_string_option __ARGS((int opt_idx, char_u *value, int opt_flags));
 static char_u *did_set_string_option __ARGS((int opt_idx, char_u **varp, int new_value_alloced, char_u *oldval, char_u *errbuf, int opt_flags));
 static char_u *set_chars_option __ARGS((char_u **varp));
 #ifdef FEAT_SYN_HL
@@ -5669,8 +5672,10 @@ set_string_option_global(opt_idx, varp)
 
 /*
  * Set a string option to a new value, and handle the effects.
+ *
+ * Returns NULL on success or error message on error.
  */
-    static void
+    static char_u *
 set_string_option(opt_idx, value, opt_flags)
     int		opt_idx;
     char_u	*value;
@@ -5679,9 +5684,10 @@ set_string_option(opt_idx, value, opt_flags)
     char_u	*s;
     char_u	**varp;
     char_u	*oldval;
+    char_u	*r = NULL;
 
     if (options[opt_idx].var == NULL)	/* don't set hidden option */
-	return;
+	return NULL;
 
     s = vim_strsave(value);
     if (s != NULL)
@@ -5693,10 +5699,11 @@ set_string_option(opt_idx, value, opt_flags)
 		    : opt_flags);
 	oldval = *varp;
 	*varp = s;
-	if (did_set_string_option(opt_idx, varp, TRUE, oldval, NULL,
-							   opt_flags) == NULL)
+	if ((r = did_set_string_option(opt_idx, varp, TRUE, oldval, NULL,
+							   opt_flags)) == NULL)
 	    did_set_option(opt_idx, opt_flags, TRUE);
     }
+    return r;
 }
 
 /*
@@ -8742,6 +8749,11 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 	errmsg = e_positive;
 	p_hi = 0;
     }
+    if (p_re < 0 || p_re > 2)
+    {
+	errmsg = e_invarg;
+	p_re = 0;
+    }
     if (p_report < 0)
     {
 	errmsg = e_positive;
@@ -9099,8 +9111,10 @@ get_option_value_strict(name, numval, stringval, opt_type, from)
 /*
  * Set the value of option "name".
  * Use "string" for string options, use "number" for other options.
+ *
+ * Returns NULL on success or error message on error.
  */
-    void
+    char_u *
 set_option_value(name, number, string, opt_flags)
     char_u	*name;
     long	number;
@@ -9122,11 +9136,11 @@ set_option_value(name, number, string, opt_flags)
 	if (sandbox > 0 && (flags & P_SECURE))
 	{
 	    EMSG(_(e_sandbox));
-	    return;
+	    return NULL;
 	}
 #endif
 	if (flags & P_STRING)
-	    set_string_option(opt_idx, string, opt_flags);
+	    return set_string_option(opt_idx, string, opt_flags);
 	else
 	{
 	    varp = get_varp_scope(&(options[opt_idx]), opt_flags);
@@ -9147,19 +9161,20 @@ set_option_value(name, number, string, opt_flags)
 			 * num option using a string. */
 			EMSG3(_("E521: Number required: &%s = '%s'"),
 								name, string);
-			return;     /* do nothing as we hit an error */
+			return NULL;     /* do nothing as we hit an error */
 
 		    }
 		}
 		if (flags & P_NUM)
-		    (void)set_num_option(opt_idx, varp, number,
+		    return set_num_option(opt_idx, varp, number,
 							  NULL, 0, opt_flags);
 		else
-		    (void)set_bool_option(opt_idx, varp, (int)number,
+		    return set_bool_option(opt_idx, varp, (int)number,
 								   opt_flags);
 	    }
 	}
     }
+    return NULL;
 }
 
 /*
