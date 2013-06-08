@@ -785,7 +785,8 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define EXPAND_LOCALES		40
 #define EXPAND_HISTORY		41
 #define EXPAND_USER		42
-#define EXPAND_MACACTION	43
+#define EXPAND_SYNTIME		43
+#define EXPAND_MACACTION	44
 
 /* Values for exmode_active (0 is no exmode) */
 #define EXMODE_NORMAL		1
@@ -2245,5 +2246,8 @@ typedef int VimClipboard;	/* This is required for the prototypes. */
 #define SREQ_GLOBAL	0	/* Request global option */
 #define SREQ_WIN	1	/* Request window-local option */
 #define SREQ_BUF	2	/* Request buffer-local option */
+
+/* Character used as separated in autoload function/variable names. */
+#define AUTOLOAD_CHAR '#'
 
 #endif /* VIM__H */

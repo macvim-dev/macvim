@@ -10,8 +10,10 @@ OK 1 - bc*
 OK 2 - bc*
 OK 0 - bc\{-}
 OK 1 - bc\{-}
+OK 2 - bc\{-}
 OK 0 - bc\{-}\(d\)
 OK 1 - bc\{-}\(d\)
+OK 2 - bc\{-}\(d\)
 OK 0 - bc*
 OK 1 - bc*
 OK 2 - bc*
@@ -389,6 +391,13 @@ OK 1 - a\{2,}
 OK 2 - a\{2,}
 OK 0 - a\{2,}
 OK 1 - a\{2,}
+OK 2 - a\{2,}
+OK 0 - a\{5,}
+OK 1 - a\{5,}
+OK 2 - a\{5,}
+OK 0 - a\{5,}
+OK 1 - a\{5,}
+OK 2 - a\{5,}
 OK 0 - a\{,0}
 OK 1 - a\{,0}
 OK 2 - a\{,0}
@@ -398,6 +407,15 @@ OK 2 - a\{,5}
 OK 0 - a\{,5}
 OK 1 - a\{,5}
 OK 2 - a\{,5}
+OK 0 - ^*\{4,}$
+OK 1 - ^*\{4,}$
+OK 2 - ^*\{4,}$
+OK 0 - ^*\{4,}$
+OK 1 - ^*\{4,}$
+OK 2 - ^*\{4,}$
+OK 0 - ^*\{4,}$
+OK 1 - ^*\{4,}$
+OK 2 - ^*\{4,}$
 OK 0 - a\{}
 OK 1 - a\{}
 OK 2 - a\{}
@@ -430,13 +448,16 @@ OK 1 - a\{-2}
 OK 2 - a\{-2}
 OK 0 - a\{-0,}
 OK 1 - a\{-0,}
+OK 2 - a\{-0,}
 OK 0 - a\{-0,}
 OK 1 - a\{-0,}
+OK 2 - a\{-0,}
 OK 0 - a\{-2,}
 OK 1 - a\{-2,}
 OK 2 - a\{-2,}
 OK 0 - a\{-2,}
 OK 1 - a\{-2,}
+OK 2 - a\{-2,}
 OK 0 - a\{-,0}
 OK 1 - a\{-,0}
 OK 2 - a\{-,0}
@@ -448,8 +469,10 @@ OK 1 - a\{-,5}
 OK 2 - a\{-,5}
 OK 0 - a\{-}
 OK 1 - a\{-}
+OK 2 - a\{-}
 OK 0 - a\{-}
 OK 1 - a\{-}
+OK 2 - a\{-}
 OK 0 - \(abc\)*
 OK 1 - \(abc\)*
 OK 2 - \(abc\)*
@@ -486,9 +509,15 @@ OK 2 - \v(a|b*)+
 OK 0 - a\{-2,7}
 OK 1 - a\{-2,7}
 OK 2 - a\{-2,7}
+OK 0 - a\{-2,7}x
+OK 1 - a\{-2,7}x
+OK 2 - a\{-2,7}x
 OK 0 - a\{2,7}
 OK 1 - a\{2,7}
 OK 2 - a\{2,7}
+OK 0 - a\{2,7}x
+OK 1 - a\{2,7}x
+OK 2 - a\{2,7}x
 OK 0 - \vx(.{-,8})yz(.*)
 OK 1 - \vx(.{-,8})yz(.*)
 OK 2 - \vx(.{-,8})yz(.*)
@@ -576,6 +605,42 @@ OK 2 - \_[0-9]\+
 OK 0 - [0-9\n]\+
 OK 1 - [0-9\n]\+
 OK 2 - [0-9\n]\+
+OK 0 - \_[0-9]\+
+OK 1 - \_[0-9]\+
+OK 2 - \_[0-9]\+
+OK 0 - \_f
+OK 1 - \_f
+OK 2 - \_f
+OK 0 - \_f\+
+OK 1 - \_f\+
+OK 2 - \_f\+
+OK 0 - [0-9A-Za-z-_.]\+
+OK 1 - [0-9A-Za-z-_.]\+
+OK 2 - [0-9A-Za-z-_.]\+
+OK 0 - ^a.
+OK 1 - ^a.
+OK 2 - ^a.
+OK 0 - ^a.
+OK 1 - ^a.
+OK 2 - ^a.
+OK 0 - .a$
+OK 1 - .a$
+OK 2 - .a$
+OK 0 - .a$
+OK 1 - .a$
+OK 2 - .a$
+OK 0 - \%^a.
+OK 1 - \%^a.
+OK 2 - \%^a.
+OK 0 - \%^a
+OK 1 - \%^a
+OK 2 - \%^a
+OK 0 - .a\%$
+OK 1 - .a\%$
+OK 2 - .a\%$
+OK 0 - .a\%$
+OK 1 - .a\%$
+OK 2 - .a\%$
 OK 0 - [0-9]
 OK 1 - [0-9]
 OK 2 - [0-9]
@@ -608,6 +673,19 @@ OK 1 - xx \ze test
 OK 2 - xx \ze test
 OK 0 - abc\zeend
 OK 1 - abc\zeend
+OK 2 - abc\zeend
+OK 0 - aa\zebb\|aaxx
+OK 1 - aa\zebb\|aaxx
+OK 2 - aa\zebb\|aaxx
+OK 0 - aa\zebb\|aaxx
+OK 1 - aa\zebb\|aaxx
+OK 2 - aa\zebb\|aaxx
+OK 0 - aabb\|aa\zebb
+OK 1 - aabb\|aa\zebb
+OK 2 - aabb\|aa\zebb
+OK 0 - aa\zebb\|aaebb
+OK 1 - aa\zebb\|aaebb
+OK 2 - aa\zebb\|aaebb
 OK 0 - abc\zsdd
 OK 1 - abc\zsdd
 OK 2 - abc\zsdd
@@ -616,6 +694,7 @@ OK 1 - aa \zsax
 OK 2 - aa \zsax
 OK 0 - abc \zsmatch\ze abc
 OK 1 - abc \zsmatch\ze abc
+OK 2 - abc \zsmatch\ze abc
 OK 0 - \v(a \zsif .*){2}
 OK 1 - \v(a \zsif .*){2}
 OK 2 - \v(a \zsif .*){2}
@@ -624,10 +703,13 @@ OK 1 - \>\zs.
 OK 2 - \>\zs.
 OK 0 - abc\@=
 OK 1 - abc\@=
+OK 2 - abc\@=
 OK 0 - abc\@=cd
 OK 1 - abc\@=cd
+OK 2 - abc\@=cd
 OK 0 - abc\@=
 OK 1 - abc\@=
+OK 2 - abc\@=
 OK 0 - abcd\@=e
 OK 1 - abcd\@=e
 OK 2 - abcd\@=e
@@ -636,18 +718,52 @@ OK 1 - abcd\@=e
 OK 2 - abcd\@=e
 OK 0 - \v(abc)@=..
 OK 1 - \v(abc)@=..
+OK 2 - \v(abc)@=..
 OK 0 - \(.*John\)\@=.*Bob
 OK 1 - \(.*John\)\@=.*Bob
 OK 2 - \(.*John\)\@=.*Bob
 OK 0 - \(John.*\)\@=.*Bob
 OK 1 - \(John.*\)\@=.*Bob
+OK 2 - \(John.*\)\@=.*Bob
+OK 0 - \<\S\+\())\)\@=
+OK 1 - \<\S\+\())\)\@=
+OK 2 - \<\S\+\())\)\@=
 OK 0 - .*John\&.*Bob
 OK 1 - .*John\&.*Bob
 OK 2 - .*John\&.*Bob
 OK 0 - .*John\&.*Bob
 OK 1 - .*John\&.*Bob
+OK 2 - .*John\&.*Bob
 OK 0 - \v(test1)@=.*yep
 OK 1 - \v(test1)@=.*yep
+OK 2 - \v(test1)@=.*yep
+OK 0 - foo\(bar\)\@!
+OK 1 - foo\(bar\)\@!
+OK 2 - foo\(bar\)\@!
+OK 0 - foo\(bar\)\@!
+OK 1 - foo\(bar\)\@!
+OK 2 - foo\(bar\)\@!
+OK 0 - if \(\(then\)\@!.\)*$
+OK 1 - if \(\(then\)\@!.\)*$
+OK 2 - if \(\(then\)\@!.\)*$
+OK 0 - if \(\(then\)\@!.\)*$
+OK 1 - if \(\(then\)\@!.\)*$
+OK 2 - if \(\(then\)\@!.\)*$
+OK 0 - \(foo\)\@!bar
+OK 1 - \(foo\)\@!bar
+OK 2 - \(foo\)\@!bar
+OK 0 - \(foo\)\@!...bar
+OK 1 - \(foo\)\@!...bar
+OK 2 - \(foo\)\@!...bar
+OK 0 - ^\%(.*bar\)\@!.*\zsfoo
+OK 1 - ^\%(.*bar\)\@!.*\zsfoo
+OK 2 - ^\%(.*bar\)\@!.*\zsfoo
+OK 0 - ^\%(.*bar\)\@!.*\zsfoo
+OK 1 - ^\%(.*bar\)\@!.*\zsfoo
+OK 2 - ^\%(.*bar\)\@!.*\zsfoo
+OK 0 - ^\%(.*bar\)\@!.*\zsfoo
+OK 1 - ^\%(.*bar\)\@!.*\zsfoo
+OK 2 - ^\%(.*bar\)\@!.*\zsfoo
 OK 0 - [[:alpha:]]\{-2,6}
 OK 1 - [[:alpha:]]\{-2,6}
 OK 2 - [[:alpha:]]\{-2,6}
@@ -681,6 +797,39 @@ OK 2 - \%u0020
 OK 0 - \%U00000020
 OK 1 - \%U00000020
 OK 2 - \%U00000020
+OK 0 - foo\%[bar]
+OK 1 - foo\%[bar]
+OK 2 - foo\%[bar]
+OK 0 - foo\%[bar]
+OK 1 - foo\%[bar]
+OK 2 - foo\%[bar]
+OK 0 - foo\%[bar]
+OK 1 - foo\%[bar]
+OK 2 - foo\%[bar]
+OK 0 - foo\%[bar]
+OK 1 - foo\%[bar]
+OK 2 - foo\%[bar]
+OK 0 - foo\%[bar]
+OK 1 - foo\%[bar]
+OK 2 - foo\%[bar]
+OK 0 - foo\%[bar]
+OK 1 - foo\%[bar]
+OK 2 - foo\%[bar]
+OK 0 - foo\%[bar]x
+OK 1 - foo\%[bar]x
+OK 2 - foo\%[bar]x
+OK 0 - foo\%[bar]x
+OK 1 - foo\%[bar]x
+OK 2 - foo\%[bar]x
+OK 0 - \%[bar]x
+OK 1 - \%[bar]x
+OK 2 - \%[bar]x
+OK 0 - \%[bar]x
+OK 1 - \%[bar]x
+OK 2 - \%[bar]x
+OK 0 - \%[bar]x
+OK 1 - \%[bar]x
+OK 2 - \%[bar]x
 OK 0 - goo\|go
 OK 1 - goo\|go
 OK 2 - goo\|go
@@ -690,6 +839,105 @@ OK 2 - \<goo\|\<go
 OK 0 - \<goo\|go
 OK 1 - \<goo\|go
 OK 2 - \<goo\|go
+OK 0 - \(\i\+\) \1
+OK 1 - \(\i\+\) \1
+OK 2 - \(\i\+\) \1
+OK 0 - \(\i\+\) \1
+OK 1 - \(\i\+\) \1
+OK 2 - \(\i\+\) \1
+OK 0 - \(a\)\(b\)\(c\)\(dd\)\(e\)\(f\)\(g\)\(h\)\(i\)\1\2\3\4\5\6\7\8\9
+OK 1 - \(a\)\(b\)\(c\)\(dd\)\(e\)\(f\)\(g\)\(h\)\(i\)\1\2\3\4\5\6\7\8\9
+OK 2 - \(a\)\(b\)\(c\)\(dd\)\(e\)\(f\)\(g\)\(h\)\(i\)\1\2\3\4\5\6\7\8\9
+OK 0 - \(\d*\)a \1b
+OK 1 - \(\d*\)a \1b
+OK 2 - \(\d*\)a \1b
+OK 0 - <\@<=span.
+OK 1 - <\@<=span.
+OK 2 - <\@<=span.
+OK 0 - <\@1<=span.
+OK 1 - <\@1<=span.
+OK 2 - <\@1<=span.
+OK 0 - <\@2<=span.
+OK 1 - <\@2<=span.
+OK 2 - <\@2<=span.
+OK 0 - \(<<\)\@<=span.
+OK 1 - \(<<\)\@<=span.
+OK 2 - \(<<\)\@<=span.
+OK 0 - \(<<\)\@1<=span.
+OK 1 - \(<<\)\@1<=span.
+OK 2 - \(<<\)\@1<=span.
+OK 0 - \(<<\)\@2<=span.
+OK 1 - \(<<\)\@2<=span.
+OK 2 - \(<<\)\@2<=span.
+OK 0 - \(foo\)\@<!bar.
+OK 1 - \(foo\)\@<!bar.
+OK 2 - \(foo\)\@<!bar.
+OK 0 - \(a*\)\@>a
+OK 1 - \(a*\)\@>a
+OK 2 - \(a*\)\@>a
+OK 0 - \(a*\)\@>b
+OK 1 - \(a*\)\@>b
+OK 2 - \(a*\)\@>b
+OK 0 - \(a*\)\@>a\|a\+
+OK 2 - \(a*\)\@>a\|a\+
+OK 0 - \_[^8-9]\+
+OK 1 - \_[^8-9]\+
+OK 2 - \_[^8-9]\+
+OK 0 - \_[^a]\+
+OK 1 - \_[^a]\+
+OK 2 - \_[^a]\+
+OK 0 - [0-9a-zA-Z]\{8}-\([0-9a-zA-Z]\{4}-\)\{3}[0-9a-zA-Z]\{12}
+OK 1 - [0-9a-zA-Z]\{8}-\([0-9a-zA-Z]\{4}-\)\{3}[0-9a-zA-Z]\{12}
+OK 2 - [0-9a-zA-Z]\{8}-\([0-9a-zA-Z]\{4}-\)\{3}[0-9a-zA-Z]\{12}
 192.168.0.1
 192.168.0.1
 192.168.0.1
+
+<T="5">Ta 5</Title>
+<T="7">Ac 7</Title>
+ghi
+
+xxstart3
+
+thexE thE thExethe
+AndAxAnd AndAxAnd
+oooxOfOr fOrOxooo
+oooxOfOr fOrOxooo
+
+asdfhereasdf
+asdfagainasdf
+
+-0-
+ffo
+bob
+__ooooo
+koooo__
+moooooo
+			f__
+ab!babababababfoo
+ba!ab##abab?bafoo
+**!*****_
+-1-
+ffo
+bob
+__ooooo
+koooo__
+moooooo
+			f__
+ab!babababababfoo
+ba!ab##abab?bafoo
+**!*****_
+-2-
+ffo
+bob
+__ooooo
+koooo__
+moooooo
+			f__
+ab!babababababfoo
+ba!ab##abab?bafoo
+**!*****_
+Test
+Test END
+EN
+E

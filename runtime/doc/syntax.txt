@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 7.3.  Last change: 2013 Apr 05
+*syntax.txt*	For Vim version 7.3.  Last change: 2013 Jun 06
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -37,6 +37,7 @@ In the User Manual:
 15. Highlighting tags		|tag-highlight|
 16. Window-local syntax		|:ownsyntax|
 17. Color xterms		|xterm-color|
+18. When syntax is slow		|:syntime|
 
 {Vi does not have any of these commands}
 
@@ -381,7 +382,11 @@ This is not a syntax file itself, but a script that converts the current
 window into HTML.  Vim opens a new window in which it builds the HTML file.
 
 After you save the resulting file, you can view it with any browser.  The
-colors should be exactly the same as you see them in Vim.
+colors should be exactly the same as you see them in Vim.  You can jump to
+specific lines by adding (for example) #L123 or #123 to the end of the URL in
+your browser's address bar (#123 only with javascript support). And with
+|g:html_dynamic_folds| enabled, you can show or hide the text that is folded
+in Vim.
 
 You are not supposed to set the 'filetype' or 'syntax' option to "2html"!
 Source the script to convert the current file: >
@@ -424,7 +429,11 @@ and last line to be converted.  Example, using the last set Visual area: >
 			|g:html_diff_one_file| is set, :TOhtml will convert
 			all windows which are part of the diff in the current
 			tab and place them side-by-side in a <table> element
-			in the generated HTML.
+			in the generated HTML. When this happens you can jump
+			to lines in specific windows with (for example) #W1L42
+			for line 42 in the first diffed window, or #W3L87 for
+			line 87 in the third. Omitting the window ID will
+			default to the first window if javascript is enabled.
 
 			Examples: >
 
@@ -1240,7 +1249,7 @@ to your startup file.
 ERLANG						*erlang.vim* *ft-erlang-syntax*
 
 Erlang is a functional programming language developed by Ericsson.  Files with
-the following extentions are recognized as Erlang files: erl, hrl, yaws.
+the following extensions are recognized as Erlang files: erl, hrl, yaws.
 
 The BIFs (built-in functions) are highlighted by default. To disable this,
 put the following line in your vimrc: >
@@ -2286,7 +2295,7 @@ For highlighting parent error ] or ): >
 
   let php_parent_error_close = 1
 
-For skipping an php end tag, if there exists an open ( or [ without a closing
+For skipping a php end tag, if there exists an open ( or [ without a closing
 one: >
 
   let php_parent_error_open = 1
@@ -3948,7 +3957,7 @@ External matches					*:syn-ext-match*
 
 These extra regular expression items are available in region patterns:
 
-						*/\z(* */\z(\)* *E50* *E52*
+					*/\z(* */\z(\)* *E50* *E52* *E879*
     \z(\)	Marks the sub-expression as "external", meaning that it can be
 		accessed from another pattern match.  Currently only usable in
 		defining a syntax region start pattern.
@@ -5077,5 +5086,64 @@ open-source program for MS-Windows. >
 Also make sure TTpro's Setup / Window / Full Color is enabled, and make sure
 that Setup / Font / Enable Bold is NOT enabled.
 (info provided by John Love-Jensen <eljay@Adobe.COM>)
+
+
+==============================================================================
+18. When syntax is slow						*:syntime*
+
+This is aimed at authors of a syntax file.
+
+If your syntax causes redrawing to be slow, here are a few hints on making it
+faster.  To see slowness switch on some features that usually interfere, such
+as 'relativenumber' and |folding|.
+
+Note: this is only available when compiled with the |+profile| feature.
+You many need to build Vim with "huge" features.
+
+To find out what patterns are consuming most time, get an overview with this
+sequence: >
+	:syntime on
+	[ redraw the text at least once with CTRL-L ]
+	:syntime report
+
+This will display a list of syntax patterns that were used, sorted by the time
+it took to match them against the text.
+
+:syntime on		Start measuring syntax times.  This will add some
+			overhead to compute the time spent on syntax pattern
+			matching.
+
+:syntime off		Stop measuring syntax times.
+
+:syntime clear		Set all the counters to zero, restart measuring.
+
+:syntime report		Show the syntax items used since ":syntime on" in the
+			current window.  Use a wider display to see more of
+			the output.
+
+			The list is sorted by total time. The columns are:
+			TOTAL		Total time in seconds spent on
+					matching this pattern.
+			COUNT		Number of times the pattern was used.
+			MATCH		Number of times the pattern actually
+					matched
+			SLOWEST		The longest time for one try.
+			AVERAGE		The average time for one try.
+			NAME		Name of the syntax item.  Note that
+					this is not unique.
+			PATTERN		The pattern being used.
+
+Pattern matching gets slow when it has to try many alternatives.  Try to
+include as much literal text as possible to reduce the number of ways a
+pattern does NOT match.
+
+When using the "\@<=" and "\@<!" items, add a maximum size to avoid trying at
+all positions in the current and previous line.  For example, if the item is
+literal text specify the size of that text (in bytes):
+
+"<\@<=span"   	Matches "span" in "<span".  This tries matching with "<" in
+		many places.
+"<\@1<=span"  	Matches the same, but only tries one byte before "span".
+
 
  vim:tw=78:sw=4:ts=8:ft=help:norl:
