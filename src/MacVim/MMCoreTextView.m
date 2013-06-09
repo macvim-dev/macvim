@@ -1265,7 +1265,6 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
 {
     CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
     NSRect rect = [self rectForRow:row column:col numRows:1 numColumns:1];
-    CGRect clipRect = *(CGRect *)&rect;
 
     CGContextSaveGState(context);
 
@@ -1286,18 +1285,16 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGSize *advances,
     // over into adjacent display cells and it may look ugly.
     CGContextSetShouldAntialias(context, NO);
 
-    // Even though antialiasing is disabled and we adjust the rect to fit
-    // inside the display cell it still happens on Retina displays (only) that
-    // the cursor bleeds over into the neighboring cells.  To work around this
-    // issue we enable clipping.
-    CGContextClipToRect(context, clipRect);
-
     if (MMInsertionPointHollow == shape) {
         // When stroking a rect its size is effectively 1 pixel wider/higher
         // than we want so make it smaller to avoid having it bleed over into
         // the adjacent display cell.
+        // We also have to shift the rect by half a point otherwise it will be
+        // partially drawn outside its bounds on a Retina display.
         rect.size.width -= 1;
         rect.size.height -= 1;
+        rect.origin.x += 0.5;
+        rect.origin.y += 0.5;
 
         CGContextSetRGBStrokeColor(context, RED(color), GREEN(color),
                                    BLUE(color), ALPHA(color));
