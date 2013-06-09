@@ -38,6 +38,7 @@
     unsigned                    maxlen;
     CGGlyph                     *glyphs;
     CGSize                      *advances;
+    NSMutableArray              *fontCache;
 
     // These are used in MMCoreTextView+ToolTip.m
     id trackingRectOwner_;              // (not retained)
