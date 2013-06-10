@@ -4731,7 +4731,7 @@ ExpandFromContext(xp, pat, num_file, file, options)
 	    }
     }
 
-    vim_free(regmatch.regprog);
+    vim_regfree(regmatch.regprog);
 
     return ret;
 #endif /* FEAT_CMDL_COMPL */
@@ -5799,7 +5799,7 @@ del_history_entry(histype, str)
 	if (history[histype][idx].hisstr == NULL)
 	    hisidx[histype] = -1;
     }
-    vim_free(regmatch.regprog);
+    vim_regfree(regmatch.regprog);
     return found;
 }
 

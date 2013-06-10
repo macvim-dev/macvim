@@ -7959,7 +7959,7 @@ au_cleanup()
 	    if (ap->pat == NULL)
 	    {
 		*prev_ap = ap->next;
-		vim_free(ap->reg_prog);
+		vim_regfree(ap->reg_prog);
 		vim_free(ap);
 	    }
 	    else
@@ -10108,7 +10108,7 @@ match_file_pat(pattern, prog, fname, sfname, tail, allow_dirs)
 	result = TRUE;
 
     if (prog == NULL)
-	vim_free(regmatch.regprog);
+	vim_regfree(regmatch.regprog);
     return result;
 }
 #endif
