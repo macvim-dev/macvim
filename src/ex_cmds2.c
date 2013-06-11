@@ -982,7 +982,7 @@ profile_divide(tm, count, tm2)
 	double usec = (tm->tv_sec * 1000000.0 + tm->tv_usec) / count;
 
 	tm2->tv_sec = floor(usec / 1000000.0);
-	tm2->tv_usec = round(usec - (tm2->tv_sec * 1000000.0));
+	tm2->tv_usec = vim_round(usec - (tm2->tv_sec * 1000000.0));
 # endif
     }
 }
@@ -2810,6 +2810,10 @@ source_runtime(name, all)
  * When "all" is TRUE repeat for all matches, otherwise only the first one is
  * used.
  * Returns OK when at least one match found, FAIL otherwise.
+ *
+ * If "name" is NULL calls callback for each entry in runtimepath. Cookie is 
+ * passed by reference in this case, setting it to NULL indicates that callback 
+ * has done its job.
  */
     int
 do_in_runtimepath(name, all, callback, cookie)
@@ -2841,7 +2845,7 @@ do_in_runtimepath(name, all, callback, cookie)
     buf = alloc(MAXPATHL);
     if (buf != NULL && rtp_copy != NULL)
     {
-	if (p_verbose > 1)
+	if (p_verbose > 1 && name != NULL)
 	{
 	    verbose_enter();
 	    smsg((char_u *)_("Searching for \"%s\" in \"%s\""),
@@ -2855,7 +2859,13 @@ do_in_runtimepath(name, all, callback, cookie)
 	{
 	    /* Copy the path from 'runtimepath' to buf[]. */
 	    copy_option_part(&rtp, buf, MAXPATHL, ",");
-	    if (STRLEN(buf) + STRLEN(name) + 2 < MAXPATHL)
+	    if (name == NULL)
+	    {
+		(*callback)(buf, (void *) &cookie);
+		if (!did_one)
+		    did_one = (cookie == NULL);
+	    }
+	    else if (STRLEN(buf) + STRLEN(name) + 2 < MAXPATHL)
 	    {
 		add_pathsep(buf);
 		tail = buf + STRLEN(buf);
@@ -2894,7 +2904,7 @@ do_in_runtimepath(name, all, callback, cookie)
     }
     vim_free(buf);
     vim_free(rtp_copy);
-    if (p_verbose > 0 && !did_one)
+    if (p_verbose > 0 && !did_one && name != NULL)
     {
 	verbose_enter();
 	smsg((char_u *)_("not found in 'runtimepath': \"%s\""), name);

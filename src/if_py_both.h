@@ -24,6 +24,8 @@ typedef int Py_ssize_t;  /* Python 2.4 and earlier don't have this type. */
 #endif
 #define DOPY_FUNC "_vim_pydo"
 
+static const char *vim_special_path = "_vim_path_";
+
 #define PyErr_SetVim(str) PyErr_SetString(VimError, str)
 
 #define RAISE_NO_EMPTY_KEYS PyErr_SetString(PyExc_ValueError, \
@@ -55,6 +57,8 @@ static PyObject *globals;
 static PyObject *py_chdir;
 static PyObject *py_fchdir;
 static PyObject *py_getcwd;
+static PyObject *vim_module;
+static PyObject *vim_special_path_object;
 
 /*
  * obtain a lock on the Vim data structures
@@ -375,8 +379,10 @@ static OutputObject Error =
     static int
 PythonIO_Init_io(void)
 {
-    PySys_SetObject("stdout", (PyObject *)(void *)&Output);
-    PySys_SetObject("stderr", (PyObject *)(void *)&Error);
+    if (PySys_SetObject("stdout", (PyObject *)(void *)&Output))
+	return -1;
+    if (PySys_SetObject("stderr", (PyObject *)(void *)&Error))
+	return -1;
 
     if (PyErr_Occurred())
     {
@@ -777,19 +783,168 @@ VimFchdir(PyObject *self UNUSED, PyObject *args, PyObject *kwargs)
     return _VimChdir(py_fchdir, args, kwargs);
 }
 
+typedef struct {
+    PyObject	*callable;
+    PyObject	*result;
+} map_rtp_data;
+
+    static void
+map_rtp_callback(char_u *path, void *_data)
+{
+    void	**data = (void **) _data;
+    PyObject	*pathObject;
+    map_rtp_data	*mr_data = *((map_rtp_data **) data);
+
+    if (!(pathObject = PyString_FromString((char *) path)))
+    {
+	*data = NULL;
+	return;
+    }
+
+    mr_data->result = PyObject_CallFunctionObjArgs(mr_data->callable,
+						   pathObject, NULL);
+
+    Py_DECREF(pathObject);
+
+    if (!mr_data->result || mr_data->result != Py_None)
+	*data = NULL;
+    else
+    {
+	Py_DECREF(mr_data->result);
+	mr_data->result = NULL;
+    }
+}
+
+    static PyObject *
+VimForeachRTP(PyObject *self UNUSED, PyObject *args)
+{
+    map_rtp_data	data;
+
+    if (!PyArg_ParseTuple(args, "O", &data.callable))
+	return NULL;
+
+    data.result = NULL;
+
+    do_in_runtimepath(NULL, FALSE, &map_rtp_callback, &data);
+
+    if (data.result == NULL)
+    {
+	if (PyErr_Occurred())
+	    return NULL;
+	else
+	{
+	    Py_INCREF(Py_None);
+	    return Py_None;
+	}
+    }
+    return data.result;
+}
+
+/*
+ * _vim_runtimepath_ special path implementation.
+ */
+
+    static void
+map_finder_callback(char_u *path, void *_data)
+{
+    void	**data = (void **) _data;
+    PyObject	*list = *((PyObject **) data);
+    PyObject	*pathObject1, *pathObject2;
+    char	*pathbuf;
+    size_t	pathlen;
+
+    pathlen = STRLEN(path);
+
+#if PY_MAJOR_VERSION < 3
+# define PY_MAIN_DIR_STRING "python2"
+#else
+# define PY_MAIN_DIR_STRING "python3"
+#endif
+#define PY_ALTERNATE_DIR_STRING "pythonx"
+
+#define PYTHONX_STRING_LENGTH 7 /* STRLEN("pythonx") */
+    if (!(pathbuf = PyMem_New(char,
+		    pathlen + STRLEN(PATHSEPSTR) + PYTHONX_STRING_LENGTH + 1)))
+    {
+	PyErr_NoMemory();
+	*data = NULL;
+	return;
+    }
+
+    mch_memmove(pathbuf, path, pathlen + 1);
+    add_pathsep((char_u *) pathbuf);
+
+    pathlen = STRLEN(pathbuf);
+    mch_memmove(pathbuf + pathlen, PY_MAIN_DIR_STRING,
+	    PYTHONX_STRING_LENGTH + 1);
+
+    if (!(pathObject1 = PyString_FromString(pathbuf)))
+    {
+	*data = NULL;
+	PyMem_Free(pathbuf);
+	return;
+    }
+
+    mch_memmove(pathbuf + pathlen, PY_ALTERNATE_DIR_STRING,
+	    PYTHONX_STRING_LENGTH + 1);
+
+    if (!(pathObject2 = PyString_FromString(pathbuf)))
+    {
+	Py_DECREF(pathObject1);
+	PyMem_Free(pathbuf);
+	*data = NULL;
+	return;
+    }
+
+    PyMem_Free(pathbuf);
+
+    if (PyList_Append(list, pathObject1)
+	    || PyList_Append(list, pathObject2))
+	*data = NULL;
+
+    Py_DECREF(pathObject1);
+    Py_DECREF(pathObject2);
+}
+
+    static PyObject *
+Vim_GetPaths(PyObject *self UNUSED)
+{
+    PyObject	*r;
+
+    if (!(r = PyList_New(0)))
+	return NULL;
+
+    do_in_runtimepath(NULL, FALSE, &map_finder_callback, r);
+
+    if (PyErr_Occurred())
+    {
+	Py_DECREF(r);
+	return NULL;
+    }
+
+    return r;
+}
+
 /*
  * Vim module - Definitions
  */
 
 static struct PyMethodDef VimMethods[] = {
-    /* name,	     function,			calling,			documentation */
-    {"command",	     VimCommand,		METH_VARARGS,			"Execute a Vim ex-mode command" },
-    {"eval",	     VimEval,			METH_VARARGS,			"Evaluate an expression using Vim evaluator" },
-    {"bindeval",     VimEvalPy,			METH_VARARGS,			"Like eval(), but returns objects attached to vim ones"},
-    {"strwidth",     VimStrwidth,		METH_VARARGS,			"Screen string width, counts <Tab> as having width 1"},
-    {"chdir",	     (PyCFunction)VimChdir,	METH_VARARGS|METH_KEYWORDS,	"Change directory"},
-    {"fchdir",	     (PyCFunction)VimFchdir,	METH_VARARGS|METH_KEYWORDS,	"Change directory"},
-    { NULL,	     NULL,			0,				NULL }
+    /* name,	    function,			calling,			documentation */
+    {"command",	    VimCommand,			METH_VARARGS,			"Execute a Vim ex-mode command" },
+    {"eval",	    VimEval,			METH_VARARGS,			"Evaluate an expression using Vim evaluator" },
+    {"bindeval",    VimEvalPy,			METH_VARARGS,			"Like eval(), but returns objects attached to vim ones"},
+    {"strwidth",    VimStrwidth,		METH_VARARGS,			"Screen string width, counts <Tab> as having width 1"},
+    {"chdir",	    (PyCFunction)VimChdir,	METH_VARARGS|METH_KEYWORDS,	"Change directory"},
+    {"fchdir",	    (PyCFunction)VimFchdir,	METH_VARARGS|METH_KEYWORDS,	"Change directory"},
+    {"foreach_rtp", VimForeachRTP,		METH_VARARGS,			"Call given callable for each path in &rtp"},
+#if PY_MAJOR_VERSION < 3
+    {"find_module", FinderFindModule,		METH_VARARGS,			"Internal use only, returns loader object for any input it receives"},
+    {"load_module", LoaderLoadModule,		METH_VARARGS,			"Internal use only, tries importing the given module from &rtp by temporary mocking sys.path (to an rtp-based one) and unsetting sys.meta_path and sys.path_hooks"},
+#endif
+    {"path_hook",   VimPathHook,		METH_VARARGS,			"Hook function to install in sys.path_hooks"},
+    {"_get_paths",  (PyCFunction)Vim_GetPaths,	METH_NOARGS,			"Get &rtp-based additions to sys.path"},
+    { NULL,	    NULL,			0,				NULL}
 };
 
 /*
@@ -1319,12 +1474,7 @@ DictionaryListObjects(DictionaryObject *self, hi_to_py hiconvert)
 		Py_DECREF(r);
 		return NULL;
 	    }
-	    if (PyList_SetItem(r, i, newObj))
-	    {
-		Py_DECREF(r);
-		Py_DECREF(newObj);
-		return NULL;
-	    }
+	    PyList_SET_ITEM(r, i, newObj);
 	    --todo;
 	    ++i;
 	}
@@ -1808,12 +1958,7 @@ ListSlice(ListObject *self, Py_ssize_t first, Py_ssize_t last)
 	    return NULL;
 	}
 
-	if ((PyList_SetItem(list, ((reversed)?(n-i-1):(i)), item)))
-	{
-	    Py_DECREF(item);
-	    Py_DECREF(list);
-	    return NULL;
-	}
+	PyList_SET_ITEM(list, ((reversed)?(n-i-1):(i)), item);
     }
 
     return list;
@@ -3164,13 +3309,7 @@ GetBufferLineList(buf_T *buf, PyInt lo, PyInt hi)
 	    return NULL;
 	}
 
-	/* Set the list item */
-	if (PyList_SetItem(list, i, str))
-	{
-	    Py_DECREF(str);
-	    Py_DECREF(list);
-	    return NULL;
-	}
+	PyList_SET_ITEM(list, i, str);
     }
 
     /* The ownership of the Python list is passed to the caller (ie,
@@ -5050,6 +5189,14 @@ typedef struct
 } CurrentObject;
 static PyTypeObject CurrentType;
 
+#if PY_MAJOR_VERSION >= 3
+typedef struct
+{
+    PyObject_HEAD
+} FinderObject;
+static PyTypeObject FinderType;
+#endif
+
     static void
 init_structs(void)
 {
@@ -5295,6 +5442,81 @@ init_types()
     PYTYPE_READY(FunctionType);
     PYTYPE_READY(OptionsType);
     PYTYPE_READY(OutputType);
+#if PY_MAJOR_VERSION >= 3
+    PYTYPE_READY(FinderType);
+#endif
+    return 0;
+}
+
+    static int
+init_sys_path()
+{
+    PyObject	*path;
+    PyObject	*path_hook;
+    PyObject	*path_hooks;
+
+    if (!(path_hook = PyObject_GetAttrString(vim_module, "path_hook")))
+	return -1;
+
+    if (!(path_hooks = PySys_GetObject("path_hooks")))
+    {
+	PyErr_Clear();
+	path_hooks = PyList_New(1);
+	PyList_SET_ITEM(path_hooks, 0, path_hook);
+	if (PySys_SetObject("path_hooks", path_hooks))
+	{
+	    Py_DECREF(path_hooks);
+	    return -1;
+	}
+	Py_DECREF(path_hooks);
+    }
+    else if (PyList_Check(path_hooks))
+    {
+	if (PyList_Append(path_hooks, path_hook))
+	{
+	    Py_DECREF(path_hook);
+	    return -1;
+	}
+	Py_DECREF(path_hook);
+    }
+    else
+    {
+	VimTryStart();
+	EMSG(_("Failed to set path hook: sys.path_hooks is not a list\n"
+	       "You should now do the following:\n"
+	       "- append vim.path_hook to sys.path_hooks\n"
+	       "- append vim.VIM_SPECIAL_PATH to sys.path\n"));
+	VimTryEnd(); /* Discard the error */
+	Py_DECREF(path_hook);
+	return 0;
+    }
+
+    if (!(path = PySys_GetObject("path")))
+    {
+	PyErr_Clear();
+	path = PyList_New(1);
+	Py_INCREF(vim_special_path_object);
+	PyList_SET_ITEM(path, 0, vim_special_path_object);
+	if (PySys_SetObject("path", path))
+	{
+	    Py_DECREF(path);
+	    return -1;
+	}
+	Py_DECREF(path);
+    }
+    else if (PyList_Check(path))
+    {
+	if (PyList_Append(path, vim_special_path_object))
+	    return -1;
+    }
+    else
+    {
+	VimTryStart();
+	EMSG(_("Failed to set path: sys.path is not a list\n"
+	       "You should now append vim.VIM_SPECIAL_PATH to sys.path"));
+	VimTryEnd(); /* Discard the error */
+    }
+
     return 0;
 }
 
@@ -5346,6 +5568,9 @@ static struct object_constant {
     {"List",       (PyObject *)&ListType},
     {"Function",   (PyObject *)&FunctionType},
     {"Options",    (PyObject *)&OptionsType},
+#if PY_MAJOR_VERSION >= 3
+    {"Finder",     (PyObject *)&FinderType},
+#endif
 };
 
 typedef int (*object_adder)(PyObject *, const char *, PyObject *);
@@ -5366,8 +5591,9 @@ typedef PyObject *(*attr_getter)(PyObject *, const char *);
     static int
 populate_module(PyObject *m, object_adder add_object, attr_getter get_attr)
 {
-    int i;
-    PyObject	*os;
+    int		i;
+    PyObject	*other_module;
+    PyObject	*attr;
 
     for (i = 0; i < (int)(sizeof(numeric_constants)
 					   / sizeof(struct numeric_constant));
@@ -5395,28 +5621,52 @@ populate_module(PyObject *m, object_adder add_object, attr_getter get_attr)
     ADD_CHECKED_OBJECT(m, "options",
 	    OptionsNew(SREQ_GLOBAL, NULL, dummy_check, NULL));
 
-    if (!(os = PyImport_ImportModule("os")))
+    if (!(other_module = PyImport_ImportModule("os")))
 	return -1;
-    ADD_OBJECT(m, "os", os);
+    ADD_OBJECT(m, "os", other_module);
 
-    if (!(py_getcwd = PyObject_GetAttrString(os, "getcwd")))
+    if (!(py_getcwd = PyObject_GetAttrString(other_module, "getcwd")))
 	return -1;
     ADD_OBJECT(m, "_getcwd", py_getcwd)
 
-    if (!(py_chdir = PyObject_GetAttrString(os, "chdir")))
+    if (!(py_chdir = PyObject_GetAttrString(other_module, "chdir")))
 	return -1;
     ADD_OBJECT(m, "_chdir", py_chdir);
-    if (PyObject_SetAttrString(os, "chdir", get_attr(m, "chdir")))
+    if (!(attr = get_attr(m, "chdir")))
 	return -1;
+    if (PyObject_SetAttrString(other_module, "chdir", attr))
+    {
+	Py_DECREF(attr);
+	return -1;
+    }
+    Py_DECREF(attr);
 
-    if ((py_fchdir = PyObject_GetAttrString(os, "fchdir")))
+    if ((py_fchdir = PyObject_GetAttrString(other_module, "fchdir")))
     {
 	ADD_OBJECT(m, "_fchdir", py_fchdir);
-	if (PyObject_SetAttrString(os, "fchdir", get_attr(m, "fchdir")))
+	if (!(attr = get_attr(m, "fchdir")))
 	    return -1;
+	if (PyObject_SetAttrString(other_module, "fchdir", attr))
+	{
+	    Py_DECREF(attr);
+	    return -1;
+	}
+	Py_DECREF(attr);
     }
     else
 	PyErr_Clear();
+
+    if (!(vim_special_path_object = PyString_FromString(vim_special_path)))
+	return -1;
+
+    ADD_OBJECT(m, "VIM_SPECIAL_PATH", vim_special_path_object);
+
+#if PY_MAJOR_VERSION >= 3
+    ADD_OBJECT(m, "_PathFinder", path_finder);
+    ADD_CHECKED_OBJECT(m, "_find_module",
+	    (py_find_module = PyObject_GetAttrString(path_finder,
+						     "find_module")));
+#endif
 
     return 0;
 }
