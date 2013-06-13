@@ -112,6 +112,7 @@ static char *e_dictrange = N_("E719: Cannot use [:] with a Dictionary");
 static char *e_letwrong = N_("E734: Wrong variable type for %s=");
 static char *e_nofunc = N_("E130: Unknown function: %s");
 static char *e_illvar = N_("E461: Illegal variable name: %s");
+static char *e_float_as_string = N_("E806: using Float as a String");
 
 static dictitem_T	globvars_var;		/* variable used for g: */
 #define globvarht globvardict.dv_hashtab
@@ -5268,16 +5269,20 @@ eval_index(arg, rettv, evaluate, verbose)
     char_u	*s;
     char_u	*key = NULL;
 
-    if (rettv->v_type == VAR_FUNC
-#ifdef FEAT_FLOAT
-	    || rettv->v_type == VAR_FLOAT
-#endif
-	    )
+    if (rettv->v_type == VAR_FUNC)
     {
 	if (verbose)
 	    EMSG(_("E695: Cannot index a Funcref"));
 	return FAIL;
     }
+#ifdef FEAT_FLOAT
+    else if (rettv->v_type == VAR_FLOAT)
+    {
+	if (verbose)
+	    EMSG(_(e_float_as_string));
+	return FAIL;
+    }
+#endif
 
     if (**arg == '.')
     {
@@ -10963,25 +10968,34 @@ f_function(argvars, rettv)
     typval_T	*rettv;
 {
     char_u	*s;
-    char_u	*name = NULL;
 
     s = get_tv_string(&argvars[0]);
     if (s == NULL || *s == NUL || VIM_ISDIGIT(*s))
 	EMSG2(_(e_invarg2), s);
-    /* Don't check an autoload name for existence here, but still expand it 
-     * checking for validity */
-    else if ((name = get_expanded_name(s, vim_strchr(s, AUTOLOAD_CHAR) == NULL))
-									== NULL)
+    /* Don't check an autoload name for existence here. */
+    else if (vim_strchr(s, AUTOLOAD_CHAR) == NULL && !function_exists(s))
 	EMSG2(_("E700: Unknown function: %s"), s);
     else
     {
-	if (name == NULL)
-	    /* Autoload function, need to copy string */
-	    rettv->vval.v_string = vim_strsave(s);
+	if (STRNCMP(s, "s:", 2) == 0)
+	{
+	    char	sid_buf[25];
+
+	    /* Expand s: into <SNR>nr_, so that the function can also be
+	     * called from another script. Using trans_function_name() would
+	     * also work, but some plugins depend on the name being printable
+	     * text. */
+	    sprintf(sid_buf, "<SNR>%ld_", (long)current_SID);
+	    rettv->vval.v_string =
+			    alloc((int)(STRLEN(sid_buf) + STRLEN(s + 2) + 1));
+	    if (rettv->vval.v_string != NULL)
+	    {
+		STRCPY(rettv->vval.v_string, sid_buf);
+		STRCAT(rettv->vval.v_string, s + 2);
+	    }
+	}
 	else
-	    /* Function found by get_expanded_name, string allocated by 
-	     * trans_function_name: no need to copy */
-	    rettv->vval.v_string = name;
+	    rettv->vval.v_string = vim_strsave(s);
 	rettv->v_type = VAR_FUNC;
     }
 }
@@ -20104,7 +20118,7 @@ get_tv_string_buf_chk(varp, buf)
 	    break;
 #ifdef FEAT_FLOAT
 	case VAR_FLOAT:
-	    EMSG(_("E806: using Float as a String"));
+	    EMSG(_(e_float_as_string));
 	    break;
 #endif
 	case VAR_STRING:
