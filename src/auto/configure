@@ -6089,6 +6089,11 @@ _ACEOF
 echo "${ECHO_T}too old" >&6; }
     fi
   fi
+  if test "$fail_if_missing" = "yes" -a "$python3_ok" != "yes"; then
+    { { echo "$as_me:$LINENO: error: could not configure python3" >&5
+echo "$as_me: error: could not configure python3" >&2;}
+   { (exit 1); exit 1; }; }
+  fi
 fi
 
 
