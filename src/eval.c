@@ -112,7 +112,9 @@ static char *e_dictrange = N_("E719: Cannot use [:] with a Dictionary");
 static char *e_letwrong = N_("E734: Wrong variable type for %s=");
 static char *e_nofunc = N_("E130: Unknown function: %s");
 static char *e_illvar = N_("E461: Illegal variable name: %s");
+#ifdef FEAT_FLOAT
 static char *e_float_as_string = N_("E806: using Float as a String");
+#endif
 
 static dictitem_T	globvars_var;		/* variable used for g: */
 #define globvarht globvardict.dv_hashtab
@@ -11890,7 +11892,7 @@ f_getwinposy(argvars, rettv)
     static win_T *
 find_win_by_nr(vp, tp)
     typval_T	*vp;
-    tabpage_T	*tp;	    /* NULL for current tab page */
+    tabpage_T	*tp UNUSED;	/* NULL for current tab page */
 {
 #ifdef FEAT_WINDOWS
     win_T	*wp;
@@ -11940,7 +11942,8 @@ getwinvar(argvars, rettv, off)
     win_T	*win, *oldcurwin;
     char_u	*varname;
     dictitem_T	*v;
-    tabpage_T	*tp, *oldtabpage;
+    tabpage_T	*tp = NULL;
+    tabpage_T	*oldtabpage;
     int		done = FALSE;
 
 #ifdef FEAT_WINDOWS
@@ -11960,7 +11963,7 @@ getwinvar(argvars, rettv, off)
     {
 	/* Set curwin to be our win, temporarily.  Also set the tabpage,
 	 * otherwise the window is not valid. */
-	switch_win(&oldcurwin, &oldtabpage, win, tp);
+	switch_win(&oldcurwin, &oldtabpage, win, tp, TRUE);
 
 	if (*varname == '&')	/* window-local-option */
 	{
@@ -11980,7 +11983,7 @@ getwinvar(argvars, rettv, off)
 	}
 
 	/* restore previous notion of curwin */
-	restore_win(oldcurwin, oldtabpage);
+	restore_win(oldcurwin, oldtabpage, TRUE);
     }
 
     if (!done && argvars[off + 2].v_type != VAR_UNKNOWN)
@@ -16711,24 +16714,34 @@ f_settabvar(argvars, rettv)
     typval_T	*argvars;
     typval_T	*rettv;
 {
+#ifdef FEAT_WINDOWS
     tabpage_T	*save_curtab;
+    tabpage_T	*tp;
+#endif
     char_u	*varname, *tabvarname;
     typval_T	*varp;
-    tabpage_T	*tp;
 
     rettv->vval.v_number = 0;
 
     if (check_restricted() || check_secure())
 	return;
 
+#ifdef FEAT_WINDOWS
     tp = find_tabpage((int)get_tv_number_chk(&argvars[0], NULL));
+#endif
     varname = get_tv_string_chk(&argvars[1]);
     varp = &argvars[2];
 
-    if (tp != NULL && varname != NULL && varp != NULL)
+    if (varname != NULL && varp != NULL
+#ifdef FEAT_WINDOWS
+	    && tp != NULL
+#endif
+	    )
     {
+#ifdef FEAT_WINDOWS
 	save_curtab = curtab;
 	goto_tabpage_tp(tp, FALSE, FALSE);
+#endif
 
 	tabvarname = alloc((unsigned)STRLEN(varname) + 3);
 	if (tabvarname != NULL)
@@ -16739,9 +16752,11 @@ f_settabvar(argvars, rettv)
 	    vim_free(tabvarname);
 	}
 
+#ifdef FEAT_WINDOWS
 	/* Restore current tabpage */
 	if (valid_tabpage(save_curtab))
 	    goto_tabpage_tp(save_curtab, FALSE, FALSE);
+#endif
     }
 }
 
@@ -16785,7 +16800,7 @@ setwinvar(argvars, rettv, off)
     char_u	*varname, *winvarname;
     typval_T	*varp;
     char_u	nbuf[NUMBUFLEN];
-    tabpage_T	*tp;
+    tabpage_T	*tp = NULL;
 
     if (check_restricted() || check_secure())
 	return;
@@ -16803,7 +16818,7 @@ setwinvar(argvars, rettv, off)
     if (win != NULL && varname != NULL && varp != NULL)
     {
 #ifdef FEAT_WINDOWS
-	if (switch_win(&save_curwin, &save_curtab, win, tp) == FAIL)
+	if (switch_win(&save_curwin, &save_curtab, win, tp, TRUE) == FAIL)
 	    return;
 #endif
 
@@ -16832,7 +16847,7 @@ setwinvar(argvars, rettv, off)
 	}
 
 #ifdef FEAT_WINDOWS
-	restore_win(save_curwin, save_curtab);
+	restore_win(save_curwin, save_curtab, TRUE);
 #endif
     }
 }

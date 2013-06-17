@@ -8141,10 +8141,8 @@ ins_reg()
     --no_mapping;
 
 #ifdef FEAT_EVAL
-    /*
-     * Don't call u_sync() while getting the expression,
-     * evaluating it or giving an error message for it!
-     */
+    /* Don't call u_sync() while typing the expression or giving an error
+     * message for it. Only call it explicitly. */
     ++no_u_sync;
     if (regname == '=')
     {
@@ -8157,6 +8155,9 @@ ins_reg()
 	if (im_on)
 	    im_set_active(TRUE);
 # endif
+	if (regname == '=')
+	    /* sync undo, so the effect of e.g., setline() can be undone */
+	    u_sync(TRUE);
     }
     if (regname == NUL || !valid_yank_reg(regname, FALSE))
     {

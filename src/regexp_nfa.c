@@ -273,6 +273,7 @@ static int nfa_regcomp_start __ARGS((char_u *expr, int re_flags));
 static int nfa_get_reganch __ARGS((nfa_state_T *start, int depth));
 static int nfa_get_regstart __ARGS((nfa_state_T *start, int depth));
 static char_u *nfa_get_match_text __ARGS((nfa_state_T *start));
+static int realloc_post_list __ARGS((void));
 static int nfa_recognize_char_class __ARGS((char_u *start, char_u *end, int extra_newl));
 static int nfa_emit_equi_class __ARGS((int c));
 static int nfa_regatom __ARGS((void));
@@ -4210,6 +4211,8 @@ addstate_here(l, state, subs, pim, ip)
 
     /* re-order to put the new state at the current position */
     count = l->n - tlen;
+    if (count == 0)
+	return; /* no state got added */
     if (count == 1)
     {
 	/* overwrite the current state */
@@ -4685,6 +4688,18 @@ failure_chance(state, depth)
 	case NFA_MCLOSE:
 	    /* empty match works always */
 	    return 0;
+
+	case NFA_START_INVISIBLE:
+	case NFA_START_INVISIBLE_FIRST:
+	case NFA_START_INVISIBLE_NEG:
+	case NFA_START_INVISIBLE_NEG_FIRST:
+	case NFA_START_INVISIBLE_BEFORE:
+	case NFA_START_INVISIBLE_BEFORE_FIRST:
+	case NFA_START_INVISIBLE_BEFORE_NEG:
+	case NFA_START_INVISIBLE_BEFORE_NEG_FIRST:
+	case NFA_START_PATTERN:
+	    /* recursive regmatch is expensive, use low failure chance */
+	    return 5;
 
 	case NFA_BOL:
 	case NFA_EOL:
@@ -5264,7 +5279,7 @@ nfa_regmatch(prog, start, submatch, m)
 		    skip_lid = nextlist->id;
 #endif
 		}
-		else if(state_in_list(thislist,
+		else if (state_in_list(thislist,
 					  t->state->out1->out->out, &t->subs))
 		{
 		    skip = t->state->out1->out->out;

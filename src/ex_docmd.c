@@ -3610,6 +3610,7 @@ set_one_cmd_context(xp, buff)
 	case CMD_sandbox:
 	case CMD_silent:
 	case CMD_tab:
+	case CMD_tabdo:
 	case CMD_topleft:
 	case CMD_verbose:
 	case CMD_vertical:
