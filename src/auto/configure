@@ -5252,6 +5252,7 @@ echo $ECHO_N "checking if compile and link flags for Perl are sane... $ECHO_C" >
       ldflags_save=$LDFLAGS
       CFLAGS="$CFLAGS $perlcppflags"
       LIBS="$LIBS $perllibs"
+      perlldflags=`echo "$perlldflags" | sed -e 's/^ *//g'`
       LDFLAGS="$perlldflags $LDFLAGS"
       cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
@@ -5306,7 +5307,9 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
 	  	  PERL_CFLAGS=`echo "$perlcppflags" | sed -e 's/-pipe //' -e 's/-W[^ ]*//'`
 	fi
 	if test "X$perlldflags" != "X"; then
-	  LDFLAGS="$perlldflags $LDFLAGS"
+	  if test "X`echo \"$LDFLAGS\" | grep -F -e \"$perlldflags\"`" = "X"; then
+	    LDFLAGS="$perlldflags $LDFLAGS"
+	  fi
 	fi
 	PERL_LIBS=$perllibs
 	PERL_SRC="auto/if_perl.c if_perlsfio.c"
@@ -6784,7 +6787,9 @@ echo "${ECHO_T}$rubyhdrdir" >&6; }
 	if test "X$rubyldflags" != "X"; then
 	  	  	  	  rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
 	  if test "X$rubyldflags" != "X"; then
-	    LDFLAGS="$rubyldflags $LDFLAGS"
+	    if test "X`echo \"$LDFLAGS\" | grep -F -e \"$rubyldflags\"`" = "X"; then
+	      LDFLAGS="$rubyldflags $LDFLAGS"
+	    fi
 	  fi
 	fi
         if test "X$rubyldflags" != "X"; then
@@ -9646,9 +9651,9 @@ echo "${ECHO_T}no" >&6; }
 
         GUI_LIB_LOC="`echo $GUI_LIB_LOC|sed 's%-L%%g'`"
 
-    { echo "$as_me:$LINENO: checking for location of Motif GUI libs" >&5
+            { echo "$as_me:$LINENO: checking for location of Motif GUI libs" >&5
 echo $ECHO_N "checking for location of Motif GUI libs... $ECHO_C" >&6; }
-    gui_libs="`echo $x_libraries|sed 's%/^/^/*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
+    gui_libs="`echo $x_libraries|sed 's%/^/^/*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
     GUI_LIB_LOC=
     for try in $gui_libs; do
       for libtry in "$try"/libXm.a "$try"/libXm.so* "$try"/libXm.sl "$try"/libXm.dylib; do
@@ -9658,7 +9663,9 @@ echo $ECHO_N "checking for location of Motif GUI libs... $ECHO_C" >&6; }
       done
     done
     if test -n "$GUI_LIB_LOC"; then
-            if test "$GUI_LIB_LOC" = /usr/lib; then
+            if test "$GUI_LIB_LOC" = /usr/lib \
+	   -o "$GUI_LIB_LOC" = /usr/lib/i386-linux-gnu \
+	   -o "$GUI_LIB_LOC" = /usr/lib/x86_64-linux-gnu; then
 	GUI_LIB_LOC=
 	{ echo "$as_me:$LINENO: result: in default path" >&5
 echo "${ECHO_T}in default path" >&6; }
@@ -19673,7 +19680,7 @@ echo "${ECHO_T}no" >&6; }
           { echo "$as_me:$LINENO: checking whether we need -D_FORTIFY_SOURCE=1" >&5
 echo $ECHO_N "checking whether we need -D_FORTIFY_SOURCE=1... $ECHO_C" >&6; }
   if test "$gccmajor" -gt "3"; then
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//g' -e 's/-D_FORTIFY_SOURCE=.//g' -e 's/$/ -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1/'`
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/ *-Wp,-D_FORTIFY_SOURCE=.//g' -e 's/ *-D_FORTIFY_SOURCE=.//g' -e 's/ *-U_FORTIFY_SOURCE//g' -e 's/$/ -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1/'`
     { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
   else
@@ -19688,7 +19695,7 @@ echo $ECHO_N "checking linker --as-needed support... $ECHO_C" >&6; }
 LINK_AS_NEEDED=
 # Check if linker supports --as-needed and --no-as-needed options
 if $CC -Wl,--help 2>/dev/null | grep as-needed > /dev/null; then
-  LDFLAGS="$LDFLAGS -Wl,--as-needed"
+  LDFLAGS=`echo "$LDFLAGS" | sed -e 's/ *-Wl,--as-needed//g' | sed -e 's/$/ -Wl,--as-needed/'`
   LINK_AS_NEEDED=yes
 fi
 if test "$LINK_AS_NEEDED" = yes; then

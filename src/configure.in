@@ -800,6 +800,7 @@ if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
       ldflags_save=$LDFLAGS
       CFLAGS="$CFLAGS $perlcppflags"
       LIBS="$LIBS $perllibs"
+      perlldflags=`echo "$perlldflags" | sed -e 's/^ *//g'`
       LDFLAGS="$perlldflags $LDFLAGS"
       AC_TRY_LINK(,[ ],
 	     AC_MSG_RESULT(yes); perl_ok=yes,
@@ -813,7 +814,9 @@ if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
 	  PERL_CFLAGS=`echo "$perlcppflags" | sed -e 's/-pipe //' -e 's/-W[[^ ]]*//'`
 	fi
 	if test "X$perlldflags" != "X"; then
-	  LDFLAGS="$perlldflags $LDFLAGS"
+	  if test "X`echo \"$LDFLAGS\" | grep -F -e \"$perlldflags\"`" = "X"; then
+	    LDFLAGS="$perlldflags $LDFLAGS"
+	  fi
 	fi
 	PERL_LIBS=$perllibs
 	PERL_SRC="auto/if_perl.c if_perlsfio.c"
@@ -1582,7 +1585,9 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
 	  dnl configure, so strip these flags first (if present)
 	  rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
 	  if test "X$rubyldflags" != "X"; then
-	    LDFLAGS="$rubyldflags $LDFLAGS"
+	    if test "X`echo \"$LDFLAGS\" | grep -F -e \"$rubyldflags\"`" = "X"; then
+	      LDFLAGS="$rubyldflags $LDFLAGS"
+	    fi
 	  fi
 	fi
         if test "X$rubyldflags" != "X"; then
@@ -2338,8 +2343,10 @@ if test -z "$SKIP_MOTIF"; then
     dnl Remove "-L" from before $GUI_LIB_LOC if it's there
     GUI_LIB_LOC="`echo $GUI_LIB_LOC|sed 's%-L%%g'`"
 
+    dnl Ubuntu has libXm.so in /usr/lib/i386-linux-gnu and elsewhere.  The
+    dnl linker will figure out which one to use, we only check if one exists.
     AC_MSG_CHECKING(for location of Motif GUI libs)
-    gui_libs="`echo $x_libraries|sed 's%/[^/][^/]*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
+    gui_libs="`echo $x_libraries|sed 's%/[^/][^/]*$%%'` `echo "$gui_XXX" | sed s/XXX/lib/g` /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu `echo "$GUI_INC_LOC" | sed s/include/lib/` $GUI_LIB_LOC"
     GUI_LIB_LOC=
     for try in $gui_libs; do
       for libtry in "$try"/libXm.a "$try"/libXm.so* "$try"/libXm.sl "$try"/libXm.dylib; do
@@ -2350,7 +2357,9 @@ if test -z "$SKIP_MOTIF"; then
     done
     if test -n "$GUI_LIB_LOC"; then
       dnl Remove /usr/lib, it causes trouble on some systems
-      if test "$GUI_LIB_LOC" = /usr/lib; then
+      if test "$GUI_LIB_LOC" = /usr/lib \
+	   -o "$GUI_LIB_LOC" = /usr/lib/i386-linux-gnu \
+	   -o "$GUI_LIB_LOC" = /usr/lib/x86_64-linux-gnu; then
 	GUI_LIB_LOC=
 	AC_MSG_RESULT(in default path)
       else
@@ -3784,7 +3793,7 @@ if test "$GCC" = yes; then
   dnl And undefine it first to avoid a warning.
   AC_MSG_CHECKING(whether we need -D_FORTIFY_SOURCE=1)
   if test "$gccmajor" -gt "3"; then
-    CFLAGS=`echo "$CFLAGS" | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//g' -e 's/-D_FORTIFY_SOURCE=.//g' -e 's/$/ -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1/'`
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/ *-Wp,-D_FORTIFY_SOURCE=.//g' -e 's/ *-D_FORTIFY_SOURCE=.//g' -e 's/ *-U_FORTIFY_SOURCE//g' -e 's/$/ -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1/'`
     AC_MSG_RESULT(yes)
   else
     AC_MSG_RESULT(no)
@@ -3799,7 +3808,7 @@ AC_MSG_CHECKING(linker --as-needed support)
 LINK_AS_NEEDED=
 # Check if linker supports --as-needed and --no-as-needed options
 if $CC -Wl,--help 2>/dev/null | grep as-needed > /dev/null; then
-  LDFLAGS="$LDFLAGS -Wl,--as-needed"
+  LDFLAGS=`echo "$LDFLAGS" | sed -e 's/ *-Wl,--as-needed//g' | sed -e 's/$/ -Wl,--as-needed/'`
   LINK_AS_NEEDED=yes
 fi
 if test "$LINK_AS_NEEDED" = yes; then
