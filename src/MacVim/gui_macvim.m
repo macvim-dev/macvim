@@ -953,12 +953,12 @@ gui_mch_get_font(char_u *name, int giveErrorIfMissing)
 #if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Return the name of font "font" in allocated memory.
- * TODO: use 'font' instead of 'name'?
  */
     char_u *
 gui_mch_get_fontname(GuiFont font, char_u *name)
 {
-    return name ? vim_strsave(name) : NULL;
+    return font ? [(NSString *)font vimStringSave]
+                : (name ? vim_strsave(name) : NULL);
 }
 #endif
 
