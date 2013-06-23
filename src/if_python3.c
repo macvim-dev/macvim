@@ -84,13 +84,8 @@
 
 #define PyInt Py_ssize_t
 #define PyString_Check(obj) PyUnicode_Check(obj)
-#define PyString_AsBytes(obj) PyUnicode_AsEncodedString(obj, (char *)ENC_OPT, CODEC_ERROR_HANDLER)
-#define PyString_FreeBytes(obj) Py_XDECREF(bytes)
-#define PyString_AsString(obj) PyBytes_AsString(obj)
-#define PyString_Size(obj) PyBytes_GET_SIZE(bytes)
 #define PyString_FromString(repr) PyUnicode_FromString(repr)
 #define PyString_FromFormat PyUnicode_FromFormat
-#define PyString_AsStringAndSize(obj, buffer, len) PyBytes_AsStringAndSize(obj, buffer, len)
 #define PyInt_Check(obj) PyLong_Check(obj)
 #define PyInt_FromLong(i) PyLong_FromLong(i)
 #define PyInt_AsLong(obj) PyLong_AsLong(obj)
@@ -127,6 +122,7 @@
 # define PyDict_SetItemString py3_PyDict_SetItemString
 # define PyErr_BadArgument py3_PyErr_BadArgument
 # define PyErr_Clear py3_PyErr_Clear
+# define PyErr_Format py3_PyErr_Format
 # define PyErr_PrintEx py3_PyErr_PrintEx
 # define PyErr_NoMemory py3_PyErr_NoMemory
 # define PyErr_Occurred py3_PyErr_Occurred
@@ -164,6 +160,7 @@
 # define PyMapping_Keys py3_PyMapping_Keys
 # define PyIter_Next py3_PyIter_Next
 # define PyObject_GetIter py3_PyObject_GetIter
+# define PyObject_Repr py3_PyObject_Repr
 # define PyObject_GetItem py3_PyObject_GetItem
 # define PyObject_IsTrue py3_PyObject_IsTrue
 # define PyModule_GetDict py3_PyModule_GetDict
@@ -215,6 +212,8 @@
 # define PyType_Type (*py3_PyType_Type)
 # define PySlice_Type (*py3_PySlice_Type)
 # define PyFloat_Type (*py3_PyFloat_Type)
+# define PyNumber_Check (*py3_PyNumber_Check)
+# define PyNumber_Long (*py3_PyNumber_Long)
 # define PyBool_Type (*py3_PyBool_Type)
 # define PyErr_NewException py3_PyErr_NewException
 # ifdef Py_DEBUG
@@ -314,6 +313,7 @@ static PyObject* (*py3_PyLong_FromLong)(long);
 static PyObject* (*py3_PyDict_New)(void);
 static PyObject* (*py3_PyIter_Next)(PyObject *);
 static PyObject* (*py3_PyObject_GetIter)(PyObject *);
+static PyObject* (*py3_PyObject_Repr)(PyObject *);
 static PyObject* (*py3_PyObject_GetItem)(PyObject *, PyObject *);
 static int (*py3_PyObject_IsTrue)(PyObject *);
 static PyObject* (*py3_Py_BuildValue)(char *, ...);
@@ -342,6 +342,7 @@ static int (*py3_PyMem_Free)(void *);
 static void* (*py3_PyMem_Malloc)(size_t);
 static int (*py3_Py_IsInitialized)(void);
 static void (*py3_PyErr_Clear)(void);
+static PyObject* (*py3_PyErr_Format)(PyObject *, const char *, ...);
 static void (*py3_PyErr_PrintEx)(int);
 static PyObject*(*py3__PyObject_Init)(PyObject *, PyTypeObject *);
 static iternextfunc py3__PyObject_NextNotImplemented;
@@ -357,7 +358,7 @@ static char* (*py3__PyUnicode_AsString)(PyObject *unicode);
 # endif
 static PyObject* (*py3_PyUnicode_AsEncodedString)(PyObject *unicode, const char* encoding, const char* errors);
 static char* (*py3_PyBytes_AsString)(PyObject *bytes);
-static int (*py3_PyBytes_AsStringAndSize)(PyObject *bytes, char **buffer, int *length);
+static int (*py3_PyBytes_AsStringAndSize)(PyObject *bytes, char **buffer, Py_ssize_t *length);
 static PyObject* (*py3_PyBytes_FromString)(char *str);
 static PyObject* (*py3_PyFloat_FromDouble)(double num);
 static double (*py3_PyFloat_AsDouble)(PyObject *);
@@ -368,6 +369,8 @@ static PyTypeObject* py3_PyType_Type;
 static PyTypeObject* py3_PySlice_Type;
 static PyTypeObject* py3_PyFloat_Type;
 static PyTypeObject* py3_PyBool_Type;
+static int (*py3_PyNumber_Check)(PyObject *);
+static PyObject* (*py3_PyNumber_Long)(PyObject *);
 static PyObject* (*py3_PyErr_NewException)(char *name, PyObject *base, PyObject *dict);
 static PyObject* (*py3_PyCapsule_New)(void *, char *, PyCapsule_Destructor);
 static void* (*py3_PyCapsule_GetPointer)(PyObject *, char *);
@@ -402,6 +405,7 @@ static PyObject *p3imp_PyExc_TypeError;
 static PyObject *p3imp_PyExc_ValueError;
 static PyObject *p3imp_PyExc_RuntimeError;
 static PyObject *p3imp_PyExc_ImportError;
+static PyObject *p3imp_PyExc_OverflowError;
 
 # define PyExc_AttributeError p3imp_PyExc_AttributeError
 # define PyExc_IndexError p3imp_PyExc_IndexError
@@ -411,6 +415,7 @@ static PyObject *p3imp_PyExc_ImportError;
 # define PyExc_ValueError p3imp_PyExc_ValueError
 # define PyExc_RuntimeError p3imp_PyExc_RuntimeError
 # define PyExc_ImportError p3imp_PyExc_ImportError
+# define PyExc_OverflowError p3imp_PyExc_OverflowError
 
 /*
  * Table of name to function pointer of python.
@@ -472,6 +477,7 @@ static struct
     {"PyMapping_Keys", (PYTHON_PROC*)&py3_PyMapping_Keys},
     {"PyIter_Next", (PYTHON_PROC*)&py3_PyIter_Next},
     {"PyObject_GetIter", (PYTHON_PROC*)&py3_PyObject_GetIter},
+    {"PyObject_Repr", (PYTHON_PROC*)&py3_PyObject_Repr},
     {"PyObject_GetItem", (PYTHON_PROC*)&py3_PyObject_GetItem},
     {"PyObject_IsTrue", (PYTHON_PROC*)&py3_PyObject_IsTrue},
     {"PyLong_FromLong", (PYTHON_PROC*)&py3_PyLong_FromLong},
@@ -490,6 +496,7 @@ static struct
     {"_Py_FalseStruct", (PYTHON_PROC*)&py3__Py_FalseStruct},
     {"_Py_TrueStruct", (PYTHON_PROC*)&py3__Py_TrueStruct},
     {"PyErr_Clear", (PYTHON_PROC*)&py3_PyErr_Clear},
+    {"PyErr_Format", (PYTHON_PROC*)&py3_PyErr_Format},
     {"PyErr_PrintEx", (PYTHON_PROC*)&py3_PyErr_PrintEx},
     {"PyObject_Init", (PYTHON_PROC*)&py3__PyObject_Init},
     {"PyModule_AddObject", (PYTHON_PROC*)&py3_PyModule_AddObject},
@@ -520,6 +527,8 @@ static struct
     {"PySlice_Type", (PYTHON_PROC*)&py3_PySlice_Type},
     {"PyFloat_Type", (PYTHON_PROC*)&py3_PyFloat_Type},
     {"PyBool_Type", (PYTHON_PROC*)&py3_PyBool_Type},
+    {"PyNumber_Check", (PYTHON_PROC*)&py3_PyNumber_Check},
+    {"PyNumber_Long", (PYTHON_PROC*)&py3_PyNumber_Long},
     {"PyErr_NewException", (PYTHON_PROC*)&py3_PyErr_NewException},
 # ifdef Py_DEBUG
     {"_Py_NegativeRefcount", (PYTHON_PROC*)&py3__Py_NegativeRefcount},
@@ -674,6 +683,7 @@ get_py3_exceptions()
     p3imp_PyExc_ValueError = PyDict_GetItemString(exdict, "ValueError");
     p3imp_PyExc_RuntimeError = PyDict_GetItemString(exdict, "RuntimeError");
     p3imp_PyExc_ImportError = PyDict_GetItemString(exdict, "ImportError");
+    p3imp_PyExc_OverflowError = PyDict_GetItemString(exdict, "OverflowError");
     Py_XINCREF(p3imp_PyExc_AttributeError);
     Py_XINCREF(p3imp_PyExc_IndexError);
     Py_XINCREF(p3imp_PyExc_KeyError);
@@ -682,6 +692,7 @@ get_py3_exceptions()
     Py_XINCREF(p3imp_PyExc_ValueError);
     Py_XINCREF(p3imp_PyExc_RuntimeError);
     Py_XINCREF(p3imp_PyExc_ImportError);
+    Py_XINCREF(p3imp_PyExc_OverflowError);
     Py_XDECREF(exmod);
 }
 #endif /* DYNAMIC_PYTHON3 */
@@ -1174,7 +1185,7 @@ BufferSubscript(PyObject *self, PyObject* idx)
     }
     else
     {
-	PyErr_SetString(PyExc_TypeError, _("index must be int or slice"));
+	RAISE_INVALID_INDEX_TYPE(idx);
 	return NULL;
     }
 }
@@ -1208,7 +1219,7 @@ BufferAsSubscript(PyObject *self, PyObject* idx, PyObject* val)
     }
     else
     {
-	PyErr_SetString(PyExc_TypeError, _("index must be int or slice"));
+	RAISE_INVALID_INDEX_TYPE(idx);
 	return -1;
     }
 }
@@ -1290,7 +1301,7 @@ RangeSubscript(PyObject *self, PyObject* idx)
     }
     else
     {
-	PyErr_SetString(PyExc_TypeError, _("index must be int or slice"));
+	RAISE_INVALID_INDEX_TYPE(idx);
 	return NULL;
     }
 }
@@ -1317,7 +1328,7 @@ RangeAsSubscript(PyObject *self, PyObject *idx, PyObject *val)
     }
     else
     {
-	PyErr_SetString(PyExc_TypeError, _("index must be int or slice"));
+	RAISE_INVALID_INDEX_TYPE(idx);
 	return -1;
     }
 }
@@ -1496,7 +1507,7 @@ ListSubscript(PyObject *self, PyObject* idx)
     }
     else
     {
-	PyErr_SetString(PyExc_TypeError, _("index must be int or slice"));
+	RAISE_INVALID_INDEX_TYPE(idx);
 	return NULL;
     }
 }
@@ -1520,7 +1531,7 @@ ListAsSubscript(PyObject *self, PyObject *idx, PyObject *obj)
     }
     else
     {
-	PyErr_SetString(PyExc_TypeError, _("index must be int or slice"));
+	RAISE_INVALID_INDEX_TYPE(idx);
 	return -1;
     }
 }
