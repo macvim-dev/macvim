@@ -24,8 +24,11 @@ src/MacVim/PSMTabBarControl/build
 src/MacVim/build
 src/TAGS
 src/Vim
+src/auto/config.cache
 src/auto/config.h
+src/auto/config.log
 src/auto/config.mk
+src/auto/config.status
 src/auto/if_perl.c
 src/auto/link.log
 src/auto/link.sed
