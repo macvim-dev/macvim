@@ -333,7 +333,7 @@ static PyTypeObject* dll_PyInt_Type;
 static PyTypeObject* dll_PyLong_Type;
 static PyObject*(*dll_PyList_GetItem)(PyObject *, PyInt);
 static int(*dll_PyList_Append)(PyObject *, PyObject *);
-static int(*dll_PyList_Insert)(PyObject *, int, PyObject *);
+static int(*dll_PyList_Insert)(PyObject *, PyInt, PyObject *);
 static PyObject*(*dll_PyList_New)(PyInt size);
 static int(*dll_PyList_SetItem)(PyObject *, PyInt, PyObject *);
 static PyInt(*dll_PyList_Size)(PyObject *);
@@ -369,7 +369,7 @@ static PyObject* (*dll_PyObject_CallFunction)(PyObject *, char *, ...);
 static PyObject* (*dll_PyObject_Call)(PyObject *, PyObject *, PyObject *);
 static PyObject* (*dll_PyObject_Repr)(PyObject *);
 static char*(*dll_PyString_AsString)(PyObject *);
-static int(*dll_PyString_AsStringAndSize)(PyObject *, char **, int *);
+static int(*dll_PyString_AsStringAndSize)(PyObject *, char **, PyInt *);
 static PyObject*(*dll_PyString_FromString)(const char *);
 static PyObject*(*dll_PyString_FromFormat)(const char *, ...);
 static PyObject*(*dll_PyString_FromStringAndSize)(const char *, PyInt);
@@ -1408,8 +1408,7 @@ PythonMod_Init(void)
     vim_module = Py_InitModule4("vim", VimMethods, (char *)NULL,
 				(PyObject *)NULL, PYTHON_API_VERSION);
 
-    if (populate_module(vim_module, PyModule_AddObject,
-			   PyObject_GetAttrString))
+    if (populate_module(vim_module))
 	return -1;
 
     if (init_sys_path())
