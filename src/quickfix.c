@@ -1180,7 +1180,10 @@ copy_loclist(from, to)
 	/* When no valid entries are present in the list, qf_ptr points to
 	 * the first item in the list */
 	if (to_qfl->qf_nonevalid)
+	{
 	    to_qfl->qf_ptr = to_qfl->qf_start;
+	    to_qfl->qf_index = 1;
+	}
     }
 
     to->w_llist->qf_curlist = qi->qf_curlist;	/* current list */
@@ -1613,6 +1616,8 @@ qf_jump(qi, dir, errornr, forceit)
      */
     if (bt_quickfix(curbuf) && !opened_window)
     {
+	win_T *usable_win_ptr = NULL;
+
 	/*
 	 * If there is no file specified, we don't know where to go.
 	 * But do advance, otherwise ":cn" gets stuck.
@@ -1620,14 +1625,32 @@ qf_jump(qi, dir, errornr, forceit)
 	if (qf_ptr->qf_fnum == 0)
 	    goto theend;
 
-	/* Locate a window showing a normal buffer */
 	usable_win = 0;
-	FOR_ALL_WINDOWS(win)
-	    if (win->w_buffer->b_p_bt[0] == NUL)
-	    {
-		usable_win = 1;
-		break;
-	    }
+
+	ll_ref = curwin->w_llist_ref;
+	if (ll_ref != NULL)
+	{
+	    /* Find a window using the same location list that is not a
+	     * quickfix window. */
+	    FOR_ALL_WINDOWS(usable_win_ptr)
+		if (usable_win_ptr->w_llist == ll_ref
+			&& usable_win_ptr->w_buffer->b_p_bt[0] != 'q')
+		{
+		    usable_win = 1;
+		    break;
+		}
+	}
+
+	if (!usable_win)
+	{
+	    /* Locate a window showing a normal buffer */
+	    FOR_ALL_WINDOWS(win)
+		if (win->w_buffer->b_p_bt[0] == NUL)
+		{
+		    usable_win = 1;
+		    break;
+		}
+	}
 
 	/*
 	 * If no usable window is found and 'switchbuf' contains "usetab"
@@ -1656,8 +1679,6 @@ win_found:
 	 */
 	if (((firstwin == lastwin) && bt_quickfix(curbuf)) || !usable_win)
 	{
-	    ll_ref = curwin->w_llist_ref;
-
 	    flags = WSP_ABOVE;
 	    if (ll_ref != NULL)
 		flags |= WSP_NEWLOC;
@@ -1680,12 +1701,7 @@ win_found:
 	    if (curwin->w_llist_ref != NULL)
 	    {
 		/* In a location window */
-		ll_ref = curwin->w_llist_ref;
-
-		/* Find the window with the same location list */
-		FOR_ALL_WINDOWS(win)
-		    if (win->w_llist == ll_ref)
-			break;
+		win = usable_win_ptr;
 		if (win == NULL)
 		{
 		    /* Find the window showing the selected file */

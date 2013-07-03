@@ -5146,6 +5146,7 @@ xim_reset(void)
 	{
 	    xim_set_focus(gui.in_focus);
 
+#  ifdef FEAT_EVAL
 	    if (p_imaf[0] != NUL)
 	    {
 		char_u *argv[1];
@@ -5156,7 +5157,9 @@ xim_reset(void)
 		    argv[0] = (char_u *)"0";
 		(void)call_func_retnr(p_imaf, 1, argv, FALSE);
 	    }
-	    else if (im_activatekey_keyval != GDK_VoidSymbol)
+	    else
+#  endif
+		if (im_activatekey_keyval != GDK_VoidSymbol)
 	    {
 		if (im_is_active)
 		{
@@ -5320,12 +5323,17 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
     int
 im_get_status(void)
 {
+#  ifdef FEAT_EVAL
     if (p_imsf[0] != NUL)
     {
 	int is_active;
 
 	/* FIXME: Don't execute user function in unsafe situation. */
-	if (exiting || is_autocmd_blocked())
+	if (exiting
+#   ifdef FEAT_AUTOCMD
+		|| is_autocmd_blocked()
+#   endif
+		)
 	    return FALSE;
 	/* FIXME: :py print 'xxx' is shown duplicate result.
 	 * Use silent to avoid it. */
@@ -5334,6 +5342,7 @@ im_get_status(void)
 	--msg_silent;
 	return (is_active > 0);
     }
+#  endif
     return im_is_active;
 }
 # endif

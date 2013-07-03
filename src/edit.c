@@ -3477,6 +3477,7 @@ ins_compl_new_leader()
     }
 
     compl_enter_selects = !compl_used_match;
+    compl_shown_match = compl_curr_match = compl_first_match;
 
     /* Show the popup menu with a different set of matches. */
     ins_compl_show_pum();
@@ -8149,15 +8150,16 @@ ins_reg()
 # ifdef USE_IM_CONTROL
 	int	im_on = im_get_status();
 # endif
+	/* Sync undo, so the effect of e.g., setline() can be undone. */
+	u_sync(TRUE);
+	ins_need_undo = TRUE;
+
 	regname = get_expr_register();
 # ifdef USE_IM_CONTROL
 	/* Restore the Input Method. */
 	if (im_on)
 	    im_set_active(TRUE);
 # endif
-	if (regname == '=')
-	    /* sync undo, so the effect of e.g., setline() can be undone */
-	    u_sync(TRUE);
     }
     if (regname == NUL || !valid_yank_reg(regname, FALSE))
     {

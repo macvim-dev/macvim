@@ -53,10 +53,10 @@ static void win_free __ARGS((win_T *wp, tabpage_T *tp));
 static void frame_append __ARGS((frame_T *after, frame_T *frp));
 static void frame_insert __ARGS((frame_T *before, frame_T *frp));
 static void frame_remove __ARGS((frame_T *frp));
-#ifdef FEAT_VERTSPLIT
+# ifdef FEAT_VERTSPLIT
 static void win_goto_ver __ARGS((int up, long count));
 static void win_goto_hor __ARGS((int left, long count));
-#endif
+# endif
 static void frame_add_height __ARGS((frame_T *frp, int n));
 static void last_status_rec __ARGS((frame_T *fr, int statusline));
 
@@ -4082,7 +4082,8 @@ win_find_tabpage(win)
     tabpage_T	*tp;
 
     for (tp = first_tabpage; tp != NULL; tp = tp->tp_next)
-	for (wp = tp->tp_firstwin; wp != NULL; wp = wp->w_next)
+	for (wp = (tp == curtab ? firstwin : tp->tp_firstwin);
+						  wp != NULL; wp = wp->w_next)
 	    if (wp == win)
 		return tp;
     return NULL;
@@ -6938,6 +6939,7 @@ get_tab_number(tabpage_T *tp UNUSED)
 }
 #endif
 
+#ifdef FEAT_WINDOWS
 /*
  * Return TRUE if "topfrp" and its children are at the right height.
  */
@@ -6958,6 +6960,7 @@ frame_check_height(topfrp, height)
 
     return TRUE;
 }
+#endif
 
 #ifdef FEAT_VERTSPLIT
 /*
