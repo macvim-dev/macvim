@@ -19643,6 +19643,10 @@ echo "${ECHO_T}yes" >&6; }
     { echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
   fi
+        if test "x$features" = "xtiny"; then
+    OS_EXTRA_SRC=`echo "$OS_EXTRA_SRC" | sed -e 's+os_macosx.m++'`
+    OS_EXTRA_OBJ=`echo "$OS_EXTRA_OBJ" | sed -e 's+objects/os_macosx.o++'`
+  fi
 fi
 
 if test "x$MACOSX" = "xyes"; then

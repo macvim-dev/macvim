@@ -6151,7 +6151,6 @@ save_patterns(num_pat, pat, num_file, file)
 }
 #endif
 
-
 /*
  * Return TRUE if the string "p" contains a wildcard that mch_expandpath() can
  * expand.

@@ -4686,8 +4686,9 @@ vim_findfile_init(path, filename, stopdirs, level, free_visited, find_what,
     STRCPY(ff_expand_buffer, search_ctx->ffsc_start_dir);
     add_pathsep(ff_expand_buffer);
     {
-	int    eb_len = STRLEN(ff_expand_buffer);
-	char_u *buf = alloc(eb_len + STRLEN(search_ctx->ffsc_fix_path) + 1);
+	int    eb_len = (int)STRLEN(ff_expand_buffer);
+	char_u *buf = alloc(eb_len
+				+ (int)STRLEN(search_ctx->ffsc_fix_path) + 1);
 
 	STRCPY(buf, ff_expand_buffer);
 	STRCPY(buf + eb_len, search_ctx->ffsc_fix_path);
@@ -4699,25 +4700,25 @@ vim_findfile_init(path, filename, stopdirs, level, free_visited, find_what,
 #ifdef FEAT_PATH_EXTRA
 	else
 	{
-	    char_u *p =  vim_strrchr(search_ctx->ffsc_fix_path, PATHSEP);
+	    char_u *p =  gettail(search_ctx->ffsc_fix_path);
 	    char_u *wc_path = NUL;
 	    char_u *temp = NUL;
 	    int    len = 0;
 
-	    if (p != NULL)
+	    if (p > search_ctx->ffsc_fix_path)
 	    {
-		len = p - search_ctx->ffsc_fix_path;
+		len = (int)(p - search_ctx->ffsc_fix_path) - 1;
 		STRNCAT(ff_expand_buffer, search_ctx->ffsc_fix_path, len);
 		add_pathsep(ff_expand_buffer);
 	    }
 	    else
-		len = STRLEN(search_ctx->ffsc_fix_path);
+		len = (int)STRLEN(search_ctx->ffsc_fix_path);
 
 	    if (search_ctx->ffsc_wc_path != NULL)
 	    {
 		wc_path = vim_strsave(search_ctx->ffsc_wc_path);
-		temp = alloc(STRLEN(search_ctx->ffsc_wc_path)
-				 + (STRLEN(search_ctx->ffsc_fix_path) - len));
+		temp = alloc((int)(STRLEN(search_ctx->ffsc_wc_path)
+				 + (STRLEN(search_ctx->ffsc_fix_path)) - len));
 	    }
 
 	    if (temp == NULL || wc_path == NULL)
