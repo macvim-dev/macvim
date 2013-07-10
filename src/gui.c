@@ -2500,9 +2500,12 @@ gui_outstr_nowrap(s, len, flags, fg, bg, back)
 			gui_mch_set_font(wide_font);
 		    gui_mch_draw_string(gui.row, scol, s + start, thislen,
 #  ifdef FEAT_GUI_MACVIM
-								  cells,
+				    cells,
+				    draw_flags | (prev_wide ? DRAW_WIDE : 0)
+# else
+				    draw_flag
 #  endif
-								  draw_flags);
+				    );
 		    if (prev_wide)
 			gui_mch_set_font(font);
 		    start += thislen;
