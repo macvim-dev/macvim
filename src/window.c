@@ -2296,8 +2296,13 @@ win_close(win, free_buf)
     if (only_one_window() && win_valid(win) && win->w_buffer == NULL
 	    && (last_window() || curtab != prev_curtab
 		|| close_last_window_tabpage(win, free_buf, prev_curtab)))
-	/* Autocommands have close all windows, quit now. */
+    {
+	/* Autocommands have close all windows, quit now.  Restore
+	 * curwin->w_buffer, otherwise writing viminfo may fail. */
+	if (curwin->w_buffer == NULL)
+	    curwin->w_buffer = curbuf;
 	getout(0);
+    }
 
     /* Autocommands may have closed the window already, or closed the only
      * other window or moved to another tab page. */
@@ -4518,7 +4523,7 @@ win_alloc(after, hidden)
 #if defined(FEAT_WINDOWS) || defined(PROTO)
 
 /*
- * remove window 'wp' from the window list and free the structure
+ * Remove window 'wp' from the window list and free the structure.
  */
     static void
 win_free(wp, tp)
@@ -4526,6 +4531,8 @@ win_free(wp, tp)
     tabpage_T	*tp;		/* tab page "win" is in, NULL for current */
 {
     int		i;
+    buf_T	*buf;
+    wininfo_T	*wip;
 
 #ifdef FEAT_FOLDING
     clearFolding(wp);
@@ -4585,6 +4592,13 @@ win_free(wp, tp)
 	vim_free(wp->w_tagstack[i].tagname);
 
     vim_free(wp->w_localdir);
+
+    /* Remove the window from the b_wininfo lists, it may happen that the
+     * freed memory is re-used for another window. */
+    for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+	for (wip = buf->b_wininfo; wip != NULL; wip = wip->wi_next)
+	    if (wip->wi_win == wp)
+		wip->wi_win = NULL;
 
 #ifdef FEAT_SEARCH_EXTRA
     clear_matches(wp);

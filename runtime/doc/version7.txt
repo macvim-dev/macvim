@@ -1,4 +1,4 @@
-*version7.txt*  For Vim version 7.4a.  Last change: 2013 Jul 07
+*version7.txt*  For Vim version 7.4b.  Last change: 2013 Jul 28
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -70,6 +70,7 @@ Fixed					|fixed-7.3|
 
 VERSION 7.4			|version-7.4|
 New regexp engine			|new-regexp-engine|
+Better Python interface			|better-python-interface|
 Changed					|changed-7.4|
 Added					|added-7.4|
 Fixed					|fixed-7.4|
@@ -9151,7 +9152,7 @@ Files:	    src/ops.c
 
 Patch 7.2.293
 Problem:    When setting 'comments' option it may be used in a wrong way. 
-Solution:   Don't increment after skipping over digets. (Yukihiro Nakadaira)
+Solution:   Don't increment after skipping over digits. (Yukihiro Nakadaira)
 Files:	    src/misc1.c
 
 Patch 7.2.294
@@ -10165,6 +10166,9 @@ This section is about improvements made between version 7.3 and 7.4.
 This release has hundreds of bug fixes and there are a few new features.  The
 most notable new features are:
 
+- New regexp engine			|new-regexp-engine|
+- A more pythonic Python interface	|better-python-interface|
+
 
 New regexp engine					*new-regexp-engine*
 -----------------
@@ -10185,20 +10189,174 @@ is now working fine.  Previously Vim could get stuck.
 More information here: |two-engines|
 
 
+Better Python interface				*better-python-interface*
+-----------------------
+
+Added |python-bindeval| function. Unlike |python-eval| this one returns 
+|python-Dictionary|, |python-List| and |python-Function| objects for 
+dictionaries lists and functions respectively in place of their Python 
+built-in equivalents (or None if we are talking about function references).
+   For simple types this function returns Python built-in types and not only 
+Python `str()` like |python-eval| does. On Python 3 it will return `bytes()` 
+objects in place of `str()` ones avoiding possibility of UnicodeDecodeError.
+   Interface of new objects mimics standard Python `dict()` and `list()`
+interfaces to some extent. Extent will be improved in the future.
+
+Added special |python-vars| objects also available for |python-buffer| and 
+|python-window|. They ease access to VimL variables from Python.
+
+Now you no longer need to alter `sys.path` to import your module: special 
+hooks are responsible for importing from {rtp}/python2, {rtp}/python3 and 
+{rtp}/pythonx directories (for Python 2, Python 3 and both respectively). 
+See |python-special-path|.
+
+Added possibility to work with |tabpage|s through |python-tabpage| object.
+
+Added automatic conversion of Vim errors and exceptions to Python 
+exceptions.
+
+Changed the behavior of the |python-buffers| object: it now uses buffer numbers 
+as keys in place of the index of the buffer in the internal buffer list. 
+This should not break anything as the only way to get this index was 
+iterating over |python-buffers|.
+
+Added |:pydo| and |:py3do| commands.
+
+Added the |pyeval()| and |py3eval()| functions.
+
+Now in all places which previously accepted `str()` objects, `str()` and
+`unicode()` (Python 2) or `bytes()` and `str()` (Python 3) are accepted.
+
+|python-window| has gained `.col` and `.row` attributes that are currently 
+the only way to get internal window positions.
+
+Added or fixed support for `dir()` in Vim Python objects.
+
+
 Changed							*changed-7.4*
 -------
 
-Todo.
+Old Python versions (≤2.2) are no longer supported. Building with them did 
+not work anyway.
 
+Options:
+	Added ability to automatically save the selection into the system 
+	clipboard when using non-GUI version of Vim (autoselectplus in 
+	'clipboard'). Also added ability to use the system clipboard as
+	default register (previously only primary selection could be used).
+	(Ivan Krasilnikov, Christian Brabandt, Bram Moolenaar)
+
+	Added a special 'shiftwidth' value that makes 'sw' follow 'tabstop'.
+	As indenting via 'indentexpr' became tricky |shiftwidth()| function
+	was added. Also added equivalent special value to 'softtabstop'
+	option.  (Christian Brabandt, so8res)
+
+	Show absolute number in number column when 'relativenumber' option is
+	on.  Now there are four combinations with 'number' and
+	'relativenumber'.  (Christian Brabandt)
+
+Commands:
+	|:diffoff| now saves the local values of some settings and restores 
+	them in place of blindly resetting them to the defaults. (Christian 
+	Brabandt)
+
+Other:
+	Lua interface now also uses userdata binded to Vim structures. (Taro 
+	Muraoka, Luis Carvalho)
 
 Added							*added-7.4*
 -----
 
 Various syntax, indent and other plugins were added.
 
+Added support for |Lists| and |Dictionaries| in |viminfo|. (Christian
+Brabandt)
 
-Fixed							*fixed-7.4*
------
+Functions:
+	Bitwise functions: |and()|, |or()|, |invert()|, |xor()|.
+
+	Added |luaeval()| function. (Taro Muraoka, Luis Carvalho)
+
+	Added |sha256()| function. (Tyru, Hirohito Higashi)
+
+	Added |wildmenumode()| function. (Christian Brabandt)
+
+	Debugging functions: |screenattr()|, |screenchar()|, |screencol()|, 
+	|screenrow()|. (Simon Ruderich, Bram Moolenaar)
+
+	Added ability to use |Dictionary-function|s for |sort()|ing, via 
+	optional third argument. (Nikolay Pavlov)
+
+	Added special |expand()| argument that expands to the current line 
+	number.
+
+	Made it possible to force |char2nr()| always give unicode codepoints 
+	regardless of current encoding. (Yasuhiro Matsumoto)
+
+	Made it possible for functions generating file list generate |List| 
+	and not NL-separated string. (e.g. |glob()|, |expand()|) (Christian 
+	Brabandt)
+
+	Functions that obtain variables from the specific window, tabpage or 
+	buffer scope dictionary can now return specified default value in 
+	place of empty string in case variable is not found. (|gettabvar()|, 
+	|getwinvar()|, |getbufvar()|) (Shougo Matsushita, Hirohito Higashi)
+
+Autocommands:
+	Added |InsertCharPre| event launched before inserting character. 
+	(Jakson A. Aquino)
+
+	Added |CompleteDone| event launched after finishing completion in 
+	insert mode. (idea by Florian Klein)
+
+	Added |QuitPre| event launched when commands that can either close Vim 
+	or only some window(s) are launched.
+
+	Added |TextChanged| and |TextChangedI| events launched when text is 
+	changed.
+
+Commands:
+	|:syntime| command useful for debugging.
+
+	Made it possible to remove all signs from the current buffer using 
+	|:sign-unplace|. (Christian Brabandt)
+
+	Added |:language| autocompletion. (Dominique Pelle)
+
+	Added more |:command-complete| completion types: |:behave| suboptions, 
+	color schemes, compilers, |:cscope| suboptions, files from 'path', 
+	|:history| suboptions, locale names, |:syntime| suboptions, user 
+	names. (Dominique Pelle)
+
+	Added |:map-nowait| creating mapping which when having lhs that is the 
+	prefix of another mapping’s lhs will not allow Vim to wait for user to 
+	type more characters to resolve ambiguity, forcing Vim to take the 
+	shorter alternative: one with <nowait>.
+
+Options:
+	Made it possible to ignore case when completing: 'wildignorecase'.
+
+	Added ability to delete comment leader when using |J| by `j` flag in 
+	'formatoptions' (|fo-table|). (Lech Lorens)
+
+	Added ability to control indentation inside namespaces: |cino-N|. 
+	(Konstantin Lepa)
+
+	Added ability to control alignment inside `if` condition separately 
+	from alignment inside function arguments: |cino-k|. (Lech Lorens)
+
+Other:
+	Improved support for cmd.exe. (Ben Fritz, Bram Moolenaar)
+
+	Added |v:windowid| variable containing current window number in GUI 
+	Vim. (Christian J. Robinson, Lech Lorens)
+
+	Added rxvt-unicode and >xterm-277 mouse support. (Yiding Jia, Hayaki 
+	Saito)
+
+
+All changes in 7.4						*fixed-7.4*
+------------------
 
 Patch 7.3.001
 Problem:    When editing "src/main.c" and 'path' set to "./proto",
@@ -11732,7 +11890,7 @@ Solution:   Don't trigger CursorHold when there is typeahead.
 Files:	    src/fileio.c
 
 Patch 7.3.261
-Problem:    G++ error message errornously recognized as error.
+Problem:    G++ error message erroneously recognized as error.
 Solution:   Ignore "In file included from" line also when it ends in a colon.
 	    (Fernando Castillo)
 Files:	    src/option.h
@@ -12025,7 +12183,7 @@ Problem:    Can't compile with tiny features.
 Solution:   Add #ifdef around win_valid().
 Files:	    src/buffer.c
 
-Patch 7.3.313 after 7.3.307)
+Patch 7.3.313 (after 7.3.307)
 Problem:    One more warning when compiling with dynamic Python 3.
 Solution:   Change PySliceObject to PyObject.
 Files:	    src/if_python3.c
@@ -13684,7 +13842,7 @@ Files:	    src/buffer.c, src/eval.c, src/proto/eval.pro, src/structs.h,
 Patch 7.3.604
 Problem:    inputdialog() doesn't use the cancel argument in the console.
 	    (David Fishburn)
-Solution:   Use the third argument. (Christian Brabant)
+Solution:   Use the third argument. (Christian Brabandt)
 Files:	    src/eval.c
 
 Patch 7.3.605 (after 7.3.577)
@@ -15525,7 +15683,7 @@ Patch 7.3.926
 Problem:    Autocommands are triggered by setwinvar() et al. Missing BufEnter
 	    on :tabclose. Duplicate WinEnter on :tabclose. Wrong order of
 	    events for :tablose and :tabnew.
-Solution:   Fix these autocommand events. (Zyx)
+Solution:   Fix these autocommand events. (ZyX)
 Files:	    runtime/doc/eval.txt, src/buffer.c, src/eval.c, src/ex_cmds2.c,
 	    src/fileio.c, src/proto/window.pro, src/testdir/test62.in,
 	    src/testdir/test62.ok, src/window.c
@@ -17759,8 +17917,274 @@ Problem:    Test 87 fails with Python 3.3.
 Solution:   Filter the error messages. (Taro Muraoka)
 Files:	    src/testdir/test87.in
 
+Patch 7.4a.001
+Problem:    Script to update syntax menu is outdated.
+Solution:   Add the missing items.
+Files:	    runtime/makemenu.vim
 
+Patch 7.4a.002
+Problem:    Valgrind errors in test 89. (Simon Ruderich)
+Solution:   Allocate one more byte. (Dominique Pelle)
+Files:	    src/misc2.c
 
-Vim:set sts=4 sw=4 tw=78 fo+=t:
+Patch 7.4a.003
+Problem:    Copyright year is outdated.
+Solution:   Only use the first year.
+Files:	    src/vim.rc, src/vim16.rc
+
+Patch 7.4a.004
+Problem:    MSVC 2012 Update 3 is not recognized.
+Solution:   Add the version number. (Raymond Ko)
+Files:	    src/Make_mvc.mak
+
+Patch 7.4a.005
+Problem:    Scroll binding causes unexpected scroll.
+Solution:   Store the topline after updating scroll binding.  Add a test.
+	    (Lech Lorens)
+Files:	    src/testdir/test98.in, src/testdir/test98a.in,
+	    src/testdir/test98.ok, src/option.c, src/testdir/Make_amiga.mak,
+	    src/testdir/Make_dos.mak, src/testdir/Make_ming.mak,
+	    src/testdir/Make_os2.mak, src/testdir/Make_vms.mms,
+	    src/testdir/Makefile
+
+Patch 7.4a.006
+Problem:    Failure in po file check goes unnoticed.
+Solution:   Fail "make test" if the po file check fails.
+Files:	    src/Makefile
+
+Patch 7.4a.007
+Problem:    After "g$" with 'virtualedit' set, "k" moves to a different
+	    column.  (Dimitar Dimitrov)
+Solution:   Set w_curswant. (Christian Brabandt)
+Files:	    src/normal.c
+
+Patch 7.4a.008
+Problem:    Python 3 doesn't handle multibyte characters properly when
+	    'encoding' is not utf-8.
+Solution:   Use PyUnicode_Decode() instead of PyUnicode_FromString(). (Ken
+	    Takata)
+Files:	    src/if_python3.c
+
+Patch 7.4a.009
+Problem:    Compiler warnings for function prototypes.
+Solution:   Add "void".  Move list_features() prototype. (Ken Takata)
+Files:	    src/gui_w48.c, src/if_py_both.h, src/version.c
+
+Patch 7.4a.010
+Problem:    Test 86 and 87 fail when building with Python or Python 3 and
+	    using a static library.
+Solution:   Add configure check to add -fPIE compiler flag.
+Files:	    src/configure.in, src/auto/configure
+
+Patch 7.4a.011
+Problem:    Configure check for Python 3 config name isn't right.
+Solution:   Always include vi_cv_var_python3_version. (Tim Harder)
+Files:	    src/configure.in, src/auto/configure
+
+Patch 7.4a.012
+Problem:    "make test" fails when using a shadow directory.
+Solution:   Create links for files in src/po. (James McCoy)
+Files:	    src/Makefile
+
+Patch 7.4a.013
+Problem:    Setting/resetting 'lbr' in the main help file changes alignment
+	    after a Tab. (Dimitar Dimitrov)
+Solution:   Also use the code for conceal mode where n_extra is computed for
+	    'lbr'.
+Files:	    src/screen.c, src/testdir/test88.in, src/testdir/test88.ok
+
+Patch 7.4a.014
+Problem:    Test 86 and 89 have a problem with using a shadow dir.
+Solution:   Adjust for the different directory structure. (James McCoy)
+Files:	    src/testdir/test89.in, src/testdir/test86.in, src/Makefile
+
+Patch 7.4a.015
+Problem:    No Japanese man pages.
+Solution:   Add Japanese translations of man pages. (Ken Takata, Yukihiro
+	    Nakadaira, et al.)
+Files:	    Filelist, src/Makefile, runtime/doc/evim-ja.UTF-8.1,
+	    runtime/doc/vim-ja.UTF-8.1, runtime/doc/vimdiff-ja.UTF-8.1,
+	    runtime/doc/vimtutor-ja.UTF-8.1, runtime/doc/xxd-ja.UTF-8.1
+
+Patch 7.4a.016 (after 7.4a.014)
+Problem:    Features enabled in Makefile.
+Solution:   Undo accidental changes.
+Files:	    src/Makefile
+
+Patch 7.4a.017
+Problem:    When 'foldmethod' is "indent", using ">>" on a line just above a
+	    fold makes the cursor line folded. (Evan Laforge)
+Solution:   Call foldOpenCursor(). (Christian Brabandt)
+Files:	    src/ops.c
+
+Patch 7.4a.018
+Problem:    Compiler warning for code unreachable. (Charles Campbell)
+Solution:   Use "while" instead of endless loop.  Change break to continue.
+Files:	    src/regexp_nfa.c, src/ui.c
+
+Patch 7.4a.019
+Problem:    Invalid closing parenthesis in test 62. Command truncated at
+	    double quote.
+Solution:   Remove the parenthesis. Change double quote to ''. (ZyX)
+Files:	    src/testdir/test62.in, src/testdir/test62.ok
+
+Patch 7.4a.020
+Problem:    Superfluous mb_ptr_adv().
+Solution:   Remove the call. (Dominique Pelle)
+Files:	    src/regexp_nfa.c
+
+Patch 7.4a.021
+Problem:    Using feedkeys() doesn't always work.
+Solution:   Omit feedkeys(). (Ken Takata)
+Files:	    src/testdir/test98a.in
+
+Patch 7.4a.022
+Problem:    Using "d2g$" does not delete the last character. (ZyX)
+Solution:   Set the "inclusive" flag properly.
+Files:	    src/normal.c
+
+Patch 7.4a.023 (after 7.4a.019)
+Problem:    Still another superfluous parenthesis. (ZyX)
+Solution:   Remove it.
+Files:	    src/testdir/test62.in
+
+Patch 7.4a.024
+Problem:    X11 GUI: Checking icon height twice.
+Solution:   Check height and width. (Dominique Pelle)
+Files:	    src/gui_x11.c
+
+Patch 7.4a.025
+Problem:    Get the press-Enter prompt even after using :redraw.
+Solution:   Clear need_wait_return when executing :redraw.
+Files:	    src/ex_docmd.c
+
+Patch 7.4a.026
+Problem:    ":diffoff" does not remove folds. (Ramel)
+Solution:   Do not restore 'foldenable' when 'foldmethod' is "manual".
+Files:	    src/diff.c
+
+Patch 7.4a.027
+Problem:    When Python adds lines to another buffer the cursor position is
+	    wrong, it might be below the last line causing ml_get errors.
+	    (Vlad Irnov)
+Solution:   Temporarily change the current window, so that marks are corrected
+	    properly.
+Files:	    src/if_py_both.h, src/window.c, src/proto/buffer.pro
+
+Patch 7.4a.028
+Problem:    Crash when spell checking in new buffer.
+Solution:   Set the b_p_key field.  (Mike Williams)
+Files:	    src/spell.c, src/testdir/test58.in
+
+Patch 7.4a.029
+Problem:    Can't build with MzScheme on Ubuntu 13.04.
+Solution:   Add configure check for the "ffi" library.
+Files:	    src/configure.in, src/auto/configure
+
+Patch 7.4a.030 (after 7.4.027)
+Problem:    Missing find_win_for_buf(). (toothpik)
+Solution:   Add missing changes.
+Files:	    src/buffer.c
+
+Patch 7.4a.031
+Problem:    Compiler warnings. (Charles Campbell)
+Solution:   Initialize variables even when not needed.
+Files:	    src/regexp_nfa.c, src/search.c
+
+Patch 7.4a.032
+Problem:    New regexp engine: Does not match shorter alternative. (Ingo
+	    Karkat)
+Solution:   Do not drop a new state when the PIM info is different.
+Files:	    src/regexp_nfa.c
+
+Patch 7.4a.033
+Problem:    Test 98 always passes.
+Solution:   Include test98a.in in test98.in, execute the crucial command in
+	    one line. (Yukihiro Nakadaira)
+Files:	    src/testdir/test98.in, src/testdir/test98a.in
+
+Patch 7.4a.034
+Problem:    The tabline may flicker when opening a new tab after 7.3.759 on
+	    Win32.
+Solution:   Move call to TabCtrl_SetCurSel(). (Ken Takata)
+Files:	    src/gui_w48.c
+
+Patch 7.4a.035
+Problem:    Fix in patch 7.4a.032 is not tested.
+Solution:   Add test.
+Files:	    src/testdir/test64.in, src/testdir/test64.ok
+
+Patch 7.4a.036
+Problem:    "\p" in a regexp does not match double-width characters.
+	    (Yukihiro Nakadaira)
+Solution:   Don't count display cells, use vim_isprintc().
+Files:	    src/regexp.c, src/regexp_nfa.c, src/testdir/test64.in,
+	    src/testdir/test64.ok, src/testdir/test95.in,
+	    src/testdir/test95.ok
+
+Patch 7.4a.037
+Problem:    Win32: When mouse is hidden and in the toolbar, moving it won't
+	    make it appear. (Sami Salonen)
+Solution:   Add tabline_wndproc() and toolbar_wndproc(). (Ken Takata)
+Files:	    src/gui_w32.c, src/gui_w48.c
+
+Patch 7.4a.038
+Problem:    When using MSVC 2012 there are various issues, including GUI size
+	    computations.
+Solution:   Use SM_CXPADDEDBORDER. (Mike Williams)
+Files:	    src/gui_w32.c, src/gui_w48.c, src/os_win32.h
+
+Patch 7.4a.039
+Problem:    New regexp engine doesn't match pattern. (Ingo Karkat)
+Solution:   When adding a state also check for different PIM if the list of
+	    states has any state with a PIM.
+Files:	    src/regexp_nfa.c, src/testdir/test64.in, src/testdir/test64.ok
+
+Patch 7.4a.040
+Problem:    Win32: using uninitialized variable.
+Solution:   (Yukihiro Nakadaira)
+Files:	    src/os_win32.c
+
+Patch 7.4a.041
+Problem:    When using ":new ++ff=unix" and "dos" is first in 'fileformats'
+	    then 'ff' is set to "dos" instead of "unix". (Ingo Karkat)
+Solution:   Create set_file_options() and invoke it from do_ecmd().
+Files:	    src/fileio.c, src/proto/fileio.pro, src/ex_cmds.c,
+	    src/testdir/test91.in, src/testdir/test91.ok
+
+Patch 7.4a.042
+Problem:    Crash when BufUnload autocommands close all buffers. (Andrew
+	    Pimlott)
+Solution:   Set curwin->w_buffer to curbuf to avoid NULL.
+Files:	    src/window.c, src/testdir/test8.in, src/testdir/test8.ok
+
+Patch 7.4a.043
+Problem:    More ml_get errors when adding or deleting lines from Python.
+	    (Vlad Irnov)
+Solution:   Switch to a window with the buffer when possible.
+Files:	    src/if_py_both.h
+
+Patch 7.4a.044
+Problem:    Test 96 sometimes fails.
+Solution:   Clear window from b_wininfo in win_free().  (Suggestion by
+	    Yukihiro Nakadaira)
+Files:	    src/window.c
+
+Patch 7.4a.045
+Problem:    Configure does not always find the right library for Lua.  Missing
+	    support for LuaJit. 
+Solution:   Improve the configure detection of Lua. (Hiroshi Shirosaki)
+Files:	    src/Makefile, src/configure.in, src/auto/configure
+
+Patch 7.4a.046
+Problem:    Can't build without mbyte feature.
+Solution:   Add #ifdefs.
+Files:	    src/ex_cmds.c
+
+Patch 7.4a.047
+Problem:    Some comments are not so nice.
+Solution:   Change the comments.
+Files:	    src/ex_docmd.c, src/message.c, src/ops.c, src/option.c
+
 
  vim:tw=78:ts=8:ft=help:norl:
