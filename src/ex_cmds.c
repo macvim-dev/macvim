@@ -1622,10 +1622,14 @@ append_redir(buf, buflen, opt, fname)
     char_u	*end;
 
     end = buf + STRLEN(buf);
-    /* find "%s", skipping "%%" */
+    /* find "%s" */
     for (p = opt; (p = vim_strchr(p, '%')) != NULL; ++p)
-	if (p[1] == 's')
+    {
+	if (p[1] == 's') /* found %s */
 	    break;
+	if (p[1] == '%') /* skip %% */
+	    ++p;
+    }
     if (p != NULL)
     {
 	*end = ' '; /* not really needed? Not with sh, ksh or bash */
@@ -5920,14 +5924,14 @@ find_help_tags(arg, num_matches, matches, keep_lang)
     int		i;
     static char *(mtable[]) = {"*", "g*", "[*", "]*", ":*",
 			       "/*", "/\\*", "\"*", "**",
-			       "cpo-*", "/\\(\\)",
+			       "cpo-*", "/\\(\\)", "/\\%(\\)",
 			       "?", ":?", "?<CR>", "g?", "g?g?", "g??", "z?",
 			       "/\\?", "/\\z(\\)", "\\=", ":s\\=",
 			       "[count]", "[quotex]", "[range]",
 			       "[pattern]", "\\|", "\\%$"};
     static char *(rtable[]) = {"star", "gstar", "[star", "]star", ":star",
 			       "/star", "/\\\\star", "quotestar", "starstar",
-			       "cpo-star", "/\\\\(\\\\)",
+			       "cpo-star", "/\\\\(\\\\)", "/\\\\%(\\\\)",
 			       "?", ":?", "?<CR>", "g?", "g?g?", "g??", "z?",
 			       "/\\\\?", "/\\\\z(\\\\)", "\\\\=", ":s\\\\=",
 			       "\\[count]", "\\[quotex]", "\\[range]",
@@ -6015,8 +6019,8 @@ find_help_tags(arg, num_matches, matches, keep_lang)
 	    if (*s < ' ' || (*s == '^' && s[1] && (ASCII_ISALPHA(s[1])
 			   || vim_strchr((char_u *)"?@[\\]^", s[1]) != NULL)))
 	    {
-		if (d > IObuff && d[-1] != '_')
-		    *d++ = '_';		/* prepend a '_' */
+		if (d > IObuff && d[-1] != '_' && d[-1] != '\\')
+		    *d++ = '_';		/* prepend a '_' to make x_CTRL-x */
 		STRCPY(d, "CTRL-");
 		d += 5;
 		if (*s < ' ')

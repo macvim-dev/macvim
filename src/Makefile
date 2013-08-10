@@ -949,7 +949,7 @@ MAN1DIR = /man1
 
 ### Vim version (adjusted by a script)
 VIMMAJOR = 7
-VIMMINOR = 4b
+VIMMINOR = 4
 
 ### Location of Vim files (should not need to be changed, and  {{{1
 ### some things might not work when they are changed!)
@@ -1421,7 +1421,7 @@ DEST_MAN_FR_U = $(DEST_MAN_TOP)/fr.UTF-8$(MAN1DIR)
 DEST_MAN_IT = $(DEST_MAN_TOP)/it$(MAN1DIR)
 DEST_MAN_IT_I = $(DEST_MAN_TOP)/it.ISO8859-1$(MAN1DIR)
 DEST_MAN_IT_U = $(DEST_MAN_TOP)/it.UTF-8$(MAN1DIR)
-DEST_MAN_JA_U = $(DEST_MAN_TOP)/ja.UTF-8$(MAN1DIR)
+DEST_MAN_JA_U = $(DEST_MAN_TOP)/ja$(MAN1DIR)
 DEST_MAN_PL = $(DEST_MAN_TOP)/pl$(MAN1DIR)
 DEST_MAN_PL_I = $(DEST_MAN_TOP)/pl.ISO8859-2$(MAN1DIR)
 DEST_MAN_PL_U = $(DEST_MAN_TOP)/pl.UTF-8$(MAN1DIR)
