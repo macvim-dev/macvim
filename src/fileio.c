@@ -428,13 +428,13 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 	}
     }
 
-#ifdef UNIX
-    /*
-     * On Unix it is possible to read a directory, so we have to
-     * check for it before the mch_open().
-     */
     if (!read_stdin && !read_buffer)
     {
+#ifdef UNIX
+	/*
+	 * On Unix it is possible to read a directory, so we have to
+	 * check for it before the mch_open().
+	 */
 	perm = mch_getperm(fname);
 	if (perm >= 0 && !S_ISREG(perm)		    /* not a regular file ... */
 # ifdef S_ISFIFO
@@ -457,8 +457,8 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 	    msg_scroll = msg_save;
 	    return FAIL;
 	}
-
-# if defined(MSDOS) || defined(MSWIN) || defined(OS2)
+#endif
+#if defined(MSDOS) || defined(MSWIN) || defined(OS2)
 	/*
 	 * MS-Windows allows opening a device, but we will probably get stuck
 	 * trying to read it.
@@ -470,9 +470,8 @@ readfile(fname, sfname, from, lines_to_skip, lines_to_read, eap, flags)
 	    msg_scroll = msg_save;
 	    return FAIL;
 	}
-# endif
-    }
 #endif
+    }
 
     /* Set default or forced 'fileformat' and 'binary'. */
     set_file_options(set_options, eap);
@@ -2926,9 +2925,14 @@ check_for_cryptkey(cryptkey, ptr, sizep, filesizep, newfile, fname, did_ask)
     int		*did_ask;	/* flag: whether already asked for key */
 {
     int method = crypt_method_from_magic((char *)ptr, *sizep);
+    int b_p_ro = curbuf->b_p_ro;
 
     if (method >= 0)
     {
+	/* Mark the buffer as read-only until the decryption has taken place.
+	 * Avoids accidentally overwriting the file with garbage. */
+	curbuf->b_p_ro = TRUE;
+
 	set_crypt_method(curbuf, method);
 	if (method > 0)
 	    (void)blowfish_self_test();
@@ -2977,6 +2981,8 @@ check_for_cryptkey(cryptkey, ptr, sizep, filesizep, newfile, fname, did_ask)
 	    *sizep -= CRYPT_MAGIC_LEN + salt_len + seed_len;
 	    mch_memmove(ptr, ptr + CRYPT_MAGIC_LEN + salt_len + seed_len,
 							      (size_t)*sizep);
+	    /* Restore the read-only flag. */
+	    curbuf->b_p_ro = b_p_ro;
 	}
     }
     /* When starting to edit a new file which does not have encryption, clear
