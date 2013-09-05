@@ -63,8 +63,8 @@ if !exists("macvim_skip_cmd_opt_movement")
   map  <M-Down>       }
   imap <M-Down>       <C-o>}
 
-  imap <M-BS>         <C-w>
-  imap <D-BS>         <C-u>
+  ino  <M-BS>         <C-w>
+  ino  <D-BS>         <C-u>
 endif " !exists("macvim_skip_cmd_opt_movement")
 
 
