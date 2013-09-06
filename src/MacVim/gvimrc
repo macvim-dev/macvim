@@ -55,16 +55,16 @@ if !exists("macvim_skip_cmd_opt_movement")
 
   no   <D-Up>         <C-Home>
   ino  <D-Up>         <C-Home>
-  map  <M-Up>         {
-  imap <M-Up>         <C-o>{
+  no   <M-Up>         {
+  ino  <M-Up>         <C-o>{
 
   no   <D-Down>       <C-End>
   ino  <D-Down>       <C-End>
-  map  <M-Down>       }
-  imap <M-Down>       <C-o>}
+  no   <M-Down>       }
+  ino  <M-Down>       <C-o>}
 
-  imap <M-BS>         <C-w>
-  imap <D-BS>         <C-u>
+  ino  <M-BS>         <C-w>
+  ino  <D-BS>         <C-u>
 endif " !exists("macvim_skip_cmd_opt_movement")
 
 
