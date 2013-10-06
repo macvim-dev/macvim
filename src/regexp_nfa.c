@@ -36,7 +36,7 @@ enum
 {
     NFA_SPLIT = -1024,
     NFA_MATCH,
-    NFA_SKIP_CHAR,		    /* matches a 0-length char */
+    NFA_EMPTY,			    /* matches 0-length */
 
     NFA_START_COLL,		    /* [abc] start */
     NFA_END_COLL,		    /* [abc] end */
@@ -2005,8 +2005,8 @@ nfa_regpiece()
 	    {
 		/* Ignore result of previous call to nfa_regatom() */
 		post_ptr = post_start + my_post_start;
-		/* NFA_SKIP_CHAR has 0-length and works everywhere */
-		EMIT(NFA_SKIP_CHAR);
+		/* NFA_EMPTY is 0-length and works everywhere */
+		EMIT(NFA_EMPTY);
 		return OK;
 	    }
 
@@ -2170,16 +2170,16 @@ nfa_regbranch()
 	old_post_pos = (int)(post_ptr - post_start);
 	if (nfa_regconcat() == FAIL)
 	    return FAIL;
-	/* if concat is empty, skip a input char. But do emit a node */
+	/* if concat is empty do emit a node */
 	if (old_post_pos == (int)(post_ptr - post_start))
-	    EMIT(NFA_SKIP_CHAR);
+	    EMIT(NFA_EMPTY);
 	EMIT(NFA_CONCAT);
 	ch = peekchr();
     }
 
-    /* Even if a branch is empty, emit one node for it */
+    /* if a branch is empty, emit one node for it */
     if (old_post_pos == (int)(post_ptr - post_start))
-	EMIT(NFA_SKIP_CHAR);
+	EMIT(NFA_EMPTY);
 
     return OK;
 }
@@ -2423,7 +2423,7 @@ nfa_set_code(c)
 	case NFA_STAR_NONGREEDY: STRCPY(code, "NFA_STAR_NONGREEDY "); break;
 	case NFA_QUEST:		STRCPY(code, "NFA_QUEST"); break;
 	case NFA_QUEST_NONGREEDY: STRCPY(code, "NFA_QUEST_NON_GREEDY"); break;
-	case NFA_SKIP_CHAR:	STRCPY(code, "NFA_SKIP_CHAR"); break;
+	case NFA_EMPTY:		STRCPY(code, "NFA_EMPTY"); break;
 	case NFA_OR:		STRCPY(code, "NFA_OR"); break;
 
 	case NFA_START_COLL:	STRCPY(code, "NFA_START_COLL"); break;
@@ -3067,7 +3067,7 @@ nfa_max_width(startstate, depth)
 	    case NFA_ZSTART:
 	    case NFA_ZEND:
 	    case NFA_OPT_CHARS:
-	    case NFA_SKIP_CHAR:
+	    case NFA_EMPTY:
 	    case NFA_START_PATTERN:
 	    case NFA_END_PATTERN:
 	    case NFA_COMPOSING:
@@ -3265,15 +3265,14 @@ post2nfa(postfix, end, nfa_calc_size)
 	    PUSH(frag(e1.start, e2.out));
 	    break;
 
-	case NFA_SKIP_CHAR:
-	    /* Symbol of 0-length, Used in a repetition
-	     * with max/min count of 0 */
+	case NFA_EMPTY:
+	    /* 0-length, used in a repetition with max/min count of 0 */
 	    if (nfa_calc_size == TRUE)
 	    {
 		nstate++;
 		break;
 	    }
-	    s = alloc_state(NFA_SKIP_CHAR, NULL, NULL);
+	    s = alloc_state(NFA_EMPTY, NULL, NULL);
 	    if (s == NULL)
 		goto theend;
 	    PUSH(frag(s, list1(&s->out)));
@@ -3823,6 +3822,7 @@ static void copy_pim __ARGS((nfa_pim_T *to, nfa_pim_T *from));
 static void clear_sub __ARGS((regsub_T *sub));
 static void copy_sub __ARGS((regsub_T *to, regsub_T *from));
 static void copy_sub_off __ARGS((regsub_T *to, regsub_T *from));
+static void copy_ze_off __ARGS((regsub_T *to, regsub_T *from));
 static int sub_equal __ARGS((regsub_T *sub1, regsub_T *sub2));
 static int match_backref __ARGS((regsub_T *sub, int subidx, int *bytelen));
 static int has_state_with_pos __ARGS((nfa_list_T *l, nfa_state_T *state, regsubs_T *subs, nfa_pim_T *pim));
@@ -3906,6 +3906,29 @@ copy_sub_off(to, from)
 	    mch_memmove(&to->list.line[1],
 			&from->list.line[1],
 			sizeof(struct linepos) * (from->in_use - 1));
+    }
+}
+
+/*
+ * Like copy_sub() but only do the end of the main match if \ze is present.
+ */
+    static void
+copy_ze_off(to, from)
+    regsub_T	*to;
+    regsub_T	*from;
+{
+    if (nfa_has_zend)
+    {
+	if (REG_MULTI)
+	{
+	    if (from->list.multi[0].end.lnum >= 0)
+		to->list.multi[0].end = from->list.multi[0].end;
+	}
+	else
+	{
+	    if (from->list.line[0].end != NULL)
+		to->list.line[0].end = from->list.line[0].end;
+	}
     }
 }
 
@@ -4209,7 +4232,7 @@ addstate(l, state, subs_arg, pim, off)
 	case NFA_MOPEN:
 	case NFA_ZEND:
 	case NFA_SPLIT:
-	case NFA_SKIP_CHAR:
+	case NFA_EMPTY:
 	    /* These nodes are not added themselves but their "out" and/or
 	     * "out1" may be added below.  */
 	    break;
@@ -4337,7 +4360,7 @@ skip_add:
 	    subs = addstate(l, state->out1, subs, pim, off);
 	    break;
 
-	case NFA_SKIP_CHAR:
+	case NFA_EMPTY:
 	case NFA_NOPEN:
 	case NFA_NCLOSE:
 	    subs = addstate(l, state->out, subs, pim, off);
@@ -5309,6 +5332,7 @@ find_match_text(startcol, regstart, match_text)
  * When "nfa_endp" is not NULL it is a required end-of-match position.
  *
  * Return TRUE if there is a match, FALSE otherwise.
+ * When there is a match "submatch" contains the positions.
  * Note: Caller must ensure that: start != NULL.
  */
     static int
@@ -5604,9 +5628,13 @@ nfa_regmatch(prog, start, submatch, m)
 		    {
 			int in_use = m->norm.in_use;
 
-			/* Copy submatch info for the recursive call, so that
-			 * \1 can be matched. */
+			/* Copy submatch info for the recursive call, opposite
+			 * of what happens on success below. */
 			copy_sub_off(&m->norm, &t->subs.norm);
+#ifdef FEAT_SYN_HL
+			if (nfa_has_zsubexpr)
+			    copy_sub_off(&m->synt, &t->subs.synt);
+#endif
 
 			/*
 			 * First try matching the invisible match, then what
@@ -5630,6 +5658,9 @@ nfa_regmatch(prog, start, submatch, m)
 			    if (nfa_has_zsubexpr)
 				copy_sub_off(&t->subs.synt, &m->synt);
 #endif
+			    /* If the pattern has \ze and it matched in the
+			     * sub pattern, use it. */
+			    copy_ze_off(&t->subs.norm, &m->norm);
 
 			    /* t->state->out1 is the corresponding
 			     * END_INVISIBLE node; Add its out to the current
@@ -5713,6 +5744,13 @@ nfa_regmatch(prog, start, submatch, m)
 #endif
 		    break;
 		}
+		/* Copy submatch info to the recursive call, opposite of what
+		 * happens afterwards. */
+		copy_sub_off(&m->norm, &t->subs.norm);
+#ifdef FEAT_SYN_HL
+		if (nfa_has_zsubexpr)
+		    copy_sub_off(&m->synt, &t->subs.synt);
+#endif
 
 		/* First try matching the pattern. */
 		result = recursive_regmatch(t->state, NULL, prog,

@@ -425,11 +425,13 @@ STARTTEST
 :"
 :" complicated look-behind match
 :call add(tl, [2, '\(r\@<=\|\w\@<!\)\/', 'x = /word/;', '/'])
+:call add(tl, [2, '^[a-z]\+\ze \&\(asdf\)\@<!', 'foo bar', 'foo'])
 :"
 :""""" \@>
 :call add(tl, [2, '\(a*\)\@>a', 'aaaa'])
 :call add(tl, [2, '\(a*\)\@>b', 'aaab', 'aaab', 'aaa'])
 :call add(tl, [2, '^\(.\{-}b\)\@>.', '  abcbd', '  abc', '  ab'])
+:call add(tl, [2, '\(.\{-}\)\(\)\@>$', 'abc', 'abc', 'abc', ''])
 :" TODO: BT engine does not restore submatch after failure
 :call add(tl, [1, '\(a*\)\@>a\|a\+', 'aaaa', 'aaaa'])
 :"

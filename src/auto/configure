@@ -3643,6 +3643,24 @@ if test "$GCC" = yes; then
   fi
 fi
 
+{ echo "$as_me:$LINENO: checking for recent clang version" >&5
+echo $ECHO_N "checking for recent clang version... $ECHO_C" >&6; }
+CLANG_VERSION_STRING=`"$CC" --version 2>/dev/null | sed  -n -e 's/^.*clang.*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*$/\1/p'`
+if test x"$CLANG_VERSION_STRING" != x"" ; then
+  CLANG_MAJOR=`echo "$CLANG_VERSION_STRING" | sed -n -e 's/\([0-9][0-9]*\)\.[0-9][0-9]*\.[0-9][0-9]*/\1/p'`
+  CLANG_MINOR=`echo "$CLANG_VERSION_STRING" | sed -n -e 's/[0-9][0-9]*\.\([0-9][0-9]*\)\.[0-9][0-9]*/\1/p'`
+  CLANG_REVISION=`echo "$CLANG_VERSION_STRING" | sed -n -e 's/[0-9][0-9]*\.[0-9][0-9]*\.\([0-9][0-9]*\)/\1/p'`
+  CLANG_VERSION=`expr $CLANG_MAJOR '*' 1000000 '+' $CLANG_MINOR '*' 1000 '+' $CLANG_REVISION`
+  { echo "$as_me:$LINENO: result: $CLANG_VERSION" >&5
+echo "${ECHO_T}$CLANG_VERSION" >&6; }
+          if test "$CLANG_VERSION" -ge 500002075 ; then
+    CFLAGS=`echo "$CFLAGS" | sed -n -e 's/-fno-strength-reduce/ /p'`
+  fi
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
 if test "$cross_compiling" = yes; then
   { echo "$as_me:$LINENO: result: cannot compile a simple program; if not cross compiling check CC and CFLAGS" >&5
 echo "${ECHO_T}cannot compile a simple program; if not cross compiling check CC and CFLAGS" >&6; }
