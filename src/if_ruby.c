@@ -102,7 +102,11 @@
 # include <ruby.h>
 #endif
 #ifdef RUBY19_OR_LATER
-# include <ruby/encoding.h>
+# ifdef FEAT_GUI_MACVIM
+#  include <Ruby/ruby/encoding.h>
+# else
+#  include <ruby/encoding.h>
+# endif
 #endif
 
 #undef off_t	/* ruby defines off_t as _int64, Mingw uses long */
