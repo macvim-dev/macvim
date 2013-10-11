@@ -991,7 +991,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     NSString *fontName = (NSString *)font;
     float size = 0;
-    NSArray *components = [fontName componentsSeparatedByString:@":"];
+    NSArray *components = [fontName componentsSeparatedByString:@":h"];
     if ([components count] == 2) {
         size = [[components lastObject] floatValue];
         fontName = [components objectAtIndex:0];

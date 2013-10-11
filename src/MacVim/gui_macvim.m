@@ -1017,7 +1017,7 @@ gui_mch_set_font(GuiFont font)
 gui_macvim_font_with_name(char_u *name)
 {
     if (!name)
-        return (GuiFont)[[NSString alloc] initWithFormat:@"%@:%d",
+        return (GuiFont)[[NSString alloc] initWithFormat:@"%@:h%d",
                                         MMDefaultFontName, MMDefaultFontSize];
 
     NSString *fontName = [NSString stringWithVimString:name];
@@ -1055,7 +1055,7 @@ gui_macvim_font_with_name(char_u *name)
         // can load it.  Otherwise we ask NSFont if it can load it.
         if ([fontName isEqualToString:MMDefaultFontName]
                 || [NSFont fontWithName:fontName size:size])
-            return [[NSString alloc] initWithFormat:@"%@:%d", fontName, size];
+            return [[NSString alloc] initWithFormat:@"%@:h%d", fontName, size];
     }
 
     return NOFONT;
