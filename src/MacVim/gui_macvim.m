@@ -1806,6 +1806,15 @@ void gui_macvim_get_window_layout(int *count, int *layout)
     }
 }
 
+void *gui_macvim_new_autoreleasepool()
+{
+    return (void *)[[NSAutoreleasePool alloc] init];
+}
+
+void gui_macvim_release_autoreleasepool(void *pool)
+{
+    [(id)pool release];
+}
 
 // -- Client/Server ---------------------------------------------------------
 
