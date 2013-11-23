@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2013 Sep 22
+" Last Change:	2013 Nov 13
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -1172,6 +1172,9 @@ au BufNewFile,BufRead *.mp			setf mp
 " MGL
 au BufNewFile,BufRead *.mgl			setf mgl
 
+" MIX - Knuth assembly
+au BufNewFile,BufRead *.mix,*.mixal		setf mix
+
 " MMIX or VMS makefile
 au BufNewFile,BufRead *.mms			call s:FTmms()
 
@@ -2061,14 +2064,15 @@ au BufNewFile,BufRead */etc/sudoers,sudoers.tmp	setf sudoers
 " SVG (Scalable Vector Graphics)
 au BufNewFile,BufRead *.svg			setf svg
 
-" If the file has an extension of 't' and is in a directory 't' then it is
-" almost certainly a Perl test file.
+" If the file has an extension of 't' and is in a directory 't' or 'xt' then
+" it is almost certainly a Perl test file.
 " If the first line starts with '#' and contains 'perl' it's probably a Perl
 " file.
 " (Slow test) If a file contains a 'use' statement then it is almost certainly
 " a Perl file.
 func! s:FTperl()
-  if expand("%:e") == 't' && expand("%:p:h:t") == 't'
+  let dirname = expand("%:p:h:t")
+  if expand("%:e") == 't' && (dirname == 't' || dirname == 'xt')
     setf perl
     return 1
   endif

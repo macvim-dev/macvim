@@ -237,6 +237,7 @@
 #ifdef FEAT_STL_OPT
 # define PV_STL		OPT_BOTH(OPT_WIN(WV_STL))
 #endif
+#define PV_UL		OPT_BOTH(OPT_BUF(BV_UL))
 #ifdef FEAT_WINDOWS
 # define PV_WFH		OPT_WIN(WV_WFH)
 #endif
@@ -2730,7 +2731,7 @@ static struct vimoption
 #endif
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
     {"undolevels",  "ul",   P_NUM|P_VI_DEF,
-			    (char_u *)&p_ul, PV_NONE,
+			    (char_u *)&p_ul, PV_UL,
 			    {
 #if defined(UNIX) || defined(WIN3264) || defined(OS2) || defined(VMS)
 			    (char_u *)1000L,
@@ -3366,6 +3367,7 @@ set_init_1()
 
     curbuf->b_p_initialized = TRUE;
     curbuf->b_p_ar = -1;	/* no local 'autoread' value */
+    curbuf->b_p_ul = NO_LOCAL_UNDOLEVEL;
     check_buf_options(curbuf);
     check_win_options(curwin);
     check_options();
@@ -4580,8 +4582,16 @@ do_set(arg, opt_flags)
 						((flags & P_VI_DEF) || cp_val)
 						 ?  VI_DEFAULT : VIM_DEFAULT];
 			else if (nextchar == '<')
-			    value = *(long *)get_varp_scope(&(options[opt_idx]),
-								  OPT_GLOBAL);
+			{
+			    /* For 'undolevels' NO_LOCAL_UNDOLEVEL means to
+			     * use the global value. */
+			    if ((long *)varp == &curbuf->b_p_ul
+						    && opt_flags == OPT_LOCAL)
+				value = NO_LOCAL_UNDOLEVEL;
+			    else
+				value = *(long *)get_varp_scope(
+					     &(options[opt_idx]), OPT_GLOBAL);
+			}
 			else if (((long *)varp == &p_wc
 				    || (long *)varp == &p_wcm)
 				&& (*arg == '<'
@@ -5444,6 +5454,7 @@ check_buf_options(buf)
 #ifdef FEAT_CINDENT
     check_string_option(&buf->b_p_cink);
     check_string_option(&buf->b_p_cino);
+    parse_cino(buf);
 #endif
 #ifdef FEAT_AUTOCMD
     check_string_option(&buf->b_p_ft);
@@ -7077,6 +7088,15 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
     }
 #endif
 
+#ifdef FEAT_CINDENT
+    /* 'cinoptions' */
+    else if (gvarp == &p_cino)
+    {
+	/* TODO: recognize errors */
+	parse_cino(curbuf);
+    }
+#endif
+
     /* Options that are a list of flags. */
     else
     {
@@ -7189,6 +7209,11 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
 	if (varp == &(curwin->w_s->b_p_spl))
 	{
 	    char_u	fname[200];
+	    char_u	*q = curwin->w_s->b_p_spl;
+
+	    /* Skip the first name if it is "cjk". */
+	    if (STRNCMP(q, "cjk,", 4) == 0)
+		q += 4;
 
 	    /*
 	     * Source the spell/LANG.vim in 'runtimepath'.
@@ -7196,11 +7221,10 @@ did_set_string_option(opt_idx, varp, new_value_alloced, oldval, errbuf,
 	     * Use the first name in 'spelllang' up to '_region' or
 	     * '.encoding'.
 	     */
-	    for (p = curwin->w_s->b_p_spl; *p != NUL; ++p)
+	    for (p = q; *p != NUL; ++p)
 		if (vim_strchr((char_u *)"_.,", *p) != NULL)
 		    break;
-	    vim_snprintf((char *)fname, 200, "spell/%.*s.vim",
-				 (int)(p - curwin->w_s->b_p_spl), curwin->w_s->b_p_spl);
+	    vim_snprintf((char *)fname, 200, "spell/%.*s.vim", (int)(p - q), q);
 	    source_runtime(fname, TRUE);
 	}
 #endif
@@ -7878,7 +7902,7 @@ set_bool_option(opt_idx, varp, value, opt_flags)
     /* when 'hlsearch' is set or reset: reset no_hlsearch */
     else if ((int *)varp == &p_hls)
     {
-	no_hlsearch = FALSE;
+	SET_NO_HLSEARCH(FALSE);
     }
 #endif
 
@@ -8462,14 +8486,24 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 	    curwin->w_p_fdc = 12;
 	}
     }
+#endif /* FEAT_FOLDING */
 
+#if defined(FEAT_FOLDING) || defined(FEAT_CINDENT)
     /* 'shiftwidth' or 'tabstop' */
     else if (pp == &curbuf->b_p_sw || pp == &curbuf->b_p_ts)
     {
+# ifdef FEAT_FOLDING
 	if (foldmethodIsIndent(curwin))
 	    foldUpdateAll(curwin);
+# endif
+# ifdef FEAT_CINDENT
+	/* When 'shiftwidth' changes, or it's zero and 'tabstop' changes:
+	 * parse 'cinoptions'. */
+	if (pp == &curbuf->b_p_sw || curbuf->b_p_sw == 0)
+	    parse_cino(curbuf);
+# endif
     }
-#endif /* FEAT_FOLDING */
+#endif
 
 #ifdef FEAT_MBYTE
     /* 'maxcombine' */
@@ -8590,6 +8624,13 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 	p_ul = old_value;
 	u_sync(TRUE);
 	p_ul = value;
+    }
+    else if (pp == &curbuf->b_p_ul)
+    {
+	/* use the old value, otherwise u_sync() may not work properly */
+	curbuf->b_p_ul = old_value;
+	u_sync(TRUE);
+	curbuf->b_p_ul = value;
     }
 
 #ifdef FEAT_LINEBREAK
@@ -9838,7 +9879,6 @@ comp_col()
 /*
  * Unset local option value, similar to ":set opt<".
  */
-
     void
 unset_global_local_option(name, from)
     char_u	*name;
@@ -9911,6 +9951,9 @@ unset_global_local_option(name, from)
 	    clear_string_option(&((win_T *)from)->w_p_stl);
 	    break;
 #endif
+	case PV_UL:
+	    buf->b_p_ul = NO_LOCAL_UNDOLEVEL;
+	    break;
     }
 }
 
@@ -9959,6 +10002,7 @@ get_varp_scope(p, opt_flags)
 #ifdef FEAT_STL_OPT
 	    case PV_STL:  return (char_u *)&(curwin->w_p_stl);
 #endif
+	    case PV_UL:   return (char_u *)&(curbuf->b_p_ul);
 	}
 	return NULL; /* "cannot happen" */
     }
@@ -10023,6 +10067,8 @@ get_varp(p)
 	case PV_STL:	return *curwin->w_p_stl != NUL
 				    ? (char_u *)&(curwin->w_p_stl) : p->var;
 #endif
+	case PV_UL:	return curbuf->b_p_ul != NO_LOCAL_UNDOLEVEL
+				    ? (char_u *)&(curbuf->b_p_ul) : p->var;
 
 #ifdef FEAT_ARABIC
 	case PV_ARAB:	return (char_u *)&(curwin->w_p_arab);
@@ -10569,6 +10615,7 @@ buf_copy_options(buf, flags)
 	    /* options that are normally global but also have a local value
 	     * are not copied, start using the global value */
 	    buf->b_p_ar = -1;
+	    buf->b_p_ul = NO_LOCAL_UNDOLEVEL;
 #ifdef FEAT_QUICKFIX
 	    buf->b_p_gp = empty_option;
 	    buf->b_p_mp = empty_option;
@@ -11873,9 +11920,10 @@ check_ff_value(p)
  * 'tabstop' value when 'shiftwidth' is zero.
  */
     long
-get_sw_value()
+get_sw_value(buf)
+    buf_T *buf;
 {
-    return curbuf->b_p_sw ? curbuf->b_p_sw : curbuf->b_p_ts;
+    return buf->b_p_sw ? buf->b_p_sw : buf->b_p_ts;
 }
 
 /*
@@ -11885,7 +11933,7 @@ get_sw_value()
     long
 get_sts_value()
 {
-    return curbuf->b_p_sts < 0 ? get_sw_value() : curbuf->b_p_sts;
+    return curbuf->b_p_sts < 0 ? get_sw_value(curbuf) : curbuf->b_p_sts;
 }
 
 /*

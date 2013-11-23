@@ -336,7 +336,7 @@ shift_line(left, round, amount, call_changed_bytes)
 {
     int		count;
     int		i, j;
-    int		p_sw = (int)get_sw_value();
+    int		p_sw = (int)get_sw_value(curbuf);
 
     count = get_indent();	/* get current indent */
 
@@ -392,7 +392,7 @@ shift_block(oap, amount)
     int			total;
     char_u		*newp, *oldp;
     int			oldcol = curwin->w_cursor.col;
-    int			p_sw = (int)get_sw_value();
+    int			p_sw = (int)get_sw_value(curbuf);
     int			p_ts = (int)curbuf->b_p_ts;
     struct block_def	bd;
     int			incr;
@@ -2074,9 +2074,14 @@ op_replace(oap, c)
     char_u		*newp, *oldp;
     size_t		oldlen;
     struct block_def	bd;
+    char_u		*after_p = NULL;
+    int			had_ctrl_v_cr = (c == -1 || c == -2);
 
     if ((curbuf->b_ml.ml_flags & ML_EMPTY ) || oap->empty)
 	return OK;	    /* nothing to do */
+
+    if (had_ctrl_v_cr)
+	c = (c == -1 ? '\r' : '\n');
 
 #ifdef FEAT_MBYTE
     if (has_mbyte)
@@ -2164,25 +2169,44 @@ op_replace(oap, c)
 	    /* insert pre-spaces */
 	    copy_spaces(newp + bd.textcol, (size_t)bd.startspaces);
 	    /* insert replacement chars CHECK FOR ALLOCATED SPACE */
-#ifdef FEAT_MBYTE
-	    if (has_mbyte)
+	    /* -1/-2 is used for entering CR literally. */
+	    if (had_ctrl_v_cr || (c != '\r' && c != '\n'))
 	    {
-		n = (int)STRLEN(newp);
-		while (--num_chars >= 0)
-		    n += (*mb_char2bytes)(c, newp + n);
+#ifdef FEAT_MBYTE
+		if (has_mbyte)
+		{
+		    n = (int)STRLEN(newp);
+		    while (--num_chars >= 0)
+			n += (*mb_char2bytes)(c, newp + n);
+		}
+		else
+#endif
+		    copy_chars(newp + STRLEN(newp), (size_t)numc, c);
+		if (!bd.is_short)
+		{
+		    /* insert post-spaces */
+		    copy_spaces(newp + STRLEN(newp), (size_t)bd.endspaces);
+		    /* copy the part after the changed part */
+		    STRMOVE(newp + STRLEN(newp), oldp);
+		}
 	    }
 	    else
-#endif
-		copy_chars(newp + STRLEN(newp), (size_t)numc, c);
-	    if (!bd.is_short)
 	    {
-		/* insert post-spaces */
-		copy_spaces(newp + STRLEN(newp), (size_t)bd.endspaces);
-		/* copy the part after the changed part */
-		STRMOVE(newp + STRLEN(newp), oldp);
+		/* Replacing with \r or \n means splitting the line. */
+		after_p = alloc_check(
+				   (unsigned)(oldlen + 1 + n - STRLEN(newp)));
+		if (after_p != NULL)
+		    STRMOVE(after_p, oldp);
 	    }
 	    /* replace the line */
 	    ml_replace(curwin->w_cursor.lnum, newp, FALSE);
+	    if (after_p != NULL)
+	    {
+		ml_append(curwin->w_cursor.lnum++, after_p, 0, FALSE);
+		appended_lines_mark(curwin->w_cursor.lnum, 1L);
+		oap->end.lnum++;
+		vim_free(after_p);
+	    }
 	}
     }
     else
@@ -2616,6 +2640,31 @@ op_insert(oap, count1)
     if (oap->block_mode)
     {
 	struct block_def	bd2;
+
+	/* The user may have moved the cursor before inserting something, try
+	 * to adjust the block for that. */
+	if (oap->start.lnum == curbuf->b_op_start.lnum && !bd.is_MAX)
+	{
+	    if (oap->op_type == OP_INSERT
+		    && oap->start.col != curbuf->b_op_start.col)
+	    {
+		oap->start.col = curbuf->b_op_start.col;
+		pre_textlen -= getviscol2(oap->start.col, oap->start.coladd)
+							    - oap->start_vcol;
+		oap->start_vcol = getviscol2(oap->start.col, oap->start.coladd);
+	    }
+	    else if (oap->op_type == OP_APPEND
+		    && oap->end.col >= curbuf->b_op_start.col)
+	    {
+		oap->start.col = curbuf->b_op_start.col;
+		/* reset pre_textlen to the value of OP_INSERT */
+		pre_textlen += bd.textlen;
+		pre_textlen -= getviscol2(oap->start.col, oap->start.coladd)
+							    - oap->start_vcol;
+		oap->start_vcol = getviscol2(oap->start.col, oap->start.coladd);
+		oap->op_type = OP_INSERT;
+	    }
+	}
 
 	/*
 	 * Spaces and tabs in the indent may have changed to other spaces and
@@ -3795,7 +3844,11 @@ do_put(regname, dir, count, flags)
 		    ml_replace(lnum, newp, FALSE);
 		    /* Place cursor on last putted char. */
 		    if (lnum == curwin->w_cursor.lnum)
+		    {
+			/* make sure curwin->w_virtcol is updated */
+			changed_cline_bef_curs();
 			curwin->w_cursor.col += (colnr_T)(totlen - 1);
+		    }
 		}
 #ifdef FEAT_VISUAL
 		if (VIsual_active)
@@ -4023,7 +4076,8 @@ preprocs_left()
 #  endif
 # endif
 # ifdef FEAT_CINDENT
-	(curbuf->b_p_cin && in_cinkeys('#', ' ', TRUE))
+	(curbuf->b_p_cin && in_cinkeys('#', ' ', TRUE)
+					   && curbuf->b_ind_hash_comment == 0)
 # endif
 	;
 }
@@ -5009,14 +5063,14 @@ format_lines(line_count, avoid_fex)
 		    if (second_indent > 0)  /* the "leader" for FO_Q_SECOND */
 		{
 		    char_u *p = ml_get_curline();
-		    int indent = skipwhite(p) - p;
+		    int indent = (int)(skipwhite(p) - p);
 
 		    if (indent > 0)
 		    {
 			(void)del_bytes(indent, FALSE, FALSE);
 			mark_col_adjust(curwin->w_cursor.lnum,
 					       (colnr_T)0, 0L, (long)-indent);
-		      }
+		    }
 		}
 		curwin->w_cursor.lnum--;
 		if (do_join(2, TRUE, FALSE, FALSE) == FAIL)

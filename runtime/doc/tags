@@ -2317,6 +2317,8 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :keepj	motion.txt	/*:keepj*
 :keepjumps	motion.txt	/*:keepjumps*
 :keepmarks	motion.txt	/*:keepmarks*
+:keepp	cmdline.txt	/*:keepp*
+:keeppatterns	cmdline.txt	/*:keeppatterns*
 :l	various.txt	/*:l*
 :lN	quickfix.txt	/*:lN*
 :lNext	quickfix.txt	/*:lNext*
@@ -4952,6 +4954,7 @@ builtin_terms	term.txt	/*builtin_terms*
 byte-count	editing.txt	/*byte-count*
 byte2line()	eval.txt	/*byte2line()*
 byteidx()	eval.txt	/*byteidx()*
+byteidxcomp()	eval.txt	/*byteidxcomp()*
 bzip2	pi_gzip.txt	/*bzip2*
 c	change.txt	/*c*
 c.vim	syntax.txt	/*c.vim*
@@ -6416,6 +6419,7 @@ hl-WarningMsg	syntax.txt	/*hl-WarningMsg*
 hl-WildMenu	syntax.txt	/*hl-WildMenu*
 hlID()	eval.txt	/*hlID()*
 hlexists()	eval.txt	/*hlexists()*
+hlsearch-variable	eval.txt	/*hlsearch-variable*
 holy-grail	index.txt	/*holy-grail*
 home	intro.txt	/*home*
 home-replace	editing.txt	/*home-replace*
@@ -7880,6 +7884,7 @@ spell-affix-flags	spell.txt	/*spell-affix-flags*
 spell-affix-mbyte	spell.txt	/*spell-affix-mbyte*
 spell-affix-not-supported	spell.txt	/*spell-affix-not-supported*
 spell-affix-vim	spell.txt	/*spell-affix-vim*
+spell-cjk	spell.txt	/*spell-cjk*
 spell-compound	spell.txt	/*spell-compound*
 spell-dic-format	spell.txt	/*spell-dic-format*
 spell-double-scoring	spell.txt	/*spell-double-scoring*
@@ -8457,6 +8462,7 @@ v:folddashes	eval.txt	/*v:folddashes*
 v:foldend	eval.txt	/*v:foldend*
 v:foldlevel	eval.txt	/*v:foldlevel*
 v:foldstart	eval.txt	/*v:foldstart*
+v:hlsearch	eval.txt	/*v:hlsearch*
 v:insertmode	eval.txt	/*v:insertmode*
 v:key	eval.txt	/*v:key*
 v:lang	eval.txt	/*v:lang*

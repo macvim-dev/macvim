@@ -19,6 +19,22 @@ Gllllkkklllrq
 :" Test block-change
 G$khhhhhkkcmno
 :$-4,$w! test.out
+:" Test block-insert using cursor keys for movement
+/^aaaa/
+:exe ":norm! l\<C-V>jjjlllI\<Right>\<Right>  \<Esc>"
+:/^aa/,/^$/w >> test.out
+:" Test for Visual block was created with the last <C-v>$
+/^A23$/
+:exe ":norm! l\<C-V>j$Aab\<Esc>"
+:.,/^$/w >> test.out
+:" Test for Visual block was created with the middle <C-v>$ (1)
+/^B23$/
+:exe ":norm! l\<C-V>j$hAab\<Esc>"
+:.,/^$/w >> test.out
+:" Test for Visual block was created with the middle <C-v>$ (2)
+/^C23$/
+:exe ":norm! l\<C-V>j$hhAab\<Esc>"
+:.,/^$/w >> test.out
 :" gUe must uppercase a whole word, also when ß changes to SS
 Gothe youtußeuu endYpk0wgUe
 :" gUfx must uppercase until x, inclusive.
@@ -32,9 +48,27 @@ Oblah di
 doh dutVkUj
 :" Uppercase part of two lines
 ddppi333k0i222fyllvjfuUk
+:" visual replace using Enter or NL
+G3o1234567892k05l2jrG3o987652k02l2jr
+G3o1234567892k05l2jr
+G3o987652k02l2jr
 :/^the/,$w >> test.out
 :qa!
 ENDTEST
+
+aaaaaa
+bbbbbb
+cccccc
+dddddd
+
+A23
+4567
+
+B23
+4567
+
+C23
+4567
 
 abcdefghijklm
 abcdefghijklm

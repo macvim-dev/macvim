@@ -406,6 +406,7 @@ STARTTEST
 :call add(tl, [2, '^.*\.\(.*\)/.\+\(\1\)\@<!$', 'foo.bat/foo.bat'])
 :call add(tl, [2, '^.*\.\(.*\)/.\+\(\1\)\@<=$', 'foo.bat/foo.bat', 'foo.bat/foo.bat', 'bat', 'bat'])
 :call add(tl, [2, '\\\@<!\${\(\d\+\%(:.\{-}\)\?\\\@<!\)}', '2013-06-27${0}', '${0}', '0'])
+:call add(tl, [2, '^\(a*\)\1$', 'aaaaaaaa', 'aaaaaaaa', 'aaaa'])
 :"
 :"""" Look-behind with limit
 :call add(tl, [2, '<\@<=span.', 'xxspanxx<spanyyy', 'spany'])
@@ -505,6 +506,8 @@ STARTTEST
 :"
 :" Check a pattern with a line break and ^ and $
 :call add(tl, [2, 'a\n^b$\n^c', ['a', 'b', 'c'], ['XX']])
+:"
+:call add(tl, [2, '\(^.\+\n\)\1', [' dog', ' dog', 'asdf'], ['XXasdf']])
 :"
 :"""" Run the multi-line tests
 :"

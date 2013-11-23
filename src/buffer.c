@@ -211,7 +211,12 @@ open_buffer(read_stdin, eap, flags)
 
     /* if first time loading this buffer, init b_chartab[] */
     if (curbuf->b_flags & BF_NEVERLOADED)
+    {
 	(void)buf_init_chartab(curbuf, FALSE);
+#ifdef FEAT_CINDENT
+	parse_cino(curbuf);
+#endif
+    }
 
     /*
      * Set/reset the Changed flag first, autocmds may change the buffer.
@@ -1948,6 +1953,7 @@ free_buf_options(buf, free_p_ff)
     clear_string_option(&buf->b_p_qe);
 #endif
     buf->b_p_ar = -1;
+    buf->b_p_ul = NO_LOCAL_UNDOLEVEL;
 }
 
 /*
@@ -4072,7 +4078,8 @@ build_stl_str_hl(wp, out, outlen, fmt, use_sandbox, fillchar,
 		item[curitem].minwid = -syn_namen2id(t, (int)(s - t));
 		curitem++;
 	    }
-	    ++s;
+	    if (*s != NUL)
+		++s;
 	    continue;
 	}
 

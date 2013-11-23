@@ -1,4 +1,4 @@
-*spell.txt*	For Vim version 7.4.  Last change: 2013 Jul 17
+*spell.txt*	For Vim version 7.4.  Last change: 2013 Nov 12
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -268,6 +268,13 @@ In a table:
 	utf-8		yi		Yiddish
 	latin1		yi		transliterated Yiddish
 	utf-8		yi-tr		transliterated Yiddish
+
+							*spell-cjk*
+Chinese, Japanese and other East Asian characters are normally marked as
+errors, because spell checking of these characters is not supported. If
+'spelllang' includes "cjk", these characters are not marked as errors.  This
+is useful when editing text with spell checking while some Asian words are
+present.
 
 
 SPELL FILES						*spell-load*

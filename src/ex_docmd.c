@@ -1850,6 +1850,11 @@ do_one_cmd(cmdlinep, sourcing,
 			    cmdmod.keepalt = TRUE;
 			    continue;
 			}
+			if (checkforcmd(&ea.cmd, "keeppatterns", 5))
+			{
+			    cmdmod.keeppatterns = TRUE;
+			    continue;
+			}
 			if (!checkforcmd(&ea.cmd, "keepjumps", 5))
 			    break;
 			cmdmod.keepjumps = TRUE;
@@ -2591,6 +2596,7 @@ do_one_cmd(cmdlinep, sourcing,
 	    case CMD_keepalt:
 	    case CMD_keepjumps:
 	    case CMD_keepmarks:
+	    case CMD_keeppatterns:
 	    case CMD_leftabove:
 	    case CMD_let:
 	    case CMD_lockmarks:
@@ -3096,6 +3102,7 @@ static struct cmdmod
     {"keepalt", 5, FALSE},
     {"keepjumps", 5, FALSE},
     {"keepmarks", 3, FALSE},
+    {"keeppatterns", 5, FALSE},
     {"leftabove", 5, FALSE},
     {"lockmarks", 3, FALSE},
     {"noautocmd", 3, FALSE},
@@ -3604,6 +3611,7 @@ set_one_cmd_context(xp, buff)
 	case CMD_keepalt:
 	case CMD_keepjumps:
 	case CMD_keepmarks:
+	case CMD_keeppatterns:
 	case CMD_leftabove:
 	case CMD_lockmarks:
 	case CMD_rightbelow:
@@ -6582,7 +6590,9 @@ ex_quit(eap)
     if (check_more(FALSE, eap->forceit) == OK && only_one_window())
 	exiting = TRUE;
     if ((!P_HID(curbuf)
-		&& check_changed(curbuf, p_awa, FALSE, eap->forceit, FALSE))
+		&& check_changed(curbuf, (p_awa ? CCGD_AW : 0)
+				       | (eap->forceit ? CCGD_FORCEIT : 0)
+				       | CCGD_EXCMD))
 	    || check_more(TRUE, eap->forceit) == FAIL
 	    || (only_one_window() && check_changed_any(eap->forceit)))
     {
@@ -7117,7 +7127,7 @@ handle_drop(filec, filev, split)
     if (!P_HID(curbuf) && !split)
     {
 	++emsg_off;
-	split = check_changed(curbuf, TRUE, FALSE, FALSE, FALSE);
+	split = check_changed(curbuf, CCGD_AW);
 	--emsg_off;
     }
     if (split)
@@ -7379,7 +7389,11 @@ ex_recover(eap)
 {
     /* Set recoverymode right away to avoid the ATTENTION prompt. */
     recoverymode = TRUE;
-    if (!check_changed(curbuf, p_awa, TRUE, eap->forceit, FALSE)
+    if (!check_changed(curbuf, (p_awa ? CCGD_AW : 0)
+			     | CCGD_MULTWIN
+			     | (eap->forceit ? CCGD_FORCEIT : 0)
+			     | CCGD_EXCMD)
+
 	    && (*eap->arg == NUL
 			     || setfname(curbuf, eap->arg, NULL, TRUE) == OK))
 	ml_recover();
@@ -8574,6 +8588,11 @@ ex_operators(eap)
 	curwin->w_cursor.lnum = eap->line1;
 	beginline(BL_SOL | BL_FIX);
     }
+
+#if defined(FEAT_VISUAL)
+    if (VIsual_active)
+	end_visual_mode();
+#endif
 
     switch (eap->cmdidx)
     {
@@ -11416,7 +11435,7 @@ ex_set(eap)
 ex_nohlsearch(eap)
     exarg_T	*eap UNUSED;
 {
-    no_hlsearch = TRUE;
+    SET_NO_HLSEARCH(TRUE);
     redraw_all_later(SOME_VALID);
 }
 

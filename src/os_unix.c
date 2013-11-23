@@ -804,6 +804,10 @@ mch_stackcheck(p)
  * completely full.
  */
 
+#if defined(HAVE_AVAILABILITYMACROS_H)
+# include <AvailabilityMacros.h>
+#endif
+
 #ifndef SIGSTKSZ
 # define SIGSTKSZ 8000    /* just a guess of how much stack is needed... */
 #endif

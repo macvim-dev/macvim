@@ -505,6 +505,9 @@ d.get("\0"):(<class 'TypeError'>, TypeError('expected bytes with no null',))
 <<< Finished
 d.pop("a"):(<class 'KeyError'>, KeyError('a',))
 dl.pop("a"):(<class 'vim.error'>, error('dictionary is locked',))
+>> DictionaryContains
+"" in d:(<class 'ValueError'>, ValueError('empty keys are not allowed',))
+0 in d:(<class 'TypeError'>, TypeError('expected bytes() or str() instance, but got int',))
 >> DictionaryIterNext
 for i in ned: ned["a"] = 1:(<class 'RuntimeError'>, RuntimeError('hashtab changed during iteration',))
 >> DictionaryAssItem
@@ -1184,3 +1187,7 @@ vim.eval("Exe('throw ''ghi''')"):(<class 'vim.error'>, error('ghi',))
 vim.eval("Exe('echoerr ''jkl''')"):(<class 'vim.error'>, error('Vim(echoerr):jkl',))
 vim.eval("Exe('xxx_non_existent_command_xxx')"):(<class 'vim.error'>, error('Vim:E492: Not an editor command: xxx_non_existent_command_xxx',))
 vim.bindeval("Exe('xxx_non_existent_command_xxx')"):(<class 'vim.error'>, error('Vim:E492: Not an editor command: xxx_non_existent_command_xxx',))
+Caught KeyboardInterrupt
+Running :put
+No exception
+

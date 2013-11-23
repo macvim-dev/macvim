@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 7.4.  Last change: 2013 Aug 22
+*options.txt*	For Vim version 7.4.  Last change: 2013 Nov 12
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -6670,6 +6670,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	region by listing them: "en_us,en_ca" supports both US and Canadian
 	English, but not words specific for Australia, New Zealand or Great
 	Britain.
+	If the name "cjk" is included East Asian characters are excluded from
+	spell checking.  This is useful when editing text that also has Asian
+	words.
 							*E757*
 	As a special case the name of a .spl file can be given as-is.  The
 	first "_xx" in the name is removed and used as the region name
@@ -7721,7 +7724,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 						*'undolevels'* *'ul'*
 'undolevels' 'ul'	number	(default 100, 1000 for Unix, VMS,
 						Win32 and OS/2)
-			global
+			global or local to buffer |global-local|
 			{not in Vi}
 	Maximum number of changes that can be undone.  Since undo information
 	is kept in memory, higher numbers will cause more memory to be used
@@ -7732,8 +7735,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 <	But you can also get Vi compatibility by including the 'u' flag in
 	'cpoptions', and still be able to use CTRL-R to repeat undo.
 	Also see |undo-two-ways|.
-	Set to a negative number for no undo at all: >
-		set ul=-1
+	Set to -1 for no undo at all.  You might want to do this only for the
+	current buffer: >
+		setlocal ul=-1
 <	This helps when you run out of memory for a single change.
 	Also see |clear-undo|.
 
