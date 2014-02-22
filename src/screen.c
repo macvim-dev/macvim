@@ -6664,6 +6664,7 @@ win_redr_custom(wp, draw_ruler)
     win_T	*wp;
     int		draw_ruler;	/* TRUE or FALSE */
 {
+    static int	entered = FALSE;
     int		attr;
     int		curattr;
     int		row;
@@ -6681,6 +6682,13 @@ win_redr_custom(wp, draw_ruler)
     int		use_sandbox = FALSE;
     win_T	*ewp;
     int		p_crb_save;
+
+    /* There is a tiny chance that this gets called recursively: When
+     * redrawing a status line triggers redrawing the ruler or tabline.
+     * Avoid trouble by not allowing recursion. */
+    if (entered)
+	return;
+    entered = TRUE;
 
     /* setup environment for the task at hand */
     if (wp == NULL)
@@ -6757,7 +6765,7 @@ win_redr_custom(wp, draw_ruler)
     }
 
     if (maxwidth <= 0)
-	return;
+	goto theend;
 
     /* Temporarily reset 'cursorbind', we don't want a side effect from moving
      * the cursor away and back. */
@@ -6838,6 +6846,9 @@ win_redr_custom(wp, draw_ruler)
 	while (col < Columns)
 	    TabPageIdxs[col++] = fillchar;
     }
+
+theend:
+    entered = FALSE;
 }
 
 #endif /* FEAT_STL_OPT */

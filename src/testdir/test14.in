@@ -47,7 +47,19 @@ j:call search('^$', 'c')
 /two
 :call search('.', 'c')
 :call append(line('$'), getline('.')[col('.') - 1:])
-:/^search()/,$w >>test.out
+:"
+/^substitute
+:s/foo/bar/
+:$put =@/
+/^substitute
+:keeppatterns s/asdf/xyz/
+:$put =@/
+/^substitute
+Y:$put =@0
+/bar /e
+:$put =@0
+-:keeppatterns /xyz
+0dn:/^search()/,$w >>test.out
 :qa!
 ENDTEST
 
@@ -81,6 +93,7 @@ Piece of Java
 
 foobar
 
+substitute foo asdf
 
 one two
 search()

@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.4.  Last change: 2013 Nov 08
+*eval.txt*	For Vim version 7.4.  Last change: 2014 Feb 11
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1519,6 +1519,7 @@ v:oldfiles	List of file names that is loaded from the |viminfo| file on
 		startup.  These are the files that Vim remembers marks for.
 		The length of the List is limited by the ' argument of the
 		'viminfo' option (default is 100).
+		When the |viminfo| file is not used the List is empty.
 		Also see |:oldfiles| and |c_#<|.
 		The List can be modified, but this has no effect on what is
 		stored in the |viminfo| file later.  If you use values other
@@ -1744,7 +1745,7 @@ cscope_connection( [{num} , {dbpath} [, {prepend}]])
 cursor( {lnum}, {col} [, {coladd}])
 				Number	move cursor to {lnum}, {col}, {coladd}
 cursor( {list})			Number	move cursor to position in {list}
-deepcopy( {expr})		any	make a full copy of {expr}
+deepcopy( {expr} [, {noref}])	any	make a full copy of {expr}
 delete( {fname})		Number	delete file {fname}
 did_filetype()			Number	TRUE if FileType autocommand event used
 diff_filler( {lnum})		Number	diff filler lines about {lnum}
@@ -3200,7 +3201,7 @@ getchar([expr])						*getchar()*
 		If [expr] is 1, only check if a character is available, it is
 			not consumed.  Return zero if no character available.
 
-		Without {expr} and when {expr} is 0 a whole character or
+		Without [expr] and when [expr] is 0 a whole character or
 		special key is returned.  If it is an 8-bit character, the
 		result is a number.  Use nr2char() to convert it to a String.
 		Otherwise a String is returned with the encoded character.
@@ -3210,7 +3211,7 @@ getchar([expr])						*getchar()*
 		String when a modifier (shift, control, alt) was used that is
 		not included in the character.
 
-		When {expr} is 1 only the first byte is returned.  For a
+		When [expr] is 1 only the first byte is returned.  For a
 		one-byte character it is the character itself as a number.
 		Use nr2char() to convert it to a String.
 
@@ -3460,7 +3461,7 @@ getregtype([{regname}])					*getregtype()*
 		    "v"			for |characterwise| text
 		    "V"			for |linewise| text
 		    "<CTRL-V>{width}"	for |blockwise-visual| text
-		    0			for an empty or unknown register
+		    ""			for an empty or unknown register
 		<CTRL-V> is one character with value 0x16.
 		If {regname} is not specified, |v:register| is used.
 
@@ -4134,6 +4135,8 @@ maparg({name}[, {mode} [, {abbr} [, {dict}]]])			*maparg()*
 				     (|mapmode-ic|)
 		  "sid"	     The script local ID, used for <sid> mappings
 			     (|<SID>|).
+		  "nowait"   Do not wait for other, longer mappings.
+			     (|:map-<nowait>|).
 
 		The mappings local to the current buffer are checked first,
 		then the global mappings.
@@ -4447,6 +4450,9 @@ getpos({expr})	Get the position for {expr}.  For possible values of {expr}
 		it is the offset in screen columns from the start of the
 		character.  E.g., a position within a <Tab> or after the last
 		character.
+		Note that for '< and '> Visual mode matters: when it is "V"
+		(visual line mode) the column of '< is zero and the column of
+		'> is a large number.
 		This can be used to save and restore the cursor position: >
 			let save_cursor = getpos(".")
 			MoveTheCursorAround
@@ -5270,6 +5276,10 @@ setpos({expr}, {list})
 		character.  E.g., a position within a <Tab> or after the last
 		character.
 
+		Note that for '< and '> changing the line number may result in
+		the marks to be effectively be swapped, so that '< is always
+		before '>.
+
 		Returns 0 when the position could be set, -1 otherwise.
 		An error message is given if {expr} is invalid.
 
@@ -5632,7 +5642,7 @@ strchars({expr})					*strchars()*
 
 strdisplaywidth({expr}[, {col}])			*strdisplaywidth()*
 		The result is a Number, which is the number of display cells
-		String {expr} occupies on the screen.
+		String {expr} occupies on the screen when it starts a {col}.
 		When {col} is omitted zero is used.  Otherwise it is the
 		screen column where to start.  This matters for Tab
 		characters.
@@ -6634,7 +6644,7 @@ See |:verbose-cmd| for more information.
 
 			For the {arguments} see |function-argument|.
 
-						*a:firstline* *a:lastline*
+					*:func-range* *a:firstline* *a:lastline*
 			When the [range] argument is added, the function is
 			expected to take care of a range itself.  The range is
 			passed as "a:firstline" and "a:lastline".  If [range]
@@ -6643,10 +6653,10 @@ See |:verbose-cmd| for more information.
 			of each line.  See |function-range-example|.
 			The cursor is still moved to the first line of the
 			range, as is the case with all Ex commands.
-
+								*:func-abort*
 			When the [abort] argument is added, the function will
 			abort as soon as an error is detected.
-
+								*:func-dict*
 			When the [dict] argument is added, the function must
 			be invoked through an entry in a |Dictionary|.	The
 			local variable "self" will then be set to the

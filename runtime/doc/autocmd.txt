@@ -1,4 +1,4 @@
-*autocmd.txt*   For Vim version 7.4.  Last change: 2013 Aug 04
+*autocmd.txt*   For Vim version 7.4.  Last change: 2014 Jan 23
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -304,6 +304,9 @@ Name			triggered by ~
 |InsertCharPre|		when a character was typed in Insert mode, before
 			inserting it
 
+|TextChanged|		after a change was made to the text in Normal mode
+|TextChangedI|		after a change was made to the text in Insert mode
+
 |ColorScheme|		after loading a color scheme
 
 |RemoteReply|		a reply from a server Vim was received
@@ -480,6 +483,12 @@ CmdwinLeave			Before leaving the command-line window.
 				|cmdwin-char|
 							*ColorScheme*
 ColorScheme			After loading a color scheme. |:colorscheme|
+				The pattern is matched against the
+				colorscheme name. <afile> can be used for the
+				name of the actual file where this option was
+				set, and <amatch> for the new colorscheme
+				name.
+
 
 							*CompleteDone*
 CompleteDone			After Insert mode completion is done.  Either
@@ -553,6 +562,9 @@ FileChangedRO			Before making the first change to a read-only
 				It is not allowed to change to another buffer
 				here.  You can reload the buffer but not edit
 				another one.
+							*E881*
+				If the number of lines changes saving for undo
+				may fail and the change will be aborted.
 							*FileChangedShell*
 FileChangedShell		When Vim notices that the modification time of
 				a file has changed since editing started.
@@ -731,7 +743,7 @@ QuickFixCmdPost			Like QuickFixCmdPre, but after a quickfix
 				command is run, before jumping to the first
 				location. For |:cfile| and |:lfile| commands
 				it is run after error file is read and before
-				moving to the first error. 
+				moving to the first error.
 				See |QuickFixCmdPost-example|.
 							*QuitPre*
 QuitPre				When using `:quit`, `:wq` or `:qall`, before

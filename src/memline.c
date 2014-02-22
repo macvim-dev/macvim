@@ -841,8 +841,11 @@ ml_close_all(del_file)
     for (buf = firstbuf; buf != NULL; buf = buf->b_next)
 	ml_close(buf, del_file && ((buf->b_flags & BF_PRESERVED) == 0
 				 || vim_strchr(p_cpo, CPO_PRESERVE) == NULL));
+#ifdef FEAT_SPELL
+    spell_delete_wordlist();	/* delete the internal wordlist */
+#endif
 #ifdef TEMPDIRNAMES
-    vim_deltempdir();	    /* delete created temp directory */
+    vim_deltempdir();		/* delete created temp directory */
 #endif
 }
 
@@ -4911,7 +4914,7 @@ ml_crypt_prepare(mfp, offset, reading)
 	 * block for the salt. */
 	vim_snprintf((char *)salt, sizeof(salt), "%ld", (long)offset);
 	bf_key_init(key, salt, (int)STRLEN(salt));
-	bf_ofb_init(seed, MF_SEED_LEN);
+	bf_cfb_init(seed, MF_SEED_LEN);
     }
 }
 

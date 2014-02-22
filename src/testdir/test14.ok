@@ -20,3 +20,7 @@ search()
 1
 1
 two
+foo
+^substitute
+substitute bar xyz
+xyz

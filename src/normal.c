@@ -655,8 +655,8 @@ normal_cmd(oap, toplevel)
 #ifdef FEAT_EVAL
     /* Set v:count here, when called from main() and not a stuffed
      * command, so that v:count can be used in an expression mapping
-     * when there is no count. */
-    if (toplevel && stuff_empty())
+     * when there is no count. Do set it for redo. */
+    if (toplevel && readbuf1_empty())
 	set_vcount_ca(&ca, &set_prevcount);
 #endif
 
@@ -736,8 +736,8 @@ getcount:
 #ifdef FEAT_EVAL
 	    /* Set v:count here, when called from main() and not a stuffed
 	     * command, so that v:count can be used in an expression mapping
-	     * right after the count. */
-	    if (toplevel && stuff_empty())
+	     * right after the count. Do set it for redo. */
+	    if (toplevel && readbuf1_empty())
 		set_vcount_ca(&ca, &set_prevcount);
 #endif
 	    if (ctrl_w)
@@ -819,8 +819,9 @@ getcount:
 #ifdef FEAT_EVAL
     /*
      * Only set v:count when called from main() and not a stuffed command.
+     * Do set it for redo.
      */
-    if (toplevel && stuff_empty())
+    if (toplevel && readbuf1_empty())
 	set_vcount(ca.count0, ca.count1, set_prevcount);
 #endif
 
@@ -962,11 +963,8 @@ getcount:
 #ifdef FEAT_CMDL_INFO
 	    need_flushbuf |= add_to_showcmd(ca.nchar);
 #endif
-	    /* For "gn" from redo, need to get one more char to determine the
-	     * operator */
 	    if (ca.nchar == 'r' || ca.nchar == '\'' || ca.nchar == '`'
-						       || ca.nchar == Ctrl_BSL
-		  || ((ca.nchar == 'n' || ca.nchar == 'N') && !stuff_empty()))
+						       || ca.nchar == Ctrl_BSL)
 	    {
 		cp = &ca.extra_char;	/* need to get a third character */
 		if (ca.nchar != 'r')
@@ -1797,10 +1795,9 @@ do_pending_operator(cap, old_col, gui_yank)
 		 * otherwise it might be the second char of the operator. */
 		if (cap->cmdchar == 'g' && (cap->nchar == 'n'
 							|| cap->nchar == 'N'))
-		    /* "gn" and "gN" are a bit different */
-		    prep_redo(oap->regname, 0L, NUL, cap->cmdchar, cap->nchar,
-					get_op_char(oap->op_type),
-					get_extra_op_char(oap->op_type));
+		    prep_redo(oap->regname, cap->count0,
+			    get_op_char(oap->op_type), get_extra_op_char(oap->op_type),
+			    oap->motion_force, cap->cmdchar, cap->nchar);
 		else if (cap->cmdchar != ':')
 		    prep_redo(oap->regname, 0L, NUL, 'v',
 					get_op_char(oap->op_type),
@@ -4030,6 +4027,8 @@ add_to_showcmd(c)
 #endif
 
     p = transchar(c);
+    if (*p == ' ')
+	STRCPY(p, "<20>");
     old_len = (int)STRLEN(showcmd_buf);
     extra_len = (int)STRLEN(p);
     overflow = old_len + extra_len - SHOWCMD_COLS;
@@ -4651,7 +4650,10 @@ nv_screengo(oap, dir, dist)
     }
 #endif
 
-    coladvance(curwin->w_curswant);
+    if (virtual_active() && atend)
+	coladvance(MAXCOL);
+    else
+	coladvance(curwin->w_curswant);
 
 #if defined(FEAT_LINEBREAK) || defined(FEAT_MBYTE)
     if (curwin->w_cursor.col > 0 && curwin->w_p_wrap)

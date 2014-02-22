@@ -168,7 +168,7 @@ typedef int waitstatus;
 static pid_t wait4pid __ARGS((pid_t, waitstatus *));
 
 static int  WaitForChar __ARGS((long));
-#if defined(__BEOS__)
+#if defined(__BEOS__) || defined(VMS)
 int  RealWaitForChar __ARGS((int, long, int *));
 #else
 static int  RealWaitForChar __ARGS((int, long, int *));
@@ -435,7 +435,6 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
 	/* Process the queued netbeans messages. */
 	netbeans_parse_messages();
 #endif
-#ifndef VMS  /* VMS: must try reading, WaitForChar() does nothing. */
 	/*
 	 * We want to be interrupted by the winch signal
 	 * or by an event on the monitored file descriptors.
@@ -446,7 +445,6 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
 		handle_resize();
 	    return 0;
 	}
-#endif
 
 	/* If input was put directly in typeahead buffer bail out here. */
 	if (typebuf_changed(tb_change_cnt))
@@ -5061,6 +5059,7 @@ WaitForChar(msec)
     return avail;
 }
 
+#ifndef VMS
 /*
  * Wait "msec" msec until a character is available from file descriptor "fd".
  * "msec" == 0 will check for characters once.
@@ -5360,13 +5359,7 @@ select_eintr:
 	}
 # endif
 
-# ifdef OLD_VMS
-	/* Old VMS as v6.2 and older have broken select(). It waits more than
-	 * required. Should not be used */
-	ret = 0;
-# else
 	ret = select(maxfd + 1, &rfds, NULL, &efds, tvp);
-# endif
 # ifdef EINTR
 	if (ret == -1 && errno == EINTR)
 	{
@@ -5487,8 +5480,6 @@ select_eintr:
 
     return (ret > 0);
 }
-
-#ifndef VMS
 
 #ifndef NO_EXPANDPATH
 /*
@@ -6012,7 +6003,7 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
 	{
 	    /* If there is a NUL, set did_find_nul, else set check_spaces */
 	    buffer[len] = NUL;
-	    if (len && (int)STRLEN(buffer) < (int)len - 1)
+	    if (len && (int)STRLEN(buffer) < (int)len)
 		did_find_nul = TRUE;
 	    else
 		check_spaces = TRUE;

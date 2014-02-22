@@ -96,6 +96,12 @@
 # define rb_num2int rb_num2int_stub
 #endif
 
+# if defined(DYNAMIC_RUBY_VER) && DYNAMIC_RUBY_VER >= 21
+/* Ruby 2.1 adds new GC called RGenGC and RARRAY_PTR uses
+ * rb_gc_writebarrier_unprotect_promoted if USE_RGENGC  */
+#  define rb_gc_writebarrier_unprotect_promoted rb_gc_writebarrier_unprotect_promoted_stub
+# endif
+
 #ifdef FEAT_GUI_MACVIM
 # include <Ruby/ruby.h>
 #else
@@ -381,6 +387,10 @@ static VALUE (*dll_rb_require) (const char*);
 static void* (*ruby_process_options)(int, char**);
 # endif
 
+# if defined(USE_RGENGC) && USE_RGENGC
+static void (*dll_rb_gc_writebarrier_unprotect_promoted)(VALUE);
+# endif
+
 # if defined(RUBY19_OR_LATER) && !defined(PROTO)
 SIGNED_VALUE rb_num2long_stub(VALUE x)
 {
@@ -412,6 +422,13 @@ VALUE rb_num2ulong(VALUE x)
     return (long)RSHIFT((SIGNED_VALUE)(x),1);
 }
 #  endif
+# endif
+
+# if defined(USE_RGENGC) && USE_RGENGC
+void rb_gc_writebarrier_unprotect_promoted_stub(VALUE obj)
+{
+    return dll_rb_gc_writebarrier_unprotect_promoted(obj);
+}
 # endif
 
 static HINSTANCE hinstRuby = NULL; /* Instance of ruby.dll */
@@ -528,6 +545,9 @@ static struct
     {"rb_ia64_bsp", (RUBY_PROC*)&dll_rb_ia64_bsp},
 #  endif
     {"ruby_init_stack", (RUBY_PROC*)&dll_ruby_init_stack},
+# endif
+# if defined(USE_RGENGC) && USE_RGENGC
+    {"rb_gc_writebarrier_unprotect_promoted", (RUBY_PROC*)&dll_rb_gc_writebarrier_unprotect_promoted},
 # endif
     {"", NULL},
 };

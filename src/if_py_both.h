@@ -13,6 +13,11 @@
  * Common code for if_python.c and if_python3.c.
  */
 
+#ifdef __BORLANDC__
+/* Disable Warning W8060: Possibly incorrect assignment in function ... */
+# pragma warn -8060
+#endif
+
 static char_u e_py_systemexit[]	= "E880: Can't handle SystemExit of %s exception in vim";
 
 #if PY_VERSION_HEX < 0x02050000
@@ -31,8 +36,9 @@ static const char *vim_special_path = "_vim_path_";
 #define PyErr_SET_STRING(exc, str) PyErr_SetString(exc, _(str))
 #define PyErr_SetVim(str) PyErr_SetString(VimError, str)
 #define PyErr_SET_VIM(str) PyErr_SET_STRING(VimError, str)
-#define PyErr_FORMAT(exc, str, tail) PyErr_Format(exc, _(str), tail)
-#define PyErr_VIM_FORMAT(str, tail) PyErr_FORMAT(VimError, str, tail)
+#define PyErr_FORMAT(exc, str, arg) PyErr_Format(exc, _(str), arg)
+#define PyErr_FORMAT2(exc, str, arg1, arg2) PyErr_Format(exc, _(str), arg1,arg2)
+#define PyErr_VIM_FORMAT(str, arg) PyErr_FORMAT(VimError, str, arg)
 
 #define Py_TYPE_NAME(obj) (obj->ob_type->tp_name == NULL \
 	? "(NULL)" \
@@ -558,12 +564,32 @@ VimTryEnd(void)
     /* Keyboard interrupt should be preferred over anything else */
     if (got_int)
     {
-	if (current_exception != NULL)
+	if (did_throw)
 	    discard_current_exception();
-	else
-	    need_rethrow = did_throw = FALSE;
 	got_int = FALSE;
 	PyErr_SetNone(PyExc_KeyboardInterrupt);
+	return -1;
+    }
+    else if (msg_list != NULL && *msg_list != NULL)
+    {
+	int	should_free;
+	char_u	*msg;
+
+	msg = get_exception_string(*msg_list, ET_ERROR, NULL, &should_free);
+
+	if (msg == NULL)
+	{
+	    PyErr_NoMemory();
+	    return -1;
+	}
+
+	PyErr_SetVim((char *) msg);
+
+	free_global_msglist();
+
+	if (should_free)
+	    vim_free(msg);
+
 	return -1;
     }
     else if (!did_throw)
@@ -571,10 +597,7 @@ VimTryEnd(void)
     /* Python exception is preferred over vim one; unlikely to occur though */
     else if (PyErr_Occurred())
     {
-	if (current_exception != NULL)
-	    discard_current_exception();
-	else
-	    need_rethrow = did_throw = FALSE;
+	discard_current_exception();
 	return -1;
     }
     /* Finally transform VimL exception to python one */
@@ -1594,8 +1617,9 @@ _DictionaryItem(DictionaryObject *self, PyObject *args, int flags)
     }
     else if (flags & DICT_FLAG_RETURN_BOOL)
     {
-	Py_INCREF(Py_True);
-	return Py_True;
+	ret = Py_True;
+	Py_INCREF(ret);
+	return ret;
     }
 
     di = dict_lookup(hi);
@@ -1895,10 +1919,16 @@ DictionaryUpdate(DictionaryObject *self, PyObject *args, PyObject *kwargs)
     }
     else
     {
-	PyObject	*obj;
+	PyObject	*obj = NULL;
 
-	if (!PyArg_ParseTuple(args, "O", &obj))
+	if (!PyArg_ParseTuple(args, "|O", &obj))
 	    return NULL;
+
+	if (obj == NULL)
+	{
+	    Py_INCREF(Py_None);
+	    return Py_None;
+	}
 
 	if (PyObject_HasAttrString(obj, "keys"))
 	    return DictionaryUpdate(self, NULL, obj);
@@ -2081,8 +2111,6 @@ static struct PyMethodDef DictionaryMethods[] = {
 };
 
 static PyTypeObject ListType;
-static PySequenceMethods ListAsSeq;
-static PyMappingMethods ListAsMapping;
 
 typedef struct
 {
@@ -2226,7 +2254,7 @@ ListLength(ListObject *self)
 }
 
     static PyObject *
-ListItem(ListObject *self, Py_ssize_t index)
+ListIndex(ListObject *self, Py_ssize_t index)
 {
     listitem_T	*li;
 
@@ -2246,51 +2274,387 @@ ListItem(ListObject *self, Py_ssize_t index)
     return ConvertToPyObject(&li->li_tv);
 }
 
-#define PROC_RANGE \
-    if (last < 0) {\
-	if (last < -size) \
-	    last = 0; \
-	else \
-	    last += size; \
-    } \
-    if (first < 0) \
-	first = 0; \
-    if (first > size) \
-	first = size; \
-    if (last > size) \
-	last = size;
-
     static PyObject *
-ListSlice(ListObject *self, Py_ssize_t first, Py_ssize_t last)
+ListSlice(ListObject *self, Py_ssize_t first, Py_ssize_t step,
+	  Py_ssize_t slicelen)
 {
     PyInt	i;
-    PyInt	size = ListLength(self);
-    PyInt	n;
     PyObject	*list;
-    int		reversed = 0;
 
-    PROC_RANGE
-    if (first >= last)
-	first = last;
+    if (step == 0)
+    {
+	PyErr_SET_STRING(PyExc_ValueError, N_("slice step cannot be zero"));
+	return NULL;
+    }
 
-    n = last-first;
-    list = PyList_New(n);
+    list = PyList_New(slicelen);
     if (list == NULL)
 	return NULL;
 
-    for (i = 0; i < n; ++i)
+    for (i = 0; i < slicelen; ++i)
     {
-	PyObject	*item = ListItem(self, first + i);
+	PyObject	*item;
+
+	item = ListIndex(self, first + i*step);
 	if (item == NULL)
 	{
 	    Py_DECREF(list);
 	    return NULL;
 	}
 
-	PyList_SET_ITEM(list, ((reversed)?(n-i-1):(i)), item);
+	PyList_SET_ITEM(list, i, item);
     }
 
     return list;
+}
+
+    static PyObject *
+ListItem(ListObject *self, PyObject* idx)
+{
+#if PY_MAJOR_VERSION < 3
+    if (PyInt_Check(idx))
+    {
+	long _idx = PyInt_AsLong(idx);
+	return ListIndex(self, _idx);
+    }
+    else
+#endif
+    if (PyLong_Check(idx))
+    {
+	long _idx = PyLong_AsLong(idx);
+	return ListIndex(self, _idx);
+    }
+    else if (PySlice_Check(idx))
+    {
+	Py_ssize_t start, stop, step, slicelen;
+
+	if (PySlice_GetIndicesEx((PySliceObject *)idx, ListLength(self),
+				 &start, &stop, &step, &slicelen) < 0)
+	    return NULL;
+	return ListSlice(self, start, step, slicelen);
+    }
+    else
+    {
+	RAISE_INVALID_INDEX_TYPE(idx);
+	return NULL;
+    }
+}
+
+    static void
+list_restore(Py_ssize_t numadded, Py_ssize_t numreplaced, Py_ssize_t slicelen,
+	list_T *l, listitem_T **lis, listitem_T *lastaddedli)
+{
+    while (numreplaced--)
+    {
+	list_insert(l, lis[numreplaced], lis[slicelen + numreplaced]);
+	listitem_remove(l, lis[slicelen + numreplaced]);
+    }
+    while (numadded--)
+    {
+	listitem_T	*next;
+
+	next = lastaddedli->li_prev;
+	listitem_remove(l, lastaddedli);
+	lastaddedli = next;
+    }
+}
+
+    static int
+ListAssSlice(ListObject *self, Py_ssize_t first,
+	     Py_ssize_t step, Py_ssize_t slicelen, PyObject *obj)
+{
+    PyObject	*iterator;
+    PyObject	*item;
+    listitem_T	*li;
+    listitem_T	*lastaddedli = NULL;
+    listitem_T	*next;
+    typval_T	v;
+    list_T	*l = self->list;
+    PyInt	i;
+    PyInt	j;
+    PyInt	numreplaced = 0;
+    PyInt	numadded = 0;
+    PyInt	size;
+    listitem_T	**lis = NULL;
+
+    size = ListLength(self);
+
+    if (l->lv_lock)
+    {
+	RAISE_LOCKED_LIST;
+	return -1;
+    }
+
+    if (step == 0)
+    {
+	PyErr_SET_STRING(PyExc_ValueError, N_("slice step cannot be zero"));
+	return -1;
+    }
+
+    if (step != 1 && slicelen == 0)
+    {
+	/* Nothing to do. Only error out if obj has some items. */
+	int		ret = 0;
+
+	if (obj == NULL)
+	    return 0;
+
+	if (!(iterator = PyObject_GetIter(obj)))
+	    return -1;
+
+	if ((item = PyIter_Next(iterator)))
+	{
+	    PyErr_FORMAT(PyExc_ValueError,
+		    N_("attempt to assign sequence of size greater then %d "
+			"to extended slice"), 0);
+	    Py_DECREF(item);
+	    ret = -1;
+	}
+	Py_DECREF(iterator);
+	return ret;
+    }
+
+    if (obj != NULL)
+	/* XXX May allocate zero bytes. */
+	if (!(lis = PyMem_New(listitem_T *, slicelen * 2)))
+	{
+	    PyErr_NoMemory();
+	    return -1;
+	}
+
+    if (first == size)
+	li = NULL;
+    else
+    {
+	li = list_find(l, (long) first);
+	if (li == NULL)
+	{
+	    PyErr_VIM_FORMAT(N_("internal error: no vim list item %d"),
+		    (int)first);
+	    if (obj != NULL)
+		PyMem_Free(lis);
+	    return -1;
+	}
+	i = slicelen;
+	while (i-- && li != NULL)
+	{
+	    j = step;
+	    next = li;
+	    if (step > 0)
+		while (next != NULL && ((next = next->li_next) != NULL) && --j);
+	    else
+		while (next != NULL && ((next = next->li_prev) != NULL) && ++j);
+
+	    if (obj == NULL)
+		listitem_remove(l, li);
+	    else
+		lis[slicelen - i - 1] = li;
+
+	    li = next;
+	}
+	if (li == NULL && i != -1)
+	{
+	    PyErr_SET_VIM(N_("internal error: not enough list items"));
+	    if (obj != NULL)
+		PyMem_Free(lis);
+	    return -1;
+	}
+    }
+
+    if (obj == NULL)
+	return 0;
+
+    if (!(iterator = PyObject_GetIter(obj)))
+    {
+	PyMem_Free(lis);
+	return -1;
+    }
+
+    i = 0;
+    while ((item = PyIter_Next(iterator)))
+    {
+	if (ConvertFromPyObject(item, &v) == -1)
+	{
+	    Py_DECREF(iterator);
+	    Py_DECREF(item);
+	    PyMem_Free(lis);
+	    return -1;
+	}
+	Py_DECREF(item);
+	if (list_insert_tv(l, &v, numreplaced < slicelen
+				    ? lis[numreplaced]
+				    : li) == FAIL)
+	{
+	    clear_tv(&v);
+	    PyErr_SET_VIM(N_("internal error: failed to add item to list"));
+	    list_restore(numadded, numreplaced, slicelen, l, lis, lastaddedli);
+	    PyMem_Free(lis);
+	    return -1;
+	}
+	if (numreplaced < slicelen)
+	{
+	    lis[slicelen + numreplaced] = lis[numreplaced]->li_prev;
+	    list_remove(l, lis[numreplaced], lis[numreplaced]);
+	    numreplaced++;
+	}
+	else
+	{
+	    if (li)
+		lastaddedli = li->li_prev;
+	    else
+		lastaddedli = l->lv_last;
+	    numadded++;
+	}
+	clear_tv(&v);
+	if (step != 1 && i >= slicelen)
+	{
+	    Py_DECREF(iterator);
+	    PyErr_FORMAT(PyExc_ValueError,
+		    N_("attempt to assign sequence of size greater then %d "
+			"to extended slice"), (int) slicelen);
+	    list_restore(numadded, numreplaced, slicelen, l, lis, lastaddedli);
+	    PyMem_Free(lis);
+	    return -1;
+	}
+	++i;
+    }
+    Py_DECREF(iterator);
+
+    if (step != 1 && i != slicelen)
+    {
+	PyErr_FORMAT2(PyExc_ValueError,
+		N_("attempt to assign sequence of size %d to extended slice "
+		    "of size %d"), (int) i, (int) slicelen);
+	list_restore(numadded, numreplaced, slicelen, l, lis, lastaddedli);
+	PyMem_Free(lis);
+	return -1;
+    }
+
+    if (PyErr_Occurred())
+    {
+	list_restore(numadded, numreplaced, slicelen, l, lis, lastaddedli);
+	PyMem_Free(lis);
+	return -1;
+    }
+
+    for (i = 0; i < numreplaced; i++)
+	listitem_free(lis[i]);
+    if (step == 1)
+	for (i = numreplaced; i < slicelen; i++)
+	    listitem_remove(l, lis[i]);
+
+    PyMem_Free(lis);
+
+    return 0;
+}
+
+    static int
+ListAssIndex(ListObject *self, Py_ssize_t index, PyObject *obj)
+{
+    typval_T	tv;
+    list_T	*l = self->list;
+    listitem_T	*li;
+    Py_ssize_t	length = ListLength(self);
+
+    if (l->lv_lock)
+    {
+	RAISE_LOCKED_LIST;
+	return -1;
+    }
+    if (index > length || (index == length && obj == NULL))
+    {
+	PyErr_SET_STRING(PyExc_IndexError, N_("list index out of range"));
+	return -1;
+    }
+
+    if (obj == NULL)
+    {
+	li = list_find(l, (long) index);
+	list_remove(l, li, li);
+	clear_tv(&li->li_tv);
+	vim_free(li);
+	return 0;
+    }
+
+    if (ConvertFromPyObject(obj, &tv) == -1)
+	return -1;
+
+    if (index == length)
+    {
+	if (list_append_tv(l, &tv) == FAIL)
+	{
+	    clear_tv(&tv);
+	    PyErr_SET_VIM(N_("failed to add item to list"));
+	    return -1;
+	}
+    }
+    else
+    {
+	li = list_find(l, (long) index);
+	clear_tv(&li->li_tv);
+	copy_tv(&tv, &li->li_tv);
+	clear_tv(&tv);
+    }
+    return 0;
+}
+
+    static Py_ssize_t
+ListAssItem(ListObject *self, PyObject *idx, PyObject *obj)
+{
+#if PY_MAJOR_VERSION < 3
+    if (PyInt_Check(idx))
+    {
+	long _idx = PyInt_AsLong(idx);
+	return ListAssIndex(self, _idx, obj);
+    }
+    else
+#endif
+    if (PyLong_Check(idx))
+    {
+	long _idx = PyLong_AsLong(idx);
+	return ListAssIndex(self, _idx, obj);
+    }
+    else if (PySlice_Check(idx))
+    {
+	Py_ssize_t start, stop, step, slicelen;
+
+	if (PySlice_GetIndicesEx((PySliceObject *)idx, ListLength(self),
+				 &start, &stop, &step, &slicelen) < 0)
+	    return -1;
+	return ListAssSlice(self, start, step, slicelen,
+		obj);
+    }
+    else
+    {
+	RAISE_INVALID_INDEX_TYPE(idx);
+	return -1;
+    }
+}
+
+    static PyObject *
+ListConcatInPlace(ListObject *self, PyObject *obj)
+{
+    list_T	*l = self->list;
+    PyObject	*lookup_dict;
+
+    if (l->lv_lock)
+    {
+	RAISE_LOCKED_LIST;
+	return NULL;
+    }
+
+    if (!(lookup_dict = PyDict_New()))
+	return NULL;
+
+    if (list_py_concat(l, obj, lookup_dict) == -1)
+    {
+	Py_DECREF(lookup_dict);
+	return NULL;
+    }
+    Py_DECREF(lookup_dict);
+
+    Py_INCREF(self);
+    return (PyObject *)(self);
 }
 
 typedef struct
@@ -2343,156 +2707,6 @@ ListIter(ListObject *self)
 	    NULL, NULL);
 }
 
-    static int
-ListAssItem(ListObject *self, Py_ssize_t index, PyObject *obj)
-{
-    typval_T	tv;
-    list_T	*l = self->list;
-    listitem_T	*li;
-    Py_ssize_t	length = ListLength(self);
-
-    if (l->lv_lock)
-    {
-	RAISE_LOCKED_LIST;
-	return -1;
-    }
-    if (index > length || (index == length && obj == NULL))
-    {
-	PyErr_SET_STRING(PyExc_IndexError, N_("list index out of range"));
-	return -1;
-    }
-
-    if (obj == NULL)
-    {
-	li = list_find(l, (long) index);
-	list_remove(l, li, li);
-	clear_tv(&li->li_tv);
-	vim_free(li);
-	return 0;
-    }
-
-    if (ConvertFromPyObject(obj, &tv) == -1)
-	return -1;
-
-    if (index == length)
-    {
-	if (list_append_tv(l, &tv) == FAIL)
-	{
-	    clear_tv(&tv);
-	    PyErr_SET_VIM(N_("failed to add item to list"));
-	    return -1;
-	}
-    }
-    else
-    {
-	li = list_find(l, (long) index);
-	clear_tv(&li->li_tv);
-	copy_tv(&tv, &li->li_tv);
-	clear_tv(&tv);
-    }
-    return 0;
-}
-
-    static int
-ListAssSlice(ListObject *self, Py_ssize_t first, Py_ssize_t last, PyObject *obj)
-{
-    PyInt	size = ListLength(self);
-    PyObject	*iterator;
-    PyObject	*item;
-    listitem_T	*li;
-    listitem_T	*next;
-    typval_T	v;
-    list_T	*l = self->list;
-    PyInt	i;
-
-    if (l->lv_lock)
-    {
-	RAISE_LOCKED_LIST;
-	return -1;
-    }
-
-    PROC_RANGE
-
-    if (first == size)
-	li = NULL;
-    else
-    {
-	li = list_find(l, (long) first);
-	if (li == NULL)
-	{
-	    PyErr_VIM_FORMAT(N_("internal error: no vim list item %d"),
-		    (int)first);
-	    return -1;
-	}
-	if (last > first)
-	{
-	    i = last - first;
-	    while (i-- && li != NULL)
-	    {
-		next = li->li_next;
-		listitem_remove(l, li);
-		li = next;
-	    }
-	}
-    }
-
-    if (obj == NULL)
-	return 0;
-
-    if (!(iterator = PyObject_GetIter(obj)))
-	return -1;
-
-    while ((item = PyIter_Next(iterator)))
-    {
-	if (ConvertFromPyObject(item, &v) == -1)
-	{
-	    Py_DECREF(iterator);
-	    Py_DECREF(item);
-	    return -1;
-	}
-	Py_DECREF(item);
-	if (list_insert_tv(l, &v, li) == FAIL)
-	{
-	    clear_tv(&v);
-	    PyErr_SET_VIM(N_("internal error: failed to add item to list"));
-	    return -1;
-	}
-	clear_tv(&v);
-    }
-    Py_DECREF(iterator);
-
-    if (PyErr_Occurred())
-	return -1;
-
-    return 0;
-}
-
-    static PyObject *
-ListConcatInPlace(ListObject *self, PyObject *obj)
-{
-    list_T	*l = self->list;
-    PyObject	*lookup_dict;
-
-    if (l->lv_lock)
-    {
-	RAISE_LOCKED_LIST;
-	return NULL;
-    }
-
-    if (!(lookup_dict = PyDict_New()))
-	return NULL;
-
-    if (list_py_concat(l, obj, lookup_dict) == -1)
-    {
-	Py_DECREF(lookup_dict);
-	return NULL;
-    }
-    Py_DECREF(lookup_dict);
-
-    Py_INCREF(self);
-    return (PyObject *)(self);
-}
-
 static char *ListAttrs[] = {
     "locked",
     NULL
@@ -2539,6 +2753,25 @@ ListSetattr(ListObject *self, char *name, PyObject *valObject)
 	return -1;
     }
 }
+
+static PySequenceMethods ListAsSeq = {
+    (lenfunc)		ListLength,	 /* sq_length,	  len(x)   */
+    (binaryfunc)	0,		 /* RangeConcat, sq_concat,  x+y   */
+    0,					 /* RangeRepeat, sq_repeat,  x*n   */
+    (PyIntArgFunc)	ListIndex,	 /* sq_item,	  x[i]	   */
+    0,					 /* was_sq_slice,     x[i:j]   */
+    (PyIntObjArgProc)	ListAssIndex,	 /* sq_as_item,  x[i]=v   */
+    0,					 /* was_sq_ass_slice, x[i:j]=v */
+    0,					 /* sq_contains */
+    (binaryfunc)	ListConcatInPlace,/* sq_inplace_concat */
+    0,					 /* sq_inplace_repeat */
+};
+
+static PyMappingMethods ListAsMapping = {
+    /* mp_length	*/ (lenfunc) ListLength,
+    /* mp_subscript     */ (binaryfunc) ListItem,
+    /* mp_ass_subscript */ (objobjargproc) ListAssItem,
+};
 
 static struct PyMethodDef ListMethods[] = {
     {"extend",	(PyCFunction)ListConcatInPlace,	METH_O,		""},
@@ -2718,10 +2951,10 @@ typedef int (*checkfun)(void *);
 typedef struct
 {
     PyObject_HEAD
-    int opt_type;
-    void *from;
-    checkfun Check;
-    PyObject *fromObj;
+    int		opt_type;
+    void	*from;
+    checkfun	Check;
+    PyObject	*fromObj;
 } OptionsObject;
 
     static int
@@ -2838,6 +3071,69 @@ OptionsItem(OptionsObject *self, PyObject *keyObject)
 	PyErr_SET_VIM(N_("internal error: unknown option type"));
 	return NULL;
     }
+}
+
+    static int
+OptionsContains(OptionsObject *self, PyObject *keyObject)
+{
+    char_u	*key;
+    PyObject	*todecref;
+
+    if (!(key = StringToChars(keyObject, &todecref)))
+	return -1;
+
+    if (*key == NUL)
+    {
+	Py_XDECREF(todecref);
+	return 0;
+    }
+
+    if (get_option_value_strict(key, NULL, NULL, self->opt_type, NULL))
+    {
+	Py_XDECREF(todecref);
+	return 1;
+    }
+    else
+    {
+	Py_XDECREF(todecref);
+	return 0;
+    }
+}
+
+typedef struct
+{
+    void	*lastoption;
+    int		opt_type;
+} optiterinfo_T;
+
+    static PyObject *
+OptionsIterNext(optiterinfo_T **oii)
+{
+    char_u	*name;
+
+    if ((name = option_iter_next(&((*oii)->lastoption), (*oii)->opt_type)))
+	return PyString_FromString((char *)name);
+
+    return NULL;
+}
+
+    static PyObject *
+OptionsIter(OptionsObject *self)
+{
+    optiterinfo_T	*oii;
+
+    if (!(oii = PyMem_New(optiterinfo_T, 1)))
+    {
+	PyErr_NoMemory();
+	return NULL;
+    }
+
+    oii->opt_type = self->opt_type;
+    oii->lastoption = NULL;
+
+    return IterNew(oii,
+	    (destructorfun) PyMem_Free, (nextfun) OptionsIterNext,
+	    NULL, NULL);
 }
 
     static int
@@ -2983,11 +3279,14 @@ OptionsAssItem(OptionsObject *self, PyObject *keyObject, PyObject *valObject)
     else
     {
 	char_u		*val;
-	PyObject	*todecref;
+	PyObject	*todecref2;
 
-	if ((val = StringToChars(valObject, &todecref)))
+	if ((val = StringToChars(valObject, &todecref2)))
+	{
 	    ret = set_option_value_for(key, 0, val, opt_flags,
 				    self->opt_type, self->from);
+	    Py_XDECREF(todecref2);
+	}
 	else
 	    ret = -1;
     }
@@ -2996,6 +3295,19 @@ OptionsAssItem(OptionsObject *self, PyObject *keyObject, PyObject *valObject)
 
     return ret;
 }
+
+static PySequenceMethods OptionsAsSeq = {
+    0,					/* sq_length */
+    0,					/* sq_concat */
+    0,					/* sq_repeat */
+    0,					/* sq_item */
+    0,					/* sq_slice */
+    0,					/* sq_ass_item */
+    0,					/* sq_ass_slice */
+    (objobjproc) OptionsContains,	/* sq_contains */
+    0,					/* sq_inplace_concat */
+    0,					/* sq_inplace_repeat */
+};
 
 static PyMappingMethods OptionsAsMapping = {
     (lenfunc)       NULL,
@@ -5887,8 +6199,10 @@ init_structs(void)
     vim_memset(&OptionsType, 0, sizeof(OptionsType));
     OptionsType.tp_name = "vim.options";
     OptionsType.tp_basicsize = sizeof(OptionsObject);
+    OptionsType.tp_as_sequence = &OptionsAsSeq;
     OptionsType.tp_flags = Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_GC;
     OptionsType.tp_doc = "object for manipulating options";
+    OptionsType.tp_iter = (getiterfunc)OptionsIter;
     OptionsType.tp_as_mapping = &OptionsAsMapping;
     OptionsType.tp_dealloc = (destructor)OptionsDestructor;
     OptionsType.tp_traverse = (traverseproc)OptionsTraverse;

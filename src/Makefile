@@ -2397,6 +2397,7 @@ shadow:	runtime pixmaps
 				 ../../testdir/*.in \
 				 ../../testdir/*.vim \
 				 ../../testdir/python* \
+				 ../../testdir/sautest \
 				 ../../testdir/test83-tags? \
 				 ../../testdir/*.ok .
 

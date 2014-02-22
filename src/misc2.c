@@ -487,7 +487,7 @@ get_cursor_rel_lnum(wp, lnum)
 	{
 	    while (lnum > cursor)
 	    {
-		(void)hasFolding(lnum, &lnum, NULL);
+		(void)hasFoldingWin(wp, lnum, &lnum, NULL, TRUE, NULL);
 		/* if lnum and cursor are in the same fold,
 		 * now lnum <= cursor */
 		if (lnum > cursor)
@@ -499,7 +499,7 @@ get_cursor_rel_lnum(wp, lnum)
 	{
 	    while (lnum < cursor)
 	    {
-		(void)hasFolding(lnum, NULL, &lnum);
+		(void)hasFoldingWin(wp, lnum, NULL, &lnum, TRUE, NULL);
 		/* if lnum and cursor are in the same fold,
 		 * now lnum >= cursor */
 		if (lnum < cursor)
@@ -4701,8 +4701,8 @@ vim_findfile_init(path, filename, stopdirs, level, free_visited, find_what,
 	else
 	{
 	    char_u *p =  gettail(search_ctx->ffsc_fix_path);
-	    char_u *wc_path = NUL;
-	    char_u *temp = NUL;
+	    char_u *wc_path = NULL;
+	    char_u *temp = NULL;
 	    int    len = 0;
 
 	    if (p > search_ctx->ffsc_fix_path)
