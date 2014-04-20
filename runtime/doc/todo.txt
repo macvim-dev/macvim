@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.4.  Last change: 2014 Feb 11
+*todo.txt*      For Vim version 7.4.  Last change: 2014 Apr 05
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -34,12 +34,9 @@ not be repeated below, unless there is extra information.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-When 'paste' is changed with 'pastetoggle', the ruler doesn't reflect this
-right away. (Samuel Ferencik, 2010 Dec 7)
-Patch to fix that status line isn't redrawn when 'pastetoggle' is set.
-(Nobuhiro Takasaki, 2014 Feb 11)
-
 Regexp problems:
+- Crash when using cpp syntax file with raw string. (Havard Garnes)
+  Edit "~/tmp/test.cc" and source "~/tmp/cpp.vim".
 - NFA regexp doesn't count tab matches correctly. (Urtica Dioica / gaultheria
   Shallon, 2013 Nov 18)
 - After patch 7.4.100 there is still a difference between NFA and old engine.
@@ -54,7 +51,7 @@ Regexp problems:
 - Using \@> and \?. (Brett Stahlman, 2013 Dec 21) Remark from Marcin Szamotulski
   Remark from Brett 2014 Jan 6 and 7.
 - Bug with back references. (Lech Lorens, 2014 Feb 3)
-- Bug when using \>. (Ramel, 2014 Feb 2)
+- Bug when using \>. (Ramel, 2014 Feb 2) (Aaron Bohannon, 2014 Feb 13)
 
 Problem that a previous silent ":throw" causes a following try/catch not to
 work. (ZyX, 2013 Sep 28)
@@ -62,74 +59,113 @@ work. (ZyX, 2013 Sep 28)
 ":cd C:\Windows\System32\drivers\etc*" does not work, even though the
 directory exists. (Sergio Gallelli, 2013 Dec 29)
 
-Patch 7.4.085 breaks Visual insert in some situations. (Issue 193)
-Patch by Christian Brabandt, 2014 Jan 16.
+It is possible to define a function with a colon in the name.
+"g:" is not recognized as it should.  (zyx, 2014 Mar 16)
+Do some plugins use names with a colon?  Disallow it, but ignore the error
+when an option is set?
+
+":lunmap" cannot be abbrevated to ":lu". (ZyX)
 
 Problem using ":try" inside ":execute". (ZyX, 2013 Sep 15)
 
-Update for Clojure ftplugin. (Sung Pae).  Await discussion about formatting in
-ftplugins.
-
 Python: ":py raw_input('prompt')" doesn't work. (Manu Hack)
 
-Patch to make "J" set '[ and '] marks. (Christian Brabandt, 2013 Dec 11)
-Any compatibility problems?
+Crash in setqflist(). (Benoit Mortgat, 2010 Nov 18)
 
-Patch to add :S modifier for excaping the current file name.
-(ZyX, 2013 Nov 30)  Update Dec 5.
+MS-Windows: Crash opening very long file name starting with "\\".
+(Christian Brock, 2012 Jun 29)
 
-Issu 197: ]P doesn't paste over Visual selection.  With patch from Christian
-Brabandt, Feb 6.
+Crash in autocmd that unloads buffers in a BufUnload event. (Andrew Pimlott,
+2012 Aug 11)  Disallow :new when BufUnload is being handled?
+
+Spell files use a latin single quote.  Unicode also has another single quote.
+Adjust spell file scripts to duplicate words to support both quotes.
+(Ron Aaron, 2014 Apr 4)
 
 Problem with 'spellsuggest' file, only works for some words.
 (Cesar Romani, 2013 Aug 20)  Depends on file name? (Aug 24)
 Additional remark by glts: the suggested words are marked bad?
 
-8   non-ASCII font names don't work.  Need to convert from 'encoding' and use
-    the wide functions. Patch by Ken Takata, 2013 Dec 22.
-    Update 2014 Jan 6.
-
 Syntax highlighting slow (hangs) in SASS file. (Niek Bosch, 2013 Aug 21)
-
-Patch for mksession. (Nobuhiro Takasaki, 2014 Jan 31)
-Also fixes another problem (following email)
 
 Adding "~" to 'cdpath' doesn't work for completion?  (Davido, 2013 Aug 19)
 
-Crash with ":%s/\n//g" on long file. (Aidan Marlin, 2014 Jan 15)
-Christian Brabandt: patch to run this into a join. (2014 Jan 18)
-Suggestion to not save replaced line for undo: Yukihiro Nakadaira, 2014 Jan
-25.
+Syntax file for gnuplot.  Existing one is very old. (Andrew Rasmussen, 2014
+Feb 24)
 
 Add digraph for Rouble: =P.  What's the Unicode?
 
 Issue 174: Detect Mason files.
 
+No error for missing endwhile. (ZyX, 2014 Mar 20)
+
 Phpcomplete.vim update. (Complex, 2014 Jan 15)
 
 PHP syntax is extremely slow. (Anhad Jai Singh, 2014 Jan 19)
 
+Win32: use different args for SearchPath()? (Yasuhiro Matsumoto, 2009 Jan 30)
+Also fixes wrong result from executable().
+Update from Ken Takata, 2014 Jan 10. Newer 2014 Apr 3.
+
 Can we make ":unlet $VAR" use unsetenv() to delete the env var?
 What for systems that don't have unsetenv()?
 
-spec ftplugin: patch from Igor Gnatenko, 2014 Jan 26.
-Include if maintainers don't respond.
+This does not give an error: (Andre Sihera, 2014 Mar 21)
+    vim -u NONE 1 2 3 -c 'bufdo if 1 | echo 1'
+This neither: (ZyX)
+    vim -u NONE 1 2 3 -c 'bufdo while 1 | echo 1'
 
-Patch to make has() check for Vim version and patch at the same time.
-(Marc Weber, 2013 Jun 7)
+'viewdir' default on MS-Windows is not a good choice, it's a system directory.
+Change 'viewdir' to "$HOME/vimfiles/view" and use 'viewdiralt' to also read
+from?
 
-Regression on pach 7.4.034. (Ingo Karkat, 2013 Nov 20)
+Include a plugin manager with Vim? Neobundle seems to be the best currently.
+Long message about this from ZyX, 2014 Mar 23.  And following replies.
+Also see http://vim-wiki.mawercer.de/wiki/topic/vim%20plugin%20managment.html
+User view:
+- Support multiple sources, basically any http:// URL.  Be able to look into
+  the files before deciding to install.
+- Be able to try out a plugin and remove it again with (almost) no traces.
+- Each plugin needs a "manifest" file that has the version, dependencies
+  (including Vim version and features), conflicts, list of files, etc.
+  Updater uses that to decide what/how to update.
+  Dependencies can use a URL for specific versions, or short name for scripts
+  on vim.org.
+- Once a plugin is installed it remembers where it came from, updater checks
+  there.  Can manually update when really needed.
+- Must be possible to install for one user.  Also system wide?
+- Can edit plugin config with Vim. Can temporarily disable a plugin.
+- Run the update manually, find latest version and install.
+- Be able to download without special tools, must work for 95% of users.
+Implementation:
+- Avoid the 'runtimepath' getting long.  Need some other way to keep each
+  plugin separate.
+- When installing or updating, first figure out what needs to be done. This
+  may involve recursively fetching manifest files for dependencies.  Then show
+  the user what's going to change and ask for OK.
+- Scripts on Vim.org must be able to consist of several files.  Is zip format
+  sufficient?  Upload the manifest?  Or refer to a site that has the manifest?
+- Best is to fetch individual files or use a Vimball. Reduces dependency on
+  tools that might be missing and allows inspection of the files before
+  installing.
+Out of scope:
+- Overview of plugins, ratings, comments, etc.  That's another world.
+- Development work on plugins (although diff with distributed version would be
+  useful).
 
-Patch to include smack support (Linux security library). (Jose Bollo, 2014 Jan
-14) Update Jan 15.
+Setting the spell file in a session only reads the local additions, not the
+normal spell file. (Enno Nagel, 2014 Mar 29)
 
-Tag list, as used for :tjump, does not unescape regexp. (Gary Johnson, 2014 Jan
-6) With patch in another message.
+Editing an ascii file as ucs-2 or ucs-4 causes display errors.
+(ZyX, 2014 Mar 30)
+
+":Next 1 some-arg" does not complain about trailing argument.  Also for
+various other commands.  (ZyX, 2014 Mar 30)
 
 VMS: Select() doesn't work properly, typing ESC may hang Vim.  Use sys$qiow
 instead. (Samuel Ferencik, 2013 Sep 28)
 
-Series of patches for NL vs NUL handling. (ZyX, 2013 Nov 3, Nov 9)
+Patch for XDG base directory support. (Jean François Bignolles, 2014 Mar 4)
 
 Patch to add flag to shortmess to avoid giving completion messages.
 (Shougo Matsu, 2014 Jan 6, update Jan 11)
@@ -139,6 +175,9 @@ Patch to add v:completed_item. (Shougo Matsu, 2013 Nov 29).
 Patch to make test 100 work on MS-Windows. (Taro Muraoka, 2013 Dec 12)
 
 Patch to define macros for hardcoded values. (Elias Diem, 2013 Dec 14)
+
+Patch to add sortuniq(). (Cade Forester, 2014 Mar 19)
+Or add uniq() instead?  Patch by lcd47, but it has problems.
 
 Perl: support for Activestate perl 5.18: Issue 170.
 
@@ -150,9 +189,15 @@ Issue 28.
 
 Go through more coverity reports.
 
+Patch to add ":undorecover", get as much text out of the undo file as
+possible. (Christian Brabandt, 2014 Mar 12)
+
 Include Haiku port? (Adrien Destugues, Siarzhuk Zharski, 2013 Oct 24)
 
 Updated spec ftplugin. (Matěj Cepl, 2013 Oct 16)
+
+Some quickfix messages appear twice. (Gary Johnson, 2014 Feb 16)
+Patch by Christian Brabandt, 2014 Feb 17.
 
 Patch to right-align signs. (James Kolb (email james), 2013 Sep 23)
 
@@ -161,8 +206,8 @@ Patch to handle integer overflow. (Aaron Burrow, 2013 Dec 12)
 With "$" in 'cpoptions' the popup menu isn't fully drawn. (Matti Niemenmaa,
 2013 Sep 5)
 
-Patch to add item in 'listchars' to repeat first character. (Nathaniel Braun,
-pragm, 2013 Oct 13)
+Patch to add "ntab" item in 'listchars' to repeat first character. (Nathaniel
+Braun, pragm, 2013 Oct 13)  A better solution 2014 Mar 5.
 
 Undo message is not always properly displayed.  Patch by Ken Takata, 2013 oct
 3.  Doesn't work properly according to Yukihiro Nakadaira.
@@ -214,10 +259,6 @@ GTK: problem with 'L' in 'guioptions' changing the window width.
 
 Patch to add option that tells whether small deletes go into the numbered
 registers. (Aryeh Leib Taurog, 2013 Nov 18)
-
-Win32: use different args for SearchPath()? (Yasuhiro Matsumoto, 2009 Jan 30)
-Also fixes wrong result from executable().
-Update from Ken Takata, 2014 Jan 10.
 
 Javascript file where indent gets stuck on: GalaxyMaster, 2012 May 3.
 
@@ -319,12 +360,10 @@ In the ATTENTION message about an existing swap file, mention the name of the
 process that is running.  It might actually be some other program, e.g. after
 a reboot.
 
-MS-Windows: Crash opening very long file name starting with "\\".
-(Christian Brock, 2012 Jun 29)
-
 Patch to have text objects defined by arbitrary single characters. (Daniel
 Thau, 2013 Nov 20, 2014 Jan 29, 2014 Jan 31)
 Ben Fritz: problem with 'selection' set to "exclusive".
+Updated to current Vim, not quite right yet. (Ben Fritz, 2014 Mar 27)
 
 Patch to select the next or previous text object if there isn't one under the
 cursor. (Daniel Thau, 2013 Nov 20)
@@ -390,9 +429,6 @@ Saito, 2013 Apr 24)
 Should be possible to enable/disable matchparen per window or buffer.
 Add a check for b:no_match_paren in Highlight_matching_Pair() (Marcin
 Szamotulski, 2012 Nov 8)
-
-Crash in autocmd that unloads buffers in a BufUnload event. (Andrew Pimlott,
-2012 Aug 11)  Disallow :new when BufUnload is being handled?
 
 Issue 72: 'autochdir' causes problems for :vimgrep.
 
@@ -804,8 +840,6 @@ Patch: Let rare word highlighting overrule good word highlighting.
 
 When 'lines' is 25 and 'scrolloff' is 12, "j" scrolls zero or two lines
 instead of one. (Constantin Pan, 2010 Sep 10)
-
-Crash in setqflist(). (Benoit Mortgat, 2010 Nov 18)
 
 Gui menu edit/paste in block mode insert only inserts in one line (Bjorn
 Winckler, 2011 May 11)
@@ -1473,9 +1507,6 @@ Win32: patch for fullscreen mode. (Liushaolin, 2008 April 17)
 Win32: When 'shell' is bash shellescape() doesn't always do the right thing.
 Depends on 'shellslash', 'shellquote' and 'shellxquote', but shellescape()
 only takes 'shellslash' into account.
-
-Pressing the 'pastetoggle' key doesn't update the statusline. (Jan Christoph
-Ebersbach, 2008 Feb 1)
 
 Menu item that does "xxd -r" doesn't work when 'fileencoding' is utf-16.
 Check for this and use iconv?  (Edward L. Fox, 2007 Sep 12)
@@ -2743,8 +2774,6 @@ Problems that will (probably) not be solved:
     input method called from GDK code.  Without Perl it doesn't crash.
 -   VMS: Vimdiff doesn't work with the VMS diff, because the output looks
     different.  This makes test 47 fail.  Install a Unix-compatible diff.
--   VMS v7.1 and older: Tests 21 and 32 fail.  From VMS v7.1-2 and newer Vim
-    does not have this behavior. (Zoltan Arpadffy)
 -   Win32 GUI: mouse wheel always scrolls rightmost window.  The events arrive
     in Vim as if the rightmost scrollbar was used.
 -   GTK with Gnome: Produces an error message when starting up:
@@ -4209,8 +4238,7 @@ Insert mode:
 7   Use Tabs for the indent of starting lines, pad with spaces for
     continuation lines.  Allows changing 'tabstop' without messing up the
     indents.
-    'keeptabs': when set don't change the tabs and spaces used for indent,
-    when the indent remains the same or increases.
+    Patch by Lech Lorens, 2010 Mar.  Update by James McCoy, 2014 Mar 15.
 
 
 Java:

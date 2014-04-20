@@ -1185,7 +1185,7 @@ retry:
 	 * The amount is limited by the fact that read() only can read
 	 * upto max_unsigned characters (and other things).
 	 */
-#if SIZEOF_INT <= 2
+#if VIM_SIZEOF_INT <= 2
 	if (linerest >= 0x7ff0)
 	{
 	    ++split;
@@ -1197,7 +1197,7 @@ retry:
 	{
 	    if (!skip_read)
 	    {
-#if SIZEOF_INT > 2
+#if VIM_SIZEOF_INT > 2
 # if defined(SSIZE_MAX) && (SSIZE_MAX < 0x10000L)
 		size = SSIZE_MAX;		    /* use max I/O size, 52K */
 # else
@@ -4030,7 +4030,7 @@ buf_write(buf, fname, sfname, start, end, eap, append, forceit,
 						)
 			    mch_setperm(backup,
 					  (perm & 0707) | ((perm & 07) << 3));
-# ifdef HAVE_SELINUX
+# if defined(HAVE_SELINUX) || defined(HAVE_SMACK)
 			mch_copy_sec(fname, backup);
 # endif
 #endif
@@ -4069,7 +4069,7 @@ buf_write(buf, fname, sfname, start, end, eap, append, forceit,
 #ifdef HAVE_ACL
 			mch_set_acl(backup, acl);
 #endif
-#ifdef HAVE_SELINUX
+#if defined(HAVE_SELINUX) || defined(HAVE_SMACK)
 			mch_copy_sec(fname, backup);
 #endif
 			break;
@@ -4718,7 +4718,7 @@ restore_backup:
     }
 #endif
 
-#ifdef HAVE_SELINUX
+#if defined(HAVE_SELINUX) || defined(HAVE_SMACK)
     /* Probably need to set the security context. */
     if (!backup_copy)
 	mch_copy_sec(backup, wfname);
@@ -5298,7 +5298,7 @@ msg_add_lines(insert_space, lnum, nchars)
     if (shortmess(SHM_LINES))
 	sprintf((char *)p,
 #ifdef LONG_LONG_OFF_T
-		"%ldL, %lldC", lnum, nchars
+		"%ldL, %lldC", lnum, (long long)nchars
 #else
 		/* Explicit typecast avoids warning on Mac OS X 10.6 */
 		"%ldL, %ldC", lnum, (long)nchars
@@ -5316,7 +5316,7 @@ msg_add_lines(insert_space, lnum, nchars)
 	else
 	    sprintf((char *)p,
 #ifdef LONG_LONG_OFF_T
-		    _("%lld characters"), nchars
+		    _("%lld characters"), (long long)nchars
 #else
 		    /* Explicit typecast avoids warning on Mac OS X 10.6 */
 		    _("%ld characters"), (long)nchars
@@ -6712,7 +6712,7 @@ vim_rename(from, to)
     mch_set_acl(to, acl);
     mch_free_acl(acl);
 #endif
-#ifdef HAVE_SELINUX
+#if defined(HAVE_SELINUX) || defined(HAVE_SMACK)
     mch_copy_sec(from, to);
 #endif
     if (errmsg != NULL)
@@ -7597,7 +7597,7 @@ vim_tempname(extra_char)
     p = (char_u *)tempnam("tmp:", (char *)itmp);
     if (p != NULL)
     {
-	/* VMS will use '.LOG' if we don't explicitly specify an extension,
+	/* VMS will use '.LIS' if we don't explicitly specify an extension,
 	 * and VIM will then be unable to find the file later */
 	STRCPY(itmp, p);
 	STRCAT(itmp, ".txt");
@@ -9586,13 +9586,19 @@ apply_autocmds_group(event, fname, fname_io, force, group, buf, eap)
 
     /*
      * When stopping to execute autocommands, restore the search patterns and
-     * the redo buffer.
+     * the redo buffer.  Free buffers in the au_pending_free_buf list.
      */
     if (!autocmd_busy)
     {
 	restore_search_patterns();
 	restoreRedobuff();
 	did_filetype = FALSE;
+	while (au_pending_free_buf != NULL)
+	{
+	    buf_T *b = au_pending_free_buf->b_next;
+	    vim_free(au_pending_free_buf);
+	    au_pending_free_buf = b;
+	}
     }
 
     /*

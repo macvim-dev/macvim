@@ -31,9 +31,7 @@ virtual_active()
     if (virtual_op != MAYBE)
 	return virtual_op;
     return (ve_flags == VE_ALL
-# ifdef FEAT_VISUAL
 	    || ((ve_flags & VE_BLOCK) && VIsual_active && VIsual_mode == Ctrl_V)
-# endif
 	    || ((ve_flags & VE_INSERT) && (State & INSERT)));
 }
 
@@ -149,9 +147,7 @@ coladvance2(pos, addspaces, finetune, wcol)
 
     one_more = (State & INSERT)
 		    || restart_edit != NUL
-#ifdef FEAT_VISUAL
 		    || (VIsual_active && *p_sel != 'o')
-#endif
 #ifdef FEAT_VIRTUALEDIT
 		    || ((ve_flags & VE_ONEMORE) && wcol < MAXCOL)
 #endif
@@ -570,9 +566,7 @@ check_cursor_col_win(win)
 	 * - in Visual mode and 'selection' isn't "old"
 	 * - 'virtualedit' is set */
 	if ((State & INSERT) || restart_edit
-#ifdef FEAT_VISUAL
 		|| (VIsual_active && *p_sel != 'o')
-#endif
 #ifdef FEAT_VIRTUALEDIT
 		|| (ve_flags & VE_ONEMORE)
 #endif
@@ -627,9 +621,7 @@ check_cursor()
 adjust_cursor_col()
 {
     if (curwin->w_cursor.col > 0
-# ifdef FEAT_VISUAL
 	    && (!VIsual_active || *p_sel == 'o')
-# endif
 	    && gchar_cursor() == NUL)
 	--curwin->w_cursor.col;
 }
@@ -1369,12 +1361,14 @@ csh_like_shell()
  * Escape a newline, depending on the 'shell' option.
  * When "do_special" is TRUE also replace "!", "%", "#" and things starting
  * with "<" like "<cfile>".
+ * When "do_newline" is FALSE do not escape newline unless it is csh shell.
  * Returns the result in allocated memory, NULL if we have run out.
  */
     char_u *
-vim_strsave_shellescape(string, do_special)
+vim_strsave_shellescape(string, do_special, do_newline)
     char_u	*string;
     int		do_special;
+    int		do_newline;
 {
     unsigned	length;
     char_u	*p;
@@ -1403,7 +1397,8 @@ vim_strsave_shellescape(string, do_special)
 # endif
 	if (*p == '\'')
 	    length += 3;		/* ' => '\'' */
-	if (*p == '\n' || (*p == '!' && (csh_like || do_special)))
+	if ((*p == '\n' && (csh_like || do_newline))
+		|| (*p == '!' && (csh_like || do_special)))
 	{
 	    ++length;			/* insert backslash */
 	    if (csh_like && do_special)
@@ -1454,7 +1449,8 @@ vim_strsave_shellescape(string, do_special)
 		++p;
 		continue;
 	    }
-	    if (*p == '\n' || (*p == '!' && (csh_like || do_special)))
+	    if ((*p == '\n' && (csh_like || do_newline))
+		    || (*p == '!' && (csh_like || do_special)))
 	    {
 		*d++ = '\\';
 		if (csh_like && do_special)
@@ -3292,17 +3288,14 @@ get_real_state()
 {
     if (State & NORMAL)
     {
-#ifdef FEAT_VISUAL
 	if (VIsual_active)
 	{
 	    if (VIsual_select)
 		return SELECTMODE;
 	    return VISUAL;
 	}
-	else
-#endif
-	    if (finish_op)
-		return OP_PENDING;
+	else if (finish_op)
+	    return OP_PENDING;
     }
     return State;
 }
@@ -3740,7 +3733,6 @@ get_shape_idx(mouse)
     }
     if (finish_op)
 	return SHAPE_IDX_O;
-#ifdef FEAT_VISUAL
     if (VIsual_active)
     {
 	if (*p_sel == 'e')
@@ -3748,7 +3740,6 @@ get_shape_idx(mouse)
 	else
 	    return SHAPE_IDX_V;
     }
-#endif
     return SHAPE_IDX_N;
 }
 #endif

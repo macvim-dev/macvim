@@ -318,7 +318,6 @@ static void	ex_winpos __ARGS((exarg_T *eap));
 static void	ex_operators __ARGS((exarg_T *eap));
 static void	ex_put __ARGS((exarg_T *eap));
 static void	ex_copymove __ARGS((exarg_T *eap));
-static void	ex_may_print __ARGS((exarg_T *eap));
 static void	ex_submagic __ARGS((exarg_T *eap));
 static void	ex_join __ARGS((exarg_T *eap));
 static void	ex_at __ARGS((exarg_T *eap));
@@ -1881,18 +1880,23 @@ do_one_cmd(cmdlinep, sourcing,
 #endif
 			continue;
 
-	    case 'n':	if (!checkforcmd(&ea.cmd, "noautocmd", 3))
-			    break;
-#ifdef FEAT_AUTOCMD
-			if (cmdmod.save_ei == NULL)
+	    case 'n':	if (checkforcmd(&ea.cmd, "noautocmd", 3))
 			{
-			    /* Set 'eventignore' to "all". Restore the
-			     * existing option value later. */
-			    cmdmod.save_ei = vim_strsave(p_ei);
-			    set_string_option_direct((char_u *)"ei", -1,
+#ifdef FEAT_AUTOCMD
+			    if (cmdmod.save_ei == NULL)
+			    {
+				/* Set 'eventignore' to "all". Restore the
+				 * existing option value later. */
+				cmdmod.save_ei = vim_strsave(p_ei);
+				set_string_option_direct((char_u *)"ei", -1,
 					 (char_u *)"all", OPT_FREE, SID_NONE);
-			}
+			    }
 #endif
+			    continue;
+			}
+			if (!checkforcmd(&ea.cmd, "noswapfile", 6))
+			    break;
+			cmdmod.noswapfile = TRUE;
 			continue;
 
 	    case 'r':	if (!checkforcmd(&ea.cmd, "rightbelow", 6))
@@ -2603,6 +2607,8 @@ do_one_cmd(cmdlinep, sourcing,
 	    case CMD_lua:
 	    case CMD_match:
 	    case CMD_mzscheme:
+	    case CMD_noautocmd:
+	    case CMD_noswapfile:
 	    case CMD_perl:
 	    case CMD_psearch:
 	    case CMD_python:
@@ -3106,6 +3112,7 @@ static struct cmdmod
     {"leftabove", 5, FALSE},
     {"lockmarks", 3, FALSE},
     {"noautocmd", 3, FALSE},
+    {"noswapfile", 3, FALSE},
     {"rightbelow", 6, FALSE},
     {"sandbox", 3, FALSE},
     {"silent", 3, FALSE},
@@ -3618,6 +3625,8 @@ set_one_cmd_context(xp, buff)
 	case CMD_keeppatterns:
 	case CMD_leftabove:
 	case CMD_lockmarks:
+	case CMD_noautocmd:
+	case CMD_noswapfile:
 	case CMD_rightbelow:
 	case CMD_sandbox:
 	case CMD_silent:
@@ -4588,25 +4597,15 @@ expand_filename(eap, cmdlinep, errormsgp)
 
 	/* For a shell command a '!' must be escaped. */
 	if ((eap->usefilter || eap->cmdidx == CMD_bang)
-			    && vim_strpbrk(repl, (char_u *)"!&;()<>") != NULL)
+			    && vim_strpbrk(repl, (char_u *)"!") != NULL)
 	{
 	    char_u	*l;
 
-	    l = vim_strsave_escaped(repl, (char_u *)"!&;()<>");
+	    l = vim_strsave_escaped(repl, (char_u *)"!");
 	    if (l != NULL)
 	    {
 		vim_free(repl);
 		repl = l;
-		/* For a sh-like shell escape "!" another time. */
-		if (strstr((char *)p_sh, "sh") != NULL)
-		{
-		    l = vim_strsave_escaped(repl, (char_u *)"!");
-		    if (l != NULL)
-		    {
-			vim_free(repl);
-			repl = l;
-		    }
-		}
 	    }
 	}
 
@@ -4859,7 +4858,7 @@ getargcmd(argp)
     if (*arg == '+')	    /* +[command] */
     {
 	++arg;
-	if (vim_isspace(*arg))
+	if (vim_isspace(*arg) || *arg == NUL)
 	    command = dollar_command;
 	else
 	{
@@ -7946,6 +7945,8 @@ do_exedit(eap, old_curwin)
 					       ? ECMD_ONE : eap->do_ecmd_lnum,
 		    (P_HID(curbuf) ? ECMD_HIDE : 0)
 		    + (eap->forceit ? ECMD_FORCEIT : 0)
+		      /* after a split we can use an existing buffer */
+		    + (old_curwin != NULL ? ECMD_OLDBUF : 0)
 #ifdef FEAT_LISTCMDS
 		    + (eap->cmdidx == CMD_badd ? ECMD_ADDBUF : 0 )
 #endif
@@ -8596,10 +8597,8 @@ ex_operators(eap)
 	beginline(BL_SOL | BL_FIX);
     }
 
-#if defined(FEAT_VISUAL)
     if (VIsual_active)
 	end_visual_mode();
-#endif
 
     switch (eap->cmdidx)
     {
@@ -8692,7 +8691,7 @@ ex_copymove(eap)
 /*
  * Print the current line if flags were given to the Ex command.
  */
-    static void
+    void
 ex_may_print(eap)
     exarg_T	*eap;
 {
@@ -9010,11 +9009,7 @@ ex_redraw(eap)
     RedrawingDisabled = 0;
     p_lz = FALSE;
     update_topline();
-    update_screen(eap->forceit ? CLEAR :
-#ifdef FEAT_VISUAL
-	    VIsual_active ? INVERTED :
-#endif
-	    0);
+    update_screen(eap->forceit ? CLEAR : VIsual_active ? INVERTED : 0);
 #ifdef FEAT_TITLE
     if (need_maketitle)
 	maketitle();
@@ -9049,11 +9044,7 @@ ex_redrawstatus(eap)
 	status_redraw_all();
     else
 	status_redraw_curbuf();
-    update_screen(
-# ifdef FEAT_VISUAL
-	    VIsual_active ? INVERTED :
-# endif
-	    0);
+    update_screen(VIsual_active ? INVERTED : 0);
     RedrawingDisabled = r;
     p_lz = p;
     out_flush();
@@ -10400,7 +10391,7 @@ makeopens(fd, dirnow)
     }
 
     /* the global argument list */
-    if (ses_arglist(fd, "args", &global_alist.al_ga,
+    if (ses_arglist(fd, "argglobal", &global_alist.al_ga,
 			    !(ssop_flags & SSOP_CURDIR), &ssop_flags) == FAIL)
 	return FAIL;
 
@@ -10982,9 +10973,9 @@ ses_arglist(fd, cmd, gap, fullname, flagp)
     char_u	*buf = NULL;
     char_u	*s;
 
-    if (gap->ga_len == 0)
-	return put_line(fd, "silent! argdel *");
-    if (fputs(cmd, fd) < 0)
+    if (fputs(cmd, fd) < 0 || put_eol(fd) == FAIL)
+	return FAIL;
+    if (put_line(fd, "silent! argdel *") == FAIL)
 	return FAIL;
     for (i = 0; i < gap->ga_len; ++i)
     {
@@ -11001,7 +10992,9 @@ ses_arglist(fd, cmd, gap, fullname, flagp)
 		    s = buf;
 		}
 	    }
-	    if (fputs(" ", fd) < 0 || ses_put_fname(fd, s, flagp) == FAIL)
+	    if (fputs("argadd ", fd) < 0
+		    || ses_put_fname(fd, s, flagp) == FAIL
+		    || put_eol(fd) == FAIL)
 	    {
 		vim_free(buf);
 		return FAIL;
@@ -11009,7 +11002,7 @@ ses_arglist(fd, cmd, gap, fullname, flagp)
 	    vim_free(buf);
 	}
     }
-    return put_eol(fd);
+    return OK;
 }
 
 /*

@@ -751,7 +751,10 @@ restofline:
 		fmt_start = fmt_ptr;
 
 	    if (vim_strchr((char_u *)"AEWI", idx) != NULL)
+	    {
 		multiline = TRUE;	/* start of a multi-line message */
+		multiignore = FALSE;	/* reset continuation */
+	    }
 	    else if (vim_strchr((char_u *)"CZ", idx) != NULL)
 	    {				/* continuation of multi-line msg */
 		if (qfprev == NULL)
@@ -2344,9 +2347,7 @@ ex_copen(eap)
     else
 	height = QF_WINHEIGHT;
 
-#ifdef FEAT_VISUAL
     reset_VIsual_and_resel();			/* stop Visual mode */
-#endif
 #ifdef FEAT_GUI
     need_mouse_correct = TRUE;
 #endif
@@ -2357,7 +2358,22 @@ ex_copen(eap)
     win = qf_find_win(qi);
 
     if (win != NULL && cmdmod.tab == 0)
+    {
 	win_goto(win);
+	if (eap->addr_count != 0)
+	{
+#ifdef FEAT_VERTSPLIT
+	    if (cmdmod.split & WSP_VERT)
+	    {
+		if (height != W_WIDTH(win))
+		    win_setwidth(height);
+	    }
+	    else
+#endif
+	    if (height != win->w_height)
+		win_setheight(height);
+	}
+    }
     else
     {
 	qf_buf = qf_find_buf(qi);

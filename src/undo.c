@@ -532,9 +532,7 @@ u_savecommon(top, bot, newbot, reload)
 
 	/* save named marks and Visual marks for undo */
 	mch_memmove(uhp->uh_namedm, curbuf->b_namedm, sizeof(pos_T) * NMARKS);
-#ifdef FEAT_VISUAL
 	uhp->uh_visual = curbuf->b_visual;
-#endif
 
 	curbuf->b_u_newhead = uhp;
 	if (curbuf->b_u_oldhead == NULL)
@@ -790,9 +788,20 @@ u_get_undo_file_name(buf_ffname, reading)
 	    if (undo_file_name == NULL)
 		break;
 	    p = gettail(undo_file_name);
+#ifdef VMS
+	    /* VMS can not handle more than one dot in the filenames
+	     * use "dir/name" -> "dir/_un_name" - add _un_
+	     * at the beginning to keep the extension */
+	    mch_memmove(p + 4,  p, STRLEN(p) + 1);
+	    mch_memmove(p, "_un_", 4);
+
+#else
+	    /* Use same directory as the ffname,
+	     * "dir/name" -> "dir/.name.un~" */
 	    mch_memmove(p + 1, p, STRLEN(p) + 1);
 	    *p = '.';
 	    STRCAT(p, ".un~");
+#endif
 	}
 	else
 	{
@@ -1003,16 +1012,7 @@ serialize_uhp(fp, buf, uhp)
     /* Assume NMARKS will stay the same. */
     for (i = 0; i < NMARKS; ++i)
 	serialize_pos(uhp->uh_namedm[i], fp);
-#ifdef FEAT_VISUAL
     serialize_visualinfo(&uhp->uh_visual, fp);
-#else
-    {
-	visualinfo_T info;
-
-	memset(&info, 0, sizeof(visualinfo_T));
-	serialize_visualinfo(&info, fp);
-    }
-#endif
     put_time(fp, uhp->uh_time);
 
     /* Optional fields. */
@@ -1071,14 +1071,7 @@ unserialize_uhp(fp, file_name)
     uhp->uh_flags = get2c(fp);
     for (i = 0; i < NMARKS; ++i)
 	unserialize_pos(&uhp->uh_namedm[i], fp);
-#ifdef FEAT_VISUAL
     unserialize_visualinfo(&uhp->uh_visual, fp);
-#else
-    {
-	visualinfo_T info;
-	unserialize_visualinfo(&info, fp);
-    }
-#endif
     uhp->uh_time = get8ctime(fp);
 
     /* Optional fields. */
@@ -1462,7 +1455,7 @@ u_write_undo(name, forceit, buf, hash)
 # endif
        )
 	mch_setperm(file_name, (perm & 0707) | ((perm & 07) << 3));
-# ifdef HAVE_SELINUX
+# if defined(HAVE_SELINUX) || defined(HAVE_SMACK)
     if (buf->b_ffname != NULL)
 	mch_copy_sec(buf->b_ffname, file_name);
 # endif
@@ -2395,9 +2388,7 @@ u_undoredo(undo)
     int		old_flags;
     int		new_flags;
     pos_T	namedm[NMARKS];
-#ifdef FEAT_VISUAL
     visualinfo_T visualinfo;
-#endif
     int		empty_buffer;		    /* buffer became empty */
     u_header_T	*curhead = curbuf->b_u_curhead;
 
@@ -2419,9 +2410,7 @@ u_undoredo(undo)
      * save marks before undo/redo
      */
     mch_memmove(namedm, curbuf->b_namedm, sizeof(pos_T) * NMARKS);
-#ifdef FEAT_VISUAL
     visualinfo = curbuf->b_visual;
-#endif
     curbuf->b_op_start.lnum = curbuf->b_ml.ml_line_count;
     curbuf->b_op_start.col = 0;
     curbuf->b_op_end.lnum = 0;
@@ -2591,13 +2580,11 @@ u_undoredo(undo)
 	    curbuf->b_namedm[i] = curhead->uh_namedm[i];
 	    curhead->uh_namedm[i] = namedm[i];
 	}
-#ifdef FEAT_VISUAL
     if (curhead->uh_visual.vi_start.lnum != 0)
     {
 	curbuf->b_visual = curhead->uh_visual;
 	curhead->uh_visual = visualinfo;
     }
-#endif
 
     /*
      * If the cursor is only off by one line, put it at the same position as

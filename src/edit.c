@@ -220,9 +220,7 @@ static int  ins_esc __ARGS((long *count, int cmdchar, int nomove));
 #ifdef FEAT_RIGHTLEFT
 static void ins_ctrl_ __ARGS((void));
 #endif
-#ifdef FEAT_VISUAL
 static int ins_start_select __ARGS((int c));
-#endif
 static void ins_insert __ARGS((int replaceState));
 static void ins_ctrl_o __ARGS((void));
 static void ins_shift __ARGS((int c, int lastc));
@@ -264,6 +262,7 @@ static char_u *do_insert_char_pre __ARGS((int c));
 
 static colnr_T	Insstart_textlen;	/* length of line when insert started */
 static colnr_T	Insstart_blank_vcol;	/* vcol for first inserted blank */
+static int	update_Insstart_orig = TRUE; /* set Insstart_orig to Insstart */
 
 static char_u	*last_insert = NULL;	/* the text of the previous insert,
 					   K_SPECIAL and CSI are escaped */
@@ -339,6 +338,9 @@ edit(cmdchar, startln, count)
     /* sleep before redrawing, needed for "CTRL-O :" that results in an
      * error message */
     check_for_delay(TRUE);
+
+    /* set Insstart_orig to Insstart */
+    update_Insstart_orig = TRUE;
 
 #ifdef HAVE_SANDBOX
     /* Don't allow inserting in the sandbox. */
@@ -630,6 +632,9 @@ edit(cmdchar, startln, count)
 #endif
 	if (arrow_used)	    /* don't repeat insert when arrow key used */
 	    count = 0;
+
+	if (update_Insstart_orig)
+	    Insstart_orig = Insstart;
 
 	if (stop_insert_mode)
 	{
@@ -925,7 +930,6 @@ edit(cmdchar, startln, count)
 	    }
 #endif
 
-#ifdef FEAT_VISUAL
 	/*
 	 * If 'keymodel' contains "startsel", may start selection.  If it
 	 * does, a CTRL-O and c will be stuffed, we need to get these
@@ -933,7 +937,6 @@ edit(cmdchar, startln, count)
 	 */
 	if (ins_start_select(c))
 	    continue;
-#endif
 
 	/*
 	 * The big switch to handle a character in insert mode.
@@ -6908,7 +6911,6 @@ stop_insert(end_insert_pos, esc, nomove)
 	    else if (cc != NUL)
 		++curwin->w_cursor.col;	/* put cursor back on the NUL */
 
-#ifdef FEAT_VISUAL
 	    /* <C-S-Right> may have started Visual mode, adjust the position for
 	     * deleted characters. */
 	    if (VIsual_active && VIsual.lnum == curwin->w_cursor.lnum)
@@ -6918,12 +6920,11 @@ stop_insert(end_insert_pos, esc, nomove)
 		if (VIsual.col > len)
 		{
 		    VIsual.col = len;
-# ifdef FEAT_VIRTUALEDIT
+#ifdef FEAT_VIRTUALEDIT
 		    VIsual.coladd = 0;
-# endif
+#endif
 		}
 	    }
-#endif
 	}
     }
     did_ai = FALSE;
@@ -6938,6 +6939,7 @@ stop_insert(end_insert_pos, esc, nomove)
     if (end_insert_pos != NULL)
     {
 	curbuf->b_op_start = Insstart;
+	curbuf->b_op_start_orig = Insstart_orig;
 	curbuf->b_op_end = *end_insert_pos;
     }
 }
@@ -8119,9 +8121,7 @@ ins_reg()
     int		need_redraw = FALSE;
     int		regname;
     int		literally = 0;
-#ifdef FEAT_VISUAL
     int		vis_active = VIsual_active;
-#endif
 
     /*
      * If we are going to wait for a character, show a '"'.
@@ -8225,11 +8225,9 @@ ins_reg()
     if (need_redraw || stuff_empty())
 	edit_unputchar();
 
-#ifdef FEAT_VISUAL
     /* Disallow starting Visual mode here, would get a weird mode. */
     if (!vis_active && VIsual_active)
 	end_visual_mode();
-#endif
 }
 
 /*
@@ -8272,6 +8270,7 @@ ins_ctrl_g()
 
 		  /* Need to reset Insstart, esp. because a BS that joins
 		   * a line to the previous one must save for undo. */
+		  update_Insstart_orig = FALSE;
 		  Insstart = curwin->w_cursor;
 		  break;
 
@@ -8425,11 +8424,7 @@ ins_esc(count, cmdchar, nomove)
 #endif
 	       )
 	    && (restart_edit == NUL
-		   || (gchar_cursor() == NUL
-#ifdef FEAT_VISUAL
-		       && !VIsual_active
-#endif
-		      ))
+		   || (gchar_cursor() == NUL && !VIsual_active))
 #ifdef FEAT_RIGHTLEFT
 	    && !revins_on
 #endif
@@ -8531,7 +8526,6 @@ ins_ctrl_()
 }
 #endif
 
-#ifdef FEAT_VISUAL
 /*
  * If 'keymodel' contains "startsel", may start selection.
  * Returns TRUE when a CTRL-O and other keys stuffed.
@@ -8587,7 +8581,6 @@ ins_start_select(c)
 	}
     return FALSE;
 }
-#endif
 
 /*
  * <Insert> key in Insert mode: toggle insert/replace mode.

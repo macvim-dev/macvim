@@ -721,6 +721,7 @@ XCODE_SELECT
 CPP_MM
 STRIP
 AWK
+FGREP
 EGREP
 GREP
 CPP
@@ -784,6 +785,7 @@ with_ex_name
 with_view_name
 with_global_runtime
 with_modified_by
+enable_smack
 enable_selinux
 with_features
 with_compiledby
@@ -1457,7 +1459,8 @@ Optional Features:
   --enable-fail-if-missing    Fail if dependencies on additional features
      specified on the command line are missing.
   --disable-darwin        Disable Darwin (Mac OS X) support.
-  --disable-selinux	  Don't check for SELinux support.
+  --disable-smack	  Do not check for Smack support.
+  --disable-selinux	  Do not check for SELinux support.
   --disable-xsmp          Disable XSMP session management
   --disable-xsmp-interact Disable XSMP interaction
   --enable-luainterp=OPTS     Include Lua interpreter.  default=no OPTS=no/yes/dynamic
@@ -3703,7 +3706,73 @@ if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
 
 fi
 rm -f conftest*
- { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing strerror" >&5
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for fgrep" >&5
+$as_echo_n "checking for fgrep... " >&6; }
+if ${ac_cv_path_FGREP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if echo 'ab*c' | $GREP -F 'ab*c' >/dev/null 2>&1
+   then ac_cv_path_FGREP="$GREP -F"
+   else
+     if test -z "$FGREP"; then
+  ac_path_FGREP_found=false
+  # Loop through the user's path and test for each of PROGNAME-LIST
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH$PATH_SEPARATOR/usr/xpg4/bin
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_prog in fgrep; do
+    for ac_exec_ext in '' $ac_executable_extensions; do
+      ac_path_FGREP="$as_dir/$ac_prog$ac_exec_ext"
+      as_fn_executable_p "$ac_path_FGREP" || continue
+# Check for GNU ac_path_FGREP and select it if it is found.
+  # Check for GNU $ac_path_FGREP
+case `"$ac_path_FGREP" --version 2>&1` in
+*GNU*)
+  ac_cv_path_FGREP="$ac_path_FGREP" ac_path_FGREP_found=:;;
+*)
+  ac_count=0
+  $as_echo_n 0123456789 >"conftest.in"
+  while :
+  do
+    cat "conftest.in" "conftest.in" >"conftest.tmp"
+    mv "conftest.tmp" "conftest.in"
+    cp "conftest.in" "conftest.nl"
+    $as_echo 'FGREP' >> "conftest.nl"
+    "$ac_path_FGREP" FGREP < "conftest.nl" >"conftest.out" 2>/dev/null || break
+    diff "conftest.out" "conftest.nl" >/dev/null 2>&1 || break
+    as_fn_arith $ac_count + 1 && ac_count=$as_val
+    if test $ac_count -gt ${ac_path_FGREP_max-0}; then
+      # Best one so far, save it but keep looking for a better one
+      ac_cv_path_FGREP="$ac_path_FGREP"
+      ac_path_FGREP_max=$ac_count
+    fi
+    # 10*(2^10) chars as input seems more than enough
+    test $ac_count -gt 10 && break
+  done
+  rm -f conftest.in conftest.tmp conftest.nl conftest.out;;
+esac
+
+      $ac_path_FGREP_found && break 3
+    done
+  done
+  done
+IFS=$as_save_IFS
+  if test -z "$ac_cv_path_FGREP"; then
+    as_fn_error $? "no acceptable fgrep could be found in $PATH$PATH_SEPARATOR/usr/xpg4/bin" "$LINENO" 5
+  fi
+else
+  ac_cv_path_FGREP=$FGREP
+fi
+
+   fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_FGREP" >&5
+$as_echo "$ac_cv_path_FGREP" >&6; }
+ FGREP="$ac_cv_path_FGREP"
+
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing strerror" >&5
 $as_echo_n "checking for library containing strerror... " >&6; }
 if ${ac_cv_search_strerror+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -4013,9 +4082,9 @@ if test -z "$CFLAGS"; then
   test "$GCC" = yes && CFLAGS="-O2 -fno-strength-reduce -Wall"
 fi
 if test "$GCC" = yes; then
-    gccversion=`"$CC" -dumpversion`
+    gccversion=`$CC -dumpversion`
   if test "x$gccversion" = "x"; then
-        gccversion=`"$CC" --version | sed -e '2,$d' -e 's/darwin.//' -e 's/^[^0-9]*\([0-9]\.[0-9.]*\).*$/\1/g'`
+        gccversion=`$CC --version | sed -e '2,$d' -e 's/darwin.//' -e 's/^[^0-9]*\([0-9]\.[0-9.]*\).*$/\1/g'`
   fi
     if test "$gccversion" = "3.0.1" -o "$gccversion" = "3.0.2" -o "$gccversion" = "4.0.1"; then
     echo 'GCC [34].0.[12] has a bug in the optimizer, disabling "-O#"'
@@ -4030,7 +4099,7 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for recent clang version" >&5
 $as_echo_n "checking for recent clang version... " >&6; }
-CLANG_VERSION_STRING=`"$CC" --version 2>/dev/null | sed  -n -e 's/^.*clang.*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*$/\1/p'`
+CLANG_VERSION_STRING=`$CC --version 2>/dev/null | sed  -n -e 's/^.*clang.*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*$/\1/p'`
 if test x"$CLANG_VERSION_STRING" != x"" ; then
   CLANG_MAJOR=`echo "$CLANG_VERSION_STRING" | sed -n -e 's/\([0-9][0-9]*\)\.[0-9][0-9]*\.[0-9][0-9]*/\1/p'`
   CLANG_MINOR=`echo "$CLANG_VERSION_STRING" | sed -n -e 's/[0-9][0-9]*\.\([0-9][0-9]*\)\.[0-9][0-9]*/\1/p'`
@@ -4562,19 +4631,118 @@ fi
 
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking --disable-selinux argument" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking --disable-smack argument" >&5
+$as_echo_n "checking --disable-smack argument... " >&6; }
+# Check whether --enable-smack was given.
+if test "${enable_smack+set}" = set; then :
+  enableval=$enable_smack;
+else
+  enable_smack="yes"
+fi
+
+if test "$enable_smack" = "yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+  ac_fn_c_check_header_mongrel "$LINENO" "linux/xattr.h" "ac_cv_header_linux_xattr_h" "$ac_includes_default"
+if test "x$ac_cv_header_linux_xattr_h" = xyes; then :
+  true
+else
+  enable_smack="no"
+fi
+
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+if test "$enable_smack" = "yes"; then
+  ac_fn_c_check_header_mongrel "$LINENO" "attr/xattr.h" "ac_cv_header_attr_xattr_h" "$ac_includes_default"
+if test "x$ac_cv_header_attr_xattr_h" = xyes; then :
+  true
+else
+  enable_smack="no"
+fi
+
+
+fi
+if test "$enable_smack" = "yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XATTR_NAME_SMACKEXEC in linux/xattr.h" >&5
+$as_echo_n "checking for XATTR_NAME_SMACKEXEC in linux/xattr.h... " >&6; }
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <linux/xattr.h>
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "XATTR_NAME_SMACKEXEC" >/dev/null 2>&1; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }; enable_smack="no"
+fi
+rm -f conftest*
+
+fi
+if test "$enable_smack" = "yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for setxattr in -lattr" >&5
+$as_echo_n "checking for setxattr in -lattr... " >&6; }
+if ${ac_cv_lib_attr_setxattr+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lattr  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char setxattr ();
+int
+main ()
+{
+return setxattr ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_attr_setxattr=yes
+else
+  ac_cv_lib_attr_setxattr=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_attr_setxattr" >&5
+$as_echo "$ac_cv_lib_attr_setxattr" >&6; }
+if test "x$ac_cv_lib_attr_setxattr" = xyes; then :
+  LIBS="$LIBS -lattr"
+	   found_smack="yes"
+	   $as_echo "#define HAVE_SMACK 1" >>confdefs.h
+
+fi
+
+fi
+
+if test "x$found_smack" = "x"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking --disable-selinux argument" >&5
 $as_echo_n "checking --disable-selinux argument... " >&6; }
-# Check whether --enable-selinux was given.
+  # Check whether --enable-selinux was given.
 if test "${enable_selinux+set}" = set; then :
   enableval=$enable_selinux;
 else
   enable_selinux="yes"
 fi
 
-if test "$enable_selinux" = "yes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+  if test "$enable_selinux" = "yes"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for is_selinux_enabled in -lselinux" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for is_selinux_enabled in -lselinux" >&5
 $as_echo_n "checking for is_selinux_enabled in -lselinux... " >&6; }
 if ${ac_cv_lib_selinux_is_selinux_enabled+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -4612,13 +4780,14 @@ fi
 $as_echo "$ac_cv_lib_selinux_is_selinux_enabled" >&6; }
 if test "x$ac_cv_lib_selinux_is_selinux_enabled" = xyes; then :
   LIBS="$LIBS -lselinux"
-	   $as_echo "#define HAVE_SELINUX 1" >>confdefs.h
+	     $as_echo "#define HAVE_SELINUX 1" >>confdefs.h
 
 fi
 
-else
-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+  else
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
+  fi
 fi
 
 
@@ -5270,9 +5439,19 @@ $as_echo "not found" >&6; }
 $as_echo_n "checking for mzscheme_base.c... " >&6; }
     if test -f "${SCHEME_COLLECTS}collects/scheme/base.ss" ; then
       MZSCHEME_EXTRA="mzscheme_base.c"
+      MZSCHEME_MZC="${vi_cv_path_mzscheme_pfx}/bin/mzc"
+      MZSCHEME_MOD="++lib scheme/base"
     else
       if test -f "${SCHEME_COLLECTS}collects/scheme/base.rkt" ; then
 	MZSCHEME_EXTRA="mzscheme_base.c"
+	MZSCHEME_MZC="${vi_cv_path_mzscheme_pfx}/bin/mzc"
+	MZSCHEME_MOD="++lib scheme/base"
+      else
+	if test -f "${SCHEME_COLLECTS}collects/racket/base.rkt" ; then
+	  MZSCHEME_EXTRA="mzscheme_base.c"
+	  MZSCHEME_MZC="${vi_cv_path_mzscheme_pfx}/bin/raco ctool"
+	  MZSCHEME_MOD=""
+	fi
       fi
     fi
     if test "X$MZSCHEME_EXTRA" != "X" ; then
@@ -5518,7 +5697,7 @@ rm -f core conftest.err conftest.$ac_objext \
 	  	  PERL_CFLAGS=`echo "$perlcppflags" | sed -e 's/-pipe //' -e 's/-W[^ ]*//'`
 	fi
 	if test "X$perlldflags" != "X"; then
-	  if test "X`echo \"$LDFLAGS\" | grep -F -e \"$perlldflags\"`" = "X"; then
+	  if test "X`echo \"$LDFLAGS\" | $FGREP -e \"$perlldflags\"`" = "X"; then
 	    LDFLAGS="$perlldflags $LDFLAGS"
 	  fi
 	fi
@@ -6852,9 +7031,9 @@ $as_echo_n "checking Ruby header files... " >&6; }
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $rubyhdrdir" >&5
 $as_echo "$rubyhdrdir" >&6; }
 	RUBY_CFLAGS="-I$rubyhdrdir"
-        rubyarch=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig::CONFIG['arch']"`
-        if test -d "$rubyhdrdir/$rubyarch"; then
-          RUBY_CFLAGS="$RUBY_CFLAGS -I$rubyhdrdir/$rubyarch"
+        rubyarchdir=`$vi_cv_path_ruby -r rbconfig -e "print ($ruby_rbconfig::CONFIG.has_key? 'rubyarchhdrdir') ? $ruby_rbconfig::CONFIG['rubyarchhdrdir'] : '$rubyhdrdir/'+$ruby_rbconfig::CONFIG['arch']"`
+        if test -d "$rubyarchdir"; then
+          RUBY_CFLAGS="$RUBY_CFLAGS -I$rubyarchdir"
         fi
         rubyversion=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig::CONFIG['ruby_version'].gsub(/\./, '')[0,2]"`
 	if test "X$rubyversion" = "X"; then
@@ -6884,7 +7063,7 @@ $as_echo "$rubyhdrdir" >&6; }
 	if test "X$rubyldflags" != "X"; then
 	  	  	  	  rubyldflags=`echo "$rubyldflags" | sed -e 's/-arch\ ppc//' -e 's/-arch\ i386//' -e 's/-arch\ x86_64//'`
 	  if test "X$rubyldflags" != "X"; then
-	    if test "X`echo \"$LDFLAGS\" | grep -F -e \"$rubyldflags\"`" = "X"; then
+	    if test "X`echo \"$LDFLAGS\" | $FGREP -e \"$rubyldflags\"`" = "X"; then
 	      LDFLAGS="$rubyldflags $LDFLAGS"
 	    fi
 	  fi
@@ -9210,7 +9389,7 @@ if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
 $as_echo "yes" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no; xim has been disabled" >&5
-$as_echo "no; xim has been disabled" >&6; }; enable_xim = "no"
+$as_echo "no; xim has been disabled" >&6; }; enable_xim="no"
 fi
 rm -f conftest*
 
@@ -12430,6 +12609,15 @@ cat >>confdefs.h <<_ACEOF
 #define SIZEOF_OFF_T $ac_cv_sizeof_off_t
 _ACEOF
 
+
+
+cat >>confdefs.h <<_ACEOF
+#define VIM_SIZEOF_INT $ac_cv_sizeof_int
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define VIM_SIZEOF_LONG $ac_cv_sizeof_long
+_ACEOF
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking uint32_t is 32 bits" >&5

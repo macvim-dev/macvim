@@ -1,4 +1,4 @@
-*index.txt*     For Vim version 7.4.  Last change: 2013 Nov 14
+*index.txt*     For Vim version 7.4.  Last change: 2014 Mar 25
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -1124,8 +1124,8 @@ tag	      command	      action ~
 |:cNfile|	:cNf[ile]	go to last error in previous file
 |:cabbrev|	:ca[bbrev]	like ":abbreviate" but for Command-line mode
 |:cabclear|	:cabc[lear]	clear all abbreviations for Command-line mode
-|:caddbuffer|	:caddb[uffer]	add errors from buffer
-|:caddexpr|	:cad[dexpr]	add errors from expr
+|:caddbuffer|	:cad[dbuffer]	add errors from buffer
+|:caddexpr|	:cadde[xpr]	add errors from expr
 |:caddfile|	:caddf[ile]	add error message to current quickfix list
 |:call|		:cal[l]		call a function
 |:catch|	:cat[ch]	part of a :try command
@@ -1363,13 +1363,14 @@ tag	      command	      action ~
 |:nmenu|	:nme[nu]	add menu for Normal mode
 |:nnoremap|	:nn[oremap]	like ":noremap" but for Normal mode
 |:nnoremenu|	:nnoreme[nu]	like ":noremenu" but for Normal mode
-|:noautocmd|	:noa[utocmd]	following command don't trigger autocommands
+|:noautocmd|	:noa[utocmd]	following commands don't trigger autocommands
 |:noremap|	:no[remap]	enter a mapping that will not be remapped
 |:nohlsearch|	:noh[lsearch]	suspend 'hlsearch' highlighting
 |:noreabbrev|	:norea[bbrev]	enter an abbreviation that will not be
 				remapped
 |:noremenu|	:noreme[nu]	enter a menu that will not be remapped
 |:normal|	:norm[al]	execute Normal mode commands
+|:noswapfile|	:nos[wapfile]	following commands don't create a swap file
 |:number|	:nu[mber]	print lines with line number
 |:nunmap|	:nun[map]	like ":unmap" but for Normal mode
 |:nunmenu|	:nunme[nu]	remove menu for Normal mode

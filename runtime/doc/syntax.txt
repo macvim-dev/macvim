@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 7.4.  Last change: 2013 Aug 22
+*syntax.txt*	For Vim version 7.4.  Last change: 2014 Apr 05
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1022,6 +1022,21 @@ Or to avoid the highlighting: >
 This works immediately.
 
 
+CLOJURE							*ft-clojure-syntax*
+
+Setting *g:clojure_fold* enables folding Clojure code via the syntax engine.
+Any list, vector, or map that extends over more than one line can be folded
+using the standard Vim |fold-commands|.
+
+Please note that this option does not work with scripts that redefine the
+bracket syntax regions, such as rainbow-parentheses plugins.
+
+This option is off by default.
+>
+	" Default
+	let g:clojure_fold = 0
+<
+
 COBOL						*cobol.vim* *ft-cobol-syntax*
 
 COBOL highlighting has different needs for legacy code than it does for fresh
@@ -1279,6 +1294,32 @@ Finally, some vendors support hexadecimal constants.  To handle them, add >
 	:let eiffel_hex_constants=1
 
 to your startup file.
+
+
+EUPHORIA	    *euphoria3.vim* *euphoria4.vim* *ft-euphoria-syntax*
+
+Two syntax highlighting files exists for Euphoria. One for Euphoria 
+version 3.1.1, which is the default syntax highlighting file, and one for 
+Euphoria version 4.0.5 or later.
+
+Euphoria version 3.1.1 (http://www.rapideuphoria.com/) is still necessary 
+for developing applications for the DOS platform, which Euphoria version 4 
+(http://www.openeuphoria.org/) does not support.
+
+The following file extensions are auto-detected as Euphoria file type: 
+    
+	*.e, *.eu, *.ew, *.ex, *.exu, *.exw
+	*.E, *.EU, *.EW, *.EX, *.EXU, *.EXW
+
+To select syntax highlighting file for Euphoria, as well as for 
+auto-detecting the *.e and *.E file extensions as Euphoria file type,
+add the following line to your startup file: >
+
+	:let filetype_euphoria="euphoria3"
+
+	or 
+
+	:let filetype_euphoria="euphoria4"
 
 
 ERLANG						*erlang.vim* *ft-erlang-syntax*
@@ -1918,7 +1959,7 @@ If you don't want to set the variable, use the modeline in EVERY LPC file.
 There are several implementations for LPC, we intend to support most widely
 used ones.  Here the default LPC syntax is for MudOS series, for MudOS v22
 and before, you should turn off the sensible modifiers, and this will also
-asserts the new efuns after v22 to be invalid, don't set this variable when
+assert the new efuns after v22 to be invalid, don't set this variable when
 you are using the latest version of MudOS: >
 
 	:let lpc_pre_v22 = 1

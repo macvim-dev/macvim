@@ -1012,7 +1012,18 @@ do_bang(addr_count, eap, forceit, do_in, do_out)
 
     if (bangredo)	    /* put cmd in redo buffer for ! command */
     {
-	AppendToRedobuffLit(prevcmd, -1);
+	/* If % or # appears in the command, it must have been escaped.
+	 * Reescape them, so that redoing them does not substitute them by the
+	 * buffername. */
+	char_u *cmd = vim_strsave_escaped(prevcmd, (char_u *)"%#");
+
+	if (cmd != NULL)
+	{
+	    AppendToRedobuffLit(cmd, -1);
+	    vim_free(cmd);
+	}
+	else
+	    AppendToRedobuffLit(prevcmd, -1);
 	AppendToRedobuff((char_u *)"\n");
 	bangredo = FALSE;
     }
@@ -3263,13 +3274,11 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags, oldwin)
 	goto theend;
     }
 
-#ifdef FEAT_VISUAL
     /*
      * End Visual mode before switching to another buffer, so the text can be
      * copied into the GUI selection buffer.
      */
     reset_VIsual();
-#endif
 
 #ifdef FEAT_AUTOCMD
     if ((command != NULL || newlnum > (linenr_T)0)
@@ -3334,6 +3343,12 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags, oldwin)
 #endif
 	    buf = buflist_new(ffname, sfname, 0L,
 		    BLN_CURBUF | ((flags & ECMD_SET_HELP) ? 0 : BLN_LISTED));
+#ifdef FEAT_AUTOCMD
+	    /* autocommands may change curwin and curbuf */
+	    if (oldwin != NULL)
+		oldwin = curwin;
+	    old_curbuf = curbuf;
+#endif
 	}
 	if (buf == NULL)
 	    goto theend;
@@ -4099,12 +4114,12 @@ ex_z(eap)
      * 'scroll' */
     if (eap->forceit)
 	bigness = curwin->w_height;
-    else if (firstwin == lastwin)
-	bigness = curwin->w_p_scr * 2;
 #ifdef FEAT_WINDOWS
-    else
+    else if (firstwin != lastwin)
 	bigness = curwin->w_height - 3;
 #endif
+    else
+	bigness = curwin->w_p_scr * 2;
     if (bigness < 1)
 	bigness = 1;
 
@@ -4409,6 +4424,31 @@ do_sub(eap)
 	/* Vi compatibility quirk: repeating with ":s" keeps the cursor in the
 	 * last column after using "$". */
 	endcolumn = (curwin->w_curswant == MAXCOL);
+    }
+
+    /* Recognize ":%s/\n//" and turn it into a join command, which is much
+     * more efficient.
+     * TODO: find a generic solution to make line-joining operations more
+     * efficient, avoid allocating a string that grows in size.
+     */
+    if (pat != NULL && STRCMP(pat, "\\n") == 0
+	    && *sub == NUL
+	    && (*cmd == NUL || (cmd[1] == NUL && (*cmd == 'g' || *cmd == 'l'
+					     || *cmd == 'p' || *cmd == '#'))))
+    {
+	curwin->w_cursor.lnum = eap->line1;
+	if (*cmd == 'l')
+	    eap->flags = EXFLAG_LIST;
+	else if (*cmd == '#')
+	    eap->flags = EXFLAG_NR;
+	else if (*cmd == 'p')
+	    eap->flags = EXFLAG_PRINT;
+
+	(void)do_join(eap->line2 - eap->line1 + 1, FALSE, TRUE, FALSE);
+	sub_nlines = sub_nsubs = eap->line2 - eap->line1 + 1;
+	(void)do_sub_msg(FALSE);
+	ex_may_print(eap);
+	return;
     }
 
     /*

@@ -12,6 +12,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 %	motion.txt	/*%*
 %:.	cmdline.txt	/*%:.*
 %:8	cmdline.txt	/*%:8*
+%:S	cmdline.txt	/*%:S*
 %:e	cmdline.txt	/*%:e*
 %:gs	cmdline.txt	/*%:gs*
 %:h	cmdline.txt	/*%:h*
@@ -1805,6 +1806,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :3match	pattern.txt	/*:3match*
 ::.	cmdline.txt	/*::.*
 ::8	cmdline.txt	/*::8*
+::S	cmdline.txt	/*::S*
 ::e	cmdline.txt	/*::e*
 ::gs	cmdline.txt	/*::gs*
 ::h	cmdline.txt	/*::h*
@@ -1988,8 +1990,8 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :cabc	map.txt	/*:cabc*
 :cabclear	map.txt	/*:cabclear*
 :cad	quickfix.txt	/*:cad*
-:caddb	quickfix.txt	/*:caddb*
 :caddbuffer	quickfix.txt	/*:caddbuffer*
+:cadde	quickfix.txt	/*:cadde*
 :caddexpr	quickfix.txt	/*:caddexpr*
 :caddf	quickfix.txt	/*:caddf*
 :caddfile	quickfix.txt	/*:caddfile*
@@ -2519,6 +2521,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :nbkey	netbeans.txt	/*:nbkey*
 :nbstart	netbeans.txt	/*:nbstart*
 :ne	editing.txt	/*:ne*
+:netrw-s-cr	pi_netrw.txt	/*:netrw-s-cr*
 :new	windows.txt	/*:new*
 :next	editing.txt	/*:next*
 :next_f	editing.txt	/*:next_f*
@@ -2548,6 +2551,8 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :norm	various.txt	/*:norm*
 :normal	various.txt	/*:normal*
 :normal-range	various.txt	/*:normal-range*
+:nos	recover.txt	/*:nos*
+:noswapfile	recover.txt	/*:noswapfile*
 :nu	various.txt	/*:nu*
 :number	various.txt	/*:number*
 :nun	map.txt	/*:nun*
@@ -4352,6 +4357,8 @@ E879	syntax.txt	/*E879*
 E88	windows.txt	/*E88*
 E880	if_pyth.txt	/*E880*
 E881	autocmd.txt	/*E881*
+E882	eval.txt	/*E882*
+E883	eval.txt	/*E883*
 E89	message.txt	/*E89*
 E90	message.txt	/*E90*
 E91	options.txt	/*E91*
@@ -5415,6 +5422,7 @@ diW	motion.txt	/*diW*
 dialog	gui_w32.txt	/*dialog*
 dialogs-added	version5.txt	/*dialogs-added*
 dib	motion.txt	/*dib*
+dict	eval.txt	/*dict*
 dict-functions	usr_41.txt	/*dict-functions*
 dict-identity	eval.txt	/*dict-identity*
 dict-modification	eval.txt	/*dict-modification*
@@ -5523,6 +5531,8 @@ errors	message.txt	/*errors*
 escape	intro.txt	/*escape*
 escape()	eval.txt	/*escape()*
 escape-bar	version4.txt	/*escape-bar*
+euphoria3.vim	syntax.txt	/*euphoria3.vim*
+euphoria4.vim	syntax.txt	/*euphoria4.vim*
 eval	eval.txt	/*eval*
 eval()	eval.txt	/*eval()*
 eval-examples	eval.txt	/*eval-examples*
@@ -5557,6 +5567,7 @@ exclusive	motion.txt	/*exclusive*
 exclusive-linewise	motion.txt	/*exclusive-linewise*
 executable()	eval.txt	/*executable()*
 execute-menus	gui.txt	/*execute-menus*
+exepath()	eval.txt	/*exepath()*
 exim	starting.txt	/*exim*
 exists()	eval.txt	/*exists()*
 exp()	eval.txt	/*exp()*
@@ -5774,6 +5785,7 @@ ft-changelog-plugin	filetype.txt	/*ft-changelog-plugin*
 ft-changelog-syntax	syntax.txt	/*ft-changelog-syntax*
 ft-chill-syntax	syntax.txt	/*ft-chill-syntax*
 ft-clojure-indent	indent.txt	/*ft-clojure-indent*
+ft-clojure-syntax	syntax.txt	/*ft-clojure-syntax*
 ft-cobol-syntax	syntax.txt	/*ft-cobol-syntax*
 ft-coldfusion-syntax	syntax.txt	/*ft-coldfusion-syntax*
 ft-cpp-syntax	syntax.txt	/*ft-cpp-syntax*
@@ -5790,6 +5802,7 @@ ft-dosbatch-syntax	syntax.txt	/*ft-dosbatch-syntax*
 ft-dtd-syntax	syntax.txt	/*ft-dtd-syntax*
 ft-eiffel-syntax	syntax.txt	/*ft-eiffel-syntax*
 ft-erlang-syntax	syntax.txt	/*ft-erlang-syntax*
+ft-euphoria-syntax	syntax.txt	/*ft-euphoria-syntax*
 ft-flexwiki-syntax	syntax.txt	/*ft-flexwiki-syntax*
 ft-form-syntax	syntax.txt	/*ft-form-syntax*
 ft-fortran-indent	indent.txt	/*ft-fortran-indent*
@@ -5943,6 +5956,7 @@ g:ada_with_gnat_project_files	ft_ada.txt	/*g:ada_with_gnat_project_files*
 g:ada_withuse_ordinary	ft_ada.txt	/*g:ada_withuse_ordinary*
 g:clojure_align_multiline_strings	indent.txt	/*g:clojure_align_multiline_strings*
 g:clojure_align_subforms	indent.txt	/*g:clojure_align_subforms*
+g:clojure_fold	syntax.txt	/*g:clojure_fold*
 g:clojure_fuzzy_indent	indent.txt	/*g:clojure_fuzzy_indent*
 g:clojure_fuzzy_indent_blacklist	indent.txt	/*g:clojure_fuzzy_indent_blacklist*
 g:clojure_fuzzy_indent_patterns	indent.txt	/*g:clojure_fuzzy_indent_patterns*
@@ -6741,6 +6755,7 @@ linewise-register	change.txt	/*linewise-register*
 linewise-visual	visual.txt	/*linewise-visual*
 lisp.vim	syntax.txt	/*lisp.vim*
 lispindent()	eval.txt	/*lispindent()*
+list	eval.txt	/*list*
 list-functions	usr_41.txt	/*list-functions*
 list-identity	eval.txt	/*list-identity*
 list-index	eval.txt	/*list-index*
@@ -7027,6 +7042,15 @@ netreadfixup	pi_netrw.txt	/*netreadfixup*
 netrw	pi_netrw.txt	/*netrw*
 netrw-%	pi_netrw.txt	/*netrw-%*
 netrw--	pi_netrw.txt	/*netrw--*
+netrw-:Explore	pi_netrw.txt	/*netrw-:Explore*
+netrw-:Hexplore	pi_netrw.txt	/*netrw-:Hexplore*
+netrw-:Lexplore	pi_netrw.txt	/*netrw-:Lexplore*
+netrw-:MF	pi_netrw.txt	/*netrw-:MF*
+netrw-:MT	pi_netrw.txt	/*netrw-:MT*
+netrw-:Rexplore	pi_netrw.txt	/*netrw-:Rexplore*
+netrw-:Sexplore	pi_netrw.txt	/*netrw-:Sexplore*
+netrw-:Texplore	pi_netrw.txt	/*netrw-:Texplore*
+netrw-:Vexplore	pi_netrw.txt	/*netrw-:Vexplore*
 netrw-C	pi_netrw.txt	/*netrw-C*
 netrw-D	pi_netrw.txt	/*netrw-D*
 netrw-O	pi_netrw.txt	/*netrw-O*
@@ -7484,6 +7508,7 @@ profile	repeat.txt	/*profile*
 profiling	repeat.txt	/*profiling*
 profiling-variable	eval.txt	/*profiling-variable*
 progname-variable	eval.txt	/*progname-variable*
+progpath-variable	eval.txt	/*progpath-variable*
 progress.vim	syntax.txt	/*progress.vim*
 pronounce	intro.txt	/*pronounce*
 psql	ft_sql.txt	/*psql*
@@ -7984,6 +8009,7 @@ strcspn()	eval.txt	/*strcspn()*
 strdisplaywidth()	eval.txt	/*strdisplaywidth()*
 strftime()	eval.txt	/*strftime()*
 stridx()	eval.txt	/*stridx()*
+string	eval.txt	/*string*
 string()	eval.txt	/*string()*
 string-functions	usr_41.txt	/*string-functions*
 string-match	eval.txt	/*string-match*
@@ -8048,6 +8074,7 @@ sysmouse	term.txt	/*sysmouse*
 system()	eval.txt	/*system()*
 system-functions	usr_41.txt	/*system-functions*
 system-vimrc	starting.txt	/*system-vimrc*
+systemlist()	eval.txt	/*systemlist()*
 s~	change.txt	/*s~*
 t	motion.txt	/*t*
 t:	eval.txt	/*t:*
@@ -8392,6 +8419,7 @@ undo_ftplugin	usr_41.txt	/*undo_ftplugin*
 undofile()	eval.txt	/*undofile()*
 undotree()	eval.txt	/*undotree()*
 unicode	mbyte.txt	/*unicode*
+uniq()	eval.txt	/*uniq()*
 unix	os_unix.txt	/*unix*
 unlisted-buffer	windows.txt	/*unlisted-buffer*
 up-down-motions	motion.txt	/*up-down-motions*
@@ -8490,6 +8518,7 @@ v:operator	eval.txt	/*v:operator*
 v:prevcount	eval.txt	/*v:prevcount*
 v:profiling	eval.txt	/*v:profiling*
 v:progname	eval.txt	/*v:progname*
+v:progpath	eval.txt	/*v:progpath*
 v:register	eval.txt	/*v:register*
 v:scrollstart	eval.txt	/*v:scrollstart*
 v:searchforward	eval.txt	/*v:searchforward*

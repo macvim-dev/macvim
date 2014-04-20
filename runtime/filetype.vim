@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2014 Feb 11
+" Last Change:	2014 Feb 26
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -539,6 +539,20 @@ au BufNewFile,BufRead *enlightenment/*.cfg	setf c
 " Eterm
 au BufNewFile,BufRead *Eterm/*.cfg		setf eterm
 
+" Euphoria 3 or 4
+au BufNewFile,BufRead *.eu,*.ew,*.ex,*.exu,*.exw  call s:EuphoriaCheck()
+if has("fname_case")
+   au BufNewFile,BufRead *.EU,*.EW,*.EX,*.EXU,*.EXW  call s:EuphoriaCheck()
+endif
+
+func! s:EuphoriaCheck()
+  if exists('g:filetype_euphoria')
+    exe 'setf ' . g:filetype_euphoria
+  else
+    setf euphoria3
+  endif
+endfunc
+
 " Lynx config files
 au BufNewFile,BufRead lynx.cfg			setf lynx
 
@@ -659,22 +673,26 @@ au BufNewFile,BufRead *.ed\(f\|if\|n\|o\)	setf edif
 " Embedix Component Description
 au BufNewFile,BufRead *.ecd			setf ecd
 
-" Eiffel or Specman
+" Eiffel or Specman or Euphoria
 au BufNewFile,BufRead *.e,*.E			call s:FTe()
 
 " Elinks configuration
 au BufNewFile,BufRead */etc/elinks.conf,*/.elinks/elinks.conf	setf elinks
 
 func! s:FTe()
-  let n = 1
-  while n < 100 && n < line("$")
-    if getline(n) =~ "^\\s*\\(<'\\|'>\\)\\s*$"
-      setf specman
-      return
-    endif
-    let n = n + 1
-  endwhile
-  setf eiffel
+  if exists('g:filetype_euphoria')
+    exe 'setf ' . g:filetype_euphoria
+  else
+    let n = 1
+    while n < 100 && n < line("$")
+      if getline(n) =~ "^\\s*\\(<'\\|'>\\)\\s*$"
+        setf specman
+        return
+      endif
+      let n = n + 1
+    endwhile
+    setf eiffel
+  endif
 endfunc
 
 " ERicsson LANGuage; Yaws is erlang too
@@ -1020,7 +1038,7 @@ au BufNewFile,BufRead *.ldif			setf ldif
 au BufNewFile,BufRead *.ld			setf ld
 
 " Lex
-au BufNewFile,BufRead *.lex,*.l			setf lex
+au BufNewFile,BufRead *.lex,*.l,*.lxx,*.l++	setf lex
 
 " Libao
 au BufNewFile,BufRead */etc/libao.conf,*/.libao	setf libao
@@ -2244,7 +2262,7 @@ au BufNewFile,BufRead *.v			setf verilog
 au BufNewFile,BufRead *.va,*.vams		setf verilogams
 
 " SystemVerilog
-au BufNewFile,BufRead *.sv			setf systemverilog
+au BufNewFile,BufRead *.sv,*.svh		setf systemverilog
 
 " VHDL
 au BufNewFile,BufRead *.hdl,*.vhd,*.vhdl,*.vbe,*.vst  setf vhdl
@@ -2418,7 +2436,7 @@ au BufNewFile,BufRead *.xsd			setf xsd
 au BufNewFile,BufRead *.xsl,*.xslt		setf xslt
 
 " Yacc
-au BufNewFile,BufRead *.yy			setf yacc
+au BufNewFile,BufRead *.yy,*.yxx,*.y++		setf yacc
 
 " Yacc or racc
 au BufNewFile,BufRead *.y			call s:FTy()

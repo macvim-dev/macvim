@@ -680,8 +680,16 @@ free_buffer(buf)
 #endif
 #ifdef FEAT_AUTOCMD
     aubuflocal_remove(buf);
+    if (autocmd_busy)
+    {
+	/* Do not free the buffer structure while autocommands are executing,
+	 * it's still needed. Free it when autocmd_busy is reset. */
+	buf->b_next = au_pending_free_buf;
+	au_pending_free_buf = buf;
+    }
+    else
 #endif
-    vim_free(buf);
+	vim_free(buf);
 }
 
 /*
@@ -1436,10 +1444,8 @@ set_curbuf(buf, action)
 	curwin->w_alt_fnum = curbuf->b_fnum; /* remember alternate file */
     buflist_altfpos(curwin);			 /* remember curpos */
 
-#ifdef FEAT_VISUAL
     /* Don't restart Select mode after switching to another buffer. */
     VIsual_reselect = FALSE;
-#endif
 
     /* close_windows() or apply_autocmds() may change curbuf */
     prevbuf = curbuf;
@@ -1687,7 +1693,11 @@ buflist_new(ffname, sfname, lnum, flags)
 	    buf->b_p_bl = TRUE;
 #ifdef FEAT_AUTOCMD
 	    if (!(flags & BLN_DUMMY))
+	    {
 		apply_autocmds(EVENT_BUFADD, NULL, NULL, FALSE, buf);
+		if (!buf_valid(buf))
+		    return NULL;
+	    }
 #endif
 	}
 	return buf;
@@ -1863,8 +1873,14 @@ buflist_new(ffname, sfname, lnum, flags)
     if (!(flags & BLN_DUMMY))
     {
 	apply_autocmds(EVENT_BUFNEW, NULL, NULL, FALSE, buf);
+	if (!buf_valid(buf))
+	    return NULL;
 	if (flags & BLN_LISTED)
+	{
 	    apply_autocmds(EVENT_BUFADD, NULL, NULL, FALSE, buf);
+	    if (!buf_valid(buf))
+		return NULL;
+	}
 # ifdef FEAT_EVAL
 	if (aborting())		/* autocmds may abort script processing */
 	    return NULL;
@@ -1982,6 +1998,9 @@ free_buf_options(buf, free_p_ff)
 #endif
     buf->b_p_ar = -1;
     buf->b_p_ul = NO_LOCAL_UNDOLEVEL;
+#ifdef FEAT_LISP
+    clear_string_option(&buf->b_p_lw);
+#endif
 }
 
 /*

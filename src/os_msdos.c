@@ -2270,9 +2270,7 @@ clip_mch_request_selection(VimClipboard *cbd)
 		default:
 		case 'L':	type = MLINE;	break;
 		case 'C':	type = MCHAR;	break;
-#ifdef FEAT_VISUAL
 		case 'B':	type = MBLOCK;	break;
-#endif
 	    }
 	}
 
@@ -2799,9 +2797,7 @@ Win16SetClipboardData(
 	    default:
 	    case MLINE:	    clip_sel_type = "L";	break;
 	    case MCHAR:	    clip_sel_type = "C";	break;
-#ifdef FEAT_VISUAL
 	    case MBLOCK:    clip_sel_type = "B";	break;
-#endif
 	}
 
 	movedata(
@@ -2949,14 +2945,17 @@ mch_isdir(char_u *name)
  * Return -1 if unknown.
  */
     int
-mch_can_exe(name)
+mch_can_exe(name, path)
     char_u	*name;
+    char_u	**path;
 {
     char	*p;
 
     p = searchpath(name);
     if (p == NULL || mch_isdir(p))
 	return FALSE;
+    if (path != NULL)
+	*path = vim_strsave(p);
     return TRUE;
 }
 

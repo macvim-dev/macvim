@@ -617,7 +617,7 @@ static struct
 #  endif
 # endif
 # if defined(PY_VERSION_HEX) && PY_VERSION_HEX >= 0x02050000 \
-	&& SIZEOF_SIZE_T != SIZEOF_INT
+	&& SIZEOF_SIZE_T != VIM_SIZEOF_INT
 #  ifdef Py_DEBUG
     {"Py_InitModule4TraceRefs_64", (PYTHON_PROC*)&dll_Py_InitModule4},
 #  else
@@ -806,6 +806,8 @@ py_memsave(void *p, size_t len)
 
 # define PY_STRSAVE(s) ((char_u *) py_memsave(s, STRLEN(s) + 1))
 #endif
+
+typedef PySliceObject PySliceObject_T;
 
 /*
  * Include the code shared with if_python3.c

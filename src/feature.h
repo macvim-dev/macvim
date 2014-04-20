@@ -211,18 +211,11 @@
 #endif
 
 /*
- * +visual		Visual mode.
+ * +visual		Visual mode - now always included.
  * +visualextra		Extra features for Visual mode (mostly block operators).
  */
-#ifdef FEAT_SMALL
-# define FEAT_VISUAL
-# ifdef FEAT_NORMAL
-#  define FEAT_VISUALEXTRA
-# endif
-#else
-# ifdef FEAT_CLIPBOARD
-#  undef FEAT_CLIPBOARD	/* can't use clipboard without Visual mode */
-# endif
+#ifdef FEAT_NORMAL
+# define FEAT_VISUALEXTRA
 #endif
 
 /*
@@ -328,7 +321,7 @@
  *
  * Disabled for EBCDIC as it requires multibyte.
  */
-#if defined(FEAT_BIG) && !defined(WIN16) && SIZEOF_INT >= 4 && !defined(EBCDIC)
+#if defined(FEAT_BIG) && !defined(WIN16) && VIM_SIZEOF_INT >= 4 && !defined(EBCDIC)
 # define FEAT_ARABIC
 #endif
 #ifdef FEAT_ARABIC
@@ -641,7 +634,7 @@
 #if (defined(FEAT_NORMAL) || defined(FEAT_GUI_GTK) || defined(FEAT_ARABIC) \
 	|| defined(FEAT_GUI_MACVIM)) \
 	&& !defined(FEAT_MBYTE) && !defined(WIN16) \
-	&& SIZEOF_INT >= 4 && !defined(EBCDIC)
+	&& VIM_SIZEOF_INT >= 4 && !defined(EBCDIC)
 # define FEAT_MBYTE
 #endif
 
@@ -662,7 +655,7 @@
 # define FEAT_MBYTE
 #endif
 
-#if defined(FEAT_MBYTE) && SIZEOF_INT < 4 && !defined(PROTO)
+#if defined(FEAT_MBYTE) && VIM_SIZEOF_INT < 4 && !defined(PROTO)
 	Error: Can only handle multi-byte feature with 32 bit int or larger
 #endif
 
@@ -1152,13 +1145,10 @@
 #ifdef FEAT_GUI
 # ifndef FEAT_CLIPBOARD
 #  define FEAT_CLIPBOARD
-#  ifndef FEAT_VISUAL
-#   define FEAT_VISUAL
-#  endif
 # endif
 #endif
 
-#if defined(FEAT_NORMAL) && defined(FEAT_VISUAL) \
+#if defined(FEAT_NORMAL) \
 	&& (defined(UNIX) || defined(VMS)) \
 	&& defined(WANT_X11) && defined(HAVE_X11)
 # define FEAT_XCLIPBOARD

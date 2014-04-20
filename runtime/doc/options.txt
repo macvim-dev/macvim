@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 7.4.  Last change: 2013 Dec 04
+*options.txt*	For Vim version 7.4.  Last change: 2014 Mar 23
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -4731,7 +4731,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 						*'lispwords'* *'lw'*
 'lispwords' 'lw'	string	(default is very long)
-			global
+			global or local to buffer |global-local|
 			{not in Vi}
 			{not available when compiled without the |+lispindent|
 			feature}
@@ -4872,8 +4872,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 			global or local to buffer |global-local|
 			{not in Vi}
 	Program to use for the ":make" command.  See |:make_makeprg|.
-	This option may contain '%' and '#' characters, which are expanded to
-	the current and alternate file name. |:_%| |:_#|
+	This option may contain '%' and '#' characters (see  |:_%| and |:_#|), 
+	which are expanded to the current and alternate file name.  Use |::S| 
+	to escape file names in case they contain special characters.
 	Environment variables are expanded |:set_env|.  See |option-backslash|
 	about including spaces and backslashes.
 	Note that a '|' must be escaped twice: once for ":set" and once for
@@ -6996,6 +6997,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	immediately deleted.  When 'swapfile' is set, and 'updatecount' is
 	non-zero, a swap file is immediately created.
 	Also see |swap-file| and |'swapsync'|.
+	If you want to open a new buffer without creating a swap file for it,
+	use the |:noswapfile| modifier.
 
 	This option is used together with 'bufhidden' and 'buftype' to
 	specify special kinds of buffers.   See |special-buffers|.

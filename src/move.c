@@ -20,6 +20,7 @@
 #include "vim.h"
 
 static void comp_botline __ARGS((win_T *wp));
+static void redraw_for_cursorline __ARGS((win_T *wp));
 static int scrolljump_value __ARGS((void));
 static int check_top_offset __ARGS((void));
 static void curs_rows __ARGS((win_T *wp, int do_botline));
@@ -106,6 +107,7 @@ comp_botline(wp)
 #ifdef FEAT_FOLDING
 	    wp->w_cline_folded = folded;
 #endif
+	    redraw_for_cursorline(wp);
 	    wp->w_valid |= (VALID_CROW|VALID_CHEIGHT);
 	}
 	if (done + n > wp->w_height)
@@ -121,6 +123,27 @@ comp_botline(wp)
     wp->w_valid |= VALID_BOTLINE|VALID_BOTLINE_AP;
 
     set_empty_rows(wp, done);
+}
+
+/*
+ * Redraw when w_cline_row changes and 'relativenumber' or 'cursorline' is
+ * set.
+ */
+    static void
+redraw_for_cursorline(wp)
+    win_T *wp;
+{
+    if ((wp->w_p_rnu
+#ifdef FEAT_SYN_HL
+		|| wp->w_p_cul
+#endif
+		)
+	    && (wp->w_valid & VALID_CROW) == 0
+# ifdef FEAT_INS_EXPAND
+	    && !pum_visible()
+# endif
+	    )
+	redraw_win_later(wp, SOME_VALID);
 }
 
 /*
@@ -772,6 +795,7 @@ curs_rows(wp, do_botline)
 	}
     }
 
+    redraw_for_cursorline(curwin);
     wp->w_valid |= VALID_CROW|VALID_CHEIGHT;
 
     /* validate botline too, if update_screen doesn't do it */
@@ -1172,22 +1196,15 @@ curs_columns(may_scroll)
     if (prev_skipcol != curwin->w_skipcol)
 	redraw_later(NOT_VALID);
 
-    /* Redraw when w_row changes and 'relativenumber' is set */
-    if (((curwin->w_valid & VALID_WROW) == 0 && (curwin->w_p_rnu
 #ifdef FEAT_SYN_HL
-	/* or when w_row changes and 'cursorline' is set. */
-						|| curwin->w_p_cul
-#endif
-	))
-#ifdef FEAT_SYN_HL
-	/* or when w_virtcol changes and 'cursorcolumn' is set */
-	|| (curwin->w_p_cuc && (curwin->w_valid & VALID_VIRTCOL) == 0)
-#endif
-	)
+    /* Redraw when w_virtcol changes and 'cursorcolumn' is set */
+    if (curwin->w_p_cuc && (curwin->w_valid & VALID_VIRTCOL) == 0
 # ifdef FEAT_INS_EXPAND
-	    if (!pum_visible())
+	    && !pum_visible()
 # endif
-		redraw_later(SOME_VALID);
+	)
+	redraw_later(SOME_VALID);
+#endif
 
     curwin->w_valid |= VALID_WCOL|VALID_WROW|VALID_VIRTCOL;
 }
@@ -2497,8 +2514,8 @@ onepage(dir, count)
 		    }
 		    comp_botline(curwin);
 		    curwin->w_cursor.lnum = curwin->w_botline - 1;
-		    curwin->w_valid &= ~(VALID_WCOL|VALID_CHEIGHT|
-			    VALID_WROW|VALID_CROW);
+		    curwin->w_valid &=
+			    ~(VALID_WCOL|VALID_CHEIGHT|VALID_WROW|VALID_CROW);
 		}
 		else
 		{
@@ -2857,17 +2874,13 @@ do_check_cursorbind()
     win_T	*old_curwin = curwin;
     buf_T	*old_curbuf = curbuf;
     int		restart_edit_save;
-# ifdef FEAT_VISUAL
     int		old_VIsual_select = VIsual_select;
     int		old_VIsual_active = VIsual_active;
-# endif
 
     /*
      * loop through the cursorbound windows
      */
-# ifdef FEAT_VISUAL
     VIsual_select = VIsual_active = 0;
-# endif
     for (curwin = firstwin; curwin; curwin = curwin->w_next)
     {
 	curbuf = curwin->w_buffer;
@@ -2916,10 +2929,8 @@ do_check_cursorbind()
     /*
      * reset current-window
      */
-# ifdef FEAT_VISUAL
     VIsual_select = old_VIsual_select;
     VIsual_active = old_VIsual_active;
-# endif
     curwin = old_curwin;
     curbuf = old_curbuf;
 }
