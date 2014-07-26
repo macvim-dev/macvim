@@ -1,4 +1,4 @@
-*various.txt*   For Vim version 7.4.  Last change: 2014 Apr 01
+*various.txt*   For Vim version 7.4.  Last change: 2014 May 22
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -266,8 +266,8 @@ g8			Print the hex values of the bytes used in the
 			(to use aliases) set 'shellcmdflag' to "-ic".
 			For Win32 also see |:!start|.
 
-			After the command has been executed, the timestamp of
-			the current file is checked |timestamp|.
+			After the command has been executed, the timestamp and
+			size of the current file is checked |timestamp|.
 
 			Vim redraws the screen after the command is finished,
 			because it may have printed any text.  This requires a
@@ -380,6 +380,7 @@ N  *+mouse*		Mouse handling |mouse-using|
 N  *+mouseshape*	|'mouseshape'|
 B  *+mouse_dec*		Unix only: Dec terminal mouse handling |dec-mouse|
 N  *+mouse_gpm*		Unix only: Linux console mouse handling |gpm-mouse|
+N  *+mouse_jsbterm*	JSB mouse handling |jsbterm-mouse|
 B  *+mouse_netterm*	Unix only: netterm mouse handling |netterm-mouse|
 N  *+mouse_pterm*	QNX only: pterm mouse handling |qnx-terminal|
 N  *+mouse_sysmouse*	Unix only: *BSD console mouse handling |sysmouse|

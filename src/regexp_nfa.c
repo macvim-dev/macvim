@@ -81,6 +81,7 @@ enum
     NFA_COMPOSING,		    /* Next nodes in NFA are part of the
 				       composing multibyte char */
     NFA_END_COMPOSING,		    /* End of a composing char in the NFA */
+    NFA_ANY_COMPOSING,		    /* \%C: Any composing characters. */
     NFA_OPT_CHARS,		    /* \%[abc] */
 
     /* The following are used only in the postfix form, not in the NFA */
@@ -311,7 +312,7 @@ static long nfa_regtry __ARGS((nfa_regprog_T *prog, colnr_T col));
 static long nfa_regexec_both __ARGS((char_u *line, colnr_T col));
 static regprog_T *nfa_regcomp __ARGS((char_u *expr, int re_flags));
 static void nfa_regfree __ARGS((regprog_T *prog));
-static int nfa_regexec __ARGS((regmatch_T *rmp, char_u *line, colnr_T col));
+static int  nfa_regexec_nl __ARGS((regmatch_T *rmp, char_u *line, colnr_T col, int line_lbr));
 static long nfa_regexec_multi __ARGS((regmmatch_T *rmp, win_T *win, buf_T *buf, linenr_T lnum, colnr_T col, proftime_T *tm));
 static int match_follows __ARGS((nfa_state_T *startstate, int depth));
 static int failure_chance __ARGS((nfa_state_T *state, int depth));
@@ -1418,6 +1419,10 @@ nfa_regatom()
 		    EMIT(NFA_VISUAL);
 		    break;
 
+		case 'C':
+		    EMIT(NFA_ANY_COMPOSING);
+		    break;
+
 		case '[':
 		    {
 			int	    n;
@@ -2429,6 +2434,7 @@ nfa_set_code(c)
 	case NFA_MARK_LT:	STRCPY(code, "NFA_MARK_LT "); break;
 	case NFA_CURSOR:	STRCPY(code, "NFA_CURSOR "); break;
 	case NFA_VISUAL:	STRCPY(code, "NFA_VISUAL "); break;
+	case NFA_ANY_COMPOSING:	STRCPY(code, "NFA_ANY_COMPOSING "); break;
 
 	case NFA_STAR:		STRCPY(code, "NFA_STAR "); break;
 	case NFA_STAR_NONGREEDY: STRCPY(code, "NFA_STAR_NONGREEDY "); break;
@@ -2967,6 +2973,7 @@ nfa_max_width(startstate, depth)
 	    case NFA_NLOWER_IC:
 	    case NFA_UPPER_IC:
 	    case NFA_NUPPER_IC:
+	    case NFA_ANY_COMPOSING:
 		/* possibly non-ascii */
 #ifdef FEAT_MBYTE
 		if (has_mbyte)
@@ -3945,6 +3952,7 @@ copy_ze_off(to, from)
 
 /*
  * Return TRUE if "sub1" and "sub2" have the same start positions.
+ * When using back-references also check the end position.
  */
     static int
 sub_equal(sub1, sub2)
@@ -3976,6 +3984,23 @@ sub_equal(sub1, sub2)
 	    if (s1 != -1 && sub1->list.multi[i].start.col
 					     != sub2->list.multi[i].start.col)
 		return FALSE;
+
+	    if (nfa_has_backref)
+	    {
+		if (i < sub1->in_use)
+		    s1 = sub1->list.multi[i].end.lnum;
+		else
+		    s1 = -1;
+		if (i < sub2->in_use)
+		    s2 = sub2->list.multi[i].end.lnum;
+		else
+		    s2 = -1;
+		if (s1 != s2)
+		    return FALSE;
+		if (s1 != -1 && sub1->list.multi[i].end.col
+					       != sub2->list.multi[i].end.col)
+		return FALSE;
+	    }
 	}
     }
     else
@@ -3992,6 +4017,19 @@ sub_equal(sub1, sub2)
 		sp2 = NULL;
 	    if (sp1 != sp2)
 		return FALSE;
+	    if (nfa_has_backref)
+	    {
+		if (i < sub1->in_use)
+		    sp1 = sub1->list.line[i].end;
+		else
+		    sp1 = NULL;
+		if (i < sub2->in_use)
+		    sp2 = sub2->list.line[i].end;
+		else
+		    sp2 = NULL;
+		if (sp1 != sp2)
+		    return FALSE;
+	    }
 	}
     }
 
@@ -4121,6 +4159,7 @@ match_follows(startstate, depth)
 		continue;
 
 	    case NFA_ANY:
+	    case NFA_ANY_COMPOSING:
 	    case NFA_IDENT:
 	    case NFA_SIDENT:
 	    case NFA_KWORD:
@@ -4293,8 +4332,10 @@ addstate(l, state, subs_arg, pim, off)
 	    {
 		/* This state is already in the list, don't add it again,
 		 * unless it is an MOPEN that is used for a backreference or
-		 * when there is a PIM. */
-		if (!nfa_has_backref && pim == NULL && !l->has_pim)
+		 * when there is a PIM. For NFA_MATCH check the position,
+		 * lower position is preferred. */
+		if (!nfa_has_backref && pim == NULL && !l->has_pim
+						     && state->c != NFA_MATCH)
 		{
 skip_add:
 #ifdef ENABLE_LOG
@@ -4362,7 +4403,7 @@ skip_add:
     switch (state->c)
     {
 	case NFA_MATCH:
-	    nfa_match = TRUE;
+//	    nfa_match = TRUE;
 	    break;
 
 	case NFA_SPLIT:
@@ -5118,6 +5159,7 @@ failure_chance(state, depth)
 
 	case NFA_MATCH:
 	case NFA_MCLOSE:
+	case NFA_ANY_COMPOSING:
 	    /* empty match works always */
 	    return 0;
 
@@ -5540,6 +5582,12 @@ nfa_regmatch(prog, start, submatch, m)
 	    {
 	    case NFA_MATCH:
 	      {
+#ifdef FEAT_MBYTE
+		/* If the match ends before a composing characters and
+		 * ireg_icombine is not set, that is not really a match. */
+		if (enc_utf8 && !ireg_icombine && utf_iscomposing(curc))
+		    break;
+#endif
 		nfa_match = TRUE;
 		copy_sub(&submatch->norm, &t->subs.norm);
 #ifdef FEAT_SYN_HL
@@ -6087,6 +6135,23 @@ nfa_regmatch(prog, start, submatch, m)
 		}
 		break;
 
+	    case NFA_ANY_COMPOSING:
+		/* On a composing character skip over it.  Otherwise do
+		 * nothing.  Always matches. */
+#ifdef FEAT_MBYTE
+		if (enc_utf8 && utf_iscomposing(curc))
+		{
+		    add_off = clen;
+		}
+		else
+#endif
+		{
+		    add_here = TRUE;
+		    add_off = 0;
+		}
+		add_state = t->state->out;
+		break;
+
 	    /*
 	     * Character classes like \a for alpha, \d for digit etc.
 	     */
@@ -6451,12 +6516,10 @@ nfa_regmatch(prog, start, submatch, m)
 		if (!result && ireg_ic)
 		    result = MB_TOLOWER(c) == MB_TOLOWER(curc);
 #ifdef FEAT_MBYTE
-		/* If there is a composing character which is not being
-		 * ignored there can be no match. Match with composing
-		 * character uses NFA_COMPOSING above. */
-		if (result && enc_utf8 && !ireg_icombine
-						&& clen != utf_char2len(curc))
-		    result = FALSE;
+		/* If ireg_icombine is not set only skip over the character
+		 * itself.  When it is set skip over composing characters. */
+		if (result && enc_utf8 && !ireg_icombine)
+		    clen = utf_char2len(curc);
 #endif
 		ADD_STATE_IF_MATCH(t->state);
 		break;
@@ -7060,19 +7123,21 @@ nfa_regfree(prog)
  * Match a regexp against a string.
  * "rmp->regprog" is a compiled regexp as returned by nfa_regcomp().
  * Uses curbuf for line count and 'iskeyword'.
+ * If "line_lbr" is TRUE consider a "\n" in "line" to be a line break.
  *
  * Return TRUE if there is a match, FALSE if not.
  */
     static int
-nfa_regexec(rmp, line, col)
+nfa_regexec_nl(rmp, line, col, line_lbr)
     regmatch_T	*rmp;
     char_u	*line;	/* string to match against */
     colnr_T	col;	/* column to start looking for match */
+    int		line_lbr;
 {
     reg_match = rmp;
     reg_mmatch = NULL;
     reg_maxline = 0;
-    reg_line_lbr = FALSE;
+    reg_line_lbr = line_lbr;
     reg_buf = curbuf;
     reg_win = NULL;
     ireg_ic = rmp->rm_ic;
@@ -7082,35 +7147,6 @@ nfa_regexec(rmp, line, col)
     ireg_maxcol = 0;
     return (nfa_regexec_both(line, col) != 0);
 }
-
-#if defined(FEAT_MODIFY_FNAME) || defined(FEAT_EVAL) \
-	|| defined(FIND_REPLACE_DIALOG) || defined(PROTO)
-
-static int  nfa_regexec_nl __ARGS((regmatch_T *rmp, char_u *line, colnr_T col));
-
-/*
- * Like nfa_regexec(), but consider a "\n" in "line" to be a line break.
- */
-    static int
-nfa_regexec_nl(rmp, line, col)
-    regmatch_T	*rmp;
-    char_u	*line;	/* string to match against */
-    colnr_T	col;	/* column to start looking for match */
-{
-    reg_match = rmp;
-    reg_mmatch = NULL;
-    reg_maxline = 0;
-    reg_line_lbr = TRUE;
-    reg_buf = curbuf;
-    reg_win = NULL;
-    ireg_ic = rmp->rm_ic;
-#ifdef FEAT_MBYTE
-    ireg_icombine = FALSE;
-#endif
-    ireg_maxcol = 0;
-    return (nfa_regexec_both(line, col) != 0);
-}
-#endif
 
 
 /*

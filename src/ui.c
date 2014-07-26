@@ -2344,7 +2344,7 @@ clip_x11_convert_selection_cb(w, sel_atom, target, type, value, length, format)
     if (       *target != XA_STRING
 #ifdef FEAT_MBYTE
 	    && *target != vimenc_atom
-	    && *target != utf8_atom
+	    && (*target != utf8_atom || !enc_utf8)
 #endif
 	    && *target != vim_atom
 	    && *target != text_atom
@@ -3183,15 +3183,15 @@ vcol2col(wp, lnum, vcol)
     /* try to advance to the specified column */
     int		count = 0;
     char_u	*ptr;
-    char_u	*start;
+    char_u	*line;
 
-    start = ptr = ml_get_buf(wp->w_buffer, lnum, FALSE);
+    line = ptr = ml_get_buf(wp->w_buffer, lnum, FALSE);
     while (count < vcol && *ptr != NUL)
     {
-	count += win_lbr_chartabsize(wp, ptr, count, NULL);
+	count += win_lbr_chartabsize(wp, line, ptr, count, NULL);
 	mb_ptr_adv(ptr);
     }
-    return (int)(ptr - start);
+    return (int)(ptr - line);
 }
 #endif
 

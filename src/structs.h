@@ -134,6 +134,12 @@ typedef struct
     int		wo_arab;
 # define w_p_arab w_onebuf_opt.wo_arab	/* 'arabic' */
 #endif
+#ifdef FEAT_LINEBREAK
+    int		wo_bri;
+# define w_p_bri w_onebuf_opt.wo_bri	/* 'breakindent' */
+    char_u		*wo_briopt;
+# define w_p_briopt w_onebuf_opt.wo_briopt /* 'breakindentopt' */
+#endif
 #ifdef FEAT_DIFF
     int		wo_diff;
 # define w_p_diff w_onebuf_opt.wo_diff	/* 'diff' */
@@ -572,7 +578,7 @@ struct memfile
     unsigned	mf_page_size;		/* number of bytes in a page */
     int		mf_dirty;		/* TRUE if there are dirty blocks */
 #ifdef FEAT_CRYPT
-    buf_T	*mf_buffer;		/* bufer this memfile is for */
+    buf_T	*mf_buffer;		/* buffer this memfile is for */
     char_u	mf_seed[MF_SEED_LEN];	/* seed for encryption */
 
     /* Values for key, method and seed used for reading data blocks when
@@ -675,6 +681,7 @@ typedef struct arglist
 {
     garray_T	al_ga;		/* growarray with the array of file names */
     int		al_refcount;	/* number of windows using this arglist */
+    int		id;		/* id of this arglist */
 } alist_T;
 
 /*
@@ -1934,6 +1941,32 @@ typedef struct
 #endif
 } match_T;
 
+/* number of positions supported by matchaddpos() */
+#define MAXPOSMATCH 8
+
+/*
+ * Same as lpos_T, but with additional field len.
+ */
+typedef struct
+{
+    linenr_T	lnum;	/* line number */
+    colnr_T	col;	/* column number */
+    int		len;	/* length: 0 - to the end of line */
+} llpos_T;
+
+/*
+ * posmatch_T provides an array for storing match items for matchaddpos()
+ * function.
+ */
+typedef struct posmatch posmatch_T;
+struct posmatch
+{
+    llpos_T	pos[MAXPOSMATCH];	/* array of positions */
+    int		cur;			/* internal position counter */
+    linenr_T	toplnum;		/* top buffer line */
+    linenr_T	botlnum;		/* bottom buffer line */
+};
+
 /*
  * matchitem_T provides a linked list for storing match items for ":match" and
  * the match functions.
@@ -1947,6 +1980,7 @@ struct matchitem
     char_u	*pattern;   /* pattern to highlight */
     int		hlg_id;	    /* highlight group ID */
     regmmatch_T	match;	    /* regexp program for pattern */
+    posmatch_T	pos;	    /* position matches */
     match_T	hl;	    /* struct for doing the actual highlighting */
 };
 
@@ -2168,6 +2202,11 @@ struct window_S
 #endif
 #ifdef FEAT_SYN_HL
     int		*w_p_cc_cols;	    /* array of columns to highlight or NULL */
+#endif
+#ifdef FEAT_LINEBREAK
+    int		w_p_brimin;	    /* minimum width for breakindent */
+    int		w_p_brishift;	    /* additional shift for breakindent */
+    int		w_p_brisbr;	    /* sbr in 'briopt' */
 #endif
 
     /* transform a pointer to a "onebuf" option into a "allbuf" option */

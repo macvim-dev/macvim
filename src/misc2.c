@@ -201,10 +201,10 @@ coladvance2(pos, addspaces, finetune, wcol)
 	{
 	    /* Count a tab for what it's worth (if list mode not on) */
 #ifdef FEAT_LINEBREAK
-	    csize = win_lbr_chartabsize(curwin, ptr, col, &head);
+	    csize = win_lbr_chartabsize(curwin, line, ptr, col, &head);
 	    mb_ptr_adv(ptr);
 #else
-	    csize = lbr_chartabsize_adv(&ptr, col);
+	    csize = lbr_chartabsize_adv(line, &ptr, col);
 #endif
 	    col += csize;
 	}
@@ -2087,29 +2087,37 @@ ga_grow(gap, n)
 
 /*
  * For a growing array that contains a list of strings: concatenate all the
- * strings with a separating comma.
+ * strings with a separating "sep".
  * Returns NULL when out of memory.
  */
     char_u *
-ga_concat_strings(gap)
+ga_concat_strings(gap, sep)
     garray_T *gap;
+    char     *sep;
 {
     int		i;
     int		len = 0;
+    int		sep_len = (int)STRLEN(sep);
     char_u	*s;
+    char_u	*p;
 
     for (i = 0; i < gap->ga_len; ++i)
-	len += (int)STRLEN(((char_u **)(gap->ga_data))[i]) + 1;
+	len += (int)STRLEN(((char_u **)(gap->ga_data))[i]) + sep_len;
 
     s = alloc(len + 1);
     if (s != NULL)
     {
 	*s = NUL;
+	p = s;
 	for (i = 0; i < gap->ga_len; ++i)
 	{
-	    if (*s != NUL)
-		STRCAT(s, ",");
-	    STRCAT(s, ((char_u **)(gap->ga_data))[i]);
+	    if (p != s)
+	    {
+		STRCPY(p, sep);
+		p += sep_len;
+	    }
+	    STRCPY(p, ((char_u **)(gap->ga_data))[i]);
+	    p += STRLEN(p);
 	}
     }
     return s;
@@ -2148,7 +2156,8 @@ ga_append(gap, c)
     }
 }
 
-#if (defined(UNIX) && !defined(USE_SYSTEM)) || defined(WIN3264)
+#if (defined(UNIX) && !defined(USE_SYSTEM)) || defined(WIN3264) \
+	|| defined(PROTO)
 /*
  * Append the text in "gap" below the cursor line and clear "gap".
  */

@@ -153,6 +153,11 @@ char *UP, *BC, PC;
 static char_u *vim_tgetstr __ARGS((char *s, char_u **pp));
 #endif /* HAVE_TGETENT */
 
+#if defined(FEAT_TERMRESPONSE)
+static int xt_index_in = 0;
+static int xt_index_out = 0;
+#endif
+
 static int  detected_8bit = FALSE;	/* detected 8-bit terminal */
 
 static struct builtin_term builtin_termcaps[] =
@@ -3259,7 +3264,7 @@ starttermcap()
 	    may_req_termresponse();
 	    /* Immediately check for a response.  If t_Co changes, we don't
 	     * want to redraw with wrong colors first. */
-	    if (crv_status != CRV_GET)
+	    if (crv_status == CRV_SENT)
 		check_for_codes_from_term();
 	}
 #endif
@@ -3307,6 +3312,40 @@ stoptermcap()
 }
 
 #if defined(FEAT_TERMRESPONSE) || defined(PROTO)
+# if defined(UNIX) || defined(PROTO)
+/*
+ * Return TRUE when the xterm version was requested or anything else that
+ * would send an ESC sequence back to Vim.
+ * If not sent yet, prevent it from being sent soon.
+ * Used to check whether it is OK to enable checking for DEC mouse codes,
+ * which conflict with may xterm ESC sequences.
+ */
+    int
+did_request_esc_sequence()
+{
+    if (crv_status == CRV_GET)
+	crv_status = 0;
+    if (u7_status == U7_GET)
+	u7_status = 0;
+    return crv_status == CRV_SENT || u7_status == U7_SENT
+						|| xt_index_out > xt_index_in;
+}
+
+/*
+ * If requesting the version was disabled in did_request_esc_sequence(),
+ * enable it again.
+ */
+    void
+resume_get_esc_sequence()
+{
+    if (crv_status == 0)
+	crv_status = CRV_GET;
+    if (u7_status == 0)
+	u7_status = U7_GET;
+}
+# endif
+
+
 /*
  * Request version string (for xterm) when needed.
  * Only do this after switching to raw mode, otherwise the result will be
@@ -3319,6 +3358,8 @@ stoptermcap()
  * Insert mode.
  * On Unix only do it when both output and input are a tty (avoid writing
  * request to terminal while reading from a file).
+ * Do not do this when a mouse is being detected that starts with the same ESC
+ * sequence as the termresponse.
  * The result is caught in check_termcode().
  */
     void
@@ -3332,6 +3373,7 @@ may_req_termresponse()
 # ifdef UNIX
 	    && isatty(1)
 	    && isatty(read_cmd_fd)
+	    && !xterm_conflict_mouse
 # endif
 	    && *T_CRV != NUL)
     {
@@ -3682,7 +3724,11 @@ add_termcode(name, string, flags)
 	return;
     }
 
+#if defined(WIN3264) && !defined(FEAT_GUI)
+    s = vim_strnsave(string, (int)STRLEN(string) + 1);
+#else
     s = vim_strsave(string);
+#endif
     if (s == NULL)
 	return;
 
@@ -3692,6 +3738,15 @@ add_termcode(name, string, flags)
 	STRMOVE(s, s + 1);
 	s[0] = term_7to8bit(string);
     }
+
+#if defined(WIN3264) && !defined(FEAT_GUI)
+    if (s[0] == K_NUL)
+    {
+        STRMOVE(s + 1, s);
+        s[1] = 3;
+    }
+#endif
+
     len = (int)STRLEN(s);
 
     need_gather = TRUE;		/* need to fill termleader[] */
@@ -5714,9 +5769,6 @@ show_one_termcode(name, code, printit)
  * termcap codes from the terminal itself.
  * We get them one by one to avoid a very long response string.
  */
-static int xt_index_in = 0;
-static int xt_index_out = 0;
-
     static void
 req_codes_from_term()
 {

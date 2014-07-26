@@ -1,6 +1,6 @@
 " Vim plugin for showing matching parens
 " Maintainer:  Bram Moolenaar <Bram@vim.org>
-" Last Change: 2013 May 08
+" Last Change: 2014 Jul 19
 
 " Exit quickly when:
 " - this plugin was already loaded (or disabled)
@@ -39,7 +39,7 @@ set cpo-=C
 function! s:Highlight_Matching_Pair()
   " Remove any previous match.
   if exists('w:paren_hl_on') && w:paren_hl_on
-    3match none
+    silent! call matchdelete(3)
     let w:paren_hl_on = 0
   endif
 
@@ -54,14 +54,15 @@ function! s:Highlight_Matching_Pair()
   let c_col = col('.')
   let before = 0
 
-  let c = getline(c_lnum)[c_col - 1]
+  let text = getline(c_lnum)
+  let c = text[c_col - 1]
   let plist = split(&matchpairs, '.\zs[:,]')
   let i = index(plist, c)
   if i < 0
     " not found, in Insert mode try character before the cursor
     if c_col > 1 && (mode() == 'i' || mode() == 'R')
       let before = 1
-      let c = getline(c_lnum)[c_col - 2]
+      let c = text[c_col - 2]
       let i = index(plist, c)
     endif
     if i < 0
@@ -87,7 +88,13 @@ function! s:Highlight_Matching_Pair()
   " Find the match.  When it was just before the cursor move it there for a
   " moment.
   if before > 0
-    let save_cursor = winsaveview()
+    let has_getcurpos = exists("*getcurpos")
+    if has_getcurpos
+      " getcurpos() is more efficient but doesn't exist before 7.4.313.
+      let save_cursor = getcurpos()
+    else
+      let save_cursor = winsaveview()
+    endif
     call cursor(c_lnum, c_col - before)
   endif
 
@@ -147,19 +154,27 @@ function! s:Highlight_Matching_Pair()
   endtry
 
   if before > 0
-    call winrestview(save_cursor)
+    if has_getcurpos
+      call setpos('.', save_cursor)
+    else
+      call winrestview(save_cursor)
+    endif
   endif
 
   " If a match is found setup match highlighting.
   if m_lnum > 0 && m_lnum >= stoplinetop && m_lnum <= stoplinebottom 
-    exe '3match MatchParen /\(\%' . c_lnum . 'l\%' . (c_col - before) .
-	  \ 'c\)\|\(\%' . m_lnum . 'l\%' . m_col . 'c\)/'
+    if exists('*matchaddpos')
+      call matchaddpos('MatchParen', [[c_lnum, c_col - before], [m_lnum, m_col]], 10, 3)
+    else
+      exe '3match MatchParen /\(\%' . c_lnum . 'l\%' . (c_col - before) .
+	    \ 'c\)\|\(\%' . m_lnum . 'l\%' . m_col . 'c\)/'
+    endif
     let w:paren_hl_on = 1
   endif
 endfunction
 
 " Define commands that will disable and enable the plugin.
-command! NoMatchParen windo 3match none | unlet! g:loaded_matchparen |
+command! NoMatchParen windo silent! call matchdelete(3) | unlet! g:loaded_matchparen |
 	  \ au! matchparen
 command! DoMatchParen runtime plugin/matchparen.vim | windo doau CursorMoved
 

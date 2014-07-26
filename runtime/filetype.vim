@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2014 Feb 26
+" Last Change:	2014 Jul 23
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -864,7 +864,7 @@ func! s:FThtml()
       setf xhtml
       return
     endif
-    if getline(n) =~ '{%\s*\(extends\|block\)\>'
+    if getline(n) =~ '{%\s*\(extends\|block\|load\)\>'
       setf htmldjango
       return
     endif
@@ -989,7 +989,7 @@ au BufNewFile,BufRead *.java,*.jav		setf java
 au BufNewFile,BufRead *.jj,*.jjt		setf javacc
 
 " JavaScript, ECMAScript
-au BufNewFile,BufRead *.js,*.javascript,*.es,*.jsx,*.json   setf javascript
+au BufNewFile,BufRead *.js,*.javascript,*.es,*.jsx   setf javascript
 
 " Java Server Pages
 au BufNewFile,BufRead *.jsp			setf jsp
@@ -1007,11 +1007,17 @@ au BufNewFile,BufRead *.jgr			setf jgraph
 " Jovial
 au BufNewFile,BufRead *.jov,*.j73,*.jovial	setf jovial
 
+" JSON
+au BufNewFile,BufRead *.json			setf json
+
 " Kixtart
 au BufNewFile,BufRead *.kix			setf kix
 
 " Kimwitu[++]
 au BufNewFile,BufRead *.k			setf kwt
+
+" Kivy
+au BufNewFile,BufRead *.kv			setf kivy
 
 " KDE script
 au BufNewFile,BufRead *.ks			setf kscript
@@ -1644,6 +1650,20 @@ if has("fname_case")
   au BufNewFile,BufRead *.Rnw,*.rnw,*.Snw,*.snw		setf rnoweb
 else
   au BufNewFile,BufRead *.rnw,*.snw			setf rnoweb
+endif
+
+" R Markdown file
+if has("fname_case")
+  au BufNewFile,BufRead *.Rmd,*.rmd,*.Smd,*.smd		setf rmd
+else
+  au BufNewFile,BufRead *.rmd,*.smd			setf rmd
+endif
+
+" R reStructuredText file
+if has("fname_case")
+  au BufNewFile,BufRead *.Rrst,*.rrst,*.Srst,*.srst	setf rrst
+else
+  au BufNewFile,BufRead *.rrst,*.srst			setf rrst
 endif
 
 " Rexx, Rebol or R
@@ -2294,6 +2314,9 @@ au BufNewFile,BufRead vgrindefs			setf vgrindefs
 " VRML V1.0c
 au BufNewFile,BufRead *.wrl			setf vrml
 
+" Vroom (vim testing and executable documentation)
+au BufNewFile,BufRead *.vroom			setf vroom
+
 " Webmacro
 au BufNewFile,BufRead *.wm			setf webmacro
 
@@ -2661,7 +2684,7 @@ au BufNewFile,BufRead zsh*,zlog*		call s:StarSetf('zsh')
 
 " Plain text files, needs to be far down to not override others.  This avoids
 " the "conf" type being used if there is a line starting with '#'.
-au BufNewFile,BufRead *.txt,*.text		setf text
+au BufNewFile,BufRead *.txt,*.text,README	setf text
 
 
 " Use the filetype detect plugins.  They may overrule any of the previously

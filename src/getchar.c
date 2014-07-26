@@ -1883,7 +1883,7 @@ vpeekc_nomap()
 }
 #endif
 
-#if defined(FEAT_INS_EXPAND) || defined(PROTO)
+#if defined(FEAT_INS_EXPAND) || defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Check if any character is available, also half an escape sequence.
  * Trick: when no typeahead found, but there is something in the typeahead
@@ -2675,7 +2675,7 @@ vgetorpeek(advance)
 				{
 				    if (!vim_iswhite(ptr[col]))
 					curwin->w_wcol = vcol;
-				    vcol += lbr_chartabsize(ptr + col,
+				    vcol += lbr_chartabsize(ptr, ptr + col,
 							       (colnr_T)vcol);
 #ifdef FEAT_MBYTE
 				    if (has_mbyte)
@@ -2731,6 +2731,11 @@ vgetorpeek(advance)
 		}
 		if (c < 0)
 		    continue;	/* end of input script reached */
+
+		/* Allow mapping for just typed characters. When we get here c
+		 * is the number of extra bytes and typebuf.tb_len is 1. */
+		for (n = 1; n <= c; ++n)
+		    typebuf.tb_noremap[typebuf.tb_off + n] = RM_YES;
 		typebuf.tb_len += c;
 
 		/* buffer full, don't map */

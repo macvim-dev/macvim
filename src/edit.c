@@ -1966,7 +1966,7 @@ change_indent(type, amount, round, replaced, call_changed_bytes)
 	    else
 #endif
 		++new_cursor_col;
-	    vcol += lbr_chartabsize(ptr + new_cursor_col, (colnr_T)vcol);
+	    vcol += lbr_chartabsize(ptr, ptr + new_cursor_col, (colnr_T)vcol);
 	}
 	vcol = last_vcol;
 
@@ -3869,7 +3869,8 @@ ins_compl_prep(c)
 	    ins_compl_free();
 	    compl_started = FALSE;
 	    compl_matches = 0;
-	    msg_clr_cmdline();		/* necessary for "noshowmode" */
+	    if (!shortmess(SHM_COMPLETIONMENU))
+		msg_clr_cmdline();	/* necessary for "noshowmode" */
 	    ctrl_x_mode = 0;
 	    compl_enter_selects = FALSE;
 	    if (edit_submode != NULL)
@@ -4606,6 +4607,9 @@ ins_compl_delete()
      */
     i = compl_col + (compl_cont_status & CONT_ADDING ? compl_length : 0);
     backspace_until_column(i);
+
+    /* TODO: is this sufficient for redrawing?  Redrawing everything causes
+     * flicker, thus we can't do that. */
     changed_cline_bef_curs();
 }
 
@@ -5300,7 +5304,8 @@ ins_complete(c)
 	    {
 		ctrl_x_mode = 0;
 		edit_submode = NULL;
-		msg_clr_cmdline();
+		if (!shortmess(SHM_COMPLETIONMENU))
+		    msg_clr_cmdline();
 		return FAIL;
 	    }
 
@@ -5559,15 +5564,18 @@ ins_complete(c)
 
     /* Show a message about what (completion) mode we're in. */
     showmode();
-    if (edit_submode_extra != NULL)
+    if (!shortmess(SHM_COMPLETIONMENU))
     {
-	if (!p_smd)
-	    msg_attr(edit_submode_extra,
-		    edit_submode_highl < HLF_COUNT
-		    ? hl_attr(edit_submode_highl) : 0);
+	if (edit_submode_extra != NULL)
+	{
+	    if (!p_smd)
+		msg_attr(edit_submode_extra,
+			edit_submode_highl < HLF_COUNT
+			? hl_attr(edit_submode_highl) : 0);
+	}
+	else
+	    msg_clr_cmdline();	/* necessary for "noshowmode" */
     }
-    else
-	msg_clr_cmdline();	/* necessary for "noshowmode" */
 
     /* Show the popup menu, unless we got interrupted. */
     if (!compl_interrupted)
@@ -7136,9 +7144,10 @@ oneleft()
 	for (;;)
 	{
 	    coladvance(v - width);
-	    /* getviscol() is slow, skip it when 'showbreak' is empty and
-	     * there are no multi-byte characters */
-	    if ((*p_sbr == NUL
+	    /* getviscol() is slow, skip it when 'showbreak' is empty,
+	     * 'breakindent' is not set and there are no multi-byte
+	     * characters */
+	    if ((*p_sbr == NUL && !curwin->w_p_bri
 #  ifdef FEAT_MBYTE
 			&& !has_mbyte
 #  endif
@@ -8700,7 +8709,7 @@ ins_del()
     {
 	temp = curwin->w_cursor.col;
 	if (!can_bs(BS_EOL)		/* only if "eol" included */
-		|| do_join(2, FALSE, TRUE, FALSE) == FAIL)
+		|| do_join(2, FALSE, TRUE, FALSE, FALSE) == FAIL)
 	    vim_beep();
 	else
 	    curwin->w_cursor.col = temp;
@@ -8775,8 +8784,8 @@ ins_bs(c, mode, inserted_space_p)
 		((curwin->w_cursor.lnum == 1 && curwin->w_cursor.col == 0)
 		    || (!can_bs(BS_START)
 			&& (arrow_used
-			    || (curwin->w_cursor.lnum == Insstart.lnum
-				&& curwin->w_cursor.col <= Insstart.col)))
+			    || (curwin->w_cursor.lnum == Insstart_orig.lnum
+				&& curwin->w_cursor.col <= Insstart_orig.col)))
 		    || (!can_bs(BS_INDENT) && !arrow_used && ai_col > 0
 					 && curwin->w_cursor.col <= ai_col)
 		    || (!can_bs(BS_EOL) && curwin->w_cursor.col == 0))))
@@ -8827,8 +8836,8 @@ ins_bs(c, mode, inserted_space_p)
      */
     if (curwin->w_cursor.col == 0)
     {
-	lnum = Insstart.lnum;
-	if (curwin->w_cursor.lnum == Insstart.lnum
+	lnum = Insstart_orig.lnum;
+	if (curwin->w_cursor.lnum == lnum
 #ifdef FEAT_RIGHTLEFT
 			|| revins_on
 #endif
@@ -8837,8 +8846,9 @@ ins_bs(c, mode, inserted_space_p)
 	    if (u_save((linenr_T)(curwin->w_cursor.lnum - 2),
 			       (linenr_T)(curwin->w_cursor.lnum + 1)) == FAIL)
 		return FALSE;
-	    --Insstart.lnum;
-	    Insstart.col = MAXCOL;
+	    --Insstart_orig.lnum;
+	    Insstart_orig.col = MAXCOL;
+	    Insstart = Insstart_orig;
 	}
 	/*
 	 * In replace mode:
@@ -8881,7 +8891,7 @@ ins_bs(c, mode, inserted_space_p)
 			ptr[len - 1] = NUL;
 		}
 
-		(void)do_join(2, FALSE, FALSE, FALSE);
+		(void)do_join(2, FALSE, FALSE, FALSE, FALSE);
 		if (temp == NUL && gchar_cursor() != NUL)
 		    inc_cursor();
 	    }
@@ -8996,9 +9006,9 @@ ins_bs(c, mode, inserted_space_p)
 	    while (vcol < want_vcol)
 	    {
 		/* Remember the first char we inserted */
-		if (curwin->w_cursor.lnum == Insstart.lnum
-				   && curwin->w_cursor.col < Insstart.col)
-		    Insstart.col = curwin->w_cursor.col;
+		if (curwin->w_cursor.lnum == Insstart_orig.lnum
+				   && curwin->w_cursor.col < Insstart_orig.col)
+		    Insstart_orig.col = curwin->w_cursor.col;
 
 #ifdef FEAT_VREPLACE
 		if (State & VREPLACE_FLAG)
@@ -9086,8 +9096,8 @@ ins_bs(c, mode, inserted_space_p)
 		revins_on ||
 #endif
 		(curwin->w_cursor.col > mincol
-		 && (curwin->w_cursor.lnum != Insstart.lnum
-		     || curwin->w_cursor.col != Insstart.col)));
+		 && (curwin->w_cursor.lnum != Insstart_orig.lnum
+		     || curwin->w_cursor.col != Insstart_orig.col)));
 	did_backspace = TRUE;
     }
 #ifdef FEAT_SMARTINDENT
@@ -9105,9 +9115,9 @@ ins_bs(c, mode, inserted_space_p)
     AppendCharToRedobuff(c);
 
     /* If deleted before the insertion point, adjust it */
-    if (curwin->w_cursor.lnum == Insstart.lnum
-				       && curwin->w_cursor.col < Insstart.col)
-	Insstart.col = curwin->w_cursor.col;
+    if (curwin->w_cursor.lnum == Insstart_orig.lnum
+				       && curwin->w_cursor.col < Insstart_orig.col)
+	Insstart_orig.col = curwin->w_cursor.col;
 
     /* vi behaviour: the cursor moves backward but the character that
      *		     was there remains visible
@@ -9787,11 +9797,11 @@ ins_tab()
 	getvcol(curwin, &fpos, &vcol, NULL, NULL);
 	getvcol(curwin, cursor, &want_vcol, NULL, NULL);
 
-	/* Use as many TABs as possible.  Beware of 'showbreak' and
-	 * 'linebreak' adding extra virtual columns. */
+	/* Use as many TABs as possible.  Beware of 'breakindent', 'showbreak'
+	 * and 'linebreak' adding extra virtual columns. */
 	while (vim_iswhite(*ptr))
 	{
-	    i = lbr_chartabsize((char_u *)"\t", vcol);
+	    i = lbr_chartabsize(NULL, (char_u *)"\t", vcol);
 	    if (vcol + i > want_vcol)
 		break;
 	    if (*ptr != TAB)
@@ -9813,11 +9823,12 @@ ins_tab()
 	if (change_col >= 0)
 	{
 	    int repl_off = 0;
+	    char_u *line = ptr;
 
 	    /* Skip over the spaces we need. */
 	    while (vcol < want_vcol && *ptr == ' ')
 	    {
-		vcol += lbr_chartabsize(ptr, vcol);
+		vcol += lbr_chartabsize(line, ptr, vcol);
 		++ptr;
 		++repl_off;
 	    }
@@ -10058,6 +10069,7 @@ ins_copychar(lnum)
     int	    c;
     int	    temp;
     char_u  *ptr, *prev_ptr;
+    char_u  *line;
 
     if (lnum < 1 || lnum > curbuf->b_ml.ml_line_count)
     {
@@ -10067,13 +10079,13 @@ ins_copychar(lnum)
 
     /* try to advance to the cursor column */
     temp = 0;
-    ptr = ml_get(lnum);
+    line = ptr = ml_get(lnum);
     prev_ptr = ptr;
     validate_virtcol();
     while ((colnr_T)temp < curwin->w_virtcol && *ptr != NUL)
     {
 	prev_ptr = ptr;
-	temp += lbr_chartabsize_adv(&ptr, (colnr_T)temp);
+	temp += lbr_chartabsize_adv(line, &ptr, (colnr_T)temp);
     }
     if ((colnr_T)temp > curwin->w_virtcol)
 	ptr = prev_ptr;

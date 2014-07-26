@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.4.  Last change: 2014 Apr 06
+*eval.txt*	For Vim version 7.4.  Last change: 2014 Jul 19
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1716,6 +1716,8 @@ append( {lnum}, {string})	Number	append {string} below line {lnum}
 append( {lnum}, {list})		Number	append lines {list} below line {lnum}
 argc()				Number	number of files in the argument list
 argidx()			Number	current index in the argument list
+arglistid( [{winnr}, [ {tabnr}]])
+				Number	argument list id
 argv( {nr})			String	{nr} entry of the argument list
 argv( )				List	the argument list
 asin( {expr})			Float	arc sine of {expr}
@@ -1806,10 +1808,11 @@ getcharmod( )			Number	modifiers for the last typed character
 getcmdline()			String	return the current command-line
 getcmdpos()			Number	return cursor position in command-line
 getcmdtype()			String	return the current command-line type
+getcurpos()			List	position of the cursor
 getcwd()			String	the current working directory
+getfontname( [{name}])		String	name of font being used
 getfperm( {fname})		String	file permissions of file {fname}
 getfsize( {fname})		Number	size in bytes of file {fname}
-getfontname( [{name}])		String	name of font being used
 getftime( {fname})		Number	last modification time of file
 getftype( {fname})		String	description of type of file {fname}
 getline( {lnum})		String	line {lnum} of current buffer
@@ -1832,7 +1835,7 @@ getwinvar( {nr}, {varname} [, {def}])
 				any	variable {varname} in window {nr}
 glob( {expr} [, {nosuf} [, {list}]])
 				any	expand file wildcards in {expr}
-globpath( {path}, {expr} [, {flag}])
+globpath( {path}, {expr} [, {nosuf} [, {list}]])
 				String	do glob({expr}) for all dirs in {path}
 has( {feature})			Number	TRUE if feature {feature} supported
 has_key( {dict}, {key})		Number	TRUE if {dict} has entry {key}
@@ -1884,6 +1887,8 @@ match( {expr}, {pat}[, {start}[, {count}]])
 				Number	position where {pat} matches in {expr}
 matchadd( {group}, {pattern}[, {priority}[, {id}]])
 				Number	highlight {pattern} with {group}
+matchaddpos( {group}, {list}[, {priority}[, {id}]])
+				Number	highlight positions with {group}
 matcharg( {nr})			List	arguments of |:match|
 matchdelete( {id})		Number	delete match identified by {id}
 matchend( {expr}, {pat}[, {start}[, {count}]])
@@ -2102,6 +2107,18 @@ argc()		The result is the number of files in the argument list of the
 							*argidx()*
 argidx()	The result is the current index in the argument list.  0 is
 		the first file.  argc() - 1 is the last one.  See |arglist|.
+
+							*arglistid()*
+arglistid([{winnr}, [ {tabnr} ]])
+		Return the argument list ID.  This is a number which
+		identifies the argument list being used.  Zero is used for the
+		global argument list.
+		Return zero if the arguments are invalid.
+
+		Without arguments use the current window.
+		With {winnr} only use this window in the current tab page.
+		With {winnr} and {tabnr} use the window in the specified tab
+		page.
 
 							*argv()*
 argv([{nr}])	The result is the {nr}th file in the argument list of the
@@ -2587,9 +2604,14 @@ cursor({lnum}, {col} [, {off}])				*cursor()*
 cursor({list})
 		Positions the cursor at the column (byte count) {col} in the
 		line {lnum}.  The first column is one.
+
 		When there is one argument {list} this is used as a |List|
-		with two or three items {lnum}, {col} and {off}.  This is like
-		the return value of |getpos()|, but without the first item.
+		with two, three or four item:
+			[{lnum}, {col}, {off}]
+			[{lnum}, {col}, {off}, {curswant}]
+		This is like the return value of |getpos()| or |getcurpos()|,
+		but without the first item.
+
 		Does not change the jumplist.
 		If {lnum} is greater than the number of lines in the buffer,
 		the cursor will be positioned at the last line in the buffer.
@@ -2598,6 +2620,8 @@ cursor({list})
 		the cursor will be positioned at the last character in the
 		line.
 		If {col} is zero, the cursor will stay in the current column.
+		If {curswant} is given it is used to set the preferred column
+		for vertical movment.  Otherwise {col} is used.
 		When 'virtualedit' is used {off} specifies the offset in
 		screen columns from the start of the character.  E.g., a
 		position within a <Tab> or after the last character.
@@ -2735,7 +2759,8 @@ exists({expr})	The result is a Number, which is non-zero if {expr} is
 					string)
 			*funcname	built-in function (see |functions|)
 					or user defined function (see
-					|user-functions|).
+					|user-functions|). Also works for a
+					variable that is a Funcref.
 			varname		internal variable (see
 					|internal-variables|).	Also works
 					for |curly-braces-names|, |Dictionary|
@@ -3237,6 +3262,10 @@ getchar([expr])						*getchar()*
 		String when a modifier (shift, control, alt) was used that is
 		not included in the character.
 
+		When [expr] is 0 and Esc is typed, there will be a short delay
+		while Vim waits to see if this is the start of an escape
+		sequence.
+
 		When [expr] is 1 only the first byte is returned.  For a
 		one-byte character it is the character itself as a number.
 		Use nr2char() to convert it to a String.
@@ -3319,6 +3348,17 @@ getcmdtype()						*getcmdtype()*
 		|c_CTRL-\_e| or |c_CTRL-R_=| or an expression mapping.
 		Returns an empty string otherwise.
 		Also see |getcmdpos()|, |setcmdpos()| and |getcmdline()|.
+
+							*getcurpos()*
+getcurpos()	Get the position of the cursor.  This is like getpos('.'), but
+		includes an extra item in the list:
+		    [bufnum, lnum, col, off, curswant]
+		The "curswant" number is the preferred column when moving the
+		cursor vertically.
+		This can be used to save and restore the cursor position: >
+			let save_cursor = getcurpos()
+			MoveTheCursorAround
+			call setpos('.', save_cursor)
 
 							*getcwd()*
 getcwd()	The result is a String, which is the name of the current
@@ -3441,6 +3481,34 @@ getmatches()						*getmatches()*
 			'pattern': 'FIXME', 'priority': 10, 'id': 2}] >
 			:unlet m
 <
+							*getpid()*
+getpid()	Return a Number which is the process ID of the Vim process.
+		On Unix and MS-Windows this is a unique number, until Vim
+		exits.	On MS-DOS it's always zero.
+
+							*getpos()*
+getpos({expr})	Get the position for {expr}.  For possible values of {expr}
+		see |line()|.  For getting the cursor position see
+		|getcurpos()|.
+		The result is a |List| with four numbers:
+		    [bufnum, lnum, col, off]
+		"bufnum" is zero, unless a mark like '0 or 'A is used, then it
+		is the buffer number of the mark.
+		"lnum" and "col" are the position in the buffer.  The first
+		column is 1.
+		The "off" number is zero, unless 'virtualedit' is used.  Then
+		it is the offset in screen columns from the start of the
+		character.  E.g., a position within a <Tab> or after the last
+		character.
+		Note that for '< and '> Visual mode matters: when it is "V"
+		(visual line mode) the column of '< is zero and the column of
+		'> is a large number.
+		This can be used to save and restore the position of a mark: >
+			let save_a_mark = getpos("'a")
+			...
+			call setpos(''a', save_a_mark
+<		Also see |getcurpos()| and |setpos()|.
+
 
 getqflist()						*getqflist()*
 		Returns a list with all the current quickfix errors.  Each
@@ -3570,11 +3638,12 @@ glob({expr} [, {nosuf} [, {list}]])				*glob()*
 		See |expand()| for expanding special Vim variables.  See
 		|system()| for getting the raw output of an external command.
 
-globpath({path}, {expr} [, {flag}])			*globpath()*
+globpath({path}, {expr} [, {nosuf} [, {list}]])			*globpath()*
 		Perform glob() on all directories in {path} and concatenate
 		the results.  Example: >
 			:echo globpath(&rtp, "syntax/c.vim")
-<		{path} is a comma-separated list of directory names.  Each
+<
+		{path} is a comma-separated list of directory names.  Each
 		directory name is prepended to {expr} and expanded like with
 		|glob()|.  A path separator is inserted when needed.
 		To add a comma inside a directory name escape it with a
@@ -3582,11 +3651,19 @@ globpath({path}, {expr} [, {flag}])			*globpath()*
 		trailing backslash, remove it if you put a comma after it.
 		If the expansion fails for one of the directories, there is no
 		error message.
-		Unless the optional {flag} argument is given and is non-zero,
+
+		Unless the optional {nosuf} argument is given and is non-zero,
 		the 'suffixes' and 'wildignore' options apply: Names matching
 		one of the patterns in 'wildignore' will be skipped and
 		'suffixes' affect the ordering of matches.
 
+		When {list} is present and it is non-zero the result is a List
+		with all matching files. The advantage of using a List is, you
+		also get filenames containing newlines correctly. Otherwise
+		the result is a String and when there are several matches,
+		they are separated by <NL> characters.  Example: >
+			:echo globpath(&rtp, "syntax/c.vim", 0, 1)
+<
 		The "**" item can be used to search in a directory tree.
 		For example, to find all "README.txt" files in the directories
 		in 'runtimepath' and below: >
@@ -4305,6 +4382,41 @@ matchadd({group}, {pattern}[, {priority}[, {id}]])
 		available from |getmatches()|.	All matches can be deleted in
 		one operation by |clearmatches()|.
 
+matchaddpos({group}, {pos}[, {priority}[, {id}]])		*matchaddpos()*
+		Same as |matchadd()|, but requires a list of positions {pos}
+		instead of a pattern. This command is faster than |matchadd()|
+		because it does not require to handle regular expressions and
+		sets buffer line boundaries to redraw screen. It is supposed
+		to be used when fast match additions and deletions are
+		required, for example to highlight matching parentheses.
+
+		The list {pos} can contain one of these items:
+		- A number.  This whole line will be highlighted.  The first
+		  line has number 1.
+		- A list with one number, e.g., [23]. The whole line with this
+		  number will be highlighted.
+		- A list with two numbers, e.g., [23, 11]. The first number is
+		  the line number, the second one is the column number (first
+		  column is 1, the value must correspond to the byte index as
+		  |col()| would return).  The character at this position will
+		  be highlighted.
+		- A list with three numbers, e.g., [23, 11, 3]. As above, but
+		  the third number gives the length of the highlight in bytes.
+		
+		The maximum number of positions is 8.
+
+		Example: >
+			:highlight MyGroup ctermbg=green guibg=green
+			:let m = matchaddpos("MyGroup", [[23, 24], 34])
+<		Deletion of the pattern: >
+			:call matchdelete(m)
+
+<		Matches added by |matchaddpos()| are returned by
+		|getmatches()| with an entry "pos1", "pos2", etc., with the
+		value a list like the {pos} item.
+		These matches cannot be set via |setmatches()|, however they
+		can still be deleted by |clearmatches()|.
+
 matcharg({nr})							*matcharg()*
 		Selects the {nr} match item, as set with a |:match|,
 		|:2match| or |:3match| command.
@@ -4462,33 +4574,6 @@ nr2char({expr}[, {utf8}])				*nr2char()*
 		nr2char(10), because NULs are represented with newline
 		characters.  nr2char(0) is a real NUL and terminates the
 		string, thus results in an empty string.
-
-							*getpid()*
-getpid()	Return a Number which is the process ID of the Vim process.
-		On Unix and MS-Windows this is a unique number, until Vim
-		exits.	On MS-DOS it's always zero.
-
-							*getpos()*
-getpos({expr})	Get the position for {expr}.  For possible values of {expr}
-		see |line()|.
-		The result is a |List| with four numbers:
-		    [bufnum, lnum, col, off]
-		"bufnum" is zero, unless a mark like '0 or 'A is used, then it
-		is the buffer number of the mark.
-		"lnum" and "col" are the position in the buffer.  The first
-		column is 1.
-		The "off" number is zero, unless 'virtualedit' is used.  Then
-		it is the offset in screen columns from the start of the
-		character.  E.g., a position within a <Tab> or after the last
-		character.
-		Note that for '< and '> Visual mode matters: when it is "V"
-		(visual line mode) the column of '< is zero and the column of
-		'> is a large number.
-		This can be used to save and restore the cursor position: >
-			let save_cursor = getpos(".")
-			MoveTheCursorAround
-			call setpos('.', save_cursor)
-<		Also see |setpos()|.
 
 or({expr}, {expr})					*or()*
 		Bitwise OR on the two arguments.  The arguments are converted
@@ -5288,8 +5373,9 @@ setpos({expr}, {list})
 			.	the cursor
 			'x	mark x
 
-		{list} must be a |List| with four numbers:
+		{list} must be a |List| with four or five numbers:
 		    [bufnum, lnum, col, off]
+		    [bufnum, lnum, col, off, curswant]
 
 		"bufnum" is the buffer number.	Zero can be used for the
 		current buffer.  Setting the cursor is only possible for
@@ -5307,6 +5393,12 @@ setpos({expr}, {list})
 		character.  E.g., a position within a <Tab> or after the last
 		character.
 
+		The "curswant" number is only used when setting the cursor
+		position.  It sets the preferred column for when moving the
+		cursor vertically.  When the "curswant" number is missing the
+		preferred column is not set.  When it is present and setting a
+		mark position it is not used.
+
 		Note that for '< and '> changing the line number may result in
 		the marks to be effectively be swapped, so that '< is always
 		before '>.
@@ -5314,10 +5406,13 @@ setpos({expr}, {list})
 		Returns 0 when the position could be set, -1 otherwise.
 		An error message is given if {expr} is invalid.
 
-		Also see |getpos()|
+		Also see |getpos()| and |getcurpos()|.
 
 		This does not restore the preferred column for moving
-		vertically.  See |winrestview()| for that.
+		vertically; if you set the cursor position with this, |j| and
+		|k| motions will jump to previous columns!  Use |cursor()| to
+		also set the preferred column.  Also see the "curswant" key in
+		|winrestview()|.
 
 
 setqflist({list} [, {action}])				*setqflist()*
@@ -5533,11 +5628,20 @@ sort({list} [, {func} [, {dict}]])			*sort()* *E702*
 		
 		If you want a list to remain unmodified make a copy first: >
 			:let sortedlist = sort(copy(mylist))
-<		Uses the string representation of each item to sort on.
-		Numbers sort after Strings, |Lists| after Numbers.
-		For sorting text in the current buffer use |:sort|.
 
-		When {func} is given and it is one then case is ignored.
+<		When {func} is omitted, is empty or zero, then sort() uses the
+		string representation of each item to sort on.  Numbers sort
+		after Strings, |Lists| after Numbers.  For sorting text in the
+		current buffer use |:sort|.
+
+		When {func} is given and it is is '1' or 'i' then case is
+		ignored.
+		
+		When {func} is given and it is 'n' then all items will be
+		sorted numerical (Implementation detail: This uses the
+		strtod() function to parse numbers, Strings, Lists, Dicts and
+		Funcrefs will be considered as being 0).
+
 		When {func} is a |Funcref| or a function name, this function
 		is called to compare items.  The function is invoked with two
 		items as argument and must return zero if they are equal, 1 or
@@ -5546,6 +5650,11 @@ sort({list} [, {func} [, {dict}]])			*sort()* *E702*
 
 		{dict} is for functions with the "dict" attribute.  It will be
 		used to set the local variable "self". |Dictionary-function|
+
+		The sort is stable, items which compare equal (as number or as
+		string) will keep their relative position. E.g., when sorting
+		on numbers, text strings will sort next to each other, in the
+		same order as they were originally.
 
 		Also see |uniq()|.
 
@@ -6382,6 +6491,16 @@ winrestcmd()	Returns a sequence of |:resize| commands that should restore
 winrestview({dict})
 		Uses the |Dictionary| returned by |winsaveview()| to restore
 		the view of the current window.
+		Note: The {dict} does not have to contain all values, that are
+		returned by |winsaveview()|. If values are missing, those
+		settings won't be restored. So you can use: >
+		    :call winrestview({'curswant': 4})
+<
+		This will only set the curswant value (the column the cursor
+		wants to move on vertical movements) of the cursor to column 5
+		(yes, that is 5), while all other settings will remain the
+		same. This is useful, if you set the cursor position manually.
+
 		If you have changed the values the result is unpredictable.
 		If the window size changed the result won't be the same.
 
@@ -6393,10 +6512,12 @@ winsaveview()	Returns a |Dictionary| that contains information to restore
 		buffer and you want to go back to the original view.
 		This does not save fold information.  Use the 'foldenable'
 		option to temporarily switch off folding, so that folds are
-		not opened when moving around.
+		not opened when moving around. This may have side effects.
 		The return value includes:
 			lnum		cursor line number
-			col		cursor column
+			col		cursor column (Note: the first column
+					zero, as opposed to what getpos()
+					returns)
 			coladd		cursor column offset for 'virtualedit'
 			curswant	column for vertical movement
 			topline		first line in the window
@@ -6447,7 +6568,7 @@ xor({expr}, {expr})					*xor()*
 
 
 							*feature-list*
-There are three types of features:
+There are four types of features:
 1.  Features that are only supported when they have been enabled when Vim
     was compiled |+feature-list|.  Example: >
 	:if has("cindent")
@@ -6464,10 +6585,11 @@ There are three types of features:
     included.
 
 4.  Beyond a certain version or at a certain version and including a specific
-    patch.  The "patch-7.4.123" feature means that the Vim version is 7.5 or
-    later, or it is version 7.4 and patch 123 was included.
-    The example above can be simplified to: >
-	:if has("patch-6.2.148")
+    patch.  The "patch-7.4.237" feature means that the Vim version is 7.5 or
+    later, or it is version 7.4 and patch 237 was included.
+    Note that this only works for patch 7.4.237 and later, before that you
+    need to use the example above that checks v:version.  Example: >
+	:if has("patch-7.4.248")
 <    Note that it's possible for patch 147 to be omitted even though 148 is
     included.
 
@@ -6544,8 +6666,8 @@ jumplist		Compiled with |jumplist| support.
 keymap			Compiled with 'keymap' support.
 langmap			Compiled with 'langmap' support.
 libcall			Compiled with |libcall()| support.
-linebreak		Compiled with 'linebreak', 'breakat' and 'showbreak'
-			support.
+linebreak		Compiled with 'linebreak', 'breakat', 'showbreak' and
+			'breakindent' support.
 lispindent		Compiled with support for lisp indenting.
 listcmds		Compiled with commands for the buffer list |:files|
 			and the argument list |arglist|.
@@ -6694,6 +6816,8 @@ can only be called from within the script and from functions, user commands
 and autocommands defined in the script.  It is also possible to call the
 function from a mapping defined in the script, but then |<SID>| must be used
 instead of "s:" when the mapping is expanded outside of the script.
+There are only script-local functions, no buffer-local or window-local
+functions.
 
 					*:fu* *:function* *E128* *E129* *E123*
 :fu[nction]		List all functions and their arguments.
@@ -6717,12 +6841,15 @@ last defined. Example: >
 <
 See |:verbose-cmd| for more information.
 
-							*E124* *E125* *E853*
+						*E124* *E125* *E853* *E884*
 :fu[nction][!] {name}([arguments]) [range] [abort] [dict]
 			Define a new function by the name {name}.  The name
 			must be made of alphanumeric characters and '_', and
-			must start with a capital or "s:" (see above).  When
-			using a capital "g:" be prepended.
+			must start with a capital or "s:" (see above).  Note
+			that using "b:" or "g:" is not allowed. (since patch
+			7.4.260 E884 is given if the function name has a colon
+			in the name, e.g. for "foo:bar()".  Before that patch
+			no error was given).
 
 			{name} can also be a |Dictionary| entry that is a
 			|Funcref|: >

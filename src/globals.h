@@ -387,10 +387,12 @@ EXTERN int	keep_filetype INIT(= FALSE);	/* value for did_filetype when
  * which one is preferred, au_new_curbuf is set to it */
 EXTERN buf_T	*au_new_curbuf INIT(= NULL);
 
-/* When deleting the buffer and autocmd_busy is TRUE, do not free the buffer
- * but link it in the list starting with au_pending_free_buf, using b_next.
- * Free the buffer when autocmd_busy is set to FALSE. */
+/* When deleting a buffer/window and autocmd_busy is TRUE, do not free the
+ * buffer/window. but link it in the list starting with
+ * au_pending_free_buf/ap_pending_free_win, using b_next/w_next.
+ * Free the buffer/window when autocmd_busy is being set to FALSE. */
 EXTERN buf_T	*au_pending_free_buf INIT(= NULL);
+EXTERN win_T	*au_pending_free_win INIT(= NULL);
 #endif
 
 #ifdef FEAT_MOUSE
@@ -601,6 +603,7 @@ EXTERN int	mf_dont_release INIT(= FALSE);	/* don't release blocks */
  * to this when the window is using the global argument list.
  */
 EXTERN alist_T	global_alist;	/* global argument list */
+EXTERN int	max_alist_id INIT(= 0);	    /* the previous argument list id */
 EXTERN int	arg_had_last INIT(= FALSE); /* accessed last file in
 					       global_alist */
 
@@ -1336,6 +1339,9 @@ EXTERN int      clientWindow INIT(= 0);
 
 #if defined(UNIX) || defined(VMS)
 EXTERN int	term_is_xterm INIT(= FALSE);	/* xterm-like 'term' */
+#endif
+#if defined(UNIX)
+EXTERN int	xterm_conflict_mouse INIT(= FALSE);
 #endif
 
 #ifdef BACKSLASH_IN_FILENAME
