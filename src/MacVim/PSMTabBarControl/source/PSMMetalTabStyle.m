@@ -17,7 +17,7 @@
 // http://lists.apple.com/archives/cocoa-dev/2006/Feb/msg00130.html
 void MyNSDrawWindowBackground(NSRect rect)
 {
-    [[NSColor windowBackgroundColor] set];
+    [[NSColor controlColor] set];
     NSRectFill( rect );
 }
 
