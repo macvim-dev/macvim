@@ -11,6 +11,7 @@
 
 static int path_is_url __ARGS((char_u *p));
 #if defined(FEAT_WINDOWS) || defined(PROTO)
+static void cmd_with_count __ARGS((char *cmd, char_u *bufp, size_t bufsize, long Prenum));
 static void win_init __ARGS((win_T *newp, win_T *oldp, int flags));
 static void win_init_some __ARGS((win_T *newp, win_T *oldp));
 static void frame_comp_pos __ARGS((frame_T *topfrp, int *row, int *col));
@@ -167,10 +168,7 @@ do_window(nchar, Prenum, xchar)
     case '^':
 		CHECK_CMDWIN
 		reset_VIsual_and_resel();	/* stop Visual mode */
-		STRCPY(cbuf, "split #");
-		if (Prenum)
-		    vim_snprintf((char *)cbuf + 7, sizeof(cbuf) - 7,
-							       "%ld", Prenum);
+		cmd_with_count("split #", cbuf, sizeof(cbuf), Prenum);
 		do_cmdline_cmd(cbuf);
 		break;
 
@@ -199,14 +197,16 @@ newwindow:
     case Ctrl_Q:
     case 'q':
 		reset_VIsual_and_resel();	/* stop Visual mode */
-		do_cmdline_cmd((char_u *)"quit");
+		cmd_with_count("quit", cbuf, sizeof(cbuf), Prenum);
+		do_cmdline_cmd(cbuf);
 		break;
 
 /* close current window */
     case Ctrl_C:
     case 'c':
 		reset_VIsual_and_resel();	/* stop Visual mode */
-		do_cmdline_cmd((char_u *)"close");
+		cmd_with_count("close", cbuf, sizeof(cbuf), Prenum);
+		do_cmdline_cmd(cbuf);
 		break;
 
 #if defined(FEAT_WINDOWS) && defined(FEAT_QUICKFIX)
@@ -235,7 +235,8 @@ newwindow:
     case 'o':
 		CHECK_CMDWIN
 		reset_VIsual_and_resel();	/* stop Visual mode */
-		do_cmdline_cmd((char_u *)"only");
+		cmd_with_count("only", cbuf, sizeof(cbuf), Prenum);
+		do_cmdline_cmd(cbuf);
 		break;
 
 /* cursor to next window with wrap around */
@@ -479,14 +480,18 @@ newwindow:
     case ']':
     case Ctrl_RSB:
 		CHECK_CMDWIN
-		reset_VIsual_and_resel();	/* stop Visual mode */
+		/* keep Visual mode, can select words to use as a tag */
 		if (Prenum)
 		    postponed_split = Prenum;
 		else
 		    postponed_split = -1;
+#ifdef FEAT_QUICKFIX
+		if (nchar != '}')
+		    g_do_tagpreview = 0;
+#endif
 
-		/* Execute the command right here, required when
-		 * "wincmd ]" was used in a function. */
+		/* Execute the command right here, required when "wincmd ]"
+		 * was used in a function. */
 		do_nv_ident(Ctrl_RSB, NUL);
 		break;
 
@@ -590,7 +595,7 @@ wingotofile:
 #endif
 		    case ']':
 		    case Ctrl_RSB:
-			reset_VIsual_and_resel();	/* stop Visual mode */
+			/* keep Visual mode, can select words to use as a tag */
 			if (Prenum)
 			    postponed_split = Prenum;
 			else
@@ -617,6 +622,124 @@ wingotofile:
     default:	beep_flush();
 		break;
     }
+}
+
+/*
+ * Figure out the address type for ":wnncmd".
+ */
+    void
+get_wincmd_addr_type(arg, eap)
+    char_u	*arg;
+    exarg_T	*eap;
+{
+    switch (*arg)
+    {
+    case 'S':
+    case Ctrl_S:
+    case 's':
+    case Ctrl_N:
+    case 'n':
+    case 'j':
+    case Ctrl_J:
+    case 'k':
+    case Ctrl_K:
+    case 'T':
+    case Ctrl_R:
+    case 'r':
+    case 'R':
+    case 'K':
+    case 'J':
+    case '+':
+    case '-':
+    case Ctrl__:
+    case '_':
+    case '|':
+    case ']':
+    case Ctrl_RSB:
+    case 'g':
+    case Ctrl_G:
+#ifdef FEAT_VERTSPLIT
+    case Ctrl_V:
+    case 'v':
+    case 'h':
+    case Ctrl_H:
+    case 'l':
+    case Ctrl_L:
+    case 'H':
+    case 'L':
+    case '>':
+    case '<':
+#endif
+#if defined(FEAT_QUICKFIX)
+    case '}':
+#endif
+#ifdef FEAT_SEARCHPATH
+    case 'f':
+    case 'F':
+    case Ctrl_F:
+#endif
+#ifdef FEAT_FIND_ID
+    case 'i':
+    case Ctrl_I:
+    case 'd':
+    case Ctrl_D:
+#endif
+		/* window size or any count */
+		eap->addr_type = ADDR_LINES;
+		break;
+
+    case Ctrl_HAT:
+    case '^':
+		/* buffer number */
+		eap->addr_type = ADDR_BUFFERS;
+		break;
+
+    case Ctrl_Q:
+    case 'q':
+    case Ctrl_C:
+    case 'c':
+    case Ctrl_O:
+    case 'o':
+    case Ctrl_W:
+    case 'w':
+    case 'W':
+    case 'x':
+    case Ctrl_X:
+		/* window number */
+		eap->addr_type = ADDR_WINDOWS;
+		break;
+
+#if defined(FEAT_QUICKFIX)
+    case Ctrl_Z:
+    case 'z':
+    case 'P':
+#endif
+    case 't':
+    case Ctrl_T:
+    case 'b':
+    case Ctrl_B:
+    case 'p':
+    case Ctrl_P:
+    case '=':
+    case CAR:
+		/* no count */
+		eap->addr_type = 0;
+		break;
+    }
+}
+
+    static void
+cmd_with_count(cmd, bufp, bufsize, Prenum)
+    char	*cmd;
+    char_u	*bufp;
+    size_t	bufsize;
+    long	Prenum;
+{
+    size_t	len = STRLEN(cmd);
+
+    STRCPY(bufp, cmd);
+    if (Prenum > 0)
+	vim_snprintf((char *)bufp + len, bufsize - len, "%ld", Prenum);
 }
 
 /*
@@ -792,7 +915,7 @@ win_split_ins(size, flags, new_wp, dir)
 		if (frp->fr_win != oldwin && frp->fr_win != NULL
 			&& (frp->fr_win->w_width > new_size
 			    || frp->fr_win->w_width > oldwin->w_width
-						   - new_size - STATUS_HEIGHT))
+							      - new_size - 1))
 		{
 		    do_equal = TRUE;
 		    break;
@@ -1183,6 +1306,11 @@ win_split_ins(size, flags, new_wp, dir)
 	    p_wh = size;
     }
 
+#ifdef FEAT_JUMPLIST
+    /* Keep same changelist position in new window. */
+    wp->w_changelistidx = oldwin->w_changelistidx;
+#endif
+
     /*
      * make the new window the current window
      */
@@ -1271,7 +1399,7 @@ win_init(newp, oldp, flags)
 }
 
 /*
- * Initialize window "newp" from window"old".
+ * Initialize window "newp" from window "old".
  * Only the essential things are copied.
  */
     static void
@@ -4403,20 +4531,19 @@ win_enter_ext(wp, undo_sync, curwin_invalid, trigger_enter_autocmds, trigger_lea
 buf_jump_open_win(buf)
     buf_T	*buf;
 {
-# ifdef FEAT_WINDOWS
-    win_T	*wp;
+    win_T	*wp = NULL;
 
-    for (wp = firstwin; wp != NULL; wp = wp->w_next)
-	if (wp->w_buffer == buf)
-	    break;
+    if (curwin->w_buffer == buf)
+	wp = curwin;
+# ifdef FEAT_WINDOWS
+    else
+	for (wp = firstwin; wp != NULL; wp = wp->w_next)
+	    if (wp->w_buffer == buf)
+		break;
     if (wp != NULL)
 	win_enter(wp, FALSE);
-    return wp;
-# else
-    if (curwin->w_buffer == buf)
-	return curwin;
-    return NULL;
 # endif
+    return wp;
 }
 
 /*
@@ -4428,12 +4555,10 @@ buf_jump_open_win(buf)
 buf_jump_open_tab(buf)
     buf_T	*buf;
 {
+    win_T	*wp = buf_jump_open_win(buf);
 # ifdef FEAT_WINDOWS
-    win_T	*wp;
     tabpage_T	*tp;
 
-    /* First try the current tab page. */
-    wp = buf_jump_open_win(buf);
     if (wp != NULL)
 	return wp;
 
@@ -4451,13 +4576,8 @@ buf_jump_open_tab(buf)
 		break;
 	    }
 	}
-
-    return wp;
-# else
-    if (curwin->w_buffer == buf)
-	return curwin;
-    return NULL;
 # endif
+    return wp;
 }
 #endif
 
@@ -6667,8 +6787,8 @@ restore_snapshot_rec(sn, fr)
 	|| defined(PROTO)
 /*
  * Set "win" to be the curwin and "tp" to be the current tab page.
- * restore_win() MUST be called to undo.
- * No autocommands will be executed.
+ * restore_win() MUST be called to undo, also when FAIL is returned.
+ * No autocommands will be executed until restore_win() is called.
  * When "no_display" is TRUE the display won't be affected, no redraw is
  * triggered, another tabpage access is limited.
  * Returns FAIL if switching to "win" failed.
@@ -6701,12 +6821,7 @@ switch_win(save_curwin, save_curtab, win, tp, no_display)
 	    goto_tabpage_tp(tp, FALSE, FALSE);
     }
     if (!win_valid(win))
-    {
-# ifdef FEAT_AUTOCMD
-	unblock_autocmds();
-# endif
 	return FAIL;
-    }
     curwin = win;
     curbuf = curwin->w_buffer;
 # endif

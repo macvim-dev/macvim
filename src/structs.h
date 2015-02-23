@@ -137,7 +137,7 @@ typedef struct
 #ifdef FEAT_LINEBREAK
     int		wo_bri;
 # define w_p_bri w_onebuf_opt.wo_bri	/* 'breakindent' */
-    char_u		*wo_briopt;
+    char_u	*wo_briopt;
 # define w_p_briopt w_onebuf_opt.wo_briopt /* 'breakindentopt' */
 #endif
 #ifdef FEAT_DIFF
@@ -1223,6 +1223,20 @@ struct dictvar_S
     dict_T	*dv_used_prev;	/* previous dict in used dicts list */
 };
 
+/* structure used for explicit stack while garbage collecting hash tables */
+typedef struct ht_stack_S
+{
+    hashtab_T		*ht;
+    struct ht_stack_S	*prev;
+} ht_stack_T;
+
+/* structure used for explicit stack while garbage collecting lists */
+typedef struct list_stack_S
+{
+    list_T		*list;
+    struct list_stack_S	*prev;
+} list_stack_T;
+
 /* values for b_syn_spell: what to do with toplevel text */
 #define SYNSPL_DEFAULT	0	/* spell check if @Spell not defined */
 #define SYNSPL_TOP	1	/* spell check toplevel text */
@@ -1250,6 +1264,24 @@ typedef struct {
     long	match;		/* nr of times matched */
 } syn_time_T;
 #endif
+
+#ifdef FEAT_CRYPT
+/*
+ * Structure to hold the type of encryption and the state of encryption or
+ * decryption.
+ */
+typedef struct {
+    int	    method_nr;
+    void    *method_state;  /* method-specific state information */
+} cryptstate_T;
+
+/* values for method_nr */
+# define CRYPT_M_ZIP	0
+# define CRYPT_M_BF	1
+# define CRYPT_M_BF2	2
+# define CRYPT_M_COUNT	3 /* number of crypt methods */
+#endif
+
 
 /*
  * These are items normally related to a buffer.  But when using ":ownsyntax"
@@ -1519,6 +1551,8 @@ struct file_buffer
 
     int		b_p_ai;		/* 'autoindent' */
     int		b_p_ai_nopaste;	/* b_p_ai saved for paste mode */
+    char_u	*b_p_bkc;	/* 'backupcopy' */
+    unsigned	b_bkc_flags;    /* flags for 'backupcopy' */
     int		b_p_ci;		/* 'copyindent' */
     int		b_p_bin;	/* 'binary' */
 #ifdef FEAT_MBYTE
@@ -1786,7 +1820,14 @@ struct file_buffer
     void        *b_odb_token;       /* NSAppleEventDescriptor (optional) */
     char_u      *b_odb_fname;       /* Custom file name (optional) */
 #endif
-};
+
+#ifdef FEAT_CRYPT
+    cryptstate_T *b_cryptstate;	/* Encryption state while reading or writing
+				 * the file. NULL when not using encryption. */
+#endif
+    int		b_mapped_ctrl_c; /* modes where CTRL-C is mapped */
+
+}; /* file_buffer */
 
 
 #ifdef FEAT_DIFF

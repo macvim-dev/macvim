@@ -1,0 +1,10 @@
+test starts here:
+
+fooc d
+fooc d
+vim
+TEST2: CTRL-C |<ctrl-c>A|
+
+vmap works
++
++

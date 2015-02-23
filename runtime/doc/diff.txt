@@ -1,4 +1,4 @@
-*diff.txt*      For Vim version 7.4.  Last change: 2014 May 20
+*diff.txt*      For Vim version 7.4.  Last change: 2015 Feb 03
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -266,13 +266,17 @@ that the buffers will be equal within the specified range.
 		See below for [range].
 
 							*do*
-do		Same as ":diffget" without argument or range.  The "o" stands
-		for "obtain" ("dg" can't be used, it could be the start of
-		"dgg"!). Note: this doesn't work in Visual mode.
+[count]do	Same as ":diffget" without range.  The "o" stands for "obtain"
+		("dg" can't be used, it could be the start of "dgg"!). Note:
+		this doesn't work in Visual mode.
+		If you give a [count], it is used as the [bufspec] argument
+		for ":diffget".
 
 							*dp*
-dp		Same as ":diffput" without argument or range.
-		Note: this doesn't work in Visual mode.
+[count]dp	Same as ":diffput" without range.  Note: this doesn't work in
+		Visual mode.
+		If you give a [count], it is used as the [bufspec] argument
+		for ":diffput".
 
 
 When no [range] is given, the diff at the cursor position or just above it is
@@ -309,6 +313,19 @@ name or a part of a buffer name.  Examples:
 5. Diff options						*diff-options*
 
 Also see |'diffopt'| and the "diff" item of |'fillchars'|.
+
+					    *diff-slow* *diff_translations*
+For very long lines, the diff syntax highlighting might be slow, especially
+since it tries to match all different kind of localisations. To disable
+localisations and speed up the syntax highlighting, set the global variable
+g:diff_translations to zero: >
+
+    let g:diff_translations = 0
+<
+After setting this variable, Reload the syntax script: >
+
+    set syntax=diff
+<
 
 
 FINDING THE DIFFERENCES					*diff-diffexpr*

@@ -12,7 +12,6 @@
 
 #include "vim.h"
 
-static void save_re_pat __ARGS((int idx, char_u *pat, int magic));
 #ifdef FEAT_EVAL
 static void set_vv_searchforward __ARGS((void));
 static int first_submatch __ARGS((regmmatch_T *rp));
@@ -272,7 +271,7 @@ reverse_text(s)
 }
 #endif
 
-    static void
+    void
 save_re_pat(idx, pat, magic)
     int		idx;
     char_u	*pat;
@@ -561,6 +560,7 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
     int		match_ok;
     long	nmatched;
     int		submatch = 0;
+    int		first_match = TRUE;
     int		save_called_emsg = called_emsg;
 #ifdef FEAT_SEARCH_EXTRA
     int		break_loop = FALSE;
@@ -574,33 +574,33 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
 	return FAIL;
     }
 
-    /* When not accepting a match at the start position set "extra_col" to a
-     * non-zero value.  Don't do that when starting at MAXCOL, since MAXCOL +
-     * 1 is zero. */
-    if ((options & SEARCH_START) || pos->col == MAXCOL)
-	extra_col = 0;
-#ifdef FEAT_MBYTE
-    /* Watch out for the "col" being MAXCOL - 2, used in a closed fold. */
-    else if (dir != BACKWARD && has_mbyte
-		    && pos->lnum >= 1 && pos->lnum <= buf->b_ml.ml_line_count
-						     && pos->col < MAXCOL - 2)
-    {
-	ptr = ml_get_buf(buf, pos->lnum, FALSE) + pos->col;
-	if (*ptr == NUL)
-	    extra_col = 1;
-	else
-	    extra_col = (*mb_ptr2len)(ptr);
-    }
-#endif
-    else
-	extra_col = 1;
-
     /*
      * find the string
      */
     called_emsg = FALSE;
     do	/* loop for count */
     {
+	/* When not accepting a match at the start position set "extra_col" to
+	 * a non-zero value.  Don't do that when starting at MAXCOL, since
+	 * MAXCOL + 1 is zero. */
+	if ((options & SEARCH_START) || pos->col == MAXCOL)
+	    extra_col = 0;
+#ifdef FEAT_MBYTE
+	/* Watch out for the "col" being MAXCOL - 2, used in a closed fold. */
+	else if (dir != BACKWARD && has_mbyte
+		     && pos->lnum >= 1 && pos->lnum <= buf->b_ml.ml_line_count
+						     && pos->col < MAXCOL - 2)
+	{
+	    ptr = ml_get_buf(buf, pos->lnum, FALSE) + pos->col;
+	    if (*ptr == NUL)
+		extra_col = 1;
+	    else
+		extra_col = (*mb_ptr2len)(ptr);
+	}
+#endif
+	else
+	    extra_col = 1;
+
 	start_pos = *pos;	/* remember start pos for detecting no match */
 	found = 0;		/* default: not found */
 	at_first_line = TRUE;	/* default: start in first line */
@@ -686,7 +686,7 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
 			 * otherwise "/$" will get stuck on end of line.
 			 */
 			while (matchpos.lnum == 0
-				&& ((options & SEARCH_END)
+				&& ((options & SEARCH_END) && first_match
 				    ?  (nmatched == 1
 					&& (int)endpos.col - 1
 					     < (int)start_pos.col + extra_col)
@@ -917,6 +917,7 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
 		    pos->coladd = 0;
 #endif
 		    found = 1;
+		    first_match = FALSE;
 
 		    /* Set variables used for 'incsearch' highlighting. */
 		    search_match_lines = endpos.lnum - matchpos.lnum;
@@ -3940,7 +3941,7 @@ again:
 	if (lt(end_pos, start_pos))
 	    curwin->w_cursor = start_pos;
 	else if (*p_sel == 'e')
-	    ++curwin->w_cursor.col;
+	    inc_cursor();
 	VIsual = start_pos;
 	VIsual_mode = 'v';
 	redraw_curbuf_later(INVERTED);	/* update the inversion */
@@ -4449,12 +4450,11 @@ current_quote(oap, count, include, quotechar)
 
 #endif /* FEAT_TEXTOBJ */
 
-static int is_one_char __ARGS((char_u *pattern));
+static int is_one_char __ARGS((char_u *pattern, int move));
 
 /*
  * Find next search match under cursor, cursor at end.
  * Used while an operator is pending, and in Visual mode.
- * TODO: redo only works when used in operator pending mode
  */
     int
 current_search(count, forward)
@@ -4499,7 +4499,7 @@ current_search(count, forward)
 	orig_pos = pos = start_pos = curwin->w_cursor;
 
     /* Is the pattern is zero-width? */
-    one_char = is_one_char(spats[last_idx].pat);
+    one_char = is_one_char(spats[last_idx].pat, TRUE);
     if (one_char == -1)
     {
 	p_ws = old_p_ws;
@@ -4558,6 +4558,10 @@ current_search(count, forward)
     start_pos = pos;
     flags = forward ? SEARCH_END : 0;
 
+    /* Check again from the current cursor position,
+     * since the next match might actually by only one char wide */
+    one_char = is_one_char(spats[last_idx].pat, FALSE);
+
     /* move to match, except for zero-width matches, in which case, we are
      * already on the next match */
     if (!one_char)
@@ -4607,26 +4611,38 @@ current_search(count, forward)
 
 /*
  * Check if the pattern is one character or zero-width.
+ * If move is TRUE, check from the beginning of the buffer, else from the
+ * current cursor position.
  * Returns TRUE, FALSE or -1 for failure.
  */
     static int
-is_one_char(pattern)
+is_one_char(pattern, move)
     char_u	*pattern;
+    int		move;
 {
     regmmatch_T	regmatch;
     int		nmatched = 0;
     int		result = -1;
     pos_T	pos;
     int		save_called_emsg = called_emsg;
+    int		flag = 0;
 
     if (search_regcomp(pattern, RE_SEARCH, RE_SEARCH,
 					      SEARCH_KEEP, &regmatch) == FAIL)
 	return -1;
 
     /* move to match */
-    clearpos(&pos);
+    if (move)
+	clearpos(&pos)
+    else
+    {
+	pos = curwin->w_cursor;
+	/* accept a match at the cursor position */
+	flag = SEARCH_START;
+    }
+
     if (searchit(curwin, curbuf, &pos, FORWARD, spats[last_idx].pat, 1,
-				     SEARCH_KEEP, RE_SEARCH, 0, NULL) != FAIL)
+			      SEARCH_KEEP + flag, RE_SEARCH, 0, NULL) != FAIL)
     {
 	/* Zero-width pattern should match somewhere, then we can check if
 	 * start and end are in the same position. */

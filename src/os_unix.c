@@ -1586,12 +1586,15 @@ x_IOerror_check(dpy)
  * An X IO Error handler, used to catch terminal errors.
  */
 static int x_IOerror_handler __ARGS((Display *dpy));
+static void may_restore_clipboard __ARGS((void));
+static int xterm_dpy_was_reset = FALSE;
 
     static int
 x_IOerror_handler(dpy)
     Display *dpy UNUSED;
 {
     xterm_dpy = NULL;
+    xterm_dpy_was_reset = TRUE;
     x11_window = 0;
     x11_display = NULL;
     xterm_Shell = (Widget)0;
@@ -1602,6 +1605,33 @@ x_IOerror_handler(dpy)
     return 0;  /* avoid the compiler complains about missing return value */
 # endif
 }
+
+/*
+ * If the X11 connection was lost try to restore it.
+ * Helps when the X11 server was stopped and restarted while Vim was inactive
+ * (e.g. through tmux).
+ */
+    static void
+may_restore_clipboard()
+{
+    if (xterm_dpy_was_reset)
+    {
+	xterm_dpy_was_reset = FALSE;
+
+# ifndef LESSTIF_VERSION
+	/* This has been reported to avoid Vim getting stuck. */
+	if (app_context != (XtAppContext)NULL)
+	{
+	    XtDestroyApplicationContext(app_context);
+	    app_context = (XtAppContext)NULL;
+	    x11_display = NULL; /* freed by XtDestroyApplicationContext() */
+	}
+# endif
+
+	setup_term_clip();
+	get_x11_title(FALSE);
+    }
+}
 #endif
 
 /*
@@ -1610,8 +1640,6 @@ x_IOerror_handler(dpy)
     static int
 x_connect_to_server()
 {
-    regmatch_T	regmatch;
-
 #if defined(FEAT_CLIENTSERVER)
     if (x_force_connect)
 	return TRUE;
@@ -1622,9 +1650,7 @@ x_connect_to_server()
     /* Check for a match with "exclude:" from 'clipboard'. */
     if (clip_exclude_prog != NULL)
     {
-	regmatch.rm_ic = FALSE;		/* Don't ignore case */
-	regmatch.regprog = clip_exclude_prog;
-	if (vim_regexec(&regmatch, T_NAME, (colnr_T)0))
+	if (vim_regexec_prog(&clip_exclude_prog, FALSE, T_NAME, (colnr_T)0))
 	    return FALSE;
     }
     return TRUE;
@@ -1960,9 +1986,12 @@ get_x11_thing(get_title, test_only)
     return retval;
 }
 
-/* Are Xutf8 functions available?  Avoid error from old compilers. */
+/* Xutf8 functions are not avaialble on older systems. Note that on some
+ * systems X_HAVE_UTF8_STRING may be defined in a header file but
+ * Xutf8SetWMProperties() is not in the X11 library.  Configure checks for
+ * that and defines HAVE_XUTF8SETWMPROPERTIES. */
 #if defined(X_HAVE_UTF8_STRING) && defined(FEAT_MBYTE)
-# if X_HAVE_UTF8_STRING
+# if X_HAVE_UTF8_STRING && HAVE_XUTF8SETWMPROPERTIES
 #  define USE_UTF8_STRING
 # endif
 #endif
@@ -3673,8 +3702,6 @@ mch_setmouse(on)
     void
 check_mouse_termcode()
 {
-    xterm_conflict_mouse = FALSE;
-
 # ifdef FEAT_MOUSE_XTERM
     if (use_xterm_mouse()
 # ifdef FEAT_MOUSE_URXVT
@@ -3719,7 +3746,7 @@ check_mouse_termcode()
 # endif
 
 # ifdef FEAT_MOUSE_JSB
-    /* There is no conflict, but it was disabled for xterm before. */
+    /* Conflicts with xterm mouse: "\033[" and "\033[M" ??? */
     if (!use_xterm_mouse()
 #  ifdef FEAT_GUI
 	    && !gui.in_use
@@ -3746,45 +3773,31 @@ check_mouse_termcode()
 # endif
 
 # ifdef FEAT_MOUSE_DEC
-    /* Conflicts with xterm mouse: "\033[" and "\033[M".
-     * Also conflicts with the xterm termresponse, skip this if it was
-     * requested already. */
+    /* Conflicts with xterm mouse: "\033[" and "\033[M" */
     if (!use_xterm_mouse()
-#  ifdef FEAT_TERMRESPONSE
-	    && !did_request_esc_sequence()
-#  endif
 #  ifdef FEAT_GUI
 	    && !gui.in_use
 #  endif
 	    )
-    {
 	set_mouse_termcode(KS_DEC_MOUSE, (char_u *)(term_is_8bit(T_NAME)
 		     ? IF_EB("\233", CSI_STR) : IF_EB("\033[", ESC_STR "[")));
-	xterm_conflict_mouse = TRUE;
-    }
     else
 	del_mouse_termcode(KS_DEC_MOUSE);
 # endif
 # ifdef FEAT_MOUSE_PTERM
-    /* same as the dec mouse */
+    /* same conflict as the dec mouse */
     if (!use_xterm_mouse()
-#  ifdef FEAT_TERMRESPONSE
-	    && !did_request_esc_sequence()
-#  endif
 #  ifdef FEAT_GUI
 	    && !gui.in_use
 #  endif
 	    )
-    {
 	set_mouse_termcode(KS_PTERM_MOUSE,
 				      (char_u *) IF_EB("\033[", ESC_STR "["));
-	xterm_conflict_mouse = TRUE;
-    }
     else
 	del_mouse_termcode(KS_PTERM_MOUSE);
 # endif
 # ifdef FEAT_MOUSE_URXVT
-    /* same as the dec mouse */
+    /* same conflict as the dec mouse */
     if (use_xterm_mouse() == 3
 #  ifdef FEAT_GUI
 	    && !gui.in_use
@@ -3800,8 +3813,6 @@ check_mouse_termcode()
 	    mch_setmouse(FALSE);
 	    setmouse();
 	}
-	/* It's OK to request the xterm version for uxterm. */
-	resume_get_esc_sequence();
     }
     else
 	del_mouse_termcode(KS_URXVT_MOUSE);
@@ -5315,6 +5326,7 @@ RealWaitForChar(fd, msec, check_for_gpm)
 	}
 # endif
 # ifdef FEAT_XCLIPBOARD
+	may_restore_clipboard();
 	if (xterm_Shell != (Widget)0)
 	{
 	    xterm_idx = nfd;
@@ -5467,6 +5479,7 @@ select_eintr:
 	}
 # endif
 # ifdef FEAT_XCLIPBOARD
+	may_restore_clipboard();
 	if (xterm_Shell != (Widget)0)
 	{
 	    FD_SET(ConnectionNumber(xterm_dpy), &rfds);
@@ -5979,10 +5992,12 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
 			*p++ = '\\';
 		    ++j;
 		}
-		else if (!intick && vim_strchr(SHELL_SPECIAL,
-							   pat[i][j]) != NULL)
+		else if (!intick
+			 && ((flags & EW_KEEPDOLLAR) == 0 || pat[i][j] != '$')
+			      && vim_strchr(SHELL_SPECIAL, pat[i][j]) != NULL)
 		    /* Put a backslash before a special character, but not
-		     * when inside ``. */
+		     * when inside ``. And not for $var when EW_KEEPDOLLAR is
+		     * set. */
 		    *p++ = '\\';
 
 		/* Copy one character. */

@@ -180,7 +180,7 @@ ui_inchar(buf, maxlen, wtime, tb_change_cnt)
 
 	/* ... there is no need for CTRL-C to interrupt something, don't let
 	 * it set got_int when it was mapped. */
-	if (mapped_ctrl_c)
+	if ((mapped_ctrl_c | curbuf->b_mapped_ctrl_c) & get_real_state())
 	    ctrl_c_interrupts = FALSE;
     }
 
@@ -570,6 +570,64 @@ clip_copy_selection(clip)
 	if (clip->owned)
 	    clip_get_selection(clip);
 	clip_gen_set_selection(clip);
+    }
+}
+
+/*
+ * Save and restore clip_unnamed before doing possibly many changes. This
+ * prevents accessing the clipboard very often which might slow down Vim
+ * considerably.
+ */
+static int global_change_count = 0; /* if set, inside a start_global_changes */
+static int clipboard_needs_update; /* clipboard needs to be updated */
+
+/*
+ * Save clip_unnamed and reset it.
+ */
+    void
+start_global_changes()
+{
+    if (++global_change_count > 1)
+	return;
+    clip_unnamed_saved = clip_unnamed;
+    clipboard_needs_update = FALSE;
+
+    if (clip_did_set_selection)
+    {
+	clip_unnamed = FALSE;
+	clip_did_set_selection = FALSE;
+    }
+}
+
+/*
+ * Restore clip_unnamed and set the selection when needed.
+ */
+    void
+end_global_changes()
+{
+    if (--global_change_count > 0)
+	/* recursive */
+	return;
+    if (!clip_did_set_selection)
+    {
+	clip_did_set_selection = TRUE;
+	clip_unnamed = clip_unnamed_saved;
+	clip_unnamed_saved = FALSE;
+	if (clipboard_needs_update)
+	{
+	    /* only store something in the clipboard,
+	     * if we have yanked anything to it */
+	    if (clip_unnamed & CLIP_UNNAMED)
+	    {
+		clip_own_selection(&clip_star);
+		clip_gen_set_selection(&clip_star);
+	    }
+	    if (clip_unnamed & CLIP_UNNAMED_PLUS)
+	    {
+		clip_own_selection(&clip_plus);
+		clip_gen_set_selection(&clip_plus);
+	    }
+	}
     }
 }
 
@@ -1448,6 +1506,17 @@ clip_gen_lose_selection(cbd)
 clip_gen_set_selection(cbd)
     VimClipboard	*cbd;
 {
+    if (!clip_did_set_selection)
+    {
+	/* Updating postponed, so that accessing the system clipboard won't
+	 * hang Vim when accessing it many times (e.g. on a :g comand). */
+	if ((cbd == &clip_plus && (clip_unnamed_saved & CLIP_UNNAMED_PLUS))
+		|| (cbd == &clip_star && (clip_unnamed_saved & CLIP_UNNAMED)))
+	{
+	    clipboard_needs_update = TRUE;
+	    return;
+	}
+    }
 #ifdef FEAT_XCLIPBOARD
 # ifdef FEAT_GUI
     if (gui.in_use)

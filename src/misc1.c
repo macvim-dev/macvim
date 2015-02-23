@@ -78,7 +78,8 @@ get_indent_str(ptr, ts, list)
 	    if (!list || lcs_tab1)    /* count a tab for what it is worth */
 		count += ts - (count % ts);
 	    else
-	/* in list mode, when tab is not set, count screen char width for Tab: ^I */
+		/* In list mode, when tab is not set, count screen char width
+		 * for Tab, displays: ^I */
 		count += ptr2cells(ptr);
 	}
 	else if (*ptr == ' ')
@@ -5509,7 +5510,7 @@ cin_has_js_key(text)
     char_u *text;
 {
     char_u *s = skipwhite(text);
-    int	    quote = 0;
+    int	    quote = -1;
 
     if (*s == '\'' || *s == '"')
     {
@@ -7001,6 +7002,7 @@ get_c_indent()
     char_u	*linecopy;
     pos_T	*trypos;
     pos_T	*tryposBrace = NULL;
+    pos_T	tryposBraceCopy;
     pos_T	our_paren_pos;
     char_u	*start;
     int		start_brace;
@@ -7538,7 +7540,11 @@ get_c_indent()
 	/*
 	 * We are inside braces, there is a { before this line at the position
 	 * stored in tryposBrace.
+	 * Make a copy of tryposBrace, it may point to pos_copy inside
+	 * find_start_brace(), which may be changed somewhere.
 	 */
+	tryposBraceCopy = *tryposBrace;
+	tryposBrace = &tryposBraceCopy;
 	trypos = tryposBrace;
 	ourscope = trypos->lnum;
 	start = ml_get(ourscope);
@@ -10768,7 +10774,7 @@ gen_expand_wildcards(num_pat, pat, num_file, file, flags)
 		    vim_free(p);
 		    ga_clear_strings(&ga);
 		    i = mch_expand_wildcards(num_pat, pat, num_file, file,
-								       flags);
+							 flags|EW_KEEPDOLLAR);
 		    recursive = FALSE;
 		    return i;
 		}

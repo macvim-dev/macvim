@@ -135,6 +135,8 @@ typedef int BY_HANDLE_FILE_INFORMATION;
 typedef int SE_OBJECT_TYPE;
 typedef int PSNSECINFO;
 typedef int PSNSECINFOW;
+typedef int STARTUPINFO;
+typedef int PROCESS_INFORMATION;
 #endif
 
 #ifndef FEAT_GUI_W32
@@ -1812,18 +1814,22 @@ mch_inchar(
 		if (conv)
 		{
 		    char_u *p = typeahead + typeaheadlen;
-		    char_u *e = typeahead + TYPEAHEADLEN;
 
-		    while (*p && p < e)
+		    if (*p != K_NUL)
 		    {
-			if (*p == K_NUL)
+			char_u *e = typeahead + TYPEAHEADLEN;
+
+			while (*p && p < e)
 			{
+			    if (*p == K_NUL)
+			    {
+				++p;
+				mch_memmove(p + 1, p, ((size_t)(e - p)) - 1);
+				*p = 3;
+				++n;
+			    }
 			    ++p;
-			    mch_memmove(p + 1, p, ((size_t)(e - p)) - 1);
-			    *p = 3;
-			    ++n;
 			}
-			++p;
 		    }
 		}
 
@@ -1906,6 +1912,8 @@ executable_exists(char *name, char_u **path)
 {
     char	*dum;
     char	fname[_MAX_PATH];
+    char	*curpath, *newpath;
+    long	n;
 
 #ifdef FEAT_MBYTE
     if (enc_codepage >= 0 && (int)GetACP() != enc_codepage)
@@ -1913,11 +1921,19 @@ executable_exists(char *name, char_u **path)
 	WCHAR	*p = enc_to_utf16(name, NULL);
 	WCHAR	fnamew[_MAX_PATH];
 	WCHAR	*dumw;
-	long	n;
+	WCHAR	*wcurpath, *wnewpath;
 
 	if (p != NULL)
 	{
-	    n = (long)SearchPathW(NULL, p, NULL, _MAX_PATH, fnamew, &dumw);
+	    wcurpath = _wgetenv(L"PATH");
+	    wnewpath = (WCHAR*)alloc((unsigned)(wcslen(wcurpath) + 3)
+							    * sizeof(WCHAR));
+	    if (wnewpath == NULL)
+		return FALSE;
+	    wcscpy(wnewpath, L".;");
+	    wcscat(wnewpath, wcurpath);
+	    n = (long)SearchPathW(wnewpath, p, NULL, _MAX_PATH, fnamew, &dumw);
+	    vim_free(wnewpath);
 	    vim_free(p);
 	    if (n > 0 || GetLastError() != ERROR_CALL_NOT_IMPLEMENTED)
 	    {
@@ -1933,7 +1949,16 @@ executable_exists(char *name, char_u **path)
 	}
     }
 #endif
-    if (SearchPath(NULL, name, NULL, _MAX_PATH, fname, &dum) == 0)
+
+    curpath = getenv("PATH");
+    newpath = (char*)alloc((unsigned)(STRLEN(curpath) + 3));
+    if (newpath == NULL)
+	return FALSE;
+    STRCPY(newpath, ".;");
+    STRCAT(newpath, curpath);
+    n = (long)SearchPath(newpath, name, NULL, _MAX_PATH, fname, &dum);
+    vim_free(newpath);
+    if (n == 0)
 	return FALSE;
     if (mch_isdir(fname))
 	return FALSE;
@@ -2427,7 +2452,8 @@ SaveConsoleTitleAndIcon(void)
 	return;
 
     /* Extract the first icon contained in the Vim executable. */
-    g_hVimIcon = ExtractIcon(NULL, exe_name, 0);
+    if (mch_icon_load((HANDLE *)&g_hVimIcon) == FAIL || g_hVimIcon == NULL)
+	g_hVimIcon = ExtractIcon(NULL, exe_name, 0);
     if (g_hVimIcon != NULL)
 	g_fCanChangeIcon = TRUE;
 }
@@ -2755,9 +2781,10 @@ fname_case(
 	if (p != NULL)
 	{
 	    char_u	*q;
-	    WCHAR	buf[_MAX_PATH + 2];
+	    WCHAR	buf[_MAX_PATH + 1];
 
-	    wcscpy(buf, p);
+	    wcsncpy(buf, p, _MAX_PATH);
+	    buf[_MAX_PATH] = L'\0';
 	    vim_free(p);
 
 	    if (fname_casew(buf, (len > 0) ? _MAX_PATH : 0) == OK)
@@ -4625,21 +4652,52 @@ mch_call_shell(
     int		x = 0;
     int		tmode = cur_tmode;
 #ifdef FEAT_TITLE
-    char szShellTitle[512];
+    char	szShellTitle[512];
+# ifdef FEAT_MBYTE
+    int		did_set_title = FALSE;
 
     /* Change the title to reflect that we are in a subshell. */
-    if (GetConsoleTitle(szShellTitle, sizeof(szShellTitle) - 4) > 0)
+    if (enc_codepage >= 0 && (int)GetACP() != enc_codepage)
     {
-	if (cmd == NULL)
-	    strcat(szShellTitle, " :sh");
-	else
+	WCHAR szShellTitle[512];
+
+	if (GetConsoleTitleW(szShellTitle,
+				  sizeof(szShellTitle)/sizeof(WCHAR) - 4) > 0)
 	{
-	    strcat(szShellTitle, " - !");
-	    if ((strlen(szShellTitle) + strlen(cmd) < sizeof(szShellTitle)))
-		strcat(szShellTitle, cmd);
+	    if (cmd == NULL)
+		wcscat(szShellTitle, L" :sh");
+	    else
+	    {
+		WCHAR *wn = enc_to_utf16(cmd, NULL);
+
+		if (wn != NULL)
+		{
+		    wcscat(szShellTitle, L" - !");
+		    if ((wcslen(szShellTitle) + wcslen(wn) <
+					  sizeof(szShellTitle)/sizeof(WCHAR)))
+			wcscat(szShellTitle, wn);
+		    SetConsoleTitleW(szShellTitle);
+		    vim_free(wn);
+		    did_set_title = TRUE;
+		}
+	    }
 	}
-	mch_settitle(szShellTitle, NULL);
     }
+    if (!did_set_title)
+# endif
+	/* Change the title to reflect that we are in a subshell. */
+	if (GetConsoleTitle(szShellTitle, sizeof(szShellTitle) - 4) > 0)
+	{
+	    if (cmd == NULL)
+		strcat(szShellTitle, " :sh");
+	    else
+	    {
+		strcat(szShellTitle, " - !");
+		if ((strlen(szShellTitle) + strlen(cmd) < sizeof(szShellTitle)))
+		    strcat(szShellTitle, cmd);
+	    }
+	    SetConsoleTitle(szShellTitle);
+	}
 #endif
 
     out_flush();
@@ -6087,6 +6145,13 @@ mch_open(char *name, int flags, int mode)
     }
 # endif
 
+    /* open() can open a file which name is longer than _MAX_PATH bytes
+     * and shorter than _MAX_PATH characters successfully, but sometimes it
+     * causes unexpected error in another part. We make it an error explicitly
+     * here. */
+    if (strlen(name) >= _MAX_PATH)
+	return -1;
+
     return open(name, flags, mode);
 }
 
@@ -6135,6 +6200,13 @@ mch_fopen(char *name, char *mode)
 	 * GetLastError() here and it's unclear what errno gets set to if
 	 * the _wfopen() fails for missing wide functions. */
     }
+
+    /* fopen() can open a file which name is longer than _MAX_PATH bytes
+     * and shorter than _MAX_PATH characters successfully, but sometimes it
+     * causes unexpected error in another part. We make it an error explicitly
+     * here. */
+    if (strlen(name) >= _MAX_PATH)
+	return NULL;
 
     return fopen(name, mode);
 }
@@ -6442,6 +6514,7 @@ get_cmd_argsW(char ***argvp)
     int		argc = 0;
     int		i;
 
+    free_cmd_argsW();
     ArglistW = CommandLineToArgvW(GetCommandLineW(), &nArgsW);
     if (ArglistW != NULL)
     {
@@ -6474,7 +6547,11 @@ get_cmd_argsW(char ***argvp)
     global_argc = argc;
     global_argv = argv;
     if (argc > 0)
+    {
+	if (used_file_indexes != NULL)
+	    free(used_file_indexes);
 	used_file_indexes = malloc(argc * sizeof(int));
+    }
 
     if (argvp != NULL)
 	*argvp = argv;

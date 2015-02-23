@@ -1,4 +1,4 @@
-*map.txt*       For Vim version 7.4.  Last change: 2014 Jun 02
+*map.txt*       For Vim version 7.4.  Last change: 2014 Dec 08
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -923,9 +923,11 @@ Examples: ({CURSOR} is where you type a non-keyword character) >
 <		"test;;"	  is not expanded
 		"test ;;"	  is expanded to "test <endofline>"
 
-To avoid the abbreviation in insert mode: Type part of the abbreviation, exit
-insert mode with <Esc>, re-enter insert mode with "a" and type the rest.  Or
-type CTRL-V before the character after the abbreviation.
+To avoid the abbreviation in Insert mode: Type CTRL-V before the character
+that would trigger the abbreviation.  E.g. CTRL-V <Space>.  Or type part of
+the abbreviation, exit insert mode with <Esc>, re-enter insert mode with "a"
+and type the rest.
+
 To avoid the abbreviation in Command-line mode: Type CTRL-V twice somewhere in
 the abbreviation to avoid it to be replaced.  A CTRL-V in front of a normal
 character is mostly ignored otherwise.
@@ -1283,6 +1285,8 @@ completion can be enabled:
 	-complete=custom,{func} custom completion, defined via {func}
 	-complete=customlist,{func} custom completion, defined via {func}
 
+Note: That some completion methods might expand environment variables.
+
 
 Custom completion			*:command-completion-custom*
 					*:command-completion-customlist*
@@ -1353,6 +1357,19 @@ Possible attributes are:
 
 Note that -range=N and -count=N are mutually exclusive - only one should be
 specified.
+
+					*E889* *:command-addr*
+It is possible that the special characters in the range like ., $ or % which
+by default correspond to the current line, last line and the whole buffer,
+relate to arguments, (loaded) buffers, windows or tab pages.
+
+Possible values are:
+	-addr=lines		Range of lines (this is the default)
+	-addr=arguments		Range for arguments
+	-addr=buffers		Range for buffers (also not loaded buffers)
+	-addr=loaded_buffers	Range for loaded buffers
+	-addr=windows		Range for windows
+	-addr=tabs		Range for tab pages
 
 Special cases				*:command-bang* *:command-bar*
 					*:command-register* *:command-buffer*

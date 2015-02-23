@@ -2,7 +2,7 @@
 " Header: "{{{
 " Maintainer:	Bram Moolenaar
 " Original Author: Andy Wokula <anwoku@yahoo.de>
-" Last Change:	2014 Jul 04
+" Last Change:	2015 Jan 11
 " Version:	1.0
 " Description:	HTML indent script with cached state for faster indenting on a
 "		range of lines.
@@ -497,7 +497,7 @@ func! s:FreshState(lnum)
   " If previous line ended in a closing tag, line up with the opening tag.
   if !swendtag && text =~ '</\w\+\s*>\s*$'
     call cursor(state.lnum, 99999)
-    normal F<
+    normal! F<
     let start_lnum = HtmlIndent_FindStartTag()
     if start_lnum > 0
       let state.baseindent = indent(start_lnum)
@@ -883,7 +883,7 @@ endfunc "}}}
 " THE MAIN INDENT FUNCTION. Return the amount of indent for v:lnum.
 func! HtmlIndent()
   "{{{
-  if prevnonblank(v:lnum - 1) <= 1
+  if prevnonblank(v:lnum - 1) < 1
     " First non-blank line has no indent.
     return 0
   endif
@@ -898,7 +898,7 @@ func! HtmlIndent()
   " a tag works very differently. Do not do this when the line starts with
   " "<", it gets the "htmlTag" ID but we are not inside a tag then.
   if curtext !~ '^\s*<'
-    normal ^
+    normal! ^
     let stack = synstack(v:lnum, col('.'))  " assumes there are no tabs
     let foundHtmlString = 0
     for synid in reverse(stack)

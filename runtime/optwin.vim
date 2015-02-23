@@ -1,7 +1,7 @@
 " These commands create the option window.
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2014 Apr 01
+" Last Change:	2014 Nov 19
 
 " If there already is an option window, jump to that one.
 if bufwinnr("option-window") > 0
@@ -149,7 +149,7 @@ setlocal ts=15 tw=0 noro buftype=nofile
 call append(0, '" Each "set" line shows the current value of an option (on the left).')
 call append(1, '" Hit <CR> on a "set" line to execute it.')
 call append(2, '"            A boolean option will be toggled.')
-call append(3, '"            For other options you can edit the value.')
+call append(3, '"            For other options you can edit the value before hitting <CR>.')
 call append(4, '" Hit <CR> on a help line to open a help window on this option.')
 call append(5, '" Hit <CR> on an index line to jump there.')
 call append(6, '" Hit <Space> on a "set" line to refresh it.')
@@ -606,6 +606,10 @@ if has("gui")
     call append("$", "guiheadroom\troom (in pixels) left above/below the window")
     call append("$", " \tset ghr=" . &ghr)
   endif
+  if has("directx")
+    call append("$", "renderoptions\toptions for text rendering")
+    call <SID>OptionG("rop", &rop)
+  endif
   call append("$", "guipty\tuse a pseudo-tty for I/O to external commands")
   call <SID>BinOptionG("guipty", &guipty)
   if has("browse")
@@ -735,6 +739,7 @@ call <SID>OptionG("km", &km)
 
 call <SID>Header("editing text")
 call append("$", "undolevels\tmaximum number of changes that can be undone")
+call append("$", "\t(global or local to buffer)")
 call append("$", " \tset ul=" . &ul)
 call append("$", "undoreload\tmaximum number lines to save for undo on a buffer reload")
 call append("$", " \tset ur=" . &ur)
@@ -984,6 +989,7 @@ call <SID>BinOptionG("bk", &bk)
 call append("$", "backupskip\tpatterns that specify for which files a backup is not made")
 call append("$", " \tset bsk=" . &bsk)
 call append("$", "backupcopy\twhether to make the backup as a copy or rename the existing file")
+call append("$", "\t(global or local to buffer)")
 call append("$", " \tset bkc=" . &bkc)
 call append("$", "backupdir\tlist of directories to put backup files in")
 call <SID>OptionG("bdir", &bdir)
@@ -1199,8 +1205,10 @@ if has("keymap")
   call <SID>OptionL("kmp")
 endif
 if has("langmap")
-  call append("$", "langmap\ttranslate characters for Normal mode")
+  call append("$", "langmap\tlist of characters that are translated in Normal mode")
   call <SID>OptionG("lmap", &lmap)
+  call append("$", "langnoremap\tdon't apply 'langmap' to mapped characters")
+  call <SID>BinOptionG("lnr", &lnr)
 endif
 if has("xim")
   call append("$", "imdisable\twhen set never use IM; overrules following IM options")

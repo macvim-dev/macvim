@@ -1,4 +1,4 @@
-*autocmd.txt*   For Vim version 7.4.  Last change: 2014 May 02
+*autocmd.txt*   For Vim version 7.4.  Last change: 2014 Sep 23
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -278,6 +278,7 @@ Name			triggered by ~
 |ShellCmdPost|		after executing a shell command
 |ShellFilterPost|	after filtering with a shell command
 
+|CmdUndefined|		a user command is used but it isn't defined
 |FuncUndefined|		a user function is used but it isn't defined
 |SpellFileMissing|	a spell file is used but it can't be found
 |SourcePre|		before sourcing a Vim script
@@ -465,6 +466,16 @@ BufWriteCmd			Before writing the whole buffer to a file.
 							*BufWritePost*
 BufWritePost			After writing the whole buffer to a file
 				(should undo the commands for BufWritePre).
+							*CmdUndefined*
+CmdUndefined			When a user command is used but it isn't
+				defined.  Useful for defining a command only
+				when it's used.  The pattern is matched
+				against the command name.  Both <amatch> and
+				<afile> are set to the name of the command.
+				NOTE: Autocompletion won't work until the
+				command is defined.  An alternative is to
+				always define the user command and have it
+				invoke an autoloaded function.  See |autoload|.
 							*CmdwinEnter*
 CmdwinEnter			After entering the command-line window.
 				Useful for setting options specifically for
@@ -508,6 +519,11 @@ CursorHold			When the user doesn't press a key for the time
 				operator.
 				While recording the CursorHold event is not
 				triggered. |q|
+							*<CursorHold>*
+				Internally the autocommand is triggered by the
+				<CursorHold> key. In an expression mapping
+				|getchar()| may see this character.
+
 				Note: Interactive commands cannot be used for
 				this event.  There is no hit-enter prompt,
 				the screen is updated directly (when needed).
@@ -670,6 +686,8 @@ FuncUndefined			When a user function is used but it isn't
 				when it's used.  The pattern is matched
 				against the function name.  Both <amatch> and
 				<afile> are set to the name of the function.
+				NOTE: When writing Vim scripts a better
+				alternative is to use an autoloaded function.
 				See |autoload-functions|.
 							*GUIEnter*
 GUIEnter			After starting the GUI successfully, and after

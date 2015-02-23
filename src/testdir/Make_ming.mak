@@ -12,11 +12,13 @@ ifneq (sh.exe, $(SHELL))
 DEL = rm -f
 MV = mv
 CP = cp
+CAT = cat
 DIRSLASH = /
 else
 DEL = del
 MV = rename
 CP = copy
+CAT = type
 DIRSLASH = \\
 endif
 
@@ -55,17 +57,29 @@ SCRIPTS =	test3.out test4.out test5.out test6.out test7.out \
 		test94.out test95.out test96.out test98.out test99.out \
 		test100.out test101.out test102.out test103.out test104.out \
 		test105.out test106.out test107.out \
+		test_argument_0count.out \
+		test_argument_count.out \
 		test_autoformat_join.out \
 		test_breakindent.out \
+		test_changelist.out \
+		test_close_count.out \
+		test_command_count.out \
+		test_eval.out \
+		test_insertcount.out \
 		test_listlbr.out \
 		test_listlbr_utf8.out \
+		test_mapping.out \
+		test_nested_function.out \
+		test_options.out \
 		test_qf_title.out \
-		test_eval.out \
-		test_options.out
+		test_signs.out \
+		test_utf8.out
 
 SCRIPTS32 =	test50.out test70.out
 
 SCRIPTS_GUI = test16.out
+
+SCRIPTS_BENCH = bench_re_freeze.out
 
 .SUFFIXES: .in .out
 
@@ -74,6 +88,8 @@ vimall:	fixff $(SCRIPTS16) $(SCRIPTS) $(SCRIPTS_GUI) $(SCRIPTS32)
 
 nongui:	fixff $(SCRIPTS16) $(SCRIPTS)
 	echo ALL DONE
+
+benchmark: $(SCRIPTS_BENCH)
 
 small:
 	echo ALL DONE
@@ -109,3 +125,8 @@ clean:
 	-$(DEL) X*
 	-$(DEL) test.ok
 	-$(DEL) viminfo
+
+bench_re_freeze.out: bench_re_freeze.vim
+	-$(DEL) benchmark.out
+	$(VIMPROG) -u dos.vim -U NONE --noplugin $*.in
+	$(CAT) benchmark.out

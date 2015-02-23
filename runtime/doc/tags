@@ -396,6 +396,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'kp'	options.txt	/*'kp'*
 'langmap'	options.txt	/*'langmap'*
 'langmenu'	options.txt	/*'langmenu'*
+'langnoremap'	options.txt	/*'langnoremap'*
 'laststatus'	options.txt	/*'laststatus'*
 'lazyredraw'	options.txt	/*'lazyredraw'*
 'lbr'	options.txt	/*'lbr'*
@@ -409,6 +410,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'listchars'	options.txt	/*'listchars'*
 'lm'	options.txt	/*'lm'*
 'lmap'	options.txt	/*'lmap'*
+'lnr'	options.txt	/*'lnr'*
 'loadplugins'	options.txt	/*'loadplugins'*
 'lpl'	options.txt	/*'lpl'*
 'ls'	options.txt	/*'ls'*
@@ -768,6 +770,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'regexpengine'	options.txt	/*'regexpengine'*
 'relativenumber'	options.txt	/*'relativenumber'*
 'remap'	options.txt	/*'remap'*
+'renderoptions'	options.txt	/*'renderoptions'*
 'report'	options.txt	/*'report'*
 'restorescreen'	options.txt	/*'restorescreen'*
 'revins'	options.txt	/*'revins'*
@@ -778,6 +781,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'rlc'	options.txt	/*'rlc'*
 'rnu'	options.txt	/*'rnu'*
 'ro'	options.txt	/*'ro'*
+'rop'	options.txt	/*'rop'*
 'rs'	options.txt	/*'rs'*
 'rtp'	options.txt	/*'rtp'*
 'ru'	options.txt	/*'ru'*
@@ -1185,6 +1189,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 +dialog_gui	various.txt	/*+dialog_gui*
 +diff	various.txt	/*+diff*
 +digraphs	various.txt	/*+digraphs*
++directx	various.txt	/*+directx*
 +dnd	various.txt	/*+dnd*
 +emacs_tags	various.txt	/*+emacs_tags*
 +eval	various.txt	/*+eval*
@@ -1410,6 +1415,8 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 .dic	spell.txt	/*.dic*
 .exrc	starting.txt	/*.exrc*
 .gvimrc	gui.txt	/*.gvimrc*
+.netrwbook	pi_netrw.txt	/*.netrwbook*
+.netrwhist	pi_netrw.txt	/*.netrwhist*
 .vimrc	starting.txt	/*.vimrc*
 /	pattern.txt	/*\/*
 /$	pattern.txt	/*\/$*
@@ -2069,6 +2076,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :comc	map.txt	/*:comc*
 :comclear	map.txt	/*:comclear*
 :command	map.txt	/*:command*
+:command-addr	map.txt	/*:command-addr*
 :command-bang	map.txt	/*:command-bang*
 :command-bar	map.txt	/*:command-bar*
 :command-buffer	map.txt	/*:command-buffer*
@@ -2262,6 +2270,8 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :ha	print.txt	/*:ha*
 :hardcopy	print.txt	/*:hardcopy*
 :help	helphelp.txt	/*:help*
+:helpc	helphelp.txt	/*:helpc*
+:helpclose	helphelp.txt	/*:helpclose*
 :helpf	helphelp.txt	/*:helpf*
 :helpfind	helphelp.txt	/*:helpfind*
 :helpg	helphelp.txt	/*:helpg*
@@ -2739,7 +2749,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :sbr	windows.txt	/*:sbr*
 :sbrewind	windows.txt	/*:sbrewind*
 :sbuffer	windows.txt	/*:sbuffer*
-:scrip	repeat.txt	/*:scrip*
+:scr	repeat.txt	/*:scr*
 :scripte	repeat.txt	/*:scripte*
 :scriptencoding	repeat.txt	/*:scriptencoding*
 :scriptnames	repeat.txt	/*:scriptnames*
@@ -2774,7 +2784,6 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :sfirst	windows.txt	/*:sfirst*
 :sh	various.txt	/*:sh*
 :shell	various.txt	/*:shell*
-:si	gui_w32.txt	/*:si*
 :sig	sign.txt	/*:sig*
 :sign	sign.txt	/*:sign*
 :sign-define	sign.txt	/*:sign-define*
@@ -2787,6 +2796,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 :sign-unplace	sign.txt	/*:sign-unplace*
 :sil	various.txt	/*:sil*
 :silent	various.txt	/*:silent*
+:sim	gui_w32.txt	/*:sim*
 :simalt	gui_w32.txt	/*:simalt*
 :sl	various.txt	/*:sl*
 :sla	windows.txt	/*:sla*
@@ -3150,6 +3160,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 <CSI>	intro.txt	/*<CSI>*
 <Char->	map.txt	/*<Char->*
 <Char>	map.txt	/*<Char>*
+<CursorHold>	autocmd.txt	/*<CursorHold>*
 <D-	intro.txt	/*<D-*
 <D-.>	gui_mac.txt	/*<D-.>*
 <D-Down>	gui_mac.txt	/*<D-Down>*
@@ -3497,6 +3508,7 @@ Cmd-Right	gui_mac.txt	/*Cmd-Right*
 Cmd-Up	gui_mac.txt	/*Cmd-Up*
 Cmd-`	gui_mac.txt	/*Cmd-`*
 Cmd-event	autocmd.txt	/*Cmd-event*
+CmdUndefined	autocmd.txt	/*CmdUndefined*
 Cmdline	cmdline.txt	/*Cmdline*
 Cmdline-mode	cmdline.txt	/*Cmdline-mode*
 CmdwinEnter	autocmd.txt	/*CmdwinEnter*
@@ -4372,6 +4384,8 @@ E884	eval.txt	/*E884*
 E885	sign.txt	/*E885*
 E886	starting.txt	/*E886*
 E887	if_pyth.txt	/*E887*
+E888	pattern.txt	/*E888*
+E889	map.txt	/*E889*
 E89	message.txt	/*E89*
 E90	message.txt	/*E90*
 E91	options.txt	/*E91*
@@ -4952,6 +4966,7 @@ blockwise-operators	visual.txt	/*blockwise-operators*
 blockwise-register	change.txt	/*blockwise-register*
 blockwise-visual	visual.txt	/*blockwise-visual*
 blowfish	options.txt	/*blowfish*
+blowfish2	options.txt	/*blowfish2*
 bold	syntax.txt	/*bold*
 bom-bytes	mbyte.txt	/*bom-bytes*
 book	intro.txt	/*book*
@@ -5454,9 +5469,12 @@ diff-mode	diff.txt	/*diff-mode*
 diff-options	diff.txt	/*diff-options*
 diff-original-file	diff.txt	/*diff-original-file*
 diff-patchexpr	diff.txt	/*diff-patchexpr*
+diff-slow	diff.txt	/*diff-slow*
 diff.txt	diff.txt	/*diff.txt*
+diff.vim	syntax.txt	/*diff.vim*
 diff_filler()	eval.txt	/*diff_filler()*
 diff_hlID()	eval.txt	/*diff_hlID()*
+diff_translations	diff.txt	/*diff_translations*
 digraph	digraph.txt	/*digraph*
 digraph-arg	change.txt	/*digraph-arg*
 digraph-encoding	digraph.txt	/*digraph-encoding*
@@ -5517,6 +5535,7 @@ edit-dialogs	editing.txt	/*edit-dialogs*
 edit-files	editing.txt	/*edit-files*
 edit-intro	editing.txt	/*edit-intro*
 edit-no-break	usr_25.txt	/*edit-no-break*
+edit-paragraph-join	usr_25.txt	/*edit-paragraph-join*
 editing.txt	editing.txt	/*editing.txt*
 efm-%>	quickfix.txt	/*efm-%>*
 efm-entries	quickfix.txt	/*efm-entries*
@@ -6048,6 +6067,7 @@ g:netrw_errorlvl	pi_netrw.txt	/*g:netrw_errorlvl*
 g:netrw_fastbrowse	pi_netrw.txt	/*g:netrw_fastbrowse*
 g:netrw_fetch_cmd	pi_netrw.txt	/*g:netrw_fetch_cmd*
 g:netrw_ffkeep	pi_netrw.txt	/*g:netrw_ffkeep*
+g:netrw_file_cmd	pi_netrw.txt	/*g:netrw_file_cmd*
 g:netrw_fname_escape	pi_netrw.txt	/*g:netrw_fname_escape*
 g:netrw_ftp	pi_netrw.txt	/*g:netrw_ftp*
 g:netrw_ftp_browse_reject	pi_netrw.txt	/*g:netrw_ftp_browse_reject*
@@ -6059,6 +6079,7 @@ g:netrw_ftp_timelist_cmd	pi_netrw.txt	/*g:netrw_ftp_timelist_cmd*
 g:netrw_ftpextracmd	pi_netrw.txt	/*g:netrw_ftpextracmd*
 g:netrw_ftpmode	pi_netrw.txt	/*g:netrw_ftpmode*
 g:netrw_glob_escape	pi_netrw.txt	/*g:netrw_glob_escape*
+g:netrw_gx	pi_netrw.txt	/*g:netrw_gx*
 g:netrw_hide	pi_netrw.txt	/*g:netrw_hide*
 g:netrw_home	pi_netrw.txt	/*g:netrw_home*
 g:netrw_http_cmd	pi_netrw.txt	/*g:netrw_http_cmd*
@@ -6066,10 +6087,13 @@ g:netrw_http_put_cmd	pi_netrw.txt	/*g:netrw_http_put_cmd*
 g:netrw_http_xcmd	pi_netrw.txt	/*g:netrw_http_xcmd*
 g:netrw_ignorenetrc	pi_netrw.txt	/*g:netrw_ignorenetrc*
 g:netrw_keepdir	pi_netrw.txt	/*g:netrw_keepdir*
+g:netrw_keepj	pi_netrw.txt	/*g:netrw_keepj*
 g:netrw_list_cmd	pi_netrw.txt	/*g:netrw_list_cmd*
+g:netrw_list_cmd_options	pi_netrw.txt	/*g:netrw_list_cmd_options*
 g:netrw_list_hide	pi_netrw.txt	/*g:netrw_list_hide*
 g:netrw_liststyle	pi_netrw.txt	/*g:netrw_liststyle*
 g:netrw_localcopycmd	pi_netrw.txt	/*g:netrw_localcopycmd*
+g:netrw_localcopydircmd	pi_netrw.txt	/*g:netrw_localcopydircmd*
 g:netrw_localmkdir	pi_netrw.txt	/*g:netrw_localmkdir*
 g:netrw_localmovecmd	pi_netrw.txt	/*g:netrw_localmovecmd*
 g:netrw_localrmdir	pi_netrw.txt	/*g:netrw_localrmdir*
@@ -6090,6 +6114,7 @@ g:netrw_rsync_cmd	pi_netrw.txt	/*g:netrw_rsync_cmd*
 g:netrw_scp_cmd	pi_netrw.txt	/*g:netrw_scp_cmd*
 g:netrw_scpport	pi_netrw.txt	/*g:netrw_scpport*
 g:netrw_sepchr	pi_netrw.txt	/*g:netrw_sepchr*
+g:netrw_servername	pi_netrw.txt	/*g:netrw_servername*
 g:netrw_sftp_cmd	pi_netrw.txt	/*g:netrw_sftp_cmd*
 g:netrw_silent	pi_netrw.txt	/*g:netrw_silent*
 g:netrw_sort_by	pi_netrw.txt	/*g:netrw_sort_by*
@@ -6129,6 +6154,8 @@ g:tex_isk	syntax.txt	/*g:tex_isk*
 g:tex_no_error	syntax.txt	/*g:tex_no_error*
 g:tex_nospell	syntax.txt	/*g:tex_nospell*
 g:tex_stylish	syntax.txt	/*g:tex_stylish*
+g:tex_subscripts	syntax.txt	/*g:tex_subscripts*
+g:tex_superscripts	syntax.txt	/*g:tex_superscripts*
 g:tex_verbspell	syntax.txt	/*g:tex_verbspell*
 g:var	eval.txt	/*g:var*
 g:vimball_home	pi_vimball.txt	/*g:vimball_home*
@@ -6192,6 +6219,7 @@ getcharmod()	eval.txt	/*getcharmod()*
 getcmdline()	eval.txt	/*getcmdline()*
 getcmdpos()	eval.txt	/*getcmdpos()*
 getcmdtype()	eval.txt	/*getcmdtype()*
+getcmdwintype()	eval.txt	/*getcmdwintype()*
 getcurpos()	eval.txt	/*getcurpos()*
 getcwd()	eval.txt	/*getcwd()*
 getfontname()	eval.txt	/*getfontname()*
@@ -7071,6 +7099,8 @@ netrw-:Hexplore	pi_netrw.txt	/*netrw-:Hexplore*
 netrw-:Lexplore	pi_netrw.txt	/*netrw-:Lexplore*
 netrw-:MF	pi_netrw.txt	/*netrw-:MF*
 netrw-:MT	pi_netrw.txt	/*netrw-:MT*
+netrw-:NetrwC	pi_netrw.txt	/*netrw-:NetrwC*
+netrw-:NetrwMB	pi_netrw.txt	/*netrw-:NetrwMB*
 netrw-:Rexplore	pi_netrw.txt	/*netrw-:Rexplore*
 netrw-:Sexplore	pi_netrw.txt	/*netrw-:Sexplore*
 netrw-:Texplore	pi_netrw.txt	/*netrw-:Texplore*
@@ -7079,6 +7109,7 @@ netrw-C	pi_netrw.txt	/*netrw-C*
 netrw-D	pi_netrw.txt	/*netrw-D*
 netrw-O	pi_netrw.txt	/*netrw-O*
 netrw-P	pi_netrw.txt	/*netrw-P*
+netrw-P18	pi_netrw.txt	/*netrw-P18*
 netrw-R	pi_netrw.txt	/*netrw-R*
 netrw-S	pi_netrw.txt	/*netrw-S*
 netrw-Tb	pi_netrw.txt	/*netrw-Tb*
@@ -7108,6 +7139,7 @@ netrw-createfile	pi_netrw.txt	/*netrw-createfile*
 netrw-credits	pi_netrw.txt	/*netrw-credits*
 netrw-ctrl-h	pi_netrw.txt	/*netrw-ctrl-h*
 netrw-ctrl-l	pi_netrw.txt	/*netrw-ctrl-l*
+netrw-ctrl-r	pi_netrw.txt	/*netrw-ctrl-r*
 netrw-ctrl_l	pi_netrw.txt	/*netrw-ctrl_l*
 netrw-curdir	pi_netrw.txt	/*netrw-curdir*
 netrw-d	pi_netrw.txt	/*netrw-d*
@@ -7134,6 +7166,7 @@ netrw-gf	pi_netrw.txt	/*netrw-gf*
 netrw-gh	pi_netrw.txt	/*netrw-gh*
 netrw-gitignore	pi_netrw.txt	/*netrw-gitignore*
 netrw-gp	pi_netrw.txt	/*netrw-gp*
+netrw-grep	pi_netrw.txt	/*netrw-grep*
 netrw-gx	pi_netrw.txt	/*netrw-gx*
 netrw-handler	pi_netrw.txt	/*netrw-handler*
 netrw-help	pi_netrw.txt	/*netrw-help*
@@ -7155,6 +7188,7 @@ netrw-login	pi_netrw.txt	/*netrw-login*
 netrw-mB	pi_netrw.txt	/*netrw-mB*
 netrw-mF	pi_netrw.txt	/*netrw-mF*
 netrw-mT	pi_netrw.txt	/*netrw-mT*
+netrw-mX	pi_netrw.txt	/*netrw-mX*
 netrw-mb	pi_netrw.txt	/*netrw-mb*
 netrw-mc	pi_netrw.txt	/*netrw-mc*
 netrw-md	pi_netrw.txt	/*netrw-md*
@@ -7172,6 +7206,7 @@ netrw-mr	pi_netrw.txt	/*netrw-mr*
 netrw-ms	pi_netrw.txt	/*netrw-ms*
 netrw-mt	pi_netrw.txt	/*netrw-mt*
 netrw-mu	pi_netrw.txt	/*netrw-mu*
+netrw-mv	pi_netrw.txt	/*netrw-mv*
 netrw-mx	pi_netrw.txt	/*netrw-mx*
 netrw-mz	pi_netrw.txt	/*netrw-mz*
 netrw-netrc	pi_netrw.txt	/*netrw-netrc*
@@ -7191,6 +7226,7 @@ netrw-p13	pi_netrw.txt	/*netrw-p13*
 netrw-p14	pi_netrw.txt	/*netrw-p14*
 netrw-p15	pi_netrw.txt	/*netrw-p15*
 netrw-p16	pi_netrw.txt	/*netrw-p16*
+netrw-p17	pi_netrw.txt	/*netrw-p17*
 netrw-p2	pi_netrw.txt	/*netrw-p2*
 netrw-p3	pi_netrw.txt	/*netrw-p3*
 netrw-p4	pi_netrw.txt	/*netrw-p4*
@@ -7518,6 +7554,7 @@ printf()	eval.txt	/*printf()*
 printf-%	eval.txt	/*printf-%*
 printf-E	eval.txt	/*printf-E*
 printf-G	eval.txt	/*printf-G*
+printf-S	eval.txt	/*printf-S*
 printf-X	eval.txt	/*printf-X*
 printf-c	eval.txt	/*printf-c*
 printf-d	eval.txt	/*printf-d*
@@ -7907,6 +7944,7 @@ spell-FLAG	spell.txt	/*spell-FLAG*
 spell-FOL	spell.txt	/*spell-FOL*
 spell-FORBIDDENWORD	spell.txt	/*spell-FORBIDDENWORD*
 spell-HOME	spell.txt	/*spell-HOME*
+spell-IGNOREEXTRA	spell.txt	/*spell-IGNOREEXTRA*
 spell-KEEPCASE	spell.txt	/*spell-KEEPCASE*
 spell-KEY	spell.txt	/*spell-KEY*
 spell-LANG	spell.txt	/*spell-LANG*
@@ -8384,6 +8422,7 @@ tex-runon	syntax.txt	/*tex-runon*
 tex-slow	syntax.txt	/*tex-slow*
 tex-stopzone	syntax.txt	/*tex-stopzone*
 tex-style	syntax.txt	/*tex-style*
+tex-supersub	syntax.txt	/*tex-supersub*
 tex-sync	syntax.txt	/*tex-sync*
 tex-verb	syntax.txt	/*tex-verb*
 tex.vim	syntax.txt	/*tex.vim*
@@ -8860,6 +8899,7 @@ window-variable	eval.txt	/*window-variable*
 windowid-variable	eval.txt	/*windowid-variable*
 windows	windows.txt	/*windows*
 windows-3.1	os_win32.txt	/*windows-3.1*
+windows-icon	os_win32.txt	/*windows-icon*
 windows-intro	windows.txt	/*windows-intro*
 windows-starting	windows.txt	/*windows-starting*
 windows.txt	windows.txt	/*windows.txt*

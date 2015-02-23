@@ -992,13 +992,16 @@ syn_match_linecont(lnum)
     linenr_T	lnum;
 {
     regmmatch_T regmatch;
+    int r;
 
     if (syn_block->b_syn_linecont_prog != NULL)
     {
 	regmatch.rmm_ic = syn_block->b_syn_linecont_ic;
 	regmatch.regprog = syn_block->b_syn_linecont_prog;
-	return syn_regexec(&regmatch, lnum, (colnr_T)0,
+	r = syn_regexec(&regmatch, lnum, (colnr_T)0,
 				IF_SYN_TIME(&syn_block->b_syn_linecont_time));
+	syn_block->b_syn_linecont_prog = regmatch.regprog;
+	return r;
     }
     return FALSE;
 }
@@ -2075,6 +2078,8 @@ syn_current_attr(syncing, displaying, can_spell, keep_state)
 					    cur_si->si_cont_list, &spp->sp_syn,
 					    spp->sp_flags & HL_CONTAINED))))
 			{
+			    int r;
+
 			    /* If we already tried matching in this line, and
 			     * there isn't a match before next_match_col, skip
 			     * this item. */
@@ -2089,10 +2094,12 @@ syn_current_attr(syncing, displaying, can_spell, keep_state)
 
 			    regmatch.rmm_ic = spp->sp_ic;
 			    regmatch.regprog = spp->sp_prog;
-			    if (!syn_regexec(&regmatch,
+			    r = syn_regexec(&regmatch,
 					     current_lnum,
 					     (colnr_T)lc_col,
-				             IF_SYN_TIME(&spp->sp_time)))
+				             IF_SYN_TIME(&spp->sp_time));
+			    spp->sp_prog = regmatch.regprog;
+			    if (!r)
 			    {
 				/* no match in this line, try another one */
 				spp->sp_startcol = MAXCOL;
@@ -2963,6 +2970,7 @@ find_endpos(idx, startpos, m_endpos, hl_endpos, flagsp, end_endpos,
 	for (idx = start_idx; idx < syn_block->b_syn_patterns.ga_len; ++idx)
 	{
 	    int lc_col = matchcol;
+	    int r;
 
 	    spp = &(SYN_ITEMS(syn_block)[idx]);
 	    if (spp->sp_type != SPTYPE_END)	/* past last END pattern */
@@ -2973,8 +2981,10 @@ find_endpos(idx, startpos, m_endpos, hl_endpos, flagsp, end_endpos,
 
 	    regmatch.rmm_ic = spp->sp_ic;
 	    regmatch.regprog = spp->sp_prog;
-	    if (syn_regexec(&regmatch, startpos->lnum, lc_col,
-						  IF_SYN_TIME(&spp->sp_time)))
+	    r = syn_regexec(&regmatch, startpos->lnum, lc_col,
+						  IF_SYN_TIME(&spp->sp_time));
+	    spp->sp_prog = regmatch.regprog;
+	    if (r)
 	    {
 		if (best_idx == -1 || regmatch.startpos[0].col
 					      < best_regmatch.startpos[0].col)
@@ -3000,14 +3010,16 @@ find_endpos(idx, startpos, m_endpos, hl_endpos, flagsp, end_endpos,
 	if (spp_skip != NULL)
 	{
 	    int lc_col = matchcol - spp_skip->sp_offsets[SPO_LC_OFF];
+	    int r;
 
 	    if (lc_col < 0)
 		lc_col = 0;
 	    regmatch.rmm_ic = spp_skip->sp_ic;
 	    regmatch.regprog = spp_skip->sp_prog;
-	    if (syn_regexec(&regmatch, startpos->lnum, lc_col,
-					      IF_SYN_TIME(&spp_skip->sp_time))
-		    && regmatch.startpos[0].col
+	    r = syn_regexec(&regmatch, startpos->lnum, lc_col,
+					      IF_SYN_TIME(&spp_skip->sp_time));
+	    spp_skip->sp_prog = regmatch.regprog;
+	    if (r && regmatch.startpos[0].col
 					     <= best_regmatch.startpos[0].col)
 	    {
 		/* Add offset to skip pattern match */
@@ -6292,11 +6304,10 @@ ex_ownsyntax(eap)
 	curwin->w_s = (synblock_T *)alloc(sizeof(synblock_T));
 	memset(curwin->w_s, 0, sizeof(synblock_T));
 #ifdef FEAT_SPELL
+	/* TODO: keep the spell checking as it was. */
 	curwin->w_p_spell = FALSE;	/* No spell checking */
 	clear_string_option(&curwin->w_s->b_p_spc);
 	clear_string_option(&curwin->w_s->b_p_spf);
-	vim_regfree(curwin->w_s->b_cap_prog);
-	curwin->w_s->b_cap_prog = NULL;
 	clear_string_option(&curwin->w_s->b_p_spl);
 #endif
     }
@@ -6526,7 +6537,7 @@ syn_get_foldlevel(wp, lnum)
 }
 #endif
 
-#ifdef FEAT_PROFILE
+#if defined(FEAT_PROFILE) || defined(PROTO)
 /*
  * ":syntime".
  */

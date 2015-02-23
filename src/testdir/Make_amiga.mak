@@ -36,13 +36,23 @@ SCRIPTS = test1.out test3.out test4.out test5.out test6.out \
 		test94.out test95.out test96.out test97.out test98.out \
 		test99.out test100.out test101.out test102.out test103.out \
 		test104.out test105.out test106.out test107.out \
+		test_argument_0count.out \
+		test_argument_count.out \
 		test_autoformat_join.out \
 		test_breakindent.out \
+		test_changelist.out \
+		test_close_count.out \
+		test_command_count.out \
+		test_eval.out \
+		test_insertcount.out \
 		test_listlbr.out \
 		test_listlbr_utf8.out \
+		test_mapping.out \
+		test_nested_function.out \
+		test_options.out \
 		test_qf_title.out \
-		test_eval.out \
-		test_options.out
+		test_signs.out \
+		test_utf8.out
 
 .SUFFIXES: .in .out
 
@@ -166,10 +176,20 @@ test104.out: test104.in
 test105.out: test105.in
 test106.out: test106.in
 test107.out: test107.in
+test_argument_0count.out: test_argument_0count.in
+test_argument_count.out: test_argument_count.in
 test_autoformat_join.out: test_autoformat_join.in
 test_breakindent.out: test_breakindent.in
+test_changelist.out: test_changelist.in
+test_close_count.out: test_close_count.in
+test_command_count.out: test_command_count.in
+test_eval.out: test_eval.in
+test_insertcount.out: test_insertcount.in
 test_listlbr.out: test_listlbr.in
 test_listlbr_utf8.out: test_listlbr_utf8.in
-test_qf_title.out: test_qf_title.in
-test_eval.out: test_eval.in
+test_mapping.out: test_mapping.in
+test_nested_function.out: test_nested_function.in
 test_options.out: test_options.in
+test_qf_title.out: test_qf_title.in
+test_signs.out: test_signs.in
+test_utf8.out: test_utf8.in
