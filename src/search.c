@@ -1072,7 +1072,7 @@ first_submatch(rp)
  * Careful: If spats[0].off.line == TRUE and spats[0].off.off == 0 this
  * makes the movement linewise without moving the match position.
  *
- * return 0 for failure, 1 for found, 2 for found and line offset added
+ * Return 0 for failure, 1 for found, 2 for found and line offset added.
  */
     int
 do_search(oap, dirc, pat, count, options, tm)
@@ -3790,6 +3790,7 @@ current_tagblock(oap, count_arg, include)
     int		do_include = include;
     int		save_p_ws = p_ws;
     int		retval = FAIL;
+    int		is_inclusive = TRUE;
 
     p_ws = FALSE;
 
@@ -3904,8 +3905,15 @@ again:
     }
     else
     {
-	/* Exclude the '<' of the end tag. */
-	if (*ml_get_cursor() == '<')
+	char_u *c = ml_get_cursor();
+
+	/* Exclude the '<' of the end tag.
+	 * If the closing tag is on new line, do not decrement cursor, but
+	 * make operation exclusive, so that the linefeed will be selected */
+	if (*c == '<' && !VIsual_active && curwin->w_cursor.col == 0)
+	    /* do not decrement cursor */
+	    is_inclusive = FALSE;
+	else if (*c == '<')
 	    dec_cursor();
     }
     end_pos = curwin->w_cursor;
@@ -3959,7 +3967,7 @@ again:
 	    oap->inclusive = FALSE;
 	}
 	else
-	    oap->inclusive = TRUE;
+	    oap->inclusive = is_inclusive;
     }
     retval = OK;
 
