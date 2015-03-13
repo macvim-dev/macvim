@@ -1,4 +1,4 @@
-*editing.txt*   For Vim version 7.4.  Last change: 2014 Jul 19
+*editing.txt*   For Vim version 7.4.  Last change: 2015 Jan 04
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -609,7 +609,10 @@ list of the current window.
 			{not in Vi}
 
 :[count]arga[dd] {name} ..			*:arga* *:argadd* *E479*
-			Add the {name}s to the argument list.
+:[count]arga[dd]
+			Add the {name}s to the argument list.  When {name} is
+			omitted add the current buffer name to the argument
+			list.
 			If [count] is omitted, the {name}s are added just
 			after the current entry in the argument list.
 			Otherwise they are added after the [count]'th file.
@@ -619,7 +622,8 @@ list of the current window.
 				:argadd x	a b x c
 				:0argadd x	x a b c
 				:1argadd x	a x b c
-				:99argadd x	a b c x
+				:$argadd x	a b c x
+				:+2argadd y	a b c x y
 			There is no check for duplicates, it is possible to
 			add a file to the argument list twice.
 			The currently edited file is not changed.
@@ -641,11 +645,19 @@ list of the current window.
 <			{not in Vi} {not available when compiled without the
 			|+listcmds| feature}
 
-:{range}argd[elete]	Delete the {range} files from the argument list.
+:[range]argd[elete]	Delete the {range} files from the argument list.
+			Example: >
+				:10,$argdel
+<			Deletes arguments 10 and further, keeping 1-9. >
+				:$argd
+<			Deletes just the last one. >
+				:argd
+				:.argd
+<			Deletes the current argument. >
+				:%argd
+<			Removes all the files from the arglist.
 			When the last number in the range is too high, up to
-			the last argument is deleted.  Example: >
-				:10,1000argdel
-<			Deletes arguments 10 and further, keeping 1-9.
+			the last argument is deleted.
 			{not in Vi} {not available when compiled without the
 			|+listcmds| feature}
 
@@ -820,8 +832,9 @@ current window.  The two windows then share this list, until one of them uses
 USING THE ARGUMENT LIST
 
 						*:argdo*
-:argdo[!] {cmd}		Execute {cmd} for each file in the argument list.
-			It works like doing this: >
+:[range]argdo[!] {cmd}	Execute {cmd} for each file in the argument list or
+			if [range] is specified only for arguments in that
+			range.  It works like doing this: >
 				:rewind
 				:{cmd}
 				:next
@@ -1077,9 +1090,12 @@ The names can be in upper- or lowercase.
 			the last file in the argument list has not been
 			edited.  See |:confirm| and 'confirm'.  {not in Vi}
 
-:q[uit]!		Quit without writing, also when visible buffers have
-			changes.  Does not exit when there are changed hidden
-			buffers.  Use ":qall!" to exit always.
+:q[uit]!		Quit without writing, also when currently visible
+			buffers have changes.  Does not exit when this is the
+			last window and there is a changed hidden buffer.
+			In this case, the first changed hidden buffer becomes
+			the current buffer.
+			Use ":qall!" to exit always.
 
 :cq[uit]		Quit always, without writing, and return an error
 			code.  See |:cq|.  Used for Manx's QuickFix mode (see
@@ -1370,8 +1386,13 @@ lose your work.  The undo file can be disabled without much disadvantage. >
 
 Note: The text in memory is not encrypted.  A system administrator may be able
 to see your text while you are editing it.  When filtering text with
-":!filter" or using ":w !command" the text is not encrypted, this may reveal
-it to others.  The 'viminfo' file is not encrypted.
+":!filter" or using ":w !command" the text is also not encrypted, this may
+reveal it to others.  The 'viminfo' file is not encrypted.
+
+You could do this to edit very secret text: >
+	:set noundofile viminfo=
+	:noswapfile edit secrets.txt
+Keep in mind that without a swap file you risk losing your work in a crash.
 
 WARNING: If you make a typo when entering the key and then write the file and
 exit, the text will be lost!
@@ -1398,18 +1419,23 @@ To disable the encryption, reset the 'key' option to an empty value: >
 	:set key=
 
 You can use the 'cryptmethod' option to select the type of encryption, use one
-of these two: >
-	:setlocal cm=zip       " weak method, backwards compatible
-	:setlocal cm=blowfish  " strong method
+of these: >
+	:setlocal cm=zip        " weak method, backwards compatible
+	:setlocal cm=blowfish   " method with flaws
+	:setlocal cm=blowfish2  " medium strong method
+
 Do this before writing the file.  When reading an encrypted file it will be
 set automatically to the method used when that file was written.  You can
 change 'cryptmethod' before writing that file to change the method.
-To set the default method, used for new files, use one of these in your
-|vimrc| file: >
-	set cm=zip
-	set cm=blowfish
+
+To set the default method, used for new files, use this in your |vimrc| 
+file: >
+	set cm=blowfish2
+Using "blowfish2" is highly recommended.  Only use another method if you
+must use an older Vim version that does not support it.
+
 The message given for reading and writing a file will show "[crypted]" when
-using zip, "[blowfish]" when using blowfish.
+using zip, "[blowfish]" when using blowfish, etc.
 
 When writing an undo file, the same key and method will be used for the text
 in the undo file. |persistent-undo|.
@@ -1444,7 +1470,7 @@ lines to "/etc/magic", "/usr/share/misc/magic" or wherever your system has the
      0	string	VimCrypt~	Vim encrypted file
      >9	string	01	- "zip" cryptmethod
      >9	string	02	- "blowfish" cryptmethod
-
+     >9	string	03	- "blowfish2" cryptmethod
 
 Notes:
 - Encryption is not possible when doing conversion with 'charconvert'.
@@ -1468,6 +1494,10 @@ Notes:
 - Pkzip uses the same encryption as 'cryptmethod' "zip", and US Govt has no
   objection to its export.  Pkzip's public file APPNOTE.TXT describes this
   algorithm in detail.
+- The implementation of 'cryptmethod' "blowfish" has a flaw.  It is possible
+  to crack the first 64 bytes of a file and in some circumstances more of the
+  file. Use of it is not recommended, but it's still the strongest method
+  supported by Vim 7.3 and 7.4.  The "zip" method is even weaker.
 - Vim originates from the Netherlands.  That is where the sources come from.
   Thus the encryption code is not exported from the USA.
 

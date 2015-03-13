@@ -1571,8 +1571,8 @@ Py_GetProgramName(void)
 }
 #endif /* Python 1.4 */
 
-    void
+    int
 set_ref_in_python (int copyID)
 {
-    set_ref_in_py(copyID);
+    return set_ref_in_py(copyID);
 }

@@ -81,7 +81,8 @@ uu:w >>test.out
 :"
 :" With encryption, cryptmethod=blowfish
 :e! Xtestfile
-:set undofile cm=blowfish
+rubbish
+:set undofile cm=blowfish ff&
 ggdGijan
 feb
 mar
@@ -97,6 +98,32 @@ foobar
 :bwipe!
 :e Xtestfile
 foobar
+:set key=
+/bar
+:.w >>test.out
+u:.w >>test.out
+u:.w >>test.out
+u:.w >>test.out
+:"
+:" With encryption, cryptmethod=blowfish2
+:e! Xtestfile
+rubbish
+:set undofile cm=blowfish2 ff&
+ggdGijan
+feb
+mar
+apr
+jun:set ul=100
+kk0ifoo :set ul=100
+dd:set ul=100
+ibar :set ul=100
+:X
+foo2bar
+foo2bar
+:w!
+:bwipe!
+:e Xtestfile
+foo2bar
 :set key=
 /bar
 :.w >>test.out

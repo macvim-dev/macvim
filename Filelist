@@ -11,6 +11,8 @@ SRC_ALL =	\
 		src/blowfish.c \
 		src/buffer.c \
 		src/charset.c \
+		src/crypt.c \
+		src/crypt_zip.c \
 		src/diff.c \
 		src/digraph.c \
 		src/edit.c \
@@ -80,6 +82,7 @@ SRC_ALL =	\
 		src/xxd/xxd.c \
 		src/main.aap \
 		src/testdir/main.aap \
+		src/testdir/README.txt \
 		src/testdir/*.in \
 		src/testdir/sautest/autoload/*.vim \
 		src/testdir/test[0-9]*.ok \
@@ -99,10 +102,15 @@ SRC_ALL =	\
 		src/testdir/pythonx/topmodule/submodule/subsubmodule/subsubsubmodule.py \
 		src/testdir/python_after/*.py \
 		src/testdir/python_before/*.py \
+		src/testdir/bench*.in \
+		src/testdir/bench*.vim \
+		src/testdir/samples/*.txt \
 		src/proto.h \
 		src/proto/blowfish.pro \
 		src/proto/buffer.pro \
 		src/proto/charset.pro \
+		src/proto/crypt.pro \
+		src/proto/crypt_zip.pro \
 		src/proto/diff.pro \
 		src/proto/digraph.pro \
 		src/proto/edit.pro \
@@ -272,6 +280,7 @@ SRC_DOS =	\
 		src/Make_bc3.mak \
 		src/Make_bc5.mak \
 		src/Make_cyg.mak \
+		src/Make_cyg_ming.mak \
 		src/Make_djg.mak \
 		src/Make_ivc.mak \
 		src/Make_dvc.mak \
@@ -289,6 +298,8 @@ SRC_DOS =	\
 		src/dosinst.h \
 		src/glbl_ime.cpp \
 		src/glbl_ime.h \
+		src/gui_dwrite.cpp \
+		src/gui_dwrite.h \
 		src/gui_w16.c \
 		src/gui_w32.c \
 		src/gui_w48.c \

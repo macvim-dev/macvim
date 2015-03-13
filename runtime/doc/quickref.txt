@@ -1,4 +1,4 @@
-*quickref.txt*  For Vim version 7.4.  Last change: 2014 Jun 25
+*quickref.txt*  For Vim version 7.4.  Last change: 2014 Nov 19
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -766,6 +766,7 @@ Short explanation of each option:		*option-list*
 'keywordprg'	  'kp'	    program to use for the "K" command
 'langmap'	  'lmap'    alphabetic characters for other language mode
 'langmenu'	  'lm'	    language to be used for the menus
+'langnoremap'	  'lnr'	    do not apply 'langmap' to mapped characters
 'laststatus'	  'ls'	    tells when last window has status lines
 'lazyredraw'	  'lz'	    don't redraw while executing macros
 'linebreak'	  'lbr'     wrap long lines at a blank
@@ -834,6 +835,7 @@ Short explanation of each option:		*option-list*
 'regexpengine'	  're'	    default regexp engine to use
 'relativenumber'  'rnu'	    show relative line number in front of each line
 'remap'			    allow mappings to work recursively
+'renderoptions'	  'rop'	    options for text rendering on Windows
 'report'		    threshold for reporting nr. of lines changed
 'restorescreen'   'rs'	    Win32: restore screen when exiting
 'revins'	  'ri'	    inserting characters will work backwards
@@ -1316,11 +1318,16 @@ Context-sensitive completion on the command-line:
 |CTRL-W_R|	CTRL-W R		rotate windows upwards
 |CTRL-W_x|	CTRL-W x		exchange current window with next one
 
-|CTRL-W_=|	CTRL-W =		make all windows equal height
+|CTRL-W_=|	CTRL-W =		make all windows equal height & width
 |CTRL-W_-|	CTRL-W -		decrease current window height
 |CTRL-W_+|	CTRL-W +		increase current window height
 |CTRL-W__|	CTRL-W _		set current window height (default:
 					   very high)
+
+|CTRL-W_<|	CTRL-W <		decrease current window width
+|CTRL-W_>|	CTRL-W >		increase current window width
+|CTRL-W_bar|	CTRL-W |		set current window width (default:
+					   widest possible)
 ------------------------------------------------------------------------------
 *Q_bu*		Buffer list commands
 

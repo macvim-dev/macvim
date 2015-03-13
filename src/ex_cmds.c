@@ -34,6 +34,7 @@ static int
     _RTLENTRYF
 #endif
 	help_compare __ARGS((const void *s1, const void *s2));
+static void prepare_help_buffer __ARGS((void));
 
 /*
  * ":ascii" and "ga".
@@ -3528,74 +3529,27 @@ do_ecmd(fnum, ffname, sfname, eap, newlnum, flags, oldwin)
 #endif
 		check_fname() == FAIL)
 	    goto theend;
+
+#ifdef FEAT_QUICKFIX
+	/* ":e foobar" when already editing "foobar" will reload the file.
+	 * But when 'buftype' is "nofile" there is no file to load, so don't
+	 * do anything. */
+	if (curbuf->b_p_bt[0] == 'n' && curbuf->b_p_bt[2] == 'f')
+	    goto theend;
+#endif
+
 	oldbuf = (flags & ECMD_OLDBUF);
     }
 
+#ifdef FEAT_AUTOCMD
+    buf = curbuf;
+#endif
     if ((flags & ECMD_SET_HELP) || keep_help_flag)
     {
-	char_u	*p;
-
-	curbuf->b_help = TRUE;
-#ifdef FEAT_QUICKFIX
-	set_string_option_direct((char_u *)"buftype", -1,
-				     (char_u *)"help", OPT_FREE|OPT_LOCAL, 0);
-#endif
-
-	/*
-	 * Always set these options after jumping to a help tag, because the
-	 * user may have an autocommand that gets in the way.
-	 * Accept all ASCII chars for keywords, except ' ', '*', '"', '|', and
-	 * latin1 word characters (for translated help files).
-	 * Only set it when needed, buf_init_chartab() is some work.
-	 */
-	p =
-#ifdef EBCDIC
-		(char_u *)"65-255,^*,^|,^\"";
-#else
-		(char_u *)"!-~,^*,^|,^\",192-255";
-#endif
-	if (STRCMP(curbuf->b_p_isk, p) != 0)
-	{
-	    set_string_option_direct((char_u *)"isk", -1, p,
-						       OPT_FREE|OPT_LOCAL, 0);
-	    check_buf_options(curbuf);
-	    (void)buf_init_chartab(curbuf, FALSE);
-	}
-
-	curbuf->b_p_ts = 8;		/* 'tabstop' is 8 */
-	curwin->w_p_list = FALSE;	/* no list mode */
-
-	curbuf->b_p_ma = FALSE;		/* not modifiable */
-	curbuf->b_p_bin = FALSE;	/* reset 'bin' before reading file */
-	curwin->w_p_nu = 0;		/* no line numbers */
-	curwin->w_p_rnu = 0;		/* no relative line numbers */
-	RESET_BINDING(curwin);		/* no scroll or cursor binding */
-#ifdef FEAT_ARABIC
-	curwin->w_p_arab = FALSE;	/* no arabic mode */
-#endif
-#ifdef FEAT_RIGHTLEFT
-	curwin->w_p_rl  = FALSE;	/* help window is left-to-right */
-#endif
-#ifdef FEAT_FOLDING
-	curwin->w_p_fen = FALSE;	/* No folding in the help window */
-#endif
-#ifdef FEAT_DIFF
-	curwin->w_p_diff = FALSE;	/* No 'diff' */
-#endif
-#ifdef FEAT_SPELL
-	curwin->w_p_spell = FALSE;	/* No spell checking */
-#endif
-
-#ifdef FEAT_AUTOCMD
-	buf = curbuf;
-#endif
-	set_buflisted(FALSE);
+	prepare_help_buffer();
     }
     else
     {
-#ifdef FEAT_AUTOCMD
-	buf = curbuf;
-#endif
 	/* Don't make a buffer listed if it's a help buffer.  Useful when
 	 * using CTRL-O to go back to a help file. */
 	if (!curbuf->b_help)
@@ -4011,11 +3965,19 @@ ex_append(eap)
 	    eap->nextcmd = p;
 	}
 	else
+	{
+	    int save_State = State;
+
+	    /* Set State to avoid the cursor shape to be set to INSERT mode
+	     * when getline() returns. */
+	    State = CMDLINE;
 	    theline = eap->getline(
 #ifdef FEAT_EVAL
 		    eap->cstack->cs_looplevel > 0 ? -1 :
 #endif
 		    NUL, eap->cookie, indent);
+	    State = save_State;
+	}
 	lines_left = Rows - 1;
 	if (theline == NULL)
 	    break;
@@ -4455,6 +4417,8 @@ do_sub(eap)
 	    && (*cmd == NUL || (cmd[1] == NUL && (*cmd == 'g' || *cmd == 'l'
 					     || *cmd == 'p' || *cmd == '#'))))
     {
+	linenr_T    joined_lines_count;
+
 	curwin->w_cursor.lnum = eap->line1;
 	if (*cmd == 'l')
 	    eap->flags = EXFLAG_LIST;
@@ -4463,10 +4427,27 @@ do_sub(eap)
 	else if (*cmd == 'p')
 	    eap->flags = EXFLAG_PRINT;
 
-	(void)do_join(eap->line2 - eap->line1 + 1, FALSE, TRUE, FALSE, TRUE);
-	sub_nlines = sub_nsubs = eap->line2 - eap->line1 + 1;
-	(void)do_sub_msg(FALSE);
-	ex_may_print(eap);
+	/* The number of lines joined is the number of lines in the range plus
+	 * one.  One less when the last line is included. */
+	joined_lines_count = eap->line2 - eap->line1 + 1;
+	if (eap->line2 < curbuf->b_ml.ml_line_count)
+	    ++joined_lines_count;
+	if (joined_lines_count > 1)
+	{
+	    (void)do_join(joined_lines_count, FALSE, TRUE, FALSE, TRUE);
+	    sub_nsubs = joined_lines_count - 1;
+	    sub_nlines = 1;
+	    (void)do_sub_msg(FALSE);
+	    ex_may_print(eap);
+	}
+
+	if (!cmdmod.keeppatterns)
+	    save_re_pat(RE_SUBST, pat, p_magic);
+#ifdef FEAT_CMDHIST
+	/* put pattern in history */
+	add_to_history(HIST_SEARCH, pat, TRUE, NUL);
+#endif
+
 	return;
     }
 
@@ -5514,7 +5495,15 @@ ex_global(eap)
 	    smsg((char_u *)_("Pattern not found: %s"), pat);
     }
     else
+    {
+#ifdef FEAT_CLIPBOARD
+	start_global_changes();
+#endif
 	global_exe(cmd);
+#ifdef FEAT_CLIPBOARD
+	end_global_changes();
+#endif
+    }
 
     ml_clearmarked();	   /* clear rest of the marks */
     vim_regfree(regmatch.regprog);
@@ -5883,6 +5872,26 @@ erret:
     vim_free(tag);
 }
 
+/*
+ * ":helpclose": Close one help window
+ */
+    void
+ex_helpclose(eap)
+    exarg_T	*eap UNUSED;
+{
+#if defined(FEAT_WINDOWS)
+    win_T *win;
+
+    FOR_ALL_WINDOWS(win)
+    {
+	if (win->w_buffer->b_help)
+	{
+	    win_close(win, FALSE);
+	    return;
+	}
+    }
+#endif
+}
 
 #if defined(FEAT_MULTI_LANG) || defined(PROTO)
 /*
@@ -6183,6 +6192,73 @@ find_help_tags(arg, num_matches, matches, keep_lang)
 	    vim_free((*matches)[--*num_matches]);
     }
     return OK;
+}
+
+/*
+ * Called when starting to edit a buffer for a help file.
+ */
+    static void
+prepare_help_buffer()
+{
+    char_u	*p;
+
+    curbuf->b_help = TRUE;
+#ifdef FEAT_QUICKFIX
+    set_string_option_direct((char_u *)"buftype", -1,
+				     (char_u *)"help", OPT_FREE|OPT_LOCAL, 0);
+#endif
+
+    /*
+     * Always set these options after jumping to a help tag, because the
+     * user may have an autocommand that gets in the way.
+     * Accept all ASCII chars for keywords, except ' ', '*', '"', '|', and
+     * latin1 word characters (for translated help files).
+     * Only set it when needed, buf_init_chartab() is some work.
+     */
+    p =
+#ifdef EBCDIC
+	    (char_u *)"65-255,^*,^|,^\"";
+#else
+	    (char_u *)"!-~,^*,^|,^\",192-255";
+#endif
+    if (STRCMP(curbuf->b_p_isk, p) != 0)
+    {
+	set_string_option_direct((char_u *)"isk", -1, p, OPT_FREE|OPT_LOCAL, 0);
+	check_buf_options(curbuf);
+	(void)buf_init_chartab(curbuf, FALSE);
+    }
+
+#ifdef FEAT_FOLDING
+    /* Don't use the global foldmethod.*/
+    set_string_option_direct((char_u *)"fdm", -1, (char_u *)"manual",
+						       OPT_FREE|OPT_LOCAL, 0);
+#endif
+
+    curbuf->b_p_ts = 8;		/* 'tabstop' is 8 */
+    curwin->w_p_list = FALSE;	/* no list mode */
+
+    curbuf->b_p_ma = FALSE;		/* not modifiable */
+    curbuf->b_p_bin = FALSE;	/* reset 'bin' before reading file */
+    curwin->w_p_nu = 0;		/* no line numbers */
+    curwin->w_p_rnu = 0;		/* no relative line numbers */
+    RESET_BINDING(curwin);		/* no scroll or cursor binding */
+#ifdef FEAT_ARABIC
+    curwin->w_p_arab = FALSE;	/* no arabic mode */
+#endif
+#ifdef FEAT_RIGHTLEFT
+    curwin->w_p_rl  = FALSE;	/* help window is left-to-right */
+#endif
+#ifdef FEAT_FOLDING
+    curwin->w_p_fen = FALSE;	/* No folding in the help window */
+#endif
+#ifdef FEAT_DIFF
+    curwin->w_p_diff = FALSE;	/* No 'diff' */
+#endif
+#ifdef FEAT_SPELL
+    curwin->w_p_spell = FALSE;	/* No spell checking */
+#endif
+
+    set_buflisted(FALSE);
 }
 
 /*

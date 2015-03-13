@@ -24,6 +24,9 @@
 #
 #	GUI interface: GUI=yes (default is no)
 #
+#	GUI with DirectWrite(DirectX): DIRECTX=yes
+#	  (default is no, requires GUI=yes)
+#
 #	OLE interface: OLE=yes (usually with GUI=yes)
 #
 #	Multibyte support: MBYTE=yes (default is no)
@@ -47,13 +50,14 @@
 #	Perl interface:
 #	  PERL=[Path to Perl directory]
 #	  DYNAMIC_PERL=yes (to load the Perl DLL dynamically)
-#	  PERL_VER=[Perl version, in the form 55 (5.005), 56 (5.6.x), etc]
+#	  PERL_VER=[Perl version, in the form 55 (5.005), 56 (5.6.x),
+#		    510 (5.10.x), etc]
 #	  (default is 56)
 #
 #	Python interface:
 #	  PYTHON=[Path to Python directory]
 #	  DYNAMIC_PYTHON=yes (to load the Python DLL dynamically)
-#	  PYTHON_VER=[Python version, eg 15, 20]  (default is 22)
+#	  PYTHON_VER=[Python version, eg 22, 23, ..., 27]  (default is 22)
 #
 #	Python3 interface:
 #	  PYTHON3=[Path to Python3 directory]
@@ -63,11 +67,13 @@
 #	Ruby interface:
 #	  RUBY=[Path to Ruby directory]
 #	  DYNAMIC_RUBY=yes (to load the Ruby DLL dynamically)
-#	  RUBY_VER=[Ruby version, eg 16, 17] (default is 18)
-#	  RUBY_VER_LONG=[Ruby version, eg 1.6, 1.7] (default is 1.8)
+#	  RUBY_VER=[Ruby version, eg 18, 19, 20] (default is 18)
+#	  RUBY_VER_LONG=[Ruby version, eg 1.8, 1.9.1, 2.0.0] (default is 1.8)
 #	    You must set RUBY_VER_LONG when change RUBY_VER.
-#	    You must set RUBY_API_VER to RUBY_VER_LONG.
-#	    Don't set ruby API version to RUBY_VER like 191.
+#	    RUBY_API_VER is derived from RUBY_VER_LONG.
+#	    Note: If you use Ruby 1.9.3, set as follows:
+#	      RUBY_VER=19
+#	      RUBY_VER_LONG=1.9.1 (not 1.9.3, because the API version is 1.9.1.)
 #
 #	Tcl interface:
 #	  TCL=[Path to Tcl directory]
@@ -167,6 +173,9 @@ TARGETOS = BOTH
 OBJDIR = .\ObjG
 !else
 OBJDIR = .\ObjC
+!endif
+!if "$(DIRECTX)" == "yes"
+OBJDIR = $(OBJDIR)X
 !endif
 !if "$(OLE)" == "yes"
 OBJDIR = $(OBJDIR)O
@@ -290,6 +299,13 @@ NBDEBUG_INCL	= nbdebug.h
 NBDEBUG_SRC	= nbdebug.c
 !endif
 NETBEANS_LIB	= WSock32.lib
+!endif
+
+# DirectWrite(DirectX)
+!if "$(DIRECTX)" == "yes"
+DIRECTX_DEFS	= -DFEAT_DIRECTX -DDYNAMIC_DIRECTX
+DIRECTX_INCL	= gui_dwrite.h
+DIRECTX_OBJ	= $(OUTDIR)\gui_dwrite.obj
 !endif
 
 !ifndef XPM
@@ -534,6 +550,8 @@ OBJ = \
 	$(OUTDIR)\blowfish.obj \
 	$(OUTDIR)\buffer.obj \
 	$(OUTDIR)\charset.obj \
+	$(OUTDIR)\crypt.obj \
+	$(OUTDIR)\crypt_zip.obj \
 	$(OUTDIR)\diff.obj \
 	$(OUTDIR)\digraph.obj \
 	$(OUTDIR)\edit.obj \
@@ -640,6 +658,16 @@ GUI_LIB = \
 	/machine:$(CPU) /nodefaultlib
 !else
 SUBSYSTEM = console
+!endif
+
+!if "$(SUBSYSTEM_VER)" != ""
+SUBSYSTEM = $(SUBSYSTEM),$(SUBSYSTEM_VER)
+!endif
+
+!if "$(GUI)" == "yes" && "$(DIRECTX)" == "yes"
+CFLAGS = $(CFLAGS) $(DIRECTX_DEFS)
+GUI_INCL = $(GUI_INCL) $(DIRECTX_INCL)
+GUI_OBJ = $(GUI_OBJ) $(DIRECTX_OBJ)
 !endif
 
 # iconv.dll library (dynamically loaded)
@@ -1073,6 +1101,10 @@ $(OUTDIR)/buffer.obj:	$(OUTDIR) buffer.c  $(INCL)
 
 $(OUTDIR)/charset.obj:	$(OUTDIR) charset.c  $(INCL)
 
+$(OUTDIR)/crypt.obj:	$(OUTDIR) crypt.c  $(INCL)
+
+$(OUTDIR)/crypt_zip.obj: $(OUTDIR) crypt_zip.c  $(INCL)
+
 $(OUTDIR)/diff.obj:	$(OUTDIR) diff.c  $(INCL)
 
 $(OUTDIR)/digraph.obj:	$(OUTDIR) digraph.c  $(INCL)
@@ -1106,6 +1138,8 @@ $(OUTDIR)/gui.obj:	$(OUTDIR) gui.c  $(INCL) $(GUI_INCL)
 $(OUTDIR)/gui_beval.obj:	$(OUTDIR) gui_beval.c $(INCL) $(GUI_INCL)
 
 $(OUTDIR)/gui_w32.obj:	$(OUTDIR) gui_w32.c gui_w48.c $(INCL) $(GUI_INCL)
+
+$(OUTDIR)/gui_dwrite.obj:	$(OUTDIR) gui_dwrite.cpp $(INCL) $(GUI_INCL)
 
 $(OUTDIR)/if_cscope.obj: $(OUTDIR) if_cscope.c  $(INCL)
 
@@ -1257,6 +1291,8 @@ proto.h: \
 	proto/blowfish.pro \
 	proto/buffer.pro \
 	proto/charset.pro \
+	proto/crypt.pro \
+	proto/crypt_zip.pro \
 	proto/diff.pro \
 	proto/digraph.pro \
 	proto/edit.pro \

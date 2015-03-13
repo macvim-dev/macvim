@@ -33,21 +33,35 @@ SCRIPTS = test1.out test2.out test3.out test4.out test5.out test6.out \
 		test94.out test95.out test96.out test97.out test98.out \
 		test99.out test100.out test101.out test102.out test103.out \
 		test104.out test105.out test106.out test107.out \
+		test_argument_0count.out \
+		test_argument_count.out \
 		test_autoformat_join.out \
 		test_breakindent.out \
+		test_changelist.out \
+		test_close_count.out \
+		test_command_count.out \
+		test_eval.out \
+		test_insertcount.out \
 		test_listlbr.out \
 		test_listlbr_utf8.out \
+		test_mapping.out \
+		test_nested_function.out \
+		test_options.out \
 		test_qf_title.out \
-		test_eval.out \
-		test_options.out
+		test_signs.out \
+		test_utf8.out
 
 SCRIPTS_GUI = test16.out
+
+SCRIPTS_BENCH = bench_re_freeze.out
 
 .SUFFIXES: .in .out
 
 nongui:	nolog $(SCRIPTS) report
 
 gui:	nolog $(SCRIPTS) $(SCRIPTS_GUI) report
+
+benchmark: $(SCRIPTS_BENCH)
 
 report:
 	@echo
@@ -60,7 +74,7 @@ report:
 $(SCRIPTS) $(SCRIPTS_GUI): $(VIMPROG)
 
 RM_ON_RUN = test.out X* viminfo
-RM_ON_START = tiny.vim small.vim mbyte.vim mzscheme.vim lua.vim test.ok
+RM_ON_START = tiny.vim small.vim mbyte.vim mzscheme.vim lua.vim test.ok benchmark.out
 RUN_VIM = VIMRUNTIME=$(SCRIPTSOURCE); export VIMRUNTIME; $(VALGRIND) $(VIMPROG) -u unix.vim -U NONE --noplugin -s dotest.in
 
 clean:
@@ -114,6 +128,15 @@ test1.out: test1.in
 test49.out: test49.vim
 
 test60.out: test60.vim
+
+bench_re_freeze.out: bench_re_freeze.vim
+	-rm -rf benchmark.out $(RM_ON_RUN)
+	# Sleep a moment to avoid that the xterm title is messed up.
+	# 200 msec is sufficient, but only modern sleep supports a fraction of
+	# a second, fall back to a second if it fails.
+	@-/bin/sh -c "sleep .2 > /dev/null 2>&1 || sleep 1"
+	-$(RUN_VIM) $*.in
+	@/bin/sh -c "if test -f benchmark.out; then cat benchmark.out; fi"
 
 nolog:
 	-rm -f test.log

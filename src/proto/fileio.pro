@@ -4,8 +4,6 @@ int readfile __ARGS((char_u *fname, char_u *sfname, linenr_T from, linenr_T line
 int prep_exarg __ARGS((exarg_T *eap, buf_T *buf));
 void set_file_options __ARGS((int set_options, exarg_T *eap));
 void set_forced_fenc __ARGS((exarg_T *eap));
-int prepare_crypt_read __ARGS((FILE *fp));
-char_u *prepare_crypt_write __ARGS((buf_T *buf, int *lenp));
 int check_file_readonly __ARGS((char_u *fname, int perm));
 int buf_write __ARGS((buf_T *buf, char_u *fname, char_u *sfname, linenr_T start, linenr_T end, exarg_T *eap, int append, int forceit, int reset_changed, int filtering));
 void msg_add_fname __ARGS((buf_T *buf, char_u *fname));
@@ -49,6 +47,8 @@ int has_cursormovedI __ARGS((void));
 int has_textchanged __ARGS((void));
 int has_textchangedI __ARGS((void));
 int has_insertcharpre __ARGS((void));
+int has_cmdundefined __ARGS((void));
+int has_funcundefined __ARGS((void));
 void block_autocmds __ARGS((void));
 void unblock_autocmds __ARGS((void));
 int is_autocmd_blocked __ARGS((void));
@@ -59,7 +59,6 @@ char_u *set_context_in_autocmd __ARGS((expand_T *xp, char_u *arg, int doautocmd)
 char_u *get_event_name __ARGS((expand_T *xp, int idx));
 int autocmd_supported __ARGS((char_u *name));
 int au_exists __ARGS((char_u *arg));
-int match_file_pat __ARGS((char_u *pattern, regprog_T *prog, char_u *fname, char_u *sfname, char_u *tail, int allow_dirs));
 int match_file_list __ARGS((char_u *list, char_u *sfname, char_u *ffname));
 char_u *file_pat_to_reg_pat __ARGS((char_u *pat, char_u *pat_end, char *allow_dirs, int no_bslash));
 long read_eintr __ARGS((int fd, void *buf, size_t bufsize));

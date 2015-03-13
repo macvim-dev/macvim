@@ -1,0 +1,48 @@
+Test for mappings and abbreviations
+
+STARTTEST
+:so small.vim
+:so mbyte.vim
+:set encoding=utf-8
+: " abbreviations with р (0x80) should work
+:inoreab чкпр   vim
+GAчкпр 
+
+:" mapping of ctrl-c in Insert mode
+:set cpo-=< cpo-=k
+:inoremap <c-c> <ctrl-c>
+:cnoremap <c-c> dummy
+:cunmap <c-c>
+GA
+TEST2: CTRL-C |A|
+
+:unmap <c-c>
+:unmap! <c-c>
+:"
+:" mapping of ctrl-c in Visual mode
+:vnoremap <c-c> :<C-u>$put ='vmap works'
+GV
+:vunmap <c-c>
+:"
+:" langmap should not get remapped in insert mode
+:inoremap { FAIL_ilangmap
+:set langmap=+{ langnoremap
+o+
+: " expr mapping with langmap
+:inoremap <expr> { "FAIL_iexplangmap"
+o+
+:" issue #212 (feedkeys insert mapping at current position)
+:nnoremap . :call feedkeys(".", "in")<cr>
+:/^a b
+0qqdw.ifooqj0@q:unmap .
+
+
+:/^test/,$w! test.out
+:qa!
+ENDTEST
+
+test starts here:
+
+a b c d
+a b c d
+

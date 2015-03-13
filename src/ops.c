@@ -609,6 +609,26 @@ block_insert(oap, s, b_insert, bdp)
 	    }
 	}
 
+#ifdef FEAT_MBYTE
+	if (has_mbyte && spaces > 0)
+	{
+	    int off;
+
+	    /* Avoid starting halfway a multi-byte character. */
+	    if (b_insert)
+	    {
+		off = (*mb_head_off)(oldp, oldp + offset + spaces);
+	    }
+	    else
+	    {
+		off = (*mb_off_next)(oldp, oldp + offset);
+		offset += off;
+	    }
+	    spaces -= off;
+	    count -= off;
+	}
+#endif
+
 	newp = alloc_check((unsigned)(STRLEN(oldp)) + s_len + count + 1);
 	if (newp == NULL)
 	    continue;
@@ -836,11 +856,12 @@ valid_yank_reg(regname, writing)
     if (       (regname > 0 && ASCII_ISALNUM(regname))
 	    || (!writing && vim_strchr((char_u *)
 #ifdef FEAT_EVAL
-				    "/.%#:="
+				    "/.%:="
 #else
-				    "/.%#:"
+				    "/.%:"
 #endif
 					, regname) != NULL)
+	    || regname == '#'
 	    || regname == '"'
 	    || regname == '-'
 	    || regname == '_'
@@ -1597,9 +1618,15 @@ adjust_clip_reg(rp)
 {
     /* If no reg. specified, and "unnamed" or "unnamedplus" is in 'clipboard',
      * use '*' or '+' reg, respectively. "unnamedplus" prevails. */
-    if (*rp == 0 && clip_unnamed != 0)
-	*rp = ((clip_unnamed & CLIP_UNNAMED_PLUS) && clip_plus.available)
+    if (*rp == 0 && (clip_unnamed != 0 || clip_unnamed_saved != 0))
+    {
+	if (clip_unnamed != 0)
+	    *rp = ((clip_unnamed & CLIP_UNNAMED_PLUS) && clip_plus.available)
 								  ? '+' : '*';
+	else
+	    *rp = ((clip_unnamed_saved & CLIP_UNNAMED_PLUS) && clip_plus.available)
+								  ? '+' : '*';
+    }
     if (!clip_star.available && *rp == '*')
 	*rp = 0;
     if (!clip_plus.available && *rp == '+')
@@ -2517,6 +2544,7 @@ op_insert(oap, count1)
     char_u		*firstline, *ins_text;
     struct block_def	bd;
     int			i;
+    pos_T		t1;
 
     /* edit() changes this - record it for OP_APPEND */
     bd.is_MAX = (curwin->w_curswant == MAXCOL);
@@ -2590,7 +2618,15 @@ op_insert(oap, count1)
 	}
     }
 
+    t1 = oap->start;
     edit(NUL, FALSE, (linenr_T)count1);
+
+    /* When a tab was inserted, and the characters in front of the tab
+     * have been converted to a tab as well, the column of the cursor
+     * might have actually been reduced, so need to adjust here. */
+    if (t1.lnum == curbuf->b_op_start_orig.lnum
+	    && lt(curbuf->b_op_start_orig, t1))
+	oap->start = curbuf->b_op_start_orig;
 
     /* If user has moved off this line, we don't know what to do, so do
      * nothing.
@@ -2617,10 +2653,11 @@ op_insert(oap, count1)
 #endif
 			)
 	    {
+		int t = getviscol2(curbuf->b_op_start_orig.col,
+					      curbuf->b_op_start_orig.coladd);
 		oap->start.col = curbuf->b_op_start_orig.col;
-		pre_textlen -= getviscol2(oap->start.col, oap->start.coladd)
-							    - oap->start_vcol;
-		oap->start_vcol = getviscol2(oap->start.col, oap->start.coladd);
+		pre_textlen -= t - oap->start_vcol;
+		oap->start_vcol = t;
 	    }
 	    else if (oap->op_type == OP_APPEND
 		      && oap->end.col
@@ -2633,12 +2670,13 @@ op_insert(oap, count1)
 #endif
 			)
 	    {
+		int t = getviscol2(curbuf->b_op_start_orig.col,
+					      curbuf->b_op_start_orig.coladd);
 		oap->start.col = curbuf->b_op_start_orig.col;
 		/* reset pre_textlen to the value of OP_INSERT */
 		pre_textlen += bd.textlen;
-		pre_textlen -= getviscol2(oap->start.col, oap->start.coladd)
-							    - oap->start_vcol;
-		oap->start_vcol = getviscol2(oap->start.col, oap->start.coladd);
+		pre_textlen -= t - oap->start_vcol;
+		oap->start_vcol = t;
 		oap->op_type = OP_INSERT;
 	    }
 	}
@@ -3203,7 +3241,7 @@ op_yank(oap, deleting, mess)
     if (clip_star.available
 	    && (curr == &(y_regs[STAR_REGISTER])
 		|| (!deleting && oap->regname == 0
-					   && (clip_unnamed & CLIP_UNNAMED))))
+		   && ((clip_unnamed | clip_unnamed_saved) & CLIP_UNNAMED))))
     {
 	if (curr != &(y_regs[STAR_REGISTER]))
 	    /* Copy the text from register 0 to the clipboard register. */
@@ -3224,7 +3262,8 @@ op_yank(oap, deleting, mess)
     if (clip_plus.available
 	    && (curr == &(y_regs[PLUS_REGISTER])
 		|| (!deleting && oap->regname == 0
-				      && (clip_unnamed & CLIP_UNNAMED_PLUS))))
+		  && ((clip_unnamed | clip_unnamed_saved) &
+		      CLIP_UNNAMED_PLUS))))
     {
 	if (curr != &(y_regs[PLUS_REGISTER]))
 	    /* Copy the text from register 0 to the clipboard register. */
@@ -3803,6 +3842,9 @@ do_put(regname, dir, count, flags)
 		if (VIsual_active)
 		    lnum++;
 	    } while (VIsual_active && lnum <= curbuf->b_visual.vi_end.lnum);
+
+	    if (VIsual_active) /* reset lnum to the last visual line */
+		lnum--;
 
 	    curbuf->b_op_end = curwin->w_cursor;
 	    /* For "CTRL-O p" in Insert mode, put cursor after last char */
@@ -5278,10 +5320,7 @@ block_prep(oap, bdp, lnum, is_del)
 	    {
 		/* Count a tab for what it's worth (if list mode not on) */
 		prev_pend = pend;
-		/* TODO: is passing prev_pend for start of the line OK?
-		 * perhaps it should be "line". */
-		incr = lbr_chartabsize_adv(prev_pend, &pend,
-						      (colnr_T)bdp->end_vcol);
+		incr = lbr_chartabsize_adv(line, &pend, (colnr_T)bdp->end_vcol);
 		bdp->end_vcol += incr;
 	    }
 	    if (bdp->end_vcol <= oap->end_vcol
@@ -5633,6 +5672,8 @@ read_viminfo_register(virp, force)
     int		set_prev = FALSE;
     char_u	*str;
     char_u	**array = NULL;
+    int		new_type = MCHAR; /* init to shut up compiler */
+    colnr_T	new_width = 0; /* init to shut up compiler */
 
     /* We only get here (hopefully) if line[0] == '"' */
     str = virp->vir_line + 1;
@@ -5665,21 +5706,25 @@ read_viminfo_register(virp, force)
     limit = 100;	/* Optimized for registers containing <= 100 lines */
     if (do_it)
     {
+	/*
+	 * Build the new register in array[].
+	 * y_array is kept as-is until done.
+	 * The "do_it" flag is reset when something is wrong, in which case
+	 * array[] needs to be freed.
+	 */
 	if (set_prev)
 	    y_previous = y_current;
-	vim_free(y_current->y_array);
-	array = y_current->y_array =
-		       (char_u **)alloc((unsigned)(limit * sizeof(char_u *)));
+	array = (char_u **)alloc((unsigned)(limit * sizeof(char_u *)));
 	str = skipwhite(skiptowhite(str));
 	if (STRNCMP(str, "CHAR", 4) == 0)
-	    y_current->y_type = MCHAR;
+	    new_type = MCHAR;
 	else if (STRNCMP(str, "BLOCK", 5) == 0)
-	    y_current->y_type = MBLOCK;
+	    new_type = MBLOCK;
 	else
-	    y_current->y_type = MLINE;
+	    new_type = MLINE;
 	/* get the block width; if it's missing we get a zero, which is OK */
 	str = skipwhite(skiptowhite(str));
-	y_current->y_width = getdigits(&str);
+	new_width = getdigits(&str);
     }
 
     while (!(eof = viminfo_readline(virp))
@@ -5687,40 +5732,67 @@ read_viminfo_register(virp, force)
     {
 	if (do_it)
 	{
-	    if (size >= limit)
+	    if (size == limit)
 	    {
-		y_current->y_array = (char_u **)
+		char_u **new_array = (char_u **)
 			      alloc((unsigned)(limit * 2 * sizeof(char_u *)));
+
+		if (new_array == NULL)
+		{
+		    do_it = FALSE;
+		    break;
+		}
 		for (i = 0; i < limit; i++)
-		    y_current->y_array[i] = array[i];
+		    new_array[i] = array[i];
 		vim_free(array);
+		array = new_array;
 		limit *= 2;
-		array = y_current->y_array;
 	    }
 	    str = viminfo_readstring(virp, 1, TRUE);
 	    if (str != NULL)
 		array[size++] = str;
 	    else
+		/* error, don't store the result */
 		do_it = FALSE;
 	}
     }
+
     if (do_it)
     {
+	/* free y_array[] */
+	for (i = 0; i < y_current->y_size; i++)
+	    vim_free(y_current->y_array[i]);
+	vim_free(y_current->y_array);
+
+	y_current->y_type = new_type;
+	y_current->y_width = new_width;
+	y_current->y_size = size;
 	if (size == 0)
 	{
-	    vim_free(array);
 	    y_current->y_array = NULL;
 	}
-	else if (size < limit)
+	else
 	{
+	    /* Move the lines from array[] to y_array[]. */
 	    y_current->y_array =
 			(char_u **)alloc((unsigned)(size * sizeof(char_u *)));
 	    for (i = 0; i < size; i++)
-		y_current->y_array[i] = array[i];
-	    vim_free(array);
+	    {
+		if (y_current->y_array == NULL)
+		    vim_free(array[i]);
+		else
+		    y_current->y_array[i] = array[i];
+	    }
 	}
-	y_current->y_size = size;
     }
+    else
+    {
+	/* Free array[] if it was filled. */
+	for (i = 0; i < size; i++)
+	    vim_free(array[i]);
+    }
+    vim_free(array);
+
     return eof;
 }
 
@@ -6451,6 +6523,27 @@ write_reg_contents_ex(name, str, maxlen, must_append, yank_type, block_len)
     if (name == '/')
     {
 	set_last_search_pat(str, RE_SEARCH, TRUE, TRUE);
+	return;
+    }
+
+    if (name == '#')
+    {
+	buf_T	*buf;
+
+	if (VIM_ISDIGIT(*str))
+	{
+	    int	num = atoi((char *)str);
+
+	    buf = buflist_findnr(num);
+	    if (buf == NULL)
+		EMSGN(_(e_nobufnr), (long)num);
+	}
+	else
+	    buf = buflist_findnr(buflist_findpat(str, str + STRLEN(str),
+							 TRUE, FALSE, FALSE));
+	if (buf == NULL)
+	    return;
+	curwin->w_alt_fnum = buf->b_fnum;
 	return;
     }
 

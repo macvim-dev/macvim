@@ -358,6 +358,8 @@ static void	regdump __ARGS((char_u *, bt_regprog_T *));
 static char_u	*regprop __ARGS((char_u *));
 #endif
 
+static int re_mult_next __ARGS((char *what));
+
 static char_u e_missingbracket[] = N_("E769: Missing ] after %s[");
 static char_u e_unmatchedpp[] = N_("E53: Unmatched %s%%(");
 static char_u e_unmatchedp[] = N_("E54: Unmatched %s(");
@@ -2166,9 +2168,13 @@ regatom(flagp)
 #endif
 
 		case 's': ret = regnode(MOPEN + 0);
+			  if (re_mult_next("\\zs") == FAIL)
+			      return NULL;
 			  break;
 
 		case 'e': ret = regnode(MCLOSE + 0);
+			  if (re_mult_next("\\ze") == FAIL)
+			      return NULL;
 			  break;
 
 		default:  EMSG_RET_NULL(_("E68: Invalid character after \\z"));
@@ -3733,7 +3739,7 @@ static int  bt_regexec_nl __ARGS((regmatch_T *rmp, char_u *line, colnr_T col, in
  * Uses curbuf for line count and 'iskeyword'.
  * if "line_lbr" is TRUE  consider a "\n" in "line" to be a line break.
  *
- * Return TRUE if there is a match, FALSE if not.
+ * Returns 0 for failure, number of lines contained in the match otherwise.
  */
     static int
 bt_regexec_nl(rmp, line, col, line_lbr)
@@ -3753,7 +3759,8 @@ bt_regexec_nl(rmp, line, col, line_lbr)
     ireg_icombine = FALSE;
 #endif
     ireg_maxcol = 0;
-    return (bt_regexec_both(line, col, NULL) != 0);
+
+    return bt_regexec_both(line, col, NULL);
 }
 
 static long bt_regexec_multi __ARGS((regmmatch_T *rmp, win_T *win, buf_T *buf, linenr_T lnum, colnr_T col, proftime_T *tm));
@@ -3775,8 +3782,6 @@ bt_regexec_multi(rmp, win, buf, lnum, col, tm)
     colnr_T	col;		/* column to start looking for match */
     proftime_T	*tm;		/* timeout limit or NULL */
 {
-    long	r;
-
     reg_match = NULL;
     reg_mmatch = rmp;
     reg_buf = buf;
@@ -3790,14 +3795,13 @@ bt_regexec_multi(rmp, win, buf, lnum, col, tm)
 #endif
     ireg_maxcol = rmp->rmm_maxcol;
 
-    r = bt_regexec_both(NULL, col, tm);
-
-    return r;
+    return bt_regexec_both(NULL, col, tm);
 }
 
 /*
  * Match a regexp against a string ("line" points to the string) or multiple
  * lines ("line" is NULL, use reg_getline()).
+ * Returns 0 for failure, number of lines contained in the match otherwise.
  */
     static long
 bt_regexec_both(line, col, tm)
@@ -3805,9 +3809,9 @@ bt_regexec_both(line, col, tm)
     colnr_T	col;		/* column to start looking for match */
     proftime_T	*tm UNUSED;	/* timeout limit or NULL */
 {
-    bt_regprog_T	*prog;
-    char_u	*s;
-    long	retval = 0L;
+    bt_regprog_T    *prog;
+    char_u	    *s;
+    long	    retval = 0L;
 
     /* Create "regstack" and "backpos" if they are not allocated yet.
      * We allocate *_INITIAL amount of bytes first and then set the grow size
@@ -7005,6 +7009,18 @@ regprop(op)
 }
 #endif	    /* DEBUG */
 
+/*
+ * Used in a place where no * or \+ can follow.
+ */
+    static int
+re_mult_next(what)
+    char *what;
+{
+    if (re_multi_type(peekchr()) == MULTI_MULT)
+	EMSG2_RET_FAIL(_("E888: (NFA regexp) cannot repeat %s"), what);
+    return OK;
+}
+
 #ifdef FEAT_MBYTE
 static void mb_decompose __ARGS((int c, int *c1, int *c2, int *c3));
 
@@ -7993,12 +8009,9 @@ static regengine_T bt_regengine =
     bt_regcomp,
     bt_regfree,
     bt_regexec_nl,
-    bt_regexec_multi
-#ifdef DEBUG
-    ,(char_u *)""
-#endif
+    bt_regexec_multi,
+    (char_u *)""
 };
-
 
 #include "regexp_nfa.c"
 
@@ -8007,18 +8020,14 @@ static regengine_T nfa_regengine =
     nfa_regcomp,
     nfa_regfree,
     nfa_regexec_nl,
-    nfa_regexec_multi
-#ifdef DEBUG
-    ,(char_u *)""
-#endif
+    nfa_regexec_multi,
+    (char_u *)""
 };
 
 /* Which regexp engine to use? Needed for vim_regcomp().
  * Must match with 'regexpengine'. */
 static int regexp_engine = 0;
-#define	    AUTOMATIC_ENGINE	0
-#define	    BACKTRACKING_ENGINE	1
-#define	    NFA_ENGINE		2
+
 #ifdef DEBUG
 static char_u regname[][30] = {
 		    "AUTOMATIC Regexp Engine",
@@ -8065,20 +8074,20 @@ vim_regcomp(expr_arg, re_flags)
 	    regexp_engine = AUTOMATIC_ENGINE;
 	}
     }
-#ifdef DEBUG
     bt_regengine.expr = expr;
     nfa_regengine.expr = expr;
-#endif
 
     /*
      * First try the NFA engine, unless backtracking was requested.
      */
     if (regexp_engine != BACKTRACKING_ENGINE)
-        prog = nfa_regengine.regcomp(expr, re_flags);
+        prog = nfa_regengine.regcomp(expr,
+		re_flags + (regexp_engine == AUTOMATIC_ENGINE ? RE_AUTO : 0));
     else
 	prog = bt_regengine.regcomp(expr, re_flags);
 
-    if (prog == NULL)	    /* error compiling regexp with initial engine */
+    /* Check for error compiling regexp with initial engine. */
+    if (prog == NULL)
     {
 #ifdef BT_REGEXP_DEBUG_LOG
 	if (regexp_engine != BACKTRACKING_ENGINE)   /* debugging log for NFA */
@@ -8096,11 +8105,23 @@ vim_regcomp(expr_arg, re_flags)
 	}
 #endif
 	/*
-	 * If the NFA engine failed, the backtracking engine won't work either.
-	 *
-	if (regexp_engine == AUTOMATIC_ENGINE)
-	    prog = bt_regengine.regcomp(expr, re_flags);
+	 * If the NFA engine failed, try the backtracking engine.
+	 * The NFA engine also fails for patterns that it can't handle well
+	 * but are still valid patterns, thus a retry should work.
 	 */
+	if (regexp_engine == AUTOMATIC_ENGINE)
+	{
+	    regexp_engine = BACKTRACKING_ENGINE;
+	    prog = bt_regengine.regcomp(expr, re_flags);
+	}
+    }
+
+    if (prog != NULL)
+    {
+	/* Store the info needed to call regcomp() again when the engine turns
+	 * out to be very slow when executing it. */
+	prog->re_engine = regexp_engine;
+	prog->re_flags  = re_flags;
     }
 
     return prog;
@@ -8117,40 +8138,124 @@ vim_regfree(prog)
 	prog->engine->regfree(prog);
 }
 
+#ifdef FEAT_EVAL
+static void report_re_switch __ARGS((char_u *pat));
+
+    static void
+report_re_switch(pat)
+    char_u *pat;
+{
+    if (p_verbose > 0)
+    {
+	verbose_enter();
+	MSG_PUTS(_("Switching to backtracking RE engine for pattern: "));
+	MSG_PUTS(pat);
+	verbose_leave();
+    }
+}
+#endif
+
+static int vim_regexec_both __ARGS((regmatch_T *rmp, char_u *line, colnr_T col, int nl));
+
 /*
  * Match a regexp against a string.
  * "rmp->regprog" is a compiled regexp as returned by vim_regcomp().
+ * Note: "rmp->regprog" may be freed and changed.
  * Uses curbuf for line count and 'iskeyword'.
+ * When "nl" is TRUE consider a "\n" in "line" to be a line break.
  *
+ * Return TRUE if there is a match, FALSE if not.
+ */
+    static int
+vim_regexec_both(rmp, line, col, nl)
+    regmatch_T	*rmp;
+    char_u	*line;  /* string to match against */
+    colnr_T	col;    /* column to start looking for match */
+    int		nl;
+{
+    int result = rmp->regprog->engine->regexec_nl(rmp, line, col, nl);
+
+    /* NFA engine aborted because it's very slow. */
+    if (rmp->regprog->re_engine == AUTOMATIC_ENGINE
+					       && result == NFA_TOO_EXPENSIVE)
+    {
+	int    save_p_re = p_re;
+	int    re_flags = rmp->regprog->re_flags;
+	char_u *pat = vim_strsave(((nfa_regprog_T *)rmp->regprog)->pattern);
+
+	p_re = BACKTRACKING_ENGINE;
+	vim_regfree(rmp->regprog);
+	if (pat != NULL)
+	{
+#ifdef FEAT_EVAL
+	    report_re_switch(pat);
+#endif
+	    rmp->regprog = vim_regcomp(pat, re_flags);
+	    if (rmp->regprog != NULL)
+		result = rmp->regprog->engine->regexec_nl(rmp, line, col, nl);
+	    vim_free(pat);
+	}
+
+	p_re = save_p_re;
+    }
+    return result > 0;
+}
+
+/*
+ * Note: "*prog" may be freed and changed.
+ * Return TRUE if there is a match, FALSE if not.
+ */
+    int
+vim_regexec_prog(prog, ignore_case, line, col)
+    regprog_T	**prog;
+    int		ignore_case;
+    char_u	*line;
+    colnr_T	col;
+{
+    int r;
+    regmatch_T regmatch;
+
+    regmatch.regprog = *prog;
+    regmatch.rm_ic = ignore_case;
+    r = vim_regexec_both(&regmatch, line, col, FALSE);
+    *prog = regmatch.regprog;
+    return r;
+}
+
+/*
+ * Note: "rmp->regprog" may be freed and changed.
  * Return TRUE if there is a match, FALSE if not.
  */
     int
 vim_regexec(rmp, line, col)
-    regmatch_T *rmp;
-    char_u      *line;  /* string to match against */
-    colnr_T     col;    /* column to start looking for match */
+    regmatch_T	*rmp;
+    char_u	*line;
+    colnr_T	col;
 {
-    return rmp->regprog->engine->regexec_nl(rmp, line, col, FALSE);
+    return vim_regexec_both(rmp, line, col, FALSE);
 }
 
 #if defined(FEAT_MODIFY_FNAME) || defined(FEAT_EVAL) \
 	|| defined(FIND_REPLACE_DIALOG) || defined(PROTO)
 /*
  * Like vim_regexec(), but consider a "\n" in "line" to be a line break.
+ * Note: "rmp->regprog" may be freed and changed.
+ * Return TRUE if there is a match, FALSE if not.
  */
     int
 vim_regexec_nl(rmp, line, col)
-    regmatch_T *rmp;
-    char_u *line;
-    colnr_T col;
+    regmatch_T	*rmp;
+    char_u	*line;
+    colnr_T	col;
 {
-    return rmp->regprog->engine->regexec_nl(rmp, line, col, TRUE);
+    return vim_regexec_both(rmp, line, col, TRUE);
 }
 #endif
 
 /*
  * Match a regexp against multiple lines.
  * "rmp->regprog" is a compiled regexp as returned by vim_regcomp().
+ * Note: "rmp->regprog" may be freed and changed.
  * Uses curbuf for line count and 'iskeyword'.
  *
  * Return zero if there is no match.  Return number of lines contained in the
@@ -8165,5 +8270,32 @@ vim_regexec_multi(rmp, win, buf, lnum, col, tm)
     colnr_T     col;            /* column to start looking for match */
     proftime_T	*tm;		/* timeout limit or NULL */
 {
-    return rmp->regprog->engine->regexec_multi(rmp, win, buf, lnum, col, tm);
+    int result = rmp->regprog->engine->regexec_multi(
+						rmp, win, buf, lnum, col, tm);
+
+    /* NFA engine aborted because it's very slow. */
+    if (rmp->regprog->re_engine == AUTOMATIC_ENGINE
+					       && result == NFA_TOO_EXPENSIVE)
+    {
+	int    save_p_re = p_re;
+	int    re_flags = rmp->regprog->re_flags;
+	char_u *pat = vim_strsave(((nfa_regprog_T *)rmp->regprog)->pattern);
+
+	p_re = BACKTRACKING_ENGINE;
+	vim_regfree(rmp->regprog);
+	if (pat != NULL)
+	{
+#ifdef FEAT_EVAL
+	    report_re_switch(pat);
+#endif
+	    rmp->regprog = vim_regcomp(pat, re_flags);
+	    if (rmp->regprog != NULL)
+		result = rmp->regprog->engine->regexec_multi(
+						rmp, win, buf, lnum, col, tm);
+	    vim_free(pat);
+	}
+	p_re = save_p_re;
+    }
+
+    return result <= 0 ? 0 : result;
 }
