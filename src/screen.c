@@ -10747,7 +10747,7 @@ number_width(wp)
 	/* cursor line shows absolute line number */
 	lnum = wp->w_buffer->b_ml.ml_line_count;
 
-    if (lnum == wp->w_nrwidth_line_count)
+    if (lnum == wp->w_nrwidth_line_count && wp->w_nuw_cached == wp->w_p_nuw)
 	return wp->w_nrwidth_width;
     wp->w_nrwidth_line_count = lnum;
 
@@ -10763,6 +10763,7 @@ number_width(wp)
 	n = wp->w_p_nuw - 1;
 
     wp->w_nrwidth_width = n;
+    wp->w_nuw_cached = wp->w_p_nuw;
     return n;
 }
 #endif
