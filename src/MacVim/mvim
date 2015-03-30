@@ -17,7 +17,7 @@ if [ -z "$VIM_APP_DIR" ]
 then
 	myDir="`dirname "$0"`"
 	myAppDir="$myDir/../Applications"
-    suspects=(
+	suspects=(
 		/Applications
 		~/Applications
 		/Applications/vim
