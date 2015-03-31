@@ -5860,7 +5860,7 @@ mch_expand_wildcards(num_pat, pat, num_file, file, flags)
     /*
      * get a name for the temp file
      */
-    if ((tempname = vim_tempname('o')) == NULL)
+    if ((tempname = vim_tempname('o', FALSE)) == NULL)
     {
 	EMSG(_(e_notmp));
 	return FAIL;
