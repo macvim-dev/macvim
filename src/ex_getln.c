@@ -2253,6 +2253,9 @@ getexmodeline(promptc, cookie, indent)
     got_int = FALSE;
     while (!got_int)
     {
+	long    sw;
+	char_u *s;
+
 	if (ga_grow(&line_ga, 40) == FAIL)
 	    break;
 
@@ -2304,13 +2307,12 @@ getexmodeline(promptc, cookie, indent)
 		msg_col = startcol;
 		msg_clr_eos();
 		line_ga.ga_len = 0;
-		continue;
+		goto redraw;
 	    }
 
 	    if (c1 == Ctrl_T)
 	    {
-		long	    sw = get_sw_value(curbuf);
-
+		sw = get_sw_value(curbuf);
 		p = (char_u *)line_ga.ga_data;
 		p[line_ga.ga_len] = NUL;
 		indent = get_indent_str(p, 8, FALSE);
@@ -2318,9 +2320,9 @@ getexmodeline(promptc, cookie, indent)
 add_indent:
 		while (get_indent_str(p, 8, FALSE) < indent)
 		{
-		    char_u *s = skipwhite(p);
-
-		    ga_grow(&line_ga, 1);
+		    ga_grow(&line_ga, 2);  /* one more for the NUL */
+		    p = (char_u *)line_ga.ga_data;
+		    s = skipwhite(p);
 		    mch_memmove(s + 1, s, line_ga.ga_len - (s - p) + 1);
 		    *s = ' ';
 		    ++line_ga.ga_len;
@@ -2369,13 +2371,15 @@ redraw:
 		{
 		    p[line_ga.ga_len] = NUL;
 		    indent = get_indent_str(p, 8, FALSE);
-		    --indent;
-		    indent -= indent % get_sw_value(curbuf);
+		    if (indent > 0)
+		    {
+			--indent;
+			indent -= indent % get_sw_value(curbuf);
+		    }
 		}
 		while (get_indent_str(p, 8, FALSE) > indent)
 		{
-		    char_u *s = skipwhite(p);
-
+		    s = skipwhite(p);
 		    mch_memmove(s - 1, s, line_ga.ga_len - (s - p) + 1);
 		    --line_ga.ga_len;
 		}
