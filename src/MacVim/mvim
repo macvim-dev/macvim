@@ -17,7 +17,19 @@ if [ -z "$VIM_APP_DIR" ]
 then
 	myDir="`dirname "$0"`"
 	myAppDir="$myDir/../Applications"
-	for i in ~/Applications ~/Applications/vim $myDir $myDir/vim $myAppDir $myAppDir/vim /Applications /Applications/vim /Applications/Utilities /Applications/Utilities/vim; do
+	suspects=(
+		/Applications
+		~/Applications
+		/Applications/vim
+		~/Applications/vim
+		$myDir
+		$myDir/vim
+		$myAppDir
+		$myAppDir/vim
+		/Applications/Utilities
+		/Applications/Utilities/vim
+	)
+	for i in ${suspects[@]}; do
 		if [ -x "$i/MacVim.app" ]; then
 			VIM_APP_DIR="$i"
 			break
