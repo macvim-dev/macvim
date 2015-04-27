@@ -993,7 +993,7 @@
 
 - (void)windowDidResize:(id)sender
 {
-    if (!setupDone || fullScreenEnabled) return;
+    if (!setupDone || fullScreenEnabled || !windowPresented) return;
 
     // NOTE: Since we have no control over when the window may resize (Cocoa
     // may resize automatically) we simply set the view to fill the entire
