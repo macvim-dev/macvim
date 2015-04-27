@@ -1200,6 +1200,30 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Verilog HDL Source File</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>v</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-generic</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Verilog HDL Header Source File</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>vh</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>MacVim-generic</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
 
 	</array>
 	<key>CFBundleExecutable</key>
@@ -2630,6 +2654,40 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>lua</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Verilog HDL Source File</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.vim.v-file</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>v</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Verilog HDL Header Source File</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.vim.vh-file</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>vh</string>
 				</array>
 			</dict>
 		</dict>
