@@ -150,6 +150,8 @@
     self = [super initWithWindow:win];
     if (!self) return nil;
 
+    resizingDueToMove = NO;
+
     vimController = controller;
     decoratedWindow = [win retain];
 
@@ -345,6 +347,18 @@
     }
 
     return YES;
+}
+
+- (void)moveWindowAcrossScreens:(NSPoint)topLeft
+{
+    // HACK! This method moves a window to a new origin and to a different
+    // screen. This is primarily useful to avoid a scenario where such a move
+    // will trigger a resize, even though the frame didn't actually change size.
+    // This method should not be called unless the new origin is definitely on
+    // a different screen, otherwise the next legitimate resize message will
+    // be skipped.
+    resizingDueToMove = YES;
+    [[self window] setFrameTopLeftPoint:topLeft];
 }
 
 - (void)updateTabsWithData:(NSData *)data
@@ -993,7 +1007,13 @@
 
 - (void)windowDidResize:(id)sender
 {
-    if (!setupDone || fullScreenEnabled || !windowPresented) return;
+    if (resizingDueToMove)
+    {
+        resizingDueToMove = NO;
+        return;
+    }
+
+    if (!setupDone || fullScreenEnabled) return;
 
     // NOTE: Since we have no control over when the window may resize (Cocoa
     // may resize automatically) we simply set the view to fill the entire

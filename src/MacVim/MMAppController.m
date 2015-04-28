@@ -769,6 +769,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         if (!screen)
             screen = [win screen];
 
+        BOOL willSwitchScreens = screen != [win screen];
         if (cascadeFrom) {
             // Do manual cascading instead of using
             // -[MMWindow cascadeTopLeftFromPoint:] since it is rather
@@ -795,7 +796,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             ASLogNotice(@"Window not on screen, don't constrain position");
         }
 
-        [win setFrameTopLeftPoint:topLeft];
+        // setFrameTopLeftPoint will trigger a resize event if the window is
+        // moved across monitors; at this point such a resize would incorrectly
+        // constrain the window to the default vim dimensions, so a specialized
+        // method is used that will avoid that behavior.
+        if (willSwitchScreens)
+            [windowController moveWindowAcrossScreens:topLeft];
+        else
+            [win setFrameTopLeftPoint:topLeft];
     }
 
     if (1 == [vimControllers count]) {

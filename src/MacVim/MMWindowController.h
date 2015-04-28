@@ -45,6 +45,7 @@
     NSPoint             userTopLeft;
     NSPoint             defaultTopLeft;
     NSToolbar           *toolbar;
+    BOOL                resizingDueToMove;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
@@ -55,6 +56,7 @@
 - (void)cleanup;
 - (void)openWindow;
 - (BOOL)presentWindow:(id)unused;
+- (void)moveWindowAcrossScreens:(NSPoint)origin;
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
