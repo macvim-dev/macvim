@@ -1150,6 +1150,8 @@
     // Fade out window, remove title bar and maximize, then fade back in.
     // (There is a small delay before window is maximized but usually this is
     // not noticeable on a relatively modern Mac.)
+
+    // Fade out
     [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
         [context setDuration:0.5*duration];
         [[window animator] setAlphaValue:0];
@@ -1157,13 +1159,21 @@
         [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
         [[vimView tabBarControl] setStyleNamed:@"Unified"];
         [self updateTablineSeparator];
-        [self maximizeWindow:fullScreenOptions];
 
+        // Stay dark for some time to wait for things to sync, then do the full screen operation
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
             [context setDuration:0.5*duration];
-            [[window animator] setAlphaValue:1];
+            [[window animator] setAlphaValue:0];
         } completionHandler:^{
-            // Do nothing
+            [self maximizeWindow:fullScreenOptions];
+            
+            // Fade in
+            [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+                [context setDuration:0.5*duration];
+                [[window animator] setAlphaValue:1];
+            } completionHandler:^{
+                // Do nothing
+            }];
         }];
     }];
 }
