@@ -4338,7 +4338,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 	    if (wp->w_p_list
 		    && (((c == 160
 #ifdef FEAT_MBYTE
-			  || (mb_utf8 && mb_c == 160)
+			  || (mb_utf8 && (mb_c == 160 || mb_c == 0x202f))
 #endif
 			 ) && lcs_nbsp)
 			|| (c == ' ' && lcs_space && ptr - line <= trailcol)))
@@ -4703,7 +4703,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 		    }
 		}
 		else if (c == NUL
-			&& ((wp->w_p_list && lcs_eol > 0)
+			&& (wp->w_p_list
 			    || ((fromcol >= 0 || fromcol_prev >= 0)
 				&& tocol > vcol
 				&& VIsual_mode != Ctrl_V
@@ -4749,7 +4749,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 			    c_extra = NUL;
 			}
 		    }
-		    if (wp->w_p_list)
+		    if (wp->w_p_list && lcs_eol > 0)
 			c = lcs_eol;
 		    else
 			c = ' ';
