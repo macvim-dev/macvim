@@ -1095,7 +1095,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #else
     NSInteger result = [panel runModalForDirectory:dir file:nil types:nil];
 #endif
+
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10)
+    if (NSModalResponseOK == result) {
+#else
     if (NSOKButton == result) {
+#endif
         // NOTE: -[NSOpenPanel filenames] is deprecated on 10.7 so use
         // -[NSOpenPanel URLs] instead.  The downside is that we have to check
         // that each URL is really a path first.
