@@ -888,7 +888,11 @@ static BOOL isUnsafeMessage(int msgid);
                 context:(void *)context
 {
     NSString *path = nil;
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10)
+    if (code == NSModalResponseOK) {
+#else
     if (code == NSOKButton) {
+#endif
         NSURL *url = [panel URL];
         if ([url isFileURL])
             path = [url path];
