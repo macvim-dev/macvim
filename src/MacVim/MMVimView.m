@@ -199,7 +199,11 @@ enum {
             || !([[self window] styleMask] & NSTexturedBackgroundWindowMask))
         return;
 
+#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
     int sw = [NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy];
+#else
+    int sw = [NSScroller scrollerWidth];
+#endif
 
     // add .5 to the pixel locations to put the lines on a pixel boundary.
     // the top and right edges of the rect will be outside of the bounds rect
