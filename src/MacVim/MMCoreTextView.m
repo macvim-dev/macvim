@@ -986,25 +986,30 @@ defaultAdvanceForFont(NSFont *font)
 }
 
    static CTFontRef
-lookupFont(NSMutableArray *fontCache, const unichar *chars,
+lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
            CTFontRef currFontRef)
 {
+    CGGlyph glyphs[count];
+
     // See if font in cache can draw at least one character
     NSUInteger i;
     for (i = 0; i < [fontCache count]; ++i) {
         NSFont *font = [fontCache objectAtIndex:i];
-        CGGlyph glyphs[1];
 
-        if (CTFontGetGlyphsForCharacters((CTFontRef)font, chars, glyphs, 1))
+        if (CTFontGetGlyphsForCharacters((CTFontRef)font, chars, glyphs, count))
             return (CTFontRef)[font retain];
     }
 
     // Ask Core Text for a font (can be *very* slow, which is why we cache
     // fonts in the first place)
-    CFRange r = { 0, 1 };
-    CFStringRef strRef = CFStringCreateWithCharacters(NULL, chars, 1);
+    CFRange r = { 0, count };
+    CFStringRef strRef = CFStringCreateWithCharacters(NULL, chars, count);
     CTFontRef newFontRef = CTFontCreateForString(currFontRef, strRef, r);
     CFRelease(strRef);
+
+    // Verify the font can actually convert all the glyphs.
+    if (!CTFontGetGlyphsForCharacters(newFontRef, chars, glyphs, count))
+        return nil;
 
     if (newFontRef)
         [fontCache addObject:(NSFont *)newFontRef];
@@ -1055,16 +1060,33 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
                 ++p;
             }
 
-            // Figure out which font to draw these chars with.
+            // Try to find a fallback font that can render the entire
+            // invalid range. If that fails, repeatedly halve the attempted
+            // range until a font is found.
             UniCharCount count = c - chars;
-            CTFontRef newFontRef = lookupFont(fontCache, chars, fontRef);
-            if (!newFontRef)
-                return;
+            UniCharCount attemptedCount = count;
+            CTFontRef fallback = nil;
+            while (fallback == nil && attemptedCount > 0) {
+              fallback = lookupFont(fontCache, chars, attemptedCount, fontRef);
+              if (!fallback)
+                attemptedCount /= 2;
+            }
 
-            recurseDraw(chars, glyphs, positions, count, context, newFontRef,
-                        fontCache);
+            if (!fallback) {
+              return;
+            }
 
-            CFRelease(newFontRef);
+            recurseDraw(chars, glyphs, positions, attemptedCount, context,
+                        fallback, fontCache);
+
+            // If only a portion of the invalid range was rendered above,
+            // the remaining range needs to be attempted by subsequent
+            // iterations of the draw loop.
+            c -= count - attemptedCount;
+            g -= count - attemptedCount;
+            p -= count - attemptedCount;
+
+            CFRelease(fallback);
         }
 
         chars = c;
