@@ -10765,7 +10765,11 @@ arg_all()
 		}
 		for ( ; *p != NUL; ++p)
 		{
-		    if (*p == ' ' || *p == '\\')
+		    if (*p == ' '
+#ifndef BACKSLASH_IN_FILENAME
+			    || *p == '\\'
+#endif
+			    )
 		    {
 			/* insert a backslash */
 			if (retval != NULL)
