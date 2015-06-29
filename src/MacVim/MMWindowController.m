@@ -1535,7 +1535,12 @@
     // NOTE: Do not use [NSScreen visibleFrame] when determining the screen
     // size since it compensates for menu and dock.
     int maxRows, maxColumns;
-    NSSize size = [[NSScreen mainScreen] frame].size;
+    NSScreen *screen = [decoratedWindow screen];
+    if (!screen) {
+        ASLogNotice(@"Window not on screen, using main screen");
+        screen = [NSScreen mainScreen];
+    }
+    NSSize size = [screen frame].size;
     [vimView constrainRows:&maxRows columns:&maxColumns toSize:size];
 
     ASLogDebug(@"Window dimensions max: %dx%d  current: %dx%d",
