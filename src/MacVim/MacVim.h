@@ -25,6 +25,21 @@
 #ifndef MAC_OS_X_VERSION_10_7
 # define MAC_OS_X_VERSION_10_7 1070
 #endif
+#ifndef MAC_OS_X_VERSION_10_8
+# define MAC_OS_X_VERSION_10_8 1080
+#endif
+#ifndef MAC_OS_X_VERSION_10_9
+# define MAC_OS_X_VERSION_10_9 1090
+#endif
+#ifndef MAC_OS_X_VERSION_10_10
+# define MAC_OS_X_VERSION_10_10 101000
+#endif
+#ifndef MAC_OS_X_VERSION_10_10_2
+# define MAC_OS_X_VERSION_10_10_2 101002
+#endif
+#ifndef MAC_OS_X_VERSION_10_10_3
+# define MAC_OS_X_VERSION_10_10_3 101003
+#endif
 
 
 //

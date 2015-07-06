@@ -2076,7 +2076,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (fsEventStream)
         return;
-    if (NULL == FSEventStreamStart)
+    if (NULL == &FSEventStreamStart)
         return; // FSEvent functions are weakly linked
 
     NSString *path = [@"~/.vim" stringByExpandingTildeInPath];
@@ -2098,7 +2098,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 - (void)stopWatchingVimDir
 {
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
-    if (NULL == FSEventStreamStop)
+    if (NULL == &FSEventStreamStop)
         return; // FSEvent functions are weakly linked
 
     if (fsEventStream) {
@@ -2489,7 +2489,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     // The TIS symbols are weakly linked.
-    if (NULL != TISCopyCurrentKeyboardInputSource) {
+    if (NULL != &TISCopyCurrentKeyboardInputSource) {
         // We get here when compiled on >=10.5 and running on >=10.5.
 
         id nc = [NSDistributedNotificationCenter defaultCenter];
@@ -2507,7 +2507,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 {
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     // The TIS symbols are weakly linked.
-    if (NULL != TISCopyCurrentKeyboardInputSource) {
+    if (NULL != &TISCopyCurrentKeyboardInputSource) {
         // We get here when compiled on >=10.5 and running on >=10.5.
 
         id nc = [NSDistributedNotificationCenter defaultCenter];
