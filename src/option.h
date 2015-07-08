@@ -811,6 +811,7 @@ EXTERN char_u	*p_tsr;		/* 'thesaurus' */
 #endif
 #ifdef FEAT_TRANSPARENCY
 EXTERN long     p_transp;       /* 'transparency' */
+EXTERN long     p_blur;         /* 'blurradius' */
 #endif
 EXTERN int	p_ttimeout;	/* 'ttimeout' */
 EXTERN long	p_ttm;		/* 'ttimeoutlen' */

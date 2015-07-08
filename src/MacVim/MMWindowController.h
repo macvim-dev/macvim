@@ -46,6 +46,7 @@
     NSPoint             defaultTopLeft;
     NSToolbar           *toolbar;
     BOOL                resizingDueToMove;
+    int                 blurRadius;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
@@ -81,6 +82,7 @@
 - (void)adjustLinespace:(int)linespace;
 - (void)liveResizeWillStart;
 - (void)liveResizeDidEnd;
+- (void)setBlurRadius:(int)radius;
 
 - (void)enterFullScreen:(int)fuoptions backgroundColor:(NSColor *)back;
 - (void)leaveFullScreen;
