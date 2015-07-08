@@ -1180,6 +1180,18 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self queueMessage:msgid data:nil];
 }
 
+#ifdef FEAT_TRANSPARENCY
+
+- (void)setBlurRadius:(int)radius
+{
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&radius length:sizeof(int)];
+
+    [self queueMessage:SetBlurRadiusMsgID data:data];
+}
+
+#endif
+
 - (void)updateModifiedFlag
 {
     int state = [self checkForModifiedBuffers];
