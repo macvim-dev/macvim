@@ -274,6 +274,7 @@ extern NSString *MMNoWindowKey;
 extern NSString *MMAutosaveRowsKey;
 extern NSString *MMAutosaveColumnsKey;
 extern NSString *MMRendererKey;
+extern NSString *MMRendererLigaturesSupportKey;
 
 enum {
     MMRendererDefault = 0,
