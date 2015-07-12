@@ -31,6 +31,7 @@
 
     float                       fontDescent;
     BOOL                        antialias;
+    BOOL                        useLigatures;
     NSMutableArray              *drawData;
 
     MMTextViewHelper            *helper;
