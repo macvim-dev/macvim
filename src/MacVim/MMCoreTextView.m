@@ -1029,7 +1029,7 @@ lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
 }
 
     static void
-ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs, UniCharCount *length, CTFontRef font )
+ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs, CGPoint *positions, UniCharCount *length, CTFontRef font )
 {
     /* CoreText has no simple wait of retrieving a ligature for a set of UniChars.
      * The way proposed on the CoreText ML is to convert the text to an attributed
@@ -1048,6 +1048,8 @@ ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs, UniCharCount *leng
     NSAttributedString *attrText = [[NSAttributedString alloc] initWithString:text
                                                                    attributes:attrs];
 
+    CGPoint refPos = positions[0];
+
     CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrText);
 
     UniCharCount offset = 0;
@@ -1065,12 +1067,18 @@ ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs, UniCharCount *leng
 
         CFRange range = CFRangeMake(0, count);
         CTRunGetGlyphs(run, range, &glyphs[offset]);
+        CTRunGetPositions(run, range, &positions[offset]);
 
         offset += count;
         if(offset >= *length) {
             // don't copy more glyphs then there is space for
             break;
         }
+    }
+    // fixup relative positioning
+    for( CFIndex i = 0; i < offset; ++i ) {
+        positions[i].x += refPos.x;
+        positions[i].y += refPos.y;
     }
     // as ligatures combine characters it is required to adjust the
     // original length value
@@ -1086,7 +1094,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
         // All chars were mapped to glyphs, so draw all at once and return.
         if (useLigatures) {
             memset(glyphs, 0, sizeof(CGGlyph) * length);
-            ligatureGlyphsForChars(chars, glyphs, &length, fontRef);
+            ligatureGlyphsForChars(chars, glyphs, positions, &length, fontRef);
         }
 
         CGFontRef cgFontRef = CTFontCopyGraphicsFont(fontRef, NULL);
