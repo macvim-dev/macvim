@@ -2901,9 +2901,29 @@ $(APPDIR)/Contents:
 
 ##############################################################################
 ### MacVim GUI
-.PHONY: macvim macvimclean
+.PHONY: macvim macvim-dmg macvimclean
+
+RELEASEDIR = MacVim/build/Release
+DMGDIR = MacVim/build/dmg
+
 macvim: $(VIMTARGET)
 	xcodebuild -project MacVim/MacVim.xcodeproj $(XCODEFLAGS)
+
+macvim-dmg: macvim
+	mkdir -p $(DMGDIR)
+	cp MacVim/mvim $(DMGDIR)/
+	cp -r $(RELEASEDIR)/MacVim.app $(DMGDIR)/
+	rm -rf $(RELEASEDIR)/MacVim-$(VERSION).dmg
+	create-dmg/create-dmg \
+		--volname "MacVim $(VERSION)" \
+		--volicon MacVim/icons/MacVim.icns \
+		--background create-dmg/background.png \
+		--window-size 650 470 \
+		--icon-size 80 \
+		--icon MacVim.app 240 320 \
+		--icon mvim 570 80 \
+		--app-drop-link 410 320 \
+		$(RELEASEDIR)/MacVim-$(VERSION).dmg $(DMGDIR)
 
 macvimclean:
 	if test -d MacVim; then \
