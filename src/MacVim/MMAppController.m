@@ -1231,9 +1231,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     ASLogDebug(@"Toggle CoreText ligatures");
     BOOL enable = ([sender state] == NSOnState);
 
-    if (enable) {
-    }
-
     // Update the user default MMRendererLigaturesSupport and synchronize the
     // change so that any new Vim process will pick up on the changed setting.
     CFPreferencesSetAppValue(
