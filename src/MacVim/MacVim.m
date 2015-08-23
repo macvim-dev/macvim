@@ -116,6 +116,7 @@ NSString *MMNoWindowKey = @"MMNoWindow";
 NSString *MMAutosaveRowsKey    = @"MMAutosaveRows";
 NSString *MMAutosaveColumnsKey = @"MMAutosaveColumns";
 NSString *MMRendererKey	       = @"MMRenderer";
+NSString *MMRendererLigaturesSupportKey = @"MMRendererLigaturesSupport";
 
 // Vim find pasteboard type (string contains Vim regex patterns)
 NSString *VimFindPboardType = @"VimFindPboardType";

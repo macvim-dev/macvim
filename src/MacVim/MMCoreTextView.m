@@ -132,6 +132,17 @@ defaultAdvanceForFont(NSFont *font)
     [self registerForDraggedTypes:[NSArray arrayWithObjects:
             NSFilenamesPboardType, NSStringPboardType, nil]];
 
+    // Check if ligatures should be used or not
+    {
+        Boolean val;
+        Boolean keyValid;
+        val = CFPreferencesGetAppBooleanValue((CFStringRef)MMRendererLigaturesSupportKey,
+                kCFPreferencesCurrentApplication,
+                &keyValid);
+
+        useLigatures = NO;
+        if(keyValid) { useLigatures = val; }
+    }
     return self;
 }
 
@@ -1018,13 +1029,74 @@ lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
 }
 
     static void
+ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs, CGPoint *positions, UniCharCount *length, CTFontRef font )
+{
+    /* CoreText has no simple wait of retrieving a ligature for a set of UniChars.
+     * The way proposed on the CoreText ML is to convert the text to an attributed
+     * string, create a CTLine from it and retrieve the Glyphs from the CTRuns in it.
+     */
+    NSString      *text = [NSString stringWithCharacters:chars
+                                                  length:*length];
+
+    NSDictionary *attrs = [NSDictionary dictionaryWithObjectsAndKeys:
+                            (id)font, kCTFontAttributeName,
+                            // 2 - full ligatures including rare
+                            [NSNumber numberWithInteger: 2], kCTLigatureAttributeName,
+                            nil
+    ];
+
+    NSAttributedString *attrText = [[NSAttributedString alloc] initWithString:text
+                                                                   attributes:attrs];
+
+    CGPoint refPos = positions[0];
+
+    CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrText);
+
+    UniCharCount offset = 0;
+    NSArray *glyphRuns = (NSArray*)CTLineGetGlyphRuns(line);
+
+    for (id item in glyphRuns) {
+        CTRunRef run  = (CTRunRef)item;
+        CFIndex count = CTRunGetGlyphCount(run);
+
+        if(count > 0) {
+            if(count - offset > *length) {
+                count = (*length) - offset;
+            }
+        }
+
+        CFRange range = CFRangeMake(0, count);
+        CTRunGetGlyphs(run, range, &glyphs[offset]);
+        CTRunGetPositions(run, range, &positions[offset]);
+
+        offset += count;
+        if(offset >= *length) {
+            // don't copy more glyphs then there is space for
+            break;
+        }
+    }
+    // fixup relative positioning
+    for( CFIndex i = 0; i < offset; ++i ) {
+        positions[i].x += refPos.x;
+        positions[i].y += refPos.y;
+    }
+    // as ligatures combine characters it is required to adjust the
+    // original length value
+    *length = offset;
+}
+
+    static void
 recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
             UniCharCount length, CGContextRef context, CTFontRef fontRef,
-            NSMutableArray *fontCache)
+            NSMutableArray *fontCache, BOOL useLigatures)
 {
-
     if (CTFontGetGlyphsForCharacters(fontRef, chars, glyphs, length)) {
         // All chars were mapped to glyphs, so draw all at once and return.
+        if (useLigatures) {
+            memset(glyphs, 0, sizeof(CGGlyph) * length);
+            ligatureGlyphsForChars(chars, glyphs, positions, &length, fontRef);
+        }
+
         CGFontRef cgFontRef = CTFontCopyGraphicsFont(fontRef, NULL);
         CGContextSetFont(context, cgFontRef);
         CGContextShowGlyphsAtPositions(context, glyphs, positions, length);
@@ -1077,7 +1149,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
             }
 
             recurseDraw(chars, glyphs, positions, attemptedCount, context,
-                        fallback, fontCache);
+                        fallback, fontCache, useLigatures);
 
             // If only a portion of the invalid range was rendered above,
             // the remaining range needs to be attempted by subsequent
@@ -1201,7 +1273,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
     }
 
     CGContextSetTextPosition(context, x, y+fontDescent);
-    recurseDraw(chars, glyphs, positions, length, context, fontRef, fontCache);
+    recurseDraw(chars, glyphs, positions, length, context, fontRef, fontCache, useLigatures);
 
     CFRelease(fontRef);
     CGContextRestoreGState(context);
