@@ -137,6 +137,10 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
 
 - (void)setAntialias:(BOOL)antialias;
 
+#ifdef FEAT_TRANSPARENCY
+- (void)setBlurRadius:(int)radius;
+#endif
+
 - (void)updateModifiedFlag;
 
 - (void)registerServerWithName:(NSString *)name;

@@ -622,6 +622,7 @@ Short explanation of each option:		*option-list*
 'balloonexpr'	  'bexpr'   expression to show in balloon
 'binary'	  'bin'     read/write/edit file in binary mode
 'bioskey'	  'biosk'   MS-DOS: use bios calls for input characters
+'blurradius'	  'blur'    transparency blur of the GUI window (MacVim only)
 'bomb'			    prepend a Byte Order Mark to the file
 'breakat'	  'brk'     characters that may cause a line break
 'breakindent'	  'bri'     wrapped line repeats indent 

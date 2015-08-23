@@ -646,6 +646,13 @@ static struct vimoption
 			    (char_u *)NULL, PV_NONE,
 #endif
 			    {(char_u *)TRUE, (char_u *)0L} SCRIPTID_INIT},
+    {"blurradius",  "blur", P_NUM|P_VIM,
+#ifdef FEAT_TRANSPARENCY
+			    (char_u *)&p_blur, PV_NONE,
+#else
+			    (char_u *)NULL, PV_NONE,
+#endif
+			    {(char_u *)0L, (char_u *)0L} },
     {"bomb",	    NULL,   P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
 #ifdef FEAT_MBYTE
 			    (char_u *)&p_bomb, PV_BOMB,
@@ -8705,6 +8712,19 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
 	}
         else if (gui.in_use)
             gui_mch_new_colors();
+    }
+
+    else if (pp == &p_blur)
+    {
+        if (p_blur < 0)
+        {
+            errmsg = e_invarg;
+            p_blur = old_value;
+        }
+        else
+        {
+            gui_macvim_set_blur(p_blur);
+        }
     }
 #endif
 

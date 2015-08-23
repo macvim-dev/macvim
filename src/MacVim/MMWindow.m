@@ -28,7 +28,37 @@
 
 #import "MMWindow.h"
 #import "Miscellaneous.h"
+#import "CGSInternal/CGSWindow.h"
 
+
+
+typedef CGError CGSSetWindowBackgroundBlurRadiusFunction(CGSConnectionID cid, CGSWindowID wid, NSUInteger blur);
+
+static void *GetFunctionByName(NSString *library, char *func) {
+    CFBundleRef bundle;
+    CFURLRef bundleURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef) library, kCFURLPOSIXPathStyle, true);
+    CFStringRef functionName = CFStringCreateWithCString(kCFAllocatorDefault, func, kCFStringEncodingASCII);
+    bundle = CFBundleCreate(kCFAllocatorDefault, bundleURL);
+    void *f = NULL;
+    if (bundle) {
+        f = CFBundleGetFunctionPointerForName(bundle, functionName);
+        CFRelease(bundle);
+    }
+    CFRelease(functionName);
+    CFRelease(bundleURL);
+    return f;
+}
+
+static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRadiusFunction(void) {
+    static BOOL tried = NO;
+    static CGSSetWindowBackgroundBlurRadiusFunction *function = NULL;
+    if (!tried) {
+        function = GetFunctionByName(@"/System/Library/Frameworks/ApplicationServices.framework",
+                                      "CGSSetWindowBackgroundBlurRadius");
+        tried = YES;
+    }
+    return function;
+}
 
 
 
@@ -123,6 +153,20 @@
         ++size.height;
 
     [super setContentSize:size];
+}
+
+- (void)setBlurRadius:(int)radius
+{
+    if (radius >= 0) {
+        CGSConnectionID con = CGSMainConnectionID();
+        if (!con) {
+            return;
+        }
+        CGSSetWindowBackgroundBlurRadiusFunction* function = GetCGSSetWindowBackgroundBlurRadiusFunction();
+        if (function) {
+            function(con, [self windowNumber], radius);
+        }
+    }
 }
 
 - (void)performClose:(id)sender

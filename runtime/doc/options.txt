@@ -1169,6 +1169,14 @@ A jump table for the options with a short description can be found at |Q_op|.
 	terminal over a serial port reset this option.
 	Also see |'conskey'|.
 
+						*'blurradius'* *'blur'*
+'blurradius' 'blur'	number  (default 0)
+			global
+			{not in Vi}
+			{only in MacVim GUI}
+	When 'transparency' is in effect, a positive value adds a blur effect
+	to the window background.
+
 							*'bomb'* *'nobomb'*
 'bomb'			boolean	(default off)
 			local to buffer

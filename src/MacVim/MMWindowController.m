@@ -330,6 +330,8 @@
     if (fullScreenEnabled && !fullScreenWindow)
         [decoratedWindow setAlphaValue:0];
 
+    [decoratedWindow setBlurRadius:blurRadius];
+
     // Flag that the window is now placed on screen.  From now on it is OK for
     // code to depend on the screen state.  (Such as constraining views etc.)
     windowPresented = YES;
@@ -716,6 +718,14 @@
         [decoratedWindow setTitle:lastSetTitle];
         [lastSetTitle release];
         lastSetTitle = nil;
+    }
+}
+
+- (void)setBlurRadius:(int)radius
+{
+    blurRadius = radius;
+    if (windowPresented) { 
+        [decoratedWindow setBlurRadius:radius];
     }
 }
 

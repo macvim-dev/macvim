@@ -876,6 +876,10 @@ static BOOL isUnsafeMessage(int msgid);
         if (filenames)
             [[NSDocumentController sharedDocumentController]
                                             noteNewRecentFilePaths:filenames];
+    } else if (SetBlurRadiusMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int radius = *((int*)bytes);
+        [windowController setBlurRadius:radius];
 
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
