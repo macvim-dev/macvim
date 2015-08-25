@@ -2360,7 +2360,7 @@ gui_mch_post_balloon(beval, mesg)
 
 #endif // FEAT_BEVAL
 
-#ifdef FEAT_TRANSPARENCY
+#ifdef BLUR_TRANSPARENCY
 
     void
 gui_macvim_set_blur(int radius)
@@ -2368,4 +2368,4 @@ gui_macvim_set_blur(int radius)
     [[MMBackend sharedInstance] setBlurRadius:radius];
 }
 
-#endif // FEAT_TRANSPARENCY
+#endif // BLUR_TRANSPARENCY

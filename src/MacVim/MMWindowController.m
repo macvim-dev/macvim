@@ -330,7 +330,9 @@
     if (fullScreenEnabled && !fullScreenWindow)
         [decoratedWindow setAlphaValue:0];
 
+#ifdef BLUR_TRANSPARENCY
     [decoratedWindow setBlurRadius:blurRadius];
+#endif
 
     // Flag that the window is now placed on screen.  From now on it is OK for
     // code to depend on the screen state.  (Such as constraining views etc.)
@@ -721,6 +723,7 @@
     }
 }
 
+#ifdef BLUR_TRANSPARENCY
 - (void)setBlurRadius:(int)radius
 {
     blurRadius = radius;
@@ -728,6 +731,7 @@
         [decoratedWindow setBlurRadius:radius];
     }
 }
+#endif
 
 - (void)enterFullScreen:(int)fuoptions backgroundColor:(NSColor *)back
 {
