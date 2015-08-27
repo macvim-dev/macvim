@@ -1751,7 +1751,7 @@ typedef int proftime_T;	    /* dummy for function prototypes */
 #endif
 
 /* Needs to be before option.h, which uses BLUR_TRANSPARENCY */
-#if defined(FEAT_TRANSPARENCY) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
+#if defined(FEAT_TRANSPARENCY) && defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
 # define BLUR_TRANSPARENCY
 #endif
 
