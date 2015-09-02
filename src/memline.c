@@ -3834,7 +3834,8 @@ ml_add_stack(buf)
 					(buf->b_ml.ml_stack_size + STACK_INCR));
 	if (newstack == NULL)
 	    return -1;
-	mch_memmove(newstack, buf->b_ml.ml_stack,
+	if (top > 0)
+	    mch_memmove(newstack, buf->b_ml.ml_stack,
 					     (size_t)top * sizeof(infoptr_T));
 	vim_free(buf->b_ml.ml_stack);
 	buf->b_ml.ml_stack = newstack;
@@ -5361,8 +5362,10 @@ ml_find_line_or_offset(buf, lnum, offp)
 	if (ffdos)
 	    size += lnum - 1;
 
-	/* Don't count the last line break if 'bin' and 'noeol'. */
-	if (buf->b_p_bin && !buf->b_p_eol)
+	/* Don't count the last line break if 'noeol' and ('bin' or
+	 * 'nofixeol'). */
+	if ((!buf->b_p_fixeol || buf->b_p_bin) && !buf->b_p_eol
+					   && buf->b_ml.ml_line_count == lnum)
 	    size -= ffdos + 1;
     }
 

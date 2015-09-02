@@ -141,7 +141,7 @@ do_window(nchar, Prenum, xchar)
 #ifdef FEAT_GUI
 		need_mouse_correct = TRUE;
 #endif
-		win_split((int)Prenum, 0);
+		(void)win_split((int)Prenum, 0);
 		break;
 
 #ifdef FEAT_VERTSPLIT
@@ -159,7 +159,7 @@ do_window(nchar, Prenum, xchar)
 # ifdef FEAT_GUI
 		need_mouse_correct = TRUE;
 # endif
-		win_split((int)Prenum, WSP_VERT);
+		(void)win_split((int)Prenum, WSP_VERT);
 		break;
 #endif
 
@@ -2591,7 +2591,7 @@ win_close_othertab(win, free_buf, tp)
 	return;
 
     /* When closing the last window in a tab page remove the tab page. */
-    if (tp == NULL ? firstwin == lastwin : tp->tp_firstwin == tp->tp_lastwin)
+    if (tp->tp_firstwin == tp->tp_lastwin)
     {
 	if (tp == first_tabpage)
 	    first_tabpage = tp->tp_next;
@@ -6953,13 +6953,14 @@ win_hasvertsplit()
  * Return ID of added match, -1 on failure.
  */
     int
-match_add(wp, grp, pat, prio, id, pos_list)
+match_add(wp, grp, pat, prio, id, pos_list, conceal_char)
     win_T	*wp;
     char_u	*grp;
     char_u	*pat;
     int		prio;
     int		id;
     list_T	*pos_list;
+    char_u      *conceal_char UNUSED; /* pointer to conceal replacement char */
 {
     matchitem_T	*cur;
     matchitem_T	*prev;
@@ -7019,6 +7020,11 @@ match_add(wp, grp, pat, prio, id, pos_list)
     m->match.regprog = regprog;
     m->match.rmm_ic = FALSE;
     m->match.rmm_maxcol = 0;
+#ifdef FEAT_CONCEAL
+    m->conceal_char = 0;
+    if (conceal_char != NULL)
+	m->conceal_char = (*mb_ptr2char)(conceal_char);
+#endif
 
     /* Set up position matches */
     if (pos_list != NULL)

@@ -4873,11 +4873,16 @@ syn_cmd_keyword(eap, syncing)
 			if (p[1] == NUL)
 			{
 			    EMSG2(_("E789: Missing ']': %s"), kw);
-			    kw = p + 2;		/* skip over the NUL */
-			    break;
+			    goto error;
 			}
 			if (p[1] == ']')
 			{
+			    if (p[2] != NUL)
+			    {
+				EMSG3(_("E890: trailing char after ']': %s]%s"),
+								kw, &p[2]);
+				goto error;
+			    }
 			    kw = p + 1;		/* skip over the "]" */
 			    break;
 			}
@@ -4898,7 +4903,7 @@ syn_cmd_keyword(eap, syncing)
 		    }
 		}
 	    }
-
+error:
 	    vim_free(keyword_copy);
 	    vim_free(syn_opt_arg.cont_in_list);
 	    vim_free(syn_opt_arg.next_list);
@@ -5654,7 +5659,7 @@ get_syn_pattern(arg, ci)
     char_u	*cpo_save;
 
     /* need at least three chars */
-    if (arg == NULL || arg[1] == NUL || arg[2] == NUL)
+    if (arg == NULL || arg[0] == NUL || arg[1] == NUL || arg[2] == NUL)
 	return NULL;
 
     end = skip_regexp(arg + 1, *arg, TRUE, NULL);
@@ -6309,6 +6314,8 @@ ex_ownsyntax(eap)
     {
 	curwin->w_s = (synblock_T *)alloc(sizeof(synblock_T));
 	memset(curwin->w_s, 0, sizeof(synblock_T));
+	hash_init(&curwin->w_s->b_keywtab);
+	hash_init(&curwin->w_s->b_keywtab_ic);
 #ifdef FEAT_SPELL
 	/* TODO: keep the spell checking as it was. */
 	curwin->w_p_spell = FALSE;	/* No spell checking */
@@ -6670,7 +6677,7 @@ syntime_report()
 	spp = &(SYN_ITEMS(curwin->w_s)[idx]);
 	if (spp->sp_time.count > 0)
 	{
-	    ga_grow(&ga, 1);
+	    (void)ga_grow(&ga, 1);
 	    p = ((time_entry_T *)ga.ga_data) + ga.ga_len;
 	    p->total = spp->sp_time.total;
 	    profile_add(&total_total, &spp->sp_time.total);

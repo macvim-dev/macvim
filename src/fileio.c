@@ -2623,10 +2623,10 @@ failed:
 #endif
 
     /*
-     * Trick: We remember if the last line of the read didn't have
-     * an eol even when 'binary' is off, for when writing it again with
-     * 'binary' on.  This is required for
-     * ":autocmd FileReadPost *.gz set bin|'[,']!gunzip" to work.
+     * We remember if the last line of the read didn't have
+     * an eol even when 'binary' is off, to support turning 'fixeol' off,
+     * or writing the read again with 'binary' on.  The latter is required
+     * for ":autocmd FileReadPost *.gz set bin|'[,']!gunzip" to work.
      */
     curbuf->b_no_eol_lnum = read_no_eol_lnum;
 
@@ -4547,7 +4547,7 @@ restore_backup:
 	/* write failed or last line has no EOL: stop here */
 	if (end == 0
 		|| (lnum == end
-		    && write_bin
+		    && (write_bin || !buf->b_p_fixeol)
 		    && (lnum == buf->b_no_eol_lnum
 			|| (lnum == buf->b_ml.ml_line_count && !buf->b_p_eol))))
 	{
@@ -7737,6 +7737,7 @@ static struct event_name
     {"InsertLeave",	EVENT_INSERTLEAVE},
     {"InsertCharPre",	EVENT_INSERTCHARPRE},
     {"MenuPopup",	EVENT_MENUPOPUP},
+    {"OptionSet",	EVENT_OPTIONSET},
     {"QuickFixCmdPost",	EVENT_QUICKFIXCMDPOST},
     {"QuickFixCmdPre",	EVENT_QUICKFIXCMDPRE},
     {"QuitPre",		EVENT_QUITPRE},
@@ -7774,7 +7775,7 @@ static AutoPat *first_autopat[NUM_EVENTS] =
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
 
 /*
@@ -8551,7 +8552,7 @@ do_autocmd_event(event, pat, nested, cmd, forceit, group)
 	 */
 	brace_level = 0;
 	for (endpat = pat; *endpat && (*endpat != ',' || brace_level
-					     || endpat[-1] == '\\'); ++endpat)
+			   || (endpat > pat && endpat[-1] == '\\')); ++endpat)
 	{
 	    if (*endpat == '{')
 		brace_level++;
@@ -9359,7 +9360,7 @@ apply_autocmds_group(event, fname, fname_io, force, group, buf, eap)
      */
     if (fname_io == NULL)
     {
-	if (event == EVENT_COLORSCHEME)
+	if (event == EVENT_COLORSCHEME || event == EVENT_OPTIONSET)
 	    autocmd_fname = NULL;
 	else if (fname != NULL && *fname != NUL)
 	    autocmd_fname = fname;
@@ -9423,6 +9424,7 @@ apply_autocmds_group(event, fname, fname_io, force, group, buf, eap)
 		|| event == EVENT_SPELLFILEMISSING
 		|| event == EVENT_QUICKFIXCMDPRE
 		|| event == EVENT_COLORSCHEME
+		|| event == EVENT_OPTIONSET
 		|| event == EVENT_QUICKFIXCMDPOST)
 	    fname = vim_strsave(fname);
 	else
@@ -10224,7 +10226,7 @@ file_pat_to_reg_pat(pat, pat_end, allow_dirs, no_bslash)
 #endif
 	    default:
 		size++;
-# ifdef  FEAT_MBYTE
+# ifdef FEAT_MBYTE
 		if (enc_dbcs != 0 && (*mb_ptr2len)(p) > 1)
 		{
 		    ++p;
@@ -10246,7 +10248,7 @@ file_pat_to_reg_pat(pat, pat_end, allow_dirs, no_bslash)
     else
 	reg_pat[i++] = '^';
     endp = pat_end - 1;
-    if (*endp == '*')
+    if (endp >= pat && *endp == '*')
     {
 	while (endp - pat > 0 && *endp == '*')
 	    endp--;
@@ -10313,7 +10315,7 @@ file_pat_to_reg_pat(pat, pat_end, allow_dirs, no_bslash)
 		    reg_pat[i++] = '?';
 		else
 		    if (*p == ',' || *p == '%' || *p == '#'
-				       || *p == ' ' || *p == '{' || *p == '}')
+			       || vim_isspace(*p) || *p == '{' || *p == '}')
 			reg_pat[i++] = *p;
 		    else if (*p == '\\' && p[1] == '\\' && p[2] == '{')
 		    {

@@ -76,6 +76,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'bdir'	options.txt	/*'bdir'*
 'bdlay'	options.txt	/*'bdlay'*
 'beautify'	vi_diff.txt	/*'beautify'*
+'belloff'	options.txt	/*'belloff'*
 'beval'	options.txt	/*'beval'*
 'bex'	options.txt	/*'bex'*
 'bexpr'	options.txt	/*'bexpr'*
@@ -91,6 +92,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'bl'	options.txt	/*'bl'*
 'blur'	options.txt	/*'blur'*
 'blurradius'	options.txt	/*'blurradius'*
+'bo'	options.txt	/*'bo'*
 'bomb'	options.txt	/*'bomb'*
 'breakat'	options.txt	/*'breakat'*
 'breakindent'	options.txt	/*'breakindent'*
@@ -248,6 +250,8 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'fileignorecase'	options.txt	/*'fileignorecase'*
 'filetype'	options.txt	/*'filetype'*
 'fillchars'	options.txt	/*'fillchars'*
+'fixendofline'	options.txt	/*'fixendofline'*
+'fixeol'	options.txt	/*'fixeol'*
 'fk'	options.txt	/*'fk'*
 'fkmap'	options.txt	/*'fkmap'*
 'fl'	vi_diff.txt	/*'fl'*
@@ -548,11 +552,11 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'nofen'	options.txt	/*'nofen'*
 'nofic'	options.txt	/*'nofic'*
 'nofileignorecase'	options.txt	/*'nofileignorecase'*
+'nofixendofline'	options.txt	/*'nofixendofline'*
+'nofixeol'	options.txt	/*'nofixeol'*
 'nofk'	options.txt	/*'nofk'*
 'nofkmap'	options.txt	/*'nofkmap'*
 'nofoldenable'	options.txt	/*'nofoldenable'*
-'nofs'	options.txt	/*'nofs'*
-'nofsync'	options.txt	/*'nofsync'*
 'nofu'	options.txt	/*'nofu'*
 'nofullscreen'	options.txt	/*'nofullscreen'*
 'nogd'	options.txt	/*'nogd'*
@@ -4396,6 +4400,7 @@ E887	if_pyth.txt	/*E887*
 E888	pattern.txt	/*E888*
 E889	map.txt	/*E889*
 E89	message.txt	/*E89*
+E890	syntax.txt	/*E890*
 E90	message.txt	/*E90*
 E91	options.txt	/*E91*
 E92	message.txt	/*E92*
@@ -4523,6 +4528,7 @@ OffTheSpot	mbyte.txt	/*OffTheSpot*
 OnTheSpot	mbyte.txt	/*OnTheSpot*
 Operator-pending	intro.txt	/*Operator-pending*
 Operator-pending-mode	intro.txt	/*Operator-pending-mode*
+OptionSet	autocmd.txt	/*OptionSet*
 OverTheSpot	mbyte.txt	/*OverTheSpot*
 P	change.txt	/*P*
 PATHEXT	eval.txt	/*PATHEXT*
@@ -5265,6 +5271,7 @@ complete_CTRL-E	insert.txt	/*complete_CTRL-E*
 complete_CTRL-Y	insert.txt	/*complete_CTRL-Y*
 complete_add()	eval.txt	/*complete_add()*
 complete_check()	eval.txt	/*complete_check()*
+completed_item-variable	eval.txt	/*completed_item-variable*
 completion-functions	usr_41.txt	/*completion-functions*
 complex-change	change.txt	/*complex-change*
 complex-repeat	repeat.txt	/*complex-repeat*
@@ -6231,6 +6238,7 @@ getbufline()	eval.txt	/*getbufline()*
 getbufvar()	eval.txt	/*getbufvar()*
 getchar()	eval.txt	/*getchar()*
 getcharmod()	eval.txt	/*getcharmod()*
+getcharsearch()	eval.txt	/*getcharsearch()*
 getcmdline()	eval.txt	/*getcmdline()*
 getcmdpos()	eval.txt	/*getcmdpos()*
 getcmdtype()	eval.txt	/*getcmdtype()*
@@ -6412,6 +6420,7 @@ hebrew.txt	hebrew.txt	/*hebrew.txt*
 help	helphelp.txt	/*help*
 help-context	help.txt	/*help-context*
 help-summary	usr_02.txt	/*help-summary*
+help-tags	tags	1
 help-translated	helphelp.txt	/*help-translated*
 help-writing	helphelp.txt	/*help-writing*
 help-xterm-window	helphelp.txt	/*help-xterm-window*
@@ -7878,6 +7887,7 @@ session-file	starting.txt	/*session-file*
 set-option	options.txt	/*set-option*
 set-spc-auto	spell.txt	/*set-spc-auto*
 setbufvar()	eval.txt	/*setbufvar()*
+setcharsearch()	eval.txt	/*setcharsearch()*
 setcmdpos()	eval.txt	/*setcmdpos()*
 setline()	eval.txt	/*setline()*
 setloclist()	eval.txt	/*setloclist()*
@@ -8585,6 +8595,7 @@ v:charconvert_from	eval.txt	/*v:charconvert_from*
 v:charconvert_to	eval.txt	/*v:charconvert_to*
 v:cmdarg	eval.txt	/*v:cmdarg*
 v:cmdbang	eval.txt	/*v:cmdbang*
+v:completed_item	eval.txt	/*v:completed_item*
 v:count	eval.txt	/*v:count*
 v:count1	eval.txt	/*v:count1*
 v:ctype	eval.txt	/*v:ctype*
@@ -8612,6 +8623,9 @@ v:mouse_lnum	eval.txt	/*v:mouse_lnum*
 v:mouse_win	eval.txt	/*v:mouse_win*
 v:oldfiles	eval.txt	/*v:oldfiles*
 v:operator	eval.txt	/*v:operator*
+v:option_new	eval.txt	/*v:option_new*
+v:option_old	eval.txt	/*v:option_old*
+v:option_type	eval.txt	/*v:option_type*
 v:prevcount	eval.txt	/*v:prevcount*
 v:profiling	eval.txt	/*v:profiling*
 v:progname	eval.txt	/*v:progname*

@@ -213,8 +213,8 @@ static void standout(void);
 static void standend(void);
 static void visual_bell(void);
 static void cursor_visible(BOOL fVisible);
-static BOOL write_chars(LPCSTR pchBuf, DWORD cchToWrite);
-static char_u tgetch(int *pmodifiers, char_u *pch2);
+static DWORD write_chars(char_u *pchBuf, DWORD cbToWrite);
+static WCHAR tgetch(int *pmodifiers, WCHAR *pch2);
 static void create_conin(void);
 static int s_cursor_visible = TRUE;
 static int did_create_conin = FALSE;
@@ -259,18 +259,21 @@ read_console_input(
     int tail;
     int i;
 
+    if (nLength == -2)
+	return (s_dwMax > 0) ? TRUE : FALSE;
+
     if (!win8_or_later)
     {
 	if (nLength == -1)
-	    return PeekConsoleInput(hInput, lpBuffer, 1, lpEvents);
-	return ReadConsoleInput(hInput, lpBuffer, 1, &dwEvents);
+	    return PeekConsoleInputW(hInput, lpBuffer, 1, lpEvents);
+	return ReadConsoleInputW(hInput, lpBuffer, 1, &dwEvents);
     }
 
     if (s_dwMax == 0)
     {
 	if (nLength == -1)
-	    return PeekConsoleInput(hInput, lpBuffer, 1, lpEvents);
-	if (!ReadConsoleInput(hInput, s_irCache, IRSIZE, &dwEvents))
+	    return PeekConsoleInputW(hInput, lpBuffer, 1, lpEvents);
+	if (!ReadConsoleInputW(hInput, s_irCache, IRSIZE, &dwEvents))
 	    return FALSE;
 	s_dwIndex = 0;
 	s_dwMax = dwEvents;
@@ -303,7 +306,7 @@ read_console_input(
     }
 
     *lpBuffer = s_irCache[s_dwIndex];
-    if (nLength != -1 && ++s_dwIndex >= s_dwMax)
+    if (!(nLength == -1 || nLength == -2) && ++s_dwIndex >= s_dwMax)
 	s_dwMax = 0;
     *lpEvents = 1;
     return TRUE;
@@ -320,6 +323,30 @@ peek_console_input(
     LPDWORD	    lpEvents)
 {
     return read_console_input(hInput, lpBuffer, -1, lpEvents);
+}
+
+    static DWORD
+msg_wait_for_multiple_objects(
+    DWORD    nCount,
+    LPHANDLE pHandles,
+    BOOL     fWaitAll,
+    DWORD    dwMilliseconds,
+    DWORD    dwWakeMask)
+{
+    if (read_console_input(NULL, NULL, -2, NULL))
+	return WAIT_OBJECT_0;
+    return MsgWaitForMultipleObjects(nCount, pHandles, fWaitAll,
+				     dwMilliseconds, dwWakeMask);
+}
+
+    static DWORD
+wait_for_single_object(
+    HANDLE hHandle,
+    DWORD dwMilliseconds)
+{
+    if (read_console_input(NULL, NULL, -2, NULL))
+	return WAIT_OBJECT_0;
+    return WaitForSingleObject(hHandle, dwMilliseconds);
 }
 
     static void
@@ -841,9 +868,9 @@ static const struct
 #endif
 
 #if defined(__GNUC__) && !defined(__MINGW32__)  && !defined(__CYGWIN__)
-# define AChar AsciiChar
+# define UChar UnicodeChar
 #else
-# define AChar uChar.AsciiChar
+# define UChar uChar.UnicodeChar
 #endif
 
 /* The return code indicates key code size. */
@@ -862,12 +889,12 @@ win32_kbd_patch_key(
 
     if (s_iIsDead == 2)
     {
-	pker->AChar = (CHAR) awAnsiCode[1];
+	pker->UChar = (WCHAR) awAnsiCode[1];
 	s_iIsDead = 0;
 	return 1;
     }
 
-    if (pker->AChar != 0)
+    if (pker->UChar != 0)
 	return 1;
 
     vim_memset(abKeystate, 0, sizeof (abKeystate));
@@ -882,7 +909,7 @@ win32_kbd_patch_key(
     }
 
     /* Clear any pending dead keys */
-    ToAscii(VK_SPACE, MapVirtualKey(VK_SPACE, 0), abKeystate, awAnsiCode, 0);
+    ToUnicode(VK_SPACE, MapVirtualKey(VK_SPACE, 0), abKeystate, awAnsiCode, 2, 0);
 
     if (uMods & SHIFT_PRESSED)
 	abKeystate[VK_SHIFT] = 0x80;
@@ -895,11 +922,11 @@ win32_kbd_patch_key(
 	    abKeystate[VK_MENU] = abKeystate[VK_RMENU] = 0x80;
     }
 
-    s_iIsDead = ToAscii(pker->wVirtualKeyCode, pker->wVirtualScanCode,
-			abKeystate, awAnsiCode, 0);
+    s_iIsDead = ToUnicode(pker->wVirtualKeyCode, pker->wVirtualScanCode,
+			abKeystate, awAnsiCode, 2, 0);
 
     if (s_iIsDead > 0)
-	pker->AChar = (CHAR) awAnsiCode[0];
+	pker->UChar = (WCHAR) awAnsiCode[0];
 
     return s_iIsDead;
 }
@@ -926,8 +953,8 @@ static BOOL g_fJustGotFocus = FALSE;
     static BOOL
 decode_key_event(
     KEY_EVENT_RECORD	*pker,
-    char_u		*pch,
-    char_u		*pch2,
+    WCHAR		*pch,
+    WCHAR		*pch2,
     int			*pmodifiers,
     BOOL		fDoPost)
 {
@@ -955,7 +982,7 @@ decode_key_event(
     }
 
     /* special cases */
-    if ((nModifs & CTRL) != 0 && (nModifs & ~CTRL) == 0 && pker->AChar == NUL)
+    if ((nModifs & CTRL) != 0 && (nModifs & ~CTRL) == 0 && pker->UChar == NUL)
     {
 	/* Ctrl-6 is Ctrl-^ */
 	if (pker->wVirtualKeyCode == '6')
@@ -1017,7 +1044,7 @@ decode_key_event(
 	*pch = NUL;
     else
     {
-	*pch = (i > 0) ? pker->AChar : NUL;
+	*pch = (i > 0) ? pker->UChar : NUL;
 
 	if (pmodifiers != NULL)
 	{
@@ -1409,7 +1436,7 @@ WaitForChar(long msec)
     DWORD	    dwNow = 0, dwEndTime = 0;
     INPUT_RECORD    ir;
     DWORD	    cRecords;
-    char_u	    ch, ch2;
+    WCHAR	    ch, ch2;
 
     if (msec > 0)
 	/* Wait until the specified time has elapsed. */
@@ -1459,10 +1486,10 @@ WaitForChar(long msec)
 #ifdef FEAT_CLIENTSERVER
 	    /* Wait for either an event on the console input or a message in
 	     * the client-server window. */
-	    if (MsgWaitForMultipleObjects(1, &g_hConIn, FALSE,
+	    if (msg_wait_for_multiple_objects(1, &g_hConIn, FALSE,
 				 dwWaitTime, QS_SENDMESSAGE) != WAIT_OBJECT_0)
 #else
-	    if (WaitForSingleObject(g_hConIn, dwWaitTime) != WAIT_OBJECT_0)
+	    if (wait_for_single_object(g_hConIn, dwWaitTime) != WAIT_OBJECT_0)
 #endif
 		    continue;
 	}
@@ -1496,7 +1523,7 @@ WaitForChar(long msec)
 #ifdef FEAT_MBYTE_IME
 		/* Windows IME sends two '\n's with only one 'ENTER'.  First:
 		 * wVirtualKeyCode == 13. second: wVirtualKeyCode == 0 */
-		if (ir.Event.KeyEvent.uChar.UnicodeChar == 0
+		if (ir.Event.KeyEvent.UChar == 0
 			&& ir.Event.KeyEvent.wVirtualKeyCode == 13)
 		{
 		    read_console_input(g_hConIn, &ir, 1, &cRecords);
@@ -1559,10 +1586,10 @@ create_conin(void)
 /*
  * Get a keystroke or a mouse event
  */
-    static char_u
-tgetch(int *pmodifiers, char_u *pch2)
+    static WCHAR
+tgetch(int *pmodifiers, WCHAR *pch2)
 {
-    char_u ch;
+    WCHAR ch;
 
     for (;;)
     {
@@ -1631,11 +1658,6 @@ mch_inchar(
 #define TYPEAHEADLEN 20
     static char_u   typeahead[TYPEAHEADLEN];	/* previously typed bytes. */
     static int	    typeaheadlen = 0;
-#ifdef FEAT_MBYTE
-    static char_u   *rest = NULL;	/* unconverted rest of previous read */
-    static int	    restlen = 0;
-    int		    unconverted;
-#endif
 
     /* First use any typeahead that was kept because "buf" was too small. */
     if (typeaheadlen > 0)
@@ -1734,37 +1756,10 @@ mch_inchar(
 	else
 #endif
 	{
-	    char_u	ch2 = NUL;
+	    WCHAR	ch2 = NUL;
 	    int		modifiers = 0;
 
 	    c = tgetch(&modifiers, &ch2);
-
-#ifdef FEAT_MBYTE
-	    /* stolen from fill_input_buf() in ui.c */
-	    if (rest != NULL)
-	    {
-		/* Use remainder of previous call, starts with an invalid
-		 * character that may become valid when reading more. */
-		if (restlen > TYPEAHEADLEN - typeaheadlen)
-		    unconverted = TYPEAHEADLEN - typeaheadlen;
-		else
-		    unconverted = restlen;
-		mch_memmove(typeahead + typeaheadlen, rest, unconverted);
-		if (unconverted == restlen)
-		{
-		    vim_free(rest);
-		    rest = NULL;
-		}
-		else
-		{
-		    restlen -= unconverted;
-		    mch_memmove(rest, rest + unconverted, restlen);
-		}
-		typeaheadlen += unconverted;
-	    }
-	    else
-		unconverted = 0;
-#endif
 
 	    if (typebuf_changed(tb_change_cnt))
 	    {
@@ -1789,27 +1784,36 @@ mch_inchar(
 		int	n = 1;
 		int     conv = FALSE;
 
-		typeahead[typeaheadlen] = c;
+#ifdef FEAT_MBYTE
+		if (ch2 == NUL)
+		{
+		    int	    i;
+		    char_u  *p;
+		    WCHAR   ch[2];
+
+		    ch[0] = c;
+		    if (c >= 0xD800 && c <= 0xDBFF)	/* High surrogate */
+		    {
+			ch[1] = tgetch(&modifiers, &ch2);
+			n++;
+		    }
+		    p = utf16_to_enc(ch, &n);
+		    if (p != NULL)
+		    {
+			for (i = 0; i < n; i++)
+			    typeahead[typeaheadlen + i] = p[i];
+			vim_free(p);
+		    }
+		}
+		else
+#endif
+		    typeahead[typeaheadlen] = c;
 		if (ch2 != NUL)
 		{
-		    typeahead[typeaheadlen + 1] = 3;
-		    typeahead[typeaheadlen + 2] = ch2;
+		    typeahead[typeaheadlen + n] = 3;
+		    typeahead[typeaheadlen + n + 1] = (char_u)ch2;
 		    n += 2;
 		}
-#ifdef FEAT_MBYTE
-		/* Only convert normal characters, not special keys.  Need to
-		 * convert before applying ALT, otherwise mapping <M-x> breaks
-		 * when 'tenc' is set. */
-		if (input_conv.vc_type != CONV_NONE
-						&& (ch2 == NUL || c != K_NUL))
-		{
-		    conv = TRUE;
-		    typeaheadlen -= unconverted;
-		    n = convert_input_safe(typeahead + typeaheadlen,
-				n + unconverted, TYPEAHEADLEN - typeaheadlen,
-				rest == NULL ? &rest : NULL, &restlen);
-		}
-#endif
 
 		if (conv)
 		{
@@ -2165,8 +2169,7 @@ typedef struct ConsoleBufferStruct
 {
     BOOL			IsValid;
     CONSOLE_SCREEN_BUFFER_INFO	Info;
-    PCHAR_INFO			Buffer;
-    COORD			BufferSize;
+    HANDLE			handle;
 } ConsoleBuffer;
 
 /*
@@ -2183,77 +2186,81 @@ typedef struct ConsoleBufferStruct
 SaveConsoleBuffer(
     ConsoleBuffer *cb)
 {
-    DWORD NumCells;
-    COORD BufferCoord;
-    SMALL_RECT ReadRegion;
-    WORD Y, Y_incr;
-
     if (cb == NULL)
 	return FALSE;
 
-    if (!GetConsoleScreenBufferInfo(g_hConOut, &cb->Info))
+    if (!GetConsoleScreenBufferInfo(cb->handle, &cb->Info))
     {
 	cb->IsValid = FALSE;
 	return FALSE;
     }
     cb->IsValid = TRUE;
 
-    /*
-     * Allocate a buffer large enough to hold the entire console screen
-     * buffer.  If this ConsoleBuffer structure has already been initialized
-     * with a buffer of the correct size, then just use that one.
-     */
-    if (!cb->IsValid || cb->Buffer == NULL ||
-	    cb->BufferSize.X != cb->Info.dwSize.X ||
-	    cb->BufferSize.Y != cb->Info.dwSize.Y)
-    {
-	cb->BufferSize.X = cb->Info.dwSize.X;
-	cb->BufferSize.Y = cb->Info.dwSize.Y;
-	NumCells = cb->BufferSize.X * cb->BufferSize.Y;
-	vim_free(cb->Buffer);
-	cb->Buffer = (PCHAR_INFO)alloc(NumCells * sizeof(CHAR_INFO));
-	if (cb->Buffer == NULL)
-	    return FALSE;
-    }
+    return TRUE;
+}
+
+/*
+ * CopyOldConsoleBuffer()
+ * Description:
+ *  Copies the old console buffer contents to the current console buffer.
+ *  This is used when 'restorescreen' is off.
+ * Returns:
+ *  TRUE on success
+ */
+    static BOOL
+CopyOldConsoleBuffer(
+    ConsoleBuffer   *cb,
+    HANDLE	    hConOld)
+{
+    COORD		    BufferCoord;
+    COORD		    BufferSize;
+    PCHAR_INFO		    Buffer;
+    DWORD		    NumCells;
+    SMALL_RECT		    ReadRegion;
 
     /*
-     * We will now copy the console screen buffer into our buffer.
-     * ReadConsoleOutput() seems to be limited as far as how much you
-     * can read at a time.  Empirically, this number seems to be about
-     * 12000 cells (rows * columns).  Start at position (0, 0) and copy
-     * in chunks until it is all copied.  The chunks will all have the
-     * same horizontal characteristics, so initialize them now.  The
-     * height of each chunk will be (12000 / width).
+     * Before copying the buffer contents, clear the current buffer, and
+     * restore the window information.  Doing this now prevents old buffer
+     * contents from "flashing" onto the screen.
      */
-    BufferCoord.X = 0;
+    ClearConsoleBuffer(cb->Info.wAttributes);
+
+    /* We only need to copy the window area, not whole buffer. */
+    BufferSize.X = cb->Info.srWindow.Right - cb->Info.srWindow.Left + 1;
+    BufferSize.Y = cb->Info.srWindow.Bottom - cb->Info.srWindow.Top + 1;
     ReadRegion.Left = 0;
-    ReadRegion.Right = cb->Info.dwSize.X - 1;
-    Y_incr = 12000 / cb->Info.dwSize.X;
-    for (Y = 0; Y < cb->BufferSize.Y; Y += Y_incr)
+    ReadRegion.Right = BufferSize.X - 1;
+    ReadRegion.Top = 0;
+    ReadRegion.Bottom = BufferSize.Y - 1;
+
+    NumCells = BufferSize.X * BufferSize.Y;
+    Buffer = (PCHAR_INFO)alloc(NumCells * sizeof(CHAR_INFO));
+    if (Buffer == NULL)
+	return FALSE;
+
+    BufferCoord.X = 0;
+    BufferCoord.Y = 0;
+
+    if (!ReadConsoleOutputW(hConOld,	    /* output handle */
+		Buffer,			    /* our buffer */
+		BufferSize,		    /* dimensions of our buffer */
+		BufferCoord,		    /* offset in our buffer */
+		&ReadRegion))		    /* region to save */
     {
-	/*
-	 * Read into position (0, Y) in our buffer.
-	 */
-	BufferCoord.Y = Y;
-	/*
-	 * Read the region whose top left corner is (0, Y) and whose bottom
-	 * right corner is (width - 1, Y + Y_incr - 1).  This should define
-	 * a region of size width by Y_incr.  Don't worry if this region is
-	 * too large for the remaining buffer; it will be cropped.
-	 */
-	ReadRegion.Top = Y;
-	ReadRegion.Bottom = Y + Y_incr - 1;
-	if (!ReadConsoleOutput(g_hConOut,	/* output handle */
-		cb->Buffer,			/* our buffer */
-		cb->BufferSize,			/* dimensions of our buffer */
-		BufferCoord,			/* offset in our buffer */
-		&ReadRegion))			/* region to save */
-	{
-	    vim_free(cb->Buffer);
-	    cb->Buffer = NULL;
-	    return FALSE;
-	}
+	vim_free(Buffer);
+	return FALSE;
     }
+    if (!WriteConsoleOutputW(g_hConOut,     /* output handle */
+		Buffer,			    /* our buffer */
+		BufferSize,		    /* dimensions of our buffer */
+		BufferCoord,		    /* offset in our buffer */
+		&ReadRegion))		    /* region to restore */
+    {
+	vim_free(Buffer);
+	return FALSE;
+    }
+    vim_free(Buffer);
+    SetConsoleWindowInfo(g_hConOut, TRUE, &ReadRegion);
 
     return TRUE;
 }
@@ -2272,67 +2279,20 @@ RestoreConsoleBuffer(
     ConsoleBuffer   *cb,
     BOOL	    RestoreScreen)
 {
-    COORD BufferCoord;
-    SMALL_RECT WriteRegion;
+    HANDLE hConOld;
 
     if (cb == NULL || !cb->IsValid)
 	return FALSE;
 
-    /*
-     * Before restoring the buffer contents, clear the current buffer, and
-     * restore the cursor position and window information.  Doing this now
-     * prevents old buffer contents from "flashing" onto the screen.
-     */
-    if (RestoreScreen)
-	ClearConsoleBuffer(cb->Info.wAttributes);
-
-    FitConsoleWindow(cb->Info.dwSize, TRUE);
-    if (!SetConsoleScreenBufferSize(g_hConOut, cb->Info.dwSize))
-	return FALSE;
-    if (!SetConsoleTextAttribute(g_hConOut, cb->Info.wAttributes))
-	return FALSE;
-
-    if (!RestoreScreen)
-    {
-	/*
-	 * No need to restore the screen buffer contents, so we're done.
-	 */
-	return TRUE;
-    }
-
-    if (!SetConsoleCursorPosition(g_hConOut, cb->Info.dwCursorPosition))
-	return FALSE;
-    if (!SetConsoleWindowInfo(g_hConOut, TRUE, &cb->Info.srWindow))
-	return FALSE;
-
-    /*
-     * Restore the screen buffer contents.
-     */
-    if (cb->Buffer != NULL)
-    {
-	BufferCoord.X = 0;
-	BufferCoord.Y = 0;
-	WriteRegion.Left = 0;
-	WriteRegion.Top = 0;
-	WriteRegion.Right = cb->Info.dwSize.X - 1;
-	WriteRegion.Bottom = cb->Info.dwSize.Y - 1;
-	if (!WriteConsoleOutput(g_hConOut,	/* output handle */
-		cb->Buffer,			/* our buffer */
-		cb->BufferSize,			/* dimensions of our buffer */
-		BufferCoord,			/* offset in our buffer */
-		&WriteRegion))			/* region to restore */
-	{
-	    return FALSE;
-	}
-    }
+    hConOld = g_hConOut;
+    g_hConOut = cb->handle;
+    if (!RestoreScreen && exiting)
+	CopyOldConsoleBuffer(cb, hConOld);
+    SetConsoleActiveScreenBuffer(g_hConOut);
 
     return TRUE;
 }
 
-#define FEAT_RESTORE_ORIG_SCREEN
-#ifdef FEAT_RESTORE_ORIG_SCREEN
-static ConsoleBuffer g_cbOrig = { 0 };
-#endif
 static ConsoleBuffer g_cbNonTermcap = { 0 };
 static ConsoleBuffer g_cbTermcap = { 0 };
 
@@ -2471,9 +2431,6 @@ static DWORD g_cmodeout = 0;
     void
 mch_init(void)
 {
-#ifndef FEAT_RESTORE_ORIG_SCREEN
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-#endif
 #ifndef __MINGW32__
     extern int _fmode;
 #endif
@@ -2494,16 +2451,14 @@ mch_init(void)
     else
 	create_conin();
     g_hConOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    g_cbNonTermcap.handle = g_hConOut;
+    g_cbTermcap.handle = CreateConsoleScreenBuffer(
+	    GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+	    NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
 
-#ifdef FEAT_RESTORE_ORIG_SCREEN
-    /* Save the initial console buffer for later restoration */
-    SaveConsoleBuffer(&g_cbOrig);
-    g_attrCurrent = g_attrDefault = g_cbOrig.Info.wAttributes;
-#else
     /* Get current text attributes */
-    GetConsoleScreenBufferInfo(g_hConOut, &csbi);
-    g_attrCurrent = g_attrDefault = csbi.wAttributes;
-#endif
+    SaveConsoleBuffer(&g_cbNonTermcap);
+    g_attrCurrent = g_attrDefault = g_cbNonTermcap.Info.wAttributes;
     if (cterm_normal_fg_color == 0)
 	cterm_normal_fg_color = (g_attrCurrent & 0xf) + 1;
     if (cterm_normal_bg_color == 0)
@@ -2602,6 +2557,8 @@ mch_exit(int r)
     SetConsoleCursorInfo(g_hConOut, &g_cci);
     SetConsoleMode(g_hConIn,  g_cmodein);
     SetConsoleMode(g_hConOut, g_cmodeout);
+
+    CloseHandle(g_cbTermcap.handle);
 
 #ifdef DYNAMIC_GETTEXT
     dyn_libintl_end();
@@ -4173,7 +4130,8 @@ sub_process_writer(LPVOID param)
 	    /* Finished a line, add a NL, unless this line should not have
 	     * one. */
 	    if (lnum != curbuf->b_op_end.lnum
-		|| !curbuf->b_p_bin
+		|| (!curbuf->b_p_bin
+		    && curbuf->b_p_fixeol)
 		|| (lnum != curbuf->b_no_eol_lnum
 		    && (lnum != curbuf->b_ml.ml_line_count
 			|| curbuf->b_p_eol)))
@@ -4974,6 +4932,8 @@ termcap_mode_start(void)
 	 * screen buffer, and resize the buffer to match the current window
 	 * size.  We will use this as the size of our editing environment.
 	 */
+	g_hConOut = g_cbTermcap.handle;
+	SetConsoleActiveScreenBuffer(g_hConOut);
 	ClearConsoleBuffer(g_attrCurrent);
 	ResizeConBufAndWindow(g_hConOut, Columns, Rows);
     }
@@ -5017,11 +4977,7 @@ termcap_mode_end(void)
     cmodein &= ~(ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT);
     SetConsoleMode(g_hConIn, cmodein);
 
-#ifdef FEAT_RESTORE_ORIG_SCREEN
-    cb = exiting ? &g_cbOrig : &g_cbNonTermcap;
-#else
     cb = &g_cbNonTermcap;
-#endif
     RestoreConsoleBuffer(cb, p_rs);
     SetConsoleCursorInfo(g_hConOut, &g_cci);
 
@@ -5387,27 +5343,73 @@ cursor_visible(BOOL fVisible)
 
 
 /*
- * write `cchToWrite' characters in `pchBuf' to the screen
- * Returns the number of characters actually written (at least one).
+ * write `cbToWrite' bytes in `pchBuf' to the screen
+ * Returns the number of bytes actually written (at least one).
  */
-    static BOOL
+    static DWORD
 write_chars(
-    LPCSTR pchBuf,
-    DWORD  cchToWrite)
+    char_u *pchBuf,
+    DWORD  cbToWrite)
 {
     COORD coord = g_coord;
     DWORD written;
 
-    FillConsoleOutputAttribute(g_hConOut, g_attrCurrent, cchToWrite,
-				coord, &written);
-    /* When writing fails or didn't write a single character, pretend one
-     * character was written, otherwise we get stuck. */
-    if (WriteConsoleOutputCharacter(g_hConOut, pchBuf, cchToWrite,
-				coord, &written) == 0
-	    || written == 0)
-	written = 1;
+#ifdef FEAT_MBYTE
+    if (enc_codepage >= 0 && (int)GetACP() != enc_codepage)
+    {
+	static WCHAR	*unicodebuf = NULL;
+	static int	unibuflen = 0;
+	int		length;
+	DWORD		n, cchwritten, cells;
 
-    g_coord.X += (SHORT) written;
+	length = MultiByteToWideChar(CP_UTF8, 0, (LPCSTR)pchBuf, cbToWrite, 0, 0);
+	if (unicodebuf == NULL || length > unibuflen)
+	{
+	    vim_free(unicodebuf);
+	    unicodebuf = (WCHAR *)lalloc(length * sizeof(WCHAR), FALSE);
+	    unibuflen = length;
+	}
+	MultiByteToWideChar(CP_UTF8, 0, (LPCSTR)pchBuf, cbToWrite,
+			    unicodebuf, unibuflen);
+
+	cells = mb_string2cells(pchBuf, cbToWrite);
+	FillConsoleOutputAttribute(g_hConOut, g_attrCurrent, cells,
+				    coord, &written);
+	/* When writing fails or didn't write a single character, pretend one
+	 * character was written, otherwise we get stuck. */
+	if (WriteConsoleOutputCharacterW(g_hConOut, unicodebuf, length,
+		    coord, &cchwritten) == 0
+		|| cchwritten == 0)
+	    cchwritten = 1;
+
+	if (cchwritten == length)
+	{
+	    written = cbToWrite;
+	    g_coord.X += (SHORT)cells;
+	}
+	else
+	{
+	    char_u *p = pchBuf;
+	    for (n = 0; n < cchwritten; n++)
+		mb_cptr_adv(p);
+	    written = p - pchBuf;
+	    g_coord.X += (SHORT)mb_string2cells(pchBuf, written);
+	}
+    }
+    else
+#endif
+    {
+	FillConsoleOutputAttribute(g_hConOut, g_attrCurrent, cbToWrite,
+				    coord, &written);
+	/* When writing fails or didn't write a single character, pretend one
+	 * character was written, otherwise we get stuck. */
+	if (WriteConsoleOutputCharacter(g_hConOut, (LPCSTR)pchBuf, cbToWrite,
+		    coord, &written) == 0
+		|| written == 0)
+	    written = 1;
+
+	g_coord.X += (SHORT) written;
+    }
 
     while (g_coord.X > g_srScrollRegion.Right)
     {
