@@ -15,6 +15,9 @@
 #import <Carbon/Carbon.h>
 #endif
 
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+
 
 #define BLUE(argb)      ((argb & 0xff)/255.0f)
 #define GREEN(argb)     (((argb>>8) & 0xff)/255.0f)
@@ -61,6 +64,7 @@
 - (void)doCommandBySelector:(SEL)selector;
 - (BOOL)performKeyEquivalent:(NSEvent *)event;
 - (void)scrollWheel:(NSEvent *)event;
+- (uint64_t)getTick;
 - (void)mouseDown:(NSEvent *)event;
 - (void)mouseUp:(NSEvent *)event;
 - (void)mouseDragged:(NSEvent *)event;

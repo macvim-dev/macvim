@@ -364,6 +364,34 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     }
 }
 
+- (uint64_t)getTick
+{
+    // NOTE: See http://developer.apple.com/library/mac/qa/qa1398/_index.html
+
+    static mach_timebase_info_data_t sTimebaseInfo;
+
+    uint64_t absolute = mach_absolute_time();
+
+    // Convert to milliseconds.
+
+    // If this is the first time we've run, get the timebase.
+    // We can use denom == 0 to indicate that sTimebaseInfo is
+    // uninitialised because it makes no sense to have a zero
+    // denominator is a fraction.
+
+    if (sTimebaseInfo.denom == 0) {
+        (void) mach_timebase_info(&sTimebaseInfo);
+    }
+
+    // Do the maths. We hope that the multiplication doesn't
+    // overflow; the price you pay for working in fixed point.
+
+    uint64_t milliseconds =
+        ((absolute / 1000000) * sTimebaseInfo.numer) / sTimebaseInfo.denom;
+
+    return milliseconds;
+}
+
 - (void)mouseDown:(NSEvent *)event
 {
     if ([self inputManagerHandleMouseEvent:event])
@@ -376,7 +404,18 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     int button = [event buttonNumber];
     int flags = [event modifierFlags];
-    int count = [event clickCount];
+    int repeat = 0;
+    static uint64_t previousTick;
+    static dispatch_once_t onceToken;
+    dispatch_once (&onceToken, ^{
+        previousTick = [self getTick];
+    });
+    uint64_t currentTick = [self getTick];
+    id mouset = [[[self vimController] vimState] objectForKey:@"p_mouset"];
+    if ((currentTick - previousTick) < [mouset longValue]) {
+        repeat = 1;
+    }
+    previousTick = currentTick;
     NSMutableData *data = [NSMutableData data];
 
     // If desired, intepret Ctrl-Click as a right mouse click.
@@ -394,7 +433,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [data appendBytes:&col length:sizeof(int)];
     [data appendBytes:&button length:sizeof(int)];
     [data appendBytes:&flags length:sizeof(int)];
-    [data appendBytes:&count length:sizeof(int)];
+    [data appendBytes:&repeat length:sizeof(int)];
 
     [[self vimController] sendMessage:MouseDownMsgID data:data];
 }
