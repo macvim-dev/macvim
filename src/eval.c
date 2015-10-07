@@ -12428,12 +12428,16 @@ getwinvar(argvars, rettv, off)
     typval_T	*rettv;
     int		off;	    /* 1 for gettabwinvar() */
 {
-    win_T	*win, *oldcurwin;
+    win_T	*win;
     char_u	*varname;
     dictitem_T	*v;
     tabpage_T	*tp = NULL;
-    tabpage_T	*oldtabpage;
     int		done = FALSE;
+#ifdef FEAT_WINDOWS
+    win_T	*oldcurwin;
+    tabpage_T	*oldtabpage;
+    int		need_switch_win;
+#endif
 
 #ifdef FEAT_WINDOWS
     if (off == 1)
@@ -12450,9 +12454,14 @@ getwinvar(argvars, rettv, off)
 
     if (win != NULL && varname != NULL)
     {
+#ifdef FEAT_WINDOWS
 	/* Set curwin to be our win, temporarily.  Also set the tabpage,
-	 * otherwise the window is not valid. */
-	if (switch_win(&oldcurwin, &oldtabpage, win, tp, TRUE) == OK)
+	 * otherwise the window is not valid. Only do this when needed,
+	 * autocommands get blocked. */
+	need_switch_win = !(tp == curtab && win == curwin);
+	if (!need_switch_win
+		  || switch_win(&oldcurwin, &oldtabpage, win, tp, TRUE) == OK)
+#endif
 	{
 	    if (*varname == '&')	/* window-local-option */
 	    {
@@ -12473,8 +12482,11 @@ getwinvar(argvars, rettv, off)
 	    }
 	}
 
-	/* restore previous notion of curwin */
-	restore_win(oldcurwin, oldtabpage, TRUE);
+#ifdef FEAT_WINDOWS
+	if (need_switch_win)
+	    /* restore previous notion of curwin */
+	    restore_win(oldcurwin, oldtabpage, TRUE);
+#endif
     }
 
     if (!done && argvars[off + 2].v_type != VAR_UNKNOWN)
@@ -17625,6 +17637,7 @@ setwinvar(argvars, rettv, off)
 #ifdef FEAT_WINDOWS
     win_T	*save_curwin;
     tabpage_T	*save_curtab;
+    int		need_switch_win;
 #endif
     char_u	*varname, *winvarname;
     typval_T	*varp;
@@ -17647,7 +17660,9 @@ setwinvar(argvars, rettv, off)
     if (win != NULL && varname != NULL && varp != NULL)
     {
 #ifdef FEAT_WINDOWS
-	if (switch_win(&save_curwin, &save_curtab, win, tp, TRUE) == OK)
+	need_switch_win = !(tp == curtab && win == curwin);
+	if (!need_switch_win
+	       || switch_win(&save_curwin, &save_curtab, win, tp, TRUE) == OK)
 #endif
 	{
 	    if (*varname == '&')
@@ -17675,7 +17690,8 @@ setwinvar(argvars, rettv, off)
 	    }
 	}
 #ifdef FEAT_WINDOWS
-	restore_win(save_curwin, save_curtab, TRUE);
+	if (need_switch_win)
+	    restore_win(save_curwin, save_curtab, TRUE);
 #endif
     }
 }
@@ -23845,6 +23861,7 @@ call_user_func(fp, argcount, argvars, rettv, firstline, lastline, selfdict)
     int		ai;
     char_u	numbuf[NUMBUFLEN];
     char_u	*name;
+    size_t	len;
 #ifdef FEAT_PROFILE
     proftime_T	wait_start;
     proftime_T	call_start;
@@ -23976,13 +23993,16 @@ call_user_func(fp, argcount, argvars, rettv, firstline, lastline, selfdict)
     save_sourcing_name = sourcing_name;
     save_sourcing_lnum = sourcing_lnum;
     sourcing_lnum = 1;
-    sourcing_name = alloc((unsigned)((save_sourcing_name == NULL ? 0
-		: STRLEN(save_sourcing_name)) + STRLEN(fp->uf_name) + 13));
+    /* need space for function name + ("function " + 3) or "[number]" */
+    len = (save_sourcing_name == NULL ? 0 : STRLEN(save_sourcing_name))
+						   + STRLEN(fp->uf_name) + 20;
+    sourcing_name = alloc((unsigned)len);
     if (sourcing_name != NULL)
     {
 	if (save_sourcing_name != NULL
 			  && STRNCMP(save_sourcing_name, "function ", 9) == 0)
-	    sprintf((char *)sourcing_name, "%s..", save_sourcing_name);
+	    sprintf((char *)sourcing_name, "%s[%d]..",
+				 save_sourcing_name, (int)save_sourcing_lnum);
 	else
 	    STRCPY(sourcing_name, "function ");
 	cat_func_name(sourcing_name + STRLEN(sourcing_name), fp);

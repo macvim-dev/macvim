@@ -650,7 +650,7 @@ property_event(GtkWidget *widget,
 	xev.xproperty.atom = commProperty;
 	xev.xproperty.window = commWindow;
 	xev.xproperty.state = PropertyNewValue;
-	serverEventProc(GDK_WINDOW_XDISPLAY(widget->window), &xev);
+	serverEventProc(GDK_WINDOW_XDISPLAY(widget->window), &xev, 0);
     }
     return FALSE;
 }
@@ -5063,8 +5063,13 @@ not_ascii:
 	     * done, because drawing the cursor would change the display. */
 	    item->analysis.shape_engine = default_shape_engine;
 
+#ifdef HAVE_PANGO_SHAPE_FULL
+	    pango_shape_full((const char *)s + item->offset, item->length,
+		    (const char *)s, len, &item->analysis, glyphs);
+#else
 	    pango_shape((const char *)s + item->offset, item->length,
 			&item->analysis, glyphs);
+#endif
 	    /*
 	     * Fixed-width hack: iterate over the array and assign a fixed
 	     * width to each glyph, thus overriding the choice made by the
@@ -5471,9 +5476,8 @@ gui_mch_wait_for_chars(long wtime)
 	    focus = gui.in_focus;
 	}
 
-#if defined(FEAT_NETBEANS_INTG)
-	/* Process any queued netbeans messages. */
-	netbeans_parse_messages();
+#ifdef MESSAGE_QUEUE
+	parse_queued_messages();
 #endif
 
 	/*

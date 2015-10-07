@@ -5351,8 +5351,19 @@ find_start_comment(ind_maxcomment)	    /* XXX */
     static pos_T *
 ind_find_start_CORS()	    /* XXX */
 {
-    pos_T	*comment_pos = find_start_comment(curbuf->b_ind_maxcomment);
-    pos_T	*rs_pos = find_start_rawstring(curbuf->b_ind_maxcomment);
+    static pos_T comment_pos_copy;
+    pos_T	*comment_pos;
+    pos_T	*rs_pos;
+
+    comment_pos = find_start_comment(curbuf->b_ind_maxcomment);
+    if (comment_pos != NULL)
+    {
+	/* Need to make a copy of the static pos in findmatchlimit(),
+	 * calling find_start_rawstring() may change it. */
+	comment_pos_copy = *comment_pos;
+	comment_pos = &comment_pos_copy;
+    }
+    rs_pos = find_start_rawstring(curbuf->b_ind_maxcomment);
 
     /* If comment_pos is before rs_pos the raw string is inside the comment.
      * If rs_pos is before comment_pos the comment is inside the raw string. */
@@ -8340,7 +8351,8 @@ get_c_indent()
 		if (terminated == 0 || (lookfor != LOOKFOR_UNTERM
 							&& terminated == ','))
 		{
-		    if (*skipwhite(l) == '[' || l[STRLEN(l) - 1] == '[')
+		    if (lookfor != LOOKFOR_ENUM_OR_INIT &&
+			    (*skipwhite(l) == '[' || l[STRLEN(l) - 1] == '['))
 			amount += ind_continuation;
 		    /*
 		     * if we're in the middle of a paren thing,
@@ -8582,7 +8594,10 @@ get_c_indent()
 			     */
 			    l = ml_get_curline();
 			    amount = cur_amount;
-			    if (*skipwhite(l) == ']' || l[STRLEN(l) - 1] == ']')
+
+			    n = (int)STRLEN(l);
+			    if (terminated == ',' && (*skipwhite(l) == ']'
+					|| (n >=2 && l[n - 2] == ']')))
 				break;
 
 			    /*
@@ -9703,14 +9718,14 @@ expand_wildcards_eval(pat, num_file, file, flags)
 /*
  * Expand wildcards.  Calls gen_expand_wildcards() and removes files matching
  * 'wildignore'.
- * Returns OK or FAIL.  When FAIL then "num_file" won't be set.
+ * Returns OK or FAIL.  When FAIL then "num_files" won't be set.
  */
     int
-expand_wildcards(num_pat, pat, num_file, file, flags)
+expand_wildcards(num_pat, pat, num_files, files, flags)
     int		   num_pat;	/* number of input patterns */
     char_u	 **pat;		/* array of input patterns */
-    int		  *num_file;	/* resulting number of files */
-    char_u	***file;	/* array of resulting files */
+    int		  *num_files;	/* resulting number of files */
+    char_u	***files;	/* array of resulting files */
     int		   flags;	/* EW_DIR, etc. */
 {
     int		retval;
@@ -9718,7 +9733,7 @@ expand_wildcards(num_pat, pat, num_file, file, flags)
     char_u	*p;
     int		non_suf_match;	/* number without matching suffix */
 
-    retval = gen_expand_wildcards(num_pat, pat, num_file, file, flags);
+    retval = gen_expand_wildcards(num_pat, pat, num_files, files, flags);
 
     /* When keeping all matches, return here */
     if ((flags & EW_KEEPALL) || retval == FAIL)
@@ -9732,25 +9747,33 @@ expand_wildcards(num_pat, pat, num_file, file, flags)
     {
 	char_u	*ffname;
 
-	/* check all files in (*file)[] */
-	for (i = 0; i < *num_file; ++i)
+	/* check all files in (*files)[] */
+	for (i = 0; i < *num_files; ++i)
 	{
-	    ffname = FullName_save((*file)[i], FALSE);
+	    ffname = FullName_save((*files)[i], FALSE);
 	    if (ffname == NULL)		/* out of memory */
 		break;
 # ifdef VMS
 	    vms_remove_version(ffname);
 # endif
-	    if (match_file_list(p_wig, (*file)[i], ffname))
+	    if (match_file_list(p_wig, (*files)[i], ffname))
 	    {
-		/* remove this matching file from the list */
-		vim_free((*file)[i]);
-		for (j = i; j + 1 < *num_file; ++j)
-		    (*file)[j] = (*file)[j + 1];
-		--*num_file;
+		/* remove this matching files from the list */
+		vim_free((*files)[i]);
+		for (j = i; j + 1 < *num_files; ++j)
+		    (*files)[j] = (*files)[j + 1];
+		--*num_files;
 		--i;
 	    }
 	    vim_free(ffname);
+	}
+
+	/* If the number of matches is now zero, we fail. */
+	if (*num_files == 0)
+	{
+	    vim_free(*files);
+	    *files = NULL;
+	    return FAIL;
 	}
     }
 #endif
@@ -9758,21 +9781,21 @@ expand_wildcards(num_pat, pat, num_file, file, flags)
     /*
      * Move the names where 'suffixes' match to the end.
      */
-    if (*num_file > 1)
+    if (*num_files > 1)
     {
 	non_suf_match = 0;
-	for (i = 0; i < *num_file; ++i)
+	for (i = 0; i < *num_files; ++i)
 	{
-	    if (!match_suffix((*file)[i]))
+	    if (!match_suffix((*files)[i]))
 	    {
 		/*
 		 * Move the name without matching suffix to the front
 		 * of the list.
 		 */
-		p = (*file)[i];
+		p = (*files)[i];
 		for (j = i; j > non_suf_match; --j)
-		    (*file)[j] = (*file)[j - 1];
-		(*file)[non_suf_match++] = p;
+		    (*files)[j] = (*files)[j - 1];
+		(*files)[non_suf_match++] = p;
 	    }
 	}
     }

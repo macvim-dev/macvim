@@ -135,7 +135,7 @@ static int	getargopt __ARGS((exarg_T *eap));
 #endif
 
 static int	check_more __ARGS((int, int));
-static linenr_T get_address __ARGS((char_u **, int addr_type, int skip, int to_other_file));
+static linenr_T get_address __ARGS((exarg_T *, char_u **, int addr_type, int skip, int to_other_file));
 static void	get_flags __ARGS((exarg_T *eap));
 #if !defined(FEAT_PERL) \
 	|| !defined(FEAT_PYTHON) || !defined(FEAT_PYTHON3) \
@@ -878,7 +878,7 @@ do_cmdline(cmdline, fgetline, cookie, flags)
     if (flags & DOCMD_EXCRESET)
 	save_dbg_stuff(&debug_saved);
     else
-	vim_memset(&debug_saved, 0, 1);
+	vim_memset(&debug_saved, 0, sizeof(debug_saved));
 
     initial_trylevel = trylevel;
 
@@ -2180,9 +2180,14 @@ do_one_cmd(cmdlinep, sourcing,
 		lnum = CURRENT_TAB_NR;
 		ea.line2 = lnum;
 		break;
+#ifdef FEAT_QUICKFIX
+	    case ADDR_QUICKFIX:
+		ea.line2 = qf_get_cur_valid_idx(&ea);
+		break;
+#endif
 	}
 	ea.cmd = skipwhite(ea.cmd);
-	lnum = get_address(&ea.cmd, ea.addr_type, ea.skip, ea.addr_count == 0);
+	lnum = get_address(&ea, &ea.cmd, ea.addr_type, ea.skip, ea.addr_count == 0);
 	if (ea.cmd == NULL)		    /* error detected */
 	    goto doend;
 	if (lnum == MAXLNUM)
@@ -2240,6 +2245,14 @@ do_one_cmd(cmdlinep, sourcing,
 			    ea.line2 = ARGCOUNT;
 			}
 			break;
+#ifdef FEAT_QUICKFIX
+		    case ADDR_QUICKFIX:
+			ea.line1 = 1;
+			ea.line2 = qf_get_size(&ea);
+			if (ea.line2 == 0)
+			    ea.line2 = 1;
+			break;
+#endif
 		}
 		++ea.addr_count;
 	    }
@@ -2700,6 +2713,13 @@ do_one_cmd(cmdlinep, sourcing,
 		else
 		    ea.line2 = ARGCOUNT;
 		break;
+#ifdef FEAT_QUICKFIX
+	    case ADDR_QUICKFIX:
+		ea.line2 = qf_get_size(&ea);
+		if (ea.line2 == 0)
+		    ea.line2 = 1;
+		break;
+#endif
 	}
     }
 
@@ -3846,6 +3866,8 @@ set_one_cmd_context(xp, buff)
 	case CMD_botright:
 	case CMD_browse:
 	case CMD_bufdo:
+	case CMD_cdo:
+	case CMD_cfdo:
 	case CMD_confirm:
 	case CMD_debug:
 	case CMD_folddoclosed:
@@ -3855,7 +3877,9 @@ set_one_cmd_context(xp, buff)
 	case CMD_keepjumps:
 	case CMD_keepmarks:
 	case CMD_keeppatterns:
+	case CMD_ldo:
 	case CMD_leftabove:
+	case CMD_lfdo:
 	case CMD_lockmarks:
 	case CMD_noautocmd:
 	case CMD_noswapfile:
@@ -4338,7 +4362,8 @@ skip_range(cmd, ctx)
  * Return MAXLNUM when no Ex address was found.
  */
     static linenr_T
-get_address(ptr, addr_type, skip, to_other_file)
+get_address(eap, ptr, addr_type, skip, to_other_file)
+    exarg_T	*eap UNUSED;
     char_u	**ptr;
     int		addr_type;  /* flag: one of ADDR_LINES, ... */
     int		skip;	    /* only skip the address, don't use it */
@@ -4379,6 +4404,11 @@ get_address(ptr, addr_type, skip, to_other_file)
 		    case ADDR_TABS:
 			lnum = CURRENT_TAB_NR;
 			break;
+#ifdef FEAT_QUICKFIX
+		    case ADDR_QUICKFIX:
+			lnum = qf_get_cur_valid_idx(eap);
+			break;
+#endif
 		}
 		break;
 
@@ -4411,6 +4441,13 @@ get_address(ptr, addr_type, skip, to_other_file)
 		    case ADDR_TABS:
 			lnum = LAST_TAB_NR;
 			break;
+#ifdef FEAT_QUICKFIX
+		    case ADDR_QUICKFIX:
+			lnum = qf_get_size(eap);
+			if (lnum == 0)
+			    lnum = 1;
+			break;
+#endif
 		}
 		break;
 
@@ -4586,6 +4623,11 @@ get_address(ptr, addr_type, skip, to_other_file)
 		    case ADDR_TABS:
 			lnum = CURRENT_TAB_NR;
 			break;
+#ifdef FEAT_QUICKFIX
+		    case ADDR_QUICKFIX:
+			lnum = qf_get_cur_valid_idx(eap);
+			break;
+#endif
 		}
 	    }
 
@@ -4724,6 +4766,12 @@ invalid_range(eap)
 		if (eap->line2 > LAST_TAB_NR)
 		    return (char_u *)_(e_invrange);
 		break;
+#ifdef FEAT_QUICKFIX
+	    case ADDR_QUICKFIX:
+		if (eap->line2 != 1 && eap->line2 > qf_get_size(eap))
+		    return (char_u *)_(e_invrange);
+		break;
+#endif
 	}
     }
     return NULL;
@@ -5834,6 +5882,7 @@ static struct
     {ADDR_TABS, "tabs"},
     {ADDR_BUFFERS, "buffers"},
     {ADDR_WINDOWS, "windows"},
+    {ADDR_QUICKFIX, "quickfix"},
     {-1, NULL}
 };
 #endif
@@ -9003,11 +9052,11 @@ do_sleep(msec)
     {
 	ui_delay(msec - done > 1000L ? 1000L : msec - done, TRUE);
 	ui_breakcheck();
-#ifdef FEAT_NETBEANS_INTG
-	/* Process the netbeans messages that may have been received in the
-	 * call to ui_breakcheck() when the GUI is in use. This may occur when
-	 * running a test case. */
-	netbeans_parse_messages();
+#ifdef MESSAGE_QUEUE
+	/* Process the netbeans and clientserver messages that may have been
+	 * received in the call to ui_breakcheck() when the GUI is in use. This
+	 * may occur when running a test case. */
+	parse_queued_messages();
 #endif
     }
 }
@@ -9243,7 +9292,7 @@ ex_copymove(eap)
 {
     long	n;
 
-    n = get_address(&eap->arg, eap->addr_type, FALSE, FALSE);
+    n = get_address(eap, &eap->arg, eap->addr_type, FALSE, FALSE);
     if (eap->arg == NULL)	    /* error detected */
     {
 	eap->nextcmd = NULL;

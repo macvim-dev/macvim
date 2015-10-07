@@ -315,3 +315,13 @@
 #  endif
 # endif
 #endif
+
+#ifdef FEAT_DIFF
+# define PLINES_NOFILL(x) plines_nofill(x)
+#else
+# define PLINES_NOFILL(x) plines(x)
+#endif
+
+#if defined(FEAT_NETBEANS_INTG) || defined(FEAT_CLIENTSERVER)
+# define MESSAGE_QUEUE
+#endif

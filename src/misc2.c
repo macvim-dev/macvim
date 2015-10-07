@@ -4375,21 +4375,20 @@ vim_findfile_init(path, filename, stopdirs, level, free_visited, find_what,
 		temp = alloc((int)(STRLEN(search_ctx->ffsc_wc_path)
 				 + STRLEN(search_ctx->ffsc_fix_path + len)
 				 + 1));
-	    }
+		if (temp == NULL || wc_path == NULL)
+		{
+		    vim_free(buf);
+		    vim_free(temp);
+		    vim_free(wc_path);
+		    goto error_return;
+		}
 
-	    if (temp == NULL || wc_path == NULL)
-	    {
-		vim_free(buf);
-		vim_free(temp);
+		STRCPY(temp, search_ctx->ffsc_fix_path + len);
+		STRCAT(temp, search_ctx->ffsc_wc_path);
+		vim_free(search_ctx->ffsc_wc_path);
 		vim_free(wc_path);
-		goto error_return;
+		search_ctx->ffsc_wc_path = temp;
 	    }
-
-	    STRCPY(temp, search_ctx->ffsc_fix_path + len);
-	    STRCAT(temp, search_ctx->ffsc_wc_path);
-	    vim_free(search_ctx->ffsc_wc_path);
-	    vim_free(wc_path);
-	    search_ctx->ffsc_wc_path = temp;
 	}
 #endif
 	vim_free(buf);
@@ -5090,7 +5089,7 @@ ff_wc_equal(s1, s2)
         i += MB_PTR2LEN(s1 + i);
         j += MB_PTR2LEN(s2 + j);
     }
-    return c1 == c2;
+    return s1[i] == s2[j];
 }
 #endif
 
@@ -6332,5 +6331,25 @@ has_non_ascii(s)
 	    if (*p >= 128)
 		return TRUE;
     return FALSE;
+}
+#endif
+
+#if defined(MESSAGE_QUEUE) || defined(PROTO)
+/*
+ * Process messages that have been queued for netbeans or clientserver.
+ * These functions can call arbitrary vimscript and should only be called when
+ * it is safe to do so.
+ */
+    void
+parse_queued_messages()
+{
+# ifdef FEAT_NETBEANS_INTG
+    /* Process the queued netbeans messages. */
+    netbeans_parse_messages();
+# endif
+# if defined(FEAT_CLIENTSERVER) && defined(FEAT_X11)
+    /* Process the queued clientserver messages. */
+    server_parse_messages();
+# endif
 }
 #endif

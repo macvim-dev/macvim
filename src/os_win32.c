@@ -234,6 +234,7 @@ static int suppress_winsize = 1;	/* don't fiddle with console */
 
 static char_u *exe_path = NULL;
 
+static BOOL is_win7 = FALSE;
 static BOOL win8_or_later = FALSE;
 
 /*
@@ -679,6 +680,9 @@ PlatformId(void)
 	GetVersionEx(&ovi);
 
 	g_PlatformId = ovi.dwPlatformId;
+
+	if ((ovi.dwMajorVersion == 6 && ovi.dwMinorVersion == 1))
+	    is_win7 = TRUE;
 
 	if ((ovi.dwMajorVersion == 6 && ovi.dwMinorVersion >= 2)
 		|| ovi.dwMajorVersion > 6)
@@ -4581,11 +4585,12 @@ mch_system(char *cmd, int options)
     else
 	return mch_system_classic(cmd, options);
 }
+
 #else
 
 # ifdef FEAT_MBYTE
     static int
-mch_system(char *cmd, int options)
+mch_system1(char *cmd, int options)
 {
     if (enc_codepage >= 0 && (int)GetACP() != enc_codepage)
     {
@@ -4600,8 +4605,44 @@ mch_system(char *cmd, int options)
     return system(cmd);
 }
 # else
-#  define mch_system(c, o) system(c)
+#  define mch_system1(c, o) system(c)
 # endif
+
+    static int
+mch_system(char *cmd, int options)
+{
+    int ret;
+    HANDLE hTemp = INVALID_HANDLE_VALUE;
+
+    /*
+     * Call DuplicateHandle before executing an external program, because msys
+     * and msys2's programs will call CreateConsoleScreenBuffer and
+     * CloseHandle.  CreateConsoleScreenBuffer returns the same handle which
+     * created by vim.  This causes a crash. This workaround is required on
+     * Windows7.
+     */
+    if (is_win7
+	    && g_fTermcapMode
+	    && DuplicateHandle(
+		    GetCurrentProcess(),
+		    g_hConOut,
+		    GetCurrentProcess(),
+		    &hTemp,
+		    0,
+		    TRUE,
+		    DUPLICATE_SAME_ACCESS))
+	SetConsoleActiveScreenBuffer(hTemp);
+
+    ret = mch_system1(cmd, options);
+
+    if (hTemp != INVALID_HANDLE_VALUE)
+    {
+	SetConsoleActiveScreenBuffer(g_hConOut);
+	CloseHandle(hTemp);
+    }
+
+    return ret;
+}
 
 #endif
 

@@ -1630,13 +1630,16 @@ vgetc()
       last_recorded_len = 0;
       for (;;)			/* this is done twice if there are modifiers */
       {
+	int did_inc = FALSE;
+
 	if (mod_mask)		/* no mapping after modifier has been read */
 	{
 	    ++no_mapping;
 	    ++allow_keys;
+	    did_inc = TRUE;	/* mod_mask may change value */
 	}
 	c = vgetorpeek(TRUE);
-	if (mod_mask)
+	if (did_inc)
 	{
 	    --no_mapping;
 	    --allow_keys;
@@ -3034,9 +3037,8 @@ inchar(buf, maxlen, wait_time, tb_change_cnt)
 	    )
     {
 
-#if defined(FEAT_NETBEANS_INTG)
-	/* Process the queued netbeans messages. */
-	netbeans_parse_messages();
+#ifdef MESSAGE_QUEUE
+	parse_queued_messages();
 #endif
 
 	if (got_int || (script_char = getc(scriptin[curscript])) < 0)

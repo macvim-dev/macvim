@@ -2561,7 +2561,8 @@ do_mouse(oap, c, dir, count, fixindent)
 	    if (in_tab_line)
 	    {
 		c1 = TabPageIdxs[mouse_col];
-		tabpage_move(c1 <= 0 ? 9999 : c1 - 1);
+		tabpage_move(c1 <= 0 ? 9999 : c1 < tabpage_index(curtab)
+								? c1 - 1 : c1);
 	    }
 	    return FALSE;
 	}
@@ -9629,7 +9630,7 @@ get_op_vcol(oap, redo_VIsual_vcol, initial)
 	    || (!initial && oap->end.col < W_WIDTH(curwin)))
 	return;
 
-    oap->block_mode = VIsual_active;
+    oap->block_mode = TRUE;
 
 #ifdef FEAT_MBYTE
     /* prevent from moving onto a trail byte */
