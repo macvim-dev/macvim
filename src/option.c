@@ -655,7 +655,7 @@ static struct vimoption
 #endif
 			    {(char_u *)TRUE, (char_u *)0L} SCRIPTID_INIT},
     {"blurradius",  "blur", P_NUM|P_VIM,
-#ifdef FEAT_TRANSPARENCY
+#ifdef BLUR_TRANSPARENCY
 			    (char_u *)&p_blur, PV_NONE,
 #else
 			    (char_u *)NULL, PV_NONE,
@@ -8863,7 +8863,9 @@ set_num_option(opt_idx, varp, value, errbuf, errbuflen, opt_flags)
         else if (gui.in_use)
             gui_mch_new_colors();
     }
+#endif
 
+#ifdef BLUR_TRANSPARENCY
     else if (pp == &p_blur)
     {
         if (p_blur < 0)

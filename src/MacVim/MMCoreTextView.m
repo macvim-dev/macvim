@@ -1076,7 +1076,8 @@ ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs, CGPoint *positions
         }
     }
     // fixup relative positioning
-    for( CFIndex i = 0; i < offset; ++i ) {
+    CFIndex i;
+    for( i = 0; i < offset; ++i ) {
         positions[i].x += refPos.x;
         positions[i].y += refPos.y;
     }
