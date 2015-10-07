@@ -1316,6 +1316,7 @@ MACVIMGUI_TARGETS =
 MACVIMGUI_MAN_TARGETS =
 MACVIMGUI_TESTTARGET = gui
 MACVIMGUI_BUNDLE = macvim
+MACVIMGUI_TESTARG = VIMPROG=../$(RELEASEDIR)/MacVim.app/Contents/MacOS/$(VIMTARGET)
 
 # All GUI files
 ALL_GUI_SRC  = gui.c gui_gtk.c gui_gtk_f.c gui_motif.c gui_xmdlg.c gui_xmebw.c gui_athena.c gui_gtk_x11.c gui_x11.c gui_at_sb.c gui_at_fs.c pty.c
