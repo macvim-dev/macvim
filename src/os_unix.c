@@ -4642,7 +4642,8 @@ mch_call_shell(cmd, options)
 				/* Finished a line, add a NL, unless this line
 				 * should not have one. */
 				if (lnum != curbuf->b_op_end.lnum
-					|| !curbuf->b_p_bin
+					|| (!curbuf->b_p_bin
+					    && curbuf->b_p_fixeol)
 					|| (lnum != curbuf->b_no_eol_lnum
 					    && (lnum !=
 						    curbuf->b_ml.ml_line_count
@@ -7022,7 +7023,7 @@ do_xterm_trace()
 	/* Rely on the same mouse code for the duration of this */
 	mouse_code = find_termcode(mouse_name);
 	prev_row = mouse_row;
-	prev_row = mouse_col;
+	prev_col = mouse_col;
 	xterm_trace = 2;
 
 	/* Find the offset of the chars, there might be a scrollbar on the

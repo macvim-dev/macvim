@@ -1,4 +1,4 @@
-*autocmd.txt*   For Vim version 7.4.  Last change: 2015 Mar 21
+*autocmd.txt*   For Vim version 7.4.  Last change: 2015 Aug 18
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -259,6 +259,7 @@ Name			triggered by ~
 |Syntax|		when the 'syntax' option has been set
 |EncodingChanged|	after the 'encoding' option has been changed
 |TermChanged|		after the value of 'term' has changed
+|OptionSet|		after setting any option
 
 	Startup and exit
 |VimEnter|		after doing all the startup stuff
@@ -505,6 +506,8 @@ ColorScheme			After loading a color scheme. |:colorscheme|
 CompleteDone			After Insert mode completion is done.  Either
 				when something was completed or abandoning
 				completion. |ins-completion|
+				The |v:completed_item| variable contains
+				information about the completed item.
 
 							*CursorHold*
 CursorHold			When the user doesn't press a key for the time
@@ -742,6 +745,29 @@ MenuPopup			Just before showing the popup menu (under the
 					o	Operator-pending
 					i	Insert
 					c	Command line
+							*OptionSet*
+OptionSet			After setting an option.  The pattern is
+				matched against the long option name.
+				The |v:option_old| variable indicates the
+				old option value, |v:option_new| variable
+				indicates the newly set value, the
+				|v:option_type| variable indicates whether
+				it's global or local scoped and |<amatch>|
+				indicates what option has been set.
+
+				Is not triggered on startup and for the 'key'
+				option for obvious reasons.
+
+				Usage example: Check for the existence of the
+				directory in the 'backupdir' and 'undodir'
+				options, create the directory if it doesn't
+				exist yet.
+
+				Note: It's a bad idea to reset an option
+				during this autocommand, this may break a
+				plugin. You can always use `:noa` to prevent
+				triggering this autocommand.
+
 							*QuickFixCmdPre*
 QuickFixCmdPre			Before a quickfix command is run (|:make|,
 				|:lmake|, |:grep|, |:lgrep|, |:grepadd|,
@@ -1046,7 +1072,7 @@ Instead of a pattern buffer-local autocommands use one of these forms:
 Examples: >
     :au CursorHold <buffer>  echo 'hold'
     :au CursorHold <buffer=33>  echo 'hold'
-    :au CursorHold <buffer=abuf>  echo 'hold'
+    :au BufNewFile * au CursorHold <buffer=abuf>  echo 'hold'
 
 All the commands for autocommands also work with buffer-local autocommands,
 simply use the special string instead of the pattern.  Examples: >

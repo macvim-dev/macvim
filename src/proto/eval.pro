@@ -91,6 +91,7 @@ void set_vim_var_char __ARGS((int c));
 void set_vcount __ARGS((long count, long count1, int set_prevcount));
 void set_vim_var_string __ARGS((int idx, char_u *val, int len));
 void set_vim_var_list __ARGS((int idx, list_T *val));
+void set_vim_var_dict __ARGS((int idx, dict_T *val));
 void set_reg_var __ARGS((int c));
 char_u *v_exception __ARGS((char_u *oldval));
 char_u *v_throwpoint __ARGS((char_u *oldval));
@@ -132,6 +133,7 @@ void write_viminfo_varlist __ARGS((FILE *fp));
 int store_session_globals __ARGS((FILE *fd));
 void last_set_msg __ARGS((scid_T scriptID));
 void ex_oldfiles __ARGS((exarg_T *eap));
+void reset_v_option_vars __ARGS((void));
 int modify_fname __ARGS((char_u *src, int *usedlen, char_u **fnamep, char_u **bufp, int *fnamelen));
 char_u *do_string_sub __ARGS((char_u *str, char_u *pat, char_u *sub, char_u *flags));
 /* vim: set ft=c : */

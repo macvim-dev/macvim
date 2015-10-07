@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 7.4.  Last change: 2015 Mar 29
+*syntax.txt*	For Vim version 7.4.  Last change: 2015 Aug 13
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -3445,7 +3445,7 @@ DEFINING KEYWORDS					*:syn-keyword*
   :syntax keyword   Type   contained int long char
   :syntax keyword   Type   int long contained char
   :syntax keyword   Type   int long char contained
-<								*E789*
+<								*E789* *E890*
 	When you have a keyword with an optional tail, like Ex commands in
 	Vim, you can put the optional characters inside [], to define all the
 	variations at once: >
@@ -3699,6 +3699,7 @@ Whether or not it is actually concealed depends on the value of the
 'conceallevel' option.  The 'concealcursor' option is used to decide whether
 concealable items in the current line are displayed unconcealed to be able to
 edit the line.
+Another way to conceal text with with |matchadd()|.
 
 concealends						*:syn-concealends*
 
@@ -4760,7 +4761,7 @@ guisp={color-name}					*highlight-guisp*
 	    Orange	Purple		Violet
 
 	In the Win32 and MacVim GUI versions, additional system colors are
-	available.  See |win32-colors| and |macvim-colors| respectively.
+	available.  See |win32-colors| and |macvim-colors|.
 
 	You can also specify a color by its Red, Green and Blue values.
 	The format is "#rrggbb", where

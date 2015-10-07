@@ -17,7 +17,7 @@ if !exists("did_install_default_menus")
 let did_install_default_menus = 1
 
 
-if (exists("v:lang") || &langmenu != "")
+if exists("v:lang") || &langmenu != ""
   " Try to find a menu translation file for the current language.
   if &langmenu != ""
     if &langmenu =~ "none"
@@ -205,7 +205,7 @@ inoremenu <script> <silent> 20.400 &Edit.&Select\ All<Tab>ggVG	<C-O>:call <SID>S
 cnoremenu <script> <silent> 20.400 &Edit.&Select\ All<Tab>ggVG	<C-U>call <SID>SelectAll()<CR>
 
 an 20.405	 &Edit.-SEP2-				<Nop>
-if has("win32") || has("win16") || has("gui_gtk") || has("gui_kde") || has("gui_motif")
+if has("win32")  || has("win16") || has("gui_gtk") || has("gui_kde") || has("gui_motif")
   an 20.410	 &Edit.&Find\.\.\.			:promptfind<CR>
   vunmenu	 &Edit.&Find\.\.\.
   vnoremenu <silent>	 &Edit.&Find\.\.\.		y:promptfind <C-R>=<SID>FixFText()<CR><CR>

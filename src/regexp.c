@@ -1011,10 +1011,10 @@ reg_equi_class(c)
 		      REGMBC(0x107) REGMBC(0x109) REGMBC(0x10b)
 		      REGMBC(0x10d)
 		      return;
-	    case 'd': CASEMBC(0x10f) CASEMBC(0x111) CASEMBC(0x1d0b)
-	    CASEMBC(0x1e11)
+	    case 'd': CASEMBC(0x10f) CASEMBC(0x111) CASEMBC(0x1e0b)
+	    CASEMBC(0x1e0f) CASEMBC(0x1e11)
 		      regmbc('d'); REGMBC(0x10f) REGMBC(0x111)
-		      REGMBC(0x1e0b) REGMBC(0x01e0f) REGMBC(0x1e11)
+		      REGMBC(0x1e0b) REGMBC(0x1e0f) REGMBC(0x1e11)
 		      return;
 	    case 'e': case 0xe8: case 0xe9: case 0xea: case 0xeb:
 	    CASEMBC(0x113) CASEMBC(0x115) CASEMBC(0x117) CASEMBC(0x119)
@@ -3824,14 +3824,14 @@ bt_regexec_both(line, col, tm)
 	/* Use an item size of 1 byte, since we push different things
 	 * onto the regstack. */
 	ga_init2(&regstack, 1, REGSTACK_INITIAL);
-	ga_grow(&regstack, REGSTACK_INITIAL);
+	(void)ga_grow(&regstack, REGSTACK_INITIAL);
 	regstack.ga_growsize = REGSTACK_INITIAL * 8;
     }
 
     if (backpos.ga_data == NULL)
     {
 	ga_init2(&backpos, sizeof(backpos_T), BACKPOS_INITIAL);
-	ga_grow(&backpos, BACKPOS_INITIAL);
+	(void)ga_grow(&backpos, BACKPOS_INITIAL);
 	backpos.ga_growsize = BACKPOS_INITIAL * 8;
     }
 

@@ -89,6 +89,14 @@ static struct spat spats[2] =
 
 static int last_idx = 0;	/* index in spats[] for RE_LAST */
 
+static char_u lastc[2] = {NUL, NUL};	/* last character searched for */
+static int lastcdir = FORWARD;		/* last direction of character search */
+static int last_t_cmd = TRUE;		/* last search t_cmd */
+#ifdef FEAT_MBYTE
+static char_u	lastc_bytes[MB_MAXBYTES + 1];
+static int	lastc_bytelen = 1;	/* >1 for multi-byte char */
+#endif
+
 #if defined(FEAT_AUTOCMD) || defined(FEAT_EVAL) || defined(PROTO)
 /* copy of spats[], for keeping the search patterns while executing autocmds */
 static struct spat  saved_spats[2];
@@ -382,7 +390,7 @@ ignorecase(pat)
 }
 
 /*
- * Return TRUE if patter "pat" has an uppercase character.
+ * Return TRUE if pattern "pat" has an uppercase character.
  */
     int
 pat_has_uppercase(pat)
@@ -420,6 +428,58 @@ pat_has_uppercase(pat)
 	    ++p;
     }
     return FALSE;
+}
+
+    char_u *
+last_csearch()
+{
+#ifdef FEAT_MBYTE
+    return lastc_bytes;
+#else
+    return lastc;
+#endif
+}
+
+    int
+last_csearch_forward()
+{
+    return lastcdir == FORWARD;
+}
+
+    int
+last_csearch_until()
+{
+    return last_t_cmd == TRUE;
+}
+
+    void
+set_last_csearch(c, s, len)
+    int		c;
+    char_u	*s UNUSED;
+    int		len UNUSED;
+{
+    *lastc = c;
+#ifdef FEAT_MBYTE
+    lastc_bytelen = len;
+    if (len)
+	memcpy(lastc_bytes, s, len);
+    else
+	vim_memset(lastc_bytes, 0, sizeof(lastc_bytes));
+#endif
+}
+
+    void
+set_csearch_direction(cdir)
+    int cdir;
+{
+    lastcdir = cdir;
+}
+
+    void
+set_csearch_until(t_cmd)
+    int t_cmd;
+{
+    last_t_cmd = t_cmd;
 }
 
     char_u *
@@ -557,6 +617,7 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
     pos_T	start_pos;
     int		at_first_line;
     int		extra_col;
+    int		start_char_len;
     int		match_ok;
     long	nmatched;
     int		submatch = 0;
@@ -583,23 +644,37 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
 	/* When not accepting a match at the start position set "extra_col" to
 	 * a non-zero value.  Don't do that when starting at MAXCOL, since
 	 * MAXCOL + 1 is zero. */
-	if ((options & SEARCH_START) || pos->col == MAXCOL)
-	    extra_col = 0;
+	if (pos->col == MAXCOL)
+	    start_char_len = 0;
 #ifdef FEAT_MBYTE
 	/* Watch out for the "col" being MAXCOL - 2, used in a closed fold. */
-	else if (dir != BACKWARD && has_mbyte
-		     && pos->lnum >= 1 && pos->lnum <= buf->b_ml.ml_line_count
-						     && pos->col < MAXCOL - 2)
+	else if (has_mbyte
+		    && pos->lnum >= 1 && pos->lnum <= buf->b_ml.ml_line_count
+						    && pos->col < MAXCOL - 2)
 	{
 	    ptr = ml_get_buf(buf, pos->lnum, FALSE) + pos->col;
 	    if (*ptr == NUL)
-		extra_col = 1;
+		start_char_len = 1;
 	    else
-		extra_col = (*mb_ptr2len)(ptr);
+		start_char_len = (*mb_ptr2len)(ptr);
 	}
 #endif
 	else
-	    extra_col = 1;
+	    start_char_len = 1;
+	if (dir == FORWARD)
+	{
+	    if (options & SEARCH_START)
+		extra_col = 0;
+	    else
+		extra_col = start_char_len;
+	}
+	else
+	{
+	    if (options & SEARCH_START)
+		extra_col = start_char_len;
+	    else
+		extra_col = 0;
+	}
 
 	start_pos = *pos;	/* remember start pos for detecting no match */
 	found = 0;		/* default: not found */
@@ -788,15 +863,15 @@ searchit(win, buf, pos, dir, pat, count, options, pat_use, stop_lnum, tm)
 					|| (lnum + regmatch.endpos[0].lnum
 							     == start_pos.lnum
 					     && (int)regmatch.endpos[0].col - 1
-								   + extra_col
-							<= (int)start_pos.col))
+							< (int)start_pos.col
+								+ extra_col))
 				    : (lnum + regmatch.startpos[0].lnum
 							      < start_pos.lnum
 					|| (lnum + regmatch.startpos[0].lnum
 							     == start_pos.lnum
 					     && (int)regmatch.startpos[0].col
-								   + extra_col
-						      <= (int)start_pos.col))))
+						      < (int)start_pos.col
+							      + extra_col))))
 			    {
 				match_ok = TRUE;
 				matchpos = regmatch.startpos[0];
@@ -1553,47 +1628,42 @@ searchc(cap, t_cmd)
     int			c = cap->nchar;	/* char to search for */
     int			dir = cap->arg;	/* TRUE for searching forward */
     long		count = cap->count1;	/* repeat count */
-    static int		lastc = NUL;	/* last character searched for */
-    static int		lastcdir;	/* last direction of character search */
-    static int		last_t_cmd;	/* last search t_cmd */
     int			col;
     char_u		*p;
     int			len;
     int			stop = TRUE;
-#ifdef FEAT_MBYTE
-    static char_u	bytes[MB_MAXBYTES + 1];
-    static int		bytelen = 1;	/* >1 for multi-byte char */
-#endif
 
     if (c != NUL)	/* normal search: remember args for repeat */
     {
 	if (!KeyStuffed)    /* don't remember when redoing */
 	{
-	    lastc = c;
-	    lastcdir = dir;
-	    last_t_cmd = t_cmd;
+	    *lastc = c;
+	    set_csearch_direction(dir);
+	    set_csearch_until(t_cmd);
 #ifdef FEAT_MBYTE
-	    bytelen = (*mb_char2bytes)(c, bytes);
+	    lastc_bytelen = (*mb_char2bytes)(c, lastc_bytes);
 	    if (cap->ncharC1 != 0)
 	    {
-		bytelen += (*mb_char2bytes)(cap->ncharC1, bytes + bytelen);
+		lastc_bytelen += (*mb_char2bytes)(cap->ncharC1,
+			lastc_bytes + lastc_bytelen);
 		if (cap->ncharC2 != 0)
-		    bytelen += (*mb_char2bytes)(cap->ncharC2, bytes + bytelen);
+		    lastc_bytelen += (*mb_char2bytes)(cap->ncharC2,
+			    lastc_bytes + lastc_bytelen);
 	    }
 #endif
 	}
     }
     else		/* repeat previous search */
     {
-	if (lastc == NUL)
+	if (*lastc == NUL)
 	    return FAIL;
 	if (dir)	/* repeat in opposite direction */
 	    dir = -lastcdir;
 	else
 	    dir = lastcdir;
 	t_cmd = last_t_cmd;
-	c = lastc;
-	/* For multi-byte re-use last bytes[] and bytelen. */
+	c = *lastc;
+	/* For multi-byte re-use last lastc_bytes[] and lastc_bytelen. */
 
 	/* Force a move of at least one char, so ";" and "," will move the
 	 * cursor, even if the cursor is right in front of char we are looking
@@ -1630,14 +1700,14 @@ searchc(cap, t_cmd)
 			return FAIL;
 		    col -= (*mb_head_off)(p, p + col - 1) + 1;
 		}
-		if (bytelen == 1)
+		if (lastc_bytelen == 1)
 		{
 		    if (p[col] == c && stop)
 			break;
 		}
 		else
 		{
-		    if (vim_memcmp(p + col, bytes, bytelen) == 0 && stop)
+		    if (vim_memcmp(p + col, lastc_bytes, lastc_bytelen) == 0 && stop)
 			break;
 		}
 		stop = TRUE;
@@ -1665,8 +1735,8 @@ searchc(cap, t_cmd)
 	if (has_mbyte)
 	{
 	    if (dir < 0)
-		/* Landed on the search char which is bytelen long */
-		col += bytelen - 1;
+		/* Landed on the search char which is lastc_bytelen long */
+		col += lastc_bytelen - 1;
 	    else
 		/* To previous char, which may be multi-byte. */
 		col -= (*mb_head_off)(p, p + col);
@@ -1719,20 +1789,71 @@ check_prevcol(linep, col, ch, prevcol)
     return (col >= 0 && linep[col] == ch) ? TRUE : FALSE;
 }
 
+static int find_rawstring_end __ARGS((char_u *linep, pos_T *startpos, pos_T *endpos));
+
+/*
+ * Raw string start is found at linep[startpos.col - 1].
+ * Return TRUE if the matching end can be found between startpos and endpos.
+ */
+    static int
+find_rawstring_end(linep, startpos, endpos)
+    char_u  *linep;
+    pos_T   *startpos;
+    pos_T   *endpos;
+{
+    char_u	*p;
+    char_u	*delim_copy;
+    size_t	delim_len;
+    linenr_T	lnum;
+    int		found = FALSE;
+
+    for (p = linep + startpos->col + 1; *p && *p != '('; ++p)
+	;
+    delim_len = (p - linep) - startpos->col - 1;
+    delim_copy = vim_strnsave(linep + startpos->col + 1, (int)delim_len);
+    if (delim_copy == NULL)
+	return FALSE;
+    for (lnum = startpos->lnum; lnum <= endpos->lnum; ++lnum)
+    {
+	char_u *line = ml_get(lnum);
+
+	for (p = line + (lnum == startpos->lnum
+					    ? startpos->col + 1 : 0); *p; ++p)
+	{
+	    if (lnum == endpos->lnum && (colnr_T)(p - line) >= endpos->col)
+		break;
+	    if (*p == ')' && p[delim_len + 1] == '"'
+			  && STRNCMP(delim_copy, p + 1, delim_len) == 0)
+	    {
+		found = TRUE;
+		break;
+	    }
+	}
+	if (found)
+	    break;
+    }
+    vim_free(delim_copy);
+    return found;
+}
+
 /*
  * findmatchlimit -- find the matching paren or brace, if it exists within
- * maxtravel lines of here.  A maxtravel of 0 means search until falling off
- * the edge of the file.
+ * maxtravel lines of the cursor.  A maxtravel of 0 means search until falling
+ * off the edge of the file.
  *
  * "initc" is the character to find a match for.  NUL means to find the
- * character at or after the cursor.
+ * character at or after the cursor. Special values:
+ * '*'  look for C-style comment / *
+ * '/'  look for C-style comment / *, ignoring comment-end
+ * '#'  look for preprocessor directives
+ * 'R'  look for raw string start: R"delim(text)delim" (only backwards)
  *
  * flags: FM_BACKWARD	search backwards (when initc is '/', '*' or '#')
  *	  FM_FORWARD	search forwards (when initc is '/', '*' or '#')
  *	  FM_BLOCKSTOP	stop at start/end of block ({ or } in column 0)
  *	  FM_SKIPCOMM	skip comments (not implemented yet!)
  *
- * "oap" is only used to set oap->motion_type for a linewise motion, it be
+ * "oap" is only used to set oap->motion_type for a linewise motion, it can be
  * NULL
  */
 
@@ -1748,6 +1869,7 @@ findmatchlimit(oap, initc, flags, maxtravel)
     int		c;
     int		count = 0;		/* cumulative number of braces */
     int		backwards = FALSE;	/* init for gcc */
+    int		raw_string = FALSE;	/* search for raw string */
     int		inquote = FALSE;	/* TRUE when inside quotes */
     char_u	*linep;			/* pointer to current line */
     char_u	*ptr;
@@ -1792,12 +1914,13 @@ findmatchlimit(oap, initc, flags, maxtravel)
      * When '/' is used, we ignore running backwards into an star-slash, for
      * "[*" command, we just want to find any comment.
      */
-    if (initc == '/' || initc == '*')
+    if (initc == '/' || initc == '*' || initc == 'R')
     {
 	comment_dir = dir;
 	if (initc == '/')
 	    ignore_cend = TRUE;
 	backwards = (dir == FORWARD) ? FALSE : TRUE;
+	raw_string = (initc == 'R');
 	initc = NUL;
     }
     else if (initc != '#' && initc != NUL)
@@ -1806,12 +1929,12 @@ findmatchlimit(oap, initc, flags, maxtravel)
 	if (findc == NUL)
 	    return NULL;
     }
-    /*
-     * Either initc is '#', or no initc was given and we need to look under the
-     * cursor.
-     */
     else
     {
+	/*
+	 * Either initc is '#', or no initc was given and we need to look
+	 * under the cursor.
+	 */
 	if (initc == '#')
 	{
 	    hash_dir = dir;
@@ -2129,6 +2252,26 @@ findmatchlimit(oap, initc, flags, maxtravel)
 		 */
 		if (pos.col == 0)
 		    continue;
+		else if (raw_string)
+		{
+		    if (linep[pos.col - 1] == 'R'
+			&& linep[pos.col] == '"'
+			&& vim_strchr(linep + pos.col + 1, '(') != NULL)
+		    {
+			/* Possible start of raw string. Now that we have the
+			 * delimiter we can check if it ends before where we
+			 * started searching, or before the previously found
+			 * raw string start. */
+			if (!find_rawstring_end(linep, &pos,
+				  count > 0 ? &match_pos : &curwin->w_cursor))
+			{
+			    count++;
+			    match_pos = pos;
+			    match_pos.col--;
+			}
+			linep = ml_get(pos.lnum); /* may have been released */
+		    }
+		}
 		else if (  linep[pos.col - 1] == '/'
 			&& linep[pos.col] == '*'
 			&& (int)pos.col < comment_col)
@@ -2463,7 +2606,7 @@ showmatch(c)
     }
 
     if ((lpos = findmatch(NULL, NUL)) == NULL)	    /* no match, so beep */
-	vim_beep();
+	vim_beep(BO_MATCH);
     else if (lpos->lnum >= curwin->w_topline && lpos->lnum < curwin->w_botline)
     {
 	if (!curwin->w_p_wrap)
@@ -3665,7 +3808,7 @@ current_block(oap, count, include, what, other)
     if (VIsual_active)
     {
 	if (*p_sel == 'e')
-	    ++curwin->w_cursor.col;
+	    inc(&curwin->w_cursor);
 	if (sol && gchar_cursor() != NUL)
 	    inc(&curwin->w_cursor);	/* include the line break */
 	VIsual = start_pos;

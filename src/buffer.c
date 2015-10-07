@@ -551,6 +551,7 @@ buf_clear_file(buf)
     buf->b_shortname = FALSE;
 #endif
     buf->b_p_eol = TRUE;
+    buf->b_p_fixeol = TRUE;
     buf->b_start_eol = TRUE;
 #ifdef FEAT_MBYTE
     buf->b_p_bomb = FALSE;
@@ -2764,7 +2765,20 @@ buflist_list(eap)
     for (buf = firstbuf; buf != NULL && !got_int; buf = buf->b_next)
     {
 	/* skip unlisted buffers, unless ! was used */
-	if (!buf->b_p_bl && !eap->forceit)
+	if ((!buf->b_p_bl && !eap->forceit && !vim_strchr(eap->arg, 'u'))
+		|| (vim_strchr(eap->arg, 'u') && buf->b_p_bl)
+		|| (vim_strchr(eap->arg, '+')
+			&& ((buf->b_flags & BF_READERR) || !bufIsChanged(buf)))
+		|| (vim_strchr(eap->arg, 'a')
+			 && (buf->b_ml.ml_mfp == NULL || buf->b_nwindows == 0))
+		|| (vim_strchr(eap->arg, 'h')
+			 && (buf->b_ml.ml_mfp == NULL || buf->b_nwindows != 0))
+		|| (vim_strchr(eap->arg, '-') && buf->b_p_ma)
+		|| (vim_strchr(eap->arg, '=') && !buf->b_p_ro)
+		|| (vim_strchr(eap->arg, 'x') && !(buf->b_flags & BF_READERR))
+		|| (vim_strchr(eap->arg, '%') && buf != curbuf)
+		|| (vim_strchr(eap->arg, '#')
+		      && (buf == curbuf || curwin->w_alt_fnum != buf->b_fnum)))
 	    continue;
 	msg_putchar('\n');
 	if (buf_spname(buf) != NULL)
@@ -4430,6 +4444,10 @@ get_rel_pos(wp, buf, buflen)
     above = wp->w_topline - 1;
 #ifdef FEAT_DIFF
     above += diff_check_fill(wp, wp->w_topline) - wp->w_topfill;
+    if (wp->w_topline == 1 && wp->w_topfill >= 1)
+	above = 0;  /* All buffer lines are displayed and there is an
+		     * indication of filler lines, that can be considered
+		     * seeing all lines. */
 #endif
     below = wp->w_buffer->b_ml.ml_line_count - wp->w_botline + 1;
     if (below <= 0)

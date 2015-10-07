@@ -481,6 +481,8 @@ SRC_EXTRA =	\
 # runtime files for all distributions
 RT_ALL =	\
 		README.txt \
+		README.md \
+		CONTRIBUTING.md \
 		runtime/bugreport.vim \
 		runtime/doc/*.awk \
 		runtime/doc/*.pl \

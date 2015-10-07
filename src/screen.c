@@ -279,6 +279,7 @@ redraw_asap(type)
     int		type;
 {
     int		rows;
+    int		cols = screen_Columns;
     int		r;
     int		ret = 0;
     schar_T	*screenline;	/* copy from ScreenLines[] */
@@ -291,28 +292,28 @@ redraw_asap(type)
 #endif
 
     redraw_later(type);
-    if (msg_scrolled || (State != NORMAL && State != NORMAL_BUSY))
+    if (msg_scrolled || (State != NORMAL && State != NORMAL_BUSY) || exiting)
 	return ret;
 
     /* Allocate space to save the text displayed in the command line area. */
-    rows = Rows - cmdline_row;
+    rows = screen_Rows - cmdline_row;
     screenline = (schar_T *)lalloc(
-			   (long_u)(rows * Columns * sizeof(schar_T)), FALSE);
+			   (long_u)(rows * cols * sizeof(schar_T)), FALSE);
     screenattr = (sattr_T *)lalloc(
-			   (long_u)(rows * Columns * sizeof(sattr_T)), FALSE);
+			   (long_u)(rows * cols * sizeof(sattr_T)), FALSE);
     if (screenline == NULL || screenattr == NULL)
 	ret = 2;
 #ifdef FEAT_MBYTE
     if (enc_utf8)
     {
 	screenlineUC = (u8char_T *)lalloc(
-			  (long_u)(rows * Columns * sizeof(u8char_T)), FALSE);
+			  (long_u)(rows * cols * sizeof(u8char_T)), FALSE);
 	if (screenlineUC == NULL)
 	    ret = 2;
 	for (i = 0; i < p_mco; ++i)
 	{
 	    screenlineC[i] = (u8char_T *)lalloc(
-			  (long_u)(rows * Columns * sizeof(u8char_T)), FALSE);
+			  (long_u)(rows * cols * sizeof(u8char_T)), FALSE);
 	    if (screenlineC[i] == NULL)
 		ret = 2;
 	}
@@ -320,7 +321,7 @@ redraw_asap(type)
     if (enc_dbcs == DBCS_JPNU)
     {
 	screenline2 = (schar_T *)lalloc(
-			   (long_u)(rows * Columns * sizeof(schar_T)), FALSE);
+			   (long_u)(rows * cols * sizeof(schar_T)), FALSE);
 	if (screenline2 == NULL)
 	    ret = 2;
     }
@@ -331,27 +332,27 @@ redraw_asap(type)
 	/* Save the text displayed in the command line area. */
 	for (r = 0; r < rows; ++r)
 	{
-	    mch_memmove(screenline + r * Columns,
+	    mch_memmove(screenline + r * cols,
 			ScreenLines + LineOffset[cmdline_row + r],
-			(size_t)Columns * sizeof(schar_T));
-	    mch_memmove(screenattr + r * Columns,
+			(size_t)cols * sizeof(schar_T));
+	    mch_memmove(screenattr + r * cols,
 			ScreenAttrs + LineOffset[cmdline_row + r],
-			(size_t)Columns * sizeof(sattr_T));
+			(size_t)cols * sizeof(sattr_T));
 #ifdef FEAT_MBYTE
 	    if (enc_utf8)
 	    {
-		mch_memmove(screenlineUC + r * Columns,
+		mch_memmove(screenlineUC + r * cols,
 			    ScreenLinesUC + LineOffset[cmdline_row + r],
-			    (size_t)Columns * sizeof(u8char_T));
+			    (size_t)cols * sizeof(u8char_T));
 		for (i = 0; i < p_mco; ++i)
-		    mch_memmove(screenlineC[i] + r * Columns,
-				ScreenLinesC[r] + LineOffset[cmdline_row + r],
-				(size_t)Columns * sizeof(u8char_T));
+		    mch_memmove(screenlineC[i] + r * cols,
+				ScreenLinesC[i] + LineOffset[cmdline_row + r],
+				(size_t)cols * sizeof(u8char_T));
 	    }
 	    if (enc_dbcs == DBCS_JPNU)
-		mch_memmove(screenline2 + r * Columns,
+		mch_memmove(screenline2 + r * cols,
 			    ScreenLines2 + LineOffset[cmdline_row + r],
-			    (size_t)Columns * sizeof(schar_T));
+			    (size_t)cols * sizeof(schar_T));
 #endif
 	}
 
@@ -366,28 +367,28 @@ redraw_asap(type)
 	    for (r = 0; r < rows; ++r)
 	    {
 		mch_memmove(current_ScreenLine,
-			    screenline + r * Columns,
-			    (size_t)Columns * sizeof(schar_T));
+			    screenline + r * cols,
+			    (size_t)cols * sizeof(schar_T));
 		mch_memmove(ScreenAttrs + off,
-			    screenattr + r * Columns,
-			    (size_t)Columns * sizeof(sattr_T));
+			    screenattr + r * cols,
+			    (size_t)cols * sizeof(sattr_T));
 #ifdef FEAT_MBYTE
 		if (enc_utf8)
 		{
 		    mch_memmove(ScreenLinesUC + off,
-				screenlineUC + r * Columns,
-				(size_t)Columns * sizeof(u8char_T));
+				screenlineUC + r * cols,
+				(size_t)cols * sizeof(u8char_T));
 		    for (i = 0; i < p_mco; ++i)
 			mch_memmove(ScreenLinesC[i] + off,
-				    screenlineC[i] + r * Columns,
-				    (size_t)Columns * sizeof(u8char_T));
+				    screenlineC[i] + r * cols,
+				    (size_t)cols * sizeof(u8char_T));
 		}
 		if (enc_dbcs == DBCS_JPNU)
 		    mch_memmove(ScreenLines2 + off,
-				screenline2 + r * Columns,
-				(size_t)Columns * sizeof(schar_T));
+				screenline2 + r * cols,
+				(size_t)cols * sizeof(schar_T));
 #endif
-		SCREEN_LINE(cmdline_row + r, 0, Columns, Columns, FALSE);
+		SCREEN_LINE(cmdline_row + r, 0, cols, cols, FALSE);
 	    }
 	    ret = 4;
 	}
@@ -2833,7 +2834,7 @@ fill_foldcolumn(p, wp, closed, lnum)
     int		fdc = compute_foldcolumn(wp, 0);
 
     /* Init to all spaces. */
-    copy_spaces(p, (size_t)fdc);
+    vim_memset(p, ' ', (size_t)fdc);
 
     level = win_foldinfo.fi_level;
     if (level > 0)
@@ -3047,6 +3048,8 @@ win_line(wp, lnum, startrow, endrow, nochange)
 					   wrapping */
     int		vcol_off	= 0;	/* offset for concealed characters */
     int		did_wcol	= FALSE;
+    int		match_conc	= FALSE; /* cchar for match functions */
+    int		has_match_conc  = FALSE; /* match wants to conceal */
     int		old_boguscols   = 0;
 # define VCOL_HLC (vcol - vcol_off)
 # define FIX_FOR_BOGUSCOLS \
@@ -3580,6 +3583,9 @@ win_line(wp, lnum, startrow, endrow, nochange)
      */
     for (;;)
     {
+#ifdef FEAT_CONCEAL
+	has_match_conc = FALSE;
+#endif
 	/* Skip this quickly when working on the text. */
 	if (draw_state != WL_LINE)
 	{
@@ -3923,13 +3929,26 @@ win_line(wp, lnum, startrow, endrow, nochange)
 				shl->endcol = tmp_col;
 #endif
 			    shl->attr_cur = shl->attr;
+#ifdef FEAT_CONCEAL
+			    if (cur != NULL && syn_name2id((char_u *)"Conceal")
+							       == cur->hlg_id)
+			    {
+				has_match_conc = TRUE;
+				match_conc = cur->conceal_char;
+			    }
+			    else
+				has_match_conc = match_conc = FALSE;
+#endif
 			}
 			else if (v == (long)shl->endcol)
 			{
 			    shl->attr_cur = 0;
+#ifdef FEAT_CONCEAL
+			    prev_syntax_id = 0;
+#endif
 			    next_search_hl(wp, shl, lnum, (colnr_T)v, cur);
 			    pos_inprogress = cur == NULL || cur->pos.cur == 0
-							      ? FALSE : TRUE;
+							       ? FALSE : TRUE;
 
 			    /* Need to get the line again, a multi-line regexp
 			     * may have made it invalid. */
@@ -4873,19 +4892,22 @@ win_line(wp, lnum, startrow, endrow, nochange)
 #ifdef FEAT_CONCEAL
 	    if (   wp->w_p_cole > 0
 		&& (wp != curwin || lnum != wp->w_cursor.lnum ||
-						      conceal_cursor_line(wp))
-		&& (syntax_flags & HL_CONCEAL) != 0
+							conceal_cursor_line(wp) )
+		&& ( (syntax_flags & HL_CONCEAL) != 0 || has_match_conc)
 		&& !(lnum_in_visual_area
 				    && vim_strchr(wp->w_p_cocu, 'v') == NULL))
 	    {
 		char_attr = conceal_attr;
 		if (prev_syntax_id != syntax_seqnr
-			&& (syn_get_sub_char() != NUL || wp->w_p_cole == 1)
+			&& (syn_get_sub_char() != NUL || match_conc
+							 || wp->w_p_cole == 1)
 			&& wp->w_p_cole != 3)
 		{
 		    /* First time at this concealed item: display one
 		     * character. */
-		    if (syn_get_sub_char() != NUL)
+		    if (match_conc)
+			c = match_conc;
+		    else if (syn_get_sub_char() != NUL)
 			c = syn_get_sub_char();
 		    else if (lcs_conceal != NUL)
 			c = lcs_conceal;
@@ -7792,7 +7814,7 @@ next_search_hl_pos(shl, lnum, posmatch, mincol)
 	}
     }
     posmatch->cur = 0;
-    if (shl->lnum == lnum)
+    if (shl->lnum == lnum && bot >= 0)
     {
 	colnr_T	start = posmatch->pos[bot].col == 0
 					     ? 0 : posmatch->pos[bot].col - 1;

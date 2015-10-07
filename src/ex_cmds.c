@@ -500,7 +500,7 @@ ex_sort(eap)
 		nrs[lnum - eap->line1].start_col_nr = -MAXLNUM;
 	    else
 		vim_str2nr(s, NULL, NULL, sort_oct, sort_hex,
-				  &nrs[lnum - eap->line1].start_col_nr, NULL);
+				  &nrs[lnum - eap->line1].start_col_nr, NULL, 0);
 	    *s2 = c;
 	}
 	else
@@ -6856,7 +6856,8 @@ helptags_one(dir, ext, tagfname, add_help_tags)
 	/*
 	 * Sort the tags.
 	 */
-	sort_strings((char_u **)ga.ga_data, ga.ga_len);
+	if (ga.ga_data != NULL)
+	    sort_strings((char_u **)ga.ga_data, ga.ga_len);
 
 	/*
 	 * Check for duplicates.

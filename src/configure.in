@@ -955,6 +955,7 @@ if test "$enable_perlinterp" = "yes" -o "$enable_perlinterp" = "dynamic"; then
 	  vi_cv_perl_xsubpp="$xsubpp_path"
 	fi
       done
+      AC_SUBST(vi_cv_perl_xsubpp)
       AC_SUBST(vi_cv_perlsitelib)
       dnl Remove "-fno-something", it breaks using cproto.
       dnl Remove "-fdebug-prefix-map", it isn't supported by clang.
@@ -2748,6 +2749,7 @@ if test "$enable_xsmp" = "yes"; then
   CPPFLAGS=$cppflags_save
 fi
 
+
 if test -z "$SKIP_ATHENA" -o -z "$SKIP_NEXTAW" -o -z "$SKIP_MOTIF" -o -z "$SKIP_GTK2"; then
   dnl Check for X11/xpm.h and X11/Sunkeysym.h with the GUI include path
   cppflags_save=$CPPFLAGS
@@ -3839,8 +3841,8 @@ if test "x$with_x" = "xyes"; then
       AC_TRY_LINK_FUNC([_Xsetlocale], [AC_MSG_RESULT(yes)
 	      AC_DEFINE(X_LOCALE)], AC_MSG_RESULT(no)),
       AC_MSG_RESULT(no))
-  AC_MSG_CHECKING(whether Xutf8SetWMProperties() can be used)
 
+  AC_MSG_CHECKING(whether Xutf8SetWMProperties() can be used)
   AC_TRY_LINK_FUNC([Xutf8SetWMProperties], [AC_MSG_RESULT(yes)
 	      AC_DEFINE(HAVE_XUTF8SETWMPROPERTIES)], AC_MSG_RESULT(no))
 

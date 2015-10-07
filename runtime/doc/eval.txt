@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.4.  Last change: 2015 Jun 19
+*eval.txt*	For Vim version 7.4.  Last change: 2015 Jul 21
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1005,7 +1005,7 @@ function.  Example: >
 
 
 
-string						*string* *expr-string* *E114*
+string					*string* *String* *expr-string* *E114*
 ------
 "string"		string constant		*expr-quote*
 
@@ -1330,6 +1330,12 @@ v:cmdbang	Set like v:cmdarg for a file read/write command.  When a "!"
 		can only be used in autocommands.  For user commands |<bang>|
 		can be used.
 
+				*v:completed_item* *completed_item-variable*
+v:completed_item
+		|Dictionary| containing the |complete-items| for the most
+		recently completed word after |CompleteDone|.  The
+		|Dictionary| is empty if the completion failed.
+
 					*v:count* *count-variable*
 v:count		The count given for the last Normal mode command.  Can be used
 		to get the count before a mapping.  Read-only.	Example: >
@@ -1462,7 +1468,9 @@ v:hlsearch	Variable that indicates whether search highlighting is on.
 		requires |+extra_search|. Setting this variable to zero acts
 		the like |:nohlsearch| command, setting it to one acts like >
 			let &hlsearch = &hlsearch
-<
+<		Note that the value is restored when returning from a
+		function. |function-search-undo|.
+
 					*v:insertmode* *insertmode-variable*
 v:insertmode	Used for the |InsertEnter| and |InsertChange| autocommand
 		events.  Values:
@@ -1527,6 +1535,15 @@ v:oldfiles	List of file names that is loaded from the |viminfo| file on
 		than String this will cause trouble.
 		{only when compiled with the |+viminfo| feature}
 
+						    *v:option_new*
+v:option_new    New value of the option. Valid while executing an |OptionSet|
+		autocommand.
+						    *v:option_old*
+v:option_old    Old value of the option. Valid while executing an |OptionSet|
+		autocommand.
+						    *v:option_type*
+v:option_type   Scope of the set command. Valid while executing an
+		|OptionSet| autocommand. Can be either "global" or "local"
 					*v:operator* *operator-variable*
 v:operator	The last operator given in Normal mode.  This is a single
 		character except for commands starting with <g> or <z>,
@@ -1805,6 +1822,7 @@ getbufvar( {expr}, {varname} [, {def}])
 				any	variable {varname} in buffer {expr}
 getchar( [expr])		Number	get one character from the user
 getcharmod( )			Number	modifiers for the last typed character
+getcharsearch()			Dict	last character search
 getcmdline()			String	return the current command-line
 getcmdpos()			Number	return cursor position in command-line
 getcmdtype()			String	return current command-line type
@@ -1954,6 +1972,7 @@ server2client( {clientid}, {string})
 				Number	send reply string
 serverlist()			String	get a list of available servers
 setbufvar( {expr}, {varname}, {val})	set {varname} in buffer {expr} to {val}
+setcharsearch( {dict})		Dict	set character search from {dict}
 setcmdpos( {pos})		Number	set cursor position in command-line
 setline( {lnum}, {line})	Number	set line {lnum} to {line}
 setloclist( {nr}, {list}[, {action}])
@@ -3344,6 +3363,26 @@ getcharmod()						*getcharmod()*
 		character itself are obtained.	Thus Shift-a results in "A"
 		without a modifier.
 
+getcharsearch()						*getcharsearch()*
+		Return the current character search information as a {dict}
+		with the following entries:
+
+		    char	character previously used for a character
+				search (|t|, |f|, |T|, or |F|); empty string
+				if no character search has been performed
+		    forward	direction of character search; 1 for forward,
+				0 for backward
+		    until	type of character search; 1 for a |t| or |T|
+				character search, 0 for an |f| or |F|
+				character search
+
+		This can be useful to always have |;| and |,| search
+		forward/backward regardless of the direction of the previous
+		character search: >
+			:nnoremap <expr> ; getcharsearch().forward ? ';' : ','
+			:nnoremap <expr> , getcharsearch().forward ? ',' : ';'
+<		Also see |setcharsearch()|.
+
 getcmdline()						*getcmdline()*
 		Return the current command-line.  Only works when the command
 		line is being edited, thus requires use of |c_CTRL-\_e| or
@@ -4388,7 +4427,7 @@ match({expr}, {pat}[, {start}[, {count}]])			*match()*
 		done like 'magic' is set and 'cpoptions' is empty.
 
 					*matchadd()* *E798* *E799* *E801*
-matchadd({group}, {pattern}[, {priority}[, {id}]])
+matchadd({group}, {pattern}[, {priority}[, {id} [, {dict}]]])
 		Defines a pattern to be highlighted in the current window (a
 		"match").  It will be highlighted with {group}.  Returns an
 		identification number (ID), which can be used to delete the
@@ -4396,6 +4435,8 @@ matchadd({group}, {pattern}[, {priority}[, {id}]])
 		Matching is case sensitive and magic, unless case sensitivity
 		or magicness are explicitly overridden in {pattern}.  The
 		'magic', 'smartcase' and 'ignorecase' options are not used.
+		The "Conceal" value is special, it causes the match to be
+		concealed.
 
 		The optional {priority} argument assigns a priority to the
 		match.	A match with a high priority will have its
@@ -4413,8 +4454,17 @@ matchadd({group}, {pattern}[, {priority}[, {id}]])
 		message will appear and the match will not be added.  An ID
 		is specified as a positive integer (zero excluded).  IDs 1, 2
 		and 3 are reserved for |:match|, |:2match| and |:3match|,
-		respectively.  If the {id} argument is not specified,
+		respectively.  If the {id} argument is not specified or -1,
 		|matchadd()| automatically chooses a free ID.
+
+		The optional {dict} argmument allows for further custom
+		values. Currently this is used to specify a match specifc
+		conceal character that will be shown for |hl-Conceal|
+		highlighted matches. The dict can have the following members:
+
+			conceal	    Special character to show instead of the
+				    match (only for |hl-Conceal| highlighed
+				    matches, see |:syn-cchar|)
 
 		The number of matches is not limited, as it is the case with
 		the |:match| commands.
@@ -4429,7 +4479,7 @@ matchadd({group}, {pattern}[, {priority}[, {id}]])
 		available from |getmatches()|.	All matches can be deleted in
 		one operation by |clearmatches()|.
 
-matchaddpos({group}, {pos}[, {priority}[, {id}]])		*matchaddpos()*
+matchaddpos({group}, {pos}[, {priority}[, {id}[, {dict}]]])		*matchaddpos()*
 		Same as |matchadd()|, but requires a list of positions {pos}
 		instead of a pattern. This command is faster than |matchadd()|
 		because it does not require to handle regular expressions and
@@ -4889,7 +4939,7 @@ readfile({fname} [, {binary} [, {max}]])
 		separated with CR will result in a single long line (unless a
 		NL appears somewhere).
 		All NUL characters are replaced with a NL character.
-		When {binary/append} contains "b" binary mode is used:
+		When {binary} contains "b" binary mode is used:
 		- When the last line ends in a NL an extra empty list item is
 		  added.
 		- No CR characters are removed.
@@ -5369,6 +5419,26 @@ setbufvar({expr}, {varname}, {val})			*setbufvar()*
 			:call setbufvar("todo", "myvar", "foobar")
 <		This function is not available in the |sandbox|.
 
+setcharsearch()						*setcharsearch()*
+		Set the current character search information to {dict},
+		which contains one or more of the following entries:
+
+		    char	character which will be used for a subsequent
+				|,| or |;| command; an empty string clears the
+				character search
+		    forward	direction of character search; 1 for forward,
+				0 for backward
+		    until	type of character search; 1 for a |t| or |T|
+				character search, 0 for an |f| or |F|
+				character search
+
+		This can be useful to save/restore a user's character search
+		from a script: >
+			:let prevsearch = getcharsearch()
+			:" Perform a command which clobbers user's search
+			:call setcharsearch(prevsearch)
+<		Also see |getcharsearch()|.
+
 setcmdpos({pos})					*setcmdpos()*
 		Set the cursor position in the command line to byte position
 		{pos}.	The first position is 1.
@@ -5839,15 +5909,35 @@ str2nr( {expr} [, {base}])				*str2nr()*
 		Text after the number is silently ignored.
 
 
-strchars({expr})					*strchars()*
+strchars({expr} [, {skipcc}])					*strchars()*
 		The result is a Number, which is the number of characters
-		String {expr} occupies.  Composing characters are counted
-		separately.
+		in String {expr}.
+		When {skipcc} is omitted or zero, composing characters are
+		counted separately.
+		When {skipcc} set to 1, Composing characters are ignored.
 		Also see |strlen()|, |strdisplaywidth()| and |strwidth()|.
+
+		
+		{skipcc} is only available after 7.4.755.  For backward
+		compatibility, you can define a wrapper function: >
+		    if has("patch-7.4.755")
+		      function s:strchars(str, skipcc)
+			return strchars(a:str, a:skipcc)
+		      endfunction
+		    else
+		      function s:strchars(str, skipcc)
+			if a:skipcc
+			  return strlen(substitute(a:str, ".", "x", "g"))
+			else
+			  return strchars(a:str)
+			endif
+		      endfunction
+		    endif
+<
 
 strdisplaywidth({expr}[, {col}])			*strdisplaywidth()*
 		The result is a Number, which is the number of display cells
-		String {expr} occupies on the screen when it starts a {col}.
+		String {expr} occupies on the screen when it starts at {col}.
 		When {col} is omitted zero is used.  Otherwise it is the
 		screen column where to start.  This matters for Tab
 		characters.
