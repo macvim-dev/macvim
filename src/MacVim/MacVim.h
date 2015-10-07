@@ -40,7 +40,9 @@
 #ifndef MAC_OS_X_VERSION_10_10_3
 # define MAC_OS_X_VERSION_10_10_3 101003
 #endif
-
+#ifndef MAC_OS_X_VERSION_10_11
+# define MAC_OS_X_VERSION_10_11 101100
+#endif
 
 //
 // This is the protocol MMBackend implements.

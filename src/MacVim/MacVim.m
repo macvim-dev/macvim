@@ -304,19 +304,32 @@ debugStringForMessageQueue(NSArray *queue)
 
 + (id)dictionaryWithData:(NSData *)data
 {
+#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_10
+    id plist = [NSPropertyListSerialization
+            propertyListWithData:data
+                         options:NSPropertyListImmutable
+                          format:NULL
+                           error:NULL];
+#else
     id plist = [NSPropertyListSerialization
             propertyListFromData:data
                 mutabilityOption:NSPropertyListImmutable
                           format:NULL
                 errorDescription:NULL];
+#endif
 
     return [plist isKindOfClass:[NSDictionary class]] ? plist : nil;
 }
 
 - (NSData *)dictionaryAsData
 {
+#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_10
+    return [NSPropertyListSerialization dataWithPropertyList:self
+            format:NSPropertyListBinaryFormat_v1_0 options:0 error:NULL];
+#else
     return [NSPropertyListSerialization dataFromPropertyList:self
             format:NSPropertyListBinaryFormat_v1_0 errorDescription:NULL];
+#endif
 }
 
 @end
@@ -328,11 +341,19 @@ debugStringForMessageQueue(NSArray *queue)
 
 + (id)dictionaryWithData:(NSData *)data
 {
+#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_10
+  id plist = [NSPropertyListSerialization
+            propertyListWithData:data
+                        options:NSPropertyListMutableContainers
+                          format:NULL
+                           error:NULL];
+#else
     id plist = [NSPropertyListSerialization
             propertyListFromData:data
                 mutabilityOption:NSPropertyListMutableContainers
                           format:NULL
                 errorDescription:NULL];
+#endif
 
     return [plist isKindOfClass:[NSMutableDictionary class]] ? plist : nil;
 }
