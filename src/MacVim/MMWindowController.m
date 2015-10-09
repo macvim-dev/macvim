@@ -1021,13 +1021,19 @@
 
 - (void)windowDidResize:(id)sender
 {
-    if (resizingDueToMove)
-    {
+    if (resizingDueToMove) {
         resizingDueToMove = NO;
         return;
     }
 
-    if (!setupDone || fullScreenEnabled) return;
+    if (!setupDone)
+        return;
+
+    // NOTE: We need to update the window frame size for Split View even though
+    // in full-screen on El Capitan or later.
+    if (floor(NSAppKitVersionNumber) <= NSAppKitVersionNumber10_10_Max
+            && fullScreenEnabled)
+        return;
 
     // NOTE: Since we have no control over when the window may resize (Cocoa
     // may resize automatically) we simply set the view to fill the entire
