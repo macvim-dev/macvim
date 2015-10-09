@@ -1080,6 +1080,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     [panel setAllowsMultipleSelection:YES];
+    [panel setCanChooseDirectories:YES];
     [panel setAccessoryView:showHiddenFilesView()];
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
     // NOTE: -[NSOpenPanel runModalForDirectory:file:types:] is deprecated on
