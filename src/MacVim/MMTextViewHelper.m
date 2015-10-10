@@ -777,7 +777,11 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         rect.origin.y += rect.size.height;
 
     rect.origin = [textView convertPoint:rect.origin toView:nil];
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
+    rect = [[textView window] convertRectToScreen:rect];
+#else
     rect.origin = [[textView window] convertBaseToScreen:rect.origin];
+#endif
 
     return rect;
 }
