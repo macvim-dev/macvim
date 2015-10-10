@@ -340,7 +340,11 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         // marked text moves outside the view as a result of scrolling.
         [self sendMarkedText:nil position:0];
         [self unmarkText];
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6
+        [[NSTextInputContext currentInputContext] discardMarkedText];
+#else
         [[NSInputManager currentInputManager] markedTextAbandoned:self];
+#endif
     }
 
     float dx = [event deltaX];
@@ -1117,9 +1121,13 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // the Kotoeri manager "commits" the text on left clicks).
 
     if (event) {
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6
+        return [[NSTextInputContext currentInputContext] handleEvent:event];
+#else
         NSInputManager *imgr = [NSInputManager currentInputManager];
         if ([imgr wantsToHandleMouseEvents])
             return [imgr handleMouseEvent:event];
+#endif
     }
 
     return NO;
@@ -1152,7 +1160,11 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // that the marked text should be abandoned.  (If pos is set to 0 Vim will
     // send backspace sequences to delete the old marked text.)
     [self sendMarkedText:nil position:-1];
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6
+    [[NSTextInputContext currentInputContext] discardMarkedText];
+#else
     [[NSInputManager currentInputManager] markedTextAbandoned:self];
+#endif
 }
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
