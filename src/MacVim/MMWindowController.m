@@ -1218,6 +1218,24 @@
     }
 }
 
+- (void)windowDidEnterFullScreen:(NSNotification *)notification
+{
+    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_10_Max) {
+        // NOTE: On El Capitan, we need to redraw the view when entering
+        // full-screen using :fullscreen option (including Ctrl-Cmd-f).
+        [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
+    }
+}
+
+- (void)windowDidExitFullScreen:(NSNotification *)notification
+{
+    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_10_Max) {
+        // NOTE: On El Capitan, we need to redraw the view when leaving
+        // full-screen by moving the window out from Split View.
+        [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
+    }
+}
+
 - (void)windowDidFailToEnterFullScreen:(NSWindow *)window
 {
     // NOTE: This message can be called without
