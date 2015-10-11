@@ -345,8 +345,12 @@ typedef unsigned int NSUInteger;
 # define NSINTEGER_DEFINED 1
 #endif
 
-#ifndef NSAppKitVersionNumber10_4  // Needed for pre-10.5 SDK
+// Needed for pre-10.5 SDK
+#ifndef NSAppKitVersionNumber10_4
 # define NSAppKitVersionNumber10_4 824
+#endif
+#ifndef NSAppKitVersionNumber10_10_Max
+# define NSAppKitVersionNumber10_10_Max 1349
 #endif
 
 #ifndef CGFLOAT_DEFINED
