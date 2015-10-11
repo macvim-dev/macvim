@@ -1021,13 +1021,19 @@
 
 - (void)windowDidResize:(id)sender
 {
-    if (resizingDueToMove)
-    {
+    if (resizingDueToMove) {
         resizingDueToMove = NO;
         return;
     }
 
-    if (!setupDone || fullScreenEnabled) return;
+    if (!setupDone)
+        return;
+
+    // NOTE: We need to update the window frame size for Split View even though
+    // in full-screen on El Capitan or later.
+    if (floor(NSAppKitVersionNumber) <= NSAppKitVersionNumber10_10_Max
+            && fullScreenEnabled)
+        return;
 
     // NOTE: Since we have no control over when the window may resize (Cocoa
     // may resize automatically) we simply set the view to fill the entire
@@ -1212,6 +1218,15 @@
     }
 }
 
+- (void)windowDidEnterFullScreen:(NSNotification *)notification
+{
+    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_10_Max) {
+        // NOTE: On El Capitan, we need to redraw the view when entering
+        // full-screen using :fullscreen option (including Ctrl-Cmd-f).
+        [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
+    }
+}
+
 - (void)windowDidFailToEnterFullScreen:(NSWindow *)window
 {
     // NOTE: This message can be called without
@@ -1277,6 +1292,15 @@
         // gets them back into sync.
         fullScreenEnabled = NO;
         [self invFullScreen:self];
+    }
+}
+
+- (void)windowDidExitFullScreen:(NSNotification *)notification
+{
+    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_10_Max) {
+        // NOTE: On El Capitan, we need to redraw the view when leaving
+        // full-screen by moving the window out from Split View.
+        [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
     }
 }
 
