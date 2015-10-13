@@ -1722,8 +1722,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             NSArray *arr = [param componentsSeparatedByString:@"="];
             if ([arr count] == 2) {
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_11
-              [dict setValue:[[arr lastObject] stringByRemovingPercentEncoding]
-                      forKey:[[arr objectAtIndex:0] stringByRemovingPercentEncoding]];
+                [dict setValue:[[arr lastObject] stringByRemovingPercentEncoding]
+                        forKey:[[arr objectAtIndex:0] stringByRemovingPercentEncoding]];
 #else
                 [dict setValue:[[arr lastObject]
                             stringByReplacingPercentEscapesUsingEncoding:
