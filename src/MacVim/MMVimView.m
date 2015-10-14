@@ -396,7 +396,10 @@ enum {
     // which tab should be selected at all times.  However, the AppKit will
     // automatically select the first tab added to a tab view.
 
-    NSTabViewItem *tvi = [[NSTabViewItem alloc] initWithIdentifier:nil];
+    // The documentation claims initWithIdentifier can be given a nil identifier, but the API itself
+    // is decorated such that doing so produces a warning, so the tab count is used as identifier.
+    NSInteger identifier = [[self tabView] numberOfTabViewItems];
+    NSTabViewItem *tvi = [[NSTabViewItem alloc] initWithIdentifier:[NSNumber numberWithInt:identifier]];
 
     // NOTE: If this is the first tab it will be automatically selected.
     vimTaskSelectedTab = YES;
