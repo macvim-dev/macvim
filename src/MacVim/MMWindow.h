@@ -9,6 +9,7 @@
  */
 
 #import "MacVim.h"
+#import "blur.h"
 
 
 

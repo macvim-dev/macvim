@@ -35,6 +35,7 @@
 #import "Miscellaneous.h"
 #import "MMCoreTextView.h"
 #import "MMWindow.h"
+#import "blur.h"
 
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
