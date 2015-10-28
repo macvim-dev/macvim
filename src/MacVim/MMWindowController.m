@@ -1567,6 +1567,12 @@
 
 - (BOOL)maximizeWindow:(int)options
 {
+    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_10_Max) {
+        // NOTE: Prevent to resize the window in Split View on El Capitan or
+        // later.
+        return NO;
+    }
+
     int currRows, currColumns;
     [[vimView textView] getMaxRows:&currRows columns:&currColumns];
 
