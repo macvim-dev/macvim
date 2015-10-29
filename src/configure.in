@@ -187,6 +187,11 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
         MACSDK=""
         CFLAGS="$save_cflags"
         LDFLAGS="$save_ldflags" ])
+  else
+    if test -z "$MACOSX_DEPLOYMENT_TARGET"; then
+      macosx_deployment_target=`/usr/bin/sw_vers -productVersion`
+      XCODEFLAGS="$XCODEFLAGS MACOSX_DEPLOYMENT_TARGET=$macosx_deployment_target"
+    fi
   fi
 
 
