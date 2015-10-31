@@ -3,32 +3,43 @@ language: c
 os:
   - osx
 
-osx_image: xcode7
+osx_image: xcode7.1
 
 compiler:
   - clang
 
 env:
-  - FEATURES=huge
+  - MACOSX_DEPLOYMENT_TARGET=10.8
+    VERSIONER_PERL_VERSION=5.16
+    VERSIONER_PYTHON_VERSION=2.7
     vi_cv_path_python3=/usr/local/bin/python3
-    vi_cv_path_plain_lua=/usr/local/bin/lua-5.1
-    "CONFOPT='--enable-perlinterp --enable-pythoninterp --enable-python3interp --enable-rubyinterp --enable-luainterp --with-lua-prefix=/usr/local --enable-multibyte --enable-cscope --enable-netbeans --enable-gui=macvim'"
+    vi_cv_path_plain_lua=/usr/local/bin/lua
+    "CONFOPT='--with-features=huge --enable-multibyte --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local --enable-gui=macvim'"
 
 sudo: false
-
-branches:
-  except:
-    - /^v[0-9]/
 
 before_install:
   - brew update
   - brew install python3
-  - brew install lua51
+  - brew install lua
 
 script:
   - NPROC=$(getconf _NPROCESSORS_ONLN)
-  - ./configure --with-features=$FEATURES $CONFOPT --enable-fail-if-missing && make -j$NPROC
+  - ./configure $CONFOPT --enable-fail-if-missing && make -j$NPROC
   - ./src/vim --version
   - make test
+
+before_deploy:
+  - make -C src macvim-dmg
+deploy:
+  provider: releases
+  api_key:
+    secure: HYHKVbuSG2Trc5zEN+aQO0TO/020qtTokoaaatd9GhQ/ImOI2uhOuVsk47mcViCINyE9+wwVEr23Tk7GqzsJBS66FoZJeOsgYoO/LFlQjCYyya+48Ajez6I2VAIGKn0JD6jpW+ZYIX7MAWLCQKv/vW03MrBMDLZvjB89pHe72MLQFlVcEzxsWnr7smTzLcuKShkV+AVZopE/HRdY1k/zjWf/TzcJgqXwThuJOPYY+CcGUv1CMJjWB8pBuH31pbQ2AVOXV7VG5oxy2HSbCeDRShKT3GooecWj7xjh9SApNqEIzC44RlufgyC73M0DeILUasmbF0g2Q+AsDaj3+9w3LbLbmfpV5kEM9E/PbzWEn+0EgRKV+HCscZnPMlzkiVWKnjzfwKGMOmTwD0aN4Bt6Y9z+UvQKfsQN+6wHmh7xcSpaeR1J6PBeaCd+QyhD7t9ZxP2qmZWCBMFpnkqO4+LoclJNV+IxYstNFjaKIvxEe/S9GM2w+i2cSDDrxSNz+kUGWzshyu6HXxRtrNo+qM6sCO8TiOMMALPAkLCJT2P/TPMRkdy2wjCDwprc1ePDqikIHIGGwQ8Csd5IqFUcJs405xw4HfVkOuhWL/SpLuI6OHOVQqAkqMEMaEhlfh1swFNkT4ffDJGzvklB8v2980B003eWbcHr6lMGtpqQecqgS9A=
+  file: src/MacVim/build/Release/MacVim-7.4.dmg
+  skip_cleanup: true
+  on:
+    all_branches: true
+    tags: true
+    repo: macvim-dev/macvim
 
 # vim:set sts=2 sw=2 tw=0 et:
