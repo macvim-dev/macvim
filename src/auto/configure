@@ -5755,7 +5755,13 @@ $as_echo ">>> too old; need Perl version 5.003_01 or later <<<" >&6; }
     if test "$perl_ok" = "yes" -a "X$libperl" != "X"; then
       $as_echo "#define DYNAMIC_PERL 1" >>confdefs.h
 
-      PERL_CFLAGS="-DDYNAMIC_PERL_DLL=\\\"$libperl\\\" $PERL_CFLAGS"
+      if ${vi_cv_dll_name_perl+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  vi_cv_dll_name_perl="$libperl"
+fi
+
+      PERL_CFLAGS="-DDYNAMIC_PERL_DLL=\\\"$vi_cv_dll_name_perl\\\" $PERL_CFLAGS"
     fi
   fi
 
