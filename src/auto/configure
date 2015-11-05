@@ -4301,7 +4301,7 @@ rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
   else
     if test -z "$MACOSX_DEPLOYMENT_TARGET"; then
-      macosx_deployment_target=`/usr/bin/sw_vers -productVersion`
+      macosx_deployment_target=`/usr/bin/sw_vers -productVersion|/usr/bin/sed -e 's/^\(0-9*\.0-9*\).*/\1/'`
       XCODEFLAGS="$XCODEFLAGS MACOSX_DEPLOYMENT_TARGET=$macosx_deployment_target"
     fi
   fi
