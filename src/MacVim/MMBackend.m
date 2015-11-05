@@ -1993,8 +1993,10 @@ static void netbeansReadCallback(CFSocketRef s,
         const void *bytes = [data bytes];
         int idx = *((int*)bytes) + 1;
         send_tabline_menu_event(idx, TABLINE_MENU_CLOSE);
+        [self redrawScreen];
     } else if (AddNewTabMsgID == msgid) {
         send_tabline_menu_event(0, TABLINE_MENU_NEW);
+        [self redrawScreen];
     } else if (DraggedTabMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
