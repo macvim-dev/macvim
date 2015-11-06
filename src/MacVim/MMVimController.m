@@ -574,8 +574,10 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController updateTabsWithData:data];
     } else if (ShowTabBarMsgID == msgid) {
         [windowController showTabBar:YES];
+        [self sendMessage:BackingPropertiesChangedMsgID data:nil];
     } else if (HideTabBarMsgID == msgid) {
         [windowController showTabBar:NO];
+        [self sendMessage:BackingPropertiesChangedMsgID data:nil];
     } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid ||
             SetTextDimensionsReplyMsgID == msgid) {
         const void *bytes = [data bytes];
