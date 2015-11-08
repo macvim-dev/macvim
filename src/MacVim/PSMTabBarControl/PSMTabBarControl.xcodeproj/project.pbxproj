@@ -57,8 +57,6 @@
 		A27E47880A28EE7C007BA395 /* TabControlRep.tif in Resources */ = {isa = PBXBuildFile; fileRef = A20822EF0959F6AA00C5F5A4 /* TabControlRep.tif */; };
 		A2C0D99509AF870000ED379C /* pi.png in Resources */ = {isa = PBXBuildFile; fileRef = A2C0D99309AF870000ED379C /* pi.png */; };
 		A2D32EDC09A634C900EC8662 /* PSMTabStyle.h in Headers */ = {isa = PBXBuildFile; fileRef = A2D32EDA09A634C900EC8662 /* PSMTabStyle.h */; };
-		A2D32EE809A6399300EC8662 /* PSMAquaTabStyle.h in Headers */ = {isa = PBXBuildFile; fileRef = A2D32EE609A6399300EC8662 /* PSMAquaTabStyle.h */; };
-		A2D32EE909A6399300EC8662 /* PSMAquaTabStyle.m in Sources */ = {isa = PBXBuildFile; fileRef = A2D32EE709A6399300EC8662 /* PSMAquaTabStyle.m */; };
 		A2D32EF709A63BF700EC8662 /* AquaTabClose_Front_Pressed.tif in Resources */ = {isa = PBXBuildFile; fileRef = A2D32EF009A63BF700EC8662 /* AquaTabClose_Front_Pressed.tif */; };
 		A2D32EF809A63BF700EC8662 /* AquaTabClose_Front_Rollover.tif in Resources */ = {isa = PBXBuildFile; fileRef = A2D32EF109A63BF700EC8662 /* AquaTabClose_Front_Rollover.tif */; };
 		A2D32EF909A63BF700EC8662 /* AquaTabClose_Front.tif in Resources */ = {isa = PBXBuildFile; fileRef = A2D32EF209A63BF700EC8662 /* AquaTabClose_Front.tif */; };
@@ -155,8 +153,6 @@
 		A2A711BE09E5BF0500D0089B /* WindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = WindowController.m; path = source/WindowController.m; sourceTree = "<group>"; };
 		A2C0D99309AF870000ED379C /* pi.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = pi.png; path = images/pi.png; sourceTree = "<group>"; };
 		A2D32EDA09A634C900EC8662 /* PSMTabStyle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PSMTabStyle.h; path = source/PSMTabStyle.h; sourceTree = "<group>"; };
-		A2D32EE609A6399300EC8662 /* PSMAquaTabStyle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PSMAquaTabStyle.h; path = source/PSMAquaTabStyle.h; sourceTree = "<group>"; };
-		A2D32EE709A6399300EC8662 /* PSMAquaTabStyle.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PSMAquaTabStyle.m; path = source/PSMAquaTabStyle.m; sourceTree = "<group>"; };
 		A2D32EF009A63BF700EC8662 /* AquaTabClose_Front_Pressed.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; name = AquaTabClose_Front_Pressed.tif; path = images/AquaTabClose_Front_Pressed.tif; sourceTree = "<group>"; };
 		A2D32EF109A63BF700EC8662 /* AquaTabClose_Front_Rollover.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; name = AquaTabClose_Front_Rollover.tif; path = images/AquaTabClose_Front_Rollover.tif; sourceTree = "<group>"; };
 		A2D32EF209A63BF700EC8662 /* AquaTabClose_Front.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; name = AquaTabClose_Front.tif; path = images/AquaTabClose_Front.tif; sourceTree = "<group>"; };
@@ -309,8 +305,6 @@
 				A251BE830959A1B90058BC7F /* PSMTabBarCell.h */,
 				A251BE840959A1B90058BC7F /* PSMTabBarCell.m */,
 				A2D32EDA09A634C900EC8662 /* PSMTabStyle.h */,
-				A2D32EE609A6399300EC8662 /* PSMAquaTabStyle.h */,
-				A2D32EE709A6399300EC8662 /* PSMAquaTabStyle.m */,
 				A2D32EFE09A63D7A00EC8662 /* PSMMetalTabStyle.h */,
 				A2D32EFF09A63D7A00EC8662 /* PSMMetalTabStyle.m */,
 				A2D98B070A2B432C0064C6F8 /* PSMUnifiedTabStyle.h */,
@@ -403,7 +397,6 @@
 				A251BE850959A1B90058BC7F /* PSMOverflowPopUpButton.h in Headers */,
 				A251BE870959A1B90058BC7F /* PSMTabBarCell.h in Headers */,
 				A2D32EDC09A634C900EC8662 /* PSMTabStyle.h in Headers */,
-				A2D32EE809A6399300EC8662 /* PSMAquaTabStyle.h in Headers */,
 				A2D32F0009A63D7A00EC8662 /* PSMMetalTabStyle.h in Headers */,
 				A268EA6209A9831800E082AA /* PSMRolloverButton.h in Headers */,
 				A2129BB209AEB58F00724E6C /* PSMProgressIndicator.h in Headers */,
@@ -505,7 +498,6 @@
 				546DEAF1067F63070098DCC4 /* PSMTabBarControl.m in Sources */,
 				A251BE860959A1B90058BC7F /* PSMOverflowPopUpButton.m in Sources */,
 				A251BE880959A1B90058BC7F /* PSMTabBarCell.m in Sources */,
-				A2D32EE909A6399300EC8662 /* PSMAquaTabStyle.m in Sources */,
 				A2D32F0109A63D7A00EC8662 /* PSMMetalTabStyle.m in Sources */,
 				A268EA6309A9831800E082AA /* PSMRolloverButton.m in Sources */,
 				A2129BB309AEB58F00724E6C /* PSMProgressIndicator.m in Sources */,
