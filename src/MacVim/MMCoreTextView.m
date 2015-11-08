@@ -1045,8 +1045,9 @@ attributedStringForString(NSString *string, const CTFontRef font, BOOL useLigatu
     NSDictionary *attrs = [NSDictionary dictionaryWithObjectsAndKeys:
                             (id)font, kCTFontAttributeName,
                             // 2 - full ligatures including rare
+                            // 1 - basic ligatures
                             // 0 - no ligatures
-                            [NSNumber numberWithInteger: (useLigatures) ? 2 : 0], kCTLigatureAttributeName,
+                            [NSNumber numberWithInteger: (useLigatures) ? 1 : 0], kCTLigatureAttributeName,
                             nil
     ];
 
