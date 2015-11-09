@@ -389,8 +389,12 @@
         if ([cell closeButtonPressed]) closeButton = unifiedCloseButtonDown;
         
         closeButtonSize = [closeButton size];
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6
+        [closeButton drawInRect:closeButtonRect fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
+#else
         [closeButton setFlipped:YES];
         [closeButton drawAtPoint:closeButtonRect.origin fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0];
+#endif
         
         // scoot label over
         labelPosition += closeButtonSize.width + kPSMTabBarCellPadding;

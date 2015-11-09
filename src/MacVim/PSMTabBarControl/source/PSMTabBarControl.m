@@ -12,7 +12,6 @@
 #import "PSMRolloverButton.h"
 #import "PSMTabStyle.h"
 #import "PSMMetalTabStyle.h"
-#import "PSMAquaTabStyle.h"
 #import "PSMUnifiedTabStyle.h"
 #import "PSMTabDragAssistant.h"
 
@@ -255,10 +254,7 @@
 - (void)setStyleNamed:(NSString *)name
 {
     [style release];
-    if([name isEqualToString:@"Aqua"]){
-        style = [[PSMAquaTabStyle alloc] init];
-    }
-	else if ([name isEqualToString:@"Unified"]){
+	if ([name isEqualToString:@"Unified"]){
 		style = [[PSMUnifiedTabStyle alloc] init];
 	}
 	else {
