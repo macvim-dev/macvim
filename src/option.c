@@ -344,6 +344,7 @@ static int	p_lisp;
 static int	p_ml;
 static int	p_ma;
 #ifdef FEAT_GUI_MACVIM
+static int      p_macligatures;
 static int	p_mmta;
 #endif
 static int	p_mod;
@@ -1828,6 +1829,11 @@ static struct vimoption
     {"macatsui",    NULL,   P_BOOL|P_VI_DEF|P_RCLR,
 			    (char_u *)&p_macatsui, PV_NONE,
 			    {(char_u *)TRUE, (char_u *)0L} SCRIPTID_INIT},
+#endif
+#ifdef FEAT_GUI_MACVIM
+    {"macligatures", NULL,  P_BOOL|P_VI_DEF,
+			    (char_u *)&p_macligatures, PV_NONE,
+			    {(char_u *)FALSE, (char_u *)0L}},
 #endif
     {"macmeta",	    "mmta", P_BOOL|P_VI_DEF,
 #ifdef FEAT_GUI_MACVIM
@@ -8186,6 +8192,13 @@ set_bool_option(opt_idx, varp, value, opt_flags)
     else if ((int *)varp == &p_antialias)
     {
 	gui_macvim_set_antialias(p_antialias);
+    }
+#endif
+
+#if defined(FEAT_GUI_MACVIM)
+    else if ((int *)varp == &p_macligatures)
+    {
+        gui_macvim_set_ligatures(p_macligatures);
     }
 #endif
 

@@ -132,17 +132,7 @@ defaultAdvanceForFont(NSFont *font)
     [self registerForDraggedTypes:[NSArray arrayWithObjects:
             NSFilenamesPboardType, NSStringPboardType, nil]];
 
-    // Check if ligatures should be used or not
-    {
-        Boolean val;
-        Boolean keyValid;
-        val = CFPreferencesGetAppBooleanValue((CFStringRef)MMRendererLigaturesSupportKey,
-                kCFPreferencesCurrentApplication,
-                &keyValid);
-
-        useLigatures = NO;
-        if(keyValid) { useLigatures = val; }
-    }
+    ligatures = NO;
     return self;
 }
 
@@ -385,6 +375,11 @@ defaultAdvanceForFont(NSFont *font)
 - (void)setAntialias:(BOOL)state
 {
     antialias = state;
+}
+
+- (void)setLigatures:(BOOL)state
+{
+    ligatures = state;
 }
 
 - (void)setImControl:(BOOL)enable
@@ -1371,7 +1366,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
     }
 
     CGContextSetTextPosition(context, x, y+fontDescent);
-    recurseDraw(chars, glyphs, positions, length, context, fontRef, fontCache, useLigatures);
+    recurseDraw(chars, glyphs, positions, length, context, fontRef, fontCache, ligatures);
 
     CFRelease(fontRef);
     CGContextRestoreGState(context);

@@ -208,7 +208,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],   MMNoFontSubstitutionKey,
         [NSNumber numberWithBool:YES],  MMLoginShellKey,
         [NSNumber numberWithInt:2],     MMRendererKey,
-        [NSNumber numberWithBool:NO],   MMRendererLigaturesSupportKey,
         [NSNumber numberWithInt:MMUntitledWindowAlways],
                                         MMUntitledWindowKey,
         [NSNumber numberWithBool:NO],   MMTexturedWindowKey,
@@ -1226,27 +1225,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // button in the advanced preferences pane.
     [self rebuildPreloadCache];
 }
-
-- (IBAction)ligaturesButtonClicked:(id)sender
-{
-    ASLogDebug(@"Toggle CoreText ligatures");
-    BOOL enable = ([sender state] == NSOnState);
-
-    // Update the user default MMRendererLigaturesSupport and synchronize the
-    // change so that any new Vim process will pick up on the changed setting.
-    CFPreferencesSetAppValue(
-            (CFStringRef)MMRendererLigaturesSupportKey,
-            (CFPropertyListRef)[NSNumber numberWithBool:enable],
-            kCFPreferencesCurrentApplication);
-    CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
-
-    ASLogInfo(@"Use ligatures=%hhd", enable);
-
-    // This action is called when the user clicks the "enable support for ligatures"
-    // button in the advanced preferences pane.
-    [self rebuildPreloadCache];
-}
-
 
 - (IBAction)loginShellButtonClicked:(id)sender
 {

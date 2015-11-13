@@ -801,6 +801,12 @@ static BOOL isUnsafeMessage(int msgid);
         [[[windowController vimView] textView] setAntialias:YES];
     } else if (DisableAntialiasMsgID == msgid) {
         [[[windowController vimView] textView] setAntialias:NO];
+    } else if (EnableLigaturesMsgID == msgid) {
+        [[[windowController vimView] textView] setLigatures:YES];
+        [self sendMessage:BackingPropertiesChangedMsgID data:nil];
+    } else if (DisableLigaturesMsgID == msgid) {
+        [[[windowController vimView] textView] setLigatures:NO];
+        [self sendMessage:BackingPropertiesChangedMsgID data:nil];
     } else if (SetVimStateMsgID == msgid) {
         NSDictionary *dict = [NSDictionary dictionaryWithData:data];
         if (dict) {

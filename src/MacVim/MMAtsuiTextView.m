@@ -361,6 +361,11 @@ defaultLineHeightForFont(NSFont *font)
     antialias = state;
 }
 
+- (void)setLigatures:(BOOL)state
+{
+    // ONLY in Core Text!
+}
+
 - (void)setImControl:(BOOL)enable
 {
     [helper setImControl:enable];

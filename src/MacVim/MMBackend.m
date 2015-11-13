@@ -1180,6 +1180,13 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self queueMessage:msgid data:nil];
 }
 
+- (void)setLigatures:(BOOL)ligatures
+{
+    int msgid = ligatures ? EnableLigaturesMsgID : DisableLigaturesMsgID;
+
+    [self queueMessage:msgid data:nil];
+}
+
 #ifdef BLUR_TRANSPARENCY
 
 - (void)setBlurRadius:(int)radius
