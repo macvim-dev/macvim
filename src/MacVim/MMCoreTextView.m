@@ -1039,6 +1039,53 @@ lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
     return newFontRef;
 }
 
+    static CFAttributedStringRef
+attributedStringForString(NSString *string, const CTFontRef font, BOOL useLigatures)
+{
+    NSDictionary *attrs = [NSDictionary dictionaryWithObjectsAndKeys:
+                            (id)font, kCTFontAttributeName,
+                            // 2 - full ligatures including rare
+                            // 1 - basic ligatures
+                            // 0 - no ligatures
+                            [NSNumber numberWithInteger: (useLigatures) ? 1 : 0], kCTLigatureAttributeName,
+                            nil
+    ];
+
+    return CFAttributedStringCreate(NULL, (CFStringRef)string, (CFDictionaryRef)attrs);
+}
+
+    static UniCharCount
+fetchGlyphsAndAdvances(const CTLineRef line, CGGlyph *glyphs, CGSize *advances, UniCharCount length)
+{
+    NSArray *glyphRuns = (NSArray*)CTLineGetGlyphRuns(line);
+
+    // get a hold on the actual character widths and glyphs in line
+    UniCharCount offset = 0;
+    for (id item in glyphRuns) {
+        CTRunRef run  = (CTRunRef)item;
+        CFIndex count = CTRunGetGlyphCount(run);
+
+        if(count > 0 && count - offset > length) {
+            count = length - offset;
+        }
+
+        CFRange range = CFRangeMake(0, count);
+
+        if( glyphs != NULL ) {
+            CTRunGetGlyphs(run, range, &glyphs[offset]);
+        }
+        if( advances != NULL ) {
+            CTRunGetAdvances(run, range, &advances[offset]);
+        }
+
+        offset += count;
+        if(offset >= length) {
+            break;
+        }
+    }
+    return offset;
+}
+
     static UniCharCount
 gatherGlyphs(CGGlyph glyphs[], UniCharCount count)
 {
@@ -1062,52 +1109,65 @@ ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs, CGPoint *positions
      * The way proposed on the CoreText ML is to convert the text to an attributed
      * string, create a CTLine from it and retrieve the Glyphs from the CTRuns in it.
      */
-    NSString      *text = [NSString stringWithCharacters:chars
-                                                  length:*length];
+    CGGlyph refGlyphs[*length];
+    CGPoint refPositions[*length];
 
-    NSDictionary *attrs = [NSDictionary dictionaryWithObjectsAndKeys:
-                            (id)font, kCTFontAttributeName,
-                            // 2 - full ligatures including rare
-                            [NSNumber numberWithInteger: 2], kCTLigatureAttributeName,
-                            nil
-    ];
+    memcpy(refGlyphs, glyphs, sizeof(CGGlyph) * (*length));
+    memcpy(refPositions, positions, sizeof(CGSize) * (*length));
 
-    NSAttributedString *attrText = [[NSAttributedString alloc] initWithString:text
-                                                                   attributes:attrs];
+    memset(glyphs, 0, sizeof(CGGlyph) * (*length));
 
-    CGPoint refPos = positions[0];
+    NSString *plainText = [NSString stringWithCharacters:chars length:*length];
+    CFAttributedStringRef ligatureText = attributedStringForString(plainText, font, YES);
 
-    CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrText);
+    CTLineRef ligature = CTLineCreateWithAttributedString(ligatureText);
 
-    UniCharCount offset = 0;
-    NSArray *glyphRuns = (NSArray*)CTLineGetGlyphRuns(line);
+    CGSize ligatureRanges[*length], regularRanges[*length];
 
-    for (id item in glyphRuns) {
-        CTRunRef run  = (CTRunRef)item;
-        CFIndex count = CTRunGetGlyphCount(run);
+    // get the (ligature)glyphs and advances for the new text
+    UniCharCount offset = fetchGlyphsAndAdvances(ligature, glyphs, ligatureRanges, length);
+    // fetch the advances for the base text
+    CTFontGetAdvancesForGlyphs(font, kCTFontOrientationDefault, refGlyphs, regularRanges, *length);
 
-        if(count > 0) {
-            if(count - offset > *length) {
-                count = (*length) - offset;
-            }
+    CFRelease(ligatureText);
+    CFRelease(ligature);
+
+    // tricky part: compare both advance ranges and chomp positions which
+    // are covered by a single ligature while keeping glyphs not in the ligature font.
+#define fequal(a, b) (fabs( (a) - (b) ) < FLT_EPSILON)
+#define fless(a, b)((a) - (b) < FLT_EPSILON) && (fabs( (a) - (b) ) > FLT_EPSILON)
+
+    CFIndex skip = 0;
+    for( CFIndex i = 0; i < offset && skip + i < *length; ++i ) {
+        memcpy(&positions[i], &refPositions[skip + i], sizeof(CGSize));
+
+        if( fequal(ligatureRanges[i].width, regularRanges[skip + i].width) ) {
+            // [mostly] same width
+            continue;
+
+        } else if( fless(ligatureRanges[i].width, regularRanges[skip + i].width) ) {
+            // original is wider than our result - use the original glyph
+            // FIXME: this is currently the only way to detect emoji (except for 'glyph[i] == 5')
+            glyphs[i] = refGlyphs[skip + i];
+            continue;
         }
 
-        CFRange range = CFRangeMake(0, count);
-        CTRunGetGlyphs(run, range, &glyphs[offset]);
-        CTRunGetPositions(run, range, &positions[offset]);
+        // no, that's a ligature
+        // count how many positions this glyph would take up in the base text
+        CFIndex j = 0;
+        float width = ceil(regularRanges[skip + i].width);
 
-        offset += count;
-        if(offset >= *length) {
-            // don't copy more glyphs then there is space for
-            break;
+        while( (int)width < (int)ligatureRanges[i].width
+               && skip + i + j < *length )
+        {
+            width += ceil(regularRanges[++j + skip + i].width);
         }
+        skip += j;
     }
-    // fixup relative positioning
-    CFIndex i;
-    for( i = 0; i < offset; ++i ) {
-        positions[i].x += refPos.x;
-        positions[i].y += refPos.y;
-    }
+
+#undef fless
+#undef fequal
+
     // as ligatures combine characters it is required to adjust the
     // original length value
     *length = offset;
@@ -1120,10 +1180,11 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
 {
     if (CTFontGetGlyphsForCharacters(fontRef, chars, glyphs, length)) {
         // All chars were mapped to glyphs, so draw all at once and return.
-        length = gatherGlyphs(glyphs, length);
         if (useLigatures) {
-            memset(glyphs, 0, sizeof(CGGlyph) * length);
-            ligatureGlyphsForChars(chars, glyphs, positions, &length, fontRef);
+          ligatureGlyphsForChars(chars, glyphs, positions, &length, fontRef);
+        } else {
+          // only fixup surrogate pairs if we're not using ligatures
+          length = gatherGlyphs(glyphs, length);
         }
 
         CTFontDrawGlyphs(fontRef, glyphs, positions, length, context);
