@@ -4997,6 +4997,23 @@ A jump table for the options with a short description can be found at |Q_op|.
 	bound with the Meta flag even when this option is disabled, but this
 	is not the case for the majority of keys (e.g. <M-a>, <M-`>).
 
+				*'macligatures'* *'nomacligatures'*
+'macligatures' 		boolean (default off)
+			global
+			{not in Vi}
+                        {only available when compiled with GUI enabled on
+			 Mac OS X}
+	This option only has an effect in the GUI version of Vim on Mac OS X
+	v10.2 or later.  When on, Vim will display ligatures if the selected
+	'guifont' supports them. Examples for such fonts are Fira Code or
+	Haskelig.
+	Note: Currently this option only has an effect if
+	'Use Core Text renderer' is enabled in the GUI preferences pane.
+
+	Support for this option is not flawless in MacVim. In particular it
+	currently requires the use of 'cursorline' or 'relativenumber' to draw
+	properly.
+
 						*'magic'* *'nomagic'*
 'magic'			boolean	(default on)
 			global
