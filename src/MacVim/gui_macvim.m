@@ -1783,6 +1783,11 @@ gui_macvim_set_antialias(int antialias)
     [[MMBackend sharedInstance] setAntialias:antialias];
 }
 
+    void
+gui_macvim_set_ligatures(int ligatures)
+{
+    [[MMBackend sharedInstance] setLigatures:ligatures];
+}
 
     void
 gui_macvim_wait_for_startup()

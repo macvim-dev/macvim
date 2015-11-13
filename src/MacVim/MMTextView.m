@@ -307,6 +307,11 @@
     antialias = state;
 }
 
+- (void)setLigatures:(BOOL)state
+{
+    ligatures = state;
+}
+
 - (void)setImControl:(BOOL)enable
 {
     [helper setImControl:enable];

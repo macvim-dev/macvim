@@ -20,6 +20,7 @@
     int                 insertionPointShape;
     int                 insertionPointFraction;
     BOOL                antialias;
+    BOOL                ligatures;
     NSRect              *invertRects;
     int                 numInvertRects;
 
@@ -32,6 +33,7 @@
 - (void)performBatchDrawWithData:(NSData *)data;
 - (void)setMouseShape:(int)shape;
 - (void)setAntialias:(BOOL)antialias;
+- (void)setLigatures:(BOOL)ligatures;
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
 - (void)checkImState;

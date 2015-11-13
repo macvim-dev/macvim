@@ -207,6 +207,7 @@ void gui_mch_fuopt_update(void);
 void gui_macvim_update_modified_flag();
 void gui_macvim_add_to_find_pboard(char_u *pat);
 void gui_macvim_set_antialias(int antialias);
+void gui_macvim_set_ligatures(int ligatures);
 
 #ifdef BLUR_TRANSPARENCY
 void gui_macvim_set_blur(int blur);
