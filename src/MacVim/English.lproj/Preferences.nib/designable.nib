@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="8152.3" systemVersion="15A216g" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9059" systemVersion="15C31f" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
     <dependencies>
         <deployment version="1050" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="8152.3"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9059"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MMPreferenceController">
@@ -192,11 +192,11 @@
             <animations/>
         </customView>
         <customView id="620" userLabel="Advanced">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="381"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="407"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <textField verticalHuggingPriority="750" id="826">
-                    <rect key="frame" x="17" y="170" width="449" height="56"/>
+                    <rect key="frame" x="17" y="173" width="449" height="56"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="993">
@@ -207,7 +207,7 @@
                     </textFieldCell>
                 </textField>
                 <button id="817">
-                    <rect key="frame" x="18" y="228" width="133" height="18"/>
+                    <rect key="frame" x="18" y="231" width="133" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <buttonCell key="cell" type="check" title="Enable Quickstart" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="992">
@@ -220,7 +220,7 @@
                     </connections>
                 </button>
                 <textField verticalHuggingPriority="750" id="815">
-                    <rect key="frame" x="17" y="315" width="449" height="28"/>
+                    <rect key="frame" x="17" y="341" width="449" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="991">
@@ -231,18 +231,18 @@
                     </textFieldCell>
                 </textField>
                 <textField verticalHuggingPriority="750" id="UsV-sz-DPX">
-                    <rect key="frame" x="38" y="257" width="423" height="28"/>
+                    <rect key="frame" x="38" y="255" width="423" height="56"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="v4V-eb-KHB">
                         <font key="font" metaFont="smallSystem"/>
-                        <string key="title">Selecting this option will enable full support for displaying font ligatures. Using this with a non-proportional font may result in layout issues.</string>
+                        <string key="title">Selecting this option will enable full support for displaying font ligatures. Using this with a non-proportional font may result in layout issues. Please note that liguture support currenty requires 'set cursorline' or 'set relativenumber' to draw properly.</string>
                         <color key="textColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
                 <button id="782">
-                    <rect key="frame" x="18" y="345" width="174" height="18"/>
+                    <rect key="frame" x="18" y="371" width="174" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <buttonCell key="cell" type="check" title="Use Core Text renderer" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="990">
@@ -255,7 +255,7 @@
                     </connections>
                 </button>
                 <button id="Y9N-gx-Zgy">
-                    <rect key="frame" x="38" y="291" width="191" height="18"/>
+                    <rect key="frame" x="38" y="317" width="191" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <buttonCell key="cell" type="check" title="Enable support for ligatures" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="fZO-bR-PtE">
@@ -268,7 +268,7 @@
                     </connections>
                 </button>
                 <textField verticalHuggingPriority="750" id="1001">
-                    <rect key="frame" x="17" y="74" width="444" height="70"/>
+                    <rect key="frame" x="17" y="77" width="444" height="70"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="1004">
@@ -279,7 +279,7 @@
                     </textFieldCell>
                 </textField>
                 <button id="1013">
-                    <rect key="frame" x="18" y="146" width="174" height="18"/>
+                    <rect key="frame" x="18" y="149" width="174" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <buttonCell key="cell" type="check" title="Draw marked text inline" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="1014">
@@ -291,7 +291,7 @@
                     </connections>
                 </button>
                 <textField verticalHuggingPriority="750" id="1017">
-                    <rect key="frame" x="17" y="20" width="415" height="28"/>
+                    <rect key="frame" x="17" y="23" width="415" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="1020">
@@ -302,7 +302,7 @@
                     </textFieldCell>
                 </textField>
                 <button id="1028">
-                    <rect key="frame" x="18" y="50" width="388" height="18"/>
+                    <rect key="frame" x="18" y="53" width="388" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <animations/>
                     <buttonCell key="cell" type="check" title="Prefer native full-screen support (requires Mac OS X 10.7)" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="1029">
@@ -315,7 +315,7 @@
                 </button>
             </subviews>
             <animations/>
-            <point key="canvasLocation" x="592.5" y="797.5"/>
+            <point key="canvasLocation" x="592.5" y="810.5"/>
         </customView>
     </objects>
 </document>
