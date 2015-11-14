@@ -110,9 +110,6 @@ comp_botline(wp)
 	    wp->w_cline_folded = folded;
 #endif
 	    redraw_for_cursorline(wp);
-#ifdef FEATU_GUI_MACVIM
-	    redraw_for_ligatures(wp);
-#endif
 	    wp->w_valid |= (VALID_CROW|VALID_CHEIGHT);
 	}
 	if (done + n > wp->w_height)
@@ -153,7 +150,7 @@ redraw_for_cursorline(wp)
 
 #ifdef FEAT_GUI_MACVIM
 /*
- * Redraw when 'macliguters' is set.
+ * Redraw when 'macligatures' is set.
  * This is basically the same as when 'cursorline'
  * or 'relativenumber' is set but unconditional.
  */
