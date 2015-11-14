@@ -111,7 +111,7 @@ to your .gvimrc file to revert back to the default Vim tab label.
 							*macvim-options*
 These are the non-standard options that MacVim supports:
 	'antialias'	'blurradius'	'fullscreen'
-	'fuoptions'	'macmeta'	'toolbariconsize'
+	'fuoptions'	'macmeta'	'macligatures'	'toolbariconsize'
 	'transparency'
 
 							*macvim-commands*
