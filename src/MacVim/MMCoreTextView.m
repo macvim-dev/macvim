@@ -309,7 +309,7 @@ defaultAdvanceForFont(NSFont *font)
         [fontWide release];
 
         // Use 'Apple Color Emoji' font for rendering emoji
-        CGFloat size = [newFont pointSize];
+        CGFloat size = [font pointSize];
         NSFontDescriptor *emojiDesc = [NSFontDescriptor
             fontDescriptorWithName:@"Apple Color Emoji" size:size];
         NSFontDescriptor *newFontDesc = [newFont fontDescriptor];
