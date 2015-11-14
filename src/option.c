@@ -1831,7 +1831,7 @@ static struct vimoption
 			    {(char_u *)TRUE, (char_u *)0L} SCRIPTID_INIT},
 #endif
 #ifdef FEAT_GUI_MACVIM
-    {"macligatures", NULL,  P_BOOL|P_VI_DEF,
+    {"macligatures", NULL,  P_BOOL|P_VI_DEF|P_RCLR,
 			    (char_u *)&p_macligatures, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}},
 #endif
