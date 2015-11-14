@@ -644,6 +644,9 @@ EXTERN char_u	*p_luadll;	/* 'luadll' */
 #ifdef FEAT_GUI_MAC
 EXTERN int	p_macatsui;	/* 'macatsui' */
 #endif
+#ifdef FEAT_GUI_MACVIM
+EXTERN int	p_macligatures;	/* 'macligatures' */
+#endif
 EXTERN int	p_magic;	/* 'magic' */
 #ifdef FEAT_QUICKFIX
 EXTERN char_u	*p_mef;		/* 'makeef' */
