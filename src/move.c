@@ -21,6 +21,9 @@
 
 static void comp_botline __ARGS((win_T *wp));
 static void redraw_for_cursorline __ARGS((win_T *wp));
+#ifdef FEAT_GUI_MACVIM
+static void redraw_for_ligatures __ARGS((win_T *wp));
+#endif
 static int scrolljump_value __ARGS((void));
 static int check_top_offset __ARGS((void));
 static void curs_rows __ARGS((win_T *wp));
@@ -164,7 +167,7 @@ redraw_for_ligatures(wp)
 	if (p_macligatures
 	    && (wp->w_p_rnu == 0
 #ifdef FEAT_SYN_HL
-	        || wp->w_p_cul == 0
+	        && wp->w_p_cul == 0
 #endif
 	    ))
 	redraw_win_later(wp, CLEAR);
