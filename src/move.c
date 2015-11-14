@@ -107,6 +107,9 @@ comp_botline(wp)
 	    wp->w_cline_folded = folded;
 #endif
 	    redraw_for_cursorline(wp);
+#ifdef FEATU_GUI_MACVIM
+	    redraw_for_ligatures(wp);
+#endif
 	    wp->w_valid |= (VALID_CROW|VALID_CHEIGHT);
 	}
 	if (done + n > wp->w_height)
@@ -144,6 +147,29 @@ redraw_for_cursorline(wp)
 	    )
 	redraw_win_later(wp, SOME_VALID);
 }
+
+#ifdef FEAT_GUI_MACVIM
+/*
+ * Redraw when 'macliguters' is set.
+ * This is basically the same as when 'cursorline'
+ * or 'relativenumber' is set but unconditional.
+ */
+static void
+redraw_for_ligatures(wp)
+     win_T *wp;
+{
+	/* Only if ligatures are on but neither
+	 * 'cursorline' nor 'relativenumber'.
+	 */
+	if (p_macligatures
+	    && (wp->w_p_rnu == 0
+#ifdef FEAT_SYN_HL
+	        || wp->w_p_cul == 0
+#endif
+	    ))
+	redraw_win_later(wp, CLEAR);
+}
+#endif
 
 /*
  * Update curwin->w_topline and redraw if necessary.
@@ -793,6 +819,9 @@ curs_rows(wp)
     }
 
     redraw_for_cursorline(curwin);
+#ifdef FEAT_GUI_MACVIM
+    redraw_for_ligatures(curwin);
+#endif
     wp->w_valid |= VALID_CROW|VALID_CHEIGHT;
 
 }
