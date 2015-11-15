@@ -426,6 +426,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'lz'	options.txt	/*'lz'*
 'ma'	options.txt	/*'ma'*
 'macatsui'	options.txt	/*'macatsui'*
+'macligatures'	options.txt	/*'macligatures'*
 'macmeta'	options.txt	/*'macmeta'*
 'magic'	options.txt	/*'magic'*
 'makeef'	options.txt	/*'makeef'*
@@ -602,6 +603,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'nolz'	options.txt	/*'nolz'*
 'noma'	options.txt	/*'noma'*
 'nomacatsui'	options.txt	/*'nomacatsui'*
+'nomacligatures'	options.txt	/*'nomacligatures'*
 'nomacmeta'	options.txt	/*'nomacmeta'*
 'nomagic'	options.txt	/*'nomagic'*
 'nomh'	options.txt	/*'nomh'*
