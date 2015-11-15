@@ -1120,7 +1120,7 @@ ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs, CGPoint *positions
     CGSize ligatureRanges[*length], regularRanges[*length];
 
     // get the (ligature)glyphs and advances for the new text
-    UniCharCount offset = fetchGlyphsAndAdvances(ligature, glyphs, ligatureRanges, length);
+    UniCharCount offset = fetchGlyphsAndAdvances(ligature, glyphs, ligatureRanges, *length);
     // fetch the advances for the base text
     CTFontGetAdvancesForGlyphs(font, kCTFontOrientationDefault, refGlyphs, regularRanges, *length);
 
