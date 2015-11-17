@@ -21,6 +21,7 @@ CC		= @CC@
 DEFS		= @DEFS@
 CFLAGS		= @CFLAGS@
 CPPFLAGS	= @CPPFLAGS@
+XCODEPROJ	= @XCODEPROJ@
 XCODEFLAGS	= @XCODEFLAGS@
 srcdir		= @srcdir@
 VPATH		= @srcdir@
