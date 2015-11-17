@@ -74,14 +74,14 @@
 /* Begin PBXContainerItemProxy section */
 		1D493DB80C52533B00AB718C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
+			containerPortal = 1D493DB30C52533B00AB718C /* PSMTabBarControl_legacy.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 53DF68FD067E5B5A0090B5B0;
 			remoteInfo = PSMTabBarControlFramework;
 		};
 		1D493DCC0C5254A400AB718C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
+			containerPortal = 1D493DB30C52533B00AB718C /* PSMTabBarControl_legacy.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = 53DF68FC067E5B5A0090B5B0;
 			remoteInfo = PSMTabBarControlFramework;
@@ -153,7 +153,7 @@
 		1D384A0D100D671700D3C22F /* KeyBinding.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = KeyBinding.plist; sourceTree = "<group>"; };
 		1D44972111FCA9B400B0630F /* MMCoreTextView+ToolTip.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "MMCoreTextView+ToolTip.m"; sourceTree = "<group>"; };
 		1D493D570C5247BF00AB718C /* Vim */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = Vim; path = ../Vim; sourceTree = SOURCE_ROOT; };
-		1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PSMTabBarControl.xcodeproj; path = PSMTabBarControl/PSMTabBarControl.xcodeproj; sourceTree = "<group>"; };
+		1D493DB30C52533B00AB718C /* PSMTabBarControl_legacy.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PSMTabBarControl_legacy.xcodeproj; path = PSMTabBarControl/PSMTabBarControl_legacy.xcodeproj; sourceTree = "<group>"; };
 		1D6008820E96886D003763F0 /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/FindAndReplace.nib; sourceTree = "<group>"; };
 		1D6008890E96A0B2003763F0 /* MMFindReplaceController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMFindReplaceController.h; sourceTree = "<group>"; };
 		1D60088A0E96A0B2003763F0 /* MMFindReplaceController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMFindReplaceController.m; sourceTree = "<group>"; };
@@ -209,7 +209,7 @@
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		32CA4F630368D1EE00C91783 /* MacVim_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacVim_Prefix.pch; sourceTree = "<group>"; };
-		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8D1107310486CEB800E47090 /* Info_legacy.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info_legacy.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -387,7 +387,7 @@
 				1DE8CC610C5E2AAD003F56E3 /* Actions.plist */,
 				1DD04DEB0C529C5E006CDC2B /* Credits.rtf */,
 				1D0E051B0BA5F83800B6049E /* Colors.plist */,
-				8D1107310486CEB800E47090 /* Info.plist */,
+				8D1107310486CEB800E47090 /* Info_legacy.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				1DE3F8E50D50F80500052B9E /* Preferences.nib */,
 				29B97318FDCFA39411CA2CEA /* MainMenu.nib */,
@@ -399,7 +399,7 @@
 			isa = PBXGroup;
 			children = (
 				1D8B5A52104AF9FF002E59D5 /* Carbon.framework */,
-				1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */,
+				1D493DB30C52533B00AB718C /* PSMTabBarControl_legacy.xcodeproj */,
 				1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */,
 				1058C7A2FEA54F0111CA2CBB /* Other Frameworks */,
 			);
@@ -453,7 +453,7 @@
 			projectReferences = (
 				{
 					ProductGroup = 1D493DB40C52533B00AB718C /* Products */;
-					ProjectRef = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
+					ProjectRef = 1D493DB30C52533B00AB718C /* PSMTabBarControl_legacy.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -628,7 +628,7 @@
 				GCC_VERSION = "";
 				GCC_WARN_PEDANTIC = NO;
 				HEADER_SEARCH_PATHS = "";
-				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_FILE = Info_legacy.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
 				MACOSX_DEPLOYMENT_TARGET = "";
 				ONLY_ACTIVE_ARCH = YES;
@@ -658,7 +658,7 @@
 				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_VERSION = "";
 				HEADER_SEARCH_PATHS = "";
-				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_FILE = Info_legacy.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
 				MACOSX_DEPLOYMENT_TARGET = "";
 				ONLY_ACTIVE_ARCH = YES;
