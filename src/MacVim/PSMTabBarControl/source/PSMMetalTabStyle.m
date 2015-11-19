@@ -393,7 +393,7 @@ void MyNSDrawWindowBackground(NSRect rect)
         if ([cell closeButtonPressed]) closeButton = metalCloseButtonDown;
         
         closeButtonSize = [closeButton size];
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6
+#if defined(MAC_OS_X_VERSION_10_6) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
         [closeButton drawInRect:closeButtonRect fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
 #else
         [closeButton setFlipped:YES];
