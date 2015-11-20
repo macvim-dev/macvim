@@ -1532,15 +1532,10 @@ static BOOL isUnsafeMessage(int msgid);
         }
     }
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_10
-  [alert beginSheetModalForWindow:[windowController window]
-                completionHandler: ^(NSModalResponse code) { [self alertDidEnd:alert code:code context:NULL]; }];
-#else
     [alert beginSheetModalForWindow:[windowController window]
                       modalDelegate:self
                      didEndSelector:@selector(alertDidEnd:code:context:)
                         contextInfo:NULL];
-#endif
 
     [alert release];
 }
