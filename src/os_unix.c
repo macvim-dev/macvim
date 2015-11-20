@@ -403,7 +403,7 @@ mch_inchar(buf, maxlen, wtime, tb_change_cnt)
 	{
 	    if (do_resize)
 		handle_resize();
-#ifdef FEAT_CLIENTSERVER
+#if defined(FEAT_CLIENTSERVER) && !defined(MAC_CLIENTSERVER)
 	    else if (!server_waiting())
 #else
 	    else
