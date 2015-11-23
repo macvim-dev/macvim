@@ -176,6 +176,12 @@ gui_macvim_after_fork_init()
     val = CFPreferencesGetAppIntegerValue((CFStringRef)MMRendererKey,
                                             kCFPreferencesCurrentApplication,
                                             &keyValid);
+    if (!keyValid) {
+        // If MMRendererKey is not valid in the defaults, it means MacVim uses
+        // the Core Text Renderer.
+        keyValid = YES;
+        val = MMRendererCoreText;
+    }
     if (keyValid) {
         ASLogInfo(@"Use renderer=%ld", val);
         use_gui_macvim_draw_string = (val != MMRendererCoreText);
