@@ -1036,6 +1036,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'tabstop'	options.txt	/*'tabstop'*
 'tag'	options.txt	/*'tag'*
 'tagbsearch'	options.txt	/*'tagbsearch'*
+'tagcase'	options.txt	/*'tagcase'*
 'taglength'	options.txt	/*'taglength'*
 'tagrelative'	options.txt	/*'tagrelative'*
 'tags'	options.txt	/*'tags'*
@@ -1046,6 +1047,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'tbidi'	options.txt	/*'tbidi'*
 'tbis'	options.txt	/*'tbis'*
 'tbs'	options.txt	/*'tbs'*
+'tc'	options.txt	/*'tc'*
 'tenc'	options.txt	/*'tenc'*
 'term'	options.txt	/*'term'*
 'termbidi'	options.txt	/*'termbidi'*

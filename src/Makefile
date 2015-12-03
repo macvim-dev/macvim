@@ -1947,6 +1947,7 @@ test1 \
 	test_search_mbyte \
 	test_set \
 	test_signs \
+	test_tagcase \
 	test_textobjects \
 	test_utf8 \
 	test_writefile \
