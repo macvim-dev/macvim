@@ -2964,7 +2964,7 @@ macvim-dmg: macvim
 
 macvimclean:
 	if test -d MacVim; then \
-		xcodebuild -project MacVim/$(XCODEPROJ) clean; \
+		rm -rf MacVim/build xxd/xxd.dSYM; \
 	fi
 
 
