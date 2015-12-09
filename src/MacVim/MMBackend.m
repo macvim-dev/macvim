@@ -1841,6 +1841,7 @@ static void netbeansReadCallback(CFSocketRef s,
     NSDictionary *vimState = [NSDictionary dictionaryWithObjectsAndKeys:
         [[NSFileManager defaultManager] currentDirectoryPath], @"pwd",
         [NSNumber numberWithInt:p_mh], @"p_mh",
+        [NSNumber numberWithLong:p_mouset], @"p_mouset",
         [NSNumber numberWithBool:mmta], @"p_mmta",
         [NSNumber numberWithInt:numTabs], @"numTabs",
         [NSNumber numberWithInt:fuoptions_flags], @"fullScreenOptions",
@@ -1932,12 +1933,12 @@ static void netbeansReadCallback(CFSocketRef s,
         int col = *((int*)bytes);  bytes += sizeof(int);
         int button = *((int*)bytes);  bytes += sizeof(int);
         int flags = *((int*)bytes);  bytes += sizeof(int);
-        int count = *((int*)bytes);  bytes += sizeof(int);
+        int repeat = *((int*)bytes);  bytes += sizeof(int);
 
         button = eventButtonNumberToVimMouseButton(button);
         if (button >= 0) {
             flags = eventModifierFlagsToVimMouseModMask(flags);
-            gui_send_mouse_event(button, col, row, count>1, flags);
+            gui_send_mouse_event(button, col, row, repeat, flags);
         }
     } else if (MouseUpMsgID == msgid) {
         if (!data) return;
