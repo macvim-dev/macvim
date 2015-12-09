@@ -35,6 +35,8 @@
     BOOL                interpretKeyEventsSwallowedKey;
     NSEvent             *currentEvent;
     NSMutableDictionary *signImages;
+    BOOL                useMouseTime;
+    NSDate              *mouseDownTime;
 
     // Input Manager
     NSRange             imRange;

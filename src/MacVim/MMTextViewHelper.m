@@ -80,6 +80,11 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     signImages = [[NSMutableDictionary alloc] init];
 
+    useMouseTime =
+        [[NSUserDefaults standardUserDefaults] boolForKey:MMUseMouseTimeKey];
+    if (useMouseTime)
+        mouseDownTime = [[NSDate date] retain];
+
     return self;
 }
 
@@ -91,6 +96,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [markedText release];  markedText = nil;
     [markedTextAttributes release];  markedTextAttributes = nil;
     [signImages release];  signImages = nil;
+    [mouseDownTime release];  mouseDownTime = nil;
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     if (asciiImSource) {
@@ -380,7 +386,21 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     int button = [event buttonNumber];
     int flags = [event modifierFlags];
-    int count = [event clickCount];
+    int repeat = 0;
+
+    if (useMouseTime) {
+        // Use Vim mouseTime option to handle multiple mouse down events
+        NSDate *now = [[NSDate date] retain];
+        id mouset = [[[self vimController] vimState] objectForKey:@"p_mouset"];
+        NSTimeInterval interval =
+            [now timeIntervalSinceDate:mouseDownTime] * 1000.0;
+        if (interval < (NSTimeInterval)[mouset longValue])
+            repeat = 1;
+        mouseDownTime = now;
+    } else {
+        repeat = [event clickCount] > 1;
+    }
+
     NSMutableData *data = [NSMutableData data];
 
     // If desired, intepret Ctrl-Click as a right mouse click.
@@ -398,7 +418,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [data appendBytes:&col length:sizeof(int)];
     [data appendBytes:&button length:sizeof(int)];
     [data appendBytes:&flags length:sizeof(int)];
-    [data appendBytes:&count length:sizeof(int)];
+    [data appendBytes:&repeat length:sizeof(int)];
 
     [[self vimController] sendMessage:MouseDownMsgID data:data];
 }
