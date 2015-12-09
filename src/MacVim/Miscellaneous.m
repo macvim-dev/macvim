@@ -29,6 +29,7 @@ NSString *MMTranslateCtrlClickKey       = @"MMTranslateCtrlClick";
 NSString *MMTopLeftPointKey             = @"MMTopLeftPoint";
 NSString *MMOpenInCurrentWindowKey      = @"MMOpenInCurrentWindow";
 NSString *MMNoFontSubstitutionKey       = @"MMNoFontSubstitution";
+NSString *MMNoTitleBarWindowKey         = @"MMNoTitleBarWindow";
 NSString *MMLoginShellKey               = @"MMLoginShell";
 NSString *MMUntitledWindowKey           = @"MMUntitledWindow";
 NSString *MMTexturedWindowKey           = @"MMTexturedWindow";

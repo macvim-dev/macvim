@@ -108,6 +108,14 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
     [super dealloc];
 }
 
+- (BOOL) canBecomeMainWindow {
+    return YES;
+}
+
+- (BOOL) canBecomeKeyWindow {
+    return YES;
+}
+
 - (BOOL)hideTablineSeparator:(BOOL)hide
 {
     BOOL isHidden = [tablineSeparator isHidden];
@@ -225,6 +233,17 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
     if ([NSWindow instancesRespondToSelector:@selector(toggleFullScreen:)])
         [super toggleFullScreen:sender];
 #endif
+}
+
+- (void)setToolbar:(NSToolbar *)toolbar
+{
+    if ([[NSUserDefaults standardUserDefaults] 
+            boolForKey:MMNoTitleBarWindowKey]) {
+        // MacVim can't have toolbar with No title bar setting.
+        return;
+    }
+
+    [super setToolbar:toolbar];
 }
 
 @end // MMWindow

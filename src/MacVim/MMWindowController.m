@@ -130,6 +130,12 @@
             | NSMiniaturizableWindowMask | NSResizableWindowMask
             | NSUnifiedTitleAndToolbarWindowMask;
 
+    if ([[NSUserDefaults standardUserDefaults]
+            boolForKey:MMNoTitleBarWindowKey]) {
+        // No title bar setting
+        styleMask &= ~NSTitledWindowMask;
+    }
+
     // Use textured background on Leopard or later (skip the 'if' on Tiger for
     // polished metal window).
     if ([[NSUserDefaults standardUserDefaults] boolForKey:MMTexturedWindowKey]
