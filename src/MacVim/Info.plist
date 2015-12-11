@@ -1256,7 +1256,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>85</string>
+	<string>86</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
