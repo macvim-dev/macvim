@@ -97,8 +97,13 @@ src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.mode1v3
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/*.pbxuser
 src/MacVim/PSMTabBarControl/PSMTabBarControl.xcodeproj/xcuserdata
 src/MacVim/PSMTabBarControl/build
-src/MacVim/PSMTabBarControl/build
+src/MacVim/qlstephen/QuickLookStephen.xcodeproj/*.mode1
+src/MacVim/qlstephen/QuickLookStephen.xcodeproj/*.mode1v3
+src/MacVim/qlstephen/QuickLookStephen.xcodeproj/*.pbxuser
+src/MacVim/qlstephen/QuickLookStephen.xcodeproj/xcuserdata
+src/MacVim/qlstephen/build
 src/MacVim/build
+src/MacVim/DerivedData
 src/TAGS
 src/Vim
 src/auto/config.cache
