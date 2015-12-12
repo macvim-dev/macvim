@@ -65,6 +65,7 @@
 		1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */; };
 		1DED78600C6DE43D0079945F /* vimrc in Copy Vim Runtime Files */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
 		1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
+		52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */ = {isa = PBXBuildFile; fileRef = 52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8D11072A0486CEB800E47090 /* MainMenu.nib in Resources */ = {isa = PBXBuildFile; fileRef = 29B97318FDCFA39411CA2CEA /* MainMenu.nib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
@@ -85,6 +86,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = 53DF68FC067E5B5A0090B5B0;
 			remoteInfo = PSMTabBarControlFramework;
+		};
+		52818AFE1C1C075300F59085 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 8D576316048677EA00EA77CD;
+			remoteInfo = QuickLookStephen;
+		};
+		52818B001C1C084100F59085 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 8D57630D048677EA00EA77CD;
+			remoteInfo = QuickLookStephen;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -122,6 +137,17 @@
 				1DE608B40C587FDA0055263D /* runtime in Copy Vim Runtime Files */,
 			);
 			name = "Copy Vim Runtime Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		52818B021C1C088000F59085 /* Copy QuickLookPlugin */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = ../Library/QuickLook;
+			dstSubfolderSpec = 6;
+			files = (
+				52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */,
+			);
+			name = "Copy QuickLookPlugin";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -209,6 +235,7 @@
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		32CA4F630368D1EE00C91783 /* MacVim_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacVim_Prefix.pch; sourceTree = "<group>"; };
+		52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = QuickLookStephen.xcodeproj; path = qlstephen/QuickLookStephen.xcodeproj; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -367,6 +394,7 @@
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				1DE602460C587F760055263D /* Vim Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
+				52818AF81C1C073400F59085 /* QuickLook Plugin */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
 			);
 			name = MacVim;
@@ -406,6 +434,22 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		52818AF81C1C073400F59085 /* QuickLook Plugin */ = {
+			isa = PBXGroup;
+			children = (
+				52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */,
+			);
+			name = "QuickLook Plugin";
+			sourceTree = "<group>";
+		};
+		52818AFB1C1C075300F59085 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -418,6 +462,7 @@
 				8D11072E0486CEB800E47090 /* Frameworks */,
 				1D0DCAD80BA3604D00B6CCFA /* Copy Executables */,
 				1D9EB2840C366D7B0074B739 /* Copy Frameworks */,
+				52818B021C1C088000F59085 /* Copy QuickLookPlugin */,
 				1DE608B80C58807F0055263D /* Copy Vim Runtime Files */,
 				1D1C31F00EFFBFD6003FE9A5 /* Make Document Icons */,
 			);
@@ -425,6 +470,7 @@
 			);
 			dependencies = (
 				1D493DCD0C5254A400AB718C /* PBXTargetDependency */,
+				52818B011C1C084100F59085 /* PBXTargetDependency */,
 			);
 			name = MacVim;
 			productInstallPath = "$(HOME)/Applications";
@@ -458,6 +504,10 @@
 					ProductGroup = 1D493DB40C52533B00AB718C /* Products */;
 					ProjectRef = 1D493DB30C52533B00AB718C /* PSMTabBarControl.xcodeproj */;
 				},
+				{
+					ProductGroup = 52818AFB1C1C075300F59085 /* Products */;
+					ProjectRef = 52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */;
+				},
 			);
 			projectRoot = "";
 			targets = (
@@ -472,6 +522,13 @@
 			fileType = wrapper.framework;
 			path = PSMTabBarControl.framework;
 			remoteRef = 1D493DB80C52533B00AB718C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = QLStephen.qlgenerator;
+			remoteRef = 52818AFE1C1C075300F59085 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -573,6 +630,11 @@
 			isa = PBXTargetDependency;
 			name = PSMTabBarControlFramework;
 			targetProxy = 1D493DCC0C5254A400AB718C /* PBXContainerItemProxy */;
+		};
+		52818B011C1C084100F59085 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = QuickLookStephen;
+			targetProxy = 52818B001C1C084100F59085 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
