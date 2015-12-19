@@ -1510,6 +1510,11 @@ AC_SUBST(PYTHON3_CFLAGS)
 AC_SUBST(PYTHON3_SRC)
 AC_SUBST(PYTHON3_OBJ)
 
+AC_ARG_WITH(properly-linked-python2-python3,
+      [  --with-properly-linked-python2-python3 Link with properly linked Python 2 and Python 3.],
+      [vi_cv_with_properly_linked_python2_python3="yes"],
+      [vi_cv_with_properly_linked_python2_python3="no"])
+
 dnl if python2.x and python3.x are enabled one can only link in code
 dnl with dlopen(), dlsym(), dlclose() 
 if test "$python_ok" = yes && test "$python3_ok" = yes; then
@@ -1521,7 +1526,7 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
   libs_save=$LIBS
   dnl -ldl must go first to make this work on Archlinux (Roland Puntaier)
   LIBS="-ldl $LIBS"
-  if test "x$MACOSX" != "xyes"; then
+  if test "x$MACOSX" != "xyes" || test "$vi_cv_with_properly_linked_python2_python3" = "yes"; then
   AC_RUN_IFELSE([AC_LANG_SOURCE([
     #include <dlfcn.h>
     /* If this program fails, then RTLD_GLOBAL is needed.
