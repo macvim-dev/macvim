@@ -162,17 +162,10 @@ be in when executing these commands):
 1. Configure Vim (call "./configure --help" to see a list of flags)
     src/$ ./configure
 
-2. Generate document icons (OPTIONAL)
-    src/MacVim/icons$ make getenvy
-    src/MacVim/icons$ make all
-
-3. Build
+2. Build
     src/$ make
 
 The application bundle can be found inside "src/MacVim/build/Release".
-
-If step 2 is skipped a generic document icon will be used for all file types.
-It is also possible to download the document icons if this step fails.
 
 
 Bjorn Winckler <bjorn.winckler@gmail.com>
