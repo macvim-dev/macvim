@@ -803,6 +803,7 @@ enable_pythoninterp
 with_python_config_dir
 enable_python3interp
 with_python3_config_dir
+with_properly_linked_python2_python3
 enable_tclinterp
 with_tclsh
 enable_rubyinterp
@@ -1515,6 +1516,7 @@ Optional Packages:
   --with-plthome=PLTHOME   Use PLTHOME.
   --with-python-config-dir=PATH  Python's config directory
   --with-python3-config-dir=PATH  Python's config directory
+  --with-properly-linked-python2-python3 Link with properly linked Python 2 and Python 3.
   --with-tclsh=PATH       which tclsh to use (default: tclsh8.0)
   --with-ruby-command=RUBY  name of the Ruby command (default: ruby)
   --with-x                use the X Window System
@@ -6443,6 +6445,15 @@ fi
 
 
 
+
+# Check whether --with-properly-linked-python2-python3 was given.
+if test "${with_properly_linked_python2_python3+set}" = set; then :
+  withval=$with_properly_linked_python2_python3; vi_cv_with_properly_linked_python2_python3="yes"
+else
+  vi_cv_with_properly_linked_python2_python3="no"
+fi
+
+
 if test "$python_ok" = yes && test "$python3_ok" = yes; then
   $as_echo "#define DYNAMIC_PYTHON 1" >>confdefs.h
 
@@ -6454,7 +6465,7 @@ $as_echo_n "checking whether we can do without RTLD_GLOBAL for Python... " >&6; 
   CFLAGS="$CFLAGS $PYTHON_CFLAGS"
   libs_save=$LIBS
     LIBS="-ldl $LIBS"
-  if test "x$MACOSX" != "xyes"; then
+  if test "x$MACOSX" != "xyes" || test "$vi_cv_with_properly_linked_python2_python3" = "yes"; then
   if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
