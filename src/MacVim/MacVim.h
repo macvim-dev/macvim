@@ -13,15 +13,6 @@
 
 
 // Taken from /usr/include/AvailabilityMacros.h
-#ifndef MAC_OS_X_VERSION_10_4
-# define MAC_OS_X_VERSION_10_4 1040
-#endif
-#ifndef MAC_OS_X_VERSION_10_5
-# define MAC_OS_X_VERSION_10_5 1050
-#endif
-#ifndef MAC_OS_X_VERSION_10_6
-# define MAC_OS_X_VERSION_10_6 1060
-#endif
 #ifndef MAC_OS_X_VERSION_10_7
 # define MAC_OS_X_VERSION_10_7 1070
 #endif
@@ -34,15 +25,15 @@
 #ifndef MAC_OS_X_VERSION_10_10
 # define MAC_OS_X_VERSION_10_10 101000
 #endif
-#ifndef MAC_OS_X_VERSION_10_10_2
-# define MAC_OS_X_VERSION_10_10_2 101002
-#endif
-#ifndef MAC_OS_X_VERSION_10_10_3
-# define MAC_OS_X_VERSION_10_10_3 101003
-#endif
 #ifndef MAC_OS_X_VERSION_10_11
 # define MAC_OS_X_VERSION_10_11 101100
 #endif
+
+// Needed for pre-10.11 SDK
+#ifndef NSAppKitVersionNumber10_10_Max
+# define NSAppKitVersionNumber10_10_Max 1349
+#endif
+
 
 //
 // This is the protocol MMBackend implements.
@@ -282,7 +273,6 @@ extern NSString *MMRendererKey;
 
 enum {
     MMRendererDefault = 0,
-    MMRendererATSUI,
     MMRendererCoreText
 };
 
@@ -330,41 +320,6 @@ extern NSString *VimFindPboardType;
 
 // MacVim Apple Event Constants
 #define keyMMUntitledWindow       'MMuw'
-
-
-
-
-#ifndef NSINTEGER_DEFINED
-// NSInteger was introduced in 10.5
-# if __LP64__ || NS_BUILD_32_LIKE_64
-typedef long NSInteger;
-typedef unsigned long NSUInteger;
-# else
-typedef int NSInteger;
-typedef unsigned int NSUInteger;
-# endif
-# define NSINTEGER_DEFINED 1
-#endif
-
-// Needed for pre-10.5 SDK
-#ifndef NSAppKitVersionNumber10_4
-# define NSAppKitVersionNumber10_4 824
-#endif
-#ifndef NSAppKitVersionNumber10_10_Max
-# define NSAppKitVersionNumber10_10_Max 1349
-#endif
-
-#ifndef CGFLOAT_DEFINED
-    // On Leopard, CGFloat is float on 32bit and double on 64bit. On Tiger,
-    // we can't use this anyways, so it's just here to keep the compiler happy.
-    // However, when we're compiling for Tiger and running on Leopard, we
-    // might need the correct typedef, so this piece is copied from ATSTypes.h
-# ifdef __LP64__
-    typedef double CGFloat;
-# else
-    typedef float CGFloat;
-# endif
-#endif
 
 
 // Logging related functions and macros.

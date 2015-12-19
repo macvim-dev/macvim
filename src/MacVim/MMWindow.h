@@ -9,7 +9,6 @@
  */
 
 #import "MacVim.h"
-#import "blur.h"
 
 
 
@@ -29,9 +28,7 @@
 - (void)setContentMinSize:(NSSize)size;
 - (void)setContentMaxSize:(NSSize)size;
 - (void)setContentSize:(NSSize)size;
-#ifdef BLUR_TRANSPARENCY
 - (void)setBlurRadius:(int)radius;
-#endif
 
 - (IBAction)toggleFullScreen:(id)sender;
 - (IBAction)realToggleFullScreen:(id)sender;

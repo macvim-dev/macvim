@@ -29,9 +29,6 @@
 #import "MMWindow.h"
 #import "Miscellaneous.h"
 
-
-#ifdef BLUR_TRANSPARENCY
-
 #import "CGSInternal/CGSWindow.h"
 
 typedef CGError CGSSetWindowBackgroundBlurRadiusFunction(CGSConnectionID cid, CGSWindowID wid, NSUInteger blur);
@@ -61,9 +58,6 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
     }
     return function;
 }
-
-#endif // BLUR_TRANSPARENCY
-
 
 
 @implementation MMWindow
@@ -167,8 +161,6 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
     [super setContentSize:size];
 }
 
-#ifdef BLUR_TRANSPARENCY
-
 - (void)setBlurRadius:(int)radius
 {
     if (radius >= 0) {
@@ -182,8 +174,6 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
         }
     }
 }
-
-#endif // BLUR_TRANSPARENCY
 
 - (void)performClose:(id)sender
 {

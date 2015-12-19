@@ -182,6 +182,10 @@ gui_macvim_after_fork_init()
         keyValid = YES;
         val = MMRendererCoreText;
     }
+    if (val != MMRendererDefault && val != MMRendererCoreText) {
+        // Migrate from the old value to the Core Text Renderer.
+        val = MMRendererCoreText;
+    }
     if (keyValid) {
         ASLogInfo(@"Use renderer=%ld", val);
         use_gui_macvim_draw_string = (val != MMRendererCoreText);
@@ -2371,12 +2375,8 @@ gui_mch_post_balloon(beval, mesg)
 
 #endif // FEAT_BEVAL
 
-#ifdef BLUR_TRANSPARENCY
-
     void
 gui_macvim_set_blur(int radius)
 {
     [[MMBackend sharedInstance] setBlurRadius:radius];
 }
-
-#endif // BLUR_TRANSPARENCY

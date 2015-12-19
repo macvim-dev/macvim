@@ -42,11 +42,8 @@
 #import <Cocoa/Cocoa.h>
 
 
-@interface DBPrefsWindowController : NSWindowController
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= 1060)
-    // 10.6 has turned delegate messages into formal protocols
-    <NSAnimationDelegate, NSToolbarDelegate>
-#endif
+@interface DBPrefsWindowController : NSWindowController<NSAnimationDelegate,
+    NSToolbarDelegate>
 {
 	NSMutableArray *toolbarIdentifiers;
 	NSMutableDictionary *toolbarViews;
