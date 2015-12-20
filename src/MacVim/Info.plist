@@ -8,7 +8,6 @@
 	<!-- When adding support for a new file type:
 	     1. Add entry to CFBundleDocumentTypes
 	     2. Add entry to UTExportedTypeDeclarations below (for Quick Look)
-	     3. Add entry to icons/make_icons.py script (for document icon)
 
 	     For a list of UTIs, see
 	     http://developer.apple.com/documentation/Carbon/Conceptual/
