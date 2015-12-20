@@ -9664,7 +9664,7 @@ ex_redraw(eap)
     out_flush();
 #ifdef FEAT_GUI_MACVIM
     if (gui.in_use)
-	gui_macvim_flush();
+	gui_macvim_force_flush();
 #endif
 }
 
@@ -9691,7 +9691,7 @@ ex_redrawstatus(eap)
     out_flush();
 # ifdef FEAT_GUI_MACVIM
     if (gui.in_use)
-	gui_macvim_flush();
+	gui_macvim_force_flush();
 # endif
 #endif
 }
