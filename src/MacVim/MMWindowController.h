@@ -9,7 +9,6 @@
  */
 
 #import "MacVim.h"
-#import "blur.h"
 
 
 
@@ -18,11 +17,7 @@
 @class MMVimController;
 @class MMVimView;
 
-@interface MMWindowController : NSWindowController
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
-    // 10.6 has turned delegate messages into formal protocols
-    <NSWindowDelegate>
-#endif
+@interface MMWindowController : NSWindowController<NSWindowDelegate>
 {
     MMVimController     *vimController;
     MMVimView           *vimView;
@@ -47,9 +42,7 @@
     NSPoint             defaultTopLeft;
     NSToolbar           *toolbar;
     BOOL                resizingDueToMove;
-#ifdef BLUR_TRANSPARENCY
     int                 blurRadius;
-#endif
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
@@ -86,9 +79,7 @@
 - (void)liveResizeWillStart;
 - (void)liveResizeDidEnd;
 
-#ifdef BLUR_TRANSPARENCY
 - (void)setBlurRadius:(int)radius;
-#endif
 
 - (void)enterFullScreen:(int)fuoptions backgroundColor:(NSColor *)back;
 - (void)leaveFullScreen;

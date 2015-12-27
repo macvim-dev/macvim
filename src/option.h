@@ -870,9 +870,7 @@ EXTERN char_u	*p_tsr;		/* 'thesaurus' */
 #ifdef FEAT_TRANSPARENCY
 EXTERN long     p_transp;       /* 'transparency' */
 #endif
-#ifdef BLUR_TRANSPARENCY
 EXTERN long     p_blur;         /* 'blurradius' */
-#endif
 EXTERN int	p_ttimeout;	/* 'ttimeout' */
 EXTERN long	p_ttm;		/* 'ttimeoutlen' */
 EXTERN int	p_tbi;		/* 'ttybuiltin' */

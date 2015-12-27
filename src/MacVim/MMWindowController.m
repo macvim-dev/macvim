@@ -62,7 +62,6 @@
  */
 
 #import "MMAppController.h"
-#import "MMAtsuiTextView.h"
 #import "MMFindReplaceController.h"
 #import "MMFullScreenWindow.h"
 #import "MMTextView.h"
@@ -128,19 +127,14 @@
 {
     unsigned styleMask = NSTitledWindowMask | NSClosableWindowMask
             | NSMiniaturizableWindowMask | NSResizableWindowMask
-            | NSUnifiedTitleAndToolbarWindowMask;
+            | NSUnifiedTitleAndToolbarWindowMask
+            | NSTexturedBackgroundWindowMask;
 
     if ([[NSUserDefaults standardUserDefaults]
             boolForKey:MMNoTitleBarWindowKey]) {
         // No title bar setting
         styleMask &= ~NSTitledWindowMask;
     }
-
-    // Use textured background on Leopard or later (skip the 'if' on Tiger for
-    // polished metal window).
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMTexturedWindowKey]
-            || (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_4))
-        styleMask |= NSTexturedBackgroundWindowMask;
 
     // NOTE: The content rect is only used the very first time MacVim is
     // started (or rather, when ~/Library/Preferences/org.vim.MacVim.plist does
@@ -336,9 +330,7 @@
     if (fullScreenEnabled && !fullScreenWindow)
         [decoratedWindow setAlphaValue:0];
 
-#ifdef BLUR_TRANSPARENCY
     [decoratedWindow setBlurRadius:blurRadius];
-#endif
 
     // Flag that the window is now placed on screen.  From now on it is OK for
     // code to depend on the screen state.  (Such as constraining views etc.)
@@ -729,7 +721,6 @@
     }
 }
 
-#ifdef BLUR_TRANSPARENCY
 - (void)setBlurRadius:(int)radius
 {
     blurRadius = radius;
@@ -737,7 +728,6 @@
         [decoratedWindow setBlurRadius:radius];
     }
 }
-#endif
 
 - (void)enterFullScreen:(int)fuoptions backgroundColor:(NSColor *)back
 {

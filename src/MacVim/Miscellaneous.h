@@ -16,10 +16,6 @@
 // TODO: Remove this when the inline IM code has been tested
 #define INCLUDE_OLD_IM_CODE
 
-// Use Core Text instead of ATSUI when compiling on 10.5+.
-// Note: Core Text was introduced with 10.5, ATSUI was deprecated on 10.6.
-#define MM_ENABLE_ATSUI (MAC_OS_X_VERSION_MIN_REQUIRED<MAC_OS_X_VERSION_10_5)
-
 
 // NSUserDefaults keys
 extern NSString *MMTabMinWidthKey;
@@ -40,7 +36,6 @@ extern NSString *MMNoFontSubstitutionKey;
 extern NSString *MMNoTitleBarWindowKey;
 extern NSString *MMLoginShellKey;
 extern NSString *MMUntitledWindowKey;
-extern NSString *MMTexturedWindowKey;
 extern NSString *MMZoomBothKey;
 extern NSString *MMCurrentPreferencePaneKey;
 extern NSString *MMLoginShellCommandKey;
@@ -107,11 +102,6 @@ enum {
 
 @interface NSSavePanel (MMExtras)
 - (void)hiddenFilesButtonToggled:(id)sender;
-#if (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6)
-// This method is a part of a public API as of Mac OS X 10.6.  Only use this
-// hack for earlier versions of Mac OS X.
-- (void)setShowsHiddenFiles:(BOOL)show;
-#endif
 @end
 
 

@@ -29,7 +29,6 @@
 		1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D80FBD20CBBD3B700102A1C /* MMVimView.m */; };
 		1D8B5A53104AF9FF002E59D5 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D8B5A52104AF9FF002E59D5 /* Carbon.framework */; };
 		1D8BEA74104992290069B072 /* FindAndReplace.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1D8BEA73104992290069B072 /* FindAndReplace.nib */; };
-		1D9918490D299F9900A96335 /* MMAtsuiTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D9918470D299F9900A96335 /* MMAtsuiTextView.m */; };
 		1D9C60520EF79C0C0034AD44 /* MacVim.icns in Resources */ = {isa = PBXBuildFile; fileRef = 1D9C602E0EF79C0C0034AD44 /* MacVim.icns */; };
 		1DCD00BF0E50B2B700460166 /* Attention.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00AA0E50B2B700460166 /* Attention.png */; };
 		1DCD00C00E50B2B700460166 /* Copy.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00AB0E50B2B700460166 /* Copy.png */; };
@@ -65,7 +64,6 @@
 		1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */; };
 		1DED78600C6DE43D0079945F /* vimrc in Copy Vim Runtime Files */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
 		1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
-		52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */ = {isa = PBXBuildFile; fileRef = 52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8D11072A0486CEB800E47090 /* MainMenu.nib in Resources */ = {isa = PBXBuildFile; fileRef = 29B97318FDCFA39411CA2CEA /* MainMenu.nib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
@@ -92,13 +90,6 @@
 			containerPortal = 52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 8D576316048677EA00EA77CD;
-			remoteInfo = QuickLookStephen;
-		};
-		52818B001C1C084100F59085 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 8D57630D048677EA00EA77CD;
 			remoteInfo = QuickLookStephen;
 		};
 /* End PBXContainerItemProxy section */
@@ -137,17 +128,6 @@
 				1DE608B40C587FDA0055263D /* runtime in Copy Vim Runtime Files */,
 			);
 			name = "Copy Vim Runtime Files";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		52818B021C1C088000F59085 /* Copy QuickLookPlugin */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = ../Library/QuickLook;
-			dstSubfolderSpec = 6;
-			files = (
-				52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */,
-			);
-			name = "Copy QuickLookPlugin";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -190,8 +170,6 @@
 		1D80FBD10CBBD3B700102A1C /* MMVimView.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMVimView.h; sourceTree = "<group>"; };
 		1D80FBD20CBBD3B700102A1C /* MMVimView.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMVimView.m; sourceTree = "<group>"; };
 		1D8B5A52104AF9FF002E59D5 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
-		1D9918460D299F9900A96335 /* MMAtsuiTextView.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMAtsuiTextView.h; sourceTree = "<group>"; };
-		1D9918470D299F9900A96335 /* MMAtsuiTextView.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMAtsuiTextView.m; sourceTree = "<group>"; };
 		1D9C602E0EF79C0C0034AD44 /* MacVim.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = MacVim.icns; path = icons/MacVim.icns; sourceTree = "<group>"; };
 		1DCD00AA0E50B2B700460166 /* Attention.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Attention.png; path = Toolbar/Attention.png; sourceTree = "<group>"; };
 		1DCD00AB0E50B2B700460166 /* Copy.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Copy.png; path = Toolbar/Copy.png; sourceTree = "<group>"; };
@@ -272,8 +250,6 @@
 				1DE3F8E90D50F84600052B9E /* MMPreferenceController.m */,
 				1DE9B94D0D341AB8008FEDD4 /* MMWindow.h */,
 				1DE9B94E0D341AB8008FEDD4 /* MMWindow.m */,
-				1D9918460D299F9900A96335 /* MMAtsuiTextView.h */,
-				1D9918470D299F9900A96335 /* MMAtsuiTextView.m */,
 				1D80FBCF0CBBD3B700102A1C /* MMFullScreenWindow.h */,
 				1D80FBD00CBBD3B700102A1C /* MMFullScreenWindow.m */,
 				1D80FBD10CBBD3B700102A1C /* MMVimView.h */,
@@ -462,15 +438,14 @@
 				8D11072E0486CEB800E47090 /* Frameworks */,
 				1D0DCAD80BA3604D00B6CCFA /* Copy Executables */,
 				1D9EB2840C366D7B0074B739 /* Copy Frameworks */,
-				52818B021C1C088000F59085 /* Copy QuickLookPlugin */,
 				1DE608B80C58807F0055263D /* Copy Vim Runtime Files */,
 				1D1C31F00EFFBFD6003FE9A5 /* Make Document Icons */,
+				520E0E2B1C2FBAF300949DD8 /* ShellScript */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				1D493DCD0C5254A400AB718C /* PBXTargetDependency */,
-				52818B011C1C084100F59085 /* PBXTargetDependency */,
 			);
 			name = MacVim;
 			productInstallPath = "$(HOME)/Applications";
@@ -593,6 +568,19 @@
 			shellScript = "# Clear deployment target, else the python script always thinks we're building on Tiger\nunset MACOSX_DEPLOYMENT_TARGET\n\n# Generate the icons (redirect stderr to ignore warnings)\ncd \"$PROJECT_DIR\"/icons/\nmake OUTDIR=\"$TARGET_BUILD_DIR\"/$UNLOCALIZED_RESOURCES_FOLDER_PATH 2> /dev/null\n";
 			showEnvVarsInLog = 0;
 		};
+		520E0E2B1C2FBAF300949DD8 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "OSX_MINOR_VERSION=`/usr/bin/sw_vers -productVersion|cut -f2 -d'.'`\nif [ $OSX_MINOR_VERSION -ge 8 ]; then\n    xcodebuild -project qlstephen/QuickLookStephen.xcodeproj\n    mkdir -p $CONTENTS_FOLDER_PATH/Library/QuickLook\n    cp -pr qlstephen/build/Release/QLStephen.qlgenerator $CONTENTS_FOLDER_PATH/Library/QuickLook\nfi";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -611,7 +599,6 @@
 				1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */,
 				1D80FBD40CBBD3B700102A1C /* MMFullScreenWindow.m in Sources */,
 				1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */,
-				1D9918490D299F9900A96335 /* MMAtsuiTextView.m in Sources */,
 				1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */,
 				1DE3F8EB0D50F84600052B9E /* MMPreferenceController.m in Sources */,
 				0395A8330D71ED7800881434 /* DBPrefsWindowController.m in Sources */,
@@ -630,11 +617,6 @@
 			isa = PBXTargetDependency;
 			name = PSMTabBarControlFramework;
 			targetProxy = 1D493DCC0C5254A400AB718C /* PBXContainerItemProxy */;
-		};
-		52818B011C1C084100F59085 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = QuickLookStephen;
-			targetProxy = 52818B001C1C084100F59085 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
