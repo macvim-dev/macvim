@@ -2944,7 +2944,7 @@ RELEASEDIR = MacVim/build/Release
 DMGDIR = MacVim/build/dmg
 
 macvim: $(VIMTARGET)
-	xcodebuild -project MacVim/$(XCODEPROJ) $(XCODEFLAGS)
+	xcodebuild -project MacVim/MacVim.xcodeproj $(XCODEFLAGS)
 
 macvim-dmg: macvim
 	mkdir -p $(DMGDIR)

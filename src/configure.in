@@ -4084,13 +4084,6 @@ if test "x$MACOSX" = "xyes"; then
     [ AC_MSG_RESULT(using default) ])
 
   AC_SUBST(XCODEFLAGS)
-
-  macosx_version=`/usr/bin/sw_vers -productVersion|/usr/bin/sed -e 's/^\([[0-9]]*\.[[0-9]]*\).*/\1/'`
-  case "$macosx_version" in
-    10.4|10.5)	XCODEPROJ="MacVim_legacy.xcodeproj";;
-    *)		XCODEPROJ="MacVim.xcodeproj";;
-  esac
-  AC_SUBST(XCODEPROJ)
 fi
 
 

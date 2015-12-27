@@ -189,23 +189,19 @@ enum {
     // dimensions when exiting full-screen.
     startFuFlags = options;
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     // HACK! Put window on all Spaces to avoid Spaces (available on OS X 10.5
     // and later) from moving the full-screen window to a separate Space from
     // the one the decorated window is occupying.  The collection behavior is
     // restored further down.
     NSWindowCollectionBehavior wcb = [self collectionBehavior];
     [self setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
-#endif
 
     // make us visible and target invisible
     [target orderOut:self];
     [self makeKeyAndOrderFront:self];
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     // Restore collection behavior (see hack above).
     [self setCollectionBehavior:wcb];
-#endif
 
     // fade back in
     if (didBlend) {
@@ -281,7 +277,6 @@ enum {
     // button on the tabline steals the first responder status.
     [target setInitialFirstResponder:[view textView]];
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     // HACK! Put decorated window on all Spaces (available on OS X 10.5 and
     // later) so that the decorated window stays on the same Space as the full
     // screen window (they may occupy different Spaces e.g. if the full-screen
@@ -289,7 +284,7 @@ enum {
     // restored further down.
     NSWindowCollectionBehavior wcb = [target collectionBehavior];
     [target setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
-#endif
+
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
     // HACK! On Mac OS X 10.7 windows animate when makeKeyAndOrderFront: is
     // called.  This is distracting here, so disable the animation and restore
@@ -308,10 +303,9 @@ enum {
     if (NSWindowAnimationBehaviorNone != a)
         [target setAnimationBehavior:a];
 #endif
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+
     // Restore collection behavior (see hack above).
     [target setCollectionBehavior:wcb];
-#endif
 
     // ...but we don't want a focus gained message either, so don't set this
     // sooner

@@ -35,7 +35,6 @@
 #import "Miscellaneous.h"
 #import "MMCoreTextView.h"
 #import "MMWindow.h"
-#import "blur.h"
 
 
 static NSString *MMDefaultToolbarImageName = @"Attention";
@@ -885,12 +884,10 @@ static BOOL isUnsafeMessage(int msgid);
         if (filenames)
             [[NSDocumentController sharedDocumentController]
                                             noteNewRecentFilePaths:filenames];
-#ifdef BLUR_TRANSPARENCY
     } else if (SetBlurRadiusMsgID == msgid) {
         const void *bytes = [data bytes];
         int radius = *((int*)bytes);
         [windowController setBlurRadius:radius];
-#endif
 
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
@@ -1404,11 +1401,8 @@ static BOOL isUnsafeMessage(int msgid);
             dir = [vimState objectForKey:@"pwd"];
     }
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
-    // 10.6+ APIs uses URLs instead of paths
     dir = [dir stringByExpandingTildeInPath];
     NSURL *dirURL = dir ? [NSURL fileURLWithPath:dir isDirectory:YES] : nil;
-#endif
 
     if (saving) {
         NSSavePanel *panel = [NSSavePanel savePanel];
@@ -1419,10 +1413,6 @@ static BOOL isUnsafeMessage(int msgid);
         [panel setDelegate:self];
         if ([panel isExpanded])
             [panel setAccessoryView:showHiddenFilesView()];
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
-        // NOTE: -[NSSavePanel beginSheetForDirectory::::::] is deprecated on
-        // 10.6 but -[NSSavePanel setDirectoryURL:] requires 10.6 so jump
-        // through the following hoops on 10.6+.
         if (dirURL)
             [panel setDirectoryURL:dirURL];
 
@@ -1430,13 +1420,6 @@ static BOOL isUnsafeMessage(int msgid);
                       completionHandler:^(NSInteger result) {
             [self savePanelDidEnd:panel code:result context:nil];
         }];
-#else
-        [panel beginSheetForDirectory:dir file:nil
-                modalForWindow:[windowController window]
-                 modalDelegate:self
-                didEndSelector:@selector(savePanelDidEnd:code:context:)
-                   contextInfo:NULL];
-#endif
     } else {
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         [panel setAllowsMultipleSelection:NO];
@@ -1447,10 +1430,6 @@ static BOOL isUnsafeMessage(int msgid);
             [panel setCanChooseFiles:NO];
         }
 
-#if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6)
-        // NOTE: -[NSOpenPanel beginSheetForDirectory:::::::] is deprecated on
-        // 10.6 but -[NSOpenPanel setDirectoryURL:] requires 10.6 so jump
-        // through the following hoops on 10.6+.
         if (dirURL)
             [panel setDirectoryURL:dirURL];
 
@@ -1458,13 +1437,6 @@ static BOOL isUnsafeMessage(int msgid);
                       completionHandler:^(NSInteger result) {
             [self savePanelDidEnd:panel code:result context:nil];
         }];
-#else
-        [panel beginSheetForDirectory:dir file:nil types:nil
-                modalForWindow:[windowController window]
-                 modalDelegate:self
-                didEndSelector:@selector(savePanelDidEnd:code:context:)
-                   contextInfo:NULL];
-#endif
     }
 }
 

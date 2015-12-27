@@ -685,11 +685,6 @@
     [helper doCommandBySelector:selector];
 }
 
-- (BOOL)performKeyEquivalent:(NSEvent *)event
-{
-    return [helper performKeyEquivalent:event];
-}
-
 - (BOOL)hasMarkedText
 {
     return [helper hasMarkedText];
@@ -780,13 +775,10 @@
     [helper mouseMoved:event];
 }
 
-// Gesture event are new for OS X 10.6
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
 - (void)swipeWithEvent:(NSEvent *)event
 {
     [helper swipeWithEvent:event];
 }
-#endif
 
 - (NSMenu*)menuForEvent:(NSEvent *)event
 {

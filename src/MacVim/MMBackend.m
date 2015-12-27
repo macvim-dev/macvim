@@ -196,9 +196,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)redrawScreen;
 - (void)handleFindReplace:(NSDictionary *)args;
 - (void)handleMarkedText:(NSData *)data;
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
 - (void)handleGesture:(NSData *)data;
-#endif
 #ifdef FEAT_BEVAL
 - (void)bevalCallback:(id)sender;
 #endif
@@ -1187,8 +1185,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self queueMessage:msgid data:nil];
 }
 
-#ifdef BLUR_TRANSPARENCY
-
 - (void)setBlurRadius:(int)radius
 {
     NSMutableData *data = [NSMutableData data];
@@ -1196,8 +1192,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     [self queueMessage:SetBlurRadiusMsgID data:data];
 }
-
-#endif
 
 - (void)updateModifiedFlag
 {
@@ -2107,9 +2101,7 @@ static void netbeansReadCallback(CFSocketRef s,
         winposY = *((int*)bytes);  bytes += sizeof(int);
         ASLogDebug(@"SetWindowPositionMsgID: x=%d y=%d", winposX, winposY);
     } else if (GestureMsgID == msgid) {
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
         [self handleGesture:data];
-#endif
     } else if (ActivatedImMsgID == msgid) {
         [self setImState:YES];
     } else if (DeactivatedImMsgID == msgid) {
@@ -3004,7 +2996,6 @@ static void netbeansReadCallback(CFSocketRef s,
     }
 }
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
 - (void)handleGesture:(NSData *)data
 {
     const void *bytes = [data bytes];
@@ -3032,7 +3023,6 @@ static void netbeansReadCallback(CFSocketRef s,
         add_to_input_buf(string, 6);
     }
 }
-#endif
 
 #ifdef FEAT_BEVAL
 - (void)bevalCallback:(id)sender

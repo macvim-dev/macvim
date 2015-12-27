@@ -25,10 +25,7 @@
  * resized.
  */
 
-#import "Miscellaneous.h" // Defines MM_ENABLE_ATSUI
-
-#if !MM_ENABLE_ATSUI
-
+#import "Miscellaneous.h"
 #import "MMAppController.h"
 #import "MMCoreTextView.h"
 #import "MMTextViewHelper.h"
@@ -46,6 +43,23 @@
 #define DRAW_ITALIC               0x10    /* draw italic text */
 #define DRAW_CURSOR               0x20
 #define DRAW_WIDE                 0x40    /* draw wide text */
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
+
+#define kCTFontOrientationDefault kCTFontDefaultOrientation
+
+    static void
+CTFontDrawGlyphs(CTFontRef fontRef, const CGGlyph glyphs[],
+                 const CGPoint positions[], UniCharCount count,
+                 CGContextRef context)
+{
+    CGFontRef cgFontRef = CTFontCopyGraphicsFont(fontRef, NULL);
+    CGContextSetFont(context, cgFontRef);
+    CGContextShowGlyphsAtPositions(context, glyphs, positions, count);
+    CGFontRelease(cgFontRef);
+}
+
+#endif // MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
 
 @interface MMCoreTextView (Private)
 - (MMWindowController *)windowController;
@@ -423,11 +437,6 @@ defaultAdvanceForFont(NSFont *font)
     [helper doCommandBySelector:selector];
 }
 
-- (BOOL)performKeyEquivalent:(NSEvent *)event
-{
-    return [helper performKeyEquivalent:event];
-}
-
 - (BOOL)hasMarkedText
 {
     return [helper hasMarkedText];
@@ -513,13 +522,10 @@ defaultAdvanceForFont(NSFont *font)
     [helper mouseMoved:event];
 }
 
-// Gesture event are new for OS X 10.6
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
 - (void)swipeWithEvent:(NSEvent *)event
 {
     [helper swipeWithEvent:event];
 }
-#endif
 
 - (NSMenu*)menuForEvent:(NSEvent *)event
 {
@@ -1139,7 +1145,8 @@ ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs,
 #define fless(a, b)((a) - (b) < FLT_EPSILON) && (fabs((a) - (b)) > FLT_EPSILON)
 
     CFIndex skip = 0;
-    for (CFIndex i = 0; i < offset && skip + i < length; ++i) {
+    CFIndex i;
+    for (i = 0; i < offset && skip + i < length; ++i) {
         memcpy(&positions[i], &refPositions[skip + i], sizeof(CGSize));
 
         if (fequal(ligatureRanges[i].width, regularRanges[skip + i].width)) {
@@ -1523,5 +1530,3 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
 }
 
 @end // MMCoreTextView (Drawing)
-
-#endif // !MM_ENABLE_ATSUI

@@ -32,7 +32,6 @@ NSString *MMNoFontSubstitutionKey       = @"MMNoFontSubstitution";
 NSString *MMNoTitleBarWindowKey         = @"MMNoTitleBarWindow";
 NSString *MMLoginShellKey               = @"MMLoginShell";
 NSString *MMUntitledWindowKey           = @"MMUntitledWindow";
-NSString *MMTexturedWindowKey           = @"MMTexturedWindow";
 NSString *MMZoomBothKey                 = @"MMZoomBoth";
 NSString *MMCurrentPreferencePaneKey    = @"MMCurrentPreferencePane";
 NSString *MMLoginShellCommandKey        = @"MMLoginShellCommand";
@@ -101,32 +100,6 @@ NSString *MMUseMouseTimeKey             = @"MMUseMouseTime";
 {
     [self setShowsHiddenFiles:[sender intValue]];
 }
-
-#if (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6)
-// This method is a part of a public API as of Mac OS X 10.6.  Only use this
-// hack for earlier versions of Mac OS X.
-- (void)setShowsHiddenFiles:(BOOL)show
-{
-    // This is undocumented stuff, so be careful. This does the same as
-    //     [[self _navView] setShowsHiddenFiles:show];
-    // but does not produce warnings.
-
-    if (![self respondsToSelector:@selector(_navView)])
-        return;
-
-    id navView = [self performSelector:@selector(_navView)];
-    if (![navView respondsToSelector:@selector(setShowsHiddenFiles:)])
-        return;
-
-    // performSelector:withObject: does not support a BOOL
-    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:
-        [navView methodSignatureForSelector:@selector(setShowsHiddenFiles:)]];
-    [invocation setTarget:navView];
-    [invocation setSelector:@selector(setShowsHiddenFiles:)];
-    [invocation setArgument:&show atIndex:2];
-    [invocation invoke];
-}
-#endif
 
 @end // NSSavePanel (MMExtras)
 
