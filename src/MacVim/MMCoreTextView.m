@@ -44,6 +44,23 @@
 #define DRAW_CURSOR               0x20
 #define DRAW_WIDE                 0x40    /* draw wide text */
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
+
+#define kCTFontOrientationDefault kCTFontDefaultOrientation
+
+    static void
+CTFontDrawGlyphs(CTFontRef fontRef, const CGGlyph glyphs[],
+                 const CGPoint positions[], UniCharCount count,
+                 CGContextRef context)
+{
+    CGFontRef cgFontRef = CTFontCopyGraphicsFont(fontRef, NULL);
+    CGContextSetFont(context, cgFontRef);
+    CGContextShowGlyphsAtPositions(context, glyphs, positions, count);
+    CGFontRelease(cgFontRef);
+}
+
+#endif // MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
+
 @interface MMCoreTextView (Private)
 - (MMWindowController *)windowController;
 - (MMVimController *)vimController;
@@ -1128,7 +1145,8 @@ ligatureGlyphsForChars(const unichar *chars, CGGlyph *glyphs,
 #define fless(a, b)((a) - (b) < FLT_EPSILON) && (fabs((a) - (b)) > FLT_EPSILON)
 
     CFIndex skip = 0;
-    for (CFIndex i = 0; i < offset && skip + i < length; ++i) {
+    CFIndex i;
+    for (i = 0; i < offset && skip + i < length; ++i) {
         memcpy(&positions[i], &refPositions[skip + i], sizeof(CGSize));
 
         if (fequal(ligatureRanges[i].width, regularRanges[skip + i].width)) {
