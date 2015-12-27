@@ -59,7 +59,7 @@
 static NSTimeInterval MMRequestTimeout = 5;
 static NSTimeInterval MMReplyTimeout = 5;
 
-static NSString *MMWebsiteString = @"http://code.google.com/p/macvim/";
+static NSString *MMWebsiteString = @"https://macvim-dev.github.io/macvim/";
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
 // Latency (in s) between FS event occuring and being reported to MacVim.
