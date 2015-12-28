@@ -580,6 +580,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "OSX_MINOR_VERSION=`/usr/bin/sw_vers -productVersion|cut -f2 -d'.'`\nif [ $OSX_MINOR_VERSION -ge 8 ]; then\n    xcodebuild -project qlstephen/QuickLookStephen.xcodeproj\n    mkdir -p $CONTENTS_FOLDER_PATH/Library/QuickLook\n    cp -pr qlstephen/build/Release/QLStephen.qlgenerator $CONTENTS_FOLDER_PATH/Library/QuickLook\nfi";
+			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
