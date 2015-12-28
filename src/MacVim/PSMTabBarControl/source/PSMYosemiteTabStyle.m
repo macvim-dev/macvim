@@ -379,16 +379,13 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
     if ([cell hasCloseButton] && ![cell isCloseButtonSuppressed]) {
         NSSize closeButtonSize = NSZeroSize;
         NSRect closeButtonRect = [cell closeButtonRectForFrame:cellFrame];
-        NSImage * closeButton = nil;
+        NSImage *button = nil;
 
-        closeButton = nil;
-        if ([cell closeButtonOver]) closeButton = closeButtonOver;
-        if ([cell closeButtonPressed]) closeButton = closeButtonDown;
+        if ([cell closeButtonOver]) button = closeButtonOver;
+        if ([cell closeButtonPressed]) button = closeButtonDown;
 
-        closeButtonSize = [closeButton size];
-        [closeButton setFlipped:YES];
-        [closeButton drawAtPoint:closeButtonRect.origin fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0];
-
+        closeButtonSize = [button size];
+        [button drawInRect:closeButtonRect fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
     }
 
     // object counter
