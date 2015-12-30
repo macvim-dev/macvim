@@ -281,6 +281,12 @@ CC=
 #GUI_LIB_LOC = -L/usr/X11R6/lib
 # }}}
 
+# Defaults used when auto/config.mk does not exist.
+srcdir = .
+VIMNAME = vim
+EXNAME = ex
+VIEWNAME = view
+
 ######################## auto/config.mk ######################## {{{1
 # At this position auto/config.mk is included. When starting from the
 # toplevel Makefile it is almost empty. After running auto/configure it
@@ -1993,12 +1999,19 @@ test_assert \
 	test_searchpos \
 	test_sort \
 	test_undolevels \
+	test_viml \
 	test_alot:
 	cd testdir; rm -f $@.res test.log messages; $(MAKE) -f Makefile $@.res VIMPROG=../$(VIMTARGET) $(GUI_TESTARG) SCRIPTSOURCE=../$(SCRIPTSOURCE)
+	@if test -f testdir/test.log; then \
+		cat testdir/test.log; \
+	fi
 	cat testdir/messages
 
 newtests:
 	cd testdir; rm -f $@.res test.log messages; $(MAKE) -f Makefile newtests VIMPROG=../$(VIMTARGET) $(GUI_TESTARG) SCRIPTSOURCE=../$(SCRIPTSOURCE)
+	@if test -f testdir/test.log; then \
+		cat testdir/test.log; \
+	fi
 	cat testdir/messages
 
 testclean:
@@ -2498,7 +2511,6 @@ shadow:	runtime pixmaps
 	mkdir $(SHADOWDIR)/testdir
 	cd $(SHADOWDIR)/testdir; ln -s ../../testdir/Makefile \
 				 ../../testdir/Make_all.mak \
-				 ../../testdir/vimrc.unix \
 				 ../../testdir/*.in \
 				 ../../testdir/*.vim \
 				 ../../testdir/python* \
