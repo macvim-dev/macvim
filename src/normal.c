@@ -8304,7 +8304,7 @@ nv_g_cmd(cap)
      * "g CTRL-G": display info about cursor position
      */
     case Ctrl_G:
-	cursor_pos_info();
+	cursor_pos_info(NULL);
 	break;
 
     /*
