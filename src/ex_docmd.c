@@ -2550,7 +2550,8 @@ do_one_cmd(cmdlinep, sourcing,
     correct_range(&ea);
 
 #ifdef FEAT_FOLDING
-    if (((ea.argt & WHOLEFOLD) || ea.addr_count >= 2) && !global_busy)
+    if (((ea.argt & WHOLEFOLD) || ea.addr_count >= 2) && !global_busy
+	    && ea.addr_type == ADDR_LINES)
     {
 	/* Put the first line at the start of a closed fold, put the last line
 	 * at the end of a closed fold. */
@@ -3801,7 +3802,7 @@ set_one_cmd_context(xp, buff)
 
 	/* Check for environment variable */
 	if (*xp->xp_pattern == '$'
-#if defined(MSDOS) || defined(MSWIN) || defined(OS2)
+#if defined(MSDOS) || defined(MSWIN)
 		|| *xp->xp_pattern == '%'
 #endif
 		)
@@ -5090,7 +5091,7 @@ expand_filename(eap, cmdlinep, errormsgp)
 		 * For Unix and OS/2, when wildcards are expanded, this is
 		 * done by ExpandOne() below.
 		 */
-#if defined(UNIX) || defined(OS2)
+#if defined(UNIX)
 		if (!has_wildcards)
 #endif
 		    backslash_halve(eap->arg);
@@ -7159,7 +7160,7 @@ ex_quit(eap)
 				       | (eap->forceit ? CCGD_FORCEIT : 0)
 				       | CCGD_EXCMD))
 	    || check_more(TRUE, eap->forceit) == FAIL
-	    || (only_one_window() && check_changed_any(eap->forceit)))
+	    || (only_one_window() && check_changed_any(eap->forceit, TRUE)))
     {
 	not_exiting();
     }
@@ -7230,7 +7231,7 @@ ex_quit_all(eap)
 #endif
 
     exiting = TRUE;
-    if (eap->forceit || !check_changed_any(FALSE))
+    if (eap->forceit || !check_changed_any(FALSE, FALSE))
 	getout(0);
     not_exiting();
 }
@@ -7625,7 +7626,7 @@ ex_exit(eap)
 		    || curbufIsChanged())
 		&& do_write(eap) == FAIL)
 	    || check_more(TRUE, eap->forceit) == FAIL
-	    || (only_one_window() && check_changed_any(eap->forceit)))
+	    || (only_one_window() && check_changed_any(eap->forceit, FALSE)))
     {
 	not_exiting();
     }
@@ -7853,7 +7854,7 @@ alist_new()
 # endif
 #endif
 
-#if (!defined(UNIX) && !defined(__EMX__)) || defined(ARCHIE) || defined(PROTO)
+#if (!defined(UNIX) && !defined(__EMX__)) || defined(PROTO)
 /*
  * Expand the file names in the global argument list.
  * If "fnum_list" is not NULL, use "fnum_list[fnum_len]" as a list of buffer

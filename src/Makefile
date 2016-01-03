@@ -1975,7 +1975,6 @@ test1 \
 	test_qf_title \
 	test_ruby \
 	test_search_mbyte \
-	test_set \
 	test_signs \
 	test_tagcase \
 	test_textobjects \
@@ -1997,6 +1996,7 @@ test1 \
 test_assert \
 	test_cdo \
 	test_searchpos \
+	test_set \
 	test_sort \
 	test_undolevels \
 	test_viml \
@@ -2491,7 +2491,7 @@ SHADOWDIR = shadow
 
 shadow:	runtime pixmaps
 	mkdir $(SHADOWDIR)
-	cd $(SHADOWDIR); ln -s ../*.[ch] ../*.in ../*.sh ../*.xs ../*.xbm ../gui_gtk_gresources.xml ../toolcheck ../proto ../vimtutor ../gvimtutor ../mkinstalldirs .
+	cd $(SHADOWDIR); ln -s ../*.[ch] ../*.in ../*.sh ../*.xs ../*.xbm ../gui_gtk_res.xml ../toolcheck ../proto ../vimtutor ../gvimtutor ../mkinstalldirs .
 	mkdir $(SHADOWDIR)/auto
 	cd $(SHADOWDIR)/auto; ln -s ../../auto/configure .
 	mkdir $(SHADOWDIR)/po
@@ -2612,9 +2612,9 @@ auto/pathdef.c: Makefile auto/config.mk
 	-@echo '";' >> $@
 	-@sh $(srcdir)/pathdef.sh
 
-auto/gui_gtk_gresources.c: gui_gtk_gresources.xml
+auto/gui_gtk_gresources.c: gui_gtk_res.xml
 	$(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=../pixmaps --generate --c-name=gui_gtk --manual-register $<
-auto/gui_gtk_gresources.h: gui_gtk_gresources.xml
+auto/gui_gtk_gresources.h: gui_gtk_res.xml
 	$(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=../pixmaps --generate --c-name=gui_gtk --manual-register $<
 
 # All the object files are put in the "objects" directory.  Since not all make
@@ -3228,7 +3228,7 @@ objects/gui_gtk_f.o: gui_gtk_f.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro ex_cmds.h proto.h \
  globals.h farsi.h arabic.h gui_gtk_f.h
-objects/gui_gtk_gresources.o: auto/gui_gtk_gresources.c gui_gtk_gresources.xml \
+objects/gui_gtk_gresources.o: auto/gui_gtk_gresources.c gui_gtk_res.xml \
  ../pixmaps/stock_vim_build_tags.png ../pixmaps/stock_vim_find_help.png \
  ../pixmaps/stock_vim_save_all.png ../pixmaps/stock_vim_session_load.png \
  ../pixmaps/stock_vim_session_new.png ../pixmaps/stock_vim_session_save.png \
