@@ -263,12 +263,17 @@ endif
 #	  TCL=[Path to TCL directory] (Set inside Make_cyg.mak or Make_ming.mak)
 #	  DYNAMIC_TCL=yes (to load the TCL DLL dynamically)
 #	  TCL_VER=[TCL version, eg 83, 84] (default is 83)
+#	  TCL_VER_LONG=[Tcl version, eg 8.3] (default is 8.3)
+#	    You must set TCL_VER_LONG when you set TCL_VER.
 ifdef TCL
 ifndef DYNAMIC_TCL
 DYNAMIC_TCL=yes
 endif
 ifndef TCL_VER
 TCL_VER = 83
+endif
+ifndef TCL_VER_LONG
+TCL_VER_LONG = 8.3
 endif
 TCLINC += -I$(TCL)/include
 endif
@@ -319,10 +324,14 @@ ifndef RUBY_INSTALL_NAME
 ifeq ($(RUBY_VER), 16)
 RUBY_INSTALL_NAME = mswin32-ruby$(RUBY_API_VER)
 else
+ifndef RUBY_MSVCRT_NAME
+# Base name of msvcrXX.dll which is used by ruby's dll.
+RUBY_MSVCRT_NAME = msvcrt
+endif
 ifeq ($(ARCH),x86-64)
-RUBY_INSTALL_NAME = x64-msvcrt-ruby$(RUBY_API_VER)
+RUBY_INSTALL_NAME = x64-$(RUBY_MSVCRT_NAME)-ruby$(RUBY_API_VER)
 else
-RUBY_INSTALL_NAME = msvcrt-ruby$(RUBY_API_VER)
+RUBY_INSTALL_NAME = $(RUBY_MSVCRT_NAME)-ruby$(RUBY_API_VER)
 endif
 endif
 endif
@@ -458,7 +467,7 @@ endif
 ifdef TCL
 CFLAGS += -DFEAT_TCL $(TCLINC)
 ifeq (yes, $(DYNAMIC_TCL))
-CFLAGS += -DDYNAMIC_TCL -DDYNAMIC_TCL_DLL=\"tcl$(TCL_VER).dll\"
+CFLAGS += -DDYNAMIC_TCL -DDYNAMIC_TCL_DLL=\"tcl$(TCL_VER).dll\" -DDYNAMIC_TCL_VER=\"$(TCL_VER_LONG)\"
 endif
 endif
 
