@@ -736,12 +736,7 @@ python_runtime_link_init(char *libname, int verbose)
     int
 python_enabled(int verbose)
 {
-#ifdef WIN3264
-    char *dll = DYNAMIC_PYTHON_DLL;
-#else
-    char *dll = *p_pydll ? (char *)p_pydll : DYNAMIC_PYTHON_DLL;
-#endif
-    return python_runtime_link_init(dll, verbose) == OK;
+    return python_runtime_link_init((char *)p_pydll, verbose) == OK;
 }
 
 /*

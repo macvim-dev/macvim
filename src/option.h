@@ -639,7 +639,7 @@ EXTERN char_u	*p_lcs;		/* 'listchars' */
 
 EXTERN int	p_lz;		/* 'lazyredraw' */
 EXTERN int	p_lpl;		/* 'loadplugins' */
-#if defined(DYNAMIC_LUA) && !defined(WIN3264)
+#if defined(DYNAMIC_LUA)
 EXTERN char_u	*p_luadll;	/* 'luadll' */
 #endif
 #ifdef FEAT_GUI_MAC
@@ -701,13 +701,13 @@ EXTERN char_u	*p_path;	/* 'path' */
 #ifdef FEAT_SEARCHPATH
 EXTERN char_u	*p_cdpath;	/* 'cdpath' */
 #endif
-#if defined(DYNAMIC_PERL) && !defined(WIN3264)
+#if defined(DYNAMIC_PERL)
 EXTERN char_u	*p_perldll;	/* 'perldll' */
 #endif
-#if defined(DYNAMIC_PYTHON3) && !defined(WIN3264)
+#if defined(DYNAMIC_PYTHON3)
 EXTERN char_u	*p_py3dll;	/* 'pythonthreedll' */
 #endif
-#if defined(DYNAMIC_PYTHON) && !defined(WIN3264)
+#if defined(DYNAMIC_PYTHON)
 EXTERN char_u	*p_pydll;	/* 'pythondll' */
 #endif
 #ifdef FEAT_RELTIME
@@ -729,7 +729,7 @@ EXTERN int	p_rs;		/* 'restorescreen' */
 EXTERN int	p_ari;		/* 'allowrevins' */
 EXTERN int	p_ri;		/* 'revins' */
 #endif
-#if defined(DYNAMIC_RUBY) && !defined(WIN3264)
+#if defined(DYNAMIC_RUBY)
 EXTERN char_u	*p_rubydll;	/* 'rubydll' */
 #endif
 #ifdef FEAT_CMDL_INFO
@@ -847,6 +847,9 @@ EXTERN long	p_tl;		/* 'taglength' */
 EXTERN int	p_tr;		/* 'tagrelative' */
 EXTERN char_u	*p_tags;	/* 'tags' */
 EXTERN int	p_tgst;		/* 'tagstack' */
+#if defined(DYNAMIC_TCL)
+EXTERN char_u	*p_tcldll;	/* 'tcldll' */
+#endif
 #ifdef FEAT_ARABIC
 EXTERN int	p_tbidi;	/* 'termbidi' */
 #endif
