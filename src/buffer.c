@@ -2797,6 +2797,8 @@ buflist_list(eap)
 		(buf->b_flags & BF_READERR) ? 'x'
 					    : (bufIsChanged(buf) ? '+' : ' '),
 		NameBuff);
+	if (len > IOSIZE - 20)
+	    len = IOSIZE - 20;
 
 	/* put "line 999" in column 40 or after the file name */
 	i = 40 - vim_strsize(IObuff);
