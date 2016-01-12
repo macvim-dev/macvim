@@ -978,7 +978,7 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBActionConnection" key="connection">
-						<string key="label">atsuiButtonClicked:</string>
+						<string key="label">coreTextButtonClicked:</string>
 						<reference key="source" ref="809429266"/>
 						<reference key="destination" ref="747671808"/>
 					</object>
@@ -1620,13 +1620,13 @@ AAMAAAABAAEAAAFTAAMAAAAEAAAFwgAAAAAACAAIAAgACAABAAEAAQABA</bytes>
 				<object class="IBPartialClassDescription">
 					<string key="className">FirstResponder</string>
 					<dictionary class="NSMutableDictionary" key="actions">
-						<string key="atsuiButtonClicked:">id</string>
+						<string key="coreTextButtonClicked:">id</string>
 						<string key="loginShellButtonClicked:">id</string>
 						<string key="quickstartButtonClicked:">id</string>
 					</dictionary>
 					<dictionary class="NSMutableDictionary" key="actionInfosByName">
-						<object class="IBActionInfo" key="atsuiButtonClicked:">
-							<string key="name">atsuiButtonClicked:</string>
+						<object class="IBActionInfo" key="coreTextButtonClicked:">
+							<string key="name">coreTextButtonClicked:</string>
 							<string key="candidateClassName">id</string>
 						</object>
 						<object class="IBActionInfo" key="loginShellButtonClicked:">
