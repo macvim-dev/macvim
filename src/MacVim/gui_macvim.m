@@ -185,6 +185,10 @@ gui_macvim_after_fork_init()
     if (val != MMRendererDefault && val != MMRendererCoreText) {
         // Migrate from the old value to the Core Text Renderer.
         val = MMRendererCoreText;
+        CFPreferencesSetAppValue((CFStringRef)MMRendererKey,
+                                (CFPropertyListRef)[NSNumber numberWithInt:val],
+                                kCFPreferencesCurrentApplication);
+        CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
     }
     if (keyValid) {
         ASLogInfo(@"Use renderer=%ld", val);
