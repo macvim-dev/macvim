@@ -115,8 +115,8 @@ enum {
 
     // Create the tab bar control (which is responsible for actually
     // drawing the tabline and tabs).
-    NSRect tabFrame = { { 0, frame.size.height - 22 },
-                        { frame.size.width, 22 } };
+    NSRect tabFrame = { { 0, frame.size.height - kPSMTabBarControlHeight },
+                        { frame.size.width, kPSMTabBarControlHeight } };
     tabBarControl = [[PSMTabBarControl alloc] initWithFrame:tabFrame];
 
     [tabView setDelegate:tabBarControl];
@@ -125,10 +125,18 @@ enum {
     [tabBarControl setDelegate:self];
     [tabBarControl setHidden:YES];
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
+    CGFloat screenWidth = [[NSScreen mainScreen] frame].size.width;
+    [tabBarControl setStyleNamed:@"Yosemite"];
+    [tabBarControl setCellMinWidth:120];
+    [tabBarControl setCellMaxWidth:screenWidth];
+    [tabBarControl setCellOptimumWidth:screenWidth];
+#else
     [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
     [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
     [tabBarControl setCellOptimumWidth:
                                      [ud integerForKey:MMTabOptimumWidthKey]];
+#endif
 
     [tabBarControl setShowAddTabButton:[ud boolForKey:MMShowAddTabButtonKey]];
     [[tabBarControl addTabButton] setTarget:self];

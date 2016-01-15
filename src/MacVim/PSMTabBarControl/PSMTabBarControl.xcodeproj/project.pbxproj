@@ -35,6 +35,10 @@
 		52C0B9B515BDB7A9000C268F /* overflowImagePressed@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 52C0B9B315BDB7A9000C268F /* overflowImagePressed@2x.png */; };
 		52C268D015BDB72B0012FECA /* overflowImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 52C268CE15BDB72B0012FECA /* overflowImage.png */; };
 		52C268D115BDB72B0012FECA /* overflowImagePressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 52C268CF15BDB72B0012FECA /* overflowImagePressed.png */; };
+		52FAFCCF1C30F4B500C6E613 /* TabNewYosemite.png in Resources */ = {isa = PBXBuildFile; fileRef = 52FAFCCD1C30F4B500C6E613 /* TabNewYosemite.png */; };
+		52FAFCD01C30F4B500C6E613 /* TabNewYosemite@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 52FAFCCE1C30F4B500C6E613 /* TabNewYosemite@2x.png */; };
+		52FAFCD31C30F4DF00C6E613 /* PSMYosemiteTabStyle.h in Headers */ = {isa = PBXBuildFile; fileRef = 52FAFCD11C30F4DF00C6E613 /* PSMYosemiteTabStyle.h */; };
+		52FAFCD41C30F4DF00C6E613 /* PSMYosemiteTabStyle.m in Sources */ = {isa = PBXBuildFile; fileRef = 52FAFCD21C30F4DF00C6E613 /* PSMYosemiteTabStyle.m */; };
 		546DEAF1067F63070098DCC4 /* PSMTabBarControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0259C576FE90428111CA0C5A /* PSMTabBarControl.m */; };
 		546DEAF2067F630E0098DCC4 /* PSMTabBarControl.h in Headers */ = {isa = PBXBuildFile; fileRef = 0259C57AFE90428111CA0C5A /* PSMTabBarControl.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		A2082A9009EAEB34009AC8BE /* PSMTabDragAssistant.h in Headers */ = {isa = PBXBuildFile; fileRef = A2082A8D09EAEB33009AC8BE /* PSMTabDragAssistant.h */; };
@@ -111,6 +115,10 @@
 		52C0B9B315BDB7A9000C268F /* overflowImagePressed@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "overflowImagePressed@2x.png"; path = "images/overflowImagePressed@2x.png"; sourceTree = "<group>"; };
 		52C268CE15BDB72B0012FECA /* overflowImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = overflowImage.png; path = images/overflowImage.png; sourceTree = "<group>"; };
 		52C268CF15BDB72B0012FECA /* overflowImagePressed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = overflowImagePressed.png; path = images/overflowImagePressed.png; sourceTree = "<group>"; };
+		52FAFCCD1C30F4B500C6E613 /* TabNewYosemite.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = TabNewYosemite.png; path = images/TabNewYosemite.png; sourceTree = "<group>"; };
+		52FAFCCE1C30F4B500C6E613 /* TabNewYosemite@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "TabNewYosemite@2x.png"; path = "images/TabNewYosemite@2x.png"; sourceTree = "<group>"; };
+		52FAFCD11C30F4DF00C6E613 /* PSMYosemiteTabStyle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PSMYosemiteTabStyle.h; path = source/PSMYosemiteTabStyle.h; sourceTree = "<group>"; };
+		52FAFCD21C30F4DF00C6E613 /* PSMYosemiteTabStyle.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PSMYosemiteTabStyle.m; path = source/PSMYosemiteTabStyle.m; sourceTree = "<group>"; };
 		53DF68FD067E5B5A0090B5B0 /* PSMTabBarControl.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PSMTabBarControl.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		53DF68FE067E5B5A0090B5B0 /* PSMTabBarControlFramework-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "PSMTabBarControlFramework-Info.plist"; sourceTree = "<group>"; };
 		54D33B2806778E3300C9C163 /* PSMTabBarControl.ibclassdescription */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PSMTabBarControl.ibclassdescription; sourceTree = "<group>"; };
@@ -309,6 +317,8 @@
 				A2D32EFF09A63D7A00EC8662 /* PSMMetalTabStyle.m */,
 				A2D98B070A2B432C0064C6F8 /* PSMUnifiedTabStyle.h */,
 				A2D98B080A2B432C0064C6F8 /* PSMUnifiedTabStyle.m */,
+				52FAFCD11C30F4DF00C6E613 /* PSMYosemiteTabStyle.h */,
+				52FAFCD21C30F4DF00C6E613 /* PSMYosemiteTabStyle.m */,
 				A268EA5F09A9831800E082AA /* PSMRolloverButton.h */,
 				A268EA6009A9831800E082AA /* PSMRolloverButton.m */,
 				A251BE810959A1B90058BC7F /* PSMOverflowPopUpButton.h */,
@@ -382,6 +392,8 @@
 				523897EE15BDA9AC00498A53 /* TabClose_Front_Pressed@2x.png */,
 				52A57C0E15BBA230003EC59C /* TabClose_Front_Rollover.png */,
 				523897EF15BDA9AC00498A53 /* TabClose_Front_Rollover@2x.png */,
+				52FAFCCD1C30F4B500C6E613 /* TabNewYosemite.png */,
+				52FAFCCE1C30F4B500C6E613 /* TabNewYosemite@2x.png */,
 			);
 			name = Images;
 			sourceTree = "<group>";
@@ -396,6 +408,7 @@
 				546DEAF2067F630E0098DCC4 /* PSMTabBarControl.h in Headers */,
 				A251BE850959A1B90058BC7F /* PSMOverflowPopUpButton.h in Headers */,
 				A251BE870959A1B90058BC7F /* PSMTabBarCell.h in Headers */,
+				52FAFCD31C30F4DF00C6E613 /* PSMYosemiteTabStyle.h in Headers */,
 				A2D32EDC09A634C900EC8662 /* PSMTabStyle.h in Headers */,
 				A2D32F0009A63D7A00EC8662 /* PSMMetalTabStyle.h in Headers */,
 				A268EA6209A9831800E082AA /* PSMRolloverButton.h in Headers */,
@@ -478,8 +491,10 @@
 				52A57C0F15BBA230003EC59C /* TabClose_Front.png in Resources */,
 				52A57C1015BBA230003EC59C /* TabClose_Front_Pressed.png in Resources */,
 				52A57C1115BBA230003EC59C /* TabClose_Front_Rollover.png in Resources */,
+				52FAFCCF1C30F4B500C6E613 /* TabNewYosemite.png in Resources */,
 				523897F415BDA9AC00498A53 /* TabClose_Front_Pressed@2x.png in Resources */,
 				523897F515BDA9AC00498A53 /* TabClose_Front_Rollover@2x.png in Resources */,
+				52FAFCD01C30F4B500C6E613 /* TabNewYosemite@2x.png in Resources */,
 				523897F615BDA9AC00498A53 /* TabClose_Front@2x.png in Resources */,
 				523897F715BDA9AC00498A53 /* TabNewMetal@2x.png in Resources */,
 				523897F815BDA9AC00498A53 /* TabNewMetalPressed@2x.png in Resources */,
@@ -505,6 +520,7 @@
 				A268EA6309A9831800E082AA /* PSMRolloverButton.m in Sources */,
 				A2129BB309AEB58F00724E6C /* PSMProgressIndicator.m in Sources */,
 				A2082A9109EAEB34009AC8BE /* PSMTabDragAssistant.m in Sources */,
+				52FAFCD41C30F4DF00C6E613 /* PSMYosemiteTabStyle.m in Sources */,
 				A2D98B0B0A2B432C0064C6F8 /* PSMUnifiedTabStyle.m in Sources */,
 				A2D98B130A2B43FA0064C6F8 /* NSBezierPath_AMShading.m in Sources */,
 			);

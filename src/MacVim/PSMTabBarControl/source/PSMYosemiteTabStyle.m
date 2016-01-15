@@ -1,69 +1,63 @@
 //
-//  PSMMetalTabStyle.m
+//  PSMYosemiteTabStyle.m
 //  PSMTabBarControl
 //
-//  Created by John Pannell on 2/17/06.
-//  Copyright 2006 Positive Spin Media. All rights reserved.
+//  Created by Christoffer Winterkvist on 25/08/14.
+//
 //
 
-#import "PSMMetalTabStyle.h"
-#import "PSMTabBarCell.h"
-#import "PSMTabBarControl.h"
+#import "PSMYosemiteTabStyle.h"
 
 #define kPSMMetalObjectCounterRadius 7.0
 #define kPSMMetalCounterMinWidth 20
 
-// NSDrawWindowBackground() is broken for borderless windows, see
-// http://lists.apple.com/archives/cocoa-dev/2006/Feb/msg00130.html
-void MyNSDrawWindowBackground(NSRect rect)
+void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
 {
-    [[NSColor controlColor] set];
+    [color set];
     NSRectFill( rect );
 }
 
-@implementation PSMMetalTabStyle
-
-- (NSString *)name
-{
-    return @"Metal";
-}
-
-#pragma mark -
-#pragma mark Creation/Destruction
-
-- (id) init
-{
-    //NSLog(@"PSMMetalTabStyle init");
-
-    if((self = [super init]))
-    {
-
-        metalCloseButton = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front"]];
-        //NSLog(@"metalCloseButton=%@ path=%@", metalCloseButton,
-        //        [[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front"]);
-        metalCloseButtonDown = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front_Pressed"]];
-        metalCloseButtonOver = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front_Rollover"]];
-        
-        _addTabButtonImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabNewMetal"]];
-        _addTabButtonPressedImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabNewMetalPressed"]];
-        _addTabButtonRolloverImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabNewMetalRollover"]];
-    }
-    return self;
-}
+@implementation PSMYosemiteTabStyle
 
 - (void)dealloc
 {
-    [metalCloseButton release];
-    [metalCloseButtonDown release];
-    [metalCloseButtonOver release];
+    [closeButton release];
+    [closeButtonDown release];
+    [closeButtonOver release];
     [_addTabButtonImage release];
     [_addTabButtonPressedImage release];
     [_addTabButtonRolloverImage release];
 
     [truncatingTailParagraphStyle release];
     [centeredParagraphStyle release];
-    
+
     [super dealloc];
+}
+
+#pragma mark -
+#pragma mark Initializers
+
+- (id)init
+{
+    self = [super init];
+    if (!self) return nil;
+
+    closeButton = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front"]];
+    //NSLog(@"closeButton=%@ path=%@", metalCloseButton,
+    //        [[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front"]);
+    closeButtonDown = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front_Pressed"]];
+    closeButtonOver = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front_Rollover"]];
+
+    _addTabButtonImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabNewMetal"]];
+    _addTabButtonPressedImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabNewMetalPressed"]];
+    _addTabButtonRolloverImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabNewMetalRollover"]];
+
+    return self;
+}
+
+- (NSString *)name
+{
+    return @"Yosemite";
 }
 
 #pragma mark -
@@ -71,7 +65,7 @@ void MyNSDrawWindowBackground(NSRect rect)
 
 - (float)leftMarginForTabBarControl
 {
-    return 10.0f;
+    return -1.0f;
 }
 
 - (float)rightMarginForTabBarControl
@@ -97,93 +91,106 @@ void MyNSDrawWindowBackground(NSRect rect)
     return _addTabButtonRolloverImage;
 }
 
+- (NSColor *)backgroundColor:(BOOL)isKeyWindow
+{
+    NSColor *backgroundColor;
+    if (isKeyWindow) {
+        backgroundColor = [NSColor colorWithCalibratedHue:0.000 saturation:0.000 brightness:0.875 alpha:1];
+    } else {
+        backgroundColor = [NSColor colorWithCalibratedHue:0.000 saturation:0.000 brightness:0.957 alpha:1];
+    }
+
+    return backgroundColor;
+}
+
+- (NSColor *)borderColor
+{
+    return [NSColor colorWithCalibratedHue:0.000 saturation:0.000 brightness:0.678 alpha:1];
+}
+
 #pragma mark -
 #pragma mark Cell Specific
 
 - (NSRect) closeButtonRectForTabCell:(PSMTabBarCell *)cell
 {
     NSRect cellFrame = [cell frame];
-    
+
     if ([cell hasCloseButton] == NO) {
         return NSZeroRect;
     }
-    
+
     NSRect result;
-    result.size = [metalCloseButton size];
+    result.size = [closeButton size];
     result.origin.x = cellFrame.origin.x + MARGIN_X;
     result.origin.y = cellFrame.origin.y + MARGIN_Y + 2.0;
-    
-    if([cell state] == NSOnState){
-        result.origin.y -= 1;
-    }
-    
+
     return result;
 }
 
 - (NSRect)iconRectForTabCell:(PSMTabBarCell *)cell
 {
     NSRect cellFrame = [cell frame];
-    
+
     if ([cell hasIcon] == NO) {
         return NSZeroRect;
     }
-    
+
     NSRect result;
     result.size = NSMakeSize(kPSMTabBarIconWidth, kPSMTabBarIconWidth);
     result.origin.x = cellFrame.origin.x + MARGIN_X;
     result.origin.y = cellFrame.origin.y + MARGIN_Y;
-    
+
     if([cell hasCloseButton] && ![cell isCloseButtonSuppressed])
-        result.origin.x += [metalCloseButton size].width + kPSMTabBarCellPadding;
-    
+        result.origin.x += [closeButton size].width + kPSMTabBarCellPadding;
+
     if([cell state] == NSOnState){
         result.origin.y += 1;
     }
-    
+
     return result;
 }
 
 - (NSRect)indicatorRectForTabCell:(PSMTabBarCell *)cell
 {
     NSRect cellFrame = [cell frame];
-    
+
     if ([[cell indicator] isHidden]) {
         return NSZeroRect;
     }
-    
+
     NSRect result;
     result.size = NSMakeSize(kPSMTabBarIndicatorWidth, kPSMTabBarIndicatorWidth);
     result.origin.x = cellFrame.origin.x + cellFrame.size.width - MARGIN_X - kPSMTabBarIndicatorWidth;
     result.origin.y = cellFrame.origin.y + MARGIN_Y;
-    
+
     if([cell state] == NSOnState){
         result.origin.y -= 1;
     }
-    
+
     return result;
 }
 
 - (NSRect)objectCounterRectForTabCell:(PSMTabBarCell *)cell
 {
     NSRect cellFrame = [cell frame];
-    
+
     if ([cell count] == 0) {
         return NSZeroRect;
     }
-    
+
     float countWidth = [[self attributedObjectCountValueForTabCell:cell] size].width;
     countWidth += (2 * kPSMMetalObjectCounterRadius - 6.0);
     if(countWidth < kPSMMetalCounterMinWidth)
         countWidth = kPSMMetalCounterMinWidth;
-    
+
     NSRect result;
     result.size = NSMakeSize(countWidth, 2 * kPSMMetalObjectCounterRadius); // temp
     result.origin.x = cellFrame.origin.x + cellFrame.size.width - MARGIN_X - result.size.width;
     result.origin.y = cellFrame.origin.y + MARGIN_Y + 1.0;
-    
+
     if(![[cell indicator] isHidden])
         result.origin.x -= kPSMTabBarIndicatorWidth + kPSMTabBarCellPadding;
-    
+
     return result;
 }
 
@@ -191,64 +198,64 @@ void MyNSDrawWindowBackground(NSRect rect)
 - (float)minimumWidthOfTabCell:(PSMTabBarCell *)cell
 {
     float resultWidth = 0.0;
-    
+
     // left margin
     resultWidth = MARGIN_X;
-    
+
     // close button?
     if([cell hasCloseButton] && ![cell isCloseButtonSuppressed])
-        resultWidth += [metalCloseButton size].width + kPSMTabBarCellPadding;
-    
+        resultWidth += [closeButton size].width + kPSMTabBarCellPadding;
+
     // icon?
     if([cell hasIcon])
         resultWidth += kPSMTabBarIconWidth + kPSMTabBarCellPadding;
-    
+
     // the label
     resultWidth += kPSMMinimumTitleWidth;
-    
+
     // object counter?
     if([cell count] > 0)
         resultWidth += [self objectCounterRectForTabCell:cell].size.width + kPSMTabBarCellPadding;
-    
+
     // indicator?
     if ([[cell indicator] isHidden] == NO)
         resultWidth += kPSMTabBarCellPadding + kPSMTabBarIndicatorWidth;
-    
+
     // right margin
     resultWidth += MARGIN_X;
-    
+
     return ceil(resultWidth);
 }
 
 - (float)desiredWidthOfTabCell:(PSMTabBarCell *)cell
 {
     float resultWidth = 0.0;
-    
+
     // left margin
     resultWidth = MARGIN_X;
-    
+
     // close button?
     if ([cell hasCloseButton] && ![cell isCloseButtonSuppressed])
-        resultWidth += [metalCloseButton size].width + kPSMTabBarCellPadding;
-    
+        resultWidth += [closeButton size].width + kPSMTabBarCellPadding;
+
     // icon?
     if([cell hasIcon])
         resultWidth += kPSMTabBarIconWidth + kPSMTabBarCellPadding;
-    
+
     // the label
     resultWidth += [[cell attributedStringValue] size].width;
-    
+
     // object counter?
     if([cell count] > 0)
         resultWidth += [self objectCounterRectForTabCell:cell].size.width + kPSMTabBarCellPadding;
-    
+
     // indicator?
     if ([[cell indicator] isHidden] == NO)
         resultWidth += kPSMTabBarCellPadding + kPSMTabBarIndicatorWidth;
-    
+
     // right margin
     resultWidth += MARGIN_X;
-    
+
     return ceil(resultWidth);
 }
 
@@ -266,11 +273,11 @@ void MyNSDrawWindowBackground(NSRect rect)
     NSString *contents = [nf stringFromNumber:[NSNumber numberWithInt:[cell count]]];
     attrStr = [[[NSMutableAttributedString alloc] initWithString:contents] autorelease];
     NSRange range = NSMakeRange(0, [contents length]);
-    
+
     // Add font attribute
     [attrStr addAttribute:NSFontAttributeName value:[fm convertFont:[NSFont fontWithName:@"Helvetica" size:11.0] toHaveTrait:NSBoldFontMask] range:range];
     [attrStr addAttribute:NSForegroundColorAttributeName value:[[NSColor whiteColor] colorWithAlphaComponent:0.85] range:range];
-    
+
     return attrStr;
 }
 
@@ -280,33 +287,31 @@ void MyNSDrawWindowBackground(NSRect rect)
     NSString *contents = [cell stringValue];
     attrStr = [[[NSMutableAttributedString alloc] initWithString:contents] autorelease];
     NSRange range = NSMakeRange(0, [contents length]);
-    
+
     // Add font attribute
-    [attrStr addAttribute:NSFontAttributeName value:[NSFont boldSystemFontOfSize:11.0] range:range];
-    [attrStr addAttribute:NSForegroundColorAttributeName value:[[NSColor textColor] colorWithAlphaComponent:0.75] range:range];
-    
-    // Add shadow attribute
-    NSShadow* shadow;
-    shadow = [[[NSShadow alloc] init] autorelease];
-    float shadowAlpha;
-    if(([cell state] == NSOnState) || [cell isHighlighted]){
-        shadowAlpha = 0.8;
+    [attrStr addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:11.0] range:range];
+
+    PSMTabBarControl *bar = (PSMTabBarControl *)cell.controlView;
+    BOOL isKeyWindow = [bar.window isKeyWindow];
+
+    CGFloat textAlpha;
+    if ([cell state] == NSOnState) {
+        textAlpha = (isKeyWindow) ? 1.0f : 0.5f;
     } else {
-        shadowAlpha = 0.5;
+        textAlpha = (isKeyWindow) ? 0.5f : 0.25f;
     }
-    [shadow setShadowColor:[NSColor colorWithCalibratedWhite:1.0 alpha:shadowAlpha]];
-    [shadow setShadowOffset:NSMakeSize(0, -1)];
-    [shadow setShadowBlurRadius:1.0];
-    [attrStr addAttribute:NSShadowAttributeName value:shadow range:range];
-    
+    NSColor *textColor = [[NSColor textColor] colorWithAlphaComponent:textAlpha];
+
+    [attrStr addAttribute:NSForegroundColorAttributeName value:textColor range:range];
+
     // Paragraph Style for Truncating Long Text
     if (!truncatingTailParagraphStyle) {
         truncatingTailParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
-        [truncatingTailParagraphStyle setLineBreakMode:NSLineBreakByTruncatingTail];
+        [truncatingTailParagraphStyle setLineBreakMode:NSLineBreakByTruncatingHead];
         [truncatingTailParagraphStyle setAlignment:NSCenterTextAlignment];
     }
     [attrStr addAttribute:NSParagraphStyleAttributeName value:truncatingTailParagraphStyle range:range];
-    
+
     return attrStr;
 }
 
@@ -315,53 +320,41 @@ void MyNSDrawWindowBackground(NSRect rect)
 
 - (void)drawTabCell:(PSMTabBarCell *)cell
 {
-    NSRect cellFrame = [cell frame];	
+    NSRect cellFrame = [cell frame];
     NSColor * lineColor = nil;
     NSBezierPath* bezier = [NSBezierPath bezierPath];
-    lineColor = [NSColor darkGrayColor];
+    lineColor = [self borderColor];
 
     if ([cell state] == NSOnState) {
         // selected tab
-        NSRect aRect = NSMakeRect(cellFrame.origin.x, cellFrame.origin.y, cellFrame.size.width, cellFrame.size.height-2.5);
-        aRect.size.height -= 0.5;
-        
+        NSRect aRect = NSMakeRect(cellFrame.origin.x, cellFrame.origin.y, cellFrame.size.width, cellFrame.size.height);
+
+        PSMTabBarControl *bar = (PSMTabBarControl *)cell.controlView;
+        BOOL isKeyWindow = [bar.window isKeyWindow];
+
         // background
-        MyNSDrawWindowBackground(aRect);
-        
-        aRect.size.height+=0.5;
-        
+        YosemiteNSDrawWindowBackground(aRect, [self backgroundColor:isKeyWindow]);
+
+        aRect.size.height -= 1.0f;
+        aRect.origin.y += 0.5f;
         // frame
-        aRect.origin.x += 0.5;
         [lineColor set];
         [bezier moveToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y)];
-        [bezier lineToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y+aRect.size.height-1.5)];
-        [bezier lineToPoint:NSMakePoint(aRect.origin.x+1.5, aRect.origin.y+aRect.size.height)];
-        [bezier lineToPoint:NSMakePoint(aRect.origin.x+aRect.size.width-1.5, aRect.origin.y+aRect.size.height)];
-        [bezier lineToPoint:NSMakePoint(aRect.origin.x+aRect.size.width, aRect.origin.y+aRect.size.height-1.5)];
+        [bezier lineToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y+aRect.size.height)];
+        [bezier lineToPoint:NSMakePoint(aRect.origin.x+aRect.size.width, aRect.origin.y+aRect.size.height)];
         [bezier lineToPoint:NSMakePoint(aRect.origin.x+aRect.size.width, aRect.origin.y)];
-        if([[cell controlView] frame].size.height < 2){
-            // special case of hidden control; need line across top of cell
-            [bezier moveToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y+0.5)];
-            [bezier lineToPoint:NSMakePoint(aRect.origin.x+aRect.size.width, aRect.origin.y+0.5)];
-        }
+        [bezier lineToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y)];
         [bezier stroke];
     } else {
-        
+
         // unselected tab
         NSRect aRect = NSMakeRect(cellFrame.origin.x, cellFrame.origin.y, cellFrame.size.width, cellFrame.size.height);
-        aRect.origin.y += 0.5;
-        aRect.origin.x += 1.5;
-        aRect.size.width -= 1;
-        
-        // rollover
-        if ([cell isHighlighted]) {
-            [[NSColor colorWithCalibratedWhite:0.0 alpha:0.1] set];
-            NSRectFillUsingOperation(aRect, NSCompositeSourceAtop);
-        }
-        
-        aRect.origin.x -= 1;
-        aRect.size.width += 1;
-        
+
+        aRect.origin.x += 0.5;
+
+        [[NSColor colorWithCalibratedWhite:0.0 alpha:0.1] set];
+        NSRectFillUsingOperation(aRect, NSCompositeSourceAtop);
+
         // frame
         [lineColor set];
         [bezier moveToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y)];
@@ -371,7 +364,7 @@ void MyNSDrawWindowBackground(NSRect rect)
         }
         [bezier stroke];
     }
-    
+
     [self drawInteriorWithTabCell:cell inView:[cell controlView]];
 }
 
@@ -381,53 +374,32 @@ void MyNSDrawWindowBackground(NSRect rect)
 {
     NSRect cellFrame = [cell frame];
     float labelPosition = cellFrame.origin.x + MARGIN_X;
-    
+
     // close button
     if ([cell hasCloseButton] && ![cell isCloseButtonSuppressed]) {
         NSSize closeButtonSize = NSZeroSize;
         NSRect closeButtonRect = [cell closeButtonRectForFrame:cellFrame];
-        NSImage * closeButton = nil;
-        
-        closeButton = metalCloseButton;
-        if ([cell closeButtonOver]) closeButton = metalCloseButtonOver;
-        if ([cell closeButtonPressed]) closeButton = metalCloseButtonDown;
-        
-        closeButtonSize = [closeButton size];
-        [closeButton drawInRect:closeButtonRect fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
-        
-        // scoot label over
-        labelPosition += closeButtonSize.width + kPSMTabBarCellPadding;
-    }
+        NSImage *button = nil;
 
-#if 0   // MacVim: disable this code.  It is unused and calling 'content' on the represented object's identifier seems dangerous at best.
-    // icon
-    if([cell hasIcon]){
-        NSRect iconRect = [self iconRectForTabCell:cell];
-        NSImage *icon = [[[[cell representedObject] identifier] content] icon];
-        if ([controlView isFlipped]) {
-            iconRect.origin.y = cellFrame.size.height - iconRect.origin.y;
-        }
-        [icon compositeToPoint:iconRect.origin operation:NSCompositeSourceOver fraction:1.0];
-        
-        // scoot label over
-        labelPosition += iconRect.size.width + kPSMTabBarCellPadding;
+        if ([cell closeButtonOver]) button = closeButtonOver;
+        if ([cell closeButtonPressed]) button = closeButtonDown;
+
+        closeButtonSize = [button size];
+        [button drawInRect:closeButtonRect fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
     }
-#endif
 
     // object counter
     if([cell count] > 0){
         [[NSColor colorWithCalibratedWhite:0.3 alpha:0.6] set];
         NSBezierPath *path = [NSBezierPath bezierPath];
         NSRect myRect = [self objectCounterRectForTabCell:cell];
-        if([cell state] == NSOnState)
-            myRect.origin.y -= 1.0;
         [path moveToPoint:NSMakePoint(myRect.origin.x + kPSMMetalObjectCounterRadius, myRect.origin.y)];
         [path lineToPoint:NSMakePoint(myRect.origin.x + myRect.size.width - kPSMMetalObjectCounterRadius, myRect.origin.y)];
         [path appendBezierPathWithArcWithCenter:NSMakePoint(myRect.origin.x + myRect.size.width - kPSMMetalObjectCounterRadius, myRect.origin.y + kPSMMetalObjectCounterRadius) radius:kPSMMetalObjectCounterRadius startAngle:270.0 endAngle:90.0];
         [path lineToPoint:NSMakePoint(myRect.origin.x + kPSMMetalObjectCounterRadius, myRect.origin.y + myRect.size.height)];
         [path appendBezierPathWithArcWithCenter:NSMakePoint(myRect.origin.x + kPSMMetalObjectCounterRadius, myRect.origin.y + kPSMMetalObjectCounterRadius) radius:kPSMMetalObjectCounterRadius startAngle:90.0 endAngle:270.0];
         [path fill];
-        
+
         // draw attributed string centered in area
         NSRect counterStringRect;
         NSAttributedString *counterString = [self attributedObjectCountValueForTabCell:cell];
@@ -443,30 +415,28 @@ void MyNSDrawWindowBackground(NSRect rect)
     labelRect.size.width = cellFrame.size.width - (labelRect.origin.x - cellFrame.origin.x) - kPSMTabBarCellPadding;
     labelRect.size.height = cellFrame.size.height;
     labelRect.origin.y = cellFrame.origin.y + MARGIN_Y + 1.0;
-    
-    if([cell state] == NSOnState){
-        labelRect.origin.y -= 1;
-    }
-    
+
     if(![[cell indicator] isHidden])
         labelRect.size.width -= (kPSMTabBarIndicatorWidth + kPSMTabBarCellPadding);
-    
+
     if([cell count] > 0)
         labelRect.size.width -= ([self objectCounterRectForTabCell:cell].size.width + kPSMTabBarCellPadding);
-    
+
     // label
     [[cell attributedStringValue] drawInRect:labelRect];
 }
 
 - (void)drawTabBar:(PSMTabBarControl *)bar inRect:(NSRect)rect
 {
-    MyNSDrawWindowBackground(rect);
-    [[NSColor colorWithCalibratedWhite:0.0 alpha:0.2] set];
+    BOOL isKeyWindow = [bar.window isKeyWindow];
+    YosemiteNSDrawWindowBackground(rect, [self backgroundColor:isKeyWindow]);
+
+    [[NSColor colorWithCalibratedWhite:0.0 alpha:0.0] set];
     NSRectFillUsingOperation(rect, NSCompositeSourceAtop);
-    [[NSColor darkGrayColor] set];
+    [[self borderColor] set];
     [NSBezierPath strokeLineFromPoint:NSMakePoint(rect.origin.x,rect.origin.y+0.5) toPoint:NSMakePoint(rect.origin.x+rect.size.width,rect.origin.y+0.5)];
     [NSBezierPath strokeLineFromPoint:NSMakePoint(rect.origin.x,rect.origin.y+rect.size.height-0.5) toPoint:NSMakePoint(rect.origin.x+rect.size.width,rect.origin.y+rect.size.height-0.5)];
-    
+
     // no tab view == not connected
     if(![bar tabView]){
         NSRect labelRect = rect;
@@ -485,7 +455,7 @@ void MyNSDrawWindowBackground(NSRect rect)
         [attrStr drawInRect:labelRect];
         return;
     }
-    
+
     // draw cells
     NSEnumerator *e = [[bar cells] objectEnumerator];
     PSMTabBarCell *cell;
@@ -494,37 +464,34 @@ void MyNSDrawWindowBackground(NSRect rect)
             [cell drawWithFrame:[cell frame] inView:bar];
         }
     }
-}   	
+}
 
 #pragma mark -
 #pragma mark Archiving
 
-- (void)encodeWithCoder:(NSCoder *)aCoder 
+- (void)encodeWithCoder:(NSCoder *)aCoder
 {
-    //[super encodeWithCoder:aCoder];
     if ([aCoder allowsKeyedCoding]) {
-        [aCoder encodeObject:metalCloseButton forKey:@"metalCloseButton"];
-        [aCoder encodeObject:metalCloseButtonDown forKey:@"metalCloseButtonDown"];
-        [aCoder encodeObject:metalCloseButtonOver forKey:@"metalCloseButtonOver"];
+        [aCoder encodeObject:closeButton forKey:@"metalCloseButton"];
+        [aCoder encodeObject:closeButtonDown forKey:@"metalCloseButtonDown"];
+        [aCoder encodeObject:closeButtonOver forKey:@"metalCloseButtonOver"];
         [aCoder encodeObject:_addTabButtonImage forKey:@"addTabButtonImage"];
         [aCoder encodeObject:_addTabButtonPressedImage forKey:@"addTabButtonPressedImage"];
         [aCoder encodeObject:_addTabButtonRolloverImage forKey:@"addTabButtonRolloverImage"];
     }
 }
 
-- (id)initWithCoder:(NSCoder *)aDecoder 
+- (id)initWithCoder:(NSCoder *)aDecoder
 {
-   // self = [super initWithCoder:aDecoder];
-    //if (self) {
-        if ([aDecoder allowsKeyedCoding]) {
-            metalCloseButton = [[aDecoder decodeObjectForKey:@"metalCloseButton"] retain];
-            metalCloseButtonDown = [[aDecoder decodeObjectForKey:@"metalCloseButtonDown"] retain];
-            metalCloseButtonOver = [[aDecoder decodeObjectForKey:@"metalCloseButtonOver"] retain];
-            _addTabButtonImage = [[aDecoder decodeObjectForKey:@"addTabButtonImage"] retain];
-            _addTabButtonPressedImage = [[aDecoder decodeObjectForKey:@"addTabButtonPressedImage"] retain];
-            _addTabButtonRolloverImage = [[aDecoder decodeObjectForKey:@"addTabButtonRolloverImage"] retain];
-        }
-    //}
+    if ([aDecoder allowsKeyedCoding]) {
+        closeButton = [[aDecoder decodeObjectForKey:@"metalCloseButton"] retain];
+        closeButtonDown = [[aDecoder decodeObjectForKey:@"metalCloseButtonDown"] retain];
+        closeButtonOver = [[aDecoder decodeObjectForKey:@"metalCloseButtonOver"] retain];
+        _addTabButtonImage = [[aDecoder decodeObjectForKey:@"addTabButtonImage"] retain];
+        _addTabButtonPressedImage = [[aDecoder decodeObjectForKey:@"addTabButtonPressedImage"] retain];
+        _addTabButtonRolloverImage = [[aDecoder decodeObjectForKey:@"addTabButtonRolloverImage"] retain];
+    }
+
     return self;
 }
 

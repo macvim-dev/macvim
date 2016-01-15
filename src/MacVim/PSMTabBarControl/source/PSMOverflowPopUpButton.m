@@ -40,15 +40,14 @@
     }
 	
     NSImage *image = (_down) ? _PSMTabBarOverflowDownPopUpImage : _PSMTabBarOverflowPopUpImage;
-	NSSize imageSize = [image size];
-    rect.origin.x = NSMidX(rect) - (imageSize.width * 0.5);
-    rect.origin.y = NSMidY(rect) - (imageSize.height * 0.5);
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6
-    [image drawInRect:rect fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
-#else
-    [image setFlipped:YES];
-    [image drawAtPoint:rect.origin fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0];
-#endif
+    NSSize imageSize = [image size];
+    NSRect bounds = [self bounds];
+    NSPoint drawPoint = NSMakePoint(NSMidX(bounds) - (imageSize.width * 0.5f),
+        NSMidY(bounds) - (imageSize.height * 0.5f));
+    [image drawAtPoint:drawPoint
+              fromRect:NSZeroRect
+             operation:NSCompositeSourceOver
+              fraction:1.0f];
 }
 
 - (void)mouseDown:(NSEvent *)event
