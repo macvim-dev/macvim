@@ -9,16 +9,30 @@
       <title>MacVim 7.4 (snapshot-91)</title>
       <description><![CDATA[
 <pre>
+Binary targets OS X 10.8(Mountain Lion), 10.9(Mavericks), 10.10(Yosemite), and 10.11(El Capitan)
+
+- Vim patch 7.4.1090
+- Fix renderer defaults settings, Core Text Renderer should be the default
+- Yosemite style Tab bar based on https://github.com/b4winckler/macvim/pull/45
+
+Script interfaces have compatibility with these versions
+
+- Lua 5.2
+- Perl 5.16
+- Python2 2.7
+- Python3 3.5
+- Ruby 2.0
+
 </pre>
       ]]></description>
-      <pubDate>Thu, 14 Jan 2016 22:00:00 -0800</pubDate>
-      <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
+      <pubDate>Sat, 16 Jan 2016 02:00:00 -0800</pubDate>
+      <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
         url="https://github.com/macvim-dev/macvim/releases/download/snapshot-91/MacVim-7.4.dmg"
-        length="13951517"
+        length="14500039"
         sparkle:version="91"
         sparkle:shortVersionString="7.4"
-	sparkle:dsaSignature=""
+	sparkle:dsaSignature="MC0CFGEXfl9/LMEks21CklevV82bJjqUAhUArzno3bV4ZY7RvU85/cARWPt6t4Y="
         />
     </item>
   </channel>
