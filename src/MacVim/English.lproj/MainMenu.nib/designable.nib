@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="9531" systemVersion="15C50" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+    <dependencies>
+        <deployment version="1060" identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="9531"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
+            <connections>
+                <outlet property="delegate" destination="235" id="236"/>
+                <outlet property="dockMenu" destination="337" id="341"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application"/>
+        <menu title="MainMenu" systemMenu="main" id="29" userLabel="MainMenu">
+            <items>
+                <menuItem title="MacVim" id="56">
+                    <menu key="submenu" title="MacVim" systemMenu="apple" id="57">
+                        <items>
+                            <menuItem title="About MacVim" id="58">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="orderFrontStandardAboutPanel:" target="-2" id="142"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Check for updates…" id="255">
+                                <connections>
+                                    <action selector="checkForUpdates:" target="Jqk-qh-n0J" id="Wau-rL-cbn"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="196">
+                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                            </menuItem>
+                            <menuItem title="Preferences…" keyEquivalent="," id="129">
+                                <connections>
+                                    <action selector="orderFrontPreferencePanel:" target="235" id="252"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="143">
+                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                            </menuItem>
+                            <menuItem title="Services" id="131">
+                                <menu key="submenu" title="Services" systemMenu="services" id="130"/>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="144">
+                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                            </menuItem>
+                            <menuItem title="Hide MacVim" keyEquivalent="h" id="134">
+                                <connections>
+                                    <action selector="hide:" target="-2" id="152"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Hide Others" keyEquivalent="h" id="145">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="hideOtherApplications:" target="-2" id="146"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Show All" id="150">
+                                <connections>
+                                    <action selector="unhideAllApplications:" target="-2" id="153"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="149">
+                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                            </menuItem>
+                            <menuItem title="Quit MacVim" keyEquivalent="q" id="136">
+                                <connections>
+                                    <action selector="terminate:" target="-2" id="139"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </menuItem>
+                <menuItem title="File" id="217">
+                    <menu key="submenu" title="File" id="218">
+                        <items>
+                            <menuItem title="New Window" keyEquivalent="n" id="219">
+                                <connections>
+                                    <action selector="newWindow:" target="235" id="251"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Open…" keyEquivalent="o" id="261">
+                                <connections>
+                                    <action selector="fileOpen:" target="235" id="277"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Open Recent" id="262">
+                                <menu key="submenu" title="Open Recent" id="271">
+                                    <items>
+                                        <menuItem title="Clear Menu" id="272">
+                                            <connections>
+                                                <action selector="clearRecentDocuments:" target="-1" id="278"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="263">
+                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                            </menuItem>
+                            <menuItem title="Close" keyEquivalent="w" id="248">
+                                <connections>
+                                    <action selector="performClose:" target="-1" id="249"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </menuItem>
+                <menuItem title="Edit" id="281">
+                    <menu key="submenu" title="Edit" id="282">
+                        <items>
+                            <menuItem title="Undo" keyEquivalent="z" id="283">
+                                <connections>
+                                    <action selector="undo:" target="-1" id="316"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Redo" keyEquivalent="Z" id="284">
+                                <connections>
+                                    <action selector="redo:" target="-1" id="317"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="285">
+                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                            </menuItem>
+                            <menuItem title="Cut" keyEquivalent="x" id="286">
+                                <connections>
+                                    <action selector="cut:" target="-1" id="318"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Copy" keyEquivalent="c" id="287">
+                                <connections>
+                                    <action selector="copy:" target="-1" id="319"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Paste" keyEquivalent="v" id="288">
+                                <connections>
+                                    <action selector="paste:" target="-1" id="320"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Delete" id="290">
+                                <connections>
+                                    <action selector="delete:" target="-1" id="321"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Select All" keyEquivalent="a" id="291">
+                                <connections>
+                                    <action selector="selectAll:" target="-1" id="322"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </menuItem>
+                <menuItem title="Window" id="309">
+                    <menu key="submenu" title="Window" id="310">
+                        <items>
+                            <menuItem title="Minimize" keyEquivalent="m" id="311">
+                                <connections>
+                                    <action selector="performMiniaturize:" target="-1" id="323"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Zoom" id="312">
+                                <connections>
+                                    <action selector="performZoom:" target="-1" id="324"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="313">
+                                <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                            </menuItem>
+                            <menuItem title="Bring All to Front" id="314">
+                                <connections>
+                                    <action selector="arrangeInFront:" target="-1" id="325"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </menuItem>
+                <menuItem title="Help" id="232">
+                    <menu key="submenu" title="Help" id="233">
+                        <items>
+                            <menuItem title="MacVim Help" keyEquivalent="?" id="275">
+                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
+                                <connections>
+                                    <action selector="showVimHelp:" target="235" id="329"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="MacVim Website" id="234">
+                                <connections>
+                                    <action selector="openWebsite:" target="235" id="274"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </menuItem>
+            </items>
+        </menu>
+        <customObject id="235" userLabel="MMAppController" customClass="MMAppController"/>
+        <menu id="337" userLabel="DockMenu">
+            <items>
+                <menuItem title="New Window" id="338">
+                    <attributedString key="attributedTitle"/>
+                    <connections>
+                        <action selector="newWindowAndActivate:" target="235" id="350"/>
+                    </connections>
+                </menuItem>
+            </items>
+        </menu>
+        <customObject id="Jqk-qh-n0J" customClass="SUUpdater"/>
+    </objects>
+</document>
