@@ -1121,9 +1121,9 @@ vim_main2(int argc UNUSED, char **argv UNUSED)
  * commands, return when entering Ex mode.  "noexmode" is TRUE then.
  */
     void
-main_loop(cmdwin, noexmode)
-    int		cmdwin;	    /* TRUE when working in the command-line window */
-    int		noexmode;   /* TRUE when return on entering Ex mode */
+main_loop(
+    int		cmdwin,	    /* TRUE when working in the command-line window */
+    int		noexmode)   /* TRUE when return on entering Ex mode */
 {
     oparg_T	oa;				/* operator arguments */
     volatile int previous_got_int = FALSE;	/* "got_int" was TRUE */
@@ -1430,8 +1430,7 @@ main_loop(cmdwin, noexmode)
  * Exit, but leave behind swap files for modified buffers.
  */
     void
-getout_preserve_modified(exitval)
-    int		exitval;
+getout_preserve_modified(int exitval)
 {
 # if defined(SIGHUP) && defined(SIG_IGN)
     /* Ignore SIGHUP, because a dropped connection causes a read error, which
@@ -1450,8 +1449,7 @@ getout_preserve_modified(exitval)
 
 /* Exit properly */
     void
-getout(exitval)
-    int		exitval;
+getout(int exitval)
 {
 #ifdef FEAT_AUTOCMD
     buf_T	*buf;
@@ -1655,7 +1653,7 @@ init_locale()
 
 #  ifdef DYNAMIC_GETTEXT
 	/* Initialize the gettext library */
-	dyn_libintl_init(NULL);
+	dyn_libintl_init();
 #  endif
 	/* expand_env() doesn't work yet, because chartab[] is not initialized
 	 * yet, call vim_getenv() directly */
