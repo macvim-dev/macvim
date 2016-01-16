@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"> 
+  <channel>
+    <title>MacVim 7.4</title>
+    <link>https://raw.githubusercontent.com/macvim-dev/macvim/gh-pages/appcast/latest.xml</link>
+    <description>MacVim 7.4</description>
+
+    <item>
+      <title>MacVim 7.4 (snapshot-91)</title>
+      <description><![CDATA[
+<pre>
+</pre>
+      ]]></description>
+      <pubDate>Thu, 14 Jan 2016 22:00:00 -0800</pubDate>
+      <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
+      <enclosure type="application/octet-stream"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-91/MacVim-7.4.dmg"
+        length="13951517"
+        sparkle:version="91"
+        sparkle:shortVersionString="7.4"
+	sparkle:dsaSignature=""
+        />
+    </item>
+  </channel>
+</rss>
