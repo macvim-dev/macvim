@@ -43,7 +43,7 @@ deploy:
   provider: releases
   api_key:
     secure: HYHKVbuSG2Trc5zEN+aQO0TO/020qtTokoaaatd9GhQ/ImOI2uhOuVsk47mcViCINyE9+wwVEr23Tk7GqzsJBS66FoZJeOsgYoO/LFlQjCYyya+48Ajez6I2VAIGKn0JD6jpW+ZYIX7MAWLCQKv/vW03MrBMDLZvjB89pHe72MLQFlVcEzxsWnr7smTzLcuKShkV+AVZopE/HRdY1k/zjWf/TzcJgqXwThuJOPYY+CcGUv1CMJjWB8pBuH31pbQ2AVOXV7VG5oxy2HSbCeDRShKT3GooecWj7xjh9SApNqEIzC44RlufgyC73M0DeILUasmbF0g2Q+AsDaj3+9w3LbLbmfpV5kEM9E/PbzWEn+0EgRKV+HCscZnPMlzkiVWKnjzfwKGMOmTwD0aN4Bt6Y9z+UvQKfsQN+6wHmh7xcSpaeR1J6PBeaCd+QyhD7t9ZxP2qmZWCBMFpnkqO4+LoclJNV+IxYstNFjaKIvxEe/S9GM2w+i2cSDDrxSNz+kUGWzshyu6HXxRtrNo+qM6sCO8TiOMMALPAkLCJT2P/TPMRkdy2wjCDwprc1ePDqikIHIGGwQ8Csd5IqFUcJs405xw4HfVkOuhWL/SpLuI6OHOVQqAkqMEMaEhlfh1swFNkT4ffDJGzvklB8v2980B003eWbcHr6lMGtpqQecqgS9A=
-  file: src/MacVim/build/Release/MacVim-7.4.dmg
+  file: src/MacVim/build/Release/MacVim.dmg
   skip_cleanup: true
   on:
     all_branches: true
