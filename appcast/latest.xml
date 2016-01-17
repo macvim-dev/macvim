@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"> 
   <channel>
-    <title>MacVim 7.4</title>
+    <title>MacVim</title>
     <link>https://raw.githubusercontent.com/macvim-dev/macvim/gh-pages/appcast/latest.xml</link>
-    <description>MacVim 7.4</description>
+    <description>MacVim</description>
 
     <item>
-      <title>MacVim 7.4 (snapshot-91)</title>
+      <title>MacVim snapshot-92</title>
       <description><![CDATA[
 <pre>
 Binary targets OS X 10.8(Mountain Lion), 10.9(Mavericks), 10.10(Yosemite), and 10.11(El Capitan)
 
-- Vim patch 7.4.1090
-- Fix renderer defaults settings, Core Text Renderer should be the default
-- Yosemite style Tab bar based on https://github.com/b4winckler/macvim/pull/45
+- Vim patch 7.4.1122
+- Enabled Sparkle for auto update
 
 Script interfaces have compatibility with these versions
 
@@ -25,14 +24,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Sat, 16 Jan 2016 02:00:00 -0800</pubDate>
+      <pubDate>Sun, 17 Jan 2016 10:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-91/MacVim-7.4.dmg"
-        length="14500039"
-        sparkle:version="91"
-        sparkle:shortVersionString="7.4"
-	sparkle:dsaSignature="MC0CFGEXfl9/LMEks21CklevV82bJjqUAhUArzno3bV4ZY7RvU85/cARWPt6t4Y="
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-92/MacVim.dmg"
+        length="15144442"
+        sparkle:version="92"
+        sparkle:shortVersionString="92"
+	sparkle:dsaSignature="MCwCFFtZzXerj2s6aulWRlpHAKSy12iTAhRw0MkLPxqO1c4hEHz/T8xRH9SR0w=="
         />
     </item>
   </channel>
