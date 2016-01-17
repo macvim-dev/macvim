@@ -8132,7 +8132,7 @@ static struct fst
     {"cscope_connection",0,3, f_cscope_connection},
     {"cursor",		1, 3, f_cursor},
     {"deepcopy",	1, 2, f_deepcopy},
-    {"delete",		1, 1, f_delete},
+    {"delete",		1, 2, f_delete},
     {"did_filetype",	0, 0, f_did_filetype},
     {"diff_filler",	1, 1, f_diff_filler},
     {"diff_hlID",	2, 2, f_diff_hlID},
@@ -10392,10 +10392,37 @@ f_delete(argvars, rettv)
     typval_T	*argvars;
     typval_T	*rettv;
 {
+    char_u	nbuf[NUMBUFLEN];
+    char_u	*name;
+    char_u	*flags;
+
+    rettv->vval.v_number = -1;
     if (check_restricted() || check_secure())
-	rettv->vval.v_number = -1;
+	return;
+
+    name = get_tv_string(&argvars[0]);
+    if (name == NULL || *name == NUL)
+    {
+	EMSG(_(e_invarg));
+	return;
+    }
+
+    if (argvars[1].v_type != VAR_UNKNOWN)
+	flags = get_tv_string_buf(&argvars[1], nbuf);
     else
-	rettv->vval.v_number = mch_remove(get_tv_string(&argvars[0]));
+	flags = (char_u *)"";
+
+    if (*flags == NUL)
+	/* delete a file */
+	rettv->vval.v_number = mch_remove(name) == 0 ? 0 : -1;
+    else if (STRCMP(flags, "d") == 0)
+	/* delete an empty directory */
+	rettv->vval.v_number = mch_rmdir(name) == 0 ? 0 : -1;
+    else if (STRCMP(flags, "rf") == 0)
+	/* delete a directory recursively */
+	rettv->vval.v_number = delete_recursive(name);
+    else
+	EMSG2(_(e_invexpr2), flags);
 }
 
 /*
@@ -20845,10 +20872,10 @@ find_name_end(arg, expr_start, expr_end, flags)
 	else if (br_nest == 0 && mb_nest == 0 && *p == ':')
 	{
 	    /* "s:" is start of "s:var", but "n:" is not and can be used in
-	     * slice "[n:]".  Also "xx:" is not a namespace. */
+	     * slice "[n:]".  Also "xx:" is not a namespace. But {ns}: is. */
 	    len = (int)(p - arg);
 	    if ((len == 1 && vim_strchr(NAMESPACE_CHAR, *arg) == NULL)
-		    || len > 1)
+		    || (len > 1 && p[-1] != '}'))
 		break;
 	}
 
