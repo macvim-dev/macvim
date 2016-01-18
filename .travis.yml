@@ -17,6 +17,7 @@ env:
     vi_cv_dll_name_perl=/System/Library/Perl/5.16/darwin-thread-multi-2level/CORE/libperl.dylib
     vi_cv_dll_name_python=/System/Library/Frameworks/Python.framework/Versions/2.7/Python
     vi_cv_dll_name_python3=/usr/local/Frameworks/Python.framework/Versions/3.5/Python
+    VIM=src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
     "CONFOPT='--with-features=huge --enable-multibyte --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local --enable-gui=macvim'"
 
 sudo: false
@@ -34,7 +35,12 @@ script:
   - grep -q -- "-DDYNAMIC_PYTHON3_DLL=\\\\\"$vi_cv_dll_name_python3\\\\\"" src/auto/config.mk
   - make -j$NPROC
   - cat src/auto/config.mk
-  - ./src/vim --version
+  - $VIM -g -c "redir>result" -c version -c "redir END" -c q; sleep 1; cat result; cat result|grep -q -w "MacVim GUI"; rm result
+  - $VIM -g -c "redir>result" -c lua 'print(\"Lua\")' -c "redir END" -c q; sleep 1; grep -q -w Lua; rm result
+  - $VIM -g -c "redir>result" -c perl 'VIM::Msg(\"Perl\")' -c "redir END" -c q; sleep 1; grep -q -w Perl; rm result
+  - $VIM -g -c "redir>result" -c py 'print(\"Python\")' -c "redir END" -c q; sleep 1; grep -q -w Python; rm result
+  - $VIM -g -c "redir>result" -c py3 'print(\"Python3\")' -c "redir END" -c q; sleep 1; grep -q -w Python3; rm result
+  - $VIM -g -c "redir>result" -c ruby 'puts(\"Ruby\")' -c "redir END" -c q; sleep 1; grep -q -w Ruby; rm result
   - make test
 
 before_deploy:
