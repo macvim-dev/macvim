@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 7.4.  Last change: 2016 Jan 16
+*eval.txt*	For Vim version 7.4.  Last change: 2016 Jan 17
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -873,7 +873,7 @@ cursor: >
 	:let c = getline(".")[col(".") - 1]
 
 If the length of the String is less than the index, the result is an empty
-String.  A negative index always results in an empty string (reason: backwards
+String.  A negative index always results in an empty string (reason: backward
 compatibility).  Use [-1:] to get the last byte.
 
 If expr8 is a |List| then it results the item at index expr1.  See |list-index|
@@ -1851,7 +1851,7 @@ getcmdpos()			Number	return cursor position in command-line
 getcmdtype()			String	return current command-line type
 getcmdwintype()			String	return current command-line window type
 getcurpos()			List	position of the cursor
-getcwd()			String	the current working directory
+getcwd( [{winnr} [, {tabnr}]])	String	get the current working directory
 getfontname( [{name}])		String	name of font being used
 getfperm( {fname})		String	file permissions of file {fname}
 getfsize( {fname})		Number	size in bytes of file {fname}
@@ -1882,7 +1882,8 @@ globpath( {path}, {expr} [, {nosuf} [, {list} [, {alllinks}]]])
 				String	do glob({expr}) for all dirs in {path}
 has( {feature})			Number	TRUE if feature {feature} supported
 has_key( {dict}, {key})		Number	TRUE if {dict} has entry {key}
-haslocaldir()			Number	TRUE if current window executed |:lcd|
+haslocaldir( [{winnr} [, {tabnr}]])
+				Number	TRUE if the window executed |:lcd|
 hasmapto( {what} [, {mode} [, {abbr}]])
 				Number	TRUE if mapping to {what} exists
 histadd( {history},{item})	String	add an item to a history
@@ -1950,6 +1951,7 @@ nextnonblank( {lnum})		Number	line nr of non-blank line >= {lnum}
 nr2char( {expr}[, {utf8}])	String	single char with ASCII/UTF8 value {expr}
 or( {expr}, {expr})		Number  bitwise OR
 pathshorten( {expr})		String	shorten directory names in a path
+perleval( {expr})		any	evaluate |Perl| expression
 pow( {x}, {y})			Float	{x} to the power of {y}
 prevnonblank( {lnum})		Number	line nr of non-blank line <= {lnum}
 printf( {fmt}, {expr1}...)	String	format text
@@ -3521,8 +3523,16 @@ getcurpos()	Get the position of the cursor.  This is like getpos('.'), but
 			call setpos('.', save_cursor)
 <
 							*getcwd()*
-getcwd()	The result is a String, which is the name of the current
+getcwd([{winnr} [, {tabnr}]])
+		The result is a String, which is the name of the current
 		working directory.
+		Without arguments, for the current window.
+
+		With {winnr} return the local current directory of this window
+		in the current tab page.
+		With {winnr} and {tabnr} return the local current directory of
+		the window in the specified tab page.
+		Return an empty string if the arguments are invalid.
 
 getfsize({fname})					*getfsize()*
 		The result is a Number, which is the size in bytes of the
@@ -3858,9 +3868,15 @@ has_key({dict}, {key})					*has_key()*
 		The result is a Number, which is 1 if |Dictionary| {dict} has
 		an entry with key {key}.  Zero otherwise.
 
-haslocaldir()						*haslocaldir()*
-		The result is a Number, which is 1 when the current
-		window has set a local path via |:lcd|, and 0 otherwise.
+haslocaldir([{winnr} [, {tabnr}]])			*haslocaldir()*
+		The result is a Number, which is 1 when the window has set a
+		local path via |:lcd|, and 0 otherwise.
+
+		Without arguments use the current window.
+		With {winnr} use this window in the current tab page.
+		With {winnr} and {tabnr} use the window in the specified tab
+		page.
+		Return 0 if the arguments are invalid.
 
 hasmapto({what} [, {mode} [, {abbr}]])			*hasmapto()*
 		The result is a Number, which is 1 if there is a mapping that
@@ -4547,8 +4563,8 @@ matchadd({group}, {pattern}[, {priority}[, {id} [, {dict}]]])
 		respectively.  If the {id} argument is not specified or -1,
 		|matchadd()| automatically chooses a free ID.
 
-		The optional {dict} argmument allows for further custom
-		values. Currently this is used to specify a match specifc
+		The optional {dict} argument allows for further custom
+		values. Currently this is used to specify a match specific
 		conceal character that will be shown for |hl-Conceal|
 		highlighted matches. The dict can have the following members:
 
@@ -4777,6 +4793,17 @@ pathshorten({expr})					*pathshorten()*
 			:echo pathshorten('~/.vim/autoload/myfile.vim')
 <			~/.v/a/myfile.vim ~
 		It doesn't matter if the path exists or not.
+
+perleval({expr})					*perleval()*
+		Evaluate Perl expression {expr} in scalar context and return
+		its result converted to Vim data structures. If value can't be
+		converted, it is returned as a string Perl representation.
+		Note: If you want an array or hash, {expr} must return a
+		reference to it.
+		Example: >
+			:echo perleval('[1 .. 4]')
+<			[1, 2, 3, 4]
+		{only available when compiled with the |+perl| feature}
 
 pow({x}, {y})						*pow()*
 		Return the power of {x} to the exponent {y} as a |Float|.
@@ -5292,7 +5319,7 @@ search({pattern} [, {flags} [, {stopline} [, {timeout}]]])	*search()*
 
 		'ignorecase', 'smartcase' and 'magic' are used.
 		
-		When the 'z' flag is not given seaching always starts in
+		When the 'z' flag is not given, searching always starts in
 		column zero and then matches before the cursor are skipped.
 		When the 'c' flag is present in 'cpo' the next search starts
 		after the match.  Without the 'c' flag the next search starts
@@ -7658,7 +7685,7 @@ This does NOT work: >
 			From Vim version 4.5 until 5.0, every Ex command in
 			between the ":if" and ":endif" is ignored.  These two
 			commands were just to allow for future expansions in a
-			backwards compatible way.  Nesting was allowed.  Note
+			backward compatible way.  Nesting was allowed.  Note
 			that any ":else" or ":elseif" was ignored, the "else"
 			part was not executed either.
 

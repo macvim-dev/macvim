@@ -103,6 +103,7 @@ SCRIPTS_ALL = \
 	test_erasebackword.out \
 	test_eval.out \
 	test_fixeol.out \
+	test_getcwd.out \
 	test_insertcount.out \
 	test_listchars.out \
 	test_listlbr.out \
@@ -112,7 +113,6 @@ SCRIPTS_ALL = \
 	test_match_conceal.out \
 	test_nested_function.out \
 	test_options.out \
-	test_perl.out \
 	test_qf_title.out \
 	test_ruby.out \
 	test_search_mbyte.out \
@@ -178,7 +178,8 @@ NEW_TESTS = test_arglist.res \
 	    test_increment.res \
 	    test_quickfix.res \
 	    test_viml.res \
-	    test_alot.res
+	    test_alot.res \
+	    test_perl.res
 
 
 # Explicit dependencies.
