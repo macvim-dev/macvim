@@ -197,7 +197,7 @@ static void ruby_vim_init(void);
 #endif
 
 #if defined(DYNAMIC_RUBY) || defined(PROTO)
-# ifdef PROTO
+# if defined(PROTO) && !defined(HINSTANCE)
 #  define HINSTANCE int		/* for generating prototypes */
 # endif
 

@@ -1378,10 +1378,10 @@ CPP_DEPEND = $(CC) -I$(srcdir) -M$(CPP_MM) \
 NO_ATTR=
 #
 # Use this for cproto 3 patchlevel 6 or below (use "cproto -V" to check):
-# PROTO_FLAGS = -f4 -m__ARGS -d -E"$(CPP)" $(NO_ATTR)
+# PROTO_FLAGS = -f4 -d -E"$(CPP)" $(NO_ATTR)
 #
 # Use this for cproto 3 patchlevel 7 or above (use "cproto -V" to check):
-PROTO_FLAGS = -m -M__ARGS -d -E"$(CPP)" $(NO_ATTR)
+PROTO_FLAGS = -d -E"$(CPP)" $(NO_ATTR)
 
 
 ################################################
@@ -1950,8 +1950,6 @@ unittest unittests: $(UNITTEST_TARGETS)
 
 # Run individual OLD style test, assuming that Vim was already compiled.
 test1 \
-	test_argument_0count \
-	test_argument_count \
 	test_autocmd_option \
 	test_autoformat_join \
 	test_breakindent \
@@ -2014,6 +2012,7 @@ test_arglist \
 	test_sort \
 	test_undolevels \
 	test_unlet \
+	test_viminfo \
 	test_viml \
 	test_alot:
 	cd testdir; rm -f $@.res test.log messages; $(MAKE) -f Makefile $@.res VIMPROG=../$(VIMTARGET) $(GUI_TESTARG) SCRIPTSOURCE=../$(SCRIPTSOURCE)
