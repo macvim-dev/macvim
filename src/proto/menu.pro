@@ -22,6 +22,6 @@ void ex_menutranslate(exarg_T *eap);
 #ifdef FEAT_GUI_MACVIM
 void ex_macmenu(exarg_T *eap);
 void ex_macmenukey(exarg_T *eap);
-char_u *lookup_toolbar_item((int idx);
+char_u *lookup_toolbar_item(int idx);
 #endif
 /* vim: set ft=c : */
