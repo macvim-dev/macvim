@@ -1290,7 +1290,11 @@ utf_char2cells(c)
 	{0x23e9, 0x23f3},
 	{0x23f8, 0x23fa},
 	{0x24c2, 0x24c2},
+# ifndef FEAT_GUI
+	/* conflict emoji simbol U+25c0 BLACK LEFT-POINTING TRIANGLE with
+	 * vim-airline g:airline_right_sep = '◀' */
 	{0x25c0, 0x25c0},
+# endif
 	{0x25fb, 0x25fe},
 	{0x2600, 0x2604},
 	{0x260e, 0x260e},
