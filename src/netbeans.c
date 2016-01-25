@@ -27,9 +27,6 @@
 
 #if defined(FEAT_NETBEANS_INTG) || defined(PROTO)
 
-/* TODO: when should this not be defined? */
-#define INET_SOCKETS
-
 /* Note: when making changes here also adjust configure.in. */
 #ifdef WIN32
 # ifdef DEBUG
@@ -49,12 +46,8 @@
 # define sock_close(sd) closesocket(sd)
 # define sleep(t) Sleep(t*1000) /* WinAPI Sleep() accepts milliseconds */
 #else
-# ifdef INET_SOCKETS
-#  include <netdb.h>
-#  include <netinet/in.h>
-# else
-#  include <sys/un.h>
-# endif
+# include <netdb.h>
+# include <netinet/in.h>
 
 # include <sys/socket.h>
 # ifdef HAVE_LIBGEN_H
@@ -106,13 +99,7 @@ static void nb_free __ARGS((void));
 # define NB_HAS_GUI (gui.in_use || gui.starting)
 #endif
 
-#ifdef WIN64
-typedef __int64 NBSOCK;
-#else
-typedef int NBSOCK;
-#endif
-
-static NBSOCK nbsock = -1;		/* socket fd for Netbeans connection */
+static sock_T nbsock = -1;		/* socket fd for Netbeans connection */
 #define NETBEANS_OPEN (nbsock != -1)
 
 #ifdef FEAT_GUI_X11
@@ -181,6 +168,7 @@ nb_close_socket(void)
 
     sock_close(nbsock);
     nbsock = -1;
+    channel_remove_netbeans();
 }
 
 /*
@@ -243,16 +231,12 @@ sock_select(int s)
     static int
 netbeans_connect(char *params, int doabort)
 {
-#ifdef INET_SOCKETS
     struct sockaddr_in	server;
     struct hostent *	host;
-# ifdef FEAT_GUI_W32
+#ifdef FEAT_GUI_W32
     u_short		port;
-# else
-    int			port;
-# endif
 #else
-    struct sockaddr_un	server;
+    int			port;
 #endif
     int		sd;
     char	buf[32];
@@ -265,8 +249,7 @@ netbeans_connect(char *params, int doabort)
     if (*params == '=')
     {
 	/* "=fname": Read info from specified file. */
-	if (getConnInfo(params + 1, &hostname, &address, &password)
-								      == FAIL)
+	if (getConnInfo(params + 1, &hostname, &address, &password) == FAIL)
 	    return FAIL;
     }
     else
@@ -334,13 +317,12 @@ netbeans_connect(char *params, int doabort)
 	goto theend;	    /* out of memory */
 
 #ifdef FEAT_GUI_W32
-    netbeans_init_winsock();
+    channel_init_winsock();
 #endif
 
-#ifdef INET_SOCKETS
     port = atoi(address);
 
-    if ((sd = (NBSOCK)socket(AF_INET, SOCK_STREAM, 0)) == (NBSOCK)-1)
+    if ((sd = (sock_T)socket(AF_INET, SOCK_STREAM, 0)) == (sock_T)-1)
     {
 	nbdebug(("error in socket() in netbeans_connect()\n"));
 	PERROR("socket() in netbeans_connect()");
@@ -360,17 +342,6 @@ netbeans_connect(char *params, int doabort)
 	goto theend;
     }
     memcpy((char *)&server.sin_addr, host->h_addr, host->h_length);
-#else
-    if ((sd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
-    {
-	nbdebug(("error in socket() in netbeans_connect()\n"));
-	PERROR("socket() in netbeans_connect()");
-	goto theend;
-    }
-
-    server.sun_family = AF_UNIX;
-    strcpy(server.sun_path, address);
-#endif
     /* Connect to server */
     if (connect(sd, (struct sockaddr *)&server, sizeof(server)))
     {
@@ -379,23 +350,13 @@ netbeans_connect(char *params, int doabort)
 	if (errno == ECONNREFUSED)
 	{
 	    sock_close(sd);
-#ifdef INET_SOCKETS
-	    if ((sd = (NBSOCK)socket(AF_INET, SOCK_STREAM, 0)) == (NBSOCK)-1)
+	    if ((sd = (sock_T)socket(AF_INET, SOCK_STREAM, 0)) == (sock_T)-1)
 	    {
 		SOCK_ERRNO;
 		nbdebug(("socket()#2 in netbeans_connect()\n"));
 		PERROR("socket()#2 in netbeans_connect()");
 		goto theend;
 	    }
-#else
-	    if ((sd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
-	    {
-		SOCK_ERRNO;
-		nbdebug(("socket()#2 in netbeans_connect()\n"));
-		PERROR("socket()#2 in netbeans_connect()");
-		goto theend;
-	    }
-#endif
 	    if (connect(sd, (struct sockaddr *)&server, sizeof(server)))
 	    {
 		int retries = 36;
@@ -445,6 +406,7 @@ netbeans_connect(char *params, int doabort)
     }
 
     nbsock = sd;
+    channel_add_netbeans(nbsock);
     vim_snprintf(buf, sizeof(buf), "AUTH %s\n", password);
     nb_send(buf, "netbeans_connect");
 
@@ -2983,21 +2945,12 @@ netbeans_beval_cb(
 #endif
 
 /*
- * Return TRUE when the netbeans connection is closed.
+ * Return TRUE when the netbeans connection is active.
  */
     int
 netbeans_active(void)
 {
     return NETBEANS_OPEN;
-}
-
-/*
- * Return netbeans file descriptor.
- */
-    int
-netbeans_filedesc(void)
-{
-    return nbsock;
 }
 
 #if defined(FEAT_GUI) || defined(PROTO)

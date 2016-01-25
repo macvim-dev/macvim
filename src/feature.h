@@ -1251,6 +1251,7 @@
  * +sniff		Sniff interface: "--enable-sniff"
  * +sun_workshop	Sun Workshop integration
  * +netbeans_intg	Netbeans integration
+ * +channel		Inter process communication
  */
 
 /*
@@ -1272,6 +1273,13 @@
 #if (!defined(FEAT_LISTCMDS) || !defined(FEAT_EVAL)) \
 	&& defined(FEAT_NETBEANS_INTG)
 # undef FEAT_NETBEANS_INTG
+#endif
+
+/*
+ * The Channel feature requires +eval.
+ */
+#if !defined(FEAT_EVAL) && defined(FEAT_CHANNEL)
+# undef FEAT_CHANNEL
 #endif
 
 /*
