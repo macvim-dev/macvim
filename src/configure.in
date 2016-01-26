@@ -1,4 +1,5 @@
 dnl configure.in: autoconf script for Vim
+dnl vim: set ts=4 sw=2 sts=2 et :
 
 dnl Process this file with autoconf 2.12 or 2.13 to produce "configure".
 dnl Should also work with autoconf 2.54 and later.
@@ -1213,7 +1214,16 @@ eof
 	    dnl -- delete the lines from make about Entering/Leaving directory
 	    eval "`cd ${PYTHON_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
 	    rm -f -- "${tmp_mkf}"
-	    if test "x$MACOSX" = "xyes" && ${vi_cv_path_python} -c \
+	    AC_MSG_NOTICE(python_BASEMODLIBS=${python_BASEMODLIBS})
+	    AC_MSG_NOTICE(python_LIBS=${python_LIBS})
+	    AC_MSG_NOTICE(python_SYSLIBS=${python_SYSLIBS})
+	    AC_MSG_NOTICE(python_LINKFORSHARED=${python_LINKFORSHARED})
+	    AC_MSG_NOTICE(python_DLLLIBRARY=${python_DLLLIBRARY})
+	    AC_MSG_NOTICE(python_INSTSONAME=${python_INSTSONAME})
+	    AC_MSG_NOTICE(python_PYTHONFRAMEWORK=${python_PYTHONFRAMEWORK})
+	    AC_MSG_NOTICE(python_PYTHONFRAMEWORKPREFIX=${python_PYTHONFRAMEWORKPREFIX})
+	    AC_MSG_NOTICE(python_PYTHONFRAMEWORKINSTALLDIR=${python_PYTHONFRAMEWORKINSTALLDIR})
+        if test "x$MACOSX" = "xyes" && ${vi_cv_path_python} -c \
 		"import sys; sys.exit(${vi_cv_var_python_version} < 2.3)"; then
 	      vi_cv_path_python_plibs="-framework Python"
 	      if test "x${vi_cv_path_python}" != "x/usr/bin/python" && test -n "${python_PYTHONFRAMEWORKPREFIX}"; then
@@ -1249,13 +1259,17 @@ eof
 	      vi_cv_path_python_plibs=`echo $vi_cv_path_python_plibs | sed s/-ltermcap//`
 	    fi
 	])
-	AC_CACHE_VAL(vi_cv_dll_name_python,
+	AC_CACHE_CHECK(Python's dll name,vi_cv_dll_name_python,
 	[
-	  if test "X$python_DLLLIBRARY" != "X"; then
-	    vi_cv_dll_name_python="$python_DLLLIBRARY"
-	  else
-	    vi_cv_dll_name_python="$python_INSTSONAME"
-	  fi
+      if test "X$DYNAMIC_PYTHON_DLL" == "X"; then
+        if test "X$python_DLLLIBRARY" != "X"; then
+          vi_cv_dll_name_python="$python_DLLLIBRARY"
+        else
+          vi_cv_dll_name_python="$python_INSTSONAME"
+        fi
+      else
+         vi_cv_dll_name_python="$DYNAMIC_PYTHON_DLL"
+      fi
 	])
 
 	PYTHON_LIBS="${vi_cv_path_python_plibs}"
@@ -1459,23 +1473,32 @@ __:
 	@echo "python3_DLLLIBRARY='$(DLLLIBRARY)'"
 	@echo "python3_INSTSONAME='$(INSTSONAME)'"
 eof
-	    dnl -- delete the lines from make about Entering/Leaving directory
-	    eval "`cd ${PYTHON3_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
-	    rm -f -- "${tmp_mkf}"
-	    vi_cv_path_python3_plibs="-L${PYTHON3_CONFDIR} -lpython${vi_cv_var_python3_version}${vi_cv_var_python3_abiflags}"
-	    vi_cv_path_python3_plibs="${vi_cv_path_python3_plibs} ${python3_BASEMODLIBS} ${python3_LIBS} ${python3_SYSLIBS}"
-	    dnl remove -ltermcap, it can conflict with an earlier -lncurses
-	    vi_cv_path_python3_plibs=`echo $vi_cv_path_python3_plibs | sed s/-ltermcap//`
-	    vi_cv_path_python3_plibs=`echo $vi_cv_path_python3_plibs | sed s/-lffi//`
-	])
-	AC_CACHE_VAL(vi_cv_dll_name_python3,
-	[
-	  if test "X$python3_DLLLIBRARY" != "X"; then
-	    vi_cv_dll_name_python3="$python3_DLLLIBRARY"
-	  else
-	    vi_cv_dll_name_python3="$python3_INSTSONAME"
-	  fi
-	])
+            dnl -- delete the lines from make about Entering/Leaving directory
+            eval "`cd ${PYTHON3_CONFDIR} && make -f "${tmp_mkf}" __ | sed '/ directory /d'`"
+            rm -f -- "${tmp_mkf}"
+            AC_MSG_NOTICE(python3_BASEMODLIBS=${python3_BASEMODLIBS})
+            AC_MSG_NOTICE(python3_LIBS=${python3_LIBS})
+            AC_MSG_NOTICE(python3_SYSLIBS=${python3_SYSLIBS})
+            AC_MSG_NOTICE(python3_DLLLIBRARY=${python3_DLLLIBRARY})
+            AC_MSG_NOTICE(python3_INSTSONAME=${python3_INSTSONAME})
+            vi_cv_path_python3_plibs="-L${PYTHON3_CONFDIR} -lpython${vi_cv_var_python3_version}${vi_cv_var_python3_abiflags}"
+            vi_cv_path_python3_plibs="${vi_cv_path_python3_plibs} ${python3_BASEMODLIBS} ${python3_LIBS} ${python3_SYSLIBS}"
+            dnl remove -ltermcap, it can conflict with an earlier -lncurses
+            vi_cv_path_python3_plibs=`echo $vi_cv_path_python3_plibs | sed s/-ltermcap//`
+            vi_cv_path_python3_plibs=`echo $vi_cv_path_python3_plibs | sed s/-lffi//`
+        ])
+        AC_CACHE_CHECK(Python3's dll name,vi_cv_dll_name_python3,
+        [
+          if test "X$DYNAMIC_PYTHON3_DLL" == "X"; then
+            if test "X$python3_DLLLIBRARY" != "X"; then
+              vi_cv_dll_name_python3="$python3_DLLLIBRARY"
+            else
+              vi_cv_dll_name_python3="$python3_INSTSONAME"
+            fi
+          else
+             vi_cv_dll_name_python3="$DYNAMIC_PYTHON3_DLL"
+          fi
+        ])
 
         PYTHON3_LIBS="${vi_cv_path_python3_plibs}"
         if test "${vi_cv_path_python3_pfx}" = "${vi_cv_path_python3_epfx}"; then
@@ -1586,7 +1609,7 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
     int no_rtl_global_needed_for(char *python_instsoname, char *prefix)
     {
       int needed = 0;
-      void* pylib = dlopen(python_instsoname, RTLD_LAZY);
+      void* pylib = dlopen(python_instsoname, RTLD_LAZY|RTLD_LOCAL);
       if (pylib != 0)
       {
           void (*pfx)(char *home) = dlsym(pylib, "Py_SetPythonHome");
@@ -1632,7 +1655,7 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
     int no_rtl_global_needed_for(char *python_instsoname, wchar_t *prefix)
     {
       int needed = 0;
-      void* pylib = dlopen(python_instsoname, RTLD_LAZY);
+      void* pylib = dlopen(python_instsoname, RTLD_LAZY|RTLD_LOCAL);
       if (pylib != 0)
       {
           void (*pfx)(wchar_t *home) = dlsym(pylib, "Py_SetPythonHome");
