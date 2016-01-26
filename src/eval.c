@@ -10578,6 +10578,10 @@ f_empty(argvars, rettv)
 	    n = argvars[0].vval.v_dict == NULL
 			|| argvars[0].vval.v_dict->dv_hashtab.ht_used == 0;
 	    break;
+	case VAR_SPECIAL:
+	    n = argvars[0].vval.v_number != VVAL_TRUE;
+	    break;
+
 	default:
 	    EMSG2(_(e_intern2), "f_empty()");
 	    n = 0;
@@ -12996,7 +13000,8 @@ f_glob2regpat(argvars, rettv)
     char_u	*pat = get_tv_string_chk(&argvars[0]);
 
     rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = file_pat_to_reg_pat(pat, NULL, NULL, FALSE);
+    rettv->vval.v_string = (pat == NULL)
+			 ? NULL : file_pat_to_reg_pat(pat, NULL, NULL, FALSE);
 }
 
 /*
