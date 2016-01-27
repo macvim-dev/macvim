@@ -1,0 +1,50 @@
+{
+    IBClasses = (
+        {
+            ACTIONS = {"_cycleWindows" = id; "_cycleWindowsBackwards" = id; addNewTab = id; }; 
+            CLASS = FirstResponder; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }, 
+        {
+            ACTIONS = {
+                fileOpen = id; 
+                fontSizeDown = id; 
+                fontSizeUp = id; 
+                forceNewWindow = id; 
+                newWindow = id; 
+                newWindowAndActivate = id; 
+                openWebsite = id; 
+                orderFrontPreferencePanel = id; 
+                selectNextWindow = id; 
+                selectPreviousWindow = id; 
+                showHelp = id; 
+                showVimHelp = id; 
+                zoomAll = id; 
+            }; 
+            CLASS = MMAppController; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }, 
+        {CLASS = NSMenu; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {
+            ACTIONS = {didAdjustSubviews = RBSplitView; willAdjustSubviews = RBSplitView; }; 
+            CLASS = NSObject; 
+            LANGUAGE = ObjC; 
+        }, 
+        {CLASS = RBSplitSubview; LANGUAGE = ObjC; SUPERCLASS = NSView; }, 
+        {
+            CLASS = RBSplitView; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {delegate = id; }; 
+            SUPERCLASS = RBSplitSubview; 
+        }, 
+        {
+            ACTIONS = {checkForUpdates = id; }; 
+            CLASS = SUUpdater; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSObject; 
+        }
+    ); 
+    IBVersion = 1; 
+}
