@@ -67,10 +67,6 @@ static void nb_free __ARGS((void));
 static int nb_channel_idx = -1;
 
 static int r_cmdno;			/* current command number for reply */
-#ifdef FEAT_GUI_MACVIM
-static int sock_select(int s);
-#endif
-
 static int dosetvisible = FALSE;
 
 /*
@@ -131,22 +127,6 @@ netbeans_close(void)
     }
 #endif
 }
-
-#if defined(FEAT_GUI_MACVIM)
-    static int
-sock_select(int s)
-{
-    fd_set readset;
-    struct timeval timeout;
-
-    FD_ZERO(&readset);
-    FD_SET(s, &readset);
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
-
-    return select(s + 1, &readset, NULL, NULL, &timeout);
-}
-#endif /* FEAT_GUI_MACVIM */
 
 #define NB_DEF_HOST "localhost"
 #define NB_DEF_ADDR "3219"

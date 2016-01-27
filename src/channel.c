@@ -94,6 +94,9 @@ typedef struct {
 #ifdef FEAT_GUI_W32
     int  ch_inputHandler;	/* simply ret.value of WSAAsyncSelect() */
 #endif
+#ifdef FEAT_GUI_MACVIM
+    int  ch_inputHandler;
+#endif
 
     void (*ch_close_cb)(void);	/* callback invoked when channel is closed */
 } channel_T;
@@ -174,7 +177,7 @@ messageFromNetbeans(gpointer clientData,
 }
 #endif
 
-#if defined(FEAT_GUI_MACVIM)
+#ifdef FEAT_GUI_MACVIM
     static int
 sock_select(int s)
 {
@@ -234,7 +237,12 @@ channel_gui_register(int idx)
      * Tell Core Foundation we are interested in being called when there
      * is input on the editor connection socket
      */
-    gui_macvim_set_netbeans_socket(channel->ch_fd);
+    if (channel->ch_inputHandler == -1) {
+	channel->ch_inputHandler = 0;
+#     ifdef FEAT_NETBEANS_INTG
+	gui_macvim_set_netbeans_socket(channel->ch_fd);
+#     endif
+    }
 #    endif
 #   endif
 #  endif
@@ -282,7 +290,13 @@ channel_gui_unregister(int idx)
     }
 #   else
 #    ifdef FEAT_GUI_MACVIM
-    gui_macvim_set_netbeans_socket(-1);
+    if (channel->ch_inputHandler == 0)
+    {
+#     ifdef FEAT_NETBEANS_INTG
+	gui_macvim_set_netbeans_socket(-1);
+#     endif
+	channel->ch_inputHandler = -1;
+    }
 #    endif
 #   endif
 #  endif
