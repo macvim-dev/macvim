@@ -65,7 +65,6 @@
 		1DED78600C6DE43D0079945F /* vimrc in Copy Vim Runtime Files */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
 		1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
 		52A364731C4A5789005757EC /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 52A364721C4A5789005757EC /* Sparkle.framework */; };
-		52A364761C4A57C1005757EC /* Sparkle.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 52A364721C4A5789005757EC /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		52B7ED9B1C4A4D6900AFFF15 /* dsa_pub.pem in Resources */ = {isa = PBXBuildFile; fileRef = 52B7ED9A1C4A4D6900AFFF15 /* dsa_pub.pem */; };
 		8D11072A0486CEB800E47090 /* MainMenu.nib in Resources */ = {isa = PBXBuildFile; fileRef = 29B97318FDCFA39411CA2CEA /* MainMenu.nib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
@@ -115,7 +114,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				52A364761C4A57C1005757EC /* Sparkle.framework in Copy Frameworks */,
 				1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in Copy Frameworks */,
 			);
 			name = "Copy Frameworks";
@@ -589,7 +587,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "OSX_MINOR_VERSION=`/usr/bin/sw_vers -productVersion|cut -f2 -d'.'`\nif [ $OSX_MINOR_VERSION -ge 8 ]; then\n    xcodebuild -project qlstephen/QuickLookStephen.xcodeproj\n    mkdir -p $BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/QuickLook\n    cp -pr qlstephen/build/Release/QLStephen.qlgenerator $BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/QuickLook\nfi";
+			shellScript = "OSX_MINOR_VERSION=`/usr/bin/sw_vers -productVersion|cut -f2 -d'.'`\nif [ $OSX_MINOR_VERSION -ge 8 ]; then\n    cp -pr Sparkle.framework $BUILT_PRODUCTS_DIR/$FRAMEWORKS_FOLDER_PATH\n    strip -S $BUILT_PRODUCTS_DIR/$FRAMEWORKS_FOLDER_PATH/Sparkle.framework/Versions/A/Resources/Autoupdate.app/Contents/MacOS/Autoupdate || exit 1\n    xcodebuild -project qlstephen/QuickLookStephen.xcodeproj\n    mkdir -p $BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/QuickLook\n    cp -pr qlstephen/build/Release/QLStephen.qlgenerator $BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/QuickLook\nfi";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
