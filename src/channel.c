@@ -94,9 +94,6 @@ typedef struct {
 #ifdef FEAT_GUI_W32
     int  ch_inputHandler;	/* simply ret.value of WSAAsyncSelect() */
 #endif
-#ifdef FEAT_GUI_MACVIM
-    int  ch_inputHandler;
-#endif
 
     void (*ch_close_cb)(void);	/* callback invoked when channel is closed */
 } channel_T;
@@ -177,22 +174,6 @@ messageFromNetbeans(gpointer clientData,
 }
 #endif
 
-#ifdef FEAT_GUI_MACVIM
-    static int
-sock_select(int s)
-{
-    fd_set readset;
-    struct timeval timeout;
-
-    FD_ZERO(&readset);
-    FD_SET(s, &readset);
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
-
-    return select(s + 1, &readset, NULL, NULL, &timeout);
-}
-#endif /* FEAT_GUI_MACVIM */
-
     static void
 channel_gui_register(int idx)
 {
@@ -230,19 +211,6 @@ channel_gui_register(int idx)
     if (channel->ch_inputHandler == -1)
 	channel->ch_inputHandler =
 	    WSAAsyncSelect(channel->ch_fd, s_hwnd, WM_NETBEANS, FD_READ);
-#   else
-#    ifdef FEAT_GUI_MACVIM
-    /*
-     * Tell Core Foundation we are interested in being called when there
-     * is input on the editor connection socket
-     */
-    if (channel->ch_inputHandler == -1) {
-	channel->ch_inputHandler = 0;
-#     ifdef FEAT_NETBEANS_INTG
-	gui_macvim_set_netbeans_socket(channel->ch_fd);
-#     endif
-    }
-#    endif
 #   endif
 #  endif
 # endif
@@ -287,16 +255,6 @@ channel_gui_unregister(int idx)
 	WSAAsyncSelect(channel->ch_fd, s_hwnd, 0, 0);
 	channel->ch_inputHandler = -1;
     }
-#   else
-#    ifdef FEAT_GUI_MACVIM
-    if (channel->ch_inputHandler == 0)
-    {
-#     ifdef FEAT_NETBEANS_INTG
-	gui_macvim_set_netbeans_socket(-1);
-#     endif
-	channel->ch_inputHandler = -1;
-    }
-#    endif
 #   endif
 #  endif
 # endif
@@ -616,13 +574,6 @@ channel_read(int idx)
 	CHLOG(idx, FALSE, "channel_read() called while socket is closed\n");
 	return;
     }
-
-#ifdef FEAT_GUI_MACVIM
-    /* It may happen that socket is not readable because socket has been already
-     * read by timing of CFRunLoop callback. So check socket using select. */
-    if (sock_select(channel->ch_fd) <= 0)
-	return;
-#endif
 
     /* Allocate a buffer to read into. */
     if (buf == NULL)

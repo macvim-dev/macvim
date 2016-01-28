@@ -120,13 +120,6 @@ gui_mch_prepare(int *argc, char **argv)
             [[MMBackend sharedInstance] setWaitForAck:YES];
             delarg = YES;
         }
-#ifdef FEAT_NETBEANS_INTG
-        else if (strncmp(argv[i], "-nb", 3) == 0) {
-            // TODO: Can this be used without -f?  If so, should not del arg.
-            netbeansArg = argv[i];
-            delarg = YES;
-        }
-#endif
         else if (strncmp(argv[i], "--nomru", 7) == 0) {
             // Can be used without -f, do not delete from arg list!
             MMNoMRU = YES;
@@ -405,11 +398,6 @@ gui_mch_wait_for_chars(int wtime)
     // NOTE! In all likelihood Vim will take a nap when waitForInput: is
     // called, so force a flush of the command queue here.
     [[MMBackend sharedInstance] flushQueue:YES];
-
-#if defined(FEAT_NETBEANS_INTG)
-    /* Process any queued netbeans messages. */
-    netbeans_parse_messages();
-#endif
 
     return [[MMBackend sharedInstance] waitForInput:wtime];
 }
@@ -2239,21 +2227,6 @@ static int vimModMaskToEventModifierFlags(int mods)
 
 
 
-// -- NetBeans Support ------------------------------------------------------
-
-#ifdef FEAT_NETBEANS_INTG
-
-/* Set NetBeans socket to CFRunLoop */
-    void
-gui_macvim_set_netbeans_socket(int socket)
-{
-    [[MMBackend sharedInstance] setNetbeansSocket:socket];
-}
-
-#endif // FEAT_NETBEANS_INTG
-
-
-
 // -- Graphical Sign Support ------------------------------------------------
 
 #if defined(FEAT_SIGN_ICONS)
@@ -2308,13 +2281,6 @@ gui_mch_destroy_sign(void *sign)
                                                     imgName, @"imgName", nil]];
     [imgName release];
 }
-
-# ifdef FEAT_NETBEANS_INTG
-    void
-netbeans_draw_multisign_indicator(int row)
-{
-}
-# endif // FEAT_NETBEANS_INTG
 
 #endif // FEAT_SIGN_ICONS
 
