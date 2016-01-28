@@ -1195,6 +1195,7 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 +browse	various.txt	/*+browse*
 +builtin_terms	various.txt	/*+builtin_terms*
 +byte_offset	various.txt	/*+byte_offset*
++channel	various.txt	/*+channel*
 +cindent	various.txt	/*+cindent*
 +clientserver	various.txt	/*+clientserver*
 +clipboard	various.txt	/*+clipboard*
@@ -5222,6 +5223,15 @@ changelog.vim	syntax.txt	/*changelog.vim*
 changenr()	eval.txt	/*changenr()*
 changetick	eval.txt	/*changetick*
 changing	change.txt	/*changing*
+channel	channel.txt	/*channel*
+channel-callback	channel.txt	/*channel-callback*
+channel-commands	channel.txt	/*channel-commands*
+channel-demo	channel.txt	/*channel-demo*
+channel-mode	channel.txt	/*channel-mode*
+channel-open	channel.txt	/*channel-open*
+channel-raw	channel.txt	/*channel-raw*
+channel-use	channel.txt	/*channel-use*
+channel.txt	channel.txt	/*channel.txt*
 char-variable	eval.txt	/*char-variable*
 char2nr()	eval.txt	/*char2nr()*
 characterwise	motion.txt	/*characterwise*
@@ -5356,6 +5366,7 @@ complex-repeat	repeat.txt	/*complex-repeat*
 compress	pi_gzip.txt	/*compress*
 conceal	syntax.txt	/*conceal*
 confirm()	eval.txt	/*confirm()*
+connect()	eval.txt	/*connect()*
 connection-refused	message.txt	/*connection-refused*
 console-menus	gui.txt	/*console-menus*
 control	intro.txt	/*control*
@@ -6845,6 +6856,7 @@ java-indenting	indent.txt	/*java-indenting*
 java.vim	syntax.txt	/*java.vim*
 javascript-cinoptions	indent.txt	/*javascript-cinoptions*
 javascript-indenting	indent.txt	/*javascript-indenting*
+job-control	channel.txt	/*job-control*
 join()	eval.txt	/*join()*
 jsbterm-mouse	options.txt	/*jsbterm-mouse*
 jsondecode()	eval.txt	/*jsondecode()*
@@ -7989,6 +8001,8 @@ sed.vim	syntax.txt	/*sed.vim*
 self	eval.txt	/*self*
 send-money	sponsor.txt	/*send-money*
 send-to-menu	gui_w32.txt	/*send-to-menu*
+sendexpr()	eval.txt	/*sendexpr()*
+sendraw()	eval.txt	/*sendraw()*
 sendto	gui_w32.txt	/*sendto*
 sentence	motion.txt	/*sentence*
 server-functions	usr_41.txt	/*server-functions*
@@ -8049,7 +8063,7 @@ sniff	if_sniff.txt	/*sniff*
 sniff-commands	if_sniff.txt	/*sniff-commands*
 sniff-compiling	if_sniff.txt	/*sniff-compiling*
 sniff-intro	if_sniff.txt	/*sniff-intro*
-socket-interface	netbeans.txt	/*socket-interface*
+socket-interface	channel.txt	/*socket-interface*
 sort()	eval.txt	/*sort()*
 sorting	change.txt	/*sorting*
 soundfold()	eval.txt	/*soundfold()*
@@ -8601,7 +8615,6 @@ timestamps	editing.txt	/*timestamps*
 tips	tips.txt	/*tips*
 tips.txt	tips.txt	/*tips.txt*
 todo	todo.txt	/*todo*
-todo.txt	todo.txt	/*todo.txt*
 toggle	options.txt	/*toggle*
 toggle-revins	version4.txt	/*toggle-revins*
 tolower()	eval.txt	/*tolower()*
