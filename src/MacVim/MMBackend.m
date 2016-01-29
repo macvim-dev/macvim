@@ -2077,7 +2077,11 @@ static void netbeansReadCallback(CFSocketRef s,
         [self handleFindReplace:[NSDictionary dictionaryWithData:data]];
     } else if (NetBeansMsgID == msgid) {
 #ifdef FEAT_NETBEANS_INTG
-        netbeans_read();
+        if (netbeansSocket) {
+            int socketId = CFSocketGetNative(netbeansSocket);
+            if (socketId != -1)
+                channel_read(socketId);
+        }
 #endif
     } else if (ZoomMsgID == msgid) {
         if (!data) return;
