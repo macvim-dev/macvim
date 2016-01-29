@@ -155,6 +155,9 @@ add_channel(void)
 #ifdef FEAT_GUI_W32
     channels[channel_count].ch_inputHandler = -1;
 #endif
+#ifdef FEAT_GUI_MACVIM
+    channels[channel_count].ch_inputHandler = -1;
+#endif
 
     return channel_count++;
 }
@@ -182,22 +185,6 @@ messageFromNetbeans(gpointer clientData,
     channel_read((int)(long)clientData);
 }
 #endif
-
-#ifdef FEAT_GUI_MACVIM
-    static int
-sock_select(int s)
-{
-    fd_set readset;
-    struct timeval timeout;
-
-    FD_ZERO(&readset);
-    FD_SET(s, &readset);
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
-
-    return select(s + 1, &readset, NULL, NULL, &timeout);
-}
-#endif /* FEAT_GUI_MACVIM */
 
     static void
 channel_gui_register(int idx)
@@ -811,13 +798,6 @@ channel_read(int idx)
 	CHLOG(idx, FALSE, "channel_read() called while socket is closed\n");
 	return;
     }
-
-#ifdef FEAT_GUI_MACVIM
-    /* It may happen that socket is not readable because socket has been already
-     * read by timing of CFRunLoop callback. So check socket using select. */
-    if (sock_select(channel->ch_fd) <= 0)
-	return;
-#endif
 
     /* Allocate a buffer to read into. */
     if (buf == NULL)
