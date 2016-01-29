@@ -35,11 +35,11 @@ script:
   - grep -q -- "-DDYNAMIC_PYTHON_DLL=\\\\\"$vi_cv_dll_name_python\\\\\"" src/auto/config.mk
   - grep -q -- "-DDYNAMIC_PYTHON3_DLL=\\\\\"$vi_cv_dll_name_python3\\\\\"" src/auto/config.mk
   - make -j$NPROC
-  - rm -f result; $VIMCMD -g -c "redir>result" -c "lua print(\"Test\")" -c "redir END" -c q; sleep 1; cat result; echo; grep -q -w Test result
-  - rm -f result; $VIMCMD -g -c "redir>result" -c "perl VIM::Msg(\"Test\")" -c "redir END" -c q; sleep 1; cat result; echo; grep -q -w Test result
-  - rm -f result; $VIMCMD -g -c "redir>result" -c "py print(\"Test\")" -c "redir END" -c q; sleep 1; cat result; echo; grep -q -w Test result
-  - rm -f result; $VIMCMD -g -c "redir>result" -c "py3 print(\"Test\")" -c "redir END" -c q; sleep 1; cat result; echo; grep -q -w Test result
-  - rm -f result; $VIMCMD -g -c "redir>result" -c "ruby puts(\"Test\")" -c "redir END" -c q; sleep 1; cat result; echo; grep -q -w Test result
+  - rm -f result; $VIMCMD -g -f -c "redir>result" -c "lua print(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
+  - rm -f result; $VIMCMD -g -f -c "redir>result" -c "perl VIM::Msg(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
+  - rm -f result; $VIMCMD -g -f -c "redir>result" -c "py print(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
+  - rm -f result; $VIMCMD -g -f -c "redir>result" -c "py3 print(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
+  - rm -f result; $VIMCMD -g -f -c "redir>result" -c "ruby puts(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
   - make test
 
 before_deploy:
