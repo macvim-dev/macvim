@@ -2239,18 +2239,19 @@ static int vimModMaskToEventModifierFlags(int mods)
 
 
 
-// -- NetBeans Support ------------------------------------------------------
+// -- Channel Support ------------------------------------------------------
 
-#ifdef FEAT_NETBEANS_INTG
-
-/* Set NetBeans socket to CFRunLoop */
     void
-gui_macvim_set_netbeans_socket(int socket)
+gui_macvim_add_channel(int idx, int fd)
 {
-    [[MMBackend sharedInstance] setNetbeansSocket:socket];
+    [[MMBackend sharedInstance] addChannel:idx fileDescriptor:fd];
 }
 
-#endif // FEAT_NETBEANS_INTG
+    void
+gui_macvim_remove_channel(int idx)
+{
+    [[MMBackend sharedInstance] removeChannel:idx];
+}
 
 
 
@@ -2308,13 +2309,6 @@ gui_mch_destroy_sign(void *sign)
                                                     imgName, @"imgName", nil]];
     [imgName release];
 }
-
-# ifdef FEAT_NETBEANS_INTG
-    void
-netbeans_draw_multisign_indicator(int row)
-{
-}
-# endif // FEAT_NETBEANS_INTG
 
 #endif // FEAT_SIGN_ICONS
 

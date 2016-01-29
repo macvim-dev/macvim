@@ -163,6 +163,13 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 @end
 
 
+@interface MMChannel : NSObject {
+    CFSocketRef         socket;
+    CFRunLoopSourceRef  runLoopSource;
+}
+
+- (id)initWithIndex:(int)idx fileDescriptor:(int)fd;
+@end
 
 
 @interface MMBackend (Private)
@@ -234,6 +241,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     connectionNameDict = [[NSMutableDictionary alloc] init];
     clientProxyDict = [[NSMutableDictionary alloc] init];
     serverReplyDict = [[NSMutableDictionary alloc] init];
+    channelDict = [[NSMutableDictionary alloc] init];
 
     NSBundle *mainBundle = [NSBundle mainBundle];
     NSString *path = [mainBundle pathForResource:@"Colors" ofType:@"plist"];
@@ -265,6 +273,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     gui_mch_free_font(oldWideFont);  oldWideFont = NOFONT;
     [blinkTimer release];  blinkTimer = nil;
     [alternateServerName release];  alternateServerName = nil;
+    [channelDict release];  channelDict = nil;
     [serverReplyDict release];  serverReplyDict = nil;
     [clientProxyDict release];  clientProxyDict = nil;
     [connectionNameDict release];  connectionNameDict = nil;
@@ -1675,49 +1684,21 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self flushQueue:YES];
 }
 
-static void netbeansReadCallback(CFSocketRef s,
-                                 CFSocketCallBackType callbackType,
-                                 CFDataRef address,
-                                 const void *data,
-                                 void *info)
+- (void)addChannel:(int)idx fileDescriptor:(int)fd
 {
-    // NetBeans socket is readable.
-    [[MMBackend sharedInstance] messageFromNetbeans];
-}
-
-- (void)messageFromNetbeans
-{
-    [inputQueue addObject:[NSNumber numberWithInt:NetBeansMsgID]];
-    [inputQueue addObject:[NSNull null]];
-}
-
-- (void)setNetbeansSocket:(int)socket
-{
-    if (netbeansSocket) {
-        CFRelease(netbeansSocket);
-        netbeansSocket = NULL;
-    }
-
-    if (netbeansRunLoopSource) {
-        CFRunLoopSourceInvalidate(netbeansRunLoopSource);
-        netbeansRunLoopSource = NULL;
-    }
-
-    if (socket == -1)
+    if (fd == -1)
         return;
 
-    // Tell CFRunLoop that we are interested in NetBeans socket input.
-    netbeansSocket = CFSocketCreateWithNative(kCFAllocatorDefault,
-                                              socket,
-                                              kCFSocketReadCallBack,
-                                              &netbeansReadCallback,
-                                              NULL);
-    netbeansRunLoopSource = CFSocketCreateRunLoopSource(NULL,
-                                                        netbeansSocket,
-                                                        0);
-    CFRunLoopAddSource(CFRunLoopGetCurrent(),
-                       netbeansRunLoopSource,
-                       kCFRunLoopCommonModes);
+    NSNumber *key = [NSNumber numberWithInt:idx];
+    MMChannel *channel =
+        [[[MMChannel alloc] initWithIndex:idx fileDescriptor:fd] autorelease];
+    [channelDict setObject:channel forKey:key];
+}
+
+- (void)removeChannel:(int)idx
+{
+    NSNumber *key = [NSNumber numberWithInt:idx];
+    [channelDict removeObjectForKey:key];
 }
 
 #ifdef FEAT_BEVAL
@@ -2075,10 +2056,6 @@ static void netbeansReadCallback(CFSocketRef s,
         [self handleOpenWithArguments:[NSDictionary dictionaryWithData:data]];
     } else if (FindReplaceMsgID == msgid) {
         [self handleFindReplace:[NSDictionary dictionaryWithData:data]];
-    } else if (NetBeansMsgID == msgid) {
-#ifdef FEAT_NETBEANS_INTG
-        netbeans_read();
-#endif
     } else if (ZoomMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -3435,3 +3412,51 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
 }
 
 @end // NSString (VimStrings)
+
+
+
+@implementation MMChannel
+
+- (void)dealloc
+{
+    CFRunLoopSourceInvalidate(runLoopSource);
+    CFRelease(runLoopSource);
+    CFRelease(socket);
+    [super dealloc];
+}
+
+static void socketReadCallback(CFSocketRef s,
+                               CFSocketCallBackType callbackType,
+                               CFDataRef address,
+                               const void *data,
+                               void *info)
+{
+#ifdef FEAT_CHANNEL
+    int idx = (int)(intptr_t)info;
+    channel_read(idx);
+#endif
+}
+
+- (id)initWithIndex:(int)idx fileDescriptor:(int)fd
+{
+    self = [super init];
+    if (!self) return nil;
+
+    // Tell CFRunLoop that we are interested in channel socket input.
+    CFSocketContext ctx = {0, (void *)(intptr_t)idx, NULL, NULL, NULL};
+    socket = CFSocketCreateWithNative(kCFAllocatorDefault,
+                                      fd,
+                                      kCFSocketReadCallBack,
+                                      &socketReadCallback,
+                                      &ctx);
+    runLoopSource = CFSocketCreateRunLoopSource(NULL,
+                                                socket,
+                                                0);
+    CFRunLoopAddSource(CFRunLoopGetCurrent(),
+                       runLoopSource,
+                       kCFRunLoopCommonModes);
+
+    return self;
+}
+
+@end
