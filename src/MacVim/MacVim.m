@@ -90,7 +90,6 @@ char *MessageStrings[] =
     "DeactivatedImMsgID",
     "BrowseForFileMsgID",
     "ShowDialogMsgID",
-    "NetBeansMsgID",
     "SetMarkedTextMsgID",
     "ZoomMsgID",
     "SetWindowPositionMsgID",

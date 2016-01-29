@@ -228,7 +228,9 @@ gui_mch_replace_dialog(exarg_T *eap);
 im_set_control(int enable);
 
     void
-gui_macvim_set_netbeans_socket(int socket);
+gui_macvim_add_channel(int idx, int fd);
+    void
+gui_macvim_remove_channel(int idx);
 
     void
 gui_mch_drawsign(int row, int col, int typenr);
