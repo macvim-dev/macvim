@@ -2322,7 +2322,7 @@ gui_mch_destroy_sign(void *sign)
 gui_mch_create_beval_area(target, mesg, mesgCB, clientData)
     void	*target;
     char_u	*mesg;
-    void	(*mesgCB)__ARGS((BalloonEval *, int));
+    void	(*mesgCB)(BalloonEval *, int);
     void	*clientData;
 {
     BalloonEval	*beval;
