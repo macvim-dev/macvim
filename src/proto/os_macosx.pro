@@ -8,6 +8,6 @@ void clip_mch_request_selection(VimClipboard *cbd);
 void clip_mch_set_selection(VimClipboard *cbd);
 #endif
 
-void macosx_fork __ARGS((void));
+void macosx_fork(void);
 
 /* vim: set ft=c : */
