@@ -17,7 +17,8 @@
 #define BalloonEval int   /* used in header files */
 
 #include "vim.h"
-#ifndef FEAT_GUI_MAC
+
+#if !defined(FEAT_GUI_MAC) && !defined(PROTO)
 # include <CoreServices/CoreServices.h>
 #endif
 
@@ -31,8 +32,8 @@ typedef int *TECObjectRef;
 typedef int CFStringRef;
 # endif
 
-static char_u	    *mac_utf16_to_utf8 __ARGS((UniChar *from, size_t fromLen, size_t *actualLen));
-static UniChar	    *mac_utf8_to_utf16 __ARGS((char_u *from, size_t fromLen, size_t *actualLen));
+static char_u	    *mac_utf16_to_utf8(UniChar *from, size_t fromLen, size_t *actualLen);
+static UniChar	    *mac_utf8_to_utf16(char_u *from, size_t fromLen, size_t *actualLen);
 
 /* Converter for composing decomposed HFS+ file paths */
 static TECObjectRef gPathConverter;

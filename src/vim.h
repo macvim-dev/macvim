@@ -275,15 +275,6 @@
 # include "os_unix.h"	    /* bring lots of system header files */
 #endif
 
-#ifndef __ARGS
-# define __ARGS(x) x
-#endif
-
-/* __ARGS and __PARMS are the same thing. */
-#ifndef __PARMS
-# define __PARMS(x) __ARGS(x)
-#endif
-
 /* Mark unused function arguments with UNUSED, so that gcc -Wunused-parameter
  * can be used to check for mistakes. */
 #ifdef HAVE_ATTRIBUTE_UNUSED
@@ -531,6 +522,8 @@ typedef unsigned long u8char_T;	    /* long should be 32 bits or more */
 # ifdef HAVE_SYS_POLL_H
 #  include <sys/poll.h>
 #  define HAVE_POLL
+# elif defined(WIN32) && !defined(FEAT_GUI_W32)
+#  define HAVE_SELECT
 # else
 #  ifdef HAVE_POLL_H
 #   include <poll.h>
@@ -1642,7 +1635,7 @@ typedef void	    *vim_acl_T;		/* dummy to pass an ACL to a function */
  * Include a prototype for mch_memmove(), it may not be in alloc.pro.
  */
 #ifdef VIM_MEMMOVE
-void mch_memmove __ARGS((void *, void *, size_t));
+void mch_memmove(void *, void *, size_t);
 #else
 # ifndef mch_memmove
 #  define mch_memmove(to, from, len) memmove(to, from, len)
@@ -1661,7 +1654,7 @@ void mch_memmove __ARGS((void *, void *, size_t));
 #ifdef HAVE_MEMSET
 # define vim_memset(ptr, c, size)   memset((ptr), (c), (size))
 #else
-void *vim_memset __ARGS((void *, int, size_t));
+void *vim_memset(void *, int, size_t);
 #endif
 
 #ifdef HAVE_MEMCMP
@@ -1670,7 +1663,7 @@ void *vim_memset __ARGS((void *, int, size_t));
 # ifdef HAVE_BCMP
 #  define vim_memcmp(p1, p2, len)   bcmp((p1), (p2), (len))
 # else
-int vim_memcmp __ARGS((void *, void *, size_t));
+int vim_memcmp(void *, void *, size_t);
 #  define VIM_MEMCMP
 # endif
 #endif

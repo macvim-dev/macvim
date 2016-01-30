@@ -55,8 +55,8 @@ char	*longVersion = VIM_VERSION_LONG_DATE __DATE__ " " __TIME__ ")";
 char	*longVersion = VIM_VERSION_LONG;
 #endif
 
-static void list_features __ARGS((void));
-static void version_msg __ARGS((char *s));
+static void list_features(void);
+static void version_msg(char *s);
 
 static char *(features[]) =
 {
@@ -761,6 +761,22 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    1202,
+/**/
+    1201,
+/**/
+    1200,
+/**/
+    1199,
+/**/
+    1198,
+/**/
+    1197,
+/**/
+    1196,
+/**/
+    1195,
 /**/
     1194,
 /**/
@@ -3589,7 +3605,7 @@ version_msg(s)
 	MSG_PUTS(s);
 }
 
-static void do_intro_line __ARGS((int row, char_u *mesg, int add_version, int attr));
+static void do_intro_line(int row, char_u *mesg, int add_version, int attr);
 
 /*
  * Show the intro message when not editing a file.

@@ -1677,10 +1677,11 @@ PRO_AUTO = \
 	hashtab.pro \
 	hangulin.pro \
 	if_cscope.pro \
-	if_xcmdsrv.pro \
+	if_lua.pro \
 	if_python.pro \
 	if_python3.pro \
 	if_ruby.pro \
+	if_xcmdsrv.pro \
 	json.pro \
 	main.pro \
 	mark.pro \
@@ -1695,8 +1696,10 @@ PRO_AUTO = \
 	normal.pro \
 	ops.pro \
 	option.pro \
+	os_mac_conv.pro \
 	os_unix.pro \
 	popupmnu.pro \
+	pty.pro \
 	quickfix.pro \
 	regexp.pro \
 	screen.pro \
@@ -2014,6 +2017,7 @@ test_arglist \
 	test_cursor_func \
 	test_delete \
 	test_expand \
+	test_glob2regpat \
 	test_hardcopy \
 	test_increment \
 	test_json \
