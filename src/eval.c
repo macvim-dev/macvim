@@ -919,6 +919,8 @@ eval_init(void)
 	    /* add to compat scope dict */
 	    hash_add(&compat_hashtab, p->vv_di.di_key);
     }
+    vimvars[VV_VERSION].vv_nr = VIM_VERSION_100;
+
     set_vim_var_nr(VV_SEARCHFORWARD, 1L);
     set_vim_var_nr(VV_HLSEARCH, 1L);
     set_vim_var_dict(VV_COMPLETED_ITEM, dict_alloc());
@@ -5999,7 +6001,7 @@ list_free(
  * It is not initialized, don't forget to set v_lock.
  */
     listitem_T *
-listitem_alloc()
+listitem_alloc(void)
 {
     return (listitem_T *)alloc(sizeof(listitem_T));
 }
@@ -10900,13 +10902,11 @@ f_filewritable(typval_T *argvars, typval_T *rettv)
     rettv->vval.v_number = filewritable(get_tv_string(&argvars[0]));
 }
 
-static void findfilendir(typval_T *argvars, typval_T *rettv, int find_what);
-
     static void
-findfilendir(argvars, rettv, find_what)
-    typval_T	*argvars UNUSED;
-    typval_T	*rettv;
-    int		find_what UNUSED;
+findfilendir(
+    typval_T	*argvars UNUSED,
+    typval_T	*rettv,
+    int		find_what UNUSED)
 {
 #ifdef FEAT_SEARCHPATH
     char_u	*fname;
@@ -12862,9 +12862,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 	"emacs_tags",
 #endif
 	"eval",	    /* always present, of course! */
-#ifdef FEAT_EX_EXTRA
-	"ex_extra",
-#endif
+	"ex_extra", /* graduated feature */
 #ifdef FEAT_SEARCH_EXTRA
 	"extra_search",
 #endif
@@ -13703,16 +13701,12 @@ get_user_input(
 
 	if (defstr != NULL)
 	{
-# ifdef FEAT_EX_EXTRA
 	    int save_ex_normal_busy = ex_normal_busy;
 	    ex_normal_busy = 0;
-# endif
 	    rettv->vval.v_string =
 		getcmdline_prompt(inputsecret_flag ? NUL : '@', p, echo_attr,
 				  xp_type, xp_arg);
-# ifdef FEAT_EX_EXTRA
 	    ex_normal_busy = save_ex_normal_busy;
-# endif
 	}
 	if (inputdialog && rettv->vval.v_string == NULL
 		&& argvars[1].v_type != VAR_UNKNOWN
@@ -16930,8 +16924,6 @@ f_sendexpr(typval_T *argvars, typval_T *rettv)
 {
     char_u	*text;
     char_u	*resp;
-    typval_T	nrtv;
-    typval_T	listtv;
     typval_T	typetv;
     int		ch_idx;
 
@@ -16939,19 +16931,9 @@ f_sendexpr(typval_T *argvars, typval_T *rettv)
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = NULL;
 
-    nrtv.v_type = VAR_NUMBER;
-    nrtv.vval.v_number = channel_get_id();
-    if (rettv_list_alloc(&listtv) == FAIL)
+    text = json_encode_nr_expr(channel_get_id(), &argvars[1]);
+    if (text == NULL)
 	return;
-    if (list_append_tv(listtv.vval.v_list, &nrtv) == FAIL
-	    || list_append_tv(listtv.vval.v_list, &argvars[1]) == FAIL)
-    {
-	list_unref(listtv.vval.v_list);
-	return;
-    }
-
-    text = json_encode(&listtv);
-    list_unref(listtv.vval.v_list);
 
     ch_idx = send_common(argvars, text, "sendexpr");
     if (ch_idx >= 0)
@@ -16962,7 +16944,7 @@ f_sendexpr(typval_T *argvars, typval_T *rettv)
 	resp = channel_read_block(ch_idx);
 	if (resp != NULL)
 	{
-	    channel_decode_json(resp, &typetv, rettv);
+	    channel_decode_json(resp, &typetv, rettv, NULL);
 	    vim_free(resp);
 	}
     }
@@ -20649,11 +20631,8 @@ set_vim_var_string(
     char_u	*val,
     int		len)	    /* length of "val" to use or -1 (whole string) */
 {
-    /* Need to do this (at least) once, since we can't initialize a union.
-     * Will always be invoked when "v:progname" is set. */
-    vimvars[VV_VERSION].vv_nr = VIM_VERSION_100;
-
-    vim_free(vimvars[idx].vv_str);
+    clear_tv(&vimvars[idx].vv_di.di_tv);
+    vimvars[idx].vv_type = VAR_STRING;
     if (val == NULL)
 	vimvars[idx].vv_str = NULL;
     else if (len == -1)
@@ -20668,7 +20647,8 @@ set_vim_var_string(
     void
 set_vim_var_list(int idx, list_T *val)
 {
-    list_unref(vimvars[idx].vv_list);
+    clear_tv(&vimvars[idx].vv_di.di_tv);
+    vimvars[idx].vv_type = VAR_LIST;
     vimvars[idx].vv_list = val;
     if (val != NULL)
 	++val->lv_refcount;
@@ -20683,7 +20663,8 @@ set_vim_var_dict(int idx, dict_T *val)
     int		todo;
     hashitem_T	*hi;
 
-    dict_unref(vimvars[idx].vv_dict);
+    clear_tv(&vimvars[idx].vv_di.di_tv);
+    vimvars[idx].vv_type = VAR_DICT;
     vimvars[idx].vv_dict = val;
     if (val != NULL)
     {
@@ -21973,6 +21954,7 @@ item_copy(
 #endif
 	case VAR_STRING:
 	case VAR_FUNC:
+	case VAR_SPECIAL:
 	    copy_tv(from, to);
 	    break;
 	case VAR_LIST:

@@ -221,11 +221,7 @@ static char *(features[]) =
 #else
 	"-eval",
 #endif
-#ifdef FEAT_EX_EXTRA
 	"+ex_extra",
-#else
-	"-ex_extra",
-#endif
 #ifdef FEAT_SEARCH_EXTRA
 	"+extra_search",
 #else
@@ -761,6 +757,26 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    1229,
+/**/
+    1228,
+/**/
+    1227,
+/**/
+    1226,
+/**/
+    1225,
+/**/
+    1224,
+/**/
+    1223,
+/**/
+    1222,
+/**/
+    1221,
+/**/
+    1220,
 /**/
     1219,
 /**/
