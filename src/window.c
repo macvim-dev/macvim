@@ -95,10 +95,10 @@ static char *m_onlyone = N_("Already only one window");
  * all CTRL-W window commands are handled here, called from normal_cmd().
  */
     void
-do_window(nchar, Prenum, xchar)
-    int		nchar;
-    long	Prenum;
-    int		xchar;	    /* extra char from ":wincmd gx" or NUL */
+do_window(
+    int		nchar,
+    long	Prenum,
+    int		xchar)	    /* extra char from ":wincmd gx" or NUL */
 {
     long	Prenum1;
     win_T	*wp;
@@ -627,9 +627,7 @@ wingotofile:
  * Figure out the address type for ":wnncmd".
  */
     void
-get_wincmd_addr_type(arg, eap)
-    char_u	*arg;
-    exarg_T	*eap;
+get_wincmd_addr_type(char_u *arg, exarg_T *eap)
 {
     switch (*arg)
     {
@@ -728,11 +726,11 @@ get_wincmd_addr_type(arg, eap)
 }
 
     static void
-cmd_with_count(cmd, bufp, bufsize, Prenum)
-    char	*cmd;
-    char_u	*bufp;
-    size_t	bufsize;
-    long	Prenum;
+cmd_with_count(
+    char	*cmd,
+    char_u	*bufp,
+    size_t	bufsize,
+    long	Prenum)
 {
     size_t	len = STRLEN(cmd);
 
@@ -757,9 +755,7 @@ cmd_with_count(cmd, bufp, bufsize, Prenum)
  * return FAIL for failure, OK otherwise
  */
     int
-win_split(size, flags)
-    int		size;
-    int		flags;
+win_split(int size, int flags)
 {
     /* When the ":tab" modifier was used open a new tab page instead. */
     if (may_open_tabpage() == OK)
@@ -790,11 +786,11 @@ win_split(size, flags)
  * return FAIL for failure, OK otherwise
  */
     int
-win_split_ins(size, flags, new_wp, dir)
-    int		size;
-    int		flags;
-    win_T	*new_wp;
-    int		dir;
+win_split_ins(
+    int		size,
+    int		flags,
+    win_T	*new_wp,
+    int		dir)
 {
     win_T	*wp = new_wp;
     win_T	*oldwin;
@@ -1339,10 +1335,7 @@ win_split_ins(size, flags, new_wp, dir)
  * being copied.
  */
     static void
-win_init(newp, oldp, flags)
-    win_T	*newp;
-    win_T	*oldp;
-    int		 flags UNUSED;
+win_init(win_T *newp, win_T *oldp, int flags UNUSED)
 {
     int		i;
 
@@ -1408,9 +1401,7 @@ win_init(newp, oldp, flags)
  * Only the essential things are copied.
  */
     static void
-win_init_some(newp, oldp)
-    win_T	*newp;
-    win_T	*oldp;
+win_init_some(win_T *newp, win_T *oldp)
 {
     /* Use the same argument list. */
     newp->w_alist = oldp->w_alist;
@@ -1428,8 +1419,7 @@ win_init_some(newp, oldp)
  * Check if "win" is a pointer to an existing window.
  */
     int
-win_valid(win)
-    win_T	*win;
+win_valid(win_T *win)
 {
     win_T	*wp;
 
@@ -1445,7 +1435,7 @@ win_valid(win)
  * Return the number of windows.
  */
     int
-win_count()
+win_count(void)
 {
     win_T	*wp;
     int		count = 0;
@@ -1462,9 +1452,9 @@ win_count()
  * (excluding the command line).
  */
     int
-make_windows(count, vertical)
-    int		count;
-    int		vertical UNUSED;  /* split windows vertically if TRUE */
+make_windows(
+    int		count,
+    int		vertical UNUSED)  /* split windows vertically if TRUE */
 {
     int		maxcount;
     int		todo;
@@ -1534,8 +1524,7 @@ make_windows(count, vertical)
  * Exchange current and next window
  */
     static void
-win_exchange(Prenum)
-    long	Prenum;
+win_exchange(long Prenum)
 {
     frame_T	*frp;
     frame_T	*frp2;
@@ -1639,9 +1628,7 @@ win_exchange(Prenum)
  *		   if upwards FALSE the first window becomes the second one
  */
     static void
-win_rotate(upwards, count)
-    int		upwards;
-    int		count;
+win_rotate(int upwards, int count)
 {
     win_T	*wp1;
     win_T	*wp2;
@@ -1728,9 +1715,7 @@ win_rotate(upwards, count)
  * Move the current window to the very top/bottom/left/right of the screen.
  */
     static void
-win_totop(size, flags)
-    int		size;
-    int		flags;
+win_totop(int size, int flags)
 {
     int		dir;
     int		height = curwin->w_height;
@@ -1768,8 +1753,7 @@ win_totop(size, flags)
  * window.  Only works within the same frame!
  */
     void
-win_move_after(win1, win2)
-    win_T	*win1, *win2;
+win_move_after(win_T *win1, win_T *win2)
 {
     int		height;
 
@@ -1833,10 +1817,10 @@ win_move_after(win1, win2)
  * rows.
  */
     void
-win_equal(next_curwin, current, dir)
-    win_T	*next_curwin;	/* pointer to current window to be or NULL */
-    int		current;	/* do only frame with current window */
-    int		dir;		/* 'v' for vertically, 'h' for horizontally,
+win_equal(
+    win_T	*next_curwin,	/* pointer to current window to be or NULL */
+    int		current,	/* do only frame with current window */
+    int		dir)		/* 'v' for vertically, 'h' for horizontally,
 				   'b' for both, 0 for using p_ead */
 {
     if (dir == 0)
@@ -1857,15 +1841,15 @@ win_equal(next_curwin, current, dir)
  * 'winheight' and 'winwidth' if possible.
  */
     static void
-win_equal_rec(next_curwin, current, topfr, dir, col, row, width, height)
-    win_T	*next_curwin;	/* pointer to current window to be or NULL */
-    int		current;	/* do only frame with current window */
-    frame_T	*topfr;		/* frame to set size off */
-    int		dir;		/* 'v', 'h' or 'b', see win_equal() */
-    int		col;		/* horizontal position for frame */
-    int		row;		/* vertical position for frame */
-    int		width;		/* new width of frame */
-    int		height;		/* new height of frame */
+win_equal_rec(
+    win_T	*next_curwin,	/* pointer to current window to be or NULL */
+    int		current,	/* do only frame with current window */
+    frame_T	*topfr,		/* frame to set size off */
+    int		dir,		/* 'v', 'h' or 'b', see win_equal() */
+    int		col,		/* horizontal position for frame */
+    int		row,		/* vertical position for frame */
+    int		width,		/* new width of frame */
+    int		height)		/* new height of frame */
 {
     int		n, m;
     int		extra_sep = 0;
@@ -2188,9 +2172,9 @@ win_equal_rec(next_curwin, current, topfr, dir, col, row, width, height)
  * close all windows for buffer 'buf'
  */
     void
-close_windows(buf, keep_curwin)
-    buf_T	*buf;
-    int		keep_curwin;	    /* don't close "curwin" */
+close_windows(
+    buf_T	*buf,
+    int		keep_curwin)	    /* don't close "curwin" */
 {
     win_T	*wp;
     tabpage_T   *tp, *nexttp;
@@ -2249,7 +2233,7 @@ close_windows(buf, keep_curwin)
  * Returns FALSE if there is a window, possibly in another tab page.
  */
     static int
-last_window()
+last_window(void)
 {
     return (one_window() && first_tabpage->tp_next == NULL);
 }
@@ -2259,7 +2243,7 @@ last_window()
  * current tab page.
  */
     int
-one_window()
+one_window(void)
 {
 #ifdef FEAT_AUTOCMD
     win_T	*wp;
@@ -2285,10 +2269,10 @@ one_window()
  * Returns TRUE when the window was closed already.
  */
     static int
-close_last_window_tabpage(win, free_buf, prev_curtab)
-    win_T	*win;
-    int		free_buf;
-    tabpage_T   *prev_curtab;
+close_last_window_tabpage(
+    win_T	*win,
+    int		free_buf,
+    tabpage_T   *prev_curtab)
 {
     if (firstwin == lastwin)
     {
@@ -2338,9 +2322,7 @@ close_last_window_tabpage(win, free_buf, prev_curtab)
  * Returns FAIL when the window was not closed.
  */
     int
-win_close(win, free_buf)
-    win_T	*win;
-    int		free_buf;
+win_close(win_T *win, int free_buf)
 {
     win_T	*wp;
 #ifdef FEAT_AUTOCMD
@@ -2562,10 +2544,7 @@ win_close(win, free_buf)
  * updated.
  */
     void
-win_close_othertab(win, free_buf, tp)
-    win_T	*win;
-    int		free_buf;
-    tabpage_T	*tp;
+win_close_othertab(win_T *win, int free_buf, tabpage_T *tp)
 {
     win_T	*wp;
     int		dir;
@@ -2625,10 +2604,10 @@ win_close_othertab(win, free_buf, tp)
  * Returns a pointer to the window that got the freed up space.
  */
     static win_T *
-win_free_mem(win, dirp, tp)
-    win_T	*win;
-    int		*dirp;		/* set to 'v' or 'h' for direction if 'ea' */
-    tabpage_T	*tp;		/* tab page "win" is in, NULL for current */
+win_free_mem(
+    win_T	*win,
+    int		*dirp,		/* set to 'v' or 'h' for direction if 'ea' */
+    tabpage_T	*tp)		/* tab page "win" is in, NULL for current */
 {
     frame_T	*frp;
     win_T	*wp;
@@ -2649,7 +2628,7 @@ win_free_mem(win, dirp, tp)
 
 #if defined(EXITFREE) || defined(PROTO)
     void
-win_free_all()
+win_free_all(void)
 {
     int		dummy;
 
@@ -2680,10 +2659,10 @@ win_free_all()
  * Returns a pointer to the window that got the freed up space.
  */
     win_T *
-winframe_remove(win, dirp, tp)
-    win_T	*win;
-    int		*dirp UNUSED;	/* set to 'v' or 'h' for direction if 'ea' */
-    tabpage_T	*tp;		/* tab page "win" is in, NULL for current */
+winframe_remove(
+    win_T	*win,
+    int		*dirp UNUSED,	/* set to 'v' or 'h' for direction if 'ea' */
+    tabpage_T	*tp)		/* tab page "win" is in, NULL for current */
 {
     frame_T	*frp, *frp2, *frp3;
     frame_T	*frp_close = win->w_frame;
@@ -2844,9 +2823,9 @@ winframe_remove(win, dirp, tp)
  * layout.
  */
     static frame_T *
-win_altframe(win, tp)
-    win_T	*win;
-    tabpage_T	*tp;		/* tab page "win" is in, NULL for current */
+win_altframe(
+    win_T	*win,
+    tabpage_T	*tp)		/* tab page "win" is in, NULL for current */
 {
     frame_T	*frp;
     int		b;
@@ -2871,7 +2850,7 @@ win_altframe(win, tp)
  * Return the tabpage that will be used if the current one is closed.
  */
     static tabpage_T *
-alt_tabpage()
+alt_tabpage(void)
 {
     tabpage_T	*tp;
 
@@ -2889,8 +2868,7 @@ alt_tabpage()
  * Find the left-upper window in frame "frp".
  */
     static win_T *
-frame2win(frp)
-    frame_T	*frp;
+frame2win(frame_T *frp)
 {
     while (frp->fr_win == NULL)
 	frp = frp->fr_child;
@@ -2901,9 +2879,7 @@ frame2win(frp)
  * Return TRUE if frame "frp" contains window "wp".
  */
     static int
-frame_has_win(frp, wp)
-    frame_T	*frp;
-    win_T	*wp;
+frame_has_win(frame_T *frp, win_T *wp)
 {
     frame_T	*p;
 
@@ -2921,11 +2897,11 @@ frame_has_win(frp, wp)
  * frames and windows.  Caller must take care of positions.
  */
     static void
-frame_new_height(topfrp, height, topfirst, wfh)
-    frame_T	*topfrp;
-    int		height;
-    int		topfirst;	/* resize topmost contained frame first */
-    int		wfh;		/* obey 'winfixheight' when there is a choice;
+frame_new_height(
+    frame_T	*topfrp,
+    int		height,
+    int		topfirst,	/* resize topmost contained frame first */
+    int		wfh)		/* obey 'winfixheight' when there is a choice;
 				   may cause the height not to be set */
 {
     frame_T	*frp;
@@ -3032,8 +3008,7 @@ frame_new_height(topfrp, height, topfirst, wfh)
  * the 'winfixheight' option.
  */
     static int
-frame_fixed_height(frp)
-    frame_T	*frp;
+frame_fixed_height(frame_T *frp)
 {
     /* frame with one window: fixed height if 'winfixheight' set. */
     if (frp->fr_win != NULL)
@@ -3063,8 +3038,7 @@ frame_fixed_height(frp)
  * the 'winfixwidth' option.
  */
     static int
-frame_fixed_width(frp)
-    frame_T	*frp;
+frame_fixed_width(frame_T *frp)
 {
     /* frame with one window: fixed width if 'winfixwidth' set. */
     if (frp->fr_win != NULL)
@@ -3093,8 +3067,7 @@ frame_fixed_width(frp)
  * Note: Does not check if there is room!
  */
     static void
-frame_add_statusline(frp)
-    frame_T	*frp;
+frame_add_statusline(frame_T *frp)
 {
     win_T	*wp;
 
@@ -3128,11 +3101,11 @@ frame_add_statusline(frp)
  * May remove separator line for windows at the right side (for win_close()).
  */
     static void
-frame_new_width(topfrp, width, leftfirst, wfw)
-    frame_T	*topfrp;
-    int		width;
-    int		leftfirst;	/* resize leftmost contained frame first */
-    int		wfw;		/* obey 'winfixwidth' when there is a choice;
+frame_new_width(
+    frame_T	*topfrp,
+    int		width,
+    int		leftfirst,	/* resize leftmost contained frame first */
+    int		wfw)		/* obey 'winfixwidth' when there is a choice;
 				   may cause the width not to be set */
 {
     frame_T	*frp;
@@ -3243,8 +3216,7 @@ frame_new_width(topfrp, width, leftfirst, wfw)
  * Note: Does not check if there is room!
  */
     static void
-frame_add_vsep(frp)
-    frame_T	*frp;
+frame_add_vsep(frame_T *frp)
 {
     win_T	*wp;
 
@@ -3278,8 +3250,7 @@ frame_add_vsep(frp)
  * Set frame width from the window it contains.
  */
     static void
-frame_fix_width(wp)
-    win_T	*wp;
+frame_fix_width(win_T *wp)
 {
     wp->w_frame->fr_width = wp->w_width + wp->w_vsep_width;
 }
@@ -3289,8 +3260,7 @@ frame_fix_width(wp)
  * Set frame height from the window it contains.
  */
     static void
-frame_fix_height(wp)
-    win_T	*wp;
+frame_fix_height(win_T *wp)
 {
     wp->w_frame->fr_height = wp->w_height + wp->w_status_height;
 }
@@ -3303,9 +3273,7 @@ frame_fix_height(wp)
  * window.
  */
     static int
-frame_minheight(topfrp, next_curwin)
-    frame_T	*topfrp;
-    win_T	*next_curwin;
+frame_minheight(frame_T *topfrp, win_T *next_curwin)
 {
     frame_T	*frp;
     int		m;
@@ -3358,9 +3326,9 @@ frame_minheight(topfrp, next_curwin)
  * window.
  */
     static int
-frame_minwidth(topfrp, next_curwin)
-    frame_T	*topfrp;
-    win_T	*next_curwin;	/* use p_wh and p_wiw for next_curwin */
+frame_minwidth(
+    frame_T	*topfrp,
+    win_T	*next_curwin)	/* use p_wh and p_wiw for next_curwin */
 {
     frame_T	*frp;
     int		m, n;
@@ -3410,9 +3378,9 @@ frame_minwidth(topfrp, next_curwin)
  * Used by ":bdel" and ":only".
  */
     void
-close_others(message, forceit)
-    int		message;
-    int		forceit;	    /* always hide all other windows */
+close_others(
+    int		message,
+    int		forceit)	    /* always hide all other windows */
 {
     win_T	*wp;
     win_T	*nextwp;
@@ -3478,14 +3446,13 @@ close_others(message, forceit)
  * Called when a new file is being edited.
  */
     void
-curwin_init()
+curwin_init(void)
 {
     win_init_empty(curwin);
 }
 
     void
-win_init_empty(wp)
-    win_T *wp;
+win_init_empty(win_T *wp)
 {
     redraw_win_later(wp, NOT_VALID);
     wp->w_lines_valid = 0;
@@ -3520,7 +3487,7 @@ win_init_empty(wp)
  * Return FAIL when something goes wrong (out of memory).
  */
     int
-win_alloc_first()
+win_alloc_first(void)
 {
     if (win_alloc_firstwin(NULL) == FAIL)
 	return FAIL;
@@ -3542,7 +3509,7 @@ win_alloc_first()
  * window is fully initialized, thus it can't be in win_alloc_first().
  */
     void
-win_alloc_aucmd_win()
+win_alloc_aucmd_win(void)
 {
     aucmd_win = win_alloc(NULL, TRUE);
     if (aucmd_win != NULL)
@@ -3562,8 +3529,7 @@ win_alloc_aucmd_win()
  * Return FAIL when something goes wrong (out of memory).
  */
     static int
-win_alloc_firstwin(oldwin)
-    win_T	*oldwin;
+win_alloc_firstwin(win_T *oldwin)
 {
     curwin = win_alloc(NULL, FALSE);
     if (oldwin == NULL)
@@ -3627,7 +3593,7 @@ new_frame(win_T *wp)
  * Initialize the window and frame size to the maximum.
  */
     void
-win_init_size()
+win_init_size(void)
 {
     firstwin->w_height = ROWS_AVAIL;
     topframe->fr_height = ROWS_AVAIL;
@@ -3644,7 +3610,7 @@ win_init_size()
  * Returns NULL when out of memory.
  */
     static tabpage_T *
-alloc_tabpage()
+alloc_tabpage(void)
 {
     tabpage_T	*tp;
 # ifdef FEAT_GUI
@@ -3680,8 +3646,7 @@ alloc_tabpage()
 }
 
     void
-free_tabpage(tp)
-    tabpage_T	*tp;
+free_tabpage(tabpage_T *tp)
 {
     int idx;
 
@@ -3715,8 +3680,7 @@ free_tabpage(tp)
  * Return FAIL or OK.
  */
     int
-win_new_tabpage(after)
-    int		after;
+win_new_tabpage(int after)
 {
     tabpage_T	*tp = curtab;
     tabpage_T	*newtp;
@@ -3789,7 +3753,7 @@ win_new_tabpage(after)
  * Returns OK if a new tab page was created, FAIL otherwise.
  */
     int
-may_open_tabpage()
+may_open_tabpage(void)
 {
     int		n = (cmdmod.tab == 0) ? postponed_split_tab : cmdmod.tab;
 
@@ -3807,8 +3771,7 @@ may_open_tabpage()
  * Returns the number of resulting tab pages.
  */
     int
-make_tabpages(maxcount)
-    int		maxcount;
+make_tabpages(int maxcount)
 {
     int		count = maxcount;
     int		todo;
@@ -3841,8 +3804,7 @@ make_tabpages(maxcount)
  * Return TRUE when "tpc" points to a valid tab page.
  */
     int
-valid_tabpage(tpc)
-    tabpage_T	*tpc;
+valid_tabpage(tabpage_T *tpc)
 {
     tabpage_T	*tp;
 
@@ -3856,8 +3818,7 @@ valid_tabpage(tpc)
  * Find tab page "n" (first one is 1).  Returns NULL when not found.
  */
     tabpage_T *
-find_tabpage(n)
-    int		n;
+find_tabpage(int n)
 {
     tabpage_T	*tp;
     int		i = 1;
@@ -3872,8 +3833,7 @@ find_tabpage(n)
  * When not found returns number of tab pages plus one.
  */
     int
-tabpage_index(ftp)
-    tabpage_T	*ftp;
+tabpage_index(tabpage_T *ftp)
 {
     int		i = 1;
     tabpage_T	*tp;
@@ -3890,10 +3850,10 @@ tabpage_index(ftp)
  * Careful: When OK is returned need to get a new tab page very very soon!
  */
     static int
-leave_tabpage(new_curbuf, trigger_leave_autocmds)
-    buf_T	*new_curbuf UNUSED;    /* what is going to be the new curbuf,
+leave_tabpage(
+    buf_T	*new_curbuf UNUSED,    /* what is going to be the new curbuf,
 				       NULL if unknown */
-    int		trigger_leave_autocmds UNUSED;
+    int		trigger_leave_autocmds UNUSED)
 {
     tabpage_T	*tp = curtab;
 
@@ -3938,11 +3898,11 @@ leave_tabpage(new_curbuf, trigger_leave_autocmds)
  * Only trigger *Leave autocommands when trigger_leave_autocmds is TRUE.
  */
     static void
-enter_tabpage(tp, old_curbuf, trigger_enter_autocmds, trigger_leave_autocmds)
-    tabpage_T	*tp;
-    buf_T	*old_curbuf UNUSED;
-    int		trigger_enter_autocmds UNUSED;
-    int		trigger_leave_autocmds UNUSED;
+enter_tabpage(
+    tabpage_T	*tp,
+    buf_T	*old_curbuf UNUSED,
+    int		trigger_enter_autocmds UNUSED,
+    int		trigger_leave_autocmds UNUSED)
 {
     int		old_off = tp->tp_firstwin->w_winrow;
     win_T	*next_prevwin = tp->tp_prevwin;
@@ -4007,8 +3967,7 @@ enter_tabpage(tp, old_curbuf, trigger_enter_autocmds, trigger_leave_autocmds)
  * When "n" is 9999 go to the last tab page.
  */
     void
-goto_tabpage(n)
-    int	    n;
+goto_tabpage(int n)
 {
     tabpage_T	*tp;
     tabpage_T	*ttp;
@@ -4087,10 +4046,10 @@ goto_tabpage(n)
  * Note: doesn't update the GUI tab.
  */
     void
-goto_tabpage_tp(tp, trigger_enter_autocmds, trigger_leave_autocmds)
-    tabpage_T	*tp;
-    int		trigger_enter_autocmds;
-    int		trigger_leave_autocmds;
+goto_tabpage_tp(
+    tabpage_T	*tp,
+    int		trigger_enter_autocmds,
+    int		trigger_leave_autocmds)
 {
     /* Don't repeat a message in another tab page. */
     set_keep_msg(NULL, 0);
@@ -4112,9 +4071,7 @@ goto_tabpage_tp(tp, trigger_enter_autocmds, trigger_leave_autocmds)
  * Also updates the GUI tab.
  */
     void
-goto_tabpage_win(tp, wp)
-    tabpage_T	*tp;
-    win_T	*wp;
+goto_tabpage_win(tabpage_T *tp, win_T *wp)
 {
     goto_tabpage_tp(tp, TRUE, TRUE);
     if (curtab == tp && win_valid(wp))
@@ -4131,8 +4088,7 @@ goto_tabpage_win(tp, wp)
  * Move the current tab page to after tab page "nr".
  */
     void
-tabpage_move(nr)
-    int		nr;
+tabpage_move(int nr)
 {
     int		n = 1;
     tabpage_T	*tp, *tp_dst;
@@ -4187,8 +4143,7 @@ tabpage_move(nr)
  * position to keep the same Visual area.
  */
     void
-win_goto(wp)
-    win_T	*wp;
+win_goto(win_T *wp)
 {
 #ifdef FEAT_CONCEAL
     win_T	*owp = curwin;
@@ -4229,8 +4184,7 @@ win_goto(wp)
  * Find window number "winnr" (counting top to bottom).
  */
     win_T *
-win_find_nr(winnr)
-    int		winnr;
+win_find_nr(int winnr)
 {
     win_T	*wp;
 
@@ -4251,8 +4205,7 @@ win_find_nr(winnr)
  * Find the tabpage for window "win".
  */
     tabpage_T *
-win_find_tabpage(win)
-    win_T	*win;
+win_find_tabpage(win_T *win)
 {
     win_T	*wp;
     tabpage_T	*tp;
@@ -4271,9 +4224,9 @@ win_find_tabpage(win)
  * Move to window above or below "count" times.
  */
     static void
-win_goto_ver(up, count)
-    int		up;		/* TRUE to go to win above */
-    long	count;
+win_goto_ver(
+    int		up,		/* TRUE to go to win above */
+    long	count)
 {
     frame_T	*fr;
     frame_T	*nfr;
@@ -4334,9 +4287,9 @@ end:
  * Move to left or right window.
  */
     static void
-win_goto_hor(left, count)
-    int		left;		/* TRUE to go to left win */
-    long	count;
+win_goto_hor(
+    int		left,		/* TRUE to go to left win */
+    long	count)
 {
     frame_T	*fr;
     frame_T	*nfr;
@@ -4398,9 +4351,7 @@ end:
  * Make window "wp" the current window.
  */
     void
-win_enter(wp, undo_sync)
-    win_T	*wp;
-    int		undo_sync;
+win_enter(win_T *wp, int undo_sync)
 {
     win_enter_ext(wp, undo_sync, FALSE, TRUE, TRUE);
 }
@@ -4411,12 +4362,12 @@ win_enter(wp, undo_sync)
  * been closed and isn't valid.
  */
     static void
-win_enter_ext(wp, undo_sync, curwin_invalid, trigger_enter_autocmds, trigger_leave_autocmds)
-    win_T	*wp;
-    int		undo_sync;
-    int		curwin_invalid;
-    int		trigger_enter_autocmds UNUSED;
-    int		trigger_leave_autocmds UNUSED;
+win_enter_ext(
+    win_T	*wp,
+    int		undo_sync,
+    int		curwin_invalid,
+    int		trigger_enter_autocmds UNUSED,
+    int		trigger_leave_autocmds UNUSED)
 {
 #ifdef FEAT_AUTOCMD
     int		other_buffer = FALSE;
@@ -4544,8 +4495,7 @@ win_enter_ext(wp, undo_sync, curwin_invalid, trigger_enter_autocmds, trigger_lea
  * Returns a pointer to the window found, otherwise NULL.
  */
     win_T *
-buf_jump_open_win(buf)
-    buf_T	*buf;
+buf_jump_open_win(buf_T *buf)
 {
     win_T	*wp = NULL;
 
@@ -4568,8 +4518,7 @@ buf_jump_open_win(buf)
  * Returns a pointer to the window found, otherwise NULL.
  */
     win_T *
-buf_jump_open_tab(buf)
-    buf_T	*buf;
+buf_jump_open_tab(buf_T *buf)
 {
     win_T	*wp = buf_jump_open_win(buf);
 # ifdef FEAT_WINDOWS
@@ -4602,9 +4551,7 @@ buf_jump_open_tab(buf)
  * FALSE.
  */
     static win_T *
-win_alloc(after, hidden)
-    win_T	*after UNUSED;
-    int		hidden UNUSED;
+win_alloc(win_T *after UNUSED, int hidden UNUSED)
 {
     win_T	*new_wp;
 
@@ -4694,9 +4641,9 @@ win_alloc(after, hidden)
  * Remove window 'wp' from the window list and free the structure.
  */
     static void
-win_free(wp, tp)
-    win_T	*wp;
-    tabpage_T	*tp;		/* tab page "win" is in, NULL for current */
+win_free(
+    win_T	*wp,
+    tabpage_T	*tp)		/* tab page "win" is in, NULL for current */
 {
     int		i;
     buf_T	*buf;
@@ -4815,8 +4762,7 @@ win_free(wp, tp)
  * Append window "wp" in the window list after window "after".
  */
     void
-win_append(after, wp)
-    win_T	*after, *wp;
+win_append(win_T *after, win_T *wp)
 {
     win_T	*before;
 
@@ -4841,9 +4787,9 @@ win_append(after, wp)
  * Remove a window from the window list.
  */
     void
-win_remove(wp, tp)
-    win_T	*wp;
-    tabpage_T	*tp;		/* tab page "win" is in, NULL for current */
+win_remove(
+    win_T	*wp,
+    tabpage_T	*tp)		/* tab page "win" is in, NULL for current */
 {
     if (wp->w_prev != NULL)
 	wp->w_prev->w_next = wp->w_next;
@@ -4863,8 +4809,7 @@ win_remove(wp, tp)
  * Append frame "frp" in a frame list after frame "after".
  */
     static void
-frame_append(after, frp)
-    frame_T	*after, *frp;
+frame_append(frame_T *after, frame_T *frp)
 {
     frp->fr_next = after->fr_next;
     after->fr_next = frp;
@@ -4877,8 +4822,7 @@ frame_append(after, frp)
  * Insert frame "frp" in a frame list before frame "before".
  */
     static void
-frame_insert(before, frp)
-    frame_T	*before, *frp;
+frame_insert(frame_T *before, frame_T *frp)
 {
     frp->fr_next = before;
     frp->fr_prev = before->fr_prev;
@@ -4893,8 +4837,7 @@ frame_insert(before, frp)
  * Remove a frame from a frame list.
  */
     static void
-frame_remove(frp)
-    frame_T	*frp;
+frame_remove(frame_T *frp)
 {
     if (frp->fr_prev != NULL)
 	frp->fr_prev->fr_next = frp->fr_next;
@@ -4911,8 +4854,7 @@ frame_remove(frp)
  * Return FAIL for failure, OK for success.
  */
     int
-win_alloc_lines(wp)
-    win_T	*wp;
+win_alloc_lines(win_T *wp)
 {
     wp->w_lines_valid = 0;
     wp->w_lines = (wline_T *)alloc_clear((unsigned)(Rows * sizeof(wline_T)));
@@ -4925,8 +4867,7 @@ win_alloc_lines(wp)
  * free lsize arrays for a window
  */
     void
-win_free_lsize(wp)
-    win_T	*wp;
+win_free_lsize(win_T *wp)
 {
     /* TODO: why would wp be NULL here? */
     if (wp != NULL)
@@ -4941,7 +4882,7 @@ win_free_lsize(wp)
  * This only does the current tab page, others must be done when made active.
  */
     void
-shell_new_rows()
+shell_new_rows(void)
 {
     int		h = (int)ROWS_AVAIL;
 
@@ -4980,7 +4921,7 @@ shell_new_rows()
  * Called from win_new_shellsize() after Columns changed.
  */
     void
-shell_new_columns()
+shell_new_columns(void)
 {
     if (firstwin == NULL)	/* not initialized yet */
 	return;
@@ -5005,8 +4946,7 @@ shell_new_columns()
  * Save the size of all windows in "gap".
  */
     void
-win_size_save(gap)
-    garray_T	*gap;
+win_size_save(garray_T *gap)
 
 {
     win_T	*wp;
@@ -5026,8 +4966,7 @@ win_size_save(gap)
  * Does not free the growarray.
  */
     void
-win_size_restore(gap)
-    garray_T	*gap;
+win_size_restore(garray_T *gap)
 {
     win_T	*wp;
     int		i, j;
@@ -5058,7 +4997,7 @@ win_size_restore(gap)
  * Returns the row just after the last window.
  */
     int
-win_comp_pos()
+win_comp_pos(void)
 {
     int		row = tabline_height();
     int		col = 0;
@@ -5074,10 +5013,7 @@ win_comp_pos()
  * to the bottom-right position plus one.
  */
     static void
-frame_comp_pos(topfrp, row, col)
-    frame_T	*topfrp;
-    int		*row;
-    int		*col;
+frame_comp_pos(frame_T *topfrp, int *row, int *col)
 {
     win_T	*wp;
     frame_T	*frp;
@@ -5134,8 +5070,7 @@ frame_comp_pos(topfrp, row, col)
  * fit around it.
  */
     void
-win_setheight(height)
-    int		height;
+win_setheight(int height)
 {
     win_setheight_win(height, curwin);
 }
@@ -5145,9 +5080,7 @@ win_setheight(height)
  * windows to fit around it.
  */
     void
-win_setheight_win(height, win)
-    int		height;
-    win_T	*win;
+win_setheight_win(int height, win_T *win)
 {
     int		row;
 
@@ -5204,9 +5137,7 @@ win_setheight_win(height, win)
  * At the top level we can also use change the command line height.
  */
     static void
-frame_setheight(curfrp, height)
-    frame_T	*curfrp;
-    int		height;
+frame_setheight(frame_T *curfrp, int height)
 {
     int		room;		/* total number of lines available */
     int		take;		/* number of lines taken from other windows */
@@ -5384,16 +5315,13 @@ frame_setheight(curfrp, height)
  * fit around it.
  */
     void
-win_setwidth(width)
-    int		width;
+win_setwidth(int width)
 {
     win_setwidth_win(width, curwin);
 }
 
     void
-win_setwidth_win(width, wp)
-    int		width;
-    win_T	*wp;
+win_setwidth_win(int width, win_T *wp)
 {
     /* Always keep current window at least one column wide, even when
      * 'winminwidth' is zero. */
@@ -5421,9 +5349,7 @@ win_setwidth_win(width, wp)
  * Strategy is similar to frame_setheight().
  */
     static void
-frame_setwidth(curfrp, width)
-    frame_T	*curfrp;
-    int		width;
+frame_setwidth(frame_T *curfrp, int width)
 {
     int		room;		/* total number of lines available */
     int		take;		/* number of lines taken from other windows */
@@ -5564,7 +5490,7 @@ frame_setwidth(curfrp, width)
  * Check 'winminheight' for a valid value.
  */
     void
-win_setminheight()
+win_setminheight(void)
 {
     int		room;
     int		first = TRUE;
@@ -5594,9 +5520,7 @@ win_setminheight()
  * Status line of dragwin is dragged "offset" lines down (negative is up).
  */
     void
-win_drag_status_line(dragwin, offset)
-    win_T	*dragwin;
-    int		offset;
+win_drag_status_line(win_T *dragwin, int offset)
 {
     frame_T	*curfr;
     frame_T	*fr;
@@ -5726,9 +5650,7 @@ win_drag_status_line(dragwin, offset)
  * Separator line of dragwin is dragged "offset" lines right (negative is left).
  */
     void
-win_drag_vsep_line(dragwin, offset)
-    win_T	*dragwin;
-    int		offset;
+win_drag_vsep_line(win_T *dragwin, int offset)
 {
     frame_T	*curfr;
     frame_T	*fr;
@@ -5837,8 +5759,7 @@ win_drag_vsep_line(dragwin, offset)
  * Set wp->w_fraction for the current w_wrow and w_height.
  */
     void
-set_fraction(wp)
-    win_T	*wp;
+set_fraction(win_T *wp)
 {
     wp->w_fraction = ((long)wp->w_wrow * FRACTION_MULT
 				    + wp->w_height / 2) / (long)wp->w_height;
@@ -5850,9 +5771,7 @@ set_fraction(wp)
  * window position, the frame or to other windows.
  */
     void
-win_new_height(wp, height)
-    win_T	*wp;
-    int		height;
+win_new_height(win_T *wp, int height)
 {
     linenr_T	lnum;
     int		sline, line_size;
@@ -6005,9 +5924,7 @@ win_new_height(wp, height)
  * Set the width of a window.
  */
     void
-win_new_width(wp, width)
-    win_T	*wp;
-    int		width;
+win_new_width(win_T *wp, int width)
 {
     wp->w_width = width;
     wp->w_lines_valid = 0;
@@ -6029,8 +5946,7 @@ win_new_width(wp, width)
 #endif
 
     void
-win_comp_scroll(wp)
-    win_T	*wp;
+win_comp_scroll(win_T *wp)
 {
     wp->w_p_scr = ((unsigned)wp->w_height >> 1);
     if (wp->w_p_scr == 0)
@@ -6041,7 +5957,7 @@ win_comp_scroll(wp)
  * command_height: called whenever p_ch has been changed
  */
     void
-command_height()
+command_height(void)
 {
 #ifdef FEAT_WINDOWS
     int		h;
@@ -6122,9 +6038,7 @@ command_height()
  * Also resize the frames it is contained in.
  */
     static void
-frame_add_height(frp, n)
-    frame_T	*frp;
-    int		n;
+frame_add_height(frame_T *frp, int n)
 {
     frame_new_height(frp, frp->fr_height + n, FALSE, FALSE);
     for (;;)
@@ -6141,8 +6055,8 @@ frame_add_height(frp, n)
  * value of 'laststatus'.
  */
     void
-last_status(morewin)
-    int		morewin;	/* pretend there are two or more windows */
+last_status(
+    int		morewin)	/* pretend there are two or more windows */
 {
     /* Don't make a difference between horizontal or vertical split. */
     last_status_rec(topframe, (p_ls == 2
@@ -6150,9 +6064,7 @@ last_status(morewin)
 }
 
     static void
-last_status_rec(fr, statusline)
-    frame_T	*fr;
-    int		statusline;
+last_status_rec(frame_T *fr, int statusline)
 {
     frame_T	*fp;
     win_T	*wp;
@@ -6219,7 +6131,7 @@ last_status_rec(fr, statusline)
  * Return the number of lines used by the tab page line.
  */
     int
-tabline_height()
+tabline_height(void)
 {
 #ifdef FEAT_GUI_TABLINE
     /* When the GUI has the tabline then this always returns zero. */
@@ -6243,9 +6155,7 @@ tabline_height()
  * Returns the name in allocated memory, NULL for failure.
  */
     char_u *
-grab_file_name(count, file_lnum)
-    long	count;
-    linenr_T	*file_lnum;
+grab_file_name(long count, linenr_T *file_lnum)
 {
     int options = FNAME_MESS|FNAME_EXP|FNAME_REL|FNAME_UNESC;
 
@@ -6277,10 +6187,7 @@ grab_file_name(count, file_lnum)
  * FNAME_INCL	    apply "includeexpr"
  */
     char_u *
-file_name_at_cursor(options, count, file_lnum)
-    int		options;
-    long	count;
-    linenr_T	*file_lnum;
+file_name_at_cursor(int options, long count, linenr_T *file_lnum)
 {
     return file_name_in_line(ml_get_curline(),
 		      curwin->w_cursor.col, options, count, curbuf->b_ffname,
@@ -6292,13 +6199,13 @@ file_name_at_cursor(options, count, file_lnum)
  * Otherwise like file_name_at_cursor().
  */
     char_u *
-file_name_in_line(line, col, options, count, rel_fname, file_lnum)
-    char_u	*line;
-    int		col;
-    int		options;
-    long	count;
-    char_u	*rel_fname;	/* file we are searching relative to */
-    linenr_T	*file_lnum;	/* line number after the file name */
+file_name_in_line(
+    char_u	*line,
+    int		col,
+    int		options,
+    long	count,
+    char_u	*rel_fname,	/* file we are searching relative to */
+    linenr_T	*file_lnum)	/* line number after the file name */
 {
     char_u	*ptr;
     int		len;
@@ -6385,9 +6292,7 @@ file_name_in_line(line, col, options, count, rel_fname, file_lnum)
 static char_u *eval_includeexpr(char_u *ptr, int len);
 
     static char_u *
-eval_includeexpr(ptr, len)
-    char_u	*ptr;
-    int		len;
+eval_includeexpr(char_u *ptr, int len)
 {
     char_u	*res;
 
@@ -6404,12 +6309,12 @@ eval_includeexpr(ptr, len)
  * Otherwise like file_name_at_cursor().
  */
     char_u *
-find_file_name_in_path(ptr, len, options, count, rel_fname)
-    char_u	*ptr;
-    int		len;
-    int		options;
-    long	count;
-    char_u	*rel_fname;	/* file we are searching relative to */
+find_file_name_in_path(
+    char_u	*ptr,
+    int		len,
+    int		options,
+    long	count,
+    char_u	*rel_fname)	/* file we are searching relative to */
 {
     char_u	*file_name;
     int		c;
@@ -6483,8 +6388,7 @@ find_file_name_in_path(ptr, len, options, count, rel_fname)
  * URL_BACKSLASH.
  */
     static int
-path_is_url(p)
-    char_u  *p;
+path_is_url(char_u *p)
 {
     if (STRNCMP(p, "://", (size_t)3) == 0)
 	return URL_SLASH;
@@ -6499,8 +6403,7 @@ path_is_url(p)
  * Return zero otherwise.
  */
     int
-path_with_url(fname)
-    char_u *fname;
+path_with_url(char_u *fname)
 {
     char_u *p;
 
@@ -6513,8 +6416,7 @@ path_with_url(fname)
  * Return TRUE if "name" is a full (absolute) path name or URL.
  */
     int
-vim_isAbsName(name)
-    char_u	*name;
+vim_isAbsName(char_u *name)
 {
     return (path_with_url(name) != 0 || mch_isFullName(name));
 }
@@ -6525,10 +6427,11 @@ vim_isAbsName(name)
  * return FAIL for failure, OK otherwise
  */
     int
-vim_FullName(fname, buf, len, force)
-    char_u	*fname, *buf;
-    int		len;
-    int		force;	    /* force expansion even when already absolute */
+vim_FullName(
+    char_u	*fname,
+    char_u	*buf,
+    int		len,
+    int		force)	    /* force expansion even when already absolute */
 {
     int		retval = OK;
     int		url;
@@ -6556,7 +6459,7 @@ vim_FullName(fname, buf, len, force)
  * the current number of windows.
  */
     int
-min_rows()
+min_rows(void)
 {
     int		total;
 #ifdef FEAT_WINDOWS
@@ -6589,7 +6492,7 @@ min_rows()
  * Does not count "aucmd_win".
  */
     int
-only_one_window()
+only_one_window(void)
 {
 #ifdef FEAT_WINDOWS
     int		count = 0;
@@ -6624,8 +6527,7 @@ only_one_window()
  * When "do_curwin" is TRUE, also check current window.
  */
     void
-check_lnums(do_curwin)
-    int		do_curwin;
+check_lnums(int do_curwin)
 {
     win_T	*wp;
 
@@ -6665,17 +6567,14 @@ check_lnums(do_curwin)
  * Create a snapshot of the current frame sizes.
  */
     void
-make_snapshot(idx)
-    int idx;
+make_snapshot(int idx)
 {
     clear_snapshot(curtab, idx);
     make_snapshot_rec(topframe, &curtab->tp_snapshot[idx]);
 }
 
     static void
-make_snapshot_rec(fr, frp)
-    frame_T	*fr;
-    frame_T	**frp;
+make_snapshot_rec(frame_T *fr, frame_T **frp)
 {
     *frp = (frame_T *)alloc_clear((unsigned)sizeof(frame_T));
     if (*frp == NULL)
@@ -6697,17 +6596,14 @@ make_snapshot_rec(fr, frp)
  * Remove any existing snapshot.
  */
     static void
-clear_snapshot(tp, idx)
-    tabpage_T	*tp;
-    int		idx;
+clear_snapshot(tabpage_T *tp, int idx)
 {
     clear_snapshot_rec(tp->tp_snapshot[idx]);
     tp->tp_snapshot[idx] = NULL;
 }
 
     static void
-clear_snapshot_rec(fr)
-    frame_T	*fr;
+clear_snapshot_rec(frame_T *fr)
 {
     if (fr != NULL)
     {
@@ -6723,9 +6619,9 @@ clear_snapshot_rec(fr)
  * still the same.
  */
     void
-restore_snapshot(idx, close_curwin)
-    int		idx;
-    int		close_curwin;	    /* closing current window */
+restore_snapshot(
+    int		idx,
+    int		close_curwin)	    /* closing current window */
 {
     win_T	*wp;
 
@@ -6750,9 +6646,7 @@ restore_snapshot(idx, close_curwin)
  * and same children.
  */
     static int
-check_snapshot_rec(sn, fr)
-    frame_T	*sn;
-    frame_T	*fr;
+check_snapshot_rec(frame_T *sn, frame_T *fr)
 {
     if (sn->fr_layout != fr->fr_layout
 	    || (sn->fr_next == NULL) != (fr->fr_next == NULL)
@@ -6771,9 +6665,7 @@ check_snapshot_rec(sn, fr)
  * Returns a pointer to the old current window, or NULL.
  */
     static win_T *
-restore_snapshot_rec(sn, fr)
-    frame_T	*sn;
-    frame_T	*fr;
+restore_snapshot_rec(frame_T *sn, frame_T *fr)
 {
     win_T	*wp = NULL;
     win_T	*wp2;
@@ -6818,12 +6710,12 @@ restore_snapshot_rec(sn, fr)
  * Returns FAIL if switching to "win" failed.
  */
     int
-switch_win(save_curwin, save_curtab, win, tp, no_display)
-    win_T	**save_curwin UNUSED;
-    tabpage_T	**save_curtab UNUSED;
-    win_T	*win UNUSED;
-    tabpage_T	*tp UNUSED;
-    int		no_display UNUSED;
+switch_win(
+    win_T	**save_curwin UNUSED,
+    tabpage_T	**save_curtab UNUSED,
+    win_T	*win UNUSED,
+    tabpage_T	*tp UNUSED,
+    int		no_display UNUSED)
 {
 # ifdef FEAT_AUTOCMD
     block_autocmds();
@@ -6858,10 +6750,10 @@ switch_win(save_curwin, save_curtab, win, tp, no_display)
  * triggered.
  */
     void
-restore_win(save_curwin, save_curtab, no_display)
-    win_T	*save_curwin UNUSED;
-    tabpage_T	*save_curtab UNUSED;
-    int		no_display UNUSED;
+restore_win(
+    win_T	*save_curwin UNUSED,
+    tabpage_T	*save_curtab UNUSED,
+    int		no_display UNUSED)
 {
 # ifdef FEAT_WINDOWS
     if (save_curtab != NULL && valid_tabpage(save_curtab))
@@ -6893,9 +6785,7 @@ restore_win(save_curwin, save_curtab, no_display)
  * No autocommands will be executed.  Use aucmd_prepbuf() if there are any.
  */
     void
-switch_buffer(save_curbuf, buf)
-    buf_T *buf;
-    buf_T **save_curbuf;
+switch_buffer(buf_T **save_curbuf, buf_T *buf)
 {
 # ifdef FEAT_AUTOCMD
     block_autocmds();
@@ -6911,8 +6801,7 @@ switch_buffer(save_curbuf, buf)
  * Restore the current buffer after using switch_buffer().
  */
     void
-restore_buffer(save_curbuf)
-    buf_T *save_curbuf;
+restore_buffer(buf_T *save_curbuf)
 {
 # ifdef FEAT_AUTOCMD
     unblock_autocmds();
@@ -6933,7 +6822,7 @@ restore_buffer(save_curbuf)
  * Return TRUE if there is any vertically split window.
  */
     int
-win_hasvertsplit()
+win_hasvertsplit(void)
 {
     frame_T	*fr;
 
@@ -6958,14 +6847,14 @@ win_hasvertsplit()
  * Return ID of added match, -1 on failure.
  */
     int
-match_add(wp, grp, pat, prio, id, pos_list, conceal_char)
-    win_T	*wp;
-    char_u	*grp;
-    char_u	*pat;
-    int		prio;
-    int		id;
-    list_T	*pos_list;
-    char_u      *conceal_char UNUSED; /* pointer to conceal replacement char */
+match_add(
+    win_T	*wp,
+    char_u	*grp,
+    char_u	*pat,
+    int		prio,
+    int		id,
+    list_T	*pos_list,
+    char_u      *conceal_char UNUSED) /* pointer to conceal replacement char */
 {
     matchitem_T	*cur;
     matchitem_T	*prev;
@@ -7156,10 +7045,7 @@ fail:
  * Print error messages if 'perr' is TRUE.
  */
     int
-match_delete(wp, id, perr)
-    win_T	*wp;
-    int		id;
-    int		perr;
+match_delete(win_T *wp, int id, int perr)
 {
     matchitem_T	*cur = wp->w_match_head;
     matchitem_T	*prev = cur;
@@ -7216,8 +7102,7 @@ match_delete(wp, id, perr)
  * Delete all matches in the match list of window 'wp'.
  */
     void
-clear_matches(wp)
-    win_T	*wp;
+clear_matches(win_T *wp)
 {
     matchitem_T *m;
 
@@ -7237,9 +7122,7 @@ clear_matches(wp)
  * Return NULL if match not found.
  */
     matchitem_T *
-get_match(wp, id)
-    win_T	*wp;
-    int		id;
+get_match(win_T *wp, int id)
 {
     matchitem_T *cur = wp->w_match_head;
 
@@ -7288,9 +7171,7 @@ get_tab_number(tabpage_T *tp UNUSED)
  * Return TRUE if "topfrp" and its children are at the right height.
  */
     static int
-frame_check_height(topfrp, height)
-    frame_T *topfrp;
-    int	    height;
+frame_check_height(frame_T *topfrp, int height)
 {
     frame_T *frp;
 
@@ -7311,9 +7192,7 @@ frame_check_height(topfrp, height)
  * Return TRUE if "topfrp" and its children are at the right width.
  */
     static int
-frame_check_width(topfrp, width)
-    frame_T *topfrp;
-    int	    width;
+frame_check_width(frame_T *topfrp, int width)
 {
     frame_T *frp;
 

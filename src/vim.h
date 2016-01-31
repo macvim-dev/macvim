@@ -509,9 +509,7 @@ typedef unsigned long u8char_T;	    /* long should be 32 bits or more */
 #ifdef HAVE_WCTYPE_H
 # include <wctype.h>
 #endif
-#ifdef HAVE_STDARG_H
-# include <stdarg.h>
-#endif
+#include <stdarg.h>
 
 #if defined(HAVE_SYS_SELECT_H) && \
 	(!defined(HAVE_SYS_TIME_H) || defined(SYS_SELECT_WITH_SYS_TIME))
@@ -2320,6 +2318,11 @@ typedef int sock_T;
 # define MAX_OPEN_CHANNELS 10
 #else
 # define MAX_OPEN_CHANNELS 0
+#endif
+
+#ifdef FEAT_MZSCHEME
+/* this is in main.c, cproto can't handle it. */
+int vim_main2(int argc, char **argv);
 #endif
 
 #endif /* VIM__H */

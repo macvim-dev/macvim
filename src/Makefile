@@ -1678,6 +1678,7 @@ PRO_AUTO = \
 	hangulin.pro \
 	if_cscope.pro \
 	if_lua.pro \
+	if_mzsch.pro \
 	if_python.pro \
 	if_python3.pro \
 	if_ruby.pro \
@@ -1685,6 +1686,7 @@ PRO_AUTO = \
 	json.pro \
 	main.pro \
 	mark.pro \
+	mbyte.pro \
 	memfile.pro \
 	memline.pro \
 	menu.pro \
@@ -1692,7 +1694,6 @@ PRO_AUTO = \
 	misc1.pro \
 	misc2.pro \
 	move.pro \
-	mbyte.pro \
 	normal.pro \
 	ops.pro \
 	option.pro \

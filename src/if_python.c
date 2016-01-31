@@ -865,7 +865,7 @@ Python_RestoreThread(void)
 #endif
 
     void
-python_end()
+python_end(void)
 {
     static int recurse = 0;
 
@@ -903,7 +903,7 @@ python_end()
 
 #if (defined(DYNAMIC_PYTHON) && defined(FEAT_PYTHON3)) || defined(PROTO)
     int
-python_loaded()
+python_loaded(void)
 {
     return (hinstPython != 0);
 }
