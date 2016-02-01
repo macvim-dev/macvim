@@ -65,7 +65,9 @@
 		1DED78600C6DE43D0079945F /* vimrc in Copy Vim Runtime Files */ = {isa = PBXBuildFile; fileRef = 1DED785F0C6DE43D0079945F /* vimrc */; };
 		1DFE25A50C527BC4003000F7 /* PSMTabBarControl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D493DB90C52533B00AB718C /* PSMTabBarControl.framework */; };
 		52A364731C4A5789005757EC /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 52A364721C4A5789005757EC /* Sparkle.framework */; };
+		52A364761C4A57C1005757EC /* Sparkle.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 52A364721C4A5789005757EC /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		52B7ED9B1C4A4D6900AFFF15 /* dsa_pub.pem in Resources */ = {isa = PBXBuildFile; fileRef = 52B7ED9A1C4A4D6900AFFF15 /* dsa_pub.pem */; };
+		52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */ = {isa = PBXBuildFile; fileRef = 52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8D11072A0486CEB800E47090 /* MainMenu.nib in Resources */ = {isa = PBXBuildFile; fileRef = 29B97318FDCFA39411CA2CEA /* MainMenu.nib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
@@ -94,6 +96,13 @@
 			remoteGlobalIDString = 8D576316048677EA00EA77CD;
 			remoteInfo = QuickLookStephen;
 		};
+		52818B001C1C084100F59085 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 8D57630D048677EA00EA77CD;
+			remoteInfo = QuickLookStephen;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -114,6 +123,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				52A364761C4A57C1005757EC /* Sparkle.framework in Copy Frameworks */,
 				1D493DBA0C52534300AB718C /* PSMTabBarControl.framework in Copy Frameworks */,
 			);
 			name = "Copy Frameworks";
@@ -130,6 +140,17 @@
 				1DE608B40C587FDA0055263D /* runtime in Copy Vim Runtime Files */,
 			);
 			name = "Copy Vim Runtime Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		52818B021C1C088000F59085 /* Copy QuickLookPlugin */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = ../Library/QuickLook;
+			dstSubfolderSpec = 6;
+			files = (
+				52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */,
+			);
+			name = "Copy QuickLookPlugin";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -445,14 +466,15 @@
 				8D11072E0486CEB800E47090 /* Frameworks */,
 				1D0DCAD80BA3604D00B6CCFA /* Copy Executables */,
 				1D9EB2840C366D7B0074B739 /* Copy Frameworks */,
+				52818B021C1C088000F59085 /* Copy QuickLookPlugin */,
 				1DE608B80C58807F0055263D /* Copy Vim Runtime Files */,
 				1D1C31F00EFFBFD6003FE9A5 /* Make Document Icons */,
-				520E0E2B1C2FBAF300949DD8 /* ShellScript */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				1D493DCD0C5254A400AB718C /* PBXTargetDependency */,
+				52818B011C1C084100F59085 /* PBXTargetDependency */,
 			);
 			name = MacVim;
 			productInstallPath = "$(HOME)/Applications";
@@ -576,20 +598,6 @@
 			shellScript = "# Clear deployment target, else the python script always thinks we're building on Tiger\nunset MACOSX_DEPLOYMENT_TARGET\n\n# Generate the icons (redirect stderr to ignore warnings)\ncd \"$PROJECT_DIR\"/icons/\nmake OUTDIR=\"$TARGET_BUILD_DIR\"/$UNLOCALIZED_RESOURCES_FOLDER_PATH 2> /dev/null\n";
 			showEnvVarsInLog = 0;
 		};
-		520E0E2B1C2FBAF300949DD8 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "OSX_MINOR_VERSION=`/usr/bin/sw_vers -productVersion|cut -f2 -d'.'`\nif [ $OSX_MINOR_VERSION -ge 8 ]; then\n    cp -pr Sparkle.framework $BUILT_PRODUCTS_DIR/$FRAMEWORKS_FOLDER_PATH\n    strip -S $BUILT_PRODUCTS_DIR/$FRAMEWORKS_FOLDER_PATH/Sparkle.framework/Versions/A/Resources/Autoupdate.app/Contents/MacOS/Autoupdate || exit 1\n    xcodebuild -project qlstephen/QuickLookStephen.xcodeproj\n    mkdir -p $BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/QuickLook\n    cp -pr qlstephen/build/Release/QLStephen.qlgenerator $BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/Library/QuickLook\nfi";
-			showEnvVarsInLog = 0;
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -626,6 +634,11 @@
 			isa = PBXTargetDependency;
 			name = PSMTabBarControlFramework;
 			targetProxy = 1D493DCC0C5254A400AB718C /* PBXContainerItemProxy */;
+		};
+		52818B011C1C084100F59085 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = QuickLookStephen;
+			targetProxy = 52818B001C1C084100F59085 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -668,6 +681,7 @@
 		C01FCF4B08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -700,6 +714,7 @@
 		C01FCF4C08A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
