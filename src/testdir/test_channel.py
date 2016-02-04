@@ -7,12 +7,6 @@
 # Then Vim can send requests to the server:
 #  :let response = ch_sendexpr(handle, 'hello!')
 #
-# And you can control Vim by typing a JSON message here, e.g.:
-#   ["ex","echo 'hi there'"]
-#
-# There is no prompt, just type a line and press Enter.
-# To exit cleanly type "quit<Enter>".
-#
 # See ":help channel-demo" in Vim.
 #
 # This requires Python 2.6 or later.
@@ -30,58 +24,95 @@ except ImportError:
     # Python 2
     import SocketServer as socketserver
 
-thesocket = None
-
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
         print("=== socket opened ===")
-        global thesocket
-        thesocket = self.request
         while True:
             try:
-                data = self.request.recv(4096).decode('utf-8')
+                received = self.request.recv(4096).decode('utf-8')
             except socket.error:
                 print("=== socket error ===")
                 break
             except IOError:
                 print("=== socket closed ===")
                 break
-            if data == '':
+            if received == '':
                 print("=== socket closed ===")
                 break
-            print("received: {}".format(data))
-            try:
-                decoded = json.loads(data)
-            except ValueError:
-                print("json decoding failed")
-                decoded = [-1, '']
+            print("received: {}".format(received))
 
-            # Send a response if the sequence number is positive.
-            # Negative numbers are used for "eval" responses.
-            if decoded[0] >= 0:
-                if decoded[1] == 'hello!':
-                    # simply send back a string
-                    response = "got it"
-                elif decoded[1] == 'make change':
-                    # Send two ex commands at the same time, before replying to
-                    # the request.
-                    cmd = '["ex","call append(\\"$\\",\\"added1\\")"]'
-                    cmd += '["ex","call append(\\"$\\",\\"added2\\")"]'
-                    print("sending: {}".format(cmd))
-                    thesocket.sendall(cmd.encode('utf-8'))
-                    response = "ok"
-                elif decoded[1] == '!quit!':
-                    # we're done
-                    sys.exit(0)
+            # We may receive two messages at once. Take the part up to the
+            # matching "]" (recognized by finding "][").
+            todo = received
+            while todo != '':
+                splitidx = todo.find('][')
+                if splitidx < 0:
+                     used = todo
+                     todo = ''
                 else:
-                    response = "what?"
+                     used = todo[:splitidx + 1]
+                     todo = todo[splitidx + 1:]
+                if used != received:
+                    print("using: {}".format(used))
 
-                encoded = json.dumps([decoded[0], response])
-                print("sending: {}".format(encoded))
-                thesocket.sendall(encoded.encode('utf-8'))
+                try:
+                    decoded = json.loads(used)
+                except ValueError:
+                    print("json decoding failed")
+                    decoded = [-1, '']
 
-        thesocket = None
+                # Send a response if the sequence number is positive.
+                if decoded[0] >= 0:
+                    if decoded[1] == 'hello!':
+                        # simply send back a string
+                        response = "got it"
+                    elif decoded[1] == 'make change':
+                        # Send two ex commands at the same time, before
+                        # replying to the request.
+                        cmd = '["ex","call append(\\"$\\",\\"added1\\")"]'
+                        cmd += '["ex","call append(\\"$\\",\\"added2\\")"]'
+                        print("sending: {}".format(cmd))
+                        self.request.sendall(cmd.encode('utf-8'))
+                        response = "ok"
+                    elif decoded[1] == 'eval-works':
+                        # Send an eval request.  We ignore the response.
+                        cmd = '["eval","\\"foo\\" . 123", -1]'
+                        print("sending: {}".format(cmd))
+                        self.request.sendall(cmd.encode('utf-8'))
+                        response = "ok"
+                    elif decoded[1] == 'eval-fails':
+                        # Send an eval request that will fail.
+                        cmd = '["eval","xxx", -2]'
+                        print("sending: {}".format(cmd))
+                        self.request.sendall(cmd.encode('utf-8'))
+                        response = "ok"
+                    elif decoded[1] == 'eval-bad':
+                        # Send an eval request missing the third argument.
+                        cmd = '["eval","xxx"]'
+                        print("sending: {}".format(cmd))
+                        self.request.sendall(cmd.encode('utf-8'))
+                        response = "ok"
+                    elif decoded[1] == 'eval-result':
+                        # Send back the last received eval result.
+                        response = last_eval
+                    elif decoded[1] == '!quit!':
+                        # we're done
+                        self.server.shutdown()
+                        break
+                    elif decoded[1] == '!crash!':
+                        # Crash!
+                        42 / 0
+                    else:
+                        response = "what?"
+
+                    encoded = json.dumps([decoded[0], response])
+                    print("sending: {}".format(encoded))
+                    self.request.sendall(encoded.encode('utf-8'))
+
+                # Negative numbers are used for "eval" responses.
+                elif decoded[0] < 0:
+                    last_eval = decoded
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
@@ -97,7 +128,6 @@ if __name__ == "__main__":
     server_thread = threading.Thread(target=server.serve_forever)
 
     # Exit the server thread when the main thread terminates
-    server_thread.daemon = True
     server_thread.start()
 
     # Write the port number in Xportnr, so that the test knows it.
@@ -105,6 +135,7 @@ if __name__ == "__main__":
     f.write("{}".format(port))
     f.close()
 
-    # Block here
     print("Listening on port {}".format(port))
-    server.serve_forever()
+
+    # Main thread terminates, but the server continues running
+    # until server.shutdown() is called.
