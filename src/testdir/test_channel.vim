@@ -1,14 +1,18 @@
 " Test for channel functions.
 scriptencoding utf-8
 
-" This requires the Python command to run the test server.
-" This most likely only works on Unix and Windows console.
+if !has('channel')
+  finish
+endif
+
+" This test requires the Python command to run the test server.
+" This most likely only works on Unix and Windows.
 if has('unix')
   " We also need the pkill command to make sure the server can be stopped.
   if !executable('python') || !executable('pkill')
     finish
   endif
-elseif has('win32') && !has('gui_win32')
+elseif has('win32')
   " Use Python Launcher for Windows (py.exe).
   if !executable('py')
     finish
@@ -84,14 +88,17 @@ func Test_communicate()
 
   " Send an eval request that works.
   call assert_equal('ok', ch_sendexpr(handle, 'eval-works'))
+  sleep 10m
   call assert_equal([-1, 'foo123'], ch_sendexpr(handle, 'eval-result'))
 
   " Send an eval request that fails.
   call assert_equal('ok', ch_sendexpr(handle, 'eval-fails'))
+  sleep 10m
   call assert_equal([-2, 'ERROR'], ch_sendexpr(handle, 'eval-result'))
 
   " Send a bad eval request. There will be no response.
   call assert_equal('ok', ch_sendexpr(handle, 'eval-bad'))
+  sleep 10m
   call assert_equal([-2, 'ERROR'], ch_sendexpr(handle, 'eval-result'))
 
   " make the server quit, can't check if this works, should not hang.
