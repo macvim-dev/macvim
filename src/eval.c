@@ -8005,7 +8005,7 @@ static struct fst
 #endif
 #ifdef FEAT_CHANNEL
     {"ch_close",	1, 1, f_ch_close},
-    {"ch_open",		2, 3, f_ch_open},
+    {"ch_open",		1, 2, f_ch_open},
     {"ch_sendexpr",	2, 3, f_ch_sendexpr},
     {"ch_sendraw",	2, 3, f_ch_sendraw},
 #endif
@@ -9743,21 +9743,23 @@ f_ch_open(typval_T *argvars, typval_T *rettv)
     char_u	*address;
     char_u	*mode;
     char_u	*callback = NULL;
-    char_u	buf1[NUMBUFLEN];
     char_u	*p;
+    char	*rest;
     int		port;
-    int		json_mode = FALSE;
+    int		waittime = 0;
+    int		timeout = 2000;
+    int		json_mode = TRUE;
+    int		ch_idx;
 
     /* default: fail */
     rettv->vval.v_number = -1;
 
     address = get_tv_string(&argvars[0]);
-    mode = get_tv_string_buf(&argvars[1], buf1);
-    if (argvars[2].v_type != VAR_UNKNOWN)
+    if (argvars[1].v_type != VAR_UNKNOWN
+	 && (argvars[1].v_type != VAR_DICT || argvars[1].vval.v_dict == NULL))
     {
-	callback = get_callback(&argvars[2]);
-	if (callback == NULL)
-	    return;
+	EMSG(_(e_invarg));
+	return;
     }
 
     /* parse address */
@@ -9768,30 +9770,52 @@ f_ch_open(typval_T *argvars, typval_T *rettv)
 	return;
     }
     *p++ = NUL;
-    port = atoi((char *)p);
-    if (*address == NUL || port <= 0)
+    port = strtol((char *)p, &rest, 10);
+    if (*address == NUL || port <= 0 || *rest != NUL)
     {
 	p[-1] = ':';
 	EMSG2(_(e_invarg2), address);
 	return;
     }
 
-    /* parse mode */
-    if (STRCMP(mode, "json") == 0)
-	json_mode = TRUE;
-    else if (STRCMP(mode, "raw") != 0)
+    if (argvars[1].v_type == VAR_DICT)
     {
-	EMSG2(_(e_invarg2), mode);
+	/* parse argdict */
+	dict_T	*dict = argvars[1].vval.v_dict;
+
+	if (dict_find(dict, (char_u *)"mode", -1) != NULL)
+	{
+	    mode = get_dict_string(dict, (char_u *)"mode", FALSE);
+	    if (STRCMP(mode, "raw") == 0)
+		json_mode = FALSE;
+	    else if (STRCMP(mode, "json") != 0)
+	    {
+		EMSG2(_(e_invarg2), mode);
+		return;
+	    }
+	}
+	if (dict_find(dict, (char_u *)"waittime", -1) != NULL)
+	    waittime = get_dict_number(dict, (char_u *)"waittime");
+	if (dict_find(dict, (char_u *)"timeout", -1) != NULL)
+	    timeout = get_dict_number(dict, (char_u *)"timeout");
+	if (dict_find(dict, (char_u *)"callback", -1) != NULL)
+	    callback = get_dict_string(dict, (char_u *)"callback", FALSE);
+    }
+    if (waittime < 0 || timeout < 0)
+    {
+	EMSG(_(e_invarg));
 	return;
     }
 
-    rettv->vval.v_number = channel_open((char *)address, port, NULL);
-    if (rettv->vval.v_number >= 0)
+    ch_idx = channel_open((char *)address, port, waittime, NULL);
+    if (ch_idx >= 0)
     {
-	channel_set_json_mode(rettv->vval.v_number, json_mode);
+	channel_set_json_mode(ch_idx, json_mode);
+	channel_set_timeout(ch_idx, timeout);
 	if (callback != NULL && *callback != NUL)
-	    channel_set_callback(rettv->vval.v_number, callback);
+	    channel_set_callback(ch_idx, callback);
     }
+    rettv->vval.v_number = ch_idx;
 }
 
 /*
@@ -9800,7 +9824,7 @@ f_ch_open(typval_T *argvars, typval_T *rettv)
  * Otherwise returns -1.
  */
     static int
-send_common(typval_T *argvars, char_u *text, char *fun)
+send_common(typval_T *argvars, char_u *text, int id, char *fun)
 {
     int		ch_idx;
     char_u	*callback = NULL;
@@ -9815,10 +9839,10 @@ send_common(typval_T *argvars, char_u *text, char *fun)
 	if (callback == NULL)
 	    return -1;
     }
-    /* Set the callback or clear it. An empty callback means no callback and
-     * not reading the response. */
-    channel_set_req_callback(ch_idx,
-	    callback != NULL && *callback == NUL ? NULL : callback);
+    /* Set the callback. An empty callback means no callback and not reading
+     * the response. */
+    if (callback != NULL && *callback != NUL)
+	channel_set_req_callback(ch_idx, callback, id);
 
     if (channel_send(ch_idx, text, fun) == OK && callback == NULL)
 	return ch_idx;
@@ -9845,24 +9869,18 @@ f_ch_sendexpr(typval_T *argvars, typval_T *rettv)
     if (text == NULL)
 	return;
 
-    ch_idx = send_common(argvars, text, "sendexpr");
+    ch_idx = send_common(argvars, text, id, "sendexpr");
     vim_free(text);
     if (ch_idx >= 0)
     {
 	if (channel_read_json_block(ch_idx, id, &listtv) == OK)
 	{
-	    if (listtv->v_type == VAR_LIST)
-	    {
-		list_T *list = listtv->vval.v_list;
+	    list_T *list = listtv->vval.v_list;
 
-		if (list->lv_len == 2)
-		{
-		    /* Move the item from the list and then change the type to
-		     * avoid the value being freed. */
-		    *rettv = list->lv_last->li_tv;
-		    list->lv_last->li_tv.v_type = VAR_NUMBER;
-		}
-	    }
+	    /* Move the item from the list and then change the type to
+	     * avoid the value being freed. */
+	    *rettv = list->lv_last->li_tv;
+	    list->lv_last->li_tv.v_type = VAR_NUMBER;
 	    clear_tv(listtv);
 	}
     }
@@ -9883,7 +9901,7 @@ f_ch_sendraw(typval_T *argvars, typval_T *rettv)
     rettv->vval.v_string = NULL;
 
     text = get_tv_string_buf(&argvars[1], buf);
-    ch_idx = send_common(argvars, text, "sendraw");
+    ch_idx = send_common(argvars, text, 0, "sendraw");
     if (ch_idx >= 0)
 	rettv->vval.v_string = channel_read_block(ch_idx);
 }

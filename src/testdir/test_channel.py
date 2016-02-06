@@ -75,6 +75,12 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                         print("sending: {}".format(cmd))
                         self.request.sendall(cmd.encode('utf-8'))
                         response = "ok"
+                    elif decoded[1] == 'do normal':
+                        # Send a normal command.
+                        cmd = '["normal","G$s more\u001b"]'
+                        print("sending: {}".format(cmd))
+                        self.request.sendall(cmd.encode('utf-8'))
+                        response = "ok"
                     elif decoded[1] == 'eval-works':
                         # Send an eval request.  We ignore the response.
                         cmd = '["eval","\\"foo\\" . 123", -1]'
@@ -90,6 +96,27 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                     elif decoded[1] == 'eval-bad':
                         # Send an eval request missing the third argument.
                         cmd = '["eval","xxx"]'
+                        print("sending: {}".format(cmd))
+                        self.request.sendall(cmd.encode('utf-8'))
+                        response = "ok"
+                    elif decoded[1] == 'an expr':
+                        # Send an expr request.
+                        cmd = '["expr","setline(\\"$\\", [\\"one\\",\\"two\\",\\"three\\"])"]'
+                        print("sending: {}".format(cmd))
+                        self.request.sendall(cmd.encode('utf-8'))
+                        response = "ok"
+                    elif decoded[1] == 'redraw':
+                        cmd = '["redraw",""]'
+                        print("sending: {}".format(cmd))
+                        self.request.sendall(cmd.encode('utf-8'))
+                        response = "ok"
+                    elif decoded[1] == 'redraw!':
+                        cmd = '["redraw","force"]'
+                        print("sending: {}".format(cmd))
+                        self.request.sendall(cmd.encode('utf-8'))
+                        response = "ok"
+                    elif decoded[1] == 'empty-request':
+                        cmd = '[]'
                         print("sending: {}".format(cmd))
                         self.request.sendall(cmd.encode('utf-8'))
                         response = "ok"
@@ -123,11 +150,9 @@ if __name__ == "__main__":
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
     ip, port = server.server_address
 
-    # Start a thread with the server -- that thread will then start one
-    # more thread for each request
+    # Start a thread with the server.  That thread will then start a new thread
+    # for each connection.
     server_thread = threading.Thread(target=server.serve_forever)
-
-    # Exit the server thread when the main thread terminates
     server_thread.start()
 
     # Write the port number in Xportnr, so that the test knows it.

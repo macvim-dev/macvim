@@ -57,7 +57,7 @@ func s:start_server()
   endif
   let s:port = l[0]
 
-  let handle = ch_open('localhost:' . s:port, 'json')
+  let handle = ch_open('localhost:' . s:port)
   return handle
 endfunc
 
@@ -67,6 +67,13 @@ func s:kill_server()
   else
     call system("pkill -f test_channel.py")
   endif
+endfunc
+
+let s:responseHandle = -1
+let s:responseMsg = ''
+func s:RequestHandler(handle, msg)
+  let s:responseHandle = a:handle
+  let s:responseMsg = a:msg
 endfunc
 
 func Test_communicate()
@@ -86,6 +93,16 @@ func Test_communicate()
   call assert_equal('added1', getline(line('$') - 1))
   call assert_equal('added2', getline('$'))
 
+  call assert_equal('ok', ch_sendexpr(handle, 'do normal'))
+  sleep 10m
+  call assert_equal('added more', getline('$'))
+
+  " Send a request with a specific handler.
+  call ch_sendexpr(handle, 'hello!', 's:RequestHandler')
+  sleep 10m
+  call assert_equal(handle, s:responseHandle)
+  call assert_equal('got it', s:responseMsg)
+
   " Send an eval request that works.
   call assert_equal('ok', ch_sendexpr(handle, 'eval-works'))
   sleep 10m
@@ -101,6 +118,19 @@ func Test_communicate()
   sleep 10m
   call assert_equal([-2, 'ERROR'], ch_sendexpr(handle, 'eval-result'))
 
+  " Send an expr request
+  call assert_equal('ok', ch_sendexpr(handle, 'an expr'))
+  sleep 10m
+  call assert_equal('one', getline(line('$') - 2))
+  call assert_equal('two', getline(line('$') - 1))
+  call assert_equal('three', getline('$'))
+
+  " Request a redraw, we don't check for the effect.
+  call assert_equal('ok', ch_sendexpr(handle, 'redraw'))
+  call assert_equal('ok', ch_sendexpr(handle, 'redraw!'))
+
+  call assert_equal('ok', ch_sendexpr(handle, 'empty-request'))
+
   " make the server quit, can't check if this works, should not hang.
   call ch_sendexpr(handle, '!quit!', 0)
 
@@ -115,7 +145,7 @@ func Test_two_channels()
   endif
   call assert_equal('got it', ch_sendexpr(handle, 'hello!'))
 
-  let newhandle = ch_open('localhost:' . s:port, 'json')
+  let newhandle = ch_open('localhost:' . s:port)
   call assert_equal('got it', ch_sendexpr(newhandle, 'hello!'))
   call assert_equal('got it', ch_sendexpr(handle, 'hello!'))
 
