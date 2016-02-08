@@ -628,6 +628,8 @@ static void f_job_stop(typval_T *argvars, typval_T *rettv);
 static void f_job_status(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_join(typval_T *argvars, typval_T *rettv);
+static void f_jsdecode(typval_T *argvars, typval_T *rettv);
+static void f_jsencode(typval_T *argvars, typval_T *rettv);
 static void f_jsondecode(typval_T *argvars, typval_T *rettv);
 static void f_jsonencode(typval_T *argvars, typval_T *rettv);
 static void f_keys(typval_T *argvars, typval_T *rettv);
@@ -688,6 +690,9 @@ static void f_pyeval(typval_T *argvars, typval_T *rettv);
 static void f_range(typval_T *argvars, typval_T *rettv);
 static void f_readfile(typval_T *argvars, typval_T *rettv);
 static void f_reltime(typval_T *argvars, typval_T *rettv);
+#ifdef FEAT_FLOAT
+static void f_reltimefloat(typval_T *argvars, typval_T *rettv);
+#endif
 static void f_reltimestr(typval_T *argvars, typval_T *rettv);
 static void f_remote_expr(typval_T *argvars, typval_T *rettv);
 static void f_remote_foreground(typval_T *argvars, typval_T *rettv);
@@ -8203,9 +8208,11 @@ static struct fst
 #ifdef FEAT_JOB
     {"job_start",	1, 2, f_job_start},
     {"job_status",	1, 1, f_job_status},
-    {"job_stop",	1, 1, f_job_stop},
+    {"job_stop",	1, 2, f_job_stop},
 #endif
     {"join",		1, 2, f_join},
+    {"jsdecode",	1, 1, f_jsdecode},
+    {"jsencode",	1, 1, f_jsencode},
     {"jsondecode",	1, 1, f_jsondecode},
     {"jsonencode",	1, 1, f_jsonencode},
     {"keys",		1, 1, f_keys},
@@ -8266,6 +8273,7 @@ static struct fst
     {"range",		1, 3, f_range},
     {"readfile",	1, 3, f_readfile},
     {"reltime",		0, 2, f_reltime},
+    {"reltimefloat",	1, 1, f_reltimefloat},
     {"reltimestr",	1, 1, f_reltimestr},
     {"remote_expr",	2, 3, f_remote_expr},
     {"remote_foreground", 1, 1, f_remote_foreground},
@@ -9829,7 +9837,7 @@ f_ch_open(typval_T *argvars, typval_T *rettv)
     int		port;
     int		waittime = 0;
     int		timeout = 2000;
-    int		json_mode = TRUE;
+    ch_mode_T	ch_mode = MODE_JSON;
     int		ch_idx;
 
     /* default: fail */
@@ -9868,8 +9876,12 @@ f_ch_open(typval_T *argvars, typval_T *rettv)
 	{
 	    mode = get_dict_string(dict, (char_u *)"mode", FALSE);
 	    if (STRCMP(mode, "raw") == 0)
-		json_mode = FALSE;
-	    else if (STRCMP(mode, "json") != 0)
+		ch_mode = MODE_RAW;
+	    else if (STRCMP(mode, "js") == 0)
+		ch_mode = MODE_JS;
+	    else if (STRCMP(mode, "json") == 0)
+		ch_mode = MODE_JSON;
+	    else
 	    {
 		EMSG2(_(e_invarg2), mode);
 		return;
@@ -9891,7 +9903,7 @@ f_ch_open(typval_T *argvars, typval_T *rettv)
     ch_idx = channel_open((char *)address, port, waittime, NULL);
     if (ch_idx >= 0)
     {
-	channel_set_json_mode(ch_idx, json_mode);
+	channel_set_json_mode(ch_idx, ch_mode);
 	channel_set_timeout(ch_idx, timeout);
 	if (callback != NULL && *callback != NUL)
 	    channel_set_callback(ch_idx, callback);
@@ -9912,7 +9924,10 @@ send_common(typval_T *argvars, char_u *text, int id, char *fun)
 
     ch_idx = get_channel_arg(&argvars[0]);
     if (ch_idx < 0)
+    {
+	EMSG(_(e_invarg));
 	return -1;
+    }
 
     if (argvars[2].v_type != VAR_UNKNOWN)
     {
@@ -9940,13 +9955,29 @@ f_ch_sendexpr(typval_T *argvars, typval_T *rettv)
     typval_T	*listtv;
     int		ch_idx;
     int		id;
+    ch_mode_T	ch_mode;
 
     /* return an empty string by default */
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = NULL;
 
+    ch_idx = get_channel_arg(&argvars[0]);
+    if (ch_idx < 0)
+    {
+	EMSG(_(e_invarg));
+	return;
+    }
+
+    ch_mode = channel_get_mode(ch_idx);
+    if (ch_mode == MODE_RAW)
+    {
+	EMSG(_("E912: cannot use ch_sendexpr() with a raw channel"));
+	return;
+    }
+
     id = channel_get_id();
-    text = json_encode_nr_expr(id, &argvars[1]);
+    text = json_encode_nr_expr(id, &argvars[1],
+					    ch_mode == MODE_JS ? JSON_JS : 0);
     if (text == NULL)
 	return;
 
@@ -14297,7 +14328,7 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
 
     rettv->vval.v_job->jv_status = JOB_FAILED;
 #ifndef USE_ARGV
-    ga_init2(&ga, 200);
+    ga_init2(&ga, (int)sizeof(char*), 20);
 #endif
 
     if (argvars[0].v_type == VAR_STRING)
@@ -14363,8 +14394,7 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
 
 theend:
 #ifdef USE_ARGV
-    if (argv != NULL)
-	vim_free(argv);
+    vim_free(argv);
 #else
     vim_free(ga.ga_data);
 #endif
@@ -14462,6 +14492,31 @@ f_join(typval_T *argvars, typval_T *rettv)
 }
 
 /*
+ * "jsdecode()" function
+ */
+    static void
+f_jsdecode(typval_T *argvars, typval_T *rettv)
+{
+    js_read_T	reader;
+
+    reader.js_buf = get_tv_string(&argvars[0]);
+    reader.js_fill = NULL;
+    reader.js_used = 0;
+    if (json_decode_all(&reader, rettv, JSON_JS) != OK)
+	EMSG(_(e_invarg));
+}
+
+/*
+ * "jsencode()" function
+ */
+    static void
+f_jsencode(typval_T *argvars, typval_T *rettv)
+{
+    rettv->v_type = VAR_STRING;
+    rettv->vval.v_string = json_encode(&argvars[0], JSON_JS);
+}
+
+/*
  * "jsondecode()" function
  */
     static void
@@ -14472,7 +14527,7 @@ f_jsondecode(typval_T *argvars, typval_T *rettv)
     reader.js_buf = get_tv_string(&argvars[0]);
     reader.js_fill = NULL;
     reader.js_used = 0;
-    if (json_decode_all(&reader, rettv) != OK)
+    if (json_decode_all(&reader, rettv, 0) != OK)
 	EMSG(_(e_invarg));
 }
 
@@ -14483,7 +14538,7 @@ f_jsondecode(typval_T *argvars, typval_T *rettv)
 f_jsonencode(typval_T *argvars, typval_T *rettv)
 {
     rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = json_encode(&argvars[0]);
+    rettv->vval.v_string = json_encode(&argvars[0], 0);
 }
 
 /*
@@ -15995,6 +16050,26 @@ f_reltime(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     }
 #endif
 }
+
+#ifdef FEAT_FLOAT
+/*
+ * "reltimefloat()" function
+ */
+    static void
+f_reltimefloat(typval_T *argvars UNUSED, typval_T *rettv)
+{
+# ifdef FEAT_RELTIME
+    proftime_T	tm;
+# endif
+
+    rettv->v_type = VAR_FLOAT;
+    rettv->vval.v_float = 0;
+# ifdef FEAT_RELTIME
+    if (list2proftime(&argvars[0], &tm) == OK)
+	rettv->vval.v_float = profile_float(&tm);
+# endif
+}
+#endif
 
 /*
  * "reltimestr()" function
