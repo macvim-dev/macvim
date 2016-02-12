@@ -629,10 +629,10 @@ static void f_job_stop(typval_T *argvars, typval_T *rettv);
 static void f_job_status(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_join(typval_T *argvars, typval_T *rettv);
-static void f_jsdecode(typval_T *argvars, typval_T *rettv);
-static void f_jsencode(typval_T *argvars, typval_T *rettv);
-static void f_jsondecode(typval_T *argvars, typval_T *rettv);
-static void f_jsonencode(typval_T *argvars, typval_T *rettv);
+static void f_js_decode(typval_T *argvars, typval_T *rettv);
+static void f_js_encode(typval_T *argvars, typval_T *rettv);
+static void f_json_decode(typval_T *argvars, typval_T *rettv);
+static void f_json_encode(typval_T *argvars, typval_T *rettv);
 static void f_keys(typval_T *argvars, typval_T *rettv);
 static void f_last_buffer_nr(typval_T *argvars, typval_T *rettv);
 static void f_len(typval_T *argvars, typval_T *rettv);
@@ -8213,10 +8213,10 @@ static struct fst
     {"job_stop",	1, 2, f_job_stop},
 #endif
     {"join",		1, 2, f_join},
-    {"jsdecode",	1, 1, f_jsdecode},
-    {"jsencode",	1, 1, f_jsencode},
-    {"jsondecode",	1, 1, f_jsondecode},
-    {"jsonencode",	1, 1, f_jsonencode},
+    {"js_decode",	1, 1, f_js_decode},
+    {"js_encode",	1, 1, f_js_encode},
+    {"json_decode",	1, 1, f_json_decode},
+    {"json_encode",	1, 1, f_json_encode},
     {"keys",		1, 1, f_keys},
     {"last_buffer_nr",	0, 0, f_last_buffer_nr},/* obsolete */
     {"len",		1, 1, f_len},
@@ -9871,12 +9871,13 @@ f_ch_open(typval_T *argvars, typval_T *rettv)
 
     if (argvars[1].v_type == VAR_DICT)
     {
-	/* parse argdict */
-	dict_T	*dict = argvars[1].vval.v_dict;
+	dict_T	    *dict = argvars[1].vval.v_dict;
+	dictitem_T  *item;
 
-	if (dict_find(dict, (char_u *)"mode", -1) != NULL)
+	/* parse argdict */
+	if ((item = dict_find(dict, (char_u *)"mode", -1)) != NULL)
 	{
-	    mode = get_dict_string(dict, (char_u *)"mode", FALSE);
+	    mode = get_tv_string(&item->di_tv);
 	    if (STRCMP(mode, "raw") == 0)
 		ch_mode = MODE_RAW;
 	    else if (STRCMP(mode, "js") == 0)
@@ -9889,12 +9890,12 @@ f_ch_open(typval_T *argvars, typval_T *rettv)
 		return;
 	    }
 	}
-	if (dict_find(dict, (char_u *)"waittime", -1) != NULL)
-	    waittime = get_dict_number(dict, (char_u *)"waittime");
-	if (dict_find(dict, (char_u *)"timeout", -1) != NULL)
-	    timeout = get_dict_number(dict, (char_u *)"timeout");
-	if (dict_find(dict, (char_u *)"callback", -1) != NULL)
-	    callback = get_dict_string(dict, (char_u *)"callback", FALSE);
+	if ((item = dict_find(dict, (char_u *)"waittime", -1)) != NULL)
+	    waittime = get_tv_number(&item->di_tv);
+	if ((item = dict_find(dict, (char_u *)"timeout", -1)) != NULL)
+	    timeout = get_tv_number(&item->di_tv);
+	if ((item = dict_find(dict, (char_u *)"callback", -1)) != NULL)
+	    callback = get_callback(&item->di_tv);
     }
     if (waittime < 0 || timeout < 0)
     {
@@ -14506,10 +14507,10 @@ f_join(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "jsdecode()" function
+ * "js_decode()" function
  */
     static void
-f_jsdecode(typval_T *argvars, typval_T *rettv)
+f_js_decode(typval_T *argvars, typval_T *rettv)
 {
     js_read_T	reader;
 
@@ -14521,20 +14522,20 @@ f_jsdecode(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "jsencode()" function
+ * "js_encode()" function
  */
     static void
-f_jsencode(typval_T *argvars, typval_T *rettv)
+f_js_encode(typval_T *argvars, typval_T *rettv)
 {
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = json_encode(&argvars[0], JSON_JS);
 }
 
 /*
- * "jsondecode()" function
+ * "json_decode()" function
  */
     static void
-f_jsondecode(typval_T *argvars, typval_T *rettv)
+f_json_decode(typval_T *argvars, typval_T *rettv)
 {
     js_read_T	reader;
 
@@ -14546,10 +14547,10 @@ f_jsondecode(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "jsonencode()" function
+ * "json_encode()" function
  */
     static void
-f_jsonencode(typval_T *argvars, typval_T *rettv)
+f_json_encode(typval_T *argvars, typval_T *rettv)
 {
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = json_encode(&argvars[0], 0);
@@ -21649,7 +21650,7 @@ get_tv_string_buf_chk(typval_T *varp, char_u *buf)
 			    "process %ld %s", (long)job->jv_pid, status);
 # elif defined(WIN32)
 		vim_snprintf((char *)buf, NUMBUFLEN,
-			    "process %ld %s", (long)job->jf_pi.dwProcessId,
+			    "process %ld %s", (long)job->jv_pi.dwProcessId,
 			    status);
 # else
 		/* fall-back */
