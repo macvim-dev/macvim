@@ -3433,7 +3433,7 @@ static void socketReadCallback(CFSocketRef s,
 {
 #ifdef FEAT_CHANNEL
     int idx = (int)(intptr_t)info;
-    channel_read(idx);
+    channel_read(idx, FALSE, "socketReadCallback");
 #endif
 }
 
