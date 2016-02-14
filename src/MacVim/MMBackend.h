@@ -156,8 +156,8 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
 - (BOOL)imState;
 - (void)setImState:(BOOL)activated;
 
-- (void)addChannel:(int)idx fileDescriptor:(int)fd;
-- (void)removeChannel:(int)idx;
+- (void)addChannel:(channel_T *)channel;
+- (void)removeChannel:(channel_T *)channel;
 
 #ifdef FEAT_BEVAL
 - (void)setLastToolTip:(NSString *)toolTip;

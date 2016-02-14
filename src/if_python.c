@@ -1565,6 +1565,7 @@ do_pyeval (char_u *str, typval_T *rettv)
 	case VAR_FLOAT:
 	case VAR_SPECIAL:
 	case VAR_JOB:
+	case VAR_CHANNEL:
 	    break;
     }
 }

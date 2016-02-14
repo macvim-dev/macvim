@@ -168,7 +168,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     CFRunLoopSourceRef  runLoopSource;
 }
 
-- (id)initWithIndex:(int)idx fileDescriptor:(int)fd;
+- (id)initWithChannel:(channel_T *)channel;
 @end
 
 
@@ -1684,20 +1684,17 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self flushQueue:YES];
 }
 
-- (void)addChannel:(int)idx fileDescriptor:(int)fd
+- (void)addChannel:(channel_T *)channel
 {
-    if (fd == -1)
-        return;
-
-    NSNumber *key = [NSNumber numberWithInt:idx];
-    MMChannel *channel =
-        [[[MMChannel alloc] initWithIndex:idx fileDescriptor:fd] autorelease];
-    [channelDict setObject:channel forKey:key];
+    NSValue *key = [NSValue valueWithPointer:channel];
+    MMChannel *mmChannel =
+        [[[MMChannel alloc] initWithChannel:channel] autorelease];
+    [channelDict setObject:mmChannel forKey:key];
 }
 
-- (void)removeChannel:(int)idx
+- (void)removeChannel:(channel_T *)channel
 {
-    NSNumber *key = [NSNumber numberWithInt:idx];
+    NSValue *key = [NSValue valueWithPointer:channel];
     [channelDict removeObjectForKey:key];
 }
 
@@ -3432,20 +3429,19 @@ static void socketReadCallback(CFSocketRef s,
                                void *info)
 {
 #ifdef FEAT_CHANNEL
-    int idx = (int)(intptr_t)info;
-    channel_read(idx, FALSE, "socketReadCallback");
+    channel_read((channel_T *)info, FALSE, "socketReadCallback");
 #endif
 }
 
-- (id)initWithIndex:(int)idx fileDescriptor:(int)fd
+- (id)initWithChannel:(channel_T *)channel
 {
     self = [super init];
     if (!self) return nil;
 
     // Tell CFRunLoop that we are interested in channel socket input.
-    CFSocketContext ctx = {0, (void *)(intptr_t)idx, NULL, NULL, NULL};
+    CFSocketContext ctx = {0, channel, NULL, NULL, NULL};
     socket = CFSocketCreateWithNative(kCFAllocatorDefault,
-                                      fd,
+                                      channel->ch_sock,
                                       kCFSocketReadCallBack,
                                       &socketReadCallback,
                                       &ctx);

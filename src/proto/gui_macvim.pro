@@ -228,9 +228,9 @@ gui_mch_replace_dialog(exarg_T *eap);
 im_set_control(int enable);
 
     void
-gui_macvim_add_channel(int idx, int fd);
+gui_macvim_add_channel(channel_T *channel);
     void
-gui_macvim_remove_channel(int idx);
+gui_macvim_remove_channel(channel_T *channel);
 
     void
 gui_mch_drawsign(int row, int col, int typenr);
