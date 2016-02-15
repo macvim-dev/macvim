@@ -164,11 +164,14 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 
 @interface MMChannel : NSObject {
+    channel_T           *channel;
+    int                 which;           
     CFSocketRef         socket;
     CFRunLoopSourceRef  runLoopSource;
 }
 
-- (id)initWithChannel:(channel_T *)channel;
+- (id)initWithChannel:(channel_T *)c which:(int)w;
+- (void)read;
 @end
 
 
@@ -241,7 +244,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     connectionNameDict = [[NSMutableDictionary alloc] init];
     clientProxyDict = [[NSMutableDictionary alloc] init];
     serverReplyDict = [[NSMutableDictionary alloc] init];
-    channelDict = [[NSMutableDictionary alloc] init];
 
     NSBundle *mainBundle = [NSBundle mainBundle];
     NSString *path = [mainBundle pathForResource:@"Colors" ofType:@"plist"];
@@ -273,7 +275,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     gui_mch_free_font(oldWideFont);  oldWideFont = NOFONT;
     [blinkTimer release];  blinkTimer = nil;
     [alternateServerName release];  alternateServerName = nil;
-    [channelDict release];  channelDict = nil;
     [serverReplyDict release];  serverReplyDict = nil;
     [clientProxyDict release];  clientProxyDict = nil;
     [connectionNameDict release];  connectionNameDict = nil;
@@ -1684,18 +1685,17 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self flushQueue:YES];
 }
 
-- (void)addChannel:(channel_T *)channel
+- (void *)addChannel:(channel_T *)channel which:(int)which
 {
-    NSValue *key = [NSValue valueWithPointer:channel];
     MMChannel *mmChannel =
-        [[[MMChannel alloc] initWithChannel:channel] autorelease];
-    [channelDict setObject:mmChannel forKey:key];
+        [[MMChannel alloc] initWithChannel:channel which:which];
+    return (__bridge void *)mmChannel;
 }
 
-- (void)removeChannel:(channel_T *)channel
+- (void)removeChannel:(void *)cookie
 {
-    NSValue *key = [NSValue valueWithPointer:channel];
-    [channelDict removeObjectForKey:key];
+    MMChannel *mmChannel = (__bridge MMChannel *)cookie;
+    [mmChannel release];
 }
 
 #ifdef FEAT_BEVAL
@@ -3428,20 +3428,22 @@ static void socketReadCallback(CFSocketRef s,
                                const void *data,
                                void *info)
 {
-#ifdef FEAT_CHANNEL
-    channel_read((channel_T *)info, FALSE, "socketReadCallback");
-#endif
+    MMChannel *mmChannel = (__bridge MMChannel *)info;
+    [mmChannel read];
 }
 
-- (id)initWithChannel:(channel_T *)channel
+- (id)initWithChannel:(channel_T *)c which:(int)w
 {
     self = [super init];
     if (!self) return nil;
 
+    channel = c;
+    which = w;
+
     // Tell CFRunLoop that we are interested in channel socket input.
-    CFSocketContext ctx = {0, channel, NULL, NULL, NULL};
+    CFSocketContext ctx = {0, (__bridge void *)self, NULL, NULL, NULL};
     socket = CFSocketCreateWithNative(kCFAllocatorDefault,
-                                      channel->ch_sock,
+                                      channel->ch_pfd[which].ch_fd,
                                       kCFSocketReadCallBack,
                                       &socketReadCallback,
                                       &ctx);
@@ -3453,6 +3455,13 @@ static void socketReadCallback(CFSocketRef s,
                        kCFRunLoopCommonModes);
 
     return self;
+}
+
+- (void)read
+{
+#ifdef FEAT_CHANNEL
+    channel_read(channel, which, "MMChannel_read");
+#endif
 }
 
 @end

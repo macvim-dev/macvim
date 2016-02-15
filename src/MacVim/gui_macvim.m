@@ -2241,16 +2241,16 @@ static int vimModMaskToEventModifierFlags(int mods)
 
 // -- Channel Support ------------------------------------------------------
 
-    void
-gui_macvim_add_channel(channel_T *channel)
+    void *
+gui_macvim_add_channel(channel_T *channel, int which)
 {
-    [[MMBackend sharedInstance] addChannel:channel];
+    return [[MMBackend sharedInstance] addChannel:channel which:which];
 }
 
     void
-gui_macvim_remove_channel(channel_T *channel)
+gui_macvim_remove_channel(void *cookie)
 {
-    [[MMBackend sharedInstance] removeChannel:channel];
+    [[MMBackend sharedInstance] removeChannel:cookie];
 }
 
 

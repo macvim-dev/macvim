@@ -1335,7 +1335,7 @@ typedef struct {
     int		ch_inputHandler; /* ret.value of WSAAsyncSelect() */
 #endif
 #ifdef FEAT_GUI_MACVIM
-    int		ch_inputHandler; /* Cookie for input */
+    void	*ch_inputHandler; /* Cookie for input */
 #endif
 } chan_fd_T;
 

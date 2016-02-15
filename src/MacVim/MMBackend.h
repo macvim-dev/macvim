@@ -56,7 +56,6 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
     unsigned            numWholeLineChanges;
     unsigned            offsetForDrawDataPrune;
     BOOL                imState;
-    NSMutableDictionary *channelDict;
     int                 winposX;
     int                 winposY;
 #ifdef FEAT_BEVAL
@@ -156,8 +155,8 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
 - (BOOL)imState;
 - (void)setImState:(BOOL)activated;
 
-- (void)addChannel:(channel_T *)channel;
-- (void)removeChannel:(channel_T *)channel;
+- (void *)addChannel:(channel_T *)channel which:(int)which;
+- (void)removeChannel:(void *)cookie;
 
 #ifdef FEAT_BEVAL
 - (void)setLastToolTip:(NSString *)toolTip;
