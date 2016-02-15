@@ -1017,25 +1017,48 @@ lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
     // See if font in cache can draw at least one character
     NSUInteger i;
     for (i = 0; i < [fontCache count]; ++i) {
-        NSFont *font = [fontCache objectAtIndex:i];
+        CTFontRef font = (CTFontRef)[fontCache objectAtIndex:i];
 
-        if (CTFontGetGlyphsForCharacters((CTFontRef)font, chars, glyphs, count))
-            return (CTFontRef)[font retain];
+        if (CTFontGetGlyphsForCharacters(font, chars, glyphs, count))
+            return CFRetain(font);
     }
 
     // Ask Core Text for a font (can be *very* slow, which is why we cache
     // fonts in the first place)
-    CFRange r = { 0, count };
-    CFStringRef strRef = CFStringCreateWithCharacters(NULL, chars, count);
-    CTFontRef newFontRef = CTFontCreateForString(currFontRef, strRef, r);
-    CFRelease(strRef);
+    // NB: We could use CTFontCreateForString() but that only consults the cascade list in the font itself.
+    // We want intelligent system cascade behavior, so we'll create a CTLine instead and extract its font.
+    NSAttributedString *attStr = [[NSAttributedString alloc] initWithString:[NSString stringWithCharacters:chars length:count]
+                                                                 attributes:@{(id)kCTFontAttributeName: (id)currFontRef}];
+    CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attStr);
+    CTFontRef newFontRef = nil;
+    for (id runObj in (NSArray *)CTLineGetGlyphRuns(line)) {
+        CTRunRef run = (CTRunRef)runObj;
+        CFDictionaryRef attrs = CTRunGetAttributes(run);
+        if (!attrs) continue;
+        CTFontRef runFontRef = CFDictionaryGetValue(attrs, kCTFontAttributeName);
+        if (!runFontRef) continue;
+        if (!newFontRef) {
+            newFontRef = CFRetain(runFontRef);
+        } else if (!CFEqual(newFontRef, runFontRef)) {
+            // two different fonts in the same line
+            CFRelease(newFontRef);
+            newFontRef = nil;
+            break;
+        }
+    }
+    CFRelease(line);
+    if (!newFontRef) {
+        // either we have no glyphs, or we found two fonts on the same line.
+        return nil;
+    }
 
     // Verify the font can actually convert all the glyphs.
-    if (!CTFontGetGlyphsForCharacters(newFontRef, chars, glyphs, count))
+    if (!CTFontGetGlyphsForCharacters(newFontRef, chars, glyphs, count)) {
+        CFRelease(newFontRef);
         return nil;
+    }
 
-    if (newFontRef)
-        [fontCache addObject:(NSFont *)newFontRef];
+    [fontCache addObject:(id)newFontRef];
 
     return newFontRef;
 }
