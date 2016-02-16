@@ -414,7 +414,7 @@ WINDRES_CC = $(CC)
 #>>>>> end of choices
 ###########################################################################
 
-CFLAGS = -Iproto $(DEFINES) -pipe -w -march=$(ARCH) -Wall
+CFLAGS = -Iproto $(DEFINES) -pipe -march=$(ARCH) -Wall
 WINDRES_FLAGS = --preprocessor="$(WINDRES_CC) -E -xc" -DRC_INVOKED
 EXTRA_LIBS =
 
@@ -684,16 +684,13 @@ ifneq (yes, $(GUI))
 NETBEANS=no
 else
 OBJ += $(OUTDIR)/netbeans.o
-LIB += -lwsock32
 endif
 endif
 endif
 
 ifeq ($(CHANNEL),yes)
 OBJ += $(OUTDIR)/channel.o
-ifneq ($(NETBEANS),yes)
 LIB += -lwsock32
-endif
 endif
 
 ifeq ($(DIRECTX),yes)
