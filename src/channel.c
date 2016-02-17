@@ -47,7 +47,7 @@
 # define sock_write(sd, buf, len) write(sd, buf, len)
 # define sock_read(sd, buf, len) read(sd, buf, len)
 # define sock_close(sd) close(sd)
-# define fd_read(fd, buf, len, timeout) read(fd, buf, len)
+# define fd_read(fd, buf, len) read(fd, buf, len)
 # define fd_write(sd, buf, len) write(sd, buf, len)
 # define fd_close(sd) close(sd)
 #endif
@@ -58,7 +58,7 @@ extern HWND s_hwnd;			/* Gvim's Window handle */
 
 #ifdef WIN32
     static int
-fd_read(sock_T fd, char_u *buf, size_t len, int timeout)
+fd_read(sock_T fd, char *buf, size_t len)
 {
     HANDLE h = (HANDLE)fd;
     DWORD nread;
@@ -69,7 +69,7 @@ fd_read(sock_T fd, char_u *buf, size_t len, int timeout)
 }
 
     static int
-fd_write(sock_T fd, char_u *buf, size_t len)
+fd_write(sock_T fd, char *buf, size_t len)
 {
     HANDLE h = (HANDLE)fd;
     DWORD nwrite;
@@ -253,7 +253,7 @@ add_channel(void)
 	return NULL;
 
     channel->ch_id = next_ch_id++;
-    ch_log(channel, "Opening channel\n");
+    ch_log(channel, "Created channel\n");
 
 #ifdef CHANNEL_PIPES
     for (which = CHAN_SOCK; which <= CHAN_IN; ++which)
@@ -477,8 +477,12 @@ channel_gui_unregister(channel_T *channel)
 
 #endif
 
+static char *e_cannot_connect = N_("E902: Cannot connect to port");
+
 /*
  * Open a socket channel to "hostname":"port".
+ * "waittime" is the time in msec to wait for the connection.
+ * When negative wait forever.
  * Returns the channel for success.
  * Returns NULL for failure.
  */
@@ -511,7 +515,7 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
 
     if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
-	ch_error(NULL, "in socket() in channel_open().\n");
+	ch_error(channel, "in socket() in channel_open().\n");
 	PERROR("E898: socket() in channel_open()");
 	channel_free(channel);
 	return NULL;
@@ -524,7 +528,7 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
     server.sin_port = htons(port);
     if ((host = gethostbyname(hostname)) == NULL)
     {
-	ch_error(NULL, "in gethostbyname() in channel_open()\n");
+	ch_error(channel, "in gethostbyname() in channel_open()\n");
 	PERROR("E901: gethostbyname() in channel_open()");
 	sock_close(sd);
 	channel_free(channel);
@@ -544,7 +548,7 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
 	   )
 	{
 	    SOCK_ERRNO;
-	    ch_errorn(NULL, "channel_open: Connect failed with errno %d\n",
+	    ch_errorn(channel, "channel_open: Connect failed with errno %d\n",
 								       errno);
 	    sock_close(sd);
 	    channel_free(channel);
@@ -553,7 +557,7 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
     }
 
     /* Try connecting to the server. */
-    ch_logsn(NULL, "Connecting to %s port %d", hostname, port);
+    ch_logsn(channel, "Connecting to %s port %d\n", hostname, port);
     ret = connect(sd, (struct sockaddr *)&server, sizeof(server));
     SOCK_ERRNO;
     if (ret < 0)
@@ -564,9 +568,9 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
 #endif
 		)
 	{
-	    ch_errorn(NULL, "channel_open: Connect failed with errno %d\n",
+	    ch_errorn(channel, "channel_open: Connect failed with errno %d\n",
 								       errno);
-	    PERROR(_("E902: Cannot connect to port"));
+	    PERROR(_(e_cannot_connect));
 	    sock_close(sd);
 	    channel_free(channel);
 	    return NULL;
@@ -577,29 +581,62 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
     {
 	struct timeval	tv;
 	fd_set		wfds;
+#if defined(__APPLE__) && __APPLE__ == 1
+# define PASS_RFDS
+	fd_set          rfds;
 
+	FD_ZERO(&rfds);
+	FD_SET(sd, &rfds);
+	/* On Mac a zero timeout almost never works.  At least wait one
+	 * millisecond. */
+	if (waittime == 0)
+	    waittime = 1;
+#endif
 	FD_ZERO(&wfds);
 	FD_SET(sd, &wfds);
 	tv.tv_sec = waittime / 1000;
 	tv.tv_usec = (waittime % 1000) * 1000;
-	ret = select((int)sd + 1, NULL, &wfds, NULL, &tv);
+
+	ch_logn(channel, "Waiting for connection (timeout %d msec)...\n",
+								    waittime);
+	ret = select((int)sd + 1,
+#ifdef PASS_RFDS
+		&rfds,
+#else
+		NULL,
+#endif
+		&wfds, NULL, &tv);
+
 	if (ret < 0)
 	{
 	    SOCK_ERRNO;
-	    ch_errorn(NULL, "channel_open: Connect failed with errno %d\n",
+	    ch_errorn(channel, "channel_open: Connect failed with errno %d\n",
 								       errno);
-	    PERROR(_("E902: Cannot connect to port"));
+	    PERROR(_(e_cannot_connect));
 	    sock_close(sd);
 	    channel_free(channel);
 	    return NULL;
 	}
+#ifdef PASS_RFDS
+	if (ret == 0 && FD_ISSET(sd, &rfds) && FD_ISSET(sd, &wfds))
+	{
+	    /* For OS X, this implies error. See tcp(4). */
+	    ch_error(channel, "channel_open: Connect failed\n");
+	    EMSG(_(e_cannot_connect));
+	    sock_close(sd);
+	    channel_free(channel);
+	    return NULL;
+	}
+#endif
 	if (!FD_ISSET(sd, &wfds))
 	{
 	    /* don't give an error, we just timed out. */
+	    ch_error(channel, "Connection timed out\n");
 	    sock_close(sd);
 	    channel_free(channel);
 	    return NULL;
 	}
+	ch_log(channel, "Connection made\n");
     }
 
     if (waittime >= 0)
@@ -619,7 +656,7 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
 	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	{
 	    SOCK_ERRNO;
-	    ch_log(NULL, "socket() retry in channel_open()\n");
+	    ch_log(channel, "socket() retry in channel_open()\n");
 	    PERROR("E900: socket() retry in channel_open()");
 	    channel_free(channel);
 	    return NULL;
@@ -633,7 +670,7 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
 	    while (retries-- && ((errno == ECONNREFUSED)
 						     || (errno == EINTR)))
 	    {
-		ch_log(NULL, "retrying...\n");
+		ch_log(channel, "retrying...\n");
 		mch_delay(3000L, TRUE);
 		ui_breakcheck();
 		if (got_int)
@@ -652,8 +689,8 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
 	    if (!success)
 	    {
 		/* Get here when the server can't be found. */
-		ch_error(NULL, "Cannot connect to port after retry\n");
-		PERROR(_("E899: Cannot connect to port after retry2"));
+		ch_error(channel, "Cannot connect to port after retry\n");
+		PERROR(_("E899: Cannot connect to port after retry"));
 		sock_close(sd);
 		channel_free(channel);
 		return NULL;
@@ -688,12 +725,12 @@ channel_set_job(channel_T *channel, job_T *job)
 }
 
 /*
- * Set the json mode of channel "channel" to "ch_mode".
+ * Set the mode of channel "channel" to "mode".
  */
     void
-channel_set_json_mode(channel_T *channel, ch_mode_T ch_mode)
+channel_set_mode(channel_T *channel, ch_mode_T mode)
 {
-    channel->ch_mode = ch_mode;
+    channel->ch_mode = mode;
 }
 
 /*
@@ -713,6 +750,18 @@ channel_set_callback(channel_T *channel, char_u *callback)
 {
     vim_free(channel->ch_callback);
     channel->ch_callback = vim_strsave(callback);
+}
+
+/*
+ * Set various properties from an "options" argument.
+ */
+    void
+channel_set_options(channel_T *channel, jobopt_T *options)
+{
+    channel_set_mode(channel, options->jo_mode);
+
+    if (options->jo_callback != NULL && *options->jo_callback != NUL)
+	channel_set_callback(channel, options->jo_callback);
 }
 
 /*
@@ -907,8 +956,7 @@ channel_parse_json(channel_T *channel)
 }
 
 /*
- * Remove "node" from the queue that it is in and free it.
- * Also frees the contained callback name.
+ * Remove "node" from the queue that it is in.  Does not free it.
  */
     static void
 remove_cb_node(cbq_T *head, cbq_T *node)
@@ -921,8 +969,6 @@ remove_cb_node(cbq_T *head, cbq_T *node)
 	head->cq_prev = node->cq_prev;
     else
 	node->cq_next->cq_prev = node->cq_prev;
-    vim_free(node->cq_callback);
-    vim_free(node);
 }
 
 /*
@@ -1079,7 +1125,8 @@ channel_exe_cmd(channel_T *channel, char_u *cmd, typval_T *arg2, typval_T *arg3)
 
 /*
  * Invoke a callback for channel "channel" if needed.
- * Return OK when a message was handled, there might be another one.
+ * TODO: add "which" argument, read stderr.
+ * Return TRUE when a message was handled, there might be another one.
  */
     static int
 may_invoke_callback(channel_T *channel)
@@ -1096,7 +1143,7 @@ may_invoke_callback(channel_T *channel)
 	/* this channel is handled elsewhere (netbeans) */
 	return FALSE;
 
-    if (ch_mode != MODE_RAW)
+    if (ch_mode == MODE_JSON || ch_mode == MODE_JS)
     {
 	/* Get any json message in the queue. */
 	if (channel_get_json(channel, -1, &listtv) == FAIL)
@@ -1135,18 +1182,51 @@ may_invoke_callback(channel_T *channel)
     }
     else if (channel_peek(channel) == NULL)
     {
-	/* nothing to read on raw channel */
+	/* nothing to read on RAW or NL channel */
 	return FALSE;
     }
     else
     {
-	/* If there is no callback, don't do anything. */
+	/* If there is no callback drop the message. */
 	if (channel->ch_callback == NULL)
+	{
+	    while ((msg = channel_get(channel)) != NULL)
+		vim_free(msg);
 	    return FALSE;
+	}
 
-	/* For a raw channel we don't know where the message ends, just get
-	 * everything. */
-	msg = channel_get_all(channel);
+	if (ch_mode == MODE_NL)
+	{
+	    char_u  *nl;
+	    char_u  *buf;
+
+	    /* See if we have a message ending in NL in the first buffer.  If
+	     * not try to concatenate the first and the second buffer. */
+	    while (TRUE)
+	    {
+		buf = channel_peek(channel);
+		nl = vim_strchr(buf, NL);
+		if (nl != NULL)
+		    break;
+		if (channel_collapse(channel) == FAIL)
+		    return FALSE; /* incomplete message */
+	    }
+	    if (nl[1] == NUL)
+		/* get the whole buffer */
+		msg = channel_get(channel);
+	    else
+	    {
+		/* Copy the message into allocated memory and remove it from
+		 * the buffer. */
+		msg = vim_strnsave(buf, (int)(nl - buf));
+		mch_memmove(buf, nl + 1, STRLEN(nl + 1) + 1);
+	    }
+	}
+	else
+	    /* For a raw channel we don't know where the message ends, just
+	     * get everything we have. */
+	    msg = channel_get_all(channel);
+
 	argv[1].v_type = VAR_STRING;
 	argv[1].vval.v_string = msg;
     }
@@ -1163,8 +1243,12 @@ may_invoke_callback(channel_T *channel)
 	    if (item->cq_seq_nr == seq_nr)
 	    {
 		ch_log(channel, "Invoking one-time callback\n");
-		invoke_callback(channel, item->cq_callback, argv);
+		/* Remove the item from the list first, if the callback
+		 * invokes ch_close() the list will be cleared. */
 		remove_cb_node(head, item);
+		invoke_callback(channel, item->cq_callback, argv);
+		vim_free(item->cq_callback);
+		vim_free(item);
 		done = TRUE;
 		break;
 	    }
@@ -1239,7 +1323,7 @@ channel_status(channel_T *channel)
     void
 channel_close(channel_T *channel)
 {
-    ch_log(channel, "Closing channel");
+    ch_log(channel, "Closing channel\n");
 
 #ifdef FEAT_GUI
     channel_gui_unregister(channel);
@@ -1294,12 +1378,20 @@ channel_save(channel_T *channel, char_u *buf, int len)
 	return FAIL;	    /* out of memory */
     }
 
-    /* TODO: don't strip CR when channel is in raw mode */
-    p = node->rq_buffer;
-    for (i = 0; i < len; ++i)
-	if (buf[i] != CAR || i + 1 >= len || buf[i + 1] != NL)
-	    *p++ = buf[i];
-    *p = NUL;
+    if (channel->ch_mode == MODE_NL)
+    {
+	/* Drop any CR before a NL. */
+	p = node->rq_buffer;
+	for (i = 0; i < len; ++i)
+	    if (buf[i] != CAR || i + 1 >= len || buf[i + 1] != NL)
+		*p++ = buf[i];
+	*p = NUL;
+    }
+    else
+    {
+	mch_memmove(node->rq_buffer, buf, len);
+	node->rq_buffer[len] = NUL;
+    }
 
     /* append node to the tail of the queue */
     node->rq_next = NULL;
@@ -1348,7 +1440,13 @@ channel_clear(channel_T *channel)
 	vim_free(channel_get(channel));
 
     while (cb_head->cq_next != NULL)
-	remove_cb_node(cb_head, cb_head->cq_next);
+    {
+	cbq_T *node = cb_head->cq_next;
+
+	remove_cb_node(cb_head, node);
+	vim_free(node->cq_callback);
+	vim_free(node);
+    }
 
     while (json_head->jq_next != NULL)
     {
@@ -1392,7 +1490,7 @@ channel_wait(channel_T *channel, sock_T fd, int timeout)
     int			ret;
 
     if (timeout > 0)
-	ch_logn(channel, "Waiting for %d msec\n", timeout);
+	ch_logn(channel, "Waiting for up to %d msec\n", timeout);
 
 
 # ifdef WIN32
@@ -1405,7 +1503,8 @@ channel_wait(channel_T *channel, sock_T fd, int timeout)
 	/* reading from a pipe, not a socket */
 	while (TRUE)
 	{
-	    if (PeekNamedPipe(fd, NULL, 0, NULL, &nread, NULL) && nread > 0)
+	    if (PeekNamedPipe((HANDLE)fd, NULL, 0, NULL, &nread, NULL)
+								 && nread > 0)
 		return OK;
 	    diff = deadline - GetTickCount();
 	    if (diff < 0)
@@ -1521,9 +1620,9 @@ channel_read(channel_T *channel, int which, char *func)
 	if (channel_wait(channel, fd, 0) == FAIL)
 	    break;
 	if (use_socket)
-	    len = sock_read(fd, buf, MAXMSGSIZE);
+	    len = sock_read(fd, (char *)buf, MAXMSGSIZE);
 	else
-	    len = fd_read(fd, buf, MAXMSGSIZE, channel->ch_timeout);
+	    len = fd_read(fd, (char *)buf, MAXMSGSIZE);
 	if (len <= 0)
 	    break;	/* error or nothing more to read */
 
@@ -1582,21 +1681,33 @@ channel_read(channel_T *channel, int which, char *func)
 }
 
 /*
- * Read from raw channel "channel".  Blocks until there is something to read or
- * the timeout expires.
+ * Read from RAW or NL channel "channel".  Blocks until there is something to
+ * read or the timeout expires.
+ * TODO: add "which" argument and read from stderr.
  * Returns what was read in allocated memory.
  * Returns NULL in case of error or timeout.
  */
     char_u *
 channel_read_block(channel_T *channel)
 {
-    ch_log(channel, "Reading raw\n");
-    if (channel_peek(channel) == NULL)
-    {
-	sock_T fd = get_read_fd(channel);
+    char_u	*buf;
+    char_u	*msg;
+    ch_mode_T	mode = channel->ch_mode;
+    sock_T	fd = get_read_fd(channel);
+    char_u	*nl;
 
-	/* TODO: read both out and err if they are different */
-	ch_log(channel, "No readahead\n");
+    ch_logsn(channel, "Blocking %s read, timeout: %d msec\n",
+			mode == MODE_RAW ? "RAW" : "NL", channel->ch_timeout);
+
+    while (TRUE)
+    {
+	buf = channel_peek(channel);
+	if (buf != NULL && (mode == MODE_RAW
+			 || (mode == MODE_NL && vim_strchr(buf, NL) != NULL)))
+	    break;
+	if (buf != NULL && channel_collapse(channel) == OK)
+	    continue;
+
 	/* Wait for up to the channel timeout. */
 	if (fd == CHAN_FD_INVALID
 		|| channel_wait(channel, fd, channel->ch_timeout) == FAIL)
@@ -1604,9 +1715,30 @@ channel_read_block(channel_T *channel)
 	channel_read(channel, -1, "channel_read_block");
     }
 
-    /* TODO: only get the first message */
-    ch_log(channel, "Returning readahead\n");
-    return channel_get_all(channel);
+    if (mode == MODE_RAW)
+    {
+	msg = channel_get_all(channel);
+    }
+    else
+    {
+	nl = vim_strchr(buf, NL);
+	if (nl[1] == NUL)
+	{
+	    /* get the whole buffer */
+	    msg = channel_get(channel);
+	    *nl = NUL;
+	}
+	else
+	{
+	    /* Copy the message into allocated memory and remove it from the
+	     * buffer. */
+	    msg = vim_strnsave(buf, (int)(nl - buf));
+	    mch_memmove(buf, nl + 1, STRLEN(nl + 1) + 1);
+	}
+    }
+    if (log_fd != NULL)
+	ch_logn(channel, "Returning %d bytes\n", (int)STRLEN(msg));
+    return msg;
 }
 
 /*
@@ -1725,9 +1857,9 @@ channel_send(channel_T *channel, char_u *buf, char *fun)
     }
 
     if (use_socket)
-	res = sock_write(fd, buf, len);
+	res = sock_write(fd, (char *)buf, len);
     else
-	res = fd_write(fd, buf, len);
+	res = fd_write(fd, (char *)buf, len);
     if (res != len)
     {
 	if (!channel->ch_error && fun != NULL)

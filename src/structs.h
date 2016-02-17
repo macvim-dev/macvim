@@ -1375,6 +1375,15 @@ struct channel_S {
     int		ch_refcount;	/* reference count */
 };
 
+/*
+ * Options for job and channel commands.
+ */
+typedef struct
+{
+    ch_mode_T	jo_mode;	/* "mode" */
+    char_u	*jo_callback;	/* "callback", not allocated! */
+} jobopt_T;
+
 
 /* structure used for explicit stack while garbage collecting hash tables */
 typedef struct ht_stack_S

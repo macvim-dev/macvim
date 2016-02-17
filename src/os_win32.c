@@ -91,7 +91,6 @@ FILE* fdDump = NULL;
  */
 #ifdef PROTO
 #define WINAPI
-#define WINBASEAPI
 typedef char * LPCSTR;
 typedef char * LPWSTR;
 typedef int ACCESS_MASK;
@@ -148,14 +147,14 @@ typedef int PROCESS_INFORMATION;
  * and Michael Dietrich for helping me figure out this workaround.
  */
 
-/* WINBASEAPI BOOL WINAPI GetConsoleKeyboardLayoutNameA(LPSTR); */
-#ifndef WINBASEAPI
-# define WINBASEAPI __stdcall
+/* WINAPI BOOL WINAPI GetConsoleKeyboardLayoutNameA(LPSTR); */
+#ifndef WINAPI
+# define WINAPI __stdcall
 #endif
 #if defined(__BORLANDC__)
 typedef BOOL (__stdcall *PFNGCKLN)(LPSTR);
 #else
-typedef WINBASEAPI BOOL (WINAPI *PFNGCKLN)(LPSTR);
+typedef BOOL (WINAPI *PFNGCKLN)(LPSTR);
 #endif
 static PFNGCKLN    s_pfnGetConsoleKeyboardLayoutName = NULL;
 #endif
@@ -237,6 +236,7 @@ static char_u *exe_path = NULL;
 
 static BOOL win8_or_later = FALSE;
 
+#ifndef FEAT_GUI_W32
 /*
  * Version of ReadConsoleInput() that works with IME.
  * Works around problems on Windows 8.
@@ -326,6 +326,7 @@ peek_console_input(
     return read_console_input(hInput, lpBuffer, -1, lpEvents);
 }
 
+# ifdef FEAT_CLIENTSERVER
     static DWORD
 msg_wait_for_multiple_objects(
     DWORD    nCount,
@@ -339,7 +340,9 @@ msg_wait_for_multiple_objects(
     return MsgWaitForMultipleObjects(nCount, pHandles, fWaitAll,
 				     dwMilliseconds, dwWakeMask);
 }
+# endif
 
+# ifndef FEAT_CLIENTSERVER
     static DWORD
 wait_for_single_object(
     HANDLE hHandle,
@@ -349,6 +352,8 @@ wait_for_single_object(
 	return WAIT_OBJECT_0;
     return WaitForSingleObject(hHandle, dwMilliseconds);
 }
+# endif
+#endif
 
     static void
 get_exe_name(void)
@@ -388,7 +393,7 @@ get_exe_name(void)
 		    STRCAT(temp, ";");
 		}
 		STRCAT(temp, exe_path);
-		vim_setenv((char_u *)"PATH", temp);
+		vim_setenv((char_u *)"PATH", (char_u *)temp);
 	    }
 	}
     }
@@ -440,7 +445,7 @@ vimLoadLib(char *name)
 	    /* Change directory to where the executable is, both to make
 	     * sure we find a .dll there and to avoid looking for a .dll
 	     * in the current directory. */
-	    SetCurrentDirectory(exe_path);
+	    SetCurrentDirectory((LPCSTR)exe_path);
 	    dll = LoadLibrary(name);
 	    SetCurrentDirectoryW(old_dirw);
 	    return dll;
@@ -453,7 +458,7 @@ vimLoadLib(char *name)
 		/* Change directory to where the executable is, both to make
 		 * sure we find a .dll there and to avoid looking for a .dll
 		 * in the current directory. */
-		SetCurrentDirectory(exe_path);
+		SetCurrentDirectory((LPCSTR)exe_path);
 		dll = LoadLibrary(name);
 		SetCurrentDirectory(old_dir);
 	    }
@@ -1961,7 +1966,7 @@ executable_exists(char *name, char_u **path)
 #ifdef FEAT_MBYTE
     if (enc_codepage >= 0 && (int)GetACP() != enc_codepage)
     {
-	WCHAR	*p = enc_to_utf16(name, NULL);
+	WCHAR	*p = enc_to_utf16((char_u *)name, NULL);
 	WCHAR	fnamew[_MAX_PATH];
 	WCHAR	*dumw;
 	WCHAR	*wcurpath, *wnewpath;
@@ -2003,10 +2008,10 @@ executable_exists(char *name, char_u **path)
     vim_free(newpath);
     if (n == 0)
 	return FALSE;
-    if (mch_isdir(fname))
+    if (mch_isdir((char_u *)fname))
 	return FALSE;
     if (path != NULL)
-	*path = vim_strsave(fname);
+	*path = vim_strsave((char_u *)fname);
     return TRUE;
 }
 
@@ -2383,7 +2388,7 @@ static ConsoleBuffer g_cbTermcap = { 0 };
 #ifdef __BORLANDC__
 typedef HWND (__stdcall *GETCONSOLEWINDOWPROC)(VOID);
 #else
-typedef WINBASEAPI HWND (WINAPI *GETCONSOLEWINDOWPROC)(VOID);
+typedef HWND (WINAPI *GETCONSOLEWINDOWPROC)(VOID);
 #endif
 char g_szOrigTitle[256] = { 0 };
 HWND g_hWnd = NULL;	/* also used in os_mswin.c */
@@ -2439,18 +2444,15 @@ SetConsoleIcon(
     HICON   hIconSmall,
     HICON   hIcon)
 {
-    HICON   hPrevIconSmall;
-    HICON   hPrevIcon;
-
     if (hWnd == NULL)
 	return FALSE;
 
     if (hIconSmall != NULL)
-	hPrevIconSmall = (HICON)SendMessage(hWnd, WM_SETICON,
-				      (WPARAM)ICON_SMALL, (LPARAM)hIconSmall);
+	SendMessage(hWnd, WM_SETICON,
+			    (WPARAM)ICON_SMALL, (LPARAM)hIconSmall);
     if (hIcon != NULL)
-	hPrevIcon = (HICON)SendMessage(hWnd, WM_SETICON,
-					     (WPARAM)ICON_BIG,(LPARAM) hIcon);
+	SendMessage(hWnd, WM_SETICON,
+			    (WPARAM)ICON_BIG, (LPARAM) hIcon);
     return TRUE;
 }
 
@@ -2496,7 +2498,7 @@ SaveConsoleTitleAndIcon(void)
 
     /* Extract the first icon contained in the Vim executable. */
     if (mch_icon_load((HANDLE *)&g_hVimIcon) == FAIL || g_hVimIcon == NULL)
-	g_hVimIcon = ExtractIcon(NULL, exe_name, 0);
+	g_hVimIcon = ExtractIcon(NULL, (LPCSTR)exe_name, 0);
     if (g_hVimIcon != NULL)
 	g_fCanChangeIcon = TRUE;
 }
@@ -2851,7 +2853,7 @@ fname_case(
 	return;
 
     /* Build the new name in szTrueName[] one component at a time. */
-    porig = name;
+    porig = (char *)name;
     ptrue = szTrueName;
 
     if (isalpha(porig[0]) && porig[1] == ':')
@@ -2877,7 +2879,7 @@ fname_case(
 
 	    if (enc_dbcs)
 	    {
-		l = (*mb_ptr2len)(porig);
+		l = (*mb_ptr2len)((char_u *)porig);
 		while (--l >= 0)
 		    *ptrue++ = *porig++;
 	    }
@@ -2978,7 +2980,7 @@ mch_get_user_name(
 #endif
     if (GetUserName(szUserName, &cch))
     {
-	vim_strncpy(s, szUserName, len - 1);
+	vim_strncpy(s, (char_u *)szUserName, len - 1);
 	return OK;
     }
     s[0] = NUL;
@@ -3018,8 +3020,8 @@ mch_get_host_name(
 	/* Retry with non-wide function (for Windows 98). */
     }
 #endif
-    if (!GetComputerName(s, &cch))
-	vim_strncpy(s, "PC (Win32 Vim)", len - 1);
+    if (!GetComputerName((LPSTR)s, &cch))
+	vim_strncpy(s, (char_u *)"PC (Win32 Vim)", len - 1);
 }
 
 
@@ -3069,7 +3071,7 @@ mch_dirname(
 	/* Retry with non-wide function (for Windows 98). */
     }
 #endif
-    return (GetCurrentDirectory(len, buf) != 0 ? OK : FAIL);
+    return (GetCurrentDirectory(len, (LPSTR)buf) != 0 ? OK : FAIL);
 }
 
 /*
@@ -3082,7 +3084,7 @@ mch_getperm(char_u *name)
     struct stat st;
     int		n;
 
-    n = mch_stat(name, &st);
+    n = mch_stat((char *)name, &st);
     return n == 0 ? (long)(unsigned short)st.st_mode : -1L;
 }
 
@@ -3113,7 +3115,7 @@ mch_setperm(char_u *name, long perm)
     }
     if (n == -1)
 #endif
-	n = _chmod(name, perm);
+	n = _chmod((const char *)name, perm);
     if (n == -1)
 	return FAIL;
 
@@ -3197,7 +3199,7 @@ mch_mkdir(char_u *name)
 	return retval;
     }
 #endif
-    return _mkdir(name);
+    return _mkdir((const char *)name);
 }
 
 /*
@@ -3221,7 +3223,7 @@ mch_rmdir(char_u *name)
 	return retval;
     }
 #endif
-    return _rmdir(name);
+    return _rmdir((const char *)name);
 }
 
 /*
@@ -3260,7 +3262,7 @@ mch_is_symbolic_link(char_u *name)
 		&& GetLastError() == ERROR_CALL_NOT_IMPLEMENTED)
 	{
 	    /* Retry with non-wide function (for Windows 98). */
-	    hFind = FindFirstFile(name, &findDataA);
+	    hFind = FindFirstFile((LPCSTR)name, &findDataA);
 	    if (hFind != INVALID_HANDLE_VALUE)
 	    {
 		fileFlags = findDataA.dwFileAttributes;
@@ -3276,7 +3278,7 @@ mch_is_symbolic_link(char_u *name)
     else
 #endif
     {
-	hFind = FindFirstFile(name, &findDataA);
+	hFind = FindFirstFile((LPCSTR)name, &findDataA);
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
 	    fileFlags = findDataA.dwFileAttributes;
@@ -3347,8 +3349,8 @@ win32_fileinfo(char_u *fname, BY_HANDLE_FILE_INFORMATION *info)
     }
     if (wn == NULL)
 #endif
-	hFile = CreateFile(fname,	/* file name */
-		    GENERIC_READ,	/* access mode */
+	hFile = CreateFile((LPCSTR)fname,    /* file name */
+		    GENERIC_READ,	    /* access mode */
 		    FILE_SHARE_READ | FILE_SHARE_WRITE,	/* share mode */
 		    NULL,		/* security descriptor */
 		    OPEN_EXISTING,	/* creation disposition */
@@ -3566,13 +3568,13 @@ mch_nodetype(char_u *name)
     }
     if (wn == NULL)
 #endif
-	hFile = CreateFile(name,	/* file name */
-		    GENERIC_WRITE,	/* access mode */
-		    0,			/* share mode */
-		    NULL,		/* security descriptor */
-		    OPEN_EXISTING,	/* creation disposition */
-		    0,			/* file attributes */
-		    NULL);		/* handle to template file */
+	hFile = CreateFile((LPCSTR)name,    /* file name */
+		    GENERIC_WRITE,	    /* access mode */
+		    0,			    /* share mode */
+		    NULL,		    /* security descriptor */
+		    OPEN_EXISTING,	    /* creation disposition */
+		    0,			    /* file attributes */
+		    NULL);		    /* handle to template file */
 
 #ifdef FEAT_MBYTE
     vim_free(wn);
@@ -4084,7 +4086,7 @@ vim_create_process(
 #  ifdef FEAT_MBYTE
     if (enc_codepage >= 0 && (int)GetACP() != enc_codepage)
     {
-	WCHAR	*wcmd = enc_to_utf16(cmd, NULL);
+	WCHAR	*wcmd = enc_to_utf16((char_u *)cmd, NULL);
 
 	if (wcmd != NULL)
 	{
@@ -4725,7 +4727,7 @@ mch_system(char *cmd, int options)
 {
     if (enc_codepage >= 0 && (int)GetACP() != enc_codepage)
     {
-	WCHAR	*wcmd = enc_to_utf16(cmd, NULL);
+	WCHAR	*wcmd = enc_to_utf16((char_u *)cmd, NULL);
 	if (wcmd != NULL)
 	{
 	    int ret = _wsystem(wcmd);
@@ -4768,7 +4770,7 @@ mch_call_shell(
 		wcscat(szShellTitle, L" :sh");
 	    else
 	    {
-		WCHAR *wn = enc_to_utf16(cmd, NULL);
+		WCHAR *wn = enc_to_utf16((char_u *)cmd, NULL);
 
 		if (wn != NULL)
 		{
@@ -4793,8 +4795,9 @@ mch_call_shell(
 	    else
 	    {
 		strcat(szShellTitle, " - !");
-		if ((strlen(szShellTitle) + strlen(cmd) < sizeof(szShellTitle)))
-		    strcat(szShellTitle, cmd);
+		if ((strlen(szShellTitle) + strlen((char *)cmd)
+			    < sizeof(szShellTitle)))
+		    strcat(szShellTitle, (char *)cmd);
 	    }
 	    SetConsoleTitle(szShellTitle);
 	}
@@ -4831,7 +4834,7 @@ mch_call_shell(
 
     if (cmd == NULL)
     {
-	x = mch_system(p_sh, options);
+	x = mch_system((char *)p_sh, options);
     }
     else
     {
@@ -4915,9 +4918,10 @@ mch_call_shell(
 		char_u	*cmd_shell = mch_getenv("COMSPEC");
 
 		if (cmd_shell == NULL || *cmd_shell == NUL)
-		    cmd_shell = default_shell();
+		    cmd_shell = (char_u *)default_shell();
 
-		subcmd = vim_strsave_escaped_ext(cmdbase, "|", '^', FALSE);
+		subcmd = vim_strsave_escaped_ext(cmdbase,
+			(char_u *)"|", '^', FALSE);
 		if (subcmd != NULL)
 		{
 		    /* make "cmd.exe /c arguments" */
@@ -4937,7 +4941,7 @@ mch_call_shell(
 	     * inherit our handles which causes unpleasant dangling swap
 	     * files if we exit before the spawned process
 	     */
-	    if (vim_create_process(newcmd, FALSE, flags, &si, &pi))
+	    if (vim_create_process((char *)newcmd, FALSE, flags, &si, &pi))
 		x = 0;
 	    else
 	    {
@@ -5010,7 +5014,7 @@ mch_call_shell(
 #endif
 	    )
     {
-	smsg(_("shell returned %d"), x);
+	smsg((char_u *)_("shell returned %d"), x);
 	msg_putchar('\n');
     }
 #ifdef FEAT_TITLE
@@ -5034,7 +5038,7 @@ mch_call_shell(
 
 #if defined(FEAT_JOB) || defined(PROTO)
     void
-mch_start_job(char *cmd, job_T *job)
+mch_start_job(char *cmd, job_T *job, jobopt_T *options)
 {
     STARTUPINFO		si;
     PROCESS_INFORMATION	pi;
@@ -5071,6 +5075,7 @@ mch_start_job(char *cmd, job_T *job)
     si.dwFlags |= STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE;
 
+# ifdef FEAT_CHANNEL
     saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
     saAttr.bInheritHandle = TRUE;
     saAttr.lpSecurityDescriptor = NULL;
@@ -5085,6 +5090,7 @@ mch_start_job(char *cmd, job_T *job)
     si.hStdInput = ifd[0];
     si.hStdOutput = ofd[1];
     si.hStdError = efd[1];
+# endif
 
     if (!vim_create_process(cmd, TRUE,
 	    CREATE_SUSPENDED |
@@ -5111,14 +5117,15 @@ mch_start_job(char *cmd, job_T *job)
     job->jv_job_object = jo;
     job->jv_status = JOB_STARTED;
 
+# ifdef FEAT_CHANNEL
     CloseHandle(ifd[0]);
     CloseHandle(ofd[1]);
     CloseHandle(efd[1]);
 
-# ifdef FEAT_CHANNEL
     job->jv_channel = channel;
     channel_set_pipes(channel, (sock_T)ifd[1], (sock_T)ofd[0], (sock_T)efd[0]);
     channel_set_job(channel, job);
+    channel_set_options(channel, options);
 
 #   ifdef FEAT_GUI
      channel_gui_register(channel);
@@ -5745,7 +5752,7 @@ mch_write(
     {
 	/* optimization: use one single write_chars for runs of text,
 	 * rather than once per character  It ain't curses, but it helps. */
-	DWORD  prefix = (DWORD)strcspn(s, "\n\r\b\a\033");
+	DWORD  prefix = (DWORD)strcspn((char *)s, "\n\r\b\a\033");
 
 	if (p_wd)
 	{
@@ -6083,7 +6090,7 @@ mch_remove(char_u *name)
 	}
     }
 #endif
-    return DeleteFile(name) ? 0 : -1;
+    return DeleteFile((LPCSTR)name) ? 0 : -1;
 }
 
 
@@ -6368,10 +6375,10 @@ mch_access(char *n, int p)
     WCHAR	*wn = NULL;
 
     if (enc_codepage >= 0 && (int)GetACP() != enc_codepage)
-	wn = enc_to_utf16(n, NULL);
+	wn = enc_to_utf16((char_u *)n, NULL);
 #endif
 
-    if (mch_isdir(n))
+    if (mch_isdir((char_u *)n))
     {
 	char TempName[_MAX_PATH + 16] = "";
 #ifdef FEAT_MBYTE
@@ -6414,7 +6421,7 @@ mch_access(char *n, int p)
 		char		    *pch;
 		WIN32_FIND_DATA	    d;
 
-		vim_strncpy(TempName, n, _MAX_PATH);
+		vim_strncpy((char_u *)TempName, (char_u *)n, _MAX_PATH);
 		pch = TempName + STRLEN(TempName) - 1;
 		if (*pch != '\\' && *pch != '/')
 		    *++pch = '\\';
@@ -6506,7 +6513,7 @@ mch_open(char *name, int flags, int mode)
 
     if (enc_codepage >= 0 && (int)GetACP() != enc_codepage)
     {
-	wn = enc_to_utf16(name, NULL);
+	wn = enc_to_utf16((char_u *)name, NULL);
 	if (wn != NULL)
 	{
 	    f = _wopen(wn, flags, mode);
@@ -6558,8 +6565,8 @@ mch_fopen(char *name, char *mode)
 	else if (newMode == 'b')
 	    _set_fmode(_O_BINARY);
 # endif
-	wn = enc_to_utf16(name, NULL);
-	wm = enc_to_utf16(mode, NULL);
+	wn = enc_to_utf16((char_u *)name, NULL);
+	wm = enc_to_utf16((char_u *)mode, NULL);
 	if (wn != NULL && wm != NULL)
 	    f = _wfopen(wn, wm);
 	vim_free(wn);
