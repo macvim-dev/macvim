@@ -557,12 +557,11 @@ channel_open(char *hostname, int port_in, int waittime, void (*close_cb)(void))
     }
     memcpy((char *)&server.sin_addr, host->h_addr, host->h_length);
 
-#if defined(__APPLE__) && __APPLE__ == 1
-    /* On Mac a zero timeout almost never works.  At least wait one
-     * millisecond. */
+    /* On Mac and Solaris a zero timeout almost never works.  At least wait
+     * one millisecond. Let's do it for all systems, because we don't know why
+     * this is needed. */
     if (waittime == 0)
 	waittime = 1;
-#endif
 
     /*
      * For Unix we need to call connect() again after connect() failed.
@@ -768,43 +767,24 @@ channel_set_job(channel_T *channel, job_T *job)
 }
 
 /*
- * Set the mode of channel "channel" to "mode".
- */
-    void
-channel_set_mode(channel_T *channel, ch_mode_T mode)
-{
-    channel->ch_mode = mode;
-}
-
-/*
- * Set the read timeout of channel "channel".
- */
-    void
-channel_set_timeout(channel_T *channel, int timeout)
-{
-    channel->ch_timeout = timeout;
-}
-
-/*
- * Set the callback for channel "channel".
- */
-    void
-channel_set_callback(channel_T *channel, char_u *callback)
-{
-    vim_free(channel->ch_callback);
-    channel->ch_callback = vim_strsave(callback);
-}
-
-/*
  * Set various properties from an "options" argument.
  */
     void
 channel_set_options(channel_T *channel, jobopt_T *options)
 {
-    channel_set_mode(channel, options->jo_mode);
+    if (options->jo_set & JO_MODE)
+	channel->ch_mode = options->jo_mode;
+    if (options->jo_set & JO_TIMEOUT)
+	channel->ch_timeout = options->jo_timeout;
 
-    if (options->jo_callback != NULL && *options->jo_callback != NUL)
-	channel_set_callback(channel, options->jo_callback);
+    if (options->jo_set & JO_CALLBACK)
+    {
+	vim_free(channel->ch_callback);
+	if (options->jo_callback != NULL && *options->jo_callback != NUL)
+	    channel->ch_callback = vim_strsave(options->jo_callback);
+	else
+	    channel->ch_callback = NULL;
+    }
 }
 
 /*
@@ -1527,17 +1507,11 @@ channel_free_all(void)
     static int
 channel_wait(channel_T *channel, sock_T fd, int timeout)
 {
-#if defined(HAVE_SELECT) && !defined(FEAT_GUI_W32)
-    struct timeval	tval;
-    fd_set		rfds;
-    int			ret;
-
     if (timeout > 0)
 	ch_logn(channel, "Waiting for up to %d msec", timeout);
 
-
 # ifdef WIN32
-    if (channel->CH_SOCK == CHAN_FD_INVALID)
+    if (fd != channel->CH_SOCK)
     {
 	DWORD	nread;
 	int	diff;
@@ -1556,44 +1530,48 @@ channel_wait(channel_T *channel, sock_T fd, int timeout)
 	     * TODO: increase the sleep time when looping more often */
 	    Sleep(5);
 	}
-	return FAIL;
     }
+    else
 #endif
-
-    FD_ZERO(&rfds);
-    FD_SET((int)fd, &rfds);
-    tval.tv_sec = timeout / 1000;
-    tval.tv_usec = (timeout % 1000) * 1000;
-    for (;;)
     {
-	ret = select((int)fd + 1, &rfds, NULL, NULL, &tval);
-# ifdef EINTR
-	if (ret == -1 && errno == EINTR)
-	    continue;
-# endif
-	if (ret <= 0)
-	{
-	    ch_log(channel, "Nothing to read");
-	    return FAIL;
-	}
-	break;
-    }
+#if defined(FEAT_GUI_W32)
+	/* Can't check socket for Win32 GUI, always return OK. */
+	ch_log(channel, "Can't check, assuming there is something to read");
+	return OK;
 #else
-# ifdef HAVE_POLL
-    struct pollfd	fds;
+# if defined(HAVE_SELECT)
+	struct timeval	tval;
+	fd_set		rfds;
+	int			ret;
 
-    if (timeout > 0)
-	ch_logn(channel, "Waiting for %d msec", timeout);
-    fds.fd = fd;
-    fds.events = POLLIN;
-    if (poll(&fds, 1, timeout) <= 0)
-    {
-	ch_log(channel, "Nothing to read");
-	return FAIL;
-    }
+	FD_ZERO(&rfds);
+	FD_SET((int)fd, &rfds);
+	tval.tv_sec = timeout / 1000;
+	tval.tv_usec = (timeout % 1000) * 1000;
+	for (;;)
+	{
+	    ret = select((int)fd + 1, &rfds, NULL, NULL, &tval);
+#  ifdef EINTR
+	    SOCK_ERRNO;
+	    if (ret == -1 && errno == EINTR)
+		continue;
+#  endif
+	    if (ret > 0)
+		return OK;
+	    break;
+	}
+# else
+	struct pollfd	fds;
+
+	fds.fd = fd;
+	fds.events = POLLIN;
+	if (poll(&fds, 1, timeout) > 0)
+	    return OK;
 # endif
 #endif
-    return OK;
+    }
+    ch_log(channel, "Nothing to read");
+    return FAIL;
 }
 
 /*
@@ -1686,8 +1664,9 @@ channel_read(channel_T *channel, int which, char *func)
     }
 #endif
 
-    /* Reading a socket disconnection (readlen == 0), or a socket error. */
-    if (readlen <= 0)
+    /* Reading a socket disconnection (readlen == 0), or a socket error.
+     * TODO: call error callback. */
+    if (readlen <= 0 && channel->ch_job == NULL)
     {
 	/* Queue a "DETACH" netbeans message in the command queue in order to
 	 * terminate the netbeans session later. Do not end the session here
@@ -1855,6 +1834,35 @@ channel_fd2channel(sock_T fd, int *whichp)
 	}
     return NULL;
 }
+
+    void
+channel_handle_events(void)
+{
+    channel_T	*channel;
+    int		which;
+    static int	loop = 0;
+
+    /* Skip heavily polling */
+    if (loop++ % 2)
+	return;
+
+    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    {
+#  ifdef FEAT_GUI_W32
+	/* only check the pipes */
+	for (which = CHAN_OUT; which < CHAN_ERR; ++which)
+#  else
+#   ifdef CHANNEL_PIPES
+	/* check the socket and pipes */
+	for (which = CHAN_SOCK; which < CHAN_ERR; ++which)
+#   else
+	/* only check the socket */
+	which = CHAN_SOCK;
+#   endif
+#  endif
+	channel_read(channel, which, "channel_handle_events");
+    }
+}
 # endif
 
 /*
@@ -1988,7 +1996,7 @@ channel_poll_check(int ret_in, void *fds_in)
 }
 # endif /* UNIX && !HAVE_SELECT */
 
-# if (!defined(FEAT_GUI_W32) && defined(HAVE_SELECT)) || defined(PROTO)
+# if (!defined(WIN32) && defined(HAVE_SELECT)) || defined(PROTO)
 /*
  * The type of "rfds" is hidden to avoid problems with the function proto.
  */
@@ -2053,7 +2061,7 @@ channel_select_check(int ret_in, void *rfds_in)
 
     return ret;
 }
-# endif /* !FEAT_GUI_W32 && HAVE_SELECT */
+# endif /* !WIN32 && HAVE_SELECT */
 
 /*
  * Execute queued up commands.
