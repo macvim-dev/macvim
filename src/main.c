@@ -1556,6 +1556,9 @@ getout(int exitval)
 	windgoto((int)Rows - 1, 0);
 #endif
 
+#ifdef FEAT_JOB
+    job_stop_on_exit();
+#endif
 #ifdef FEAT_LUA
     lua_end();
 #endif
