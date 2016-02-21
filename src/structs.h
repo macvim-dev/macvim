@@ -1257,7 +1257,6 @@ struct jobvar_S
     job_T	*jv_prev;
 #ifdef UNIX
     pid_t	jv_pid;
-    int		jv_exitval;
 #endif
 #ifdef WIN32
     PROCESS_INFORMATION	jv_proc_info;
@@ -1265,6 +1264,8 @@ struct jobvar_S
 #endif
     jobstatus_T	jv_status;
     char_u	*jv_stoponexit; /* allocated */
+    int		jv_exitval;
+    char_u	*jv_exit_cb;	/* allocated */
 
     int		jv_refcount;	/* reference count */
     channel_T	*jv_channel;	/* channel for I/O, reference counted */
@@ -1393,6 +1394,7 @@ struct channel_S {
 #define JO_PART		0x0800	/* "part" */
 #define JO_ID		0x1000	/* "id" */
 #define JO_STOPONEXIT	0x2000	/* "stoponexit" */
+#define JO_EXIT_CB	0x4000	/* "exit-cb" */
 #define JO_ALL		0xffffff
 
 #define JO_MODE_ALL	(JO_MODE + JO_IN_MODE + JO_OUT_MODE + JO_ERR_MODE)
@@ -1421,6 +1423,8 @@ typedef struct
     int		jo_id;
     char_u	jo_soe_buf[NUMBUFLEN];
     char_u	*jo_stoponexit;
+    char_u	jo_ecb_buf[NUMBUFLEN];
+    char_u	*jo_exit_cb;
 } jobopt_T;
 
 
