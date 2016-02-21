@@ -165,12 +165,12 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 @interface MMChannel : NSObject {
     channel_T           *channel;
-    int                 which;           
+    int                 part;
     CFSocketRef         socket;
     CFRunLoopSourceRef  runLoopSource;
 }
 
-- (id)initWithChannel:(channel_T *)c which:(int)w;
+- (id)initWithChannel:(channel_T *)c part:(int)p;
 - (void)read;
 @end
 
@@ -1685,10 +1685,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self flushQueue:YES];
 }
 
-- (void *)addChannel:(channel_T *)channel which:(int)which
+- (void *)addChannel:(channel_T *)channel part:(int)part
 {
     MMChannel *mmChannel =
-        [[MMChannel alloc] initWithChannel:channel which:which];
+        [[MMChannel alloc] initWithChannel:channel part:part];
     return (__bridge void *)mmChannel;
 }
 
@@ -3432,18 +3432,18 @@ static void socketReadCallback(CFSocketRef s,
     [mmChannel read];
 }
 
-- (id)initWithChannel:(channel_T *)c which:(int)w
+- (id)initWithChannel:(channel_T *)c part:(int)p
 {
     self = [super init];
     if (!self) return nil;
 
     channel = c;
-    which = w;
+    part = p;
 
     // Tell CFRunLoop that we are interested in channel socket input.
     CFSocketContext ctx = {0, (__bridge void *)self, NULL, NULL, NULL};
     socket = CFSocketCreateWithNative(kCFAllocatorDefault,
-                                      channel->ch_pfd[which].ch_fd,
+                                      channel->ch_part[part].ch_fd,
                                       kCFSocketReadCallBack,
                                       &socketReadCallback,
                                       &ctx);
@@ -3460,7 +3460,7 @@ static void socketReadCallback(CFSocketRef s,
 - (void)read
 {
 #ifdef FEAT_CHANNEL
-    channel_read(channel, which, "MMChannel_read");
+    channel_read(channel, part, "MMChannel_read");
 #endif
 }
 

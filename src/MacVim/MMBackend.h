@@ -155,7 +155,7 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
 - (BOOL)imState;
 - (void)setImState:(BOOL)activated;
 
-- (void *)addChannel:(channel_T *)channel which:(int)which;
+- (void *)addChannel:(channel_T *)channel part:(int)part;
 - (void)removeChannel:(void *)cookie;
 
 #ifdef FEAT_BEVAL

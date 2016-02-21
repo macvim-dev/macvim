@@ -228,7 +228,7 @@ gui_mch_replace_dialog(exarg_T *eap);
 im_set_control(int enable);
 
     void *
-gui_macvim_add_channel(channel_T *channel, int which);
+gui_macvim_add_channel(channel_T *channel, int part);
     void
 gui_macvim_remove_channel(void *cookie);
 

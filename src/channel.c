@@ -300,7 +300,7 @@ add_channel(void)
 	channel->ch_part[part].ch_inputHandler = -1;
 #endif
 #ifdef FEAT_GUI_MACVIM
-	channel->ch_pfd[which].ch_inputHandler = 0;
+	channel->ch_part[part].ch_inputHandler = 0;
 #endif
 	channel->ch_part[part].ch_timeout = 2000;
     }
@@ -409,9 +409,9 @@ channel_gui_register_one(channel_T *channel, int part)
 #    ifdef FEAT_GUI_MACVIM
     /* Tell Core Foundation we are interested in being called when there
      * is input on the editor connection socket.  */
-    if (channel->ch_pfd[which].ch_inputHandler == 0)
-	channel->ch_pfd[which].ch_inputHandler = gui_macvim_add_channel(
-		channel, which);
+    if (channel->ch_part[part].ch_inputHandler == 0)
+	channel->ch_part[part].ch_inputHandler = gui_macvim_add_channel(
+		channel, part);
 #    endif
 #   endif
 #  endif
@@ -480,10 +480,10 @@ channel_gui_unregister(channel_T *channel)
 	}
 #   else
 #    ifdef FEAT_GUI_MACVIM
-	if (channel->ch_pfd[which].ch_inputHandler != 0)
+	if (channel->ch_part[part].ch_inputHandler != 0)
 	{
-	    gui_macvim_remove_channel(channel->ch_pfd[which].ch_inputHandler);
-	    channel->ch_pfd[which].ch_inputHandler = 0;
+	    gui_macvim_remove_channel(channel->ch_part[part].ch_inputHandler);
+	    channel->ch_part[part].ch_inputHandler = 0;
 	}
 #    endif
 #   endif
