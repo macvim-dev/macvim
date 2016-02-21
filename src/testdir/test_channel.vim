@@ -147,8 +147,8 @@ func s:communicate(port)
   " check setting options (without testing the effect)
   call ch_setoptions(handle, {'callback': 's:NotUsed'})
   call ch_setoptions(handle, {'timeout': 1111})
+  call ch_setoptions(handle, {'mode': 'json'})
   call assert_fails("call ch_setoptions(handle, {'waittime': 111})", "E475")
-  call assert_fails("call ch_setoptions(handle, {'mode': 'json'})", "E475")
   call ch_setoptions(handle, {'callback': ''})
 
   " Send an eval request that works.
@@ -183,6 +183,24 @@ func s:communicate(port)
   call assert_equal('ok', ch_sendexpr(handle, 'redraw!'))
 
   call assert_equal('ok', ch_sendexpr(handle, 'empty-request'))
+
+  " Reading while there is nothing available.
+  " TODO: make this work for MS-Windows
+  if has('unix')
+    call assert_equal(v:none, ch_read(handle, {'timeout': 0}))
+    let start = reltime()
+    call assert_equal(v:none, ch_read(handle, {'timeout': 333}))
+    let elapsed = reltime(start)
+    call assert_true(reltimefloat(elapsed) > 0.3)
+    call assert_true(reltimefloat(elapsed) < 0.6)
+  endif
+
+  " Send without waiting for a response, then wait for a response.
+  call ch_sendexpr(handle, 'wait a bit',  {'callback': 0})
+  let resp = ch_read(handle)
+  call assert_equal(type([]), type(resp))
+  call assert_equal(type(11), type(resp[0]))
+  call assert_equal('waited', resp[1])
 
   " make the server quit, can't check if this works, should not hang.
   call ch_sendexpr(handle, '!quit!', {'callback': 0})
@@ -292,8 +310,7 @@ func Test_connect_waittime()
     " Oops, port does exists.
     call ch_close(handle)
   else
-    " Failed connection doesn't wait the full time on Unix.
-    " TODO: why is MS-Windows different?
+    " Failed connection should wait about 500 msec.
     let elapsed = reltime(start)
     call assert_true(reltimefloat(elapsed) < 1.0)
   endif
@@ -416,4 +433,27 @@ func Test_open_delay()
   call ch_log('Test_open_delay()')
   " The server will wait half a second before creating the port.
   call s:run_server('s:open_delay', 'delay')
+endfunc
+
+"""""""""
+
+function MyFunction(a,b,c)
+  let s:call_ret = [a:a, a:b, a:c]
+endfunc
+
+function s:test_call(port)
+  let handle = ch_open('localhost:' . a:port, s:chopt)
+  if ch_status(handle) == "fail"
+    call assert_false(1, "Can't open channel")
+    return
+  endif
+
+  call assert_equal('ok', ch_sendexpr(handle, 'call-func'))
+  sleep 20m
+  call assert_equal([1, 2, 3], s:call_ret)
+endfunc
+
+func Test_call()
+  call ch_log('Test_call()')
+  call s:run_server('s:test_call')
 endfunc

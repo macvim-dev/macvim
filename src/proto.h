@@ -38,16 +38,8 @@
 # if defined(UNIX) || defined(__EMX__) || defined(VMS)
 #  include "os_unix.pro"
 # endif
-# if defined(MSDOS) || defined(WIN16)
+# if defined(MSDOS)
 #  include "os_msdos.pro"
-# endif
-# ifdef WIN16
-   typedef LPSTR LPWSTR;
-   typedef LPCSTR LPCWSTR;
-   typedef int LPBOOL;
-#  include "os_win16.pro"
-#  include "os_mswin.pro"
-#  include "winclip.pro"
 # endif
 # ifdef WIN3264
 #  include "os_win32.pro"
@@ -218,9 +210,6 @@ extern int putenv(const char *string);		/* from pty.c */
 #   ifdef USE_VIMPTY_GETENV
 extern char_u *vimpty_getenv(const char_u *string);	/* from pty.c */
 #   endif
-#  endif
-#  ifdef FEAT_GUI_W16
-#   include "gui_w16.pro"
 #  endif
 #  ifdef FEAT_GUI_W32
 #   include "gui_w32.pro"

@@ -1303,19 +1303,19 @@ typedef enum
 
 /* Ordering matters, it is used in for loops: IN is last, only SOCK/OUT/ERR
  * are polled. */
-#define CHAN_SOCK   0
-#define CH_SOCK	    ch_pfd[CHAN_SOCK].ch_fd
+#define PART_SOCK   0
+#define CH_SOCK_FD	ch_part[PART_SOCK].ch_fd
 
 #if defined(UNIX) || defined(WIN32)
 # define CHANNEL_PIPES
-# define CHAN_FD_INVALID  (-1)
+# define INVALID_FD  (-1)
 
-# define CHAN_OUT   1
-# define CHAN_ERR   2
-# define CHAN_IN    3
-# define CH_OUT	    ch_pfd[CHAN_OUT].ch_fd
-# define CH_ERR	    ch_pfd[CHAN_ERR].ch_fd
-# define CH_IN	    ch_pfd[CHAN_IN].ch_fd
+# define PART_OUT   1
+# define PART_ERR   2
+# define PART_IN    3
+# define CH_OUT_FD	ch_part[PART_OUT].ch_fd
+# define CH_ERR_FD	ch_part[PART_ERR].ch_fd
+# define CH_IN_FD	ch_part[PART_IN].ch_fd
 #endif
 
 /* The per-fd info for a channel. */
@@ -1338,7 +1338,18 @@ typedef struct {
 #ifdef FEAT_GUI_MACVIM
     void	*ch_inputHandler; /* Cookie for input */
 #endif
-} chan_fd_T;
+
+    ch_mode_T	ch_mode;
+    int		ch_timeout;	/* request timeout in msec */
+
+    readq_T	ch_head;	/* header for circular raw read queue */
+    jsonq_T	ch_json_head;	/* header for circular json read queue */
+    int		ch_block_id;	/* ID that channel_read_json_block() is
+				   waiting for */
+
+    cbq_T	ch_cb_head;	/* dummy node for per-request callbacks */
+    char_u	*ch_callback;	/* call when a msg is not handled */
+} chanpart_T;
 
 struct channel_S {
     channel_T	*ch_next;
@@ -1346,9 +1357,7 @@ struct channel_S {
 
     int		ch_id;		/* ID of the channel */
 
-    chan_fd_T	ch_pfd[4];	/* info for socket, out, err and in */
-
-    readq_T	ch_head;	/* dummy node, header for circular queue */
+    chanpart_T	ch_part[4];	/* info for socket, out, err and in */
 
     int		ch_error;	/* When TRUE an error was reported.  Avoids
 				 * giving pages full of error messages when
@@ -1358,15 +1367,7 @@ struct channel_S {
 
     void	(*ch_close_cb)(void); /* callback for when channel is closed */
 
-    int		ch_block_id;	/* ID that channel_read_json_block() is
-				   waiting for */
-    char_u	*ch_callback;	/* function to call when a msg is not handled */
-    cbq_T	ch_cb_head;	/* dummy node for pre-request callbacks */
-
-    ch_mode_T	ch_mode;
-    jsonq_T	ch_json_head;	/* dummy node, header for circular queue */
-
-    int		ch_timeout;	/* request timeout in msec */
+    char_u	*ch_callback;	/* call when any msg is not handled */
 
     job_T	*ch_job;	/* Job that uses this channel; this does not
 				 * count as a reference to avoid a circular
@@ -1375,11 +1376,24 @@ struct channel_S {
     int		ch_refcount;	/* reference count */
 };
 
-#define JO_MODE		1
-#define JO_CALLBACK	2
-#define JO_WAITTIME	4
-#define JO_TIMEOUT	8
+#define JO_MODE		0x0001	/* channel mode */
+#define JO_IN_MODE	0x0002	/* stdin mode */
+#define JO_OUT_MODE	0x0004	/* stdout mode */
+#define JO_ERR_MODE	0x0008	/* stderr mode */
+#define JO_CALLBACK	0x0010	/* channel callback */
+#define JO_OUT_CALLBACK	0x0020	/* stdout callback */
+#define JO_ERR_CALLBACK	0x0040	/* stderr callback */
+#define JO_WAITTIME	0x0080	/* only for ch_open() */
+#define JO_TIMEOUT	0x0100	/* all timeouts */
+#define JO_OUT_TIMEOUT	0x0200	/* stdout timeouts */
+#define JO_ERR_TIMEOUT	0x0400	/* stderr timeouts */
+#define JO_PART		0x0800	/* "part" */
+#define JO_ID		0x1000	/* "id" */
 #define JO_ALL		0xffffff
+
+#define JO_MODE_ALL	(JO_MODE + JO_IN_MODE + JO_OUT_MODE + JO_ERR_MODE)
+#define JO_CB_ALL	(JO_CALLBACK + JO_OUT_CALLBACK + JO_ERR_CALLBACK)
+#define JO_TIMEOUT_ALL	(JO_TIMEOUT + JO_OUT_TIMEOUT + JO_ERR_TIMEOUT)
 
 /*
  * Options for job and channel commands.
@@ -1389,9 +1403,18 @@ typedef struct
     int		jo_set;		/* JO_ bits for values that were set */
 
     ch_mode_T	jo_mode;
+    ch_mode_T	jo_in_mode;
+    ch_mode_T	jo_out_mode;
+    ch_mode_T	jo_err_mode;
     char_u	*jo_callback;	/* not allocated! */
+    char_u	*jo_out_cb;	/* not allocated! */
+    char_u	*jo_err_cb;	/* not allocated! */
     int		jo_waittime;
     int		jo_timeout;
+    int		jo_out_timeout;
+    int		jo_err_timeout;
+    int		jo_part;
+    int		jo_id;
 } jobopt_T;
 
 
@@ -2726,10 +2749,6 @@ struct VimMenu
 #endif
 #ifdef FEAT_BEVAL_TIP
     BalloonEval *tip;		    /* tooltip for this menu item */
-#endif
-#ifdef FEAT_GUI_W16
-    UINT	id;		    /* Id of menu item */
-    HMENU	submenu_id;	    /* If this is submenu, add children here */
 #endif
 #ifdef FEAT_GUI_W32
     UINT	id;		    /* Id of menu item */

@@ -763,6 +763,34 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    1376,
+/**/
+    1375,
+/**/
+    1374,
+/**/
+    1373,
+/**/
+    1372,
+/**/
+    1371,
+/**/
+    1370,
+/**/
+    1369,
+/**/
+    1368,
+/**/
+    1367,
+/**/
+    1366,
+/**/
+    1365,
+/**/
+    1364,
+/**/
+    1363,
+/**/
     1362,
 /**/
     1361,
@@ -3650,9 +3678,6 @@ list_version(void)
     MSG_PUTS(_("\nMS-Windows 32-bit console version"));
 #  endif
 # endif
-#endif
-#ifdef WIN16
-    MSG_PUTS(_("\nMS-Windows 16-bit version"));
 #endif
 #ifdef MSDOS
 # ifdef DJGPP
