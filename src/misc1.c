@@ -3682,28 +3682,9 @@ vim_beep(
 		    && !(gui.in_use && gui.starting)
 #endif
 		    )
-	    {
 		out_str(T_VB);
-	    }
 	    else
-	    {
-#ifdef MSDOS
-		/*
-		 * The number of beeps outputted is reduced to avoid having to
-		 * wait for all the beeps to finish. This is only a problem on
-		 * systems where the beeps don't overlap.
-		 */
-		if (beep_count == 0 || beep_count == 10)
-		{
-		    out_char(BELL);
-		    beep_count = 1;
-		}
-		else
-		    ++beep_count;
-#else
 		out_char(BELL);
-#endif
-	    }
 	}
 
 	/* When 'verbose' is set and we are sourcing a script or executing a
@@ -3817,7 +3798,7 @@ init_homedir(void)
 # endif
 #endif
 
-#if defined(MSDOS) || defined(MSWIN)
+#if defined(MSWIN)
     /*
      * Default home dir is C:/
      * Best assumption we can make in such a situation.
@@ -3953,7 +3934,7 @@ expand_env_esc(
 		    && at_start
 #endif
 	   )
-#if defined(MSDOS) || defined(MSWIN)
+#if defined(MSWIN)
 		|| *src == '%'
 #endif
 		|| (*src == '~' && at_start))
@@ -3982,7 +3963,7 @@ expand_env_esc(
 #endif
 		{
 		    while (c-- > 0 && *tail != NUL && ((vim_isIDc(*tail))
-#if defined(MSDOS) || defined(MSWIN)
+#if defined(MSWIN)
 			    || (*src == '%' && *tail != '%')
 #endif
 			    ))
@@ -3991,7 +3972,7 @@ expand_env_esc(
 		    }
 		}
 
-#if defined(MSDOS) || defined(MSWIN) || defined(UNIX)
+#if defined(MSWIN) || defined(UNIX)
 # ifdef UNIX
 		if (src[1] == '{' && *tail != '}')
 # else
@@ -4009,7 +3990,7 @@ expand_env_esc(
 #endif
 		    *var = NUL;
 		    var = vim_getenv(dst, &mustfree);
-#if defined(MSDOS) || defined(MSWIN) || defined(UNIX)
+#if defined(MSWIN) || defined(UNIX)
 		}
 #endif
 	    }
@@ -4200,7 +4181,7 @@ vim_getenv(char_u *name, int *mustfree)
     char_u	*pend;
     int		vimruntime;
 
-#if defined(MSDOS) || defined(MSWIN)
+#if defined(MSWIN)
     /* use "C:/" when $HOME is not set */
     if (STRCMP(name, "HOME") == 0)
 	return homedir;
@@ -4938,7 +4919,7 @@ get_past_head(char_u *path)
 {
     char_u  *retval;
 
-#if defined(MSDOS) || defined(MSWIN)
+#if defined(MSWIN)
     /* may skip "c:" */
     if (isalpha(path[0]) && path[1] == ':')
 	retval = path + 2;
@@ -9740,13 +9721,13 @@ static int vim_backtick(char_u *p);
 static int expand_backtick(garray_T *gap, char_u *pat, int flags);
 # endif
 
-# if defined(MSDOS) || defined(WIN3264)
+# if defined(WIN3264)
 /*
  * File name expansion code for MS-DOS, Win16 and Win32.  It's here because
  * it's shared between these systems.
  */
-# if defined(DJGPP) || defined(PROTO)
-#  define _cdecl	    /* DJGPP doesn't have this */
+# if defined(PROTO)
+#  define _cdecl
 # else
 #  ifdef __BORLANDC__
 #   define _cdecl _RTLENTRYF
@@ -9768,14 +9749,8 @@ namelowcpy(
     char_u *d,
     char_u *s)
 {
-#  ifdef DJGPP
-    if (USE_LONG_FNAME)	    /* don't lower case on Windows 95/NT systems */
-	while (*s)
-	    *d++ = *s++;
-    else
-#  endif
-	while (*s)
-	    *d++ = TOLOWER_LOC(*s++);
+    while (*s)
+	*d++ = TOLOWER_LOC(*s++);
     *d = NUL;
 }
 # endif
@@ -10084,7 +10059,7 @@ mch_expandpath(
 {
     return dos_expandpath(gap, path, 0, flags, FALSE);
 }
-# endif /* MSDOS || WIN3264 */
+# endif /* WIN3264 */
 
 #if (defined(UNIX) && !defined(VMS)) || defined(USE_UNIXFILENAME) \
 	|| defined(PROTO)
@@ -10450,7 +10425,7 @@ expand_path_option(char_u *curdir, garray_T *gap)
 	if (ga_grow(gap, 1) == FAIL)
 	    break;
 
-# if defined(MSWIN) || defined(MSDOS)
+# if defined(MSWIN)
 	/* Avoid the path ending in a backslash, it fails when a comma is
 	 * appended. */
 	len = (int)STRLEN(buf);
@@ -10488,7 +10463,7 @@ get_path_cutoff(char_u *fname, garray_T *gap)
 	int j = 0;
 
 	while ((fname[j] == path_part[i][j]
-# if defined(MSWIN) || defined(MSDOS)
+# if defined(MSWIN)
 		|| (vim_ispathsep(fname[j]) && vim_ispathsep(path_part[i][j]))
 #endif
 			     ) && fname[j] != NUL && path_part[i][j] != NUL)
@@ -10609,7 +10584,7 @@ uniquefy_paths(garray_T *gap, char_u *pattern)
 	     */
 	    short_name = shorten_fname(path, curdir);
 	    if (short_name != NULL && short_name > path + 1
-#if defined(MSWIN) || defined(MSDOS)
+#if defined(MSWIN)
 		    /* On windows,
 		     *	    shorten_fname("c:\a\a.txt", "c:\a\b")
 		     * returns "\a\a.txt", which is not really the short
@@ -10749,7 +10724,7 @@ has_env_var(char_u *p)
 	if (*p == '\\' && p[1] != NUL)
 	    ++p;
 	else if (vim_strchr((char_u *)
-#if defined(MSDOS) || defined(MSWIN)
+#if defined(MSWIN)
 				    "$%"
 #else
 				    "$"
