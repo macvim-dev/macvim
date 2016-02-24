@@ -2062,7 +2062,10 @@ cs_print_tags_priv(char **matches, char **cntxts, int num_matches)
     strcpy(tbuf, matches[0]);
     ptag = strtok(tbuf, "\t");
     if (ptag == NULL)
+    {
+	vim_free(tbuf);
 	return;
+    }
 
     newsize = (int)(strlen(cstag_msg) + strlen(ptag));
     buf = (char *)alloc(newsize);
@@ -2092,12 +2095,13 @@ cs_print_tags_priv(char **matches, char **cntxts, int num_matches)
 	    continue;
 	(void)strcpy(tbuf, matches[idx]);
 
-	if (strtok(tbuf, (const char *)"\t") == NULL)
+	if (strtok(tbuf, (const char *)"\t") == NULL
+		|| (fname = strtok(NULL, (const char *)"\t")) == NULL
+		|| (lno = strtok(NULL, (const char *)"\t")) == NULL)
+	{
+	    vim_free(tbuf);
 	    continue;
-	if ((fname = strtok(NULL, (const char *)"\t")) == NULL)
-	    continue;
-	if ((lno = strtok(NULL, (const char *)"\t")) == NULL)
-	    continue;
+	}
 	extra = strtok(NULL, (const char *)"\t");
 
 	lno[strlen(lno)-2] = '\0';  /* ignore ;" at the end */
