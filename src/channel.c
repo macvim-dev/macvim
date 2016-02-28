@@ -28,6 +28,8 @@
 # define ECONNREFUSED WSAECONNREFUSED
 # undef EWOULDBLOCK
 # define EWOULDBLOCK WSAEWOULDBLOCK
+# undef EINPROGRESS
+# define EINPROGRESS WSAEINPROGRESS
 # ifdef EINTR
 #  undef EINTR
 # endif
@@ -317,20 +319,47 @@ add_channel(void)
  * Called when the refcount of a channel is zero.
  * Return TRUE if "channel" has a callback and the associated job wasn't
  * killed.
- * If the job was killed the channel is not expected to work anymore.
- * If there is no callback then nobody can get readahead.
  */
     static int
 channel_still_useful(channel_T *channel)
 {
+    int has_sock_msg;
+#ifdef CHANNEL_PIPES
+    int	has_out_msg;
+    int	has_err_msg;
+#endif
+
+    /* If the job was killed the channel is not expected to work anymore. */
     if (channel->ch_job_killed && channel->ch_job == NULL)
 	return FALSE;
-    return channel->ch_callback != NULL
+
+    /* If there is a close callback it may still need to be invoked. */
+    if (channel->ch_close_cb != NULL)
+	return TRUE;
+
+    /* If there is no callback then nobody can get readahead.  If the fd is
+     * closed and there is no readahead then the callback won't be called. */
+    has_sock_msg = channel->ch_part[PART_SOCK].ch_fd != INVALID_FD
+	          || channel->ch_part[PART_SOCK].ch_head.rq_next != NULL
+		  || channel->ch_part[PART_SOCK].ch_json_head.jq_next != NULL;
 #ifdef CHANNEL_PIPES
-	    || channel->ch_part[PART_OUT].ch_callback != NULL
-	    || channel->ch_part[PART_ERR].ch_callback != NULL
+    has_out_msg = channel->ch_part[PART_OUT].ch_fd != INVALID_FD
+		  || channel->ch_part[PART_OUT].ch_head.rq_next != NULL
+		  || channel->ch_part[PART_OUT].ch_json_head.jq_next != NULL;
+    has_err_msg = channel->ch_part[PART_ERR].ch_fd != INVALID_FD
+		  || channel->ch_part[PART_ERR].ch_head.rq_next != NULL
+		  || channel->ch_part[PART_ERR].ch_json_head.jq_next != NULL;
 #endif
-	    || channel->ch_close_cb != NULL;
+    return (channel->ch_callback != NULL && (has_sock_msg
+#ifdef CHANNEL_PIPES
+		|| has_out_msg || has_err_msg
+#endif
+		))
+#ifdef CHANNEL_PIPES
+	    || (channel->ch_part[PART_OUT].ch_callback != NULL && has_out_msg)
+	    || (channel->ch_part[PART_ERR].ch_callback != NULL && has_err_msg)
+#endif
+	    ;
 }
 
 /*
@@ -569,8 +598,6 @@ channel_open(
 #else
     int			port = port_in;
     struct timeval	start_tv;
-    int			so_error;
-    socklen_t		so_error_len = sizeof(so_error);
 #endif
     channel_T		*channel;
     int			ret;
@@ -652,7 +679,6 @@ channel_open(
 	{
 	    if (errno != EWOULDBLOCK
 		    && errno != ECONNREFUSED
-
 #ifdef EINPROGRESS
 		    && errno != EINPROGRESS
 #endif
@@ -672,14 +698,15 @@ channel_open(
 	if (waittime >= 0 && ret < 0)
 	{
 	    struct timeval	tv;
+	    fd_set		rfds;
 	    fd_set		wfds;
-#if defined(__APPLE__) && __APPLE__ == 1
-# define PASS_RFDS
-	    fd_set	    rfds;
+#ifndef WIN32
+	    int			so_error = 0;
+	    socklen_t		so_error_len = sizeof(so_error);
+#endif
 
 	    FD_ZERO(&rfds);
 	    FD_SET(sd, &rfds);
-#endif
 	    FD_ZERO(&wfds);
 	    FD_SET(sd, &wfds);
 
@@ -690,13 +717,7 @@ channel_open(
 #endif
 	    ch_logn(channel,
 		    "Waiting for connection (waittime %d msec)...", waittime);
-	    ret = select((int)sd + 1,
-#ifdef PASS_RFDS
-		    &rfds,
-#else
-		    NULL,
-#endif
-		    &wfds, NULL, &tv);
+	    ret = select((int)sd + 1, &rfds, &wfds, NULL, &tv);
 
 	    if (ret < 0)
 	    {
@@ -708,29 +729,42 @@ channel_open(
 		channel_free(channel);
 		return NULL;
 	    }
-#ifdef PASS_RFDS
-	    if (ret == 0 && FD_ISSET(sd, &rfds) && FD_ISSET(sd, &wfds))
-	    {
-		/* For OS X, this implies error. See tcp(4). */
-		ch_error(channel, "channel_open: Connect failed");
-		EMSG(_(e_cannot_connect));
-		sock_close(sd);
-		channel_free(channel);
-		return NULL;
-	    }
-#endif
+
 #ifdef WIN32
-	    /* On Win32 select() is expected to work and wait for up to the
+	    /* On Win32: select() is expected to work and wait for up to the
 	     * waittime for the socket to be open. */
 	    if (!FD_ISSET(sd, &wfds) || ret == 0)
 #else
-	    /* See socket(7) for the behavior on Linux-like systems:
+	    /* On Linux-like systems: See socket(7) for the behavior
 	     * After putting the socket in non-blocking mode, connect() will
 	     * return EINPROGRESS, select() will not wait (as if writing is
 	     * possible), need to use getsockopt() to check if the socket is
-	     * actually open. */
-	    getsockopt(sd, SOL_SOCKET, SO_ERROR, &so_error, &so_error_len);
-	    if (!FD_ISSET(sd, &wfds) || ret == 0 || so_error != 0)
+	     * actually connect.
+	     * We detect an failure to connect when both read and write fds
+	     * are set.  Use getsockopt() to find out what kind of failure. */
+	    if (FD_ISSET(sd, &rfds) && FD_ISSET(sd, &wfds))
+	    {
+		ret = getsockopt(sd,
+			    SOL_SOCKET, SO_ERROR, &so_error, &so_error_len);
+		if (ret < 0 || (so_error != 0
+			&& so_error != EWOULDBLOCK
+			&& so_error != ECONNREFUSED
+# ifdef EINPROGRESS
+			&& so_error != EINPROGRESS
+# endif
+			))
+		{
+		    ch_errorn(channel,
+			    "channel_open: Connect failed with errno %d",
+			    so_error);
+		    PERROR(_(e_cannot_connect));
+		    sock_close(sd);
+		    channel_free(channel);
+		    return NULL;
+		}
+	    }
+
+	    if (!FD_ISSET(sd, &wfds) || so_error != 0)
 #endif
 	    {
 #ifndef WIN32
@@ -1515,7 +1549,7 @@ may_invoke_callback(channel_T *channel, int part)
 	{
 	    if (item->cq_seq_nr == seq_nr)
 	    {
-		ch_logs(channel, "Invoking one-time callback '%s'",
+		ch_logs(channel, "Invoking one-time callback %s",
 						   (char *)item->cq_callback);
 		/* Remove the item from the list first, if the callback
 		 * invokes ch_close() the list will be cleared. */
@@ -1576,7 +1610,7 @@ may_invoke_callback(channel_T *channel, int part)
 	if (callback != NULL)
 	{
 	    /* invoke the channel callback */
-	    ch_log(channel, "Invoking channel callback");
+	    ch_logs(channel, "Invoking channel callback %s", (char *)callback);
 	    invoke_callback(channel, callback, argv);
 	}
     }
@@ -1776,7 +1810,6 @@ channel_free_all(void)
 
 /* Sent when the channel is found closed when reading. */
 #define DETACH_MSG_RAW "DETACH\n"
-#define DETACH_MSG_JSON "\"DETACH\"\n"
 
 /* Buffer size for reading incoming messages. */
 #define MAXMSGSIZE 4096
@@ -1872,7 +1905,6 @@ channel_read(channel_T *channel, int part, char *func)
     int			readlen = 0;
     sock_T		fd;
     int			use_socket = FALSE;
-    char		*msg;
 
     fd = channel->ch_part[part].ch_fd;
     if (fd == INVALID_FD)
@@ -1927,11 +1959,12 @@ channel_read(channel_T *channel, int part, char *func)
 	 *		-> ui_breakcheck
 	 *		    -> gui event loop or select loop
 	 *			-> channel_read()
+	 * Don't send "DETACH" for a JS or JSON channel.
 	 */
-	msg = channel->ch_part[part].ch_mode == MODE_RAW
-				  || channel->ch_part[part].ch_mode == MODE_NL
-		    ? DETACH_MSG_RAW : DETACH_MSG_JSON;
-	channel_save(channel, part, (char_u *)msg, (int)STRLEN(msg));
+	if (channel->ch_part[part].ch_mode == MODE_RAW
+				 || channel->ch_part[part].ch_mode == MODE_NL)
+	    channel_save(channel, part, (char_u *)DETACH_MSG_RAW,
+						 (int)STRLEN(DETACH_MSG_RAW));
 
 	/* TODO: When reading from stdout is not possible, should we try to
 	 * keep stdin and stderr open?  Probably not, assume the other side
