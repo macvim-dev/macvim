@@ -654,8 +654,6 @@ X_PRE_LIBS
 X_CFLAGS
 XMKMF
 xmkmfpath
-SNIFF_OBJ
-SNIFF_SRC
 CHANNEL_OBJ
 CHANNEL_SRC
 NETBEANS_OBJ
@@ -816,7 +814,6 @@ enable_cscope
 enable_workshop
 enable_netbeans
 enable_channel
-enable_sniff
 enable_multibyte
 enable_hangulinput
 enable_xim
@@ -1483,7 +1480,6 @@ Optional Features:
   --enable-workshop       Include Sun Visual Workshop support.
   --disable-netbeans      Disable NetBeans integration support.
   --disable-channel      Disable process communication support.
-  --enable-sniff          Include Sniff interface.
   --enable-multibyte      Include multibyte editing support.
   --enable-hangulinput    Include Hangul input support.
   --enable-xim            Include XIM input support.
@@ -7523,26 +7519,6 @@ if test "$enable_channel" = "yes"; then
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking --enable-sniff argument" >&5
-$as_echo_n "checking --enable-sniff argument... " >&6; }
-# Check whether --enable-sniff was given.
-if test "${enable_sniff+set}" = set; then :
-  enableval=$enable_sniff;
-else
-  enable_sniff="no"
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_sniff" >&5
-$as_echo "$enable_sniff" >&6; }
-if test "$enable_sniff" = "yes"; then
-  $as_echo "#define FEAT_SNIFF 1" >>confdefs.h
-
-  SNIFF_SRC="if_sniff.c"
-
-  SNIFF_OBJ="objects/if_sniff.o"
-
-fi
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking --enable-multibyte argument" >&5
 $as_echo_n "checking --enable-multibyte argument... " >&6; }
 # Check whether --enable-multibyte was given.
@@ -11113,6 +11089,48 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
  presetting ac_cv_c_bigendian=no (or yes) will help" "$LINENO" 5 ;;
  esac
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for inline" >&5
+$as_echo_n "checking for inline... " >&6; }
+if ${ac_cv_c_inline+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_cv_c_inline=no
+for ac_kw in inline __inline__ __inline; do
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifndef __cplusplus
+typedef int foo_t;
+static $ac_kw foo_t static_foo () {return 0; }
+$ac_kw foo_t foo () {return 0; }
+#endif
+
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_cv_c_inline=$ac_kw
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  test "$ac_cv_c_inline" != no && break
+done
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_c_inline" >&5
+$as_echo "$ac_cv_c_inline" >&6; }
+
+case $ac_cv_c_inline in
+  inline | yes) ;;
+  *)
+    case $ac_cv_c_inline in
+      no) ac_val=;;
+      *) ac_val=$ac_cv_c_inline;;
+    esac
+    cat >>confdefs.h <<_ACEOF
+#ifndef __cplusplus
+#define inline $ac_val
+#endif
+_ACEOF
+    ;;
+esac
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for rlim_t" >&5
 $as_echo_n "checking for rlim_t... " >&6; }
@@ -11951,7 +11969,7 @@ for ac_func in bcmp fchdir fchown fsync getcwd getpseudotty \
 	setpgid setsid sigaltstack sigstack sigset sigsetjmp sigaction \
 	sigvec strcasecmp strerror strftime stricmp strncasecmp \
 	strnicmp strpbrk strtol tgetent towlower towupper iswupper \
-	usleep utime utimes
+	usleep utime utimes isnan isinf
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"

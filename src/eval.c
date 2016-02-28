@@ -10,6 +10,7 @@
 /*
  * eval.c: Expression evaluation.
  */
+#define USING_FLOAT_STUFF
 
 #include "vim.h"
 
@@ -25,16 +26,6 @@
 
 #ifdef MACOS
 # include <time.h>	/* for time_t */
-#endif
-
-#if defined(FEAT_FLOAT)
-# include <float.h>
-# if defined(HAVE_MATH_H)
-#  include <math.h>
-# endif
-# if defined(WIN32) && !defined(isnan)
-#  define isnan(x) _isnan(x)
-# endif
 #endif
 
 #define DICT_MAXNEST 100	/* maximum nesting of lists and dicts */
@@ -507,6 +498,9 @@ static void f_ceil(typval_T *argvars, typval_T *rettv);
 #endif
 #ifdef FEAT_CHANNEL
 static void f_ch_close(typval_T *argvars, typval_T *rettv);
+static void f_ch_evalexpr(typval_T *argvars, typval_T *rettv);
+static void f_ch_evalraw(typval_T *argvars, typval_T *rettv);
+static void f_ch_getbufnr(typval_T *argvars, typval_T *rettv);
 # ifdef FEAT_JOB
 static void f_ch_getjob(typval_T *argvars, typval_T *rettv);
 # endif
@@ -8201,6 +8195,9 @@ static struct fst
 #endif
 #ifdef FEAT_CHANNEL
     {"ch_close",	1, 1, f_ch_close},
+    {"ch_evalexpr",	2, 3, f_ch_evalexpr},
+    {"ch_evalraw",	2, 3, f_ch_evalraw},
+    {"ch_getbufnr",	2, 2, f_ch_getbufnr},
 # ifdef FEAT_JOB
     {"ch_getjob",	1, 1, f_ch_getjob},
 # endif
@@ -9976,10 +9973,43 @@ handle_mode(typval_T *item, jobopt_T *opt, ch_mode_T *modep, int jo)
     return OK;
 }
 
+    static int
+handle_io(typval_T *item, int part, jobopt_T *opt)
+{
+    char_u	*val = get_tv_string(item);
+
+    opt->jo_set |= JO_OUT_IO << (part - PART_OUT);
+    if (STRCMP(val, "null") == 0)
+	opt->jo_io[part] = JIO_NULL;
+    else if (STRCMP(val, "pipe") == 0)
+	opt->jo_io[part] = JIO_PIPE;
+    else if (STRCMP(val, "file") == 0)
+	opt->jo_io[part] = JIO_FILE;
+    else if (STRCMP(val, "buffer") == 0)
+	opt->jo_io[part] = JIO_BUFFER;
+    else if (STRCMP(val, "out") == 0 && part == PART_ERR)
+	opt->jo_io[part] = JIO_OUT;
+    else
+    {
+	EMSG2(_(e_invarg2), val);
+	return FAIL;
+    }
+    return OK;
+}
+
     static void
 clear_job_options(jobopt_T *opt)
 {
     vim_memset(opt, 0, sizeof(jobopt_T));
+}
+
+/*
+ * Get the PART_ number from the first character of an option name.
+ */
+    static int
+part_from_char(int c)
+{
+    return c == 'i' ? PART_IN : c == 'o' ? PART_OUT: PART_ERR;
 }
 
 /*
@@ -9996,6 +10026,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
     dict_T	*dict;
     int		todo;
     hashitem_T	*hi;
+    int		part;
 
     opt->jo_set = 0;
     if (tv->v_type == VAR_UNKNOWN)
@@ -10045,6 +10076,27 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
 		if (handle_mode(item, opt, &opt->jo_err_mode, JO_ERR_MODE)
 								      == FAIL)
 		    return FAIL;
+	    }
+	    else if (STRCMP(hi->hi_key, "in-io") == 0
+		    || STRCMP(hi->hi_key, "out-io") == 0
+		    || STRCMP(hi->hi_key, "err-io") == 0)
+	    {
+		if (!(supported & JO_OUT_IO))
+		    break;
+		if (handle_io(item, part_from_char(*hi->hi_key), opt) == FAIL)
+		    return FAIL;
+	    }
+	    else if (STRCMP(hi->hi_key, "in-name") == 0
+		    || STRCMP(hi->hi_key, "out-name") == 0
+		    || STRCMP(hi->hi_key, "err-name") == 0)
+	    {
+		part = part_from_char(*hi->hi_key);
+
+		if (!(supported & JO_OUT_IO))
+		    break;
+		opt->jo_set |= JO_OUT_NAME << (part - PART_OUT);
+		opt->jo_io_name[part] =
+		       get_tv_string_buf_chk(item, opt->jo_io_name_buf[part]);
 	    }
 	    else if (STRCMP(hi->hi_key, "callback") == 0)
 	    {
@@ -10216,7 +10268,37 @@ f_ch_close(typval_T *argvars, typval_T *rettv UNUSED)
     channel_T *channel = get_channel_arg(&argvars[0]);
 
     if (channel != NULL)
+    {
 	channel_close(channel, FALSE);
+	channel_clear(channel);
+    }
+}
+
+/*
+ * "ch_getbufnr()" function
+ */
+    static void
+f_ch_getbufnr(typval_T *argvars, typval_T *rettv)
+{
+    channel_T *channel = get_channel_arg(&argvars[0]);
+
+    rettv->vval.v_number = -1;
+    if (channel != NULL)
+    {
+	char_u	*what = get_tv_string(&argvars[1]);
+	int	part;
+
+	if (STRCMP(what, "err") == 0)
+	    part = PART_ERR;
+	else if (STRCMP(what, "out") == 0)
+	    part = PART_OUT;
+	else if (STRCMP(what, "in") == 0)
+	    part = PART_IN;
+	else
+	    part = PART_SOCK;
+	if (channel->ch_part[part].ch_buffer != NULL)
+	    rettv->vval.v_number = channel->ch_part[part].ch_buffer->b_fnum;
+    }
 }
 
 # ifdef FEAT_JOB
@@ -10420,7 +10502,13 @@ f_ch_readraw(typval_T *argvars, typval_T *rettv)
  * Otherwise returns NULL.
  */
     static channel_T *
-send_common(typval_T *argvars, char_u *text, int id, char *fun, int *part_read)
+send_common(
+	typval_T *argvars,
+	char_u *text,
+	int id,
+	int eval,
+	char *fun,
+	int *part_read)
 {
     channel_T	*channel;
     jobopt_T	opt;
@@ -10437,9 +10525,17 @@ send_common(typval_T *argvars, char_u *text, int id, char *fun, int *part_read)
 	return NULL;
 
     /* Set the callback. An empty callback means no callback and not reading
-     * the response. */
+     * the response. With "ch_evalexpr()" and "ch_evalraw()" a callback is not
+     * allowed. */
     if (opt.jo_callback != NULL && *opt.jo_callback != NUL)
+    {
+	if (eval)
+	{
+	    EMSG2(_("E917: Cannot use a callback with %s()"), fun);
+	    return NULL;
+	}
 	channel_set_req_callback(channel, part_send, opt.jo_callback, id);
+    }
 
     if (channel_send(channel, part_send, text, fun) == OK
 						   && opt.jo_callback == NULL)
@@ -10448,10 +10544,10 @@ send_common(typval_T *argvars, char_u *text, int id, char *fun, int *part_read)
 }
 
 /*
- * "ch_sendexpr()" function
+ * common for "ch_evalexpr()" and "ch_sendexpr()"
  */
     static void
-f_ch_sendexpr(typval_T *argvars, typval_T *rettv)
+ch_expr_common(typval_T *argvars, typval_T *rettv, int eval)
 {
     char_u	*text;
     typval_T	*listtv;
@@ -10474,7 +10570,7 @@ f_ch_sendexpr(typval_T *argvars, typval_T *rettv)
     ch_mode = channel_get_mode(channel, part_send);
     if (ch_mode == MODE_RAW || ch_mode == MODE_NL)
     {
-	EMSG(_("E912: cannot use ch_sendexpr() with a raw or nl channel"));
+	EMSG(_("E912: cannot use ch_evalexpr()/ch_sendexpr() with a raw or nl channel"));
 	return;
     }
 
@@ -10484,9 +10580,10 @@ f_ch_sendexpr(typval_T *argvars, typval_T *rettv)
     if (text == NULL)
 	return;
 
-    channel = send_common(argvars, text, id, "sendexpr", &part_read);
+    channel = send_common(argvars, text, id, eval,
+			    eval ? "ch_evalexpr" : "ch_sendexpr", &part_read);
     vim_free(text);
-    if (channel != NULL)
+    if (channel != NULL && eval)
     {
 	/* TODO: timeout from options */
 	timeout = channel_get_timeout(channel, part_read);
@@ -10505,10 +10602,28 @@ f_ch_sendexpr(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "ch_sendraw()" function
+ * "ch_evalexpr()" function
  */
     static void
-f_ch_sendraw(typval_T *argvars, typval_T *rettv)
+f_ch_evalexpr(typval_T *argvars, typval_T *rettv)
+{
+    ch_expr_common(argvars, rettv, TRUE);
+}
+
+/*
+ * "ch_sendexpr()" function
+ */
+    static void
+f_ch_sendexpr(typval_T *argvars, typval_T *rettv)
+{
+    ch_expr_common(argvars, rettv, FALSE);
+}
+
+/*
+ * common for "ch_evalraw()" and "ch_sendraw()"
+ */
+    static void
+ch_raw_common(typval_T *argvars, typval_T *rettv, int eval)
 {
     char_u	buf[NUMBUFLEN];
     char_u	*text;
@@ -10521,13 +10636,32 @@ f_ch_sendraw(typval_T *argvars, typval_T *rettv)
     rettv->vval.v_string = NULL;
 
     text = get_tv_string_buf(&argvars[1], buf);
-    channel = send_common(argvars, text, 0, "sendraw", &part_read);
-    if (channel != NULL)
+    channel = send_common(argvars, text, 0, eval,
+			      eval ? "ch_evalraw" : "ch_sendraw", &part_read);
+    if (channel != NULL && eval)
     {
 	/* TODO: timeout from options */
 	timeout = channel_get_timeout(channel, part_read);
 	rettv->vval.v_string = channel_read_block(channel, part_read, timeout);
     }
+}
+
+/*
+ * "ch_evalraw()" function
+ */
+    static void
+f_ch_evalraw(typval_T *argvars, typval_T *rettv)
+{
+    ch_raw_common(argvars, rettv, TRUE);
+}
+
+/*
+ * "ch_sendraw()" function
+ */
+    static void
+f_ch_sendraw(typval_T *argvars, typval_T *rettv)
+{
+    ch_raw_common(argvars, rettv, FALSE);
 }
 
 /*
@@ -13878,9 +14012,6 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_SMARTINDENT
 	"smartindent",
 #endif
-#ifdef FEAT_SNIFF
-	"sniff",
-#endif
 #ifdef STARTUPTIME
 	"startuptime",
 #endif
@@ -14967,7 +15098,7 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
     opt.jo_mode = MODE_NL;
     if (get_job_options(&argvars[1], &opt,
 	    JO_MODE_ALL + JO_CB_ALL + JO_TIMEOUT_ALL
-					+ JO_STOPONEXIT + JO_EXIT_CB) == FAIL)
+			    + JO_STOPONEXIT + JO_EXIT_CB + JO_OUT_IO) == FAIL)
 	return;
     job_set_options(job, &opt);
 
