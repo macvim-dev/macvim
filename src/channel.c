@@ -739,10 +739,10 @@ channel_open(
 	     * After putting the socket in non-blocking mode, connect() will
 	     * return EINPROGRESS, select() will not wait (as if writing is
 	     * possible), need to use getsockopt() to check if the socket is
-	     * actually connect.
-	     * We detect an failure to connect when both read and write fds
+	     * actually able to connect.
+	     * We detect an failure to connect when either read and write fds
 	     * are set.  Use getsockopt() to find out what kind of failure. */
-	    if (FD_ISSET(sd, &rfds) && FD_ISSET(sd, &wfds))
+	    if (FD_ISSET(sd, &rfds) || FD_ISSET(sd, &wfds))
 	    {
 		ret = getsockopt(sd,
 			    SOL_SOCKET, SO_ERROR, &so_error, &so_error_len);
@@ -1535,6 +1535,9 @@ may_invoke_callback(channel_T *channel, int part)
 	     * get everything we have. */
 	    msg = channel_get_all(channel, part);
 
+	if (msg == NULL)
+	    return FALSE; /* out of memory (and avoids Coverity warning) */
+
 	argv[1].v_type = VAR_STRING;
 	argv[1].vval.v_string = msg;
     }
@@ -1570,21 +1573,22 @@ may_invoke_callback(channel_T *channel, int part)
     {
 	if (buffer != NULL)
 	{
-	    buf_T	*save_curbuf = curbuf;
-	    linenr_T	lnum = buffer->b_ml.ml_line_count;
-
-	    /* Append to the buffer */
-	    ch_logn(channel, "appending line %d to buffer", (int)lnum + 1);
-
-	    curbuf = buffer;
-	    u_sync(TRUE);
-	    u_save(lnum, lnum + 1);
-
 	    if (msg == NULL)
 		/* JSON or JS mode: re-encode the message. */
 		msg = json_encode(listtv, ch_mode);
 	    if (msg != NULL)
 	    {
+		buf_T	    *save_curbuf = curbuf;
+		linenr_T    lnum = buffer->b_ml.ml_line_count;
+
+		/* Append to the buffer */
+		ch_logn(channel, "appending line %d to buffer", (int)lnum + 1);
+
+		curbuf = buffer;
+		u_sync(TRUE);
+		/* ignore undo failure, undo is not very useful here */
+		ignored = u_save(lnum, lnum + 1);
+
 		ml_append(lnum, msg, 0, FALSE);
 		appended_lines_mark(lnum, 1L);
 		curbuf = save_curbuf;
