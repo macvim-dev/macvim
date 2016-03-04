@@ -9662,27 +9662,12 @@ f_bufloaded(typval_T *argvars, typval_T *rettv)
     rettv->vval.v_number = (buf != NULL && buf->b_ml.ml_mfp != NULL);
 }
 
-static buf_T *get_buf_tv(typval_T *tv, int curtab_only);
-
-/*
- * Get buffer by number or pattern.
- */
     static buf_T *
-get_buf_tv(typval_T *tv, int curtab_only)
+buflist_find_by_name(char_u *name, int curtab_only)
 {
-    char_u	*name = tv->vval.v_string;
     int		save_magic;
     char_u	*save_cpo;
     buf_T	*buf;
-
-    if (tv->v_type == VAR_NUMBER)
-	return buflist_findnr((int)tv->vval.v_number);
-    if (tv->v_type != VAR_STRING)
-	return NULL;
-    if (name == NULL || *name == NUL)
-	return curbuf;
-    if (name[0] == '$' && name[1] == NUL)
-	return lastbuf;
 
     /* Ignore 'magic' and 'cpoptions' here to make scripts portable */
     save_magic = p_magic;
@@ -9695,6 +9680,28 @@ get_buf_tv(typval_T *tv, int curtab_only)
 
     p_magic = save_magic;
     p_cpo = save_cpo;
+    return buf;
+}
+
+/*
+ * Get buffer by number or pattern.
+ */
+    static buf_T *
+get_buf_tv(typval_T *tv, int curtab_only)
+{
+    char_u	*name = tv->vval.v_string;
+    buf_T	*buf;
+
+    if (tv->v_type == VAR_NUMBER)
+	return buflist_findnr((int)tv->vval.v_number);
+    if (tv->v_type != VAR_STRING)
+	return NULL;
+    if (name == NULL || *name == NUL)
+	return curbuf;
+    if (name[0] == '$' && name[1] == NUL)
+	return lastbuf;
+
+    buf = buflist_find_by_name(name, curtab_only);
 
     /* If not found, try expanding the name, like done for bufexists(). */
     if (buf == NULL)
@@ -10110,6 +10117,30 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
 		opt->jo_io_name[part] =
 		       get_tv_string_buf_chk(item, opt->jo_io_name_buf[part]);
 	    }
+	    else if (STRCMP(hi->hi_key, "in-top") == 0
+		    || STRCMP(hi->hi_key, "in-bot") == 0)
+	    {
+		linenr_T *lp;
+
+		if (!(supported & JO_OUT_IO))
+		    break;
+		if (hi->hi_key[3] == 't')
+		{
+		    lp = &opt->jo_in_top;
+		    opt->jo_set |= JO_IN_TOP;
+		}
+		else
+		{
+		    lp = &opt->jo_in_bot;
+		    opt->jo_set |= JO_IN_BOT;
+		}
+		*lp = get_tv_number(item);
+		if (*lp < 0)
+		{
+		    EMSG2(_(e_invarg2), get_tv_string(item));
+		    return FAIL;
+		}
+	    }
 	    else if (STRCMP(hi->hi_key, "callback") == 0)
 	    {
 		if (!(supported & JO_CALLBACK))
@@ -10518,15 +10549,15 @@ f_ch_readraw(typval_T *argvars, typval_T *rettv)
  */
     static channel_T *
 send_common(
-	typval_T *argvars,
-	char_u *text,
-	int id,
-	int eval,
-	char *fun,
-	int *part_read)
+	typval_T    *argvars,
+	char_u	    *text,
+	int	    id,
+	int	    eval,
+	jobopt_T    *opt,
+	char	    *fun,
+	int	    *part_read)
 {
     channel_T	*channel;
-    jobopt_T	opt;
     int		part_send;
 
     channel = get_channel_arg(&argvars[0]);
@@ -10535,25 +10566,25 @@ send_common(
     part_send = channel_part_send(channel);
     *part_read = channel_part_read(channel);
 
-    clear_job_options(&opt);
-    if (get_job_options(&argvars[2], &opt, JO_CALLBACK) == FAIL)
+    clear_job_options(opt);
+    if (get_job_options(&argvars[2], opt, JO_CALLBACK + JO_TIMEOUT) == FAIL)
 	return NULL;
 
     /* Set the callback. An empty callback means no callback and not reading
      * the response. With "ch_evalexpr()" and "ch_evalraw()" a callback is not
      * allowed. */
-    if (opt.jo_callback != NULL && *opt.jo_callback != NUL)
+    if (opt->jo_callback != NULL && *opt->jo_callback != NUL)
     {
 	if (eval)
 	{
 	    EMSG2(_("E917: Cannot use a callback with %s()"), fun);
 	    return NULL;
 	}
-	channel_set_req_callback(channel, part_send, opt.jo_callback, id);
+	channel_set_req_callback(channel, part_send, opt->jo_callback, id);
     }
 
     if (channel_send(channel, part_send, text, fun) == OK
-						   && opt.jo_callback == NULL)
+						  && opt->jo_callback == NULL)
 	return channel;
     return NULL;
 }
@@ -10571,6 +10602,7 @@ ch_expr_common(typval_T *argvars, typval_T *rettv, int eval)
     ch_mode_T	ch_mode;
     int		part_send;
     int		part_read;
+    jobopt_T    opt;
     int		timeout;
 
     /* return an empty string by default */
@@ -10595,12 +10627,15 @@ ch_expr_common(typval_T *argvars, typval_T *rettv, int eval)
     if (text == NULL)
 	return;
 
-    channel = send_common(argvars, text, id, eval,
+    channel = send_common(argvars, text, id, eval, &opt,
 			    eval ? "ch_evalexpr" : "ch_sendexpr", &part_read);
     vim_free(text);
     if (channel != NULL && eval)
     {
-	/* TODO: timeout from options */
+	if (opt.jo_set & JO_TIMEOUT)
+	    timeout = opt.jo_timeout;
+	else
+	    timeout = channel_get_timeout(channel, part_read);
 	timeout = channel_get_timeout(channel, part_read);
 	if (channel_read_json_block(channel, part_read, timeout, id, &listtv)
 									== OK)
@@ -10644,6 +10679,7 @@ ch_raw_common(typval_T *argvars, typval_T *rettv, int eval)
     char_u	*text;
     channel_T	*channel;
     int		part_read;
+    jobopt_T    opt;
     int		timeout;
 
     /* return an empty string by default */
@@ -10651,12 +10687,14 @@ ch_raw_common(typval_T *argvars, typval_T *rettv, int eval)
     rettv->vval.v_string = NULL;
 
     text = get_tv_string_buf(&argvars[1], buf);
-    channel = send_common(argvars, text, 0, eval,
+    channel = send_common(argvars, text, 0, eval, &opt,
 			      eval ? "ch_evalraw" : "ch_sendraw", &part_read);
     if (channel != NULL && eval)
     {
-	/* TODO: timeout from options */
-	timeout = channel_get_timeout(channel, part_read);
+	if (opt.jo_set & JO_TIMEOUT)
+	    timeout = opt.jo_timeout;
+	else
+	    timeout = channel_get_timeout(channel, part_read);
 	rettv->vval.v_string = channel_read_block(channel, part_read, timeout);
     }
 }
@@ -15115,6 +15153,29 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
 	    JO_MODE_ALL + JO_CB_ALL + JO_TIMEOUT_ALL
 			    + JO_STOPONEXIT + JO_EXIT_CB + JO_OUT_IO) == FAIL)
 	return;
+
+    if ((opt.jo_set & JO_IN_IO) && opt.jo_io[PART_IN] == JIO_BUFFER)
+    {
+	buf_T *buf;
+
+	/* check that we can find the buffer before starting the job */
+	if (!(opt.jo_set & JO_IN_NAME))
+	{
+	    EMSG(_("E915: in-io buffer requires in-name to be set"));
+	    return;
+	}
+	buf = buflist_find_by_name(opt.jo_io_name[PART_IN], FALSE);
+	if (buf == NULL)
+	    return;
+	if (buf->b_ml.ml_mfp == NULL)
+	{
+	    EMSG2(_("E918: buffer must be loaded: %s"),
+						     opt.jo_io_name[PART_IN]);
+	    return;
+	}
+	job->jv_in_buf = buf;
+    }
+
     job_set_options(job, &opt);
 
 #ifndef USE_ARGV
@@ -15204,6 +15265,10 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
     ch_logs(NULL, "Starting job: %s", (char *)cmd);
 # endif
     mch_start_job((char *)cmd, job, &opt);
+#endif
+
+#ifdef FEAT_CHANNEL
+    channel_write_in(job->jv_channel);
 #endif
 
 theend:

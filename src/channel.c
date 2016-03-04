@@ -838,13 +838,32 @@ channel_set_pipes(channel_T *channel, sock_T in, sock_T out, sock_T err)
 #endif
 
 /*
- * Sets the job the channel is associated with.
+ * Sets the job the channel is associated with and associated options.
  * This does not keep a refcount, when the job is freed ch_job is cleared.
  */
     void
-channel_set_job(channel_T *channel, job_T *job)
+channel_set_job(channel_T *channel, job_T *job, jobopt_T *options)
 {
     channel->ch_job = job;
+
+    channel_set_options(channel, options);
+
+    if (job->jv_in_buf != NULL)
+    {
+	chanpart_T *in_part = &channel->ch_part[PART_IN];
+
+	in_part->ch_buffer = job->jv_in_buf;
+	ch_logs(channel, "reading from buffer '%s'",
+					(char *)in_part->ch_buffer->b_ffname);
+	if (options->jo_set & JO_IN_TOP)
+	    in_part->ch_buf_top = options->jo_in_top;
+	else
+	    in_part->ch_buf_top = 1;
+	if (options->jo_set & JO_IN_BOT)
+	    in_part->ch_buf_bot = options->jo_in_bot;
+	else
+	    in_part->ch_buf_bot = in_part->ch_buffer->b_ml.ml_line_count;
+    }
 }
 
 /*
@@ -980,6 +999,47 @@ channel_set_req_callback(
 	else
 	    item->cq_prev->cq_next = item;
     }
+}
+
+/*
+ * Write any lines to the in channel.
+ */
+    void
+channel_write_in(channel_T *channel)
+{
+    chanpart_T *in_part = &channel->ch_part[PART_IN];
+    linenr_T    lnum;
+    buf_T	*buf = in_part->ch_buffer;
+
+    if (buf == NULL)
+	return;
+    if (!buf_valid(buf) || buf->b_ml.ml_mfp == NULL)
+    {
+	/* buffer was wiped out or unloaded */
+	in_part->ch_buffer = NULL;
+	return;
+    }
+    if (in_part->ch_fd == INVALID_FD)
+	/* pipe was closed */
+	return;
+
+    for (lnum = in_part->ch_buf_top; lnum <= in_part->ch_buf_bot
+				   && lnum <= buf->b_ml.ml_line_count; ++lnum)
+    {
+	char_u *line = ml_get_buf(buf, lnum, FALSE);
+	int	len = STRLEN(line);
+	char_u *p;
+
+	/* TODO: check if channel can be written to */
+	if ((p = alloc(len + 2)) == NULL)
+	    break;
+	STRCPY(p, line);
+	p[len] = NL;
+	p[len + 1] = NUL;
+	channel_send(channel, PART_IN, p, "channel_write_in()");
+	vim_free(p);
+    }
+    in_part->ch_buf_top = lnum;
 }
 
 /*
@@ -1409,6 +1469,23 @@ channel_exe_cmd(channel_T *channel, int part, typval_T *argv)
     }
 }
 
+    static void
+invoke_one_time_callback(
+	channel_T   *channel,
+	cbq_T	    *cbhead,
+	cbq_T	    *item,
+	typval_T    *argv)
+{
+    ch_logs(channel, "Invoking one-time callback %s",
+						   (char *)item->cq_callback);
+    /* Remove the item from the list first, if the callback
+     * invokes ch_close() the list will be cleared. */
+    remove_cb_node(cbhead, item);
+    invoke_callback(channel, item->cq_callback, argv);
+    vim_free(item->cq_callback);
+    vim_free(item);
+}
+
 /*
  * Invoke a callback for "channel"/"part" if needed.
  * Return TRUE when a message was handled, there might be another one.
@@ -1421,6 +1498,8 @@ may_invoke_callback(channel_T *channel, int part)
     typval_T	argv[CH_JSON_MAX_ARGS];
     int		seq_nr = -1;
     ch_mode_T	ch_mode = channel->ch_part[part].ch_mode;
+    cbq_T	*cbhead = &channel->ch_part[part].ch_cb_head;
+    cbq_T	*cbitem = cbhead->cq_next;
     char_u	*callback = NULL;
     buf_T	*buffer = NULL;
 
@@ -1428,7 +1507,10 @@ may_invoke_callback(channel_T *channel, int part)
 	/* this channel is handled elsewhere (netbeans) */
 	return FALSE;
 
-    if (channel->ch_part[part].ch_callback != NULL)
+    /* use a message-specific callback, part callback or channel callback */
+    if (cbitem != NULL)
+	callback = cbitem->cq_callback;
+    else if (channel->ch_part[part].ch_callback != NULL)
 	callback = channel->ch_part[part].ch_callback;
     else
 	callback = channel->ch_callback;
@@ -1544,27 +1626,18 @@ may_invoke_callback(channel_T *channel, int part)
 
     if (seq_nr > 0)
     {
-	cbq_T	*head = &channel->ch_part[part].ch_cb_head;
-	cbq_T	*item = head->cq_next;
 	int	done = FALSE;
 
 	/* invoke the one-time callback with the matching nr */
-	while (item != NULL)
+	while (cbitem != NULL)
 	{
-	    if (item->cq_seq_nr == seq_nr)
+	    if (cbitem->cq_seq_nr == seq_nr)
 	    {
-		ch_logs(channel, "Invoking one-time callback %s",
-						   (char *)item->cq_callback);
-		/* Remove the item from the list first, if the callback
-		 * invokes ch_close() the list will be cleared. */
-		remove_cb_node(head, item);
-		invoke_callback(channel, item->cq_callback, argv);
-		vim_free(item->cq_callback);
-		vim_free(item);
+		invoke_one_time_callback(channel, cbhead, cbitem, argv);
 		done = TRUE;
 		break;
 	    }
-	    item = item->cq_next;
+	    cbitem = cbitem->cq_next;
 	}
 	if (!done)
 	    ch_logn(channel, "Dropping message %d without callback", seq_nr);
@@ -1618,11 +1691,18 @@ may_invoke_callback(channel_T *channel, int part)
 		}
 	    }
 	}
+
 	if (callback != NULL)
 	{
-	    /* invoke the channel callback */
-	    ch_logs(channel, "Invoking channel callback %s", (char *)callback);
-	    invoke_callback(channel, callback, argv);
+	    if (cbitem != NULL)
+		invoke_one_time_callback(channel, cbhead, cbitem, argv);
+	    else
+	    {
+		/* invoke the channel callback */
+		ch_logs(channel, "Invoking channel callback %s",
+							    (char *)callback);
+		invoke_callback(channel, callback, argv);
+	    }
 	}
     }
     else
