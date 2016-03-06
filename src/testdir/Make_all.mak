@@ -175,6 +175,7 @@ NEW_TESTS = test_arglist.res \
 	    test_cdo.res \
 	    test_channel.res \
 	    test_hardcopy.res \
+	    test_history.res \
 	    test_increment.res \
 	    test_json.res \
 	    test_langmap.res \
@@ -184,6 +185,7 @@ NEW_TESTS = test_arglist.res \
 	    test_syntax.res \
 	    test_viminfo.res \
 	    test_viml.res \
+	    test_visual.res \
 	    test_alot.res
 
 
