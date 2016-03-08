@@ -10285,14 +10285,22 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
     static channel_T *
 get_channel_arg(typval_T *tv)
 {
-    channel_T *channel;
+    channel_T *channel = NULL;
 
-    if (tv->v_type != VAR_CHANNEL)
+    if (tv->v_type == VAR_JOB)
+    {
+	if (tv->vval.v_job != NULL)
+	    channel = tv->vval.v_job->jv_channel;
+    }
+    else if (tv->v_type == VAR_CHANNEL)
+    {
+	channel = tv->vval.v_channel;
+    }
+    else
     {
 	EMSG2(_(e_invarg2), get_tv_string(tv));
 	return NULL;
     }
-    channel = tv->vval.v_channel;
 
     if (channel == NULL || !channel_is_open(channel))
     {
@@ -15125,7 +15133,7 @@ f_job_setoptions(typval_T *argvars, typval_T *rettv UNUSED)
  * "job_start()" function
  */
     static void
-f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
+f_job_start(typval_T *argvars, typval_T *rettv)
 {
     job_T	*job;
     char_u	*cmd = NULL;
@@ -15137,6 +15145,7 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
     garray_T	ga;
 #endif
     jobopt_T	opt;
+    int		part;
 
     rettv->v_type = VAR_JOB;
     job = job_alloc();
@@ -15153,6 +15162,17 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
 	    JO_MODE_ALL + JO_CB_ALL + JO_TIMEOUT_ALL
 			    + JO_STOPONEXIT + JO_EXIT_CB + JO_OUT_IO) == FAIL)
 	return;
+
+    /* Check that when io is "file" that there is a file name. */
+    for (part = PART_OUT; part <= PART_IN; ++part)
+	if ((opt.jo_set & (JO_OUT_IO << (part - PART_OUT)))
+		&& opt.jo_io[part] == JIO_FILE
+		&& (!(opt.jo_set & (JO_OUT_NAME << (part - PART_OUT)))
+		    || *opt.jo_io_name[part] == NUL))
+	{
+	    EMSG(_("E920: -io file requires -name to be set"));
+	    return;
+	}
 
     if ((opt.jo_set & JO_IN_IO) && opt.jo_io[PART_IN] == JIO_BUFFER)
     {
@@ -15268,7 +15288,9 @@ f_job_start(typval_T *argvars UNUSED, typval_T *rettv)
 #endif
 
 #ifdef FEAT_CHANNEL
-    channel_write_in(job->jv_channel);
+    /* If the channel is reading from a buffer, write lines now. */
+    if (job->jv_channel != NULL)
+	channel_write_in(job->jv_channel);
 #endif
 
 theend:
@@ -22628,7 +22650,11 @@ get_tv_string_buf_chk(typval_T *varp, char_u *buf)
 #ifdef FEAT_JOB
 	    {
 		job_T *job = varp->vval.v_job;
-		char  *status = job->jv_status == JOB_FAILED ? "fail"
+		char  *status;
+
+		if (job == NULL)
+		    return (char_u *)"no process";
+		status = job->jv_status == JOB_FAILED ? "fail"
 				: job->jv_status == JOB_ENDED ? "dead"
 				: "run";
 # ifdef UNIX

@@ -2057,6 +2057,10 @@ struct file_buffer
     int		b_netbeans_file;    /* TRUE when buffer is owned by NetBeans */
     int		b_was_netbeans_file;/* TRUE if b_netbeans_file was once set */
 #endif
+#ifdef FEAT_CHANNEL
+    int		b_write_to_channel; /* TRUE when appended lines are written to
+				     * a channel. */
+#endif
 
 #ifdef FEAT_ODB_EDITOR
     uint32_t    b_odb_server_id;    /* FourCC of the ODB server (0 if none) */
