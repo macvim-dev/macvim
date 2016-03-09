@@ -606,7 +606,6 @@ channel_open(
     u_long		val = 1;
 #else
     int			port = port_in;
-    struct timeval	start_tv;
 #endif
     channel_T		*channel;
     int			ret;
@@ -648,6 +647,10 @@ channel_open(
      */
     while (TRUE)
     {
+#ifndef WIN32
+	long elapsed_msec = 0;
+#endif
+
 	if (sd >= 0)
 	    sock_close(sd);
 	sd = socket(AF_INET, SOCK_STREAM, 0);
@@ -683,28 +686,31 @@ channel_open(
 	ch_logsn(channel, "Connecting to %s port %d", hostname, port);
 	ret = connect(sd, (struct sockaddr *)&server, sizeof(server));
 
+	if (ret == 0)
+	    /* The connection could be established. */
+	    break;
+
 	SOCK_ERRNO;
-	if (ret < 0)
-	{
-	    if (errno != EWOULDBLOCK
-		    && errno != ECONNREFUSED
+	if (waittime < 0 || (errno != EWOULDBLOCK
+		&& errno != ECONNREFUSED
 #ifdef EINPROGRESS
-		    && errno != EINPROGRESS
+		&& errno != EINPROGRESS
 #endif
-		    )
-	    {
-		ch_errorn(channel,
-			"channel_open: Connect failed with errno %d", errno);
-		PERROR(_(e_cannot_connect));
-		sock_close(sd);
-		channel_free(channel);
-		return NULL;
-	    }
+		))
+	{
+	    ch_errorn(channel,
+			 "channel_open: Connect failed with errno %d", errno);
+	    PERROR(_(e_cannot_connect));
+	    sock_close(sd);
+	    channel_free(channel);
+	    return NULL;
 	}
 
-	/* If we don't block and connect() failed then try using select() to
-	 * wait for the connection to be made. */
-	if (waittime >= 0 && ret < 0)
+	/* If connect() didn't finish then try using select() to wait for the
+	 * connection to be made. */
+#ifndef WIN32
+	if (errno != ECONNREFUSED)
+#endif
 	{
 	    struct timeval	tv;
 	    fd_set		rfds;
@@ -712,6 +718,8 @@ channel_open(
 #ifndef WIN32
 	    int			so_error = 0;
 	    socklen_t		so_error_len = sizeof(so_error);
+	    struct timeval	start_tv;
+	    struct timeval	end_tv;
 #endif
 
 	    FD_ZERO(&rfds);
@@ -742,19 +750,20 @@ channel_open(
 #ifdef WIN32
 	    /* On Win32: select() is expected to work and wait for up to the
 	     * waittime for the socket to be open. */
-	    if (!FD_ISSET(sd, &wfds) || ret == 0)
+	    if (FD_ISSET(sd, &wfds))
+		break;
 #else
 	    /* On Linux-like systems: See socket(7) for the behavior
 	     * After putting the socket in non-blocking mode, connect() will
 	     * return EINPROGRESS, select() will not wait (as if writing is
 	     * possible), need to use getsockopt() to check if the socket is
 	     * actually able to connect.
-	     * We detect an failure to connect when either read and write fds
+	     * We detect a failure to connect when either read and write fds
 	     * are set.  Use getsockopt() to find out what kind of failure. */
 	    if (FD_ISSET(sd, &rfds) || FD_ISSET(sd, &wfds))
 	    {
 		ret = getsockopt(sd,
-			    SOL_SOCKET, SO_ERROR, &so_error, &so_error_len);
+			      SOL_SOCKET, SO_ERROR, &so_error, &so_error_len);
 		if (ret < 0 || (so_error != 0
 			&& so_error != EWOULDBLOCK
 			&& so_error != ECONNREFUSED
@@ -773,48 +782,47 @@ channel_open(
 		}
 	    }
 
-	    if (!FD_ISSET(sd, &wfds) || so_error != 0)
-#endif
-	    {
-#ifndef WIN32
-		struct  timeval end_tv;
-		long    elapsed_msec;
+	    if (FD_ISSET(sd, &wfds) && so_error == 0)
+		/* Did not detect an error, connection is established. */
+		break;
 
-		gettimeofday(&end_tv, NULL);
-		elapsed_msec = (end_tv.tv_sec - start_tv.tv_sec) * 1000
-				 + (end_tv.tv_usec - start_tv.tv_usec) / 1000;
-		if (waittime > 1 && elapsed_msec < waittime)
-		{
-		    /* The port isn't ready but we also didn't get an error.
-		     * This happens when the server didn't open the socket
-		     * yet.  Wait a bit and try again. */
-		    mch_delay(waittime < 50 ? (long)waittime : 50L, TRUE);
-		    ui_breakcheck();
-		    if (!got_int)
-		    {
-			/* reduce the waittime by the elapsed time and the 50
-			 * msec delay (or a bit more) */
-			waittime -= elapsed_msec;
-			if (waittime > 50)
-			    waittime -= 50;
-			else
-			    waittime = 1;
-			continue;
-		    }
-		    /* we were interrupted, behave as if timed out */
-		}
+	    gettimeofday(&end_tv, NULL);
+	    elapsed_msec = (end_tv.tv_sec - start_tv.tv_sec) * 1000
+			     + (end_tv.tv_usec - start_tv.tv_usec) / 1000;
 #endif
-		/* We timed out. */
-		ch_error(channel, "Connection timed out");
-		sock_close(sd);
-		channel_free(channel);
-		return NULL;
-	    }
-
-	    ch_log(channel, "Connection made");
-	    break;
 	}
+
+#ifndef WIN32
+	if (waittime > 1 && elapsed_msec < waittime)
+	{
+	    /* The port isn't ready but we also didn't get an error.
+	     * This happens when the server didn't open the socket
+	     * yet.  Wait a bit and try again. */
+	    mch_delay(waittime < 50 ? (long)waittime : 50L, TRUE);
+	    ui_breakcheck();
+	    if (!got_int)
+	    {
+		/* reduce the waittime by the elapsed time and the 50
+		 * msec delay (or a bit more) */
+		waittime -= elapsed_msec;
+		if (waittime > 50)
+		    waittime -= 50;
+		else
+		    waittime = 1;
+		continue;
+	    }
+	    /* we were interrupted, behave as if timed out */
+	}
+#endif
+
+	/* We timed out. */
+	ch_error(channel, "Connection timed out");
+	sock_close(sd);
+	channel_free(channel);
+	return NULL;
     }
+
+    ch_log(channel, "Connection made");
 
     if (waittime >= 0)
     {
@@ -890,7 +898,7 @@ channel_set_job(channel_T *channel, job_T *job, jobopt_T *options)
  * Find a buffer matching "name" or create a new one.
  */
     static buf_T *
-find_buffer(char_u *name)
+find_buffer(char_u *name, int err)
 {
     buf_T *buf = NULL;
     buf_T *save_curbuf = curbuf;
@@ -909,7 +917,8 @@ find_buffer(char_u *name)
 	curbuf = buf;
 	if (curbuf->b_ml.ml_mfp == NULL)
 	    ml_open(curbuf);
-	ml_replace(1, (char_u *)"Reading from channel output...", TRUE);
+	ml_replace(1, (char_u *)(err ? "Reading from channel error..."
+				   : "Reading from channel output..."), TRUE);
 	changed_bytes(1, 0);
 	curbuf = save_curbuf;
     }
@@ -987,9 +996,26 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 	if (!(opt->jo_set & JO_OUT_MODE))
 	    channel->ch_part[PART_OUT].ch_mode = MODE_NL;
 	channel->ch_part[PART_OUT].ch_buffer =
-				       find_buffer(opt->jo_io_name[PART_OUT]);
-	ch_logs(channel, "writing to buffer '%s'",
+				find_buffer(opt->jo_io_name[PART_OUT], FALSE);
+	ch_logs(channel, "writing out to buffer '%s'",
 		      (char *)channel->ch_part[PART_OUT].ch_buffer->b_ffname);
+    }
+
+    if ((opt->jo_set & JO_ERR_IO) && (opt->jo_io[PART_ERR] == JIO_BUFFER
+	 || (opt->jo_io[PART_ERR] == JIO_OUT && (opt->jo_set & JO_OUT_IO)
+				       && opt->jo_io[PART_OUT] == JIO_BUFFER)))
+    {
+	/* writing err to a buffer. Default mode is NL. */
+	if (!(opt->jo_set & JO_ERR_MODE))
+	    channel->ch_part[PART_ERR].ch_mode = MODE_NL;
+	if (opt->jo_io[PART_ERR] == JIO_OUT)
+	    channel->ch_part[PART_ERR].ch_buffer =
+					 channel->ch_part[PART_OUT].ch_buffer;
+	else
+	    channel->ch_part[PART_ERR].ch_buffer =
+				 find_buffer(opt->jo_io_name[PART_ERR], TRUE);
+	ch_logs(channel, "writing err to buffer '%s'",
+		      (char *)channel->ch_part[PART_ERR].ch_buffer->b_ffname);
     }
 }
 
@@ -1024,7 +1050,7 @@ channel_set_req_callback(
 write_buf_line(buf_T *buf, linenr_T lnum, channel_T *channel)
 {
     char_u  *line = ml_get_buf(buf, lnum, FALSE);
-    int	    len = STRLEN(line);
+    int	    len = (int)STRLEN(line);
     char_u  *p;
 
     /* TODO: check if channel can be written to, do not block on write */
