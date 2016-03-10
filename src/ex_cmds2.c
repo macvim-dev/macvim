@@ -3191,8 +3191,8 @@ add_pack_plugin(char_u *fname, void *cookie)
 	    }
 
 	/* now we have:
-	 * rtp/pack/name/ever/name
-	 *    p4   p3   p2   p1
+	 * rtp/pack/name/start/name
+	 *    p4   p3   p2    p1
 	 *
 	 * find the part up to "pack" in 'runtimepath' */
 	c = *p4;
@@ -3268,7 +3268,7 @@ theend:
     void
 source_packages()
 {
-    do_in_path(p_pp, (char_u *)"pack/*/ever/*", DIP_ALL + DIP_DIR,
+    do_in_path(p_pp, (char_u *)"pack/*/start/*", DIP_ALL + DIP_DIR,
 							add_pack_plugin, p_pp);
 }
 

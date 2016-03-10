@@ -647,9 +647,8 @@ channel_open(
      */
     while (TRUE)
     {
-#ifndef WIN32
-	long elapsed_msec = 0;
-#endif
+	long	elapsed_msec = 0;
+	int	waitnow;
 
 	if (sd >= 0)
 	    sock_close(sd);
@@ -707,7 +706,7 @@ channel_open(
 	}
 
 	/* If connect() didn't finish then try using select() to wait for the
-	 * connection to be made. */
+	 * connection to be made. For Win32 always use select() to wait. */
 #ifndef WIN32
 	if (errno != ECONNREFUSED)
 #endif
@@ -721,19 +720,22 @@ channel_open(
 	    struct timeval	start_tv;
 	    struct timeval	end_tv;
 #endif
+	    /* Limit the waittime to 50 msec.  If it doesn't work within this
+	     * time we close the socket and try creating it again. */
+	    waitnow = waittime > 50 ? 50 : waittime;
 
 	    FD_ZERO(&rfds);
 	    FD_SET(sd, &rfds);
 	    FD_ZERO(&wfds);
 	    FD_SET(sd, &wfds);
 
-	    tv.tv_sec = waittime / 1000;
-	    tv.tv_usec = (waittime % 1000) * 1000;
+	    tv.tv_sec = waitnow / 1000;
+	    tv.tv_usec = (waitnow % 1000) * 1000;
 #ifndef WIN32
 	    gettimeofday(&start_tv, NULL);
 #endif
 	    ch_logn(channel,
-		    "Waiting for connection (waittime %d msec)...", waittime);
+		    "Waiting for connection (waiting %d msec)...", waitnow);
 	    ret = select((int)sd + 1, &rfds, &wfds, NULL, &tv);
 
 	    if (ret < 0)
@@ -748,10 +750,16 @@ channel_open(
 	    }
 
 #ifdef WIN32
-	    /* On Win32: select() is expected to work and wait for up to the
-	     * waittime for the socket to be open. */
+	    /* On Win32: select() is expected to work and wait for up to
+	     * "waitnow" msec for the socket to be open. */
 	    if (FD_ISSET(sd, &wfds))
 		break;
+	    elapsed_msec = waitnow;
+	    if (waittime > 1 && elapsed_msec < waittime)
+	    {
+		waittime -= elapsed_msec;
+		continue;
+	    }
 #else
 	    /* On Linux-like systems: See socket(7) for the behavior
 	     * After putting the socket in non-blocking mode, connect() will
@@ -797,17 +805,20 @@ channel_open(
 	{
 	    /* The port isn't ready but we also didn't get an error.
 	     * This happens when the server didn't open the socket
-	     * yet.  Wait a bit and try again. */
-	    mch_delay(waittime < 50 ? (long)waittime : 50L, TRUE);
-	    ui_breakcheck();
+	     * yet.  Select() may return early, wait until the remaining
+	     * "waitnow"  and try again. */
+	    waitnow -= elapsed_msec;
+	    waittime -= elapsed_msec;
+	    if (waitnow > 0)
+	    {
+		mch_delay((long)waitnow, TRUE);
+		ui_breakcheck();
+		waittime -= waitnow;
+	    }
 	    if (!got_int)
 	    {
-		/* reduce the waittime by the elapsed time and the 50
-		 * msec delay (or a bit more) */
-		waittime -= elapsed_msec;
-		if (waittime > 50)
-		    waittime -= 50;
-		else
+		if (waittime <= 0)
+		    /* give it one more try */
 		    waittime = 1;
 		continue;
 	    }
@@ -995,7 +1006,11 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 	/* writing output to a buffer. Default mode is NL. */
 	if (!(opt->jo_set & JO_OUT_MODE))
 	    channel->ch_part[PART_OUT].ch_mode = MODE_NL;
-	channel->ch_part[PART_OUT].ch_buffer =
+	if (opt->jo_set & JO_OUT_BUF)
+	    channel->ch_part[PART_OUT].ch_buffer =
+				     buflist_findnr(opt->jo_io_buf[PART_OUT]);
+	else
+	    channel->ch_part[PART_OUT].ch_buffer =
 				find_buffer(opt->jo_io_name[PART_OUT], FALSE);
 	ch_logs(channel, "writing out to buffer '%s'",
 		      (char *)channel->ch_part[PART_OUT].ch_buffer->b_ffname);
@@ -1011,6 +1026,9 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 	if (opt->jo_io[PART_ERR] == JIO_OUT)
 	    channel->ch_part[PART_ERR].ch_buffer =
 					 channel->ch_part[PART_OUT].ch_buffer;
+	else if (opt->jo_set & JO_ERR_BUF)
+	    channel->ch_part[PART_ERR].ch_buffer =
+				     buflist_findnr(opt->jo_io_buf[PART_ERR]);
 	else
 	    channel->ch_part[PART_ERR].ch_buffer =
 				 find_buffer(opt->jo_io_name[PART_ERR], TRUE);
