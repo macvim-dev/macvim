@@ -442,10 +442,11 @@ func Test_connect_waittime()
       " Oops, port does exists.
       call ch_close(handle)
     else
-      " Failed connection should wait about 500 msec.
+      " Failed connection should wait about 500 msec.  Can be longer if the
+      " computer is busy with other things.
       let elapsed = reltime(start)
       call assert_true(reltimefloat(elapsed) > 0.3)
-      call assert_true(reltimefloat(elapsed) < 1.0)
+      call assert_true(reltimefloat(elapsed) < 1.5)
     endif
   catch
     if v:exception !~ 'Connection reset by peer'
@@ -478,6 +479,12 @@ func Test_raw_pipe()
   finally
     call job_stop(job)
   endtry
+
+  let s:job = job
+  call s:waitFor('"dead" == job_status(s:job)')
+  let info = job_info(job)
+  call assert_equal("dead", info.status)
+  call assert_equal("term", info.stoponexit)
 endfunc
 
 func Test_nl_pipe()
@@ -485,7 +492,7 @@ func Test_nl_pipe()
     return
   endif
   call ch_log('Test_nl_pipe()')
-  let job = job_start(s:python . " test_channel_pipe.py")
+  let job = job_start([s:python, "test_channel_pipe.py"])
   call assert_equal("run", job_status(job))
   try
     let handle = job_getchannel(job)
@@ -510,6 +517,7 @@ func Test_nl_err_to_out_pipe()
   if !has('job')
     return
   endif
+  call ch_logfile('Xlog')
   call ch_log('Test_nl_err_to_out_pipe()')
   let job = job_start(s:python . " test_channel_pipe.py", {'err-io': 'out'})
   call assert_equal("run", job_status(job))
@@ -522,6 +530,32 @@ func Test_nl_err_to_out_pipe()
     call assert_equal("wrong", ch_readraw(handle))
   finally
     call job_stop(job)
+    call ch_logfile('')
+    let loglines = readfile('Xlog')
+    call assert_true(len(loglines) > 10)
+    let found_test = 0
+    let found_send = 0
+    let found_recv = 0
+    let found_stop = 0
+    for l in loglines
+      if l =~ 'Test_nl_err_to_out_pipe'
+	let found_test = 1
+      endif
+      if l =~ 'SEND on.*echo something'
+	let found_send = 1
+      endif
+      if l =~ 'RECV on.*something'
+	let found_recv = 1
+      endif
+      if l =~ 'Stopping job with'
+	let found_stop = 1
+      endif
+    endfor
+    call assert_equal(1, found_test)
+    call assert_equal(1, found_send)
+    call assert_equal(1, found_recv)
+    call assert_equal(1, found_stop)
+    call delete('Xlog')
   endtry
 endfunc
 
@@ -1050,6 +1084,7 @@ endfunc
 function s:test_exit_callback(port)
   call job_setoptions(s:job, {'exit-cb': 'MyExitCb'})
   let s:exit_job = s:job
+  call assert_equal('MyExitCb', job_info(s:job)['exit-cb'])
 endfunc
 
 func Test_exit_callback()
@@ -1068,6 +1103,7 @@ func Test_exit_callback()
     endfor
 
     call assert_equal('done', s:job_exit_ret)
+    call assert_equal('dead', job_info(s:exit_job).status)
     unlet s:exit_job
   endif
 endfunc

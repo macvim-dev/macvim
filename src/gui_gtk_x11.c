@@ -636,7 +636,10 @@ gui_gtk3_update_cursor(cairo_t *cr)
     if (gui.row == gui.cursor_row)
     {
 	gui.by_signal = TRUE;
-	gui_update_cursor(TRUE, TRUE);
+	if (State & CMDLINE)
+	    gui_update_cursor(TRUE, FALSE);
+	else
+	    gui_update_cursor(TRUE, TRUE);
 	gui.by_signal = FALSE;
 	cairo_paint(cr);
     }
@@ -647,7 +650,8 @@ gui_gtk3_should_draw_cursor(void)
 {
     unsigned int cond = 0;
     cond |= gui_gtk_is_blink_on();
-    cond |= is_key_pressed;
+    if (gui.cursor_col >= gui.col)
+	cond |= is_key_pressed;
     cond |= gui.in_focus == FALSE;
     return  cond;
 }
@@ -683,17 +687,29 @@ draw_event(GtkWidget *widget,
 		if (blink_mode)
 		    gui_gtk3_redraw(rect.x, rect.y, rect.width, rect.height);
 		else
-		    gui_redraw(rect.x, rect.y, rect.width, rect.height);
+		{
+		    if (get_real_state() & VISUAL)
+			gui_gtk3_redraw(rect.x, rect.y,
+				rect.width, rect.height);
+		    else
+			gui_redraw(rect.x, rect.y, rect.width, rect.height);
+		}
 	    }
 	}
 	cairo_rectangle_list_destroy(list);
+
+	if (get_real_state() & VISUAL)
+	{
+	    if (gui.cursor_row == gui.row && gui.cursor_col >= gui.col)
+		gui_update_cursor(TRUE, TRUE);
+	}
 
 	cairo_paint(cr);
     }
     gui.by_signal = FALSE;
 
     /* Add the cursor to the window if necessary.*/
-    if (gui_gtk3_should_draw_cursor())
+    if (gui_gtk3_should_draw_cursor() && blink_mode)
 	gui_gtk3_update_cursor(cr);
 
     return FALSE;
@@ -6310,8 +6326,25 @@ gui_mch_flash(int msec)
 gui_mch_invert_rectangle(int r, int c, int nr, int nc)
 {
 #if GTK_CHECK_VERSION(3,0,0)
-    /* TODO Replace GdkGC with Cairo */
-    (void)r; (void)c; (void)nr; (void)nc;
+    const GdkRectangle rect = {
+	FILL_X(c), FILL_Y(r), nc * gui.char_width, nr * gui.char_height
+    };
+    cairo_t * const cr = cairo_create(gui.surface);
+
+    set_cairo_source_rgb_from_pixel(cr, gui.norm_pixel ^ gui.back_pixel);
+# if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1,9,2)
+    cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
+# else
+    /* Give an implementation for older cairo versions if necessary. */
+# endif
+    gdk_cairo_rectangle(cr, &rect);
+    cairo_fill(cr);
+
+    cairo_destroy(cr);
+
+    if (!gui.by_signal)
+	gtk_widget_queue_draw_area(gui.drawarea, rect.x, rect.y,
+		rect.width, rect.height);
 #else
     GdkGCValues values;
     GdkGC *invert_gc;
