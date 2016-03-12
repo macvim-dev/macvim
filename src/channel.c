@@ -12,7 +12,7 @@
 
 #include "vim.h"
 
-#if defined(FEAT_CHANNEL) || defined(PROTO)
+#if defined(FEAT_JOB_CHANNEL) || defined(PROTO)
 
 /* TRUE when netbeans is running with a GUI. */
 #ifdef FEAT_GUI
@@ -294,11 +294,7 @@ add_channel(void)
     channel->ch_id = next_ch_id++;
     ch_log(channel, "Created channel");
 
-#ifdef CHANNEL_PIPES
     for (part = PART_SOCK; part <= PART_IN; ++part)
-#else
-    part = PART_SOCK;
-#endif
     {
 	channel->ch_part[part].ch_fd = INVALID_FD;
 #ifdef FEAT_GUI_X11
@@ -333,10 +329,8 @@ add_channel(void)
 channel_still_useful(channel_T *channel)
 {
     int has_sock_msg;
-#ifdef CHANNEL_PIPES
     int	has_out_msg;
     int	has_err_msg;
-#endif
 
     /* If the job was killed the channel is not expected to work anymore. */
     if (channel->ch_job_killed && channel->ch_job == NULL)
@@ -351,24 +345,16 @@ channel_still_useful(channel_T *channel)
     has_sock_msg = channel->ch_part[PART_SOCK].ch_fd != INVALID_FD
 	          || channel->ch_part[PART_SOCK].ch_head.rq_next != NULL
 		  || channel->ch_part[PART_SOCK].ch_json_head.jq_next != NULL;
-#ifdef CHANNEL_PIPES
     has_out_msg = channel->ch_part[PART_OUT].ch_fd != INVALID_FD
 		  || channel->ch_part[PART_OUT].ch_head.rq_next != NULL
 		  || channel->ch_part[PART_OUT].ch_json_head.jq_next != NULL;
     has_err_msg = channel->ch_part[PART_ERR].ch_fd != INVALID_FD
 		  || channel->ch_part[PART_ERR].ch_head.rq_next != NULL
 		  || channel->ch_part[PART_ERR].ch_json_head.jq_next != NULL;
-#endif
     return (channel->ch_callback != NULL && (has_sock_msg
-#ifdef CHANNEL_PIPES
-		|| has_out_msg || has_err_msg
-#endif
-		))
-#ifdef CHANNEL_PIPES
+		|| has_out_msg || has_err_msg))
 	    || (channel->ch_part[PART_OUT].ch_callback != NULL && has_out_msg)
-	    || (channel->ch_part[PART_ERR].ch_callback != NULL && has_err_msg)
-#endif
-	    ;
+	    || (channel->ch_part[PART_ERR].ch_callback != NULL && has_err_msg);
 }
 
 /*
@@ -462,6 +448,9 @@ messageFromNetbeans(gpointer clientData,
     static void
 channel_gui_register_one(channel_T *channel, int part)
 {
+    if (!CH_HAS_GUI)
+	return;
+
 # ifdef FEAT_GUI_X11
     /* Tell notifier we are interested in being called
      * when there is input on the editor connection socket. */
@@ -510,20 +499,15 @@ channel_gui_register_one(channel_T *channel, int part)
 # endif
 }
 
-    void
+    static void
 channel_gui_register(channel_T *channel)
 {
-    if (!CH_HAS_GUI)
-	return;
-
     if (channel->CH_SOCK_FD != INVALID_FD)
 	channel_gui_register_one(channel, PART_SOCK);
-# ifdef CHANNEL_PIPES
     if (channel->CH_OUT_FD != INVALID_FD)
 	channel_gui_register_one(channel, PART_OUT);
     if (channel->CH_ERR_FD != INVALID_FD)
 	channel_gui_register_one(channel, PART_ERR);
-# endif
 }
 
 /*
@@ -540,44 +524,44 @@ channel_gui_register_all(void)
 }
 
     static void
+channel_gui_unregister_one(channel_T *channel, int part)
+{
+# ifdef FEAT_GUI_X11
+    if (channel->ch_part[part].ch_inputHandler != (XtInputId)NULL)
+    {
+	XtRemoveInput(channel->ch_part[part].ch_inputHandler);
+	channel->ch_part[part].ch_inputHandler = (XtInputId)NULL;
+    }
+# else
+#  ifdef FEAT_GUI_GTK
+    if (channel->ch_part[part].ch_inputHandler != 0)
+    {
+#   if GTK_CHECK_VERSION(3,0,0)
+	g_source_remove(channel->ch_part[part].ch_inputHandler);
+#   else
+	gdk_input_remove(channel->ch_part[part].ch_inputHandler);
+#   endif
+	channel->ch_part[part].ch_inputHandler = 0;
+    }
+#  else
+#   ifdef FEAT_GUI_MACVIM
+    if (channel->ch_part[part].ch_inputHandler != 0)
+    {
+	gui_macvim_remove_channel(channel->ch_part[part].ch_inputHandler);
+	channel->ch_part[part].ch_inputHandler = 0;
+    }
+#   endif
+#  endif
+# endif
+}
+
+    static void
 channel_gui_unregister(channel_T *channel)
 {
     int	    part;
 
-#ifdef CHANNEL_PIPES
     for (part = PART_SOCK; part < PART_IN; ++part)
-#else
-    part = PART_SOCK;
-#endif
-    {
-# ifdef FEAT_GUI_X11
-	if (channel->ch_part[part].ch_inputHandler != (XtInputId)NULL)
-	{
-	    XtRemoveInput(channel->ch_part[part].ch_inputHandler);
-	    channel->ch_part[part].ch_inputHandler = (XtInputId)NULL;
-	}
-# else
-#  ifdef FEAT_GUI_GTK
-	if (channel->ch_part[part].ch_inputHandler != 0)
-	{
-#   if GTK_CHECK_VERSION(3,0,0)
-	    g_source_remove(channel->ch_part[part].ch_inputHandler);
-#   else
-	    gdk_input_remove(channel->ch_part[part].ch_inputHandler);
-#   endif
-	    channel->ch_part[part].ch_inputHandler = 0;
-	}
-#  else
-#   ifdef FEAT_GUI_MACVIM
-	if (channel->ch_part[part].ch_inputHandler != 0)
-	{
-	    gui_macvim_remove_channel(channel->ch_part[part].ch_inputHandler);
-	    channel->ch_part[part].ch_inputHandler = 0;
-	}
-#   endif
-#  endif
-# endif
-    }
+	channel_gui_unregister_one(channel, part);
 }
 
 #endif
@@ -849,21 +833,53 @@ channel_open(
     channel->ch_nb_close_cb = nb_close_cb;
 
 #ifdef FEAT_GUI
-    channel_gui_register(channel);
+    channel_gui_register_one(channel, PART_SOCK);
 #endif
 
     return channel;
 }
 
-#if defined(CHANNEL_PIPES) || defined(PROTO)
+    static void
+may_close_part(sock_T *fd)
+{
+    if (*fd != INVALID_FD)
+    {
+	fd_close(*fd);
+	*fd = INVALID_FD;
+    }
+}
+
     void
 channel_set_pipes(channel_T *channel, sock_T in, sock_T out, sock_T err)
 {
-    channel->CH_IN_FD = in;
-    channel->CH_OUT_FD = out;
-    channel->CH_ERR_FD = err;
+    if (in != INVALID_FD)
+    {
+	may_close_part(&channel->CH_IN_FD);
+	channel->CH_IN_FD = in;
+    }
+    if (out != INVALID_FD)
+    {
+# if defined(FEAT_GUI)
+	channel_gui_unregister_one(channel, PART_OUT);
+# endif
+	may_close_part(&channel->CH_OUT_FD);
+	channel->CH_OUT_FD = out;
+# if defined(FEAT_GUI)
+	channel_gui_register_one(channel, PART_OUT);
+# endif
+    }
+    if (err != INVALID_FD)
+    {
+# if defined(FEAT_GUI)
+	channel_gui_unregister_one(channel, PART_ERR);
+# endif
+	may_close_part(&channel->CH_ERR_FD);
+	channel->CH_ERR_FD = err;
+# if defined(FEAT_GUI)
+	channel_gui_register_one(channel, PART_ERR);
+# endif
+    }
 }
-#endif
 
 /*
  * Sets the job the channel is associated with and associated options.
@@ -1876,10 +1892,7 @@ may_invoke_callback(channel_T *channel, int part)
 channel_can_write_to(channel_T *channel)
 {
     return channel != NULL && (channel->CH_SOCK_FD != INVALID_FD
-#ifdef CHANNEL_PIPES
-			  || channel->CH_IN_FD != INVALID_FD
-#endif
-			  );
+			  || channel->CH_IN_FD != INVALID_FD);
 }
 
 /*
@@ -1890,12 +1903,9 @@ channel_can_write_to(channel_T *channel)
 channel_is_open(channel_T *channel)
 {
     return channel != NULL && (channel->CH_SOCK_FD != INVALID_FD
-#ifdef CHANNEL_PIPES
 			  || channel->CH_IN_FD != INVALID_FD
 			  || channel->CH_OUT_FD != INVALID_FD
-			  || channel->CH_ERR_FD != INVALID_FD
-#endif
-			  );
+			  || channel->CH_ERR_FD != INVALID_FD);
 }
 
 /*
@@ -1930,23 +1940,9 @@ channel_close(channel_T *channel, int invoke_close_cb)
 	sock_close(channel->CH_SOCK_FD);
 	channel->CH_SOCK_FD = INVALID_FD;
     }
-#if defined(CHANNEL_PIPES)
-    if (channel->CH_IN_FD != INVALID_FD)
-    {
-	fd_close(channel->CH_IN_FD);
-	channel->CH_IN_FD = INVALID_FD;
-    }
-    if (channel->CH_OUT_FD != INVALID_FD)
-    {
-	fd_close(channel->CH_OUT_FD);
-	channel->CH_OUT_FD = INVALID_FD;
-    }
-    if (channel->CH_ERR_FD != INVALID_FD)
-    {
-	fd_close(channel->CH_ERR_FD);
-	channel->CH_ERR_FD = INVALID_FD;
-    }
-#endif
+    may_close_part(&channel->CH_IN_FD);
+    may_close_part(&channel->CH_OUT_FD);
+    may_close_part(&channel->CH_ERR_FD);
 
     if (invoke_close_cb && channel->ch_close_cb != NULL)
     {
@@ -2027,10 +2023,8 @@ channel_clear(channel_T *channel)
 {
     ch_log(channel, "Clearing channel");
     channel_clear_one(channel, PART_SOCK);
-#ifdef CHANNEL_PIPES
     channel_clear_one(channel, PART_OUT);
     channel_clear_one(channel, PART_ERR);
-#endif
     vim_free(channel->ch_callback);
     channel->ch_callback = NULL;
     vim_free(channel->ch_close_cb);
@@ -2348,11 +2342,7 @@ channel_fd2channel(sock_T fd, int *partp)
 	for (channel = first_channel; channel != NULL;
 						   channel = channel->ch_next)
 	{
-#  ifdef CHANNEL_PIPES
 	    for (part = PART_SOCK; part < PART_IN; ++part)
-#  else
-	    part = PART_SOCK;
-#  endif
 		if (channel->ch_part[part].ch_fd == fd)
 		{
 		    *partp = part;
@@ -2377,13 +2367,8 @@ channel_handle_events(void)
 
     for (channel = first_channel; channel != NULL; channel = channel->ch_next)
     {
-#  ifdef CHANNEL_PIPES
 	/* check the socket and pipes */
 	for (part = PART_SOCK; part <= PART_ERR; ++part)
-#  else
-	/* only check the socket */
-	part = PART_SOCK;
-#  endif
 	{
 	    fd = channel->ch_part[part].ch_fd;
 	    if (fd != INVALID_FD && channel_wait(channel, fd, 0) == OK)
@@ -2462,11 +2447,7 @@ channel_poll_setup(int nfd_in, void *fds_in)
 
     for (channel = first_channel; channel != NULL; channel = channel->ch_next)
     {
-#  ifdef CHANNEL_PIPES
 	for (part = PART_SOCK; part < PART_IN; ++part)
-#  else
-	part = PART_SOCK;
-#  endif
 	{
 	    if (channel->ch_part[part].ch_fd != INVALID_FD)
 	    {
@@ -2496,11 +2477,7 @@ channel_poll_check(int ret_in, void *fds_in)
 
     for (channel = first_channel; channel != NULL; channel = channel->ch_next)
     {
-#  ifdef CHANNEL_PIPES
 	for (part = PART_SOCK; part < PART_IN; ++part)
-#  else
-	part = PART_SOCK;
-#  endif
 	{
 	    int idx = channel->ch_part[part].ch_poll_idx;
 
@@ -2530,11 +2507,7 @@ channel_select_setup(int maxfd_in, void *rfds_in)
 
     for (channel = first_channel; channel != NULL; channel = channel->ch_next)
     {
-#  ifdef CHANNEL_PIPES
 	for (part = PART_SOCK; part < PART_IN; ++part)
-#  else
-	part = PART_SOCK;
-#  endif
 	{
 	    sock_T fd = channel->ch_part[part].ch_fd;
 
@@ -2563,11 +2536,7 @@ channel_select_check(int ret_in, void *rfds_in)
 
     for (channel = first_channel; channel != NULL; channel = channel->ch_next)
     {
-#  ifdef CHANNEL_PIPES
 	for (part = PART_SOCK; part < PART_IN; ++part)
-#  else
-	part = PART_SOCK;
-#  endif
 	{
 	    sock_T fd = channel->ch_part[part].ch_fd;
 
@@ -2648,11 +2617,9 @@ channel_parse_messages(void)
 		continue;
 	    }
 	}
-#ifdef CHANNEL_PIPES
 	if (part < PART_ERR)
 	    ++part;
 	else
-#endif
 	{
 	    channel = channel->ch_next;
 	    part = PART_SOCK;
@@ -2683,11 +2650,7 @@ set_ref_in_channel(int copyID)
 
     for (channel = first_channel; channel != NULL; channel = channel->ch_next)
     {
-#ifdef CHANNEL_PIPES
 	for (part = PART_SOCK; part < PART_IN; ++part)
-#else
-	part = PART_SOCK;
-#endif
 	{
 	    jsonq_T *head = &channel->ch_part[part].ch_json_head;
 	    jsonq_T *item = head->jq_next;
@@ -2714,10 +2677,8 @@ set_ref_in_channel(int copyID)
     int
 channel_part_send(channel_T *channel)
 {
-#ifdef CHANNEL_PIPES
     if (channel->CH_SOCK_FD == INVALID_FD)
 	return PART_IN;
-#endif
     return PART_SOCK;
 }
 
@@ -2727,10 +2688,8 @@ channel_part_send(channel_T *channel)
     int
 channel_part_read(channel_T *channel)
 {
-#ifdef CHANNEL_PIPES
     if (channel->CH_SOCK_FD == INVALID_FD)
 	return PART_OUT;
-#endif
     return PART_SOCK;
 }
 
@@ -2755,4 +2714,4 @@ channel_get_timeout(channel_T *channel, int part)
     return channel->ch_part[part].ch_timeout;
 }
 
-#endif /* FEAT_CHANNEL */
+#endif /* FEAT_JOB_CHANNEL */

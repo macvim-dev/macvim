@@ -1558,7 +1558,7 @@ getout(int exitval)
 	windgoto((int)Rows - 1, 0);
 #endif
 
-#ifdef FEAT_JOB
+#ifdef FEAT_JOB_CHANNEL
     job_stop_on_exit();
 #endif
 #ifdef FEAT_LUA
