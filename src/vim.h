@@ -2291,4 +2291,12 @@ typedef int VimClipboard;	/* This is required for the prototypes. */
 int vim_main2(int argc, char **argv);
 #endif
 
+/* Used for flags of do_in_path() */
+#define DIP_ALL	    0x01	/* all matches, not just the first one */
+#define DIP_DIR	    0x02	/* find directories instead of files. */
+#define DIP_ERR	    0x04	/* give an error message when none found. */
+#define DIP_START   0x08	/* also use "start" directory in 'packpath' */
+#define DIP_OPT	    0x10	/* also use "opt" directory in 'packpath' */
+#define DIP_NORTP   0x20	/* do not use 'runtimepath' */
+
 #endif /* VIM__H */

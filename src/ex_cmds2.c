@@ -2945,7 +2945,7 @@ ex_compiler(exarg_T *eap)
 	    do_unlet((char_u *)"b:current_compiler", TRUE);
 
 	    sprintf((char *)buf, "compiler/%s.vim", eap->arg);
-	    if (source_runtime(buf, TRUE) == FAIL)
+	    if (source_runtime(buf, DIP_ALL) == FAIL)
 		EMSG2(_("E666: compiler not supported: %s"), eap->arg);
 	    vim_free(buf);
 
@@ -2974,12 +2974,38 @@ ex_compiler(exarg_T *eap)
 #endif
 
 /*
- * ":runtime {name}"
+ * ":runtime [what] {name}"
  */
     void
 ex_runtime(exarg_T *eap)
 {
-    source_runtime(eap->arg, eap->forceit);
+    char_u  *arg = eap->arg;
+    char_u  *p = skiptowhite(arg);
+    int	    len = (int)(p - arg);
+    int	    flags = eap->forceit ? DIP_ALL : 0;
+
+    if (STRNCMP(arg, "START", len) == 0)
+    {
+	flags += DIP_START + DIP_NORTP;
+	arg = skipwhite(arg + len);
+    }
+    else if (STRNCMP(arg, "OPT", len) == 0)
+    {
+	flags += DIP_OPT + DIP_NORTP;
+	arg = skipwhite(arg + len);
+    }
+    else if (STRNCMP(arg, "PACK", len) == 0)
+    {
+	flags += DIP_START + DIP_OPT + DIP_NORTP;
+	arg = skipwhite(arg + len);
+    }
+    else if (STRNCMP(arg, "ALL", len) == 0)
+    {
+	flags += DIP_START + DIP_OPT;
+	arg = skipwhite(arg + len);
+    }
+
+    source_runtime(arg, flags);
 }
 
     static void
@@ -2991,19 +3017,15 @@ source_callback(char_u *fname, void *cookie UNUSED)
 /*
  * Source the file "name" from all directories in 'runtimepath'.
  * "name" can contain wildcards.
- * When "all" is TRUE: source all files, otherwise only the first one.
+ * When "flags" has DIP_ALL: source all files, otherwise only the first one.
  *
  * return FAIL when no file could be sourced, OK otherwise.
  */
     int
-source_runtime(char_u *name, int all)
+source_runtime(char_u *name, int flags)
 {
-    return do_in_runtimepath(name, all, source_callback, NULL);
+    return do_in_runtimepath(name, flags, source_callback, NULL);
 }
-
-#define DIP_ALL	1	/* all matches, not just the first one */
-#define DIP_DIR	2	/* find directories instead of files. */
-#define DIP_ERR	4	/* give an error message when none found. */
 
 /*
  * Find the file "name" in all directories in "path" and invoke
@@ -3015,7 +3037,7 @@ source_runtime(char_u *name, int all)
  *
  * return FAIL when no file could be sourced, OK otherwise.
  */
-    static int
+    int
 do_in_path(
     char_u	*path,
     char_u	*name,
@@ -3129,8 +3151,8 @@ do_in_path(
 /*
  * Find "name" in 'runtimepath'.  When found, invoke the callback function for
  * it: callback(fname, "cookie")
- * When "all" is TRUE repeat for all matches, otherwise only the first one is
- * used.
+ * When "flags" has DIP_ALL repeat for all matches, otherwise only the first
+ * one is used.
  * Returns OK when at least one match found, FAIL otherwise.
  *
  * If "name" is NULL calls callback for each entry in runtimepath. Cookie is
@@ -3140,11 +3162,42 @@ do_in_path(
     int
 do_in_runtimepath(
     char_u	*name,
-    int		all,
+    int		flags,
     void	(*callback)(char_u *fname, void *ck),
     void	*cookie)
 {
-    return do_in_path(p_rtp, name, all ? DIP_ALL : 0, callback, cookie);
+    int		done = FAIL;
+    char_u	*s;
+    int		len;
+    char	*start_dir = "pack/*/start/*/%s";
+    char	*opt_dir = "pack/*/opt/*/%s";
+
+    if ((flags & DIP_NORTP) == 0)
+	done = do_in_path(p_rtp, name, flags, callback, cookie);
+
+    if ((done == FAIL || (flags & DIP_ALL)) && (flags & DIP_START))
+    {
+	len = STRLEN(start_dir) + STRLEN(name);
+	s = alloc(len);
+	if (s == NULL)
+	    return FAIL;
+	vim_snprintf((char *)s, len, start_dir, name);
+	done = do_in_path(p_pp, s, flags, callback, cookie);
+	vim_free(s);
+    }
+
+    if ((done == FAIL || (flags & DIP_ALL)) && (flags & DIP_OPT))
+    {
+	len = STRLEN(opt_dir) + STRLEN(name);
+	s = alloc(len);
+	if (s == NULL)
+	    return FAIL;
+	vim_snprintf((char *)s, len, opt_dir, name);
+	done = do_in_path(p_pp, s, flags, callback, cookie);
+	vim_free(s);
+    }
+
+    return done;
 }
 
 /*
@@ -3262,14 +3315,21 @@ theend:
     vim_free(ffname);
 }
 
+static int did_source_packages = FALSE;
+
 /*
+ * ":packloadall"
  * Find plugins in the package directories and source them.
  */
     void
-source_packages()
+ex_packloadall(exarg_T *eap)
 {
-    do_in_path(p_pp, (char_u *)"pack/*/start/*", DIP_ALL + DIP_DIR,
+    if (!did_source_packages || (eap != NULL && eap->forceit))
+    {
+	did_source_packages = TRUE;
+	do_in_path(p_pp, (char_u *)"pack/*/start/*", DIP_ALL + DIP_DIR,
 							add_pack_plugin, p_pp);
+    }
 }
 
 /*
