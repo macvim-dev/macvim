@@ -2892,6 +2892,35 @@ gui_insert_lines(int row, int count)
     }
 }
 
+    static int
+gui_wait_for_chars_or_timer(long wtime)
+{
+#ifdef FEAT_TIMERS
+    int	    due_time;
+    long    remaining = wtime;
+
+    /* When waiting very briefly don't trigger timers. */
+    if (wtime >= 0 && wtime < 10L)
+	return gui_mch_wait_for_chars(wtime);
+
+    while (wtime < 0 || remaining > 0)
+    {
+	/* Trigger timers and then get the time in wtime until the next one is
+	 * due.  Wait up to that time. */
+	due_time = check_due_timer();
+	if (due_time <= 0 || (wtime > 0 && due_time > remaining))
+	    due_time = remaining;
+	if (gui_mch_wait_for_chars(due_time))
+	    return TRUE;
+	if (wtime > 0)
+	    remaining -= due_time;
+    }
+    return FALSE;
+#else
+    return gui_mch_wait_for_chars(wtime);
+#endif
+}
+
 /*
  * The main GUI input routine.	Waits for a character from the keyboard.
  * wtime == -1	    Wait forever.
@@ -2928,7 +2957,7 @@ gui_wait_for_chars(long wtime)
 	/* Blink when waiting for a character.	Probably only does something
 	 * for showmatch() */
 	gui_mch_start_blink();
-	retval = gui_mch_wait_for_chars(wtime);
+	retval = gui_wait_for_chars_or_timer(wtime);
 	gui_mch_stop_blink();
 	return retval;
     }
@@ -2944,7 +2973,7 @@ gui_wait_for_chars(long wtime)
      * 'updatetime' and if nothing is typed within that time put the
      * K_CURSORHOLD key in the input buffer.
      */
-    if (gui_mch_wait_for_chars(p_ut) == OK)
+    if (gui_wait_for_chars_or_timer(p_ut) == OK)
 	retval = OK;
 #ifdef FEAT_AUTOCMD
     else if (trigger_cursorhold())
@@ -2965,7 +2994,7 @@ gui_wait_for_chars(long wtime)
     {
 	/* Blocking wait. */
 	before_blocking();
-	retval = gui_mch_wait_for_chars(-1L);
+	retval = gui_wait_for_chars_or_timer(-1L);
     }
 
     gui_mch_stop_blink();

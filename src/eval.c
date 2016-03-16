@@ -110,6 +110,7 @@ static char *e_illvar = N_("E461: Illegal variable name: %s");
 #ifdef FEAT_FLOAT
 static char *e_float_as_string = N_("E806: using Float as a String");
 #endif
+static char *e_dict_both = N_("E924: can't have both a \"self\" dict and a partial: %s");
 
 #define NAMESPACE_CHAR	(char_u *)"abglstvw"
 
@@ -792,6 +793,10 @@ static void f_test(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
 static void f_tan(typval_T *argvars, typval_T *rettv);
 static void f_tanh(typval_T *argvars, typval_T *rettv);
+#endif
+#ifdef FEAT_TIMERS
+static void f_timer_start(typval_T *argvars, typval_T *rettv);
+static void f_timer_stop(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_tolower(typval_T *argvars, typval_T *rettv);
 static void f_toupper(typval_T *argvars, typval_T *rettv);
@@ -8403,6 +8408,10 @@ static struct fst
 #endif
     {"tempname",	0, 0, f_tempname},
     {"test",		1, 1, f_test},
+#ifdef FEAT_TIMERS
+    {"timer_start",	2, 3, f_timer_start},
+    {"timer_stop",	1, 1, f_timer_stop},
+#endif
     {"tolower",		1, 1, f_tolower},
     {"toupper",		1, 1, f_toupper},
     {"tr",		3, 3, f_tr},
@@ -8759,8 +8768,6 @@ call_func(
 	}
 	if (error == ERROR_NONE && partial->pt_argc > 0)
 	{
-	    int	    i;
-
 	    for (argv_clear = 0; argv_clear < partial->pt_argc; ++argv_clear)
 		copy_tv(&partial->pt_argv[argv_clear], &argv[argv_clear]);
 	    for (i = 0; i < argcount_in; ++i)
@@ -8914,8 +8921,7 @@ call_func(
 									name);
 		    break;
 	    case ERROR_BOTH:
-		    emsg_funcname(N_("E924: can't have both a \"self\" dict and a partial: %s"),
-									name);
+		    emsg_funcname(e_dict_both, name);
 		    break;
 	}
     }
@@ -9240,6 +9246,12 @@ ga_concat_esc(garray_T *gap, char_u *str)
     char_u  *p;
     char_u  buf[NUMBUFLEN];
 
+    if (str == NULL)
+    {
+	ga_concat(gap, (char_u *)"NULL");
+	return;
+    }
+
     for (p = str; *p != NUL; ++p)
 	switch (*p)
 	{
@@ -9382,7 +9394,8 @@ f_assert_fails(typval_T *argvars, typval_T *rettv UNUSED)
 	char_u	buf[NUMBUFLEN];
 	char	*error = (char *)get_tv_string_buf_chk(&argvars[1], buf);
 
-	if (strstr((char *)vimvars[VV_ERRMSG].vv_str, error) == NULL)
+	if (error == NULL
+		  || strstr((char *)vimvars[VV_ERRMSG].vv_str, error) == NULL)
 	{
 	    prepare_assert_error(&ga);
 	    fill_assert_error(&ga, &argvars[2], NULL, &argvars[1],
@@ -11777,15 +11790,36 @@ f_function(typval_T *argvars, typval_T *rettv)
 {
     char_u	*s;
     char_u	*name;
+    int		use_string = FALSE;
 
-    s = get_tv_string(&argvars[0]);
-    if (s == NULL || *s == NUL || VIM_ISDIGIT(*s))
+    if (argvars[0].v_type == VAR_FUNC)
+    {
+	/* function(MyFunc, [arg], dict) */
+	s = argvars[0].vval.v_string;
+    }
+    else if (argvars[0].v_type == VAR_PARTIAL
+					 && argvars[0].vval.v_partial != NULL)
+	/* function(dict.MyFunc, [arg]) */
+	s = argvars[0].vval.v_partial->pt_name;
+    else
+    {
+	/* function('MyFunc', [arg], dict) */
+	s = get_tv_string(&argvars[0]);
+	use_string = TRUE;
+    }
+
+    if (s == NULL || *s == NUL || (use_string && VIM_ISDIGIT(*s)))
 	EMSG2(_(e_invarg2), s);
     /* Don't check an autoload name for existence here. */
-    else if (vim_strchr(s, AUTOLOAD_CHAR) == NULL && !function_exists(s))
+    else if (use_string && vim_strchr(s, AUTOLOAD_CHAR) == NULL
+						       && !function_exists(s))
 	EMSG2(_("E700: Unknown function: %s"), s);
     else
     {
+	int	dict_idx = 0;
+	int	arg_idx = 0;
+	list_T	*list = NULL;
+
 	if (STRNCMP(s, "s:", 2) == 0 || STRNCMP(s, "<SID>", 5) == 0)
 	{
 	    char	sid_buf[25];
@@ -11808,10 +11842,6 @@ f_function(typval_T *argvars, typval_T *rettv)
 
 	if (argvars[1].v_type != VAR_UNKNOWN)
 	{
-	    partial_T	*pt;
-	    int		dict_idx = 0;
-	    int		arg_idx = 0;
-
 	    if (argvars[2].v_type != VAR_UNKNOWN)
 	    {
 		/* function(name, [args], dict) */
@@ -11824,27 +11854,44 @@ f_function(typval_T *argvars, typval_T *rettv)
 	    else
 		/* function(name, [args]) */
 		arg_idx = 1;
-	    if (dict_idx > 0 && (argvars[dict_idx].v_type != VAR_DICT
-				     || argvars[dict_idx].vval.v_dict == NULL))
+	    if (dict_idx > 0)
 	    {
-		EMSG(_("E922: expected a dict"));
-		vim_free(name);
-		return;
+		if (argvars[dict_idx].v_type != VAR_DICT)
+		{
+		    EMSG(_("E922: expected a dict"));
+		    vim_free(name);
+		    return;
+		}
+		if (argvars[0].v_type == VAR_PARTIAL)
+		{
+		    EMSG2(_(e_dict_both), name);
+		    vim_free(name);
+		    return;
+		}
+		if (argvars[dict_idx].vval.v_dict == NULL)
+		    dict_idx = 0;
 	    }
-	    if (arg_idx > 0 && (argvars[arg_idx].v_type != VAR_LIST
-				     || argvars[arg_idx].vval.v_list == NULL))
+	    if (arg_idx > 0)
 	    {
-		EMSG(_("E923: Second argument of function() must be a list or a dict"));
-		vim_free(name);
-		return;
+		if (argvars[arg_idx].v_type != VAR_LIST)
+		{
+		    EMSG(_("E923: Second argument of function() must be a list or a dict"));
+		    vim_free(name);
+		    return;
+		}
+		list = argvars[arg_idx].vval.v_list;
+		if (list == NULL || list->lv_len == 0)
+		    arg_idx = 0;
 	    }
+	}
+	if (dict_idx > 0 || arg_idx > 0)
+	{
+	    partial_T	*pt = (partial_T *)alloc_clear(sizeof(partial_T));
 
-	    pt = (partial_T *)alloc_clear(sizeof(partial_T));
 	    if (pt != NULL)
 	    {
 		if (arg_idx > 0)
 		{
-		    list_T	*list = argvars[arg_idx].vval.v_list;
 		    listitem_T	*li;
 		    int		i = 0;
 
@@ -11864,7 +11911,12 @@ f_function(typval_T *argvars, typval_T *rettv)
 		    }
 		}
 
-		if (dict_idx > 0)
+		if (argvars[0].v_type == VAR_PARTIAL)
+		{
+		    pt->pt_dict = argvars[0].vval.v_partial->pt_dict;
+		    ++pt->pt_dict->dv_refcount;
+		}
+		else if (dict_idx > 0)
 		{
 		    pt->pt_dict = argvars[dict_idx].vval.v_dict;
 		    ++pt->pt_dict->dv_refcount;
@@ -13619,6 +13671,9 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 #ifdef HAVE_TGETENT
 	"tgetent",
+#endif
+#ifdef FEAT_TIMERS
+	"timers",
 #endif
 #ifdef FEAT_TITLE
 	"title",
@@ -20060,6 +20115,82 @@ f_tanh(typval_T *argvars, typval_T *rettv)
 }
 #endif
 
+#if defined(FEAT_JOB_CHANNEL) || defined(FEAT_TIMERS) || defined(PROTO)
+/*
+ * Get a callback from "arg".  It can be a Funcref or a function name.
+ * When "arg" is zero return an empty string.
+ * Return NULL for an invalid argument.
+ */
+    char_u *
+get_callback(typval_T *arg, partial_T **pp)
+{
+    if (arg->v_type == VAR_PARTIAL && arg->vval.v_partial != NULL)
+    {
+	*pp = arg->vval.v_partial;
+	return (*pp)->pt_name;
+    }
+    *pp = NULL;
+    if (arg->v_type == VAR_FUNC || arg->v_type == VAR_STRING)
+	return arg->vval.v_string;
+    if (arg->v_type == VAR_NUMBER && arg->vval.v_number == 0)
+	return (char_u *)"";
+    EMSG(_("E921: Invalid callback argument"));
+    return NULL;
+}
+#endif
+
+#ifdef FEAT_TIMERS
+/*
+ * "timer_start(time, callback [, options])" function
+ */
+    static void
+f_timer_start(typval_T *argvars, typval_T *rettv)
+{
+    long    msec = get_tv_number(&argvars[0]);
+    timer_T *timer;
+    int	    repeat = 0;
+    char_u  *callback;
+    dict_T  *dict;
+
+    if (argvars[2].v_type != VAR_UNKNOWN)
+    {
+	if (argvars[2].v_type != VAR_DICT
+				   || (dict = argvars[2].vval.v_dict) == NULL)
+	{
+	    EMSG2(_(e_invarg2), get_tv_string(&argvars[2]));
+	    return;
+	}
+	if (dict_find(dict, (char_u *)"repeat", -1) != NULL)
+	    repeat = get_dict_number(dict, (char_u *)"repeat");
+    }
+
+    timer = create_timer(msec, repeat);
+    callback = get_callback(&argvars[1], &timer->tr_partial);
+    if (callback == NULL)
+    {
+	stop_timer(timer);
+	rettv->vval.v_number = -1;
+    }
+    else
+    {
+	timer->tr_callback = vim_strsave(callback);
+	rettv->vval.v_number = timer->tr_id;
+    }
+}
+
+/*
+ * "timer_stop(timer)" function
+ */
+    static void
+f_timer_stop(typval_T *argvars, typval_T *rettv UNUSED)
+{
+    timer_T *timer = find_timer(get_tv_number(&argvars[0]));
+
+    if (timer != NULL)
+	stop_timer(timer);
+}
+#endif
+
 /*
  * "tolower(string)" function
  */
@@ -21544,7 +21675,7 @@ handle_subscript(
 		rettv->v_type = VAR_UNKNOWN;
 
 		/* Invoke the function.  Recursive! */
-		if (rettv->v_type == VAR_PARTIAL)
+		if (functv.v_type == VAR_PARTIAL)
 		{
 		    pt = functv.vval.v_partial;
 		    s = pt->pt_name;
@@ -21593,6 +21724,23 @@ handle_subscript(
 	    }
 	}
     }
+
+    if (rettv->v_type == VAR_FUNC && selfdict != NULL)
+    {
+	partial_T	*pt = (partial_T *)alloc_clear(sizeof(partial_T));
+
+	/* Turn "dict.Func" into a partial for "Func" with "dict". */
+	if (pt != NULL)
+	{
+	    pt->pt_dict = selfdict;
+	    selfdict = NULL;
+	    pt->pt_name = rettv->vval.v_string;
+	    func_ref(pt->pt_name);
+	    rettv->v_type = VAR_PARTIAL;
+	    rettv->vval.v_partial = pt;
+	}
+    }
+
     dict_unref(selfdict);
     return ret;
 }

@@ -2065,26 +2065,30 @@ write_viminfo(char_u *file, int forceit)
     viminfo_errcnt = 0;
     do_viminfo(fp_in, fp_out, forceit ? 0 : (VIF_WANT_INFO | VIF_WANT_MARKS));
 
-    fclose(fp_out);	    /* errors are ignored !? */
+    if (fclose(fp_out) == EOF)
+	++viminfo_errcnt;
+
     if (fp_in != NULL)
     {
 	fclose(fp_in);
 
 	/* In case of an error keep the original viminfo file.  Otherwise
 	 * rename the newly written file.  Give an error if that fails. */
-	if (viminfo_errcnt == 0 && vim_rename(tempname, fname) == -1)
+	if (viminfo_errcnt == 0)
 	{
-	    ++viminfo_errcnt;
-	    EMSG2(_("E886: Can't rename viminfo file to %s!"), fname);
+	    if (vim_rename(tempname, fname) == -1)
+	    {
+		++viminfo_errcnt;
+		EMSG2(_("E886: Can't rename viminfo file to %s!"), fname);
+	    }
+# ifdef WIN3264
+	    /* If the viminfo file was hidden then also hide the new file. */
+	    else if (hidden)
+		mch_hide(fname);
+# endif
 	}
 	if (viminfo_errcnt > 0)
 	    mch_remove(tempname);
-
-#ifdef WIN3264
-	/* If the viminfo file was hidden then also hide the new file. */
-	if (hidden)
-	    mch_hide(fname);
-#endif
     }
 
 end:
@@ -2605,7 +2609,8 @@ ex_file(exarg_T *eap)
 	    return;
     }
     /* print full file name if :cd used */
-    fileinfo(FALSE, FALSE, eap->forceit);
+    if (!shortmess(SHM_FILEINFO))
+	fileinfo(FALSE, FALSE, eap->forceit);
 }
 
 /*
@@ -3884,7 +3889,8 @@ do_ecmd(
 	msg_scroll = msg_scroll_save;
 	msg_scrolled_ign = TRUE;
 
-	fileinfo(FALSE, TRUE, FALSE);
+	if (!shortmess(SHM_FILEINFO))
+	    fileinfo(FALSE, TRUE, FALSE);
 
 	msg_scrolled_ign = FALSE;
     }
@@ -6114,6 +6120,11 @@ find_help_tags(
 		    || (arg[0] == '\\' && arg[1] == '{'))
 	      *d++ = '\\';
 
+	  /*
+	   * If tag starts with "('", skip the "(". Fixes CTRL-] on ('option'.
+	   */
+	  if (*arg == '(' && arg[1] == '\'')
+	      arg++;
 	  for (s = arg; *s; ++s)
 	  {
 	    /*

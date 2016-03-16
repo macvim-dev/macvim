@@ -87,7 +87,6 @@ SCRIPTS_ALL = \
 	test103.out \
 	test104.out \
 	test105.out \
-	test106.out \
 	test107.out \
 	test108.out \
 	test_autocmd_option.out \
@@ -110,7 +109,6 @@ SCRIPTS_ALL = \
 	test_match_conceal.out \
 	test_nested_function.out \
 	test_options.out \
-	test_qf_title.out \
 	test_ruby.out \
 	test_search_mbyte.out \
 	test_signs.out \
@@ -172,6 +170,7 @@ SCRIPTS_GUI = test16.out
 # Keep test_alot.res as the last one, sort the others.
 NEW_TESTS = test_arglist.res \
 	    test_assert.res \
+	    test_backspace_opt.res \
 	    test_cdo.res \
 	    test_channel.res \
 	    test_hardcopy.res \
