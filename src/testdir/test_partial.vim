@@ -16,6 +16,8 @@ endfunc
 
 func Test_partial_args()
   let Cb = function('MyFunc', ["foo", "bar"])
+
+  call Cb("zzz")
   call assert_equal("foo/bar/xxx", Cb("xxx"))
   call assert_equal("foo/bar/yyy", call(Cb, ["yyy"]))
 
@@ -49,6 +51,9 @@ func Test_partial_dict()
   let Cb = function('MyDictFunc', dict)
   call assert_equal("hello/xxx/yyy", Cb("xxx", "yyy"))
   call assert_fails('Cb("fff")', 'E492:')
+
+  let dict = {"tr": function('tr', ['hello', 'h', 'H'])}
+  call assert_equal("Hello", dict.tr())
 endfunc
 
 func Test_partial_implicit()
@@ -65,6 +70,39 @@ func Test_partial_implicit()
 
   let Func = function(dict.MyFunc, ['bbb'])
   call assert_equal('foo/bbb', Func())
+endfunc
 
-  call assert_fails('call function(dict.MyFunc, ["bbb"], dict)', 'E924:')
+fun InnerCall(funcref)
+  return a:funcref
+endfu
+
+fun OuterCall()
+  let opt = { 'func' : function('sin') }
+  call InnerCall(opt.func)
+endfu
+
+func Test_function_in_dict()
+  call OuterCall()
+endfunc
+
+function! s:cache_clear() dict
+  return self.name
+endfunction
+
+func Test_script_function_in_dict()
+  let s:obj = {'name': 'foo'}
+  let s:obj2 = {'name': 'bar'}
+
+  let s:obj['clear'] = function('s:cache_clear')
+
+  call assert_equal('foo', s:obj.clear())
+  let F = s:obj.clear
+  call assert_equal('foo', F())
+  call assert_equal('foo', call(s:obj.clear, [], s:obj))
+  call assert_equal('bar', call(s:obj.clear, [], s:obj2))
+
+  let s:obj2['clear'] = function('s:cache_clear')
+  call assert_equal('bar', s:obj2.clear())
+  let B = s:obj2.clear
+  call assert_equal('bar', B())
 endfunc
