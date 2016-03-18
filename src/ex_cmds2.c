@@ -3345,7 +3345,7 @@ do_in_runtimepath(
 
     if ((done == FAIL || (flags & DIP_ALL)) && (flags & DIP_START))
     {
-	len = STRLEN(start_dir) + STRLEN(name);
+	len = (int)(STRLEN(start_dir) + STRLEN(name));
 	s = alloc(len);
 	if (s == NULL)
 	    return FAIL;
@@ -3356,7 +3356,7 @@ do_in_runtimepath(
 
     if ((done == FAIL || (flags & DIP_ALL)) && (flags & DIP_OPT))
     {
-	len = STRLEN(opt_dir) + STRLEN(name);
+	len = (int)(STRLEN(opt_dir) + STRLEN(name));
 	s = alloc(len);
 	if (s == NULL)
 	    return FAIL;

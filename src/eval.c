@@ -3461,7 +3461,7 @@ ex_call(exarg_T *eap)
     int		doesrange;
     int		failed = FALSE;
     funcdict_T	fudi;
-    partial_T	*partial;
+    partial_T	*partial = NULL;
 
     if (eap->skip)
     {
@@ -3496,12 +3496,6 @@ ex_call(exarg_T *eap)
     len = (int)STRLEN(tofree);
     name = deref_func_name(tofree, &len,
 				    partial != NULL ? NULL : &partial, FALSE);
-
-    /* When calling fdict.func(), where "func" is a partial, use "fdict"
-     * instead of the dict in the partial, for backwards compatibility.
-     * TODO: Do use the arguments in the partial? */
-    if (fudi.fd_dict != NULL)
-	partial = NULL;
 
     /* Skip white space to allow ":call func ()".  Not good, but required for
      * backward compatibility. */
@@ -11814,6 +11808,7 @@ f_function(typval_T *argvars, typval_T *rettv)
     char_u	*s;
     char_u	*name;
     int		use_string = FALSE;
+    partial_T   *arg_pt = NULL;
 
     if (argvars[0].v_type == VAR_FUNC)
     {
@@ -11822,8 +11817,11 @@ f_function(typval_T *argvars, typval_T *rettv)
     }
     else if (argvars[0].v_type == VAR_PARTIAL
 					 && argvars[0].vval.v_partial != NULL)
+    {
 	/* function(dict.MyFunc, [arg]) */
-	s = argvars[0].vval.v_partial->pt_name;
+	arg_pt = argvars[0].vval.v_partial;
+	s = arg_pt->pt_name;
+    }
     else
     {
 	/* function('MyFunc', [arg], dict) */
@@ -11901,19 +11899,27 @@ f_function(typval_T *argvars, typval_T *rettv)
 		    arg_idx = 0;
 	    }
 	}
-	if (dict_idx > 0 || arg_idx > 0)
+	if (dict_idx > 0 || arg_idx > 0 || arg_pt != NULL)
 	{
 	    partial_T	*pt = (partial_T *)alloc_clear(sizeof(partial_T));
 
+	    /* result is a VAR_PARTIAL */
 	    if (pt != NULL)
 	    {
-		if (arg_idx > 0)
+		if (arg_idx > 0 || (arg_pt != NULL && arg_pt->pt_argc > 0))
 		{
 		    listitem_T	*li;
 		    int		i = 0;
+		    int		arg_len = 0;
+		    int		lv_len = 0;
 
+		    if (arg_pt != NULL)
+			arg_len = arg_pt->pt_argc;
+		    if (list != NULL)
+			lv_len = list->lv_len;
+		    pt->pt_argc = arg_len + lv_len;
 		    pt->pt_argv = (typval_T *)alloc(
-					     sizeof(typval_T) * list->lv_len);
+					      sizeof(typval_T) * pt->pt_argc);
 		    if (pt->pt_argv == NULL)
 		    {
 			vim_free(pt);
@@ -11922,9 +11928,12 @@ f_function(typval_T *argvars, typval_T *rettv)
 		    }
 		    else
 		    {
-			pt->pt_argc = list->lv_len;
-			for (li = list->lv_first; li != NULL; li = li->li_next)
-			    copy_tv(&li->li_tv, &pt->pt_argv[i++]);
+			for (i = 0; i < arg_len; i++)
+			    copy_tv(&arg_pt->pt_argv[i], &pt->pt_argv[i]);
+			if (lv_len > 0)
+			    for (li = list->lv_first; li != NULL;
+							     li = li->li_next)
+				copy_tv(&li->li_tv, &pt->pt_argv[i++]);
 		    }
 		}
 
@@ -11935,10 +11944,11 @@ f_function(typval_T *argvars, typval_T *rettv)
 		    pt->pt_dict = argvars[dict_idx].vval.v_dict;
 		    ++pt->pt_dict->dv_refcount;
 		}
-		else if (argvars[0].v_type == VAR_PARTIAL)
+		else if (arg_pt != NULL)
 		{
-		    pt->pt_dict = argvars[0].vval.v_partial->pt_dict;
-		    ++pt->pt_dict->dv_refcount;
+		    pt->pt_dict = arg_pt->pt_dict;
+		    if (pt->pt_dict != NULL)
+			++pt->pt_dict->dv_refcount;
 		}
 
 		pt->pt_refcount = 1;
@@ -11950,6 +11960,7 @@ f_function(typval_T *argvars, typval_T *rettv)
 	}
 	else
 	{
+	    /* result is a VAR_FUNC */
 	    rettv->v_type = VAR_FUNC;
 	    rettv->vval.v_string = name;
 	    func_ref(name);
@@ -21744,17 +21755,18 @@ handle_subscript(
 	}
     }
 
-    if (rettv->v_type == VAR_FUNC && selfdict != NULL)
+    if ((rettv->v_type == VAR_FUNC || rettv->v_type == VAR_PARTIAL)
+							  && selfdict != NULL)
     {
-	char_u	    *fname;
+	char_u	    *fname = rettv->v_type == VAR_FUNC ? rettv->vval.v_string
+					     : rettv->vval.v_partial->pt_name;
 	char_u	    *tofree = NULL;
 	ufunc_T	    *fp;
 	char_u	    fname_buf[FLEN_FIXED + 1];
 	int	    error;
 
 	/* Translate "s:func" to the stored function name. */
-	fname = fname_trans_sid(rettv->vval.v_string, fname_buf,
-							     &tofree, &error);
+	fname = fname_trans_sid(fname, fname_buf, &tofree, &error);
 	fp = find_func(fname);
 	vim_free(tofree);
 
@@ -21768,7 +21780,34 @@ handle_subscript(
 		pt->pt_refcount = 1;
 		pt->pt_dict = selfdict;
 		selfdict = NULL;
-		pt->pt_name = rettv->vval.v_string;
+		if (rettv->v_type == VAR_FUNC)
+		{
+		    /* just a function: use selfdict */
+		    pt->pt_name = rettv->vval.v_string;
+		}
+		else
+		{
+		    partial_T	*ret_pt = rettv->vval.v_partial;
+		    int		i;
+
+		    /* partial: use selfdict and copy args */
+		    pt->pt_name = vim_strsave(ret_pt->pt_name);
+		    if (ret_pt->pt_argc > 0)
+		    {
+			pt->pt_argv = (typval_T *)alloc(
+					  sizeof(typval_T) * ret_pt->pt_argc);
+			if (pt->pt_argv == NULL)
+			    /* out of memory: drop the arguments */
+			    pt->pt_argc = 0;
+			else
+			{
+			    pt->pt_argc = ret_pt->pt_argc;
+			    for (i = 0; i < pt->pt_argc; i++)
+				copy_tv(&ret_pt->pt_argv[i], &pt->pt_argv[i]);
+			}
+		    }
+		    partial_unref(ret_pt);
+		}
 		func_ref(pt->pt_name);
 		rettv->v_type = VAR_PARTIAL;
 		rettv->vval.v_partial = pt;
@@ -23919,6 +23958,14 @@ trans_function_name(
 	{
 	    name = vim_strsave(lv.ll_tv->vval.v_string);
 	    *pp = end;
+	}
+	else if (lv.ll_tv->v_type == VAR_PARTIAL
+					  && lv.ll_tv->vval.v_partial != NULL)
+	{
+	    name = vim_strsave(lv.ll_tv->vval.v_partial->pt_name);
+	    *pp = end;
+	    if (partial != NULL)
+		*partial = lv.ll_tv->vval.v_partial;
 	}
 	else
 	{
