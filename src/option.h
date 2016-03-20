@@ -318,6 +318,7 @@ EXTERN int	p_acd;		/* 'autochdir' */
 #endif
 #ifdef FEAT_MBYTE
 EXTERN char_u	*p_ambw;	/* 'ambiwidth' */
+EXTERN char_u	*p_emoji;	/* 'emoji' */
 #endif
 #ifdef FEAT_ANTIALIAS
 EXTERN int	p_antialias;	/* 'antialias' */
@@ -462,7 +463,7 @@ static char *(p_dy_values[]) = {"lastline", "uhex", NULL};
 #define DY_LASTLINE		0x001
 #define DY_UHEX			0x002
 EXTERN int	p_ed;		/* 'edcompatible' */
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 EXTERN char_u	*p_ead;		/* 'eadirection' */
 #endif
 EXTERN int	p_ea;		/* 'equalalways' */
@@ -816,7 +817,7 @@ EXTERN char_u	*p_tal;		/* 'tabline' */
 #ifdef FEAT_SPELL
 EXTERN char_u	*p_sps;		/* 'spellsuggest' */
 #endif
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 EXTERN int	p_spr;		/* 'splitright' */
 #endif
 EXTERN int	p_sol;		/* 'startofline' */
@@ -975,8 +976,6 @@ EXTERN int	p_wmnu;		/* 'wildmenu' */
 #ifdef FEAT_WINDOWS
 EXTERN long	p_wh;		/* 'winheight' */
 EXTERN long	p_wmh;		/* 'winminheight' */
-#endif
-#ifdef FEAT_VERTSPLIT
 EXTERN long	p_wmw;		/* 'winminwidth' */
 EXTERN long	p_wiw;		/* 'winwidth' */
 #endif
@@ -1193,8 +1192,6 @@ enum
 #endif
 #ifdef FEAT_WINDOWS
     , WV_WFH
-#endif
-#ifdef FEAT_VERTSPLIT
     , WV_WFW
 #endif
     , WV_WRAP

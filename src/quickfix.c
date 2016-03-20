@@ -1578,11 +1578,9 @@ qf_jump(
 	     * specified, the current window is vertically split and narrow.
 	     */
 	    flags = WSP_HELP;
-# ifdef FEAT_VERTSPLIT
 	    if (cmdmod.split == 0 && curwin->w_width != Columns
 						      && curwin->w_width < 80)
 		flags |= WSP_TOP;
-# endif
 	    if (qi != &ql_info)
 		flags |= WSP_NEWLOC;  /* don't copy the location list */
 
@@ -1795,8 +1793,19 @@ win_found:
 					   oldwin == curwin ? curwin : NULL);
 	}
 	else
+	{
 	    ok = buflist_getfile(qf_ptr->qf_fnum,
 			    (linenr_T)1, GETF_SETMARK | GETF_SWITCH, forceit);
+	    if (qi != &ql_info && !win_valid(oldwin))
+	    {
+		EMSG(_("E924: Current window was closed"));
+		ok = FALSE;
+		qi = NULL;
+		qf_ptr = NULL;
+		opened_window = FALSE;
+	    }
+	}
+
     }
 
     if (ok == OK)
@@ -1899,7 +1908,7 @@ win_found:
 	if (opened_window)
 	    win_close(curwin, TRUE);    /* Close opened window */
 #endif
-	if (qf_ptr->qf_fnum != 0)
+	if (qf_ptr != NULL && qf_ptr->qf_fnum != 0)
 	{
 	    /*
 	     * Couldn't open file, so put index back where it was.  This could
@@ -1913,8 +1922,11 @@ failed:
 	}
     }
 theend:
-    qi->qf_lists[qi->qf_curlist].qf_ptr = qf_ptr;
-    qi->qf_lists[qi->qf_curlist].qf_index = qf_index;
+    if (qi != NULL)
+    {
+	qi->qf_lists[qi->qf_curlist].qf_ptr = qf_ptr;
+	qi->qf_lists[qi->qf_curlist].qf_index = qf_index;
+    }
 #ifdef FEAT_WINDOWS
     if (p_swb != old_swb && opened_window)
     {
@@ -2346,15 +2358,12 @@ ex_copen(exarg_T *eap)
 	win_goto(win);
 	if (eap->addr_count != 0)
 	{
-#ifdef FEAT_VERTSPLIT
 	    if (cmdmod.split & WSP_VERT)
 	    {
 		if (height != W_WIDTH(win))
 		    win_setwidth(height);
 	    }
-	    else
-#endif
-	    if (height != win->w_height)
+	    else if (height != win->w_height)
 		win_setheight(height);
 	}
     }
@@ -2411,11 +2420,7 @@ ex_copen(exarg_T *eap)
 
 	/* Only set the height when still in the same tab page and there is no
 	 * window to the side. */
-	if (curtab == prevtab
-#ifdef FEAT_VERTSPLIT
-		&& curwin->w_width == Columns
-#endif
-	   )
+	if (curtab == prevtab && curwin->w_width == Columns)
 	    win_setheight(height);
 	curwin->w_p_wfh = TRUE;	    /* set 'winfixheight' */
 	if (win_valid(win))

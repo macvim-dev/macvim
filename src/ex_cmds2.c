@@ -3477,6 +3477,7 @@ add_pack_plugin(char_u *fname, void *cookie)
 	    vim_free(cmd);
 	}
 #endif
+	vim_free(pat);
     }
 
 theend:

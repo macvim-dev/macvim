@@ -2603,7 +2603,7 @@ jump_to_mouse(
     int		which_button)	/* MOUSE_LEFT, MOUSE_RIGHT, MOUSE_MIDDLE */
 {
     static int	on_status_line = 0;	/* #lines below bottom of window */
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
     static int	on_sep_line = 0;	/* on separator right of window */
 #endif
     static int	prev_row = -1;
@@ -2643,7 +2643,7 @@ retnomove:
 	 * line, stop Visual mode */
 	if (on_status_line)
 	    return IN_STATUS_LINE;
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 	if (on_sep_line)
 	    return IN_SEP_LINE;
 #endif
@@ -2701,7 +2701,7 @@ retnomove:
 	}
 	else
 	    on_status_line = 0;
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 	if (col >= wp->w_width)		/* In separator line */
 	{
 	    on_sep_line = col - wp->w_width + 1;
@@ -2726,7 +2726,7 @@ retnomove:
 	if (VIsual_active
 		&& (wp->w_buffer != curwin->w_buffer
 		    || (!on_status_line
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 			&& !on_sep_line
 #endif
 #ifdef FEAT_FOLDING
@@ -2750,9 +2750,7 @@ retnomove:
 	{
 	    /* A click outside the command-line window: Use modeless
 	     * selection if possible.  Allow dragging the status lines. */
-# ifdef FEAT_VERTSPLIT
 	    on_sep_line = 0;
-# endif
 # ifdef FEAT_CLIPBOARD
 	    if (on_status_line)
 		return IN_STATUS_LINE;
@@ -2784,7 +2782,7 @@ retnomove:
 	    else
 		return IN_STATUS_LINE | CURSOR_MOVED;
 	}
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 	if (on_sep_line)			/* In (or below) status line */
 	{
 	    /* Don't use start_arrow() if we're in the same window */
@@ -2818,7 +2816,7 @@ retnomove:
 #endif
 	return IN_STATUS_LINE;			/* Cursor didn't move */
     }
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
     else if (on_sep_line && which_button == MOUSE_LEFT)
     {
 	if (dragwin != NULL)
@@ -2848,7 +2846,7 @@ retnomove:
 #endif
 
 	row -= W_WINROW(curwin);
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 	col -= W_WINCOL(curwin);
 #endif
 
@@ -3109,7 +3107,6 @@ mouse_find_win(int *rowp, int *colp UNUSED)
     {
 	if (fp->fr_layout == FR_LEAF)
 	    break;
-#ifdef FEAT_VERTSPLIT
 	if (fp->fr_layout == FR_ROW)
 	{
 	    for (fp = fp->fr_child; fp->fr_next != NULL; fp = fp->fr_next)
@@ -3119,7 +3116,6 @@ mouse_find_win(int *rowp, int *colp UNUSED)
 		*colp -= fp->fr_width;
 	    }
 	}
-#endif
 	else    /* fr_layout == FR_COL */
 	{
 	    for (fp = fp->fr_child; fp->fr_next != NULL; fp = fp->fr_next)
@@ -3162,7 +3158,7 @@ get_fpos_of_mouse(pos_T *mpos)
      */
     if (row >= wp->w_height)	/* In (or below) status line */
 	return IN_STATUS_LINE;
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
     if (col >= wp->w_width)	/* In vertical separator line */
 	return IN_SEP_LINE;
 #endif

@@ -605,7 +605,6 @@ RT_AMI =	\
 		README.txt.info \
 		README_ami.txt \
 		README_ami.txt.info \
-		libs/arp.library \
 		runtime/doc.info \
 		runtime/doc/*.info \
 		runtime/icons/README.txt \
@@ -692,6 +691,35 @@ EXTRA =		\
 		src/tee/Makefile \
 		src/tee/Make_mvc.mak \
 		src/tee/tee.c \
+
+# files in READMEdir that are included from the top dir
+IN_README_DIR = \
+		README.txt.info \
+		README_ami.txt \
+		README_ami.txt.info \
+		README_amibin.txt \
+		README_amibin.txt.info \
+		README_amisrc.txt \
+		README_amisrc.txt.info \
+		README_bindos.txt \
+		README_dos.txt \
+		README_extra.txt \
+		README_mac.txt \
+		README_ole.txt \
+		README_os2.txt \
+		README_os390.txt \
+		README_src.txt \
+		README_srcdos.txt \
+		README_unix.txt \
+		README_vms.txt \
+		README_w32s.txt \
+		Contents \
+		Contents.info \
+		Vim.info \
+		Xxd.info \
+		runtime.info \
+		src.info \
+		vimdir.info \
 
 # generic language files
 LANG_GEN = \

@@ -2020,7 +2020,7 @@ do_one_cmd(
 
 	    case 'v':	if (checkforcmd(&ea.cmd, "vertical", 4))
 			{
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 			    cmdmod.split |= WSP_VERT;
 #endif
 			    continue;
@@ -7941,14 +7941,6 @@ ex_splitview(exarg_T *eap)
     int		browse_flag = cmdmod.browse;
 # endif
 
-# ifndef FEAT_VERTSPLIT
-    if (eap->cmdidx == CMD_vsplit || eap->cmdidx == CMD_vnew)
-    {
-	ex_ni(eap);
-	return;
-    }
-# endif
-
 # ifdef FEAT_GUI
     need_mouse_correct = TRUE;
 # endif
@@ -7960,10 +7952,8 @@ ex_splitview(exarg_T *eap)
     {
 	if (eap->cmdidx == CMD_split)
 	    eap->cmdidx = CMD_new;
-#  ifdef FEAT_VERTSPLIT
 	if (eap->cmdidx == CMD_vsplit)
 	    eap->cmdidx = CMD_vnew;
-#  endif
     }
 # endif
 
@@ -7982,9 +7972,7 @@ ex_splitview(exarg_T *eap)
 # endif
 # ifdef FEAT_BROWSE
     if (cmdmod.browse
-#  ifdef FEAT_VERTSPLIT
 	    && eap->cmdidx != CMD_vnew
-# endif
 	    && eap->cmdidx != CMD_new)
     {
 # ifdef FEAT_AUTOCMD
@@ -8242,11 +8230,10 @@ ex_resize(exarg_T *eap)
 	    ;
     }
 
-#ifdef FEAT_GUI
+# ifdef FEAT_GUI
     need_mouse_correct = TRUE;
-#endif
+# endif
     n = atol((char *)eap->arg);
-#ifdef FEAT_VERTSPLIT
     if (cmdmod.split & WSP_VERT)
     {
 	if (*eap->arg == '-' || *eap->arg == '+')
@@ -8256,7 +8243,6 @@ ex_resize(exarg_T *eap)
 	win_setwidth_win((int)n, wp);
     }
     else
-#endif
     {
 	if (*eap->arg == '-' || *eap->arg == '+')
 	    n += curwin->w_height;
@@ -8415,7 +8401,7 @@ do_exedit(
     if ((eap->cmdidx == CMD_new
 		|| eap->cmdidx == CMD_tabnew
 		|| eap->cmdidx == CMD_tabedit
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 		|| eap->cmdidx == CMD_vnew
 #endif
 		) && *eap->arg == NUL)
@@ -8427,7 +8413,7 @@ do_exedit(
 		      old_curwin == NULL ? curwin : NULL);
     }
     else if ((eap->cmdidx != CMD_split
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
 		&& eap->cmdidx != CMD_vsplit
 #endif
 		)

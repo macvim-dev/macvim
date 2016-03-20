@@ -2212,7 +2212,7 @@ typedef struct w_line
 struct frame_S
 {
     char	fr_layout;	/* FR_LEAF, FR_COL or FR_ROW */
-#ifdef FEAT_VERTSPLIT
+#ifdef FEAT_WINDOWS
     int		fr_width;
     int		fr_newwidth;	/* new width used in win_equal_rec() */
 #endif
@@ -2382,8 +2382,6 @@ struct window_S
 				       status/command line(s) */
 #ifdef FEAT_WINDOWS
     int		w_status_height;    /* number of status lines (0 or 1) */
-#endif
-#ifdef FEAT_VERTSPLIT
     int		w_wincol;	    /* Leftmost column of window in screen.
 				       use W_WINCOL() */
     int		w_width;	    /* Width of window, excluding separation.
