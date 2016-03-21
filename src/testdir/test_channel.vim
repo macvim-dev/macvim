@@ -120,9 +120,16 @@ func s:communicate(port)
     return
   endif
   if has('job')
-    " check that no job is handled correctly
+    " check that getjob without a job is handled correctly
     call assert_equal('no process', string(ch_getjob(handle)))
   endif
+  let dict = ch_info(handle)
+  call assert_true(dict.id != 0)
+  call assert_equal('open', dict.status)
+  call assert_equal(a:port, string(dict.port))
+  call assert_equal('open', dict.sock_status)
+  call assert_equal('socket', dict.sock_io)
+
   " Simple string request and reply.
   call assert_equal('got it', ch_evalexpr(handle, 'hello!'))
 
@@ -982,6 +989,39 @@ func Test_reuse_channel()
   try
     call ch_sendraw(handle, "echo again\n")
     call assert_equal("again", ch_readraw(handle))
+  finally
+    call job_stop(job)
+  endtry
+endfunc
+
+func Test_out_cb()
+  if !has('job')
+    return
+  endif
+  call ch_log('Test_out_cb()')
+
+  let dict = {'thisis': 'dict: '}
+  func dict.outHandler(chan, msg) dict
+    let s:outmsg = self.thisis . a:msg
+  endfunc
+  func dict.errHandler(chan, msg) dict
+    let s:errmsg = self.thisis . a:msg
+  endfunc
+  let job = job_start(s:python . " test_channel_pipe.py",
+	\ {'out_cb': dict.outHandler,
+	\ 'out_mode': 'json',
+	\ 'err_cb': dict.errHandler,
+	\ 'err_mode': 'json'})
+  call assert_equal("run", job_status(job))
+  try
+    let s:outmsg = ''
+    let s:errmsg = ''
+    call ch_sendraw(job, "echo [0, \"hello\"]\n")
+    call ch_sendraw(job, "echoerr [0, \"there\"]\n")
+    call s:waitFor('s:outmsg != ""')
+    call assert_equal("dict: hello", s:outmsg)
+    call s:waitFor('s:errmsg != ""')
+    call assert_equal("dict: there", s:errmsg)
   finally
     call job_stop(job)
   endtry

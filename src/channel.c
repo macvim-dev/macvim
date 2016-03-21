@@ -857,6 +857,8 @@ channel_open(
 
     channel->CH_SOCK_FD = (sock_T)sd;
     channel->ch_nb_close_cb = nb_close_cb;
+    channel->ch_hostname = (char *)vim_strsave((char_u *)hostname);
+    channel->ch_port = port_in;
 
 #ifdef FEAT_GUI
     channel_gui_register_one(channel, PART_SOCK);
@@ -1022,11 +1024,11 @@ find_buffer(char_u *name, int err)
 	buf = buflist_new(name == NULL || *name == NUL ? NULL : name,
 					       NULL, (linenr_T)0, BLN_LISTED);
 	buf_copy_options(buf, BCO_ENTER);
+	curbuf = buf;
 #ifdef FEAT_QUICKFIX
 	set_option_value((char_u *)"bt", 0L, (char_u *)"nofile", OPT_LOCAL);
 	set_option_value((char_u *)"bh", 0L, (char_u *)"hide", OPT_LOCAL);
 #endif
-	curbuf = buf;
 	if (curbuf->b_ml.ml_mfp == NULL)
 	    ml_open(curbuf);
 	ml_replace(1, (char_u *)(err ? "Reading from channel error..."
@@ -1157,6 +1159,10 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 	ch_logs(channel, "writing err to buffer '%s'",
 		      (char *)channel->ch_part[PART_ERR].ch_buffer->b_ffname);
     }
+
+    channel->ch_part[PART_OUT].ch_io = opt->jo_io[PART_OUT];
+    channel->ch_part[PART_ERR].ch_io = opt->jo_io[PART_ERR];
+    channel->ch_part[PART_IN].ch_io = opt->jo_io[PART_IN];
 }
 
 /*
@@ -2107,6 +2113,69 @@ channel_status(channel_T *channel)
     return "closed";
 }
 
+    static void
+channel_part_info(channel_T *channel, dict_T *dict, char *name, int part)
+{
+    chanpart_T *chanpart = &channel->ch_part[part];
+    char	namebuf[20];
+    int		tail;
+    char	*s;
+
+    STRCPY(namebuf, name);
+    STRCAT(namebuf, "_");
+    tail = STRLEN(namebuf);
+
+    STRCPY(namebuf + tail, "status");
+    dict_add_nr_str(dict, namebuf, 0,
+		(char_u *)(chanpart->ch_fd == INVALID_FD ? "closed" : "open"));
+
+    STRCPY(namebuf + tail, "mode");
+    switch (chanpart->ch_mode)
+    {
+	case MODE_NL: s = "NL"; break;
+	case MODE_RAW: s = "RAW"; break;
+	case MODE_JSON: s = "JSON"; break;
+	case MODE_JS: s = "JS"; break;
+    }
+    dict_add_nr_str(dict, namebuf, 0, (char_u *)s);
+
+    STRCPY(namebuf + tail, "io");
+    if (part == PART_SOCK)
+	s = "socket";
+    else switch (chanpart->ch_io)
+    {
+	case JIO_NULL: s = "null"; break;
+	case JIO_PIPE: s = "pipe"; break;
+	case JIO_FILE: s = "file"; break;
+	case JIO_BUFFER: s = "buffer"; break;
+	case JIO_OUT: s = "out"; break;
+    }
+    dict_add_nr_str(dict, namebuf, 0, (char_u *)s);
+
+    STRCPY(namebuf + tail, "timeout");
+    dict_add_nr_str(dict, namebuf, chanpart->ch_timeout, NULL);
+}
+
+    void
+channel_info(channel_T *channel, dict_T *dict)
+{
+    dict_add_nr_str(dict, "id", channel->ch_id, NULL);
+    dict_add_nr_str(dict, "status", 0, (char_u *)channel_status(channel));
+
+    if (channel->ch_hostname != NULL)
+    {
+	dict_add_nr_str(dict, "hostname", 0, (char_u *)channel->ch_hostname);
+	dict_add_nr_str(dict, "port", channel->ch_port, NULL);
+	channel_part_info(channel, dict, "sock", PART_SOCK);
+    }
+    else
+    {
+	channel_part_info(channel, dict, "out", PART_OUT);
+	channel_part_info(channel, dict, "err", PART_ERR);
+	channel_part_info(channel, dict, "in", PART_IN);
+    }
+}
+
 /*
  * Close channel "channel".
  * Trigger the close callback if "invoke_close_cb" is TRUE.
@@ -2214,6 +2283,8 @@ channel_clear_one(channel_T *channel, int part)
 channel_clear(channel_T *channel)
 {
     ch_log(channel, "Clearing channel");
+    vim_free(channel->ch_hostname);
+    channel->ch_hostname = NULL;
     channel_clear_one(channel, PART_SOCK);
     channel_clear_one(channel, PART_OUT);
     channel_clear_one(channel, PART_ERR);
@@ -2311,17 +2382,6 @@ channel_wait(channel_T *channel, sock_T fd, int timeout)
 #endif
     }
     return FAIL;
-}
-
-/*
- * Return a unique ID to be used in a message.
- */
-    int
-channel_get_id(void)
-{
-    static int next_id = 1;
-
-    return next_id++;
 }
 
 /*
@@ -2806,7 +2866,7 @@ ch_expr_common(typval_T *argvars, typval_T *rettv, int eval)
 	return;
     }
 
-    id = channel_get_id();
+    id = ++channel->ch_last_msg_id;
     text = json_encode_nr_expr(id, &argvars[1],
 					    ch_mode == MODE_JS ? JSON_JS : 0);
     if (text == NULL)
