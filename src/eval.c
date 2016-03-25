@@ -7851,10 +7851,50 @@ echo_string(
 	    break;
 
 	case VAR_PARTIAL:
-	    *tofree = NULL;
-	    /* TODO: arguments */
-	    r = tv->vval.v_partial == NULL ? NULL : tv->vval.v_partial->pt_name;
-	    break;
+	    {
+		partial_T   *pt = tv->vval.v_partial;
+		char_u	    *fname = string_quote(pt == NULL ? NULL
+							: pt->pt_name, FALSE);
+		garray_T    ga;
+		int	    i;
+		char_u	    *tf;
+
+		ga_init2(&ga, 1, 100);
+		ga_concat(&ga, (char_u *)"function(");
+		if (fname != NULL)
+		{
+		    ga_concat(&ga, fname);
+		    vim_free(fname);
+		}
+		if (pt != NULL && pt->pt_argc > 0)
+		{
+		    ga_concat(&ga, (char_u *)", [");
+		    for (i = 0; i < pt->pt_argc; ++i)
+		    {
+			if (i > 0)
+			    ga_concat(&ga, (char_u *)", ");
+			ga_concat(&ga,
+			     tv2string(&pt->pt_argv[i], &tf, numbuf, copyID));
+			vim_free(tf);
+		    }
+		    ga_concat(&ga, (char_u *)"]");
+		}
+		if (pt != NULL && pt->pt_dict != NULL)
+		{
+		    typval_T dtv;
+
+		    ga_concat(&ga, (char_u *)", ");
+		    dtv.v_type = VAR_DICT;
+		    dtv.vval.v_dict = pt->pt_dict;
+		    ga_concat(&ga, tv2string(&dtv, &tf, numbuf, copyID));
+		    vim_free(tf);
+		}
+		ga_concat(&ga, (char_u *)")");
+
+		*tofree = ga.ga_data;
+		r = *tofree;
+		break;
+	    }
 
 	case VAR_LIST:
 	    if (tv->vval.v_list == NULL)
@@ -7941,50 +7981,6 @@ tv2string(
 	case VAR_FUNC:
 	    *tofree = string_quote(tv->vval.v_string, TRUE);
 	    return *tofree;
-	case VAR_PARTIAL:
-	    {
-		partial_T   *pt = tv->vval.v_partial;
-		char_u	    *fname = string_quote(pt == NULL ? NULL
-							: pt->pt_name, FALSE);
-		garray_T    ga;
-		int	    i;
-		char_u	    *tf;
-
-		ga_init2(&ga, 1, 100);
-		ga_concat(&ga, (char_u *)"function(");
-		if (fname != NULL)
-		{
-		    ga_concat(&ga, fname);
-		    vim_free(fname);
-		}
-		if (pt != NULL && pt->pt_argc > 0)
-		{
-		    ga_concat(&ga, (char_u *)", [");
-		    for (i = 0; i < pt->pt_argc; ++i)
-		    {
-			if (i > 0)
-			    ga_concat(&ga, (char_u *)", ");
-			ga_concat(&ga,
-			     tv2string(&pt->pt_argv[i], &tf, numbuf, copyID));
-			vim_free(tf);
-		    }
-		    ga_concat(&ga, (char_u *)"]");
-		}
-		if (pt != NULL && pt->pt_dict != NULL)
-		{
-		    typval_T dtv;
-
-		    ga_concat(&ga, (char_u *)", ");
-		    dtv.v_type = VAR_DICT;
-		    dtv.vval.v_dict = pt->pt_dict;
-		    ga_concat(&ga, tv2string(&dtv, &tf, numbuf, copyID));
-		    vim_free(tf);
-		}
-		ga_concat(&ga, (char_u *)")");
-
-		*tofree = ga.ga_data;
-		return *tofree;
-	    }
 	case VAR_STRING:
 	    *tofree = string_quote(tv->vval.v_string, FALSE);
 	    return *tofree;
@@ -7997,6 +7993,7 @@ tv2string(
 	case VAR_NUMBER:
 	case VAR_LIST:
 	case VAR_DICT:
+	case VAR_PARTIAL:
 	case VAR_SPECIAL:
 	case VAR_JOB:
 	case VAR_CHANNEL:
@@ -19285,7 +19282,8 @@ f_string(typval_T *argvars, typval_T *rettv)
     char_u	numbuf[NUMBUFLEN];
 
     rettv->v_type = VAR_STRING;
-    rettv->vval.v_string = tv2string(&argvars[0], &tofree, numbuf, 0);
+    rettv->vval.v_string = tv2string(&argvars[0], &tofree, numbuf,
+								get_copyID());
     /* Make a copy if we have a value but it's not in allocated memory. */
     if (rettv->vval.v_string != NULL && tofree == NULL)
 	rettv->vval.v_string = vim_strsave(rettv->vval.v_string);
@@ -23484,7 +23482,8 @@ ex_function(exarg_T *eap)
 	else
 	    arg = fudi.fd_newkey;
 	if (arg != NULL && (fudi.fd_di == NULL
-				     || fudi.fd_di->di_tv.v_type != VAR_FUNC))
+				     || (fudi.fd_di->di_tv.v_type != VAR_FUNC
+				 && fudi.fd_di->di_tv.v_type != VAR_PARTIAL)))
 	{
 	    if (*arg == K_SPECIAL)
 		j = 3;
@@ -26467,8 +26466,10 @@ repeat:
     if (src[*usedlen] == ':' && src[*usedlen + 1] == 'S')
     {
 	/* vim_strsave_shellescape() needs a NUL terminated string. */
+	c = (*fnamep)[*fnamelen];
 	(*fnamep)[*fnamelen] = NUL;
 	p = vim_strsave_shellescape(*fnamep, FALSE, FALSE);
+	(*fnamep)[*fnamelen] = c;
 	if (p == NULL)
 	    return -1;
 	vim_free(*bufp);

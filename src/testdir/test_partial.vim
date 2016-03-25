@@ -180,3 +180,43 @@ func Test_func_unref()
   unlet obj
   call assert_false(exists('*{' . funcnumber . '}'))
 endfunc
+
+func Test_tostring()
+  let d = {}
+  let d.d = d
+  function d.test3()
+    echo 42
+  endfunction
+  try
+    call string(d.test3)
+  catch
+    call assert_true(v:false, v:exception)
+  endtry
+endfunc
+
+func Test_redefine_dict_func()
+  let d = {}
+  function d.test4()
+  endfunction
+  let d.test4 = d.test4
+  try
+    function! d.test4(name)
+    endfunction
+  catch
+    call assert_true(v:errmsg, v:exception)
+  endtry
+endfunc
+
+func Test_bind_in_python()
+  if has('python')
+    let g:d = {}
+    function g:d.test2()
+    endfunction
+    python import vim
+    try
+      call assert_equal(pyeval('vim.bindeval("g:d.test2")'), g:d.test2)
+    catch
+      call assert_true(v:false, v:exception)
+    endtry
+  endif
+endfunc
