@@ -933,6 +933,11 @@ eval_init(void)
     for (i = 0; i < VV_LEN; ++i)
     {
 	p = &vimvars[i];
+	if (STRLEN(p->vv_name) > 16)
+	{
+	    EMSG("INTERNAL: name too long, increase size of dictitem16_T");
+	    getout(1);
+	}
 	STRCPY(p->vv_di.di_key, p->vv_name);
 	if (p->vv_flags & VV_RO)
 	    p->vv_di.di_flags = DI_FLAGS_RO | DI_FLAGS_FIX;
@@ -3398,6 +3403,12 @@ set_context_for_expression(
 	{
 	    got_eq = TRUE;
 	    xp->xp_context = EXPAND_EXPRESSION;
+	}
+	else if (c == '#'
+		&& xp->xp_context == EXPAND_EXPRESSION)
+	{
+	    /* Autoload function/variable contains '#'. */
+	    break;
 	}
 	else if ((c == '<' || c == '#')
 		&& xp->xp_context == EXPAND_FUNCTIONS
@@ -6021,6 +6032,7 @@ rettv_list_alloc(typval_T *rettv)
 
     rettv->vval.v_list = l;
     rettv->v_type = VAR_LIST;
+    rettv->v_lock = 0;
     ++l->lv_refcount;
     return OK;
 }
@@ -7271,6 +7283,7 @@ rettv_dict_alloc(typval_T *rettv)
 
     rettv->vval.v_dict = d;
     rettv->v_type = VAR_DICT;
+    rettv->v_lock = 0;
     ++d->dv_refcount;
     return OK;
 }
@@ -9567,7 +9580,9 @@ f_assert_match(typval_T *argvars, typval_T *rettv UNUSED)
     char_u	*pat = get_tv_string_buf_chk(&argvars[0], buf1);
     char_u	*text = get_tv_string_buf_chk(&argvars[1], buf2);
 
-    if (!pattern_match(pat, text, FALSE))
+    if (pat == NULL || text == NULL)
+	EMSG(_(e_invarg));
+    else if (!pattern_match(pat, text, FALSE))
     {
 	prepare_assert_error(&ga);
 	fill_assert_error(&ga, &argvars[2], NULL, &argvars[0], &argvars[1],

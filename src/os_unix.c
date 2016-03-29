@@ -5561,7 +5561,8 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *break_loop)
 # endif
 #endif
 #ifndef HAVE_SELECT
-	struct pollfd   fds[6 + MAX_OPEN_CHANNELS];
+			/* each channel may use in, out and err */
+	struct pollfd   fds[6 + 3 * MAX_OPEN_CHANNELS];
 	int		nfd;
 # ifdef FEAT_XCLIPBOARD
 	int		xterm_idx = -1;
@@ -5674,7 +5675,7 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *break_loop)
 
 	struct timeval  tv;
 	struct timeval	*tvp;
-	fd_set		rfds, efds;
+	fd_set		rfds, wfds, efds;
 	int		maxfd;
 	long		towait = msec;
 
@@ -5707,6 +5708,7 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *break_loop)
 	 */
 select_eintr:
 	FD_ZERO(&rfds);
+	FD_ZERO(&wfds);
 	FD_ZERO(&efds);
 	FD_SET(fd, &rfds);
 # if !defined(__QNX__) && !defined(__CYGWIN32__)
@@ -5747,10 +5749,10 @@ select_eintr:
 	}
 # endif
 # ifdef FEAT_JOB_CHANNEL
-	maxfd = channel_select_setup(maxfd, &rfds);
+	maxfd = channel_select_setup(maxfd, &rfds, &wfds);
 # endif
 
-	ret = select(maxfd + 1, &rfds, NULL, &efds, tvp);
+	ret = select(maxfd + 1, &rfds, &wfds, &efds, tvp);
 	result = ret > 0 && FD_ISSET(fd, &rfds);
 	if (result)
 	    --ret;
@@ -5832,7 +5834,7 @@ select_eintr:
 # endif
 #ifdef FEAT_JOB_CHANNEL
 	if (ret > 0)
-	    ret = channel_select_check(ret, &rfds);
+	    ret = channel_select_check(ret, &rfds, &wfds);
 #endif
 
 #endif /* HAVE_SELECT */
