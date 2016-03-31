@@ -739,7 +739,8 @@ vim_str2rb_enc_str(const char *s)
     {
 	enc = rb_enc_find((char *)sval);
 	vim_free(sval);
-	if (enc) {
+	if (enc)
+	{
 	    return rb_enc_str_new(s, strlen(s), enc);
 	}
     }
@@ -781,19 +782,23 @@ void ex_rubydo(exarg_T *eap)
     {
 	if (u_save(eap->line1 - 1, eap->line2 + 1) != OK)
 	    return;
-	for (i = eap->line1; i <= eap->line2; i++) {
+	for (i = eap->line1; i <= eap->line2; i++)
+	{
 	    VALUE line;
 
 	    line = vim_str2rb_enc_str((char *)ml_get(i));
 	    rb_lastline_set(line);
 	    eval_enc_string_protect((char *) eap->arg, &state);
-	    if (state) {
+	    if (state)
+	    {
 		error_print(state);
 		break;
 	    }
 	    line = rb_lastline_get();
-	    if (!NIL_P(line)) {
-		if (TYPE(line) != T_STRING) {
+	    if (!NIL_P(line))
+	    {
+		if (TYPE(line) != T_STRING)
+		{
 		    EMSG(_("E265: $_ must be an instance of String"));
 		    return;
 		}
@@ -906,7 +911,8 @@ static void error_print(int state)
 #define TAG_FATAL	0x8
 #define TAG_MASK	0xf
 
-    switch (state) {
+    switch (state)
+    {
     case TAG_RETURN:
 	EMSG(_("E267: unexpected return"));
 	break;
@@ -931,10 +937,12 @@ static void error_print(int state)
 	eclass = CLASS_OF(ruby_errinfo);
 	einfo = rb_obj_as_string(ruby_errinfo);
 #endif
-	if (eclass == rb_eRuntimeError && RSTRING_LEN(einfo) == 0) {
+	if (eclass == rb_eRuntimeError && RSTRING_LEN(einfo) == 0)
+	{
 	    EMSG(_("E272: unhandled exception"));
 	}
-	else {
+	else
+	{
 	    VALUE epath;
 	    char *p;
 
@@ -1216,7 +1224,8 @@ static VALUE set_buffer_line(buf_T *buf, linenr_T n, VALUE str)
 	/* set curwin/curbuf for "buf" and save some things */
 	aucmd_prepbuf(&aco, buf);
 
-	if (u_savesub(n) == OK) {
+	if (u_savesub(n) == OK)
+	{
 	    ml_replace(n, (char_u *)line, TRUE);
 	    changed();
 #ifdef SYNTAX_HL
@@ -1257,7 +1266,8 @@ static VALUE buffer_delete(VALUE self, VALUE num)
 	/* set curwin/curbuf for "buf" and save some things */
 	aucmd_prepbuf(&aco, buf);
 
-	if (u_savedel(n, 1) == OK) {
+	if (u_savedel(n, 1) == OK)
+	{
 	    ml_delete(n, 0);
 
 	    /* Changes to non-active buffers should properly refresh
@@ -1296,7 +1306,8 @@ static VALUE buffer_append(VALUE self, VALUE num, VALUE str)
 	/* set curwin/curbuf for "buf" and save some things */
 	aucmd_prepbuf(&aco, buf);
 
-	if (u_inssub(n + 1) == OK) {
+	if (u_inssub(n + 1) == OK)
+	{
 	    ml_append(n, (char_u *) line, (colnr_T) 0, FALSE);
 
 	    /*  Changes to non-active buffers should properly refresh screen
@@ -1502,7 +1513,8 @@ static VALUE f_p(int argc, VALUE *argv, VALUE self UNUSED)
     int i;
     VALUE str = rb_str_new("", 0);
 
-    for (i = 0; i < argc; i++) {
+    for (i = 0; i < argc; i++)
+    {
 	if (i > 0) rb_str_cat(str, ", ", 2);
 	rb_str_concat(str, rb_inspect(argv[i]));
     }
