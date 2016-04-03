@@ -8065,7 +8065,9 @@ screen_char(unsigned off, int row, int col)
 	buf[utfc_char2bytes(off, buf)] = NUL;
 
 	out_str(buf);
-	if (utf_char2cells(ScreenLinesUC[off]) > 1)
+	if (utf_ambiguous_width(ScreenLinesUC[off]))
+	    screen_cur_col = 9999;
+	else if (utf_char2cells(ScreenLinesUC[off]) > 1)
 	    ++screen_cur_col;
     }
     else
@@ -10213,12 +10215,19 @@ unshowmode(int force)
     if (!redrawing() || (!force && char_avail() && !KeyTyped))
 	redraw_cmdline = TRUE;		/* delete mode later */
     else
-    {
-	msg_pos_mode();
-	if (Recording)
-	    recording_mode(hl_attr(HLF_CM));
-	msg_clr_eos();
-    }
+	clearmode();
+}
+
+/*
+ * Clear the mode message.
+ */
+    void
+clearmode()
+{
+    msg_pos_mode();
+    if (Recording)
+	recording_mode(hl_attr(HLF_CM));
+    msg_clr_eos();
 }
 
     static void
