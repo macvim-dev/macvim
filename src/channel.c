@@ -877,7 +877,7 @@ channel_open_func(typval_T *argvars)
     char	*rest;
     int		port;
     jobopt_T    opt;
-    channel_T	*channel;
+    channel_T	*channel = NULL;
 
     address = get_tv_string(&argvars[0]);
     if (argvars[1].v_type != VAR_UNKNOWN
@@ -909,11 +909,11 @@ channel_open_func(typval_T *argvars)
     opt.jo_timeout = 2000;
     if (get_job_options(&argvars[1], &opt,
 	      JO_MODE_ALL + JO_CB_ALL + JO_WAITTIME + JO_TIMEOUT_ALL) == FAIL)
-	return NULL;
+	goto theend;
     if (opt.jo_timeout < 0)
     {
 	EMSG(_(e_invarg));
-	return NULL;
+	goto theend;
     }
 
     channel = channel_open((char *)address, port, opt.jo_waittime, NULL);
@@ -922,6 +922,8 @@ channel_open_func(typval_T *argvars)
 	opt.jo_set = JO_ALL;
 	channel_set_options(channel, &opt);
     }
+theend:
+    free_job_options(&opt);
     return channel;
 }
 
@@ -2916,7 +2918,7 @@ common_channel_read(typval_T *argvars, typval_T *rettv, int raw)
     clear_job_options(&opt);
     if (get_job_options(&argvars[1], &opt, JO_TIMEOUT + JO_PART + JO_ID)
 								      == FAIL)
-	return;
+	goto theend;
 
     channel = get_channel_arg(&argvars[0], TRUE);
     if (channel != NULL)
@@ -2949,6 +2951,9 @@ common_channel_read(typval_T *argvars, typval_T *rettv, int raw)
 	    }
 	}
     }
+
+theend:
+    free_job_options(&opt);
 }
 
 # if defined(WIN32) || defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK) \
@@ -3075,13 +3080,13 @@ send_common(
     channel_T	*channel;
     int		part_send;
 
+    clear_job_options(opt);
     channel = get_channel_arg(&argvars[0], TRUE);
     if (channel == NULL)
 	return NULL;
     part_send = channel_part_send(channel);
     *part_read = channel_part_read(channel);
 
-    clear_job_options(opt);
     if (get_job_options(&argvars[2], opt, JO_CALLBACK + JO_TIMEOUT) == FAIL)
 	return NULL;
 
@@ -3164,6 +3169,7 @@ ch_expr_common(typval_T *argvars, typval_T *rettv, int eval)
 	    free_tv(listtv);
 	}
     }
+    free_job_options(&opt);
 }
 
 /*
@@ -3194,6 +3200,7 @@ ch_raw_common(typval_T *argvars, typval_T *rettv, int eval)
 	    timeout = channel_get_timeout(channel, part_read);
 	rettv->vval.v_string = channel_read_block(channel, part_read, timeout);
     }
+    free_job_options(&opt);
 }
 
 # if (defined(UNIX) && !defined(HAVE_SELECT)) || defined(PROTO)
@@ -3564,10 +3571,29 @@ handle_io(typval_T *item, int part, jobopt_T *opt)
     return OK;
 }
 
+/*
+ * Clear a jobopt_T before using it.
+ */
     void
 clear_job_options(jobopt_T *opt)
 {
     vim_memset(opt, 0, sizeof(jobopt_T));
+}
+
+/*
+ * Free any members of a jobopt_T.
+ */
+    void
+free_job_options(jobopt_T *opt)
+{
+    if (opt->jo_partial != NULL)
+	partial_unref(opt->jo_partial);
+    if (opt->jo_out_partial != NULL)
+	partial_unref(opt->jo_out_partial);
+    if (opt->jo_err_partial != NULL)
+	partial_unref(opt->jo_err_partial);
+    if (opt->jo_close_partial != NULL)
+	partial_unref(opt->jo_close_partial);
 }
 
 /*
@@ -4072,6 +4098,9 @@ job_start(typval_T *argvars)
 	return NULL;
 
     job->jv_status = JOB_FAILED;
+#ifndef USE_ARGV
+    ga_init2(&ga, (int)sizeof(char*), 20);
+#endif
 
     /* Default mode is NL. */
     clear_job_options(&opt);
@@ -4079,7 +4108,7 @@ job_start(typval_T *argvars)
     if (get_job_options(&argvars[1], &opt,
 	    JO_MODE_ALL + JO_CB_ALL + JO_TIMEOUT_ALL + JO_STOPONEXIT
 			   + JO_EXIT_CB + JO_OUT_IO + JO_BLOCK_WRITE) == FAIL)
-	return job;
+	goto theend;
 
     /* Check that when io is "file" that there is a file name. */
     for (part = PART_OUT; part <= PART_IN; ++part)
@@ -4089,7 +4118,7 @@ job_start(typval_T *argvars)
 		    || *opt.jo_io_name[part] == NUL))
 	{
 	    EMSG(_("E920: _io file requires _name to be set"));
-	    return job;
+	    goto theend;
 	}
 
     if ((opt.jo_set & JO_IN_IO) && opt.jo_io[PART_IN] == JIO_BUFFER)
@@ -4110,7 +4139,7 @@ job_start(typval_T *argvars)
 	else
 	    buf = buflist_find_by_name(opt.jo_io_name[PART_IN], FALSE);
 	if (buf == NULL)
-	    return job;
+	    goto theend;
 	if (buf->b_ml.ml_mfp == NULL)
 	{
 	    char_u	numbuf[NUMBUFLEN];
@@ -4124,16 +4153,12 @@ job_start(typval_T *argvars)
 	    else
 		s = opt.jo_io_name[PART_IN];
 	    EMSG2(_("E918: buffer must be loaded: %s"), s);
-	    return job;
+	    goto theend;
 	}
 	job->jv_in_buf = buf;
     }
 
     job_set_options(job, &opt);
-
-#ifndef USE_ARGV
-    ga_init2(&ga, (int)sizeof(char*), 20);
-#endif
 
     if (argvars[0].v_type == VAR_STRING)
     {
@@ -4142,11 +4167,11 @@ job_start(typval_T *argvars)
 	if (cmd == NULL || *cmd == NUL)
 	{
 	    EMSG(_(e_invarg));
-	    return job;
+	    goto theend;
 	}
 #ifdef USE_ARGV
 	if (mch_parse_cmd(cmd, FALSE, &argv, &argc) == FAIL)
-	    return job;
+	    goto theend;
 	argv[argc] = NULL;
 #endif
     }
@@ -4155,7 +4180,7 @@ job_start(typval_T *argvars)
 	    || argvars[0].vval.v_list->lv_len < 1)
     {
 	EMSG(_(e_invarg));
-	return job;
+	goto theend;
     }
     else
     {
@@ -4167,7 +4192,7 @@ job_start(typval_T *argvars)
 	/* Pass argv[] to mch_call_shell(). */
 	argv = (char **)alloc(sizeof(char *) * (l->lv_len + 1));
 	if (argv == NULL)
-	    return job;
+	    goto theend;
 #endif
 	for (li = l->lv_first; li != NULL; li = li->li_next)
 	{
@@ -4241,6 +4266,7 @@ theend:
 #else
     vim_free(ga.ga_data);
 #endif
+    free_job_options(&opt);
     return job;
 }
 
