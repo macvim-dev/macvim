@@ -221,7 +221,7 @@ func Test_bind_in_python()
   endif
 endfunc
 
-" This causes double free on exit if EXITFREE is defined.
+" This caused double free on exit if EXITFREE is defined.
 func Test_cyclic_list_arg()
   let l = []
   let Pt = function('string', [l])
@@ -230,11 +230,30 @@ func Test_cyclic_list_arg()
   unlet Pt
 endfunc
 
-" This causes double free on exit if EXITFREE is defined.
+" This caused double free on exit if EXITFREE is defined.
 func Test_cyclic_dict_arg()
   let d = {}
   let Pt = function('string', [d])
   let d.Pt = Pt
   unlet d
   unlet Pt
+endfunc
+
+func Ignored(job1, job2, status)
+endfunc
+
+func Test_cycle_partial_job()
+  if has('job')
+    let job = job_start('echo')
+    call job_setoptions(job, {'exit_cb': function('Ignored', [job])})
+    unlet job
+  endif
+endfunc
+
+func Test_ref_job_partial_dict()
+  if has('job')
+    let g:ref_job = job_start('echo')
+    let d = {'a': 'b'}
+    call job_setoptions(g:ref_job, {'exit_cb': function('string', [], d)})
+  endif
 endfunc
