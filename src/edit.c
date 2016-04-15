@@ -1433,8 +1433,10 @@ doESCkey:
 
 docomplete:
 	    compl_busy = TRUE;
+	    disable_fold_update++;  /* don't redraw folds here */
 	    if (ins_complete(c, TRUE) == FAIL)
 		compl_cont_status = 0;
+	    disable_fold_update--;
 	    compl_busy = FALSE;
 	    break;
 #endif /* FEAT_INS_EXPAND */
