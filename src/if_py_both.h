@@ -2922,6 +2922,13 @@ FunctionConstructor(PyTypeObject *subtype, PyObject *args, PyObject *kwargs)
 	    if (argc != 0)
 	    {
 		argv = PyMem_New(typval_T, (size_t) argc);
+		if (argv == NULL)
+		{
+		    PyErr_NoMemory();
+		    dict_unref(selfdict);
+		    list_unref(argslist);
+		    return NULL;
+		}
 		curtv = argv;
 		for (li = argslist->lv_first; li != NULL; li = li->li_next)
 		    copy_tv(&li->li_tv, curtv++);
@@ -6070,7 +6077,7 @@ ConvertFromPyMapping(PyObject *obj, typval_T *tv)
 ConvertFromPySequence(PyObject *obj, typval_T *tv)
 {
     PyObject	*lookup_dict;
-    int		ret = 0;
+    int		ret;
 
     if (!(lookup_dict = PyDict_New()))
 	return -1;
@@ -6080,9 +6087,10 @@ ConvertFromPySequence(PyObject *obj, typval_T *tv)
 	tv->v_type = VAR_LIST;
 	tv->vval.v_list = (((ListObject *)(obj))->list);
 	++tv->vval.v_list->lv_refcount;
+	ret = 0;
     }
     else if (PyIter_Check(obj) || PySequence_Check(obj))
-	return convert_dl(obj, tv, pyseq_to_tv, lookup_dict);
+	ret = convert_dl(obj, tv, pyseq_to_tv, lookup_dict);
     else
     {
 	PyErr_FORMAT(PyExc_TypeError,
