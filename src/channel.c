@@ -1450,6 +1450,7 @@ channel_write_new_lines(buf_T *buf)
 
 /*
  * Invoke the "callback" on channel "channel".
+ * This does not redraw but sets channel_need_redraw;
  */
     static void
 invoke_callback(channel_T *channel, char_u *callback, partial_T *partial,
@@ -1464,8 +1465,7 @@ invoke_callback(channel_T *channel, char_u *callback, partial_T *partial,
     call_func(callback, (int)STRLEN(callback),
 			&rettv, 2, argv, 0L, 0L, &dummy, TRUE, partial, NULL);
     clear_tv(&rettv);
-
-    redraw_after_callback();
+    channel_need_redraw = TRUE;
 }
 
 /*
@@ -2028,6 +2028,10 @@ channel_exe_cmd(channel_T *channel, int part, typval_T *argv)
     }
 }
 
+/*
+ * Invoke the callback at "cbhead".
+ * Does not redraw but sets channel_need_redraw.
+ */
     static void
 invoke_one_time_callback(
 	channel_T   *channel,
@@ -2118,6 +2122,7 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel)
 
 /*
  * Invoke a callback for "channel"/"part" if needed.
+ * This does not redraw but sets channel_need_redraw when redraw is needed.
  * Return TRUE when a message was handled, there might be another one.
  */
     static int
@@ -3487,13 +3492,10 @@ channel_parse_messages(void)
 	}
     }
 
-    if (channel_need_redraw && must_redraw)
+    if (channel_need_redraw)
     {
 	channel_need_redraw = FALSE;
-	update_screen(0);
-	setcursor();
-	cursor_on();
-	out_flush();
+	redraw_after_callback();
     }
 
     return ret;
