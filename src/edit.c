@@ -1535,7 +1535,12 @@ normalchar:
 
 #ifdef FEAT_AUTOCMD
 	/* If typed something may trigger CursorHoldI again. */
-	if (c != K_CURSORHOLD)
+	if (c != K_CURSORHOLD
+# ifdef FEAT_COMPL_FUNC
+	    /* but not in CTRL-X mode, a script can't restore the state */
+	    && ctrl_x_mode == 0
+# endif
+	       )
 	    did_cursorhold = FALSE;
 #endif
 
@@ -2770,6 +2775,21 @@ ins_compl_make_cyclic(void)
 }
 
 /*
+ * Set variables that store noselect and noinsert behavior from the
+ * 'completeopt' value.
+ */
+    void
+completeopt_was_set()
+{
+    compl_no_insert = FALSE;
+    compl_no_select = FALSE;
+    if (strstr((char *)p_cot, "noselect") != NULL)
+	compl_no_select = TRUE;
+    if (strstr((char *)p_cot, "noinsert") != NULL)
+	compl_no_insert = TRUE;
+}
+
+/*
  * Start completion for the complete() function.
  * "startcol" is where the matched text starts (1 is first column).
  * "list" is the list of matches.
@@ -2807,12 +2827,15 @@ set_completion(colnr_T startcol, list_T *list)
     compl_cont_status = 0;
 
     compl_curr_match = compl_first_match;
-    if (compl_no_insert)
+    if (compl_no_insert || compl_no_select)
+    {
 	ins_complete(K_DOWN, FALSE);
+	if (compl_no_select)
+	    /* Down/Up has no real effect. */
+	    ins_complete(K_UP, FALSE);
+    }
     else
 	ins_complete(Ctrl_N, FALSE);
-    if (compl_no_select)
-	ins_complete(Ctrl_P, FALSE);
 
     /* Lazily show the popup menu, unless we got interrupted. */
     if (!compl_interrupted)
@@ -3688,13 +3711,6 @@ ins_compl_prep(int c)
 	compl_used_match = TRUE;
 
     }
-
-    compl_no_insert = FALSE;
-    compl_no_select = FALSE;
-    if (strstr((char *)p_cot, "noselect") != NULL)
-	compl_no_select = TRUE;
-    if (strstr((char *)p_cot, "noinsert") != NULL)
-	compl_no_insert = TRUE;
 
     if (ctrl_x_mode == CTRL_X_NOT_DEFINED_YET)
     {
@@ -4975,8 +4991,7 @@ ins_compl_check_keys(int frequency)
 ins_compl_key2dir(int c)
 {
     if (c == Ctrl_P || c == Ctrl_L
-	    || (pum_visible() && (c == K_PAGEUP || c == K_KPAGEUP
-						|| c == K_S_UP || c == K_UP)))
+	    || c == K_PAGEUP || c == K_KPAGEUP || c == K_S_UP || c == K_UP)
 	return BACKWARD;
     return FORWARD;
 }

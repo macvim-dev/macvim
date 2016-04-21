@@ -6051,7 +6051,7 @@ list_alloc(void)
 }
 
 /*
- * Allocate an empty list for a return value.
+ * Allocate an empty list for a return value, with reference count set.
  * Returns OK or FAIL.
  */
     int
@@ -11547,6 +11547,7 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
     char_u	nbuf[NUMBUFLEN];
     int		typed = FALSE;
     int		execute = FALSE;
+    int		dangerous = FALSE;
     char_u	*keys_esc;
 
     /* This is not allowed in the sandbox.  If the commands would still be
@@ -11569,6 +11570,7 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
 		case 't': typed = TRUE; break;
 		case 'i': insert = TRUE; break;
 		case 'x': execute = TRUE; break;
+		case '!': dangerous = TRUE; break;
 	    }
 	}
     }
@@ -11592,9 +11594,11 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
 		/* Avoid a 1 second delay when the keys start Insert mode. */
 		msg_scroll = FALSE;
 
-		++ex_normal_busy;
+		if (!dangerous)
+		    ++ex_normal_busy;
 		exec_normal(TRUE);
-		--ex_normal_busy;
+		if (!dangerous)
+		    --ex_normal_busy;
 		msg_scroll |= save_msg_scroll;
 	    }
 	}
@@ -13180,7 +13184,9 @@ f_getreg(typval_T *argvars, typval_T *rettv)
 	rettv->v_type = VAR_LIST;
 	rettv->vval.v_list = (list_T *)get_reg_contents(regname,
 				      (arg2 ? GREG_EXPR_SRC : 0) | GREG_LIST);
-	if (rettv->vval.v_list != NULL)
+	if (rettv->vval.v_list == NULL)
+	    rettv_list_alloc(rettv);
+	else
 	    ++rettv->vval.v_list->lv_refcount;
     }
     else
