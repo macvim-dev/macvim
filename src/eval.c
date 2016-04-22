@@ -98,6 +98,7 @@ static char *e_listarg = N_("E686: Argument of %s must be a List");
 static char *e_listdictarg = N_("E712: Argument of %s must be a List or Dictionary");
 static char *e_listreq = N_("E714: List required");
 static char *e_dictreq = N_("E715: Dictionary required");
+static char *e_stringreq = N_("E928: String required");
 static char *e_toomanyarg = N_("E118: Too many arguments for function: %s");
 static char *e_dictkey = N_("E716: Key not present in Dictionary: %s");
 static char *e_funcexts = N_("E122: Function %s already exists, add ! to replace it");
@@ -13185,7 +13186,7 @@ f_getreg(typval_T *argvars, typval_T *rettv)
 	rettv->vval.v_list = (list_T *)get_reg_contents(regname,
 				      (arg2 ? GREG_EXPR_SRC : 0) | GREG_LIST);
 	if (rettv->vval.v_list == NULL)
-	    rettv_list_alloc(rettv);
+	    (void)rettv_list_alloc(rettv);
 	else
 	    ++rettv->vval.v_list->lv_refcount;
     }
@@ -14058,6 +14059,9 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 #ifdef FEAT_TERMRESPONSE
 	"termresponse",
+#endif
+#ifdef FEAT_TERMTRUECOLOR
+	"termtruecolor",
 #endif
 #ifdef FEAT_TEXTOBJ
 	"textobjects",
@@ -18307,8 +18311,9 @@ set_qf_ll_list(
     typval_T	*rettv)
 {
 #ifdef FEAT_QUICKFIX
+    static char *e_invact = N_("E927: Invalid action: '%s'");
     char_u	*act;
-    int		action = ' ';
+    int		action = 0;
 #endif
 
     rettv->vval.v_number = -1;
@@ -18325,11 +18330,17 @@ set_qf_ll_list(
 	    act = get_tv_string_chk(action_arg);
 	    if (act == NULL)
 		return;		/* type error; errmsg already given */
-	    if (*act == 'a' || *act == 'r')
+	    if ((*act == 'a' || *act == 'r' || *act == ' ') && act[1] == NUL)
 		action = *act;
+	    else
+		EMSG2(_(e_invact), act);
 	}
+	else if (action_arg->v_type == VAR_UNKNOWN)
+	    action = ' ';
+	else
+	    EMSG(_(e_stringreq));
 
-	if (l != NULL && set_errorlist(wp, l, action,
+	if (l != NULL && action && set_errorlist(wp, l, action,
 	       (char_u *)(wp == NULL ? "setqflist()" : "setloclist()")) == OK)
 	    rettv->vval.v_number = 0;
     }

@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 7.4.  Last change: 2016 Apr 12
+*options.txt*	For Vim version 7.4.  Last change: 2016 Apr 21
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -3572,6 +3572,18 @@ A jump table for the options with a short description can be found at |Q_op|.
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
 
+						*'guicolors'* *'gcol'*
+'guicolors' 'gcol'	boolean (default off)
+			global
+			{not in Vi}
+			{not available when compiled without the 
+			|+termtruecolor| feature}
+	When on, uses |highlight-guifg| and |highlight-guibg| attributes in 
+	the terminal (thus using 24-bit color). Requires a ISO-8613-3
+	compatible terminal.
+	If setting this option does not work (produces a colorless UI) 
+	reading |xterm-true-color| might help.
+
 			*'guicursor'* *'gcr'* *E545* *E546* *E548* *E549*
 'guicursor' 'gcr'	string	(default "n-v-c:block-Cursor/lCursor,
 					ve:ver35-Cursor,
@@ -4973,6 +4985,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			feature}
 	Specifies the name of the Lua shared library. The default is
 	DYNAMIC_LUA_DLL, which was specified at compile time.
+	Environment variables are expanded |:set_env|.
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
 
@@ -5166,7 +5179,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	without a limit.
 	On 64 bit machines higher values might work.  But hey, do you really
 	need more than 2 Gbyte for text editing?  Keep in mind that text is
-	stored in the swap file, one can edit files > 2 Gbyte anyay.  We do
+	stored in the swap file, one can edit files > 2 Gbyte anyway.  We do
 	need the memory to store undo info.
 	Also see 'maxmem'.
 
@@ -5726,6 +5739,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			feature}
 	Specifies the name of the Perl shared library. The default is
 	DYNAMIC_PERL_DLL, which was specified at compile time.
+	Environment variables are expanded |:set_env|.
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
 
@@ -5863,6 +5877,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			feature}
 	Specifies the name of the Python 2.x shared library. The default is
 	DYNAMIC_PYTHON_DLL, which was specified at compile time.
+	Environment variables are expanded |:set_env|.
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
 
@@ -5874,6 +5889,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			feature}
 	Specifies the name of the Python 3 shared library. The default is
 	DYNAMIC_PYTHON3_DLL, which was specified at compile time.
+	Environment variables are expanded |:set_env|.
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
 
@@ -6104,6 +6120,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			feature}
 	Specifies the name of the Ruby shared library. The default is
 	DYNAMIC_RUBY_DLL, which was specified at compile time.
+	Environment variables are expanded |:set_env|.
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
 
@@ -7598,6 +7615,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			feature}
 	Specifies the name of the Tcl shared library. The default is
 	DYNAMIC_TCL_DLL, which was specified at compile time.
+	Environment variables are expanded |:set_env|.
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
 
