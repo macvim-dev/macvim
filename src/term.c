@@ -793,10 +793,8 @@ static struct builtin_term builtin_termcaps[] =
 #  endif
 # endif
 
-# if defined(UNIX) || defined(ALL_BUILTIN_TCAPS) || defined(SOME_BUILTIN_TCAPS) || defined(__EMX__) || defined(FEAT_TERMTRUECOLOR)
-    {(int)KS_NAME,	"xterm"},
-# endif
 # if defined(UNIX) || defined(ALL_BUILTIN_TCAPS) || defined(SOME_BUILTIN_TCAPS) || defined(__EMX__)
+    {(int)KS_NAME,	"xterm"},
     {(int)KS_CE,	IF_EB("\033[K", ESC_STR "[K")},
     {(int)KS_AL,	IF_EB("\033[L", ESC_STR "[L")},
 #  ifdef TERMINFO
@@ -861,6 +859,11 @@ static struct builtin_term builtin_termcaps[] =
     {(int)KS_CRV,	IF_EB("\033[>c", ESC_STR "[>c")},
     {(int)KS_RBG,	IF_EB("\033]11;?\007", ESC_STR "]11;?\007")},
     {(int)KS_U7,	IF_EB("\033[6n", ESC_STR "[6n")},
+#  ifdef FEAT_TERMTRUECOLOR
+    /* These are printf strings, not terminal codes. */
+    {(int)KS_8F,	IF_EB("\033[38;2;%lu;%lu;%lum", ESC_STR "[38;2;%lu;%lu;%lum")},
+    {(int)KS_8B,	IF_EB("\033[48;2;%lu;%lu;%lum", ESC_STR "[48;2;%lu;%lu;%lum")},
+#  endif
 
     {K_UP,		IF_EB("\033O*A", ESC_STR "O*A")},
     {K_DOWN,		IF_EB("\033O*B", ESC_STR "O*B")},
@@ -943,10 +946,6 @@ static struct builtin_term builtin_termcaps[] =
     {TERMCAP2KEY('F', 'P'), IF_EB("\033[56;*~", ESC_STR "[56;*~")}, /* F35 */
     {TERMCAP2KEY('F', 'Q'), IF_EB("\033[57;*~", ESC_STR "[57;*~")}, /* F36 */
     {TERMCAP2KEY('F', 'R'), IF_EB("\033[58;*~", ESC_STR "[58;*~")}, /* F37 */
-# endif
-# ifdef FEAT_TERMTRUECOLOR
-    {(int)KS_8F,	IF_EB("\033[38;2;%lu;%lu;%lum", ESC_STR "[38;2;%lu;%lu;%lum")},
-    {(int)KS_8B,	IF_EB("\033[48;2;%lu;%lu;%lum", ESC_STR "[48;2;%lu;%lu;%lum")},
 # endif
 
 # if defined(UNIX) || defined(ALL_BUILTIN_TCAPS)
@@ -1272,6 +1271,7 @@ struct rgbcolor_table_S {
     char_u	*color_name;
     guicolor_T	 color;
 };
+
 static struct rgbcolor_table_S rgb_table[] = {
 	{(char_u *)"black",	RGB(0x00, 0x00, 0x00)},
 	{(char_u *)"blue",	RGB(0x00, 0x00, 0xD4)},
@@ -1354,7 +1354,7 @@ termtrue_mch_get_color(char_u *name)
     else
     {
 	/* Check if the name is one of the colors we know */
-	for (i = 0; i < sizeof(rgb_table) / sizeof(rgb_table[0]); i++)
+	for (i = 0; i < (int)(sizeof(rgb_table) / sizeof(rgb_table[0])); i++)
 	    if (STRICMP(name, rgb_table[i].color_name) == 0)
 		return rgb_table[i].color;
     }
@@ -1382,9 +1382,8 @@ termtrue_mch_get_color(char_u *name)
 	{
 	    int		len;
 	    int		pos;
-	    char	*color;
 
-	    fgets(line, LINE_LEN, fd);
+	    (void)fgets(line, LINE_LEN, fd);
 	    len = strlen(line);
 
 	    if (len <= 1 || line[len-1] != '\n')
@@ -1396,9 +1395,7 @@ termtrue_mch_get_color(char_u *name)
 	    if (i != 3)
 		continue;
 
-	    color = line + pos;
-
-	    if (STRICMP(color, name) == 0)
+	    if (STRICMP(line + pos, name) == 0)
 	    {
 		fclose(fd);
 		return (guicolor_T) RGB(r, g, b);
@@ -2803,9 +2800,11 @@ term_bg_rgb_color(long_u rgb)
     static void
 term_rgb_color(char_u *s, long_u rgb)
 {
-    char	buf[7+3*3+2+1+1];
+#define MAX_COLOR_STR_LEN 100
+    char	buf[MAX_COLOR_STR_LEN];
 
-    sprintf(buf, (char *)s, RED(rgb), GREEN(rgb), BLUE(rgb));
+    vim_snprintf(buf, MAX_COLOR_STR_LEN,
+				  (char *)s, RED(rgb), GREEN(rgb), BLUE(rgb));
     OUT_STR(buf);
 }
 #endif

@@ -8789,9 +8789,9 @@ hl_combine_attr(int char_attr, int prim_attr)
 		if (spell_aep->ae_u.cterm.bg_color > 0)
 		    new_en.ae_u.cterm.bg_color = spell_aep->ae_u.cterm.bg_color;
 #ifdef FEAT_TERMTRUECOLOR
-		if (spell_aep->ae_u.cterm.fg_rgb != INVALCOLOR)
+		if (spell_aep->ae_u.cterm.fg_rgb != (long_u)INVALCOLOR)
 		    new_en.ae_u.cterm.fg_rgb = spell_aep->ae_u.cterm.fg_rgb;
-		if (spell_aep->ae_u.cterm.bg_rgb != INVALCOLOR)
+		if (spell_aep->ae_u.cterm.bg_rgb != (long_u)INVALCOLOR)
 		    new_en.ae_u.cterm.bg_rgb = spell_aep->ae_u.cterm.bg_rgb;
 #endif
 	    }
@@ -9546,8 +9546,8 @@ highlight_gui_started(void)
     static void
 gui_do_one_color(
     int		idx,
-    int		do_menu,	/* TRUE: might set the menu font */
-    int		do_tooltip)	/* TRUE: might set the tooltip font */
+    int		do_menu UNUSED,	   /* TRUE: might set the menu font */
+    int		do_tooltip UNUSED) /* TRUE: might set the tooltip font */
 {
     int		didit = FALSE;
 
