@@ -126,6 +126,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                         print("sending: {0}".format(cmd))
                         self.request.sendall(cmd.encode('utf-8'))
                         response = "ok"
+                        time.sleep(0.01)
                     elif decoded[1] == 'malformed2':
                         cmd = '"unterminated string'
                         print("sending: {0}".format(cmd))
