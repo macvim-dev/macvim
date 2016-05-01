@@ -7025,6 +7025,9 @@ garbage_collect(int testing)
 #ifdef FEAT_JOB_CHANNEL
     abort = abort || set_ref_in_channel(copyID);
 #endif
+#ifdef FEAT_NETBEANS_INTG
+    abort = abort || set_ref_in_nb_channel(copyID);
+#endif
 
     if (!abort)
     {
@@ -14058,14 +14061,14 @@ f_has(typval_T *argvars, typval_T *rettv)
 	"tcl",
 # endif
 #endif
+#ifdef FEAT_TERMGUICOLORS
+	"termguicolors",
+#endif
 #ifdef TERMINFO
 	"terminfo",
 #endif
 #ifdef FEAT_TERMRESPONSE
 	"termresponse",
-#endif
-#ifdef FEAT_TERMTRUECOLOR
-	"termtruecolor",
 #endif
 #ifdef FEAT_TEXTOBJ
 	"textobjects",
@@ -20046,7 +20049,7 @@ f_synIDattr(typval_T *argvars UNUSED, typval_T *rettv)
     }
     else
     {
-#if defined(FEAT_GUI) || defined(FEAT_TERMTRUECOLOR)
+#if defined(FEAT_GUI) || defined(FEAT_TERMGUICOLORS)
 	if (USE_24BIT)
 	    modec = 'g';
 	else
