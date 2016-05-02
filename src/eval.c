@@ -3292,9 +3292,14 @@ eval_for_line(
 	if (!skip)
 	{
 	    l = tv.vval.v_list;
-	    if (tv.v_type != VAR_LIST || l == NULL)
+	    if (tv.v_type != VAR_LIST)
 	    {
 		EMSG(_(e_listreq));
+		clear_tv(&tv);
+	    }
+	    else if (l == NULL)
+	    {
+		/* a null list is like an empty list: do nothing */
 		clear_tv(&tv);
 	    }
 	    else
@@ -7024,6 +7029,7 @@ garbage_collect(int testing)
 
 #ifdef FEAT_JOB_CHANNEL
     abort = abort || set_ref_in_channel(copyID);
+    abort = abort || set_ref_in_job(copyID);
 #endif
 #ifdef FEAT_NETBEANS_INTG
     abort = abort || set_ref_in_nb_channel(copyID);
