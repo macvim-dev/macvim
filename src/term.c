@@ -1269,6 +1269,12 @@ static struct builtin_term builtin_termcaps[] =
     guicolor_T
 termgui_mch_get_color(char_u *name)
 {
+# if defined(FEAT_GUI_MACVIM)
+    guicolor_T t;
+    t = gui_mch_get_color(name);
+    if (t != INVALCOLOR)
+	return t;
+# endif
     return gui_get_color_cmn(name);
 }
 
