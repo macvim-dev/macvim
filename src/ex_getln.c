@@ -3200,8 +3200,9 @@ cmdline_del(int from)
 #endif
 
 /*
- * this function is called when the screen size changes and with incremental
- * search
+ * This function is called when the screen size changes and with incremental
+ * search and in other situations where the command line may have been
+ * overwritten.
  */
     void
 redrawcmdline(void)
@@ -4516,7 +4517,7 @@ cleanup_help_tags(int num_file, char_u **file)
     char_u	buf[4];
     char_u	*p = buf;
 
-    if (p_hlg[0] != NUL)
+    if (p_hlg[0] != NUL && (p_hlg[0] != 'e' || p_hlg[1] != 'n'))
     {
 	*p++ = '@';
 	*p++ = p_hlg[0];
@@ -4529,10 +4530,10 @@ cleanup_help_tags(int num_file, char_u **file)
 	len = (int)STRLEN(file[i]) - 3;
 	if (len <= 0)
 	    continue;
-	if (i == 0 && STRCMP(file[i] + len, buf) == 0)
+	if (STRCMP(file[i] + len, buf) == 0)
 	{
+	    /* remove the default language */
 	    file[i][len] = NUL;
-	    break;
 	}
 	else if (STRCMP(file[i] + len, "@en") == 0)
 	{
@@ -4544,10 +4545,8 @@ cleanup_help_tags(int num_file, char_u **file)
 			&& STRNCMP(file[i], file[j], len + 1) == 0)
 		    break;
 	    if (j == num_file)
-	    {
+		/* item only exists with @en, remove it */
 		file[i][len] = NUL;
-		break;
-	    }
 	}
     }
 }
