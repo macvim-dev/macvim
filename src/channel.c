@@ -54,7 +54,9 @@
 # define fd_close(sd) close(sd)
 #endif
 
+#ifndef FEAT_GUI_MACVIM
 static void channel_read(channel_T *channel, int part, char *func);
+#endif
 
 /* Whether a redraw is needed for appending a line to a buffer. */
 static int channel_need_redraw = FALSE;
@@ -2824,7 +2826,11 @@ channel_close_on_error(channel_T *channel, char *func)
  * "part" is PART_SOCK, PART_OUT or PART_ERR.
  * The data is put in the read queue.
  */
+#ifndef FEAT_GUI_MACVIM
     static void
+#else
+    void
+#endif
 channel_read(channel_T *channel, int part, char *func)
 {
     static char_u	*buf = NULL;

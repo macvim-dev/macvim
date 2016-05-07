@@ -3416,6 +3416,7 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
 
 - (void)dealloc
 {
+    CFSocketInvalidate(socket);
     CFRunLoopSourceInvalidate(runLoopSource);
     CFRelease(runLoopSource);
     CFRelease(socket);
@@ -3459,9 +3460,7 @@ static void socketReadCallback(CFSocketRef s,
 
 - (void)read
 {
-#ifdef FEAT_CHANNEL
     channel_read(channel, part, "MMChannel_read");
-#endif
 }
 
 @end

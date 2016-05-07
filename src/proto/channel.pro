@@ -60,4 +60,7 @@ job_T *job_start(typval_T *argvars);
 char *job_status(job_T *job);
 void job_info(job_T *job, dict_T *dict);
 int job_stop(job_T *job, typval_T *argvars);
+#ifdef FEAT_GUI_MACVIM
+void channel_read(channel_T *channel, int part, char *func);
+#endif
 /* vim: set ft=c : */
