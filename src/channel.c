@@ -357,6 +357,10 @@ channel_still_useful(channel_T *channel)
     if (channel->ch_close_cb != NULL)
 	return TRUE;
 
+    /* If reading from or a buffer it's still useful. */
+    if (channel->ch_part[PART_IN].ch_buffer != NULL)
+	return TRUE;
+
     /* If there is no callback then nobody can get readahead.  If the fd is
      * closed and there is no readahead then the callback won't be called. */
     has_sock_msg = channel->ch_part[PART_SOCK].ch_fd != INVALID_FD
@@ -370,8 +374,10 @@ channel_still_useful(channel_T *channel)
 		  || channel->ch_part[PART_ERR].ch_json_head.jq_next != NULL;
     return (channel->ch_callback != NULL && (has_sock_msg
 		|| has_out_msg || has_err_msg))
-	    || (channel->ch_part[PART_OUT].ch_callback != NULL && has_out_msg)
-	    || (channel->ch_part[PART_ERR].ch_callback != NULL && has_err_msg);
+	    || ((channel->ch_part[PART_OUT].ch_callback != NULL
+		      || channel->ch_part[PART_OUT].ch_buffer) && has_out_msg)
+	    || ((channel->ch_part[PART_ERR].ch_callback != NULL
+		     || channel->ch_part[PART_ERR].ch_buffer) && has_err_msg);
 }
 
 /*
@@ -4169,7 +4175,7 @@ free_unused_jobs_contents(int copyID, int mask)
 	     * recurse into Lists, Dictionaries etc. */
 	    job_free_contents(job);
 	    did_free = TRUE;
-    }
+	}
     return did_free;
 }
 
@@ -4259,7 +4265,7 @@ job_stop_on_exit()
 }
 
 /*
- * Called once in a while: check if any jobs with an "exit_cb" have ended.
+ * Called once in a while: check if any jobs that seem useful have ended.
  */
     void
 job_check_ended(void)
@@ -4277,7 +4283,7 @@ job_check_ended(void)
 	for (job = first_job; job != NULL; job = next)
 	{
 	    next = job->jv_next;
-	    if (job->jv_status == JOB_STARTED && job->jv_exit_cb != NULL)
+	    if (job->jv_status == JOB_STARTED && job_still_useful(job))
 		job_status(job); /* may free "job" */
 	}
     }
