@@ -3449,8 +3449,7 @@ static void socketReadCallback(CFSocketRef s,
                                       &socketReadCallback,
                                       &ctx);
     CFOptionFlags opt = CFSocketGetSocketFlags(socket);
-    opt &= ~(kCFSocketCloseOnInvalidate|
-        kCFSocketAutomaticallyReenableReadCallBack);
+    opt &= ~kCFSocketCloseOnInvalidate;
     CFSocketSetSocketFlags(socket, opt);
     runLoopSource = CFSocketCreateRunLoopSource(NULL,
                                                 socket,
