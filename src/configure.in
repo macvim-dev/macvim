@@ -1584,7 +1584,7 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
   libs_save=$LIBS
   dnl -ldl must go first to make this work on Archlinux (Roland Puntaier)
   LIBS="-ldl $LIBS"
-  if test "x$MACOSX" != "xyes" || test "$vi_cv_with_properly_linked_python2_python3" = "yes"; then
+  if test "x$MACOSX" != "xyes"; then
   AC_RUN_IFELSE([AC_LANG_SOURCE([
     #include <dlfcn.h>
     /* If this program fails, then RTLD_GLOBAL is needed.
@@ -1666,6 +1666,11 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
       return !not_needed;
     }])],
     [AC_MSG_RESULT(yes);AC_DEFINE(PY3_NO_RTLD_GLOBAL)], [AC_MSG_RESULT(no)])
+  fi
+
+  if test "$vi_cv_with_properly_linked_python2_python3" = "yes"; then
+    AC_DEFINE(PY_NO_RTLD_GLOBAL)
+    AC_DEFINE(PY3_NO_RTLD_GLOBAL)
   fi
 
   CFLAGS=$cflags_save
