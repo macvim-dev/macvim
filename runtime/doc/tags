@@ -1279,6 +1279,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 +netbeans_intg	various.txt	/*+netbeans_intg*
 +odbeditor	various.txt	/*+odbeditor*
 +ole	various.txt	/*+ole*
++packages	various.txt	/*+packages*
 +path_extra	various.txt	/*+path_extra*
 +perl	various.txt	/*+perl*
 +perl/dyn	various.txt	/*+perl\/dyn*
