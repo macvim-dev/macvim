@@ -257,3 +257,43 @@ func Test_ref_job_partial_dict()
     call job_setoptions(g:ref_job, {'exit_cb': function('string', [], d)})
   endif
 endfunc
+
+func Test_auto_partial_rebind()
+  let dict1 = {'name': 'dict1'}
+  func! dict1.f1()
+    return self.name
+  endfunc
+  let dict1.f2 = function(dict1.f1, dict1)
+
+  call assert_equal('dict1', dict1.f1())
+  call assert_equal('dict1', dict1['f1']())
+  call assert_equal('dict1', dict1.f2())
+  call assert_equal('dict1', dict1['f2']())
+
+  let dict2 = {'name': 'dict2'}
+  let dict2.f1 = dict1.f1
+  let dict2.f2 = dict1.f2
+
+  call assert_equal('dict2', dict2.f1())
+  call assert_equal('dict2', dict2['f1']())
+  call assert_equal('dict1', dict2.f2())
+  call assert_equal('dict1', dict2['f2']())
+endfunc
+
+func Test_get_partial_items()
+  let dict = {'name': 'hello'}
+  let args = ["foo", "bar"]
+  let Func = function('MyDictFunc')
+  let Cb = function('MyDictFunc', args, dict)
+
+  call assert_equal(Func, get(Cb, 'func'))
+  call assert_equal('MyDictFunc', get(Cb, 'name'))
+  call assert_equal(args, get(Cb, 'args'))
+  call assert_equal(dict, get(Cb, 'dict'))
+  call assert_fails('call get(Cb, "xxx")', 'E475:')
+
+  call assert_equal(Func, get(Func, 'func'))
+  call assert_equal('MyDictFunc', get(Func, 'name'))
+  call assert_equal([], get(Func, 'args'))
+  call assert_true(empty( get(Func, 'dict')))
+endfunc

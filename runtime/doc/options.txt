@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 7.4.  Last change: 2016 May 10
+*options.txt*	For Vim version 7.4.  Last change: 2016 May 24
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -4697,16 +4697,18 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 					*'keywordprg'* *'kp'*
 'keywordprg' 'kp'	string	(default "man" or "man -s",  DOS: ":help",
-						OS/2: "view /", VMS: "help")
+								  VMS: "help")
 			global or local to buffer |global-local|
 			{not in Vi}
 	Program to use for the |K| command.  Environment variables are
 	expanded |:set_env|.  ":help" may be used to access the Vim internal
 	help.  (Note that previously setting the global option to the empty
 	value did this, which is now deprecated.)
-	When "man" is used, Vim will automatically translate a count for the
-	"K" command to a section number.  Also for "man -s", in which case the
-	"-s" is removed when there is no count.
+	When the first character is ":", the command is invoked as a Vim
+	Ex command prefixed with [count].
+	When "man", "man -s" or an Ex command is used, Vim will automatically
+	translate a count for the "K" command and pass it as the first
+	argument.  For "man -s" the "-s" is removed when there is no count.
 	See |option-backslash| about including spaces and backslashes.
 	Example: >
 		:set keywordprg=man\ -s
@@ -6199,6 +6201,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	  keymap/	key mapping files |mbyte-keymap|
 	  lang/		menu translations |:menutrans|
 	  menu.vim	GUI menus |menu.vim|
+	  pack/		packages |:packadd|
 	  plugin/	plugin scripts |write-plugin|
 	  print/	files for printing |postscript-print-encoding|
 	  spell/	spell checking files |spell|
@@ -6219,6 +6222,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 	5. In the "after" directory in your home directory.  This is for
 	   personal preferences to overrule or add to the distributed defaults
 	   or system-wide settings (rarely needed).
+
+	More entries are added when using |packages|.
 
 	Note that, unlike 'path', no wildcards like "**" are allowed.  Normal
 	wildcards are allowed, but can significantly slow down searching for
