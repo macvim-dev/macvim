@@ -1100,11 +1100,15 @@ find_buffer(char_u *name, int err)
     buf_T *save_curbuf = curbuf;
 
     if (name != NULL && *name != NUL)
+    {
 	buf = buflist_findname(name);
+	if (buf == NULL)
+	    buf = buflist_findname_exp(name);
+    }
     if (buf == NULL)
     {
 	buf = buflist_new(name == NULL || *name == NUL ? NULL : name,
-					       NULL, (linenr_T)0, BLN_LISTED);
+				     NULL, (linenr_T)0, BLN_LISTED | BLN_NEW);
 	if (buf == NULL)
 	    return NULL;
 	buf_copy_options(buf, BCO_ENTER);
@@ -1230,9 +1234,20 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 	}
 	if (buf != NULL)
 	{
-	    ch_logs(channel, "writing out to buffer '%s'",
+	    if (opt->jo_set & JO_OUT_MODIFIABLE)
+		channel->ch_part[PART_OUT].ch_nomodifiable =
+						!opt->jo_modifiable[PART_OUT];
+
+	    if (!buf->b_p_ma && !channel->ch_part[PART_OUT].ch_nomodifiable)
+	    {
+		EMSG(_(e_modifiable));
+	    }
+	    else
+	    {
+		ch_logs(channel, "writing out to buffer '%s'",
 						       (char *)buf->b_ffname);
-	    channel->ch_part[PART_OUT].ch_buffer = buf;
+		channel->ch_part[PART_OUT].ch_buffer = buf;
+	    }
 	}
     }
 
@@ -1257,9 +1272,19 @@ channel_set_options(channel_T *channel, jobopt_T *opt)
 	    buf = find_buffer(opt->jo_io_name[PART_ERR], TRUE);
 	if (buf != NULL)
 	{
-	    ch_logs(channel, "writing err to buffer '%s'",
+	    if (opt->jo_set & JO_ERR_MODIFIABLE)
+		channel->ch_part[PART_ERR].ch_nomodifiable =
+						!opt->jo_modifiable[PART_ERR];
+	    if (!buf->b_p_ma && !channel->ch_part[PART_ERR].ch_nomodifiable)
+	    {
+		EMSG(_(e_modifiable));
+	    }
+	    else
+	    {
+		ch_logs(channel, "writing err to buffer '%s'",
 						       (char *)buf->b_ffname);
-	    channel->ch_part[PART_ERR].ch_buffer = buf;
+		channel->ch_part[PART_ERR].ch_buffer = buf;
+	    }
 	}
     }
 
@@ -1306,6 +1331,7 @@ write_buf_line(buf_T *buf, linenr_T lnum, channel_T *channel)
     int	    len = (int)STRLEN(line);
     char_u  *p;
 
+    /* Need to make a copy to be able to append a NL. */
     if ((p = alloc(len + 2)) == NULL)
 	return;
     STRCPY(p, line);
@@ -2127,11 +2153,23 @@ invoke_one_time_callback(
 }
 
     static void
-append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel)
+append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel, int part)
 {
     buf_T	*save_curbuf = curbuf;
     linenr_T    lnum = buffer->b_ml.ml_line_count;
     int		save_write_to = buffer->b_write_to_channel;
+    chanpart_T  *ch_part = &channel->ch_part[part];
+    int		save_p_ma = buffer->b_p_ma;
+
+    if (!buffer->b_p_ma && !ch_part->ch_nomodifiable)
+    {
+	if (!ch_part->ch_nomod_error)
+	{
+	    ch_error(channel, "Buffer is not modifiable, cannot append");
+	    ch_part->ch_nomod_error = TRUE;
+	}
+	return;
+    }
 
     /* If the buffer is also used as input insert above the last
      * line. Don't write these lines. */
@@ -2144,6 +2182,7 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel)
     /* Append to the buffer */
     ch_logn(channel, "appending line %d to buffer", (int)lnum + 1);
 
+    buffer->b_p_ma = TRUE;
     curbuf = buffer;
     u_sync(TRUE);
     /* ignore undo failure, undo is not very useful here */
@@ -2152,6 +2191,10 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel)
     ml_append(lnum, msg, 0, FALSE);
     appended_lines_mark(lnum, 1L);
     curbuf = save_curbuf;
+    if (ch_part->ch_nomodifiable)
+	buffer->b_p_ma = FALSE;
+    else
+	buffer->b_p_ma = save_p_ma;
 
     if (buffer->b_nwindows > 0)
     {
@@ -2379,7 +2422,7 @@ may_invoke_callback(channel_T *channel, int part)
 		/* JSON or JS mode: re-encode the message. */
 		msg = json_encode(listtv, ch_mode);
 	    if (msg != NULL)
-		append_to_buffer(buffer, msg, channel);
+		append_to_buffer(buffer, msg, channel, part);
 	}
 
 	if (callback != NULL)
@@ -2587,13 +2630,14 @@ channel_close(channel_T *channel, int invoke_close_cb)
 	      clear_tv(&rettv);
 	      channel_need_redraw = TRUE;
 	  }
-	  --channel->ch_refcount;
 
 	  /* the callback is only called once */
 	  vim_free(channel->ch_close_cb);
 	  channel->ch_close_cb = NULL;
 	  partial_unref(channel->ch_close_partial);
 	  channel->ch_close_partial = NULL;
+
+	  --channel->ch_refcount;
 
 	  if (channel_need_redraw)
 	  {
@@ -2889,6 +2933,11 @@ channel_close_on_error(channel_T *channel, char *func)
      * died.  Don't close the channel right away, it may be the wrong moment
      * to invoke callbacks. */
     channel->ch_to_be_closed = TRUE;
+
+#ifdef FEAT_GUI
+    /* Stop listening to GUI events right away. */
+    channel_gui_unregister(channel);
+#endif
 }
 
     static void
@@ -2903,7 +2952,7 @@ channel_close_now(channel_T *channel)
 /*
  * Read from channel "channel" for as long as there is something to read.
  * "part" is PART_SOCK, PART_OUT or PART_ERR.
- * The data is put in the read queue.
+ * The data is put in the read queue.  No callbacks are invoked here.
  */
 #ifndef FEAT_GUI_MACVIM
     static void
@@ -3815,6 +3864,8 @@ free_job_options(jobopt_T *opt)
 	partial_unref(opt->jo_err_partial);
     if (opt->jo_close_partial != NULL)
 	partial_unref(opt->jo_close_partial);
+    if (opt->jo_exit_partial != NULL)
+	partial_unref(opt->jo_exit_partial);
 }
 
 /*
@@ -3933,6 +3984,16 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
 		    return FAIL;
 		}
 	    }
+	    else if (STRCMP(hi->hi_key, "out_modifiable") == 0
+		    || STRCMP(hi->hi_key, "err_modifiable") == 0)
+	    {
+		part = part_from_char(*hi->hi_key);
+
+		if (!(supported & JO_OUT_IO))
+		    break;
+		opt->jo_set |= JO_OUT_MODIFIABLE << (part - PART_OUT);
+		opt->jo_modifiable[part] = get_tv_number(item);
+	    }
 	    else if (STRCMP(hi->hi_key, "in_top") == 0
 		    || STRCMP(hi->hi_key, "in_bot") == 0)
 	    {
@@ -4017,6 +4078,18 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
 		    return FAIL;
 		}
 	    }
+	    else if (STRCMP(hi->hi_key, "exit_cb") == 0)
+	    {
+		if (!(supported & JO_EXIT_CB))
+		    break;
+		opt->jo_set |= JO_EXIT_CB;
+		opt->jo_exit_cb = get_callback(item, &opt->jo_exit_partial);
+		if (opt->jo_exit_cb == NULL)
+		{
+		    EMSG2(_(e_invarg2), "exit_cb");
+		    return FAIL;
+		}
+	    }
 	    else if (STRCMP(hi->hi_key, "waittime") == 0)
 	    {
 		if (!(supported & JO_WAITTIME))
@@ -4076,25 +4149,6 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
 		if (opt->jo_stoponexit == NULL)
 		{
 		    EMSG2(_(e_invarg2), "stoponexit");
-		    return FAIL;
-		}
-	    }
-	    else if (STRCMP(hi->hi_key, "exit_cb") == 0)
-	    {
-		if (!(supported & JO_EXIT_CB))
-		    break;
-		opt->jo_set |= JO_EXIT_CB;
-		if (item->v_type == VAR_PARTIAL && item->vval.v_partial != NULL)
-		{
-		    opt->jo_exit_partial = item->vval.v_partial;
-		    opt->jo_exit_cb = item->vval.v_partial->pt_name;
-		}
-		else
-		    opt->jo_exit_cb = get_tv_string_buf_chk(
-						       item, opt->jo_ecb_buf);
-		if (opt->jo_exit_cb == NULL)
-		{
-		    EMSG2(_(e_invarg2), "exit_cb");
 		    return FAIL;
 		}
 	    }
@@ -4202,6 +4256,15 @@ job_free(job_T *job)
 	job_free_job(job);
     }
 }
+
+#if defined(EXITFREE) || defined(PROTO)
+    void
+job_free_all(void)
+{
+    while (first_job != NULL)
+	job_free(first_job);
+}
+#endif
 
 /*
  * Return TRUE if the job should not be freed yet.  Do not free the job when
