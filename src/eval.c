@@ -5298,7 +5298,7 @@ eval7(
 		 * what follows. So set it here. */
 		if (rettv->v_type == VAR_UNKNOWN && !evaluate && **arg == '(')
 		{
-		    rettv->vval.v_string = vim_strsave((char_u *)"");
+		    rettv->vval.v_string = NULL;
 		    rettv->v_type = VAR_FUNC;
 		}
 
@@ -15792,6 +15792,7 @@ find_some_match(typval_T *argvars, typval_T *rettv, int type)
 		listitem_T *li3 = li2->li_next;
 		listitem_T *li4 = li3->li_next;
 
+		vim_free(li1->li_tv.vval.v_string);
 		li1->li_tv.vval.v_string = vim_strnsave(regmatch.startp[0],
 				(int)(regmatch.endp[0] - regmatch.startp[0]));
 		li3->li_tv.vval.v_number =
@@ -25375,7 +25376,12 @@ func_unref(char_u *name)
     {
 	fp = find_func(name);
 	if (fp == NULL)
-	    EMSG2(_(e_intern2), "func_unref()");
+	{
+#ifdef EXITFREE
+	    if (!entered_free_all_mem)
+#endif
+		EMSG2(_(e_intern2), "func_unref()");
+	}
 	else if (--fp->uf_refcount <= 0)
 	{
 	    /* Only delete it when it's not being used.  Otherwise it's done
