@@ -349,6 +349,7 @@ static struct vimvar
     {VV_NAME("fcs_choice",	 VAR_STRING), 0},
     {VV_NAME("beval_bufnr",	 VAR_NUMBER), VV_RO},
     {VV_NAME("beval_winnr",	 VAR_NUMBER), VV_RO},
+    {VV_NAME("beval_winid",	 VAR_NUMBER), VV_RO},
     {VV_NAME("beval_lnum",	 VAR_NUMBER), VV_RO},
     {VV_NAME("beval_col",	 VAR_NUMBER), VV_RO},
     {VV_NAME("beval_text",	 VAR_STRING), VV_RO},
@@ -358,6 +359,7 @@ static struct vimvar
     {VV_NAME("swapcommand",	 VAR_STRING), VV_RO},
     {VV_NAME("char",		 VAR_STRING), 0},
     {VV_NAME("mouse_win",	 VAR_NUMBER), 0},
+    {VV_NAME("mouse_winid",	 VAR_NUMBER), 0},
     {VV_NAME("mouse_lnum",	 VAR_NUMBER), 0},
     {VV_NAME("mouse_col",	 VAR_NUMBER), 0},
     {VV_NAME("operator",	 VAR_STRING), VV_RO},
@@ -499,6 +501,7 @@ static void f_buflisted(typval_T *argvars, typval_T *rettv);
 static void f_bufloaded(typval_T *argvars, typval_T *rettv);
 static void f_bufname(typval_T *argvars, typval_T *rettv);
 static void f_bufnr(typval_T *argvars, typval_T *rettv);
+static void f_bufwinid(typval_T *argvars, typval_T *rettv);
 static void f_bufwinnr(typval_T *argvars, typval_T *rettv);
 static void f_byte2line(typval_T *argvars, typval_T *rettv);
 static void byteidx(typval_T *argvars, typval_T *rettv, int comp);
@@ -8487,6 +8490,7 @@ static struct fst
     {"bufloaded",	1, 1, f_bufloaded},
     {"bufname",		1, 1, f_bufname},
     {"bufnr",		1, 2, f_bufnr},
+    {"bufwinid",	1, 1, f_bufwinid},
     {"bufwinnr",	1, 1, f_bufwinnr},
     {"byte2line",	1, 1, f_byte2line},
     {"byteidx",		2, 2, f_byteidx},
@@ -10212,11 +10216,8 @@ f_bufnr(typval_T *argvars, typval_T *rettv)
 	rettv->vval.v_number = -1;
 }
 
-/*
- * "bufwinnr(nr)" function
- */
     static void
-f_bufwinnr(typval_T *argvars, typval_T *rettv)
+buf_win_common(typval_T *argvars, typval_T *rettv, int get_nr)
 {
 #ifdef FEAT_WINDOWS
     win_T	*wp;
@@ -10234,11 +10235,30 @@ f_bufwinnr(typval_T *argvars, typval_T *rettv)
 	if (wp->w_buffer == buf)
 	    break;
     }
-    rettv->vval.v_number = (wp != NULL ? winnr : -1);
+    rettv->vval.v_number = (wp != NULL ? (get_nr ? winnr : wp->w_id) : -1);
 #else
-    rettv->vval.v_number = (curwin->w_buffer == buf ? 1 : -1);
+    rettv->vval.v_number = (curwin->w_buffer == buf
+					  ? (get_nr ? 1 : curwin->w_id) : -1);
 #endif
     --emsg_off;
+}
+
+/*
+ * "bufwinid(nr)" function
+ */
+    static void
+f_bufwinid(typval_T *argvars, typval_T *rettv)
+{
+    buf_win_common(argvars, rettv, FALSE);
+}
+
+/*
+ * "bufwinnr(nr)" function
+ */
+    static void
+f_bufwinnr(typval_T *argvars, typval_T *rettv)
+{
+    buf_win_common(argvars, rettv, TRUE);
 }
 
 /*
@@ -12736,6 +12756,7 @@ f_getchar(typval_T *argvars, typval_T *rettv)
     --allow_keys;
 
     vimvars[VV_MOUSE_WIN].vv_nr = 0;
+    vimvars[VV_MOUSE_WINID].vv_nr = 0;
     vimvars[VV_MOUSE_LNUM].vv_nr = 0;
     vimvars[VV_MOUSE_COL].vv_nr = 0;
 
@@ -12798,6 +12819,7 @@ f_getchar(typval_T *argvars, typval_T *rettv)
 		    ++winnr;
 # endif
 		vimvars[VV_MOUSE_WIN].vv_nr = winnr;
+		vimvars[VV_MOUSE_WINID].vv_nr = win->w_id;
 		vimvars[VV_MOUSE_LNUM].vv_nr = lnum;
 		vimvars[VV_MOUSE_COL].vv_nr = col + 1;
 	    }
@@ -13551,11 +13573,18 @@ find_win_by_nr(
 
     for (wp = (tp == NULL || tp == curtab) ? firstwin : tp->tp_firstwin;
 						  wp != NULL; wp = wp->w_next)
-	if (--nr <= 0)
+	if (nr >= LOWEST_WIN_ID)
+	{
+	    if (wp->w_id == nr)
+		return wp;
+	}
+	else if (--nr <= 0)
 	    break;
+    if (nr >= LOWEST_WIN_ID)
+	return NULL;
     return wp;
 #else
-    if (nr == 0 || nr == 1)
+    if (nr == 0 || nr == 1 || nr == curwin->w_id)
 	return curwin;
     return NULL;
 #endif

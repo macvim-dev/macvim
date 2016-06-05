@@ -540,6 +540,12 @@ static long_u		blink_ontime = 400;
 static long_u		blink_offtime = 250;
 static UINT		blink_timer = 0;
 
+    int
+gui_mch_is_blinking(void)
+{
+    return blink_state != BLINK_NONE;
+}
+
     void
 gui_mch_set_blinking(long wait, long on, long off)
 {
@@ -7020,10 +7026,8 @@ gui_mch_menu_grey(
     }
     else
 #endif
-    if (grey)
-	EnableMenuItem(s_menuBar, menu->id, MF_BYCOMMAND | MF_GRAYED);
-    else
-	EnableMenuItem(s_menuBar, menu->id, MF_BYCOMMAND | MF_ENABLED);
+    (void)EnableMenuItem(menu->parent ? menu->parent->submenu_id : s_menuBar,
+		    menu->id, MF_BYCOMMAND | (grey ? MF_GRAYED : MF_ENABLED));
 
 #ifdef FEAT_TEAROFF
     if ((menu->parent != NULL) && (IsWindow(menu->parent->tearoff_handle)))
