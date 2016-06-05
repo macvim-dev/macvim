@@ -1197,6 +1197,13 @@ gui_mch_draw_part_cursor(int w, int h, guicolor_T color)
 }
 
 
+    int
+gui_mch_is_blinking(void)
+{
+    return FALSE;
+}
+
+
 /*
  * Cursor blink functions.
  *
