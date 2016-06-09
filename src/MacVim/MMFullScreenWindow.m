@@ -105,15 +105,8 @@ enum {
     // NOTE: Vim needs to process mouse moved events, so enable them here.
     [self setAcceptsMouseMovedEvents:YES];
   
-    // Prefer to get the fade time from preferences, but default to the original time
-    // if the key doesn't exist yet.
-    NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
-    if ([[[defaults dictionaryRepresentation] allKeys] containsObject:MMFullScreenFadeTimeKey]) {
-        fadeTime = [[NSUserDefaults standardUserDefaults] doubleForKey:MMFullScreenFadeTimeKey];
-    } else {
-        fadeTime = 0.25;
-    }
-    
+    fadeTime = [[NSUserDefaults standardUserDefaults] doubleForKey:MMFullScreenFadeTimeKey];
+
     // Each fade goes in and then out, so the fade hardware must be reserved accordingly and the
     // actual fade time can't exceed half the allowable reservation time... plus some slack to
     // prevent visual artifacts caused by defaulting on the fade hardware lease.
