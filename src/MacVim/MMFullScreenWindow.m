@@ -104,7 +104,24 @@ enum {
 
     // NOTE: Vim needs to process mouse moved events, so enable them here.
     [self setAcceptsMouseMovedEvents:YES];
-
+  
+    // Prefer to get the fade time from preferences, but default to the original time
+    // if the key doesn't exist yet.
+    NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
+    if ([[[defaults dictionaryRepresentation] allKeys] containsObject:MMFullScreenFadeTimeKey]) {
+        fadeTime = [[NSUserDefaults standardUserDefaults] doubleForKey:MMFullScreenFadeTimeKey];
+    } else {
+        fadeTime = 0.25;
+    }
+    
+    // Each fade goes in and then out, so the fade hardware must be reserved accordingly and the
+    // actual fade time can't exceed half the allowable reservation time... plus some slack to
+    // prevent visual artifacts caused by defaulting on the fade hardware lease.
+    if (fadeTime > 0.45 * kCGMaxDisplayReservationInterval) {
+        fadeTime = 0.45 * kCGMaxDisplayReservationInterval;
+    }
+    fadeReservationTime = 2.0 * fadeTime + 0.1;
+    
     return self;
 }
 
@@ -137,8 +154,8 @@ enum {
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
-    if (CGAcquireDisplayFadeReservation(.5, &token) == kCGErrorSuccess) {
-        CGDisplayFade(token, .25, kCGDisplayBlendNormal,
+    if (CGAcquireDisplayFadeReservation(fadeReservationTime, &token) == kCGErrorSuccess) {
+        CGDisplayFade(token, fadeTime, kCGDisplayBlendNormal,
             kCGDisplayBlendSolidColor, .0, .0, .0, true);
         didBlend = YES;
     }
@@ -212,7 +229,7 @@ enum {
 
     // fade back in
     if (didBlend) {
-        CGDisplayFade(token, .25, kCGDisplayBlendSolidColor,
+        CGDisplayFade(token, fadeTime, kCGDisplayBlendSolidColor,
             kCGDisplayBlendNormal, .0, .0, .0, false);
         CGReleaseDisplayFadeReservation(token);
     }
@@ -225,8 +242,8 @@ enum {
     // fade to black
     Boolean didBlend = NO;
     CGDisplayFadeReservationToken token;
-    if (CGAcquireDisplayFadeReservation(.5, &token) == kCGErrorSuccess) {
-        CGDisplayFade(token, .25, kCGDisplayBlendNormal,
+    if (CGAcquireDisplayFadeReservation(fadeReservationTime, &token) == kCGErrorSuccess) {
+        CGDisplayFade(token, fadeTime, kCGDisplayBlendNormal,
             kCGDisplayBlendSolidColor, .0, .0, .0, true);
         didBlend = YES;
     }
@@ -320,7 +337,7 @@ enum {
 
     // fade back in  
     if (didBlend) {
-        CGDisplayFade(token, .25, kCGDisplayBlendSolidColor,
+        CGDisplayFade(token, fadeTime, kCGDisplayBlendSolidColor,
             kCGDisplayBlendNormal, .0, .0, .0, false);
         CGReleaseDisplayFadeReservation(token);
     }

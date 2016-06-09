@@ -30,6 +30,10 @@
 
     // This stores the contents of fuoptions_flags at fu start time
     int         startFuFlags;
+  
+    // Controls the speed of the fade in and out.
+    double      fadeTime;
+    double      fadeReservationTime;
 }
 
 - (MMFullScreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v
