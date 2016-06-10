@@ -5166,7 +5166,7 @@ set_rw_fname(char_u *fname, char_u *sfname)
     if (*curbuf->b_p_ft == NUL)
     {
 	if (au_has_group((char_u *)"filetypedetect"))
-	    (void)do_doautocmd((char_u *)"filetypedetect BufRead", FALSE);
+	    (void)do_doautocmd((char_u *)"filetypedetect BufRead", FALSE, NULL);
 	do_modelines(0);
     }
 #endif
@@ -8726,11 +8726,15 @@ do_autocmd_event(
     int
 do_doautocmd(
     char_u	*arg,
-    int		do_msg)	    /* give message for no matching autocmds? */
+    int		do_msg,	    /* give message for no matching autocmds? */
+    int		*did_something)
 {
     char_u	*fname;
     int		nothing_done = TRUE;
     int		group;
+
+    if (did_something != NULL)
+	did_something = FALSE;
 
     /*
      * Check for a legal group name.  If not, use AUGROUP_ALL.
@@ -8765,6 +8769,8 @@ do_doautocmd(
 
     if (nothing_done && do_msg)
 	MSG(_("No matching autocommands"));
+    if (did_something != NULL)
+	*did_something = !nothing_done;
 
 #ifdef FEAT_EVAL
     return aborting() ? FAIL : OK;
@@ -8784,6 +8790,7 @@ ex_doautoall(exarg_T *eap)
     buf_T	*buf;
     char_u	*arg = eap->arg;
     int		call_do_modelines = check_nomodeline(&arg);
+    int		did_aucmd;
 
     /*
      * This is a bit tricky: For some commands curwin->w_buffer needs to be
@@ -8800,9 +8807,9 @@ ex_doautoall(exarg_T *eap)
 	    aucmd_prepbuf(&aco, buf);
 
 	    /* execute the autocommands for this buffer */
-	    retval = do_doautocmd(arg, FALSE);
+	    retval = do_doautocmd(arg, FALSE, &did_aucmd);
 
-	    if (call_do_modelines)
+	    if (call_do_modelines && did_aucmd)
 	    {
 		/* Execute the modeline settings, but don't set window-local
 		 * options if we are using the current window for another

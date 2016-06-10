@@ -1755,9 +1755,6 @@ static void write_viminfo_version(FILE *fp_out);
 static void write_viminfo_barlines(vir_T *virp, FILE *fp_out);
 static int  viminfo_errcnt;
 
-#define VIMINFO_VERSION 2
-#define VIMINFO_VERSION_WITH_HISTORY 2
-
     static int
 no_viminfo(void)
 {
@@ -2306,7 +2303,7 @@ read_viminfo_up_to_marks(
 #ifdef FEAT_CMDHIST
     /* Finish reading history items. */
     if (!writing)
-	finish_viminfo_history();
+	finish_viminfo_history(virp);
 #endif
 
     /* Change file names to buffer numbers for fmarks. */
@@ -3099,7 +3096,7 @@ do_write(exarg_T *eap)
 	    {
 		if (au_has_group((char_u *)"filetypedetect"))
 		    (void)do_doautocmd((char_u *)"filetypedetect BufRead",
-									TRUE);
+								  TRUE, NULL);
 		do_modelines(0);
 	    }
 
