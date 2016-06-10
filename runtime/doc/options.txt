@@ -3456,6 +3456,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 	See 'fuoptions' for how Vim resizes and colors the background when 
 	entering and leaving fullscreen mode.
 
+	You can use the hidden preference MMFullScreenFadeTime to adjust how
+	long the animation takes to fade in and out.  The default is 0.25
+	seconds.  See |macvim-preferences|for how to set hidden preferences.
+
 	Note: Setting 'fullscreen' usually changes the size of the Vim
 	control. However, for technical reasons, 'lines' and 'columns' will
 	currently only be updated when Vim runs its event loop. As a
