@@ -51,6 +51,7 @@ extern NSString *MMUseInlineImKey;
 extern NSString *MMSuppressTerminationAlertKey;
 extern NSString *MMNativeFullScreenKey;
 extern NSString *MMUseMouseTimeKey;
+extern NSString *MMFullScreenFadeTimeKey;
 
 
 // Enum for MMUntitledWindowKey
