@@ -139,6 +139,8 @@ gui_mch_invert_rectangle(int r, int c, int nr, int nc, int invert);
 gui_mch_new_colors(void);
     void
 gui_mch_set_bg_color(guicolor_T color);
+    int
+gui_mch_is_blinking(void);
     void
 gui_mch_set_blinking(long wait, long on, long off);
     void
