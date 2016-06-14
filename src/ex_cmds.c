@@ -1983,6 +1983,8 @@ write_viminfo(char_u *file, int forceit)
 		     */
 		    if (*wp == 'a')
 		    {
+			EMSG2(_("E929: Too many viminfo temp files, like %s!"),
+								    tempname);
 			vim_free(tempname);
 			tempname = NULL;
 			break;
@@ -2164,9 +2166,13 @@ do_viminfo(FILE *fp_in, FILE *fp_out, int flags)
     {
 	if (flags & VIF_WANT_INFO)
 	{
-	    /* Registers are read and newer ones are used when writing. */
 	    if (fp_out != NULL)
+	    {
+		/* Registers and marks are read and kept separate from what
+		 * this Vim is using.  They are merged when writing. */
 		prepare_viminfo_registers();
+		prepare_viminfo_marks();
+	    }
 
 	    eof = read_viminfo_up_to_marks(&vir,
 					 flags & VIF_FORCEIT, fp_out != NULL);
@@ -2200,6 +2206,7 @@ do_viminfo(FILE *fp_in, FILE *fp_out, int flags)
 	write_viminfo_varlist(fp_out);
 #endif
 	write_viminfo_filemarks(fp_out);
+	finish_viminfo_marks();
 	write_viminfo_bufferlist(fp_out);
 	write_viminfo_barlines(&vir, fp_out);
 	count = write_viminfo_marks(fp_out);
@@ -2303,7 +2310,11 @@ read_viminfo_up_to_marks(
 		break;
 	    case '-':
 	    case '\'':
-		eof = read_viminfo_filemark(virp, forceit);
+		/* When file marks are in bar lines skip the old style lines. */
+		if (virp->vir_version < VIMINFO_VERSION_WITH_MARKS)
+		    eof = read_viminfo_filemark(virp, forceit);
+		else
+		    eof = viminfo_readline(virp);
 		break;
 	    default:
 		if (viminfo_error("E575: ", _("Illegal starting char"),
@@ -2776,6 +2787,11 @@ read_viminfo_barline(vir_T *virp, int got_encoding, int force, int writing)
 	    case BARTYPE_REGISTER:
 		barline_parse(virp, p, &values);
 		handle_viminfo_register(&values, force);
+		break;
+
+	    case BARTYPE_MARK:
+		barline_parse(virp, p, &values);
+		handle_viminfo_mark(&values, force);
 		break;
 
 	    default:

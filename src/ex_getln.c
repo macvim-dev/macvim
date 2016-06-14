@@ -6332,6 +6332,8 @@ handle_viminfo_history(
 		    len = vp[3].bv_len;
 		    p = lalloc(len + 2, TRUE);
 		}
+		else
+		    len = 0; /* for picky compilers */
 		if (p != NULL)
 		{
 		    viminfo_history[type][idx].time_set = vp[1].bv_nr;
@@ -6462,7 +6464,7 @@ merge_history(int type)
 	else
 	    clear_hist_entry(&new_hist[i]);
     }
-    hisidx[type] = len - 1;
+    hisidx[type] = (i < len ? i : len) - 1;
 
     /* Free what is not kept. */
     for (i = 0; i < viminfo_hisidx[type]; i++)
