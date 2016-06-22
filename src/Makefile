@@ -2003,7 +2003,6 @@ test1 \
 	test_marks \
 	test_nested_function \
 	test_options \
-	test_ruby \
 	test_search_mbyte \
 	test_signs \
 	test_tagcase \
@@ -2032,6 +2031,7 @@ test_arglist \
 	test_backspace_opt \
 	test_cdo \
 	test_channel \
+	test_cmdline \
 	test_cursor_func \
 	test_delete \
 	test_ex_undo \
@@ -2052,6 +2052,7 @@ test_arglist \
 	test_json \
 	test_langmap \
 	test_lispwords \
+	test_man \
 	test_matchadd_conceal \
 	test_matchadd_conceal_utf8 \
 	test_matchstrpos \
@@ -2064,12 +2065,14 @@ test_arglist \
 	test_regexp_latin \
 	test_regexp_utf8 \
 	test_reltime \
+	test_ruby \
 	test_searchpos \
 	test_set \
 	test_sort \
 	test_statusline \
 	test_syn_attr \
 	test_syntax \
+	test_usercommands \
 	test_tabline \
 	test_tagjump \
 	test_timers \
