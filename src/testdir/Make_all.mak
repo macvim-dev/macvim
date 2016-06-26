@@ -32,7 +32,6 @@ SCRIPTS_ALL = \
 	test31.out \
 	test33.out \
 	test34.out \
-	test35.out \
 	test36.out \
 	test37.out \
 	test38.out \
@@ -172,6 +171,7 @@ NEW_TESTS = test_arglist.res \
 	    test_hardcopy.res \
 	    test_history.res \
 	    test_increment.res \
+	    test_increment_dbcs.res \
 	    test_json.res \
 	    test_langmap.res \
 	    test_man.res \
