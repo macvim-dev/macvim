@@ -391,6 +391,7 @@ N  *+multi_lang*	non-English language support |multi-lang|
 m  *+mzscheme*		Mzscheme interface |mzscheme|
 m  *+mzscheme/dyn*	Mzscheme interface |mzscheme-dynamic| |/dyn|
 m  *+netbeans_intg*	|netbeans|
+   *+num64*		64-bit Number support |Number|
 m  *+odbeditor*		MacVim only: ODB Editor Protocol support |odbeditor|
 m  *+ole*		Win32 GUI only: |ole-interface|
 N  *+packages*		Loading |packages|

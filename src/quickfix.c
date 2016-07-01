@@ -1101,7 +1101,7 @@ restofline:
 	}
 	/* return number of matches */
 	retval = qi->qf_lists[qi->qf_curlist].qf_count;
-	goto qf_init_ok;
+	goto qf_init_end;
     }
     EMSG(_(e_readerrf));
 error2:
@@ -1109,13 +1109,12 @@ error2:
     qi->qf_listcount--;
     if (qi->qf_curlist > 0)
 	--qi->qf_curlist;
-qf_init_ok:
+qf_init_end:
     if (fd != NULL)
 	fclose(fd);
     free_efm_list(&fmt_first);
     qf_clean_dir_stack(&dir_stack);
     qf_clean_dir_stack(&file_stack);
-qf_init_end:
     vim_free(namebuf);
     vim_free(errmsg);
     vim_free(pattern);
@@ -2259,6 +2258,7 @@ qf_list(exarg_T *eap)
     int		idx1 = 1;
     int		idx2 = -1;
     char_u	*arg = eap->arg;
+    int		plus = FALSE;
     int		all = eap->forceit;	/* if not :cl!, only show
 						   recognised errors */
     qf_info_T	*qi = &ql_info;
@@ -2279,16 +2279,30 @@ qf_list(exarg_T *eap)
 	EMSG(_(e_quickfix));
 	return;
     }
+    if (*arg == '+')
+    {
+	++arg;
+	plus = TRUE;
+    }
     if (!get_list_range(&arg, &idx1, &idx2) || *arg != NUL)
     {
 	EMSG(_(e_trailing));
 	return;
     }
-    i = qi->qf_lists[qi->qf_curlist].qf_count;
-    if (idx1 < 0)
-	idx1 = (-idx1 > i) ? 0 : idx1 + i + 1;
-    if (idx2 < 0)
-	idx2 = (-idx2 > i) ? 0 : idx2 + i + 1;
+    if (plus)
+    {
+	i = qi->qf_lists[qi->qf_curlist].qf_index;
+	idx2 = i + idx1;
+	idx1 = i;
+    }
+    else
+    {
+	i = qi->qf_lists[qi->qf_curlist].qf_count;
+	if (idx1 < 0)
+	    idx1 = (-idx1 > i) ? 0 : idx1 + i + 1;
+	if (idx2 < 0)
+	    idx2 = (-idx2 > i) ? 0 : idx2 + i + 1;
+    }
 
     if (qi->qf_lists[qi->qf_curlist].qf_nonevalid)
 	all = TRUE;
@@ -3254,7 +3268,7 @@ get_mef_name(void)
     static int	start = -1;
     static int	off = 0;
 #ifdef HAVE_LSTAT
-    struct stat	sb;
+    stat_T	sb;
 #endif
 
     if (*p_mef == NUL)
@@ -4363,11 +4377,11 @@ set_errorlist(
 	    continue;
 
 	filename = get_dict_string(d, (char_u *)"filename", TRUE);
-	bufnum = get_dict_number(d, (char_u *)"bufnr");
-	lnum = get_dict_number(d, (char_u *)"lnum");
-	col = get_dict_number(d, (char_u *)"col");
-	vcol = get_dict_number(d, (char_u *)"vcol");
-	nr = get_dict_number(d, (char_u *)"nr");
+	bufnum = (int)get_dict_number(d, (char_u *)"bufnr");
+	lnum = (int)get_dict_number(d, (char_u *)"lnum");
+	col = (int)get_dict_number(d, (char_u *)"col");
+	vcol = (int)get_dict_number(d, (char_u *)"vcol");
+	nr = (int)get_dict_number(d, (char_u *)"nr");
 	type = get_dict_string(d, (char_u *)"type", TRUE);
 	pattern = get_dict_string(d, (char_u *)"pattern", TRUE);
 	text = get_dict_string(d, (char_u *)"text", TRUE);

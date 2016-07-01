@@ -289,10 +289,10 @@ typedef struct
     union {
 	struct
 	{
-	    long	start_col_nr;		/* starting column number */
-	    long	end_col_nr;		/* ending column number */
+	    varnumber_T	start_col_nr;		/* starting column number */
+	    varnumber_T	end_col_nr;		/* ending column number */
 	} line;
-	long	value;		/* value if sorting by integer */
+	varnumber_T	value;		/* value if sorting by integer */
 #ifdef FEAT_FLOAT
 	float_T value_flt;	/* value if sorting by float */
 #endif
@@ -1840,14 +1840,14 @@ write_viminfo(char_u *file, int forceit)
     FILE	*fp_in = NULL;	/* input viminfo file, if any */
     FILE	*fp_out = NULL;	/* output viminfo file */
     char_u	*tempname = NULL;	/* name of temp viminfo file */
-    struct stat	st_new;		/* mch_stat() of potential new file */
+    stat_T	st_new;		/* mch_stat() of potential new file */
     char_u	*wp;
 #if defined(UNIX) || defined(VMS)
     mode_t	umask_save;
 #endif
 #ifdef UNIX
     int		shortname = FALSE;	/* use 8.3 file name */
-    struct stat	st_old;		/* mch_stat() of existing viminfo file */
+    stat_T	st_old;		/* mch_stat() of existing viminfo file */
 #endif
 #ifdef WIN3264
     int		hidden = FALSE;
@@ -3457,7 +3457,7 @@ not_writing(void)
     static int
 check_readonly(int *forceit, buf_T *buf)
 {
-    struct stat	st;
+    stat_T	st;
 
     /* Handle a file being readonly when the 'readonly' option is set or when
      * the file exists and permissions are read-only.
@@ -4372,7 +4372,7 @@ ex_append(exarg_T *eap)
     if (eap->cmdidx != CMD_append)
 	--lnum;
 
-    /* when the buffer is empty append to line 0 and delete the dummy line */
+    /* when the buffer is empty need to delete the dummy line */
     if (empty && lnum == 1)
 	lnum = 0;
 
@@ -4456,7 +4456,7 @@ ex_append(exarg_T *eap)
 
 	did_undo = TRUE;
 	ml_append(lnum, theline, (colnr_T)0, FALSE);
-	appended_lines_mark(lnum, 1L);
+	appended_lines_mark(lnum + (empty ? 1 : 0), 1L);
 
 	vim_free(theline);
 	++lnum;
