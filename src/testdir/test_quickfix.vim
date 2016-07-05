@@ -10,6 +10,7 @@ function! s:setup_commands(cchar)
   if a:cchar == 'c'
     command! -nargs=* -bang Xlist <mods>clist<bang> <args>
     command! -nargs=* Xgetexpr <mods>cgetexpr <args>
+    command! -nargs=* Xaddexpr <mods>caddexpr <args>
     command! -nargs=* Xolder <mods>colder <args>
     command! -nargs=* Xnewer <mods>cnewer <args>
     command! -nargs=* Xopen <mods>copen <args>
@@ -23,6 +24,11 @@ function! s:setup_commands(cchar)
     command! -nargs=* Xaddbuffer <mods>caddbuffer <args>
     command! -nargs=* Xrewind <mods>crewind <args>
     command! -nargs=* -bang Xnext <mods>cnext<bang> <args>
+    command! -nargs=* -bang Xprev <mods>cprev<bang> <args>
+    command! -nargs=* -bang Xfirst <mods>cfirst<bang> <args>
+    command! -nargs=* -bang Xlast <mods>clast<bang> <args>
+    command! -nargs=* -bang Xnfile <mods>cnfile<bang> <args>
+    command! -nargs=* -bang Xpfile <mods>cpfile<bang> <args>
     command! -nargs=* Xexpr <mods>cexpr <args>
     command! -nargs=* Xvimgrep <mods>vimgrep <args>
     command! -nargs=* Xgrep <mods> grep <args>
@@ -33,6 +39,7 @@ function! s:setup_commands(cchar)
   else
     command! -nargs=* -bang Xlist <mods>llist<bang> <args>
     command! -nargs=* Xgetexpr <mods>lgetexpr <args>
+    command! -nargs=* Xaddexpr <mods>laddexpr <args>
     command! -nargs=* Xolder <mods>lolder <args>
     command! -nargs=* Xnewer <mods>lnewer <args>
     command! -nargs=* Xopen <mods>lopen <args>
@@ -46,6 +53,11 @@ function! s:setup_commands(cchar)
     command! -nargs=* Xaddbuffer <mods>laddbuffer <args>
     command! -nargs=* Xrewind <mods>lrewind <args>
     command! -nargs=* -bang Xnext <mods>lnext<bang> <args>
+    command! -nargs=* -bang Xprev <mods>lprev<bang> <args>
+    command! -nargs=* -bang Xfirst <mods>lfirst<bang> <args>
+    command! -nargs=* -bang Xlast <mods>llast<bang> <args>
+    command! -nargs=* -bang Xnfile <mods>lnfile<bang> <args>
+    command! -nargs=* -bang Xpfile <mods>lpfile<bang> <args>
     command! -nargs=* Xexpr <mods>lexpr <args>
     command! -nargs=* Xvimgrep <mods>lvimgrep <args>
     command! -nargs=* Xgrep <mods> lgrep <args>
@@ -306,6 +318,56 @@ endfunction
 function Test_cbuffer()
   call XbufferTests('c')
   call XbufferTests('l')
+endfunction
+
+function XexprTests(cchar)
+  call s:setup_commands(a:cchar)
+
+  call assert_fails('Xexpr 10', 'E777:')
+endfunction
+
+function Test_cexpr()
+  call XexprTests('c')
+  call XexprTests('l')
+endfunction
+
+" Tests for :cnext, :cprev, :cfirst, :clast commands
+function Xtest_browse(cchar)
+  call s:setup_commands(a:cchar)
+
+  call s:create_test_file('Xqftestfile1')
+  call s:create_test_file('Xqftestfile2')
+
+  Xgetexpr ['Xqftestfile1:5:Line5',
+		\ 'Xqftestfile1:6:Line6',
+		\ 'Xqftestfile2:10:Line10',
+		\ 'Xqftestfile2:11:Line11']
+
+  Xfirst
+  call assert_fails('Xprev', 'E553')
+  call assert_fails('Xpfile', 'E553')
+  Xnfile
+  call assert_equal('Xqftestfile2', bufname('%'))
+  call assert_equal(10, line('.'))
+  Xpfile
+  call assert_equal('Xqftestfile1', bufname('%'))
+  call assert_equal(6, line('.'))
+  Xlast
+  call assert_equal('Xqftestfile2', bufname('%'))
+  call assert_equal(11, line('.'))
+  call assert_fails('Xnext', 'E553')
+  call assert_fails('Xnfile', 'E553')
+  Xrewind
+  call assert_equal('Xqftestfile1', bufname('%'))
+  call assert_equal(5, line('.'))
+
+  call delete('Xqftestfile1')
+  call delete('Xqftestfile2')
+endfunction
+
+function Test_browse()
+  call Xtest_browse('c')
+  call Xtest_browse('l')
 endfunction
 
 function Test_nomem()
@@ -679,21 +741,25 @@ function! s:dir_stack_tests(cchar)
   let save_efm=&efm
   set efm=%DEntering\ dir\ '%f',%f:%l:%m,%XLeaving\ dir\ '%f'
 
-  let l = "Entering dir 'dir1/a'\n" .
-		\ 'habits2.txt:1:Nine Healthy Habits' . "\n" .
-		\ "Entering dir 'b'\n" .
-		\ 'habits3.txt:2:0 Hours of television' . "\n" .
-		\ 'habits2.txt:7:5 Small meals' . "\n" .
-		\ "Entering dir 'dir1/c'\n" .
-		\ 'habits4.txt:3:1 Hour of exercise' . "\n" .
-		\ "Leaving dir 'dir1/c'\n" .
-		\ "Leaving dir 'dir1/a'\n" .
-		\ 'habits1.txt:4:2 Liters of water' . "\n" .
-		\ "Entering dir 'dir2'\n" .
-		\ 'habits5.txt:5:3 Cups of hot green tea' . "\n"
-		\ "Leaving dir 'dir2'\n"
+  let lines = ["Entering dir 'dir1/a'",
+		\ 'habits2.txt:1:Nine Healthy Habits',
+		\ "Entering dir 'b'",
+		\ 'habits3.txt:2:0 Hours of television',
+		\ 'habits2.txt:7:5 Small meals',
+		\ "Entering dir 'dir1/c'",
+		\ 'habits4.txt:3:1 Hour of exercise',
+		\ "Leaving dir 'dir1/c'",
+		\ "Leaving dir 'dir1/a'",
+		\ 'habits1.txt:4:2 Liters of water',
+		\ "Entering dir 'dir2'",
+		\ 'habits5.txt:5:3 Cups of hot green tea',
+		\ "Leaving dir 'dir2'"
+		\]
 
-  Xgetexpr l
+  Xexpr ""
+  for l in lines
+      Xaddexpr l
+  endfor
 
   let qf = g:Xgetlist()
 
@@ -748,25 +814,61 @@ function! Test_efm_dirstack()
   call delete('habits1.txt')
 endfunction
 
-" TODO:
-" Add tests for the following formats in 'errorformat'
-"	%n  %t  %r  %+  %-  %O
-function! Test_efm2()
+" Tests for invalid error format specifies
+function Xinvalid_efm_Tests(cchar)
+  call s:setup_commands(a:cchar)
+
   let save_efm = &efm
 
-  " Test for invalid efm
-  set efm=%L%M%N
-  call assert_fails('cexpr "abc.txt:1:Hello world"', 'E376:')
-  call assert_fails('lexpr "abc.txt:1:Hello world"', 'E376:')
+  set efm=%f:%l:%m,%f:%f:%l:%m
+  call assert_fails('Xexpr "abc.txt:1:Hello world"', 'E372:')
+
+  set efm=%f:%l:%m,%f:%l:%r:%m
+  call assert_fails('Xexpr "abc.txt:1:Hello world"', 'E373:')
+
+  set efm=%f:%l:%m,%O:%f:%l:%m
+  call assert_fails('Xexpr "abc.txt:1:Hello world"', 'E373:')
+
+  set efm=%f:%l:%m,%f:%l:%*[^a-z
+  call assert_fails('Xexpr "abc.txt:1:Hello world"', 'E374:')
+
+  set efm=%f:%l:%m,%f:%l:%*c
+  call assert_fails('Xexpr "abc.txt:1:Hello world"', 'E375:')
+
+  set efm=%f:%l:%m,%L%M%N
+  call assert_fails('Xexpr "abc.txt:1:Hello world"', 'E376:')
+
+  set efm=%f:%l:%m,%f:%l:%m:%R
+  call assert_fails('Xexpr "abc.txt:1:Hello world"', 'E377:')
+
+  set efm=
+  call assert_fails('Xexpr "abc.txt:1:Hello world"', 'E378:')
+
+  set efm=%DEntering\ dir\ abc,%f:%l:%m
+  call assert_fails('Xexpr ["Entering dir abc", "abc.txt:1:Hello world"]', 'E379:')
+
+  let &efm = save_efm
+endfunction
+
+function Test_invalid_efm()
+  call Xinvalid_efm_Tests('c')
+  call Xinvalid_efm_Tests('l')
+endfunction
+
+" TODO:
+" Add tests for the following formats in 'errorformat'
+"	%r  %O
+function! Test_efm2()
+  let save_efm = &efm
 
   " Test for %s format in efm
   set efm=%f:%s
   cexpr 'Xtestfile:Line search text'
-
   let l = getqflist()
   call assert_equal(l[0].pattern, '^\VLine search text\$')
   call assert_equal(l[0].lnum, 0)
 
+  " Test for %P, %Q and %t format specifiers
   let lines=["[Xtestfile1]",
 	      \ "(1,17)  error: ';' missing",
 	      \ "(21,2)  warning: variable 'z' not defined",
@@ -780,11 +882,42 @@ function! Test_efm2()
 	      \ "(67,3)  warning: 's' already defined"
 	      \]
   set efm=%+P[%f],(%l\\,%c)%*[\ ]%t%*[^:]:\ %m,%-Q
-  cgetexpr lines
+  cexpr ""
+  for l in lines
+      caddexpr l
+  endfor
   let l = getqflist()
   call assert_equal(9, len(l))
   call assert_equal(21, l[2].lnum)
   call assert_equal(2, l[2].col)
+  call assert_equal('w', l[2].type)
+  call assert_equal('e', l[3].type)
+
+  " Tests for %E, %C and %Z format specifiers
+  let lines = ["Error 275",
+	      \ "line 42",
+	      \ "column 3",
+	      \ "' ' expected after '--'"
+	      \]
+  set efm=%EError\ %n,%Cline\ %l,%Ccolumn\ %c,%Z%m
+  cgetexpr lines
+  let l = getqflist()
+  call assert_equal(275, l[0].nr)
+  call assert_equal(42, l[0].lnum)
+  call assert_equal(3, l[0].col)
+  call assert_equal('E', l[0].type)
+  call assert_equal("\n' ' expected after '--'", l[0].text)
+
+  " Test for %>
+  let lines = ["Error in line 147 of foo.c:",
+	      \"unknown variable 'i'"
+	      \]
+  set efm=unknown\ variable\ %m,%E%>Error\ in\ line\ %l\ of\ %f:,%Z%m
+  cgetexpr lines
+  let l = getqflist()
+  call assert_equal(147, l[0].lnum)
+  call assert_equal('E', l[0].type)
+  call assert_equal("\nunknown variable 'i'", l[0].text)
 
   let &efm = save_efm
 endfunction
@@ -1238,3 +1371,46 @@ function! Test_grep()
   call s:test_xgrep('c')
   call s:test_xgrep('l')
 endfunction
+
+function! Test_two_windows()
+  " Use one 'errorformat' for two windows.  Add an expression to each of them,
+  " make sure they each keep their own state.
+  set efm=%DEntering\ dir\ '%f',%f:%l:%m,%XLeaving\ dir\ '%f'
+  call mkdir('Xone/a', 'p')
+  call mkdir('Xtwo/a', 'p')
+  let lines = ['1', '2', 'one one one', '4', 'two two two', '6', '7']
+  call writefile(lines, 'Xone/a/one.txt')
+  call writefile(lines, 'Xtwo/a/two.txt')
+
+  new one
+  let one_id = win_getid()
+  lexpr ""
+  new two
+  let two_id = win_getid()
+  lexpr ""
+
+  laddexpr "Entering dir 'Xtwo/a'"
+  call win_gotoid(one_id)
+  laddexpr "Entering dir 'Xone/a'"
+  call win_gotoid(two_id)
+  laddexpr 'two.txt:5:two two two'
+  call win_gotoid(one_id)
+  laddexpr 'one.txt:3:one one one'
+
+  let loc_one = getloclist(one_id)
+echo string(loc_one)
+  call assert_equal('Xone/a/one.txt', bufname(loc_one[1].bufnr))
+  call assert_equal(3, loc_one[1].lnum)
+
+  let loc_two = getloclist(two_id)
+echo string(loc_two)
+  call assert_equal('Xtwo/a/two.txt', bufname(loc_two[1].bufnr))
+  call assert_equal(5, loc_two[1].lnum)
+
+  call win_gotoid(one_id)
+  bwipe!
+  call win_gotoid(two_id)
+  bwipe!
+  call delete('Xone', 'rf')
+  call delete('Xtwo', 'rf')
+endfunc

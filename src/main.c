@@ -1336,6 +1336,9 @@ main_loop(
 	    if (need_maketitle)
 		maketitle();
 #endif
+#ifdef FEAT_VIMINFO
+	    curbuf->b_last_used = vim_time();
+#endif
 	    /* display message after redraw */
 	    if (keep_msg != NULL)
 	    {
@@ -4271,18 +4274,4 @@ serverConvert(
 # endif
     return res;
 }
-#endif
-
-/*
- * When FEAT_FKMAP is defined, also compile the Farsi source code.
- */
-#if defined(FEAT_FKMAP) || defined(PROTO)
-# include "farsi.c"
-#endif
-
-/*
- * When FEAT_ARABIC is defined, also compile the Arabic source code.
- */
-#if defined(FEAT_ARABIC) || defined(PROTO)
-# include "arabic.c"
 #endif
