@@ -141,6 +141,8 @@ gui_mch_new_colors(void);
 gui_mch_set_bg_color(guicolor_T color);
     int
 gui_mch_is_blinking(void);
+    int
+gui_mch_is_blink_off(void);
     void
 gui_mch_set_blinking(long wait, long on, long off);
     void
