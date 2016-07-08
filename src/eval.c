@@ -555,6 +555,7 @@ static void f_diff_hlID(typval_T *argvars, typval_T *rettv);
 static void f_empty(typval_T *argvars, typval_T *rettv);
 static void f_escape(typval_T *argvars, typval_T *rettv);
 static void f_eval(typval_T *argvars, typval_T *rettv);
+static void f_evalcmd(typval_T *argvars, typval_T *rettv);
 static void f_eventhandler(typval_T *argvars, typval_T *rettv);
 static void f_executable(typval_T *argvars, typval_T *rettv);
 static void f_exepath(typval_T *argvars, typval_T *rettv);
@@ -1133,6 +1134,7 @@ set_internal_string_var(char_u *name, char_u *value)
 }
 
 static lval_T	*redir_lval = NULL;
+#define EVALCMD_BUSY (redir_lval == (lval_T *)&redir_lval)
 static garray_T redir_ga;	/* only valid when redir_lval is not NULL */
 static char_u	*redir_endp = NULL;
 static char_u	*redir_varname = NULL;
@@ -1249,6 +1251,12 @@ var_redir_str(char_u *value, int value_len)
 var_redir_stop(void)
 {
     typval_T	tv;
+
+    if (EVALCMD_BUSY)
+    {
+	redir_lval = NULL;
+	return;
+    }
 
     if (redir_lval != NULL)
     {
@@ -8556,6 +8564,7 @@ static struct fst
     {"empty",		1, 1, f_empty},
     {"escape",		2, 2, f_escape},
     {"eval",		1, 1, f_eval},
+    {"evalcmd",		1, 1, f_evalcmd},
     {"eventhandler",	0, 0, f_eventhandler},
     {"executable",	1, 1, f_executable},
     {"exepath",		1, 1, f_exepath},
@@ -9414,6 +9423,8 @@ non_zero_arg(typval_T *argvars)
 {
     return ((argvars[0].v_type == VAR_NUMBER
 		&& argvars[0].vval.v_number != 0)
+	    || (argvars[0].v_type == VAR_SPECIAL
+		&& argvars[0].vval.v_number == VVAL_TRUE)
 	    || (argvars[0].v_type == VAR_STRING
 		&& argvars[0].vval.v_string != NULL
 		&& *argvars[0].vval.v_string != NUL));
@@ -11332,6 +11343,61 @@ f_eval(typval_T *argvars, typval_T *rettv)
     }
     else if (*s != NUL)
 	EMSG(_(e_trailing));
+}
+
+static garray_T	redir_evalcmd_ga;
+
+/*
+ * Append "value[value_len]" to the evalcmd() output.
+ */
+    void
+evalcmd_redir_str(char_u *value, int value_len)
+{
+    int		len;
+
+    if (value_len == -1)
+	len = (int)STRLEN(value);	/* Append the entire string */
+    else
+	len = value_len;		/* Append only "value_len" characters */
+    if (ga_grow(&redir_evalcmd_ga, len) == OK)
+    {
+	mch_memmove((char *)redir_evalcmd_ga.ga_data
+				       + redir_evalcmd_ga.ga_len, value, len);
+	redir_evalcmd_ga.ga_len += len;
+    }
+}
+
+/*
+ * "evalcmd()" function
+ */
+    static void
+f_evalcmd(typval_T *argvars, typval_T *rettv)
+{
+    char_u	*s;
+    int		save_msg_silent = msg_silent;
+    int		save_redir_evalcmd = redir_evalcmd;
+    garray_T	save_ga;
+
+    rettv->vval.v_string = NULL;
+    rettv->v_type = VAR_STRING;
+
+    s = get_tv_string_chk(&argvars[0]);
+    if (s != NULL)
+    {
+	if (redir_evalcmd)
+	    save_ga = redir_evalcmd_ga;
+	ga_init2(&redir_evalcmd_ga, (int)sizeof(char), 500);
+	redir_evalcmd = TRUE;
+
+	++msg_silent;
+	do_cmdline_cmd(s);
+	rettv->vval.v_string = redir_evalcmd_ga.ga_data;
+	msg_silent = save_msg_silent;
+
+	redir_evalcmd = save_redir_evalcmd;
+	if (redir_evalcmd)
+	    redir_evalcmd_ga = save_ga;
+    }
 }
 
 /*
@@ -16369,7 +16435,13 @@ f_mode(typval_T *argvars, typval_T *rettv)
     buf[1] = NUL;
     buf[2] = NUL;
 
-    if (VIsual_active)
+    if (time_for_testing == 93784)
+    {
+	/* Testing the two-character code. */
+	buf[0] = 'x';
+	buf[1] = '!';
+    }
+    else if (VIsual_active)
     {
 	if (VIsual_select)
 	    buf[0] = VIsual_mode + 's' - 'v';
