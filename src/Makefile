@@ -2033,6 +2033,7 @@ test1 \
 test_arglist \
 	test_assert \
 	test_assign \
+	test_autochdir \
 	test_autocmd \
 	test_backspace_opt \
 	test_cdo \
@@ -2040,8 +2041,8 @@ test_arglist \
 	test_cmdline \
 	test_cursor_func \
 	test_delete \
-	test_evalcmd \
 	test_ex_undo \
+	test_execute_func \
 	test_expand \
 	test_expand_dllpath \
 	test_expr \
