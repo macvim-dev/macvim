@@ -1674,7 +1674,7 @@ getcmdline(
 	case Ctrl__:	    /* CTRL-_: switch language mode */
 		if (!p_ari)
 		    break;
-#ifdef FEAT_FKMAP
+# ifdef FEAT_FKMAP
 		if (p_altkeymap)
 		{
 		    cmd_fkmap = !cmd_fkmap;
@@ -1682,7 +1682,7 @@ getcmdline(
 			ccline.overstrike = FALSE;
 		}
 		else			    /* Hebrew is default */
-#endif
+# endif
 		    cmd_hkmap = !cmd_hkmap;
 		goto cmdline_not_changed;
 #endif
@@ -6669,9 +6669,9 @@ cmd_gchar(int offset)
 ex_window(void)
 {
     struct cmdline_info	save_ccline;
-    buf_T		*old_curbuf = curbuf;
+    bufref_T		old_curbuf;
     win_T		*old_curwin = curwin;
-    buf_T		*bp;
+    bufref_T		bufref;
     win_T		*wp;
     int			i;
     linenr_T		lnum;
@@ -6700,6 +6700,7 @@ ex_window(void)
 	beep_flush();
 	return K_IGNORE;
     }
+    set_bufref(&old_curbuf, curbuf);
 
     /* Save current window sizes. */
     win_size_save(&winsizes);
@@ -6846,7 +6847,7 @@ ex_window(void)
 
     /* Safety check: The old window or buffer was deleted: It's a bug when
      * this happens! */
-    if (!win_valid(old_curwin) || !buf_valid(old_curbuf))
+    if (!win_valid(old_curwin) || !bufref_valid(&old_curbuf))
     {
 	cmdwin_result = Ctrl_C;
 	EMSG(_("E199: Active window or buffer deleted"));
@@ -6917,14 +6918,14 @@ ex_window(void)
 	curwin->w_p_cole = 0;
 # endif
 	wp = curwin;
-	bp = curbuf;
+	set_bufref(&bufref, curbuf);
 	win_goto(old_curwin);
 	win_close(wp, TRUE);
 
 	/* win_close() may have already wiped the buffer when 'bh' is
 	 * set to 'wipe' */
-	if (buf_valid(bp))
-	    close_buffer(NULL, bp, DOBUF_WIPE, FALSE);
+	if (bufref_valid(&bufref))
+	    close_buffer(NULL, bufref.br_buf, DOBUF_WIPE, FALSE);
 
 	/* Restore window sizes. */
 	win_size_restore(&winsizes);

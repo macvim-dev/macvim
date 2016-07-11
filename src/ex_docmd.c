@@ -7339,8 +7339,11 @@ ex_win_close(
 # if defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG)
 	if ((p_confirm || cmdmod.confirm) && p_write)
 	{
+	    bufref_T bufref;
+
+	    set_bufref(&bufref, buf);
 	    dialog_changed(buf, FALSE);
-	    if (buf_valid(buf) && bufIsChanged(buf))
+	    if (bufref_valid(&bufref) && bufIsChanged(buf))
 		return;
 	    need_hide = FALSE;
 	}

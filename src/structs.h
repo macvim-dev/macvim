@@ -69,6 +69,14 @@ typedef struct frame_S		frame_T;
 typedef int			scid_T;		/* script ID */
 typedef struct file_buffer	buf_T;  /* forward declaration */
 
+/* Reference to a buffer that stores the value of buf_free_count.
+ * bufref_valid() only needs to check "buf" when the count differs.
+ */
+typedef struct {
+    buf_T   *br_buf;
+    int	    br_buf_free_count;
+} bufref_T;
+
 /*
  * This is here because regexp.h needs pos_T and below regprog_T is used.
  */
@@ -1426,7 +1434,7 @@ typedef struct {
     char_u	*ch_callback;	/* call when a msg is not handled */
     partial_T	*ch_partial;
 
-    buf_T	*ch_buffer;	/* buffer to read from or write to */
+    bufref_T	ch_bufref;	/* buffer to read from or write to */
     int		ch_nomodifiable; /* TRUE when buffer can be 'nomodifiable' */
     int		ch_nomod_error;	/* TRUE when e_modifiable was given */
     int		ch_buf_append;	/* write appended lines instead top-bot */
@@ -2936,7 +2944,7 @@ typedef struct
     int		use_aucmd_win;	/* using aucmd_win */
     win_T	*save_curwin;	/* saved curwin */
     win_T	*new_curwin;	/* new curwin */
-    buf_T	*new_curbuf;	/* new curbuf */
+    bufref_T	new_curbuf;	/* new curbuf */
     char_u	*globaldir;	/* saved value of globaldir */
 #endif
 } aco_save_T;

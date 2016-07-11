@@ -3447,11 +3447,16 @@ do_wqall(exarg_T *eap)
 	    }
 	    else
 	    {
+#ifdef FEAT_AUTOCMD
+		bufref_T bufref;
+
+		set_bufref(&bufref, buf);
+#endif
 		if (buf_write_all(buf, eap->forceit) == FAIL)
 		    ++error;
 #ifdef FEAT_AUTOCMD
 		/* an autocommand may have deleted the buffer */
-		if (!buf_valid(buf))
+		if (!bufref_valid(&bufref))
 		    buf = firstbuf;
 #endif
 	    }
@@ -3659,8 +3664,9 @@ do_ecmd(
     int		did_set_swapcommand = FALSE;
 #endif
     buf_T	*buf;
+    bufref_T	bufref;
 #if defined(FEAT_AUTOCMD) || defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG)
-    buf_T	*old_curbuf = curbuf;
+    bufref_T	old_curbuf;
 #endif
     char_u	*free_fname = NULL;
 #ifdef FEAT_BROWSE
@@ -3685,6 +3691,9 @@ do_ecmd(
 
     if (eap != NULL)
 	command = eap->do_ecmd_cmd;
+#if defined(FEAT_AUTOCMD) || defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG)
+    set_bufref(&old_curbuf, curbuf);
+#endif
 
     if (fnum != 0)
     {
@@ -3851,7 +3860,7 @@ do_ecmd(
 	    /* autocommands may change curwin and curbuf */
 	    if (oldwin != NULL)
 		oldwin = curwin;
-	    old_curbuf = curbuf;
+	    set_bufref(&old_curbuf, curbuf);
 #endif
 	}
 	if (buf == NULL)
@@ -3863,12 +3872,13 @@ do_ecmd(
 	else					/* existing memfile */
 	{
 	    oldbuf = TRUE;
+	    set_bufref(&bufref, buf);
 	    (void)buf_check_timestamp(buf, FALSE);
 	    /* Check if autocommands made buffer invalid or changed the current
 	     * buffer. */
-	    if (!buf_valid(buf)
+	    if (!bufref_valid(&bufref)
 #ifdef FEAT_AUTOCMD
-		    || curbuf != old_curbuf
+		    || curbuf != old_curbuf.br_buf
 #endif
 		    )
 		goto theend;
@@ -3908,10 +3918,11 @@ do_ecmd(
 	     */
 	    if (buf->b_fname != NULL)
 		new_name = vim_strsave(buf->b_fname);
-	    au_new_curbuf = buf;
+	    set_bufref(&au_new_curbuf, buf);
 	    apply_autocmds(EVENT_BUFLEAVE, NULL, NULL, FALSE, curbuf);
-	    if (!buf_valid(buf))	/* new buffer has been deleted */
+	    if (!bufref_valid(&au_new_curbuf))
 	    {
+		/* new buffer has been deleted */
 		delbuf_msg(new_name);	/* frees new_name */
 		goto theend;
 	    }
@@ -3926,7 +3937,7 @@ do_ecmd(
 		auto_buf = TRUE;
 	    else
 	    {
-		if (curbuf == old_curbuf)
+		if (curbuf == old_curbuf.br_buf)
 #endif
 		    buf_copy_options(buf, BCO_ENTER);
 
@@ -3951,8 +3962,9 @@ do_ecmd(
 		}
 # endif
 		/* Be careful again, like above. */
-		if (!buf_valid(buf))	/* new buffer has been deleted */
+		if (!bufref_valid(&au_new_curbuf))
 		{
+		    /* new buffer has been deleted */
 		    delbuf_msg(new_name);	/* frees new_name */
 		    goto theend;
 		}
@@ -3995,7 +4007,7 @@ do_ecmd(
 #ifdef FEAT_AUTOCMD
 	    }
 	    vim_free(new_name);
-	    au_new_curbuf = NULL;
+	    au_new_curbuf.br_buf = NULL;
 #endif
 	}
 
@@ -4071,6 +4083,7 @@ do_ecmd(
 	    new_name = vim_strsave(buf->b_fname);
 	else
 	    new_name = NULL;
+	set_bufref(&bufref, buf);
 #endif
 	if (p_ur < 0 || curbuf->b_ml.ml_line_count <= p_ur)
 	{
@@ -4091,7 +4104,7 @@ do_ecmd(
 #ifdef FEAT_AUTOCMD
 	/* If autocommands deleted the buffer we were going to re-edit, give
 	 * up and jump to the end. */
-	if (!buf_valid(buf))
+	if (!bufref_valid(&bufref))
 	{
 	    delbuf_msg(new_name);	/* frees new_name */
 	    goto theend;
@@ -4186,7 +4199,7 @@ do_ecmd(
 #if defined(HAS_SWAP_EXISTS_ACTION)
 	    if (swap_exists_action == SEA_QUIT)
 		retval = FAIL;
-	    handle_swap_exists(old_curbuf);
+	    handle_swap_exists(&old_curbuf);
 #endif
 	}
 #ifdef FEAT_AUTOCMD
@@ -4375,7 +4388,7 @@ delbuf_msg(char_u *name)
     EMSG2(_("E143: Autocommands unexpectedly deleted new buffer %s"),
 	    name == NULL ? (char_u *)"" : name);
     vim_free(name);
-    au_new_curbuf = NULL;
+    au_new_curbuf.br_buf = NULL;
 }
 #endif
 
