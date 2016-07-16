@@ -1207,6 +1207,9 @@
     // Store window frame and use it when exiting full-screen.
     preFullScreenFrame = [decoratedWindow frame];
 
+    // The separator should never be visible in fullscreen or split-screen.
+    [decoratedWindow hideTablineSeparator:YES];
+  
     // ASSUMPTION: fullScreenEnabled always reflects the state of Vim's 'fu'.
     if (!fullScreenEnabled) {
         ASLogDebug(@"Full-screen out of sync, tell Vim to set 'fu'");
@@ -1306,6 +1309,8 @@
         // full-screen by moving the window out from Split View.
         [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
     }
+  
+    [self updateTablineSeparator];
 }
 
 - (void)windowDidFailToExitFullScreen:(NSWindow *)window
