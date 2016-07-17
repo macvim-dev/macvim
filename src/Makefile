@@ -1501,6 +1501,7 @@ BASIC_SRC = \
 	charset.c \
 	crypt.c \
 	crypt_zip.c \
+	dict.c \
 	diff.c \
 	digraph.c \
 	edit.c \
@@ -1519,6 +1520,7 @@ BASIC_SRC = \
 	if_cscope.c \
 	if_xcmdsrv.c \
 	json.c \
+	list.c \
 	main.c \
 	mark.c \
 	memfile.c \
@@ -1575,9 +1577,11 @@ JSON_TEST_SRC = json_test.c
 JSON_TEST_TARGET = json_test$(EXEEXT)
 MEMFILE_TEST_SRC = memfile_test.c
 MEMFILE_TEST_TARGET = memfile_test$(EXEEXT)
+MESSAGE_TEST_SRC = message_test.c
+MESSAGE_TEST_TARGET = message_test$(EXEEXT)
 
-UNITTEST_SRC = $(JSON_TEST_SRC) $(MEMFILE_TEST_SRC)
-UNITTEST_TARGETS = $(JSON_TEST_TARGET) $(MEMFILE_TEST_TARGET)
+UNITTEST_SRC = $(JSON_TEST_SRC) $(MEMFILE_TEST_SRC) $(MESSAGE_TEST_SRC)
+UNITTEST_TARGETS = $(JSON_TEST_TARGET) $(MEMFILE_TEST_TARGET) $(MESSAGE_TEST_TARGET)
 
 # All sources, also the ones that are not configured
 ALL_SRC = $(BASIC_SRC) $(ALL_GUI_SRC) $(UNITTEST_SRC) $(EXTRA_SRC)
@@ -1600,6 +1604,7 @@ OBJ_COMMON = \
 	objects/charset.o \
 	objects/crypt.o \
 	objects/crypt_zip.o \
+	objects/dict.o \
 	objects/diff.o \
 	objects/digraph.o \
 	objects/edit.o \
@@ -1618,10 +1623,10 @@ OBJ_COMMON = \
 	$(HANGULIN_OBJ) \
 	objects/if_cscope.o \
 	objects/if_xcmdsrv.o \
+	objects/list.o \
 	objects/mark.o \
 	objects/memline.o \
 	objects/menu.o \
-	objects/message.o \
 	objects/misc1.o \
 	objects/misc2.o \
 	objects/move.o \
@@ -1659,18 +1664,27 @@ OBJ_COMMON = \
 	$(CHANNEL_OBJ) \
 	$(WSDEBUG_OBJ)
 
+# The files included by tests are not in OBJ_COMMON.
 OBJ = $(OBJ_COMMON) \
 	objects/json.o \
 	objects/main.o \
-	objects/memfile.o
+	objects/memfile.o \
+	objects/message.o
 
 JSON_TEST_OBJ = $(OBJ_COMMON) \
-	objects/json_test.o \
-	objects/memfile.o
+	objects/memfile.o \
+	objects/message.o \
+	objects/json_test.o
 
 MEMFILE_TEST_OBJ = $(OBJ_COMMON) \
 	objects/json.o \
+	objects/message.o \
 	objects/memfile_test.o
+
+MESSAGE_TEST_OBJ = $(OBJ_COMMON) \
+	objects/json.o \
+	objects/memfile.o \
+	objects/message_test.o
 
 PRO_AUTO = \
 	arabic.pro \
@@ -1679,6 +1693,7 @@ PRO_AUTO = \
 	charset.pro \
 	crypt.pro \
 	crypt_zip.pro \
+	dict.pro \
 	diff.pro \
 	digraph.pro \
 	edit.pro \
@@ -1703,6 +1718,7 @@ PRO_AUTO = \
 	if_ruby.pro \
 	if_xcmdsrv.pro \
 	json.pro \
+	list.pro \
 	main.pro \
 	mark.pro \
 	mbyte.pro \
@@ -1944,6 +1960,11 @@ types.vim: $(TAGS_SRC) $(TAGS_INCL)
 			{printf("%s ", $$1)}END{print ""}' > $@
 	echo "syn keyword Constant OK FAIL TRUE FALSE MAYBE" >> $@
 
+# TESTING
+#
+# Execute the test scripts and the unittests.
+test check: scripttests unittests
+
 # Execute the test scripts.  Run these after compiling Vim, before installing.
 # This doesn't depend on $(VIMTARGET), because that won't work when configure
 # wasn't run yet.  Restart make to build it instead.
@@ -1955,7 +1976,7 @@ types.vim: $(TAGS_SRC) $(TAGS_INCL)
 # If everything is alright, the final message will be "ALL DONE".  If not you
 # get "TEST FAILURE".
 #
-test check:
+scripttests:
 	$(MAKE) -f Makefile $(VIMTARGET)
 	if test -n "$(MAKEMO)" -a -f $(PODIR)/Makefile; then \
 		cd $(PODIR); $(MAKE) -f Makefile check VIM=../$(VIMTARGET); \
@@ -1964,7 +1985,7 @@ test check:
 		ln -s $(VIMTARGET) vim; \
 	fi
 	cd testdir; $(MAKE) -f Makefile $(GUI_TESTTARGET) VIMPROG=../$(VIMTARGET) $(GUI_TESTARG) SCRIPTSOURCE=../$(SCRIPTSOURCE)
-	$(MAKE) -f Makefile unittest
+
 
 # Run the tests with the GUI.  Assumes vim/gvim was already built
 testgui:
@@ -1976,6 +1997,7 @@ benchmark:
 unittesttargets:
 	$(MAKE) -f Makefile $(UNITTEST_TARGETS)
 
+# Execute the unittests one by one.
 unittest unittests: $(UNITTEST_TARGETS)
 	@for t in $(UNITTEST_TARGETS); do \
 		./$$t || exit 1; echo $$t passed; \
@@ -1986,6 +2008,9 @@ run_json_test: $(JSON_TEST_TARGET)
 
 run_memfile_test: $(MEMFILE_TEST_TARGET)
 	./$(MEMFILE_TEST_TARGET)
+
+run_message_test: $(MESSAGE_TEST_TARGET)
+	./$(MESSAGE_TEST_TARGET)
 
 # Run individual OLD style test, assuming that Vim was already compiled.
 test1 \
@@ -2039,6 +2064,7 @@ test_arglist \
 	test_cdo \
 	test_channel \
 	test_cmdline \
+	test_cscope \
 	test_cursor_func \
 	test_delete \
 	test_ex_undo \
@@ -2062,6 +2088,7 @@ test_arglist \
 	test_join \
 	test_json \
 	test_jumps \
+	test_lambda \
 	test_langmap \
 	test_largefile \
 	test_lispwords \
@@ -2071,6 +2098,7 @@ test_arglist \
 	test_matchstrpos \
 	test_menu \
 	test_messages \
+	test_netbeans \
 	test_packadd \
 	test_partial \
 	test_perl \
@@ -2134,6 +2162,13 @@ $(MEMFILE_TEST_TARGET): auto/config.mk objects $(MEMFILE_TEST_OBJ)
 	$(CCC) version.c -o objects/version.o
 	@LINK="$(PURIFY) $(SHRPENV) $(CClink) $(ALL_LIB_DIRS) $(LDFLAGS) \
 		-o $(MEMFILE_TEST_TARGET) $(MEMFILE_TEST_OBJ) $(ALL_LIBS)" \
+		MAKE="$(MAKE)" LINK_AS_NEEDED=$(LINK_AS_NEEDED) \
+		sh $(srcdir)/link.sh
+
+$(MESSAGE_TEST_TARGET): auto/config.mk objects $(MESSAGE_TEST_OBJ)
+	$(CCC) version.c -o objects/version.o
+	@LINK="$(PURIFY) $(SHRPENV) $(CClink) $(ALL_LIB_DIRS) $(LDFLAGS) \
+		-o $(MESSAGE_TEST_TARGET) $(MESSAGE_TEST_OBJ) $(ALL_LIBS)" \
 		MAKE="$(MAKE)" LINK_AS_NEEDED=$(LINK_AS_NEEDED) \
 		sh $(srcdir)/link.sh
 
@@ -2800,6 +2835,9 @@ objects/crypt.o: crypt.c
 objects/crypt_zip.o: crypt_zip.c
 	$(CCC) -o $@ crypt_zip.c
 
+objects/dict.o: dict.c
+	$(CCC) -o $@ dict.c
+
 objects/diff.o: diff.c
 	$(CCC) -o $@ diff.c
 
@@ -2943,6 +2981,9 @@ objects/json.o: json.c
 objects/json_test.o: json_test.c
 	$(CCC) -o $@ json_test.c
 
+objects/list.o: list.c
+	$(CCC) -o $@ list.c
+
 objects/main.o: main.c
 	$(CCC) -o $@ main.c
 
@@ -2963,6 +3004,9 @@ objects/menu.o: menu.c
 
 objects/message.o: message.c
 	$(CCC) -o $@ message.c
+
+objects/message_test.o: message_test.c
+	$(CCC) -o $@ message_test.c
 
 objects/misc1.o: misc1.c
 	$(CCC) -o $@ misc1.c
@@ -3209,6 +3253,10 @@ objects/crypt_zip.o: crypt_zip.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \
  globals.h farsi.h arabic.h
+objects/dict.o: dict.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
+ farsi.h arabic.h
 objects/diff.o: diff.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
@@ -3278,6 +3326,10 @@ objects/if_xcmdsrv.o: if_xcmdsrv.c vim.h auto/config.h feature.h os_unix.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \
  globals.h farsi.h arabic.h version.h
 objects/json.o: json.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
+ farsi.h arabic.h
+objects/list.o: list.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
  farsi.h arabic.h
@@ -3482,6 +3534,10 @@ objects/memfile_test.o: memfile_test.c main.c vim.h auto/config.h feature.h \
  os_unix.h auto/osdef.h ascii.h keymap.h term.h macros.h option.h \
  structs.h regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h \
  ex_cmds.h proto.h globals.h farsi.h arabic.h memfile.c
+objects/message_test.o: message_test.c main.c vim.h auto/config.h feature.h \
+ os_unix.h auto/osdef.h ascii.h keymap.h term.h macros.h option.h \
+ structs.h regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h \
+ ex_cmds.h proto.h globals.h farsi.h arabic.h message.c
 objects/hangulin.o: hangulin.c vim.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h structs.h \
  regexp.h gui.h gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h \

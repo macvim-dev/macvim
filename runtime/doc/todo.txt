@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 7.4.  Last change: 2016 Jul 09
+*todo.txt*      For Vim version 7.4.  Last change: 2016 Jul 17
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -34,14 +34,7 @@ not be repeated below, unless there is extra information.
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-Problem with setqflist([]): grep 4 times, ":colder 3", setqflist([]) will
-clear the next list, not the current one.  Ramel Eshed, Jun 8.
-
 +channel:
-- GUI cursor blinking interrupted when the job output goes to a buffer that is
-  in a window. (Ramel Eshed, 2016 Jun 9)
-- GUI cursor blinking interrupted when there is a status line.  (Ramel Eshed,
-  2016 Jun 9)
 - When a message in the queue but there is no callback, drop it after a while?
   Add timestamp to queued messages and callbacks with ID, remove after a
   minute.  Option to set the droptime.
@@ -56,16 +49,18 @@ Later
 - job_start(): run job in a newly opened terminal.
     With xterm could use -S{pty}.
 
+Quickfix refactoring. (Yegappan Lakshmanan,)
+
 Quickfix improvements for background building and grepping:
 - Add a command modifier ":usefname" to quickfix commands and functions to
   keep a file name as a string and not create a buffer for it? To avoid
   creating lots of buffers. (Ramel Eshed)
   Store the relative file name and set a flag "qf_relative".  Before changing
   directory turn them into full paths.
+  When using getqflist() or getloclist() we need to get the bufnr for other
+  plugins.  Add a flag to not do that.
 
 Regexp problems:
-- When using automatic engine selection there is a false match.  Forcing
-  either engine works OK. (fritzophrenic, 2016 Jun 15, #867)
 - Since 7.4.704 the old regex engine fails to match [[:print:]] in 0xf6.
   (Manuel Ortega, 2016 Apr 24)
   Test fails on Mac.  Avoid using isalpha(), isalnum(), etc?  Depends on
@@ -120,13 +115,9 @@ What if there is an invalid character?
 Should json_encode()/json_decode() restrict recursiveness?
 Or avoid recursiveness.
 
-Add a lambda() function.
-Patch by Yasuhiro Matsumoto, 2014 Sep 16, update 2016 Apr 17.
-Correction for test, Ken Takata, 2016 May 27.
-Merged patch: Ken Takata, 2016 Jun 15.
-Need to separate-out closure and lambda somehow.
-Define lambda directly, not as a string: {v -> v * 8}
-Lambda implementation by Ken Takata, 2016 Jul 7.
+Also use funcref for substitute, instead of \=.
+
+Patch to define v:t_number etc. (Ken Takata, 2016 Jul 15)
 
 Python: Extended funcrefs: use func_T* structure in place of char_u* function
 names.
@@ -152,23 +143,19 @@ Invalid behavior with NULL list. (Nikolai Pavlov, #768)
 For current Windows build .pdb file is missing. (Gabriele Fava, 2016 May 11)
 5)
 
-'completeopt' noinsert breaks redo register (Shougo, 2016 Jun 18, #874)
-Patch to fix this: #905.
-There also is #875 to fix another problem?
+Support closure for lambda?  Ken Takata is working on it.
 
 Problem with whitespace in errorformat. (Gerd Wachsmuth, 2016 May 15, #807)
 
-":caddexpr" should keep state, so that directory changes can be respected.
-(Luc Hermitte, 2016 Jun 6)
-Don't clear dir_stack and file_stack when returning, do it on entry when not
-adding iterms.  And keep them in qf_list_T.
+Patch to allow setting w:quickfix_title via setqflist() and setloclist()
+functions. (Christian Brabandt, 2013 May 8, update May 21)
+Patch to add getlocstack() / setlocstack(). (Christian Brabandt, 2013 May 14)
+Second one. Update May 22.
+Update by Daniel Hahler, 2014 Jul 4, Aug 14, Oct 14, Oct 15.
 
 Patch to add filtering of the quickfix list. (Yegappan Lakshmanan, 2016 Mar
 13, last version)  Update June 26, #830.
-
-When 'autochdir' is set, writing  new file does not change the current dir.
-(Dan Church, issue #777)
-Patch to fix this. (mister fish (Allen Haim), 2016 May 14, #803)
+Instead use a Vim script implementation, invoked from a Vim command.
 
 ml_get errors when reloading file. (Chris Desjardins, 2016 Apr 19)
 Also with latest version.
@@ -183,12 +170,19 @@ Cannot delete a file with square brackets with delete(). (#696)
 
 No autocommand for when changing directory.  Patch from allen haim, 2016 Jun
 27, #888
+Justin M Keyes: use "global" or "window" for the pattern.  Can add "tab"
+later.
+
+MS-Windows: use WS_HIDE instead of SW_SHOWMINNOACTIVE in os_win32.c?
+Otherwise task flickers in taskbar.
 
 Should make ":@r" handle line continuation. (Cesar Romani, 2016 Jun 26)
 Also for ":@.".
 
 Patch to add TabNew, TabNewEntered and TabClosed autocommand events.
 (Felipe Morales, 2015 Feb 1)
+
+Repeating 'opfunc' in a function only works once. (Tarmean, 2016 Jul 15, #925)
 
 Patch on issue #728 by Christian Brabandt, 2016 Apr 7.  Update with test: Apr 8.
 Explanation Apr 12.
@@ -202,6 +196,9 @@ Patch for C syntax HL. (Bradley Garagan, 2016 Apr 17) #763
 
 Patch to make matchit work better, respect 'matchpairs'. (Ken Takata, 2016 Mar
 25)
+
+This does not work: :set cscopequickfix=a-
+(Linewi, 2015 Jul 12, #914)
 
 Possibly wrong value for seq_cur. (Florent Fayolle, 2016 May 15, #806)
 
@@ -558,12 +555,6 @@ Wrong scrolling when using incsearch.  Patch by Christian Brabandt, 2014 Dec 4.
 Is this a good solution?
 
 Patch to add /pattern/ to :oldfiles.  Pull #575.
-
-Patch to allow setting w:quickfix_title via setqflist() and setloclist()
-functions. (Christian Brabandt, 2013 May 8, update May 21)
-Patch to add getlocstack() / setlocstack(). (Christian Brabandt, 2013 May 14)
-Second one. Update May 22.
-Update by Daniel Hahler, 2014 Jul 4, Aug 14, Oct 14, Oct 15.
 
 Patch: Let rare word highlighting overrule good word highlighting.
 (Jakson A. Aquino, 2010 Jul 30, again 2011 Jul 2)
@@ -3847,7 +3838,7 @@ Vim script language:
 8   Pass the command line arguments to Vim scripts in some way.  As v:args
     List?  Or extra parameter to argv()?
 8   Add command arguments with three dashes, passed on to Vim scripts.
-7   Add optional arguments to user functions:
+9   Add optional arguments to user functions:
 	:func myFunc(arg1, arg2, arg3 = "blah", arg4 = 17)
 6   User functions: Functions local to buffer "b:func()"?
 8   For Strings add ":let var[{expr}] = {expr}".  When past the end of "var"

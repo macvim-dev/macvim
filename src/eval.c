@@ -34,18 +34,6 @@
 				   be freed. */
 
 /*
- * In a hashtab item "hi_key" points to "di_key" in a dictitem.
- * This avoids adding a pointer to the hashtab item.
- * DI2HIKEY() converts a dictitem pointer to a hashitem key pointer.
- * HIKEY2DI() converts a hashitem key pointer to a dictitem pointer.
- * HI2DI() converts a hashitem pointer to a dictitem pointer.
- */
-static dictitem_T dumdi;
-#define DI2HIKEY(di) ((di)->di_key)
-#define HIKEY2DI(p)  ((dictitem_T *)(p - (dumdi.di_key - (char_u *)&dumdi)))
-#define HI2DI(hi)     HIKEY2DI((hi)->hi_key)
-
-/*
  * Structure returned by get_lval() and used by set_var_lval().
  * For a plain name:
  *	"name"	    points to the variable name.
@@ -91,13 +79,11 @@ typedef struct lval_S
 } lval_T;
 
 static char *e_letunexp	= N_("E18: Unexpected characters in :let");
-static char *e_listidx = N_("E684: list index out of range: %ld");
 static char *e_undefvar = N_("E121: Undefined variable: %s");
 static char *e_missbrac = N_("E111: Missing ']'");
 static char *e_listarg = N_("E686: Argument of %s must be a List");
 static char *e_listdictarg = N_("E712: Argument of %s must be a List or Dictionary");
 static char *e_listreq = N_("E714: List required");
-static char *e_dictreq = N_("E715: Dictionary required");
 #ifdef FEAT_QUICKFIX
 static char *e_stringreq = N_("E928: String required");
 #endif
@@ -131,11 +117,6 @@ static hashtab_T	compat_hashtab;
  * The last bit is used for previous_funccal, ignored when comparing.
  */
 static int current_copyID = 0;
-#define COPYID_INC 2
-#define COPYID_MASK (~0x1)
-
-/* Abort conversion to string after a recursion error. */
-static int  did_echo_string_emsg = FALSE;
 
 /*
  * Array to hold the hashtab with variables local to each sourced script.
@@ -211,12 +192,6 @@ static hashtab_T	func_hashtab;
 
 /* The names of packages that once were loaded are remembered. */
 static garray_T		ga_loaded = {0, 0, sizeof(char_u *), 4, NULL};
-
-/* List heads for garbage collection. Although there can be a reference loop
- * from partial to dict to partial, we don't need to keep track of the partial,
- * since it will get freed when the dict is unused and gets freed. */
-static dict_T		*first_dict = NULL;	/* list of all dicts */
-static list_T		*first_list = NULL;	/* list of all lists */
 
 /* From user function to hashitem and back. */
 static ufunc_T dumuf;
@@ -415,7 +390,6 @@ static char_u *get_lval(char_u *name, typval_T *rettv, lval_T *lp, int unlet, in
 static void clear_lval(lval_T *lp);
 static void set_var_lval(lval_T *lp, char_u *endp, typval_T *rettv, int copy, char_u *op);
 static int tv_op(typval_T *tv1, typval_T *tv2, char_u  *op);
-static void list_fix_watch(list_T *l, listitem_T *item);
 static void ex_unletlock(exarg_T *eap, char_u *argstart, int deep);
 static int do_unlet_var(lval_T *lp, char_u *name_end, int forceit);
 static int do_lock_var(lval_T *lp, char_u *name_end, int deep, int lock);
@@ -423,7 +397,6 @@ static void item_lock(typval_T *tv, int deep, int lock);
 static int tv_islocked(typval_T *tv);
 
 static int eval0(char_u *arg,  typval_T *rettv, char_u **nextcmd, int evaluate);
-static int eval1(char_u **arg, typval_T *rettv, int evaluate);
 static int eval2(char_u **arg, typval_T *rettv, int evaluate);
 static int eval3(char_u **arg, typval_T *rettv, int evaluate);
 static int eval4(char_u **arg, typval_T *rettv, int evaluate);
@@ -435,40 +408,16 @@ static int eval_index(char_u **arg, typval_T *rettv, int evaluate, int verbose);
 static int get_option_tv(char_u **arg, typval_T *rettv, int evaluate);
 static int get_string_tv(char_u **arg, typval_T *rettv, int evaluate);
 static int get_lit_string_tv(char_u **arg, typval_T *rettv, int evaluate);
-static int get_list_tv(char_u **arg, typval_T *rettv, int evaluate);
-static void list_free_contents(list_T  *l);
-static void list_free_list(list_T  *l);
-static long list_len(list_T *l);
-static int list_equal(list_T *l1, list_T *l2, int ic, int recursive);
-static int dict_equal(dict_T *d1, dict_T *d2, int ic, int recursive);
-static int tv_equal(typval_T *tv1, typval_T *tv2, int ic, int recursive);
-static long list_find_nr(list_T *l, long idx, int *errorp);
-static long list_idx_of_item(list_T *l, listitem_T *item);
-static int list_extend(list_T	*l1, list_T *l2, listitem_T *bef);
-static int list_concat(list_T *l1, list_T *l2, typval_T *tv);
-static list_T *list_copy(list_T *orig, int deep, int copyID);
-static char_u *list2string(typval_T *tv, int copyID, int restore_copyID);
-static int list_join_inner(garray_T *gap, list_T *l, char_u *sep, int echo_style, int restore_copyID, int copyID, garray_T *join_gap);
-static int list_join(garray_T *gap, list_T *l, char_u *sep, int echo_style, int restore_copyID, int copyID);
 static int free_unref_items(int copyID);
-static dictitem_T *dictitem_copy(dictitem_T *org);
-static void dictitem_remove(dict_T *dict, dictitem_T *item);
-static dict_T *dict_copy(dict_T *orig, int deep, int copyID);
-static long dict_len(dict_T *d);
-static char_u *dict2string(typval_T *tv, int copyID, int restore_copyID);
-static int get_dict_tv(char_u **arg, typval_T *rettv, int evaluate);
-static char_u *echo_string_core(typval_T *tv, char_u **tofree, char_u *numbuf, int copyID, int echo_style, int restore_copyID, int dict_val);
+static int get_function_args(char_u **argp, char_u endchar, garray_T *newargs, int *varargs, int skip);
+static int get_lambda_tv(char_u **arg, typval_T *rettv, int evaluate);
 static char_u *echo_string(typval_T *tv, char_u **tofree, char_u *numbuf, int copyID);
-static char_u *string_quote(char_u *str, int function);
 static int get_env_tv(char_u **arg, typval_T *rettv, int evaluate);
 static int find_internal_func(char_u *name);
 static char_u *deref_func_name(char_u *name, int *lenp, partial_T **partial, int no_autoload);
 static int get_func_tv(char_u *name, int len, typval_T *rettv, char_u **arg, linenr_T firstline, linenr_T lastline, int *doesrange, int evaluate, partial_T *partial, dict_T *selfdict);
 static void emsg_funcname(char *ermsg, char_u *name);
 static int non_zero_arg(typval_T *argvars);
-
-static void dict_free_contents(dict_T *d);
-static void dict_free_dict(dict_T *d);
 
 #ifdef FEAT_FLOAT
 static void f_abs(typval_T *argvars, typval_T *rettv);
@@ -896,12 +845,7 @@ static void delete_var(hashtab_T *ht, hashitem_T *hi);
 static void list_one_var(dictitem_T *v, char_u *prefix, int *first);
 static void list_one_var_a(char_u *prefix, char_u *name, int type, char_u *string, int *first);
 static void set_var(char_u *name, typval_T *varp, int copy);
-static int var_check_ro(int flags, char_u *name, int use_gettext);
 static int var_check_fixed(int flags, char_u *name, int use_gettext);
-static int var_check_func_name(char_u *name, int new_var);
-static int valid_varname(char_u *varname);
-static int tv_check_lock(int lock, char_u *name, int use_gettext);
-static int item_copy(typval_T *from, typval_T *to, int deep, int copyID);
 static char_u *find_option_end(char_u **arg, int *opt_flags);
 static char_u *trans_function_name(char_u **pp, int skip, int flags, funcdict_T *fd, partial_T **partial);
 static int eval_fname_script(char_u *p);
@@ -3233,51 +3177,6 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 }
 
 /*
- * Add a watcher to a list.
- */
-    void
-list_add_watch(list_T *l, listwatch_T *lw)
-{
-    lw->lw_next = l->lv_watch;
-    l->lv_watch = lw;
-}
-
-/*
- * Remove a watcher from a list.
- * No warning when it isn't found...
- */
-    void
-list_rem_watch(list_T *l, listwatch_T *lwrem)
-{
-    listwatch_T	*lw, **lwp;
-
-    lwp = &l->lv_watch;
-    for (lw = l->lv_watch; lw != NULL; lw = lw->lw_next)
-    {
-	if (lw == lwrem)
-	{
-	    *lwp = lw->lw_next;
-	    break;
-	}
-	lwp = &lw->lw_next;
-    }
-}
-
-/*
- * Just before removing an item from a list: advance watchers to the next
- * item.
- */
-    static void
-list_fix_watch(list_T *l, listitem_T *item)
-{
-    listwatch_T	*lw;
-
-    for (lw = l->lv_watch; lw != NULL; lw = lw->lw_next)
-	if (lw->lw_item == item)
-	    lw->lw_item = item->li_next;
-}
-
-/*
  * Evaluate the expression used in a ":for var in expr" command.
  * "arg" points to "var".
  * Set "*errp" to TRUE for an error, FALSE otherwise;
@@ -4258,7 +4157,7 @@ eval0(
  *
  * Return OK or FAIL.
  */
-    static int
+    int
 eval1(char_u **arg, typval_T *rettv, int evaluate)
 {
     int		result;
@@ -5261,9 +5160,12 @@ eval7(
 		break;
 
     /*
+     * Lambda: {arg, arg -> expr}
      * Dictionary: {key: val, key: val}
      */
-    case '{':	ret = get_dict_tv(arg, rettv, evaluate);
+    case '{':	ret = get_lambda_tv(arg, rettv, evaluate);
+		if (ret == NOTDONE)
+		    ret = get_dict_tv(arg, rettv, evaluate);
 		break;
 
     /*
@@ -6026,282 +5928,6 @@ partial_unref(partial_T *pt)
 	partial_free(pt);
 }
 
-/*
- * Allocate a variable for a List and fill it from "*arg".
- * Return OK or FAIL.
- */
-    static int
-get_list_tv(char_u **arg, typval_T *rettv, int evaluate)
-{
-    list_T	*l = NULL;
-    typval_T	tv;
-    listitem_T	*item;
-
-    if (evaluate)
-    {
-	l = list_alloc();
-	if (l == NULL)
-	    return FAIL;
-    }
-
-    *arg = skipwhite(*arg + 1);
-    while (**arg != ']' && **arg != NUL)
-    {
-	if (eval1(arg, &tv, evaluate) == FAIL)	/* recursive! */
-	    goto failret;
-	if (evaluate)
-	{
-	    item = listitem_alloc();
-	    if (item != NULL)
-	    {
-		item->li_tv = tv;
-		item->li_tv.v_lock = 0;
-		list_append(l, item);
-	    }
-	    else
-		clear_tv(&tv);
-	}
-
-	if (**arg == ']')
-	    break;
-	if (**arg != ',')
-	{
-	    EMSG2(_("E696: Missing comma in List: %s"), *arg);
-	    goto failret;
-	}
-	*arg = skipwhite(*arg + 1);
-    }
-
-    if (**arg != ']')
-    {
-	EMSG2(_("E697: Missing end of List ']': %s"), *arg);
-failret:
-	if (evaluate)
-	    list_free(l);
-	return FAIL;
-    }
-
-    *arg = skipwhite(*arg + 1);
-    if (evaluate)
-    {
-	rettv->v_type = VAR_LIST;
-	rettv->vval.v_list = l;
-	++l->lv_refcount;
-    }
-
-    return OK;
-}
-
-/*
- * Allocate an empty header for a list.
- * Caller should take care of the reference count.
- */
-    list_T *
-list_alloc(void)
-{
-    list_T  *l;
-
-    l = (list_T *)alloc_clear(sizeof(list_T));
-    if (l != NULL)
-    {
-	/* Prepend the list to the list of lists for garbage collection. */
-	if (first_list != NULL)
-	    first_list->lv_used_prev = l;
-	l->lv_used_prev = NULL;
-	l->lv_used_next = first_list;
-	first_list = l;
-    }
-    return l;
-}
-
-/*
- * Allocate an empty list for a return value, with reference count set.
- * Returns OK or FAIL.
- */
-    int
-rettv_list_alloc(typval_T *rettv)
-{
-    list_T	*l = list_alloc();
-
-    if (l == NULL)
-	return FAIL;
-
-    rettv->vval.v_list = l;
-    rettv->v_type = VAR_LIST;
-    rettv->v_lock = 0;
-    ++l->lv_refcount;
-    return OK;
-}
-
-/*
- * Unreference a list: decrement the reference count and free it when it
- * becomes zero.
- */
-    void
-list_unref(list_T *l)
-{
-    if (l != NULL && --l->lv_refcount <= 0)
-	list_free(l);
-}
-
-/*
- * Free a list, including all non-container items it points to.
- * Ignores the reference count.
- */
-    static void
-list_free_contents(list_T  *l)
-{
-    listitem_T *item;
-
-    for (item = l->lv_first; item != NULL; item = l->lv_first)
-    {
-	/* Remove the item before deleting it. */
-	l->lv_first = item->li_next;
-	clear_tv(&item->li_tv);
-	vim_free(item);
-    }
-}
-
-    static void
-list_free_list(list_T  *l)
-{
-    /* Remove the list from the list of lists for garbage collection. */
-    if (l->lv_used_prev == NULL)
-	first_list = l->lv_used_next;
-    else
-	l->lv_used_prev->lv_used_next = l->lv_used_next;
-    if (l->lv_used_next != NULL)
-	l->lv_used_next->lv_used_prev = l->lv_used_prev;
-
-    vim_free(l);
-}
-
-    void
-list_free(list_T *l)
-{
-    if (!in_free_unref_items)
-    {
-	list_free_contents(l);
-	list_free_list(l);
-    }
-}
-
-/*
- * Allocate a list item.
- * It is not initialized, don't forget to set v_lock.
- */
-    listitem_T *
-listitem_alloc(void)
-{
-    return (listitem_T *)alloc(sizeof(listitem_T));
-}
-
-/*
- * Free a list item.  Also clears the value.  Does not notify watchers.
- */
-    void
-listitem_free(listitem_T *item)
-{
-    clear_tv(&item->li_tv);
-    vim_free(item);
-}
-
-/*
- * Remove a list item from a List and free it.  Also clears the value.
- */
-    void
-listitem_remove(list_T *l, listitem_T *item)
-{
-    vimlist_remove(l, item, item);
-    listitem_free(item);
-}
-
-/*
- * Get the number of items in a list.
- */
-    static long
-list_len(list_T *l)
-{
-    if (l == NULL)
-	return 0L;
-    return l->lv_len;
-}
-
-/*
- * Return TRUE when two lists have exactly the same values.
- */
-    static int
-list_equal(
-    list_T	*l1,
-    list_T	*l2,
-    int		ic,	/* ignore case for strings */
-    int		recursive)  /* TRUE when used recursively */
-{
-    listitem_T	*item1, *item2;
-
-    if (l1 == NULL || l2 == NULL)
-	return FALSE;
-    if (l1 == l2)
-	return TRUE;
-    if (list_len(l1) != list_len(l2))
-	return FALSE;
-
-    for (item1 = l1->lv_first, item2 = l2->lv_first;
-	    item1 != NULL && item2 != NULL;
-			       item1 = item1->li_next, item2 = item2->li_next)
-	if (!tv_equal(&item1->li_tv, &item2->li_tv, ic, recursive))
-	    return FALSE;
-    return item1 == NULL && item2 == NULL;
-}
-
-/*
- * Return the dictitem that an entry in a hashtable points to.
- */
-    dictitem_T *
-dict_lookup(hashitem_T *hi)
-{
-    return HI2DI(hi);
-}
-
-/*
- * Return TRUE when two dictionaries have exactly the same key/values.
- */
-    static int
-dict_equal(
-    dict_T	*d1,
-    dict_T	*d2,
-    int		ic,	/* ignore case for strings */
-    int		recursive) /* TRUE when used recursively */
-{
-    hashitem_T	*hi;
-    dictitem_T	*item2;
-    int		todo;
-
-    if (d1 == NULL && d2 == NULL)
-	return TRUE;
-    if (d1 == NULL || d2 == NULL)
-	return FALSE;
-    if (d1 == d2)
-	return TRUE;
-    if (dict_len(d1) != dict_len(d2))
-	return FALSE;
-
-    todo = (int)d1->dv_hashtab.ht_used;
-    for (hi = d1->dv_hashtab.ht_array; todo > 0; ++hi)
-    {
-	if (!HASHITEM_EMPTY(hi))
-	{
-	    item2 = dict_find(d2, hi->hi_key, -1);
-	    if (item2 == NULL)
-		return FALSE;
-	    if (!tv_equal(&HI2DI(hi)->di_tv, &item2->di_tv, ic, recursive))
-		return FALSE;
-	    --todo;
-	}
-    }
-    return TRUE;
-}
-
 static int tv_equal_recurse_limit;
 
     static int
@@ -6361,7 +5987,7 @@ func_equal(
  * Compares the items just like "==" would compare them, but strings and
  * numbers are different.  Floats and numbers are also different.
  */
-    static int
+    int
 tv_equal(
     typval_T *tv1,
     typval_T *tv2,
@@ -6449,556 +6075,6 @@ tv_equal(
     /* VAR_UNKNOWN can be the result of a invalid expression, let's say it
      * does not equal anything, not even itself. */
     return FALSE;
-}
-
-/*
- * Locate item with index "n" in list "l" and return it.
- * A negative index is counted from the end; -1 is the last item.
- * Returns NULL when "n" is out of range.
- */
-    listitem_T *
-list_find(list_T *l, long n)
-{
-    listitem_T	*item;
-    long	idx;
-
-    if (l == NULL)
-	return NULL;
-
-    /* Negative index is relative to the end. */
-    if (n < 0)
-	n = l->lv_len + n;
-
-    /* Check for index out of range. */
-    if (n < 0 || n >= l->lv_len)
-	return NULL;
-
-    /* When there is a cached index may start search from there. */
-    if (l->lv_idx_item != NULL)
-    {
-	if (n < l->lv_idx / 2)
-	{
-	    /* closest to the start of the list */
-	    item = l->lv_first;
-	    idx = 0;
-	}
-	else if (n > (l->lv_idx + l->lv_len) / 2)
-	{
-	    /* closest to the end of the list */
-	    item = l->lv_last;
-	    idx = l->lv_len - 1;
-	}
-	else
-	{
-	    /* closest to the cached index */
-	    item = l->lv_idx_item;
-	    idx = l->lv_idx;
-	}
-    }
-    else
-    {
-	if (n < l->lv_len / 2)
-	{
-	    /* closest to the start of the list */
-	    item = l->lv_first;
-	    idx = 0;
-	}
-	else
-	{
-	    /* closest to the end of the list */
-	    item = l->lv_last;
-	    idx = l->lv_len - 1;
-	}
-    }
-
-    while (n > idx)
-    {
-	/* search forward */
-	item = item->li_next;
-	++idx;
-    }
-    while (n < idx)
-    {
-	/* search backward */
-	item = item->li_prev;
-	--idx;
-    }
-
-    /* cache the used index */
-    l->lv_idx = idx;
-    l->lv_idx_item = item;
-
-    return item;
-}
-
-/*
- * Get list item "l[idx]" as a number.
- */
-    static long
-list_find_nr(
-    list_T	*l,
-    long	idx,
-    int		*errorp)	/* set to TRUE when something wrong */
-{
-    listitem_T	*li;
-
-    li = list_find(l, idx);
-    if (li == NULL)
-    {
-	if (errorp != NULL)
-	    *errorp = TRUE;
-	return -1L;
-    }
-    return (long)get_tv_number_chk(&li->li_tv, errorp);
-}
-
-/*
- * Get list item "l[idx - 1]" as a string.  Returns NULL for failure.
- */
-    char_u *
-list_find_str(list_T *l, long idx)
-{
-    listitem_T	*li;
-
-    li = list_find(l, idx - 1);
-    if (li == NULL)
-    {
-	EMSGN(_(e_listidx), idx);
-	return NULL;
-    }
-    return get_tv_string(&li->li_tv);
-}
-
-/*
- * Locate "item" list "l" and return its index.
- * Returns -1 when "item" is not in the list.
- */
-    static long
-list_idx_of_item(list_T *l, listitem_T *item)
-{
-    long	idx = 0;
-    listitem_T	*li;
-
-    if (l == NULL)
-	return -1;
-    idx = 0;
-    for (li = l->lv_first; li != NULL && li != item; li = li->li_next)
-	++idx;
-    if (li == NULL)
-	return -1;
-    return idx;
-}
-
-/*
- * Append item "item" to the end of list "l".
- */
-    void
-list_append(list_T *l, listitem_T *item)
-{
-    if (l->lv_last == NULL)
-    {
-	/* empty list */
-	l->lv_first = item;
-	l->lv_last = item;
-	item->li_prev = NULL;
-    }
-    else
-    {
-	l->lv_last->li_next = item;
-	item->li_prev = l->lv_last;
-	l->lv_last = item;
-    }
-    ++l->lv_len;
-    item->li_next = NULL;
-}
-
-/*
- * Append typval_T "tv" to the end of list "l".
- * Return FAIL when out of memory.
- */
-    int
-list_append_tv(list_T *l, typval_T *tv)
-{
-    listitem_T	*li = listitem_alloc();
-
-    if (li == NULL)
-	return FAIL;
-    copy_tv(tv, &li->li_tv);
-    list_append(l, li);
-    return OK;
-}
-
-/*
- * Add a dictionary to a list.  Used by getqflist().
- * Return FAIL when out of memory.
- */
-    int
-list_append_dict(list_T *list, dict_T *dict)
-{
-    listitem_T	*li = listitem_alloc();
-
-    if (li == NULL)
-	return FAIL;
-    li->li_tv.v_type = VAR_DICT;
-    li->li_tv.v_lock = 0;
-    li->li_tv.vval.v_dict = dict;
-    list_append(list, li);
-    ++dict->dv_refcount;
-    return OK;
-}
-
-/*
- * Make a copy of "str" and append it as an item to list "l".
- * When "len" >= 0 use "str[len]".
- * Returns FAIL when out of memory.
- */
-    int
-list_append_string(list_T *l, char_u *str, int len)
-{
-    listitem_T *li = listitem_alloc();
-
-    if (li == NULL)
-	return FAIL;
-    list_append(l, li);
-    li->li_tv.v_type = VAR_STRING;
-    li->li_tv.v_lock = 0;
-    if (str == NULL)
-	li->li_tv.vval.v_string = NULL;
-    else if ((li->li_tv.vval.v_string = (len >= 0 ? vim_strnsave(str, len)
-						 : vim_strsave(str))) == NULL)
-	return FAIL;
-    return OK;
-}
-
-/*
- * Append "n" to list "l".
- * Returns FAIL when out of memory.
- */
-    int
-list_append_number(list_T *l, varnumber_T n)
-{
-    listitem_T	*li;
-
-    li = listitem_alloc();
-    if (li == NULL)
-	return FAIL;
-    li->li_tv.v_type = VAR_NUMBER;
-    li->li_tv.v_lock = 0;
-    li->li_tv.vval.v_number = n;
-    list_append(l, li);
-    return OK;
-}
-
-/*
- * Insert typval_T "tv" in list "l" before "item".
- * If "item" is NULL append at the end.
- * Return FAIL when out of memory.
- */
-    int
-list_insert_tv(list_T *l, typval_T *tv, listitem_T *item)
-{
-    listitem_T	*ni = listitem_alloc();
-
-    if (ni == NULL)
-	return FAIL;
-    copy_tv(tv, &ni->li_tv);
-    list_insert(l, ni, item);
-    return OK;
-}
-
-    void
-list_insert(list_T *l, listitem_T *ni, listitem_T *item)
-{
-    if (item == NULL)
-	/* Append new item at end of list. */
-	list_append(l, ni);
-    else
-    {
-	/* Insert new item before existing item. */
-	ni->li_prev = item->li_prev;
-	ni->li_next = item;
-	if (item->li_prev == NULL)
-	{
-	    l->lv_first = ni;
-	    ++l->lv_idx;
-	}
-	else
-	{
-	    item->li_prev->li_next = ni;
-	    l->lv_idx_item = NULL;
-	}
-	item->li_prev = ni;
-	++l->lv_len;
-    }
-}
-
-/*
- * Extend "l1" with "l2".
- * If "bef" is NULL append at the end, otherwise insert before this item.
- * Returns FAIL when out of memory.
- */
-    static int
-list_extend(list_T *l1, list_T *l2, listitem_T *bef)
-{
-    listitem_T	*item;
-    int		todo = l2->lv_len;
-
-    /* We also quit the loop when we have inserted the original item count of
-     * the list, avoid a hang when we extend a list with itself. */
-    for (item = l2->lv_first; item != NULL && --todo >= 0; item = item->li_next)
-	if (list_insert_tv(l1, &item->li_tv, bef) == FAIL)
-	    return FAIL;
-    return OK;
-}
-
-/*
- * Concatenate lists "l1" and "l2" into a new list, stored in "tv".
- * Return FAIL when out of memory.
- */
-    static int
-list_concat(list_T *l1, list_T *l2, typval_T *tv)
-{
-    list_T	*l;
-
-    if (l1 == NULL || l2 == NULL)
-	return FAIL;
-
-    /* make a copy of the first list. */
-    l = list_copy(l1, FALSE, 0);
-    if (l == NULL)
-	return FAIL;
-    tv->v_type = VAR_LIST;
-    tv->vval.v_list = l;
-
-    /* append all items from the second list */
-    return list_extend(l, l2, NULL);
-}
-
-/*
- * Make a copy of list "orig".  Shallow if "deep" is FALSE.
- * The refcount of the new list is set to 1.
- * See item_copy() for "copyID".
- * Returns NULL when out of memory.
- */
-    static list_T *
-list_copy(list_T *orig, int deep, int copyID)
-{
-    list_T	*copy;
-    listitem_T	*item;
-    listitem_T	*ni;
-
-    if (orig == NULL)
-	return NULL;
-
-    copy = list_alloc();
-    if (copy != NULL)
-    {
-	if (copyID != 0)
-	{
-	    /* Do this before adding the items, because one of the items may
-	     * refer back to this list. */
-	    orig->lv_copyID = copyID;
-	    orig->lv_copylist = copy;
-	}
-	for (item = orig->lv_first; item != NULL && !got_int;
-							 item = item->li_next)
-	{
-	    ni = listitem_alloc();
-	    if (ni == NULL)
-		break;
-	    if (deep)
-	    {
-		if (item_copy(&item->li_tv, &ni->li_tv, deep, copyID) == FAIL)
-		{
-		    vim_free(ni);
-		    break;
-		}
-	    }
-	    else
-		copy_tv(&item->li_tv, &ni->li_tv);
-	    list_append(copy, ni);
-	}
-	++copy->lv_refcount;
-	if (item != NULL)
-	{
-	    list_unref(copy);
-	    copy = NULL;
-	}
-    }
-
-    return copy;
-}
-
-/*
- * Remove items "item" to "item2" from list "l".
- * Does not free the listitem or the value!
- * This used to be called list_remove, but that conflicts with a Sun header
- * file.
- */
-    void
-vimlist_remove(list_T *l, listitem_T *item, listitem_T *item2)
-{
-    listitem_T	*ip;
-
-    /* notify watchers */
-    for (ip = item; ip != NULL; ip = ip->li_next)
-    {
-	--l->lv_len;
-	list_fix_watch(l, ip);
-	if (ip == item2)
-	    break;
-    }
-
-    if (item2->li_next == NULL)
-	l->lv_last = item->li_prev;
-    else
-	item2->li_next->li_prev = item->li_prev;
-    if (item->li_prev == NULL)
-	l->lv_first = item2->li_next;
-    else
-	item->li_prev->li_next = item2->li_next;
-    l->lv_idx_item = NULL;
-}
-
-/*
- * Return an allocated string with the string representation of a list.
- * May return NULL.
- */
-    static char_u *
-list2string(typval_T *tv, int copyID, int restore_copyID)
-{
-    garray_T	ga;
-
-    if (tv->vval.v_list == NULL)
-	return NULL;
-    ga_init2(&ga, (int)sizeof(char), 80);
-    ga_append(&ga, '[');
-    if (list_join(&ga, tv->vval.v_list, (char_u *)", ",
-				       FALSE, restore_copyID, copyID) == FAIL)
-    {
-	vim_free(ga.ga_data);
-	return NULL;
-    }
-    ga_append(&ga, ']');
-    ga_append(&ga, NUL);
-    return (char_u *)ga.ga_data;
-}
-
-typedef struct join_S {
-    char_u	*s;
-    char_u	*tofree;
-} join_T;
-
-    static int
-list_join_inner(
-    garray_T	*gap,		/* to store the result in */
-    list_T	*l,
-    char_u	*sep,
-    int		echo_style,
-    int		restore_copyID,
-    int		copyID,
-    garray_T	*join_gap)	/* to keep each list item string */
-{
-    int		i;
-    join_T	*p;
-    int		len;
-    int		sumlen = 0;
-    int		first = TRUE;
-    char_u	*tofree;
-    char_u	numbuf[NUMBUFLEN];
-    listitem_T	*item;
-    char_u	*s;
-
-    /* Stringify each item in the list. */
-    for (item = l->lv_first; item != NULL && !got_int; item = item->li_next)
-    {
-	s = echo_string_core(&item->li_tv, &tofree, numbuf, copyID,
-					   echo_style, restore_copyID, FALSE);
-	if (s == NULL)
-	    return FAIL;
-
-	len = (int)STRLEN(s);
-	sumlen += len;
-
-	(void)ga_grow(join_gap, 1);
-	p = ((join_T *)join_gap->ga_data) + (join_gap->ga_len++);
-	if (tofree != NULL || s != numbuf)
-	{
-	    p->s = s;
-	    p->tofree = tofree;
-	}
-	else
-	{
-	    p->s = vim_strnsave(s, len);
-	    p->tofree = p->s;
-	}
-
-	line_breakcheck();
-	if (did_echo_string_emsg)  /* recursion error, bail out */
-	    break;
-    }
-
-    /* Allocate result buffer with its total size, avoid re-allocation and
-     * multiple copy operations.  Add 2 for a tailing ']' and NUL. */
-    if (join_gap->ga_len >= 2)
-	sumlen += (int)STRLEN(sep) * (join_gap->ga_len - 1);
-    if (ga_grow(gap, sumlen + 2) == FAIL)
-	return FAIL;
-
-    for (i = 0; i < join_gap->ga_len && !got_int; ++i)
-    {
-	if (first)
-	    first = FALSE;
-	else
-	    ga_concat(gap, sep);
-	p = ((join_T *)join_gap->ga_data) + i;
-
-	if (p->s != NULL)
-	    ga_concat(gap, p->s);
-	line_breakcheck();
-    }
-
-    return OK;
-}
-
-/*
- * Join list "l" into a string in "*gap", using separator "sep".
- * When "echo_style" is TRUE use String as echoed, otherwise as inside a List.
- * Return FAIL or OK.
- */
-    static int
-list_join(
-    garray_T	*gap,
-    list_T	*l,
-    char_u	*sep,
-    int		echo_style,
-    int		restore_copyID,
-    int		copyID)
-{
-    garray_T	join_ga;
-    int		retval;
-    join_T	*p;
-    int		i;
-
-    if (l->lv_len < 1)
-	return OK; /* nothing to do */
-    ga_init2(&join_ga, (int)sizeof(join_T), l->lv_len);
-    retval = list_join_inner(gap, l, sep, echo_style, restore_copyID,
-							    copyID, &join_ga);
-
-    /* Dispose each item in join_ga. */
-    if (join_ga.ga_data != NULL)
-    {
-	p = (join_T *)join_ga.ga_data;
-	for (i = 0; i < join_ga.ga_len; ++i)
-	{
-	    vim_free(p->tofree);
-	    ++p;
-	}
-	ga_clear(&join_ga);
-    }
-
-    return retval;
 }
 
 /*
@@ -7193,8 +6269,6 @@ garbage_collect(int testing)
     static int
 free_unref_items(int copyID)
 {
-    dict_T	*dd, *dd_next;
-    list_T	*ll, *ll_next;
     int		did_free = FALSE;
 
     /* Let all "free" functions know that we are here.  This means no
@@ -7207,34 +6281,11 @@ free_unref_items(int copyID)
      * themselves yet, so that it is possible to decrement refcount counters
      */
 
-    /*
-     * Go through the list of dicts and free items without the copyID.
-     */
-    for (dd = first_dict; dd != NULL; dd = dd->dv_used_next)
-	if ((dd->dv_copyID & COPYID_MASK) != (copyID & COPYID_MASK))
-	{
-	    /* Free the Dictionary and ordinary items it contains, but don't
-	     * recurse into Lists and Dictionaries, they will be in the list
-	     * of dicts or list of lists. */
-	    dict_free_contents(dd);
-	    did_free = TRUE;
-	}
+    /* Go through the list of dicts and free items without the copyID. */
+    did_free |= dict_free_nonref(copyID);
 
-    /*
-     * Go through the list of lists and free items without the copyID.
-     * But don't free a list that has a watcher (used in a for loop), these
-     * are not referenced anywhere.
-     */
-    for (ll = first_list; ll != NULL; ll = ll->lv_used_next)
-	if ((ll->lv_copyID & COPYID_MASK) != (copyID & COPYID_MASK)
-						      && ll->lv_watch == NULL)
-	{
-	    /* Free the List and ordinary items it contains, but don't recurse
-	     * into Lists and Dictionaries, they will be in the list of dicts
-	     * or list of lists. */
-	    list_free_contents(ll);
-	    did_free = TRUE;
-	}
+    /* Go through the list of lists and free items without the copyID. */
+    did_free |= list_free_nonref(copyID);
 
 #ifdef FEAT_JOB_CHANNEL
     /* Go through the list of jobs and free items without the copyID. This
@@ -7249,25 +6300,8 @@ free_unref_items(int copyID)
     /*
      * PASS 2: free the items themselves.
      */
-    for (dd = first_dict; dd != NULL; dd = dd_next)
-    {
-	dd_next = dd->dv_used_next;
-	if ((dd->dv_copyID & COPYID_MASK) != (copyID & COPYID_MASK))
-	    dict_free_dict(dd);
-    }
-
-    for (ll = first_list; ll != NULL; ll = ll_next)
-    {
-	ll_next = ll->lv_used_next;
-	if ((ll->lv_copyID & COPYID_MASK) != (copyID & COPYID_MASK)
-						      && ll->lv_watch == NULL)
-	{
-	    /* Free the List and ordinary items it contains, but don't recurse
-	     * into Lists and Dictionaries, they will be in the list of dicts
-	     * or list of lists. */
-	    list_free_list(ll);
-	}
-    }
+    dict_free_items(copyID);
+    list_free_items(copyID);
 
 #ifdef FEAT_JOB_CHANNEL
     /* Go through the list of jobs and free items without the copyID. This
@@ -7533,581 +6567,200 @@ set_ref_in_item(
     return abort;
 }
 
-/*
- * Allocate an empty header for a dictionary.
- */
-    dict_T *
-dict_alloc(void)
-{
-    dict_T *d;
-
-    d = (dict_T *)alloc(sizeof(dict_T));
-    if (d != NULL)
-    {
-	/* Add the dict to the list of dicts for garbage collection. */
-	if (first_dict != NULL)
-	    first_dict->dv_used_prev = d;
-	d->dv_used_next = first_dict;
-	d->dv_used_prev = NULL;
-	first_dict = d;
-
-	hash_init(&d->dv_hashtab);
-	d->dv_lock = 0;
-	d->dv_scope = 0;
-	d->dv_refcount = 0;
-	d->dv_copyID = 0;
-    }
-    return d;
-}
-
-/*
- * Allocate an empty dict for a return value.
- * Returns OK or FAIL.
- */
-    int
-rettv_dict_alloc(typval_T *rettv)
-{
-    dict_T	*d = dict_alloc();
-
-    if (d == NULL)
-	return FAIL;
-
-    rettv->vval.v_dict = d;
-    rettv->v_type = VAR_DICT;
-    rettv->v_lock = 0;
-    ++d->dv_refcount;
-    return OK;
-}
-
-
-/*
- * Unreference a Dictionary: decrement the reference count and free it when it
- * becomes zero.
- */
-    void
-dict_unref(dict_T *d)
-{
-    if (d != NULL && --d->dv_refcount <= 0)
-	dict_free(d);
-}
-
-/*
- * Free a Dictionary, including all non-container items it contains.
- * Ignores the reference count.
- */
-    static void
-dict_free_contents(dict_T *d)
-{
-    int		todo;
-    hashitem_T	*hi;
-    dictitem_T	*di;
-
-    /* Lock the hashtab, we don't want it to resize while freeing items. */
-    hash_lock(&d->dv_hashtab);
-    todo = (int)d->dv_hashtab.ht_used;
-    for (hi = d->dv_hashtab.ht_array; todo > 0; ++hi)
-    {
-	if (!HASHITEM_EMPTY(hi))
-	{
-	    /* Remove the item before deleting it, just in case there is
-	     * something recursive causing trouble. */
-	    di = HI2DI(hi);
-	    hash_remove(&d->dv_hashtab, hi);
-	    clear_tv(&di->di_tv);
-	    vim_free(di);
-	    --todo;
-	}
-    }
-    hash_clear(&d->dv_hashtab);
-}
-
-    static void
-dict_free_dict(dict_T *d)
-{
-    /* Remove the dict from the list of dicts for garbage collection. */
-    if (d->dv_used_prev == NULL)
-	first_dict = d->dv_used_next;
-    else
-	d->dv_used_prev->dv_used_next = d->dv_used_next;
-    if (d->dv_used_next != NULL)
-	d->dv_used_next->dv_used_prev = d->dv_used_prev;
-    vim_free(d);
-}
-
-    void
-dict_free(dict_T *d)
-{
-    if (!in_free_unref_items)
-    {
-	dict_free_contents(d);
-	dict_free_dict(d);
-    }
-}
-
-/*
- * Allocate a Dictionary item.
- * The "key" is copied to the new item.
- * Note that the value of the item "di_tv" still needs to be initialized!
- * Returns NULL when out of memory.
- */
-    dictitem_T *
-dictitem_alloc(char_u *key)
-{
-    dictitem_T *di;
-
-    di = (dictitem_T *)alloc((unsigned)(sizeof(dictitem_T) + STRLEN(key)));
-    if (di != NULL)
-    {
-	STRCPY(di->di_key, key);
-	di->di_flags = DI_FLAGS_ALLOC;
-    }
-    return di;
-}
-
-/*
- * Make a copy of a Dictionary item.
- */
-    static dictitem_T *
-dictitem_copy(dictitem_T *org)
-{
-    dictitem_T *di;
-
-    di = (dictitem_T *)alloc((unsigned)(sizeof(dictitem_T)
-						      + STRLEN(org->di_key)));
-    if (di != NULL)
-    {
-	STRCPY(di->di_key, org->di_key);
-	di->di_flags = DI_FLAGS_ALLOC;
-	copy_tv(&org->di_tv, &di->di_tv);
-    }
-    return di;
-}
-
-/*
- * Remove item "item" from Dictionary "dict" and free it.
- */
-    static void
-dictitem_remove(dict_T *dict, dictitem_T *item)
-{
-    hashitem_T	*hi;
-
-    hi = hash_find(&dict->dv_hashtab, item->di_key);
-    if (HASHITEM_EMPTY(hi))
-	EMSG2(_(e_intern2), "dictitem_remove()");
-    else
-	hash_remove(&dict->dv_hashtab, hi);
-    dictitem_free(item);
-}
-
-/*
- * Free a dict item.  Also clears the value.
- */
-    void
-dictitem_free(dictitem_T *item)
-{
-    clear_tv(&item->di_tv);
-    if (item->di_flags & DI_FLAGS_ALLOC)
-	vim_free(item);
-}
-
-/*
- * Make a copy of dict "d".  Shallow if "deep" is FALSE.
- * The refcount of the new dict is set to 1.
- * See item_copy() for "copyID".
- * Returns NULL when out of memory.
- */
-    static dict_T *
-dict_copy(dict_T *orig, int deep, int copyID)
-{
-    dict_T	*copy;
-    dictitem_T	*di;
-    int		todo;
-    hashitem_T	*hi;
-
-    if (orig == NULL)
-	return NULL;
-
-    copy = dict_alloc();
-    if (copy != NULL)
-    {
-	if (copyID != 0)
-	{
-	    orig->dv_copyID = copyID;
-	    orig->dv_copydict = copy;
-	}
-	todo = (int)orig->dv_hashtab.ht_used;
-	for (hi = orig->dv_hashtab.ht_array; todo > 0 && !got_int; ++hi)
-	{
-	    if (!HASHITEM_EMPTY(hi))
-	    {
-		--todo;
-
-		di = dictitem_alloc(hi->hi_key);
-		if (di == NULL)
-		    break;
-		if (deep)
-		{
-		    if (item_copy(&HI2DI(hi)->di_tv, &di->di_tv, deep,
-							      copyID) == FAIL)
-		    {
-			vim_free(di);
-			break;
-		    }
-		}
-		else
-		    copy_tv(&HI2DI(hi)->di_tv, &di->di_tv);
-		if (dict_add(copy, di) == FAIL)
-		{
-		    dictitem_free(di);
-		    break;
-		}
-	    }
-	}
-
-	++copy->dv_refcount;
-	if (todo > 0)
-	{
-	    dict_unref(copy);
-	    copy = NULL;
-	}
-    }
-
-    return copy;
-}
-
-/*
- * Add item "item" to Dictionary "d".
- * Returns FAIL when out of memory and when key already exists.
- */
-    int
-dict_add(dict_T *d, dictitem_T *item)
-{
-    return hash_add(&d->dv_hashtab, item->di_key);
-}
-
-/*
- * Add a number or string entry to dictionary "d".
- * When "str" is NULL use number "nr", otherwise use "str".
- * Returns FAIL when out of memory and when key already exists.
- */
-    int
-dict_add_nr_str(
-    dict_T	*d,
-    char	*key,
-    varnumber_T	nr,
-    char_u	*str)
-{
-    dictitem_T	*item;
-
-    item = dictitem_alloc((char_u *)key);
-    if (item == NULL)
-	return FAIL;
-    item->di_tv.v_lock = 0;
-    if (str == NULL)
-    {
-	item->di_tv.v_type = VAR_NUMBER;
-	item->di_tv.vval.v_number = nr;
-    }
-    else
-    {
-	item->di_tv.v_type = VAR_STRING;
-	item->di_tv.vval.v_string = vim_strsave(str);
-    }
-    if (dict_add(d, item) == FAIL)
-    {
-	dictitem_free(item);
-	return FAIL;
-    }
-    return OK;
-}
-
-/*
- * Add a list entry to dictionary "d".
- * Returns FAIL when out of memory and when key already exists.
- */
-    int
-dict_add_list(dict_T *d, char *key, list_T *list)
-{
-    dictitem_T	*item;
-
-    item = dictitem_alloc((char_u *)key);
-    if (item == NULL)
-	return FAIL;
-    item->di_tv.v_lock = 0;
-    item->di_tv.v_type = VAR_LIST;
-    item->di_tv.vval.v_list = list;
-    if (dict_add(d, item) == FAIL)
-    {
-	dictitem_free(item);
-	return FAIL;
-    }
-    ++list->lv_refcount;
-    return OK;
-}
-
-/*
- * Get the number of items in a Dictionary.
- */
-    static long
-dict_len(dict_T *d)
-{
-    if (d == NULL)
-	return 0L;
-    return (long)d->dv_hashtab.ht_used;
-}
-
-/*
- * Find item "key[len]" in Dictionary "d".
- * If "len" is negative use strlen(key).
- * Returns NULL when not found.
- */
-    dictitem_T *
-dict_find(dict_T *d, char_u *key, int len)
-{
-#define AKEYLEN 200
-    char_u	buf[AKEYLEN];
-    char_u	*akey;
-    char_u	*tofree = NULL;
-    hashitem_T	*hi;
-
-    if (d == NULL)
-	return NULL;
-    if (len < 0)
-	akey = key;
-    else if (len >= AKEYLEN)
-    {
-	tofree = akey = vim_strnsave(key, len);
-	if (akey == NULL)
-	    return NULL;
-    }
-    else
-    {
-	/* Avoid a malloc/free by using buf[]. */
-	vim_strncpy(buf, key, len);
-	akey = buf;
-    }
-
-    hi = hash_find(&d->dv_hashtab, akey);
-    vim_free(tofree);
-    if (HASHITEM_EMPTY(hi))
-	return NULL;
-    return HI2DI(hi);
-}
-
-/*
- * Get a string item from a dictionary.
- * When "save" is TRUE allocate memory for it.
- * Returns NULL if the entry doesn't exist or out of memory.
- */
-    char_u *
-get_dict_string(dict_T *d, char_u *key, int save)
-{
-    dictitem_T	*di;
-    char_u	*s;
-
-    di = dict_find(d, key, -1);
-    if (di == NULL)
-	return NULL;
-    s = get_tv_string(&di->di_tv);
-    if (save && s != NULL)
-	s = vim_strsave(s);
-    return s;
-}
-
-/*
- * Get a number item from a dictionary.
- * Returns 0 if the entry doesn't exist.
- */
-    varnumber_T
-get_dict_number(dict_T *d, char_u *key)
-{
-    dictitem_T	*di;
-
-    di = dict_find(d, key, -1);
-    if (di == NULL)
-	return 0;
-    return get_tv_number(&di->di_tv);
-}
-
-/*
- * Return an allocated string with the string representation of a Dictionary.
- * May return NULL.
- */
-    static char_u *
-dict2string(typval_T *tv, int copyID, int restore_copyID)
-{
-    garray_T	ga;
-    int		first = TRUE;
-    char_u	*tofree;
-    char_u	numbuf[NUMBUFLEN];
-    hashitem_T	*hi;
-    char_u	*s;
-    dict_T	*d;
-    int		todo;
-
-    if ((d = tv->vval.v_dict) == NULL)
-	return NULL;
-    ga_init2(&ga, (int)sizeof(char), 80);
-    ga_append(&ga, '{');
-
-    todo = (int)d->dv_hashtab.ht_used;
-    for (hi = d->dv_hashtab.ht_array; todo > 0 && !got_int; ++hi)
-    {
-	if (!HASHITEM_EMPTY(hi))
-	{
-	    --todo;
-
-	    if (first)
-		first = FALSE;
-	    else
-		ga_concat(&ga, (char_u *)", ");
-
-	    tofree = string_quote(hi->hi_key, FALSE);
-	    if (tofree != NULL)
-	    {
-		ga_concat(&ga, tofree);
-		vim_free(tofree);
-	    }
-	    ga_concat(&ga, (char_u *)": ");
-	    s = echo_string_core(&HI2DI(hi)->di_tv, &tofree, numbuf, copyID,
-						 FALSE, restore_copyID, TRUE);
-	    if (s != NULL)
-		ga_concat(&ga, s);
-	    vim_free(tofree);
-	    if (s == NULL || did_echo_string_emsg)
-		break;
-	    line_breakcheck();
-
-	}
-    }
-    if (todo > 0)
-    {
-	vim_free(ga.ga_data);
-	return NULL;
-    }
-
-    ga_append(&ga, '}');
-    ga_append(&ga, NUL);
-    return (char_u *)ga.ga_data;
-}
-
-/*
- * Allocate a variable for a Dictionary and fill it from "*arg".
- * Return OK or FAIL.  Returns NOTDONE for {expr}.
- */
+/* Get function arguments. */
     static int
-get_dict_tv(char_u **arg, typval_T *rettv, int evaluate)
+get_function_args(
+    char_u	**argp,
+    char_u	endchar,
+    garray_T	*newargs,
+    int		*varargs,
+    int		skip)
 {
-    dict_T	*d = NULL;
-    typval_T	tvkey;
-    typval_T	tv;
-    char_u	*key = NULL;
-    dictitem_T	*item;
-    char_u	*start = skipwhite(*arg + 1);
-    char_u	buf[NUMBUFLEN];
+    int		mustend = FALSE;
+    char_u	*arg = *argp;
+    char_u	*p = arg;
+    int		c;
+    int		i;
+
+    if (newargs != NULL)
+	ga_init2(newargs, (int)sizeof(char_u *), 3);
+
+    if (varargs != NULL)
+	*varargs = FALSE;
 
     /*
-     * First check if it's not a curly-braces thing: {expr}.
-     * Must do this without evaluating, otherwise a function may be called
-     * twice.  Unfortunately this means we need to call eval1() twice for the
-     * first item.
-     * But {} is an empty Dictionary.
+     * Isolate the arguments: "arg1, arg2, ...)"
      */
-    if (*start != '}')
+    while (*p != endchar)
     {
-	if (eval1(&start, &tv, FALSE) == FAIL)	/* recursive! */
-	    return FAIL;
-	if (*start == '}')
-	    return NOTDONE;
-    }
-
-    if (evaluate)
-    {
-	d = dict_alloc();
-	if (d == NULL)
-	    return FAIL;
-    }
-    tvkey.v_type = VAR_UNKNOWN;
-    tv.v_type = VAR_UNKNOWN;
-
-    *arg = skipwhite(*arg + 1);
-    while (**arg != '}' && **arg != NUL)
-    {
-	if (eval1(arg, &tvkey, evaluate) == FAIL)	/* recursive! */
-	    goto failret;
-	if (**arg != ':')
+	if (p[0] == '.' && p[1] == '.' && p[2] == '.')
 	{
-	    EMSG2(_("E720: Missing colon in Dictionary: %s"), *arg);
-	    clear_tv(&tvkey);
-	    goto failret;
+	    if (varargs != NULL)
+		*varargs = TRUE;
+	    p += 3;
+	    mustend = TRUE;
 	}
-	if (evaluate)
+	else
 	{
-	    key = get_tv_string_buf_chk(&tvkey, buf);
-	    if (key == NULL)
+	    arg = p;
+	    while (ASCII_ISALNUM(*p) || *p == '_')
+		++p;
+	    if (arg == p || isdigit(*arg)
+		    || (p - arg == 9 && STRNCMP(arg, "firstline", 9) == 0)
+		    || (p - arg == 8 && STRNCMP(arg, "lastline", 8) == 0))
 	    {
-		/* "key" is NULL when get_tv_string_buf_chk() gave an errmsg */
-		clear_tv(&tvkey);
-		goto failret;
+		if (!skip)
+		    EMSG2(_("E125: Illegal argument: %s"), arg);
+		break;
 	    }
-	}
-
-	*arg = skipwhite(*arg + 1);
-	if (eval1(arg, &tv, evaluate) == FAIL)	/* recursive! */
-	{
-	    if (evaluate)
-		clear_tv(&tvkey);
-	    goto failret;
-	}
-	if (evaluate)
-	{
-	    item = dict_find(d, key, -1);
-	    if (item != NULL)
+	    if (newargs != NULL && ga_grow(newargs, 1) == FAIL)
+		return FAIL;
+	    if (newargs != NULL)
 	    {
-		EMSG2(_("E721: Duplicate key in Dictionary: \"%s\""), key);
-		clear_tv(&tvkey);
-		clear_tv(&tv);
-		goto failret;
-	    }
-	    item = dictitem_alloc(key);
-	    clear_tv(&tvkey);
-	    if (item != NULL)
-	    {
-		item->di_tv = tv;
-		item->di_tv.v_lock = 0;
-		if (dict_add(d, item) == FAIL)
-		    dictitem_free(item);
-	    }
-	}
+		c = *p;
+		*p = NUL;
+		arg = vim_strsave(arg);
+		if (arg == NULL)
+		    goto err_ret;
 
-	if (**arg == '}')
+		/* Check for duplicate argument name. */
+		for (i = 0; i < newargs->ga_len; ++i)
+		    if (STRCMP(((char_u **)(newargs->ga_data))[i], arg) == 0)
+		    {
+			EMSG2(_("E853: Duplicate argument name: %s"), arg);
+			vim_free(arg);
+			goto err_ret;
+		    }
+		((char_u **)(newargs->ga_data))[newargs->ga_len] = arg;
+		newargs->ga_len++;
+
+		*p = c;
+	    }
+	    if (*p == ',')
+		++p;
+	    else
+		mustend = TRUE;
+	}
+	p = skipwhite(p);
+	if (mustend && *p != endchar)
+	{
+	    if (!skip)
+		EMSG2(_(e_invarg2), *argp);
 	    break;
-	if (**arg != ',')
-	{
-	    EMSG2(_("E722: Missing comma in Dictionary: %s"), *arg);
-	    goto failret;
 	}
-	*arg = skipwhite(*arg + 1);
     }
+    ++p;	/* skip the ')' */
 
-    if (**arg != '}')
-    {
-	EMSG2(_("E723: Missing end of Dictionary '}': %s"), *arg);
-failret:
-	if (evaluate)
-	    dict_free(d);
-	return FAIL;
-    }
+    *argp = p;
+    return OK;
 
+err_ret:
+    if (newargs != NULL)
+	ga_clear_strings(newargs);
+    return FAIL;
+}
+
+/*
+ * Parse a lambda expression and get a Funcref from "*arg".
+ * Return OK or FAIL.  Returns NOTDONE for dict or {expr}.
+ */
+    static int
+get_lambda_tv(char_u **arg, typval_T *rettv, int evaluate)
+{
+    garray_T	newargs;
+    garray_T	newlines;
+    ufunc_T	*fp = NULL;
+    int		varargs;
+    int		ret;
+    char_u	name[20];
+    char_u	*start = skipwhite(*arg + 1);
+    char_u	*s, *e;
+    static int	lambda_no = 0;
+
+    ga_init(&newargs);
+    ga_init(&newlines);
+
+    /* First, check if this is a lambda expression. "->" must exist. */
+    ret = get_function_args(&start, '-', NULL, NULL, TRUE);
+    if (ret == FAIL || *start != '>')
+	return NOTDONE;
+
+    /* Parse the arguments again. */
     *arg = skipwhite(*arg + 1);
+    ret = get_function_args(arg, '-', &newargs, &varargs, FALSE);
+    if (ret == FAIL || **arg != '>')
+	goto errret;
+
+    /* Get the start and the end of the expression. */
+    *arg = skipwhite(*arg + 1);
+    s = *arg;
+    ret = skip_expr(arg);
+    if (ret == FAIL)
+	goto errret;
+    e = *arg;
+    *arg = skipwhite(*arg);
+    if (**arg != '}')
+	goto errret;
+    ++*arg;
+
     if (evaluate)
     {
-	rettv->v_type = VAR_DICT;
-	rettv->vval.v_dict = d;
-	++d->dv_refcount;
+	int	len;
+	char_u	*p;
+
+	fp = (ufunc_T *)alloc((unsigned)(sizeof(ufunc_T) + 20));
+	if (fp == NULL)
+	    goto errret;
+
+	sprintf((char*)name, "<lambda>%d", ++lambda_no);
+
+	ga_init2(&newlines, (int)sizeof(char_u *), 1);
+	if (ga_grow(&newlines, 1) == FAIL)
+	    goto errret;
+
+	/* Add "return " before the expression.
+	 * TODO: Support multiple expressions.  */
+	len = 7 + e - s + 1;
+	p = (char_u *)alloc(len);
+	if (p == NULL)
+	    goto errret;
+	((char_u **)(newlines.ga_data))[newlines.ga_len++] = p;
+	STRCPY(p, "return ");
+	STRNCPY(p + 7, s, e - s);
+	p[7 + e - s] = NUL;
+
+	fp->uf_refcount = 1;
+	STRCPY(fp->uf_name, name);
+	hash_add(&func_hashtab, UF2HIKEY(fp));
+	fp->uf_args = newargs;
+	fp->uf_lines = newlines;
+
+#ifdef FEAT_PROFILE
+	fp->uf_tml_count = NULL;
+	fp->uf_tml_total = NULL;
+	fp->uf_tml_self = NULL;
+	fp->uf_profiling = FALSE;
+	if (prof_def_func())
+	    func_do_profile(fp);
+#endif
+	fp->uf_varargs = TRUE;
+	fp->uf_flags = 0;
+	fp->uf_calls = 0;
+	fp->uf_script_ID = current_SID;
+
+	rettv->vval.v_string = vim_strsave(name);
+	rettv->v_type = VAR_FUNC;
     }
+    else
+	ga_clear_strings(&newargs);
 
     return OK;
+
+errret:
+    ga_clear_strings(&newargs);
+    ga_clear_strings(&newlines);
+    vim_free(fp);
+    return FAIL;
 }
 
     static char *
@@ -8136,7 +6789,7 @@ get_var_special_name(int nr)
  * are replaced with "...".
  * May return NULL.
  */
-    static char_u *
+    char_u *
 echo_string_core(
     typval_T	*tv,
     char_u	**tofree,
@@ -8352,7 +7005,7 @@ tv2string(
  * If "str" is NULL an empty string is assumed.
  * If "function" is TRUE make it function('string').
  */
-    static char_u *
+    char_u *
 string_quote(char_u *str, int function)
 {
     unsigned	len;
@@ -9321,7 +7974,8 @@ call_func(
 		    call_user_func(fp, argcount, argvars, rettv,
 					       firstline, lastline,
 				  (fp->uf_flags & FC_DICT) ? selfdict : NULL);
-		    if (--fp->uf_calls <= 0 && isdigit(*fp->uf_name)
+		    if (--fp->uf_calls <= 0 && (isdigit(*fp->uf_name)
+				|| STRNCMP(fp->uf_name, "<lambda>", 8) == 0)
 						      && fp->uf_refcount <= 0)
 			/* Function was unreferenced while being used, free it
 			 * now. */
@@ -11679,63 +10333,6 @@ f_expand(typval_T *argvars, typval_T *rettv)
 	}
 	else
 	    rettv->vval.v_string = NULL;
-    }
-}
-
-/*
- * Go over all entries in "d2" and add them to "d1".
- * When "action" is "error" then a duplicate key is an error.
- * When "action" is "force" then a duplicate key is overwritten.
- * Otherwise duplicate keys are ignored ("action" is "keep").
- */
-    void
-dict_extend(dict_T *d1, dict_T *d2, char_u *action)
-{
-    dictitem_T	*di1;
-    hashitem_T	*hi2;
-    int		todo;
-    char_u	*arg_errmsg = (char_u *)N_("extend() argument");
-
-    todo = (int)d2->dv_hashtab.ht_used;
-    for (hi2 = d2->dv_hashtab.ht_array; todo > 0; ++hi2)
-    {
-	if (!HASHITEM_EMPTY(hi2))
-	{
-	    --todo;
-	    di1 = dict_find(d1, hi2->hi_key, -1);
-	    if (d1->dv_scope != 0)
-	    {
-		/* Disallow replacing a builtin function in l: and g:.
-		 * Check the key to be valid when adding to any
-		 * scope. */
-		if (d1->dv_scope == VAR_DEF_SCOPE
-			&& HI2DI(hi2)->di_tv.v_type == VAR_FUNC
-			&& var_check_func_name(hi2->hi_key,
-							 di1 == NULL))
-		    break;
-		if (!valid_varname(hi2->hi_key))
-		    break;
-	    }
-	    if (di1 == NULL)
-	    {
-		di1 = dictitem_copy(HI2DI(hi2));
-		if (di1 != NULL && dict_add(d1, di1) == FAIL)
-		    dictitem_free(di1);
-	    }
-	    else if (*action == 'e')
-	    {
-		EMSG2(_("E737: Key already exists: %s"), hi2->hi_key);
-		break;
-	    }
-	    else if (*action == 'f' && HI2DI(hi2) != di1)
-	    {
-		if (tv_check_lock(di1->di_tv.v_lock, arg_errmsg, TRUE)
-		      || var_check_ro(di1->di_flags, arg_errmsg, TRUE))
-		    break;
-		clear_tv(&di1->di_tv);
-		copy_tv(&HI2DI(hi2)->di_tv, &di1->di_tv);
-	    }
-	}
     }
 }
 
@@ -15355,90 +13952,6 @@ f_isnan(typval_T *argvars, typval_T *rettv)
 }
 #endif
 
-static void dict_list(typval_T *argvars, typval_T *rettv, int what);
-
-/*
- * Turn a dict into a list:
- * "what" == 0: list of keys
- * "what" == 1: list of values
- * "what" == 2: list of items
- */
-    static void
-dict_list(typval_T *argvars, typval_T *rettv, int what)
-{
-    list_T	*l2;
-    dictitem_T	*di;
-    hashitem_T	*hi;
-    listitem_T	*li;
-    listitem_T	*li2;
-    dict_T	*d;
-    int		todo;
-
-    if (argvars[0].v_type != VAR_DICT)
-    {
-	EMSG(_(e_dictreq));
-	return;
-    }
-    if ((d = argvars[0].vval.v_dict) == NULL)
-	return;
-
-    if (rettv_list_alloc(rettv) == FAIL)
-	return;
-
-    todo = (int)d->dv_hashtab.ht_used;
-    for (hi = d->dv_hashtab.ht_array; todo > 0; ++hi)
-    {
-	if (!HASHITEM_EMPTY(hi))
-	{
-	    --todo;
-	    di = HI2DI(hi);
-
-	    li = listitem_alloc();
-	    if (li == NULL)
-		break;
-	    list_append(rettv->vval.v_list, li);
-
-	    if (what == 0)
-	    {
-		/* keys() */
-		li->li_tv.v_type = VAR_STRING;
-		li->li_tv.v_lock = 0;
-		li->li_tv.vval.v_string = vim_strsave(di->di_key);
-	    }
-	    else if (what == 1)
-	    {
-		/* values() */
-		copy_tv(&di->di_tv, &li->li_tv);
-	    }
-	    else
-	    {
-		/* items() */
-		l2 = list_alloc();
-		li->li_tv.v_type = VAR_LIST;
-		li->li_tv.v_lock = 0;
-		li->li_tv.vval.v_list = l2;
-		if (l2 == NULL)
-		    break;
-		++l2->lv_refcount;
-
-		li2 = listitem_alloc();
-		if (li2 == NULL)
-		    break;
-		list_append(l2, li2);
-		li2->li_tv.v_type = VAR_STRING;
-		li2->li_tv.v_lock = 0;
-		li2->li_tv.vval.v_string = vim_strsave(di->di_key);
-
-		li2 = listitem_alloc();
-		if (li2 == NULL)
-		    break;
-		list_append(l2, li2);
-		copy_tv(&di->di_tv, &li2->li_tv);
-	    }
-	}
-    }
-}
-
 /*
  * "items(dict)" function
  */
@@ -18522,7 +17035,6 @@ f_serverlist(typval_T *argvars UNUSED, typval_T *rettv)
 f_setbufvar(typval_T *argvars, typval_T *rettv UNUSED)
 {
     buf_T	*buf;
-    aco_save_T	aco;
     char_u	*varname, *bufvarname;
     typval_T	*varp;
     char_u	nbuf[NUMBUFLEN];
@@ -18536,35 +17048,40 @@ f_setbufvar(typval_T *argvars, typval_T *rettv UNUSED)
 
     if (buf != NULL && varname != NULL && varp != NULL)
     {
-	/* set curbuf to be our buf, temporarily */
-	aucmd_prepbuf(&aco, buf);
-
 	if (*varname == '&')
 	{
 	    long	numval;
 	    char_u	*strval;
 	    int		error = FALSE;
+	    aco_save_T	aco;
+
+	    /* set curbuf to be our buf, temporarily */
+	    aucmd_prepbuf(&aco, buf);
 
 	    ++varname;
 	    numval = (long)get_tv_number_chk(varp, &error);
 	    strval = get_tv_string_buf_chk(varp, nbuf);
 	    if (!error && strval != NULL)
 		set_option_value(varname, numval, strval, OPT_LOCAL);
+
+	    /* reset notion of buffer */
+	    aucmd_restbuf(&aco);
 	}
 	else
 	{
+	    buf_T *save_curbuf = curbuf;
+
 	    bufvarname = alloc((unsigned)STRLEN(varname) + 3);
 	    if (bufvarname != NULL)
 	    {
+		curbuf = buf;
 		STRCPY(bufvarname, "b:");
 		STRCPY(bufvarname + 2, varname);
 		set_var(bufvarname, varp, TRUE);
 		vim_free(bufvarname);
+		curbuf = save_curbuf;
 	    }
 	}
-
-	/* reset notion of buffer */
-	aucmd_restbuf(&aco);
     }
 }
 
@@ -23783,7 +22300,7 @@ set_var(
  * Return TRUE if di_flags "flags" indicates variable "name" is read-only.
  * Also give an error message.
  */
-    static int
+    int
 var_check_ro(int flags, char_u *name, int use_gettext)
 {
     if (flags & DI_FLAGS_RO)
@@ -23819,7 +22336,7 @@ var_check_fixed(int flags, char_u *name, int use_gettext)
  * Check if a funcref is assigned to a valid variable name.
  * Return TRUE and give an error if not.
  */
-    static int
+    int
 var_check_func_name(
     char_u *name,    /* points to start of variable name */
     int    new_var)  /* TRUE when creating the variable */
@@ -23849,7 +22366,7 @@ var_check_func_name(
  * Check if a variable name is valid.
  * Return FALSE and give an error if not.
  */
-    static int
+    int
 valid_varname(char_u *varname)
 {
     char_u *p;
@@ -23869,7 +22386,7 @@ valid_varname(char_u *varname)
  * Also give an error message, using "name" or _("name") when use_gettext is
  * TRUE.
  */
-    static int
+    int
 tv_check_lock(int lock, char_u *name, int use_gettext)
 {
     if (lock & VAR_LOCKED)
@@ -23979,7 +22496,7 @@ copy_tv(typval_T *from, typval_T *to)
  * reference to an already copied list/dict can be used.
  * Returns FAIL or OK.
  */
-    static int
+    int
 item_copy(
     typval_T	*from,
     typval_T	*to,
@@ -24298,7 +22815,6 @@ find_option_end(char_u **arg, int *opt_flags)
 ex_function(exarg_T *eap)
 {
     char_u	*theline;
-    int		i;
     int		j;
     int		c;
     int		saved_did_emsg;
@@ -24310,7 +22826,6 @@ ex_function(exarg_T *eap)
     garray_T	newargs;
     garray_T	newlines;
     int		varargs = FALSE;
-    int		mustend = FALSE;
     int		flags = 0;
     ufunc_T	*fp;
     int		indent;
@@ -24491,7 +23006,6 @@ ex_function(exarg_T *eap)
     }
     p = skipwhite(p + 1);
 
-    ga_init2(&newargs, (int)sizeof(char_u *), 3);
     ga_init2(&newlines, (int)sizeof(char_u *), 3);
 
     if (!eap->skip)
@@ -24521,66 +23035,8 @@ ex_function(exarg_T *eap)
 	    EMSG(_("E862: Cannot use g: here"));
     }
 
-    /*
-     * Isolate the arguments: "arg1, arg2, ...)"
-     */
-    while (*p != ')')
-    {
-	if (p[0] == '.' && p[1] == '.' && p[2] == '.')
-	{
-	    varargs = TRUE;
-	    p += 3;
-	    mustend = TRUE;
-	}
-	else
-	{
-	    arg = p;
-	    while (ASCII_ISALNUM(*p) || *p == '_')
-		++p;
-	    if (arg == p || isdigit(*arg)
-		    || (p - arg == 9 && STRNCMP(arg, "firstline", 9) == 0)
-		    || (p - arg == 8 && STRNCMP(arg, "lastline", 8) == 0))
-	    {
-		if (!eap->skip)
-		    EMSG2(_("E125: Illegal argument: %s"), arg);
-		break;
-	    }
-	    if (ga_grow(&newargs, 1) == FAIL)
-		goto erret;
-	    c = *p;
-	    *p = NUL;
-	    arg = vim_strsave(arg);
-	    if (arg == NULL)
-		goto erret;
-
-	    /* Check for duplicate argument name. */
-	    for (i = 0; i < newargs.ga_len; ++i)
-		if (STRCMP(((char_u **)(newargs.ga_data))[i], arg) == 0)
-		{
-		    EMSG2(_("E853: Duplicate argument name: %s"), arg);
-		    vim_free(arg);
-		    goto erret;
-		}
-
-	    ((char_u **)(newargs.ga_data))[newargs.ga_len] = arg;
-	    *p = c;
-	    newargs.ga_len++;
-	    if (*p == ',')
-		++p;
-	    else
-		mustend = TRUE;
-	}
-	p = skipwhite(p);
-	if (mustend && *p != ')')
-	{
-	    if (!eap->skip)
-		EMSG2(_(e_invarg2), eap->arg);
-	    break;
-	}
-    }
-    if (*p != ')')
-	goto erret;
-    ++p;	/* skip the ')' */
+    if (get_function_args(&p, ')', &newargs, &varargs, eap->skip) == FAIL)
+	goto errret_2;
 
     /* find extra arguments "range", "dict" and "abort" */
     for (;;)
@@ -24949,6 +23405,7 @@ ex_function(exarg_T *eap)
 
 erret:
     ga_clear_strings(&newargs);
+errret_2:
     ga_clear_strings(&newlines);
 ret_free:
     vim_free(skip_until);
@@ -25763,7 +24220,9 @@ func_unref(char_u *name)
 {
     ufunc_T *fp;
 
-    if (name != NULL && isdigit(*name))
+    if (name == NULL)
+	return;
+    else if (isdigit(*name))
     {
 	fp = find_func(name);
 	if (fp == NULL)
@@ -25781,6 +24240,18 @@ func_unref(char_u *name)
 		func_free(fp);
 	}
     }
+    else if (STRNCMP(name, "<lambda>", 8) == 0)
+    {
+	/* fail silently, when lambda function isn't found. */
+	fp = find_func(name);
+	if (fp != NULL && --fp->uf_refcount <= 0)
+	{
+	    /* Only delete it when it's not being used.  Otherwise it's done
+	     * when "uf_calls" becomes zero. */
+	    if (fp->uf_calls == 0)
+		func_free(fp);
+	}
+    }
 }
 
 /*
@@ -25791,12 +24262,21 @@ func_ref(char_u *name)
 {
     ufunc_T *fp;
 
-    if (name != NULL && isdigit(*name))
+    if (name == NULL)
+	return;
+    else if (isdigit(*name))
     {
 	fp = find_func(name);
 	if (fp == NULL)
 	    EMSG2(_(e_intern2), "func_ref()");
 	else
+	    ++fp->uf_refcount;
+    }
+    else if (STRNCMP(name, "<lambda>", 8) == 0)
+    {
+	/* fail silently, when lambda function isn't found. */
+	fp = find_func(name);
+	if (fp != NULL)
 	    ++fp->uf_refcount;
     }
 }
@@ -25824,6 +24304,7 @@ call_user_func(
     int		fixvar_idx = 0;	/* index in fixvar[] */
     int		i;
     int		ai;
+    int		islambda = FALSE;
     char_u	numbuf[NUMBUFLEN];
     char_u	*name;
     size_t	len;
@@ -25856,6 +24337,9 @@ call_user_func(
     /* Check if this function has a breakpoint. */
     fc->breakpoint = dbg_find_breakpoint(FALSE, fp->uf_name, (linenr_T)0);
     fc->dbg_tick = debug_tick;
+
+    if (STRNCMP(fp->uf_name, "<lambda>", 8) == 0)
+	islambda = TRUE;
 
     /*
      * Note about using fc->fixvar[]: This is an array of FIXVAR_CNT variables
@@ -25914,10 +24398,17 @@ call_user_func(
 						       (varnumber_T)lastline);
     for (i = 0; i < argcount; ++i)
     {
+	int	    addlocal = FALSE;
+	dictitem_T  *v2;
+
 	ai = i - fp->uf_args.ga_len;
 	if (ai < 0)
+	{
 	    /* named argument a:name */
 	    name = FUNCARG(fp, i);
+	    if (islambda)
+		addlocal = TRUE;
+	}
 	else
 	{
 	    /* "..." argument a:1, a:2, etc. */
@@ -25928,6 +24419,9 @@ call_user_func(
 	{
 	    v = &fc->fixvar[fixvar_idx++].var;
 	    v->di_flags = DI_FLAGS_RO | DI_FLAGS_FIX;
+
+	    if (addlocal)
+		v2 = v;
 	}
 	else
 	{
@@ -25936,6 +24430,18 @@ call_user_func(
 	    if (v == NULL)
 		break;
 	    v->di_flags = DI_FLAGS_RO | DI_FLAGS_FIX | DI_FLAGS_ALLOC;
+
+	    if (addlocal)
+	    {
+		v2 = (dictitem_T *)alloc((unsigned)(sizeof(dictitem_T)
+							     + STRLEN(name)));
+		if (v2 == NULL)
+		{
+		    vim_free(v);
+		    break;
+		}
+		v2->di_flags = DI_FLAGS_RO | DI_FLAGS_FIX | DI_FLAGS_ALLOC;
+	    }
 	}
 	STRCPY(v->di_key, name);
 	hash_add(&fc->l_avars.dv_hashtab, DI2HIKEY(v));
@@ -25944,6 +24450,16 @@ call_user_func(
 	 * "argvars" must have VAR_FIXED for v_lock. */
 	v->di_tv = argvars[i];
 	v->di_tv.v_lock = VAR_FIXED;
+
+	/* Named arguments can be accessed without the "a:" prefix in lambda
+	 * expressions.  Add to the l: dict. */
+	if (addlocal)
+	{
+	    STRCPY(v2->di_key, name);
+	    copy_tv(&v->di_tv, &v2->di_tv);
+	    v2->di_tv.v_lock = VAR_FIXED;
+	    hash_add(&fc->l_vars.dv_hashtab, DI2HIKEY(v2));
+	}
 
 	if (ai >= 0 && ai < MAX_FUNC_ARGS)
 	{
