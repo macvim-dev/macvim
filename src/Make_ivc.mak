@@ -216,10 +216,12 @@ LINK32_OBJS= \
 	"$(INTDIR)/charset.obj" \
 	"$(INTDIR)/crypt.obj" \
 	"$(INTDIR)/crypt_zip.obj" \
+	"$(INTDIR)/dict.obj" \
 	"$(INTDIR)/diff.obj" \
 	"$(INTDIR)/digraph.obj" \
 	"$(INTDIR)/edit.obj" \
 	"$(INTDIR)/eval.obj" \
+	"$(INTDIR)/evalfunc.obj" \
 	"$(INTDIR)/ex_cmds.obj" \
 	"$(INTDIR)/ex_cmds2.obj" \
 	"$(INTDIR)/ex_docmd.obj" \
@@ -232,6 +234,7 @@ LINK32_OBJS= \
 	"$(INTDIR)/hardcopy.obj" \
 	"$(INTDIR)/hashtab.obj" \
 	"$(INTDIR)/json.obj" \
+	"$(INTDIR)/list.obj" \
 	"$(INTDIR)/main.obj" \
 	"$(INTDIR)/mark.obj" \
 	"$(INTDIR)/mbyte.obj" \
@@ -260,6 +263,7 @@ LINK32_OBJS= \
 	"$(INTDIR)/term.obj" \
 	"$(INTDIR)/ui.obj" \
 	"$(INTDIR)/undo.obj" \
+	"$(INTDIR)/userfunc.obj" \
 	"$(INTDIR)/version.obj" \
 	"$(INTDIR)/window.obj"
 
@@ -356,6 +360,10 @@ SOURCE=.\crypt_zip.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\dict.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\diff.c
 # End Source File
 # Begin Source File
@@ -369,6 +377,10 @@ SOURCE=.\edit.c
 # Begin Source File
 
 SOURCE=.\eval.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\evalfunc.c
 # End Source File
 # Begin Source File
 
@@ -570,6 +582,10 @@ SOURCE=.\json.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\list.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\main.c
 # End Source File
 # Begin Source File
@@ -679,6 +695,10 @@ SOURCE=.\ui.c
 # Begin Source File
 
 SOURCE=.\undo.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\userfunc.c
 # End Source File
 # Begin Source File
 

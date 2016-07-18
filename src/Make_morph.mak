@@ -30,10 +30,12 @@ SRC =	arabic.c						\
 	charset.c						\
 	crypt.c							\
 	crypt_zip.c						\
+	dict.c							\
 	diff.c							\
 	digraph.c						\
 	edit.c							\
 	eval.c							\
+	evalfunc.c						\
 	ex_cmds.c						\
 	ex_cmds2.c						\
 	ex_docmd.c						\
@@ -46,6 +48,7 @@ SRC =	arabic.c						\
 	hardcopy.c						\
 	hashtab.c						\
 	json.c							\
+	list.c							\
 	main.c							\
 	mark.c							\
 	mbyte.c							\
@@ -72,6 +75,7 @@ SRC =	arabic.c						\
 	term.c							\
 	ui.c							\
 	undo.c							\
+	userfunc.c						\
 	version.c						\
 	window.c						\
 

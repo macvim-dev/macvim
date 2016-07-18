@@ -1506,6 +1506,7 @@ BASIC_SRC = \
 	digraph.c \
 	edit.c \
 	eval.c \
+	evalfunc.c \
 	ex_cmds.c \
 	ex_cmds2.c \
 	ex_docmd.c \
@@ -1548,6 +1549,7 @@ BASIC_SRC = \
 	term.c \
 	ui.c \
 	undo.c \
+	userfunc.c \
 	version.c \
 	window.c \
 	$(OS_EXTRA_SRC)
@@ -1609,6 +1611,7 @@ OBJ_COMMON = \
 	objects/digraph.o \
 	objects/edit.o \
 	objects/eval.o \
+	objects/evalfunc.o \
 	objects/ex_cmds.o \
 	objects/ex_cmds2.o \
 	objects/ex_docmd.o \
@@ -1648,6 +1651,7 @@ OBJ_COMMON = \
 	objects/term.o \
 	objects/ui.o \
 	objects/undo.o \
+	objects/userfunc.o \
 	objects/version.o \
 	objects/window.o \
 	$(GUI_OBJ) \
@@ -1698,6 +1702,7 @@ PRO_AUTO = \
 	digraph.pro \
 	edit.pro \
 	eval.pro \
+	evalfunc.pro \
 	ex_cmds.pro \
 	ex_cmds2.pro \
 	ex_docmd.pro \
@@ -1748,6 +1753,7 @@ PRO_AUTO = \
 	termlib.pro \
 	ui.pro \
 	undo.pro \
+	userfunc.pro \
 	version.pro \
 	window.pro \
 	gui_beval.pro \
@@ -2850,6 +2856,9 @@ objects/edit.o: edit.c
 objects/eval.o: eval.c
 	$(CCC) -o $@ eval.c
 
+objects/evalfunc.o: evalfunc.c
+	$(CCC) -o $@ evalfunc.c
+
 objects/ex_cmds.o: ex_cmds.c
 	$(CCC) -o $@ ex_cmds.c
 
@@ -3092,6 +3101,9 @@ objects/ui.o: ui.c
 objects/undo.o: undo.c
 	$(CCC) -o $@ undo.c
 
+objects/userfunc.o: userfunc.c
+	$(CCC) -o $@ userfunc.c
+
 objects/window.o: window.c
 	$(CCC) -o $@ window.c
 
@@ -3273,6 +3285,10 @@ objects/eval.o: eval.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
  farsi.h arabic.h version.h
+objects/evalfunc.o: evalfunc.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
+ farsi.h arabic.h version.h
 objects/ex_cmds.o: ex_cmds.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
@@ -3435,6 +3451,10 @@ objects/ui.o: ui.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h ascii.h 
  keymap.h term.h macros.h option.h structs.h regexp.h gui.h gui_beval.h \
  proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h farsi.h arabic.h
 objects/undo.o: undo.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
+ ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
+ gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
+ farsi.h arabic.h
+objects/userfunc.o: userfunc.c vim.h auto/config.h feature.h os_unix.h auto/osdef.h \
  ascii.h keymap.h term.h macros.h option.h structs.h regexp.h gui.h \
  gui_beval.h proto/gui_beval.pro alloc.h ex_cmds.h proto.h globals.h \
  farsi.h arabic.h

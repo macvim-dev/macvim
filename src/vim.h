@@ -506,6 +506,9 @@ typedef unsigned long u8char_T;	    /* long should be 32 bits or more */
 #endif
 #include <stdarg.h>
 
+/* for offsetof() */
+#include <stddef.h>
+
 #if defined(HAVE_SYS_SELECT_H) && \
 	(!defined(HAVE_SYS_TIME_H) || defined(SYS_SELECT_WITH_SYS_TIME))
 # include <sys/select.h>
@@ -2051,6 +2054,15 @@ typedef struct _stat64 stat_T;
 typedef struct stat stat_T;
 #endif
 
+typedef enum
+{
+    ASSERT_EQUAL,
+    ASSERT_NOTEQUAL,
+    ASSERT_MATCH,
+    ASSERT_NOTMATCH,
+    ASSERT_OTHER
+} assert_type_T;
+
 #include "ex_cmds.h"	    /* Ex command defines */
 #include "proto.h"	    /* function prototypes */
 
@@ -2409,5 +2421,30 @@ int vim_main2(int argc, char **argv);
 /* Used by the garbage collector. */
 #define COPYID_INC 2
 #define COPYID_MASK (~0x1)
+
+/* Values for trans_function_name() argument: */
+#define TFN_INT		1	/* internal function name OK */
+#define TFN_QUIET	2	/* no error messages */
+#define TFN_NO_AUTOLOAD	4	/* do not use script autoloading */
+
+/* Values for get_lval() flags argument: */
+#define GLV_QUIET	TFN_QUIET	/* no error messages */
+#define GLV_NO_AUTOLOAD	TFN_NO_AUTOLOAD	/* do not use script autoloading */
+
+#define DO_NOT_FREE_CNT 99999	/* refcount for dict or list that should not
+				   be freed. */
+
+/* errors for when calling a function */
+#define ERROR_UNKNOWN	0
+#define ERROR_TOOMANY	1
+#define ERROR_TOOFEW	2
+#define ERROR_SCRIPT	3
+#define ERROR_DICT	4
+#define ERROR_NONE	5
+#define ERROR_OTHER	6
+
+/* flags for find_name_end() */
+#define FNE_INCL_BR	1	/* include [] in name */
+#define FNE_CHECK_START	2	/* check name starts with valid character */
 
 #endif /* VIM__H */

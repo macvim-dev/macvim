@@ -1540,6 +1540,10 @@ EXTERN char_u e_readonlysbx[]	INIT(= N_("E794: Cannot set variable in the sandbo
 EXTERN char_u e_emptykey[]	INIT(= N_("E713: Cannot use empty key for Dictionary"));
 EXTERN char_u e_dictreq[]	INIT(= N_("E715: Dictionary required"));
 EXTERN char_u e_listidx[]	INIT(= N_("E684: list index out of range: %ld"));
+EXTERN char_u e_toomanyarg[]	INIT(= N_("E118: Too many arguments for function: %s"));
+EXTERN char_u e_dictkey[]	INIT(= N_("E716: Key not present in Dictionary: %s"));
+EXTERN char_u e_listreq[]	INIT(= N_("E714: List required"));
+EXTERN char_u e_listdictarg[]	INIT(= N_("E712: Argument of %s must be a List or Dictionary"));
 #endif
 #ifdef FEAT_QUICKFIX
 EXTERN char_u e_readerrf[]	INIT(= N_("E47: Error while reading errorfile"));
@@ -1650,18 +1654,6 @@ EXTERN int  did_add_timer INIT(= FALSE);
 
 #ifdef FEAT_EVAL
 EXTERN time_T time_for_testing INIT(= 0);
-
-/*
- * In a hashtab item "hi_key" points to "di_key" in a dictitem.
- * This avoids adding a pointer to the hashtab item.
- * DI2HIKEY() converts a dictitem pointer to a hashitem key pointer.
- * HIKEY2DI() converts a hashitem key pointer to a dictitem pointer.
- * HI2DI() converts a hashitem pointer to a dictitem pointer.
- */
-EXTERN dictitem_T dumdi;
-# define DI2HIKEY(di) ((di)->di_key)
-# define HIKEY2DI(p)  ((dictitem_T *)(p - (dumdi.di_key - (char_u *)&dumdi)))
-# define HI2DI(hi)     HIKEY2DI((hi)->hi_key)
 
 /* Abort conversion to string after a recursion error. */
 EXTERN int  did_echo_string_emsg INIT(= FALSE);
