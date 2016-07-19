@@ -105,6 +105,7 @@
 - (BOOL)maximizeWindow:(int)options;
 - (void)applicationDidChangeScreenParameters:(NSNotification *)notification;
 - (void)enterNativeFullScreen;
+- (void)processAfterWindowPresentedQueue;
 @end
 
 
@@ -236,6 +237,8 @@
     [windowAutosaveKey release];  windowAutosaveKey = nil;
     [vimView release];  vimView = nil;
     [toolbar release];  toolbar = nil;
+    // in case processAfterWindowPresentedQueue wasn't called
+    [afterWindowPresentedQueue release];  afterWindowPresentedQueue = nil;
 
     [super dealloc];
 }
@@ -343,6 +346,9 @@
     // Flag that the window is now placed on screen.  From now on it is OK for
     // code to depend on the screen state.  (Such as constraining views etc.)
     windowPresented = YES;
+
+    // Process deferred blocks
+    [self processAfterWindowPresentedQueue];
 
     if (fullScreenWindow) {
         // Delayed entering of full-screen happens here (a ":set fu" in a
@@ -1329,6 +1335,19 @@
 
 #endif // (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
 
+- (void)runAfterWindowPresentedUsingBlock:(void (^)(void))block
+{
+    if (windowPresented) { // no need to defer block, just run it now
+        block();
+        return;
+    }
+
+    // run block later
+    if (afterWindowPresentedQueue == nil)
+        afterWindowPresentedQueue = [[NSMutableArray alloc] init];
+    [afterWindowPresentedQueue addObject:[block copy]];
+}
+
 @end // MMWindowController
 
 
@@ -1665,5 +1684,12 @@
     [decoratedWindow realToggleFullScreen:self];
 }
 
+- (void)processAfterWindowPresentedQueue
+{
+    for (void (^block)(void) in afterWindowPresentedQueue)
+        block();
+
+    [afterWindowPresentedQueue release]; afterWindowPresentedQueue = nil;
+}
 @end // MMWindowController (Private)
 

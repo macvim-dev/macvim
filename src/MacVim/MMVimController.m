@@ -839,9 +839,11 @@ static BOOL isUnsafeMessage(int msgid);
         if (dict)
             [self handleBrowseForFile:dict];
     } else if (ShowDialogMsgID == msgid) {
-        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
-        if (dict)
-            [self handleShowDialog:dict];
+        [windowController runAfterWindowPresentedUsingBlock:^{
+            NSDictionary *dict = [NSDictionary dictionaryWithData:data];
+            if (dict)
+                [self handleShowDialog:dict];
+        }];
     } else if (DeleteSignMsgID == msgid) {
         NSDictionary *dict = [NSDictionary dictionaryWithData:data];
         if (dict)

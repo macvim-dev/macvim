@@ -43,6 +43,7 @@
     NSToolbar           *toolbar;
     BOOL                resizingDueToMove;
     int                 blurRadius;
+    NSMutableArray      *afterWindowPresentedQueue;
 }
 
 - (id)initWithVimController:(MMVimController *)controller;
@@ -89,6 +90,7 @@
 - (void)setBufferModified:(BOOL)mod;
 - (void)setTopLeft:(NSPoint)pt;
 - (BOOL)getDefaultTopLeft:(NSPoint*)pt;
+- (void)runAfterWindowPresentedUsingBlock:(void (^)(void))block;
 
 - (IBAction)addNewTab:(id)sender;
 - (IBAction)toggleToolbar:(id)sender;
