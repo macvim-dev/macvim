@@ -177,6 +177,16 @@ static struct vimvar
     {VV_NAME("none",		 VAR_SPECIAL), VV_RO},
     {VV_NAME("vim_did_enter",	 VAR_NUMBER), VV_RO},
     {VV_NAME("testing",		 VAR_NUMBER), 0},
+    {VV_NAME("t_number",	 VAR_NUMBER), VV_RO},
+    {VV_NAME("t_string",	 VAR_NUMBER), VV_RO},
+    {VV_NAME("t_func",		 VAR_NUMBER), VV_RO},
+    {VV_NAME("t_list",		 VAR_NUMBER), VV_RO},
+    {VV_NAME("t_dict",		 VAR_NUMBER), VV_RO},
+    {VV_NAME("t_float",		 VAR_NUMBER), VV_RO},
+    {VV_NAME("t_bool",		 VAR_NUMBER), VV_RO},
+    {VV_NAME("t_none",		 VAR_NUMBER), VV_RO},
+    {VV_NAME("t_job",		 VAR_NUMBER), VV_RO},
+    {VV_NAME("t_channel",	 VAR_NUMBER), VV_RO},
 };
 
 /* shorthand */
@@ -291,6 +301,17 @@ eval_init(void)
     set_vim_var_nr(VV_TRUE, VVAL_TRUE);
     set_vim_var_nr(VV_NONE, VVAL_NONE);
     set_vim_var_nr(VV_NULL, VVAL_NULL);
+
+    set_vim_var_nr(VV_TYPE_NUMBER,  VAR_TYPE_NUMBER);
+    set_vim_var_nr(VV_TYPE_STRING,  VAR_TYPE_STRING);
+    set_vim_var_nr(VV_TYPE_FUNC,    VAR_TYPE_FUNC);
+    set_vim_var_nr(VV_TYPE_LIST,    VAR_TYPE_LIST);
+    set_vim_var_nr(VV_TYPE_DICT,    VAR_TYPE_DICT);
+    set_vim_var_nr(VV_TYPE_FLOAT,   VAR_TYPE_FLOAT);
+    set_vim_var_nr(VV_TYPE_BOOL,    VAR_TYPE_BOOL);
+    set_vim_var_nr(VV_TYPE_NONE,    VAR_TYPE_NONE);
+    set_vim_var_nr(VV_TYPE_JOB,     VAR_TYPE_JOB);
+    set_vim_var_nr(VV_TYPE_CHANNEL, VAR_TYPE_CHANNEL);
 
     set_reg_var(0);  /* default for v:register is not 0 but '"' */
 
@@ -9748,7 +9769,7 @@ repeat:
 			if (sub != NULL && str != NULL)
 			{
 			    *usedlen = (int)(p + 1 - src);
-			    s = do_string_sub(str, pat, sub, flags);
+			    s = do_string_sub(str, pat, sub, NULL, flags);
 			    if (s != NULL)
 			    {
 				*fnamep = s;
@@ -9792,6 +9813,7 @@ repeat:
 
 /*
  * Perform a substitution on "str" with pattern "pat" and substitute "sub".
+ * When "sub" is NULL "expr" is used, must be a VAR_FUNC or VAR_PARTIAL.
  * "flags" can be "g" to do a global substitute.
  * Returns an allocated string, NULL for error.
  */
@@ -9800,6 +9822,7 @@ do_string_sub(
     char_u	*str,
     char_u	*pat,
     char_u	*sub,
+    typval_T	*expr,
     char_u	*flags)
 {
     int		sublen;
@@ -9852,7 +9875,7 @@ do_string_sub(
 	     * - The substituted text.
 	     * - The text after the match.
 	     */
-	    sublen = vim_regsub(&regmatch, sub, tail, FALSE, TRUE, FALSE);
+	    sublen = vim_regsub(&regmatch, sub, expr, tail, FALSE, TRUE, FALSE);
 	    if (ga_grow(&ga, (int)((end - tail) + sublen -
 			    (regmatch.endp[0] - regmatch.startp[0]))) == FAIL)
 	    {
@@ -9864,7 +9887,7 @@ do_string_sub(
 	    i = (int)(regmatch.startp[0] - tail);
 	    mch_memmove((char_u *)ga.ga_data + ga.ga_len, tail, (size_t)i);
 	    /* add the substituted text */
-	    (void)vim_regsub(&regmatch, sub, (char_u *)ga.ga_data
+	    (void)vim_regsub(&regmatch, sub, expr, (char_u *)ga.ga_data
 					  + ga.ga_len + i, TRUE, TRUE, FALSE);
 	    ga.ga_len += i + sublen - 1;
 	    tail = regmatch.endp[0];
@@ -9885,7 +9908,7 @@ do_string_sub(
     if (p_cpo == empty_option)
 	p_cpo = save_cpo;
     else
-	/* Darn, evaluating {sub} expression changed the value. */
+	/* Darn, evaluating {sub} expression or {expr} changed the value. */
 	free_string_option(save_cpo);
 
     return ret;
