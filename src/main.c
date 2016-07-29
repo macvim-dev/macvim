@@ -3075,11 +3075,14 @@ source_startup_scripts(mparm_T *parmp)
 							   DOSO_VIMRC) == FAIL
 #endif
 		&& process_env((char_u *)"EXINIT", FALSE) == FAIL
-		&& do_source((char_u *)USR_EXRC_FILE, FALSE, DOSO_NONE) == FAIL)
-	    {
+		&& do_source((char_u *)USR_EXRC_FILE, FALSE, DOSO_NONE) == FAIL
 #ifdef USR_EXRC_FILE2
-		(void)do_source((char_u *)USR_EXRC_FILE2, FALSE, DOSO_NONE);
+		&& do_source((char_u *)USR_EXRC_FILE2, FALSE, DOSO_NONE) == FAIL
 #endif
+		)
+	    {
+		/* When no .vimrc file was found: source defaults.vim. */
+		do_source((char_u *)VIM_DEFAULTS_FILE, FALSE, DOSO_NONE);
 	    }
 	}
 
@@ -3087,7 +3090,7 @@ source_startup_scripts(mparm_T *parmp)
 	 * Read initialization commands from ".vimrc" or ".exrc" in current
 	 * directory.  This is only done if the 'exrc' option is set.
 	 * Because of security reasons we disallow shell and write commands
-	 * now, except for unix if the file is owned by the user or 'secure'
+	 * now, except for Unix if the file is owned by the user or 'secure'
 	 * option has been reset in environment of global ".exrc" or ".vimrc".
 	 * Only do this if VIMRC_FILE is not the same as USR_VIMRC_FILE or
 	 * SYS_VIMRC_FILE.
