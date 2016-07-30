@@ -51,7 +51,6 @@ SCRIPTS_ALL = \
 	test56.out \
 	test57.out \
 	test60.out \
-	test61.out \
 	test62.out \
 	test63.out \
 	test64.out \
@@ -185,9 +184,11 @@ NEW_TESTS = test_arglist.res \
 	    test_perl.res \
 	    test_quickfix.res \
 	    test_ruby.res \
+	    test_startup.res \
 	    test_stat.res \
 	    test_syntax.res \
 	    test_textobjects.res \
+	    test_undo.res \
 	    test_usercommands.res \
 	    test_viminfo.res \
 	    test_viml.res \

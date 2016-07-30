@@ -1662,6 +1662,9 @@ EXTERN time_T time_for_testing INIT(= 0);
 
 /* Abort conversion to string after a recursion error. */
 EXTERN int  did_echo_string_emsg INIT(= FALSE);
+
+/* Used for checking if local variables or arguments used in a lambda. */
+EXTERN int *eval_lavars_used INIT(= NULL);
 #endif
 
 /*
