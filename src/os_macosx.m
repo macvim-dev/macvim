@@ -15,12 +15,10 @@
     Error: MACOS 9 is no longer supported in Vim 7
 #endif
 
-#ifndef FEAT_GUI_MACVIM
 /* Avoid a conflict for the definition of Boolean between Mac header files and
  * X11 header files. */
-# define NO_X11_INCLUDES
-# define BalloonEval int   /* used in header files */
-#endif
+#define NO_X11_INCLUDES
+#define BalloonEval int   /* used in header files */
 
 #include "vim.h"
 #import <Cocoa/Cocoa.h>
