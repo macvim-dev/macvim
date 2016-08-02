@@ -152,7 +152,7 @@ function! Test_lambda_delfunc()
   endfunction
 
   let l:F = s:gen()
-  call assert_fails(':call l:F()', 'E117:')
+  call assert_fails(':call l:F()', 'E933:')
 endfunction
 
 function! Test_lambda_scope()
@@ -247,3 +247,40 @@ function! Test_closure_unlet()
   call assert_false(has_key(s:foo(), 'x'))
   call test_garbagecollect_now()
 endfunction
+
+function! LambdaFoo()
+  let x = 0
+  function! LambdaBar() closure
+    let x += 1
+    return x
+  endfunction
+  return function('LambdaBar')
+endfunction
+
+func Test_closure_refcount()
+  let g:Count = LambdaFoo()
+  call test_garbagecollect_now()
+  call assert_equal(1, g:Count())
+  let g:Count2 = LambdaFoo()
+  call test_garbagecollect_now()
+  call assert_equal(1, g:Count2())
+  call assert_equal(2, g:Count())
+  call assert_equal(3, g:Count2())
+
+  delfunc LambdaFoo
+  delfunc LambdaBar
+endfunc
+
+func Test_named_function_closure()
+  func! Afoo()
+    let x = 14
+    func! s:Abar() closure
+      return x
+    endfunc
+    call assert_equal(14, s:Abar())
+  endfunc
+  call Afoo()
+  call assert_equal(14, s:Abar())
+  call test_garbagecollect_now()
+  call assert_equal(14, s:Abar())
+endfunc

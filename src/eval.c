@@ -2838,7 +2838,7 @@ do_unlet(char_u *name, int forceit)
 	}
 	hi = hash_find(ht, varname);
 	if (HASHITEM_EMPTY(hi))
-	    hi = find_hi_in_scoped_ht(name, &varname, &ht);
+	    hi = find_hi_in_scoped_ht(name, &ht);
 	if (hi != NULL && !HASHITEM_EMPTY(hi))
 	{
 	    di = HI2DI(hi);
@@ -5011,6 +5011,17 @@ get_lit_string_tv(char_u **arg, typval_T *rettv, int evaluate)
     return OK;
 }
 
+/*
+ * Return the function name of the partial.
+ */
+    char_u *
+partial_name(partial_T *pt)
+{
+    if (pt->pt_name != NULL)
+	return pt->pt_name;
+    return pt->pt_func->uf_name;
+}
+
     static void
 partial_free(partial_T *pt)
 {
@@ -5020,8 +5031,13 @@ partial_free(partial_T *pt)
 	clear_tv(&pt->pt_argv[i]);
     vim_free(pt->pt_argv);
     dict_unref(pt->pt_dict);
-    func_unref(pt->pt_name);
-    vim_free(pt->pt_name);
+    if (pt->pt_name != NULL)
+    {
+	func_unref(pt->pt_name);
+	vim_free(pt->pt_name);
+    }
+    else
+	func_ptr_unref(pt->pt_func);
     vim_free(pt);
 }
 
@@ -5051,11 +5067,11 @@ func_equal(
 
     /* empty and NULL function name considered the same */
     s1 = tv1->v_type == VAR_FUNC ? tv1->vval.v_string
-					   : tv1->vval.v_partial->pt_name;
+					   : partial_name(tv1->vval.v_partial);
     if (s1 != NULL && *s1 == NUL)
 	s1 = NULL;
     s2 = tv2->v_type == VAR_FUNC ? tv2->vval.v_string
-					   : tv2->vval.v_partial->pt_name;
+					   : partial_name(tv2->vval.v_partial);
     if (s2 != NULL && *s2 == NUL)
 	s2 = NULL;
     if (s1 == NULL || s2 == NULL)
@@ -5287,6 +5303,9 @@ garbage_collect(int testing)
 
     /* function-local variables */
     abort = abort || set_ref_in_call_stack(copyID);
+
+    /* named functions (matters for closures) */
+    abort = abort || set_ref_in_functions(copyID);
 
     /* function call arguments, if v:testing is set. */
     abort = abort || set_ref_in_func_args(copyID);
@@ -5550,7 +5569,7 @@ set_ref_in_item(
     }
     else if (tv->v_type == VAR_FUNC)
     {
-	abort = set_ref_in_func(tv->vval.v_string, copyID);
+	abort = set_ref_in_func(tv->vval.v_string, NULL, copyID);
     }
     else if (tv->v_type == VAR_PARTIAL)
     {
@@ -5561,7 +5580,7 @@ set_ref_in_item(
 	 */
 	if (pt != NULL)
 	{
-	    abort = set_ref_in_func(pt->pt_name, copyID);
+	    abort = set_ref_in_func(pt->pt_name, pt->pt_func, copyID);
 
 	    if (pt->pt_dict != NULL)
 	    {
@@ -5735,7 +5754,7 @@ echo_string_core(
 	    {
 		partial_T   *pt = tv->vval.v_partial;
 		char_u	    *fname = string_quote(pt == NULL ? NULL
-							: pt->pt_name, FALSE);
+						    : partial_name(pt), FALSE);
 		garray_T    ga;
 		int	    i;
 		char_u	    *tf;
@@ -6871,7 +6890,7 @@ handle_subscript(
 		if (functv.v_type == VAR_PARTIAL)
 		{
 		    pt = functv.vval.v_partial;
-		    s = pt->pt_name;
+		    s = partial_name(pt);
 		}
 		else
 		    s = functv.vval.v_string;
@@ -7328,8 +7347,7 @@ find_var(char_u *name, hashtab_T **htp, int no_autoload)
 	return ret;
 
     /* Search in parent scope for lambda */
-    return find_var_in_scoped_ht(name, varname ? &varname : NULL,
-		no_autoload || htp != NULL);
+    return find_var_in_scoped_ht(name, no_autoload || htp != NULL);
 }
 
 /*
@@ -7668,7 +7686,7 @@ set_var(
 
     /* Search in parent scope which is possible to reference from lambda */
     if (v == NULL)
-	v = find_var_in_scoped_ht(name, varname ? &varname : NULL, TRUE);
+	v = find_var_in_scoped_ht(name, TRUE);
 
     if ((tv->v_type == VAR_FUNC || tv->v_type == VAR_PARTIAL)
 				      && var_check_func_name(name, v == NULL))
@@ -7813,7 +7831,7 @@ var_check_func_name(
     /* Don't allow hiding a function.  When "v" is not NULL we might be
      * assigning another function to the same var, the type is checked
      * below. */
-    if (new_var && function_exists(name))
+    if (new_var && function_exists(name, FALSE))
     {
 	EMSG2(_("E705: Variable name conflicts with existing function: %s"),
 								    name);
@@ -10025,7 +10043,7 @@ filter_map_one(typval_T *tv, typval_T *expr, int map, int *remp)
     {
 	partial_T   *partial = expr->vval.v_partial;
 
-	s = partial->pt_name;
+	s = partial_name(partial);
 	if (call_func(s, (int)STRLEN(s), &rettv, 2, argv, NULL,
 				  0L, 0L, &dummy, TRUE, partial, NULL) == FAIL)
 	    goto theend;
