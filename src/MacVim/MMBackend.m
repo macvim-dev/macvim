@@ -163,18 +163,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 @end
 
 
-@interface MMChannel : NSObject {
-    channel_T           *channel;
-    int                 part;
-    CFSocketRef         socket;
-    CFRunLoopSourceRef  runLoopSource;
-}
-
-- (id)initWithChannel:(channel_T *)c part:(int)p;
-- (void)read;
-@end
-
-
 @interface MMBackend (Private)
 - (void)clearDrawData;
 - (void)didChangeWholeLine;
@@ -1683,19 +1671,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     gui_update_cursor(TRUE, FALSE);
     [self flushQueue:YES];
-}
-
-- (void *)addChannel:(channel_T *)channel part:(int)part
-{
-    MMChannel *mmChannel =
-        [[MMChannel alloc] initWithChannel:channel part:part];
-    return (void *)mmChannel;
-}
-
-- (void)removeChannel:(void *)cookie
-{
-    MMChannel *mmChannel = (MMChannel *)cookie;
-    [mmChannel release];
 }
 
 #ifdef FEAT_BEVAL
@@ -3409,68 +3384,3 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
 }
 
 @end // NSString (VimStrings)
-
-
-
-@implementation MMChannel
-
-- (void)dealloc
-{
-    CFSocketInvalidate(socket);
-    CFRunLoopSourceInvalidate(runLoopSource);
-    CFRelease(runLoopSource);
-    CFRelease(socket);
-    [super dealloc];
-}
-
-static void socketReadCallback(CFSocketRef s,
-                               CFSocketCallBackType callbackType,
-                               CFDataRef address,
-                               const void *data,
-                               void *info)
-{
-    MMChannel *mmChannel = (MMChannel *)info;
-    [mmChannel read];
-}
-
-- (id)initWithChannel:(channel_T *)c part:(int)p
-{
-    self = [super init];
-    if (!self) return nil;
-
-    channel = c;
-    part = p;
-
-    // Tell CFRunLoop that we are interested in channel socket input.
-    CFSocketContext ctx = {0, (void *)self, NULL, NULL, NULL};
-    socket = CFSocketCreateWithNative(kCFAllocatorDefault,
-                                      channel->ch_part[part].ch_fd,
-                                      kCFSocketReadCallBack,
-                                      &socketReadCallback,
-                                      &ctx);
-    CFOptionFlags opt = CFSocketGetSocketFlags(socket);
-    opt &= ~(kCFSocketCloseOnInvalidate|kCFSocketLeaveErrors);
-    CFSocketSetSocketFlags(socket, opt);
-    runLoopSource = CFSocketCreateRunLoopSource(NULL,
-                                                socket,
-                                                0);
-    CFRunLoopAddSource(CFRunLoopGetCurrent(),
-                       runLoopSource,
-                       kCFRunLoopCommonModes);
-
-    return self;
-}
-
-- (void)read
-{
-    int fd = channel->ch_part[part].ch_fd;
-    fd_set fds;
-    FD_ZERO(&fds);
-    FD_SET(fd, &fds);
-    struct timeval t;
-    memset(&t, 0, sizeof(t));
-    if (select(FD_SETSIZE, &fds, NULL, NULL, &t) > 0)
-        channel_read(channel, part, "MMChannel_read");
-}
-
-@end
