@@ -2260,13 +2260,24 @@ static int vimModMaskToEventModifierFlags(int mods)
     void *
 gui_macvim_add_channel(channel_T *channel, int part)
 {
-    return [[MMBackend sharedInstance] addChannel:channel part:part];
+    dispatch_source_t s =
+        dispatch_source_create(DISPATCH_SOURCE_TYPE_READ,
+                               channel->ch_part[part].ch_fd,
+                               0,
+                               dispatch_get_main_queue());
+    dispatch_source_set_event_handler(s, ^{
+        channel_read(channel, part, "gui_macvim_add_channel");
+    });
+    dispatch_resume(s);
+    return s;
 }
 
     void
 gui_macvim_remove_channel(void *cookie)
 {
-    [[MMBackend sharedInstance] removeChannel:cookie];
+    dispatch_source_t s = (dispatch_source_t)cookie;
+    dispatch_source_cancel(s);
+    dispatch_release(s);
 }
 
 
