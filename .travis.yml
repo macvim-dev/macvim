@@ -41,6 +41,8 @@ script:
   - rm -f result; $VIMCMD -g -f -c "redir>result" -c "py3 print(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
   - rm -f result; $VIMCMD -g -f -c "redir>result" -c "ruby puts(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
   - make test
+  - make -C src/testdir clean
+  - make -C src testgui
 
 before_deploy:
   - make -C src macvim-dmg
