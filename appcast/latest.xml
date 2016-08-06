@@ -6,12 +6,12 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-104</title>
+      <title>MacVim snapshot-105</title>
       <description><![CDATA[
 <pre>
 Binary targets OS X 10.8(Mountain Lion), 10.9(Mavericks), 10.10(Yosemite), and 10.11(El Capitan)
 
-- Vim patch 7.4.1831
+- Vim patch 7.4.2161
 
 Script interfaces have compatibility with these versions
 
@@ -23,14 +23,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Tue, 17 May 2016 17:00:00 -0700</pubDate>
+      <pubDate>Fri, 05 Aug 2016 23:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-104/MacVim.dmg"
-        length="17557181"
-        sparkle:version="104"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-105/MacVim.dmg"
+        length="17702071"
+        sparkle:version="105"
         sparkle:shortVersionString="7.4"
-	sparkle:dsaSignature="MC0CFQCIe/kXFJ5gI75vcwz//If2fz364wIUWIiCt4BXgP5F/PvVc1lRgS+c4HU="
+	sparkle:dsaSignature="MCwCFBktOMZy6iF4Mk6gTlRTyosCt+0hAhRKB47PY3xmPzQM2X+Hf2FDdwpDsw=="
         />
     </item>
   </channel>
