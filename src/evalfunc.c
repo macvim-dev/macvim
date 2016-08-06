@@ -4247,6 +4247,13 @@ f_getcompletion(typval_T *argvars, typval_T *rettv)
 	xpc.xp_pattern_len = (int)STRLEN(xpc.xp_pattern);
     }
 # endif
+#ifdef FEAT_CSCOPE
+    if (xpc.xp_context == EXPAND_CSCOPE)
+    {
+	set_context_in_cscope_cmd(&xpc, xpc.xp_pattern, CMD_cscope);
+	xpc.xp_pattern_len = (int)STRLEN(xpc.xp_pattern);
+    }
+#endif
 
     pat = addstar(xpc.xp_pattern, xpc.xp_pattern_len, xpc.xp_context);
     if ((rettv_list_alloc(rettv) != FAIL) && (pat != NULL))
@@ -9679,11 +9686,11 @@ f_setmatches(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 		}
 	    }
 
-	    group = get_dict_string(d, (char_u *)"group", FALSE);
+	    group = get_dict_string(d, (char_u *)"group", TRUE);
 	    priority = (int)get_dict_number(d, (char_u *)"priority");
 	    id = (int)get_dict_number(d, (char_u *)"id");
 	    conceal = dict_find(d, (char_u *)"conceal", -1) != NULL
-			      ? get_dict_string(d, (char_u *)"conceal", FALSE)
+			      ? get_dict_string(d, (char_u *)"conceal", TRUE)
 			      : NULL;
 	    if (i == 0)
 	    {
@@ -9697,6 +9704,8 @@ f_setmatches(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 		list_unref(s);
 		s = NULL;
 	    }
+	    vim_free(group);
+	    vim_free(conceal);
 
 	    li = li->li_next;
 	}

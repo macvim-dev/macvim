@@ -2103,6 +2103,7 @@ test_arglist \
 	test_history \
 	test_increment \
 	test_increment_dbcs \
+	test_job_fails \
 	test_join \
 	test_json \
 	test_jumps \
