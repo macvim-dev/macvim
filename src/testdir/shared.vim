@@ -120,3 +120,38 @@ func WaitFor(expr)
     sleep 10m
   endfor
 endfunc
+
+" Run Vim, using the "vimcmd" file and "-u NORC".
+" "before" is a list of commands to be executed before loading plugins.
+" "after" is a list of commands to be executed after loading plugins.
+" Plugins are not loaded, unless 'loadplugins' is set in "before".
+" Return 1 if Vim could be executed.
+func RunVim(before, after, arguments)
+  if !filereadable('vimcmd')
+    return 0
+  endif
+  let args = a:arguments
+  if len(a:before) > 0
+    call writefile(a:before, 'Xbefore.vim')
+    let args .= ' --cmd "so Xbefore.vim"'
+  endif
+  if len(a:after) > 0
+    call writefile(a:after, 'Xafter.vim')
+    let args .= ' -S Xafter.vim'
+  endif
+
+  let cmd = readfile('vimcmd')[0]
+  let cmd = substitute(cmd, '-u \f\+', '-u NONE', '')
+  if cmd !~ '-u NONE'
+    let cmd = cmd . ' -u NONE'
+  endif
+  exe "silent !" . cmd . ' ' . args
+
+  if len(a:before) > 0
+    call delete('Xbefore.vim')
+  endif
+  if len(a:after) > 0
+    call delete('Xafter.vim')
+  endif
+  return 1
+endfunc

@@ -396,6 +396,7 @@ static void f_tan(typval_T *argvars, typval_T *rettv);
 static void f_tanh(typval_T *argvars, typval_T *rettv);
 #endif
 #ifdef FEAT_TIMERS
+static void f_timer_info(typval_T *argvars, typval_T *rettv);
 static void f_timer_start(typval_T *argvars, typval_T *rettv);
 static void f_timer_stop(typval_T *argvars, typval_T *rettv);
 #endif
@@ -815,6 +816,7 @@ static struct fst
     {"test_null_string", 0, 0, f_test_null_string},
     {"test_settime",	1, 1, f_test_settime},
 #ifdef FEAT_TIMERS
+    {"timer_info",	0, 1, f_timer_info},
     {"timer_start",	2, 3, f_timer_start},
     {"timer_stop",	1, 1, f_timer_stop},
 #endif
@@ -4251,6 +4253,13 @@ f_getcompletion(typval_T *argvars, typval_T *rettv)
     if (xpc.xp_context == EXPAND_CSCOPE)
     {
 	set_context_in_cscope_cmd(&xpc, xpc.xp_pattern, CMD_cscope);
+	xpc.xp_pattern_len = (int)STRLEN(xpc.xp_pattern);
+    }
+#endif
+#ifdef FEAT_SIGNS
+    if (xpc.xp_context == EXPAND_SIGN)
+    {
+	set_context_in_sign_cmd(&xpc, xpc.xp_pattern);
 	xpc.xp_pattern_len = (int)STRLEN(xpc.xp_pattern);
     }
 #endif
@@ -11980,6 +11989,31 @@ free_callback(char_u *callback, partial_T *partial)
 #endif
 
 #ifdef FEAT_TIMERS
+/*
+ * "timer_info([timer])" function
+ */
+    static void
+f_timer_info(typval_T *argvars, typval_T *rettv)
+{
+    timer_T *timer = NULL;
+
+    if (rettv_list_alloc(rettv) != OK)
+	return;
+    if (argvars[0].v_type != VAR_UNKNOWN)
+    {
+	if (argvars[0].v_type != VAR_NUMBER)
+	    EMSG(_(e_number_exp));
+	else
+	{
+	    timer = find_timer((int)get_tv_number(&argvars[0]));
+	    if (timer != NULL)
+		add_timer_info(rettv, timer);
+	}
+    }
+    else
+	add_timer_info_all(rettv);
+}
+
 /*
  * "timer_start(time, callback [, options])" function
  */
