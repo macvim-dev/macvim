@@ -109,28 +109,35 @@ func s:kill_server(cmd)
 endfunc
 
 " Wait for up to a second for "expr" to become true.
+" Return time slept in milliseconds.
 func WaitFor(expr)
+  let slept = 0
   for i in range(100)
     try
       if eval(a:expr)
-	return
+	return slept
       endif
     catch
     endtry
+    let slept += 10
     sleep 10m
   endfor
 endfunc
 
 " Run Vim, using the "vimcmd" file and "-u NORC".
-" "before" is a list of commands to be executed before loading plugins.
-" "after" is a list of commands to be executed after loading plugins.
+" "before" is a list of Vim commands to be executed before loading plugins.
+" "after" is a list of Vim commands to be executed after loading plugins.
 " Plugins are not loaded, unless 'loadplugins' is set in "before".
 " Return 1 if Vim could be executed.
 func RunVim(before, after, arguments)
+  call RunVimPiped(a:before, a:after, a:arguments, '')
+endfunc
+
+func RunVimPiped(before, after, arguments, pipecmd)
   if !filereadable('vimcmd')
     return 0
   endif
-  let args = a:arguments
+  let args = ''
   if len(a:before) > 0
     call writefile(a:before, 'Xbefore.vim')
     let args .= ' --cmd "so Xbefore.vim"'
@@ -145,7 +152,13 @@ func RunVim(before, after, arguments)
   if cmd !~ '-u NONE'
     let cmd = cmd . ' -u NONE'
   endif
-  exe "silent !" . cmd . ' ' . args
+
+  " With pipecmd we can't set VIMRUNTIME.
+  if a:pipecmd != ''
+    let cmd = substitute(cmd, 'VIMRUNTIME=.*VIMRUNTIME;', '', '')
+  endif
+
+  exe "silent !" . a:pipecmd . cmd . args . ' ' . a:arguments
 
   if len(a:before) > 0
     call delete('Xbefore.vim')
