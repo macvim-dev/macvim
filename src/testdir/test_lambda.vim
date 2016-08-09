@@ -39,7 +39,7 @@ function! Test_lambda_with_timer()
   call timer_stop(s:timer_id)
   call assert_true(m > 1)
   call assert_true(s:n > m + 1)
-  call assert_true(s:n < 9)
+  call assert_true(s:n < 10)
 endfunction
 
 function! Test_lambda_with_partial()
