@@ -16,7 +16,7 @@ if has('timers')
     let g:triggered = 0
     au CursorHoldI * let g:triggered += 1
     set updatetime=20
-    call timer_start(100, 'ExitInsertMode')
+    call timer_start(200, 'ExitInsertMode')
     call feedkeys('a', 'x!')
     call assert_equal(1, g:triggered)
     au! CursorHoldI
@@ -26,7 +26,7 @@ if has('timers')
     let g:triggered = 0
     au CursorHoldI * let g:triggered += 1
     set updatetime=20
-    call timer_start(100, 'ExitInsertMode')
+    call timer_start(200, 'ExitInsertMode')
     " CursorHoldI does not trigger after CTRL-X
     call feedkeys("a\<C-X>", 'x!')
     call assert_equal(0, g:triggered)
