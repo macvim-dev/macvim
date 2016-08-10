@@ -2131,6 +2131,7 @@ test_arglist \
 	test_signs \
 	test_sort \
 	test_startup \
+	test_startup_utf8 \
 	test_stat \
 	test_statusline \
 	test_syn_attr \
