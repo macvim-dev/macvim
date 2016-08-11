@@ -5810,6 +5810,9 @@ win_new_height(win_T *wp, int height)
     void
 win_new_width(win_T *wp, int width)
 {
+#ifdef FEAT_GUI_MACVIM
+    int		resized = wp->w_width != width;
+#endif
     wp->w_width = width;
     wp->w_lines_valid = 0;
     changed_line_abv_curs_win(wp);
@@ -5821,7 +5824,7 @@ win_new_width(win_T *wp, int width)
     }
 #ifdef FEAT_GUI_MACVIM
     /* The view may have moved, so clear all or display may get corrupted. */
-    redraw_win_later(wp, gui.in_use ? CLEAR : NOT_VALID);
+    redraw_win_later(wp, resized && gui.in_use ? CLEAR : NOT_VALID);
 #else
     redraw_win_later(wp, NOT_VALID);
 #endif
