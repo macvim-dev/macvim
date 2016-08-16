@@ -660,6 +660,14 @@
     }
 }
 
+- (void)adjustColumnspace:(int)columnspace
+{
+    if (vimView && [vimView textView]) {
+        [[vimView textView] setColumnspace:(float)columnspace];
+        shouldMaximizeWindow = shouldResizeVimView = YES;
+    }
+}
+
 - (void)liveResizeWillStart
 {
     if (!setupDone) return;

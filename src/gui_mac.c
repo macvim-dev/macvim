@@ -3509,7 +3509,7 @@ gui_mch_init_font(char_u *font_name, int fontset)
     GetFontInfo(&font_info);
 
     gui.char_ascent = font_info.ascent;
-    gui.char_width  = CharWidth('_');
+    gui.char_width  = p_columnspace + CharWidth('_');
     gui.char_height = font_info.ascent + font_info.descent + p_linespace;
 
 #ifdef USE_ATSUI_DRAWING
@@ -3531,6 +3531,16 @@ gui_mch_adjust_charheight(void)
     GetFontInfo(&font_info);
     gui.char_height = font_info.ascent + font_info.descent + p_linespace;
     gui.char_ascent = font_info.ascent + p_linespace / 2;
+    return OK;
+}
+
+/*
+ * Adjust gui.char_width (after 'columnspace' was changed).
+ */
+    int
+gui_mch_adjust_charwidth(void)
+{
+    gui.char_width  = p_columnspace + CharWidth('_');
     return OK;
 }
 

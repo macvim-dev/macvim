@@ -311,7 +311,7 @@ defaultAdvanceForFont(NSFont *font)
     // only render at integer sizes.  Hence, we restrict the cell width to
     // an integer here, otherwise the window width and the actual text
     // width will not match.
-    cellSize.width = ceil(em * cellWidthMultiplier);
+    cellSize.width = columnspace + ceil(em * cellWidthMultiplier);
     cellSize.height = linespace + defaultLineHeightForFont(font);
 
     fontDescent = ceil(CTFontGetDescent(fontRef));
@@ -370,6 +370,17 @@ defaultAdvanceForFont(NSFont *font)
     // linespace is non-zero the baseline will be adjusted as well; check
     // MMTypesetter.
     cellSize.height = linespace + defaultLineHeightForFont(font);
+}
+
+- (void)setColumnspace:(float)newColumnspace
+{
+    columnspace = newColumnspace;
+
+    double em = round(defaultAdvanceForFont(font));
+    float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
+            floatForKey:MMCellWidthMultiplierKey];
+
+    cellSize.width = columnspace + ceil(em * cellWidthMultiplier);
 }
 
 

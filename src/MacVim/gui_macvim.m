@@ -252,6 +252,7 @@ gui_mch_init(void)
     // Ensure 'linespace' option is passed along to MacVim in case it was set
     // in [g]vimrc.
     gui_mch_adjust_charheight();
+    gui_mch_adjust_charwidth();
 
     if (!MMNoMRU && GARGCOUNT > 0) {
         // Add files passed on command line to MRU.
@@ -1401,6 +1402,17 @@ ex_macaction(eap)
 gui_mch_adjust_charheight(void)
 {
     [[MMBackend sharedInstance] adjustLinespace:p_linespace];
+    return OK;
+}
+
+
+/*
+ * Adjust gui.char_width (after 'columnspace' was changed).
+ */
+    int
+gui_mch_adjust_charwidth(void)
+{
+    [[MMBackend sharedInstance] adjustColumnspace:p_columnspace];
     return OK;
 }
 

@@ -64,6 +64,7 @@ char *MessageStrings[] =
     "MouseMovedMsgID",
     "SetMouseShapeMsgID",
     "AdjustLinespaceMsgID",
+    "AdjustColumnspaceMsgID",
     "ActivateMsgID",
     "SetServerNameMsgID",
     "EnterFullScreenMsgID",

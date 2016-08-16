@@ -210,6 +210,7 @@ enum {
     MouseMovedMsgID,
     SetMouseShapeMsgID,
     AdjustLinespaceMsgID,
+    AdjustColumnspaceMsgID,
     ActivateMsgID,
     SetServerNameMsgID,
     EnterFullScreenMsgID,
