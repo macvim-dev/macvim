@@ -1,7 +1,7 @@
 " These commands create the option window.
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2016 Apr 30
+" Last Change:	2016 Aug 12
 
 " If there already is an option window, jump to that one.
 if bufwinnr("option-window") > 0
@@ -1322,6 +1322,11 @@ call append("$", "\t(local to buffer)")
 call <SID>BinOptionL("bl")
 call append("$", "debug\tset to \"msg\" to see all error messages")
 call append("$", " \tset debug=" . &debug)
+if has("signs")
+  call append("$", "signcolumn\twhether to show the signcolumn")
+  call append("$", "\t(local to window)")
+  call <SID>OptionL("scl")
+endif
 if has("mzscheme")
   call append("$", "mzquantum\tinterval in milliseconds between polls for MzScheme threads")
   call append("$", " \tset mzq=" . &mzq)

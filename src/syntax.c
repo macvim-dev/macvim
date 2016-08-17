@@ -6789,6 +6789,7 @@ static char *(highlight_init_both[]) =
 	     "StatusLine term=reverse,bold cterm=reverse,bold gui=reverse,bold"),
 	CENT("StatusLineNC term=reverse cterm=reverse",
 	     "StatusLineNC term=reverse cterm=reverse gui=reverse"),
+	"default link EndOfBuffer NonText",
 #ifdef FEAT_WINDOWS
 	CENT("VertSplit term=reverse cterm=reverse",
 	     "VertSplit term=reverse cterm=reverse gui=reverse"),
@@ -7940,7 +7941,7 @@ do_highlight(
 		 */
 		for (p = arg, off = 0; off < 100 - 6 && *p; )
 		{
-		    len = trans_special(&p, buf + off, FALSE);
+		    len = trans_special(&p, buf + off, FALSE, FALSE);
 		    if (len > 0)	    /* recognized special char */
 			off += len;
 		    else		    /* copy as normal char */

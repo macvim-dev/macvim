@@ -3891,7 +3891,7 @@ do_browse(
 static char *e_printf = N_("E766: Insufficient arguments for printf()");
 
 static varnumber_T tv_nr(typval_T *tvs, int *idxp);
-static char *tv_str(typval_T *tvs, int *idxp);
+static char *tv_str(typval_T *tvs, int *idxp, char_u **tofree);
 # ifdef FEAT_FLOAT
 static double tv_float(typval_T *tvs, int *idxp);
 # endif
@@ -3920,20 +3920,28 @@ tv_nr(typval_T *tvs, int *idxp)
 
 /*
  * Get string argument from "idxp" entry in "tvs".  First entry is 1.
+ * If "tofree" is NULL get_tv_string_chk() is used.  Some types (e.g. List)
+ * are not converted to a string.
+ * If "tofree" is not NULL echo_string() is used.  All types are converted to
+ * a string with the same format as ":echo".  The caller must free "*tofree".
  * Returns NULL for an error.
  */
     static char *
-tv_str(typval_T *tvs, int *idxp)
+tv_str(typval_T *tvs, int *idxp, char_u **tofree)
 {
-    int		idx = *idxp - 1;
-    char	*s = NULL;
+    int		    idx = *idxp - 1;
+    char	    *s = NULL;
+    static char_u   numbuf[NUMBUFLEN];
 
     if (tvs[idx].v_type == VAR_UNKNOWN)
 	EMSG(_(e_printf));
     else
     {
 	++*idxp;
-	s = (char *)get_tv_string_chk(&tvs[idx]);
+	if (tofree != NULL)
+	    s = (char *)echo_string(&tvs[idx], tofree, numbuf, get_copyID());
+	else
+	    s = (char *)get_tv_string_chk(&tvs[idx]);
     }
     return s;
 }
@@ -4087,12 +4095,14 @@ vim_vsnprintf(
 	    char    length_modifier = '\0';
 
 	    /* temporary buffer for simple numeric->string conversion */
-# ifdef FEAT_FLOAT
+# if defined(FEAT_FLOAT)
 #  define TMP_LEN 350	/* On my system 1e308 is the biggest number possible.
 			 * That sounds reasonable to use as the maximum
 			 * printable. */
+# elif defined(FEAT_NUM64)
+#  define TMP_LEN 66
 # else
-#  define TMP_LEN 32
+#  define TMP_LEN 34
 # endif
 	    char    tmp[TMP_LEN];
 
@@ -4116,6 +4126,10 @@ vim_vsnprintf(
 
 	    /* current conversion specifier character */
 	    char    fmt_spec = '\0';
+
+	    /* buffer for 's' and 'S' specs */
+	    char_u  *tofree = NULL;
+
 
 	    str_arg = NULL;
 	    p++;  /* skip '%' */
@@ -4280,7 +4294,7 @@ vim_vsnprintf(
 		case 'S':
 		    str_arg =
 # if defined(FEAT_EVAL)
-				tvs != NULL ? tv_str(tvs, &arg_idx) :
+				tvs != NULL ? tv_str(tvs, &arg_idx, &tofree) :
 # endif
 				    va_arg(ap, char *);
 		    if (str_arg == NULL)
@@ -4335,9 +4349,13 @@ vim_vsnprintf(
 		}
 		break;
 
-	    case 'd': case 'u': case 'o': case 'x': case 'X': case 'p':
+	    case 'd': case 'u':
+	    case 'b': case 'B':
+	    case 'o':
+	    case 'x': case 'X':
+	    case 'p':
 		{
-		    /* NOTE: the u, o, x, X and p conversion specifiers
+		    /* NOTE: the u, b, o, x, X and p conversion specifiers
 		     * imply the value is unsigned;  d implies a signed
 		     * value */
 
@@ -4362,6 +4380,9 @@ vim_vsnprintf(
 		    uvarnumber_T ullong_arg = 0;
 # endif
 
+		    /* only defined for b convertion */
+		    uvarnumber_T bin_arg = 0;
+
 		    /* pointer argument value -only defined for p
 		     * conversion */
 		    void *ptr_arg = NULL;
@@ -4371,10 +4392,22 @@ vim_vsnprintf(
 			length_modifier = '\0';
 			ptr_arg =
 # if defined(FEAT_EVAL)
-				 tvs != NULL ? (void *)tv_str(tvs, &arg_idx) :
+				 tvs != NULL ? (void *)tv_str(tvs, &arg_idx,
+									NULL) :
 # endif
 					va_arg(ap, void *);
 			if (ptr_arg != NULL)
+			    arg_sign = 1;
+		    }
+		    else if (fmt_spec == 'b' || fmt_spec == 'B')
+		    {
+			bin_arg =
+# if defined(FEAT_EVAL)
+				    tvs != NULL ?
+					   (uvarnumber_T)tv_nr(tvs, &arg_idx) :
+# endif
+					va_arg(ap, uvarnumber_T);
+			if (bin_arg != 0)
 			    arg_sign = 1;
 		    }
 		    else if (fmt_spec == 'd')
@@ -4483,7 +4516,8 @@ vim_vsnprintf(
 		    else if (alternate_form)
 		    {
 			if (arg_sign != 0
-				     && (fmt_spec == 'x' || fmt_spec == 'X') )
+				     && (fmt_spec == 'b' || fmt_spec == 'B'
+				      || fmt_spec == 'x' || fmt_spec == 'X') )
 			{
 			    tmp[str_arg_l++] = '0';
 			    tmp[str_arg_l++] = fmt_spec;
@@ -4499,7 +4533,7 @@ vim_vsnprintf(
 		    {
 			/* When zero value is formatted with an explicit
 			 * precision 0, the resulting formatted string is
-			 * empty (d, i, u, o, x, X, p).   */
+			 * empty (d, i, u, b, B, o, x, X, p).   */
 		    }
 		    else
 		    {
@@ -4532,6 +4566,22 @@ vim_vsnprintf(
 
 			if (fmt_spec == 'p')
 			    str_arg_l += sprintf(tmp + str_arg_l, f, ptr_arg);
+			else if (fmt_spec == 'b' || fmt_spec == 'B')
+			{
+			    char	    b[8 * sizeof(uvarnumber_T)];
+			    size_t	    b_l = 0;
+			    uvarnumber_T    bn = bin_arg;
+
+			    do
+			    {
+				b[sizeof(b) - ++b_l] = '0' + (bn & 0x1);
+				bn >>= 1;
+			    }
+			    while (bn != 0);
+
+			    memcpy(tmp + str_arg_l, b + sizeof(b) - b_l, b_l);
+			    str_arg_l += b_l;
+			}
 			else if (fmt_spec == 'd')
 			{
 			    /* signed */
@@ -4881,6 +4931,7 @@ vim_vsnprintf(
 		    str_l += pn;
 		}
 	    }
+	    vim_free(tofree);
 	}
     }
 

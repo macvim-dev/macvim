@@ -1363,7 +1363,7 @@ win_init_some(win_T *newp, win_T *oldp)
 
 #if defined(FEAT_WINDOWS) || defined(PROTO)
 /*
- * Check if "win" is a pointer to an existing window.
+ * Check if "win" is a pointer to an existing window in the current tab page.
  */
     int
 win_valid(win_T *win)
@@ -1375,6 +1375,28 @@ win_valid(win_T *win)
     FOR_ALL_WINDOWS(wp)
 	if (wp == win)
 	    return TRUE;
+    return FALSE;
+}
+
+/*
+ * Check if "win" is a pointer to an existing window in any tab page.
+ */
+    int
+win_valid_any_tab(win_T *win)
+{
+    win_T	*wp;
+    tabpage_T	*tp;
+
+    if (win == NULL)
+	return FALSE;
+    FOR_ALL_TABPAGES(tp)
+    {
+	FOR_ALL_WINDOWS_IN_TAB(tp, wp)
+	{
+	    if (wp == win)
+		return TRUE;
+	}
+    }
     return FALSE;
 }
 
@@ -7158,6 +7180,20 @@ win_id2tabwin(typval_T *argvars, list_T *list)
     }
     list_append_number(list, 0);
     list_append_number(list, 0);
+}
+
+    win_T *
+win_id2wp(typval_T *argvars)
+{
+    win_T	*wp;
+    tabpage_T   *tp;
+    int		id = get_tv_number(&argvars[0]);
+
+    FOR_ALL_TAB_WINDOWS(tp, wp)
+	if (wp->w_id == id)
+	    return wp;
+
+    return NULL;
 }
 
     int

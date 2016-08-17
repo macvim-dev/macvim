@@ -263,6 +263,10 @@ typedef struct
     int		wo_crb_save;	/* 'cursorbind' state saved for diff mode*/
 # define w_p_crb_save w_onebuf_opt.wo_crb_save
 #endif
+#ifdef FEAT_SIGNS
+    char_u	*wo_scl;
+# define w_p_scl w_onebuf_opt.wo_scl	/* 'signcolumn' */
+#endif
 
 #ifdef FEAT_EVAL
     int		wo_scriptID[WV_COUNT];	/* SIDs for window-local options */
@@ -2447,6 +2451,8 @@ typedef struct
     linenr_T	first_lnum;	/* first lnum to search for multi-line pat */
     colnr_T	startcol; /* in win_line() points to char where HL starts */
     colnr_T	endcol;	 /* in win_line() points to char where HL ends */
+    int		is_addpos;	/* position specified directly by
+				   matchaddpos(). TRUE/FALSE */
 #ifdef FEAT_RELTIME
     proftime_T	tm;	/* for a time limit */
 #endif

@@ -5435,7 +5435,7 @@ replace_termcodes(
 	    }
 #endif
 
-	    slen = trans_special(&src, result + dlen, TRUE);
+	    slen = trans_special(&src, result + dlen, TRUE, FALSE);
 	    if (slen)
 	    {
 		dlen += slen;

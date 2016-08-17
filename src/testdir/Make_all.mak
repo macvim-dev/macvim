@@ -98,7 +98,6 @@ SCRIPTS_ALL = \
 	test_insertcount.out \
 	test_listchars.out \
 	test_listlbr.out \
-	test_mapping.out \
 	test_marks.out \
 	test_nested_function.out \
 	test_search_mbyte.out \
@@ -160,6 +159,7 @@ NEW_TESTS = test_arglist.res \
 	    test_assert.res \
 	    test_autochdir \
 	    test_backspace_opt.res \
+	    test_bufwintabinfo.res \
 	    test_cdo.res \
 	    test_channel.res \
 	    test_cmdline.res \
