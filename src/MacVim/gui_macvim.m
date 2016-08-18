@@ -2260,19 +2260,13 @@ static int vimModMaskToEventModifierFlags(int mods)
     void *
 gui_macvim_add_channel(channel_T *channel, int part)
 {
-    dispatch_queue_t q =
-        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
     dispatch_source_t s =
         dispatch_source_create(DISPATCH_SOURCE_TYPE_READ,
                                channel->ch_part[part].ch_fd,
                                0,
-                               q);
+                               dispatch_get_main_queue());
     dispatch_source_set_event_handler(s, ^{
-        dispatch_suspend(s);
-        dispatch_async(dispatch_get_main_queue(), ^{
-            channel_read(channel, part, "gui_macvim_add_channel");
-            dispatch_resume(s);
-        });
+        channel_read(channel, part, "gui_macvim_add_channel");
     });
     dispatch_resume(s);
     return s;
