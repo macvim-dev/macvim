@@ -389,6 +389,7 @@ endfun
 
 " get NL separated string with file names
 let s:n = globpath(&runtimepath, "colors/*.vim")
+let s:n .= globpath(&packpath, "pack/*/{opt,start}/*/colors/*.vim")
 
 " split at NL, Ignore case for VMS and windows, sort on name
 let s:names = sort(map(split(s:n, "\n"), 'substitute(v:val, "\\c.*[/\\\\:\\]]\\([^/\\\\:]*\\)\\.vim", "\\1", "")'), 1)
