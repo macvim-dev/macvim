@@ -599,11 +599,9 @@ channel_gui_register_one(channel_T *channel, int part)
 #   endif
 #  else
 #   ifdef FEAT_GUI_MACVIM
-    /* Tell Core Foundation we are interested in being called when there
-     * is input on the editor connection socket.  */
     if (channel->ch_part[part].ch_inputHandler == 0)
-	channel->ch_part[part].ch_inputHandler = gui_macvim_add_channel(
-		channel, part);
+	channel->ch_part[part].ch_inputHandler =
+		gui_macvim_add_channel(channel, part);
 #   endif
 #  endif
 # endif
