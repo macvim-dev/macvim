@@ -198,6 +198,11 @@ func Test_substitute_expr()
   call assert_equal('--', substitute('xxx', 'x*', {-> '-' . Recurse() . '-'}, ''))
 endfunc
 
+func Test_invalid_submatch()
+  " This was causing invalid memory access in Vim-7.4.2232 and older
+  call assert_fails("call substitute('x', '.', {-> submatch(10)}, '')", 'E935:')
+endfunc
+
 func Test_substitute_expr_arg()
   call assert_equal('123456789-123456789=', substitute('123456789',
 	\ '\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)',
@@ -237,6 +242,7 @@ func Test_funcref()
   call assert_equal(1, OneByRef())
   let OneByRef = funcref('One')
   call assert_equal(2, OneByRef())
+  call assert_fails('echo funcref("{")', 'E475:')
 endfunc
 
 func Test_setmatches()
