@@ -1597,7 +1597,7 @@ gui_mch_get_color(char_u *name)
 /*
  * Return the RGB value of a pixel as long.
  */
-    long_u
+    guicolor_T
 gui_mch_get_rgb(guicolor_T pixel)
 {
     // This is only implemented so that vim can guess the correct value for

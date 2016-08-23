@@ -121,7 +121,7 @@ gui_mch_enable_scrollbar(
 gui_mch_flash(int msec);
     guicolor_T
 gui_mch_get_color(char_u *name);
-    long_u
+    guicolor_T
 gui_mch_get_rgb(guicolor_T pixel);
     void
 gui_mch_get_screen_dimensions(int *screen_w, int *screen_h);
