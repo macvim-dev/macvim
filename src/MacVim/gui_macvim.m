@@ -2257,16 +2257,26 @@ static int vimModMaskToEventModifierFlags(int mods)
 
 // -- Channel Support ------------------------------------------------------
 
+static NSMutableSet *MMChannels;
+
     void *
 gui_macvim_add_channel(channel_T *channel, int part)
 {
+    if (!MMChannels)
+        MMChannels = [NSMutableSet new];
+
+    int fd = channel->ch_part[part].ch_fd;
+    dispatch_queue_t q =
+        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
     dispatch_source_t s =
-        dispatch_source_create(DISPATCH_SOURCE_TYPE_READ,
-                               channel->ch_part[part].ch_fd,
-                               0,
-                               dispatch_get_main_queue());
+        dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, fd, 0, q);
+    [MMChannels addObject:s];
     dispatch_source_set_event_handler(s, ^{
-        channel_read(channel, part, "gui_macvim_add_channel");
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            if ([MMChannels containsObject:s]) {
+                channel_read(channel, part, "gui_macvim_add_channel");
+            }
+        });
     });
     dispatch_resume(s);
     return s;
@@ -2276,6 +2286,7 @@ gui_macvim_add_channel(channel_T *channel, int part)
 gui_macvim_remove_channel(void *cookie)
 {
     dispatch_source_t s = (dispatch_source_t)cookie;
+    [MMChannels removeObject:s];
     dispatch_source_cancel(s);
     dispatch_release(s);
 }
