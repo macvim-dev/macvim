@@ -2526,7 +2526,7 @@ barline_writestring(FILE *fd, char_u *s, int remaining_start)
 	else
 	    ++len;
     }
-    if (len > remaining)
+    if (len > remaining - 2)
     {
 	fprintf(fd, ">%d\n|<", len);
 	remaining = LSIZE - 20;
@@ -2917,6 +2917,10 @@ print_line_no_prefix(
 print_line(linenr_T lnum, int use_number, int list)
 {
     int		save_silent = silent_mode;
+
+    /* apply :filter /pat/ */
+    if (message_filtered(ml_get(lnum)))
+	return;
 
     msg_start();
     silent_mode = FALSE;
