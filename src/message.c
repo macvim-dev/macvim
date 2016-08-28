@@ -12,6 +12,7 @@
  */
 
 #define MESSAGE_FILE		/* don't include prototype for smsg() */
+#define USING_FLOAT_STUFF
 
 #include "vim.h"
 
@@ -4705,6 +4706,7 @@ vim_vsnprintf(
 		    char	format[40];
 		    int		l;
 		    int		remove_trailing_zeroes = FALSE;
+		    char	*s;
 
 		    f =
 #  if defined(FEAT_EVAL)
@@ -4734,8 +4736,16 @@ vim_vsnprintf(
 			    )
 		    {
 			/* Avoid a buffer overflow */
-			strcpy(tmp, "inf");
-			str_arg_l = 3;
+			if (f < 0)
+			{
+			    strcpy(tmp, "-inf");
+			    str_arg_l = 4;
+			}
+			else
+			{
+			    strcpy(tmp, "inf");
+			    str_arg_l = 3;
+			}
 		    }
 		    else
 		    {
@@ -4756,6 +4766,22 @@ vim_vsnprintf(
 			format[l] = fmt_spec;
 			format[l + 1] = NUL;
 			str_arg_l = sprintf(tmp, format, f);
+
+			/* Be consistent: Change "1.#IND" to "nan" and
+			 * "1.#INF" to "inf". */
+			s = *tmp == '-' ? tmp + 1 : tmp;
+			if (STRNCMP(s, "1.#INF", 6) == 0)
+			    STRCPY(s, "inf");
+			else if (STRNCMP(s, "1.#IND", 6) == 0)
+			    STRCPY(s, "nan");
+
+			/* Remove sign before "nan". */
+			if (STRNCMP(tmp, "-nan", 4) == 0)
+			    STRCPY(tmp, "nan");
+
+			/* Add sign before "inf" if needed. */
+			if (isinf(f) == -1 && STRNCMP(tmp, "inf", 3) == 0)
+			    STRCPY(tmp, "-inf");
 
 			if (remove_trailing_zeroes)
 			{
