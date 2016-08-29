@@ -53,6 +53,11 @@ opts=
 # GUI mode, implies forking
 case "$name" in m*|g*|rm*|rg*) gui=true ;; esac
 
+# Logged in over SSH? No gui.
+if [ -n "${SSH_CONNECTION}" ]; then
+	gui=
+fi
+
 # Restricted mode
 case "$name" in r*) opts="$opts -Z";; esac
 
