@@ -1445,11 +1445,14 @@ channel_write_in(channel_T *channel)
 	ch_logn(channel, "written %d lines to channel", written);
 
     in_part->ch_buf_top = lnum;
-    if (lnum > buf->b_ml.ml_line_count)
+    if (lnum > buf->b_ml.ml_line_count || lnum > in_part->ch_buf_bot)
     {
 	/* Writing is done, no longer need the buffer. */
 	in_part->ch_bufref.br_buf = NULL;
 	ch_log(channel, "Finished writing all lines to channel");
+
+	/* Close the pipe/socket, so that the other side gets EOF. */
+	may_close_part(&channel->CH_IN_FD);
     }
     else
 	ch_logn(channel, "Still %d more lines to write",
@@ -2751,6 +2754,15 @@ channel_close(channel_T *channel, int invoke_close_cb)
     }
 
     channel->ch_nb_close_cb = NULL;
+}
+
+/*
+ * Close the "in" part channel "channel".
+ */
+    void
+channel_close_in(channel_T *channel)
+{
+    may_close_part(&channel->CH_IN_FD);
 }
 
 /*
