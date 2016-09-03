@@ -42,7 +42,6 @@ SCRIPTS_ALL = \
 	test43.out \
 	test44.out \
 	test45.out \
-	test46.out \
 	test48.out \
 	test51.out \
 	test53.out \
@@ -64,7 +63,6 @@ SCRIPTS_ALL = \
 	test77.out \
 	test79.out \
 	test80.out \
-	test81.out \
 	test82.out \
 	test84.out \
 	test88.out \
@@ -77,7 +75,6 @@ SCRIPTS_ALL = \
 	test98.out \
 	test99.out \
 	test101.out \
-	test102.out \
 	test103.out \
 	test104.out \
 	test107.out \
@@ -86,7 +83,6 @@ SCRIPTS_ALL = \
 	test_autoformat_join.out \
 	test_breakindent.out \
 	test_changelist.out \
-    	test_charsearch.out \
 	test_close_count.out \
 	test_command_count.out \
 	test_comparators.out \
@@ -157,11 +153,13 @@ NEW_TESTS = test_arglist.res \
 	    test_bufwintabinfo.res \
 	    test_cdo.res \
 	    test_channel.res \
+	    test_charsearch.res \
 	    test_cmdline.res \
 	    test_cscope.res \
 	    test_diffmode.res \
 	    test_digraph.res \
 	    test_farsi.res \
+	    test_fnameescape.res \
 	    test_gn.res \
 	    test_gui.res \
 	    test_hardcopy.res \
@@ -185,6 +183,7 @@ NEW_TESTS = test_arglist.res \
 	    test_startup.res \
 	    test_startup_utf8.res \
 	    test_stat.res \
+	    test_substitute.res \
 	    test_syntax.res \
 	    test_textobjects.res \
 	    test_undo.res \
