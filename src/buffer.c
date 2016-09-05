@@ -450,6 +450,11 @@ close_buffer(
     int		is_curbuf;
     int		nwindows;
     bufref_T	bufref;
+# ifdef FEAT_WINDOWS
+    int		is_curwin = (curwin!= NULL && curwin->w_buffer == buf);
+    win_T	*the_curwin = curwin;
+    tabpage_T	*the_curtab = curtab;
+# endif
 #endif
     int		unload_buf = (action != 0);
     int		del_buf = (action == DOBUF_DEL || action == DOBUF_WIPE);
@@ -476,6 +481,16 @@ close_buffer(
 	unload_buf = TRUE;
 #endif
 
+#ifdef FEAT_AUTOCMD
+    /* Disallow deleting the buffer when it is locked (already being closed or
+     * halfway a command that relies on it). Unloading is allowed. */
+    if (buf->b_locked > 0 && (del_buf || wipe_buf))
+    {
+	EMSG(_("E937: Attempt to delete a buffer that is in use"));
+	return;
+    }
+#endif
+
     if (win != NULL
 #ifdef FEAT_WINDOWS
 	&& win_valid_any_tab(win) /* in case autocommands closed the window */
@@ -499,7 +514,7 @@ close_buffer(
     /* When the buffer is no longer in a window, trigger BufWinLeave */
     if (buf->b_nwindows == 1)
     {
-	buf->b_closing = TRUE;
+	++buf->b_locked;
 	if (apply_autocmds(EVENT_BUFWINLEAVE, buf->b_fname, buf->b_fname,
 								  FALSE, buf)
 		&& !bufref_valid(&bufref))
@@ -509,7 +524,7 @@ aucmd_abort:
 	    EMSG(_(e_auabort));
 	    return;
 	}
-	buf->b_closing = FALSE;
+	--buf->b_locked;
 	if (abort_if_last && one_window())
 	    /* Autocommands made this the only window. */
 	    goto aucmd_abort;
@@ -518,13 +533,13 @@ aucmd_abort:
 	 * BufHidden */
 	if (!unload_buf)
 	{
-	    buf->b_closing = TRUE;
+	    ++buf->b_locked;
 	    if (apply_autocmds(EVENT_BUFHIDDEN, buf->b_fname, buf->b_fname,
 								  FALSE, buf)
 		    && !bufref_valid(&bufref))
 		/* Autocommands deleted the buffer. */
 		goto aucmd_abort;
-	    buf->b_closing = FALSE;
+	    --buf->b_locked;
 	    if (abort_if_last && one_window())
 		/* Autocommands made this the only window. */
 		goto aucmd_abort;
@@ -534,6 +549,19 @@ aucmd_abort:
 	    return;
 # endif
     }
+
+# ifdef FEAT_WINDOWS
+    /* If the buffer was in curwin and the window has changed, go back to that
+     * window, if it still exists.  This avoids that ":edit x" triggering a
+     * "tabnext" BufUnload autocmd leaves a window behind without a buffer. */
+    if (is_curwin && curwin != the_curwin &&  win_valid_any_tab(the_curwin))
+    {
+	block_autocmds();
+	goto_tabpage_win(the_curtab, the_curwin);
+	unblock_autocmds();
+    }
+# endif
+
     nwindows = buf->b_nwindows;
 #endif
 
@@ -683,13 +711,13 @@ buf_freeall(buf_T *buf, int flags)
     int		is_curbuf = (buf == curbuf);
     bufref_T	bufref;
 # ifdef FEAT_WINDOWS
-    int		is_curwin = (curwin!= NULL && curwin->w_buffer == buf);
+    int		is_curwin = (curwin != NULL && curwin->w_buffer == buf);
     win_T	*the_curwin = curwin;
     tabpage_T	*the_curtab = curtab;
 # endif
 
     /* Make sure the buffer isn't closed by autocommands. */
-    buf->b_closing = TRUE;
+    ++buf->b_locked;
     set_bufref(&bufref, buf);
     if (buf->b_ml.ml_mfp != NULL)
     {
@@ -715,7 +743,7 @@ buf_freeall(buf_T *buf, int flags)
 	    /* autocommands deleted the buffer */
 	    return;
     }
-    buf->b_closing = FALSE;
+    --buf->b_locked;
 
 # ifdef FEAT_WINDOWS
     /* If the buffer was in curwin and the window has changed, go back to that
@@ -748,7 +776,7 @@ buf_freeall(buf_T *buf, int flags)
 #endif
 #ifdef FEAT_SYN_HL
     /* Remove any ownsyntax, unless exiting. */
-    if (firstwin != NULL && curwin->w_buffer == buf)
+    if (curwin != NULL && curwin->w_buffer == buf)
 	reset_synblock(curwin);
 #endif
 
@@ -764,7 +792,7 @@ buf_freeall(buf_T *buf, int flags)
 		clearFolding(win);
     }
 # else
-    if (curwin->w_buffer == buf)
+    if (curwin != NULL && curwin->w_buffer == buf)
 	clearFolding(curwin);
 # endif
 #endif
@@ -1373,7 +1401,7 @@ do_buffer(
 	 */
 	while (buf == curbuf
 # ifdef FEAT_AUTOCMD
-		   && !(curwin->w_closing || curwin->w_buffer->b_closing)
+		   && !(curwin->w_closing || curwin->w_buffer->b_locked > 0)
 # endif
 		   && (firstwin != lastwin || first_tabpage->tp_next != NULL))
 	{
@@ -5110,7 +5138,7 @@ ex_buffer_all(exarg_T *eap)
 #endif
 		    ) && firstwin != lastwin
 #ifdef FEAT_AUTOCMD
-		    && !(wp->w_closing || wp->w_buffer->b_closing)
+		    && !(wp->w_closing || wp->w_buffer->b_locked > 0)
 #endif
 		    )
 	    {

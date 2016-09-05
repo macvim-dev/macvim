@@ -2132,7 +2132,7 @@ close_windows(
     {
 	if (wp->w_buffer == buf && (!keep_curwin || wp != curwin)
 #ifdef FEAT_AUTOCMD
-		&& !(wp->w_closing || wp->w_buffer->b_closing)
+		&& !(wp->w_closing || wp->w_buffer->b_locked > 0)
 #endif
 		)
 	{
@@ -2153,7 +2153,7 @@ close_windows(
 	    for (wp = tp->tp_firstwin; wp != NULL; wp = wp->w_next)
 		if (wp->w_buffer == buf
 #ifdef FEAT_AUTOCMD
-		    && !(wp->w_closing || wp->w_buffer->b_closing)
+		    && !(wp->w_closing || wp->w_buffer->b_locked > 0)
 #endif
 		    )
 		{
@@ -2292,7 +2292,8 @@ win_close(win_T *win, int free_buf)
     }
 
 #ifdef FEAT_AUTOCMD
-    if (win->w_closing || (win->w_buffer != NULL && win->w_buffer->b_closing))
+    if (win->w_closing || (win->w_buffer != NULL
+					       && win->w_buffer->b_locked > 0))
 	return FAIL; /* window is already being closed */
     if (win == aucmd_win)
     {
@@ -2508,7 +2509,8 @@ win_close_othertab(win_T *win, int free_buf, tabpage_T *tp)
 #ifdef FEAT_AUTOCMD
     /* Get here with win->w_buffer == NULL when win_close() detects the tab
      * page changed. */
-    if (win->w_closing || (win->w_buffer != NULL && win->w_buffer->b_closing))
+    if (win->w_closing || (win->w_buffer != NULL
+					       && win->w_buffer->b_locked > 0))
 	return; /* window is already being closed */
 #endif
 

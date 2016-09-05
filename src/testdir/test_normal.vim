@@ -192,6 +192,30 @@ func! Test_normal05_formatexpr()
   bw!
 endfu
 
+func Test_normal05_formatexpr_newbuf()
+  " Edit another buffer in the 'formatexpr' function
+  new
+  func! Format()
+    edit another
+  endfunc
+  set formatexpr=Format()
+  norm gqG
+  bw!
+  set formatexpr=
+endfunc
+
+func Test_normal05_formatexpr_setopt()
+  " Change the 'formatexpr' value in the function
+  new
+  func! Format()
+    set formatexpr=
+  endfunc
+  set formatexpr=Format()
+  norm gqG
+  bw!
+  set formatexpr=
+endfunc
+
 func! Test_normal06_formatprg()
   " basic test for formatprg
   " only test on non windows platform
@@ -397,6 +421,15 @@ func! Test_normal14_page()
   set startofline
   bw!
 endfu
+
+func! Test_normal14_page_eol()
+  10new
+  norm oxxxxxxx
+  exe "norm 2\<c-f>"
+  " check with valgrind that cursor is put back in column 1
+  exe "norm 2\<c-b>"
+  bw!
+endfunc
 
 func! Test_normal15_z_scroll_vert()
   " basic test for z commands that scroll the window
