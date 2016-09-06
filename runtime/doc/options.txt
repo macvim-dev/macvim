@@ -5045,6 +5045,18 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Note: Currently this option only has an effect if
 	'Use Core Text renderer' is enabled in the GUI preferences pane.
 
+				*'macthinstrokes'* *'nomacthinstrokes'*
+'macthinstrokes' 		boolean (default off)
+			global
+			{not in Vi}
+                        {only available when compiled with GUI enabled on
+			 Mac OS X}
+	This option only has an effect in the GUI version of Vim on Mac OS X
+	v10.8 or later.  When on, Vim will render the text a little lighter
+	which looks nice with a dark colorscheme.
+	Note: Currently this option only has an effect if
+	'Use Core Text renderer' is enabled in the GUI preferences pane.
+
 				*'macmeta'* *'mmta'* *'nomacmeta'* *'nommta'*
 'macmeta'		boolean	(default off)
 			local to buffer

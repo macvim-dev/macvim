@@ -433,6 +433,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'macatsui'	options.txt	/*'macatsui'*
 'macligatures'	options.txt	/*'macligatures'*
 'macmeta'	options.txt	/*'macmeta'*
+'macthinstrokes'	options.txt	/*'macthinstrokes'*
 'magic'	options.txt	/*'magic'*
 'makeef'	options.txt	/*'makeef'*
 'makeprg'	options.txt	/*'makeprg'*
@@ -614,6 +615,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'nomacatsui'	options.txt	/*'nomacatsui'*
 'nomacligatures'	options.txt	/*'nomacligatures'*
 'nomacmeta'	options.txt	/*'nomacmeta'*
+'nomacthinstrokes'	options.txt	/*'nomacthinstrokes'*
 'nomagic'	options.txt	/*'nomagic'*
 'nomh'	options.txt	/*'nomh'*
 'noml'	options.txt	/*'noml'*

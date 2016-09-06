@@ -665,6 +665,8 @@ if has("gui")
     call <SID>BinOptionG("macligatures", &macligatures)
     call append("$", "macmeta\tuse option as meta key")
     call append("$", "\t(local to buffer)")
+    call append("$", "macthinstrokes\tuse thin strokes")
+    call <SID>BinOptionG("macthinstrokes", &macthinstrokes)
     call <SID>BinOptionL("mmta")
   endif
 endif

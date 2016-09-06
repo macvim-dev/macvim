@@ -102,6 +102,8 @@ char *MessageStrings[] =
     "SetBlurRadiusMsgID",
     "EnableLigaturesMsgID",
     "DisableLigaturesMsgID",
+    "EnableThinStrokesMsgID",
+    "DisableThinStrokesMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 
