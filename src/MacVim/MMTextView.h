@@ -21,6 +21,7 @@
     int                 insertionPointFraction;
     BOOL                antialias;
     BOOL                ligatures;
+    BOOL                thinStrokes;
     NSRect              *invertRects;
     int                 numInvertRects;
 
@@ -34,6 +35,7 @@
 - (void)setMouseShape:(int)shape;
 - (void)setAntialias:(BOOL)antialias;
 - (void)setLigatures:(BOOL)ligatures;
+- (void)setThinStrokes:(BOOL)thinStrokes;
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
 - (void)checkImState;

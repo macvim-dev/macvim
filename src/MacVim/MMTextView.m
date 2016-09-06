@@ -312,6 +312,11 @@
     ligatures = state;
 }
 
+- (void)setThinStrokes:(BOOL)state
+{
+    thinStrokes = state;
+}
+
 - (void)setImControl:(BOOL)enable
 {
     [helper setImControl:enable];

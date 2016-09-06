@@ -1183,6 +1183,13 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self queueMessage:msgid data:nil];
 }
 
+- (void)setThinStrokes:(BOOL)thinStrokes
+{
+    int msgid = thinStrokes ? EnableThinStrokesMsgID : DisableThinStrokesMsgID;
+
+    [self queueMessage:msgid data:nil];
+}
+
 - (void)setBlurRadius:(int)radius
 {
     NSMutableData *data = [NSMutableData data];

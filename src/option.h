@@ -643,6 +643,7 @@ EXTERN int	p_macatsui;	/* 'macatsui' */
 #endif
 #ifdef FEAT_GUI_MACVIM
 EXTERN int	p_macligatures;	/* 'macligatures' */
+EXTERN int	p_macthinstrokes;	/* 'macthinstrokes' */
 #endif
 EXTERN int	p_magic;	/* 'magic' */
 #ifdef FEAT_QUICKFIX

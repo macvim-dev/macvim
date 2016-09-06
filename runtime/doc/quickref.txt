@@ -785,6 +785,7 @@ Short explanation of each option:		*option-list*
 'macatsui'		    Mac GUI: use ATSUI text drawing
 'macligatures'		    display ligatures (MacVim GUI only)
 'macmeta'	  'mmta'    use option as meta key (MacVim GUI only)
+'macthinstrokes'	    render the text lighter by using thin strokes (MacVim GUI only)
 'magic'			    changes special characters in search patterns
 'makeef'	  'mef'     name of the errorfile for ":make"
 'makeprg'	  'mp'	    program to use for the ":make" command

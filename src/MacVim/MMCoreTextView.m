@@ -48,6 +48,10 @@
 #define kCTFontOrientationDefault kCTFontDefaultOrientation
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_8
 
+extern void CGContextSetFontSmoothingStyle(CGContextRef, int);
+extern int CGContextGetFontSmoothingStyle(CGContextRef);
+#define fontSmoothingStyleLight (2 << 3)
+
 #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
     static void
 CTFontDrawGlyphs(CTFontRef fontRef, const CGGlyph glyphs[],
@@ -394,6 +398,11 @@ defaultAdvanceForFont(NSFont *font)
 - (void)setLigatures:(BOOL)state
 {
     ligatures = state;
+}
+
+- (void)setThinStrokes:(BOOL)state
+{
+    thinStrokes = state;
 }
 
 - (void)setImControl:(BOOL)enable
@@ -1299,6 +1308,13 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
 
     CGContextSaveGState(context);
 
+    int originalFontSmoothingStyle = 0;
+    if (thinStrokes) {
+        CGContextSetShouldSmoothFonts(context, YES);
+        originalFontSmoothingStyle = CGContextGetFontSmoothingStyle(context);
+        CGContextSetFontSmoothingStyle(context, fontSmoothingStyleLight);
+    }
+
     // NOTE!  'cells' is zero if we're drawing a composing character
     CGFloat clipWidth = cells > 0 ? cells*cellSize.width : w;
     CGRect clipRect = { {x, y}, {clipWidth, cellSize.height} };
@@ -1389,6 +1405,8 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
     recurseDraw(chars, glyphs, positions, length, context, fontRef, fontCache, ligatures);
 
     CFRelease(fontRef);
+    if (thinStrokes)
+        CGContextSetFontSmoothingStyle(context, originalFontSmoothingStyle);
     CGContextRestoreGState(context);
 }
 
