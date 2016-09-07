@@ -1578,7 +1578,13 @@ find_tags(
 	 */
 	for (;;)
 	{
-	    line_breakcheck();	    /* check for CTRL-C typed */
+#ifdef FEAT_TAG_BINS
+	    /* check for CTRL-C typed, more often when jumping around */
+	    if (state == TS_BINARY || state == TS_SKIP_BACK)
+		line_breakcheck();
+	    else
+#endif
+		fast_breakcheck();
 #ifdef FEAT_INS_EXPAND
 	    if ((flags & TAG_INS_COMP))	/* Double brackets for gcc */
 		ins_compl_check_keys(30);
@@ -2397,7 +2403,7 @@ parse_line:
 				      && vim_memcmp(mfp2->match, mfp->match,
 						       (size_t)mfp->len) == 0)
 				  break;
-			      line_breakcheck();
+			      fast_breakcheck();
 			  }
 			if (i < 0)
 			{
