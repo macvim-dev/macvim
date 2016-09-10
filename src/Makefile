@@ -2731,6 +2731,7 @@ shadow:	runtime pixmaps
 	mkdir $(SHADOWDIR)/testdir
 	cd $(SHADOWDIR)/testdir; ln -s ../../testdir/Makefile \
 				 ../../testdir/Make_all.mak \
+				 ../../testdir/README.txt \
 				 ../../testdir/*.in \
 				 ../../testdir/*.vim \
 				 ../../testdir/*.py \

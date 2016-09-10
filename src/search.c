@@ -1249,14 +1249,13 @@ do_search(
 	{
 	    if (spats[RE_SEARCH].pat == NULL)	    /* no previous pattern */
 	    {
-		pat = spats[RE_SUBST].pat;
-		if (pat == NULL)
+		searchstr = spats[RE_SUBST].pat;
+		if (searchstr == NULL)
 		{
 		    EMSG(_(e_noprevre));
 		    retval = 0;
 		    goto end_do_search;
 		}
-		searchstr = pat;
 	    }
 	    else
 	    {
