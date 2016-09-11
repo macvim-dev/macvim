@@ -9407,6 +9407,7 @@ ex_at(exarg_T *eap)
     int		prev_len = typebuf.tb_len;
 
     curwin->w_cursor.lnum = eap->line2;
+    check_cursor_col();
 
 #ifdef USE_ON_FLY_SCROLL
     dont_scroll = TRUE;		/* disallow scrolling here */
