@@ -6,20 +6,20 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-107</title>
+      <title>MacVim snapshot-108</title>
       <description><![CDATA[
 <pre>
 
 </pre>
       ]]></description>
-      <pubDate>Sat, 27 Aug 2016 19:00:00 -0700</pubDate>
+      <pubDate>Sun, 11 Sep 2016 21:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-107/MacVim.dmg"
-        length="17731137"
-        sparkle:version="107"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-108/MacVim.dmg"
+        length="17729556"
+        sparkle:version="108"
         sparkle:shortVersionString="7.4"
-	sparkle:dsaSignature="MC4CFQCRtPTkAYXYF4S5KipfZzHa0At0JAIVAJxGwXolM7zlXR6kQABv6X49yKz2"
+	sparkle:dsaSignature="MC0CFQClWa2+ppXLaVznBSNJvhHtsvUjQAIUOyYytUDDRDpFt44iNpraNYiQvaw="
         />
     </item>
   </channel>
