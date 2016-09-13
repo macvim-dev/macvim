@@ -29,7 +29,7 @@ Script interfaces have compatibility with these versions
         url="https://github.com/macvim-dev/macvim/releases/download/snapshot-109/MacVim.dmg"
         length="17725603"
         sparkle:version="109"
-        sparkle:shortVersionString="7.4"
+        sparkle:shortVersionString="8.0"
 	sparkle:dsaSignature="MCwCFED7AIJ1UN/YVmR1p/U+V7M2M3U5AhQvlMTnbEz2Tjmchug62GXFJjtN2g=="
         />
     </item>
