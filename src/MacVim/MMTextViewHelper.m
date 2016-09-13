@@ -159,8 +159,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // Note that this implies that 'mmta' (if enabled) breaks input methods
     // when the Alt key is held.
     if ((flags & NSAlternateKeyMask) && [mmta boolValue] && [unmod length] == 1
-            && [unmod characterAtIndex:0] > 0x20
-            && [unmod characterAtIndex:0] < 0x7f) {
+            && [unmod characterAtIndex:0] > 0x20) {
         ASLogDebug(@"MACMETA key, don't interpret it");
         string = unmod;
     } else if (imState && (flags & NSControlKeyMask)
