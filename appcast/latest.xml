@@ -6,31 +6,20 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-109</title>
+      <title>MacVim snapshot-108</title>
       <description><![CDATA[
 <pre>
-Binary targets OS X 10.8(Mountain Lion), 10.9(Mavericks), 10.10(Yosemite), and 10.11(El Capitan)
-
-- Vim patch 8.0.0003
-
-Script interfaces have compatibility with these versions
-
-- Lua 5.2
-- Perl 5.16
-- Python2 2.7
-- Python3 3.5.2
-- Ruby 2.0
 
 </pre>
       ]]></description>
-      <pubDate>Mon, 12 Sep 2016 20:00:00 -0700</pubDate>
+      <pubDate>Sun, 11 Sep 2016 21:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-109/MacVim.dmg"
-        length="17725603"
-        sparkle:version="109"
-        sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MCwCFED7AIJ1UN/YVmR1p/U+V7M2M3U5AhQvlMTnbEz2Tjmchug62GXFJjtN2g=="
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-108/MacVim.dmg"
+        length="17729556"
+        sparkle:version="108"
+        sparkle:shortVersionString="7.4"
+	sparkle:dsaSignature="MC0CFQClWa2+ppXLaVznBSNJvhHtsvUjQAIUOyYytUDDRDpFt44iNpraNYiQvaw="
         />
     </item>
   </channel>
