@@ -125,18 +125,18 @@ enum {
     [tabBarControl setDelegate:self];
     [tabBarControl setHidden:YES];
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
-    CGFloat screenWidth = [[NSScreen mainScreen] frame].size.width;
-    [tabBarControl setStyleNamed:@"Yosemite"];
-    [tabBarControl setCellMinWidth:120];
-    [tabBarControl setCellMaxWidth:screenWidth];
-    [tabBarControl setCellOptimumWidth:screenWidth];
-#else
-    [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
-    [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
-    [tabBarControl setCellOptimumWidth:
+    if (shouldUseYosemiteTabBarStyle()) {
+        CGFloat screenWidth = [[NSScreen mainScreen] frame].size.width;
+        [tabBarControl setStyleNamed:@"Yosemite"];
+        [tabBarControl setCellMinWidth:120];
+        [tabBarControl setCellMaxWidth:screenWidth];
+        [tabBarControl setCellOptimumWidth:screenWidth];
+    } else {
+        [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
+        [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
+        [tabBarControl setCellOptimumWidth:
                                      [ud integerForKey:MMTabOptimumWidthKey]];
-#endif
+    }
 
     [tabBarControl setShowAddTabButton:[ud boolForKey:MMShowAddTabButtonKey]];
     [[tabBarControl addTabButton] setTarget:self];

@@ -30,6 +30,9 @@
 #endif
 
 // Needed for pre-10.11 SDK
+#ifndef NSAppKitVersionNumber10_10
+# define NSAppKitVersionNumber10_10 1343
+#endif
 #ifndef NSAppKitVersionNumber10_10_Max
 # define NSAppKitVersionNumber10_10_Max 1349
 #endif
