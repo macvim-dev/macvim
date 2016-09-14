@@ -80,15 +80,6 @@
 #define FUOPT_BGCOLOR_HLGROUP 0x004
 
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
-# define TABBAR_STYLE_UNIFIED  @"Yosemite"
-# define TABBAR_STYLE_METAL    @"Yosemite"
-#else
-# define TABBAR_STYLE_UNIFIED  @"Unified"
-# define TABBAR_STYLE_METAL    @"Metal"
-#endif
-
-
 @interface MMWindowController (Private)
 - (NSSize)contentSize;
 - (void)resizeWindowToFitContentSize:(NSSize)contentSize
@@ -106,6 +97,8 @@
 - (void)applicationDidChangeScreenParameters:(NSNotification *)notification;
 - (void)enterNativeFullScreen;
 - (void)processAfterWindowPresentedQueue;
++ (NSString *)tabBarStyleForUnified;
++ (NSString *)tabBarStyleForMetal;
 @end
 
 
@@ -1187,7 +1180,8 @@
         [[window animator] setAlphaValue:0];
     } completionHandler:^{
         [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
-        [[vimView tabBarControl] setStyleNamed:TABBAR_STYLE_UNIFIED];
+        NSString *tabBarStyle = [[self class] tabBarStyleForUnified];
+        [[vimView tabBarControl] setStyleNamed:tabBarStyle];
         [self updateTablineSeparator];
 
         // Stay dark for some time to wait for things to sync, then do the full screen operation
@@ -1251,7 +1245,8 @@
     fullScreenEnabled = NO;
     [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
-    [[vimView tabBarControl] setStyleNamed:TABBAR_STYLE_METAL];
+    NSString *tabBarStyle = [[self class] tabBarStyleForMetal];
+    [[vimView tabBarControl] setStyleNamed:tabBarStyle];
     [self updateTablineSeparator];
     [window setFrame:preFullScreenFrame display:YES];
 }
@@ -1281,7 +1276,8 @@
         [[window animator] setAlphaValue:0];
     } completionHandler:^{
         [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
-        [[vimView tabBarControl] setStyleNamed:TABBAR_STYLE_METAL];
+        NSString *tabBarStyle = [[self class] tabBarStyleForMetal];
+        [[vimView tabBarControl] setStyleNamed:tabBarStyle];
         [self updateTablineSeparator];
         [window setFrame:preFullScreenFrame display:YES];
 
@@ -1328,7 +1324,8 @@
     fullScreenEnabled = YES;
     [window setAlphaValue:1];
     [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
-    [[vimView tabBarControl] setStyleNamed:TABBAR_STYLE_UNIFIED];
+    NSString *tabBarStyle = [[self class] tabBarStyleForUnified];
+    [[vimView tabBarControl] setStyleNamed:tabBarStyle];
     [self updateTablineSeparator];
     [self maximizeWindow:fullScreenOptions];
 }
@@ -1691,5 +1688,16 @@
 
     [afterWindowPresentedQueue release]; afterWindowPresentedQueue = nil;
 }
+
++ (NSString *)tabBarStyleForUnified
+{
+    return shouldUseYosemiteTabBarStyle() ? @"Yosemite" : @"Unified";
+}
+
++ (NSString *)tabBarStyleForMetal
+{
+    return shouldUseYosemiteTabBarStyle() ? @"Yosemite" : @"Metal";
+}
+
 @end // MMWindowController (Private)
 
