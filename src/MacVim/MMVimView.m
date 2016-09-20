@@ -127,10 +127,17 @@ enum {
 
     if (shouldUseYosemiteTabBarStyle()) {
         CGFloat screenWidth = [[NSScreen mainScreen] frame].size.width;
+        int tabMaxWidth = [ud integerForKey:MMTabMaxWidthKey];
+        if (tabMaxWidth == 0)
+            tabMaxWidth = screenWidth;
+        int tabOptimumWidth = [ud integerForKey:MMTabOptimumWidthKey];
+        if (tabOptimumWidth == 0)
+            tabOptimumWidth = screenWidth;
+
         [tabBarControl setStyleNamed:@"Yosemite"];
-        [tabBarControl setCellMinWidth:120];
-        [tabBarControl setCellMaxWidth:screenWidth];
-        [tabBarControl setCellOptimumWidth:screenWidth];
+        [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
+        [tabBarControl setCellMaxWidth:tabMaxWidth];
+        [tabBarControl setCellOptimumWidth:tabOptimumWidth];
     } else {
         [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
         [tabBarControl setCellMaxWidth:[ud integerForKey:MMTabMaxWidthKey]];
