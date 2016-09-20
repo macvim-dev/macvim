@@ -181,12 +181,28 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     CFPreferencesSetAppValue(CFSTR("NSRepeatCountBinding"),
                              CFSTR(""),
                              kCFPreferencesCurrentApplication);
-    
+
+    int tabMinWidthKey;
+    int tabMaxWidthKey;
+    int tabOptimumWidthKey;
+    if (shouldUseYosemiteTabBarStyle()) {
+        tabMinWidthKey = 120;
+        tabMaxWidthKey = 0;
+        tabOptimumWidthKey = 0;
+    } else {
+        tabMinWidthKey = 64;
+        tabMaxWidthKey = 6*64;
+        tabOptimumWidthKey = 132;
+    }
+
     NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
         [NSNumber numberWithBool:NO],     MMNoWindowKey,
-        [NSNumber numberWithInt:64],      MMTabMinWidthKey,
-        [NSNumber numberWithInt:6*64],    MMTabMaxWidthKey,
-        [NSNumber numberWithInt:132],     MMTabOptimumWidthKey,
+        [NSNumber numberWithInt:tabMinWidthKey],
+                                          MMTabMinWidthKey,
+        [NSNumber numberWithInt:tabMaxWidthKey],
+                                          MMTabMaxWidthKey,
+        [NSNumber numberWithInt:tabOptimumWidthKey],
+                                          MMTabOptimumWidthKey,
         [NSNumber numberWithBool:YES],    MMShowAddTabButtonKey,
         [NSNumber numberWithInt:2],       MMTextInsetLeftKey,
         [NSNumber numberWithInt:1],       MMTextInsetRightKey,
