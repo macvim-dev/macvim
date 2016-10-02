@@ -127,15 +127,15 @@
 
 - (id)initWithVimController:(MMVimController *)controller
 {
-    unsigned styleMask = NSTitledWindowMask | NSClosableWindowMask
-            | NSMiniaturizableWindowMask | NSResizableWindowMask
-            | NSUnifiedTitleAndToolbarWindowMask
-            | NSTexturedBackgroundWindowMask;
+    unsigned styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
+            | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable
+            | NSWindowStyleMaskUnifiedTitleAndToolbar
+            | NSWindowStyleMaskTexturedBackground;
 
     if ([[NSUserDefaults standardUserDefaults]
             boolForKey:MMNoTitleBarWindowKey]) {
         // No title bar setting
-        styleMask &= ~NSTitledWindowMask;
+        styleMask &= ~NSWindowStyleMaskTitled;
     }
 
     // NOTE: The content rect is only used the very first time MacVim is
@@ -175,7 +175,7 @@
     [win setDelegate:self];
     [win setInitialFirstResponder:[vimView textView]];
     
-    if ([win styleMask] & NSTexturedBackgroundWindowMask) {
+    if ([win styleMask] & NSWindowStyleMaskTexturedBackground) {
         // On Leopard, we want to have a textured window to have nice
         // looking tabs. But the textured window look implies rounded
         // corners, which looks really weird -- disable them. This is a
@@ -1066,8 +1066,8 @@
 
     // Decide whether too zoom horizontally or not (always zoom vertically).
     NSEvent *event = [NSApp currentEvent];
-    BOOL cmdLeftClick = [event type] == NSLeftMouseUp &&
-                        [event modifierFlags] & NSCommandKeyMask;
+    BOOL cmdLeftClick = [event type] == NSEventTypeLeftMouseUp &&
+                        [event modifierFlags] & NSEventModifierFlagCommand;
     BOOL zoomBoth = [[NSUserDefaults standardUserDefaults]
                                                     boolForKey:MMZoomBothKey];
     zoomBoth = (zoomBoth && !cmdLeftClick) || (!zoomBoth && cmdLeftClick);
@@ -1179,7 +1179,7 @@
         [context setDuration:0.5*duration];
         [[window animator] setAlphaValue:0];
     } completionHandler:^{
-        [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
+        [window setStyleMask:([window styleMask] | NSWindowStyleMaskFullScreen)];
         NSString *tabBarStyle = [[self class] tabBarStyleForUnified];
         [[vimView tabBarControl] setStyleNamed:tabBarStyle];
         [self updateTablineSeparator];
@@ -1244,7 +1244,7 @@
 
     fullScreenEnabled = NO;
     [window setAlphaValue:1];
-    [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
+    [window setStyleMask:([window styleMask] & ~NSWindowStyleMaskFullScreen)];
     NSString *tabBarStyle = [[self class] tabBarStyleForMetal];
     [[vimView tabBarControl] setStyleNamed:tabBarStyle];
     [self updateTablineSeparator];
@@ -1275,7 +1275,7 @@
         [context setDuration:0.5*duration];
         [[window animator] setAlphaValue:0];
     } completionHandler:^{
-        [window setStyleMask:([window styleMask] & ~NSFullScreenWindowMask)];
+        [window setStyleMask:([window styleMask] & ~NSWindowStyleMaskFullScreen)];
         NSString *tabBarStyle = [[self class] tabBarStyleForMetal];
         [[vimView tabBarControl] setStyleNamed:tabBarStyle];
         [self updateTablineSeparator];
@@ -1323,7 +1323,7 @@
 
     fullScreenEnabled = YES;
     [window setAlphaValue:1];
-    [window setStyleMask:([window styleMask] | NSFullScreenWindowMask)];
+    [window setStyleMask:([window styleMask] | NSWindowStyleMaskFullScreen)];
     NSString *tabBarStyle = [[self class] tabBarStyleForUnified];
     [[vimView tabBarControl] setStyleNamed:tabBarStyle];
     [self updateTablineSeparator];
@@ -1513,7 +1513,7 @@
     BOOL tabBarVisible  = ![[vimView tabBarControl] isHidden];
     BOOL toolbarHidden  = [decoratedWindow toolbar] == nil;
     BOOL windowTextured = ([decoratedWindow styleMask] &
-                            NSTexturedBackgroundWindowMask) != 0;
+                            NSWindowStyleMaskTexturedBackground) != 0;
     BOOL hideSeparator  = NO;
 
     if (fullScreenEnabled || tabBarVisible)

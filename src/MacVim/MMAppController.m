@@ -518,7 +518,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     if (modifiedBuffers) {
         NSAlert *alert = [[NSAlert alloc] init];
-        [alert setAlertStyle:NSWarningAlertStyle];
+        [alert setAlertStyle:NSAlertStyleWarning];
         [alert addButtonWithTitle:NSLocalizedString(@"Quit",
                 @"Dialog button")];
         [alert addButtonWithTitle:NSLocalizedString(@"Cancel",
@@ -548,7 +548,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
         if (numWindows > 1 || numTabs > 1) {
             NSAlert *alert = [[NSAlert alloc] init];
-            [alert setAlertStyle:NSWarningAlertStyle];
+            [alert setAlertStyle:NSAlertStyleWarning];
             [alert addButtonWithTitle:NSLocalizedString(@"Quit",
                     @"Dialog button")];
             [alert addButtonWithTitle:NSLocalizedString(@"Cancel",
@@ -1582,7 +1582,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         }
 
         [alert setInformativeText:text];
-        [alert setAlertStyle:NSWarningAlertStyle];
+        [alert setAlertStyle:NSAlertStyleWarning];
 
         [alert runModal];
         [alert release];
@@ -1751,7 +1751,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             @"Unknown URL Scheme dialog, text"),
             [url host]]];
 
-        [alert setAlertStyle:NSWarningAlertStyle];
+        [alert setAlertStyle:NSAlertStyleWarning];
         [alert runModal];
         [alert release];
     }

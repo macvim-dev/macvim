@@ -260,7 +260,7 @@ showHiddenFilesView()
     [button setAction:@selector(hiddenFilesButtonToggled:)];
 
     // Use the regular control size (checkbox is a bit smaller without this)
-    NSControlSize buttonSize = NSRegularControlSize;
+    NSControlSize buttonSize = NSControlSizeRegular;
     float fontSize = [NSFont systemFontSizeForControlSize:buttonSize];
     NSCell *theCell = [button cell];
     NSFont *theFont = [NSFont fontWithName:[[theCell font] fontName]
