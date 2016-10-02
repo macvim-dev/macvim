@@ -9,7 +9,7 @@
 #import "PSMTabDragAssistant.h"
 #import "PSMTabBarCell.h"
 #import "PSMTabStyle.h"
-
+#import "PSMTabDragWindow.h"
 
 @implementation PSMTabDragAssistant
 
@@ -23,13 +23,13 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
     if (!sharedDragAssistant){
         sharedDragAssistant = [[PSMTabDragAssistant alloc] init];
     }
-    
+
     return sharedDragAssistant;
 }
 
 - (id)init
 {
-    if(self = [super init]){
+    if ( (self = [super init]) ) {
         _sourceTabBar = nil;
         _destinationTabBar = nil;
         _participatingTabBars = [[NSMutableSet alloc] init];
@@ -39,7 +39,7 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
         _targetCell = nil;
         _isDragging = NO;
     }
-    
+
     return self;
 }
 
@@ -82,13 +82,11 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
     _destinationTabBar = tabBar;
 }
 
-- (PSMTabBarCell *)draggedCell
-{
+- (PSMTabBarCell *)draggedCell {
     return _draggedCell;
 }
 
-- (void)setDraggedCell:(PSMTabBarCell *)cell
-{
+- (void)setDraggedCell:(PSMTabBarCell *)cell {
     [cell retain];
     [_draggedCell release];
     _draggedCell = cell;
@@ -139,33 +137,50 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
 #pragma mark -
 #pragma mark Functionality
 
-- (void)startDraggingCell:(PSMTabBarCell *)cell fromTabBar:(PSMTabBarControl *)control withMouseDownEvent:(NSEvent *)event
+- (void)addSineCurveWidthsWithOrientation:(PSMTabBarOrientation)orientation size:(NSSize)size
 {
+    float cellStepSize = (orientation == PSMTabBarHorizontalOrientation) ? (size.width + 6) : (size.height + 1);
+    for (int i = 0; i < kPSMTabDragAnimationSteps - 1; i++) {
+        int thisWidth = (int)(cellStepSize - ((cellStepSize/2.0) + ((sin((PI/2.0) + ((float)i/(float)kPSMTabDragAnimationSteps)*PI) * cellStepSize) / 2.0)));
+        [_sineCurveWidths addObject:[NSNumber numberWithInt:thisWidth]];
+    }
+    [_sineCurveWidths addObject:[NSNumber numberWithInt:(orientation == PSMTabBarHorizontalOrientation) ? size.width : size.height]];
+}
+
+- (void)startAnimation
+{
+    _animationTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/30.0) target:self selector:@selector(animateDrag:) userInfo:nil repeats:YES];
+}
+
+- (void)startAnimationWithOrientation:(PSMTabBarOrientation)orientation width:(CGFloat)width
+{
+    if ([_sineCurveWidths count] == 0) {
+        [self addSineCurveWidthsWithOrientation:orientation size:NSMakeSize(width, kPSMTabBarControlHeight)];
+    }
+    [self startAnimation];
+}
+
+- (void)startDraggingCell:(PSMTabBarCell *)cell
+               fromTabBar:(PSMTabBarControl *)control
+       withMouseDownEvent:(NSEvent *)event {
     [self setIsDragging:YES];
     [self setSourceTabBar:control];
     [self setDestinationTabBar:control];
     [_participatingTabBars addObject:control];
     [self setDraggedCell:cell];
     [self setDraggedCellIndex:[[control cells] indexOfObject:cell]];
-    
+
     NSRect cellFrame = [cell frame];
     // list of widths for animation
-    int i;
-    float cellWidth = cellFrame.size.width;
-    for(i = 0; i < kPSMTabDragAnimationSteps; i++){
-        int thisWidth;
-        thisWidth = (int)(cellWidth - ((cellWidth/2.0) + ((sin((PI/2.0) + ((float)i/(float)kPSMTabDragAnimationSteps)*PI) * cellWidth) / 2.0)));
-        [_sineCurveWidths addObject:[NSNumber numberWithInt:thisWidth]];
-    }
-    
+    [self addSineCurveWidthsWithOrientation:[control orientation] size:cellFrame.size];
+
     // hide UI buttons
     [[control overflowPopUpButton] setHidden:YES];
     [[control addTabButton] setHidden:YES];
-    
+
     [[NSCursor closedHandCursor] set];
-    
-    NSPasteboard *pboard = [NSPasteboard pasteboardWithName:NSDragPboard];
-    NSImage *dragImage = [cell dragImageForRect:cellFrame];
+
+    NSImage *dragImage = [cell dragImage];
     [[cell indicator] removeFromSuperview];
     [self distributePlaceholdersInTabBar:control withDraggedCell:cell];
 
@@ -173,23 +188,66 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
         cellFrame.origin.y += cellFrame.size.height;
     }
     [cell setHighlighted:NO];
-    NSSize offset = NSZeroSize;
-    [pboard declareTypes:[NSArray arrayWithObjects:@"PSMTabBarControlItemPBType", nil] owner: nil];
-    [pboard setString:[[NSNumber numberWithInt:[[control cells] indexOfObject:cell]] stringValue] forType:@"PSMTabBarControlItemPBType"];
-    _animationTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/30.0) target:self selector:@selector(animateDrag:) userInfo:nil repeats:YES];
-    [control dragImage:dragImage at:cellFrame.origin offset:offset event:event pasteboard:pboard source:control slideBack:YES];
+    [self startAnimation];
+
+    [[NSNotificationCenter defaultCenter] postNotificationName:PSMTabDragDidBeginNotification object:nil];
+
+    // Retain the control in case the drag operation causes the control to be released
+    [control retain];
+
+    NSPasteboardItem *pbItem = [[[NSPasteboardItem alloc] init] autorelease];
+    [pbItem setString:[@([[control cells] indexOfObject:cell]) stringValue]
+              forType:@"com.iterm2.psm.controlitem"];
+
+    NSImage *imageToDrag;
+    NSRect draggingRect;
+
+    _dragTabWindow = [[PSMTabDragWindow dragWindowWithTabBarCell:cell image:dragImage styleMask:NSBorderlessWindowMask] retain];
+    [_dragTabWindow setAlphaValue:kPSMTabDragWindowAlpha];
+    [_dragTabWindow orderFront:nil];
+
+    cellFrame.origin.y -= cellFrame.size.height;
+
+    imageToDrag = [[[NSImage alloc] initWithSize:NSMakeSize(1, 1)] autorelease];
+    draggingRect = NSMakeRect(cellFrame.origin.x,
+                              cellFrame.origin.y,
+                              1,
+                              1);
+
+    NSDraggingItem *dragItem = [[[NSDraggingItem alloc] initWithPasteboardWriter:pbItem] autorelease];
+    [dragItem setDraggingFrame:draggingRect contents:imageToDrag];
+    NSDraggingSession *draggingSession = [control beginDraggingSessionWithItems:@[ dragItem ]
+                                                                          event:event
+                                                                         source:control];
+    draggingSession.animatesToStartingPositionsOnCancelOrFail = YES;
+    draggingSession.draggingFormation = NSDraggingFormationNone;
+
+    [control release];
 }
 
 - (void)draggingEnteredTabBar:(PSMTabBarControl *)control atPoint:(NSPoint)mouseLoc
 {
+    if (!_animationTimer) {
+        [self startAnimation];
+    }
     [self setDestinationTabBar:control];
     [self setCurrentMouseLoc:mouseLoc];
     // hide UI buttons
     [[control overflowPopUpButton] setHidden:YES];
     [[control addTabButton] setHidden:YES];
-    if(![[[control cells] objectAtIndex:0] isPlaceholder])
+    if([[control cells] count] == 0 || ![[[control cells] objectAtIndex:0] isPlaceholder])
         [self distributePlaceholdersInTabBar:control];
     [_participatingTabBars addObject:control];
+
+    //tell the drag window to display only the header if there is one
+    if (_dragViewWindow) {
+        if (_fadeTimer) {
+            [_fadeTimer invalidate];
+        }
+
+        [_dragTabWindow orderFront:nil];
+        _fadeTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 / 30.0 target:self selector:@selector(fadeOutDragWindow:) userInfo:nil repeats:YES];
+    }
 }
 
 - (void)draggingUpdatedInTabBar:(PSMTabBarControl *)control atPoint:(NSPoint)mouseLoc
@@ -199,59 +257,325 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
     [self setCurrentMouseLoc:mouseLoc];
 }
 
-- (void)draggingExitedTabBar:(PSMTabBarControl *)control
-{
+- (void)draggingExitedTabBar:(PSMTabBarControl *)control {
     [self setDestinationTabBar:nil];
     [self setCurrentMouseLoc:NSMakePoint(-1.0, -1.0)];
+
+    if (_fadeTimer) {
+        [_fadeTimer invalidate];
+        _fadeTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 / 30.0
+                                                      target:self
+                                                    selector:@selector(fadeInDragWindow:)
+                                                    userInfo:nil
+                                                     repeats:YES];
+    } else if (_dragTabWindow) {
+        // create a new floating drag window
+        if (!_dragViewWindow) {
+            NSImage *viewImage = nil;
+            unsigned int styleMask = NSBorderlessWindowMask;
+
+            if ([control delegate] &&
+                [[control delegate] respondsToSelector:@selector(tabView:imageForTabViewItem:offset:styleMask:)]) {
+                // get a custom image representation of the view to drag from the delegate
+                NSImage *tabImage = [[_dragTabWindow contentView] image];
+                NSPoint drawPoint;
+                _dragWindowOffset = NSZeroSize;
+                viewImage = [[control delegate] tabView:[control tabView]
+                                    imageForTabViewItem:[[self draggedCell] representedObject]
+                                                 offset:&_dragWindowOffset
+                                              styleMask:&styleMask];
+
+                [viewImage lockFocus];
+
+                // draw the tab into the returned window, that way we don't have two windows being
+                // dragged (this assumes the tab will be on the window)
+                drawPoint = NSMakePoint(_dragWindowOffset.width,
+                                        [viewImage size].height - _dragWindowOffset.height);
+
+                if ([control orientation] == PSMTabBarHorizontalOrientation) {
+                    drawPoint.y += kPSMTabBarControlHeight - [tabImage size].height;
+                    _dragWindowOffset.height -= kPSMTabBarControlHeight - [tabImage size].height;
+                } else {
+                    drawPoint.x += [control frame].size.width - [tabImage size].width;
+                }
+
+                [tabImage drawAtPoint:drawPoint
+                             fromRect:NSZeroRect
+                            operation:NSCompositeSourceOver
+                             fraction:1];
+
+                [viewImage unlockFocus];
+            } else {
+                // the delegate doesn't give a custom image, so use an image of the view
+                NSView *tabView = [[[self draggedCell] representedObject] view];
+                viewImage = [[[NSImage alloc] initWithSize:[tabView frame].size] autorelease];
+                [viewImage lockFocus];
+                [tabView drawRect:[tabView bounds]];
+                [viewImage unlockFocus];
+            }
+
+            if (styleMask | NSBorderlessWindowMask) {
+                _dragWindowOffset.height += 22;
+            }
+
+            _dragViewWindow = [[PSMTabDragWindow dragWindowWithTabBarCell:[self draggedCell]
+                                                                    image:viewImage
+                                                                styleMask:styleMask] retain];
+            [_dragViewWindow setAlphaValue:0.0];
+        }
+
+        NSPoint windowOrigin = [_dragTabWindow frame].origin;
+        windowOrigin.x -= _dragWindowOffset.width;
+        windowOrigin.y += _dragWindowOffset.height;
+        [_dragViewWindow setFrameTopLeftPoint:windowOrigin];
+        [_dragViewWindow orderWindow:NSWindowBelow relativeTo:[_dragTabWindow windowNumber]];
+
+        // set the window's alpha mask to zero if the last tab is being dragged
+        // don't fade out the old window if the delegate doesn't respond to the new tab bar method, just to be safe
+        if ([[[self sourceTabBar] tabView] numberOfTabViewItems] == 1 &&
+            [self sourceTabBar] == control &&
+            [[[self sourceTabBar] delegate] respondsToSelector:@selector(tabView:newTabBarForDraggedTabViewItem:atPoint:)]) {
+
+            [[[self sourceTabBar] window] setAlphaValue:0.0];
+            // Move the window out of the way so it doesn't block drop targets under it.
+            [[[self sourceTabBar] window] setFrameOrigin:NSMakePoint(-1000000, -1000000)];
+            [_dragViewWindow setAlphaValue:kPSMTabDragWindowAlpha];
+        } else {
+            _fadeTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 / 30.0
+                                                          target:self
+                                                        selector:@selector(fadeInDragWindow:)
+                                                        userInfo:nil
+                                                         repeats:YES];
+        }
+    }
 }
 
-- (void)performDragOperation
-{
-#if 1
+- (void)performDragOperation:(id<NSDraggingInfo>)sender {
     // move cell
-    [[[self destinationTabBar] cells] replaceObjectAtIndex:[[[self destinationTabBar] cells] indexOfObject:[self targetCell]] withObject:[self draggedCell]];
-    [[self draggedCell] setControlView:[self destinationTabBar]];
-    // move actual NSTabViewItem
-    if([self sourceTabBar] != [self destinationTabBar]){
-        [[[self sourceTabBar] tabView] removeTabViewItem:[[self draggedCell] representedObject]];
-        [[[self destinationTabBar] tabView] addTabViewItem:[[self draggedCell] representedObject]];
+    int destinationIndex = [[[self destinationTabBar] cells] indexOfObject:[self targetCell]];
+
+    //there is the slight possibility of the targetCell now being set properly, so avoid errors
+    if (destinationIndex >= [[[self destinationTabBar] cells] count])  {
+        destinationIndex = [[[self destinationTabBar] cells] count] - 1;
     }
-    [self finishDrag];
-#else
-    unsigned idx = [[[self destinationTabBar] cells] indexOfObject:[self targetCell]];
-    
-    // move cell
-    [[[self destinationTabBar] cells] replaceObjectAtIndex:idx withObject:[self draggedCell]];
-    [[self draggedCell] setControlView:[self destinationTabBar]];
-    // move actual NSTabViewItem
-    if([self sourceTabBar] != [self destinationTabBar]){
-        [[[self sourceTabBar] tabView] removeTabViewItem:[[self draggedCell] representedObject]];
-        idx = [[[self destinationTabBar] cells] indexOfObject:[self draggedCell]];
-        NSLog(@"Inserting at index %d", idx);
-        [[[self destinationTabBar] tabView] insertTabViewItem:[[self draggedCell] representedObject] atIndex:idx];
+
+    if (![self draggedCell]) {
+        // Find the index of where the dragged object was just dropped.
+        int i;
+        int insertIndex = 0;
+        NSArray *cells = [[self destinationTabBar] cells];
+        PSMTabBarCell *before = nil;
+        if (destinationIndex > 0) {
+            before = [cells objectAtIndex:destinationIndex - 1];
+        }
+        PSMTabBarCell *after = nil;
+        if (destinationIndex < [cells count] - 1) {
+            after = [cells objectAtIndex:destinationIndex + 1];
+        }
+
+        NSTabViewItem *newTabViewItem = [[[self destinationTabBar] delegate] tabView:[[self destinationTabBar] tabView] unknownObjectWasDropped:sender];
+        cells = [[self destinationTabBar] cells];
+        if (!after) {
+            insertIndex = [cells count];
+        } else if (!before) {
+            insertIndex = 0;
+        } else {
+            for (i = 0; i < [cells count]; i++) {
+                if ([cells objectAtIndex:i] == before) {
+                    insertIndex = i + 1;
+                    break;
+                } else if ([cells objectAtIndex:i] == after) {
+                    insertIndex = i;
+                    break;
+                }
+            }
+        }
+
+        // If newTabViewItem is nil then simply cancel the drop.
+        if (newTabViewItem) {
+            [[[self destinationTabBar] tabView] insertTabViewItem:newTabViewItem atIndex:insertIndex];
+            [[[self destinationTabBar] tabView] indexOfTabViewItem:newTabViewItem];
+            // I'm not sure why, but calling -bindPropertiesForCell:andTabViewItem:
+            // here causes there to be an extra binding. It seems to have its
+            // bindings set when it's added to the control. Other paths through this
+            // function do explicitly set the bindings.
+
+            // Select the newly moved item in the destination tab view.
+            [[[self destinationTabBar] tabView] selectTabViewItem:newTabViewItem];
+        }
+    } else {
+        [[[self destinationTabBar] cells] replaceObjectAtIndex:destinationIndex withObject:[self draggedCell]];
+        [[self draggedCell] setControlView:[self destinationTabBar]];
+
+        // move actual NSTabViewItem
+        if ([self sourceTabBar] != [self destinationTabBar]) {
+            //remove the tracking rects and bindings registered on the old tab
+            [[self sourceTabBar] removeTrackingRect:[[self draggedCell] closeButtonTrackingTag]];
+            [[self sourceTabBar] removeTrackingRect:[[self draggedCell] cellTrackingTag]];
+            [[self sourceTabBar] removeTabForCell:[self draggedCell]];
+
+            int i, insertIndex;
+            NSArray *cells = [[self destinationTabBar] cells];
+
+            //find the index of where the dragged cell was just dropped
+            for (i = 0, insertIndex = 0; (i < [cells count]) && ([cells objectAtIndex:i] != [self draggedCell]); i++, insertIndex++) {
+                if ([[cells objectAtIndex:i] isPlaceholder]) {
+                    insertIndex--;
+                }
+            }
+
+            if ([[[self sourceTabBar] delegate] respondsToSelector:@selector(tabView:willDropTabViewItem:inTabBar:)]) {
+                [[[self sourceTabBar] delegate] tabView:[[self sourceTabBar] tabView]
+                                    willDropTabViewItem:[[self draggedCell] representedObject]
+                                               inTabBar:[self destinationTabBar]];
+            }
+
+            [[[self sourceTabBar] tabView] removeTabViewItem:[[self draggedCell] representedObject]];
+            [[[self destinationTabBar] tabView] insertTabViewItem:[[self draggedCell] representedObject] atIndex:insertIndex];
+
+            //rebind the cell to the new control
+            [[self destinationTabBar] initializeStateForCell:[self draggedCell]];
+            [[self destinationTabBar] bindPropertiesForCell:[self draggedCell] andTabViewItem:[[self draggedCell] representedObject]];
+
+            //select the newly moved item in the destination tab view
+            [[[self destinationTabBar] tabView] selectTabViewItem:[[self draggedCell] representedObject]];
+        } else {
+            //have to do this before checking the index of a cell otherwise placeholders will be counted
+            [self removeAllPlaceholdersFromTabBar:[self sourceTabBar]];
+
+            //rearrange the tab view items
+            NSTabView *tabView = [[self sourceTabBar] tabView];
+            NSTabViewItem *item = [[self draggedCell] representedObject];
+            BOOL reselect = ([tabView selectedTabViewItem] == item);
+            int theIndex;
+            NSArray *cells = [[self sourceTabBar] cells];
+
+            //find the index of where the dragged cell was just dropped
+            for (theIndex = 0; theIndex < [cells count] && [cells objectAtIndex:theIndex] != [self draggedCell]; theIndex++);
+
+            if ([[[self sourceTabBar] cells] indexOfObject:[self draggedCell]] != _draggedCellIndex &&
+                [[[self sourceTabBar] delegate] respondsToSelector:@selector(tabView:willDropTabViewItem:inTabBar:)]) {
+
+                [[[self sourceTabBar] delegate] tabView:[[self sourceTabBar] tabView]
+                                    willDropTabViewItem:[[self draggedCell] representedObject]
+                                               inTabBar:[self destinationTabBar]];
+            }
+            //temporarily disable the delegate in order to move the tab to a different index
+            id tempDelegate = [tabView delegate];
+            [tabView setDelegate:nil];
+            [item retain];
+            [tabView removeTabViewItem:item];
+            [tabView insertTabViewItem:item atIndex:theIndex];
+            [item release];
+            if (reselect) {
+                [tabView selectTabViewItem:item];
+            }
+            [tabView setDelegate:tempDelegate];
+        }
+
+        if (([self sourceTabBar] != [self destinationTabBar] ||
+             [[[self sourceTabBar] cells] indexOfObject:[self draggedCell]] != _draggedCellIndex) &&
+            [[[self sourceTabBar] delegate] respondsToSelector:@selector(tabView:didDropTabViewItem:inTabBar:)]) {
+
+            [[[self sourceTabBar] delegate] tabView:[[self sourceTabBar] tabView]
+                                 didDropTabViewItem:[[self draggedCell] representedObject]
+                                           inTabBar:[self destinationTabBar]];
+        }
     }
+
+    [[NSNotificationCenter defaultCenter] postNotificationName:PSMTabDragDidEndNotification object:nil];
+
     [self finishDrag];
-#endif
 }
 
-- (void)draggedImageEndedAt:(NSPoint)aPoint operation:(NSDragOperation)operation
-{
-    if([self isDragging]){  // means there was not a successful drop (performDragOperation)
-        // put cell back
-        [[[self sourceTabBar] cells] insertObject:[self draggedCell] atIndex:[self draggedCellIndex]];
+- (void)draggedImageEndedAt:(NSPoint)aPoint operation:(NSDragOperation)operation {
+    if ([self isDragging]){  // means there was not a successful drop (performDragOperation)
+        id sourceDelegate = [[self sourceTabBar] delegate];
+
+        //split off the dragged tab into a new window
+        if ([self destinationTabBar] == nil &&
+            [sourceDelegate respondsToSelector:@selector(tabView:shouldDropTabViewItem:inTabBar:)] &&
+            [sourceDelegate tabView:[[self sourceTabBar] tabView]
+              shouldDropTabViewItem:[[self draggedCell] representedObject]
+                           inTabBar:nil] &&
+            [sourceDelegate respondsToSelector:@selector(tabView:newTabBarForDraggedTabViewItem:atPoint:)]) {
+
+            PSMTabBarControl *control = [sourceDelegate tabView:[[self sourceTabBar] tabView]
+                                 newTabBarForDraggedTabViewItem:[[self draggedCell] representedObject]
+                                                        atPoint:aPoint];
+
+            if (control) {
+                if ([sourceDelegate respondsToSelector:@selector(tabView:willDropTabViewItem:inTabBar:)]) {
+                    [sourceDelegate tabView:[[self sourceTabBar] tabView]
+                        willDropTabViewItem:[[self draggedCell] representedObject]
+                                   inTabBar:control];
+                }
+                //add the dragged tab to the new window
+                [[control cells] insertObject:[self draggedCell] atIndex:0];
+
+                //remove the tracking rects and bindings registered on the old tab
+                [[self sourceTabBar] removeTrackingRect:[[self draggedCell] closeButtonTrackingTag]];
+                [[self sourceTabBar] removeTrackingRect:[[self draggedCell] cellTrackingTag]];
+                [[self sourceTabBar] removeTabForCell:[self draggedCell]];
+
+                //rebind the cell to the new control
+                [control initializeStateForCell:[self draggedCell]];
+                [control bindPropertiesForCell:[self draggedCell] andTabViewItem:[[self draggedCell] representedObject]];
+
+                [[self draggedCell] setControlView:control];
+
+                [[[self sourceTabBar] tabView] removeTabViewItem:[[self draggedCell] representedObject]];
+
+                [[control tabView] addTabViewItem:[[self draggedCell] representedObject]];
+                [[control window] makeKeyAndOrderFront:nil];
+
+                if ([sourceDelegate respondsToSelector:@selector(tabView:didDropTabViewItem:inTabBar:)]) {
+                    [sourceDelegate tabView:[[self sourceTabBar] tabView]
+                         didDropTabViewItem:[[self draggedCell] representedObject]
+                                   inTabBar:control];
+                }
+            } else {
+                NSLog(@"Delegate returned no control to add to.");
+                [[[self sourceTabBar] cells] insertObject:[self draggedCell] atIndex:[self draggedCellIndex]];
+                [[[self sourceTabBar] window] setAlphaValue:1];  // Make the window visible again.
+            }
+
+        } else {
+            // put cell back
+            [[[self sourceTabBar] cells] insertObject:[self draggedCell] atIndex:[self draggedCellIndex]];
+        }
+
+        [[NSNotificationCenter defaultCenter] postNotificationName:PSMTabDragDidEndNotification object:nil];
+
         [self finishDrag];
     }
 }
 
 - (void)finishDrag
 {
+    if ([[[self sourceTabBar] tabView] numberOfTabViewItems] == 0 && [[[self sourceTabBar] delegate] respondsToSelector:@selector(tabView:closeWindowForLastTabViewItem:)]) {
+        [[[self sourceTabBar] delegate] tabView:[[self sourceTabBar] tabView] closeWindowForLastTabViewItem:[[self draggedCell] representedObject]];
+    }
+
+    if (_dragTabWindow) {
+        [_dragTabWindow orderOut:nil];
+        [_dragTabWindow release];
+        _dragTabWindow = nil;
+    }
+
+    if (_dragViewWindow) {
+        [_dragViewWindow orderOut:nil];
+        [_dragViewWindow release];
+        _dragViewWindow = nil;
+    }
+
     [self setIsDragging:NO];
     [self removeAllPlaceholdersFromTabBar:[self sourceTabBar]];
     [self setSourceTabBar:nil];
     [self setDestinationTabBar:nil];
     NSEnumerator *e = [_participatingTabBars objectEnumerator];
     PSMTabBarControl *tabBar;
-    while(tabBar = [e nextObject]){
+    while ( (tabBar = [e nextObject]) ) {
         [self removeAllPlaceholdersFromTabBar:tabBar];
     }
     [_participatingTabBars removeAllObjects];
@@ -262,16 +586,77 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
     [self setTargetCell:nil];
 }
 
+- (void)draggingBeganAt:(NSPoint)aPoint
+{
+    if (_dragTabWindow) {
+        [_dragTabWindow setFrameTopLeftPoint:aPoint];
+
+        if ([[[self sourceTabBar] tabView] numberOfTabViewItems] == 1) {
+            [self draggingExitedTabBar:[self sourceTabBar]];
+            [_dragTabWindow setAlphaValue:0.0];
+        }
+    }
+}
+
+- (void)draggingMovedTo:(NSPoint)aPoint
+{
+    if (_dragTabWindow) {
+        [_dragTabWindow setFrameTopLeftPoint:aPoint];
+
+        if (_dragViewWindow) {
+            //move the view representation with the tab
+            //the relative position of the dragged view window will be different
+            //depending on the position of the tab bar relative to the controlled tab view
+
+            aPoint.y -= [_dragTabWindow frame].size.height;
+            aPoint.x -= _dragWindowOffset.width;
+            aPoint.y += _dragWindowOffset.height;
+            [_dragViewWindow setFrameTopLeftPoint:aPoint];
+        }
+    }
+}
+
+- (void)fadeInDragWindow:(NSTimer *)timer
+{
+    float value = [_dragViewWindow alphaValue];
+    if (value >= kPSMTabDragWindowAlpha || _dragTabWindow == nil) {
+        [timer invalidate];
+        _fadeTimer = nil;
+    } else {
+        [_dragTabWindow setAlphaValue:[_dragTabWindow alphaValue] - 0.15];
+        [_dragViewWindow setAlphaValue:value + 0.15];
+    }
+}
+
+- (void)fadeOutDragWindow:(NSTimer *)timer
+{
+    float value = [_dragViewWindow alphaValue];
+    if (value <= 0.0) {
+        [_dragViewWindow setAlphaValue:0.0];
+        [_dragTabWindow setAlphaValue:kPSMTabDragWindowAlpha];
+
+        [timer invalidate];
+        _fadeTimer = nil;
+    } else {
+        if ([_dragTabWindow alphaValue] < kPSMTabDragWindowAlpha) {
+            [_dragTabWindow setAlphaValue:[_dragTabWindow alphaValue] + 0.15];
+        }
+        [_dragViewWindow setAlphaValue:value - 0.15];
+    }
+}
+
 #pragma mark -
 #pragma mark Animation
 
 - (void)animateDrag:(NSTimer *)timer
 {
-    NSEnumerator *e = [_participatingTabBars objectEnumerator];
-    PSMTabBarControl *tabBar;
-    while(tabBar = [e nextObject]){
-        [self calculateDragAnimationForTabBar:tabBar];
-        [[NSRunLoop currentRunLoop] performSelector:@selector(display) target:tabBar argument:nil order:1 modes:[NSArray arrayWithObjects:@"NSEventTrackingRunLoopMode", @"NSDefaultRunLoopMode", nil]];
+    NSArray* objects = [_participatingTabBars allObjects];
+    for (int i = 0; i < [objects count]; ++i) {
+        PSMTabBarControl* tabBar = [objects objectAtIndex:i];
+        if ([_participatingTabBars containsObject:tabBar]) {
+            [self calculateDragAnimationForTabBar:tabBar];
+            [[NSRunLoop currentRunLoop] performSelector:@selector(display) target:tabBar argument:nil order:1 modes:[NSArray arrayWithObjects:@"NSEventTrackingRunLoopMode", @"NSDefaultRunLoopMode", nil]];
+        }
     }
 }
 
@@ -280,47 +665,50 @@ static PSMTabDragAssistant *sharedDragAssistant = nil;
     BOOL removeFlag = YES;
     NSMutableArray *cells = [control cells];
     int i, cellCount = [cells count];
-    float xPos = [[control psmTabStyle] leftMarginForTabBarControl];
-    
+    float position = [control orientation] == PSMTabBarHorizontalOrientation ? [[control style] leftMarginForTabBarControl] : [[control style] topMarginForTabBarControl];
+
     // identify target cell
     // mouse at beginning of tabs
     NSPoint mouseLoc = [self currentMouseLoc];
-    if([self destinationTabBar] == control){
+    if ([self destinationTabBar] == control) {
         removeFlag = NO;
-        if(mouseLoc.x < [[control psmTabStyle] leftMarginForTabBarControl]){
+        if (mouseLoc.x < [[control style] leftMarginForTabBarControl]) {
             [self setTargetCell:[cells objectAtIndex:0]];
-            goto layout;
-        }
-        
-        NSRect overCellRect;
-        PSMTabBarCell *overCell = [control cellForPoint:mouseLoc cellFrame:&overCellRect];
-        if(overCell){
-            // mouse among cells - placeholder
-            if([overCell isPlaceholder]){
-                [self setTargetCell:overCell];
-                goto layout;
-            }
-            
-            // non-placeholders
-            if(mouseLoc.x < (overCellRect.origin.x + (overCellRect.size.width / 2.0))){
-                // mouse on left side of cell
-                [self setTargetCell:[cells objectAtIndex:([cells indexOfObject:overCell] - 1)]];
-                goto layout;
-            } else {
-                // mouse on right side of cell
-                [self setTargetCell:[cells objectAtIndex:([cells indexOfObject:overCell] + 1)]];
-                goto layout;
-            }
         } else {
-            // out at end - must find proper cell (could be more in overflow menu)
-            [self setTargetCell:[control lastVisibleTab]];
-            goto layout;
+            NSRect overCellRect;
+            PSMTabBarCell *overCell = [control cellForPoint:mouseLoc cellFrame:&overCellRect];
+            if(overCell){
+                // mouse among cells - placeholder
+                if ([overCell isPlaceholder]) {
+                    [self setTargetCell:overCell];
+                } else if ([control orientation] == PSMTabBarHorizontalOrientation) {
+                    // non-placeholders - horizontal orientation
+                    if (mouseLoc.x < (overCellRect.origin.x + (overCellRect.size.width / 2.0))) {
+                        // mouse on left side of cell
+                        [self setTargetCell:[cells objectAtIndex:([cells indexOfObject:overCell] - 1)]];
+                    } else {
+                        // mouse on right side of cell
+                        [self setTargetCell:[cells objectAtIndex:([cells indexOfObject:overCell] + 1)]];
+                    }
+                } else {
+                    // non-placeholders - vertical orientation
+                    if (mouseLoc.y < (overCellRect.origin.y + (overCellRect.size.height / 2.0))) {
+                        // mouse on top of cell
+                        [self setTargetCell:[cells objectAtIndex:([cells indexOfObject:overCell] - 1)]];
+                    } else {
+                        // mouse on bottom of cell
+                        [self setTargetCell:[cells objectAtIndex:([cells indexOfObject:overCell] + 1)]];
+                    }
+                }
+            } else {
+                // out at end - must find proper cell (could be more in overflow menu)
+                [self setTargetCell:[control lastVisibleTab]];
+            }
         }
     } else {
         [self setTargetCell:nil];
     }
-    
-layout: 
+
     for(i = 0; i < cellCount; i++){
         PSMTabBarCell *cell = [cells objectAtIndex:i];
         NSRect newRect = [cell frame];
@@ -334,16 +722,27 @@ layout:
                         removeFlag = NO;
                     }
                 }
-                newRect.size.width = [[_sineCurveWidths objectAtIndex:[cell currentStep]] intValue];
+
+                if ([control orientation] == PSMTabBarHorizontalOrientation) {
+                    newRect.size.width = [[_sineCurveWidths objectAtIndex:[cell currentStep]] intValue];
+                } else {
+                    newRect.size.height = [[_sineCurveWidths objectAtIndex:[cell currentStep]] intValue];
+                }
             }
         } else {
             break;
         }
-        newRect.origin.x = xPos;
+
+        if ([control orientation] == PSMTabBarHorizontalOrientation) {
+            newRect.origin.x = position;
+            position += newRect.size.width;
+        } else {
+            newRect.origin.y = position;
+            position += newRect.size.height;
+        }
         [cell setFrame:newRect];
         if([cell indicator])
-            [[cell indicator] setFrame:[[control psmTabStyle] indicatorRectForTabCell:cell]];
-        xPos += newRect.size.width;
+            [[cell indicator] setFrame:[[control style] indicatorRectForTabCell:cell]];
     }
     if(removeFlag){
         [_participatingTabBars removeObject:control];
@@ -361,6 +760,7 @@ layout:
     // replace dragged cell with a placeholder, and clean up surrounding cells
     int cellIndex = [[control cells] indexOfObject:cell];
     PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:[[self draggedCell] frame] expanded:YES inControlView:control] autorelease];
+    pc.truncationStyle = cell.truncationStyle;
     [[control cells] replaceObjectAtIndex:cellIndex withObject:pc];
     [[control cells] removeObjectAtIndex:(cellIndex + 1)];
     [[control cells] removeObjectAtIndex:(cellIndex - 1)];
@@ -370,17 +770,28 @@ layout:
 - (void)distributePlaceholdersInTabBar:(PSMTabBarControl *)control
 {
     int i, numVisibleTabs = [control numberOfVisibleTabs];
-    for(i = 0; i < numVisibleTabs; i++){
-        PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:[[self draggedCell] frame] expanded:NO inControlView:control] autorelease]; 
+    PSMTabBarCell *draggedCell = [self draggedCell];
+    NSRect draggedCellFrame;
+    NSLineBreakMode truncationStyle;
+    if (draggedCell) {
+        draggedCellFrame = [draggedCell frame];
+        truncationStyle = draggedCell.truncationStyle;
+    } else {
+        draggedCellFrame = [[[control cells] objectAtIndex:0] frame];
+        truncationStyle = [[[control cells] objectAtIndex:0] truncationStyle];
+    }
+    for(i = 0; i < numVisibleTabs; i++) {
+        PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:draggedCellFrame expanded:NO inControlView:control] autorelease];
+        pc.truncationStyle = truncationStyle;
         [[control cells] insertObject:pc atIndex:(2 * i)];
     }
-    if(numVisibleTabs > 0){
-        PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:[[self draggedCell] frame] expanded:NO inControlView:control] autorelease];
-        if([[control cells] count] > (2 * numVisibleTabs)){
-            [[control cells] insertObject:pc atIndex:(2 * numVisibleTabs)];
-        } else {
-            [[control cells] addObject:pc];
-        }
+
+    PSMTabBarCell *pc = [[[PSMTabBarCell alloc] initPlaceholderWithFrame:draggedCellFrame expanded:NO inControlView:control] autorelease];
+    pc.truncationStyle = truncationStyle;
+    if ([[control cells] count] > (2 * numVisibleTabs)) {
+        [[control cells] insertObject:pc atIndex:(2 * numVisibleTabs)];
+    } else {
+        [[control cells] addObject:pc];
     }
 }
 
@@ -434,6 +845,5 @@ layout:
     //}
     return self;
 }
-
 
 @end

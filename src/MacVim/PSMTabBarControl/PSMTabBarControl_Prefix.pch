@@ -1,8 +1,0 @@
-//
-// Prefix header for all source files of the 'PSMTabBarControl' target in the 'PSMTabBarControl' project
-//
-
-#ifdef __OBJC__
-    #import <Cocoa/Cocoa.h>
-    #import <InterfaceBuilder/InterfaceBuilder.h>
-#endif

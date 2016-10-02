@@ -2,27 +2,21 @@
 //  PSMYosemiteTabStyle.h
 //  PSMTabBarControl
 //
-//  Created by Christoffer Winterkvist on 25/08/14.
-//
+//  Created by John Pannell on 2/17/06.
+//  Copyright 2006 Positive Spin Media. All rights reserved.
 //
 
 #import <Cocoa/Cocoa.h>
 #import "PSMTabStyle.h"
+#import "PSMTabBarControl.h"
 
-@interface PSMYosemiteTabStyle : NSObject <PSMTabStyle> {
-    NSImage *closeButton;
-    NSImage *closeButtonDown;
-    NSImage *closeButtonOver;
-    NSImage *_addTabButtonImage;
-    NSImage *_addTabButtonPressedImage;
-    NSImage *_addTabButtonRolloverImage;
-    NSMutableParagraphStyle *truncatingTailParagraphStyle;
-    NSMutableParagraphStyle *centeredParagraphStyle;
-}
+@interface PSMYosemiteTabStyle : NSObject<NSCoding, PSMTabStyle>
 
-- (void)drawInteriorWithTabCell:(PSMTabBarCell *)cell inView:(NSView*)controlView;
+@property(nonatomic, readonly) PSMTabBarControl *tabBar;
+@property(nonatomic, readonly) BOOL isYosemiteOrLater;
 
-- (void)encodeWithCoder:(NSCoder *)aCoder;
-- (id)initWithCoder:(NSCoder *)aDecoder;
+#pragma mark - For subclasses
+
+- (NSColor *)topLineColorSelected:(BOOL)selected;
 
 @end

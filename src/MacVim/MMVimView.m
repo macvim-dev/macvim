@@ -24,7 +24,7 @@
 #import "MMVimController.h"
 #import "MMVimView.h"
 #import "MMWindowController.h"
-#import <PSMTabBarControl/PSMTabBarControl.h>
+#import "PSMTabBarControl/source/PSMTabBarControl.h"
 
 
 
@@ -50,7 +50,7 @@ enum {
 @end
 
 
-@interface MMVimView (Private)
+@interface MMVimView (Private) <PSMTabViewDelegate>
 - (BOOL)bottomScrollbarVisible;
 - (BOOL)leftScrollbarVisible;
 - (BOOL)rightScrollbarVisible;
@@ -581,7 +581,9 @@ enum {
     }
 }
 
-
+- (void)tabView:(NSTabView *)tabView updateStateForTabViewItem:(NSTabViewItem *)tabViewItem
+{
+}
 
 // -- NSView customization ---------------------------------------------------
 

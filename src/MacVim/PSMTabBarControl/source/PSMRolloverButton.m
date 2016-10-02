@@ -12,9 +12,8 @@
 
 - (void)dealloc
 {
-    [_usualImage release];
     [_rolloverImage release];
-
+    [_usualImage release];
     [super dealloc];
 }
 
@@ -52,11 +51,14 @@
 
 - (void)removeTrackingRect
 {
-    [self removeTrackingRect:_myTrackingRectTag];
+	if (_myTrackingRectTag) {
+		[self removeTrackingRect:_myTrackingRectTag];
+	}
+	_myTrackingRectTag = 0;
 }
 
 // override for rollover effect
-- (void)mouseEntered:(NSEvent *)theEvent;
+- (void)mouseEntered:(NSEvent *)theEvent
 {
     // set rollover image
     [self setImage:_rolloverImage];
@@ -64,7 +66,7 @@
     [[self superview] setNeedsDisplay:YES]; // eliminates a drawing artifact
 }
 
-- (void)mouseExited:(NSEvent *)theEvent;
+- (void)mouseExited:(NSEvent *)theEvent
 {
     // restore usual image
     [self setImage:_usualImage];

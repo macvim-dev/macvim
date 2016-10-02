@@ -21,6 +21,7 @@ Protocol to be observed by all style delegate objects.  These objects handle the
 // control specific parameters
 - (float)leftMarginForTabBarControl;
 - (float)rightMarginForTabBarControl;
+- (float)topMarginForTabBarControl;
 
 // add tab button
 - (NSImage *)addTabButtonImage;
@@ -28,6 +29,7 @@ Protocol to be observed by all style delegate objects.  These objects handle the
 - (NSImage *)addTabButtonRolloverImage;
 
 // cell specific parameters
+- (NSRect)dragRectForTabCell:(PSMTabBarCell *)cell orientation:(PSMTabBarOrientation)orientation;
 - (NSRect)closeButtonRectForTabCell:(PSMTabBarCell *)cell;
 - (NSRect)iconRectForTabCell:(PSMTabBarCell *)cell;
 - (NSRect)indicatorRectForTabCell:(PSMTabBarCell *)cell;
@@ -40,8 +42,17 @@ Protocol to be observed by all style delegate objects.  These objects handle the
 - (NSAttributedString *)attributedStringValueForTabCell:(PSMTabBarCell *)cell;
 
 // drawing
-- (void)drawTabCell:(PSMTabBarCell *)cell;
-- (void)drawTabBar:(PSMTabBarControl *)bar inRect:(NSRect)rect;
+- (void)drawTabCell:(PSMTabBarCell *)cell highlightAmount:(CGFloat)highlightAmount;
+- (void)drawBackgroundInRect:(NSRect)rect color:(NSColor*)color horizontal:(BOOL)horizontal;
+- (void)drawTabBar:(PSMTabBarControl *)bar inRect:(NSRect)rect horizontal:(BOOL)horizontal;
+
+- (NSColor *)accessoryFillColor;
+- (NSColor *)accessoryStrokeColor;
+- (void)fillPath:(NSBezierPath*)path;
+- (NSColor *)accessoryTextColor;
+
+// Should light-tinted controls be used?
+- (BOOL)useLightControls;
 
 @end
 

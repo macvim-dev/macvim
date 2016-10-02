@@ -12,39 +12,103 @@
 #import "PSMProgressIndicator.h"
 #import "PSMTabDragAssistant.h"
 
+// A timer that does not keep a strong reference to its target. The target
+// should invoke -invalidate from its -dealloc method and release the timer to
+// avoid getting called posthumously.
+@interface PSMWeakTimer : NSObject
+@property(nonatomic, assign) id target;
+@property(nonatomic, assign) SEL selector;
 
-@implementation PSMTabBarCell
+- (instancetype)initWithTimeInterval:(NSTimeInterval)timeInterval
+                              target:(id)target
+                            selector:(SEL)selector
+                             repeats:(BOOL)repeats;
+- (void)invalidate;
 
-#pragma mark -
-#pragma mark Creation/Destruction
-- (id)initWithControlView:(PSMTabBarControl *)controlView
-{
+@end
+
+@implementation PSMWeakTimer {
+    NSTimer *_timer;
+    BOOL _repeats;
+}
+
+- (instancetype)initWithTimeInterval:(NSTimeInterval)timeInterval
+                              target:(id)target
+                            selector:(SEL)selector
+                             repeats:(BOOL)repeats {
     self = [super init];
-    if(self){
-        _controlView = controlView;
-        _closeButtonTrackingTag = 0;
-        _cellTrackingTag = 0;
-        _closeButtonOver = NO;
-        _closeButtonPressed = NO;
-        _indicator = [[PSMProgressIndicator alloc] initWithFrame:NSMakeRect(0.0,0.0,kPSMTabBarIndicatorWidth,kPSMTabBarIndicatorWidth)];
-        [_indicator setStyle:NSProgressIndicatorSpinningStyle];
-        [_indicator setAutoresizingMask:NSViewMinYMargin];
-        _hasCloseButton = YES;
-        _isCloseButtonSuppressed = NO;
-        _count = 0;
-        _isPlaceholder = NO;
+    if (self) {
+        _target = target;
+        _selector = selector;
+        _repeats = repeats;
+        _timer = [NSTimer scheduledTimerWithTimeInterval:timeInterval
+                                                  target:self
+                                                selector:@selector(timerDidFire:)
+                                                userInfo:nil
+                                                 repeats:repeats];
     }
     return self;
 }
 
-- (id)initPlaceholderWithFrame:(NSRect)frame expanded:(BOOL)value inControlView:(PSMTabBarControl *)controlView
-{
+- (void)invalidate {
+    [_timer invalidate];
+    _timer = nil;
+}
+
+- (void)timerDidFire:(NSTimer *)timer {
+    [_target performSelector:_selector withObject:timer];
+    if (!_repeats) {
+        _timer = nil;
+    }
+}
+
+@end
+
+@interface PSMTabBarCell()<PSMProgressIndicatorDelegate>
+@end
+
+@implementation PSMTabBarCell  {
+    NSSize _stringSize;
+    PSMProgressIndicator *_indicator;
+    NSTimeInterval _highlightChangeTime;
+    PSMWeakTimer *_delayedStringValueTimer;  // For bug 3957
+    BOOL _hasIcon;
+    BOOL _highlighted;
+}
+
+#pragma mark - Creation/Destruction
+
+- (id)initWithControlView:(PSMTabBarControl *)controlView {
+    if ((self = [super init])) {
+        [self setControlView:controlView];
+        _indicator = [[PSMProgressIndicator alloc] initWithFrame:NSMakeRect(0,
+                                                                            0,
+                                                                            kPSMTabBarIndicatorWidth,
+                                                                            kPSMTabBarIndicatorWidth)];
+        _indicator.delegate = self;
+        [_indicator setAutoresizingMask:NSViewMinYMargin];
+        _indicator.light = controlView.style.useLightControls;
+        _hasCloseButton = YES;
+        _modifierString = [@"" copy];
+        _truncationStyle = NSLineBreakByTruncatingTail;
+    }
+    return self;
+}
+
+- (id)initPlaceholderWithFrame:(NSRect)frame
+                      expanded:(BOOL)value
+                 inControlView:(PSMTabBarControl *)controlView {
     self = [super init];
-    if(self){
-        _controlView = controlView;
+    if (self) {
+        [self setControlView:controlView];
         _isPlaceholder = YES;
-        if(!value)
-            frame.size.width = 0.0;
+        if (!value) {
+            if ([controlView orientation] == PSMTabBarHorizontalOrientation) {
+                frame.size.width = 0;
+            } else {
+                frame.size.height = 0;
+            }
+        }
         [self setFrame:frame];
         _closeButtonTrackingTag = 0;
         _cellTrackingTag = 0;
@@ -52,315 +116,230 @@
         _closeButtonPressed = NO;
         _indicator = nil;
         _hasCloseButton = YES;
-        _isCloseButtonSuppressed = NO;
         _count = 0;
-        
-        if(value){
+        _tabColor = nil;
+        _modifierString = [@"" copy];
+        _truncationStyle = NSLineBreakByTruncatingTail;
+        if (value) {
             [self setCurrentStep:(kPSMTabDragAnimationSteps - 1)];
         } else {
             [self setCurrentStep:0];
         }
-        
     }
-    
     return self;
 }
 
-- (void)dealloc
-{
+- (void)dealloc {
+    [_delayedStringValueTimer invalidate];
+    [_delayedStringValueTimer release];
+
+    [_modifierString release];
+    _indicator.delegate = nil;
     [_indicator release];
-    [_toolTip release];
+    if (_tabColor) {
+        [_tabColor release];
+    }
     [super dealloc];
 }
 
-#pragma mark -
-#pragma mark Accessors
-
-- (id)controlView
-{
-    return _controlView;
+// we don't want this to be the first responder in the chain
+- (BOOL)acceptsFirstResponder {
+  return NO;
 }
 
-- (void)setControlView:(id)view
-{
-    // no retain release pattern, as this simply switches a tab to another view.
-    _controlView = view;
+#pragma mark - Accessors
+
+- (BOOL)closeButtonVisible {
+    return !_isCloseButtonSuppressed || [self highlightAmount] > 0;
 }
 
-- (NSTrackingRectTag)closeButtonTrackingTag
-{
-    return _closeButtonTrackingTag;
+- (NSView<PSMTabBarControlProtocol> *)psmTabControlView {
+    return (NSView<PSMTabBarControlProtocol> *)[self controlView];
 }
 
-- (void)setCloseButtonTrackingTag:(NSTrackingRectTag)tag
-{
-    _closeButtonTrackingTag = tag;
-}
-
-- (NSTrackingRectTag)cellTrackingTag
-{
-    return _cellTrackingTag;
-}
-
-- (void)setCellTrackingTag:(NSTrackingRectTag)tag
-{
-    _cellTrackingTag = tag;
-}
-
-- (float)width
-{
+- (float)width {
     return _frame.size.width;
 }
 
-- (NSRect)frame
-{
-    return _frame;
-}
-
-- (void)setFrame:(NSRect)rect
-{
-    _frame = rect;
-}
-
-- (void)setStringValue:(NSString *)aString
-{
+- (void)setStringValue:(NSString *)aString {
     [super setStringValue:aString];
+    
+    if (!_delayedStringValueTimer) {
+        static const NSTimeInterval kStringValueSettingDelay = 0.1;
+        _delayedStringValueTimer =
+                [[PSMWeakTimer alloc] initWithTimeInterval:kStringValueSettingDelay
+                                                    target:self
+                                                  selector:@selector(updateStringValue:)
+                                                   repeats:NO];
+    }
+}
+
+- (void)updateStringValue:(NSTimer *)timer {
+    [_delayedStringValueTimer release];
+    _delayedStringValueTimer = nil;
     _stringSize = [[self attributedStringValue] size];
     // need to redisplay now - binding observation was too quick.
-    [_controlView update];
+    [[self psmTabControlView] update:[[self psmTabControlView] automaticallyAnimates]];
 }
 
-- (NSSize)stringSize
-{
+- (NSSize)stringSize {
     return _stringSize;
 }
 
-- (NSAttributedString *)attributedStringValue
-{
-    return [[_controlView psmTabStyle] attributedStringValueForTabCell:self];
+- (NSAttributedString *)attributedStringValue {
+    id<PSMTabBarControlProtocol> control = [self psmTabControlView];
+    id <PSMTabStyle> tabStyle = [control style];
+    return [tabStyle attributedStringValueForTabCell:self];
 }
 
-- (int)tabState
-{
-    return _tabState;
-}
-
-- (void)setTabState:(int)state
-{
-    _tabState = state;
-}
-
-- (NSProgressIndicator *)indicator
-{ 
+- (PSMProgressIndicator *)indicator {
     return _indicator;
 }
 
-- (BOOL)isInOverflowMenu
-{
-    return _isInOverflowMenu;
-}
-
-- (void)setIsInOverflowMenu:(BOOL)value
-{
-    _isInOverflowMenu = value;
-}
-
-- (BOOL)closeButtonPressed
-{
-    return _closeButtonPressed;
-}
-
-- (void)setCloseButtonPressed:(BOOL)value
-{
-    _closeButtonPressed = value;
-}
-
-- (BOOL)closeButtonOver
-{
-    return _closeButtonOver;
-}
-
-- (void)setCloseButtonOver:(BOOL)value
-{
-    _closeButtonOver = value;
-}
-
-- (BOOL)hasCloseButton
-{
-    return _hasCloseButton;
-}
-
-- (void)setHasCloseButton:(BOOL)set;
-{
-    _hasCloseButton = set;
-}
-
-- (void)setCloseButtonSuppressed:(BOOL)suppress;
-{
-    _isCloseButtonSuppressed = suppress;
-}
-
-- (BOOL)isCloseButtonSuppressed;
-{
-    return _isCloseButtonSuppressed;
-}
-
-- (BOOL)hasIcon
-{
-    return _hasIcon;
-}
-
-- (void)setHasIcon:(BOOL)value
-{
+- (void)setHasIcon:(BOOL)value {
     _hasIcon = value;
-    [_controlView update]; // binding notice is too fast
+    [[self psmTabControlView] update:[[self psmTabControlView] automaticallyAnimates]]; // binding notice is too fast
 }
 
-- (int)count
-{
-    return _count;
+- (BOOL)hasIcon {
+    BOOL hasIndicator = [self indicator] && !self.indicator.isHidden;
+    return _hasIcon && !hasIndicator;
 }
 
-- (void)setCount:(int)value
-{
+- (void)setCount:(int)value {
     _count = value;
-    [_controlView update]; // binding notice is too fast
+    [[self psmTabControlView] update:[[self psmTabControlView] automaticallyAnimates]]; // binding notice is too fast
 }
 
-- (BOOL)isPlaceholder
-{
-    return _isPlaceholder;
-}
-
-- (void)setIsPlaceholder:(BOOL)value;
-{
-    _isPlaceholder = value;
-}
-
-- (int)currentStep
-{
-    return _currentStep;
-}
-
-- (void)setCurrentStep:(int)value
-{
-    if(value < 0)
+- (void)setCurrentStep:(int)value {
+    if (value < 0) {
         value = 0;
-    
-    if(value > (kPSMTabDragAnimationSteps - 1))
+    }
+
+    if (value > (kPSMTabDragAnimationSteps - 1)) {
         value = (kPSMTabDragAnimationSteps - 1);
-    
+    }
+
     _currentStep = value;
 }
 
-- (NSString *)toolTip
-{
-    return _toolTip;
+#pragma mark - Bindings
+
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary *)change
+                       context:(void *)context {
+    // the progress indicator, label, icon, or count has changed - redraw the control view
+    [[self psmTabControlView] update:[[self psmTabControlView] automaticallyAnimates]];
 }
 
-- (void)setToolTip:(NSString *)tip
-{
-    if (tip != _toolTip) {
-        [_toolTip release];
-        _toolTip = [tip copy];
-    }
+#pragma mark - Component Attributes
+
+- (NSRect)indicatorRectForFrame:(NSRect)cellFrame {
+    return [[[self psmTabControlView] style] indicatorRectForTabCell:self];
 }
 
-#pragma mark -
-#pragma mark Component Attributes
-
-- (NSRect)indicatorRectForFrame:(NSRect)cellFrame
-{
-    return [[_controlView psmTabStyle] indicatorRectForTabCell:self];
+- (NSRect)closeButtonRectForFrame:(NSRect)cellFrame {
+    return [[[self psmTabControlView] style] closeButtonRectForTabCell:self];
 }
 
-- (NSRect)closeButtonRectForFrame:(NSRect)cellFrame
-{
-    return [[_controlView psmTabStyle] closeButtonRectForTabCell:self];
+- (float)minimumWidthOfCell {
+    return [[[self psmTabControlView] style] minimumWidthOfTabCell:self];
 }
 
-- (float)minimumWidthOfCell
-{
-    return [[_controlView psmTabStyle] minimumWidthOfTabCell:self];
+- (float)desiredWidthOfCell {
+    return [[[self psmTabControlView] style] desiredWidthOfTabCell:self];
 }
 
-- (float)desiredWidthOfCell
-{
-    return [[_controlView psmTabStyle] desiredWidthOfTabCell:self];
-}  
+#pragma mark - Drawing
 
-#pragma mark -
-#pragma mark Drawing
-
-- (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView
-{
-    if(_isPlaceholder){
-        [[NSColor colorWithCalibratedWhite:0.0 alpha:0.2] set];
-        NSRectFillUsingOperation(cellFrame, NSCompositingOperationSourceAtop);
+- (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView {
+    if (_isPlaceholder){
+        [[NSColor colorWithCalibratedWhite:0 alpha:0.2] set];
+        NSRectFillUsingOperation(cellFrame, NSCompositeSourceAtop);
         return;
     }
-    
-    [[_controlView psmTabStyle] drawTabCell:self];
+
+    [[[self psmTabControlView] style] drawTabCell:self highlightAmount:[self highlightAmount]];
 }
 
-#pragma mark -
+- (CGFloat)highlightAmount {
+    NSTimeInterval timeSinceChange = [NSDate timeIntervalSinceReferenceDate] - _highlightChangeTime;
+    CGFloat amount = self.highlighted ? 1 : 0;
+    if (timeSinceChange < [self highlightAnimationDuration]) {
+        CGFloat alpha = timeSinceChange / [self highlightAnimationDuration];
+        return amount * alpha + (1 - amount) * (1 - alpha);
+    } else {
+        return amount;
+    }
+}
+
 #pragma mark Tracking
 
-- (void)mouseEntered:(NSEvent *)theEvent
-{
+- (void)mouseEntered:(NSEvent *)theEvent {
     // check for which tag
-    if([theEvent trackingNumber] == _closeButtonTrackingTag){
+    if ([theEvent trackingNumber] == _closeButtonTrackingTag) {
         _closeButtonOver = YES;
     }
-    if([theEvent trackingNumber] == _cellTrackingTag){
+    if ([theEvent trackingNumber] == _cellTrackingTag) {
         [self setHighlighted:YES];
+        [[self psmTabControlView] setNeedsDisplay:NO];
     }
-    [_controlView setNeedsDisplay];
+
+    //tell the control we only need to redraw the affected tab
+    [[self psmTabControlView] setNeedsDisplayInRect:NSInsetRect([self frame], -2, -2)];
 }
 
-- (void)mouseExited:(NSEvent *)theEvent
-{
+- (void)mouseExited:(NSEvent *)theEvent {
     // check for which tag
-    if([theEvent trackingNumber] == _closeButtonTrackingTag){
+    if ([theEvent trackingNumber] == _closeButtonTrackingTag) {
         _closeButtonOver = NO;
     }
-    if([theEvent trackingNumber] == _cellTrackingTag){
+
+    if ([theEvent trackingNumber] == _cellTrackingTag) {
         [self setHighlighted:NO];
+        [[self psmTabControlView] setNeedsDisplay:NO];
     }
-    [_controlView setNeedsDisplay];
+
+    //tell the control we only need to redraw the affected tab
+    [[self psmTabControlView] setNeedsDisplayInRect:NSInsetRect([self frame], -2, -2)];
 }
 
-#pragma mark -
-#pragma mark Drag Support
+#pragma mark - Drag Support
 
-- (NSImage*)dragImageForRect:(NSRect)cellFrame
-{
-    if(([self state] == NSOnState) && ([[_controlView styleName] isEqualToString:@"Metal"]))
-        cellFrame.size.width += 1.0;
-    [_controlView lockFocus];
+- (NSImage *)dragImage {
+    NSRect cellFrame =
+        [[[self psmTabControlView] style] dragRectForTabCell:self
+                                                 orientation:[[self psmTabControlView] orientation]];
+
+    [[self psmTabControlView] lockFocus];
     NSBitmapImageRep *rep = [[[NSBitmapImageRep alloc] initWithFocusedViewRect:cellFrame] autorelease];
-    [_controlView unlockFocus];
+    [[self psmTabControlView] unlockFocus];
     NSImage *image = [[[NSImage alloc] initWithSize:[rep size]] autorelease];
     [image addRepresentation:rep];
     NSImage *returnImage = [[[NSImage alloc] initWithSize:[rep size]] autorelease];
     [returnImage lockFocus];
-    [image drawAtPoint:NSMakePoint(0.0, 0.0) fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:0.7];
+    [image drawAtPoint:NSZeroPoint
+              fromRect:NSZeroRect
+             operation:NSCompositeSourceOver
+              fraction:1.0];
     [returnImage unlockFocus];
-    if(![[self indicator] isHidden]){
-        NSImage *pi = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"pi"]];
+    if (![[self indicator] isHidden]) {
+        // TODO: This image is missing!
+        NSImage *piImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"pi"]];
         [returnImage lockFocus];
-        NSPoint indicatorPoint = NSMakePoint([self frame].size.width - MARGIN_X - kPSMTabBarIndicatorWidth, MARGIN_Y);
-        if(([self state] == NSOnState) && ([[_controlView styleName] isEqualToString:@"Metal"]))
-            indicatorPoint.y += 1.0;
-        [pi drawAtPoint:indicatorPoint fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:0.7];
+        NSPoint indicatorPoint = self.indicator.frame.origin;
+        [piImage drawAtPoint:indicatorPoint
+                    fromRect:NSZeroRect
+                   operation:NSCompositeSourceOver
+                    fraction:1.0];
         [returnImage unlockFocus];
-        [pi release];
+        [piImage release];
     }
     return returnImage;
 }
 
-#pragma mark -
-#pragma mark Archiving
+#pragma mark - NSCoding
 
 - (void)encodeWithCoder:(NSCoder *)aCoder {
     [super encodeWithCoder:aCoder];
@@ -406,6 +385,148 @@
         }
     }
     return self;
+}
+
+#pragma mark - Accessibility
+
+- (BOOL)accessibilityIsIgnored {
+    return NO;
+}
+
+- (NSArray*)accessibilityAttributeNames {
+    static NSArray *attributes;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSSet *set = [NSSet setWithArray:[super accessibilityAttributeNames]];
+        set = [set setByAddingObjectsFromArray:@[ NSAccessibilityTitleAttribute,
+                                                  NSAccessibilityValueAttribute ]];
+        attributes = [[set allObjects] retain];
+    });
+    return attributes;
+}
+
+
+- (id)accessibilityAttributeValue:(NSString *)attribute {
+    id attributeValue = nil;
+
+    if ([attribute isEqualToString: NSAccessibilityRoleAttribute]) {
+        attributeValue = NSAccessibilityRadioButtonRole;
+    } else if ([attribute isEqualToString: NSAccessibilityHelpAttribute]) {
+        id<PSMTabBarControlDelegate> controlViewDelegate = [[self psmTabControlView] delegate];
+        if ([controlViewDelegate respondsToSelector:@selector(accessibilityStringForTabView:objectCount:)]) {
+            attributeValue = [NSString stringWithFormat:@"%@, %i %@",
+                              [self stringValue], [self count],
+                              [controlViewDelegate accessibilityStringForTabView:[[self psmTabControlView] tabView] objectCount:[self count]]];
+        } else {
+            attributeValue = [self stringValue];
+        }
+    } else if ([attribute isEqualToString:NSAccessibilityPositionAttribute] ||
+               [attribute isEqualToString:NSAccessibilitySizeAttribute]) {
+        NSRect rect = [self frame];
+        rect = [[self controlView] convertRect:rect toView:nil];
+        rect = [[[self controlView] window] convertRectToScreen:rect];
+        if ([attribute isEqualToString:NSAccessibilityPositionAttribute]) {
+            attributeValue = [NSValue valueWithPoint:rect.origin];
+        } else {
+            attributeValue = [NSValue valueWithSize:rect.size];
+        }
+    } else if ([attribute isEqualToString:NSAccessibilityTitleAttribute]) {
+        attributeValue = [self stringValue];
+    } else if ([attribute isEqualToString: NSAccessibilityValueAttribute]) {
+        attributeValue = [NSNumber numberWithBool:([self tabState] == 2)];
+    } else {
+        attributeValue = [super accessibilityAttributeValue:attribute];
+    }
+
+    return attributeValue;
+}
+
+- (NSArray *)accessibilityActionNames {
+    return @[ NSAccessibilityPressAction ];
+}
+
+- (NSString *)accessibilityActionDescription:(NSString *)action {
+    return NSAccessibilityActionDescription(action);
+}
+
+- (void)accessibilityPerformAction:(NSString *)action {
+    if ([action isEqualToString:NSAccessibilityPressAction]) {
+        // this tab was selected
+        [[self psmTabControlView] performSelector:@selector(tabClick:)
+                                       withObject:self];
+    }
+}
+
+- (id)accessibilityHitTest:(NSPoint)point {
+    return NSAccessibilityUnignoredAncestor(self);
+}
+
+- (id)accessibilityFocusedUIElement:(NSPoint)point {
+    return NSAccessibilityUnignoredAncestor(self);
+}
+
+#pragma mark - iTerm2 Additions
+
+- (void)updateForStyle {
+    _indicator.light = [self psmTabControlView].style.useLightControls;
+}
+
+- (void)updateHighlight {
+    if (self.isHighlighted) {
+        NSPoint mouseLocationInScreenCoords = [NSEvent mouseLocation];
+        NSRect rectInScreenCoords;
+        rectInScreenCoords.origin = mouseLocationInScreenCoords;
+        rectInScreenCoords.size = NSZeroSize;
+        NSPoint mouseLocationInWindowCoords = [self.controlView.window convertRectFromScreen:rectInScreenCoords].origin;
+        NSPoint mouseLocationInViewCoords = [self.controlView convertPoint:mouseLocationInWindowCoords
+                                                                  fromView:nil];
+        if (!NSPointInRect(mouseLocationInViewCoords, self.frame)) {
+            self.highlighted = NO;
+        }
+    }
+}
+
+- (BOOL)isHighlighted {
+    return _highlighted;
+}
+
+- (void)setHighlighted:(BOOL)highlighted {
+    // Don't call -[super setHighlighted:] because it redraws the whole control.
+    BOOL wasHighlighted = self.isHighlighted;
+    _highlighted = highlighted;
+    if (highlighted != wasHighlighted) {
+        if ([self highlightAnimationDuration] > 0) {
+            _highlightChangeTime = [NSDate timeIntervalSinceReferenceDate];
+            [NSTimer scheduledTimerWithTimeInterval:1 / 60.0
+                                             target:self
+                                           selector:@selector(redrawHighlight:)
+                                           userInfo:self.controlView
+                                            repeats:YES];
+        } else {
+            [self.controlView setNeedsDisplayInRect:self.frame];
+        }
+    }
+}
+
+- (CGFloat)highlightAnimationDuration {
+    if ([(PSMTabBarControl *)_controlView orientation] == PSMTabBarHorizontalOrientation) {
+        return 0.2;
+    } else {
+        return 0;
+    }
+}
+
+- (void)redrawHighlight:(NSTimer *)timer {
+    [self.controlView setNeedsDisplayInRect:self.frame];
+    if ([NSDate timeIntervalSinceReferenceDate] - _highlightChangeTime > [self highlightAnimationDuration]) {
+        [timer invalidate];
+    }
+}
+
+#pragma mark - PSMProgressIndicatorDelegate
+
+- (void)progressIndicatorNeedsUpdate {
+    return [_controlView progressIndicatorNeedsUpdate];
 }
 
 @end

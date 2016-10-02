@@ -16,16 +16,23 @@
 @class PSMTabDragWindow;
 
 #define kPSMTabDragAnimationSteps 8
+#define kPSMTabDragWindowAlpha 0.75
 #define PI 3.1417
 
-@interface PSMTabDragAssistant : NSObject {
+@interface PSMTabDragAssistant : NSObject
+{
     PSMTabBarControl            *_sourceTabBar;
     PSMTabBarControl            *_destinationTabBar;
     NSMutableSet                *_participatingTabBars;
     PSMTabBarCell               *_draggedCell;
     int                         _draggedCellIndex;   // for snap back
     BOOL                        _isDragging;
-    
+	
+	// Support for dragging into new windows
+	PSMTabDragWindow			*_dragTabWindow, *_dragViewWindow;
+	NSSize						_dragWindowOffset;
+	NSTimer						*_fadeTimer;
+	
     // Animation
     NSTimer                     *_animationTimer;
     NSMutableArray              *_sineCurveWidths;
@@ -53,13 +60,17 @@
 - (void)setTargetCell:(PSMTabBarCell *)cell;
 
 // Functionality
+- (void)startAnimationWithOrientation:(PSMTabBarOrientation)orientation width:(CGFloat)width;
 - (void)startDraggingCell:(PSMTabBarCell *)cell fromTabBar:(PSMTabBarControl *)control withMouseDownEvent:(NSEvent *)event;
 - (void)draggingEnteredTabBar:(PSMTabBarControl *)control atPoint:(NSPoint)mouseLoc;
 - (void)draggingUpdatedInTabBar:(PSMTabBarControl *)control atPoint:(NSPoint)mouseLoc;
 - (void)draggingExitedTabBar:(PSMTabBarControl *)control;
-- (void)performDragOperation;
+- (void)performDragOperation:(id<NSDraggingInfo>)sender;
 - (void)draggedImageEndedAt:(NSPoint)aPoint operation:(NSDragOperation)operation;
 - (void)finishDrag;
+
+- (void)draggingBeganAt:(NSPoint)aPoint;
+- (void)draggingMovedTo:(NSPoint)aPoint;
 
 // Animation
 - (void)animateDrag:(NSTimer *)timer;
@@ -74,7 +85,7 @@
 
 @interface PSMTabBarControl (DragAccessors)
 
-- (id<PSMTabStyle>)psmTabStyle;
+- (id<PSMTabStyle>)style;
 - (NSMutableArray *)cells;
 - (void)setControlView:(id)view;
 - (id)cellForPoint:(NSPoint)point cellFrame:(NSRectPointer)outFrame;

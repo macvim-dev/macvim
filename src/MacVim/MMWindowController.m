@@ -71,7 +71,7 @@
 #import "MMWindow.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
-#import <PSMTabBarControl/PSMTabBarControl.h>
+#import "PSMTabBarControl/source/PSMTabBarControl.h"
 
 
 // These have to be the same as in option.h
