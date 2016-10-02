@@ -1869,7 +1869,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // background, the runloop won't bother flushing the autorelease pool.
     // Triggering an NSEvent works around this.
     // http://www.mikeash.com/pyblog/more-fun-with-autorelease.html
-    NSEvent* event = [NSEvent otherEventWithType:NSApplicationDefined
+    NSEvent* event = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
                                         location:NSZeroPoint
                                    modifierFlags:0
                                        timestamp:0

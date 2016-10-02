@@ -910,7 +910,7 @@ defaultAdvanceForFont(NSFont *font)
                              numColumns:width];
             [signImg drawInRect:r
                        fromRect:NSZeroRect
-                      operation:NSCompositeSourceOver
+                      operation:NSCompositingOperationSourceOver
                        fraction:1.0];
         } else if (DrawStringDrawType == type) {
             int bg = *((int*)bytes);  bytes += sizeof(int);

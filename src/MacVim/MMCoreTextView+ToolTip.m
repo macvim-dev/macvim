@@ -150,12 +150,12 @@ static const NSTrackingRectTag kTrackingRectTag = 0xBADFACE;
     }
 }
 
-// Sends a fake NSMouseExited event to the view for its current tracking rect.
+// Sends a fake NSEventTypeMouseExited event to the view for its current tracking rect.
 - (void)_sendToolTipMouseExited
 {
     // Nothing matters except window, trackingNumber, and userData.
     int windowNumber = [[self window] windowNumber];
-    NSEvent *fakeEvent = [NSEvent enterExitEventWithType:NSMouseExited
+    NSEvent *fakeEvent = [NSEvent enterExitEventWithType:NSEventTypeMouseExited
                                                 location:NSMakePoint(0, 0)
                                            modifierFlags:0
                                                timestamp:0
@@ -167,12 +167,12 @@ static const NSTrackingRectTag kTrackingRectTag = 0xBADFACE;
     [trackingRectOwner_ mouseExited:fakeEvent];
 }
 
-// Sends a fake NSMouseEntered event to the view for its current tracking rect.
+// Sends a fake NSEventTypeMouseEntered event to the view for its current tracking rect.
 - (void)_sendToolTipMouseEntered
 {
     // Nothing matters except window, trackingNumber, and userData.
     int windowNumber = [[self window] windowNumber];
-    NSEvent *fakeEvent = [NSEvent enterExitEventWithType:NSMouseEntered
+    NSEvent *fakeEvent = [NSEvent enterExitEventWithType:NSEventTypeMouseEntered
                                                 location:NSMakePoint(0, 0)
                                            modifierFlags:0
                                                timestamp:0

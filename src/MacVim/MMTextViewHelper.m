@@ -158,12 +158,13 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // ASCII chars in the range after space (0x20) and before backspace (0x7f).
     // Note that this implies that 'mmta' (if enabled) breaks input methods
     // when the Alt key is held.
-    if ((flags & NSAlternateKeyMask) && [mmta boolValue] && [unmod length] == 1
+    if ((flags & NSEventModifierFlagOption)
+            && [mmta boolValue] && [unmod length] == 1
             && [unmod characterAtIndex:0] > 0x20) {
         ASLogDebug(@"MACMETA key, don't interpret it");
         string = unmod;
-    } else if (imState && (flags & NSControlKeyMask)
-            && !(flags & (NSAlternateKeyMask|NSEventModifierFlagCommand))
+    } else if (imState && (flags & NSEventModifierFlagControl)
+            && !(flags & (NSEventModifierFlagOption|NSEventModifierFlagCommand))
             && [unmod length] == 1
             && ([unmod characterAtIndex:0] == '6' ||
                 [unmod characterAtIndex:0] == '^')) {
@@ -186,8 +187,9 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
             // following heuristic seems to work but it may have to change.
             // Note that the Shift and Alt flags may also need to be cleared
             // (see doKeyDown:keyCode:modifiers: in MMBackend).
-            if ((flags & NSShiftKeyMask && !(flags & NSAlternateKeyMask))
-                    || flags & NSControlKeyMask)
+            if ((flags & NSEventModifierFlagShift
+                    && !(flags & NSEventModifierFlagOption))
+                    || flags & NSEventModifierFlagControl)
                 string = unmod;
         }
     }
@@ -339,12 +341,12 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     // If desired, intepret Ctrl-Click as a right mouse click.
     BOOL translateCtrlClick = [[NSUserDefaults standardUserDefaults]
             boolForKey:MMTranslateCtrlClickKey];
-    flags = flags & NSDeviceIndependentModifierFlagsMask;
+    flags = flags & NSEventModifierFlagDeviceIndependentFlagsMask;
     if (translateCtrlClick && button == 0 &&
-            (flags == NSControlKeyMask ||
-             flags == (NSControlKeyMask|NSAlphaShiftKeyMask))) {
+            (flags == NSEventModifierFlagControl || flags ==
+                 (NSEventModifierFlagControl|NSEventModifierFlagCapsLock))) {
         button = 1;
-        flags &= ~NSControlKeyMask;
+        flags &= ~NSEventModifierFlagControl;
     }
 
     [data appendBytes:&row length:sizeof(int)];
@@ -853,7 +855,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
     // The low 16 bits are not used for modifier flags by NSEvent.  Use
     // these bits for custom flags.
-    flags &= NSDeviceIndependentModifierFlagsMask;
+    flags &= NSEventModifierFlagDeviceIndependentFlagsMask;
     if ([currentEvent isARepeat])
         flags |= 1;
 
@@ -886,8 +888,8 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         // HACK! Keys on the numeric key pad are treated as special keys by Vim
         // so we need to pass on key code and modifier flags in this situation.
         unsigned mods = [currentEvent modifierFlags];
-        if (mods & NSNumericPadKeyMask) {
-            flags = mods & NSDeviceIndependentModifierFlagsMask;
+        if (mods & NSEventModifierFlagNumericPad) {
+            flags = mods & NSEventModifierFlagDeviceIndependentFlagsMask;
             keyCode = [currentEvent keyCode];
         }
 
