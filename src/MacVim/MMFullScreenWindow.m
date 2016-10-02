@@ -67,7 +67,7 @@ enum {
     // (another way would be to make the existing window large enough that the
     // title bar is off screen. but that doesn't work with multiple screens).
     self = [super initWithContentRect:[screen frame]
-                            styleMask:NSBorderlessWindowMask
+                            styleMask:NSWindowStyleMaskBorderless
                               backing:NSBackingStoreBuffered
                                 defer:YES
                                // since we're passing [screen frame] above,

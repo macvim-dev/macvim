@@ -349,7 +349,7 @@ static DBPrefsWindowController *_sharedPrefsWindowController = nil;
 {
 	[viewAnimation stopAnimation];
 	
-	if ([self shiftSlowsAnimation] && [[[self window] currentEvent] modifierFlags] & NSShiftKeyMask)
+	if ([self shiftSlowsAnimation] && [[[self window] currentEvent] modifierFlags] & NSEventModifierFlagShift)
 		[viewAnimation setDuration:1.25];
 	else
 		[viewAnimation setDuration:0.25];
