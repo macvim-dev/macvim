@@ -197,11 +197,11 @@ enum {
     // weird behind the window resize throbber, so emulate the look of an
     // NSScrollView in the bottom right corner.
     if (![[self window] showsResizeIndicator]  // XXX: make this a flag
-            || !([[self window] styleMask] & NSTexturedBackgroundWindowMask))
+            || !([[self window] styleMask] & NSWindowStyleMaskTexturedBackground))
         return;
 
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    int sw = [NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy];
+    int sw = [NSScroller scrollerWidthForControlSize:NSControlSizeRegular scrollerStyle:NSScrollerStyleLegacy];
 #else
     int sw = [NSScroller scrollerWidth];
 #endif
@@ -704,7 +704,7 @@ enum {
 
         NSRect rect;
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-        CGFloat scrollerWidth = [NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy];
+        CGFloat scrollerWidth = [NSScroller scrollerWidthForControlSize:NSControlSizeRegular scrollerStyle:NSScrollerStyleLegacy];
 #else
         CGFloat scrollerWidth = [NSScroller scrollerWidth];
 #endif
@@ -818,7 +818,7 @@ enum {
 {
     NSSize size = textViewSize;
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    CGFloat scrollerWidth = [NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy];
+    CGFloat scrollerWidth = [NSScroller scrollerWidthForControlSize:NSControlSizeRegular scrollerStyle:NSScrollerStyleLegacy];
 #else
     CGFloat scrollerWidth = [NSScroller scrollerWidth];
 #endif
@@ -840,7 +840,7 @@ enum {
 {
     NSRect rect = { {0, 0}, {contentSize.width, contentSize.height} };
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
-    CGFloat scrollerWidth = [NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy];
+    CGFloat scrollerWidth = [NSScroller scrollerWidthForControlSize:NSControlSizeRegular scrollerStyle:NSScrollerStyleLegacy];
 #else
     CGFloat scrollerWidth = [NSScroller scrollerWidth];
 #endif

@@ -3179,7 +3179,7 @@ static int eventModifierFlagsToVimModMask(int modifierFlags)
         modMask |= MOD_MASK_CTRL;
     if (modifierFlags & NSAlternateKeyMask)
         modMask |= MOD_MASK_ALT;
-    if (modifierFlags & NSCommandKeyMask)
+    if (modifierFlags & NSEventModifierFlagCommand)
         modMask |= MOD_MASK_CMD;
 
     return modMask;

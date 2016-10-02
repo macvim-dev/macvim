@@ -308,7 +308,7 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
     if (!truncatingTailParagraphStyle) {
         truncatingTailParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
         [truncatingTailParagraphStyle setLineBreakMode:NSLineBreakByTruncatingHead];
-        [truncatingTailParagraphStyle setAlignment:NSCenterTextAlignment];
+        [truncatingTailParagraphStyle setAlignment:NSTextAlignmentCenter];
     }
     [attrStr addAttribute:NSParagraphStyleAttributeName value:truncatingTailParagraphStyle range:range];
 
@@ -353,7 +353,7 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
         aRect.origin.x += 0.5;
 
         [[NSColor colorWithCalibratedWhite:0.0 alpha:0.1] set];
-        NSRectFillUsingOperation(aRect, NSCompositeSourceAtop);
+        NSRectFillUsingOperation(aRect, NSCompositingOperationSourceAtop);
 
         // frame
         [lineColor set];
@@ -385,7 +385,7 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
         if ([cell closeButtonPressed]) button = closeButtonDown;
 
         closeButtonSize = [button size];
-        [button drawInRect:closeButtonRect fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
+        [button drawInRect:closeButtonRect fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1.0 respectFlipped:YES hints:nil];
     }
 
     // object counter
@@ -432,7 +432,7 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
     YosemiteNSDrawWindowBackground(rect, [self backgroundColor:isKeyWindow]);
 
     [[NSColor colorWithCalibratedWhite:0.0 alpha:0.0] set];
-    NSRectFillUsingOperation(rect, NSCompositeSourceAtop);
+    NSRectFillUsingOperation(rect, NSCompositingOperationSourceAtop);
     [[self borderColor] set];
     [NSBezierPath strokeLineFromPoint:NSMakePoint(rect.origin.x,rect.origin.y+0.5) toPoint:NSMakePoint(rect.origin.x+rect.size.width,rect.origin.y+0.5)];
     [NSBezierPath strokeLineFromPoint:NSMakePoint(rect.origin.x,rect.origin.y+rect.size.height-0.5) toPoint:NSMakePoint(rect.origin.x+rect.size.width,rect.origin.y+rect.size.height-0.5)];
@@ -449,7 +449,7 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
         [attrStr addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:11.0] range:range];
         if (!centeredParagraphStyle) {
             centeredParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
-            [centeredParagraphStyle setAlignment:NSCenterTextAlignment];
+            [centeredParagraphStyle setAlignment:NSTextAlignmentCenter];
         }
         [attrStr addAttribute:NSParagraphStyleAttributeName value:centeredParagraphStyle range:range];
         [attrStr drawInRect:labelRect];

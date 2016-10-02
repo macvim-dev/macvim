@@ -1508,7 +1508,7 @@ gui_mch_dialog(
     gui_macvim_force_flush();
 
     int style = NSInformationalAlertStyle;
-    if (VIM_WARNING == type) style = NSWarningAlertStyle;
+    if (VIM_WARNING == type) style = NSAlertStyleWarning;
     else if (VIM_ERROR == type) style = NSCriticalAlertStyle;
 
     NSMutableDictionary *attr = [NSMutableDictionary
@@ -2253,7 +2253,7 @@ static int vimModMaskToEventModifierFlags(int mods)
     if (mods & MOD_MASK_ALT)
         flags |= NSAlternateKeyMask;
     if (mods & MOD_MASK_CMD)
-        flags |= NSCommandKeyMask;
+        flags |= NSEventModifierFlagCommand;
 
     return flags;
 }

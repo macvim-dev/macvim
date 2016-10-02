@@ -46,7 +46,7 @@
         NSMidY(bounds) - (imageSize.height * 0.5f));
     [image drawAtPoint:drawPoint
               fromRect:NSZeroRect
-             operation:NSCompositeSourceOver
+             operation:NSCompositingOperationSourceOver
               fraction:1.0f];
 }
 

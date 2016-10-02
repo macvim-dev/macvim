@@ -296,7 +296,7 @@
 {
     if(_isPlaceholder){
         [[NSColor colorWithCalibratedWhite:0.0 alpha:0.2] set];
-        NSRectFillUsingOperation(cellFrame, NSCompositeSourceAtop);
+        NSRectFillUsingOperation(cellFrame, NSCompositingOperationSourceAtop);
         return;
     }
     
@@ -344,7 +344,7 @@
     [image addRepresentation:rep];
     NSImage *returnImage = [[[NSImage alloc] initWithSize:[rep size]] autorelease];
     [returnImage lockFocus];
-    [image drawAtPoint:NSMakePoint(0.0, 0.0) fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:0.7];
+    [image drawAtPoint:NSMakePoint(0.0, 0.0) fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:0.7];
     [returnImage unlockFocus];
     if(![[self indicator] isHidden]){
         NSImage *pi = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"pi"]];
@@ -352,7 +352,7 @@
         NSPoint indicatorPoint = NSMakePoint([self frame].size.width - MARGIN_X - kPSMTabBarIndicatorWidth, MARGIN_Y);
         if(([self state] == NSOnState) && ([[_controlView styleName] isEqualToString:@"Metal"]))
             indicatorPoint.y += 1.0;
-        [pi drawAtPoint:indicatorPoint fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:0.7];
+        [pi drawAtPoint:indicatorPoint fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:0.7];
         [returnImage unlockFocus];
         [pi release];
     }

@@ -124,6 +124,7 @@
 #endif
 #ifdef RUBY19_OR_LATER
 # ifdef FEAT_GUI_MACVIM
+#  undef SIZEOF_TIME_T
 #  include <Ruby/ruby/encoding.h>
 # else
 #  include <ruby/encoding.h>

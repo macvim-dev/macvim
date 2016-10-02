@@ -163,7 +163,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         ASLogDebug(@"MACMETA key, don't interpret it");
         string = unmod;
     } else if (imState && (flags & NSControlKeyMask)
-            && !(flags & (NSAlternateKeyMask|NSCommandKeyMask))
+            && !(flags & (NSAlternateKeyMask|NSEventModifierFlagCommand))
             && [unmod length] == 1
             && ([unmod characterAtIndex:0] == '6' ||
                 [unmod characterAtIndex:0] == '^')) {
@@ -180,7 +180,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         [textView interpretKeyEvents:[NSArray arrayWithObject:event]];
         if (interpretKeyEventsSwallowedKey)
             string = nil;
-        else if (flags & NSCommandKeyMask) {
+        else if (flags & NSEventModifierFlagCommand) {
             // HACK! When Command is held we have to more or less guess whether
             // we should use characters or charactersIgnoringModifiers.  The
             // following heuristic seems to work but it may have to change.

@@ -12,6 +12,12 @@
 
 #import <Cocoa/Cocoa.h>
 
+#if !defined(MAC_OS_X_VERSION_10_12) || \
+    MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
+# define NSCompositingOperationSourceOver NSCompositeSourceOver
+# define NSCompositingOperationSourceAtop NSCompositeSourceAtop
+# define NSTextAlignmentCenter NSCenterTextAlignment
+#endif
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
 # define kPSMTabBarControlHeight 25
 #else

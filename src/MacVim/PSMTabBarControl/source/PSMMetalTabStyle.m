@@ -303,7 +303,7 @@ void MyNSDrawWindowBackground(NSRect rect)
     if (!truncatingTailParagraphStyle) {
         truncatingTailParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
         [truncatingTailParagraphStyle setLineBreakMode:NSLineBreakByTruncatingTail];
-        [truncatingTailParagraphStyle setAlignment:NSCenterTextAlignment];
+        [truncatingTailParagraphStyle setAlignment:NSTextAlignmentCenter];
     }
     [attrStr addAttribute:NSParagraphStyleAttributeName value:truncatingTailParagraphStyle range:range];
     
@@ -356,7 +356,7 @@ void MyNSDrawWindowBackground(NSRect rect)
         // rollover
         if ([cell isHighlighted]) {
             [[NSColor colorWithCalibratedWhite:0.0 alpha:0.1] set];
-            NSRectFillUsingOperation(aRect, NSCompositeSourceAtop);
+            NSRectFillUsingOperation(aRect, NSCompositingOperationSourceAtop);
         }
         
         aRect.origin.x -= 1;
@@ -393,7 +393,7 @@ void MyNSDrawWindowBackground(NSRect rect)
         if ([cell closeButtonPressed]) closeButton = metalCloseButtonDown;
         
         closeButtonSize = [closeButton size];
-        [closeButton drawInRect:closeButtonRect fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
+        [closeButton drawInRect:closeButtonRect fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1.0 respectFlipped:YES hints:nil];
         
         // scoot label over
         labelPosition += closeButtonSize.width + kPSMTabBarCellPadding;
@@ -462,7 +462,7 @@ void MyNSDrawWindowBackground(NSRect rect)
 {
     MyNSDrawWindowBackground(rect);
     [[NSColor colorWithCalibratedWhite:0.0 alpha:0.2] set];
-    NSRectFillUsingOperation(rect, NSCompositeSourceAtop);
+    NSRectFillUsingOperation(rect, NSCompositingOperationSourceAtop);
     [[NSColor darkGrayColor] set];
     [NSBezierPath strokeLineFromPoint:NSMakePoint(rect.origin.x,rect.origin.y+0.5) toPoint:NSMakePoint(rect.origin.x+rect.size.width,rect.origin.y+0.5)];
     [NSBezierPath strokeLineFromPoint:NSMakePoint(rect.origin.x,rect.origin.y+rect.size.height-0.5) toPoint:NSMakePoint(rect.origin.x+rect.size.width,rect.origin.y+rect.size.height-0.5)];
@@ -479,7 +479,7 @@ void MyNSDrawWindowBackground(NSRect rect)
         [attrStr addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:11.0] range:range];
         if (!centeredParagraphStyle) {
             centeredParagraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] retain];
-            [centeredParagraphStyle setAlignment:NSCenterTextAlignment];
+            [centeredParagraphStyle setAlignment:NSTextAlignmentCenter];
         }
         [attrStr addAttribute:NSParagraphStyleAttributeName value:centeredParagraphStyle range:range];
         [attrStr drawInRect:labelRect];
