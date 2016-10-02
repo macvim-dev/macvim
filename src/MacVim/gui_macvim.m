@@ -1507,9 +1507,9 @@ gui_mch_dialog(
     // Ensure no data is on the output queue before presenting the dialog.
     gui_macvim_force_flush();
 
-    int style = NSInformationalAlertStyle;
+    int style = NSAlertStyleInformational;
     if (VIM_WARNING == type) style = NSAlertStyleWarning;
-    else if (VIM_ERROR == type) style = NSCriticalAlertStyle;
+    else if (VIM_ERROR == type) style = NSAlertStyleCritical;
 
     NSMutableDictionary *attr = [NSMutableDictionary
                         dictionaryWithObject:[NSNumber numberWithInt:style]

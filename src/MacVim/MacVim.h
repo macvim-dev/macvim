@@ -40,6 +40,8 @@
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
 // Deprecated constants in 10.12 SDK
+# define NSAlertStyleCritical NSCriticalAlertStyle
+# define NSAlertStyleInformational NSInformationalAlertStyle
 # define NSAlertStyleWarning NSWarningAlertStyle
 # define NSCompositingOperationSourceOver NSCompositeSourceOver
 # define NSControlSizeRegular NSRegularControlSize
