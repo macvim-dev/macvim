@@ -2376,8 +2376,9 @@ may_invoke_callback(channel_T *channel, int part)
     typval_T	*listtv = NULL;
     typval_T	argv[CH_JSON_MAX_ARGS];
     int		seq_nr = -1;
-    ch_mode_T	ch_mode = channel->ch_part[part].ch_mode;
-    cbq_T	*cbhead = &channel->ch_part[part].ch_cb_head;
+    chanpart_T	*ch_part = &channel->ch_part[part];
+    ch_mode_T	ch_mode = ch_part->ch_mode;
+    cbq_T	*cbhead = &ch_part->ch_cb_head;
     cbq_T	*cbitem;
     char_u	*callback = NULL;
     partial_T	*partial = NULL;
@@ -2397,10 +2398,10 @@ may_invoke_callback(channel_T *channel, int part)
 	callback = cbitem->cq_callback;
 	partial = cbitem->cq_partial;
     }
-    else if (channel->ch_part[part].ch_callback != NULL)
+    else if (ch_part->ch_callback != NULL)
     {
-	callback = channel->ch_part[part].ch_callback;
-	partial = channel->ch_part[part].ch_partial;
+	callback = ch_part->ch_callback;
+	partial = ch_part->ch_partial;
     }
     else
     {
@@ -2408,11 +2409,11 @@ may_invoke_callback(channel_T *channel, int part)
 	partial = channel->ch_partial;
     }
 
-    buffer = channel->ch_part[part].ch_bufref.br_buf;
-    if (buffer != NULL && !bufref_valid(&channel->ch_part[part].ch_bufref))
+    buffer = ch_part->ch_bufref.br_buf;
+    if (buffer != NULL && !bufref_valid(&ch_part->ch_bufref))
     {
 	/* buffer was wiped out */
-	channel->ch_part[part].ch_bufref.br_buf = NULL;
+	ch_part->ch_bufref.br_buf = NULL;
 	buffer = NULL;
     }
 
@@ -2473,7 +2474,7 @@ may_invoke_callback(channel_T *channel, int part)
 
 	if (ch_mode == MODE_NL)
 	{
-	    char_u  *nl;
+	    char_u  *nl = NULL;
 	    char_u  *buf;
 	    readq_T *node;
 
@@ -2486,9 +2487,24 @@ may_invoke_callback(channel_T *channel, int part)
 		if (nl != NULL)
 		    break;
 		if (channel_collapse(channel, part, TRUE) == FAIL)
+		{
+		    if (ch_part->ch_fd == INVALID_FD && node->rq_buflen > 0)
+			break;
 		    return FALSE; /* incomplete message */
+		}
 	    }
 	    buf = node->rq_buffer;
+
+	    if (nl == NULL)
+	    {
+		/* Flush remaining message that is missing a NL. */
+		buf = vim_realloc(buf, node->rq_buflen + 1);
+		if (buf == NULL)
+		    return FALSE;
+		node->rq_buffer = buf;
+		nl = buf + node->rq_buflen++;
+		*nl = NUL;
+	    }
 
 	    /* Convert NUL to NL, the internal representation. */
 	    for (p = buf; p < nl && p < buf + node->rq_buflen; ++p)
