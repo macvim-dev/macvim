@@ -2263,7 +2263,7 @@ static int vimModMaskToEventModifierFlags(int mods)
 // -- Channel Support ------------------------------------------------------
 
     void *
-gui_macvim_add_channel(channel_T *channel, int part)
+gui_macvim_add_channel(channel_T *channel, ch_part_T part)
 {
     dispatch_source_t s =
         dispatch_source_create(DISPATCH_SOURCE_TYPE_READ,
