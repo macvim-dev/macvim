@@ -105,3 +105,7 @@ endif " exists("macvim_hig_shift_movement")
 " Restore the previous value of 'cpoptions'.
 let &cpo = s:cpo_save
 unlet s:cpo_save
+
+" askpass
+let $SSH_ASKPASS = simplify($VIM . '/../../MacOS') . '/macvim-askpass'
+let $SUDO_ASKPASS = $SSH_ASKPASS

@@ -68,6 +68,7 @@
 		52A364761C4A57C1005757EC /* Sparkle.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 52A364721C4A5789005757EC /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		52B7ED9B1C4A4D6900AFFF15 /* dsa_pub.pem in Resources */ = {isa = PBXBuildFile; fileRef = 52B7ED9A1C4A4D6900AFFF15 /* dsa_pub.pem */; };
 		52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */ = {isa = PBXBuildFile; fileRef = 52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		528DA66A1426D4F9003380F1 /* macvim-askpass in Copy Scripts */ = {isa = PBXBuildFile; fileRef = 528DA6691426D4EB003380F1 /* macvim-askpass */; };
 		8D11072A0486CEB800E47090 /* MainMenu.nib in Resources */ = {isa = PBXBuildFile; fileRef = 29B97318FDCFA39411CA2CEA /* MainMenu.nib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
@@ -151,6 +152,17 @@
 				52818B031C1C08CE00F59085 /* QLStephen.qlgenerator in Copy QuickLookPlugin */,
 			);
 			name = "Copy QuickLookPlugin";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		528DA6671426D456003380F1 /* Copy Scripts */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				528DA66A1426D4F9003380F1 /* macvim-askpass in Copy Scripts */,
+			);
+			name = "Copy Scripts";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -237,6 +249,7 @@
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		32CA4F630368D1EE00C91783 /* MacVim_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacVim_Prefix.pch; sourceTree = "<group>"; };
 		52818AFA1C1C075300F59085 /* QuickLookStephen.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = QuickLookStephen.xcodeproj; path = qlstephen/QuickLookStephen.xcodeproj; sourceTree = "<group>"; };
+		528DA6691426D4EB003380F1 /* macvim-askpass */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "macvim-askpass"; sourceTree = "<group>"; };
 		52A364721C4A5789005757EC /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
 		52B7ED9A1C4A4D6900AFFF15 /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -454,6 +467,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		528DA6681426D477003380F1 /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				528DA6691426D4EB003380F1 /* macvim-askpass */,
+			);
+			name = Scripts;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -469,6 +490,7 @@
 				52818B021C1C088000F59085 /* Copy QuickLookPlugin */,
 				1DE608B80C58807F0055263D /* Copy Vim Runtime Files */,
 				1D1C31F00EFFBFD6003FE9A5 /* Make Document Icons */,
+				528DA6671426D456003380F1 /* Copy Scripts */,
 			);
 			buildRules = (
 			);
