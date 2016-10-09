@@ -6,13 +6,12 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-110</title>
+      <title>MacVim snapshot-111</title>
       <description><![CDATA[
 <pre>
-Binary targets OS X 10.8(Mountain Lion), 10.9(Mavericks), 10.10(Yosemite), and 10.11(El Capitan)
+Binary targets macOS 10.8+
 
-- Vim patch 8.0.0003
-- Fixed if_python issue
+- Vim patch 8.0.0027
 
 Script interfaces have compatibility with these versions
 
@@ -24,14 +23,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Tue, 13 Sep 2016 20:00:00 -0700</pubDate>
+      <pubDate>Sun, 09 Oct 2016 10:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-110/MacVim.dmg"
-        length="17725380"
-        sparkle:version="110"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-111/MacVim.dmg"
+        length="17742600"
+        sparkle:version="111"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MC0CFA6t4DX0DUKib3yeny1iWSukeeOzAhUAnGQNnPdL6njCBWoMmjSsd0LSbd8="
+	sparkle:dsaSignature="MCwCFFPlpGDtfC/24C20kJX07X51rTajAhRotKKx7MK7bz0tQHrjZivaeOsB+w=="
         />
     </item>
   </channel>
