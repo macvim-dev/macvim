@@ -13,6 +13,7 @@
  * Some default NSApplication key input behavior is overridden here.
  */
 
+#import "MacVim.h"
 #import "MMApplication.h"
 
 @implementation MMApplication

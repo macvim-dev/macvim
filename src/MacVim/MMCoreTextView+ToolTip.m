@@ -19,6 +19,7 @@
  * changes were made to adapt the code to MacVim.
  */
 
+#import "MacVim.h"
 #import "MMCoreTextView.h"
 
 
