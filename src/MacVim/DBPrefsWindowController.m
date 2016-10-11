@@ -2,6 +2,7 @@
 //  DBPrefsWindowController.m
 //
 
+#import "MacVim.h"
 #import "DBPrefsWindowController.h"
 
 
