@@ -30,6 +30,9 @@ static NSTimeInterval MMDragTimerMinInterval = 0.01;
 // The number of pixels in which the drag timer interval changes
 static float MMDragAreaSize = 73.0f;
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
+static int skip_scroll_events = 0;
+#endif
 
 @interface MMTextViewHelper (Private)
 - (MMWindowController *)windowController;
@@ -288,11 +291,30 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         [[NSTextInputContext currentInputContext] discardMarkedText];
     }
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
+    if (skip_scroll_events < 2) {
+        skip_scroll_events++;
+        return;
+    } else {
+        skip_scroll_events = 0;
+    }
+    float dx = [event scrollingDeltaX]*0.25f;
+    float dy = [event scrollingDeltaY]*0.25f;
+#else
     float dx = [event deltaX];
     float dy = [event deltaY];
+#endif
+    
     if (dx == 0 && dy == 0)
         return;
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
+    if (dy < 0.5f && dy > 0.0f)
+        dy = 0.5f;
+    if (dy > -0.5f && dy < 0.0f)
+        dy = -0.5f;
+#endif
+    
     int row, col;
     NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];
     if ([textView convertPoint:pt toRow:&row column:&col]) {
