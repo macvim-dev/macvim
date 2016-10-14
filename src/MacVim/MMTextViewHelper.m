@@ -280,6 +280,38 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)scrollWheel:(NSEvent *)event
 {
+    float dx = 0;
+    float dy = 0;
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7
+    if ([event hasPreciseScrollingDeltas]) {
+        NSSize cellSize = [textView cellSize];
+        float thresholdX = cellSize.width;
+        float thresholdY = cellSize.height;
+        scrollingDeltaX += [event scrollingDeltaX];
+        if (fabs(scrollingDeltaX) > thresholdX) {
+            dx = roundf(scrollingDeltaX / thresholdX);
+            scrollingDeltaX -= thresholdX * dx;
+        }
+        scrollingDeltaY += [event scrollingDeltaY];
+        if (fabs(scrollingDeltaY) > thresholdY) {
+            dy = roundf(scrollingDeltaY / thresholdY);
+            scrollingDeltaY -= thresholdY * dy;
+        }
+    } else {
+        scrollingDeltaX = 0;
+        scrollingDeltaY = 0;
+        dx = [event scrollingDeltaX];
+        dy = [event scrollingDeltaY];
+    }
+#else
+    dx = [event deltaX];
+    dy = [event deltaY];
+#endif
+
+    if (dx == 0 && dy == 0)
+        return;
+
     if ([self hasMarkedText]) {
         // We must clear the marked text since the cursor may move if the
         // marked text moves outside the view as a result of scrolling.
@@ -287,11 +319,6 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         [self unmarkText];
         [[NSTextInputContext currentInputContext] discardMarkedText];
     }
-
-    float dx = [event deltaX];
-    float dy = [event deltaY];
-    if (dx == 0 && dy == 0)
-        return;
 
     int row, col;
     NSPoint pt = [textView convertPoint:[event locationInWindow] fromView:nil];

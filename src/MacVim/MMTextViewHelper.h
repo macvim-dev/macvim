@@ -35,6 +35,8 @@
     NSMutableDictionary *signImages;
     BOOL                useMouseTime;
     NSDate              *mouseDownTime;
+    CGFloat             scrollingDeltaX;
+    CGFloat             scrollingDeltaY;
 
     // Input Manager
     NSRange             imRange;
