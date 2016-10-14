@@ -2098,6 +2098,7 @@ test_arglist \
 	test_farsi \
 	test_feedkeys \
 	test_file_perm \
+	test_fileformat \
 	test_filter_cmd \
 	test_filter_map \
 	test_fnameescape \

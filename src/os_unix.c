@@ -2263,6 +2263,7 @@ use_xterm_like_mouse(char_u *name)
     return (name != NULL
 	    && (term_is_xterm
 		|| STRNICMP(name, "screen", 6) == 0
+		|| STRNICMP(name, "tmux", 4) == 0
 		|| STRICMP(name, "st") == 0
 		|| STRNICMP(name, "st-", 3) == 0
 		|| STRNICMP(name, "stterm", 6) == 0));
@@ -2326,6 +2327,7 @@ vim_is_fastterm(char_u *name)
     return (   STRNICMP(name, "hpterm", 6) == 0
 	    || STRNICMP(name, "sun-cmd", 7) == 0
 	    || STRNICMP(name, "screen", 6) == 0
+	    || STRNICMP(name, "tmux", 4) == 0
 	    || STRNICMP(name, "dtterm", 6) == 0);
 }
 
