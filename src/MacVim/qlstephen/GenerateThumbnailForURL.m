@@ -3,10 +3,8 @@
 #include <QuickLook/QuickLook.h>
 
 #import <Foundation/Foundation.h>
-#import "RegexKitLite.h"
 
 #import "QLSFileAttributes.h"
-
 
 /**
  * This dictionary is used for a file with no extension. It maps the MIME type
@@ -72,10 +70,11 @@ static NSString *ThumbnailBadgeForItemWithAttributes(
   // Does the filename match a known pattern? If so, use the appropriate badge.
   if (!badge && [fileExtension isEqualToString:@""]) {
     NSDictionary *map = filenameRegexToBadgeMap();
-
     [map enumerateKeysAndObjectsUsingBlock:
-      ^(NSString *regex, NSString *candidateBadge, BOOL *stop) {
-        if ([fileName rkl_isMatchedByRegex:regex]) {
+      ^(NSString *pattern, NSString *candidateBadge, BOOL *stop) {
+        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:pattern options:0 error:nil];
+        NSRange range = [regex rangeOfFirstMatchInString:fileName options:0 range:NSMakeRange(0, fileName.length)];
+        if (range.location != NSNotFound) {
           badge = candidateBadge;
           *stop = true;
         }

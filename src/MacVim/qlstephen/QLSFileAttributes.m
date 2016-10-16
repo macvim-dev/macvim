@@ -6,7 +6,6 @@
 //
 
 #import "QLSFileAttributes.h"
-#import "RegexKitLite.h"
 
 @interface QLSFileAttributes ()
 
@@ -19,18 +18,22 @@
 
 @implementation QLSFileAttributes
 
-+ (instancetype)attributesForItemAtURL:(NSURL *)aURL
-{
-  NSString *magicString = [self magicStringForItemAtURL:aURL];
++ (instancetype)attributesForItemAtURL:(NSURL *)aURL {
+  if ([aURL.lastPathComponent isEqualToString:@".DS_Store"]) {
+    NSLog(@"Ignore the .DS_Store file.");
+    return nil;
+  }
+
+  NSString *magicString = [self magicStringForItemAtURL:aURL usingLcALL:@"en_US.UTF-8"];
+  if (!magicString) magicString = [self magicStringForItemAtURL:aURL usingLcALL:@"C"];
   if (!magicString) return nil;
+  NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"(\\S+/\\S+); charset=(\\S+)" options:0 error:nil];
+  NSTextCheckingResult *match = [regex firstMatchInString:magicString options:0 range:NSMakeRange(0, magicString.length)];
 
-  NSArray *matches = [magicString rkl_captureComponentsMatchedByRegex:
-                         @"(\\S+/\\S+); charset=(\\S+)"];
+  if (!match) return nil;
 
-  if (![matches count]) return nil;
-
-  NSString *mimeType = matches[1];
-  NSString *charset = matches[2];
+  NSString *mimeType = [magicString substringWithRange:[match rangeAtIndex:1]];
+  NSString *charset = [magicString substringWithRange:[match rangeAtIndex:2]];
 
   BOOL mimeTypeIsTextual = [self mimeTypeIsTextual:mimeType];
 
@@ -50,14 +53,13 @@
 // Private Methods
 ////////////////////////////////////////////////////////////////////////////////
 
-+ (NSString *)magicStringForItemAtURL:(NSURL *)aURL
-{
++ (NSString *)magicStringForItemAtURL:(NSURL *)aURL usingLcALL:(NSString *)lcALL {
   NSString *path = [aURL path];
   NSParameterAssert(path);
 
   NSMutableDictionary *environment =
       [NSProcessInfo.processInfo.environment mutableCopy];
-  environment[@"LC_ALL"] = @"en_US.UTF-8";
+  environment[@"LC_ALL"] = lcALL;
 
   NSTask *task = [NSTask new];
   task.launchPath = @"/usr/bin/file";
@@ -94,8 +96,7 @@
  * @return YES if mimeType contains "text", or if the mime type conforms to the
  *         public.text UTI.
  */
-+ (BOOL)mimeTypeIsTextual:(NSString *)mimeType
-{
++ (BOOL)mimeTypeIsTextual:(NSString *)mimeType {
   NSArray *components = [mimeType componentsSeparatedByString:@"/"];
   if (components.count != 2)
     return NO;
