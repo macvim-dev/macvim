@@ -5444,7 +5444,7 @@ exit_matched:
 #endif
 #ifdef FEAT_INS_EXPAND
 	if (action == ACTION_EXPAND)
-	    ins_compl_check_keys(30);
+	    ins_compl_check_keys(30, FALSE);
 	if (got_int || compl_interrupted)
 #else
 	if (got_int)

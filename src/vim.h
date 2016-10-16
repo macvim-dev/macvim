@@ -795,6 +795,7 @@ extern char *(*dyn_libintl_textdomain)(const char *domainname);
 #define EXPAND_SYNTIME		43
 #define EXPAND_USER_ADDR_TYPE	44
 #define EXPAND_PACKADD		45
+#define EXPAND_MESSAGES		46
 #define EXPAND_MACACTION	46
 
 /* Values for exmode_active (0 is no exmode) */
@@ -2497,7 +2498,8 @@ typedef enum
 #define FNE_INCL_BR	1	/* include [] in name */
 #define FNE_CHECK_START	2	/* check name starts with valid character */
 
-#if (defined(sun) || defined(__FreeBSD__)) && defined(S_ISCHR)
+#if (defined(sun) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)) \
+	&& defined(S_ISCHR)
 # define OPEN_CHR_FILES
 #endif
 
