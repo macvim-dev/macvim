@@ -6,14 +6,13 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-112</title>
+      <title>MacVim snapshot-113</title>
       <description><![CDATA[
 <pre>
 Binary targets macOS 10.8+
 
-- Vim patch 8.0.0032
-- Introduce Askpass dialog script for sudo and ssh https://blog.retep.org/2009/04/09/ssh-askpass-on-osx-10-5/
-- Fix scrolling issue on 10.12
+- Vim patch 8.0.0046
+- Update QLStephen to 1.4.4
 
 Script interfaces have compatibility with these versions
 
@@ -25,14 +24,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Fri, 14 Oct 2016 21:00:00 -0700</pubDate>
+      <pubDate>Sat, 22 Oct 2016 00:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-112/MacVim.dmg"
-        length="17739144"
-        sparkle:version="112"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-113/MacVim.dmg"
+        length="17715468"
+        sparkle:version="113"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MCwCFCmSUZs2bLinHK2g1xSKsIr11EgpAhRQaGOA36wUj0nv8qWvZgHnttWnzw=="
+	sparkle:dsaSignature="MCwCFC5b+AENWkk+2ZM6CqKMwrKgLb1OAhRmWfU5KBbm17tkEWE9Dn3lA3bc3Q=="
         />
     </item>
   </channel>
