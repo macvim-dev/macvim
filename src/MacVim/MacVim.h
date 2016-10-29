@@ -30,12 +30,14 @@
 # define MAC_OS_X_VERSION_10_12 101200
 #endif
 
-// Needed for pre-10.11 SDK
 #ifndef NSAppKitVersionNumber10_10
 # define NSAppKitVersionNumber10_10 1343
 #endif
 #ifndef NSAppKitVersionNumber10_10_Max
 # define NSAppKitVersionNumber10_10_Max 1349
+#endif
+#ifndef NSAppKitVersionNumber10_12
+# define NSAppKitVersionNumber10_12 1504
 #endif
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
@@ -70,8 +72,8 @@
 # define NSWindowStyleMaskUnifiedTitleAndToolbar NSUnifiedTitleAndToolbarWindowMask
 #endif
 
+#import <asl.h>
 #if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
-# import <asl.h>
 # define MM_USE_ASL
 #else
 # import <os/log.h>
@@ -425,9 +427,26 @@ void ASLInit();
 # define MM_ASL_LEVEL_DEFAULT OS_LOG_TYPE_DEFAULT
 # define ASLog(level, fmt, ...) \
     if (level <= ASLogLevel) { \
-        os_log_with_type(OS_LOG_DEFAULT, level, "%s@%d: %s", \
-            __PRETTY_FUNCTION__, __LINE__, \
-            [[NSString stringWithFormat:fmt, ##__VA_ARGS__] UTF8String]); \
+        if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_12) { \
+            os_log_with_type(OS_LOG_DEFAULT, level, "%s@%d: %s", \
+                __PRETTY_FUNCTION__, __LINE__, \
+                [[NSString stringWithFormat:fmt, ##__VA_ARGS__] UTF8String]); \
+        } else { \
+            int logLevel; \
+            switch (level) { \
+            case OS_LOG_TYPE_FAULT: logLevel = ASL_LEVEL_CRIT; break; \
+            case OS_LOG_TYPE_ERROR: logLevel = ASL_LEVEL_ERR; break; \
+            case OS_LOG_TYPE_INFO: logLevel = ASL_LEVEL_INFO; break; \
+            case OS_LOG_TYPE_DEBUG: logLevel = ASL_LEVEL_DEBUG; break; \
+            default: logLevel = ASL_LEVEL_NOTICE; break; \
+            } \
+            _Pragma("clang diagnostic push") \
+            _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"") \
+            asl_log(NULL, NULL, logLevel, "%s@%d: %s", \
+                __PRETTY_FUNCTION__, __LINE__, \
+                [[NSString stringWithFormat:fmt, ##__VA_ARGS__] UTF8String]); \
+            _Pragma("clang diagnostic pop") \
+        } \
     }
 
 # define ASLogCrit(fmt, ...)   ASLog(OS_LOG_TYPE_FAULT,   fmt, ##__VA_ARGS__)
