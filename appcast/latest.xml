@@ -6,13 +6,13 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-113</title>
+      <title>MacVim snapshot-114</title>
       <description><![CDATA[
 <pre>
 Binary targets macOS 10.8+
 
-- Vim patch 8.0.0046
-- Update QLStephen to 1.4.4
+- Vim patch 8.0.0052
+- Fix symbol not found crash on -10.11
 
 Script interfaces have compatibility with these versions
 
@@ -24,14 +24,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Sat, 22 Oct 2016 00:00:00 -0700</pubDate>
+      <pubDate>Fri, 28 Oct 2016 23:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-113/MacVim.dmg"
-        length="17715468"
-        sparkle:version="113"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-114/MacVim.dmg"
+        length="17719156"
+        sparkle:version="114"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MCwCFC5b+AENWkk+2ZM6CqKMwrKgLb1OAhRmWfU5KBbm17tkEWE9Dn3lA3bc3Q=="
+	sparkle:dsaSignature="MC0CFQCVnfscjKRLR8hSfiBy0a8WJgSEdwIUBr9Jie4Cho7JFp9k3JvArM+m5o0="
         />
     </item>
   </channel>
