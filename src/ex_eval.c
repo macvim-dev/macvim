@@ -16,7 +16,7 @@
 #if defined(FEAT_EVAL) || defined(PROTO)
 
 static void	free_msglist(struct msglist *l);
-static int	throw_exception(void *, int, char_u *);
+static int	throw_exception(void *, except_type_T, char_u *);
 static char_u	*get_end_emsg(struct condstack *cstack);
 
 /*
@@ -422,7 +422,7 @@ do_intthrow(struct condstack *cstack)
     char_u *
 get_exception_string(
     void	*value,
-    int		type,
+    except_type_T type,
     char_u	*cmdname,
     int		*should_free)
 {
@@ -503,7 +503,7 @@ get_exception_string(
  * error exception.
  */
     static int
-throw_exception(void *value, int type, char_u *cmdname)
+throw_exception(void *value, except_type_T type, char_u *cmdname)
 {
     except_T	*excp;
     int		should_free;
@@ -595,7 +595,7 @@ discard_exception(except_T *excp, int was_finished)
 
     if (excp == NULL)
     {
-	EMSG(_(e_internal));
+	internal_error("discard_exception()");
 	return;
     }
 
@@ -700,7 +700,7 @@ catch_exception(except_T *excp)
 finish_exception(except_T *excp)
 {
     if (excp != caught_stack)
-	EMSG(_(e_internal));
+	internal_error("finish_exception()");
     caught_stack = caught_stack->caught;
     if (caught_stack != NULL)
     {
@@ -1603,7 +1603,7 @@ ex_catch(exarg_T *eap)
 	     * ":break", ":return", ":finish", error, interrupt, or another
 	     * exception. */
 	    if (cstack->cs_exception[cstack->cs_idx] != current_exception)
-		EMSG(_(e_internal));
+		internal_error("ex_catch()");
 	}
 	else
 	{
@@ -1737,7 +1737,7 @@ ex_finally(exarg_T *eap)
 		 * exception will be discarded. */
 		if (did_throw && cstack->cs_exception[cstack->cs_idx]
 							 != current_exception)
-		    EMSG(_(e_internal));
+		    internal_error("ex_finally()");
 	    }
 
 	    /*
