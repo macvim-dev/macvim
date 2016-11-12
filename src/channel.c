@@ -1362,7 +1362,7 @@ write_buf_line(buf_T *buf, linenr_T lnum, channel_T *channel)
 
     p[len] = NL;
     p[len + 1] = NUL;
-    channel_send(channel, PART_IN, p, len + 1, "write_buf_line()");
+    channel_send(channel, PART_IN, p, len + 1, "write_buf_line");
     vim_free(p);
 }
 
@@ -3475,7 +3475,12 @@ channel_handle_events(void)
  * Return FAIL or OK.
  */
     int
-channel_send(channel_T *channel, ch_part_T part, char_u *buf, int len, char *fun)
+channel_send(
+	channel_T *channel,
+	ch_part_T part,
+	char_u	  *buf,
+	int	  len,
+	char	  *fun)
 {
     int		res;
     sock_T	fd;
