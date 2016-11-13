@@ -969,7 +969,6 @@
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
     [[MMAppController sharedInstance] setMainMenu:[vimController mainMenu]];
-    [vimController sendMessage:GotFocusMsgID data:nil];
 
     if ([vimView textView]) {
         NSFontManager *fm = [NSFontManager sharedFontManager];
@@ -977,7 +976,12 @@
     }
 }
 
-- (void)windowDidResignMain:(NSNotification *)notification
+- (void)windowDidBecomeKey:(NSNotificationCenter *)notification
+{
+    [vimController sendMessage:GotFocusMsgID data:nil];
+}
+
+- (void)windowDidResignKey:(NSNotification *)notification
 {
     [vimController sendMessage:LostFocusMsgID data:nil];
 }
