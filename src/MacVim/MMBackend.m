@@ -679,7 +679,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     // Only start the run loop if the input queue is empty, otherwise process
     // the input first so that the input on queue isn't delayed.
-    if ([inputQueue count]) {
+    if ([inputQueue count] || input_available()) {
         inputReceived = YES;
     } else {
         // Wait for the specified amount of time, unless 'milliseconds' is
