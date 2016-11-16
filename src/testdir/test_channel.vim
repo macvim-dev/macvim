@@ -1370,7 +1370,7 @@ function MyExitTimeCb(job, status)
 endfunction
 
 func Test_exit_callback_interval()
-  if !has('job') || has('gui_macvim')
+  if !has('job')
     return
   endif
 
