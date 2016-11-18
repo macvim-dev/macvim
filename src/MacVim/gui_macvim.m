@@ -407,20 +407,8 @@ gui_mch_wait_for_chars(int wtime)
     [[MMBackend sharedInstance] flushQueue:YES];
 
 #ifdef MESSAGE_QUEUE
-# ifdef FEAT_TIMERS
-    did_add_timer = FALSE;
-# endif
-
     parse_queued_messages();
-
-# ifdef FEAT_TIMERS
-    if (did_add_timer)
-        return FAIL;
-# endif
 #endif
-
-    if (input_available())
-        return OK;
 
     return [[MMBackend sharedInstance] waitForInput:wtime];
 }
