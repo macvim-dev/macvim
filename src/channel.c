@@ -4458,11 +4458,58 @@ job_free(job_T *job)
     }
 }
 
+#if defined(EXITFREE) || defined(PROTO)
+    void
+job_free_all(void)
+{
+    while (first_job != NULL)
+	job_free(first_job);
+}
+#endif
+
+/*
+ * Return TRUE if we need to check if the process of "job" has ended.
+ */
+    static int
+job_need_end_check(job_T *job)
+{
+    return job->jv_status == JOB_STARTED
+		   && (job->jv_stoponexit != NULL || job->jv_exit_cb != NULL);
+}
+
+/*
+ * Return TRUE if the channel of "job" is still useful.
+ */
+    static int
+job_channel_still_useful(job_T *job)
+{
+    return job->jv_channel != NULL && channel_still_useful(job->jv_channel);
+}
+
+/*
+ * Return TRUE if the job should not be freed yet.  Do not free the job when
+ * it has not ended yet and there is a "stoponexit" flag, an exit callback
+ * or when the associated channel will do something with the job output.
+ */
+    static int
+job_still_useful(job_T *job)
+{
+    return job_need_end_check(job) || job_channel_still_useful(job);
+}
+
+/*
+ * NOTE: Must call job_cleanup() only once right after the status of "job"
+ * changed to JOB_ENDED (i.e. after job_status() returned "dead" first or
+ * mch_detect_ended_job() returned non-NULL).
+ */
     static void
 job_cleanup(job_T *job)
 {
     if (job->jv_status != JOB_ENDED)
 	return;
+
+    /* Ready to cleanup the job. */
+    job->jv_status = JOB_FINISHED;
 
     if (job->jv_exit_cb != NULL)
     {
@@ -4470,7 +4517,7 @@ job_cleanup(job_T *job)
 	typval_T	rettv;
 	int		dummy;
 
-	/* invoke the exit callback; make sure the refcount is > 0 */
+	/* Invoke the exit callback. Make sure the refcount is > 0. */
 	++job->jv_refcount;
 	argv[0].v_type = VAR_JOB;
 	argv[0].vval.v_job = job;
@@ -4483,40 +4530,16 @@ job_cleanup(job_T *job)
 	--job->jv_refcount;
 	channel_need_redraw = TRUE;
     }
-    if (job->jv_refcount == 0)
+
+    /* Do not free the job in case the close callback of the associated channel
+     * isn't invoked yet and may get information by job_info(). */
+    if (job->jv_refcount == 0 && !job_channel_still_useful(job))
     {
-	/* The job was already unreferenced, now that it ended it can be
-	 * freed. Careful: caller must not use "job" after this! */
+	/* The job was already unreferenced and the associated channel was
+	 * detached, now that it ended it can be freed. Careful: caller must
+	 * not use "job" after this! */
 	job_free(job);
     }
-}
-
-#if defined(EXITFREE) || defined(PROTO)
-    void
-job_free_all(void)
-{
-    while (first_job != NULL)
-	job_free(first_job);
-}
-#endif
-
-/*
- * Return TRUE if the job should not be freed yet.  Do not free the job when
- * it has not ended yet and there is a "stoponexit" flag, an exit callback
- * or when the associated channel will do something with the job output.
- */
-    static int
-job_still_useful(job_T *job)
-{
-    return (job->jv_stoponexit != NULL || job->jv_exit_cb != NULL
-	    || (job->jv_channel != NULL
-		&& channel_still_useful(job->jv_channel)));
-}
-
-    static int
-job_still_alive(job_T *job)
-{
-    return (job->jv_status == JOB_STARTED) && job_still_useful(job);
 }
 
 /*
@@ -4530,7 +4553,7 @@ set_ref_in_job(int copyID)
     typval_T	tv;
 
     for (job = first_job; job != NULL; job = job->jv_next)
-	if (job_still_alive(job))
+	if (job_still_useful(job))
 	{
 	    tv.v_type = VAR_JOB;
 	    tv.vval.v_job = job;
@@ -4539,26 +4562,33 @@ set_ref_in_job(int copyID)
     return abort;
 }
 
+/*
+ * Dereference "job".  Note that after this "job" may have been freed.
+ */
     void
 job_unref(job_T *job)
 {
     if (job != NULL && --job->jv_refcount <= 0)
     {
-	/* Do not free the job when it has not ended yet and there is a
-	 * "stoponexit" flag or an exit callback. */
-	if (!job_still_alive(job))
+	/* Do not free the job if there is a channel where the close callback
+	 * may get the job info. */
+	if (!job_channel_still_useful(job))
 	{
-	    job_free(job);
-	}
-	else if (job->jv_channel != NULL
-				    && !channel_still_useful(job->jv_channel))
-	{
-	    /* Do remove the link to the channel, otherwise it hangs
-	     * around until Vim exits. See job_free() for refcount. */
-	    ch_log(job->jv_channel, "detaching channel from job");
-	    job->jv_channel->ch_job = NULL;
-	    channel_unref(job->jv_channel);
-	    job->jv_channel = NULL;
+	    /* Do not free the job when it has not ended yet and there is a
+	     * "stoponexit" flag or an exit callback. */
+	    if (!job_need_end_check(job))
+	    {
+		job_free(job);
+	    }
+	    else if (job->jv_channel != NULL)
+	    {
+		/* Do remove the link to the channel, otherwise it hangs
+		 * around until Vim exits. See job_free() for refcount. */
+		ch_log(job->jv_channel, "detaching channel from job");
+		job->jv_channel->ch_job = NULL;
+		channel_unref(job->jv_channel);
+		job->jv_channel = NULL;
+	    }
 	}
     }
 }
@@ -4571,7 +4601,7 @@ free_unused_jobs_contents(int copyID, int mask)
 
     for (job = first_job; job != NULL; job = job->jv_next)
 	if ((job->jv_copyID & mask) != (copyID & mask)
-						     && !job_still_alive(job))
+						    && !job_still_useful(job))
 	{
 	    /* Free the channel and ordinary items it contains, but don't
 	     * recurse into Lists, Dictionaries etc. */
@@ -4591,7 +4621,7 @@ free_unused_jobs(int copyID, int mask)
     {
 	job_next = job->jv_next;
 	if ((job->jv_copyID & mask) != (copyID & mask)
-						     && !job_still_alive(job))
+						    && !job_still_useful(job))
 	{
 	    /* Free the job struct itself. */
 	    job_free_job(job);
@@ -4685,8 +4715,7 @@ has_pending_job(void)
 	/* Only should check if the channel has been closed, if the channel is
 	 * open the job won't exit. */
 	if (job->jv_status == JOB_STARTED && job->jv_exit_cb != NULL
-		&& (job->jv_channel == NULL
-		    || !channel_still_useful(job->jv_channel)))
+					    && !job_channel_still_useful(job))
 	    return TRUE;
     return FALSE;
 }
@@ -4701,14 +4730,18 @@ job_check_ended(void)
 {
     int		i;
 
+    if (first_job == NULL)
+	return;
+
     for (i = 0; i < MAX_CHECK_ENDED; ++i)
     {
+	/* NOTE: mch_detect_ended_job() must only return a job of which the
+	 * status was just set to JOB_ENDED. */
 	job_T	*job = mch_detect_ended_job(first_job);
 
 	if (job == NULL)
 	    break;
-	if (job_still_useful(job))
-	    job_cleanup(job); /* may free "job" */
+	job_cleanup(job); /* may free "job" */
     }
 
     if (channel_need_redraw)
@@ -4922,7 +4955,7 @@ job_status(job_T *job)
 {
     char	*result;
 
-    if (job->jv_status == JOB_ENDED)
+    if (job->jv_status >= JOB_ENDED)
 	/* No need to check, dead is dead. */
 	result = "dead";
     else if (job->jv_status == JOB_FAILED)
