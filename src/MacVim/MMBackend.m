@@ -198,6 +198,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 #ifdef FEAT_BEVAL
 - (void)bevalCallback:(id)sender;
 #endif
+#ifdef MESSAGE_QUEUE
+- (void)checkForProcessEvents:(NSTimer *)timer;
+#endif
 @end
 
 
@@ -682,6 +685,20 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if ([inputQueue count]) {
         inputReceived = YES;
     } else {
+        NSTimer *timer = nil;
+
+        // Set interval timer which checks for the events of job and channel
+        // when there is any pending job or channel.
+        if (has_any_channel() || has_pending_job()) {
+            timer = [NSTimer scheduledTimerWithTimeInterval:0.1
+                                                     target:self
+                                                   selector:@selector(checkForProcessEvents:)
+                                                   userInfo:nil
+                                                    repeats:YES];
+            [[NSRunLoop currentRunLoop] addTimer:timer
+                                         forMode:NSDefaultRunLoopMode];
+        }
+
         // Wait for the specified amount of time, unless 'milliseconds' is
         // negative in which case we wait "forever" (1e6 seconds translates to
         // approximately 11 days).
@@ -695,6 +712,11 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             dt = 0.0;
             inputReceived = YES;
         }
+
+        if (input_available())
+            inputReceived = YES;
+
+        [timer invalidate];
     }
 
     // The above calls may have placed messages on the input queue so process
@@ -3001,6 +3023,22 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                                         forKey:@"toolTip"]];
         [self flushQueue:YES];
     }
+}
+#endif
+
+#ifdef MESSAGE_QUEUE
+- (void)checkForProcessEvents:(NSTimer *)timer
+{
+# ifdef FEAT_TIMERS
+    did_add_timer = FALSE;
+# endif
+
+    parse_queued_messages();
+
+# ifdef FEAT_TIMERS
+    if (did_add_timer || input_available())
+        CFRunLoopStop(CFRunLoopGetCurrent());
+# endif
 }
 #endif
 
