@@ -151,6 +151,7 @@ defaultAdvanceForFont(NSFont *font)
             NSFilenamesPboardType, NSStringPboardType, nil]];
 
     ligatures = NO;
+    shouldBlankUntilRedraw = NO;
     return self;
 }
 
@@ -581,6 +582,11 @@ defaultAdvanceForFont(NSFont *font)
     return NO;
 }
 
+- (void)blankUntilRedraw
+{
+    shouldBlankUntilRedraw = YES;
+}
+
 - (void)drawRect:(NSRect)rect
 {
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
@@ -593,7 +599,13 @@ defaultAdvanceForFont(NSFont *font)
 
     [drawData removeAllObjects];
 
-    if (cgLayerEnabled) {
+    if (shouldBlankUntilRedraw) {
+        CGContextRef cgContext = [context graphicsPort];
+        CGContextSaveGState(cgContext);
+        CGContextSetRGBFillColor(cgContext, 0.0, 0.0, 0.0, 1.0);
+        CGContextFillRect(cgContext, [self frame]);
+        CGContextRestoreGState(cgContext);
+    } else if (cgLayerEnabled) {
         // during a live resize, we will have around a stale layer until the
         // refresh messages travel back from the vim process. We push the old
         // layer in at an offset to get rid of jitter due to lines changing
@@ -925,6 +937,8 @@ defaultAdvanceForFont(NSFont *font)
 #if MM_DEBUG_DRAWING
             ASLogNotice(@"   Clear all");
 #endif
+            shouldBlankUntilRedraw = NO;
+
             [self clearAll];
         } else if (ClearBlockDrawType == type) {
             unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
