@@ -172,6 +172,8 @@ enum {
     oldPosition = [view frame].origin;
 
     [view removeFromSuperviewWithoutNeedingDisplay];
+    if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_12)
+        [[view textView] setCGLayerEnabled:YES];
     [[self contentView] addSubview:view];
     [self setInitialFirstResponder:[view textView]];
     
@@ -283,6 +285,9 @@ enum {
 
     [view setFrameOrigin:oldPosition];
     [self close];
+
+    if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_12)
+        [[view textView] setCGLayerEnabled:NO];
 
     // Set the text view to initial first responder, otherwise the 'plus'
     // button on the tabline steals the first responder status.
