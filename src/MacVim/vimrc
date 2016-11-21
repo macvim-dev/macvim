@@ -13,3 +13,13 @@ set backspace+=indent,eol,start
 " the entire MacVim menu is set up in a nib file which currently only is
 " translated to English).
 set langmenu=none
+
+" Python3
+if has('python3') && !filereadable(&pythonthreedll)
+  " https://www.python.org/downloads/mac-osx/
+  if filereadable("/Library/Frameworks/Python.framework/Versions/3.5/Python")
+    let $PYTHONHOME="/Library/Frameworks/Python.framework/Versions/3.5"
+    set pythonthreedll=/Library/Frameworks/Python.framework/Versions/3.5/Python
+  endif
+endif
+
