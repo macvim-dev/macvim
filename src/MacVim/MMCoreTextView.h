@@ -42,6 +42,7 @@
     BOOL                        cgLayerEnabled;
     CGLayerRef                  cgLayer;
     CGContextRef                cgLayerContext;
+    NSLock                      *cgLayerLock;
 
     // These are used in MMCoreTextView+ToolTip.m
     id trackingRectOwner_;              // (not retained)
