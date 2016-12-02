@@ -6,13 +6,16 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-116</title>
+      <title>MacVim snapshot-117</title>
       <description><![CDATA[
 <pre>
 Binary targets macOS 10.8+
 
-- Vim patch 8.0.0094
-- Fixed Non-native fullscreen issue on 10.12 Sierra (#312)
+- Vim patch 8.0.0106
+- Fixed feedkeys in timer callback
+- [Experimental] Automatic Python settings
+  - Python 2.7.x: Homebrew python2 or System&#39;s
+  - Python 3.5.2 or later: Homebrew python3 or python.org binary
 
 Script interfaces have compatibility with these versions
 
@@ -24,14 +27,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Sun, 20 Nov 2016 01:00:00 -0800</pubDate>
+      <pubDate>Thu, 01 Dec 2016 21:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-116/MacVim.dmg"
-        length="17730496"
-        sparkle:version="116"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-117/MacVim.dmg"
+        length="17732493"
+        sparkle:version="117"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MC4CFQCCBYXyQPGCtn4+iyAqgR3+YcLSdwIVAMu8iyL6nTdt+zcuDdXNDTDYOOOE"
+	sparkle:dsaSignature="MC0CFB1XspbfsY4rGQ9qEdh7cZvtdQcqAhUAhMVxRWO6QlDTeUUpleGSH0A0Cu8="
         />
     </item>
   </channel>
