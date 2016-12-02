@@ -522,6 +522,11 @@
     // ONLY in Core Text!
 }
 
+- (void)blankUntilRedraw
+{
+    // ONLY in Core Text!
+}
+
 - (BOOL)isOpaque
 {
     return NO;

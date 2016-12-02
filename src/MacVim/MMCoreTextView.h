@@ -39,6 +39,8 @@
     CGPoint                     *positions;
     NSMutableArray              *fontCache;
 
+    BOOL                        shouldBlankUntilRedraw;
+
     BOOL                        cgLayerEnabled;
     CGLayerRef                  cgLayer;
     CGContextRef                cgLayerContext;
@@ -90,7 +92,7 @@
 - (NSRect)rectForRow:(int)row column:(int)column numRows:(int)nr
           numColumns:(int)nc;
 - (void)setCGLayerEnabled:(BOOL)enabled;
-
+- (void)blankUntilRedraw;
 //
 // NSTextView methods
 //

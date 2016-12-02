@@ -151,6 +151,8 @@ enum {
         didBlend = YES;
     }
 
+    [[view textView] blankUntilRedraw];
+
     // NOTE: The window may have moved to another screen in between init.. and
     // this call so set the frame again just in case.
     [self setFrame:[[target screen] frame] display:NO];
@@ -236,6 +238,8 @@ enum {
             kCGDisplayBlendSolidColor, .0, .0, .0, true);
         didBlend = YES;
     }
+
+    [[view textView] blankUntilRedraw];
 
     // restore old vim view size
     int currRows, currColumns;
