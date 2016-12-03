@@ -1701,20 +1701,29 @@ OBJ = $(OBJ_COMMON) \
 	objects/memfile.o \
 	objects/message.o
 
-JSON_TEST_OBJ = $(OBJ_COMMON) \
+OBJ_JSON_TEST = \
 	objects/memfile.o \
 	objects/message.o \
 	objects/json_test.o
 
-MEMFILE_TEST_OBJ = $(OBJ_COMMON) \
+JSON_TEST_OBJ = $(OBJ_COMMON) $(OBJ_JSON_TEST)
+
+OBJ_MEMFILE_TEST = \
 	objects/json.o \
 	objects/message.o \
 	objects/memfile_test.o
 
-MESSAGE_TEST_OBJ = $(OBJ_COMMON) \
+MEMFILE_TEST_OBJ = $(OBJ_COMMON) $(OBJ_MEMFILE_TEST)
+
+OBJ_MESSAGE_TEST = \
 	objects/json.o \
 	objects/memfile.o \
 	objects/message_test.o
+
+MESSAGE_TEST_OBJ = $(OBJ_COMMON) $(OBJ_MESSAGE_TEST)
+
+ALL_OBJ = $(OBJ_COMMON) $(OBJ_JSON_TEST) $(OBJ_MEMFILE_TEST) $(OBJ_MESSAGE_TEST)
+
 
 PRO_AUTO = \
 	arabic.pro \
@@ -2069,7 +2078,7 @@ test1 \
 	test60 test64 test65 test66 test67 test68 test69 \
 	test70 test72 test73 test74 test75 test77 test78 test79 \
 	test80 test82 test83 test84 test85 test86 test87 test88 test89 \
-	test90 test91 test92 test93 test94 test95 test97 test98 test99 \
+	test90 test91 test94 test95 test97 test98 test99 \
 	test100 test101 test103 test104 test107 test108:
 	cd testdir; rm -f $@.out; $(MAKE) -f Makefile $@.out VIMPROG=../$(VIMTARGET) $(GUI_TESTARG) SCRIPTSOURCE=../$(SCRIPTSOURCE)
 
@@ -2135,6 +2144,8 @@ test_arglist \
 	test_matchadd_conceal_utf8 \
 	test_menu \
 	test_messages \
+	test_mksession \
+	test_mksession_utf8 \
 	test_nested_function \
 	test_netbeans \
 	test_normal \
@@ -2868,8 +2879,14 @@ auto/gui_gtk_gresources.h: gui_gtk_res.xml $(GUI_GTK_RES_INPUTS)
 # commands understand putting object files in another directory, it must be
 # specified for each file separately.
 
-objects:
-	mkdir objects
+objects objects/.dirstamp:
+	mkdir -p objects
+	touch objects/.dirstamp
+
+# All object files depend on the objects directory, so that parallel make
+# works.  Can't depend on the directory itself, its timestamp changes all the
+# time.
+$(ALL_OBJ): objects/.dirstamp
 
 objects/MMBackend.o: MacVim/MMBackend.m
 	$(CCC) -fobjc-exceptions -o $@ MacVim/MMBackend.m

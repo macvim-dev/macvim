@@ -4868,8 +4868,8 @@ do_arg_all(
 	    wpnext = wp->w_next;
 	    buf = wp->w_buffer;
 	    if (buf->b_ffname == NULL
-		    || (!keep_tabs && buf->b_nwindows > 1)
-		    || wp->w_width != Columns)
+		    || (!keep_tabs && (buf->b_nwindows > 1
+			    || wp->w_width != Columns)))
 		i = opened_len;
 	    else
 	    {
