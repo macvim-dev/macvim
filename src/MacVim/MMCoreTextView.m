@@ -132,6 +132,8 @@ defaultAdvanceForFont(NSFont *font)
     if (!(self = [super initWithFrame:frame]))
         return nil;
 
+    cgLayerEnabled = [[NSUserDefaults standardUserDefaults]
+            boolForKey:MMUseCGLayerAlwaysKey];
     cgLayerLock = [NSLock new];
 
     // NOTE!  It does not matter which font is set here, Vim will set its

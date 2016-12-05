@@ -233,6 +233,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:NO],     MMSuppressTerminationAlertKey,
         [NSNumber numberWithBool:YES],    MMNativeFullScreenKey,
         [NSNumber numberWithDouble:0.25], MMFullScreenFadeTimeKey,
+        [NSNumber numberWithBool:NO],     MMUseCGLayerAlwaysKey,
         nil];
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:dict];
