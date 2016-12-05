@@ -686,6 +686,18 @@ defaultAdvanceForFont(NSFont *font)
     }
 }
 
+- (void)setNeedsDisplayCGLayerInRect:(CGRect)rect
+{
+    if (cgLayerEnabled)
+       [self setNeedsDisplayInRect:rect];
+}
+
+- (void)setNeedsDisplayCGLayer:(BOOL)flag
+{
+    if (cgLayerEnabled)
+       [self setNeedsDisplay:flag];
+}
+
 
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size
 {
@@ -1002,7 +1014,7 @@ defaultAdvanceForFont(NSFont *font)
                           operation:NSCompositingOperationSourceOver
                            fraction:1.0];
             }
-            [self setNeedsDisplayInRect:r];
+            [self setNeedsDisplayCGLayerInRect:r];
         } else if (DrawStringDrawType == type) {
             int bg = *((int*)bytes);  bytes += sizeof(int);
             int fg = *((int*)bytes);  bytes += sizeof(int);
@@ -1500,7 +1512,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
         CGContextSetFontSmoothingStyle(context, originalFontSmoothingStyle);
     CGContextRestoreGState(context);
 
-    [self setNeedsDisplayInRect:clipRect];
+    [self setNeedsDisplayCGLayerInRect:clipRect];
 }
 
 - (void)scrollRect:(NSRect)rect lineCount:(int)count
@@ -1518,7 +1530,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
         CGContextDrawLayerAtPoint(
                 context, CGPointMake(0, -yOffset), [self getCGLayer]);
         CGContextRestoreGState(context);
-        [self setNeedsDisplayInRect:clipRect];
+        [self setNeedsDisplayCGLayerInRect:clipRect];
     } else {
         NSSize delta={0, -count * cellSize.height};
         [self scrollRect:rect by:delta];
@@ -1573,7 +1585,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
     CGContextSetBlendMode(context, kCGBlendModeCopy);
     CGContextFillRect(context, *(CGRect*)&rect);
     CGContextSetBlendMode(context, kCGBlendModeNormal);
-    [self setNeedsDisplayInRect:rect];
+    [self setNeedsDisplayCGLayerInRect:rect];
 }
 
 - (void)clearAll
@@ -1591,7 +1603,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
     CGContextFillRect(context, *(CGRect*)&rect);
     CGContextSetBlendMode(context, kCGBlendModeNormal);
 
-    [self setNeedsDisplay:YES];
+    [self setNeedsDisplayCGLayer:YES];
 }
 
 - (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
@@ -1639,7 +1651,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
         CGContextFillRect(context, *(CGRect*)&rect);
     }
 
-    [self setNeedsDisplayInRect:rect];
+    [self setNeedsDisplayCGLayerInRect:rect];
     CGContextRestoreGState(context);
 }
 
@@ -1656,7 +1668,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
                         numColumns:ncols];
     CGContextFillRect(cgctx, *(CGRect*)&rect);
 
-    [self setNeedsDisplayInRect:rect];
+    [self setNeedsDisplayCGLayerInRect:rect];
     CGContextRestoreGState(cgctx);
 }
 
