@@ -861,15 +861,16 @@ Python3_Init(void)
 	init_structs();
 
 #ifdef DYNAMIC_PYTHON3
-	if (p_py3home && *p_py3home != '\0')
+	if (*p_py3home != '\0')
 	{
 	    int len;
 	    wchar_t *buf;
 	    len = mbstowcs(NULL, (char *)p_py3home, 0) + 1;
 	    buf = (wchar_t *)alloc(len * sizeof(wchar_t));
-	    if (buf && mbstowcs(buf, (char *)p_py3home, len) != (size_t)-1)
+	    if (buf && mbstowcs(buf, (char *)p_py3home, len) != (size_t)-1) {
 		Py_SetPythonHome(buf);
-	    vim_free(buf);
+		/* We must keep buf for Py_SetPythonHome */
+	    }
 	}
 # ifdef PYTHON3_HOME
 	else if (mch_getenv((char_u *)"PYTHONHOME") == NULL)
