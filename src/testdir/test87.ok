@@ -658,10 +658,10 @@ assert sys.stderr.closed()==False:NOT FAILED
 assert sys.stdout.errors=="strict":NOT FAILED
 assert sys.stderr.errors=="strict":NOT FAILED
 assert sys.stdout.encoding==sys.stderr.encoding:NOT FAILED
-sys.stdout.write(None):(<class 'TypeError'>, TypeError("Can't convert 'NoneType' object to str implicitly",))
+sys.stdout.write(None):(<class 'TypeError'>, TypeError('argument must be str, bytes or bytearray, not None',))
 >> OutputWriteLines
 sys.stdout.writelines(None):(<class 'TypeError'>, TypeError("'NoneType' object is not iterable",))
-sys.stdout.writelines([1]):(<class 'TypeError'>, TypeError("Can't convert 'int' object to str implicitly",))
+sys.stdout.writelines([1]):(<class 'TypeError'>, TypeError('argument must be str, bytes or bytearray, not int',))
 >>> Testing *Iter* using sys.stdout.writelines(%s)
 sys.stdout.writelines(FailingIter()):(<class 'NotImplementedError'>, NotImplementedError('iter',))
 sys.stdout.writelines(FailingIterNext()):(<class 'NotImplementedError'>, NotImplementedError('next',))
@@ -700,8 +700,8 @@ vim.foreach_rtp(NoArgsCall()):(<class 'TypeError'>, TypeError('__call__() takes 
 vim.foreach_rtp(FailingCall()):(<class 'NotImplementedError'>, NotImplementedError('call',))
 vim.foreach_rtp(int, 2):(<class 'TypeError'>, TypeError('foreach_rtp() takes exactly one argument (2 given)',))
 > import
-import xxx_no_such_module_xxx:(<class 'ImportError'>, ImportError('No module named xxx_no_such_module_xxx',))
-import failing_import:(<class 'ImportError'>, ImportError('No module named failing_import',))
+import xxx_no_such_module_xxx:(<class 'ModuleNotFoundError'>, ModuleNotFoundError("No module named 'xxx_no_such_module_xxx'",))
+import failing_import:(<class 'ModuleNotFoundError'>, ModuleNotFoundError("No module named 'failing_import'",))
 import failing:(<class 'NotImplementedError'>, NotImplementedError())
 > Options
 >> OptionsItem
