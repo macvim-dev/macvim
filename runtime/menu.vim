@@ -80,6 +80,9 @@ if has("gui_macvim")
   an <silent> 9998.350 Window.Select\ Previous\ Tab :tabprevious<CR>
   an 9998.360 Window.-SEP2-			    <Nop>
   an <silent> 9998.370 Window.Bring\ All\ To\ Front <Nop>
+  an <silent> 9998.380 Window.Stay\ On\ Bottom <Nop>
+  an <silent> 9998.390 Window.Stay\ On\ Top <Nop>
+  an <silent> 9998.400 Window.Stay\ Level\ Normal <Nop>
 endif
 
 " Help menu
@@ -1255,6 +1258,9 @@ if has("gui_macvim")
   macm Window.Select\ Next\ Tab			key=<D-}>
   macm Window.Select\ Previous\ Tab		key=<D-{>
   macm Window.Bring\ All\ To\ Front		action=arrangeInFront:
+  macm Window.Stay\ On\ Bottom 	action=stayOnBottom:
+  macm Window.Stay\ On\ Top 	action=stayOnTop:
+  macm Window.Stay\ Level\ Normal action=stayLevelNormal:
 
   macm Help.MacVim\ Help			key=<D-?>
   macm Help.MacVim\ Website			action=openWebsite:

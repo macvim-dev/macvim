@@ -72,5 +72,11 @@
 	<string></string>
 	<key>zoomAll:</key>
 	<string></string>
+	<key>stayOnBottom:</key>
+	<string></string>
+	<key>stayOnTop:</key>
+	<string></string>
+	<key>stayLevelNormal:</key>
+	<string></string>
 </dict>
 </plist>

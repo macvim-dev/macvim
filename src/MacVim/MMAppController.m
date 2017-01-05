@@ -1196,6 +1196,27 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [NSApp makeWindowsPerform:@selector(performZoom:) inOrder:YES];
 }
 
+- (IBAction)stayOnBottom:(id)sender
+{
+    ASLogDebug(@"Stay on bottom");
+    NSWindow *keyWindow = [NSApp keyWindow];
+    [keyWindow setLevel:kCGDesktopIconWindowLevel +1];
+}
+
+- (IBAction)stayOnTop:(id)sender
+{
+    ASLogDebug(@"Stay on top");
+    NSWindow *keyWindow = [NSApp keyWindow];
+    [keyWindow setLevel:NSFloatingWindowLevel];
+}
+
+- (IBAction)stayLevelNormal:(id)sender
+{
+    ASLogDebug(@"Stay level normal");
+    NSWindow *keyWindow = [NSApp keyWindow];
+    [keyWindow setLevel:NSNormalWindowLevel];
+}
+
 - (IBAction)coreTextButtonClicked:(id)sender
 {
     ASLogDebug(@"Toggle CoreText renderer");
