@@ -72,9 +72,9 @@
 	<string></string>
 	<key>zoomAll:</key>
 	<string></string>
-	<key>stayOnBottom:</key>
+	<key>stayInFront:</key>
 	<string></string>
-	<key>stayOnTop:</key>
+	<key>stayInBack:</key>
 	<string></string>
 	<key>stayLevelNormal:</key>
 	<string></string>

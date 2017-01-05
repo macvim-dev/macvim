@@ -1196,18 +1196,18 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [NSApp makeWindowsPerform:@selector(performZoom:) inOrder:YES];
 }
 
-- (IBAction)stayOnBottom:(id)sender
+- (IBAction)stayInFront:(id)sender
 {
-    ASLogDebug(@"Stay on bottom");
-    NSWindow *keyWindow = [NSApp keyWindow];
-    [keyWindow setLevel:kCGDesktopIconWindowLevel +1];
-}
-
-- (IBAction)stayOnTop:(id)sender
-{
-    ASLogDebug(@"Stay on top");
+    ASLogDebug(@"Stay in Front");
     NSWindow *keyWindow = [NSApp keyWindow];
     [keyWindow setLevel:NSFloatingWindowLevel];
+}
+
+- (IBAction)stayInBack:(id)sender
+{
+    ASLogDebug(@"Stay in Back");
+    NSWindow *keyWindow = [NSApp keyWindow];
+    [keyWindow setLevel:kCGDesktopIconWindowLevel +1];
 }
 
 - (IBAction)stayLevelNormal:(id)sender

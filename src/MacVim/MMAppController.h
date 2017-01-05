@@ -53,8 +53,8 @@
 - (IBAction)openWebsite:(id)sender;
 - (IBAction)showVimHelp:(id)sender;
 - (IBAction)zoomAll:(id)sender;
-- (IBAction)stayOnBottom:(id)sender;
-- (IBAction)stayOnTop:(id)sender;
+- (IBAction)stayInFront:(id)sender;
+- (IBAction)stayInBack:(id)sender;
 - (IBAction)stayLevelNormal:(id)sender;
 
 @end
