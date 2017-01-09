@@ -2121,6 +2121,7 @@ test_arglist \
 	test_fileformat \
 	test_filter_cmd \
 	test_filter_map \
+	test_float_func \
 	test_fnameescape \
 	test_fnamemodify \
 	test_fold \
@@ -2181,6 +2182,7 @@ test_arglist \
 	test_substitute \
 	test_syn_attr \
 	test_syntax \
+	test_system \
 	test_tabline \
 	test_tabpage \
 	test_tagcase \
