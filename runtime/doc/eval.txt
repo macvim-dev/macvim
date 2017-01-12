@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.0.  Last change: 2016 Nov 29
+*eval.txt*	For Vim version 8.0.  Last change: 2017 Jan 08
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -5229,6 +5229,7 @@ join({list} [, {sep}])					*join()*
 js_decode({string})					*js_decode()*
 		This is similar to |json_decode()| with these differences:
 		- Object key names do not have to be in quotes.
+		- Strings can be in single quotes.
 		- Empty items in an array (between two commas) are allowed and
 		  result in v:none items.
 
@@ -7615,7 +7616,8 @@ systemlist({expr} [, {input}])				*systemlist()*
 		Same as |system()|, but returns a |List| with lines (parts of 
 		output separated by NL) with NULs transformed into NLs. Output 
 		is the same as |readfile()| will output with {binary} argument 
-		set to "b".
+		set to "b".  Note that on MS-Windows you may get trailing CR
+		characters.
 
 		Returns an empty string on error.
 
