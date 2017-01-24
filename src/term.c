@@ -3154,7 +3154,7 @@ starttermcap(void)
     {
 	out_str(T_TI);			/* start termcap mode */
 	out_str(T_KS);			/* start "keypad transmit" mode */
-	out_str(T_BE);			/* enable bracketed paste moe */
+	out_str(T_BE);			/* enable bracketed paste mode */
 	out_flush();
 	termcap_active = TRUE;
 	screen_start();			/* don't know where cursor is now */
@@ -3204,7 +3204,7 @@ stoptermcap(void)
 	    check_for_codes_from_term();
 	}
 #endif
-	out_str(T_BD);			/* disable bracketed paste moe */
+	out_str(T_BD);			/* disable bracketed paste mode */
 	out_str(T_KE);			/* stop "keypad transmit" mode */
 	out_flush();
 	termcap_active = FALSE;
