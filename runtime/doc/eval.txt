@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.0.  Last change: 2017 Jan 14
+*eval.txt*	For Vim version 8.0.  Last change: 2017 Jan 28
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2222,8 +2222,8 @@ matchstr({expr}, {pat}[, {start}[, {count}]])
 				String	{count}'th match of {pat} in {expr}
 matchstrpos({expr}, {pat}[, {start}[, {count}]])
 				List	{count}'th match of {pat} in {expr}
-max({list})			Number	maximum value of items in {list}
-min({list})			Number	minimum value of items in {list}
+max({expr})			Number	maximum value of items in {expr}
+min({expr})			Number	minimum value of items in {expr}
 mkdir({name} [, {path} [, {prot}]])
 				Number	create directory {name}
 mode([expr])			String	current editing mode
@@ -2239,6 +2239,7 @@ printf({fmt}, {expr1}...)	String	format text
 pumvisible()			Number	whether popup menu is visible
 pyeval({expr})			any	evaluate |Python| expression
 py3eval({expr})			any	evaluate |python3| expression
+pyxeval({expr})			any	evaluate |python_x| expression
 range({expr} [, {max} [, {stride}]])
 				List	items from {expr} to {max}
 readfile({fname} [, {binary} [, {max}]])
@@ -4171,6 +4172,10 @@ getchar([expr])						*getchar()*
 			  exe "normal " . v:mouse_col . "|"
 			endif
 <
+		When using bracketed paste only the first character is
+		returned, the rest of the pasted text is dropped.
+		|xterm-bracketed-paste|.
+
 		There is no prompt, you will somehow have to make clear to the
 		user that a character has to be typed.
 		There is no mapping for the character.
@@ -5796,16 +5801,20 @@ matchstrpos({expr}, {pat}[, {start}[, {count}]])		*matchstrpos()*
 		The type isn't changed, it's not necessarily a String.
 
 							*max()*
-max({list})	Return the maximum value of all items in {list}.
-		If {list} is not a list or one of the items in {list} cannot
-		be used as a Number this results in an error.
-		An empty |List| results in zero.
+max({expr})	Return the maximum value of all items in {expr}.
+		{expr} can be a list or a dictionary.  For a dictionary,
+		it returns the maximum of all values in the dictionary.
+		If {expr} is neither a list nor a dictionary, or one of the
+		items in {expr} cannot be used as a Number this results in
+                an error.  An empty |List| or |Dictionary| results in zero.
 
 							*min()*
-min({list})	Return the minimum value of all items in {list}.
-		If {list} is not a list or one of the items in {list} cannot
-		be used as a Number this results in an error.
-		An empty |List| results in zero.
+min({expr})	Return the minimum value of all items in {expr}.
+		{expr} can be a list or a dictionary.  For a dictionary,
+		it returns the minimum of all values in the dictionary.
+		If {expr} is neither a list nor a dictionary, or one of the
+		items in {expr} cannot be used as a Number this results in
+                an error.  An empty |List| or |Dictionary| results in zero.
 
 							*mkdir()* *E739*
 mkdir({name} [, {path} [, {prot}]])
@@ -6162,6 +6171,14 @@ pyeval({expr})						*pyeval()*
 		Dictionaries are represented as Vim |Dictionary| type, 
 		non-string keys result in error.
 		{only available when compiled with the |+python| feature}
+
+pyxeval({expr})						*pyxeval()*
+		Evaluate Python expression {expr} and return its result
+		converted to Vim data structures.
+		Uses Python 2 or 3, see |python_x| and 'pyxversion'.
+		See also: |pyeval()|, |py3eval()|
+		{only available when compiled with the |+python| or the
+		|+python3| feature}
 
 							*E726* *E727*
 range({expr} [, {max} [, {stride}]])				*range()*
@@ -6789,10 +6806,12 @@ setpos({expr}, {list})
 		    [bufnum, lnum, col, off, curswant]
 
 		"bufnum" is the buffer number.  Zero can be used for the
-		current buffer.  Setting the cursor is only possible for
-		the current buffer.  To set a mark in another buffer you can
-		use the |bufnr()| function to turn a file name into a buffer
-		number.
+		current buffer.  When setting an uppercase mark "bufnum" is
+		used for the mark position.  For other marks it specifies the
+		buffer to set the mark in.  You can use the |bufnr()| function
+		to turn a file name into a buffer number.
+		For setting the cursor and the ' mark "bufnum" is ignored,
+		since these are associated with a window, not a buffer.
 		Does not change the jumplist.
 
 		"lnum" and "col" are the position in the buffer.  The first
@@ -8135,7 +8154,7 @@ winnr([{arg}])	The result is a Number, which is the number of the current
 		is returned.
 		The number can be used with |CTRL-W_w| and ":wincmd w"
 		|:wincmd|.
-		Also see |tabpagewinnr()|.
+		Also see |tabpagewinnr()| and |win_getid()|.
 
 							*winrestcmd()*
 winrestcmd()	Returns a sequence of |:resize| commands that should restore
@@ -8405,6 +8424,7 @@ printer			Compiled with |:hardcopy| support.
 profile			Compiled with |:profile| support.
 python			Compiled with Python 2.x interface. |has-python|
 python3			Compiled with Python 3.x interface. |has-python|
+pythonx			Compiled with |python_x| interface. |has-pythonx|
 qnx			QNX version of Vim.
 quickfix		Compiled with |quickfix| support.
 reltime			Compiled with |reltime()| support.

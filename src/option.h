@@ -712,6 +712,9 @@ EXTERN char_u	*p_py3home;	/* 'pythonthreehome' */
 EXTERN char_u	*p_pydll;	/* 'pythondll' */
 EXTERN char_u	*p_pyhome;	/* 'pythonhome' */
 #endif
+#if defined(FEAT_PYTHON) || defined(FEAT_PYTHON3)
+EXTERN long	p_pyx;		/* 'pyxversion' */
+#endif
 #ifdef FEAT_RELTIME
 EXTERN long	p_rdt;		/* 'redrawtime' */
 #endif

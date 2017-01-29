@@ -84,7 +84,6 @@ SCRIPTS_ALL = \
 	test_listchars.out \
 	test_listlbr.out \
 	test_search_mbyte.out \
-	test_utf8.out \
 	test_wordcount.out
 
 
@@ -177,6 +176,8 @@ NEW_TESTS = test_arglist.res \
 	    test_packadd.res \
 	    test_perl.res \
 	    test_profile.res \
+	    test_pyx2.res \
+	    test_pyx3.res \
 	    test_quickfix.res \
 	    test_retab.res \
 	    test_ruby.res \

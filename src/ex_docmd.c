@@ -290,6 +290,11 @@ static void	ex_popup(exarg_T *eap);
 # define ex_py3do		ex_ni
 # define ex_py3file		ex_ni
 #endif
+#if !defined(FEAT_PYTHON) && !defined(FEAT_PYTHON3)
+# define ex_pyx			ex_script_ni
+# define ex_pyxdo		ex_ni
+# define ex_pyxfile		ex_ni
+#endif
 #ifndef FEAT_TCL
 # define ex_tcl			ex_script_ni
 # define ex_tcldo		ex_ni
@@ -11227,8 +11232,10 @@ makeopens(
 	 * resized when moving between windows.
 	 * Do this before restoring the view, so that the topline and the
 	 * cursor can be set.  This is done again below.
+	 * winminheight and winminwidth need to be set to avoid an error if the
+	 * user has set winheight or winwidth.
 	 */
-	if (put_line(fd, "set winheight=1 winwidth=1") == FAIL)
+	if (put_line(fd, "set winminheight=1 winheight=1 winminwidth=1 winwidth=1") == FAIL)
 	    return FAIL;
 	if (nr > 1 && ses_winsizes(fd, restore_size, tab_firstwin) == FAIL)
 	    return FAIL;
@@ -11297,6 +11304,10 @@ makeopens(
     /* Re-apply 'winheight', 'winwidth' and 'shortmess'. */
     if (fprintf(fd, "set winheight=%ld winwidth=%ld shortmess=%s",
 			       p_wh, p_wiw, p_shm) < 0 || put_eol(fd) == FAIL)
+	return FAIL;
+    /* Re-apply 'winminheight' and 'winminwidth'. */
+    if (fprintf(fd, "set winminheight=%ld winminwidth=%ld",
+				      p_wmh, p_wmw) < 0 || put_eol(fd) == FAIL)
 	return FAIL;
 
     /*

@@ -45,6 +45,7 @@ SRC_ALL =	\
 		src/hashtab.c \
 		src/json.c \
 		src/json_test.c \
+		src/kword_test.c \
 		src/list.c \
 		src/keymap.h \
 		src/macros.h \
@@ -122,6 +123,7 @@ SRC_ALL =	\
 		src/testdir/pythonx/topmodule/submodule/subsubmodule/subsubsubmodule.py \
 		src/testdir/python_after/*.py \
 		src/testdir/python_before/*.py \
+		src/testdir/pyxfile/*.py \
 		src/testdir/bench*.in \
 		src/testdir/bench*.vim \
 		src/testdir/samples/*.txt \
