@@ -1238,7 +1238,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>8.0</string>
+	<string>${VIM_SHORT_VERSION_STRING}</string>
 	<key>CFBundleSignature</key>
 	<string>VIMM</string>
 	<key>CFBundleURLTypes</key>
