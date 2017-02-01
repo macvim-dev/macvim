@@ -10,7 +10,12 @@ func SetUp()
     set guifont=Courier\ 10\ Pitch/8/-1/5/50/0/0/0/0/0
   endif
 
-  " Gnome insists on creating $HOME/.gnome2/..
+  " Gnome insists on creating $HOME/.gnome2/, set $HOME to avoid changing the
+  " actual home directory.  But avoid triggering fontconfig by setting the
+  " cache directory.  Only needed for Unix.
+  if $XDG_CACHE_HOME == '' && exists('g:tester_HOME')
+    let $XDG_CACHE_HOME = g:tester_HOME . '/.cache'
+  endif
   call mkdir('Xhome')
   let $HOME = fnamemodify('Xhome', ':p')
 endfunc
