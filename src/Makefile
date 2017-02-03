@@ -2144,8 +2144,9 @@ test_arglist \
 	test_fnameescape \
 	test_fnamemodify \
 	test_fold \
-	test_glob2regpat \
+	test_ga \
 	test_gf \
+	test_glob2regpat \
 	test_gn \
 	test_goto \
 	test_gui \
