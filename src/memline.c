@@ -1148,11 +1148,11 @@ ml_recover(void)
     len = (int)STRLEN(fname);
     if (len >= 4 &&
 #if defined(VMS)
-	    STRNICMP(fname + len - 4, "_s" , 2)
+	    STRNICMP(fname + len - 4, "_s", 2)
 #else
-	    STRNICMP(fname + len - 4, ".s" , 2)
+	    STRNICMP(fname + len - 4, ".s", 2)
 #endif
-		== 0
+						== 0
 		&& vim_strchr((char_u *)"UVWuvw", fname[len - 2]) != NULL
 		&& ASCII_ISALPHA(fname[len - 1]))
     {
@@ -1649,7 +1649,7 @@ ml_recover(void)
 	if (!(curbuf->b_ml.ml_line_count == 2 && *ml_get(1) == NUL))
 	{
 	    changed_int();
-	    ++curbuf->b_changedtick;
+	    ++*curbuf->b_changedtick;
 	}
     }
     else
@@ -1663,7 +1663,7 @@ ml_recover(void)
 	    if (i != 0)
 	    {
 		changed_int();
-		++curbuf->b_changedtick;
+		++*curbuf->b_changedtick;
 		break;
 	    }
 	}
@@ -1863,8 +1863,10 @@ recover_names(
 	    else
 	    {
 #if defined(UNIX) || defined(WIN3264)
-		p = dir_name + STRLEN(dir_name);
-		if (after_pathsep(dir_name, p) && p[-1] == p[-2])
+		int	len = STRLEN(dir_name);
+
+		p = dir_name + len;
+		if (after_pathsep(dir_name, p) && len > 1 && p[-1] == p[-2])
 		{
 		    /* Ends with '//', Use Full path for swap name */
 		    tail = make_percent_swname(dir_name, fname_res);
@@ -3922,8 +3924,10 @@ makeswapname(
 #endif
 
 #if defined(UNIX) || defined(WIN3264)  /* Need _very_ long file names */
-    s = dir_name + STRLEN(dir_name);
-    if (after_pathsep(dir_name, s) && s[-1] == s[-2])
+    int		len = STRLEN(dir_name);
+
+    s = dir_name + len;
+    if (after_pathsep(dir_name, s) && len > 1 && s[-1] == s[-2])
     {			       /* Ends with '//', Use Full path */
 	r = NULL;
 	if ((s = make_percent_swname(dir_name, fname)) != NULL)

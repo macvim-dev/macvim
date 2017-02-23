@@ -136,6 +136,15 @@ func Test_thesaurus()
   call Check_dir_option('thesaurus')
 endfun
 
+func Test_complete()
+  " Trailing single backslash used to cause invalid memory access.
+  set complete=s\
+  new
+  call feedkeys("i\<C-N>\<Esc>", 'xt')
+  bwipe!
+  set complete&
+endfun
+
 func Test_set_completion()
   call feedkeys(":set di\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"set dictionary diff diffexpr diffopt digraph directory display', @:)
@@ -225,4 +234,23 @@ func Test_set_errors()
   call assert_fails('set winminwidth=10 winwidth=9', 'E592:')
   call assert_fails("set showbreak=\x01", 'E595:')
   call assert_fails('set t_foo=', 'E846:')
+endfunc
+
+func Test_set_ttytype()
+  if !has('gui_running') && has('unix')
+    " Setting 'ttytype' used to cause a double-free when exiting vim and
+    " when vim is compiled with -DEXITFREE.
+    set ttytype=ansi
+    call assert_equal('ansi', &ttytype)
+    call assert_equal(&ttytype, &term)
+    set ttytype=xterm
+    call assert_equal('xterm', &ttytype)
+    call assert_equal(&ttytype, &term)
+    " FIXME: "set ttytype=" gives E522 instead of E529
+    " in travis on some builds. Why? Commented out this test for now.
+    " call assert_fails('set ttytype=', 'E529:')
+    call assert_fails('set ttytype=xxx', 'E522:')
+    set ttytype&
+    call assert_equal(&ttytype, &term)
+  endif
 endfunc

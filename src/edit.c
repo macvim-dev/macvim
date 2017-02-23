@@ -1677,7 +1677,7 @@ ins_redraw(
 #ifdef FEAT_AUTOCMD
     /* Trigger TextChangedI if b_changedtick differs. */
     if (ready && has_textchangedI()
-	    && last_changedtick != curbuf->b_changedtick
+	    && last_changedtick != *curbuf->b_changedtick
 # ifdef FEAT_INS_EXPAND
 	    && !pum_visible()
 # endif
@@ -1686,7 +1686,7 @@ ins_redraw(
 	if (last_changedtick_buf == curbuf)
 	    apply_autocmds(EVENT_TEXTCHANGEDI, NULL, NULL, FALSE, curbuf);
 	last_changedtick_buf = curbuf;
-	last_changedtick = curbuf->b_changedtick;
+	last_changedtick = *curbuf->b_changedtick;
     }
 #endif
 
@@ -3592,7 +3592,11 @@ ins_compl_addleader(int c)
 {
 #ifdef FEAT_MBYTE
     int		cc;
+#endif
 
+    if (stop_arrow() == FAIL)
+	return;
+#ifdef FEAT_MBYTE
     if (has_mbyte && (cc = (*mb_char2len)(c)) > 1)
     {
 	char_u	buf[MB_MAXBYTES + 1];
@@ -5105,6 +5109,7 @@ ins_complete(int c, int enable_pum)
     int		n;
     int		save_w_wrow;
     int		insert_match;
+    int		save_did_ai = did_ai;
 
     compl_direction = ins_compl_key2dir(c);
     insert_match = ins_compl_use_match(c);
@@ -5388,6 +5393,8 @@ ins_complete(int c, int enable_pum)
 	    {
 		EMSG2(_(e_notset), ctrl_x_mode == CTRL_X_FUNCTION
 					     ? "completefunc" : "omnifunc");
+		/* restore did_ai, so that adding comment leader works */
+		did_ai = save_did_ai;
 		return FAIL;
 	    }
 

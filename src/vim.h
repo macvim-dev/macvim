@@ -488,6 +488,9 @@ typedef unsigned long u8char_T;	    /* long should be 32 bits or more */
 # include <errno.h>
 #endif
 
+/* for INT_MAX et al. */
+#include <limits.h>
+
 /*
  * Allow other (non-unix) systems to configure themselves now
  * These are also in os_unix.h, because osdef.sh needs them there.
@@ -2477,10 +2480,12 @@ typedef enum {
 #define TFN_QUIET	2	/* no error messages */
 #define TFN_NO_AUTOLOAD	4	/* do not use script autoloading */
 #define TFN_NO_DEREF	8	/* do not dereference a Funcref */
+#define TFN_READ_ONLY	16	/* will not change the var */
 
 /* Values for get_lval() flags argument: */
 #define GLV_QUIET	TFN_QUIET	/* no error messages */
 #define GLV_NO_AUTOLOAD	TFN_NO_AUTOLOAD	/* do not use script autoloading */
+#define GLV_READ_ONLY	TFN_READ_ONLY	/* will not change the var */
 
 #define DO_NOT_FREE_CNT 99999	/* refcount for dict or list that should not
 				   be freed. */

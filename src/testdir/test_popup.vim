@@ -531,4 +531,43 @@ func Test_completion_respect_bs_option()
   bw!
 endfunc
 
+func CompleteUndo() abort
+  call complete(1, g:months)
+  return ''
+endfunc
+
+func Test_completion_can_undo()
+  inoremap <Right> <c-r>=CompleteUndo()<cr>
+  set completeopt+=noinsert,noselect
+
+  new
+  call feedkeys("a\<Right>a\<Esc>", 'xt')
+  call assert_equal('a', getline(1))
+  undo
+  call assert_equal('', getline(1))
+
+  bwipe!
+  set completeopt&
+  iunmap <Right>
+endfunc
+
+func Test_completion_comment_formatting()
+  new
+  setl formatoptions=tcqro
+  call feedkeys("o/*\<cr>\<cr>/\<esc>", 'tx')
+  call assert_equal(['', '/*', ' *', ' */'], getline(1,4))
+  %d
+  call feedkeys("o/*\<cr>foobar\<cr>/\<esc>", 'tx')
+  call assert_equal(['', '/*', ' * foobar', ' */'], getline(1,4))
+  %d
+  try
+    call feedkeys("o/*\<cr>\<cr>\<c-x>\<c-u>/\<esc>", 'tx')
+    call assert_false(1, 'completefunc not set, should have failed')
+  catch
+    call assert_exception('E764:')
+  endtry
+  call assert_equal(['', '/*', ' *', ' */'], getline(1,4))
+  bwipe!
+endfunc
+
 " vim: shiftwidth=2 sts=2 expandtab

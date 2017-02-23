@@ -3864,7 +3864,7 @@ free_all_options(void)
 	if (options[i].indir == PV_NONE)
 	{
 	    /* global option: free value and default value. */
-	    if (options[i].flags & P_ALLOCED && options[i].var != NULL)
+	    if ((options[i].flags & P_ALLOCED) && options[i].var != NULL)
 		free_string_option(*(char_u **)options[i].var);
 	    if (options[i].flags & P_DEF_ALLOCED)
 		free_string_option(options[i].def_val[VI_DEFAULT]);
@@ -6022,8 +6022,14 @@ did_set_string_option(
 	else if (set_termname(T_NAME) == FAIL)
 	    errmsg = (char_u *)N_("E522: Not found in termcap");
 	else
+	{
 	    /* Screen colors may have changed. */
 	    redraw_later_clear();
+
+	    /* Both 'term' and 'ttytype' point to T_NAME, only set the
+	     * P_ALLOCED flag on 'term'. */
+	    opt_idx = findoption((char_u *)"term");
+	}
     }
 
     /* 'backupcopy' */
@@ -7115,7 +7121,7 @@ did_set_string_option(
 		    /* skip optional filename after 'k' and 's' */
 		    while (*s && *s != ',' && *s != ' ')
 		    {
-			if (*s == '\\')
+			if (*s == '\\' && s[1] != NUL)
 			    ++s;
 			++s;
 		    }

@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 8.0.  Last change: 2017 Jan 28
+*options.txt*	For Vim version 8.0.  Last change: 2017 Feb 09
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2697,7 +2697,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	This option cannot be set from a |modeline|.  It would most likely
 	corrupt the text.
 
-	NOTE: For MacVim and GTK+ 2 it is highly recommended to set 'encoding'
+	NOTE: For MacVim and GTK+, it is highly recommended to set 'encoding'
 	to "utf-8".  Although care has been taken to allow different values of
 	'encoding', "utf-8" is the natural choice for the environment and
 	avoids unnecessary conversion overhead.  "utf-8" has not been made
@@ -3695,6 +3695,14 @@ A jump table for the options with a short description can be found at |Q_op|.
 	On systems where 'guifontset' is supported (X11) and 'guifontset' is
 	not empty, then 'guifont' is not used.
 
+	Note: As to the GTK GUIs, no error is given against any invalid names,
+	and the first element of the list is always picked up and made use of.
+	This is because, instead of identifying a given name with a font, the
+	GTK GUIs use it to construct a pattern and try to look up a font which
+	best matches the pattern among available fonts, and this way, the
+	matching never fails.  An invalid name doesn't matter because a number
+	of font properties other than name will do to get the matching done.
+
 	Spaces after a comma are ignored.  To include a comma in a font name
 	precede it with a backslash.  Setting an option requires an extra
 	backslash before a space and a backslash.  See also
@@ -3720,7 +3728,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	The font name depends on the GUI used.  See |setting-guifont| for a
 	way to set 'guifont' for various systems.
 
-	For the GTK+ 2 GUI the font name looks like this: >
+	For the GTK+ 2 and 3 GUIs, the font name looks like this: >
 	    :set guifont=Andale\ Mono\ 11
 <	That's all.  XLFDs are not used.  For Chinese this is reported to work
 	well: >
@@ -3729,7 +3737,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 	      set guifontwide=Microsoft\ Yahei\ 12,WenQuanYi\ Zen\ Hei\ 12
 	    endif
 <
-	For Mac OS X you can use something like this: >
+        (Replace gui_gtk2 with gui_gtk3 for the GTK+ 3 GUI)
+
+	For Mac OSX you can use something like this: >
 	    :set guifont=Monaco:h10
 <	Also see 'macatsui', it can help fix display problems {not in MacVim}.
 	In MacVim, fonts with spaces are set like this: >
@@ -3737,7 +3747,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 <
 								*E236*
 	Note that the fonts must be mono-spaced (all characters have the same
-        width).  An exception is MacVim and GTK 2: all fonts are accepted, but
+        width).  An exception is MacVim and GTK: all fonts are accepted, but
 	mono-spaced fonts look best.
 
 	To preview a font on X11, you might be able to use the "xfontsel"
@@ -3776,7 +3786,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not in Vi}
 			{only available when compiled with GUI enabled and
 			with the |+xfontset| feature}
-			{not available in the GTK+ 2 GUI}
+			{not available in the GTK+ GUI}
 	When not empty, specifies two (or more) fonts to be used.  The first
 	one for normal English, the second one for your special language.  See
 	|xfontset|.
@@ -3805,7 +3815,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Note: The size of these fonts must be exactly twice as wide as the one
 	specified with 'guifont' and the same height.
 
-	All GUI versions but MacVim and GTK+ 2:
+	All GUI versions but MacVim and GTK+:
 
 	'guifontwide' is only used when 'encoding' is set to "utf-8" and
 	'guifontset' is empty or invalid.
@@ -3819,7 +3829,7 @@ A jump table for the options with a short description can be found at |Q_op|.
         that font will be used for all wide fonts.  However, if a glyph is
 	not available in the wide font, then font substitution is still used.
 
-	GTK+ 2 GUI only:			*guifontwide_gtk2*
+	GTK+ GUI only:				*guifontwide_gtk2*
 
 	If set and valid, 'guifontwide' is always used for double width
 	characters, even if 'encoding' is not set to "utf-8".
@@ -7790,7 +7800,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 					*'termencoding'* *'tenc'*
 'termencoding' 'tenc'	string	(default ""
-				 with GTK+ 2 and MacVim GUIs: "utf-8"
+				 with GTK+ and MacVim GUIs: "utf-8"
 				 with Macintosh (Carbon) GUI: "macroman")
 			global
 			{only available when compiled with the |+multi_byte|
@@ -7804,7 +7814,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	In the Win32 console version the default value is the console codepage
 	when it differs from the ANSI codepage.
 								*E617*
-        Note: This does not apply to the GTK+ 2 and MacVim GUIs.  After the
+        Note: This does not apply to the GTK+ and MacVim GUIs.  After the
         GUI has been successfully initialized, 'termencoding' is forcibly set
         to "utf-8".  Any attempts to set a different value will be rejected,
 	and an error message is shown.
@@ -8088,7 +8098,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 'toolbariconsize' 'tbis'	string	(default "small")
 				global
 				{not in Vi}
-				{only in the GTK+ 2 and MacVim GUIs}
+				{only in the GTK+ and MacVim GUIs}
 	Controls the size of toolbar icons.  The possible values are:
 		tiny		Use tiny icons.
 		small		Use small icons (default).
