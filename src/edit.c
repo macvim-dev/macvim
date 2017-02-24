@@ -8195,7 +8195,8 @@ in_cinkeys(
 	{
 	    if (try_match && *look == keytyped)
 		return TRUE;
-	    ++look;
+	    if (*look != NUL)
+		++look;
 	}
 
 	/*

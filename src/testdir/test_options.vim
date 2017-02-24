@@ -22,6 +22,13 @@ function! Test_whichwrap()
   set whichwrap&
 endfunction
 
+function! Test_isfname()
+  " This used to cause Vim to access uninitialized memory.
+  set isfname=
+  call assert_equal("~X", expand("~X"))
+  set isfname&
+endfunction
+
 function Test_options()
   let caught = 'ok'
   try
@@ -128,6 +135,13 @@ func Check_dir_option(name)
   call assert_fails("set " . a:name . "=/not.*there", "E474:")
 endfunc
 
+func Test_cinkeys()
+  " This used to cause invalid memory access
+  set cindent cinkeys=0
+  norm a
+  set cindent& cinkeys&
+endfunc
+
 func Test_dictionary()
   call Check_dir_option('dictionary')
 endfunc
@@ -228,7 +242,14 @@ func Test_set_errors()
   call assert_fails('set statusline=%{', 'E540:')
   call assert_fails('set statusline=' . repeat("%p", 81), 'E541:')
   call assert_fails('set statusline=%(', 'E542:')
-  call assert_fails('set guicursor=x', 'E545:')
+  if has('cursorshape')
+    " This invalid value for 'guicursor' used to cause Vim to crash.
+    call assert_fails('set guicursor=i-ci,r-cr:h', 'E545:')
+    call assert_fails('set guicursor=i-ci', 'E545:')
+    call assert_fails('set guicursor=x', 'E545:')
+    call assert_fails('set guicursor=r-cr:horx', 'E548:')
+    call assert_fails('set guicursor=r-cr:hor0', 'E549:')
+  endif
   call assert_fails('set backupext=~ patchmode=~', 'E589:')
   call assert_fails('set winminheight=10 winheight=9', 'E591:')
   call assert_fails('set winminwidth=10 winwidth=9', 'E592:')
