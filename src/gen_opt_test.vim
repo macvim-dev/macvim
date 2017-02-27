@@ -138,6 +138,10 @@ let test_values = {
       \ 'rubydll': [[], []],
       \ 'tcldll': [[], []],
       \
+      \ 'blurradius': [[], [-1]],
+      \ 'fuoptions': [[], ['xxx']],
+      \ 'transparency': [[], ['-1']],
+      \
       \ 'othernum': [[-1, 0, 100], ['']],
       \ 'otherstring': [['', 'xxx'], []],
       \}
