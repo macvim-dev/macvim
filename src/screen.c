@@ -4189,7 +4189,9 @@ win_line(
 	}
 	else
 	{
+#ifdef FEAT_LINEBREAK
 	    int c0;
+#endif
 
 	    if (p_extra_free != NULL)
 	    {
@@ -4199,7 +4201,10 @@ win_line(
 	    /*
 	     * Get a character from the line itself.
 	     */
-	    c0 = c = *ptr;
+	    c = *ptr;
+#ifdef FEAT_LINEBREAK
+	    c0 = *ptr;
+#endif
 #ifdef FEAT_MBYTE
 	    if (has_mbyte)
 	    {
@@ -4216,7 +4221,12 @@ win_line(
 			/* Overlong encoded ASCII or ASCII with composing char
 			 * is displayed normally, except a NUL. */
 			if (mb_c < 0x80)
-			    c0 = c = mb_c;
+			{
+			    c = mb_c;
+# ifdef FEAT_LINEBREAK
+			    c0 = mb_c;
+# endif
+			}
 			mb_utf8 = TRUE;
 
 			/* At start of the line we can have a composing char.
