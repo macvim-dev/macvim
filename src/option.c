@@ -676,11 +676,13 @@ static struct vimoption options[] =
     {"bioskey",	    "biosk",P_BOOL|P_VI_DEF,
 			    (char_u *)NULL, PV_NONE,
 			    {(char_u *)TRUE, (char_u *)0L} SCRIPTID_INIT},
-#ifdef FEAT_GUI_MACVIM
     {"blurradius",  "blur", P_NUM|P_VIM,
+#ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_blur, PV_NONE,
-			    {(char_u *)0L, (char_u *)0L} },
+#else
+			    (char_u *)NULL, PV_NONE,
 #endif
+			    {(char_u *)0L, (char_u *)0L} },
     {"bomb",	    NULL,   P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
 #ifdef FEAT_MBYTE
 			    (char_u *)&p_bomb, PV_BOMB,
@@ -1376,15 +1378,23 @@ static struct vimoption options[] =
 			    {(char_u *)FALSE, (char_u *)0L}
 #endif
 			    SCRIPTID_INIT},
-#ifdef FEAT_FULLSCREEN
     {"fullscreen",  "fu",   P_BOOL|P_NO_MKRC,
+#ifdef FEAT_FULLSCREEN
 			    (char_u *)&p_fullscreen, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L} SCRIPTID_INIT},
+#endif
     {"fuoptions",  "fuopt", P_STRING|P_COMMA|P_NODUP|P_VI_DEF,
+#ifdef FEAT_FULLSCREEN
 			    (char_u *)&p_fuoptions, PV_NONE,
 			    {(char_u *)"maxvert,maxhorz", (char_u *)0L}
-			    SCRIPTID_INIT},
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L}
 #endif
+			    SCRIPTID_INIT},
     {"gdefault",    "gd",   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_gd, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
@@ -1919,16 +1929,29 @@ static struct vimoption options[] =
 			    {(char_u *)"", (char_u *)0L}
 #endif
 			    SCRIPTID_INIT},
-#ifdef FEAT_GUI_MACVIM
     {"macligatures", NULL,  P_BOOL|P_VI_DEF|P_RCLR,
+#ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_macligatures, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}},
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L}},
+#endif
     {"macmeta",	    "mmta", P_BOOL|P_VI_DEF,
+#ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_mmta, PV_MMTA,
 			    {(char_u *)FALSE, (char_u *)0L}},
+#else
+			    (char_u *)NULL, PV_MMTA,
+			    {(char_u *)NULL, (char_u *)0L}},
+#endif
     {"macthinstrokes", NULL,  P_BOOL|P_VI_DEF|P_RCLR,
+#ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_macthinstrokes, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}},
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L}},
 #endif
     {"magic",	    NULL,   P_BOOL|P_VI_DEF,
 			    (char_u *)&p_magic, PV_NONE,
@@ -2285,8 +2308,13 @@ static struct vimoption options[] =
 #endif
 			    SCRIPTID_INIT},
     {"pythonthreehome", NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
+#if defined(DYNAMIC_PYTHON3)
 			    (char_u *)&p_py3home, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L}
+#endif
 			    SCRIPTID_INIT},
     {"pythondll",   NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
 #if defined(DYNAMIC_PYTHON)
@@ -2298,8 +2326,13 @@ static struct vimoption options[] =
 #endif
 			    SCRIPTID_INIT},
     {"pythonhome",  NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
+#if defined(DYNAMIC_PYTHON)
 			    (char_u *)&p_pyhome, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)0L}
+#endif
 			    SCRIPTID_INIT},
     {"pyxversion", "pyx",   P_NUM|P_VI_DEF|P_SECURE,
 #if defined(FEAT_PYTHON) || defined(FEAT_PYTHON3)
@@ -2899,11 +2932,13 @@ static struct vimoption options[] =
 			    {(char_u *)0L, (char_u *)0L}
 #endif
 			    SCRIPTID_INIT},
-#ifdef FEAT_TRANSPARENCY
     {"transparency",   "transp",  P_NUM|P_VIM|P_RCLR,
+#ifdef FEAT_TRANSPARENCY
 			    (char_u *)&p_transp, PV_NONE,
-			    {(char_u *)0L, (char_u *)0L} },
+#else
+			    (char_u *)NULL, PV_NONE,
 #endif
+			    {(char_u *)0L, (char_u *)0L} },
     {"ttimeout",    NULL,   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_ttimeout, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
