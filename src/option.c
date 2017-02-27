@@ -1376,22 +1376,15 @@ static struct vimoption options[] =
 			    {(char_u *)FALSE, (char_u *)0L}
 #endif
 			    SCRIPTID_INIT},
-    {"fullscreen",  "fu",   P_BOOL|P_NO_MKRC,
 #ifdef FEAT_FULLSCREEN
+    {"fullscreen",  "fu",   P_BOOL|P_NO_MKRC,
 			    (char_u *)&p_fullscreen, PV_NONE,
-#else
-			    (char_u *)NULL, PV_NONE,
-#endif
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
     {"fuoptions",  "fuopt", P_STRING|P_COMMA|P_NODUP|P_VI_DEF,
-#ifdef FEAT_FULLSCREEN
 			    (char_u *)&p_fuoptions, PV_NONE,
 			    {(char_u *)"maxvert,maxhorz", (char_u *)0L}
-#else
-			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)NULL, (char_u *)0L}
-#endif
 			    SCRIPTID_INIT},
+#endif
     {"gdefault",    "gd",   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_gd, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
@@ -1930,15 +1923,9 @@ static struct vimoption options[] =
     {"macligatures", NULL,  P_BOOL|P_VI_DEF|P_RCLR,
 			    (char_u *)&p_macligatures, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}},
-#endif
     {"macmeta",	    "mmta", P_BOOL|P_VI_DEF,
-#ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_mmta, PV_MMTA,
-#else
-			    (char_u *)NULL, PV_NONE,
-#endif
 			    {(char_u *)FALSE, (char_u *)0L}},
-#ifdef FEAT_GUI_MACVIM
     {"macthinstrokes", NULL,  P_BOOL|P_VI_DEF|P_RCLR,
 			    (char_u *)&p_macthinstrokes, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L}},
@@ -2295,12 +2282,11 @@ static struct vimoption options[] =
 #else
 			    (char_u *)NULL, PV_NONE,
 			    {(char_u *)NULL, (char_u *)0L}
+#endif
 			    SCRIPTID_INIT},
     {"pythonthreehome", NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
 			    (char_u *)&p_py3home, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
-			    SCRIPTID_INIT},
-#endif
 			    SCRIPTID_INIT},
     {"pythondll",   NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
 #if defined(DYNAMIC_PYTHON)
@@ -2309,12 +2295,11 @@ static struct vimoption options[] =
 #else
 			    (char_u *)NULL, PV_NONE,
 			    {(char_u *)NULL, (char_u *)0L}
+#endif
 			    SCRIPTID_INIT},
     {"pythonhome",  NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
 			    (char_u *)&p_pyhome, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
-			    SCRIPTID_INIT},
-#endif
 			    SCRIPTID_INIT},
     {"pyxversion", "pyx",   P_NUM|P_VI_DEF|P_SECURE,
 #if defined(FEAT_PYTHON) || defined(FEAT_PYTHON3)
@@ -2905,9 +2890,8 @@ static struct vimoption options[] =
 			    {(char_u *)0L, (char_u *)0L}
 #endif
 			    SCRIPTID_INIT},
-#if defined(FEAT_TOOLBAR) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
     {"toolbariconsize",	"tbis", P_STRING|P_VI_DEF,
-#if defined(FEAT_TOOLBAR) && defined(FEAT_GUI_GTK)
+#if defined(FEAT_TOOLBAR) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
 			    (char_u *)&p_tbis, PV_NONE,
 			    {(char_u *)"small", (char_u *)0L}
 #else
@@ -2915,13 +2899,11 @@ static struct vimoption options[] =
 			    {(char_u *)0L, (char_u *)0L}
 #endif
 			    SCRIPTID_INIT},
-    {"transparency",   "transp",  P_NUM|P_VIM|P_RCLR,
 #ifdef FEAT_TRANSPARENCY
+    {"transparency",   "transp",  P_NUM|P_VIM|P_RCLR,
 			    (char_u *)&p_transp, PV_NONE,
-#else
-			    (char_u *)NULL, PV_NONE,
-#endif
 			    {(char_u *)0L, (char_u *)0L} },
+#endif
     {"ttimeout",    NULL,   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_ttimeout, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCRIPTID_INIT},
