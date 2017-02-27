@@ -2984,8 +2984,6 @@ do_mouse(
 		|| (mod_mask & MOD_MASK_MULTI_CLICK) == MOD_MASK_2CLICK)
 	    && bt_quickfix(curbuf))
     {
-	if (State & INSERT)
-	    stuffcharReadbuff(Ctrl_O);
 	if (curwin->w_llist_ref == NULL)	/* quickfix window */
 	    do_cmdline_cmd((char_u *)".cc");
 	else					/* location list window */
@@ -6227,10 +6225,12 @@ nv_down(cmdarg_T *cap)
 #if defined(FEAT_WINDOWS) && defined(FEAT_QUICKFIX)
     /* In a quickfix window a <CR> jumps to the error under the cursor. */
     if (bt_quickfix(curbuf) && cap->cmdchar == CAR)
+    {
 	if (curwin->w_llist_ref == NULL)
 	    do_cmdline_cmd((char_u *)".cc");	/* quickfix window */
 	else
 	    do_cmdline_cmd((char_u *)".ll");	/* location list window */
+    }
     else
 #endif
     {

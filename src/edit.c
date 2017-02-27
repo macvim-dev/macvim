@@ -1038,8 +1038,10 @@ doESCkey:
 	    if (!p_im)
 		goto normalchar;	/* insert CTRL-Z as normal char */
 	    do_cmdline_cmd((char_u *)"stop");
-	    c = Ctrl_O;
-	    /*FALLTHROUGH*/
+#ifdef CURSOR_SHAPE
+	    ui_cursor_shape();		/* may need to update cursor shape */
+#endif
+	    continue;
 
 	case Ctrl_O:	/* execute one command */
 #ifdef FEAT_COMPL_FUNC
@@ -1677,7 +1679,7 @@ ins_redraw(
 #ifdef FEAT_AUTOCMD
     /* Trigger TextChangedI if b_changedtick differs. */
     if (ready && has_textchangedI()
-	    && last_changedtick != *curbuf->b_changedtick
+	    && last_changedtick != CHANGEDTICK(curbuf)
 # ifdef FEAT_INS_EXPAND
 	    && !pum_visible()
 # endif
@@ -1686,7 +1688,7 @@ ins_redraw(
 	if (last_changedtick_buf == curbuf)
 	    apply_autocmds(EVENT_TEXTCHANGEDI, NULL, NULL, FALSE, curbuf);
 	last_changedtick_buf = curbuf;
-	last_changedtick = *curbuf->b_changedtick;
+	last_changedtick = CHANGEDTICK(curbuf);
     }
 #endif
 
