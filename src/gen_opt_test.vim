@@ -139,6 +139,7 @@ let test_values = {
       \
       \ 'blurradius': [[], [-1]],
       \ 'fuoptions': [[], ['xxx']],
+      \ 'guifont': [[], ['xxx']],
       \ 'transparency': [[], ['-1']],
       \
       \ 'othernum': [[-1, 0, 100], ['']],
