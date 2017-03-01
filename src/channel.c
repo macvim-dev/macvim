@@ -1987,7 +1987,7 @@ channel_parse_json(channel_T *channel, ch_part_T part)
 	     * more (but still incomplete): set a deadline of 100 msec. */
 	    ch_logn(channel,
 		    "Incomplete message (%d bytes) - wait 100 msec for more",
-		    buflen);
+		    (int)buflen);
 	    reader.js_used = 0;
 	    chanpart->ch_wait_len = buflen;
 #ifdef WIN32
@@ -3324,6 +3324,7 @@ channel_read_block(channel_T *channel, ch_part_T part, int timeout)
 	channel_read(channel, part, "channel_read_block");
     }
 
+    /* We have a complete message now. */
     if (mode == MODE_RAW)
     {
 	msg = channel_get_all(channel, part);
