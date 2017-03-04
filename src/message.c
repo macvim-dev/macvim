@@ -539,7 +539,7 @@ emsg_not_now(void)
     return FALSE;
 }
 
-#ifdef FEAT_EVAL
+#if defined(FEAT_EVAL) || defined(PROTO)
 static garray_T ignore_error_list = GA_EMPTY;
 
     void
@@ -605,7 +605,8 @@ emsg(char_u *s)
 #ifdef FEAT_EVAL
     /* When testing some errors are turned into a normal message. */
     if (ignore_error(s))
-	return msg(s);
+	/* don't call msg() if it results in a dialog */
+	return msg_use_printf() ? FALSE : msg(s);
 #endif
 
     called_emsg = TRUE;
