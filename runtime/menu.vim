@@ -1241,7 +1241,7 @@ if has("gui_macvim")
   macm Edit.Font.Smaller			key=<D--> action=fontSizeDown:
   macm Edit.Emoji\ &&\ Symbols			key=<D-C-Space> action=orderFrontCharacterPalette:
 
-  macm Tools.Spelling.To\ Next\ error<Tab>]s	key=<D-;>
+  macm Tools.Spelling.To\ Next\ Error<Tab>]s	key=<D-;>
   macm Tools.Spelling.Suggest\ Corrections<Tab>z=   key=<D-:>
   macm Tools.Make<Tab>:make			key=<D-b>
   macm Tools.List\ Errors<Tab>:cl		key=<D-l>
