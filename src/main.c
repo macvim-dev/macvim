@@ -57,6 +57,9 @@ static void main_start_gui(void);
 # if defined(HAS_SWAP_EXISTS_ACTION)
 static void check_swap_exists_action(void);
 # endif
+# ifdef FEAT_EVAL
+static void set_progpath(char_u *argv0);
+# endif
 # if defined(FEAT_CLIENTSERVER) || defined(PROTO)
 static void exec_on_server(mparm_T *parmp);
 static void prepare_server(mparm_T *parmp);
@@ -579,11 +582,16 @@ vim_main2(void)
      */
     if (params.edit_type == EDIT_QF)
     {
+	char_u	*enc = NULL;
+
+# ifdef FEAT_MBYTE
+	enc = p_menc;
+# endif
 	if (params.use_ef != NULL)
 	    set_string_option_direct((char_u *)"ef", -1,
 					   params.use_ef, OPT_FREE, SID_CARG);
 	vim_snprintf((char *)IObuff, IOSIZE, "cfile %s", p_ef);
-	if (qf_init(NULL, p_ef, p_efm, TRUE, IObuff) < 0)
+	if (qf_init(NULL, p_ef, p_efm, TRUE, IObuff, enc) < 0)
 	{
 	    out_char('\n');
 	    mch_exit(3);
@@ -1772,7 +1780,7 @@ parse_command_name(mparm_T *parmp)
 
 #ifdef FEAT_EVAL
     set_vim_var_string(VV_PROGNAME, initstr, -1);
-    set_vim_var_string(VV_PROGPATH, (char_u *)parmp->argv[0], -1);
+    set_progpath((char_u *)parmp->argv[0]);
 #endif
 
     if (TOLOWER_ASC(initstr[0]) == 'r')
@@ -3501,7 +3509,7 @@ check_swap_exists_action(void)
 }
 #endif
 
-#endif
+#endif /* NO_VIM_MAIN */
 
 #if defined(STARTUPTIME) || defined(PROTO)
 static void time_diff(struct timeval *then, struct timeval *now);
@@ -3608,6 +3616,39 @@ time_msg(
 }
 
 #endif
+
+#if !defined(NO_VIM_MAIN) && defined(FEAT_EVAL)
+    static void
+set_progpath(char_u *argv0)
+{
+    char_u *val = argv0;
+
+    /* A relative path containing a "/" will become invalid when using ":cd",
+     * turn it into a full path.
+     * On MS-Windows "vim" should be expanded to "vim.exe", thus always do
+     * this. */
+# ifdef WIN32
+    char_u *path = NULL;
+
+    if (mch_can_exe(argv0, &path, FALSE) && path != NULL)
+	val = path;
+# else
+    char_u buf[MAXPATHL];
+
+    if (!mch_isFullName(argv0))
+    {
+	if (gettail(argv0) != argv0
+			   && vim_FullName(argv0, buf, MAXPATHL, TRUE) != FAIL)
+	    val = buf;
+    }
+# endif
+    set_vim_var_string(VV_PROGPATH, val, -1);
+# ifdef WIN32
+    vim_free(path);
+# endif
+}
+
+#endif /* NO_VIM_MAIN */
 
 #if (defined(FEAT_CLIENTSERVER) && !defined(NO_VIM_MAIN)) || defined(PROTO)
 

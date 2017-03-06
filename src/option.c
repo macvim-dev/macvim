@@ -139,6 +139,9 @@
 # define PV_LISP	OPT_BUF(BV_LISP)
 # define PV_LW		OPT_BOTH(OPT_BUF(BV_LW))
 #endif
+#ifdef FEAT_MBYTE
+# define PV_MENC	OPT_BOTH(OPT_BUF(BV_MENC))
+#endif
 #define PV_MA		OPT_BUF(BV_MA)
 #define PV_ML		OPT_BUF(BV_ML)
 #define PV_MOD		OPT_BUF(BV_MOD)
@@ -1963,6 +1966,15 @@ static struct vimoption options[] =
 #else
 			    (char_u *)NULL, PV_NONE,
 			    {(char_u *)NULL, (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
+    {"makeencoding","menc", P_STRING|P_VI_DEF,
+#ifdef FEAT_MBYTE
+			    (char_u *)&p_menc, PV_MENC,
+			    {(char_u *)"", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)0L, (char_u *)0L}
 #endif
 			    SCRIPTID_INIT},
     {"makeprg",	    "mp",   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
@@ -4634,8 +4646,11 @@ do_set(
 		 * "wrap" gets set. */
 		if (curwin->w_p_diff
 			&& opt_idx >= 0  /* shut up coverity warning */
-			&& (options[opt_idx].indir == PV_FDM
-			    || options[opt_idx].indir == PV_WRAP))
+			&& (
+#ifdef FEAT_FOLDING
+			    options[opt_idx].indir == PV_FDM ||
+#endif
+			    options[opt_idx].indir == PV_WRAP))
 		    goto skip;
 #endif
 	    }
@@ -5801,6 +5816,9 @@ check_buf_options(buf_T *buf)
     check_string_option(&buf->b_p_lw);
 #endif
     check_string_option(&buf->b_p_bkc);
+#ifdef FEAT_MBYTE
+    check_string_option(&buf->b_p_menc);
+#endif
 }
 
 /*
@@ -6404,8 +6422,9 @@ did_set_string_option(
 #endif
 
 #ifdef FEAT_MBYTE
-    /* 'encoding' and 'fileencoding' */
-    else if (varp == &p_enc || gvarp == &p_fenc || varp == &p_tenc)
+    /* 'encoding', 'fileencoding', 'termencoding' and 'makeencoding' */
+    else if (varp == &p_enc || gvarp == &p_fenc || varp == &p_tenc
+							   || gvarp == &p_menc)
     {
 	if (gvarp == &p_fenc)
 	{
@@ -10632,6 +10651,11 @@ unset_global_local_option(char_u *name, void *from)
 	    clear_string_option(&buf->b_p_lw);
 	    break;
 #endif
+#ifdef FEAT_MBYTE
+	case PV_MENC:
+	    clear_string_option(&buf->b_p_menc);
+	    break;
+#endif
     }
 }
 
@@ -10685,6 +10709,9 @@ get_varp_scope(struct vimoption *p, int opt_flags)
 	    case PV_LW:   return (char_u *)&(curbuf->b_p_lw);
 #endif
 	    case PV_BKC:  return (char_u *)&(curbuf->b_p_bkc);
+#ifdef FEAT_MBYTE
+	    case PV_MENC: return (char_u *)&(curbuf->b_p_menc);
+#endif
 	}
 	return NULL; /* "cannot happen" */
     }
@@ -10759,6 +10786,10 @@ get_varp(struct vimoption *p)
 #ifdef FEAT_LISP
 	case PV_LW:	return *curbuf->b_p_lw != NUL
 				    ? (char_u *)&(curbuf->b_p_lw) : p->var;
+#endif
+#ifdef FEAT_MBYTE
+	case PV_MENC:	return *curbuf->b_p_menc != NUL
+				    ? (char_u *)&(curbuf->b_p_menc) : p->var;
 #endif
 
 #ifdef FEAT_ARABIC
@@ -11366,6 +11397,9 @@ buf_copy_options(buf_T *buf, int flags)
 #endif
 #ifdef FEAT_LISP
 	    buf->b_p_lw = empty_option;
+#endif
+#ifdef FEAT_MBYTE
+	    buf->b_p_menc = empty_option;
 #endif
 
 	    /*

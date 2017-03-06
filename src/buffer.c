@@ -2259,6 +2259,9 @@ free_buf_options(
     clear_string_option(&buf->b_p_lw);
 #endif
     clear_string_option(&buf->b_p_bkc);
+#ifdef FEAT_MBYTE
+    clear_string_option(&buf->b_p_menc);
+#endif
 }
 
 /*

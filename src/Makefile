@@ -2121,6 +2121,7 @@ test_arglist \
 	test_channel \
 	test_charsearch \
 	test_changedtick \
+	test_cindent \
 	test_cmdline \
 	test_command_count \
 	test_crypt \
@@ -2174,6 +2175,7 @@ test_arglist \
 	test_listlbr \
 	test_listlbr_utf8 \
 	test_lua \
+	test_makeencoding \
 	test_man \
 	test_mapping \
 	test_marks \
