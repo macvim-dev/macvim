@@ -2271,7 +2271,10 @@ has_compl_option(int dict_opt)
 	    vim_beep(BO_COMPL);
 	    setcursor();
 	    out_flush();
-	    ui_delay(2000L, FALSE);
+#ifdef FEAT_EVAL
+	    if (!get_vim_var_nr(VV_TESTING))
+#endif
+		ui_delay(2000L, FALSE);
 	}
 	return FALSE;
     }
