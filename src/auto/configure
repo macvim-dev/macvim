@@ -7262,7 +7262,7 @@ $as_echo "$rubyhdrdir" >&6; }
 	if test -f "$rubylibdir/$librubya"; then
 	  librubyarg="$librubyarg"
 	  RUBY_LIBS="$RUBY_LIBS -L$rubylibdir"
-        elif test -d "/System/Library/Frameworks/Ruby.framework"; then
+        elif test "$vi_cv_path_ruby" = "/usr/bin/ruby" -a -d "/System/Library/Frameworks/Ruby.framework"; then
                         RUBY_LIBS="-framework Ruby"
                         RUBY_CFLAGS="$RUBY_CFLAGS -DRUBY_VERSION=$rubyversion"
             librubyarg=

@@ -1930,7 +1930,7 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
 	if test -f "$rubylibdir/$librubya"; then
 	  librubyarg="$librubyarg"
 	  RUBY_LIBS="$RUBY_LIBS -L$rubylibdir"
-        elif test -d "/System/Library/Frameworks/Ruby.framework"; then
+        elif test "$vi_cv_path_ruby" = "/usr/bin/ruby" -a -d "/System/Library/Frameworks/Ruby.framework"; then
             dnl On Mac OS X it is safer to just use the -framework flag
             RUBY_LIBS="-framework Ruby"
             dnl Don't include the -I flag when -framework is set
