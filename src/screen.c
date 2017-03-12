@@ -2714,7 +2714,7 @@ fold_line(
      */
     if (VIsual_active && wp->w_buffer == curwin->w_buffer)
     {
-	if (ltoreq(curwin->w_cursor, VIsual))
+	if (LTOREQ_POS(curwin->w_cursor, VIsual))
 	{
 	    /* Visual is after curwin->w_cursor */
 	    top = &curwin->w_cursor;
@@ -3170,7 +3170,7 @@ win_line(
     if (VIsual_active && wp->w_buffer == curwin->w_buffer)
     {
 					/* Visual is after curwin->w_cursor */
-	if (ltoreq(curwin->w_cursor, VIsual))
+	if (LTOREQ_POS(curwin->w_cursor, VIsual))
 	{
 	    top = &curwin->w_cursor;
 	    bot = &VIsual;
@@ -3371,7 +3371,7 @@ win_line(
 	if (lcs_trail)
 	{
 	    trailcol = (colnr_T)STRLEN(ptr);
-	    while (trailcol > (colnr_T)0 && vim_iswhite(ptr[trailcol - 1]))
+	    while (trailcol > (colnr_T)0 && VIM_ISWHITE(ptr[trailcol - 1]))
 		--trailcol;
 	    trailcol += (colnr_T) (ptr - line);
 	}
@@ -3397,7 +3397,7 @@ win_line(
 #ifdef FEAT_MBYTE
 	    prev_ptr = ptr;
 #endif
-	    mb_ptr_adv(ptr);
+	    MB_PTR_ADV(ptr);
 	}
 
 	/* When:
@@ -4554,7 +4554,7 @@ win_line(
 		 * Found last space before word: check for line break.
 		 */
 		if (wp->w_p_lbr && c0 == c
-				      && vim_isbreak(c) && !vim_isbreak(*ptr))
+				  && VIM_ISBREAK(c) && !VIM_ISBREAK((int)*ptr))
 		{
 # ifdef FEAT_MBYTE
 		    int mb_off = has_mbyte ? (*mb_head_off)(line, ptr - 1) : 0;
@@ -4577,7 +4577,7 @@ win_line(
 # else
 		    c_extra = ' ';
 # endif
-		    if (vim_iswhite(c))
+		    if (VIM_ISWHITE(c))
 		    {
 #ifdef FEAT_CONCEAL
 			if (c == TAB)
@@ -6419,7 +6419,7 @@ status_match_len(expand_T *xp, char_u *s)
     {
 	s += skip_status_match_char(xp, s);
 	len += ptr2cells(s);
-	mb_ptr_adv(s);
+	MB_PTR_ADV(s);
     }
 
     return len;
@@ -10498,7 +10498,7 @@ draw_tabline(void)
 		    while (len > room)
 		    {
 			len -= ptr2cells(p);
-			mb_ptr_adv(p);
+			MB_PTR_ADV(p);
 		    }
 		else
 #endif

@@ -833,7 +833,7 @@ u_get_undo_file_name(char_u *buf_ffname, int reading)
 		    munged_name = vim_strsave(ffname);
 		    if (munged_name == NULL)
 			return NULL;
-		    for (p = munged_name; *p != NUL; mb_ptr_adv(p))
+		    for (p = munged_name; *p != NUL; MB_PTR_ADV(p))
 			if (vim_ispathsep(*p))
 			    *p = '%';
 		}
@@ -2784,7 +2784,7 @@ u_undoredo(int undo)
 
     curhead->uh_entry = newlist;
     curhead->uh_flags = new_flags;
-    if ((old_flags & UH_EMPTYBUF) && bufempty())
+    if ((old_flags & UH_EMPTYBUF) && BUFEMPTY())
 	curbuf->b_ml.ml_flags |= ML_EMPTY;
     if (old_flags & UH_CHANGED)
 	changed();
@@ -3175,14 +3175,14 @@ u_find_first_changed(void)
 	if (STRCMP(ml_get_buf(curbuf, lnum, FALSE),
 						uep->ue_array[lnum - 1]) != 0)
 	{
-	    clearpos(&(uhp->uh_cursor));
+	    CLEAR_POS(&(uhp->uh_cursor));
 	    uhp->uh_cursor.lnum = lnum;
 	    return;
 	}
     if (curbuf->b_ml.ml_line_count != uep->ue_size)
     {
 	/* lines added or deleted at the end, put the cursor there */
-	clearpos(&(uhp->uh_cursor));
+	CLEAR_POS(&(uhp->uh_cursor));
 	uhp->uh_cursor.lnum = lnum;
     }
 }

@@ -234,7 +234,7 @@ getcmdline(
 
     ccline.overstrike = FALSE;		    /* always start in insert mode */
 #ifdef FEAT_SEARCH_EXTRA
-    clearpos(&match_end);
+    CLEAR_POS(&match_end);
     save_cursor = curwin->w_cursor;	    /* may be restored later */
     search_start = curwin->w_cursor;
     old_curswant = curwin->w_curswant;
@@ -1487,7 +1487,7 @@ getcmdline(
 		    if (did_incsearch)
 		    {
 			curwin->w_cursor = match_end;
-			if (!equalpos(curwin->w_cursor, search_start))
+			if (!EQUAL_POS(curwin->w_cursor, search_start))
 			{
 			    c = gchar_cursor();
 			    /* If 'ignorecase' and 'smartcase' are set and the
@@ -1715,7 +1715,7 @@ getcmdline(
 			    search_start = t;
 			    (void)decl(&search_start);
 			}
-			if (lt(t, search_start) && c == Ctrl_G)
+			if (LT_POS(t, search_start) && c == Ctrl_G)
 			{
 			    /* wrap around */
 			    search_start = t;
@@ -2015,7 +2015,7 @@ returncmd:
 	    curwin->w_cursor = save_cursor;
 	else
 	{
-	    if (!equalpos(save_cursor, search_start))
+	    if (!EQUAL_POS(save_cursor, search_start))
 	    {
 		/* put the '" mark at the original position */
 		curwin->w_cursor = save_cursor;
@@ -4307,7 +4307,7 @@ sm_gettail(char_u *s)
 	    t = p;
 	    had_sep = FALSE;
 	}
-	mb_ptr_adv(p);
+	MB_PTR_ADV(p);
     }
     return t;
 }
@@ -5384,7 +5384,7 @@ ExpandRTDir(
 	if (e - 4 > s && STRNICMP(e - 4, ".vim", 4) == 0)
 	{
 	    e -= 4;
-	    for (s = e; s > match; mb_ptr_back(match, s))
+	    for (s = e; s > match; MB_PTR_BACK(match, s))
 		if (s < match || vim_ispathsep(*s))
 		    break;
 	    ++s;
@@ -6041,7 +6041,7 @@ remove_key_from_history(void)
 		if (p == NULL)
 		    break;
 		++p;
-		for (i = 0; p[i] && !vim_iswhite(p[i]); ++i)
+		for (i = 0; p[i] && !VIM_ISWHITE(p[i]); ++i)
 		    if (p[i] == '\\' && p[i + 1])
 			++i;
 		STRMOVE(p, p + i);

@@ -1039,7 +1039,7 @@ foldAdjustVisual(void)
     if (!VIsual_active || !hasAnyFolding(curwin))
 	return;
 
-    if (ltoreq(VIsual, curwin->w_cursor))
+    if (LTOREQ_POS(VIsual, curwin->w_cursor))
     {
 	start = &VIsual;
 	end = &curwin->w_cursor;
@@ -1760,6 +1760,7 @@ foldAddMarker(linenr_T lnum, char_u *marker, int markerlen)
     int		line_len;
     char_u	*newline;
     char_u	*p = (char_u *)strstr((char *)curbuf->b_p_cms, "%s");
+    int		line_is_comment = FALSE;
 
     /* Allocate a new line: old-line + 'cms'-start + marker + 'cms'-end */
     line = ml_get(lnum);
@@ -1767,11 +1768,16 @@ foldAddMarker(linenr_T lnum, char_u *marker, int markerlen)
 
     if (u_save(lnum - 1, lnum + 1) == OK)
     {
+#if defined(FEAT_COMMENTS)
+	/* Check if the line ends with an unclosed comment */
+	(void)skip_comment(line, FALSE, FALSE, &line_is_comment);
+#endif
 	newline = alloc((unsigned)(line_len + markerlen + STRLEN(cms) + 1));
 	if (newline == NULL)
 	    return;
 	STRCPY(newline, line);
-	if (p == NULL)
+	/* Append the marker to the end of the line */
+	if (p == NULL || line_is_comment)
 	    vim_strncpy(newline + line_len, marker, markerlen);
 	else
 	{
@@ -1970,7 +1976,7 @@ get_foldtext(
 	long count = (long)(lnume - lnum + 1);
 
 	vim_snprintf((char *)buf, FOLD_TEXT_LEN,
-		     ngettext("+--%3ld line folded ",
+		     NGETTEXT("+--%3ld line folded ",
 					       "+--%3ld lines folded ", count),
 		     count);
 	text = buf;
@@ -1998,7 +2004,7 @@ foldtext_cleanup(char_u *str)
     /* Ignore leading and trailing white space in 'commentstring'. */
     cms_start = skipwhite(curbuf->b_p_cms);
     cms_slen = (int)STRLEN(cms_start);
-    while (cms_slen > 0 && vim_iswhite(cms_start[cms_slen - 1]))
+    while (cms_slen > 0 && VIM_ISWHITE(cms_start[cms_slen - 1]))
 	--cms_slen;
 
     /* locate "%s" in 'commentstring', use the part before and after it. */
@@ -2009,7 +2015,7 @@ foldtext_cleanup(char_u *str)
 	cms_slen = (int)(cms_end - cms_start);
 
 	/* exclude white space before "%s" */
-	while (cms_slen > 0 && vim_iswhite(cms_start[cms_slen - 1]))
+	while (cms_slen > 0 && VIM_ISWHITE(cms_start[cms_slen - 1]))
 	    --cms_slen;
 
 	/* skip "%s" and white space after it */
@@ -2033,7 +2039,7 @@ foldtext_cleanup(char_u *str)
 
 	    /* May remove 'commentstring' start.  Useful when it's a double
 	     * quote and we already removed a double quote. */
-	    for (p = s; p > str && vim_iswhite(p[-1]); --p)
+	    for (p = s; p > str && VIM_ISWHITE(p[-1]); --p)
 		;
 	    if (p >= str + cms_slen
 			   && STRNCMP(p - cms_slen, cms_start, cms_slen) == 0)
@@ -2058,13 +2064,13 @@ foldtext_cleanup(char_u *str)
 	}
 	if (len != 0)
 	{
-	    while (vim_iswhite(s[len]))
+	    while (VIM_ISWHITE(s[len]))
 		++len;
 	    STRMOVE(s, s + len);
 	}
 	else
 	{
-	    mb_ptr_adv(s);
+	    MB_PTR_ADV(s);
 	}
     }
 }
@@ -3249,7 +3255,7 @@ foldlevelMarker(fline_T *flp)
 		--flp->lvl_next;
 	}
 	else
-	    mb_ptr_adv(s);
+	    MB_PTR_ADV(s);
     }
 
     /* The level can't go negative, must be missing a start marker. */

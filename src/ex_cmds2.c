@@ -3599,7 +3599,7 @@ add_pack_plugin(char_u *fname, void *cookie)
     {
 	/* directory is not yet in 'runtimepath', add it */
 	p4 = p3 = p2 = p1 = get_past_head(ffname);
-	for (p = p1; *p; mb_ptr_adv(p))
+	for (p = p1; *p; MB_PTR_ADV(p))
 	    if (vim_ispathsep_nocolon(*p))
 	    {
 		p4 = p3; p3 = p2; p2 = p1; p1 = p;
@@ -5256,7 +5256,7 @@ ex_language(exarg_T *eap)
      * Allow abbreviation, but require at least 3 characters to avoid
      * confusion with a two letter language name "me" or "ct". */
     p = skiptowhite(eap->arg);
-    if ((*p == NUL || vim_iswhite(*p)) && p - eap->arg >= 3)
+    if ((*p == NUL || VIM_ISWHITE(*p)) && p - eap->arg >= 3)
     {
 	if (STRNICMP(eap->arg, "messages", p - eap->arg) == 0)
 	{

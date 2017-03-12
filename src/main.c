@@ -1213,7 +1213,7 @@ main_loop(
 # endif
 			)
 # ifdef FEAT_AUTOCMD
-		 && !equalpos(last_cursormoved, curwin->w_cursor)
+		 && !EQUAL_POS(last_cursormoved, curwin->w_cursor)
 # endif
 		 )
 	    {
@@ -3623,16 +3623,27 @@ set_progpath(char_u *argv0)
 {
     char_u *val = argv0;
 
+# ifdef HAVE_PROC_SELF_EXE
+    char    buf[PATH_MAX + 1];
+    ssize_t len;
+
+    len = readlink("/proc/self/exe", buf, PATH_MAX);
+    if (len > 0)
+    {
+	buf[len] = NUL;
+	val = (char_u *)buf;
+    }
+# else
     /* A relative path containing a "/" will become invalid when using ":cd",
      * turn it into a full path.
      * On MS-Windows "vim" should be expanded to "vim.exe", thus always do
      * this. */
-# ifdef WIN32
+#  ifdef WIN32
     char_u *path = NULL;
 
     if (mch_can_exe(argv0, &path, FALSE) && path != NULL)
 	val = path;
-# else
+#  else
     char_u buf[MAXPATHL];
 
     if (!mch_isFullName(argv0))
@@ -3641,8 +3652,11 @@ set_progpath(char_u *argv0)
 			   && vim_FullName(argv0, buf, MAXPATHL, TRUE) != FAIL)
 	    val = buf;
     }
+#  endif
 # endif
+
     set_vim_var_string(VV_PROGPATH, val, -1);
+
 # ifdef WIN32
     vim_free(path);
 # endif

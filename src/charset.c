@@ -870,7 +870,7 @@ win_linetabsize(win_T *wp, char_u *line, colnr_T len)
     char_u	*s;
 
     for (s = line; *s != NUL && (len == MAXCOL || s < line + len);
-								mb_ptr_adv(s))
+								MB_PTR_ADV(s))
 	col += win_lbr_chartabsize(wp, line, s, col, NULL);
     return (int)col;
 }
@@ -1026,7 +1026,7 @@ lbr_chartabsize_adv(
     int		retval;
 
     retval = lbr_chartabsize(line, *s, col);
-    mb_ptr_adv(*s);
+    MB_PTR_ADV(*s);
     return retval;
 }
 
@@ -1089,8 +1089,8 @@ win_lbr_chartabsize(
      * needs a break here
      */
     if (wp->w_p_lbr
-	    && vim_isbreak(c)
-	    && !vim_isbreak(s[1])
+	    && VIM_ISBREAK(c)
+	    && !VIM_ISBREAK((int)s[1])
 	    && wp->w_p_wrap
 # ifdef FEAT_WINDOWS
 	    && wp->w_width != 0
@@ -1115,12 +1115,12 @@ win_lbr_chartabsize(
 	for (;;)
 	{
 	    ps = s;
-	    mb_ptr_adv(s);
+	    MB_PTR_ADV(s);
 	    c = *s;
 	    if (!(c != NUL
-		    && (vim_isbreak(c)
-			|| (!vim_isbreak(c)
-			    && (col2 == col || !vim_isbreak(*ps))))))
+		    && (VIM_ISBREAK(c)
+			|| (!VIM_ISBREAK(c)
+			    && (col2 == col || !VIM_ISBREAK((int)*ps))))))
 		break;
 
 	    col2 += win_chartabsize(wp, s, col2);
@@ -1369,7 +1369,7 @@ getvcol(
 		break;
 
 	    vcol += incr;
-	    mb_ptr_adv(ptr);
+	    MB_PTR_ADV(ptr);
 	}
     }
     else
@@ -1390,7 +1390,7 @@ getvcol(
 		break;
 
 	    vcol += incr;
-	    mb_ptr_adv(ptr);
+	    MB_PTR_ADV(ptr);
 	}
     }
     if (start != NULL)
@@ -1403,7 +1403,8 @@ getvcol(
 		&& (State & NORMAL)
 		&& !wp->w_p_list
 		&& !virtual_active()
-		&& !(VIsual_active && (*p_sel == 'e' || ltoreq(*pos, VIsual)))
+		&& !(VIsual_active
+				&& (*p_sel == 'e' || LTOREQ_POS(*pos, VIsual)))
 		)
 	    *cursor = vcol + incr - 1;	    /* cursor at end */
 	else
@@ -1496,7 +1497,7 @@ getvcols(
 {
     colnr_T	from1, from2, to1, to2;
 
-    if (ltp(pos1, pos2))
+    if (LT_POSP(pos1, pos2))
     {
 	getvvcol(wp, pos1, &from1, NULL, &to1);
 	getvvcol(wp, pos2, &from2, NULL, &to2);
@@ -1529,7 +1530,7 @@ skipwhite(char_u *q)
 {
     char_u	*p = q;
 
-    while (vim_iswhite(*p)) /* skip to next non-white */
+    while (VIM_ISWHITE(*p)) /* skip to next non-white */
 	++p;
     return p;
 }

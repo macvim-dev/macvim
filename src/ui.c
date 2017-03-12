@@ -458,7 +458,7 @@ clip_update_selection(VimClipboard *clip)
     /* If visual mode is only due to a redo command ("."), then ignore it */
     if (!redo_VIsual_busy && VIsual_active && (State & NORMAL))
     {
-	if (lt(VIsual, curwin->w_cursor))
+	if (LT_POS(VIsual, curwin->w_cursor))
 	{
 	    start = VIsual;
 	    end = curwin->w_cursor;
@@ -472,8 +472,8 @@ clip_update_selection(VimClipboard *clip)
 	    start = curwin->w_cursor;
 	    end = VIsual;
 	}
-	if (!equalpos(clip->start, start)
-		|| !equalpos(clip->end, end)
+	if (!EQUAL_POS(clip->start, start)
+		|| !EQUAL_POS(clip->end, end)
 		|| clip->vmode != VIsual_mode)
 	{
 	    clip_clear_selection(clip);
@@ -3213,7 +3213,7 @@ vcol2col(win_T *wp, linenr_T lnum, int vcol)
     while (count < vcol && *ptr != NUL)
     {
 	count += win_lbr_chartabsize(wp, line, ptr, count, NULL);
-	mb_ptr_adv(ptr);
+	MB_PTR_ADV(ptr);
     }
     return (int)(ptr - line);
 }

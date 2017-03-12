@@ -178,7 +178,7 @@ do_tag(
     free_string_option(nofile_fname);
     nofile_fname = NULL;
 
-    clearpos(&saved_fmark.mark);	/* shutup gcc 4.0 */
+    CLEAR_POS(&saved_fmark.mark);	/* shutup gcc 4.0 */
     saved_fmark.fnum = 0;
 
     /*
@@ -2005,7 +2005,7 @@ parse_line:
 #endif
 			if (	   fnamencmp(lbuf, tagp.fname, p - lbuf) == 0
 #ifdef FEAT_TAG_ANYWHITE
-				&& vim_iswhite(tagp.fname[p - lbuf])
+				&& VIM_ISWHITE(tagp.fname[p - lbuf])
 #else
 				&& tagp.fname[p - lbuf] == TAB
 #endif
@@ -3544,7 +3544,7 @@ simplify_filename(char_u *filename)
 		tail = p + 1;
 		if (p[1] != NUL)
 		    while (vim_ispathsep(*tail))
-			mb_ptr_adv(tail);
+			MB_PTR_ADV(tail);
 		else if (p > start)
 		    --p;		/* strip preceding path separator */
 		STRMOVE(p, tail);
@@ -3556,7 +3556,7 @@ simplify_filename(char_u *filename)
 	    /* Skip to after ".." or "../" or "..///". */
 	    tail = p + 2;
 	    while (vim_ispathsep(*tail))
-		mb_ptr_adv(tail);
+		MB_PTR_ADV(tail);
 
 	    if (components > 0)		/* strip one preceding component */
 	    {
@@ -3583,7 +3583,7 @@ simplify_filename(char_u *filename)
 		    --p;
 		    /* Skip back to after previous '/'. */
 		    while (p > start && !after_pathsep(start, p))
-			mb_ptr_back(start, p);
+			MB_PTR_BACK(start, p);
 
 		    if (!do_strip)
 		    {
@@ -3932,7 +3932,7 @@ get_tags(list_T *list, char_u *pat)
 		    else if (STRNCMP(p, "file:", 5) == 0)
 			/* skip "file:" (static tag) */
 			p += 4;
-		    else if (!vim_iswhite(*p))
+		    else if (!VIM_ISWHITE(*p))
 		    {
 			char_u	*s, *n;
 			int	len;

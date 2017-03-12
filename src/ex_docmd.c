@@ -2020,7 +2020,7 @@ do_one_cmd(
 			if (save_msg_silent == -1)
 			    save_msg_silent = msg_silent;
 			++msg_silent;
-			if (*ea.cmd == '!' && !vim_iswhite(ea.cmd[-1]))
+			if (*ea.cmd == '!' && !VIM_ISWHITE(ea.cmd[-1]))
 			{
 			    /* ":silent!", but not "silent !cmd" */
 			    ea.cmd = skipwhite(ea.cmd + 1);
@@ -2778,7 +2778,7 @@ do_one_cmd(
      */
     if ((ea.argt & COUNT) && VIM_ISDIGIT(*ea.arg)
 	    && (!(ea.argt & BUFNAME) || *(p = skipdigits(ea.arg)) == NUL
-							  || vim_iswhite(*p)))
+							  || VIM_ISWHITE(*p)))
     {
 	n = getdigits(&ea.arg);
 	ea.arg = skipwhite(ea.arg);
@@ -2946,7 +2946,7 @@ do_one_cmd(
 	else
 	{
 	    p = ea.arg + STRLEN(ea.arg);
-	    while (p > ea.arg && vim_iswhite(p[-1]))
+	    while (p > ea.arg && VIM_ISWHITE(p[-1]))
 		--p;
 	}
 	ea.line2 = buflist_findpat(ea.arg, p, (ea.argt & BUFUNL) != 0,
@@ -3703,7 +3703,7 @@ set_one_cmd_context(
 		    return NULL;    /* It's a comment */
 		}
 	    }
-	    mb_ptr_adv(p);
+	    MB_PTR_ADV(p);
 	}
     }
 
@@ -3727,7 +3727,7 @@ set_one_cmd_context(
 	{
 	    if (*p == '\\' && *(p + 1) != NUL)
 		++p; /* skip over escaped character */
-	    mb_ptr_adv(p);
+	    MB_PTR_ADV(p);
 	}
     }
 
@@ -3764,7 +3764,7 @@ set_one_cmd_context(
 	    }
 	    /* An argument can contain just about everything, except
 	     * characters that end the command and white space. */
-	    else if (c == '|' || c == '\n' || c == '"' || (vim_iswhite(c)
+	    else if (c == '|' || c == '\n' || c == '"' || (VIM_ISWHITE(c)
 #ifdef SPACE_IN_FILENAME
 					 && (!(ea.argt & NOSPC) || usefilter)
 #endif
@@ -3787,7 +3787,7 @@ set_one_cmd_context(
 		    else
 #endif
 			len = 1;
-		    mb_ptr_adv(p);
+		    MB_PTR_ADV(p);
 		}
 		if (in_quote)
 		    bow = p;
@@ -3795,7 +3795,7 @@ set_one_cmd_context(
 		    xp->xp_pattern = p;
 		p -= len;
 	    }
-	    mb_ptr_adv(p);
+	    MB_PTR_ADV(p);
 	}
 
 	/*
@@ -4211,7 +4211,7 @@ set_one_cmd_context(
 			    arg = p + 1;
 			else if (*p == '\\' && *(p + 1) != NUL)
 			    ++p; /* skip over escaped character */
-			mb_ptr_adv(p);
+			MB_PTR_ADV(p);
 		    }
 		    xp->xp_pattern = arg;
 		}
@@ -5153,7 +5153,7 @@ expand_filename(
 			/* skip escaped characters */
 			if (p[1] && (*p == '\\' || *p == Ctrl_V))
 			    ++p;
-			else if (vim_iswhite(*p))
+			else if (VIM_ISWHITE(*p))
 			{
 			    *errormsgp = (char_u *)_("E172: Only one file name allowed");
 			    return FAIL;
@@ -5297,7 +5297,7 @@ separate_nextcmd(exarg_T *eap)
     p = eap->arg;
 #endif
 
-    for ( ; *p; mb_ptr_adv(p))
+    for ( ; *p; MB_PTR_ADV(p))
     {
 	if (*p == Ctrl_V)
 	{
@@ -5397,7 +5397,7 @@ skip_cmd_arg(
 	    else
 		++p;
 	}
-	mb_ptr_adv(p);
+	MB_PTR_ADV(p);
     }
     return p;
 }
@@ -6353,7 +6353,7 @@ ex_command(exarg_T *eap)
     if (ASCII_ISALPHA(*p))
 	while (ASCII_ISALNUM(*p))
 	    ++p;
-    if (!ends_excmd(*p) && !vim_iswhite(*p))
+    if (!ends_excmd(*p) && !VIM_ISWHITE(*p))
     {
 	EMSG(_("E182: Invalid command name"));
 	return;
@@ -6481,7 +6481,7 @@ uc_split_args(char_u *arg, size_t *lenp)
 	    len += 2;
 	    p += 2;
 	}
-	else if (p[0] == '\\' && vim_iswhite(p[1]))
+	else if (p[0] == '\\' && VIM_ISWHITE(p[1]))
 	{
 	    len += 1;
 	    p += 2;
@@ -6491,7 +6491,7 @@ uc_split_args(char_u *arg, size_t *lenp)
 	    len += 2;
 	    p += 1;
 	}
-	else if (vim_iswhite(*p))
+	else if (VIM_ISWHITE(*p))
 	{
 	    p = skipwhite(p);
 	    if (*p == NUL)
@@ -6529,7 +6529,7 @@ uc_split_args(char_u *arg, size_t *lenp)
 	    *q++ = '\\';
 	    p += 2;
 	}
-	else if (p[0] == '\\' && vim_iswhite(p[1]))
+	else if (p[0] == '\\' && VIM_ISWHITE(p[1]))
 	{
 	    *q++ = p[1];
 	    p += 2;
@@ -6539,7 +6539,7 @@ uc_split_args(char_u *arg, size_t *lenp)
 	    *q++ = '\\';
 	    *q++ = *p++;
 	}
-	else if (vim_iswhite(*p))
+	else if (VIM_ISWHITE(*p))
 	{
 	    p = skipwhite(p);
 	    if (*p == NUL)
@@ -7095,7 +7095,7 @@ parse_addr_type_arg(
     {
 	char_u	*err = value;
 
-	for (i = 0; err[i] != NUL && !vim_iswhite(err[i]); i++)
+	for (i = 0; err[i] != NUL && !VIM_ISWHITE(err[i]); i++)
 	    ;
 	err[i] = NUL;
 	EMSG2(_("E180: Invalid address type value: %s"), err);
@@ -11896,7 +11896,7 @@ ses_put_fname(FILE *fd, char_u *name, unsigned *flagp)
     if (*flagp & SSOP_SLASH)
     {
 	/* change all backslashes to forward slashes */
-	for (p = sname; *p != NUL; mb_ptr_adv(p))
+	for (p = sname; *p != NUL; MB_PTR_ADV(p))
 	    if (*p == '\\')
 		*p = '/';
     }
@@ -12299,7 +12299,7 @@ ex_match(exarg_T *eap)
     if (ends_excmd(*eap->arg))
 	end = eap->arg;
     else if ((STRNICMP(eap->arg, "none", 4) == 0
-		&& (vim_iswhite(eap->arg[4]) || ends_excmd(eap->arg[4]))))
+		&& (VIM_ISWHITE(eap->arg[4]) || ends_excmd(eap->arg[4]))))
 	end = eap->arg + 4;
     else
     {
