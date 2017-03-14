@@ -2658,7 +2658,7 @@ ex_macmenu(eap)
 	/*
 	 * Isolate the key ("action", "alt", or "key").
 	 */
-	while (*linep && !vim_iswhite(*linep) && *linep != '=')
+	while (*linep && !VIM_ISWHITE(*linep) && *linep != '=')
 	    ++linep;
 	vim_free(key);
 	key = vim_strnsave_up(key_start, (int)(linep - key_start));
