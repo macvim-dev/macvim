@@ -780,6 +780,24 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    473,
+/**/
+    472,
+/**/
+    471,
+/**/
+    470,
+/**/
+    469,
+/**/
+    468,
+/**/
+    467,
+/**/
+    466,
+/**/
+    465,
+/**/
     464,
 /**/
     463,
@@ -2343,7 +2361,7 @@ do_intro_line(
 #endif
 		clen += byte2cells(p[l]);
 	}
-	screen_puts_len(p, l, row, col, *p == '<' ? hl_attr(HLF_8) : attr);
+	screen_puts_len(p, l, row, col, *p == '<' ? HL_ATTR(HLF_8) : attr);
 	col += clen;
     }
 
