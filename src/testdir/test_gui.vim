@@ -1,6 +1,6 @@
 " Tests specifically for the GUI
 
-if !has('gui') || ($DISPLAY == "" && !has('gui_running'))
+if !has('gui') || (($DISPLAY == "" || has('gui_macvim')) && !has('gui_running'))
   finish
 endif
 
@@ -558,6 +558,11 @@ func Test_set_guioptions()
     " Default Value
     set guioptions&
     call assert_equal('egmrLtT', &guioptions)
+
+  elseif has('gui_macvim')
+    " Default Value
+    set guioptions&
+    call assert_equal('egmrL', &guioptions)
 
   else
     " Default Value
