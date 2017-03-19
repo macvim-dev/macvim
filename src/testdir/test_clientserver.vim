@@ -1,6 +1,6 @@
 " Tests for the +clientserver feature.
 
-if !has('job') || !has('clientserver')
+if !has('job') || !has('clientserver') || (has('gui_macvim') && !has('gui_running'))
   finish
 endif
 
