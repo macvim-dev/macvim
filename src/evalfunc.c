@@ -8747,6 +8747,8 @@ f_remote_startserver(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 # ifdef FEAT_X11
 	if (check_connection() == OK)
 	    serverRegisterName(X_DISPLAY, server);
+# elif defined(MAC_CLIENTSERVER)
+	serverRegisterName(server);
 # else
 	serverSetName(server);
 # endif
