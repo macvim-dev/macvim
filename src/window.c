@@ -2455,6 +2455,10 @@ win_close(win_T *win, int free_buf)
 #endif
 	curbuf = curwin->w_buffer;
 	close_curwin = TRUE;
+
+	/* The cursor position may be invalid if the buffer changed after last
+	 * using the window. */
+	check_cursor();
     }
     if (p_ea && (*p_ead == 'b' || *p_ead == dir))
 	win_equal(curwin, TRUE, dir);
@@ -6576,7 +6580,7 @@ check_snapshot_rec(frame_T *sn, frame_T *fr)
 		&& check_snapshot_rec(sn->fr_next, fr->fr_next) == FAIL)
 	    || (sn->fr_child != NULL
 		&& check_snapshot_rec(sn->fr_child, fr->fr_child) == FAIL)
-	    || !win_valid(sn->fr_win))
+	    || (sn->fr_win != NULL && !win_valid(sn->fr_win)))
 	return FAIL;
     return OK;
 }

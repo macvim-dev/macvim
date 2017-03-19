@@ -2105,11 +2105,15 @@ Messaging_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	    str = serverConvert(client_enc, (char_u *)data->lpData, &tofree);
 	    res = eval_client_expr_to_string(str);
-	    vim_free(tofree);
 
 	    if (res == NULL)
 	    {
-		res = vim_strsave((char_u *)_(e_invexprmsg));
+		char	*err = _(e_invexprmsg);
+		size_t	len = STRLEN(str) + STRLEN(err) + 5;
+
+		res = alloc(len);
+		if (res != NULL)
+		    vim_snprintf((char *)res, len, "%s: \"%s\"", err, str);
 		reply.dwData = COPYDATA_ERROR_RESULT;
 	    }
 	    else
@@ -2120,6 +2124,7 @@ Messaging_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	    serverSendEnc(sender);
 	    retval = (int)SendMessage(sender, WM_COPYDATA,
 				    (WPARAM)message_window, (LPARAM)(&reply));
+	    vim_free(tofree);
 	    vim_free(res);
 	    return retval;
 
@@ -2404,6 +2409,10 @@ serverSendToVim(
     int		retcode = 0;
     char_u	altname_buf[MAX_PATH];
 
+    /* Execute locally if no display or target is ourselves */
+    if (serverName != NULL && STRICMP(name, serverName) == 0)
+	return sendToLocalVim(cmd, asExpr, result);
+
     /* If the server name does not end in a digit then we look for an
      * alternate name.  e.g. when "name" is GVIM the we may find GVIM2. */
     if (STRLEN(name) > 1 && !vim_isdigit(name[STRLEN(name) - 1]))
@@ -2517,6 +2526,7 @@ serverGetReply(HWND server, int *expr_res, int remove, int wait)
     int		i;
     char_u	*reply;
     reply_T	*rep;
+    int		did_process = FALSE;
 
     /* When waiting, loop until the message waiting for is received. */
     for (;;)
@@ -2553,7 +2563,17 @@ serverGetReply(HWND server, int *expr_res, int remove, int wait)
 	/* If we got here, we didn't find a reply. Return immediately if the
 	 * "wait" parameter isn't set.  */
 	if (!wait)
+	{
+	    /* Process pending messages once. Without this, looping on
+	     * remote_peek() would never get the reply. */
+	    if (!did_process)
+	    {
+		did_process = TRUE;
+		serverProcessPendingMessages();
+		continue;
+	    }
 	    break;
+	}
 
 	/* We need to wait for a reply. Enter a message loop until the
 	 * "reply_received" flag gets set. */
@@ -2561,6 +2581,9 @@ serverGetReply(HWND server, int *expr_res, int remove, int wait)
 	/* Loop until we receive a reply */
 	while (reply_received == 0)
 	{
+#ifdef FEAT_TIMERS
+	    check_due_timer();
+#endif
 	    /* Wait for a SendMessage() call to us.  This could be the reply
 	     * we are waiting for.  Use a timeout of a second, to catch the
 	     * situation that the server died unexpectedly. */

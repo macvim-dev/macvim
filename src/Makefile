@@ -2114,11 +2114,12 @@ test_arglist \
 	test_breakindent \
 	test_bufwintabinfo \
 	test_cdo \
+	test_changedtick \
 	test_channel \
 	test_charsearch \
 	test_charsearch_utf8 \
-	test_changedtick \
 	test_cindent \
+	test_clientserver \
 	test_cmdline \
 	test_command_count \
 	test_crypt \
