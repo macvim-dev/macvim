@@ -3943,12 +3943,12 @@ cmdsrv_main(
 		    p = serverGetReply(srv, NULL, TRUE, TRUE, 0);
 		    if (p == NULL)
 			break;
-# else
-		    if (serverReadReply(xterm_dpy, srv, &p, TRUE, -1) < 0)
-			break;
 # elif defined(MAC_CLIENTSERVER)
                     if (serverReadReply(srv, &p) < 0)
                         break;
+# else
+		    if (serverReadReply(xterm_dpy, srv, &p, TRUE, -1) < 0)
+			break;
 # endif
 		    j = atoi((char *)p);
 		    if (j >= 0 && j < numFiles)

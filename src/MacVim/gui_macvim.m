@@ -1897,7 +1897,7 @@ serverRegisterName(char_u *name)
  */
     int
 serverSendToVim(char_u *name, char_u *cmd, char_u **result,
-        int *port, int asExpr, int silent)
+        int *port, int asExpr, int timeout, int silent)
 {
 #ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
