@@ -3363,8 +3363,7 @@ macvim: $(VIMTARGET)
 
 macvim-dmg: macvim
 	mkdir -p $(DMGDIR)
-	cp MacVim/mvim $(DMGDIR)/
-	cp -r $(RELEASEDIR)/MacVim.app $(DMGDIR)/
+	cp -a $(RELEASEDIR)/MacVim.app $(DMGDIR)/
 	rm -rf $(RELEASEDIR)/$(DMGFILE)
 	create-dmg/create-dmg \
 		--volname "MacVim" \
@@ -3373,7 +3372,6 @@ macvim-dmg: macvim
 		--window-size 650 470 \
 		--icon-size 80 \
 		--icon MacVim.app 240 320 \
-		--icon mvim 570 80 \
 		--app-drop-link 410 320 \
 		$(RELEASEDIR)/$(DMGFILE) $(DMGDIR)
 
