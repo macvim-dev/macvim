@@ -37,6 +37,7 @@ script:
   - grep -q -- "-DDYNAMIC_PYTHON3_DLL=\\\\\"$vi_cv_dll_name_python3\\\\\"" src/auto/config.mk
   - make -j$NPROC
   - BINPATH=src/MacVim/build/Release/MacVim.app/Contents/bin
+  - mkdir -p $BINPATH
   - sed -e 's/^# VIM_APP_DIR=.*/if [ -L $0 ]; then VIM_APP_DIR=`dirname "$(readlink $0)"`\/..\/..\/..; else VIM_APP_DIR=`dirname "$0"`\/..\/..\/..; fi/' src/MacVim/mvim > $BINPATH/mvim
   - chmod 755 $BINPATH/mvim
   - (cd $BINPATH; for f in vim vimdiff view gvim gvimdiff gview mvimdiff mview; do ln -s mvim $f; done)
