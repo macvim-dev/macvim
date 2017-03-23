@@ -49,6 +49,7 @@
 - (void)setWideFont:(NSFont *)newFont;
 - (NSSize)cellSize;
 - (void)setLinespace:(float)newLinespace;
+- (void)setColumnspace:(float)newColumnspace;
 - (int)maxRows;
 - (int)maxColumns;
 - (void)getMaxRows:(int*)rows columns:(int*)cols;

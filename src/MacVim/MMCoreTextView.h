@@ -22,6 +22,7 @@
     NSFont                      *font;
     NSFont                      *fontWide;
     float                       linespace;
+    float                       columnspace;
 
     // From NSTextView
     NSSize                      insetSize;

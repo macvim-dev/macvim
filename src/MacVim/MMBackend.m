@@ -1095,6 +1095,13 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self queueMessage:AdjustLinespaceMsgID data:data];
 }
 
+- (void)adjustColumnspace:(int)columnspace
+{
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&columnspace length:sizeof(int)];
+    [self queueMessage:AdjustColumnspaceMsgID data:data];
+}
+
 - (void)activate
 {
     [self queueMessage:ActivateMsgID data:nil];

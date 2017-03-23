@@ -202,6 +202,11 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     return linespace;
 }
 
+- (float)columnspace
+{
+    return columnspace;
+}
+
 - (void)setLinespace:(float)newLinespace
 {
     NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
@@ -219,6 +224,25 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
     // linespace is non-zero the baseline will be adjusted as well; check
     // MMTypesetter.
     cellSize.height = linespace + [lm defaultLineHeightForFont:font];
+}
+
+- (void)setColumnspace:(float)newColumnspace
+{
+    NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
+    if (!lm) {
+        ASLogWarn(@"No layout manager available");
+        return;
+    }
+
+    columnspace = newColumnspace;
+
+    float em = [@"m" sizeWithAttributes:
+            [NSDictionary dictionaryWithObject:font
+                                        forKey:NSFontAttributeName]].width;
+    float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
+            floatForKey:MMCellWidthMultiplierKey];
+
+    cellSize.width = columnspace + ceilf(em * cellWidthMultiplier);
 }
 
 - (void)getMaxRows:(int*)rows columns:(int*)cols
@@ -662,6 +686,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
         NSLayoutManager *lm = [[self layoutManagers] objectAtIndex:0];
         if (lm) {
             cellSize.height = linespace + [lm defaultLineHeightForFont:font];
+            cellSize.width = columnspace + ceilf(em * cellWidthMultiplier);
         } else {
             // Should never happen, set some bogus value for cell height.
             ASLogWarn(@"No layout manager available");

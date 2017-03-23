@@ -362,6 +362,11 @@
     return [(MMTextStorage*)[self textStorage] setLinespace:newLinespace];
 }
 
+- (void)setColumnspace:(float)newColumnspace
+{
+    return [(MMTextStorage*)[self textStorage] setColumnspace:newColumnspace];
+}
+
 - (int)maxRows
 {
     MMTextStorage *ts = (MMTextStorage *)[self textStorage];

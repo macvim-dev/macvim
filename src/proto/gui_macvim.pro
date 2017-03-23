@@ -82,6 +82,8 @@ gui_mch_init_font(char_u *font_name, int fontset);
 gui_mch_set_font(GuiFont font);
     int
 gui_mch_adjust_charheight(void);
+    int
+gui_mch_adjust_charwidth(void);
     void
 gui_mch_beep(void);
     char_u *

@@ -762,6 +762,11 @@ static BOOL isUnsafeMessage(int msgid);
         int linespace = *((int*)bytes);
 
         [windowController adjustLinespace:linespace];
+    } else if (AdjustColumnspaceMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int columnspace = *((int*)bytes);
+
+        [windowController adjustColumnspace:columnspace];
     } else if (ActivateMsgID == msgid) {
         [NSApp activateIgnoringOtherApps:YES];
         [[windowController window] makeKeyAndOrderFront:self];
