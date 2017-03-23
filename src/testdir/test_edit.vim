@@ -1054,7 +1054,7 @@ endfunc
 
 func! Test_edit_MOUSE()
   " This is a simple test, since we not really using the mouse here
-  if !has("mouse")
+  if !has("mouse") || (has("gui_macvim") && has("gui_running"))
     return
   endif
   10new
