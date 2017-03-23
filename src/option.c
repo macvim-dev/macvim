@@ -856,7 +856,7 @@ static struct vimoption options[] =
 			    (char_u *)&Columns, PV_NONE,
 			    {(char_u *)80L, (char_u *)0L} SCRIPTID_INIT},
     {"columnspace",   "csp",  P_NUM|P_VI_DEF|P_RCLR,
-#ifdef FEAT_GUI
+#ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_columnspace, PV_NONE,
 #else
 			    (char_u *)NULL, PV_NONE,
@@ -8992,7 +8992,7 @@ set_num_option(
     }
 #endif
 
-#ifdef FEAT_GUI
+#ifdef FEAT_GUI_MACVIM
     else if (pp == &p_columnspace)
     {
 	/* Recompute gui.char_width and resize the Vim window to keep the
