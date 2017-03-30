@@ -2697,12 +2697,18 @@ fold_line(
 	    {
 		ScreenLinesUC[off + col] = fill_fold;
 		ScreenLinesC[0][off + col] = 0;
+                ScreenLines[off + col] = 0x80; /* avoid storing zero */
 	    }
 	    else
+	    {
 		ScreenLinesUC[off + col] = 0;
+		ScreenLines[off + col] = fill_fold;
+	    }
+	    col++;
 	}
+	else
 #endif
-	ScreenLines[off + col++] = fill_fold;
+	    ScreenLines[off + col++] = fill_fold;
     }
 
     if (text != buf)
@@ -4116,7 +4122,7 @@ win_line(
 		c = c_extra;
 #ifdef FEAT_MBYTE
 		mb_c = c;	/* doesn't handle non-utf-8 multi-byte! */
-		if (enc_utf8 && (*mb_char2len)(c) > 1)
+		if (enc_utf8 && utf_char2len(c) > 1)
 		{
 		    mb_utf8 = TRUE;
 		    u8cc[0] = 0;
@@ -4137,7 +4143,7 @@ win_line(
 		    {
 			/* If the UTF-8 character is more than one byte:
 			 * Decode it into "mb_c". */
-			mb_l = (*mb_ptr2len)(p_extra);
+			mb_l = utfc_ptr2len(p_extra);
 			mb_utf8 = FALSE;
 			if (mb_l > n_extra)
 			    mb_l = 1;
@@ -4216,7 +4222,7 @@ win_line(
 		{
 		    /* If the UTF-8 character is more than one byte: Decode it
 		     * into "mb_c". */
-		    mb_l = (*mb_ptr2len)(ptr);
+		    mb_l = utfc_ptr2len(ptr);
 		    mb_utf8 = FALSE;
 		    if (mb_l > 1)
 		    {
@@ -4609,7 +4615,7 @@ win_line(
 		    }
 #ifdef FEAT_MBYTE
 		    mb_c = c;
-		    if (enc_utf8 && (*mb_char2len)(c) > 1)
+		    if (enc_utf8 && utf_char2len(c) > 1)
 		    {
 			mb_utf8 = TRUE;
 			u8cc[0] = 0;
@@ -4631,7 +4637,7 @@ win_line(
 		    }
 #ifdef FEAT_MBYTE
 		    mb_c = c;
-		    if (enc_utf8 && (*mb_char2len)(c) > 1)
+		    if (enc_utf8 && utf_char2len(c) > 1)
 		    {
 			mb_utf8 = TRUE;
 			u8cc[0] = 0;
@@ -4762,7 +4768,7 @@ win_line(
 			saved_attr2 = char_attr; /* save current attr */
 #ifdef FEAT_MBYTE
 			mb_c = c;
-			if (enc_utf8 && (*mb_char2len)(c) > 1)
+			if (enc_utf8 && utf_char2len(c) > 1)
 			{
 			    mb_utf8 = TRUE;
 			    u8cc[0] = 0;
@@ -4836,7 +4842,7 @@ win_line(
 		    }
 #ifdef FEAT_MBYTE
 		    mb_c = c;
-		    if (enc_utf8 && (*mb_char2len)(c) > 1)
+		    if (enc_utf8 && utf_char2len(c) > 1)
 		    {
 			mb_utf8 = TRUE;
 			u8cc[0] = 0;
@@ -5000,7 +5006,7 @@ win_line(
 		}
 # ifdef FEAT_MBYTE
 		mb_c = c;
-		if (enc_utf8 && (*mb_char2len)(c) > 1)
+		if (enc_utf8 && utf_char2len(c) > 1)
 		{
 		    mb_utf8 = TRUE;
 		    u8cc[0] = 0;
@@ -5112,7 +5118,7 @@ win_line(
 		extra_attr = HL_ATTR(HLF_AT);
 	    }
 	    mb_c = c;
-	    if (enc_utf8 && (*mb_char2len)(c) > 1)
+	    if (enc_utf8 && utf_char2len(c) > 1)
 	    {
 		mb_utf8 = TRUE;
 		u8cc[0] = 0;
@@ -5385,7 +5391,7 @@ win_line(
 	    char_attr = HL_ATTR(HLF_AT);
 #ifdef FEAT_MBYTE
 	    mb_c = c;
-	    if (enc_utf8 && (*mb_char2len)(c) > 1)
+	    if (enc_utf8 && utf_char2len(c) > 1)
 	    {
 		mb_utf8 = TRUE;
 		u8cc[0] = 0;

@@ -1974,7 +1974,7 @@ collection:
 nfa_do_multibyte:
 		/* plen is length of current char with composing chars */
 		if (enc_utf8 && ((*mb_char2len)(c)
-			    != (plen = (*mb_ptr2len)(old_regparse))
+			    != (plen = utfc_ptr2len(old_regparse))
 						       || utf_iscomposing(c)))
 		{
 		    int i = 0;
@@ -4871,7 +4871,7 @@ check_char_class(int class, int c)
 		return OK;
 	    break;
 	case NFA_CLASS_CNTRL:
-	    if (c >= 1 && c <= 255 && iscntrl(c))
+	    if (c >= 1 && c <= 127 && iscntrl(c))
 		return OK;
 	    break;
 	case NFA_CLASS_DIGIT:
@@ -4879,7 +4879,7 @@ check_char_class(int class, int c)
 		return OK;
 	    break;
 	case NFA_CLASS_GRAPH:
-	    if (c >= 1 && c <= 255 && isgraph(c))
+	    if (c >= 1 && c <= 127 && isgraph(c))
 		return OK;
 	    break;
 	case NFA_CLASS_LOWER:
