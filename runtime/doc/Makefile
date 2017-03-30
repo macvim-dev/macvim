@@ -33,6 +33,7 @@ DOCS = \
 	ft_rust.txt \
 	ft_sql.txt \
 	gui.txt \
+	gui_mac.txt \
 	gui_w32.txt \
 	gui_x11.txt \
 	hangulin.txt \

@@ -141,6 +141,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'cole'	options.txt	/*'cole'*
 'colorcolumn'	options.txt	/*'colorcolumn'*
 'columns'	options.txt	/*'columns'*
+'columnspace'	options.txt	/*'columnspace'*
 'com'	options.txt	/*'com'*
 'comments'	options.txt	/*'comments'*
 'commentstring'	options.txt	/*'commentstring'*
@@ -168,6 +169,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'cscopetag'	options.txt	/*'cscopetag'*
 'cscopetagorder'	options.txt	/*'cscopetagorder'*
 'cscopeverbose'	options.txt	/*'cscopeverbose'*
+'csp'	options.txt	/*'csp'*
 'cspc'	options.txt	/*'cspc'*
 'csprg'	options.txt	/*'csprg'*
 'csqf'	options.txt	/*'csqf'*
@@ -791,7 +793,9 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'pvh'	options.txt	/*'pvh'*
 'pvw'	options.txt	/*'pvw'*
 'pythondll'	options.txt	/*'pythondll'*
+'pythonhome'	options.txt	/*'pythonhome'*
 'pythonthreedll'	options.txt	/*'pythonthreedll'*
+'pythonthreehome'	options.txt	/*'pythonthreehome'*
 'pyx'	options.txt	/*'pyx'*
 'pyxversion'	options.txt	/*'pyxversion'*
 'qe'	options.txt	/*'qe'*
@@ -6687,7 +6691,7 @@ gui.txt	gui.txt	/*gui.txt*
 gui_mac.txt	gui_mac.txt	/*gui_mac.txt*
 gui_w32.txt	gui_w32.txt	/*gui_w32.txt*
 gui_x11.txt	gui_x11.txt	/*gui_x11.txt*
-guifontwide_gtk	options.txt	/*guifontwide_gtk*
+guifontwide_gtk2	options.txt	/*guifontwide_gtk2*
 guifontwide_macvim	options.txt	/*guifontwide_macvim*
 guifontwide_win_mbyte	options.txt	/*guifontwide_win_mbyte*
 guioptions_a	options.txt	/*guioptions_a*
@@ -9305,7 +9309,8 @@ vim:	options.txt	/*vim:*
 vim_announce	intro.txt	/*vim_announce*
 vim_dev	intro.txt	/*vim_dev*
 vim_did_enter-variable	eval.txt	/*vim_did_enter-variable*
-vim_mac	gui_mac.txt	/*vim_mac*
+vim_mac	intro.txt	/*vim_mac*
+vim_mac_group	gui_mac.txt	/*vim_mac_group*
 vim_starting	eval.txt	/*vim_starting*
 vim_use	intro.txt	/*vim_use*
 vimball	pi_vimball.txt	/*vimball*
