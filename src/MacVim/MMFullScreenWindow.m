@@ -110,8 +110,8 @@ enum {
     // Each fade goes in and then out, so the fade hardware must be reserved accordingly and the
     // actual fade time can't exceed half the allowable reservation time... plus some slack to
     // prevent visual artifacts caused by defaulting on the fade hardware lease.
-    fadeTime = MIN(fadeTime, 0.45 * kCGMaxDisplayReservationInterval);
-    fadeReservationTime = 2.0 * fadeTime + 0.1;
+    fadeTime = MIN(fadeTime, 0.5 * (kCGMaxDisplayReservationInterval - 1));
+    fadeReservationTime = 2.0 * fadeTime + 1;
     
     return self;
 }
@@ -218,9 +218,11 @@ enum {
 
     // fade back in
     if (didBlend) {
-        CGDisplayFade(token, fadeTime, kCGDisplayBlendSolidColor,
-            kCGDisplayBlendNormal, .0, .0, .0, false);
-        CGReleaseDisplayFadeReservation(token);
+        [NSAnimationContext currentContext].completionHandler = ^{
+            CGDisplayFade(token, fadeTime, kCGDisplayBlendSolidColor,
+                          kCGDisplayBlendNormal, .0, .0, .0, false);
+            CGReleaseDisplayFadeReservation(token);
+        };
     }
 
     state = InFullScreen;
