@@ -909,7 +909,7 @@ enum {
                    "%dx%d (%s)", cols, rows, constrained[1], constrained[0],
                    MessageStrings[msgid]);
 
-        [vimController sendMessage:msgid data:data];
+        [vimController sendMessageNow:msgid data:data timeout:1];
 
         // We only want to set the window title if this resize came from
         // a live-resize, not (for example) setting 'columns' or 'lines'.
