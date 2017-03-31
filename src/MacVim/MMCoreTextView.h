@@ -31,6 +31,7 @@
     BOOL                        antialias;
     BOOL                        ligatures;
     BOOL                        thinStrokes;
+    BOOL                        drawPending;
     NSMutableArray              *drawData;
 
     MMTextViewHelper            *helper;
@@ -96,6 +97,7 @@
 //
 // NSTextView methods
 //
+- (void)setFrameSize:(NSSize)newSize;
 - (void)keyDown:(NSEvent *)event;
 - (void)insertText:(id)string;
 - (void)doCommandBySelector:(SEL)selector;

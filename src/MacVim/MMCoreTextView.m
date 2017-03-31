@@ -446,6 +446,14 @@ defaultAdvanceForFont(NSFont *font)
     return YES;
 }
 
+- (void)setFrameSize:(NSSize)newSize {
+    if (!drawPending && !NSEqualSizes(newSize, self.frame.size) && drawData.count == 0) {
+        [NSAnimationContext beginGrouping];
+        drawPending = YES;
+    }
+    [super setFrameSize:newSize];
+}
+
 - (void)keyDown:(NSEvent *)event
 {
     [helper keyDown:event];
@@ -650,11 +658,10 @@ defaultAdvanceForFont(NSFont *font)
     } else {
         [drawData addObject:data];
         [self setNeedsDisplay:YES];
-
-        // NOTE: During resizing, Cocoa only sends draw messages before Vim's rows
-        // and columns are changed (due to ipc delays). Force a redraw here.
-        if ([self inLiveResize])
-           [self display];
+    }
+    if (drawPending) {
+        [NSAnimationContext endGrouping];
+        drawPending = NO;
     }
 }
 
