@@ -40,6 +40,7 @@
     int                 userCols;
     NSPoint             userTopLeft;
     NSPoint             defaultTopLeft;
+    NSSize              desiredWindowSize;
     NSToolbar           *toolbar;
     BOOL                resizingDueToMove;
     int                 blurRadius;

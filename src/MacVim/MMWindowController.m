@@ -594,11 +594,12 @@
         // TODO: What if the resize message fails to make it back?
         if (!didMaximize) {
             NSSize originalSize = [vimView frame].size;
-            NSSize contentSize = [vimView desiredSize];
-            contentSize = [self constrainContentSizeToScreenSize:contentSize];
             int rows = 0, cols = 0;
-            contentSize = [vimView constrainRows:&rows columns:&cols
-                                          toSize:contentSize];
+            NSSize contentSize = [vimView constrainRows:&rows columns:&cols
+                                                 toSize:
+                                  fullScreenWindow ? [fullScreenWindow frame].size :
+                                  fullScreenEnabled ? desiredWindowSize :
+                                  [self constrainContentSizeToScreenSize:[vimView desiredSize]]];
             [vimView setFrameSize:contentSize];
 
             if (fullScreenWindow) {
@@ -1001,6 +1002,11 @@
             (int)(NSMaxY([[decoratedWindow screen] frame]) - topLeft.y) };
     NSData *data = [NSData dataWithBytes:pos length:2*sizeof(int)];
     [vimController sendMessage:SetWindowPositionMsgID data:data];
+}
+
+- (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize {
+    desiredWindowSize = frameSize;
+    return frameSize;
 }
 
 - (void)windowDidResize:(id)sender
