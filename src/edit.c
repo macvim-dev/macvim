@@ -4770,7 +4770,6 @@ ins_compl_next(
     int	    in_compl_func)	/* called from complete_check() */
 {
     int	    num_matches = -1;
-    int	    i;
     int	    todo = count;
     compl_T *found_compl = NULL;
     int	    found_end = FALSE;
@@ -4962,15 +4961,30 @@ ins_compl_next(
      */
     if (compl_shown_match->cp_fname != NULL)
     {
-	STRCPY(IObuff, "match in file ");
-	i = (vim_strsize(compl_shown_match->cp_fname) + 16) - sc_col;
-	if (i <= 0)
-	    i = 0;
-	else
-	    STRCAT(IObuff, "<");
-	STRCAT(IObuff, compl_shown_match->cp_fname + i);
-	msg(IObuff);
-	redraw_cmdline = FALSE;	    /* don't overwrite! */
+	char	*lead = _("match in file");
+	int	space = sc_col - vim_strsize((char_u *)lead) - 2;
+	char_u	*s;
+	char_u	*e;
+
+	if (space > 0)
+	{
+	    /* We need the tail that fits.  With double-byte encoding going
+	     * back from the end is very slow, thus go from the start and keep
+	     * the text that fits in "space" between "s" and "e". */
+	    for (s = e = compl_shown_match->cp_fname; *e != NUL; MB_PTR_ADV(e))
+	    {
+		space -= ptr2cells(e);
+		while (space < 0)
+		{
+		    space += ptr2cells(s);
+		    MB_PTR_ADV(s);
+		}
+	    }
+	    vim_snprintf((char *)IObuff, IOSIZE, "%s %s%s", lead,
+				s > compl_shown_match->cp_fname ? "<" : "", s);
+	    msg(IObuff);
+	    redraw_cmdline = FALSE;	    /* don't overwrite! */
+	}
     }
 
     return num_matches;
@@ -9017,7 +9031,7 @@ ins_bs(
 #endif
 
     /*
-     * delete newline!
+     * Delete newline!
      */
     if (curwin->w_cursor.col == 0)
     {
@@ -9032,7 +9046,7 @@ ins_bs(
 			       (linenr_T)(curwin->w_cursor.lnum + 1)) == FAIL)
 		return FALSE;
 	    --Insstart.lnum;
-	    Insstart.col = MAXCOL;
+	    Insstart.col = (colnr_T)STRLEN(ml_get(Insstart.lnum));
 	}
 	/*
 	 * In replace mode:
@@ -9543,7 +9557,7 @@ bracketed_paste(paste_mode_T mode, int drop, garray_T *gap)
 #endif
 	    buf[idx++] = c;
 	buf[idx] = NUL;
-	if (end != NUL && STRNCMP(buf, end, idx) == 0)
+	if (end != NULL && STRNCMP(buf, end, idx) == 0)
 	{
 	    if (end[idx] == NUL)
 		break; /* Found the end of paste code. */

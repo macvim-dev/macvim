@@ -5249,24 +5249,6 @@ f_getwininfo(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * "getwinposx()" function
- */
-    static void
-f_getwinposx(typval_T *argvars UNUSED, typval_T *rettv)
-{
-    rettv->vval.v_number = -1;
-#ifdef FEAT_GUI
-    if (gui.in_use)
-    {
-	int	    x, y;
-
-	if (gui_mch_get_winpos(&x, &y) == OK)
-	    rettv->vval.v_number = x;
-    }
-#endif
-}
-
-/*
  * "win_findbuf()" function
  */
     static void
@@ -5314,6 +5296,33 @@ f_win_id2win(typval_T *argvars, typval_T *rettv)
 }
 
 /*
+ * "getwinposx()" function
+ */
+    static void
+f_getwinposx(typval_T *argvars UNUSED, typval_T *rettv)
+{
+    rettv->vval.v_number = -1;
+#ifdef FEAT_GUI
+    if (gui.in_use)
+    {
+	int	    x, y;
+
+	if (gui_mch_get_winpos(&x, &y) == OK)
+	    rettv->vval.v_number = x;
+	return;
+    }
+#endif
+#if defined(HAVE_TGETENT) && defined(FEAT_TERMRESPONSE)
+    {
+	int	    x, y;
+
+	if (term_get_winpos(&x, &y) == OK)
+	    rettv->vval.v_number = x;
+    }
+#endif
+}
+
+/*
  * "getwinposy()" function
  */
     static void
@@ -5326,6 +5335,15 @@ f_getwinposy(typval_T *argvars UNUSED, typval_T *rettv)
 	int	    x, y;
 
 	if (gui_mch_get_winpos(&x, &y) == OK)
+	    rettv->vval.v_number = y;
+	return;
+    }
+#endif
+#if defined(HAVE_TGETENT) && defined(FEAT_TERMRESPONSE)
+    {
+	int	    x, y;
+
+	if (term_get_winpos(&x, &y) == OK)
 	    rettv->vval.v_number = y;
     }
 #endif
@@ -7718,6 +7736,7 @@ static int mkdir_recurse(char_u *dir, int prot);
 /*
  * Create the directory in which "dir" is located, and higher levels when
  * needed.
+ * Return OK or FAIL.
  */
     static int
 mkdir_recurse(char_u *dir, int prot)

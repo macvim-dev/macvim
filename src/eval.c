@@ -6120,13 +6120,16 @@ var2fpos(
 	if (name[1] == '0')		/* "w0": first visible line */
 	{
 	    update_topline();
-	    pos.lnum = curwin->w_topline;
+	    /* In silent Ex mode topline is zero, but that's not a valid line
+	     * number; use one instead. */
+	    pos.lnum = curwin->w_topline > 0 ? curwin->w_topline : 1;
 	    return &pos;
 	}
 	else if (name[1] == '$')	/* "w$": last visible line */
 	{
 	    validate_botline();
-	    pos.lnum = curwin->w_botline - 1;
+	    /* In silent Ex mode botline is zero, return zero then. */
+	    pos.lnum = curwin->w_botline > 0 ? curwin->w_botline - 1 : 0;
 	    return &pos;
 	}
     }
@@ -8325,7 +8328,6 @@ ex_execute(exarg_T *eap)
 	     * follows is displayed on a new line when scrolling back at the
 	     * more prompt. */
 	    msg_sb_eol();
-	    msg_start();
 	}
 
 	if (eap->cmdidx == CMD_echomsg)

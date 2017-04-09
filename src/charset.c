@@ -960,7 +960,7 @@ vim_isfilec_or_wc(int c)
 }
 
 /*
- * return TRUE if 'c' is a printable character
+ * Return TRUE if 'c' is a printable character.
  * Assume characters above 0x100 are printable (multi-byte), except for
  * Unicode.
  */
@@ -1717,7 +1717,7 @@ vim_toupper(int c)
 {
     if (c <= '@')
 	return c;
-    if (c >= 0x80)
+    if (c >= 0x80 || !(cmp_flags & CMP_KEEPASCII))
     {
 	if (enc_utf8)
 	    return utf_toupper(c);
@@ -1733,6 +1733,8 @@ vim_toupper(int c)
 	if (enc_latin1like)
 	    return latin1upper[c];
     }
+    if (c < 0x80 && (cmp_flags & CMP_KEEPASCII))
+	return TOUPPER_ASC(c);
     return TOUPPER_LOC(c);
 }
 
@@ -1741,7 +1743,7 @@ vim_tolower(int c)
 {
     if (c <= '@')
 	return c;
-    if (c >= 0x80)
+    if (c >= 0x80 || !(cmp_flags & CMP_KEEPASCII))
     {
 	if (enc_utf8)
 	    return utf_tolower(c);
@@ -1757,6 +1759,8 @@ vim_tolower(int c)
 	if (enc_latin1like)
 	    return latin1lower[c];
     }
+    if (c < 0x80 && (cmp_flags & CMP_KEEPASCII))
+	return TOLOWER_ASC(c);
     return TOLOWER_LOC(c);
 }
 #endif
