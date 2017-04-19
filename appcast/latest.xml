@@ -6,13 +6,14 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-130</title>
+      <title>MacVim snapshot-131</title>
       <description><![CDATA[
 <pre>
 Binary targets macOS 10.8+
 
-- Vim patch 8.0.0525
-- Introduce columnspace (See :help columnspace)
+- Vim patch 8.0.0567
+- Fix artifacts when entering full screen
+- Fix flashing during window resizing
 
 Script interfaces have compatibility with these versions
 
@@ -24,14 +25,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Thu, 30 Mar 2017 08:00:00 -0700</pubDate>
+      <pubDate>Tue, 18 Apr 2017 22:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-130/MacVim.dmg"
-        length="15599427"
-        sparkle:version="130"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-131/MacVim.dmg"
+        length="15600490"
+        sparkle:version="131"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MCwCFHKr1VUSZKZlJN3gyx+xY3XF9HCSAhRPp7eiWhlKKoF0dLUXMmiAxBhcag=="
+	sparkle:dsaSignature="MCwCFGMCdDwBu4Se3uX4mQyfUEYPZ/NAAhRQyvl726nbmcWGhRSoB5rAiKF36Q=="
         />
     </item>
   </channel>
