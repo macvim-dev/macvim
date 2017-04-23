@@ -1201,6 +1201,25 @@ func SetXlistTests(cchar, bnum)
   let l = g:Xgetlist()
   call assert_equal(0, len(l))
 
+  " Tests for setting the 'valid' flag
+  call g:Xsetlist([{'bufnr':a:bnum, 'lnum':4, 'valid':0}])
+  Xwindow
+  call assert_equal(1, winnr('$'))
+  let l = g:Xgetlist()
+  call g:Xsetlist(l)
+  call assert_equal(0, g:Xgetlist()[0].valid)
+  call g:Xsetlist([{'text':'Text1', 'valid':1}])
+  Xwindow
+  call assert_equal(2, winnr('$'))
+  Xclose
+  let save_efm = &efm
+  set efm=%m
+  Xgetexpr 'TestMessage'
+  let l = g:Xgetlist()
+  call g:Xsetlist(l)
+  call assert_equal(1, g:Xgetlist()[0].valid)
+  let &efm = save_efm
+
   " Error cases:
   " Refer to a non-existing buffer and pass a non-dictionary type
   call assert_fails("call g:Xsetlist([{'bufnr':998, 'lnum':4}," .
@@ -2021,16 +2040,4 @@ endfunc
 func Test_qf_free()
   call XfreeTests('c')
   call XfreeTests('l')
-endfunc
-
-func Test_no_reuse_mem()
-  set efm=E,%W%m,
-  cgetexpr ['C']
-  set efm=%C%m
-  lexpr '0'
-  lopen
-  call setqflist([], 'r')
-  caddbuf
-
-  set efm&
 endfunc
