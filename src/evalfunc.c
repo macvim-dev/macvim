@@ -3005,8 +3005,7 @@ f_expand(typval_T *argvars, typval_T *rettv)
 	    && get_tv_number_chk(&argvars[2], &error)
 	    && !error)
     {
-	rettv->v_type = VAR_LIST;
-	rettv->vval.v_list = NULL;
+	rettv_list_set(rettv, NULL);
     }
 
     s = get_tv_string(&argvars[0]);
@@ -3909,12 +3908,7 @@ f_get(typval_T *argvars, typval_T *rettv)
 		}
 	    }
 	    else if (STRCMP(what, "dict") == 0)
-	    {
-		rettv->v_type = VAR_DICT;
-		rettv->vval.v_dict = pt->pt_dict;
-		if (pt->pt_dict != NULL)
-		    ++pt->pt_dict->dv_refcount;
-	    }
+		rettv_dict_set(rettv, pt->pt_dict);
 	    else if (STRCMP(what, "args") == 0)
 	    {
 		rettv->v_type = VAR_LIST;
@@ -4214,9 +4208,7 @@ f_getbufvar(typval_T *argvars, typval_T *rettv)
 
 		if (opts != NULL)
 		{
-		    rettv->v_type = VAR_DICT;
-		    rettv->vval.v_dict = opts;
-		    ++opts->dv_refcount;
+		    rettv_dict_set(rettv, opts);
 		    done = TRUE;
 		}
 	    }
@@ -5379,8 +5371,7 @@ f_glob(typval_T *argvars, typval_T *rettv)
 	{
 	    if (get_tv_number_chk(&argvars[2], &error))
 	    {
-		rettv->v_type = VAR_LIST;
-		rettv->vval.v_list = NULL;
+		rettv_list_set(rettv, NULL);
 	    }
 	    if (argvars[3].v_type != VAR_UNKNOWN
 				    && get_tv_number_chk(&argvars[3], &error))
@@ -5436,8 +5427,7 @@ f_globpath(typval_T *argvars, typval_T *rettv)
 	{
 	    if (get_tv_number_chk(&argvars[3], &error))
 	    {
-		rettv->v_type = VAR_LIST;
-		rettv->vval.v_list = NULL;
+		rettv_list_set(rettv, NULL);
 	    }
 	    if (argvars[4].v_type != VAR_UNKNOWN
 				    && get_tv_number_chk(&argvars[4], &error))
@@ -9179,9 +9169,7 @@ f_reverse(typval_T *argvars, typval_T *rettv)
 	    list_append(l, li);
 	    li = ni;
 	}
-	rettv->vval.v_list = l;
-	rettv->v_type = VAR_LIST;
-	++l->lv_refcount;
+	rettv_list_set(rettv, l);
 	l->lv_idx = l->lv_len - l->lv_idx - 1;
     }
 }
@@ -10769,9 +10757,7 @@ do_sort_uniq(typval_T *argvars, typval_T *rettv, int sort)
 	     (char_u *)(sort ? N_("sort() argument") : N_("uniq() argument")),
 									TRUE))
 	    goto theend;
-	rettv->vval.v_list = l;
-	rettv->v_type = VAR_LIST;
-	++l->lv_refcount;
+	rettv_list_set(rettv, l);
 
 	len = list_len(l);
 	if (len <= 1)
@@ -11859,8 +11845,7 @@ f_synconcealed(typval_T *argvars UNUSED, typval_T *rettv)
     char_u	str[NUMBUFLEN];
 #endif
 
-    rettv->v_type = VAR_LIST;
-    rettv->vval.v_list = NULL;
+    rettv_list_set(rettv, NULL);
 
 #if defined(FEAT_SYN_HL) && defined(FEAT_CONCEAL)
     lnum = get_tv_lnum(argvars);		/* -1 on type error */
@@ -11917,8 +11902,7 @@ f_synstack(typval_T *argvars UNUSED, typval_T *rettv)
     int		id;
 #endif
 
-    rettv->v_type = VAR_LIST;
-    rettv->vval.v_list = NULL;
+    rettv_list_set(rettv, NULL);
 
 #ifdef FEAT_SYN_HL
     lnum = get_tv_lnum(argvars);		/* -1 on type error */
@@ -12084,9 +12068,7 @@ get_cmd_output_as_rettv(
 	    list_append(list, li);
 	}
 
-	++list->lv_refcount;
-	rettv->v_type = VAR_LIST;
-	rettv->vval.v_list = list;
+	rettv_list_set(rettv, list);
 	list = NULL;
     }
     else
@@ -12492,8 +12474,7 @@ f_test_null_channel(typval_T *argvars UNUSED, typval_T *rettv)
     static void
 f_test_null_dict(typval_T *argvars UNUSED, typval_T *rettv)
 {
-    rettv->v_type = VAR_DICT;
-    rettv->vval.v_dict = NULL;
+    rettv_dict_set(rettv, NULL);
 }
 
 #ifdef FEAT_JOB_CHANNEL
@@ -12508,8 +12489,7 @@ f_test_null_job(typval_T *argvars UNUSED, typval_T *rettv)
     static void
 f_test_null_list(typval_T *argvars UNUSED, typval_T *rettv)
 {
-    rettv->v_type = VAR_LIST;
-    rettv->vval.v_list = NULL;
+    rettv_list_set(rettv, NULL);
 }
 
     static void
