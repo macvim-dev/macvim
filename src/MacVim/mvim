@@ -8,40 +8,28 @@
 # Based on a script by Wout Mertens and suggestions from Laurent Bihanic.  This
 # version is the fault of Benji Fisher, 16 May 2005 (with modifications by Nico
 # Weber and Bjorn Winckler, Aug 13 2007).
-# First, check "All the Usual Suspects" for the location of the Vim.app bundle.
-# You can short-circuit this by setting the VIM_APP_DIR environment variable
-# or by un-commenting and editing the following line:
-# VIM_APP_DIR=/Applications
+#
 
-if [ -z "$VIM_APP_DIR" ]
-then
-	myDir="`dirname "$0"`"
-	myAppDir="$myDir/../Applications"
-	suspects=(
-		/Applications
-		~/Applications
-		/Applications/vim
-		~/Applications/vim
-		$myDir
-		$myDir/vim
-		$myAppDir
-		$myAppDir/vim
-		/Applications/Utilities
-		/Applications/Utilities/vim
-	)
-	for i in ${suspects[@]}; do
-		if [ -x "$i/MacVim.app" ]; then
-			VIM_APP_DIR="$i"
-			break
-		fi
+# Find Vim executable
+if [ -L $0 ]; then
+	# readlink -f
+	curdir=`pwd -P`
+	self_path=$0
+	cd `dirname $self_path`
+	while [ -L $self_path ]; do
+		self_path=`readlink $self_path`
+		cd `dirname $self_path`
+		self_path=`basename $self_path`
 	done
+	binary="`pwd -P`/../MacOS/Vim"
+	cd $curdir
+else
+	binary="`dirname "$0"`/../MacOS/Vim"
 fi
-if [ -z "$VIM_APP_DIR" ]
-then
-	echo "Sorry, cannot find MacVim.app.  Try setting the VIM_APP_DIR environment variable to the directory containing MacVim.app."
+if ! [ -x $binary ]; then
+	echo "Sorry, cannot find Vim executable."
 	exit 1
 fi
-binary="$VIM_APP_DIR/MacVim.app/Contents/MacOS/Vim"
 
 # Next, peek at the name used to invoke this script, and set options
 # accordingly.
