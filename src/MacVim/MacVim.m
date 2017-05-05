@@ -118,6 +118,8 @@ NSString *MMLogToStdErrKey  = @"MMLogToStdErr";
 // (techincally this is a user default but should not be used as such).
 NSString *MMNoWindowKey = @"MMNoWindow";
 
+NSString *MMShareFindPboardKey = @"MMShareFindPboard";
+
 NSString *MMAutosaveRowsKey    = @"MMAutosaveRows";
 NSString *MMAutosaveColumnsKey = @"MMAutosaveColumns";
 NSString *MMRendererKey	       = @"MMRenderer";
