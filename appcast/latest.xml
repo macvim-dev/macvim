@@ -6,14 +6,14 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-131</title>
+      <title>MacVim snapshot-132</title>
       <description><![CDATA[
 <pre>
 Binary targets macOS 10.8+
 
-- Vim patch 8.0.0567
-- Fix artifacts when entering full screen
-- Fix flashing during window resizing
+- Vim patch 8.0.0596
+- Fix mvim script to allow symbolic link it properly
+- Add MMShareFindPboard to control sharing search text to the Find Pasteboard
 
 Script interfaces have compatibility with these versions
 
@@ -25,14 +25,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Tue, 18 Apr 2017 22:00:00 -0700</pubDate>
+      <pubDate>Thu, 04 May 2017 20:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-131/MacVim.dmg"
-        length="15600490"
-        sparkle:version="131"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-132/MacVim.dmg"
+        length="15634157"
+        sparkle:version="132"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MCwCFGMCdDwBu4Se3uX4mQyfUEYPZ/NAAhRQyvl726nbmcWGhRSoB5rAiKF36Q=="
+	sparkle:dsaSignature="MC0CFQC8zAf3F3slRplr89vF5K1Oyb8r/QIUAKBuPw/MqnVi4KvfX7y80G3t2W0="
         />
     </item>
   </channel>
