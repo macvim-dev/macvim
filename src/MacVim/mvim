@@ -11,22 +11,22 @@
 #
 
 # Find Vim executable
-if [ -L $0 ]; then
+if [ -L "$0" ]; then
 	# readlink -f
 	curdir=`pwd -P`
 	self_path=$0
-	cd `dirname $self_path`
-	while [ -L $self_path ]; do
+	cd "`dirname $self_path`"
+	while [ -L "$self_path" ]; do
 		self_path=`readlink $self_path`
-		cd `dirname $self_path`
+		cd "`dirname $self_path`"
 		self_path=`basename $self_path`
 	done
 	binary="`pwd -P`/../MacOS/Vim"
-	cd $curdir
+	cd "$curdir"
 else
 	binary="`dirname "$0"`/../MacOS/Vim"
 fi
-if ! [ -x $binary ]; then
+if ! [ -x "$binary" ]; then
 	echo "Sorry, cannot find Vim executable."
 	exit 1
 fi
