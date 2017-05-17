@@ -10917,6 +10917,9 @@ eval_vars(
 		result = strbuf;
 		break;
 #endif
+	default:
+		result = (char_u *)""; /* avoid gcc warning */
+		break;
 	}
 
 	resultlen = (int)STRLEN(result);	/* length of new string */
