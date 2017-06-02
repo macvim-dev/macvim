@@ -586,6 +586,7 @@ mac_lang_init(void)
 	    vim_setenv((char_u *)"LANG", (char_u *)buf);
 #   ifdef HAVE_LOCALE_H
 	    setlocale(LC_ALL, "");
+            setlocale(LC_NUMERIC, "C");
 #   endif
 	}
     }
