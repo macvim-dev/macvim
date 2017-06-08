@@ -472,6 +472,12 @@ vim_main2(void)
      */
     if (p_lpl)
     {
+	/* First add all package directories to 'runtimepath', so that their
+	 * autoload directories can be found.  Only if not done already with a
+	 * :packloadall command. */
+	if (!did_source_packages)
+	    add_pack_start_dirs();
+
 # ifdef VMS	/* Somehow VMS doesn't handle the "**". */
 	source_runtime((char_u *)"plugin/*.vim", DIP_ALL | DIP_NOAFTER);
 # else
@@ -479,7 +485,10 @@ vim_main2(void)
 # endif
 	TIME_MSG("loading plugins");
 
-	ex_packloadall(NULL);
+	/* Only source "start" packages if not done already with a :packloadall
+	 * command. */
+	if (!did_source_packages)
+	    load_start_packages();
 	TIME_MSG("loading packages");
 
 # ifdef VMS	/* Somehow VMS doesn't handle the "**". */
@@ -833,6 +842,11 @@ vim_main2(void)
     if (params.n_commands > 0)
 	exe_commands(&params);
 
+#if defined(FEAT_TERMRESPONSE) && defined(FEAT_MBYTE)
+    /* Must be done before redrawing, puts a few characters on the screen. */
+    may_req_ambiguous_char_width();
+#endif
+
     RedrawingDisabled = 0;
     redraw_all_later(NOT_VALID);
     no_wait_return = FALSE;
@@ -846,9 +860,6 @@ vim_main2(void)
      * argument doesn't make it appear in the shell Vim was started from. */
     may_req_termresponse();
 
-# if defined(FEAT_MBYTE)
-    may_req_ambiguous_char_width();
-# endif
     may_req_bg_color();
 #endif
 

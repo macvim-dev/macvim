@@ -1533,9 +1533,9 @@ end_do_search:
  * search_for_exact_line(buf, pos, dir, pat)
  *
  * Search for a line starting with the given pattern (ignoring leading
- * white-space), starting from pos and going in direction dir.	pos will
+ * white-space), starting from pos and going in direction "dir". "pos" will
  * contain the position of the match found.    Blank lines match only if
- * ADDING is set.  if p_ic is set then the pattern must be in lowercase.
+ * ADDING is set.  If p_ic is set then the pattern must be in lowercase.
  * Return OK for success, or FAIL if no line found.
  */
     int
@@ -4373,7 +4373,7 @@ current_quote(
     int		selected_quote = FALSE;	/* Has quote inside selection */
     int		i;
 
-    /* Correct cursor when 'selection' is exclusive */
+    /* Correct cursor when 'selection' is "exclusive". */
     if (VIsual_active)
     {
 	/* this only works within one line */
@@ -4381,8 +4381,19 @@ current_quote(
 	    return FALSE;
 
 	vis_bef_curs = LT_POS(VIsual, curwin->w_cursor);
-	if (*p_sel == 'e' && vis_bef_curs)
+	if (*p_sel == 'e')
+	{
+	    if (!vis_bef_curs)
+	    {
+		/* VIsual needs to be start of Visual selection. */
+		pos_T t = curwin->w_cursor;
+
+		curwin->w_cursor = VIsual;
+		VIsual = t;
+		vis_bef_curs = TRUE;
+	    }
 	    dec_cursor();
+	}
 	vis_empty = EQUAL_POS(VIsual, curwin->w_cursor);
     }
 
@@ -4597,7 +4608,7 @@ current_quote(
 
 #endif /* FEAT_TEXTOBJ */
 
-static int is_one_char(char_u *pattern, int move);
+static int is_one_char(char_u *pattern, int move, pos_T *cur);
 
 /*
  * Find next search match under cursor, cursor at end.
@@ -4645,7 +4656,7 @@ current_search(
 	orig_pos = pos = curwin->w_cursor;
 
     /* Is the pattern is zero-width? */
-    one_char = is_one_char(spats[last_idx].pat, TRUE);
+    one_char = is_one_char(spats[last_idx].pat, TRUE, &curwin->w_cursor);
     if (one_char == -1)
     {
 	p_ws = old_p_ws;
@@ -4708,7 +4719,10 @@ current_search(
 
     /* Check again from the current cursor position,
      * since the next match might actually by only one char wide */
-    one_char = is_one_char(spats[last_idx].pat, FALSE);
+    one_char = is_one_char(spats[last_idx].pat, FALSE, &pos);
+    if (one_char < 0)
+	/* search failed, abort */
+	return FAIL;
 
     /* move to match, except for zero-width matches, in which case, we are
      * already on the next match */
@@ -4759,12 +4773,12 @@ current_search(
 
 /*
  * Check if the pattern is one character long or zero-width.
- * If move is TRUE, check from the beginning of the buffer, else from the
- * current cursor position.
+ * If move is TRUE, check from the beginning of the buffer, else from position
+ * "cur".
  * Returns TRUE, FALSE or -1 for failure.
  */
     static int
-is_one_char(char_u *pattern, int move)
+is_one_char(char_u *pattern, int move, pos_T *cur)
 {
     regmmatch_T	regmatch;
     int		nmatched = 0;
@@ -4789,7 +4803,7 @@ is_one_char(char_u *pattern, int move)
     }
     else
     {
-	pos = curwin->w_cursor;
+	pos = *cur;
 	/* accept a match at the cursor position */
 	flag = SEARCH_START;
     }
@@ -5406,8 +5420,9 @@ search_line:
 #if defined(FEAT_WINDOWS) && defined(FEAT_QUICKFIX)
 			if (g_do_tagpreview != 0)
 			{
-			    if (getfile(0, curwin_save->w_buffer->b_fname,
-						 NULL, TRUE, lnum, FALSE) > 0)
+			    if (!GETFILE_SUCCESS(getfile(
+					    0, curwin_save->w_buffer->b_fname,
+						     NULL, TRUE, lnum, FALSE)))
 				break;	/* failed to jump to file */
 			}
 			else
@@ -5417,8 +5432,9 @@ search_line:
 		    }
 		    else
 		    {
-			if (getfile(0, files[depth].name, NULL, TRUE,
-						files[depth].lnum, FALSE) > 0)
+			if (!GETFILE_SUCCESS(getfile(
+					0, files[depth].name, NULL, TRUE,
+						    files[depth].lnum, FALSE)))
 			    break;	/* failed to jump to file */
 			/* autocommands may have changed the lnum, we don't
 			 * want that here */
