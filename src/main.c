@@ -842,6 +842,9 @@ vim_main2(void)
     if (params.n_commands > 0)
 	exe_commands(&params);
 
+    /* Must come before the may_req_ calls. */
+    starting = 0;
+
 #if defined(FEAT_TERMRESPONSE) && defined(FEAT_MBYTE)
     /* Must be done before redrawing, puts a few characters on the screen. */
     may_req_ambiguous_char_width();
@@ -850,7 +853,6 @@ vim_main2(void)
     RedrawingDisabled = 0;
     redraw_all_later(NOT_VALID);
     no_wait_return = FALSE;
-    starting = 0;
 
     /* 'autochdir' has been postponed */
     DO_AUTOCHDIR
