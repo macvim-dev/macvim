@@ -1663,6 +1663,7 @@ EXTERN int  in_free_unref_items INIT(= FALSE);
 
 #ifdef FEAT_TIMERS
 EXTERN int  did_add_timer INIT(= FALSE);
+EXTERN int  timer_busy INIT(= 0);   /* when timer is inside vgetc() then > 0 */
 #endif
 
 #ifdef FEAT_EVAL
