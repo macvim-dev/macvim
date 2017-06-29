@@ -1720,7 +1720,8 @@ func Xproperty_tests(cchar)
     Xopen
     wincmd p
     call g:Xsetlist([{'filename':'foo', 'lnum':27}])
-    call g:Xsetlist([], 'a', {'title' : 'Sample'})
+    let s = g:Xsetlist([], 'a', {'title' : 'Sample'})
+    call assert_equal(0, s)
     let d = g:Xgetlist({"title":1})
     call assert_equal('Sample', d.title)
 
@@ -1774,7 +1775,8 @@ func Xproperty_tests(cchar)
     endif
 
     " Context related tests
-    call g:Xsetlist([], 'a', {'context':[1,2,3]})
+    let s = g:Xsetlist([], 'a', {'context':[1,2,3]})
+    call assert_equal(0, s)
     call test_garbagecollect_now()
     let d = g:Xgetlist({'context':1})
     call assert_equal([1,2,3], d.context)
@@ -1839,8 +1841,9 @@ func Xproperty_tests(cchar)
     " Test for setting/getting items
     Xexpr ""
     let qfprev = g:Xgetlist({'nr':0})
-    call g:Xsetlist([], ' ', {'title':'Green',
+    let s = g:Xsetlist([], ' ', {'title':'Green',
 		\ 'items' : [{'filename':'F1', 'lnum':10}]})
+    call assert_equal(0, s)
     let qfcur = g:Xgetlist({'nr':0})
     call assert_true(qfcur.nr == qfprev.nr + 1)
     let l = g:Xgetlist({'items':1})
@@ -2187,18 +2190,6 @@ func Test_bufoverflow()
   set efm&vim
 endfunc
 
-func Test_cclose_from_copen()
-    augroup QF_Test
-	au!
-        au FileType qf :call assert_fails(':cclose', 'E788')
-    augroup END
-    copen
-    augroup QF_Test
-	au!
-    augroup END
-    augroup! QF_Test
-endfunc
-
 " Tests for getting the quickfix stack size
 func XsizeTests(cchar)
   call s:setup_commands(a:cchar)
@@ -2228,6 +2219,18 @@ func Test_Qf_Size()
   call XsizeTests('l')
 endfunc
 
+func Test_cclose_from_copen()
+    augroup QF_Test
+	au!
+        au FileType qf :call assert_fails(':cclose', 'E788')
+    augroup END
+    copen
+    augroup QF_Test
+	au!
+    augroup END
+    augroup! QF_Test
+endfunc
+
 func Test_cclose_in_autocmd()
   " Problem is only triggered if "starting" is zero, so that the OptionsSet
   " event will be triggered.
@@ -2242,4 +2245,21 @@ func Test_cclose_in_autocmd()
   augroup END
   augroup! QF_Test
   call test_override('starting', 0)
+endfunc
+
+func Test_resize_from_copen()
+    augroup QF_Test
+	au!
+        au FileType qf resize 5
+    augroup END
+    try
+	" This should succeed without any exception.  No other buffers are
+	" involved in the autocmd.
+	copen
+    finally
+	augroup QF_Test
+	    au!
+	augroup END
+	augroup! QF_Test
+    endtry
 endfunc
