@@ -1156,6 +1156,9 @@ enum
     , WV_COCU
     , WV_COLE
 #endif
+#ifdef FEAT_TERMINAL
+    , WV_TMS
+#endif
 #ifdef FEAT_CURSORBIND
     , WV_CRBIND
 #endif
