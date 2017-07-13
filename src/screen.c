@@ -275,6 +275,12 @@ redraw_buf_and_status_later(buf_T *buf, int type)
 {
     win_T	*wp;
 
+#ifdef FEAT_WILDMENU
+    if (wild_menu_showing != 0)
+	/* Don't redraw while the command line completion is displayed, it
+	 * would disappear. */
+	return;
+#endif
     FOR_ALL_WINDOWS(wp)
     {
 	if (wp->w_buffer == buf)
@@ -444,22 +450,16 @@ redraw_after_callback(void)
 	; /* do nothing */
     else if (State & CMDLINE)
     {
-	/* Redrawing only works when the screen didn't scroll. */
-	if (msg_scrolled == 0)
-	{
+	/* Redrawing only works when the screen didn't scroll. Don't clear
+	 * wildmenu entries. */
+	if (msg_scrolled == 0
+#ifdef FEAT_WILDMENU
+		&& wild_menu_showing == 0
+#endif
+		)
 	    update_screen(0);
-	    compute_cmdrow();
-	}
-	else
-	{
-	    /* Redraw in the same position, so that the user can continue
-	     * editing the command. */
-	    compute_cmdrow();
-	    if (cmdline_row > msg_scrolled)
-		cmdline_row -= msg_scrolled;
-	    else
-		cmdline_row = 0;
-	}
+	/* Redraw in the same position, so that the user can continue
+	 * editing the command. */
 	redrawcmdline_ex(FALSE);
     }
     else if (State & (NORMAL | INSERT))
@@ -9445,9 +9445,9 @@ setcursor(void)
 
 
 /*
- * insert 'line_count' lines at 'row' in window 'wp'
- * if 'invalid' is TRUE the wp->w_lines[].wl_lnum is invalidated.
- * if 'mayclear' is TRUE the screen will be cleared if it is faster than
+ * Insert 'line_count' lines at 'row' in window 'wp'.
+ * If 'invalid' is TRUE the wp->w_lines[].wl_lnum is invalidated.
+ * If 'mayclear' is TRUE the screen will be cleared if it is faster than
  * scrolling.
  * Returns FAIL if the lines are not inserted, OK for success.
  */
@@ -9530,7 +9530,7 @@ win_ins_lines(
 }
 
 /*
- * delete "line_count" window lines at "row" in window "wp"
+ * Delete "line_count" window lines at "row" in window "wp".
  * If "invalid" is TRUE curwin->w_lines[] is invalidated.
  * If "mayclear" is TRUE the screen will be cleared if it is faster than
  * scrolling
