@@ -36,7 +36,7 @@ static void loadSymbols()
     void *ptr;
     if ((ptr = dlsym(RTLD_DEFAULT, "NSImageNamePreferencesGeneral")) != NULL)
         nsImageNamePreferencesGeneral = *(NSString**)ptr;
-    if ((ptr = dlsym(RTLD_DEFAULT, "NSImageNamePreferencesAdvanced")) != NULL)
+    if ((ptr = dlsym(RTLD_DEFAULT, "NSImageNameAdvanced")) != NULL)
         nsImageNamePreferencesAdvanced = *(NSString**)ptr;
 }
 
