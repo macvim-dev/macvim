@@ -33,6 +33,7 @@
  * while, if the terminal window is visible, the screen contents is drawn.
  *
  * TODO:
+ * - cursor flickers when moving the cursor
  * - set buffer options to be scratch, hidden, nomodifiable, etc.
  * - set buffer name to command, add (1) to avoid duplicates.
  * - Add a scrollback buffer (contains lines to scroll off the top).
@@ -116,6 +117,7 @@ static term_T *first_term = NULL;
  * Functions with separate implementation for MS-Windows and Unix-like systems.
  */
 static int term_and_job_init(term_T *term, int rows, int cols, char_u *cmd);
+static void term_report_winsize(term_T *term, int rows, int cols);
 static void term_free(term_T *term);
 
 /**************************************
@@ -587,6 +589,164 @@ handle_resize(int rows, int cols, void *user)
 }
 
 /*
+ * Reverse engineer the RGB value into a cterm color index.
+ * First color is 1.  Return 0 if no match found.
+ */
+    static int
+color2index(VTermColor *color)
+{
+    int red = color->red;
+    int blue = color->blue;
+    int green = color->green;
+
+    if (red == 0)
+    {
+	if (green == 0)
+	{
+	    if (blue == 0)
+		return 1; /* black */
+	    if (blue == 224)
+		return 5; /* blue */
+	}
+	else if (green == 224)
+	{
+	    if (blue == 0)
+		return 3; /* green */
+	    if (blue == 224)
+		return 7; /* cyan */
+	}
+    }
+    else if (red == 224)
+    {
+	if (green == 0)
+	{
+	    if (blue == 0)
+		return 2; /* red */
+	    if (blue == 224)
+		return 6; /* magenta */
+	}
+	else if (green == 224)
+	{
+	    if (blue == 0)
+		return 4; /* yellow */
+	    if (blue == 224)
+		return 8; /* white */
+	}
+    }
+    else if (red == 128)
+    {
+	if (green == 128 && blue == 128)
+	    return 9; /* high intensity bladk */
+    }
+    else if (red == 255)
+    {
+	if (green == 64)
+	{
+	    if (blue == 64)
+		return 10;  /* high intensity red */
+	    if (blue == 255)
+		return 14;  /* high intensity magenta */
+	}
+	else if (green == 255)
+	{
+	    if (blue == 64)
+		return 12;  /* high intensity yellow */
+	    if (blue == 255)
+		return 16;  /* high intensity white */
+	}
+    }
+    else if (red == 64)
+    {
+	if (green == 64)
+	{
+	    if (blue == 255)
+		return 13;  /* high intensity blue */
+	}
+	else if (green == 255)
+	{
+	    if (blue == 64)
+		return 11;  /* high intensity green */
+	    if (blue == 255)
+		return 15;  /* high intensity cyan */
+	}
+    }
+    if (t_colors >= 256)
+    {
+	if (red == blue && red == green)
+	{
+	    /* 24-color greyscale */
+	    static int cutoff[23] = {
+		0x05, 0x10, 0x1B, 0x26, 0x31, 0x3C, 0x47, 0x52,
+		0x5D, 0x68, 0x73, 0x7F, 0x8A, 0x95, 0xA0, 0xAB,
+		0xB6, 0xC1, 0xCC, 0xD7, 0xE2, 0xED, 0xF9};
+	    int i;
+
+	    for (i = 0; i < 23; ++i)
+		if (red < cutoff[i])
+		    return i + 233;
+	    return 256;
+	}
+
+	/* 216-color cube */
+	return 17 + ((red + 25) / 0x33) * 36
+	          + ((green + 25) / 0x33) * 6
+		  + (blue + 25) / 0x33;
+    }
+    return 0;
+}
+
+/*
+ * Convert the attributes of a vterm cell into an attribute index.
+ */
+    static int
+cell2attr(VTermScreenCell *cell)
+{
+    int attr = 0;
+
+    if (cell->attrs.bold)
+	attr |= HL_BOLD;
+    if (cell->attrs.underline)
+	attr |= HL_UNDERLINE;
+    if (cell->attrs.italic)
+	attr |= HL_ITALIC;
+    if (cell->attrs.strike)
+	attr |= HL_STANDOUT;
+    if (cell->attrs.reverse)
+	attr |= HL_INVERSE;
+    if (cell->attrs.strike)
+	attr |= HL_UNDERLINE;
+
+#ifdef FEAT_GUI
+    if (gui.in_use)
+    {
+	guicolor_T fg, bg;
+
+	fg = gui_mch_get_rgb_color(cell->fg.red, cell->fg.green, cell->fg.blue);
+	bg = gui_mch_get_rgb_color(cell->bg.red, cell->bg.green, cell->bg.blue);
+	return get_gui_attr_idx(attr, fg, bg);
+    }
+    else
+#endif
+#ifdef FEAT_TERMGUICOLORS
+    if (p_tgc)
+    {
+	guicolor_T fg, bg;
+
+	fg = gui_get_rgb_color_cmn(cell->fg.red, cell->fg.green, cell->fg.blue);
+	bg = gui_get_rgb_color_cmn(cell->bg.red, cell->bg.green, cell->bg.blue);
+
+	return get_tgc_attr_idx(attr, fg, bg);
+    }
+    else
+#endif
+    {
+	return get_cterm_attr_idx(attr, color2index(&cell->fg),
+						       color2index(&cell->bg));
+    }
+    return 0;
+}
+
+/*
  * Called to update the window that contains the terminal.
  */
     void
@@ -611,24 +771,7 @@ term_update_window(win_T *wp)
 	vterm_set_size(vterm, rows, cols);
 	ch_logn(term->tl_job->jv_channel, "Resizing terminal to %d lines",
 									 rows);
-
-#if defined(UNIX)
-	/* Use an ioctl() to report the new window size to the job. */
-	if (term->tl_job != NULL && term->tl_job->jv_channel != NULL)
-	{
-	    int fd = -1;
-	    int part;
-
-	    for (part = PART_OUT; part < PART_COUNT; ++part)
-	    {
-		fd = term->tl_job->jv_channel->ch_part[part].ch_fd;
-		if (isatty(fd))
-		    break;
-	    }
-	    if (part < PART_COUNT && mch_report_winsize(fd, rows, cols) == OK)
-		mch_stop_job(term->tl_job, (char_u *)"winch");
-	}
-#endif
+	term_report_winsize(term, rows, cols);
     }
 
     /* The cursor may have been moved when resizing. */
@@ -648,7 +791,10 @@ term_update_window(win_T *wp)
 		VTermScreenCell cell;
 		int		c;
 
-		vterm_screen_get_cell(screen, pos, &cell);
+		if (vterm_screen_get_cell(screen, pos, &cell) == 0)
+		    vim_memset(&cell, 0, sizeof(cell));
+
+		/* TODO: composing chars */
 		c = cell.chars[0];
 		if (c == NUL)
 		{
@@ -672,8 +818,7 @@ term_update_window(win_T *wp)
 		    ScreenLines[off] = c;
 #endif
 		}
-		/* TODO: use cell.attrs and colors */
-		ScreenAttrs[off] = 0;
+		ScreenAttrs[off] = cell2attr(&cell);
 
 		++pos.col;
 		++off;
@@ -731,6 +876,18 @@ create_vterm(term_T *term, int rows, int cols)
     vterm_screen_set_callbacks(screen, &screen_callbacks, term);
     /* TODO: depends on 'encoding'. */
     vterm_set_utf8(vterm, 1);
+
+    /* Vterm uses a default black background.  Set it to white when
+     * 'background' is "light". */
+    if (*p_bg == 'l')
+    {
+	VTermColor	fg, bg;
+
+	fg.red = fg.green = fg.blue = 0;
+	bg.red = bg.green = bg.blue = 255;
+	vterm_state_set_default_colors(vterm_obtain_state(vterm), &fg, &bg);
+    }
+
     /* Required to initialize most things. */
     vterm_screen_reset(screen, 1 /* hard */);
 }
@@ -753,6 +910,7 @@ void (*winpty_config_free)(void*);
 void (*winpty_spawn_config_free)(void*);
 void (*winpty_error_free)(void*);
 LPCWSTR (*winpty_error_msg)(void*);
+BOOL (*winpty_set_size)(void*, int, int, void*);
 
 /**************************************
  * 2. MS-Windows implementation.
@@ -785,6 +943,7 @@ dyn_winpty_init(void)
 	{"winpty_spawn_config_free", (FARPROC*)&winpty_spawn_config_free},
 	{"winpty_spawn_config_new", (FARPROC*)&winpty_spawn_config_new},
 	{"winpty_error_msg", (FARPROC*)&winpty_error_msg},
+	{"winpty_set_size", (FARPROC*)&winpty_set_size},
 	{NULL, NULL}
     };
 
@@ -916,13 +1075,19 @@ failed:
     if (channel != NULL)
 	channel_clear(channel);
     if (job != NULL)
+    {
+	job->jv_channel = NULL;
 	job_cleanup(job);
+    }
+    term->tl_job = NULL;
     if (jo != NULL)
 	CloseHandle(jo);
     if (term->tl_winpty != NULL)
 	winpty_free(term->tl_winpty);
+    term->tl_winpty = NULL;
     if (term->tl_winpty_config != NULL)
 	winpty_config_free(term->tl_winpty_config);
+    term->tl_winpty_config = NULL;
     if (winpty_err != NULL)
     {
 	char_u *msg = utf16_to_enc(
@@ -940,9 +1105,21 @@ failed:
     static void
 term_free(term_T *term)
 {
-    winpty_free(term->tl_winpty);
-    winpty_config_free(term->tl_winpty_config);
-    vterm_free(term->tl_vterm);
+    if (term->tl_winpty != NULL)
+	winpty_free(term->tl_winpty);
+    if (term->tl_winpty_config != NULL)
+	winpty_config_free(term->tl_winpty_config);
+    if (term->tl_vterm != NULL)
+	vterm_free(term->tl_vterm);
+}
+
+/*
+ * Request size to terminal.
+ */
+    static void
+term_report_winsize(term_T *term, int rows, int cols)
+{
+    winpty_set_size(term->tl_winpty, cols, rows, NULL);
 }
 
 # else
@@ -981,8 +1158,33 @@ term_and_job_init(term_T *term, int rows, int cols, char_u *cmd)
     static void
 term_free(term_T *term)
 {
-    vterm_free(term->tl_vterm);
+    if (term->tl_vterm != NULL)
+	vterm_free(term->tl_vterm);
 }
+
+/*
+ * Request size to terminal.
+ */
+    static void
+term_report_winsize(term_T *term, int rows, int cols)
+{
+    /* Use an ioctl() to report the new window size to the job. */
+    if (term->tl_job != NULL && term->tl_job->jv_channel != NULL)
+    {
+	int fd = -1;
+	int part;
+
+	for (part = PART_OUT; part < PART_COUNT; ++part)
+	{
+	    fd = term->tl_job->jv_channel->ch_part[part].ch_fd;
+	    if (isatty(fd))
+		break;
+	}
+	if (part < PART_COUNT && mch_report_winsize(fd, rows, cols) == OK)
+	    mch_stop_job(term->tl_job, (char_u *)"winch");
+    }
+}
+
 # endif
 
 #endif /* FEAT_TERMINAL */
