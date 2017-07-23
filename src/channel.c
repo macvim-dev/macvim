@@ -173,7 +173,7 @@ ch_log(channel_T *ch, char *msg)
     }
 }
 
-    static void
+    void
 ch_logn(channel_T *ch, char *msg, int nr)
 {
     if (log_fd != NULL)
@@ -1034,7 +1034,16 @@ ch_close_part(channel_T *channel, ch_part_T part)
 	if (part == PART_SOCK)
 	    sock_close(*fd);
 	else
-	    fd_close(*fd);
+	{
+	    /* When using a pty the same FD is set on multiple parts, only
+	     * close it when the last reference is closed. */
+	    if ((part == PART_IN || channel->ch_part[PART_IN].ch_fd != *fd)
+		    && (part == PART_OUT
+				    || channel->ch_part[PART_OUT].ch_fd != *fd)
+		    && (part == PART_ERR
+				   || channel->ch_part[PART_ERR].ch_fd != *fd))
+		fd_close(*fd);
+	}
 	*fd = INVALID_FD;
 
 	channel->ch_to_be_closed &= ~(1 << part);
@@ -1459,6 +1468,7 @@ channel_write_in(channel_T *channel)
     if (!bufref_valid(&in_part->ch_bufref) || buf->b_ml.ml_mfp == NULL)
     {
 	/* buffer was wiped out or unloaded */
+	ch_log(channel, "input buffer has been wiped out");
 	in_part->ch_bufref.br_buf = NULL;
 	return;
     }
@@ -2359,7 +2369,7 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel, ch_part_T part)
     int		save_write_to = buffer->b_write_to_channel;
     chanpart_T  *ch_part = &channel->ch_part[part];
     int		save_p_ma = buffer->b_p_ma;
-    int		empty = (buffer->b_ml.ml_flags & ML_EMPTY);
+    int		empty = (buffer->b_ml.ml_flags & ML_EMPTY) ? 1 : 0;
 
     if (!buffer->b_p_ma && !ch_part->ch_nomodifiable)
     {
@@ -2380,13 +2390,14 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel, ch_part_T part)
     }
 
     /* Append to the buffer */
-    ch_logn(channel, "appending line %d to buffer", (int)lnum + 1);
+    ch_logn(channel, "appending line %d to buffer", (int)lnum + 1 - empty);
 
     buffer->b_p_ma = TRUE;
     curbuf = buffer;
+    curwin->w_buffer = curbuf;
     u_sync(TRUE);
     /* ignore undo failure, undo is not very useful here */
-    ignored = u_save(lnum, lnum + 1 + (empty ? 1 : 0));
+    ignored = u_save(lnum - empty, lnum + 1);
 
     if (empty)
     {
@@ -2398,6 +2409,7 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel, ch_part_T part)
 	ml_append(lnum, msg, 0, FALSE);
     appended_lines_mark(lnum, 1L);
     curbuf = save_curbuf;
+    curwin->w_buffer = curbuf;
     if (ch_part->ch_nomodifiable)
 	buffer->b_p_ma = FALSE;
     else
@@ -2504,9 +2516,11 @@ may_invoke_callback(channel_T *channel, ch_part_T part)
     }
 
     buffer = ch_part->ch_bufref.br_buf;
-    if (buffer != NULL && !bufref_valid(&ch_part->ch_bufref))
+    if (buffer != NULL && (!bufref_valid(&ch_part->ch_bufref)
+					       || buffer->b_ml.ml_mfp == NULL))
     {
-	/* buffer was wiped out */
+	/* buffer was wiped out or unloaded */
+	ch_logs(channel, "%s buffer has been wiped out", part_names[part]);
 	ch_part->ch_bufref.br_buf = NULL;
 	buffer = NULL;
     }
@@ -2672,7 +2686,14 @@ may_invoke_callback(channel_T *channel, ch_part_T part)
 		/* JSON or JS mode: re-encode the message. */
 		msg = json_encode(listtv, ch_mode);
 	    if (msg != NULL)
-		append_to_buffer(buffer, msg, channel, part);
+	    {
+#ifdef FEAT_TERMINAL
+		if (buffer->b_term != NULL)
+		    write_to_term(buffer, msg, channel);
+		else
+#endif
+		    append_to_buffer(buffer, msg, channel, part);
+	    }
 	}
 
 	if (callback != NULL)
@@ -4293,6 +4314,12 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported)
 		opt->jo_io_name[part] =
 		       get_tv_string_buf_chk(item, opt->jo_io_name_buf[part]);
 	    }
+	    else if (STRCMP(hi->hi_key, "pty") == 0)
+	    {
+		if (!(supported & JO_MODE))
+		    break;
+		opt->jo_pty = get_tv_number(item);
+	    }
 	    else if (STRCMP(hi->hi_key, "in_buf") == 0
 		    || STRCMP(hi->hi_key, "out_buf") == 0
 		    || STRCMP(hi->hi_key, "err_buf") == 0)
@@ -4656,7 +4683,7 @@ job_still_useful(job_T *job)
  * changed to JOB_ENDED (i.e. after job_status() returned "dead" first or
  * mch_detect_ended_job() returned non-NULL).
  */
-    static void
+    void
 job_cleanup(job_T *job)
 {
     if (job->jv_status != JOB_ENDED)
@@ -4786,7 +4813,7 @@ free_unused_jobs(int copyID, int mask)
 /*
  * Allocate a job.  Sets the refcount to one and sets options default.
  */
-    static job_T *
+    job_T *
 job_alloc(void)
 {
     job_T *job;
@@ -4906,10 +4933,12 @@ job_check_ended(void)
 }
 
 /*
- * "job_start()" function
+ * Create a job and return it.  Implements job_start().
+ * The returned job has a refcount of one.
+ * Returns NULL when out of memory.
  */
     job_T *
-job_start(typval_T *argvars)
+job_start(typval_T *argvars, jobopt_T *opt_arg)
 {
     job_T	*job;
     char_u	*cmd = NULL;
@@ -4932,13 +4961,18 @@ job_start(typval_T *argvars)
     ga_init2(&ga, (int)sizeof(char*), 20);
 #endif
 
-    /* Default mode is NL. */
-    clear_job_options(&opt);
-    opt.jo_mode = MODE_NL;
-    if (get_job_options(&argvars[1], &opt,
+    if (opt_arg != NULL)
+	opt = *opt_arg;
+    else
+    {
+	/* Default mode is NL. */
+	clear_job_options(&opt);
+	opt.jo_mode = MODE_NL;
+	if (get_job_options(&argvars[1], &opt,
 	    JO_MODE_ALL + JO_CB_ALL + JO_TIMEOUT_ALL + JO_STOPONEXIT
 			   + JO_EXIT_CB + JO_OUT_IO + JO_BLOCK_WRITE) == FAIL)
 	goto theend;
+    }
 
     /* Check that when io is "file" that there is a file name. */
     for (part = PART_OUT; part < PART_COUNT; ++part)
@@ -5080,10 +5114,10 @@ job_start(typval_T *argvars)
 	ch_logs(NULL, "Starting job: %s", (char *)ga.ga_data);
 	ga_clear(&ga);
     }
-    mch_start_job(argv, job, &opt);
+    mch_job_start(argv, job, &opt);
 #else
     ch_logs(NULL, "Starting job: %s", (char *)cmd);
-    mch_start_job((char *)cmd, job, &opt);
+    mch_job_start((char *)cmd, job, &opt);
 #endif
 
     /* If the channel is reading from a buffer, write lines now. */
@@ -5157,12 +5191,19 @@ job_info(job_T *job, dict_T *dict)
     dict_add_nr_str(dict, "stoponexit", 0L, job->jv_stoponexit);
 }
 
+/*
+ * Send a signal to "job".  Implements job_stop().
+ * When "type" is not NULL use this for the type.
+ * Otherwise use argvars[1] for the type.
+ */
     int
-job_stop(job_T *job, typval_T *argvars)
+job_stop(job_T *job, typval_T *argvars, char *type)
 {
     char_u *arg;
 
-    if (argvars[1].v_type == VAR_UNKNOWN)
+    if (type != NULL)
+	arg = (char_u *)type;
+    else if (argvars[1].v_type == VAR_UNKNOWN)
 	arg = (char_u *)"";
     else
     {
@@ -5172,6 +5213,11 @@ job_stop(job_T *job, typval_T *argvars)
 	    EMSG(_(e_invarg));
 	    return 0;
 	}
+    }
+    if (job->jv_status == JOB_FAILED)
+    {
+	ch_log(job->jv_channel, "Job failed to start, job_stop() skipped");
+	return 0;
     }
     if (job->jv_status == JOB_ENDED)
     {

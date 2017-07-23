@@ -456,7 +456,9 @@ vim_main2(void)
 #endif
     /* Reset 'loadplugins' for "-u NONE" before "--cmd" arguments.
      * Allows for setting 'loadplugins' there. */
-    if (params.use_vimrc != NULL && STRCMP(params.use_vimrc, "NONE") == 0)
+    if (params.use_vimrc != NULL
+	    && (STRCMP(params.use_vimrc, "NONE") == 0
+		|| STRCMP(params.use_vimrc, "DEFAULTS") == 0))
 	p_lpl = FALSE;
 
     /* Execute --cmd arguments. */
@@ -1421,7 +1423,14 @@ main_loop(
 	    do_exmode(exmode_active == EXMODE_VIM);
 	}
 	else
+	{
+#ifdef FEAT_TERMINAL
+	    if (curbuf->b_term != NULL && oa.op_type == OP_NOP
+							  && oa.regname == NUL)
+		terminal_loop();
+#endif
 	    normal_cmd(&oa, TRUE);
+	}
 
 #ifdef FEAT_GUI_MACVIM
         // TODO! Make sure there are no continue statements that will cause
@@ -1947,6 +1956,7 @@ command_line_scan(mparm_T *parmp)
 	    case '-':		/* "--" don't take any more option arguments */
 				/* "--help" give help message */
 				/* "--version" give version message */
+				/* "--clean" clean context */
 				/* "--literal" take files literally */
 				/* "--nofork" don't fork */
 				/* "--not-a-term" don't warn for not a term */
@@ -1963,6 +1973,11 @@ command_line_scan(mparm_T *parmp)
 		    msg_putchar('\n');
 		    msg_didout = FALSE;
 		    mch_exit(0);
+		}
+		else if (STRNICMP(argv[0] + argv_idx, "clean", 5) == 0)
+		{
+		    parmp->use_vimrc = (char_u *)"DEFAULTS";
+		    set_option_value((char_u *)"vif", 0L, (char_u *)"NONE", 0);
 		}
 		else if (STRNICMP(argv[0] + argv_idx, "literal", 7) == 0)
 		{
@@ -2402,7 +2417,7 @@ command_line_scan(mparm_T *parmp)
 #endif
 
 		case 'i':	/* "-i {viminfo}" use for viminfo */
-		    use_viminfo = (char_u *)argv[0];
+		    set_option_value((char_u *)"vif", 0L, (char_u *)argv[0], 0);
 		    break;
 
 		case 's':	/* "-s {scriptin}" read from script file */
@@ -3072,7 +3087,9 @@ source_startup_scripts(mparm_T *parmp)
      */
     if (parmp->use_vimrc != NULL)
     {
-	if (STRCMP(parmp->use_vimrc, "NONE") == 0
+	if (STRCMP(parmp->use_vimrc, "DEFAULTS") == 0)
+	    do_source((char_u *)VIM_DEFAULTS_FILE, FALSE, DOSO_NONE);
+	else if (STRCMP(parmp->use_vimrc, "NONE") == 0
 				     || STRCMP(parmp->use_vimrc, "NORC") == 0)
 	{
 #ifdef FEAT_GUI
@@ -3467,6 +3484,7 @@ usage(void)
 #ifdef FEAT_VIMINFO
     main_msg(_("-i <viminfo>\t\tUse <viminfo> instead of .viminfo"));
 #endif
+    main_msg(_("--clean\t\t'nocompatible', Vim defaults, no plugins, no viminfo"));
     main_msg(_("-h  or  --help\tPrint Help (this message) and exit"));
     main_msg(_("--version\t\tPrint version information and exit"));
 
