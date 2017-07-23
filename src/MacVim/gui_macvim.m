@@ -1631,6 +1631,13 @@ gui_mch_get_rgb(guicolor_T pixel)
 }
 
 
+    guicolor_T
+gui_mch_get_rgb_color(int r, int g, int b)
+{
+    return gui_get_rgb_color_cmn(r, g, b);
+}
+
+
 /*
  * Get the screen dimensions.
  * Allow 10 pixels for horizontal borders, 40 for vertical borders.
