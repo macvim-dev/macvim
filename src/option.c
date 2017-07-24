@@ -57,9 +57,9 @@
 #define PV_AI		OPT_BUF(BV_AI)
 #define PV_AR		OPT_BOTH(OPT_BUF(BV_AR))
 #define PV_BKC		OPT_BOTH(OPT_BUF(BV_BKC))
+#define PV_BH		OPT_BUF(BV_BH)
+#define PV_BT		OPT_BUF(BV_BT)
 #ifdef FEAT_QUICKFIX
-# define PV_BH		OPT_BUF(BV_BH)
-# define PV_BT		OPT_BUF(BV_BT)
 # define PV_EFM		OPT_BOTH(OPT_BUF(BV_EFM))
 # define PV_GP		OPT_BOTH(OPT_BUF(BV_GP))
 # define PV_MP		OPT_BOTH(OPT_BUF(BV_MP))
@@ -290,10 +290,8 @@ static int	p_bin;
 #ifdef FEAT_MBYTE
 static int	p_bomb;
 #endif
-#if defined(FEAT_QUICKFIX)
 static char_u	*p_bh;
 static char_u	*p_bt;
-#endif
 static int	p_bl;
 static int	p_ci;
 #ifdef FEAT_CINDENT
@@ -736,26 +734,16 @@ static struct vimoption options[] =
 #endif
 			    SCRIPTID_INIT},
     {"bufhidden",   "bh",   P_STRING|P_ALLOCED|P_VI_DEF|P_NOGLOB,
-#if defined(FEAT_QUICKFIX)
 			    (char_u *)&p_bh, PV_BH,
 			    {(char_u *)"", (char_u *)0L}
-#else
-			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)0L, (char_u *)0L}
-#endif
 			    SCRIPTID_INIT},
     {"buflisted",   "bl",   P_BOOL|P_VI_DEF|P_NOGLOB,
 			    (char_u *)&p_bl, PV_BL,
 			    {(char_u *)1L, (char_u *)0L}
 			    SCRIPTID_INIT},
     {"buftype",	    "bt",   P_STRING|P_ALLOCED|P_VI_DEF|P_NOGLOB,
-#if defined(FEAT_QUICKFIX)
 			    (char_u *)&p_bt, PV_BT,
 			    {(char_u *)"", (char_u *)0L}
-#else
-			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)0L, (char_u *)0L}
-#endif
 			    SCRIPTID_INIT},
     {"casemap",	    "cmp",   P_STRING|P_VI_DEF|P_ONECOMMA|P_NODUP,
 #ifdef FEAT_MBYTE
@@ -3351,14 +3339,12 @@ static char *(p_debug_values[]) = {"msg", "throw", "beep", NULL};
 #ifdef FEAT_WINDOWS
 static char *(p_ead_values[]) = {"both", "ver", "hor", NULL};
 #endif
-#if defined(FEAT_QUICKFIX)
-# ifdef FEAT_AUTOCMD
-static char *(p_buftype_values[]) = {"nofile", "nowrite", "quickfix", "help", "acwrite", NULL};
-# else
-static char *(p_buftype_values[]) = {"nofile", "nowrite", "quickfix", "help", NULL};
-# endif
-static char *(p_bufhidden_values[]) = {"hide", "unload", "delete", "wipe", NULL};
+#ifdef FEAT_AUTOCMD
+static char *(p_buftype_values[]) = {"nofile", "nowrite", "quickfix", "help", "terminal", "acwrite", NULL};
+#else
+static char *(p_buftype_values[]) = {"nofile", "nowrite", "quickfix", "help", "terminal", NULL};
 #endif
+static char *(p_bufhidden_values[]) = {"hide", "unload", "delete", "wipe", NULL};
 static char *(p_bs_values[]) = {"indent", "eol", "start", NULL};
 #ifdef FEAT_FOLDING
 static char *(p_fdm_values[]) = {"manual", "expr", "marker", "indent", "syntax",
@@ -3380,7 +3366,6 @@ static void set_options_default(int opt_flags);
 static char_u *term_bg_default(void);
 static void did_set_option(int opt_idx, int opt_flags, int new_value);
 static char_u *illegal_char(char_u *, int);
-static int string_to_key(char_u *arg);
 #ifdef FEAT_CMDWIN
 static char_u *check_cedit(void);
 #endif
@@ -4895,7 +4880,7 @@ do_set(
 					&& (!arg[1] || VIM_ISWHITE(arg[1]))
 					&& !VIM_ISDIGIT(*arg))))
 			{
-			    value = string_to_key(arg);
+			    value = string_to_key(arg, FALSE);
 			    if (value == 0 && (long *)varp != &p_wcm)
 			    {
 				errmsg = e_invarg;
@@ -5452,14 +5437,17 @@ illegal_char(char_u *errbuf, int c)
 /*
  * Convert a key name or string into a key value.
  * Used for 'wildchar' and 'cedit' options.
+ * When "multi_byte" is TRUE allow for multi-byte characters.
  */
-    static int
-string_to_key(char_u *arg)
+    int
+string_to_key(char_u *arg, int multi_byte)
 {
     if (*arg == '<')
 	return find_key_option(arg + 1);
     if (*arg == '^')
 	return Ctrl_chr(arg[1]);
+    if (multi_byte)
+	return PTR2CHAR(arg);
     return *arg;
 }
 
@@ -5477,7 +5465,7 @@ check_cedit(void)
 	cedit_key = -1;
     else
     {
-	n = string_to_key(p_cedit);
+	n = string_to_key(p_cedit, FALSE);
 	if (vim_isprintc(n))
 	    return e_invarg;
 	cedit_key = n;
@@ -5771,10 +5759,8 @@ check_options(void)
     void
 check_buf_options(buf_T *buf)
 {
-#if defined(FEAT_QUICKFIX)
     check_string_option(&buf->b_p_bh);
     check_string_option(&buf->b_p_bt);
-#endif
 #ifdef FEAT_MBYTE
     check_string_option(&buf->b_p_fenc);
 #endif
@@ -7242,7 +7228,6 @@ did_set_string_option(
     }
 #endif
 
-#ifdef FEAT_QUICKFIX
     /* When 'bufhidden' is set, check for valid value. */
     else if (gvarp == &p_bh)
     {
@@ -7257,20 +7242,19 @@ did_set_string_option(
 	    errmsg = e_invarg;
 	else
 	{
-# ifdef FEAT_WINDOWS
+#ifdef FEAT_WINDOWS
 	    if (curwin->w_status_height)
 	    {
 		curwin->w_redr_status = TRUE;
 		redraw_later(VALID);
 	    }
-# endif
+#endif
 	    curbuf->b_help = (curbuf->b_p_bt[0] == 'h');
-# ifdef FEAT_TITLE
+#ifdef FEAT_TITLE
 	    redraw_titles();
-# endif
+#endif
 	}
     }
-#endif
 
 #ifdef FEAT_STL_OPT
     /* 'statusline' or 'rulerformat' */
@@ -7617,6 +7601,12 @@ did_set_string_option(
 #endif
 
 #ifdef FEAT_TERMINAL
+    /* 'termkey' */
+    else if (varp == &curwin->w_p_tms)
+    {
+	if (*curwin->w_p_tk != NUL && string_to_key(curwin->w_p_tk, TRUE) == 0)
+	    errmsg = e_invarg;
+    }
     /* 'termsize' */
     else if (varp == &curwin->w_p_tms)
     {
@@ -10946,10 +10936,8 @@ get_varp(struct vimoption *p)
 #ifdef FEAT_MBYTE
 	case PV_BOMB:	return (char_u *)&(curbuf->b_p_bomb);
 #endif
-#if defined(FEAT_QUICKFIX)
 	case PV_BH:	return (char_u *)&(curbuf->b_p_bh);
 	case PV_BT:	return (char_u *)&(curbuf->b_p_bt);
-#endif
 	case PV_BL:	return (char_u *)&(curbuf->b_p_bl);
 	case PV_CI:	return (char_u *)&(curbuf->b_p_ci);
 #ifdef FEAT_CINDENT
@@ -11346,10 +11334,8 @@ buf_copy_options(buf_T *buf, int flags)
 		}
 		if (buf->b_p_ff != NULL)
 		    buf->b_start_ffc = *buf->b_p_ff;
-#if defined(FEAT_QUICKFIX)
 		buf->b_p_bh = empty_option;
 		buf->b_p_bt = empty_option;
-#endif
 	    }
 	    else
 		free_buf_options(buf, FALSE);
@@ -11514,10 +11500,8 @@ buf_copy_options(buf_T *buf, int flags)
 		did_isk = TRUE;
 		buf->b_p_ts = p_ts;
 		buf->b_help = FALSE;
-#ifdef FEAT_QUICKFIX
 		if (buf->b_p_bt[0] == 'h')
 		    clear_string_option(&buf->b_p_bt);
-#endif
 		buf->b_p_ma = p_ma;
 	    }
 	}

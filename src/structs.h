@@ -2091,9 +2091,9 @@ struct file_buffer
 #ifdef FEAT_MBYTE
     int		b_p_bomb;	/* 'bomb' */
 #endif
-#ifdef FEAT_QUICKFIX
     char_u	*b_p_bh;	/* 'bufhidden' */
     char_u	*b_p_bt;	/* 'buftype' */
+#ifdef FEAT_QUICKFIX
 #define BUF_HAS_QF_ENTRY 1
 #define BUF_HAS_LL_ENTRY 2
     int		b_has_qf_entry;
