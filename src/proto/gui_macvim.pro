@@ -125,6 +125,8 @@ gui_mch_flash(int msec);
 gui_mch_get_color(char_u *name);
     guicolor_T
 gui_mch_get_rgb(guicolor_T pixel);
+    guicolor_T
+gui_mch_get_rgb_color(int r, int g, int b);
     void
 gui_mch_get_screen_dimensions(int *screen_w, int *screen_h);
     int
