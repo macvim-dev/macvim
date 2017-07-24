@@ -343,6 +343,11 @@ write_to_term(buf_T *buffer, char_u *msg, channel_T *channel)
     /* TODO: only update once in a while. */
     update_screen(0);
     update_cursor();
+#ifdef FEAT_GUI_MACVIM
+    /* Force a flush now for better experience of interactive shell. */
+    if (gui.in_use)
+        gui_macvim_force_flush();
+#endif
 }
 
 /*
