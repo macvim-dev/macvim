@@ -755,7 +755,7 @@ func Test_close_output_buffer()
   call assert_equal("run", job_status(job))
   try
     call WaitFor('line("$") == 3')
-    call assert_equal(3, line('$'))
+    call assert_inrange(3, 10, line('$'))
     quit!
     sleep 100m
     " Make sure the write didn't happen to the wrong buffer.
