@@ -19,7 +19,7 @@ env:
     vi_cv_dll_name_python=/System/Library/Frameworks/Python.framework/Versions/2.7/Python
     vi_cv_dll_name_python3=/usr/local/Frameworks/Python.framework/Versions/3.6/Python
     VIMCMD=src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
-    "CONFOPT='--with-features=huge --enable-multibyte --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local --enable-gui=macvim'"
+    "CONFOPT='--with-features=huge --enable-multibyte --enable-terminal --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local --enable-gui=macvim'"
 
 sudo: false
 
