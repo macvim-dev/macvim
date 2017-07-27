@@ -35,6 +35,7 @@
  * TODO:
  * - include functions from #1871
  * - do not store terminal buffer in viminfo.  Or prefix term:// ?
+ * - Make CTRL-W . send CTRL-W to terminal?
  * - Add a scrollback buffer (contains lines to scroll off the top).
  *   Can use the buf_T lines, store attributes somewhere else?
  * - When the job ends:
@@ -106,6 +107,7 @@ struct terminal_S {
     int		tl_dirty_row_end;   /* row below last one to update */
 
     pos_T	tl_cursor;
+    int		tl_cursor_visible;
 };
 
 /*
@@ -176,6 +178,7 @@ ex_terminal(exarg_T *eap)
     if (term == NULL)
 	return;
     term->tl_dirty_row_end = MAX_ROW;
+    term->tl_cursor_visible = TRUE;
 
     /* Open a new window or tab. */
     vim_memset(&split_ea, 0, sizeof(split_ea));
@@ -196,13 +199,16 @@ ex_terminal(exarg_T *eap)
     term->tl_next = first_term;
     first_term = term;
 
+    if (cmd == NULL || *cmd == NUL)
+	cmd = p_sh;
+
     if (buflist_findname(cmd) == NULL)
 	curbuf->b_ffname = vim_strsave(cmd);
     else
     {
 	int	i;
 	size_t	len = STRLEN(cmd) + 10;
-	char_u	*p = alloc(len);
+	char_u	*p = alloc((int)len);
 
 	for (i = 1; p != NULL; ++i)
 	{
@@ -223,9 +229,6 @@ ex_terminal(exarg_T *eap)
 				  (char_u *)"terminal", OPT_FREE|OPT_LOCAL, 0);
 
     set_term_and_win_size(term);
-
-    if (cmd == NULL || *cmd == NUL)
-	cmd = p_sh;
 
     /* System dependent: setup the vterm and start the job in it. */
     if (term_and_job_init(term, term->tl_rows, term->tl_cols, cmd) == OK)
@@ -299,7 +302,7 @@ term_write_job_output(term_T *term, char_u *msg, size_t len)
 	{
 	    if (*p == NL)
 		break;
-	    p += utf_ptr2len_len(p, len - (p - msg));
+	    p += utf_ptr2len_len(p, (int)(len - (p - msg)));
 	}
 	len_now = p - msg - done;
 	vterm_input_write(vterm, (char *)msg + done, len_now);
@@ -316,15 +319,19 @@ term_write_job_output(term_T *term, char_u *msg, size_t len)
 }
 
     static void
-update_cursor()
+update_cursor(term_T *term, int redraw)
 {
-    /* TODO: this should not always be needed */
     setcursor();
-    out_flush();
+    if (redraw && term->tl_buffer == curbuf)
+    {
+	if (term->tl_cursor_visible)
+	    cursor_on();
+	out_flush();
 #ifdef FEAT_GUI
-    if (gui.in_use)
-	gui_update_cursor(FALSE, FALSE);
+	if (gui.in_use && term->tl_cursor_visible)
+	    gui_update_cursor(FALSE, FALSE);
 #endif
+    }
 }
 
 /*
@@ -342,7 +349,7 @@ write_to_term(buf_T *buffer, char_u *msg, channel_T *channel)
 
     /* TODO: only update once in a while. */
     update_screen(0);
-    update_cursor();
+    update_cursor(term, TRUE);
 #ifdef FEAT_GUI_MACVIM
     /* Force a flush now for better experience of interactive shell. */
     if (gui.in_use)
@@ -453,7 +460,7 @@ term_convert_key(int c, char *buf)
 	vterm_keyboard_unichar(vterm, c, mod);
 
     /* Read back the converted escape sequence. */
-    return vterm_output_read(vterm, buf, KEY_BUF_LEN);
+    return (int)vterm_output_read(vterm, buf, KEY_BUF_LEN);
 }
 
 /*
@@ -478,7 +485,7 @@ terminal_loop(void)
     {
 	/* TODO: skip screen update when handling a sequence of keys. */
 	update_screen(0);
-	update_cursor();
+	update_cursor(curbuf->b_term, FALSE);
 	++no_mapping;
 	++allow_keys;
 	got_int = FALSE;
@@ -540,7 +547,7 @@ terminal_loop(void)
 	if (len > 0)
 	    /* TODO: if FAIL is returned, stop? */
 	    channel_send(curbuf->b_term->tl_job->jv_channel, PART_IN,
-						     (char_u *)buf, len, NULL);
+						     (char_u *)buf, (int)len, NULL);
     }
 }
 
@@ -564,12 +571,13 @@ term_job_ended(job_T *job)
 	    did_one = TRUE;
 	}
     if (did_one)
-    {
 	redraw_statuslines();
-	update_cursor();
+    if (curbuf->b_term != NULL)
+    {
+	if (curbuf->b_term->tl_job == job)
+	    maketitle();
+	update_cursor(curbuf->b_term, TRUE);
     }
-    if (curbuf->b_term != NULL && curbuf->b_term->tl_job == job)
-	maketitle();
 }
 
 /*
@@ -586,6 +594,18 @@ position_cursor(win_T *wp, VTermPos *pos)
 {
     wp->w_wrow = MIN(pos->row, MAX(0, wp->w_height - 1));
     wp->w_wcol = MIN(pos->col, MAX(0, wp->w_width - 1));
+}
+
+    static void
+may_toggle_cursor(term_T *term)
+{
+    if (curbuf == term->tl_buffer)
+    {
+	if (term->tl_cursor_visible)
+	    cursor_on();
+	else
+	    cursor_off();
+    }
 }
 
     static int
@@ -613,7 +633,7 @@ handle_moverect(VTermRect dest UNUSED, VTermRect src UNUSED, void *user)
 handle_movecursor(
 	VTermPos pos,
 	VTermPos oldpos UNUSED,
-	int visible UNUSED,
+	int visible,
 	void *user)
 {
     term_T	*term = (term_T *)user;
@@ -630,8 +650,12 @@ handle_movecursor(
 	}
     }
 
+    term->tl_cursor_visible = visible;
     if (is_current)
-	update_cursor();
+    {
+	may_toggle_cursor(term);
+	update_cursor(term, TRUE);
+    }
 
     return 1;
 }
@@ -653,11 +677,19 @@ handle_settermprop(
 	    term->tl_status_text = NULL;
 	    if (term == curbuf->b_term)
 		maketitle();
-	    return 1;
+	    break;
+
+	case VTERM_PROP_CURSORVISIBLE:
+	    term->tl_cursor_visible = value->boolean;
+	    may_toggle_cursor(term);
+	    out_flush();
+	    break;
+
 	default:
 	    break;
     }
-    return 0;
+    /* Always return 1, otherwise vterm doesn't store the value internally. */
+    return 1;
 }
 
 /*
@@ -1031,7 +1063,7 @@ term_get_status_text(term_T *term)
 	else
 	    txt = (char_u *)_("finished");
 	len = 9 + STRLEN(term->tl_buffer->b_fname) + STRLEN(txt);
-	term->tl_status_text = alloc(len);
+	term->tl_status_text = alloc((int)len);
 	if (term->tl_status_text != NULL)
 	    vim_snprintf((char *)term->tl_status_text, len, "%s [%s]",
 						term->tl_buffer->b_fname, txt);
