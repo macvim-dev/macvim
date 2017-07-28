@@ -2942,6 +2942,10 @@ channel_close(channel_T *channel, int invoke_close_cb)
     }
 
     channel->ch_nb_close_cb = NULL;
+
+#ifdef FEAT_TERMINAL
+    term_channel_closed(channel);
+#endif
 }
 
 /*
@@ -4721,10 +4725,6 @@ job_cleanup(job_T *job)
 	 * not use "job" after this! */
 	job_free(job);
     }
-
-#ifdef FEAT_TERMINAL
-    term_job_ended(job);
-#endif
 }
 
 /*
