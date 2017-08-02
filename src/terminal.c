@@ -36,9 +36,7 @@
  * that buffer, attributes come from the scrollback buffer tl_scrollback.
  *
  * TODO:
- * - Use "." for current line instead of optional.
- * - make row and cols one-based instead of zero-based in term_ functions.
- * - Add StatusLineTerm highlighting
+ * - don't allow exiting Vim when a terminal is still running a job
  * - in bash mouse clicks are inserting characters.
  * - mouse scroll: when over other window, scroll that window.
  * - For the scrollback buffer store lines in the buffer, only attributes in
@@ -56,10 +54,8 @@
  * - do not store terminal window in viminfo.  Or prefix term:// ?
  * - add a character in :ls output
  * - add 't' to mode()
- * - when closing window and job has not ended, make terminal hidden?
- * - when closing window and job has ended, make buffer hidden?
- * - don't allow exiting Vim when a terminal is still running a job
  * - use win_del_lines() to make scroll-up efficient.
+ * - implement term_setsize()
  * - add test for giving error for invalid 'termsize' value.
  * - support minimal size when 'termsize' is "rows*cols".
  * - support minimal size when 'termsize' is empty?
@@ -71,6 +67,8 @@
  *   conversions.
  * - update ":help function-list" for terminal functions.
  * - In the GUI use a terminal emulator for :!cmd.
+ * - Copy text in the vterm to the Vim buffer once in a while, so that
+ *   completion works.
  */
 
 #include "vim.h"
@@ -219,17 +217,19 @@ ex_terminal(exarg_T *eap)
     if (cmd == NULL || *cmd == NUL)
 	cmd = p_sh;
 
-    if (buflist_findname(cmd) == NULL)
-	curbuf->b_ffname = vim_strsave(cmd);
-    else
     {
 	int	i;
 	size_t	len = STRLEN(cmd) + 10;
 	char_u	*p = alloc((int)len);
 
-	for (i = 1; p != NULL; ++i)
+	for (i = 0; p != NULL; ++i)
 	{
-	    vim_snprintf((char *)p, len, "%s (%d)", cmd, i);
+	    /* Prepend a ! to the command name to avoid the buffer name equals
+	     * the executable, otherwise ":w!" would overwrite it. */
+	    if (i == 0)
+		vim_snprintf((char *)p, len, "!%s", cmd);
+	    else
+		vim_snprintf((char *)p, len, "!%s (%d)", cmd, i);
 	    if (buflist_findname(p) == NULL)
 	    {
 		curbuf->b_ffname = p;
@@ -239,8 +239,8 @@ ex_terminal(exarg_T *eap)
     }
     curbuf->b_fname = curbuf->b_ffname;
 
-    /* Mark the buffer as changed, so that it's not easy to abandon the job. */
-    curbuf->b_changed = TRUE;
+    /* Mark the buffer as not modifiable. It can only be made modifiable after
+     * the job finished. */
     curbuf->b_p_ma = FALSE;
     set_string_option_direct((char_u *)"buftype", -1,
 				  (char_u *)"terminal", OPT_FREE|OPT_LOCAL, 0);
@@ -261,8 +261,6 @@ ex_terminal(exarg_T *eap)
 	 * free_terminal(). */
 	do_buffer(DOBUF_WIPE, DOBUF_CURRENT, FORWARD, 0, TRUE);
     }
-
-    /* TODO: Setup pty, see mch_call_shell(). */
 }
 
 /*
@@ -571,7 +569,7 @@ term_convert_key(term_T *term, int c, char *buf)
 /*
  * Return TRUE if the job for "term" is still running.
  */
-    static int
+    int
 term_job_running(term_T *term)
 {
     /* Also consider the job finished when the channel is closed, to avoid a
@@ -967,6 +965,17 @@ terminal_loop(void)
 	    /* job finished while waiting for a character */
 	    break;
 
+#ifdef UNIX
+	may_send_sigint(c, curbuf->b_term->tl_job->jv_pid, 0);
+#endif
+#ifdef WIN3264
+	if (c == Ctrl_C)
+	    /* We don't know if the job can handle CTRL-C itself or not, this
+	     * may kill the shell instead of killing the command running in the
+	     * shell. */
+	    mch_stop_job(curbuf->b_term->tl_job, "quit")
+#endif
+
 	if (c == (termkey == 0 ? Ctrl_W : termkey))
 	{
 	    int	    prev_c = c;
@@ -1258,7 +1267,7 @@ term_channel_closed(channel_T *ch)
  * First color is 1.  Return 0 if no match found.
  */
     static int
-color2index(VTermColor *color, int foreground)
+color2index(VTermColor *color, int fg, int *boldp)
 {
     int red = color->red;
     int blue = color->blue;
@@ -1270,16 +1279,16 @@ color2index(VTermColor *color, int foreground)
 	if (green == 0)
 	{
 	    if (blue == 0)
-		return lookup_color(0, foreground) + 1; /* black */
+		return lookup_color(0, fg, boldp) + 1; /* black */
 	    if (blue == 224)
-		return lookup_color(1, foreground) + 1; /* dark blue */
+		return lookup_color(1, fg, boldp) + 1; /* dark blue */
 	}
 	else if (green == 224)
 	{
 	    if (blue == 0)
-		return lookup_color(2, foreground) + 1; /* dark green */
+		return lookup_color(2, fg, boldp) + 1; /* dark green */
 	    if (blue == 224)
-		return lookup_color(3, foreground) + 1; /* dark cyan */
+		return lookup_color(3, fg, boldp) + 1; /* dark cyan */
 	}
     }
     else if (red == 224)
@@ -1287,38 +1296,38 @@ color2index(VTermColor *color, int foreground)
 	if (green == 0)
 	{
 	    if (blue == 0)
-		return lookup_color(4, foreground) + 1; /* dark red */
+		return lookup_color(4, fg, boldp) + 1; /* dark red */
 	    if (blue == 224)
-		return lookup_color(5, foreground) + 1; /* dark magenta */
+		return lookup_color(5, fg, boldp) + 1; /* dark magenta */
 	}
 	else if (green == 224)
 	{
 	    if (blue == 0)
-		return lookup_color(6, foreground) + 1; /* dark yellow / brown */
+		return lookup_color(6, fg, boldp) + 1; /* dark yellow / brown */
 	    if (blue == 224)
-		return lookup_color(8, foreground) + 1; /* white / light grey */
+		return lookup_color(8, fg, boldp) + 1; /* white / light grey */
 	}
     }
     else if (red == 128)
     {
 	if (green == 128 && blue == 128)
-	    return lookup_color(12, foreground) + 1; /* high intensity black / dark grey */
+	    return lookup_color(12, fg, boldp) + 1; /* high intensity black / dark grey */
     }
     else if (red == 255)
     {
 	if (green == 64)
 	{
 	    if (blue == 64)
-		return lookup_color(20, foreground) + 1;  /* light red */
+		return lookup_color(20, fg, boldp) + 1;  /* light red */
 	    if (blue == 255)
-		return lookup_color(22, foreground) + 1;  /* light magenta */
+		return lookup_color(22, fg, boldp) + 1;  /* light magenta */
 	}
 	else if (green == 255)
 	{
 	    if (blue == 64)
-		return lookup_color(24, foreground) + 1;  /* yellow */
+		return lookup_color(24, fg, boldp) + 1;  /* yellow */
 	    if (blue == 255)
-		return lookup_color(26, foreground) + 1;  /* white */
+		return lookup_color(26, fg, boldp) + 1;  /* white */
 	}
     }
     else if (red == 64)
@@ -1326,14 +1335,14 @@ color2index(VTermColor *color, int foreground)
 	if (green == 64)
 	{
 	    if (blue == 255)
-		return lookup_color(14, foreground) + 1;  /* light blue */
+		return lookup_color(14, fg, boldp) + 1;  /* light blue */
 	}
 	else if (green == 255)
 	{
 	    if (blue == 64)
-		return lookup_color(16, foreground) + 1;  /* light green */
+		return lookup_color(16, fg, boldp) + 1;  /* light green */
 	    if (blue == 255)
-		return lookup_color(18, foreground) + 1;  /* light cyan */
+		return lookup_color(18, fg, boldp) + 1;  /* light cyan */
 	}
     }
     if (t_colors >= 256)
@@ -1404,8 +1413,14 @@ cell2attr(VTermScreenCell *cell)
     else
 #endif
     {
-	return get_cterm_attr_idx(attr, color2index(&cell->fg, TRUE),
-						color2index(&cell->bg, FALSE));
+	int bold = MAYBE;
+	int fg = color2index(&cell->fg, TRUE, &bold);
+	int bg = color2index(&cell->bg, FALSE, &bold);
+
+	/* with 8 colors set the bold attribute to get a bright foreground */
+	if (bold == TRUE)
+	    attr |= HL_BOLD;
+	return get_cterm_attr_idx(attr, fg, bg);
     }
     return 0;
 }
@@ -1568,6 +1583,11 @@ term_change_in_curbuf(void)
     {
 	free_scrollback(term);
 	redraw_buf_later(term->tl_buffer, NOT_VALID);
+
+	/* The buffer is now like a normal buffer, it cannot be easily
+	 * abandoned when changed. */
+	set_string_option_direct((char_u *)"buftype", -1,
+					  (char_u *)"", OPT_FREE|OPT_LOCAL, 0);
     }
 }
 
@@ -1768,8 +1788,8 @@ f_term_getcursor(typval_T *argvars, typval_T *rettv)
 	return;
 
     l = rettv->vval.v_list;
-    list_append_number(l, buf->b_term->tl_cursor_pos.row);
-    list_append_number(l, buf->b_term->tl_cursor_pos.col);
+    list_append_number(l, buf->b_term->tl_cursor_pos.row + 1);
+    list_append_number(l, buf->b_term->tl_cursor_pos.col + 1);
     list_append_number(l, buf->b_term->tl_cursor_visible);
 }
 
@@ -1791,6 +1811,16 @@ f_term_getjob(typval_T *argvars, typval_T *rettv)
 	++rettv->vval.v_job->jv_refcount;
 }
 
+    static int
+get_row_number(typval_T *tv, term_T *term)
+{
+    if (tv->v_type == VAR_STRING
+	    && tv->vval.v_string != NULL
+	    && STRCMP(tv->vval.v_string, ".") == 0)
+	return term->tl_cursor_pos.row;
+    return (int)get_tv_number(tv) - 1;
+}
+
 /*
  * "term_getline(buf, row)" function
  */
@@ -1805,10 +1835,7 @@ f_term_getline(typval_T *argvars, typval_T *rettv)
     if (buf == NULL)
 	return;
     term = buf->b_term;
-    if (argvars[1].v_type == VAR_UNKNOWN)
-	row = term->tl_cursor_pos.row;
-    else
-	row = (int)get_tv_number(&argvars[1]);
+    row = get_row_number(&argvars[1], term);
 
     if (term->tl_vterm == NULL)
     {
@@ -1939,10 +1966,7 @@ f_term_scrape(typval_T *argvars, typval_T *rettv)
 	screen = vterm_obtain_screen(term->tl_vterm);
 
     l = rettv->vval.v_list;
-    if (argvars[1].v_type == VAR_UNKNOWN)
-	pos.row = term->tl_cursor_pos.row;
-    else
-	pos.row = (int)get_tv_number(&argvars[1]);
+    pos.row = get_row_number(&argvars[1], term);
     for (pos.col = 0; pos.col < term->tl_cols; )
     {
 	dict_T		*dcell;
