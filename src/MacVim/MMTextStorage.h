@@ -25,7 +25,7 @@ typedef struct {
 
 
 @interface MMTextStorage : NSTextStorage {
-    NSMutableAttributedString   *attribString;
+    NSTextStorage               *backingStore;
     int                         maxRows, maxColumns;
     int                         actualRows, actualColumns;
     NSAttributedString          *emptyRowString;
