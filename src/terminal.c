@@ -973,7 +973,7 @@ terminal_loop(void)
 	    /* We don't know if the job can handle CTRL-C itself or not, this
 	     * may kill the shell instead of killing the command running in the
 	     * shell. */
-	    mch_stop_job(curbuf->b_term->tl_job, "quit")
+	    mch_stop_job(curbuf->b_term->tl_job, (char_u *)"quit")
 #endif
 
 	if (c == (termkey == 0 ? Ctrl_W : termkey))
@@ -1852,6 +1852,8 @@ f_term_getline(typval_T *argvars, typval_T *rettv)
 	int		len;
 	char_u		*p;
 
+	if (row < 0 || row >= term->tl_rows)
+	    return;
 	len = term->tl_cols * MB_MAXBYTES + 1;
 	p = alloc(len);
 	if (p == NULL)

@@ -111,6 +111,7 @@ typedef int HICON;
 typedef int HINSTANCE;
 typedef int HWND;
 typedef int INPUT_RECORD;
+typedef int INT;
 typedef int KEY_EVENT_RECORD;
 typedef int LOGFONT;
 typedef int LPBOOL;
@@ -657,13 +658,13 @@ null_libintl_textdomain(const char *domainname UNUSED)
     return NULL;
 }
 
-    int
+    static int
 null_libintl_putenv(const char *envstring UNUSED)
 {
     return 0;
 }
 
-    int
+    static int
 null_libintl_wputenv(const wchar_t *envstring UNUSED)
 {
     return 0;
@@ -6503,7 +6504,7 @@ getout:
  * Version of open() that may use UTF-16 file name.
  */
     int
-mch_open(char *name, int flags, int mode)
+mch_open(const char *name, int flags, int mode)
 {
     /* _wopen() does not work with Borland C 5.5: creates a read-only file. */
 # ifndef __BORLANDC__
@@ -6536,7 +6537,7 @@ mch_open(char *name, int flags, int mode)
  * Version of fopen() that may use UTF-16 file name.
  */
     FILE *
-mch_fopen(char *name, char *mode)
+mch_fopen(const char *name, const char *mode)
 {
     WCHAR	*wn, *wm;
     FILE	*f = NULL;
