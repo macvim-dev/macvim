@@ -30,6 +30,13 @@ endfunc
 
 func Test_terminal_basic()
   let buf = Run_shell_in_terminal()
+  if has("unix")
+    call assert_match("^/dev/", job_info(g:job).tty)
+    call assert_match("^/dev/", term_gettty(''))
+  else
+    call assert_match("^winpty://", job_info(g:job).tty)
+    call assert_match("^winpty://", term_gettty(''))
+  endif
   call Stop_shell_in_terminal(buf)
   call term_wait(buf)
 
@@ -56,7 +63,8 @@ endfunc
 
 func Test_terminal_wipe_buffer()
   let buf = Run_shell_in_terminal()
-  exe buf . 'bwipe'
+  call assert_fails(buf . 'bwipe', 'E517')
+  exe buf . 'bwipe!'
   call WaitFor('job_status(g:job) == "dead"')
   call assert_equal('dead', job_status(g:job))
   call assert_equal("", bufname(buf))
@@ -78,6 +86,23 @@ func Test_terminal_hide_buffer()
   exe buf . 'bwipe'
 
   unlet g:job
+endfunc
+
+func! s:Nasty_exit_cb(job, st)
+  exe g:buf . 'bwipe!'
+  let g:buf = 0
+endfunc
+
+func Test_terminal_nasty_cb()
+  let cmd = Get_cat_cmd()
+  let g:buf = term_start(cmd, {'exit_cb': function('s:Nasty_exit_cb')})
+  let g:job = term_getjob(g:buf)
+
+  call WaitFor('job_status(g:job) == "dead"')
+  call WaitFor('g:buf == 0')
+  unlet g:buf
+  unlet g:job
+  call delete('Xtext')
 endfunc
 
 func Check_123(buf)
@@ -107,13 +132,17 @@ func Check_123(buf)
   call assert_equal('123', l)
 endfunc
 
-func Test_terminal_scrape()
+func Get_cat_cmd()
   if has('win32')
-    let cmd = 'cmd /c "cls && color 2 && echo 123"'
+    return 'cmd /c "cls && color 2 && echo 123"'
   else
     call writefile(["\<Esc>[32m123"], 'Xtext')
-    let cmd = "cat Xtext"
+    return "cat Xtext"
   endif
+endfunc
+
+func Test_terminal_scrape()
+  let cmd = Get_cat_cmd()
   let buf = term_start(cmd)
 
   let termlist = term_list()
@@ -124,6 +153,10 @@ func Test_terminal_scrape()
   call term_wait(1234)
 
   call term_wait(buf)
+  if has('win32')
+    " TODO: this should not be needed
+    sleep 100m
+  endif
   call Check_123(buf)
 
   " Must still work after the job ended.
