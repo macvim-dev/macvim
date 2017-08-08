@@ -1,6 +1,5 @@
 language: c
-# trusty still has a few problems, use precise until they are solved.
-dist: precise
+dist: trusty
 
 os:
   - osx

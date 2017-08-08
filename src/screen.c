@@ -6904,7 +6904,11 @@ win_redr_status(win_T *wp)
 	    len += (int)STRLEN(p + len);
 	}
 #endif
-	if (bufIsChanged(wp->w_buffer))
+	if (bufIsChanged(wp->w_buffer)
+#ifdef FEAT_TERMINAL
+		&& !bt_terminal(wp->w_buffer)
+#endif
+		)
 	{
 	    STRCPY(p + len, "[+]");
 	    len += 3;

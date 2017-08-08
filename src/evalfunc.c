@@ -834,16 +834,16 @@ static struct fst
     {"term_getattr",	2, 2, f_term_getattr},
     {"term_getcursor",	1, 1, f_term_getcursor},
     {"term_getjob",	1, 1, f_term_getjob},
-    {"term_getline",	1, 2, f_term_getline},
+    {"term_getline",	2, 2, f_term_getline},
     {"term_getsize",	1, 1, f_term_getsize},
     {"term_getstatus",	1, 1, f_term_getstatus},
     {"term_gettitle",	1, 1, f_term_gettitle},
     {"term_gettty",	1, 1, f_term_gettty},
     {"term_list",	0, 0, f_term_list},
-    {"term_scrape",	1, 2, f_term_scrape},
+    {"term_scrape",	2, 2, f_term_scrape},
     {"term_sendkeys",	2, 2, f_term_sendkeys},
     {"term_start",	1, 2, f_term_start},
-    {"term_wait",	1, 1, f_term_wait},
+    {"term_wait",	1, 2, f_term_wait},
 #endif
     {"test_alloc_fail",	3, 3, f_test_alloc_fail},
     {"test_autochdir",	0, 0, f_test_autochdir},
@@ -1930,6 +1930,9 @@ f_ch_logfile(typval_T *argvars, typval_T *rettv UNUSED)
     char_u *opt = (char_u *)"";
     char_u buf[NUMBUFLEN];
 
+    /* Don't open a file in restricted mode. */
+    if (check_restricted() || check_secure())
+	return;
     fname = get_tv_string(&argvars[0]);
     if (argvars[1].v_type == VAR_STRING)
 	opt = get_tv_string_buf(&argvars[1], buf);
