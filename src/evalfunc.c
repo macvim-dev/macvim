@@ -6442,6 +6442,9 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_TOOLBAR
 	"toolbar",
 #endif
+#ifdef FEAT_TOUCHBAR
+	"touchbar",
+#endif
 #ifdef FEAT_TRANSPARENCY
 	"transparency",
 #endif

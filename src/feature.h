@@ -731,6 +731,10 @@
 #if defined(FEAT_TOOLBAR) && !defined(FEAT_MENU)
 # define FEAT_MENU
 #endif
+										
+#if defined(FEAT_TOOLBAR) && defined(FEAT_GUI_MACVIM) 
+# define FEAT_TOUCHBAR
+#endif
 
 /*
  * GUI tabline
