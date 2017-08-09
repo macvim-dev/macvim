@@ -40,12 +40,15 @@
  *   - Need an option or argument to drop the window+buffer right away, to be
  *     used for a shell or Vim. 'termfinish'; "close", "open" (open window when
  *     job finishes).
+ *     patch by Yasuhiro: #1950
  * - add option values to the command:
  *      :term <24x80> <close> vim notes.txt
+ *   or use:
+ *      :term ++24x80 ++close vim notes.txt
  * - support different cursor shapes, colors and attributes
- * - MS-Windows: no redraw for 'updatetime'  #1915
  * - make term_getcursor() return type (none/block/bar/underline) and
  *   attributes (color, blink, etc.)
+ * - MS-Windows: no redraw for 'updatetime'  #1915
  * - To set BS correctly, check get_stty(); Pass the fd of the pty.
  *   For the GUI fill termios with default values, perhaps like pangoterm:
  *   http://bazaar.launchpad.net/~leonerd/pangoterm/trunk/view/head:/main.c#L134
@@ -337,8 +340,9 @@ term_start(char_u *cmd, jobopt_T *opt)
     /* System dependent: setup the vterm and start the job in it. */
     if (term_and_job_init(term, term->tl_rows, term->tl_cols, cmd, opt) == OK)
     {
-	/* store the size we ended up with */
+	/* Get and remember the size we ended up with.  Update the pty. */
 	vterm_get_size(term->tl_vterm, &term->tl_rows, &term->tl_cols);
+	term_report_winsize(term, term->tl_rows, term->tl_cols);
     }
     else
     {
@@ -2025,6 +2029,19 @@ f_term_getline(typval_T *argvars, typval_T *rettv)
 	rect.end_row = row + 1;
 	p[vterm_screen_get_text(screen, (char *)p, len, rect)] = NUL;
     }
+}
+
+/*
+ * "term_getscrolled(buf)" function
+ */
+    void
+f_term_getscrolled(typval_T *argvars, typval_T *rettv)
+{
+    buf_T	*buf = term_get_buf(argvars);
+
+    if (buf == NULL)
+	return;
+    rettv->vval.v_number = buf->b_term->tl_scrollback_scrolled;
 }
 
 /*
