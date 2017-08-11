@@ -6,10 +6,12 @@ endif
 
 source shared.vim
 
+let s:python = PythonProg()
+
 " Open a terminal with a shell, assign the job to g:job and return the buffer
 " number.
-func Run_shell_in_terminal()
-  let buf = term_start(&shell)
+func Run_shell_in_terminal(options)
+  let buf = term_start(&shell, a:options)
 
   let termlist = term_list()
   call assert_equal(1, len(termlist))
@@ -32,7 +34,7 @@ func Stop_shell_in_terminal(buf)
 endfunc
 
 func Test_terminal_basic()
-  let buf = Run_shell_in_terminal()
+  let buf = Run_shell_in_terminal({})
   if has("unix")
     call assert_match("^/dev/", job_info(g:job).tty)
     call assert_match("^/dev/", term_gettty(''))
@@ -51,7 +53,7 @@ func Test_terminal_basic()
 endfunc
 
 func Test_terminal_make_change()
-  let buf = Run_shell_in_terminal()
+  let buf = Run_shell_in_terminal({})
   call Stop_shell_in_terminal(buf)
   call term_wait(buf)
 
@@ -65,7 +67,7 @@ func Test_terminal_make_change()
 endfunc
 
 func Test_terminal_wipe_buffer()
-  let buf = Run_shell_in_terminal()
+  let buf = Run_shell_in_terminal({})
   call assert_fails(buf . 'bwipe', 'E517')
   exe buf . 'bwipe!'
   call WaitFor('job_status(g:job) == "dead"')
@@ -76,7 +78,7 @@ func Test_terminal_wipe_buffer()
 endfunc
 
 func Test_terminal_hide_buffer()
-  let buf = Run_shell_in_terminal()
+  let buf = Run_shell_in_terminal({})
   quit
   for nr in range(1, winnr('$'))
     call assert_notequal(winbufnr(nr), buf)
@@ -247,20 +249,148 @@ func Test_terminal_size()
   bwipe!
   call assert_equal(5, size[0])
 
+  call term_start(cmd, {'term_rows': 6})
+  let size = term_getsize('')
+  bwipe!
+  call assert_equal(6, size[0])
+
   vsplit
   exe '5,33terminal ' . cmd
   let size = term_getsize('')
   bwipe!
   call assert_equal([5, 33], size)
 
+  call term_start(cmd, {'term_rows': 6, 'term_cols': 36})
+  let size = term_getsize('')
+  bwipe!
+  call assert_equal([6, 36], size)
+
   exe 'vertical 20terminal ' . cmd
   let size = term_getsize('')
   bwipe!
   call assert_equal(20, size[1])
+
+  call term_start(cmd, {'vertical': 1, 'term_cols': 26})
+  let size = term_getsize('')
+  bwipe!
+  call assert_equal(26, size[1])
 
   split
   exe 'vertical 6,20terminal ' . cmd
   let size = term_getsize('')
   bwipe!
   call assert_equal([6, 20], size)
+
+  call term_start(cmd, {'vertical': 1, 'term_rows': 7, 'term_cols': 27})
+  let size = term_getsize('')
+  bwipe!
+  call assert_equal([7, 27], size)
+endfunc
+
+func Test_terminal_curwin()
+  let cmd = Get_cat_123_cmd()
+  call assert_equal(1, winnr('$'))
+
+  split dummy
+  exe 'terminal ++curwin ' . cmd
+  call assert_equal(2, winnr('$'))
+  bwipe!
+
+  split dummy
+  call term_start(cmd, {'curwin': 1})
+  call assert_equal(2, winnr('$'))
+  bwipe!
+
+  split dummy
+  call setline(1, 'change')
+  call assert_fails('terminal ++curwin ' . cmd, 'E37:')
+  call assert_equal(2, winnr('$'))
+  exe 'terminal! ++curwin ' . cmd
+  call assert_equal(2, winnr('$'))
+  bwipe!
+
+  split dummy
+  call setline(1, 'change')
+  call assert_fails("call term_start(cmd, {'curwin': 1})", 'E37:')
+  call assert_equal(2, winnr('$'))
+  bwipe!
+
+  split dummy
+  bwipe!
+
+endfunc
+
+func Test_finish_close()
+  call assert_equal(1, winnr('$'))
+
+  if s:python != ''
+    let cmd = s:python . " test_short_sleep.py"
+    let waittime = 500
+  else
+    echo 'This will take five seconds...'
+    let waittime = 2000
+    if has('win32')
+      let cmd = $windir . '\system32\timeout.exe 1'
+    else
+      let cmd = 'sleep 1'
+    endif
+  endif
+
+  exe 'terminal ++close ' . cmd
+  let buf = bufnr('')
+  call assert_equal(2, winnr('$'))
+  wincmd p
+  call WaitFor("winnr('$') == 1", waittime)
+  call assert_equal(1, winnr('$'))
+
+  call term_start(cmd, {'term_finish': 'close'})
+  call assert_equal(2, winnr('$'))
+  let buf = bufnr('')
+  wincmd p
+  call WaitFor("winnr('$') == 1", waittime)
+  call assert_equal(1, winnr('$'))
+
+  exe 'terminal ++open ' . cmd
+  let buf = bufnr('')
+  close
+  call WaitFor("winnr('$') == 2", waittime)
+  call assert_equal(2, winnr('$'))
+  bwipe
+
+  call term_start(cmd, {'term_finish': 'open'})
+  let buf = bufnr('')
+  close
+  call WaitFor("winnr('$') == 2", waittime)
+  call assert_equal(2, winnr('$'))
+
+  bwipe
+endfunc
+
+func Test_terminal_cwd()
+  if !has('unix')
+    return
+  endif
+  call mkdir('Xdir')
+  let buf = term_start('pwd', {'cwd': 'Xdir'})
+  sleep 100m
+  call term_wait(buf)
+  call assert_equal(getcwd() . '/Xdir', getline(1))
+
+  exe buf . 'bwipe'
+  call delete('Xdir', 'rf')
+endfunc
+
+func Test_terminal_env()
+  if !has('unix')
+    return
+  endif
+  let buf = Run_shell_in_terminal({'env': {'TESTENV': 'correct'}})
+  call term_wait(buf)
+  call term_sendkeys(buf, "echo $TESTENV\r")
+  call term_wait(buf)
+  call Stop_shell_in_terminal(buf)
+  call term_wait(buf)
+  call assert_equal('correct', getline(2))
+
+  exe buf . 'bwipe'
 endfunc

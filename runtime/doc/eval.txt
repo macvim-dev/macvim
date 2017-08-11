@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.0.  Last change: 2017 Aug 06
+*eval.txt*	For Vim version 8.0.  Last change: 2017 Aug 11
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2369,6 +2369,7 @@ tagfiles()			List	tags files used
 tan({expr})			Float	tangent of {expr}
 tanh({expr})			Float	hyperbolic tangent of {expr}
 tempname()			String	name for a temporary file
+term_getaltscreen({buf})	Number	get the alternate screen flag
 term_getattr({attr}, {what})	Number	get the value of attribute {what}
 term_getcursor({buf})		List	get the cursor position of a terminal
 term_getjob({buf})		Job	get the job associated with a terminal
@@ -6972,10 +6973,12 @@ setpos({expr}, {list})
 		|winrestview()|.
 
 setqflist({list} [, {action}[, {what}]])		*setqflist()*
-		Create or replace or add to the quickfix list using the items
-		in {list}.  Each item in {list} is a dictionary.
-		Non-dictionary items in {list} are ignored.  Each dictionary
-		item can contain the following entries:
+		Create or replace or add to the quickfix list.
+		
+		When {what} is not present, use the items in {list}.  Each
+		item must be a dictionary.  Non-dictionary items in {list} are
+		ignored.  Each dictionary item can contain the following
+		entries:
 
 		    bufnr	buffer number; must be the number of a valid
 				buffer
@@ -7027,6 +7030,10 @@ setqflist({list} [, {action}[, {what}]])		*setqflist()*
 		argument is ignored.  The following items can be specified in
 		{what}:
 		    context	any Vim type can be stored as a context
+		    text	use 'errorformat' to extract items from the
+				text and add the resulting entries to the
+				quickfix list {nr}.  The value can be a string
+				with one line or a list with multiple lines.
 		    items	list of quickfix entries. Same as the {list}
 				argument.
 		    nr		list number in the quickfix stack; zero
@@ -7914,6 +7921,12 @@ tempname()					*tempname()* *temp-file-name*
 		For MS-Windows forward slashes are used when the 'shellslash'
 		option is set or when 'shellcmdflag' starts with '-'.
 
+term_getaltscreen({buf})				*term_getaltscreen()*
+		Returns 1 if the terminal of {buf} is using the alternate
+		screen.
+		{buf} is used as with |term_getsize()|.
+		{only available when compiled with the |+terminal| feature}
+
 term_getattr({attr}, {what})				*term_getattr()*
 		Given {attr}, a value returned by term_scrape() in the "attr"
 		item, return whether {what} is on.  {what} can be one of:
@@ -8037,8 +8050,10 @@ term_sendkeys({buf}, {keys})				*term_sendkeys()*
 term_start({cmd}, {options})				*term_start()*
 		Open a terminal window and run {cmd} in it.
 
-		Returns the buffer number of the terminal window.
-		When opening the window fails zero is returned.
+		Returns the buffer number of the terminal window.  If {cmd}
+		cannot be executed the window does open and shows an error
+		message.
+		If opening the window fails zero is returned.
 
 		{options} are similar to what is used for |job_start()|, see
 		|job-options|.  However, not all options can be used.  These
@@ -8054,9 +8069,22 @@ term_start({cmd}, {options})				*term_start()*
 		connected to the terminal.  When I/O is connected to the
 		terminal then the callback function for that part is not used.
 
-		There is one extra option:
-		   "term_name"   name to use for the buffer name, instead of
-				 the command name.
+		There are extra options:
+		   "term_name"	     name to use for the buffer name, instead
+				     of the command name.
+		   "term_rows"	     vertical size to use for the terminal,
+				     instead of using 'termsize'
+		   "term_cols"	     horizontal size to use for the terminal,
+		   		     instead of using 'termsize'
+		   "vertical"	     split the window vertically
+		   "curwin"	     use the current window, do not split the
+				     window; fails if the current buffer
+				     cannot be |abandon|ed
+		   "term_finish"     What to do when the job is finished:
+					"close": close any windows
+					"open": open window if needed
+				     Note that "open" can be interruptive.
+				     See |term++close| and |term++open|.
 		{only available when compiled with the |+terminal| feature}
 
 term_wait({buf} [, {time}])					*term_wait()*
