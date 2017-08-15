@@ -42,8 +42,13 @@ func Test_terminal_basic()
     call assert_match("^winpty://", job_info(g:job).tty)
     call assert_match("^winpty://", term_gettty(''))
   endif
+  call assert_equal('t', mode())
+  call assert_match('%aR[^\n]*running]', execute('ls'))
+
   call Stop_shell_in_terminal(buf)
   call term_wait(buf)
+  call assert_equal('n', mode())
+  call assert_match('%aF[^\n]*finished]', execute('ls'))
 
   " closing window wipes out the terminal buffer a with finished job
   close
@@ -180,19 +185,19 @@ func Test_terminal_scrape_multibyte()
   endif
   call writefile(["léttまrs"], 'Xtext')
   if has('win32')
-    let cmd = 'cmd /c "type Xtext"'
+    " Run cmd with UTF-8 codepage to make the type command print the expected
+    " multibyte characters.
+    let g:buf = term_start("cmd /K chcp 65001")
+    call term_sendkeys(g:buf, "type Xtext\<CR>")
+    call term_sendkeys(g:buf, "exit\<CR>")
+    let g:line = 4
   else
-    let cmd = "cat Xtext"
-  endif
-  let buf = term_start(cmd)
-
-  call term_wait(buf)
-  if has('win32')
-    " TODO: this should not be needed
-    sleep 100m
+    let g:buf = term_start("cat Xtext")
+    let g:line = 1
   endif
 
-  let l = term_scrape(buf, 1)
+  call WaitFor('term_scrape(g:buf, g:line)[0].chars == "l"')
+  let l = term_scrape(g:buf, g:line)
   call assert_true(len(l) >= 7)
   call assert_equal('l', l[0].chars)
   call assert_equal('é', l[1].chars)
@@ -204,11 +209,13 @@ func Test_terminal_scrape_multibyte()
   call assert_equal('r', l[5].chars)
   call assert_equal('s', l[6].chars)
 
-  let g:job = term_getjob(buf)
+  let g:job = term_getjob(g:buf)
   call WaitFor('job_status(g:job) == "dead"')
-  call term_wait(buf)
+  call term_wait(g:buf)
 
-  exe buf . 'bwipe'
+  exe g:buf . 'bwipe'
+  unlet g:buf
+  unlet g:line
   call delete('Xtext')
 endfunc
 
@@ -320,7 +327,7 @@ func Test_terminal_curwin()
 
 endfunc
 
-func Test_finish_close()
+func Test_finish_open_close()
   call assert_equal(1, winnr('$'))
 
   if s:python != ''
@@ -337,7 +344,6 @@ func Test_finish_close()
   endif
 
   exe 'terminal ++close ' . cmd
-  let buf = bufnr('')
   call assert_equal(2, winnr('$'))
   wincmd p
   call WaitFor("winnr('$') == 1", waittime)
@@ -345,25 +351,46 @@ func Test_finish_close()
 
   call term_start(cmd, {'term_finish': 'close'})
   call assert_equal(2, winnr('$'))
-  let buf = bufnr('')
   wincmd p
   call WaitFor("winnr('$') == 1", waittime)
   call assert_equal(1, winnr('$'))
 
   exe 'terminal ++open ' . cmd
-  let buf = bufnr('')
   close
   call WaitFor("winnr('$') == 2", waittime)
   call assert_equal(2, winnr('$'))
   bwipe
 
   call term_start(cmd, {'term_finish': 'open'})
-  let buf = bufnr('')
   close
   call WaitFor("winnr('$') == 2", waittime)
   call assert_equal(2, winnr('$'))
-
   bwipe
+
+  exe 'terminal ++hidden ++open ' . cmd
+  call assert_equal(1, winnr('$'))
+  call WaitFor("winnr('$') == 2", waittime)
+  call assert_equal(2, winnr('$'))
+  bwipe
+
+  call term_start(cmd, {'term_finish': 'open', 'hidden': 1})
+  call assert_equal(1, winnr('$'))
+  call WaitFor("winnr('$') == 2", waittime)
+  call assert_equal(2, winnr('$'))
+  bwipe
+
+  call assert_fails("call term_start(cmd, {'term_opencmd': 'open'})", 'E475:')
+  call assert_fails("call term_start(cmd, {'term_opencmd': 'split %x'})", 'E475:')
+  call assert_fails("call term_start(cmd, {'term_opencmd': 'split %d and %s'})", 'E475:')
+  call assert_fails("call term_start(cmd, {'term_opencmd': 'split % and %d'})", 'E475:')
+
+  call term_start(cmd, {'term_finish': 'open', 'term_opencmd': '4split | buffer %d'})
+  close
+  call WaitFor("winnr('$') == 2", waittime)
+  call assert_equal(2, winnr('$'))
+  call assert_equal(4, winheight(0))
+  bwipe
+
 endfunc
 
 func Test_terminal_cwd()
@@ -384,13 +411,42 @@ func Test_terminal_env()
   if !has('unix')
     return
   endif
-  let buf = Run_shell_in_terminal({'env': {'TESTENV': 'correct'}})
-  call term_wait(buf)
-  call term_sendkeys(buf, "echo $TESTENV\r")
-  call term_wait(buf)
-  call Stop_shell_in_terminal(buf)
-  call term_wait(buf)
+  let g:buf = Run_shell_in_terminal({'env': {'TESTENV': 'correct'}})
+  " Wait for the shell to display a prompt
+  call WaitFor('term_getline(g:buf, 1) != ""')
+  call term_sendkeys(g:buf, "echo $TESTENV\r")
+  call term_wait(g:buf)
+  call Stop_shell_in_terminal(g:buf)
+  call WaitFor('getline(2) == "correct"')
   call assert_equal('correct', getline(2))
 
-  exe buf . 'bwipe'
+  exe g:buf . 'bwipe'
+  unlet g:buf
 endfunc
+
+" must be last, we can't go back from GUI to terminal
+func Test_zz_terminal_in_gui()
+  if !CanRunGui()
+    return
+  endif
+  gui -f
+
+  call assert_equal(1, winnr('$'))
+  let buf = Run_shell_in_terminal({'term_finish': 'close'})
+  call Stop_shell_in_terminal(buf)
+  call term_wait(buf)
+
+  " closing window wipes out the terminal buffer a with finished job
+  call WaitFor("winnr('$') == 1")
+  call assert_equal(1, winnr('$'))
+  call assert_equal("", bufname(buf))
+
+  unlet g:job
+endfunc
+
+func Test_terminal_list_args()
+  let buf = term_start([&shell, &shellcmdflag, 'echo "123"'])
+  call assert_fails(buf . 'bwipe', 'E517')
+  exe buf . 'bwipe!'
+  call assert_equal("", bufname(buf))
+endfunction

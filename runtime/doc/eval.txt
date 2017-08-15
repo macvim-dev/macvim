@@ -4747,6 +4747,8 @@ getwininfo([{winid}])					*getwininfo()*
 					{only with the +quickfix feature}
 			quickfix	1 if quickfix or location list window
 					{only with the +quickfix feature}
+			terminal	1 if a terminal window
+					{only with the +terminal feature}
 			tabnr		tab page number
 			variables	a reference to the dictionary with
 					window-local variables
@@ -7023,7 +7025,10 @@ setqflist({list} [, {action}[, {what}]])		*setqflist()*
 			freed.
 
 		If {action} is not present or is set to ' ', then a new list
-		is created.
+		is created. The new quickfix list is added after the current
+		quickfix list in the stack and all the following lists are
+		freed. To add a new quickfix list at the end of the stack,
+		set "nr" in {what} to '$'.
 
 		If the optional {what} dictionary argument is supplied, then
 		only the items listed in {what} are set. The first {list}
@@ -7939,13 +7944,19 @@ term_getattr({attr}, {what})				*term_getattr()*
 
 term_getcursor({buf})					*term_getcursor()*
 		Get the cursor position of terminal {buf}. Returns a list with
-		three numbers: [rows, cols, visible].  "rows" and "cols" are
-		one based, the first screen cell is row 1, column 1.
-		"visible" is one when the cursor is visible, zero when it is
-		hidden.
+		two numbers and a dictionary: [rows, cols, dict].
 
-		This is the cursor position of the terminal itself, not of the
-		Vim window.
+		"rows" and "cols" are one based, the first screen cell is row
+		1, column 1.  This is the cursor position of the terminal
+		itself, not of the Vim window.
+
+		"dict" can have these members:
+		   "visible"	one when the cursor is visible, zero when it
+				is hidden.
+		   "blink"	one when the cursor is visible, zero when it
+				is hidden.
+		   "shape"	1 for a block cursor, 2 for underline and 3
+				for a vertical bar.
 
 		{buf} must be the buffer number of a terminal window. If the
 		buffer does not exist or is not a terminal window, an empty
@@ -8035,7 +8046,7 @@ term_scrape({buf}, {row})				*term_scrape()*
 		    "fg"	foreground color as #rrggbb
 		    "bg"	background color as #rrggbb
 		    "attr"	attributes of the cell, use |term_getattr()|
-		    		to get the individual flags
+				to get the individual flags
 		    "width"	cell width: 1 or 2
 		{only available when compiled with the |+terminal| feature}
 
@@ -8075,7 +8086,7 @@ term_start({cmd}, {options})				*term_start()*
 		   "term_rows"	     vertical size to use for the terminal,
 				     instead of using 'termsize'
 		   "term_cols"	     horizontal size to use for the terminal,
-		   		     instead of using 'termsize'
+				     instead of using 'termsize'
 		   "vertical"	     split the window vertically
 		   "curwin"	     use the current window, do not split the
 				     window; fails if the current buffer
@@ -8085,6 +8096,12 @@ term_start({cmd}, {options})				*term_start()*
 					"open": open window if needed
 				     Note that "open" can be interruptive.
 				     See |term++close| and |term++open|.
+		   "term_opencmd"    command to use for opening the window when
+				     "open" is used for "term_finish"; must
+				     have "%d" where the buffer number goes,
+				     e.g. "10split|buffer %d"; when not
+				     specified "botright sbuf %d" is used
+
 		{only available when compiled with the |+terminal| feature}
 
 term_wait({buf} [, {time}])					*term_wait()*
@@ -8159,7 +8176,7 @@ test_override({name}, {val})				*test_override()*
 		in a way that the test doesn't work properly.
 		When using: >
 			call test_override('starting', 1)
-< 		The value of "starting" is saved.  It is restored by: >
+<		The value of "starting" is saved.  It is restored by: >
 			call test_override('starting', 0)
 
 test_settime({expr})					*test_settime()*

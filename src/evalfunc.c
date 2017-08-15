@@ -5235,6 +5235,9 @@ get_win_info(win_T *wp, short tpnr, short winnr)
     dict_add_nr_str(dict, "width", wp->w_width, NULL);
     dict_add_nr_str(dict, "bufnr", wp->w_buffer->b_fnum, NULL);
 
+#ifdef FEAT_TERMINAL
+    dict_add_nr_str(dict, "terminal", bt_terminal(wp->w_buffer), NULL);
+#endif
 #ifdef FEAT_QUICKFIX
     dict_add_nr_str(dict, "quickfix", bt_quickfix(wp->w_buffer), NULL);
     dict_add_nr_str(dict, "loclist",
@@ -7865,6 +7868,10 @@ f_mode(typval_T *argvars, typval_T *rettv)
 	buf[0] = 'x';
 	buf[1] = '!';
     }
+#ifdef FEAT_TERMINAL
+    else if (term_use_loop())
+	buf[0] = 't';
+#endif
     else if (VIsual_active)
     {
 	if (VIsual_select)

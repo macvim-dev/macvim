@@ -362,6 +362,10 @@ EXTERN int	highlight_attr[HLF_COUNT];  /* Highl. attr for each context. */
 EXTERN int	highlight_user[9];		/* User[1-9] attributes */
 # ifdef FEAT_STL_OPT
 EXTERN int	highlight_stlnc[9];		/* On top of user */
+#  ifdef FEAT_TERMINAL
+EXTERN int	highlight_stlterm[9];		/* On top of user */
+EXTERN int	highlight_stltermnc[9];		/* On top of user */
+#  endif
 # endif
 #endif
 #ifdef FEAT_GUI
@@ -1673,6 +1677,10 @@ EXTERN int  did_echo_string_emsg INIT(= FALSE);
 
 /* Used for checking if local variables or arguments used in a lambda. */
 EXTERN int *eval_lavars_used INIT(= NULL);
+#endif
+
+#ifdef WIN3264
+EXTERN int ctrl_break_was_pressed INIT(= FALSE);
 #endif
 
 /*

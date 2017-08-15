@@ -6904,6 +6904,9 @@ buf_check_timestamp(
 #ifdef FEAT_NETBEANS_INTG
 	    || isNetbeansBuffer(buf)
 #endif
+#ifdef FEAT_TERMINAL
+	    || buf->b_term != NULL
+#endif
 	    )
 	return 0;
 
