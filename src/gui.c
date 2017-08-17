@@ -4982,7 +4982,7 @@ gui_mouse_correct(void)
 }
 
 /*
- * Find window where the mouse pointer "y" coordinate is in.
+ * Find window where the mouse pointer "x" / "y" coordinate is in.
  */
     static win_T *
 xy2win(int x UNUSED, int y UNUSED)
@@ -5006,6 +5006,8 @@ xy2win(int x UNUSED, int y UNUSED)
 	return NULL;
 # endif
     wp = mouse_find_win(&row, &col);
+    if (wp == NULL)
+	return NULL;
 # ifdef FEAT_MOUSESHAPE
     if (State == HITRETURN || State == ASKMORE)
     {
