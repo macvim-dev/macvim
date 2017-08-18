@@ -5942,7 +5942,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_TERMGUICOLORS
 	"termguicolors",
 #endif
-#ifdef FEAT_TERMINAL
+#if defined(FEAT_TERMINAL) && !defined(WIN3264)
 	"terminal",
 #endif
 #ifdef TERMINFO
@@ -6152,6 +6152,10 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_NETBEANS_INTG
 	else if (STRICMP(name, "netbeans_enabled") == 0)
 	    n = netbeans_active();
+#endif
+#if defined(FEAT_TERMINAL) && defined(WIN3264)
+	else if (STRICMP(name, "terminal") == 0)
+	    n = terminal_enabled();
 #endif
     }
 

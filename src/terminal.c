@@ -267,7 +267,7 @@ term_start(typval_T *argvar, jobopt_T *opt, int forceit)
 	/* Create a new buffer in the current window. */
 	if (!can_abandon(curbuf, forceit))
 	{
-	    EMSG(_(e_nowrtmsg));
+	    no_write_message();
 	    vim_free(term);
 	    return;
 	}
@@ -1488,6 +1488,169 @@ may_toggle_cursor(term_T *term)
     }
 }
 
+/*
+ * Reverse engineer the RGB value into a cterm color index.
+ * First color is 1.  Return 0 if no match found.
+ */
+    static int
+color2index(VTermColor *color, int fg, int *boldp)
+{
+    int red = color->red;
+    int blue = color->blue;
+    int green = color->green;
+
+    /* The argument for lookup_color() is for the color_names[] table. */
+    if (red == 0)
+    {
+	if (green == 0)
+	{
+	    if (blue == 0)
+		return lookup_color(0, fg, boldp) + 1; /* black */
+	    if (blue == 224)
+		return lookup_color(1, fg, boldp) + 1; /* dark blue */
+	}
+	else if (green == 224)
+	{
+	    if (blue == 0)
+		return lookup_color(2, fg, boldp) + 1; /* dark green */
+	    if (blue == 224)
+		return lookup_color(3, fg, boldp) + 1; /* dark cyan */
+	}
+    }
+    else if (red == 224)
+    {
+	if (green == 0)
+	{
+	    if (blue == 0)
+		return lookup_color(4, fg, boldp) + 1; /* dark red */
+	    if (blue == 224)
+		return lookup_color(5, fg, boldp) + 1; /* dark magenta */
+	}
+	else if (green == 224)
+	{
+	    if (blue == 0)
+		return lookup_color(6, fg, boldp) + 1; /* dark yellow / brown */
+	    if (blue == 224)
+		return lookup_color(8, fg, boldp) + 1; /* white / light grey */
+	}
+    }
+    else if (red == 128)
+    {
+	if (green == 128 && blue == 128)
+	    return lookup_color(12, fg, boldp) + 1; /* high intensity black / dark grey */
+    }
+    else if (red == 255)
+    {
+	if (green == 64)
+	{
+	    if (blue == 64)
+		return lookup_color(20, fg, boldp) + 1;  /* light red */
+	    if (blue == 255)
+		return lookup_color(22, fg, boldp) + 1;  /* light magenta */
+	}
+	else if (green == 255)
+	{
+	    if (blue == 64)
+		return lookup_color(24, fg, boldp) + 1;  /* yellow */
+	    if (blue == 255)
+		return lookup_color(26, fg, boldp) + 1;  /* white */
+	}
+    }
+    else if (red == 64)
+    {
+	if (green == 64)
+	{
+	    if (blue == 255)
+		return lookup_color(14, fg, boldp) + 1;  /* light blue */
+	}
+	else if (green == 255)
+	{
+	    if (blue == 64)
+		return lookup_color(16, fg, boldp) + 1;  /* light green */
+	    if (blue == 255)
+		return lookup_color(18, fg, boldp) + 1;  /* light cyan */
+	}
+    }
+    if (t_colors >= 256)
+    {
+	if (red == blue && red == green)
+	{
+	    /* 24-color greyscale */
+	    static int cutoff[23] = {
+		0x05, 0x10, 0x1B, 0x26, 0x31, 0x3C, 0x47, 0x52,
+		0x5D, 0x68, 0x73, 0x7F, 0x8A, 0x95, 0xA0, 0xAB,
+		0xB6, 0xC1, 0xCC, 0xD7, 0xE2, 0xED, 0xF9};
+	    int i;
+
+	    for (i = 0; i < 23; ++i)
+		if (red < cutoff[i])
+		    return i + 233;
+	    return 256;
+	}
+
+	/* 216-color cube */
+	return 17 + ((red + 25) / 0x33) * 36
+	          + ((green + 25) / 0x33) * 6
+		  + (blue + 25) / 0x33;
+    }
+    return 0;
+}
+
+/*
+ * Convert the attributes of a vterm cell into an attribute index.
+ */
+    static int
+cell2attr(VTermScreenCellAttrs cellattrs, VTermColor cellfg, VTermColor cellbg)
+{
+    int attr = 0;
+
+    if (cellattrs.bold)
+	attr |= HL_BOLD;
+    if (cellattrs.underline)
+	attr |= HL_UNDERLINE;
+    if (cellattrs.italic)
+	attr |= HL_ITALIC;
+    if (cellattrs.strike)
+	attr |= HL_STANDOUT;
+    if (cellattrs.reverse)
+	attr |= HL_INVERSE;
+
+#ifdef FEAT_GUI
+    if (gui.in_use)
+    {
+	guicolor_T fg, bg;
+
+	fg = gui_mch_get_rgb_color(cellfg.red, cellfg.green, cellfg.blue);
+	bg = gui_mch_get_rgb_color(cellbg.red, cellbg.green, cellbg.blue);
+	return get_gui_attr_idx(attr, fg, bg);
+    }
+    else
+#endif
+#ifdef FEAT_TERMGUICOLORS
+    if (p_tgc)
+    {
+	guicolor_T fg, bg;
+
+	fg = gui_get_rgb_color_cmn(cellfg.red, cellfg.green, cellfg.blue);
+	bg = gui_get_rgb_color_cmn(cellbg.red, cellbg.green, cellbg.blue);
+
+	return get_tgc_attr_idx(attr, fg, bg);
+    }
+    else
+#endif
+    {
+	int bold = MAYBE;
+	int fg = color2index(&cellfg, TRUE, &bold);
+	int bg = color2index(&cellbg, FALSE, &bold);
+
+	/* with 8 colors set the bold attribute to get a bright foreground */
+	if (bold == TRUE)
+	    attr |= HL_BOLD;
+	return get_cterm_attr_idx(attr, fg, bg);
+    }
+    return 0;
+}
+
     static int
 handle_damage(VTermRect rect, void *user)
 {
@@ -1503,18 +1666,32 @@ handle_damage(VTermRect rect, void *user)
 handle_moverect(VTermRect dest, VTermRect src, void *user)
 {
     term_T	*term = (term_T *)user;
-    win_T	*wp;
 
+    /* Scrolling up is done much more efficiently by deleting lines instead of
+     * redrawing the text. */
     if (dest.start_col == src.start_col
 	    && dest.end_col == src.end_col
 	    && dest.start_row < src.start_row)
+    {
+	win_T	    *wp;
+	VTermColor  fg, bg;
+	VTermScreenCellAttrs attr;
+	int	    clear_attr;
+
+	/* Set the color to clear lines with. */
+	vterm_state_get_default_colors(vterm_obtain_state(term->tl_vterm),
+								     &fg, &bg);
+	vim_memset(&attr, 0, sizeof(attr));
+	clear_attr = cell2attr(attr, fg, bg);
+
 	FOR_ALL_WINDOWS(wp)
 	{
 	    if (wp->w_buffer == term->tl_buffer)
-		/* scrolling up is much more efficient when deleting lines */
 		win_del_lines(wp, dest.start_row,
-				 src.start_row - dest.start_row, FALSE, FALSE);
+				 src.start_row - dest.start_row, FALSE, FALSE,
+				 clear_attr);
 	}
+    }
     redraw_buf_later(term->tl_buffer, NOT_VALID);
     return 1;
 }
@@ -1776,169 +1953,6 @@ term_channel_closed(channel_T *ch)
 	    update_cursor(term, term->tl_cursor_visible);
 	}
     }
-}
-
-/*
- * Reverse engineer the RGB value into a cterm color index.
- * First color is 1.  Return 0 if no match found.
- */
-    static int
-color2index(VTermColor *color, int fg, int *boldp)
-{
-    int red = color->red;
-    int blue = color->blue;
-    int green = color->green;
-
-    /* The argument for lookup_color() is for the color_names[] table. */
-    if (red == 0)
-    {
-	if (green == 0)
-	{
-	    if (blue == 0)
-		return lookup_color(0, fg, boldp) + 1; /* black */
-	    if (blue == 224)
-		return lookup_color(1, fg, boldp) + 1; /* dark blue */
-	}
-	else if (green == 224)
-	{
-	    if (blue == 0)
-		return lookup_color(2, fg, boldp) + 1; /* dark green */
-	    if (blue == 224)
-		return lookup_color(3, fg, boldp) + 1; /* dark cyan */
-	}
-    }
-    else if (red == 224)
-    {
-	if (green == 0)
-	{
-	    if (blue == 0)
-		return lookup_color(4, fg, boldp) + 1; /* dark red */
-	    if (blue == 224)
-		return lookup_color(5, fg, boldp) + 1; /* dark magenta */
-	}
-	else if (green == 224)
-	{
-	    if (blue == 0)
-		return lookup_color(6, fg, boldp) + 1; /* dark yellow / brown */
-	    if (blue == 224)
-		return lookup_color(8, fg, boldp) + 1; /* white / light grey */
-	}
-    }
-    else if (red == 128)
-    {
-	if (green == 128 && blue == 128)
-	    return lookup_color(12, fg, boldp) + 1; /* high intensity black / dark grey */
-    }
-    else if (red == 255)
-    {
-	if (green == 64)
-	{
-	    if (blue == 64)
-		return lookup_color(20, fg, boldp) + 1;  /* light red */
-	    if (blue == 255)
-		return lookup_color(22, fg, boldp) + 1;  /* light magenta */
-	}
-	else if (green == 255)
-	{
-	    if (blue == 64)
-		return lookup_color(24, fg, boldp) + 1;  /* yellow */
-	    if (blue == 255)
-		return lookup_color(26, fg, boldp) + 1;  /* white */
-	}
-    }
-    else if (red == 64)
-    {
-	if (green == 64)
-	{
-	    if (blue == 255)
-		return lookup_color(14, fg, boldp) + 1;  /* light blue */
-	}
-	else if (green == 255)
-	{
-	    if (blue == 64)
-		return lookup_color(16, fg, boldp) + 1;  /* light green */
-	    if (blue == 255)
-		return lookup_color(18, fg, boldp) + 1;  /* light cyan */
-	}
-    }
-    if (t_colors >= 256)
-    {
-	if (red == blue && red == green)
-	{
-	    /* 24-color greyscale */
-	    static int cutoff[23] = {
-		0x05, 0x10, 0x1B, 0x26, 0x31, 0x3C, 0x47, 0x52,
-		0x5D, 0x68, 0x73, 0x7F, 0x8A, 0x95, 0xA0, 0xAB,
-		0xB6, 0xC1, 0xCC, 0xD7, 0xE2, 0xED, 0xF9};
-	    int i;
-
-	    for (i = 0; i < 23; ++i)
-		if (red < cutoff[i])
-		    return i + 233;
-	    return 256;
-	}
-
-	/* 216-color cube */
-	return 17 + ((red + 25) / 0x33) * 36
-	          + ((green + 25) / 0x33) * 6
-		  + (blue + 25) / 0x33;
-    }
-    return 0;
-}
-
-/*
- * Convert the attributes of a vterm cell into an attribute index.
- */
-    static int
-cell2attr(VTermScreenCellAttrs cellattrs, VTermColor cellfg, VTermColor cellbg)
-{
-    int attr = 0;
-
-    if (cellattrs.bold)
-	attr |= HL_BOLD;
-    if (cellattrs.underline)
-	attr |= HL_UNDERLINE;
-    if (cellattrs.italic)
-	attr |= HL_ITALIC;
-    if (cellattrs.strike)
-	attr |= HL_STANDOUT;
-    if (cellattrs.reverse)
-	attr |= HL_INVERSE;
-
-#ifdef FEAT_GUI
-    if (gui.in_use)
-    {
-	guicolor_T fg, bg;
-
-	fg = gui_mch_get_rgb_color(cellfg.red, cellfg.green, cellfg.blue);
-	bg = gui_mch_get_rgb_color(cellbg.red, cellbg.green, cellbg.blue);
-	return get_gui_attr_idx(attr, fg, bg);
-    }
-    else
-#endif
-#ifdef FEAT_TERMGUICOLORS
-    if (p_tgc)
-    {
-	guicolor_T fg, bg;
-
-	fg = gui_get_rgb_color_cmn(cellfg.red, cellfg.green, cellfg.blue);
-	bg = gui_get_rgb_color_cmn(cellbg.red, cellbg.green, cellbg.blue);
-
-	return get_tgc_attr_idx(attr, fg, bg);
-    }
-    else
-#endif
-    {
-	int bold = MAYBE;
-	int fg = color2index(&cellfg, TRUE, &bold);
-	int bg = color2index(&cellbg, FALSE, &bold);
-
-	/* with 8 colors set the bold attribute to get a bright foreground */
-	if (bold == TRUE)
-	    attr |= HL_BOLD;
-	return get_cterm_attr_idx(attr, fg, bg);
-    }
-    return 0;
 }
 
 /*
@@ -2714,11 +2728,13 @@ f_term_wait(typval_T *argvars, typval_T *rettv UNUSED)
     }
 }
 
-# ifdef WIN3264
+# if defined(WIN3264) || defined(PROTO)
 
 /**************************************
  * 2. MS-Windows implementation.
  */
+
+#  ifndef PROTO
 
 #define WINPTY_SPAWN_FLAG_AUTO_SHUTDOWN 1ul
 #define WINPTY_SPAWN_FLAG_EXIT_AFTER_SHUTDOWN 2ull
@@ -2742,9 +2758,10 @@ HANDLE (*winpty_agent_process)(void*);
 #define WINPTY_DLL "winpty.dll"
 
 static HINSTANCE hWinPtyDLL = NULL;
+#  endif
 
-    int
-dyn_winpty_init(void)
+    static int
+dyn_winpty_init(int verbose)
 {
     int i;
     static struct
@@ -2773,7 +2790,7 @@ dyn_winpty_init(void)
 
     /* No need to initialize twice. */
     if (hWinPtyDLL)
-	return 1;
+	return OK;
     /* Load winpty.dll, prefer using the 'winptydll' option, fall back to just
      * winpty.dll. */
     if (*p_winptydll != NUL)
@@ -2782,8 +2799,10 @@ dyn_winpty_init(void)
 	hWinPtyDLL = vimLoadLib(WINPTY_DLL);
     if (!hWinPtyDLL)
     {
-	EMSG2(_(e_loadlib), *p_winptydll != NUL ? p_winptydll : WINPTY_DLL);
-	return 0;
+	if (verbose)
+	    EMSG2(_(e_loadlib), *p_winptydll != NUL ? p_winptydll
+						       : (char_u *)WINPTY_DLL);
+	return FAIL;
     }
     for (i = 0; winpty_entry[i].name != NULL
 					 && winpty_entry[i].ptr != NULL; ++i)
@@ -2791,12 +2810,13 @@ dyn_winpty_init(void)
 	if ((*winpty_entry[i].ptr = (FARPROC)GetProcAddress(hWinPtyDLL,
 					      winpty_entry[i].name)) == NULL)
 	{
-	    EMSG2(_(e_loadfunc), winpty_entry[i].name);
-	    return 0;
+	    if (verbose)
+		EMSG2(_(e_loadfunc), winpty_entry[i].name);
+	    return FAIL;
 	}
     }
 
-    return 1;
+    return OK;
 }
 
 /*
@@ -2818,7 +2838,7 @@ term_and_job_init(term_T *term, int rows, int cols, typval_T *argvar, jobopt_T *
     garray_T	    ga;
     char_u	    *cmd;
 
-    if (!dyn_winpty_init())
+    if (dyn_winpty_init(TRUE) == FAIL)
 	return FAIL;
 
     if (argvar->v_type == VAR_STRING)
@@ -2981,6 +3001,13 @@ term_report_winsize(term_T *term, int rows, int cols)
 {
     winpty_set_size(term->tl_winpty, cols, rows, NULL);
 }
+
+    int
+terminal_enabled(void)
+{
+    return dyn_winpty_init(FALSE) == OK;
+}
+
 
 # else
 
