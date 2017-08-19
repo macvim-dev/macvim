@@ -400,6 +400,10 @@ term_start(typval_T *argvar, jobopt_T *opt, int forceit)
 	vterm_get_size(term->tl_vterm, &term->tl_rows, &term->tl_cols);
 	term_report_winsize(term, term->tl_rows, term->tl_cols);
 
+	/* Make sure we don't get stuck on sending keys to the job, it leads to
+	 * a deadlock if the job is waiting for Vim to read. */
+	channel_set_nonblock(term->tl_job->jv_channel, PART_IN);
+
 	if (old_curbuf != NULL)
 	{
 	    --curbuf->b_nwindows;
@@ -1368,9 +1372,6 @@ terminal_loop(void)
 	if (c == K_IGNORE)
 	    continue;
 
-#ifdef UNIX
-	may_send_sigint(c, curbuf->b_term->tl_job->jv_pid, 0);
-#endif
 #ifdef WIN3264
 	/* On Windows winpty handles CTRL-C, don't send a CTRL_C_EVENT.
 	 * Use CTRL-BREAK to kill the job. */
@@ -1405,6 +1406,11 @@ terminal_loop(void)
 		}
 		/* Send both keys to the terminal. */
 		send_keys_to_term(curbuf->b_term, prev_c, TRUE);
+	    }
+	    else if (c == Ctrl_C)
+	    {
+		/* "CTRL-W CTRL-C" or 'termkey' CTRL-C: end the job */
+		mch_signal_job(curbuf->b_term->tl_job, (char_u *)"kill");
 	    }
 	    else if (termkey == 0 && c == '.')
 	    {
