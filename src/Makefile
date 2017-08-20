@@ -2291,6 +2291,7 @@ test_arglist \
 	test_utf8_comparisons \
 	test_viminfo \
 	test_vimscript \
+	test_virtualedit \
 	test_visual \
 	test_window_cmd \
 	test_window_id \

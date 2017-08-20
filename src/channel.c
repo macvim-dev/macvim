@@ -3039,7 +3039,9 @@ channel_fill_poll_write(int nfd_in, struct pollfd *fds)
     {
 	chanpart_T  *in_part = &ch->ch_part[PART_IN];
 
-	if (in_part->ch_fd != INVALID_FD && in_part->ch_bufref.br_buf != NULL)
+	if (in_part->ch_fd != INVALID_FD
+		&& (in_part->ch_bufref.br_buf != NULL
+		    || in_part->ch_writeque.wq_next != NULL))
 	{
 	    in_part->ch_poll_idx = nfd;
 	    fds[nfd].fd = in_part->ch_fd;
@@ -3582,7 +3584,7 @@ channel_set_nonblock(channel_T *channel, ch_part_T part)
 
 	ioctlsocket(fd, FIONBIO, &val);
 #else
-	fcntl(fd, F_SETFL, O_NONBLOCK);
+	(void)fcntl(fd, F_SETFL, O_NONBLOCK);
 #endif
 	ch_part->ch_nonblocking = TRUE;
     }
@@ -3971,13 +3973,7 @@ channel_poll_check(int ret_in, void *fds_in)
 	idx = in_part->ch_poll_idx;
 	if (ret > 0 && idx != -1 && (fds[idx].revents & POLLOUT))
 	{
-	    if (in_part->ch_buf_append)
-	    {
-		if (in_part->ch_bufref.br_buf != NULL)
-		    channel_write_new_lines(in_part->ch_bufref.br_buf);
-	    }
-	    else
-		channel_write_in(channel);
+	    channel_write_input(channel);
 	    --ret;
 	}
     }

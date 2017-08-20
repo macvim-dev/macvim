@@ -38,6 +38,7 @@
  * in tl_scrollback are no longer used.
  *
  * TODO:
+ * - help index for winptydll, optwin entry for winptydll
  * - make [range]terminal pipe [range] lines to the terminal
  * - implement term_setsize()
  * - add test for giving error for invalid 'termsize' value.
@@ -1041,14 +1042,13 @@ term_enter_job_mode()
 
     /* Remove the terminal contents from the scrollback and the buffer. */
     gap = &term->tl_scrollback;
-    while (curbuf->b_ml.ml_line_count > term->tl_scrollback_scrolled)
+    while (curbuf->b_ml.ml_line_count > term->tl_scrollback_scrolled
+							    && gap->ga_len > 0)
     {
 	ml_delete(curbuf->b_ml.ml_line_count, FALSE);
 	line = (sb_line_T *)gap->ga_data + gap->ga_len - 1;
 	vim_free(line->sb_cells);
 	--gap->ga_len;
-	if (gap->ga_len == 0)
-	    break;
     }
     check_cursor();
 
@@ -1292,9 +1292,10 @@ may_restore_cursor_props(void)
     if (did_change_cursor)
     {
 	did_change_cursor = FALSE;
-	ui_cursor_shape_forced(TRUE);
 	term_cursor_color((char_u *)"");
 	term_cursor_blink(FALSE);
+	/* this will restore the initial cursor style, if possible */
+	ui_cursor_shape_forced(TRUE);
     }
 }
 
