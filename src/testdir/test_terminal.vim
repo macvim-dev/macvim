@@ -251,7 +251,7 @@ endfunc
 func Test_terminal_size()
   let cmd = Get_cat_123_cmd()
 
-  exe '5terminal ' . cmd
+  exe 'terminal ++rows=5 ' . cmd
   let size = term_getsize('')
   bwipe!
   call assert_equal(5, size[0])
@@ -262,7 +262,7 @@ func Test_terminal_size()
   call assert_equal(6, size[0])
 
   vsplit
-  exe '5,33terminal ' . cmd
+  exe 'terminal ++rows=5 ++cols=33 ' . cmd
   let size = term_getsize('')
   bwipe!
   call assert_equal([5, 33], size)
@@ -272,7 +272,7 @@ func Test_terminal_size()
   bwipe!
   call assert_equal([6, 36], size)
 
-  exe 'vertical 20terminal ' . cmd
+  exe 'vertical terminal ++cols=20 ' . cmd
   let size = term_getsize('')
   bwipe!
   call assert_equal(20, size[1])
@@ -283,7 +283,7 @@ func Test_terminal_size()
   call assert_equal(26, size[1])
 
   split
-  exe 'vertical 6,20terminal ' . cmd
+  exe 'vertical terminal ++rows=6 ++cols=20 ' . cmd
   let size = term_getsize('')
   bwipe!
   call assert_equal([6, 20], size)
@@ -458,9 +458,16 @@ func Test_terminal_noblock()
     call term_sendkeys(g:buf, 'echo ' . repeat(c, 5000) . "\<cr>")
   endfor
   call term_sendkeys(g:buf, "echo done\<cr>")
+
+  " On MS-Windows there is an extra empty line below "done".  Find "done" in
+  " the last-but-one or the last-but-two line.
   let g:lnum = term_getsize(g:buf)[0] - 1
-  call WaitFor('term_getline(g:buf, g:lnum) =~ "done"', 3000)
-  call assert_match('done', term_getline(g:buf, g:lnum))
+  call WaitFor('term_getline(g:buf, g:lnum) =~ "done" || term_getline(g:buf, g:lnum - 1) =~ "done"', 3000)
+  let line = term_getline(g:buf, g:lnum)
+  if line !~ 'done'
+    let line = term_getline(g:buf, g:lnum - 1)
+  endif
+  call assert_match('done', line)
 
   let g:job = term_getjob(g:buf)
   call Stop_shell_in_terminal(g:buf)
@@ -469,4 +476,27 @@ func Test_terminal_noblock()
   unlet g:job
   unlet g:lnum
   bwipe
+endfunc
+
+func Test_terminal_write_stdin()
+  " Todo: make this work on all systems.
+  if !has('unix')
+    return
+  endif
+  new
+  call setline(1, ['one', 'two', 'three'])
+  %term wc
+  call WaitFor('getline(1) != ""')
+  let nrs = split(getline(1))
+  call assert_equal(['3', '3', '14'], nrs)
+  bwipe
+
+  call setline(1, ['one', 'two', 'three', 'four'])
+  2,3term wc
+  call WaitFor('getline(1) != ""')
+  let nrs = split(getline(1))
+  call assert_equal(['2', '2', '10'], nrs)
+  bwipe
+
+  bwipe!
 endfunc
