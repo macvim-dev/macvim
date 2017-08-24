@@ -38,6 +38,7 @@
  * in tl_scrollback are no longer used.
  *
  * TODO:
+ * - better check for blinking - reply from Thomas Dickey Aug 22
  * - test for writing lines to terminal job does not work on MS-Windows
  * - implement term_setsize()
  * - add test for giving error for invalid 'termsize' value.
@@ -45,6 +46,10 @@
  * - support minimal size when 'termsize' is empty?
  * - do not set bufhidden to "hide"?  works like a buffer with changes.
  *   document that CTRL-W :hide can be used.
+ * - GUI: when using tabs, focus in terminal, click on tab does not work.
+ * - GUI: when 'confirm' is set and trying to exit Vim, dialog offers to save
+ *   changes to "!shell".
+ *   (justrajdeep, 2017 Aug 22)
  * - command argument with spaces doesn't work #1999
  *       :terminal ls dir\ with\ spaces
  * - implement job options when starting a terminal.  Allow:
@@ -945,7 +950,7 @@ move_terminal_to_buffer(term_T *term)
 			width = 1;
 			vim_memset(p + pos.col, 0, sizeof(cellattr_T));
 			if (ga_grow(&ga, 1) == OK)
-			    ga.ga_len += mb_char2bytes(' ',
+			    ga.ga_len += utf_char2bytes(' ',
 					     (char_u *)ga.ga_data + ga.ga_len);
 		    }
 		    else
@@ -1266,9 +1271,31 @@ term_paste_register(int prev_c UNUSED)
 	for (item = l->lv_first; item != NULL; item = item->li_next)
 	{
 	    char_u *s = get_tv_string(&item->li_tv);
+#ifdef WIN3264
+	    char_u *tmp = s;
 
+	    if (!enc_utf8 && enc_codepage > 0)
+	    {
+		WCHAR   *ret = NULL;
+		int	length = 0;
+
+		MultiByteToWideChar_alloc(enc_codepage, 0, (char*)s, STRLEN(s),
+							   &ret, &length);
+		if (ret != NULL)
+		{
+		    WideCharToMultiByte_alloc(CP_UTF8, 0,
+				    ret, length, (char **)&s, &length, 0, 0);
+		    vim_free(ret);
+		}
+	    }
+#endif
 	    channel_send(curbuf->b_term->tl_job->jv_channel, PART_IN,
 							   s, STRLEN(s), NULL);
+#ifdef WIN3264
+	    if (tmp != s)
+		vim_free(s);
+#endif
+
 	    if (item->li_next != NULL || type == MLINE)
 		channel_send(curbuf->b_term->tl_job->jv_channel, PART_IN,
 						      (char_u *)"\r", 1, NULL);
@@ -1815,6 +1842,24 @@ handle_settermprop(
 	     * displayed */
 	    if (*skipwhite((char_u *)value->string) == NUL)
 		term->tl_title = NULL;
+#ifdef WIN3264
+	    else if (!enc_utf8 && enc_codepage > 0)
+	    {
+		WCHAR   *ret = NULL;
+		int	length = 0;
+
+		MultiByteToWideChar_alloc(CP_UTF8, 0,
+			(char*)value->string, STRLEN(value->string),
+								&ret, &length);
+		if (ret != NULL)
+		{
+		    WideCharToMultiByte_alloc(enc_codepage, 0,
+					ret, length, (char**)&term->tl_title,
+					&length, 0, 0);
+		    vim_free(ret);
+		}
+	    }
+#endif
 	    else
 		term->tl_title = vim_strsave((char_u *)value->string);
 	    vim_free(term->tl_status_text);
@@ -1921,7 +1966,7 @@ handle_pushline(int cols, const VTermScreenCell *cells, void *user)
 		    break;
 		}
 		for (i = 0; (c = cells[col].chars[i]) > 0 || i == 0; ++i)
-		    ga.ga_len += mb_char2bytes(c == NUL ? ' ' : c,
+		    ga.ga_len += utf_char2bytes(c == NUL ? ' ' : c,
 					     (char_u *)ga.ga_data + ga.ga_len);
 		p[col].width = cells[col].width;
 		p[col].attrs = cells[col].attrs;
