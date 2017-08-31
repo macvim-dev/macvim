@@ -253,6 +253,7 @@ enum {
     DisableThinStrokesMsgID,
     EnableInlineImMsgID,
     DisableInlineImMsgID,
+    RedrawBlockMsgID,
     LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
 };
 

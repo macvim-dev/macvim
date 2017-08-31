@@ -107,6 +107,7 @@ char *MessageStrings[] =
     "DisableThinStrokesMsgID",
     "EnableInlineImMsgID",
     "DisableInlineImMsgID",
+    "RedrawBlockMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 

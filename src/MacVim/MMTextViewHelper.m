@@ -213,6 +213,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         // called the input manager expects the marked text to be unmarked
         // automatically, hence the explicit unmarkText: call here.
         [self unmarkText];
+        [textView clearMarkedText];
     }
 
     // NOTE: 'string' is either an NSString or an NSAttributedString.  Since we
@@ -317,6 +318,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         // marked text moves outside the view as a result of scrolling.
         [self sendMarkedText:nil position:0];
         [self unmarkText];
+        [textView clearMarkedText];
         [[NSTextInputContext currentInputContext] discardMarkedText];
     }
 

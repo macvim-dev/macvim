@@ -205,6 +205,13 @@ defaultAdvanceForFont(NSFont *font)
     if (defaultBackgroundColor != bgColor) {
         [defaultBackgroundColor release];
         defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
+        if (bgColor) {
+            defaultBackgroundHexColor =
+                (int)(bgColor.blueComponent * 0xff) |
+                ((int)(bgColor.greenComponent * 0xff) << 8) |
+                ((int)(bgColor.redComponent * 0xff) << 16) |
+                (0xff << 24);
+        }
     }
 
     // NOTE: The default foreground color isn't actually used for anything, but
@@ -213,6 +220,13 @@ defaultAdvanceForFont(NSFont *font)
     if (defaultForegroundColor != fgColor) {
         [defaultForegroundColor release];
         defaultForegroundColor = fgColor ? [fgColor retain] : nil;
+        if (fgColor) {
+            defaultForegroundHexColor =
+                (int)(fgColor.blueComponent * 0xff) |
+                ((int)(fgColor.greenComponent * 0xff) << 8) |
+                ((int)(fgColor.redComponent * 0xff) << 16) |
+                (0xff << 24);
+        }
     }
 }
 
@@ -499,6 +513,23 @@ defaultAdvanceForFont(NSFont *font)
     [helper setMarkedText:text selectedRange:range];
 }
 
+- (void)clearMarkedText
+{
+    if (![helper inlineIm]) {
+        [self redrawMarkedTextBlock];
+    }
+}
+
+- (void)redrawMarkedTextBlock
+{
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&markedTextStartRow length:sizeof(int)];
+    [data appendBytes:&markedTextStartColumn length:sizeof(int)];
+    [data appendBytes:&markedTextEndRow length:sizeof(int)];
+    [data appendBytes:&markedTextEndColumn length:sizeof(int)];
+    [[self vimController] sendMessage:RedrawBlockMsgID data:data];
+}
+
 - (void)unmarkText
 {
     [helper unmarkText];
@@ -651,6 +682,40 @@ defaultAdvanceForFont(NSFont *font)
           [self batchDrawData:data];
 
        [drawData removeAllObjects];
+    }
+
+    if ([helper hasMarkedText] && ![helper inlineIm]) {
+        NSString *text = [[helper markedText] string];
+        // Draw marked text
+        CFStringRef sref = (__bridge CFStringRef)text;
+        CFIndex unilength = CFStringGetLength(sref);
+        const UniChar *unichars = CFStringGetCharactersPtr(sref);
+        UniChar *buffer = NULL;
+        if (unichars == NULL) {
+            buffer = malloc(unilength * sizeof(UniChar));
+            CFStringGetCharacters(sref, CFRangeMake(0, unilength), buffer);
+            unichars = buffer;
+        }
+
+        int row = [helper preEditRow];
+        int col = [helper preEditColumn];
+
+        markedTextStartRow = row;
+        markedTextEndRow = row;
+        markedTextStartColumn = col;
+        markedTextEndColumn = col + unilength * 2;
+
+        [self drawString:unichars length:unilength
+                   atRow:row column:col cells:(unilength * 2)
+                          withFlags:(DRAW_WIDE|DRAW_UNDERL)
+                    foregroundColor:defaultForegroundHexColor
+                    backgroundColor:defaultBackgroundHexColor
+                       specialColor:defaultForegroundHexColor];
+
+        if (buffer) {
+            free(buffer);
+            buffer = NULL;
+        }
     }
 }
 

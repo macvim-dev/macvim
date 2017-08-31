@@ -2092,6 +2092,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self setImState:NO];
     } else if (BackingPropertiesChangedMsgID == msgid) {
         [self redrawScreen];
+    } else if (RedrawBlockMsgID == msgid) {
+        [self handleRedrawBlock:data];
     } else {
         ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }
@@ -3006,6 +3008,17 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         string[2] = modifiers;
         add_to_input_buf(string, 6);
     }
+}
+
+- (void)handleRedrawBlock:(NSData *)data
+{
+    const void *bytes = [data bytes];
+    int row1 = *((int*)bytes);  bytes += sizeof(int);
+    int col1 = *((int*)bytes);  bytes += sizeof(int);
+    int row2 = *((int*)bytes);  bytes += sizeof(int);
+    int col2 = *((int*)bytes);
+
+    gui_redraw_block(row1, col1, row2, col2, GUI_MON_NOCLEAR);
 }
 
 #ifdef FEAT_BEVAL

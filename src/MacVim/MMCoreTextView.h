@@ -18,6 +18,8 @@
     int                         maxRows, maxColumns;
     NSColor                     *defaultBackgroundColor;
     NSColor                     *defaultForegroundColor;
+    int                         defaultBackgroundHexColor;
+    int                         defaultForegroundHexColor;
     NSSize                      cellSize;
     NSFont                      *font;
     NSFont                      *fontWide;
@@ -51,6 +53,12 @@
     void *trackingRectUserData_;
     NSTrackingRectTag lastToolTipTag_;
     NSString* toolTip_;
+
+    NSUInteger                  markedRangeLength;
+    int                         markedTextStartRow;
+    int                         markedTextStartColumn;
+    int                         markedTextEndRow;
+    int                         markedTextEndColumn;
 }
 
 - (id)initWithFrame:(NSRect)frame;
@@ -90,6 +98,7 @@
 - (void)setInlineIm:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
 - (void)checkImState;
+- (void)clearMarkedText;
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;
 - (NSRect)rectForRow:(int)row column:(int)column numRows:(int)nr
           numColumns:(int)nc;

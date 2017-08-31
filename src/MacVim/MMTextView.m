@@ -731,6 +731,10 @@
     [helper unmarkText];
 }
 
+- (void)clearMarkedText
+{
+}
+
 - (NSRect)firstRectForCharacterRange:(NSRange)range
 {
     return [helper firstRectForCharacterRange:range];
