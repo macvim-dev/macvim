@@ -1286,8 +1286,8 @@ term_paste_register(int prev_c UNUSED)
 		WCHAR   *ret = NULL;
 		int	length = 0;
 
-		MultiByteToWideChar_alloc(enc_codepage, 0, (char*)s, STRLEN(s),
-							   &ret, &length);
+		MultiByteToWideChar_alloc(enc_codepage, 0, (char *)s,
+						(int)STRLEN(s), &ret, &length);
 		if (ret != NULL)
 		{
 		    WideCharToMultiByte_alloc(CP_UTF8, 0,
@@ -1297,7 +1297,7 @@ term_paste_register(int prev_c UNUSED)
 	    }
 #endif
 	    channel_send(curbuf->b_term->tl_job->jv_channel, PART_IN,
-							   s, STRLEN(s), NULL);
+						      s, (int)STRLEN(s), NULL);
 #ifdef WIN3264
 	    if (tmp != s)
 		vim_free(s);
@@ -1856,7 +1856,7 @@ handle_settermprop(
 		int	length = 0;
 
 		MultiByteToWideChar_alloc(CP_UTF8, 0,
-			(char*)value->string, STRLEN(value->string),
+			(char*)value->string, (int)STRLEN(value->string),
 								&ret, &length);
 		if (ret != NULL)
 		{
