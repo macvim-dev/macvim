@@ -9085,6 +9085,9 @@ set_num_option(
     {
 	if (p_imst != IM_ON_THE_SPOT && p_imst != IM_OVER_THE_SPOT)
 	    errmsg = e_invarg;
+# ifdef FEAT_GUI_MACVIM
+        gui_macvim_set_imstyle(p_imst);
+# endif
     }
 #endif
 

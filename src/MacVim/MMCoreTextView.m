@@ -425,6 +425,11 @@ defaultAdvanceForFont(NSFont *font)
     [helper setImControl:enable];
 }
 
+- (void)setInlineIm:(BOOL)enable
+{
+    [helper setInlineIm:enable];
+}
+
 - (void)activateIm:(BOOL)enable
 {
     [helper activateIm:enable];

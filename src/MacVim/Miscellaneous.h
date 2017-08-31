@@ -13,10 +13,6 @@
 #import "MacVim.h"
 
 
-// TODO: Remove this when the inline IM code has been tested
-#define INCLUDE_OLD_IM_CODE
-
-
 // NSUserDefaults keys
 extern NSString *MMTabMinWidthKey;
 extern NSString *MMTabMaxWidthKey;
@@ -45,9 +41,6 @@ extern NSString *MMOpenLayoutKey;
 extern NSString *MMVerticalSplitKey;
 extern NSString *MMPreloadCacheSizeKey;
 extern NSString *MMLastWindowClosedBehaviorKey;
-#ifdef INCLUDE_OLD_IM_CODE
-extern NSString *MMUseInlineImKey;
-#endif // INCLUDE_OLD_IM_CODE
 extern NSString *MMSuppressTerminationAlertKey;
 extern NSString *MMNativeFullScreenKey;
 extern NSString *MMUseMouseTimeKey;

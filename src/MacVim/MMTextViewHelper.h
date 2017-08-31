@@ -45,6 +45,7 @@
     NSMutableAttributedString   *markedText;
     int                 preEditRow;
     int                 preEditColumn;
+    BOOL                inlineIm;
     BOOL                imControl;
     BOOL                imState;
     TISInputSourceRef   lastImSource;
@@ -90,7 +91,8 @@
 - (NSRect)firstRectForCharacterRange:(NSRange)range;
 - (void)setImControl:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
-- (BOOL)useInlineIm;
+- (void)setInlineIm:(BOOL)enable;
+- (BOOL)inlineIm;
 - (void)checkImState;
 
 @end

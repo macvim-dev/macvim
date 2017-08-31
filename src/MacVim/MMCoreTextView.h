@@ -87,6 +87,7 @@
 - (void)setLigatures:(BOOL)state;
 - (void)setThinStrokes:(BOOL)state;
 - (void)setImControl:(BOOL)enable;
+- (void)setInlineIm:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
 - (void)checkImState;
 - (BOOL)convertPoint:(NSPoint)point toRow:(int *)row column:(int *)column;

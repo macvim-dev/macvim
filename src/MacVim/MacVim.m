@@ -105,6 +105,8 @@ char *MessageStrings[] =
     "DisableLigaturesMsgID",
     "EnableThinStrokesMsgID",
     "DisableThinStrokesMsgID",
+    "EnableInlineImMsgID",
+    "DisableInlineImMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 

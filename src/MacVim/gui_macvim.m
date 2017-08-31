@@ -264,6 +264,8 @@ gui_mch_init(void)
     gui_mch_adjust_charheight();
     gui_mch_adjust_charwidth();
 
+    gui_macvim_set_imstyle(p_imst);
+
     if (!MMNoMRU && GARGCOUNT > 0) {
         // Add files passed on command line to MRU.
         NSMutableArray *filenames = [NSMutableArray array];
@@ -1329,6 +1331,15 @@ im_get_status(void)
 
 #endif // defined(USE_IM_CONTROL)
 
+
+
+    void
+gui_macvim_set_imstyle(long imstyle)
+{
+    int msgid = imstyle == IM_ON_THE_SPOT ?
+        EnableInlineImMsgID : DisableInlineImMsgID;
+    [[MMBackend sharedInstance] queueMessage:msgid properties:nil];
+}
 
 
 

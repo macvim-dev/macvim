@@ -833,6 +833,10 @@ static BOOL isUnsafeMessage(int msgid);
         [[[windowController vimView] textView] activateIm:YES];
     } else if (DeactivateKeyScriptMsgID == msgid) {
         [[[windowController vimView] textView] activateIm:NO];
+    } else if (EnableInlineImMsgID == msgid) {
+        [[[windowController vimView] textView] setInlineIm:YES];
+    } else if (DisableInlineImMsgID == msgid) {
+        [[[windowController vimView] textView] setInlineIm:NO];
     } else if (EnableImControlMsgID == msgid) {
         [[[windowController vimView] textView] setImControl:YES];
     } else if (DisableImControlMsgID == msgid) {

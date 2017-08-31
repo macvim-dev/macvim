@@ -37,6 +37,7 @@
 - (void)setLigatures:(BOOL)ligatures;
 - (void)setThinStrokes:(BOOL)thinStrokes;
 - (void)setImControl:(BOOL)enable;
+- (void)setInlineIm:(BOOL)enable;
 - (void)activateIm:(BOOL)enable;
 - (void)checkImState;
 

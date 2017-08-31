@@ -235,6 +235,8 @@ gui_mch_find_dialog(exarg_T *eap);
 gui_mch_replace_dialog(exarg_T *eap);
     void
 im_set_control(int enable);
+    void
+gui_macvim_set_imstyle(long imstyle);
 
     void *
 gui_macvim_add_channel(channel_T *channel, ch_part_T part);

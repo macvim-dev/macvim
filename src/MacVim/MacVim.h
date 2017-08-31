@@ -251,6 +251,8 @@ enum {
     DisableLigaturesMsgID,
     EnableThinStrokesMsgID,
     DisableThinStrokesMsgID,
+    EnableInlineImMsgID,
+    DisableInlineImMsgID,
     LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
 };
 

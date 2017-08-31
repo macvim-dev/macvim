@@ -616,7 +616,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     ASLogDebug(@"text='%@' range=%@", text, NSStringFromRange(range));
     [self unmarkText];
 
-    if ([self useInlineIm]) {
+    if (inlineIm) {
         if ([text isKindOfClass:[NSAttributedString class]])
             text = [text string];
 
@@ -629,7 +629,6 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         return;
     }
 
-#ifdef INCLUDE_OLD_IM_CODE
     if (!(text && [text length] > 0))
         return;
 
@@ -669,7 +668,6 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     }
 
     [textView setNeedsDisplay:YES];
-#endif // INCLUDE_OLD_IM_CODE
 }
 
 - (void)unmarkText
@@ -813,14 +811,14 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     }
 }
 
-- (BOOL)useInlineIm
+- (void)setInlineIm:(BOOL)enable
 {
-#ifdef INCLUDE_OLD_IM_CODE
-    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
-    return [ud boolForKey:MMUseInlineImKey];
-#else
-    return YES;
-#endif // INCLUDE_OLD_IM_CODE
+    inlineIm = enable;
+}
+
+- (BOOL)inlineIm
+{
+    return inlineIm;
 }
 
 - (void)checkImState
@@ -1064,7 +1062,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)sendMarkedText:(NSString *)text position:(int32_t)pos
 {
-    if (![self useInlineIm])
+    if (!inlineIm)
         return;
 
     NSMutableData *data = [NSMutableData data];
