@@ -2413,6 +2413,7 @@ gui_outstr_nowrap(
     /* Do we underline the text? */
     if (hl_mask_todo & HL_UNDERLINE)
 	draw_flags |= DRAW_UNDERL;
+
 #else
     /* Do we underline the text? */
     if ((hl_mask_todo & HL_UNDERLINE) || (hl_mask_todo & HL_ITALIC))
@@ -2421,6 +2422,10 @@ gui_outstr_nowrap(
     /* Do we undercurl the text? */
     if (hl_mask_todo & HL_UNDERCURL)
 	draw_flags |= DRAW_UNDERC;
+
+    /* Do we strikethrough the text? */
+    if (hl_mask_todo & HL_STRIKETHROUGH)
+	draw_flags |= DRAW_STRIKE;
 
     /* Do we draw transparently? */
     if (flags & GUI_MON_TRS_CURSOR)

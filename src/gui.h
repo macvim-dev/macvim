@@ -143,8 +143,9 @@
 # define DRAW_ITALIC		0x10	/* draw italic text */
 #endif
 #define DRAW_CURSOR		0x20	/* drawing block cursor (win32) */
-#define DRAW_WIDE		0x40	/* drawing wide char (MacVim) */
-#define DRAW_COMP		0x80	/* drawing composing char (MacVim) */
+#define DRAW_STRIKE		0x40	/* strikethrough */
+#define DRAW_WIDE		0x80	/* drawing wide char (MacVim) */
+#define DRAW_COMP		0x100	/* drawing composing char (MacVim) */
 
 /* For our own tearoff menu item */
 #define TEAR_STRING		"-->Detach"
