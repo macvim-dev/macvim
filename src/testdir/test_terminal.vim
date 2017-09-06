@@ -463,7 +463,12 @@ func Test_terminal_noblock()
   if has('mac')
     " The shell or something else has a problem dealing with more than 1000
     " characters at the same time.
-    let len = 1000
+    if has('gui_running')
+      " PIPE_BUF is 512
+      let len = 512 - 5 - 1
+    else
+      let len = 1000
+    endif
   else
     let len = 5000
   endif
