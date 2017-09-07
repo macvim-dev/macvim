@@ -42,7 +42,7 @@
 #define DRAW_UNDERC               0x08    /* draw undercurl text */
 #define DRAW_ITALIC               0x10    /* draw italic text */
 #define DRAW_CURSOR               0x20
-#define DRAW_WIDE                 0x40    /* draw wide text */
+#define DRAW_WIDE                 0x80    /* draw wide text */
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_8
 #define kCTFontOrientationDefault kCTFontDefaultOrientation
