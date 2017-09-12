@@ -4833,7 +4833,7 @@ get_qf_loc_list(int is_qf, win_T *wp, typval_T *what_arg, typval_T *rettv)
 		    dict_T	*d = what_arg->vval.v_dict;
 
 		    if (d != NULL)
-			get_errorlist_properties(wp, d, rettv->vval.v_dict);
+			qf_get_properties(wp, d, rettv->vval.v_dict);
 		}
 		else
 		    EMSG(_(e_dictreq));
@@ -8659,7 +8659,10 @@ remote_common(typval_T *argvars, typval_T *rettv, int expr)
 # endif
     {
 	if (r != NULL)
+	{
 	    EMSG(r);		/* sending worked but evaluation failed */
+	    vim_free(r);
+	}
 	else
 	    EMSG2(_("E241: Unable to send to %s"), server_name);
 	return;
@@ -8719,6 +8722,8 @@ f_remote_foreground(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     argvars[1].v_type = VAR_STRING;
     argvars[1].vval.v_string = vim_strsave((char_u *)"foreground()");
     argvars[2].v_type = VAR_UNKNOWN;
+    rettv->v_type = VAR_STRING;
+    rettv->vval.v_string = NULL;
     remote_common(argvars, rettv, TRUE);
     vim_free(argvars[1].vval.v_string);
 # endif
