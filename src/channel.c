@@ -140,7 +140,7 @@ ch_log_active(void)
 }
 
     static void
-ch_log_lead(char *what, channel_T *ch)
+ch_log_lead(const char *what, channel_T *ch)
 {
     if (log_fd != NULL)
     {
@@ -1834,12 +1834,11 @@ channel_save(channel_T *channel, ch_part_T part, char_u *buf, int len,
 	head->rq_prev = node;
     }
 
-    if (log_fd != NULL && lead != NULL)
+    if (ch_log_active() && lead != NULL)
     {
 	ch_log_lead(lead, channel);
 	fprintf(log_fd, "'");
-	if (fwrite(buf, len, 1, log_fd) != 1)
-	    return FAIL;
+	ignored = (int)fwrite(buf, len, 1, log_fd);
 	fprintf(log_fd, "'\n");
     }
     return OK;
@@ -3410,7 +3409,7 @@ channel_read_block(channel_T *channel, ch_part_T part, int timeout)
 	    channel_consume(channel, part, (int)(nl - buf) + 1);
 	}
     }
-    if (log_fd != NULL)
+    if (ch_log_active())
 	ch_log(channel, "Returning %d bytes", (int)STRLEN(msg));
     return msg;
 }
@@ -3695,7 +3694,7 @@ channel_send(
 	return FAIL;
     }
 
-    if (log_fd != NULL)
+    if (ch_log_active())
     {
 	ch_log_lead("SEND ", channel);
 	fprintf(log_fd, "'");
