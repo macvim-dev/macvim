@@ -1266,4 +1266,20 @@ if has("gui_macvim")
   macm Help.MacVim\ Website			action=openWebsite:
 endif
 
+if has("gui_macvim")
+  an Project.New\ Project\ \.\.\.            <Nop>
+  an Project.Open\ Project\ \.\.\.           <Nop>
+  an Project.Fast\ Find                      <Nop>
+  an Project.Find\ in\ Project               <Nop>
+  an Project.Toggle\ Drawer                  <Nop>
+
+  macm Project.New\ Project\ \.\.\.		action=newProject:
+  macm Project.Open\ Project\ \.\.\.		action=openProject:
+  
+  macm Project.Fast\ Find	key=<D-D>	action=fastFind:
+  macm Project.Find\ in\ Project  key=<D-F>	action=findInProject:
+  
+  macm Project.Toggle\ Drawer			action=toggleDrawer:
+endif
+
 " vim: set sw=2 :

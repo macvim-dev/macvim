@@ -105,6 +105,7 @@ char *MessageStrings[] =
     "DisableLigaturesMsgID",
     "EnableThinStrokesMsgID",
     "DisableThinStrokesMsgID",
+    "OpenMacVimProjectMsgID",
     "END OF MESSAGE IDs"     // NOTE: Must be last!
 };
 

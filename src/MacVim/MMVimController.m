@@ -893,7 +893,14 @@ static BOOL isUnsafeMessage(int msgid);
         const void *bytes = [data bytes];
         int radius = *((int*)bytes);
         [windowController setBlurRadius:radius];
-
+    } else if (OpenMacVimProjectMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int len = *((int*)bytes);  bytes += sizeof(int);
+        NSString *projectPath = [[NSString alloc]
+                    initWithBytes:(void*)bytes length:len
+                    encoding:NSUTF8StringEncoding];
+        [self.windowController openProjectAtPath:projectPath];
+        [projectPath release];
     // IMPORTANT: When adding a new message, make sure to update
     // isUnsafeMessage() if necessary!
     } else {

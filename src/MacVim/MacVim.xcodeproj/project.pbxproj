@@ -73,6 +73,22 @@
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
+		91CE69E71F6BFFA100762681 /* MVPDirEntry.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE69E11F6BFFA100762681 /* MVPDirEntry.m */; };
+		91CE69E81F6BFFA100762681 /* MVPNewProjectController.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE69E31F6BFFA100762681 /* MVPNewProjectController.m */; };
+		91CE69E91F6BFFA100762681 /* MVPNewProjectWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 91CE69E41F6BFFA100762681 /* MVPNewProjectWindow.xib */; };
+		91CE69EA1F6BFFA100762681 /* MVPProject.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE69E61F6BFFA100762681 /* MVPProject.m */; };
+		91CE6A021F6C005300762681 /* MVPProjectDrawer.xib in Resources */ = {isa = PBXBuildFile; fileRef = 91CE69FF1F6C005300762681 /* MVPProjectDrawer.xib */; };
+		91CE6A031F6C005300762681 /* MVPProjectDrawerCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE6A001F6C005300762681 /* MVPProjectDrawerCell.m */; };
+		91CE6A041F6C005300762681 /* MVPProjectDrawerController.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE6A011F6C005300762681 /* MVPProjectDrawerController.m */; };
+		91CE6A0C1F6C008000762681 /* MVPFastFind.xib in Resources */ = {isa = PBXBuildFile; fileRef = 91CE6A081F6C008000762681 /* MVPFastFind.xib */; };
+		91CE6A0D1F6C008000762681 /* MVPFastFindCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE6A091F6C008000762681 /* MVPFastFindCell.m */; };
+		91CE6A0E1F6C008000762681 /* MVPFastFindController.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE6A0A1F6C008000762681 /* MVPFastFindController.m */; };
+		91CE6A0F1F6C008000762681 /* MVPFastFindResult.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE6A0B1F6C008000762681 /* MVPFastFindResult.m */; };
+		91CE6A191F6C00CB00762681 /* MVPFindInProject.xib in Resources */ = {isa = PBXBuildFile; fileRef = 91CE6A141F6C00CB00762681 /* MVPFindInProject.xib */; };
+		91CE6A1A1F6C00CB00762681 /* GrepTask.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE6A151F6C00CB00762681 /* GrepTask.m */; };
+		91CE6A1B1F6C00CB00762681 /* MVPFindInProjectController.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE6A161F6C00CB00762681 /* MVPFindInProjectController.m */; };
+		91CE6A1C1F6C00CB00762681 /* SearchResult.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE6A171F6C00CB00762681 /* SearchResult.m */; };
+		91CE6A1D1F6C00CB00762681 /* SearchResultDataSource.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CE6A181F6C00CB00762681 /* SearchResultDataSource.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -254,6 +270,34 @@
 		52B7ED9A1C4A4D6900AFFF15 /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		91CE69E01F6BFFA100762681 /* MVPDirEntry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVPDirEntry.h; sourceTree = "<group>"; };
+		91CE69E11F6BFFA100762681 /* MVPDirEntry.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MVPDirEntry.m; sourceTree = "<group>"; };
+		91CE69E21F6BFFA100762681 /* MVPNewProjectController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVPNewProjectController.h; sourceTree = "<group>"; };
+		91CE69E31F6BFFA100762681 /* MVPNewProjectController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MVPNewProjectController.m; sourceTree = "<group>"; };
+		91CE69E41F6BFFA100762681 /* MVPNewProjectWindow.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = MVPNewProjectWindow.xib; sourceTree = "<group>"; };
+		91CE69E51F6BFFA100762681 /* MVPProject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVPProject.h; sourceTree = "<group>"; };
+		91CE69E61F6BFFA100762681 /* MVPProject.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MVPProject.m; sourceTree = "<group>"; };
+		91CE69FD1F6C005300762681 /* MVPProjectDrawerCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVPProjectDrawerCell.h; sourceTree = "<group>"; };
+		91CE69FE1F6C005300762681 /* MVPProjectDrawerController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVPProjectDrawerController.h; sourceTree = "<group>"; };
+		91CE69FF1F6C005300762681 /* MVPProjectDrawer.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = MVPProjectDrawer.xib; sourceTree = "<group>"; };
+		91CE6A001F6C005300762681 /* MVPProjectDrawerCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MVPProjectDrawerCell.m; sourceTree = "<group>"; };
+		91CE6A011F6C005300762681 /* MVPProjectDrawerController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MVPProjectDrawerController.m; sourceTree = "<group>"; };
+		91CE6A051F6C008000762681 /* MVPFastFindCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVPFastFindCell.h; sourceTree = "<group>"; };
+		91CE6A061F6C008000762681 /* MVPFastFindController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVPFastFindController.h; sourceTree = "<group>"; };
+		91CE6A071F6C008000762681 /* MVPFastFindResult.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVPFastFindResult.h; sourceTree = "<group>"; };
+		91CE6A081F6C008000762681 /* MVPFastFind.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = MVPFastFind.xib; sourceTree = "<group>"; };
+		91CE6A091F6C008000762681 /* MVPFastFindCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MVPFastFindCell.m; sourceTree = "<group>"; };
+		91CE6A0A1F6C008000762681 /* MVPFastFindController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MVPFastFindController.m; sourceTree = "<group>"; };
+		91CE6A0B1F6C008000762681 /* MVPFastFindResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MVPFastFindResult.m; sourceTree = "<group>"; };
+		91CE6A101F6C00CB00762681 /* GrepTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GrepTask.h; sourceTree = "<group>"; };
+		91CE6A111F6C00CB00762681 /* MVPFindInProjectController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MVPFindInProjectController.h; sourceTree = "<group>"; };
+		91CE6A121F6C00CB00762681 /* SearchResult.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SearchResult.h; sourceTree = "<group>"; };
+		91CE6A131F6C00CB00762681 /* SearchResultDataSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SearchResultDataSource.h; sourceTree = "<group>"; };
+		91CE6A141F6C00CB00762681 /* MVPFindInProject.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = MVPFindInProject.xib; sourceTree = "<group>"; };
+		91CE6A151F6C00CB00762681 /* GrepTask.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GrepTask.m; sourceTree = "<group>"; };
+		91CE6A161F6C00CB00762681 /* MVPFindInProjectController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MVPFindInProjectController.m; sourceTree = "<group>"; };
+		91CE6A171F6C00CB00762681 /* SearchResult.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SearchResult.m; sourceTree = "<group>"; };
+		91CE6A181F6C00CB00762681 /* SearchResultDataSource.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SearchResultDataSource.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -404,6 +448,7 @@
 		29B97314FDCFA39411CA2CEA /* MacVim */ = {
 			isa = PBXGroup;
 			children = (
+				91CE69DE1F6BFF7F00762681 /* MacVim Project */,
 				1D493D640C52482B00AB718C /* Executables */,
 				080E96DDFE201D6D7F000001 /* MacVim Source */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
@@ -465,6 +510,65 @@
 				52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		91CE69DE1F6BFF7F00762681 /* MacVim Project */ = {
+			isa = PBXGroup;
+			children = (
+				91CE69E41F6BFFA100762681 /* MVPNewProjectWindow.xib */,
+				91CE69E21F6BFFA100762681 /* MVPNewProjectController.h */,
+				91CE69E31F6BFFA100762681 /* MVPNewProjectController.m */,
+				91CE69E51F6BFFA100762681 /* MVPProject.h */,
+				91CE69E61F6BFFA100762681 /* MVPProject.m */,
+				91CE69E01F6BFFA100762681 /* MVPDirEntry.h */,
+				91CE69E11F6BFFA100762681 /* MVPDirEntry.m */,
+				91CE69FC1F6C001700762681 /* Find in Project */,
+				91CE69FB1F6C001100762681 /* Project Drawer */,
+				91CE69FA1F6C000C00762681 /* Fast Find */,
+			);
+			name = "MacVim Project";
+			sourceTree = "<group>";
+		};
+		91CE69FA1F6C000C00762681 /* Fast Find */ = {
+			isa = PBXGroup;
+			children = (
+				91CE6A081F6C008000762681 /* MVPFastFind.xib */,
+				91CE6A051F6C008000762681 /* MVPFastFindCell.h */,
+				91CE6A061F6C008000762681 /* MVPFastFindController.h */,
+				91CE6A071F6C008000762681 /* MVPFastFindResult.h */,
+				91CE6A091F6C008000762681 /* MVPFastFindCell.m */,
+				91CE6A0A1F6C008000762681 /* MVPFastFindController.m */,
+				91CE6A0B1F6C008000762681 /* MVPFastFindResult.m */,
+			);
+			name = "Fast Find";
+			sourceTree = "<group>";
+		};
+		91CE69FB1F6C001100762681 /* Project Drawer */ = {
+			isa = PBXGroup;
+			children = (
+				91CE69FF1F6C005300762681 /* MVPProjectDrawer.xib */,
+				91CE69FD1F6C005300762681 /* MVPProjectDrawerCell.h */,
+				91CE69FE1F6C005300762681 /* MVPProjectDrawerController.h */,
+				91CE6A001F6C005300762681 /* MVPProjectDrawerCell.m */,
+				91CE6A011F6C005300762681 /* MVPProjectDrawerController.m */,
+			);
+			name = "Project Drawer";
+			sourceTree = "<group>";
+		};
+		91CE69FC1F6C001700762681 /* Find in Project */ = {
+			isa = PBXGroup;
+			children = (
+				91CE6A141F6C00CB00762681 /* MVPFindInProject.xib */,
+				91CE6A101F6C00CB00762681 /* GrepTask.h */,
+				91CE6A151F6C00CB00762681 /* GrepTask.m */,
+				91CE6A111F6C00CB00762681 /* MVPFindInProjectController.h */,
+				91CE6A161F6C00CB00762681 /* MVPFindInProjectController.m */,
+				91CE6A121F6C00CB00762681 /* SearchResult.h */,
+				91CE6A171F6C00CB00762681 /* SearchResult.m */,
+				91CE6A131F6C00CB00762681 /* SearchResultDataSource.h */,
+				91CE6A181F6C00CB00762681 /* SearchResultDataSource.m */,
+			);
+			name = "Find in Project";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -560,6 +664,7 @@
 				52B7ED9B1C4A4D6900AFFF15 /* dsa_pub.pem in Resources */,
 				8D11072A0486CEB800E47090 /* MainMenu.nib in Resources */,
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
+				91CE6A191F6C00CB00762681 /* MVPFindInProject.xib in Resources */,
 				1D0E051C0BA5F83800B6049E /* Colors.plist in Resources */,
 				1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */,
 				1DE8CC620C5E2AAD003F56E3 /* Actions.plist in Resources */,
@@ -576,6 +681,8 @@
 				1DCD00C40E50B2B700460166 /* FindPrev.png in Resources */,
 				1DCD00C50E50B2B700460166 /* Help.png in Resources */,
 				1DCD00C60E50B2B700460166 /* LoadSesn.png in Resources */,
+				91CE6A021F6C005300762681 /* MVPProjectDrawer.xib in Resources */,
+				91CE6A0C1F6C008000762681 /* MVPFastFind.xib in Resources */,
 				1DCD00C70E50B2B700460166 /* Make.png in Resources */,
 				1DCD00C80E50B2B700460166 /* Open.png in Resources */,
 				1DCD00C90E50B2B700460166 /* Paste.png in Resources */,
@@ -585,6 +692,7 @@
 				1DCD00CD0E50B2B700460166 /* RunCtags.png in Resources */,
 				1DCD00CE0E50B2B700460166 /* RunScript.png in Resources */,
 				1DCD00CF0E50B2B700460166 /* Save.png in Resources */,
+				91CE69E91F6BFFA100762681 /* MVPNewProjectWindow.xib in Resources */,
 				1DCD00D00E50B2B700460166 /* SaveAll.png in Resources */,
 				1DCD00D10E50B2B700460166 /* SaveSesn.png in Resources */,
 				1DCD00D20E50B2B700460166 /* TagJump.png in Resources */,
@@ -635,25 +743,37 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91CE6A1C1F6C00CB00762681 /* SearchResult.m in Sources */,
+				91CE69E81F6BFFA100762681 /* MVPNewProjectController.m in Sources */,
 				8D11072D0486CEB800E47090 /* main.m in Sources */,
+				91CE6A041F6C005300762681 /* MVPProjectDrawerController.m in Sources */,
 				1D1474980C56703C0038FA2B /* MacVim.m in Sources */,
+				91CE69EA1F6BFFA100762681 /* MVPProject.m in Sources */,
 				1D1474A00C5673AE0038FA2B /* MMAppController.m in Sources */,
 				1D1474AA0C5677450038FA2B /* MMTextStorage.m in Sources */,
 				1D1474B00C5678370038FA2B /* MMTextView.m in Sources */,
 				1D1474B60C56796D0038FA2B /* MMVimController.m in Sources */,
 				1D1474BC0C567A910038FA2B /* MMWindowController.m in Sources */,
+				91CE6A1B1F6C00CB00762681 /* MVPFindInProjectController.m in Sources */,
+				91CE6A031F6C005300762681 /* MVPProjectDrawerCell.m in Sources */,
 				1D09AB420C6A4D520045497E /* MMTypesetter.m in Sources */,
+				91CE69E71F6BFFA100762681 /* MVPDirEntry.m in Sources */,
 				1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */,
 				1D80FBD40CBBD3B700102A1C /* MMFullScreenWindow.m in Sources */,
 				1D80FBD60CBBD3B700102A1C /* MMVimView.m in Sources */,
 				1DE9B9500D341AB8008FEDD4 /* MMWindow.m in Sources */,
 				1DE3F8EB0D50F84600052B9E /* MMPreferenceController.m in Sources */,
+				91CE6A0D1F6C008000762681 /* MVPFastFindCell.m in Sources */,
 				0395A8330D71ED7800881434 /* DBPrefsWindowController.m in Sources */,
+				91CE6A0F1F6C008000762681 /* MVPFastFindResult.m in Sources */,
 				1D80591F0E1185EA001699D1 /* Miscellaneous.m in Sources */,
 				1D145C7F0E5227CE00691AA0 /* MMTextViewHelper.m in Sources */,
 				1D60088B0E96A0B2003763F0 /* MMFindReplaceController.m in Sources */,
 				1DE63FFB0E71820F00959BDB /* MMCoreTextView.m in Sources */,
+				91CE6A0E1F6C008000762681 /* MVPFastFindController.m in Sources */,
+				91CE6A1A1F6C00CB00762681 /* GrepTask.m in Sources */,
 				1D44972211FCA9B400B0630F /* MMCoreTextView+ToolTip.m in Sources */,
+				91CE6A1D1F6C00CB00762681 /* SearchResultDataSource.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
