@@ -1404,6 +1404,28 @@ ex_macaction(eap)
 #endif
 }
 
+    void
+ex_open_macvim_project(eap)
+    exarg_T	*eap;
+{
+    if (!gui.in_use) {
+        EMSG(_("E???: Command only available in GUI mode"));
+        return;
+    }
+
+    char_u *arg = eap->arg;
+#ifdef FEAT_MBYTE
+    arg = CONVERT_TO_UTF8(arg);
+#endif
+
+    NSString *projectPath = [NSString stringWithUTF8String:(char*)arg];
+    [[MMBackend sharedInstance] openMacVimProjectAtPath:projectPath];
+
+#ifdef FEAT_MBYTE
+    arg = CONVERT_TO_UTF8(arg);
+#endif
+}
+
 
 /*
  * Adjust gui.char_height (after 'linespace' was changed).

@@ -198,6 +198,8 @@ gui_mch_def_colors();
     void
 ex_macaction(exarg_T *eap);
     void
+ex_open_macvim_project(exarg_T *eap);
+    void
 gui_make_popup(char_u *path_name, int mouse_pos);
 
 void serverRegisterName(char_u *name);

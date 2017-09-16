@@ -118,6 +118,7 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
                     identifier:(int32_t)ident;
 - (void)setFont:(GuiFont)font wide:(BOOL)wide;
 - (void)executeActionWithName:(NSString *)name;
+- (void)openMacVimProjectAtPath:(NSString *)path;
 - (void)setMouseShape:(int)shape;
 - (void)setBlinkWait:(int)wait on:(int)on off:(int)off;
 - (void)startBlink;

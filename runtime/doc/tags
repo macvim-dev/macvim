@@ -2574,6 +2574,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 :macaction	gui_mac.txt	/*:macaction*
 :macm	gui_mac.txt	/*:macm*
 :macmenu	gui_mac.txt	/*:macmenu*
+:macproject	gui_mac.txt	/*:macproject*
 :mak	quickfix.txt	/*:mak*
 :make	quickfix.txt	/*:make*
 :make_makeprg	quickfix.txt	/*:make_makeprg*

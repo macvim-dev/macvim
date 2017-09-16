@@ -251,6 +251,7 @@ enum {
     DisableLigaturesMsgID,
     EnableThinStrokesMsgID,
     DisableThinStrokesMsgID,
+    OpenMacVimProjectMsgID,
     LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
 };
 

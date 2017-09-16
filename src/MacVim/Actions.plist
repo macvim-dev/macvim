@@ -34,6 +34,20 @@
 	<string></string>
 	<key>newWindow:</key>
 	<string></string>
+	<key>newProject:</key>
+	<string></string>
+	<key>openProject:</key>
+	<string></string>
+	<key>viewLineOnGithub:</key>
+	<string></string>
+	<key>toggleDrawer:</key>
+	<string></string>
+	<key>fastFind:</key>
+	<string></string>
+	<key>findInProject:</key>
+	<string></string>
+	<key>clearRecentProjects:</key>
+	<string></string>
 	<key>openWebsite:</key>
 	<string></string>
 	<key>orderFrontCharacterPalette:</key>
@@ -41,6 +55,8 @@
 	<key>orderFrontFontPanel:</key>
 	<string></string>
 	<key>orderFrontPreferencePanel:</key>
+	<string></string>
+	<key>openQueuedProject:</key>
 	<string></string>
 	<key>paste:</key>
 	<string></string>

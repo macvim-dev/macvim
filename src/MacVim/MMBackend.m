@@ -1041,6 +1041,20 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     }
 }
 
+- (void)openMacVimProjectAtPath:(NSString *)path 
+{
+    int len = [path lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+
+    if (len > 0) {
+        NSMutableData *data = [NSMutableData data];
+
+        [data appendBytes:&len length:sizeof(int)];
+        [data appendBytes:[path UTF8String] length:len];
+
+        [self queueMessage:OpenMacVimProjectMsgID data:data];
+    }
+}
+
 - (void)setMouseShape:(int)shape
 {
     NSMutableData *data = [NSMutableData data];

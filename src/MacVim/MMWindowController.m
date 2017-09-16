@@ -71,6 +71,11 @@
 #import "MMWindow.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
+#import "MVPProjectDrawerController.h"
+#import "MVPFastFindController.h"
+#import "MVPFindInProjectController.h"
+#import "MVPProject.h"
+#import "MVPNewProjectController.h"
 #import <PSMTabBarControl/PSMTabBarControl.h>
 
 
@@ -124,6 +129,8 @@
 
 
 @implementation MMWindowController
+
+@synthesize project;
 
 - (id)initWithVimController:(MMVimController *)controller
 {
@@ -1688,6 +1695,98 @@
 + (NSString *)tabBarStyleForMetal
 {
     return shouldUseYosemiteTabBarStyle() ? @"Yosemite" : @"Metal";
+}
+
+- (void)setProject:(MVPProject *)newProject {
+    if(project != newProject) {
+        [project release];
+        project = newProject;
+        [project retain];
+    }
+    // Popup a sheet while it loads!
+    [project load];    
+    [project save];
+    [projectDrawerController setProject:project];    
+    [vimController addVimInput:[NSString stringWithFormat:@":cd %@<CR>", [project pathToRoot]]];    
+}
+
+- (IBAction)fastFind:(id)sender {
+    if(fastFindController == nil && project != nil) {
+        fastFindController = [[[MVPFastFindController alloc] init] retain];
+        fastFindController.project = project;
+    }
+    [fastFindController show];
+    //[fastFindController.window makeKeyAndOrderFront:self];    
+}
+
+- (IBAction)findInProject:(id)sender {
+    if(findInProjectController == nil && project != nil) {
+        findInProjectController = [[[MVPFindInProjectController alloc] init] retain];
+        findInProjectController.project = project;
+    }
+    [findInProjectController show];
+    //[fastFindController.window makeKeyAndOrderFront:self];    
+}
+
+- (IBAction)openProjectAtPath:(NSString*)projectPath{
+	if (projectPath) {
+		MVPProject *project = [MVPProject loadFromDisk:projectPath];
+		[[NSDocumentController sharedDocumentController] noteNewRecentFilePath:projectPath];
+		[self showDrawer:self];
+		[self setProject:project];
+	}
+}
+
+- (IBAction)openProject:(id)sender {
+    NSArray *fileTypes = [NSArray arrayWithObject:@"mvp"];
+    NSOpenPanel *panel = [NSOpenPanel openPanel];        
+    [panel setFloatingPanel:YES];
+    [panel setCanChooseDirectories:NO];
+    [panel setCanChooseFiles:YES];
+    [self showDrawer:self];
+    int result = [panel runModalForDirectory:NSHomeDirectory() file:nil types:fileTypes];    
+    if(result == NSOKButton){
+        NSURL *url = [[panel URLs] objectAtIndex:0];		
+        MVPProject *p = [MVPProject loadFromDisk:[url path]];
+		[self setProject:p];
+		[[NSDocumentController sharedDocumentController] noteNewRecentFilePath:[url path]];
+    }
+}
+
+- (IBAction)newProject:(id)sender {
+    if(newProjectController == nil) {
+        newProjectController = [[[MVPNewProjectController alloc] init] retain];
+        newProjectController.windowController = self;
+    }
+    [newProjectController showWindow:self];
+    [newProjectController.window makeKeyAndOrderFront:self];
+}
+
+
+- (IBAction)showDrawer:(id)sender
+{
+	if(projectDrawerController == nil) {
+		projectDrawerController = [[MVPProjectDrawerController alloc] initWithNibName:@"MVPProjectDrawer" bundle:nil];
+		[projectDrawerController addToWindow:decoratedWindow];
+	}
+    
+    [projectDrawerController show];
+}
+
+- (IBAction)toggleDrawer:(id)sender
+{
+	if(projectDrawerController == nil) {
+		projectDrawerController = [[MVPProjectDrawerController alloc] initWithNibName:@"MVPProjectDrawer" bundle:nil];
+		[projectDrawerController addToWindow:decoratedWindow];
+	}
+    [projectDrawerController toggle];
+}
+
+- (IBAction)viewLineOnGithub:(id)sender
+{
+    if(projectDrawerController) {
+        [projectDrawerController viewLineOnGithub:self];
+    }
 }
 
 @end // MMWindowController (Private)

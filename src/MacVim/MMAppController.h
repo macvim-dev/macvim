@@ -25,6 +25,7 @@
     NSMenuItem          *appMenuItemTemplate;
     NSMenuItem          *recentFilesMenuItem;
     NSMutableArray      *cachedVimControllers;
+    NSMutableArray      *projectQueue;
     int                 preloadPid;
     BOOL                shouldActivateWhenNextWindowOpens;
     int                 numChildProcesses;
