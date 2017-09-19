@@ -718,9 +718,10 @@ extern int (*dyn_libintl_putenv)(const char *envstring);
 #define SHOWMATCH	(0x700 + INSERT) /* show matching paren */
 #define CONFIRM		0x800	/* ":confirm" prompt */
 #define SELECTMODE	0x1000	/* Select mode, only for mappings */
+#define TERMINAL        0x2000  /* Terminal mode */
 
-#define MAP_ALL_MODES	(0x3f | SELECTMODE)	/* all mode bits used for
-						 * mapping */
+/* all mode bits used for mapping */
+#define MAP_ALL_MODES	(0x3f | SELECTMODE | TERMINAL)
 
 /* directions */
 #define FORWARD			1
@@ -861,24 +862,12 @@ extern int (*dyn_libintl_putenv)(const char *envstring);
 #define FINDFILE_DIR	1	/* only directories */
 #define FINDFILE_BOTH	2	/* files and directories */
 
-#ifdef FEAT_WINDOWS
-# define W_WINCOL(wp)	(wp->w_wincol)
-# define W_WIDTH(wp)	(wp->w_width)
-# define W_ENDCOL(wp)	(wp->w_wincol + wp->w_width)
-# define W_VSEP_WIDTH(wp) (wp->w_vsep_width)
-#else
-# define W_WINCOL(wp)	0
-# define W_WIDTH(wp)	Columns
-# define W_ENDCOL(wp)	Columns
-# define W_VSEP_WIDTH(wp) 0
-#endif
-#ifdef FEAT_WINDOWS
-# define W_STATUS_HEIGHT(wp) (wp->w_status_height)
-# define W_WINROW(wp)	(wp->w_winrow)
-#else
-# define W_STATUS_HEIGHT(wp) 0
-# define W_WINROW(wp)	0
-#endif
+#define W_WINCOL(wp)	(wp->w_wincol)
+#define W_WIDTH(wp)	(wp->w_width)
+#define W_ENDCOL(wp)	(wp->w_wincol + wp->w_width)
+#define W_VSEP_WIDTH(wp) (wp->w_vsep_width)
+#define W_STATUS_HEIGHT(wp) (wp->w_status_height)
+#define W_WINROW(wp)	(wp->w_winrow)
 
 #ifdef NO_EXPANDPATH
 # define gen_expand_wildcards mch_expand_wildcards

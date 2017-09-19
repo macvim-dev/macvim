@@ -1,4 +1,4 @@
-*terminal.txt*	For Vim version 8.0.  Last change: 2017 Sep 10
+*terminal.txt*	For Vim version 8.0.  Last change: 2017 Sep 17
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -38,7 +38,7 @@ output from the job, also while editing in another window.
 
 
 Typing ~
-
+							*terminal-typing*
 When the keyboard focus is in the terminal window, typed keys will be sent to
 the job.  This uses a pty when possible.  You can click outside of the
 terminal window to move keyboard focus elsewhere.
@@ -79,15 +79,24 @@ do.  For simple commands this causes a SIGINT to be sent to the job, which
 would end it.  Other commands may ignore the SIGINT or handle the CTRL-C
 themselves (like Vim does).
 
+To change the keys you type use terminal mode mappings, see |:tmap|.
+These are defined like any mapping, but apply only when typing keys that are
+sent to the job running in the terminal.
+
 
 Size and color ~
 
 See option 'termsize' for controlling the size of the terminal window.
 (TODO: scrolling when the terminal is larger than the window)
 
-The terminal uses the 'background' option to decide whether the terminal
-window will start with a white or black background.  The job running in the
-terminal can change the colors.
+The job running in the terminal can change the colors.  The default foreground
+and background colors are taken from Vim, the Normal highlight group.
+
+For a color terminal the 'background' option is used to decide whether the
+terminal window will start with a white or black background.
+
+To use a different color the Terminal highlight group can be used: >
+    hi Terminal ctermbg=lightgrey ctermfg=blue guibg=lightgrey guifg=blue
 
 
 Syntax ~
@@ -216,12 +225,16 @@ mode.
 Use CTRL-W N (or 'termkey' N) to switch to Terminal-Normal mode.  Now the
 contents of the terminal window is under control of Vim, the job output is
 suspended.  CTRL-\ CTRL-N does the same.
+
+Terminal-Job mode is where |:tmap| mappings are applied. Keys sent by
+|term_sendkeys()| are not subject to tmap, but keys from |feedkeys()| are.
+
 							*E946*
 In Terminal-Normal mode you can move the cursor around with the usual Vim
 commands, Visually mark text, yank text, etc.  But you cannot change the
 contents of the buffer.  The commands that would start insert mode, such as
 'i' and 'a', return to Terminal-Job mode.  The window will be updated to show
-the contents of the terminal.
+the contents of the terminal. |:startinsert| is ineffective.
 
 In Terminal-Normal mode the statusline and window title show "(Terminal)".  If
 the job ends while in Terminal-Normal mode this changes to
@@ -296,7 +309,7 @@ inspects the resulting screen state.
 
 Functions ~
 
-term_sendkeys()		send keystrokes to a terminal
+term_sendkeys()		send keystrokes to a terminal (not subject to tmap)
 term_wait()		wait for screen to be updated
 term_scrape()		inspect terminal screen
 
@@ -359,6 +372,14 @@ In the window showing the source code some commands can used to control gdb:
  :Finish    execute the gdb "finish" command
  :Continue  execute the gdb "continue" command
 
+The plugin adds a window toolbar with these entries:
+  Step	    :Step
+  Next	    :Over
+  Finish    :Finish
+  Cont	    :Continue
+  Eval	    :Evaluate
+This way you can use the mouse to perform the most common commands.
+
 
 Inspecting variables ~
 
@@ -402,6 +423,12 @@ The defaults are, when 'background' is "light":
 When 'background' is "dark":
   hi debugPC term=reverse ctermbg=darkblue guibg=darkblue
   hi debugBreakpoint term=reverse ctermbg=red guibg=red
+
+To change the width of the Vim window when debugging starts, and use a
+vertical split: >
+  let g:termdebug_wide = 163
+This will set &columns to 163 when :Termdebug is used.  The value is restored
+when quitting the debugger.
 
 
 
