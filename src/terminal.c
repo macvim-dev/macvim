@@ -38,11 +38,14 @@
  * in tl_scrollback are no longer used.
  *
  * TODO:
+ * - in GUI vertical split causes problems.  Cursor is flickering. (Hirohito
+ *   Higashi, 2017 Sep 19)
  * - Shift-Tab does not work.
  * - click in Window toolbar of other window: save/restore Insert and Visual
  * - Redirecting output does not work on MS-Windows, Test_terminal_redir_file()
  *   is disabled.
  * - implement term_setsize()
+ * - MS-Windows GUI: still need to type a key after shell exits?  #1924
  * - add test for giving error for invalid 'termsize' value.
  * - support minimal size when 'termsize' is "rows*cols".
  * - support minimal size when 'termsize' is empty?
