@@ -2729,7 +2729,7 @@ winframe_remove(
     if (frp2 == frp_close->fr_next)
     {
 	int row = win->w_winrow;
-	int col = W_WINCOL(win);
+	int col = win->w_wincol;
 
 	frame_comp_pos(frp2, &row, &col);
     }
@@ -5782,13 +5782,13 @@ scroll_to_fraction(win_T *wp, int prev_height)
 	     */
 	    wp->w_wrow = line_size;
 	    if (wp->w_wrow >= wp->w_height
-				       && (W_WIDTH(wp) - win_col_off(wp)) > 0)
+				       && (wp->w_width - win_col_off(wp)) > 0)
 	    {
-		wp->w_skipcol += W_WIDTH(wp) - win_col_off(wp);
+		wp->w_skipcol += wp->w_width - win_col_off(wp);
 		--wp->w_wrow;
 		while (wp->w_wrow >= wp->w_height)
 		{
-		    wp->w_skipcol += W_WIDTH(wp) - win_col_off(wp)
+		    wp->w_skipcol += wp->w_width - win_col_off(wp)
 							   + win_col_off2(wp);
 		    --wp->w_wrow;
 		}

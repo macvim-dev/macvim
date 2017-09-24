@@ -2712,12 +2712,10 @@ struct window_S
     int		w_height;	    /* number of rows in window, excluding
 				       status/command/winbar line(s) */
     int		w_status_height;    /* number of status lines (0 or 1) */
-    int		w_wincol;	    /* Leftmost column of window in screen.
-				       use W_WINCOL() */
-    int		w_width;	    /* Width of window, excluding separation.
-				       use W_WIDTH() */
-    int		w_vsep_width;	    /* Number of separator columns (0 or 1).
-				       use W_VSEP_WIDTH() */
+    int		w_wincol;	    /* Leftmost column of window in screen. */
+    int		w_width;	    /* Width of window, excluding separation. */
+    int		w_vsep_width;	    /* Number of separator columns (0 or 1). */
+
     /*
      * === start of cached values ====
      */
@@ -3426,3 +3424,16 @@ typedef struct lval_S
     dictitem_T	*ll_di;		/* The dictitem or NULL */
     char_u	*ll_newkey;	/* New key for Dict in alloc. mem or NULL. */
 } lval_T;
+
+/* Structure used to save the current state.  Used when executing Normal mode
+ * commands while in any other mode. */
+typedef struct {
+    int		save_msg_scroll;
+    int		save_restart_edit;
+    int		save_msg_didout;
+    int		save_State;
+    int		save_insertmode;
+    int		save_finish_op;
+    int		save_opcount;
+    tasave_T	tabuf;
+} save_state_T;
