@@ -7970,6 +7970,8 @@ do_highlight(
 	}
 	else if (STRCMP(key, "GUIFG") == 0)
 	{
+	    char_u **namep = &HL_TABLE()[idx].sg_gui_fg_name;
+
 #if defined(FEAT_GUI) || defined(FEAT_EVAL)
 	    if (!init || !(HL_TABLE()[idx].sg_set & SG_GUI))
 	    {
@@ -7983,22 +7985,33 @@ do_highlight(
 		{
 		    HL_TABLE()[idx].sg_gui_fg = i;
 # endif
-		    vim_free(HL_TABLE()[idx].sg_gui_fg_name);
-		    if (STRCMP(arg, "NONE") != 0)
-			HL_TABLE()[idx].sg_gui_fg_name = vim_strsave(arg);
-		    else
-			HL_TABLE()[idx].sg_gui_fg_name = NULL;
+		    if (*namep == NULL || STRCMP(*namep, arg) != 0)
+		    {
+			vim_free(*namep);
+			if (STRCMP(arg, "NONE") != 0)
+			    *namep = vim_strsave(arg);
+			else
+			    *namep = NULL;
+		    }
 # if defined(FEAT_GUI) || defined(FEAT_TERMGUICOLORS)
 #  ifdef FEAT_GUI_X11
-		    if (is_menu_group)
+		    if (is_menu_group && gui.menu_fg_pixel != i)
+		    {
 			gui.menu_fg_pixel = i;
-		    if (is_scrollbar_group)
+			do_colors = TRUE;
+		    }
+		    if (is_scrollbar_group && gui.scroll_fg_pixel != i)
+		    {
 			gui.scroll_fg_pixel = i;
+			do_colors = TRUE;
+		    }
 #   ifdef FEAT_BEVAL
-		    if (is_tooltip_group)
+		    if (is_tooltip_group && gui.tooltip_fg_pixel != i)
+		    {
 			gui.tooltip_fg_pixel = i;
+			do_colors = TRUE;
+		    }
 #   endif
-		    do_colors = TRUE;
 #  endif
 		}
 # endif
@@ -8007,6 +8020,8 @@ do_highlight(
 	}
 	else if (STRCMP(key, "GUIBG") == 0)
 	{
+	    char_u **namep = &HL_TABLE()[idx].sg_gui_bg_name;
+
 #if defined(FEAT_GUI) || defined(FEAT_EVAL)
 	    if (!init || !(HL_TABLE()[idx].sg_set & SG_GUI))
 	    {
@@ -8020,22 +8035,33 @@ do_highlight(
 		{
 		    HL_TABLE()[idx].sg_gui_bg = i;
 # endif
-		    vim_free(HL_TABLE()[idx].sg_gui_bg_name);
-		    if (STRCMP(arg, "NONE") != 0)
-			HL_TABLE()[idx].sg_gui_bg_name = vim_strsave(arg);
-		    else
-			HL_TABLE()[idx].sg_gui_bg_name = NULL;
+		    if (*namep == NULL || STRCMP(*namep, arg) != 0)
+		    {
+			vim_free(*namep);
+			if (STRCMP(arg, "NONE") != 0)
+			    *namep = vim_strsave(arg);
+			else
+			    *namep = NULL;
+		    }
 # if defined(FEAT_GUI) || defined(FEAT_TERMGUICOLORS)
 #  ifdef FEAT_GUI_X11
-		    if (is_menu_group)
+		    if (is_menu_group && gui.menu_bg_pixel != i)
+		    {
 			gui.menu_bg_pixel = i;
-		    if (is_scrollbar_group)
+			do_colors = TRUE;
+		    }
+		    if (is_scrollbar_group && gui.scroll_bg_pixel != i)
+		    {
 			gui.scroll_bg_pixel = i;
+			do_colors = TRUE;
+		    }
 #   ifdef FEAT_BEVAL
-		    if (is_tooltip_group)
+		    if (is_tooltip_group && gui.tooltip_bg_pixel != i)
+		    {
 			gui.tooltip_bg_pixel = i;
+			do_colors = TRUE;
+		    }
 #   endif
-		    do_colors = TRUE;
 #  endif
 		}
 # endif
@@ -8044,6 +8070,8 @@ do_highlight(
 	}
 	else if (STRCMP(key, "GUISP") == 0)
 	{
+	    char_u **namep = &HL_TABLE()[idx].sg_gui_sp_name;
+
 #if defined(FEAT_GUI) || defined(FEAT_EVAL)
 	    if (!init || !(HL_TABLE()[idx].sg_set & SG_GUI))
 	    {
@@ -8056,11 +8084,14 @@ do_highlight(
 		{
 		    HL_TABLE()[idx].sg_gui_sp = i;
 # endif
-		    vim_free(HL_TABLE()[idx].sg_gui_sp_name);
-		    if (STRCMP(arg, "NONE") != 0)
-			HL_TABLE()[idx].sg_gui_sp_name = vim_strsave(arg);
-		    else
-			HL_TABLE()[idx].sg_gui_sp_name = NULL;
+		    if (*namep == NULL || STRCMP(*namep, arg) != 0)
+		    {
+			vim_free(*namep);
+			if (STRCMP(arg, "NONE") != 0)
+			    *namep = vim_strsave(arg);
+			else
+			    *namep = NULL;
+		    }
 # ifdef FEAT_GUI
 		}
 # endif
