@@ -3277,11 +3277,10 @@ set_shellsize(int width, int height, int mustset)
 		if (pum_visible())
 		{
 		    redraw_later(NOT_VALID);
-		    ins_compl_show_pum(); /* This includes the redraw. */
+		    ins_compl_show_pum();
 		}
-		else
 #endif
-		    update_screen(NOT_VALID);
+		update_screen(NOT_VALID);
 		if (redrawing())
 		    setcursor();
 	    }
