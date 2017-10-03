@@ -5352,6 +5352,9 @@ mch_job_start(char **argv, job_T *job, jobopt_T *options)
 	    channel = add_channel();
 	if (channel == NULL)
 	    goto failed;
+	if (job->jv_tty_out != NULL)
+	    ch_log(channel, "using pty %s on fd %d",
+					       job->jv_tty_out, pty_master_fd);
     }
 
     BLOCK_SIGNALS(&curset);
@@ -5724,6 +5727,9 @@ mch_create_pty_channel(job_T *job, jobopt_T *options)
 	close(pty_master_fd);
 	return FAIL;
     }
+    if (job->jv_tty_out != NULL)
+	ch_log(channel, "using pty %s on fd %d",
+					       job->jv_tty_out, pty_master_fd);
     job->jv_channel = channel;  /* ch_refcount was set by add_channel() */
     channel->ch_keep_open = TRUE;
 
@@ -5991,7 +5997,7 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 	}
 # endif
 #ifdef FEAT_JOB_CHANNEL
-	nfd = channel_poll_setup(nfd, &fds);
+	nfd = channel_poll_setup(nfd, &fds, &towait);
 #endif
 	if (interrupted != NULL)
 	    *interrupted = FALSE;
@@ -6043,7 +6049,8 @@ RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 	}
 # endif
 #ifdef FEAT_JOB_CHANNEL
-	if (ret > 0)
+	/* also call when ret == 0, we may be polling a keep-open channel */
+	if (ret >= 0)
 	    ret = channel_poll_check(ret, &fds);
 #endif
 
@@ -6119,7 +6126,7 @@ select_eintr:
 	}
 # endif
 # ifdef FEAT_JOB_CHANNEL
-	maxfd = channel_select_setup(maxfd, &rfds, &wfds);
+	maxfd = channel_select_setup(maxfd, &rfds, &wfds, &tv, &tvp);
 # endif
 	if (interrupted != NULL)
 	    *interrupted = FALSE;
@@ -6205,7 +6212,8 @@ select_eintr:
 	}
 # endif
 #ifdef FEAT_JOB_CHANNEL
-	if (ret > 0)
+	/* also call when ret == 0, we may be polling a keep-open channel */
+	if (ret >= 0)
 	    ret = channel_select_check(ret, &rfds, &wfds);
 #endif
 
