@@ -333,7 +333,7 @@ gui_mch_update(void)
     static CFAbsoluteTime lastTime = 0;
 
     CFAbsoluteTime nowTime = CFAbsoluteTimeGetCurrent();
-    if (nowTime - lastTime > 0.2) {
+    if (nowTime - lastTime > 1.0 / 30) {
         [[MMBackend sharedInstance] update];
         lastTime = nowTime;
     }
