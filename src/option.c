@@ -2084,6 +2084,24 @@ static struct vimoption options[] =
     {"mousetime",   "mouset",	P_NUM|P_VI_DEF,
 			    (char_u *)&p_mouset, PV_NONE,
 			    {(char_u *)500L, (char_u *)0L} SCRIPTID_INIT},
+    {"mzschemedll", NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
+#if defined(DYNAMIC_MZSCHEME)
+			    (char_u *)&p_mzschemedll, PV_NONE,
+			    {(char_u *)DYNAMIC_MZSCH_DLL, (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)"", (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
+    {"mzschemegcdll", NULL, P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
+#if defined(DYNAMIC_MZSCHEME)
+			    (char_u *)&p_mzschemegcdll, PV_NONE,
+			    {(char_u *)DYNAMIC_MZGC_DLL, (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)"", (char_u *)0L}
+#endif
+			    SCRIPTID_INIT},
     {"mzquantum",  "mzq",   P_NUM,
 #ifdef FEAT_MZSCHEME
 			    (char_u *)&p_mzq, PV_NONE,
@@ -3224,6 +3242,7 @@ static struct vimoption options[] =
     p_term("t_ms", T_MS)
     p_term("t_nd", T_ND)
     p_term("t_op", T_OP)
+    p_term("t_RF", T_RFG)
     p_term("t_RB", T_RBG)
     p_term("t_RC", T_CRC)
     p_term("t_RI", T_CRI)

@@ -68,7 +68,7 @@ win32:	fixff nolog $(SCRIPTS_FIRST) $(SCRIPTS) $(SCRIPTS_WIN32) newtests
 fixff:
 	-$(VIMPROG) -u dos.vim $(NO_INITS) "+argdo set ff=dos|upd" +q *.in *.ok
 	-$(VIMPROG) -u dos.vim $(NO_INITS) "+argdo set ff=unix|upd" +q \
-		dotest.in test60.ok test_listchars.ok \
+		dotest.in test_listchars.ok \
 		test_wordcount.ok
 
 clean:
@@ -120,17 +120,17 @@ bench_re_freeze.out: bench_re_freeze.vim
 newtests: $(NEW_TESTS)
 
 .vim.res:
-	@echo "$(VIMPROG)" > vimcmd
+	@echo $(VIMPROG) > vimcmd
 	$(VIMPROG) -u NONE $(NO_INITS) -S runtest.vim $*.vim
 	@$(DEL) vimcmd
 
 test_gui.res: test_gui.vim
-	@echo "$(VIMPROG)" > vimcmd
+	@echo $(VIMPROG) > vimcmd
 	$(VIMPROG) -u NONE $(NO_INITS) -S runtest.vim $<
 	@$(DEL) vimcmd
 
 test_gui_init.res: test_gui_init.vim
-	@echo "$(VIMPROG)" > vimcmd
+	@echo $(VIMPROG) > vimcmd
 	$(VIMPROG) -u gui_preinit.vim -U gui_init.vim $(NO_PLUGINS) -S runtest.vim $<
 	@$(DEL) vimcmd
 

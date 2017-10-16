@@ -1,6 +1,5 @@
 " Tests for autocommands
 
-set belloff=all
 
 func! s:cleanup_buffers() abort
   for bnr in range(1, bufnr('$'))
@@ -352,7 +351,9 @@ endfunc
 " Closing a window might cause an endless loop
 " E814 for older Vims
 func Test_autocmd_bufwipe_in_SessLoadPost()
+  edit Xtest
   tabnew
+  file Xsomething
   set noswapfile
   mksession!
 
@@ -360,7 +361,7 @@ func Test_autocmd_bufwipe_in_SessLoadPost()
         \ 'let v:swapchoice="e"',
         \ 'augroup test_autocmd_sessionload',
         \ 'autocmd!',
-        \ 'autocmd SessionLoadPost * 4bw!',
+        \ 'autocmd SessionLoadPost * exe bufnr("Xsomething") . "bw!"',
         \ 'augroup END',
 	\ '',
 	\ 'func WriteErrors()',
@@ -435,6 +436,8 @@ func Test_OptionSet()
   if !has("eval") || !has("autocmd") || !exists("+autochdir")
     return
   endif
+
+  badd test_autocmd.vim
 
   call test_override('starting', 1)
   set nocp
@@ -529,9 +532,10 @@ func Test_OptionSet()
   let g:options=[['backup', 0, 1, 'local']]
   " try twice, first time, shouldn't trigger because option name is invalid,
   " second time, it should trigger
-  call assert_fails("call setbufvar(1, '&l:bk', 1)", "E355")
+  let bnum = bufnr('%')
+  call assert_fails("call setbufvar(bnum, '&l:bk', 1)", "E355")
   " should trigger, use correct option name
-  call setbufvar(1, '&backup', 1)
+  call setbufvar(bnum, '&backup', 1)
   call assert_equal([], g:options)
   call assert_equal(g:opt[0], g:opt[1])
 
@@ -644,4 +648,134 @@ func Test_BufleaveWithDelete()
 
   new
   bwipe! Xfile1
+endfunc
+
+" Test for autocommand that changes the buffer list, when doing ":ball".
+func Test_Acmd_BufAll()
+  enew!
+  %bwipe!
+  call writefile(['Test file Xxx1'], 'Xxx1')
+  call writefile(['Test file Xxx2'], 'Xxx2')
+  call writefile(['Test file Xxx3'], 'Xxx3')
+
+  " Add three files to the buffer list
+  split Xxx1
+  close
+  split Xxx2
+  close
+  split Xxx3
+  close
+
+  " Wipe the buffer when the buffer is opened
+  au BufReadPost Xxx2 bwipe
+
+  call append(0, 'Test file Xxx4')
+  ball
+
+  call assert_equal(2, winnr('$'))
+  call assert_equal('Xxx1', bufname(winbufnr(winnr('$'))))
+  wincmd t
+
+  au! BufReadPost
+  %bwipe!
+  call delete('Xxx1')
+  call delete('Xxx2')
+  call delete('Xxx3')
+  enew! | only
+endfunc
+
+" Test for autocommand that changes current buffer on BufEnter event.
+" Check if modelines are interpreted for the correct buffer.
+func Test_Acmd_BufEnter()
+  %bwipe!
+  call writefile(['start of test file Xxx1',
+	      \ "\<Tab>this is a test",
+	      \ 'end of test file Xxx1'], 'Xxx1')
+  call writefile(['start of test file Xxx2',
+	      \ 'vim: set noai :',
+	      \ "\<Tab>this is a test",
+	      \ 'end of test file Xxx2'], 'Xxx2')
+
+  au BufEnter Xxx2 brew
+  set ai modeline modelines=3
+  edit Xxx1
+  " edit Xxx2, autocmd will do :brew
+  edit Xxx2
+  exe "normal G?this is a\<CR>"
+  " Append text with autoindent to this file
+  normal othis should be auto-indented
+  call assert_equal("\<Tab>this should be auto-indented", getline('.'))
+  call assert_equal(3, line('.'))
+  " Remove autocmd and edit Xxx2 again
+  au! BufEnter Xxx2
+  buf! Xxx2
+  exe "normal G?this is a\<CR>"
+  " append text without autoindent to Xxx
+  normal othis should be in column 1
+  call assert_equal("this should be in column 1", getline('.'))
+  call assert_equal(4, line('.'))
+
+  %bwipe!
+  call delete('Xxx1')
+  call delete('Xxx2')
+  set ai&vim modeline&vim modelines&vim
+endfunc
+
+" Test for issue #57
+" do not move cursor on <c-o> when autoindent is set
+func Test_ai_CTRL_O()
+  enew!
+  set ai
+  let save_fo = &fo
+  set fo+=r
+  exe "normal o# abcdef\<Esc>2hi\<CR>\<C-O>d0\<Esc>"
+  exe "normal o# abcdef\<Esc>2hi\<C-O>d0\<Esc>"
+  call assert_equal(['# abc', 'def', 'def'], getline(2, 4))
+
+  set ai&vim
+  let &fo = save_fo
+  enew!
+endfunc
+
+" Test for autocommand that deletes the current buffer on BufLeave event.
+" Also test deleting the last buffer, should give a new, empty buffer.
+func Test_BufLeave_Wipe()
+  %bwipe!
+  let content = ['start of test file Xxx',
+	      \ 'this is a test',
+	      \ 'end of test file Xxx']
+  call writefile(content, 'Xxx1')
+  call writefile(content, 'Xxx2')
+
+  au BufLeave Xxx2 bwipe
+  edit Xxx1
+  split Xxx2
+  " delete buffer Xxx2, we should be back to Xxx1
+  bwipe
+  call assert_equal('Xxx1', bufname('%'))
+  call assert_equal(1, winnr('$'))
+
+  " Create an alternate buffer
+  %write! test.out
+  call assert_equal('test.out', bufname('#'))
+  " delete alternate buffer
+  bwipe test.out
+  call assert_equal('Xxx1', bufname('%'))
+  call assert_equal('', bufname('#'))
+
+  au BufLeave Xxx1 bwipe
+  " delete current buffer, get an empty one
+  bwipe!
+  call assert_equal(1, line('$'))
+  call assert_equal('', bufname('%'))
+  let g:bufinfo = getbufinfo()
+  call assert_equal(1, len(g:bufinfo))
+
+  call delete('Xxx1')
+  call delete('Xxx2')
+  %bwipe
+  au! BufLeave
+
+  " check that bufinfo doesn't contain a pointer to freed memory
+  call test_garbagecollect_now()
 endfunc
