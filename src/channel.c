@@ -54,9 +54,7 @@
 # define fd_close(sd) close(sd)
 #endif
 
-#ifndef FEAT_GUI_MACVIM
 static void channel_read(channel_T *channel, ch_part_T part, char *func);
-#endif
 
 /* Whether a redraw is needed for appending a line to a buffer. */
 static int channel_need_redraw = FALSE;
@@ -3271,11 +3269,7 @@ channel_close_now(channel_T *channel)
  * "part" is PART_SOCK, PART_OUT or PART_ERR.
  * The data is put in the read queue.  No callbacks are invoked here.
  */
-#ifndef FEAT_GUI_MACVIM
     static void
-#else
-    void
-#endif
 channel_read(channel_T *channel, ch_part_T part, char *func)
 {
     static char_u	*buf = NULL;
@@ -3560,6 +3554,22 @@ common_channel_read(typval_T *argvars, typval_T *rettv, int raw)
 theend:
     free_job_options(&opt);
 }
+
+# ifdef FEAT_GUI_MACVIM
+/*
+ * Read from channel "channel" in dispatch event handler.
+ * Channel may be already read out elsewhere before the handler invoked
+ * after an event arrived, so should be checked again.
+ */
+    void
+channel_may_read(channel_T *channel, ch_part_T part, char *func)
+{
+    sock_T	fd = channel->ch_part[part].ch_fd;
+
+    if (fd != INVALID_FD && channel_wait(channel, fd, 0) == CW_READY)
+	channel_read(channel, part, func);
+}
+# endif
 
 # if defined(WIN32) || defined(FEAT_GUI_X11) || defined(FEAT_GUI_GTK) \
 	|| defined(PROTO)
