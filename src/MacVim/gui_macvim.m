@@ -333,7 +333,7 @@ gui_mch_update(void)
     static CFAbsoluteTime lastTime = 0;
 
     CFAbsoluteTime nowTime = CFAbsoluteTimeGetCurrent();
-    if (nowTime - lastTime > 0.2) {
+    if (nowTime - lastTime > 1.0 / 30) {
         [[MMBackend sharedInstance] update];
         lastTime = nowTime;
     }
@@ -2301,7 +2301,7 @@ gui_macvim_add_channel(channel_T *channel, ch_part_T part)
                                0,
                                dispatch_get_main_queue());
     dispatch_source_set_event_handler(s, ^{
-        channel_read(channel, part, "gui_macvim_add_channel");
+        channel_may_read(channel, part, "gui_macvim_add_channel");
     });
     dispatch_resume(s);
     return s;
