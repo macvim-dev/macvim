@@ -991,7 +991,7 @@ static NSString *MMWideCharacterAttributeName = @"MMWideChar";
                                                      attributes:dict];
 
     [backingStore release];
-    backingStore = [[NSMutableAttributedString alloc] init];
+    backingStore = [[NSTextStorage alloc] init];
     for (i=0; i<maxRows; ++i) {
 #if MM_USE_ROW_CACHE
         rowCache[i].length = actualColumns + 1;
