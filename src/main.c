@@ -419,6 +419,19 @@ main
     debug_break_level = params.use_debug_break_level;
 #endif
 
+    /* Reset 'loadplugins' for "-u NONE" before "--cmd" arguments.
+     * Allows for setting 'loadplugins' there. */
+    if (params.use_vimrc != NULL
+	    && (STRCMP(params.use_vimrc, "NONE") == 0
+		|| STRCMP(params.use_vimrc, "DEFAULTS") == 0))
+	p_lpl = FALSE;
+
+    /* Execute --cmd arguments. */
+    exe_pre_commands(&params);
+
+    /* Source startup scripts. */
+    source_startup_scripts(&params);
+
 #ifdef FEAT_GUI_MACVIM
     gui_macvim_release_autoreleasepool(autoreleasePool);
 #endif
@@ -429,6 +442,7 @@ main
      * initialisation via scheme_main_setup.
      * Implement this by initialising it as early as possible
      * and splitting off remaining Vim main into vim_main2().
+     * Do source startup scripts, so that 'mzschemedll' can be set.
      */
     return mzscheme_main();
 #else
@@ -450,19 +464,6 @@ vim_main2(void)
 #ifdef FEAT_GUI_MACVIM
     void *autoreleasePool = gui_macvim_new_autoreleasepool();
 #endif
-    /* Reset 'loadplugins' for "-u NONE" before "--cmd" arguments.
-     * Allows for setting 'loadplugins' there. */
-    if (params.use_vimrc != NULL
-	    && (STRCMP(params.use_vimrc, "NONE") == 0
-		|| STRCMP(params.use_vimrc, "DEFAULTS") == 0))
-	p_lpl = FALSE;
-
-    /* Execute --cmd arguments. */
-    exe_pre_commands(&params);
-
-    /* Source startup scripts. */
-    source_startup_scripts(&params);
-
 #ifdef FEAT_EVAL
     /*
      * Read all the plugin files.

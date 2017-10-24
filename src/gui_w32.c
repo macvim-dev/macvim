@@ -7568,6 +7568,26 @@ nCopyAnsiToWideChar(
 
 #ifdef FEAT_TEAROFF
 /*
+ * Lookup menu handle from "menu_id".
+ */
+    static HMENU
+tearoff_lookup_menuhandle(
+    vimmenu_T *menu,
+    WORD menu_id)
+{
+    for ( ; menu != NULL; menu = menu->next)
+    {
+	if (menu->modes == 0)	/* this menu has just been deleted */
+	    continue;
+	if (menu_is_separator(menu->dname))
+	    continue;
+	if ((WORD)((long_u)(menu->submenu_id) | (DWORD)0x8000) == menu_id)
+	    return menu->submenu_id;
+    }
+    return NULL;
+}
+
+/*
  * The callback function for all the modeless dialogs that make up the
  * "tearoff menus" Very simple - forward button presses (to fool Vim into
  * thinking its menus have been clicked), and go away when closed.
@@ -7580,7 +7600,10 @@ tearoff_callback(
     LPARAM lParam)
 {
     if (message == WM_INITDIALOG)
+    {
+	SetWindowLongPtr(hwnd, DWLP_USER, (LONG_PTR)lParam);
 	return (TRUE);
+    }
 
     /* May show the mouse pointer again. */
     HandleMouseHide(message, lParam);
@@ -7594,8 +7617,11 @@ tearoff_callback(
 
 	    if (GetCursorPos(&mp) && GetWindowRect(hwnd, &rect))
 	    {
+		vimmenu_T *menu;
+
+		menu = (vimmenu_T*)GetWindowLongPtr(hwnd, DWLP_USER);
 		(void)TrackPopupMenu(
-			 (HMENU)(long_u)(LOWORD(wParam) ^ 0x8000),
+			 tearoff_lookup_menuhandle(menu, LOWORD(wParam)),
 			 TPM_LEFTALIGN | TPM_LEFTBUTTON,
 			 (int)rect.right - 8,
 			 (int)mp.y,
@@ -7707,6 +7733,7 @@ gui_mch_tearoff(
     WORD	dlgwidth;
     WORD	menuID;
     vimmenu_T	*pmenu;
+    vimmenu_T	*top_menu;
     vimmenu_T	*the_menu = menu;
     HWND	hwnd;
     HDC		hdc;
@@ -7885,6 +7912,7 @@ gui_mch_tearoff(
 	menu = menu->children->next;
     else
 	menu = menu->children;
+    top_menu = menu;
     for ( ; menu != NULL; menu = menu->next)
     {
 	if (menu->modes == 0)	/* this menu has just been deleted */
@@ -7995,11 +8023,12 @@ gui_mch_tearoff(
 
 
     /* show modelessly */
-    the_menu->tearoff_handle = CreateDialogIndirect(
+    the_menu->tearoff_handle = CreateDialogIndirectParam(
 	    s_hinst,
 	    (LPDLGTEMPLATE)pdlgtemplate,
 	    s_hwnd,
-	    (DLGPROC)tearoff_callback);
+	    (DLGPROC)tearoff_callback,
+	    (LPARAM)top_menu);
 
     LocalFree(LocalHandle(pdlgtemplate));
     SelectFont(hdc, oldFont);
@@ -8151,6 +8180,34 @@ initialise_tabline(void)
 # endif
 }
 
+/*
+ * Get tabpage_T from POINT.
+ */
+    static tabpage_T *
+GetTabFromPoint(
+    HWND    hWnd,
+    POINT   pt)
+{
+    tabpage_T	*ptp = NULL;
+
+    if (gui_mch_showing_tabline())
+    {
+	TCHITTESTINFO htinfo;
+	htinfo.pt = pt;
+	/* ignore if a window under cusor is not tabcontrol. */
+	if (s_tabhwnd == hWnd)
+	{
+	    int idx = TabCtrl_HitTest(s_tabhwnd, &htinfo);
+	    if (idx != -1)
+		ptp = find_tabpage(idx + 1);
+	}
+    }
+    return ptp;
+}
+
+static POINT	    s_pt = {0, 0};
+static HCURSOR      s_hCursor = NULL;
+
     static LRESULT CALLBACK
 tabline_wndproc(
     HWND hwnd,
@@ -8158,7 +8215,73 @@ tabline_wndproc(
     WPARAM wParam,
     LPARAM lParam)
 {
+    POINT	pt;
+    tabpage_T	*tp;
+    RECT	rect;
+    int		nCenter;
+    int		idx0;
+    int		idx1;
+
     HandleMouseHide(uMsg, lParam);
+
+    switch (uMsg)
+    {
+	case WM_LBUTTONDOWN:
+	    {
+		s_pt.x = GET_X_LPARAM(lParam);
+		s_pt.y = GET_Y_LPARAM(lParam);
+		SetCapture(hwnd);
+		s_hCursor = GetCursor(); /* backup default cursor */
+		break;
+	    }
+	case WM_MOUSEMOVE:
+	    if (GetCapture() == hwnd
+		    && ((wParam & MK_LBUTTON)) != 0)
+	    {
+		pt.x = GET_X_LPARAM(lParam);
+		pt.y = s_pt.y;
+		if (abs(pt.x - s_pt.x) > GetSystemMetrics(SM_CXDRAG))
+		{
+		    SetCursor(LoadCursor(NULL, IDC_SIZEWE));
+
+		    tp = GetTabFromPoint(hwnd, pt);
+		    if (tp != NULL)
+		    {
+			idx0 = tabpage_index(curtab) - 1;
+			idx1 = tabpage_index(tp) - 1;
+
+			TabCtrl_GetItemRect(hwnd, idx1, &rect);
+			nCenter = rect.left + (rect.right - rect.left) / 2;
+
+			/* Check if the mouse cursor goes over the center of
+			 * the next tab to prevent "flickering". */
+			if ((idx0 < idx1) && (nCenter < pt.x))
+			{
+			    tabpage_move(idx1 + 1);
+			    update_screen(0);
+			}
+			else if ((idx1 < idx0) && (pt.x < nCenter))
+			{
+			    tabpage_move(idx1);
+			    update_screen(0);
+			}
+		    }
+		}
+	    }
+	    break;
+	case WM_LBUTTONUP:
+	    {
+		if (GetCapture() == hwnd)
+		{
+		    SetCursor(s_hCursor);
+		    ReleaseCapture();
+		}
+		break;
+	    }
+	default:
+	    break;
+    }
+
     return CallWindowProc(s_tabline_wndproc, hwnd, uMsg, wParam, lParam);
 }
 #endif
