@@ -4335,6 +4335,7 @@ build_stl_str_hl(
 
 	case STL_OFFSET_X:
 	    base = 'X';
+	    /* FALLTHROUGH */
 	case STL_OFFSET:
 #ifdef FEAT_BYTEOFF
 	    l = ml_find_line_or_offset(wp->w_buffer, wp->w_cursor.lnum, NULL);
@@ -4346,6 +4347,7 @@ build_stl_str_hl(
 
 	case STL_BYTEVAL_X:
 	    base = 'X';
+	    /* FALLTHROUGH */
 	case STL_BYTEVAL:
 	    num = byteval;
 	    if (num == NL)
