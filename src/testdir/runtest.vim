@@ -99,6 +99,10 @@ func RunTheTest(test)
   " Clear any overrides.
   call test_override('ALL', 0)
 
+  " Some tests wipe out buffers.  To be consistent, always wipe out all
+  " buffers.
+  %bwipe!
+
   if exists("*SetUp")
     try
       call SetUp()
@@ -109,14 +113,21 @@ func RunTheTest(test)
 
   call add(s:messages, 'Executing ' . a:test)
   let s:done += 1
-  try
+
+  if a:test =~ 'Test_nocatch_'
+    " Function handles errors itself.  This avoids skipping commands after the
+    " error.
     exe 'call ' . a:test
-  catch /^\cskipped/
-    call add(s:messages, '    Skipped')
-    call add(s:skipped, 'SKIPPED ' . a:test . ': ' . substitute(v:exception, '^\S*\s\+', '',  ''))
-  catch
-    call add(v:errors, 'Caught exception in ' . a:test . ': ' . v:exception . ' @ ' . v:throwpoint)
-  endtry
+  else
+    try
+      exe 'call ' . a:test
+    catch /^\cskipped/
+      call add(s:messages, '    Skipped')
+      call add(s:skipped, 'SKIPPED ' . a:test . ': ' . substitute(v:exception, '^\S*\s\+', '',  ''))
+    catch
+      call add(v:errors, 'Caught exception in ' . a:test . ': ' . v:exception . ' @ ' . v:throwpoint)
+    endtry
+  endif
 
   if exists("*TearDown")
     try
@@ -126,7 +137,14 @@ func RunTheTest(test)
     endtry
   endif
 
-  " Close any extra windows and make the current one not modified.
+  " Clear any autocommands
+  au!
+
+  " Close any extra tab pages and windows and make the current one not modified.
+  while tabpagenr('$') > 1
+    quit!
+  endwhile
+
   while 1
     let wincount = winnr('$')
     if wincount == 1
@@ -139,7 +157,6 @@ func RunTheTest(test)
       break
     endif
   endwhile
-  set nomodified
 endfunc
 
 func AfterTheTest()
@@ -233,6 +250,7 @@ let s:flaky = [
       \ 'Test_quoteplus()',
       \ 'Test_quotestar()',
       \ 'Test_reltime()',
+      \ 'Test_terminal_composing_unicode()',
       \ 'Test_terminal_noblock()',
       \ 'Test_with_partial_callback()',
       \ ]

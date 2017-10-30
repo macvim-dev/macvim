@@ -213,7 +213,7 @@ void qsort(void *base, size_t elm_count, size_t elm_size, int (*cmp)(const void 
 # endif
 
 # if defined(FEAT_GUI) || defined(FEAT_JOB_CHANNEL)
-#  if defined(UNIX) || defined(MACOS)
+#  if defined(UNIX) || defined(MACOS_X)
 #   include "pty.pro"
 #  endif
 # endif
@@ -289,8 +289,12 @@ extern char *vim_SelFile(Widget toplevel, char *prompt, char *init_path, int (*s
 #ifdef MACOS_CONVERT
 # include "os_mac_conv.pro"
 #endif
-#ifdef MACOS_X
-# include "os_macosx.pro"
+#if defined(MACOS_X_DARWIN) && defined(FEAT_CLIPBOARD) && !defined(FEAT_GUI)
+/* functions in os_macosx.m */
+void clip_mch_lose_selection(VimClipboard *cbd);
+int clip_mch_own_selection(VimClipboard *cbd);
+void clip_mch_request_selection(VimClipboard *cbd);
+void clip_mch_set_selection(VimClipboard *cbd);
 #endif
 
 #ifdef __BORLANDC__

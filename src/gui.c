@@ -37,7 +37,7 @@ static void gui_set_fg_color(char_u *name);
 static void gui_set_bg_color(char_u *name);
 static win_T *xy2win(int x, int y);
 
-#if defined(UNIX) && !defined(MACOS_X) && !defined(__APPLE__)
+#if defined(UNIX) && !defined(FEAT_GUI_MAC)
 # define MAY_FORK
 static void gui_do_fork(void);
 
@@ -2454,9 +2454,14 @@ gui_outstr_nowrap(
 	int	cl;		/* byte length of current char */
 	int	comping;	/* current char is composing */
 	int	scol = col;	/* screen column */
-	int	curr_wide;	/* use 'guifontwide' */
+	int	curr_wide = FALSE;  /* use 'guifontwide' */
 	int	prev_wide = FALSE;
 	int	wide_changed;
+#  ifdef WIN3264
+	int	sep_comp = FALSE;   /* Don't separate composing chars. */
+#  else
+	int	sep_comp = TRUE;    /* Separate composing chars. */
+#  endif
 
 	/* Break the string at a composing character, it has to be drawn on
 	 * top of the previous character. */
@@ -2466,21 +2471,24 @@ gui_outstr_nowrap(
 	{
 	    c = utf_ptr2char(s + i);
 	    cn = utf_char2cells(c);
-#  ifdef FEAT_GUI_MACVIM
-	    curr_wide = (cn > 1);
-#  else
-	    if (cn > 1
-#  ifdef FEAT_XFONTSET
-		    && fontset == NOFONTSET
-#  endif
-		    && wide_font != NOFONT)
-		curr_wide = TRUE;
-	    else
-		curr_wide = FALSE;
-#  endif
 	    comping = utf_iscomposing(c);
 	    if (!comping)	/* count cells from non-composing chars */
 		cells += cn;
+	    if (!comping || sep_comp)
+	    {
+#  ifdef FEAT_GUI_MACVIM
+		curr_wide = (cn > 1);
+#  else
+		if (cn > 1
+#  ifdef FEAT_XFONTSET
+			&& fontset == NOFONTSET
+#  endif
+			&& wide_font != NOFONT)
+		    curr_wide = TRUE;
+		else
+		    curr_wide = FALSE;
+#  endif
+	    }
 	    cl = utf_ptr2len(s + i);
 	    if (cl == 0)	/* hit end of string */
 		len = i + cl;	/* len must be wrong "cannot happen" */
@@ -2489,7 +2497,8 @@ gui_outstr_nowrap(
 
 	    /* Print the string so far if it's the last character or there is
 	     * a composing character. */
-	    if (i + cl >= len || (comping && i > start) || wide_changed
+	    if (i + cl >= len || (comping && sep_comp && i > start)
+		    || wide_changed
 #  if defined(FEAT_GUI_X11)
 		    || (cn > 1
 #   ifdef FEAT_XFONTSET
@@ -2501,7 +2510,7 @@ gui_outstr_nowrap(
 #  endif
 	       )
 	    {
-		if (comping || wide_changed)
+		if ((comping && sep_comp) || wide_changed)
 		    thislen = i - start;
 		else
 		    thislen = i - start + cl;
@@ -2525,7 +2534,7 @@ gui_outstr_nowrap(
 		cells = 0;
 		/* Adjust to not draw a character which width is changed
 		 * against with last one. */
-		if (wide_changed && !comping)
+		if (wide_changed && !(comping && sep_comp))
 		{
 		    scol -= cn;
 		    cl = 0;
@@ -2544,10 +2553,10 @@ gui_outstr_nowrap(
 #  endif
 	    }
 	    /* Draw a composing char on top of the previous char. */
-	    if (comping)
+	    if (comping && sep_comp)
 	    {
 #  if !defined(FEAT_GUI_MACVIM) && \
-	(defined(__APPLE_CC__) || defined(__MRC__)) && TARGET_API_MAC_CARBON
+	(defined(__APPLE_CC__) && TARGET_API_MAC_CARBON)
 		/* Carbon ATSUI autodraws composing char over previous char */
 		gui_mch_draw_string(gui.row, scol, s + i, cl,
 						    draw_flags | DRAW_TRANSP);
