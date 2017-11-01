@@ -1477,10 +1477,10 @@ static struct vimoption options[] =
 			    ,
 #if defined(FEAT_GUI)
 			    (char_u *)&p_go, PV_NONE,
-# if defined(UNIX) && !defined(FEAT_GUI_MAC)
-			    {(char_u *)"aegimrLtT", (char_u *)0L}
-# elif defined(FEAT_GUI_MACVIM)
+# if defined(FEAT_GUI_MACVIM)
 			    {(char_u *)"egmrL", (char_u *)0L}
+# elif defined(UNIX) && !defined(FEAT_GUI_MAC)
+			    {(char_u *)"aegimrLtT", (char_u *)0L}
 # else
 			    {(char_u *)"egmrLtT", (char_u *)0L}
 # endif
