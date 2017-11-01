@@ -296,6 +296,9 @@ int clip_mch_own_selection(VimClipboard *cbd);
 void clip_mch_request_selection(VimClipboard *cbd);
 void clip_mch_set_selection(VimClipboard *cbd);
 #endif
+#if defined(MACOS_X) && defined(FEAT_GUI)
+void macosx_fork();
+#endif
 
 #ifdef __BORLANDC__
 # define _PROTO_H
