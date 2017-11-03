@@ -3473,7 +3473,7 @@ if test "x$vim_cv_terminfo" = "xyes" ; then
   AC_DEFINE(TERMINFO)
 fi
 
-AC_CACHE_CHECK([what tgetent() returns for an unknown terminal], [vim_cv_tgent],
+AC_CACHE_CHECK([what tgetent() returns for an unknown terminal], [vim_cv_tgetent],
   [
     AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #include "confdefs.h"
@@ -3487,15 +3487,15 @@ AC_CACHE_CHECK([what tgetent() returns for an unknown terminal], [vim_cv_tgent],
 main()
 {char s[10000]; int res = tgetent(s, "thisterminaldoesnotexist"); exit(res != 0); }
     ]])],[
-      vim_cv_tgent=zero
+      vim_cv_tgetent=zero
     ],[
-      vim_cv_tgent=non-zero
+      vim_cv_tgetent=non-zero
     ],[
       AC_MSG_ERROR(failed to compile test program.)
     ])
   ])
 
-if test "x$vim_cv_tgent" = "xzero" ; then
+if test "x$vim_cv_tgetent" = "xzero" ; then
   AC_DEFINE(TGETENT_ZERO_ERR, 0)
 fi
 

@@ -1725,12 +1725,19 @@ getcmdline(
 		    pos_T  t;
 		    int    search_flags = SEARCH_NOOF;
 
+		    if (ccline.cmdlen == 0)
+			goto cmdline_not_changed;
+
 		    save_last_search_pattern();
 		    cursor_off();
 		    out_flush();
 		    if (c == Ctrl_G)
 		    {
 			t = match_end;
+			if (LT_POS(match_start, match_end))
+			    /* start searching at the end of the match
+			     * not at the beginning of the next column */
+			    (void)decl(&t);
 			search_flags += SEARCH_COL;
 		    }
 		    else
@@ -1953,6 +1960,7 @@ cmdline_changed:
 	    {
 		i = 0;
 		SET_NO_HLSEARCH(TRUE); /* turn off previous highlight */
+		redraw_all_later(SOME_VALID);
 	    }
 	    else
 	    {
@@ -2090,7 +2098,7 @@ returncmd:
 	curwin->w_botline = old_botline;
 	highlight_match = FALSE;
 	validate_cursor();	/* needed for TAB */
-	redraw_later(SOME_VALID);
+	redraw_all_later(SOME_VALID);
     }
 #endif
 
