@@ -122,7 +122,7 @@ func Test_paused()
   let slept = WaitFor('g:val == 1')
   call assert_equal(1, g:val)
   if has('reltime')
-    call assert_inrange(0, 40, slept)
+    call assert_inrange(0, 50, slept)
   else
     call assert_inrange(0, 10, slept)
   endif
