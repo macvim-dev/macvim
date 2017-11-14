@@ -83,6 +83,11 @@ static char *(features[]) =
 #else
 	"-autocmd",
 #endif
+#ifdef FEAT_AUTOSERVERNAME
+	"+autoservername",
+#else
+	"-autoservername",
+#endif
 #ifdef FEAT_BEVAL
 	"+balloon_eval",
 #else
@@ -776,6 +781,32 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    1297,
+/**/
+    1296,
+/**/
+    1295,
+/**/
+    1294,
+/**/
+    1293,
+/**/
+    1292,
+/**/
+    1291,
+/**/
+    1290,
+/**/
+    1289,
+/**/
+    1288,
+/**/
+    1287,
+/**/
+    1286,
+/**/
+    1285,
 /**/
     1284,
 /**/

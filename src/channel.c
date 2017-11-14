@@ -2917,8 +2917,6 @@ channel_close(channel_T *channel, int invoke_close_cb)
 	      channel->ch_close_cb = NULL;
 	      channel->ch_close_partial = NULL;
 
-	      --channel->ch_refcount;
-
 	      if (channel_need_redraw)
 	      {
 		  channel_need_redraw = FALSE;
@@ -2929,6 +2927,8 @@ channel_close(channel_T *channel, int invoke_close_cb)
 		  /* any remaining messages are useless now */
 		  for (part = PART_SOCK; part < PART_IN; ++part)
 		      drop_messages(channel, part);
+
+	      --channel->ch_refcount;
 	}
     }
 
