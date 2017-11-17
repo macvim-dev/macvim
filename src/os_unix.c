@@ -2727,9 +2727,8 @@ mch_getperm(char_u *name)
 }
 
 /*
- * set file permission for 'name' to 'perm'
- *
- * return FAIL for failure, OK otherwise
+ * Set file permission for "name" to "perm".
+ * Return FAIL for failure, OK otherwise.
  */
     int
 mch_setperm(char_u *name, long perm)
@@ -2742,6 +2741,18 @@ mch_setperm(char_u *name, long perm)
 #endif
 		    (mode_t)perm) == 0 ? OK : FAIL);
 }
+
+#if defined(HAVE_FCHMOD) || defined(PROTO)
+/*
+ * Set file permission for open file "fd" to "perm".
+ * Return FAIL for failure, OK otherwise.
+ */
+    int
+mch_fsetperm(int fd, long perm)
+{
+    return (fchmod(fd, (mode_t)perm) == 0 ? OK : FAIL);
+}
+#endif
 
 #if defined(HAVE_ACL) || defined(PROTO)
 # ifdef HAVE_SYS_ACL_H
