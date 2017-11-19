@@ -9,6 +9,11 @@
 #ifndef VIM__H
 # define VIM__H
 
+#ifdef PROTO
+/* cproto runs into trouble when this type is missing */
+typedef double _Float128;
+#endif
+
 /* use fastcall for Borland, when compiling for Win32 */
 #if defined(__BORLANDC__) && defined(WIN32) && !defined(DEBUG)
 #if defined(FEAT_PERL) || \
@@ -1814,6 +1819,7 @@ typedef int sock_T;
 #include "structs.h"	    /* file that defines many structures */
 
 #include "alloc.h"
+#include "beval.h"
 
 /* Values for "do_profiling". */
 #define PROF_NONE	0	/* profiling not started */

@@ -1410,7 +1410,7 @@ f_atan2(typval_T *argvars, typval_T *rettv)
 f_balloon_show(typval_T *argvars, typval_T *rettv UNUSED)
 {
     if (balloonEval != NULL)
-	gui_mch_post_balloon(balloonEval, get_tv_string_chk(&argvars[0]));
+	post_balloon(balloonEval, get_tv_string_chk(&argvars[0]));
 }
 #endif
 
@@ -5590,11 +5590,14 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_AUTOSERVERNAME
 	"autoservername",
 #endif
-#ifdef FEAT_BEVAL
+#ifdef FEAT_BEVAL_GUI
 	"balloon_eval",
 # ifndef FEAT_GUI_W32 /* other GUIs always have multiline balloons */
 	"balloon_multiline",
 # endif
+#endif
+#ifdef FEAT_BEVAL_TERM
+	"balloon_eval_term",
 #endif
 #if defined(SOME_BUILTIN_TCAPS) || defined(ALL_BUILTIN_TCAPS)
 	"builtin_terms",

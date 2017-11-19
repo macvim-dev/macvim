@@ -269,12 +269,13 @@ enum key_extra
     , KE_NOP = 97		/* doesn't do something */
     , KE_FOCUSGAINED = 98	/* focus gained */
     , KE_FOCUSLOST = 99		/* focus lost */
+    , KE_MOUSEMOVE = 100	/* mouse moved with no button down */
 
 #ifdef FEAT_GUI_MACVIM
-    , KE_SWIPELEFT = 100	/* Swipe trackpad left */
-    , KE_SWIPERIGHT = 101	/* Swipe trackpad right */
-    , KE_SWIPEUP = 102		/* Swipe trackpad up */
-    , KE_SWIPEDOWN = 103	/* Swipe trackpad down */
+    , KE_SWIPELEFT = 101	/* Swipe trackpad left */
+    , KE_SWIPERIGHT = 102	/* Swipe trackpad right */
+    , KE_SWIPEUP = 103		/* Swipe trackpad up */
+    , KE_SWIPEDOWN = 104	/* Swipe trackpad down */
 #endif
 };
 
@@ -444,6 +445,7 @@ enum key_extra
 #define K_LEFTDRAG	TERMCAP2KEY(KS_EXTRA, KE_LEFTDRAG)
 #define K_LEFTRELEASE	TERMCAP2KEY(KS_EXTRA, KE_LEFTRELEASE)
 #define K_LEFTRELEASE_NM TERMCAP2KEY(KS_EXTRA, KE_LEFTRELEASE_NM)
+#define K_MOUSEMOVE	TERMCAP2KEY(KS_EXTRA, KE_MOUSEMOVE)
 #define K_MIDDLEMOUSE	TERMCAP2KEY(KS_EXTRA, KE_MIDDLEMOUSE)
 #define K_MIDDLEDRAG	TERMCAP2KEY(KS_EXTRA, KE_MIDDLEDRAG)
 #define K_MIDDLERELEASE	TERMCAP2KEY(KS_EXTRA, KE_MIDDLERELEASE)
