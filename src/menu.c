@@ -3047,7 +3047,6 @@ ex_macmenu(eap)
 	set_mac_menu_attrs(menu, action, set_alt, mac_alternate, set_key, mac_key, mac_mods);
 
 	modes = get_menu_cmd_modes(eap->cmd, eap->forceit, &noremap, &unmenu);
-	// for each popup mode, do the same
 	if (menu_is_popup(menu_path))
 	{
 	    for (i = 0; i < MENU_INDEX_TIP; ++i)
