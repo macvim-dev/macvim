@@ -2782,6 +2782,27 @@ menu_for_path(char_u *menu_path)
     return menu;
 }
 
+    void 
+set_mac_menu_attrs(
+    vimmenu_T	*menu, 
+    char_u	*action, 
+    int		set_alt, 
+    int		mac_alternate, 
+    int		set_key, 
+    int		mac_key, 
+    int		mac_mods)
+{
+    if (action)
+	menu->mac_action = action;
+    if (set_key)
+    {
+	menu->mac_key = mac_key;
+	menu->mac_mods = mac_mods;
+    }
+    if (set_alt)
+	menu->mac_alternate = mac_alternate;
+}
+
 /*
  * Handle the ":macmenu" command.
  */
@@ -2790,11 +2811,14 @@ ex_macmenu(eap)
     exarg_T	*eap;
 {
     vimmenu_T	*menu = NULL;
+    vimmenu_T	*popup_menu_for_mode = NULL;
     char_u	*arg;
     char_u	*menu_path;
     char_u	*p;
     char_u	*keys;
+    int		i;
     int		len;
+    int		modes;
     char_u	*linep;
     char_u	*key_start;
     char_u	*key = NULL;
@@ -2804,9 +2828,10 @@ ex_macmenu(eap)
     int		mac_key = 0;
     int		mac_mods = 0;
     int		mac_alternate = 0;
+    int		noremap;
+    int		unmenu;
     char_u	*last_dash;
     int		bit;
-    int         set_action = FALSE;
     int         set_key = FALSE;
     int         set_alt = FALSE;
 
@@ -2904,7 +2929,6 @@ ex_macmenu(eap)
 		break;
 	    }
 
-	    set_action = TRUE;
 	}
 	else if (STRCMP(key, "ALT") == 0)
 	{
@@ -3020,15 +3044,24 @@ ex_macmenu(eap)
      */
     if (!error)
     {
-	if (set_action)
-	    menu->mac_action = action;
-	if (set_key)
+	set_mac_menu_attrs(menu, action, set_alt, mac_alternate, set_key, mac_key, mac_mods);
+
+	modes = get_menu_cmd_modes(eap->cmd, eap->forceit, &noremap, &unmenu);
+	// for each popup mode, do the same
+	if (menu_is_popup(menu_path))
 	{
-	    menu->mac_key = mac_key;
-	    menu->mac_mods = mac_mods;
+	    for (i = 0; i < MENU_INDEX_TIP; ++i)
+		if (modes & (1 << i))
+		{
+		    p = popup_mode_name(menu_path, i);
+		    if (p != NULL)
+		    {
+			popup_menu_for_mode = menu_for_path(p);
+			set_mac_menu_attrs(popup_menu_for_mode, action, set_alt, mac_alternate, set_key, mac_key, mac_mods);
+			vim_free(p);
+		    }
+		}
 	}
-	if (set_alt)
-	    menu->mac_alternate = mac_alternate;
     }
     else
     {
