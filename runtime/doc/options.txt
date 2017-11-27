@@ -4379,10 +4379,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 'imactivatefunc' 'imaf'	string (default "")
 			global
 			{not in Vi}
-			{only available when compiled with |+xim| and
-			|+GUI_GTK|}
+			{only available when compiled with |+mbyte|}
 	This option specifies a function that will be called to
-	activate/inactivate Input Method.
+	activate or deactivate the Input Method.
+	It is not used in the GUI.
 
 	Example: >
 		function ImActivateFunc(active)
@@ -4431,8 +4431,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 'imcmdline' 'imc'	boolean (default off)
 			global
 			{not in Vi}
-			{only available when compiled with the |+xim|,
-			|+multi_byte_ime| or |global-ime| features}
+			{only available when compiled with |+mbyte|}
 	When set the Input Method is always on when starting to edit a command
 	line, unless entering a search pattern (see 'imsearch' for that).
 	Setting this option is useful when your input method allows entering
@@ -4443,9 +4442,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 'imdisable' 'imd'	boolean (default off, on for some systems (SGI))
 			global
 			{not in Vi}
-			{only available when compiled with the |+xim|,
-			|+multi_byte_ime| or |global-ime| features, always
-			available in MacVim}
+			{only available when compiled with |+mbyte|}
 	When set the Input Method is never used.  This is useful to disable
 	the IM when it doesn't work properly.
 	Currently this option is on by default for SGI/IRIX.  This may change
@@ -4460,8 +4457,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 		0	:lmap is off and IM is off
 		1	:lmap is ON and IM is off
 		2	:lmap is off and IM is ON
-	2 is available only when compiled with the |+multi_byte_ime|, |+xim|
-	or |global-ime|.
 	To always reset the option to zero when leaving Insert mode with <Esc>
 	this can be used: >
 		:inoremap <ESC> <ESC>:set iminsert=0<CR>
@@ -4473,6 +4468,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 	It is also used for the argument of commands like "r" and "f".
 	The value 0 may not work correctly with Athena and Motif with some XIM
 	methods.  Use 'imdisable' to disable XIM then.
+
+	You can set 'imactivatefunc' and 'imstatusfunc' to handle IME/XIM
+	via external command if vim is not compiled with the |+xim|,
+	|+multi_byte_ime| or |global-ime|.
 
 						*'imsearch'* *'ims'*
 'imsearch' 'ims'	number (default -1)
@@ -4496,10 +4495,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 'imstatusfunc' 'imsf'	string (default "")
 			global
 			{not in Vi}
-			{only available when compiled with |+xim| and
-			|+GUI_GTK|}
+			{only available when compiled with |+mbyte|}
 	This option specifies a function that is called to obtain the status
 	of Input Method.  It must return a positive number when IME is active.
+	It is not used in the GUI.
 
 	Example: >
 		function ImStatusFunc()
@@ -6347,11 +6346,34 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 		Example: >
 		  set encoding=utf-8
-		  set gfn=Ricty_Diminished:h12:cSHIFTJIS
+		  set gfn=Ricty_Diminished:h12
 		  set rop=type:directx
 <
-		If select a raster font (Courier, Terminal or FixedSys) to
-		'guifont', it fallbacks to be drawn by GDI automatically.
+		If select a raster font (Courier, Terminal or FixedSys which
+		have ".fon" extension in file name) to 'guifont', it will be
+		drawn by GDI as a fallback.  This fallback will cause
+		significant slow down on drawing.
+
+		NOTE: It is known that some fonts and options combination
+		causes trouble on drawing glyphs.
+
+		  - 'rendmode:5' and 'renmode:6' will not work with some
+		    special made fonts (True-Type fonts which includes only
+		    bitmap glyphs).
+		  - 'taamode:3' will not work with some vector fonts.
+
+		NOTE: With this option, you can display colored emoji
+		(emoticon) in Windows 8.1 or later.  To display colored emoji,
+		there are some conditions which you should notice.
+
+		  - If your font includes non-colored emoji already, it will
+		    be used.
+		  - If your font doesn't have emoji, the system chooses an
+		    alternative symbol font.  On Windows 10, "Segoe UI Emoji"
+		    will be used.
+		  - When this alternative font didn't have fixed width glyph,
+		    emoji might be rendered beyond the bounding box of drawing
+		    cell.
 
 	Other render types are currently not supported.
 

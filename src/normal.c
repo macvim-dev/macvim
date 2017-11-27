@@ -892,7 +892,7 @@ getcount:
 	int	lit = FALSE;	/* get extra character literally */
 	int	langmap_active = FALSE;    /* using :lmap mappings */
 	int	lang;		/* getting a text character */
-#ifdef USE_IM_CONTROL
+#ifdef FEAT_MBYTE
 	int	save_smd;	/* saved value of p_smd */
 #endif
 
@@ -957,7 +957,7 @@ getcount:
 		    State = LANGMAP;
 		langmap_active = TRUE;
 	    }
-#ifdef USE_IM_CONTROL
+#ifdef FEAT_MBYTE
 	    save_smd = p_smd;
 	    p_smd = FALSE;	/* Don't let the IM code show the mode here */
 	    if (lang && curbuf->b_p_iminsert == B_IMODE_IM)
@@ -973,7 +973,7 @@ getcount:
 		++allow_keys;
 		State = NORMAL_BUSY;
 	    }
-#ifdef USE_IM_CONTROL
+#ifdef FEAT_MBYTE
 	    if (lang)
 	    {
 		if (curbuf->b_p_iminsert != B_IMODE_LMAP)
@@ -4650,7 +4650,9 @@ nv_mousescroll(cmdarg_T *cap)
     {
 # ifdef FEAT_TERMINAL
 	if (term_use_loop())
-	    send_keys_to_term(curbuf->b_term, cap->cmdchar, TRUE);
+	    /* This window is a terminal window, send the mouse event there.
+	     * Set "typed" to FALSE to avoid an endless loop. */
+	    send_keys_to_term(curbuf->b_term, cap->cmdchar, FALSE);
 	else
 # endif
 	if (mod_mask & (MOD_MASK_SHIFT | MOD_MASK_CTRL))

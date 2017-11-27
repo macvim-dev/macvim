@@ -535,16 +535,6 @@ typedef unsigned long u8char_T;	    /* long should be 32 bits or more */
 #endif
 
 /*
- * Check input method control.
- */
-#if defined(FEAT_XIM) \
-    || (defined(FEAT_GUI) && (defined(FEAT_MBYTE_IME) || defined(GLOBAL_IME))) \
-    || (defined(FEAT_GUI_MAC) && defined(FEAT_MBYTE)) \
-    || defined(FEAT_GUI_MACVIM)
-# define USE_IM_CONTROL
-#endif
-
-/*
  * For dynamically loaded gettext library.  Currently, only for Win32.
  */
 #ifdef DYNAMIC_GETTEXT
@@ -1488,6 +1478,11 @@ typedef UINT32_TYPEDEF UINT32_T;
 #define MIN_COLUMNS	12	/* minimal columns for screen */
 #define MIN_LINES	2	/* minimal lines for screen */
 #define STATUS_HEIGHT	1	/* height of a status line under a window */
+#ifdef FEAT_MENU		/* height of a status line under a window */
+# define WINBAR_HEIGHT(wp)	(wp)->w_winbar_height
+#else
+# define WINBAR_HEIGHT(wp)	0
+#endif
 #define QF_WINHEIGHT	10	/* default height for quickfix window */
 
 /*
