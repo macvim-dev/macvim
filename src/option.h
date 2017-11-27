@@ -591,7 +591,7 @@ EXTERN int	p_icon;		/* 'icon' */
 EXTERN char_u	*p_iconstring;	/* 'iconstring' */
 #endif
 EXTERN int	p_ic;		/* 'ignorecase' */
-#if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
+#if defined(FEAT_XIM) && (defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MACVIM))
 EXTERN char_u	*p_imak;	/* 'imactivatekey' */
 #define IM_ON_THE_SPOT		0L
 #define IM_OVER_THE_SPOT	1L
