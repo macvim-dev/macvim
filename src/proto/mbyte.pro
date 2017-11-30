@@ -98,4 +98,8 @@ int convert_input(char_u *ptr, int len, int maxlen);
 int convert_input_safe(char_u *ptr, int len, int maxlen, char_u **restp, int *restlenp);
 char_u *string_convert(vimconv_T *vcp, char_u *ptr, int *lenp);
 char_u *string_convert_ext(vimconv_T *vcp, char_u *ptr, int *lenp, int *unconvlenp);
+#ifdef FEAT_GUI_MACVIM
+void call_imactivatefunc(int active);
+int call_imstatusfunc(void);
+#endif
 /* vim: set ft=c : */

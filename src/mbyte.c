@@ -4791,7 +4791,11 @@ iconv_end(void)
 #endif
 
 #if defined(FEAT_EVAL) && defined(FEAT_MBYTE)
+# ifdef FEAT_GUI_MACVIM
+    void
+# else
     static void
+# endif
 call_imactivatefunc(int active)
 {
     char_u *argv[1];
@@ -4803,7 +4807,11 @@ call_imactivatefunc(int active)
     (void)call_func_retnr(p_imaf, 1, argv, FALSE);
 }
 
+# ifdef FEAT_GUI_MACVIM
+    int
+# else
     static int
+# endif
 call_imstatusfunc(void)
 {
     int is_active;
