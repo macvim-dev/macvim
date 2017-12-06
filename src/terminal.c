@@ -675,7 +675,10 @@ update_cursor(term_T *term, int redraw)
 	out_flush();
 #ifdef FEAT_GUI
 	if (gui.in_use)
+	{
 	    gui_update_cursor(FALSE, FALSE);
+	    gui_mch_flush();
+	}
 #endif
     }
 }
@@ -1313,12 +1316,13 @@ send_keys_to_term(term_T *term, int c, int typed)
 	case K_MOUSELEFT:
 	case K_MOUSERIGHT:
 	    if (mouse_row < W_WINROW(curwin)
-		    || mouse_row > (W_WINROW(curwin) + curwin->w_height)
+		    || mouse_row >= (W_WINROW(curwin) + curwin->w_height)
 		    || mouse_col < curwin->w_wincol
-		    || mouse_col > W_ENDCOL(curwin)
+		    || mouse_col >= W_ENDCOL(curwin)
 		    || dragging_outside)
 	    {
-		/* click or scroll outside the current window */
+		/* click or scroll outside the current window or on status line
+		 * or vertical separator */
 		if (typed)
 		{
 		    stuffcharReadbuff(c);
