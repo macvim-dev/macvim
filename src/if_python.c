@@ -64,11 +64,7 @@
 
 #define PY_SSIZE_T_CLEAN
 
-#ifdef FEAT_GUI_MACVIM
-# include <Python/Python.h>
-#else
-# include <Python.h>
-#endif
+#include <Python.h>
 
 #if !defined(PY_VERSION_HEX) || PY_VERSION_HEX < 0x02050000
 # undef PY_SSIZE_T_CLEAN
