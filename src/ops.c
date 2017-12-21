@@ -183,8 +183,15 @@ get_op_type(int char1, int char2)
     if (char1 == 'g' && char2 == Ctrl_X)	/* subtract */
 	return OP_NR_SUB;
     for (i = 0; ; ++i)
+    {
 	if (opchars[i][0] == char1 && opchars[i][1] == char2)
 	    break;
+	if (i == (int)(sizeof(opchars) / sizeof(char [3]) - 1))
+	{
+	    internal_error("get_op_type()");
+	    break;
+	}
+    }
     return i;
 }
 
@@ -1645,6 +1652,7 @@ shift_delete_registers()
     y_regs[1].y_array = NULL;		/* set register one to empty */
 }
 
+#ifdef FEAT_AUTOCMD
     static void
 yank_do_autocmd(oparg_T *oap, yankreg_T *reg)
 {
@@ -1701,6 +1709,7 @@ yank_do_autocmd(oparg_T *oap, yankreg_T *reg)
     dict_free_contents(v_event);
     hash_init(&v_event->dv_hashtab);
 }
+#endif
 
 /*
  * Handle a delete operation.
