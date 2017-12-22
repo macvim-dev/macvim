@@ -6,13 +6,13 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-143</title>
+      <title>MacVim snapshot-144</title>
       <description><![CDATA[
 <pre>
 Binary targets macOS 10.8+
 
-- Vim patch 8.0.1376
-- Update Lua interface from 5.2 to 5.3
+- Vim patch 8.0.1420
+- Fixed :gui
 
 Script interfaces have compatibility with these versions
 
@@ -24,14 +24,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Thu, 07 Dec 2017 08:00:00 -0800</pubDate>
+      <pubDate>Thu, 21 Dec 2017 20:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-143/MacVim.dmg"
-        length="15779723"
-        sparkle:version="143"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-144/MacVim.dmg"
+        length="15780245"
+        sparkle:version="144"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MCwCFGW6Jfx6KpKCGuhNFLzGjRiJR2kCAhRPhKT/7uNbhNhXNNwCbmPaiVWitQ=="
+	sparkle:dsaSignature="MC4CFQDGxy0/lgWQhV0P3bYycJvJPGCqngIVAMXvnSGcgf6utQvHF0J/3nchiYPm"
         />
     </item>
   </channel>
