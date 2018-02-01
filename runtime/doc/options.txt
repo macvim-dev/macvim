@@ -6134,7 +6134,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not in Vi}
 			{only available when compiled with the |+python/dyn|
 			feature}
-	Note: EXPERIMENTAL. It may be changed or removed in the future.
 	Specifies the name of the Python 2.x home directory. When 'pythonhome'
 	and the PYTHONHOME environment variable are not set, PYTHON_HOME,
 	which was specified at compile time, will be used for the Python 2.x
@@ -6161,13 +6160,11 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not in Vi}
 			{only available when compiled with the |+python3/dyn|
 			feature}
-	Note: EXPERIMENTAL. It may be changed or removed in the future.
 	Specifies the name of the Python 3 home directory. When
 	'pythonthreehome' and the PYTHONHOME environment variable are not set,
 	PYTHON3_HOME, which was specified at compile time, will be used for
 	the Python 3 home directory.
 	Environment variables are expanded |:set_env|.
-
 	This option cannot be set from a |modeline| or in the |sandbox|, for
 	security reasons.
 
@@ -6314,7 +6311,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 		  geom	    pixelGeometry	int	0 - 2 (see below)
 		  renmode   renderingMode	int	0 - 6 (see below)
 		  taamode   textAntialiasMode	int	0 - 3 (see below)
-		  scrlines  Scroll Lines	int	>= 0  (see below)
+		  scrlines  Scroll Lines	int	(deprecated)
 
 		See this URL for detail (except for scrlines):
 		  https://msdn.microsoft.com/en-us/library/dd368190.aspx
@@ -6348,23 +6345,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 		See this URL for detail:
 		  https://msdn.microsoft.com/en-us/library/dd368170.aspx
 
-		For scrlines: threshold for lines to be scrolled.
-		    0 - Always use scrolling. (default)
-		    1 - Use full page redrawing.
-		  > 1 - If the lines to be scrolled is grater or equal to the
-			specified value, use redrawing.  Otherwise use
-			scrolling.
-
-		If you feel scrolling a page (CTRL-F) is too slow with DirectX
-		renderer, try this "scrlines" option.
-		When set it "1", Vim uses full page redrawing instead of
-		scrolling.  Redrawing a page is faster than scrolling a
-		page in some environments.
-		After that, when you feel scrolling lines (CTRL-Y) becomes
-		slow, please try "2" or greater value for this option.
-		It works threshold line number to switch scrolling to
-		redrawing.  Scrolling a few lines might be faster than
-		redrawing a page in some environments.
+		For scrlines:
+		This was used for optimizing scrolling behavior, however this
+		is now deprecated.  If specified, it is simply ignored.
 
 		Example: >
 		  set encoding=utf-8

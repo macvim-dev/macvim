@@ -2736,6 +2736,8 @@ winframe_remove(
 	if (frp2->fr_win != NULL)
 	    frp2->fr_win->w_frame = frp2->fr_parent;
 	frp = frp2->fr_parent;
+	if (topframe->fr_child == frp2)
+	    topframe->fr_child = frp;
 	vim_free(frp2);
 
 	frp2 = frp->fr_parent;
@@ -2759,6 +2761,8 @@ winframe_remove(
 		    break;
 		}
 	    }
+	    if (topframe->fr_child == frp)
+		topframe->fr_child = frp2;
 	    vim_free(frp);
 	}
     }
@@ -3504,7 +3508,6 @@ win_alloc_firstwin(win_T *oldwin)
     topframe = curwin->w_frame;
     topframe->fr_width = Columns;
     topframe->fr_height = Rows - p_ch;
-    topframe->fr_win = curwin;
 
     return OK;
 }
@@ -4817,7 +4820,12 @@ frame_remove(frame_T *frp)
     if (frp->fr_prev != NULL)
 	frp->fr_prev->fr_next = frp->fr_next;
     else
+    {
 	frp->fr_parent->fr_child = frp->fr_next;
+	/* special case: topframe->fr_child == frp */
+	if (topframe->fr_child == frp)
+	    topframe->fr_child = frp->fr_next;
+    }
     if (frp->fr_next != NULL)
 	frp->fr_next->fr_prev = frp->fr_prev;
 }

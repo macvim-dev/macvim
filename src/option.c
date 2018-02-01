@@ -2325,7 +2325,7 @@ static struct vimoption options[] =
 #endif
 			    SCRIPTID_INIT},
     {"pythonthreehome", NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
-#if defined(DYNAMIC_PYTHON3)
+#if defined(FEAT_PYTHON3)
 			    (char_u *)&p_py3home, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
 #else
@@ -2343,7 +2343,7 @@ static struct vimoption options[] =
 #endif
 			    SCRIPTID_INIT},
     {"pythonhome",  NULL,   P_STRING|P_EXPAND|P_VI_DEF|P_SECURE,
-#if defined(DYNAMIC_PYTHON)
+#if defined(FEAT_PYTHON)
 			    (char_u *)&p_pyhome, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
 #else

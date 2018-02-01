@@ -55,6 +55,7 @@ enum {
 static void gui_attempt_start(void);
 
 static int can_update_cursor = TRUE; /* can display the cursor */
+static int disable_flush = 0;	/* If > 0, gui_mch_flush() is disabled. */
 
 /*
  * The Athena scrollbars can move the thumb to after the end of the scrollbar,
@@ -1138,7 +1139,7 @@ gui_update_cursor(
 			     shape->blinkoff);
 	if (shape->blinkwait == 0 || shape->blinkon == 0
 						       || shape->blinkoff == 0)
-	    gui_mch_stop_blink();
+	    gui_mch_stop_blink(FALSE);
 #ifdef FEAT_TERMINAL
 	if (shape_bg != INVALCOLOR)
 	{
@@ -1993,7 +1994,7 @@ gui_write(
     gui.dragged_sb = SBAR_NONE;
 #endif
 
-    gui_mch_flush();		    /* In case vim decides to take a nap */
+    gui_may_flush();		    /* In case vim decides to take a nap */
 }
 
 /*
@@ -2019,6 +2020,34 @@ gui_can_update_cursor(void)
     can_update_cursor = TRUE;
     /* No need to update the cursor right now, there is always more output
      * after scrolling. */
+}
+
+/*
+ * Disable issuing gui_mch_flush().
+ */
+    void
+gui_disable_flush(void)
+{
+    ++disable_flush;
+}
+
+/*
+ * Enable issuing gui_mch_flush().
+ */
+    void
+gui_enable_flush(void)
+{
+    --disable_flush;
+}
+
+/*
+ * Issue gui_mch_flush() if it is not disabled.
+ */
+    void
+gui_may_flush(void)
+{
+    if (disable_flush == 0)
+	gui_mch_flush();
 }
 
     static void
@@ -2996,7 +3025,7 @@ gui_wait_for_chars(long wtime, int tb_change_cnt)
 	 * for showmatch() */
 	gui_mch_start_blink();
 	retval = gui_wait_for_chars_or_timer(wtime);
-	gui_mch_stop_blink();
+	gui_mch_stop_blink(TRUE);
 	return retval;
     }
 
@@ -3043,7 +3072,7 @@ gui_wait_for_chars(long wtime, int tb_change_cnt)
 	retval = gui_wait_for_chars_or_timer(-1L);
     }
 
-    gui_mch_stop_blink();
+    gui_mch_stop_blink(TRUE);
     return retval;
 }
 
@@ -3725,7 +3754,6 @@ gui_update_tabline(void)
 	/* Updating the tabline uses direct GUI commands, flush
 	 * outstanding instructions first. (esp. clear screen) */
 	out_flush();
-	gui_mch_flush();
 
 	if (!showit != !shown)
 	    gui_mch_show_tabline(showit);
@@ -4170,8 +4198,7 @@ gui_drag_scrollbar(scrollbar_T *sb, long value, int still_dragging)
 	setcursor();
     }
 # endif
-    out_flush();
-    gui_update_cursor(FALSE, TRUE);
+    out_flush_cursor(FALSE, TRUE);
 #else
     add_to_input_buf(bytes, byte_count);
     add_long_to_buf((long_u)value, bytes);
@@ -4535,7 +4562,9 @@ gui_do_scroll(void)
 	 * disappear when losing focus after a scrollbar drag. */
 	if (wp->w_redr_type < type)
 	    wp->w_redr_type = type;
+	mch_disable_flush();
 	updateWindow(wp);   /* update window, status line, and cmdline */
+	mch_enable_flush();
     }
 
 #ifdef FEAT_INS_EXPAND
@@ -4846,8 +4875,7 @@ gui_focus_change(int in_focus)
  */
 #if 1
     gui.in_focus = in_focus;
-    out_flush();		/* make sure output has been written */
-    gui_update_cursor(TRUE, FALSE);
+    out_flush_cursor(TRUE, FALSE);
 
 # ifdef FEAT_XIM
     xim_set_focus(in_focus);
@@ -5218,9 +5246,7 @@ gui_update_screen(void)
 	curwin->w_valid &= ~VALID_CROW;
     }
 # endif
-    out_flush();		/* make sure output has been written */
-    gui_update_cursor(TRUE, FALSE);
-    gui_mch_flush();
+    out_flush_cursor(TRUE, FALSE);
 }
 #endif
 
@@ -5578,9 +5604,7 @@ gui_handle_drop(
 	maketitle();
 #endif
 	setcursor();
-	out_flush();
-	gui_update_cursor(FALSE, FALSE);
-	gui_mch_flush();
+	out_flush_cursor(FALSE, FALSE);
     }
 
     entered = FALSE;

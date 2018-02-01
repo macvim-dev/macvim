@@ -714,8 +714,14 @@ EXTERN char_u	*p_perldll;	/* 'perldll' */
 EXTERN char_u	*p_py3dll;	/* 'pythonthreedll' */
 EXTERN char_u	*p_py3home;	/* 'pythonthreehome' */
 #endif
+#ifdef FEAT_PYTHON3
+EXTERN char_u	*p_py3home;	/* 'pythonthreehome' */
+#endif
 #if defined(DYNAMIC_PYTHON)
 EXTERN char_u	*p_pydll;	/* 'pythondll' */
+EXTERN char_u	*p_pyhome;	/* 'pythonhome' */
+#endif
+#ifdef FEAT_PYTHON
 EXTERN char_u	*p_pyhome;	/* 'pythonhome' */
 #endif
 #if defined(FEAT_PYTHON) || defined(FEAT_PYTHON3)

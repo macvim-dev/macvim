@@ -245,7 +245,7 @@ ui_wait_for_chars_or_timer(
 	if (interrupted != NULL && *interrupted)
 	    /* Nothing available, but need to return so that side effects get
 	     * handled, such as handling a message on a channel. */
-	    return FALSE;
+	    return FAIL;
 	if (wtime > 0)
 	    remaining -= due_time;
     }
@@ -594,11 +594,7 @@ clip_lose_selection(VimClipboard *cbd)
 	    update_curbuf(INVERTED_ALL);
 	    setcursor();
 	    cursor_on();
-	    out_flush();
-# ifdef FEAT_GUI
-	    if (gui.in_use)
-		gui_update_cursor(TRUE, FALSE);
-# endif
+	    out_flush_cursor(TRUE, FALSE);
 	}
     }
 #endif
@@ -3352,13 +3348,10 @@ ui_focus_change(
 	    setcursor();
 	}
 	cursor_on();	    /* redrawing may have switched it off */
-	out_flush();
+	out_flush_cursor(FALSE, TRUE);
 # ifdef FEAT_GUI
 	if (gui.in_use)
-	{
-	    gui_update_cursor(FALSE, TRUE);
 	    gui_update_scrollbars(FALSE);
-	}
 # endif
     }
 #ifdef FEAT_TITLE

@@ -3460,7 +3460,7 @@ ins_compl_clear(void)
     compl_orig_text = NULL;
     compl_enter_selects = FALSE;
     /* clear v:completed_item */
-    set_vim_var_dict(VV_COMPLETED_ITEM, dict_alloc());
+    set_vim_var_dict(VV_COMPLETED_ITEM, dict_alloc_lock(VAR_FIXED));
 }
 
 /*
@@ -3562,8 +3562,7 @@ ins_compl_new_leader(void)
 	{
 	    /* Show the cursor after the match, not after the redrawn text. */
 	    setcursor();
-	    out_flush();
-	    gui_update_cursor(FALSE, FALSE);
+	    out_flush_cursor(FALSE, FALSE);
 	}
 #endif
 	compl_restarting = TRUE;
@@ -4718,7 +4717,7 @@ ins_compl_delete(void)
      * flicker, thus we can't do that. */
     changed_cline_bef_curs();
     /* clear v:completed_item */
-    set_vim_var_dict(VV_COMPLETED_ITEM, dict_alloc());
+    set_vim_var_dict(VV_COMPLETED_ITEM, dict_alloc_lock(VAR_FIXED));
 }
 
 /*
@@ -4738,7 +4737,7 @@ ins_compl_insert(int in_compl_func)
 
     /* Set completed item. */
     /* { word, abbr, menu, kind, info } */
-    dict = dict_alloc();
+    dict = dict_alloc_lock(VAR_FIXED);
     if (dict != NULL)
     {
 	dict_add_nr_str(dict, "word", 0L,
@@ -4950,8 +4949,7 @@ ins_compl_next(
 	{
 	    /* Show the cursor after the match, not after the redrawn text. */
 	    setcursor();
-	    out_flush();
-	    gui_update_cursor(FALSE, FALSE);
+	    out_flush_cursor(FALSE, FALSE);
 	}
 #endif
 
