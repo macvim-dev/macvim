@@ -188,7 +188,7 @@ gui_mch_settitle(char_u *title, char_u *icon);
     void
 gui_mch_start_blink(void);
     void
-gui_mch_stop_blink(void);
+gui_mch_stop_blink(int may_call_gui_update_cursor);
     void
 gui_mch_toggle_tearoffs(int enable);
     void

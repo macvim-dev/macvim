@@ -1252,8 +1252,10 @@ gui_mch_start_blink(void)
  * Stop the cursor blinking.  Show the cursor if it wasn't shown.
  */
     void
-gui_mch_stop_blink(void)
+gui_mch_stop_blink(int may_call_gui_update_cursor)
 {
+    if (may_call_gui_update_cursor)
+        gui_update_cursor(TRUE, FALSE);
     [[MMBackend sharedInstance] stopBlink];
 }
 
