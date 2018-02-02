@@ -1078,9 +1078,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     }
 }
 
-- (void)stopBlink
+- (void)stopBlink:(BOOL)updateCursor
 {
-    if (MMBlinkStateOff == blinkState) {
+    if (MMBlinkStateOff == blinkState && updateCursor) {
         gui_update_cursor(TRUE, FALSE);
         [self flushQueue:YES];
     }
