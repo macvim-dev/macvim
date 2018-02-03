@@ -2684,7 +2684,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                 if (mch_isdir(s)) {
                     mch_chdir((char*)s);
                 } else {
-                    vim_chdirfile(s);
+                    vim_chdirfile(s, "drop");
                 }
                 vim_free(s);
             }
