@@ -8076,6 +8076,16 @@ alist_set(
     int		fnum_len)
 {
     int		i;
+    static int  recursive = 0;
+
+    if (recursive)
+    {
+#ifdef FEAT_AUTOCMD
+	EMSG(_(e_au_recursive));
+#endif
+	return;
+    }
+    ++recursive;
 
     alist_clear(al);
     if (ga_grow(&al->al_ga, count) == OK)
@@ -8105,6 +8115,8 @@ alist_set(
 	FreeWild(count, files);
     if (al == &global_alist)
 	arg_had_last = FALSE;
+
+    --recursive;
 }
 
 /*
