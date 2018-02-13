@@ -1986,6 +1986,15 @@ struct file_buffer
 				   incremented for each change, also for undo */
 #define CHANGEDTICK(buf) ((buf)->b_ct_di.di_tv.vval.v_number)
 
+#ifdef FEAT_AUTOCMD
+    varnumber_T	b_last_changedtick; /* b:changedtick when TextChanged or
+				       TextChangedI was last triggered. */
+# ifdef FEAT_INS_EXPAND
+    varnumber_T	b_last_changedtick_pum; /* b:changedtick when TextChangedP was
+					   last triggered. */
+# endif
+#endif
+
     int		b_saving;	/* Set to TRUE if we are in the middle of
 				   saving the buffer. */
 
@@ -3271,6 +3280,22 @@ typedef struct {
   UINT32_T state[8];
   char_u   buffer[64];
 } context_sha256_T;
+
+/*
+ * types for expressions.
+ */
+typedef enum
+{
+    TYPE_UNKNOWN = 0
+    , TYPE_EQUAL	/* == */
+    , TYPE_NEQUAL	/* != */
+    , TYPE_GREATER	/* >  */
+    , TYPE_GEQUAL	/* >= */
+    , TYPE_SMALLER	/* <  */
+    , TYPE_SEQUAL	/* <= */
+    , TYPE_MATCH	/* =~ */
+    , TYPE_NOMATCH	/* !~ */
+} exptype_T;
 
 /*
  * Structure used for reading in json_decode().

@@ -1270,13 +1270,10 @@ main_loop(
 #ifdef FEAT_AUTOCMD
 	    /* Trigger TextChanged if b:changedtick differs. */
 	    if (!finish_op && has_textchanged()
-		    && last_changedtick != CHANGEDTICK(curbuf))
+		    && curbuf->b_last_changedtick != CHANGEDTICK(curbuf))
 	    {
-		if (last_changedtick_buf == curbuf)
-		    apply_autocmds(EVENT_TEXTCHANGED, NULL, NULL,
-							       FALSE, curbuf);
-		last_changedtick_buf = curbuf;
-		last_changedtick = CHANGEDTICK(curbuf);
+		apply_autocmds(EVENT_TEXTCHANGED, NULL, NULL, FALSE, curbuf);
+		curbuf->b_last_changedtick = CHANGEDTICK(curbuf);
 	    }
 #endif
 
@@ -4043,8 +4040,7 @@ cmdsrv_main(
 		{
 		    /* Output error from remote */
 		    mch_errmsg((char *)res);
-		    vim_free(res);
-		    res = NULL;
+		    VIM_CLEAR(res);
 		}
 		mch_errmsg(_(": Send expression failed.\n"));
 	    }

@@ -1235,8 +1235,7 @@ do_execreg(
 	    EMSG(_(e_nolastcmd));
 	    return FAIL;
 	}
-	vim_free(new_last_cmdline); /* don't keep the cmdline containing @: */
-	new_last_cmdline = NULL;
+	VIM_CLEAR(new_last_cmdline); /* don't keep the cmdline containing @: */
 	/* Escape all control characters with a CTRL-V */
 	p = vim_strsave_escaped_ext(last_cmdline,
 		(char_u *)"\001\002\003\004\005\006\007\010\011\012\013\014\015\016\017\020\021\022\023\024\025\026\027\030\031\032\033\034\035\036\037", Ctrl_V, FALSE);
@@ -1669,6 +1668,8 @@ yank_do_autocmd(oparg_T *oap, yankreg_T *reg)
     v_event = get_vim_var_dict(VV_EVENT);
 
     list = list_alloc();
+    if (list == NULL)
+	return;
     for (n = 0; n < reg->y_size; n++)
 	list_append_string(list, reg->y_array[n], -1);
     list->lv_lock = VAR_FIXED;
@@ -2995,8 +2996,7 @@ free_yank(long n)
 #endif
 	    vim_free(y_current->y_array[i]);
 	}
-	vim_free(y_current->y_array);
-	y_current->y_array = NULL;
+	VIM_CLEAR(y_current->y_array);
 #ifdef AMIGA
 	if (n >= 1000)
 	    MSG("");
@@ -6040,8 +6040,7 @@ finish_viminfo_registers(void)
 		    vim_free(y_read_regs[i].y_array[j]);
 		vim_free(y_read_regs[i].y_array);
 	    }
-	vim_free(y_read_regs);
-	y_read_regs = NULL;
+	VIM_CLEAR(y_read_regs);
     }
 }
 
@@ -7146,8 +7145,7 @@ str_to_reg(
     /* Without any lines make the register empty. */
     if (y_ptr->y_size + newlines == 0)
     {
-	vim_free(y_ptr->y_array);
-	y_ptr->y_array = NULL;
+	VIM_CLEAR(y_ptr->y_array);
 	return;
     }
 
