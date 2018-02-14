@@ -475,9 +475,12 @@ term_start(typval_T *argvar, jobopt_T *opt, int forceit)
 	channel_set_nonblock(term->tl_job->jv_channel, PART_IN);
 
 #ifdef FEAT_AUTOCMD
-	++curbuf->b_locked;
-	apply_autocmds(EVENT_BUFWINENTER, NULL, NULL, FALSE, curbuf);
-	--curbuf->b_locked;
+	if (!opt->jo_hidden)
+	{
+	    ++curbuf->b_locked;
+	    apply_autocmds(EVENT_BUFWINENTER, NULL, NULL, FALSE, curbuf);
+	    --curbuf->b_locked;
+	}
 #endif
 
 	if (old_curbuf != NULL)
@@ -2400,8 +2403,8 @@ term_update_window(win_T *wp)
 	else
 	    pos.col = 0;
 
-	screen_line(wp->w_winrow + pos.row, wp->w_wincol,
-						  pos.col, wp->w_width, FALSE);
+	screen_line(wp->w_winrow + pos.row + winbar_height(wp),
+				    wp->w_wincol, pos.col, wp->w_width, FALSE);
     }
     term->tl_dirty_row_start = MAX_ROW;
     term->tl_dirty_row_end = 0;

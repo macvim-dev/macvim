@@ -4493,7 +4493,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 	return OK;
     if (tv->v_type != VAR_DICT)
     {
-	EMSG(_(e_invarg));
+	EMSG(_(e_dictreq));
 	return FAIL;
     }
     dict = tv->vval.v_dict;
@@ -4576,7 +4576,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		opt->jo_io_buf[part] = get_tv_number(item);
 		if (opt->jo_io_buf[part] <= 0)
 		{
-		    EMSG2(_(e_invarg2), get_tv_string(item));
+		    EMSG3(_(e_invargNval), hi->hi_key, get_tv_string(item));
 		    return FAIL;
 		}
 		if (buflist_findnr(opt->jo_io_buf[part]) == NULL)
@@ -4625,7 +4625,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		*lp = get_tv_number(item);
 		if (*lp < 0)
 		{
-		    EMSG2(_(e_invarg2), get_tv_string(item));
+		    EMSG3(_(e_invargNval), hi->hi_key, get_tv_string(item));
 		    return FAIL;
 		}
 	    }
@@ -4636,7 +4636,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		opt->jo_set |= JO_CHANNEL;
 		if (item->v_type != VAR_CHANNEL)
 		{
-		    EMSG2(_(e_invarg2), "channel");
+		    EMSG2(_(e_invargval), "channel");
 		    return FAIL;
 		}
 		opt->jo_channel = item->vval.v_channel;
@@ -4649,7 +4649,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		opt->jo_callback = get_callback(item, &opt->jo_partial);
 		if (opt->jo_callback == NULL)
 		{
-		    EMSG2(_(e_invarg2), "callback");
+		    EMSG2(_(e_invargval), "callback");
 		    return FAIL;
 		}
 	    }
@@ -4661,7 +4661,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		opt->jo_out_cb = get_callback(item, &opt->jo_out_partial);
 		if (opt->jo_out_cb == NULL)
 		{
-		    EMSG2(_(e_invarg2), "out_cb");
+		    EMSG2(_(e_invargval), "out_cb");
 		    return FAIL;
 		}
 	    }
@@ -4673,7 +4673,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		opt->jo_err_cb = get_callback(item, &opt->jo_err_partial);
 		if (opt->jo_err_cb == NULL)
 		{
-		    EMSG2(_(e_invarg2), "err_cb");
+		    EMSG2(_(e_invargval), "err_cb");
 		    return FAIL;
 		}
 	    }
@@ -4685,7 +4685,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		opt->jo_close_cb = get_callback(item, &opt->jo_close_partial);
 		if (opt->jo_close_cb == NULL)
 		{
-		    EMSG2(_(e_invarg2), "close_cb");
+		    EMSG2(_(e_invargval), "close_cb");
 		    return FAIL;
 		}
 	    }
@@ -4698,7 +4698,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		    never = TRUE;
 		else if (STRCMP(val, "auto") != 0)
 		{
-		    EMSG2(_(e_invarg2), "drop");
+		    EMSG3(_(e_invargNval), "drop", val);
 		    return FAIL;
 		}
 		opt->jo_drop_never = never;
@@ -4711,7 +4711,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		opt->jo_exit_cb = get_callback(item, &opt->jo_exit_partial);
 		if (opt->jo_exit_cb == NULL)
 		{
-		    EMSG2(_(e_invarg2), "exit_cb");
+		    EMSG2(_(e_invargval), "exit_cb");
 		    return FAIL;
 		}
 	    }
@@ -4724,7 +4724,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		opt->jo_term_name = get_tv_string_chk(item);
 		if (opt->jo_term_name == NULL)
 		{
-		    EMSG2(_(e_invarg2), "term_name");
+		    EMSG2(_(e_invargval), "term_name");
 		    return FAIL;
 		}
 	    }
@@ -4735,7 +4735,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		val = get_tv_string(item);
 		if (STRCMP(val, "open") != 0 && STRCMP(val, "close") != 0)
 		{
-		    EMSG2(_(e_invarg2), val);
+		    EMSG3(_(e_invargNval), "term_finish", val);
 		    return FAIL;
 		}
 		opt->jo_set2 |= JO2_TERM_FINISH;
@@ -4759,7 +4759,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		}
 		if (p == NULL)
 		{
-		    EMSG2(_(e_invarg2), "term_opencmd");
+		    EMSG2(_(e_invargval), "term_opencmd");
 		    return FAIL;
 		}
 	    }
@@ -4773,7 +4773,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		p = opt->jo_eof_chars = get_tv_string_chk(item);
 		if (p == NULL)
 		{
-		    EMSG2(_(e_invarg2), "term_opencmd");
+		    EMSG2(_(e_invargval), "eof_chars");
 		    return FAIL;
 		}
 	    }
@@ -4828,7 +4828,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		opt->jo_cwd = get_tv_string_buf_chk(item, opt->jo_cwd_buf);
 		if (opt->jo_cwd == NULL || !mch_isdir(opt->jo_cwd))
 		{
-		    EMSG2(_(e_invarg2), "cwd");
+		    EMSG2(_(e_invargval), "cwd");
 		    return FAIL;
 		}
 		opt->jo_set |= JO2_CWD;
@@ -4873,7 +4873,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		    opt->jo_part = PART_OUT;
 		else
 		{
-		    EMSG2(_(e_invarg2), val);
+		    EMSG3(_(e_invargNval), "part", val);
 		    return FAIL;
 		}
 	    }
@@ -4893,7 +4893,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 							     opt->jo_soe_buf);
 		if (opt->jo_stoponexit == NULL)
 		{
-		    EMSG2(_(e_invarg2), "stoponexit");
+		    EMSG2(_(e_invargval), "stoponexit");
 		    return FAIL;
 		}
 	    }

@@ -44,6 +44,7 @@ static void f_argc(typval_T *argvars, typval_T *rettv);
 static void f_argidx(typval_T *argvars, typval_T *rettv);
 static void f_arglistid(typval_T *argvars, typval_T *rettv);
 static void f_argv(typval_T *argvars, typval_T *rettv);
+static void f_assert_beeps(typval_T *argvars, typval_T *rettv);
 static void f_assert_equal(typval_T *argvars, typval_T *rettv);
 static void f_assert_exception(typval_T *argvars, typval_T *rettv);
 static void f_assert_fails(typval_T *argvars, typval_T *rettv);
@@ -164,6 +165,7 @@ static void f_get(typval_T *argvars, typval_T *rettv);
 static void f_getbufinfo(typval_T *argvars, typval_T *rettv);
 static void f_getbufline(typval_T *argvars, typval_T *rettv);
 static void f_getbufvar(typval_T *argvars, typval_T *rettv);
+static void f_getchangelist(typval_T *argvars, typval_T *rettv);
 static void f_getchar(typval_T *argvars, typval_T *rettv);
 static void f_getcharmod(typval_T *argvars, typval_T *rettv);
 static void f_getcharsearch(typval_T *argvars, typval_T *rettv);
@@ -483,6 +485,7 @@ static struct fst
 #ifdef FEAT_FLOAT
     {"asin",		1, 1, f_asin},	/* WJMc */
 #endif
+    {"assert_beeps",	1, 2, f_assert_beeps},
     {"assert_equal",	2, 3, f_assert_equal},
     {"assert_exception", 1, 2, f_assert_exception},
     {"assert_fails",	1, 2, f_assert_fails},
@@ -605,6 +608,7 @@ static struct fst
     {"getbufinfo",	0, 1, f_getbufinfo},
     {"getbufline",	2, 3, f_getbufline},
     {"getbufvar",	2, 3, f_getbufvar},
+    {"getchangelist",	1, 1, f_getchangelist},
     {"getchar",		0, 1, f_getchar},
     {"getcharmod",	0, 0, f_getcharmod},
     {"getcharsearch",	0, 0, f_getcharsearch},
@@ -1272,6 +1276,15 @@ f_argv(typval_T *argvars, typval_T *rettv)
 	for (idx = 0; idx < ARGCOUNT; ++idx)
 	    list_append_string(rettv->vval.v_list,
 					       alist_name(&ARGLIST[idx]), -1);
+}
+
+/*
+ * "assert_beeps(cmd [, error])" function
+ */
+    static void
+f_assert_beeps(typval_T *argvars, typval_T *rettv UNUSED)
+{
+    assert_beeps(argvars);
 }
 
 /*
@@ -4336,6 +4349,61 @@ f_getbufvar(typval_T *argvars, typval_T *rettv)
 }
 
 /*
+ * "getchangelist()" function
+ */
+    static void
+f_getchangelist(typval_T *argvars, typval_T *rettv)
+{
+#ifdef FEAT_JUMPLIST
+    buf_T	*buf;
+    int		i;
+    list_T	*l;
+    dict_T	*d;
+#endif
+
+    if (rettv_list_alloc(rettv) != OK)
+	return;
+
+#ifdef FEAT_JUMPLIST
+    (void)get_tv_number(&argvars[0]);	    /* issue errmsg if type error */
+    ++emsg_off;
+    buf = get_buf_tv(&argvars[0], FALSE);
+    --emsg_off;
+    if (buf == NULL)
+	return;
+
+    l = list_alloc();
+    if (l == NULL)
+	return;
+
+    if (list_append_list(rettv->vval.v_list, l) == FAIL)
+	return;
+    /*
+     * The current window change list index tracks only the position in the
+     * current buffer change list. For other buffers, use the change list
+     * length as the current index.
+     */
+    list_append_number(rettv->vval.v_list,
+	    (varnumber_T)((buf == curwin->w_buffer)
+		? curwin->w_changelistidx : buf->b_changelistlen));
+
+    for (i = 0; i < buf->b_changelistlen; ++i)
+    {
+	if (buf->b_changelist[i].lnum == 0)
+	    continue;
+	if ((d = dict_alloc()) == NULL)
+	    return;
+	if (list_append_dict(l, d) == FAIL)
+	    return;
+	dict_add_nr_str(d, "lnum", (long)buf->b_changelist[i].lnum, NULL);
+	dict_add_nr_str(d, "col", (long)buf->b_changelist[i].col, NULL);
+# ifdef FEAT_VIRTUALEDIT
+	dict_add_nr_str(d, "coladd", (long)buf->b_changelist[i].coladd, NULL);
+# endif
+    }
+#endif
+}
+/*
  * "getchar()" function
  */
     static void
@@ -4854,13 +4922,12 @@ f_getjumplist(typval_T *argvars, typval_T *rettv)
 	return;
     list_append_number(rettv->vval.v_list, (varnumber_T)wp->w_jumplistidx);
 
-    cleanup_jumplist(wp);
+    cleanup_jumplist(wp, TRUE);
+
     for (i = 0; i < wp->w_jumplistlen; ++i)
     {
 	if (wp->w_jumplist[i].fmark.mark.lnum == 0)
 	    continue;
-	if (wp->w_jumplist[i].fmark.fnum == 0)
-	    fname2fnum(&wp->w_jumplist[i]);
 	if ((d = dict_alloc()) == NULL)
 	    return;
 	if (list_append_dict(l, d) == FAIL)
