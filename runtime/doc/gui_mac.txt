@@ -106,7 +106,7 @@ strings like "((3) of 2)" to appear in the window title.
 							*macvim-tablabel*
 Tab labels only show the tail of the file name to make the tabs more readable
 when editing files in deeply nested folders.  Add the line "set guitablabel="
-to your .gvimrc file to revert back to the default Vim tab label.
+to your vimrc file to revert back to the default Vim tab label.
 
 							*macvim-options*
 These are the non-standard options that MacVim supports:
