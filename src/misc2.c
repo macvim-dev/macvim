@@ -6361,6 +6361,11 @@ parse_queued_messages(void)
     channel_handle_events(FALSE);
 # endif
 
+# if defined(FEAT_GUI_MACVIM) && defined(FEAT_JOB_CHANNEL)
+    if (gui.in_use)
+	gui_macvim_cleanup_job_all();
+# endif
+
 # ifdef FEAT_NETBEANS_INTG
     /* Process the queued netbeans messages. */
     netbeans_parse_messages();

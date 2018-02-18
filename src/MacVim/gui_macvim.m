@@ -24,6 +24,8 @@ int use_gui_macvim_draw_string = 1;
 
 static int use_graphical_sign = 0;
 
+static BOOL is_macos_high_sierra_or_later = NO;
+
 // Max number of files to add to MRU in one go (this matches the maximum that
 // Cocoa displays in the MRU -- if this changes in Cocoa then update this
 // number as well).
@@ -282,6 +284,15 @@ gui_mch_init(void)
 
         [[MMBackend sharedInstance] addToMRU:filenames];
     }
+
+#if defined(MAC_OS_X_VERSION_10_10)
+    {
+	NSOperatingSystemVersion version = {10, 13, 0};
+
+	is_macos_high_sierra_or_later =
+	    [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:version];
+    }
+#endif
 
     return OK;
 }
@@ -2315,8 +2326,9 @@ static int vimModMaskToEventModifierFlags(int mods)
 
 
 
-// -- Channel Support ------------------------------------------------------
+// -- Job and Channel Support ------------------------------------------------------
 
+#if defined(FEAT_JOB_CHANNEL)
     void *
 gui_macvim_add_channel(channel_T *channel, ch_part_T part)
 {
@@ -2340,6 +2352,14 @@ gui_macvim_remove_channel(void *cookie)
     dispatch_release(s);
 }
 
+    void
+gui_macvim_cleanup_job_all(void)
+{
+    if (is_macos_high_sierra_or_later)
+	job_cleanup_all();
+}
+
+#endif // FEAT_JOB_CHANNEL
 
 
 // -- Graphical Sign Support ------------------------------------------------
