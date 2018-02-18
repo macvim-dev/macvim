@@ -240,6 +240,8 @@ im_set_control(int enable);
 gui_macvim_add_channel(channel_T *channel, ch_part_T part);
     void
 gui_macvim_remove_channel(void *cookie);
+    void
+gui_macvim_cleanup_job_all(void);
 
     void
 gui_mch_drawsign(int row, int col, int typenr);

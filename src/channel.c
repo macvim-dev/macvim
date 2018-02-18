@@ -5686,4 +5686,38 @@ job_stop(job_T *job, typval_T *argvars, char *type)
     return 1;
 }
 
+# ifdef FEAT_GUI_MACVIM
+    void
+job_cleanup_all(void)
+{
+    job_T	*job;
+
+    for (job = first_job; job != NULL; job = job->jv_next)
+    {
+	channel_T *channel = job->jv_channel;
+	ch_part_T part;
+
+	if (channel == NULL || job->jv_status != JOB_FINISHED)
+	    continue;
+
+	/* check the socket and pipes */
+	for (part = PART_SOCK; part < PART_IN; ++part)
+	{
+	    sock_T fd = channel->ch_part[part].ch_fd;
+
+	    if (fd != INVALID_FD)
+	    {
+		int r = channel_wait(channel, fd, 0);
+
+		if (r == CW_READY)
+		    channel_read(channel, part, "job_cleanup_all");
+		else if (r == CW_ERROR)
+		    ch_close_part_on_error(channel, part, TRUE,
+							   "job_cleanup_all");
+	    }
+	}
+    }
+}
+# endif
+
 #endif /* FEAT_JOB_CHANNEL */
