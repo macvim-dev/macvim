@@ -1412,6 +1412,13 @@
 #endif
 
 /*
+ * +vtp: Win32 virtual console.
+ */
+#if !defined(FEAT_GUI) && defined(WIN3264)
+# define FEAT_VTP
+#endif
+
+/*
  * +transparency        'transparency' option.
  */
 #if defined(FEAT_GUI_MACVIM)
