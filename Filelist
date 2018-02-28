@@ -110,6 +110,7 @@ SRC_ALL =	\
 		src/testdir/sautest/autoload/*.vim \
 		src/testdir/runtest.vim \
 		src/testdir/shared.vim \
+		src/testdir/screendump.vim \
 		src/testdir/view_util.vim \
 		src/testdir/setup.vim \
 		src/testdir/gui_init.vim \
@@ -134,6 +135,7 @@ SRC_ALL =	\
 		src/testdir/pyxfile/*.py \
 		src/testdir/bench*.in \
 		src/testdir/bench*.vim \
+		src/testdir/dumps/*.dump \
 		src/testdir/samples/*.txt \
 		src/testdir/samples/test000 \
 		src/testdir/if_ver*.vim \

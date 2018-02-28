@@ -115,6 +115,7 @@ endfunc
 
 " Wait for up to a second for "expr" to become true.  "expr" can be a
 " stringified expression to evaluate, or a funcref without arguments.
+" A second argument can be used to specify a different timeout in msec.
 "
 " Return time slept in milliseconds.  With the +reltime feature this can be
 " more than the actual waiting time.  Without +reltime it can also be less.
@@ -257,4 +258,15 @@ endfunc
 
 func CanRunGui()
   return has('gui') && ($DISPLAY != "" || has('gui_running') || has('gui_macvim'))
+endfunc
+
+" Get line "lnum" as displayed on the screen.
+" Trailing white space is trimmed.
+func! Screenline(lnum)
+  let chars = []
+  for c in range(1, winwidth(0))
+    call add(chars, nr2char(screenchar(a:lnum, c)))
+  endfor
+  let line = join(chars, '')
+  return matchstr(line, '^.\{-}\ze\s*$')
 endfunc
