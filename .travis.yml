@@ -26,7 +26,7 @@ sudo: false
 
 before_install:
   - brew update || brew update
-  - brew install python
+  - brew uninstall python || brew install python
   - brew install lua
   - brew install ruby
 
