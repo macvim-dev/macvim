@@ -2795,7 +2795,7 @@ static int waiting_for_winpos = FALSE;
  * Returns OK or FAIL.
  */
     int
-term_get_winpos(int *x, int *y)
+term_get_winpos(int *x, int *y, varnumber_T timeout)
 {
     int count = 0;
 
@@ -2807,8 +2807,8 @@ term_get_winpos(int *x, int *y)
     OUT_STR(T_CGP);
     out_flush();
 
-    /* Try reading the result for 100 msec. */
-    while (count++ < 10)
+    /* Try reading the result for "timeout" msec. */
+    while (count++ < timeout / 10)
     {
 	(void)vpeekc_nomap();
 	if (winpos_x >= 0 && winpos_y >= 0)
@@ -4872,7 +4872,7 @@ check_termcode(
 	     * {tail} can be Esc>\ or STERM
 	     *
 	     * Check for cursor shape response from xterm:
-	     * {lead}1$r<number> q{tail}
+	     * {lead}1$r<digit> q{tail}
 	     *
 	     * {lead} can be <Esc>P or DCS
 	     * {tail} can be Esc>\ or STERM
@@ -4903,35 +4903,46 @@ check_termcode(
 			break;
 		    }
 		  }
-		else if ((len >= j + 6 && isdigit(argp[3]))
-			&& argp[4] == ' '
-			&& argp[5] == 'q')
+		else
 		{
-		    /* cursor shape response */
-		    i = j + 6;
-		    if ((tp[i] == ESC && i + 1 < len && tp[i + 1] == '\\')
-			    || tp[i] == STERM)
+		    /* Probably the cursor shape response.  Make sure that "i"
+		     * is equal to "len" when there are not sufficient
+		     * characters. */
+		    for (i = j + 3; i < len; ++i)
 		    {
-			int number = argp[3] - '0';
+			if (i - j == 3 && !isdigit(tp[i]))
+			    break;
+			if (i - j == 4 && tp[i] != ' ')
+			    break;
+			if (i - j == 5 && tp[i] != 'q')
+			    break;
+			if (i - j == 6 && tp[i] != ESC && tp[i] != STERM)
+			    break;
+			if ((i - j == 6 && tp[i] == STERM)
+			 || (i - j == 7 && tp[i] == '\\'))
+			{
+			    int number = argp[3] - '0';
 
-			/* 0, 1 = block blink, 2 = block
-			 * 3 = underline blink, 4 = underline
-			 * 5 = vertical bar blink, 6 = vertical bar */
-			number = number == 0 ? 1 : number;
-			initial_cursor_shape = (number + 1) / 2;
-			/* The blink flag is actually inverted, compared to
-			 * the value set with T_SH. */
-			initial_cursor_shape_blink =
+			    /* 0, 1 = block blink, 2 = block
+			     * 3 = underline blink, 4 = underline
+			     * 5 = vertical bar blink, 6 = vertical bar */
+			    number = number == 0 ? 1 : number;
+			    initial_cursor_shape = (number + 1) / 2;
+			    /* The blink flag is actually inverted, compared to
+			     * the value set with T_SH. */
+			    initial_cursor_shape_blink =
 						   (number & 1) ? FALSE : TRUE;
-			rcs_status = STATUS_GOT;
-			LOG_TR("Received cursor shape response");
+			    rcs_status = STATUS_GOT;
+			    LOG_TR("Received cursor shape response");
 
-			key_name[0] = (int)KS_EXTRA;
-			key_name[1] = (int)KE_IGNORE;
-			slen = i + 1 + (tp[i] == ESC);
+			    key_name[0] = (int)KS_EXTRA;
+			    key_name[1] = (int)KE_IGNORE;
+			    slen = i + 1;
 # ifdef FEAT_EVAL
-			set_vim_var_string(VV_TERMSTYLERESP, tp, slen);
+			    set_vim_var_string(VV_TERMSTYLERESP, tp, slen);
 # endif
+			    break;
+			}
 		    }
 		}
 

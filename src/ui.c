@@ -3219,8 +3219,9 @@ mouse_find_win(int *rowp, int *colp UNUSED)
 
 #if defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MAC) \
 	|| defined(FEAT_GUI_ATHENA) || defined(FEAT_GUI_MSWIN) \
-	|| defined(FEAT_GUI_PHOTON) || defined(PROTO) \
-	|| defined(FEAT_GUI_MACVIM)
+	|| defined(FEAT_GUI_PHOTON) || defined(FEAT_TERM_POPUP_MENU) \
+	|| defined(FEAT_GUI_MACVIM) \
+	|| defined(PROTO)
 /*
  * Translate window coordinates to buffer position without any side effects
  */
@@ -3266,7 +3267,8 @@ get_fpos_of_mouse(pos_T *mpos)
 
 #if defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MAC) \
 	|| defined(FEAT_GUI_ATHENA) || defined(FEAT_GUI_MSWIN) \
-	|| defined(FEAT_GUI_PHOTON) || defined(FEAT_BEVAL) || defined(PROTO)
+	|| defined(FEAT_GUI_PHOTON) || defined(FEAT_BEVAL) \
+	|| defined(FEAT_TERM_POPUP_MENU) || defined(PROTO)
 /*
  * Convert a virtual (screen) column to a character column.
  * The first column is one.
