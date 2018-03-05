@@ -2045,17 +2045,15 @@ autowrite_all(void)
     FOR_ALL_BUFFERS(buf)
 	if (bufIsChanged(buf) && !buf->b_p_ro)
 	{
-#ifdef FEAT_AUTOCMD
 	    bufref_T	bufref;
 
 	    set_bufref(&bufref, buf);
-#endif
+
 	    (void)buf_write_all(buf, FALSE);
-#ifdef FEAT_AUTOCMD
+
 	    /* an autocommand may have deleted the buffer */
 	    if (!bufref_valid(&bufref))
 		buf = firstbuf;
-#endif
 	}
 }
 
@@ -2067,11 +2065,9 @@ autowrite_all(void)
 check_changed(buf_T *buf, int flags)
 {
     int		forceit = (flags & CCGD_FORCEIT);
-#ifdef FEAT_AUTOCMD
     bufref_T	bufref;
 
     set_bufref(&bufref, buf);
-#endif
 
     if (       !forceit
 	    && bufIsChanged(buf)
@@ -2093,17 +2089,15 @@ check_changed(buf_T *buf, int flags)
 # endif
 					))
 			++count;
-# ifdef FEAT_AUTOCMD
 	    if (!bufref_valid(&bufref))
 		/* Autocommand deleted buffer, oops!  It's not changed now. */
 		return FALSE;
-# endif
+
 	    dialog_changed(buf, count > 1);
-# ifdef FEAT_AUTOCMD
+
 	    if (!bufref_valid(&bufref))
 		/* Autocommand deleted buffer, oops!  It's not changed now. */
 		return FALSE;
-# endif
 	    return bufIsChanged(buf);
 	}
 #endif
@@ -2270,11 +2264,9 @@ dialog_changed(
 			)
 		    && !buf2->b_p_ro)
 	    {
-#ifdef FEAT_AUTOCMD
 		bufref_T bufref;
 
 		set_bufref(&bufref, buf2);
-#endif
 #ifdef FEAT_BROWSE
 		/* May get file name, when there is none */
 		browse_save_fname(buf2);
@@ -2283,11 +2275,10 @@ dialog_changed(
 				  buf2->b_fname, buf2->b_ffname, FALSE) == OK)
 		    /* didn't hit Cancel */
 		    (void)buf_write_all(buf2, FALSE);
-#ifdef FEAT_AUTOCMD
+
 		/* an autocommand may have deleted the buffer */
 		if (!bufref_valid(&bufref))
 		    buf2 = firstbuf;
-#endif
 	    }
 	}
     }
@@ -2443,19 +2434,15 @@ check_changed_any(
 	FOR_ALL_TAB_WINDOWS(tp, wp)
 	    if (wp->w_buffer == buf)
 	    {
-#ifdef FEAT_AUTOCMD
 		bufref_T bufref;
 
 		set_bufref(&bufref, buf);
-#endif
+
 		goto_tabpage_win(tp, wp);
-#ifdef FEAT_AUTOCMD
+
 		/* Paranoia: did autocms wipe out the buffer with changes? */
 		if (!bufref_valid(&bufref))
-		{
 		    goto theend;
-		}
-#endif
 		goto buf_found;
 	    }
 buf_found:
@@ -2493,20 +2480,16 @@ check_fname(void)
 buf_write_all(buf_T *buf, int forceit)
 {
     int	    retval;
-#ifdef FEAT_AUTOCMD
     buf_T	*old_curbuf = curbuf;
-#endif
 
     retval = (buf_write(buf, buf->b_ffname, buf->b_fname,
 				   (linenr_T)1, buf->b_ml.ml_line_count, NULL,
 						  FALSE, forceit, TRUE, FALSE));
-#ifdef FEAT_AUTOCMD
     if (curbuf != old_curbuf)
     {
 	msg_source(HL_ATTR(HLF_W));
 	MSG(_("Warning: Entered other buffer unexpectedly (check autocommands)"));
     }
-#endif
     return retval;
 }
 
@@ -3126,7 +3109,7 @@ ex_listdo(exarg_T *eap)
     tabpage_T	*tp;
     buf_T	*buf = curbuf;
     int		next_fnum = 0;
-#if defined(FEAT_AUTOCMD) && defined(FEAT_SYN_HL)
+#if defined(FEAT_SYN_HL)
     char_u	*save_ei = NULL;
 #endif
     char_u	*p_shm_save;
@@ -3144,7 +3127,7 @@ ex_listdo(exarg_T *eap)
     }
 #endif
 
-#if defined(FEAT_AUTOCMD) && defined(FEAT_SYN_HL)
+#if defined(FEAT_SYN_HL)
     if (eap->cmdidx != CMD_windo && eap->cmdidx != CMD_tabdo)
 	/* Don't do syntax HL autocommands.  Skipping the syntax file is a
 	 * great speed improvement. */
@@ -3322,11 +3305,10 @@ ex_listdo(exarg_T *eap)
 	    if (eap->cmdidx == CMD_windo)
 	    {
 		validate_cursor();	/* cursor may have moved */
-#ifdef FEAT_SCROLLBIND
+
 		/* required when 'scrollbind' has been set */
 		if (curwin->w_p_scb)
 		    do_check_scrollbind(TRUE);
-#endif
 	    }
 
 	    if (eap->cmdidx == CMD_windo || eap->cmdidx == CMD_tabdo)
@@ -3338,7 +3320,7 @@ ex_listdo(exarg_T *eap)
 	listcmd_busy = FALSE;
     }
 
-#if defined(FEAT_AUTOCMD) && defined(FEAT_SYN_HL)
+#if defined(FEAT_SYN_HL)
     if (save_ei != NULL)
     {
 	au_event_restore(save_ei);
@@ -3733,6 +3715,8 @@ source_in_path(char_u *path, char_u *name, int flags)
 }
 
 
+#if defined(FEAT_EVAL) || defined(PROTO)
+
 /*
  * Expand wildcards in "pat" and invoke do_source() for each match.
  */
@@ -3873,7 +3857,6 @@ load_pack_plugin(char_u *fname)
     vim_snprintf((char *)pat, len, plugpat, ffname);
     source_all_matches(pat);
 
-#ifdef FEAT_AUTOCMD
     {
 	char_u *cmd = vim_strsave((char_u *)"g:did_load_filetypes");
 
@@ -3888,7 +3871,6 @@ load_pack_plugin(char_u *fname)
 	}
 	vim_free(cmd);
     }
-#endif
     vim_free(pat);
     retval = OK;
 
@@ -3984,8 +3966,9 @@ ex_packadd(exarg_T *eap)
 	vim_free(pat);
     }
 }
+#endif
 
-#if defined(FEAT_EVAL) && defined(FEAT_AUTOCMD)
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * ":options"
  */
@@ -4381,23 +4364,21 @@ do_source(
 	goto theend;
     }
 
-#ifdef FEAT_AUTOCMD
     /* Apply SourceCmd autocommands, they should get the file and source it. */
     if (has_autocmd(EVENT_SOURCECMD, fname_exp, NULL)
 	    && apply_autocmds(EVENT_SOURCECMD, fname_exp, fname_exp,
 							       FALSE, curbuf))
     {
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
 	retval = aborting() ? FAIL : OK;
-# else
+#else
 	retval = OK;
-# endif
+#endif
 	goto theend;
     }
 
     /* Apply SourcePre autocommands, they may get the file. */
     apply_autocmds(EVENT_SOURCEPRE, fname_exp, fname_exp, FALSE, curbuf);
-#endif
 
 #ifdef USE_FOPEN_NOINH
     cookie.fp = fopen_noinh_readbin((char *)fname_exp);

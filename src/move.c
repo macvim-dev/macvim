@@ -210,9 +210,7 @@ update_topline(void)
 	curwin->w_topline = curwin->w_cursor.lnum;
 	curwin->w_botline = curwin->w_topline;
 	curwin->w_valid |= VALID_BOTLINE|VALID_BOTLINE_AP;
-#ifdef FEAT_SCROLLBIND
 	curwin->w_scbind_pos = 1;
-#endif
 	return;
     }
 
@@ -241,9 +239,7 @@ update_topline(void)
 	curwin->w_topline = 1;
 	curwin->w_botline = 2;
 	curwin->w_valid |= VALID_BOTLINE|VALID_BOTLINE_AP;
-#ifdef FEAT_SCROLLBIND
 	curwin->w_scbind_pos = 1;
-#endif
     }
 
     /*
@@ -564,9 +560,7 @@ set_topline(win_T *wp, linenr_T lnum)
     /* Approximate the value of w_botline */
     wp->w_botline += lnum - wp->w_topline;
     wp->w_topline = lnum;
-#ifdef FEAT_AUTOCMD
     wp->w_topline_was_set = TRUE;
-#endif
 #ifdef FEAT_DIFF
     wp->w_topfill = 0;
 #endif
@@ -2804,7 +2798,6 @@ halfpage(int flag, linenr_T Prenum)
     redraw_later(VALID);
 }
 
-#if defined(FEAT_CURSORBIND) || defined(PROTO)
     void
 do_check_cursorbind(void)
 {
@@ -2877,4 +2870,3 @@ do_check_cursorbind(void)
     curwin = old_curwin;
     curbuf = old_curbuf;
 }
-#endif /* FEAT_CURSORBIND */

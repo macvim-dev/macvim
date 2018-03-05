@@ -1442,13 +1442,11 @@ make_windows(
     if (count > 1)
 	last_status(TRUE);
 
-#ifdef FEAT_AUTOCMD
     /*
      * Don't execute autocommands while creating the windows.  Must do that
      * when putting the buffers in the windows.
      */
     block_autocmds();
-#endif
 
     /* todo is number of windows left to create */
     for (todo = count - 1; todo > 0; --todo)
@@ -1466,9 +1464,7 @@ make_windows(
 		break;
 	}
 
-#ifdef FEAT_AUTOCMD
     unblock_autocmds();
-#endif
 
     /* return actual number of windows */
     return (count - todo);
@@ -2109,19 +2105,14 @@ close_windows(
     win_T	*wp;
     tabpage_T   *tp, *nexttp;
     int		h = tabline_height();
-#ifdef FEAT_AUTOCMD
     int		count = tabpage_index(NULL);
-#endif
 
     ++RedrawingDisabled;
 
     for (wp = firstwin; wp != NULL && !ONE_WINDOW; )
     {
 	if (wp->w_buffer == buf && (!keep_curwin || wp != curwin)
-#ifdef FEAT_AUTOCMD
-		&& !(wp->w_closing || wp->w_buffer->b_locked > 0)
-#endif
-		)
+		&& !(wp->w_closing || wp->w_buffer->b_locked > 0))
 	{
 	    if (win_close(wp, FALSE) == FAIL)
 		/* If closing the window fails give up, to avoid looping
@@ -2142,10 +2133,7 @@ close_windows(
 	if (tp != curtab)
 	    for (wp = tp->tp_firstwin; wp != NULL; wp = wp->w_next)
 		if (wp->w_buffer == buf
-#ifdef FEAT_AUTOCMD
-		    && !(wp->w_closing || wp->w_buffer->b_locked > 0)
-#endif
-		    )
+		    && !(wp->w_closing || wp->w_buffer->b_locked > 0))
 		{
 		    win_close_othertab(wp, FALSE, tp);
 
@@ -2158,10 +2146,8 @@ close_windows(
 
     --RedrawingDisabled;
 
-#ifdef FEAT_AUTOCMD
     if (count != tabpage_index(NULL))
 	apply_autocmds(EVENT_TABCLOSED, NULL, NULL, FALSE, curbuf);
-#endif
 
     redraw_tabline = TRUE;
     if (h != tabline_height())
@@ -2186,7 +2172,6 @@ last_window(void)
     int
 one_window(void)
 {
-#ifdef FEAT_AUTOCMD
     win_T	*wp;
     int		seen_one = FALSE;
 
@@ -2200,9 +2185,6 @@ one_window(void)
 	}
     }
     return TRUE;
-#else
-    return ONE_WINDOW;
-#endif
 }
 
 /*
@@ -2217,9 +2199,7 @@ close_last_window_tabpage(
 {
     if (ONE_WINDOW)
     {
-#ifdef FEAT_AUTOCMD
 	buf_T	*old_curbuf = curbuf;
-#endif
 
 	/*
 	 * Closing the last window in a tab page.  First go to another tab
@@ -2244,13 +2224,11 @@ close_last_window_tabpage(
 	}
 	/* Since goto_tabpage_tp above did not trigger *Enter autocommands, do
 	 * that now. */
-#ifdef FEAT_AUTOCMD
 	apply_autocmds(EVENT_TABCLOSED, NULL, NULL, FALSE, curbuf);
 	apply_autocmds(EVENT_WINENTER, NULL, NULL, FALSE, curbuf);
 	apply_autocmds(EVENT_TABENTER, NULL, NULL, FALSE, curbuf);
 	if (old_curbuf != curbuf)
 	    apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
-#endif
 	return TRUE;
     }
     return FALSE;
@@ -2267,9 +2245,7 @@ close_last_window_tabpage(
 win_close(win_T *win, int free_buf)
 {
     win_T	*wp;
-#ifdef FEAT_AUTOCMD
     int		other_buffer = FALSE;
-#endif
     int		close_curwin = FALSE;
     int		dir;
     int		help_window = FALSE;
@@ -2282,7 +2258,6 @@ win_close(win_T *win, int free_buf)
 	return FAIL;
     }
 
-#ifdef FEAT_AUTOCMD
     if (win->w_closing || (win->w_buffer != NULL
 					       && win->w_buffer->b_locked > 0))
 	return FAIL; /* window is already being closed */
@@ -2296,7 +2271,6 @@ win_close(win_T *win, int free_buf)
 	EMSG(_("E814: Cannot close window, only autocmd window would remain"));
 	return FAIL;
     }
-#endif
 
     /* When closing the last window in a tab page first go to another tab page
      * and then close the window and the tab page to avoid that curwin and
@@ -2311,7 +2285,6 @@ win_close(win_T *win, int free_buf)
     else
 	clear_snapshot(curtab, SNAP_HELP_IDX);
 
-#ifdef FEAT_AUTOCMD
     if (win == curwin)
     {
 	/*
@@ -2342,13 +2315,12 @@ win_close(win_T *win, int free_buf)
 	win->w_closing = FALSE;
 	if (last_window())
 	    return FAIL;
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
 	/* autocmds may abort script processing */
 	if (aborting())
 	    return FAIL;
-# endif
-    }
 #endif
+    }
 
 #ifdef FEAT_GUI
     /* Avoid trouble with scrollbars that are going to be deleted in
@@ -2371,14 +2343,10 @@ win_close(win_T *win, int free_buf)
 	bufref_T    bufref;
 
 	set_bufref(&bufref, curbuf);
-#ifdef FEAT_AUTOCMD
 	win->w_closing = TRUE;
-#endif
 	close_buffer(win, win->w_buffer, free_buf ? DOBUF_UNLOAD : 0, TRUE);
-#ifdef FEAT_AUTOCMD
 	if (win_valid_any_tab(win))
 	    win->w_closing = FALSE;
-#endif
 	/* Make sure curbuf is valid. It can become invalid if 'bufhidden' is
 	 * "wipe". */
 	if (!bufref_valid(&bufref))
@@ -2460,11 +2428,9 @@ win_close(win_T *win, int free_buf)
     if (close_curwin)
     {
 	win_enter_ext(wp, FALSE, TRUE, FALSE, TRUE, TRUE);
-#ifdef FEAT_AUTOCMD
 	if (other_buffer)
 	    /* careful: after this wp and win may be invalid! */
 	    apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
-#endif
     }
 
     /*
@@ -2503,13 +2469,11 @@ win_close_othertab(win_T *win, int free_buf, tabpage_T *tp)
     tabpage_T   *ptp = NULL;
     int		free_tp = FALSE;
 
-#ifdef FEAT_AUTOCMD
     /* Get here with win->w_buffer == NULL when win_close() detects the tab
      * page changed. */
     if (win->w_closing || (win->w_buffer != NULL
 					       && win->w_buffer->b_locked > 0))
 	return; /* window is already being closed */
-#endif
 
     if (win->w_buffer != NULL)
 	/* Close the link to the buffer. */
@@ -2591,13 +2555,11 @@ win_free_all(void)
     while (first_tabpage->tp_next != NULL)
 	tabpage_close(TRUE);
 
-# ifdef FEAT_AUTOCMD
     if (aucmd_win != NULL)
     {
 	(void)win_free_mem(aucmd_win, &dummy, NULL);
 	aucmd_win = NULL;
     }
-# endif
 
     while (firstwin != NULL)
 	(void)win_free_mem(firstwin, &dummy, NULL);
@@ -3336,11 +3298,7 @@ close_others(
 
     if (one_window())
     {
-	if (message
-#ifdef FEAT_AUTOCMD
-		    && !autocmd_busy
-#endif
-				    )
+	if (message && !autocmd_busy)
 	    MSG(_(m_onlyone));
 	return;
     }
@@ -3354,26 +3312,22 @@ close_others(
 
 	    /* Check if it's allowed to abandon this window */
 	    r = can_abandon(wp->w_buffer, forceit);
-#ifdef FEAT_AUTOCMD
 	    if (!win_valid(wp))		/* autocommands messed wp up */
 	    {
 		nextwp = firstwin;
 		continue;
 	    }
-#endif
 	    if (!r)
 	    {
 #if defined(FEAT_GUI_DIALOG) || defined(FEAT_CON_DIALOG)
 		if (message && (p_confirm || cmdmod.confirm) && p_write)
 		{
 		    dialog_changed(wp->w_buffer, FALSE);
-# ifdef FEAT_AUTOCMD
 		    if (!win_valid(wp))		/* autocommands messed wp up */
 		    {
 			nextwp = firstwin;
 			continue;
 		    }
-# endif
 		}
 		if (bufIsChanged(wp->w_buffer))
 #endif
@@ -3448,7 +3402,6 @@ win_alloc_first(void)
     return OK;
 }
 
-#if defined(FEAT_AUTOCMD) || defined(PROTO)
 /*
  * Init "aucmd_win".  This can only be done after the first
  * window is fully initialized, thus it can't be in win_alloc_first().
@@ -3464,7 +3417,6 @@ win_alloc_aucmd_win(void)
 	new_frame(aucmd_win);
     }
 }
-#endif
 
 /*
  * Allocate the first window or the first window in a new tab page.
@@ -3668,12 +3620,10 @@ win_new_tabpage(int after)
 #endif
 
 	redraw_all_later(CLEAR);
-#ifdef FEAT_AUTOCMD
 	apply_autocmds(EVENT_WINNEW, NULL, NULL, FALSE, curbuf);
 	apply_autocmds(EVENT_WINENTER, NULL, NULL, FALSE, curbuf);
 	apply_autocmds(EVENT_TABNEW, NULL, NULL, FALSE, curbuf);
 	apply_autocmds(EVENT_TABENTER, NULL, NULL, FALSE, curbuf);
-#endif
 	return OK;
     }
 
@@ -3715,21 +3665,17 @@ make_tabpages(int maxcount)
     if (count > p_tpm)
 	count = p_tpm;
 
-#ifdef FEAT_AUTOCMD
     /*
      * Don't execute autocommands while creating the tab pages.  Must do that
      * when putting the buffers in the windows.
      */
     block_autocmds();
-#endif
 
     for (todo = count - 1; todo > 0; --todo)
 	if (win_new_tabpage(0) == FAIL)
 	    break;
 
-#ifdef FEAT_AUTOCMD
     unblock_autocmds();
-#endif
 
     /* return actual number of tab pages */
     return (count - todo);
@@ -3846,7 +3792,6 @@ leave_tabpage(
     tabpage_T	*tp = curtab;
 
     reset_VIsual_and_resel();	/* stop Visual mode */
-#ifdef FEAT_AUTOCMD
     if (trigger_leave_autocmds)
     {
 	if (new_curbuf != curbuf)
@@ -3862,7 +3807,6 @@ leave_tabpage(
 	if (curtab != tp)
 	    return FAIL;
     }
-#endif
 #if defined(FEAT_GUI)
     /* Remove the scrollbars.  They may be added back later. */
     if (gui.in_use)
@@ -3934,7 +3878,6 @@ enter_tabpage(
     gui_may_update_scrollbars();
 #endif
 
-#ifdef FEAT_AUTOCMD
     /* Apply autocommands after updating the display, when 'rows' and
      * 'columns' have been set correctly. */
     if (trigger_enter_autocmds)
@@ -3943,7 +3886,6 @@ enter_tabpage(
 	if (old_curbuf != curbuf)
 	    apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
     }
-#endif
 
     redraw_all_later(CLEAR);
 }
@@ -4136,10 +4078,8 @@ win_goto(win_T *wp)
 	text_locked_msg();
 	return;
     }
-#ifdef FEAT_AUTOCMD
     if (curbuf_locked())
 	return;
-#endif
 
     if (wp->w_buffer != curbuf)
 	reset_VIsual_and_resel();
@@ -4342,14 +4282,11 @@ win_enter_ext(
     int		trigger_enter_autocmds UNUSED,
     int		trigger_leave_autocmds UNUSED)
 {
-#ifdef FEAT_AUTOCMD
     int		other_buffer = FALSE;
-#endif
 
     if (wp == curwin && !curwin_invalid)	/* nothing to do */
 	return;
 
-#ifdef FEAT_AUTOCMD
     if (!curwin_invalid && trigger_leave_autocmds)
     {
 	/*
@@ -4365,13 +4302,12 @@ win_enter_ext(
 	apply_autocmds(EVENT_WINLEAVE, NULL, NULL, FALSE, curbuf);
 	if (!win_valid(wp))
 	    return;
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
 	/* autocmds may abort script processing */
 	if (aborting())
 	    return;
-# endif
-    }
 #endif
+    }
 
     /* sync undo before leaving the current buffer */
     if (undo_sync && curbuf != wp->w_buffer)
@@ -4422,7 +4358,6 @@ win_enter_ext(
 	shorten_fnames(TRUE);
     }
 
-#ifdef FEAT_AUTOCMD
     if (trigger_new_autocmds)
 	apply_autocmds(EVENT_WINNEW, NULL, NULL, FALSE, curbuf);
     if (trigger_enter_autocmds)
@@ -4431,7 +4366,6 @@ win_enter_ext(
 	if (other_buffer)
 	    apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
     }
-#endif
 
 #ifdef FEAT_TITLE
     maketitle();
@@ -4549,12 +4483,11 @@ win_alloc(win_T *after UNUSED, int hidden UNUSED)
     init_var_dict(new_wp->w_vars, &new_wp->w_winvar, VAR_SCOPE);
 #endif
 
-#ifdef FEAT_AUTOCMD
     /* Don't execute autocommands while the window is not properly
      * initialized yet.  gui_create_scrollbar() may trigger a FocusGained
      * event. */
     block_autocmds();
-#endif
+
     /*
      * link the window in the window list
      */
@@ -4570,9 +4503,7 @@ win_alloc(win_T *after UNUSED, int hidden UNUSED)
 #endif
     new_wp->w_botline = 2;
     new_wp->w_cursor.lnum = 1;
-#ifdef FEAT_SCROLLBIND
     new_wp->w_scbind_pos = 1;
-#endif
 
     /* We won't calculate w_fraction until resizing the window */
     new_wp->w_fraction = 0;
@@ -4590,9 +4521,7 @@ win_alloc(win_T *after UNUSED, int hidden UNUSED)
 #ifdef FEAT_FOLDING
     foldInitWin(new_wp);
 #endif
-#ifdef FEAT_AUTOCMD
     unblock_autocmds();
-#endif
 #ifdef FEAT_SEARCH_EXTRA
     new_wp->w_match_head = NULL;
     new_wp->w_next_match_id = 4;
@@ -4619,11 +4548,9 @@ win_free(
     /* reduce the reference count to the argument list. */
     alist_unlink(wp->w_alist);
 
-#ifdef FEAT_AUTOCMD
     /* Don't execute autocommands while the window is halfway being deleted.
      * gui_mch_destroy_scrollbar() may trigger a FocusGained event. */
     block_autocmds();
-#endif
 
 #ifdef FEAT_LUA
     lua_window_free(wp);
@@ -4713,23 +4640,17 @@ win_free(
     vim_free(wp->w_p_cc_cols);
 #endif
 
-#ifdef FEAT_AUTOCMD
     if (wp != aucmd_win)
-#endif
 	win_remove(wp, tp);
-#ifdef FEAT_AUTOCMD
     if (autocmd_busy)
     {
 	wp->w_next = au_pending_free_win;
 	au_pending_free_win = wp;
     }
     else
-#endif
 	vim_free(wp);
 
-#ifdef FEAT_AUTOCMD
     unblock_autocmds();
-#endif
 }
 
 /*
@@ -5741,11 +5662,7 @@ scroll_to_fraction(win_T *wp, int prev_height)
 
     /* Don't change w_topline when height is zero.  Don't set w_topline when
      * 'scrollbind' is set and this isn't the current window. */
-    if (height > 0
-#ifdef FEAT_SCROLLBIND
-	    && (!wp->w_p_scb || wp == curwin)
-#endif
-       )
+    if (height > 0 && (!wp->w_p_scb || wp == curwin))
     {
 	/*
 	 * Find a value for w_topline that shows the cursor at the same
@@ -6439,11 +6356,7 @@ only_one_window(void)
 # ifdef FEAT_QUICKFIX
 		    || wp->w_p_pvw
 # endif
-	     ) || wp == curwin)
-# ifdef FEAT_AUTOCMD
-		&& wp != aucmd_win
-# endif
-	   )
+	     ) || wp == curwin) && wp != aucmd_win)
 	    ++count;
     return (count <= 1);
 }
@@ -6626,9 +6539,7 @@ switch_win(
     tabpage_T	*tp,
     int		no_display)
 {
-# ifdef FEAT_AUTOCMD
     block_autocmds();
-# endif
     *save_curwin = curwin;
     if (tp != NULL)
     {
@@ -6680,9 +6591,7 @@ restore_win(
 	curwin = save_curwin;
 	curbuf = curwin->w_buffer;
     }
-# ifdef FEAT_AUTOCMD
     unblock_autocmds();
-# endif
 }
 
 /*
@@ -6692,9 +6601,7 @@ restore_win(
     void
 switch_buffer(bufref_T *save_curbuf, buf_T *buf)
 {
-# ifdef FEAT_AUTOCMD
     block_autocmds();
-# endif
     set_bufref(save_curbuf, curbuf);
     --curbuf->b_nwindows;
     curbuf = buf;
@@ -6708,9 +6615,7 @@ switch_buffer(bufref_T *save_curbuf, buf_T *buf)
     void
 restore_buffer(bufref_T *save_curbuf)
 {
-# ifdef FEAT_AUTOCMD
     unblock_autocmds();
-# endif
     /* Check for valid buffer, just in case. */
     if (bufref_valid(save_curbuf))
     {

@@ -1481,14 +1481,12 @@ server_parse_message(
 		ga_concat(&(r->strings), str);
 		ga_append(&(r->strings), NUL);
 	    }
-#ifdef FEAT_AUTOCMD
 	    {
 		char_u	winstr[30];
 
 		sprintf((char *)winstr, "0x%x", (unsigned int)win);
 		apply_autocmds(EVENT_REMOTEREPLY, winstr, str, TRUE, curbuf);
 	    }
-#endif
 	    vim_free(tofree);
 	}
 	else

@@ -1991,7 +1991,6 @@ set_termname(char_u *term)
 	    scroll_region_reset();		/* In case Rows changed */
 	check_map_keycodes();	/* check mappings for terminal codes used */
 
-#ifdef FEAT_AUTOCMD
 	{
 	    bufref_T	old_curbuf;
 
@@ -2009,7 +2008,6 @@ set_termname(char_u *term)
 	    if (bufref_valid(&old_curbuf))
 		curbuf = old_curbuf.br_buf;
 	}
-#endif
     }
 
 #ifdef FEAT_TERMRESPONSE
@@ -3305,10 +3303,8 @@ set_shellsize(int width, int height, int mustset)
 	}
 	else
 	{
-#ifdef FEAT_SCROLLBIND
 	    if (curwin->w_p_scb)
 		do_check_scrollbind(TRUE);
-#endif
 	    if (State & CMDLINE)
 	    {
 		update_screen(NOT_VALID);
@@ -4521,9 +4517,7 @@ check_termcode(
 
 			LOG_TR("Received U7 status");
 			u7_status = STATUS_GOT;
-# ifdef FEAT_AUTOCMD
 			did_cursorhold = TRUE;
-# endif
 			if (col == 2)
 			    aw = "single";
 			else if (col == 3)
@@ -4566,9 +4560,7 @@ check_termcode(
 
 		    LOG_TR("Received CRV response");
 		    crv_status = STATUS_GOT;
-# ifdef FEAT_AUTOCMD
 		    did_cursorhold = TRUE;
-# endif
 
 		    /* If this code starts with CSI, you can bet that the
 		     * terminal uses 8-bit codes. */
@@ -4708,10 +4700,8 @@ check_termcode(
 # ifdef FEAT_EVAL
 		    set_vim_var_string(VV_TERMRESPONSE, tp, slen);
 # endif
-# ifdef FEAT_AUTOCMD
 		    apply_autocmds(EVENT_TERMRESPONSE,
 						   NULL, NULL, FALSE, curbuf);
-# endif
 		    key_name[0] = (int)KS_EXTRA;
 		    key_name[1] = (int)KE_IGNORE;
 		}
