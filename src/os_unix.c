@@ -563,10 +563,9 @@ mch_check_messages(void)
 # if defined(HAVE_SYS_SYSINFO_H) && defined(HAVE_SYSINFO)
 #  include <sys/sysinfo.h>
 # endif
-# ifdef MACOS_X_DARWIN
+# ifdef MACOS_X
 #  include <mach/mach_host.h>
 #  include <mach/mach_port.h>
-#  include <mach/vm_page_size.h>
 # endif
 
 /*
@@ -579,7 +578,7 @@ mch_total_mem(int special UNUSED)
     long_u	mem = 0;
     long_u	shiftright = 10;  /* how much to shift "mem" right for Kbyte */
 
-# ifdef MACOS_X_DARWIN
+# ifdef MACOS_X
     {
 	/* Mac (Darwin) way of getting the amount of RAM available */
 	mach_port_t		host = mach_host_self();
