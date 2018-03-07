@@ -8766,7 +8766,8 @@ ex_tearoff(exarg_T *eap)
     static void
 ex_popup(exarg_T *eap)
 {
-# if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK)
+# if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) \
+	|| defined(FEAT_GUI_MACVIM)
     if (gui.in_use)
 	gui_make_popup(eap->arg, eap->forceit);
 #  ifdef FEAT_TERM_POPUP_MENU
