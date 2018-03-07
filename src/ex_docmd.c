@@ -8760,13 +8760,9 @@ ex_tearoff(exarg_T *eap)
 }
 #endif
 
-<<<<<<< HEAD
-#if defined(FEAT_MENU) && (defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) \
-	|| defined(FEAT_GUI_MACVIM))
-=======
 #if (defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK) \
+	|| defined(FEAT_GUI_MACVIM) \
 	|| defined(FEAT_TERM_POPUP_MENU)) && defined(FEAT_MENU)
->>>>>>> vim/master
     static void
 ex_popup(exarg_T *eap)
 {
