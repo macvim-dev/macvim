@@ -700,20 +700,6 @@
 #endif
 
 /*
- * +scrollbind		synchronization of split windows
- */
-#if defined(FEAT_NORMAL)
-# define FEAT_SCROLLBIND
-#endif
-
-/*
- * +cursorbind		synchronization of split windows
- */
-#if defined(FEAT_NORMAL)
-# define FEAT_CURSORBIND
-#endif
-
-/*
  * +menu		":menu" command
  */
 #ifdef FEAT_NORMAL
@@ -1348,7 +1334,8 @@
 /*
  * +balloon_eval_term	Allow balloon expression evaluation in the terminal.
  */
-#if defined(FEAT_HUGE) && defined(UNIX) && defined(FEAT_TIMERS)
+#if defined(FEAT_HUGE) && defined(FEAT_TIMERS) && \
+	(defined(UNIX) || (defined(WIN32) && !defined(FEAT_GUI_W32)))
 # define FEAT_BEVAL_TERM
 #endif
 
