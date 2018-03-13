@@ -7204,8 +7204,35 @@ not_exiting(void)
     settmode(TMODE_RAW);
 }
 
+    static int
+before_quit_autocmds(win_T *wp, int quit_all, int forceit)
+{
+    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, wp->w_buffer);
+
+    /* Bail out when autocommands closed the window.
+     * Refuse to quit when the buffer in the last window is being closed (can
+     * only happen in autocommands). */
+    if (!win_valid(wp)
+	    || curbuf_locked()
+	    || (wp->w_buffer->b_nwindows == 1 && wp->w_buffer->b_locked > 0))
+	return TRUE;
+
+    if (quit_all || (check_more(FALSE, forceit) == OK && only_one_window()))
+    {
+	apply_autocmds(EVENT_EXITPRE, NULL, NULL, FALSE, curbuf);
+	/* Refuse to quit when locked or when the buffer in the last window is
+	 * being closed (can only happen in autocommands). */
+	if (curbuf_locked()
+			  || (curbuf->b_nwindows == 1 && curbuf->b_locked > 0))
+	    return TRUE;
+    }
+
+    return FALSE;
+}
+
 /*
  * ":quit": quit current window, quit Vim if the last window is closed.
+ * ":{nr}quit": quit window {nr}
  */
     static void
 ex_quit(exarg_T *eap)
@@ -7239,12 +7266,9 @@ ex_quit(exarg_T *eap)
     /* Refuse to quit when locked. */
     if (curbuf_locked())
 	return;
-    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, wp->w_buffer);
-    /* Bail out when autocommands closed the window.
-     * Refuse to quit when the buffer in the last window is being closed (can
-     * only happen in autocommands). */
-    if (!win_valid(wp)
-	    || (wp->w_buffer->b_nwindows == 1 && wp->w_buffer->b_locked > 0))
+
+    /* Trigger QuitPre and maybe ExitPre */
+    if (before_quit_autocmds(wp, FALSE, eap->forceit))
 	return;
 
 #ifdef FEAT_NETBEANS_INTG
@@ -7318,10 +7342,8 @@ ex_quit_all(exarg_T *eap)
 	text_locked_msg();
 	return;
     }
-    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, curbuf);
-    /* Refuse to quit when locked or when the buffer in the last window is
-     * being closed (can only happen in autocommands). */
-    if (curbuf_locked() || (curbuf->b_nwindows == 1 && curbuf->b_locked > 0))
+
+    if (before_quit_autocmds(curwin, TRUE, eap->forceit))
 	return;
 
     exiting = TRUE;
@@ -7760,7 +7782,7 @@ ex_stop(exarg_T *eap)
 }
 
 /*
- * ":exit", ":xit" and ":wq": Write file and exit Vim.
+ * ":exit", ":xit" and ":wq": Write file and quite the current window.
  */
     static void
 ex_exit(exarg_T *eap)
@@ -7778,10 +7800,8 @@ ex_exit(exarg_T *eap)
 	text_locked_msg();
 	return;
     }
-    apply_autocmds(EVENT_QUITPRE, NULL, NULL, FALSE, curbuf);
-    /* Refuse to quit when locked or when the buffer in the last window is
-     * being closed (can only happen in autocommands). */
-    if (curbuf_locked() || (curbuf->b_nwindows == 1 && curbuf->b_locked > 0))
+
+    if (before_quit_autocmds(curwin, FALSE, eap->forceit))
 	return;
 
     /*
@@ -11123,6 +11143,11 @@ makeopens(
     {
 	if (!(only_save_windows && buf->b_nwindows == 0)
 		&& !(buf->b_help && !(ssop_flags & SSOP_HELP))
+#ifdef FEAT_TERMINAL
+		/* skip terminal buffers: finished ones are not useful, others
+		 * will be resurrected and result in a new buffer */
+		&& !bt_terminal(buf)
+#endif
 		&& buf->b_fname != NULL
 		&& buf->b_p_bl)
 	{
@@ -11341,7 +11366,8 @@ makeopens(
     /*
      * Wipe out an empty unnamed buffer we started in.
      */
-    if (put_line(fd, "if exists('s:wipebuf')") == FAIL)
+    if (put_line(fd, "if exists('s:wipebuf') && s:wipebuf != bufnr('%')")
+								       == FAIL)
 	return FAIL;
     if (put_line(fd, "  silent exe 'bwipe ' . s:wipebuf") == FAIL)
 	return FAIL;
@@ -11501,6 +11527,12 @@ ses_do_frame(frame_T *fr)
     static int
 ses_do_win(win_T *wp)
 {
+#ifdef FEAT_TERMINAL
+    if (bt_terminal(wp->w_buffer))
+	return !term_is_finished(wp->w_buffer)
+	    && (ssop_flags & SSOP_TERMINAL)
+	    && term_should_restore(wp->w_buffer);
+#endif
     if (wp->w_buffer->b_fname == NULL
 #ifdef FEAT_QUICKFIX
 	    /* When 'buftype' is "nofile" can't restore the window contents. */
@@ -11566,13 +11598,21 @@ put_view(
     /* Edit the file.  Skip this when ":next" already did it. */
     if (add_edit && (!did_next || wp->w_arg_idx_invalid))
     {
+# ifdef FEAT_TERMINAL
+	if (bt_terminal(wp->w_buffer))
+	{
+	    if (term_write_session(fd, wp) == FAIL)
+		return FAIL;
+	}
+	else
+# endif
 	/*
 	 * Load the file.
 	 */
 	if (wp->w_buffer->b_ffname != NULL
-#ifdef FEAT_QUICKFIX
+# ifdef FEAT_QUICKFIX
 		&& !bt_nofile(wp->w_buffer)
-#endif
+# endif
 		)
 	{
 	    /*
@@ -11590,8 +11630,7 @@ put_view(
 		    || fputs(" | else | edit ", fd) < 0
 		    || ses_fname(fd, wp->w_buffer, flagp, FALSE) == FAIL
 		    || fputs(" | endif", fd) < 0
-		    ||
-		put_eol(fd) == FAIL)
+		    || put_eol(fd) == FAIL)
 		return FAIL;
 	}
 	else

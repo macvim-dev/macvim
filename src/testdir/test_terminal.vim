@@ -5,6 +5,7 @@ if !has('terminal')
 endif
 
 source shared.vim
+source screendump.vim
 
 let s:python = PythonProg()
 
@@ -28,13 +29,6 @@ func Run_shell_in_terminal(options)
   call assert_match("{'job': 'process \\d\\+ run'}", string)
 
   return buf
-endfunc
-
-" Stops the shell started by Run_shell_in_terminal().
-func Stop_shell_in_terminal(buf)
-  call term_sendkeys(a:buf, "exit\r")
-  call WaitFor('job_status(g:job) == "dead"')
-  call assert_equal('dead', job_status(g:job))
 endfunc
 
 func Test_terminal_basic()
@@ -856,3 +850,105 @@ func Test_terminal_response_to_control_sequence()
   call delete('Xescape')
   unlet g:job
 endfunc
+
+" Run Vim in a terminal, then start a terminal in that Vim with a kill
+" argument, check that :qall works.
+func Test_terminal_qall_kill_arg()
+  if !CanRunVimInTerminal()
+    return
+  endif
+  let buf = RunVimInTerminal('', {})
+
+  " Open a terminal window and wait for the prompt to appear
+  call term_sendkeys(buf, ":term ++kill=kill\<CR>")
+  call WaitFor({-> term_getline(buf, 10) =~ '\[running]'})
+  call WaitFor({-> term_getline(buf, 1) !~ '^\s*$'})
+
+  " make Vim exit, it will kill the shell
+  call term_sendkeys(buf, "\<C-W>:qall\<CR>")
+  call WaitFor({-> term_getstatus(buf) == "finished"})
+
+  " close the terminal window where Vim was running
+  quit
+endfunc
+
+" Run Vim in a terminal, then start a terminal in that Vim with a kill
+" argument, check that :qall works.
+func Test_terminal_qall_kill_func()
+  if !CanRunVimInTerminal()
+    return
+  endif
+  let buf = RunVimInTerminal('', {})
+
+  " Open a terminal window and wait for the prompt to appear
+  call term_sendkeys(buf, ":term\<CR>")
+  call WaitFor({-> term_getline(buf, 10) =~ '\[running]'})
+  call WaitFor({-> term_getline(buf, 1) !~ '^\s*$'})
+
+  " set kill using term_setkill()
+  call term_sendkeys(buf, "\<C-W>:call term_setkill(bufnr('%'), 'kill')\<CR>")
+
+  " make Vim exit, it will kill the shell
+  call term_sendkeys(buf, "\<C-W>:qall\<CR>")
+  call WaitFor({-> term_getstatus(buf) == "finished"})
+
+  " close the terminal window where Vim was running
+  quit
+endfunc
+
+" Run Vim in a terminal, then start a terminal in that Vim without a kill
+" argument, check that :confirm qall works.
+func Test_terminal_qall_prompt()
+  if !CanRunVimInTerminal()
+    return
+  endif
+  let buf = RunVimInTerminal('', {})
+
+  " Open a terminal window and wait for the prompt to appear
+  call term_sendkeys(buf, ":term\<CR>")
+  call WaitFor({-> term_getline(buf, 10) =~ '\[running]'})
+  call WaitFor({-> term_getline(buf, 1) !~ '^\s*$'})
+
+  " make Vim exit, it will prompt to kill the shell
+  call term_sendkeys(buf, "\<C-W>:confirm qall\<CR>")
+  call WaitFor({-> term_getline(buf, 20) =~ 'ancel:'})
+  call term_sendkeys(buf, "y")
+  call WaitFor({-> term_getstatus(buf) == "finished"})
+
+  " close the terminal window where Vim was running
+  quit
+endfunc
+
+func Test_terminalopen_autocmd()
+  augroup repro
+    au!
+    au TerminalOpen * let s:called += 1
+  augroup END
+
+  let s:called = 0
+
+  " Open a terminal window with :terminal
+  terminal
+  call assert_equal(1, s:called)
+  bwipe!
+
+  " Open a terminal window with term_start()
+  call term_start(&shell)
+  call assert_equal(2, s:called)
+  bwipe!
+
+  " Open a hidden terminal buffer with :terminal
+  terminal ++hidden
+  call assert_equal(3, s:called)
+  for buf in term_list()
+    exe buf . "bwipe!"
+  endfor
+
+  " Open a hidden terminal buffer with term_start()
+  let buf = term_start(&shell, {'hidden': 1})
+  call assert_equal(4, s:called)
+  exe buf . "bwipe!"
+
+  unlet s:called
+  au! repro
+endfunction

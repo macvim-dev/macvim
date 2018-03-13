@@ -1,14 +1,18 @@
 /* terminal.c */
 void ex_terminal(exarg_T *eap);
+int term_write_session(FILE *fd, win_T *wp);
+int term_should_restore(buf_T *buf);
 void free_terminal(buf_T *buf);
 void write_to_term(buf_T *buffer, char_u *msg, channel_T *channel);
 int term_job_running(term_T *term);
 int term_none_open(term_T *term);
+int term_try_stop_job(buf_T *buf);
 int term_in_normal_mode(void);
 void term_enter_job_mode(void);
 int send_keys_to_term(term_T *term, int c, int typed);
 int terminal_is_active(void);
 cursorentry_T *term_get_cursor_shape(guicolor_T *fg, guicolor_T *bg);
+void term_win_entered(void);
 int term_use_loop(void);
 int terminal_loop(int blocking);
 void term_job_ended(job_T *job);
@@ -38,6 +42,8 @@ void f_term_gettty(typval_T *argvars, typval_T *rettv);
 void f_term_list(typval_T *argvars, typval_T *rettv);
 void f_term_scrape(typval_T *argvars, typval_T *rettv);
 void f_term_sendkeys(typval_T *argvars, typval_T *rettv);
+void f_term_setrestore(typval_T *argvars, typval_T *rettv);
+void f_term_setkill(typval_T *argvars, typval_T *rettv);
 void f_term_start(typval_T *argvars, typval_T *rettv);
 void f_term_wait(typval_T *argvars, typval_T *rettv);
 void term_send_eof(channel_T *ch);
