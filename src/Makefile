@@ -1413,6 +1413,8 @@ TERM_DEPS = \
 	libvterm/src/utf8.h \
 	libvterm/src/vterm_internal.h
 
+TERM_SRC = libvterm/src/*.c
+
 ### Command to create dependencies based on #include "..."
 ### prototype headers are ignored due to -DPROTO, system
 ### headers #include <...> are ignored if we use the -MM option, as
@@ -2057,7 +2059,7 @@ notags:
 #	Motif and Athena GUI
 # You can ignore error messages for missing files.
 tags TAGS: notags
-	$(TAGPRG) $(TAGS_SRC) $(TAGS_INCL)
+	$(TAGPRG) $(TAGS_SRC) $(TAGS_INCL) $(TERM_SRC) $(TERM_DEPS)
 
 # Make a highlight file for types.  Requires Exuberant ctags and awk
 types: types.vim
