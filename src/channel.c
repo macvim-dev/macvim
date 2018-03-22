@@ -1028,11 +1028,18 @@ channel_set_pipes(channel_T *channel, sock_T in, sock_T out, sock_T err)
 	channel_gui_unregister_one(channel, PART_ERR);
 # endif
 	ch_close_part(channel, PART_ERR);
-	channel->CH_ERR_FD = err;
-	channel->ch_to_be_closed |= (1 << PART_ERR);
-# if defined(FEAT_GUI)
-	channel_gui_register_one(channel, PART_ERR);
+# if defined(FEAT_GUI_MACVIM)
+	if (err == out && gui.in_use)
+	    channel->CH_ERR_FD = INVALID_FD;
+	else
 # endif
+	{
+	    channel->CH_ERR_FD = err;
+	    channel->ch_to_be_closed |= (1 << PART_ERR);
+# if defined(FEAT_GUI)
+	    channel_gui_register_one(channel, PART_ERR);
+# endif
+	}
     }
 }
 
