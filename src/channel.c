@@ -1028,11 +1028,18 @@ channel_set_pipes(channel_T *channel, sock_T in, sock_T out, sock_T err)
 	channel_gui_unregister_one(channel, PART_ERR);
 # endif
 	ch_close_part(channel, PART_ERR);
-	channel->CH_ERR_FD = err;
-	channel->ch_to_be_closed |= (1 << PART_ERR);
-# if defined(FEAT_GUI)
-	channel_gui_register_one(channel, PART_ERR);
+# if defined(FEAT_GUI_MACVIM)
+	if (err == out && gui.in_use)
+	    channel->CH_ERR_FD = INVALID_FD;
+	else
 # endif
+	{
+	    channel->CH_ERR_FD = err;
+	    channel->ch_to_be_closed |= (1 << PART_ERR);
+# if defined(FEAT_GUI)
+	    channel_gui_register_one(channel, PART_ERR);
+# endif
+	}
     }
 }
 
@@ -4781,43 +4788,57 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 	    {
 		if (!(supported2 & JO2_TERM_ROWS))
 		    break;
-		opt->jo_set |= JO2_TERM_ROWS;
+		opt->jo_set2 |= JO2_TERM_ROWS;
 		opt->jo_term_rows = get_tv_number(item);
 	    }
 	    else if (STRCMP(hi->hi_key, "term_cols") == 0)
 	    {
 		if (!(supported2 & JO2_TERM_COLS))
 		    break;
-		opt->jo_set |= JO2_TERM_COLS;
+		opt->jo_set2 |= JO2_TERM_COLS;
 		opt->jo_term_cols = get_tv_number(item);
 	    }
 	    else if (STRCMP(hi->hi_key, "vertical") == 0)
 	    {
 		if (!(supported2 & JO2_VERTICAL))
 		    break;
-		opt->jo_set |= JO2_VERTICAL;
+		opt->jo_set2 |= JO2_VERTICAL;
 		opt->jo_vertical = get_tv_number(item);
 	    }
 	    else if (STRCMP(hi->hi_key, "curwin") == 0)
 	    {
 		if (!(supported2 & JO2_CURWIN))
 		    break;
-		opt->jo_set |= JO2_CURWIN;
+		opt->jo_set2 |= JO2_CURWIN;
 		opt->jo_curwin = get_tv_number(item);
 	    }
 	    else if (STRCMP(hi->hi_key, "hidden") == 0)
 	    {
 		if (!(supported2 & JO2_HIDDEN))
 		    break;
-		opt->jo_set |= JO2_HIDDEN;
+		opt->jo_set2 |= JO2_HIDDEN;
 		opt->jo_hidden = get_tv_number(item);
+	    }
+	    else if (STRCMP(hi->hi_key, "norestore") == 0)
+	    {
+		if (!(supported2 & JO2_NORESTORE))
+		    break;
+		opt->jo_set2 |= JO2_NORESTORE;
+		opt->jo_term_norestore = get_tv_number(item);
+	    }
+	    else if (STRCMP(hi->hi_key, "term_kill") == 0)
+	    {
+		if (!(supported2 & JO2_TERM_KILL))
+		    break;
+		opt->jo_set2 |= JO2_TERM_KILL;
+		opt->jo_term_kill = get_tv_string_chk(item);
 	    }
 #endif
 	    else if (STRCMP(hi->hi_key, "env") == 0)
 	    {
 		if (!(supported2 & JO2_ENV))
 		    break;
-		opt->jo_set |= JO2_ENV;
+		opt->jo_set2 |= JO2_ENV;
 		opt->jo_env = item->vval.v_dict;
 		++item->vval.v_dict->dv_refcount;
 	    }
@@ -4831,7 +4852,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		    EMSG2(_(e_invargval), "cwd");
 		    return FAIL;
 		}
-		opt->jo_set |= JO2_CWD;
+		opt->jo_set2 |= JO2_CWD;
 	    }
 	    else if (STRCMP(hi->hi_key, "waittime") == 0)
 	    {
@@ -5404,11 +5425,13 @@ job_check_ended(void)
 
 /*
  * Create a job and return it.  Implements job_start().
+ * "argv_arg" is only for Unix.
+ * When "argv_arg" is NULL then "argvars" is used.
  * The returned job has a refcount of one.
  * Returns NULL when out of memory.
  */
     job_T *
-job_start(typval_T *argvars, jobopt_T *opt_arg)
+job_start(typval_T *argvars, char **argv_arg, jobopt_T *opt_arg)
 {
     job_T	*job;
     char_u	*cmd = NULL;
@@ -5495,6 +5518,13 @@ job_start(typval_T *argvars, jobopt_T *opt_arg)
 
     job_set_options(job, &opt);
 
+#ifdef USE_ARGV
+    if (argv_arg != NULL)
+    {
+	argv = argv_arg;
+    }
+    else
+#endif
     if (argvars[0].v_type == VAR_STRING)
     {
 	/* Command is a string. */
@@ -5505,6 +5535,7 @@ job_start(typval_T *argvars, jobopt_T *opt_arg)
 	    goto theend;
 	}
 #ifdef USE_ARGV
+	/* This will modify "cmd". */
 	if (mch_parse_cmd(cmd, FALSE, &argv, &argc) == FAIL)
 	    goto theend;
 	argv[argc] = NULL;
@@ -5571,7 +5602,8 @@ job_start(typval_T *argvars, jobopt_T *opt_arg)
 
 theend:
 #ifdef USE_ARGV
-    vim_free(argv);
+    if (argv != argv_arg)
+	vim_free(argv);
 #else
     vim_free(ga.ga_data);
 #endif

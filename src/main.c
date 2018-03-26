@@ -1464,6 +1464,9 @@ getout(int exitval)
     win_T	*wp;
 
     exiting = TRUE;
+#if defined(FEAT_JOB_CHANNEL)
+    ch_log(NULL, "Exiting...");
+#endif
 
     /* When running in Ex mode an error causes us to exit with a non-zero exit
      * code.  POSIX requires this, although it's not 100% clear from the
@@ -1959,6 +1962,9 @@ command_line_scan(mparm_T *parmp)
 		else if (STRNICMP(argv[0] + argv_idx, "clean", 5) == 0)
 		{
 		    parmp->use_vimrc = (char_u *)"DEFAULTS";
+#ifdef FEAT_GUI
+		    use_gvimrc = (char_u *)"NONE";
+#endif
 		    parmp->clean = TRUE;
 		    set_option_value((char_u *)"vif", 0L, (char_u *)"NONE", 0);
 		}

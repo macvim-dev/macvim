@@ -5,7 +5,7 @@
 
 #include <stdarg.h>
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__MINGW32__)
 # define INTERNAL __attribute__((visibility("internal")))
 # define UNUSED __attribute__((unused))
 #else
@@ -95,9 +95,6 @@ struct VTermState
   int mouse_col, mouse_row;
   int mouse_buttons;
   int mouse_flags;
-#define MOUSE_WANT_CLICK 0x01
-#define MOUSE_WANT_DRAG  0x02
-#define MOUSE_WANT_MOVE  0x04
 
   enum { MOUSE_X10, MOUSE_UTF8, MOUSE_SGR, MOUSE_RXVT } mouse_protocol;
 

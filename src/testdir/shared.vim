@@ -260,6 +260,16 @@ func CanRunGui()
   return has('gui') && ($DISPLAY != "" || has('gui_running') || has('gui_macvim'))
 endfunc
 
+func WorkingClipboard()
+  if !has('clipboard')
+    return 0
+  endif
+  if has('x11')
+    return $DISPLAY != ""
+  endif
+  return 1
+endfunc
+
 " Get line "lnum" as displayed on the screen.
 " Trailing white space is trimmed.
 func! Screenline(lnum)
@@ -269,4 +279,11 @@ func! Screenline(lnum)
   endfor
   let line = join(chars, '')
   return matchstr(line, '^.\{-}\ze\s*$')
+endfunc
+
+" Stops the shell running in terminal "buf".
+func Stop_shell_in_terminal(buf)
+  call term_sendkeys(a:buf, "exit\r")
+  let job = term_getjob(a:buf)
+  call WaitFor({-> job_status(job) == "dead"})
 endfunc
