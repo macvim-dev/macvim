@@ -285,12 +285,14 @@ gui_mch_init(void)
         [[MMBackend sharedInstance] addToMRU:filenames];
     }
 
-    if ([NSProcessInfo instancesRespondToSelector:@selector(isOperatingSystemAtLeastVersion:)]) {
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
+    {
 	NSOperatingSystemVersion version = {10, 13, 0};
 
 	is_macos_high_sierra_or_later =
 	    [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:version];
     }
+#endif
 
     return OK;
 }
