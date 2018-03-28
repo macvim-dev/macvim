@@ -1900,7 +1900,8 @@ gui_macvim_wait_for_startup()
         [backend waitForConnectionAcknowledgement];
 }
 
-void gui_macvim_get_window_layout(int *count, int *layout)
+    void
+gui_macvim_get_window_layout(int *count, int *layout)
 {
     if (!(count && layout)) return;
 
@@ -1914,12 +1915,14 @@ void gui_macvim_get_window_layout(int *count, int *layout)
     }
 }
 
-void *gui_macvim_new_autoreleasepool()
+    void *
+gui_macvim_new_autoreleasepool()
 {
     return (void *)[[NSAutoreleasePool alloc] init];
 }
 
-void gui_macvim_release_autoreleasepool(void *pool)
+    void
+gui_macvim_release_autoreleasepool(void *pool)
 {
     [(id)pool release];
 }
@@ -2245,7 +2248,8 @@ is_valid_macaction(char_u *action)
     return isValid;
 }
 
-static int specialKeyToNSKey(int key)
+    static int
+specialKeyToNSKey(int key)
 {
     if (!IS_SPECIAL(key))
         return key;
@@ -2310,7 +2314,8 @@ static int specialKeyToNSKey(int key)
     return 0;
 }
 
-static int vimModMaskToEventModifierFlags(int mods)
+    static int
+vimModMaskToEventModifierFlags(int mods)
 {
     int flags = 0;
 
