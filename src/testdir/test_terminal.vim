@@ -45,11 +45,17 @@ func Test_terminal_basic()
   call assert_equal('t', mode())
   call assert_equal('yes', b:done)
   call assert_match('%aR[^\n]*running]', execute('ls'))
+  call assert_match('%aR[^\n]*running]', execute('ls R'))
+  call assert_notmatch('%[^\n]*running]', execute('ls F'))
+  call assert_notmatch('%[^\n]*running]', execute('ls ?'))
 
   call Stop_shell_in_terminal(buf)
   call term_wait(buf)
   call assert_equal('n', mode())
   call assert_match('%aF[^\n]*finished]', execute('ls'))
+  call assert_match('%aF[^\n]*finished]', execute('ls F'))
+  call assert_notmatch('%[^\n]*finished]', execute('ls R'))
+  call assert_notmatch('%[^\n]*finished]', execute('ls ?'))
 
   " closing window wipes out the terminal buffer a with finished job
   close
@@ -979,7 +985,29 @@ endfunction
 func Check_dump01(off)
   call assert_equal('one two three four five', trim(getline(a:off + 1)))
   call assert_equal('~           Select Word', trim(getline(a:off + 7)))
-  call assert_equal(':popup PopUp                                   :', trim(getline(a:off + 20)))
+  call assert_equal(':popup PopUp', trim(getline(a:off + 20)))
+endfunc
+
+func Test_terminal_dumpwrite_composing()
+  if !CanRunVimInTerminal()
+    return
+  endif
+  let save_enc = &encoding
+  set encoding=utf-8
+  call assert_equal(1, winnr('$'))
+
+  let text = " a\u0300 e\u0302 o\u0308"
+  call writefile([text], 'Xcomposing')
+  let buf = RunVimInTerminal('Xcomposing', {})
+  call WaitFor({-> term_getline(buf, 1) =~ text})
+  call term_dumpwrite(buf, 'Xdump')
+  let dumpline = readfile('Xdump')[0]
+  call assert_match('|à| |ê| |ö', dumpline)
+
+  call StopVimInTerminal(buf)
+  call delete('Xcomposing')
+  call delete('Xdump')
+  let &encoding = save_enc
 endfunc
 
 " just testing basic functionality.

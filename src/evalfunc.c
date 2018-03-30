@@ -5993,9 +5993,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_LISP
 	"lispindent",
 #endif
-#ifdef FEAT_LISTCMDS
 	"listcmds",
-#endif
 #ifdef FEAT_LOCALMAP
 	"localmap",
 #endif

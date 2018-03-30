@@ -5000,6 +5000,7 @@ ExpandFromContext(
 #endif
 	    {EXPAND_ENV_VARS, get_env_name, TRUE, TRUE},
 	    {EXPAND_USER, get_users, TRUE, FALSE},
+	    {EXPAND_ARGLIST, get_arglist_name, TRUE, FALSE},
 #ifdef FEAT_GUI_MACVIM
 	    {EXPAND_MACACTION, get_macaction_name, FALSE, FALSE},
 #endif
