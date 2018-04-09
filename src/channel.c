@@ -158,6 +158,7 @@ ch_log_lead(const char *what, channel_T *ch)
 
 static int did_log_msg = TRUE;
 
+#ifndef PROTO  /* prototype is in vim.h */
     void
 ch_log(channel_T *ch, const char *fmt, ...)
 {
@@ -174,6 +175,14 @@ ch_log(channel_T *ch, const char *fmt, ...)
 	did_log_msg = TRUE;
     }
 }
+#endif
+
+    static void
+ch_error(channel_T *ch, const char *fmt, ...)
+#ifdef __GNUC__
+__attribute__((format(printf, 2, 3)))
+#endif
+    ;
 
     static void
 ch_error(channel_T *ch, const char *fmt, ...)
@@ -1468,8 +1477,8 @@ channel_write_in(channel_T *channel)
 	ch_close_part(channel, PART_IN);
     }
     else
-	ch_log(channel, "Still %d more lines to write",
-					  buf->b_ml.ml_line_count - lnum + 1);
+	ch_log(channel, "Still %ld more lines to write",
+				   (long)(buf->b_ml.ml_line_count - lnum + 1));
 }
 
 /*
@@ -1562,8 +1571,8 @@ channel_write_new_lines(buf_T *buf)
 	    else if (written > 1)
 		ch_log(channel, "written %d lines to channel", written);
 	    if (lnum < buf->b_ml.ml_line_count)
-		ch_log(channel, "Still %d more lines to write",
-					      buf->b_ml.ml_line_count - lnum);
+		ch_log(channel, "Still %ld more lines to write",
+				       (long)(buf->b_ml.ml_line_count - lnum));
 
 	    in_part->ch_buf_bot = lnum;
 	}
@@ -2107,7 +2116,8 @@ channel_get_json(
 	{
 	    *rettv = item->jq_value;
 	    if (tv->v_type == VAR_NUMBER)
-		ch_log(channel, "Getting JSON message %d", tv->vval.v_number);
+		ch_log(channel, "Getting JSON message %ld",
+						      (long)tv->vval.v_number);
 	    remove_json_node(head, item);
 	    return OK;
 	}
@@ -4192,8 +4202,9 @@ channel_select_check(int ret_in, void *rfds_in, void *wfds_in)
 	if (ret > 0 && in_part->ch_fd != INVALID_FD
 					    && FD_ISSET(in_part->ch_fd, wfds))
 	{
-	    channel_write_input(channel);
+	    /* Clear the flag first, ch_fd may change in channel_write_input(). */
 	    FD_CLR(in_part->ch_fd, wfds);
+	    channel_write_input(channel);
 	    --ret;
 	}
     }
@@ -4838,9 +4849,15 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 	    {
 		if (!(supported2 & JO2_ENV))
 		    break;
+		if (item->v_type != VAR_DICT)
+		{
+		    EMSG2(_(e_invargval), "env");
+		    return FAIL;
+		}
 		opt->jo_set2 |= JO2_ENV;
 		opt->jo_env = item->vval.v_dict;
-		++item->vval.v_dict->dv_refcount;
+		if (opt->jo_env != NULL)
+		    ++opt->jo_env->dv_refcount;
 	    }
 	    else if (STRCMP(hi->hi_key, "cwd") == 0)
 	    {

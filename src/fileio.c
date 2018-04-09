@@ -2779,22 +2779,22 @@ readfile_linenr(
     int
 prep_exarg(exarg_T *eap, buf_T *buf)
 {
-    eap->cmd = alloc((unsigned)(STRLEN(buf->b_p_ff)
+    eap->cmd = alloc(15
 #ifdef FEAT_MBYTE
-		+ STRLEN(buf->b_p_fenc)
+		+ (unsigned)STRLEN(buf->b_p_fenc)
 #endif
-						 + 15));
+	    );
     if (eap->cmd == NULL)
 	return FAIL;
 
 #ifdef FEAT_MBYTE
-    sprintf((char *)eap->cmd, "e ++ff=%s ++enc=%s", buf->b_p_ff, buf->b_p_fenc);
-    eap->force_enc = 14 + (int)STRLEN(buf->b_p_ff);
+    sprintf((char *)eap->cmd, "e ++enc=%s", buf->b_p_fenc);
+    eap->force_enc = 8;
     eap->bad_char = buf->b_bad_char;
 #else
-    sprintf((char *)eap->cmd, "e ++ff=%s", buf->b_p_ff);
+    sprintf((char *)eap->cmd, "e");
 #endif
-    eap->force_ff = 7;
+    eap->force_ff = *buf->b_p_ff;
 
     eap->force_bin = buf->b_p_bin ? FORCE_BIN : FORCE_NOBIN;
     eap->read_edit = FALSE;
@@ -5319,7 +5319,7 @@ msg_add_lines(
 	*p++ = ' ';
     if (shortmess(SHM_LINES))
 	vim_snprintf((char *)p, IOSIZE - (p - IObuff),
-		"%ldL, %lldC", lnum, (varnumber_T)nchars);
+		"%ldL, %lldC", lnum, (long long)nchars);
     else
     {
 	if (lnum == 1)
@@ -5331,7 +5331,7 @@ msg_add_lines(
 	    STRCPY(p, _("1 character"));
 	else
 	    vim_snprintf((char *)p, IOSIZE - (p - IObuff),
-		    _("%lld characters"), (varnumber_T)nchars);
+		    _("%lld characters"), (long long)nchars);
     }
 }
 

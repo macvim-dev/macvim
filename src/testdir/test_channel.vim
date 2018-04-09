@@ -1720,10 +1720,12 @@ func Test_env()
 
   let g:envstr = ''
   if has('win32')
-    call job_start(['cmd', '/c', 'echo %FOO%'], {'callback': {ch,msg->execute(":let g:envstr .= msg")}, 'env':{'FOO': 'bar'}})
+    let cmd = ['cmd', '/c', 'echo %FOO%']
   else
-    call job_start([&shell, &shellcmdflag, 'echo $FOO'], {'callback': {ch,msg->execute(":let g:envstr .= msg")}, 'env':{'FOO': 'bar'}})
+    let cmd = [&shell, &shellcmdflag, 'echo $FOO']
   endif
+  call assert_fails('call job_start(cmd, {"env": 1})', 'E475:')
+  call job_start(cmd, {'callback': {ch,msg -> execute(":let g:envstr .= msg")}, 'env': {'FOO': 'bar'}})
   call WaitFor('"" != g:envstr')
   call assert_equal("bar", g:envstr)
   unlet g:envstr
@@ -1737,11 +1739,12 @@ func Test_cwd()
   let g:envstr = ''
   if has('win32')
     let expect = $TEMP
-    let job = job_start(['cmd', '/c', 'echo %CD%'], {'callback': {ch,msg->execute(":let g:envstr .= msg")}, 'cwd': expect})
+    let cmd = ['cmd', '/c', 'echo %CD%']
   else
     let expect = $HOME
-    let job = job_start(['pwd'], {'callback': {ch,msg->execute(":let g:envstr .= msg")}, 'cwd': expect})
+    let cmd = ['pwd']
   endif
+  let job = job_start(cmd, {'callback': {ch,msg -> execute(":let g:envstr .= msg")}, 'cwd': expect})
   try
     call WaitFor('"" != g:envstr')
     let expect = substitute(expect, '[/\\]$', '', '')
@@ -1822,4 +1825,16 @@ func Test_list_args()
   call s:test_list_args('print(''hello\\\\world'')', "hello\\\\world", 1)
   call s:test_list_args('print("hello\"world\"")', 'hello"world"', 1)
   call s:test_list_args('print("hello\tworld")', "hello\tworld", 1)
+endfunc
+
+" Do this last, it stops any channel log.
+func Test_zz_ch_log()
+  call ch_logfile('Xlog', 'w')
+  call ch_log('hello there')
+  call ch_log('%s%s')
+  call ch_logfile('')
+  let text = readfile('Xlog')
+  call assert_match("hello there", text[1])
+  call assert_match("%s%s", text[2])
+  call delete('Xlog')
 endfunc

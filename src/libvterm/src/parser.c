@@ -141,7 +141,7 @@ size_t vterm_input_write(VTerm *vt, const char *bytes, size_t len)
     break;
   }
 
-#define ENTER_STRING_STATE(st) do { vt->parser.state = STRING; string_start = bytes + pos + 1; } while(0)
+#define ENTER_STRING_STATE()   do { vt->parser.state = STRING; string_start = bytes + pos + 1; } while(0)
 #define ENTER_STATE(st)        do { vt->parser.state = st; string_start = NULL; } while(0)
 #define ENTER_NORMAL_STATE()   ENTER_STATE(NORMAL)
 
@@ -287,6 +287,11 @@ size_t vterm_input_write(VTerm *vt, const char *bytes, size_t len)
       if(c == 0x07 || (c == 0x9c && !vt->mode.utf8)) {
         done_string(vt, string_start, bytes + pos - string_start);
         ENTER_NORMAL_STATE();
+      }
+      else if (pos + 1 == len) {
+	/* end of input but OSC string isn't finished yet, copy it to
+	 * vt->parser.strbuffer to continue it later */
+        more_string(vt, string_start, bytes + pos + 1 - string_start);
       }
       break;
 
