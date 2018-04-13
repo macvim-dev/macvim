@@ -3456,7 +3456,11 @@ set_init_1(int clean_arg)
 	    mustfree = FALSE;
 # ifdef UNIX
 	    if (*names[n] == NUL)
+#  ifdef MACOS_X
+		p = (char_u *)"/private/tmp";
+#  else
 		p = (char_u *)"/tmp";
+#  endif
 	    else
 # endif
 		p = vim_getenv((char_u *)names[n], &mustfree);
