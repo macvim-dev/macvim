@@ -40,9 +40,6 @@
  * TODO:
  * - Win32: Make terminal used for :!cmd in the GUI work better.  Allow for
  *   redirection.  Probably in call to channel_set_pipes().
- * - implement term_setsize()
- * - add an optional limit for the scrollback size.  When reaching it remove
- *   10% at the start.
  * - Copy text in the vterm to the Vim buffer once in a while, so that
  *   completion works.
  * - in GUI vertical split causes problems.  Cursor is flickering. (Hirohito
@@ -2061,6 +2058,11 @@ terminal_loop(int blocking)
 		/* "CTRL-W .": send CTRL-W to the job */
 		c = Ctrl_W;
 	    }
+	    else if (termkey == 0 && c == Ctrl_BSL)
+	    {
+		/* "CTRL-W CTRL-\": send CTRL-\ to the job */
+		c = Ctrl_BSL;
+	    }
 	    else if (c == 'N')
 	    {
 		/* CTRL-W N : go to Terminal-Normal mode. */
@@ -2178,7 +2180,7 @@ color2index(VTermColor *color, int fg, int *boldp)
 	    case  2: return lookup_color( 4, fg, boldp) + 1; /* dark red */
 	    case  3: return lookup_color( 2, fg, boldp) + 1; /* dark green */
 	    case  4: return lookup_color( 6, fg, boldp) + 1; /* brown */
-	    case  5: return lookup_color( 1, fg, boldp) + 1; /* dark blue*/
+	    case  5: return lookup_color( 1, fg, boldp) + 1; /* dark blue */
 	    case  6: return lookup_color( 5, fg, boldp) + 1; /* dark magenta */
 	    case  7: return lookup_color( 3, fg, boldp) + 1; /* dark cyan */
 	    case  8: return lookup_color( 8, fg, boldp) + 1; /* light grey */
@@ -2519,7 +2521,27 @@ handle_pushline(int cols, const VTermScreenCell *cells, void *user)
 {
     term_T	*term = (term_T *)user;
 
-    /* TODO: Limit the number of lines that are stored. */
+    /* If the number of lines that are stored goes over 'termscrollback' then
+     * delete the first 10%. */
+    if (term->tl_scrollback.ga_len > p_tlsl)
+    {
+	int	todo = p_tlsl / 10;
+	int	i;
+
+	curbuf = term->tl_buffer;
+	for (i = 0; i < todo; ++i)
+	{
+	    vim_free(((sb_line_T *)term->tl_scrollback.ga_data + i)->sb_cells);
+	    ml_delete(1, FALSE);
+	}
+	curbuf = curwin->w_buffer;
+
+	term->tl_scrollback.ga_len -= todo;
+	mch_memmove(term->tl_scrollback.ga_data,
+	    (sb_line_T *)term->tl_scrollback.ga_data + todo,
+	    sizeof(sb_line_T) * term->tl_scrollback.ga_len);
+    }
+
     if (ga_grow(&term->tl_scrollback, 1) == OK)
     {
 	cellattr_T	*p = NULL;
@@ -4603,6 +4625,36 @@ f_term_getsize(typval_T *argvars, typval_T *rettv)
 }
 
 /*
+ * "term_setsize(buf, rows, cols)" function
+ */
+    void
+f_term_setsize(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+    buf_T	*buf = term_get_buf(argvars, "term_setsize()");
+    term_T	*term;
+    varnumber_T rows, cols;
+
+    if (buf == NULL)
+    {
+	EMSG(_("E955: Not a terminal buffer"));
+	return;
+    }
+    if (buf->b_term->tl_vterm == NULL)
+	return;
+    term = buf->b_term;
+    rows = get_tv_number(&argvars[1]);
+    rows = rows <= 0 ? term->tl_rows : rows;
+    cols = get_tv_number(&argvars[2]);
+    cols = cols <= 0 ? term->tl_cols : cols;
+    vterm_set_size(term->tl_vterm, rows, cols);
+    /* handle_resize() will resize the windows */
+
+    /* Get and remember the size we ended up with.  Update the pty. */
+    vterm_get_size(term->tl_vterm, &term->tl_rows, &term->tl_cols);
+    term_report_winsize(term, term->tl_rows, term->tl_cols);
+}
+
+/*
  * "term_getstatus(buf)" function
  */
     void
@@ -5432,7 +5484,7 @@ term_free_vterm(term_T *term)
 }
 
 /*
- * Request size to terminal.
+ * Report the size to the terminal.
  */
     static void
 term_report_winsize(term_T *term, int rows, int cols)
@@ -5514,7 +5566,7 @@ term_free_vterm(term_T *term)
 }
 
 /*
- * Request size to terminal.
+ * Report the size to the terminal.
  */
     static void
 term_report_winsize(term_T *term, int rows, int cols)

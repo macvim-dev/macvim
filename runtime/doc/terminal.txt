@@ -72,6 +72,7 @@ See |CTRL-W| for more commands.
 
 Special in the terminal window:			*CTRL-W_.*  *CTRL-W_N* 
 	CTRL-W .	send a CTRL-W to the job in the terminal
+	CTRL-W CTRL-\	send a CTRL-\ to the job in the terminal
 	CTRL-W N	go to Terminal-Normal mode, see |Terminal-mode|
 	CTRL-\ CTRL-N   go to Terminal-Normal mode, see |Terminal-mode|
 	CTRL-W " {reg}  paste register {reg}		*CTRL-W_quote*
@@ -287,7 +288,7 @@ not when 'termsize' is "rowsXcols".
 
 
 Terminal-Job and Terminal-Normal mode ~
-							*Terminal-mode*
+						*Terminal-mode* *Terminal-Job*
 When the job is running the contents of the terminal is under control of the
 job.  That includes the cursor position.  Typed keys are sent to the job.
 The terminal contents can change at any time.  This is called Terminal-Job
@@ -300,7 +301,9 @@ suspended.  CTRL-\ CTRL-N does the same.
 Terminal-Job mode is where |:tmap| mappings are applied. Keys sent by
 |term_sendkeys()| are not subject to tmap, but keys from |feedkeys()| are.
 
-							*E946*
+It is not possible to enter Insert mode from Terminal-Job mode.
+
+						*Terminal-Normal* *E946*
 In Terminal-Normal mode you can move the cursor around with the usual Vim
 commands, Visually mark text, yank text, etc.  But you cannot change the
 contents of the buffer.  The commands that would start insert mode, such as
@@ -311,7 +314,10 @@ In Terminal-Normal mode the statusline and window title show "(Terminal)".  If
 the job ends while in Terminal-Normal mode this changes to
 "(Terminal-finished)".
 
-It is not possible to enter Insert mode from Terminal-Job mode.
+When the job outputs lines in the terminal, such that the contents scrolls off
+the top, those lines are remembered and can be seen in Terminal-Normal mode.
+The number of lines is limited by the 'terminalscroll' option. When going over
+this limit, the first 10% of the scrolled lins are deleted and are lost.
 
 
 Cursor style ~
@@ -642,6 +648,13 @@ the same as any command running in a terminal window.
 
 When the debugger ends, typically by typing "quit" in the gdb window, the two
 opened windows are closed.
+
+Only one debugger can be active at a time.
+
+To attach gdb to an already running executable, or use a core file, pass extra
+arguments.  E.g.: >
+	:Termdebug vim core
+	:Termdebug vim 98343
 
 
 Example session ~
