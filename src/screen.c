@@ -8386,7 +8386,7 @@ screen_char(unsigned off, int row, int col)
 	    /* not sure where the cursor is after drawing the ambiguous width
 	     * character */
 # ifdef FEAT_GUI_MACVIM
-           if (!gui.in_use)
+           if (*p_ambw == 'd' || !gui.in_use)
 # endif
                screen_cur_col = 9999;
 	}
