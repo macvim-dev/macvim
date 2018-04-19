@@ -7587,7 +7587,9 @@ did_set_string_option(
 	if (*curwin->w_p_tms != NUL)
 	{
 	    p = skipdigits(curwin->w_p_tms);
-	    if (p == curwin->w_p_tms || *p != 'x' || *skipdigits(p + 1) != NUL)
+	    if (p == curwin->w_p_tms
+		    || (*p != 'x' && *p != '*')
+		    || *skipdigits(p + 1) != NUL)
 		errmsg = e_invarg;
 	}
     }

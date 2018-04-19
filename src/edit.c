@@ -3665,7 +3665,9 @@ ins_compl_set_original_text(char_u *str)
 {
     char_u	*p;
 
-    /* Replace the original text entry. */
+    /* Replace the original text entry.
+     * The ORIGINAL_TEXT flag is either at the first item or might possibly be
+     * at the last item for backward completion */
     if (compl_first_match->cp_flags & ORIGINAL_TEXT)	/* safety check */
     {
 	p = vim_strsave(str);
@@ -3674,6 +3676,16 @@ ins_compl_set_original_text(char_u *str)
 	    vim_free(compl_first_match->cp_str);
 	    compl_first_match->cp_str = p;
 	}
+    }
+    else if (compl_first_match->cp_prev != NULL
+	    && (compl_first_match->cp_prev->cp_flags & ORIGINAL_TEXT))
+    {
+       p = vim_strsave(str);
+       if (p != NULL)
+       {
+           vim_free(compl_first_match->cp_prev->cp_str);
+           compl_first_match->cp_prev->cp_str = p;
+       }
     }
 }
 
