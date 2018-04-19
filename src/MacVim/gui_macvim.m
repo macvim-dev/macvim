@@ -285,12 +285,14 @@ gui_mch_init(void)
         [[MMBackend sharedInstance] addToMRU:filenames];
     }
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_10
+    if ([[NSProcessInfo processInfo]
+              respondsToSelector:@selector(isOperatingSystemAtLeastVersion:)])
     {
-	NSOperatingSystemVersion version = {10, 13, 0};
+        NSOperatingSystemVersion version = {10, 13, 0};
 
-	is_macos_high_sierra_or_later =
-	    [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:version];
+        is_macos_high_sierra_or_later = [[NSProcessInfo processInfo]
+                                     isOperatingSystemAtLeastVersion:version];
     }
 #endif
 
@@ -1898,7 +1900,8 @@ gui_macvim_wait_for_startup()
         [backend waitForConnectionAcknowledgement];
 }
 
-void gui_macvim_get_window_layout(int *count, int *layout)
+    void
+gui_macvim_get_window_layout(int *count, int *layout)
 {
     if (!(count && layout)) return;
 
@@ -1912,12 +1915,14 @@ void gui_macvim_get_window_layout(int *count, int *layout)
     }
 }
 
-void *gui_macvim_new_autoreleasepool()
+    void *
+gui_macvim_new_autoreleasepool()
 {
     return (void *)[[NSAutoreleasePool alloc] init];
 }
 
-void gui_macvim_release_autoreleasepool(void *pool)
+    void
+gui_macvim_release_autoreleasepool(void *pool)
 {
     [(id)pool release];
 }
@@ -2243,7 +2248,8 @@ is_valid_macaction(char_u *action)
     return isValid;
 }
 
-static int specialKeyToNSKey(int key)
+    static int
+specialKeyToNSKey(int key)
 {
     if (!IS_SPECIAL(key))
         return key;
@@ -2308,7 +2314,8 @@ static int specialKeyToNSKey(int key)
     return 0;
 }
 
-static int vimModMaskToEventModifierFlags(int mods)
+    static int
+vimModMaskToEventModifierFlags(int mods)
 {
     int flags = 0;
 
