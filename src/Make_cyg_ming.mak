@@ -390,7 +390,7 @@ endif
 
 #	Ruby interface:
 #	  RUBY=[Path to Ruby directory] (Set inside Make_cyg.mak or Make_ming.mak)
-#	  DYNAMIC_RUBY=yes (to load the Ruby DLL dynamically)
+#	  DYNAMIC_RUBY=yes (to load the Ruby DLL dynamically, "no" for static)
 #	  RUBY_VER=[Ruby version, eg 19, 22] (default is 22)
 #	  RUBY_API_VER_LONG=[Ruby API version, eg 1.8, 1.9.1, 2.2.0]
 #			    (default is 2.2.0)
@@ -536,6 +536,9 @@ CFLAGS += -DFEAT_RUBY $(RUBYINC)
 ifeq (yes, $(DYNAMIC_RUBY))
 CFLAGS += -DDYNAMIC_RUBY -DDYNAMIC_RUBY_DLL=\"$(RUBY_INSTALL_NAME).dll\"
 CFLAGS += -DDYNAMIC_RUBY_VER=$(RUBY_VER)
+endif
+ifeq (no, $(DYNAMIC_RUBY))
+CFLAGS += -DRUBY_VERSION=$(RUBY_VER)
 endif
 ifneq ($(findstring w64-mingw32,$(CC)),)
 # A workaround for MinGW-w64

@@ -2824,17 +2824,18 @@ ex_args(exarg_T *eap)
 	 */
 	if (ARGCOUNT > 0)
 	{
-	    /* Overwrite the command, for a short list there is no scrolling
-	     * required and no wait_return(). */
-	    gotocmdline(TRUE);
-	    for (i = 0; i < ARGCOUNT; ++i)
+	    char_u **items = (char_u **)alloc(sizeof(char_u *) * ARGCOUNT);
+
+	    if (items != NULL)
 	    {
-		if (i == curwin->w_arg_idx)
-		    msg_putchar('[');
-		msg_outtrans(alist_name(&ARGLIST[i]));
-		if (i == curwin->w_arg_idx)
-		    msg_putchar(']');
-		msg_putchar(' ');
+		/* Overwrite the command, for a short list there is no
+		 * scrolling required and no wait_return(). */
+		gotocmdline(TRUE);
+
+		for (i = 0; i < ARGCOUNT; ++i)
+		    items[i] = alist_name(&ARGLIST[i]);
+		list_in_columns(items, ARGCOUNT, curwin->w_arg_idx);
+		vim_free(items);
 	    }
 	}
     }

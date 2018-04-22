@@ -42,6 +42,8 @@
  *   redirection.  Probably in call to channel_set_pipes().
  * - Win32: Redirecting output does not work, Test_terminal_redir_file()
  *   is disabled.
+ * - Add test for 'termwinkey'.
+ * - libvterm: bringg back using // comments and trailing comma in enum
  * - When starting terminal window with shell in terminal, then using :gui to
  *   switch to GUI, shell stops working. Scrollback seems wrong, command
  *   running in shell is still running.
@@ -215,17 +217,17 @@ parse_termsize(win_T *wp, int *rows, int *cols)
     *rows = 0;
     *cols = 0;
 
-    if (*wp->w_p_tms != NUL)
+    if (*wp->w_p_tws != NUL)
     {
-	char_u *p = vim_strchr(wp->w_p_tms, 'x');
+	char_u *p = vim_strchr(wp->w_p_tws, 'x');
 
 	/* Syntax of value was already checked when it's set. */
 	if (p == NULL)
 	{
 	    minsize = TRUE;
-	    p = vim_strchr(wp->w_p_tms, '*');
+	    p = vim_strchr(wp->w_p_tws, '*');
 	}
-	*rows = atoi((char *)wp->w_p_tms);
+	*rows = atoi((char *)wp->w_p_tws);
 	*cols = atoi((char *)p + 1);
     }
     return minsize;
@@ -2005,8 +2007,8 @@ terminal_loop(int blocking)
      * stored reference. */
     in_terminal_loop = curbuf->b_term;
 
-    if (*curwin->w_p_tk != NUL)
-	termkey = string_to_key(curwin->w_p_tk, TRUE);
+    if (*curwin->w_p_twk != NUL)
+	termkey = string_to_key(curwin->w_p_twk, TRUE);
     position_cursor(curwin, &curbuf->b_term->tl_cursor_pos);
     may_set_cursor_props(curbuf->b_term);
 
@@ -2567,9 +2569,9 @@ handle_pushline(int cols, const VTermScreenCell *cells, void *user)
 
     /* If the number of lines that are stored goes over 'termscrollback' then
      * delete the first 10%. */
-    if (term->tl_scrollback.ga_len >= p_tlsl)
+    if (term->tl_scrollback.ga_len >= term->tl_buffer->b_p_twsl)
     {
-	int	todo = p_tlsl / 10;
+	int	todo = term->tl_buffer->b_p_twsl / 10;
 	int	i;
 
 	curbuf = term->tl_buffer;
@@ -5315,14 +5317,6 @@ term_and_job_init(
     win32_build_env(opt->jo_env, &ga_env, TRUE);
     env_wchar = ga_env.ga_data;
 
-    job = job_alloc();
-    if (job == NULL)
-	goto failed;
-
-    channel = add_channel();
-    if (channel == NULL)
-	goto failed;
-
     term->tl_winpty_config = winpty_config_new(0, &winpty_err);
     if (term->tl_winpty_config == NULL)
 	goto failed;
@@ -5353,6 +5347,18 @@ term_and_job_init(
     job = job_alloc();
     if (job == NULL)
 	goto failed;
+    if (argvar->v_type == VAR_STRING)
+    {
+	int argc;
+
+	build_argv_from_string(cmd, &job->jv_argv, &argc);
+    }
+    else
+    {
+	int argc;
+
+	build_argv_from_list(argvar->vval.v_list, &job->jv_argv, &argc);
+    }
 
     if (opt->jo_set & JO_IN_BUF)
 	job->jv_in_buf = buflist_findnr(opt->jo_io_buf[PART_IN]);

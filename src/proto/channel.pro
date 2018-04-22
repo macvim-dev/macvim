@@ -69,6 +69,7 @@ void job_check_ended(void);
 job_T *job_start(typval_T *argvars, char **argv_arg, jobopt_T *opt_arg);
 char *job_status(job_T *job);
 void job_info(job_T *job, dict_T *dict);
+void job_info_all(list_T *l);
 int job_stop(job_T *job, typval_T *argvars, char *type);
 void job_cleanup_all(void);
 /* vim: set ft=c : */
