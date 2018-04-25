@@ -682,7 +682,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     // Only start the run loop if the input queue is empty, otherwise process
     // the input first so that the input on queue isn't delayed.
-    if ([inputQueue count] || input_available()) {
+    if ([inputQueue count] > 0 || input_available()) {
         inputReceived = YES;
     } else {
         // Wait for the specified amount of time, unless 'milliseconds' is
@@ -703,16 +703,27 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                                          forMode:NSDefaultRunLoopMode];
         }
 
+        CFAbsoluteTime lastTime =
+            milliseconds >= 0 ? CFAbsoluteTimeGetCurrent() : .0;
+
         while (CFRunLoopRunInMode(kCFRunLoopDefaultMode, dt, true)
                 == kCFRunLoopRunHandledSource) {
-            // In order to ensure that all input on the run-loop has been
-            // processed we set the timeout to 0 and keep processing until the
-            // run-loop times out.
-            dt = 0.0;
-            inputReceived = YES;
+            // In order to ensure that all input (except for channel) on the
+            // run-loop has been processed we set the timeout to 0 and keep
+            // processing until the run-loop times out.
+            if ([inputQueue count] > 0 || input_available()) {
+                dt = 0.0;
+                inputReceived = YES;
+            } else if (milliseconds >= 0) {
+                CFAbsoluteTime nowTime = CFAbsoluteTimeGetCurrent();
+
+                if ((dt -= nowTime - lastTime) <= 0.0)
+                    break;
+                lastTime = nowTime;
+            }
         }
 
-        if (input_available())
+        if ([inputQueue count] > 0 || input_available())
             inputReceived = YES;
 
         [timer invalidate];
