@@ -4080,7 +4080,7 @@ again:
 	goto again;
     }
 
-    if (do_include || r < 1)
+    if (do_include)
     {
 	/* Include up to the '>'. */
 	while (*ml_get_cursor() != '>')
