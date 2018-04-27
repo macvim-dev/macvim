@@ -682,7 +682,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     // Only start the run loop if the input queue is empty, otherwise process
     // the input first so that the input on queue isn't delayed.
-    if ([inputQueue count] > 0 || input_available()) {
+    if ([inputQueue count] > 0 || input_available() || got_int) {
         inputReceived = YES;
     } else {
         // Wait for the specified amount of time, unless 'milliseconds' is
@@ -711,7 +711,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             // In order to ensure that all input (except for channel) on the
             // run-loop has been processed we set the timeout to 0 and keep
             // processing until the run-loop times out.
-            if ([inputQueue count] > 0 || input_available()) {
+            if ([inputQueue count] > 0 || input_available() || got_int) {
                 dt = 0.0;
                 inputReceived = YES;
             } else if (milliseconds >= 0) {
@@ -723,7 +723,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             }
         }
 
-        if ([inputQueue count] > 0 || input_available())
+        if ([inputQueue count] > 0 || input_available() || got_int)
             inputReceived = YES;
 
         [timer invalidate];
