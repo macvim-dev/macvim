@@ -1279,6 +1279,7 @@ enum auto_event
     EVENT_CMDWINENTER,		/* after entering the cmdline window */
     EVENT_CMDWINLEAVE,		/* before leaving the cmdline window */
     EVENT_COLORSCHEME,		/* after loading a colorscheme */
+    EVENT_COLORSCHEMEPRE,	/* before loading a colorscheme */
     EVENT_COMPLETEDONE,		/* after finishing insert complete */
     EVENT_CURSORHOLD,		/* cursor in same position for a while */
     EVENT_CURSORHOLDI,		/* idem, in Insert mode */
@@ -2188,16 +2189,16 @@ typedef enum {
 #ifdef FEAT_BROWSE
 # ifdef BACKSLASH_IN_FILENAME
 #  define BROWSE_FILTER_MACROS \
-	(char_u *)"Vim macro files (*.vim)\t*.vim\nAll Files (*.*)\t*.*\n"
-#  define BROWSE_FILTER_ALL_FILES (char_u *)"All Files (*.*)\t*.*\n"
+	(char_u *)N_("Vim macro files (*.vim)\t*.vim\nAll Files (*.*)\t*.*\n")
+#  define BROWSE_FILTER_ALL_FILES (char_u *)N_("All Files (*.*)\t*.*\n")
 #  define BROWSE_FILTER_DEFAULT \
-	(char_u *)"All Files (*.*)\t*.*\nC source (*.c, *.h)\t*.c;*.h\nC++ source (*.cpp, *.hpp)\t*.cpp;*.hpp\nVB code (*.bas, *.frm)\t*.bas;*.frm\nVim files (*.vim, _vimrc, _gvimrc)\t*.vim;_vimrc;_gvimrc\n"
+	(char_u *)N_("All Files (*.*)\t*.*\nC source (*.c, *.h)\t*.c;*.h\nC++ source (*.cpp, *.hpp)\t*.cpp;*.hpp\nVB code (*.bas, *.frm)\t*.bas;*.frm\nVim files (*.vim, _vimrc, _gvimrc)\t*.vim;_vimrc;_gvimrc\n")
 # else
 #  define BROWSE_FILTER_MACROS \
-	(char_u *)"Vim macro files (*.vim)\t*.vim\nAll Files (*)\t*\n"
-#  define BROWSE_FILTER_ALL_FILES (char_u *)"All Files (*)\t*\n"
+	(char_u *)N_("Vim macro files (*.vim)\t*.vim\nAll Files (*)\t*\n")
+#  define BROWSE_FILTER_ALL_FILES (char_u *)N_("All Files (*)\t*\n")
 #  define BROWSE_FILTER_DEFAULT \
-	(char_u *)"All Files (*)\t*\nC source (*.c, *.h)\t*.c;*.h\nC++ source (*.cpp, *.hpp)\t*.cpp;*.hpp\nVim files (*.vim, _vimrc, _gvimrc)\t*.vim;_vimrc;_gvimrc\n"
+	(char_u *)N_("All Files (*)\t*\nC source (*.c, *.h)\t*.c;*.h\nC++ source (*.cpp, *.hpp)\t*.cpp;*.hpp\nVim files (*.vim, _vimrc, _gvimrc)\t*.vim;_vimrc;_gvimrc\n")
 # endif
 # define BROWSE_SAVE 1	    /* flag for do_browse() */
 # define BROWSE_DIR 2	    /* flag for do_browse() */

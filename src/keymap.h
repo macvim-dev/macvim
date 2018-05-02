@@ -270,12 +270,13 @@ enum key_extra
     , KE_FOCUSGAINED = 98	/* focus gained */
     , KE_FOCUSLOST = 99		/* focus lost */
     , KE_MOUSEMOVE = 100	/* mouse moved with no button down */
+    , KE_CANCEL = 101		/* return from vgetc() */
 
 #ifdef FEAT_GUI_MACVIM
-    , KE_SWIPELEFT = 101	/* Swipe trackpad left */
-    , KE_SWIPERIGHT = 102	/* Swipe trackpad right */
-    , KE_SWIPEUP = 103		/* Swipe trackpad up */
-    , KE_SWIPEDOWN = 104	/* Swipe trackpad down */
+    , KE_SWIPELEFT = 102	/* Swipe trackpad left */
+    , KE_SWIPERIGHT = 103	/* Swipe trackpad right */
+    , KE_SWIPEUP = 104		/* Swipe trackpad up */
+    , KE_SWIPEDOWN = 105	/* Swipe trackpad down */
 #endif
 };
 
@@ -462,6 +463,7 @@ enum key_extra
 
 #define K_IGNORE	TERMCAP2KEY(KS_EXTRA, KE_IGNORE)
 #define K_NOP		TERMCAP2KEY(KS_EXTRA, KE_NOP)
+#define K_CANCEL	TERMCAP2KEY(KS_EXTRA, KE_CANCEL)
 
 #define K_MOUSEDOWN	TERMCAP2KEY(KS_EXTRA, KE_MOUSEDOWN)
 #define K_MOUSEUP	TERMCAP2KEY(KS_EXTRA, KE_MOUSEUP)

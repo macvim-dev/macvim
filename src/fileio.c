@@ -1209,28 +1209,42 @@ retry:
 	 * The amount is limited by the fact that read() only can read
 	 * upto max_unsigned characters (and other things).
 	 */
+	if (!skip_read)
+	{
+#if VIM_SIZEOF_INT > 2
+# if defined(SSIZE_MAX) && (SSIZE_MAX < 0x10000L)
+		size = SSIZE_MAX;		    /* use max I/O size, 52K */
+# else
+		/* Use buffer >= 64K.  Add linerest to double the size if the
+		 * line gets very long, to avoid a lot of copying. But don't
+		 * read more than 1 Mbyte at a time, so we can be interrupted.
+		 */
+		size = 0x10000L + linerest;
+		if (size > 0x100000L)
+		    size = 0x100000L;
+# endif
+#else
+		size = 0x7ff0L - linerest;	    /* limit buffer to 32K */
+#endif
+	}
+
+	/* Protect against the argument of lalloc() going negative. */
+	if (
 #if VIM_SIZEOF_INT <= 2
-	if (linerest >= 0x7ff0)
+	    linerest >= 0x7ff0
+#else
+	    size < 0 || size + linerest + 1 < 0 || linerest >= MAXCOL
+#endif
+	   )
 	{
 	    ++split;
 	    *ptr = NL;		    /* split line by inserting a NL */
 	    size = 1;
 	}
 	else
-#endif
 	{
 	    if (!skip_read)
 	    {
-#if VIM_SIZEOF_INT > 2
-# if defined(SSIZE_MAX) && (SSIZE_MAX < 0x10000L)
-		size = SSIZE_MAX;		    /* use max I/O size, 52K */
-# else
-		size = 0x10000L;		    /* use buffer >= 64K */
-# endif
-#else
-		size = 0x7ff0L - linerest;	    /* limit buffer to 32K */
-#endif
-
 		for ( ; size >= 10; size = (long)((long_u)size >> 1))
 		{
 		    if ((new_buffer = lalloc((long_u)(size + linerest + 1),
@@ -6153,7 +6167,7 @@ shorten_fname(char_u *full_path, char_u *dir_name)
 }
 
 /*
- * Shorten filenames for all buffers.
+ * Shorten filename of a buffer.
  * When "force" is TRUE: Use full path from now on for files currently being
  * edited, both for file name and swap file name.  Try to shorten the file
  * names a bit, if safe to do so.
@@ -6162,34 +6176,44 @@ shorten_fname(char_u *full_path, char_u *dir_name)
  * name.
  */
     void
+shorten_buf_fname(buf_T *buf, char_u *dirname, int force)
+{
+    char_u	*p;
+
+    if (buf->b_fname != NULL
+#ifdef FEAT_QUICKFIX
+	    && !bt_nofile(buf)
+#endif
+	    && !path_with_url(buf->b_fname)
+	    && (force
+		|| buf->b_sfname == NULL
+		|| mch_isFullName(buf->b_sfname)))
+    {
+	VIM_CLEAR(buf->b_sfname);
+	p = shorten_fname(buf->b_ffname, dirname);
+	if (p != NULL)
+	{
+	    buf->b_sfname = vim_strsave(p);
+	    buf->b_fname = buf->b_sfname;
+	}
+	if (p == NULL || buf->b_fname == NULL)
+	    buf->b_fname = buf->b_ffname;
+    }
+}
+
+/*
+ * Shorten filenames for all buffers.
+ */
+    void
 shorten_fnames(int force)
 {
     char_u	dirname[MAXPATHL];
     buf_T	*buf;
-    char_u	*p;
 
     mch_dirname(dirname, MAXPATHL);
     FOR_ALL_BUFFERS(buf)
     {
-	if (buf->b_fname != NULL
-#ifdef FEAT_QUICKFIX
-		&& !bt_nofile(buf)
-#endif
-		&& !path_with_url(buf->b_fname)
-		&& (force
-		    || buf->b_sfname == NULL
-		    || mch_isFullName(buf->b_sfname)))
-	{
-	    VIM_CLEAR(buf->b_sfname);
-	    p = shorten_fname(buf->b_ffname, dirname);
-	    if (p != NULL)
-	    {
-		buf->b_sfname = vim_strsave(p);
-		buf->b_fname = buf->b_sfname;
-	    }
-	    if (p == NULL || buf->b_fname == NULL)
-		buf->b_fname = buf->b_ffname;
-	}
+	shorten_buf_fname(buf, dirname, force);
 
 	/* Always make the swap file name a full path, a "nofile" buffer may
 	 * also have a swap file. */
@@ -7758,6 +7782,7 @@ static struct event_name
     {"CmdwinLeave",	EVENT_CMDWINLEAVE},
     {"CmdUndefined",	EVENT_CMDUNDEFINED},
     {"ColorScheme",	EVENT_COLORSCHEME},
+    {"ColorSchemePre",	EVENT_COLORSCHEMEPRE},
     {"CompleteDone",	EVENT_COMPLETEDONE},
     {"CursorHold",	EVENT_CURSORHOLD},
     {"CursorHoldI",	EVENT_CURSORHOLDI},
@@ -9503,7 +9528,8 @@ apply_autocmds_group(
      */
     if (fname_io == NULL)
     {
-	if (event == EVENT_COLORSCHEME || event == EVENT_OPTIONSET)
+	if (event == EVENT_COLORSCHEME || event == EVENT_COLORSCHEMEPRE
+						   || event == EVENT_OPTIONSET)
 	    autocmd_fname = NULL;
 	else if (fname != NULL && !ends_excmd(*fname))
 	    autocmd_fname = fname;
@@ -9573,6 +9599,7 @@ apply_autocmds_group(
 		|| event == EVENT_SPELLFILEMISSING
 		|| event == EVENT_QUICKFIXCMDPRE
 		|| event == EVENT_COLORSCHEME
+		|| event == EVENT_COLORSCHEMEPRE
 		|| event == EVENT_OPTIONSET
 		|| event == EVENT_QUICKFIXCMDPOST
 		|| event == EVENT_DIRCHANGED)

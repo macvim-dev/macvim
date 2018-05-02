@@ -138,6 +138,16 @@ func XlistTests(cchar)
 	      \ ' 4:40 col 20 x  44: Other',
 	      \ ' 5:50 col 25  55: one'], l)
 
+  " Test for module names, one needs to explicitly set `'valid':v:true` so
+  call g:Xsetlist([
+	\ {'lnum':10,'col':5,'type':'W','module':'Data.Text','text':'ModuleWarning','nr':11,'valid':v:true},
+	\ {'lnum':20,'col':10,'type':'W','module':'Data.Text','filename':'Data/Text.hs','text':'ModuleWarning','nr':22,'valid':v:true},
+	\ {'lnum':30,'col':15,'type':'W','filename':'Data/Text.hs','text':'FileWarning','nr':33,'valid':v:true}])
+  let l = split(execute('Xlist', ""), "\n")
+  call assert_equal([' 1 Data.Text:10 col 5 warning  11: ModuleWarning',
+	\ ' 2 Data.Text:20 col 10 warning  22: ModuleWarning',
+	\ ' 3 Data/Text.hs:30 col 15 warning  33: FileWarning'], l)
+
   " Error cases
   call assert_fails('Xlist abc', 'E488:')
 endfunc
@@ -1141,6 +1151,21 @@ func Test_efm2()
   call assert_equal(89, l[4].lnum)
   call assert_equal(1, l[4].valid)
   call assert_equal('unittests/dbfacadeTest.py', bufname(l[4].bufnr))
+
+  " Test for %o
+  set efm=%f(%o):%l\ %m
+  cgetexpr ['Xotestfile(Language.PureScript.Types):20 Error']
+  call writefile(['Line1'], 'Xotestfile')
+  let l = getqflist()
+  call assert_equal(1, len(l), string(l))
+  call assert_equal('Language.PureScript.Types', l[0].module)
+  copen
+  call assert_equal('Language.PureScript.Types|20| Error', getline(1))
+  call feedkeys("\<CR>", 'xn')
+  call assert_equal('Xotestfile', expand('%:t'))
+  cclose
+  bd
+  call delete("Xotestfile")
 
   " The following sequence of commands used to crash Vim
   set efm=%W%m
@@ -3200,4 +3225,28 @@ func Test_lhelpgrep_autocmd()
   call assert_equal(1, getloclist(0, {'nr' : '$'}).nr)
   au! QuickFixCmdPost
   new | only
+endfunc
+
+" Test for shortening/simplifying the file name when opening the
+" quickfix window or when displaying the quickfix list
+func Test_shorten_fname()
+  if !has('unix')
+    return
+  endif
+  %bwipe
+  " Create a quickfix list with a absolute path filename
+  let fname = getcwd() . '/test_quickfix.vim'
+  call setqflist([], ' ', {'lines':[fname . ":20:Line20"], 'efm':'%f:%l:%m'})
+  call assert_equal(fname, bufname('test_quickfix.vim'))
+  " Opening the quickfix window should simplify the file path
+  cwindow
+  call assert_equal('test_quickfix.vim', bufname('test_quickfix.vim'))
+  cclose
+  %bwipe
+  " Create a quickfix list with a absolute path filename
+  call setqflist([], ' ', {'lines':[fname . ":20:Line20"], 'efm':'%f:%l:%m'})
+  call assert_equal(fname, bufname('test_quickfix.vim'))
+  " Displaying the quickfix list should simplify the file path
+  silent! clist
+  call assert_equal('test_quickfix.vim', bufname('test_quickfix.vim'))
 endfunc

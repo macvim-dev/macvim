@@ -1300,108 +1300,108 @@ f_argv(typval_T *argvars, typval_T *rettv)
  * "assert_beeps(cmd [, error])" function
  */
     static void
-f_assert_beeps(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_beeps(typval_T *argvars, typval_T *rettv)
 {
-    assert_beeps(argvars);
+    rettv->vval.v_number = assert_beeps(argvars);
 }
 
 /*
  * "assert_equal(expected, actual[, msg])" function
  */
     static void
-f_assert_equal(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_equal(typval_T *argvars, typval_T *rettv)
 {
-    assert_equal_common(argvars, ASSERT_EQUAL);
+    rettv->vval.v_number = assert_equal_common(argvars, ASSERT_EQUAL);
 }
 
 /*
  * "assert_equalfile(fname-one, fname-two)" function
  */
     static void
-f_assert_equalfile(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_equalfile(typval_T *argvars, typval_T *rettv)
 {
-    assert_equalfile(argvars);
+    rettv->vval.v_number = assert_equalfile(argvars);
 }
 
 /*
  * "assert_notequal(expected, actual[, msg])" function
  */
     static void
-f_assert_notequal(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_notequal(typval_T *argvars, typval_T *rettv)
 {
-    assert_equal_common(argvars, ASSERT_NOTEQUAL);
+    rettv->vval.v_number = assert_equal_common(argvars, ASSERT_NOTEQUAL);
 }
 
 /*
  * "assert_exception(string[, msg])" function
  */
     static void
-f_assert_exception(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_exception(typval_T *argvars, typval_T *rettv)
 {
-    assert_exception(argvars);
+    rettv->vval.v_number = assert_exception(argvars);
 }
 
 /*
  * "assert_fails(cmd [, error])" function
  */
     static void
-f_assert_fails(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_fails(typval_T *argvars, typval_T *rettv)
 {
-    assert_fails(argvars);
+    rettv->vval.v_number = assert_fails(argvars);
 }
 
 /*
  * "assert_false(actual[, msg])" function
  */
     static void
-f_assert_false(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_false(typval_T *argvars, typval_T *rettv)
 {
-    assert_bool(argvars, FALSE);
+    rettv->vval.v_number = assert_bool(argvars, FALSE);
 }
 
 /*
  * "assert_inrange(lower, upper[, msg])" function
  */
     static void
-f_assert_inrange(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_inrange(typval_T *argvars, typval_T *rettv)
 {
-    assert_inrange(argvars);
+    rettv->vval.v_number = assert_inrange(argvars);
 }
 
 /*
  * "assert_match(pattern, actual[, msg])" function
  */
     static void
-f_assert_match(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_match(typval_T *argvars, typval_T *rettv)
 {
-    assert_match_common(argvars, ASSERT_MATCH);
+    rettv->vval.v_number = assert_match_common(argvars, ASSERT_MATCH);
 }
 
 /*
  * "assert_notmatch(pattern, actual[, msg])" function
  */
     static void
-f_assert_notmatch(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_notmatch(typval_T *argvars, typval_T *rettv)
 {
-    assert_match_common(argvars, ASSERT_NOTMATCH);
+    rettv->vval.v_number = assert_match_common(argvars, ASSERT_NOTMATCH);
 }
 
 /*
  * "assert_report(msg)" function
  */
     static void
-f_assert_report(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_report(typval_T *argvars, typval_T *rettv)
 {
-    assert_report(argvars);
+    rettv->vval.v_number = assert_report(argvars);
 }
 
 /*
  * "assert_true(actual[, msg])" function
  */
     static void
-f_assert_true(typval_T *argvars, typval_T *rettv UNUSED)
+f_assert_true(typval_T *argvars, typval_T *rettv)
 {
-    assert_bool(argvars, TRUE);
+    rettv->vval.v_number = assert_bool(argvars, TRUE);
 }
 
 #ifdef FEAT_FLOAT
@@ -3311,18 +3311,12 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
 		/* Avoid a 1 second delay when the keys start Insert mode. */
 		msg_scroll = FALSE;
 
-#ifdef FEAT_TERMINAL
-		if (term_use_loop())
-		    terminal_loop(FALSE);
-		else
-#endif
-		{
-		    if (!dangerous)
-			++ex_normal_busy;
-		    exec_normal(TRUE);
-		    if (!dangerous)
-			--ex_normal_busy;
-		}
+		if (!dangerous)
+		    ++ex_normal_busy;
+		exec_normal(TRUE);
+		if (!dangerous)
+		    --ex_normal_busy;
+
 		msg_scroll |= save_msg_scroll;
 	    }
 	}
