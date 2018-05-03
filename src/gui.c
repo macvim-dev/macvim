@@ -2469,16 +2469,11 @@ gui_outstr_nowrap(
 #ifdef FEAT_GUI_GTK
     /* The value returned is the length in display cells */
     len = gui_gtk2_draw_string(gui.row, col, s, len, draw_flags);
+#elif defined(FEAT_GUI_MACVIM)
+    /* The value returned is the length in display cells */
+    len = gui_macvim_draw_string(gui.row, col, s, len, draw_flags);
 #else
 # ifdef FEAT_MBYTE
-#  ifdef FEAT_GUI_MACVIM
-    if (use_gui_macvim_draw_string)
-    {
-	/* The value returned is the length in display cells */
-	len = gui_macvim_draw_string(gui.row, col, s, len, draw_flags);
-    }
-    else
-#  endif
     if (enc_utf8)
     {
 	int	start;		/* index of bytes to be drawn */
@@ -2512,9 +2507,6 @@ gui_outstr_nowrap(
 		cells += cn;
 	    if (!comping || sep_comp)
 	    {
-#  ifdef FEAT_GUI_MACVIM
-		curr_wide = (cn > 1);
-#  else
 		if (cn > 1
 #  ifdef FEAT_XFONTSET
 			&& fontset == NOFONTSET
@@ -2523,7 +2515,6 @@ gui_outstr_nowrap(
 		    curr_wide = TRUE;
 		else
 		    curr_wide = FALSE;
-#  endif
 	    }
 	    cl = utf_ptr2len(s + i);
 	    if (cl == 0)	/* hit end of string */
@@ -2555,13 +2546,7 @@ gui_outstr_nowrap(
 		    if (prev_wide)
 			gui_mch_set_font(wide_font);
 		    gui_mch_draw_string(gui.row, scol, s + start, thislen,
-#  ifdef FEAT_GUI_MACVIM
-				    cells,
-				    draw_flags | (prev_wide ? DRAW_WIDE : 0)
-# else
-				    draw_flag
-#  endif
-				    );
+								  draw_flags);
 		    if (prev_wide)
 			gui_mch_set_font(font);
 		    start += thislen;
@@ -2591,17 +2576,13 @@ gui_outstr_nowrap(
 	    /* Draw a composing char on top of the previous char. */
 	    if (comping && sep_comp)
 	    {
-#  if !defined(FEAT_GUI_MACVIM) && \
-	(defined(__APPLE_CC__) && TARGET_API_MAC_CARBON)
+#  if defined(__APPLE_CC__) && TARGET_API_MAC_CARBON
 		/* Carbon ATSUI autodraws composing char over previous char */
 		gui_mch_draw_string(gui.row, scol, s + i, cl,
 						    draw_flags | DRAW_TRANSP);
 #  else
 		gui_mch_draw_string(gui.row, scol - cn, s + i, cl,
-#  ifdef FEAT_GUI_MACVIM
-					            0,
-#  endif
-					draw_flags | DRAW_TRANSP | DRAW_COMP);
+						    draw_flags | DRAW_TRANSP);
 #  endif
 		start = i + cl;
 	    }
@@ -2613,11 +2594,7 @@ gui_outstr_nowrap(
     else
 # endif
     {
-	gui_mch_draw_string(gui.row, col, s, len,
-#  ifdef FEAT_GUI_MACVIM
-						len,
-#  endif
-						draw_flags);
+	gui_mch_draw_string(gui.row, col, s, len, draw_flags);
 # ifdef FEAT_MBYTE
 	if (enc_dbcs == DBCS_JPNU)
 	{

@@ -477,41 +477,16 @@ gui_mch_delete_lines(int row, int num_lines)
 }
 
 
-    void
-gui_mch_draw_string(int row, int col, char_u *s, int len, int cells, int flags)
-{
-#ifdef FEAT_MBYTE
-    char_u *conv_str = NULL;
-    if (output_conv.vc_type != CONV_NONE) {
-        conv_str = string_convert(&output_conv, s, &len);
-        if (conv_str)
-            s = conv_str;
-    }
-#endif
-
-    [[MMBackend sharedInstance] drawString:s
-                                    length:len
-                                       row:row
-                                    column:col
-                                     cells:cells
-                                     flags:flags];
-#ifdef FEAT_MBYTE
-    if (conv_str)
-        vim_free(conv_str);
-#endif
-}
-
-
     int
 gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
 {
-    int c, cn, cl, i;
+    MMBackend *backend = [MMBackend sharedInstance];
+#ifdef FEAT_MBYTE
+    int c, cw, cl, ccl;
     int start = 0;
     int endcol = col;
     int startcol = col;
     BOOL wide = NO;
-    MMBackend *backend = [MMBackend sharedInstance];
-#ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
 
     if (output_conv.vc_type != CONV_NONE) {
@@ -519,45 +494,62 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
         if (conv_str)
             s = conv_str;
     }
-#endif
 
     // Loop over each character and output text when it changes from normal to
     // wide and vice versa.
-    for (i = 0; i < len; i += cl) {
+    for (int i = 0; i < len; i += cl) {
         c = utf_ptr2char(s + i);
-        cn = utf_char2cells(c);
+        cw = utf_char2cells(c);
         cl = utf_ptr2len(s + i);
-        if (0 == cl)
+        ccl = utfc_ptr2len(s + i);
+        if (cl == 0)
             len = i;    // len must be wrong (shouldn't happen)
 
-        if (!utf_iscomposing(c)) {
-            if ((cn > 1 && !wide) || (cn <= 1 && wide)) {
-                // Changed from normal to wide or vice versa.
-                [backend drawString:(s+start) length:i-start
-                                   row:row column:startcol
-                                 cells:endcol-startcol
-                                 flags:(wide ? flags|DRAW_WIDE : flags)];
+        if (i > start && (cl < ccl || (cw > 1 && !wide) || (cw <= 1 && wide))) {
+            // Changed from normal to wide or vice versa.
+            [backend drawString:(s+start) length:i-start
+                            row:row column:startcol
+                          cells:endcol-startcol
+                          flags:flags|(wide ? DRAW_WIDE : 0)];
 
-                start = i;
-                startcol = endcol;
-            }
+            start = i;
+            startcol = endcol;
+        }
 
-            wide = cn > 1;
-            endcol += cn;
+        wide = cw > 1;
+        endcol += cw;
+
+        if (cl < ccl) {
+            // Changed from normal to wide or vice versa.
+            [backend drawString:(s+start) length:ccl
+                            row:row column:startcol
+                          cells:endcol-startcol
+                          flags:flags|DRAW_COMP|(wide ? DRAW_WIDE : 0)];
+
+            start = i + ccl;
+            startcol = endcol;
+            cl = ccl;
         }
     }
 
-    // Output remaining characters.
-    [backend drawString:(s+start) length:len-start
-                    row:row column:startcol cells:endcol-startcol
-                  flags:(wide ? flags|DRAW_WIDE : flags)];
+    if (len > start) {
+        // Output remaining characters.
+        [backend drawString:(s+start) length:len-start
+			row:row column:startcol
+		      cells:endcol-startcol
+		      flags:flags|(wide ? DRAW_WIDE : 0)];
+    }
 
-#ifdef FEAT_MBYTE
     if (conv_str)
         vim_free(conv_str);
-#endif
 
     return endcol - col;
+#else
+    [backend drawString:s length:len
+                    row:row column:col
+                  cells:len flags:flags];
+    return len;
+#endif
 }
 
 

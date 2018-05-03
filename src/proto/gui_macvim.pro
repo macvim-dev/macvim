@@ -30,8 +30,6 @@ gui_mch_clear_all(void);
 gui_mch_clear_block(int row1, int col1, int row2, int col2);
     void
 gui_mch_delete_lines(int row, int num_lines);
-    void
-gui_mch_draw_string(int row, int col, char_u *s, int len, int cells, int flags);
     int
 gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags);
     void
