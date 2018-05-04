@@ -1431,7 +1431,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
         }
 
         CGContextSetRGBStrokeColor(context, RED(sp), GREEN(sp), BLUE(sp),
-                                 ALPHA(sp));
+                                   ALPHA(sp));
         CGContextStrokePath(context);
     }
 
@@ -1449,13 +1449,10 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
     CGContextSetFontSize(context, [font pointSize]);
 
     // Calculate position of each glyph relative to (x,y).
-    if (!composing) {
-        float xrel = 0;
-        for (unsigned i = 0; i < length; ++i) {
-            positions[i].x = xrel;
-            positions[i].y = .0;
-            xrel += w;
-        }
+    float xrel = composing ? .0 : w;
+    for (unsigned i = 0; i < length; ++i) {
+        positions[i].x = i * xrel;
+        positions[i].y = .0;
     }
 
     CTFontRef fontRef = (CTFontRef)(wide ? [fontWide retain]
