@@ -7830,7 +7830,7 @@ n_start_visual_mode(int c)
 {
 #ifdef FEAT_CONCEAL
     /* Check for redraw before changing the state. */
-    conceal_check_cursur_line();
+    conceal_check_cursor_line();
 #endif
 
     VIsual_mode = c;
@@ -7857,7 +7857,7 @@ n_start_visual_mode(int c)
 #endif
 #ifdef FEAT_CONCEAL
     /* Check for redraw after changing the state. */
-    conceal_check_cursur_line();
+    conceal_check_cursor_line();
 #endif
 
     if (p_smd && msg_silent == 0)
