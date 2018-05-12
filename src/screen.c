@@ -8388,7 +8388,13 @@ screen_char(unsigned off, int row, int col)
     {
 	char_u	    buf[MB_MAXBYTES + 1];
 
-	if (utf_ambiguous_width(ScreenLinesUC[off]))
+	if (utf_ambiguous_width(ScreenLinesUC[off])
+# ifdef FEAT_GUI_MACVIM
+		/* In the GUI, check if the cell width is actually 1 in order
+		 * to display 2-cells emoji correctly. */
+		&& (!gui.in_use || utf_char2cells(ScreenLinesUC[off]) == 1)
+# endif
+		)
 	{
 	    if (*p_ambw == 'd'
 # ifdef FEAT_GUI
@@ -8404,9 +8410,9 @@ screen_char(unsigned off, int row, int col)
 	    /* not sure where the cursor is after drawing the ambiguous width
 	     * character */
 # ifdef FEAT_GUI_MACVIM
-           if (*p_ambw == 'd' || !gui.in_use)
+	    if (*p_ambw == 'd' || !gui.in_use)
 # endif
-               screen_cur_col = 9999;
+		screen_cur_col = 9999;
 	}
 	else if (utf_char2cells(ScreenLinesUC[off]) > 1)
 	    ++screen_cur_col;
