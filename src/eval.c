@@ -2758,6 +2758,20 @@ ex_unletlock(
 
     do
     {
+	if (*arg == '$')
+	{
+	    char_u    *name = ++arg;
+
+	    if (get_env_len(&arg) == 0)
+	    {
+		EMSG2(_(e_invarg2), name - 1);
+		return;
+	    }
+	    vim_unsetenv(name);
+	    arg = skipwhite(arg);
+	    continue;
+	}
+
 	/* Parse the name and find the end. */
 	name_end = get_lval(arg, NULL, &lv, TRUE, eap->skip || error, 0,
 							     FNE_CHECK_START);
@@ -6459,6 +6473,29 @@ set_vcount(
 	vimvars[VV_PREVCOUNT].vv_nr = vimvars[VV_COUNT].vv_nr;
     vimvars[VV_COUNT].vv_nr = count;
     vimvars[VV_COUNT1].vv_nr = count1;
+}
+
+/*
+ * Save variables that might be changed as a side effect.  Used when executing
+ * a timer callback.
+ */
+    void
+save_vimvars(vimvars_save_T *vvsave)
+{
+    vvsave->vv_prevcount = vimvars[VV_PREVCOUNT].vv_nr;
+    vvsave->vv_count = vimvars[VV_COUNT].vv_nr;
+    vvsave->vv_count1 = vimvars[VV_COUNT1].vv_nr;
+}
+
+/*
+ * Restore variables saved by save_vimvars().
+ */
+    void
+restore_vimvars(vimvars_save_T *vvsave)
+{
+    vimvars[VV_PREVCOUNT].vv_nr = vvsave->vv_prevcount;
+    vimvars[VV_COUNT].vv_nr = vvsave->vv_count;
+    vimvars[VV_COUNT1].vv_nr = vvsave->vv_count1;
 }
 
 /*

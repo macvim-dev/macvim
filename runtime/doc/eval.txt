@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.0.  Last change: 2018 Apr 28
+*eval.txt*	For Vim version 8.0.  Last change: 2018 May 13
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -9942,6 +9942,14 @@ This does NOT work: >
 			deleted when the script ends).  Function-local
 			variables are automatically deleted when the function
 			ends.
+
+:unl[et] ${env-name} ...			*:unlet-environment* *:unlet-$*
+			Remove environment variable {env-name}.
+			Can mix {name} and ${env-name} in one :unlet command.
+			No error message is given for a non-existing
+			variable, also without !.
+			If the system does not support deleting an environment
+			variable, it is made emtpy.
 
 :lockv[ar][!] [depth] {name} ...			*:lockvar* *:lockv*
 			Lock the internal variable {name}.  Locking means that

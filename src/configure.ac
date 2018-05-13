@@ -168,7 +168,7 @@ AC_MSG_CHECKING([for Darwin (Mac OS X)])
 if test "`(uname) 2>/dev/null`" = Darwin; then
   AC_MSG_RESULT(yes)
   MACOS_X=yes
-  CPPFLAGS="$CPPFLAGS -D_DARWIN_C_SOURCE -DMACOS_X"
+  CPPFLAGS="$CPPFLAGS -DMACOS_X"
 
   AC_MSG_CHECKING(--disable-darwin argument)
   AC_ARG_ENABLE(darwin,
@@ -3794,7 +3794,7 @@ AC_CHECK_FUNCS(fchdir fchown fchmod fsync getcwd getpseudotty \
 	getpgid setpgid setsid sigaltstack sigstack sigset sigsetjmp sigaction \
 	sigprocmask sigvec strcasecmp strerror strftime stricmp strncasecmp \
 	strnicmp strpbrk strtol tgetent towlower towupper iswupper \
-	usleep utime utimes mblen ftruncate)
+	usleep utime utimes mblen ftruncate unsetenv)
 AC_FUNC_FSEEKO
 
 dnl define _LARGE_FILES, _FILE_OFFSET_BITS and _LARGEFILE_SOURCE when

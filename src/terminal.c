@@ -1462,6 +1462,7 @@ cleanup_scrollback(term_T *term)
     sb_line_T	*line;
     garray_T	*gap;
 
+    curbuf = term->tl_buffer;
     gap = &term->tl_scrollback;
     while (curbuf->b_ml.ml_line_count > term->tl_scrollback_scrolled
 							    && gap->ga_len > 0)
@@ -1471,33 +1472,24 @@ cleanup_scrollback(term_T *term)
 	vim_free(line->sb_cells);
 	--gap->ga_len;
     }
-    check_cursor();
+    curbuf = curwin->w_buffer;
+    if (curbuf == term->tl_buffer)
+	check_cursor();
 }
 
 /*
  * Add the current lines of the terminal to scrollback and to the buffer.
- * Called after the job has ended and when switching to Terminal-Normal mode.
  */
     static void
-move_terminal_to_buffer(term_T *term)
+update_snapshot(term_T *term)
 {
-    win_T	    *wp;
+    VTermScreen	    *screen;
     int		    len;
     int		    lines_skipped = 0;
     VTermPos	    pos;
     VTermScreenCell cell;
     cellattr_T	    fill_attr, new_fill_attr;
     cellattr_T	    *p;
-    VTermScreen	    *screen;
-
-    if (term->tl_vterm == NULL)
-	return;
-
-    /* Nothing to do if the buffer already has the lines and nothing was
-     * changed. */
-    if (!term->tl_dirty_snapshot
-		  && curbuf->b_ml.ml_line_count > term->tl_scrollback_scrolled)
-	return;
 
     ch_log(term->tl_job == NULL ? NULL : term->tl_job->jv_channel,
 				  "Adding terminal window snapshot to buffer");
@@ -1598,28 +1590,50 @@ move_terminal_to_buffer(term_T *term)
 #ifdef FEAT_TIMERS
     term->tl_timer_set = FALSE;
 #endif
+}
+
+/*
+ * If needed, add the current lines of the terminal to scrollback and to the
+ * buffer.  Called after the job has ended and when switching to
+ * Terminal-Normal mode.
+ * When "redraw" is TRUE redraw the windows that show the terminal.
+ */
+    static void
+may_move_terminal_to_buffer(term_T *term, int redraw)
+{
+    win_T	    *wp;
+
+    if (term->tl_vterm == NULL)
+	return;
+
+    /* Update the snapshot only if something changes or the buffer does not
+     * have all the lines. */
+    if (term->tl_dirty_snapshot || term->tl_buffer->b_ml.ml_line_count
+					       <= term->tl_scrollback_scrolled)
+	update_snapshot(term);
 
     /* Obtain the current background color. */
     vterm_state_get_default_colors(vterm_obtain_state(term->tl_vterm),
 		       &term->tl_default_color.fg, &term->tl_default_color.bg);
 
-    FOR_ALL_WINDOWS(wp)
-    {
-	if (wp->w_buffer == term->tl_buffer)
+    if (redraw)
+	FOR_ALL_WINDOWS(wp)
 	{
-	    wp->w_cursor.lnum = term->tl_buffer->b_ml.ml_line_count;
-	    wp->w_cursor.col = 0;
-	    wp->w_valid = 0;
-	    if (wp->w_cursor.lnum >= wp->w_height)
+	    if (wp->w_buffer == term->tl_buffer)
 	    {
-		linenr_T min_topline = wp->w_cursor.lnum - wp->w_height + 1;
+		wp->w_cursor.lnum = term->tl_buffer->b_ml.ml_line_count;
+		wp->w_cursor.col = 0;
+		wp->w_valid = 0;
+		if (wp->w_cursor.lnum >= wp->w_height)
+		{
+		    linenr_T min_topline = wp->w_cursor.lnum - wp->w_height + 1;
 
-		if (wp->w_topline < min_topline)
-		    wp->w_topline = min_topline;
+		    if (wp->w_topline < min_topline)
+			wp->w_topline = min_topline;
+		}
+		redraw_win_later(wp, NOT_VALID);
 	    }
-	    redraw_win_later(wp, NOT_VALID);
 	}
-    }
 }
 
 #if defined(FEAT_TIMERS) || defined(PROTO)
@@ -1643,7 +1657,7 @@ term_check_timers(int next_due_arg, proftime_T *now)
 	    if (this_due <= 1)
 	    {
 		term->tl_timer_set = FALSE;
-		move_terminal_to_buffer(term);
+		may_move_terminal_to_buffer(term, FALSE);
 	    }
 	    else if (next_due == -1 || next_due > this_due)
 		next_due = this_due;
@@ -1671,7 +1685,7 @@ set_terminal_mode(term_T *term, int normal_mode)
 cleanup_vterm(term_T *term)
 {
     if (term->tl_finish != TL_FINISH_CLOSE)
-	move_terminal_to_buffer(term);
+	may_move_terminal_to_buffer(term, TRUE);
     term_free_vterm(term);
     set_terminal_mode(term, FALSE);
 }
@@ -1685,17 +1699,18 @@ term_enter_normal_mode(void)
 {
     term_T *term = curbuf->b_term;
 
-    /* Append the current terminal contents to the buffer. */
-    move_terminal_to_buffer(term);
-
     set_terminal_mode(term, TRUE);
+
+    /* Append the current terminal contents to the buffer. */
+    may_move_terminal_to_buffer(term, TRUE);
 
     /* Move the window cursor to the position of the cursor in the
      * terminal. */
     curwin->w_cursor.lnum = term->tl_scrollback_scrolled
 					     + term->tl_cursor_pos.row + 1;
     check_cursor();
-    coladvance(term->tl_cursor_pos.col);
+    if (coladvance(term->tl_cursor_pos.col) == FAIL)
+	coladvance(MAXCOL);
 
     /* Display the same lines as in the terminal. */
     curwin->w_topline = term->tl_scrollback_scrolled + 1;
@@ -2084,7 +2099,7 @@ terminal_loop(int blocking)
     int		tty_fd = curbuf->b_term->tl_job->jv_channel
 				 ->ch_part[get_tty_part(curbuf->b_term)].ch_fd;
 #endif
-    int		restore_cursor;
+    int		restore_cursor = FALSE;
 
     /* Remember the terminal we are sending keys to.  However, the terminal
      * might be closed while waiting for a character, e.g. typing "exit" in a
@@ -2250,8 +2265,8 @@ theend:
 
     /* Move a snapshot of the screen contents to the buffer, so that completion
      * works in other buffers. */
-    if (curbuf->b_term != NULL)
-	move_terminal_to_buffer(curbuf->b_term);
+    if (curbuf->b_term != NULL && !curbuf->b_term->tl_normal_mode)
+	may_move_terminal_to_buffer(curbuf->b_term, FALSE);
 
     return ret;
 }
