@@ -4491,7 +4491,7 @@ vim_unsetenv(char_u *var)
 #ifdef HAVE_UNSETENV
     unsetenv((char *)var);
 #else
-    mch_setenv((char *)var, "", 0);
+    vim_setenv(var, (char_u *)"");
 #endif
 }
 
