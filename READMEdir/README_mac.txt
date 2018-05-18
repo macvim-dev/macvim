@@ -1,4 +1,4 @@
-README_mac.txt for version 8.0 of Vim: Vi IMproved.
+README_mac.txt for version 8.1 of Vim: Vi IMproved.
 
 How to install MacVim?
 ========================
