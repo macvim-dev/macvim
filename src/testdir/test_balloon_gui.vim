@@ -4,8 +4,6 @@ source check.vim
 CheckGui
 CheckFeature balloon_eval
 
-if !has('gui_macvim') " See https://github.com/macvim-dev/macvim/issues/902
-
 func Test_balloon_show_gui()
   let msg = 'this this this this'
   call balloon_show(msg)
@@ -20,5 +18,4 @@ func Test_balloon_show_gui()
   call balloon_show('')
 endfunc
 
-endif " !has('gui_macvim')
 " vim: shiftwidth=2 sts=2 expandtab

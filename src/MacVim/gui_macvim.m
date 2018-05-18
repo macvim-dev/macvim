@@ -2514,8 +2514,11 @@ gui_mch_disable_beval_area(BalloonEval *beval UNUSED)
  * Show a balloon with "mesg".
  */
     void
-gui_mch_post_balloon(BalloonEval *beval UNUSED, char_u *mesg)
+gui_mch_post_balloon(BalloonEval *beval, char_u *mesg)
 {
+    vim_free(beval->msg);
+    beval->msg = mesg == NULL ? NULL : vim_strsave(mesg);
+
     NSString *toolTip = [NSString stringWithVimString:mesg];
     [[MMBackend sharedInstance] setLastToolTip:toolTip];
 }

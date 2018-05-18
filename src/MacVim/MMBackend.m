@@ -3359,14 +3359,14 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         // variable.  (The reason we need to know is due to how the Cocoa tool
         // tips work: if there is no tool tip we must set it to nil explicitly
         // or it might never go away.)
-        [self setLastToolTip:nil];
-
         (*balloonEval->msgCB)(balloonEval, 0);
 
         [self queueMessage:SetTooltipMsgID properties:
             [NSDictionary dictionaryWithObject:(lastToolTip ? lastToolTip : @"")
                                         forKey:@"toolTip"]];
         [self flushQueue:YES];
+
+        [self setLastToolTip:nil];
     }
 }
 #endif
