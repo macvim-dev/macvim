@@ -476,6 +476,10 @@ redraw_after_callback(int call_update_screen)
     else
 #endif
 	out_flush();
+#ifdef FEAT_GUI_MACVIM
+    if (gui.in_use)
+	gui_macvim_force_flush();
+#endif
 
     --redrawing_for_callback;
 }
