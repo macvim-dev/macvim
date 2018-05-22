@@ -2494,12 +2494,7 @@ gui_mch_create_beval_area(
     void
 gui_mch_enable_beval_area(BalloonEval *beval UNUSED)
 {
-    // Set the balloon delay when enabling balloon eval.
-    float delay = p_bdlay/1000.0f - MMBalloonEvalInternalDelay;
-    if (delay < 0) delay = 0;
-    [[MMBackend sharedInstance] queueMessage:SetTooltipDelayMsgID properties:
-        [NSDictionary dictionaryWithObject:[NSNumber numberWithFloat:delay]
-                                    forKey:@"delay"]];
+    // NOP
 }
 
     void

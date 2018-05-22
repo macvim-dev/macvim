@@ -261,7 +261,6 @@ extern const char * const MMVimMsgIDStrings[];
     MSG(SetWindowPositionMsgID) \
     MSG(DeleteSignMsgID) \
     MSG(SetTooltipMsgID) \
-    MSG(SetTooltipDelayMsgID) \
     MSG(GestureMsgID) \
     MSG(AddToMRUMsgID) \
     MSG(BackingPropertiesChangedMsgID) \

@@ -163,7 +163,7 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)handleBrowseForFile:(NSDictionary *)attr;
 - (void)handleShowDialog:(NSDictionary *)attr;
 - (void)handleDeleteSign:(NSDictionary *)attr;
-- (void)setToolTipDelay:(NSTimeInterval)seconds;
+- (void)setToolTipDelay;
 @end
 
 
@@ -220,6 +220,8 @@ static BOOL isUnsafeMessage(int msgid);
     [appMenuItem setTitle:appName];
 
     [mainMenu addItem:appMenuItem];
+
+    [self setToolTipDelay];
 
     isInitialized = YES;
 
@@ -1007,11 +1009,6 @@ static BOOL isUnsafeMessage(int msgid);
             [textView setToolTipAtMousePoint:toolTip];
         else
             [textView setToolTipAtMousePoint:nil];
-    } else if (SetTooltipDelayMsgID == msgid) {
-        NSDictionary *dict = [NSDictionary dictionaryWithData:data];
-        NSNumber *delay = dict ? [dict objectForKey:@"delay"] : nil;
-        if (delay)
-            [self setToolTipDelay:[delay floatValue]];
     } else if (AddToMRUMsgID == msgid) {
         NSDictionary *dict = [NSDictionary dictionaryWithData:data];
         NSArray *filenames = dict ? [dict objectForKey:@"filenames"] : nil;
@@ -1907,18 +1904,15 @@ static BOOL isUnsafeMessage(int msgid);
     [view deleteSign:[attr objectForKey:@"imgName"]];
 }
 
-- (void)setToolTipDelay:(NSTimeInterval)seconds
+- (void)setToolTipDelay
 {
     // HACK! NSToolTipManager is an AppKit private class.
     static Class TTM = nil;
     if (!TTM)
         TTM = NSClassFromString(@"NSToolTipManager");
 
-    if (seconds < 0)
-        seconds = 0;
-
     if (TTM) {
-        [[TTM sharedToolTipManager] setInitialToolTipDelay:seconds];
+        [[TTM sharedToolTipManager] setInitialToolTipDelay:1e-6];
     } else {
         ASLogNotice(@"Failed to get NSToolTipManager");
     }
