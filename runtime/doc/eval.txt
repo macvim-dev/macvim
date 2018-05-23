@@ -2302,6 +2302,8 @@ range({expr} [, {max} [, {stride}]])
 				List	items from {expr} to {max}
 readfile({fname} [, {binary} [, {max}]])
 				List	get list of lines from file {fname}
+reg_executing()			Number	get the executing register name
+reg_recording()			String	get the recording register name
 reltime([{start} [, {end}]])	List	get time value
 reltimefloat({time})		Float	turn the time value into a Float
 reltimestr({time})		String	turn time value into a String
@@ -5820,7 +5822,8 @@ maparg({name} [, {mode} [, {abbr} [, {dict}]]])			*maparg()*
 		listing.
 
 		When there is no mapping for {name}, an empty String is
-		returned.
+		returned.  When the mapping for {name} is empty, then "<Nop>"
+		is returned.
 
 		The {name} can have special key names, like in the ":map"
 		command.
@@ -5887,9 +5890,10 @@ mapcheck({name} [, {mode} [, {abbr}]])			*mapcheck()*
 		mapping that matches with {name}, while maparg() only finds a
 		mapping for {name} exactly.
 		When there is no mapping that starts with {name}, an empty
-		String is returned.  If there is one, the rhs of that mapping
+		String is returned.  If there is one, the RHS of that mapping
 		is returned.  If there are several mappings that start with
-		{name}, the rhs of one of them is returned.
+		{name}, the RHS of one of them is returned.  This will be
+		"<Nop>" if the RHS is empty.
 		The mappings local to the current buffer are checked first,
 		then the global mappings.
 		This function can be used to check if a mapping can be added
@@ -6557,6 +6561,15 @@ readfile({fname} [, {binary} [, {max}]])
 		When the file can't be opened an error message is given and
 		the result is an empty list.
 		Also see |writefile()|.
+
+reg_executing()						*reg_executing()*
+		Returns the single letter name of the register being executed.
+		Returns an empty string when no register is being executed.
+		See |@|.
+
+reg_recording()						*reg_recording()*
+		Returns the single letter name of the register being recorded.
+		Returns an empty string string when not recording.  See |q|.
 
 reltime([{start} [, {end}]])				*reltime()*
 		Return an item that represents a time value.  The format of

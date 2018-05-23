@@ -714,8 +714,8 @@ readfile(
 			&& st.st_gid != swap_st.st_gid
 # ifdef HAVE_FCHOWN
 			&& fchown(curbuf->b_ml.ml_mfp->mf_fd, -1, st.st_gid)
-# endif
 									  == -1
+# endif
 		   )
 		    swap_mode &= 0600;
 	    }
@@ -9312,7 +9312,7 @@ trigger_cursorhold(void)
 
     if (!did_cursorhold
 	    && has_cursorhold()
-	    && !Recording
+	    && reg_recording == 0
 	    && typebuf.tb_len == 0
 #ifdef FEAT_INS_EXPAND
 	    && !ins_compl_active()
