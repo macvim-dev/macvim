@@ -707,7 +707,14 @@ ui_breakcheck_force(int force)
 
 #ifdef FEAT_GUI
     if (gui.in_use)
+    {
+# ifdef FEAT_GUI_MACVIM
+	if (force)
+	    gui_macvim_update();
+	else
+# endif
 	gui_mch_update();
+    }
     else
 #endif
 	mch_breakcheck(force);

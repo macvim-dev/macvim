@@ -17,6 +17,8 @@ gui_mch_open(void);
     void
 gui_mch_update(void);
     void
+gui_macvim_update(void);
+    void
 gui_mch_flush(void);
     void
 gui_macvim_flush(void);
