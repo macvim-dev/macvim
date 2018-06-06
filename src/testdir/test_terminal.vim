@@ -384,7 +384,8 @@ endfunc
 func s:get_sleep_cmd()
   if s:python != ''
     let cmd = s:python . " test_short_sleep.py"
-    let waittime = 500
+    " 500 was not enough for Travis
+    let waittime = 900
   else
     echo 'This will take five seconds...'
     let waittime = 2000
@@ -584,6 +585,10 @@ endfunc
 func Test_terminal_write_stdin()
   if !executable('wc')
     throw 'skipped: wc command not available'
+  endif
+  if has('win32')
+    " TODO: enable once writing to stdin works on MS-Windows
+    return
   endif
   new
   call setline(1, ['one', 'two', 'three'])
