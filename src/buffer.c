@@ -5743,6 +5743,10 @@ buf_spname(buf_T *buf)
 #endif
 	if (buf->b_fname != NULL)
 	    return buf->b_fname;
+#ifdef FEAT_JOB_CHANNEL
+	if (bt_prompt(buf))
+	    return (char_u *)_("[Prompt]");
+#endif
 	return (char_u *)_("[Scratch]");
     }
 

@@ -811,6 +811,14 @@ edit(
 	    do
 	    {
 		c = safe_vgetc();
+
+		if (stop_insert_mode)
+		{
+		    // Insert mode ended, possibly from a callback.
+		    count = 0;
+		    nomove = TRUE;
+		    goto doESCkey;
+		}
 	    } while (c == K_IGNORE || c == K_NOP);
 
 	/* Don't want K_CURSORHOLD for the second key, e.g., after CTRL-V. */
@@ -1165,6 +1173,18 @@ doESCkey:
 	    break;
 
 	case Ctrl_W:	/* delete word before the cursor */
+#ifdef FEAT_JOB_CHANNEL
+	    if (bt_prompt(curbuf) && (mod_mask & MOD_MASK_SHIFT) == 0)
+	    {
+		// In a prompt window CTRL-W is used for window commands.
+		// Use Shift-CTRL-W to delete a word.
+		stuffcharReadbuff(Ctrl_W);
+		restart_edit = 'i';
+		nomove = TRUE;
+		count = 0;
+		goto doESCkey;
+	    }
+#endif
 	    did_backspace = ins_bs(c, BACKSPACE_WORD, &inserted_space);
 	    auto_format(FALSE, TRUE);
 	    break;
@@ -1400,11 +1420,10 @@ doESCkey:
 #ifdef FEAT_JOB_CHANNEL
 	    if (bt_prompt(curbuf))
 	    {
-		buf_T *buf = curbuf;
-
 		invoke_prompt_callback();
-		if (curbuf != buf)
-		    // buffer changed, get out of Insert mode
+		if (!bt_prompt(curbuf))
+		    // buffer changed to a non-prompt buffer, get out of
+		    // Insert mode
 		    goto doESCkey;
 		break;
 	    }
@@ -1878,10 +1897,25 @@ init_prompt(int cmdchar_todo)
 	coladvance((colnr_T)MAXCOL);
 	changed_bytes(curbuf->b_ml.ml_line_count, 0);
     }
+
+    // Insert always starts after the prompt, allow editing text after it.
+    if (Insstart_orig.lnum != curwin->w_cursor.lnum
+				   || Insstart_orig.col != (int)STRLEN(prompt))
+    {
+	Insstart.lnum = curwin->w_cursor.lnum;
+	Insstart.col = STRLEN(prompt);
+	Insstart_orig = Insstart;
+	Insstart_textlen = Insstart.col;
+	Insstart_blank_vcol = MAXCOL;
+	arrow_used = FALSE;
+    }
+
     if (cmdchar_todo == 'A')
 	coladvance((colnr_T)MAXCOL);
     if (cmdchar_todo == 'I' || curwin->w_cursor.col <= (int)STRLEN(prompt))
 	curwin->w_cursor.col = STRLEN(prompt);
+    /* Make sure the cursor is in a valid position. */
+    check_cursor();
 }
 
 /*
@@ -9448,7 +9482,7 @@ ins_bs(
 
     /* If deleted before the insertion point, adjust it */
     if (curwin->w_cursor.lnum == Insstart_orig.lnum
-				       && curwin->w_cursor.col < Insstart_orig.col)
+				  && curwin->w_cursor.col < Insstart_orig.col)
 	Insstart_orig.col = curwin->w_cursor.col;
 
     /* vi behaviour: the cursor moves backward but the character that
@@ -9498,6 +9532,11 @@ ins_mouse(int c)
 	     * previous one to stop insert there properly. */
 	    curwin = old_curwin;
 	    curbuf = curwin->w_buffer;
+#ifdef FEAT_JOB_CHANNEL
+	    if (bt_prompt(curbuf))
+		// Restart Insert mode when re-entering the prompt buffer.
+		curbuf->b_prompt_insert = 'A';
+#endif
 	}
 	start_arrow(curwin == old_curwin ? &tpos : NULL);
 	if (curwin != new_curwin && win_valid(new_curwin))
