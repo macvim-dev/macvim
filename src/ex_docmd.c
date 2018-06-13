@@ -4063,8 +4063,16 @@ set_one_cmd_context(
 	case CMD_unlet:
 	    while ((xp->xp_pattern = vim_strchr(arg, ' ')) != NULL)
 		arg = xp->xp_pattern + 1;
+
 	    xp->xp_context = EXPAND_USER_VARS;
 	    xp->xp_pattern = arg;
+
+	    if (*xp->xp_pattern == '$')
+	    {
+		xp->xp_context = EXPAND_ENV_VARS;
+		++xp->xp_pattern;
+	    }
+
 	    break;
 
 	case CMD_function:
@@ -5334,7 +5342,9 @@ get_bad_opt(char_u *p, exarg_T *eap)
 	eap->bad_char = BAD_DROP;
     else if (MB_BYTE2LEN(*p) == 1 && p[1] == NUL)
 	eap->bad_char = *p;
-    return FAIL;
+    else
+	return FAIL;
+    return OK;
 }
 #endif
 
@@ -11310,7 +11320,10 @@ makeopens(
 	 * winminheight and winminwidth need to be set to avoid an error if the
 	 * user has set winheight or winwidth.
 	 */
-	if (put_line(fd, "set winminheight=1 winheight=1 winminwidth=1 winwidth=1") == FAIL)
+	if (put_line(fd, "set winminheight=0") == FAIL
+		|| put_line(fd, "set winheight=1") == FAIL
+		|| put_line(fd, "set winminwidth=0") == FAIL
+		|| put_line(fd, "set winwidth=1") == FAIL)
 	    return FAIL;
 	if (nr > 1 && ses_winsizes(fd, restore_size, tab_firstwin) == FAIL)
 	    return FAIL;
