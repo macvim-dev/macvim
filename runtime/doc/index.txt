@@ -1422,7 +1422,7 @@ tag		command		action ~
 |:lwindow|	:lw[indow]	open or close location window
 |:move|		:m[ove]		move lines
 |:mark|		:ma[rk]		set a mark
-|:macation|	:maca[ction]	send action message
+|:macaction|	:maca[ction]	send action message
 |:macmenu|	:macm[enu]	set Mac specific properties for menu item
 |:make|		:mak[e]		execute external command 'makeprg' and parse
 				error messages
