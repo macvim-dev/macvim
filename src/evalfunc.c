@@ -298,6 +298,7 @@ static void f_prevnonblank(typval_T *argvars, typval_T *rettv);
 static void f_printf(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_JOB_CHANNEL
 static void f_prompt_setcallback(typval_T *argvars, typval_T *rettv);
+static void f_prompt_setinterrupt(typval_T *argvars, typval_T *rettv);
 static void f_prompt_setprompt(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_pumvisible(typval_T *argvars, typval_T *rettv);
@@ -754,6 +755,7 @@ static struct fst
     {"printf",		1, 19, f_printf},
 #ifdef FEAT_JOB_CHANNEL
     {"prompt_setcallback", 2, 2, f_prompt_setcallback},
+    {"prompt_setinterrupt", 2, 2, f_prompt_setinterrupt},
     {"prompt_setprompt", 2, 2, f_prompt_setprompt},
 #endif
     {"pumvisible",	0, 0, f_pumvisible},
@@ -8641,6 +8643,35 @@ f_prompt_setcallback(typval_T *argvars, typval_T *rettv UNUSED)
 }
 
 /*
+ * "prompt_setinterrupt({buffer}, {callback})" function
+ */
+    static void
+f_prompt_setinterrupt(typval_T *argvars, typval_T *rettv UNUSED)
+{
+    buf_T	*buf;
+    char_u	*callback;
+    partial_T	*partial;
+
+    if (check_secure())
+	return;
+    buf = get_buf_tv(&argvars[0], FALSE);
+    if (buf == NULL)
+	return;
+
+    callback = get_callback(&argvars[1], &partial);
+    if (callback == NULL)
+	return;
+
+    free_callback(buf->b_prompt_interrupt, buf->b_prompt_int_partial);
+    if (partial == NULL)
+	buf->b_prompt_interrupt = vim_strsave(callback);
+    else
+	/* pointer into the partial */
+	buf->b_prompt_interrupt = callback;
+    buf->b_prompt_int_partial = partial;
+}
+
+/*
  * "prompt_setprompt({buffer}, {text})" function
  */
     static void
@@ -10648,6 +10679,7 @@ set_qf_ll_list(
     static char *e_invact = N_("E927: Invalid action: '%s'");
     char_u	*act;
     int		action = 0;
+    static int	recursive = 0;
 #endif
 
     rettv->vval.v_number = -1;
@@ -10655,6 +10687,8 @@ set_qf_ll_list(
 #ifdef FEAT_QUICKFIX
     if (list_arg->v_type != VAR_LIST)
 	EMSG(_(e_listreq));
+    else if (recursive != 0)
+	EMSG(_(e_au_recursive));
     else
     {
 	list_T  *l = list_arg->vval.v_list;
@@ -10689,9 +10723,12 @@ set_qf_ll_list(
 	    }
 	}
 
+	++recursive;
 	if (l != NULL && action && valid_dict && set_errorlist(wp, l, action,
-	  (char_u *)(wp == NULL ? ":setqflist()" : ":setloclist()"), d) == OK)
+		     (char_u *)(wp == NULL ? ":setqflist()" : ":setloclist()"),
+		     d) == OK)
 	    rettv->vval.v_number = 0;
+	--recursive;
     }
 #endif
 }

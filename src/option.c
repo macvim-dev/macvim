@@ -3339,9 +3339,6 @@ static char_u *illegal_char(char_u *, int);
 #ifdef FEAT_CMDWIN
 static char_u *check_cedit(void);
 #endif
-#ifdef FEAT_TITLE
-static void did_set_title(int icon);
-#endif
 static char_u *option_expand(int opt_idx, char_u *val);
 static void didset_options(void);
 static void didset_options2(void);
@@ -5478,27 +5475,14 @@ check_cedit(void)
  * the old value back.
  */
     static void
-did_set_title(
-    int	    icon)	    /* Did set icon instead of title */
+did_set_title(void)
 {
     if (starting != NO_SCREEN
 #ifdef FEAT_GUI
 	    && !gui.starting
 #endif
 				)
-    {
 	maketitle();
-	if (icon)
-	{
-	    if (!p_icon)
-		mch_restore_title(2);
-	}
-	else
-	{
-	    if (!p_title)
-		mch_restore_title(1);
-	}
-    }
 }
 #endif
 
@@ -6153,7 +6137,7 @@ did_set_string_option(
     /* set when changing an option that only requires a redraw in the GUI */
     int		redraw_gui_only = FALSE;
 #endif
-    int		ft_changed = FALSE;
+    int		value_changed = FALSE;
 #if defined(FEAT_VTP) && defined(FEAT_TERMGUICOLORS)
     int		did_swaptcap = FALSE;
 #endif
@@ -7062,8 +7046,7 @@ did_set_string_option(
 	else
 	    stl_syntax &= ~flagval;
 # endif
-	did_set_title(varp == &p_iconstring);
-
+	did_set_title();
     }
 #endif
 
@@ -7577,7 +7560,7 @@ did_set_string_option(
 	if (!valid_filetype(*varp))
 	    errmsg = e_invarg;
 	else
-	    ft_changed = STRCMP(oldval, *varp) != 0;
+	    value_changed = STRCMP(oldval, *varp) != 0;
     }
 
 #ifdef FEAT_SYN_HL
@@ -7585,6 +7568,8 @@ did_set_string_option(
     {
 	if (!valid_filetype(*varp))
 	    errmsg = e_invarg;
+	else
+	    value_changed = STRCMP(oldval, *varp) != 0;
     }
 #endif
 
@@ -7705,8 +7690,14 @@ did_set_string_option(
 	/* When 'syntax' is set, load the syntax of that name */
 	if (varp == &(curbuf->b_p_syn))
 	{
-	    apply_autocmds(EVENT_SYNTAX, curbuf->b_p_syn,
-					       curbuf->b_fname, TRUE, curbuf);
+	    static int syn_recursive = 0;
+
+	    ++syn_recursive;
+	    // Only pass TRUE for "force" when the value changed or not used
+	    // recursively, to avoid endless recurrence.
+	    apply_autocmds(EVENT_SYNTAX, curbuf->b_p_syn, curbuf->b_fname,
+		    value_changed || syn_recursive == 1, curbuf);
+	    --syn_recursive;
 	}
 #endif
 	else if (varp == &(curbuf->b_p_ft))
@@ -7714,11 +7705,17 @@ did_set_string_option(
 	    /* 'filetype' is set, trigger the FileType autocommand.
 	     * Skip this when called from a modeline and the filetype was
 	     * already set to this value. */
-	    if (!(opt_flags & OPT_MODELINE) || ft_changed)
+	    if (!(opt_flags & OPT_MODELINE) || value_changed)
 	    {
+		static int ft_recursive = 0;
+
+		++ft_recursive;
 		did_filetype = TRUE;
-		apply_autocmds(EVENT_FILETYPE, curbuf->b_p_ft,
-					       curbuf->b_fname, TRUE, curbuf);
+		// Only pass TRUE for "force" when the value changed or not
+		// used recursively, to avoid endless recurrence.
+		apply_autocmds(EVENT_FILETYPE, curbuf->b_p_ft, curbuf->b_fname,
+				   value_changed || ft_recursive == 1, curbuf);
+		--ft_recursive;
 		/* Just in case the old "curbuf" is now invalid. */
 		if (varp != &(curbuf->b_p_ft))
 		    varp = NULL;
@@ -8569,14 +8566,9 @@ set_bool_option(
 
 #ifdef FEAT_TITLE
     /* when 'title' changed, may need to change the title; same for 'icon' */
-    else if ((int *)varp == &p_title)
+    else if ((int *)varp == &p_title || (int *)varp == &p_icon)
     {
-	did_set_title(FALSE);
-    }
-
-    else if ((int *)varp == &p_icon)
-    {
-	did_set_title(TRUE);
+	did_set_title();
     }
 #endif
 
