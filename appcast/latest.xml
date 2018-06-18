@@ -6,31 +6,31 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-146</title>
+      <title>MacVim snapshot-149</title>
       <description><![CDATA[
 <pre>
 Binary targets macOS 10.8+
 
-- Vim patch 8.0.1633
+- Vim patch 8.1.0072
 
 Script interfaces have compatibility with these versions
 
 - Lua 5.3
-- Perl 5.16
+- Perl 5.18
 - Python2 2.7
-- Python3 3.6.4
+- Python3 3.6
 - Ruby 2.5
 
 </pre>
       ]]></description>
-      <pubDate>Sat, 24 Mar 2018 01:00:00 -0700</pubDate>
+      <pubDate>Sun, 17 Jun 2018 19:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-146/MacVim.dmg"
-        length="15818335"
-        sparkle:version="146"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-149/MacVim.dmg"
+        length="15479834"
+        sparkle:version="149"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MC0CFDuZkzy7deLq8W/zwWUGPw2oJ8orAhUAjVD/Wk0Xy34QbU+DV535g8WLqZ4="
+	sparkle:dsaSignature="MCwCFGxajTrum6gVoXBbXc2frlEOEuMQAhRah1+j02pRt8bKAEW6UuP6/iJJMA=="
         />
     </item>
   </channel>
