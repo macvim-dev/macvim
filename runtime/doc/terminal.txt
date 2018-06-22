@@ -19,8 +19,8 @@ If the result is "1" you have it.
       Resizing				|terminal-resizing|
       Terminal Modes			|Terminal-mode|
       Cursor style			|terminal-cursor-style|
-      Special keys			|terminal-special-keys|
       Session				|terminal-session|
+      Special keys			|terminal-special-keys|
       Unix				|terminal-unix|
       MS-Windows			|terminal-ms-windows|
 2. Terminal communication	|terminal-communication|
@@ -116,9 +116,12 @@ break: >
 
 <							*options-in-terminal*
 After opening the terminal window and setting 'buftype' to "terminal" the
-BufWinEnter autocommand event is triggered.  This makes it possible to set
+TerminalOpen autocommand event is triggered.  This makes it possible to set
 options specifically for the window and buffer.  Example: >
-   au BufWinEnter * if &buftype == 'terminal' | setlocal bufhidden=hide | endif
+   au TerminalOpen * if &buftype == 'terminal' | setlocal bufhidden=hide | endif
+The <abuf> is set to the terminal buffer, but if there is no window (hidden
+terminal) then setting options will happen in the wrong buffer, therefore the
+check for &buftype in the example.
 
 Mouse events (click and drag) are passed to the terminal.  Mouse move events
 are only passed when Vim itself is receiving them.  For a terminal that is
@@ -449,7 +452,7 @@ Currently supported commands:
 		of the terminal and {argument}, the decoded JSON argument. 
 		The function name must start with "Tapi_" to avoid
 		accidentally calling a function not meant to be used for the
-		terminal API
+		terminal API.
 		The user function should sanity check the argument.
 		The function can use |term_sendkeys()| to send back a reply.
 		Example in JSON: >
@@ -702,11 +705,11 @@ Put focus on the gdb window and type: >
 Vim will start running in the program window. Put focus there and type: >
 	:help gui
 Gdb will run into the ex_help breakpoint.  The source window now shows the 
-ex_cmds.c file.  A ">>" marker will appear where the breakpoint was set.  The
-line where the debugger stopped is highlighted.  You can now step through the
-program.  Let's use the mouse: click on the "Next" button in the window
-toolbar.  You will see the highlighting move as the debugger executes a line
-of source code.
+ex_cmds.c file.  A red "1 " marker will appear in the signcolumn where the
+breakpoint was set.  The line where the debugger stopped is highlighted.  You
+can now step through the program.  Let's use the mouse: click on the "Next"
+button in the window toolbar.  You will see the highlighting move as the
+debugger executes a line of source code.
 
 Click "Next" a few times until the for loop is highlighted.  Put the cursor on
 the end of "eap->arg", then click "Eval" in the toolbar.  You will see this
@@ -785,6 +788,13 @@ source code, a new window will be created for the source code.  This also
 happens if the buffer in the source code window has been modified and can't be
 abandoned.
 
+Gdb gives each breakpoint a number.  In Vim the number shows up in the sign
+column, with a red background.  You can use these gdb commands:
+- info break	list breakpoints
+- delete N	delete breakpoint N
+You can also use the `:Clear` command if the cursor is in the line with the
+breakpoint, or use the "Clear breakpoint" right-click menu entry.
+
 
 Inspecting variables ~
 					*termdebug-variables* *:Evaluate*
@@ -827,6 +837,13 @@ Communication ~
 There is another, hidden, buffer, which is used for Vim to communicate with
 gdb.  The buffer name is "gdb communication".  Do not delete this buffer, it
 will break the debugger.
+
+Gdb has some weird behavior, the plugin does its best to work around that.
+For example, after typing "continue" in the gdb window a CTRL-C can be used to
+interrupt the running program.  But after using the MI command
+"-exec-continue"  pressing CTRL-C does not interrupt.  Therefore you will see
+"continue" being used for the `:Continue` command, instead of using the
+communication channel.
 
 
 Customizing ~
@@ -885,7 +902,7 @@ vertical split: >
   let g:termdebug_wide = 163
 This will set &columns to 163 when :Termdebug is used.  The value is restored
 when quitting the debugger.
-If g:termdebug_wide is set and &Columns is already  larger than
+If g:termdebug_wide is set and &columns is already larger than
 g:termdebug_wide then a vertical split will be used without changing &columns.
 Set it to 1 to get a vertical split without every changing &columns (useful
 for when the terminal can't be resized by Vim).

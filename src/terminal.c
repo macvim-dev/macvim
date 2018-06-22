@@ -973,11 +973,13 @@ write_to_term(buf_T *buffer, char_u *msg, channel_T *channel)
      * contents, thus no screen update is needed. */
     if (!term->tl_normal_mode)
     {
-	/* TODO: only update once in a while. */
+	// Don't use update_screen() when editing the command line, it gets
+	// cleared.
+	// TODO: only update once in a while.
 	ch_log(term->tl_job->jv_channel, "updating screen");
-	if (buffer == curbuf)
+	if (buffer == curbuf && (State & CMDLINE) == 0)
 	{
-	    update_screen(0);
+	    update_screen(VALID_NO_UPDATE);
 	    /* update_screen() can be slow, check the terminal wasn't closed
 	     * already */
 	    if (buffer == curbuf && curbuf->b_term != NULL)
@@ -5337,6 +5339,12 @@ term_send_eof(channel_T *ch)
 		channel_send(ch, PART_IN, (char_u *)"\004\r", 2, NULL);
 # endif
 	}
+}
+
+    job_T *
+term_getjob(term_T *term)
+{
+    return term != NULL ? term->tl_job : NULL;
 }
 
 # if defined(WIN3264) || defined(PROTO)

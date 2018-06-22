@@ -1223,6 +1223,9 @@ wait_return(int redraw)
 	    cmdline_row = msg_row;
 	skip_redraw = TRUE;	    /* skip redraw once */
 	do_redraw = FALSE;
+#ifdef FEAT_TERMINAL
+	skip_term_loop = TRUE;
+#endif
     }
 
     /*
@@ -2831,6 +2834,9 @@ do_more_prompt(int typed_char)
 		/* Since got_int is set all typeahead will be flushed, but we
 		 * want to keep this ':', remember that in a special way. */
 		typeahead_noflush(':');
+#ifdef FEAT_TERMINAL
+		skip_term_loop = TRUE;
+#endif
 		cmdline_row = Rows - 1;		/* put ':' on this line */
 		skip_redraw = TRUE;		/* skip redraw once */
 		need_wait_return = FALSE;	/* don't wait in main() */
