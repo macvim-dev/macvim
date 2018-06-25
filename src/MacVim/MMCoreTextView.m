@@ -1203,21 +1203,23 @@ fetchGlyphsAndAdvances(const CTLineRef line, CGGlyph *glyphs, CGSize *advances,
         CTRunRef run  = (CTRunRef)item;
         CFIndex count = CTRunGetGlyphCount(run);
 
-        if (count > 0 && count - offset > length)
-            count = length - offset;
+        if (count > 0) {
+            if (count > length - offset)
+                count = length - offset;
 
-        CFRange range = CFRangeMake(0, count);
+            CFRange range = CFRangeMake(0, count);
 
-        if (glyphs != NULL)
-            CTRunGetGlyphs(run, range, &glyphs[offset]);
-        if (advances != NULL)
-            CTRunGetAdvances(run, range, &advances[offset]);
-        if (positions != NULL)
-            CTRunGetPositions(run, range, &positions[offset]);
+            if (glyphs != NULL)
+                CTRunGetGlyphs(run, range, &glyphs[offset]);
+            if (advances != NULL)
+                CTRunGetAdvances(run, range, &advances[offset]);
+            if (positions != NULL)
+                CTRunGetPositions(run, range, &positions[offset]);
 
-        offset += count;
-        if (offset >= length)
-            break;
+            offset += count;
+            if (offset >= length)
+                break;
+        }
     }
 
     return offset;
