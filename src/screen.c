@@ -4757,8 +4757,13 @@ win_line(
 		    n_extra = win_lbr_chartabsize(wp, line, p, (colnr_T)vcol,
 								    NULL) - 1;
 		    if (c == TAB && n_extra + col > wp->w_width)
+#ifdef FEAT_VARTABS
+			n_extra = tabstop_padding(vcol, wp->w_buffer->b_p_ts,
+					wp->w_buffer->b_p_vts_array) - 1;
+#else
 			n_extra = (int)wp->w_buffer->b_p_ts
 				       - vcol % (int)wp->w_buffer->b_p_ts - 1;
+ #endif
 
 # ifdef FEAT_MBYTE
 		    c_extra = mb_off > 0 ? MB_FILLER_CHAR : ' ';
@@ -4852,8 +4857,14 @@ win_line(
 			vcol_adjusted = vcol - MB_CHARLEN(p_sbr);
 #endif
 		    /* tab amount depends on current column */
+#ifdef FEAT_VARTABS
+		    tab_len = tabstop_padding(vcol_adjusted,
+					      wp->w_buffer->b_p_ts,
+					      wp->w_buffer->b_p_vts_array) - 1;
+#else
 		    tab_len = (int)wp->w_buffer->b_p_ts
-					- vcol_adjusted % (int)wp->w_buffer->b_p_ts - 1;
+			       - vcol_adjusted % (int)wp->w_buffer->b_p_ts - 1;
+#endif
 
 #ifdef FEAT_LINEBREAK
 		    if (!wp->w_p_lbr || !wp->w_p_list)
@@ -6888,7 +6899,7 @@ win_redr_status_matches(
  * displayed.
  */
     static void
-win_redr_status(win_T *wp, int ignore_pum)
+win_redr_status(win_T *wp, int ignore_pum UNUSED)
 {
     int		row;
     char_u	*p;
@@ -7892,6 +7903,7 @@ next_search_hl(
     linenr_T	l;
     colnr_T	matchcol;
     long	nmatched;
+    int		save_called_emsg = called_emsg;
 
     if (shl->lnum != 0)
     {
@@ -8010,6 +8022,9 @@ next_search_hl(
 	    break;			/* useful match found */
 	}
     }
+
+    // Restore called_emsg for assert_fails().
+    called_emsg = save_called_emsg;
 }
 
 /*

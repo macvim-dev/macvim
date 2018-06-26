@@ -271,7 +271,7 @@ open_buffer(
     /*
      * Set/reset the Changed flag first, autocmds may change the buffer.
      * Apply the automatic commands, before processing the modelines.
-     * So the modelines have priority over auto commands.
+     * So the modelines have priority over autocommands.
      */
     /* When reading stdin, the buffer contents always needs writing, so set
      * the changed flag.  Unless in readonly mode: "ls | gview -".
@@ -2163,6 +2163,19 @@ free_buf_options(
     clear_string_option(&buf->b_p_fo);
     clear_string_option(&buf->b_p_flp);
     clear_string_option(&buf->b_p_isk);
+#ifdef FEAT_VARTABS
+    clear_string_option(&buf->b_p_vsts);
+    if (buf->b_p_vsts_nopaste)
+	vim_free(buf->b_p_vsts_nopaste);
+    buf->b_p_vsts_nopaste = NULL;
+    if (buf->b_p_vsts_array)
+	vim_free(buf->b_p_vsts_array);
+    buf->b_p_vsts_array = NULL;
+    clear_string_option(&buf->b_p_vts);
+    if (buf->b_p_vts_array)
+	vim_free(buf->b_p_vts_array);
+    buf->b_p_vts_array = NULL;
+#endif
 #ifdef FEAT_KEYMAP
     clear_string_option(&buf->b_p_keymap);
     keymap_clear(&buf->b_kmap_ga);
@@ -5200,7 +5213,7 @@ ex_buffer_all(exarg_T *eap)
 		win_close(wp, FALSE);
 		wpnext = firstwin;	/* just in case an autocommand does
 					   something strange with windows */
-		tpnext = first_tabpage;	/* start all over...*/
+		tpnext = first_tabpage;	/* start all over... */
 		open_wins = 0;
 	    }
 	    else
@@ -5660,8 +5673,8 @@ bt_prompt(buf_T *buf)
 }
 
 /*
- * Return TRUE if "buf" is a "nofile", "acwrite" or "terminal" buffer.
- * This means the buffer name is not a file name.
+ * Return TRUE if "buf" is a "nofile", "acwrite", "terminal" or "prompt"
+ * buffer.  This means the buffer name is not a file name.
  */
     int
 bt_nofile(buf_T *buf)
@@ -5673,7 +5686,8 @@ bt_nofile(buf_T *buf)
 }
 
 /*
- * Return TRUE if "buf" is a "nowrite", "nofile" or "terminal" buffer.
+ * Return TRUE if "buf" is a "nowrite", "nofile", "terminal" or "prompt"
+ * buffer.
  */
     int
 bt_dontwrite(buf_T *buf)

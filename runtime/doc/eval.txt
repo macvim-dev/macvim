@@ -7053,6 +7053,7 @@ searchpair({start}, {middle}, {end} [, {flags} [, {skip}
 		When evaluating {skip} causes an error the search is aborted
 		and -1 returned.
 		{skip} can be a string, a lambda, a funcref or a partial.
+		Anything else makes the function fail.
 
 		For {stopline} and {timeout} see |search()|.
 
@@ -8694,6 +8695,8 @@ test_override({name}, {val})				*test_override()*
 		redraw       disable the redrawing() function
 		char_avail   disable the char_avail() function
 		starting     reset the "starting" variable, see below
+		nfa_fail     makes the NFA regexp engine fail to force a
+			     fallback to the old engine
 		ALL	     clear all overrides ({val} is not used)
 
 		"starting" is to be used when a test should behave like

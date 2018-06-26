@@ -1482,7 +1482,7 @@ nfa_regatom(void)
 		case '8':
 		case '9':
 		    /* \z1...\z9 */
-		    if (reg_do_extmatch != REX_USE)
+		    if ((reg_do_extmatch & REX_USE) == 0)
 			EMSG_RET_FAIL(_(e_z1_not_allowed));
 		    EMIT(NFA_ZREF1 + (no_Magic(c) - '1'));
 		    /* No need to set nfa_has_backref, the sub-matches don't
@@ -1491,7 +1491,7 @@ nfa_regatom(void)
 		    break;
 		case '(':
 		    /* \z(  */
-		    if (reg_do_extmatch != REX_SET)
+		    if ((reg_do_extmatch & REX_SET) == 0)
 			EMSG_RET_FAIL(_(e_z_not_allowed));
 		    if (nfa_reg(REG_ZPAREN) == FAIL)
 			return FAIL;	    /* cascaded error */
@@ -2232,7 +2232,7 @@ nfa_regpiece(void)
 
     if (re_multi_type(peekchr()) != NOT_MULTI)
 	/* Can't have a multi follow a multi. */
-	EMSG_RET_FAIL(_("E871: (NFA regexp) Can't have a multi follow a multi !"));
+	EMSG_RET_FAIL(_("E871: (NFA regexp) Can't have a multi follow a multi"));
 
     return OK;
 }
@@ -2989,7 +2989,7 @@ st_error(int *postfix UNUSED, int *end UNUSED, int *p UNUSED)
 	fclose(df);
     }
 #endif
-    EMSG(_("E874: (NFA) Could not pop the stack !"));
+    EMSG(_("E874: (NFA) Could not pop the stack!"));
 }
 
 /*
@@ -5593,7 +5593,7 @@ nfa_regmatch(
     debug = fopen(NFA_REGEXP_DEBUG_LOG, "a");
     if (debug == NULL)
     {
-	EMSG2(_("(NFA) COULD NOT OPEN %s !"), NFA_REGEXP_DEBUG_LOG);
+	EMSG2("(NFA) COULD NOT OPEN %s!", NFA_REGEXP_DEBUG_LOG);
 	return FALSE;
     }
 #endif
@@ -5692,7 +5692,12 @@ nfa_regmatch(
 	nextlist->n = 0;	    /* clear nextlist */
 	nextlist->has_pim = FALSE;
 	++nfa_listid;
-	if (prog->re_engine == AUTOMATIC_ENGINE && nfa_listid >= NFA_MAX_STATES)
+	if (prog->re_engine == AUTOMATIC_ENGINE
+		&& (nfa_listid >= NFA_MAX_STATES
+# ifdef FEAT_EVAL
+		    || nfa_fail_for_testing
+# endif
+		    ))
 	{
 	    /* too many states, retry with old engine */
 	    nfa_match = NFA_TOO_EXPENSIVE;
@@ -7028,7 +7033,7 @@ nfa_regtry(
 	fclose(f);
     }
     else
-	EMSG(_("Could not open temporary log file for writing "));
+	EMSG("Could not open temporary log file for writing");
 #endif
 
     clear_sub(&subs.norm);

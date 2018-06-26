@@ -1003,10 +1003,6 @@ common_init(mparm_T *paramp)
     /* Init the table of Normal mode commands. */
     init_normal_cmds();
 
-#if defined(HAVE_DATE_TIME) && defined(VMS) && defined(VAXC)
-    make_version();	/* Construct the long version string. */
-#endif
-
     /*
      * Allocate space for the generic buffers (needed for set_init_1() and
      * EMSG2()).
@@ -3299,6 +3295,7 @@ mainerr(
     reset_signals();		/* kill us with CTRL-C here, if you like */
 #endif
 
+    init_longVersion();
     mch_errmsg(longVersion);
     mch_errmsg("\n");
     mch_errmsg(_(main_errors[n]));
@@ -3352,6 +3349,7 @@ usage(void)
     reset_signals();		/* kill us with CTRL-C here, if you like */
 #endif
 
+    init_longVersion();
     mch_msg(longVersion);
     mch_msg(_("\n\nUsage:"));
     for (i = 0; ; ++i)

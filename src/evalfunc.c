@@ -6455,6 +6455,9 @@ f_has(typval_T *argvars, typval_T *rettv)
 	"user-commands",    /* was accidentally included in 5.4 */
 	"user_commands",
 #endif
+#ifdef FEAT_VARTABS
+	"vartabs",
+#endif
 #ifdef FEAT_VIMINFO
 	"viminfo",
 #endif
@@ -10176,7 +10179,8 @@ searchpair_cmn(typval_T *argvars, pos_T *match_pos)
     long	lnum_stop = 0;
     long	time_limit = 0;
 
-    /* Get the three pattern arguments: start, middle, end. */
+    /* Get the three pattern arguments: start, middle, end. Will result in an
+     * error if not a valid argument. */
     spat = get_tv_string_chk(&argvars[0]);
     mpat = get_tv_string_buf_chk(&argvars[1], nbuf1);
     epat = get_tv_string_buf_chk(&argvars[2], nbuf2);
@@ -10213,19 +10217,26 @@ searchpair_cmn(typval_T *argvars, pos_T *match_pos)
 	    && skip->v_type != VAR_STRING)
 	{
 	    /* Type error */
+	    EMSG2(_(e_invarg2), get_tv_string(&argvars[4]));
 	    goto theend;
 	}
 	if (argvars[5].v_type != VAR_UNKNOWN)
 	{
 	    lnum_stop = (long)get_tv_number_chk(&argvars[5], NULL);
 	    if (lnum_stop < 0)
+	    {
+		EMSG2(_(e_invarg2), get_tv_string(&argvars[5]));
 		goto theend;
+	    }
 #ifdef FEAT_RELTIME
 	    if (argvars[6].v_type != VAR_UNKNOWN)
 	    {
 		time_limit = (long)get_tv_number_chk(&argvars[6], NULL);
 		if (time_limit < 0)
+		{
+		    EMSG2(_(e_invarg2), get_tv_string(&argvars[6]));
 		    goto theend;
+		}
 	    }
 #endif
 	}
@@ -13117,10 +13128,13 @@ f_test_override(typval_T *argvars, typval_T *rettv UNUSED)
 		save_starting = -1;
 	    }
 	}
+	else if (STRCMP(name, (char_u *)"nfa_fail") == 0)
+	    nfa_fail_for_testing = val;
 	else if (STRCMP(name, (char_u *)"ALL") == 0)
 	{
 	    disable_char_avail_for_testing = FALSE;
 	    disable_redraw_for_testing = FALSE;
+	    nfa_fail_for_testing = FALSE;
 	    if (save_starting >= 0)
 	    {
 		starting = save_starting;
