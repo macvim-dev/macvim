@@ -9,7 +9,7 @@
  */
 
 #import <Cocoa/Cocoa.h>
-#import <DBPrefsWindowController.h>
+#import "DBPrefsWindowController.h"
 
 @interface MMPreferenceController : DBPrefsWindowController {
     IBOutlet NSView *generalPreferences;
