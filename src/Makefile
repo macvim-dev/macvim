@@ -2136,7 +2136,7 @@ test1 \
 	test52 test59 \
 	test64 test69 \
 	test70 test72 \
-	test85 test86 test87 test88 \
+	test86 test87 test88 \
 	test94 test95 test99 test108:
 	cd testdir; rm -f $@.out; $(MAKE) -f Makefile $@.out VIMPROG=../$(VIMTESTTARGET) $(GUI_TESTARG) SCRIPTSOURCE=../$(SCRIPTSOURCE)
 
@@ -2305,6 +2305,7 @@ test_arglist \
 	test_syn_attr \
 	test_syntax \
 	test_system \
+	test_tab \
 	test_tabline \
 	test_tabpage \
 	test_tagcase \

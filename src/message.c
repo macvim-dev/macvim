@@ -399,6 +399,20 @@ smsg_attr(int attr, char_u *s, ...)
     return msg_attr(IObuff, attr);
 }
 
+    int
+# ifdef __BORLANDC__
+_RTLENTRYF
+# endif
+smsg_attr_keep(int attr, char_u *s, ...)
+{
+    va_list arglist;
+
+    va_start(arglist, s);
+    vim_vsnprintf((char *)IObuff, IOSIZE, (char *)s, arglist);
+    va_end(arglist);
+    return msg_attr_keep(IObuff, attr, TRUE);
+}
+
 #endif
 
 /*
@@ -982,7 +996,11 @@ ex_messages(exarg_T *eap)
     {
 	s = mch_getenv((char_u *)"LANG");
 	if (s != NULL && *s != NUL)
+	    // The next comment is extracted by xgettext and put in po file for
+	    // translators to read.
 	    msg_attr((char_u *)
+		    // Translator: Please replace the name and email address
+		    // with the appropriate text for your translation.
 		    _("Messages maintainer: Bram Moolenaar <Bram@vim.org>"),
 		    HL_ATTR(HLF_T));
     }
