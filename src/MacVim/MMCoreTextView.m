@@ -294,11 +294,7 @@ defaultAdvanceForFont(NSFont *font)
     double em = round(defaultAdvanceForFont(newFont));
     double pt = round([newFont pointSize]);
 
-    NSDictionary *attr = [NSDictionary dictionaryWithObjectsAndKeys:
-        [newFont displayName], (NSString*)kCTFontNameAttribute,
-        [NSNumber numberWithFloat:pt], (NSString*)kCTFontSizeAttribute, nil];
-    CTFontDescriptorRef desc = CTFontDescriptorCreateWithAttributes(
-            (CFDictionaryRef)attr);
+    CTFontDescriptorRef desc = CTFontDescriptorCreateWithNameAndSize((CFStringRef)[newFont fontName], pt);
     CTFontRef fontRef = CTFontCreateWithFontDescriptor(desc, pt, NULL);
     CFRelease(desc);
 
@@ -787,7 +783,7 @@ defaultAdvanceForFont(NSFont *font)
     NSFont *newFont = [sender convertFont:font];
 
     if (newFont) {
-        NSString *name = [newFont displayName];
+        NSString *name = [newFont fontName];
         unsigned len = [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
         if (len > 0) {
             NSMutableData *data = [NSMutableData data];
