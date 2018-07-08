@@ -836,6 +836,11 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self queueMessage:SetTextDimensionsMsgID data:data];
 }
 
+- (void)resizeView
+{
+    [self queueMessage:ResizeViewMsgID data:nil];
+}
+
 - (void)setWindowTitle:(char *)title
 {
     NSMutableData *data = [NSMutableData data];
@@ -1997,6 +2002,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
         tabpage_move(idx);
     } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid
+            || SetTextDimensionsNoResizeWindowMsgID == msgid
             || SetTextRowsMsgID == msgid || SetTextColumnsMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -2028,6 +2034,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self queueMessage:msgid data:d];
 
         gui_resize_shell(cols, rows);
+    } else if (ResizeViewMsgID == msgid) {
+        [self queueMessage:msgid data:data];
     } else if (ExecuteMenuMsgID == msgid) {
         NSDictionary *attrs = [NSDictionary dictionaryWithData:data];
         if (attrs) {

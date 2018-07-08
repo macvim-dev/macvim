@@ -1621,6 +1621,16 @@ gui_set_shellsize(
     }
 #endif
 
+#ifdef FEAT_GUI_MACVIM
+    if (!mustset && (vim_strchr(p_go, GO_KEEPWINSIZE) != NULL))
+    {
+	/* We don't want to resize the window, so instruct the GUI to resize
+	 * the view to be within the constraints of the current window's size */
+	gui_mch_resize_view();
+	return;
+    }
+#endif
+
     base_width = gui_get_base_width();
     base_height = gui_get_base_height();
     if (fit_to_display)
