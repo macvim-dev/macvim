@@ -1528,6 +1528,12 @@ DEST_MAN_TOP = $(DESTDIR)$(MANDIR)
 # directory first.
 # FreeBSD uses ".../man/xx.ISO8859-1/man1" for latin1, use that one too.
 DEST_MAN = $(DEST_MAN_TOP)$(MAN1DIR)
+DEST_MAN_DA = $(DEST_MAN_TOP)/da$(MAN1DIR)
+DEST_MAN_DA_I = $(DEST_MAN_TOP)/da.ISO8859-1$(MAN1DIR)
+DEST_MAN_DA_U = $(DEST_MAN_TOP)/da.UTF-8$(MAN1DIR)
+DEST_MAN_DE = $(DEST_MAN_TOP)/de$(MAN1DIR)
+DEST_MAN_DE_I = $(DEST_MAN_TOP)/de.ISO8859-1$(MAN1DIR)
+DEST_MAN_DE_U = $(DEST_MAN_TOP)/de.UTF-8$(MAN1DIR)
 DEST_MAN_FR = $(DEST_MAN_TOP)/fr$(MAN1DIR)
 DEST_MAN_FR_I = $(DEST_MAN_TOP)/fr.ISO8859-1$(MAN1DIR)
 DEST_MAN_FR_U = $(DEST_MAN_TOP)/fr.UTF-8$(MAN1DIR)
@@ -1540,6 +1546,9 @@ DEST_MAN_PL_I = $(DEST_MAN_TOP)/pl.ISO8859-2$(MAN1DIR)
 DEST_MAN_PL_U = $(DEST_MAN_TOP)/pl.UTF-8$(MAN1DIR)
 DEST_MAN_RU = $(DEST_MAN_TOP)/ru.KOI8-R$(MAN1DIR)
 DEST_MAN_RU_U = $(DEST_MAN_TOP)/ru.UTF-8$(MAN1DIR)
+
+# The list of tests is common to all systems.
+include Make_all.mak
 
 #	     BASIC_SRC: files that are always used
 #	       GUI_SRC: extra GUI files for current configuration
@@ -2142,203 +2151,7 @@ test1 \
 
 # Run individual NEW style test.
 # These do not depend on the executable, compile it when needed.
-test_arglist \
-	test_arabic \
-	test_assert \
-	test_assign \
-	test_autochdir \
-	test_autocmd \
-	test_autoload \
-	test_backspace_opt \
-	test_blockedit \
-	test_breakindent \
-	test_bufline \
-	test_bufwintabinfo \
-	test_cd \
-	test_cdo \
-	test_changedtick \
-	test_changelist \
-	test_channel \
-	test_charsearch \
-	test_charsearch_utf8 \
-	test_cindent \
-	test_clientserver \
-	test_close_count \
-	test_cmdline \
-	test_command_count \
-	test_comparators \
-	test_compiler \
-	test_crypt \
-	test_cscope \
-	test_cursor_func \
-	test_curswant \
-	test_delete \
-	test_diffmode \
-	test_digraph \
-	test_display \
-	test_edit \
-	test_erasebackword \
-	test_escaped_glob \
-	test_eval_stuff \
-	test_ex_undo \
-	test_ex_z \
-	test_exit \
-	test_exec_while_if \
-	test_execute_func \
-	test_exists \
-	test_exists_autocmd \
-	test_expand \
-	test_expand_dllpath \
-	test_expr \
-	test_expr_utf8 \
-	test_farsi \
-	test_feedkeys \
-	test_file_perm \
-	test_file_size \
-	test_fileformat \
-	test_filetype \
-	test_filter_cmd \
-	test_filter_map \
-	test_find_complete \
-	test_findfile \
-	test_fixeol \
-	test_float_func \
-	test_fnameescape \
-	test_fnamemodify \
-	test_fold \
-	test_functions \
-	test_ga \
-	test_getcwd \
-	test_getvar \
-	test_gf \
-	test_glob2regpat \
-	test_global \
-	test_gn \
-	test_goto \
-	test_gui \
-	test_gui_init \
-	test_hardcopy \
-	test_help \
-	test_help_tagjump \
-	test_hide \
-	test_highlight \
-	test_history \
-	test_hlsearch \
-	test_iminsert \
-	test_increment \
-	test_increment_dbcs \
-	test_ins_complete \
-	test_job_fails \
-	test_join \
-	test_json \
-	test_jumplist \
-	test_jumps \
-	test_lambda \
-	test_langmap \
-	test_largefile \
-	test_let \
-	test_lineending \
-	test_lispwords \
-	test_listchars \
-	test_listdict \
-	test_listlbr \
-	test_listlbr_utf8 \
-	test_lua \
-	test_makeencoding \
-	test_man \
-	test_maparg \
-	test_mapping \
-	test_marks \
-	test_match \
-	test_matchadd_conceal \
-	test_matchadd_conceal_utf8 \
-	test_menu \
-	test_messages \
-	test_mksession \
-	test_mksession_utf8 \
-	test_nested_function \
-	test_netbeans \
-	test_normal \
-	test_number \
-	test_options \
-	test_packadd \
-	test_partial \
-	test_paste \
-	test_perl \
-	test_plus_arg_edit \
-	test_popup \
-	test_preview \
-	test_profile \
-	test_prompt_buffer \
-	test_put \
-	test_python2 \
-	test_python3 \
-	test_pyx2 \
-	test_pyx3 \
-	test_quickfix \
-	test_quotestar \
-	test_recover \
-	test_regex_char_classes \
-	test_regexp_latin \
-	test_regexp_utf8 \
-	test_registers \
-	test_reltime \
-	test_retab \
-	test_ruby \
-	test_scroll_opt \
-	test_scrollbind \
-	test_search \
-	test_searchpos \
-	test_set \
-	test_sha256 \
-	test_signs \
-	test_smartindent \
-	test_sort \
-	test_source_utf8 \
-	test_spell \
-	test_startup \
-	test_startup_utf8 \
-	test_stat \
-	test_statusline \
-	test_substitute \
-	test_swap \
-	test_syn_attr \
-	test_syntax \
-	test_system \
-	test_tab \
-	test_tabline \
-	test_tabpage \
-	test_tagcase \
-	test_tagjump \
-	test_taglist \
-	test_tcl \
-	test_terminal \
-	test_terminal_fail \
-	test_textformat \
-	test_textobjects \
-	test_timers \
-	test_true_false \
-	test_undo \
-	test_unlet \
-	test_usercommands \
-	test_utf8 \
-	test_utf8_comparisons \
-	test_vartabs \
-	test_viminfo \
-	test_vimscript \
-	test_virtualedit \
-	test_visual \
-	test_winbar \
-	test_winbuf_close \
-	test_window_cmd \
-	test_window_id \
-	test_windows_home \
-	test_wordcount \
-	test_writefile \
-	test_xxd \
-	test_alot_latin \
-	test_alot_utf8 \
-	test_alot:
+$(NEW_TESTS):
 	cd testdir; rm -f $@.res test.log messages; $(MAKE) -f Makefile $@.res VIMPROG=../$(VIMTESTTARGET) $(GUI_TESTARG) SCRIPTSOURCE=../$(SCRIPTSOURCE)
 	@if test -f testdir/test.log; then \
 		cat testdir/test.log; \
@@ -2591,6 +2404,12 @@ installtools: $(TOOLS) $(DESTDIR)$(exec_prefix) $(DEST_BIN) \
 
 # install the language specific files for tools, if they were unpacked
 install-tool-languages:
+	-$(SHELL) ./installman.sh xxd $(DEST_MAN_DA) "-da" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh xxd $(DEST_MAN_DA_I) "-da" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh xxd $(DEST_MAN_DA_U) "-da.UTF-8" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh xxd $(DEST_MAN_DE) "-de" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh xxd $(DEST_MAN_DE_I) "-de" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh xxd $(DEST_MAN_DE_U) "-de.UTF-8" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh xxd $(DEST_MAN_FR) "-fr" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh xxd $(DEST_MAN_FR_I) "-fr" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh xxd $(DEST_MAN_FR_U) "-fr.UTF-8" $(INSTALLMANARGS)
@@ -2606,6 +2425,12 @@ install-tool-languages:
 
 # install the language specific files, if they were unpacked
 install-languages: languages $(DEST_LANG) $(DEST_KMAP)
+	-$(SHELL) ./installman.sh install $(DEST_MAN_DA) "-da" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh install $(DEST_MAN_DA_I) "-da" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh install $(DEST_MAN_DA_U) "-da.UTF-8" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh install $(DEST_MAN_DE) "-de" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh install $(DEST_MAN_DE_I) "-de" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh install $(DEST_MAN_DE_U) "-de.UTF-8" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_FR) "-fr" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_FR_I) "-fr" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_FR_U) "-fr.UTF-8" $(INSTALLMANARGS)
@@ -2618,6 +2443,18 @@ install-languages: languages $(DEST_LANG) $(DEST_KMAP)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_PL_U) "-pl.UTF-8" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_RU) "-ru" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_RU_U) "-ru.UTF-8" $(INSTALLMANARGS)
+	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DA) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DA_I) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DA_U) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DE) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DE_I) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DE_U) $(INSTALLMLARGS)
 	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
 		$(DEST_MAN_FR) $(INSTALLMLARGS)
 	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
@@ -2792,6 +2629,12 @@ uninstall: uninstall_runtime
 # Note: the "rmdir" will fail if any files were added after "make install"
 uninstall_runtime:
 	-$(SHELL) ./installman.sh uninstall $(DEST_MAN) "" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_DA) "" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_DA_I) "" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_DA_U) "" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_DE) "" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_DE_I) "" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_DE_U) "" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_FR) "" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_FR_I) "" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_FR_U) "" $(INSTALLMANARGS)
@@ -2806,6 +2649,18 @@ uninstall_runtime:
 	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_RU_U) "" $(INSTALLMANARGS)
 	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
 		$(DEST_MAN) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DA) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DA_I) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DA_U) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DE) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DE_I) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_DE_U) $(INSTALLMLARGS)
 	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
 		$(DEST_MAN_FR) $(INSTALLMLARGS)
 	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
@@ -2831,6 +2686,8 @@ uninstall_runtime:
 	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
 		$(DEST_MAN_RU_U) $(INSTALLMLARGS)
 	-rm -f $(DEST_MAN)/xxd.1
+	-rm -f $(DEST_MAN_DA)/xxd.1 $(DEST_MAN_DA_I)/xxd.1 $(DEST_MAN_DA_U)/xxd.1
+	-rm -f $(DEST_MAN_DE)/xxd.1 $(DEST_MAN_DE_I)/xxd.1 $(DEST_MAN_DE_U)/xxd.1
 	-rm -f $(DEST_MAN_FR)/xxd.1 $(DEST_MAN_FR_I)/xxd.1 $(DEST_MAN_FR_U)/xxd.1
 	-rm -f $(DEST_MAN_IT)/xxd.1 $(DEST_MAN_IT_I)/xxd.1 $(DEST_MAN_IT_U)/xxd.1
 	-rm -f $(DEST_MAN_JA_U)/xxd.1
@@ -2891,7 +2748,7 @@ SHADOWDIR = shadow
 
 shadow:	runtime pixmaps
 	$(MKDIR_P) $(SHADOWDIR)
-	cd $(SHADOWDIR); ln -s ../*.[chm] ../*.in ../*.sh ../*.xs ../*.xbm ../gui_gtk_res.xml ../toolcheck ../proto ../libvterm ../vimtutor ../gvimtutor ../install-sh .
+	cd $(SHADOWDIR); ln -s ../*.[chm] ../*.in ../*.sh ../*.xs ../*.xbm ../gui_gtk_res.xml ../toolcheck ../proto ../libvterm ../vimtutor ../gvimtutor ../install-sh ../Make_all.mak .
 	mkdir $(SHADOWDIR)/auto
 	cd $(SHADOWDIR)/auto; ln -s ../../auto/configure .
 	$(MKDIR_P) $(SHADOWDIR)/po

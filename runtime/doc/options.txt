@@ -835,7 +835,9 @@ A jump table for the options with a short description can be found at |Q_op|.
 			{not in Vi}
 	When a file has been detected to have been changed outside of Vim and
 	it has not been changed inside of Vim, automatically read it again.
-	When the file has been deleted this is not done.  |timestamp|
+	When the file has been deleted this is not done, so you have the text
+	from before it was deleted.  When it appears again then it is read.
+	|timestamp|
 	If this option has a local value, use this command to switch back to
 	using the global value: >
 		:set autoread<
@@ -5394,7 +5396,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Running into the limit often means that the pattern is very
 	inefficient or too complex.  This may already happen with the pattern
 	"\(.\)*" on a very long line.  ".*" works much better.
-	Vim may run out of memory before hitting the 'maxmempattern' limit.
+	Might also happen on redraw, when syntax rules try to match a complex
+	text structure.
+	Vim may run out of memory before hitting the 'maxmempattern' limit, in
+	which case you get an "Out of memory" error instead.
 
 						*'maxmemtot'* *'mmt'*
 'maxmemtot' 'mmt'	number	(default between 2048 and 10240 (system
@@ -8664,11 +8669,11 @@ A jump table for the options with a short description can be found at |Q_op|.
 	final value applying to all subsequent tabs.
 
 	For example, when editing assembly language files where statements
-	start in the 8th column and comments in the 40th, it may be useful
+	start in the 9th column and comments in the 41st, it may be useful
 	to use the following: >
 		:set varsofttabstop=8,32,8
-<	This will set soft tabstops at the 8th and 40th columns, and at every
-	8th column thereafter.
+<	This will set soft tabstops with 8 and 8 + 32 spaces, and 8 more
+	for every column thereafter.
 
 	Note that the value of |'softtabstop'| will be ignored while
 	'varsofttabstop' is set.
