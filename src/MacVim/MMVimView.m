@@ -60,7 +60,7 @@ enum {
 - (NSSize)vimViewSizeForTextViewSize:(NSSize)textViewSize;
 - (NSRect)textViewRectForVimViewSize:(NSSize)contentSize;
 - (NSTabView *)tabView;
-- (void)frameSizeMayHaveChanged;
+- (void)frameSizeMayHaveChanged:(BOOL)keepGUISize;
 @end
 
 
@@ -610,14 +610,25 @@ enum {
     // row will result in the vim view holding more rows than the can fit
     // inside the window.)
     [super setFrameSize:size];
-    [self frameSizeMayHaveChanged];
+    [self frameSizeMayHaveChanged:NO];
+}
+
+- (void)setFrameSizeKeepGUISize:(NSSize)size
+{
+    // NOTE: Instead of only acting when a frame was resized, we do some
+    // updating each time a frame may be resized.  (At the moment, if we only
+    // respond to actual frame changes then typing ":set lines=1000" twice in a
+    // row will result in the vim view holding more rows than the can fit
+    // inside the window.)
+    [super setFrameSize:size];
+    [self frameSizeMayHaveChanged:YES];
 }
 
 - (void)setFrame:(NSRect)frame
 {
     // See comment in setFrameSize: above.
     [super setFrame:frame];
-    [self frameSizeMayHaveChanged];
+    [self frameSizeMayHaveChanged:NO];
 }
 
 @end // MMVimView
@@ -867,7 +878,7 @@ enum {
     return tabView;
 }
 
-- (void)frameSizeMayHaveChanged
+- (void)frameSizeMayHaveChanged:(BOOL)keepGUISize
 {
     // NOTE: Whenever a call is made that may have changed the frame size we
     // take the opportunity to make sure all subviews are in place and that the
@@ -903,7 +914,7 @@ enum {
     if (constrained[0] != rows || constrained[1] != cols) {
         NSData *data = [NSData dataWithBytes:constrained length:2*sizeof(int)];
         int msgid = [self inLiveResize] ? LiveResizeMsgID
-                                        : SetTextDimensionsMsgID;
+                                        : (keepGUISize ? SetTextDimensionsNoResizeWindowMsgID : SetTextDimensionsMsgID);
 
         ASLogDebug(@"Notify Vim that text dimensions changed from %dx%d to "
                    "%dx%d (%s)", cols, rows, constrained[1], constrained[0],
