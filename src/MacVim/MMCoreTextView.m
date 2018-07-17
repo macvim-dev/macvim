@@ -1173,15 +1173,20 @@ lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
 attributedStringForString(NSString *string, const CTFontRef font,
                           BOOL useLigatures)
 {
-    NSDictionary *attrs = [NSDictionary dictionaryWithObjectsAndKeys:
-                            (id)font, kCTFontAttributeName,
-                            // 2 - full ligatures including rare
-                            // 1 - basic ligatures
-                            // 0 - no ligatures
-                            [NSNumber numberWithBool:useLigatures],
-                            kCTLigatureAttributeName,
-                            nil
-    ];
+    NSDictionary *attrs = nil;
+    if (useLigatures) {
+        attrs = [NSDictionary dictionaryWithObjectsAndKeys:
+                 (id)font, kCTFontAttributeName,
+                 // 2 - full ligatures including rare
+                 // 1 - basic ligatures
+                 // 0 - only ligatures essential for proper rendering of text
+                 //     this option seems to render ligatures for some
+                 //     monospace fonts with ligatures, eg Iosevka, ...
+                 [NSNumber numberWithInt:1],
+                 kCTLigatureAttributeName,
+                 nil
+                 ];
+    }
 
     return CFAttributedStringCreate(NULL, (CFStringRef)string,
                                     (CFDictionaryRef)attrs);
