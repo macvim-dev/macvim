@@ -1182,10 +1182,10 @@ attributedStringForString(NSString *string, const CTFontRef font,
                  // 0 - only ligatures essential for proper rendering of text
                  //     this option seems to render ligatures for some
                  //     monospace fonts with ligatures, eg Iosevka, ...
-                 [NSNumber numberWithInt:1],
+                 [NSNumber numberWithBool: useLigatures],
                  kCTLigatureAttributeName,
                  nil
-                 ];
+                ];
     }
 
     return CFAttributedStringCreate(NULL, (CFStringRef)string,
