@@ -511,9 +511,11 @@ a slash.  Thus "-R" means recovery and "-/R" readonly.
 		{not in Vi}
 
 							*--clean*
---clean		Equal to "-u DEFAULTS -U NONE -i NONE":
+--clean		Similar to "-u DEFAULTS -U NONE -i NONE":
 		- initializations from files and environment variables is
 		  skipped
+		-'runtimepath'and 'packpath' are set to exclude home
+		  directory entries (does not happen with -u DEFAULTS).
 		- the |defaults.vim| script is loaded, which implies
 		  'nocompatible': use Vim defaults
 		- no |gvimrc| script is loaded
@@ -1595,6 +1597,8 @@ VIMINFO FILE NAME					*viminfo-file-name*
 - The "-i" Vim argument can be used to set another file name, |-i|.  When the
   file name given is "NONE" (all uppercase), no viminfo file is ever read or
   written.  Also not for the commands below!
+- The 'viminfofile' option can be used like the "-i" argument.  In fact, the
+  value form the "-i" argument is stored in the 'viminfofile' option.
 - For the commands below, another file name can be given, overriding the
   default and the name given with 'viminfo' or "-i" (unless it's NONE).
 

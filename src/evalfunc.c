@@ -5655,10 +5655,12 @@ get_win_info(win_T *wp, short tpnr, short winnr)
     dict_add_number(dict, "winnr", winnr);
     dict_add_number(dict, "winid", wp->w_id);
     dict_add_number(dict, "height", wp->w_height);
+    dict_add_number(dict, "winrow", wp->w_winrow + 1);
 #ifdef FEAT_MENU
     dict_add_number(dict, "winbar", wp->w_winbar_height);
 #endif
     dict_add_number(dict, "width", wp->w_width);
+    dict_add_number(dict, "wincol", wp->w_wincol + 1);
     dict_add_number(dict, "bufnr", wp->w_buffer->b_fnum);
 
 #ifdef FEAT_TERMINAL
@@ -6313,7 +6315,9 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_OLE
 	"ole",
 #endif
+#ifdef FEAT_EVAL
 	"packages",
+#endif
 #ifdef FEAT_PATH_EXTRA
 	"path_extra",
 #endif
@@ -11664,6 +11668,7 @@ f_spellbadword(typval_T *argvars UNUSED, typval_T *rettv)
 		    break;
 		}
 		str += len;
+		capcol -= len;
 	    }
 	}
     }

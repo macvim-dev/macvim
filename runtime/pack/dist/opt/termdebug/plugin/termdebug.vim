@@ -56,6 +56,9 @@ else
   finish
 endif
 
+let s:keepcpo = &cpo
+set cpo&vim
+
 " The command that starts debugging, e.g. ":Termdebug vim".
 " To end type "quit" in the gdb window.
 command -nargs=* -complete=file -bang Termdebug call s:StartDebug(<bang>0, <f-args>)
@@ -197,7 +200,8 @@ func s:StartDebug_term(dict)
     let response = ''
     for lnum in range(1,200)
       if term_getline(s:gdbbuf, lnum) =~ 'new-ui mi '
-	let response = term_getline(s:gdbbuf, lnum + 1)
+	" response can be in the same line or the next line
+	let response = term_getline(s:gdbbuf, lnum) . term_getline(s:gdbbuf, lnum + 1)
 	if response =~ 'Undefined command'
 	  echoerr 'Sorry, your gdb is too old, gdb 7.12 is required'
 	  exe 'bwipe! ' . s:ptybuf
@@ -563,6 +567,9 @@ endfunc
 
 " Install commands in the current window to control the debugger.
 func s:InstallCommands()
+  let save_cpo = &cpo
+  set cpo&vim
+
   command Break call s:SetBreakpoint()
   command Clear call s:ClearBreakpoint()
   command Step call s:SendCommand('-exec-step')
@@ -600,6 +607,8 @@ func s:InstallCommands()
       an 1.230 PopUp.Evaluate		:Evaluate<CR>
     endif
   endif
+
+  let &cpo = save_cpo
 endfunc
 
 let s:winbar_winids = []
@@ -943,3 +952,6 @@ func s:BufUnloaded()
     endif
   endfor
 endfunc
+
+let &cpo = s:keepcpo
+unlet s:keepcpo
