@@ -1288,20 +1288,26 @@ if has("gui_macvim")
 endif
 
 if has("touchbar")
-  an TouchBar.Open			:browse confirm e<CR>
-  an <silent> TouchBar.Save		:if expand("%") == ""<Bar>browse confirm w<Bar>else<Bar>confirm w<Bar>endif<CR>
-  an TouchBar.SaveAll		:browse confirm wa<CR>
+  " Set up default Touch Bar buttons.
+  " 1. Smart fullscreen icon that toggles between going full screen or not.
+  an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
 
-  an TouchBar.-sep1-		<Nop>
-  an TouchBar.Undo			u
-  an TouchBar.Redo			<C-R>
-
-  an TouchBar.-sep2-		<Nop>
-  vnoremenu TouchBar.Cut		"+x
-  vnoremenu TouchBar.Copy		"+y
-  cnoremenu TouchBar.Copy		<C-Y>
-  nnoremenu TouchBar.Paste		"+gP
-  cnoremenu	TouchBar.Paste		<C-R>+
+  let s:touchbar_fullscreen=0
+  func! s:SetupFullScreenTouchBar()
+    if &fullscreen && s:touchbar_fullscreen == 0
+      aun TouchBar.EnterFullScreen
+      an icon=NSTouchBarExitFullScreenTemplate 1.10 TouchBar.ExitFullScreen :set nofullscreen<CR>
+      let s:touchbar_fullscreen = 1
+    elseif !&fullscreen && s:touchbar_fullscreen == 1
+      aun TouchBar.ExitFullScreen
+      an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
+      let s:touchbar_fullscreen = 0
+    endif
+  endfunc
+  aug FullScreenTouchBar
+    au!
+    au VimResized * call <SID>SetupFullScreenTouchBar()
+  aug END
 endif
 
 " vim: set sw=2 :

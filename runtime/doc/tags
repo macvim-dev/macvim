@@ -7428,6 +7428,7 @@ macvim-start	gui_mac.txt	/*macvim-start*
 macvim-tablabel	gui_mac.txt	/*macvim-tablabel*
 macvim-todo	gui_mac.txt	/*macvim-todo*
 macvim-toolbar	gui_mac.txt	/*macvim-toolbar*
+macvim-touchbar	gui_mac.txt	/*macvim-touchbar*
 macvim-url-handler	gui_mac.txt	/*macvim-url-handler*
 macvim-user-defaults	gui_mac.txt	/*macvim-user-defaults*
 macvim-window-title	gui_mac.txt	/*macvim-window-title*

@@ -32,6 +32,7 @@
     NSTouchBar          *touchbar;
     NSMutableDictionary *touchbarItemDict;
     NSMutableArray      *touchbarItemOrder;
+    NSMutableSet        *touchbarDisabledItems;
 #endif
 
     int                 pid;

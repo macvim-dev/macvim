@@ -136,6 +136,7 @@ static BOOL isUnsafeMessage(int msgid);
     toolbarItemDict = [[NSMutableDictionary alloc] init];
     touchbarItemDict = [[NSMutableDictionary alloc] init];
     touchbarItemOrder = [[NSMutableArray alloc] init];
+    touchbarDisabledItems = [[NSMutableSet alloc] init];
 #endif
     pid = processIdentifier;
     creationDate = [[NSDate alloc] init];
@@ -188,6 +189,7 @@ static BOOL isUnsafeMessage(int msgid);
 #if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
     [touchbarItemDict release];  touchbarItemDict = nil;
     [touchbarItemOrder release];  touchbarItemOrder = nil;
+    [touchbarDisabledItems release]; touchbarDisabledItems = nil;
     [touchbar release];  touchbar = nil;
 #endif
     [popupMenuItems release];  popupMenuItems = nil;
@@ -505,7 +507,28 @@ static BOOL isUnsafeMessage(int msgid);
 {
     touchbar = [[NSTouchBar alloc] init];
     touchbar.delegate = self;
-    touchbar.defaultItemIdentifiers = [NSArray arrayWithArray: touchbarItemOrder];
+    
+    NSMutableArray *filteredTouchbarItemOrder = [NSMutableArray array];
+    for (NSString *label in touchbarItemOrder) {
+        if (![touchbarDisabledItems containsObject:label]) {
+            if ([touchbarItemDict objectForKey:label] == nil) {
+                // The label begins and ends with '-'; decided which kind of separator
+                // item it is by looking at the prefix.
+                if ([label hasPrefix:@"-space"]) {
+                    label = NSTouchBarItemIdentifierFixedSpaceSmall;
+                } else if ([label hasPrefix:@"-flexspace"]) {
+                    label = NSTouchBarItemIdentifierFlexibleSpace;
+                } else {
+                    label = NSTouchBarItemIdentifierFixedSpaceLarge;
+                }
+            }
+
+            [filteredTouchbarItemOrder addObject:label];
+        }
+    }
+    [filteredTouchbarItemOrder addObject:NSTouchBarItemIdentifierOtherItemsProxy];
+
+    touchbar.defaultItemIdentifiers = filteredTouchbarItemOrder;
     return touchbar;
 }
 
@@ -1173,7 +1196,7 @@ static BOOL isUnsafeMessage(int msgid);
     }
 #if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
     if ([rootName isEqual:MMTouchbarMenuName]) {
-        if (toolbar && [desc count] == 2)
+        if ([desc count] == 2)
             [self addTouchbarItemWithLabel:title icon:icon atIndex:idx];
         return;
     }
@@ -1245,6 +1268,7 @@ static BOOL isUnsafeMessage(int msgid);
         if ([desc count] == 2) {
             [touchbarItemOrder removeObject:title];
             [touchbarItemDict removeObjectForKey:title];
+            [touchbarDisabledItems removeObject:title];
             [windowController setTouchBar:nil];
         }
         return;
@@ -1286,6 +1310,14 @@ static BOOL isUnsafeMessage(int msgid);
     }
 #if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
     if ([rootName isEqual:MMTouchbarMenuName]) {
+        if ([desc count] == 2) {
+            NSString *title = [desc lastObject];
+            if (on)
+                [touchbarDisabledItems removeObject:title];
+            else
+                [touchbarDisabledItems addObject:title];
+            [windowController setTouchBar:nil];
+        }
         return;
     }
 #endif
@@ -1376,15 +1408,7 @@ static BOOL isUnsafeMessage(int msgid);
         label = NSTouchBarItemIdentifierFixedSpaceLarge;
     } else if ([label length] >= 2 && [label hasPrefix:@"-"]
                                    && [label hasSuffix:@"-"]) {
-        // The label begins and ends with '-'; decided which kind of separator
-        // item it is by looking at the prefix.
-        if ([label hasPrefix:@"-space"]) {
-            label = NSTouchBarItemIdentifierFixedSpaceSmall;
-        } else if ([label hasPrefix:@"-flexspace"]) {
-            label = NSTouchBarItemIdentifierFlexibleSpace;
-        } else {
-            label = NSTouchBarItemIdentifierFixedSpaceLarge;
-        }
+        // These will be converted to fixed/flexible space identifiers later, when "makeTouchBar" is called.
     } else {
         NSButton* button = [NSButton buttonWithTitle:label target:windowController action:@selector(vimTouchbarItemAction:)];
         NSCustomTouchBarItem *item =

@@ -12,14 +12,15 @@ The MacVim Graphical User Interface			*macvim* *gui-macvim*
  4. Special colors		|macvim-colors|
  5. Menus			|macvim-menus|
  6. Toolbar			|macvim-toolbar|
- 7. Dialogs			|macvim-dialogs|
- 8. System services		|macvim-services|
- 9. mvim:// URL handler		|macvim-url-handler|
-10. Keyboard shortcuts		|macvim-shortcuts|
-11. Trackpad gestures		|macvim-gestures|
-12. International		|macvim-international|
-13. Known bugs/missing features	|macvim-todo|
-14. Hints			|macvim-hints|
+ 7. Touch Bar			|macvim-touchbar|
+ 8. Dialogs			|macvim-dialogs|
+ 9. System services		|macvim-services|
+10. mvim:// URL handler		|macvim-url-handler|
+11. Keyboard shortcuts		|macvim-shortcuts|
+12. Trackpad gestures		|macvim-gestures|
+13. International		|macvim-international|
+14. Known bugs/missing features	|macvim-todo|
+15. Hints			|macvim-hints|
 
 Other relevant documentation:
 |gui.txt|	For generic items of the GUI.
@@ -467,19 +468,47 @@ empty space which will shink or expand so that the items to the right of it
 are right-aligned.  A space (flexspace) will be created for any toolbar item
 whose name begins with "-space" ("-flexspace") and ends with "-"
 
-Toolbar icons should be tiff, png or icns, of dimension 32x32 or 24x24 pixels.
-The larger size is used when 'tbis' is "medium" or "large", otherwise the
-smaller size is used (which is the default).  If the icon file only contains
-one dimension then Mac OS X will scale the icon to the appropriate dimension
-if necessary.  To avoid this, use a file format which supports multiple
-resolutions (such as icns) and provide both 32x32 and 24x24 versions of the
-icon.
+Toolbar icons should be tiff, png, icns, or heic, of dimension 32x32 or 24x24
+pixels.  The larger size is used when 'tbis' is "medium" or "large", otherwise
+the smaller size is used (which is the default).  If the icon file only
+contains one dimension then Mac OS X will scale the icon to the appropriate
+dimension if necessary.  To avoid this, use a file format which supports
+multiple resolutions (such as icns) and provide both 32x32 and 24x24 versions
+of the icon.
 
 Note: Only a subset of the builtin toolbar items presently have icons.  If no
 icon can be found a warning triangle is displayed instead.
 
 ==============================================================================
-7. Dialogs						*macvim-dialogs*
+7. Touch Bar						*macvim-touchbar*
+
+Touch Bar in MacVim works similar to the toolbar (see |macvim-toolbar|).  The
+difference is that you use the special menu "TouchBar" instead of "ToolBar": >
+	:an TouchBar.Hello          :echo "Hello"<CR>
+
+The separators work similar to how toolbars work: >
+	:an TouchBar.-Sep-          <Nop>
+	:an TouchBar.-space1-       <Nop>
+	:an TouchBar.-flexspace2-   <Nop>
+
+The first example is a Vim separator (see |menu-separator|) and injects a
+space between two buttons. The second creates a smaller space than a normal
+separator and are specified by names that begin with "-space" and ends with
+"-". The third creates a flexible empty space which will shrink or expand so
+that items after it will be right-aligned, and is specified by names that
+begin with "-flexspace" and ends with "-".
+
+You can specify icons for Touch Bar buttons the same way for toolbar icons.
+Touch Bar icons should ideally be 36x36 pixels, and no larger than 44x44
+pixels. You can also use default template icons provided by Apple by using
+their template names. An example: >
+	:an icon=NSTouchBarListViewTemplate TouchBar.ShowList <Nop>
+
+This feature only works on Mac devices that come with Touch Bars. On the ones
+that don't, nothing will show up.
+
+==============================================================================
+8. Dialogs						*macvim-dialogs*
 
 Dialogs can be controlled with the keyboard in two ways.  By default each
 button in a dialog is bound to a key.  The button that is highlighted by blue
@@ -498,7 +527,7 @@ select the current button.  The current button is indicated with a blue
 outline.
 
 ==============================================================================
-8. System services					*macvim-services*
+9. System services					*macvim-services*
 
 MacVim supports two system services.  These can be accessed from the MacVim
 submenu in the Services menu or by right-clicking a selection.  For services
@@ -516,7 +545,7 @@ The services respect the "Open files from applications" setting in the general
 preferences.
 
 ==============================================================================
-9. mvim:// URL handler				*mvim://* *macvim-url-handler*
+10. mvim:// URL handler				*mvim://* *macvim-url-handler*
 
 MacVim supports a custom URL handler for "mvim://" URLs. The handler is
 supposed to be compatible to TextMate's URL scheme as documented at >
@@ -537,7 +566,7 @@ will open the file /etc/profile on line 20 when clicked in a web browser.
 Note that url has to be a file:// url pointing to an existing local file.
 
 ==============================================================================
-10. Keyboard shortcuts					*macvim-shortcuts*
+11. Keyboard shortcuts					*macvim-shortcuts*
 
 Most keyboard shortcuts in MacVim are bound to menu items and can be
 discovered by looking through the menus (see |macvim-menus| on how to create
@@ -617,7 +646,7 @@ sometimes be slightly involved.  Here are all the things you need to consider:
 - A few command key mappings are set up by MacVim, see |cmd-movement|.
 
 ==============================================================================
-11. Trackpad gestures					*macvim-gestures*
+12. Trackpad gestures					*macvim-gestures*
 
 MacVim supports trackpad swipe gestures.  By default this can be used to
 navigate back/forward in the help (try it!).
@@ -648,7 +677,7 @@ As another example, here is how to switch buffers by swiping left/right: >
 See the section on |key-mapping| for more help on how to map keys.
 
 ==============================================================================
-12. International					*macvim-international*
+13. International					*macvim-international*
 
 When editing non-English text it may be convenient to keep separate keyboard
 layouts for normal and insert mode.  This is supported via the 'imd' option on
@@ -669,7 +698,7 @@ wrong layout when going back to normal mode, then select the layout you want
 to use in normal mode and type ":set imd" followed by ":set noimd".
 
 ==============================================================================
-13. Known bugs/missing features				*macvim-todo*
+14. Known bugs/missing features				*macvim-todo*
 
 This list is by no means exhaustive, it only enumerates some of the more
 prominent bugs/missing features.
@@ -693,7 +722,7 @@ This is also the best place for making feature requests as well as for asking
 general questions about MacVim.
 
 ==============================================================================
-14. Hints						*macvim-hints*
+15. Hints						*macvim-hints*
 
 In this section some general (not necessarily MacVim specific) hints are
 given.
