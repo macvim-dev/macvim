@@ -28,11 +28,11 @@
     // TODO: Move all toolbar code to window controller?
     NSToolbar           *toolbar;
     NSMutableDictionary *toolbarItemDict;
-	#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
     NSTouchBar          *touchbar;
     NSMutableDictionary *touchbarItemDict;
     NSMutableArray      *touchbarItemOrder;
-	#endif
+#endif
 
     int                 pid;
     NSString            *serverName;

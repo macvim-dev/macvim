@@ -345,7 +345,7 @@ associated: a title, a key equivalent and an action message.  When a menu is
 displayed the title is shown on the left and the key equivalent (if any) is
 shown on the right.  Key equivalents enable you to access a menu item using
 the keyboard instead of having to use the mouse.  When a menu item is clicked
-it will send it's associated action message.  Actions can be used to instruct
+it will send its associated action message.  Actions can be used to instruct
 MacVim to paste some text (paste:), open a new window (newWindow:), etc.
 Certain actions are standard throughout OS X which is why MacVim must be able
 to set these for each menu item.  (E.g. the menu item "Edit.Paste" must be

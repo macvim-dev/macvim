@@ -1361,7 +1361,7 @@
 #if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
 - (NSTouchBar *)makeTouchBar
 {
-	return [vimController makeTouchBar];
+    return [vimController makeTouchBar];
 }
 
 #endif

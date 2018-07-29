@@ -40,6 +40,9 @@
 static NSString *MMDefaultToolbarImageName = @"Attention";
 static int MMAlertTextFieldHeight = 22;
 
+static const NSString * const MMToolbarMenuName = @"ToolBar";
+static const NSString * const MMTouchbarMenuName = @"TouchBar";
+
 // NOTE: By default a message sent to the backend will be dropped if it cannot
 // be delivered instantly; otherwise there is a possibility that MacVim will
 // 'beachball' while waiting to deliver DO messages to an unresponsive Vim
@@ -129,11 +132,11 @@ static BOOL isUnsafeMessage(int msgid);
         [[MMWindowController alloc] initWithVimController:self];
     backendProxy = [backend retain];
     popupMenuItems = [[NSMutableArray alloc] init];
-	#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
     toolbarItemDict = [[NSMutableDictionary alloc] init];
     touchbarItemDict = [[NSMutableDictionary alloc] init];
     touchbarItemOrder = [[NSMutableArray alloc] init];
-	#endif
+#endif
     pid = processIdentifier;
     creationDate = [[NSDate alloc] init];
 
@@ -182,11 +185,11 @@ static BOOL isUnsafeMessage(int msgid);
 
     [toolbarItemDict release];  toolbarItemDict = nil;
     [toolbar release];  toolbar = nil;
-	#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
     [touchbarItemDict release];  touchbarItemDict = nil;
     [touchbarItemOrder release];  touchbarItemOrder = nil;
     [touchbar release];  touchbar = nil;
-	#endif
+#endif
     [popupMenuItems release];  popupMenuItems = nil;
     [windowController release];  windowController = nil;
 
@@ -500,10 +503,10 @@ static BOOL isUnsafeMessage(int msgid);
 #if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
 - (NSTouchBar *)makeTouchBar
 {
-	    touchbar = [[NSTouchBar alloc] init];
-		touchbar.delegate = self;
-		touchbar.defaultItemIdentifiers = [NSArray arrayWithArray: touchbarItemOrder];
-	    return touchbar;
+    touchbar = [[NSTouchBar alloc] init];
+    touchbar.delegate = self;
+    touchbar.defaultItemIdentifiers = [NSArray arrayWithArray: touchbarItemOrder];
+    return touchbar;
 }
 
 - (nullable NSTouchBarItem *)touchBar:(NSTouchBar *)touchBar makeItemForIdentifier:(NSTouchBarItemIdentifier)itemId
@@ -1095,7 +1098,7 @@ static BOOL isUnsafeMessage(int msgid);
     if (!(desc && [desc count] > 0 && idx >= 0)) return;
 
     NSString *rootName = [desc objectAtIndex:0];
-    if ([rootName isEqual:@"ToolBar"]) {
+    if ([rootName isEqual:MMToolbarMenuName]) {
         // The toolbar only has one menu, we take this as a hint to create a
         // toolbar, then we return.
         if (!toolbar) {
@@ -1114,10 +1117,10 @@ static BOOL isUnsafeMessage(int msgid);
 
         return;
     }
-	#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
-    if ([rootName isEqual:@"TouchBar"])
+#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+    if ([rootName isEqual:MMTouchbarMenuName])
         return;
-	#endif
+#endif
     // This is either a main menu item or a popup menu item.
     NSString *title = [desc lastObject];
     NSMenuItem *item = [[NSMenuItem alloc] init];
@@ -1163,13 +1166,13 @@ static BOOL isUnsafeMessage(int msgid);
     NSString *title = [desc lastObject];
     NSString *rootName = [desc objectAtIndex:0];
 
-    if ([rootName isEqual:@"ToolBar"]) {
+    if ([rootName isEqual:MMToolbarMenuName]) {
         if (toolbar && [desc count] == 2)
             [self addToolbarItemWithLabel:title tip:tip icon:icon atIndex:idx];
         return;
     }
 #if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
-    if ([rootName isEqual:@"TouchBar"]) {
+    if ([rootName isEqual:MMTouchbarMenuName]) {
         if (toolbar && [desc count] == 2)
             [self addTouchbarItemWithLabel:title icon:icon atIndex:idx];
         return;
@@ -1225,7 +1228,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     NSString *title = [desc lastObject];
     NSString *rootName = [desc objectAtIndex:0];
-    if ([rootName isEqual:@"ToolBar"]) {
+    if ([rootName isEqual:MMToolbarMenuName]) {
         if (toolbar) {
             // Only remove toolbar items, never actually remove the toolbar
             // itself or strange things may happen.
@@ -1238,14 +1241,14 @@ static BOOL isUnsafeMessage(int msgid);
         return;
     }
 #if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
-    if ([rootName isEqual:@"TouchBar"]){
-		if ([desc count] == 2) {
-		    [touchbarItemOrder removeObject:title];
-		    [touchbarItemDict removeObjectForKey:title];
-		    [windowController setTouchBar:nil];
-		}
-		return;
-	}
+    if ([rootName isEqual:MMTouchbarMenuName]){
+        if ([desc count] == 2) {
+            [touchbarItemOrder removeObject:title];
+            [touchbarItemDict removeObjectForKey:title];
+            [windowController setTouchBar:nil];
+        }
+        return;
+    }
 #endif
     NSMenuItem *item = [self menuItemForDescriptor:desc];
     if (!item) {
@@ -1274,22 +1277,24 @@ static BOOL isUnsafeMessage(int msgid);
     if (!(desc && [desc count] > 0)) return;
 
     NSString *rootName = [desc objectAtIndex:0];
-    if ([rootName isEqual:@"ToolBar"]) {
+    if ([rootName isEqual:MMToolbarMenuName]) {
         if (toolbar && [desc count] == 2) {
             NSString *title = [desc lastObject];
             [[toolbar itemWithItemIdentifier:title] setEnabled:on];
         }
-    } else 
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
-	if (![rootName isEqual:@"TouchBar"]) 
-#endif
-	{
-        // Use tag to set whether item is enabled or disabled instead of
-        // calling setEnabled:.  This way the menus can autoenable themselves
-        // but at the same time Vim can set if a menu is enabled whenever it
-        // wants to.
-        [[self menuItemForDescriptor:desc] setTag:on];
+        return;
     }
+#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+    if ([rootName isEqual:MMTouchbarMenuName]) {
+        return;
+    }
+#endif
+
+    // Use tag to set whether item is enabled or disabled instead of
+    // calling setEnabled:.  This way the menus can autoenable themselves
+    // but at the same time Vim can set if a menu is enabled whenever it
+    // wants to.
+    [[self menuItemForDescriptor:desc] setTag:on];
 }
 
 - (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
@@ -1381,30 +1386,30 @@ static BOOL isUnsafeMessage(int msgid);
             label = NSTouchBarItemIdentifierFixedSpaceLarge;
         }
     } else {
-	NSButton* button = [NSButton buttonWithTitle:label target:windowController action:@selector(vimTouchbarItemAction:)];
-	NSCustomTouchBarItem *item =
-	    [[NSCustomTouchBarItem alloc] initWithIdentifier:label];
-    	NSImage *img = [NSImage imageNamed:icon];
-	
-    	if (!img) {
-        	img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
-        	if (!(img && [img isValid]))
-           		img = nil;
-    	}
-    	if (img) {
-	    [button setImage: img];
-	    //[button setImagePosition:NSImageLeft];
-	    [button setImagePosition:NSImageOnly]; 
-    	}
-	
-	[item setView:button];
-	[touchbarItemDict setObject:item forKey:label];
+        NSButton* button = [NSButton buttonWithTitle:label target:windowController action:@selector(vimTouchbarItemAction:)];
+        NSCustomTouchBarItem *item =
+            [[NSCustomTouchBarItem alloc] initWithIdentifier:label];
+        NSImage *img = [NSImage imageNamed:icon];
+
+        if (!img) {
+            img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
+            if (!(img && [img isValid]))
+                img = nil;
+        }
+        if (img) {
+            [button setImage: img];
+            //[button setImagePosition:NSImageLeft];
+            [button setImagePosition:NSImageOnly]; 
+        }
+
+        [item setView:button];
+        [touchbarItemDict setObject:item forKey:label];
     }
-	
+
     int maxIdx = [touchbarItemOrder count];
     if (maxIdx < idx) idx = maxIdx;
     [touchbarItemOrder insertObject:label atIndex:idx];
-	
+
     [windowController setTouchBar:nil];
 }
 #endif

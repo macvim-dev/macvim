@@ -9415,6 +9415,7 @@ tgetent			Compiled with tgetent support, able to use a termcap
 timers			Compiled with |timer_start()| support.
 title			Compiled with window title support |'title'|.
 toolbar			Compiled with support for |gui-toolbar|.
+touchbar		Compiled with support for Touch Bar in MacVim.
 transparency            Compiled with 'transparency' support.
 ttyin			input is a terminal (tty)
 ttyout			output is a terminal (tty)
