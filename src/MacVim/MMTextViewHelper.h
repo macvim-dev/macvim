@@ -65,6 +65,7 @@
 - (void)mouseDragged:(NSEvent *)event;
 - (void)mouseMoved:(NSEvent *)event;
 - (void)swipeWithEvent:(NSEvent *)event;
+- (void)pressureChangeWithEvent:(NSEvent *)event;
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender;
 - (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)sender;

@@ -633,6 +633,10 @@ Each gesture generates one of the following Vim pseudo keys:
 	Generated when swiping three fingers across the trackpad in a
 	vertical direction.  (Not supported by the Apple Magic Mouse.)
 
+						 *<ForceClick>*
+	Generated when doing a Force click by pressing hard on a trackpad.
+	(Only supported on trackpads that support Force Touch.)
+
 You can map these keys like with any other key using the |:map| family of
 commands.  For example, the following commands map left/right swipe to change
 to the previous/next tab in normal mode: >

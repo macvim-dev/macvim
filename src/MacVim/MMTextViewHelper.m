@@ -477,6 +477,20 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
     [self sendGestureEvent:type flags:[event modifierFlags]];
 }
 
+- (void)pressureChangeWithEvent:(NSEvent *)event
+{
+    static BOOL inForceClick = NO;
+    if (event.stage >= 2) {
+        if (!inForceClick) {
+            inForceClick = YES;
+            
+            [self sendGestureEvent:MMGestureForceClick flags:[event modifierFlags]];
+        }
+    } else {
+        inForceClick = NO;
+    }
+}
+
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
 {
     NSPasteboard *pboard = [sender draggingPasteboard];

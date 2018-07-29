@@ -3415,6 +3415,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 <F7>	term.txt	/*<F7>*
 <F8>	term.txt	/*<F8>*
 <F9>	term.txt	/*<F9>*
+<ForceClick>	gui_mac.txt	/*<ForceClick>*
 <Help>	helphelp.txt	/*<Help>*
 <Home>	motion.txt	/*<Home>*
 <Insert>	insert.txt	/*<Insert>*

@@ -795,6 +795,11 @@
     [helper swipeWithEvent:event];
 }
 
+- (void)pressureChangeWithEvent:(NSEvent *)event
+{
+    [helper pressureChangeWithEvent:event];
+}
+
 - (NSMenu*)menuForEvent:(NSEvent *)event
 {
     // HACK! Return nil to disable NSTextView's popup menus (Vim provides its
