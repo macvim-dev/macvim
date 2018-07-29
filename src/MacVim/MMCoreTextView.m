@@ -556,6 +556,11 @@ defaultAdvanceForFont(NSFont *font)
     [helper swipeWithEvent:event];
 }
 
+- (void)pressureChangeWithEvent:(NSEvent *)event
+{
+    [helper pressureChangeWithEvent:event];
+}
+
 - (NSMenu*)menuForEvent:(NSEvent *)event
 {
     // HACK! Return nil to disable default popup menus (Vim provides its own).

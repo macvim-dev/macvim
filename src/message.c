@@ -1207,6 +1207,7 @@ wait_return(int redraw)
 # ifdef FEAT_GUI_MACVIM
 				|| c == K_SWIPELEFT || c == K_SWIPERIGHT
 				|| c == K_SWIPEUP   || c == K_SWIPEDOWN
+				|| c == K_FORCECLICK
 # endif
 #endif
 				);

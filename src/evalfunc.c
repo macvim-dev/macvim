@@ -4744,6 +4744,7 @@ f_getchar(typval_T *argvars, typval_T *rettv)
 		|| n == K_SWIPERIGHT
 		|| n == K_SWIPEUP
 		|| n == K_SWIPEDOWN
+		|| n == K_FORCECLICK
 # endif
 	   )
 	{

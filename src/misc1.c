@@ -3654,6 +3654,7 @@ get_keystroke(void)
 		    || n == K_SWIPERIGHT
 		    || n == K_SWIPEUP
 		    || n == K_SWIPEDOWN
+		    || n == K_FORCECLICK
 # endif
 	       )
 	    {

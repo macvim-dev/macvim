@@ -2520,6 +2520,7 @@ static struct key_name_entry
     {K_SWIPERIGHT,	(char_u *)"SwipeRight"},
     {K_SWIPEUP,		(char_u *)"SwipeUp"},
     {K_SWIPEDOWN,	(char_u *)"SwipeDown"},
+    {K_FORCECLICK,	(char_u *)"ForceClick"},
 #endif
     {0,			NULL}
     /* NOTE: When adding a long name update MAX_KEY_NAME_LEN. */

@@ -296,6 +296,7 @@ enum {
     MMGestureSwipeRight,
     MMGestureSwipeUp,
     MMGestureSwipeDown,
+    MMGestureForceClick,
 };
 
 

@@ -3004,6 +3004,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         case MMGestureSwipeRight:   string[5] = KE_SWIPERIGHT;	break;
         case MMGestureSwipeUp:	    string[5] = KE_SWIPEUP;	break;
         case MMGestureSwipeDown:    string[5] = KE_SWIPEDOWN;	break;
+        case MMGestureForceClick:   string[5] = KE_FORCECLICK;	break;
         default: return;
     }
 

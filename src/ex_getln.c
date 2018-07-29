@@ -1490,6 +1490,7 @@ getcmdline(
 	case K_SWIPERIGHT:
 	case K_SWIPEUP:
 	case K_SWIPEDOWN:
+	case K_FORCECLICK:
 		goto cmdline_not_changed;
 # endif
 #endif	/* FEAT_MOUSE */

@@ -277,6 +277,7 @@ enum key_extra
     , KE_SWIPERIGHT = 103	/* Swipe trackpad right */
     , KE_SWIPEUP = 104		/* Swipe trackpad up */
     , KE_SWIPEDOWN = 105	/* Swipe trackpad down */
+    , KE_FORCECLICK = 106	/* Force click on trackpad */
 #endif
 };
 
@@ -486,6 +487,7 @@ enum key_extra
 # define K_SWIPERIGHT	TERMCAP2KEY(KS_EXTRA, KE_SWIPERIGHT)
 # define K_SWIPEUP	TERMCAP2KEY(KS_EXTRA, KE_SWIPEUP)
 # define K_SWIPEDOWN	TERMCAP2KEY(KS_EXTRA, KE_SWIPEDOWN)
+# define K_FORCECLICK	TERMCAP2KEY(KS_EXTRA, KE_FORCECLICK)
 #endif
 
 /* Bits for modifier mask */
