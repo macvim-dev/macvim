@@ -224,4 +224,4 @@ across a network).
 Note: Client mode always works, but server mode only works when the GUI is
 started.
 
- vim:tw=78:sw=4:ts=8:ft=help:norl:
+ vim:tw=78:sw=4:ts=8:noet:ft=help:norl:

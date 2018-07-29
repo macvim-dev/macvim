@@ -6053,6 +6053,9 @@ f_has(typval_T *argvars, typval_T *rettv)
 	"arabic",
 #endif
 	"autocmd",
+#ifdef FEAT_AUTOCHDIR
+       "autochdir",
+#endif
 #ifdef FEAT_AUTOSERVERNAME
 	"autoservername",
 #endif
@@ -6467,9 +6470,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_VISUALEXTRA
 	"visualextra",
 #endif
-#ifdef FEAT_VREPLACE
 	"vreplace",
-#endif
 #ifdef FEAT_VTP
 	"vtp",
 #endif
@@ -8005,6 +8006,36 @@ f_match(typval_T *argvars, typval_T *rettv)
     find_some_match(argvars, rettv, MATCH_MATCH);
 }
 
+#ifdef FEAT_SEARCH_EXTRA
+    static int
+matchadd_dict_arg(typval_T *tv, char_u **conceal_char, win_T **win)
+{
+    dictitem_T *di;
+
+    if (tv->v_type != VAR_DICT)
+    {
+	EMSG(_(e_dictreq));
+	return FAIL;
+    }
+
+    if (dict_find(tv->vval.v_dict, (char_u *)"conceal", -1) != NULL)
+	*conceal_char = get_dict_string(tv->vval.v_dict,
+						   (char_u *)"conceal", FALSE);
+
+    if ((di = dict_find(tv->vval.v_dict, (char_u *)"window", -1)) != NULL)
+    {
+	*win = find_win_by_nr(&di->di_tv, NULL);
+	if (*win == NULL)
+	{
+	    EMSG(_("E957: Invalid window number"));
+	    return FAIL;
+	}
+    }
+
+    return OK;
+}
+#endif
+
 /*
  * "matchadd()" function
  */
@@ -8019,6 +8050,7 @@ f_matchadd(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     int		id = -1;
     int		error = FALSE;
     char_u	*conceal_char = NULL;
+    win_T	*win = curwin;
 
     rettv->vval.v_number = -1;
 
@@ -8030,18 +8062,9 @@ f_matchadd(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 	if (argvars[3].v_type != VAR_UNKNOWN)
 	{
 	    id = (int)get_tv_number_chk(&argvars[3], &error);
-	    if (argvars[4].v_type != VAR_UNKNOWN)
-	    {
-		if (argvars[4].v_type != VAR_DICT)
-		{
-		    EMSG(_(e_dictreq));
-		    return;
-		}
-		if (dict_find(argvars[4].vval.v_dict,
-					     (char_u *)"conceal", -1) != NULL)
-		    conceal_char = get_dict_string(argvars[4].vval.v_dict,
-						  (char_u *)"conceal", FALSE);
-	    }
+	    if (argvars[4].v_type != VAR_UNKNOWN
+		&& matchadd_dict_arg(&argvars[4], &conceal_char, &win) == FAIL)
+		return;
 	}
     }
     if (error == TRUE)
@@ -8052,7 +8075,7 @@ f_matchadd(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 	return;
     }
 
-    rettv->vval.v_number = match_add(curwin, grp, pat, prio, id, NULL,
+    rettv->vval.v_number = match_add(win, grp, pat, prio, id, NULL,
 								conceal_char);
 #endif
 }
@@ -8071,6 +8094,7 @@ f_matchaddpos(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
     int		error = FALSE;
     list_T	*l;
     char_u	*conceal_char = NULL;
+    win_T	*win = curwin;
 
     rettv->vval.v_number = -1;
 
@@ -8093,18 +8117,10 @@ f_matchaddpos(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 	if (argvars[3].v_type != VAR_UNKNOWN)
 	{
 	    id = (int)get_tv_number_chk(&argvars[3], &error);
-	    if (argvars[4].v_type != VAR_UNKNOWN)
-	    {
-		if (argvars[4].v_type != VAR_DICT)
-		{
-		    EMSG(_(e_dictreq));
-		    return;
-		}
-		if (dict_find(argvars[4].vval.v_dict,
-					     (char_u *)"conceal", -1) != NULL)
-		    conceal_char = get_dict_string(argvars[4].vval.v_dict,
-						  (char_u *)"conceal", FALSE);
-	    }
+
+	    if (argvars[4].v_type != VAR_UNKNOWN
+		&& matchadd_dict_arg(&argvars[4], &conceal_char, &win) == FAIL)
+		return;
 	}
     }
     if (error == TRUE)
@@ -8117,7 +8133,7 @@ f_matchaddpos(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 	return;
     }
 
-    rettv->vval.v_number = match_add(curwin, group, NULL, prio, id, l,
+    rettv->vval.v_number = match_add(win, group, NULL, prio, id, l,
 								conceal_char);
 #endif
 }
@@ -8368,10 +8384,9 @@ f_mkdir(typval_T *argvars, typval_T *rettv)
     static void
 f_mode(typval_T *argvars, typval_T *rettv)
 {
-    char_u	buf[3];
+    char_u	buf[4];
 
-    buf[1] = NUL;
-    buf[2] = NUL;
+    vim_memset(buf, 0, sizeof(buf));
 
     if (time_for_testing == 93784)
     {
@@ -8403,14 +8418,12 @@ f_mode(typval_T *argvars, typval_T *rettv)
 	buf[0] = '!';
     else if (State & INSERT)
     {
-#ifdef FEAT_VREPLACE
 	if (State & VREPLACE_FLAG)
 	{
 	    buf[0] = 'R';
 	    buf[1] = 'v';
 	}
 	else
-#endif
 	{
 	    if (State & REPLACE_FLAG)
 		buf[0] = 'R';
@@ -8437,6 +8450,12 @@ f_mode(typval_T *argvars, typval_T *rettv)
 	buf[0] = 'n';
 	if (finish_op)
 	    buf[1] = 'o';
+	else if (restart_edit == 'I' || restart_edit == 'R'
+							|| restart_edit == 'V')
+	{
+	    buf[1] = 'i';
+	    buf[2] = restart_edit;
+	}
     }
 
     /* Clear out the minor mode when the argument is not a non-zero number or
