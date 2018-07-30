@@ -799,6 +799,13 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
         // then a warning icon will be displayed).
         if (!icon)
             icon = lookup_toolbar_item(menu->iconidx);
+
+        // Last step is to see if this is a standard Apple template icon. The
+        // touch bar templates are of the form "NSTouchBar*Template".
+        if (!icon)
+            if (menu->iconfile && STRNCMP(menu->iconfile, "NSTouchBar", 10) == 0) {
+                icon = menu->iconfile;
+            }
     }
 
     [[MMBackend sharedInstance] queueMessage:AddMenuItemMsgID properties:

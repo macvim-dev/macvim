@@ -1287,4 +1287,27 @@ if has("gui_macvim")
   macm Help.MacVim\ Website			action=openWebsite:
 endif
 
+if has("touchbar")
+  " Set up default Touch Bar buttons.
+  " 1. Smart fullscreen icon that toggles between going full screen or not.
+  an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
+
+  let s:touchbar_fullscreen=0
+  func! s:SetupFullScreenTouchBar()
+    if &fullscreen && s:touchbar_fullscreen == 0
+      aun TouchBar.EnterFullScreen
+      an icon=NSTouchBarExitFullScreenTemplate 1.10 TouchBar.ExitFullScreen :set nofullscreen<CR>
+      let s:touchbar_fullscreen = 1
+    elseif !&fullscreen && s:touchbar_fullscreen == 1
+      aun TouchBar.ExitFullScreen
+      an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
+      let s:touchbar_fullscreen = 0
+    endif
+  endfunc
+  aug FullScreenTouchBar
+    au!
+    au VimResized * call <SID>SetupFullScreenTouchBar()
+  aug END
+endif
+
 " vim: set sw=2 :

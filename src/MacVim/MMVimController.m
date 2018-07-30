@@ -40,6 +40,9 @@
 static NSString *MMDefaultToolbarImageName = @"Attention";
 static int MMAlertTextFieldHeight = 22;
 
+static const NSString * const MMToolbarMenuName = @"ToolBar";
+static const NSString * const MMTouchbarMenuName = @"TouchBar";
+
 // NOTE: By default a message sent to the backend will be dropped if it cannot
 // be delivered instantly; otherwise there is a possibility that MacVim will
 // 'beachball' while waiting to deliver DO messages to an unresponsive Vim
@@ -130,6 +133,13 @@ static BOOL isUnsafeMessage(int msgid);
     backendProxy = [backend retain];
     popupMenuItems = [[NSMutableArray alloc] init];
     toolbarItemDict = [[NSMutableDictionary alloc] init];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+    if (NSClassFromString(@"NSTouchBar")) {
+        touchbarItemDict = [[NSMutableDictionary alloc] init];
+        touchbarItemOrder = [[NSMutableArray alloc] init];
+        touchbarDisabledItems = [[NSMutableSet alloc] init];
+    }
+#endif
     pid = processIdentifier;
     creationDate = [[NSDate alloc] init];
 
@@ -178,6 +188,12 @@ static BOOL isUnsafeMessage(int msgid);
 
     [toolbarItemDict release];  toolbarItemDict = nil;
     [toolbar release];  toolbar = nil;
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+    [touchbarItemDict release];  touchbarItemDict = nil;
+    [touchbarItemOrder release];  touchbarItemOrder = nil;
+    [touchbarDisabledItems release]; touchbarDisabledItems = nil;
+    [touchbar release];  touchbar = nil;
+#endif
     [popupMenuItems release];  popupMenuItems = nil;
     [windowController release];  windowController = nil;
 
@@ -488,7 +504,46 @@ static BOOL isUnsafeMessage(int msgid);
 {
     return nil;
 }
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+- (NSTouchBar *)makeTouchBar
+{
+    touchbar = [[NSTouchBar alloc] init];
+    touchbar.delegate = self;
+    
+    NSMutableArray *filteredTouchbarItemOrder = [NSMutableArray array];
+    for (NSString *label in touchbarItemOrder) {
+        if (![touchbarDisabledItems containsObject:label]) {
+            if ([touchbarItemDict objectForKey:label] == nil) {
+                // The label begins and ends with '-'; decided which kind of separator
+                // item it is by looking at the prefix.
+                if ([label hasPrefix:@"-space"]) {
+                    label = NSTouchBarItemIdentifierFixedSpaceSmall;
+                } else if ([label hasPrefix:@"-flexspace"]) {
+                    label = NSTouchBarItemIdentifierFlexibleSpace;
+                } else {
+                    label = NSTouchBarItemIdentifierFixedSpaceLarge;
+                }
+            }
 
+            [filteredTouchbarItemOrder addObject:label];
+        }
+    }
+    [filteredTouchbarItemOrder addObject:NSTouchBarItemIdentifierOtherItemsProxy];
+
+    touchbar.defaultItemIdentifiers = filteredTouchbarItemOrder;
+    return touchbar;
+}
+
+- (nullable NSTouchBarItem *)touchBar:(NSTouchBar *)touchBar makeItemForIdentifier:(NSTouchBarItemIdentifier)itemId
+{
+    NSTouchBarItem *item = [touchbarItemDict objectForKey:itemId];
+    if (!item) {
+        ASLogWarn(@"No touchbar item with id '%@'", itemId);
+    }
+
+    return item;
+}
+#endif
 @end // MMVimController
 
 
@@ -1068,7 +1123,7 @@ static BOOL isUnsafeMessage(int msgid);
     if (!(desc && [desc count] > 0 && idx >= 0)) return;
 
     NSString *rootName = [desc objectAtIndex:0];
-    if ([rootName isEqual:@"ToolBar"]) {
+    if ([rootName isEqual:MMToolbarMenuName]) {
         // The toolbar only has one menu, we take this as a hint to create a
         // toolbar, then we return.
         if (!toolbar) {
@@ -1087,6 +1142,9 @@ static BOOL isUnsafeMessage(int msgid);
 
         return;
     }
+
+    if ([rootName isEqual:MMTouchbarMenuName])
+        return;
 
     // This is either a main menu item or a popup menu item.
     NSString *title = [desc lastObject];
@@ -1133,12 +1191,20 @@ static BOOL isUnsafeMessage(int msgid);
     NSString *title = [desc lastObject];
     NSString *rootName = [desc objectAtIndex:0];
 
-    if ([rootName isEqual:@"ToolBar"]) {
+    if ([rootName isEqual:MMToolbarMenuName]) {
         if (toolbar && [desc count] == 2)
             [self addToolbarItemWithLabel:title tip:tip icon:icon atIndex:idx];
         return;
     }
-
+    if ([rootName isEqual:MMTouchbarMenuName]) {
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+        if (NSClassFromString(@"NSTouchBar")) {
+            if ([desc count] == 2)
+                [self addTouchbarItemWithLabel:title icon:icon atIndex:idx];
+        }
+#endif
+        return;
+    }
     NSMenu *parent = [self parentMenuForDescriptor:desc];
     if (!parent) {
         ASLogWarn(@"Menu item '%@' has no parent",
@@ -1189,7 +1255,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     NSString *title = [desc lastObject];
     NSString *rootName = [desc objectAtIndex:0];
-    if ([rootName isEqual:@"ToolBar"]) {
+    if ([rootName isEqual:MMToolbarMenuName]) {
         if (toolbar) {
             // Only remove toolbar items, never actually remove the toolbar
             // itself or strange things may happen.
@@ -1201,7 +1267,19 @@ static BOOL isUnsafeMessage(int msgid);
         }
         return;
     }
-
+    if ([rootName isEqual:MMTouchbarMenuName]){
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+        if (NSClassFromString(@"NSTouchBar")) {
+            if ([desc count] == 2) {
+                [touchbarItemOrder removeObject:title];
+                [touchbarItemDict removeObjectForKey:title];
+                [touchbarDisabledItems removeObject:title];
+                [windowController setTouchBar:nil];
+            }
+        }
+#endif
+        return;
+    }
     NSMenuItem *item = [self menuItemForDescriptor:desc];
     if (!item) {
         ASLogWarn(@"Failed to remove menu item, descriptor not found: %@",
@@ -1229,18 +1307,35 @@ static BOOL isUnsafeMessage(int msgid);
     if (!(desc && [desc count] > 0)) return;
 
     NSString *rootName = [desc objectAtIndex:0];
-    if ([rootName isEqual:@"ToolBar"]) {
+    if ([rootName isEqual:MMToolbarMenuName]) {
         if (toolbar && [desc count] == 2) {
             NSString *title = [desc lastObject];
             [[toolbar itemWithItemIdentifier:title] setEnabled:on];
         }
-    } else {
-        // Use tag to set whether item is enabled or disabled instead of
-        // calling setEnabled:.  This way the menus can autoenable themselves
-        // but at the same time Vim can set if a menu is enabled whenever it
-        // wants to.
-        [[self menuItemForDescriptor:desc] setTag:on];
+        return;
     }
+
+    if ([rootName isEqual:MMTouchbarMenuName]) {
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+        if (NSClassFromString(@"NSTouchBar")) {
+            if ([desc count] == 2) {
+                NSString *title = [desc lastObject];
+                if (on)
+                    [touchbarDisabledItems removeObject:title];
+                else
+                    [touchbarDisabledItems addObject:title];
+                [windowController setTouchBar:nil];
+            }
+        }
+#endif
+        return;
+    }
+
+    // Use tag to set whether item is enabled or disabled instead of
+    // calling setEnabled:.  This way the menus can autoenable themselves
+    // but at the same time Vim can set if a menu is enabled whenever it
+    // wants to.
+    [[self menuItemForDescriptor:desc] setTag:on];
 }
 
 - (void)addToolbarItemToDictionaryWithLabel:(NSString *)title
@@ -1312,7 +1407,45 @@ static BOOL isUnsafeMessage(int msgid);
 
     [toolbar insertItemWithItemIdentifier:label atIndex:idx];
 }
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+- (void)addTouchbarItemWithLabel:(NSString *)label
+                           icon:(NSString *)icon
+                        atIndex:(int)idx
+{
+    // Check for separator items.
+    if (!label) {
+        label = NSTouchBarItemIdentifierFixedSpaceLarge;
+    } else if ([label length] >= 2 && [label hasPrefix:@"-"]
+                                   && [label hasSuffix:@"-"]) {
+        // These will be converted to fixed/flexible space identifiers later, when "makeTouchBar" is called.
+    } else {
+        NSButton* button = [NSButton buttonWithTitle:label target:windowController action:@selector(vimTouchbarItemAction:)];
+        NSCustomTouchBarItem *item =
+            [[NSCustomTouchBarItem alloc] initWithIdentifier:label];
+        NSImage *img = [NSImage imageNamed:icon];
 
+        if (!img) {
+            img = [[[NSImage alloc] initByReferencingFile:icon] autorelease];
+            if (!(img && [img isValid]))
+                img = nil;
+        }
+        if (img) {
+            [button setImage: img];
+            //[button setImagePosition:NSImageLeft];
+            [button setImagePosition:NSImageOnly]; 
+        }
+
+        [item setView:button];
+        [touchbarItemDict setObject:item forKey:label];
+    }
+
+    int maxIdx = [touchbarItemOrder count];
+    if (maxIdx < idx) idx = maxIdx;
+    [touchbarItemOrder insertObject:label atIndex:idx];
+
+    [windowController setTouchBar:nil];
+}
+#endif
 - (void)popupMenuWithDescriptor:(NSArray *)desc
                           atRow:(NSNumber *)row
                          column:(NSNumber *)col
