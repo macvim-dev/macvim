@@ -15,8 +15,13 @@
 
 
 
-@interface MMVimController : NSObject<NSToolbarDelegate,
-    NSOpenSavePanelDelegate, NSTouchBarDelegate>
+@interface MMVimController : NSObject<
+    NSToolbarDelegate
+    , NSOpenSavePanelDelegate
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+    , NSTouchBarDelegate
+#endif
+    >
 {
     unsigned            identifier;
     BOOL                isInitialized;
@@ -28,7 +33,7 @@
     // TODO: Move all toolbar code to window controller?
     NSToolbar           *toolbar;
     NSMutableDictionary *toolbarItemDict;
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
     NSTouchBar          *touchbar;
     NSMutableDictionary *touchbarItemDict;
     NSMutableArray      *touchbarItemOrder;
@@ -71,7 +76,7 @@
 - (id)evaluateVimExpressionCocoa:(NSString *)expr
                      errorString:(NSString **)errstr;
 - (void)processInputQueue:(NSArray *)queue;
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
 - (NSTouchBar *)makeTouchBar;
 #endif
 @end

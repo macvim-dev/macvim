@@ -132,11 +132,13 @@ static BOOL isUnsafeMessage(int msgid);
         [[MMWindowController alloc] initWithVimController:self];
     backendProxy = [backend retain];
     popupMenuItems = [[NSMutableArray alloc] init];
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
     toolbarItemDict = [[NSMutableDictionary alloc] init];
-    touchbarItemDict = [[NSMutableDictionary alloc] init];
-    touchbarItemOrder = [[NSMutableArray alloc] init];
-    touchbarDisabledItems = [[NSMutableSet alloc] init];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+    if (NSClassFromString(@"NSTouchBar")) {
+        touchbarItemDict = [[NSMutableDictionary alloc] init];
+        touchbarItemOrder = [[NSMutableArray alloc] init];
+        touchbarDisabledItems = [[NSMutableSet alloc] init];
+    }
 #endif
     pid = processIdentifier;
     creationDate = [[NSDate alloc] init];
@@ -186,7 +188,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     [toolbarItemDict release];  toolbarItemDict = nil;
     [toolbar release];  toolbar = nil;
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
     [touchbarItemDict release];  touchbarItemDict = nil;
     [touchbarItemOrder release];  touchbarItemOrder = nil;
     [touchbarDisabledItems release]; touchbarDisabledItems = nil;
@@ -502,7 +504,7 @@ static BOOL isUnsafeMessage(int msgid);
 {
     return nil;
 }
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
 - (NSTouchBar *)makeTouchBar
 {
     touchbar = [[NSTouchBar alloc] init];
@@ -1140,10 +1142,10 @@ static BOOL isUnsafeMessage(int msgid);
 
         return;
     }
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+
     if ([rootName isEqual:MMTouchbarMenuName])
         return;
-#endif
+
     // This is either a main menu item or a popup menu item.
     NSString *title = [desc lastObject];
     NSMenuItem *item = [[NSMenuItem alloc] init];
@@ -1194,13 +1196,15 @@ static BOOL isUnsafeMessage(int msgid);
             [self addToolbarItemWithLabel:title tip:tip icon:icon atIndex:idx];
         return;
     }
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
     if ([rootName isEqual:MMTouchbarMenuName]) {
-        if ([desc count] == 2)
-            [self addTouchbarItemWithLabel:title icon:icon atIndex:idx];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+        if (NSClassFromString(@"NSTouchBar")) {
+            if ([desc count] == 2)
+                [self addTouchbarItemWithLabel:title icon:icon atIndex:idx];
+        }
+#endif
         return;
     }
-#endif
     NSMenu *parent = [self parentMenuForDescriptor:desc];
     if (!parent) {
         ASLogWarn(@"Menu item '%@' has no parent",
@@ -1263,17 +1267,19 @@ static BOOL isUnsafeMessage(int msgid);
         }
         return;
     }
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
     if ([rootName isEqual:MMTouchbarMenuName]){
-        if ([desc count] == 2) {
-            [touchbarItemOrder removeObject:title];
-            [touchbarItemDict removeObjectForKey:title];
-            [touchbarDisabledItems removeObject:title];
-            [windowController setTouchBar:nil];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+        if (NSClassFromString(@"NSTouchBar")) {
+            if ([desc count] == 2) {
+                [touchbarItemOrder removeObject:title];
+                [touchbarItemDict removeObjectForKey:title];
+                [touchbarDisabledItems removeObject:title];
+                [windowController setTouchBar:nil];
+            }
         }
+#endif
         return;
     }
-#endif
     NSMenuItem *item = [self menuItemForDescriptor:desc];
     if (!item) {
         ASLogWarn(@"Failed to remove menu item, descriptor not found: %@",
@@ -1308,19 +1314,22 @@ static BOOL isUnsafeMessage(int msgid);
         }
         return;
     }
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+
     if ([rootName isEqual:MMTouchbarMenuName]) {
-        if ([desc count] == 2) {
-            NSString *title = [desc lastObject];
-            if (on)
-                [touchbarDisabledItems removeObject:title];
-            else
-                [touchbarDisabledItems addObject:title];
-            [windowController setTouchBar:nil];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
+        if (NSClassFromString(@"NSTouchBar")) {
+            if ([desc count] == 2) {
+                NSString *title = [desc lastObject];
+                if (on)
+                    [touchbarDisabledItems removeObject:title];
+                else
+                    [touchbarDisabledItems addObject:title];
+                [windowController setTouchBar:nil];
+            }
         }
+#endif
         return;
     }
-#endif
 
     // Use tag to set whether item is enabled or disabled instead of
     // calling setEnabled:.  This way the menus can autoenable themselves
@@ -1398,7 +1407,7 @@ static BOOL isUnsafeMessage(int msgid);
 
     [toolbar insertItemWithItemIdentifier:label atIndex:idx];
 }
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_12
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
 - (void)addTouchbarItemWithLabel:(NSString *)label
                            icon:(NSString *)icon
                         atIndex:(int)idx
