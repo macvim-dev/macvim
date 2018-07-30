@@ -1835,7 +1835,11 @@ menu_is_child_of_popup(vimmenu_T *menu)
     int
 menu_is_toolbar(char_u *name)
 {
-    return (STRNCMP(name, "ToolBar", 7) == 0);
+    return (STRNCMP(name, "ToolBar", 7) == 0) 
+	#if defined(FEAT_TOUCHBAR) 
+	|| (STRNCMP(name, "TouchBar", 8) == 0)
+	#endif	
+	;
 }
 
 /*

@@ -1287,4 +1287,21 @@ if has("gui_macvim")
   macm Help.MacVim\ Website			action=openWebsite:
 endif
 
+if has("touchbar")
+  an TouchBar.Open			:browse confirm e<CR>
+  an <silent> TouchBar.Save		:if expand("%") == ""<Bar>browse confirm w<Bar>else<Bar>confirm w<Bar>endif<CR>
+  an TouchBar.SaveAll		:browse confirm wa<CR>
+
+  an TouchBar.-sep1-		<Nop>
+  an TouchBar.Undo			u
+  an TouchBar.Redo			<C-R>
+
+  an TouchBar.-sep2-		<Nop>
+  vnoremenu TouchBar.Cut		"+x
+  vnoremenu TouchBar.Copy		"+y
+  cnoremenu TouchBar.Copy		<C-Y>
+  nnoremenu TouchBar.Paste		"+gP
+  cnoremenu	TouchBar.Paste		<C-R>+
+endif
+
 " vim: set sw=2 :
