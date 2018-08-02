@@ -4829,7 +4829,7 @@ call_imactivatefunc(int active)
     argv[0].v_type = VAR_NUMBER;
     argv[0].vval.v_number = active ? 1 : 0;
     argv[1].v_type = VAR_UNKNOWN;
-    (void)call_func_retnr(p_imaf, 1, argv, FALSE);
+    (void)call_func_retnr(p_imaf, 1, argv);
 }
 
 # ifdef FEAT_GUI_MACVIM
@@ -4847,7 +4847,7 @@ call_imstatusfunc(void)
     /* FIXME: :py print 'xxx' is shown duplicate result.
      * Use silent to avoid it. */
     ++msg_silent;
-    is_active = call_func_retnr(p_imsf, 0, NULL, FALSE);
+    is_active = call_func_retnr(p_imsf, 0, NULL);
     --msg_silent;
     return (is_active > 0);
 }
