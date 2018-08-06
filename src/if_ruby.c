@@ -253,11 +253,12 @@ static void ruby_vim_init(void);
 # define rb_hash_new			dll_rb_hash_new
 # define rb_inspect			dll_rb_inspect
 # define rb_int2inum			dll_rb_int2inum
-# ifdef RUBY19_OR_LATER
-#  define rb_intern2			dll_rb_intern2
-# else
-#  define rb_intern			dll_rb_intern
-# endif
+
+// ruby.h may redefine rb_intern to use RUBY_CONST_ID_CACHE(), but that won't
+// work.  Not using the cache appears to be the best solution.
+# undef rb_intern
+# define rb_intern			dll_rb_intern
+
 # if VIM_SIZEOF_INT < VIM_SIZEOF_LONG /* 64 bits only */
 #  if defined(DYNAMIC_RUBY_VER) && DYNAMIC_RUBY_VER <= 18
 #   define rb_fix2int			dll_rb_fix2int
@@ -392,11 +393,7 @@ static VALUE (*dll_rb_hash_aset) (VALUE, VALUE, VALUE);
 static VALUE (*dll_rb_hash_new) (void);
 static VALUE (*dll_rb_inspect) (VALUE);
 static VALUE (*dll_rb_int2inum) (long);
-# ifdef RUBY19_OR_LATER
-static ID (*dll_rb_intern2) (const char*, long);
-# else
 static ID (*dll_rb_intern) (const char*);
-# endif
 # if VIM_SIZEOF_INT < VIM_SIZEOF_LONG /* 64 bits only */
 static long (*dll_rb_fix2int) (VALUE);
 static long (*dll_rb_num2int) (VALUE);
@@ -596,11 +593,7 @@ static struct
     {"rb_hash_new", (RUBY_PROC*)&dll_rb_hash_new},
     {"rb_inspect", (RUBY_PROC*)&dll_rb_inspect},
     {"rb_int2inum", (RUBY_PROC*)&dll_rb_int2inum},
-# ifdef RUBY19_OR_LATER
-    {"rb_intern2", (RUBY_PROC*)&dll_rb_intern2},
-# else
     {"rb_intern", (RUBY_PROC*)&dll_rb_intern},
-# endif
 # if VIM_SIZEOF_INT < VIM_SIZEOF_LONG /* 64 bits only */
     {"rb_fix2int", (RUBY_PROC*)&dll_rb_fix2int},
     {"rb_num2int", (RUBY_PROC*)&dll_rb_num2int},
