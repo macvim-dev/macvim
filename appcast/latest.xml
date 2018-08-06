@@ -6,31 +6,35 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-149</title>
+      <title>MacVim snapshot-150</title>
       <description><![CDATA[
 <pre>
 Binary targets macOS 10.8+
 
-- Vim patch 8.1.0072
+- Vim patch 8.1.0235
+- Touch Bar support #715
+- Force click support #716
+- New guioption &#39;k&#39; #708
+- Fix CoreText renderer
 
 Script interfaces have compatibility with these versions
 
 - Lua 5.3
 - Perl 5.18
 - Python2 2.7
-- Python3 3.6
+- Python3 3.7
 - Ruby 2.5
 
 </pre>
       ]]></description>
-      <pubDate>Sun, 17 Jun 2018 19:00:00 -0700</pubDate>
+      <pubDate>Sun, 05 Aug 2018 18:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-149/MacVim.dmg"
-        length="15479834"
-        sparkle:version="149"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-150/MacVim.dmg"
+        length="15523426"
+        sparkle:version="150"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MCwCFGxajTrum6gVoXBbXc2frlEOEuMQAhRah1+j02pRt8bKAEW6UuP6/iJJMA=="
+	sparkle:dsaSignature="MC0CFQCqBJKLuQxl8mMoa2/WEBzoYaga+QIUGEh21hg0xJbaGROBlEIyOQZPFxI="
         />
     </item>
   </channel>
