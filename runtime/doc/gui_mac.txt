@@ -487,7 +487,7 @@ difference is that you use the special menu "TouchBar" instead of "ToolBar": >
 	:an TouchBar.Hello          :echo "Hello"<CR>
 
 The separators work similar to how toolbars work: >
-	:an TouchBar.-Sep-          <Nop>
+	:an TouchBar.-sep-          <Nop>
 	:an TouchBar.-space1-       <Nop>
 	:an TouchBar.-flexspace2-   <Nop>
 
