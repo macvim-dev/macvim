@@ -174,7 +174,7 @@
 
     [win setDelegate:self];
     [win setInitialFirstResponder:[vimView textView]];
-
+    
     if ([win styleMask] & NSWindowStyleMaskTexturedBackground) {
         // On Leopard, we want to have a textured window to have nice
         // looking tabs. But the textured window look implies rounded
@@ -381,7 +381,6 @@
 }
 
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
-                      keepGUISize:(BOOL)keepGUISize
                      keepOnScreen:(BOOL)onScreen
 {
     ASLogDebug(@"setTextDimensionsWithRows:%d columns:%d isLive:%d "
@@ -400,7 +399,7 @@
 
     [vimView setDesiredRows:rows columns:cols];
 
-    if (setupDone && !live && !keepGUISize) {
+    if (setupDone && !live) {
         shouldResizeVimView = YES;
         keepOnScreen = onScreen;
     }
@@ -426,15 +425,6 @@
         [ud setInteger:autosaveRows forKey:MMAutosaveRowsKey];
         [ud setInteger:cols forKey:MMAutosaveColumnsKey];
         [ud synchronize];
-    }
-}
-
-- (void)resizeView
-{
-    if (setupDone)
-    {
-        shouldResizeVimView = YES;
-        shouldKeepGUISize = YES;
     }
 }
 
@@ -513,6 +503,9 @@
 - (BOOL)destroyScrollbarWithIdentifier:(int32_t)ident
 {
     BOOL scrollbarHidden = [vimView destroyScrollbarWithIdentifier:ident];   
+    shouldResizeVimView = shouldResizeVimView || scrollbarHidden;
+    shouldMaximizeWindow = shouldMaximizeWindow || scrollbarHidden;
+
     return scrollbarHidden;
 }
 
@@ -520,6 +513,9 @@
 {
     BOOL scrollbarToggled = [vimView showScrollbarWithIdentifier:ident
                                                            state:visible];
+    shouldResizeVimView = shouldResizeVimView || scrollbarToggled;
+    shouldMaximizeWindow = shouldMaximizeWindow || scrollbarToggled;
+
     return scrollbarToggled;
 }
 
@@ -604,18 +600,7 @@
                                   fullScreenWindow ? [fullScreenWindow frame].size :
                                   fullScreenEnabled ? desiredWindowSize :
                                   [self constrainContentSizeToScreenSize:[vimView desiredSize]]];
-
-            // Setting 'guioptions+=k' will make shouldKeepGUISize true, which
-            // means avoid resizing the window. Instead, resize the view instead
-            // to keep the GUI window's size consistent.
-            bool avoidWindowResize = shouldKeepGUISize && !fullScreenEnabled;
-
-            if (!avoidWindowResize) {
-                [vimView setFrameSize:contentSize];
-            }
-            else {
-                [vimView setFrameSizeKeepGUISize:originalSize];
-            }
+            [vimView setFrameSize:contentSize];
 
             if (fullScreenWindow) {
                 // NOTE! Don't mark the full-screen content view as needing an
@@ -628,15 +613,12 @@
                     [fullScreenWindow centerView];
                 }
             } else {
-                if (!avoidWindowResize) {
-                    [self resizeWindowToFitContentSize:contentSize
-                                          keepOnScreen:keepOnScreen];
-                }
+                [self resizeWindowToFitContentSize:contentSize
+                                      keepOnScreen:keepOnScreen];
             }
         }
 
         keepOnScreen = NO;
-        shouldKeepGUISize = NO;
     }
 }
 
@@ -675,6 +657,7 @@
 {
     if (vimView && [vimView textView]) {
         [[vimView textView] setLinespace:(float)linespace];
+        shouldMaximizeWindow = shouldResizeVimView = YES;
     }
 }
 
@@ -682,6 +665,7 @@
 {
     if (vimView && [vimView textView]) {
         [[vimView textView] setColumnspace:(float)columnspace];
+        shouldMaximizeWindow = shouldResizeVimView = YES;
     }
 }
 
@@ -1203,7 +1187,7 @@
             [[window animator] setAlphaValue:0];
         } completionHandler:^{
             [self maximizeWindow:fullScreenOptions];
-
+            
             // Fade in
             [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
                 [context setDuration:0.5*duration];
@@ -1222,7 +1206,7 @@
 
     // The separator should never be visible in fullscreen or split-screen.
     [decoratedWindow hideTablineSeparator:YES];
-
+  
     // ASSUMPTION: fullScreenEnabled always reflects the state of Vim's 'fu'.
     if (!fullScreenEnabled) {
         ASLogDebug(@"Full-screen out of sync, tell Vim to set 'fu'");
@@ -1324,7 +1308,7 @@
         // full-screen by moving the window out from Split View.
         [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
     }
-
+  
     [self updateTablineSeparator];
 }
 
@@ -1552,6 +1536,7 @@
         // The tabline separator was toggled so the content view must change
         // size.
         [self updateResizeConstraints];
+        shouldResizeVimView = YES;
     }
 }
 

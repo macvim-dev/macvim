@@ -629,7 +629,6 @@ static BOOL isUnsafeMessage(int msgid);
         [windowController showTabBar:NO];
         [self sendMessage:BackingPropertiesChangedMsgID data:nil];
     } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid ||
-            SetTextDimensionsNoResizeWindowMsgID == msgid ||
             SetTextDimensionsReplyMsgID == msgid) {
         const void *bytes = [data bytes];
         int rows = *((int*)bytes);  bytes += sizeof(int);
@@ -639,16 +638,11 @@ static BOOL isUnsafeMessage(int msgid);
         // acknowledges it with a reply message.  When this happens the window
         // should not move (the frontend would already have moved the window).
         BOOL onScreen = SetTextDimensionsReplyMsgID!=msgid;
-        
-        BOOL keepGUISize = SetTextDimensionsNoResizeWindowMsgID == msgid;
 
         [windowController setTextDimensionsWithRows:rows
                                  columns:cols
                                   isLive:(LiveResizeMsgID==msgid)
-                            keepGUISize:keepGUISize
                             keepOnScreen:onScreen];
-    } else if (ResizeViewMsgID == msgid) {
-        [windowController resizeView];
     } else if (SetWindowTitleMsgID == msgid) {
         const void *bytes = [data bytes];
         int len = *((int*)bytes);  bytes += sizeof(int);
