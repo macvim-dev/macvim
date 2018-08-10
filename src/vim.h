@@ -2550,4 +2550,9 @@ typedef enum {
 #define TERM_START_FORCEIT	2
 #define TERM_START_SYSTEM	4
 
+// Used for icon/title save and restore.
+#define SAVE_RESTORE_TITLE	1
+#define SAVE_RESTORE_ICON	2
+#define SAVE_RESTORE_BOTH	(SAVE_RESTORE_TITLE | SAVE_RESTORE_ICON)
+
 #endif /* VIM__H */
