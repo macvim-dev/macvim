@@ -35,6 +35,7 @@ script:
   - NPROC=$(getconf _NPROCESSORS_ONLN)
   - ./configure $CONFOPT --enable-fail-if-missing
   - cat src/auto/config.mk
+  - cat src/auto/config.h
   - grep -q -- "-DDYNAMIC_PERL_DLL=\\\\\"$vi_cv_dll_name_perl\\\\\"" src/auto/config.mk
   - grep -q -- "-DDYNAMIC_PYTHON_DLL=\\\\\"$vi_cv_dll_name_python\\\\\"" src/auto/config.mk
   - grep -q -- "-DDYNAMIC_PYTHON3_DLL=\\\\\"$vi_cv_dll_name_python3\\\\\"" src/auto/config.mk
