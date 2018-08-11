@@ -174,8 +174,6 @@ gui_mch_set_shellsize(
     int		base_height,
     int		direction);
     void
-gui_mch_resize_view();
-    void
 gui_mch_set_sp_color(guicolor_T color);
     void
 gui_mch_set_text_area_pos(int x, int y, int w, int h);

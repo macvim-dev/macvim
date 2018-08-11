@@ -24,7 +24,6 @@
     BOOL                setupDone;
     BOOL                windowPresented;
     BOOL                shouldResizeVimView;
-    BOOL                shouldKeepGUISize;
     BOOL                shouldRestoreUserTopLeft;
     BOOL                shouldMaximizeWindow;
     int                 updateToolbarFlag;
@@ -60,9 +59,7 @@
 - (void)updateTabsWithData:(NSData *)data;
 - (void)selectTabWithIndex:(int)idx;
 - (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
-                      keepGUISize:(BOOL)keepGUISize
                      keepOnScreen:(BOOL)onScreen;
-- (void)resizeView;
 - (void)zoomWithRows:(int)rows columns:(int)cols state:(int)state;
 - (void)setTitle:(NSString *)title;
 - (void)setDocumentFilename:(NSString *)filename;

@@ -55,7 +55,6 @@
 - (void)viewWillStartLiveResize;
 - (void)viewDidEndLiveResize;
 - (void)setFrameSize:(NSSize)size;
-- (void)setFrameSizeKeepGUISize:(NSSize)size;
 - (void)setFrame:(NSRect)frame;
 
 @end
