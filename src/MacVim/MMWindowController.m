@@ -385,7 +385,8 @@
                      keepOnScreen:(BOOL)onScreen
 {
     ASLogDebug(@"setTextDimensionsWithRows:%d columns:%d isLive:%d "
-            "keepOnScreen:%d", rows, cols, live, onScreen);
+            "keepGUISize:%d "
+            "keepOnScreen:%d", rows, cols, live, keepGUISize, onScreen);
 
     // NOTE: The only place where the (rows,columns) of the vim view are
     // modified is here and when entering/leaving full-screen.  Setting these
@@ -443,6 +444,7 @@
     [self setTextDimensionsWithRows:rows
                             columns:cols
                              isLive:NO
+                        keepGUISize:NO
                        keepOnScreen:YES];
 
     // NOTE: If state==0 then the window should be put in the non-zoomed
@@ -662,6 +664,10 @@
     // showing its hide animation every time a new window is opened.  (See
     // processInputQueueDidFinish for the reason why we need to delay toggling
     // the toolbar when the window is visible.)
+    //
+    // Also, the delayed updateToolbar will have the correct shouldKeepGUISize
+    // set when it's called, which is important for that function to respect
+    // guioptions 'k'.
     if (![decoratedWindow isVisible])
         [self updateToolbar];
 }
@@ -1055,7 +1061,14 @@
     // may resize automatically) we simply set the view to fill the entire
     // window.  The vim view takes care of notifying Vim if the number of
     // (rows,columns) changed.
-    [vimView setFrameSize:[self contentSize]];
+    if (shouldKeepGUISize) {
+        // This happens when code manually call setFrame: when we are performing
+        // an operation that wants to preserve GUI size (e.g. in updateToolbar:).
+        // Respect the wish, and pass that along.
+        [vimView setFrameSizeKeepGUISize:[self contentSize]];
+    } else {
+        [vimView setFrameSize:[self contentSize]];
+    }
 }
 
 - (void)windowDidChangeBackingProperties:(NSNotification *)notification
@@ -1607,7 +1620,32 @@
 
     // Positive flag shows toolbar, negative hides it.
     BOOL on = updateToolbarFlag > 0 ? YES : NO;
+
+    NSRect origWindowFrame = [decoratedWindow frame];
+    BOOL origHasToolbar = decoratedWindow.toolbar != nil;
+
     [decoratedWindow setToolbar:(on ? toolbar : nil)];
+
+    if (shouldKeepGUISize && !fullScreenEnabled && origHasToolbar != on) {
+        // "shouldKeepGUISize" means guioptions has 'k' in it, indicating that user doesn't
+        // want the window to resize itself. In non-fullscreen when we call setToolbar:
+        // Cocoa automatically resizes the window so we need to un-resize it back to
+        // original.
+
+        NSRect newWindowFrame = [decoratedWindow frame];
+        if (newWindowFrame.size.height == origWindowFrame.size.height) {
+            // This is an odd case here, where the window has not changed size at all.
+            // The addition/removal of toolbar should have changed its size. This means that
+            // there isn't enough space to grow the window on the screen. Usually we rely
+            // on windowDidResize: to call setFrameSizeKeepGUISize for us but now we have
+            // to do it manually in this special case.
+            [vimView setFrameSizeKeepGUISize:[self contentSize]];
+        }
+        else {
+            [decoratedWindow setFrame:origWindowFrame display:YES];
+        }
+    }
+
     [self updateTablineSeparator];
 
     updateToolbarFlag = 0;
