@@ -6,16 +6,13 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-150</title>
+      <title>MacVim snapshot-151</title>
       <description><![CDATA[
 <pre>
 Binary targets macOS 10.8+
 
-- Vim patch 8.1.0235
-- Touch Bar support #715
-- Force click support #716
-- New guioption &#39;k&#39; #708
-- Fix CoreText renderer
+- Vim patch 8.1.0280
+- Reverted guioption &#39;k&#39; #727
 
 Script interfaces have compatibility with these versions
 
@@ -27,14 +24,14 @@ Script interfaces have compatibility with these versions
 
 </pre>
       ]]></description>
-      <pubDate>Sun, 05 Aug 2018 18:00:00 -0700</pubDate>
+      <pubDate>Mon, 13 Aug 2018 22:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-150/MacVim.dmg"
-        length="15523426"
-        sparkle:version="150"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-151/MacVim.dmg"
+        length="15528318"
+        sparkle:version="151"
         sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MC0CFQCqBJKLuQxl8mMoa2/WEBzoYaga+QIUGEh21hg0xJbaGROBlEIyOQZPFxI="
+	sparkle:dsaSignature="MC0CFCBcG71biGF3fnyxiQLV6y8U6DJ1AhUAkBipTqCDV7nE8tFPjgMZj1XYQyI="
         />
     </item>
   </channel>
