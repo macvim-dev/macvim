@@ -3140,11 +3140,7 @@ mch_isdir(char_u *name)
 	return FALSE;
     if (stat((char *)name, &statb))
 	return FALSE;
-#ifdef _POSIX_SOURCE
     return (S_ISDIR(statb.st_mode) ? TRUE : FALSE);
-#else
-    return ((statb.st_mode & S_IFMT) == S_IFDIR ? TRUE : FALSE);
-#endif
 }
 
 /*
@@ -3161,11 +3157,7 @@ mch_isrealdir(char_u *name)
 	return FALSE;
     if (mch_lstat((char *)name, &statb))
 	return FALSE;
-#ifdef _POSIX_SOURCE
     return (S_ISDIR(statb.st_mode) ? TRUE : FALSE);
-#else
-    return ((statb.st_mode & S_IFMT) == S_IFDIR ? TRUE : FALSE);
-#endif
 }
 
 static int executable_file(char_u *name);
