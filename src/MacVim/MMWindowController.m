@@ -363,11 +363,9 @@
     // HACK! This method moves a window to a new origin and to a different
     // screen. This is primarily useful to avoid a scenario where such a move
     // will trigger a resize, even though the frame didn't actually change size.
-    // This method should not be called unless the new origin is definitely on
-    // a different screen, otherwise the next legitimate resize message will
-    // be skipped.
     resizingDueToMove = YES;
     [[self window] setFrameTopLeftPoint:topLeft];
+    resizingDueToMove = NO;
 }
 
 - (void)updateTabsWithData:(NSData *)data
