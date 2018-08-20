@@ -599,39 +599,27 @@
         if (!didMaximize) {
             NSSize originalSize = [vimView frame].size;
             int rows = 0, cols = 0;
-            NSSize contentSize = [vimView constrainRows:&rows columns:&cols
-                                                 toSize:
-                                  fullScreenWindow ? [fullScreenWindow frame].size :
-                                  fullScreenEnabled ? desiredWindowSize :
-                                  [self constrainContentSizeToScreenSize:[vimView desiredSize]]];
 
             // Setting 'guioptions+=k' will make shouldKeepGUISize true, which
             // means avoid resizing the window. Instead, resize the view instead
             // to keep the GUI window's size consistent.
-            bool avoidWindowResize = shouldKeepGUISize && !fullScreenEnabled;
+            bool avoidWindowResize = shouldKeepGUISize || fullScreenEnabled;
 
             if (!avoidWindowResize) {
+                NSSize contentSize = [vimView constrainRows:&rows columns:&cols
+                                                     toSize:
+                                      fullScreenWindow ? [fullScreenWindow frame].size :
+                                      fullScreenEnabled ? desiredWindowSize :
+                                      [self constrainContentSizeToScreenSize:[vimView desiredSize]]];
+
                 [vimView setFrameSize:contentSize];
+
+                [self resizeWindowToFitContentSize:contentSize
+                                      keepOnScreen:keepOnScreen];
             }
             else {
-                [vimView setFrameSizeKeepGUISize:originalSize];
-            }
-
-            if (fullScreenWindow) {
-                // NOTE! Don't mark the full-screen content view as needing an
-                // update unless absolutely necessary since when it is updated
-                // the entire screen is cleared.  This may cause some parts of
-                // the Vim view to be cleared but not redrawn since Vim does
-                // not realize that we've erased part of the view.
-                if (!NSEqualSizes(originalSize, contentSize)) {
-                    [[fullScreenWindow contentView] setNeedsDisplay:YES];
-                    [fullScreenWindow centerView];
-                }
-            } else {
-                if (!avoidWindowResize) {
-                    [self resizeWindowToFitContentSize:contentSize
-                                          keepOnScreen:keepOnScreen];
-                }
+                NSSize frameSize = fullScreenWindow ? [fullScreenWindow frame].size : (fullScreenEnabled ? desiredWindowSize : originalSize);
+                [vimView setFrameSizeKeepGUISize:frameSize];
             }
         }
 
