@@ -920,7 +920,19 @@ enum {
                    "%dx%d (%s)", cols, rows, constrained[1], constrained[0],
                    MessageStrings[msgid]);
 
-        [vimController sendMessageNow:msgid data:data timeout:1];
+        if (msgid != LiveResizeMsgID || !self.pendingLiveResize) {
+            // Live resize messages can be sent really rapidly, especailly if
+            // it's from double clicking the window border (to indicate filling
+            // all the way to that side to the window manager). We want to rate
+            // limit sending live resize one at a time, or the IPC will get
+            // swamped which causes slowdowns and some messages will also be dropped.
+            // As a result we basically discard all live resize messages if one
+            // is already going on. liveResizeDidEnd: will perform a final clean
+            // up resizing.
+            self.pendingLiveResize = (msgid == LiveResizeMsgID);
+
+            [vimController sendMessageNow:msgid data:data timeout:1];
+        }
 
         // We only want to set the window title if this resize came from
         // a live-resize, not (for example) setting 'columns' or 'lines'.

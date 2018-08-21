@@ -398,6 +398,7 @@
     // user drags to resize the window.
 
     [vimView setDesiredRows:rows columns:cols];
+    vimView.pendingLiveResize = NO;
 
     if (setupDone && !live && !keepGUISize) {
         shouldResizeVimView = YES;
@@ -712,6 +713,13 @@
         [lastSetTitle release];
         lastSetTitle = nil;
     }
+
+    // If we are in the middle of rapid resize (e.g. double-clicking on the border/corner
+    // of window), we would fire off a lot of LiveResizeMsgID messages where some will be
+    // intentionally omitted to avoid swamping IPC. If that happens this will perform a
+    // final clean up that makes sure the Vim view is sized correctly within the window.
+    // See frameSizeMayHaveChanged: for where the omission/rate limiting happens.
+    [self resizeView];
 }
 
 - (void)setBlurRadius:(int)radius
