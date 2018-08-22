@@ -3850,7 +3850,7 @@ cursor_on_force(void)
 }
 
 /*
- * Enable the cursor.
+ * Enable the cursor if it's currently off.
  */
     void
 cursor_on(void)

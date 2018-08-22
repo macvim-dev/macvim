@@ -384,6 +384,14 @@ func Test_search_cmdline3s()
   undo
   call feedkeys(":%substitute/the\<c-l>/xxx\<cr>", 'tx')
   call assert_equal('  2 xxxe', getline('.'))
+  undo
+  call feedkeys(":%smagic/the.e/xxx\<cr>", 'tx')
+  call assert_equal('  2 xxx', getline('.'))
+  undo
+  call assert_fails(":%snomagic/the.e/xxx\<cr>", 'E486')
+  "
+  call feedkeys(":%snomagic/the\\.e/xxx\<cr>", 'tx')
+  call assert_equal('  2 xxx', getline('.'))
 
   call Incsearch_cleanup()
 endfunc
@@ -839,6 +847,7 @@ func Test_incsearch_substitute_dump()
 	\ 'for n in range(1, 10)',
 	\ '  call setline(n, "foo " . n)',
 	\ 'endfor',
+	\ 'call setline(11, "bar 11")',
 	\ '3',
 	\ ], 'Xis_subst_script')
   let buf = RunVimInTerminal('-S Xis_subst_script', {'rows': 9, 'cols': 70})
@@ -884,8 +893,102 @@ func Test_incsearch_substitute_dump()
   call VerifyScreenDump(buf, 'Test_incsearch_substitute_05', {})
   call term_sendkeys(buf, "\<Esc>")
 
+  " Command modifiers are skipped
+  call term_sendkeys(buf, ':above below browse botr confirm keepmar keepalt keeppat keepjum filter xxx hide lockm leftabove noau noswap rightbel sandbox silent silent! $tab top unsil vert verbose 4,5s/fo.')
+  sleep 100m
+  call VerifyScreenDump(buf, 'Test_incsearch_substitute_06', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  " Cursorline highlighting at match
+  call term_sendkeys(buf, ":set cursorline\<CR>")
+  call term_sendkeys(buf, 'G9G')
+  call term_sendkeys(buf, ':9,11s/bar')
+  sleep 100m
+  call VerifyScreenDump(buf, 'Test_incsearch_substitute_07', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  " Cursorline highlighting at cursor when no match
+  call term_sendkeys(buf, ':9,10s/bar')
+  sleep 100m
+  call VerifyScreenDump(buf, 'Test_incsearch_substitute_08', {})
+  call term_sendkeys(buf, "\<Esc>")
+
   call StopVimInTerminal(buf)
   call delete('Xis_subst_script')
+endfunc
+
+" Similar to Test_incsearch_substitute_dump() for :sort
+func Test_incsearch_ssort_dump()
+  if !exists('+incsearch')
+    return
+  endif
+  if !CanRunVimInTerminal()
+    return
+  endif
+  call writefile([
+	\ 'set incsearch hlsearch scrolloff=0',
+	\ 'call setline(1, ["another one 2", "that one 3", "the one 1"])',
+	\ ], 'Xis_sort_script')
+  let buf = RunVimInTerminal('-S Xis_sort_script', {'rows': 9, 'cols': 70})
+  " Give Vim a chance to redraw to get rid of the spaces in line 2 caused by
+  " the 'ambiwidth' check.
+  sleep 100m
+
+  " Need to send one key at a time to force a redraw.
+  call term_sendkeys(buf, ':sort ni u /on')
+  sleep 100m
+  call VerifyScreenDump(buf, 'Test_incsearch_sort_01', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  call StopVimInTerminal(buf)
+  call delete('Xis_sort_script')
+endfunc
+
+" Similar to Test_incsearch_substitute_dump() for :vimgrep famiry
+func Test_incsearch_vimgrep_dump()
+  if !exists('+incsearch')
+    return
+  endif
+  if !CanRunVimInTerminal()
+    return
+  endif
+  call writefile([
+	\ 'set incsearch hlsearch scrolloff=0',
+	\ 'call setline(1, ["another one 2", "that one 3", "the one 1"])',
+	\ ], 'Xis_vimgrep_script')
+  let buf = RunVimInTerminal('-S Xis_vimgrep_script', {'rows': 9, 'cols': 70})
+  " Give Vim a chance to redraw to get rid of the spaces in line 2 caused by
+  " the 'ambiwidth' check.
+  sleep 100m
+
+  " Need to send one key at a time to force a redraw.
+  call term_sendkeys(buf, ':vimgrep on')
+  sleep 100m
+  call VerifyScreenDump(buf, 'Test_incsearch_vimgrep_01', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  call term_sendkeys(buf, ':vimg /on/ *.txt')
+  sleep 100m
+  call VerifyScreenDump(buf, 'Test_incsearch_vimgrep_02', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  call term_sendkeys(buf, ':vimgrepadd "\<on')
+  sleep 100m
+  call VerifyScreenDump(buf, 'Test_incsearch_vimgrep_03', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  call term_sendkeys(buf, ':lv "tha')
+  sleep 100m
+  call VerifyScreenDump(buf, 'Test_incsearch_vimgrep_04', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  call term_sendkeys(buf, ':lvimgrepa "the" **/*.txt')
+  sleep 100m
+  call VerifyScreenDump(buf, 'Test_incsearch_vimgrep_05', {})
+  call term_sendkeys(buf, "\<Esc>")
+
+  call StopVimInTerminal(buf)
+  call delete('Xis_vimgrep_script')
 endfunc
 
 func Test_search_undefined_behaviour()

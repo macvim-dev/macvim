@@ -13,6 +13,10 @@
 
 #include "vim.h"
 
+#ifndef MAX
+# define MAX(x,y) ((x) > (y) ? (x) : (y))
+#endif
+
 /*
  * Variables shared between getcmdline(), redrawcmdline() and others.
  * These need to be saved when using CTRL-R |, that's why they are in a
@@ -231,6 +235,7 @@ typedef struct {
     pos_T       match_end;
     int		did_incsearch;
     int		incsearch_postponed;
+    int		magic_save;
 } incsearch_state_T;
 
     static void
@@ -239,6 +244,7 @@ init_incsearch_state(incsearch_state_T *is_state)
     is_state->match_start = curwin->w_cursor;
     is_state->did_incsearch = FALSE;
     is_state->incsearch_postponed = FALSE;
+    is_state->magic_save = p_magic;
     CLEAR_POS(&is_state->match_end);
     is_state->save_cursor = curwin->w_cursor;  // may be restored later
     is_state->search_start = curwin->w_cursor;
@@ -270,92 +276,125 @@ set_search_match(pos_T *t)
 do_incsearch_highlighting(int firstc, incsearch_state_T *is_state,
 						     int *skiplen, int *patlen)
 {
+    char_u	*cmd;
+    cmdmod_T	save_cmdmod = cmdmod;
+    char_u	*p;
+    int		delim_optional = FALSE;
+    int		delim;
+    char_u	*end;
+    char_u	*dummy;
+    exarg_T	ea;
+    pos_T	save_cursor;
+
     *skiplen = 0;
     *patlen = ccline.cmdlen;
 
-    if (p_is && !cmd_silent)
+    if (!p_is || cmd_silent)
+	return FALSE;
+
+    // by default search all lines
+    search_first_line = 0;
+    search_last_line = MAXLNUM;
+
+    if (firstc == '/' || firstc == '?')
+	return TRUE;
+    if (firstc != ':')
+	return FALSE;
+
+    vim_memset(&ea, 0, sizeof(ea));
+    ea.line1 = 1;
+    ea.line2 = 1;
+    ea.cmd = ccline.cmdbuff;
+    ea.addr_type = ADDR_LINES;
+
+    parse_command_modifiers(&ea, &dummy, TRUE);
+    cmdmod = save_cmdmod;
+
+    cmd = skip_range(ea.cmd, NULL);
+    if (vim_strchr((char_u *)"sgvl", *cmd) == NULL)
+	return FALSE;
+
+    // Skip over "substitute" to find the pattern separator.
+    for (p = cmd; ASCII_ISALPHA(*p); ++p)
+	;
+    if (*skipwhite(p) == NUL)
+	return FALSE;
+
+    if (STRNCMP(cmd, "substitute", p - cmd) == 0
+	    || STRNCMP(cmd, "smagic", p - cmd) == 0
+	    || STRNCMP(cmd, "snomagic", MAX(p - cmd, 3)) == 0
+	    || STRNCMP(cmd, "vglobal", p - cmd) == 0)
     {
-	// by default search all lines
-	search_first_line = 0;
-	search_last_line = MAXLNUM;
-
-	if (firstc == '/' || firstc == '?')
-	    return TRUE;
-	if (firstc == ':')
+	if (*cmd == 's' && cmd[1] == 'm')
+	    p_magic = TRUE;
+	else if (*cmd == 's' && cmd[1] == 'n')
+	    p_magic = FALSE;
+    }
+    else if (STRNCMP(cmd, "sort", MAX(p - cmd, 3)) == 0)
+    {
+	// skip over flags
+	while (ASCII_ISALPHA(*(p = skipwhite(p))))
+	    ++p;
+	if (*p == NUL)
+	    return FALSE;
+    }
+    else if (STRNCMP(cmd, "vimgrep", MAX(p - cmd, 3)) == 0
+	|| STRNCMP(cmd, "vimgrepadd", MAX(p - cmd, 8)) == 0
+	|| STRNCMP(cmd, "lvimgrep", MAX(p - cmd, 2)) == 0
+	|| STRNCMP(cmd, "lvimgrepadd", MAX(p - cmd, 9)) == 0
+	|| STRNCMP(cmd, "global", p - cmd) == 0)
+    {
+	// skip over "!"
+	if (*p == '!')
 	{
-	    char_u *cmd = skip_range(ccline.cmdbuff, NULL);
-	    char_u *p;
-	    int	    delim;
-	    char_u *end;
+	    p++;
+	    if (*skipwhite(p) == NUL)
+		return FALSE;
+	}
+	if (*cmd != 'g')
+	    delim_optional = TRUE;
+    }
+    else
+	return FALSE;
 
-	    if (*cmd == 's' || *cmd == 'g' || *cmd == 'v')
-	    {
-		// Skip over "substitute" to find the pattern separator.
-		for (p = cmd; ASCII_ISALPHA(*p); ++p)
-		    ;
-		if (*skipwhite(p) != NUL
-			&& (STRNCMP(cmd, "substitute", p - cmd) == 0
-			    || STRNCMP(cmd, "global", p - cmd) == 0
-			    || STRNCMP(cmd, "vglobal", p - cmd) == 0))
-		{
-		    // Check for "global!/".
-		    if (*cmd == 'g' && *p == '!')
-		    {
-			p++;
-			if (*skipwhite(p) == NUL)
-			    return FALSE;
-		    }
-		    p = skipwhite(p);
-		    delim = *p++;
-		    end = skip_regexp(p, delim, p_magic, NULL);
-		    if (end > p || *end == delim)
-		    {
-			char_u  *dummy;
-			exarg_T ea;
-			pos_T	save_cursor = curwin->w_cursor;
+    p = skipwhite(p);
+    delim = (delim_optional && vim_isIDc(*p)) ? ' ' : *p++;
+    end = skip_regexp(p, delim, p_magic, NULL);
 
-			// found a non-empty pattern
-			*skiplen = (int)(p - ccline.cmdbuff);
-			*patlen = (int)(end - p);
+    if (end == p && *end != delim)
+	return FALSE;
+    // found a non-empty pattern or //
 
-			// parse the address range
-			vim_memset(&ea, 0, sizeof(ea));
-			ea.line1 = 1;
-			ea.line2 = 1;
-			ea.cmd = ccline.cmdbuff;
-			ea.addr_type = ADDR_LINES;
-			curwin->w_cursor = is_state->search_start;
-			parse_cmd_address(&ea, &dummy);
-			if (ea.addr_count > 0)
-			{
-			    // Allow for reverse match.
-			    if (ea.line2 < ea.line1)
-			    {
-				search_first_line = ea.line2;
-				search_last_line = ea.line1;
-			    }
-			    else
-			    {
-				search_first_line = ea.line1;
-				search_last_line = ea.line2;
-			    }
-			}
-			else if (*cmd == 's')
-			{
-			    // :s defaults to the current line
-			    search_first_line = curwin->w_cursor.lnum;
-			    search_last_line = curwin->w_cursor.lnum;
-			}
+    *skiplen = (int)(p - ccline.cmdbuff);
+    *patlen = (int)(end - p);
 
-			curwin->w_cursor = save_cursor;
-			return TRUE;
-		    }
-		}
-	    }
+    // parse the address range
+    save_cursor = curwin->w_cursor;
+    curwin->w_cursor = is_state->search_start;
+    parse_cmd_address(&ea, &dummy);
+    if (ea.addr_count > 0)
+    {
+	// Allow for reverse match.
+	if (ea.line2 < ea.line1)
+	{
+	    search_first_line = ea.line2;
+	    search_last_line = ea.line1;
+	}
+	else
+	{
+	    search_first_line = ea.line1;
+	    search_last_line = ea.line2;
 	}
     }
+    else if (cmd[0] == 's' && cmd[1] != 'o')
+    {
+	// :s defaults to the current line
+	search_first_line = curwin->w_cursor.lnum;
+	search_last_line = curwin->w_cursor.lnum;
+    }
 
-    return FALSE;
+    curwin->w_cursor = save_cursor;
+    return TRUE;
 }
 
     static void
@@ -386,6 +425,7 @@ finish_incsearch_highlighting(
 	    update_screen(SOME_VALID);
 	else
 	    redraw_all_later(SOME_VALID);
+	p_magic = is_state->magic_save;
     }
 }
 
@@ -474,8 +514,11 @@ may_do_incsearch_highlighting(
 
 	if (curwin->w_cursor.lnum < search_first_line
 		|| curwin->w_cursor.lnum > search_last_line)
+	{
 	    // match outside of address range
 	    i = 0;
+	    curwin->w_cursor = is_state->search_start;
+	}
 
 	// if interrupted while searching, behave like it failed
 	if (got_int)
@@ -571,7 +614,7 @@ may_adjust_incsearch_highlighting(
     {
 	pat = last_search_pattern();
 	skiplen = 0;
-	patlen = STRLEN(pat);
+	patlen = (int)STRLEN(pat);
     }
     else
 	pat = ccline.cmdbuff + skiplen;
