@@ -20,7 +20,7 @@ let script = [
 let end = line('.')
 
 " font name that works everywhere (hopefully)
-let fontname = has('win32') ? 'fixedsys' : 'fixed'
+let fontname = has('gui_macvim') ? '' : (has('win32') ? 'fixedsys' : 'fixed')
 
 " Two lists with values: values that work and values that fail.
 " When not listed, "othernum" or "otherstring" is used.
@@ -130,7 +130,7 @@ let test_values = {
       \ 'tagcase': [['smart', 'match'], ['', 'xxx', 'smart,match']],
       \ 'term': [[], []],
       \ 'termguicolors': [[], []],
-      \ 'termencoding': [has('gui_gtk') ? [] : ['', 'utf-8'], ['xxx']],
+      \ 'termencoding': [(has('gui_gtk') || has('gui_macvim')) ? [] : ['', 'utf-8'], ['xxx']],
       \ 'termwinsize': [['', '24x80', '0x80', '32x0', '0x0'], ['xxx', '80', '8ax9', '24x80b']],
       \ 'toolbar': [['', 'icons', 'text'], ['xxx']],
       \ 'toolbariconsize': [['', 'tiny', 'huge'], ['xxx']],
@@ -156,7 +156,6 @@ let test_values = {
       \
       \ 'blurradius': [[], [-1]],
       \ 'fuoptions': [[], ['xxx']],
-      \ 'guifont': [[], ['xxx']],
       \ 'transparency': [[], ['-1']],
       \
       \ 'othernum': [[-1, 0, 100], ['']],
@@ -203,7 +202,7 @@ while 1
     endif
 
     " cannot change 'termencoding' in GTK
-    if name != 'termencoding' || !has('gui_gtk')
+    if name != 'termencoding' || !(has('gui_gtk') || has('gui_macvim'))
       call add(script, 'set ' . name . '&')
       call add(script, 'set ' . shortname . '&')
     endif
