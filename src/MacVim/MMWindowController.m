@@ -1047,14 +1047,10 @@
     // may resize automatically) we simply set the view to fill the entire
     // window.  The vim view takes care of notifying Vim if the number of
     // (rows,columns) changed.
-    if (shouldKeepGUISize) {
-        // This happens when code manually call setFrame: when we are performing
-        // an operation that wants to preserve GUI size (e.g. in updateToolbar:).
-        // Respect the wish, and pass that along.
-        [vimView setFrameSizeKeepGUISize:[self contentSize]];
-    } else {
-        [vimView setFrameSize:[self contentSize]];
-    }
+    // Calling setFrameSizeKeepGUISize: instead of setFrameSize: prevents a
+    // degenerate case where frameSizeMayHaveChanged: ends up resizing the window
+    // *again* causing windowDidResize: to be called.
+    [vimView setFrameSizeKeepGUISize:[self contentSize]];
 }
 
 - (void)windowDidChangeBackingProperties:(NSNotification *)notification
