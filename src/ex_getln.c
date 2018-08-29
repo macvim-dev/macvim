@@ -285,6 +285,7 @@ do_incsearch_highlighting(int firstc, incsearch_state_T *is_state,
     char_u	*dummy;
     exarg_T	ea;
     pos_T	save_cursor;
+    int		use_last_pat;
 
     *skiplen = 0;
     *patlen = ccline.cmdlen;
@@ -361,10 +362,25 @@ do_incsearch_highlighting(int firstc, incsearch_state_T *is_state,
     delim = (delim_optional && vim_isIDc(*p)) ? ' ' : *p++;
     end = skip_regexp(p, delim, p_magic, NULL);
 
-    if (end == p && *end != delim)
-	return FALSE;
-    // found a non-empty pattern or //
+    use_last_pat = end == p && *end == delim;
 
+    if (end == p && !use_last_pat)
+	return FALSE;
+
+    // Don't do 'hlsearch' highlighting if the pattern matches everything.
+    if (!use_last_pat)
+    {
+	char c = *end;
+	int  empty;
+
+	*end = NUL;
+	empty = empty_pattern(p);
+	*end = c;
+	if (empty)
+	    return FALSE;
+    }
+
+    // found a non-empty pattern or //
     *skiplen = (int)(p - ccline.cmdbuff);
     *patlen = (int)(end - p);
 
