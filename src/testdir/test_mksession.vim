@@ -22,7 +22,8 @@ func Test_mksession()
     \   'two	tabs	in one line',
     \   'one ä multibyteCharacter',
     \   'aä Ä  two multiByte characters',
-    \   'Aäöü  three mulTibyte characters'
+    \   'Aäöü  three mulTibyte characters',
+    \   'short line',
     \ ])
   let tmpfile = 'Xtemp'
   exec 'w! ' . tmpfile
@@ -44,6 +45,8 @@ func Test_mksession()
   norm! j16|
   split
   norm! j16|
+  split
+  norm! j$
   wincmd l
 
   set nowrap
@@ -66,7 +69,7 @@ func Test_mksession()
   split
   call wincol()
   mksession! Xtest_mks.out
-  let li = filter(readfile('Xtest_mks.out'), 'v:val =~# "\\(^ *normal! 0\\|^ *exe ''normal!\\)"')
+  let li = filter(readfile('Xtest_mks.out'), 'v:val =~# "\\(^ *normal! [0$]\\|^ *exe ''normal!\\)"')
   let expected = [
     \   'normal! 016|',
     \   'normal! 016|',
@@ -76,6 +79,7 @@ func Test_mksession()
     \   'normal! 016|',
     \   'normal! 016|',
     \   'normal! 016|',
+    \   'normal! $',
     \   "  exe 'normal! ' . s:c . '|zs' . 16 . '|'",
     \   "  normal! 016|",
     \   "  exe 'normal! ' . s:c . '|zs' . 16 . '|'",
@@ -316,7 +320,7 @@ func Test_mkview_file()
   " Create a view with line number and a fold.
   help :mkview
   set number
-  norm! V}zf
+  norm! V}zf0
   let pos = getpos('.')
   let linefoldclosed1 = foldclosed('.')
   mkview! Xview
