@@ -1654,6 +1654,7 @@ struct channel_S {
     partial_T	*ch_close_partial;
     int		ch_drop_never;
     int		ch_keep_open;	/* do not close on read error */
+    int		ch_nonblock;
 
     job_T	*ch_job;	/* Job that uses this channel; this does not
 				 * count as a reference to avoid a circular
@@ -1732,6 +1733,7 @@ typedef struct
     ch_mode_T	jo_in_mode;
     ch_mode_T	jo_out_mode;
     ch_mode_T	jo_err_mode;
+    int		jo_noblock;
 
     job_io_T	jo_io[4];	/* PART_OUT, PART_ERR, PART_IN */
     char_u	jo_io_name_buf[4][NUMBUFLEN];

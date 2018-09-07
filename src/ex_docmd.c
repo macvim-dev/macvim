@@ -2918,6 +2918,7 @@ free_cmdmod(void)
 
 /*
  * Parse the address range, if any, in "eap".
+ * May set the last search pattern.
  * Return FAIL and set "errormsg" or return OK.
  */
     int
@@ -4452,10 +4453,11 @@ skip_range(
 }
 
 /*
- * get a single EX address
+ * Get a single EX address.
  *
  * Set ptr to the next character after the part that was interpreted.
  * Set ptr to NULL when an error is encountered.
+ * This may set the last used search pattern.
  *
  * Return MAXLNUM when no Ex address was found.
  */
