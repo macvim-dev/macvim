@@ -1417,6 +1417,32 @@ TERM_DEPS = \
 
 TERM_SRC = libvterm/src/*.c
 
+XDIFF_SRC = \
+	xdiff/xdiffi.c \
+	xdiff/xemit.c \
+	xdiff/xprepare.c \
+	xdiff/xutils.c \
+	xdiff/xhistogram.c \
+	xdiff/xpatience.c \
+
+XDIFF_OBJS = \
+	objects/xdiffi.o \
+	objects/xemit.o \
+	objects/xprepare.o \
+	objects/xutils.o \
+	objects/xhistogram.o \
+	objects/xpatience.o \
+
+XDIFF_INCL = \
+	xdiff/xdiff.h \
+	xdiff/xdiffi.h \
+	xdiff/xemit.h \
+	xdiff/xinclude.h \
+	xdiff/xmacros.h \
+	xdiff/xprepare.h \
+	xdiff/xtypes.h \
+	xdiff/xutils.h \
+
 ### Command to create dependencies based on #include "..."
 ### prototype headers are ignored due to -DPROTO, system
 ### headers #include <...> are ignored if we use the -MM option, as
@@ -1628,6 +1654,7 @@ BASIC_SRC = \
 SRC =	$(BASIC_SRC) \
 	$(GUI_SRC) \
 	$(TERM_SRC) \
+	$(XDIFF_SRC) \
 	$(HANGULIN_SRC) \
 	$(LUA_SRC) \
 	$(MZSCHEME_SRC) \
@@ -1745,6 +1772,7 @@ OBJ_COMMON = \
 	$(WORKSHOP_OBJ) \
 	$(NETBEANS_OBJ) \
 	$(CHANNEL_OBJ) \
+	$(XDIFF_OBJS) \
 	$(WSDEBUG_OBJ)
 
 # The files included by tests are not in OBJ_COMMON.
@@ -2748,7 +2776,7 @@ SHADOWDIR = shadow
 
 shadow:	runtime pixmaps
 	$(MKDIR_P) $(SHADOWDIR)
-	cd $(SHADOWDIR); ln -s ../*.[chm] ../*.in ../*.sh ../*.xs ../*.xbm ../gui_gtk_res.xml ../toolcheck ../proto ../libvterm ../vimtutor ../gvimtutor ../install-sh ../Make_all.mak .
+	cd $(SHADOWDIR); ln -s ../*.[chm] ../*.in ../*.sh ../*.xs ../*.xbm ../gui_gtk_res.xml ../toolcheck ../proto ../xdiff ../libvterm ../vimtutor ../gvimtutor ../install-sh ../Make_all.mak .
 	mkdir $(SHADOWDIR)/auto
 	cd $(SHADOWDIR)/auto; ln -s ../../auto/configure .
 	$(MKDIR_P) $(SHADOWDIR)/po
@@ -2938,7 +2966,7 @@ objects/crypt_zip.o: crypt_zip.c
 objects/dict.o: dict.c
 	$(CCC) -o $@ dict.c
 
-objects/diff.o: diff.c
+objects/diff.o: diff.c $(XDIFF_INCL)
 	$(CCC) -o $@ diff.c
 
 objects/digraph.o: digraph.c
@@ -3254,6 +3282,27 @@ objects/term_unicode.o: libvterm/src/unicode.c $(TERM_DEPS)
 
 objects/term_vterm.o: libvterm/src/vterm.c $(TERM_DEPS)
 	$(CCCTERM) -o $@ libvterm/src/vterm.c
+
+CCCDIFF = $(CCC_NF) $(ALL_CFLAGS)
+
+objects/xdiffi.o: xdiff/xdiffi.c $(XDIFF_INCL)
+	$(CCCDIFF) -o $@ xdiff/xdiffi.c
+
+objects/xprepare.o: xdiff/xprepare.c $(XDIFF_INCL)
+	$(CCCDIFF) -o $@ xdiff/xprepare.c
+
+objects/xutils.o: xdiff/xutils.c $(XDIFF_INCL)
+	$(CCCDIFF) -o $@ xdiff/xutils.c
+
+objects/xemit.o: xdiff/xemit.c $(XDIFF_INCL)
+	$(CCCDIFF) -o $@ xdiff/xemit.c
+
+objects/xhistogram.o: xdiff/xhistogram.c $(XDIFF_INCL)
+	$(CCCDIFF) -o $@ xdiff/xhistogram.c
+
+objects/xpatience.o: xdiff/xpatience.c $(XDIFF_INCL)
+	$(CCCDIFF) -o $@ xdiff/xpatience.c
+
 
 ###############################################################################
 ### MacOS X installation
