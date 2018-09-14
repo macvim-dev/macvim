@@ -419,7 +419,7 @@ ui_breakcheck(void)
     void
 ui_breakcheck_force(int force)
 {
-    int save_us = updating_screen;
+    int save_updating_screen = updating_screen;
 
     /* We do not want gui_resize_shell() to redraw the screen here. */
     ++updating_screen;
@@ -431,8 +431,8 @@ ui_breakcheck_force(int force)
 #endif
 	mch_breakcheck(force);
 
-    if (save_us)
-	updating_screen = save_us;
+    if (save_updating_screen)
+	updating_screen = TRUE;
     else
 	reset_updating_screen(FALSE);
 }
@@ -1905,7 +1905,7 @@ fill_input_buf(int exit_on_error UNUSED)
 #ifdef HAVE_DUP
 	    /* Use stderr for stdin, also works for shell commands. */
 	    close(0);
-	    ignored = dup(2);
+	    vim_ignored = dup(2);
 #else
 	    read_cmd_fd = 2;	/* read from stderr instead of stdin */
 #endif

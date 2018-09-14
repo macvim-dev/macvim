@@ -4441,7 +4441,7 @@ win_enter_ext(
     {
 	/* Window doesn't have a local directory and we are not in the global
 	 * directory: Change to the global directory. */
-	ignored = mch_chdir((char *)globaldir);
+	vim_ignored = mch_chdir((char *)globaldir);
 	VIM_CLEAR(globaldir);
 	shorten_fnames(TRUE);
     }
