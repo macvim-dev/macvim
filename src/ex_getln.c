@@ -1308,7 +1308,11 @@ getcmdline(
 	    /* CTRL-\ e doesn't work when obtaining an expression, unless it
 	     * is in a mapping. */
 	    if (c != Ctrl_N && c != Ctrl_G && (c != 'e'
-				    || (ccline.cmdfirstc == '=' && KeyTyped)))
+				    || (ccline.cmdfirstc == '=' && KeyTyped)
+#ifdef FEAT_EVAL
+				    || cmdline_star > 0
+#endif
+				    ))
 	    {
 		vungetc(c);
 		c = Ctrl_BSL;
@@ -1801,7 +1805,8 @@ getcmdline(
 		new_cmdpos = -1;
 		if (c == '=')
 		{
-		    if (ccline.cmdfirstc == '=')/* can't do this recursively */
+		    if (ccline.cmdfirstc == '='  // can't do this recursively
+			    || cmdline_star > 0) // or when typing a password
 		    {
 			beep_flush();
 			c = ESC;
@@ -6516,8 +6521,11 @@ get_ccline_ptr(void)
     char_u *
 get_cmdline_str(void)
 {
-    struct cmdline_info *p = get_ccline_ptr();
+    struct cmdline_info *p;
 
+    if (cmdline_star > 0)
+	return NULL;
+    p = get_ccline_ptr();
     if (p == NULL)
 	return NULL;
     return vim_strnsave(p->cmdbuff, p->cmdlen);

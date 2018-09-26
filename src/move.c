@@ -128,6 +128,12 @@ comp_botline(win_T *wp)
 
 #ifdef FEAT_SYN_HL
 static linenr_T	last_cursorline = 0;
+
+    void
+reset_cursorline(void)
+{
+    last_cursorline = 0;
+}
 #endif
 
 /*

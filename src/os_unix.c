@@ -8054,7 +8054,7 @@ xsmp_init(void)
 	    &smcallbacks,
 	    NULL,
 	    &xsmp.clientid,
-	    sizeof(errorstring),
+	    sizeof(errorstring) - 1,
 	    errorstring);
     if (xsmp.smcconn == NULL)
     {
