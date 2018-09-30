@@ -19,7 +19,6 @@
 
 #include "vim.h"
 
-static void comp_botline(win_T *wp);
 static void redraw_for_cursorline(win_T *wp);
 #ifdef FEAT_GUI_MACVIM
 static void redraw_for_ligatures(win_T *wp);
@@ -27,7 +26,6 @@ static void redraw_for_ligatures(win_T *wp);
 static int scrolljump_value(void);
 static int check_top_offset(void);
 static void curs_rows(win_T *wp);
-static void validate_cheight(void);
 
 typedef struct
 {
@@ -40,11 +38,6 @@ typedef struct
 
 static void topline_back(lineoff_T *lp);
 static void botline_forw(lineoff_T *lp);
-#ifdef FEAT_DIFF
-static void botline_topline(lineoff_T *lp);
-static void topline_botline(lineoff_T *lp);
-static void max_topfill(void);
-#endif
 
 /*
  * Compute wp->w_botline for the current wp->w_topline.  Can be called after
