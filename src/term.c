@@ -1477,6 +1477,9 @@ parse_builtin_tcap(char_u *term)
 	    if (term_strings[p->bt_entry] == NULL
 				 || term_strings[p->bt_entry] == empty_option)
 	    {
+#ifdef FEAT_EVAL
+		int opt_idx = -1;
+#endif
 		/* 8bit terminal: use CSI instead of <Esc>[ */
 		if (term_8bit && term_7to8bit((char_u *)p->bt_string) != 0)
 		{
@@ -1492,11 +1495,23 @@ parse_builtin_tcap(char_u *term)
 				STRMOVE(t + 1, t + 2);
 			    }
 			term_strings[p->bt_entry] = s;
-			set_term_option_alloced(&term_strings[p->bt_entry]);
+#ifdef FEAT_EVAL
+			opt_idx =
+#endif
+				  set_term_option_alloced(
+						   &term_strings[p->bt_entry]);
 		    }
 		}
 		else
+		{
 		    term_strings[p->bt_entry] = (char_u *)p->bt_string;
+#ifdef FEAT_EVAL
+		    opt_idx = get_term_opt_idx(&term_strings[p->bt_entry]);
+#endif
+		}
+#ifdef FEAT_EVAL
+		set_term_option_sctx_idx(NULL, opt_idx);
+#endif
 	    }
 	}
 	else
@@ -1622,7 +1637,12 @@ get_term_entries(int *height, int *width)
     {
 	if (TERM_STR(string_names[i].dest) == NULL
 			     || TERM_STR(string_names[i].dest) == empty_option)
+	{
 	    TERM_STR(string_names[i].dest) = TGETSTR(string_names[i].name, &tp);
+#ifdef FEAT_EVAL
+	    set_term_option_sctx_idx(string_names[i].name, -1);
+#endif
+	}
     }
 
     /* tgetflag() returns 1 if the flag is present, 0 if not and
@@ -1664,7 +1684,12 @@ get_term_entries(int *height, int *width)
      * Get number of colors (if not done already).
      */
     if (TERM_STR(KS_CCO) == NULL || TERM_STR(KS_CCO) == empty_option)
+    {
 	set_color_count(tgetnum("Co"));
+#ifdef FEAT_EVAL
+	set_term_option_sctx_idx("Co", -1);
+#endif
+    }
 
 # ifndef hpux
     BC = (char *)TGETSTR("bc", &tp);
