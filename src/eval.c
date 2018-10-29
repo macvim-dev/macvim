@@ -1425,6 +1425,7 @@ list_hashtable_vars(
     hashitem_T	*hi;
     dictitem_T	*di;
     int		todo;
+    char_u	buf[IOSIZE];
 
     todo = (int)ht->ht_used;
     for (hi = ht->ht_array; todo > 0 && !got_int; ++hi)
@@ -1433,6 +1434,13 @@ list_hashtable_vars(
 	{
 	    --todo;
 	    di = HI2DI(hi);
+
+	    // apply :filter /pat/ to variable name
+	    vim_strncpy((char_u *) buf, prefix, IOSIZE - 1);
+	    vim_strcat((char_u *) buf, di->di_key, IOSIZE);
+	    if (message_filtered(buf))
+		continue;
+
 	    if (empty || di->di_tv.v_type != VAR_STRING
 					   || di->di_tv.vval.v_string != NULL)
 		list_one_var(di, prefix, first);
@@ -8193,9 +8201,7 @@ find_win_by_nr(
     tabpage_T	*tp)	/* NULL for current tab page */
 {
     win_T	*wp;
-    int		nr;
-
-    nr = (int)get_tv_number_chk(vp, NULL);
+    int		nr = (int)get_tv_number_chk(vp, NULL);
 
     if (nr < 0)
 	return NULL;
@@ -8215,6 +8221,20 @@ find_win_by_nr(
     if (nr >= LOWEST_WIN_ID)
 	return NULL;
     return wp;
+}
+
+/*
+ * Find a window: When using a Window ID in any tab page, when using a number
+ * in the current tab page.
+ */
+    win_T *
+find_win_by_nr_or_id(typval_T *vp)
+{
+    int	nr = (int)get_tv_number_chk(vp, NULL);
+
+    if (nr >= LOWEST_WIN_ID)
+	return win_id2wp(vp);
+    return find_win_by_nr(vp, NULL);
 }
 
 /*
