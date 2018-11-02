@@ -398,6 +398,7 @@
     // user drags to resize the window.
 
     [vimView setDesiredRows:rows columns:cols];
+    vimView.pendingLiveResize = NO;
 
     if (setupDone && !live && !keepGUISize) {
         shouldResizeVimView = YES;
@@ -599,39 +600,27 @@
         if (!didMaximize) {
             NSSize originalSize = [vimView frame].size;
             int rows = 0, cols = 0;
-            NSSize contentSize = [vimView constrainRows:&rows columns:&cols
-                                                 toSize:
-                                  fullScreenWindow ? [fullScreenWindow frame].size :
-                                  fullScreenEnabled ? desiredWindowSize :
-                                  [self constrainContentSizeToScreenSize:[vimView desiredSize]]];
 
             // Setting 'guioptions+=k' will make shouldKeepGUISize true, which
             // means avoid resizing the window. Instead, resize the view instead
             // to keep the GUI window's size consistent.
-            bool avoidWindowResize = shouldKeepGUISize && !fullScreenEnabled;
+            bool avoidWindowResize = shouldKeepGUISize || fullScreenEnabled;
 
             if (!avoidWindowResize) {
+                NSSize contentSize = [vimView constrainRows:&rows columns:&cols
+                                                     toSize:
+                                      fullScreenWindow ? [fullScreenWindow frame].size :
+                                      fullScreenEnabled ? desiredWindowSize :
+                                      [self constrainContentSizeToScreenSize:[vimView desiredSize]]];
+
                 [vimView setFrameSize:contentSize];
+
+                [self resizeWindowToFitContentSize:contentSize
+                                      keepOnScreen:keepOnScreen];
             }
             else {
-                [vimView setFrameSizeKeepGUISize:originalSize];
-            }
-
-            if (fullScreenWindow) {
-                // NOTE! Don't mark the full-screen content view as needing an
-                // update unless absolutely necessary since when it is updated
-                // the entire screen is cleared.  This may cause some parts of
-                // the Vim view to be cleared but not redrawn since Vim does
-                // not realize that we've erased part of the view.
-                if (!NSEqualSizes(originalSize, contentSize)) {
-                    [[fullScreenWindow contentView] setNeedsDisplay:YES];
-                    [fullScreenWindow centerView];
-                }
-            } else {
-                if (!avoidWindowResize) {
-                    [self resizeWindowToFitContentSize:contentSize
-                                          keepOnScreen:keepOnScreen];
-                }
+                NSSize frameSize = fullScreenWindow ? [fullScreenWindow frame].size : (fullScreenEnabled ? desiredWindowSize : originalSize);
+                [vimView setFrameSizeKeepGUISize:frameSize];
             }
         }
 
@@ -724,6 +713,13 @@
         [lastSetTitle release];
         lastSetTitle = nil;
     }
+
+    // If we are in the middle of rapid resize (e.g. double-clicking on the border/corner
+    // of window), we would fire off a lot of LiveResizeMsgID messages where some will be
+    // intentionally omitted to avoid swamping IPC. If that happens this will perform a
+    // final clean up that makes sure the Vim view is sized correctly within the window.
+    // See frameSizeMayHaveChanged: for where the omission/rate limiting happens.
+    [self resizeView];
 }
 
 - (void)setBlurRadius:(int)radius
@@ -1059,14 +1055,10 @@
     // may resize automatically) we simply set the view to fill the entire
     // window.  The vim view takes care of notifying Vim if the number of
     // (rows,columns) changed.
-    if (shouldKeepGUISize) {
-        // This happens when code manually call setFrame: when we are performing
-        // an operation that wants to preserve GUI size (e.g. in updateToolbar:).
-        // Respect the wish, and pass that along.
-        [vimView setFrameSizeKeepGUISize:[self contentSize]];
-    } else {
-        [vimView setFrameSize:[self contentSize]];
-    }
+    // Calling setFrameSizeKeepGUISize: instead of setFrameSize: prevents a
+    // degenerate case where frameSizeMayHaveChanged: ends up resizing the window
+    // *again* causing windowDidResize: to be called.
+    [vimView setFrameSizeKeepGUISize:[self contentSize]];
 }
 
 - (void)windowDidChangeBackingProperties:(NSNotification *)notification

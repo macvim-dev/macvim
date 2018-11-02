@@ -27,6 +27,8 @@
     NSMutableArray      *scrollbars;
 }
 
+@property BOOL pendingLiveResize;
+
 - (MMVimView *)initWithFrame:(NSRect)frame vimController:(MMVimController *)c;
 
 - (MMTextView *)textView;
