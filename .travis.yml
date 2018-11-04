@@ -4,10 +4,21 @@ dist: trusty
 os:
   - osx
 
-osx_image: xcode9.3
+osx_image:
+  - xcode9.4
+  # Pending Core Text rendering fix for Mojave (#751)
+  #- xcode10.1
 
 compiler:
   - clang
+
+addons:
+  homebrew:
+    packages:
+    - lua
+    - ruby
+    - python3
+    update: true
 
 env:
   - MACOSX_DEPLOYMENT_TARGET=10.8
@@ -21,17 +32,13 @@ env:
     vi_cv_dll_name_python=/System/Library/Frameworks/Python.framework/Versions/2.7/Python
     vi_cv_dll_name_python3=/usr/local/Frameworks/Python.framework/Versions/3.7/Python
     VIMCMD=src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
-    "CONFOPT='--with-features=huge --enable-multibyte --enable-terminal --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --with-ruby-command=/usr/local/bin/ruby --enable-luainterp=dynamic --with-lua-prefix=/usr/local --enable-gui=macvim'"
+    "CONFOPT='--with-features=huge --enable-multibyte --enable-terminal --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --with-ruby-command=/usr/local/opt/ruby/bin/ruby --enable-luainterp=dynamic --with-lua-prefix=/usr/local --enable-gui=macvim'"
+    DYLD_LIBRARY_PATH=/usr/local/opt/ruby/lib:$DYLD_LIBRARY_PATH # Ruby is keg-only in Homebrew, so need to manually link in the path so Vim will know where to look for the binaries.
 
 sudo: false
 
-before_install:
-  - brew update || brew update
-  - brew upgrade python
-  - brew install lua
-  - brew install ruby
-
 script:
+  - set -e
   - NPROC=$(getconf _NPROCESSORS_ONLN)
   - ./configure $CONFOPT --enable-fail-if-missing
   - cat src/auto/config.mk
@@ -45,6 +52,7 @@ script:
   - rm -f result; $VIMCMD -g -f -c "redir>result" -c "py import sys; print(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
   - rm -f result; $VIMCMD -g -f -c "redir>result" -c "py3 import sys; print(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
   - rm -f result; $VIMCMD -g -f -c "redir>result" -c "ruby puts(\"Test\")" -c "redir END" -c q; cat result; echo; grep -q -w Test result
+  - rm -f result;
   - make test
   - make -C src/testdir clean
   - make -C src testgui
