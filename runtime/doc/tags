@@ -6875,7 +6875,6 @@ gui_x11.txt	gui_x11.txt	/*gui_x11.txt*
 guifontwide_gtk2	options.txt	/*guifontwide_gtk2*
 guifontwide_macvim	options.txt	/*guifontwide_macvim*
 guifontwide_win_mbyte	options.txt	/*guifontwide_win_mbyte*
-guioptions_a	options.txt	/*guioptions_a*
 guu	change.txt	/*guu*
 gv	visual.txt	/*gv*
 gview	starting.txt	/*gview*

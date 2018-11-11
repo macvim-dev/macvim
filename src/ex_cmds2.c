@@ -4417,6 +4417,7 @@ do_source(
 #ifdef FEAT_EVAL
     sctx_T		    save_current_sctx;
     static scid_T	    last_current_SID = 0;
+    static int		    last_current_SID_seq = 0;
     funccal_entry_T	    funccalp_entry;
     int			    save_debug_break_level = debug_break_level;
     scriptitem_T	    *si = NULL;
@@ -4581,11 +4582,11 @@ do_source(
      * Also starts profiling timer for nested script. */
     save_funccal(&funccalp_entry);
 
-    /*
-     * Check if this script was sourced before to finds its SID.
-     * If it's new, generate a new SID.
-     */
+    // Check if this script was sourced before to finds its SID.
+    // If it's new, generate a new SID.
+    // Always use a new sequence number.
     save_current_sctx = current_sctx;
+    current_sctx.sc_seq = ++last_current_SID_seq;
     current_sctx.sc_lnum = 0;
 # ifdef UNIX
     stat_ok = (mch_stat((char *)fname_exp, &st) >= 0);
@@ -5432,6 +5433,16 @@ gettext_lang(char_u *name)
 
 #if defined(FEAT_MULTI_LANG) || defined(PROTO)
 /*
+ * Return TRUE when "lang" starts with a valid language name.
+ * Rejects NULL, empty string, "C", "C.UTF-8" and others.
+ */
+    static int
+is_valid_mess_lang(char_u *lang)
+{
+    return lang != NULL && ASCII_ISALPHA(lang[0]) && ASCII_ISALPHA(lang[1]);
+}
+
+/*
  * Obtain the current messages language.  Used to set the default for
  * 'helplang'.  May return NULL or an empty string.
  */
@@ -5452,17 +5463,17 @@ get_mess_lang(void)
 #  endif
 # else
     p = mch_getenv((char_u *)"LC_ALL");
-    if (p == NULL || *p == NUL)
+    if (!is_valid_mess_lang(p))
     {
 	p = mch_getenv((char_u *)"LC_MESSAGES");
-	if (p == NULL || *p == NUL)
+	if (!is_valid_mess_lang(p))
 	    p = mch_getenv((char_u *)"LANG");
     }
 # endif
 # ifdef WIN32
     p = gettext_lang(p);
 # endif
-    return p;
+    return is_valid_mess_lang(p) ? p : NULL;
 }
 #endif
 

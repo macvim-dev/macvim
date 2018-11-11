@@ -421,7 +421,7 @@ struct vimoption
     char_u	*def_val[2];	// default values for variable (vi and vim)
 #ifdef FEAT_EVAL
     sctx_T	script_ctx;	// script context where the option was last set
-# define SCTX_INIT , {0, 0}
+# define SCTX_INIT , {0, 0, 0}
 #else
 # define SCTX_INIT
 #endif
@@ -4360,11 +4360,17 @@ set_helplang_default(char_u *lang)
 	    p_hlg = empty_option;
 	else
 	{
-	    /* zh_CN becomes "cn", zh_TW becomes "tw". */
+	    // zh_CN becomes "cn", zh_TW becomes "tw"
 	    if (STRNICMP(p_hlg, "zh_", 3) == 0 && STRLEN(p_hlg) >= 5)
 	    {
 		p_hlg[0] = TOLOWER_ASC(p_hlg[3]);
 		p_hlg[1] = TOLOWER_ASC(p_hlg[4]);
+	    }
+	    // any C like setting, such as C.UTF-8, becomes "en"
+	    else if (STRLEN(p_hlg) >= 1 && *p_hlg == 'C')
+	    {
+		p_hlg[0] = 'e';
+		p_hlg[1] = 'n';
 	    }
 	    p_hlg[2] = NUL;
 	}
@@ -6061,6 +6067,7 @@ set_string_option_direct(
 	    else
 	    {
 		script_ctx.sc_sid = set_sid;
+		script_ctx.sc_seq = 0;
 		script_ctx.sc_lnum = 0;
 	    }
 	    set_option_sctx_idx(idx, opt_flags, script_ctx);
