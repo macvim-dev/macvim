@@ -24,6 +24,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+from __future__ import print_function
 import os
 import sys
 import tempfile
@@ -124,9 +125,9 @@ data 'STR#' (5002, "English") {
                           'UDZO -imagekey zlib-devel=9 -o %s' % dmgFile)
             os.remove('%s.temp.dmg' % dmgFile)
     if ret == 0:
-        print "Successfully added license to '%s'" % dmgFile
+        print("Successfully added license to '%s'" % dmgFile)
     else:
-        print "Failed to add license to '%s'" % dmgFile
+        print("Failed to add license to '%s'" % dmgFile)
 
 if __name__ == '__main__':
     parser = optparse.OptionParser()
@@ -155,7 +156,7 @@ if __name__ == '__main__':
     options, args = parser.parse_args()
     cond = len(args) != 2
     if not os.path.exists(options.rez):
-        print 'Failed to find Rez at "%s"!\n' % options.rez
+        print('Failed to find Rez at "%s"!\n' % options.rez)
         cond = True
     if cond:
         parser.print_usage()
