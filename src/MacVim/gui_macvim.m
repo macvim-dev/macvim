@@ -1870,7 +1870,19 @@ gui_macvim_add_to_find_pboard(char_u *pat)
 {
     if (!pat) return;
 
-	if (!MMShareFindPboard) return;
+	if ([MMBackend sharedInstance].addToFindPboardOverride) {
+		// MMBackend would set addToFindPboardOverride to YES when we are
+		// using the useSelectionFodFind: macaction, accessible via Cmd-E,
+		// which indicates we always want to share to the find pasteboard
+		// unlike normal search. Since this function is called after the action
+		// is handled we need to manually clear the override so it doesn't
+		// persist in later searches.
+		[[MMBackend sharedInstance] clearAddToFindPboardOverride];
+	} else {
+		if (!MMShareFindPboard) {
+			return;
+		}
+	}
 
 #ifdef FEAT_MBYTE
     pat = CONVERT_TO_UTF8(pat);

@@ -22,6 +22,8 @@
 	<string></string>
 	<key>findPrevious:</key>
 	<string></string>
+	<key>useSelectionForFind:</key>
+	<string></string>
 	<key>fontSizeDown:</key>
 	<string></string>
 	<key>fontSizeUp:</key>

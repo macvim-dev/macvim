@@ -102,6 +102,7 @@
 - (IBAction)performClose:(id)sender;
 - (IBAction)findNext:(id)sender;
 - (IBAction)findPrevious:(id)sender;
+- (IBAction)useSelectionForFind:(id)sender;
 - (IBAction)vimMenuItemAction:(id)sender;
 - (IBAction)vimToolbarItemAction:(id)sender;
 - (IBAction)fontSizeUp:(id)sender;

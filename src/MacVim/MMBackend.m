@@ -193,6 +193,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)addInput:(NSString *)input;
 - (void)redrawScreen;
 - (void)handleFindReplace:(NSDictionary *)args;
+- (void)useSelectionForFind;
 - (void)handleMarkedText:(NSData *)data;
 - (void)handleGesture:(NSData *)data;
 #ifdef FEAT_BEVAL
@@ -253,6 +254,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if (!(colorDict && sysColorDict && actionDict)) {
         ASLogNotice(@"Failed to load dictionaries.%@", MMSymlinkWarningString);
     }
+
+    addToFindPboardOverride = NO;
 
     return self;
 }
@@ -1701,6 +1704,16 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     waitForAck = NO;
 }
 
+- (BOOL)addToFindPboardOverride
+{
+    return addToFindPboardOverride;
+}
+
+- (void)clearAddToFindPboardOverride
+{
+	addToFindPboardOverride = NO;
+}
+
 - (BOOL)imState
 {
     return imState;
@@ -2072,6 +2085,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self handleOpenWithArguments:[NSDictionary dictionaryWithData:data]];
     } else if (FindReplaceMsgID == msgid) {
         [self handleFindReplace:[NSDictionary dictionaryWithData:data]];
+    } else if (UseSelectionForFindMsgID == msgid) {
+        [self useSelectionForFind];
     } else if (ZoomMsgID == msgid) {
         if (!data) return;
         const void *bytes = [data bytes];
@@ -2965,6 +2980,21 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     vim_free(find);
     vim_free(replace);
+}
+
+- (void)useSelectionForFind
+{
+    if (VIsual_active && (State & NORMAL)) {
+		// This happens when Cmd-E is pressed and is supposed to be consistent
+		// with normal macOS apps, so it always writes to the system find
+		// pasteboard, unlike normal searches where it could be turned off via
+		// MMShareFindPboard. Set an override to make sure it gets shared out.
+		// Since gui_macvim_add_to_find_pboard is going to get called after
+		// this returns it will be responsible for calling
+		// clearAddToFindPboardOverride to clean up.
+        addToFindPboardOverride = YES;
+        [self addInput:@"y:let @/=@\"<CR>:<BS>"];
+    }
 }
 
 

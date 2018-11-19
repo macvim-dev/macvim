@@ -877,6 +877,11 @@
     [self doFindNext:NO];
 }
 
+- (IBAction)useSelectionForFind:(id)sender
+{
+    [vimController sendMessage:UseSelectionForFindMsgID data:nil];
+}
+
 - (IBAction)vimMenuItemAction:(id)sender
 {
     if (![sender isKindOfClass:[NSMenuItem class]]) return;

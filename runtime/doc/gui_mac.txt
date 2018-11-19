@@ -120,16 +120,18 @@ These are the non-standard commands that MacVim supports:
 	|:macaction|	|:macmenu|
 
 							*macvim-find*
-Whenever you search for something in Vim (e.g. using "/") the search query is
-copied to the macOS "Find Pasteboard".  The idea is that if you search for
-something and switch to another application, then you can hit <D-g> (or <D-G>)
-to repeat the search in the new app.  The same feature works if you search in
-some app, switch to MacVim and hit <D-g>.
+Whenever you search for something in Vim (e.g. using "/"), or hit <D-e> when
+you have text selected, the search query is copied to the macOS "Find
+Pasteboard".  The idea is that if you search for something and switch to
+another application, then you can hit <D-g> (or <D-G>) to repeat the search in
+the new app.  The same feature works if you search in some app, switch to
+MacVim and hit <D-g>.
 
 If you would like to turn off sharing Vim's search query to the macOS Find
-Pasteboard, you can set |MMShareFindPboard| to "NO". <D-g> will still use the
-OS Find Pasteboard for searching though (use |n| instead if that's not what
-you want).
+Pasteboard, you can set |MMShareFindPboard| to "NO". Even when that's set,
+<D-g> will still use the OS Find Pasteboard for searching (use |n| instead if
+that's not what you want), and <D-e> ("Edit -> Use Selection for Find") will
+still share the search pattern to Find Pasteboard.
 
 Note that the command |n| is not the same as <D-g>.  The former will repeat
 the last search made in Vim, whereas the latter searches for the string on the
@@ -445,6 +447,8 @@ Action				Description ~
 fileOpen:			Show "File Open" dialog
 findNext:			Search forward using the "Find Pasteboard"
 findPrevious:			Search backward using the "Find Pasteboard"
+useSelectionForFind:		Search the selected text and share to "Find
+				Pasteboard"
 fontSizeDown:			Decrease font size
 fontSizeUp:			Increase font size
 hide:				Hide MacVim

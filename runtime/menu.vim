@@ -231,7 +231,7 @@ elseif has("gui_macvim")
   vnoremenu <silent> &Edit.Find.Find\.\.\.	y:promptfind <C-R>=<SID>FixFText()<CR><CR>
   an 20.410.20 &Edit.Find.Find\ Next			<Nop>
   an 20.410.30 &Edit.Find.Find\ Previous		<Nop>
-  vnoremenu 20.410.35 &Edit.Find.Use\ Selection\ for\ Find	y:let @/=@"<CR>:<BS>
+  vnoremenu 20.410.35 &Edit.Find.Use\ Selection\ for\ Find	<Nop>
 else
   an 20.410	 &Edit.&Find<Tab>/			/
   an 20.420	 &Edit.Find\ and\ Rep&lace<Tab>:%s	:%s/
@@ -1261,7 +1261,7 @@ if has("gui_macvim")
   macm Edit.Find.Find\.\.\.			key=<D-f>
   macm Edit.Find.Find\ Next			key=<D-g> action=findNext:
   macm Edit.Find.Find\ Previous			key=<D-G> action=findPrevious:
-  macm Edit.Find.Use\ Selection\ for\ Find	key=<D-e>
+  macm Edit.Find.Use\ Selection\ for\ Find	key=<D-e> action=useSelectionForFind:
   macm Edit.Font.Show\ Fonts			action=orderFrontFontPanel:
   macm Edit.Font.Bigger				key=<D-=> action=fontSizeUp:
   macm Edit.Font.Smaller			key=<D--> action=fontSizeDown:
