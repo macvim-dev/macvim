@@ -1582,10 +1582,7 @@
         if ([bestType isEqual:VimFindPboardType]) {
             query = [pb stringForType:VimFindPboardType];
         } else {
-            BOOL shareFindPboard = [[NSUserDefaults standardUserDefaults]
-                                                boolForKey:MMShareFindPboardKey];
-            if (shareFindPboard)
-                query = [pb stringForType:NSStringPboardType];
+            query = [pb stringForType:NSStringPboardType];
         }
     }
 

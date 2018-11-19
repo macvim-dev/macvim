@@ -231,7 +231,7 @@ elseif has("gui_macvim")
   vnoremenu <silent> &Edit.Find.Find\.\.\.	y:promptfind <C-R>=<SID>FixFText()<CR><CR>
   an 20.410.20 &Edit.Find.Find\ Next			<Nop>
   an 20.410.30 &Edit.Find.Find\ Previous		<Nop>
-  vmenu 20.410.35 &Edit.Find.Use\ Selection\ for\ Find	y:let @/=@"<CR>:<BS>
+  vnoremenu 20.410.35 &Edit.Find.Use\ Selection\ for\ Find	y:let @/=@"<CR>:<BS>
 else
   an 20.410	 &Edit.&Find<Tab>/			/
   an 20.420	 &Edit.Find\ and\ Rep&lace<Tab>:%s	:%s/

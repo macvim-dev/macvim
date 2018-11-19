@@ -1870,6 +1870,8 @@ gui_macvim_add_to_find_pboard(char_u *pat)
 {
     if (!pat) return;
 
+	if (!MMShareFindPboard) return;
+
 #ifdef FEAT_MBYTE
     pat = CONVERT_TO_UTF8(pat);
 #endif
@@ -1891,8 +1893,7 @@ gui_macvim_add_to_find_pboard(char_u *pat)
     // The second entry will be used by other applications when taking entries
     // off the Find pasteboard, whereas MacVim will use the first if present.
     [pb setString:s forType:VimFindPboardType];
-    if (MMShareFindPboard)
-        [pb setString:[s stringByRemovingFindPatterns] forType:NSStringPboardType];
+    [pb setString:[s stringByRemovingFindPatterns] forType:NSStringPboardType];
 }
 
     void
