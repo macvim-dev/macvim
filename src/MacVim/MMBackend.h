@@ -58,6 +58,7 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
     BOOL                imState;
     int                 winposX;
     int                 winposY;
+    BOOL                addToFindPboardOverride;
 #ifdef FEAT_BEVAL
     NSString            *lastToolTip;
 #endif
@@ -154,6 +155,9 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
 - (BOOL)waitForAck;
 - (void)setWaitForAck:(BOOL)yn;
 - (void)waitForConnectionAcknowledgement;
+
+- (BOOL)addToFindPboardOverride;
+- (void)clearAddToFindPboardOverride;
 
 - (BOOL)imState;
 - (void)setImState:(BOOL)activated;

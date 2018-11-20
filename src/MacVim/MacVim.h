@@ -234,6 +234,7 @@ enum {
     SetFullScreenColorMsgID,
     ShowFindReplaceDialogMsgID,
     FindReplaceMsgID,
+    UseSelectionForFindMsgID,
     ActivateKeyScriptMsgID,
     DeactivateKeyScriptMsgID,
     EnableImControlMsgID,

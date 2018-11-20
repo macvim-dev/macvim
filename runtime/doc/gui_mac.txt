@@ -30,7 +30,7 @@ Other relevant documentation:
 ==============================================================================
 1. MacVim differences					*macvim-differences*
 
-One of the goals of MacVim is to make Vim behave like a proper Mac OS X
+One of the goals of MacVim is to make Vim behave like a proper macOS
 application.  For this reason MacVim behaves slightly different from other GUI
 ports of Vim.  Most of the modifications are provided in the system gvimrc
 file; you can quickly open this file and look at it yourself by typing: >
@@ -65,8 +65,8 @@ file at all. In this situation, you will need to set both 'encoding' and
 the file is read into memory, the original bytes are left untouched.
 
 							*macvim-shift-movement*
-Text editors on Mac OS X lets the user hold down shift+movement key to extend
-the selection.  Also, pressing a printable key whilst selecting replaces the
+Text editors on macOS lets the user hold down shift+movement key to extend the
+selection.  Also, pressing a printable key whilst selecting replaces the
 current selection with that character.  MacVim can emulate this kind of
 behaviour (by providing key bindings and by setting 'keymodel' and
 'selectmode' to non-default values) although it is not enabled by default.  To
@@ -120,15 +120,22 @@ These are the non-standard commands that MacVim supports:
 	|:macaction|	|:macmenu|
 
 							*macvim-find*
-Whenever you search for something in Vim (e.g. using "/") the search query is
-copied to the OS X "Find Pasteboard".  The idea is that if you search for
-something and switch to another application, then you can hit <D-g> (or <D-G>)
-to repeat the search in the new app.  The same feature works if you search in
-some app, switch to MacVim and hit <D-g>.
+Whenever you search for something in Vim (e.g. using "/"), or hit <D-e> when
+you have text selected, the search query is copied to the macOS "Find
+Pasteboard".  The idea is that if you search for something and switch to
+another application, then you can hit <D-g> (or <D-G>) to repeat the search in
+the new app.  The same feature works if you search in some app, switch to
+MacVim and hit <D-g>.
+
+If you would like to turn off sharing Vim's search query to the macOS Find
+Pasteboard, you can set |MMShareFindPboard| to "NO". Even when that's set,
+<D-g> will still use the OS Find Pasteboard for searching (use |n| instead if
+that's not what you want), and <D-e> ("Edit -> Use Selection for Find") will
+still share the search pattern to Find Pasteboard.
 
 Note that the command |n| is not the same as <D-g>.  The former will repeat
 the last search made in Vim, whereas the latter searches for the string on the
-OS X Find Pasteboard using the action findNext: (see |:macaction|).
+macOS Find Pasteboard using the action findNext: (see |:macaction|).
 
 The <D-g> key equivalent is a great way to bring a search from one window to
 another in MacVim.  Simply search for something in one window (using "/") then
@@ -156,7 +163,7 @@ up the "Open with" menu.  You can also drag and drop files onto the Dock icon
 to open them in tabs in a new window, or you can drop them in an already open
 window to open the files in tabs in that specific window (it is possible to
 have files open in e.g. splits by changing the "Open files from applications"
-option in the General preference pane).  Finally, you can use Mac OS X System
+option in the General preference pane).  Finally, you can use macOS System
 Services to open files in MacVim, see |macvim-services|.
 
 Use |mvim| script to start MacVim from Terminal.
@@ -206,9 +213,9 @@ history as the window you just closed (however the next window you open will).
 For these reasons Quickstart is disabled by default.
 
 						*odbeditor* *external-editor*
-MacVim can act as an 'external editor' for Mac OS X applications that support
-the ODB Editor Protocol (or the 'external editor' protocol).  Each application
-has different ways of configuring this option, check the application's
+MacVim can act as an 'external editor' for macOS applications that support the
+ODB Editor Protocol (or the 'external editor' protocol).  Each application has
+different ways of configuring this option, check the application's
 documentation.  Once configured properly MacVim can be used to open files in
 such an application.
 
@@ -231,32 +238,32 @@ circumstances.  These options can still be changed with the "defaults" command
 by opening Terminal and typing >
 	defaults write org.vim.MacVim KEY VALUE
 Check the man page on "defaults" for more information on this command as well
-as general information regarding Mac OS X user defaults.
+as general information regarding macOS user defaults.
 
 Here is a list of relevant dictionary entries:
 
 KEY				VALUE ~
-MMCellWidthMultiplier		width of a normal glyph in em units [float]
-MMDialogsTrackPwd		open/save dialogs track the Vim pwd [bool]
-MMFullScreenFadeTime		fade delay for non-native fullscreen [float]
-MMLoginShellArgument		login shell parameter [string]
-MMLoginShellCommand		which shell to use to launch Vim [string]
-MMNoFontSubstitution		disable automatic font substitution [bool]
-MMNoTitleBarWindow		hide title bar [bool]
-MMShareFindPboard		share search text to Find Pasteboard [bool]
-MMShowAddTabButton		enable "add tab" button on tabline [bool]
-MMTabMaxWidth			maximum width of a tab [int]
-MMTabMinWidth			minimum width of a tab [int]
-MMTabOptimumWidth		default width of a tab [int]
-MMTextInsetBottom		text area offset in pixels [int]
-MMTextInsetLeft			text area offset in pixels [int]
-MMTextInsetRight		text area offset in pixels [int]
-MMTextInsetTop			text area offset in pixels [int]
-MMTexturedWindow		use brushed metal window (Tiger only) [bool]
-MMTranslateCtrlClick		interpret ctrl-click as right-click [bool]
-MMUseMouseTime			use mousetime to detect multiple clicks [bool]
-MMVerticalSplit			files open in vertical splits [bool]
-MMZoomBoth			zoom button maximizes both directions [bool]
+*MMCellWidthMultiplier*		width of a normal glyph in em units [float]
+*MMDialogsTrackPwd*		open/save dialogs track the Vim pwd [bool]
+*MMFullScreenFadeTime*		fade delay for non-native fullscreen [float]
+*MMLoginShellArgument*		login shell parameter [string]
+*MMLoginShellCommand*		which shell to use to launch Vim [string]
+*MMNoFontSubstitution*		disable automatic font substitution [bool]
+*MMNoTitleBarWindow*		hide title bar [bool]
+*MMShareFindPboard*		share search text to Find Pasteboard [bool]
+*MMShowAddTabButton*		enable "add tab" button on tabline [bool]
+*MMTabMaxWidth*			maximum width of a tab [int]
+*MMTabMinWidth*			minimum width of a tab [int]
+*MMTabOptimumWidth*		default width of a tab [int]
+*MMTextInsetBottom*		text area offset in pixels [int]
+*MMTextInsetLeft*		text area offset in pixels [int]
+*MMTextInsetRight*		text area offset in pixels [int]
+*MMTextInsetTop*		text area offset in pixels [int]
+*MMTexturedWindow*		use brushed metal window (Tiger only) [bool]
+*MMTranslateCtrlClick*		interpret ctrl-click as right-click [bool]
+*MMUseMouseTime*		use mousetime to detect multiple clicks [bool]
+*MMVerticalSplit*		files open in vertical splits [bool]
+*MMZoomBoth*			zoom button maximizes both directions [bool]
 
 As an example, if you have more than one mouse button and would wish to free
 up Ctrl-click so you can bind it to something else, then the appropriate
@@ -337,9 +344,9 @@ highlight color when a window becomes inactive.
 ==============================================================================
 5. Menus						*macvim-menus*
 
-Menus in Mac OS X behave slightly different from other platforms.  For that
+Menus in macOS behave slightly different from other platforms.  For that
 reason two new commands have been added to Vim.  To understand what these
-commands do you must first understand how menus work on OS X.
+commands do you must first understand how menus work on macOS.
 
 Each entry in a menu is called a "menu item".  With each menu item is
 associated: a title, a key equivalent and an action message.  When a menu is
@@ -348,7 +355,7 @@ shown on the right.  Key equivalents enable you to access a menu item using
 the keyboard instead of having to use the mouse.  When a menu item is clicked
 it will send its associated action message.  Actions can be used to instruct
 MacVim to paste some text (paste:), open a new window (newWindow:), etc.
-Certain actions are standard throughout OS X which is why MacVim must be able
+Certain actions are standard throughout macOS which is why MacVim must be able
 to set these for each menu item.  (E.g. the menu item "Edit.Paste" must be
 bound to the action "paste:" otherwise pasting won't work in dialogs since
 that is the action that instructs them to paste something.)
@@ -440,6 +447,8 @@ Action				Description ~
 fileOpen:			Show "File Open" dialog
 findNext:			Search forward using the "Find Pasteboard"
 findPrevious:			Search backward using the "Find Pasteboard"
+useSelectionForFind:		Search the selected text and share to "Find
+				Pasteboard"
 fontSizeDown:			Decrease font size
 fontSizeUp:			Increase font size
 hide:				Hide MacVim
@@ -471,7 +480,7 @@ whose name begins with "-space" ("-flexspace") and ends with "-"
 Toolbar icons should be tiff, png, icns, or heic, of dimension 32x32 or 24x24
 pixels.  The larger size is used when 'tbis' is "medium" or "large", otherwise
 the smaller size is used (which is the default).  If the icon file only
-contains one dimension then Mac OS X will scale the icon to the appropriate
+contains one dimension then macOS will scale the icon to the appropriate
 dimension if necessary.  To avoid this, use a file format which supports
 multiple resolutions (such as icns) and provide both 32x32 and 24x24 versions
 of the icon.
@@ -532,8 +541,7 @@ outline.
 MacVim supports two system services.  These can be accessed from the MacVim
 submenu in the Services menu or by right-clicking a selection.  For services
 to work, MacVim.app should be located in the /Applications folder.  (You might
-have to logout and then login again before Mac OS X detects the MacVim
-services.)
+have to logout and then login again before macOS detects the MacVim services.)
 
 These are the currently supported services:
 	* New MacVim Buffer With Selection: Create a new buffer and paste the
@@ -640,7 +648,7 @@ sometimes be slightly involved.  Here are all the things you need to consider:
 - Bindings to <D-..> are case sensitive: <D-d> is not the same as <D-D>.  If
   you want to map something to Cmd+Shift+d, then you need to use <D-D>, not
   <D-S-d> or <D-S-D>.
-- Some command key shortcuts are reserved by Mac OS X and cannot be mapped to
+- Some command key shortcuts are reserved by macOS and cannot be mapped to
   (e.g. <D-Tab>).  However, some of these shortcuts can be freed up in the
   System Preferences under Keyboard (e.g. Cmd+Space).
 - A few command key mappings are set up by MacVim, see |cmd-movement|.
@@ -685,9 +693,9 @@ See the section on |key-mapping| for more help on how to map keys.
 
 When editing non-English text it may be convenient to keep separate keyboard
 layouts for normal and insert mode.  This is supported via the 'imd' option on
-Mac OS X 10.5 or later (on 10.4 the 'imd' option support is not as useful as
-it only switches between Roman and non-Roman input sources and it has been
-known not to work very reliably).
+macOS 10.5 or later (on 10.4 the 'imd' option support is not as useful as it
+only switches between Roman and non-Roman input sources and it has been known
+not to work very reliably).
 
 For example: When 'noimd' is enabled (i.e. IM is enabled) the input source is
 saved when toggling between normal and insert mode, so you can use a US layout
