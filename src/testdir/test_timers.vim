@@ -4,10 +4,9 @@ if !has('timers')
   finish
 endif
 
-if has('gui_macvim') && has('gui_running')
+if has('gui_macvim')
   " MacVim's GUI currently doesn't always pass these tests. Disable these
-  " tests for now when testing in GUI mode before a more proper fix is
-  " implemented.
+  " tests for now when testing before a more proper fix is implemented.
   finish
 endif
 
