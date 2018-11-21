@@ -170,18 +170,21 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
             && [unmod length] == 1
             && ([unmod characterAtIndex:0] == '6' ||
                 [unmod characterAtIndex:0] == '^')) {
-        // HACK!  interpretKeyEvents: does not call doCommandBySelector:
+        // HACK! interpretKeyEvents: does not call doCommandBySelector:
         // with Ctrl-6 or Ctrl-^ when IM is active.
         [self doKeyDown:@"\x1e"];
         string = nil;
     } else {
-        // When using JapaneseIM with "Windows-like shortcuts" turned on,
+        // HACK! When using JapaneseIM with "Windows-like shortcuts" turned on,
         // interpretKeyEvents: does not call doCommandBySelector: with Ctrl-O
         // and Ctrl-U (why?), so we cannot handle them at all.
-        // As a workaround, we do not call interpretKeyEvents: when no marked
-        // text and with only control-modifier.
-        if ([self hasMarkedText] || (!modControl || modCommand || modOption)) {
-            // HACK!  interpretKeyEvents: may call insertText: or
+        // As a workaround, we do not call interpretKeyEvents: with Ctrl-O or
+        // Ctrl-U when there is no marked text.
+        if ([self hasMarkedText]
+                    || !((modControl && !modCommand && !modOption)
+                            && ([unmod characterAtIndex:0] == 'o' ||
+                                [unmod characterAtIndex:0] == 'u'))) {
+            // HACK! interpretKeyEvents: may call insertText: or
             // doCommandBySelector:, or it may swallow the key (most likely the
             // current input method used it).  In the first two cases we have to
             // manually set the below flag to NO if the key wasn't handled.
