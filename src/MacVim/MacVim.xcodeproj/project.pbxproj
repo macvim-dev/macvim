@@ -435,6 +435,7 @@
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				1DE3F8E50D50F80500052B9E /* Preferences.nib */,
 				29B97318FDCFA39411CA2CEA /* MainMenu.nib */,
+				528DA6691426D4EB003380F1 /* macvim-askpass */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
