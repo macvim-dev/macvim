@@ -182,6 +182,20 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                              CFSTR(""),
                              kCFPreferencesCurrentApplication);
 
+    if ([NSWindow respondsToSelector:@selector(setAllowsAutomaticWindowTabbing:)]) {
+        // Disable automatic tabbing on 10.12+. MacVim already has its own
+        // tabbing interface, so we don't want multiple hierarchy of tabs mixing
+        // native and Vim tabs. MacVim also doesn't work well with native tabs
+        // right now since it doesn't respond well to the size change, and it
+        // doesn't show the native menu items (e.g. move tab to new window) in
+        // all the tabs.
+        //
+        // Note: MacVim cannot use macOS native tabs for Vim tabs because Vim
+        // assumes only one tab can be shown at a time, and it would be hard to
+        // handle native tab's "move tab to a new window" functionality.
+        [NSWindow setAllowsAutomaticWindowTabbing:NO];
+    }
+
     int tabMinWidthKey;
     int tabMaxWidthKey;
     int tabOptimumWidthKey;
