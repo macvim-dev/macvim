@@ -180,14 +180,24 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
         // and Ctrl-U (why?), so we cannot handle them at all.
         // As a workaround, we do not call interpretKeyEvents: with Ctrl-O or
         // Ctrl-U when there is no marked text.
-        if ([self hasMarkedText]
-                    || !((modControl && !modCommand && !modOption)
-                            && ([unmod characterAtIndex:0] == 'o' ||
-                                [unmod characterAtIndex:0] == 'u'))) {
-            // HACK! interpretKeyEvents: may call insertText: or
-            // doCommandBySelector:, or it may swallow the key (most likely the
-            // current input method used it).  In the first two cases we have to
-            // manually set the below flag to NO if the key wasn't handled.
+        BOOL isJapaneseIME = [[[NSTextInputContext currentInputContext]
+                               selectedKeyboardInputSource]
+                              hasPrefix:@"com.apple.inputmethod.Kotoeri"];
+        BOOL isJapaneseIMCtrlUO = (isJapaneseIME
+                                   && (modControl && !modCommand && !modOption)
+                                   && ([unmod characterAtIndex:0] == 'o' ||
+                                       [unmod characterAtIndex:0] == 'u'));
+
+        if ([self hasMarkedText] || !isJapaneseIMCtrlUO) {
+            // interpretKeyEvents: may call insertText: or doCommandBySelector:,
+            // or it may swallow the key (most likely the current input method
+            // used it).  In the first two cases we have to manually set the
+            // below flag to NO if the key wasn't handled, which allows us to
+            // manually send the key down event.
+            //
+            // doCommandBySelector: will also perform misc translations such as
+            // Ctrl-6 -> Ctrl-^, so this should not be skipped unless there are
+            // special cases like the Japanese IME Ctrl-U issue.
             interpretKeyEventsSwallowedKey = YES;
             [textView interpretKeyEvents:[NSArray arrayWithObject:event]];
             if (interpretKeyEventsSwallowedKey)
