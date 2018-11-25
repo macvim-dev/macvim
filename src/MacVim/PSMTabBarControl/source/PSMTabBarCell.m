@@ -338,7 +338,10 @@
     if(([self state] == NSOnState) && ([[_controlView styleName] isEqualToString:@"Metal"]))
         cellFrame.size.width += 1.0;
     [_controlView lockFocus];
-    NSBitmapImageRep *rep = [[[NSBitmapImageRep alloc] initWithFocusedViewRect:cellFrame] autorelease];
+
+    NSBitmapImageRep *rep = [[self controlView] bitmapImageRepForCachingDisplayInRect:cellFrame];
+    [[self controlView] cacheDisplayInRect:cellFrame toBitmapImageRep:rep];
+
     [_controlView unlockFocus];
     NSImage *image = [[[NSImage alloc] initWithSize:[rep size]] autorelease];
     [image addRepresentation:rep];

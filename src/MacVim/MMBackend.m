@@ -2013,6 +2013,14 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         // based.
         int idx = *((int*)bytes);
 
+        // Also, this index doesn't take itself into account, so if the move is
+        // to a later tab, need to add one to it since Vim's tabpage_move *does*
+        // count the current tab.
+        int curtab_index = tabpage_index(curtab);
+        if (idx >= curtab_index) {
+            idx += 1;
+        }
+
         tabpage_move(idx);
     } else if (SetTextDimensionsMsgID == msgid || LiveResizeMsgID == msgid
             || SetTextDimensionsNoResizeWindowMsgID == msgid
