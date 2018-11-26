@@ -2,11 +2,15 @@
 //  PSMMojaveTabStyle.m
 //  PSMTabBarControl
 //
-//  Created by Christoffer Winterkvist on 25/08/14.
+//  This file is copied from PSMYosemiteTabStyle to allow for modifications to
+//  adapt to Mojave-specific functionality such as Dark Mode without needing to
+//  pollute the implementation of Yosemite tab style.
 //
 //
 
 #import "PSMMojaveTabStyle.h"
+
+#if HAS_MOJAVE_TAB_STYLE
 
 #define kPSMMetalObjectCounterRadius 7.0
 #define kPSMMetalCounterMinWidth 20
@@ -24,9 +28,8 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
     [closeButton release];
     [closeButtonDown release];
     [closeButtonOver release];
+    [closeButtonOverDark release];
     [_addTabButtonImage release];
-    [_addTabButtonPressedImage release];
-    [_addTabButtonRolloverImage release];
 
     [truncatingTailParagraphStyle release];
     [centeredParagraphStyle release];
@@ -42,15 +45,12 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
     self = [super init];
     if (!self) return nil;
 
-    closeButton = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front"]];
-    //NSLog(@"closeButton=%@ path=%@", metalCloseButton,
-    //        [[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front"]);
-    closeButtonDown = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front_Pressed"]];
-    closeButtonOver = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabClose_Front_Rollover"]];
+    closeButton = [[self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:nil] retain];
+    closeButtonDown = [[self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:[NSColor grayColor]] retain];
+    closeButtonOver = [[self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:[NSColor grayColor]] retain];
+    closeButtonOverDark = [[self createCloseButtonImage:16.0 color:[NSColor secondaryLabelColor] backgroundColor:[NSColor darkGrayColor]] retain];
 
-    _addTabButtonImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabNewMetal"]];
-    _addTabButtonPressedImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabNewMetalPressed"]];
-    _addTabButtonRolloverImage = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"TabNewMetalRollover"]];
+    _addTabButtonImage = [[NSImage imageNamed:NSImageNameAddTemplate] retain];
 
     return self;
 }
@@ -76,6 +76,17 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 #pragma mark -
 #pragma mark Add Tab Button
 
+- (void)styleAddTabButton:(PSMRolloverButton *)addTabButton
+{
+    NSImage *newButtonImage = [self addTabButtonImage];
+    if (newButtonImage) {
+        [addTabButton setUsualImage:newButtonImage];
+        [addTabButton setAlternateImage:newButtonImage];
+        [addTabButton setRolloverImage:newButtonImage];
+    }
+    [addTabButton setButtonType:NSMomentaryLightButton];
+}
+
 - (NSImage *)addTabButtonImage
 {
     return _addTabButtonImage;
@@ -83,29 +94,48 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 
 - (NSImage *)addTabButtonPressedImage
 {
-    return _addTabButtonPressedImage;
+    return _addTabButtonImage;;
 }
 
 - (NSImage *)addTabButtonRolloverImage
 {
-    return _addTabButtonRolloverImage;
+    return _addTabButtonImage;
 }
 
-- (NSColor *)backgroundColor:(BOOL)isKeyWindow
+- (NSColor *)backgroundColor:(PSMTabBarCell *)cell isKeyWindow:(BOOL)isKeyWindow isSelected:(BOOL)isSelected
 {
     NSColor *backgroundColor;
+
+    BOOL isHighlight = [cell isHighlighted];
+
     if (isKeyWindow) {
-        backgroundColor = [NSColor colorWithCalibratedHue:0.000 saturation:0.000 brightness:0.875 alpha:1];
+        if (isSelected) {
+            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundActiveSelected" bundle:[PSMTabBarControl bundle]];
+        } else if (isHighlight) {
+            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundActiveHighlight" bundle:[PSMTabBarControl bundle]];
+        } else {
+            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundActive" bundle:[PSMTabBarControl bundle]];
+        }
     } else {
-        backgroundColor = [NSColor colorWithCalibratedHue:0.000 saturation:0.000 brightness:0.957 alpha:1];
+        if (isSelected) {
+            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundInactiveSelected" bundle:[PSMTabBarControl bundle]];
+        } else if (isHighlight) {
+            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundInactiveHighlight" bundle:[PSMTabBarControl bundle]];
+        } else {
+            backgroundColor = [NSColor colorNamed:@"MojaveTabBackgroundInactive" bundle:[PSMTabBarControl bundle]];
+        }
     }
 
     return backgroundColor;
 }
 
-- (NSColor *)borderColor
+- (NSColor *)borderColor:(BOOL)isKeyWindow
 {
-    return [NSColor colorWithCalibratedHue:0.000 saturation:0.000 brightness:0.678 alpha:1];
+    if (isKeyWindow) {
+        return [NSColor colorNamed:@"MojaveTabBorderActive" bundle:[PSMTabBarControl bundle]];
+    } else {
+        return [NSColor colorNamed:@"MojaveTabBorderInactive" bundle:[PSMTabBarControl bundle]];
+    }
 }
 
 #pragma mark -
@@ -122,7 +152,7 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
     NSRect result;
     result.size = [closeButton size];
     result.origin.x = cellFrame.origin.x + MARGIN_X;
-    result.origin.y = cellFrame.origin.y + MARGIN_Y + 2.0;
+    result.origin.y = (cellFrame.size.height - result.size.height) / 2;
 
     return result;
 }
@@ -143,7 +173,7 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
     if([cell hasCloseButton] && ![cell isCloseButtonSuppressed])
         result.origin.x += [closeButton size].width + kPSMTabBarCellPadding;
 
-    if([cell state] == NSOnState){
+    if([cell state] == NSControlStateValueOn){
         result.origin.y += 1;
     }
 
@@ -163,7 +193,7 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
     result.origin.x = cellFrame.origin.x + cellFrame.size.width - MARGIN_X - kPSMTabBarIndicatorWidth;
     result.origin.y = cellFrame.origin.y + MARGIN_Y;
 
-    if([cell state] == NSOnState){
+    if([cell state] == NSControlStateValueOn){
         result.origin.y -= 1;
     }
 
@@ -295,7 +325,7 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
     BOOL isKeyWindow = [bar.window isKeyWindow];
 
     CGFloat textAlpha;
-    if ([cell state] == NSOnState) {
+    if ([cell state] == NSControlStateValueOn) {
         textAlpha = (isKeyWindow) ? 1.0f : 0.5f;
     } else {
         textAlpha = (isKeyWindow) ? 0.5f : 0.25f;
@@ -320,30 +350,29 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 
 - (void)drawTabCell:(PSMTabBarCell *)cell
 {
+    PSMTabBarControl *bar = (PSMTabBarControl *)cell.controlView;
+    BOOL isKeyWindow = [bar.window isKeyWindow];
+
     NSRect cellFrame = [cell frame];
     NSColor * lineColor = nil;
     NSBezierPath* bezier = [NSBezierPath bezierPath];
-    lineColor = [self borderColor];
+    lineColor = [self borderColor:isKeyWindow];
 
-    if ([cell state] == NSOnState) {
+    if ([cell state] == NSControlStateValueOn) {
         // selected tab
         NSRect aRect = NSMakeRect(cellFrame.origin.x, cellFrame.origin.y, cellFrame.size.width, cellFrame.size.height);
 
-        PSMTabBarControl *bar = (PSMTabBarControl *)cell.controlView;
-        BOOL isKeyWindow = [bar.window isKeyWindow];
-
         // background
-        MojaveNSDrawWindowBackground(aRect, [self backgroundColor:isKeyWindow]);
+        MojaveNSDrawWindowBackground(aRect, [self backgroundColor:cell isKeyWindow:isKeyWindow isSelected:YES]);
 
         aRect.size.height -= 1.0f;
         aRect.origin.y += 0.5f;
         // frame
         [lineColor set];
-        [bezier moveToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y)];
-        [bezier lineToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y+aRect.size.height)];
-        [bezier lineToPoint:NSMakePoint(aRect.origin.x+aRect.size.width, aRect.origin.y+aRect.size.height)];
-        [bezier lineToPoint:NSMakePoint(aRect.origin.x+aRect.size.width, aRect.origin.y)];
+        [bezier moveToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y+aRect.size.height)];
         [bezier lineToPoint:NSMakePoint(aRect.origin.x, aRect.origin.y)];
+        [bezier lineToPoint:NSMakePoint(aRect.origin.x+aRect.size.width, aRect.origin.y)];
+        [bezier lineToPoint:NSMakePoint(aRect.origin.x+aRect.size.width, aRect.origin.y+aRect.size.height)];
         [bezier stroke];
     } else {
 
@@ -352,8 +381,8 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 
         aRect.origin.x += 0.5;
 
-        [[NSColor colorWithCalibratedWhite:0.0 alpha:0.1] set];
-        NSRectFillUsingOperation(aRect, NSCompositingOperationSourceAtop);
+        // background
+        MojaveNSDrawWindowBackground(aRect, [self backgroundColor:cell isKeyWindow:isKeyWindow isSelected:NO]);
 
         // frame
         [lineColor set];
@@ -368,7 +397,31 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
     [self drawInteriorWithTabCell:cell inView:[cell controlView]];
 }
 
+- (NSImage *)createCloseButtonImage:(CGFloat)size color:(NSColor *)color backgroundColor:(NSColor *)backgroundColor
+{
+    NSImage *result = [NSImage imageWithSize:NSMakeSize(size,size) flipped:YES drawingHandler:^BOOL(NSRect dstRect) {
+        if (backgroundColor) {
+            NSBezierPath *bezier = [NSBezierPath bezierPathWithRoundedRect:dstRect
+                                                                   xRadius:2.0
+                                                                   yRadius:2.0];
+            [backgroundColor set];
+            [bezier fill];
+        }
 
+        NSBezierPath *bezier = NSBezierPath.bezierPath;
+
+        [color set];
+        [bezier moveToPoint:NSMakePoint(NSMinX(dstRect)+4.5, NSMinY(dstRect)+4.5)];
+        [bezier lineToPoint:NSMakePoint(NSMaxX(dstRect)-4.5, NSMaxY(dstRect)-4.5)];
+        [bezier moveToPoint:NSMakePoint(NSMaxX(dstRect)-4.5, NSMinY(dstRect)+4.5)];
+        [bezier lineToPoint:NSMakePoint(NSMinX(dstRect)+4.5, NSMaxY(dstRect)-4.5)];
+        [bezier stroke];
+        
+        return YES;
+    }];
+    
+    return result;
+}
 
 - (void)drawInteriorWithTabCell:(PSMTabBarCell *)cell inView:(NSView*)controlView
 {
@@ -381,7 +434,18 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
         NSRect closeButtonRect = [cell closeButtonRectForFrame:cellFrame];
         NSImage *button = nil;
 
-        if ([cell closeButtonOver]) button = closeButtonOver;
+        if ([cell isHighlighted]) {
+            button = closeButton;
+        }
+        if ([cell closeButtonOver]) {
+            NSAppearanceName appearanceName = [controlView.effectiveAppearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameAccessibilityHighContrastAqua, NSAppearanceNameDarkAqua, NSAppearanceNameAccessibilityHighContrastDarkAqua]];
+            
+            if ([appearanceName isEqualToString:NSAppearanceNameDarkAqua] || [appearanceName isEqualToString:NSAppearanceNameAccessibilityHighContrastDarkAqua]) {
+                button = closeButtonOverDark;
+            } else {
+                button = closeButtonOver;
+            }
+        }
         if ([cell closeButtonPressed]) button = closeButtonDown;
 
         closeButtonSize = [button size];
@@ -429,11 +493,11 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
 - (void)drawTabBar:(PSMTabBarControl *)bar inRect:(NSRect)rect
 {
     BOOL isKeyWindow = [bar.window isKeyWindow];
-    MojaveNSDrawWindowBackground(rect, [self backgroundColor:isKeyWindow]);
+    MojaveNSDrawWindowBackground(rect, [self backgroundColor:nil isKeyWindow:isKeyWindow isSelected:NO]);
 
     [[NSColor colorWithCalibratedWhite:0.0 alpha:0.0] set];
     NSRectFillUsingOperation(rect, NSCompositingOperationSourceAtop);
-    [[self borderColor] set];
+    [[self borderColor:isKeyWindow] set];
     [NSBezierPath strokeLineFromPoint:NSMakePoint(rect.origin.x,rect.origin.y+0.5) toPoint:NSMakePoint(rect.origin.x+rect.size.width,rect.origin.y+0.5)];
     [NSBezierPath strokeLineFromPoint:NSMakePoint(rect.origin.x,rect.origin.y+rect.size.height-0.5) toPoint:NSMakePoint(rect.origin.x+rect.size.width,rect.origin.y+rect.size.height-0.5)];
 
@@ -475,9 +539,8 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
         [aCoder encodeObject:closeButton forKey:@"metalCloseButton"];
         [aCoder encodeObject:closeButtonDown forKey:@"metalCloseButtonDown"];
         [aCoder encodeObject:closeButtonOver forKey:@"metalCloseButtonOver"];
+        [aCoder encodeObject:closeButtonOverDark forKey:@"metalCloseButtonOverDark"];
         [aCoder encodeObject:_addTabButtonImage forKey:@"addTabButtonImage"];
-        [aCoder encodeObject:_addTabButtonPressedImage forKey:@"addTabButtonPressedImage"];
-        [aCoder encodeObject:_addTabButtonRolloverImage forKey:@"addTabButtonRolloverImage"];
     }
 }
 
@@ -487,12 +550,13 @@ void MojaveNSDrawWindowBackground(NSRect rect, NSColor *color)
         closeButton = [[aDecoder decodeObjectForKey:@"metalCloseButton"] retain];
         closeButtonDown = [[aDecoder decodeObjectForKey:@"metalCloseButtonDown"] retain];
         closeButtonOver = [[aDecoder decodeObjectForKey:@"metalCloseButtonOver"] retain];
+        closeButtonOverDark = [[aDecoder decodeObjectForKey:@"metalCloseButtonOverDark"] retain];
         _addTabButtonImage = [[aDecoder decodeObjectForKey:@"addTabButtonImage"] retain];
-        _addTabButtonPressedImage = [[aDecoder decodeObjectForKey:@"addTabButtonPressedImage"] retain];
-        _addTabButtonRolloverImage = [[aDecoder decodeObjectForKey:@"addTabButtonRolloverImage"] retain];
     }
 
     return self;
 }
 
 @end
+
+#endif

@@ -306,3 +306,13 @@ shouldUseYosemiteTabBarStyle()
 { 
     return floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_10;
 }
+    BOOL
+shouldUseMojaveTabBarStyle()
+{
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+    if (@available(macos 10.14, *)) {
+        return true;
+    }
+#endif
+    return false;
+}
