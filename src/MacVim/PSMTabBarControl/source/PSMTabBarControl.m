@@ -12,6 +12,7 @@
 #import "PSMRolloverButton.h"
 #import "PSMTabStyle.h"
 #import "PSMMetalTabStyle.h"
+#import "PSMMojaveTabStyle.h"
 #import "PSMUnifiedTabStyle.h"
 #import "PSMYosemiteTabStyle.h"
 #import "PSMTabDragAssistant.h"
@@ -259,21 +260,29 @@
         style = [[PSMUnifiedTabStyle alloc] init];
     } else if([name isEqualToString:@"Yosemite"]){
         style = [[PSMYosemiteTabStyle alloc] init];
+#if HAS_MOJAVE_TAB_STYLE
+    } else if([name isEqualToString:@"Mojave"]){
+        style = [[PSMMojaveTabStyle alloc] init];
+#endif
     } else {
         style = [[PSMMetalTabStyle alloc] init];
     }
    
     // restyle add tab button
     if(_addTabButton){
-        NSImage *newButtonImage = [style addTabButtonImage];
-        if(newButtonImage)
-            [_addTabButton setUsualImage:newButtonImage];
-        newButtonImage = [style addTabButtonPressedImage];
-        if(newButtonImage)
-            [_addTabButton setAlternateImage:newButtonImage];
-        newButtonImage = [style addTabButtonRolloverImage];
-        if(newButtonImage)
-            [_addTabButton setRolloverImage:newButtonImage];
+        if ([style respondsToSelector:@selector(styleAddTabButton:)]) {
+            [style performSelector:@selector(styleAddTabButton:) withObject:_addTabButton];
+        } else {
+            NSImage *newButtonImage = [style addTabButtonImage];
+            if(newButtonImage)
+                [_addTabButton setUsualImage:newButtonImage];
+            newButtonImage = [style addTabButtonPressedImage];
+            if(newButtonImage)
+                [_addTabButton setAlternateImage:newButtonImage];
+            newButtonImage = [style addTabButtonRolloverImage];
+            if(newButtonImage)
+                [_addTabButton setRolloverImage:newButtonImage];
+        }
     }
     
     [self update];

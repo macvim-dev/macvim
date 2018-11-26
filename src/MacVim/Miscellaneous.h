@@ -155,3 +155,4 @@ NSArray *normalizeFilenames(NSArray *filenames);
 
 
 BOOL shouldUseYosemiteTabBarStyle();
+BOOL shouldUseMojaveTabBarStyle();

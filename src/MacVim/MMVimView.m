@@ -125,7 +125,7 @@ enum {
     [tabBarControl setDelegate:self];
     [tabBarControl setHidden:YES];
 
-    if (shouldUseYosemiteTabBarStyle()) {
+    if (shouldUseYosemiteTabBarStyle() || shouldUseMojaveTabBarStyle()) {
         CGFloat screenWidth = [[NSScreen mainScreen] frame].size.width;
         int tabMaxWidth = [ud integerForKey:MMTabMaxWidthKey];
         if (tabMaxWidth == 0)
@@ -133,8 +133,10 @@ enum {
         int tabOptimumWidth = [ud integerForKey:MMTabOptimumWidthKey];
         if (tabOptimumWidth == 0)
             tabOptimumWidth = screenWidth;
+        
+        NSString* tabStyleName = shouldUseMojaveTabBarStyle() ? @"Mojave" : @"Yosemite";
 
-        [tabBarControl setStyleNamed:@"Yosemite"];
+        [tabBarControl setStyleNamed:tabStyleName];
         [tabBarControl setCellMinWidth:[ud integerForKey:MMTabMinWidthKey]];
         [tabBarControl setCellMaxWidth:tabMaxWidth];
         [tabBarControl setCellOptimumWidth:tabOptimumWidth];

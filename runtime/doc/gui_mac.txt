@@ -726,8 +726,12 @@ prominent bugs/missing features.
   then opened in Preview where it may be printed.
 - The toolbar looks ugly and is not very useful.
 
-If you find new bugs then please post your findings to the vim_mac mailing
-list:							*vim_mac_group*   >
+Other bugs and issues are tracked on Github. If you find new bugs then please
+file an issue there: >
+	https://github.com/macvim-dev/macvim/issues
+
+There is also a vim_mac mailing list. You can also post your findings of bugs
+and issues there as well:				*vim_mac_group*   >
 	http://groups.google.com/group/vim_mac
 
 This is also the best place for making feature requests as well as for asking
