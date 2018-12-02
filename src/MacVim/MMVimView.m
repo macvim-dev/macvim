@@ -494,6 +494,23 @@ enum {
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore
 {
     [textView setDefaultColorsBackground:back foreground:fore];
+
+    CALayer *backedLayer = [self layer];
+    if (backedLayer) {
+        // This would only trigger in 10.14 where all views are layer-backed.
+        //
+        // Note: This doesn't do much now. Should fix this class to use
+        // updateLayer: instead of drawRect: at a later time, which would draw
+        // the background color automatically. When we do that we can remove the
+        // hack at drawKnobSlotInRect: since it would overlay properly without
+        // needing to manually draw the background color itself.
+        [backedLayer setBackgroundColor:[back CGColor]];
+    }
+
+    for (NSUInteger i = 0, count = [scrollbars count]; i < count; ++i) {
+        MMScroller *sb = [scrollbars objectAtIndex:i];
+        [sb setNeedsDisplay:YES];
+    }
 }
 
 
@@ -801,10 +818,15 @@ enum {
         }
     }
 
-    // HACK: If there is no bottom or right scrollbar the resize indicator will
-    // cover the bottom-right corner of the text view so tell NSWindow not to
-    // draw it in this situation.
-    [[self window] setShowsResizeIndicator:(rightSbVisible||botSbVisible)];
+    if (NSAppKitVersionNumber < NSAppKitVersionNumber10_7) {
+        // HACK: If there is no bottom or right scrollbar the resize indicator will
+        // cover the bottom-right corner of the text view so tell NSWindow not to
+        // draw it in this situation.
+        //
+        // Note: This API is ignored from 10.7 onward and is now deprecated. This
+        // should be removed if we want to drop support for 10.6.
+        [[self window] setShowsResizeIndicator:(rightSbVisible||botSbVisible)];
+    }
 }
 
 - (NSUInteger)representedIndexOfTabViewItem:(NSTabViewItem *)tvi
@@ -971,6 +993,27 @@ enum {
     [self setAutoresizingMask:NSViewNotSizable];
 
     return self;
+}
+
+- (void)drawKnobSlotInRect:(NSRect)slotRect highlight:(BOOL)flag
+{
+    // Dark mode scrollbars draw a translucent knob slot overlaid on top of
+    // whatever background the view has, even when we are using legacy
+    // scrollbars with a dedicated space.  This means we need to draw the
+    // background with some colors first, or else it would look really black, or
+    // show through rendering artifacts (e.g. if guioption 'k' is on, and you
+    // turn off the bar bar, the artiacts will show through in the overlay).
+    //
+    // Note: This should ideally be done on MMVimView itself by setting a background
+    // color. This would be fixed at a later time by telling the view to just
+    // use the background color form the backed CALayer (mandated since Mojave
+    // 10.14).
+    MMVimView *vimView = [self target];
+    NSColor *defaultBackgroundColor = [[vimView textView] defaultBackgroundColor];
+    [defaultBackgroundColor setFill];
+    NSRectFill(slotRect);
+
+    [super drawKnobSlotInRect:slotRect highlight:flag];
 }
 
 - (int32_t)scrollerId
