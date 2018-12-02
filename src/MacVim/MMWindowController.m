@@ -543,6 +543,7 @@
     [decoratedWindow setOpaque:isOpaque];
     if (fullScreenWindow)
         [fullScreenWindow setOpaque:isOpaque];
+    [decoratedWindow setBackgroundColor:back];
 
     [vimView setDefaultColorsBackground:back foreground:fore];
 }

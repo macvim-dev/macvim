@@ -168,6 +168,8 @@ defaultAdvanceForFont(NSFont *font)
     [drawData release];  drawData = nil;
     [fontCache release];  fontCache = nil;
 
+    CGContextRelease(cgContext);  cgContext = nil;
+
     [helper setTextView:nil];
     [helper release];  helper = nil;
 
@@ -215,6 +217,7 @@ defaultAdvanceForFont(NSFont *font)
         [defaultForegroundColor release];
         defaultForegroundColor = fgColor ? [fgColor retain] : nil;
     }
+    [self setNeedsDisplay:YES];
 }
 
 - (NSColor *)defaultBackgroundColor
@@ -444,11 +447,18 @@ defaultAdvanceForFont(NSFont *font)
 }
 
 - (void)setFrameSize:(NSSize)newSize {
-    if (!drawPending && !NSEqualSizes(newSize, self.frame.size) && drawData.count == 0) {
+    if (NSEqualSizes(newSize, self.bounds.size))
+        return;
+    if (!drawPending) {
         [NSAnimationContext beginGrouping];
         drawPending = YES;
     }
     [super setFrameSize:newSize];
+    [self updateCGContext];
+}
+
+- (void)viewDidChangeBackingProperties {
+    [self updateCGContext];
 }
 
 - (void)keyDown:(NSEvent *)event
@@ -606,6 +616,26 @@ defaultAdvanceForFont(NSFont *font)
     return NO;
 }
 
+- (void)updateCGContext {
+    if (cgContext || [[NSUserDefaults standardUserDefaults]
+                      boolForKey:MMBufferedDrawingKey]) {
+        CGContextRelease(cgContext);
+        NSRect backingRect = [self convertRectToBacking:self.bounds];
+        cgContext = CGBitmapContextCreate(NULL, NSWidth(backingRect), NSHeight(backingRect), 8, 0, self.window.colorSpace.CGColorSpace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
+        CGContextScaleCTM(cgContext, self.window.backingScaleFactor, self.window.backingScaleFactor);
+    }
+}
+
+- (BOOL)wantsUpdateLayer {
+    return cgContext != nil;
+}
+
+- (void)updateLayer {
+    CGImageRef contentsImage = CGBitmapContextCreateImage(cgContext);
+    self.layer.contents = (id)contentsImage;
+    CGImageRelease(contentsImage);
+}
+
 - (void)drawRect:(NSRect)rect
 {
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
@@ -653,7 +683,12 @@ defaultAdvanceForFont(NSFont *font)
 
 - (void)performBatchDrawWithData:(NSData *)data
 {
-    if (cgLayerEnabled && drawData.count == 0 && [self getCGContext]) {
+    if (cgContext) {
+        [NSGraphicsContext saveGraphicsState];
+        NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithCGContext:cgContext flipped:self.flipped];
+        [self batchDrawData:data];
+        [NSGraphicsContext restoreGraphicsState];
+    } else if (cgLayerEnabled && drawData.count == 0 && [self getCGContext]) {
         [cgLayerLock lock];
         [self batchDrawData:data];
         [cgLayerLock unlock];
@@ -669,6 +704,9 @@ defaultAdvanceForFont(NSFont *font)
 
 - (void)setCGLayerEnabled:(BOOL)enabled
 {
+    if (cgContext)
+        return;
+
     cgLayerEnabled = enabled;
 
     if (!cgLayerEnabled)
@@ -710,13 +748,13 @@ defaultAdvanceForFont(NSFont *font)
 
 - (void)setNeedsDisplayCGLayerInRect:(CGRect)rect
 {
-    if (cgLayerEnabled)
+    if (cgLayerEnabled || cgContext)
        [self setNeedsDisplayInRect:rect];
 }
 
 - (void)setNeedsDisplayCGLayer:(BOOL)flag
 {
-    if (cgLayerEnabled)
+    if (cgLayerEnabled || cgContext)
        [self setNeedsDisplay:flag];
 }
 
@@ -1491,7 +1529,18 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
 
 - (void)scrollRect:(NSRect)rect lineCount:(int)count
 {
-    if (cgLayerEnabled) {
+    if (cgContext) {
+        NSRect fromRect = NSOffsetRect(self.bounds, 0, -count * cellSize.height);
+        NSRect toRect = NSOffsetRect(rect, 0, -count * cellSize.height);
+        CGContextSaveGState(cgContext);
+        CGContextClipToRect(cgContext, toRect);
+        CGContextSetBlendMode(cgContext, kCGBlendModeCopy);
+        CGImageRef contentsImage = CGBitmapContextCreateImage(cgContext);
+        CGContextDrawImage(cgContext, fromRect, contentsImage);
+        CGImageRelease(contentsImage);
+        CGContextRestoreGState(cgContext);
+        [self setNeedsDisplayCGLayerInRect:toRect];
+    } else if (cgLayerEnabled) {
         CGContextRef context = [self getCGContext];
         int yOffset = count * cellSize.height;
         NSRect clipRect = rect;
