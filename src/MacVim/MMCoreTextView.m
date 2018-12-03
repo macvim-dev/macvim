@@ -132,6 +132,10 @@ defaultAdvanceForFont(NSFont *font)
 {
     if (!(self = [super initWithFrame:frame]))
         return nil;
+    
+    cgBufferDrawEnabled = [[NSUserDefaults standardUserDefaults]
+            boolForKey:MMBufferedDrawingKey];
+    cgBufferDrawNeedsUpdateContext = NO;
 
     cgLayerEnabled = [[NSUserDefaults standardUserDefaults]
             boolForKey:MMUseCGLayerAlwaysKey];
@@ -447,18 +451,31 @@ defaultAdvanceForFont(NSFont *font)
 }
 
 - (void)setFrameSize:(NSSize)newSize {
-    if (NSEqualSizes(newSize, self.bounds.size))
-        return;
-    if (!drawPending) {
-        [NSAnimationContext beginGrouping];
-        drawPending = YES;
+    if (!NSEqualSizes(newSize, self.bounds.size)) {
+        if (!drawPending && !cgBufferDrawEnabled) {
+            // When resizing a window, it will invalidate the buffer and cause
+            // MacVim to draw black until we get the draw commands from Vim and
+            // we draw them out in drawRect. Use beginGrouping to stop the
+            // window resize from happening until we get the draw calls.
+            //
+            // The updateLayer/cgBufferDrawEnabled path handles this differently
+            // and don't need this.
+            [NSAnimationContext beginGrouping];
+            drawPending = YES;
+        }
+        if (cgBufferDrawEnabled) {
+            cgBufferDrawNeedsUpdateContext = YES;
+        }
     }
+    
     [super setFrameSize:newSize];
-    [self updateCGContext];
 }
 
 - (void)viewDidChangeBackingProperties {
-    [self updateCGContext];
+    if (cgBufferDrawEnabled) {
+        cgBufferDrawNeedsUpdateContext = YES;
+    }
+    [super viewDidChangeBackingProperties];
 }
 
 - (void)keyDown:(NSEvent *)event
@@ -617,20 +634,81 @@ defaultAdvanceForFont(NSFont *font)
 }
 
 - (void)updateCGContext {
-    if (cgContext || [[NSUserDefaults standardUserDefaults]
-                      boolForKey:MMBufferedDrawingKey]) {
+    if (cgContext) {
         CGContextRelease(cgContext);
-        NSRect backingRect = [self convertRectToBacking:self.bounds];
-        cgContext = CGBitmapContextCreate(NULL, NSWidth(backingRect), NSHeight(backingRect), 8, 0, self.window.colorSpace.CGColorSpace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
-        CGContextScaleCTM(cgContext, self.window.backingScaleFactor, self.window.backingScaleFactor);
+        cgContext = nil;
     }
+
+    NSRect backingRect = [self convertRectToBacking:self.bounds];
+    cgContext = CGBitmapContextCreate(NULL, NSWidth(backingRect), NSHeight(backingRect), 8, 0, self.window.colorSpace.CGColorSpace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
+    CGContextScaleCTM(cgContext, self.window.backingScaleFactor, self.window.backingScaleFactor);
+    
+    cgBufferDrawNeedsUpdateContext = NO;
 }
 
 - (BOOL)wantsUpdateLayer {
-    return cgContext != nil;
+    return cgBufferDrawEnabled;
 }
 
 - (void)updateLayer {
+    if (!cgContext) {
+        [self updateCGContext];
+    } else if (cgBufferDrawNeedsUpdateContext) {
+        if ([drawData count] != 0) {
+            [self updateCGContext];
+        } else {
+            // In this case, we don't have a single draw command, meaning that
+            // Vim hasn't caught up yet and hasn't issued draw commands. We
+            // don't want to use [NSAnimationContext beginGrouping] as it's
+            // fragile (we may miss the endGrouping call due to order of
+            // operation), and also it makes the animation jerky.
+            // Instead, copy the image to the new context and align it to the
+            // top left and make sure it doesn't stretch. This makes the
+            // resizing smooth while Vim tries to catch up in issuing draws.
+            CGImageRef oldImage = CGBitmapContextCreateImage(cgContext);
+
+            [self updateCGContext]; // This will make a new cgContext
+            
+            CGContextSaveGState(cgContext);
+            CGContextSetBlendMode(cgContext, kCGBlendModeCopy);
+            
+            // Filling the background so the edge won't be black.
+            NSRect newRect = [self bounds];
+            float r = [defaultBackgroundColor redComponent];
+            float g = [defaultBackgroundColor greenComponent];
+            float b = [defaultBackgroundColor blueComponent];
+            float a = [defaultBackgroundColor alphaComponent];
+            CGContextSetRGBFillColor(cgContext, r, g, b, a);
+            CGContextFillRect(cgContext, *(CGRect*)&newRect);
+            CGContextSetBlendMode(cgContext, kCGBlendModeNormal);
+
+            // Copy the old image over to the new image, and make sure to
+            // respect scaling and remember that CGImage's Y origin is
+            // bottom-left.
+            CGFloat scale = self.window.backingScaleFactor;
+            size_t oldWidth = CGImageGetWidth(oldImage) / scale;
+            size_t oldHeight = CGImageGetHeight(oldImage) / scale;
+            CGFloat newHeight = newRect.size.height;
+            NSRect imageRect = NSMakeRect(0, newHeight - oldHeight, (CGFloat)oldWidth, (CGFloat)oldHeight);
+
+            CGContextDrawImage(cgContext, imageRect, oldImage);
+            CGImageRelease(oldImage);
+            CGContextRestoreGState(cgContext);
+        }
+    }
+    
+    // Now issue the batched draw commands
+    if ([drawData count] != 0) {
+        [NSGraphicsContext saveGraphicsState];
+        NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithCGContext:cgContext flipped:self.flipped];
+        id data;
+        NSEnumerator *e = [drawData objectEnumerator];
+        while ((data = [e nextObject]))
+            [self batchDrawData:data];
+        [drawData removeAllObjects];
+        [NSGraphicsContext restoreGraphicsState];
+    }
+
     CGImageRef contentsImage = CGBitmapContextCreateImage(cgContext);
     self.layer.contents = (id)contentsImage;
     CGImageRelease(contentsImage);
@@ -683,11 +761,24 @@ defaultAdvanceForFont(NSFont *font)
 
 - (void)performBatchDrawWithData:(NSData *)data
 {
-    if (cgContext) {
-        [NSGraphicsContext saveGraphicsState];
-        NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithCGContext:cgContext flipped:self.flipped];
-        [self batchDrawData:data];
-        [NSGraphicsContext restoreGraphicsState];
+    if (cgBufferDrawEnabled) {
+        // We batch up all the commands and actually perform the draw at
+        // updateLayer. The reason is that right now MacVim has a lot of
+        // different paths that could change the view size (zoom, user resizing
+        // from either dragging border or another program, Cmd-+/- to change
+        // font size, fullscreen, etc). Those different paths don't currently
+        // have a consistent order of operation of (Vim or MacVim go first), so
+        // sometimes Vim gets updated and issue a batch draw first, but
+        // sometimes MacVim gets notified first (e.g. when window is resized).
+        // If frame size has changed we need to call updateCGContext but we
+        // can't do it here because of the order of operation issue. That's why
+        // we wait till updateLayer to do it where everything has already been
+        // done and settled.
+        //
+        // Note: Should probably refactor the different ways window size could
+        // be changed and unify them instead of the status quo of spaghetti.
+        [drawData addObject:data];
+        [self setNeedsDisplay:YES];
     } else if (cgLayerEnabled && drawData.count == 0 && [self getCGContext]) {
         [cgLayerLock lock];
         [self batchDrawData:data];
@@ -748,13 +839,13 @@ defaultAdvanceForFont(NSFont *font)
 
 - (void)setNeedsDisplayCGLayerInRect:(CGRect)rect
 {
-    if (cgLayerEnabled || cgContext)
+    if (cgLayerEnabled)
        [self setNeedsDisplayInRect:rect];
 }
 
 - (void)setNeedsDisplayCGLayer:(BOOL)flag
 {
-    if (cgLayerEnabled || cgContext)
+    if (cgLayerEnabled)
        [self setNeedsDisplay:flag];
 }
 

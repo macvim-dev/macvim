@@ -1544,11 +1544,17 @@
     BOOL windowTextured = ([decoratedWindow styleMask] &
                             NSWindowStyleMaskTexturedBackground) != 0;
     BOOL hideSeparator  = NO;
-
-    if (fullScreenEnabled || tabBarVisible)
+    
+    if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_10) {
+        // The tabline separator is mostly an old feature and not necessary
+        // modern macOS versions.
         hideSeparator = YES;
-    else
-        hideSeparator = toolbarHidden && !windowTextured;
+    } else {
+        if (fullScreenEnabled || tabBarVisible)
+            hideSeparator = YES;
+        else
+            hideSeparator = toolbarHidden && !windowTextured;
+    }
 
     [self hideTablineSeparator:hideSeparator];
 }

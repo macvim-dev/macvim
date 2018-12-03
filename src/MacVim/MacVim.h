@@ -45,6 +45,9 @@
 #ifndef NSAppKitVersionNumber10_12
 # define NSAppKitVersionNumber10_12 1504
 #endif
+#ifndef NSAppKitVersionNumber10_13
+# define NSAppKitVersionNumber10_13 1561
+#endif
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
 // Deprecated constants in 10.12 SDK
