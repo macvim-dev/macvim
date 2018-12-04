@@ -1751,12 +1751,12 @@
 
 + (NSString *)tabBarStyleForUnified
 {
-    return shouldUseYosemiteTabBarStyle() ? @"Yosemite" : @"Unified";
+    return shouldUseYosemiteTabBarStyle() ? (shouldUseMojaveTabBarStyle() ? @"Mojave" : @"Yosemite") : @"Unified";
 }
 
 + (NSString *)tabBarStyleForMetal
 {
-    return shouldUseYosemiteTabBarStyle() ? @"Yosemite" : @"Metal";
+    return shouldUseYosemiteTabBarStyle() ? (shouldUseMojaveTabBarStyle() ? @"Mojave" : @"Yosemite") : @"Metal";
 }
 
 @end // MMWindowController (Private)
