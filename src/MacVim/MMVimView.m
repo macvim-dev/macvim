@@ -189,7 +189,7 @@ enum {
 
 - (BOOL)isOpaque
 {
-    return YES;
+    return textView.defaultBackgroundColor.alphaComponent == 1;
 }
 
 - (void)drawRect:(NSRect)rect
@@ -511,6 +511,7 @@ enum {
         MMScroller *sb = [scrollbars objectAtIndex:i];
         [sb setNeedsDisplay:YES];
     }
+    [self setNeedsDisplay:YES];
 }
 
 

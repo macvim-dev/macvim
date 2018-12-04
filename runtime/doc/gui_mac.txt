@@ -715,6 +715,9 @@ to use in normal mode and type ":set imd" followed by ":set noimd".
 This list is by no means exhaustive, it only enumerates some of the more
 prominent bugs/missing features.
 
+- Under macOS Mojave (10.14), the default renderer (Core Text renderer) has
+  some performance issues and scrolling is not as smooth as previous macOS
+  versions (10.13 or below).
 - Localized menus are not supported.  Choosing anything but "English" in the
   "International" pane of "System Prefences" may break the menus (and
   toolbar).

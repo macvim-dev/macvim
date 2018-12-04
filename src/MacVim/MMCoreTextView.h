@@ -41,6 +41,27 @@
     CGPoint                     *positions;
     NSMutableArray              *fontCache;
 
+    // Issue draws onto an CGImage that caches the drawn results instead of
+    // directly in drawRect:. This is the default behavior in cases where simply
+    // drawing incrementally in drawRect: doesn't work. Those cases are:
+    // 1. Non-native fullscreen
+    // 2. 10.14+ (views are always layer-backed which means the view buffer will
+    //    be cleared and we can't incrementally draw in drawRect:)
+    //    
+    // This can be configured by setting MMBufferedDrawingKey in user defaults.
+    BOOL                        cgBufferDrawEnabled;
+    BOOL                        cgBufferDrawNeedsUpdateContext;
+    CGContextRef                cgContext;
+    
+    // *Deprecated*
+    // Draw onto a CGLayer instead of lazily updating the view's buffer in
+    // drawRect: which is error-prone and relying on undocumented behaviors
+    // (that the OS will preserve the old buffer).
+    //
+    // This is deprecated. Use cgBufferDrawEnabled instead which is more
+    // efficient.
+    //    
+    // This can be configured by setting MMUseCGLayerAlwaysKey in user defaults.
     BOOL                        cgLayerEnabled;
     CGLayerRef                  cgLayer;
     CGContextRef                cgLayerContext;
