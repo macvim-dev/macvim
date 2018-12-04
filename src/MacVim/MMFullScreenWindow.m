@@ -165,7 +165,7 @@ enum {
     oldTabBarStyle = [[view tabBarControl] styleName];
 
     NSString *style =
-        shouldUseYosemiteTabBarStyle() ? @"Yosemite" : @"Unified";
+        shouldUseYosemiteTabBarStyle() ? (shouldUseMojaveTabBarStyle() ? @"Mojave" : @"Yosemite") : @"Unified";
     [[view tabBarControl] setStyleNamed:style];
 
     // add text view
