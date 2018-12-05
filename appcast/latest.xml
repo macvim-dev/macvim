@@ -6,32 +6,68 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-151</title>
+      <title>MacVim snapshot-152</title>
       <description><![CDATA[
-<pre>
-Binary targets macOS 10.8+
+<p>Vim patch 8.1.560</p>
 
-- Vim patch 8.1.0280
-- Reverted guioption &#39;k&#39; #727
+<p>Targets macOS 10.8+</p>
 
-Script interfaces have compatibility with these versions
+<p>Features:</p>
 
-- Lua 5.3
-- Perl 5.18
-- Python2 2.7
-- Python3 3.7
-- Ruby 2.5
+<ul>
+  <li>macOS Mojave (10.14) is now supported.
+    <ul>
+      <li>MacVim’s UI now works with Dark Mode.</li>
+      <li>Fixed broken rendering and flickering under Mojave when using the
+default Core Text renderer. #757</li>
+    </ul>
+  </li>
+  <li>guioption ‘k’ is supported again. #731
+    <ul>
+      <li>This option prevents window from resizing when UI elements such as
+toolbars or tabs show or hide themselves.</li>
+    </ul>
+  </li>
+</ul>
 
-</pre>
+<p>Fixes:</p>
+
+<ul>
+  <li>Fixed misc fullscreen and window resizing bugs and artifacts #745</li>
+  <li>Dragging tabs to reorder now works properly #789</li>
+  <li>Fixed timer callback handling in GUI #749</li>
+  <li>Fixed native tabs (10.12+) interring with Vim tabs #788</li>
+  <li>Fixed Japanese IME Ctrl-U/Ctrl-O handling #742</li>
+  <li>Fixed MMShareFindPboard and Cmd-E/Cmd-G interactions #780</li>
+  <li>Better handling of guifontwide font size #737</li>
+  <li>Better python discovery in default vimrc #739</li>
+</ul>
+
+<p>Known Issues:</p>
+
+<ul>
+  <li>Scrolling performance is slightly worse under Mojave #796</li>
+</ul>
+
+<p>Script interfaces have compatibility with these versions:</p>
+
+<ul>
+  <li>Lua 5.3</li>
+  <li>Perl 5.18</li>
+  <li>Python2 2.7</li>
+  <li>Python3 3.7</li>
+  <li>Ruby 2.5</li>
+</ul>
+
       ]]></description>
-      <pubDate>Mon, 13 Aug 2018 22:00:00 -0700</pubDate>
+      <pubDate>Wed, 05 Dec 2018 06:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-151/MacVim.dmg"
-        length="15528318"
-        sparkle:version="151"
-        sparkle:shortVersionString="8.0"
-	sparkle:dsaSignature="MC0CFCBcG71biGF3fnyxiQLV6y8U6DJ1AhUAkBipTqCDV7nE8tFPjgMZj1XYQyI="
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-152/MacVim.dmg"
+        length="16341191"
+        sparkle:version="152"
+        sparkle:shortVersionString="8.1.560"
+        sparkle:dsaSignature="MC0CFQCaeNK0IkH2lE5VHlZCflDOtU4WeAIUB2wf6B69PbV5FObsUhT0juvyVqE="
         />
     </item>
   </channel>
