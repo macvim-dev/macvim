@@ -75,8 +75,7 @@ deploy:
   file: src/MacVim/build/Release/MacVim.dmg
   skip_cleanup: true
   on:
-    # Pending Core Text rendering fix for Mojave (#751) before this can be swithced to Xcode 10 / macOS 10.14
-    condition: $TRAVIS_OSX_IMAGE = xcode9.4
+    condition: $TRAVIS_OSX_IMAGE = xcode10.1
     all_branches: true
     tags: true
     repo: macvim-dev/macvim
