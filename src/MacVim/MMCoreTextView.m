@@ -452,7 +452,7 @@ defaultAdvanceForFont(NSFont *font)
 
 - (void)setFrameSize:(NSSize)newSize {
     if (!NSEqualSizes(newSize, self.bounds.size)) {
-        if (!drawPending && !cgBufferDrawEnabled) {
+        if (!drawPending && !cgBufferDrawEnabled && drawData.count == 0) {
             // When resizing a window, it will invalidate the buffer and cause
             // MacVim to draw black until we get the draw commands from Vim and
             // we draw them out in drawRect. Use beginGrouping to stop the

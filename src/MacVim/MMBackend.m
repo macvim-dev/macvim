@@ -1187,7 +1187,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 {
     NSMutableData *data = [NSMutableData data];
     [data appendBytes:&fuoptions length:sizeof(int)];
-    bg = MM_COLOR(bg);
+    bg = MM_COLOR_WITH_TRANSP(bg,p_transp);
     [data appendBytes:&bg length:sizeof(int)];
     [self queueMessage:EnterFullScreenMsgID data:data];
 }

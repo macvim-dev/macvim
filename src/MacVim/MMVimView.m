@@ -497,14 +497,12 @@ enum {
 
     CALayer *backedLayer = [self layer];
     if (backedLayer) {
-        // This would only trigger in 10.14 where all views are layer-backed.
-        //
-        // Note: This doesn't do much now. Should fix this class to use
-        // updateLayer: instead of drawRect: at a later time, which would draw
-        // the background color automatically. When we do that we can remove the
-        // hack at drawKnobSlotInRect: since it would overlay properly without
-        // needing to manually draw the background color itself.
-        [backedLayer setBackgroundColor:[back CGColor]];
+        // This only happens in 10.14+, where everything is layer-backed by
+        // default. Since textView draws itself as a separate layer, we don't
+        // want this layer to draw anything. This is especially important with
+        // 'transparency' where there's alpha blending and we don't want this
+        // layer to be in the way and double-blending things.
+        [backedLayer setBackgroundColor:CGColorGetConstantColor(kCGColorClear)];
     }
 
     for (NSUInteger i = 0, count = [scrollbars count]; i < count; ++i) {
@@ -1005,10 +1003,10 @@ enum {
     // show through rendering artifacts (e.g. if guioption 'k' is on, and you
     // turn off the bar bar, the artiacts will show through in the overlay).
     //
-    // Note: This should ideally be done on MMVimView itself by setting a background
-    // color. This would be fixed at a later time by telling the view to just
-    // use the background color form the backed CALayer (mandated since Mojave
-    // 10.14).
+    // Note: Another way to fix this is to make sure to draw the underlying
+    // MMVimView or the window with the proper color so the scrollbar would just
+    // draw on top, but this doesn't work properly right now, and it's difficult
+    // to get that to work with the 'transparency' setting as well.
     MMVimView *vimView = [self target];
     NSColor *defaultBackgroundColor = [[vimView textView] defaultBackgroundColor];
     [defaultBackgroundColor setFill];
