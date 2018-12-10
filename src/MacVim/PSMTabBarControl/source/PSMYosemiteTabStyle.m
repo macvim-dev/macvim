@@ -381,6 +381,7 @@ void YosemiteNSDrawWindowBackground(NSRect rect, NSColor *color)
         NSRect closeButtonRect = [cell closeButtonRectForFrame:cellFrame];
         NSImage *button = nil;
 
+        if ([cell isHighlighted]) button = closeButton;
         if ([cell closeButtonOver]) button = closeButtonOver;
         if ([cell closeButtonPressed]) button = closeButtonDown;
 
