@@ -19,7 +19,7 @@ set langmenu=none
 " version. However, following code tries to find a Homebrew, MacPorts or
 " an installation from python.org:
 if exists("&pythondll") && exists("&pythonhome")
-  if filereadable("/usr/local/Library/Frameworks/Python.framework/Versions/2.7/Python")
+  if filereadable("/usr/local/Frameworks/Python.framework/Versions/2.7/Python")
     " Homebrew python 2.7
     set pythondll=/usr/local/Frameworks/Python.framework/Versions/2.7/Python
     set pythonhome=/usr/local/Frameworks/Python.framework/Versions/2.7
@@ -29,8 +29,8 @@ if exists("&pythondll") && exists("&pythonhome")
     set pythonhome=/opt/local/Library/Frameworks/Python.framework/Versions/2.7
   elseif filereadable("/Library/Frameworks/Python.framework/Versions/2.7/Python")
     " https://www.python.org/downloads/mac-osx/
-    set pythonthreedll=/Library/Frameworks/Python.framework/Versions/2.7/Python
-    set pythonthreehome=/Library/Frameworks/Python.framework/Versions/2.7
+    set pythondll=/Library/Frameworks/Python.framework/Versions/2.7/Python
+    set pythonhome=/Library/Frameworks/Python.framework/Versions/2.7
   endif
 endif
 
