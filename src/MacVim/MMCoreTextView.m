@@ -137,8 +137,13 @@ defaultAdvanceForFont(NSFont *font)
             boolForKey:MMBufferedDrawingKey];
     cgBufferDrawNeedsUpdateContext = NO;
 
-    cgLayerEnabled = [[NSUserDefaults standardUserDefaults]
-            boolForKey:MMUseCGLayerAlwaysKey];
+    cgLayerEnabled = NO;
+    if (!cgBufferDrawEnabled) {
+        // Buffered draw supercedes the CGLayer renderer, which is deprecated
+        // and doesn't actually work in 10.14+.
+        cgLayerEnabled = [[NSUserDefaults standardUserDefaults]
+                boolForKey:MMUseCGLayerAlwaysKey];
+    }
     cgLayerLock = [NSLock new];
 
     // NOTE!  It does not matter which font is set here, Vim will set its
@@ -795,7 +800,7 @@ defaultAdvanceForFont(NSFont *font)
 
 - (void)setCGLayerEnabled:(BOOL)enabled
 {
-    if (cgContext)
+    if (cgContext || cgBufferDrawEnabled)
         return;
 
     cgLayerEnabled = enabled;

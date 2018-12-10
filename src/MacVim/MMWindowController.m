@@ -348,6 +348,7 @@
         // GUIEnter auto command could cause this).
         [fullScreenWindow enterFullScreen];
         fullScreenEnabled = YES;
+        shouldResizeVimView = YES;
     } else if (delayEnterFullScreen) {
         // Set alpha to zero so that the decorated window doesn't pop up
         // before we enter full-screen.
