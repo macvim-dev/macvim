@@ -543,7 +543,39 @@
     [decoratedWindow setOpaque:isOpaque];
     if (fullScreenWindow)
         [fullScreenWindow setOpaque:isOpaque];
-    [decoratedWindow setBackgroundColor:back];
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+    if (@available(macos 10.14, *)) {
+        // We usually don't really need to change the background color of the
+        // window, but in 10.14+ we switched to using layer-backed drawing.
+        // That's fine except when we set 'transparency' to non-zero. The alpha
+        // is set on the text view, but it won't work if drawn on top of a solid
+        // window, so we need to set a transparency color here to make the
+        // transparency show through.
+        if ([back alphaComponent] == 1) {
+            // Here, any solid color would do, but setting it with "back" has an
+            // interesting effect where the title bar gets subtly tinted by it
+            // as well, so do that. (Note that this won't play well in <=10.12
+            // since we are using the deprecated
+            // NSWindowStyleMaskTexturedBackground which makes the titlebars
+            // transparent in those. Consider not using textured background.)
+            [decoratedWindow setBackgroundColor:back];
+            if (fullScreenWindow) {
+                [fullScreenWindow setBackgroundColor:back];
+            }
+        } else {
+            // HACK! We really want a transparent background color to avoid
+            // double blending the transparency, but setting alpha=0 leads to
+            // the window border disappearing and also drag-to-resize becomes a
+            // lot slower. So hack around it by making it virtually transparent.
+            NSColor *clearColor = [back colorWithAlphaComponent:0.001];
+            [decoratedWindow setBackgroundColor:clearColor];
+            if (fullScreenWindow) {
+                [fullScreenWindow setBackgroundColor:clearColor];
+            }
+        }
+    }
+#endif
 
     [vimView setDefaultColorsBackground:back foreground:fore];
 }
@@ -758,8 +790,16 @@
         // times during startup.
         [fullScreenWindow release];
 
+        NSColor *fullscreenBg = back;
+
+        // See setDefaultColorsBackground: for why set a transparent
+        // background color, and why 0.001 instead of 0.
+        if ([fullscreenBg alphaComponent] != 1) {
+            fullscreenBg = [fullscreenBg colorWithAlphaComponent:0.001];
+        }
+
         fullScreenWindow = [[MMFullScreenWindow alloc]
-            initWithWindow:decoratedWindow view:vimView backgroundColor:back];
+            initWithWindow:decoratedWindow view:vimView backgroundColor:fullscreenBg];
         [fullScreenWindow setOptions:fuoptions];
         [fullScreenWindow setRepresentedFilename:
             [decoratedWindow representedFilename]];
@@ -1544,7 +1584,7 @@
     BOOL windowTextured = ([decoratedWindow styleMask] &
                             NSWindowStyleMaskTexturedBackground) != 0;
     BOOL hideSeparator  = NO;
-    
+
     if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_10) {
         // The tabline separator is mostly an old feature and not necessary
         // modern macOS versions.
