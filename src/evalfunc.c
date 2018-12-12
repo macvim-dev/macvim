@@ -3262,6 +3262,8 @@ f_execute(typval_T *argvars, typval_T *rettv)
     int		save_redir_execute = redir_execute;
     int		save_redir_off = redir_off;
     garray_T	save_ga;
+    int		save_msg_col = msg_col;
+    int		echo_output = FALSE;
 
     rettv->vval.v_string = NULL;
     rettv->v_type = VAR_STRING;
@@ -3288,6 +3290,8 @@ f_execute(typval_T *argvars, typval_T *rettv)
 
 	if (s == NULL)
 	    return;
+	if (*s == NUL)
+	    echo_output = TRUE;
 	if (STRNCMP(s, "silent", 6) == 0)
 	    ++msg_silent;
 	if (STRCMP(s, "silent!") == 0)
@@ -3304,6 +3308,8 @@ f_execute(typval_T *argvars, typval_T *rettv)
     ga_init2(&redir_execute_ga, (int)sizeof(char), 500);
     redir_execute = TRUE;
     redir_off = FALSE;
+    if (!echo_output)
+	msg_col = 0;  // prevent leading spaces
 
     if (cmd != NULL)
 	do_cmdline_cmd(cmd);
@@ -3336,9 +3342,15 @@ f_execute(typval_T *argvars, typval_T *rettv)
 	redir_execute_ga = save_ga;
     redir_off = save_redir_off;
 
-    /* "silent reg" or "silent echo x" leaves msg_col somewhere in the
-     * line.  Put it back in the first column. */
-    msg_col = 0;
+    // "silent reg" or "silent echo x" leaves msg_col somewhere in the line.
+    if (echo_output)
+	// When not working silently: put it in column zero.  A following
+	// "echon" will overwrite the message, unavoidably.
+	msg_col = 0;
+    else
+	// When working silently: Put it back where it was, since nothing
+	// should have been written.
+	msg_col = save_msg_col;
 }
 
 /*
