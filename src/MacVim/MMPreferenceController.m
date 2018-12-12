@@ -86,8 +86,20 @@ static void loadSymbols()
     BOOL openInCurrentWindowSelected = ([[sender selectedCell] tag] != 0);
     BOOL useWindowsLayout =
             ([[layoutPopUpButton selectedItem] tag] == MMLayoutWindows);
-    if (openInCurrentWindowSelected && useWindowsLayout)
-        [layoutPopUpButton selectItemWithTag:MMLayoutTabs];
+    if (openInCurrentWindowSelected && useWindowsLayout) {
+        [[NSUserDefaults standardUserDefaults] setInteger:MMLayoutTabs forKey:MMOpenLayoutKey];
+    }
+}
+
+- (IBAction)checkForUpdatesChanged:(id)sender
+{
+    // Sparkle's auto-install update preference trumps "check for update", so
+    // need to make sure to unset that if the user unchecks "check for update".
+    NSButton *button = (NSButton *)sender;
+    BOOL checkForUpdates = ([button state] != 0);
+    if (!checkForUpdates) {
+        [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"SUAutomaticallyUpdate"];
+    }
 }
 
 @end
