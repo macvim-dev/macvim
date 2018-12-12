@@ -17,9 +17,11 @@
 
     // General pane
     IBOutlet NSPopUpButton *layoutPopUpButton;
+    IBOutlet NSButton *autoInstallUpdateButton;
 }
 
 // General pane
 - (IBAction)openInCurrentWindowSelectionChanged:(id)sender;
+- (IBAction)checkForUpdatesChanged:(id)sender;
 
 @end
