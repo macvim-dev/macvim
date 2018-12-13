@@ -6,47 +6,31 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-152</title>
+      <title>MacVim snapshot-153</title>
       <description><![CDATA[
-<p>Vim patch 8.1.560</p>
+<p>Vim patch 8.1.577</p>
 
 <p>Targets macOS 10.8+</p>
 
 <p>Features:</p>
 
 <ul>
-  <li>macOS Mojave (10.14) is now supported.
-    <ul>
-      <li>MacVim’s UI now works with Dark Mode.</li>
-      <li>Fixed broken rendering and flickering under Mojave when using the
-default Core Text renderer. #757</li>
-    </ul>
-  </li>
-  <li>guioption ‘k’ is supported again. #731
-    <ul>
-      <li>This option prevents window from resizing when UI elements such as
-toolbars or tabs show or hide themselves.</li>
-    </ul>
-  </li>
+  <li>The option to automatically download and install updates is now
+exposed in the preference panel. This gives you a way to uncheck it,
+as previously there was no user-visible way to do so once it’s
+checked. #816</li>
 </ul>
 
 <p>Fixes:</p>
 
 <ul>
-  <li>Fixed misc fullscreen and window resizing bugs and artifacts #745</li>
-  <li>Dragging tabs to reorder now works properly #789</li>
-  <li>Fixed timer callback handling in GUI #749</li>
-  <li>Fixed native tabs (10.12+) interring with Vim tabs #788</li>
-  <li>Fixed Japanese IME Ctrl-U/Ctrl-O handling #742</li>
-  <li>Fixed MMShareFindPboard and Cmd-E/Cmd-G interactions #780</li>
-  <li>Better handling of guifontwide font size #737</li>
-  <li>Better python discovery in default vimrc #739</li>
-</ul>
-
-<p>Known Issues:</p>
-
-<ul>
-  <li>Scrolling performance is slightly worse under Mojave #796</li>
+  <li>Title bar is no longer transparent in 10.12 Sierra #805</li>
+  <li>Fixed ‘transparency’ setting not working properly in Mojave #805</li>
+  <li>Fixed setting ‘fullscreen’ in vimrc leading to black screen in 10.14
+Mojave if non-native fullscreen is used #811</li>
+  <li>Fixed showing all black if <code>MMUseCGLayerAlways</code> is set in 10.14 Mojave
+#811</li>
+  <li>Fixed misconfigured Python paths in default vimrc #812</li>
 </ul>
 
 <p>Script interfaces have compatibility with these versions:</p>
@@ -59,15 +43,16 @@ toolbars or tabs show or hide themselves.</li>
   <li>Ruby 2.5</li>
 </ul>
 
+
       ]]></description>
-      <pubDate>Wed, 05 Dec 2018 06:00:00 -0800</pubDate>
+      <pubDate>Thu, 13 Dec 2018 01:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-152/MacVim.dmg"
-        length="16341191"
-        sparkle:version="152"
-        sparkle:shortVersionString="8.1.560"
-        sparkle:dsaSignature="MC0CFQCaeNK0IkH2lE5VHlZCflDOtU4WeAIUB2wf6B69PbV5FObsUhT0juvyVqE="
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-153/MacVim.dmg"
+        length="16356321"
+        sparkle:version="153"
+        sparkle:shortVersionString="8.1.577"
+        sparkle:dsaSignature="MC4CFQC2BtHFhLg+w239OxTZfmcTi8oniwIVAIZOmu8FSfLcVj8lgo9PRsXltyg0"
         />
     </item>
   </channel>
