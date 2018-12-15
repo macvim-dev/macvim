@@ -5,10 +5,10 @@
 # gvim, etc., then it will peek at the name used to call it and set options
 # appropriately.
 #
-# Based on a script by Wout Mertens and suggestions from Laurent Bihanic.  This
-# version is the fault of Benji Fisher, 16 May 2005 (with modifications by Nico
-# Weber and Bjorn Winckler, Aug 13 2007).
-#
+# Based on a script by Wout Mertens and suggestions from Laurent Bihanic.  The
+# early versions were not under version control. The last few versions before
+# the git history are the work of Benji Fisher (16 May 2005) and Nico Weber and
+# Bjorn Winckler (Aug 13 2007).
 
 # Find Vim executable
 if [ -L "$0" ]; then
