@@ -1309,6 +1309,8 @@
 	<string>https://raw.githubusercontent.com/macvim-dev/macvim/gh-pages/appcast/latest.xml</string>
 	<key>SUPublicDSAKeyFile</key>
 	<string>dsa_pub.pem</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>This permission allows MacVim to communicate with other apps via Apple Events.</string>
 	<key>NSAppleScriptEnabled</key>
 	<true/>
 
