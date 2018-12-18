@@ -1,6 +1,7 @@
 " MacVim colorscheme
 "
-" Maintainer:   Bjorn Winckler <bjorn.winckler@gmail.com>
+" Author:       Bjorn Winckler <bjorn.winckler@gmail.com>
+" Maintainer:   macvim-dev (https://github.com/macvim-dev)
 " Last Change:  2008 May 9
 "
 " This is the default MacVim color scheme.  It supports both light and dark

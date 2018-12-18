@@ -1,7 +1,7 @@
 " System vimrc file for MacVim
 "
-" Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sat Aug 29 2009
+" Author:       Bjorn Winckler <bjorn.winckler@gmail.com>
+" Maintainer:   macvim-dev (https://github.com/macvim-dev)
 
 set nocompatible
 
