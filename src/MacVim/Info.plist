@@ -1310,7 +1310,7 @@
 	<key>SUPublicDSAKeyFile</key>
 	<string>dsa_pub.pem</string>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>This permission allows MacVim to communicate with other apps via Apple Events.</string>
+	<string>MacVim uses Apple Events to allow you to communicate with other apps using Apple Script, and to support working as an ODB external editor.</string>
 	<key>NSAppleScriptEnabled</key>
 	<true/>
 
