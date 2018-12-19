@@ -1,10 +1,7 @@
 " System gvimrc file for MacVim
 "
-" Maintainer:	Bjorn Winckler <bjorn.winckler@gmail.com>
-" Last Change:	Sun Aug 29 2009
-"
-" This is a work in progress.  If you feel so inclined, please help me improve
-" this file.
+" Author:       Bjorn Winckler <bjorn.winckler@gmail.com>
+" Maintainer:   macvim-dev (https://github.com/macvim-dev)
 
 
 " Make sure the '<' and 'C' flags are not included in 'cpoptions', otherwise
