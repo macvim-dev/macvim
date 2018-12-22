@@ -4358,27 +4358,27 @@ ins_compl_add_tv(typval_T *tv, int dir)
 
     if (tv->v_type == VAR_DICT && tv->vval.v_dict != NULL)
     {
-	word = get_dict_string(tv->vval.v_dict, (char_u *)"word", FALSE);
-	cptext[CPT_ABBR] = get_dict_string(tv->vval.v_dict,
+	word = dict_get_string(tv->vval.v_dict, (char_u *)"word", FALSE);
+	cptext[CPT_ABBR] = dict_get_string(tv->vval.v_dict,
 						     (char_u *)"abbr", FALSE);
-	cptext[CPT_MENU] = get_dict_string(tv->vval.v_dict,
+	cptext[CPT_MENU] = dict_get_string(tv->vval.v_dict,
 						     (char_u *)"menu", FALSE);
-	cptext[CPT_KIND] = get_dict_string(tv->vval.v_dict,
+	cptext[CPT_KIND] = dict_get_string(tv->vval.v_dict,
 						     (char_u *)"kind", FALSE);
-	cptext[CPT_INFO] = get_dict_string(tv->vval.v_dict,
+	cptext[CPT_INFO] = dict_get_string(tv->vval.v_dict,
 						     (char_u *)"info", FALSE);
-	cptext[CPT_USER_DATA] = get_dict_string(tv->vval.v_dict,
+	cptext[CPT_USER_DATA] = dict_get_string(tv->vval.v_dict,
 						 (char_u *)"user_data", FALSE);
-	if (get_dict_string(tv->vval.v_dict, (char_u *)"icase", FALSE) != NULL)
-	    icase = get_dict_number(tv->vval.v_dict, (char_u *)"icase");
-	if (get_dict_string(tv->vval.v_dict, (char_u *)"dup", FALSE) != NULL)
-	    adup = get_dict_number(tv->vval.v_dict, (char_u *)"dup");
-	if (get_dict_string(tv->vval.v_dict, (char_u *)"empty", FALSE) != NULL)
-	    aempty = get_dict_number(tv->vval.v_dict, (char_u *)"empty");
+	if (dict_get_string(tv->vval.v_dict, (char_u *)"icase", FALSE) != NULL)
+	    icase = dict_get_number(tv->vval.v_dict, (char_u *)"icase");
+	if (dict_get_string(tv->vval.v_dict, (char_u *)"dup", FALSE) != NULL)
+	    adup = dict_get_number(tv->vval.v_dict, (char_u *)"dup");
+	if (dict_get_string(tv->vval.v_dict, (char_u *)"empty", FALSE) != NULL)
+	    aempty = dict_get_number(tv->vval.v_dict, (char_u *)"empty");
     }
     else
     {
-	word = get_tv_string_chk(tv);
+	word = tv_get_string_chk(tv);
 	vim_memset(cptext, 0, sizeof(cptext));
     }
     if (word == NULL || (!aempty && *word == NUL))
@@ -10336,6 +10336,9 @@ ins_tab(void)
 		if ((State & REPLACE_FLAG) && !(State & VREPLACE_FLAG))
 		    for (temp = i; --temp >= 0; )
 			replace_join(repl_off);
+#ifdef FEAT_TEXT_PROP
+		curbuf->b_ml.ml_line_len -= i;
+#endif
 	    }
 #ifdef FEAT_NETBEANS_INTG
 	    if (netbeans_active())

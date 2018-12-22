@@ -317,12 +317,13 @@ CClink = $(CC)
 # You can give a lot of options to configure.
 # Change this to your desire and do 'make config' afterwards
 
-# examples (can only use one!):
-#CONF_ARGS = --exec-prefix=/usr
-#CONF_ARGS = --with-vim-name=vim7 --with-ex-name=ex7 --with-view-name=view7
-#CONF_ARGS = --with-global-runtime=/etc/vim
-#CONF_ARGS = --with-local-dir=/usr/share
-#CONF_ARGS = --without-local-dir
+# examples:
+#CONF_ARGS1 = --exec-prefix=/usr
+#CONF_ARGS2 = --with-vim-name=vim8 --with-ex-name=ex8 --with-view-name=view8
+#CONF_ARGS3 = --with-global-runtime=/etc/vim,/usr/share/vim
+#CONF_ARGS4 = --with-local-dir=/usr/share
+#CONF_ARGS5 = --without-local-dir
+CONF_ARGS = $(CONF_ARGS1) $(CONF_ARGS2) $(CONF_ARGS3) $(CONF_ARGS4) $(CONF_ARGS5)
 
 # Use this one if you distribute a modified version of Vim.
 #CONF_ARGS = --with-modified-by="John Doe"
@@ -498,6 +499,10 @@ CClink = $(CC)
 # Note: Compile on a machine where setlocale() actually works, otherwise the
 # configure tests may fail.
 #CONF_OPT_MULTIBYTE = --enable-multibyte
+
+# When building with at least "big" features, right-left, Arabic and Farsi
+# features are enabled.  Use this to disable them.
+#CONF_OPT_MULTIBYTE = --disable-rightleft --disable-farsi --disable-arabic
 
 # NLS - National Language Support
 # Uncomment this when you do not want to support translated messages, even
@@ -1586,11 +1591,7 @@ include Make_all.mak
 #	   ALL_GUI_SRC: all GUI files for Unix
 #
 #		   SRC: files used for current configuration
-#	      TAGS_SRC: source files used for make tags
-#	     TAGS_INCL: include files used for make tags
 #	       ALL_SRC: source files used for make depend and make lint
-
-TAGS_INCL = *.h
 
 BASIC_SRC = \
 	arabic.c \
@@ -1649,6 +1650,7 @@ BASIC_SRC = \
 	tag.c \
 	term.c \
 	terminal.c \
+	textprop.c \
 	ui.c \
 	undo.c \
 	userfunc.c \
@@ -1669,8 +1671,6 @@ SRC =	$(BASIC_SRC) \
 	$(RUBY_SRC) \
 	$(WORKSHOP_SRC) \
 	$(WSDEBUG_SRC)
-
-TAGS_SRC = *.c *.cpp if_perl.xs
 
 EXTRA_SRC = hangulin.c if_lua.c if_mzsch.c auto/if_perl.c if_perlsfio.c \
 	    if_python.c if_python3.c if_tcl.c if_ruby.c \
@@ -1760,6 +1760,7 @@ OBJ_COMMON = \
 	objects/tag.o \
 	objects/term.o \
 	objects/terminal.o \
+	objects/textprop.o \
 	objects/ui.o \
 	objects/undo.o \
 	objects/userfunc.o \
@@ -1894,6 +1895,7 @@ PRO_AUTO = \
 	term.pro \
 	terminal.pro \
 	termlib.pro \
+	textprop.pro \
 	ui.pro \
 	undo.pro \
 	userfunc.pro \
@@ -2105,12 +2107,12 @@ notags:
 #	Motif and Athena GUI
 # You can ignore error messages for missing files.
 tags TAGS: notags
-	$(TAGPRG) $(TAGS_SRC) $(TAGS_INCL) $(TERM_SRC) $(TERM_DEPS)
+	$(TAGPRG) $(TAGS_FILES)
 
 # Make a highlight file for types.  Requires Exuberant ctags and awk
 types: types.vim
-types.vim: $(TAGS_SRC) $(TAGS_INCL)
-	ctags --c-kinds=gstu -o- $(TAGS_SRC) $(TAGS_INCL) |\
+types.vim: $(TAGS_FILES)
+	ctags --c-kinds=gstu -o- $(TAGS_FILES) |\
 		awk 'BEGIN{printf("syntax keyword Type\t")}\
 			{printf("%s ", $$1)}END{print ""}' > $@
 	echo "syn keyword Constant OK FAIL TRUE FALSE MAYBE" >> $@
@@ -2118,7 +2120,7 @@ types.vim: $(TAGS_SRC) $(TAGS_INCL)
 # TESTING
 #
 # Execute the test scripts and the unittests.
-test check: scripttests unittests
+test check: scripttests unittests test_libvterm
 
 # Execute the test scripts.  Run these after compiling Vim, before installing.
 # This doesn't depend on $(VIMTARGET), because that won't work when configure
@@ -2169,6 +2171,14 @@ run_memfile_test: $(MEMFILE_TEST_TARGET)
 
 run_message_test: $(MESSAGE_TEST_TARGET)
 	$(VALGRIND) ./$(MESSAGE_TEST_TARGET) || exit 1; echo $* passed;
+
+# Run the libvterm tests.
+# This currently doesn't work on Mac, only run on Linux for now.
+test_libvterm:
+	@if test `uname` = "Linux"; then \
+		cd libvterm; $(MAKE) -f Makefile test \
+			CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)"; \
+	fi
 
 # Run individual OLD style test.
 # These do not depend on the executable, compile it when needed.
@@ -3233,6 +3243,9 @@ objects/term.o: term.c
 objects/terminal.o: terminal.c $(TERM_DEPS)
 	$(CCC) -o $@ terminal.c
 
+objects/textprop.o: textprop.c
+	$(CCC) -o $@ textprop.c
+
 objects/ui.o: ui.c
 	$(CCC) -o $@ ui.c
 
@@ -3655,6 +3668,10 @@ objects/terminal.o: terminal.c vim.h protodef.h auto/config.h feature.h os_unix.
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h farsi.h arabic.h libvterm/include/vterm.h \
  libvterm/include/vterm_keycodes.h
+objects/textprop.o: textprop.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h farsi.h arabic.h
 objects/ui.o: ui.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
