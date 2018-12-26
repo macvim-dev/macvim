@@ -159,10 +159,16 @@ func Check_123(buf)
   call assert_equal('2', l[1].chars)
   call assert_equal('3', l[2].chars)
   call assert_equal('#00e000', l[0].fg)
-  if &background == 'light'
-    call assert_equal('#ffffff', l[0].bg)
+  if has('win32')
+    " On Windows 'background' always defaults to dark, even though the terminal
+    " may use a light background.  Therefore accept both white and black.
+    call assert_match('#ffffff\|#000000', l[0].bg)
   else
-    call assert_equal('#000000', l[0].bg)
+    if &background == 'light'
+      call assert_equal('#ffffff', l[0].bg)
+    else
+      call assert_equal('#000000', l[0].bg)
+    endif
   endif
 
   let l = term_getline(a:buf, -1)
@@ -1709,11 +1715,13 @@ func Test_stop_in_terminal()
   call WaitForAssert({-> assert_match('ready', Get_terminal_text(bufnr, lastrow))})
 
   call term_sendkeys(bufnr, ":stop\r")
-  " Not sure where "Stopped" shows up, assume in the first three lines.
+  " Not sure where "Stopped" shows up, need five lines for Arch.
   call WaitForAssert({-> assert_match('Stopped',
 	\ Get_terminal_text(bufnr, 1) . 
 	\ Get_terminal_text(bufnr, 2) . 
-	\ Get_terminal_text(bufnr, 3))})
+	\ Get_terminal_text(bufnr, 3) . 
+	\ Get_terminal_text(bufnr, 4) . 
+	\ Get_terminal_text(bufnr, 5))})
 
   call term_sendkeys(bufnr, "fg\r")
   call term_sendkeys(bufnr, ":echo 'back again'\r")

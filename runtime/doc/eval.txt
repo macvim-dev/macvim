@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.1.  Last change: 2018 Dec 18
+*eval.txt*	For Vim version 8.1.  Last change: 2018 Dec 24
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2318,7 +2318,7 @@ prompt_setcallback({buf}, {expr}) none	set prompt callback function
 prompt_setinterrupt({buf}, {text}) none	set prompt interrupt function
 prompt_setprompt({buf}, {text}) none	set prompt text
 prop_add({lnum}, {col}, {props})  none	add a text property
-prop_clear({lnum} [, {lnum-end} [, {bufnr}]])
+prop_clear({lnum} [, {lnum-end} [, {props}]])
 				none	remove all text properties
 prop_find({props} [, {direction}])
 				Dict	search for a text property
@@ -6695,7 +6695,7 @@ prop_add({lnum}, {col}, {props})
 				     used for a property that does not
 				     continue in another line
 			"end_lnum" - line number for end of text
-			"end_col"  - column for end of text; not used when
+			"end_col"  - last column of the text; not used when
 				     "length" is present
 			"bufnr"	   - buffer to add the property to; when
 				     omitted the current buffer is used
@@ -6710,6 +6710,10 @@ prop_add({lnum}, {col}, {props})
 		property that spans more than one line.
 		When neither "length" nor "end_col" are passed the property
 		will apply to one character.
+		The property can end exactly at the last character of the
+		text, or just after it.  In the last case, if text is appended
+		to the line, the text property size will increase, also when
+		the property type does not have "end_incl" set.
 
 		"type" will first be looked up in the buffer the property is
 		added to. When not found, the global property types are used.
@@ -9233,7 +9237,8 @@ test_ignore_error({expr})			 *test_ignore_error()*
 		error with try/catch cannot be used (because it skips over
 		following code).
 		{expr} is used literally, not as a pattern.
-		There is currently no way to revert this.
+		When the {expr} is the string "RESET" then the list of ignored
+		errors is made empty.
 
 test_null_channel()					*test_null_channel()*
 		Return a Channel that is null. Only useful for testing.
@@ -11004,8 +11009,8 @@ This does NOT work: >
 			The parsing works slightly different from |:echo|,
 			more like |:execute|.  All the expressions are first
 			evaluated and concatenated before echoing anything.
-			The expressions must evaluate to a Number or String, a
-			Dictionary or List causes an error.
+			If expressions does not evaluate to a Number or
+			String, string() is used to turn it into a string.
 			Uses the highlighting set by the |:echohl| command.
 			Example: >
 		:echomsg "It's a Zizzer Zazzer Zuzz, as you can plainly see."
@@ -11016,7 +11021,7 @@ This does NOT work: >
 			message in the |message-history|.  When used in a
 			script or function the line number will be added.
 			Spaces are placed between the arguments as with the
-			:echo command.  When used inside a try conditional,
+			|:echomsg| command.  When used inside a try conditional,
 			the message is raised as an error exception instead
 			(see |try-echoerr|).
 			Example: >

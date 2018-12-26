@@ -396,7 +396,6 @@ static void f_strftime(typval_T *argvars, typval_T *rettv);
 #endif
 static void f_strgetchar(typval_T *argvars, typval_T *rettv);
 static void f_stridx(typval_T *argvars, typval_T *rettv);
-static void f_string(typval_T *argvars, typval_T *rettv);
 static void f_strlen(typval_T *argvars, typval_T *rettv);
 static void f_strcharpart(typval_T *argvars, typval_T *rettv);
 static void f_strpart(typval_T *argvars, typval_T *rettv);
@@ -10088,7 +10087,7 @@ search_cmn(typval_T *argvars, pos_T *match_pos, int *flagsp)
     }
 
     pos = save_cursor = curwin->w_cursor;
-    subpatnum = searchit(curwin, curbuf, &pos, dir, pat, 1L,
+    subpatnum = searchit(curwin, curbuf, &pos, NULL, dir, pat, 1L,
 			   options, RE_SEARCH, (linenr_T)lnum_stop, &tm, NULL);
     if (subpatnum != FAIL)
     {
@@ -10446,7 +10445,7 @@ do_searchpair(
     pat = pat3;
     for (;;)
     {
-	n = searchit(curwin, curbuf, &pos, dir, pat, 1L,
+	n = searchit(curwin, curbuf, &pos, NULL, dir, pat, 1L,
 				     options, RE_SEARCH, lnum_stop, &tm, NULL);
 	if (n == FAIL || (firstpos.lnum != 0 && EQUAL_POS(pos, firstpos)))
 	    /* didn't find it or found the first match again: FAIL */
@@ -12506,7 +12505,7 @@ f_stridx(typval_T *argvars, typval_T *rettv)
 /*
  * "string()" function
  */
-    static void
+    void
 f_string(typval_T *argvars, typval_T *rettv)
 {
     char_u	*tofree;
@@ -13618,7 +13617,7 @@ f_test_override(typval_T *argvars, typval_T *rettv UNUSED)
 	EMSG(_(e_invarg));
     else
     {
-	name = tv_get_string_chk(&argvars[0]);
+	name = tv_get_string(&argvars[0]);
 	val = (int)tv_get_number(&argvars[1]);
 
 	if (STRCMP(name, (char_u *)"redraw") == 0)

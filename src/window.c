@@ -836,8 +836,7 @@ win_split_ins(
 							frp = frp->fr_parent)
 	    {
 		if (frp->fr_layout == FR_ROW)
-		    for (frp2 = frp->fr_child; frp2 != NULL;
-							frp2 = frp2->fr_next)
+		    FOR_ALL_FRAMES(frp2, frp->fr_child)
 			if (frp2 != prevfrp)
 			    minwidth += frame_minwidth(frp2, NOWIN);
 		prevfrp = frp;
@@ -920,8 +919,7 @@ win_split_ins(
 							frp = frp->fr_parent)
 	    {
 		if (frp->fr_layout == FR_COL)
-		    for (frp2 = frp->fr_child; frp2 != NULL;
-							frp2 = frp2->fr_next)
+		    FOR_ALL_FRAMES(frp2, frp->fr_child)
 			if (frp2 != prevfrp)
 			    minheight += frame_minheight(frp2, NOWIN);
 		prevfrp = frp;
@@ -1078,7 +1076,7 @@ win_split_ins(
 	if (frp->fr_win != NULL)
 	    oldwin->w_frame = frp;
 	else
-	    for (frp = frp->fr_child; frp != NULL; frp = frp->fr_next)
+	    FOR_ALL_FRAMES(frp, frp->fr_child)
 		frp->fr_parent = curfrp;
     }
 
@@ -1610,8 +1608,7 @@ win_rotate(int upwards, int count)
 #endif
 
     /* Check if all frames in this row/col have one window. */
-    for (frp = curwin->w_frame->fr_parent->fr_child; frp != NULL;
-							   frp = frp->fr_next)
+    FOR_ALL_FRAMES(frp, curwin->w_frame->fr_parent->fr_child)
 	if (frp->fr_win == NULL)
 	{
 	    EMSG(_("E443: Cannot rotate when another window is split"));
@@ -1861,7 +1858,7 @@ win_equal_rec(
 	    else
 	    {
 		next_curwin_size = -1;
-		for (fr = topfr->fr_child; fr != NULL; fr = fr->fr_next)
+		FOR_ALL_FRAMES(fr, topfr->fr_child)
 		{
 		    /* If 'winfixwidth' set keep the window width if
 		     * possible.
@@ -1914,7 +1911,7 @@ win_equal_rec(
 		--totwincount;		/* don't count curwin */
 	}
 
-	for (fr = topfr->fr_child; fr != NULL; fr = fr->fr_next)
+	FOR_ALL_FRAMES(fr, topfr->fr_child)
 	{
 	    wincount = 1;
 	    if (fr->fr_next == NULL)
@@ -2002,7 +1999,7 @@ win_equal_rec(
 	    else
 	    {
 		next_curwin_size = -1;
-		for (fr = topfr->fr_child; fr != NULL; fr = fr->fr_next)
+		FOR_ALL_FRAMES(fr, topfr->fr_child)
 		{
 		    /* If 'winfixheight' set keep the window height if
 		     * possible.
@@ -2055,7 +2052,7 @@ win_equal_rec(
 		--totwincount;		/* don't count curwin */
 	}
 
-	for (fr = topfr->fr_child; fr != NULL; fr = fr->fr_next)
+	FOR_ALL_FRAMES(fr, topfr->fr_child)
 	{
 	    wincount = 1;
 	    if (fr->fr_next == NULL)
@@ -2756,7 +2753,7 @@ winframe_remove(
 	 * and remove it. */
 	frp2->fr_parent->fr_layout = frp2->fr_layout;
 	frp2->fr_parent->fr_child = frp2->fr_child;
-	for (frp = frp2->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, frp2->fr_child)
 	    frp->fr_parent = frp2->fr_parent;
 	frp2->fr_parent->fr_win = frp2->fr_win;
 	if (frp2->fr_win != NULL)
@@ -2888,7 +2885,7 @@ frame_has_win(frame_T *frp, win_T *wp)
     if (frp->fr_layout == FR_LEAF)
 	return frp->fr_win == wp;
 
-    for (p = frp->fr_child; p != NULL; p = p->fr_next)
+    FOR_ALL_FRAMES(p, frp->fr_child)
 	if (frame_has_win(p, wp))
 	    return TRUE;
     return FALSE;
@@ -2922,7 +2919,7 @@ frame_new_height(
 	do
 	{
 	    /* All frames in this row get the same new height. */
-	    for (frp = topfrp->fr_child; frp != NULL; frp = frp->fr_next)
+	    FOR_ALL_FRAMES(frp, topfrp->fr_child)
 	    {
 		frame_new_height(frp, height, topfirst, wfh);
 		if (frp->fr_height > height)
@@ -3019,7 +3016,7 @@ frame_fixed_height(frame_T *frp)
     {
 	/* The frame is fixed height if one of the frames in the row is fixed
 	 * height. */
-	for (frp = frp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, frp->fr_child)
 	    if (frame_fixed_height(frp))
 		return TRUE;
 	return FALSE;
@@ -3027,7 +3024,7 @@ frame_fixed_height(frame_T *frp)
 
     /* frp->fr_layout == FR_COL: The frame is fixed height if all of the
      * frames in the row are fixed height. */
-    for (frp = frp->fr_child; frp != NULL; frp = frp->fr_next)
+    FOR_ALL_FRAMES(frp, frp->fr_child)
 	if (!frame_fixed_height(frp))
 	    return FALSE;
     return TRUE;
@@ -3048,7 +3045,7 @@ frame_fixed_width(frame_T *frp)
     {
 	/* The frame is fixed width if one of the frames in the row is fixed
 	 * width. */
-	for (frp = frp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, frp->fr_child)
 	    if (frame_fixed_width(frp))
 		return TRUE;
 	return FALSE;
@@ -3056,7 +3053,7 @@ frame_fixed_width(frame_T *frp)
 
     /* frp->fr_layout == FR_ROW: The frame is fixed width if all of the
      * frames in the row are fixed width. */
-    for (frp = frp->fr_child; frp != NULL; frp = frp->fr_next)
+    FOR_ALL_FRAMES(frp, frp->fr_child)
 	if (!frame_fixed_width(frp))
 	    return FALSE;
     return TRUE;
@@ -3084,7 +3081,7 @@ frame_add_statusline(frame_T *frp)
     else if (frp->fr_layout == FR_ROW)
     {
 	/* Handle all the frames in the row. */
-	for (frp = frp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, frp->fr_child)
 	    frame_add_statusline(frp);
     }
     else /* frp->fr_layout == FR_COL */
@@ -3130,7 +3127,7 @@ frame_new_width(
 	do
 	{
 	    /* All frames in this column get the same new width. */
-	    for (frp = topfrp->fr_child; frp != NULL; frp = frp->fr_next)
+	    FOR_ALL_FRAMES(frp, topfrp->fr_child)
 	    {
 		frame_new_width(frp, width, leftfirst, wfw);
 		if (frp->fr_width > width)
@@ -3233,7 +3230,7 @@ frame_add_vsep(frame_T *frp)
     else if (frp->fr_layout == FR_COL)
     {
 	/* Handle all the frames in the column. */
-	for (frp = frp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, frp->fr_child)
 	    frame_add_vsep(frp);
     }
     else /* frp->fr_layout == FR_ROW */
@@ -3300,7 +3297,7 @@ frame_minheight(frame_T *topfrp, win_T *next_curwin)
     {
 	/* get the minimal height from each frame in this row */
 	m = 0;
-	for (frp = topfrp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, topfrp->fr_child)
 	{
 	    n = frame_minheight(frp, next_curwin);
 	    if (n > m)
@@ -3311,7 +3308,7 @@ frame_minheight(frame_T *topfrp, win_T *next_curwin)
     {
 	/* Add up the minimal heights for all frames in this column. */
 	m = 0;
-	for (frp = topfrp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, topfrp->fr_child)
 	    m += frame_minheight(frp, next_curwin);
     }
 
@@ -3349,7 +3346,7 @@ frame_minwidth(
     {
 	/* get the minimal width from each frame in this column */
 	m = 0;
-	for (frp = topfrp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, topfrp->fr_child)
 	{
 	    n = frame_minwidth(frp, next_curwin);
 	    if (n > m)
@@ -3360,7 +3357,7 @@ frame_minwidth(
     {
 	/* Add up the minimal widths for all frames in this row. */
 	m = 0;
-	for (frp = topfrp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, topfrp->fr_child)
 	    m += frame_minwidth(frp, next_curwin);
     }
 
@@ -5028,7 +5025,7 @@ frame_comp_pos(frame_T *topfrp, int *row, int *col)
     {
 	startrow = *row;
 	startcol = *col;
-	for (frp = topfrp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, topfrp->fr_child)
 	{
 	    if (topfrp->fr_layout == FR_ROW)
 		*row = startrow;	/* all frames are at the same row */
@@ -5148,8 +5145,7 @@ frame_setheight(frame_T *curfrp, int height)
 	{
 	    room = 0;
 	    room_reserved = 0;
-	    for (frp = curfrp->fr_parent->fr_child; frp != NULL;
-							   frp = frp->fr_next)
+	    FOR_ALL_FRAMES(frp, curfrp->fr_parent->fr_child)
 	    {
 		if (frp != curfrp
 			&& frp->fr_win != NULL
@@ -5342,8 +5338,7 @@ frame_setwidth(frame_T *curfrp, int width)
 	{
 	    room = 0;
 	    room_reserved = 0;
-	    for (frp = curfrp->fr_parent->fr_child; frp != NULL;
-							   frp = frp->fr_next)
+	    FOR_ALL_FRAMES(frp, curfrp->fr_parent->fr_child)
 	    {
 		if (frp != curfrp
 			&& frp->fr_win != NULL
@@ -5567,7 +5562,7 @@ win_drag_status_line(win_T *dragwin, int offset)
 	if (room < 0)
 	    room = 0;
 	/* sum up the room of frames below of the current one */
-	for (fr = curfr->fr_next; fr != NULL; fr = fr->fr_next)
+	FOR_ALL_FRAMES(fr, curfr->fr_next)
 	    room += fr->fr_height - frame_minheight(fr, NULL);
 	fr = curfr;			/* put fr at window that grows */
     }
@@ -5681,7 +5676,7 @@ win_drag_vsep_line(win_T *dragwin, int offset)
 	left = FALSE;
 	/* sum up the room of frames right of the current one */
 	room = 0;
-	for (fr = curfr->fr_next; fr != NULL; fr = fr->fr_next)
+	FOR_ALL_FRAMES(fr, curfr->fr_next)
 	    room += fr->fr_width - frame_minwidth(fr, NULL);
 	fr = curfr;			/* put fr at window that grows */
     }
@@ -6086,7 +6081,7 @@ last_status_rec(frame_T *fr, int statusline)
     else if (fr->fr_layout == FR_ROW)
     {
 	/* vertically split windows, set status line for each one */
-	for (fp = fr->fr_child; fp != NULL; fp = fp->fr_next)
+	FOR_ALL_FRAMES(fp, fr->fr_child)
 	    last_status_rec(fp, statusline);
     }
     else
@@ -6764,7 +6759,7 @@ win_hasvertsplit(void)
 	return TRUE;
 
     if (topframe->fr_layout == FR_COL)
-	for (fr = topframe->fr_child; fr != NULL; fr = fr->fr_next)
+	FOR_ALL_FRAMES(fr, topframe->fr_child)
 	    if (fr->fr_layout == FR_ROW)
 		return TRUE;
 
@@ -7110,7 +7105,7 @@ frame_check_height(frame_T *topfrp, int height)
 	return FALSE;
 
     if (topfrp->fr_layout == FR_ROW)
-	for (frp = topfrp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, topfrp->fr_child)
 	    if (frp->fr_height != height)
 		return FALSE;
 
@@ -7129,7 +7124,7 @@ frame_check_width(frame_T *topfrp, int width)
 	return FALSE;
 
     if (topfrp->fr_layout == FR_COL)
-	for (frp = topfrp->fr_child; frp != NULL; frp = frp->fr_next)
+	FOR_ALL_FRAMES(frp, topfrp->fr_child)
 	    if (frp->fr_width != width)
 		return FALSE;
 

@@ -4685,7 +4685,7 @@ get_address(
 #ifdef FEAT_VIRTUALEDIT
 		    pos.coladd = 0;
 #endif
-		    if (searchit(curwin, curbuf, &pos,
+		    if (searchit(curwin, curbuf, &pos, NULL,
 				*cmd == '?' ? BACKWARD : FORWARD,
 				(char_u *)"", 1L, SEARCH_MSG,
 					i, (linenr_T)0, NULL, NULL) != FAIL)
@@ -11722,7 +11722,7 @@ ses_skipframe(frame_T *fr)
 {
     frame_T	*frc;
 
-    for (frc = fr; frc != NULL; frc = frc->fr_next)
+    FOR_ALL_FRAMES(frc, fr)
 	if (ses_do_frame(frc))
 	    break;
     return frc;
@@ -11739,7 +11739,7 @@ ses_do_frame(frame_T *fr)
 
     if (fr->fr_layout == FR_LEAF)
 	return ses_do_win(fr->fr_win);
-    for (frc = fr->fr_child; frc != NULL; frc = frc->fr_next)
+    FOR_ALL_FRAMES(frc, fr->fr_child)
 	if (ses_do_frame(frc))
 	    return TRUE;
     return FALSE;
