@@ -527,6 +527,11 @@
     // ONLY in Core Text!
 }
 
+- (BOOL)getCGLayerEnabled
+{
+    return NO;
+}
+
 - (BOOL)isOpaque
 {
     return NO;

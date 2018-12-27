@@ -200,6 +200,15 @@
     // Make us safe on pre-tiger OSX
     if ([win respondsToSelector:@selector(_setContentHasShadow:)])
         [win _setContentHasShadow:NO];
+    
+    if (!(styleMask & NSWindowStyleMaskTitled)) {
+        // In the no titlebar mode (aka borderless), we need to set CGLayer
+        // mode since otherwise the legacy renderer would not render properly.
+        // For more reference see MMFullscreenWindow's enterFullscreen:
+        // This shouldn't do much in 10.14+.
+        if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_12)
+            [[vimView textView] setCGLayerEnabled:YES];
+    }
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
     // Building on Mac OS X 10.7 or greater.
