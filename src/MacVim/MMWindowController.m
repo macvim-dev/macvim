@@ -661,6 +661,11 @@
         keepOnScreen = NO;
         shouldKeepGUISize = NO;
     }
+    
+    // Tell Vim view to update its scrollbars which is done once per update.
+    // Do it last so whatever resizing we have done above will take effect
+    // immediate too instead of waiting till next frame.
+    [vimView finishPlaceScrollbars];
 }
 
 - (void)showTabBar:(BOOL)on

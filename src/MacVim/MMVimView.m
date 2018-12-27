@@ -198,9 +198,12 @@ enum {
     // looking tabs. However, the textured window background looks really
     // weird behind the window resize throbber, so emulate the look of an
     // NSScrollView in the bottom right corner.
-    if (![[self window] showsResizeIndicator]  // XXX: make this a flag
+    if (![[self window] showsResizeIndicator]
             || !([[self window] styleMask] & NSWindowStyleMaskTexturedBackground))
         return;
+    
+    // This should not be reachable in 10.7 or above and is deprecated code.
+    // See documentation for showsResizeIndicator and placeScrollbars: comments.
 
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_7)
     int sw = [NSScroller scrollerWidthForControlSize:NSControlSizeRegular scrollerStyle:NSScrollerStyleLegacy];
@@ -389,7 +392,7 @@ enum {
         vimTaskSelectedTab = NO;
 
         // We might need to change the scrollbars that are visible.
-        [self placeScrollbars];
+        self.pendingPlaceScrollbars = YES;
     }
 }
 
@@ -424,6 +427,8 @@ enum {
     [self addSubview:scroller];
     [scrollbars addObject:scroller];
     [scroller release];
+    
+    self.pendingPlaceScrollbars = YES;
 }
 
 - (BOOL)destroyScrollbarWithIdentifier:(int32_t)ident
@@ -434,6 +439,8 @@ enum {
 
     [scroller removeFromSuperview];
     [scrollbars removeObjectAtIndex:idx];
+    
+    self.pendingPlaceScrollbars = YES;
 
     // If a visible scroller was removed then the vim view must resize.  This
     // is handled by the window controller (the vim view never resizes itself).
@@ -447,6 +454,8 @@ enum {
 
     BOOL wasVisible = ![scroller isHidden];
     [scroller setHidden:!visible];
+    
+    self.pendingPlaceScrollbars = YES;
 
     // If a scroller was hidden or shown then the vim view must resize.  This
     // is handled by the window controller (the vim view never resizes itself).
@@ -483,10 +492,16 @@ enum {
     NSRange range = NSMakeRange(pos, len);
     if (!NSEqualRanges(range, [scroller range])) {
         [scroller setRange:range];
-        // TODO!  Should only do this once per update.
-
         // This could be sent because a text window was created or closed, so
         // we might need to update which scrollbars are visible.
+    }
+    self.pendingPlaceScrollbars = YES;
+}
+
+- (void)finishPlaceScrollbars
+{
+    if (self.pendingPlaceScrollbars) {
+        self.pendingPlaceScrollbars = NO;
         [self placeScrollbars];
     }
 }
@@ -789,7 +804,7 @@ enum {
 
             // Vertical scrollers must not cover the resize box in the
             // bottom-right corner of the window.
-            if ([[self window] showsResizeIndicator]  // XXX: make this a flag
+            if ([[self window] showsResizeIndicator]  // Note: This is deprecated as of 10.7, see below comment.
                 && rect.origin.y < scrollerWidth) {
                 rect.size.height -= scrollerWidth - rect.origin.y;
                 rect.origin.y = scrollerWidth;
@@ -914,7 +929,7 @@ enum {
     NSRect textViewRect = [self textViewRectForVimViewSize:[self frame].size];
     [textView setFrame:textViewRect];
 
-    [self placeScrollbars];
+    self.pendingPlaceScrollbars = YES;
 
     // It is possible that the current number of (rows,columns) is too big or
     // too small to fit the new frame.  If so, notify Vim that the text
