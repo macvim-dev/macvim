@@ -27,6 +27,7 @@
     NSMutableArray      *scrollbars;
 }
 
+@property BOOL pendingPlaceScrollbars;
 @property BOOL pendingLiveResize;
 
 - (MMVimView *)initWithFrame:(NSRect)frame vimController:(MMVimController *)c;
@@ -51,6 +52,7 @@
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
                     identifier:(int32_t)ident;
 - (void)setScrollbarPosition:(int)pos length:(int)len identifier:(int32_t)ident;
+- (void)finishPlaceScrollbars;
 
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
 
