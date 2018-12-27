@@ -809,6 +809,11 @@ defaultAdvanceForFont(NSFont *font)
         [self releaseCGLayer];
 }
 
+- (BOOL)getCGLayerEnabled
+{
+    return cgLayerEnabled;
+}
+
 - (void)releaseCGLayer
 {
     if (cgLayer)  {

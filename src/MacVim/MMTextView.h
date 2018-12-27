@@ -74,4 +74,5 @@
 - (void)deleteSign:(NSString *)signName;
 - (void)setToolTipAtMousePoint:(NSString *)string;
 - (void)setCGLayerEnabled:(BOOL)enabled;
+- (BOOL)getCGLayerEnabled;
 @end
