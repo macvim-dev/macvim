@@ -41,7 +41,6 @@ static int pum_do_redraw = FALSE;	/* do redraw anyway */
 static int pum_set_selected(int n, int repeat);
 
 #define PUM_DEF_HEIGHT 10
-#define PUM_DEF_WIDTH  15
 
     static void
 pum_compute_size(void)
@@ -1195,6 +1194,14 @@ pum_show_popupmenu(vimmenu_T *menu)
 	if (menu_is_separator(mp->dname)
 		|| (mp->modes & mp->enabled & mode))
 	    ++pum_size;
+
+    // When there are only Terminal mode menus, using "popup Edit" results in
+    // pum_size being zero.
+    if (pum_size <= 0)
+    {
+	EMSG(e_menuothermode);
+	return;
+    }
 
     array = (pumitem_T *)alloc_clear((unsigned)sizeof(pumitem_T) * pum_size);
     if (array == NULL)

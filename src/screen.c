@@ -238,6 +238,9 @@ redraw_all_later(int type)
     {
 	redraw_win_later(wp, type);
     }
+    // This may be needed when switching tabs.
+    if (must_redraw < type)
+	must_redraw = type;
 }
 
 /*
@@ -965,14 +968,10 @@ update_single_line(win_T *wp, linenr_T lnum)
 		screen_start();	/* not sure of screen cursor */
 # ifdef FEAT_SEARCH_EXTRA
 		init_search_hl(wp);
-		start_search_hl();
 		prepare_search_hl(wp, lnum);
 # endif
 		win_line(wp, lnum, row, row + wp->w_lines[j].wl_size,
 								 FALSE, FALSE);
-# if defined(FEAT_SEARCH_EXTRA)
-		end_search_hl();
-# endif
 		break;
 	    }
 	    row += wp->w_lines[j].wl_size;
@@ -3055,6 +3054,38 @@ fill_foldcolumn(
 }
 #endif /* FEAT_FOLDING */
 
+#ifdef FEAT_TEXT_PROP
+static textprop_T	*current_text_props = NULL;
+static buf_T		*current_buf = NULL;
+
+    static int
+#ifdef __BORLANDC__
+_RTLENTRYF
+#endif
+text_prop_compare(const void *s1, const void *s2)
+{
+    int  idx1, idx2;
+    proptype_T  *pt1, *pt2;
+    colnr_T col1, col2;
+
+    idx1 = *(int *)s1;
+    idx2 = *(int *)s2;
+    pt1 = text_prop_type_by_id(current_buf, current_text_props[idx1].tp_type);
+    pt2 = text_prop_type_by_id(current_buf, current_text_props[idx2].tp_type);
+    if (pt1 == pt2)
+	return 0;
+    if (pt1 == NULL)
+	return -1;
+    if (pt2 == NULL)
+	return 1;
+    if (pt1->pt_priority != pt2->pt_priority)
+	return pt1->pt_priority > pt2->pt_priority ? 1 : -1;
+    col1 = current_text_props[idx1].tp_col;
+    col2 = current_text_props[idx2].tp_col;
+    return col1 == col2 ? 0 : col1 > col2 ? 1 : -1;
+}
+#endif
+
 /*
  * Display line "lnum" of window 'wp' on the screen.
  * Start at row "startrow", stop when "endrow" is reached.
@@ -4137,7 +4168,11 @@ win_line(
 	    break;
 	}
 
-	if (draw_state == WL_LINE && area_highlighting)
+	if (draw_state == WL_LINE && (area_highlighting
+#ifdef FEAT_SPELL
+		|| has_spell
+#endif
+	   ))
 	{
 	    /* handle Visual or match highlighting in this line */
 	    if (vcol == fromcol
@@ -4302,13 +4337,14 @@ win_line(
 	    if (text_props != NULL)
 	    {
 		int pi;
+		int bcol = (int)(ptr - line);
 
 		// Check if any active property ends.
 		for (pi = 0; pi < text_props_active; ++pi)
 		{
 		    int tpi = text_prop_idxs[pi];
 
-		    if (col >= text_props[tpi].tp_col - 1
+		    if (bcol >= text_props[tpi].tp_col - 1
 						  + text_props[tpi].tp_len)
 		    {
 			if (pi + 1 < text_props_active)
@@ -4323,37 +4359,35 @@ win_line(
 
 		// Add any text property that starts in this column.
 		while (text_prop_next < text_prop_count
-			   && col >= text_props[text_prop_next].tp_col - 1)
+			   && bcol >= text_props[text_prop_next].tp_col - 1)
 		    text_prop_idxs[text_props_active++] = text_prop_next++;
 
-		text_prop_type = NULL;
+		text_prop_attr = 0;
 		if (text_props_active > 0)
 		{
-		    int max_priority = INT_MIN;
-		    int max_col = 0;
+		    // Sort the properties on priority and/or starting last.
+		    // Then combine the attributes, highest priority last.
+		    current_text_props = text_props;
+		    current_buf = wp->w_buffer;
+		    qsort((void *)text_prop_idxs, (size_t)text_props_active,
+					       sizeof(int), text_prop_compare);
 
-		    // Get the property type with the highest priority
-		    // and/or starting last.
 		    for (pi = 0; pi < text_props_active; ++pi)
 		    {
-			int		tpi = text_prop_idxs[pi];
-			proptype_T  *pt;
+			int	    tpi = text_prop_idxs[pi];
+			proptype_T  *pt = text_prop_type_by_id(wp->w_buffer, text_props[tpi].tp_type);
 
-			pt = text_prop_type_by_id(
-				curwin->w_buffer, text_props[tpi].tp_type);
-			if (pt != NULL
-				&& (pt->pt_priority > max_priority
-				    || (pt->pt_priority == max_priority
-				    && text_props[tpi].tp_col >= max_col)))
+			if (pt != NULL)
 			{
+			    int pt_attr = syn_id2attr(pt->pt_hl_id);
+
 			    text_prop_type = pt;
-			    max_priority = pt->pt_priority;
-			    max_col = text_props[tpi].tp_col;
+			    if (text_prop_attr == 0)
+				text_prop_attr = pt_attr;
+			    else
+				text_prop_attr = hl_combine_attr(text_prop_attr, pt_attr);
 			}
 		    }
-		    if (text_prop_type != NULL)
-			text_prop_attr =
-				     syn_id2attr(text_prop_type->pt_hl_id);
 		}
 	    }
 #endif
@@ -4779,10 +4813,6 @@ win_line(
 		if (has_spell && v >= word_end && v > cur_checked_col)
 		{
 		    spell_attr = 0;
-# ifdef FEAT_SYN_HL
-		    if (!attr_pri)
-			char_attr = syntax_attr;
-# endif
 		    if (c != 0 && (
 # ifdef FEAT_SYN_HL
 				!has_syntax ||

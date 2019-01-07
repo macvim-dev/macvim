@@ -980,13 +980,25 @@ sig_alarm SIGDEFARG(sigarg)
 }
 #endif
 
-#if (defined(HAVE_SETJMP_H) \
-	&& ((defined(FEAT_X11) && defined(FEAT_XCLIPBOARD)) \
-	    || defined(FEAT_LIBCALL))) \
-    || defined(PROTO)
+#if defined(HAVE_SETJMP_H) || defined(PROTO)
+// argument to SETJMP()
+static JMP_BUF lc_jump_env;
+
+# ifdef SIGHASARG
+// Caught signal number, 0 when no was signal caught; used for mch_libcall().
+// Volatile because it is used in signal handlers.
+static volatile sig_atomic_t lc_signal;
+# endif
+
+// TRUE when lc_jump_env is valid.
+// Volatile because it is used in signal handler deathtrap().
+static volatile sig_atomic_t lc_active INIT(= FALSE);
+
 /*
  * A simplistic version of setjmp() that only allows one level of using.
+ * Used to protect areas where we could crash.
  * Don't call twice before calling mch_endjmp()!.
+ *
  * Usage:
  *	mch_startjmp();
  *	if (SETJMP(lc_jump_env) != 0)
@@ -1023,8 +1035,8 @@ mch_endjmp(void)
 mch_didjmp(void)
 {
 # if defined(HAVE_SIGALTSTACK) || defined(HAVE_SIGSTACK)
-    /* On FreeBSD the signal stack has to be reset after using siglongjmp(),
-     * otherwise catching the signal only works once. */
+    // On FreeBSD the signal stack has to be reset after using siglongjmp(),
+    // otherwise catching the signal only works once.
     init_signal_stack();
 # endif
 }
@@ -1659,6 +1671,38 @@ x_error_check(Display *dpy UNUSED, XErrorEvent *error_event UNUSED)
     return 0;
 }
 
+/*
+ * Return TRUE when connection to the X server is desired.
+ */
+    static int
+x_connect_to_server(void)
+{
+    // No point in connecting if we are exiting or dying.
+    if (exiting || v_dying)
+	return FALSE;
+
+#if defined(FEAT_CLIENTSERVER)
+    if (x_force_connect)
+	return TRUE;
+#endif
+    if (x_no_connect)
+	return FALSE;
+
+    // Check for a match with "exclude:" from 'clipboard'.
+    if (clip_exclude_prog != NULL)
+    {
+	// Just in case we get called recursively, return FALSE.  This could
+	// happen if vpeekc() is used while executing the prog and it causes a
+	// related callback to be invoked.
+	if (regprog_in_use(clip_exclude_prog))
+	    return FALSE;
+
+	if (vim_regexec_prog(&clip_exclude_prog, FALSE, T_NAME, (colnr_T)0))
+	    return FALSE;
+    }
+    return TRUE;
+}
+
 #if defined(FEAT_X11) && defined(FEAT_XCLIPBOARD)
 # if defined(HAVE_SETJMP_H)
 /*
@@ -1704,7 +1748,8 @@ x_IOerror_handler(Display *dpy UNUSED)
     static void
 may_restore_clipboard(void)
 {
-    if (xterm_dpy_retry_count > 0)
+    // No point in restoring the connecting if we are exiting or dying.
+    if (!exiting && !v_dying && xterm_dpy_retry_count > 0)
     {
 	--xterm_dpy_retry_count;
 
@@ -1723,28 +1768,6 @@ may_restore_clipboard(void)
     }
 }
 #endif
-
-/*
- * Return TRUE when connection to the X server is desired.
- */
-    static int
-x_connect_to_server(void)
-{
-#if defined(FEAT_CLIENTSERVER)
-    if (x_force_connect)
-	return TRUE;
-#endif
-    if (x_no_connect)
-	return FALSE;
-
-    /* Check for a match with "exclude:" from 'clipboard'. */
-    if (clip_exclude_prog != NULL)
-    {
-	if (vim_regexec_prog(&clip_exclude_prog, FALSE, T_NAME, (colnr_T)0))
-	    return FALSE;
-    }
-    return TRUE;
-}
 
 /*
  * Test if "dpy" and x11_window are valid by getting the window title.

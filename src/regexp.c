@@ -5582,7 +5582,7 @@ regmatch(
 			if (has_mbyte)
 			{
 			    char_u *line =
-					 reg_getline(behind_pos.rs_u.pos.lnum);
+				  reg_getline(rp->rs_un.regsave.rs_u.pos.lnum);
 
 			    rp->rs_un.regsave.rs_u.pos.col -=
 				(*mb_head_off)(line, line
@@ -8208,6 +8208,15 @@ report_re_switch(char_u *pat)
     }
 }
 #endif
+
+/*
+ * Return whether "prog" is currently being executed.
+ */
+    int
+regprog_in_use(regprog_T *prog)
+{
+    return prog->re_in_use;
+}
 
 /*
  * Match a regexp against a string.

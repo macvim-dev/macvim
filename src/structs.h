@@ -347,6 +347,14 @@ typedef struct
  * structures used for undo
  */
 
+// One line saved for undo.  After the NUL terminated text there might be text
+// properties, thus ul_len can be larger than STRLEN(ul_line) + 1.
+typedef struct {
+    char_u	*ul_line;	// text of the line
+    long	ul_len;		// length of the line including NUL, plus text
+				// properties
+} undoline_T;
+
 typedef struct u_entry u_entry_T;
 typedef struct u_header u_header_T;
 struct u_entry
@@ -355,7 +363,7 @@ struct u_entry
     linenr_T	ue_top;		/* number of line above undo block */
     linenr_T	ue_bot;		/* number of line below undo block */
     linenr_T	ue_lcount;	/* linecount when u_save called */
-    char_u	**ue_array;	/* array of lines in undo block */
+    undoline_T	*ue_array;	/* array of lines in undo block */
     long	ue_size;	/* number of lines in ue_array */
 #ifdef U_DEBUG
     int		ue_magic;	/* magic number to check allocation */
@@ -705,7 +713,7 @@ typedef struct memline
  */
 typedef struct textprop_S
 {
-    colnr_T	tp_col;		// start column (one based)
+    colnr_T	tp_col;		// start column (one based, in bytes)
     colnr_T	tp_len;		// length in bytes
     int		tp_id;		// identifier
     int		tp_type;	// property type
@@ -731,18 +739,13 @@ typedef struct proptype_S
 #define PT_FLAG_INS_START_INCL	1	// insert at start included in property
 #define PT_FLAG_INS_END_INCL	2	// insert at end included in property
 
-
-#if defined(FEAT_SIGNS) || defined(PROTO)
 // Sign group
 typedef struct signgroup_S
 {
     short_u	refcount;		// number of signs in this group
+    int		next_sign_id;		// next sign id for this group
     char_u	sg_name[1];		// sign group name
 } signgroup_T;
-
-// Macros to get the sign group structure from the group name
-#define SGN_KEY_OFF	offsetof(signgroup_T, sg_name)
-#define HI2SG(hi)	((signgroup_T *)((hi)->hi_key - SGN_KEY_OFF))
 
 typedef struct signlist signlist_T;
 
@@ -756,6 +759,11 @@ struct signlist
     signlist_T	*next;		/* next signlist entry */
     signlist_T  *prev;		/* previous entry -- for easy reordering */
 };
+
+#if defined(FEAT_SIGNS) || defined(PROTO)
+// Macros to get the sign group structure from the group name
+#define SGN_KEY_OFF	offsetof(signgroup_T, sg_name)
+#define HI2SG(hi)	((signgroup_T *)((hi)->hi_key - SGN_KEY_OFF))
 
 // Default sign priority for highlighting
 #define SIGN_DEF_PRIO	10
@@ -2170,7 +2178,7 @@ struct file_buffer
     /*
      * variables for "U" command in undo.c
      */
-    char_u	*b_u_line_ptr;	/* saved line for "U" command */
+    undoline_T	b_u_line_ptr;	/* saved line for "U" command */
     linenr_T	b_u_line_lnum;	/* line number of line in u_line */
     colnr_T	b_u_line_colnr;	/* optional column number */
 

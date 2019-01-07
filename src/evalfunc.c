@@ -1357,8 +1357,10 @@ set_buffer_lines(
 
 	if (!append && lnum <= curbuf->b_ml.ml_line_count)
 	{
-	    /* existing line, replace it */
-	    if (u_savesub(lnum) == OK && ml_replace(lnum, line, TRUE) == OK)
+	    // Existing line, replace it.
+	    // Removes any existing text properties.
+	    if (u_savesub(lnum) == OK && ml_replace_len(
+		      lnum, line, (colnr_T)STRLEN(line) + 1, TRUE, TRUE) == OK)
 	    {
 		changed_bytes(lnum, 0);
 		if (is_curbuf && lnum == curwin->w_cursor.lnum)
@@ -1424,7 +1426,7 @@ f_appendbufline(typval_T *argvars, typval_T *rettv)
     linenr_T	lnum;
     buf_T	*buf;
 
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     if (buf == NULL)
 	rettv->vval.v_number = 1; /* FAIL */
     else
@@ -1892,7 +1894,7 @@ buflist_find_by_name(char_u *name, int curtab_only)
  * Get buffer by number or pattern.
  */
     buf_T *
-get_buf_tv(typval_T *tv, int curtab_only)
+tv_get_buf(typval_T *tv, int curtab_only)
 {
     char_u	*name = tv->vval.v_string;
     buf_T	*buf;
@@ -1925,7 +1927,7 @@ f_bufname(typval_T *argvars, typval_T *rettv)
 
     (void)tv_get_number(&argvars[0]);	    /* issue errmsg if type error */
     ++emsg_off;
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     rettv->v_type = VAR_STRING;
     if (buf != NULL && buf->b_fname != NULL)
 	rettv->vval.v_string = vim_strsave(buf->b_fname);
@@ -1946,7 +1948,7 @@ f_bufnr(typval_T *argvars, typval_T *rettv)
 
     (void)tv_get_number(&argvars[0]);	    /* issue errmsg if type error */
     ++emsg_off;
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     --emsg_off;
 
     /* If the buffer isn't found and the second argument is not zero create a
@@ -1974,7 +1976,7 @@ buf_win_common(typval_T *argvars, typval_T *rettv, int get_nr)
 
     (void)tv_get_number(&argvars[0]);	    /* issue errmsg if type error */
     ++emsg_off;
-    buf = get_buf_tv(&argvars[0], TRUE);
+    buf = tv_get_buf(&argvars[0], TRUE);
     FOR_ALL_WINDOWS(wp)
     {
 	++winnr;
@@ -2962,7 +2964,7 @@ f_deletebufline(typval_T *argvars, typval_T *rettv)
     tabpage_T	*tp;
     win_T	*wp;
 
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     if (buf == NULL)
     {
 	rettv->vval.v_number = 1; /* FAIL */
@@ -4424,24 +4426,6 @@ f_get(typval_T *argvars, typval_T *rettv)
 	copy_tv(tv, rettv);
 }
 
-#ifdef FEAT_SIGNS
-/*
- * Returns information about signs placed in a buffer as list of dicts.
- */
-    static void
-get_buffer_signs(buf_T *buf, list_T *l)
-{
-    signlist_T	*sign;
-    dict_T	*d;
-
-    FOR_ALL_SIGNS_IN_BUF(buf)
-    {
-	if ((d = sign_get_info(sign)) != NULL)
-	    list_append_dict(l, d);
-    }
-}
-#endif
-
 /*
  * Returns buffer options, variables and other attributes in a dictionary.
  */
@@ -4543,7 +4527,7 @@ f_getbufinfo(typval_T *argvars, typval_T *rettv)
 	/* Information about one buffer.  Argument specifies the buffer */
 	(void)tv_get_number(&argvars[0]);   /* issue errmsg if type error */
 	++emsg_off;
-	argbuf = get_buf_tv(&argvars[0], FALSE);
+	argbuf = tv_get_buf(&argvars[0], FALSE);
 	--emsg_off;
 	if (argbuf == NULL)
 	    return;
@@ -4627,7 +4611,7 @@ f_getbufline(typval_T *argvars, typval_T *rettv)
 
     (void)tv_get_number(&argvars[0]);	    /* issue errmsg if type error */
     ++emsg_off;
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     --emsg_off;
 
     lnum = tv_get_lnum_buf(&argvars[1], buf);
@@ -4654,7 +4638,7 @@ f_getbufvar(typval_T *argvars, typval_T *rettv)
     (void)tv_get_number(&argvars[0]);	    /* issue errmsg if type error */
     varname = tv_get_string_chk(&argvars[1]);
     ++emsg_off;
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
 
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = NULL;
@@ -4725,7 +4709,7 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_JUMPLIST
     (void)tv_get_number(&argvars[0]);	    /* issue errmsg if type error */
     ++emsg_off;
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     --emsg_off;
     if (buf == NULL)
 	return;
@@ -8529,7 +8513,11 @@ f_mode(typval_T *argvars, typval_T *rettv)
     {
 	buf[0] = 'n';
 	if (finish_op)
+	{
 	    buf[1] = 'o';
+	    // to be able to detect force-linewise/blockwise/characterwise operations
+	    buf[2] = motion_force;
+	}
 	else if (restart_edit == 'I' || restart_edit == 'R'
 							|| restart_edit == 'V')
 	{
@@ -8758,7 +8746,7 @@ f_prompt_setcallback(typval_T *argvars, typval_T *rettv UNUSED)
 
     if (check_secure())
 	return;
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     if (buf == NULL)
 	return;
 
@@ -8787,7 +8775,7 @@ f_prompt_setinterrupt(typval_T *argvars, typval_T *rettv UNUSED)
 
     if (check_secure())
 	return;
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     if (buf == NULL)
 	return;
 
@@ -8815,7 +8803,7 @@ f_prompt_setprompt(typval_T *argvars, typval_T *rettv UNUSED)
 
     if (check_secure())
 	return;
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     if (buf == NULL)
 	return;
 
@@ -10625,7 +10613,7 @@ f_setbufline(typval_T *argvars, typval_T *rettv)
     linenr_T	lnum;
     buf_T	*buf;
 
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     if (buf == NULL)
 	rettv->vval.v_number = 1; /* FAIL */
     else
@@ -10650,7 +10638,7 @@ f_setbufvar(typval_T *argvars, typval_T *rettv UNUSED)
 	return;
     (void)tv_get_number(&argvars[0]);	    /* issue errmsg if type error */
     varname = tv_get_string_chk(&argvars[1]);
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     varp = &argvars[2];
 
     if (buf != NULL && varname != NULL && varp != NULL)
@@ -11410,7 +11398,7 @@ f_sign_getplaced(typval_T *argvars, typval_T *rettv)
     if (argvars[0].v_type != VAR_UNKNOWN)
     {
 	// get signs placed in this buffer
-	buf = find_buffer(&argvars[0]);
+	buf = tv_get_buf(&argvars[0], FALSE);
 	if (buf == NULL)
 	{
 	    EMSG2(_("E158: Invalid buffer name: %s"),
@@ -11446,6 +11434,8 @@ f_sign_getplaced(typval_T *argvars, typval_T *rettv)
 		group = tv_get_string_chk(&di->di_tv);
 		if (group == NULL)
 		    return;
+		if (*group == '\0')	// empty string means global group
+		    group = NULL;
 	    }
 	}
     }
@@ -11500,7 +11490,7 @@ f_sign_place(typval_T *argvars, typval_T *rettv)
 	goto cleanup;
 
     // Buffer to place the sign
-    buf = find_buffer(&argvars[3]);
+    buf = tv_get_buf(&argvars[3], FALSE);
     if (buf == NULL)
     {
 	EMSG2(_("E158: Invalid buffer name: %s"), tv_get_string(&argvars[2]));
@@ -11603,18 +11593,18 @@ f_sign_unplace(typval_T *argvars, typval_T *rettv)
 	if (argvars[1].v_type != VAR_DICT)
 	{
 	    EMSG(_(e_dictreq));
-	    return;
+	    goto cleanup;
 	}
 	dict = argvars[1].vval.v_dict;
 
 	if ((di = dict_find(dict, (char_u *)"buffer", -1)) != NULL)
 	{
-	    buf = find_buffer(&di->di_tv);
+	    buf = tv_get_buf(&di->di_tv, FALSE);
 	    if (buf == NULL)
 	    {
 		EMSG2(_("E158: Invalid buffer name: %s"),
 						tv_get_string(&di->di_tv));
-		return;
+		goto cleanup;
 	    }
 	}
 	if (dict_find(dict, (char_u *)"id", -1) != NULL)
@@ -11625,14 +11615,16 @@ f_sign_unplace(typval_T *argvars, typval_T *rettv)
     {
 	// Delete the sign in all the buffers
 	FOR_ALL_BUFFERS(buf)
-	    if (sign_unplace(sign_id, group, buf) == OK)
+	    if (sign_unplace(sign_id, group, buf, 0) == OK)
 		rettv->vval.v_number = 0;
     }
     else
     {
-	if (sign_unplace(sign_id, group, buf) == OK)
+	if (sign_unplace(sign_id, group, buf, 0) == OK)
 	    rettv->vval.v_number = 0;
     }
+
+cleanup:
     vim_free(group);
 }
 #endif
@@ -12853,7 +12845,7 @@ f_swapname(typval_T *argvars, typval_T *rettv)
     buf_T	*buf;
 
     rettv->v_type = VAR_STRING;
-    buf = get_buf_tv(&argvars[0], FALSE);
+    buf = tv_get_buf(&argvars[0], FALSE);
     if (buf == NULL || buf->b_ml.ml_mfp == NULL
 					|| buf->b_ml.ml_mfp->mf_fname == NULL)
 	rettv->vval.v_string = NULL;

@@ -17,14 +17,14 @@
  * Text properties have a type, which can be used to specify highlighting.
  *
  * TODO:
- * - mismatch in column 1 being the first column
- * - Let props overrule syntax HL.
- * - When deleting a line where a prop ended, adjust flag of previous line.
- * - When deleting a line where a prop started, adjust flag of next line.
- * - When inserting a line add props that continue from previous line.
- * - Adjust property column and length when text is inserted/deleted
- * - Add an arrray for global_proptypes, to quickly lookup a proptype by ID
- * - Add an arrray for b_proptypes, to quickly lookup a proptype by ID
+ * - Adjust text property column and length when text is inserted/deleted.
+ *   -> a :substitute with a multi-line match
+ *   -> search for changed_bytes() from ex_cmds.c
+ * - Perhaps we only need TP_FLAG_CONT_NEXT and can drop TP_FLAG_CONT_PREV?
+ * - Add an arrray for global_proptypes, to quickly lookup a prop type by ID
+ * - Add an arrray for b_proptypes, to quickly lookup a prop type by ID
+ * - Checking the text length to detect text properties is slow.  Use a flag in
+ *   the index, like DB_MARKED?
  * - Also test line2byte() with many lines, so that ml_updatechunk() is taken
  *   into account.
  * - add mechanism to keep track of changed lines.
@@ -132,7 +132,7 @@ get_bufnr_from_arg(typval_T *arg, buf_T **buf)
     di = dict_find(arg->vval.v_dict, (char_u *)"bufnr", -1);
     if (di != NULL)
     {
-	*buf = get_buf_tv(&di->di_tv, FALSE);
+	*buf = tv_get_buf(&di->di_tv, FALSE);
 	if (*buf == NULL)
 	    return FAIL;
     }
@@ -200,12 +200,12 @@ f_prop_add(typval_T *argvars, typval_T *rettv UNUSED)
     {
 	long length = dict_get_number(dict, (char_u *)"length");
 
-	if (length < 1 || end_lnum > start_lnum)
+	if (length < 0 || end_lnum > start_lnum)
 	{
 	    EMSG2(_(e_invargval), "length");
 	    return;
 	}
-	end_col = start_col + length - 1;
+	end_col = start_col + length;
     }
     else if (dict_find(dict, (char_u *)"end_col", -1) != NULL)
     {
@@ -262,13 +262,13 @@ f_prop_add(typval_T *argvars, typval_T *rettv UNUSED)
 	}
 
 	if (lnum == end_lnum)
-	    length = end_col - col + 1;
+	    length = end_col - col;
 	else
-	    length = textlen - col + 1;
+	    length = (int)textlen - col + 1;
 	if (length > (long)textlen)
-	    length = textlen;  // can include the end-of-line
-	if (length < 1)
-	    length = 1;
+	    length = (int)textlen;	// can include the end-of-line
+	if (length < 0)
+	    length = 0;		// zero-width property
 
 	// Allocate the new line with space for the new proprety.
 	newtext = alloc(buf->b_ml.ml_line_len + sizeof(textprop_T));
@@ -346,6 +346,34 @@ get_text_props(buf_T *buf, linenr_T lnum, char_u **props, int will_change)
     if (proplen > 0)
 	*props = text + textlen;
     return (int)(proplen / sizeof(textprop_T));
+}
+
+/*
+ * Set the text properties for line "lnum" to "props" with length "len".
+ * If "len" is zero text properties are removed, "props" is not used.
+ * Any existing text properties are dropped.
+ * Only works for the current buffer.
+ */
+    static void
+set_text_props(linenr_T lnum, char_u *props, int len)
+{
+    char_u *text;
+    char_u *newtext;
+    size_t textlen;
+
+    text = ml_get(lnum);
+    textlen = STRLEN(text) + 1;
+    newtext = alloc(textlen + len);
+    if (newtext == NULL)
+	return;
+    mch_memmove(newtext, text, textlen);
+    if (len > 0)
+	mch_memmove(newtext + textlen, props, len);
+    if (curbuf->b_ml.ml_flags & ML_LINE_DIRTY)
+	vim_free(curbuf->b_ml.ml_line_ptr);
+    curbuf->b_ml.ml_line_ptr = newtext;
+    curbuf->b_ml.ml_line_len = textlen + len;
+    curbuf->b_ml.ml_flags |= ML_LINE_DIRTY;
 }
 
     static proptype_T *
@@ -535,7 +563,7 @@ f_prop_remove(typval_T *argvars, typval_T *rettv)
     di = dict_find(dict, (char_u *)"bufnr", -1);
     if (di != NULL)
     {
-	buf = get_buf_tv(&di->di_tv, FALSE);
+	buf = tv_get_buf(&di->di_tv, FALSE);
 	if (buf == NULL)
 	    return;
     }
@@ -912,6 +940,142 @@ clear_buf_prop_types(buf_T *buf)
 {
     clear_ht_prop_types(buf->b_proptypes);
     buf->b_proptypes = NULL;
+}
+
+/*
+ * Adjust the columns of text properties in line "lnum" after position "col" to
+ * shift by "bytes_added" (can be negative).
+ * Note that "col" is zero-based, while tp_col is one-based.
+ * Only for the current buffer.
+ * Called is expected to check b_has_textprop and "bytes_added" being non-zero.
+ */
+    void
+adjust_prop_columns(
+	linenr_T    lnum,
+	colnr_T	    col,
+	int	    bytes_added)
+{
+    int		proplen;
+    char_u	*props;
+    textprop_T	tmp_prop;
+    proptype_T  *pt;
+    int		dirty = FALSE;
+    int		ri, wi;
+    size_t	textlen;
+
+    if (text_prop_frozen > 0)
+	return;
+
+    proplen = get_text_props(curbuf, lnum, &props, TRUE);
+    if (proplen == 0)
+	return;
+    textlen = curbuf->b_ml.ml_line_len - proplen * sizeof(textprop_T);
+
+    wi = 0; // write index
+    for (ri = 0; ri < proplen; ++ri)
+    {
+	mch_memmove(&tmp_prop, props + ri * sizeof(textprop_T),
+							   sizeof(textprop_T));
+	pt = text_prop_type_by_id(curbuf, tmp_prop.tp_type);
+
+	if (bytes_added > 0
+		? (tmp_prop.tp_col >= col
+		       + (pt != NULL && (pt->pt_flags & PT_FLAG_INS_START_INCL)
+								      ? 2 : 1))
+		: (tmp_prop.tp_col > col + 1))
+	{
+	    tmp_prop.tp_col += bytes_added;
+	    dirty = TRUE;
+	}
+	else if (tmp_prop.tp_len > 0
+		&& tmp_prop.tp_col + tmp_prop.tp_len > col
+		       + ((pt != NULL && (pt->pt_flags & PT_FLAG_INS_END_INCL))
+								      ? 0 : 1))
+	{
+	    tmp_prop.tp_len += bytes_added;
+	    dirty = TRUE;
+	    if (tmp_prop.tp_len <= 0)
+		continue;  // drop this text property
+	}
+	mch_memmove(props + wi * sizeof(textprop_T), &tmp_prop,
+							   sizeof(textprop_T));
+	++wi;
+    }
+    if (dirty)
+    {
+	colnr_T newlen = (int)textlen + wi * (colnr_T)sizeof(textprop_T);
+
+	if ((curbuf->b_ml.ml_flags & ML_LINE_DIRTY) == 0)
+	    curbuf->b_ml.ml_line_ptr =
+				 vim_memsave(curbuf->b_ml.ml_line_ptr, newlen);
+	curbuf->b_ml.ml_flags |= ML_LINE_DIRTY;
+	curbuf->b_ml.ml_line_len = newlen;
+    }
+}
+
+/*
+ * Adjust text properties for a line that was split in two.
+ * "lnum" is the newly inserted line.  The text properties are now on the line
+ * below it.  "kept" is the number of bytes kept in the first line, while
+ * "deleted" is the number of bytes deleted.
+ */
+    void
+adjust_props_for_split(linenr_T lnum, int kept, int deleted)
+{
+    char_u	*props;
+    int		count;
+    garray_T    prevprop;
+    garray_T    nextprop;
+    int		i;
+    int		skipped = kept + deleted;
+
+    if (!curbuf->b_has_textprop)
+	return;
+    count = get_text_props(curbuf, lnum + 1, &props, FALSE);
+    ga_init2(&prevprop, sizeof(textprop_T), 10);
+    ga_init2(&nextprop, sizeof(textprop_T), 10);
+
+    // Get the text properties, which are at "lnum + 1".
+    // Keep the relevant ones in the first line, reducing the length if needed.
+    // Copy the ones that include the split to the second line.
+    // Move the ones after the split to the second line.
+    for (i = 0; i < count; ++i)
+    {
+	textprop_T  prop;
+	textprop_T *p;
+
+	// copy the prop to an aligned structure
+	mch_memmove(&prop, props + i * sizeof(textprop_T), sizeof(textprop_T));
+
+	if (prop.tp_col < kept && ga_grow(&prevprop, 1) == OK)
+	{
+	    p = ((textprop_T *)prevprop.ga_data) + prevprop.ga_len;
+	    *p = prop;
+	    if (p->tp_col + p->tp_len >= kept)
+		p->tp_len = kept - p->tp_col;
+	    ++prevprop.ga_len;
+	}
+
+	if (prop.tp_col + prop.tp_len >= skipped && ga_grow(&nextprop, 1) == OK)
+	{
+	    p = ((textprop_T *)nextprop.ga_data) + nextprop.ga_len;
+	    *p = prop;
+	    if (p->tp_col > skipped)
+		p->tp_col -= skipped - 1;
+	    else
+	    {
+		p->tp_len -= skipped - p->tp_col;
+		p->tp_col = 1;
+	    }
+	    ++nextprop.ga_len;
+	}
+    }
+
+    set_text_props(lnum, prevprop.ga_data, prevprop.ga_len * sizeof(textprop_T));
+    ga_clear(&prevprop);
+
+    set_text_props(lnum + 1, nextprop.ga_data, nextprop.ga_len * sizeof(textprop_T));
+    ga_clear(&nextprop);
 }
 
 #endif // FEAT_TEXT_PROP

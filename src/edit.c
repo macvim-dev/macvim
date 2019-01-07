@@ -4234,6 +4234,7 @@ expand_by_function(
     win_T	*curwin_save;
     buf_T	*curbuf_save;
     typval_T	rettv;
+    int		save_State = State;
 
     funcname = (type == CTRL_X_FUNCTION) ? curbuf->b_p_cfu : curbuf->b_p_ofu;
     if (*funcname == NUL)
@@ -4287,6 +4288,9 @@ expand_by_function(
 	ins_compl_add_dict(matchdict);
 
 theend:
+    // Restore State, it might have been changed.
+    State = save_State;
+
     if (matchdict != NULL)
 	dict_unref(matchdict);
     if (matchlist != NULL)
@@ -5564,6 +5568,7 @@ ins_complete(int c, int enable_pum)
 	    pos_T	pos;
 	    win_T	*curwin_save;
 	    buf_T	*curbuf_save;
+	    int		save_State = State;
 
 	    /* Call 'completefunc' or 'omnifunc' and get pattern length as a
 	     * string */
@@ -5587,6 +5592,8 @@ ins_complete(int c, int enable_pum)
 	    curwin_save = curwin;
 	    curbuf_save = curbuf;
 	    col = call_func_retnr(funcname, 2, args);
+
+	    State = save_State;
 	    if (curwin_save != curwin || curbuf_save != curbuf)
 	    {
 		EMSG(_(e_complwin));
@@ -6752,7 +6759,6 @@ internal_format(
 			 * comment leader for the numbered list.  */
 			for (i = 0; i < padding; i++)
 			    ins_str((char_u *)" ");
-			changed_bytes(curwin->w_cursor.lnum, leader_len);
 		    }
 		    else
 		    {
@@ -7978,6 +7984,17 @@ replace_do_bs(int limit_col)
     cc = replace_pop();
     if (cc > 0)
     {
+#ifdef FEAT_TEXT_PROP
+	size_t	len_before = 0;  // init to shut up GCC
+
+	if (curbuf->b_has_textprop)
+	{
+	    // Do not adjust text properties for individual delete and insert
+	    // operations, do it afterwards on the resulting text.
+	    len_before = STRLEN(ml_get_curline());
+	    ++text_prop_frozen;
+	}
+#endif
 	if (State & VREPLACE_FLAG)
 	{
 	    /* Get the number of screen cells used by the character we are
@@ -8028,8 +8045,19 @@ replace_do_bs(int limit_col)
 	    curwin->w_cursor.col -= ins_len;
 	}
 
-	/* mark the buffer as changed and prepare for displaying */
+	// mark the buffer as changed and prepare for displaying
 	changed_bytes(curwin->w_cursor.lnum, curwin->w_cursor.col);
+
+#ifdef FEAT_TEXT_PROP
+	if (curbuf->b_has_textprop)
+	{
+	    size_t len_now = STRLEN(ml_get_curline());
+
+	    --text_prop_frozen;
+	    adjust_prop_columns(curwin->w_cursor.lnum, curwin->w_cursor.col,
+						  (int)(len_now - len_before));
+	}
+#endif
     }
     else if (cc == 0)
 	(void)del_char_after_col(limit_col);
@@ -10743,6 +10771,7 @@ do_insert_char_pre(int c)
 {
     char_u	*res;
     char_u	buf[MB_MAXBYTES + 1];
+    int		save_State = State;
 
     /* Return quickly when there is nothing to do. */
     if (!has_insertcharpre())
@@ -10774,6 +10803,9 @@ do_insert_char_pre(int c)
 
     set_vim_var_string(VV_CHAR, NULL, -1);  /* clear v:char */
     --textlock;
+
+    // Restore the State, it may have been changed.
+    State = save_State;
 
     return res;
 }

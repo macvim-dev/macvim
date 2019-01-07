@@ -1582,7 +1582,7 @@ win_exchange(long Prenum)
     (void)win_comp_pos();		/* recompute window positions */
 
     win_enter(wp, TRUE);
-    redraw_later(CLEAR);
+    redraw_all_later(NOT_VALID);
 }
 
 /*
@@ -1665,7 +1665,7 @@ win_rotate(int upwards, int count)
 	(void)win_comp_pos();
     }
 
-    redraw_later(CLEAR);
+    redraw_all_later(NOT_VALID);
 }
 
 /*
@@ -1822,7 +1822,7 @@ win_equal_rec(
 	    frame_new_height(topfr, height, FALSE, FALSE);
 	    topfr->fr_win->w_wincol = col;
 	    frame_new_width(topfr, width, FALSE, FALSE);
-	    redraw_all_later(CLEAR);
+	    redraw_all_later(NOT_VALID);
 	}
     }
     else if (topfr->fr_layout == FR_ROW)
@@ -3707,7 +3707,7 @@ win_new_tabpage(int after)
 	entering_window(curwin);
 #endif
 
-	redraw_all_later(CLEAR);
+	redraw_all_later(NOT_VALID);
 	apply_autocmds(EVENT_WINNEW, NULL, NULL, FALSE, curbuf);
 	apply_autocmds(EVENT_WINENTER, NULL, NULL, FALSE, curbuf);
 	apply_autocmds(EVENT_TABNEW, NULL, NULL, FALSE, curbuf);
@@ -3944,7 +3944,6 @@ enter_tabpage(
 
     last_status(FALSE);		/* status line may appear or disappear */
     (void)win_comp_pos();	/* recompute w_winrow for all windows */
-    must_redraw = CLEAR;	/* need to redraw everything */
 #ifdef FEAT_DIFF
     diff_need_scrollbind = TRUE;
 #endif
@@ -3978,7 +3977,7 @@ enter_tabpage(
 	    apply_autocmds(EVENT_BUFENTER, NULL, NULL, FALSE, curbuf);
     }
 
-    redraw_all_later(CLEAR);
+    redraw_all_later(NOT_VALID);
 }
 
 /*
@@ -6582,7 +6581,7 @@ restore_snapshot(
 	win_comp_pos();
 	if (wp != NULL && close_curwin)
 	    win_goto(wp);
-	redraw_all_later(CLEAR);
+	redraw_all_later(NOT_VALID);
     }
     clear_snapshot(curtab, idx);
 }
