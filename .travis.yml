@@ -40,6 +40,7 @@ sudo: false
 
 script:
   - set -e
+  - if [ "$TRAVIS_OSX_IMAGE" = "xcode8.3" ]; then brew reinstall --build-from-source ruby; fi
   - echo "Configuring MacVim" && echo -en "travis_fold:start:config\\r"
   - NPROC=$(getconf _NPROCESSORS_ONLN)
   - ./configure $CONFOPT --enable-fail-if-missing
