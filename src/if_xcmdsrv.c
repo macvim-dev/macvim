@@ -229,7 +229,7 @@ serverRegisterName(
 	{
 	    if (res < -1 || i >= 1000)
 	    {
-		MSG_ATTR(_("Unable to register a command server name"),
+		msg_attr(_("Unable to register a command server name"),
 							      HL_ATTR(HLF_W));
 		return FAIL;
 	    }
@@ -428,7 +428,7 @@ serverSendToVim(
     if (w == None)
     {
 	if (!silent)
-	    EMSG2(_(e_noserver), name);
+	    semsg(_(e_noserver), name);
 	return -1;
     }
     else if (loosename != NULL)
@@ -468,7 +468,7 @@ serverSendToVim(
     vim_free(property);
     if (res < 0)
     {
-	EMSG(_("E248: Failed to send command to the destination program"));
+	emsg(_("E248: Failed to send command to the destination program"));
 	return -1;
     }
 
@@ -733,7 +733,7 @@ serverStrToWin(char_u *str)
 
     sscanf((char *)str, "0x%x", &id);
     if (id == None)
-	EMSG2(_("E573: Invalid server id used: %s"), str);
+	semsg(_("E573: Invalid server id used: %s"), str);
 
     return (Window)id;
 }
@@ -1111,7 +1111,7 @@ GetRegProp(
 	    XFree(*regPropp);
 	XDeleteProperty(dpy, RootWindow(dpy, 0), registryProperty);
 	if (domsg)
-	    EMSG(_("E251: VIM instance registry property is badly formed.  Deleted!"));
+	    emsg(_("E251: VIM instance registry property is badly formed.  Deleted!"));
 	return FAIL;
     }
     return OK;

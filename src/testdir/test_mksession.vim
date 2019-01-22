@@ -198,6 +198,24 @@ func Test_mksession_blank_tabs()
   call delete('Xtest_mks.out')
 endfunc
 
+if has('extra_search')
+
+func Test_mksession_hlsearch()
+  set hlsearch
+  mksession! Xtest_mks.out
+  nohlsearch
+  source Xtest_mks.out
+  call assert_equal(1, v:hlsearch, 'session should restore search highlighting state')
+  nohlsearch
+  mksession! Xtest_mks.out
+  source Xtest_mks.out
+  call assert_equal(0, v:hlsearch, 'session should restore search highlighting state')
+  call delete('Xtest_mks.out')
+endfunc
+
+endif
+
+
 func Test_mksession_blank_windows()
   split
   split
@@ -396,5 +414,17 @@ func Test_mkview_no_file_name()
   call delete('Xview')
   %bwipe
 endfunc
+
+" A clean session (one empty buffer, one window, and one tab) should not
+" set any error messages when sourced because no commands should fail.
+func Test_mksession_no_errmsg()
+  let v:errmsg = ''
+  %bwipe!
+  mksession! Xtest_mks.out
+  source Xtest_mks.out
+  call assert_equal('', v:errmsg)
+  call delete('Xtest_mks.out')
+endfunc
+
 
 " vim: shiftwidth=2 sts=2 expandtab

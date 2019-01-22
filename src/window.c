@@ -101,7 +101,7 @@ do_window(
     do { \
 	if (cmdwin_type != 0) \
 	{ \
-	    EMSG(_(e_cmdwin)); \
+	    emsg(_(e_cmdwin)); \
 	    return; \
 	} \
     } while (0)
@@ -156,9 +156,9 @@ do_window(
 					? curwin->w_alt_fnum : Prenum) == NULL)
 		{
 		    if (Prenum == 0)
-			EMSG(_(e_noalt));
+			emsg(_(e_noalt));
 		    else
-			EMSGN(_("E92: Buffer %ld not found"), Prenum);
+			semsg(_("E92: Buffer %ld not found"), Prenum);
 		    break;
 		}
 
@@ -220,7 +220,7 @@ newwindow:
 		    if (wp->w_p_pvw)
 			break;
 		if (wp == NULL)
-		    EMSG(_("E441: There is no preview window"));
+		    emsg(_("E441: There is no preview window"));
 		else
 		    win_goto(wp);
 		break;
@@ -310,7 +310,7 @@ newwindow:
 /* move window to new tab page */
     case 'T':
 		if (one_window())
-		    MSG(_(m_onlyone));
+		    msg(_(m_onlyone));
 		else
 		{
 		    tabpage_T	*oldtab = curtab;
@@ -739,7 +739,7 @@ win_split(int size, int flags)
     flags |= cmdmod.split;
     if ((flags & WSP_TOP) && (flags & WSP_BOT))
     {
-	EMSG(_("E442: Can't split topleft and botright at the same time"));
+	emsg(_("E442: Can't split topleft and botright at the same time"));
 	return FAIL;
     }
 
@@ -794,7 +794,7 @@ win_split_ins(
     {
 	if (VISIBLE_HEIGHT(oldwin) <= p_wmh && new_wp == NULL)
 	{
-	    EMSG(_(e_noroom));
+	    emsg(_(e_noroom));
 	    return FAIL;
 	}
 	need_status = STATUS_HEIGHT;
@@ -852,7 +852,7 @@ win_split_ins(
 	}
 	if (available < needed && new_wp == NULL)
 	{
-	    EMSG(_(e_noroom));
+	    emsg(_(e_noroom));
 	    return FAIL;
 	}
 	if (new_size == 0)
@@ -935,7 +935,7 @@ win_split_ins(
 	}
 	if (available < needed && new_wp == NULL)
 	{
-	    EMSG(_(e_noroom));
+	    emsg(_(e_noroom));
 	    return FAIL;
 	}
 	oldwin_height = oldwin->w_height;
@@ -1611,7 +1611,7 @@ win_rotate(int upwards, int count)
     FOR_ALL_FRAMES(frp, curwin->w_frame->fr_parent->fr_child)
 	if (frp->fr_win == NULL)
 	{
-	    EMSG(_("E443: Cannot rotate when another window is split"));
+	    emsg(_("E443: Cannot rotate when another window is split"));
 	    return;
 	}
 
@@ -2314,7 +2314,7 @@ win_close(win_T *win, int free_buf)
 
     if (last_window())
     {
-	EMSG(_("E444: Cannot close last window"));
+	emsg(_("E444: Cannot close last window"));
 	return FAIL;
     }
 
@@ -2323,12 +2323,12 @@ win_close(win_T *win, int free_buf)
 	return FAIL; /* window is already being closed */
     if (win == aucmd_win)
     {
-	EMSG(_("E813: Cannot close autocmd window"));
+	emsg(_("E813: Cannot close autocmd window"));
 	return FAIL;
     }
     if ((firstwin == aucmd_win || lastwin == aucmd_win) && one_window())
     {
-	EMSG(_("E814: Cannot close window, only autocmd window would remain"));
+	emsg(_("E814: Cannot close window, only autocmd window would remain"));
 	return FAIL;
     }
 
@@ -3384,7 +3384,7 @@ close_others(
     if (one_window())
     {
 	if (message && !autocmd_busy)
-	    MSG(_(m_onlyone));
+	    msg(_(m_onlyone));
 	return;
     }
 
@@ -3424,7 +3424,7 @@ close_others(
     }
 
     if (message && !ONE_WINDOW)
-	EMSG(_("E445: Other window contains changes"));
+	emsg(_("E445: Other window contains changes"));
 }
 
 /*
@@ -4182,9 +4182,9 @@ win_goto(win_T *wp)
     win_enter(wp, TRUE);
 
 #ifdef FEAT_CONCEAL
-    /* Conceal cursor line in previous window, unconceal in current window. */
+    // Conceal cursor line in previous window, unconceal in current window.
     if (win_valid(owp) && owp->w_p_cole > 0 && !msg_scrolled)
-	update_single_line(owp, owp->w_cursor.lnum);
+	redrawWinline(owp, owp->w_cursor.lnum);
     if (curwin->w_p_cole > 0 && !msg_scrolled)
 	need_cursor_line_redraw = TRUE;
 #endif
@@ -5452,7 +5452,7 @@ win_setminheight(void)
 	--p_wmh;
 	if (first)
 	{
-	    EMSG(_(e_noroom));
+	    emsg(_(e_noroom));
 	    first = FALSE;
 	}
     }
@@ -5478,7 +5478,7 @@ win_setminwidth(void)
 	--p_wmw;
 	if (first)
 	{
-	    EMSG(_(e_noroom));
+	    emsg(_(e_noroom));
 	    first = FALSE;
 	}
     }
@@ -5963,7 +5963,7 @@ command_height(void)
 	    {
 		if (frp == NULL)
 		{
-		    EMSG(_(e_noroom));
+		    emsg(_(e_noroom));
 		    p_ch = old_p_ch;
 		    curtab->tp_ch_used = p_ch;
 		    cmdline_row = Rows - p_ch;
@@ -6054,7 +6054,7 @@ last_status_rec(frame_T *fr, int statusline)
 	    {
 		if (fp == topframe)
 		{
-		    EMSG(_(e_noroom));
+		    emsg(_(e_noroom));
 		    return;
 		}
 		/* In a column of frames: go to frame above.  If already at
@@ -6183,7 +6183,7 @@ file_name_in_line(
     if (*ptr == NUL)		/* nothing found */
     {
 	if (options & FNAME_MESS)
-	    EMSG(_("E446: No file name under cursor"));
+	    emsg(_("E446: No file name under cursor"));
 	return NULL;
     }
 
@@ -6332,7 +6332,7 @@ find_file_name_in_path(
 	{
 	    c = ptr[len];
 	    ptr[len] = NUL;
-	    EMSG2(_("E447: Can't find file \"%s\" in path"), ptr);
+	    semsg(_("E447: Can't find file \"%s\" in path"), ptr);
 	    ptr[len] = c;
 	}
 
@@ -6795,7 +6795,7 @@ match_add(
 	return -1;
     if (id < -1 || id == 0)
     {
-	EMSGN(_("E799: Invalid ID: %ld (must be greater than or equal to 1)"), id);
+	semsg(_("E799: Invalid ID: %d (must be greater than or equal to 1)"), id);
 	return -1;
     }
     if (id != -1)
@@ -6805,7 +6805,7 @@ match_add(
 	{
 	    if (cur->id == id)
 	    {
-		EMSGN(_("E801: ID already taken: %ld"), id);
+		semsg(_("E801: ID already taken: %d"), id);
 		return -1;
 	    }
 	    cur = cur->next;
@@ -6813,12 +6813,12 @@ match_add(
     }
     if ((hlg_id = syn_namen2id(grp, (int)STRLEN(grp))) == 0)
     {
-	EMSG2(_(e_nogroup), grp);
+	semsg(_(e_nogroup), grp);
 	return -1;
     }
     if (pat != NULL && (regprog = vim_regcomp(pat, RE_MAGIC)) == NULL)
     {
-	EMSG2(_(e_invarg2), pat);
+	semsg(_(e_invarg2), pat);
 	return -1;
     }
 
@@ -6913,7 +6913,7 @@ match_add(
 	    }
 	    else
 	    {
-		EMSG(_("List or number required"));
+		emsg(_("List or number required"));
 		goto fail;
 	    }
 	    if (toplnum == 0 || lnum < toplnum)
@@ -6982,7 +6982,7 @@ match_delete(win_T *wp, int id, int perr)
     if (id < 1)
     {
 	if (perr == TRUE)
-	    EMSGN(_("E802: Invalid ID: %ld (must be greater than or equal to 1)"),
+	    semsg(_("E802: Invalid ID: %d (must be greater than or equal to 1)"),
 									  id);
 	return -1;
     }
@@ -6994,7 +6994,7 @@ match_delete(win_T *wp, int id, int perr)
     if (cur == NULL)
     {
 	if (perr == TRUE)
-	    EMSGN(_("E803: ID not found: %ld"), id);
+	    semsg(_("E803: ID not found: %d"), id);
 	return -1;
     }
     if (cur == prev)

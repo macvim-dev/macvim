@@ -595,7 +595,7 @@ readfile(
 				|| (using_b_fname
 					 && (old_b_fname != curbuf->b_fname)))
 			{
-			    EMSG(_(e_auchangedbuf));
+			    emsg(_(e_auchangedbuf));
 			    return FAIL;
 			}
 		    }
@@ -676,7 +676,7 @@ readfile(
 		|| (using_b_ffname && (old_b_ffname != curbuf->b_ffname))
 		|| (using_b_fname && (old_b_fname != curbuf->b_fname))))
 	{
-	    EMSG(_(e_auchangedbuf));
+	    emsg(_(e_auchangedbuf));
 	    if (!read_buffer)
 		close(fd);
 	    return FAIL;
@@ -798,9 +798,9 @@ readfile(
 	    --no_wait_return;
 	    msg_scroll = msg_save;
 	    if (fd < 0)
-		EMSG(_("E200: *ReadPre autocommands made the file unreadable"));
+		emsg(_("E200: *ReadPre autocommands made the file unreadable"));
 	    else
-		EMSG(_("E201: *ReadPre autocommands must not change current buffer"));
+		emsg(_("E201: *ReadPre autocommands must not change current buffer"));
 	    curbuf->b_p_ro = TRUE;	/* must use "w!" now */
 	    return FAIL;
 	}
@@ -1128,7 +1128,7 @@ retry:
 		    if (fd < 0)
 		    {
 			/* Re-opening the original file failed! */
-			EMSG(_("E202: Conversion made file unreadable!"));
+			emsg(_("E202: Conversion made file unreadable!"));
 			error = TRUE;
 			goto failed;
 		    }
@@ -1381,9 +1381,12 @@ retry:
 		if (cryptkey != NULL && curbuf->b_cryptstate != NULL
 								   && size > 0)
 		{
+# ifdef CRYPT_NOT_INPLACE
 		    if (crypt_works_inplace(curbuf->b_cryptstate))
 		    {
+# endif
 			crypt_decode_inplace(curbuf->b_cryptstate, ptr, size);
+# ifdef CRYPT_NOT_INPLACE
 		    }
 		    else
 		    {
@@ -1434,6 +1437,7 @@ retry:
 			}
 			size = decrypted_size;
 		    }
+# endif
 		}
 #endif
 
@@ -2582,7 +2586,7 @@ failed:
 		p = msg_may_trunc(FALSE, IObuff);
 	    else
 #endif
-		p = msg_trunc_attr(IObuff, FALSE, 0);
+		p = (char_u *)msg_trunc_attr((char *)IObuff, FALSE, 0);
 	    if (read_stdin || read_buffer || restart_edit != 0
 		    || (msg_scrolled != 0 && !need_wait_return))
 		/* Need to repeat the message after redrawing when:
@@ -2898,28 +2902,28 @@ readfile_charconvert(
     int		*fdp)		/* in/out: file descriptor of file */
 {
     char_u	*tmpname;
-    char_u	*errmsg = NULL;
+    char	*errmsg = NULL;
 
     tmpname = vim_tempname('r', FALSE);
     if (tmpname == NULL)
-	errmsg = (char_u *)_("Can't find temp file for conversion");
+	errmsg = _("Can't find temp file for conversion");
     else
     {
 	close(*fdp);		/* close the input file, ignore errors */
 	*fdp = -1;
 	if (eval_charconvert(fenc, enc_utf8 ? (char_u *)"utf-8" : p_enc,
 						      fname, tmpname) == FAIL)
-	    errmsg = (char_u *)_("Conversion with 'charconvert' failed");
+	    errmsg = _("Conversion with 'charconvert' failed");
 	if (errmsg == NULL && (*fdp = mch_open((char *)tmpname,
 						  O_RDONLY | O_EXTRA, 0)) < 0)
-	    errmsg = (char_u *)_("can't read output of 'charconvert'");
+	    errmsg = _("can't read output of 'charconvert'");
     }
 
     if (errmsg != NULL)
     {
 	/* Don't use emsg(), it breaks mappings, the retry with
 	 * another type of conversion might still work. */
-	MSG(errmsg);
+	msg(errmsg);
 	if (tmpname != NULL)
 	{
 	    mch_remove(tmpname);	/* delete converted file */
@@ -2993,7 +2997,7 @@ check_for_cryptkey(
 		 * option and don't free it.  bf needs hash of the key saved.
 		 * Don't ask for the key again when first time Enter was hit.
 		 * Happens when retrying to detect encoding. */
-		smsg((char_u *)_(need_key_msg), fname);
+		smsg(_(need_key_msg), fname);
 		msg_scroll = TRUE;
 		crypt_check_method(method);
 		cryptkey = crypt_get_key(newfile, FALSE);
@@ -3197,7 +3201,7 @@ buf_write(
     {
 	/* This can happen during startup when there is a stray "w" in the
 	 * vimrc file. */
-	EMSG(_(e_emptybuf));
+	emsg(_(e_emptybuf));
 	return FAIL;
     }
 
@@ -3211,7 +3215,7 @@ buf_write(
     /* Avoid a crash for a long name. */
     if (STRLEN(fname) >= MAXPATHL)
     {
-	EMSG(_(e_longname));
+	emsg(_(e_longname));
 	return FAIL;
     }
 
@@ -3399,7 +3403,7 @@ buf_write(
 	    --no_wait_return;
 	    msg_scroll = msg_save;
 	    if (nofile_err)
-		EMSG(_("E676: No matching autocommands for acwrite buffer"));
+		emsg(_("E676: No matching autocommands for acwrite buffer"));
 
 	    if (nofile_err
 #ifdef FEAT_EVAL
@@ -3434,7 +3438,7 @@ buf_write(
 #ifdef FEAT_EVAL
 	    if (!aborting())
 #endif
-		EMSG(_("E203: Autocommands deleted or unloaded buffer to be written"));
+		emsg(_("E203: Autocommands deleted or unloaded buffer to be written"));
 	    return FAIL;
 	}
 
@@ -3457,7 +3461,7 @@ buf_write(
 		{
 		    --no_wait_return;
 		    msg_scroll = msg_save;
-		    EMSG(_("E204: Autocommand changed number of lines in unexpected way"));
+		    emsg(_("E204: Autocommand changed number of lines in unexpected way"));
 		    return FAIL;
 		}
 	    }
@@ -4904,7 +4908,7 @@ restore_backup:
 		 * know we got the message. */
 		if (got_int)
 		{
-		    MSG(_(e_interr));
+		    msg(_(e_interr));
 		    out_flush();
 		}
 		if ((fd = mch_open((char *)backup, O_RDONLY | O_EXTRA, 0)) >= 0)
@@ -5003,7 +5007,7 @@ restore_backup:
 		STRCAT(IObuff, shortmess(SHM_WRI) ? _(" [w]") : _(" written"));
 	}
 
-	set_keep_msg(msg_trunc_attr(IObuff, FALSE, 0), 0);
+	set_keep_msg((char_u *)msg_trunc_attr((char *)IObuff, FALSE, 0), 0);
     }
 
     /* When written everything correctly: reset 'modified'.  Unless not
@@ -5055,7 +5059,7 @@ restore_backup:
 	     * the current backup file becomes the original file
 	     */
 	    if (org == NULL)
-		EMSG(_("E205: Patchmode: can't save original file"));
+		emsg(_("E205: Patchmode: can't save original file"));
 	    else if (mch_stat(org, &st) < 0)
 	    {
 		vim_rename(backup, (char_u *)org);
@@ -5077,7 +5081,7 @@ restore_backup:
 		    || (empty_fd = mch_open(org,
 				      O_CREAT | O_EXTRA | O_EXCL | O_NOFOLLOW,
 					perm < 0 ? 0666 : (perm & 0777))) < 0)
-	      EMSG(_("E206: patchmode: can't touch empty original file"));
+	      emsg(_("E206: patchmode: can't touch empty original file"));
 	    else
 	      close(empty_fd);
 	}
@@ -5092,12 +5096,7 @@ restore_backup:
      * Remove the backup unless 'backup' option is set
      */
     if (!p_bk && backup != NULL && mch_remove(backup) != 0)
-	EMSG(_("E207: Can't delete backup file"));
-
-#ifdef FEAT_SUN_WORKSHOP
-    if (usingSunWorkShop)
-	workshop_file_saved((char *) ffname);
-#endif
+	emsg(_("E207: Can't delete backup file"));
 
     goto nofail;
 
@@ -5151,16 +5150,16 @@ nofail:
 	    mch_memmove(IObuff, errnum, (size_t)numlen);
 	}
 	STRCAT(IObuff, errmsg);
-	emsg(IObuff);
+	emsg((char *)IObuff);
 	if (errmsg_allocated)
 	    vim_free(errmsg);
 
 	retval = FAIL;
 	if (end == 0)
 	{
-	    MSG_PUTS_ATTR(_("\nWARNING: Original file may be lost or damaged\n"),
+	    msg_puts_attr(_("\nWARNING: Original file may be lost or damaged\n"),
 		    attr | MSG_HIST);
-	    MSG_PUTS_ATTR(_("don't quit the editor until the file is successfully written!"),
+	    msg_puts_attr(_("don't quit the editor until the file is successfully written!"),
 		    attr | MSG_HIST);
 
 	    /* Update the timestamp to avoid an "overwrite changed file"
@@ -5255,7 +5254,7 @@ set_rw_fname(char_u *fname, char_u *sfname)
     if (curbuf != buf)
     {
 	/* We are in another buffer now, don't do the renaming. */
-	EMSG(_(e_auchangedbuf));
+	emsg(_(e_auchangedbuf));
 	return FAIL;
     }
 
@@ -5343,14 +5342,14 @@ msg_add_lines(
 	*p++ = ' ';
     if (shortmess(SHM_LINES))
 	vim_snprintf((char *)p, IOSIZE - (p - IObuff),
-		"%ldL, %lldC", lnum, (long long)nchars);
+		"%ldL, %lldC", lnum, (long_long_T)nchars);
     else
     {
 	sprintf((char *)p, NGETTEXT("%ld line, ", "%ld lines, ", lnum), lnum);
 	p += STRLEN(p);
 	vim_snprintf((char *)p, IOSIZE - (p - IObuff),
 		NGETTEXT("%lld character", "%lld characters", nchars),
-		(long long)nchars);
+		(long_long_T)nchars);
     }
 }
 
@@ -5377,7 +5376,7 @@ check_mtime(buf_T *buf, stat_T *st)
 	msg_scroll = TRUE;	    /* don't overwrite messages here */
 	msg_silent = 0;		    /* must give this prompt */
 	/* don't use emsg() here, don't want to flush the buffers */
-	MSG_ATTR(_("WARNING: The file has been changed since reading it!!!"),
+	msg_attr(_("WARNING: The file has been changed since reading it!!!"),
 						       HL_ATTR(HLF_E));
 	if (ask_yesno((char_u *)_("Do you really want to write to it"),
 								 TRUE) == 'n')
@@ -5777,9 +5776,12 @@ buf_write_bytes(struct bw_info *ip)
     {
 	/* Encrypt the data. Do it in-place if possible, otherwise use an
 	 * allocated buffer. */
+# ifdef CRYPT_NOT_INPLACE
 	if (crypt_works_inplace(ip->bw_buffer->b_cryptstate))
 	{
+# endif
 	    crypt_encode_inplace(ip->bw_buffer->b_cryptstate, buf, len);
+# ifdef CRYPT_NOT_INPLACE
 	}
 	else
 	{
@@ -5792,6 +5794,7 @@ buf_write_bytes(struct bw_info *ip)
 	    vim_free(outbuf);
 	    return (wlen < len) ? FAIL : OK;
 	}
+# endif
     }
 #endif
 
@@ -6737,7 +6740,7 @@ vim_rename(char_u *from, char_u *to)
 #endif
     if (errmsg != NULL)
     {
-	EMSG2(errmsg, to);
+	semsg(errmsg, to);
 	return -1;
     }
     mch_remove(from);
@@ -6818,7 +6821,7 @@ check_timestamps(
 	if (need_wait_return && didit == 2)
 	{
 	    /* make sure msg isn't overwritten */
-	    msg_puts((char_u *)"\n");
+	    msg_puts("\n");
 	    out_flush();
 	}
     }
@@ -6886,7 +6889,7 @@ buf_check_timestamp(
     int		stat_res;
     int		retval = 0;
     char_u	*path;
-    char_u	*tbuf;
+    char	*tbuf;
     char	*mesg = NULL;
     char	*mesg2 = "";
     int		helpmesg = FALSE;
@@ -6997,7 +7000,7 @@ buf_check_timestamp(
 	    if (n)
 	    {
 		if (!bufref_valid(&bufref))
-		    EMSG(_("E246: FileChangedShell autocommand deleted buffer"));
+		    emsg(_("E246: FileChangedShell autocommand deleted buffer"));
 #ifdef FEAT_EVAL
 		s = get_vim_var_str(VV_FCS_CHOICE);
 		if (STRCMP(s, "reload") == 0 && *reason != 'd')
@@ -7066,13 +7069,13 @@ buf_check_timestamp(
 	{
 	    if (!helpmesg)
 		mesg2 = "";
-	    tbuf = alloc((unsigned)(STRLEN(path) + STRLEN(mesg)
+	    tbuf = (char *)alloc((unsigned)(STRLEN(path) + STRLEN(mesg)
 							+ STRLEN(mesg2) + 2));
-	    sprintf((char *)tbuf, mesg, path);
+	    sprintf(tbuf, mesg, path);
 #ifdef FEAT_EVAL
 	    /* Set warningmsg here, before the unimportant and output-specific
 	     * mesg2 has been appended. */
-	    set_vim_var_string(VV_WARNINGMSG, tbuf, -1);
+	    set_vim_var_string(VV_WARNINGMSG, (char_u *)tbuf, -1);
 #endif
 #if defined(FEAT_CON_DIALOG) || defined(FEAT_GUI_DIALOG)
 	    if (can_reload)
@@ -7090,7 +7093,8 @@ buf_check_timestamp(
 		}
 		else
 		{
-		    switch (do_dialog(VIM_WARNING, (char_u *)_("Warning"), tbuf,
+		    switch (do_dialog(VIM_WARNING, (char_u *)_("Warning"),
+					  (char_u *)tbuf,
 					(char_u *)_("&OK\n&Load File\nLoad &All\n&Ignore All"),
 								1, NULL, TRUE))
 		    {
@@ -7105,7 +7109,8 @@ buf_check_timestamp(
 		    }
 		}
 # else
-		if (do_dialog(VIM_WARNING, (char_u *)_("Warning"), tbuf,
+		if (do_dialog(VIM_WARNING, (char_u *)_("Warning"),
+			    (char_u *)tbuf,
 			  (char_u *)_("&OK\n&Load File"), 1, NULL, TRUE) == 2)
 		    reload = TRUE;
 # endif
@@ -7119,7 +7124,7 @@ buf_check_timestamp(
 		    STRCAT(tbuf, "; ");
 		    STRCAT(tbuf, mesg2);
 		}
-		EMSG(tbuf);
+		emsg(tbuf);
 		retval = 2;
 	    }
 	    else
@@ -7129,8 +7134,7 @@ buf_check_timestamp(
 		    msg_start();
 		    msg_puts_attr(tbuf, HL_ATTR(HLF_E) + MSG_HIST);
 		    if (*mesg2 != NUL)
-			msg_puts_attr((char_u *)mesg2,
-						   HL_ATTR(HLF_W) + MSG_HIST);
+			msg_puts_attr(mesg2, HL_ATTR(HLF_W) + MSG_HIST);
 		    msg_clr_eos();
 		    (void)msg_end();
 		    if (emsg_silent == 0)
@@ -7251,7 +7255,7 @@ buf_reload(buf_T *buf, int orig_mode)
 	    if (savebuf == NULL || saved == FAIL || buf != curbuf
 				      || move_lines(buf, savebuf) == FAIL)
 	    {
-		EMSG2(_("E462: Could not prepare for reloading \"%s\""),
+		semsg(_("E462: Could not prepare for reloading \"%s\""),
 							    buf->b_fname);
 		saved = FAIL;
 	    }
@@ -7268,7 +7272,7 @@ buf_reload(buf_T *buf, int orig_mode)
 #if defined(FEAT_EVAL)
 		if (!aborting())
 #endif
-		    EMSG2(_("E321: Could not reload \"%s\""), buf->b_fname);
+		    semsg(_("E321: Could not reload \"%s\""), buf->b_fname);
 		if (savebuf != NULL && bufref_valid(&bufref) && buf == curbuf)
 		{
 		    /* Put the text back from the save buffer.  First
@@ -7833,8 +7837,9 @@ static struct event_name
     {"SessionLoadPost",	EVENT_SESSIONLOADPOST},
     {"ShellCmdPost",	EVENT_SHELLCMDPOST},
     {"ShellFilterPost",	EVENT_SHELLFILTERPOST},
-    {"SourcePre",	EVENT_SOURCEPRE},
     {"SourceCmd",	EVENT_SOURCECMD},
+    {"SourcePre",	EVENT_SOURCEPRE},
+    {"SourcePost",	EVENT_SOURCEPOST},
     {"SpellFileMissing",EVENT_SPELLFILEMISSING},
     {"StdinReadPost",	EVENT_STDINREADPOST},
     {"StdinReadPre",	EVENT_STDINREADPRE},
@@ -7959,12 +7964,12 @@ show_autocmd(AutoPat *ap, event_T event)
 	if (ap->group != AUGROUP_DEFAULT)
 	{
 	    if (AUGROUP_NAME(ap->group) == NULL)
-		msg_puts_attr(get_deleted_augroup(), HL_ATTR(HLF_E));
+		msg_puts_attr((char *)get_deleted_augroup(), HL_ATTR(HLF_E));
 	    else
-		msg_puts_attr(AUGROUP_NAME(ap->group), HL_ATTR(HLF_T));
-	    msg_puts((char_u *)"  ");
+		msg_puts_attr((char *)AUGROUP_NAME(ap->group), HL_ATTR(HLF_T));
+	    msg_puts("  ");
 	}
-	msg_puts_attr(event_nr2name(event), HL_ATTR(HLF_T));
+	msg_puts_attr((char *)event_nr2name(event), HL_ATTR(HLF_T));
 	last_event = event;
 	last_group = ap->group;
 	msg_putchar('\n');
@@ -8113,8 +8118,7 @@ aubuflocal_remove(buf_T *buf)
 		if (p_verbose >= 6)
 		{
 		    verbose_enter();
-		    smsg((char_u *)
-			    _("auto-removing autocommand: %s <buffer=%d>"),
+		    smsg(_("auto-removing autocommand: %s <buffer=%d>"),
 					   event_nr2name(event), buf->b_fnum);
 		    verbose_leave();
 		}
@@ -8158,9 +8162,9 @@ au_del_group(char_u *name)
 
     i = au_find_group(name);
     if (i == AUGROUP_ERROR)	/* the group doesn't exist */
-	EMSG2(_("E367: No such group: \"%s\""), name);
+	semsg(_("E367: No such group: \"%s\""), name);
     else if (i == current_augroup)
-	EMSG(_("E936: Cannot delete the current group"));
+	emsg(_("E936: Cannot delete the current group"));
     else
     {
 	event_T	event;
@@ -8225,7 +8229,7 @@ do_augroup(char_u *arg, int del_group)
     if (del_group)
     {
 	if (*arg == NUL)
-	    EMSG(_(e_argreq));
+	    emsg(_(e_argreq));
 	else
 	    au_del_group(arg);
     }
@@ -8244,8 +8248,8 @@ do_augroup(char_u *arg, int del_group)
 	{
 	    if (AUGROUP_NAME(i) != NULL)
 	    {
-		msg_puts(AUGROUP_NAME(i));
-		msg_puts((char_u *)"  ");
+		msg_puts((char *)AUGROUP_NAME(i));
+		msg_puts("  ");
 	    }
 	}
 	msg_clr_eos();
@@ -8332,7 +8336,7 @@ find_end_event(
     {
 	if (arg[1] && !VIM_ISWHITE(arg[1]))
 	{
-	    EMSG2(_("E215: Illegal character after *: %s"), arg);
+	    semsg(_("E215: Illegal character after *: %s"), arg);
 	    return NULL;
 	}
 	pat = arg + 1;
@@ -8344,9 +8348,9 @@ find_end_event(
 	    if ((int)event_name2nr(pat, &p) >= (int)NUM_EVENTS)
 	    {
 		if (have_group)
-		    EMSG2(_("E216: No such event: %s"), pat);
+		    semsg(_("E216: No such event: %s"), pat);
 		else
-		    EMSG2(_("E216: No such group or event: %s"), pat);
+		    semsg(_("E216: No such group or event: %s"), pat);
 		return NULL;
 	    }
 	}
@@ -8569,7 +8573,7 @@ do_autocmd(char_u *arg_in, int forceit)
     if (!forceit && *cmd == NUL)
     {
 	/* Highlight title */
-	MSG_PUTS_TITLE(_("\n--- Autocommands ---"));
+	msg_puts_title(_("\n--- Autocommands ---"));
     }
 
     /*
@@ -8810,7 +8814,7 @@ do_autocmd_event(
 		if (is_buflocal && (buflocal_nr == 0
 				      || buflist_findnr(buflocal_nr) == NULL))
 		{
-		    EMSGN(_("E680: <buffer=%d>: invalid buffer number "),
+		    semsg(_("E680: <buffer=%d>: invalid buffer number "),
 								 buflocal_nr);
 		    return FAIL;
 		}
@@ -8913,7 +8917,7 @@ do_doautocmd(
 
     if (*arg == '*')
     {
-	EMSG(_("E217: Can't execute autocommands for ALL events"));
+	emsg(_("E217: Can't execute autocommands for ALL events"));
 	return FAIL;
     }
 
@@ -8936,7 +8940,7 @@ do_doautocmd(
 	    nothing_done = FALSE;
 
     if (nothing_done && do_msg)
-	MSG(_("No matching autocommands"));
+	msg(_("No matching autocommands"));
     if (did_something != NULL)
 	*did_something = !nothing_done;
 
@@ -9338,6 +9342,7 @@ has_cursormoved(void)
     return (first_autopat[(int)EVENT_CURSORMOVED] != NULL);
 }
 
+#if defined(FEAT_CONCEAL) || defined(PROTO)
 /*
  * Return TRUE when there is a CursorMovedI autocommand defined.
  */
@@ -9346,6 +9351,7 @@ has_cursormovedI(void)
 {
     return (first_autopat[(int)EVENT_CURSORMOVEDI] != NULL);
 }
+#endif
 
 /*
  * Return TRUE when there is a TextChanged autocommand defined.
@@ -9365,6 +9371,7 @@ has_textchangedI(void)
     return (first_autopat[(int)EVENT_TEXTCHANGEDI] != NULL);
 }
 
+#if defined(FEAT_INS_EXPAND) || defined(PROTO)
 /*
  * Return TRUE when there is a TextChangedP autocommand defined.
  */
@@ -9373,6 +9380,7 @@ has_textchangedP(void)
 {
     return (first_autopat[(int)EVENT_TEXTCHANGEDP] != NULL);
 }
+#endif
 
 /*
  * Return TRUE when there is an InsertCharPre autocommand defined.
@@ -9401,6 +9409,7 @@ has_funcundefined(void)
     return (first_autopat[(int)EVENT_FUNCUNDEFINED] != NULL);
 }
 
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Return TRUE when there is a TextYankPost autocommand defined.
  */
@@ -9409,6 +9418,7 @@ has_textyankpost(void)
 {
     return (first_autopat[(int)EVENT_TEXTYANKPOST] != NULL);
 }
+#endif
 
 /*
  * Execute autocommands for "event" and file name "fname".
@@ -9498,7 +9508,7 @@ apply_autocmds_group(
      */
     if (nesting == 10)
     {
-	EMSG(_("E218: autocommand nesting too deep"));
+	emsg(_("E218: autocommand nesting too deep"));
 	goto BYPASS_AU;
     }
 
@@ -9858,11 +9868,14 @@ unblock_autocmds(void)
 # endif
 }
 
+#if defined(FEAT_EVAL) && (defined(FEAT_XIM) || defined(IME_WITHOUT_XIM)) \
+	|| defined(PROTO)
     int
 is_autocmd_blocked(void)
 {
     return autocmd_blocked != 0;
 }
+#endif
 
 /*
  * Find next autocommand pattern that matches.
@@ -9906,7 +9919,7 @@ auto_next_pat(
 		    if (p_verbose >= 8)
 		    {
 			verbose_enter();
-			smsg((char_u *)_("Executing %s"), sourcing_name);
+			smsg(_("Executing %s"), sourcing_name);
 			verbose_leave();
 		    }
 		}
@@ -9972,8 +9985,8 @@ getnextac(int c UNUSED, void *cookie, int indent UNUSED)
     if (p_verbose >= 9)
     {
 	verbose_enter_scroll();
-	smsg((char_u *)_("autocommand %s"), ac->cmd);
-	msg_puts((char_u *)"\n");   /* don't overwrite this either */
+	smsg(_("autocommand %s"), ac->cmd);
+	msg_puts("\n");   /* don't overwrite this either */
 	verbose_leave_scroll();
     }
     retval = vim_strsave(ac->cmd);
@@ -10123,6 +10136,7 @@ get_event_name(expand_T *xp UNUSED, int idx)
 
 #endif	/* FEAT_CMDL_COMPL */
 
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Return TRUE if autocmd is supported.
  */
@@ -10231,6 +10245,7 @@ theend:
     vim_free(arg_save);
     return retval;
 }
+#endif
 
 
 /*
@@ -10520,9 +10535,9 @@ file_pat_to_reg_pat(
     if (nested != 0)
     {
 	if (nested < 0)
-	    EMSG(_("E219: Missing {."));
+	    emsg(_("E219: Missing {."));
 	else
-	    EMSG(_("E220: Missing }."));
+	    emsg(_("E220: Missing }."));
 	VIM_CLEAR(reg_pat);
     }
     return reg_pat;

@@ -162,10 +162,10 @@ open_buffer(
 	 */
 	if (curbuf == NULL)
 	{
-	    EMSG(_("E82: Cannot allocate any buffer, exiting..."));
+	    emsg(_("E82: Cannot allocate any buffer, exiting..."));
 	    getout(2);
 	}
-	EMSG(_("E83: Cannot allocate buffer, using other one..."));
+	emsg(_("E83: Cannot allocate buffer, using other one..."));
 	enter_buffer(curbuf);
 #ifdef FEAT_SYN_HL
 	if (old_tw != curbuf->b_p_tw)
@@ -396,7 +396,7 @@ buf_hashtab_add(buf_T *buf)
 {
     sprintf((char *)buf->b_key, "%x", buf->b_fnum);
     if (hash_add(&buf_hashtab, buf->b_key) == FAIL)
-	EMSG(_("E931: Buffer cannot be registered"));
+	emsg(_("E931: Buffer cannot be registered"));
 }
 
     static void
@@ -430,7 +430,7 @@ can_unload_buffer(buf_T *buf)
 	    }
     }
     if (!can_unload)
-	EMSG(_("E937: Attempt to delete a buffer that is in use"));
+	emsg(_("E937: Attempt to delete a buffer that is in use"));
     return can_unload;
 }
 
@@ -548,7 +548,7 @@ close_buffer(
 	{
 	    /* Autocommands deleted the buffer. */
 aucmd_abort:
-	    EMSG(_(e_auabort));
+	    emsg(_(e_auabort));
 	    return;
 	}
 	--buf->b_locked;
@@ -662,11 +662,6 @@ aucmd_abort:
      */
     if (wipe_buf)
     {
-#ifdef FEAT_SUN_WORKSHOP
-	if (usingSunWorkShop)
-	    workshop_file_closed_lineno((char *)buf->b_ffname,
-			(int)buf->b_last_cursor.lnum);
-#endif
 	if (buf->b_sfname != buf->b_ffname)
 	    VIM_CLEAR(buf->b_sfname);
 	else
@@ -1092,7 +1087,7 @@ handle_swap_exists(bufref_T *old_curbuf)
 	/* User selected Recover at ATTENTION prompt. */
 	msg_scroll = TRUE;
 	ml_recover();
-	MSG_PUTS("\n");	/* don't overwrite the last message */
+	msg_puts("\n");	/* don't overwrite the last message */
 	cmdline_row = msg_row;
 	do_modelines(0);
 
@@ -1119,7 +1114,7 @@ handle_swap_exists(bufref_T *old_curbuf)
  *
  * Returns error message or NULL
  */
-    char_u *
+    char *
 do_bufdel(
     int		command,
     char_u	*arg,		/* pointer to extra arguments */
@@ -1130,7 +1125,7 @@ do_bufdel(
 {
     int		do_current = 0;	/* delete current buffer? */
     int		deleted = 0;	/* number of buffers deleted */
-    char_u	*errormsg = NULL; /* return value */
+    char	*errormsg = NULL; /* return value */
     int		bnr;		/* buffer number */
     char_u	*p;
 
@@ -1143,7 +1138,7 @@ do_bufdel(
 	if (addr_count == 2)
 	{
 	    if (*arg)		/* both range and argument is not allowed */
-		return (char_u *)_(e_trailing);
+		return _(e_trailing);
 	    bnr = start_bnr;
 	}
 	else	/* addr_count == 1 */
@@ -1201,18 +1196,18 @@ do_bufdel(
 		STRCPY(IObuff, _("E516: No buffers were deleted"));
 	    else
 		STRCPY(IObuff, _("E517: No buffers were wiped out"));
-	    errormsg = IObuff;
+	    errormsg = (char *)IObuff;
 	}
 	else if (deleted >= p_report)
 	{
 	    if (command == DOBUF_UNLOAD)
-		smsg((char_u *)NGETTEXT("%d buffer unloaded",
+		smsg(NGETTEXT("%d buffer unloaded",
 			    "%d buffers unloaded", deleted), deleted);
 	    else if (command == DOBUF_DEL)
-		smsg((char_u *)NGETTEXT("%d buffer deleted",
+		smsg(NGETTEXT("%d buffer deleted",
 			    "%d buffers deleted", deleted), deleted);
 	    else
-		smsg((char_u *)NGETTEXT("%d buffer wiped out",
+		smsg(NGETTEXT("%d buffer wiped out",
 			    "%d buffers wiped out", deleted), deleted);
 	}
     }
@@ -1237,7 +1232,7 @@ empty_curbuf(
 
     if (action == DOBUF_UNLOAD)
     {
-	EMSG(_("E90: Cannot unload last buffer"));
+	emsg(_("E90: Cannot unload last buffer"));
 	return FAIL;
     }
 
@@ -1311,7 +1306,7 @@ do_buffer(
 	}
 	if (!bufIsChanged(buf))
 	{
-	    EMSG(_("E84: No modified buffer found"));
+	    emsg(_("E84: No modified buffer found"));
 	    return FAIL;
 	}
     }
@@ -1350,7 +1345,7 @@ do_buffer(
 	    if (bp == buf)
 	    {
 		/* back where we started, didn't find anything. */
-		EMSG(_("E85: There is no listed buffer"));
+		emsg(_("E85: There is no listed buffer"));
 		return FAIL;
 	    }
 	}
@@ -1362,12 +1357,12 @@ do_buffer(
 	{
 	    /* don't warn when deleting */
 	    if (!unload)
-		EMSGN(_(e_nobufnr), count);
+		semsg(_(e_nobufnr), count);
 	}
 	else if (dir == FORWARD)
-	    EMSG(_("E87: Cannot go beyond last buffer"));
+	    emsg(_("E87: Cannot go beyond last buffer"));
 	else
-	    EMSG(_("E88: Cannot go before first buffer"));
+	    emsg(_("E88: Cannot go before first buffer"));
 	return FAIL;
     }
 
@@ -1411,7 +1406,7 @@ do_buffer(
 	    else
 #endif
 	    {
-		EMSGN(_("E89: No write since last change for buffer %ld (add ! to override)"),
+		semsg(_("E89: No write since last change for buffer %d (add ! to override)"),
 								 buf->b_fnum);
 		return FAIL;
 	    }
@@ -1836,10 +1831,10 @@ no_write_message(void)
 {
 #ifdef FEAT_TERMINAL
     if (term_job_running(curbuf->b_term))
-	EMSG(_("E948: Job still running (add ! to end the job)"));
+	emsg(_("E948: Job still running (add ! to end the job)"));
     else
 #endif
-	EMSG(_("E37: No write since last change (add ! to override)"));
+	emsg(_("E37: No write since last change (add ! to override)"));
 }
 
     void
@@ -1847,10 +1842,10 @@ no_write_message_nobang(buf_T *buf UNUSED)
 {
 #ifdef FEAT_TERMINAL
     if (term_job_running(buf->b_term))
-	EMSG(_("E948: Job still running"));
+	emsg(_("E948: Job still running"));
     else
 #endif
-	EMSG(_("E37: No write since last change"));
+	emsg(_("E37: No write since last change"));
 }
 
 /*
@@ -2061,7 +2056,7 @@ buflist_new(
 	buf->b_fnum = top_file_num++;
 	if (top_file_num < 0)		/* wrap around (may cause duplicates) */
 	{
-	    EMSG(_("W14: Warning: List of file names overflow"));
+	    emsg(_("W14: Warning: List of file names overflow"));
 	    if (emsg_silent == 0)
 	    {
 		out_flush();
@@ -2285,9 +2280,9 @@ buflist_getfile(
     if (buf == NULL)
     {
 	if ((options & GETF_ALT) && n == 0)
-	    EMSG(_(e_noalt));
+	    emsg(_(e_noalt));
 	else
-	    EMSGN(_("E92: Buffer %ld not found"), n);
+	    semsg(_("E92: Buffer %d not found"), n);
 	return FAIL;
     }
 
@@ -2572,9 +2567,9 @@ buflist_findpat(
     }
 
     if (match == -2)
-	EMSG2(_("E93: More than one match for %s"), pattern);
+	semsg(_("E93: More than one match for %s"), pattern);
     else if (match < 0)
-	EMSG2(_("E94: No matching buffer for %s"), pattern);
+	semsg(_("E94: No matching buffer for %s"), pattern);
     return match;
 }
 
@@ -3176,7 +3171,7 @@ setfname(
 	    if (obuf->b_ml.ml_mfp != NULL)	/* it's loaded, fail */
 	    {
 		if (message)
-		    EMSG(_("E95: Buffer with this name already exists"));
+		    emsg(_("E95: Buffer with this name already exists"));
 		vim_free(ffname);
 		return FAIL;
 	    }
@@ -3302,7 +3297,7 @@ getaltfname(
     if (buflist_name_nr(0, &fname, &dummy) == FAIL)
     {
 	if (errmsg)
-	    EMSG(_(e_noalt));
+	    emsg(_(e_noalt));
 	return NULL;
     }
     return fname;
@@ -3458,17 +3453,17 @@ fileinfo(
 {
     char_u	*name;
     int		n;
-    char_u	*p;
-    char_u	*buffer;
+    char	*p;
+    char	*buffer;
     size_t	len;
 
-    buffer = alloc(IOSIZE);
+    buffer = (char *)alloc(IOSIZE);
     if (buffer == NULL)
 	return;
 
     if (fullname > 1)	    /* 2 CTRL-G: include buffer number */
     {
-	vim_snprintf((char *)buffer, IOSIZE, "buf %d: ", curbuf->b_fnum);
+	vim_snprintf(buffer, IOSIZE, "buf %d: ", curbuf->b_fnum);
 	p = buffer + STRLEN(buffer);
     }
     else
@@ -3476,18 +3471,18 @@ fileinfo(
 
     *p++ = '"';
     if (buf_spname(curbuf) != NULL)
-	vim_strncpy(p, buf_spname(curbuf), IOSIZE - (p - buffer) - 1);
+	vim_strncpy((char_u *)p, buf_spname(curbuf), IOSIZE - (p - buffer) - 1);
     else
     {
 	if (!fullname && curbuf->b_fname != NULL)
 	    name = curbuf->b_fname;
 	else
 	    name = curbuf->b_ffname;
-	home_replace(shorthelp ? curbuf : NULL, name, p,
+	home_replace(shorthelp ? curbuf : NULL, name, (char_u *)p,
 					  (int)(IOSIZE - (p - buffer)), TRUE);
     }
 
-    vim_snprintf_add((char *)buffer, IOSIZE, "\"%s%s%s%s%s%s",
+    vim_snprintf_add(buffer, IOSIZE, "\"%s%s%s%s%s%s",
 	    curbufIsChanged() ? (shortmess(SHM_MOD)
 					  ?  " [+]" : _(" [Modified]")) : " ",
 	    (curbuf->b_flags & BF_NOTEDITED)
@@ -3515,29 +3510,30 @@ fileinfo(
 	n = (int)(((long)curwin->w_cursor.lnum * 100L) /
 					    (long)curbuf->b_ml.ml_line_count);
     if (curbuf->b_ml.ml_flags & ML_EMPTY)
-	vim_snprintf_add((char *)buffer, IOSIZE, "%s", _(no_lines_msg));
+	vim_snprintf_add(buffer, IOSIZE, "%s", _(no_lines_msg));
 #ifdef FEAT_CMDL_INFO
     else if (p_ru)
 	/* Current line and column are already on the screen -- webb */
-	vim_snprintf_add((char *)buffer, IOSIZE,
+	vim_snprintf_add(buffer, IOSIZE,
 		NGETTEXT("%ld line --%d%%--", "%ld lines --%d%%--",
 						   curbuf->b_ml.ml_line_count),
 		(long)curbuf->b_ml.ml_line_count, n);
 #endif
     else
     {
-	vim_snprintf_add((char *)buffer, IOSIZE,
+	vim_snprintf_add(buffer, IOSIZE,
 		_("line %ld of %ld --%d%%-- col "),
 		(long)curwin->w_cursor.lnum,
 		(long)curbuf->b_ml.ml_line_count,
 		n);
 	validate_virtcol();
 	len = STRLEN(buffer);
-	col_print(buffer + len, IOSIZE - len,
+	col_print((char_u *)buffer + len, IOSIZE - len,
 		   (int)curwin->w_cursor.col + 1, (int)curwin->w_virtcol + 1);
     }
 
-    (void)append_arg_number(curwin, buffer, IOSIZE, !shortmess(SHM_FILE));
+    (void)append_arg_number(curwin, (char_u *)buffer, IOSIZE,
+							 !shortmess(SHM_FILE));
 
     if (dont_truncate)
     {
@@ -3551,14 +3547,14 @@ fileinfo(
     }
     else
     {
-	p = msg_trunc_attr(buffer, FALSE, 0);
+	p = (char *)msg_trunc_attr(buffer, FALSE, 0);
 	if (restart_edit != 0 || (msg_scrolled && !need_wait_return))
 	    /* Need to repeat the message after redrawing when:
 	     * - When restart_edit is set (otherwise there will be a delay
 	     *   before redrawing).
 	     * - When the screen was scrolled but there is no wait-return
 	     *   prompt. */
-	    set_keep_msg(p, 0);
+	    set_keep_msg((char_u *)p, 0);
     }
 
     vim_free(buffer);
@@ -3883,6 +3879,8 @@ build_stl_str_hl(
     struct stl_hlrec *hltab,	/* return: HL attributes (can be NULL) */
     struct stl_hlrec *tabtab)	/* return: tab page nrs (can be NULL) */
 {
+    linenr_T	lnum;
+    size_t	len;
     char_u	*p;
     char_u	*s;
     char_u	*t;
@@ -3957,15 +3955,33 @@ build_stl_str_hl(
 	fillchar = '-';
 #endif
 
-    /* Get line & check if empty (cursorpos will show "0-1").  Note that
-     * p will become invalid when getting another buffer line. */
-    p = ml_get_buf(wp->w_buffer, wp->w_cursor.lnum, FALSE);
+    // The cursor in windows other than the current one isn't always
+    // up-to-date, esp. because of autocommands and timers.
+    lnum = wp->w_cursor.lnum;
+    if (lnum > wp->w_buffer->b_ml.ml_line_count)
+    {
+	lnum = wp->w_buffer->b_ml.ml_line_count;
+	wp->w_cursor.lnum = lnum;
+    }
+
+    // Get line & check if empty (cursorpos will show "0-1").  Note that
+    // p will become invalid when getting another buffer line.
+    p = ml_get_buf(wp->w_buffer, lnum, FALSE);
     empty_line = (*p == NUL);
 
-    /* Get the byte value now, in case we need it below. This is more
-     * efficient than making a copy of the line. */
-    if (wp->w_cursor.col > (colnr_T)STRLEN(p))
+    // Get the byte value now, in case we need it below. This is more efficient
+    // than making a copy of the line.
+    len = STRLEN(p);
+    if (wp->w_cursor.col > (colnr_T)len)
+    {
+	// Line may have changed since checking the cursor column, or the lnum
+	// was adjusted above.
+	wp->w_cursor.col = (colnr_T)len;
+#ifdef FEAT_VIRTUALEDIT
+	wp->w_cursor.coladd = 0;
+#endif
 	byteval = 0;
+    }
     else
 #ifdef FEAT_MBYTE
 	byteval = (*mb_ptr2char)(p + wp->w_cursor.col);
@@ -5674,6 +5690,7 @@ bt_normal(buf_T *buf)
     return buf != NULL && buf->b_p_bt[0] == NUL;
 }
 
+#if defined(FEAT_QUICKFIX) || defined(PROTO)
 /*
  * Return TRUE if "buf" is the quickfix buffer.
  */
@@ -5682,7 +5699,9 @@ bt_quickfix(buf_T *buf)
 {
     return buf != NULL && buf->b_p_bt[0] == 'q';
 }
+#endif
 
+#if defined(FEAT_TERMINAL) || defined(PROTO)
 /*
  * Return TRUE if "buf" is a terminal buffer.
  */
@@ -5691,6 +5710,7 @@ bt_terminal(buf_T *buf)
 {
     return buf != NULL && buf->b_p_bt[0] == 't';
 }
+#endif
 
 /*
  * Return TRUE if "buf" is a help buffer.
@@ -5735,16 +5755,18 @@ bt_dontwrite(buf_T *buf)
 	         || buf->b_p_bt[0] == 'p');
 }
 
+#if defined(FEAT_QUICKFIX) || defined(PROTO)
     int
 bt_dontwrite_msg(buf_T *buf)
 {
     if (bt_dontwrite(buf))
     {
-	EMSG(_("E382: Cannot write, 'buftype' option is set"));
+	emsg(_("E382: Cannot write, 'buftype' option is set"));
 	return TRUE;
     }
     return FALSE;
 }
+#endif
 
 /*
  * Return TRUE if the buffer should be hidden, according to 'hidden', ":hide"

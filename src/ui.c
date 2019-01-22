@@ -205,7 +205,7 @@ theend:
     return retval;
 }
 
-#if defined(FEAT_TIMERS) || defined(PROT)
+#if defined(FEAT_TIMERS) || defined(PROTO)
 /*
  * Wait for a timer to fire or "wait_func" to return non-zero.
  * Returns OK when something was read.
@@ -221,15 +221,18 @@ ui_wait_for_chars_or_timer(
     int	    due_time;
     long    remaining = wtime;
     int	    tb_change_cnt = typebuf.tb_change_cnt;
+# ifdef FEAT_JOB_CHANNEL
+    int	    brief_wait = FALSE;
+# endif
 
-    /* When waiting very briefly don't trigger timers. */
+    // When waiting very briefly don't trigger timers.
     if (wtime >= 0 && wtime < 10L)
 	return wait_func(wtime, NULL, ignore_input);
 
     while (wtime < 0 || remaining > 0)
     {
-	/* Trigger timers and then get the time in wtime until the next one is
-	 * due.  Wait up to that time. */
+	// Trigger timers and then get the time in wtime until the next one is
+	// due.  Wait up to that time.
 	due_time = check_due_timer();
 	if (typebuf.tb_change_cnt != tb_change_cnt)
 	{
@@ -238,11 +241,28 @@ ui_wait_for_chars_or_timer(
 	}
 	if (due_time <= 0 || (wtime > 0 && due_time > remaining))
 	    due_time = remaining;
+# ifdef FEAT_JOB_CHANNEL
+	if ((due_time < 0 || due_time > 10L)
+#  ifdef FEAT_GUI
+		&& !gui.in_use
+#  endif
+		&& (has_pending_job() || channel_any_readahead()))
+	{
+	    // There is a pending job or channel, should return soon in order
+	    // to handle them ASAP.  Do check for input briefly.
+	    due_time = 10L;
+	    brief_wait = TRUE;
+	}
+# endif
 	if (wait_func(due_time, interrupted, ignore_input))
 	    return OK;
-	if (interrupted != NULL && *interrupted)
-	    /* Nothing available, but need to return so that side effects get
-	     * handled, such as handling a message on a channel. */
+	if ((interrupted != NULL && *interrupted)
+# ifdef FEAT_JOB_CHANNEL
+		|| brief_wait
+# endif
+		)
+	    // Nothing available, but need to return so that side effects get
+	    // handled, such as handling a message on a channel.
 	    return FAIL;
 	if (wtime > 0)
 	    remaining -= due_time;
@@ -252,7 +272,7 @@ ui_wait_for_chars_or_timer(
 #endif
 
 /*
- * return non-zero if a character is available
+ * Return non-zero if a character is available.
  */
     int
 ui_char_avail(void)
@@ -327,10 +347,10 @@ ui_suspend(void)
 suspend_shell(void)
 {
     if (*p_sh == NUL)
-	EMSG(_(e_shellempty));
+	emsg(_(e_shellempty));
     else
     {
-	MSG_PUTS(_("new shell started\n"));
+	msg_puts(_("new shell started\n"));
 	do_shell(NULL, 0);
     }
 }
@@ -1589,6 +1609,7 @@ clip_gen_request_selection(VimClipboard *cbd)
 #endif
 }
 
+#if (defined(FEAT_X11) && defined(USE_SYSTEM)) || defined(PROTO)
     int
 clip_gen_owner_exists(VimClipboard *cbd UNUSED)
 {
@@ -1603,6 +1624,7 @@ clip_gen_owner_exists(VimClipboard *cbd UNUSED)
     return TRUE;
 #endif
 }
+#endif
 
 #endif /* FEAT_CLIPBOARD */
 
@@ -1625,10 +1647,9 @@ clip_gen_owner_exists(VimClipboard *cbd UNUSED)
  * descriptions which would otherwise overflow.  The buffer is considered full
  * when only this extra space (or part of it) remains.
  */
-#if defined(FEAT_SUN_WORKSHOP) || defined(FEAT_JOB_CHANNEL) \
-	|| defined(FEAT_CLIENTSERVER)
+#if defined(FEAT_JOB_CHANNEL) || defined(FEAT_CLIENTSERVER)
    /*
-    * Sun WorkShop and NetBeans stuff debugger commands into the input buffer.
+    * NetBeans stuffs debugger commands into the input buffer.
     * This requires a larger buffer...
     * (Madsen) Go with this for remote input as well ...
     */
@@ -2575,11 +2596,14 @@ clip_x11_set_selection(VimClipboard *cbd UNUSED)
 {
 }
 
+#if (defined(FEAT_X11) && defined(FEAT_XCLIPBOARD) && defined(USE_SYSTEM)) \
+	|| defined(PROTO)
     int
 clip_x11_owner_exists(VimClipboard *cbd)
 {
     return XGetSelectionOwner(X_DISPLAY, cbd->sel_atom) != None;
 }
+#endif
 #endif
 
 #if defined(FEAT_XCLIPBOARD) || defined(FEAT_GUI_X11) \
@@ -2627,7 +2651,7 @@ yank_cut_buffer0(Display *dpy, VimClipboard *cbd)
 	if (p_verbose > 0)
 	{
 	    verbose_enter();
-	    verb_msg((char_u *)_("Used CUT_BUFFER0 instead of empty selection"));
+	    verb_msg(_("Used CUT_BUFFER0 instead of empty selection"));
 	    verbose_leave();
 	}
     }

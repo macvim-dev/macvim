@@ -237,7 +237,7 @@ add_buff(
     }
     else if (buf->bh_curr == NULL)	/* buffer has already been read */
     {
-	IEMSG(_("E222: Add to read buffer"));
+	iemsg(_("E222: Add to read buffer"));
 	return;
     }
     else if (buf->bh_index != 0)
@@ -413,6 +413,7 @@ stuff_empty(void)
 	 && readbuf2.bh_first.b_next == NULL);
 }
 
+#if defined(FEAT_EVAL) || defined(PROTO)
 /*
  * Return TRUE if readbuf1 is empty.  There may still be redo characters in
  * redbuf2.
@@ -422,6 +423,7 @@ readbuf1_empty(void)
 {
     return (readbuf1.bh_first.b_next == NULL);
 }
+#endif
 
 /*
  * Set a typeahead character that won't be flushed.
@@ -998,7 +1000,7 @@ ins_typebuf(
 	newlen = typebuf.tb_len + addlen + newoff + 4 * (MAXMAPLEN + 4);
 	if (newlen < 0)		    /* string is getting too long */
 	{
-	    EMSG(_(e_toocompl));    /* also calls flush_buffers */
+	    emsg(_(e_toocompl));    /* also calls flush_buffers */
 	    setcursor();
 	    return FAIL;
 	}
@@ -1431,7 +1433,7 @@ openscript(
 {
     if (curscript + 1 == NSCRIPT)
     {
-	EMSG(_(e_nesting));
+	emsg(_(e_nesting));
 	return;
     }
 #ifdef FEAT_EVAL
@@ -1446,7 +1448,7 @@ openscript(
     expand_env(name, NameBuff, MAXPATHL);
     if ((scriptin[curscript] = mch_fopen((char *)NameBuff, READBIN)) == NULL)
     {
-	EMSG2(_(e_notopen), name);
+	semsg(_(e_notopen), name);
 	if (curscript)
 	    --curscript;
 	return;
@@ -1942,7 +1944,7 @@ vungetc(int c)
 }
 
 /*
- * Get a character:
+ * Get a byte:
  * 1. from the stuffbuffer
  *	This is used for abbreviated commands like "D" -> "d$".
  *	Also used to redo a command for ".".
@@ -2508,7 +2510,7 @@ vgetorpeek(int advance)
 			 */
 			if (++mapdepth >= p_mmd)
 			{
-			    EMSG(_("E223: recursive mapping"));
+			    emsg(_("E223: recursive mapping"));
 			    if (State & CMDLINE)
 				redrawcmdline();
 			    else
@@ -3508,10 +3510,10 @@ do_map(
 			&& STRNCMP(mp->m_keys, keys, (size_t)len) == 0)
 		{
 		    if (abbrev)
-			EMSG2(_("E224: global abbreviation already exists for %s"),
+			semsg(_("E224: global abbreviation already exists for %s"),
 				mp->m_keys);
 		    else
-			EMSG2(_("E225: global mapping already exists for %s"),
+			semsg(_("E225: global mapping already exists for %s"),
 				mp->m_keys);
 		    retval = 5;
 		    goto theend;
@@ -3643,10 +3645,10 @@ do_map(
 			else if (unique)
 			{
 			    if (abbrev)
-				EMSG2(_("E226: abbreviation already exists for %s"),
+				semsg(_("E226: abbreviation already exists for %s"),
 									   p);
 			    else
-				EMSG2(_("E227: mapping already exists for %s"), p);
+				semsg(_("E227: mapping already exists for %s"), p);
 			    retval = 5;
 			    goto theend;
 			}
@@ -3728,9 +3730,9 @@ do_map(
 		)
 	{
 	    if (abbrev)
-		MSG(_("No abbreviation found"));
+		msg(_("No abbreviation found"));
 	    else
-		MSG(_("No mapping found"));
+		msg(_("No mapping found"));
 	}
 	goto theend;			    /* listing finished */
     }
@@ -3892,7 +3894,7 @@ map_clear(
     local = (STRCMP(arg, "<buffer>") == 0);
     if (!local && *arg != NUL)
     {
-	EMSG(_(e_invarg));
+	emsg(_(e_invarg));
 	return;
     }
 #endif
@@ -4047,7 +4049,7 @@ showmap(
     mapchars = map_mode_to_chars(mp->m_mode);
     if (mapchars != NULL)
     {
-	msg_puts(mapchars);
+	msg_puts((char *)mapchars);
 	len = (int)STRLEN(mapchars);
 	vim_free(mapchars);
     }
@@ -4064,9 +4066,9 @@ showmap(
     } while (len < 12);
 
     if (mp->m_noremap == REMAP_NONE)
-	msg_puts_attr((char_u *)"*", HL_ATTR(HLF_8));
+	msg_puts_attr("*", HL_ATTR(HLF_8));
     else if (mp->m_noremap == REMAP_SCRIPT)
-	msg_puts_attr((char_u *)"&", HL_ATTR(HLF_8));
+	msg_puts_attr("&", HL_ATTR(HLF_8));
     else
 	msg_putchar(' ');
 
@@ -4078,7 +4080,7 @@ showmap(
     /* Use FALSE below if we only want things like <Up> to show up as such on
      * the rhs, and not M-x etc, TRUE gets both -- webb */
     if (*mp->m_str == NUL)
-	msg_puts_attr((char_u *)"<Nop>", HL_ATTR(HLF_8));
+	msg_puts_attr("<Nop>", HL_ATTR(HLF_8));
     else
     {
 	/* Remove escaping of CSI, because "m_str" is in a format to be used
@@ -4920,7 +4922,7 @@ makemap(
 			c1 = 't';
 			break;
 		    default:
-			IEMSG(_("E228: makemap: Illegal mode"));
+			iemsg(_("E228: makemap: Illegal mode"));
 			return FAIL;
 		}
 		do	/* do this twice if c2 is set, 3 times with c3 */

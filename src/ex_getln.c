@@ -158,7 +158,7 @@ abandon_cmdline(void)
     VIM_CLEAR(ccline.cmdbuff);
     if (msg_scrolled == 0)
 	compute_cmdrow();
-    MSG("");
+    msg("");
     redraw_cmdline = TRUE;
 }
 
@@ -275,7 +275,7 @@ do_incsearch_highlighting(int firstc, incsearch_state_T *is_state,
     int		delim_optional = FALSE;
     int		delim;
     char_u	*end;
-    char_u	*dummy;
+    char	*dummy;
     exarg_T	ea;
     pos_T	save_cursor;
     int		use_last_pat;
@@ -2610,10 +2610,10 @@ text_locked(void)
     void
 text_locked_msg(void)
 {
-    EMSG(_(get_text_locked_msg()));
+    emsg(_(get_text_locked_msg()));
 }
 
-    char_u *
+    char *
 get_text_locked_msg(void)
 {
 #ifdef FEAT_CMDWIN
@@ -2632,7 +2632,7 @@ curbuf_locked(void)
 {
     if (curbuf_lock > 0)
     {
-	EMSG(_("E788: Not allowed to edit another buffer now"));
+	emsg(_("E788: Not allowed to edit another buffer now"));
 	return TRUE;
     }
     return allbuf_locked();
@@ -2647,7 +2647,7 @@ allbuf_locked(void)
 {
     if (allbuf_lock > 0)
     {
-	EMSG(_("E811: Not allowed to change buffer information now"));
+	emsg(_("E811: Not allowed to change buffer information now"));
 	return TRUE;
     }
     return FALSE;
@@ -2795,7 +2795,7 @@ getexmodeline(
 	while (indent >= 8)
 	{
 	    ga_append(&line_ga, TAB);
-	    msg_puts((char_u *)"        ");
+	    msg_puts("        ");
 	    indent -= 8;
 	}
 	while (indent-- > 0)
@@ -3781,7 +3781,7 @@ redrawcmdprompt(void)
 	msg_putchar(ccline.cmdfirstc);
     if (ccline.cmdprompt != NULL)
     {
-	msg_puts_attr(ccline.cmdprompt, ccline.cmdattr);
+	msg_puts_attr((char *)ccline.cmdprompt, ccline.cmdattr);
 	ccline.cmdindent = msg_col + (msg_row - cmdline_row) * Columns;
 	/* do the reverse of set_cmdspos() */
 	if (ccline.cmdfirstc != NUL)
@@ -3973,7 +3973,7 @@ nextwild(
 	return FAIL;
     }
 
-    MSG_PUTS("...");	    /* show that we are busy */
+    msg_puts("...");	    /* show that we are busy */
     out_flush();
 
     i = (int)(xp->xp_pattern - ccline.cmdbuff);
@@ -4186,13 +4186,13 @@ ExpandOne(
 	     * causing the pattern to be added, which has illegal characters.
 	     */
 	    if (!(options & WILD_SILENT) && (options & WILD_LIST_NOTFOUND))
-		EMSG2(_(e_nomatch2), str);
+		semsg(_(e_nomatch2), str);
 #endif
 	}
 	else if (xp->xp_numfiles == 0)
 	{
 	    if (!(options & WILD_SILENT))
-		EMSG2(_(e_nomatch2), str);
+		semsg(_(e_nomatch2), str);
 	}
 	else
 	{
@@ -4231,7 +4231,7 @@ ExpandOne(
 		     * (and possibly have to hit return to continue!).
 		     */
 		    if (!(options & WILD_SILENT))
-			EMSG(_(e_toomany));
+			emsg(_(e_toomany));
 		    else if (!(options & WILD_NO_BEEP))
 			beep_flush();
 		}
@@ -4623,10 +4623,10 @@ showmatches(expand_T *xp, int wildmenu UNUSED)
 
 	if (xp->xp_context == EXPAND_TAGS_LISTFILES)
 	{
-	    MSG_PUTS_ATTR(_("tagname"), HL_ATTR(HLF_T));
+	    msg_puts_attr(_("tagname"), HL_ATTR(HLF_T));
 	    msg_clr_eos();
 	    msg_advance(maxlen - 3);
-	    MSG_PUTS_ATTR(_(" kind file\n"), HL_ATTR(HLF_T));
+	    msg_puts_attr(_(" kind file\n"), HL_ATTR(HLF_T));
 	}
 
 	/* list the files line by line */
@@ -4640,9 +4640,9 @@ showmatches(expand_T *xp, int wildmenu UNUSED)
 		    msg_outtrans_attr(files_found[k], HL_ATTR(HLF_D));
 		    p = files_found[k] + STRLEN(files_found[k]) + 1;
 		    msg_advance(maxlen + 1);
-		    msg_puts(p);
+		    msg_puts((char *)p);
 		    msg_advance(maxlen + 3);
-		    msg_puts_long_attr(p + 2, HL_ATTR(HLF_D));
+		    msg_outtrans_long_attr(p + 2, HL_ATTR(HLF_D));
 		    break;
 		}
 		for (j = maxlen - lastlen; --j >= 0; )
@@ -6650,7 +6650,7 @@ ex_history(exarg_T *eap)
 
     if (hislen == 0)
     {
-	MSG(_("'history' option is zero"));
+	msg(_("'history' option is zero"));
 	return;
     }
 
@@ -6673,7 +6673,7 @@ ex_history(exarg_T *eap)
 	    else
 	    {
 		*end = i;
-		EMSG(_(e_trailing));
+		emsg(_(e_trailing));
 		return;
 	    }
 	}
@@ -6685,7 +6685,7 @@ ex_history(exarg_T *eap)
 	end = arg;
     if (!get_list_range(&end, &hisidx1, &hisidx2) || *end != NUL)
     {
-	EMSG(_(e_trailing));
+	emsg(_(e_trailing));
 	return;
     }
 
@@ -6693,7 +6693,7 @@ ex_history(exarg_T *eap)
     {
 	STRCPY(IObuff, "\n      #  ");
 	STRCAT(STRCAT(IObuff, history_names[histype1]), " history");
-	MSG_PUTS_TITLE(IObuff);
+	msg_puts_title((char *)IObuff);
 	idx = hisidx[histype1];
 	hist = history[histype1];
 	j = hisidx1;
@@ -7216,7 +7216,7 @@ cmd_pchar(int c, int offset)
 {
     if (ccline.cmdpos + offset >= ccline.cmdlen || ccline.cmdpos + offset < 0)
     {
-	EMSG(_("E198: cmd_pchar beyond the command length"));
+	emsg(_("E198: cmd_pchar beyond the command length"));
 	return;
     }
     ccline.cmdbuff[ccline.cmdpos + offset] = (char_u)c;
@@ -7228,7 +7228,7 @@ cmd_gchar(int offset)
 {
     if (ccline.cmdpos + offset >= ccline.cmdlen || ccline.cmdpos + offset < 0)
     {
-	/*  EMSG(_("cmd_gchar beyond the command length")); */
+	// emsg(_("cmd_gchar beyond the command length"));
 	return NUL;
     }
     return (int)ccline.cmdbuff[ccline.cmdpos + offset];
@@ -7407,7 +7407,7 @@ open_cmdwin(void)
     if (!win_valid(old_curwin) || !bufref_valid(&old_curbuf))
     {
 	cmdwin_result = Ctrl_C;
-	EMSG(_("E199: Active window or buffer deleted"));
+	emsg(_("E199: Active window or buffer deleted"));
     }
     else
     {

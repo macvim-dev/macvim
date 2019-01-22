@@ -411,24 +411,29 @@ set_indent(
     }
     mch_memmove(s, p, (size_t)line_len);
 
-    /* Replace the line (unless undo fails). */
+    // Replace the line (unless undo fails).
     if (!(flags & SIN_UNDO) || u_savesub(curwin->w_cursor.lnum) == OK)
     {
 	ml_replace(curwin->w_cursor.lnum, newline, FALSE);
 	if (flags & SIN_CHANGED)
 	    changed_bytes(curwin->w_cursor.lnum, 0);
-	/* Correct saved cursor position if it is in this line. */
+
+	// Correct saved cursor position if it is in this line.
 	if (saved_cursor.lnum == curwin->w_cursor.lnum)
 	{
 	    if (saved_cursor.col >= (colnr_T)(p - oldline))
-		/* cursor was after the indent, adjust for the number of
-		 * bytes added/removed */
+		// cursor was after the indent, adjust for the number of
+		// bytes added/removed
 		saved_cursor.col += ind_len - (colnr_T)(p - oldline);
 	    else if (saved_cursor.col >= (colnr_T)(s - newline))
-		/* cursor was in the indent, and is now after it, put it back
-		 * at the start of the indent (replacing spaces with TAB) */
+		// cursor was in the indent, and is now after it, put it back
+		// at the start of the indent (replacing spaces with TAB)
 		saved_cursor.col = (colnr_T)(s - newline);
 	}
+#ifdef FEAT_TEXT_PROP
+	adjust_prop_columns(curwin->w_cursor.lnum, (colnr_T)(p - oldline),
+					     ind_len - (colnr_T)(p - oldline));
+#endif
 	retval = TRUE;
     }
     else
@@ -2397,7 +2402,7 @@ ins_char_bytes(char_u *buf, int charlen)
 	    colnr_T	vcol;
 	    int		old_list;
 #ifndef FEAT_MBYTE
-	    char_u	buf[2];
+	    char_u	cbuf[2];
 #endif
 
 	    /*
@@ -2417,10 +2422,12 @@ ins_char_bytes(char_u *buf, int charlen)
 	     */
 	    getvcol(curwin, &curwin->w_cursor, NULL, &vcol, NULL);
 #ifndef FEAT_MBYTE
-	    buf[0] = c;
-	    buf[1] = NUL;
-#endif
+	    cbuf[0] = c;
+	    cbuf[1] = NUL;
+	    new_vcol = vcol + chartabsize(cbuf, vcol);
+#else
 	    new_vcol = vcol + chartabsize(buf, vcol);
+#endif
 	    while (oldp[col + oldlen] != NUL && vcol < new_vcol)
 	    {
 		vcol += chartabsize(oldp + col + oldlen, vcol);
@@ -2651,7 +2658,7 @@ del_bytes(
     /* If "count" is negative the caller must be doing something wrong. */
     if (count < 1)
     {
-	IEMSGN("E950: Invalid count for del_bytes(): %ld", count);
+	siemsg("E950: Invalid count for del_bytes(): %ld", count);
 	return FAIL;
     }
 
@@ -3020,7 +3027,7 @@ changed_bytes(linenr_T lnum, colnr_T col)
  * When "added" is negative text was deleted.
  */
     void
-inserted_bytes(linenr_T lnum, colnr_T col, int added)
+inserted_bytes(linenr_T lnum, colnr_T col, int added UNUSED)
 {
     changed_bytes(lnum, col);
 
@@ -3461,7 +3468,7 @@ change_warning(
 	if (msg_row == Rows - 1)
 	    msg_col = col;
 	msg_source(HL_ATTR(HLF_W));
-	MSG_PUTS_ATTR(_(w_readonly), HL_ATTR(HLF_W) | MSG_HIST);
+	msg_puts_attr(_(w_readonly), HL_ATTR(HLF_W) | MSG_HIST);
 #ifdef FEAT_EVAL
 	set_vim_var_string(VV_WARNINGMSG, (char_u *)_(w_readonly), -1);
 #endif
@@ -3514,7 +3521,7 @@ ask_yesno(char_u *str, int direct)
     while (r != 'y' && r != 'n')
     {
 	/* same highlighting as for wait_return */
-	smsg_attr(HL_ATTR(HLF_R), (char_u *)"%s (y/n)?", str);
+	smsg_attr(HL_ATTR(HLF_R), "%s (y/n)?", str);
 	if (direct)
 	    r = get_keystroke();
 	else
@@ -3742,7 +3749,7 @@ get_number(
 	{
 	    if (typed > 0)
 	    {
-		MSG_PUTS("\b \b");
+		msg_puts("\b \b");
 		--typed;
 	    }
 	    n /= 10;
@@ -3786,9 +3793,9 @@ prompt_for_number(int *mouse_used)
 
     /* When using ":silent" assume that <CR> was entered. */
     if (mouse_used != NULL)
-	MSG_PUTS(_("Type number and <Enter> or click with mouse (empty cancels): "));
+	msg_puts(_("Type number and <Enter> or click with mouse (empty cancels): "));
     else
-	MSG_PUTS(_("Type number and <Enter> (empty cancels): "));
+	msg_puts(_("Type number and <Enter> (empty cancels): "));
 
     // Set the state such that text can be selected/copied/pasted and we still
     // get mouse events. redraw_after_callback() will not redraw if cmdline_row
@@ -3846,16 +3853,17 @@ msgmore(long n)
     if (pn > p_report)
     {
 	if (n > 0)
-	    vim_snprintf((char *)msg_buf, MSG_BUF_LEN,
+	    vim_snprintf(msg_buf, MSG_BUF_LEN,
 		    NGETTEXT("%ld more line", "%ld more lines", pn), pn);
 	else
-	    vim_snprintf((char *)msg_buf, MSG_BUF_LEN,
+	    vim_snprintf(msg_buf, MSG_BUF_LEN,
 		    NGETTEXT("%ld line less", "%ld fewer lines", pn), pn);
 	if (got_int)
-	    vim_strcat(msg_buf, (char_u *)_(" (Interrupted)"), MSG_BUF_LEN);
+	    vim_strcat((char_u *)msg_buf, (char_u *)_(" (Interrupted)"),
+								  MSG_BUF_LEN);
 	if (msg(msg_buf))
 	{
-	    set_keep_msg(msg_buf, 0);
+	    set_keep_msg((char_u *)msg_buf, 0);
 	    keep_msg_more = TRUE;
 	}
     }
@@ -3891,7 +3899,7 @@ vim_beep(
 	{
 #ifdef ELAPSED_FUNC
 	    static int		did_init = FALSE;
-	    static ELAPSED_TYPE	start_tv;
+	    static elapsed_T	start_tv;
 
 	    /* Only beep once per half a second, otherwise a sequence of beeps
 	     * would freeze Vim. */
@@ -3936,7 +3944,7 @@ vim_beep(
 	if (vim_strchr(p_debug, 'e') != NULL)
 	{
 	    msg_source(HL_ATTR(HLF_W));
-	    msg_attr((char_u *)_("Beep!"), HL_ATTR(HLF_W));
+	    msg_attr(_("Beep!"), HL_ATTR(HLF_W));
 	}
     }
 }
@@ -4060,7 +4068,7 @@ init_homedir(void)
 	    if (!mch_chdir((char *)var) && mch_dirname(IObuff, IOSIZE) == OK)
 		var = IObuff;
 	    if (mch_chdir((char *)NameBuff) != 0)
-		EMSG(_(e_prev_dir));
+		emsg(_(e_prev_dir));
 	}
 #endif
 	homedir = vim_strsave(var);
@@ -4671,6 +4679,7 @@ remove_tail(char_u *p, char_u *pend, char_u *name)
     return pend;
 }
 
+#if defined(FEAT_EVAL) || defined(PROTO)
     void
 vim_unsetenv(char_u *var)
 {
@@ -4680,6 +4689,7 @@ vim_unsetenv(char_u *var)
     vim_setenv(var, (char_u *)"");
 #endif
 }
+#endif
 
 
 /*
@@ -9942,7 +9952,7 @@ expand_wildcards_eval(
     int		ret = FAIL;
     char_u	*eval_pat = NULL;
     char_u	*exp_pat = *pat;
-    char_u      *ignored_msg;
+    char      *ignored_msg;
     int		usedlen;
 
     if (*exp_pat == '%' || *exp_pat == '#' || *exp_pat == '<')
@@ -11434,7 +11444,7 @@ get_cmd_output(
     /* get a name for the temp file */
     if ((tempname = vim_tempname('o', FALSE)) == NULL)
     {
-	EMSG(_(e_notmp));
+	emsg(_(e_notmp));
 	return NULL;
     }
 
@@ -11465,7 +11475,7 @@ get_cmd_output(
 
     if (fd == NULL)
     {
-	EMSG2(_(e_notopen), tempname);
+	semsg(_(e_notopen), tempname);
 	goto done;
     }
 
@@ -11485,7 +11495,7 @@ get_cmd_output(
 #endif
     if (i != len)
     {
-	EMSG2(_(e_notread), tempname);
+	semsg(_(e_notread), tempname);
 	VIM_CLEAR(buffer);
     }
     else if (ret_len == NULL)

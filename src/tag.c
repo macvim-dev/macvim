@@ -279,7 +279,7 @@ do_tag(
 		    tagstacklen == 0)
 	    {
 		/* empty stack */
-		EMSG(_(e_tagstack));
+		emsg(_(e_tagstack));
 		goto end_do_tag;
 	    }
 
@@ -290,7 +290,7 @@ do_tag(
 #endif
 		if ((tagstackidx -= count) < 0)
 		{
-		    EMSG(_(bottommsg));
+		    emsg(_(bottommsg));
 		    if (tagstackidx + count == 0)
 		    {
 			/* We did [num]^T from the bottom of the stack */
@@ -304,7 +304,7 @@ do_tag(
 		}
 		else if (tagstackidx >= tagstacklen)    /* count == 0? */
 		{
-		    EMSG(_(topmsg));
+		    emsg(_(topmsg));
 		    goto end_do_tag;
 		}
 
@@ -375,12 +375,12 @@ do_tag(
 			 * position.
 			 */
 			tagstackidx = tagstacklen - 1;
-			EMSG(_(topmsg));
+			emsg(_(topmsg));
 			save_pos = FALSE;
 		    }
 		    else if (tagstackidx < 0)	/* must have been count == 0 */
 		    {
-			EMSG(_(bottommsg));
+			emsg(_(bottommsg));
 			tagstackidx = 0;
 			goto end_do_tag;
 		    }
@@ -424,7 +424,7 @@ do_tag(
 		    cur_match = MAXCOL - 1;
 		else if (cur_match < 0)
 		{
-		    EMSG(_("E425: Cannot go before first matching tag"));
+		    emsg(_("E425: Cannot go before first matching tag"));
 		    skip_msg = TRUE;
 		    cur_match = 0;
 		    cur_fnum = curbuf->b_fnum;
@@ -566,7 +566,7 @@ do_tag(
 	if (num_matches <= 0)
 	{
 	    if (verbose)
-		EMSG2(_("E426: tag not found: %s"), name);
+		semsg(_("E426: tag not found: %s"), name);
 #if defined(FEAT_QUICKFIX)
 	    g_do_tagpreview = 0;
 #endif
@@ -605,10 +605,10 @@ do_tag(
 		if (msg_col == 0)
 		    msg_didout = FALSE;	/* overwrite previous message */
 		msg_start();
-		MSG_PUTS_ATTR(_("  # pri kind tag"), HL_ATTR(HLF_T));
+		msg_puts_attr(_("  # pri kind tag"), HL_ATTR(HLF_T));
 		msg_clr_eos();
 		taglen_advance(taglen);
-		MSG_PUTS_ATTR(_("file\n"), HL_ATTR(HLF_T));
+		msg_puts_attr(_("file\n"), HL_ATTR(HLF_T));
 
 		for (i = 0; i < num_matches && !got_int; ++i)
 		{
@@ -626,7 +626,7 @@ do_tag(
 		    vim_snprintf((char *)IObuff + 1, IOSIZE - 1,
 			    "%2d %s ", i + 1,
 					   mt_names[matches[i][0] & MT_MASK]);
-		    msg_puts(IObuff);
+		    msg_puts((char *)IObuff);
 		    if (tagp.tagkind != NULL)
 			msg_outtrans_len(tagp.tagkind,
 				      (int)(tagp.tagkind_end - tagp.tagkind));
@@ -642,7 +642,7 @@ do_tag(
 		    p = tag_full_fname(&tagp);
 		    if (p != NULL)
 		    {
-			msg_puts_long_attr(p, HL_ATTR(HLF_D));
+			msg_outtrans_long_attr(p, HL_ATTR(HLF_D));
 			vim_free(p);
 		    }
 		    if (msg_col > 0)
@@ -690,7 +690,7 @@ do_tag(
 				p = msg_outtrans_one(p, attr);
 				if (*p == TAB)
 				{
-				    msg_puts_attr((char_u *)" ", attr);
+				    msg_puts_attr(" ", attr);
 				    break;
 				}
 				if (*p == ':')
@@ -950,14 +950,14 @@ do_tag(
 	    {
 		/* Avoid giving this error when a file wasn't found and we're
 		 * looking for a match in another file, which wasn't found.
-		 * There will be an EMSG("file doesn't exist") below then. */
+		 * There will be an emsg("file doesn't exist") below then. */
 		if ((type == DT_NEXT || type == DT_FIRST)
 						      && nofile_fname == NULL)
 		{
 		    if (num_matches == 1)
-			EMSG(_("E427: There is only one matching tag"));
+			emsg(_("E427: There is only one matching tag"));
 		    else
-			EMSG(_("E428: Cannot go beyond last matching tag"));
+			emsg(_("E428: Cannot go beyond last matching tag"));
 		    skip_msg = TRUE;
 		}
 		cur_match = num_matches - 1;
@@ -978,10 +978,10 @@ do_tag(
 
 	    /*
 	     * Only when going to try the next match, report that the previous
-	     * file didn't exist.  Otherwise an EMSG() is given below.
+	     * file didn't exist.  Otherwise an emsg() is given below.
 	     */
 	    if (nofile_fname != NULL && error_cur_match != cur_match)
-		smsg((char_u *)_("File \"%s\" does not exist"), nofile_fname);
+		smsg(_("File \"%s\" does not exist"), nofile_fname);
 
 
 	    ic = (matches[cur_match][0] & MT_IC_OFF);
@@ -1003,9 +1003,9 @@ do_tag(
 							   && num_matches > 1)
 		{
 		    if (ic)
-			msg_attr(IObuff, HL_ATTR(HLF_W));
+			msg_attr((char *)IObuff, HL_ATTR(HLF_W));
 		    else
-			msg(IObuff);
+			msg((char *)IObuff);
 		    msg_scroll = TRUE;	/* don't overwrite this message */
 		}
 		else
@@ -1053,7 +1053,7 @@ do_tag(
 		    }
 		    continue;
 		}
-		EMSG2(_("E429: File \"%s\" does not exist"), nofile_fname);
+		semsg(_("E429: File \"%s\" does not exist"), nofile_fname);
 	    }
 	    else
 	    {
@@ -1119,7 +1119,7 @@ do_tags(exarg_T *eap UNUSED)
     int		tagstacklen = curwin->w_tagstacklen;
 
     /* Highlight title */
-    MSG_PUTS_TITLE(_("\n  # TO tag         FROM line  in file/text"));
+    msg_puts_title(_("\n  # TO tag         FROM line  in file/text"));
     for (i = 0; i < tagstacklen; ++i)
     {
 	if (tagstack[i].tagname != NULL)
@@ -1143,7 +1143,7 @@ do_tags(exarg_T *eap UNUSED)
 	out_flush();		    /* show one line at a time */
     }
     if (tagstackidx == tagstacklen)	/* idx at top of stack */
-	MSG_PUTS("\n>");
+	msg_puts("\n>");
 }
 
 /* When not using a CR for line separator, use vim_fgets() to read tag lines.
@@ -1577,7 +1577,7 @@ find_tags(
 	    if (p_verbose >= 5)
 	    {
 		verbose_enter();
-		smsg((char_u *)_("Searching tags file %s"), tag_fname);
+		smsg(_("Searching tags file %s"), tag_fname);
 		verbose_leave();
 	    }
 	}
@@ -1801,7 +1801,7 @@ line_read_in:
 				if (fp != NULL)
 				{
 				    if (STRLEN(fullpath_ebuf) > LSIZE)
-					  EMSG2(_("E430: Tag file path truncated for %s\n"), ebuf);
+					  semsg(_("E430: Tag file path truncated for %s\n"), ebuf);
 				    vim_strncpy(tag_fname, fullpath_ebuf,
 								    MAXPATHL);
 				    ++incstack_idx;
@@ -1962,7 +1962,7 @@ parse_line:
 			if (p_verbose >= 5)
 			{
 			    verbose_enter();
-			    MSG(_("Ignoring long line in tags file"));
+			    msg(_("Ignoring long line in tags file"));
 			    verbose_leave();
 			}
 #ifdef FEAT_TAG_BINS
@@ -2451,11 +2451,11 @@ parse_line:
 
 	if (line_error)
 	{
-	    EMSG2(_("E431: Format error in tags file \"%s\""), tag_fname);
+	    semsg(_("E431: Format error in tags file \"%s\""), tag_fname);
 #ifdef FEAT_CSCOPE
 	    if (!use_cscope)
 #endif
-		EMSGN(_("Before byte %ld"), (long)vim_ftell(fp));
+		semsg(_("Before byte %ld"), (long)vim_ftell(fp));
 	    stop_searching = TRUE;
 	    line_error = FALSE;
 	}
@@ -2481,7 +2481,7 @@ parse_line:
 	tag_file_sorted = NUL;
 	if (sort_error)
 	{
-	    EMSG2(_("E432: Tags file not sorted: %s"), tag_fname);
+	    semsg(_("E432: Tags file not sorted: %s"), tag_fname);
 	    sort_error = FALSE;
 	}
 #endif
@@ -2525,7 +2525,7 @@ parse_line:
     if (!stop_searching)
     {
 	if (!did_open && verbose)	/* never opened any tags file */
-	    EMSG(_("E433: No tags file"));
+	    emsg(_("E433: No tags file"));
 	retval = OK;		/* It's OK even when no tag found */
     }
 
@@ -2818,7 +2818,7 @@ etag_fail:
 		if (p_verbose >= 5)
 		{
 		    verbose_enter();
-		    MSG(_("Ignoring long line in tags file"));
+		    msg(_("Ignoring long line in tags file"));
 		    verbose_leave();
 		}
 		tagp->command = lbuf;
@@ -3370,7 +3370,7 @@ jumpto_tag(
 		}
 		if (found == 0)
 		{
-		    EMSG(_("E434: Can't find tag pattern"));
+		    emsg(_("E434: Can't find tag pattern"));
 		    curwin->w_cursor.lnum = save_lnum;
 		}
 		else
@@ -3381,7 +3381,7 @@ jumpto_tag(
 		     */
 		    if (found == 2 || !save_p_ic)
 		    {
-			MSG(_("E435: Couldn't find tag, just guessing!"));
+			msg(_("E435: Couldn't find tag, just guessing!"));
 			if (!msg_scrolled && msg_silent == 0)
 			{
 			    out_flush();
@@ -3895,7 +3895,7 @@ add_tag_field(
 	if (p_verbose > 0)
 	{
 	    verbose_enter();
-	    smsg((char_u *)_("Duplicate field name: %s"), field_name);
+	    smsg(_("Duplicate field name: %s"), field_name);
 	    verbose_leave();
 	}
 	return FAIL;
@@ -4200,7 +4200,7 @@ set_tagstack(win_T *wp, dict_T *d, int action)
     {
 	if (di->di_tv.v_type != VAR_LIST)
 	{
-	    EMSG(_(e_listreq));
+	    emsg(_(e_listreq));
 	    return FAIL;
 	}
 	l = di->di_tv.vval.v_list;

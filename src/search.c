@@ -156,9 +156,9 @@ search_regcomp(
 	if (spats[i].pat == NULL)	/* pattern was never defined */
 	{
 	    if (pat_use == RE_SUBST)
-		EMSG(_(e_nopresub));
+		emsg(_(e_nopresub));
 	    else
-		EMSG(_(e_noprevre));
+		emsg(_(e_noprevre));
 	    rc_did_emsg = TRUE;
 	    return FAIL;
 	}
@@ -373,7 +373,7 @@ static int	    saved_no_hlsearch = 0;
 save_last_search_pattern(void)
 {
     if (did_save_last_search_spat != 0)
-	IEMSG("did_save_last_search_spat is not zero");
+	iemsg("did_save_last_search_spat is not zero");
     else
 	++did_save_last_search_spat;
 
@@ -389,7 +389,7 @@ restore_last_search_pattern(void)
 {
     if (did_save_last_search_spat != 1)
     {
-	IEMSG("did_save_last_search_spat is not one");
+	iemsg("did_save_last_search_spat is not one");
 	return;
     }
     --did_save_last_search_spat;
@@ -480,6 +480,7 @@ pat_has_uppercase(char_u *pat)
     return FALSE;
 }
 
+#if defined(FEAT_EVAL) || defined(PROTO)
     char_u *
 last_csearch(void)
 {
@@ -514,6 +515,7 @@ set_last_csearch(int c, char_u *s UNUSED, int len UNUSED)
 	vim_memset(lastc_bytes, 0, sizeof(lastc_bytes));
 #endif
 }
+#endif
 
     void
 set_csearch_direction(int cdir)
@@ -679,7 +681,7 @@ searchit(
 		   (options & (SEARCH_HIS + SEARCH_KEEP)), &regmatch) == FAIL)
     {
 	if ((options & SEARCH_MSG) && !rc_did_emsg)
-	    EMSG2(_("E383: Invalid search string: %s"), mr_pattern);
+	    semsg(_("E383: Invalid search string: %s"), mr_pattern);
 	return FAIL;
     }
 
@@ -1145,16 +1147,16 @@ searchit(
     if (!found)		    /* did not find it */
     {
 	if (got_int)
-	    EMSG(_(e_interr));
+	    emsg(_(e_interr));
 	else if ((options & SEARCH_MSG) == SEARCH_MSG)
 	{
 	    if (p_ws)
-		EMSG2(_(e_patnotf2), mr_pattern);
+		semsg(_(e_patnotf2), mr_pattern);
 	    else if (lnum == 0)
-		EMSG2(_("E384: search hit TOP without match for: %s"),
+		semsg(_("E384: search hit TOP without match for: %s"),
 								  mr_pattern);
 	    else
-		EMSG2(_("E385: search hit BOTTOM without match for: %s"),
+		semsg(_("E385: search hit BOTTOM without match for: %s"),
 								  mr_pattern);
 	}
 	return FAIL;
@@ -1333,7 +1335,7 @@ do_search(
 		searchstr = spats[RE_SUBST].pat;
 		if (searchstr == NULL)
 		{
-		    EMSG(_(e_noprevre));
+		    emsg(_(e_noprevre));
 		    retval = 0;
 		    goto end_do_search;
 		}
@@ -1590,7 +1592,7 @@ do_search(
 	if (dirc != '?' && dirc != '/')
 	{
 	    retval = 0;
-	    EMSG(_("E386: Expected '?' or '/'  after ';'"));
+	    emsg(_("E386: Expected '?' or '/'  after ';'"));
 	    goto end_do_search;
 	}
 	++pat;
@@ -5068,7 +5070,7 @@ find_pattern_in_path(
 						       message */
 			    {
 				msg_home_replace_hl(new_fname);
-				MSG_PUTS(_(" (includes previously listed match)"));
+				msg_puts(_(" (includes previously listed match)"));
 				prev_fname = NULL;
 			    }
 			}
@@ -5087,25 +5089,25 @@ find_pattern_in_path(
 		else
 		{
 		    gotocmdline(TRUE);	    /* cursor at status line */
-		    MSG_PUTS_TITLE(_("--- Included files "));
+		    msg_puts_title(_("--- Included files "));
 		    if (action != ACTION_SHOW_ALL)
-			MSG_PUTS_TITLE(_("not found "));
-		    MSG_PUTS_TITLE(_("in path ---\n"));
+			msg_puts_title(_("not found "));
+		    msg_puts_title(_("in path ---\n"));
 		}
 		did_show = TRUE;
 		while (depth_displayed < depth && !got_int)
 		{
 		    ++depth_displayed;
 		    for (i = 0; i < depth_displayed; i++)
-			MSG_PUTS("  ");
+			msg_puts("  ");
 		    msg_home_replace(files[depth_displayed].name);
-		    MSG_PUTS(" -->\n");
+		    msg_puts(" -->\n");
 		}
 		if (!got_int)		    /* don't display if 'q' typed
 					       for "--more--" message */
 		{
 		    for (i = 0; i <= depth_displayed; i++)
-			MSG_PUTS("  ");
+			msg_puts("  ");
 		    if (new_fname != NULL)
 		    {
 			/* using "new_fname" is more reliable, e.g., when
@@ -5163,9 +5165,9 @@ find_pattern_in_path(
 		    if (new_fname == NULL && action == ACTION_SHOW_ALL)
 		    {
 			if (already_searched)
-			    MSG_PUTS(_("  (Already listed)"));
+			    msg_puts(_("  (Already listed)"));
 			else
-			    MSG_PUTS(_("  NOT FOUND"));
+			    msg_puts(_("  NOT FOUND"));
 		    }
 		}
 		out_flush();	    /* output each line directly */
@@ -5221,14 +5223,14 @@ find_pattern_in_path(
 			vim_snprintf((char*)IObuff, IOSIZE,
 				_("Scanning included file: %s"),
 				(char *)new_fname);
-			msg_trunc_attr(IObuff, TRUE, HL_ATTR(HLF_R));
+			msg_trunc_attr((char *)IObuff, TRUE, HL_ATTR(HLF_R));
 		    }
 		    else
 #endif
 			 if (p_verbose >= 5)
 		    {
 			verbose_enter();
-			smsg((char_u *)_("Searching included file %s"),
+			smsg(_("Searching included file %s"),
 							   (char *)new_fname);
 			verbose_leave();
 		    }
@@ -5451,7 +5453,7 @@ search_line:
 						      && g_do_tagpreview == 0
 #endif
 						      )
-		    EMSG(_("E387: Match is on current line"));
+		    emsg(_("E387: Match is on current line"));
 		else if (action == ACTION_SHOW)
 		{
 		    show_pat_in_path(line, type, did_show, action,
@@ -5608,9 +5610,9 @@ exit_matched:
 	if (!did_show)
 	{
 	    if (action != ACTION_SHOW_ALL)
-		MSG(_("All included files were found"));
+		msg(_("All included files were found"));
 	    else
-		MSG(_("No included files"));
+		msg(_("No included files"));
 	}
     }
     else if (!found
@@ -5624,11 +5626,11 @@ exit_matched:
 #else
 	if (got_int)
 #endif
-	    EMSG(_(e_interr));
+	    emsg(_(e_interr));
 	else if (type == FIND_DEFINE)
-	    EMSG(_("E388: Couldn't find definition"));
+	    emsg(_("E388: Couldn't find definition"));
 	else
-	    EMSG(_("E389: Couldn't find pattern"));
+	    emsg(_("E389: Couldn't find pattern"));
     }
     if (action == ACTION_SHOW || action == ACTION_SHOW_ALL)
 	msg_end();
@@ -5673,11 +5675,11 @@ show_pat_in_path(
 	if (action == ACTION_SHOW_ALL)
 	{
 	    sprintf((char *)IObuff, "%3ld: ", count);	/* show match nr */
-	    msg_puts(IObuff);
+	    msg_puts((char *)IObuff);
 	    sprintf((char *)IObuff, "%4ld", *lnum);	/* show line nr */
 						/* Highlight line numbers */
-	    msg_puts_attr(IObuff, HL_ATTR(HLF_N));
-	    MSG_PUTS(" ");
+	    msg_puts_attr((char *)IObuff, HL_ATTR(HLF_N));
+	    msg_puts(" ");
 	}
 	msg_prt_line(line, FALSE);
 	out_flush();			/* show one line at a time */

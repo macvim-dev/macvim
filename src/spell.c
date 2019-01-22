@@ -717,7 +717,7 @@ find_word(matchinf_T *mip, int mode)
 	    if (endidxcnt == MAXWLEN)
 	    {
 		/* Must be a corrupted spell file. */
-		EMSG(_(e_format));
+		emsg(_(e_format));
 		return;
 	    }
 	    endlen[endidxcnt] = wlen;
@@ -1537,7 +1537,7 @@ no_spell_checking(win_T *wp)
     if (!wp->w_p_spell || *wp->w_s->b_p_spl == NUL
 					 || wp->w_s->b_langp.ga_len == 0)
     {
-	EMSG(_("E756: Spell checking is not enabled"));
+	emsg(_("E756: Spell checking is not enabled"));
 	return TRUE;
     }
     return FALSE;
@@ -1888,7 +1888,7 @@ spell_load_lang(char_u *lang)
 
     if (r == FAIL)
     {
-	smsg((char_u *)
+	smsg(
 #ifdef VMS
 	_("Warning: Cannot find word list \"%s_%s.spl\" or \"%s_ascii.spl\""),
 #else
@@ -2307,7 +2307,7 @@ count_syllables(slang_T *slang, char_u *word)
  * Parse 'spelllang' and set w_s->b_langp accordingly.
  * Returns NULL if it's OK, an error message otherwise.
  */
-    char_u *
+    char *
 did_set_spelllang(win_T *wp)
 {
     garray_T	ga;
@@ -2330,7 +2330,7 @@ did_set_spelllang(win_T *wp)
     int		i, j;
     langp_T	*lp, *lp2;
     static int	recursive = FALSE;
-    char_u	*ret_msg = NULL;
+    char	*ret_msg = NULL;
     char_u	*spl_copy;
     bufref_T	bufref;
 
@@ -2435,7 +2435,7 @@ did_set_spelllang(win_T *wp)
 		 * destroying the buffer we are using... */
 		if (!bufref_valid(&bufref))
 		{
-		    ret_msg = (char_u *)N_("E797: SpellFileMissing autocommand deleted buffer");
+		    ret_msg = N_("E797: SpellFileMissing autocommand deleted buffer");
 		    goto theend;
 		}
 	    }
@@ -2464,8 +2464,7 @@ did_set_spelllang(win_T *wp)
 			else
 			    /* This is probably an error.  Give a warning and
 			     * accept the words anyway. */
-			    smsg((char_u *)
-				    _("Warning: region %s not supported"),
+			    smsg(_("Warning: region %s not supported"),
 								      region);
 		    }
 		    else
@@ -3376,11 +3375,11 @@ spell_suggest(int count)
 							TRUE, need_cap, TRUE);
 
     if (sug.su_ga.ga_len == 0)
-	MSG(_("Sorry, no suggestions"));
+	msg(_("Sorry, no suggestions"));
     else if (count > 0)
     {
 	if (count > sug.su_ga.ga_len)
-	    smsg((char_u *)_("Sorry, only %ld suggestions"),
+	    smsg(_("Sorry, only %ld suggestions"),
 						      (long)sug.su_ga.ga_len);
     }
     else
@@ -3410,7 +3409,7 @@ spell_suggest(int count)
 						sug.su_badlen, sug.su_badptr);
 	}
 #endif
-	msg_puts(IObuff);
+	msg_puts((char *)IObuff);
 	msg_clr_eos();
 	msg_putchar('\n');
 
@@ -3431,17 +3430,17 @@ spell_suggest(int count)
 	    if (cmdmsg_rl)
 		rl_mirror(IObuff);
 #endif
-	    msg_puts(IObuff);
+	    msg_puts((char *)IObuff);
 
 	    vim_snprintf((char *)IObuff, IOSIZE, " \"%s\"", wcopy);
-	    msg_puts(IObuff);
+	    msg_puts((char *)IObuff);
 
 	    /* The word may replace more than "su_badlen". */
 	    if (sug.su_badlen < stp->st_orglen)
 	    {
 		vim_snprintf((char *)IObuff, IOSIZE, _(" < \"%.*s\""),
 					       stp->st_orglen, sug.su_badptr);
-		msg_puts(IObuff);
+		msg_puts((char *)IObuff);
 	    }
 
 	    if (p_verbose > 0)
@@ -3460,7 +3459,7 @@ spell_suggest(int count)
 		    rl_mirror(IObuff + 1);
 #endif
 		msg_advance(30);
-		msg_puts(IObuff);
+		msg_puts((char *)IObuff);
 	    }
 	    msg_putchar('\n');
 	}
@@ -3615,7 +3614,7 @@ ex_spellrepall(exarg_T *eap UNUSED)
 
     if (repl_from == NULL || repl_to == NULL)
     {
-	EMSG(_("E752: No previous spell replacement"));
+	emsg(_("E752: No previous spell replacement"));
 	return;
     }
     addlen = (int)(STRLEN(repl_to) - STRLEN(repl_from));
@@ -3665,7 +3664,7 @@ ex_spellrepall(exarg_T *eap UNUSED)
     vim_free(frompat);
 
     if (sub_nsubs == 0)
-	EMSG2(_("E753: Not found: %s"), repl_from);
+	semsg(_("E753: Not found: %s"), repl_from);
     else
 	do_sub_msg(FALSE);
 }
@@ -3905,7 +3904,7 @@ spell_suggest_file(suginfo_T *su, char_u *fname)
     fd = mch_fopen((char *)fname, "r");
     if (fd == NULL)
     {
-	EMSG2(_(e_notopen), fname);
+	semsg(_(e_notopen), fname);
 	return;
     }
 
@@ -8459,13 +8458,13 @@ ex_spellinfo(exarg_T *eap UNUSED)
     for (lpi = 0; lpi < curwin->w_s->b_langp.ga_len && !got_int; ++lpi)
     {
 	lp = LANGP_ENTRY(curwin->w_s->b_langp, lpi);
-	msg_puts((char_u *)"file: ");
-	msg_puts(lp->lp_slang->sl_fname);
+	msg_puts("file: ");
+	msg_puts((char *)lp->lp_slang->sl_fname);
 	msg_putchar('\n');
 	p = lp->lp_slang->sl_info;
 	if (p != NULL)
 	{
-	    msg_puts(p);
+	    msg_puts((char *)p);
 	    msg_putchar('\n');
 	}
     }
