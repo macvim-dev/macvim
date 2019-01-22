@@ -1529,7 +1529,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 #ifdef FEAT_MBYTE
             s = CONVERT_FROM_UTF8(s);
 #endif
-	    EMSG2(_(e_noserver), s);
+	    semsg(_(e_noserver), s);
 #ifdef FEAT_MBYTE
             CONVERT_FROM_UTF8_FREE(s);
 #endif

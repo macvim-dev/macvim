@@ -989,7 +989,7 @@ gui_mch_get_font(char_u *name, int giveErrorIfMissing)
         return font;
 
     if (giveErrorIfMissing)
-        EMSG2(_(e_font), name);
+        semsg(_(e_font), name);
 
     return NOFONT;
 }
@@ -1428,7 +1428,7 @@ ex_macaction(eap)
     exarg_T	*eap;
 {
     if (!gui.in_use) {
-        EMSG(_("E???: Command only available in GUI mode"));
+        emsg(_("E???: Command only available in GUI mode"));
         return;
     }
 
@@ -1442,7 +1442,7 @@ ex_macaction(eap)
     if (actionDict && [actionDict objectForKey:name] != nil) {
         [[MMBackend sharedInstance] executeActionWithName:name];
     } else {
-        EMSG2(_("E???: Invalid action: %s"), eap->arg);
+        semsg(_("E???: Invalid action: %s"), eap->arg);
     }
 
 #ifdef FEAT_MBYTE
@@ -2053,7 +2053,7 @@ serverStrToPort(char_u *str)
 
     sscanf((char *)str, "0x%x", &port);
     if (!port)
-        EMSG2(_("E573: Invalid server id used: %s"), str);
+        semsg(_("E573: Invalid server id used: %s"), str);
 
     return port;
 }
@@ -2434,7 +2434,7 @@ gui_mch_register_sign(char_u *signfile)
     NSString *imgName = [NSString stringWithVimString:signfile];
     NSImage *img = [[NSImage alloc] initWithContentsOfFile:imgName];
     if (!img) {
-        EMSG(_(e_signdata));
+        emsg(_(e_signdata));
         return NULL;
     }
 
