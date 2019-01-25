@@ -1,5 +1,11 @@
 " Tests for when a file was changed outside of Vim.
 
+if has('gui_macvim') && has('gui_running')
+  " MacVim's currently stalls and never returns when the GUI vesion is run in
+  " CI. Disable these tests for now before a more proper fix is implemented.
+  finish
+endif
+
 func Test_FileChangedShell_reload()
   if !has('unix')
     return
