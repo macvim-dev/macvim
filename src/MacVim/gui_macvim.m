@@ -490,7 +490,6 @@ gui_mch_delete_lines(int row, int num_lines)
 gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
 {
     MMBackend *backend = [MMBackend sharedInstance];
-#ifdef FEAT_MBYTE
     int c, cw, cl, ccl;
     int start = 0;
     int endcol = col;
@@ -553,12 +552,6 @@ gui_macvim_draw_string(int row, int col, char_u *s, int len, int flags)
         vim_free(conv_str);
 
     return endcol - col;
-#else
-    [backend drawString:s length:len
-                    row:row column:col
-                  cells:len flags:flags];
-    return len;
-#endif
 }
 
 
@@ -1310,16 +1303,15 @@ mch_set_mouse_shape(int shape)
 
 // -- Input Method ----------------------------------------------------------
 
-#if defined(FEAT_MBYTE)
-# if defined(FEAT_EVAL)
-#  ifdef FEAT_GUI
-#   define USE_IMACTIVATEFUNC (!gui.in_use && *p_imaf != NUL)
-#   define USE_IMSTATUSFUNC (!gui.in_use && *p_imsf != NUL)
-#  else
-#   define USE_IMACTIVATEFUNC (*p_imaf != NUL)
-#   define USE_IMSTATUSFUNC (*p_imsf != NUL)
-#  endif
+#if defined(FEAT_EVAL)
+# ifdef FEAT_GUI
+#  define USE_IMACTIVATEFUNC (!gui.in_use && *p_imaf != NUL)
+#  define USE_IMSTATUSFUNC (!gui.in_use && *p_imsf != NUL)
+# else
+#  define USE_IMACTIVATEFUNC (*p_imaf != NUL)
+#  define USE_IMSTATUSFUNC (*p_imsf != NUL)
 # endif
+#endif
 
     void
 im_set_position(int row, int col)
@@ -1365,15 +1357,13 @@ im_set_active(int active)
     int
 im_get_status(void)
 {
-# ifdef FEAT_EVAL
+#ifdef FEAT_EVAL
     if (USE_IMSTATUSFUNC)
         return call_imstatusfunc();
-# endif
+#endif
 
     return [[MMBackend sharedInstance] imState];
 }
-
-#endif // defined(FEAT_MBYTE)
 
 
 
@@ -1433,9 +1423,7 @@ ex_macaction(eap)
     }
 
     char_u *arg = eap->arg;
-#ifdef FEAT_MBYTE
     arg = CONVERT_TO_UTF8(arg);
-#endif
 
     NSDictionary *actionDict = [[MMBackend sharedInstance] actionDict];
     NSString *name = [NSString stringWithUTF8String:(char*)arg];
@@ -1445,9 +1433,7 @@ ex_macaction(eap)
         semsg(_("E???: Invalid action: %s"), eap->arg);
     }
 
-#ifdef FEAT_MBYTE
     arg = CONVERT_TO_UTF8(arg);
-#endif
 }
 
 
@@ -1647,16 +1633,12 @@ gui_mch_get_color(char_u *name)
     if (![MMBackend sharedInstance])
 	return INVALCOLOR;
 
-#ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
-#endif
 
     NSString *key = [NSString stringWithUTF8String:(char*)name];
     guicolor_T col = [[MMBackend sharedInstance] lookupColorWithKey:key];
 
-#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(name);
-#endif
 
     return col;
 }
@@ -1798,9 +1780,7 @@ gui_mch_settitle(char_u *title, char_u *icon)
 {
     ASLogDebug(@"title='%s' icon='%s'", title, icon);
 
-#ifdef FEAT_MBYTE
     title = CONVERT_TO_UTF8(title);
-#endif
 
     MMBackend *backend = [MMBackend sharedInstance];
     [backend setWindowTitle:(char*)title];
@@ -1809,9 +1789,7 @@ gui_mch_settitle(char_u *title, char_u *icon)
     if (curbuf)
         [backend setDocumentFilename:(char*)curbuf->b_ffname];
 
-#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(title);
-#endif
 }
 #endif
 
@@ -1884,13 +1862,9 @@ gui_macvim_add_to_find_pboard(char_u *pat)
 		}
 	}
 
-#ifdef FEAT_MBYTE
     pat = CONVERT_TO_UTF8(pat);
-#endif
     NSString *s = [NSString stringWithUTF8String:(char*)pat];
-#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(pat);
-#endif
 
     if (!s) return;
 
@@ -1982,16 +1956,12 @@ gui_macvim_release_autoreleasepool(void *pool)
     void
 serverRegisterName(char_u *name)
 {
-#ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
-#endif
 
     NSString *svrName = [NSString stringWithUTF8String:(char*)name];
     [[MMBackend sharedInstance] registerServerWithName:svrName];
 
-#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(name);
-#endif
 }
 
 
@@ -2003,10 +1973,8 @@ serverRegisterName(char_u *name)
 serverSendToVim(char_u *name, char_u *cmd, char_u **result,
         int *port, int asExpr, int timeout, int silent)
 {
-#ifdef FEAT_MBYTE
     name = CONVERT_TO_UTF8(name);
     cmd = CONVERT_TO_UTF8(cmd);
-#endif
 
     BOOL ok = [[MMBackend sharedInstance]
             sendToServer:[NSString stringWithUTF8String:(char*)name]
@@ -2016,10 +1984,8 @@ serverSendToVim(char_u *name, char_u *cmd, char_u **result,
               expression:asExpr
                   silent:silent];
 
-#ifdef FEAT_MBYTE
     CONVERT_TO_UTF8_FREE(name);
     CONVERT_TO_UTF8_FREE(cmd);
-#endif
 
     return ok ? 0 : -1;
 }
@@ -2072,7 +2038,6 @@ serverPeekReply(int port, char_u **str)
     if (str && len > 0) {
         *str = (char_u*)[reply UTF8String];
 
-#ifdef FEAT_MBYTE
         if (input_conv.vc_type != CONV_NONE) {
             char_u *s = string_convert(&input_conv, *str, &len);
 
@@ -2087,7 +2052,6 @@ serverPeekReply(int port, char_u **str)
 
             vim_free(s);
         }
-#endif
     }
 
     return reply != nil;
@@ -2122,16 +2086,12 @@ serverSendReply(char_u *serverid, char_u *reply)
     int retval = -1;
     int port = serverStrToPort(serverid);
     if (port > 0 && reply) {
-#ifdef FEAT_MBYTE
         reply = CONVERT_TO_UTF8(reply);
-#endif
         BOOL ok = [[MMBackend sharedInstance]
                 sendReply:[NSString stringWithUTF8String:(char*)reply]
                    toPort:port];
         retval = ok ? 0 : -1;
-#ifdef FEAT_MBYTE
         CONVERT_TO_UTF8_FREE(reply);
-#endif
     }
 
     return retval;
@@ -2246,7 +2206,6 @@ get_macaction_name(expand_T *xp, int idx)
 
     char_u *plainStr = (char_u*)[string UTF8String];
 
-#ifdef FEAT_MBYTE
     if (str) {
         vim_free(str);
         str = NULL;
@@ -2256,7 +2215,6 @@ get_macaction_name(expand_T *xp, int idx)
         str = string_convert(&input_conv, plainStr, &len);
         plainStr = str;
     }
-#endif
 
     return plainStr;
 }
@@ -2268,14 +2226,10 @@ is_valid_macaction(char_u *action)
     int isValid = NO;
     NSDictionary *actionDict = [[MMBackend sharedInstance] actionDict];
     if (actionDict) {
-#ifdef FEAT_MBYTE
         action = CONVERT_TO_UTF8(action);
-#endif
         NSString *string = [NSString stringWithUTF8String:(char*)action];
         isValid = (nil != [actionDict objectForKey:string]);
-#ifdef FEAT_MBYTE
         CONVERT_TO_UTF8_FREE(action);
-#endif
     }
 
     return isValid;

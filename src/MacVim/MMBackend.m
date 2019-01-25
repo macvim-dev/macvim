@@ -926,13 +926,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             if (txtfield && [dialogReturn count] > 1) {
                 NSString *retString = [dialogReturn objectAtIndex:1];
                 char_u *ret = (char_u*)[retString UTF8String];
-#ifdef FEAT_MBYTE
                 ret = CONVERT_FROM_UTF8(ret);
-#endif
                 vim_strncpy((char_u*)txtfield, ret, IOSIZE - 1);
-#ifdef FEAT_MBYTE
                 CONVERT_FROM_UTF8_FREE(ret);
-#endif
             }
         }
 
@@ -1350,25 +1346,17 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     NSString *eval = nil;
     char_u *s = (char_u*)[expr UTF8String];
 
-#ifdef FEAT_MBYTE
     s = CONVERT_FROM_UTF8(s);
-#endif
 
     char_u *res = eval_client_expr_to_string(s);
 
-#ifdef FEAT_MBYTE
     CONVERT_FROM_UTF8_FREE(s);
-#endif
 
     if (res != NULL) {
         s = res;
-#ifdef FEAT_MBYTE
         s = CONVERT_TO_UTF8(s);
-#endif
         eval = [NSString stringWithUTF8String:(char*)s];
-#ifdef FEAT_MBYTE
         CONVERT_TO_UTF8_FREE(s);
-#endif
         vim_free(res);
     }
 
@@ -1400,7 +1388,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         
         // TODO: Avoid overflow.
         int len = (int)llen;
-#ifdef FEAT_MBYTE
         if (output_conv.vc_type != CONV_NONE) {
             char_u *conv_str = string_convert(&output_conv, str, &len);
             if (conv_str) {
@@ -1408,7 +1395,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                 str = conv_str;
             }
         }
-#endif
 
         NSString *string = [[NSString alloc]
             initWithBytes:str length:len encoding:NSUTF8StringEncoding];
@@ -1526,13 +1512,9 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if (!conn) {
         if (!silent) {
             char_u *s = (char_u*)[name UTF8String];
-#ifdef FEAT_MBYTE
             s = CONVERT_FROM_UTF8(s);
-#endif
 	    semsg(_(e_noserver), s);
-#ifdef FEAT_MBYTE
             CONVERT_FROM_UTF8_FREE(s);
-#endif
         }
         return NO;
     }
@@ -2143,14 +2125,12 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     if ([self handleSpecialKey:key keyCode:code modifiers:mods])
         return;
 
-#ifdef FEAT_MBYTE
     char_u *conv_str = NULL;
     if (input_conv.vc_type != CONV_NONE) {
         conv_str = string_convert(&input_conv, str, &len);
         if (conv_str)
             str = conv_str;
     }
-#endif
 
     if (mods & MOD_MASK_CMD) {
         // NOTE: For normal input (non-special, 'macmeta' off) the modifier
@@ -2195,10 +2175,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         }
     }
 
-#ifdef FEAT_MBYTE
     if (conv_str)
         vim_free(conv_str);
-#endif
 }
 
 - (BOOL)handleSpecialKey:(NSString *)key
@@ -2230,9 +2208,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         chars[2] = K_THIRD(ikey);
         len = 3;
     } else if (mods & MOD_MASK_ALT && special_keys[i].vim_code1 == 0
-#ifdef FEAT_MBYTE
             && !enc_dbcs    // TODO: ?  (taken from gui_gtk_x11.c)
-#endif
             ) {
         ASLogDebug(@"Alt special=%d", ikey);
 
@@ -2242,7 +2218,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         // The following code was gleaned from gui_gtk_x11.c.
         mods &= ~MOD_MASK_ALT;
         int mkey = 0x80 | ikey;
-#ifdef FEAT_MBYTE
         if (enc_utf8) {  // TODO: What about other encodings?
             // Convert to utf-8
             chars[0] = (mkey >> 6) + 0xc0;
@@ -2256,7 +2231,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                 len = 2;
             }
         } else
-#endif
         {
             chars[0] = mkey;
             len = 1;
@@ -2308,7 +2282,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     }
 
     string[len++] = ch;
-#ifdef FEAT_MBYTE
+
     // TODO: What if 'enc' is not "utf-8"?
     if (enc_utf8 && (ch & 0x80)) { // convert to utf-8
         string[len++] = ch & 0xbf;
@@ -2318,7 +2292,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             string[len++] = (int)KE_CSI;
         }
     }
-#endif
 
     add_to_input_buf(string, len);
     return YES;
@@ -2492,12 +2465,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         ws = (char_u*)[wname UTF8String];
     }
 
-#ifdef FEAT_MBYTE
     s = CONVERT_FROM_UTF8(s);
     if (ws) {
         ws = CONVERT_FROM_UTF8(ws);
     }
-#endif
 
     set_option_value((char_u*)"guifont", 0, s, 0);
 
@@ -2508,12 +2479,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         set_option_value((char_u*)"guifontwide", 0, ws, 0);
     }
 
-#ifdef FEAT_MBYTE
     if (ws) {
         CONVERT_FROM_UTF8_FREE(ws);
     }
     CONVERT_FROM_UTF8_FREE(s);
-#endif
 
     [self redrawScreen];
 }
@@ -2584,15 +2553,11 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     len = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     char_u *s = (char_u*)[string UTF8String];
-#ifdef FEAT_MBYTE
     if (input_conv.vc_type != CONV_NONE)
         s = string_convert(&input_conv, s, &len);
-#endif
     dnd_yank_drag_data(s, len);
-#ifdef FEAT_MBYTE
     if (input_conv.vc_type != CONV_NONE)
         vim_free(s);
-#endif
     add_to_input_buf(dropkey, sizeof(dropkey));
 #endif // FEAT_DND
 }
@@ -3326,13 +3291,9 @@ static id vimToCocoa(typval_T * tv, int depth)
         if (!val) {
             result = [NSString string];
         } else {
-#ifdef FEAT_MBYTE
             val = CONVERT_TO_UTF8(val);
-#endif
             result = [NSString stringWithUTF8String:(char*)val];
-#ifdef FEAT_MBYTE
             CONVERT_TO_UTF8_FREE(val);
-#endif
         }
     } else if (tv->v_type == VAR_NUMBER) {
         // looks like sizeof(varnumber_T) is always <= sizeof(long)
@@ -3366,13 +3327,9 @@ static id vimToCocoa(typval_T * tv, int depth)
                     newObj = vimToCocoa(&di->di_tv, depth + 1);
 
                     char_u * keyval = hi->hi_key;
-#ifdef FEAT_MBYTE
                     keyval = CONVERT_TO_UTF8(keyval);
-#endif
                     NSString * key = [NSString stringWithUTF8String:(char*)keyval];
-#ifdef FEAT_MBYTE
                     CONVERT_TO_UTF8_FREE(keyval);
-#endif
                     [dict setObject:newObj forKey:key];
                 }
             }
@@ -3395,9 +3352,7 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
 
     char_u *s = (char_u*)[expr UTF8String];
 
-#ifdef FEAT_MBYTE
     s = CONVERT_FROM_UTF8(s);
-#endif
 
     int save_dbl = debug_break_level;
     int save_ro = redir_off;
@@ -3415,9 +3370,7 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
     setcursor();
     out_flush();
 
-#ifdef FEAT_MBYTE
     CONVERT_FROM_UTF8_FREE(s);
-#endif
 
 #ifdef FEAT_GUI
     if (gui.in_use)
@@ -3451,9 +3404,7 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
     // still fails an empty NSString is returned.
     NSString *string = nil;
     if (s) {
-#ifdef FEAT_MBYTE
         s = CONVERT_TO_UTF8(s);
-#endif
         string = [NSString stringWithUTF8String:(char*)s];
         if (!string) {
             // HACK! Apparently 's' is not a valid utf-8 string, maybe it is
@@ -3461,9 +3412,7 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
             string = [NSString stringWithCString:(char*)s
                                         encoding:NSISOLatin1StringEncoding];
         }
-#ifdef FEAT_MBYTE
         CONVERT_TO_UTF8_FREE(s);
-#endif
     }
 
     return string != nil ? string : [NSString string];
@@ -3473,13 +3422,9 @@ static id evalExprCocoa(NSString * expr, NSString ** errstr)
 {
     char_u *s = (char_u*)[self UTF8String], *ret = NULL;
 
-#ifdef FEAT_MBYTE
     s = CONVERT_FROM_UTF8(s);
-#endif
     ret = vim_strsave(s);
-#ifdef FEAT_MBYTE
     CONVERT_FROM_UTF8_FREE(s);
-#endif
 
     return ret;
 }
