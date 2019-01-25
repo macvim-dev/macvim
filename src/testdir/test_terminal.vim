@@ -209,9 +209,6 @@ func Test_terminal_scrape_123()
 endfunc
 
 func Test_terminal_scrape_multibyte()
-  if !has('multi_byte')
-    return
-  endif
   call writefile(["léttまrs"], 'Xtext')
   if has('win32')
     " Run cmd with UTF-8 codepage to make the type command print the expected
@@ -648,20 +645,17 @@ func Test_terminal_write_stdin()
 endfunc
 
 func Test_terminal_no_cmd()
-  " Does not work on Mac.
-  " Todo: make this work on Win32 again
-  if has('mac') || has('win32')
-    return
-  endif
   let buf = term_start('NONE', {})
   call assert_notequal(0, buf)
 
   let pty = job_info(term_getjob(buf))['tty_out']
   call assert_notequal('', pty)
-  if has('win32')
-    silent exe '!start cmd /c "echo look here > ' . pty . '"'
-  else
+  if has('gui_running') && !has('win32')
+    " In the GUI job_start() doesn't work, it does not read from the pty.
     call system('echo "look here" > ' . pty)
+  else
+    " Otherwise using a job works on all systems.
+    call job_start([&shell, &shellcmdflag, 'echo "look here" > ' . pty])
   endif
   call WaitForAssert({-> assert_match('look here', term_getline(buf, 1))})
 

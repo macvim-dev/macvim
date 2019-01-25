@@ -13,7 +13,7 @@
 /* Structure containing all the GUI information */
 gui_T gui;
 
-#if defined(FEAT_MBYTE) && !defined(FEAT_GUI_GTK)
+#if !defined(FEAT_GUI_GTK)
 static void set_guifontwide(char_u *font_name);
 #endif
 static void gui_check_pos(void);
@@ -397,13 +397,11 @@ gui_init_check(void)
     gui.fontset = NOFONTSET;
 # endif
 #endif
-#ifdef FEAT_MBYTE
     gui.wide_font = NOFONT;
-# ifndef FEAT_GUI_GTK
+#ifndef FEAT_GUI_GTK
     gui.wide_bold_font = NOFONT;
     gui.wide_ital_font = NOFONT;
     gui.wide_boldital_font = NOFONT;
-# endif
 #endif
 
 #ifdef FEAT_MENU
@@ -652,10 +650,8 @@ gui_init(void)
 	emsg(_("E665: Cannot start GUI, no valid font found"));
 	goto error2;
     }
-#ifdef FEAT_MBYTE
     if (gui_get_wide_font() == FAIL)
 	emsg(_("E231: 'guifontwide' invalid"));
-#endif
 
     gui.num_cols = Columns;
     gui.num_rows = Rows;
@@ -895,7 +891,7 @@ gui_init_font(char_u *font_list, int fontset UNUSED)
 		 * longer be used! */
 		if (gui_mch_init_font(font_name, FALSE) == OK)
 		{
-#if defined(FEAT_MBYTE) && !defined(FEAT_GUI_GTK)
+#if !defined(FEAT_GUI_GTK)
 		    /* If it's a Unicode font, try setting 'guifontwide' to a
 		     * similar double-width font. */
 		    if ((p_guifontwide == NULL || *p_guifontwide == NUL)
@@ -937,8 +933,7 @@ gui_init_font(char_u *font_list, int fontset UNUSED)
     return ret;
 }
 
-#if defined(FEAT_MBYTE) || defined(PROTO)
-# ifndef FEAT_GUI_GTK
+#ifndef FEAT_GUI_GTK
 /*
  * Try setting 'guifontwide' to a font twice as wide as "name".
  */
@@ -985,7 +980,7 @@ set_guifontwide(char_u *name)
 	}
     }
 }
-# endif /* !FEAT_GUI_GTK */
+#endif /* !FEAT_GUI_GTK */
 
 /*
  * Get the font for 'guifontwide'.
@@ -1016,7 +1011,7 @@ gui_get_wide_font(void)
     }
 
     gui_mch_free_font(gui.wide_font);
-# ifdef FEAT_GUI_GTK
+#ifdef FEAT_GUI_GTK
     /* Avoid unnecessary overhead if 'guifontwide' is equal to 'guifont'. */
     if (font != NOFONT && gui.norm_font != NOFONT
 			 && pango_font_description_equal(font, gui.norm_font))
@@ -1025,19 +1020,18 @@ gui_get_wide_font(void)
 	gui_mch_free_font(font);
     }
     else
-# endif
+#endif
 	gui.wide_font = font;
-# ifdef FEAT_GUI_MSWIN
+#ifdef FEAT_GUI_MSWIN
     gui_mch_wide_font_changed();
-# else
+#else
     /*
      * TODO: setup wide_bold_font, wide_ital_font and wide_boldital_font to
      * support those fonts for 'guifontwide'.
      */
-# endif
+#endif
     return OK;
 }
-#endif
 
     void
 gui_set_cursor(int row, int col)
@@ -1279,7 +1273,7 @@ gui_update_cursor(
 	}
 	else
 	{
-#if defined(FEAT_MBYTE) && defined(FEAT_RIGHTLEFT)
+#if defined(FEAT_RIGHTLEFT)
 	    int	    col_off = FALSE;
 #endif
 	    /*
@@ -1296,14 +1290,13 @@ gui_update_cursor(
 		cur_height = (gui.char_height * shape->percentage + 99) / 100;
 		cur_width = gui.char_width;
 	    }
-#ifdef FEAT_MBYTE
 	    if (has_mbyte && (*mb_off2cells)(LineOffset[gui.row] + gui.col,
 				    LineOffset[gui.row] + screen_Columns) > 1)
 	    {
 		/* Double wide character. */
 		if (shape->shape != SHAPE_VER)
 		    cur_width += gui.char_width;
-# ifdef FEAT_RIGHTLEFT
+#ifdef FEAT_RIGHTLEFT
 		if (CURSOR_BAR_RIGHT)
 		{
 		    /* gui.col points to the left halve of the character but
@@ -1313,11 +1306,10 @@ gui_update_cursor(
 		    col_off = TRUE;
 		    ++gui.col;
 		}
-# endif
-	    }
 #endif
+	    }
 	    gui_mch_draw_part_cursor(cur_width, cur_height, cbg);
-#if defined(FEAT_MBYTE) && defined(FEAT_RIGHTLEFT)
+#if defined(FEAT_RIGHTLEFT)
 	    if (col_off)
 		--gui.col;
 #endif
@@ -2056,9 +2048,7 @@ gui_may_flush(void)
 gui_outstr(char_u *s, int len)
 {
     int	    this_len;
-#ifdef FEAT_MBYTE
     int	    cells;
-#endif
 
     if (len == 0)
 	return;
@@ -2068,7 +2058,6 @@ gui_outstr(char_u *s, int len)
 
     while (len > 0)
     {
-#ifdef FEAT_MBYTE
 	if (has_mbyte)
 	{
 	    /* Find out how many chars fit in the current line. */
@@ -2084,7 +2073,6 @@ gui_outstr(char_u *s, int len)
 		this_len = len;	    /* don't include following composing char */
 	}
 	else
-#endif
 	    if (gui.col + len > Columns)
 	    this_len = Columns - gui.col;
 	else
@@ -2094,12 +2082,10 @@ gui_outstr(char_u *s, int len)
 					  0, (guicolor_T)0, (guicolor_T)0, 0);
 	s += this_len;
 	len -= this_len;
-#ifdef FEAT_MBYTE
 	/* fill up for a double-width char that doesn't fit. */
 	if (len > 0 && gui.col < Columns)
 	    (void)gui_outstr_nowrap((char_u *)" ", 1,
 					  0, (guicolor_T)0, (guicolor_T)0, 0);
-#endif
 	/* The cursor may wrap to the next line. */
 	if (gui.col >= Columns)
 	{
@@ -2122,7 +2108,6 @@ gui_screenchar(
     guicolor_T	bg,	    /* colors for cursor */
     int		back)	    /* backup this many chars when using bold trick */
 {
-#ifdef FEAT_MBYTE
     char_u	buf[MB_MAXBYTES + 1];
 
     /* Don't draw right halve of a double-width UTF-8 char. "cannot happen" */
@@ -2145,9 +2130,6 @@ gui_screenchar(
     return gui_outstr_nowrap(ScreenLines + off,
 	    enc_dbcs ? (*mb_ptr2len)(ScreenLines + off) : 1,
 							 flags, fg, bg, back);
-#else
-    return gui_outstr_nowrap(ScreenLines + off, 1, flags, fg, bg, back);
-#endif
 }
 
 #ifdef FEAT_GUI_GTK
@@ -2256,9 +2238,7 @@ gui_outstr_nowrap(
     guicolor_T	sp_color;
 #if !defined(FEAT_GUI_GTK)
     GuiFont	font = NOFONT;
-# ifdef FEAT_MBYTE
     GuiFont	wide_font = NOFONT;
-# endif
 # ifdef FEAT_XFONTSET
     GuiFontset	fontset = NOFONTSET;
 # endif
@@ -2349,7 +2329,6 @@ gui_outstr_nowrap(
 	else
 	    font = gui.norm_font;
 
-# ifdef FEAT_MBYTE
 	/*
 	 * Choose correct wide_font by font.  wide_font should be set with font
 	 * at same time in above block.  But it will make many "ifdef" nasty
@@ -2363,8 +2342,6 @@ gui_outstr_nowrap(
 	    wide_font = gui.wide_ital_font;
 	else if (font == gui.norm_font && gui.wide_font)
 	    wide_font = gui.wide_font;
-# endif
-
     }
 # ifdef FEAT_XFONTSET
     if (fontset != NOFONTSET)
@@ -2477,7 +2454,6 @@ gui_outstr_nowrap(
     /* The value returned is the length in display cells */
     len = gui_macvim_draw_string(gui.row, col, s, len, draw_flags);
 #else
-# ifdef FEAT_MBYTE
     if (enc_utf8)
     {
 	int	start;		/* index of bytes to be drawn */
@@ -2492,11 +2468,11 @@ gui_outstr_nowrap(
 	int	curr_wide = FALSE;  /* use 'guifontwide' */
 	int	prev_wide = FALSE;
 	int	wide_changed;
-#  ifdef WIN3264
+# ifdef WIN3264
 	int	sep_comp = FALSE;   /* Don't separate composing chars. */
-#  else
+# else
 	int	sep_comp = TRUE;    /* Separate composing chars. */
-#  endif
+# endif
 
 	/* Break the string at a composing character, it has to be drawn on
 	 * top of the previous character. */
@@ -2512,9 +2488,9 @@ gui_outstr_nowrap(
 	    if (!comping || sep_comp)
 	    {
 		if (cn > 1
-#  ifdef FEAT_XFONTSET
+# ifdef FEAT_XFONTSET
 			&& fontset == NOFONTSET
-#  endif
+# endif
 			&& wide_font != NOFONT)
 		    curr_wide = TRUE;
 		else
@@ -2530,15 +2506,15 @@ gui_outstr_nowrap(
 	     * a composing character. */
 	    if (i + cl >= len || (comping && sep_comp && i > start)
 		    || wide_changed
-#  if defined(FEAT_GUI_X11)
+# if defined(FEAT_GUI_X11)
 		    || (cn > 1
-#   ifdef FEAT_XFONTSET
+#  ifdef FEAT_XFONTSET
 			/* No fontset: At least draw char after wide char at
 			 * right position. */
 			&& fontset == NOFONTSET
-#   endif
-		       )
 #  endif
+		       )
+# endif
 	       )
 	    {
 		if ((comping && sep_comp) || wide_changed)
@@ -2565,29 +2541,29 @@ gui_outstr_nowrap(
 		    cl = 0;
 		}
 
-#  if defined(FEAT_GUI_X11)
+# if defined(FEAT_GUI_X11)
 		/* No fontset: draw a space to fill the gap after a wide char
 		 * */
 		if (cn > 1 && (draw_flags & DRAW_TRANSP) == 0
-#   ifdef FEAT_XFONTSET
+#  ifdef FEAT_XFONTSET
 			&& fontset == NOFONTSET
-#   endif
+#  endif
 			&& !wide_changed)
 		    gui_mch_draw_string(gui.row, scol - 1, (char_u *)" ",
 							       1, draw_flags);
-#  endif
+# endif
 	    }
 	    /* Draw a composing char on top of the previous char. */
 	    if (comping && sep_comp)
 	    {
-#  if defined(__APPLE_CC__) && TARGET_API_MAC_CARBON
+# if defined(__APPLE_CC__) && TARGET_API_MAC_CARBON
 		/* Carbon ATSUI autodraws composing char over previous char */
 		gui_mch_draw_string(gui.row, scol, s + i, cl,
 						    draw_flags | DRAW_TRANSP);
-#  else
+# else
 		gui_mch_draw_string(gui.row, scol - cn, s + i, cl,
 						    draw_flags | DRAW_TRANSP);
-#  endif
+# endif
 		start = i + cl;
 	    }
 	    prev_wide = curr_wide;
@@ -2596,17 +2572,14 @@ gui_outstr_nowrap(
 	len = scol - col;
     }
     else
-# endif
     {
 	gui_mch_draw_string(gui.row, col, s, len, draw_flags);
-# ifdef FEAT_MBYTE
 	if (enc_dbcs == DBCS_JPNU)
 	{
 	    /* Get the length in display cells, this can be different from the
 	     * number of bytes for "euc-jp". */
 	    len = mb_string2cells(s, len);
 	}
-# endif
     }
 #endif /* !FEAT_GUI_GTK */
 
@@ -2733,9 +2706,7 @@ gui_redraw_block(
     int		idx, len;
     int		back, nback;
     int		retval = FALSE;
-#ifdef FEAT_MBYTE
     int		orig_col1, orig_col2;
-#endif
 
     /* Don't try to update when ScreenLines is not valid */
     if (!screen_cleared || ScreenLines == NULL)
@@ -2752,14 +2723,11 @@ gui_redraw_block(
     old_row = gui.row;
     old_col = gui.col;
     old_hl_mask = gui.highlight_mask;
-#ifdef FEAT_MBYTE
     orig_col1 = col1;
     orig_col2 = col2;
-#endif
 
     for (gui.row = row1; gui.row <= row2; gui.row++)
     {
-#ifdef FEAT_MBYTE
 	/* When only half of a double-wide character is in the block, include
 	 * the other half. */
 	col1 = orig_col1;
@@ -2789,12 +2757,11 @@ gui_redraw_block(
 		    msg((char *)IObuff);
 		}
 	    }
-# ifdef FEAT_GUI_GTK
+#ifdef FEAT_GUI_GTK
 	    if (col2 + 1 < Columns && ScreenLines[off + col2 + 1] == 0)
 		++col2;
-# endif
-	}
 #endif
+	}
 	gui.col = col1;
 	off = LineOffset[gui.row] + gui.col;
 	len = col2 - col1 + 1;
@@ -2814,7 +2781,7 @@ gui_redraw_block(
 	{
 	    first_attr = ScreenAttrs[off];
 	    gui.highlight_mask = first_attr;
-#if defined(FEAT_MBYTE) && !defined(FEAT_GUI_GTK)
+#if !defined(FEAT_GUI_GTK)
 	    if (enc_utf8 && ScreenLinesUC[off] != 0)
 	    {
 		/* output multi-byte character separately */
@@ -2850,7 +2817,6 @@ gui_redraw_block(
 		for (idx = 0; idx < len && ScreenAttrs[off + idx] == first_attr;
 									idx++)
 		{
-# ifdef FEAT_MBYTE
 		    /* Stop at a multi-byte Unicode character. */
 		    if (enc_utf8 && ScreenLinesUC[off + idx] != 0)
 			break;
@@ -2863,7 +2829,6 @@ gui_redraw_block(
 							    + off + idx) == 2)
 			    ++idx;  /* skip second byte of double-byte char */
 		    }
-# endif
 		}
 		nback = gui_outstr_nowrap(ScreenLines + off, idx, flags,
 					  (guicolor_T)0, (guicolor_T)0, back);
@@ -3426,11 +3391,7 @@ gui_xy2colrow(int x, int y, int *colp)
     int		col = check_col(X_2_COL(x));
     int		row = check_row(Y_2_ROW(y));
 
-#ifdef FEAT_MBYTE
     *colp = mb_fix_col(col, row);
-#else
-    *colp = col;
-#endif
     return row;
 }
 

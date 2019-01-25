@@ -477,11 +477,9 @@ find_command(int cmdchar)
     int		top, bot;
     int		c;
 
-#ifdef FEAT_MBYTE
     /* A multi-byte character is never a command. */
     if (cmdchar >= 0x100)
 	return -1;
-#endif
 
     /* We use the absolute value of the character.  Special keys have a
      * negative value, but are sorted on their absolute value. */
@@ -1036,7 +1034,6 @@ getcount:
 		}
 	    }
 
-#ifdef FEAT_MBYTE
 	    /* When getting a text character and the next character is a
 	     * multi-byte character, it could be a composing character.
 	     * However, don't wait for it to arrive. Also, do enable mapping,
@@ -1058,7 +1055,6 @@ getcount:
 		    ca.ncharC2 = c;
 	    }
 	    ++no_mapping;
-#endif
 	}
 	--no_mapping;
 	--allow_keys;
@@ -1255,10 +1251,8 @@ normal_end:
     checkpcmark();		/* check if we moved since setting pcmark */
     vim_free(ca.searchbuf);
 
-#ifdef FEAT_MBYTE
     if (has_mbyte)
 	mb_adjust_cursor();
-#endif
 
     if (curwin->w_p_scb && toplevel)
     {
@@ -1745,7 +1739,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
 	    }
 	}
 
-#ifdef FEAT_MBYTE
 	/* Include the trailing byte of a multi-byte char. */
 	if (has_mbyte && oap->inclusive)
 	{
@@ -1755,7 +1748,6 @@ do_pending_operator(cmdarg_T *cap, int old_col, int gui_yank)
 	    if (l > 1)
 		oap->end.col += l - 1;
 	}
-#endif
 	curwin->w_set_curswant = TRUE;
 
 	/*
@@ -3134,12 +3126,8 @@ do_mouse(
 		{
 		    find_start_of_word(&VIsual);
 		    if (*p_sel == 'e' && *ml_get_cursor() != NUL)
-#ifdef FEAT_MBYTE
 			curwin->w_cursor.col +=
 					 (*mb_ptr2len)(ml_get_cursor());
-#else
-			++curwin->w_cursor.col;
-#endif
 		    find_end_of_word(&curwin->w_cursor);
 		}
 	    }
@@ -3181,9 +3169,7 @@ find_start_of_word(pos_T *pos)
     while (pos->col > 0)
     {
 	col = pos->col - 1;
-#ifdef FEAT_MBYTE
 	col -= (*mb_head_off)(line, line + col);
-#endif
 	if (get_mouse_class(line + col) != cclass)
 	    break;
 	pos->col = col;
@@ -3205,18 +3191,12 @@ find_end_of_word(pos_T *pos)
     if (*p_sel == 'e' && pos->col > 0)
     {
 	--pos->col;
-#ifdef FEAT_MBYTE
 	pos->col -= (*mb_head_off)(line, line + pos->col);
-#endif
     }
     cclass = get_mouse_class(line + pos->col);
     while (line[pos->col] != NUL)
     {
-#ifdef FEAT_MBYTE
 	col = pos->col + (*mb_ptr2len)(line + pos->col);
-#else
-	col = pos->col + 1;
-#endif
 	if (get_mouse_class(line + col) != cclass)
 	{
 	    if (*p_sel == 'e')
@@ -3239,10 +3219,8 @@ get_mouse_class(char_u *p)
 {
     int		c;
 
-#ifdef FEAT_MBYTE
     if (has_mbyte && MB_BYTE2LEN(p[0]) > 1)
 	return mb_get_class(p);
-#endif
 
     c = *p;
     if (c == ' ' || c == '\t')
@@ -3432,11 +3410,9 @@ find_ident_at_pos(
     char_u	*ptr;
     int		col = 0;	    /* init to shut up GCC */
     int		i;
-#ifdef FEAT_MBYTE
     int		this_class = 0;
     int		prev_class;
     int		prevcol;
-#endif
     int		bn = 0;	    /* bracket nesting */
 
     /*
@@ -3450,7 +3426,6 @@ find_ident_at_pos(
 	 * 1. skip to start of identifier/string
 	 */
 	col = startcol;
-#ifdef FEAT_MBYTE
 	if (has_mbyte)
 	{
 	    while (ptr[col] != NUL)
@@ -3465,7 +3440,6 @@ find_ident_at_pos(
 	    }
 	}
 	else
-#endif
 	    while (ptr[col] != NUL
 		    && (i == 0 ? !vim_iswordc(ptr[col]) : VIM_ISWHITE(ptr[col]))
 		    && (!(find_type & FIND_EVAL) || ptr[col] != ']')
@@ -3478,7 +3452,6 @@ find_ident_at_pos(
 	/*
 	 * 2. Back up to start of identifier/string.
 	 */
-#ifdef FEAT_MBYTE
 	if (has_mbyte)
 	{
 	    /* Remember class of character under cursor. */
@@ -3511,7 +3484,6 @@ find_ident_at_pos(
 		break;
 	}
 	else
-#endif
 	{
 	    while (col > 0
 		    && ((i == 0
@@ -3533,11 +3505,8 @@ find_ident_at_pos(
 	}
     }
 
-    if (ptr[col] == NUL || (i == 0 && (
-#ifdef FEAT_MBYTE
-		has_mbyte ? this_class != 2 :
-#endif
-		!vim_iswordc(ptr[col]))))
+    if (ptr[col] == NUL || (i == 0
+		&& (has_mbyte ? this_class != 2 : !vim_iswordc(ptr[col]))))
     {
 	/*
 	 * didn't find an identifier or string
@@ -3557,7 +3526,6 @@ find_ident_at_pos(
     bn = 0;
     startcol -= col;
     col = 0;
-#ifdef FEAT_MBYTE
     if (has_mbyte)
     {
 	/* Search for point of changing multibyte character class. */
@@ -3572,7 +3540,6 @@ find_ident_at_pos(
 	    col += (*mb_ptr2len)(ptr + col);
     }
     else
-#endif
 	while ((i == 0 ? vim_iswordc(ptr[col])
 		       : (ptr[col] != NUL && !VIM_ISWHITE(ptr[col])))
 		    || ((find_type & FIND_EVAL)
@@ -3788,11 +3755,7 @@ clear_showcmd(void)
 	    }
 	    while ((*p_sel != 'e') ? s <= e : s < e)
 	    {
-# ifdef FEAT_MBYTE
 		l = (*mb_ptr2len)(s);
-# else
-		l = (*s == NUL) ? 0 : 1;
-# endif
 		if (l == 0)
 		{
 		    ++bytes;
@@ -4562,7 +4525,6 @@ nv_screengo(oparg_T *oap, int dir, long dist)
     else
 	coladvance(curwin->w_curswant);
 
-#if defined(FEAT_LINEBREAK) || defined(FEAT_MBYTE)
     if (curwin->w_cursor.col > 0 && curwin->w_p_wrap)
     {
 	colnr_T virtcol;
@@ -4574,10 +4536,10 @@ nv_screengo(oparg_T *oap, int dir, long dist)
 	 */
 	validate_virtcol();
 	virtcol = curwin->w_virtcol;
-# if defined(FEAT_LINEBREAK)
+#if defined(FEAT_LINEBREAK)
 	if (virtcol > (colnr_T)width1 && *p_sbr != NUL)
 	    virtcol -= vim_strsize(p_sbr);
-# endif
+#endif
 
 	if (virtcol > curwin->w_curswant
 		&& (curwin->w_curswant < (colnr_T)width1
@@ -4586,7 +4548,6 @@ nv_screengo(oparg_T *oap, int dir, long dist)
 						      > (colnr_T)width2 / 2)))
 	    --curwin->w_cursor.col;
     }
-#endif
 
     if (atend)
 	curwin->w_curswant = MAXCOL;	    /* stick in the last column */
@@ -5801,7 +5762,6 @@ nv_ident(cmdarg_T *cap)
 	    /* put a backslash before \ and some others */
 	    if (vim_strchr(aux_ptr, *ptr) != NULL)
 		*p++ = '\\';
-#ifdef FEAT_MBYTE
 	    /* When current byte is a part of multibyte character, copy all
 	     * bytes of that character. */
 	    if (has_mbyte)
@@ -5812,7 +5772,6 @@ nv_ident(cmdarg_T *cap)
 		for (i = 0; i < len && n >= 1; ++i, --n)
 		    *p++ = *ptr++;
 	    }
-#endif
 	    *p++ = *ptr++;
 	}
 	*p = NUL;
@@ -5823,11 +5782,9 @@ nv_ident(cmdarg_T *cap)
      */
     if (cmdchar == '*' || cmdchar == '#')
     {
-	if (!g_cmd && (
-#ifdef FEAT_MBYTE
-		has_mbyte ? vim_iswordp(mb_prevptr(ml_get_curline(), ptr)) :
-#endif
-		vim_iswordc(ptr[-1])))
+	if (!g_cmd && (has_mbyte
+		    ? vim_iswordp(mb_prevptr(ml_get_curline(), ptr))
+		    : vim_iswordc(ptr[-1])))
 	    STRCAT(buf, "\\>");
 #ifdef FEAT_CMDHIST
 	/* put pattern in search history */
@@ -5877,11 +5834,9 @@ get_visual_text(
 	    *pp = ml_get_pos(&VIsual);
 	    *lenp = curwin->w_cursor.col - VIsual.col + 1;
 	}
-#ifdef FEAT_MBYTE
 	if (has_mbyte)
 	    /* Correct the length to include the whole last character. */
 	    *lenp += (*mb_ptr2len)(*pp + (*lenp - 1)) - 1;
-#endif
     }
     reset_VIsual_and_resel();
     return OK;
@@ -6091,12 +6046,10 @@ nv_right(cmdarg_T *cap)
 	    else
 #endif
 	    {
-#ifdef FEAT_MBYTE
 		if (has_mbyte)
 		    curwin->w_cursor.col +=
 					 (*mb_ptr2len)(ml_get_cursor());
 		else
-#endif
 		    ++curwin->w_cursor.col;
 	    }
 	}
@@ -6162,11 +6115,9 @@ nv_left(cmdarg_T *cap)
 
 		    if (*cp != NUL)
 		    {
-#ifdef FEAT_MBYTE
 			if (has_mbyte)
 			    curwin->w_cursor.col += (*mb_ptr2len)(cp);
 			else
-#endif
 			    ++curwin->w_cursor.col;
 		    }
 		    cap->retval |= CA_NO_ADJ_OP_END;
@@ -7093,10 +7044,7 @@ nv_replace(cmdarg_T *cap)
     /* Abort if not enough characters to replace. */
     ptr = ml_get_cursor();
     if (STRLEN(ptr) < (unsigned)cap->count1
-#ifdef FEAT_MBYTE
-	    || (has_mbyte && mb_charlen(ptr) < cap->count1)
-#endif
-	    )
+	    || (has_mbyte && mb_charlen(ptr) < cap->count1))
     {
 	clearopbeep(cap->oap);
 	return;
@@ -7131,11 +7079,7 @@ nv_replace(cmdarg_T *cap)
 	 * autoindent.	The insert command depends on being on the last
 	 * character of a line or not.
 	 */
-#ifdef FEAT_MBYTE
 	(void)del_chars(cap->count1, FALSE);	/* delete the characters */
-#else
-	(void)del_bytes(cap->count1, FALSE, FALSE); /* delete the characters */
-#endif
 	stuffcharReadbuff('\r');
 	stuffcharReadbuff(ESC);
 
@@ -7148,7 +7092,6 @@ nv_replace(cmdarg_T *cap)
 				       NUL, 'r', NUL, had_ctrl_v, cap->nchar);
 
 	curbuf->b_op_start = curwin->w_cursor;
-#ifdef FEAT_MBYTE
 	if (has_mbyte)
 	{
 	    int		old_State = State;
@@ -7184,7 +7127,6 @@ nv_replace(cmdarg_T *cap)
 	    }
 	}
 	else
-#endif
 	{
 	    /*
 	     * Replace the characters within one line.
@@ -7227,12 +7169,10 @@ nv_replace(cmdarg_T *cap)
 			       (colnr_T)(curwin->w_cursor.col - cap->count1));
 	}
 	--curwin->w_cursor.col;	    /* cursor on the last replaced char */
-#ifdef FEAT_MBYTE
 	/* if the character on the left of the current cursor is a multi-byte
 	 * character, move two characters left */
 	if (has_mbyte)
 	    mb_adjust_cursor();
-#endif
 	curbuf->b_op_end = curwin->w_cursor;
 	curwin->w_set_curswant = TRUE;
 	set_last_insert(cap->nchar);
@@ -8235,7 +8175,6 @@ nv_g_cmd(cmdarg_T *cap)
 		    validate_virtcol();
 		    curwin->w_curswant = curwin->w_virtcol;
 		    curwin->w_set_curswant = FALSE;
-#if defined(FEAT_LINEBREAK) || defined(FEAT_MBYTE)
 		    if (curwin->w_cursor.col > 0 && curwin->w_p_wrap)
 		    {
 			/*
@@ -8246,7 +8185,6 @@ nv_g_cmd(cmdarg_T *cap)
 			if (curwin->w_virtcol > (colnr_T)i)
 			    --curwin->w_cursor.col;
 		    }
-#endif
 		}
 		else if (nv_screengo(oap, FORWARD, cap->count1 - 1) == FAIL)
 		    clearopbeep(oap);
@@ -8361,7 +8299,6 @@ nv_g_cmd(cmdarg_T *cap)
 	do_ascii(NULL);
 	break;
 
-#ifdef FEAT_MBYTE
     /*
      * "g8": Display the bytes used for the UTF-8 character under the
      * cursor.	It is displayed in hex.
@@ -8373,7 +8310,6 @@ nv_g_cmd(cmdarg_T *cap)
 	else
 	    show_utf8();
 	break;
-#endif
 
     /* "g<": show scrollback text */
     case '<':
@@ -8876,11 +8812,9 @@ adjust_cursor(oparg_T *oap)
 		)
     {
 	--curwin->w_cursor.col;
-#ifdef FEAT_MBYTE
 	/* prevent cursor from moving on the trail byte */
 	if (has_mbyte)
 	    mb_adjust_cursor();
-#endif
 	oap->inclusive = TRUE;
     }
 }
@@ -8912,11 +8846,9 @@ adjust_for_sel(cmdarg_T *cap)
     if (VIsual_active && cap->oap->inclusive && *p_sel == 'e'
 	    && gchar_cursor() != NUL && LT_POS(VIsual, curwin->w_cursor))
     {
-#ifdef FEAT_MBYTE
 	if (has_mbyte)
 	    inc_cursor();
 	else
-#endif
 	    ++curwin->w_cursor.col;
 	cap->oap->inclusive = FALSE;
     }
@@ -8946,9 +8878,7 @@ unadjust_for_sel(void)
 	if (pp->col > 0)
 	{
 	    --pp->col;
-#ifdef FEAT_MBYTE
 	    mb_adjustpos(curbuf, pp);
-#endif
 	}
 	else if (pp->lnum > 1)
 	{
@@ -9679,11 +9609,9 @@ get_op_vcol(
 
     oap->block_mode = TRUE;
 
-#ifdef FEAT_MBYTE
     /* prevent from moving onto a trail byte */
     if (has_mbyte)
 	mb_adjustpos(curwin->w_buffer, &oap->end);
-#endif
 
     getvvcol(curwin, &(oap->start), &oap->start_vcol, NULL, &oap->end_vcol);
 

@@ -464,11 +464,7 @@ static char *(features[]) =
 	"+multi_byte_ime",
 # endif
 #else
-# ifdef FEAT_MBYTE
 	"+multi_byte",
-# else
-	"-multi_byte",
-# endif
 #endif
 #ifdef FEAT_MULTI_LANG
 	"+multi_lang",
@@ -806,6 +802,64 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    818,
+/**/
+    817,
+/**/
+    816,
+/**/
+    815,
+/**/
+    814,
+/**/
+    813,
+/**/
+    812,
+/**/
+    811,
+/**/
+    810,
+/**/
+    809,
+/**/
+    808,
+/**/
+    807,
+/**/
+    806,
+/**/
+    805,
+/**/
+    804,
+/**/
+    803,
+/**/
+    802,
+/**/
+    801,
+/**/
+    800,
+/**/
+    799,
+/**/
+    798,
+/**/
+    797,
+/**/
+    796,
+/**/
+    795,
+/**/
+    794,
+/**/
+    793,
+/**/
+    792,
+/**/
+    791,
+/**/
+    790,
 /**/
     789,
 /**/
@@ -3036,14 +3090,12 @@ do_intro_line(
 	for (l = 0; p[l] != NUL
 			 && (l == 0 || (p[l] != '<' && p[l - 1] != '>')); ++l)
 	{
-#ifdef FEAT_MBYTE
 	    if (has_mbyte)
 	    {
 		clen += ptr2cells(p + l);
 		l += (*mb_ptr2len)(p + l) - 1;
 	    }
 	    else
-#endif
 		clen += byte2cells(p[l]);
 	}
 	screen_puts_len(p, l, row, col, *p == '<' ? HL_ATTR(HLF_8) : attr);

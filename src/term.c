@@ -2591,7 +2591,6 @@ out_flush_cursor(
 }
 
 
-#if defined(FEAT_MBYTE) || defined(PROTO)
 /*
  * Sometimes a byte out of a multi-byte character is written with out_char().
  * To avoid flushing half of the character, call this function first.
@@ -2602,7 +2601,6 @@ out_flush_check(void)
     if (enc_dbcs != 0 && out_pos >= OUT_SIZE - MB_MAXBYTES)
 	out_flush();
 }
-#endif
 
 #ifdef FEAT_GUI
 /*
@@ -3626,7 +3624,6 @@ may_req_termresponse(void)
     }
 }
 
-# if defined(FEAT_MBYTE) || defined(PROTO)
 /*
  * Check how the terminal treats ambiguous character width (UAX #11).
  * First, we move the cursor to (1, 0) and print a test ambiguous character
@@ -3672,7 +3669,6 @@ may_req_ambiguous_char_width(void)
 	 (void)vpeekc_nomap();
     }
 }
-# endif
 
 /*
  * Similar to requesting the version string: Request the terminal background
@@ -4612,9 +4608,7 @@ check_termcode(
 	    {
 		int col = 0;
 		int semicols = 0;
-#ifdef FEAT_MBYTE
 		int row_char = NUL;
-#endif
 
 		extra = 0;
 		for (i = 2 + (tp[0] != CSI); i < len
@@ -4623,9 +4617,7 @@ check_termcode(
 		    if (tp[i] == ';' && ++semicols == 1)
 		    {
 			extra = i + 1;
-#ifdef FEAT_MBYTE
 			row_char = tp[i - 1];
-#endif
 		    }
 		if (i == len)
 		{
@@ -4635,7 +4627,6 @@ check_termcode(
 		if (extra > 0)
 		    col = atoi((char *)tp + extra);
 
-#ifdef FEAT_MBYTE
 		/* Eat it when it has 2 arguments and ends in 'R'. Also when
 		 * u7_status is not "sent", it may be from a previous Vim that
 		 * just exited.  But not for <S-F3>, it sends something
@@ -4678,10 +4669,9 @@ check_termcode(
 		    set_vim_var_string(VV_TERMU7RESP, tp, slen);
 # endif
 		}
-		else
-#endif
 		/* eat it when at least one digit and ending in 'c' */
-		if (*T_CRV != NUL && i > 2 + (tp[0] != CSI) && tp[i] == 'c')
+		else if (*T_CRV != NUL && i > 2 + (tp[0] != CSI)
+							       && tp[i] == 'c')
 		{
 		    int version = col;
 
@@ -5979,11 +5969,9 @@ check_termcode(
 	if (key_name[0] == KS_KEY)
 	{
 	    /* from ":set <M-b>=xx" */
-#ifdef FEAT_MBYTE
 	    if (has_mbyte)
 		new_slen += (*mb_char2bytes)(key_name[1], string + new_slen);
 	    else
-#endif
 		string[new_slen++] = key_name[1];
 	}
 	else if (new_slen == 0 && key_name[0] == KS_EXTRA
@@ -6263,10 +6251,8 @@ replace_termcodes(
 	    }
 	}
 
-#ifdef FEAT_MBYTE
 	/* skip multibyte char correctly */
 	for (i = (*mb_ptr2len)(src); i > 0; --i)
-#endif
 	{
 	    /*
 	     * If the character is K_SPECIAL, replace it with K_SPECIAL
