@@ -96,7 +96,7 @@ func Test_FileChangedShell_reload()
 endfunc
 
 func Test_file_changed_dialog()
-  if !has('unix')
+  if !has('unix') || has('gui_running')
     return
   endif
   au! FileChangedShell
