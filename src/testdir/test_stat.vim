@@ -142,7 +142,6 @@ func Test_getftype()
     call delete('Xfifo')
   endif
 
-  if !has("gui_macvim")
   for cdevfile in systemlist('find /dev -type c -maxdepth 2 2>/dev/null')
     let type = getftype(cdevfile)
     " ignore empty result, can happen if the file disappeared
@@ -150,7 +149,6 @@ func Test_getftype()
       call assert_equal('cdev', type)
     endif
   endfor
-  endif
 
   for bdevfile in systemlist('find /dev -type b -maxdepth 2 2>/dev/null')
     let type = getftype(bdevfile)

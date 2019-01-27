@@ -645,12 +645,6 @@ func Test_terminal_write_stdin()
 endfunc
 
 func Test_terminal_no_cmd()
-  if has('gui_macvim') && has('gui_running')
-    " MacVim: For some reason this test is failing in GUI unit tests. Need to
-    " investigate.
-    return
-  endif
-
   let buf = term_start('NONE', {})
   call assert_notequal(0, buf)
 

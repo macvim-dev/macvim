@@ -4,12 +4,6 @@ if !has('channel')
   finish
 endif
 
-if has('gui_macvim')
-  " MacVim's currently doesn't always pass these tests. Disable these tests
-  " for now before a more proper fix is implemented.
-  finish
-endif
-
 source shared.vim
 
 let s:python = PythonProg()
