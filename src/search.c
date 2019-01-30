@@ -1038,11 +1038,9 @@ searchit(
 			    end_pos->col = endpos.col;
 			}
 		    }
-#ifdef FEAT_VIRTUALEDIT
 		    pos->coladd = 0;
 		    if (end_pos != NULL)
 			end_pos->coladd = 0;
-#endif
 		    found = 1;
 		    first_match = FALSE;
 
@@ -1928,9 +1926,7 @@ findmatchlimit(
 #endif
 
     pos = curwin->w_cursor;
-#ifdef FEAT_VIRTUALEDIT
     pos.coladd = 0;
-#endif
     linep = ml_get(pos.lnum);
 
     cpo_match = (vim_strchr(p_cpo, CPO_MATCH) != NULL);
@@ -3036,9 +3032,7 @@ fwd_word(
     int		i;
     int		last_line;
 
-#ifdef FEAT_VIRTUALEDIT
     curwin->w_cursor.coladd = 0;
-#endif
     cls_bigword = bigword;
     while (--count >= 0)
     {
@@ -3103,9 +3097,7 @@ bck_word(long count, int bigword, int stop)
 {
     int		sclass;	    /* starting class */
 
-#ifdef FEAT_VIRTUALEDIT
     curwin->w_cursor.coladd = 0;
-#endif
     cls_bigword = bigword;
     while (--count >= 0)
     {
@@ -3172,9 +3164,7 @@ end_word(
 {
     int		sclass;	    /* starting class */
 
-#ifdef FEAT_VIRTUALEDIT
     curwin->w_cursor.coladd = 0;
-#endif
     cls_bigword = bigword;
     while (--count >= 0)
     {
@@ -3242,9 +3232,7 @@ bckend_word(
     int		sclass;	    /* starting class */
     int		i;
 
-#ifdef FEAT_VIRTUALEDIT
     curwin->w_cursor.coladd = 0;
-#endif
     cls_bigword = bigword;
     while (--count >= 0)
     {

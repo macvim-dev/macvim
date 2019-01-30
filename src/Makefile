@@ -1589,6 +1589,7 @@ include testdir/Make_all.mak
 
 BASIC_SRC = \
 	arabic.c \
+	autocmd.c \
 	beval.c \
 	blob.c \
 	blowfish.c \
@@ -1701,6 +1702,7 @@ LINT_SRC = $(BASIC_SRC) $(GUI_SRC) $(HANGULIN_SRC) \
 
 OBJ_COMMON = \
 	objects/arabic.o \
+	objects/autocmd.o \
 	objects/beval.o \
 	objects/buffer.o \
 	objects/blob.o \
@@ -1826,6 +1828,7 @@ ALL_OBJ = $(OBJ_COMMON) \
 
 PRO_AUTO = \
 	arabic.pro \
+	autocmd.pro \
 	blowfish.pro \
 	buffer.pro \
 	charset.pro \
@@ -2957,6 +2960,9 @@ objects/MacVim.o: MacVim/MacVim.m
 objects/arabic.o: arabic.c
 	$(CCC) -o $@ arabic.c
 
+objects/autocmd.o: autocmd.c
+	$(CCC) -o $@ autocmd.c
+
 objects/blob.o: blob.c
 	$(CCC) -o $@ blob.c
 
@@ -3433,6 +3439,10 @@ objects/arabic.o: arabic.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h farsi.h arabic.h
+objects/autocmd.o: autocmd.c vim.h protodef.h auto/config.h feature.h \
+ auto/osdef.h os_unix.h os_mac.h ascii.h keymap.h term.h macros.h option.h beval.h \
+ structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h proto.h globals.h \
+ farsi.h arabic.h
 objects/beval.o: beval.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \

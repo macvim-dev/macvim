@@ -803,10 +803,17 @@ free_scrollback(term_T *term)
     ga_clear(&term->tl_scrollback);
 }
 
+
+// Terminals that need to be freed soon.
+term_T	*terminals_to_free = NULL;
+
 /*
  * Free a terminal and everything it refers to.
  * Kills the job if there is one.
  * Called when wiping out a buffer.
+ * The actual terminal structure is freed later in free_unused_terminals(),
+ * because callbacks may wipe out a buffer while the terminal is still
+ * referenced.
  */
     void
 free_terminal(buf_T *buf)
@@ -816,6 +823,8 @@ free_terminal(buf_T *buf)
 
     if (term == NULL)
 	return;
+
+    // Unlink the terminal form the list of terminals.
     if (first_term == term)
 	first_term = term->tl_next;
     else
@@ -834,27 +843,41 @@ free_terminal(buf_T *buf)
 	    job_stop(term->tl_job, NULL, "kill");
 	job_unref(term->tl_job);
     }
+    term->tl_next = terminals_to_free;
+    terminals_to_free = term;
 
-    free_scrollback(term);
-
-    term_free_vterm(term);
-    vim_free(term->tl_title);
-#ifdef FEAT_SESSION
-    vim_free(term->tl_command);
-#endif
-    vim_free(term->tl_kill);
-    vim_free(term->tl_status_text);
-    vim_free(term->tl_opencmd);
-    vim_free(term->tl_eof_chars);
-#ifdef WIN3264
-    if (term->tl_out_fd != NULL)
-	fclose(term->tl_out_fd);
-#endif
-    vim_free(term->tl_cursor_color);
-    vim_free(term);
     buf->b_term = NULL;
     if (in_terminal_loop == term)
 	in_terminal_loop = NULL;
+}
+
+    void
+free_unused_terminals()
+{
+    while (terminals_to_free != NULL)
+    {
+	term_T	    *term = terminals_to_free;
+
+	terminals_to_free = term->tl_next;
+
+	free_scrollback(term);
+
+	term_free_vterm(term);
+	vim_free(term->tl_title);
+#ifdef FEAT_SESSION
+	vim_free(term->tl_command);
+#endif
+	vim_free(term->tl_kill);
+	vim_free(term->tl_status_text);
+	vim_free(term->tl_opencmd);
+	vim_free(term->tl_eof_chars);
+#ifdef WIN3264
+	if (term->tl_out_fd != NULL)
+	    fclose(term->tl_out_fd);
+#endif
+	vim_free(term->tl_cursor_color);
+	vim_free(term);
+    }
 }
 
 /*
@@ -873,7 +896,7 @@ get_tty_part(term_T *term)
     {
 	int fd = term->tl_job->jv_channel->ch_part[parts[i]].ch_fd;
 
-	if (isatty(fd))
+	if (mch_isatty(fd))
 	    return parts[i];
     }
 #endif
@@ -1280,6 +1303,7 @@ term_convert_key(term_T *term, int c, char *buf)
 /*
  * Return TRUE if the job for "term" is still running.
  * If "check_job_status" is TRUE update the job status.
+ * NOTE: "term" may be freed by callbacks.
  */
     static int
 term_job_running_check(term_T *term, int check_job_status)
@@ -1290,10 +1314,15 @@ term_job_running_check(term_T *term, int check_job_status)
 	&& term->tl_job != NULL
 	&& channel_is_open(term->tl_job->jv_channel))
     {
+	job_T *job = term->tl_job;
+
+	// Careful: Checking the job status may invoked callbacks, which close
+	// the buffer and terminate "term".  However, "job" will not be freed
+	// yet.
 	if (check_job_status)
-	    job_status(term->tl_job);
-	return (term->tl_job->jv_status == JOB_STARTED
-		|| term->tl_job->jv_channel->ch_keep_open);
+	    job_status(job);
+	return (job->jv_status == JOB_STARTED
+		|| (job->jv_channel != NULL && job->jv_channel->ch_keep_open));
     }
     return FALSE;
 }
@@ -1351,19 +1380,24 @@ term_try_stop_job(buf_T *buf)
 
     job_stop(buf->b_term->tl_job, NULL, how);
 
-    /* wait for up to a second for the job to die */
+    // wait for up to a second for the job to die
     for (count = 0; count < 100; ++count)
     {
-	/* buffer, terminal and job may be cleaned up while waiting */
+	job_T *job;
+
+	// buffer, terminal and job may be cleaned up while waiting
 	if (!buf_valid(buf)
 		|| buf->b_term == NULL
 		|| buf->b_term->tl_job == NULL)
 	    return OK;
+	job = buf->b_term->tl_job;
 
-	/* call job_status() to update jv_status */
-	job_status(buf->b_term->tl_job);
-	if (buf->b_term->tl_job->jv_status >= JOB_ENDED)
+	// Call job_status() to update jv_status. It may cause the job to be
+	// cleaned up but it won't be freed.
+	job_status(job);
+	if (job->jv_status >= JOB_ENDED)
 	    return OK;
+
 	ui_delay(10L, FALSE);
 	mch_check_messages();
 	parse_queued_messages();
@@ -2156,9 +2190,8 @@ terminal_loop(int blocking)
 #ifdef FEAT_GUI
 	if (!curbuf->b_term->tl_system)
 #endif
-	    /* TODO: skip screen update when handling a sequence of keys. */
-	    /* Repeat redrawing in case a message is received while redrawing.
-	     */
+	    // TODO: skip screen update when handling a sequence of keys.
+	    // Repeat redrawing in case a message is received while redrawing.
 	    while (must_redraw != 0)
 		if (update_screen(0) == FAIL)
 		    break;
@@ -2187,7 +2220,7 @@ terminal_loop(int blocking)
 	 * them for every typed character is a bit of overhead, but it's needed
 	 * for the first character typed, e.g. when Vim starts in a shell.
 	 */
-	if (isatty(tty_fd))
+	if (mch_isatty(tty_fd))
 	{
 	    ttyinfo_T info;
 
@@ -5887,7 +5920,7 @@ term_report_winsize(term_T *term, int rows, int cols)
 	for (part = PART_OUT; part < PART_COUNT; ++part)
 	{
 	    fd = term->tl_job->jv_channel->ch_part[part].ch_fd;
-	    if (isatty(fd))
+	    if (mch_isatty(fd))
 		break;
 	}
 	if (part < PART_COUNT && mch_report_winsize(fd, rows, cols) == OK)

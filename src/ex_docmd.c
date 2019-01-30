@@ -4666,9 +4666,7 @@ get_address(
 			pos.col = MAXCOL;
 		    else
 			pos.col = 0;
-#ifdef FEAT_VIRTUALEDIT
 		    pos.coladd = 0;
-#endif
 		    if (searchit(curwin, curbuf, &pos, NULL,
 				*cmd == '?' ? BACKWARD : FORWARD,
 				(char_u *)"", 1L, SEARCH_MSG,
@@ -7229,6 +7227,15 @@ ex_colorscheme(exarg_T *eap)
     }
     else if (load_colors(eap->arg) == FAIL)
 	semsg(_("E185: Cannot find color scheme '%s'"), eap->arg);
+
+#ifdef FEAT_VTP
+    else if (has_vtp_working())
+    {
+	// background color change requires clear + redraw
+	update_screen(CLEAR);
+	redrawcmd();
+    }
+#endif
 }
 
     static void
@@ -9439,9 +9446,7 @@ ex_operators(exarg_T *eap)
     oa.end.lnum = eap->line2;
     oa.line_count = eap->line2 - eap->line1 + 1;
     oa.motion_type = MLINE;
-#ifdef FEAT_VIRTUALEDIT
     virtual_op = FALSE;
-#endif
     if (eap->cmdidx != CMD_yank)	/* position cursor for undo */
     {
 	setpcmark();
@@ -9478,9 +9483,7 @@ ex_operators(exarg_T *eap)
 	    op_shift(&oa, FALSE, eap->amount);
 	    break;
     }
-#ifdef FEAT_VIRTUALEDIT
     virtual_op = MAYBE;
-#endif
     ex_may_print(eap);
 }
 
@@ -11312,26 +11315,6 @@ makeopens(
     if (put_line(fd, "set shortmess=aoO") == FAIL)
 	return FAIL;
 
-    /* Now put the other buffers into the buffer list */
-    FOR_ALL_BUFFERS(buf)
-    {
-	if (!(only_save_windows && buf->b_nwindows == 0)
-		&& !(buf->b_help && !(ssop_flags & SSOP_HELP))
-#ifdef FEAT_TERMINAL
-		/* skip terminal buffers: finished ones are not useful, others
-		 * will be resurrected and result in a new buffer */
-		&& !bt_terminal(buf)
-#endif
-		&& buf->b_fname != NULL
-		&& buf->b_p_bl)
-	{
-	    if (fprintf(fd, "badd +%ld ", buf->b_wininfo == NULL ? 1L
-					   : buf->b_wininfo->wi_fpos.lnum) < 0
-		    || ses_fname(fd, buf, &ssop_flags, TRUE) == FAIL)
-		return FAIL;
-	}
-    }
-
     /* the global argument list */
     if (ses_arglist(fd, "argglobal", &global_alist.al_ga,
 			    !(ssop_flags & SSOP_CURDIR), &ssop_flags) == FAIL)
@@ -11554,6 +11537,29 @@ makeopens(
     }
     if (restore_stal && put_line(fd, "set stal=1") == FAIL)
 	return FAIL;
+
+    // Now put the remaining buffers into the buffer list.
+    // This is near the end, so that when 'hidden' is set we don't create extra
+    // buffers.  If the buffer was already created with another command the
+    // ":badd" will have no effect.
+    FOR_ALL_BUFFERS(buf)
+    {
+	if (!(only_save_windows && buf->b_nwindows == 0)
+		&& !(buf->b_help && !(ssop_flags & SSOP_HELP))
+#ifdef FEAT_TERMINAL
+		// Skip terminal buffers: finished ones are not useful, others
+		// will be resurrected and result in a new buffer.
+		&& !bt_terminal(buf)
+#endif
+		&& buf->b_fname != NULL
+		&& buf->b_p_bl)
+	{
+	    if (fprintf(fd, "badd +%ld ", buf->b_wininfo == NULL ? 1L
+					   : buf->b_wininfo->wi_fpos.lnum) < 0
+		    || ses_fname(fd, buf, &ssop_flags, TRUE) == FAIL)
+		return FAIL;
+	}
+    }
 
     /*
      * Wipe out an empty unnamed buffer we started in.

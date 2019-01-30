@@ -1072,14 +1072,12 @@ doESCkey:
 		break;
 	    ins_ctrl_o();
 
-#ifdef FEAT_VIRTUALEDIT
 	    /* don't move the cursor left when 'virtualedit' has "onemore". */
 	    if (ve_flags & VE_ONEMORE)
 	    {
 		ins_at_eol = FALSE;
 		nomove = TRUE;
 	    }
-#endif
 	    count = 0;
 	    goto doESCkey;
 
@@ -7140,14 +7138,12 @@ stop_insert(
 	    {
 		if (gchar_cursor() != NUL)
 		    inc_cursor();
-#ifdef FEAT_VIRTUALEDIT
-		/* If the cursor is still at the same character, also keep
-		 * the "coladd". */
+		// If the cursor is still at the same character, also keep
+		// the "coladd".
 		if (gchar_cursor() == NUL
 			&& curwin->w_cursor.lnum == tpos.lnum
 			&& curwin->w_cursor.col == tpos.col)
 		    curwin->w_cursor.coladd = tpos.coladd;
-#endif
 	    }
 	}
 
@@ -7197,9 +7193,7 @@ stop_insert(
 		if (VIsual.col > len)
 		{
 		    VIsual.col = len;
-#ifdef FEAT_VIRTUALEDIT
 		    VIsual.coladd = 0;
-#endif
 		}
 	    }
 	}
@@ -7308,9 +7302,7 @@ beginline(int flags)
     else
     {
 	curwin->w_cursor.col = 0;
-#ifdef FEAT_VIRTUALEDIT
 	curwin->w_cursor.coladd = 0;
-#endif
 
 	if (flags & (BL_WHITE | BL_SOL))
 	{
@@ -7338,7 +7330,6 @@ oneright(void)
     char_u	*ptr;
     int		l;
 
-#ifdef FEAT_VIRTUALEDIT
     if (virtual_active())
     {
 	pos_T	prevpos = curwin->w_cursor;
@@ -7353,7 +7344,6 @@ oneright(void)
 	return (prevpos.col != curwin->w_cursor.col
 		    || prevpos.coladd != curwin->w_cursor.coladd) ? OK : FAIL;
     }
-#endif
 
     ptr = ml_get_cursor();
     if (*ptr == NUL)
@@ -7366,11 +7356,7 @@ oneright(void)
 
     /* move "l" bytes right, but don't end up on the NUL, unless 'virtualedit'
      * contains "onemore". */
-    if (ptr[l] == NUL
-#ifdef FEAT_VIRTUALEDIT
-	    && (ve_flags & VE_ONEMORE) == 0
-#endif
-	    )
+    if (ptr[l] == NUL && (ve_flags & VE_ONEMORE) == 0)
 	return FAIL;
     curwin->w_cursor.col += l;
 
@@ -7381,18 +7367,17 @@ oneright(void)
     int
 oneleft(void)
 {
-#ifdef FEAT_VIRTUALEDIT
     if (virtual_active())
     {
-# ifdef FEAT_LINEBREAK
+#ifdef FEAT_LINEBREAK
 	int width;
-# endif
+#endif
 	int v = getviscol();
 
 	if (v == 0)
 	    return FAIL;
 
-# ifdef FEAT_LINEBREAK
+#ifdef FEAT_LINEBREAK
 	/* We might get stuck on 'showbreak', skip over it. */
 	width = 1;
 	for (;;)
@@ -7406,9 +7391,9 @@ oneleft(void)
 		break;
 	    ++width;
 	}
-# else
+#else
 	coladvance(v - 1);
-# endif
+#endif
 
 	if (curwin->w_cursor.coladd == 1)
 	{
@@ -7424,7 +7409,6 @@ oneleft(void)
 	curwin->w_set_curswant = TRUE;
 	return OK;
     }
-#endif
 
     if (curwin->w_cursor.col == 0)
 	return FAIL;
@@ -8680,10 +8664,7 @@ ins_esc(
      */
     if (!nomove
 	    && (curwin->w_cursor.col != 0
-#ifdef FEAT_VIRTUALEDIT
-		|| curwin->w_cursor.coladd > 0
-#endif
-	       )
+		|| curwin->w_cursor.coladd > 0)
 	    && (restart_edit == NUL
 		   || (gchar_cursor() == NUL && !VIsual_active))
 #ifdef FEAT_RIGHTLEFT
@@ -8691,7 +8672,6 @@ ins_esc(
 #endif
 				      )
     {
-#ifdef FEAT_VIRTUALEDIT
 	if (curwin->w_cursor.coladd > 0 || ve_flags == VE_ALL)
 	{
 	    oneleft();
@@ -8699,7 +8679,6 @@ ins_esc(
 		++curwin->w_cursor.coladd;
 	}
 	else
-#endif
 	{
 	    --curwin->w_cursor.col;
 	    /* Correct cursor for multi-byte character. */
@@ -8889,11 +8868,9 @@ ins_ctrl_o(void)
 	restart_edit = 'R';
     else
 	restart_edit = 'I';
-#ifdef FEAT_VIRTUALEDIT
     if (virtual_active())
 	ins_at_eol = FALSE;	/* cursor always keeps its column */
     else
-#endif
 	ins_at_eol = (gchar_cursor() == NUL);
 }
 
@@ -9055,7 +9032,6 @@ ins_bs(
 	inc_cursor();
 #endif
 
-#ifdef FEAT_VIRTUALEDIT
     /* Virtualedit:
      *	BACKSPACE_CHAR eats a virtual space
      *	BACKSPACE_WORD eats all coladd
@@ -9075,7 +9051,6 @@ ins_bs(
 	}
 	curwin->w_cursor.coladd = 0;
     }
-#endif
 
     /*
      * Delete newline!
@@ -9778,9 +9753,7 @@ ins_home(int c)
     if (c == K_C_HOME)
 	curwin->w_cursor.lnum = 1;
     curwin->w_cursor.col = 0;
-#ifdef FEAT_VIRTUALEDIT
     curwin->w_cursor.coladd = 0;
-#endif
     curwin->w_curswant = 0;
     start_arrow(&tpos);
 }
@@ -9831,21 +9804,15 @@ ins_right(
 	foldOpenCursor();
 #endif
     undisplay_dollar();
-    if (gchar_cursor() != NUL
-#ifdef FEAT_VIRTUALEDIT
-	    || virtual_active()
-#endif
-	    )
+    if (gchar_cursor() != NUL || virtual_active())
     {
 	start_arrow_with_change(&curwin->w_cursor, end_change);
 	if (!end_change)
 	    AppendCharToRedobuff(K_RIGHT);
 	curwin->w_set_curswant = TRUE;
-#ifdef FEAT_VIRTUALEDIT
 	if (virtual_active())
 	    oneright();
 	else
-#endif
 	{
 	    if (has_mbyte)
 		curwin->w_cursor.col += (*mb_ptr2len)(ml_get_cursor());
@@ -10302,12 +10269,10 @@ ins_eol(int c)
      * in open_line().
      */
 
-#ifdef FEAT_VIRTUALEDIT
     /* Put cursor on NUL if on the last char and coladd is 1 (happens after
      * CTRL-O). */
     if (virtual_active() && curwin->w_cursor.coladd > 0)
 	coladvance(getviscol());
-#endif
 
 #ifdef FEAT_RIGHTLEFT
 # ifdef FEAT_FKMAP
