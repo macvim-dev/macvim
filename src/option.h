@@ -1178,6 +1178,8 @@ enum
 #endif
     , WV_SCBIND
     , WV_SCROLL
+    , WV_SISO
+    , WV_SO
 #ifdef FEAT_SPELL
     , WV_SPELL
 #endif

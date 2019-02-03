@@ -720,6 +720,7 @@ OBJ = \
 	$(OUTDIR)/getchar.o \
 	$(OUTDIR)/hardcopy.o \
 	$(OUTDIR)/hashtab.o \
+	$(OUTDIR)/indent.o \
 	$(OUTDIR)/json.o \
 	$(OUTDIR)/list.o \
 	$(OUTDIR)/main.o \
@@ -930,7 +931,8 @@ endif
 ifeq (yes, $(USE_STDCPLUS))
 LINK = $(CXX)
 ifeq (yes, $(STATIC_STDCPLUS))
-LIB += -static-libstdc++ -static-libgcc
+#LIB += -static-libstdc++ -static-libgcc
+LIB += -Wl,-Bstatic -lstdc++ -Wl,-Bdynamic
 endif
 else
 LINK = $(CC)

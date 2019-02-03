@@ -1168,8 +1168,6 @@ win_update(win_T *wp)
 	    mod_bot = wp->w_redraw_bot + 1;
 	else
 	    mod_bot = 0;
-	wp->w_redraw_top = 0;	/* reset for next time */
-	wp->w_redraw_bot = 0;
 	if (buf->b_mod_set)
 	{
 	    if (mod_top == 0 || mod_top > buf->b_mod_top)
@@ -1281,6 +1279,8 @@ win_update(win_T *wp)
 	if (mod_top != 0 && buf->b_mod_xlines != 0 && wp->w_p_nu)
 	    mod_bot = MAXLNUM;
     }
+    wp->w_redraw_top = 0;	// reset for next time
+    wp->w_redraw_bot = 0;
 
     /*
      * When only displaying the lines at the top, set top_end.  Used when
@@ -3502,7 +3502,7 @@ win_line(
 
     if (wp->w_p_list)
     {
-	if (lcs_space || lcs_trail)
+	if (lcs_space || lcs_trail || lcs_nbsp)
 	    extra_check = TRUE;
 	/* find start of trailing whitespace */
 	if (lcs_trail)
@@ -3716,6 +3716,7 @@ win_line(
     {
 	line_attr = HL_ATTR(HLF_CUL);
 	area_highlighting = TRUE;
+	wp->w_last_cursorline = wp->w_cursor.lnum;
     }
 #endif
 
