@@ -277,6 +277,8 @@ enum {
     SetCursorPosDrawType,
     DrawInvertedRectDrawType,
     DrawSignDrawType,
+
+    InvalidDrawType = -1
 };
 
 enum {

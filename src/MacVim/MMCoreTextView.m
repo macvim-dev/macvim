@@ -77,6 +77,7 @@ CTFontDrawGlyphs(CTFontRef fontRef, const CGGlyph glyphs[],
 - (NSRect)rectFromRow:(int)row1 column:(int)col1
                 toRow:(int)row2 column:(int)col2;
 - (NSSize)textAreaSize;
+- (NSData *)optimizeBatchDrawData:(NSData *)data;
 - (void)batchDrawData:(NSData *)data;
 - (void)drawString:(const UniChar *)chars length:(UniCharCount)length
              atRow:(int)row column:(int)col cells:(int)cells
@@ -1101,8 +1102,483 @@ defaultAdvanceForFont(NSFont *font)
 
 #define MM_DEBUG_DRAWING 0
 
+// TODO: move this to a utility class to be shared
+// Reader / writer utilities to interact with the batch draw data stream.
+struct DrawCmdClearAll
+{
+};
+
+struct DrawCmdClearBlock
+{
+    unsigned color;
+    int row1;
+    int col1;
+    int row2;
+    int col2;
+};
+
+struct DrawCmdDeleteLines
+{
+    unsigned color;
+    int row;
+    int count;
+    int bot;
+    int left;
+    int right;
+};
+
+struct DrawCmdDrawSign
+{
+    int strSize;
+    const char *imgName;
+    int col;
+    int row;
+    int width;
+    int height;
+};
+
+struct DrawCmdDrawString
+{
+    int bg;
+    int fg;
+    int sp;
+    int row;
+    int col;
+    int cells;
+    int flags;
+    int len;
+    UInt8 *str;
+};
+
+struct DrawCmdInsertLines
+{
+    unsigned color;
+    int row;
+    int count;
+    int bot;
+    int left;
+    int right;
+};
+
+struct DrawCmdDrawCursor
+{
+    unsigned color;
+    int row;
+    int col;
+    int shape;
+    int percent;
+};
+
+struct DrawCmdDrawInvertedRect
+{
+    int row;
+    int col;
+    int nr;
+    int nc;
+    int invert;
+};
+
+struct DrawCmdSetCursorPos
+{
+    int row;
+    int col;
+};
+
+struct DrawCmd
+{
+    union
+    {
+        struct DrawCmdClearAll drawCmdClearAll;
+        struct DrawCmdClearBlock drawCmdClearBlock;
+        struct DrawCmdDeleteLines drawCmdDeleteLines;
+        struct DrawCmdDrawSign drawCmdDrawSign;
+        struct DrawCmdDrawString drawCmdDrawString;
+        struct DrawCmdInsertLines drawCmdInsertLines;
+        struct DrawCmdDrawCursor drawCmdDrawCursor;
+        struct DrawCmdDrawInvertedRect drawCmdDrawInvertedRect;
+        struct DrawCmdSetCursorPos drawCmdSetCursorPos;
+    };
+
+    int type;
+};
+
+// Read a single draw command from the batch draw data stream, and returns the
+// draw type (the type is also stored in drawCmd->type).
+static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
+{
+    const void *bytes = *bytesRef;
+    
+    int type = *((int*)bytes);  bytes += sizeof(int);
+    
+    switch (type) {
+        case ClearAllDrawType:
+            break;
+        case ClearBlockDrawType:
+        {
+            struct DrawCmdClearBlock *cmd = &drawCmd->drawCmdClearBlock;
+            cmd->color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            cmd->row1 = *((int*)bytes);  bytes += sizeof(int);
+            cmd->col1 = *((int*)bytes);  bytes += sizeof(int);
+            cmd->row2 = *((int*)bytes);  bytes += sizeof(int);
+            cmd->col2 = *((int*)bytes);  bytes += sizeof(int);
+        }
+            break;
+        case DeleteLinesDrawType:
+        {
+            struct DrawCmdDeleteLines *cmd = &drawCmd->drawCmdDeleteLines;
+            cmd->color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            cmd->row = *((int*)bytes);  bytes += sizeof(int);
+            cmd->count = *((int*)bytes);  bytes += sizeof(int);
+            cmd->bot = *((int*)bytes);  bytes += sizeof(int);
+            cmd->left = *((int*)bytes);  bytes += sizeof(int);
+            cmd->right = *((int*)bytes);  bytes += sizeof(int);
+        }
+            break;
+        case DrawSignDrawType:
+        {
+            struct DrawCmdDrawSign *cmd = &drawCmd->drawCmdDrawSign;
+            cmd->strSize = *((int*)bytes);  bytes += sizeof(int);
+            cmd->imgName = (const char*)bytes; bytes += cmd->strSize;
+            cmd->col = *((int*)bytes);  bytes += sizeof(int);
+            cmd->row = *((int*)bytes);  bytes += sizeof(int);
+            cmd->width = *((int*)bytes);  bytes += sizeof(int);
+            cmd->height = *((int*)bytes);  bytes += sizeof(int);
+        }
+            break;
+        case DrawStringDrawType:
+        {
+            struct DrawCmdDrawString *cmd = &drawCmd->drawCmdDrawString;
+            cmd->bg = *((int*)bytes);  bytes += sizeof(int);
+            cmd->fg = *((int*)bytes);  bytes += sizeof(int);
+            cmd->sp = *((int*)bytes);  bytes += sizeof(int);
+            cmd->row = *((int*)bytes);  bytes += sizeof(int);
+            cmd->col = *((int*)bytes);  bytes += sizeof(int);
+            cmd->cells = *((int*)bytes);  bytes += sizeof(int);
+            cmd->flags = *((int*)bytes);  bytes += sizeof(int);
+            cmd->len = *((int*)bytes);  bytes += sizeof(int);
+            cmd->str = (UInt8 *)bytes;  bytes += cmd->len;
+        }
+            break;
+        case InsertLinesDrawType:
+        {
+            struct DrawCmdInsertLines *cmd = &drawCmd->drawCmdInsertLines;
+            cmd->color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            cmd->row = *((int*)bytes);  bytes += sizeof(int);
+            cmd->count = *((int*)bytes);  bytes += sizeof(int);
+            cmd->bot = *((int*)bytes);  bytes += sizeof(int);
+            cmd->left = *((int*)bytes);  bytes += sizeof(int);
+            cmd->right = *((int*)bytes);  bytes += sizeof(int);
+        }
+            break;
+        case DrawCursorDrawType:
+        {
+            struct DrawCmdDrawCursor *cmd = &drawCmd->drawCmdDrawCursor;
+            cmd->color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
+            cmd->row = *((int*)bytes);  bytes += sizeof(int);
+            cmd->col = *((int*)bytes);  bytes += sizeof(int);
+            cmd->shape = *((int*)bytes);  bytes += sizeof(int);
+            cmd->percent = *((int*)bytes);  bytes += sizeof(int);
+        }
+            break;
+        case DrawInvertedRectDrawType:
+        {
+            struct DrawCmdDrawInvertedRect *cmd = &drawCmd->drawCmdDrawInvertedRect;
+            cmd->row = *((int*)bytes);  bytes += sizeof(int);
+            cmd->col = *((int*)bytes);  bytes += sizeof(int);
+            cmd->nr = *((int*)bytes);  bytes += sizeof(int);
+            cmd->nc = *((int*)bytes);  bytes += sizeof(int);
+            cmd->invert = *((int*)bytes);  bytes += sizeof(int);
+        }
+            break;
+        case SetCursorPosDrawType:
+        {
+            struct DrawCmdSetCursorPos *cmd = &drawCmd->drawCmdSetCursorPos;
+            cmd->row = *((int*)bytes);  bytes += sizeof(int);
+            cmd->col = *((int*)bytes);  bytes += sizeof(int);
+        }
+            break;
+        default:
+        {
+            ASLogWarn(@"Unknown draw type (type=%d)", type);
+            type = InvalidDrawType;
+        }
+            break;
+    }
+    
+    *bytesRef = bytes;
+    drawCmd->type = type;
+    return type;
+}
+
+// Write a single draw command to the batch draw data stream.
+static void WriteDrawCmd(NSMutableData *drawData, const struct DrawCmd *drawCmd)
+{
+    int type = drawCmd->type;
+    
+    [drawData appendBytes:&type length:sizeof(int)];
+    
+    switch (type) {
+        case ClearAllDrawType:
+            break;
+        case ClearBlockDrawType:
+        {
+            const struct DrawCmdClearBlock *cmd = &drawCmd->drawCmdClearBlock;
+            [drawData appendBytes:cmd length:sizeof(struct DrawCmdClearBlock)];
+            static_assert(sizeof(struct DrawCmdClearBlock) == sizeof(unsigned) + sizeof(int)*4, "Wrong size");
+        }
+            break;
+        case DeleteLinesDrawType:
+        {
+            const struct DrawCmdDeleteLines *cmd = &drawCmd->drawCmdDeleteLines;
+            [drawData appendBytes:cmd length:sizeof(struct DrawCmdDeleteLines)];
+            static_assert(sizeof(struct DrawCmdDeleteLines) == sizeof(unsigned) + sizeof(int)*5, "Wrong size");
+        }
+            break;
+        case DrawSignDrawType:
+        {
+            // Can't do simple memcpy of whole struct because of cmd->imgName.
+            const struct DrawCmdDrawSign *cmd = &drawCmd->drawCmdDrawSign;
+            [drawData appendBytes:&cmd->strSize length:sizeof(int)];
+            [drawData appendBytes:cmd->imgName length:cmd->strSize];
+            [drawData appendBytes:&cmd->col length:sizeof(int)];
+            [drawData appendBytes:&cmd->row length:sizeof(int)];
+            [drawData appendBytes:&cmd->width length:sizeof(int)];
+            [drawData appendBytes:&cmd->height length:sizeof(int)];
+        }
+            break;
+        case DrawStringDrawType:
+        {
+            // Can't do simple memcpy of whole struct because of cmd->str.
+            const struct DrawCmdDrawString *cmd = &drawCmd->drawCmdDrawString;
+            [drawData appendBytes:&cmd->bg length:sizeof(int)];
+            [drawData appendBytes:&cmd->fg length:sizeof(int)];
+            [drawData appendBytes:&cmd->sp length:sizeof(int)];
+            [drawData appendBytes:&cmd->row length:sizeof(int)];
+            [drawData appendBytes:&cmd->col length:sizeof(int)];
+            [drawData appendBytes:&cmd->cells length:sizeof(int)];
+            [drawData appendBytes:&cmd->flags length:sizeof(int)];
+            [drawData appendBytes:&cmd->len length:sizeof(int)];
+            [drawData appendBytes:cmd->str length:cmd->len];
+        }
+            break;
+        case InsertLinesDrawType:
+        {
+            const struct DrawCmdInsertLines *cmd = &drawCmd->drawCmdInsertLines;
+            [drawData appendBytes:cmd length:sizeof(struct DrawCmdInsertLines)];
+            static_assert(sizeof(struct DrawCmdInsertLines) == sizeof(unsigned) + sizeof(int)*5, "Wrong size");
+        }
+            break;
+        case DrawCursorDrawType:
+        {
+            const struct DrawCmdDrawCursor *cmd = &drawCmd->drawCmdDrawCursor;
+            [drawData appendBytes:cmd length:sizeof(struct DrawCmdDrawCursor)];
+            static_assert(sizeof(struct DrawCmdDrawCursor) == sizeof(unsigned) + sizeof(int)*4, "Wrong size");
+        }
+            break;
+        case DrawInvertedRectDrawType:
+        {
+            const struct DrawCmdDrawInvertedRect *cmd = &drawCmd->drawCmdDrawInvertedRect;
+            [drawData appendBytes:cmd length:sizeof(struct DrawCmdDrawInvertedRect)];
+            static_assert(sizeof(struct DrawCmdDrawInvertedRect) == sizeof(int)*5, "Wrong size");
+        }
+            break;
+        case SetCursorPosDrawType:
+        {
+            const struct DrawCmdSetCursorPos *cmd = &drawCmd->drawCmdSetCursorPos;
+            [drawData appendBytes:cmd length:sizeof(struct DrawCmdSetCursorPos)];
+            static_assert(sizeof(struct DrawCmdSetCursorPos) == sizeof(int)*2, "Wrong size");
+        }
+            break;
+        default:
+        {
+            ASLogWarn(@"Unknown draw type (type=%d)", type);
+        }
+            break;
+    }
+}
+
+// Utility to optimize batch draw commands.
+//
+// Right now, there's only a single reason for this to exist, which is to
+// reduce multiple deleteLines commands from being issued. This can happen when
+// ":version" is called, or ":!" or misc cmds like ":ls". What usually happens
+// is that Vim will issue a "delete lines" command that deletes 1 line, draw
+// some text, then delete another line and so on. This is bad because
+// deleteLinesFromRow: calls scrollRect: which is currently not fast in CGLayer
+// (deprecated) or BufferDraw (default under Mojave) mode as they are not
+// GPU-accelerated. Multiple scrolls means multiple image blits which will
+// severely degrade rendering performance.
+//
+// This function will combine all these little delete lines calls into a single
+// one, and then re-shuffle all the draw string commands later to be draw to
+// the right place. This makes rendering performance much better in the above
+// mentioned situations.
+//
+// This may get revisited later. Also, if we move to a GPU-based Metal renderer
+// or a glyph-based one (rather than draw command-based) we may have no need
+// for this as scrolling/deleting lines would just involve shuffling memory
+// around before we do any draws on the glyphs.
+- (NSData *)optimizeBatchDrawData:(NSData *)data
+{
+    const void *bytes = [data bytes];
+    const void *end = bytes + [data length];
+    
+    //
+    // 1) Do a single pass to detect whether we need to optimize the batch draw
+    //    data stream. If not, we just return the original data back.
+    //
+    bool shouldOptimize = false;
+
+    int deleteLinesCount = 0;
+
+    unsigned deleteLinesColor = 0;
+    int deleteLinesRow = 0;
+    int deleteLinesBot = 0;
+    int deleteLinesLeft = 0;
+    int deleteLinesRight = 0;
+
+    struct DrawCmd cmd;
+    
+    while (bytes < end) {
+        int type = ReadDrawCmd(&bytes, &cmd);
+        if (deleteLinesCount != 0) {
+            // Right onw in the only known cases where multiple delete lines
+            // get issued only draw string commands would get issued so just
+            // don't optimize the other cases for now for simplicity.
+            if (type != DeleteLinesDrawType
+                && type != DrawStringDrawType
+                && type != SetCursorPosDrawType) {
+                return data;
+            }
+        }
+
+        if (DeleteLinesDrawType == type) {
+            struct DrawCmdDeleteLines *cmdDel = &cmd.drawCmdDeleteLines;
+            if (deleteLinesCount == 0) {
+                // First time seeing a delete line operation, cache its
+                // properties.
+                deleteLinesColor = cmdDel->color;
+                deleteLinesRow = cmdDel->row;
+                deleteLinesBot = cmdDel->bot;
+                deleteLinesLeft = cmdDel->left;
+                deleteLinesRight = cmdDel->right;
+            } else {
+                // We only optimize if we see 2+ delete line operations,
+                // otherwise this is no point.
+                shouldOptimize = true;
+
+                bool similarCmd =
+                    deleteLinesColor == cmdDel->color &&
+                    deleteLinesRow == cmdDel->row &&
+                    deleteLinesBot == cmdDel->bot &&
+                    deleteLinesLeft == cmdDel->left &&
+                    deleteLinesRight == cmdDel->right;
+                if (!similarCmd) {
+                    // This shouldn't really happen, but in case we have
+                    // situations where the multiple delete line operations are
+                    // different it's kind of hard to combine them together, so
+                    // just ignore.
+                    return data;
+                }
+            }
+
+            deleteLinesCount += cmdDel->count;
+        } else if (DrawStringDrawType == type) {
+            // There may be cases where this optimization doesn't work and we
+            // need to bail here. E.g. if the string is drawn across the
+            // scrolling boundary of the delete line operation moving the
+            // command around would not result in the correct rendering, or if
+            // the string is in the deleted region later this would cause
+            // problems too.
+            // For simplicity we don't check for those cases now, as they
+            // aren't known to happen.
+        }
+    }
+
+    if (!shouldOptimize) {
+        return data;
+    }
+
+    //
+    // 2) If we reach here, we want to optimize the data stream. Make a new
+    //    data stream with the delete lines commands all shoved into one single
+    //    one.
+    //
+    NSMutableData *newData =  [[[NSMutableData alloc] initWithCapacity:[data length]] autorelease];
+    
+    struct DrawCmd drawCmdDelLines;
+    drawCmdDelLines.type = DeleteLinesDrawType;
+    {
+        struct DrawCmdDeleteLines *cmdDel = &drawCmdDelLines.drawCmdDeleteLines;
+        cmdDel->color = deleteLinesColor;
+        cmdDel->row = deleteLinesRow;
+        cmdDel->count = deleteLinesCount;
+        cmdDel->bot = deleteLinesBot;
+        cmdDel->left = deleteLinesLeft;
+        cmdDel->right = deleteLinesRight;
+    }
+    
+    bytes = [data bytes];
+    end = bytes + [data length];
+
+    bool insertedDelLinesCmd = false;
+    int remainingDeleteLinesLeft = deleteLinesCount;
+    while (bytes < end) {
+        int type = ReadDrawCmd(&bytes, &cmd);
+
+        if (type == DeleteLinesDrawType) {
+            if (!insertedDelLinesCmd) {
+                // We replace the 1st delete line command by the combined
+                // delete line command. This way earlier commands can remain
+                // untouched and only later commands need to be touched up.
+                WriteDrawCmd(newData, &drawCmdDelLines);
+                insertedDelLinesCmd = true;
+            }
+            remainingDeleteLinesLeft -= cmd.drawCmdDeleteLines.count;
+            continue;
+        }
+        
+        if (!insertedDelLinesCmd) {
+            WriteDrawCmd(newData, &cmd);
+            continue;
+        }
+
+        // Shift the draw command up.
+        // Before the optimization, we have:
+        //  A1. delete N lines
+        //  A2. draw string
+        //  A3. delete M lines
+        // After the optimization:
+        //  B1. delete N + M lines
+        //  B2. draw string
+        //
+        // A3 would have shifted the draw string M lines up but it won't now.
+        // Therefore, when we draw B2 (which is here), we need to make sure to
+        // draw it M lines higher to present the same result.
+        if (type == DrawStringDrawType) {
+            struct DrawCmdDrawString *drawCmd = &cmd.drawCmdDrawString;
+            if (drawCmd->row > deleteLinesRow) {
+                drawCmd->row -= remainingDeleteLinesLeft;
+            }
+        } else if (type == SetCursorPosDrawType) {
+            struct DrawCmdSetCursorPos *drawCmd = &cmd.drawCmdSetCursorPos;
+            if (drawCmd->row > deleteLinesRow) {
+                drawCmd->row -= remainingDeleteLinesLeft;
+            }
+        }
+        WriteDrawCmd(newData, &cmd);
+    }
+    
+    return newData;
+}
+
 - (void)batchDrawData:(NSData *)data
 {
+    // Optimize the batch draw commands before issuing them. This makes the
+    // draw commands more efficient but should result in identical final
+    // results.
+    data = [self optimizeBatchDrawData:data];
+
     const void *bytes = [data bytes];
     const void *end = bytes + [data length];
 
@@ -1112,7 +1588,8 @@ defaultAdvanceForFont(NSFont *font)
     // TODO: Sanity check input
 
     while (bytes < end) {
-        int type = *((int*)bytes);  bytes += sizeof(int);
+        struct DrawCmd drawCmd;
+        int type = ReadDrawCmd(&bytes, &drawCmd);
 
         if (ClearAllDrawType == type) {
 #if MM_DEBUG_DRAWING
@@ -1120,49 +1597,32 @@ defaultAdvanceForFont(NSFont *font)
 #endif
             [self clearAll];
         } else if (ClearBlockDrawType == type) {
-            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-            int row1 = *((int*)bytes);  bytes += sizeof(int);
-            int col1 = *((int*)bytes);  bytes += sizeof(int);
-            int row2 = *((int*)bytes);  bytes += sizeof(int);
-            int col2 = *((int*)bytes);  bytes += sizeof(int);
-
+            struct DrawCmdClearBlock *cmd = &drawCmd.drawCmdClearBlock;
 #if MM_DEBUG_DRAWING
-            ASLogNotice(@"   Clear block (%d,%d) -> (%d,%d)", row1, col1,
-                    row2,col2);
+            ASLogNotice(@"   Clear block (%d,%d) -> (%d,%d)", cmd->row1, cmd->col1,
+                    cmd->row2, cmd->col2);
 #endif
-            [self clearBlockFromRow:row1 column:col1
-                    toRow:row2 column:col2
-                    color:color];
+            [self clearBlockFromRow:cmd->row1 column:cmd->col1
+                    toRow:cmd->row2 column:cmd->col2
+                    color:cmd->color];
         } else if (DeleteLinesDrawType == type) {
-            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int count = *((int*)bytes);  bytes += sizeof(int);
-            int bot = *((int*)bytes);  bytes += sizeof(int);
-            int left = *((int*)bytes);  bytes += sizeof(int);
-            int right = *((int*)bytes);  bytes += sizeof(int);
-
+            struct DrawCmdDeleteLines *cmd = &drawCmd.drawCmdDeleteLines;
 #if MM_DEBUG_DRAWING
-            ASLogNotice(@"   Delete %d line(s) from %d", count, row);
+            ASLogNotice(@"   Delete %d line(s) from %d", cmd->count, cmd->row);
 #endif
-            [self deleteLinesFromRow:row lineCount:count
-                    scrollBottom:bot left:left right:right
-                           color:color];
+            [self deleteLinesFromRow:cmd->row lineCount:cmd->count
+                    scrollBottom:cmd->bot left:cmd->left right:cmd->right
+                           color:cmd->color];
         } else if (DrawSignDrawType == type) {
-            int strSize = *((int*)bytes);  bytes += sizeof(int);
+            struct DrawCmdDrawSign *cmd = &drawCmd.drawCmdDrawSign;
             NSString *imgName =
-                [NSString stringWithUTF8String:(const char*)bytes];
-            bytes += strSize;
-
-            int col = *((int*)bytes);  bytes += sizeof(int);
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int width = *((int*)bytes);  bytes += sizeof(int);
-            int height = *((int*)bytes);  bytes += sizeof(int);
+                [NSString stringWithUTF8String:cmd->imgName];
 
             NSImage *signImg = [helper signImageForName:imgName];
-            NSRect r = [self rectForRow:row
-                                 column:col
-                                numRows:height
-                             numColumns:width];
+            NSRect r = [self rectForRow:cmd->row
+                                 column:cmd->col
+                                numRows:cmd->height
+                             numColumns:cmd->width];
             if (cgLayerEnabled) {
                 CGContextRef context = [self getCGContext];
                 CGImageRef cgImage = [signImg CGImageForProposedRect:&r
@@ -1177,23 +1637,14 @@ defaultAdvanceForFont(NSFont *font)
             }
             [self setNeedsDisplayCGLayerInRect:r];
         } else if (DrawStringDrawType == type) {
-            int bg = *((int*)bytes);  bytes += sizeof(int);
-            int fg = *((int*)bytes);  bytes += sizeof(int);
-            int sp = *((int*)bytes);  bytes += sizeof(int);
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int col = *((int*)bytes);  bytes += sizeof(int);
-            int cells = *((int*)bytes);  bytes += sizeof(int);
-            int flags = *((int*)bytes);  bytes += sizeof(int);
-            int len = *((int*)bytes);  bytes += sizeof(int);
-            UInt8 *s = (UInt8 *)bytes;  bytes += len;
-
+            struct DrawCmdDrawString *cmd = &drawCmd.drawCmdDrawString;
 #if MM_DEBUG_DRAWING
             ASLogNotice(@"   Draw string len=%d row=%d col=%d flags=%#x",
-                    len, row, col, flags);
+                    cmd->len, cmd->row, cmd->col, cmd->flags);
 #endif
 
             // Convert UTF-8 chars to UTF-16
-            CFStringRef sref = CFStringCreateWithBytesNoCopy(NULL, s, len,
+            CFStringRef sref = CFStringCreateWithBytesNoCopy(NULL, cmd->str, cmd->len,
                                 kCFStringEncodingUTF8, false, kCFAllocatorNull);
             if (sref == NULL) {
                 ASLogWarn(@"Conversion error: some text may not be rendered");
@@ -1209,11 +1660,11 @@ defaultAdvanceForFont(NSFont *font)
             }
 
             [self drawString:unichars length:unilength
-                       atRow:row column:col cells:cells
-                              withFlags:flags
-                        foregroundColor:fg
-                        backgroundColor:bg
-                           specialColor:sp];
+                       atRow:cmd->row column:cmd->col cells:cmd->cells
+                              withFlags:cmd->flags
+                        foregroundColor:cmd->fg
+                        backgroundColor:cmd->bg
+                           specialColor:cmd->sp];
 
             if (buffer) {
                 free(buffer);
@@ -1221,55 +1672,35 @@ defaultAdvanceForFont(NSFont *font)
             }
             CFRelease(sref);
         } else if (InsertLinesDrawType == type) {
-            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int count = *((int*)bytes);  bytes += sizeof(int);
-            int bot = *((int*)bytes);  bytes += sizeof(int);
-            int left = *((int*)bytes);  bytes += sizeof(int);
-            int right = *((int*)bytes);  bytes += sizeof(int);
-
+            struct DrawCmdInsertLines *cmd = &drawCmd.drawCmdInsertLines;
 #if MM_DEBUG_DRAWING
-            ASLogNotice(@"   Insert %d line(s) at row %d", count, row);
+            ASLogNotice(@"   Insert %d line(s) at row %d", cmd->count, cmd->row);
 #endif
-            [self insertLinesAtRow:row lineCount:count
-                             scrollBottom:bot left:left right:right
-                                    color:color];
+            [self insertLinesAtRow:cmd->row lineCount:cmd->count
+                             scrollBottom:cmd->bot left:cmd->left right:cmd->right
+                                    color:cmd->color];
         } else if (DrawCursorDrawType == type) {
-            unsigned color = *((unsigned*)bytes);  bytes += sizeof(unsigned);
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int col = *((int*)bytes);  bytes += sizeof(int);
-            int shape = *((int*)bytes);  bytes += sizeof(int);
-            int percent = *((int*)bytes);  bytes += sizeof(int);
-
+            struct DrawCmdDrawCursor *cmd = &drawCmd.drawCmdDrawCursor;
 #if MM_DEBUG_DRAWING
-            ASLogNotice(@"   Draw cursor at (%d,%d)", row, col);
+            ASLogNotice(@"   Draw cursor at (%d,%d)", cmd->row, cmd->col);
 #endif
-            [self drawInsertionPointAtRow:row column:col shape:shape
-                                     fraction:percent
-                                        color:color];
+            [self drawInsertionPointAtRow:cmd->row column:cmd->col shape:cmd->shape
+                                     fraction:cmd->percent
+                                        color:cmd->color];
         } else if (DrawInvertedRectDrawType == type) {
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int col = *((int*)bytes);  bytes += sizeof(int);
-            int nr = *((int*)bytes);  bytes += sizeof(int);
-            int nc = *((int*)bytes);  bytes += sizeof(int);
-            /*int invert = *((int*)bytes);*/  bytes += sizeof(int);
-
+            struct DrawCmdDrawInvertedRect *cmd = &drawCmd.drawCmdDrawInvertedRect;
 #if MM_DEBUG_DRAWING
             ASLogNotice(@"   Draw inverted rect: row=%d col=%d nrows=%d "
-                   "ncols=%d", row, col, nr, nc);
+                   "ncols=%d", cmd->row, cmd->col, cmd->nr, cmd->nc);
 #endif
-            [self drawInvertedRectAtRow:row column:col numRows:nr
-                             numColumns:nc];
+            [self drawInvertedRectAtRow:cmd->row column:cmd->col numRows:cmd->nr
+                             numColumns:cmd->nc];
         } else if (SetCursorPosDrawType == type) {
             // TODO: This is used for Voice Over support in MMTextView,
             // MMCoreTextView currently does not support Voice Over.
 #if MM_DEBUG_DRAWING
-            int row = *((int*)bytes);  bytes += sizeof(int);
-            int col = *((int*)bytes);  bytes += sizeof(int);
-            ASLogNotice(@"   Set cursor row=%d col=%d", row, col);
-#else
-            /*cursorRow = *((int*)bytes);*/  bytes += sizeof(int);
-            /*cursorCol = *((int*)bytes);*/  bytes += sizeof(int);
+            struct DrawCmdSetCursorPos *cmd = &drawCmd.drawCmdSetCursorPos;
+            ASLogNotice(@"   Set cursor row=%d col=%d", cmd->row, cmd->col);
 #endif
         } else {
             ASLogWarn(@"Unknown draw type (type=%d)", type);
