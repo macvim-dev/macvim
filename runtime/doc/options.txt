@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 8.1.  Last change: 2019 Jan 16
+*options.txt*	For Vim version 8.1.  Last change: 2019 Feb 03
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -354,12 +354,12 @@ files.  You use this command: >
 	:setlocal makeprg=perlmake
 You can switch back to using the global value by making the local value empty: >
 	:setlocal makeprg=
-This only works for a string option.  For a boolean option you need to use the
-"<" flag, like this: >
+This only works for a string option.  For a number or boolean option you need
+to use the "<" flag, like this: >
 	:setlocal autoread<
-Note that for non-boolean options using "<" copies the global value to the
-local value, it doesn't switch back to using the global value (that matters
-when the global value changes later).  You can also use: >
+Note that for non-boolean and non-number options using "<" copies the global
+value to the local value, it doesn't switch back to using the global value
+(that matters when the global value changes later).  You can also use: >
 	:set path<
 This will make the local value of 'path' empty, so that the global value is
 used.  Thus it does the same as: >
@@ -8217,6 +8217,23 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 	Note that the "cterm" attributes are still used, not the "gui" ones.
 	NOTE: This option is reset when 'compatible' is set.
+
+						*'termmode'* *'tmod'*
+'termmode' 'tmod'	string  (default "")
+			local to window
+			{not in Vi, MS-Windows only}
+	Whether the window uses winpty or |ConPTY| as the virtual console.
+	When set before opening the terminal, it influences what pty is used.
+	When opening the terminal it will be set to the actually used pty.
+
+	Possible values are:
+	    ""		use ConPTY if possible, winpty otherwise
+	    "winpty"	use winpty, fail if not supported
+	    "conpty"	use |ConPTY|, fail if not supported
+
+	|ConPTY| support depends on the platform (Windows 10 October 2018
+	edition).  winpty support needs to be installed.  If neither is
+	supported then you cannot open a terminal window.
 
 						*'termwinscroll'* *'twsl'*
 'termwinscroll' 'twsl'	number	(default 10000)
