@@ -6,31 +6,35 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-153</title>
+      <title>MacVim snapshot-154</title>
       <description><![CDATA[
-<p>Vim patch 8.1.577</p>
+
+<p>Vim patch 8.1.873</p>
 
 <p>Targets macOS 10.8+</p>
 
-<p>Features:</p>
+<p>General:</p>
 
 <ul>
-  <li>The option to automatically download and install updates is now
-exposed in the preference panel. This gives you a way to uncheck it,
-as previously there was no user-visible way to do so once it’s
-checked. #816</li>
+  <li>MacVim binary is now signed by a Developer ID (#517). This makes it
+easier to download and run the app without security warnings.
+    <ul>
+      <li>This also fixes an issue where invoking external programs via
+<code>:!open</code> was slow in Mojave. #763</li>
+    </ul>
+  </li>
+  <li>Ruby version has been updated from 2.5 to 2.6.</li>
 </ul>
 
 <p>Fixes:</p>
 
 <ul>
-  <li>Title bar is no longer transparent in 10.12 Sierra #805</li>
-  <li>Fixed ‘transparency’ setting not working properly in Mojave #805</li>
-  <li>Fixed setting ‘fullscreen’ in vimrc leading to black screen in 10.14
-Mojave if non-native fullscreen is used #811</li>
-  <li>Fixed showing all black if <code>MMUseCGLayerAlways</code> is set in 10.14 Mojave
-#811</li>
-  <li>Fixed misconfigured Python paths in default vimrc #812</li>
+  <li>Scrollbars are no longer misplaced when resizing window #827</li>
+  <li>Fix rendering performance issues for commands (e.g. <code>:version</code>,
+<code>:echo</code>, or <code>:!</code>) that echo text in Mojave #840</li>
+  <li>MacVim now properly asks for permission to use AppleEvent (ODB Editor
+Suite requires that to work) #822</li>
+  <li>Fix borderless window mode in pre-Mojave versions #828</li>
 </ul>
 
 <p>Script interfaces have compatibility with these versions:</p>
@@ -40,19 +44,19 @@ Mojave if non-native fullscreen is used #811</li>
   <li>Perl 5.18</li>
   <li>Python2 2.7</li>
   <li>Python3 3.7</li>
-  <li>Ruby 2.5</li>
+  <li>Ruby 2.6</li>
 </ul>
 
 
       ]]></description>
-      <pubDate>Thu, 13 Dec 2018 01:00:00 -0800</pubDate>
+      <pubDate>Mon, 04 Feb 2019 00:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-153/MacVim.dmg"
-        length="16356321"
-        sparkle:version="153"
-        sparkle:shortVersionString="8.1.577"
-        sparkle:dsaSignature="MC4CFQC2BtHFhLg+w239OxTZfmcTi8oniwIVAIZOmu8FSfLcVj8lgo9PRsXltyg0"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-154/MacVim.dmg"
+        length="16666772"
+        sparkle:version="154"
+        sparkle:shortVersionString="8.1.873"
+        sparkle:dsaSignature="MCwCFEOnE4lVCmC5YjFQm9JjEPAtN4q1AhQElGjwtFiyaYBaeySyOJZlCWWQJw=="
         />
     </item>
   </channel>
