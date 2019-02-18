@@ -7998,7 +7998,7 @@ screen_start_highlight(int attr)
 
     screen_attr = attr;
     if (full_screen
-#ifdef WIN3264
+#ifdef MSWIN
 		    && termcap_active
 #endif
 				       )
@@ -8105,7 +8105,7 @@ screen_stop_highlight(void)
     int	    do_ME = FALSE;	    /* output T_ME code */
 
     if (screen_attr != 0
-#ifdef WIN3264
+#ifdef MSWIN
 			&& termcap_active
 #endif
 					   )
@@ -10297,10 +10297,6 @@ showmode(void)
 #ifdef FEAT_RIGHTLEFT
 		if (p_hkmap)
 		    msg_puts_attr(_(" Hebrew"), attr);
-# ifdef FEAT_FKMAP
-		if (p_fkmap)
-		    msg_puts_attr(farsi_text_5, attr);
-# endif
 #endif
 #ifdef FEAT_KEYMAP
 		if (State & LANGMAP)
