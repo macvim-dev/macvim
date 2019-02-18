@@ -1270,17 +1270,19 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         unsigned len  = *((unsigned*)bytes);  bytes += sizeof(unsigned);
 
         if (ctrl_c_interrupts && 1 == len) {
-            // NOTE: the flag ctrl_c_interrupts is 0 e.g. when the user has
-            // mappings to something like <C-c>g.  Also it seems the flag
-            // intr_char is 0 when MacVim was started from Finder whereas it is
-            // 0x03 (= Ctrl_C) when started from Terminal.
+            // NOTE: The flag ctrl_c_interrupts is set when it has special
+            // interrupt behavior in Vim and would cancel all other input. This
+            // is a hard-coded behavior in Vim. It usually happens when not in
+            // Insert mode, and when <C-C> is not mapped in the current mode
+            // (even if <C-C> is mapped to itself, ctrl_c_interrupts would not
+            // be set).
+            // Also it seems the flag intr_char is 0 when MacVim was started
+            // from Finder whereas it is 0x03 (= Ctrl_C) when started from
+            // Terminal.
             char_u *str = (char_u*)bytes;
             if (str[0] == Ctrl_C || (str[0] == intr_char && intr_char != 0)) {
-                ASLogDebug(@"Got INT, str[0]=%#x ctrl_c_interrupts=%d "
-                        "intr_char=%#x", str[0], ctrl_c_interrupts, intr_char);
+                trash_input_buf();
                 got_int = TRUE;
-                [inputQueue removeAllObjects];
-                return;
             }
         }
 
