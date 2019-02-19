@@ -3417,7 +3417,7 @@ DMGFILE = MacVim.dmg
 macvim: $(VIMTARGET)
 	xcodebuild -project MacVim/MacVim.xcodeproj $(XCODEFLAGS)
 
-macvim-dmg: macvim
+macvim-dmg:
 	mkdir -p $(DMGDIR)
 	cp -a $(RELEASEDIR)/MacVim.app $(DMGDIR)/
 	rm -rf $(RELEASEDIR)/$(DMGFILE)
