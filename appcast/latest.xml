@@ -6,36 +6,20 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-154</title>
+      <title>MacVim snapshot-155</title>
       <description><![CDATA[
 
-<p>Vim patch 8.1.873</p>
-
-<p>Targets macOS 10.8+</p>
-
-<p>General:</p>
-
-<ul>
-  <li>MacVim binary is now signed by a Developer ID (#517). This makes it
-easier to download and run the app without security warnings.
-    <ul>
-      <li>This also fixes an issue where invoking external programs via
-<code>:!open</code> was slow in Mojave. #763</li>
-    </ul>
-  </li>
-  <li>Ruby version has been updated from 2.5 to 2.6.</li>
-</ul>
+<p>Vim patch 8.1.950</p>
 
 <p>Fixes:</p>
 
 <ul>
-  <li>Scrollbars are no longer misplaced when resizing window #827</li>
-  <li>Fix rendering performance issues for commands (e.g. <code>:version</code>,
-<code>:echo</code>, or <code>:!</code>) that echo text in Mojave #840</li>
-  <li>MacVim now properly asks for permission to use AppleEvent (ODB Editor
-Suite requires that to work) #822</li>
-  <li>Fix borderless window mode in pre-Mojave versions #828</li>
+  <li>Fix Ctrl-C not working properly in Command-Line and Normal mode #856</li>
+  <li>Fix scrollbar rendering artifact in macOS 10.13 or below #857</li>
+  <li>matchit plugin now works again in MacVim (fixed in Vim 8.1.0875)</li>
 </ul>
+
+<p>Targets macOS 10.8+</p>
 
 <p>Script interfaces have compatibility with these versions:</p>
 
@@ -49,14 +33,14 @@ Suite requires that to work) #822</li>
 
 
       ]]></description>
-      <pubDate>Mon, 04 Feb 2019 00:00:00 -0800</pubDate>
+      <pubDate>Mon, 18 Feb 2019 17:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-154/MacVim.dmg"
-        length="16666772"
-        sparkle:version="154"
-        sparkle:shortVersionString="8.1.873"
-        sparkle:dsaSignature="MCwCFEOnE4lVCmC5YjFQm9JjEPAtN4q1AhQElGjwtFiyaYBaeySyOJZlCWWQJw=="
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-155/MacVim.dmg"
+        length="16685019"
+        sparkle:version="155"
+        sparkle:shortVersionString="8.1.950"
+        sparkle:dsaSignature="MC0CFQC0Ksi7j3xERTNqIT6XXRRTnP8+HwIUJAERj4KmyEVBCw2KDuvQq2f8Rp4="
         />
     </item>
   </channel>
