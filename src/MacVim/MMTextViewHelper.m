@@ -1028,36 +1028,37 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)setCursor
 {
-    static NSCursor *customIbeamCursor = nil;
-
-    if (!customIbeamCursor) {
-        // Use a custom Ibeam cursor that has better contrast against dark
-        // backgrounds.
-        // TODO: Is the hotspot ok?
-        NSImage *ibeamImage = [NSImage imageNamed:@"ibeam"];
-        if (ibeamImage) {
-            NSSize size = [ibeamImage size];
-            NSPoint hotSpot = { size.width*.5f, size.height*.5f };
-
-            customIbeamCursor = [[NSCursor alloc]
-                    initWithImage:ibeamImage hotSpot:hotSpot];
-        }
-        if (!customIbeamCursor) {
-            ASLogWarn(@"Failed to load custom Ibeam cursor");
-            customIbeamCursor = [NSCursor IBeamCursor];
-        }
-    }
-
     // This switch should match mshape_names[] in misc2.c.
     //
-    // TODO: Add missing cursor shapes.
+    // We don't fill every shape here. Only the ones that make sense and have
+    // system native cursors to choose from (unless we ship custom cursors).
     switch (mouseShape) {
-        case 2: [customIbeamCursor set]; break;
-        case 3: case 4: [[NSCursor resizeUpDownCursor] set]; break;
-        case 5: case 6: [[NSCursor resizeLeftRightCursor] set]; break;
-        case 9: [[NSCursor crosshairCursor] set]; break;
-        case 10: [[NSCursor pointingHandCursor] set]; break;
-        case 11: [[NSCursor openHandCursor] set]; break;
+        case 0: //arrow
+            [[NSCursor arrowCursor] set]; break;
+        //case 1: // blank
+        case 2: // beam
+            [[NSCursor IBeamCursor] set]; break;
+        case 3: // updown
+        case 4: // udsizing
+            [[NSCursor resizeUpDownCursor] set]; break;
+        case 5: // leftright
+        case 6: // lrsizing
+            [[NSCursor resizeLeftRightCursor] set]; break;
+        //case 7: // busy
+            // This could be implemented using _coreCursorType override on NSCursor.
+            // See WebKit / Chrome / GDK implementation.
+        case 8: // no
+            [[NSCursor operationNotAllowedCursor] set]; break;
+        case 9: // crosshair
+            [[NSCursor crosshairCursor] set]; break;
+        case 10: // hand1
+            [[NSCursor pointingHandCursor] set]; break;
+        case 11: // hand2
+            [[NSCursor openHandCursor] set]; break;
+        //case 12: // pencil
+        //case 13: // question
+        //case 14: // right-arrow
+        //case 15: // up-arrow
         default:
             [[NSCursor arrowCursor] set]; break;
     }
