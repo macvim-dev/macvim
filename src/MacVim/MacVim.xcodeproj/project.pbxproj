@@ -252,6 +252,137 @@
 		52B7ED9A1C4A4D6900AFFF15 /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		90922A3B221D429500F1E1F4 /* misc2.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = misc2.c; path = ../misc2.c; sourceTree = "<group>"; };
+		90922A3C221D429500F1E1F4 /* if_mzsch.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_mzsch.c; path = ../if_mzsch.c; sourceTree = "<group>"; };
+		90922A3D221D429500F1E1F4 /* version.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = version.h; path = ../version.h; sourceTree = "<group>"; };
+		90922A3E221D429500F1E1F4 /* digraph.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = digraph.c; path = ../digraph.c; sourceTree = "<group>"; };
+		90922A3F221D429500F1E1F4 /* gui_at_sb.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gui_at_sb.c; path = ../gui_at_sb.c; sourceTree = "<group>"; };
+		90922A40221D429500F1E1F4 /* keymap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = keymap.h; path = ../keymap.h; sourceTree = "<group>"; };
+		90922A41221D429500F1E1F4 /* iscygpty.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = iscygpty.c; path = ../iscygpty.c; sourceTree = "<group>"; };
+		90922A42221D429600F1E1F4 /* if_python3.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_python3.c; path = ../if_python3.c; sourceTree = "<group>"; };
+		90922A43221D429600F1E1F4 /* dict.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = dict.c; path = ../dict.c; sourceTree = "<group>"; };
+		90922A44221D429600F1E1F4 /* gui_mac.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gui_mac.c; path = ../gui_mac.c; sourceTree = "<group>"; };
+		90922A45221D429600F1E1F4 /* kword_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = kword_test.c; path = ../kword_test.c; sourceTree = "<group>"; };
+		90922A46221D429600F1E1F4 /* if_perlsfio.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_perlsfio.c; path = ../if_perlsfio.c; sourceTree = "<group>"; };
+		90922A47221D429600F1E1F4 /* pty.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = pty.c; path = ../pty.c; sourceTree = "<group>"; };
+		90922A48221D429600F1E1F4 /* ex_cmdidxs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ex_cmdidxs.h; path = ../ex_cmdidxs.h; sourceTree = "<group>"; };
+		90922A49221D429600F1E1F4 /* if_py_both.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = if_py_both.h; path = ../if_py_both.h; sourceTree = "<group>"; };
+		90922A4A221D429600F1E1F4 /* nbdebug.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = nbdebug.c; path = ../nbdebug.c; sourceTree = "<group>"; };
+		90922A4B221D429600F1E1F4 /* mark.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = mark.c; path = ../mark.c; sourceTree = "<group>"; };
+		90922A4C221D429600F1E1F4 /* gui.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gui.c; path = ../gui.c; sourceTree = "<group>"; };
+		90922A4D221D429600F1E1F4 /* ex_eval.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = ex_eval.c; path = ../ex_eval.c; sourceTree = "<group>"; };
+		90922A4E221D429600F1E1F4 /* netbeans.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = netbeans.c; path = ../netbeans.c; sourceTree = "<group>"; };
+		90922A4F221D429600F1E1F4 /* json_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = json_test.c; path = ../json_test.c; sourceTree = "<group>"; };
+		90922A50221D429600F1E1F4 /* hashtab.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = hashtab.c; path = ../hashtab.c; sourceTree = "<group>"; };
+		90922A51221D429600F1E1F4 /* memfile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = memfile.c; path = ../memfile.c; sourceTree = "<group>"; };
+		90922A52221D429600F1E1F4 /* iscygpty.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = iscygpty.h; path = ../iscygpty.h; sourceTree = "<group>"; };
+		90922A53221D429700F1E1F4 /* ex_cmds2.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = ex_cmds2.c; path = ../ex_cmds2.c; sourceTree = "<group>"; };
+		90922A54221D429700F1E1F4 /* arabic.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = arabic.c; path = ../arabic.c; sourceTree = "<group>"; };
+		90922A55221D429700F1E1F4 /* gui_beval.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gui_beval.c; path = ../gui_beval.c; sourceTree = "<group>"; };
+		90922A56221D429700F1E1F4 /* crypt_zip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = crypt_zip.c; path = ../crypt_zip.c; sourceTree = "<group>"; };
+		90922A57221D429700F1E1F4 /* hardcopy.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = hardcopy.c; path = ../hardcopy.c; sourceTree = "<group>"; };
+		90922A58221D429700F1E1F4 /* list.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = list.c; path = ../list.c; sourceTree = "<group>"; };
+		90922A59221D429700F1E1F4 /* glbl_ime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = glbl_ime.h; path = ../glbl_ime.h; sourceTree = "<group>"; };
+		90922A5A221D429700F1E1F4 /* hangulin.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = hangulin.c; path = ../hangulin.c; sourceTree = "<group>"; };
+		90922A5B221D429700F1E1F4 /* eval.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = eval.c; path = ../eval.c; sourceTree = "<group>"; };
+		90922A5C221D429700F1E1F4 /* userfunc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = userfunc.c; path = ../userfunc.c; sourceTree = "<group>"; };
+		90922A5D221D429700F1E1F4 /* os_mac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = os_mac.h; path = ../os_mac.h; sourceTree = "<group>"; };
+		90922A5E221D429700F1E1F4 /* nbdebug.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = nbdebug.h; path = ../nbdebug.h; sourceTree = "<group>"; };
+		90922A5F221D429700F1E1F4 /* message_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = message_test.c; path = ../message_test.c; sourceTree = "<group>"; };
+		90922A60221D429800F1E1F4 /* tag.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = tag.c; path = ../tag.c; sourceTree = "<group>"; };
+		90922A61221D429800F1E1F4 /* xpm_w32.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = xpm_w32.c; path = ../xpm_w32.c; sourceTree = "<group>"; };
+		90922A62221D429800F1E1F4 /* blowfish.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = blowfish.c; path = ../blowfish.c; sourceTree = "<group>"; };
+		90922A63221D429800F1E1F4 /* message.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = message.c; path = ../message.c; sourceTree = "<group>"; };
+		90922A64221D429800F1E1F4 /* termlib.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = termlib.c; path = ../termlib.c; sourceTree = "<group>"; };
+		90922A65221D429800F1E1F4 /* beval.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = beval.c; path = ../beval.c; sourceTree = "<group>"; };
+		90922A66221D429800F1E1F4 /* alloc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = alloc.h; path = ../alloc.h; sourceTree = "<group>"; };
+		90922A67221D429800F1E1F4 /* if_python.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_python.c; path = ../if_python.c; sourceTree = "<group>"; };
+		90922A68221D429800F1E1F4 /* protodef.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = protodef.h; path = ../protodef.h; sourceTree = "<group>"; };
+		90922A69221D429800F1E1F4 /* macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = macros.h; path = ../macros.h; sourceTree = "<group>"; };
+		90922A6A221D429800F1E1F4 /* if_cscope.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_cscope.c; path = ../if_cscope.c; sourceTree = "<group>"; };
+		90922A6B221D429800F1E1F4 /* gui_at_fs.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gui_at_fs.c; path = ../gui_at_fs.c; sourceTree = "<group>"; };
+		90922A6C221D429900F1E1F4 /* dosinst.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = dosinst.h; path = ../dosinst.h; sourceTree = "<group>"; };
+		90922A6D221D429900F1E1F4 /* memline.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = memline.c; path = ../memline.c; sourceTree = "<group>"; };
+		90922A6E221D429900F1E1F4 /* proto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = proto.h; path = ../proto.h; sourceTree = "<group>"; };
+		90922A6F221D429900F1E1F4 /* fileio.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = fileio.c; path = ../fileio.c; sourceTree = "<group>"; };
+		90922A70221D429900F1E1F4 /* ex_docmd.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = ex_docmd.c; path = ../ex_docmd.c; sourceTree = "<group>"; };
+		90922A71221D429900F1E1F4 /* if_ruby.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_ruby.c; path = ../if_ruby.c; sourceTree = "<group>"; };
+		90922A72221D429900F1E1F4 /* dosinst.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = dosinst.c; path = ../dosinst.c; sourceTree = "<group>"; };
+		90922A73221D429900F1E1F4 /* ops.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = ops.c; path = ../ops.c; sourceTree = "<group>"; };
+		90922A74221D429900F1E1F4 /* ex_getln.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = ex_getln.c; path = ../ex_getln.c; sourceTree = "<group>"; };
+		90922A75221D429900F1E1F4 /* winclip.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = winclip.c; path = ../winclip.c; sourceTree = "<group>"; };
+		90922A76221D429900F1E1F4 /* ui.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = ui.c; path = ../ui.c; sourceTree = "<group>"; };
+		90922A77221D429900F1E1F4 /* fold.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = fold.c; path = ../fold.c; sourceTree = "<group>"; };
+		90922A78221D429A00F1E1F4 /* menu.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = menu.c; path = ../menu.c; sourceTree = "<group>"; };
+		90922A79221D429A00F1E1F4 /* beval.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = beval.h; path = ../beval.h; sourceTree = "<group>"; };
+		90922A7A221D429A00F1E1F4 /* iid_ole.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = iid_ole.c; path = ../iid_ole.c; sourceTree = "<group>"; };
+		90922A7B221D429A00F1E1F4 /* spell.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = spell.h; path = ../spell.h; sourceTree = "<group>"; };
+		90922A7C221D429A00F1E1F4 /* mbyte.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = mbyte.c; path = ../mbyte.c; sourceTree = "<group>"; };
+		90922A7D221D429A00F1E1F4 /* edit.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = edit.c; path = ../edit.c; sourceTree = "<group>"; };
+		90922A7E221D429A00F1E1F4 /* search.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = search.c; path = ../search.c; sourceTree = "<group>"; };
+		90922A7F221D429A00F1E1F4 /* undo.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = undo.c; path = ../undo.c; sourceTree = "<group>"; };
+		90922A80221D429A00F1E1F4 /* findfile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = findfile.c; path = ../findfile.c; sourceTree = "<group>"; };
+		90922A81221D429A00F1E1F4 /* vimrun.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = vimrun.c; path = ../vimrun.c; sourceTree = "<group>"; };
+		90922A82221D429A00F1E1F4 /* globals.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = globals.h; path = ../globals.h; sourceTree = "<group>"; };
+		90922A83221D429A00F1E1F4 /* option.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = option.c; path = ../option.c; sourceTree = "<group>"; };
+		90922A84221D429B00F1E1F4 /* term.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = term.c; path = ../term.c; sourceTree = "<group>"; };
+		90922A85221D429B00F1E1F4 /* gui.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = gui.h; path = ../gui.h; sourceTree = "<group>"; };
+		90922A86221D429B00F1E1F4 /* arabic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = arabic.h; path = ../arabic.h; sourceTree = "<group>"; };
+		90922A87221D429B00F1E1F4 /* if_tcl.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_tcl.c; path = ../if_tcl.c; sourceTree = "<group>"; };
+		90922A88221D429B00F1E1F4 /* blob.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = blob.c; path = ../blob.c; sourceTree = "<group>"; };
+		90922A89221D429B00F1E1F4 /* if_mzsch.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = if_mzsch.h; path = ../if_mzsch.h; sourceTree = "<group>"; };
+		90922A8A221D429B00F1E1F4 /* channel.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = channel.c; path = ../channel.c; sourceTree = "<group>"; };
+		90922A8B221D429B00F1E1F4 /* indent.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = indent.c; path = ../indent.c; sourceTree = "<group>"; };
+		90922A8C221D429B00F1E1F4 /* os_unix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = os_unix.h; path = ../os_unix.h; sourceTree = "<group>"; };
+		90922A8D221D429B00F1E1F4 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../main.c; sourceTree = "<group>"; };
+		90922A8E221D429B00F1E1F4 /* ex_cmds.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ex_cmds.h; path = ../ex_cmds.h; sourceTree = "<group>"; };
+		90922A8F221D429B00F1E1F4 /* popupmnu.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = popupmnu.c; path = ../popupmnu.c; sourceTree = "<group>"; };
+		90922A90221D429B00F1E1F4 /* regexp_nfa.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = regexp_nfa.c; path = ../regexp_nfa.c; sourceTree = "<group>"; };
+		90922A91221D429B00F1E1F4 /* textprop.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = textprop.c; path = ../textprop.c; sourceTree = "<group>"; };
+		90922A92221D429B00F1E1F4 /* regexp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = regexp.h; path = ../regexp.h; sourceTree = "<group>"; };
+		90922A93221D429B00F1E1F4 /* charset.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = charset.c; path = ../charset.c; sourceTree = "<group>"; };
+		90922A94221D429B00F1E1F4 /* quickfix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = quickfix.c; path = ../quickfix.c; sourceTree = "<group>"; };
+		90922A95221D429B00F1E1F4 /* crypt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = crypt.c; path = ../crypt.c; sourceTree = "<group>"; };
+		90922A96221D429B00F1E1F4 /* vim.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = vim.h; path = ../vim.h; sourceTree = "<group>"; };
+		90922A97221D429B00F1E1F4 /* syntax.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = syntax.c; path = ../syntax.c; sourceTree = "<group>"; };
+		90922A98221D429B00F1E1F4 /* uninstal.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = uninstal.c; path = ../uninstal.c; sourceTree = "<group>"; };
+		90922A99221D429B00F1E1F4 /* if_xcmdsrv.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_xcmdsrv.c; path = ../if_xcmdsrv.c; sourceTree = "<group>"; };
+		90922A9A221D429C00F1E1F4 /* vimio.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = vimio.h; path = ../vimio.h; sourceTree = "<group>"; };
+		90922A9B221D429C00F1E1F4 /* evalfunc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = evalfunc.c; path = ../evalfunc.c; sourceTree = "<group>"; };
+		90922A9C221D429C00F1E1F4 /* sha256.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = sha256.c; path = ../sha256.c; sourceTree = "<group>"; };
+		90922A9D221D429C00F1E1F4 /* screen.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = screen.c; path = ../screen.c; sourceTree = "<group>"; };
+		90922A9E221D429C00F1E1F4 /* if_cscope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = if_cscope.h; path = ../if_cscope.h; sourceTree = "<group>"; };
+		90922A9F221D429C00F1E1F4 /* json.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = json.c; path = ../json.c; sourceTree = "<group>"; };
+		90922AA0221D429C00F1E1F4 /* getchar.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = getchar.c; path = ../getchar.c; sourceTree = "<group>"; };
+		90922AA1221D429C00F1E1F4 /* autocmd.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = autocmd.c; path = ../autocmd.c; sourceTree = "<group>"; };
+		90922AA2221D429C00F1E1F4 /* misc1.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = misc1.c; path = ../misc1.c; sourceTree = "<group>"; };
+		90922AA3221D429C00F1E1F4 /* normal.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = normal.c; path = ../normal.c; sourceTree = "<group>"; };
+		90922AA4221D429C00F1E1F4 /* if_ole.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = if_ole.h; path = ../if_ole.h; sourceTree = "<group>"; };
+		90922AA5221D429C00F1E1F4 /* xpm_w32.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = xpm_w32.h; path = ../xpm_w32.h; sourceTree = "<group>"; };
+		90922AA6221D429C00F1E1F4 /* move.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = move.c; path = ../move.c; sourceTree = "<group>"; };
+		90922AA7221D429C00F1E1F4 /* os_unix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = os_unix.c; path = ../os_unix.c; sourceTree = "<group>"; };
+		90922AA8221D429C00F1E1F4 /* spell.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = spell.c; path = ../spell.c; sourceTree = "<group>"; };
+		90922AA9221D429C00F1E1F4 /* buffer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = buffer.c; path = ../buffer.c; sourceTree = "<group>"; };
+		90922AAA221D429C00F1E1F4 /* window.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = window.c; path = ../window.c; sourceTree = "<group>"; };
+		90922AAB221D429C00F1E1F4 /* dlldata.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = dlldata.c; path = ../dlldata.c; sourceTree = "<group>"; };
+		90922AAC221D429C00F1E1F4 /* sign.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = sign.c; path = ../sign.c; sourceTree = "<group>"; };
+		90922AAD221D429C00F1E1F4 /* ex_cmds.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = ex_cmds.c; path = ../ex_cmds.c; sourceTree = "<group>"; };
+		90922AAE221D429C00F1E1F4 /* feature.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = feature.h; path = ../feature.h; sourceTree = "<group>"; };
+		90922AAF221D429C00F1E1F4 /* os_mac_conv.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = os_mac_conv.c; path = ../os_mac_conv.c; sourceTree = "<group>"; };
+		90922AB0221D429C00F1E1F4 /* ascii.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ascii.h; path = ../ascii.h; sourceTree = "<group>"; };
+		90922AB1221D429C00F1E1F4 /* option.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = option.h; path = ../option.h; sourceTree = "<group>"; };
+		90922AB2221D429C00F1E1F4 /* memfile_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = memfile_test.c; path = ../memfile_test.c; sourceTree = "<group>"; };
+		90922AB3221D429C00F1E1F4 /* spellfile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = spellfile.c; path = ../spellfile.c; sourceTree = "<group>"; };
+		90922AB4221D429C00F1E1F4 /* if_lua.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_lua.c; path = ../if_lua.c; sourceTree = "<group>"; };
+		90922AB5221D429D00F1E1F4 /* structs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = structs.h; path = ../structs.h; sourceTree = "<group>"; };
+		90922AB6221D429D00F1E1F4 /* diff.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = diff.c; path = ../diff.c; sourceTree = "<group>"; };
+		90922AB7221D429D00F1E1F4 /* regexp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = regexp.c; path = ../regexp.c; sourceTree = "<group>"; };
+		90922AB8221D429D00F1E1F4 /* version.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = version.c; path = ../version.c; sourceTree = "<group>"; };
+		90922AB9221D429D00F1E1F4 /* terminal.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = terminal.c; path = ../terminal.c; sourceTree = "<group>"; };
+		90922ABA221D429D00F1E1F4 /* term.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = term.h; path = ../term.h; sourceTree = "<group>"; };
+		90922ABC221D42F700F1E1F4 /* MMBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MMBackend.h; sourceTree = "<group>"; };
+		90922ABD221D42F700F1E1F4 /* gui_macvim.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = gui_macvim.m; sourceTree = "<group>"; };
+		90922ABE221D42F700F1E1F4 /* MMBackend.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MMBackend.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -406,6 +537,7 @@
 				080E96DDFE201D6D7F000001 /* MacVim Source */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				1DE602460C587F760055263D /* Vim Resources */,
+				90922A3A221D417800F1E1F4 /* Vim Source */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				52818AF81C1C073400F59085 /* QuickLook Plugin */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
@@ -463,6 +595,152 @@
 				52818AFF1C1C075300F59085 /* QLStephen.qlgenerator */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		90922A3A221D417800F1E1F4 /* Vim Source */ = {
+			isa = PBXGroup;
+			children = (
+				90922ABB221D42DC00F1E1F4 /* MacVim */,
+				90922A66221D429800F1E1F4 /* alloc.h */,
+				90922A54221D429700F1E1F4 /* arabic.c */,
+				90922A86221D429B00F1E1F4 /* arabic.h */,
+				90922AB0221D429C00F1E1F4 /* ascii.h */,
+				90922AA1221D429C00F1E1F4 /* autocmd.c */,
+				90922A65221D429800F1E1F4 /* beval.c */,
+				90922A79221D429A00F1E1F4 /* beval.h */,
+				90922A88221D429B00F1E1F4 /* blob.c */,
+				90922A62221D429800F1E1F4 /* blowfish.c */,
+				90922AA9221D429C00F1E1F4 /* buffer.c */,
+				90922A8A221D429B00F1E1F4 /* channel.c */,
+				90922A93221D429B00F1E1F4 /* charset.c */,
+				90922A56221D429700F1E1F4 /* crypt_zip.c */,
+				90922A95221D429B00F1E1F4 /* crypt.c */,
+				90922A43221D429600F1E1F4 /* dict.c */,
+				90922AB6221D429D00F1E1F4 /* diff.c */,
+				90922A3E221D429500F1E1F4 /* digraph.c */,
+				90922AAB221D429C00F1E1F4 /* dlldata.c */,
+				90922A72221D429900F1E1F4 /* dosinst.c */,
+				90922A6C221D429900F1E1F4 /* dosinst.h */,
+				90922A7D221D429A00F1E1F4 /* edit.c */,
+				90922A5B221D429700F1E1F4 /* eval.c */,
+				90922A9B221D429C00F1E1F4 /* evalfunc.c */,
+				90922A48221D429600F1E1F4 /* ex_cmdidxs.h */,
+				90922AAD221D429C00F1E1F4 /* ex_cmds.c */,
+				90922A8E221D429B00F1E1F4 /* ex_cmds.h */,
+				90922A53221D429700F1E1F4 /* ex_cmds2.c */,
+				90922A70221D429900F1E1F4 /* ex_docmd.c */,
+				90922A4D221D429600F1E1F4 /* ex_eval.c */,
+				90922A74221D429900F1E1F4 /* ex_getln.c */,
+				90922AAE221D429C00F1E1F4 /* feature.h */,
+				90922A6F221D429900F1E1F4 /* fileio.c */,
+				90922A80221D429A00F1E1F4 /* findfile.c */,
+				90922A77221D429900F1E1F4 /* fold.c */,
+				90922AA0221D429C00F1E1F4 /* getchar.c */,
+				90922A59221D429700F1E1F4 /* glbl_ime.h */,
+				90922A82221D429A00F1E1F4 /* globals.h */,
+				90922A6B221D429800F1E1F4 /* gui_at_fs.c */,
+				90922A3F221D429500F1E1F4 /* gui_at_sb.c */,
+				90922A55221D429700F1E1F4 /* gui_beval.c */,
+				90922A44221D429600F1E1F4 /* gui_mac.c */,
+				90922A4C221D429600F1E1F4 /* gui.c */,
+				90922A85221D429B00F1E1F4 /* gui.h */,
+				90922A5A221D429700F1E1F4 /* hangulin.c */,
+				90922A57221D429700F1E1F4 /* hardcopy.c */,
+				90922A50221D429600F1E1F4 /* hashtab.c */,
+				90922A6A221D429800F1E1F4 /* if_cscope.c */,
+				90922A9E221D429C00F1E1F4 /* if_cscope.h */,
+				90922AB4221D429C00F1E1F4 /* if_lua.c */,
+				90922A3C221D429500F1E1F4 /* if_mzsch.c */,
+				90922A89221D429B00F1E1F4 /* if_mzsch.h */,
+				90922AA4221D429C00F1E1F4 /* if_ole.h */,
+				90922A46221D429600F1E1F4 /* if_perlsfio.c */,
+				90922A49221D429600F1E1F4 /* if_py_both.h */,
+				90922A67221D429800F1E1F4 /* if_python.c */,
+				90922A42221D429600F1E1F4 /* if_python3.c */,
+				90922A71221D429900F1E1F4 /* if_ruby.c */,
+				90922A87221D429B00F1E1F4 /* if_tcl.c */,
+				90922A99221D429B00F1E1F4 /* if_xcmdsrv.c */,
+				90922A7A221D429A00F1E1F4 /* iid_ole.c */,
+				90922A8B221D429B00F1E1F4 /* indent.c */,
+				90922A41221D429500F1E1F4 /* iscygpty.c */,
+				90922A52221D429600F1E1F4 /* iscygpty.h */,
+				90922A4F221D429600F1E1F4 /* json_test.c */,
+				90922A9F221D429C00F1E1F4 /* json.c */,
+				90922A40221D429500F1E1F4 /* keymap.h */,
+				90922A45221D429600F1E1F4 /* kword_test.c */,
+				90922A58221D429700F1E1F4 /* list.c */,
+				90922A69221D429800F1E1F4 /* macros.h */,
+				90922A8D221D429B00F1E1F4 /* main.c */,
+				90922A4B221D429600F1E1F4 /* mark.c */,
+				90922A7C221D429A00F1E1F4 /* mbyte.c */,
+				90922AB2221D429C00F1E1F4 /* memfile_test.c */,
+				90922A51221D429600F1E1F4 /* memfile.c */,
+				90922A6D221D429900F1E1F4 /* memline.c */,
+				90922A78221D429A00F1E1F4 /* menu.c */,
+				90922A5F221D429700F1E1F4 /* message_test.c */,
+				90922A63221D429800F1E1F4 /* message.c */,
+				90922AA2221D429C00F1E1F4 /* misc1.c */,
+				90922A3B221D429500F1E1F4 /* misc2.c */,
+				90922AA6221D429C00F1E1F4 /* move.c */,
+				90922A4A221D429600F1E1F4 /* nbdebug.c */,
+				90922A5E221D429700F1E1F4 /* nbdebug.h */,
+				90922A4E221D429600F1E1F4 /* netbeans.c */,
+				90922AA3221D429C00F1E1F4 /* normal.c */,
+				90922A73221D429900F1E1F4 /* ops.c */,
+				90922A83221D429A00F1E1F4 /* option.c */,
+				90922AB1221D429C00F1E1F4 /* option.h */,
+				90922AAF221D429C00F1E1F4 /* os_mac_conv.c */,
+				90922A5D221D429700F1E1F4 /* os_mac.h */,
+				90922AA7221D429C00F1E1F4 /* os_unix.c */,
+				90922A8C221D429B00F1E1F4 /* os_unix.h */,
+				90922A8F221D429B00F1E1F4 /* popupmnu.c */,
+				90922A6E221D429900F1E1F4 /* proto.h */,
+				90922A68221D429800F1E1F4 /* protodef.h */,
+				90922A47221D429600F1E1F4 /* pty.c */,
+				90922A94221D429B00F1E1F4 /* quickfix.c */,
+				90922A90221D429B00F1E1F4 /* regexp_nfa.c */,
+				90922AB7221D429D00F1E1F4 /* regexp.c */,
+				90922A92221D429B00F1E1F4 /* regexp.h */,
+				90922A9D221D429C00F1E1F4 /* screen.c */,
+				90922A7E221D429A00F1E1F4 /* search.c */,
+				90922A9C221D429C00F1E1F4 /* sha256.c */,
+				90922AAC221D429C00F1E1F4 /* sign.c */,
+				90922AA8221D429C00F1E1F4 /* spell.c */,
+				90922A7B221D429A00F1E1F4 /* spell.h */,
+				90922AB3221D429C00F1E1F4 /* spellfile.c */,
+				90922AB5221D429D00F1E1F4 /* structs.h */,
+				90922A97221D429B00F1E1F4 /* syntax.c */,
+				90922A60221D429800F1E1F4 /* tag.c */,
+				90922A84221D429B00F1E1F4 /* term.c */,
+				90922ABA221D429D00F1E1F4 /* term.h */,
+				90922AB9221D429D00F1E1F4 /* terminal.c */,
+				90922A64221D429800F1E1F4 /* termlib.c */,
+				90922A91221D429B00F1E1F4 /* textprop.c */,
+				90922A76221D429900F1E1F4 /* ui.c */,
+				90922A7F221D429A00F1E1F4 /* undo.c */,
+				90922A98221D429B00F1E1F4 /* uninstal.c */,
+				90922A5C221D429700F1E1F4 /* userfunc.c */,
+				90922AB8221D429D00F1E1F4 /* version.c */,
+				90922A3D221D429500F1E1F4 /* version.h */,
+				90922A96221D429B00F1E1F4 /* vim.h */,
+				90922A9A221D429C00F1E1F4 /* vimio.h */,
+				90922A81221D429A00F1E1F4 /* vimrun.c */,
+				90922A75221D429900F1E1F4 /* winclip.c */,
+				90922AAA221D429C00F1E1F4 /* window.c */,
+				90922A61221D429800F1E1F4 /* xpm_w32.c */,
+				90922AA5221D429C00F1E1F4 /* xpm_w32.h */,
+			);
+			name = "Vim Source";
+			sourceTree = "<group>";
+		};
+		90922ABB221D42DC00F1E1F4 /* MacVim */ = {
+			isa = PBXGroup;
+			children = (
+				90922ABD221D42F700F1E1F4 /* gui_macvim.m */,
+				90922ABC221D42F700F1E1F4 /* MMBackend.h */,
+				90922ABE221D42F700F1E1F4 /* MMBackend.m */,
+			);
+			name = MacVim;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
