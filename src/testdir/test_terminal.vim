@@ -1574,7 +1574,13 @@ func Test_terminal_termwinsize_mininmum()
 endfunc
 
 func Test_terminal_termwinkey()
+  " make three tabpages, terminal in the middle
+  0tabnew
+  tabnext
+  tabnew
+  tabprev
   call assert_equal(1, winnr('$'))
+  call assert_equal(2, tabpagenr())
   let thiswin = win_getid()
 
   let buf = Run_shell_in_terminal({})
@@ -1583,12 +1589,29 @@ func Test_terminal_termwinkey()
   call feedkeys("\<C-L>w", 'tx')
   call assert_equal(thiswin, win_getid())
   call feedkeys("\<C-W>w", 'tx')
+  call assert_equal(termwin, win_getid())
+
+  call feedkeys("\<C-L>gt", "xt")
+  call assert_equal(3, tabpagenr())
+  tabprev
+  call assert_equal(2, tabpagenr())
+  call assert_equal(termwin, win_getid())
+
+  call feedkeys("\<C-L>gT", "xt")
+  call assert_equal(1, tabpagenr())
+  tabnext
+  call assert_equal(2, tabpagenr())
+  call assert_equal(termwin, win_getid())
 
   let job = term_getjob(buf)
   call feedkeys("\<C-L>\<C-C>", 'tx')
   call WaitForAssert({-> assert_equal("dead", job_status(job))})
 
   set termwinkey&
+  tabnext
+  tabclose
+  tabprev
+  tabclose
 endfunc
 
 func Test_terminal_out_err()
