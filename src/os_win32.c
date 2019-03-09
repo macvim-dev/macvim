@@ -2094,8 +2094,8 @@ executable_exists(char *name, char_u **path, int use_path)
     return TRUE;
 }
 
-#if ((defined(__MINGW32__) || defined (__CYGWIN32__)) && \
-       __MSVCRT_VERSION__ >= 0x800) || (defined(_MSC_VER) && _MSC_VER >= 1400)
+#if (defined(__MINGW32__) && __MSVCRT_VERSION__ >= 0x800) || \
+	(defined(_MSC_VER) && _MSC_VER >= 1400)
 /*
  * Bad parameter handler.
  *
@@ -2646,7 +2646,7 @@ mch_init(void)
     if (cterm_normal_bg_color == 0)
 	cterm_normal_bg_color = ((g_attrCurrent >> 4) & 0xf) + 1;
 
-    // Fg and Bg color index nunmber at startup
+    // Fg and Bg color index number at startup
     g_color_index_fg = g_attrDefault & 0xf;
     g_color_index_bg = (g_attrDefault >> 4) & 0xf;
 
@@ -4210,8 +4210,7 @@ vim_create_process(
 	    (LPSTARTUPINFOW)si,	/* Startup information */
 	    pi);			/* Process information */
 	vim_free(wcmd);
-	if (wcwd != NULL)
-	    vim_free(wcwd);
+	vim_free(wcwd);
 	return ret;
     }
 fallback:
@@ -5312,8 +5311,8 @@ win32_build_env(dict_T *env, garray_T *gap, int is_terminal)
 			*((WCHAR*)gap->ga_data + gap->ga_len++) = wval[n];
 		    *((WCHAR*)gap->ga_data + gap->ga_len++) = L'\0';
 		}
-		if (wkey != NULL) vim_free(wkey);
-		if (wval != NULL) vim_free(wval);
+		vim_free(wkey);
+		vim_free(wval);
 	    }
 	}
     }
@@ -7845,7 +7844,7 @@ set_console_color_rgb(void)
 	return;
 
     id = syn_name2id((char_u *)"Normal");
-    if (id > 0)
+    if (id > 0 && p_tgc)
 	syn_id2colors(id, &fg, &bg);
     if (fg == INVALCOLOR)
     {

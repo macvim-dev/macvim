@@ -41,7 +41,7 @@ init_longVersion(void)
 {
     /*
      * Construct the long version string.  Necessary because
-     * VAX C can't catenate strings in the preprocessor.
+     * VAX C can't concatenate strings in the preprocessor.
      */
     strcpy(longVersion, VIM_VERSION_LONG_DATE);
     strcat(longVersion, __DATE__);
@@ -794,6 +794,52 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    999,
+/**/
+    998,
+/**/
+    997,
+/**/
+    996,
+/**/
+    995,
+/**/
+    994,
+/**/
+    993,
+/**/
+    992,
+/**/
+    991,
+/**/
+    990,
+/**/
+    989,
+/**/
+    988,
+/**/
+    987,
+/**/
+    986,
+/**/
+    985,
+/**/
+    984,
+/**/
+    983,
+/**/
+    982,
+/**/
+    981,
+/**/
+    980,
+/**/
+    979,
+/**/
+    978,
+/**/
+    977,
 /**/
     976,
 /**/
