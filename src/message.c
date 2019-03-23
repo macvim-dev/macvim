@@ -4496,7 +4496,6 @@ vim_vsnprintf_typval(
 	    case 'c':
 	    case 's':
 	    case 'S':
-		length_modifier = '\0';
 		str_arg_l = 1;
 		switch (fmt_spec)
 		{
@@ -4877,7 +4876,6 @@ vim_vsnprintf_typval(
 				 * zero value is formatted with an
 				 * explicit precision of zero */
 				precision = num_of_digits + 1;
-				precision_specified = 1;
 			    }
 			}
 			/* zero padding to specified precision? */

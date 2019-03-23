@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.1.  Last change: 2019 Feb 22
+*eval.txt*	For Vim version 8.1.  Last change: 2019 Mar 02
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2672,6 +2672,7 @@ test_null_partial()		Funcref	null value for testing
 test_null_string()		String	null value for testing
 test_option_not_set({name})	none	reset flag indicating option was set
 test_override({expr}, {val})	none	test with Vim internal overrides
+test_refcount({expr})		Number	get the reference count of {expr}
 test_scrollbar({which}, {value}, {dragging})
 				none	scroll in the GUI for testing
 test_settime({expr})		none	set current time for testing
@@ -3538,7 +3539,7 @@ complete_check()				*complete_check()*
 
 						*confirm()*
 confirm({msg} [, {choices} [, {default} [, {type}]]])
-		Confirm() offers the user a dialog, from which a choice can be
+		confirm() offers the user a dialog, from which a choice can be
 		made.  It returns the number of the choice.  For the first
 		choice this is 1.
 		Note: confirm() is only supported when compiled with dialog
@@ -4061,7 +4062,7 @@ expand({expr} [, {nosuf} [, {list}]])				*expand()*
 		all "README" files in the current directory and below: >
 			:echo expand("**/README")
 <
-		Expand() can also be used to expand variables and environment
+		expand() can also be used to expand variables and environment
 		variables that are only known in a shell.  But this can be
 		slow, because a shell may be used to do the expansion.  See
 		|expr-env-expand|.
@@ -4964,10 +4965,16 @@ getloclist({nr} [, {what}])				*getloclist()*
 		If the optional {what} dictionary argument is supplied, then
 		returns the items listed in {what} as a dictionary. Refer to
 		|getqflist()| for the supported items in {what}.
-		If {what} contains 'filewinid', then returns the id of the
-		window used to display files from the location list. This
-		field is applicable only when called from a location list
-		window. See |location-list-file-window| for more details.
+
+		In addition to the items supported by |getqflist()| in {what},
+		the following item is supported by |getloclist()|:
+
+			filewinid 	id of the window used to display files
+					from the location list. This field is
+					applicable only when called from a
+					location list window. See
+					|location-list-file-window| for more
+					details.
 
 getmatches()						*getmatches()*
 		Returns a |List| with all matches previously defined by
@@ -5069,6 +5076,9 @@ getqflist([{what}])					*getqflist()*
 			nr	get information for this quickfix list; zero
 				means the current quickfix list and "$" means
 				the last quickfix list
+			qfbufnr number of the buffer displayed in the quickfix
+				window. Returns 0 if the quickfix buffer is
+				not present. See |quickfix-buffer|.
 			size	number of entries in the quickfix list
 			title	get the list title |quickfix-title|
 			winid	get the quickfix |window-ID|
@@ -5097,6 +5107,8 @@ getqflist([{what}])					*getqflist()*
 			items	quickfix list entries. If not present, set to
 				an empty list.
 			nr	quickfix list number. If not present, set to 0
+			qfbufnr	number of the buffer displayed in the quickfix
+				window. If not present, set to 0.
 			size	number of entries in the quickfix list. If not
 				present, set to 0.
 			title	quickfix list title text. If not present, set
@@ -9578,6 +9590,11 @@ test_override({name}, {val})				*test_override()*
 <		The value of "starting" is saved.  It is restored by: >
 			call test_override('starting', 0)
 
+test_refcount({expr})					*test_refcount()*
+		Return the reference count of {expr}.  When {expr} is of a
+		type that does not have a reference count, returns -1.  Only
+		to be used for testing.
+
 test_scrollbar({which}, {value}, {dragging})		*test_scrollbar()*
 		Pretend using scrollbar {which} to move it to position
 		{value}.  {which} can be:
@@ -11208,14 +11225,14 @@ This does NOT work: >
 			commands are skipped.
 			When {pattern} is omitted all errors are caught.
 			Examples: >
-		:catch /^Vim:Interrupt$/	" catch interrupts (CTRL-C)
-		:catch /^Vim\%((\a\+)\)\=:E/	" catch all Vim errors
-		:catch /^Vim\%((\a\+)\)\=:/	" catch errors and interrupts
-		:catch /^Vim(write):/		" catch all errors in :write
-		:catch /^Vim\%((\a\+)\)\=:E123/	" catch error E123
-		:catch /my-exception/		" catch user exception
-		:catch /.*/			" catch everything
-		:catch				" same as /.*/
+		:catch /^Vim:Interrupt$/	 " catch interrupts (CTRL-C)
+		:catch /^Vim\%((\a\+)\)\=:E/	 " catch all Vim errors
+		:catch /^Vim\%((\a\+)\)\=:/	 " catch errors and interrupts
+		:catch /^Vim(write):/		 " catch all errors in :write
+		:catch /^Vim\%((\a\+)\)\=:E123:/ " catch error E123
+		:catch /my-exception/		 " catch user exception
+		:catch /.*/			 " catch everything
+		:catch				 " same as /.*/
 <
 			Another character can be used instead of / around the
 			{pattern}, so long as it does not have a special

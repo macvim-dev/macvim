@@ -2138,6 +2138,7 @@ get_lval(
 			 || &lp->ll_dict->dv_hashtab == get_funccal_args_ht())
 		{
 		    semsg(_(e_illvar), name);
+		    clear_tv(&var1);
 		    return NULL;
 		}
 
@@ -2207,6 +2208,7 @@ get_lval(
 	    }
 	    lp->ll_blob = lp->ll_tv->vval.v_blob;
 	    lp->ll_tv = NULL;
+	    break;
 	}
 	else
 	{
@@ -8542,7 +8544,7 @@ ex_execute(exarg_T *eap)
     char_u	*p;
     garray_T	ga;
     int		len;
-    int		save_did_emsg = did_emsg;
+    int		save_did_emsg;
 
     ga_init2(&ga, 1, 80);
 
@@ -8550,7 +8552,6 @@ ex_execute(exarg_T *eap)
 	++emsg_skip;
     while (*arg != NUL && *arg != '|' && *arg != '\n')
     {
-	p = arg;
 	ret = eval1_emsg(&arg, &rettv, !eap->skip);
 	if (ret == FAIL)
 	    break;
@@ -9218,7 +9219,9 @@ last_set_msg(sctx_T script_ctx)
     }
 }
 
-/* reset v:option_new, v:option_old and v:option_type */
+/*
+ * Reset v:option_new, v:option_old and v:option_type.
+ */
     void
 reset_v_option_vars(void)
 {

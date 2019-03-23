@@ -2132,13 +2132,11 @@ set_mouse_termcode(
 	has_mouse_termcode |= HMT_URXVT;
     else
 #   endif
-#   ifdef FEAT_MOUSE_SGR
     if (n == KS_SGR_MOUSE)
 	has_mouse_termcode |= HMT_SGR;
     else if (n == KS_SGR_MOUSE_RELEASE)
 	has_mouse_termcode |= HMT_SGR_REL;
     else
-#   endif
 	has_mouse_termcode |= HMT_NORMAL;
 #  endif
 }
@@ -2181,13 +2179,11 @@ del_mouse_termcode(
 	has_mouse_termcode &= ~HMT_URXVT;
     else
 #   endif
-#   ifdef FEAT_MOUSE_SGR
     if (n == KS_SGR_MOUSE)
 	has_mouse_termcode &= ~HMT_SGR;
     else if (n == KS_SGR_MOUSE_RELEASE)
 	has_mouse_termcode &= ~HMT_SGR_REL;
     else
-#   endif
 	has_mouse_termcode &= ~HMT_NORMAL;
 #  endif
 }
@@ -4696,7 +4692,6 @@ check_termcode(
 		    if (tp[1 + (tp[0] != CSI)] == '>' && semicols == 2)
 		    {
 			int need_flush = FALSE;
-# ifdef FEAT_MOUSE_SGR
 			int is_iterm2 = FALSE;
 			int is_mintty = FALSE;
 
@@ -4704,7 +4699,6 @@ check_termcode(
 			// (77 is ASCII 'M' for mintty.)
 			if (STRNCMP(tp + extra - 3, "77;", 3) == 0)
 			    is_mintty = TRUE;
-# endif
 
 			/* if xterm version >= 141 try to get termcap codes */
 			if (version >= 141)
@@ -4724,12 +4718,10 @@ check_termcode(
 			     * 256, libvterm supports even more. */
 			    if (mch_getenv((char_u *)"COLORS") == NULL)
 				may_adjust_color_count(256);
-# ifdef FEAT_MOUSE_SGR
 			    /* Libvterm can handle SGR mouse reporting. */
 			    if (!option_was_set((char_u *)"ttym"))
 				set_option_value((char_u *)"ttym", 0L,
 							   (char_u *)"sgr", 0);
-# endif
 			}
 
 			if (version == 95)
@@ -4740,14 +4732,11 @@ check_termcode(
 				is_not_xterm = TRUE;
 				is_mac_terminal = TRUE;
 			    }
-# ifdef FEAT_MOUSE_SGR
 			    // iTerm2 sends 0;95;0
 			    if (STRNCMP(tp + extra - 2, "0;95;0c", 7) == 0)
 				is_iterm2 = TRUE;
-			    else
-# endif
 			    // old iTerm2 sends 0;95;
-			    if (STRNCMP(tp + extra - 2, "0;95;c", 6) == 0)
+			    else if (STRNCMP(tp + extra - 2, "0;95;c", 6) == 0)
 				is_not_xterm = TRUE;
 			}
 
@@ -4755,17 +4744,14 @@ check_termcode(
 			 * by the user already. */
 			if (!option_was_set((char_u *)"ttym"))
 			{
-# ifdef FEAT_MOUSE_SGR
 			    /* Xterm version 277 supports SGR.  Also support
 			     * Terminal.app, iTerm2 and mintty. */
 			    if (version >= 277 || is_iterm2 || is_mac_terminal
 				    || is_mintty)
 				set_option_value((char_u *)"ttym", 0L,
 							  (char_u *)"sgr", 0);
-			    else
-# endif
 			    /* if xterm version >= 95 use mouse dragging */
-			    if (version >= 95)
+			    else if (version >= 95)
 				set_option_value((char_u *)"ttym", 0L,
 						       (char_u *)"xterm2", 0);
 			}
@@ -5133,11 +5119,8 @@ check_termcode(
 # ifdef FEAT_MOUSE_URXVT
 		|| key_name[0] == KS_URXVT_MOUSE
 # endif
-# ifdef FEAT_MOUSE_SGR
 		|| key_name[0] == KS_SGR_MOUSE
-		|| key_name[0] == KS_SGR_MOUSE_RELEASE
-# endif
-		)
+		|| key_name[0] == KS_SGR_MOUSE_RELEASE)
 	{
 	    is_click = is_drag = FALSE;
 
@@ -5169,7 +5152,7 @@ check_termcode(
 		 */
 		for (;;)
 		{
-#ifdef FEAT_GUI
+#  ifdef FEAT_GUI
 		    if (gui.in_use)
 		    {
 			/* GUI uses more bits for columns > 223 */
@@ -5183,7 +5166,7 @@ check_termcode(
 							 + bytes[4] - ' ' - 1;
 		    }
 		    else
-#endif
+#  endif
 		    {
 			num_bytes = get_bytes_from_buf(tp + slen, bytes, 3);
 			if (num_bytes == -1)	/* not enough coordinates */
@@ -5197,21 +5180,21 @@ check_termcode(
 		    /* If the following bytes is also a mouse code and it has
 		     * the same code, dump this one and get the next.  This
 		     * makes dragging a whole lot faster. */
-#ifdef FEAT_GUI
+#  ifdef FEAT_GUI
 		    if (gui.in_use)
 			j = 3;
 		    else
-#endif
+#  endif
 			j = termcodes[idx].len;
 		    if (STRNCMP(tp, tp + slen, (size_t)j) == 0
 			    && tp[slen + j] == mouse_code
 			    && tp[slen + j + 1] != NUL
 			    && tp[slen + j + 2] != NUL
-#ifdef FEAT_GUI
+#  ifdef FEAT_GUI
 			    && (!gui.in_use
 				|| (tp[slen + j + 3] != NUL
 					&& tp[slen + j + 4] != NUL))
-#endif
+#  endif
 			    )
 			slen += j;
 		    else
@@ -5219,7 +5202,6 @@ check_termcode(
 		}
 	    }
 
-# if defined(FEAT_MOUSE_URXVT) || defined(FEAT_MOUSE_SGR)
 	    if (key_name[0] == KS_URXVT_MOUSE
 		|| key_name[0] == KS_SGR_MOUSE
 		|| key_name[0] == KS_SGR_MOUSE_RELEASE)
@@ -5273,17 +5255,13 @@ check_termcode(
 		 * modifier keys (alt/shift/ctrl/meta) state. */
 		modifiers = 0;
 	    }
-# endif
 
 	if (key_name[0] == (int)KS_MOUSE
-#ifdef FEAT_MOUSE_URXVT
+#  ifdef FEAT_MOUSE_URXVT
 	    || key_name[0] == (int)KS_URXVT_MOUSE
-#endif
-#ifdef FEAT_MOUSE_SGR
+#  endif
 	    || key_name[0] == KS_SGR_MOUSE
-	    || key_name[0] == KS_SGR_MOUSE_RELEASE
-#endif
-	    )
+	    || key_name[0] == KS_SGR_MOUSE_RELEASE)
 	{
 #  if !defined(MSWIN)
 		/*
