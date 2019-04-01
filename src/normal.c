@@ -811,9 +811,7 @@ getcount:
 	    }
 	    else if ((nv_cmds[idx].cmd_flags & NV_SSS)
 					       && (mod_mask & MOD_MASK_SHIFT))
-	    {
 		mod_mask &= ~MOD_MASK_SHIFT;
-	    }
 	}
     }
 
@@ -3508,9 +3506,7 @@ find_ident_at_pos(
 			&& col <= (int)startcol
 			&& find_is_eval_item(ptr + col, &col, &bn, FORWARD))
 		)
-	{
 	    ++col;
-	}
 
     return col;
 }
@@ -4333,9 +4329,7 @@ find_decl(
 	 * inside a comment, continue searching.  For K&R style function
 	 * declarations this skips the function header without types. */
 	if (!valid)
-	{
 	    CLEAR_POS(&found_pos);
-	}
 	else
 	    found_pos = curwin->w_cursor;
 	/* Remove SEARCH_START from flags to avoid getting stuck at one
@@ -8919,7 +8913,12 @@ nv_esc(cmdarg_T *cap)
 #endif
 		&& !VIsual_active
 		&& no_reason)
-	    msg(_("Type  :qa!  and press <Enter> to abandon all changes and exit Vim"));
+	{
+	    if (anyBufIsChanged())
+		msg(_("Type  :qa!  and press <Enter> to abandon all changes and exit Vim"));
+	    else
+		msg(_("Type  :qa  and press <Enter> to exit Vim"));
+	}
 
 	/* Don't reset "restart_edit" when 'insertmode' is set, it won't be
 	 * set again below when halfway a mapping. */
@@ -9477,9 +9476,7 @@ nv_open(cmdarg_T *cap)
 	v_swap_corners(cap->cmdchar);
 #ifdef FEAT_JOB_CHANNEL
     else if (bt_prompt(curbuf))
-    {
 	clearopbeep(cap->oap);
-    }
 #endif
     else
 	n_opencmd(cap);

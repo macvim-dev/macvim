@@ -195,6 +195,13 @@ static qf_info_T *ll_get_or_alloc_list(win_T *);
  */
 #define GET_LOC_LIST(wp) (IS_LL_WINDOW(wp) ? wp->w_llist_ref : wp->w_llist)
 
+// Macro to loop through all the items in a quickfix list
+// Quickfix item index starts from 1, so i below starts at 1
+#define FOR_ALL_QFL_ITEMS(qfl, qfp, i) \
+		    for (i = 1, qfp = qfl->qf_start; \
+			    !got_int && i <= qfl->qf_count && qfp != NULL; \
+			    ++i, qfp = qfp->qf_next)
+
 /*
  * Looking up a buffer can be slow if there are many.  Remember the last one
  * to make this a lot faster if there are multiple matches in the same file.
@@ -1580,6 +1587,47 @@ qf_cleanup_state(qfstate_T *pstate)
 }
 
 /*
+ * Process the next line from a file/buffer/list/string and add it
+ * to the quickfix list 'qfl'.
+ */
+    static int
+qf_init_process_nextline(
+	qf_list_T	*qfl,
+	efm_T		*fmt_first,
+	qfstate_T	*state,
+	qffields_T	*fields)
+{
+    int		    status;
+
+    // Get the next line from a file/buffer/list/string
+    status = qf_get_nextline(state);
+    if (status != QF_OK)
+	return status;
+
+    status = qf_parse_line(qfl, state->linebuf, state->linelen,
+	    fmt_first, fields);
+    if (status != QF_OK)
+	return status;
+
+    return qf_add_entry(qfl,
+		qfl->qf_directory,
+		(*fields->namebuf || qfl->qf_directory != NULL)
+		? fields->namebuf
+		: ((qfl->qf_currfile != NULL && fields->valid)
+		    ? qfl->qf_currfile : (char_u *)NULL),
+		fields->module,
+		0,
+		fields->errmsg,
+		fields->lnum,
+		fields->col,
+		fields->use_viscol,
+		fields->pattern,
+		fields->enr,
+		fields->type,
+		fields->valid);
+}
+
+/*
  * Read the errorfile "efile" into memory, line by line, building the error
  * list.
  * Alternative: when "efile" is NULL read errors from buffer "buf".
@@ -1671,39 +1719,14 @@ qf_init_ext(
     // Try to recognize one of the error formats in each line.
     while (!got_int)
     {
-	// Get the next line from a file/buffer/list/string
-	status = qf_get_nextline(&state);
+	status = qf_init_process_nextline(qfl, fmt_first, &state, &fields);
 	if (status == QF_NOMEM)		// memory alloc failure
 	    goto qf_init_end;
 	if (status == QF_END_OF_INPUT)	// end of input
 	    break;
-
-	status = qf_parse_line(qfl, state.linebuf, state.linelen,
-							fmt_first, &fields);
 	if (status == QF_FAIL)
 	    goto error2;
-	if (status == QF_NOMEM)
-	    goto qf_init_end;
-	if (status == QF_IGNORE_LINE)
-	    continue;
 
-	if (qf_add_entry(qfl,
-			qfl->qf_directory,
-			(*fields.namebuf || qfl->qf_directory != NULL)
-			    ? fields.namebuf
-			    : ((qfl->qf_currfile != NULL && fields.valid)
-				? qfl->qf_currfile : (char_u *)NULL),
-			fields.module,
-			0,
-			fields.errmsg,
-			fields.lnum,
-			fields.col,
-			fields.use_viscol,
-			fields.pattern,
-			fields.enr,
-			fields.type,
-			fields.valid) == FAIL)
-	    goto error2;
 	line_breakcheck();
     }
     if (state.fd == NULL || !ferror(state.fd))
@@ -2008,7 +2031,7 @@ check_quickfix_busy(void)
 
 /*
  * Add an entry to the end of the list of errors.
- * Returns OK or FAIL.
+ * Returns QF_OK or QF_FAIL.
  */
     static int
 qf_add_entry(
@@ -2030,7 +2053,7 @@ qf_add_entry(
     qfline_T	**lastp;	// pointer to qf_last or NULL
 
     if ((qfp = (qfline_T *)alloc((unsigned)sizeof(qfline_T))) == NULL)
-	return FAIL;
+	return QF_FAIL;
     if (bufnum != 0)
     {
 	buf_T *buf = buflist_findnr(bufnum);
@@ -2045,7 +2068,7 @@ qf_add_entry(
     if ((qfp->qf_text = vim_strsave(mesg)) == NULL)
     {
 	vim_free(qfp);
-	return FAIL;
+	return QF_FAIL;
     }
     qfp->qf_lnum = lnum;
     qfp->qf_col = col;
@@ -2056,7 +2079,7 @@ qf_add_entry(
     {
 	vim_free(qfp->qf_text);
 	vim_free(qfp);
-	return FAIL;
+	return QF_FAIL;
     }
     if (module == NULL || *module == NUL)
 	qfp->qf_module = NULL;
@@ -2065,7 +2088,7 @@ qf_add_entry(
 	vim_free(qfp->qf_text);
 	vim_free(qfp->qf_pattern);
 	vim_free(qfp);
-	return FAIL;
+	return QF_FAIL;
     }
     qfp->qf_nr = nr;
     if (type != 1 && !vim_isprintc(type)) // only printable chars allowed
@@ -2096,7 +2119,7 @@ qf_add_entry(
 	qfl->qf_ptr = qfp;
     }
 
-    return OK;
+    return QF_OK;
 }
 
 /*
@@ -2148,9 +2171,7 @@ copy_loclist_entries(qf_list_T *from_qfl, qf_list_T *to_qfl)
     qfline_T    *prevp;
 
     // copy all the location entries in this list
-    for (i = 0, from_qfp = from_qfl->qf_start;
-	    i < from_qfl->qf_count && from_qfp != NULL;
-	    ++i, from_qfp = from_qfp->qf_next)
+    FOR_ALL_QFL_ITEMS(from_qfl, from_qfp, i)
     {
 	if (qf_add_entry(to_qfl,
 		    NULL,
@@ -2164,7 +2185,7 @@ copy_loclist_entries(qf_list_T *from_qfl, qf_list_T *to_qfl)
 		    from_qfp->qf_pattern,
 		    from_qfp->qf_nr,
 		    0,
-		    from_qfp->qf_valid) == FAIL)
+		    from_qfp->qf_valid) == QF_FAIL)
 	    return FAIL;
 
 	// qf_add_entry() will not set the qf_num field, as the
@@ -2544,12 +2565,11 @@ is_qf_entry_present(qf_list_T *qfl, qfline_T *qf_ptr)
     int		i;
 
     // Search for the entry in the current list
-    for (i = 0, qfp = qfl->qf_start; i < qfl->qf_count;
-	    ++i, qfp = qfp->qf_next)
-	if (qfp == NULL || qfp == qf_ptr)
+    FOR_ALL_QFL_ITEMS(qfl, qfp, i)
+	if (qfp == qf_ptr)
 	    break;
 
-    if (i == qfl->qf_count) // Entry is not found
+    if (i > qfl->qf_count) // Entry is not found
 	return FALSE;
 
     return TRUE;
@@ -3552,21 +3572,11 @@ qf_list(exarg_T *eap)
 
     if (qfl->qf_nonevalid)
 	all = TRUE;
-    qfp = qfl->qf_start;
-    for (i = 1; !got_int && i <= qfl->qf_count; )
+    FOR_ALL_QFL_ITEMS(qfl, qfp, i)
     {
 	if ((qfp->qf_valid || all) && idx1 <= i && i <= idx2)
-	{
-	    if (got_int)
-		break;
-
 	    qf_list_entry(qfp, i, i == qfl->qf_index);
-	}
 
-	qfp = qfp->qf_next;
-	if (qfp == NULL)
-	    break;
-	++i;
 	ui_breakcheck();
     }
 }
@@ -3792,9 +3802,7 @@ qf_mark_adjust(
 	qf_list_T	*qfl = qf_get_list(qi, idx);
 
 	if (!qf_list_empty(qfl))
-	    for (i = 0, qfp = qfl->qf_start;
-			i < qfl->qf_count && qfp != NULL;
-			++i, qfp = qfp->qf_next)
+	    FOR_ALL_QFL_ITEMS(qfl, qfp, i)
 		if (qfp->qf_fnum == curbuf->b_fnum)
 		{
 		    found_one = TRUE;
@@ -4819,8 +4827,7 @@ qf_get_size(exarg_T *eap)
     }
 
     qfl = qf_get_curlist(qi);
-    for (i = 0, qfp = qfl->qf_start; i < qfl->qf_count && qfp != NULL;
-	    ++i, qfp = qfp->qf_next)
+    FOR_ALL_QFL_ITEMS(qfl, qfp, i)
     {
 	if (qfp->qf_valid)
 	{
@@ -4916,7 +4923,7 @@ qf_get_cur_valid_idx(exarg_T *eap)
     static int
 qf_get_nth_valid_entry(qf_list_T *qfl, int n, int fdo)
 {
-    qfline_T	*qfp = qfl->qf_start;
+    qfline_T	*qfp;
     int		i, eidx;
     int		prev_fnum = 0;
 
@@ -4924,8 +4931,8 @@ qf_get_nth_valid_entry(qf_list_T *qfl, int n, int fdo)
     if (qfl->qf_count <= 0 || qfl->qf_nonevalid)
 	return 1;
 
-    for (i = 1, eidx = 0; i <= qfl->qf_count && qfp != NULL;
-	    i++, qfp = qfp->qf_next)
+    eidx = 0;
+    FOR_ALL_QFL_ITEMS(qfl, qfp, i)
     {
 	if (qfp->qf_valid)
 	{
@@ -5056,6 +5063,24 @@ ex_cnext(exarg_T *eap)
 }
 
 /*
+ * Return the autocmd name for the :cfile Ex commands
+ */
+    static char_u *
+cfile_get_auname(cmdidx_T cmdidx)
+{
+    switch (cmdidx)
+    {
+	case CMD_cfile:	    return (char_u *)"cfile";
+	case CMD_cgetfile:  return (char_u *)"cgetfile";
+	case CMD_caddfile:  return (char_u *)"caddfile";
+	case CMD_lfile:	    return (char_u *)"lfile";
+	case CMD_lgetfile:  return (char_u *)"lgetfile";
+	case CMD_laddfile:  return (char_u *)"laddfile";
+	default:	    return NULL;
+    }
+}
+
+/*
  * ":cfile"/":cgetfile"/":caddfile" commands.
  * ":lfile"/":lgetfile"/":laddfile" commands.
  */
@@ -5069,18 +5094,10 @@ ex_cfile(exarg_T *eap)
     int_u	save_qfid = 0;		// init for gcc
     int		res;
 
-    switch (eap->cmdidx)
-    {
-	case CMD_cfile:	    au_name = (char_u *)"cfile"; break;
-	case CMD_cgetfile:  au_name = (char_u *)"cgetfile"; break;
-	case CMD_caddfile:  au_name = (char_u *)"caddfile"; break;
-	case CMD_lfile:	    au_name = (char_u *)"lfile"; break;
-	case CMD_lgetfile:  au_name = (char_u *)"lgetfile"; break;
-	case CMD_laddfile:  au_name = (char_u *)"laddfile"; break;
-	default: break;
-    }
+    au_name = cfile_get_auname(eap->cmdidx);
     if (au_name != NULL)
 	apply_autocmds(EVENT_QUICKFIXCMDPRE, au_name, NULL, FALSE, curbuf);
+
     enc = (*curbuf->b_p_menc != NUL) ? curbuf->b_p_menc : p_menc;
 #ifdef FEAT_BROWSE
     if (cmdmod.browse)
@@ -5321,7 +5338,7 @@ vgr_match_buflines(
 			0,	    // nr
 			0,	    // type
 			TRUE	    // valid
-			) == FAIL)
+			) == QF_FAIL)
 	    {
 		got_int = TRUE;
 		break;
@@ -5832,6 +5849,44 @@ unload_dummy_buffer(buf_T *buf, char_u *dirname_start)
 
 #if defined(FEAT_EVAL) || defined(PROTO)
 /*
+ * Copy the specified quickfix entry items into a new dict and appened the dict
+ * to 'list'.  Returns OK on success.
+ */
+    static int
+get_qfline_items(qfline_T *qfp, list_T *list)
+{
+    int		bufnum;
+    dict_T	*dict;
+    char_u	buf[2];
+
+    // Handle entries with a non-existing buffer number.
+    bufnum = qfp->qf_fnum;
+    if (bufnum != 0 && (buflist_findnr(bufnum) == NULL))
+	bufnum = 0;
+
+    if ((dict = dict_alloc()) == NULL)
+	return FAIL;
+    if (list_append_dict(list, dict) == FAIL)
+	return FAIL;
+
+    buf[0] = qfp->qf_type;
+    buf[1] = NUL;
+    if (dict_add_number(dict, "bufnr", (long)bufnum) == FAIL
+	    || dict_add_number(dict, "lnum",  (long)qfp->qf_lnum) == FAIL
+	    || dict_add_number(dict, "col",   (long)qfp->qf_col) == FAIL
+	    || dict_add_number(dict, "vcol",  (long)qfp->qf_viscol) == FAIL
+	    || dict_add_number(dict, "nr",    (long)qfp->qf_nr) == FAIL
+	    || dict_add_string(dict, "module", qfp->qf_module) == FAIL
+	    || dict_add_string(dict, "pattern", qfp->qf_pattern) == FAIL
+	    || dict_add_string(dict, "text", qfp->qf_text) == FAIL
+	    || dict_add_string(dict, "type", buf) == FAIL
+	    || dict_add_number(dict, "valid", (long)qfp->qf_valid) == FAIL)
+	return FAIL;
+
+    return OK;
+}
+
+/*
  * Add each quickfix error to list "list" as a dictionary.
  * If qf_idx is -1, use the current list. Otherwise, use the specified list.
  */
@@ -5840,11 +5895,8 @@ get_errorlist(qf_info_T *qi_arg, win_T *wp, int qf_idx, list_T *list)
 {
     qf_info_T	*qi = qi_arg;
     qf_list_T	*qfl;
-    dict_T	*dict;
-    char_u	buf[2];
     qfline_T	*qfp;
     int		i;
-    int		bufnum;
 
     if (qi == NULL)
     {
@@ -5867,37 +5919,12 @@ get_errorlist(qf_info_T *qi_arg, win_T *wp, int qf_idx, list_T *list)
     if (qf_list_empty(qfl))
 	return FAIL;
 
-    qfp = qfl->qf_start;
-    for (i = 1; !got_int && i <= qfl->qf_count; ++i)
+    FOR_ALL_QFL_ITEMS(qfl, qfp, i)
     {
-	// Handle entries with a non-existing buffer number.
-	bufnum = qfp->qf_fnum;
-	if (bufnum != 0 && (buflist_findnr(bufnum) == NULL))
-	    bufnum = 0;
-
-	if ((dict = dict_alloc()) == NULL)
+	if (get_qfline_items(qfp, list) == FAIL)
 	    return FAIL;
-	if (list_append_dict(list, dict) == FAIL)
-	    return FAIL;
-
-	buf[0] = qfp->qf_type;
-	buf[1] = NUL;
-	if ( dict_add_number(dict, "bufnr", (long)bufnum) == FAIL
-	  || dict_add_number(dict, "lnum",  (long)qfp->qf_lnum) == FAIL
-	  || dict_add_number(dict, "col",   (long)qfp->qf_col) == FAIL
-	  || dict_add_number(dict, "vcol",  (long)qfp->qf_viscol) == FAIL
-	  || dict_add_number(dict, "nr",    (long)qfp->qf_nr) == FAIL
-	  || dict_add_string(dict, "module", qfp->qf_module) == FAIL
-	  || dict_add_string(dict, "pattern", qfp->qf_pattern) == FAIL
-	  || dict_add_string(dict, "text", qfp->qf_text) == FAIL
-	  || dict_add_string(dict, "type", buf) == FAIL
-	  || dict_add_number(dict, "valid", (long)qfp->qf_valid) == FAIL)
-	    return FAIL;
-
-	qfp = qfp->qf_next;
-	if (qfp == NULL)
-	    break;
     }
+
     return OK;
 }
 
@@ -6415,7 +6442,7 @@ qf_add_entries(
 
 	retval = qf_add_entry_from_dict(qfl, d, li == list->lv_first,
 								&valid_entry);
-	if (retval == FAIL)
+	if (retval == QF_FAIL)
 	    break;
     }
 
@@ -6725,14 +6752,18 @@ qf_free_stack(win_T *wp, qf_info_T *qi)
 	// If the location list window is open, then create a new empty
 	// location list
 	qf_info_T *new_ll = qf_alloc_stack(QFLT_LOCATION);
-	new_ll->qf_bufnr = qfwin->w_buffer->b_fnum;
 
-	// first free the list reference in the location list window
-	ll_free_all(&qfwin->w_llist_ref);
+	if (new_ll != NULL)
+	{
+	    new_ll->qf_bufnr = qfwin->w_buffer->b_fnum;
 
-	qfwin->w_llist_ref = new_ll;
-	if (wp != qfwin)
-	    win_set_loclist(wp, new_ll);
+	    // first free the list reference in the location list window
+	    ll_free_all(&qfwin->w_llist_ref);
+
+	    qfwin->w_llist_ref = new_ll;
+	    if (wp != qfwin)
+		win_set_loclist(wp, new_ll);
+	}
     }
 }
 
@@ -6842,6 +6873,74 @@ set_ref_in_quickfix(int copyID)
 #endif
 
 /*
+ * Return the autocmd name for the :cbuffer Ex commands
+ */
+    static char_u *
+cbuffer_get_auname(cmdidx_T cmdidx)
+{
+    switch (cmdidx)
+    {
+	case CMD_cbuffer:	return (char_u *)"cbuffer";
+	case CMD_cgetbuffer:	return (char_u *)"cgetbuffer";
+	case CMD_caddbuffer:	return (char_u *)"caddbuffer";
+	case CMD_lbuffer:	return (char_u *)"lbuffer";
+	case CMD_lgetbuffer:	return (char_u *)"lgetbuffer";
+	case CMD_laddbuffer:	return (char_u *)"laddbuffer";
+	default:		return NULL;
+    }
+}
+
+/*
+ * Process and validate the arguments passed to the :cbuffer, :caddbuffer,
+ * :cgetbuffer, :lbuffer, :laddbuffer, :lgetbuffer Ex commands.
+ */
+    static int
+cbuffer_process_args(
+	exarg_T		*eap,
+	buf_T		**bufp,
+	linenr_T	*line1,
+	linenr_T	*line2)
+{
+    buf_T	*buf = NULL;
+
+    if (*eap->arg == NUL)
+	buf = curbuf;
+    else if (*skipwhite(skipdigits(eap->arg)) == NUL)
+	buf = buflist_findnr(atoi((char *)eap->arg));
+
+    if (buf == NULL)
+    {
+	emsg(_(e_invarg));
+	return FAIL;
+    }
+
+    if (buf->b_ml.ml_mfp == NULL)
+    {
+	emsg(_("E681: Buffer is not loaded"));
+	return FAIL;
+    }
+
+    if (eap->addr_count == 0)
+    {
+	eap->line1 = 1;
+	eap->line2 = buf->b_ml.ml_line_count;
+    }
+
+    if (eap->line1 < 1 || eap->line1 > buf->b_ml.ml_line_count
+	    || eap->line2 < 1 || eap->line2 > buf->b_ml.ml_line_count)
+    {
+	emsg(_(e_invrange));
+	return FAIL;
+    }
+
+    *line1 = eap->line1;
+    *line2 = eap->line2;
+    *bufp = buf;
+
+    return OK;
+}
+
+/*
  * ":[range]cbuffer [bufnr]" command.
  * ":[range]caddbuffer [bufnr]" command.
  * ":[range]cgetbuffer [bufnr]" command.
@@ -6858,19 +6957,13 @@ ex_cbuffer(exarg_T *eap)
     int		res;
     int_u	save_qfid;
     win_T	*wp = NULL;
+    char_u	*qf_title;
+    linenr_T	line1;
+    linenr_T	line2;
 
-    switch (eap->cmdidx)
-    {
-	case CMD_cbuffer:	au_name = (char_u *)"cbuffer"; break;
-	case CMD_cgetbuffer:	au_name = (char_u *)"cgetbuffer"; break;
-	case CMD_caddbuffer:	au_name = (char_u *)"caddbuffer"; break;
-	case CMD_lbuffer:	au_name = (char_u *)"lbuffer"; break;
-	case CMD_lgetbuffer:	au_name = (char_u *)"lgetbuffer"; break;
-	case CMD_laddbuffer:	au_name = (char_u *)"laddbuffer"; break;
-	default: break;
-    }
+    au_name = cbuffer_get_auname(eap->cmdidx);
     if (au_name != NULL && apply_autocmds(EVENT_QUICKFIXCMDPRE, au_name,
-					       curbuf->b_fname, TRUE, curbuf))
+					curbuf->b_fname, TRUE, curbuf))
     {
 #ifdef FEAT_EVAL
 	if (aborting())
@@ -6887,78 +6980,77 @@ ex_cbuffer(exarg_T *eap)
 	wp = curwin;
     }
 
-    if (*eap->arg == NUL)
-	buf = curbuf;
-    else if (*skipwhite(skipdigits(eap->arg)) == NUL)
-	buf = buflist_findnr(atoi((char *)eap->arg));
-    if (buf == NULL)
-	emsg(_(e_invarg));
-    else if (buf->b_ml.ml_mfp == NULL)
-	emsg(_("E681: Buffer is not loaded"));
-    else
+    if (cbuffer_process_args(eap, &buf, &line1, &line2) == FAIL)
+	return;
+
+    qf_title = qf_cmdtitle(*eap->cmdlinep);
+
+    if (buf->b_sfname)
     {
-	if (eap->addr_count == 0)
-	{
-	    eap->line1 = 1;
-	    eap->line2 = buf->b_ml.ml_line_count;
-	}
-	if (eap->line1 < 1 || eap->line1 > buf->b_ml.ml_line_count
-		|| eap->line2 < 1 || eap->line2 > buf->b_ml.ml_line_count)
-	    emsg(_(e_invrange));
-	else
-	{
-	    char_u *qf_title = qf_cmdtitle(*eap->cmdlinep);
-
-	    if (buf->b_sfname)
-	    {
-		vim_snprintf((char *)IObuff, IOSIZE, "%s (%s)",
-				     (char *)qf_title, (char *)buf->b_sfname);
-		qf_title = IObuff;
-	    }
-
-	    incr_quickfix_busy();
-
-	    res = qf_init_ext(qi, qi->qf_curlist, NULL, buf, NULL, p_efm,
-			    (eap->cmdidx != CMD_caddbuffer
-			     && eap->cmdidx != CMD_laddbuffer),
-						   eap->line1, eap->line2,
-						   qf_title, NULL);
-	    if (qf_stack_empty(qi))
-	    {
-		decr_quickfix_busy();
-		return;
-	    }
-	    if (res >= 0)
-		qf_list_changed(qf_get_curlist(qi));
-
-	    // Remember the current quickfix list identifier, so that we can
-	    // check for autocommands changing the current quickfix list.
-	    save_qfid = qf_get_curlist(qi)->qf_id;
-	    if (au_name != NULL)
-	    {
-		buf_T *curbuf_old = curbuf;
-
-		apply_autocmds(EVENT_QUICKFIXCMDPOST, au_name,
-						curbuf->b_fname, TRUE, curbuf);
-		if (curbuf != curbuf_old)
-		    // Autocommands changed buffer, don't jump now, "qi" may
-		    // be invalid.
-		    res = 0;
-	    }
-	    // Jump to the first error for a new list and if autocmds didn't
-	    // free the list.
-	    if (res > 0 && (eap->cmdidx == CMD_cbuffer ||
-						eap->cmdidx == CMD_lbuffer)
-		    && qflist_valid(wp, save_qfid))
-		// display the first error
-		qf_jump_first(qi, save_qfid, eap->forceit);
-
-	    decr_quickfix_busy();
-	}
+	vim_snprintf((char *)IObuff, IOSIZE, "%s (%s)",
+		(char *)qf_title, (char *)buf->b_sfname);
+	qf_title = IObuff;
     }
+
+    incr_quickfix_busy();
+
+    res = qf_init_ext(qi, qi->qf_curlist, NULL, buf, NULL, p_efm,
+	    (eap->cmdidx != CMD_caddbuffer
+	     && eap->cmdidx != CMD_laddbuffer),
+	    line1, line2,
+	    qf_title, NULL);
+    if (qf_stack_empty(qi))
+    {
+	decr_quickfix_busy();
+	return;
+    }
+    if (res >= 0)
+	qf_list_changed(qf_get_curlist(qi));
+
+    // Remember the current quickfix list identifier, so that we can
+    // check for autocommands changing the current quickfix list.
+    save_qfid = qf_get_curlist(qi)->qf_id;
+    if (au_name != NULL)
+    {
+	buf_T *curbuf_old = curbuf;
+
+	apply_autocmds(EVENT_QUICKFIXCMDPOST, au_name, curbuf->b_fname,
+								TRUE, curbuf);
+	if (curbuf != curbuf_old)
+	    // Autocommands changed buffer, don't jump now, "qi" may
+	    // be invalid.
+	    res = 0;
+    }
+    // Jump to the first error for a new list and if autocmds didn't
+    // free the list.
+    if (res > 0 && (eap->cmdidx == CMD_cbuffer ||
+		eap->cmdidx == CMD_lbuffer)
+	    && qflist_valid(wp, save_qfid))
+	// display the first error
+	qf_jump_first(qi, save_qfid, eap->forceit);
+
+    decr_quickfix_busy();
 }
 
 #if defined(FEAT_EVAL) || defined(PROTO)
+/*
+ * Return the autocmd name for the :cexpr Ex commands.
+ */
+    static char_u *
+cexpr_get_auname(cmdidx_T cmdidx)
+{
+    switch (cmdidx)
+    {
+	case CMD_cexpr:	    return (char_u *)"cexpr";
+	case CMD_cgetexpr:  return (char_u *)"cgetexpr";
+	case CMD_caddexpr:  return (char_u *)"caddexpr";
+	case CMD_lexpr:	    return (char_u *)"lexpr";
+	case CMD_lgetexpr:  return (char_u *)"lgetexpr";
+	case CMD_laddexpr:  return (char_u *)"laddexpr";
+	default:	    return NULL;
+    }
+}
+
 /*
  * ":cexpr {expr}", ":cgetexpr {expr}", ":caddexpr {expr}" command.
  * ":lexpr {expr}", ":lgetexpr {expr}", ":laddexpr {expr}" command.
@@ -6973,16 +7065,7 @@ ex_cexpr(exarg_T *eap)
     int_u	save_qfid;
     win_T	*wp = NULL;
 
-    switch (eap->cmdidx)
-    {
-	case CMD_cexpr:	    au_name = (char_u *)"cexpr"; break;
-	case CMD_cgetexpr:  au_name = (char_u *)"cgetexpr"; break;
-	case CMD_caddexpr:  au_name = (char_u *)"caddexpr"; break;
-	case CMD_lexpr:	    au_name = (char_u *)"lexpr"; break;
-	case CMD_lgetexpr:  au_name = (char_u *)"lgetexpr"; break;
-	case CMD_laddexpr:  au_name = (char_u *)"laddexpr"; break;
-	default: break;
-    }
+    au_name = cexpr_get_auname(eap->cmdidx);
     if (au_name != NULL && apply_autocmds(EVENT_QUICKFIXCMDPRE, au_name,
 					       curbuf->b_fname, TRUE, curbuf))
     {
@@ -7132,7 +7215,7 @@ hgr_search_file(
 			0,	// nr
 			1,	// type
 			TRUE	// valid
-			) == FAIL)
+			) == QF_FAIL)
 	    {
 		got_int = TRUE;
 		if (line != IObuff)
@@ -7257,16 +7340,16 @@ ex_helpgrep(exarg_T *eap)
 #endif
     }
 
-    // Make 'cpoptions' empty, the 'l' flag should not be used here.
-    save_cpo = p_cpo;
-    p_cpo = empty_option;
-
     if (is_loclist_cmd(eap->cmdidx))
     {
 	qi = hgr_get_ll(&new_qi);
 	if (qi == NULL)
 	    return;
     }
+
+    // Make 'cpoptions' empty, the 'l' flag should not be used here.
+    save_cpo = p_cpo;
+    p_cpo = empty_option;
 
     incr_quickfix_busy();
 

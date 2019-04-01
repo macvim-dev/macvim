@@ -1949,9 +1949,7 @@ get_last_leader_offset(char_u *line, char_u **flags)
 	    string = vim_strchr(part_buf, ':');
 	    if (string == NULL)	/* If everything is fine, this cannot actually
 				 * happen. */
-	    {
 		continue;
-	    }
 	    *string++ = NUL;	/* Isolate flags from string. */
 	    com_leader = string;
 
@@ -4100,9 +4098,7 @@ expand_env_esc(
 			    || (*src == '%' && *tail != '%')
 #endif
 			    ))
-		    {
 			*var++ = *tail++;
-		    }
 		}
 
 #if defined(MSWIN) || defined(UNIX)
@@ -4312,41 +4308,46 @@ expand_env_esc(
     char_u *
 vim_getenv(char_u *name, int *mustfree)
 {
-    char_u	*p;
+    char_u	*p = NULL;
     char_u	*pend;
     int		vimruntime;
+#ifdef MSWIN
+    WCHAR	*wn, *wp;
 
-#if defined(MSWIN)
-    /* use "C:/" when $HOME is not set */
+    // use "C:/" when $HOME is not set
     if (STRCMP(name, "HOME") == 0)
 	return homedir;
-#endif
 
+    // Use Wide function
+    wn = enc_to_utf16(name, NULL);
+    if (wn == NULL)
+	return NULL;
+
+    wp = _wgetenv(wn);
+    vim_free(wn);
+
+    if (wp != NULL && *wp == NUL)   // empty is the same as not set
+	wp = NULL;
+
+    if (wp != NULL)
+    {
+	p = utf16_to_enc(wp, NULL);
+	if (p == NULL)
+	    return NULL;
+
+	*mustfree = TRUE;
+	return p;
+    }
+#else
     p = mch_getenv(name);
-    if (p != NULL && *p == NUL)	    /* empty is the same as not set */
+    if (p != NULL && *p == NUL)	    // empty is the same as not set
 	p = NULL;
 
     if (p != NULL)
-    {
-#if defined(MSWIN)
-	if (enc_utf8)
-	{
-	    int	    len;
-	    char_u  *pp = NULL;
-
-	    /* Convert from active codepage to UTF-8.  Other conversions are
-	     * not done, because they would fail for non-ASCII characters. */
-	    acp_to_enc(p, (int)STRLEN(p), &pp, &len);
-	    if (pp != NULL)
-	    {
-		p = pp;
-		*mustfree = TRUE;
-	    }
-	}
-#endif
 	return p;
-    }
+#endif
 
+    // handling $VIMRUNTIME and $VIM is below, bail out if it's another name.
     vimruntime = (STRCMP(name, "VIMRUNTIME") == 0);
     if (!vimruntime && STRCMP(name, "VIM") != 0)
 	return NULL;
@@ -4361,8 +4362,25 @@ vim_getenv(char_u *name, int *mustfree)
 #endif
        )
     {
+#ifdef MSWIN
+	// Use Wide function
+	wp = _wgetenv(L"VIM");
+	if (wp != NULL && *wp == NUL)	    // empty is the same as not set
+	    wp = NULL;
+	if (wp != NULL)
+	{
+	    char_u *q = utf16_to_enc(wp, NULL);
+	    if (q != NULL)
+	    {
+		p = vim_version_dir(q);
+		*mustfree = TRUE;
+		if (p == NULL)
+		    p = q;
+	    }
+	}
+#else
 	p = mch_getenv((char_u *)"VIM");
-	if (p != NULL && *p == NUL)	    /* empty is the same as not set */
+	if (p != NULL && *p == NUL)	    // empty is the same as not set
 	    p = NULL;
 	if (p != NULL)
 	{
@@ -4371,27 +4389,8 @@ vim_getenv(char_u *name, int *mustfree)
 		*mustfree = TRUE;
 	    else
 		p = mch_getenv((char_u *)"VIM");
-
-#if defined(MSWIN)
-	    if (enc_utf8)
-	    {
-		int	len;
-		char_u  *pp = NULL;
-
-		/* Convert from active codepage to UTF-8.  Other conversions
-		 * are not done, because they would fail for non-ASCII
-		 * characters. */
-		acp_to_enc(p, (int)STRLEN(p), &pp, &len);
-		if (pp != NULL)
-		{
-		    if (*mustfree)
-			vim_free(p);
-		    p = pp;
-		    *mustfree = TRUE;
-		}
-	    }
-#endif
 	}
+#endif
     }
 
     /*

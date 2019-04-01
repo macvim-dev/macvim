@@ -4204,9 +4204,7 @@ f_term_dumpwrite(typval_T *argvars, typval_T *rettv UNUSED)
 		if (cell.width != prev_cell.width || !same_attr)
 		{
 		    if (cell.width == 2)
-		    {
 			fputs("*", fd);
-		    }
 		    else
 			fputs("+", fd);
 

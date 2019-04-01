@@ -944,6 +944,17 @@ func Test_Executable()
   endif
 endfunc
 
+func Test_executable_longname()
+  if !has('win32')
+    return
+  endif
+
+  let fname = 'X' . repeat('あ', 200) . '.bat'
+  call writefile([], fname)
+  call assert_equal(1, executable(fname))
+  call delete(fname)
+endfunc
+
 func Test_hostname()
   let hostname_vim = hostname()
   if has('unix')
@@ -1150,20 +1161,38 @@ func Test_reg_executing_and_recording()
   " getchar() command saves and restores reg_executing
   map W :call TestFunc()<CR>
   let @q = "W"
+  let g:typed = ''
+  let g:regs = []
   func TestFunc() abort
-    let g:reg1 = reg_executing()
+    let g:regs += [reg_executing()]
     let g:typed = getchar(0)
-    let g:reg2 = reg_executing()
+    let g:regs += [reg_executing()]
   endfunc
   call feedkeys("@qy", 'xt')
   call assert_equal(char2nr("y"), g:typed)
-  call assert_equal('q', g:reg1)
-  call assert_equal('q', g:reg2)
+  call assert_equal(['q', 'q'], g:regs)
   delfunc TestFunc
   unmap W
   unlet g:typed
-  unlet g:reg1
-  unlet g:reg2
+  unlet g:regs
+
+  " input() command saves and restores reg_executing
+  map W :call TestFunc()<CR>
+  let @q = "W"
+  let g:typed = ''
+  let g:regs = []
+  func TestFunc() abort
+    let g:regs += [reg_executing()]
+    let g:typed = input('?')
+    let g:regs += [reg_executing()]
+  endfunc
+  call feedkeys("@qy\<CR>", 'xt')
+  call assert_equal("y", g:typed)
+  call assert_equal(['q', 'q'], g:regs)
+  delfunc TestFunc
+  unmap W
+  unlet g:typed
+  unlet g:regs
 
   bwipe!
   delfunc s:save_reg_stat
