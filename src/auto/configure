@@ -624,6 +624,7 @@ LIBOBJS
 LINK_AS_NEEDED
 DEPEND_CFLAGS_FILTER
 XCODEFLAGS
+MSGFMT_DESKTOP
 MAKEMO
 MSGFMT
 INSTALL_TOOL_LANGS
@@ -14644,6 +14645,18 @@ $as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking if msgfmt supports --desktop" >&5
+$as_echo_n "checking if msgfmt supports --desktop... " >&6; }
+      MSGFMT_DESKTOP=
+      if "$MSGFMT" --help | grep -e '--desktop' >/dev/null; then
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	MSGFMT_DESKTOP="gvim.desktop vim.desktop"
+      else
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+      fi
+
     fi
   else
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no \"po/Makefile\" - disabled" >&5

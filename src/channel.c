@@ -1932,7 +1932,7 @@ channel_save(channel_T *channel, ch_part_T part, char_u *buf, int len,
 
     if (prepend)
     {
-	/* preend node to the head of the queue */
+	// prepend node to the head of the queue
 	node->rq_next = head->rq_next;
 	node->rq_prev = NULL;
 	if (head->rq_next == NULL)
@@ -1943,7 +1943,7 @@ channel_save(channel_T *channel, ch_part_T part, char_u *buf, int len,
     }
     else
     {
-	/* append node to the tail of the queue */
+	// append node to the tail of the queue
 	node->rq_next = NULL;
 	node->rq_prev = head->rq_prev;
 	if (head->rq_prev == NULL)
@@ -5919,6 +5919,7 @@ job_start(
 		ga_concat(&ga, (char_u *)"  ");
 	    ga_concat(&ga, (char_u *)argv[i]);
 	}
+	ga_append(&ga, NUL);
 	ch_log(NULL, "Starting job: %s", (char *)ga.ga_data);
 	ga_clear(&ga);
     }

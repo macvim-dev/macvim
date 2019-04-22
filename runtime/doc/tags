@@ -2554,6 +2554,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 :let-option	eval.txt	/*:let-option*
 :let-register	eval.txt	/*:let-register*
 :let-unpack	eval.txt	/*:let-unpack*
+:let..=	eval.txt	/*:let..=*
 :let.=	eval.txt	/*:let.=*
 :let/=	eval.txt	/*:let\/=*
 :letstar=	eval.txt	/*:letstar=*
@@ -2963,6 +2964,8 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 :scripte	repeat.txt	/*:scripte*
 :scriptencoding	repeat.txt	/*:scriptencoding*
 :scriptnames	repeat.txt	/*:scriptnames*
+:scriptv	repeat.txt	/*:scriptv*
+:scriptversion	repeat.txt	/*:scriptversion*
 :scs	if_cscop.txt	/*:scs*
 :scscope	if_cscop.txt	/*:scscope*
 :se	options.txt	/*:se*
@@ -3799,6 +3802,7 @@ ColorSchemePre	autocmd.txt	/*ColorSchemePre*
 Colors.plist	gui_mac.txt	/*Colors.plist*
 Command-line	cmdline.txt	/*Command-line*
 Command-line-mode	cmdline.txt	/*Command-line-mode*
+CompleteChanged	autocmd.txt	/*CompleteChanged*
 CompleteDone	autocmd.txt	/*CompleteDone*
 ConPTY	terminal.txt	/*ConPTY*
 Contents	quickref.txt	/*Contents*
@@ -4746,7 +4750,11 @@ E98	diff.txt	/*E98*
 E980	eval.txt	/*E980*
 E981	starting.txt	/*E981*
 E982	terminal.txt	/*E982*
+E983	message.txt	/*E983*
+E984	repeat.txt	/*E984*
+E985	eval.txt	/*E985*
 E99	diff.txt	/*E99*
+E999	repeat.txt	/*E999*
 EX	intro.txt	/*EX*
 EXINIT	starting.txt	/*EXINIT*
 Elvis	intro.txt	/*Elvis*
@@ -5320,6 +5328,7 @@ autocmd-groups	autocmd.txt	/*autocmd-groups*
 autocmd-intro	autocmd.txt	/*autocmd-intro*
 autocmd-list	autocmd.txt	/*autocmd-list*
 autocmd-nested	autocmd.txt	/*autocmd-nested*
+autocmd-once	autocmd.txt	/*autocmd-once*
 autocmd-osfiletypes	filetype.txt	/*autocmd-osfiletypes*
 autocmd-patterns	autocmd.txt	/*autocmd-patterns*
 autocmd-remove	autocmd.txt	/*autocmd-remove*
@@ -6152,6 +6161,7 @@ expr-'	eval.txt	/*expr-'*
 expr-+	eval.txt	/*expr-+*
 expr--	eval.txt	/*expr--*
 expr-.	eval.txt	/*expr-.*
+expr-..	eval.txt	/*expr-..*
 expr-/	eval.txt	/*expr-\/*
 expr-<	eval.txt	/*expr-<*
 expr-<#	eval.txt	/*expr-<#*
@@ -7325,6 +7335,7 @@ ip	motion.txt	/*ip*
 iquote	motion.txt	/*iquote*
 is	motion.txt	/*is*
 isdirectory()	eval.txt	/*isdirectory()*
+isinf()	eval.txt	/*isinf()*
 islocked()	eval.txt	/*islocked()*
 isnan()	eval.txt	/*isnan()*
 it	motion.txt	/*it*
@@ -7452,6 +7463,7 @@ list-identity	eval.txt	/*list-identity*
 list-index	eval.txt	/*list-index*
 list-modification	eval.txt	/*list-modification*
 list-repeat	windows.txt	/*list-repeat*
+list2str()	eval.txt	/*list2str()*
 lite.vim	syntax.txt	/*lite.vim*
 literal-string	eval.txt	/*literal-string*
 lnum-variable	eval.txt	/*lnum-variable*
@@ -8437,6 +8449,7 @@ read-in-close-cb	channel.txt	/*read-in-close-cb*
 read-messages	insert.txt	/*read-messages*
 read-only-share	editing.txt	/*read-only-share*
 read-stdin	version5.txt	/*read-stdin*
+readdir()	eval.txt	/*readdir()*
 readfile()	eval.txt	/*readfile()*
 readline.vim	syntax.txt	/*readline.vim*
 recording	repeat.txt	/*recording*
@@ -8580,6 +8593,7 @@ script-local	map.txt	/*script-local*
 script-variable	eval.txt	/*script-variable*
 scriptnames-dictionary	eval.txt	/*scriptnames-dictionary*
 scriptout-changed	version4.txt	/*scriptout-changed*
+scriptversion	eval.txt	/*scriptversion*
 scroll-binding	scroll.txt	/*scroll-binding*
 scroll-cursor	scroll.txt	/*scroll-cursor*
 scroll-down	scroll.txt	/*scroll-down*
@@ -8855,6 +8869,7 @@ static-tag	tagsrch.txt	/*static-tag*
 status-line	windows.txt	/*status-line*
 statusmsg-variable	eval.txt	/*statusmsg-variable*
 str2float()	eval.txt	/*str2float()*
+str2list()	eval.txt	/*str2list()*
 str2nr()	eval.txt	/*str2nr()*
 strcasestr()	eval.txt	/*strcasestr()*
 strcharpart()	eval.txt	/*strcharpart()*
@@ -9801,6 +9816,8 @@ vimrc-filetype	usr_05.txt	/*vimrc-filetype*
 vimrc-intro	usr_05.txt	/*vimrc-intro*
 vimrc-option-example	starting.txt	/*vimrc-option-example*
 vimrc_example.vim	usr_05.txt	/*vimrc_example.vim*
+vimscript-version	eval.txt	/*vimscript-version*
+vimscript-versions	eval.txt	/*vimscript-versions*
 vimtutor	usr_01.txt	/*vimtutor*
 virtcol()	eval.txt	/*virtcol()*
 visual-block	visual.txt	/*visual-block*

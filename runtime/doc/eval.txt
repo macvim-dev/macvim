@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.1.  Last change: 2019 Apr 04
+*eval.txt*	For Vim version 8.1.  Last change: 2019 Apr 21
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1044,7 +1044,7 @@ expr7 * expr7  Number multiplication				*expr-star*
 expr7 / expr7  Number division					*expr-/*
 expr7 % expr7  Number modulo					*expr-%*
 
-For all, except ".", Strings are converted to Numbers.
+For all, except "." and "..", Strings are converted to Numbers.
 For bitwise operators see |and()|, |or()| and |xor()|.
 
 Note the difference between "+" and ".":
@@ -1688,7 +1688,8 @@ v:count		The count given for the last Normal mode command.  Can be used
 		When there are two counts, as in "3d2w", they are multiplied,
 		just like what happens in the command, "d6w" for the example.
 		Also used for evaluating the 'formatexpr' option.
-		"count" also works, for backwards compatibility.
+		"count" also works, for backwards compatibility, unless
+		|scriptversion| is 3 or higher.
 
 					*v:count1* *count1-variable*
 v:count1	Just like "v:count", but defaults to one when no count is
@@ -1720,7 +1721,8 @@ v:errmsg	Last given error message.  It's allowed to set this variable.
 	:silent! next
 	:if v:errmsg != ""
 	:  ... handle error
-<		"errmsg" also works, for backwards compatibility.
+<		"errmsg" also works, for backwards compatibility, unless
+		|scriptversion| is 3 or higher.
 
 				*v:errors* *errors-variable* *assert-return*
 v:errors	Errors found by assert functions, such as |assert_true()|.
@@ -2023,7 +2025,8 @@ v:shell_error	Result of the last shell command.  When non-zero, the last
 	:if v:shell_error
 	:  echo 'could not rename "foo" to "bar"!'
 	:endif
-<		"shell_error" also works, for backwards compatibility.
+<		"shell_error" also works, for backwards compatibility, unless
+		|scriptversion| is 3 or higher.
 
 					*v:statusmsg* *statusmsg-variable*
 v:statusmsg	Last given status message.  It's allowed to set this variable.
@@ -2123,7 +2126,8 @@ v:testing	Must be set before using `test_garbagecollect_now()`.
 v:this_session	Full filename of the last loaded or saved session file.  See
 		|:mksession|.  It is allowed to set this variable.  When no
 		session file has been saved, this variable is empty.
-		"this_session" also works, for backwards compatibility.
+		"this_session" also works, for backwards compatibility, unless
+		|scriptversion| is 3 or higher
 
 					*v:throwpoint* *throwpoint-variable*
 v:throwpoint	The point where the exception most recently caught and not
@@ -2154,7 +2158,7 @@ v:val		Value of the current item of a |List| or |Dictionary|.  Only
 v:version	Version number of Vim: Major version number times 100 plus
 		minor version number.  Version 5.0 is 500.  Version 5.1 (5.01)
 		is 501.  Read-only.  "version" also works, for backwards
-		compatibility.
+		compatibility, unless |scriptversion| is 3 or higher.
 		Use |has()| to check if a certain patch was included, e.g.: >
 			if has("patch-7.4.123")
 <		Note that patch numbers are specific to the version, thus both
@@ -2508,9 +2512,7 @@ py3eval({expr})			any	evaluate |python3| expression
 pyxeval({expr})			any	evaluate |python_x| expression
 range({expr} [, {max} [, {stride}]])
 				List	items from {expr} to {max}
-readdir({directory} [, {expr}])
-				List	file names on {dir} with evalating
-					{expr}
+readdir({dir} [, {expr}])	List	file names in {dir} selected by {expr}
 readfile({fname} [, {type} [, {max}]])
 				List	get list of lines from file {fname}
 reg_executing()			String	get the executing register name
@@ -2677,7 +2679,7 @@ term_setkill({buf}, {how})	none	set signal to stop job in terminal
 term_setrestore({buf}, {command}) none	set command to restore terminal
 term_setsize({buf}, {rows}, {cols})
 				none	set the size of a terminal
-term_start({cmd}, {options})	Number	open a terminal window and run a job
+term_start({cmd} [, {options}])	Number	open a terminal window and run a job
 term_wait({buf} [, {time}])	Number  wait for screen to be updated
 test_alloc_fail({id}, {countdown}, {repeat})
 				none	make memory allocation fail
@@ -5398,6 +5400,9 @@ glob({expr} [, {nosuf} [, {list} [, {alllinks}]]])		*glob()*
 
 		If the expansion fails, the result is an empty String or List.
 
+		You can also use |readdir()| if you need to do complicated
+		things, such as limiting the number of matches.
+
 		A name for a non-existing file is not included.  A symbolic
 		link is only included if it points to an existing file.
 		However, when the {alllinks} argument is present and it is
@@ -7279,6 +7284,8 @@ range({expr} [, {max} [, {stride}]])				*range()*
 							*readdir()*
 readdir({directory} [, {expr}])
 		Return a list with file and directory names in {directory}.
+		You can also use |glob()| if you don't need to do complicated
+		things, such as limiting the number of matches.
 
 		When {expr} is omitted all entries are included.
 		When {expr} is given, it is evaluated to check what to do:
@@ -7344,7 +7351,7 @@ reg_executing()						*reg_executing()*
 
 reg_recording()						*reg_recording()*
 		Returns the single letter name of the register being recorded.
-		Returns an empty string string when not recording.  See |q|.
+		Returns an empty string when not recording.  See |q|.
 
 reltime([{start} [, {end}]])				*reltime()*
 		Return an item that represents a time value.  The format of
@@ -9433,6 +9440,7 @@ term_getcursor({buf})					*term_getcursor()*
 				is not blinking.
 		   "shape"	1 for a block cursor, 2 for underline and 3
 				for a vertical bar.
+		   "color"	color of the cursor, e.g. "green"
 
 		{buf} must be the buffer number of a terminal window. If the
 		buffer does not exist or is not a terminal window, an empty
@@ -9603,7 +9611,7 @@ term_setsize({buf}, {rows}, {cols})		*term_setsize()* *E955*
 		exist or is not a terminal window, an error is given.
 		{only available when compiled with the |+terminal| feature}
 
-term_start({cmd}, {options})				*term_start()*
+term_start({cmd} [, {options}])			*term_start()*
 		Open a terminal window and run {cmd} in it.
 
 		{cmd} can be a string or a List, like with |job_start()|. The
@@ -10195,17 +10203,30 @@ winline()	The result is a Number, which is the screen line of the cursor
 							*winnr()*
 winnr([{arg}])	The result is a Number, which is the number of the current
 		window.  The top window has number 1.
-		When the optional argument is "$", the number of the
-		last window is returned (the window count). >
-			let window_count = winnr('$')
-<		When the optional argument is "#", the number of the last
-		accessed window is returned (where |CTRL-W_p| goes to).
-		If there is no previous window or it is in another tab page 0
-		is returned.
+
+		The optional argument {arg} supports the following values:
+			$	the number of the last window (the window
+				count).
+			#	the number of the last accessed window (where
+				|CTRL-W_p| goes to).  If there is no previous
+				window or it is in another tab page 0 is
+				returned.
+			{N}j	the number of the Nth window below the
+				current window (where |CTRL-W_j| goes to).
+			{N}k	the number of the Nth window above the current
+				window (where |CTRL-W_k| goes to).
+			{N}h	the number of the Nth window left of the
+				current window (where |CTRL-W_h| goes to).
+			{N}l	the number of the Nth window right of the
+				current window (where |CTRL-W_l| goes to).
 		The number can be used with |CTRL-W_w| and ":wincmd w"
 		|:wincmd|.
 		Also see |tabpagewinnr()| and |win_getid()|.
-
+		Examples: >
+			let window_count = winnr('$')
+			let prev_window = winnr('#')
+			let wnum = winnr('3k')
+<
 							*winrestcmd()*
 winrestcmd()	Returns a sequence of |:resize| commands that should restore
 		the current window sizes.  Only works properly when no windows
@@ -10544,6 +10565,7 @@ vim_starting		True while initial source'ing takes place. |startup|
 viminfo			Compiled with viminfo support.
 vimscript-1		Compiled Vim script version 1 support
 vimscript-2		Compiled Vim script version 2 support
+vimscript-3		Compiled Vim script version 3 support
 virtualedit		Compiled with 'virtualedit' option. (always true)
 visual			Compiled with Visual mode. (always true)
 visualextra		Compiled with extra Visual mode commands. (always
@@ -12681,7 +12703,7 @@ code can be used: >
 
 ==============================================================================
 10. Vim script versions		*vimscript-version* *vimscript-versions*
-
+							*scriptversion*
 Over time many features have been added to Vim script.  This includes Ex
 commands, functions, variable types, etc.  Each individual feature can be
 checked with the |has()| and |exists()| functions.
@@ -12702,9 +12724,14 @@ instead of failing in mysterious ways. >
 < 	String concatenation with "." is not supported, use ".." instead.
 	This avoids the ambiguity using "." for Dict member access and
 	floating point numbers.  Now ".5" means the number 0.5.
-	Test for support with: >
-		has('vimscript-2')
+>
+ :scriptversion 3
+<	All |vim-variable|s must be prefixed by "v:".  E.g. "version" doesn't
+	work as |v:version| anymore, it can be used as a normal variable.
+	Same for some obvious names as "count" and others.
 
+	Test for support with: >
+		has('vimscript-3')
 
 ==============================================================================
 11. No +eval feature				*no-eval-feature*

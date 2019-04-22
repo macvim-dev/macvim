@@ -6647,6 +6647,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 	"vimscript-1",
 	"vimscript-2",
+	"vimscript-3",
 	"virtualedit",
 	"visual",
 	"visualextra",
@@ -9347,10 +9348,8 @@ f_readdir(typval_T *argvars, typval_T *rettv)
     }
 #endif
 
-    rettv->vval.v_list = list_alloc();
-    if (!failed && rettv->vval.v_list != NULL)
+    if (!failed && rettv->vval.v_list != NULL && ga.ga_len > 0)
     {
-	++rettv->vval.v_list->lv_refcount;
 	sort_strings((char_u **)ga.ga_data, ga.ga_len);
 	for (i = 0; i < ga.ga_len; i++)
 	{
@@ -9358,10 +9357,7 @@ f_readdir(typval_T *argvars, typval_T *rettv)
 	    list_append_string(rettv->vval.v_list, p, -1);
 	}
     }
-    for (i = 0; i < ga.ga_len; i++)
-	vim_free(((char_u **)ga.ga_data)[i]);
-
-    ga_clear(&ga);
+    ga_clear_strings(&ga);
 }
 
 /*
@@ -14013,6 +14009,8 @@ get_winnr(tabpage_T *tp, typval_T *argvar)
     twin = (tp == curtab) ? curwin : tp->tp_curwin;
     if (argvar->v_type != VAR_UNKNOWN)
     {
+	int	invalid_arg = FALSE;
+
 	arg = tv_get_string_chk(argvar);
 	if (arg == NULL)
 	    nr = 0;		/* type error; errmsg already given */
@@ -14025,6 +14023,32 @@ get_winnr(tabpage_T *tp, typval_T *argvar)
 		nr = 0;
 	}
 	else
+	{
+	    long	count;
+	    char_u	*endp;
+
+	    // Extract the window count (if specified). e.g. winnr('3j')
+	    count = strtol((char *)arg, (char **)&endp, 10);
+	    if (count <= 0)
+		count = 1;	// if count is not specified, default to 1
+	    if (endp != NULL && *endp != '\0')
+	    {
+		if (STRCMP(endp, "j") == 0)
+		    twin = win_vert_neighbor(tp, twin, FALSE, count);
+		else if (STRCMP(endp, "k") == 0)
+		    twin = win_vert_neighbor(tp, twin, TRUE, count);
+		else if (STRCMP(endp, "h") == 0)
+		    twin = win_horz_neighbor(tp, twin, TRUE, count);
+		else if (STRCMP(endp, "l") == 0)
+		    twin = win_horz_neighbor(tp, twin, FALSE, count);
+		else
+		    invalid_arg = TRUE;
+	    }
+	    else
+		invalid_arg = TRUE;
+	}
+
+	if (invalid_arg)
 	{
 	    semsg(_(e_invexpr2), arg);
 	    nr = 0;
