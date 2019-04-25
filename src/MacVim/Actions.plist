@@ -50,6 +50,8 @@
 	<string></string>
 	<key>performMiniaturize:</key>
 	<string></string>
+	<key>performMaximize:</key>
+	<string></string>
 	<key>performZoom:</key>
 	<string></string>
 	<key>recentFilesDummy:</key>
