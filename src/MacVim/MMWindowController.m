@@ -148,6 +148,12 @@
                         backing:NSBackingStoreBuffered
                           defer:YES];
     [win autorelease];
+    
+    if ([[NSUserDefaults standardUserDefaults]
+         boolForKey:MMTitlebarAppearsTransparentKey]) {
+        // Transparent title bar setting
+        win.titlebarAppearsTransparent = true;
+    }
 
     self = [super initWithWindow:win];
     if (!self) return nil;

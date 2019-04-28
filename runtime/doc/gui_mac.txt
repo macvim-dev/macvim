@@ -250,6 +250,7 @@ KEY				VALUE ~
 *MMLoginShellCommand*		which shell to use to launch Vim [string]
 *MMNoFontSubstitution*		disable automatic font substitution [bool]
 *MMNoTitleBarWindow*		hide title bar [bool]
+*MMTitlebarAppearsTransparent*	enable a transparent titlebar [bool]
 *MMShareFindPboard*		share search text to Find Pasteboard [bool]
 *MMShowAddTabButton*		enable "add tab" button on tabline [bool]
 *MMTabMaxWidth*			maximum width of a tab [int]

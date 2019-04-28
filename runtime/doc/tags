@@ -4853,6 +4853,7 @@ MMLoginShellArgument	gui_mac.txt	/*MMLoginShellArgument*
 MMLoginShellCommand	gui_mac.txt	/*MMLoginShellCommand*
 MMNoFontSubstitution	gui_mac.txt	/*MMNoFontSubstitution*
 MMNoTitleBarWindow	gui_mac.txt	/*MMNoTitleBarWindow*
+MMTitlebarAppearsTransparent	gui_mac.txt	/*MMTitlebarAppearsTransparent*
 MMShareFindPboard	gui_mac.txt	/*MMShareFindPboard*
 MMShowAddTabButton	gui_mac.txt	/*MMShowAddTabButton*
 MMTabMaxWidth	gui_mac.txt	/*MMTabMaxWidth*
