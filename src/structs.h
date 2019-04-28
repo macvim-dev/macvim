@@ -549,7 +549,7 @@ typedef struct expand
     int		xp_context;		/* type of expansion */
     char_u	*xp_pattern;		/* start of item to expand */
     int		xp_pattern_len;		/* bytes in xp_pattern before cursor */
-#if defined(FEAT_USR_CMDS) && defined(FEAT_EVAL) && defined(FEAT_CMDL_COMPL)
+#if defined(FEAT_EVAL) && defined(FEAT_CMDL_COMPL)
     char_u	*xp_arg;		/* completion function */
     sctx_T	xp_script_ctx;		/* SCTX for completion function */
 #endif
@@ -2146,10 +2146,8 @@ struct file_buffer
     /* First abbreviation local to a buffer. */
     mapblock_T	*b_first_abbr;
 #endif
-#ifdef FEAT_USR_CMDS
-    /* User commands local to the buffer. */
+    // User commands local to the buffer.
     garray_T	b_ucmds;
-#endif
     /*
      * start and end of an operator, also used for '[ and ']
      */
@@ -2588,6 +2586,9 @@ struct tabpage_S
     int		    tp_prev_which_scrollbars[3];
 				    /* previous value of which_scrollbars */
 #endif
+
+    char_u	    *tp_localdir;	// absolute path of local directory or
+					// NULL
 #ifdef FEAT_DIFF
     diff_T	    *tp_first_diff;
     buf_T	    *(tp_diffbuf[DB_COUNT]);
@@ -2727,6 +2728,16 @@ struct matchitem
 #endif
 };
 
+// Structure to store last cursor position and topline.  Used by check_lnums()
+// and reset_lnums().
+typedef struct
+{
+    int		w_topline_save;	// original topline value
+    int		w_topline_corr;	// corrected topline value
+    pos_T	w_cursor_save;	// original cursor position
+    pos_T	w_cursor_corr;	// corrected cursor position
+} pos_save_T;
+
 #ifdef FEAT_MENU
 typedef struct {
     int		wb_startcol;
@@ -2815,6 +2826,8 @@ struct window_S
     int		w_wincol;	    /* Leftmost column of window in screen. */
     int		w_width;	    /* Width of window, excluding separation. */
     int		w_vsep_width;	    /* Number of separator columns (0 or 1). */
+    pos_save_T	w_save_cursor;	    /* backup of cursor pos and topline */
+
 
     /*
      * === start of cached values ====
