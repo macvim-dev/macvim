@@ -601,7 +601,7 @@ wingotofile:
 }
 
 /*
- * Figure out the address type for ":wnncmd".
+ * Figure out the address type for ":wincmd".
  */
     void
 get_wincmd_addr_type(char_u *arg, exarg_T *eap)
@@ -656,13 +656,13 @@ get_wincmd_addr_type(char_u *arg, exarg_T *eap)
     case 'd':
     case Ctrl_D:
 #endif
-		/* window size or any count */
-		eap->addr_type = ADDR_LINES;
+		// window size or any count
+		eap->addr_type = ADDR_OTHER;
 		break;
 
     case Ctrl_HAT:
     case '^':
-		/* buffer number */
+		// buffer number
 		eap->addr_type = ADDR_BUFFERS;
 		break;
 
@@ -677,7 +677,7 @@ get_wincmd_addr_type(char_u *arg, exarg_T *eap)
     case 'W':
     case 'x':
     case Ctrl_X:
-		/* window number */
+		// window number
 		eap->addr_type = ADDR_WINDOWS;
 		break;
 
@@ -694,8 +694,8 @@ get_wincmd_addr_type(char_u *arg, exarg_T *eap)
     case Ctrl_P:
     case '=':
     case CAR:
-		/* no count */
-		eap->addr_type = 0;
+		// no count
+		eap->addr_type = ADDR_NONE;
 		break;
     }
 }
@@ -1331,10 +1331,12 @@ win_init(win_T *newp, win_T *oldp, int flags UNUSED)
     /* copy tagstack and folds */
     for (i = 0; i < oldp->w_tagstacklen; i++)
     {
-	newp->w_tagstack[i] = oldp->w_tagstack[i];
-	if (newp->w_tagstack[i].tagname != NULL)
-	    newp->w_tagstack[i].tagname =
-				   vim_strsave(newp->w_tagstack[i].tagname);
+	taggy_T	*tag = &newp->w_tagstack[i];
+	*tag = oldp->w_tagstack[i];
+	if (tag->tagname != NULL)
+	    tag->tagname = vim_strsave(tag->tagname);
+	if (tag->user_data != NULL)
+	    tag->user_data = vim_strsave(tag->user_data);
     }
     newp->w_tagstackidx = oldp->w_tagstackidx;
     newp->w_tagstacklen = oldp->w_tagstacklen;
@@ -3958,6 +3960,8 @@ enter_tabpage(
      * the frames for that.  When the Vim window was resized need to update
      * frame sizes too.  Use the stored value of p_ch, so that it can be
      * different for each tab page. */
+    if (p_ch != curtab->tp_ch_used)
+	clear_cmdline = TRUE;
     p_ch = curtab->tp_ch_used;
     if (curtab->tp_old_Rows != Rows || (old_off != firstwin->w_winrow
 #ifdef FEAT_GUI_TABLINE

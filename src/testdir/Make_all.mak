@@ -219,6 +219,7 @@ NEW_TESTS = \
 	test_scroll_opt \
 	test_scrollbind \
 	test_search \
+	test_search_stat \
 	test_searchpos \
 	test_set \
 	test_sha256 \
@@ -244,6 +245,7 @@ NEW_TESTS = \
 	test_tabline \
 	test_tabpage \
 	test_tagcase \
+	test_tagfunc \
 	test_tagjump \
 	test_taglist \
 	test_tcl \
@@ -387,6 +389,7 @@ NEW_TESTS_RES = \
 	test_scriptnames.res \
 	test_scrollbind.res \
 	test_search.res \
+	test_search_stat.res \
 	test_shortpathname.res \
 	test_signals.res \
 	test_signs.res \

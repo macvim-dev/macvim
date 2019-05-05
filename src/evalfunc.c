@@ -456,6 +456,7 @@ static void f_test_null_string(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_GUI
 static void f_test_scrollbar(typval_T *argvars, typval_T *rettv);
 #endif
+static void f_test_setmouse(typval_T *argvars, typval_T *rettv);
 static void f_test_settime(typval_T *argvars, typval_T *rettv);
 #ifdef FEAT_FLOAT
 static void f_tan(typval_T *argvars, typval_T *rettv);
@@ -993,6 +994,7 @@ static struct fst
 #ifdef FEAT_GUI
     {"test_scrollbar",	3, 3, f_test_scrollbar},
 #endif
+    {"test_setmouse",	2, 2, f_test_setmouse},
     {"test_settime",	1, 1, f_test_settime},
 #ifdef FEAT_TIMERS
     {"timer_info",	0, 1, f_timer_info},
@@ -4201,11 +4203,13 @@ f_foreground(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
 {
 #ifdef FEAT_GUI
     if (gui.in_use)
+    {
 	gui_mch_set_foreground();
-#else
-# ifdef MSWIN
+	return;
+    }
+#endif
+#if defined(MSWIN) && (!defined(FEAT_GUI) || defined(VIMDLL))
     win32_set_foreground();
-# endif
 #endif
 }
 
@@ -6828,6 +6832,10 @@ f_has(typval_T *argvars, typval_T *rettv)
 #ifdef FEAT_NETBEANS_INTG
 	else if (STRICMP(name, "netbeans_enabled") == 0)
 	    n = netbeans_active();
+#endif
+#ifdef FEAT_MOUSE_GPM
+	else if (STRICMP(name, "mouse_gpm_enabled") == 0)
+	    n = gpm_enabled();
 #endif
 #if defined(FEAT_TERMINAL) && defined(MSWIN)
 	else if (STRICMP(name, "terminal") == 0)
@@ -14331,12 +14339,15 @@ f_test_override(typval_T *argvars, typval_T *rettv UNUSED)
 	}
 	else if (STRCMP(name, (char_u *)"nfa_fail") == 0)
 	    nfa_fail_for_testing = val;
+	else if (STRCMP(name, (char_u *)"no_query_mouse") == 0)
+	    no_query_mouse_for_testing = val;
 	else if (STRCMP(name, (char_u *)"ALL") == 0)
 	{
 	    disable_char_avail_for_testing = FALSE;
 	    disable_redraw_for_testing = FALSE;
 	    ignore_redraw_flag_for_testing = FALSE;
 	    nfa_fail_for_testing = FALSE;
+	    no_query_mouse_for_testing = FALSE;
 	    if (save_starting >= 0)
 	    {
 		starting = save_starting;
@@ -14518,6 +14529,13 @@ f_test_scrollbar(typval_T *argvars, typval_T *rettv UNUSED)
 # endif
 }
 #endif
+
+    static void
+f_test_setmouse(typval_T *argvars, typval_T *rettv UNUSED)
+{
+    mouse_row = (time_t)tv_get_number(&argvars[0]) - 1;
+    mouse_col = (time_t)tv_get_number(&argvars[1]) - 1;
+}
 
     static void
 f_test_settime(typval_T *argvars, typval_T *rettv UNUSED)

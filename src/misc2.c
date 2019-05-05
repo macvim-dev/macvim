@@ -1068,7 +1068,7 @@ free_all_mem(void)
 
     /* Close all tabs and windows.  Reset 'equalalways' to avoid redraws. */
     p_ea = FALSE;
-    if (first_tabpage->tp_next != NULL)
+    if (first_tabpage != NULL && first_tabpage->tp_next != NULL)
 	do_cmdline_cmd((char_u *)"tabonly!");
     if (!ONE_WINDOW)
 	do_cmdline_cmd((char_u *)"only!");
@@ -1085,29 +1085,33 @@ free_all_mem(void)
     // Clear user commands (before deleting buffers).
     ex_comclear(NULL);
 
+    // When exiting from mainerr_arg_missing curbuf has not been initialized,
+    // and not much else.
+    if (curbuf != NULL)
+    {
 # ifdef FEAT_MENU
-    /* Clear menus. */
-    do_cmdline_cmd((char_u *)"aunmenu *");
+	// Clear menus.
+	do_cmdline_cmd((char_u *)"aunmenu *");
 #  ifdef FEAT_MULTI_LANG
-    do_cmdline_cmd((char_u *)"menutranslate clear");
+	do_cmdline_cmd((char_u *)"menutranslate clear");
 #  endif
 # endif
-
-    /* Clear mappings, abbreviations, breakpoints. */
-    do_cmdline_cmd((char_u *)"lmapclear");
-    do_cmdline_cmd((char_u *)"xmapclear");
-    do_cmdline_cmd((char_u *)"mapclear");
-    do_cmdline_cmd((char_u *)"mapclear!");
-    do_cmdline_cmd((char_u *)"abclear");
+	// Clear mappings, abbreviations, breakpoints.
+	do_cmdline_cmd((char_u *)"lmapclear");
+	do_cmdline_cmd((char_u *)"xmapclear");
+	do_cmdline_cmd((char_u *)"mapclear");
+	do_cmdline_cmd((char_u *)"mapclear!");
+	do_cmdline_cmd((char_u *)"abclear");
 # if defined(FEAT_EVAL)
-    do_cmdline_cmd((char_u *)"breakdel *");
+	do_cmdline_cmd((char_u *)"breakdel *");
 # endif
 # if defined(FEAT_PROFILE)
-    do_cmdline_cmd((char_u *)"profdel *");
+	do_cmdline_cmd((char_u *)"profdel *");
 # endif
 # if defined(FEAT_KEYMAP)
-    do_cmdline_cmd((char_u *)"set keymap=");
+	do_cmdline_cmd((char_u *)"set keymap=");
 #endif
+    }
 
 # ifdef FEAT_TITLE
     free_titles();
@@ -1142,7 +1146,8 @@ free_all_mem(void)
     set_expr_line(NULL);
 # endif
 # ifdef FEAT_DIFF
-    diff_clear(curtab);
+    if (curtab != NULL)
+	diff_clear(curtab);
 # endif
     clear_sb_text(TRUE);	      /* free any scrollback text */
 
@@ -1172,17 +1177,18 @@ free_all_mem(void)
 	tabpage_T   *tab;
 
 	qf_free_all(NULL);
-	/* Free all location lists */
+	// Free all location lists
 	FOR_ALL_TAB_WINDOWS(tab, win)
 	    qf_free_all(win);
     }
 #endif
 
-    /* Close all script inputs. */
+    // Close all script inputs.
     close_all_scripts();
 
-    /* Destroy all windows.  Must come before freeing buffers. */
-    win_free_all();
+    if (curwin != NULL)
+	// Destroy all windows.  Must come before freeing buffers.
+	win_free_all();
 
     /* Free all option values.  Must come after closing windows. */
     free_all_options();
@@ -1223,8 +1229,11 @@ free_all_mem(void)
 
     reset_last_sourcing();
 
-    free_tabpage(first_tabpage);
-    first_tabpage = NULL;
+    if (first_tabpage != NULL)
+    {
+	free_tabpage(first_tabpage);
+	first_tabpage = NULL;
+    }
 
 # ifdef UNIX
     /* Machine-specific free. */
@@ -4661,4 +4670,81 @@ build_argv_from_list(list_T *l, char ***argv, int *argc)
     return OK;
 }
 # endif
+#endif
+
+#if defined(FEAT_SESSION) || defined(PROTO)
+/*
+ * Generate a script that can be used to restore the current editing session.
+ * Save the value of v:this_session before running :mksession in order to make
+ * automagic session save fully transparent.  Return TRUE on success.
+ */
+    int
+write_session_file(char_u *filename)
+{
+    char_u	    *escaped_filename;
+    char	    *mksession_cmdline;
+    unsigned int    save_ssop_flags;
+    int		    failed;
+
+    /*
+     * Build an ex command line to create a script that restores the current
+     * session if executed.  Escape the filename to avoid nasty surprises.
+     */
+    escaped_filename = vim_strsave_escaped(filename, escape_chars);
+    if (escaped_filename == NULL)
+	return FALSE;
+    mksession_cmdline = (char *)alloc(10 + (int)STRLEN(escaped_filename) + 1);
+    if (mksession_cmdline == NULL)
+    {
+	vim_free(escaped_filename);
+	return FALSE;
+    }
+    strcpy(mksession_cmdline, "mksession ");
+    STRCAT(mksession_cmdline, escaped_filename);
+    vim_free(escaped_filename);
+
+    /*
+     * Use a reasonable hardcoded set of 'sessionoptions' flags to avoid
+     * unpredictable effects when the session is saved automatically.  Also,
+     * we definitely need SSOP_GLOBALS to be able to restore v:this_session.
+     * Don't use SSOP_BUFFERS to prevent the buffer list from becoming
+     * enormously large if the GNOME session feature is used regularly.
+     */
+    save_ssop_flags = ssop_flags;
+    ssop_flags = (SSOP_BLANK|SSOP_CURDIR|SSOP_FOLDS|SSOP_GLOBALS
+		  |SSOP_HELP|SSOP_OPTIONS|SSOP_WINSIZE|SSOP_TABPAGES);
+
+    do_cmdline_cmd((char_u *)"let Save_VV_this_session = v:this_session");
+    failed = (do_cmdline_cmd((char_u *)mksession_cmdline) == FAIL);
+    do_cmdline_cmd((char_u *)"let v:this_session = Save_VV_this_session");
+    do_unlet((char_u *)"Save_VV_this_session", TRUE);
+
+    ssop_flags = save_ssop_flags;
+    vim_free(mksession_cmdline);
+
+    /*
+     * Reopen the file and append a command to restore v:this_session,
+     * as if this save never happened.	This is to avoid conflicts with
+     * the user's own sessions.  FIXME: It's probably less hackish to add
+     * a "stealth" flag to 'sessionoptions' -- gotta ask Bram.
+     */
+    if (!failed)
+    {
+	FILE *fd;
+
+	fd = open_exfile(filename, TRUE, APPENDBIN);
+
+	failed = (fd == NULL
+	       || put_line(fd, "let v:this_session = Save_VV_this_session") == FAIL
+	       || put_line(fd, "unlet Save_VV_this_session") == FAIL);
+
+	if (fd != NULL && fclose(fd) != 0)
+	    failed = TRUE;
+
+	if (failed)
+	    mch_remove(filename);
+    }
+
+    return !failed;
+}
 #endif
