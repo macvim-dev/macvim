@@ -14,100 +14,11 @@
 #import "MacVim.h"
 
 
-char *MessageStrings[] = 
+const char * const MMVimMsgIDStrings[] =
 {
-    "INVALID MESSAGE ID",
-    "OpenWindowMsgID",
-    "KeyDownMsgID",
-    "BatchDrawMsgID",
-    "SelectTabMsgID",
-    "CloseTabMsgID",
-    "AddNewTabMsgID",
-    "DraggedTabMsgID",
-    "UpdateTabBarMsgID",
-    "ShowTabBarMsgID",
-    "HideTabBarMsgID",
-    "SetTextRowsMsgID",
-    "SetTextColumnsMsgID",
-    "SetTextDimensionsMsgID",
-    "SetTextDimensionsNoResizeWindowMsgID",
-    "LiveResizeMsgID",
-    "SetTextDimensionsReplyMsgID",
-    "ResizeViewMsgID",
-    "SetWindowTitleMsgID",
-    "ScrollWheelMsgID",
-    "MouseDownMsgID",
-    "MouseUpMsgID",
-    "MouseDraggedMsgID",
-    "FlushQueueMsgID",
-    "AddMenuMsgID",
-    "AddMenuItemMsgID",
-    "RemoveMenuItemMsgID",
-    "EnableMenuItemMsgID",
-    "ExecuteMenuMsgID",
-    "ShowToolbarMsgID",
-    "ToggleToolbarMsgID",
-    "CreateScrollbarMsgID",
-    "DestroyScrollbarMsgID",
-    "ShowScrollbarMsgID",
-    "SetScrollbarPositionMsgID",
-    "SetScrollbarThumbMsgID",
-    "ScrollbarEventMsgID",
-    "SetFontMsgID",
-    "SetWideFontMsgID",
-    "VimShouldCloseMsgID",
-    "SetDefaultColorsMsgID",
-    "ExecuteActionMsgID",
-    "DropFilesMsgID",
-    "DropStringMsgID",
-    "ShowPopupMenuMsgID",
-    "GotFocusMsgID",
-    "LostFocusMsgID",
-    "MouseMovedMsgID",
-    "SetMouseShapeMsgID",
-    "AdjustLinespaceMsgID",
-    "AdjustColumnspaceMsgID",
-    "ActivateMsgID",
-    "SetServerNameMsgID",
-    "EnterFullScreenMsgID",
-    "LeaveFullScreenMsgID",
-    "SetBuffersModifiedMsgID",
-    "AddInputMsgID",
-    "SetPreEditPositionMsgID",
-    "TerminateNowMsgID",
-    "XcodeModMsgID",
-    "EnableAntialiasMsgID",
-    "DisableAntialiasMsgID",
-    "SetVimStateMsgID",
-    "SetDocumentFilenameMsgID",
-    "OpenWithArgumentsMsgID",
-    "CloseWindowMsgID",
-    "SetFullScreenColorMsgID",
-    "ShowFindReplaceDialogMsgID",
-    "FindReplaceMsgID",
-    "ActivateKeyScriptMsgID",
-    "DeactivateKeyScriptMsgID",
-    "EnableImControlMsgID",
-    "DisableImControlMsgID",
-    "ActivatedImMsgID",
-    "DeactivatedImMsgID",
-    "BrowseForFileMsgID",
-    "ShowDialogMsgID",
-    "SetMarkedTextMsgID",
-    "ZoomMsgID",
-    "SetWindowPositionMsgID",
-    "DeleteSignMsgID",
-    "SetTooltipMsgID",
-    "SetTooltipDelayMsgID",
-    "GestureMsgID",
-    "AddToMRUMsgID",
-    "BackingPropertiesChangedMsgID",
-    "SetBlurRadiusMsgID",
-    "EnableLigaturesMsgID",
-    "DisableLigaturesMsgID",
-    "EnableThinStrokesMsgID",
-    "DisableThinStrokesMsgID",
-    "END OF MESSAGE IDs"     // NOTE: Must be last!
+#define STRING_ARRAY_ENTRY(X) #X,
+    FOREACH_MMVimMsgID(STRING_ARRAY_ENTRY)
+#undef STRING_ARRAY_ENTRY
 };
 
 
@@ -157,7 +68,7 @@ debugStringForMessageQueue(NSArray *queue)
         else if (msgid == ShowScrollbarMsgID) ++shows;
         else if (msgid == CreateScrollbarMsgID) ++cres;
         else if (msgid == DestroyScrollbarMsgID) ++dess;
-        else [s appendFormat:@"%s ", MessageStrings[msgid]];
+        else [s appendFormat:@"%s ", MMVimMsgIDStrings[msgid]];
     }
     if (item > 0) [s appendFormat:@"AddMenuItemMsgID(%d) ", item];
     if (menu > 0) [s appendFormat:@"AddMenuMsgID(%d) ", menu];

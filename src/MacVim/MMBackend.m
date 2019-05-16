@@ -1322,7 +1322,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         for (i = 1; i < count; i += 2) {
             if ([[inputQueue objectAtIndex:i-1] intValue] == msgid) {
                 ASLogDebug(@"Input queue filling up, remove message: %s",
-                                                        MessageStrings[msgid]);
+                                                        MMVimMsgIDStrings[msgid]);
                 [inputQueue removeObjectAtIndex:i];
                 [inputQueue removeObjectAtIndex:i-1];
                 break;
@@ -1860,7 +1860,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         if ([data isEqual:[NSNull null]])
             data = nil;
 
-        ASLogDebug(@"(%d) %s", i, MessageStrings[msgid]);
+        ASLogDebug(@"(%d) %s", i, MMVimMsgIDStrings[msgid]);
         [self handleInputEvent:msgid data:data];
     }
 
