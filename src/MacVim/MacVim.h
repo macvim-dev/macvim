@@ -168,102 +168,107 @@
 // Vim.  These can be sent in processInput:data: and in processCommandQueue:.
 //
 
-// NOTE! This array must be updated whenever the enum below changes!
-extern char *MessageStrings[];
+extern const char * const MMVimMsgIDStrings[];
+
+#define FOREACH_MMVimMsgID(MSG) \
+    MSG(NullMsgID) \
+    MSG(OpenWindowMsgID) \
+    MSG(KeyDownMsgID) \
+    MSG(BatchDrawMsgID) \
+    MSG(SelectTabMsgID) \
+    MSG(CloseTabMsgID) \
+    MSG(AddNewTabMsgID) \
+    MSG(DraggedTabMsgID) \
+    MSG(UpdateTabBarMsgID) \
+    MSG(ShowTabBarMsgID) \
+    MSG(HideTabBarMsgID) \
+    MSG(SetTextRowsMsgID) \
+    MSG(SetTextColumnsMsgID) \
+    MSG(SetTextDimensionsMsgID) \
+    MSG(SetTextDimensionsNoResizeWindowMsgID) \
+    MSG(LiveResizeMsgID) \
+    MSG(SetTextDimensionsReplyMsgID) \
+    MSG(ResizeViewMsgID) \
+    MSG(SetWindowTitleMsgID) \
+    MSG(ScrollWheelMsgID) \
+    MSG(MouseDownMsgID) \
+    MSG(MouseUpMsgID) \
+    MSG(MouseDraggedMsgID) \
+    MSG(FlushQueueMsgID) \
+    MSG(AddMenuMsgID) \
+    MSG(AddMenuItemMsgID) \
+    MSG(RemoveMenuItemMsgID) \
+    MSG(EnableMenuItemMsgID) \
+    MSG(ExecuteMenuMsgID) \
+    MSG(ShowToolbarMsgID) \
+    MSG(ToggleToolbarMsgID) \
+    MSG(CreateScrollbarMsgID) \
+    MSG(DestroyScrollbarMsgID) \
+    MSG(ShowScrollbarMsgID) \
+    MSG(SetScrollbarPositionMsgID) \
+    MSG(SetScrollbarThumbMsgID) \
+    MSG(ScrollbarEventMsgID) \
+    MSG(SetFontMsgID) \
+    MSG(SetWideFontMsgID) \
+    MSG(VimShouldCloseMsgID) \
+    MSG(SetDefaultColorsMsgID) \
+    MSG(ExecuteActionMsgID) \
+    MSG(DropFilesMsgID) \
+    MSG(DropStringMsgID) \
+    MSG(ShowPopupMenuMsgID) \
+    MSG(GotFocusMsgID) \
+    MSG(LostFocusMsgID) \
+    MSG(MouseMovedMsgID) \
+    MSG(SetMouseShapeMsgID) \
+    MSG(AdjustLinespaceMsgID) \
+    MSG(AdjustColumnspaceMsgID) \
+    MSG(ActivateMsgID) \
+    MSG(SetServerNameMsgID) \
+    MSG(EnterFullScreenMsgID) \
+    MSG(LeaveFullScreenMsgID) \
+    MSG(SetBuffersModifiedMsgID) \
+    MSG(AddInputMsgID) \
+    MSG(SetPreEditPositionMsgID) \
+    MSG(TerminateNowMsgID) \
+    MSG(XcodeModMsgID) \
+    MSG(EnableAntialiasMsgID) \
+    MSG(DisableAntialiasMsgID) \
+    MSG(SetVimStateMsgID) \
+    MSG(SetDocumentFilenameMsgID) \
+    MSG(OpenWithArgumentsMsgID) \
+    MSG(CloseWindowMsgID) \
+    MSG(SetFullScreenColorMsgID) \
+    MSG(ShowFindReplaceDialogMsgID) \
+    MSG(FindReplaceMsgID) \
+    MSG(UseSelectionForFindMsgID) \
+    MSG(ActivateKeyScriptMsgID) \
+    MSG(DeactivateKeyScriptMsgID) \
+    MSG(EnableImControlMsgID) \
+    MSG(DisableImControlMsgID) \
+    MSG(ActivatedImMsgID) \
+    MSG(DeactivatedImMsgID) \
+    MSG(BrowseForFileMsgID) \
+    MSG(ShowDialogMsgID) \
+    MSG(SetMarkedTextMsgID) \
+    MSG(ZoomMsgID) \
+    MSG(SetWindowPositionMsgID) \
+    MSG(DeleteSignMsgID) \
+    MSG(SetTooltipMsgID) \
+    MSG(SetTooltipDelayMsgID) \
+    MSG(GestureMsgID) \
+    MSG(AddToMRUMsgID) \
+    MSG(BackingPropertiesChangedMsgID) \
+    MSG(SetBlurRadiusMsgID) \
+    MSG(EnableLigaturesMsgID) \
+    MSG(DisableLigaturesMsgID) \
+    MSG(EnableThinStrokesMsgID) \
+    MSG(DisableThinStrokesMsgID) \
+    MSG(LastMsgID) \
 
 enum {
-    OpenWindowMsgID = 1,    // NOTE: FIRST IN ENUM MUST BE 1
-    KeyDownMsgID,
-    BatchDrawMsgID,
-    SelectTabMsgID,
-    CloseTabMsgID,
-    AddNewTabMsgID,
-    DraggedTabMsgID,
-    UpdateTabBarMsgID,
-    ShowTabBarMsgID,
-    HideTabBarMsgID,
-    SetTextRowsMsgID,
-    SetTextColumnsMsgID,
-    SetTextDimensionsMsgID,
-    SetTextDimensionsNoResizeWindowMsgID,
-    LiveResizeMsgID,
-    SetTextDimensionsReplyMsgID,
-    ResizeViewMsgID,
-    SetWindowTitleMsgID,
-    ScrollWheelMsgID,
-    MouseDownMsgID,
-    MouseUpMsgID,
-    MouseDraggedMsgID,
-    FlushQueueMsgID,
-    AddMenuMsgID,
-    AddMenuItemMsgID,
-    RemoveMenuItemMsgID,
-    EnableMenuItemMsgID,
-    ExecuteMenuMsgID,
-    ShowToolbarMsgID,
-    ToggleToolbarMsgID,
-    CreateScrollbarMsgID,
-    DestroyScrollbarMsgID,
-    ShowScrollbarMsgID,
-    SetScrollbarPositionMsgID,
-    SetScrollbarThumbMsgID,
-    ScrollbarEventMsgID,
-    SetFontMsgID,
-    SetWideFontMsgID,
-    VimShouldCloseMsgID,
-    SetDefaultColorsMsgID,
-    ExecuteActionMsgID,
-    DropFilesMsgID,
-    DropStringMsgID,
-    ShowPopupMenuMsgID,
-    GotFocusMsgID,
-    LostFocusMsgID,
-    MouseMovedMsgID,
-    SetMouseShapeMsgID,
-    AdjustLinespaceMsgID,
-    AdjustColumnspaceMsgID,
-    ActivateMsgID,
-    SetServerNameMsgID,
-    EnterFullScreenMsgID,
-    LeaveFullScreenMsgID,
-    SetBuffersModifiedMsgID,
-    AddInputMsgID,
-    SetPreEditPositionMsgID,
-    TerminateNowMsgID,
-    XcodeModMsgID,
-    EnableAntialiasMsgID,
-    DisableAntialiasMsgID,
-    SetVimStateMsgID,
-    SetDocumentFilenameMsgID,
-    OpenWithArgumentsMsgID,
-    CloseWindowMsgID,
-    SetFullScreenColorMsgID,
-    ShowFindReplaceDialogMsgID,
-    FindReplaceMsgID,
-    UseSelectionForFindMsgID,
-    ActivateKeyScriptMsgID,
-    DeactivateKeyScriptMsgID,
-    EnableImControlMsgID,
-    DisableImControlMsgID,
-    ActivatedImMsgID,
-    DeactivatedImMsgID,
-    BrowseForFileMsgID,
-    ShowDialogMsgID,
-    SetMarkedTextMsgID,
-    ZoomMsgID,
-    SetWindowPositionMsgID,
-    DeleteSignMsgID,
-    SetTooltipMsgID,
-    SetTooltipDelayMsgID,
-    GestureMsgID,
-    AddToMRUMsgID,
-    BackingPropertiesChangedMsgID,
-    SetBlurRadiusMsgID,
-    EnableLigaturesMsgID,
-    DisableLigaturesMsgID,
-    EnableThinStrokesMsgID,
-    DisableThinStrokesMsgID,
-    LastMsgID   // NOTE: MUST BE LAST MESSAGE IN ENUM!
+#define ENUM_ENTRY(X) X,
+    FOREACH_MMVimMsgID(ENUM_ENTRY)
+#undef ENUM_ENTRY
 };
 
 

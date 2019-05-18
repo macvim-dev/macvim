@@ -968,7 +968,7 @@ enum {
 
         ASLogDebug(@"Notify Vim that text dimensions changed from %dx%d to "
                    "%dx%d (%s)", cols, rows, constrained[1], constrained[0],
-                   MessageStrings[msgid]);
+                   MMVimMsgIDStrings[msgid]);
 
         if (msgid != LiveResizeMsgID || !self.pendingLiveResize) {
             // Live resize messages can be sent really rapidly, especailly if

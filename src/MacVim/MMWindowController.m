@@ -1764,7 +1764,7 @@
         }
         NSParameterAssert(data != nil && msgid != 0);
 
-        ASLogDebug(@"%s: %dx%d", MessageStrings[msgid], fuRows, fuColumns);
+        ASLogDebug(@"%s: %dx%d", MMVimMsgIDStrings[msgid], fuRows, fuColumns);
         MMVimController *vc = [self vimController];
         [vc sendMessage:msgid data:data];
         [[vimView textView] setMaxRows:fuRows columns:fuColumns];

@@ -351,7 +351,7 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)sendMessage:(int)msgid data:(NSData *)data
 {
     ASLogDebug(@"msg=%s (isInitialized=%d)",
-               MessageStrings[msgid], isInitialized);
+               MMVimMsgIDStrings[msgid], isInitialized);
 
     if (!isInitialized) return;
 
@@ -360,7 +360,7 @@ static BOOL isUnsafeMessage(int msgid);
     }
     @catch (NSException *ex) {
         ASLogDebug(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
-                pid, identifier, MessageStrings[msgid], ex);
+                pid, identifier, MMVimMsgIDStrings[msgid], ex);
     }
 }
 
@@ -373,7 +373,7 @@ static BOOL isUnsafeMessage(int msgid);
     // used instead.
 
     ASLogDebug(@"msg=%s (isInitialized=%d)",
-               MessageStrings[msgid], isInitialized);
+               MMVimMsgIDStrings[msgid], isInitialized);
 
     if (!isInitialized)
         return NO;
@@ -392,7 +392,7 @@ static BOOL isUnsafeMessage(int msgid);
     @catch (NSException *ex) {
         sendOk = NO;
         ASLogDebug(@"processInput:data: failed: pid=%d id=%d msg=%s reason=%@",
-                pid, identifier, MessageStrings[msgid], ex);
+                pid, identifier, MMVimMsgIDStrings[msgid], ex);
     }
     @finally {
         [conn setRequestTimeout:oldTimeout];
@@ -587,7 +587,7 @@ static BOOL isUnsafeMessage(int msgid);
                 delayQueue = [NSMutableArray array];
 
             ASLogDebug(@"Adding unsafe message '%s' to delay queue (mode=%@)",
-                       MessageStrings[msgid],
+                       MMVimMsgIDStrings[msgid],
                        [[NSRunLoop currentRunLoop] currentMode]);
             [delayQueue addObject:value];
             [delayQueue addObject:data];
