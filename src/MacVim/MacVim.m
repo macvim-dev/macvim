@@ -88,43 +88,6 @@ debugStringForMessageQueue(NSArray *queue)
 
 @implementation NSString (MMExtras)
 
-- (NSString *)stringByEscapingSpecialFilenameCharacters
-{
-    // NOTE: This code assumes that no characters already have been escaped.
-    NSMutableString *string = [self mutableCopy];
-
-    [string replaceOccurrencesOfString:@"\\"
-                            withString:@"\\\\"
-                               options:NSLiteralSearch
-                                 range:NSMakeRange(0, [string length])];
-    [string replaceOccurrencesOfString:@" "
-                            withString:@"\\ "
-                               options:NSLiteralSearch
-                                 range:NSMakeRange(0, [string length])];
-    [string replaceOccurrencesOfString:@"\t"
-                            withString:@"\\\t "
-                               options:NSLiteralSearch
-                                 range:NSMakeRange(0, [string length])];
-    [string replaceOccurrencesOfString:@"%"
-                            withString:@"\\%"
-                               options:NSLiteralSearch
-                                 range:NSMakeRange(0, [string length])];
-    [string replaceOccurrencesOfString:@"#"
-                            withString:@"\\#"
-                               options:NSLiteralSearch
-                                 range:NSMakeRange(0, [string length])];
-    [string replaceOccurrencesOfString:@"|"
-                            withString:@"\\|"
-                               options:NSLiteralSearch
-                                 range:NSMakeRange(0, [string length])];
-    [string replaceOccurrencesOfString:@"\""
-                            withString:@"\\\""
-                               options:NSLiteralSearch
-                                 range:NSMakeRange(0, [string length])];
-
-    return [string autorelease];
-}
-
 - (NSString *)stringByRemovingFindPatterns
 {
     // Remove some common patterns added to search strings that other apps are

@@ -296,33 +296,50 @@ static BOOL isUnsafeMessage(int msgid);
                                             noteNewRecentFilePaths:filenames];
 }
 
+// This is called when a file is dragged on top of a tab. We will open the file
+// list similar to drag-and-dropped files.
 - (void)file:(NSString *)filename draggedToTabAtIndex:(NSUInteger)tabIndex
 {
     filename = normalizeFilename(filename);
     ASLogInfo(@"filename=%@ index=%ld", filename, tabIndex);
 
-    NSString *fnEsc = [filename stringByEscapingSpecialFilenameCharacters];
-    NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>:silent "
-                       "tabnext %ld |"
-                       "edit! %@<CR>", tabIndex + 1, fnEsc];
-    [self addVimInput:input];
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    
+    // This is similar to dropFiles:forceOpen: except we first switch to the
+    // selected tab, and just open the first file (this could be modified in the
+    // future to support multiple files). It also forces layout to be splits
+    // because we specified one tab to receive the file so doesn't make sense to
+    // open another tab.
+    int layout = MMLayoutHorizontalSplit;
+    if ([ud boolForKey:MMVerticalSplitKey])
+        layout = MMLayoutVerticalSplit;
+    NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
+                          [NSNumber numberWithInt:layout],    @"layout",
+                          @[filename],                        @"filenames",
+                          [NSNumber numberWithInt:tabIndex + 1],    @"tabpage",
+                          nil];
+    
+    [self sendMessage:OpenWithArgumentsMsgID data:[args dictionaryAsData]];
 }
 
+// This is called when a file is dragged on top of the tab bar but not a
+// particular tab (e.g. the new tab button). We will open the file list similar
+// to drag-and-dropped files.
 - (void)filesDraggedToTabBar:(NSArray *)filenames
 {
     filenames = normalizeFilenames(filenames);
     ASLogInfo(@"%@", filenames);
-
-    NSUInteger i, count = [filenames count];
-    NSMutableString *input = [NSMutableString stringWithString:@"<C-\\><C-N>"
-                              ":silent! tabnext 9999"];
-    for (i = 0; i < count; i++) {
-        NSString *fn = [filenames objectAtIndex:i];
-        NSString *fnEsc = [fn stringByEscapingSpecialFilenameCharacters];
-        [input appendFormat:@"|tabedit %@", fnEsc];
-    }
-    [input appendString:@"<CR>"];
-    [self addVimInput:input];
+    
+    // This is similar to dropFiles:forceOpen: except we just force layout to be
+    // tabs (since the receipient is the tab bar, we assume that's the
+    // intention) instead of loading from user defaults.
+    int layout = MMLayoutTabs;
+    NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
+                          [NSNumber numberWithInt:layout],    @"layout",
+                          filenames,                          @"filenames",
+                          nil];
+    
+    [self sendMessage:OpenWithArgumentsMsgID data:[args dictionaryAsData]];
 }
 
 - (void)dropString:(NSString *)string

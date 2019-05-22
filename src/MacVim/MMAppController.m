@@ -976,21 +976,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             //
             // NOTE: Raise window before passing arguments, otherwise the
             // selection will be lost when selectionRange is set.
-            firstFile = [firstFile stringByEscapingSpecialFilenameCharacters];
-
-            NSString *bufCmd = @"tab sb";
-            switch (layout) {
-                case MMLayoutHorizontalSplit: bufCmd = @"sb"; break;
-                case MMLayoutVerticalSplit:   bufCmd = @"vert sb"; break;
-                case MMLayoutArglist:         bufCmd = @"b"; break;
-            }
-
-            NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
-                    ":let oldswb=&swb|let &swb=\"useopen,usetab\"|"
-                    "%@ %@|let &swb=oldswb|unl oldswb|"
-                    "cal foreground()<CR>", bufCmd, firstFile];
-
-            [vc addVimInput:input];
+            NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
+                                  firstFile, @"filename",
+                                  [NSNumber numberWithInt:layout], @"layout",
+                                  nil];
+            [vc sendMessage:SelectAndFocusOpenedFileMsgID data:[args dictionaryAsData]];
         }
 
         [vc passArguments:arguments];
@@ -1465,16 +1455,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     if (!dirIndicator)
         path = [path stringByDeletingLastPathComponent];
 
-    path = [path stringByEscapingSpecialFilenameCharacters];
-
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     BOOL openInCurrentWindow = [ud boolForKey:MMOpenInCurrentWindowKey];
     MMVimController *vc;
 
     if (openInCurrentWindow && (vc = [self topmostVimController])) {
-        NSString *input = [NSString stringWithFormat:@"<C-\\><C-N>"
-                ":tabe|cd %@<CR>", path];
-        [vc addVimInput:input];
+        NSDictionary *args = [NSDictionary dictionaryWithObjectsAndKeys:
+                              path, @"path",
+                              nil];
+        [vc sendMessage:NewFileHereMsgID data:[args dictionaryAsData]];
     } else {
         [self launchVimProcessWithArguments:nil workingDirectory:path];
     }

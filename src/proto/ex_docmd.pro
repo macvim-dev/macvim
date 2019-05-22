@@ -33,6 +33,7 @@ void alist_expand(int *fnum_list, int fnum_len);
 void alist_set(alist_T *al, int count, char_u **files, int use_curbuf, int *fnum_list, int fnum_len);
 void alist_add(alist_T *al, char_u *fname, int set_fnum);
 void alist_slash_adjust(void);
+void ex_edit(exarg_T *eap);
 void ex_splitview(exarg_T *eap);
 void tabpage_new(void);
 void do_exedit(exarg_T *eap, win_T *old_curwin);

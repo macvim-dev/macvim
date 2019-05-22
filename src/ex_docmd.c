@@ -131,7 +131,6 @@ static void	ex_mode(exarg_T *eap);
 static void	ex_wrongmodifier(exarg_T *eap);
 static void	ex_find(exarg_T *eap);
 static void	ex_open(exarg_T *eap);
-static void	ex_edit(exarg_T *eap);
 #ifndef FEAT_GUI
 # define ex_gui			ex_nogui
 static void	ex_nogui(exarg_T *eap);
@@ -7138,7 +7137,7 @@ ex_open(exarg_T *eap)
 /*
  * ":edit", ":badd", ":visual".
  */
-    static void
+    void
 ex_edit(exarg_T *eap)
 {
     do_exedit(eap, NULL);
