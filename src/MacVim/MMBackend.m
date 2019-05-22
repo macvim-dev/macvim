@@ -189,6 +189,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)startOdbEditWithArguments:(NSDictionary *)args;
 - (void)handleXcodeMod:(NSData *)data;
 - (void)handleOpenWithArguments:(NSDictionary *)args;
+- (void)handleSelectAndFocusOpenedFile:(NSDictionary *)args;
+- (void)handleNewFileHere:(NSDictionary *)args;
 - (int)checkForModifiedBuffers;
 - (void)addInput:(NSString *)input;
 - (void)redrawScreen;
@@ -2075,6 +2077,10 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         [self handleXcodeMod:data];
     } else if (OpenWithArgumentsMsgID == msgid) {
         [self handleOpenWithArguments:[NSDictionary dictionaryWithData:data]];
+    } else if (SelectAndFocusOpenedFileMsgID == msgid) {
+        [self handleSelectAndFocusOpenedFile:[NSDictionary dictionaryWithData:data]];
+    } else if (NewFileHereMsgID == msgid) {
+        [self handleNewFileHere:[NSDictionary dictionaryWithData:data]];
     } else if (FindReplaceMsgID == msgid) {
         [self handleFindReplace:[NSDictionary dictionaryWithData:data]];
     } else if (UseSelectionForFindMsgID == msgid) {
@@ -2637,6 +2643,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     // filenames                list of filenames
     // dontOpen                 don't open files specified in above argument
     // layout                   which layout to use to open files
+    // tabpage                  a tab page to enter first before opening
     // selectionRange           range of characters to select
     // searchText               string to search for
     // cursorLine               line to position the cursor on
@@ -2653,6 +2660,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     int i, numFiles = filenames ? [filenames count] : 0;
     BOOL openFiles = ![[args objectForKey:@"dontOpen"] boolValue];
     int layout = [[args objectForKey:@"layout"] intValue];
+    int tabpage = [[args objectForKey:@"tabpage"] intValue];
 
     if (starting > 0) {
         // When Vim is starting we simply add the files to be opened to the
@@ -2694,6 +2702,11 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         //
         // TODO: Figure out a better way to handle this?
         if (openFiles && numFiles > 0) {
+            // Caller specified a tab page to enter first.
+            if (tabpage > 0) {
+                goto_tabpage(tabpage);
+            }
+
             BOOL oneWindowInTab = topframe ? YES
                                            : (topframe->fr_layout == FR_LEAF);
             BOOL bufChanged = NO;
@@ -2707,85 +2720,236 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             // potentially cause multiple redraws.
             flushDisabled = YES;
 
-            BOOL onlyOneTab = (first_tabpage->tp_next == NULL);
-            if (WIN_TABS == layout && !onlyOneTab) {
-                // By going to the last tabpage we ensure that the new tabs
-                // will appear last (if this call is left out, the taborder
-                // becomes messy).
-                goto_tabpage(9999);
-            }
-
             // Make sure we're in normal mode first.
+            // TODO: The mixing of addInput and Ex commands is a little
+            // problematic because addInput is asynchronous and will therefore
+            // run after all the Ex commands. Should fix this in the future.
             [self addInput:@"<C-\\><C-N>"];
 
+            // Note: We call Ex functions directly to edit files instead of
+            // using addInput. The reason is that addInput relies on us manually
+            // constructing an Ex command string which requires us to manually
+            // escape file names with special characters like "$". In Vim there
+            // isn't a good way to escape characters like "\n" even if we use
+            // fnameescape, and the injected newline could be used by a
+            // malicious actor to craft a file name of the form "someFile\n:q"
+            // (\n represents the real newline character, not '\' and 'n') where
+            // the :q will be interpreted as the next Ex command by addInput.
+            // This could mean dragging a file with malicious filename could
+            // execute arbitrary Ex cmds which is obviously not good.
+            //
+            // To avoid mistakes, just call the C functions directly which
+            // avoids the problem of command ambiguity in crafting and escaping
+            // the Ex cmd string to send over.
+            exarg_T ea;
+            vim_memset(&ea, 0, sizeof(ea));
+
             if (numFiles > 1) {
+                cmdmod_T save_cmdmod = cmdmod;
+                vim_memset(&cmdmod, 0, sizeof(cmdmod));
+
+                BOOL splitInNewTab = NO;
+
                 // With "split layout" we open a new tab before opening
                 // multiple files if the current tab has more than one window
                 // or if there is exactly one window but whose buffer has a
                 // filename.  (The :drop command ensures modified buffers get
                 // their own window.)
                 if ((WIN_HOR == layout || WIN_VER == layout) &&
-                        (!oneWindowInTab || bufHasFilename))
-                    [self addInput:@":tabnew<CR>"];
+                        (!oneWindowInTab || bufHasFilename)) {
+                    splitInNewTab = YES;
 
-                // The files are opened by constructing a ":drop ..." command
-                // and executing it.
-                NSMutableString *cmd = (WIN_TABS == layout)
-                        ? [NSMutableString stringWithString:@":tab drop"]
-                        : [NSMutableString stringWithString:@":drop"];
+                    char_u tabnewArgs[] = "";
+                    char_u tabnewCmd[] = "tabnew";
 
-                for (i = 0; i < numFiles; ++i) {
-                    NSString *file = [filenames objectAtIndex:i];
-                    file = [file stringByEscapingSpecialFilenameCharacters];
-                    [cmd appendString:@" "];
-                    [cmd appendString:file];
+                    // :tabnew
+                    ea.arg = tabnewArgs;
+                    ea.cmdidx = CMD_tabnew;
+                    ea.cmd = tabnewCmd;
+                    ex_splitview(&ea);
                 }
 
                 // Temporarily clear 'suffixes' so that the files are opened in
                 // the same order as they appear in the "filenames" array.
-                [self addInput:@":let mvim_oldsu=&su|set su=<CR>"];
+                //
+                // :let mvim_oldsu=&su|set su=
+                char_u *orig_p_su = p_su;
+                char_u empty_p_su[] = "";
+                p_su = empty_p_su;
 
-                [self addInput:cmd];
+                // The files are opened by constructing a ":drop ..." command
+                // and executing it. The "drop" commands take in a single
+                // argument with all the filenames in them, and the filenames
+                // are required to be properly escaped or else names like
+                // "$filename" will get substituted as a variable which is wrong.
+                garray_T filename_array;
+                ga_init2(&filename_array, sizeof(char_u*), numFiles);
+                for (i = 0; i < numFiles; ++i) {
+                    NSString *file = [filenames objectAtIndex:i];
+
+                    // Escape each file name and add to the growing array.
+                    char_u *escapedFname = vim_strsave_fnameescape((char_u*)[file UTF8String], FALSE);
+                    ga_add_string(&filename_array, escapedFname);
+                    vim_free(escapedFname);
+                }
+                char_u* escapedFilenameList = ga_concat_strings(&filename_array, " ");
+                ga_clear_strings(&filename_array);
+
+                if (WIN_TABS == layout) {
+                    tabpage_T *tp;
+                    int numTabs = 0;
+                    FOR_ALL_TABPAGES(tp) {
+                        numTabs += 1;
+                    }
+
+                    // Convert ":drop ..." to ":$tab drop ..."
+                    cmdmod.tab = numTabs + 1;
+                }
+
+                if (splitInNewTab) {
+                    // If we are making a new tab to do a full split, don't
+                    // bother using the :drop command which will switch to an
+                    // open buffer if the first file is  opened already, which
+                    // we don't want.  We just want a full tab with all the
+                    // files split. Just set the arglist and the later :sall
+                    // command will take care of it.
+                    set_arglist(escapedFilenameList);
+                }
+                else {
+                    char_u dropCmdname[] = "drop";
+
+                    // :drop ... / :$tab drop ...
+                    ea.arg = escapedFilenameList;
+                    ea.cmd = dropCmdname;
+                    ea.cmdidx = CMD_drop;
+                    ex_drop(&ea);
+                }
+
+                // Clean up temporary strings.
+                vim_free(escapedFilenameList);
+                escapedFilenameList = NULL;
 
                 // Split the view into multiple windows if requested.
-                if (WIN_HOR == layout)
-                    [self addInput:@"|sall"];
-                else if (WIN_VER == layout)
-                    [self addInput:@"|vert sall"];
+                if (WIN_HOR == layout || WIN_VER == layout) {
+                    vim_memset(&cmdmod, 0, sizeof(cmdmod));
+                    if (WIN_VER == layout) {
+                        // Convert :sall to :vert sall
+                        cmdmod.split |= WSP_VERT;
+                    }
+
+                    char_u sallArg[] = "";
+                    char_u sallCmdname[] = "sall";
+
+                    // :sall / :vert sall
+                    ea.arg = sallArg;
+                    ea.cmd = sallCmdname;
+                    ea.cmdidx = CMD_sall;
+                    ex_all(&ea);
+                }
+
+                // Restore the global cmdmod.
+                cmdmod = save_cmdmod;
 
                 // Restore the old value of 'suffixes'.
-                [self addInput:@"|let &su=mvim_oldsu|unlet mvim_oldsu<CR>"];
-            } else {
+                p_su = orig_p_su;
+
+            } else { // numFiles == 1
+
+                typedef void (*ex_func_T) (exarg_T *eap);
+                ex_func_T exfunc = NULL;
+                char *cmdname = NULL;
+
+                cmdmod_T save_cmdmod = cmdmod;
+                vim_memset(&cmdmod, 0, sizeof(cmdmod));
+
                 // When opening one file we try to reuse the current window,
                 // but not if its buffer is modified or has a filename.
                 // However, the 'arglist' layout always opens the file in the
                 // current window.
-                NSString *file = [[filenames lastObject]
-                        stringByEscapingSpecialFilenameCharacters];
-                NSString *cmd;
                 if (WIN_HOR == layout) {
-                    if (!(bufHasFilename || bufChanged))
-                        cmd = [NSString stringWithFormat:@":e %@", file];
-                    else
-                        cmd = [NSString stringWithFormat:@":sp %@", file];
+                    if (!(bufHasFilename || bufChanged)) {
+                        // :e <filename>
+                        ea.cmdidx = CMD_edit;
+                        exfunc = ex_edit;
+                        cmdname = "edit";
+                    } else {
+                        // :sp <filename>
+                        ea.cmdidx = CMD_split;
+                        exfunc = ex_splitview;
+                        cmdname = "spit";
+                    }
                 } else if (WIN_VER == layout) {
-                    if (!(bufHasFilename || bufChanged))
-                        cmd = [NSString stringWithFormat:@":e %@", file];
-                    else
-                        cmd = [NSString stringWithFormat:@":vsp %@", file];
+                    if (!(bufHasFilename || bufChanged)) {
+                        // :e <filename>
+                        ea.cmdidx = CMD_edit;
+                        exfunc = ex_edit;
+                        cmdname = "edit";
+                    } else {
+                        // :vsp <filename>
+                        ea.cmdidx = CMD_vsplit;
+                        exfunc = ex_splitview;
+                        cmdname = "vsplit";
+                    }
                 } else if (WIN_TABS == layout) {
-                    if (oneWindowInTab && !(bufHasFilename || bufChanged))
-                        cmd = [NSString stringWithFormat:@":e %@", file];
-                    else
-                        cmd = [NSString stringWithFormat:@":tabe %@", file];
+                    if (oneWindowInTab && !(bufHasFilename || bufChanged)) {
+                        // :e <filename>
+                        ea.cmdidx = CMD_edit;
+                        exfunc = ex_edit;
+                        cmdname = "edit";
+                    } else {
+                        // :$tabedit <filename>
+                        ea.cmdidx = CMD_tabedit;
+                        exfunc = ex_splitview;
+                        cmdname = "tabedit";
+
+                        tabpage_T *tp;
+                        int numTabs = 0;
+                        FOR_ALL_TABPAGES(tp) {
+                            numTabs += 1;
+                        }
+                        cmdmod.tab = numTabs + 1;
+                    }
                 } else {
                     // (The :drop command will split if there is a modified
                     // buffer.)
-                    cmd = [NSString stringWithFormat:@":drop %@", file];
+                    // :drop <filename>
+                    ea.cmdidx = CMD_drop;
+                    exfunc = ex_drop;
+                    cmdname = "drop";
+
                 }
 
-                [self addInput:cmd];
-                [self addInput:@"<CR>"];
+                char_u *cmdnameSaved = vim_strsave((char_u*)cmdname);
+                ea.cmd = cmdnameSaved;
+
+                NSString *file = [filenames lastObject];
+                char_u *filename = [file vimStringSave];
+                ea.arg = filename;
+
+                char_u *filenameEscaped = NULL;
+
+                if (ea.cmdidx == CMD_drop) {
+                    // :drop works differently internally and we need to escape
+                    // filenames first. Otherwise names like $filename will get
+                    // substituted.
+                    filenameEscaped = vim_strsave_fnameescape(filename, FALSE);
+                    ea.arg = filenameEscaped;
+                }
+
+                if (exfunc != NULL) {
+                    // Execute the Ex command that we have prepared. See notes
+                    // about for why we do this instead of using addInput for
+                    // processing file names.
+                    exfunc(&ea);
+                }
+                cmdmod = save_cmdmod;
+
+                // Clean up temporary strings.
+                if (filenameEscaped) {
+                    vim_free(filenameEscaped);
+                }
+                vim_free(filename);
+                vim_free(cmdnameSaved);
             }
 
             // Force screen redraw (does it have to be this complicated?).
@@ -2846,6 +3010,149 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                         "'\\V\\c%@','cW')|let @/='\\V\\c%@'|set hls|endif<CR>",
                         searchText, searchText]];
     }
+}
+
+// This will select the window/tab of a particular window and bring the window
+// to focus.  If the buffer is hidden, it will make a new tab/split to show it.
+//
+// It basically does the equivalent of the following:
+//   let oldswb=&swb | let &swb="useopen,usetab"
+//   buffer <filename>
+//   let &swb=oldswb |unl oldswb
+//   call foreground()
+- (void)handleSelectAndFocusOpenedFile:(NSDictionary *)args
+{
+    // ARGUMENT:                DESCRIPTION:
+    // -------------------------------------------------------------
+    // filename                 filename of the opened file to focus
+    // layout                   which layout to use to open files
+
+    ASLogDebug(@"args=%@", args);
+
+    NSString *filename = [args objectForKey:@"filename"];
+    char_u *filename_vim = [filename vimStringSave];
+    int layout = [[args objectForKey:@"layout"] intValue];
+
+
+    // Does the following the make sure the buffer command will always go to an
+    // already opened buffer:
+    //   :let oldswb=&swb|let &swb="useopen,usetab"
+    unsigned orig_swb_flags = swb_flags;
+    swb_flags = SWB_USEOPEN | SWB_USETAB;
+
+    // Need to first manually find the bufnr first as the ex_buffer() command
+    // already expects that to be provided.
+    int bufnr = buflist_findpat(
+        filename_vim, filename_vim + STRLEN(filename_vim), FALSE, FALSE, FALSE);
+    if (bufnr >= 0)
+    {
+        // :sb / :vert sb / :tab sb / :b <filename> (depending on layout)
+        // The layout will only matter if the buffer is hidden and needs to be
+        // opened in a new window.
+        exarg_T ea;
+        vim_memset(&ea, 0, sizeof(ea));
+
+        cmdmod_T save_cmdmod = cmdmod;
+        vim_memset(&cmdmod, 0, sizeof(cmdmod));
+
+        char_u bufferCmd[] = "buffer";
+        char_u sbufferCmd[] = "sbuffer";
+
+        if (WIN_HOR == layout) {
+            // :sb <filename>
+            ea.cmdidx = CMD_sbuffer;
+            ea.cmd = sbufferCmd;
+        } else if (WIN_VER == layout) {
+            // :vert sb <filename>
+            ea.cmdidx = CMD_sbuffer;
+            ea.cmd = sbufferCmd;
+
+            cmdmod.split |= WSP_VERT;
+        } else if (WIN_TABS == layout) {
+            // :tab sb <filename>
+            ea.cmdidx = CMD_sbuffer;
+            ea.cmd = sbufferCmd;
+
+            tabpage_T *tp;
+            int numTabs = 0;
+            FOR_ALL_TABPAGES(tp) {
+                numTabs += 1;
+            }
+            cmdmod.tab = numTabs + 1;
+        } else {
+            // :b <filename>
+            ea.cmdidx = CMD_buffer;
+            ea.cmd = bufferCmd;
+        }
+
+        ea.arg = (char_u *)"";
+	ea.addr_count = 1;
+        ea.line2 = bufnr;
+
+        goto_buffer(&ea, DOBUF_FIRST, FORWARD, (int)ea.line2);
+
+        cmdmod = save_cmdmod;
+    }
+
+    // Restore the old value of 'switchbuf' and command modifiers
+    swb_flags = orig_swb_flags;
+
+    // Same as :call foreground()
+    [self activate];
+
+    vim_free(filename_vim);
+
+    // Force screen redraw (see handleOpenWithArguments:).
+    update_screen(NOT_VALID);
+    setcursor();
+    out_flush();
+    gui_update_cursor(FALSE, FALSE);
+    maketitle();
+}
+
+// This handles the "New File" action. It basically does the following to set up
+// a new buffer in the provided directory:
+//   :tabnew | :tcd <path>
+//
+// It uses :tcd as this way the whole tab gets the specified path as a basis
+// without unncessarily using a global :cd which messes with the other files
+// this instance was already editing.
+- (void)handleNewFileHere:(NSDictionary *)args
+{
+    // ARGUMENT:                DESCRIPTION:
+    // -------------------------------------------------------------
+    // path                     path to make a new buffer
+    NSString *path = [args objectForKey:@"path"];
+    char_u *path_vim = [path vimStringSave];
+
+    ASLogDebug(@"path=%s", path_vim);
+
+    exarg_T ea;
+    vim_memset(&ea, 0, sizeof(ea));
+
+    // :tabnew
+    char_u tabnewArgs[] = "";
+    char_u tabnewCmd[] = "tabnew";
+    ea.arg = tabnewArgs;
+    ea.cmdidx = CMD_tabnew;
+    ea.cmd = tabnewCmd;
+    ex_splitview(&ea);
+
+    // :tcd <path>
+    char_u tcdCmd[] = "tcd";
+    ea.arg = path_vim;
+    ea.cmdidx = CMD_tcd;
+    ea.cmd = tabnewCmd;
+    ex_cd(&ea);
+
+    vim_free(path_vim);
+
+    // Force screen redraw (see handleOpenWithArguments:).
+    update_screen(NOT_VALID);
+    setcursor();
+    out_flush();
+    gui_update_cursor(FALSE, FALSE);
+    maketitle();
 }
 
 - (int)checkForModifiedBuffers

@@ -236,6 +236,8 @@ extern const char * const MMVimMsgIDStrings[];
     MSG(SetVimStateMsgID) \
     MSG(SetDocumentFilenameMsgID) \
     MSG(OpenWithArgumentsMsgID) \
+    MSG(SelectAndFocusOpenedFileMsgID) \
+    MSG(NewFileHereMsgID) \
     MSG(CloseWindowMsgID) \
     MSG(SetFullScreenColorMsgID) \
     MSG(ShowFindReplaceDialogMsgID) \
@@ -353,7 +355,6 @@ extern NSString *VimFindPboardType;
 
 
 @interface NSString (MMExtras)
-- (NSString *)stringByEscapingSpecialFilenameCharacters;
 - (NSString *)stringByRemovingFindPatterns;
 - (NSString *)stringBySanitizingSpotlightSearch;
 @end
