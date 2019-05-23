@@ -1,4 +1,4 @@
-*usr_41.txt*	For Vim version 8.1.  Last change: 2019 May 04
+*usr_41.txt*	For Vim version 8.1.  Last change: 2019 May 09
 
 		     VIM USER MANUAL - by Bram Moolenaar
 
@@ -769,10 +769,14 @@ System functions and manipulation of files:
 	haslocaldir()		check if current window used |:lcd| or |:tcd|
 	tempname()		get the name of a temporary file
 	mkdir()			create a new directory
+	chdir()			change current working directory
 	delete()		delete a file
 	rename()		rename a file
 	system()		get the result of a shell command as a string
 	systemlist()		get the result of a shell command as a list
+	environ()		get all environment variables
+	getenv()		get one environment variable
+	setenv()		set an environment variable
 	hostname()		name of the system
 	readfile()		read a file into a List of lines
 	readdir()		get a List of file names in a directory
@@ -808,6 +812,8 @@ Buffers, windows and the argument list:
 	setbufline()		replace a line in the specified buffer
 	appendbufline()		append a list of lines in the specified buffer
 	deletebufline()		delete lines from a specified buffer
+	listener_add()		add a callback to listen to changes
+	listener_remove()	remove a listener callback
 	win_findbuf()		find windows containing a buffer
 	win_getid()		get window ID of a window
 	win_gotoid()		go to window with ID
@@ -902,6 +908,7 @@ GUI:						*gui-functions*
 	getwinposy()		Y position of the Vim window
 	balloon_show()		set the balloon content
 	balloon_split()		split a message for a balloon
+	balloon_gettext()	get the text in the balloon
 
 Vim server:					*server-functions*
 	serverlist()		return the list of server names

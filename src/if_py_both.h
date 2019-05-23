@@ -13,11 +13,6 @@
  * Common code for if_python.c and if_python3.c.
  */
 
-#ifdef __BORLANDC__
-/* Disable Warning W8060: Possibly incorrect assignment in function ... */
-# pragma warn -8060
-#endif
-
 static char_u e_py_systemexit[]	= "E880: Can't handle SystemExit of %s exception in vim";
 
 #if PY_VERSION_HEX < 0x02050000
@@ -417,6 +412,8 @@ write_output(OutputObject *self, PyObject *string)
 
     Py_BEGIN_ALLOW_THREADS
     Python_Lock_Vim();
+    if (error)
+	emsg_severe = TRUE;
     writer((writefn)(error ? emsg : msg), (char_u *)str, len);
     Python_Release_Vim();
     Py_END_ALLOW_THREADS
@@ -1032,7 +1029,7 @@ _VimChdir(PyObject *_chdir, PyObject *args, PyObject *kwargs)
     Py_DECREF(newwd);
     Py_XDECREF(todecref);
 
-    post_chdir(FALSE, FALSE);
+    post_chdir(CDSCOPE_GLOBAL);
 
     if (VimTryEnd())
     {
@@ -1225,6 +1222,14 @@ FinderFindSpec(PyObject *self, PyObject *args)
 
     return spec;
 }
+
+    static PyObject *
+FinderFindModule(PyObject* self UNUSED, PyObject* args UNUSED)
+{
+    // Apparently returning None works.
+    Py_INCREF(Py_None);
+    return Py_None;
+}
 #else
     static PyObject *
 call_load_module(char *name, int len, PyObject *find_module_result)
@@ -1403,9 +1408,8 @@ static struct PyMethodDef VimMethods[] = {
     {"foreach_rtp", VimForeachRTP,		METH_O,				"Call given callable for each path in &rtp"},
 #if PY_VERSION_HEX >= 0x030700f0
     {"find_spec",   FinderFindSpec,		METH_VARARGS,			"Internal use only, returns spec object for any input it receives"},
-#else
-    {"find_module", FinderFindModule,		METH_VARARGS,			"Internal use only, returns loader object for any input it receives"},
 #endif
+    {"find_module", FinderFindModule,		METH_VARARGS,			"Internal use only, returns loader object for any input it receives"},
     {"path_hook",   VimPathHook,		METH_VARARGS,			"Hook function to install in sys.path_hooks"},
     {"_get_paths",  (PyCFunction)Vim_GetPaths,	METH_NOARGS,			"Get &rtp-based additions to sys.path"},
     { NULL,	    NULL,			0,				NULL}

@@ -18,25 +18,25 @@ endfunc
 func Test_cino_extern_c()
   " Test for cino-E
 
-  let without_ind = [
-        \ '#ifdef __cplusplus',
-        \ 'extern "C" {',
-        \ '#endif',
-        \ 'int func_a(void);',
-        \ '#ifdef __cplusplus',
-        \ '}',
-        \ '#endif'
-        \ ]
+  let without_ind =<< trim [CODE]
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  int func_a(void);
+  #ifdef __cplusplus
+  }
+  #endif
+  [CODE]
 
-  let with_ind = [
-        \ '#ifdef __cplusplus',
-        \ 'extern "C" {',
-        \ '#endif',
-        \ "\tint func_a(void);",
-        \ '#ifdef __cplusplus',
-        \ '}',
-        \ '#endif'
-        \ ]
+  let with_ind =<< trim [CODE]
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  	int func_a(void);
+  #ifdef __cplusplus
+  }
+  #endif
+  [CODE]
   new
   setlocal cindent cinoptions=E0
   call setline(1, without_ind)
@@ -89,17 +89,43 @@ func Test_cindent_expr()
     return v:lnum == 1 ? shiftwidth() : 0
   endfunc
   setl expandtab sw=8 indentkeys+=; indentexpr=MyIndentFunction()
-  call setline(1, ['var_a = something()', 'b = something()'])
+  let testinput =<< trim [CODE]
+  var_a = something()
+  b = something()
+  [CODE]
+  call setline(1, testinput)
   call cursor(1, 1)
   call feedkeys("^\<c-v>j$A;\<esc>", 'tnix')
-  call assert_equal(['        var_a = something();', 'b = something();'], getline(1, '$'))
+  let expected =<< trim [CODE]
+          var_a = something();
+  b = something();
+  [CODE]
+  call assert_equal(expected, getline(1, '$'))
 
   %d
-  call setline(1, ['                var_a = something()', '                b = something()'])
+  let testinput =<< trim [CODE]
+                  var_a = something()
+                  b = something()
+  [CODE]
+  call setline(1, testinput)
   call cursor(1, 1)
   call feedkeys("^\<c-v>j$A;\<esc>", 'tnix')
-  call assert_equal(['        var_a = something();', '                b = something()'], getline(1, '$'))
+  let expected =<< trim [CODE]
+          var_a = something();
+                  b = something()
+  [CODE]
+  call assert_equal(expected, getline(1, '$'))
   bw!
+endfunc
+
+func Test_cindent_func()
+  new
+  setlocal cindent
+  call setline(1, ['int main(void)', '{', 'return 0;', '}'])
+  call assert_equal(cindent(0), -1)
+  call assert_equal(cindent(3), &sw)
+  call assert_equal(cindent(line('$')+1), -1)
+  bwipe!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

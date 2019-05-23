@@ -29,11 +29,7 @@ static int read_viminfo_up_to_marks(vir_T *virp, int forceit, int writing);
 
 static int check_readonly(int *forceit, buf_T *buf);
 static void delbuf_msg(char_u *name);
-static int
-#ifdef __BORLANDC__
-    _RTLENTRYF
-#endif
-	help_compare(const void *s1, const void *s2);
+static int help_compare(const void *s1, const void *s2);
 static void prepare_help_buffer(void);
 
 /*
@@ -314,16 +310,9 @@ typedef struct
     } st_u;
 } sorti_T;
 
-static int
-#ifdef __BORLANDC__
-_RTLENTRYF
-#endif
-sort_compare(const void *s1, const void *s2);
+static int sort_compare(const void *s1, const void *s2);
 
     static int
-#ifdef __BORLANDC__
-_RTLENTRYF
-#endif
 sort_compare(const void *s1, const void *s2)
 {
     sorti_T	l1 = *(sorti_T *)s1;
@@ -569,7 +558,8 @@ ex_sort(exarg_T *eap)
 		{
 		    nrs[lnum - eap->line1].st_u.num.is_number = TRUE;
 		    vim_str2nr(s, NULL, NULL, sort_what,
-			       &nrs[lnum - eap->line1].st_u.num.value, NULL, 0);
+			&nrs[lnum - eap->line1].st_u.num.value,
+			NULL, 0, FALSE);
 		}
 	    }
 #ifdef FEAT_FLOAT
@@ -5198,6 +5188,9 @@ do_sub(exarg_T *eap)
 	    int		do_again;	/* do it again after joining lines */
 	    int		skip_match = FALSE;
 	    linenr_T	sub_firstlnum;	/* nr of first sub line */
+#ifdef FEAT_TEXT_PROP
+	    int		apc_flags = APC_SAVE_FOR_UNDO | APC_SUBSTITUTE;
+#endif
 
 	    /*
 	     * The new text is build up step by step, to avoid too much
@@ -5564,30 +5557,27 @@ do_sub(exarg_T *eap)
 		 * 3. substitute the string.
 		 */
 #ifdef FEAT_EVAL
+		save_ma = curbuf->b_p_ma;
 		if (subflags.do_count)
 		{
-		    /* prevent accidentally changing the buffer by a function */
-		    save_ma = curbuf->b_p_ma;
+		    // prevent accidentally changing the buffer by a function
 		    curbuf->b_p_ma = FALSE;
 		    sandbox++;
 		}
-		/* Save flags for recursion.  They can change for e.g.
-		 * :s/^/\=execute("s#^##gn") */
+		// Save flags for recursion.  They can change for e.g.
+		// :s/^/\=execute("s#^##gn")
 		subflags_save = subflags;
 #endif
-		/* get length of substitution part */
+		// get length of substitution part
 		sublen = vim_regsub_multi(&regmatch,
 				    sub_firstlnum - regmatch.startpos[0].lnum,
 				    sub, sub_firstline, FALSE, p_magic, TRUE);
 #ifdef FEAT_EVAL
 		// If getting the substitute string caused an error, don't do
 		// the replacement.
-		if (aborting())
-		    goto skip;
-
 		// Don't keep flags set by a recursive call.
 		subflags = subflags_save;
-		if (subflags.do_count)
+		if (aborting() || subflags.do_count)
 		{
 		    curbuf->b_p_ma = save_ma;
 		    if (sandbox > 0)
@@ -5617,9 +5607,15 @@ do_sub(exarg_T *eap)
 		    p1 = sub_firstline;
 #ifdef FEAT_TEXT_PROP
 		    if (curbuf->b_has_textprop)
-			adjust_prop_columns(lnum, regmatch.startpos[0].col,
+		    {
+			// When text properties are changed, need to save for
+			// undo first, unless done already.
+			if (adjust_prop_columns(lnum, regmatch.startpos[0].col,
 			      sublen - 1 - (regmatch.endpos[0].col
-						  - regmatch.startpos[0].col));
+						   - regmatch.startpos[0].col),
+								    apc_flags))
+			    apc_flags &= ~APC_SAVE_FOR_UNDO;
+		    }
 #endif
 		}
 		else
@@ -5720,7 +5716,20 @@ do_sub(exarg_T *eap)
 		for (p1 = new_end; *p1; ++p1)
 		{
 		    if (p1[0] == '\\' && p1[1] != NUL)  /* remove backslash */
+		    {
 			STRMOVE(p1, p1 + 1);
+#ifdef FEAT_TEXT_PROP
+			if (curbuf->b_has_textprop)
+			{
+			    // When text properties are changed, need to save
+			    // for undo first, unless done already.
+			    if (adjust_prop_columns(lnum,
+					(colnr_T)(p1 - new_start), -1,
+					apc_flags))
+				apc_flags &= ~APC_SAVE_FOR_UNDO;
+			}
+#endif
+		    }
 		    else if (*p1 == CAR)
 		    {
 			if (u_inssub(lnum) == OK)   // prepare for undo
@@ -5739,7 +5748,7 @@ do_sub(exarg_T *eap)
 				last_line = lnum + 1;
 			    }
 #ifdef FEAT_TEXT_PROP
-			    adjust_props_for_split(lnum, plen, 1);
+			    adjust_props_for_split(lnum + 1, lnum, plen, 1);
 #endif
 			    // all line numbers increase
 			    ++sub_firstlnum;
@@ -6580,9 +6589,6 @@ help_heuristic(
  * that has been put after the tagname by find_tags().
  */
     static int
-#ifdef __BORLANDC__
-_RTLENTRYF
-#endif
 help_compare(const void *s1, const void *s2)
 {
     char    *p1;

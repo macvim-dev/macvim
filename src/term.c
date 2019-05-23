@@ -110,19 +110,29 @@ static void log_tr(const char *fmt, ...);
 #   define LOG_TR(msg) do { /**/ } while (0)
 #  endif
 
-#  define STATUS_GET	1	/* send request when switching to RAW mode */
-#  define STATUS_SENT	2	/* did send request, waiting for response */
-#  define STATUS_GOT	3	/* received response */
+typedef enum {
+    STATUS_GET,		// send request when switching to RAW mode
+    STATUS_SENT,	// did send request, checking for response
+    STATUS_GOT,		// received response
+    STATUS_FAIL		// timed out
+} request_progress_T;
 
-/* Request Terminal Version status: */
-static int crv_status = STATUS_GET;
+typedef struct {
+    request_progress_T	    tr_progress;
+    time_t		    tr_start;	// when request was sent, -1 for never
+} termrequest_T;
 
-/* Request Cursor position report: */
-static int u7_status = STATUS_GET;
+#  define TERMREQUEST_INIT {STATUS_GET, -1}
+
+// Request Terminal Version status:
+static termrequest_T crv_status = TERMREQUEST_INIT;
+
+// Request Cursor position report:
+static termrequest_T u7_status = TERMREQUEST_INIT;
 
 #  ifdef FEAT_TERMINAL
-/* Request foreground color report: */
-static int rfg_status = STATUS_GET;
+// Request foreground color report:
+static termrequest_T rfg_status = TERMREQUEST_INIT;
 static int fg_r = 0;
 static int fg_g = 0;
 static int fg_b = 0;
@@ -132,16 +142,29 @@ static int bg_b = 255;
 #  endif
 
 /* Request background color report: */
-static int rbg_status = STATUS_GET;
+static termrequest_T rbg_status = TERMREQUEST_INIT;
 
 /* Request cursor blinking mode report: */
-static int rbm_status = STATUS_GET;
+static termrequest_T rbm_status = TERMREQUEST_INIT;
 
 /* Request cursor style report: */
-static int rcs_status = STATUS_GET;
+static termrequest_T rcs_status = TERMREQUEST_INIT;
 
 /* Request windos position report: */
-static int winpos_status = STATUS_GET;
+static termrequest_T winpos_status = TERMREQUEST_INIT;
+
+static termrequest_T *all_termrequests[] = {
+    &crv_status,
+    &u7_status,
+#  ifdef FEAT_TERMINAL
+    &rfg_status,
+#  endif
+    &rbg_status,
+    &rbm_status,
+    &rcs_status,
+    &winpos_status,
+    NULL
+};
 # endif
 
 /*
@@ -2017,7 +2040,7 @@ set_termname(char_u *term)
     set_term_defaults();	/* use current values as defaults */
 #ifdef FEAT_TERMRESPONSE
     LOG_TR(("setting crv_status to STATUS_GET"));
-    crv_status = STATUS_GET;	/* Get terminal version later */
+    crv_status.tr_progress = STATUS_GET;	// Get terminal version later
 #endif
 
     /*
@@ -2091,8 +2114,9 @@ set_termname(char_u *term)
 #  define HMT_JSBTERM	8
 #  define HMT_PTERM	16
 #  define HMT_URXVT	32
-#  define HMT_SGR	64
-#  define HMT_SGR_REL	128
+#  define HMT_GPM	64
+#  define HMT_SGR	128
+#  define HMT_SGR_REL	256
 static int has_mouse_termcode = 0;
 # endif
 
@@ -2131,6 +2155,11 @@ set_mouse_termcode(
 #   ifdef FEAT_MOUSE_URXVT
     if (n == KS_URXVT_MOUSE)
 	has_mouse_termcode |= HMT_URXVT;
+    else
+#   endif
+#   ifdef FEAT_MOUSE_GPM
+    if (n == KS_GPM_MOUSE)
+	has_mouse_termcode |= HMT_GPM;
     else
 #   endif
     if (n == KS_SGR_MOUSE)
@@ -2178,6 +2207,11 @@ del_mouse_termcode(
 #   ifdef FEAT_MOUSE_URXVT
     if (n == KS_URXVT_MOUSE)
 	has_mouse_termcode &= ~HMT_URXVT;
+    else
+#   endif
+#   ifdef FEAT_MOUSE_GPM
+    if (n == KS_GPM_MOUSE)
+	has_mouse_termcode &= ~HMT_GPM;
     else
 #   endif
     if (n == KS_SGR_MOUSE)
@@ -2839,10 +2873,45 @@ can_get_termresponse()
 {
     return cur_tmode == TMODE_RAW
 	    && termcap_active
-# ifdef UNIX
+#  ifdef UNIX
 	    && (is_not_a_term() || (isatty(1) && isatty(read_cmd_fd)))
-# endif
+#  endif
 	    && p_ek;
+}
+
+/*
+ * Set "status" to STATUS_SENT.
+ */
+    static void
+termrequest_sent(termrequest_T *status)
+{
+    status->tr_progress = STATUS_SENT;
+    status->tr_start = time(NULL);
+}
+
+/*
+ * Return TRUE if any of the requests are in STATUS_SENT.
+ */
+    static int
+termrequest_any_pending()
+{
+    int	    i;
+    time_t  now = time(NULL);
+
+    for (i = 0; all_termrequests[i] != NULL; ++i)
+    {
+	if (all_termrequests[i]->tr_progress == STATUS_SENT)
+	{
+	    if (all_termrequests[i]->tr_start > 0 && now > 0
+				    && all_termrequests[i]->tr_start + 2 < now)
+		// Sent the request more than 2 seconds ago and didn't get a
+		// response, assume it failed.
+		all_termrequests[i]->tr_progress = STATUS_FAIL;
+	    else
+		return TRUE;
+	}
+    }
+    return FALSE;
 }
 
 static int winpos_x = -1;
@@ -2866,7 +2935,7 @@ term_get_winpos(int *x, int *y, varnumber_T timeout)
     winpos_x = -1;
     winpos_y = -1;
     ++did_request_winpos;
-    winpos_status = STATUS_SENT;
+    termrequest_sent(&winpos_status);
     OUT_STR(T_CGP);
     out_flush();
 
@@ -3020,13 +3089,13 @@ term_settitle(char_u *title)
     void
 term_push_title(int which)
 {
-    if ((which & SAVE_RESTORE_TITLE) && *T_CST != NUL)
+    if ((which & SAVE_RESTORE_TITLE) && T_CST != NULL && *T_CST != NUL)
     {
 	OUT_STR(T_CST);
 	out_flush();
     }
 
-    if ((which & SAVE_RESTORE_ICON) && *T_SSI != NUL)
+    if ((which & SAVE_RESTORE_ICON) && T_SSI != NULL && *T_SSI != NUL)
     {
 	OUT_STR(T_SSI);
 	out_flush();
@@ -3039,13 +3108,13 @@ term_push_title(int which)
     void
 term_pop_title(int which)
 {
-    if ((which & SAVE_RESTORE_TITLE) && *T_CRT != NUL)
+    if ((which & SAVE_RESTORE_TITLE) && T_CRT != NULL && *T_CRT != NUL)
     {
 	OUT_STR(T_CRT);
 	out_flush();
     }
 
-    if ((which & SAVE_RESTORE_ICON) && *T_SRI != NUL)
+    if ((which & SAVE_RESTORE_ICON) && T_SRI != NULL && *T_SRI != NUL)
     {
 	OUT_STR(T_SRI);
 	out_flush();
@@ -3484,18 +3553,10 @@ settmode(int tmode)
 	    if (!gui.in_use && !gui.starting)
 # endif
 	    {
-		/* May need to check for T_CRV response and termcodes, it
-		 * doesn't work in Cooked mode, an external program may get
-		 * them. */
-		if (tmode != TMODE_RAW && (crv_status == STATUS_SENT
-					 || u7_status == STATUS_SENT
-#ifdef FEAT_TERMINAL
-					 || rfg_status == STATUS_SENT
-#endif
-					 || rbg_status == STATUS_SENT
-					 || rbm_status == STATUS_SENT
-					 || rcs_status == STATUS_SENT
-					 || winpos_status == STATUS_SENT))
+		// May need to check for T_CRV response and termcodes, it
+		// doesn't work in Cooked mode, an external program may get
+		// them.
+		if (tmode != TMODE_RAW && termrequest_any_pending())
 		    (void)vpeekc_nomap();
 		check_for_codes_from_term();
 	    }
@@ -3546,7 +3607,7 @@ starttermcap(void)
 	    may_req_termresponse();
 	    /* Immediately check for a response.  If t_Co changes, we don't
 	     * want to redraw with wrong colors first. */
-	    if (crv_status == STATUS_SENT)
+	    if (crv_status.tr_progress == STATUS_SENT)
 		check_for_codes_from_term();
 	}
 #endif
@@ -3565,23 +3626,15 @@ stoptermcap(void)
 	if (!gui.in_use && !gui.starting)
 # endif
 	{
-	    /* May need to discard T_CRV, T_U7 or T_RBG response. */
-	    if (crv_status == STATUS_SENT
-		    || u7_status == STATUS_SENT
-# ifdef FEAT_TERMINAL
-		    || rfg_status == STATUS_SENT
-# endif
-		    || rbg_status == STATUS_SENT
-		    || rbm_status == STATUS_SENT
-		    || rcs_status == STATUS_SENT
-		    || winpos_status == STATUS_SENT)
+	    // May need to discard T_CRV, T_U7 or T_RBG response.
+	    if (termrequest_any_pending())
 	    {
 # ifdef UNIX
-		/* Give the terminal a chance to respond. */
+		// Give the terminal a chance to respond.
 		mch_delay(100L, FALSE);
 # endif
 # ifdef TCIFLUSH
-		/* Discard data received but not read. */
+		// Discard data received but not read.
 		if (exiting)
 		    tcflush(fileno(stdin), TCIFLUSH);
 # endif
@@ -3620,14 +3673,14 @@ stoptermcap(void)
     void
 may_req_termresponse(void)
 {
-    if (crv_status == STATUS_GET
+    if (crv_status.tr_progress == STATUS_GET
 	    && can_get_termresponse()
 	    && starting == 0
 	    && *T_CRV != NUL)
     {
 	LOG_TR(("Sending CRV request"));
 	out_str(T_CRV);
-	crv_status = STATUS_SENT;
+	termrequest_sent(&crv_status);
 	/* check for the characters now, otherwise they might be eaten by
 	 * get_keystroke() */
 	out_flush();
@@ -3647,37 +3700,37 @@ may_req_termresponse(void)
     void
 may_req_ambiguous_char_width(void)
 {
-    if (u7_status == STATUS_GET
+    if (u7_status.tr_progress == STATUS_GET
 	    && can_get_termresponse()
 	    && starting == 0
 	    && *T_U7 != NUL
 	    && !option_was_set((char_u *)"ambiwidth"))
     {
-	 char_u	buf[16];
+	char_u	buf[16];
 
-	 LOG_TR(("Sending U7 request"));
-	 /* Do this in the second row.  In the first row the returned sequence
-	  * may be CSI 1;2R, which is the same as <S-F3>. */
-	 term_windgoto(1, 0);
-	 buf[mb_char2bytes(0x25bd, buf)] = 0;
-	 out_str(buf);
-	 out_str(T_U7);
-	 u7_status = STATUS_SENT;
-	 out_flush();
+	LOG_TR(("Sending U7 request"));
+	/* Do this in the second row.  In the first row the returned sequence
+	 * may be CSI 1;2R, which is the same as <S-F3>. */
+	term_windgoto(1, 0);
+	buf[mb_char2bytes(0x25bd, buf)] = 0;
+	out_str(buf);
+	out_str(T_U7);
+	termrequest_sent(&u7_status);
+	out_flush();
 
-	 /* This overwrites a few characters on the screen, a redraw is needed
-	  * after this. Clear them out for now. */
-	 term_windgoto(1, 0);
-	 out_str((char_u *)"  ");
-	 term_windgoto(0, 0);
+	/* This overwrites a few characters on the screen, a redraw is needed
+	 * after this. Clear them out for now. */
+	term_windgoto(1, 0);
+	out_str((char_u *)"  ");
+	term_windgoto(0, 0);
 
-	 /* Need to reset the known cursor position. */
-	 screen_start();
+	/* Need to reset the known cursor position. */
+	screen_start();
 
-	 /* check for the characters now, otherwise they might be eaten by
-	  * get_keystroke() */
-	 out_flush();
-	 (void)vpeekc_nomap();
+	/* check for the characters now, otherwise they might be eaten by
+	 * get_keystroke() */
+	out_flush();
+	(void)vpeekc_nomap();
     }
 }
 
@@ -3694,21 +3747,21 @@ may_req_bg_color(void)
 
 # ifdef FEAT_TERMINAL
 	/* Only request foreground if t_RF is set. */
-	if (rfg_status == STATUS_GET && *T_RFG != NUL)
+	if (rfg_status.tr_progress == STATUS_GET && *T_RFG != NUL)
 	{
 	    LOG_TR(("Sending FG request"));
 	    out_str(T_RFG);
-	    rfg_status = STATUS_SENT;
+	    termrequest_sent(&rfg_status);
 	    didit = TRUE;
 	}
 # endif
 
 	/* Only request background if t_RB is set. */
-	if (rbg_status == STATUS_GET && *T_RBG != NUL)
+	if (rbg_status.tr_progress == STATUS_GET && *T_RBG != NUL)
 	{
 	    LOG_TR(("Sending BG request"));
 	    out_str(T_RBG);
-	    rbg_status = STATUS_SENT;
+	    termrequest_sent(&rbg_status);
 	    didit = TRUE;
 	}
 
@@ -3968,7 +4021,7 @@ term_cursor_color(char_u *color)
 blink_state_is_inverted()
 {
 #ifdef FEAT_TERMRESPONSE
-    return rbm_status == STATUS_GOT && rcs_status == STATUS_GOT
+    return rbm_status.tr_progress == STATUS_GOT && rcs_status.tr_progress == STATUS_GOT
 		&& initial_cursor_blink != initial_cursor_shape_blink;
 #else
     return FALSE;
@@ -4657,7 +4710,7 @@ check_termcode(
 			char *aw = NULL;
 
 			LOG_TR(("Received U7 status: %s", tp));
-			u7_status = STATUS_GOT;
+			u7_status.tr_progress = STATUS_GOT;
 			did_cursorhold = TRUE;
 			if (col == 2)
 			    aw = "single";
@@ -4695,7 +4748,7 @@ check_termcode(
 		    int version = col;
 
 		    LOG_TR(("Received CRV response: %s", tp));
-		    crv_status = STATUS_GOT;
+		    crv_status.tr_progress = STATUS_GOT;
 		    did_cursorhold = TRUE;
 
 		    /* If this code starts with CSI, you can bet that the
@@ -4810,7 +4863,7 @@ check_termcode(
 			 * 279 (otherwise it returns 0x18).
 			 * Not for Terminal.app, it can't handle t_RS, it
 			 * echoes the characters to the screen. */
-			if (rcs_status == STATUS_GET
+			if (rcs_status.tr_progress == STATUS_GET
 				&& version >= 279
 				&& !is_not_xterm
 				&& *T_CSH != NUL
@@ -4818,20 +4871,20 @@ check_termcode(
 			{
 			    LOG_TR(("Sending cursor style request"));
 			    out_str(T_CRS);
-			    rcs_status = STATUS_SENT;
+			    termrequest_sent(&rcs_status);
 			    need_flush = TRUE;
 			}
 
 			/* Only request the cursor blink mode if t_RC set. Not
 			 * for Gnome terminal, it can't handle t_RC, it
 			 * echoes the characters to the screen. */
-			if (rbm_status == STATUS_GET
+			if (rbm_status.tr_progress == STATUS_GET
 				&& !is_not_xterm
 				&& *T_CRC != NUL)
 			{
 			    LOG_TR(("Sending cursor blink mode request"));
 			    out_str(T_CRC);
-			    rbm_status = STATUS_SENT;
+			    termrequest_sent(&rbm_status);
 			    need_flush = TRUE;
 			}
 
@@ -4854,7 +4907,7 @@ check_termcode(
 		 *
 		 * {lead} can be <Esc>[ or CSI
 		 */
-		else if (rbm_status == STATUS_SENT
+		else if (rbm_status.tr_progress == STATUS_SENT
 			&& tp[(j = 1 + (tp[0] == ESC))] == '?'
 			&& i == j + 6
 			&& tp[j + 1] == '1'
@@ -4864,7 +4917,7 @@ check_termcode(
 			&& tp[i] == 'y')
 		{
 		    initial_cursor_blink = (tp[j + 4] == '1');
-		    rbm_status = STATUS_GOT;
+		    rbm_status.tr_progress = STATUS_GOT;
 		    LOG_TR(("Received cursor blinking mode response: %s", tp));
 		    key_name[0] = (int)KS_EXTRA;
 		    key_name[1] = (int)KE_IGNORE;
@@ -4902,7 +4955,7 @@ check_termcode(
 			    slen = i + 1;
 
 			    if (--did_request_winpos <= 0)
-				winpos_status = STATUS_GOT;
+				winpos_status.tr_progress = STATUS_GOT;
 			}
 		    }
 		    if (i == len)
@@ -4954,7 +5007,7 @@ check_termcode(
 						+ tp[j+17]) ? "light" : "dark";
 
 				LOG_TR(("Received RBG response: %s", tp));
-				rbg_status = STATUS_GOT;
+				rbg_status.tr_progress = STATUS_GOT;
 # ifdef FEAT_TERMINAL
 				bg_r = rval;
 				bg_g = gval;
@@ -4974,7 +5027,7 @@ check_termcode(
 			    else
 			    {
 				LOG_TR(("Received RFG response: %s", tp));
-				rfg_status = STATUS_GOT;
+				rfg_status.tr_progress = STATUS_GOT;
 				fg_r = rval;
 				fg_g = gval;
 				fg_b = bval;
@@ -5014,7 +5067,7 @@ check_termcode(
 	     *
 	     * Consume any code that starts with "{lead}.+r" or "{lead}.$r".
 	     */
-	    else if ((check_for_codes || rcs_status == STATUS_SENT)
+	    else if ((check_for_codes || rcs_status.tr_progress == STATUS_SENT)
 		    && ((tp[0] == ESC && len >= 2 && tp[1] == 'P')
 			|| tp[0] == DCS))
 	    {
@@ -5067,7 +5120,7 @@ check_termcode(
 			     * the value set with T_SH. */
 			    initial_cursor_shape_blink =
 						   (number & 1) ? FALSE : TRUE;
-			    rcs_status = STATUS_GOT;
+			    rcs_status.tr_progress = STATUS_GOT;
 			    LOG_TR(("Received cursor shape response: %s", tp));
 
 			    key_name[0] = (int)KS_EXTRA;
@@ -6051,7 +6104,7 @@ check_termcode(
     void
 term_get_fg_color(char_u *r, char_u *g, char_u *b)
 {
-    if (rfg_status == STATUS_GOT)
+    if (rfg_status.tr_progress == STATUS_GOT)
     {
 	*r = fg_r;
 	*g = fg_g;
@@ -6065,7 +6118,7 @@ term_get_fg_color(char_u *r, char_u *g, char_u *b)
     void
 term_get_bg_color(char_u *r, char_u *g, char_u *b)
 {
-    if (rbg_status == STATUS_GOT)
+    if (rbg_status.tr_progress == STATUS_GOT)
     {
 	*r = bg_r;
 	*g = bg_g;

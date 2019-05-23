@@ -229,6 +229,9 @@ profile_zero(proftime_T *tm)
 static timer_T	*first_timer = NULL;
 static long	last_timer_id = 0;
 
+/*
+ * Return time left until "due".  Negative if past "due".
+ */
     long
 proftime_time_left(proftime_T *due, proftime_T *now)
 {
@@ -322,7 +325,7 @@ timer_callback(timer_T *timer)
     argv[0].vval.v_number = (varnumber_T)timer->tr_id;
     argv[1].v_type = VAR_UNKNOWN;
 
-    call_func(timer->tr_callback, (int)STRLEN(timer->tr_callback),
+    call_func(timer->tr_callback, -1,
 			&rettv, 1, argv, NULL, 0L, 0L, &dummy, TRUE,
 			timer->tr_partial, NULL);
     clear_tv(&rettv);
@@ -445,7 +448,11 @@ check_due_timer(void)
 		balloonEvalForTerm = TRUE;
 	    }
 	    if (balloonEval != NULL)
+	    {
 		general_beval_cb(balloonEval, 0);
+		setcursor();
+		out_flush();
+	    }
 	}
 	else if (next_due == -1 || next_due > this_due)
 	    next_due = this_due;
@@ -1256,9 +1263,9 @@ dialog_changed(
     }
 #endif
 
-    /* Init ea pseudo-structure, this is needed for the check_overwrite()
-     * function. */
-    ea.append = ea.forceit = FALSE;
+    // Init ea pseudo-structure, this is needed for the check_overwrite()
+    // function.
+    vim_memset(&ea, 0, sizeof(ea));
 
     if (ret == VIM_YES)
     {
@@ -3082,7 +3089,9 @@ ex_packadd(exarg_T *eap)
 ex_options(
     exarg_T	*eap UNUSED)
 {
-    vim_setenv((char_u *)"OPTWIN_CMD", (char_u *)(cmdmod.tab ? "tab" : ""));
+    vim_setenv((char_u *)"OPTWIN_CMD",
+	    (char_u *)(cmdmod.tab ? "tab"
+		: (cmdmod.split & WSP_VERT) ? "vert" : ""));
     cmd_source((char_u *)SYS_OPTWIN_FILE, NULL);
 }
 #endif

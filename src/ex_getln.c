@@ -125,11 +125,7 @@ static int	open_cmdwin(void);
 #endif
 
 #if defined(FEAT_CMDL_COMPL) || defined(PROTO)
-static int
-#ifdef __BORLANDC__
-_RTLENTRYF
-#endif
-sort_func_compare(const void *s1, const void *s2);
+static int	sort_func_compare(const void *s1, const void *s2);
 #endif
 
 
@@ -3815,9 +3811,6 @@ ccheck_abbr(int c)
 
 #if defined(FEAT_CMDL_COMPL) || defined(PROTO)
     static int
-#ifdef __BORLANDC__
-_RTLENTRYF
-#endif
 sort_func_compare(const void *s1, const void *s2)
 {
     char_u *p1 = *(char_u **)s1;
@@ -6492,7 +6485,7 @@ get_list_range(char_u **str, int *num1, int *num2)
     *str = skipwhite(*str);
     if (**str == '-' || vim_isdigit(**str))  /* parse "from" part of range */
     {
-	vim_str2nr(*str, NULL, &len, 0, &num, NULL, 0);
+	vim_str2nr(*str, NULL, &len, 0, &num, NULL, 0, FALSE);
 	*str += len;
 	*num1 = (int)num;
 	first = TRUE;
@@ -6501,7 +6494,7 @@ get_list_range(char_u **str, int *num1, int *num2)
     if (**str == ',')			/* parse "to" part of range */
     {
 	*str = skipwhite(*str + 1);
-	vim_str2nr(*str, NULL, &len, 0, &num, NULL, 0);
+	vim_str2nr(*str, NULL, &len, 0, &num, NULL, 0, FALSE);
 	if (len > 0)
 	{
 	    *num2 = (int)num;
@@ -6870,9 +6863,6 @@ concat_history(int type)
 
 #if defined(FEAT_CMDL_COMPL) || defined(PROTO)
     static int
-#ifdef __BORLANDC__
-_RTLENTRYF
-#endif
 sort_hist(const void *s1, const void *s2)
 {
     histentry_T *p1 = *(histentry_T **)s1;
