@@ -188,10 +188,12 @@ while 1
   endif
   if len(a[0]) > 0 || len(a[1]) > 0
     if line =~ 'P_BOOL'
-      call add(script, 'set ' . name)
-      call add(script, 'set ' . shortname)
-      call add(script, 'set no' . name)
-      call add(script, 'set no' . shortname)
+      if name != 'fullscreen'
+        call add(script, 'set ' . name)
+        call add(script, 'set ' . shortname)
+        call add(script, 'set no' . name)
+        call add(script, 'set no' . shortname)
+      endif
     else
       for val in a[0]
 	call add(script, 'set ' . name . '=' . val)
