@@ -156,7 +156,7 @@ get_buffcont(
     for (bp = buffer->bh_first.b_next; bp != NULL; bp = bp->b_next)
 	count += (long_u)STRLEN(bp->b_str);
 
-    if ((count || dozero) && (p = lalloc(count + 1, TRUE)) != NULL)
+    if ((count || dozero) && (p = alloc(count + 1)) != NULL)
     {
 	p2 = p;
 	for (bp = buffer->bh_first.b_next; bp != NULL; bp = bp->b_next)
@@ -258,8 +258,7 @@ add_buff(
 	    len = MINIMAL_SIZE;
 	else
 	    len = slen;
-	p = (buffblock_T *)lalloc((long_u)(sizeof(buffblock_T) + len),
-									TRUE);
+	p = alloc(sizeof(buffblock_T) + len);
 	if (p == NULL)
 	    return; /* no space, just forget it */
 	buf->bh_space = (int)(len - slen);
@@ -1801,6 +1800,10 @@ vgetc(void)
 	bevalexpr_due_set = FALSE;
 	ui_remove_balloon();
     }
+#endif
+#ifdef FEAT_TEXT_PROP
+    if (popup_do_filter(c))
+	c = K_IGNORE;
 #endif
 
     return c;
@@ -3731,7 +3734,7 @@ do_map(
     /*
      * Get here when adding a new entry to the maphash[] list or abbrlist.
      */
-    mp = (mapblock_T *)alloc((unsigned)sizeof(mapblock_T));
+    mp = ALLOC_ONE(mapblock_T);
     if (mp == NULL)
     {
 	retval = 4;	    /* no mem */
@@ -4375,7 +4378,7 @@ ExpandMappings(
 
 	if (round == 1)
 	{
-	    *file = (char_u **)alloc((unsigned)(count * sizeof(char_u *)));
+	    *file = ALLOC_MULT(char_u *, count);
 	    if (*file == NULL)
 		return FAIL;
 	}
@@ -4695,7 +4698,7 @@ vim_strsave_escape_csi(
     /* Need a buffer to hold up to three times as much.  Four in case of an
      * illegal utf-8 byte:
      * 0xc0 -> 0xc3 0x80 -> 0xc3 K_SPECIAL KS_SPECIAL KE_FILLER */
-    res = alloc((unsigned)(STRLEN(p) * 4) + 1);
+    res = alloc(STRLEN(p) * 4 + 1);
     if (res != NULL)
     {
 	d = res;

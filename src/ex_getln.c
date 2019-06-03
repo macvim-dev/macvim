@@ -4166,7 +4166,7 @@ ExpandOne(
 	    }
 	}
 
-	ss = alloc((unsigned)len + 1);
+	ss = alloc(len + 1);
 	if (ss)
 	    vim_strncpy(ss, xp->xp_files[0], (size_t)len);
 	findex = -1;			    /* next p_wc gets first one */
@@ -4178,7 +4178,7 @@ ExpandOne(
 	len = 0;
 	for (i = 0; i < xp->xp_numfiles; ++i)
 	    len += (long_u)STRLEN(xp->xp_files[i]) + 1;
-	ss = lalloc(len, TRUE);
+	ss = alloc(len);
 	if (ss != NULL)
 	{
 	    *ss = NUL;
@@ -4374,7 +4374,7 @@ escape_fname(char_u **pp)
 {
     char_u	*p;
 
-    p = alloc((unsigned)(STRLEN(*pp) + 2));
+    p = alloc(STRLEN(*pp) + 2);
     if (p != NULL)
     {
 	p[0] = '\\';
@@ -5309,7 +5309,7 @@ ExpandGeneric(
 	    if (count == 0)
 		return OK;
 	    *num_file = count;
-	    *file = (char_u **)alloc((unsigned)(count * sizeof(char_u *)));
+	    *file = ALLOC_MULT(char_u *, count);
 	    if (*file == NULL)
 	    {
 		*file = (char_u **)"";
@@ -5651,7 +5651,7 @@ ExpandRTDir(
 
     for (i = 0; dirnames[i] != NULL; ++i)
     {
-	s = alloc((unsigned)(STRLEN(dirnames[i]) + pat_len + 7));
+	s = alloc(STRLEN(dirnames[i]) + pat_len + 7);
 	if (s == NULL)
 	{
 	    ga_clear_strings(&ga);
@@ -5665,7 +5665,7 @@ ExpandRTDir(
     if (flags & DIP_START) {
 	for (i = 0; dirnames[i] != NULL; ++i)
 	{
-	    s = alloc((unsigned)(STRLEN(dirnames[i]) + pat_len + 22));
+	    s = alloc(STRLEN(dirnames[i]) + pat_len + 22);
 	    if (s == NULL)
 	    {
 		ga_clear_strings(&ga);
@@ -5680,7 +5680,7 @@ ExpandRTDir(
     if (flags & DIP_OPT) {
 	for (i = 0; dirnames[i] != NULL; ++i)
 	{
-	    s = alloc((unsigned)(STRLEN(dirnames[i]) + pat_len + 20));
+	    s = alloc(STRLEN(dirnames[i]) + pat_len + 20);
 	    if (s == NULL)
 	    {
 		ga_clear_strings(&ga);
@@ -5743,7 +5743,7 @@ ExpandPackAddDir(
     pat_len = (int)STRLEN(pat);
     ga_init2(&ga, (int)sizeof(char *), 10);
 
-    s = alloc((unsigned)(pat_len + 26));
+    s = alloc(pat_len + 26);
     if (s == NULL)
     {
 	ga_clear_strings(&ga);
@@ -5929,8 +5929,7 @@ init_history(void)
 	{
 	    if (newlen)
 	    {
-		temp = (histentry_T *)lalloc(
-				(long_u)(newlen * sizeof(histentry_T)), TRUE);
+		temp = ALLOC_MULT(histentry_T, newlen);
 		if (temp == NULL)   /* out of memory! */
 		{
 		    if (type == 0)  /* first one: just keep the old length */
@@ -6669,8 +6668,7 @@ prepare_viminfo_history(int asklen, int writing)
 	if (len <= 0)
 	    viminfo_history[type] = NULL;
 	else
-	    viminfo_history[type] = (histentry_T *)lalloc(
-				  (long_u)(len * sizeof(histentry_T)), FALSE);
+	    viminfo_history[type] = LALLOC_MULT(histentry_T, len);
 	if (viminfo_history[type] == NULL)
 	    len = 0;
 	viminfo_hislen[type] = len;
@@ -6703,7 +6701,7 @@ read_viminfo_history(vir_T *virp, int writing)
 	    {
 		/* Need to re-allocate to append the separator byte. */
 		len = STRLEN(val);
-		p = lalloc(len + 2, TRUE);
+		p = alloc(len + 2);
 		if (p != NULL)
 		{
 		    if (type == HIST_SEARCH)
@@ -6789,7 +6787,7 @@ handle_viminfo_history(
 		{
 		    /* Need to re-allocate to append the separator byte. */
 		    len = vp[3].bv_len;
-		    p = lalloc(len + 2, TRUE);
+		    p = alloc(len + 2);
 		}
 		else
 		    len = 0; /* for picky compilers */
@@ -6889,8 +6887,8 @@ merge_history(int type)
 
     /* Make one long list with all entries. */
     max_len = hislen + viminfo_hisidx[type];
-    tot_hist = (histentry_T **)alloc(max_len * (int)sizeof(histentry_T *));
-    new_hist = (histentry_T *)alloc(hislen * (int)sizeof(histentry_T));
+    tot_hist = ALLOC_MULT(histentry_T *, max_len);
+    new_hist = ALLOC_MULT(histentry_T, hislen );
     if (tot_hist == NULL || new_hist == NULL)
     {
 	vim_free(tot_hist);

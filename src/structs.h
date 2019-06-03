@@ -163,17 +163,19 @@ typedef struct
 {
 #ifdef FEAT_ARABIC
     int		wo_arab;
-# define w_p_arab w_onebuf_opt.wo_arab	/* 'arabic' */
+# define w_p_arab w_onebuf_opt.wo_arab	// 'arabic'
 #endif
 #ifdef FEAT_LINEBREAK
     int		wo_bri;
-# define w_p_bri w_onebuf_opt.wo_bri	/* 'breakindent' */
+# define w_p_bri w_onebuf_opt.wo_bri	// 'breakindent'
     char_u	*wo_briopt;
-# define w_p_briopt w_onebuf_opt.wo_briopt /* 'breakindentopt' */
+# define w_p_briopt w_onebuf_opt.wo_briopt // 'breakindentopt'
 #endif
+    char_u	*wo_wcr;
+# define w_p_wcr w_onebuf_opt.wo_wcr	// 'wincolor'
 #ifdef FEAT_DIFF
     int		wo_diff;
-# define w_p_diff w_onebuf_opt.wo_diff	/* 'diff' */
+# define w_p_diff w_onebuf_opt.wo_diff	// 'diff'
 #endif
 #ifdef FEAT_FOLDING
     long	wo_fdc;
@@ -602,28 +604,30 @@ typedef struct
 
 struct memfile
 {
-    char_u	*mf_fname;		/* name of the file */
-    char_u	*mf_ffname;		/* idem, full path */
-    int		mf_fd;			/* file descriptor */
-    bhdr_T	*mf_free_first;		/* first block_hdr in free list */
-    bhdr_T	*mf_used_first;		/* mru block_hdr in used list */
-    bhdr_T	*mf_used_last;		/* lru block_hdr in used list */
-    unsigned	mf_used_count;		/* number of pages in used list */
-    unsigned	mf_used_count_max;	/* maximum number of pages in memory */
-    mf_hashtab_T mf_hash;		/* hash lists */
-    mf_hashtab_T mf_trans;		/* trans lists */
-    blocknr_T	mf_blocknr_max;		/* highest positive block number + 1*/
-    blocknr_T	mf_blocknr_min;		/* lowest negative block number - 1 */
-    blocknr_T	mf_neg_count;		/* number of negative blocks numbers */
-    blocknr_T	mf_infile_count;	/* number of pages in the file */
-    unsigned	mf_page_size;		/* number of bytes in a page */
-    int		mf_dirty;		/* TRUE if there are dirty blocks */
+    char_u	*mf_fname;		// name of the file
+    char_u	*mf_ffname;		// idem, full path
+    int		mf_fd;			// file descriptor
+    int		mf_flags;		// flags used when opening this memfile
+    int		mf_reopen;		// mf_fd was closed, retry opening
+    bhdr_T	*mf_free_first;		// first block_hdr in free list
+    bhdr_T	*mf_used_first;		// mru block_hdr in used list
+    bhdr_T	*mf_used_last;		// lru block_hdr in used list
+    unsigned	mf_used_count;		// number of pages in used list
+    unsigned	mf_used_count_max;	// maximum number of pages in memory
+    mf_hashtab_T mf_hash;		// hash lists
+    mf_hashtab_T mf_trans;		// trans lists
+    blocknr_T	mf_blocknr_max;		// highest positive block number + 1
+    blocknr_T	mf_blocknr_min;		// lowest negative block number - 1
+    blocknr_T	mf_neg_count;		// number of negative blocks numbers
+    blocknr_T	mf_infile_count;	// number of pages in the file
+    unsigned	mf_page_size;		// number of bytes in a page
+    int		mf_dirty;		// TRUE if there are dirty blocks
 #ifdef FEAT_CRYPT
-    buf_T	*mf_buffer;		/* buffer this memfile is for */
-    char_u	mf_seed[MF_SEED_LEN];	/* seed for encryption */
+    buf_T	*mf_buffer;		// buffer this memfile is for
+    char_u	mf_seed[MF_SEED_LEN];	// seed for encryption
 
-    /* Values for key, method and seed used for reading data blocks when
-     * updating for a newly set key or method. Only when mf_old_key != NULL. */
+    // Values for key, method and seed used for reading data blocks when
+    // updating for a newly set key or method. Only when mf_old_key != NULL.
     char_u	*mf_old_key;
     int		mf_old_cm;
     char_u	mf_old_seed[MF_SEED_LEN];
@@ -1233,6 +1237,17 @@ typedef struct dictvar_S dict_T;
 typedef struct partial_S partial_T;
 typedef struct blobvar_S blob_T;
 
+// Struct that holds both a normal function name and a partial_T, as used for a
+// callback argument.
+// When used temporarily "cb_name" is not allocated.  The refcounts to either
+// the function or the partial are incremented and need to be decremented
+// later with free_callback().
+typedef struct {
+    char_u	*cb_name;
+    partial_T	*cb_partial;
+    int		cb_free_name;	    // cb_name was allocated
+} callback_T;
+
 typedef struct jobvar_S job_T;
 typedef struct readq_S readq_T;
 typedef struct writeq_S writeq_T;
@@ -1562,8 +1577,7 @@ struct jobvar_S
     char_u	*jv_tty_type;	// allocated
 #endif
     int		jv_exitval;
-    char_u	*jv_exit_cb;	/* allocated */
-    partial_T	*jv_exit_partial;
+    callback_T	jv_exit_cb;
 
     buf_T	*jv_in_buf;	/* buffer from "in-name" */
 
@@ -1602,8 +1616,7 @@ struct jsonq_S
 
 struct cbq_S
 {
-    char_u	*cq_callback;
-    partial_T	*cq_partial;
+    callback_T	cq_callback;
     int		cq_seq_nr;
     cbq_T	*cq_next;
     cbq_T	*cq_prev;
@@ -1688,8 +1701,7 @@ typedef struct {
     writeq_T	ch_writeque;	/* header for write queue */
 
     cbq_T	ch_cb_head;	/* dummy node for per-request callbacks */
-    char_u	*ch_callback;	/* call when a msg is not handled */
-    partial_T	*ch_partial;
+    callback_T	ch_callback;	/* call when a msg is not handled */
 
     bufref_T	ch_bufref;	/* buffer to read from or write to */
     int		ch_nomodifiable; /* TRUE when buffer can be 'nomodifiable' */
@@ -1730,10 +1742,8 @@ struct channel_S {
 #ifdef MSWIN
     int		ch_named_pipe;	/* using named pipe instead of pty */
 #endif
-    char_u	*ch_callback;	/* call when any msg is not handled */
-    partial_T	*ch_partial;
-    char_u	*ch_close_cb;	/* call when channel is closed */
-    partial_T	*ch_close_partial;
+    callback_T	ch_callback;	/* call when any msg is not handled */
+    callback_T	ch_close_cb;	/* call when channel is closed */
     int		ch_drop_never;
     int		ch_keep_open;	/* do not close on read error */
     int		ch_nonblock;
@@ -1832,16 +1842,11 @@ typedef struct
     linenr_T	jo_in_top;
     linenr_T	jo_in_bot;
 
-    char_u	*jo_callback;	/* not allocated! */
-    partial_T	*jo_partial;	/* not referenced! */
-    char_u	*jo_out_cb;	/* not allocated! */
-    partial_T	*jo_out_partial; /* not referenced! */
-    char_u	*jo_err_cb;	/* not allocated! */
-    partial_T	*jo_err_partial; /* not referenced! */
-    char_u	*jo_close_cb;	/* not allocated! */
-    partial_T	*jo_close_partial; /* not referenced! */
-    char_u	*jo_exit_cb;	/* not allocated! */
-    partial_T	*jo_exit_partial; /* not referenced! */
+    callback_T	jo_callback;
+    callback_T	jo_out_cb;
+    callback_T	jo_err_cb;
+    callback_T	jo_close_cb;
+    callback_T	jo_exit_cb;
     int		jo_drop_never;
     int		jo_waittime;
     int		jo_timeout;
@@ -1885,8 +1890,7 @@ struct listener_S
 {
     listener_T	*lr_next;
     int		lr_id;
-    char_u	*lr_callback;
-    partial_T	*lr_partial;
+    callback_T	lr_callback;
 };
 #endif
 
@@ -1942,6 +1946,23 @@ typedef struct {
 } syn_time_T;
 #endif
 
+typedef struct timer_S timer_T;
+struct timer_S
+{
+    long	tr_id;
+#ifdef FEAT_TIMERS
+    timer_T	*tr_next;
+    timer_T	*tr_prev;
+    proftime_T	tr_due;		    // when the callback is to be invoked
+    char	tr_firing;	    // when TRUE callback is being called
+    char	tr_paused;	    // when TRUE callback is not invoked
+    int		tr_repeat;	    // number of times to repeat, -1 forever
+    long	tr_interval;	    // msec
+    callback_T	tr_callback;
+    int		tr_emsg_count;
+#endif
+};
+
 #ifdef FEAT_CRYPT
 /*
  * Structure to hold the type of encryption and the state of encryption or
@@ -1963,6 +1984,15 @@ typedef struct {
 //  # define CRYPT_NOT_INPLACE 1
 #endif
 
+#ifdef FEAT_TEXT_PROP
+typedef enum {
+    POPPOS_BOTLEFT,
+    POPPOS_TOPLEFT,
+    POPPOS_BOTRIGHT,
+    POPPOS_TOPRIGHT,
+    POPPOS_CENTER
+} poppos_T;
+#endif
 
 /*
  * These are items normally related to a buffer.  But when using ":ownsyntax"
@@ -2484,13 +2514,11 @@ struct file_buffer
     int		b_shortname;	/* this file has an 8.3 file name */
 
 #ifdef FEAT_JOB_CHANNEL
-    char_u	*b_prompt_text;	     // set by prompt_setprompt()
-    char_u	*b_prompt_callback;  // set by prompt_setcallback()
-    partial_T	*b_prompt_partial;   // set by prompt_setcallback()
-    char_u	*b_prompt_interrupt;   // set by prompt_setinterrupt()
-    partial_T	*b_prompt_int_partial; // set by prompt_setinterrupt()
-    int		b_prompt_insert;     // value for restart_edit when entering
-				     // a prompt buffer window.
+    char_u	*b_prompt_text;		// set by prompt_setprompt()
+    callback_T	b_prompt_callback;	// set by prompt_setcallback()
+    callback_T	b_prompt_interrupt;	// set by prompt_setinterrupt()
+    int		b_prompt_insert;	// value for restart_edit when entering
+					// a prompt buffer window.
 #endif
 #ifdef FEAT_MZSCHEME
     void	*b_mzscheme_ref; /* The MzScheme reference to this buffer */
@@ -2604,19 +2632,22 @@ struct diffblock_S
 typedef struct tabpage_S tabpage_T;
 struct tabpage_S
 {
-    tabpage_T	    *tp_next;	    /* next tabpage or NULL */
-    frame_T	    *tp_topframe;   /* topframe for the windows */
-    win_T	    *tp_curwin;	    /* current window in this Tab page */
-    win_T	    *tp_prevwin;    /* previous window in this Tab page */
-    win_T	    *tp_firstwin;   /* first window in this Tab page */
-    win_T	    *tp_lastwin;    /* last window in this Tab page */
-    long	    tp_old_Rows;    /* Rows when Tab page was left */
-    long	    tp_old_Columns; /* Columns when Tab page was left */
-    long	    tp_ch_used;	    /* value of 'cmdheight' when frame size
-				       was set */
+    tabpage_T	    *tp_next;	    // next tabpage or NULL
+    frame_T	    *tp_topframe;   // topframe for the windows
+    win_T	    *tp_curwin;	    // current window in this Tab page
+    win_T	    *tp_prevwin;    // previous window in this Tab page
+    win_T	    *tp_firstwin;   // first window in this Tab page
+    win_T	    *tp_lastwin;    // last window in this Tab page
+#ifdef FEAT_TEXT_PROP
+    win_T	    *tp_first_popupwin; // first popup window in this Tab page
+#endif
+    long	    tp_old_Rows;    // Rows when Tab page was left
+    long	    tp_old_Columns; // Columns when Tab page was left
+    long	    tp_ch_used;	    // value of 'cmdheight' when frame size
+				    // was set
 #ifdef FEAT_GUI
     int		    tp_prev_which_scrollbars[3];
-				    /* previous value of which_scrollbars */
+				    // previous value of which_scrollbars
 #endif
 
     char_u	    *tp_localdir;	// absolute path of local directory or
@@ -2627,18 +2658,18 @@ struct tabpage_S
     int		    tp_diff_invalid;	// list of diffs is outdated
     int		    tp_diff_update;	// update diffs before redrawing
 #endif
-    frame_T	    *(tp_snapshot[SNAP_COUNT]);  /* window layout snapshots */
+    frame_T	    *(tp_snapshot[SNAP_COUNT]);  // window layout snapshots
 #ifdef FEAT_EVAL
-    dictitem_T	    tp_winvar;	    /* variable for "t:" Dictionary */
-    dict_T	    *tp_vars;	    /* internal variables, local to tab page */
+    dictitem_T	    tp_winvar;	    // variable for "t:" Dictionary
+    dict_T	    *tp_vars;	    // internal variables, local to tab page
 #endif
 
 #ifdef FEAT_PYTHON
-    void	    *tp_python_ref;	/* The Python value for this tab page */
+    void	    *tp_python_ref;	// The Python value for this tab page
 #endif
 
 #ifdef FEAT_PYTHON3
-    void	    *tp_python3_ref;	/* The Python value for this tab page */
+    void	    *tp_python3_ref;	// The Python value for this tab page
 #endif
 };
 
@@ -2787,15 +2818,15 @@ struct window_S
 {
     int		w_id;		    /* unique window ID */
 
-    buf_T	*w_buffer;	    /* buffer we are a window into (used
-				       often, keep it the first item!) */
+    buf_T	*w_buffer;	    /* buffer we are a window into */
+
+    win_T	*w_prev;	    /* link to previous window */
+    win_T	*w_next;	    /* link to next window */
 
 #if defined(FEAT_SYN_HL) || defined(FEAT_SPELL)
     synblock_T	*w_s;		    /* for :ownsyntax */
 #endif
 
-    win_T	*w_prev;	    /* link to previous window */
-    win_T	*w_next;	    /* link to next window */
     int		w_closing;	    /* window is being closed, don't let
 				       autocommands close it too. */
 
@@ -2859,6 +2890,28 @@ struct window_S
     int		w_width;	    /* Width of window, excluding separation. */
     int		w_vsep_width;	    /* Number of separator columns (0 or 1). */
     pos_save_T	w_save_cursor;	    /* backup of cursor pos and topline */
+#ifdef FEAT_TEXT_PROP
+    int		w_popup_flags;	    // POPF_ values
+    poppos_T	w_popup_pos;
+    int		w_zindex;
+    int		w_minheight;	    // "minheight" for popup window
+    int		w_minwidth;	    // "minwidth" for popup window
+    int		w_maxheight;	    // "maxheight" for popup window
+    int		w_maxwidth;	    // "maxwidth" for popup window
+    int		w_wantline;	    // "line" for popup window
+    int		w_wantcol;	    // "col" for popup window
+    int		w_popup_padding[4]; // popup padding top/right/bot/left
+    int		w_popup_border[4];  // popup border top/right/bot/left
+    char_u	*w_border_highlight[4];  // popup border highlight
+    int		w_border_char[8];   // popup border characters
+    varnumber_T	w_popup_last_changedtick; // b:changedtick when position was
+					  // computed
+    callback_T	w_close_cb;	    // popup close callback
+    callback_T	w_filter_cb;	    // popup filter callback
+# if defined(FEAT_TIMERS)
+    timer_T	*w_popup_timer;	    // timer for closing popup window
+# endif
+#endif
 
 
     /*
@@ -3442,24 +3495,6 @@ struct js_reader
     int		js_cookie_arg;	/* can be used by js_fill */
 };
 typedef struct js_reader js_read_T;
-
-typedef struct timer_S timer_T;
-struct timer_S
-{
-    long	tr_id;
-#ifdef FEAT_TIMERS
-    timer_T	*tr_next;
-    timer_T	*tr_prev;
-    proftime_T	tr_due;		    /* when the callback is to be invoked */
-    char	tr_firing;	    /* when TRUE callback is being called */
-    char	tr_paused;	    /* when TRUE callback is not invoked */
-    int		tr_repeat;	    /* number of times to repeat, -1 forever */
-    long	tr_interval;	    /* msec */
-    char_u	*tr_callback;	    /* allocated */
-    partial_T	*tr_partial;
-    int		tr_emsg_count;
-#endif
-};
 
 /* Maximum number of commands from + or -c arguments. */
 #define MAX_ARG_CMDS 10

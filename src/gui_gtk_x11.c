@@ -429,7 +429,7 @@ gui_mch_prepare(int *argc, char **argv)
      * into gui_argv.  Freed later in gui_mch_init().
      */
     gui_argc = 0;
-    gui_argv = (char **)alloc((unsigned)((*argc + 1) * sizeof(char *)));
+    gui_argv = ALLOC_MULT(char *, *argc + 1);
 
     g_return_if_fail(gui_argv != NULL);
 
@@ -1544,7 +1544,7 @@ selection_get_cb(GtkWidget	    *widget UNUSED,
 
     if (info == (guint)TARGET_VIM)
     {
-	tmpbuf = alloc((unsigned)length + 1);
+	tmpbuf = alloc(length + 1);
 	if (tmpbuf != NULL)
 	{
 	    tmpbuf[0] = motion_type;
@@ -1603,7 +1603,7 @@ selection_get_cb(GtkWidget	    *widget UNUSED,
 	int l = STRLEN(p_enc);
 
 	/* contents: motion_type 'encoding' NUL text */
-	tmpbuf = alloc((unsigned)length + l + 2);
+	tmpbuf = alloc(length + l + 2);
 	if (tmpbuf != NULL)
 	{
 	    tmpbuf[0] = motion_type;
@@ -2157,10 +2157,10 @@ parse_uri_list(int *count, char_u *data, int len)
     char_u  *tmp    = NULL;
     char_u  **array = NULL;
 
-    if (data != NULL && len > 0 && (tmp = (char_u *)alloc(len + 1)) != NULL)
+    if (data != NULL && len > 0 && (tmp = alloc(len + 1)) != NULL)
     {
 	n = count_and_decode_uri_list(tmp, data, len);
-	if (n > 0 && (array = (char_u **)alloc(n * sizeof(char_u *))) != NULL)
+	if (n > 0 && (array = ALLOC_MULT(char_u *, n)) != NULL)
 	    n = filter_uri_list(array, n, tmp);
     }
     vim_free(tmp);
@@ -2512,8 +2512,7 @@ setup_save_yourself(void)
 	    if (i == count)
 	    {
 		/* allocate an Atoms array which is one item longer */
-		new_atoms = (Atom *)alloc((unsigned)((count + 1)
-							     * sizeof(Atom)));
+		new_atoms = ALLOC_MULT(Atom, count + 1);
 		if (new_atoms != NULL)
 		{
 		    memcpy(new_atoms, existing_atoms, count * sizeof(Atom));

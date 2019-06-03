@@ -355,10 +355,10 @@ transstr(char_u *s)
 		    len += 4;	/* illegal byte sequence */
 	    }
 	}
-	res = alloc((unsigned)(len + 1));
+	res = alloc(len + 1);
     }
     else
-	res = alloc((unsigned)(vim_strsize(s) + 1));
+	res = alloc(vim_strsize(s) + 1);
     if (res != NULL)
     {
 	*res = NUL;
@@ -1105,15 +1105,16 @@ win_lbr_chartabsize(
 	    {
 		if (size + sbrlen + numberwidth > (colnr_T)wp->w_width)
 		{
-		    /* calculate effective window width */
+		    // calculate effective window width
 		    int width = (colnr_T)wp->w_width - sbrlen - numberwidth;
 		    int prev_width = col
 				 ? ((colnr_T)wp->w_width - (sbrlen + col)) : 0;
-		    if (width == 0)
-			width = (colnr_T)wp->w_width;
+
+		    if (width <= 0)
+			width = (colnr_T)1;
 		    added += ((size - prev_width) / width) * vim_strsize(p_sbr);
 		    if ((size - prev_width) % width)
-			/* wrapped, add another length of 'sbr' */
+			// wrapped, add another length of 'sbr'
 			added += vim_strsize(p_sbr);
 		}
 		else

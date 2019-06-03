@@ -491,7 +491,7 @@ var_redir_start(char_u *name, int append)
     if (redir_varname == NULL)
 	return FAIL;
 
-    redir_lval = (lval_T *)alloc_clear((unsigned)sizeof(lval_T));
+    redir_lval = ALLOC_CLEAR_ONE(lval_T);
     if (redir_lval == NULL)
     {
 	var_redir_stop();
@@ -1063,7 +1063,7 @@ eval_expr(char_u *arg, char_u **nextcmd)
 {
     typval_T	*tv;
 
-    tv = (typval_T *)alloc(sizeof(typval_T));
+    tv = ALLOC_ONE(typval_T);
     if (tv != NULL && eval0(arg, tv, nextcmd, TRUE) == FAIL)
 	VIM_CLEAR(tv);
 
@@ -2769,7 +2769,7 @@ eval_for_line(
 
     *errp = TRUE;	/* default: there is an error */
 
-    fi = (forinfo_T *)alloc_clear(sizeof(forinfo_T));
+    fi = ALLOC_CLEAR_ONE(forinfo_T);
     if (fi == NULL)
 	return NULL;
 
@@ -5151,7 +5151,7 @@ get_string_tv(char_u **arg, typval_T *rettv, int evaluate)
      * Copy the string into allocated memory, handling backslashed
      * characters.
      */
-    name = alloc((unsigned)(p - *arg + extra));
+    name = alloc(p - *arg + extra);
     if (name == NULL)
 	return FAIL;
     rettv->v_type = VAR_STRING;
@@ -5285,7 +5285,7 @@ get_lit_string_tv(char_u **arg, typval_T *rettv, int evaluate)
     /*
      * Copy the string into allocated memory, handling '' to ' reduction.
      */
-    str = alloc((unsigned)((p - *arg) - reduce));
+    str = alloc((p - *arg) - reduce);
     if (str == NULL)
 	return FAIL;
     rettv->v_type = VAR_STRING;
@@ -5585,6 +5585,15 @@ garbage_collect(int testing)
     if (aucmd_win != NULL)
 	abort = abort || set_ref_in_item(&aucmd_win->w_winvar.di_tv, copyID,
 								  NULL, NULL);
+#ifdef FEAT_TEXT_PROP
+    for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
+	abort = abort || set_ref_in_item(&wp->w_winvar.di_tv, copyID,
+								  NULL, NULL);
+    FOR_ALL_TABPAGES(tp)
+	for (wp = tp->tp_first_popupwin; wp != NULL; wp = wp->w_next)
+		abort = abort || set_ref_in_item(&wp->w_winvar.di_tv, copyID,
+								  NULL, NULL);
+#endif
 
     /* tabpage-local variables */
     FOR_ALL_TABPAGES(tp)
@@ -5911,10 +5920,10 @@ set_ref_in_item(
 		dtv.vval.v_channel = job->jv_channel;
 		set_ref_in_item(&dtv, copyID, ht_stack, list_stack);
 	    }
-	    if (job->jv_exit_partial != NULL)
+	    if (job->jv_exit_cb.cb_partial != NULL)
 	    {
 		dtv.v_type = VAR_PARTIAL;
-		dtv.vval.v_partial = job->jv_exit_partial;
+		dtv.vval.v_partial = job->jv_exit_cb.cb_partial;
 		set_ref_in_item(&dtv, copyID, ht_stack, list_stack);
 	    }
 	}
@@ -5937,29 +5946,30 @@ set_ref_in_item(
 		    set_ref_in_item(jq->jq_value, copyID, ht_stack, list_stack);
 		for (cq = ch->ch_part[part].ch_cb_head.cq_next; cq != NULL;
 							     cq = cq->cq_next)
-		    if (cq->cq_partial != NULL)
+		    if (cq->cq_callback.cb_partial != NULL)
 		    {
 			dtv.v_type = VAR_PARTIAL;
-			dtv.vval.v_partial = cq->cq_partial;
+			dtv.vval.v_partial = cq->cq_callback.cb_partial;
 			set_ref_in_item(&dtv, copyID, ht_stack, list_stack);
 		    }
-		if (ch->ch_part[part].ch_partial != NULL)
+		if (ch->ch_part[part].ch_callback.cb_partial != NULL)
 		{
 		    dtv.v_type = VAR_PARTIAL;
-		    dtv.vval.v_partial = ch->ch_part[part].ch_partial;
+		    dtv.vval.v_partial =
+				      ch->ch_part[part].ch_callback.cb_partial;
 		    set_ref_in_item(&dtv, copyID, ht_stack, list_stack);
 		}
 	    }
-	    if (ch->ch_partial != NULL)
+	    if (ch->ch_callback.cb_partial != NULL)
 	    {
 		dtv.v_type = VAR_PARTIAL;
-		dtv.vval.v_partial = ch->ch_partial;
+		dtv.vval.v_partial = ch->ch_callback.cb_partial;
 		set_ref_in_item(&dtv, copyID, ht_stack, list_stack);
 	    }
-	    if (ch->ch_close_partial != NULL)
+	    if (ch->ch_close_cb.cb_partial != NULL)
 	    {
 		dtv.v_type = VAR_PARTIAL;
-		dtv.vval.v_partial = ch->ch_close_partial;
+		dtv.vval.v_partial = ch->ch_close_cb.cb_partial;
 		set_ref_in_item(&dtv, copyID, ht_stack, list_stack);
 	    }
 	}
@@ -6782,8 +6792,8 @@ make_expanded_name(
     temp_result = eval_to_string(expr_start + 1, &nextcmd, FALSE);
     if (temp_result != NULL && nextcmd == NULL)
     {
-	retval = alloc((unsigned)(STRLEN(temp_result) + (expr_start - in_start)
-						   + (in_end - expr_end) + 1));
+	retval = alloc(STRLEN(temp_result) + (expr_start - in_start)
+						   + (in_end - expr_end) + 1);
 	if (retval != NULL)
 	{
 	    STRCPY(retval, in_start);
@@ -7288,7 +7298,7 @@ handle_subscript(
     typval_T *
 alloc_tv(void)
 {
-    return (typval_T *)alloc_clear((unsigned)sizeof(typval_T));
+    return ALLOC_CLEAR_ONE(typval_T);
 }
 
 /*
@@ -7874,7 +7884,7 @@ new_script_vars(scid_T id)
 	while (ga_scripts.ga_len < id)
 	{
 	    sv = SCRIPT_SV(ga_scripts.ga_len + 1) =
-		(scriptvar_T *)alloc_clear(sizeof(scriptvar_T));
+		ALLOC_CLEAR_ONE(scriptvar_T);
 	    init_var_dict(&sv->sv_dict, &sv->sv_var, VAR_SCOPE);
 	    ++ga_scripts.ga_len;
 	}
@@ -8130,8 +8140,7 @@ set_var(
 	if (!valid_varname(varname))
 	    return;
 
-	v = (dictitem_T *)alloc((unsigned)(sizeof(dictitem_T)
-							  + STRLEN(varname)));
+	v = alloc(sizeof(dictitem_T) + STRLEN(varname));
 	if (v == NULL)
 	    return;
 	STRCPY(v->di_key, varname);
@@ -8802,7 +8811,19 @@ find_win_by_nr(
 	    break;
     }
     if (nr >= LOWEST_WIN_ID)
+    {
+#ifdef FEAT_TEXT_PROP
+	// check tab-local popup windows
+	for (wp = tp->tp_first_popupwin; wp != NULL; wp = wp->w_next)
+	    if (wp->w_id == nr)
+		return wp;
+	// check global popup windows
+	for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
+	    if (wp->w_id == nr)
+		return wp;
+#endif
 	return NULL;
+    }
     return wp;
 }
 
@@ -8993,7 +9014,7 @@ setwinvar(typval_T *argvars, typval_T *rettv UNUSED, int off)
 	    }
 	    else
 	    {
-		winvarname = alloc((unsigned)STRLEN(varname) + 3);
+		winvarname = alloc(STRLEN(varname) + 3);
 		if (winvarname != NULL)
 		{
 		    STRCPY(winvarname, "w:");
@@ -9056,7 +9077,7 @@ autoload_name(char_u *name)
     char_u	*scriptname;
 
     /* Get the script file name: replace '#' with '/', append ".vim". */
-    scriptname = alloc((unsigned)(STRLEN(name) + 14));
+    scriptname = alloc(STRLEN(name) + 14);
     if (scriptname == NULL)
 	return FALSE;
     STRCPY(scriptname, "autoload/");

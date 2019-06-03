@@ -890,7 +890,7 @@ mch_libcall(
 	else if (retval_str != NULL
 		&& (len = check_str_len(retval_str)) > 0)
 	{
-	    *string_result = lalloc((long_u)len, TRUE);
+	    *string_result = alloc(len);
 	    if (*string_result != NULL)
 		mch_memmove(*string_result, retval_str, len);
 	}
@@ -1466,8 +1466,8 @@ mch_print_init(prt_settings_T *psettings, char_u *jobname, int forceit)
 	char_u	*port_name = utf16_to_enc(wport_name, NULL);
 
 	if (printer_name != NULL && port_name != NULL)
-	    prt_name = alloc((unsigned)(STRLEN(printer_name)
-					+ STRLEN(port_name) + STRLEN(text)));
+	    prt_name = alloc(STRLEN(printer_name)
+					   + STRLEN(port_name) + STRLEN(text));
 	if (prt_name != NULL)
 	    wsprintf((char *)prt_name, (const char *)text,
 		    printer_name, port_name);
@@ -1787,12 +1787,6 @@ resolve_reparse_point(char_u *fname)
     if (p == NULL)
 	goto fail;
 
-    if ((GetFileAttributesW(p) & FILE_ATTRIBUTE_REPARSE_POINT) == 0)
-    {
-	vim_free(p);
-	goto fail;
-    }
-
     h = CreateFileW(p, 0, 0, NULL, OPEN_EXISTING,
 	    FILE_FLAG_BACKUP_SEMANTICS, NULL);
     vim_free(p);
@@ -1801,7 +1795,7 @@ resolve_reparse_point(char_u *fname)
 	goto fail;
 
     size = sizeof(FILE_NAME_INFO_) + sizeof(WCHAR) * (MAX_PATH - 1);
-    nameinfo = (FILE_NAME_INFO_*)alloc(size + sizeof(WCHAR));
+    nameinfo = alloc(size + sizeof(WCHAR));
     if (nameinfo == NULL)
 	goto fail;
 
@@ -1835,7 +1829,7 @@ resolve_reparse_point(char_u *fname)
 	    GetLastError() != ERROR_MORE_DATA)
 	goto fail;
 
-    volnames = (WCHAR*)alloc(size * sizeof(WCHAR));
+    volnames = ALLOC_MULT(WCHAR, size);
     if (!GetVolumePathNamesForVolumeNameW(buff, volnames, size,
 		&size))
 	goto fail;
@@ -2111,7 +2105,7 @@ Messaging_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		char	*err = _(e_invexprmsg);
 		size_t	len = STRLEN(str) + STRLEN(err) + 5;
 
-		res = alloc((unsigned)len);
+		res = alloc(len);
 		if (res != NULL)
 		    vim_snprintf((char *)res, len, "%s: \"%s\"", err, str);
 		reply.dwData = COPYDATA_ERROR_RESULT;
@@ -2340,7 +2334,7 @@ serverSetName(char_u *name)
     char_u	*p;
 
     /* Leave enough space for a 9-digit suffix to ensure uniqueness! */
-    ok_name = alloc((unsigned)STRLEN(name) + 10);
+    ok_name = alloc(STRLEN(name) + 10);
 
     STRCPY(ok_name, name);
     p = ok_name + STRLEN(name);
@@ -3078,7 +3072,7 @@ theend:
     if (ret == OK && printer_dc == NULL)
     {
 	vim_free(lastlf);
-	lastlf = (LOGFONTW *)alloc(sizeof(LOGFONTW));
+	lastlf = ALLOC_ONE(LOGFONTW);
 	if (lastlf != NULL)
 	    mch_memmove(lastlf, lf, sizeof(LOGFONTW));
     }

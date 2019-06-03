@@ -282,7 +282,7 @@ remove_timer(timer_T *timer)
     static void
 free_timer(timer_T *timer)
 {
-    free_callback(timer->tr_callback, timer->tr_partial);
+    free_callback(&timer->tr_callback);
     vim_free(timer);
 }
 
@@ -293,7 +293,7 @@ free_timer(timer_T *timer)
     timer_T *
 create_timer(long msec, int repeat)
 {
-    timer_T	*timer = (timer_T *)alloc_clear(sizeof(timer_T));
+    timer_T	*timer = ALLOC_CLEAR_ONE(timer_T);
     long	prev_id = last_timer_id;
 
     if (timer == NULL)
@@ -325,9 +325,8 @@ timer_callback(timer_T *timer)
     argv[0].vval.v_number = (varnumber_T)timer->tr_id;
     argv[1].v_type = VAR_UNKNOWN;
 
-    call_func(timer->tr_callback, -1,
-			&rettv, 1, argv, NULL, 0L, 0L, &dummy, TRUE,
-			timer->tr_partial, NULL);
+    call_callback(&timer->tr_callback, -1,
+			&rettv, 1, argv, NULL, 0L, 0L, &dummy, TRUE, NULL);
     clear_tv(&rettv);
 }
 
@@ -444,7 +443,7 @@ check_due_timer(void)
 	    bevalexpr_due_set = FALSE;
 	    if (balloonEval == NULL)
 	    {
-		balloonEval = (BalloonEval *)alloc_clear(sizeof(BalloonEval));
+		balloonEval = ALLOC_CLEAR_ONE(BalloonEval);
 		balloonEvalForTerm = TRUE;
 	    }
 	    if (balloonEval != NULL)
@@ -542,17 +541,8 @@ add_timer_info(typval_T *rettv, timer_T *timer)
     {
 	if (dict_add(dict, di) == FAIL)
 	    vim_free(di);
-	else if (timer->tr_partial != NULL)
-	{
-	    di->di_tv.v_type = VAR_PARTIAL;
-	    di->di_tv.vval.v_partial = timer->tr_partial;
-	    ++timer->tr_partial->pt_refcount;
-	}
 	else
-	{
-	    di->di_tv.v_type = VAR_FUNC;
-	    di->di_tv.vval.v_string = vim_strsave(timer->tr_callback);
-	}
+	    put_callback(&timer->tr_callback, &di->di_tv);
     }
 }
 
@@ -578,15 +568,15 @@ set_ref_in_timer(int copyID)
 
     for (timer = first_timer; timer != NULL; timer = timer->tr_next)
     {
-	if (timer->tr_partial != NULL)
+	if (timer->tr_callback.cb_partial != NULL)
 	{
 	    tv.v_type = VAR_PARTIAL;
-	    tv.vval.v_partial = timer->tr_partial;
+	    tv.vval.v_partial = timer->tr_callback.cb_partial;
 	}
 	else
 	{
 	    tv.v_type = VAR_FUNC;
-	    tv.vval.v_string = timer->tr_callback;
+	    tv.vval.v_string = timer->tr_callback.cb_name;
 	}
 	abort = abort || set_ref_in_item(&tv, copyID, NULL, NULL);
     }
@@ -1385,7 +1375,7 @@ check_changed_any(
     if (bufcount == 0)
 	return FALSE;
 
-    bufnrs = (int *)alloc(sizeof(int) * bufcount);
+    bufnrs = ALLOC_MULT(int, bufcount);
     if (bufnrs == NULL)
 	return FALSE;
 
@@ -1788,7 +1778,7 @@ editing_arg_idx(win_T *win)
 		    && (win->w_buffer->b_ffname == NULL
 			 || !(fullpathcmp(
 				 alist_name(&WARGLIST(win)[win->w_arg_idx]),
-				win->w_buffer->b_ffname, TRUE) & FPC_SAME))));
+			  win->w_buffer->b_ffname, TRUE, TRUE) & FPC_SAME))));
 }
 
 /*
@@ -1810,7 +1800,7 @@ check_arg_idx(win_T *win)
 		&& (win->w_buffer->b_fnum == GARGLIST[GARGCOUNT - 1].ae_fnum
 		    || (win->w_buffer->b_ffname != NULL
 			&& (fullpathcmp(alist_name(&GARGLIST[GARGCOUNT - 1]),
-				win->w_buffer->b_ffname, TRUE) & FPC_SAME))))
+			  win->w_buffer->b_ffname, TRUE, TRUE) & FPC_SAME))))
 	    arg_had_last = TRUE;
     }
     else
@@ -1856,7 +1846,7 @@ ex_args(exarg_T *eap)
 	 */
 	if (ARGCOUNT > 0)
 	{
-	    char_u **items = (char_u **)alloc(sizeof(char_u *) * ARGCOUNT);
+	    char_u **items = ALLOC_MULT(char_u *, ARGCOUNT);
 
 	    if (items != NULL)
 	    {
@@ -1947,6 +1937,8 @@ do_argfile(exarg_T *eap, int argn)
     char_u	*p;
     int		old_arg_idx = curwin->w_arg_idx;
 
+    if (NOT_IN_POPUP_WINDOW)
+	return;
     if (argn < 0 || argn >= ARGCOUNT)
     {
 	if (ARGCOUNT <= 1)
@@ -2439,7 +2431,7 @@ ex_compiler(exarg_T *eap)
     }
     else
     {
-	buf = alloc((unsigned)(STRLEN(eap->arg) + 14));
+	buf = alloc(STRLEN(eap->arg) + 14);
 	if (buf != NULL)
 	{
 	    if (eap->forceit)
@@ -2873,7 +2865,7 @@ add_pack_dir_to_rtp(char_u *fname)
 
     oldlen = STRLEN(p_rtp);
     addlen = STRLEN(fname) + 1; // add one for comma
-    new_rtp = alloc((int)(oldlen + addlen + afterlen + 1)); // add one for NUL
+    new_rtp = alloc(oldlen + addlen + afterlen + 1); // add one for NUL
     if (new_rtp == NULL)
 	goto theend;
 
@@ -3067,7 +3059,7 @@ ex_packadd(exarg_T *eap)
 	    continue;
 
 	len = (int)STRLEN(plugpat) + (int)STRLEN(eap->arg) + 5;
-	pat = (char *)alloc(len);
+	pat = alloc(len);
 	if (pat == NULL)
 	    return;
 	vim_snprintf(pat, len, plugpat, round == 1 ? "start" : "opt", eap->arg);

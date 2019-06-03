@@ -4193,8 +4193,7 @@ add_termcode(char_u *name, char_u *string, int flags)
     if (tc_len == tc_max_len)
     {
 	tc_max_len += 20;
-	new_tc = (struct termcode *)alloc(
-			    (unsigned)(tc_max_len * sizeof(struct termcode)));
+	new_tc = ALLOC_MULT(struct termcode, tc_max_len);
 	if (new_tc == NULL)
 	{
 	    tc_max_len -= 20;
@@ -6171,7 +6170,7 @@ replace_termcodes(
      * Allocate space for the translation.  Worst case a single character is
      * replaced by 6 bytes (shifted special key), plus a NUL at the end.
      */
-    result = alloc((unsigned)STRLEN(from) * 6 + 1);
+    result = alloc(STRLEN(from) * 6 + 1);
     if (result == NULL)		/* out of memory */
     {
 	*bufp = NULL;
@@ -6426,7 +6425,7 @@ show_termcodes(void)
 
     if (tc_len == 0)	    /* no terminal codes (must be GUI) */
 	return;
-    items = (int *)alloc((unsigned)(sizeof(int) * tc_len));
+    items = ALLOC_MULT(int, tc_len);
     if (items == NULL)
 	return;
 
@@ -7077,8 +7076,7 @@ gui_get_color_cmn(char_u *name)
 	{
 	    if (!counting)
 	    {
-		colornames_table = (struct rgbcolor_table_S *)alloc(
-			   (unsigned)(sizeof(struct rgbcolor_table_S) * size));
+		colornames_table = ALLOC_MULT(struct rgbcolor_table_S, size);
 		if (colornames_table == NULL)
 		{
 		    fclose(fd);

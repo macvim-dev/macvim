@@ -1,4 +1,4 @@
-*quickref.txt*  For Vim version 8.1.  Last change: 2019 Apr 28
+*quickref.txt*  For Vim version 8.1.  Last change: 2019 May 31
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -805,6 +805,7 @@ Short explanation of each option:		*option-list*
 'menuitems'	  'mis'     maximum number of items in a menu
 'mkspellmem'	  'msm'     memory used before |:mkspell| compresses the tree
 'modeline'	  'ml'	    recognize modelines at start or end of file
+'modelineexpr'	  'mle'	    allow setting expression options from a modeline
 'modelines'	  'mls'     number of lines checked for modelines
 'modifiable'	  'ma'	    changes to the text are not possible
 'modified'	  'mod'     buffer has been modified
@@ -989,6 +990,7 @@ Short explanation of each option:		*option-list*
 'wildmode'	  'wim'     mode for 'wildchar' command-line expansion
 'wildoptions'	  'wop'     specifies how command line completion is done
 'winaltkeys'	  'wak'     when the windows system handles ALT keys
+'wincolor'	  'wcr'	    window-local highlighting
 'window'	  'wi'	    nr of lines to scroll for CTRL-F and CTRL-B
 'winheight'	  'wh'	    minimum number of lines for the current window
 'winfixheight'	  'wfh'     keep window height when opening/closing windows

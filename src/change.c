@@ -172,16 +172,20 @@ check_recorded_changes(
     if (buf->b_recorded_changes != NULL && xtra != 0)
     {
 	listitem_T *li;
-	linenr_T    nr;
+	linenr_T    prev_lnum;
+	linenr_T    prev_lnume;
 
 	for (li = buf->b_recorded_changes->lv_first; li != NULL;
 							      li = li->li_next)
 	{
-	    nr = (linenr_T)dict_get_number(
+	    prev_lnum = (linenr_T)dict_get_number(
 				      li->li_tv.vval.v_dict, (char_u *)"lnum");
-	    if (nr >= lnum || nr > lnume)
+	    prev_lnume = (linenr_T)dict_get_number(
+				       li->li_tv.vval.v_dict, (char_u *)"end");
+	    if (prev_lnum >= lnum || prev_lnum > lnume
+		    || (prev_lnume >= lnum && xtra != 0))
 	    {
-		if (li->li_next == NULL && lnum == nr
+		if (li->li_next == NULL && lnum == prev_lnum
 			&& col + 1 == (colnr_T)dict_get_number(
 				      li->li_tv.vval.v_dict, (char_u *)"col"))
 		{
@@ -195,8 +199,8 @@ check_recorded_changes(
 							  (char_u *)"end", -1);
 			if (di != NULL)
 			{
-			    nr = tv_get_number(&di->di_tv);
-			    if (lnume > nr)
+			    prev_lnum = tv_get_number(&di->di_tv);
+			    if (lnume > prev_lnum)
 				di->di_tv.vval.v_number = lnume;
 			}
 			di = dict_find(li->li_tv.vval.v_dict,
@@ -266,36 +270,34 @@ may_record_change(
     void
 f_listener_add(typval_T *argvars, typval_T *rettv)
 {
-    char_u	*callback;
-    partial_T	*partial;
+    callback_T	callback;
     listener_T	*lnr;
     buf_T	*buf = curbuf;
 
-    callback = get_callback(&argvars[0], &partial);
-    if (callback == NULL)
+    callback = get_callback(&argvars[0]);
+    if (callback.cb_name == NULL)
 	return;
 
     if (argvars[1].v_type != VAR_UNKNOWN)
     {
 	buf = get_buf_arg(&argvars[1]);
 	if (buf == NULL)
+	{
+	    free_callback(&callback);
 	    return;
+	}
     }
 
-    lnr = (listener_T *)alloc_clear((sizeof(listener_T)));
+    lnr = ALLOC_CLEAR_ONE(listener_T);
     if (lnr == NULL)
     {
-	free_callback(callback, partial);
+	free_callback(&callback);
 	return;
     }
     lnr->lr_next = buf->b_listener;
     buf->b_listener = lnr;
 
-    if (partial == NULL)
-	lnr->lr_callback = vim_strsave(callback);
-    else
-	lnr->lr_callback = callback;  // pointer into the partial
-    lnr->lr_partial = partial;
+    set_callback(&lnr->lr_callback, &callback);
 
     lnr->lr_id = ++next_listener_id;
     rettv->vval.v_number = lnr->lr_id;
@@ -340,7 +342,7 @@ f_listener_remove(typval_T *argvars, typval_T *rettv UNUSED)
 		    prev->lr_next = lnr->lr_next;
 		else
 		    buf->b_listener = lnr->lr_next;
-		free_callback(lnr->lr_callback, lnr->lr_partial);
+		free_callback(&lnr->lr_callback);
 		vim_free(lnr);
 	    }
 	    prev = lnr;
@@ -372,10 +374,18 @@ invoke_listeners(buf_T *buf)
     linenr_T	start = MAXLNUM;
     linenr_T	end = 0;
     linenr_T	added = 0;
+    int		save_updating_screen = updating_screen;
+    static int	recursive = FALSE;
 
     if (buf->b_recorded_changes == NULL  // nothing changed
-	    || buf->b_listener == NULL)  // no listeners
+	    || buf->b_listener == NULL   // no listeners
+	    || recursive)		 // already busy
 	return;
+    recursive = TRUE;
+
+    // Block messages on channels from being handled, so that they don't make
+    // text changes here.
+    ++updating_screen;
 
     argv[0].v_type = VAR_NUMBER;
     argv[0].vval.v_number = buf->b_fnum; // a:bufnr
@@ -406,14 +416,20 @@ invoke_listeners(buf_T *buf)
 
     for (lnr = buf->b_listener; lnr != NULL; lnr = lnr->lr_next)
     {
-	call_func(lnr->lr_callback, -1, &rettv,
-		   5, argv, NULL, 0L, 0L, &dummy, TRUE, lnr->lr_partial, NULL);
+	call_callback(&lnr->lr_callback, -1, &rettv,
+				    5, argv, NULL, 0L, 0L, &dummy, TRUE, NULL);
 	clear_tv(&rettv);
     }
 
     --textlock;
     list_unref(buf->b_recorded_changes);
     buf->b_recorded_changes = NULL;
+
+    if (save_updating_screen)
+	updating_screen = TRUE;
+    else
+	after_updating_screen(TRUE);
+    recursive = FALSE;
 }
 #endif
 
@@ -985,7 +1001,7 @@ ins_char_bytes(char_u *buf, int charlen)
 	}
     }
 
-    newp = alloc_check((unsigned)(linelen + newlen - oldlen));
+    newp = alloc(linelen + newlen - oldlen);
     if (newp == NULL)
 	return;
 
@@ -1060,7 +1076,7 @@ ins_str(char_u *s)
     oldp = ml_get(lnum);
     oldlen = (int)STRLEN(oldp);
 
-    newp = alloc_check((unsigned)(oldlen + newlen + 1));
+    newp = alloc(oldlen + newlen + 1);
     if (newp == NULL)
 	return;
     if (col > 0)
@@ -1213,7 +1229,7 @@ del_bytes(
 	newp = oldp;			    // use same allocated memory
     else
     {					    // need to allocate a new line
-	newp = alloc((unsigned)(newlen + 1));
+	newp = alloc(newlen + 1);
 	if (newp == NULL)
 	    return FAIL;
 	mch_memmove(newp, oldp, (size_t)col);

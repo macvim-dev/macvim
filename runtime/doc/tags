@@ -466,6 +466,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'mis'	options.txt	/*'mis'*
 'mkspellmem'	options.txt	/*'mkspellmem'*
 'ml'	options.txt	/*'ml'*
+'mle'	options.txt	/*'mle'*
 'mls'	options.txt	/*'mls'*
 'mm'	options.txt	/*'mm'*
 'mmd'	options.txt	/*'mmd'*
@@ -474,6 +475,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'mmta'	options.txt	/*'mmta'*
 'mod'	options.txt	/*'mod'*
 'modeline'	options.txt	/*'modeline'*
+'modelineexpr'	options.txt	/*'modelineexpr'*
 'modelines'	options.txt	/*'modelines'*
 'modifiable'	options.txt	/*'modifiable'*
 'modified'	options.txt	/*'modified'*
@@ -634,9 +636,11 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'nomagic'	options.txt	/*'nomagic'*
 'nomh'	options.txt	/*'nomh'*
 'noml'	options.txt	/*'noml'*
+'nomle'	options.txt	/*'nomle'*
 'nommta'	options.txt	/*'nommta'*
 'nomod'	options.txt	/*'nomod'*
 'nomodeline'	options.txt	/*'nomodeline'*
+'nomodelineexpr'	options.txt	/*'nomodelineexpr'*
 'nomodifiable'	options.txt	/*'nomodifiable'*
 'nomodified'	options.txt	/*'nomodified'*
 'nomore'	options.txt	/*'nomore'*
@@ -1201,6 +1205,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'wb'	options.txt	/*'wb'*
 'wc'	options.txt	/*'wc'*
 'wcm'	options.txt	/*'wcm'*
+'wcr'	options.txt	/*'wcr'*
 'wd'	options.txt	/*'wd'*
 'weirdinvert'	options.txt	/*'weirdinvert'*
 'wfh'	options.txt	/*'wfh'*
@@ -1219,6 +1224,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 'wildoptions'	options.txt	/*'wildoptions'*
 'wim'	options.txt	/*'wim'*
 'winaltkeys'	options.txt	/*'winaltkeys'*
+'wincolor'	options.txt	/*'wincolor'*
 'window'	options.txt	/*'window'*
 'winfixheight'	options.txt	/*'winfixheight'*
 'winfixwidth'	options.txt	/*'winfixwidth'*
@@ -3074,6 +3080,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 :sor	change.txt	/*:sor*
 :sort	change.txt	/*:sort*
 :source	repeat.txt	/*:source*
+:source!	repeat.txt	/*:source!*
 :source_crnl	repeat.txt	/*:source_crnl*
 :sp	windows.txt	/*:sp*
 :spe	spell.txt	/*:spe*
@@ -4788,6 +4795,8 @@ E989	eval.txt	/*E989*
 E99	diff.txt	/*E99*
 E990	eval.txt	/*E990*
 E991	eval.txt	/*E991*
+E992	options.txt	/*E992*
+E993	popup.txt	/*E993*
 E999	repeat.txt	/*E999*
 EX	intro.txt	/*EX*
 EXINIT	starting.txt	/*EXINIT*
@@ -6567,6 +6576,7 @@ g:Netrw_UserMaps	pi_netrw.txt	/*g:Netrw_UserMaps*
 g:Netrw_corehandler	pi_netrw.txt	/*g:Netrw_corehandler*
 g:Netrw_funcref	pi_netrw.txt	/*g:Netrw_funcref*
 g:actual_curbuf	options.txt	/*g:actual_curbuf*
+g:actual_curwin	options.txt	/*g:actual_curwin*
 g:ada#Comment	ft_ada.txt	/*g:ada#Comment*
 g:ada#Ctags_Kinds	ft_ada.txt	/*g:ada#Ctags_Kinds*
 g:ada#DotWordRegex	ft_ada.txt	/*g:ada#DotWordRegex*
@@ -6757,6 +6767,7 @@ g:rustfmt_autosave	ft_rust.txt	/*g:rustfmt_autosave*
 g:rustfmt_command	ft_rust.txt	/*g:rustfmt_command*
 g:rustfmt_fail_silently	ft_rust.txt	/*g:rustfmt_fail_silently*
 g:rustfmt_options	ft_rust.txt	/*g:rustfmt_options*
+g:statusline_winid	options.txt	/*g:statusline_winid*
 g:syntax_on	syntax.txt	/*g:syntax_on*
 g:tar_browseoptions	pi_tar.txt	/*g:tar_browseoptions*
 g:tar_cmd	pi_tar.txt	/*g:tar_cmd*
@@ -8228,6 +8239,7 @@ paragraph	motion.txt	/*paragraph*
 pascal.vim	syntax.txt	/*pascal.vim*
 patches-8	version8.txt	/*patches-8*
 patches-8.1	version8.txt	/*patches-8.1*
+patches-8.2	version8.txt	/*patches-8.2*
 pathshorten()	eval.txt	/*pathshorten()*
 pattern	pattern.txt	/*pattern*
 pattern-atoms	pattern.txt	/*pattern-atoms*
@@ -8306,6 +8318,7 @@ popup-functions	popup.txt	/*popup-functions*
 popup-intro	popup.txt	/*popup-intro*
 popup-menu	gui.txt	/*popup-menu*
 popup-menu-added	version5.txt	/*popup-menu-added*
+popup-position	popup.txt	/*popup-position*
 popup-props	popup.txt	/*popup-props*
 popup-window	popup.txt	/*popup-window*
 popup.txt	popup.txt	/*popup.txt*
@@ -8317,6 +8330,7 @@ popup_dialog()	popup.txt	/*popup_dialog()*
 popup_filter_menu()	popup.txt	/*popup_filter_menu()*
 popup_filter_yesno()	popup.txt	/*popup_filter_yesno()*
 popup_getoptions()	popup.txt	/*popup_getoptions()*
+popup_getpos()	popup.txt	/*popup_getpos()*
 popup_hide()	popup.txt	/*popup_hide()*
 popup_menu()	popup.txt	/*popup_menu()*
 popup_move()	popup.txt	/*popup_move()*
@@ -9963,6 +9977,7 @@ win32-vimrun	gui_w32.txt	/*win32-vimrun*
 win32-win3.1	os_win32.txt	/*win32-win3.1*
 win32-win95	os_win32.txt	/*win32-win95*
 win32s	os_win32.txt	/*win32s*
+win_execute()	eval.txt	/*win_execute()*
 win_findbuf()	eval.txt	/*win_findbuf()*
 win_getid()	eval.txt	/*win_getid()*
 win_gotoid()	eval.txt	/*win_gotoid()*

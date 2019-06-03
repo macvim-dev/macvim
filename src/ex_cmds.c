@@ -397,7 +397,7 @@ ex_sort(exarg_T *eap)
     sortbuf1 = NULL;
     sortbuf2 = NULL;
     regmatch.regprog = NULL;
-    nrs = (sorti_T *)lalloc((long_u)(count * sizeof(sorti_T)), TRUE);
+    nrs = ALLOC_MULT(sorti_T, count);
     if (nrs == NULL)
 	goto sortend;
 
@@ -595,10 +595,10 @@ ex_sort(exarg_T *eap)
     }
 
     /* Allocate a buffer that can hold the longest line. */
-    sortbuf1 = alloc((unsigned)maxlen + 1);
+    sortbuf1 = alloc(maxlen + 1);
     if (sortbuf1 == NULL)
 	goto sortend;
-    sortbuf2 = alloc((unsigned)maxlen + 1);
+    sortbuf2 = alloc(maxlen + 1);
     if (sortbuf2 == NULL)
 	goto sortend;
 
@@ -793,8 +793,7 @@ ex_retab(exarg_T *eap)
 			/* len is actual number of white characters used */
 			len = num_spaces + num_tabs;
 			old_len = (long)STRLEN(ptr);
-			new_line = lalloc(old_len - col + start_col + len + 1,
-									TRUE);
+			new_line = alloc(old_len - col + start_col + len + 1);
 			if (new_line == NULL)
 			    break;
 			if (start_col > 0)
@@ -1146,7 +1145,7 @@ do_bang(
 	    }
 	    len += (int)STRLEN(prevcmd);
 	}
-	if ((t = alloc((unsigned)len)) == NULL)
+	if ((t = alloc(len)) == NULL)
 	{
 	    vim_free(newcmd);
 	    return;
@@ -1209,7 +1208,7 @@ do_bang(
      */
     if (*p_shq != NUL)
     {
-	newcmd = alloc((unsigned)(STRLEN(prevcmd) + 2 * STRLEN(p_shq) + 1));
+	newcmd = alloc(STRLEN(prevcmd) + 2 * STRLEN(p_shq) + 1);
 	if (newcmd == NULL)
 	    return;
 	STRCPY(newcmd, p_shq);
@@ -1745,7 +1744,7 @@ make_filter_cmd(
 	len += (long_u)STRLEN(itmp) + 9;		/* " { < " + " } " */
     if (otmp != NULL)
 	len += (long_u)STRLEN(otmp) + (long_u)STRLEN(p_srr) + 2; /* "  " */
-    buf = lalloc(len, TRUE);
+    buf = alloc(len);
     if (buf == NULL)
 	return NULL;
 
@@ -2536,7 +2535,7 @@ viminfo_readstring(
     if (virp->vir_line[off] == Ctrl_V && vim_isdigit(virp->vir_line[off + 1]))
     {
 	len = atol((char *)virp->vir_line + off + 1);
-	retval = lalloc(len, TRUE);
+	retval = alloc(len);
 	if (retval == NULL)
 	{
 	    /* Line too long?  File messed up?  Skip next line. */
@@ -2747,7 +2746,7 @@ barline_parse(vir_T *virp, char_u *text, garray_T *values)
 		 */
 		++p;
 		len = getdigits(&p);
-		buf = alloc((int)(len + 1));
+		buf = alloc(len + 1);
 		if (buf == NULL)
 		    return TRUE;
 		p = buf;
@@ -3908,7 +3907,7 @@ do_ecmd(
 	    len = (int)STRLEN(command) + 3;
 	else
 	    len = 30;
-	p = alloc((unsigned)len);
+	p = alloc(len);
 	if (p != NULL)
 	{
 	    if (command != NULL)
@@ -5634,7 +5633,7 @@ do_sub(exarg_T *eap)
 		     * too many calls to alloc()/free()).
 		     */
 		    new_start_len = needed_len + 50;
-		    if ((new_start = alloc_check(new_start_len)) == NULL)
+		    if ((new_start = alloc(new_start_len)) == NULL)
 			goto outofmem;
 		    *new_start = NUL;
 		    new_end = new_start;
@@ -5651,7 +5650,7 @@ do_sub(exarg_T *eap)
 		    if (needed_len > (int)new_start_len)
 		    {
 			new_start_len = needed_len + 50;
-			if ((p1 = alloc_check(new_start_len)) == NULL)
+			if ((p1 = alloc(new_start_len)) == NULL)
 			{
 			    vim_free(new_start);
 			    goto outofmem;
@@ -7002,7 +7001,8 @@ fix_help_buffer(void)
 		copy_option_part(&p, NameBuff, MAXPATHL, ",");
 		mustfree = FALSE;
 		rt = vim_getenv((char_u *)"VIMRUNTIME", &mustfree);
-		if (rt != NULL && fullpathcmp(rt, NameBuff, FALSE) != FPC_SAME)
+		if (rt != NULL &&
+			    fullpathcmp(rt, NameBuff, FALSE, TRUE) != FPC_SAME)
 		{
 		    int		fcount;
 		    char_u	**fnames;
@@ -7224,7 +7224,7 @@ helptags_one(
      */
     ga_init2(&ga, (int)sizeof(char_u *), 100);
     if (add_help_tags || fullpathcmp((char_u *)"$VIMRUNTIME/doc",
-						      dir, FALSE) == FPC_SAME)
+						dir, FALSE, TRUE) == FPC_SAME)
     {
 	if (ga_grow(&ga, 1) == FAIL)
 	    got_int = TRUE;
@@ -7319,7 +7319,7 @@ helptags_one(
 			    got_int = TRUE;
 			    break;
 			}
-			s = alloc((unsigned)(p2 - p1 + STRLEN(fname) + 2));
+			s = alloc(p2 - p1 + STRLEN(fname) + 2);
 			if (s == NULL)
 			{
 			    got_int = TRUE;

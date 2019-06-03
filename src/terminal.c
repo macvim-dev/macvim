@@ -413,7 +413,7 @@ term_start(
 	return NULL;
     }
 
-    term = (term_T *)alloc_clear(sizeof(term_T));
+    term = ALLOC_CLEAR_ONE(term_T);
     if (term == NULL)
 	return NULL;
     term->tl_dirty_row_end = MAX_ROW;
@@ -534,7 +534,7 @@ term_start(
 	    cmd = (char_u*)"";
 
 	len = STRLEN(cmd) + 10;
-	p = alloc((int)len);
+	p = alloc(len);
 
 	for (i = 0; p != NULL; ++i)
 	{
@@ -1635,7 +1635,7 @@ update_snapshot(term_T *term)
 	    if (len == 0)
 		p = NULL;
 	    else
-		p = (cellattr_T *)alloc((int)sizeof(cellattr_T) * len);
+		p = ALLOC_MULT(cellattr_T, len);
 	    if ((p != NULL || len == 0)
 				     && ga_grow(&term->tl_scrollback, 1) == OK)
 	    {
@@ -2889,7 +2889,7 @@ handle_pushline(int cols, const VTermScreenCell *cells, void *user)
 
 	ga_init2(&ga, 1, 100);
 	if (len > 0)
-	    p = (cellattr_T *)alloc((int)sizeof(cellattr_T) * len);
+	    p = ALLOC_MULT(cellattr_T, len);
 	if (p != NULL)
 	{
 	    for (col = 0; col < len; col += cells[col].width)
@@ -3262,7 +3262,7 @@ update_system_term(term_T *term)
 	else
 	    pos.col = 0;
 
-	screen_line(term->tl_toprow + pos.row, 0, pos.col, Columns, FALSE);
+	screen_line(term->tl_toprow + pos.row, 0, pos.col, Columns, 0);
     }
 
     term->tl_dirty_row_start = MAX_ROW;
@@ -3373,7 +3373,7 @@ term_update_window(win_T *wp)
 #ifdef FEAT_MENU
 				+ winbar_height(wp)
 #endif
-				, wp->w_wincol, pos.col, wp->w_width, FALSE);
+				, wp->w_wincol, pos.col, wp->w_width, 0);
     }
     term->tl_dirty_row_start = MAX_ROW;
     term->tl_dirty_row_end = 0;
@@ -3723,7 +3723,7 @@ handle_drop_command(listitem_T *item)
 	    p = dict_get_string(dict, (char_u *)"encoding", FALSE);
 	if (p != NULL)
 	{
-	    ea.cmd = alloc((int)STRLEN(p) + 12);
+	    ea.cmd = alloc(STRLEN(p) + 12);
 	    if (ea.cmd != NULL)
 	    {
 		sprintf((char *)ea.cmd, "sbuf ++enc=%s", p);
@@ -3930,7 +3930,7 @@ static VTermParserCallbacks parser_fallbacks = {
     static void *
 vterm_malloc(size_t size, void *data UNUSED)
 {
-    return alloc_clear((unsigned) size);
+    return alloc_clear(size);
 }
 
     static void
@@ -4036,7 +4036,7 @@ term_get_status_text(term_T *term)
 	else
 	    txt = (char_u *)_("finished");
 	len = 9 + STRLEN(term->tl_buffer->b_fname) + STRLEN(txt);
-	term->tl_status_text = alloc((int)len);
+	term->tl_status_text = alloc(len);
 	if (term->tl_status_text != NULL)
 	    vim_snprintf((char *)term->tl_status_text, len, "%s [%s]",
 						term->tl_buffer->b_fname, txt);
@@ -4668,7 +4668,7 @@ term_load_dump(typval_T *argvars, typval_T *rettv, int do_diff)
     {
 	size_t len = STRLEN(fname1) + 12;
 
-	fname_tofree = alloc((int)len);
+	fname_tofree = alloc(len);
 	if (fname_tofree != NULL)
 	{
 	    vim_snprintf((char *)fname_tofree, len, "dump diff %s", fname1);
@@ -4940,7 +4940,7 @@ term_swap_diff()
     else
     {
 	size_t		size = sizeof(sb_line_T) * term->tl_scrollback.ga_len;
-	sb_line_T	*temp = (sb_line_T *)alloc((int)size);
+	sb_line_T	*temp = alloc(size);
 
 	/* need to copy cell properties into temp memory */
 	if (temp != NULL)
@@ -5805,7 +5805,7 @@ conpty_term_and_job_init(
     {
 	/* Request by CreateProcessW */
 	breq = wcslen(cmd_wchar) + 1 + 1;	/* Addition of NUL by API */
-	cmd_wchar_copy = (PWSTR)alloc((int)(breq * sizeof(WCHAR)));
+	cmd_wchar_copy = ALLOC_MULT(WCHAR, breq);
 	wcsncpy(cmd_wchar_copy, cmd_wchar, breq - 1);
     }
 
@@ -5834,8 +5834,7 @@ conpty_term_and_job_init(
 
     /* Set up pipe inheritance safely: Vista or later. */
     pInitializeProcThreadAttributeList(NULL, 1, 0, &breq);
-    term->tl_siex.lpAttributeList =
-	    (PPROC_THREAD_ATTRIBUTE_LIST)alloc((int)breq);
+    term->tl_siex.lpAttributeList = alloc(breq);
     if (!term->tl_siex.lpAttributeList)
 	goto failed;
     if (!pInitializeProcThreadAttributeList(term->tl_siex.lpAttributeList, 1,

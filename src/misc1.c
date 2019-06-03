@@ -2187,7 +2187,7 @@ vim_getenv(char_u *name, int *mustfree)
 		pend1 = remove_tail(p, pend, (char_u *)"MacOS");
 		if (pend1 != pend)
 		{
-		    pnew = alloc((unsigned)(pend1 - p) + 15);
+		    pnew = alloc(pend1 - p + 15);
 		    if (pnew != NULL)
 		    {
 			STRNCPY(pnew, p, (pend1 - p));
@@ -2348,7 +2348,7 @@ vim_setenv(char_u *name, char_u *val)
      * Putenv does not copy the string, it has to remain
      * valid.  The allocated memory will never be freed.
      */
-    envbuf = alloc((unsigned)(STRLEN(name) + STRLEN(val) + 2));
+    envbuf = alloc(STRLEN(name) + STRLEN(val) + 2);
     if (envbuf != NULL)
     {
 	sprintf((char *)envbuf, "%s=%s", name, val);
@@ -2698,13 +2698,15 @@ home_replace_save(
  * FPC_DIFF   if they both exist and are different files.
  * FPC_NOTX   if they both don't exist.
  * FPC_DIFFX  if one of them doesn't exist.
- * For the first name environment variables are expanded
+ * For the first name environment variables are expanded if "expandenv" is
+ * TRUE.
  */
     int
 fullpathcmp(
     char_u *s1,
     char_u *s2,
-    int	    checkname)		/* when both don't exist, check file names */
+    int	    checkname,		// when both don't exist, check file names
+    int	    expandenv)
 {
 #ifdef UNIX
     char_u	    exp1[MAXPATHL];
@@ -2713,7 +2715,10 @@ fullpathcmp(
     stat_T	    st1, st2;
     int		    r1, r2;
 
-    expand_env(s1, exp1, MAXPATHL);
+    if (expandenv)
+	expand_env(s1, exp1, MAXPATHL);
+    else
+	vim_strncpy(exp1, s1, MAXPATHL - 1);
     r1 = mch_stat((char *)exp1, &st1);
     r2 = mch_stat((char *)s2, &st2);
     if (r1 != 0 && r2 != 0)
@@ -2748,7 +2753,10 @@ fullpathcmp(
 	full1 = exp1 + MAXPATHL;
 	full2 = full1 + MAXPATHL;
 
-	expand_env(s1, exp1, MAXPATHL);
+	if (expandenv)
+	    expand_env(s1, exp1, MAXPATHL);
+	else
+	    vim_strncpy(exp1, s1, MAXPATHL - 1);
 	r1 = vim_FullName(exp1, full1, MAXPATHL, FALSE);
 	r2 = vim_FullName(s2, full2, MAXPATHL, FALSE);
 
@@ -3018,7 +3026,7 @@ concat_fnames(char_u *fname1, char_u *fname2, int sep)
 {
     char_u  *dest;
 
-    dest = alloc((unsigned)(STRLEN(fname1) + STRLEN(fname2) + 3));
+    dest = alloc(STRLEN(fname1) + STRLEN(fname2) + 3);
     if (dest != NULL)
     {
 	STRCPY(dest, fname1);
@@ -3039,7 +3047,7 @@ concat_str(char_u *str1, char_u *str2)
     char_u  *dest;
     size_t  l = STRLEN(str1);
 
-    dest = alloc((unsigned)(l + STRLEN(str2) + 1L));
+    dest = alloc(l + STRLEN(str2) + 1L);
     if (dest != NULL)
     {
 	STRCPY(dest, str1);
@@ -3075,7 +3083,7 @@ FullName_save(
     if (fname == NULL)
 	return NULL;
 
-    buf = alloc((unsigned)MAXPATHL);
+    buf = alloc(MAXPATHL);
     if (buf != NULL)
     {
 	if (vim_FullName(fname, buf, MAXPATHL, force) != FAIL)
@@ -3445,7 +3453,7 @@ dos_expandpath(
 
     // Make room for file name.  When doing encoding conversion the actual
     // length may be quite a bit longer, thus use the maximum possible length.
-    buf = alloc((int)MAXPATHL);
+    buf = alloc(MAXPATHL);
     if (buf == NULL)
 	return 0;
 
@@ -3689,7 +3697,7 @@ unix_expandpath(
     }
 
     /* make room for file name */
-    buf = alloc((int)STRLEN(path) + BASENAMELEN + 5);
+    buf = alloc(STRLEN(path) + BASENAMELEN + 5);
     if (buf == NULL)
 	return 0;
 
@@ -4034,7 +4042,7 @@ gen_expand_wildcards(
 	    /*
 	     * First expand environment variables, "~/" and "~user/".
 	     */
-	    if (has_env_var(p) || *p == '~')
+	    if ((has_env_var(p) && !(flags & EW_NOTENV)) || *p == '~')
 	    {
 		p = expand_env_save_opt(p, TRUE);
 		if (p == NULL)
@@ -4230,7 +4238,7 @@ addfile(
     if (ga_grow(gap, 1) == FAIL)
 	return;
 
-    p = alloc((unsigned)(STRLEN(f) + 1 + isdir));
+    p = alloc(STRLEN(f) + 1 + isdir);
     if (p == NULL)
 	return;
 
