@@ -42,8 +42,7 @@
 #  include "os_win32.pro"
 #  include "os_mswin.pro"
 #  include "winclip.pro"
-#  if (defined(__GNUC__) && !defined(__MINGW32__)) \
-	|| (defined(__BORLANDC__) && __BORLANDC__ < 0x502)
+#  if (defined(__GNUC__) && !defined(__MINGW32__))
 extern int _stricoll(char *a, char *b);
 #  endif
 # endif
@@ -64,6 +63,7 @@ extern int _stricoll(char *a, char *b);
 # endif
 # include "autocmd.pro"
 # include "buffer.pro"
+# include "change.pro"
 # include "charset.pro"
 # ifdef FEAT_CSCOPE
 #  include "if_cscope.pro"
@@ -108,73 +108,45 @@ extern int _stricoll(char *a, char *b);
 # endif
 
 /* These prototypes cannot be produced automatically. */
-int
-#  ifdef __BORLANDC__
-_RTLENTRYF
-#  endif
-smsg(const char *, ...)
+int smsg(const char *, ...)
 #ifdef USE_PRINTF_FORMAT_ATTRIBUTE
     __attribute__((format(printf, 1, 0)))
 #endif
     ;
 
-int
-#  ifdef __BORLANDC__
-_RTLENTRYF
-#  endif
-smsg_attr(int, const char *, ...)
+int smsg_attr(int, const char *, ...)
 #ifdef USE_PRINTF_FORMAT_ATTRIBUTE
     __attribute__((format(printf, 2, 3)))
 #endif
     ;
 
-int
-#  ifdef __BORLANDC__
-_RTLENTRYF
-#  endif
-smsg_attr_keep(int, const char *, ...)
+int smsg_attr_keep(int, const char *, ...)
 #ifdef USE_PRINTF_FORMAT_ATTRIBUTE
     __attribute__((format(printf, 2, 3)))
 #endif
     ;
 
 /* These prototypes cannot be produced automatically. */
-int
-#  ifdef __BORLANDC__
-_RTLENTRYF
-#  endif
-semsg(const char *, ...)
+int semsg(const char *, ...)
 #ifdef USE_PRINTF_FORMAT_ATTRIBUTE
     __attribute__((format(printf, 1, 0)))
 #endif
     ;
 
 /* These prototypes cannot be produced automatically. */
-void
-#  ifdef __BORLANDC__
-_RTLENTRYF
-#  endif
-siemsg(const char *, ...)
+void siemsg(const char *, ...)
 #ifdef USE_PRINTF_FORMAT_ATTRIBUTE
     __attribute__((format(printf, 1, 0)))
 #endif
     ;
 
-int
-#  ifdef __BORLANDC__
-_RTLENTRYF
-#  endif
-vim_snprintf_add(char *, size_t, const char *, ...)
+int vim_snprintf_add(char *, size_t, const char *, ...)
 #ifdef USE_PRINTF_FORMAT_ATTRIBUTE
     __attribute__((format(printf, 3, 4)))
 #endif
     ;
 
-int
-#  ifdef __BORLANDC__
-_RTLENTRYF
-#  endif
-vim_snprintf(char *, size_t, const char *, ...)
+int vim_snprintf(char *, size_t, const char *, ...)
 #ifdef USE_PRINTF_FORMAT_ATTRIBUTE
     __attribute__((format(printf, 3, 4)))
 #endif
@@ -209,7 +181,7 @@ void qsort(void *base, size_t elm_count, size_t elm_size, int (*cmp)(const void 
 # endif
 # include "search.pro"
 # ifdef FEAT_SIGNS
-# include "sign.pro"
+#  include "sign.pro"
 # endif
 # include "spell.pro"
 # include "spellfile.pro"
@@ -223,6 +195,7 @@ void qsort(void *base, size_t elm_count, size_t elm_size, int (*cmp)(const void 
 #  include "termlib.pro"
 # endif
 # ifdef FEAT_TEXT_PROP
+#  include "popupwin.pro"
 #  include "textprop.pro"
 # endif
 # include "ui.pro"
@@ -340,13 +313,7 @@ extern char *vim_SelFile(Widget toplevel, char *prompt, char *init_path, int (*s
  */
 #if defined(FEAT_PERL) && !defined(IN_PERL_FILE)
 # define CV void
-# ifdef __BORLANDC__
-  #pragma option -pc
-# endif
 # include "if_perl.pro"
-# ifdef __BORLANDC__
-  #pragma option -p.
-# endif
 # include "if_perlsfio.pro"
 #endif
 
@@ -362,9 +329,5 @@ void clip_mch_set_selection(VimClipboard *cbd);
 #endif
 #if defined(MACOS_X) && defined(FEAT_GUI)
 void macosx_fork();
-#endif
-
-#ifdef __BORLANDC__
-# define _PROTO_H
 #endif
 #endif /* !PROTO && !NOPROTO */

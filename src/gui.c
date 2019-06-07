@@ -69,7 +69,7 @@ gui_start(char_u *arg UNUSED)
 {
     char_u	*old_term;
     static int	recursive = 0;
-#ifdef GUI_MAY_SPAWN
+#if defined(GUI_MAY_SPAWN) && defined(EXPERIMENTAL_GUI_CMD)
     char	*msg = NULL;
 #endif
 
@@ -113,7 +113,10 @@ gui_start(char_u *arg UNUSED)
 # endif
 	    )
     {
-	msg = gui_mch_do_spawn(arg);
+# ifdef EXPERIMENTAL_GUI_CMD
+	msg =
+# endif
+	    gui_mch_do_spawn(arg);
     }
     else
 #endif
@@ -600,22 +603,22 @@ gui_init(void)
 #endif
 
 		if (       fullpathcmp((char_u *)USR_GVIMRC_FILE,
-				     (char_u *)GVIMRC_FILE, FALSE) != FPC_SAME
+				(char_u *)GVIMRC_FILE, FALSE, TRUE) != FPC_SAME
 #ifdef SYS_GVIMRC_FILE
 			&& fullpathcmp((char_u *)SYS_GVIMRC_FILE,
-				     (char_u *)GVIMRC_FILE, FALSE) != FPC_SAME
+				(char_u *)GVIMRC_FILE, FALSE, TRUE) != FPC_SAME
 #endif
 #ifdef USR_GVIMRC_FILE2
 			&& fullpathcmp((char_u *)USR_GVIMRC_FILE2,
-				     (char_u *)GVIMRC_FILE, FALSE) != FPC_SAME
+				(char_u *)GVIMRC_FILE, FALSE, TRUE) != FPC_SAME
 #endif
 #ifdef USR_GVIMRC_FILE3
 			&& fullpathcmp((char_u *)USR_GVIMRC_FILE3,
-				     (char_u *)GVIMRC_FILE, FALSE) != FPC_SAME
+				(char_u *)GVIMRC_FILE, FALSE, TRUE) != FPC_SAME
 #endif
 #ifdef USR_GVIMRC_FILE4
 			&& fullpathcmp((char_u *)USR_GVIMRC_FILE4,
-				     (char_u *)GVIMRC_FILE, FALSE) != FPC_SAME
+				(char_u *)GVIMRC_FILE, FALSE, TRUE) != FPC_SAME
 #endif
 			)
 		    do_source((char_u *)GVIMRC_FILE, TRUE, DOSO_GVIMRC);
@@ -2191,7 +2194,7 @@ gui_screenstr(
 
     if (enc_utf8)
     {
-	buf = alloc((unsigned)(len * MB_MAXBYTES + 1));
+	buf = alloc(len * MB_MAXBYTES + 1);
 	if (buf == NULL)
 	    return OK; /* not much we could do here... */
 
@@ -2214,7 +2217,7 @@ gui_screenstr(
     }
     else if (enc_dbcs == DBCS_JPNU)
     {
-	buf = alloc((unsigned)(len * 2 + 1));
+	buf = alloc(len * 2 + 1);
 	if (buf == NULL)
 	    return OK; /* not much we could do here... */
 
@@ -5167,6 +5170,9 @@ gui_update_screen(void)
 
     /* Trigger CursorMoved if the cursor moved. */
     if (!finish_op && (has_cursormoved()
+# ifdef FEAT_TEXT_PROP
+		|| popup_visible
+# endif
 # ifdef FEAT_CONCEAL
 		|| curwin->w_p_cole > 0
 # endif
@@ -5174,6 +5180,10 @@ gui_update_screen(void)
     {
 	if (has_cursormoved())
 	    apply_autocmds(EVENT_CURSORMOVED, NULL, NULL, FALSE, curbuf);
+#ifdef FEAT_TEXT_PROP
+	if (popup_visible)
+	    popup_check_cursor_pos();
+#endif
 # ifdef FEAT_CONCEAL
 	if (curwin->w_p_cole > 0)
 	{

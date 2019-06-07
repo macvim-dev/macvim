@@ -611,9 +611,24 @@ func Test_sub_cmd_8()
   set titlestring&
 endfunc
 
+func Test_sub_cmd_9()
+  new
+  let input = ['1 aaa', '2 aaa', '3 aaa']
+  call setline(1, input)
+  func Foo()
+    return submatch(0)
+  endfunc
+  %s/aaa/\=Foo()/gn
+  call assert_equal(input, getline(1, '$'))
+  call assert_equal(1, &modifiable)
+
+  delfunc Foo
+  bw!
+endfunc
+
 func Test_nocatch_sub_failure_handling()
   " normal error results in all replacements 
-  func! Foo()
+  func Foo()
     foobar
   endfunc
   new
@@ -638,6 +653,18 @@ func Test_nocatch_sub_failure_handling()
   call assert_equal(1, error_caught)
   call assert_equal(['1 aaa', '2 aaa', '3 aaa'], getline(1, 3))
 
+  " Same, but using "n" flag so that "sandbox" gets set
+  call setline(1, ['1 aaa', '2 aaa', '3 aaa'])
+  let error_caught = 0
+  try
+    %s/aaa/\=Foo()/gn
+  catch
+    let error_caught = 1
+  endtry
+  call assert_equal(1, error_caught)
+  call assert_equal(['1 aaa', '2 aaa', '3 aaa'], getline(1, 3))
+
+  delfunc Foo
   bwipe!
 endfunc
 

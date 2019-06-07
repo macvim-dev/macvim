@@ -52,6 +52,7 @@ func Test_empty()
   endif
 
   call assert_equal(0, empty(function('Test_empty')))
+  call assert_equal(0, empty(function('Test_empty', [0])))
 endfunc
 
 func Test_len()
@@ -237,7 +238,7 @@ endfunc
 func s:normalize_fname(fname)
   let ret = substitute(a:fname, '\', '/', 'g')
   let ret = substitute(ret, '//', '/', 'g')
-  let ret = tolower(ret)
+  return tolower(ret)
 endfunc
 
 func Test_resolve_win32()
@@ -275,6 +276,7 @@ func Test_resolve_win32()
   " test for symbolic link to a file
   new Xfile
   wq
+  call assert_equal('Xfile', resolve('Xfile'))
   silent !mklink Xlink Xfile
   if !v:shell_error
     call assert_equal(s:normalize_fname(getcwd() . '\Xfile'), s:normalize_fname(resolve('./Xlink')))
@@ -329,6 +331,22 @@ func Test_resolve_win32()
     echomsg 'skipped test for buffer name'
   endif
   call delete('Xfile')
+
+  " test for reparse point
+  call mkdir('Xdir')
+  call assert_equal('Xdir', resolve('Xdir'))
+  silent !mklink /D Xdirlink Xdir
+  if !v:shell_error
+    w Xdir/text.txt
+    call assert_equal('Xdir/text.txt', resolve('Xdir/text.txt'))
+    call assert_equal(s:normalize_fname(getcwd() . '\Xdir\text.txt'), s:normalize_fname(resolve('Xdirlink\text.txt')))
+    call assert_equal(s:normalize_fname(getcwd() . '\Xdir'), s:normalize_fname(resolve('Xdirlink')))
+    call delete('Xdirlink')
+  else
+    echomsg 'skipped test for reparse point'
+  endif
+
+  call delete('Xdir', 'rf')
 endfunc
 
 func Test_simplify()
@@ -869,6 +887,7 @@ func Test_count()
   call assert_equal(1, count(l, 'a', 0, 1))
   call assert_equal(2, count(l, 'a', 1, 1))
   call assert_fails('call count(l, "a", 0, 10)', 'E684:')
+  call assert_fails('call count(l, "a", [])', 'E745:')
 
   let d = {1: 'a', 2: 'a', 3: 'A', 4: 'b'}
   call assert_equal(2, count(d, 'a'))
@@ -896,6 +915,8 @@ func Test_count()
   call assert_equal(2, count("foo", "O", 1))
   call assert_equal(2, count("fooooo", "oo"))
   call assert_equal(0, count("foo", ""))
+
+  call assert_fails('call count(0, 0)', 'E712:')
 endfunc
 
 func Test_changenr()
@@ -1430,4 +1451,39 @@ func Test_readdir()
   call assert_equal(1, len(files))
 
   call delete('Xdir', 'rf')
+endfunc
+
+func Test_delete_rf()
+  call mkdir('Xdir')
+  call writefile([], 'Xdir/foo.txt')
+  call writefile([], 'Xdir/bar.txt')
+  call mkdir('Xdir/[a-1]')  " issue #696
+  call writefile([], 'Xdir/[a-1]/foo.txt')
+  call writefile([], 'Xdir/[a-1]/bar.txt')
+  call assert_true(filereadable('Xdir/foo.txt'))
+  call assert_true(filereadable('Xdir/[a-1]/foo.txt'))
+
+  call assert_equal(0, delete('Xdir', 'rf'))
+  call assert_false(filereadable('Xdir/foo.txt'))
+  call assert_false(filereadable('Xdir/[a-1]/foo.txt'))
+endfunc
+
+func Test_call()
+  call assert_equal(3, call('len', [123]))
+  call assert_fails("call call('len', 123)", 'E714:')
+  call assert_equal(0, call('', []))
+
+  function Mylen() dict
+     return len(self.data)
+  endfunction
+  let mydict = {'data': [0, 1, 2, 3], 'len': function("Mylen")}
+  call assert_fails("call call('Mylen', [], 0)", 'E715:')
+endfunc
+
+func Test_char2nr()
+  call assert_equal(12354, char2nr('あ', 1))
+endfunc
+
+func Test_eventhandler()
+  call assert_equal(0, eventhandler())
 endfunc

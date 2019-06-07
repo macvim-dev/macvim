@@ -395,6 +395,12 @@ static void	ex_folddo(exarg_T *eap);
 #ifndef FEAT_TERMINAL
 # define ex_terminal		ex_ni
 #endif
+#if !defined(FEAT_X11) || !defined(FEAT_XCLIPBOARD)
+# define ex_xrestore		ex_ni
+#endif
+#if !defined(FEAT_TEXT_PROP)
+# define ex_popupclear		ex_ni
+#endif
 
 #ifndef FEAT_GUI_MACVIM
 # define ex_macaction		ex_ni
@@ -4825,7 +4831,7 @@ replace_makeprg(exarg_T *eap, char_u *p, char_u **cmdlinep)
 	    while ((pos = (char_u *)strstr((char *)pos + 2, "$*")) != NULL)
 		++i;
 	    len = (int)STRLEN(p);
-	    new_cmdline = alloc((int)(STRLEN(program) + i * (len - 2) + 1));
+	    new_cmdline = alloc(STRLEN(program) + i * (len - 2) + 1);
 	    if (new_cmdline == NULL)
 		return NULL;			/* out of memory */
 	    ptr = new_cmdline;
@@ -4841,7 +4847,7 @@ replace_makeprg(exarg_T *eap, char_u *p, char_u **cmdlinep)
 	}
 	else
 	{
-	    new_cmdline = alloc((int)(STRLEN(program) + STRLEN(p) + 2));
+	    new_cmdline = alloc(STRLEN(program) + STRLEN(p) + 2);
 	    if (new_cmdline == NULL)
 		return NULL;			/* out of memory */
 	    STRCPY(new_cmdline, program);
@@ -5106,7 +5112,7 @@ repl_cmdline(
     i = (int)(src - *cmdlinep) + (int)STRLEN(src + srclen) + len + 3;
     if (eap->nextcmd != NULL)
 	i += (int)STRLEN(eap->nextcmd);/* add space for next command */
-    if ((new_cmdline = alloc((unsigned)i)) == NULL)
+    if ((new_cmdline = alloc(i)) == NULL)
 	return NULL;			/* out of memory! */
 
     /*
@@ -5461,6 +5467,8 @@ ex_doautocmd(exarg_T *eap)
     static void
 ex_bunload(exarg_T *eap)
 {
+    if (NOT_IN_POPUP_WINDOW)
+	return;
     eap->errmsg = do_bufdel(
 	    eap->cmdidx == CMD_bdelete ? DOBUF_DEL
 		: eap->cmdidx == CMD_bwipeout ? DOBUF_WIPE
@@ -5475,6 +5483,8 @@ ex_bunload(exarg_T *eap)
     static void
 ex_buffer(exarg_T *eap)
 {
+    if (NOT_IN_POPUP_WINDOW)
+	return;
     if (*eap->arg)
 	eap->errmsg = e_trailing;
     else
@@ -6559,7 +6569,7 @@ alist_unlink(alist_T *al)
     void
 alist_new(void)
 {
-    curwin->w_alist = (alist_T *)alloc((unsigned)sizeof(alist_T));
+    curwin->w_alist = ALLOC_ONE(alist_T);
     if (curwin->w_alist == NULL)
     {
 	curwin->w_alist = &global_alist;
@@ -6593,7 +6603,7 @@ alist_expand(int *fnum_list, int fnum_len)
      * expansion.  Also, the vimrc file isn't read yet, thus the user
      * can't set the options. */
     p_su = empty_option;
-    old_arg_files = (char_u **)alloc((unsigned)(sizeof(char_u *) * GARGCOUNT));
+    old_arg_files = ALLOC_MULT(char_u *, GARGCOUNT);
     if (old_arg_files != NULL)
     {
 	for (i = 0; i < GARGCOUNT; ++i)
@@ -6737,7 +6747,7 @@ ex_recover(exarg_T *eap)
 
 	    && (*eap->arg == NUL
 			     || setfname(curbuf, eap->arg, NULL, TRUE) == OK))
-	ml_recover();
+	ml_recover(TRUE);
     recoverymode = FALSE;
 }
 
@@ -6776,6 +6786,9 @@ ex_splitview(exarg_T *eap)
     int		use_tab = eap->cmdidx == CMD_tabedit
 		       || eap->cmdidx == CMD_tabfind
 		       || eap->cmdidx == CMD_tabnew;
+
+    if (NOT_IN_POPUP_WINDOW)
+	return;
 
 #ifdef FEAT_GUI
     need_mouse_correct = TRUE;
@@ -6904,6 +6917,8 @@ ex_tabnext(exarg_T *eap)
 {
     int tab_number;
 
+    if (NOT_IN_POPUP_WINDOW)
+	return;
     switch (eap->cmdidx)
     {
 	case CMD_tabfirst:
@@ -7155,6 +7170,8 @@ do_exedit(
     int		need_hide;
     int		exmode_was = exmode_active;
 
+    if (NOT_IN_POPUP_WINDOW)
+	return;
     /*
      * ":vi" command ends Ex mode.
      */
@@ -7530,17 +7547,17 @@ free_cd_dir(void)
 
 /*
  * Deal with the side effects of changing the current directory.
- * When "tablocal" is TRUE then this was after an ":tcd" command.
- * When "winlocal" is TRUE then this was after an ":lcd" command.
+ * When 'scope' is CDSCOPE_TABPAGE then this was after an ":tcd" command.
+ * When 'scope' is CDSCOPE_WINDOW then this was after an ":lcd" command.
  */
     void
-post_chdir(int tablocal, int winlocal)
+post_chdir(cdscope_T scope)
 {
-    if (!winlocal)
+    if (scope != CDSCOPE_WINDOW)
 	// Clear tab local directory for both :cd and :tcd
 	VIM_CLEAR(curtab->tp_localdir);
     VIM_CLEAR(curwin->w_localdir);
-    if (winlocal || tablocal)
+    if (scope != CDSCOPE_GLOBAL)
     {
 	/* If still in global directory, need to remember current
 	 * directory as global directory. */
@@ -7549,7 +7566,7 @@ post_chdir(int tablocal, int winlocal)
 	/* Remember this local directory for the window. */
 	if (mch_dirname(NameBuff, MAXPATHL) == OK)
 	{
-	    if (tablocal)
+	    if (scope == CDSCOPE_TABPAGE)
 		curtab->tp_localdir = vim_strsave(NameBuff);
 	    else
 		curwin->w_localdir = vim_strsave(NameBuff);
@@ -7565,6 +7582,96 @@ post_chdir(int tablocal, int winlocal)
     shorten_fnames(TRUE);
 }
 
+/*
+ * Change directory function used by :cd/:tcd/:lcd Ex commands and the
+ * chdir() function. If 'winlocaldir' is TRUE, then changes the window-local
+ * directory. If 'tablocaldir' is TRUE, then changes the tab-local directory.
+ * Otherwise changes the global directory.
+ * Returns TRUE if the directory is successfully changed.
+ */
+    int
+changedir_func(
+	char_u		*new_dir,
+	int		forceit,
+	cdscope_T	scope)
+{
+    char_u	*tofree;
+    int		dir_differs;
+    int		retval = FALSE;
+
+    if (allbuf_locked())
+	return FALSE;
+
+    if (vim_strchr(p_cpo, CPO_CHDIR) != NULL && curbufIsChanged() && !forceit)
+    {
+	emsg(_("E747: Cannot change directory, buffer is modified (add ! to override)"));
+	return FALSE;
+    }
+
+    // ":cd -": Change to previous directory
+    if (STRCMP(new_dir, "-") == 0)
+    {
+	if (prev_dir == NULL)
+	{
+	    emsg(_("E186: No previous directory"));
+	    return FALSE;
+	}
+	new_dir = prev_dir;
+    }
+
+    // Save current directory for next ":cd -"
+    tofree = prev_dir;
+    if (mch_dirname(NameBuff, MAXPATHL) == OK)
+	prev_dir = vim_strsave(NameBuff);
+    else
+	prev_dir = NULL;
+
+#if defined(UNIX) || defined(VMS)
+    // for UNIX ":cd" means: go to home directory
+    if (*new_dir == NUL)
+    {
+	// use NameBuff for home directory name
+# ifdef VMS
+	char_u	*p;
+
+	p = mch_getenv((char_u *)"SYS$LOGIN");
+	if (p == NULL || *p == NUL)	// empty is the same as not set
+	    NameBuff[0] = NUL;
+	else
+	    vim_strncpy(NameBuff, p, MAXPATHL - 1);
+# else
+	expand_env((char_u *)"$HOME", NameBuff, MAXPATHL);
+# endif
+	new_dir = NameBuff;
+    }
+#endif
+    dir_differs = new_dir == NULL || prev_dir == NULL
+	|| pathcmp((char *)prev_dir, (char *)new_dir, -1) != 0;
+    if (new_dir == NULL || (dir_differs && vim_chdir(new_dir)))
+	emsg(_(e_failed));
+    else
+    {
+	char_u  *acmd_fname;
+
+	post_chdir(scope);
+
+	if (dir_differs)
+	{
+	    if (scope == CDSCOPE_WINDOW)
+		acmd_fname = (char_u *)"window";
+	    else if (scope == CDSCOPE_TABPAGE)
+		acmd_fname = (char_u *)"tabpage";
+	    else
+		acmd_fname = (char_u *)"global";
+	    apply_autocmds(EVENT_DIRCHANGED, acmd_fname, new_dir, FALSE,
+								curbuf);
+	}
+	retval = TRUE;
+    }
+    vim_free(tofree);
+
+    return retval;
+}
 
 /*
  * ":cd", ":tcd", ":lcd", ":chdir" ":tchdir" and ":lchdir".
@@ -7573,94 +7680,28 @@ post_chdir(int tablocal, int winlocal)
 ex_cd(exarg_T *eap)
 {
     char_u	*new_dir;
-    char_u	*tofree;
-    int		dir_differs;
 
     new_dir = eap->arg;
 #if !defined(UNIX) && !defined(VMS)
-    /* for non-UNIX ":cd" means: print current directory */
+    // for non-UNIX ":cd" means: print current directory
     if (*new_dir == NUL)
 	ex_pwd(NULL);
     else
 #endif
     {
-	if (allbuf_locked())
-	    return;
-	if (vim_strchr(p_cpo, CPO_CHDIR) != NULL && curbufIsChanged()
-							     && !eap->forceit)
+	cdscope_T	scope = CDSCOPE_GLOBAL;
+
+	if (eap->cmdidx == CMD_lcd || eap->cmdidx == CMD_lchdir)
+	    scope = CDSCOPE_WINDOW;
+	else if (eap->cmdidx == CMD_tcd || eap->cmdidx == CMD_tchdir)
+	    scope = CDSCOPE_TABPAGE;
+
+	if (changedir_func(new_dir, eap->forceit, scope))
 	{
-	    emsg(_("E747: Cannot change directory, buffer is modified (add ! to override)"));
-	    return;
-	}
-
-	/* ":cd -": Change to previous directory */
-	if (STRCMP(new_dir, "-") == 0)
-	{
-	    if (prev_dir == NULL)
-	    {
-		emsg(_("E186: No previous directory"));
-		return;
-	    }
-	    new_dir = prev_dir;
-	}
-
-	/* Save current directory for next ":cd -" */
-	tofree = prev_dir;
-	if (mch_dirname(NameBuff, MAXPATHL) == OK)
-	    prev_dir = vim_strsave(NameBuff);
-	else
-	    prev_dir = NULL;
-
-#if defined(UNIX) || defined(VMS)
-	/* for UNIX ":cd" means: go to home directory */
-	if (*new_dir == NUL)
-	{
-	    /* use NameBuff for home directory name */
-# ifdef VMS
-	    char_u	*p;
-
-	    p = mch_getenv((char_u *)"SYS$LOGIN");
-	    if (p == NULL || *p == NUL)	/* empty is the same as not set */
-		NameBuff[0] = NUL;
-	    else
-		vim_strncpy(NameBuff, p, MAXPATHL - 1);
-# else
-	    expand_env((char_u *)"$HOME", NameBuff, MAXPATHL);
-# endif
-	    new_dir = NameBuff;
-	}
-#endif
-	dir_differs = new_dir == NULL || prev_dir == NULL
-			|| pathcmp((char *)prev_dir, (char *)new_dir, -1) != 0;
-	if (new_dir == NULL || (dir_differs && vim_chdir(new_dir)))
-	    emsg(_(e_failed));
-	else
-	{
-	    char_u  *acmd_fname;
-	    int is_winlocal_chdir = eap->cmdidx == CMD_lcd
-						  || eap->cmdidx == CMD_lchdir;
-	    int is_tablocal_chdir = eap->cmdidx == CMD_tcd
-						  || eap->cmdidx == CMD_tchdir;
-
-	    post_chdir(is_tablocal_chdir, is_winlocal_chdir);
-
-	    /* Echo the new current directory if the command was typed. */
+	    // Echo the new current directory if the command was typed.
 	    if (KeyTyped || p_verbose >= 5)
 		ex_pwd(eap);
-
-	    if (dir_differs)
-	    {
-		if (is_winlocal_chdir)
-		    acmd_fname = (char_u *)"window";
-		else if (is_tablocal_chdir)
-		    acmd_fname = (char_u *)"tabpage";
-		else
-		    acmd_fname = (char_u *)"global";
-		apply_autocmds(EVENT_DIRCHANGED, acmd_fname,
-		      new_dir, FALSE, curbuf);
-	    }
 	}
-	vim_free(tofree);
     }
 }
 
@@ -8837,7 +8878,7 @@ ex_normal(exarg_T *eap)
 	}
 	if (len > 0)
 	{
-	    arg = alloc((unsigned)(STRLEN(eap->arg) + len + 1));
+	    arg = alloc(STRLEN(eap->arg) + len + 1);
 	    if (arg != NULL)
 	    {
 		len = 0;
@@ -9626,7 +9667,7 @@ arg_all(void)
 	}
 
 	/* allocate memory */
-	retval = alloc((unsigned)len + 1);
+	retval = alloc(len + 1);
 	if (retval == NULL)
 	    break;
     }
@@ -10628,7 +10669,7 @@ get_view_file(int c)
     for (p = sname; *p; ++p)
 	if (*p == '=' || vim_ispathsep(*p))
 	    ++len;
-    retval = alloc((unsigned)(STRLEN(sname) + len + STRLEN(p_vdir) + 9));
+    retval = alloc(STRLEN(sname) + len + STRLEN(p_vdir) + 9);
     if (retval != NULL)
     {
 	STRCPY(retval, p_vdir);

@@ -3,6 +3,7 @@
 
 # source files for all source archives
 SRC_ALL =	\
+		.gitignore \
 		.hgignore \
 		.lgtm.yml \
 		.travis.yml \
@@ -19,6 +20,7 @@ SRC_ALL =	\
 		src/blob.c \
 		src/blowfish.c \
 		src/buffer.c \
+		src/change.c \
 		src/channel.c \
 		src/charset.c \
 		src/crypt.c \
@@ -77,6 +79,7 @@ SRC_ALL =	\
 		src/option.c \
 		src/option.h \
 		src/popupmnu.c \
+		src/popupwin.c \
 		src/quickfix.c \
 		src/regexp.c \
 		src/regexp_nfa.c \
@@ -115,6 +118,7 @@ SRC_ALL =	\
 		src/testdir/lsan-suppress.txt \
 		src/testdir/sautest/autoload/*.vim \
 		src/testdir/runtest.vim \
+		src/testdir/summarize.vim \
 		src/testdir/shared.vim \
 		src/testdir/screendump.vim \
 		src/testdir/view_util.vim \
@@ -154,6 +158,7 @@ SRC_ALL =	\
 		src/proto/blob.pro \
 		src/proto/blowfish.pro \
 		src/proto/buffer.pro \
+		src/proto/change.pro \
 		src/proto/channel.pro \
 		src/proto/charset.pro \
 		src/proto/crypt.pro \
@@ -197,6 +202,7 @@ SRC_ALL =	\
 		src/proto/ops.pro \
 		src/proto/option.pro \
 		src/proto/popupmnu.pro \
+		src/proto/popupwin.pro \
 		src/proto/quickfix.pro \
 		src/proto/regexp.pro \
 		src/proto/screen.pro \
@@ -420,11 +426,8 @@ SRC_DOS =	\
 		src/GvimExt/uninst.bat \
 		README_srcdos.txt \
 		src/INSTALLpc.txt \
-		src/Make_bc5.mak \
 		src/Make_cyg.mak \
 		src/Make_cyg_ming.mak \
-		src/Make_ivc.mak \
-		src/Make_dvc.mak \
 		src/Make_ming.mak \
 		src/Make_mvc.mak \
 		tools/rename.bat \
@@ -475,7 +478,6 @@ SRC_DOS =	\
 		src/xpm_w32.c \
 		src/xpm_w32.h \
 		src/tee/Make_mvc.mak \
-		src/xxd/Make_bc5.mak \
 		src/xxd/Make_ming.mak \
 		src/xxd/Make_mvc.mak \
 		nsis/gvim.nsi \

@@ -73,9 +73,8 @@ VIMPROG = <->vim.exe
 
 .SUFFIXES : .out .in
 
-SCRIPT = test1.out test3.out \
-       test29.out \
-       test30.out test37.out test39.out \
+SCRIPT = test1.out \
+       test39.out \
        test42.out test44.out test48.out test49.out \
        test64.out test69.out \
        test72.out test77a.out test88.out \
@@ -83,9 +82,6 @@ SCRIPT = test1.out test3.out \
        test_eval.out
 
 # Known problems:
-# test17: ?
-#
-# test30: bug, most probably - a problem around mac format
 #
 # test59: Failed/Hangs - VMS does not support spell files (file names
 # with too many dots).
@@ -102,7 +98,7 @@ GUI_OPTION = -g
 .ENDIF
 
 .IFDEF WANT_UNIX
-SCRIPT_UNIX = test10.out test17.out test27.out test49.out
+SCRIPT_UNIX = test10.out test27.out test49.out
 .ENDIF
 
 .IFDEF WANT_WIN

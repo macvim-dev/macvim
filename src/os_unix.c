@@ -1659,6 +1659,25 @@ may_restore_clipboard(void)
 	get_x11_title(FALSE);
     }
 }
+
+    void
+ex_xrestore(exarg_T *eap)
+{
+    if (eap->arg != NULL && STRLEN(eap->arg) > 0)
+    {
+        if (xterm_display_allocated)
+            vim_free(xterm_display);
+        xterm_display = (char *)vim_strsave(eap->arg);
+        xterm_display_allocated = TRUE;
+    }
+    smsg(_("restoring display %s"), xterm_display == NULL
+			      ? (char *)mch_getenv("DISPLAY") : xterm_display);
+
+    clear_xterm_clip();
+    x11_window = 0;
+    xterm_dpy_retry_count = 5;  // Try reconnecting five times
+    may_restore_clipboard();
+}
 #endif
 
 /*
@@ -1761,6 +1780,10 @@ get_x11_windis(void)
 	x11_window = (Window)atol(winid);
 
 #ifdef FEAT_XCLIPBOARD
+    if (xterm_dpy == x11_display)
+	// x11_display may have been set to xterm_dpy elsewhere
+	x11_display_from = XD_XTERM;
+
     if (xterm_dpy != NULL && x11_window != 0)
     {
 	/* We may have checked it already, but Gnome terminal can move us to
@@ -2426,7 +2449,8 @@ strerror(int err)
 #endif
 
 /*
- * Get name of current directory into buffer 'buf' of length 'len' bytes.
+ * Get name of current directory into buffer "buf" of length "len" bytes.
+ * "len" must be at least PATH_MAX.
  * Return OK for success, FAIL for failure.
  */
     int
@@ -2495,7 +2519,7 @@ mch_FullName(
     {
 	/*
 	 * If the file name has a path, change to that directory for a moment,
-	 * and then do the getwd() (and get back to where we were).
+	 * and then get the directory (and get back to where we were).
 	 * This will get the correct path name with "../" things.
 	 */
 	if (p != NULL)
@@ -3103,7 +3127,7 @@ mch_can_exe(char_u *name, char_u **path, int use_path)
     p = (char_u *)getenv("PATH");
     if (p == NULL || *p == NUL)
 	return -1;
-    buf = alloc((unsigned)(STRLEN(name) + STRLEN(p) + 2));
+    buf = alloc(STRLEN(name) + STRLEN(p) + 2);
     if (buf == NULL)
 	return -1;
 
@@ -3188,7 +3212,7 @@ mch_early_init(void)
      * Ignore any errors.
      */
 #if defined(HAVE_SIGALTSTACK) || defined(HAVE_SIGSTACK)
-    signal_stack = (char *)alloc(SIGSTKSZ);
+    signal_stack = alloc(SIGSTKSZ);
     init_signal_stack();
 #endif
 
@@ -4306,7 +4330,7 @@ build_argv(
 
 	/* Break 'shellcmdflag' into white separated parts.  This doesn't
 	 * handle quoted strings, they are very unlikely to appear. */
-	*shcf_tofree = alloc((unsigned)STRLEN(p_shcf) + 1);
+	*shcf_tofree = alloc(STRLEN(p_shcf) + 1);
 	if (*shcf_tofree == NULL)    /* out of memory */
 	    return FAIL;
 	s = *shcf_tofree;
@@ -4447,9 +4471,9 @@ mch_call_shell_system(
 	else
 	    x = system((char *)cmd);
 # else
-	newcmd = lalloc(STRLEN(p_sh)
+	newcmd = alloc(STRLEN(p_sh)
 		+ (extra_shell_arg == NULL ? 0 : STRLEN(extra_shell_arg))
-		+ STRLEN(p_shcf) + STRLEN(cmd) + 4, TRUE);
+		+ STRLEN(p_shcf) + STRLEN(cmd) + 4);
 	if (newcmd == NULL)
 	    x = 0;
 	else
@@ -6841,7 +6865,7 @@ mch_expand_wildcards(
 	goto notfound;
     }
     *num_file = i;
-    *file = (char_u **)alloc(sizeof(char_u *) * i);
+    *file = ALLOC_MULT(char_u *, i);
     if (*file == NULL)
     {
 	/* out of memory */
@@ -6898,7 +6922,7 @@ mch_expand_wildcards(
 		    && !mch_can_exe((*file)[i], NULL, !(flags & EW_SHELLCMD)))
 	    continue;
 
-	p = alloc((unsigned)(STRLEN((*file)[i]) + 1 + dir));
+	p = alloc(STRLEN((*file)[i]) + 1 + dir);
 	if (p)
 	{
 	    STRCPY(p, (*file)[i]);
@@ -6936,7 +6960,7 @@ save_patterns(
     int		i;
     char_u	*s;
 
-    *file = (char_u **)alloc(num_pat * sizeof(char_u *));
+    *file = ALLOC_MULT(char_u *, num_pat);
     if (*file == NULL)
 	return FAIL;
     for (i = 0; i < num_pat; i++)
@@ -7683,7 +7707,7 @@ do_xterm_trace(void)
     return TRUE;
 }
 
-# if defined(FEAT_GUI) || defined(PROTO)
+# if defined(FEAT_GUI) || defined(FEAT_XCLIPBOARD) || defined(PROTO)
 /*
  * Destroy the display, window and app_context.  Required for GTK.
  */

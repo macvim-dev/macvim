@@ -533,7 +533,7 @@ endfunc
 
 func Test_cursorline_after_yank()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot make screendumps'
   endif
 
   call writefile([
@@ -555,7 +555,7 @@ endfunc
 
 func Test_cursorline_with_visualmode()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot make screendumps'
   endif
 
   call writefile([
@@ -571,4 +571,38 @@ func Test_cursorline_with_visualmode()
   " clean up
   call StopVimInTerminal(buf)
   call delete('Xtest_cursorline_with_visualmode')
+endfunc
+
+func Test_wincolor()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+
+  call writefile([
+	\ 'set cursorline cursorcolumn rnu',
+	\ 'call setline(1, ["","1111111111","22222222222","3 here 3",""])',
+	\ 'set wincolor=Pmenu',
+	\ '/here',
+	\ ], 'Xtest_wincolor')
+  let buf = RunVimInTerminal('-S Xtest_wincolor', {'rows': 8})
+  call term_wait(buf)
+  call term_sendkeys(buf, "2G5lvj")
+  call term_wait(buf)
+
+  call VerifyScreenDump(buf, 'Test_wincolor_01', {})
+
+  " clean up
+  call term_sendkeys(buf, "\<Esc>")
+  call StopVimInTerminal(buf)
+  call delete('Xtest_wincolor')
+endfunc
+
+" This test must come before the Test_cursorline test, as it appears this
+" defines the Normal highlighting group anyway.
+func Test_1_highlight_Normalgroup_exists()
+  " MS-Windows GUI sets the font
+  if !has('win32') || !has('gui_running')
+    let hlNormal = HighlightArgs('Normal')
+    call assert_match('hi Normal\s*clear', hlNormal)
+  endif
 endfunc

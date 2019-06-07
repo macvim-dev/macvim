@@ -8,6 +8,7 @@ source shared.vim
 source screendump.vim
 
 let s:python = PythonProg()
+let $PROMPT_COMMAND=''
 
 " Open a terminal with a shell, assign the job to g:job and return the buffer
 " number.
@@ -1017,18 +1018,19 @@ endfunc
 " Run Vim, start a terminal in that Vim without the kill argument,
 " check that :qall does not exit, :qall! does.
 func Test_terminal_qall_exit()
-  let after = [
-	\ 'term',
-	\ 'let buf = bufnr("%")',
-	\ 'while term_getline(buf, 1) =~ "^\\s*$"',
-	\ '  sleep 10m',
-	\ 'endwhile',
-	\ 'set nomore',
-	\ 'au VimLeavePre * call writefile(["too early"], "Xdone")',
-	\ 'qall',
-	\ 'au! VimLeavePre * exe buf . "bwipe!" | call writefile(["done"], "Xdone")',
-	\ 'cquit',
-	\ ]
+  let after =<< trim [CODE]
+    term
+    let buf = bufnr("%")
+    while term_getline(buf, 1) =~ "^\\s*$"
+      sleep 10m
+    endwhile
+    set nomore
+    au VimLeavePre * call writefile(["too early"], "Xdone")
+    qall
+    au! VimLeavePre * exe buf . "bwipe!" | call writefile(["done"], "Xdone")
+    cquit
+  [CODE]
+
   if !RunVim([], after, '')
     return
   endif
@@ -1040,7 +1042,7 @@ endfunc
 " argument, check that :confirm qall works.
 func Test_terminal_qall_prompt()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let buf = RunVimInTerminal('', {})
 
@@ -1101,7 +1103,7 @@ endfunc
 
 func Test_terminal_dumpwrite_composing()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let save_enc = &encoding
   set encoding=utf-8
@@ -1123,11 +1125,30 @@ endfunc
 
 " just testing basic functionality.
 func Test_terminal_dumpload()
+  let curbuf = winbufnr('')
   call assert_equal(1, winnr('$'))
-  call term_dumpload('dumps/Test_popup_command_01.dump')
+  let buf = term_dumpload('dumps/Test_popup_command_01.dump')
   call assert_equal(2, winnr('$'))
   call assert_equal(20, line('$'))
   call Check_dump01(0)
+
+  " Load another dump in the same window
+  let buf2 = term_dumpload('dumps/Test_diff_01.dump', {'bufnr': buf})
+  call assert_equal(buf, buf2)
+  call assert_notequal('one two three four five', trim(getline(1)))
+
+  " Load the first dump again in the same window
+  let buf2 = term_dumpload('dumps/Test_popup_command_01.dump', {'bufnr': buf})
+  call assert_equal(buf, buf2)
+  call Check_dump01(0)
+
+  call assert_fails("call term_dumpload('dumps/Test_popup_command_01.dump', {'bufnr': curbuf})", 'E475:')
+  call assert_fails("call term_dumpload('dumps/Test_popup_command_01.dump', {'bufnr': 9999})", 'E86:')
+  new
+  let closedbuf = winbufnr('')
+  quit
+  call assert_fails("call term_dumpload('dumps/Test_popup_command_01.dump', {'bufnr': closedbuf})", 'E475:')
+
   quit
 endfunc
 
@@ -1208,7 +1229,7 @@ endfunc
 
 func Test_terminal_api_drop_newwin()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let buf = Api_drop_common('')
   call assert_equal(0, &bin)
@@ -1221,7 +1242,7 @@ endfunc
 
 func Test_terminal_api_drop_newwin_bin()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let buf = Api_drop_common(',{"bin":1}')
   call assert_equal(1, &bin)
@@ -1233,7 +1254,7 @@ endfunc
 
 func Test_terminal_api_drop_newwin_binary()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let buf = Api_drop_common(',{"binary":1}')
   call assert_equal(1, &bin)
@@ -1245,7 +1266,7 @@ endfunc
 
 func Test_terminal_api_drop_newwin_nobin()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   set binary
   let buf = Api_drop_common(',{"nobin":1}')
@@ -1259,7 +1280,7 @@ endfunc
 
 func Test_terminal_api_drop_newwin_nobinary()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   set binary
   let buf = Api_drop_common(',{"nobinary":1}')
@@ -1273,7 +1294,7 @@ endfunc
 
 func Test_terminal_api_drop_newwin_ff()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let buf = Api_drop_common(',{"ff":"dos"}')
   call assert_equal("dos", &ff)
@@ -1285,7 +1306,7 @@ endfunc
 
 func Test_terminal_api_drop_newwin_fileformat()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let buf = Api_drop_common(',{"fileformat":"dos"}')
   call assert_equal("dos", &ff)
@@ -1297,7 +1318,7 @@ endfunc
 
 func Test_terminal_api_drop_newwin_enc()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let buf = Api_drop_common(',{"enc":"utf-16"}')
   call assert_equal("utf-16", &fenc)
@@ -1309,7 +1330,7 @@ endfunc
 
 func Test_terminal_api_drop_newwin_encoding()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let buf = Api_drop_common(',{"encoding":"utf-16"}')
   call assert_equal("utf-16", &fenc)
@@ -1321,7 +1342,7 @@ endfunc
 
 func Test_terminal_api_drop_oldwin()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   let firstwinid = win_getid()
   split Xtextfile
@@ -1364,7 +1385,7 @@ endfunc
 
 func Test_terminal_api_call()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
 
   call WriteApiCall('Tapi_TryThis')
@@ -1381,7 +1402,7 @@ endfunc
 
 func Test_terminal_api_call_fails()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
 
   call WriteApiCall('TryThis')
@@ -1407,7 +1428,7 @@ endfunc
 
 func Test_terminal_api_call_fail_delete()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
 
   call WriteApiCall('Tapi_Delete')
@@ -1491,12 +1512,12 @@ endfunc
 
 func Test_terminal_all_ansi_colors()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
 
   " Use all the ANSI colors.
   call writefile([
-	\ 'call setline(1, "AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPP")',
+	\ 'call setline(1, "AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPP XXYYZZ")',
 	\ 'hi Tblack ctermfg=0 ctermbg=8',
 	\ 'hi Tdarkred ctermfg=1 ctermbg=9',
 	\ 'hi Tdarkgreen ctermfg=2 ctermbg=10',
@@ -1513,6 +1534,9 @@ func Test_terminal_all_ansi_colors()
 	\ 'hi Tmagenta ctermfg=13 ctermbg=5',
 	\ 'hi Tcyan ctermfg=14 ctermbg=6',
 	\ 'hi Twhite ctermfg=15 ctermbg=7',
+	\ 'hi TdarkredBold ctermfg=1 cterm=bold',
+	\ 'hi TgreenBold ctermfg=10 cterm=bold',
+	\ 'hi TmagentaBold ctermfg=13 cterm=bold ctermbg=5',
 	\ '',
 	\ 'call  matchadd("Tblack", "A")',
 	\ 'call  matchadd("Tdarkred", "B")',
@@ -1530,6 +1554,9 @@ func Test_terminal_all_ansi_colors()
 	\ 'call  matchadd("Tmagenta", "N")',
 	\ 'call  matchadd("Tcyan", "O")',
 	\ 'call  matchadd("Twhite", "P")',
+	\ 'call  matchadd("TdarkredBold", "X")',
+	\ 'call  matchadd("TgreenBold", "Y")',
+	\ 'call  matchadd("TmagentaBold", "Z")',
 	\ 'redraw',
 	\ ], 'Xcolorscript')
   let buf = RunVimInTerminal('-S Xcolorscript', {'rows': 10})
@@ -1542,7 +1569,7 @@ endfunc
 
 func Test_terminal_termwinsize_option_fixed()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
   set termwinsize=6x40
   let text = []
@@ -2008,7 +2035,7 @@ endfunc
 
 func Test_terminal_getwinpos()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot run Vim in a terminal window'
   endif
 
   " split, go to the bottom-right window

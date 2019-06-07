@@ -1,7 +1,7 @@
 " Tests for the +clientserver feature.
 
 if !has('job') || !has('clientserver') || (has('gui_macvim') && !has('gui_running'))
-  finish
+  throw 'Skipped: job and/or clientserver feature missing'
 endif
 
 source shared.vim

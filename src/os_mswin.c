@@ -172,26 +172,6 @@ int _chdrive(int drive)
     return !SetCurrentDirectory(temp);
 }
 # endif
-#else
-# ifdef __BORLANDC__
-/* being a more ANSI compliant compiler, BorlandC doesn't define _stricoll:
- * but it does in BC 5.02! */
-#  if __BORLANDC__ < 0x502
-int _stricoll(char *a, char *b)
-{
-#   if 1
-    // this is fast but not correct:
-    return stricmp(a, b);
-#   else
-    // the ANSI-ish correct way is to use strxfrm():
-    char a_buff[512], b_buff[512];  // file names, so this is enough on Win32
-    strxfrm(a_buff, a, 512);
-    strxfrm(b_buff, b, 512);
-    return strcoll(a_buff, b_buff);
-#   endif
-}
-#  endif
-# endif
 #endif
 
 
@@ -374,30 +354,22 @@ mch_FullName(
     int		force UNUSED)
 {
     int		nResult = FAIL;
+    WCHAR	*wname;
+    WCHAR	wbuf[MAX_PATH];
+    char_u	*cname = NULL;
 
-#ifdef __BORLANDC__
-    if (*fname == NUL) /* Borland behaves badly here - make it consistent */
-	nResult = mch_dirname(buf, len);
-    else
-#endif
+    wname = enc_to_utf16(fname, NULL);
+    if (wname != NULL && _wfullpath(wbuf, wname, MAX_PATH) != NULL)
     {
-	WCHAR	*wname;
-	WCHAR	wbuf[MAX_PATH];
-	char_u	*cname = NULL;
-
-	wname = enc_to_utf16(fname, NULL);
-	if (wname != NULL && _wfullpath(wbuf, wname, MAX_PATH) != NULL)
+	cname = utf16_to_enc((short_u *)wbuf, NULL);
+	if (cname != NULL)
 	{
-	    cname = utf16_to_enc((short_u *)wbuf, NULL);
-	    if (cname != NULL)
-	    {
-		vim_strncpy(buf, cname, len - 1);
-		nResult = OK;
-	    }
+	    vim_strncpy(buf, cname, len - 1);
+	    nResult = OK;
 	}
-	vim_free(wname);
-	vim_free(cname);
     }
+    vim_free(wname);
+    vim_free(cname);
 
 #ifdef USE_FNAME_CASE
     fname_case(buf, len);
@@ -918,7 +890,7 @@ mch_libcall(
 	else if (retval_str != NULL
 		&& (len = check_str_len(retval_str)) > 0)
 	{
-	    *string_result = lalloc((long_u)len, TRUE);
+	    *string_result = alloc(len);
 	    if (*string_result != NULL)
 		mch_memmove(*string_result, retval_str, len);
 	}
@@ -1494,8 +1466,8 @@ mch_print_init(prt_settings_T *psettings, char_u *jobname, int forceit)
 	char_u	*port_name = utf16_to_enc(wport_name, NULL);
 
 	if (printer_name != NULL && port_name != NULL)
-	    prt_name = alloc((unsigned)(STRLEN(printer_name)
-					+ STRLEN(port_name) + STRLEN(text)));
+	    prt_name = alloc(STRLEN(printer_name)
+					   + STRLEN(port_name) + STRLEN(text));
 	if (prt_name != NULL)
 	    wsprintf((char *)prt_name, (const char *)text,
 		    printer_name, port_name);
@@ -1781,6 +1753,39 @@ typedef BOOL (WINAPI *pfnGetVolumeInformationByHandleW)(
 	DWORD	nFileSystemNameSize);
 static pfnGetVolumeInformationByHandleW pGetVolumeInformationByHandleW = NULL;
 
+# define is_path_sep(c)	    ((c) == L'\\' || (c) == L'/')
+
+    static int
+is_reparse_point_included(LPCWSTR fname)
+{
+    LPCWSTR	p = fname, q;
+    WCHAR	buf[MAX_PATH];
+    DWORD	attr;
+
+    if (isalpha(p[0]) && p[1] == L':' && is_path_sep(p[2]))
+	p += 3;
+    else if (is_path_sep(p[0]) && is_path_sep(p[1]))
+	p += 2;
+
+    while (*p != L'\0')
+    {
+	q = wcspbrk(p, L"\\/");
+	if (q == NULL)
+	    p = q = fname + wcslen(fname);
+	else
+	    p = q + 1;
+	if (q - fname >= MAX_PATH)
+	    return FALSE;
+	wcsncpy(buf, fname, q - fname);
+	buf[q - fname] = L'\0';
+	attr = GetFileAttributesW(buf);
+	if (attr != INVALID_FILE_ATTRIBUTES
+		&& (attr & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+	    return TRUE;
+    }
+    return FALSE;
+}
+
     static char_u *
 resolve_reparse_point(char_u *fname)
 {
@@ -1815,7 +1820,7 @@ resolve_reparse_point(char_u *fname)
     if (p == NULL)
 	goto fail;
 
-    if ((GetFileAttributesW(p) & FILE_ATTRIBUTE_REPARSE_POINT) == 0)
+    if (!is_reparse_point_included(p))
     {
 	vim_free(p);
 	goto fail;
@@ -1829,7 +1834,7 @@ resolve_reparse_point(char_u *fname)
 	goto fail;
 
     size = sizeof(FILE_NAME_INFO_) + sizeof(WCHAR) * (MAX_PATH - 1);
-    nameinfo = (FILE_NAME_INFO_*)alloc(size + sizeof(WCHAR));
+    nameinfo = alloc(size + sizeof(WCHAR));
     if (nameinfo == NULL)
 	goto fail;
 
@@ -1863,7 +1868,7 @@ resolve_reparse_point(char_u *fname)
 	    GetLastError() != ERROR_MORE_DATA)
 	goto fail;
 
-    volnames = (WCHAR*)alloc(size * sizeof(WCHAR));
+    volnames = ALLOC_MULT(WCHAR, size);
     if (!GetVolumePathNamesForVolumeNameW(buff, volnames, size,
 		&size))
 	goto fail;
@@ -2044,9 +2049,6 @@ serverSendEnc(HWND target)
  * Clean up on exit. This destroys the hidden message window.
  */
     static void
-#ifdef __BORLANDC__
-    _RTLENTRYF
-#endif
 CleanUpMessaging(void)
 {
     if (message_window != 0)
@@ -2142,7 +2144,7 @@ Messaging_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		char	*err = _(e_invexprmsg);
 		size_t	len = STRLEN(str) + STRLEN(err) + 5;
 
-		res = alloc((unsigned)len);
+		res = alloc(len);
 		if (res != NULL)
 		    vim_snprintf((char *)res, len, "%s: \"%s\"", err, str);
 		reply.dwData = COPYDATA_ERROR_RESULT;
@@ -2371,7 +2373,7 @@ serverSetName(char_u *name)
     char_u	*p;
 
     /* Leave enough space for a 9-digit suffix to ensure uniqueness! */
-    ok_name = alloc((unsigned)STRLEN(name) + 10);
+    ok_name = alloc(STRLEN(name) + 10);
 
     STRCPY(ok_name, name);
     p = ok_name + STRLEN(name);
@@ -3109,7 +3111,7 @@ theend:
     if (ret == OK && printer_dc == NULL)
     {
 	vim_free(lastlf);
-	lastlf = (LOGFONTW *)alloc(sizeof(LOGFONTW));
+	lastlf = ALLOC_ONE(LOGFONTW);
 	if (lastlf != NULL)
 	    mch_memmove(lastlf, lf, sizeof(LOGFONTW));
     }

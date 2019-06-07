@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 8.1.  Last change: 2019 Mar 29
+*syntax.txt*	For Vim version 8.1.  Last change: 2019 Jun 01
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -4827,8 +4827,9 @@ cterm={attr-list}					*highlight-cterm*
 	The "cterm" argument is likely to be different from "term", when
 	colors are used.  For example, in a normal terminal comments could
 	be underlined, in a color terminal they can be made Blue.
-	Note: Many terminals (e.g., DOS console) can't mix these attributes
-	with coloring.	Use only one of "cterm=" OR "ctermfg=" OR "ctermbg=".
+	Note: Some terminals (e.g., DOS console) can't mix these attributes
+	with coloring.	To be portable, use only one of "cterm=" OR "ctermfg="
+	OR "ctermbg=".
 
 ctermfg={color-nr}				*highlight-ctermfg* *E421*
 ctermbg={color-nr}				*highlight-ctermbg*
@@ -5002,6 +5003,8 @@ Conceal		placeholder characters substituted for concealed
 		text (see 'conceallevel')
 							*hl-Cursor*
 Cursor		the character under the cursor
+lCursor		the character under the cursor when |language-mapping|
+		is used (see 'guicursor')
 							*hl-CursorIM*
 CursorIM	like Cursor, but used when in IME mode |CursorIM|
 							*hl-CursorColumn*
@@ -5207,6 +5210,15 @@ load the syntax file.
 The command also deletes the "b:current_syntax" variable, since no syntax is
 loaded after this command.
 
+To clean up specific syntax groups for the current buffer: >
+  :syntax clear {group-name} ..
+This removes all patterns and keywords for {group-name}.
+
+To clean up specific syntax group lists for the current buffer: >
+  :syntax clear @{grouplist-name} ..
+This sets {grouplist-name}'s contents to an empty list.
+
+						*:syntax-off* *:syn-off*
 If you want to disable syntax highlighting for all buffers, you need to remove
 the autocommands that load the syntax files: >
   :syntax off
@@ -5215,14 +5227,6 @@ What this command actually does, is executing the command >
   :source $VIMRUNTIME/syntax/nosyntax.vim
 See the "nosyntax.vim" file for details.  Note that for this to work
 $VIMRUNTIME must be valid.  See |$VIMRUNTIME|.
-
-To clean up specific syntax groups for the current buffer: >
-  :syntax clear {group-name} ..
-This removes all patterns and keywords for {group-name}.
-
-To clean up specific syntax group lists for the current buffer: >
-  :syntax clear @{grouplist-name} ..
-This sets {grouplist-name}'s contents to an empty list.
 
 						*:syntax-reset* *:syn-reset*
 If you have changed the colors and messed them up, use this command to get the

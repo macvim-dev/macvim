@@ -357,9 +357,6 @@ trunc_string(
 int vim_snprintf(char *str, size_t str_m, const char *fmt, ...);
 
     int
-# ifdef __BORLANDC__
-_RTLENTRYF
-# endif
 smsg(const char *s, ...)
 {
     va_list arglist;
@@ -371,9 +368,6 @@ smsg(const char *s, ...)
 }
 
     int
-# ifdef __BORLANDC__
-_RTLENTRYF
-# endif
 smsg_attr(int attr, const char *s, ...)
 {
     va_list arglist;
@@ -385,9 +379,6 @@ smsg_attr(int attr, const char *s, ...)
 }
 
     int
-# ifdef __BORLANDC__
-_RTLENTRYF
-# endif
 smsg_attr_keep(int attr, const char *s, ...)
 {
     va_list arglist;
@@ -446,7 +437,7 @@ get_emsg_source(void)
     if (sourcing_name != NULL && other_sourcing_name())
     {
 	p = (char_u *)_("Error detected while processing %s:");
-	Buf = alloc((unsigned)(STRLEN(sourcing_name) + STRLEN(p)));
+	Buf = alloc(STRLEN(sourcing_name) + STRLEN(p));
 	if (Buf != NULL)
 	    sprintf((char *)Buf, (char *)p, sourcing_name);
 	return Buf;
@@ -471,7 +462,7 @@ get_emsg_lnum(void)
 	    && sourcing_lnum != 0)
     {
 	p = (char_u *)_("line %4ld:");
-	Buf = alloc((unsigned)(STRLEN(p) + 20));
+	Buf = alloc(STRLEN(p) + 20);
 	if (Buf != NULL)
 	    sprintf((char *)Buf, (char *)p, (long)sourcing_lnum);
 	return Buf;
@@ -884,7 +875,7 @@ add_msg_hist(
 	(void)delete_first_msg();
 
     /* allocate an entry and add the message at the end of the history */
-    p = (struct msg_hist *)alloc((int)sizeof(struct msg_hist));
+    p = ALLOC_ONE(struct msg_hist);
     if (p != NULL)
     {
 	if (len < 0)
@@ -2374,7 +2365,7 @@ store_sb_text(
 
     if (s > *sb_str)
     {
-	mp = (msgchunk_T *)alloc((int)(sizeof(msgchunk_T) + (s - *sb_str)));
+	mp = alloc(sizeof(msgchunk_T) + (s - *sb_str));
 	if (mp != NULL)
 	{
 	    mp->sb_eol = finish;
@@ -2982,7 +2973,7 @@ mch_errmsg(char *str)
     int		len;
 #endif
 
-#if (defined(UNIX) || defined(FEAT_GUI)) && (!defined(ALWAYS_USE_GUI) || !defined(VIMDLL))
+#if (defined(UNIX) || defined(FEAT_GUI)) && !defined(ALWAYS_USE_GUI) && !defined(VIMDLL)
     /* On Unix use stderr if it's a tty.
      * When not going to start the GUI also use stderr.
      * On Mac, when started from Finder, stderr is the console. */
@@ -3085,7 +3076,7 @@ mch_msg_c(char *str)
     void
 mch_msg(char *str)
 {
-#if (defined(UNIX) || defined(FEAT_GUI)) && (!defined(ALWAYS_USE_GUI) || !defined(VIMDLL))
+#if (defined(UNIX) || defined(FEAT_GUI)) && !defined(ALWAYS_USE_GUI) && !defined(VIMDLL)
     /* On Unix use stdout if we have a tty.  This allows "vim -h | more" and
      * uses mch_errmsg() when started from the desktop.
      * When not going to start the GUI also use stdout.
@@ -3096,7 +3087,7 @@ mch_msg(char *str)
 	    (isatty(2) && strcmp("/dev/console", ttyname(2)) != 0)
 #  else
 	    isatty(2)
-#   endif
+#  endif
 #  ifdef FEAT_GUI
 	    ||
 #  endif

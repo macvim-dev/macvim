@@ -69,6 +69,8 @@ func Test_proptype_buf()
   call assert_equal(1, len(prop_type_list({'bufnr': bufnr})))
   call prop_type_delete('two', {'bufnr': bufnr})
   call assert_equal(0, len(prop_type_list({'bufnr': bufnr})))
+
+  call assert_fails("call prop_type_add('one', {'bufnr': 98764})", "E158:")
 endfunc
 
 func AddPropTypes()
@@ -124,6 +126,8 @@ func Test_prop_add()
   let expected = [{'col': 5, 'length': 0, 'type': 'two', 'id': 0, 'start': 1, 'end': 1}]
   call assert_equal(expected, prop_list(1))
 
+  call assert_fails("call prop_add(1, 5, {'type': 'two', 'bufnr': 234343})", 'E158:')
+
   call DeletePropTypes()
   bwipe!
 endfunc
@@ -136,14 +140,17 @@ func Test_prop_remove()
   call assert_equal(props, prop_list(1))
 
   " remove by id
-  call prop_remove({'id': 12}, 1)
+  call assert_equal(1, prop_remove({'id': 12}, 1))
   unlet props[2]
   call assert_equal(props, prop_list(1))
 
   " remove by type
-  call prop_remove({'type': 'one'}, 1)
+  call assert_equal(1, prop_remove({'type': 'one'}, 1))
   unlet props[1]
   call assert_equal(props, prop_list(1))
+
+  " remove from unknown buffer
+  call assert_fails("call prop_remove({'type': 'one', 'bufnr': 123456}, 1)", 'E158:')
 
   call DeletePropTypes()
   bwipe!
@@ -151,6 +158,7 @@ endfunc
 
 func SetupOneLine()
   call setline(1, 'xonex xtwoxx')
+  normal gg0
   call AddPropTypes()
   call prop_add(1, 2, {'length': 3, 'id': 11, 'type': 'one'})
   call prop_add(1, 8, {'length': 3, 'id': 12, 'type': 'two'})
@@ -268,6 +276,65 @@ func Test_prop_replace()
   call assert_equal(expected, prop_list(1))
 
   call DeletePropTypes()
+  bwipe!
+  set bs&
+endfunc
+
+func Test_prop_open_line()
+  new
+
+  " open new line, props stay in top line
+  let expected = SetupOneLine() " 'xonex xtwoxx'
+  exe "normal o\<Esc>"
+  call assert_equal('xonex xtwoxx', getline(1))
+  call assert_equal('', getline(2))
+  call assert_equal(expected, prop_list(1))
+  call DeletePropTypes()
+
+  " move all props to next line
+  let expected = SetupOneLine() " 'xonex xtwoxx'
+  exe "normal 0i\<CR>\<Esc>"
+  call assert_equal('', getline(1))
+  call assert_equal('xonex xtwoxx', getline(2))
+  call assert_equal(expected, prop_list(2))
+  call DeletePropTypes()
+
+  " split just before prop, move all props to next line
+  let expected = SetupOneLine() " 'xonex xtwoxx'
+  exe "normal 0li\<CR>\<Esc>"
+  call assert_equal('x', getline(1))
+  call assert_equal('onex xtwoxx', getline(2))
+  let expected[0].col -= 1
+  let expected[1].col -= 1
+  call assert_equal(expected, prop_list(2))
+  call DeletePropTypes()
+
+  " split inside prop, split first prop
+  let expected = SetupOneLine() " 'xonex xtwoxx'
+  exe "normal 0lli\<CR>\<Esc>"
+  call assert_equal('xo', getline(1))
+  call assert_equal('nex xtwoxx', getline(2))
+  let exp_first = [deepcopy(expected[0])]
+  let exp_first[0].length = 1
+  call assert_equal(exp_first, prop_list(1))
+  let expected[0].col = 1
+  let expected[0].length = 2
+  let expected[1].col -= 2
+  call assert_equal(expected, prop_list(2))
+  call DeletePropTypes()
+
+  " split just after first prop, second prop move to next line
+  let expected = SetupOneLine() " 'xonex xtwoxx'
+  exe "normal 0fea\<CR>\<Esc>"
+  call assert_equal('xone', getline(1))
+  call assert_equal('x xtwoxx', getline(2))
+  let exp_first = expected[0:0]
+  call assert_equal(exp_first, prop_list(1))
+  let expected = expected[1:1]
+  let expected[0].col -= 4
+  call assert_equal(expected, prop_list(2))
+  call DeletePropTypes()
+
   bwipe!
   set bs&
 endfunc
@@ -548,25 +615,70 @@ func Test_prop_undo()
   let expected[0].length = 2
   call assert_equal(expected, prop_list(1))
 
+  " substitute a word, then undo
+  call setline(1, 'the number 123 is highlighted.')
+  call prop_add(1, 12, {'length': 3, 'type': 'comment'})
+  let expected = [{'col': 12, 'length': 3, 'id': 0, 'type': 'comment', 'start': 1, 'end': 1} ]
+  call assert_equal(expected, prop_list(1))
+  set ul&
+  1s/number/foo
+  let expected[0].col = 9
+  call assert_equal(expected, prop_list(1))
+  undo
+  let expected[0].col = 12
+  call assert_equal(expected, prop_list(1))
+  call prop_clear(1)
+
+  " substitute with backslash
+  call setline(1, 'the number 123 is highlighted.')
+  call prop_add(1, 12, {'length': 3, 'type': 'comment'})
+  let expected = [{'col': 12, 'length': 3, 'id': 0, 'type': 'comment', 'start': 1, 'end': 1} ]
+  call assert_equal(expected, prop_list(1))
+  1s/the/\The
+  call assert_equal(expected, prop_list(1))
+  1s/^/\\
+  let expected[0].col += 1
+  call assert_equal(expected, prop_list(1))
+  1s/^/\~
+  let expected[0].col += 1
+  call assert_equal(expected, prop_list(1))
+  1s/123/12\\3
+  let expected[0].length += 1
+  call assert_equal(expected, prop_list(1))
+  call prop_clear(1)
+
   bwipe!
   call prop_type_delete('comment')
 endfunc
 
 " screenshot test with textprop highlighting
-funct Test_textprop_screenshots()
+func Test_textprop_screenshot_various()
   " The Vim running in the terminal needs to use utf-8.
   if !CanRunVimInTerminal() || g:orig_encoding != 'utf-8'
-    return
+    throw 'Skipped: cannot make screendumps or not using utf-8'
   endif
   call writefile([
-	\ "call setline(1, ['One two', 'Numbér 123 änd thœn 4¾7.', '--aa--bb--cc--dd--'])",
+	\ "call setline(1, ["
+	\	.. "'One two',"
+	\	.. "'Numbér 123 änd thœn 4¾7.',"
+	\	.. "'--aa--bb--cc--dd--',"
+	\	.. "'// comment with error in it',"
+	\	.. "'first line',"
+	\	.. "'  second line  ',"
+	\	.. "'third line',"
+	\	.. "'   fourth line',"
+	\	.. "])",
 	\ "hi NumberProp ctermfg=blue",
 	\ "hi LongProp ctermbg=yellow",
+	\ "hi BackgroundProp ctermbg=lightgrey",
+	\ "hi UnderlineProp cterm=underline",
 	\ "call prop_type_add('number', {'highlight': 'NumberProp'})",
 	\ "call prop_type_add('long', {'highlight': 'LongProp'})",
 	\ "call prop_type_add('start', {'highlight': 'NumberProp', 'start_incl': 1})",
 	\ "call prop_type_add('end', {'highlight': 'NumberProp', 'end_incl': 1})",
 	\ "call prop_type_add('both', {'highlight': 'NumberProp', 'start_incl': 1, 'end_incl': 1})",
+	\ "call prop_type_add('background', {'highlight': 'BackgroundProp', 'combine': 1})",
+	\ "call prop_type_add('error', {'highlight': 'UnderlineProp', 'combine': 1})",
 	\ "call prop_add(1, 4, {'end_lnum': 3, 'end_col': 3, 'type': 'long'})",
 	\ "call prop_add(2, 9, {'length': 3, 'type': 'number'})",
 	\ "call prop_add(2, 24, {'length': 4, 'type': 'number'})",
@@ -574,16 +686,106 @@ funct Test_textprop_screenshots()
 	\ "call prop_add(3, 7, {'length': 2, 'type': 'start'})",
 	\ "call prop_add(3, 11, {'length': 2, 'type': 'end'})",
 	\ "call prop_add(3, 15, {'length': 2, 'type': 'both'})",
-	\ "set number",
+	\ "call prop_add(4, 12, {'length': 10, 'type': 'background'})",
+	\ "call prop_add(4, 17, {'length': 5, 'type': 'error'})",
+	\ "call prop_add(5, 7, {'length': 4, 'type': 'long'})",
+	\ "call prop_add(6, 1, {'length': 8, 'type': 'long'})",
+	\ "call prop_add(8, 1, {'length': 1, 'type': 'long'})",
+	\ "call prop_add(8, 11, {'length': 4, 'type': 'long'})",
+	\ "set number cursorline",
 	\ "hi clear SpellBad",
 	\ "set spell",
+	\ "syn match Comment '//.*'",
+	\ "hi Comment ctermfg=green",
 	\ "normal 3G0llix\<Esc>lllix\<Esc>lllix\<Esc>lllix\<Esc>lllix\<Esc>lllix\<Esc>lllix\<Esc>lllix\<Esc>",
 	\ "normal 3G0lli\<BS>\<Esc>",
+	\ "normal 6G0i\<BS>\<Esc>",
+	\ "normal 3J",
+	\ "normal 3G",
 	\], 'XtestProp')
-  let buf = RunVimInTerminal('-S XtestProp', {'rows': 6})
+  let buf = RunVimInTerminal('-S XtestProp', {'rows': 8})
   call VerifyScreenDump(buf, 'Test_textprop_01', {})
 
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestProp')
+endfunc
+
+func RunTestVisualBlock(width, dump)
+  call writefile([
+	\ "call setline(1, ["
+	\	.. "'xxxxxxxxx 123 x',"
+	\	.. "'xxxxxxxx 123 x',"
+	\	.. "'xxxxxxx 123 x',"
+	\	.. "'xxxxxx 123 x',"
+	\	.. "'xxxxx 123 x',"
+	\	.. "'xxxx 123 xx',"
+	\	.. "'xxx 123 xxx',"
+	\	.. "'xx 123 xxxx',"
+	\	.. "'x 123 xxxxx',"
+	\	.. "' 123 xxxxxx',"
+	\	.. "])",
+	\ "hi SearchProp ctermbg=yellow",
+	\ "call prop_type_add('search', {'highlight': 'SearchProp'})",
+	\ "call prop_add(1, 11, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(2, 10, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(3, 9, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(4, 8, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(5, 7, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(6, 6, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(7, 5, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(8, 4, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(9, 3, {'length': 3, 'type': 'search'})",
+	\ "call prop_add(10, 2, {'length': 3, 'type': 'search'})",
+	\ "normal 1G6|\<C-V>" .. repeat('l', a:width - 1) .. "10jx",
+	\], 'XtestPropVis')
+  let buf = RunVimInTerminal('-S XtestPropVis', {'rows': 12})
+  call VerifyScreenDump(buf, 'Test_textprop_vis_' .. a:dump, {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPropVis')
+endfunc
+
+" screenshot test with Visual block mode operations
+func Test_textprop_screenshot_visual()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+
+  " Delete two columns while text props are three chars wide.
+  call RunTestVisualBlock(2, '01')
+
+  " Same, but delete four columns
+  call RunTestVisualBlock(4, '02')
+endfunc
+
+" Adding a text property to a new buffer should not fail
+func Test_textprop_empty_buffer()
+  call prop_type_add('comment', {'highlight': 'Search'})
+  new
+  call prop_add(1, 1, {'type': 'comment'})
+  close
+  call prop_type_delete('comment')
+endfunc
+
+" Adding a text property to an empty buffer and then editing another
+func Test_textprop_empty_buffer_next()
+  call prop_type_add("xxx", {})
+  call prop_add(1, 1, {"type": "xxx"})
+  next X
+  call prop_type_delete('xxx')
+endfunc
+
+func Test_textprop_remove_from_buf()
+  new
+  let buf = bufnr('')
+  call prop_type_add('one', {'bufnr': buf})
+  call prop_add(1, 1, {'type': 'one', 'id': 234})
+  file x
+  edit y
+  call prop_remove({'id': 234, 'bufnr': buf}, 1)
+  call prop_type_delete('one', {'bufnr': buf})
+  bwipe! x
+  close
 endfunc

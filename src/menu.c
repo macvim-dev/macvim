@@ -584,7 +584,7 @@ add_menu_path(
 	    }
 
 	    /* Not already there, so lets add it */
-	    menu = (vimmenu_T *)alloc_clear((unsigned)sizeof(vimmenu_T));
+	    menu = (vimmenu_T *)alloc_clear(sizeof(vimmenu_T));
 	    if (menu == NULL)
 		goto erret;
 
@@ -695,7 +695,7 @@ add_menu_path(
 		 * \'s and ^V's stripped out. But menu_path is a "raw"
 		 * string, so we must correct for special characters.
 		 */
-		tearpath = alloc((unsigned int)STRLEN(menu_path) + TEAR_LEN + 2);
+		tearpath = alloc(STRLEN(menu_path) + TEAR_LEN + 2);
 		if (tearpath != NULL)
 		{
 		    char_u  *s;
@@ -781,7 +781,7 @@ add_menu_path(
 
 		if (c != 0)
 		{
-		    menu->strings[i] = alloc((unsigned)(STRLEN(call_data) + 5 ));
+		    menu->strings[i] = alloc(STRLEN(call_data) + 5);
 		    if (menu->strings[i] != NULL)
 		    {
 			menu->strings[i][0] = c;
@@ -1322,7 +1322,7 @@ set_context_in_menu_cmd(
 	menu = root_menu;
 	if (after_dot != arg)
 	{
-	    path_name = alloc((unsigned)(after_dot - arg));
+	    path_name = alloc(after_dot - arg);
 	    if (path_name == NULL)
 		return NULL;
 	    vim_strncpy(path_name, arg, after_dot - arg - 1);
@@ -2350,8 +2350,8 @@ execute_menu(exarg_T *eap, vimmenu_T *menu, int mode_idx)
     if (idx == -1 || eap == NULL)
 	idx = MENU_INDEX_NORMAL;
 
-    if (idx != MENU_INDEX_INVALID && menu->strings[idx] != NULL &&
-	    menu->strings[idx][0] != NUL)
+    if (idx != MENU_INDEX_INVALID && menu->strings[idx] != NULL
+						 && (menu->modes & (1 << idx)))
     {
 
 	/* When executing a script or function execute the commands right now.

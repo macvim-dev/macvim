@@ -555,7 +555,7 @@ endfunc
 
 func Test_tabpage_cmdheight()
   if !CanRunVimInTerminal()
-    throw 'Skipped: only works with terminal'
+    throw 'Skipped: cannot make screendumps'
   endif
   call writefile([
         \ 'set laststatus=2',
@@ -573,7 +573,7 @@ func Test_tabpage_cmdheight()
   call VerifyScreenDump(buf, 'Test_tabpage_cmdheight', {})
 
   call StopVimInTerminal(buf)
-  call delete('XTest_conceal')
+  call delete('XTest_tabpage_cmdheight')
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

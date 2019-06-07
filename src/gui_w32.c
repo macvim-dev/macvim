@@ -1303,9 +1303,6 @@ gui_mch_def_colors(void)
     int
 gui_mch_open(void)
 {
-#ifndef SW_SHOWDEFAULT
-# define SW_SHOWDEFAULT 10	/* Borland 5.0 doesn't have it */
-#endif
     /* Actually open the window, if not already visible
      * (may be done already in gui_mch_set_shellsize) */
     if (!IsWindowVisible(s_hwnd))
@@ -1455,10 +1452,16 @@ GetFontSize(GuiFont font)
     HWND    hwnd = GetDesktopWindow();
     HDC	    hdc = GetWindowDC(hwnd);
     HFONT   hfntOld = SelectFont(hdc, (HFONT)font);
+    SIZE    size;
     TEXTMETRIC tm;
 
     GetTextMetrics(hdc, &tm);
-    gui.char_width = tm.tmAveCharWidth + tm.tmOverhang;
+    // GetTextMetrics() may not return the right value in tmAveCharWidth
+    // for some fonts.  Do our own average computation.
+    GetTextExtentPoint(hdc,
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+	    52, &size);
+    gui.char_width = (size.cx / 26 + 1) / 2 + tm.tmOverhang;
 
     gui.char_height = tm.tmHeight + p_linespace;
 
@@ -3117,9 +3120,9 @@ logfont2name(LOGFONTW lf)
     charset_name = charset_id2name((int)lf.lfCharSet);
     quality_name = quality_id2name((int)lf.lfQuality);
 
-    res = (char *)alloc((unsigned)(strlen(font_name) + 30
+    res = alloc(strlen(font_name) + 30
 		    + (charset_name == NULL ? 0 : strlen(charset_name) + 2)
-		    + (quality_name == NULL ? 0 : strlen(quality_name) + 2)));
+		    + (quality_name == NULL ? 0 : strlen(quality_name) + 2));
     if (res != NULL)
     {
 	p = res;
@@ -3636,7 +3639,7 @@ _OnDropFiles(
 
     reset_VIsual();
 
-    fnames = (char_u **)alloc(cFiles * sizeof(char_u *));
+    fnames = ALLOC_MULT(char_u *, cFiles);
 
     if (fnames != NULL)
 	for (i = 0; i < cFiles; ++i)
@@ -3793,9 +3796,6 @@ _OnScroll(
  * Add a lot of missing defines.
  * They are not always missing, we need the #ifndef's.
  */
-# ifndef _cdecl
-#  define _cdecl
-# endif
 # ifndef IsMinimized
 #  define     IsMinimized(hwnd)		IsIconic(hwnd)
 # endif
@@ -4821,6 +4821,10 @@ ole_error(char *arg)
 {
     char buf[IOSIZE];
 
+# ifdef VIMDLL
+    gui.in_use = mch_is_gui_executable();
+# endif
+
     /* Can't use emsg() here, we have not finished initialisation yet. */
     vim_snprintf(buf, IOSIZE,
 	    _("E243: Argument not supported: \"-%s\"; Use the OLE version."),
@@ -4912,7 +4916,7 @@ gui_mch_do_spawn(char_u *arg)
 	if (wsession == NULL)
 	    goto error;
 	len = (int)wcslen(wsession) * 2 + 27 + 1;
-	cmd = (LPWSTR)alloc(len * (int)sizeof(WCHAR));
+	cmd = ALLOC_MULT(WCHAR, len);
 	if (cmd == NULL)
 	{
 	    vim_free(wsession);
@@ -4938,7 +4942,7 @@ gui_mch_do_spawn(char_u *arg)
 
     // Set up the new command line.
     len = (int)wcslen(name) + (int)wcslen(cmd) + (int)wcslen(warg) + 4;
-    newcmd = (LPWSTR)alloc(len * (int)sizeof(WCHAR));
+    newcmd = ALLOC_MULT(WCHAR, len);
     if (newcmd == NULL)
 	goto error;
     _snwprintf(newcmd, len, L"\"%s\"%s %s", name, cmd, warg);
@@ -5289,11 +5293,9 @@ gui_mch_init(void)
 
     /* Initialise the struct */
     s_findrep_struct.lStructSize = sizeof(s_findrep_struct);
-    s_findrep_struct.lpstrFindWhat =
-			      (LPWSTR)alloc(MSWIN_FR_BUFSIZE * sizeof(WCHAR));
+    s_findrep_struct.lpstrFindWhat = ALLOC_MULT(WCHAR, MSWIN_FR_BUFSIZE);
     s_findrep_struct.lpstrFindWhat[0] = NUL;
-    s_findrep_struct.lpstrReplaceWith =
-			      (LPWSTR)alloc(MSWIN_FR_BUFSIZE * sizeof(WCHAR));
+    s_findrep_struct.lpstrReplaceWith = ALLOC_MULT(WCHAR, MSWIN_FR_BUFSIZE);
     s_findrep_struct.lpstrReplaceWith[0] = NUL;
     s_findrep_struct.wFindWhatLen = MSWIN_FR_BUFSIZE;
     s_findrep_struct.wReplaceWithLen = MSWIN_FR_BUFSIZE;
@@ -5511,7 +5513,7 @@ gui_mch_set_sp_color(guicolor_T color)
  * First static functions (no prototypes generated).
  */
 # ifdef _MSC_VER
-#  include <ime.h>   /* Apparently not needed for Cygwin, MingW or Borland. */
+#  include <ime.h>   /* Apparently not needed for Cygwin or MinGW. */
 # endif
 # include <imm.h>
 
@@ -5609,7 +5611,7 @@ GetCompositionString_inUCS2(HIMC hIMC, DWORD GCS, int *lenp)
     if (ret > 0)
     {
 	/* Allocate the requested buffer plus space for the NUL character. */
-	wbuf = (LPWSTR)alloc(ret + sizeof(WCHAR));
+	wbuf = alloc(ret + sizeof(WCHAR));
 	if (wbuf != NULL)
 	{
 	    pImmGetCompositionStringW(hIMC, GCS, wbuf, ret);
@@ -6054,7 +6056,7 @@ gui_mch_draw_string(
 
 	/* Don't give an out-of-memory message here, it would call us
 	 * recursively. */
-	padding = (int *)lalloc(pad_size * sizeof(int), FALSE);
+	padding = LALLOC_MULT(int, pad_size);
 	if (padding != NULL)
 	    for (i = 0; i < pad_size; i++)
 		padding[i] = gui.char_width;
@@ -6091,10 +6093,10 @@ gui_mch_draw_string(
 	    && (unicodebuf == NULL || len > unibuflen))
     {
 	vim_free(unicodebuf);
-	unicodebuf = (WCHAR *)lalloc(len * sizeof(WCHAR), FALSE);
+	unicodebuf = LALLOC_MULT(WCHAR, len);
 
 	vim_free(unicodepdy);
-	unicodepdy = (int *)lalloc(len * sizeof(int), FALSE);
+	unicodepdy = LALLOC_MULT(int, len);
 
 	unibuflen = len;
     }
@@ -6262,15 +6264,6 @@ gui_mch_draw_string(
     void
 gui_mch_flush(void)
 {
-#   if defined(__BORLANDC__)
-    /*
-     * The GdiFlush declaration (in Borland C 5.01 <wingdi.h>) is not a
-     * prototype declaration.
-     * The compiler complains if __stdcall is not used in both declarations.
-     */
-    BOOL  __stdcall GdiFlush(void);
-#   endif
-
 #if defined(FEAT_DIRECTX)
     if (IS_ENABLE_DIRECTX())
 	DWriteContext_Flush(s_dwc);
@@ -6659,7 +6652,7 @@ dialog_callback(
 	/* If the edit box exists, copy the string. */
 	if (s_textfield != NULL)
 	{
-	    WCHAR  *wp = (WCHAR *)alloc(IOSIZE * sizeof(WCHAR));
+	    WCHAR  *wp = ALLOC_MULT(WCHAR, IOSIZE);
 	    char_u *p;
 
 	    GetDlgItemTextW(hwnd, DLG_NONBUTTON_CONTROL + 2, wp, IOSIZE);
@@ -6808,12 +6801,12 @@ gui_mch_dialog(
 	dfltbutton = -1;
 
     /* Allocate array to hold the width of each button */
-    buttonWidths = (int *)lalloc(numButtons * sizeof(int), TRUE);
+    buttonWidths = ALLOC_MULT(int, numButtons);
     if (buttonWidths == NULL)
 	return -1;
 
     /* Allocate array to hold the X position of each button */
-    buttonPositions = (int *)lalloc(numButtons * sizeof(int), TRUE);
+    buttonPositions = ALLOC_MULT(int, numButtons);
     if (buttonPositions == NULL)
 	return -1;
 
@@ -7723,7 +7716,7 @@ gui_mch_tearoff(
 	}
 
 	/* Allocate menu label and fill it in */
-	text = label = alloc((unsigned)len + 1);
+	text = label = alloc(len + 1);
 	if (label == NULL)
 	    break;
 
@@ -8237,8 +8230,7 @@ gui_mch_register_sign(char_u *signfile)
     }
 
     psign = NULL;
-    if (sign.hImage && (psign = (signicon_t *)alloc(sizeof(signicon_t)))
-								      != NULL)
+    if (sign.hImage && (psign = ALLOC_ONE(signicon_t)) != NULL)
 	*psign = sign;
 
     if (!psign)
@@ -8366,7 +8358,7 @@ make_tooltip(BalloonEval *beval, char *text, POINT pt)
     else
 	ToolInfoSize = sizeof(TOOLINFOW);
 
-    pti = (TOOLINFOW *)alloc(ToolInfoSize);
+    pti = alloc(ToolInfoSize);
     if (pti == NULL)
 	return;
 
@@ -8496,6 +8488,15 @@ gui_mch_post_balloon(BalloonEval *beval, char_u *mesg)
 {
     POINT   pt;
 
+    vim_free(beval->msg);
+    beval->msg = mesg == NULL ? NULL : vim_strsave(mesg);
+    if (beval->msg == NULL)
+    {
+	delete_tooltip(beval);
+	beval->showState = ShS_NEUTRAL;
+	return;
+    }
+
     // TRACE0("gui_mch_post_balloon {{{");
     if (beval->showState == ShS_SHOWING)
 	return;
@@ -8528,7 +8529,7 @@ gui_mch_create_beval_area(
 	return NULL;
     }
 
-    beval = (BalloonEval *)alloc_clear(sizeof(BalloonEval));
+    beval = ALLOC_CLEAR_ONE(BalloonEval);
     if (beval != NULL)
     {
 	beval->target = s_textArea;

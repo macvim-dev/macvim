@@ -1,4 +1,4 @@
-*autocmd.txt*   For Vim version 8.1.  Last change: 2019 Apr 27
+*autocmd.txt*   For Vim version 8.1.  Last change: 2019 Jun 02
 
 
 		  VIM REFERENCE MANUAL    by Bram Moolenaar
@@ -20,7 +20,6 @@ For a basic explanation, see section |40.3| in the user manual.
 10. Using autocommands		|autocmd-use|
 11. Disabling autocommands	|autocmd-disable|
 
-{Vi does not have any of these commands}
 
 ==============================================================================
 1. Introduction						*autocmd-intro*
@@ -1366,7 +1365,7 @@ have changed autocommands, or when Vim has executed the wrong autocommands
 Note that the 'eventignore' option applies here too.  Events listed in this
 option will not cause any commands to be executed.
 
-					*:do* *:doau* *:doautocmd* *E217*
+				*:do* *:doau* *:doaut* *:doautocmd* *E217*
 :do[autocmd] [<nomodeline>] [group] {event} [fname]
 			Apply the autocommands matching [fname] (default:
 			current file name) for {event} to the current buffer.

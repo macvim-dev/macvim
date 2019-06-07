@@ -200,7 +200,7 @@ let s:filename_checks = {
     \ 'hog': ['file.hog', 'snort.conf', 'vision.conf'],
     \ 'hostconf': ['/etc/host.conf'],
     \ 'hostsaccess': ['/etc/hosts.allow', '/etc/hosts.deny'],
-    \ 'htmlcheetah': ['file.tmpl'],
+    \ 'template': ['file.tmpl'],
     \ 'htmlm4': ['file.html.m4'],
     \ 'httest': ['file.htt', 'file.htb'],
     \ 'ibasic': ['file.iba', 'file.ibi'],
@@ -520,7 +520,11 @@ func CheckItems(checks)
       catch
 	call assert_report('cannot edit "' . names[i] . '": ' . v:errmsg)
       endtry
-      call assert_equal(ft, &filetype, 'with file name: ' . names[i])
+      if &filetype == '' && &readonly
+	" File exists but not able to edit it (permission denied)
+      else
+	call assert_equal(ft, &filetype, 'with file name: ' . names[i])
+      endif
       bwipe!
     endfor
   endfor

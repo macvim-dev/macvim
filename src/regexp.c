@@ -1319,7 +1319,7 @@ bt_regcomp(char_u *expr, int re_flags)
 	return NULL;
 
     /* Allocate space. */
-    r = (bt_regprog_T *)lalloc(sizeof(bt_regprog_T) + regsize, TRUE);
+    r = alloc(sizeof(bt_regprog_T) + regsize);
     if (r == NULL)
 	return NULL;
     r->re_in_use = FALSE;
@@ -3932,7 +3932,7 @@ make_extmatch(void)
 {
     reg_extmatch_T	*em;
 
-    em = (reg_extmatch_T *)alloc_clear((unsigned)sizeof(reg_extmatch_T));
+    em = ALLOC_CLEAR_ONE(reg_extmatch_T);
     if (em != NULL)
 	em->refcnt = 1;
     return em;
@@ -7145,7 +7145,7 @@ regtilde(char_u *source, int magic)
 	    {
 		/* length = len(newsub) - 1 + len(prev_sub) + 1 */
 		prevlen = (int)STRLEN(reg_prev_sub);
-		tmpsub = alloc((unsigned)(STRLEN(newsub) + prevlen));
+		tmpsub = alloc(STRLEN(newsub) + prevlen);
 		if (tmpsub != NULL)
 		{
 		    /* copy prefix */
@@ -7423,7 +7423,7 @@ vim_regsub_both(
 		if (expr->v_type == VAR_FUNC)
 		{
 		    s = expr->vval.v_string;
-		    call_func(s, (int)STRLEN(s), &rettv,
+		    call_func(s, -1, &rettv,
 				    1, argv, fill_submatch_list,
 					 0L, 0L, &dummy, TRUE, NULL, NULL);
 		}
@@ -7432,7 +7432,7 @@ vim_regsub_both(
 		    partial_T   *partial = expr->vval.v_partial;
 
 		    s = partial_name(partial);
-		    call_func(s, (int)STRLEN(s), &rettv,
+		    call_func(s, -1, &rettv,
 				    1, argv, fill_submatch_list,
 				      0L, 0L, &dummy, TRUE, partial, NULL);
 		}
@@ -7830,7 +7830,7 @@ reg_submatch(int no)
 
 	    if (retval == NULL)
 	    {
-		retval = lalloc((long_u)len, TRUE);
+		retval = alloc(len);
 		if (retval == NULL)
 		    return NULL;
 	    }

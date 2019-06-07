@@ -18,6 +18,7 @@ func Test_vim_did_enter()
 endfunc
 
 if has('timers')
+
   func ExitInsertMode(id)
     call feedkeys("\<Esc>")
   endfunc
@@ -70,7 +71,30 @@ if has('timers')
     au! CursorHoldI
     set updatetime&
   endfunc
-endif
+
+  func Test_OptionSet_modeline()
+    call test_override('starting', 1)
+    au! OptionSet
+    augroup set_tabstop
+      au OptionSet tabstop call timer_start(1, {-> execute("echo 'Handler called'", "")})
+    augroup END
+    call writefile(['vim: set ts=7 sw=5 :', 'something'], 'XoptionsetModeline')
+    set modeline
+    let v:errmsg = ''
+    call assert_fails('split XoptionsetModeline', 'E12:')
+    call assert_equal(7, &ts)
+    call assert_equal('', v:errmsg)
+
+    augroup set_tabstop
+      au!
+    augroup END
+    bwipe!
+    set ts&
+    call delete('XoptionsetModeline')
+    call test_override('starting', 0)
+  endfunc
+
+endif "has('timers')
 
 func Test_bufunload()
   augroup test_bufunload_group
@@ -399,18 +423,20 @@ func Test_autocmd_bufwipe_in_SessLoadPost()
   set noswapfile
   mksession!
 
-  let content = ['set nocp noswapfile',
-        \ 'let v:swapchoice="e"',
-        \ 'augroup test_autocmd_sessionload',
-        \ 'autocmd!',
-        \ 'autocmd SessionLoadPost * exe bufnr("Xsomething") . "bw!"',
-        \ 'augroup END',
-	\ '',
-	\ 'func WriteErrors()',
-	\ '  call writefile([execute("messages")], "Xerrors")',
-	\ 'endfunc',
-	\ 'au VimLeave * call WriteErrors()',
-        \ ]
+  let content =<< trim [CODE]
+    set nocp noswapfile
+    let v:swapchoice="e"
+    augroup test_autocmd_sessionload
+    autocmd!
+    autocmd SessionLoadPost * exe bufnr("Xsomething") . "bw!"
+    augroup END
+
+    func WriteErrors()
+      call writefile([execute("messages")], "Xerrors")
+    endfunc
+    au VimLeave * call WriteErrors()
+  [CODE]
+
   call writefile(content, 'Xvimrc')
   call system(v:progpath. ' -u Xvimrc --not-a-term --noplugins -S Session.vim -c cq')
   let errors = join(readfile('Xerrors'))
@@ -428,27 +454,29 @@ func Test_autocmd_bufwipe_in_SessLoadPost2()
   set noswapfile
   mksession!
 
-  let content = ['set nocp noswapfile',
-      \ 'function! DeleteInactiveBufs()',
-      \ '  tabfirst',
-      \ '  let tabblist = []',
-      \ '  for i in range(1, tabpagenr(''$''))',
-      \ '    call extend(tabblist, tabpagebuflist(i))',
-      \ '  endfor',
-      \ '  for b in range(1, bufnr(''$''))',
-      \ '    if bufexists(b) && buflisted(b) && (index(tabblist, b) == -1 || bufname(b) =~# ''^$'')',
-      \ '      exec ''bwipeout '' . b',
-      \ '    endif',
-      \ '  endfor',
-      \ '  echomsg "SessionLoadPost DONE"',
-      \ 'endfunction',
-      \ 'au SessionLoadPost * call DeleteInactiveBufs()',
-      \ '',
-      \ 'func WriteErrors()',
-      \ '  call writefile([execute("messages")], "Xerrors")',
-      \ 'endfunc',
-      \ 'au VimLeave * call WriteErrors()',
-      \ ]
+  let content =<< trim [CODE]
+    set nocp noswapfile
+    function! DeleteInactiveBufs()
+      tabfirst
+      let tabblist = []
+      for i in range(1, tabpagenr(''$''))
+        call extend(tabblist, tabpagebuflist(i))
+      endfor
+      for b in range(1, bufnr(''$''))
+        if bufexists(b) && buflisted(b) && (index(tabblist, b) == -1 || bufname(b) =~# ''^$'')
+          exec ''bwipeout '' . b
+        endif
+      endfor
+      echomsg "SessionLoadPost DONE"
+    endfunction
+    au SessionLoadPost * call DeleteInactiveBufs()
+
+    func WriteErrors()
+      call writefile([execute("messages")], "Xerrors")
+    endfunc
+    au VimLeave * call WriteErrors()
+  [CODE]
+
   call writefile(content, 'Xvimrc')
   call system(v:progpath. ' -u Xvimrc --not-a-term --noplugins -S Session.vim -c cq')
   let errors = join(readfile('Xerrors'))
@@ -671,28 +699,6 @@ func Test_OptionSet_diffmode_close()
   au! OptionSet
   call test_override('starting', 0)
   "delfunc! AutoCommandOptionSet
-endfunc
-
-func Test_OptionSet_modeline()
-  call test_override('starting', 1)
-  au! OptionSet
-  augroup set_tabstop
-    au OptionSet tabstop call timer_start(1, {-> execute("echo 'Handler called'", "")})
-  augroup END
-  call writefile(['vim: set ts=7 sw=5 :', 'something'], 'XoptionsetModeline')
-  set modeline
-  let v:errmsg = ''
-  call assert_fails('split XoptionsetModeline', 'E12:')
-  call assert_equal(7, &ts)
-  call assert_equal('', v:errmsg)
-
-  augroup set_tabstop
-    au!
-  augroup END
-  bwipe!
-  set ts&
-  call delete('XoptionsetModeline')
-  call test_override('starting', 0)
 endfunc
 
 " Test for Bufleave autocommand that deletes the buffer we are about to edit.
@@ -931,21 +937,23 @@ func Test_bufunload_all()
   call writefile(['Test file Xxx1'], 'Xxx1')"
   call writefile(['Test file Xxx2'], 'Xxx2')"
 
-  let content = [
-	      \ "func UnloadAllBufs()",
-	      \ "  let i = 1",
-	      \ "  while i <= bufnr('$')",
-	      \ "    if i != bufnr('%') && bufloaded(i)",
-	      \ "      exe  i . 'bunload'",
-	      \ "    endif",
-	      \ "    let i += 1",
-	      \ "  endwhile",
-	      \ "endfunc",
-	      \ "au BufUnload * call UnloadAllBufs()",
-	      \ "au VimLeave * call writefile(['Test Finished'], 'Xout')",
-	      \ "edit Xxx1",
-	      \ "split Xxx2",
-	      \ "q"]
+  let content =<< trim [CODE]
+    func UnloadAllBufs()
+      let i = 1
+      while i <= bufnr('$')
+        if i != bufnr('%') && bufloaded(i)
+          exe  i . 'bunload'
+        endif
+        let i += 1
+      endwhile
+    endfunc
+    au BufUnload * call UnloadAllBufs()
+    au VimLeave * call writefile(['Test Finished'], 'Xout')
+    edit Xxx1
+    split Xxx2
+    q
+  [CODE]
+
   call writefile(content, 'Xtest')
 
   call delete('Xout')
@@ -1732,4 +1740,23 @@ func Test_ReadWrite_Autocmds()
   call delete('Xtestfile.gz')
   call delete('Xtest.c')
   call delete('test.out')
+endfunc
+
+func Test_throw_in_BufWritePre()
+  new
+  call setline(1, ['one', 'two', 'three'])
+  call assert_false(filereadable('Xthefile'))
+  augroup throwing
+    au BufWritePre X* throw 'do not write'
+  augroup END
+  try
+    w Xthefile
+  catch
+    let caught = 1
+  endtry
+  call assert_equal(1, caught)
+  call assert_false(filereadable('Xthefile'))
+
+  bwipe!
+  au! throwing
 endfunc
