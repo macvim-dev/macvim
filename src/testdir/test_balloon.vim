@@ -58,6 +58,8 @@ endif
 " Tests that only work in the GUI
 if has('gui_running')
 
+if !has('gui_macvim') " See https://github.com/macvim-dev/macvim/issues/902
+
 func Test_balloon_show_gui()
   let msg = 'this this this this'
   call balloon_show(msg)
@@ -71,5 +73,7 @@ func Test_balloon_show_gui()
   sleep 10m
   call balloon_show('')
 endfunc
+
+endif " !has('gui_macvim')
 
 endif
