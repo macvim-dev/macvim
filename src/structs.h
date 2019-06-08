@@ -1810,6 +1810,7 @@ struct channel_S {
 #define JO2_TERM_KILL	    0x4000	/* "term_kill" */
 #define JO2_ANSI_COLORS	    0x8000	/* "ansi_colors" */
 #define JO2_TTY_TYPE	    0x10000	/* "tty_type" */
+#define JO2_BUFNR	    0x20000	/* "bufnr" */
 
 #define JO_MODE_ALL	(JO_MODE + JO_IN_MODE + JO_OUT_MODE + JO_ERR_MODE)
 #define JO_CB_ALL \
@@ -1867,6 +1868,7 @@ typedef struct
     int		jo_term_cols;
     int		jo_vertical;
     int		jo_curwin;
+    buf_T	*jo_bufnr_buf;
     int		jo_hidden;
     int		jo_term_norestore;
     char_u	*jo_term_name;
@@ -1992,6 +1994,9 @@ typedef enum {
     POPPOS_TOPRIGHT,
     POPPOS_CENTER
 } poppos_T;
+
+# define POPUPWIN_DEFAULT_ZINDEX    50
+# define POPUPMENU_ZINDEX	    100
 #endif
 
 /*
@@ -2311,7 +2316,7 @@ struct file_buffer
     int		b_p_fixeol;	/* 'fixendofline' */
     int		b_p_et;		/* 'expandtab' */
     int		b_p_et_nobin;	/* b_p_et saved for binary mode */
-    int	        b_p_et_nopaste; /* b_p_et saved for paste mode */
+    int		b_p_et_nopaste; /* b_p_et saved for paste mode */
     char_u	*b_p_fenc;	/* 'fileencoding' */
     char_u	*b_p_ff;	/* 'fileformat' */
     char_u	*b_p_ft;	/* 'filetype' */
@@ -2893,6 +2898,7 @@ struct window_S
 #ifdef FEAT_TEXT_PROP
     int		w_popup_flags;	    // POPF_ values
     poppos_T	w_popup_pos;
+    int		w_popup_fixed;	    // do not shift popup to fit on screen
     int		w_zindex;
     int		w_minheight;	    // "minheight" for popup window
     int		w_minwidth;	    // "minwidth" for popup window
@@ -2908,6 +2914,12 @@ struct window_S
 					  // computed
     callback_T	w_close_cb;	    // popup close callback
     callback_T	w_filter_cb;	    // popup filter callback
+
+    win_T	*w_popup_curwin;    // close popup if curwin differs
+    linenr_T	w_popup_lnum;	    // close popup if cursor not on this line
+    colnr_T	w_popup_mincol;	    // close popup if cursor before this col
+    colnr_T	w_popup_maxcol;	    // close popup if cursor after this col
+
 # if defined(FEAT_TIMERS)
     timer_T	*w_popup_timer;	    // timer for closing popup window
 # endif
@@ -3050,8 +3062,8 @@ struct window_S
     int		w_p_brishift;	    /* additional shift for breakindent */
     int		w_p_brisbr;	    /* sbr in 'briopt' */
 #endif
-    long        w_p_siso;           /* 'sidescrolloff' local value */
-    long        w_p_so;             /* 'scrolloff' local value */
+    long	w_p_siso;	    /* 'sidescrolloff' local value */
+    long	w_p_so;		    /* 'scrolloff' local value */
 
     /* transform a pointer to a "onebuf" option into a "allbuf" option */
 #define GLOBAL_WO(p)	((char *)p + sizeof(winopt_T))
@@ -3490,7 +3502,7 @@ struct js_reader
     int		js_used;	/* bytes used from js_buf */
     int		(*js_fill)(struct js_reader *);
 				/* function to fill the buffer or NULL;
-                                 * return TRUE when the buffer was filled */
+				 * return TRUE when the buffer was filled */
     void	*js_cookie;	/* can be used by js_fill */
     int		js_cookie_arg;	/* can be used by js_fill */
 };

@@ -1,6 +1,12 @@
 " Tests for the +clientserver feature.
 
-if !has('job') || !has('clientserver') || (has('gui_macvim') && !has('gui_running'))
+if !has('job') || !has('clientserver')
+  throw 'Skipped: job and/or clientserver feature missing'
+endif
+
+if has('gui_macvim') && !has('gui_running')
+  " MacVim currently doesn't support client_server for non-gui.
+  " See https://github.com/macvim-dev/macvim/issues/657
   finish
 endif
 

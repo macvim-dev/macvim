@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.1.  Last change: 2019 May 30
+*eval.txt*	For Vim version 8.1.  Last change: 2019 Jun 06
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1504,8 +1504,10 @@ One local buffer variable is predefined:
 					*b:changedtick* *changetick*
 b:changedtick	The total number of changes to the current buffer.  It is
 		incremented for each change.  An undo command is also a change
-		in this case.  This can be used to perform an action only when
-		the buffer has changed.  Example: >
+		in this case.  Resetting 'modified' when writing the buffer is
+		also counted.
+		This can be used to perform an action only when the buffer has
+		changed.  Example: >
 		    :if my_changedtick != b:changedtick
 		    :	let my_changedtick = b:changedtick
 		    :	call My_Update()
@@ -8597,7 +8599,7 @@ sign_getplaced([{expr} [, {dict}]])			*sign_getplaced()*
 			priority	sign priority
 
 		The returned signs in a buffer are ordered by their line
-		number.
+		number and priority.
 
 		Returns an empty list on failure or if there are no placed
 		signs.
@@ -9558,6 +9560,11 @@ term_dumpdiff({filename}, {filename} [, {options}])
 		   "curwin"	     use the current window, do not split the
 				     window; fails if the current buffer
 				     cannot be |abandon|ed
+		   "bufnr"	     do not create a new buffer, use the
+				     existing buffer "bufnr".  This buffer
+				     must have been previously created with
+				     term_dumpdiff() or term_dumpload() and
+				     visible in a window.
 		   "norestore"	     do not add the terminal window to a
 				     session file
 
@@ -10329,6 +10336,8 @@ win_execute({id}, {command} [, {silent}])		*win_execute()*
 			call win_execute(winid, 'set syntax=python')
 <		Doing the same with `setwinvar()` would not trigger
 		autocommands and not actually show syntax highlighting.
+							*E994*
+		Not all commands are allowed in popup windows.
 
 win_findbuf({bufnr})					*win_findbuf()*
 		Returns a list with |window-ID|s for windows that contain
@@ -11578,7 +11587,7 @@ text...
 			opposite of |:lockvar|.
 
 
-:if {expr1}			*:if* *:endif* *:en* *E171* *E579* *E580*
+:if {expr1}			*:if* *:end* *:endif* *:en* *E171* *E579* *E580*
 :en[dif]		Execute the commands until the next matching ":else"
 			or ":endif" if {expr1} evaluates to non-zero.
 
@@ -13061,8 +13070,16 @@ missing: >
 	:  echo "You will _never_ see this message"
 	:endif
 
-To execute a command only when the |+eval| feature is disabled requires a trick,
-as this example shows: >
+To execute a command only when the |+eval| feature is disabled can be done in
+two ways.  The simplest is to exit the script (or Vim) prematurely: >
+	if 1
+	   echo "commands executed with +eval"
+	   finish
+	endif
+	args  " command executed without +eval
+
+If you do not want to abort loading the script you can use a trick, as this
+example shows: >
 
 	silent! while 0
 	  set history=111

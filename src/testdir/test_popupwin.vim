@@ -1,14 +1,14 @@
 " Tests for popup windows
 
 if !has('textprop')
-  finish
+  throw 'Skipped: textprop feature missing'
 endif
 
 source screendump.vim
 
 func Test_simple_popup()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot make screendumps'
   endif
   call writefile([
 	\ "call setline(1, range(1, 100))",
@@ -51,6 +51,19 @@ func Test_simple_popup()
   call term_sendkeys(buf, ":redraw\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_06', {})
 
+  " move popup over ruler
+  call term_sendkeys(buf, ":set cmdheight=2\<CR>")
+  call term_sendkeys(buf, ":call popup_move(popupwin, {'line': 7, 'col': 55})\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_07', {})
+
+  " clear all popups after moving the cursor a bit, so that ruler is updated
+  call term_sendkeys(buf, "axxx\<Esc>")
+  call term_wait(buf)
+  call term_sendkeys(buf, "0")
+  call term_wait(buf)
+  call term_sendkeys(buf, ":popupclear\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_08', {})
+
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestPopup')
@@ -58,7 +71,7 @@ endfunc
 
 func Test_popup_with_border_and_padding()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot make screendumps'
   endif
 
   for iter in range(0, 1)
@@ -128,7 +141,7 @@ endfunc
 
 func Test_popup_with_syntax_win_execute()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot make screendumps'
   endif
   call writefile([
 	\ "call setline(1, range(1, 100))",
@@ -152,7 +165,7 @@ endfunc
 
 func Test_popup_with_syntax_setbufvar()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot make screendumps'
   endif
   let lines =<< trim END
 	call setline(1, range(1, 100))
@@ -173,6 +186,141 @@ func Test_popup_with_syntax_setbufvar()
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestPopup')
+endfunc
+
+func Test_popup_all_corners()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+  let lines =<< trim END
+	call setline(1, repeat([repeat('-', 60)], 15))
+	set so=0
+	normal 2G3|r#
+	let winid1 = popup_create(['first', 'second'], {
+	      \ 'line': 'cursor+1',
+	      \ 'col': 'cursor',
+	      \ 'pos': 'topleft',
+	      \ 'border': [],
+	      \ 'padding': [],
+	      \ })
+	normal 25|r@
+	let winid1 = popup_create(['First', 'SeconD'], {
+	      \ 'line': 'cursor+1',
+	      \ 'col': 'cursor',
+	      \ 'pos': 'topright',
+	      \ 'border': [],
+	      \ 'padding': [],
+	      \ })
+	normal 9G29|r%
+	let winid1 = popup_create(['fiRSt', 'seCOnd'], {
+	      \ 'line': 'cursor-1',
+	      \ 'col': 'cursor',
+	      \ 'pos': 'botleft',
+	      \ 'border': [],
+	      \ 'padding': [],
+	      \ })
+	normal 51|r&
+	let winid1 = popup_create(['FIrsT', 'SEcoND'], {
+	      \ 'line': 'cursor-1',
+	      \ 'col': 'cursor',
+	      \ 'pos': 'botright',
+	      \ 'border': [],
+	      \ 'padding': [],
+	      \ })
+  END
+  call writefile(lines, 'XtestPopupCorners')
+  let buf = RunVimInTerminal('-S XtestPopupCorners', {'rows': 12})
+  call VerifyScreenDump(buf, 'Test_popupwin_corners', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupCorners')
+endfunc
+
+func Test_popup_in_tab()
+  " default popup is local to tab, not visible when in other tab
+  let winid = popup_create("text", {})
+  call assert_equal(1, popup_getpos(winid).visible)
+  tabnew
+  call assert_equal(0, popup_getpos(winid).visible)
+  quit
+  call assert_equal(1, popup_getpos(winid).visible)
+  popupclear
+
+  " global popup is visible in any tab
+  let winid = popup_create("text", {'tab': -1})
+  call assert_equal(1, popup_getpos(winid).visible)
+  tabnew
+  call assert_equal(1, popup_getpos(winid).visible)
+  quit
+  call assert_equal(1, popup_getpos(winid).visible)
+  popupclear
+endfunc
+
+func Test_popup_valid_arguments()
+  " Zero value is like the property wasn't there
+  let winid = popup_create("text", {"col": 0})
+  let pos = popup_getpos(winid)
+  call assert_inrange(&columns / 2 - 1, &columns / 2 + 1, pos.col)
+  popupclear
+
+  " using cursor column has minimum value of 1
+  let winid = popup_create("text", {"col": 'cursor-100'})
+  let pos = popup_getpos(winid)
+  call assert_equal(1, pos.col)
+  popupclear
+
+  " center
+  let winid = popup_create("text", {"pos": 'center'})
+  let pos = popup_getpos(winid)
+  let around = (&columns - pos.width) / 2
+  call assert_inrange(around - 1, around + 1, pos.col)
+  let around = (&lines - pos.height) / 2
+  call assert_inrange(around - 1, around + 1, pos.line)
+  popupclear
+endfunc
+
+func Test_popup_invalid_arguments()
+  call assert_fails('call popup_create(666, {})', 'E714:')
+  popupclear
+  call assert_fails('call popup_create("text", "none")', 'E715:')
+  popupclear
+
+  call assert_fails('call popup_create("text", {"col": "xxx"})', 'E475:')
+  popupclear
+  call assert_fails('call popup_create("text", {"col": "cursor8"})', 'E15:')
+  popupclear
+  call assert_fails('call popup_create("text", {"col": "cursor+x"})', 'E15:')
+  popupclear
+  call assert_fails('call popup_create("text", {"col": "cursor+8x"})', 'E15:')
+  popupclear
+
+  call assert_fails('call popup_create("text", {"line": "xxx"})', 'E475:')
+  popupclear
+  call assert_fails('call popup_create("text", {"line": "cursor8"})', 'E15:')
+  popupclear
+  call assert_fails('call popup_create("text", {"line": "cursor+x"})', 'E15:')
+  popupclear
+  call assert_fails('call popup_create("text", {"line": "cursor+8x"})', 'E15:')
+  popupclear
+
+  call assert_fails('call popup_create("text", {"pos": "there"})', 'E475:')
+  popupclear
+  call assert_fails('call popup_create("text", {"padding": "none"})', 'E714:')
+  popupclear
+  call assert_fails('call popup_create("text", {"border": "none"})', 'E714:')
+  popupclear
+  call assert_fails('call popup_create("text", {"borderhighlight": "none"})', 'E714:')
+  popupclear
+  call assert_fails('call popup_create("text", {"borderchars": "none"})', 'E714:')
+  popupclear
+
+  call assert_fails('call popup_create([{"text": "text"}, 666], {})', 'E715:')
+  popupclear
+  call assert_fails('call popup_create([{"text": "text", "props": "none"}], {})', 'E714:')
+  popupclear
+  call assert_fails('call popup_create([{"text": "text", "props": ["none"]}], {})', 'E715:')
+  popupclear
 endfunc
 
 func Test_win_execute_closing_curwin()
@@ -205,7 +353,7 @@ endfunc
 
 func Test_popup_with_wrap()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot make screendumps'
   endif
   let lines =<< trim END
 	 call setline(1, range(1, 100))
@@ -224,7 +372,7 @@ endfunc
 
 func Test_popup_without_wrap()
   if !CanRunVimInTerminal()
-    return
+    throw 'Skipped: cannot make screendumps'
   endif
   let lines =<< trim END
 	 call setline(1, range(1, 100))
@@ -422,6 +570,7 @@ func Test_popup_getoptions()
     \ 'maxheight': 21,
     \ 'zindex': 100,
     \ 'time': 5000,
+    \ 'fixed': 1
     \})
   redraw
   let res = popup_getoptions(winid)
@@ -432,6 +581,7 @@ func Test_popup_getoptions()
   call assert_equal(20, res.maxwidth)
   call assert_equal(21, res.maxheight)
   call assert_equal(100, res.zindex)
+  call assert_equal(1, res.fixed)
   if has('timers')
     call assert_equal(5000, res.time)
   endif
@@ -447,6 +597,7 @@ func Test_popup_getoptions()
   call assert_equal(0, res.maxwidth)
   call assert_equal(0, res.maxheight)
   call assert_equal(50, res.zindex)
+  call assert_equal(0, res.fixed)
   if has('timers')
     call assert_equal(0, res.time)
   endif
@@ -541,6 +692,15 @@ func Test_popup_atcursor()
   call assert_equal(4, pos.line)
   call popup_close(winid)
 
+  " cursor in first line, popup in line 2
+  call cursor(1, 1)
+  redraw
+  let winid = popup_atcursor(['vim', 'is', 'great'], {})
+  redraw
+  let pos = popup_getpos(winid)
+  call assert_equal(2, pos.line)
+  call popup_close(winid)
+
   bwipe!
 endfunc
 
@@ -595,4 +755,297 @@ func Test_popup_close_callback()
   redraw
   call popup_close(winid, 'done')
   call assert_equal('done', g:result)
+endfunc
+
+func Test_popup_empty()
+  let winid = popup_create('', {'padding': [2,2,2,2]})
+  redraw
+  let pos = popup_getpos(winid)
+  call assert_equal(4, pos.width)
+  call assert_equal(5, pos.height)
+
+  let winid = popup_create([], {'border': []})
+  redraw
+  let pos = popup_getpos(winid)
+  call assert_equal(2, pos.width)
+  call assert_equal(3, pos.height)
+endfunc
+
+func Test_popup_never_behind()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+  " +-----------------------------+
+  " |             |               |
+  " |             |               |
+  " |             |               |
+  " |            line1            |
+  " |------------line2------------|
+  " |            line3            |
+  " |            line4            |
+  " |                             |
+  " |                             |
+  " +-----------------------------+
+  let lines =<< trim END
+    only 
+    split
+    vsplit
+    let info_window1 = getwininfo()[0]
+    let line = info_window1['height']
+    let col = info_window1['width']
+    call popup_create(['line1', 'line2', 'line3', 'line4'], {
+	      \   'line' : line,
+	      \   'col' : col,
+	      \ })
+  END
+  call writefile(lines, 'XtestPopupBehind')
+  let buf = RunVimInTerminal('-S XtestPopupBehind', {'rows': 10})
+  call term_sendkeys(buf, "\<C-W>w")
+  call VerifyScreenDump(buf, 'Test_popupwin_behind', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupBehind')
+endfunc
+
+func s:VerifyPosition( p, msg, line, col, width, height )
+  call assert_equal( a:line,   popup_getpos( a:p ).line,   a:msg . ' (l)' )
+  call assert_equal( a:col,    popup_getpos( a:p ).col,    a:msg . ' (c)' )
+  call assert_equal( a:width,  popup_getpos( a:p ).width,  a:msg . ' (w)' )
+  call assert_equal( a:height, popup_getpos( a:p ).height, a:msg . ' (h)' )
+endfunc
+
+func Test_popup_position_adjust()
+  " Anything placed past 2 cells from of the right of the screen is moved to the
+  " left.
+  "
+  " When wrapping is disabled, we also shift to the left to display on the
+  " screen, unless fixed is set.
+
+  " Entries for cases which don't vary based on wrapping.
+  " Format is per tests described below
+  let both_wrap_tests = [
+        \       [ 'a', 5, &columns,        5, &columns - 2, 1, 1 ],
+        \       [ 'b', 5, &columns + 1,    5, &columns - 2, 1, 1 ],
+        \       [ 'c', 5, &columns - 1,    5, &columns - 2, 1, 1 ],
+        \       [ 'd', 5, &columns - 2,    5, &columns - 2, 1, 1 ],
+        \       [ 'e', 5, &columns - 3,    5, &columns - 3, 1, 1 ],
+        \
+        \       [ 'aa', 5, &columns,        5, &columns - 2, 2, 1 ],
+        \       [ 'bb', 5, &columns + 1,    5, &columns - 2, 2, 1 ],
+        \       [ 'cc', 5, &columns - 1,    5, &columns - 2, 2, 1 ],
+        \       [ 'dd', 5, &columns - 2,    5, &columns - 2, 2, 1 ],
+        \       [ 'ee', 5, &columns - 3,    5, &columns - 3, 2, 1 ],
+        \
+        \       [ 'aaa', 5, &columns,        5, &columns - 2, 3, 1 ],
+        \       [ 'bbb', 5, &columns + 1,    5, &columns - 2, 3, 1 ],
+        \       [ 'ccc', 5, &columns - 1,    5, &columns - 2, 3, 1 ],
+        \       [ 'ddd', 5, &columns - 2,    5, &columns - 2, 3, 1 ],
+        \       [ 'eee', 5, &columns - 3,    5, &columns - 3, 3, 1 ],
+        \ ]
+
+  " these test groups are dicts with:
+  "  - comment: something to identify the group of tests by
+  "  - options: dict of options to merge with the row/col in tests
+  "  - tests: list of cases. Each one is a list with elements:
+  "     - text
+  "     - row
+  "     - col
+  "     - expected row
+  "     - expected col
+  "     - expected width
+  "     - expected height
+  let tests = [
+        \ {
+        \   'comment': 'left-aligned with wrapping',
+        \   'options': {
+        \     'wrap': 1,
+        \     'pos': 'botleft',
+        \   },
+        \   'tests': both_wrap_tests + [
+        \       [ 'aaaa', 5, &columns,        4, &columns - 2, 3, 2 ],
+        \       [ 'bbbb', 5, &columns + 1,    4, &columns - 2, 3, 2 ],
+        \       [ 'cccc', 5, &columns - 1,    4, &columns - 2, 3, 2 ],
+        \       [ 'dddd', 5, &columns - 2,    4, &columns - 2, 3, 2 ],
+        \       [ 'eeee', 5, &columns - 3,    5, &columns - 3, 4, 1 ],
+        \   ],
+        \ },
+        \ {
+        \   'comment': 'left aligned without wrapping',
+        \   'options': {
+        \     'wrap': 0,
+        \     'pos': 'botleft',
+        \   },
+        \   'tests': both_wrap_tests + [
+        \       [ 'aaaa', 5, &columns,        5, &columns - 3, 4, 1 ],
+        \       [ 'bbbb', 5, &columns + 1,    5, &columns - 3, 4, 1 ],
+        \       [ 'cccc', 5, &columns - 1,    5, &columns - 3, 4, 1 ],
+        \       [ 'dddd', 5, &columns - 2,    5, &columns - 3, 4, 1 ],
+        \       [ 'eeee', 5, &columns - 3,    5, &columns - 3, 4, 1 ],
+        \   ],
+        \ },
+        \ {
+        \   'comment': 'left aligned with fixed position',
+        \   'options': {
+        \     'wrap': 0,
+        \     'fixed': 1,
+        \     'pos': 'botleft',
+        \   },
+        \   'tests': both_wrap_tests + [
+        \       [ 'aaaa', 5, &columns,        5, &columns - 2, 3, 1 ],
+        \       [ 'bbbb', 5, &columns + 1,    5, &columns - 2, 3, 1 ],
+        \       [ 'cccc', 5, &columns - 1,    5, &columns - 2, 3, 1 ],
+        \       [ 'dddd', 5, &columns - 2,    5, &columns - 2, 3, 1 ],
+        \       [ 'eeee', 5, &columns - 3,    5, &columns - 3, 4, 1 ],
+        \   ],
+        \ },
+      \ ]
+
+  for test_group in tests
+    for test in test_group.tests
+      let [ text, line, col, e_line, e_col, e_width, e_height ] = test
+      let options = {
+            \ 'line': line,
+            \ 'col': col,
+            \ }
+      call extend( options, test_group.options )
+
+      let p = popup_create( text, options )
+
+      let msg = string( extend( options, { 'text': text } ) )
+      call s:VerifyPosition( p, msg, e_line, e_col, e_width, e_height )
+      call popup_close( p )
+    endfor
+  endfor
+
+  popupclear
+  %bwipe!
+endfunc
+
+func Test_adjust_left_past_screen_width()
+  " width of screen
+  let X = join(map(range(&columns), {->'X'}), '')
+
+  let p = popup_create( X, { 'line': 1, 'col': 1, 'wrap': 0 } )
+  call s:VerifyPosition( p, 'full width topleft', 1, 1, &columns, 1 )
+
+  redraw
+  let line = join(map(range(1, &columns + 1), 'screenstring(1, v:val)'), '')
+  call assert_equal(X, line)
+
+  call popup_close( p )
+  redraw
+
+  " Same if placed on the right hand side
+  let p = popup_create( X, { 'line': 1, 'col': &columns, 'wrap': 0 } )
+  call s:VerifyPosition( p, 'full width topright', 1, 1, &columns, 1 )
+
+  redraw
+  let line = join(map(range(1, &columns + 1), 'screenstring(1, v:val)'), '')
+  call assert_equal(X, line)
+
+  call popup_close( p )
+  redraw
+
+  " Extend so > window width
+  let X .= 'x'
+
+  let p = popup_create( X, { 'line': 1, 'col': 1, 'wrap': 0 } )
+  call s:VerifyPosition( p, 'full width +  1 topleft', 1, 1, &columns, 1 )
+
+  redraw
+  let line = join(map(range(1, &columns + 1), 'screenstring(1, v:val)'), '')
+  call assert_equal(X[ : -2 ], line)
+
+  call popup_close( p )
+  redraw
+
+  " Shifted then truncated (the x is not visible)
+  let p = popup_create( X, { 'line': 1, 'col': &columns - 3, 'wrap': 0 } )
+  call s:VerifyPosition( p, 'full width + 1 topright', 1, 1, &columns, 1 )
+
+  redraw
+  let line = join(map(range(1, &columns + 1), 'screenstring(1, v:val)'), '')
+  call assert_equal(X[ : -2 ], line)
+
+  call popup_close( p )
+  redraw
+
+  " Not shifted, just truncated
+  let p = popup_create( X,
+        \ { 'line': 1, 'col': 2, 'wrap': 0, 'fixed': 1 } )
+  call s:VerifyPosition( p, 'full width + 1 fixed', 1, 2, &columns - 1, 1)
+
+  redraw
+  let line = join(map(range(1, &columns + 1), 'screenstring(1, v:val)'), '')
+  let e_line = ' ' . X[ 1 : -2 ]
+  call assert_equal(e_line, line)
+
+  call popup_close( p )
+  redraw
+
+  popupclear
+  %bwipe!
+endfunc
+
+func Test_popup_moved()
+  new
+  call test_override('char_avail', 1)
+  call setline(1, ['one word to move around', 'a WORD.and->some thing'])
+
+  exe "normal gg0/word\<CR>"
+  let winid = popup_atcursor('text', {'moved': 'any'})
+  redraw
+  call assert_equal(1, popup_getpos(winid).visible)
+  " trigger the check for last_cursormoved by going into insert mode
+  call feedkeys("li\<Esc>", 'xt')
+  call assert_equal({}, popup_getpos(winid))
+  popupclear
+
+  exe "normal gg0/word\<CR>"
+  let winid = popup_atcursor('text', {'moved': 'word'})
+  redraw
+  call assert_equal(1, popup_getpos(winid).visible)
+  call feedkeys("hi\<Esc>", 'xt')
+  call assert_equal({}, popup_getpos(winid))
+  popupclear
+
+  exe "normal gg0/word\<CR>"
+  let winid = popup_atcursor('text', {'moved': 'word'})
+  redraw
+  call assert_equal(1, popup_getpos(winid).visible)
+  call feedkeys("li\<Esc>", 'xt')
+  call assert_equal(1, popup_getpos(winid).visible)
+  call feedkeys("ei\<Esc>", 'xt')
+  call assert_equal(1, popup_getpos(winid).visible)
+  call feedkeys("eli\<Esc>", 'xt')
+  call assert_equal({}, popup_getpos(winid))
+  popupclear
+
+  " WORD is the default
+  exe "normal gg0/WORD\<CR>"
+  let winid = popup_atcursor('text', {})
+  redraw
+  call assert_equal(1, popup_getpos(winid).visible)
+  call feedkeys("eli\<Esc>", 'xt')
+  call assert_equal(1, popup_getpos(winid).visible)
+  call feedkeys("wi\<Esc>", 'xt')
+  call assert_equal(1, popup_getpos(winid).visible)
+  call feedkeys("Eli\<Esc>", 'xt')
+  call assert_equal({}, popup_getpos(winid))
+  popupclear
+
+  exe "normal gg0/word\<CR>"
+  let winid = popup_atcursor('text', {'moved': [5, 10]})
+  redraw
+  call assert_equal(1, popup_getpos(winid).visible)
+  call feedkeys("eli\<Esc>", 'xt')
+  call feedkeys("ei\<Esc>", 'xt')
+  call assert_equal(1, popup_getpos(winid).visible)
+  call feedkeys("eli\<Esc>", 'xt')
+  call assert_equal({}, popup_getpos(winid))
+  popupclear
+
+  bwipe!
+  call test_override('ALL', 0)
 endfunc

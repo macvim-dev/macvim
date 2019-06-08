@@ -430,10 +430,10 @@ eval_clear(void)
 	vim_free(SCRIPT_SV(i));
     ga_clear(&ga_scripts);
 
-    /* unreferenced lists and dicts */
+    // unreferenced lists and dicts
     (void)garbage_collect(FALSE);
 
-    /* functions */
+    // functions not garbage collected
     free_all_functions();
 }
 #endif
@@ -4592,7 +4592,7 @@ eval7(
 		/* Stop the expression evaluation when immediately
 		 * aborting on error, or when an interrupt occurred or
 		 * an exception was thrown but not caught. */
-		if (aborting())
+		if (evaluate && aborting())
 		{
 		    if (ret == OK)
 			clear_tv(rettv);

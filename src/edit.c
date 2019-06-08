@@ -1466,8 +1466,7 @@ ins_need_undo_get(void)
  * inserting sequences of characters (e.g., for CTRL-R).
  */
     void
-ins_redraw(
-    int		ready UNUSED)	    /* not busy with something */
+ins_redraw(int ready)	    // not busy with something
 {
 #ifdef FEAT_CONCEAL
     linenr_T	conceal_old_cursor_line = 0;
@@ -1478,10 +1477,12 @@ ins_redraw(
     if (char_avail())
 	return;
 
-#if defined(FEAT_CONCEAL)
     /* Trigger CursorMoved if the cursor moved.  Not when the popup menu is
      * visible, the command might delete it. */
     if (ready && (has_cursormovedI()
+# ifdef FEAT_TEXT_PROP
+		|| popup_visible
+# endif
 # if defined(FEAT_CONCEAL)
 		|| curwin->w_p_cole > 0
 # endif
@@ -1507,6 +1508,10 @@ ins_redraw(
 	    update_curswant();
 	    ins_apply_autocmds(EVENT_CURSORMOVEDI);
 	}
+#ifdef FEAT_TEXT_PROP
+	if (popup_visible)
+	    popup_check_cursor_pos();
+#endif
 # ifdef FEAT_CONCEAL
 	if (curwin->w_p_cole > 0)
 	{
@@ -1517,7 +1522,6 @@ ins_redraw(
 # endif
 	last_cursormoved = curwin->w_cursor;
     }
-#endif
 
     /* Trigger TextChangedI if b_changedtick differs. */
     if (ready && has_textchangedI()
@@ -3869,7 +3873,7 @@ replace_push(
     if (replace_stack_len <= replace_stack_nr)
     {
 	replace_stack_len += 50;
-	p = alloc(sizeof(char_u) * replace_stack_len);
+	p = ALLOC_MULT(char_u, replace_stack_len);
 	if (p == NULL)	    /* out of memory */
 	{
 	    replace_stack_len -= 50;
