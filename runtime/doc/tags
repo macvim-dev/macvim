@@ -6220,6 +6220,7 @@ exp()	eval.txt	/*exp()*
 expand()	eval.txt	/*expand()*
 expand-env	options.txt	/*expand-env*
 expand-environment-var	options.txt	/*expand-environment-var*
+expandcmd()	eval.txt	/*expandcmd()*
 expr	eval.txt	/*expr*
 expr-!	eval.txt	/*expr-!*
 expr-!=	eval.txt	/*expr-!=*
@@ -8812,6 +8813,10 @@ slow-terminal	term.txt	/*slow-terminal*
 socket-interface	channel.txt	/*socket-interface*
 sort()	eval.txt	/*sort()*
 sorting	change.txt	/*sorting*
+sound_playevent()	eval.txt	/*sound_playevent()*
+sound_playfile()	eval.txt	/*sound_playfile()*
+sound_stop()	eval.txt	/*sound_stop()*
+sound_stopall()	eval.txt	/*sound_stopall()*
 soundfold()	eval.txt	/*soundfold()*
 space	intro.txt	/*space*
 spec-customizing	pi_spec.txt	/*spec-customizing*
