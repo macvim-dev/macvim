@@ -571,8 +571,7 @@ popup_adjust_position(win_T *wp)
 	    || org_width != wp->w_width
 	    || org_height != wp->w_height)
     {
-	// TODO: redraw only windows that were below the popup.
-	redraw_all_later(NOT_VALID);
+	redraw_all_later(VALID);
 	popup_mask_refresh = TRUE;
     }
 }
@@ -708,6 +707,15 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 
     redraw_all_later(NOT_VALID);
     popup_mask_refresh = TRUE;
+}
+
+/*
+ * popup_clear()
+ */
+    void
+f_popup_clear(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+    close_all_popups();
 }
 
 /*
@@ -926,12 +934,6 @@ close_all_popups(void)
 	popup_close(first_popupwin->w_id);
     while (curtab->tp_first_popupwin != NULL)
 	popup_close(curtab->tp_first_popupwin->w_id);
-}
-
-    void
-ex_popupclear(exarg_T *eap UNUSED)
-{
-    close_all_popups();
 }
 
 /*
