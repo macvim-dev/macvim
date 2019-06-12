@@ -13,7 +13,7 @@
 <p>Security Fixes:</p>
 
 <ul>
-  <li>Fix modeline security vulnerability (CVE-2019-12735). #898 (fixed in Vim 8.1.265)</li>
+  <li>Fix modeline security vulnerability (CVE-2019-12735). #898 (fixed in Vim 8.1.1365)</li>
 </ul>
 
 <p>Features:</p>
