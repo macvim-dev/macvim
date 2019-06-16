@@ -42,6 +42,8 @@ static int MMAlertTextFieldHeight = 22;
 
 static const NSString * const MMToolbarMenuName = @"ToolBar";
 static const NSString * const MMTouchbarMenuName = @"TouchBar";
+static const NSString * const MMPopUpMenuPrefix = @"PopUp";
+static const NSString * const MMUserPopUpMenuPrefix = @"]";
 
 // NOTE: By default a message sent to the backend will be dropped if it cannot
 // be delivered instantly; otherwise there is a possibility that MacVim will
@@ -1056,14 +1058,18 @@ static BOOL isUnsafeMessage(int msgid);
                 pid, identifier, ex);
     }
 }
-
++ (bool) hasPopupPrefix: (NSString *) menuName
+{
+    return [menuName hasPrefix:MMPopUpMenuPrefix] || [menuName hasPrefix:MMUserPopUpMenuPrefix];
+}
 - (NSMenuItem *)menuItemForDescriptor:(NSArray *)desc
 {
     if (!(desc && [desc count] > 0)) return nil;
 
     NSString *rootName = [desc objectAtIndex:0];
-    NSArray *rootItems = [rootName hasPrefix:@"PopUp"] ? popupMenuItems
-                                                       : [mainMenu itemArray];
+    bool popup = [MMVimController hasPopupPrefix:rootName];
+    NSArray *rootItems =  popup ? popupMenuItems
+                                : [mainMenu itemArray];
 
     NSMenuItem *item = nil;
     int i, count = [rootItems count];
@@ -1089,8 +1095,9 @@ static BOOL isUnsafeMessage(int msgid);
     if (!(desc && [desc count] > 0)) return nil;
 
     NSString *rootName = [desc objectAtIndex:0];
-    NSArray *rootItems = [rootName hasPrefix:@"PopUp"] ? popupMenuItems
-                                                       : [mainMenu itemArray];
+    bool popup = [MMVimController hasPopupPrefix:rootName];
+    NSArray *rootItems = popup ? popupMenuItems
+                               : [mainMenu itemArray];
 
     NSMenu *menu = nil;
     int i, count = [rootItems count];
@@ -1172,7 +1179,7 @@ static BOOL isUnsafeMessage(int msgid);
     [item setSubmenu:menu];
 
     NSMenu *parent = [self parentMenuForDescriptor:desc];
-    if (!parent && [rootName hasPrefix:@"PopUp"]) {
+    if (!parent && [MMVimController hasPopupPrefix:rootName]) {
         if ([popupMenuItems count] <= idx) {
             [popupMenuItems addObject:item];
         } else {
