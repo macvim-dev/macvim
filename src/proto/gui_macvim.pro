@@ -43,13 +43,13 @@ gui_mch_update_tabline(void);
     void
 gui_mch_show_tabline(int showit);
     void
-clip_mch_lose_selection(VimClipboard *cbd);
+clip_mch_lose_selection(Clipboard_T *cbd);
     int
-clip_mch_own_selection(VimClipboard *cbd);
+clip_mch_own_selection(Clipboard_T *cbd);
     void
-clip_mch_request_selection(VimClipboard *cbd);
+clip_mch_request_selection(Clipboard_T *cbd);
     void
-clip_mch_set_selection(VimClipboard *cbd);
+clip_mch_set_selection(Clipboard_T *cbd);
     void
 gui_mch_add_menu(vimmenu_T *menu, int idx);
     void

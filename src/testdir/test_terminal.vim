@@ -1,8 +1,7 @@
 " Tests for the terminal window.
 
-if !has('terminal')
-  finish
-endif
+source check.vim
+CheckFeature terminal
 
 source shared.vim
 source screendump.vim

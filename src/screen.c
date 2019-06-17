@@ -121,10 +121,6 @@ static int redrawing_for_callback = 0;
  */
 static schar_T	*current_ScreenLine;
 
-#ifdef FEAT_TEXT_PROP
-static void may_update_popup_mask(int type);
-static void update_popups(void);
-#endif
 static void win_update(win_T *wp);
 static void win_redr_status(win_T *wp, int ignore_pum);
 static void win_draw_end(win_T *wp, int c1, int c2, int draw_margin, int row, int endrow, hlf_T hl);
@@ -830,7 +826,7 @@ update_screen(int type_arg)
 
 #ifdef FEAT_TEXT_PROP
     // Display popup windows on top of the windows.
-    update_popups();
+    update_popups(win_update);
 #endif
 
 #ifdef FEAT_GUI
@@ -1005,7 +1001,7 @@ update_debug_sign(buf_T *buf, linenr_T lnum)
  * Get 'wincolor' attribute for window "wp".  If not set and "wp" is a popup
  * window then get the "Pmenu" highlight attribute.
  */
-    static int
+    int
 get_wcr_attr(win_T *wp)
 {
     int wcr_attr = 0;
@@ -1018,306 +1014,6 @@ get_wcr_attr(win_T *wp)
 #endif
     return wcr_attr;
 }
-
-#ifdef FEAT_TEXT_PROP
-
-/*
- * Update "popup_mask" if needed.
- * Also recomputes the popup size and positions.
- * Also updates "popup_visible".
- * Also marks window lines for redrawing.
- */
-    static void
-may_update_popup_mask(int type)
-{
-    win_T	*wp;
-    short	*mask;
-    int		line, col;
-
-    if (popup_mask_tab != curtab)
-	popup_mask_refresh = TRUE;
-    if (!popup_mask_refresh)
-    {
-	// Check if any buffer has changed.
-	for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
-	    if (wp->w_popup_last_changedtick != CHANGEDTICK(wp->w_buffer))
-		popup_mask_refresh = TRUE;
-	for (wp = curtab->tp_first_popupwin; wp != NULL; wp = wp->w_next)
-	    if (wp->w_popup_last_changedtick != CHANGEDTICK(wp->w_buffer))
-		popup_mask_refresh = TRUE;
-	if (!popup_mask_refresh)
-	    return;
-    }
-
-    // Need to update the mask, something has changed.
-    popup_mask_refresh = FALSE;
-    popup_mask_tab = curtab;
-    popup_visible = FALSE;
-
-    // If redrawing everything, just update "popup_mask".
-    // If redrawing only what is needed, update "popup_mask_next" and then
-    // compare with "popup_mask" to see what changed.
-    if (type >= SOME_VALID)
-	mask = popup_mask;
-    else
-	mask = popup_mask_next;
-    vim_memset(mask, 0, screen_Rows * screen_Columns * sizeof(short));
-
-    // Find the window with the lowest zindex that hasn't been handled yet,
-    // so that the window with a higher zindex overwrites the value in
-    // popup_mask.
-    popup_reset_handled();
-    while ((wp = find_next_popup(TRUE)) != NULL)
-    {
-	int	    height_extra, width_extra;
-
-	popup_visible = TRUE;
-
-	// Recompute the position if the text changed.
-	if (wp->w_popup_last_changedtick != CHANGEDTICK(wp->w_buffer))
-	    popup_adjust_position(wp);
-
-	// the width and height are for the inside, add the padding and
-	// border
-	height_extra = wp->w_popup_padding[0] + wp->w_popup_border[0]
-			      + wp->w_popup_padding[2] + wp->w_popup_border[2];
-	width_extra = wp->w_popup_padding[3] + wp->w_popup_border[3]
-			      + wp->w_popup_padding[1] + wp->w_popup_border[1];
-
-	for (line = wp->w_winrow;
-		line < wp->w_winrow + wp->w_height + height_extra
-						 && line < screen_Rows; ++line)
-	    for (col = wp->w_wincol;
-		 col < wp->w_wincol + wp->w_width + width_extra
-						&& col < screen_Columns; ++col)
-		mask[line * screen_Columns + col] = wp->w_zindex;
-    }
-
-    // Only check which lines are to be updated if not already
-    // updating all lines.
-    if (mask == popup_mask_next)
-	for (line = 0; line < screen_Rows; ++line)
-	{
-	    int	    col_done = 0;
-
-	    for (col = 0; col < screen_Columns; ++col)
-	    {
-		int off = line * screen_Columns + col;
-
-		if (popup_mask[off] != popup_mask_next[off])
-		{
-		    popup_mask[off] = popup_mask_next[off];
-
-		    // The screen position "line" / "col" needs to be redrawn.
-		    // Figure out what window that is and update w_redraw_top
-		    // and w_redr_bot.  Only needs to be done for each window
-		    // line.
-		    if (col >= col_done)
-		    {
-			linenr_T	lnum;
-			int		line_cp = line;
-			int		col_cp = col;
-
-			// find the window where the row is in
-			wp = mouse_find_win(&line_cp, &col_cp);
-			if (wp != NULL)
-			{
-			    if (line_cp >= wp->w_height)
-				// In (or below) status line
-				wp->w_redr_status = TRUE;
-			    // compute the position in the buffer line from the
-			    // position on the screen
-			    else if (mouse_comp_pos(wp, &line_cp, &col_cp,
-									&lnum))
-				// past bottom
-				wp->w_redr_status = TRUE;
-			    else
-				redrawWinline(wp, lnum);
-
-			    // This line is going to be redrawn, no need to
-			    // check until the right side of the window.
-			    col_done = wp->w_wincol + wp->w_width - 1;
-			}
-		    }
-		}
-	    }
-	}
-}
-
-/*
- * Return a string of "len" spaces in IObuff.
- */
-    static char_u *
-get_spaces(int len)
-{
-    vim_memset(IObuff, ' ', (size_t)len);
-    IObuff[len] = NUL;
-    return IObuff;
-}
-
-    static void
-update_popups(void)
-{
-    win_T   *wp;
-    int	    top_off;
-    int	    left_off;
-    int	    total_width;
-    int	    total_height;
-    int	    popup_attr;
-    int	    border_attr[4];
-    int	    border_char[8];
-    char_u  buf[MB_MAXBYTES];
-    int	    row;
-    int	    i;
-
-    // Find the window with the lowest zindex that hasn't been updated yet,
-    // so that the window with a higher zindex is drawn later, thus goes on
-    // top.
-    popup_reset_handled();
-    while ((wp = find_next_popup(TRUE)) != NULL)
-    {
-	// This drawing uses the zindex of the popup window, so that it's on
-	// top of the text but doesn't draw when another popup with higher
-	// zindex is on top of the character.
-	screen_zindex = wp->w_zindex;
-
-	// adjust w_winrow and w_wincol for border and padding, since
-	// win_update() doesn't handle them.
-	top_off = wp->w_popup_padding[0] + wp->w_popup_border[0];
-	left_off = wp->w_popup_padding[3] + wp->w_popup_border[3];
-	wp->w_winrow += top_off;
-	wp->w_wincol += left_off;
-
-	// Draw the popup text.
-	win_update(wp);
-
-	wp->w_winrow -= top_off;
-	wp->w_wincol -= left_off;
-
-	total_width = wp->w_popup_border[3] + wp->w_popup_padding[3]
-		+ wp->w_width + wp->w_popup_padding[1] + wp->w_popup_border[1];
-	total_height = wp->w_popup_border[0] + wp->w_popup_padding[0]
-		+ wp->w_height + wp->w_popup_padding[2] + wp->w_popup_border[2];
-	popup_attr = get_wcr_attr(wp);
-
-	// We can only use these line drawing characters when 'encoding' is
-	// "utf-8" and 'ambiwidth' is "single".
-	if (enc_utf8 && *p_ambw == 's')
-	{
-	    border_char[0] = border_char[2] = 0x2550;
-	    border_char[1] = border_char[3] = 0x2551;
-	    border_char[4] = 0x2554;
-	    border_char[5] = 0x2557;
-	    border_char[6] = 0x255d;
-	    border_char[7] = 0x255a;
-	}
-	else
-	{
-	    border_char[0] = border_char[2] = '-';
-	    border_char[1] = border_char[3] = '|';
-	    for (i = 4; i < 8; ++i)
-		border_char[i] = '+';
-	}
-	for (i = 0; i < 8; ++i)
-	    if (wp->w_border_char[i] != 0)
-		border_char[i] = wp->w_border_char[i];
-
-	for (i = 0; i < 4; ++i)
-	{
-	    border_attr[i] = popup_attr;
-	    if (wp->w_border_highlight[i] != NULL)
-		border_attr[i] = syn_name2attr(wp->w_border_highlight[i]);
-	}
-
-	if (wp->w_popup_border[0] > 0)
-	{
-	    // top border
-	    screen_fill(wp->w_winrow, wp->w_winrow + 1,
-		    wp->w_wincol,
-		    wp->w_wincol + total_width,
-		    wp->w_popup_border[3] != 0
-					     ? border_char[4] : border_char[0],
-		    border_char[0], border_attr[0]);
-	    if (wp->w_popup_border[1] > 0)
-	    {
-		buf[mb_char2bytes(border_char[5], buf)] = NUL;
-		screen_puts(buf, wp->w_winrow,
-			       wp->w_wincol + total_width - 1, border_attr[1]);
-	    }
-	}
-
-	if (wp->w_popup_padding[0] > 0)
-	{
-	    // top padding
-	    row = wp->w_winrow + wp->w_popup_border[0];
-	    screen_fill(row, row + wp->w_popup_padding[0],
-		    wp->w_wincol + wp->w_popup_border[3],
-		    wp->w_wincol + total_width - wp->w_popup_border[1],
-							 ' ', ' ', popup_attr);
-	}
-
-	for (row = wp->w_winrow + wp->w_popup_border[0];
-		row < wp->w_winrow + total_height - wp->w_popup_border[2];
-		    ++row)
-	{
-	    // left border
-	    if (wp->w_popup_border[3] > 0)
-	    {
-		buf[mb_char2bytes(border_char[3], buf)] = NUL;
-		screen_puts(buf, row, wp->w_wincol, border_attr[3]);
-	    }
-	    // left padding
-	    if (wp->w_popup_padding[3] > 0)
-		screen_puts(get_spaces(wp->w_popup_padding[3]), row,
-			wp->w_wincol + wp->w_popup_border[3], popup_attr);
-	    // right border
-	    if (wp->w_popup_border[1] > 0)
-	    {
-		buf[mb_char2bytes(border_char[1], buf)] = NUL;
-		screen_puts(buf, row,
-			       wp->w_wincol + total_width - 1, border_attr[1]);
-	    }
-	    // right padding
-	    if (wp->w_popup_padding[1] > 0)
-		screen_puts(get_spaces(wp->w_popup_padding[1]), row,
-			wp->w_wincol + wp->w_popup_border[3]
-			   + wp->w_popup_padding[3] + wp->w_width, popup_attr);
-	}
-
-	if (wp->w_popup_padding[2] > 0)
-	{
-	    // bottom padding
-	    row = wp->w_winrow + wp->w_popup_border[0]
-				       + wp->w_popup_padding[0] + wp->w_height;
-	    screen_fill(row, row + wp->w_popup_padding[2],
-		    wp->w_wincol + wp->w_popup_border[3],
-		    wp->w_wincol + total_width - wp->w_popup_border[1],
-							 ' ', ' ', popup_attr);
-	}
-
-	if (wp->w_popup_border[2] > 0)
-	{
-	    // bottom border
-	    row = wp->w_winrow + total_height - 1;
-	    screen_fill(row , row + 1,
-		    wp->w_wincol,
-		    wp->w_wincol + total_width,
-		    wp->w_popup_border[3] != 0
-					     ? border_char[7] : border_char[2],
-		    border_char[2], border_attr[2]);
-	    if (wp->w_popup_border[1] > 0)
-	    {
-		buf[mb_char2bytes(border_char[6], buf)] = NUL;
-		screen_puts(buf, row,
-			       wp->w_wincol + total_width - 1, border_attr[2]);
-	    }
-	}
-
-	// Back to the normal zindex.
-	screen_zindex = 0;
-    }
-}
-#endif
 
 #if defined(FEAT_GUI) || defined(PROTO)
 /*
@@ -1359,7 +1055,7 @@ updateWindow(win_T *wp)
 
 #ifdef FEAT_TEXT_PROP
     // Display popup windows on top of everything.
-    update_popups();
+    update_popups(win_update);
 #endif
 
     update_finish();
@@ -4491,7 +4187,7 @@ win_line(
 		 */
 		v = (long)(ptr - line);
 		cur = wp->w_match_head;
-		shl_flag = (screen_line_flags & SLF_POPUP);
+		shl_flag = FALSE;
 		while (cur != NULL || shl_flag == FALSE)
 		{
 		    if (shl_flag == FALSE
@@ -4501,6 +4197,8 @@ win_line(
 		    {
 			shl = &search_hl;
 			shl_flag = TRUE;
+			if (screen_line_flags & SLF_POPUP)
+			    continue;  // do not use search_hl
 		    }
 		    else
 			shl = &cur->hl;
@@ -4580,9 +4278,9 @@ win_line(
 
 		/* Use attributes from match with highest priority among
 		 * 'search_hl' and the match list. */
-		search_attr = search_hl.attr_cur;
 		cur = wp->w_match_head;
 		shl_flag = FALSE;
+		search_attr = 0;
 		while (cur != NULL || shl_flag == FALSE)
 		{
 		    if (shl_flag == FALSE
@@ -4592,6 +4290,8 @@ win_line(
 		    {
 			shl = &search_hl;
 			shl_flag = TRUE;
+			if (screen_line_flags & SLF_POPUP)
+			    continue;  // do not use search_hl
 		    }
 		    else
 			shl = &cur->hl;
@@ -5876,7 +5576,6 @@ win_line(
 		{
 		    /* Use attributes from match with highest priority among
 		     * 'search_hl' and the match list. */
-		    char_attr = search_hl.attr;
 		    cur = wp->w_match_head;
 		    shl_flag = FALSE;
 		    while (cur != NULL || shl_flag == FALSE)
@@ -5888,6 +5587,8 @@ win_line(
 			{
 			    shl = &search_hl;
 			    shl_flag = TRUE;
+			    if (screen_line_flags & SLF_POPUP)
+				continue;  // do not use search_hl
 			}
 			else
 			    shl = &cur->hl;
