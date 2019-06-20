@@ -545,11 +545,11 @@ EXTERN int	gui_win_y INIT(= -1);
 #endif
 
 #ifdef FEAT_CLIPBOARD
-EXTERN VimClipboard clip_star;	/* PRIMARY selection in X11 */
+EXTERN Clipboard_T clip_star;	// PRIMARY selection in X11
 # ifdef FEAT_X11
-EXTERN VimClipboard clip_plus;	/* CLIPBOARD selection in X11 */
+EXTERN Clipboard_T clip_plus;	// CLIPBOARD selection in X11
 # else
-#  define clip_plus clip_star	/* there is only one clipboard */
+#  define clip_plus clip_star	// there is only one clipboard
 #  define ONE_CLIPBOARD
 # endif
 
@@ -599,7 +599,8 @@ EXTERN win_T	*aucmd_win;	/* window used in aucmd_prepbuf() */
 EXTERN int	aucmd_win_used INIT(= FALSE);	/* aucmd_win is being used */
 
 #ifdef FEAT_TEXT_PROP
-EXTERN win_T    *first_popupwin;	// first global popup window
+EXTERN win_T    *first_popupwin;		// first global popup window
+EXTERN win_T	*popup_dragwin INIT(= NULL);	// popup window being dragged
 #endif
 
 /*

@@ -1,8 +1,7 @@
 " Test for timers
 
-if !has('timers')
-  finish
-endif
+source check.vim
+CheckFeature timers
 
 source shared.vim
 source screendump.vim

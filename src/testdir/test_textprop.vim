@@ -1,9 +1,8 @@
 " Tests for defining text property types and adding text properties to the
 " buffer.
 
-if !has('textprop')
-  finish
-endif
+source check.vim
+CheckFeature textprop
 
 source screendump.vim
 

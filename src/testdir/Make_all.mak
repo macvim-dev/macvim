@@ -65,6 +65,7 @@ NEW_TESTS = \
 	test_backspace_opt \
 	test_backup \
 	test_balloon \
+	test_balloon_gui \
 	test_behave \
 	test_blob \
 	test_blockedit \
@@ -87,6 +88,7 @@ NEW_TESTS = \
 	test_comparators \
 	test_compiler \
 	test_conceal \
+	test_const \
 	test_crypt \
 	test_cscope \
 	test_cursor_func \
@@ -296,6 +298,7 @@ NEW_TESTS_RES = \
 	test_autoload.res \
 	test_backspace_opt.res \
 	test_balloon.res \
+	test_balloon_gui.res \
 	test_blob.res \
 	test_blockedit.res \
 	test_breakindent.res \
@@ -312,6 +315,7 @@ NEW_TESTS_RES = \
 	test_command_count.res \
 	test_comparators.res \
 	test_conceal.res \
+	test_const.res \
 	test_crypt.res \
 	test_cscope.res \
 	test_curswant.res \

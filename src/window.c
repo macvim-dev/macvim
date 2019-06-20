@@ -87,7 +87,7 @@ do_window(
 #endif
     char_u	cbuf[40];
 
-    if (NOT_IN_POPUP_WINDOW)
+    if (ERROR_IF_POPUP_WINDOW)
 	return;
 
 #ifdef FEAT_CMDWIN
@@ -735,7 +735,7 @@ cmd_with_count(
     int
 win_split(int size, int flags)
 {
-    if (NOT_IN_POPUP_WINDOW)
+    if (ERROR_IF_POPUP_WINDOW)
 	return FAIL;
 
     /* When the ":tab" modifier was used open a new tab page instead. */
@@ -1376,7 +1376,7 @@ win_init_some(win_T *newp, win_T *oldp)
 /*
  * Return TRUE if "win" is a global popup or a popup in the current tab page.
  */
-    static int
+    int
 win_valid_popup(win_T *win UNUSED)
 {
 #ifdef FEAT_TEXT_PROP
@@ -1528,7 +1528,7 @@ win_exchange(long Prenum)
     win_T	*wp2;
     int		temp;
 
-    if (NOT_IN_POPUP_WINDOW)
+    if (ERROR_IF_POPUP_WINDOW)
 	return;
     if (ONE_WINDOW)	    // just one window
     {
@@ -2329,12 +2329,13 @@ close_last_window_tabpage(
 }
 
 /*
- * Close the buffer of "win" and unload it if "free_buf" is TRUE.
+ * Close the buffer of "win" and unload it if "action" is DOBUF_UNLOAD.
+ * "action" can also be zero (do nothing) or DOBUF_WIPE.
  * "abort_if_last" is passed to close_buffer(): abort closing if all other
  * windows are closed.
  */
     static void
-win_close_buffer(win_T *win, int free_buf, int abort_if_last)
+win_close_buffer(win_T *win, int action, int abort_if_last)
 {
 #ifdef FEAT_SYN_HL
     // Free independent synblock before the buffer is freed.
@@ -2355,8 +2356,7 @@ win_close_buffer(win_T *win, int free_buf, int abort_if_last)
 
 	set_bufref(&bufref, curbuf);
 	win->w_closing = TRUE;
-	close_buffer(win, win->w_buffer, free_buf ? DOBUF_UNLOAD : 0,
-								abort_if_last);
+	close_buffer(win, win->w_buffer, action, abort_if_last);
 	if (win_valid_any_tab(win))
 	    win->w_closing = FALSE;
 	// Make sure curbuf is valid. It can become invalid if 'bufhidden' is
@@ -2384,7 +2384,7 @@ win_close(win_T *win, int free_buf)
     tabpage_T   *prev_curtab = curtab;
     frame_T	*win_frame = win->w_frame->fr_parent;
 
-    if (NOT_IN_POPUP_WINDOW)
+    if (ERROR_IF_POPUP_WINDOW)
 	return FAIL;
 
     if (last_window())
@@ -2467,7 +2467,7 @@ win_close(win_T *win, int free_buf)
 	out_flush();
 #endif
 
-    win_close_buffer(win, free_buf, TRUE);
+    win_close_buffer(win, free_buf ? DOBUF_UNLOAD : 0, TRUE);
 
     if (only_one_window() && win_valid(win) && win->w_buffer == NULL
 	    && (last_window() || curtab != prev_curtab
@@ -4245,7 +4245,7 @@ win_goto(win_T *wp)
     win_T	*owp = curwin;
 #endif
 
-    if (NOT_IN_POPUP_WINDOW)
+    if (ERROR_IF_POPUP_WINDOW)
 	return;
     if (text_locked())
     {
@@ -4862,6 +4862,7 @@ win_free(
     free_callback(&wp->w_filter_cb);
     for (i = 0; i < 4; ++i)
 	VIM_CLEAR(wp->w_border_highlight[i]);
+    vim_free(wp->w_popup_title);
 #endif
 
 #ifdef FEAT_SYN_HL
@@ -4899,7 +4900,7 @@ win_unlisted(win_T *wp)
     void
 win_free_popup(win_T *win)
 {
-    win_close_buffer(win, TRUE, FALSE);
+    win_close_buffer(win, DOBUF_WIPE, FALSE);
 # if defined(FEAT_TIMERS)
     if (win->w_popup_timer != NULL)
 	stop_timer(win->w_popup_timer);
