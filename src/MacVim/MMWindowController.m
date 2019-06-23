@@ -591,7 +591,26 @@
             }
         }
     }
+    else
 #endif
+    {
+        // 10.13 or below. As noted above, the window flag
+        // NSWindowStyleMaskTexturedBackground doesn't play well with window color,
+        // but if we are toggling the titlebar transparent option, we need to set
+        // the window background color in order the title bar to be tinted correctly.
+        if ([[NSUserDefaults standardUserDefaults]
+             boolForKey:MMTitlebarAppearsTransparentKey]) {
+            if ([back alphaComponent] != 0) {
+                [decoratedWindow setBackgroundColor:back];
+            } else {
+                // See above HACK for more details. Basically we cannot set a
+                // color with 0 alpha or the window manager will give it a
+                // different treatment.
+                NSColor *clearColor = [back colorWithAlphaComponent:0.001];
+                [decoratedWindow setBackgroundColor:clearColor];
+            }
+        }
+    }
 
     [vimView setDefaultColorsBackground:back foreground:fore];
 }
