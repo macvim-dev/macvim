@@ -2914,6 +2914,10 @@ struct window_S
     int		w_wantline;	    // "line" for popup window
     int		w_wantcol;	    // "col" for popup window
     int		w_firstline;	    // "firstline" for popup window
+    int		w_want_scrollbar;   // when zero don't use a scrollbar
+    int		w_has_scrollbar;    // 1 if scrollbar displayed, 0 otherwise
+    char_u	*w_scrollbar_highlight; // "scrollbarhighlight"
+    char_u	*w_thumb_highlight; // "thumbhighlight"
     int		w_popup_padding[4]; // popup padding top/right/bot/left
     int		w_popup_border[4];  // popup border top/right/bot/left
     char_u	*w_border_highlight[4];  // popup border highlight
@@ -2928,6 +2932,7 @@ struct window_S
     colnr_T	w_popup_mincol;	    // close popup if cursor before this col
     colnr_T	w_popup_maxcol;	    // close popup if cursor after this col
     int		w_popup_drag;	    // allow moving the popup with the mouse
+    list_T	*w_popup_mask;	    // list of lists for "mask"
 
 # if defined(FEAT_TIMERS)
     timer_T	*w_popup_timer;	    // timer for closing popup window

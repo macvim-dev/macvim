@@ -187,6 +187,33 @@ func Test_strftime()
 
   call assert_fails('call strftime([])', 'E730:')
   call assert_fails('call strftime("%Y", [])', 'E745:')
+
+  " Check that the time changes after we change the timezone
+  " Save previous timezone value, if any
+  if exists('$TZ')
+    let tz = $TZ
+  endif
+
+  " Force EST and then UTC, save the current hour (24-hour clock) for each
+  let $TZ = 'EST' | let est = strftime('%H')
+  let $TZ = 'UTC' | let utc = strftime('%H')
+
+  " Those hours should be two bytes long, and should not be the same; if they
+  " are, a tzset(3) call may have failed somewhere
+  call assert_equal(strlen(est), 2)
+  call assert_equal(strlen(utc), 2)
+  " TODO: this fails on MS-Windows
+  if has('unix')
+    call assert_notequal(est, utc)
+  endif
+
+  " If we cached a timezone value, put it back, otherwise clear it
+  if exists('tz')
+    let $TZ = tz
+  else
+    unlet $TZ
+  endif
+
 endfunc
 
 func Test_resolve_unix()
@@ -250,13 +277,14 @@ func Test_resolve_win32()
   if executable('cscript')
     new Xfile
     wq
-    call writefile([
-    \ 'Set fs = CreateObject("Scripting.FileSystemObject")',
-    \ 'Set ws = WScript.CreateObject("WScript.Shell")',
-    \ 'Set shortcut = ws.CreateShortcut("Xlink.lnk")',
-    \ 'shortcut.TargetPath = fs.BuildPath(ws.CurrentDirectory, "Xfile")', 
-    \ 'shortcut.Save'
-    \], 'link.vbs')
+    let lines =<< trim END
+	Set fs = CreateObject("Scripting.FileSystemObject")
+	Set ws = WScript.CreateObject("WScript.Shell")
+	Set shortcut = ws.CreateShortcut("Xlink.lnk")
+	shortcut.TargetPath = fs.BuildPath(ws.CurrentDirectory, "Xfile")
+	shortcut.Save
+    END
+    call writefile(lines, 'link.vbs')
     silent !cscript link.vbs
     call delete('link.vbs')
     call assert_equal(s:normalize_fname(getcwd() . '\Xfile'), s:normalize_fname(resolve('./Xlink.lnk')))

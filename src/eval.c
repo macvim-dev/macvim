@@ -1254,7 +1254,9 @@ heredoc_get(exarg_T *eap, char_u *cmd)
     char_u	*marker;
     list_T	*l;
     char_u	*p;
-    int		indent_len = 0;
+    int		marker_indent_len = 0;
+    int		text_indent_len = 0;
+    char_u	*text_indent = NULL;
 
     if (eap->getline == NULL)
     {
@@ -1268,15 +1270,17 @@ heredoc_get(exarg_T *eap, char_u *cmd)
     {
 	cmd = skipwhite(cmd + 4);
 
-	// Trim the indentation from all the lines in the here document
+	// Trim the indentation from all the lines in the here document.
 	// The amount of indentation trimmed is the same as the indentation of
-	// the :let command line.
+	// the first line after the :let command line.  To find the end marker
+	// the indent of the :let command line is trimmed.
 	p = *eap->cmdlinep;
 	while (VIM_ISWHITE(*p))
 	{
 	    p++;
-	    indent_len++;
+	    marker_indent_len++;
 	}
+	text_indent_len = -1;
     }
 
     // The marker is the next word.  Default marker is "."
@@ -1300,31 +1304,50 @@ heredoc_get(exarg_T *eap, char_u *cmd)
 
     for (;;)
     {
-	int	i = 0;
+	int	mi = 0;
+	int	ti = 0;
 
-	theline = eap->getline(NUL, eap->cookie, 0);
-	if (theline != NULL && indent_len > 0)
-	{
-	    // trim the indent matching the first line
-	    if (STRNCMP(theline, *eap->cmdlinep, indent_len) == 0)
-		i = indent_len;
-	}
-
+	theline = eap->getline(NUL, eap->cookie, 0, FALSE);
 	if (theline == NULL)
 	{
 	    semsg(_("E990: Missing end marker '%s'"), marker);
 	    break;
 	}
-	if (STRCMP(marker, theline + i) == 0)
+
+	// with "trim": skip the indent matching the :let line to find the
+	// marker
+	if (marker_indent_len > 0
+		&& STRNCMP(theline, *eap->cmdlinep, marker_indent_len) == 0)
+	    mi = marker_indent_len;
+	if (STRCMP(marker, theline + mi) == 0)
 	{
 	    vim_free(theline);
 	    break;
 	}
 
-	if (list_append_string(l, theline + i, -1) == FAIL)
+	if (text_indent_len == -1 && *theline != NUL)
+	{
+	    // set the text indent from the first line.
+	    p = theline;
+	    text_indent_len = 0;
+	    while (VIM_ISWHITE(*p))
+	    {
+		p++;
+		text_indent_len++;
+	    }
+	    text_indent = vim_strnsave(theline, text_indent_len);
+	}
+	// with "trim": skip the indent matching the first line
+	if (text_indent != NULL)
+	    for (ti = 0; ti < text_indent_len; ++ti)
+		if (theline[ti] != text_indent[ti])
+		    break;
+
+	if (list_append_string(l, theline + ti, -1) == FAIL)
 	    break;
 	vim_free(theline);
     }
+    vim_free(text_indent);
 
     return l;
 }
@@ -5678,6 +5701,9 @@ garbage_collect(int testing)
     /* v: vars */
     abort = abort || set_ref_in_ht(&vimvarht, copyID, NULL);
 
+    // callbacks in buffers
+    abort = abort || set_ref_in_buffers(copyID);
+
 #ifdef FEAT_LUA
     abort = abort || set_ref_in_lua(copyID);
 #endif
@@ -5708,6 +5734,10 @@ garbage_collect(int testing)
 
 #ifdef FEAT_TERMINAL
     abort = abort || set_ref_in_term(copyID);
+#endif
+
+#ifdef FEAT_TEXT_PROP
+    abort = abort || set_ref_in_popups(copyID);
 #endif
 
     if (!abort)
@@ -5834,13 +5864,43 @@ set_ref_in_ht(hashtab_T *ht, int copyID, list_stack_T **list_stack)
 }
 
 /*
+ * Mark a dict and its items with "copyID".
+ * Returns TRUE if setting references failed somehow.
+ */
+    int
+set_ref_in_dict(dict_T *d, int copyID)
+{
+    if (d != NULL && d->dv_copyID != copyID)
+    {
+	d->dv_copyID = copyID;
+	return set_ref_in_ht(&d->dv_hashtab, copyID, NULL);
+    }
+    return FALSE;
+}
+
+/*
+ * Mark a list and its items with "copyID".
+ * Returns TRUE if setting references failed somehow.
+ */
+    int
+set_ref_in_list(list_T *ll, int copyID)
+{
+    if (ll != NULL && ll->lv_copyID != copyID)
+    {
+	ll->lv_copyID = copyID;
+	return set_ref_in_list_items(ll, copyID, NULL);
+    }
+    return FALSE;
+}
+
+/*
  * Mark all lists and dicts referenced through list "l" with "copyID".
  * "ht_stack" is used to add hashtabs to be marked.  Can be NULL.
  *
  * Returns TRUE if setting references failed somehow.
  */
     int
-set_ref_in_list(list_T *l, int copyID, ht_stack_T **ht_stack)
+set_ref_in_list_items(list_T *l, int copyID, ht_stack_T **ht_stack)
 {
     listitem_T	 *li;
     int		 abort = FALSE;
@@ -5923,7 +5983,7 @@ set_ref_in_item(
 	    ll->lv_copyID = copyID;
 	    if (list_stack == NULL)
 	    {
-		abort = set_ref_in_list(ll, copyID, ht_stack);
+		abort = set_ref_in_list_items(ll, copyID, ht_stack);
 	    }
 	    else
 	    {

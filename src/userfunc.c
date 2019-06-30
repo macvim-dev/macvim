@@ -935,12 +935,9 @@ call_user_func(
 	    v->di_flags |= DI_FLAGS_RO | DI_FLAGS_FIX;
 	}
 
-	if (isdefault)
-	    v->di_tv = def_rettv;
-	else
-	    // Note: the values are copied directly to avoid alloc/free.
-	    // "argvars" must have VAR_FIXED for v_lock.
-	    v->di_tv = argvars[i];
+	// Note: the values are copied directly to avoid alloc/free.
+	// "argvars" must have VAR_FIXED for v_lock.
+	v->di_tv = isdefault ? def_rettv : argvars[i];
 	v->di_tv.v_lock = VAR_FIXED;
 
 	if (addlocal)
@@ -1540,7 +1537,6 @@ call_func(
 	}
     }
 
-
     /*
      * Execute the function if executing and no errors were detected.
      */
@@ -2011,6 +2007,7 @@ ex_function(exarg_T *eap)
     hashtab_T	*ht;
     int		todo;
     hashitem_T	*hi;
+    int		do_concat = TRUE;
     int		sourcing_lnum_off;
 
     /*
@@ -2307,9 +2304,9 @@ ex_function(exarg_T *eap)
 	{
 	    vim_free(line_to_free);
 	    if (eap->getline == NULL)
-		theline = getcmdline(':', 0L, indent);
+		theline = getcmdline(':', 0L, indent, do_concat);
 	    else
-		theline = eap->getline(':', eap->cookie, indent);
+		theline = eap->getline(':', eap->cookie, indent, do_concat);
 	    line_to_free = theline;
 	}
 	if (KeyTyped)
@@ -2338,6 +2335,7 @@ ex_function(exarg_T *eap)
 		{
 		    VIM_CLEAR(skip_until);
 		    VIM_CLEAR(trimmed);
+		    do_concat = TRUE;
 		}
 	    }
 	}
@@ -2462,6 +2460,7 @@ ex_function(exarg_T *eap)
 		    skip_until = vim_strsave((char_u *)".");
 		else
 		    skip_until = vim_strnsave(p, (int)(skiptowhite(p) - p));
+		do_concat = FALSE;
 	    }
 	}
 
@@ -3515,7 +3514,8 @@ get_return_cmd(void *rettv)
 get_func_line(
     int	    c UNUSED,
     void    *cookie,
-    int	    indent UNUSED)
+    int	    indent UNUSED,
+    int	    do_concat UNUSED)
 {
     funccall_T	*fcp = (funccall_T *)cookie;
     ufunc_T	*fp = fcp->func;
@@ -3998,13 +3998,13 @@ set_ref_in_previous_funccal(int copyID)
     int		abort = FALSE;
     funccall_T	*fc;
 
-    for (fc = previous_funccal; fc != NULL; fc = fc->caller)
+    for (fc = previous_funccal; !abort && fc != NULL; fc = fc->caller)
     {
 	fc->fc_copyID = copyID + 1;
-	abort = abort || set_ref_in_ht(&fc->l_vars.dv_hashtab, copyID + 1,
-									NULL);
-	abort = abort || set_ref_in_ht(&fc->l_avars.dv_hashtab, copyID + 1,
-									NULL);
+	abort = abort
+	    || set_ref_in_ht(&fc->l_vars.dv_hashtab, copyID + 1, NULL)
+	    || set_ref_in_ht(&fc->l_avars.dv_hashtab, copyID + 1, NULL)
+	    || set_ref_in_list_items(&fc->l_varlist, copyID + 1, NULL);
     }
     return abort;
 }
@@ -4017,9 +4017,11 @@ set_ref_in_funccal(funccall_T *fc, int copyID)
     if (fc->fc_copyID != copyID)
     {
 	fc->fc_copyID = copyID;
-	abort = abort || set_ref_in_ht(&fc->l_vars.dv_hashtab, copyID, NULL);
-	abort = abort || set_ref_in_ht(&fc->l_avars.dv_hashtab, copyID, NULL);
-	abort = abort || set_ref_in_func(NULL, fc->func, copyID);
+	abort = abort
+	    || set_ref_in_ht(&fc->l_vars.dv_hashtab, copyID, NULL)
+	    || set_ref_in_ht(&fc->l_avars.dv_hashtab, copyID, NULL)
+	    || set_ref_in_list_items(&fc->l_varlist, copyID, NULL)
+	    || set_ref_in_func(NULL, fc->func, copyID);
     }
     return abort;
 }
@@ -4034,12 +4036,12 @@ set_ref_in_call_stack(int copyID)
     funccall_T		*fc;
     funccal_entry_T	*entry;
 
-    for (fc = current_funccal; fc != NULL; fc = fc->caller)
+    for (fc = current_funccal; !abort && fc != NULL; fc = fc->caller)
 	abort = abort || set_ref_in_funccal(fc, copyID);
 
     // Also go through the funccal_stack.
-    for (entry = funccal_stack; entry != NULL; entry = entry->next)
-	for (fc = entry->top_funccal; fc != NULL; fc = fc->caller)
+    for (entry = funccal_stack; !abort && entry != NULL; entry = entry->next)
+	for (fc = entry->top_funccal; !abort && fc != NULL; fc = fc->caller)
 	    abort = abort || set_ref_in_funccal(fc, copyID);
 
     return abort;

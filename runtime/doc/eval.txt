@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.1.  Last change: 2019 Jun 10
+*eval.txt*	For Vim version 8.1.  Last change: 2019 Jun 22
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2183,7 +2183,7 @@ v:val		Value of the current item of a |List| or |Dictionary|.  Only
 
 					*v:version* *version-variable*
 v:version	Version number of Vim: Major version number times 100 plus
-		minor version number.  Version 5.0 is 500.  Version 5.1 (5.01)
+		minor version number.  Version 5.0 is 500.  Version 5.1
 		is 501.  Read-only.  "version" also works, for backwards
 		compatibility, unless |scriptversion| is 3 or higher.
 		Use |has()| to check if a certain patch was included, e.g.: >
@@ -2193,10 +2193,10 @@ v:version	Version number of Vim: Major version number times 100 plus
 		completely different.
 
 					*v:versionlong* *versionlong-variable*
-v:versionlong	Like v:version, but also including the patchlevel.  Version
-		8.1 with patch 1234 has value 8011234.  This can be used like
-		this: >
-			if v:versionlong >= 8011234
+v:versionlong	Like v:version, but also including the patchlevel in the last
+		four digits.  Version 8.1 with patch 123 has value 8010123.
+		This can be used like this: >
+			if v:versionlong >= 8010123
 <		However, if there are gaps in the list of patches included
 		this will not work well.  This can happen if a recent patch
 		was included into an older version, e.g. for a security fix.
@@ -2741,6 +2741,7 @@ test_alloc_fail({id}, {countdown}, {repeat})
 test_autochdir()		none	enable 'autochdir' during startup
 test_feedinput({string})	none	add key sequence to input buffer
 test_garbagecollect_now()	none	free memory right now for testing
+test_garbagecollect_soon()	none	free memory soon for testing
 test_getvalue({string})		any	get value of an internal variable
 test_ignore_error({expr})	none	ignore a specific error
 test_null_blob()		Blob	null value for testing
@@ -8123,10 +8124,9 @@ setbufline({expr}, {lnum}, {text})			*setbufline()*
 
 		{lnum} is used like with |setline()|.
 		This works like |setline()| for the specified buffer.
-		On success 0 is returned, on failure 1 is returned.
 
-		If {expr} is not a valid buffer or {lnum} is not valid, an
-		error message is given.
+		When {expr} is not a valid buffer or {lnum} is not valid then
+		1 is returned.  On success 0 is returned.
 
 setbufvar({expr}, {varname}, {val})			*setbufvar()*
 		Set option or local variable {varname} in buffer {expr} to
@@ -8884,7 +8884,7 @@ sort({list} [, {func} [, {dict}]])			*sort()* *E702*
 <
 sound_clear()						*sound_clear()*
 		Stop playing all sounds.
-		{only available when compiled with the +sound feature}
+		{only available when compiled with the |+sound| feature}
 
 							*sound_playevent()*
 sound_playevent({name} [, {callback}])
@@ -8893,20 +8893,25 @@ sound_playevent({name} [, {callback}])
 		are used.  On Ubuntu they may be found in
 		/usr/share/sounds/freedesktop/stereo.  Example: >
 			call sound_playevent('bell')
+<		On MS-Windows, {name} can be SystemAsterisk, SystemDefault,
+		SystemExclamation, SystemExit, SystemHand, SystemQuestion,
+		SystemStart, SystemWelcome, etc.
 
-<		When {callback} is specified it is invoked when the sound is
+		When {callback} is specified it is invoked when the sound is
 		finished.  The first argument is the sound ID, the second
 		argument is the status:
 			0	sound was played to the end
 			1	sound was interrupted
-			2	error occured after sound started
+			2	error occurred after sound started
 		Example: >
 		   func Callback(id, status)
 		     echomsg "sound " .. a:id .. " finished with " .. a:status
 		   endfunc
 		   call sound_playevent('bell', 'Callback')
 
-<		Returns the sound ID, which can be passed to `sound_stop()`.
+<		MS-Windows: {callback} doesn't work for this function.
+
+		Returns the sound ID, which can be passed to `sound_stop()`.
 		Returns zero if the sound could not be played.
 		{only available when compiled with the |+sound| feature}
 
@@ -8922,6 +8927,10 @@ sound_playfile({path} [, {callback}])
 sound_stop({id})					*sound_stop()*
 		Stop playing sound {id}.  {id} must be previously returned by
 		`sound_playevent()` or `sound_playfile()`.
+
+		On MS-Windows, this does not work for event sound started by
+		`sound_playevent()`. To stop event sounds, use `sound_clear()`.
+
 		{only available when compiled with the |+sound| feature}
 
 							*soundfold()*
@@ -10001,6 +10010,10 @@ test_garbagecollect_now()			 *test_garbagecollect_now()*
 		internally, and |v:testing| must have been set before calling
 		any function.
 
+test_garbagecollect_soon()			 *test_garbagecollect_soon()*
+		Set the flag to call the garbagecollector as if in the main
+		loop.  Only to be used in tests.
+
 test_getvalue({name})					*test_getvalue()*
 		Get the value of an internal variable.  These values for
 		{name} are supported:
@@ -10064,6 +10077,8 @@ test_override({name}, {val})				*test_override()*
 			     fallback to the old engine
 		no_query_mouse  do not query the mouse position for "dec"
 				terminals
+		no_wait_return	set the "no_wait_return" flag.  Not restored
+				with "ALL".
 		ALL	     clear all overrides ({val} is not used)
 
 		"starting" is to be used when a test should behave like
@@ -11555,13 +11570,24 @@ text...
 			If {marker} is not supplied, then "." is used as the
 			default marker.
 
-			Any white space characters in the lines of text are
-			preserved.  If "trim" is specified before {marker},
-			then all the leading indentation exactly matching the
-			leading indentation before `let` is stripped from the
-			input lines and the line containing {marker}.  Note
-			that the difference between space and tab matters
-			here.
+			Without "trim" any white space characters in the lines
+			of text are preserved.  If "trim" is specified before
+			{marker}, then indentation is stripped so you can do: >
+				let text =<< trim END
+				   if ok
+				     echo 'done'
+				   endif
+				END
+<			Results in: ["if ok", "  echo 'done'", "endif"]
+			The marker must line up with "let" and the indentation
+			of the first line is removed from all the text lines.
+			Specifically: all the leading indentation exactly
+			matching the leading indentation of the first
+			non-empty text line is stripped from the input lines.
+			All leading indentation exactly matching the leading
+			indentation before `let` is stripped from the line
+			containing {marker}.  Note that the difference between
+			space and tab matters here.
 
 			If {var-name} didn't exist yet, it is created.
 			Cannot be followed by another command, but can be
@@ -11596,7 +11622,6 @@ text...
 			    <nothing>	String
 				#	Number
 				*	Funcref
-
 
 :unl[et][!] {name} ...				*:unlet* *:unl* *E108* *E795*
 			Remove the internal variable {name}.  Several variable
@@ -11642,7 +11667,7 @@ text...
 <			This is useful if you want to make sure the variable
 			is not modified.
 							*E995*
-			|:const| does not allow to for changing a variable. >
+			|:const| does not allow to for changing a variable: >
 				:let x = 1
 				:const x = 2  " Error!
 <							*E996*

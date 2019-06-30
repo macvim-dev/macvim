@@ -1500,7 +1500,7 @@ clip_invert_area(
  */
     static void
 clip_invert_rectangle(
-	Clipboard_T	*cbd,
+	Clipboard_T	*cbd UNUSED,
 	int		row_arg,
 	int		col_arg,
 	int		height_arg,
@@ -1514,7 +1514,7 @@ clip_invert_rectangle(
 
 #ifdef FEAT_TEXT_PROP
     // this goes on top of all popup windows
-    screen_zindex = 32000;
+    screen_zindex = CLIP_ZINDEX;
 
     if (col < cbd->min_col)
     {
@@ -3018,7 +3018,7 @@ retnomove:
 	    return IN_OTHER_WIN;
 #endif
 #ifdef FEAT_TEXT_PROP
-	// Continue a modeless selection in a popup window.
+	// Continue a modeless selection in a popup window or dragging it.
 	if (in_popup_win)
 	{
 	    if (popup_dragwin != NULL)
@@ -3076,6 +3076,9 @@ retnomove:
 		popup_start_drag(wp);
 		return IN_UNKNOWN;
 	    }
+	    if (which_button == MOUSE_LEFT)
+		// If the click is in the scrollbar, may scroll up/down.
+		popup_handle_scrollbar_click(wp, row, col);
 # ifdef FEAT_CLIPBOARD
 	    return IN_OTHER_WIN;
 # else
@@ -3537,7 +3540,7 @@ mouse_find_win(int *rowp, int *colp, mouse_find_T popup UNUSED)
 	{
 	    if (*rowp >= wp->w_winrow && *rowp < wp->w_winrow + popup_height(wp)
 		    && *colp >= wp->w_wincol
-					 && *colp < wp->w_wincol + popup_width(wp))
+				    && *colp < wp->w_wincol + popup_width(wp))
 		pwp = wp;
 	}
 	if (pwp != NULL)
