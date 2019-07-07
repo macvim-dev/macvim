@@ -31,6 +31,7 @@ NSString *MMOpenInCurrentWindowKey        = @"MMOpenInCurrentWindow";
 NSString *MMNoFontSubstitutionKey         = @"MMNoFontSubstitution";
 NSString *MMNoTitleBarWindowKey           = @"MMNoTitleBarWindow";
 NSString *MMTitlebarAppearsTransparentKey = @"MMTitlebarAppearsTransparent";
+NSString *MMDisableLaunchAnimation        = @"MMDisableLaunchAnimation";
 NSString *MMLoginShellKey                 = @"MMLoginShell";
 NSString *MMUntitledWindowKey             = @"MMUntitledWindow";
 NSString *MMZoomBothKey                   = @"MMZoomBoth";

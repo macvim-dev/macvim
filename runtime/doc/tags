@@ -4827,7 +4827,7 @@ E993	popup.txt	/*E993*
 E994	eval.txt	/*E994*
 E995	eval.txt	/*E995*
 E996	eval.txt	/*E996*
-E996	popup.txt	/*E996*
+E997	popup.txt	/*E997*
 E999	repeat.txt	/*E999*
 EX	intro.txt	/*EX*
 EXINIT	starting.txt	/*EXINIT*
@@ -4910,6 +4910,7 @@ M	motion.txt	/*M*
 MDI	starting.txt	/*MDI*
 MMCellWidthMultiplier	gui_mac.txt	/*MMCellWidthMultiplier*
 MMDialogsTrackPwd	gui_mac.txt	/*MMDialogsTrackPwd*
+MMDisableLaunchAnimation	gui_mac.txt	/*MMDisableLaunchAnimation*
 MMFullScreenFadeTime	gui_mac.txt	/*MMFullScreenFadeTime*
 MMLoginShellArgument	gui_mac.txt	/*MMLoginShellArgument*
 MMLoginShellCommand	gui_mac.txt	/*MMLoginShellCommand*
@@ -8348,10 +8349,12 @@ popup-examples	popup.txt	/*popup-examples*
 popup-filter	popup.txt	/*popup-filter*
 popup-functions	popup.txt	/*popup-functions*
 popup-intro	popup.txt	/*popup-intro*
+popup-mask	popup.txt	/*popup-mask*
 popup-menu	gui.txt	/*popup-menu*
 popup-menu-added	version5.txt	/*popup-menu-added*
 popup-position	popup.txt	/*popup-position*
 popup-props	popup.txt	/*popup-props*
+popup-scrollbar	popup.txt	/*popup-scrollbar*
 popup-window	popup.txt	/*popup-window*
 popup.txt	popup.txt	/*popup.txt*
 popup_atcursor()	popup.txt	/*popup_atcursor()*
