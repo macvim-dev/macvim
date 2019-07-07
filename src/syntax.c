@@ -8203,6 +8203,8 @@ do_highlight(
 	{
 	    if (gui.in_use && do_colors)
 		gui_new_scrollbar_colors();
+	    else
+		set_hl_attr(idx);
 	}
 # ifdef FEAT_BEVAL_GUI
 	else if (is_tooltip_group)

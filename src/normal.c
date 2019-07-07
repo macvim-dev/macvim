@@ -4532,7 +4532,7 @@ nv_mousescroll(cmdarg_T *cap)
 	if (wp == NULL)
 	    return;
 #ifdef FEAT_TEXT_PROP
-	if (bt_popup(wp->w_buffer) && !wp->w_has_scrollbar)
+	if (WIN_IS_POPUP(wp) && !wp->w_has_scrollbar)
 	    return;
 #endif
 	curwin = wp;
@@ -4582,7 +4582,7 @@ nv_mousescroll(cmdarg_T *cap)
 	    nv_scroll_line(cap);
 	}
 #ifdef FEAT_TEXT_PROP
-	if (bt_popup(curwin->w_buffer))
+	if (WIN_IS_POPUP(curwin))
 	    popup_set_firstline(curwin);
 #endif
     }

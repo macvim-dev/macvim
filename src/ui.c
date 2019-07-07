@@ -1094,7 +1094,7 @@ clip_start_selection(int col, int row, int repeated_click)
 	int	    col_cp = col;
 
 	wp = mouse_find_win(&row_cp, &col_cp, FIND_POPUP);
-	if (wp != NULL && bt_popup(wp->w_buffer))
+	if (wp != NULL && WIN_IS_POPUP(wp))
 	{
 	    // Click in a popup window restricts selection to that window,
 	    // excluding the border.
@@ -2949,6 +2949,7 @@ jump_to_mouse(
 #endif
 #ifdef FEAT_TEXT_PROP
     static int   in_popup_win = FALSE;
+    static win_T *click_in_popup_win = NULL;
 #endif
     static int	prev_row = -1;
     static int	prev_col = -1;
@@ -2977,7 +2978,11 @@ jump_to_mouse(
 	dragwin = NULL;
 	did_drag = FALSE;
 #ifdef FEAT_TEXT_PROP
+	if (click_in_popup_win != NULL && popup_dragwin == NULL)
+	    popup_close_for_mouse_click(click_in_popup_win);
+
 	popup_dragwin = NULL;
+	click_in_popup_win = NULL;
 #endif
     }
 
@@ -3021,6 +3026,7 @@ retnomove:
 	// Continue a modeless selection in a popup window or dragging it.
 	if (in_popup_win)
 	{
+	    click_in_popup_win = NULL;  // don't close it on release
 	    if (popup_dragwin != NULL)
 	    {
 		// dragging a popup window
@@ -3066,17 +3072,31 @@ retnomove:
 #ifdef FEAT_TEXT_PROP
 	// Click in a popup window may start dragging or modeless selection,
 	// but not much else.
-	if (bt_popup(wp->w_buffer))
+	if (WIN_IS_POPUP(wp))
 	{
 	    on_sep_line = 0;
 	    in_popup_win = TRUE;
-	    if (wp->w_popup_drag && popup_on_border(wp, row, col))
+	    if (wp->w_popup_close == POPCLOSE_BUTTON
+		    && which_button == MOUSE_LEFT
+		    && popup_on_X_button(wp, row, col))
+	    {
+		popup_close_for_mouse_click(wp);
+		return IN_UNKNOWN;
+	    }
+	    else if (wp->w_popup_drag && popup_on_border(wp, row, col))
 	    {
 		popup_dragwin = wp;
 		popup_start_drag(wp);
 		return IN_UNKNOWN;
 	    }
-	    if (which_button == MOUSE_LEFT)
+	    // Only close on release, otherwise it's not possible to drag or do
+	    // modeless selection.
+	    else if (wp->w_popup_close == POPCLOSE_CLICK
+		    && which_button == MOUSE_LEFT)
+	    {
+		click_in_popup_win = wp;
+	    }
+	    else if (which_button == MOUSE_LEFT)
 		// If the click is in the scrollbar, may scroll up/down.
 		popup_handle_scrollbar_click(wp, row, col);
 # ifdef FEAT_CLIPBOARD
@@ -3264,6 +3284,7 @@ retnomove:
 		return IN_UNKNOWN;
 	    }
 	    // continue a modeless selection in a popup window
+	    click_in_popup_win = NULL;
 	    return IN_OTHER_WIN;
 	}
 #endif

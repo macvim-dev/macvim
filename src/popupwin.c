@@ -180,6 +180,17 @@ popup_on_border(win_T *wp, int row, int col)
 	    || (col == popup_width(wp) - 1 && wp->w_popup_border[1] > 0);
 }
 
+/*
+ * Return TRUE if "row"/"col" is on the "X" button of the popup.
+ * The values are relative to the top-left corner.
+ * Caller should check w_popup_close is POPCLOSE_BUTTON.
+ */
+    int
+popup_on_X_button(win_T *wp, int row, int col)
+{
+    return row == 0 && col == popup_width(wp) - 1;
+}
+
 // Values set when dragging a popup window starts.
 static int drag_start_row;
 static int drag_start_col;
@@ -383,6 +394,30 @@ apply_general_options(win_T *wp, dict_T *dict)
     di = dict_find(dict, (char_u *)"drag", -1);
     if (di != NULL)
 	wp->w_popup_drag = dict_get_number(dict, (char_u *)"drag");
+
+    di = dict_find(dict, (char_u *)"close", -1);
+    if (di != NULL)
+    {
+	int ok = TRUE;
+
+	if (di->di_tv.v_type == VAR_STRING && di->di_tv.vval.v_string != NULL)
+	{
+	    char_u  *s = di->di_tv.vval.v_string;
+
+	    if (STRCMP(s, "none") == 0)
+		wp->w_popup_close = POPCLOSE_NONE;
+	    else if (STRCMP(s, "button") == 0)
+		wp->w_popup_close = POPCLOSE_BUTTON;
+	    else if (STRCMP(s, "click") == 0)
+		wp->w_popup_close = POPCLOSE_CLICK;
+	    else
+		ok = FALSE;
+	}
+	else
+	    ok = FALSE;
+	if (!ok)
+	    semsg(_(e_invargNval), "close", tv_get_string(&di->di_tv));
+    }
 
     str = dict_get_string(dict, (char_u *)"highlight", FALSE);
     if (str != NULL)
@@ -665,29 +700,6 @@ add_popup_dicts(buf_T *buf, list_T *l)
 }
 
 /*
- * Return the height of popup window "wp", including border and padding.
- */
-    int
-popup_height(win_T *wp)
-{
-    return wp->w_height
-	+ wp->w_popup_padding[0] + wp->w_popup_border[0]
-	+ wp->w_popup_padding[2] + wp->w_popup_border[2];
-}
-
-/*
- * Return the width of popup window "wp", including border and padding.
- */
-    int
-popup_width(win_T *wp)
-{
-    return wp->w_width
-	+ wp->w_popup_padding[3] + wp->w_popup_border[3]
-	+ wp->w_popup_padding[1] + wp->w_popup_border[1]
-	+ wp->w_has_scrollbar;
-}
-
-/*
  * Get the padding plus border at the top, adjusted to 1 if there is a title.
  */
     static int
@@ -701,6 +713,31 @@ popup_top_extra(win_T *wp)
 }
 
 /*
+ * Return the height of popup window "wp", including border and padding.
+ */
+    int
+popup_height(win_T *wp)
+{
+    return wp->w_height
+	+ popup_top_extra(wp)
+	+ wp->w_popup_padding[2] + wp->w_popup_border[2];
+}
+
+/*
+ * Return the width of popup window "wp", including border, padding and
+ * scrollbar.
+ */
+    int
+popup_width(win_T *wp)
+{
+    return wp->w_width + wp->w_leftcol
+	+ wp->w_popup_padding[3] + wp->w_popup_border[3]
+	+ wp->w_popup_padding[1] + wp->w_popup_border[1]
+	+ wp->w_has_scrollbar
+	+ wp->w_popup_rightoff;
+}
+
+/*
  * Adjust the position and size of the popup to fit on the screen.
  */
     void
@@ -709,6 +746,7 @@ popup_adjust_position(win_T *wp)
     linenr_T	lnum;
     int		wrapped = 0;
     int		maxwidth;
+    int		maxspace;
     int		center_vert = FALSE;
     int		center_hor = FALSE;
     int		allow_adjust_left = !wp->w_popup_fixed;
@@ -723,11 +761,14 @@ popup_adjust_position(win_T *wp)
     int		org_width = wp->w_width;
     int		org_height = wp->w_height;
     int		org_leftcol = wp->w_leftcol;
+    int		org_leftoff = wp->w_popup_leftoff;
     int		minwidth;
 
     wp->w_winrow = 0;
     wp->w_wincol = 0;
     wp->w_leftcol = 0;
+    wp->w_popup_leftoff = 0;
+    wp->w_popup_rightoff = 0;
     if (wp->w_popup_pos == POPPOS_CENTER)
     {
 	// center after computing the size
@@ -760,7 +801,8 @@ popup_adjust_position(win_T *wp)
     // When centering or right aligned, use maximum width.
     // When left aligned use the space available, but shift to the left when we
     // hit the right of the screen.
-    maxwidth = Columns - wp->w_wincol - left_extra;
+    maxspace = Columns - wp->w_wincol - left_extra;
+    maxwidth = maxspace;
     if (wp->w_maxwidth > 0 && maxwidth > wp->w_maxwidth)
     {
 	allow_adjust_left = FALSE;
@@ -813,8 +855,8 @@ popup_adjust_position(win_T *wp)
 	if (wp->w_width < len)
 	    wp->w_width = len;
 	// do not use the width of lines we're not going to show
-	if (wp->w_maxheight > 0 && wp->w_buffer->b_ml.ml_line_count
-			       - wp->w_topline + 1 + wrapped > wp->w_maxheight)
+	if (wp->w_maxheight > 0
+		       && lnum - wp->w_topline + 1 + wrapped > wp->w_maxheight)
 	    break;
     }
 
@@ -833,7 +875,12 @@ popup_adjust_position(win_T *wp)
     if (minwidth > 0 && wp->w_width < minwidth)
 	wp->w_width = minwidth;
     if (wp->w_width > maxwidth)
+    {
+	if (wp->w_width > maxspace)
+	    // some columns cut off on the right
+	    wp->w_popup_rightoff = wp->w_width - maxspace;
 	wp->w_width = maxwidth;
+    }
     if (center_hor)
     {
 	wp->w_wincol = (Columns - wp->w_width - extra_width) / 2;
@@ -852,9 +899,12 @@ popup_adjust_position(win_T *wp)
 	else if (wp->w_popup_fixed)
 	{
 	    // "col" specifies the right edge, but popup doesn't fit, skip some
-	    // columns when displaying the window.
-	    wp->w_leftcol = -leftoff;
-	    wp->w_width += leftoff;
+	    // columns when displaying the window, minus left border and
+	    // padding.
+	    if (-leftoff > left_extra)
+		wp->w_leftcol = -leftoff - left_extra;
+	    wp->w_width -= wp->w_leftcol;
+	    wp->w_popup_leftoff = -leftoff;
 	    if (wp->w_width < 0)
 		wp->w_width = 0;
 	}
@@ -893,6 +943,7 @@ popup_adjust_position(win_T *wp)
     if (org_winrow != wp->w_winrow
 	    || org_wincol != wp->w_wincol
 	    || org_leftcol != wp->w_leftcol
+	    || org_leftoff != wp->w_popup_leftoff
 	    || org_width != wp->w_width
 	    || org_height != wp->w_height)
     {
@@ -962,14 +1013,26 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
     win_T	*wp;
     tabpage_T	*tp = NULL;
     int		tabnr;
-    buf_T	*buf;
+    int		new_buffer;
+    buf_T	*buf = NULL;
     dict_T	*d;
     int		nr;
     int		i;
 
     // Check arguments look OK.
-    if (!(argvars[0].v_type == VAR_STRING && argvars[0].vval.v_string != NULL)
-	&& !(argvars[0].v_type == VAR_LIST && argvars[0].vval.v_list != NULL))
+    if (argvars[0].v_type == VAR_NUMBER)
+    {
+	buf = buflist_findnr( argvars[0].vval.v_number);
+	if (buf == NULL)
+	{
+	    semsg(_(e_nobufnr), argvars[0].vval.v_number);
+	    return NULL;
+	}
+    }
+    else if (!(argvars[0].v_type == VAR_STRING
+		    && argvars[0].vval.v_string != NULL)
+		&& !(argvars[0].v_type == VAR_LIST
+		    && argvars[0].vval.v_list != NULL))
     {
 	emsg(_(e_listreq));
 	return NULL;
@@ -1003,27 +1066,41 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 	return NULL;
     rettv->vval.v_number = wp->w_id;
     wp->w_popup_pos = POPPOS_TOPLEFT;
+    wp->w_popup_flags = POPF_IS_POPUP;
 
-    buf = buflist_new(NULL, NULL, (linenr_T)0, BLN_NEW|BLN_LISTED|BLN_DUMMY);
-    if (buf == NULL)
-	return NULL;
-    ml_open(buf);
+    if (buf != NULL)
+    {
+	// use existing buffer
+	new_buffer = FALSE;
+	win_init_popup_win(wp, buf);
+	buffer_ensure_loaded(buf);
+    }
+    else
+    {
+	// create a new buffer associated with the popup
+	new_buffer = TRUE;
+	buf = buflist_new(NULL, NULL, (linenr_T)0,
+						 BLN_NEW|BLN_LISTED|BLN_DUMMY);
+	if (buf == NULL)
+	    return NULL;
+	ml_open(buf);
 
-    win_init_popup_win(wp, buf);
+	win_init_popup_win(wp, buf);
 
-    set_local_options_default(wp);
-    set_string_option_direct_in_buf(buf, (char_u *)"buftype", -1,
+	set_local_options_default(wp);
+	set_string_option_direct_in_buf(buf, (char_u *)"buftype", -1,
 				     (char_u *)"popup", OPT_FREE|OPT_LOCAL, 0);
-    set_string_option_direct_in_buf(buf, (char_u *)"bufhidden", -1,
-				     (char_u *)"hide", OPT_FREE|OPT_LOCAL, 0);
-    buf->b_p_ul = -1;	    // no undo
-    buf->b_p_swf = FALSE;   // no swap file
-    buf->b_p_bl = FALSE;    // unlisted buffer
-    buf->b_locked = TRUE;
-    wp->w_p_wrap = TRUE;  // 'wrap' is default on
+	set_string_option_direct_in_buf(buf, (char_u *)"bufhidden", -1,
+				      (char_u *)"hide", OPT_FREE|OPT_LOCAL, 0);
+	buf->b_p_ul = -1;	// no undo
+	buf->b_p_swf = FALSE;   // no swap file
+	buf->b_p_bl = FALSE;    // unlisted buffer
+	buf->b_locked = TRUE;
+	wp->w_p_wrap = TRUE;	// 'wrap' is default on
 
-    // Avoid that 'buftype' is reset when this buffer is entered.
-    buf->b_p_initialized = TRUE;
+	// Avoid that 'buftype' is reset when this buffer is entered.
+	buf->b_p_initialized = TRUE;
+    }
 
     if (tp != NULL)
     {
@@ -1053,7 +1130,8 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 	}
     }
 
-    popup_set_buffer_text(buf, argvars[0]);
+    if (new_buffer)
+	popup_set_buffer_text(buf, argvars[0]);
 
     if (type == TYPE_ATCURSOR)
     {
@@ -1072,6 +1150,7 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 
     // set default values
     wp->w_zindex = POPUPWIN_DEFAULT_ZINDEX;
+    wp->w_popup_close = POPCLOSE_NONE;
 
     if (type == TYPE_NOTIFICATION)
     {
@@ -1106,6 +1185,7 @@ popup_create(typval_T *argvars, typval_T *rettv, create_type_T type)
 	wp->w_zindex = POPUPWIN_NOTIFICATION_ZINDEX;
 	wp->w_minwidth = 20;
 	wp->w_popup_drag = 1;
+	wp->w_popup_close = POPCLOSE_CLICK;
 	for (i = 0; i < 4; ++i)
 	    wp->w_popup_border[i] = 1;
 	wp->w_popup_padding[1] = 1;
@@ -1239,6 +1319,19 @@ popup_close_and_callback(win_T *wp, typval_T *arg)
 	invoke_popup_callback(wp, arg);
 
     popup_close(id);
+}
+
+/*
+ * Close popup "wp" because of a mouse click.
+ */
+    void
+popup_close_for_mouse_click(win_T *wp)
+{
+    typval_T res;
+
+    res.v_type = VAR_NUMBER;
+    res.vval.v_number = -2;
+    popup_close_and_callback(wp, &res);
 }
 
 /*
@@ -1406,7 +1499,7 @@ find_popup_win(int id)
 {
     win_T *wp = win_id2wp(id);
 
-    if (wp != NULL && !bt_popup(wp->w_buffer))
+    if (wp != NULL && !WIN_IS_POPUP(wp))
     {
 	semsg(_("E993: window %d is not a popup window"), id);
 	return NULL;
@@ -1474,8 +1567,13 @@ f_popup_settext(typval_T *argvars, typval_T *rettv UNUSED)
 
     if (wp != NULL)
     {
-	popup_set_buffer_text(wp->w_buffer, argvars[1]);
-	popup_adjust_position(wp);
+	if (argvars[1].v_type != VAR_STRING && argvars[1].v_type != VAR_LIST)
+	    semsg(_(e_invarg2), tv_get_string(&argvars[1]));
+	else
+	{
+	    popup_set_buffer_text(wp->w_buffer, argvars[1]);
+	    popup_adjust_position(wp);
+	}
     }
 }
 
@@ -1816,6 +1914,10 @@ f_popup_getoptions(typval_T *argvars, typval_T *rettv)
 		break;
 	    }
 
+	dict_add_string(dict, "close", (char_u *)(
+		    wp->w_popup_close == POPCLOSE_BUTTON ? "button"
+		    : wp->w_popup_close == POPCLOSE_CLICK ? "click" : "none"));
+
 # if defined(FEAT_TIMERS)
 	dict_add_number(dict, "time", wp->w_popup_timer != NULL
 				 ?  (long)wp->w_popup_timer->tr_interval : 0L);
@@ -1826,7 +1928,7 @@ f_popup_getoptions(typval_T *argvars, typval_T *rettv)
     int
 error_if_popup_window()
 {
-    if (bt_popup(curwin->w_buffer))
+    if (WIN_IS_POPUP(curwin))
     {
 	emsg(_("E994: Not allowed in a popup window"));
 	return TRUE;
@@ -1980,7 +2082,7 @@ popup_check_cursor_pos()
     static int
 popup_masked(win_T *wp, int screencol, int screenline)
 {
-    int		col = screencol - wp->w_wincol + 1 + wp->w_leftcol;
+    int		col = screencol - wp->w_wincol + 1 + wp->w_popup_leftoff;
     int		line = screenline - wp->w_winrow + 1;
     listitem_T	*lio, *li;
     int		width, height;
@@ -2059,10 +2161,10 @@ update_popup_transparent(win_T *wp, int val)
 		linee = height + linee + 1;
 
 	    --cols;
-	    cols -= wp->w_leftcol;
+	    cols -= wp->w_popup_leftoff;
 	    if (cols < 0)
 		cols = 0;
-	    cole -= wp->w_leftcol;
+	    cole -= wp->w_popup_leftoff;
 	    --lines;
 	    if (lines < 0)
 		lines = 0;
@@ -2129,8 +2231,8 @@ may_update_popup_mask(int type)
     popup_reset_handled();
     while ((wp = find_next_popup(TRUE)) != NULL)
     {
-	int height = popup_height(wp);
-	int width = popup_width(wp);
+	int height;
+	int width;
 
 	popup_visible = TRUE;
 
@@ -2139,6 +2241,8 @@ may_update_popup_mask(int type)
 		|| wp->w_popup_last_changedtick != CHANGEDTICK(wp->w_buffer))
 	    popup_adjust_position(wp);
 
+	height = popup_height(wp);
+	width = popup_width(wp) - wp->w_popup_leftoff;
 	for (line = wp->w_winrow;
 		line < wp->w_winrow + height && line < screen_Rows; ++line)
 	    for (col = wp->w_wincol;
@@ -2224,7 +2328,7 @@ update_popups(void (*win_update)(win_T *wp))
 {
     win_T   *wp;
     int	    top_off;
-    int	    left_off;
+    int	    left_extra;
     int	    total_width;
     int	    total_height;
     int	    top_padding;
@@ -2233,6 +2337,9 @@ update_popups(void (*win_update)(win_T *wp))
     int	    border_char[8];
     char_u  buf[MB_MAXBYTES];
     int	    row;
+    int	    wincol;
+    int	    padcol = 0;
+    int	    padwidth = 0;
     int	    i;
     int	    sb_thumb_top = 0;
     int	    sb_thumb_height = 0;
@@ -2256,22 +2363,22 @@ update_popups(void (*win_update)(win_T *wp))
 	// adjust w_winrow and w_wincol for border and padding, since
 	// win_update() doesn't handle them.
 	top_off = popup_top_extra(wp);
-	left_off = wp->w_popup_padding[3] + wp->w_popup_border[3];
+	left_extra = wp->w_popup_padding[3] + wp->w_popup_border[3]
+							 - wp->w_popup_leftoff;
+	if (wp->w_wincol + left_extra < 0)
+	    left_extra = -wp->w_wincol;
 	wp->w_winrow += top_off;
-	wp->w_wincol += left_off;
+	wp->w_wincol += left_extra;
 
 	// Draw the popup text, unless it's off screen.
 	if (wp->w_winrow < screen_Rows && wp->w_wincol < screen_Columns)
 	    win_update(wp);
 
 	wp->w_winrow -= top_off;
-	wp->w_wincol -= left_off;
+	wp->w_wincol -= left_extra;
 
-	total_width = wp->w_popup_border[3] + wp->w_popup_padding[3]
-		+ wp->w_width + wp->w_popup_padding[1] + wp->w_popup_border[1]
-		+ wp->w_has_scrollbar;
-	total_height = popup_top_extra(wp)
-		+ wp->w_height + wp->w_popup_padding[2] + wp->w_popup_border[2];
+	total_width = popup_width(wp);
+	total_height = popup_height(wp);
 	popup_attr = get_wcr_attr(wp);
 
 	// We can only use these line drawing characters when 'encoding' is
@@ -2303,34 +2410,42 @@ update_popups(void (*win_update)(win_T *wp))
 		border_attr[i] = syn_name2attr(wp->w_border_highlight[i]);
 	}
 
+	wincol = wp->w_wincol - wp->w_popup_leftoff;
 	top_padding = wp->w_popup_padding[0];
 	if (wp->w_popup_border[0] > 0)
 	{
 	    // top border
 	    screen_fill(wp->w_winrow, wp->w_winrow + 1,
-		    wp->w_wincol,
-		    wp->w_wincol + total_width,
-		    wp->w_popup_border[3] != 0
+		    wincol < 0 ? 0 : wincol, wincol + total_width,
+		    wp->w_popup_border[3] != 0 && wp->w_popup_leftoff == 0
 					     ? border_char[4] : border_char[0],
 		    border_char[0], border_attr[0]);
-	    if (wp->w_popup_border[1] > 0)
+	    if (wp->w_popup_border[1] > 0 && wp->w_popup_rightoff == 0)
 	    {
 		buf[mb_char2bytes(border_char[5], buf)] = NUL;
 		screen_puts(buf, wp->w_winrow,
-			       wp->w_wincol + total_width - 1, border_attr[1]);
+			       wincol + total_width - 1, border_attr[1]);
 	    }
 	}
 	else if (wp->w_popup_padding[0] == 0 && popup_top_extra(wp) > 0)
 	    top_padding = 1;
 
+	if (top_padding > 0 || wp->w_popup_padding[2] > 0)
+	{
+	    padcol = wincol + wp->w_popup_border[3];
+	    padwidth = wp->w_wincol + total_width - wp->w_popup_border[1]
+							 - wp->w_has_scrollbar;
+	    if (padcol < 0)
+	    {
+		padwidth += padcol;
+		padcol = 0;
+	    }
+	}
 	if (top_padding > 0)
 	{
 	    // top padding
 	    row = wp->w_winrow + wp->w_popup_border[0];
-	    screen_fill(row, row + top_padding,
-		    wp->w_wincol + wp->w_popup_border[3],
-		    wp->w_wincol + total_width - wp->w_popup_border[1]
-							- wp->w_has_scrollbar,
+	    screen_fill(row, row + top_padding, padcol, padwidth,
 							 ' ', ' ', popup_attr);
 	}
 
@@ -2348,7 +2463,12 @@ update_popups(void (*win_update)(win_T *wp))
 								   / linecount;
 	    if (sb_thumb_height == 0)
 		sb_thumb_height = 1;
-	    sb_thumb_top = (wp->w_topline - 1 + (linecount / wp->w_height) / 2)
+	    if (linecount <= wp->w_height)
+		// it just fits, avoid divide by zero
+		sb_thumb_top = 0;
+	    else
+		sb_thumb_top = (wp->w_topline - 1
+				+ (linecount / wp->w_height) / 2)
 				* (wp->w_height - sb_thumb_height)
 						  / (linecount - wp->w_height);
 	    if (wp->w_scrollbar_highlight != NULL)
@@ -2364,18 +2484,35 @@ update_popups(void (*win_update)(win_T *wp))
 	for (i = wp->w_popup_border[0];
 				 i < total_height - wp->w_popup_border[2]; ++i)
 	{
+	    int	pad_left;
+	    // left and right padding only needed next to the body
+	    int do_padding =
+		    i >= wp->w_popup_border[0] + wp->w_popup_padding[0]
+		    && i < total_height - wp->w_popup_border[2]
+						 - wp->w_popup_padding[2];
+
 	    row = wp->w_winrow + i;
 
 	    // left border
-	    if (wp->w_popup_border[3] > 0)
+	    if (wp->w_popup_border[3] > 0 && wincol >= 0)
 	    {
 		buf[mb_char2bytes(border_char[3], buf)] = NUL;
-		screen_puts(buf, row, wp->w_wincol, border_attr[3]);
+		screen_puts(buf, row, wincol, border_attr[3]);
 	    }
-	    // left padding
-	    if (wp->w_popup_padding[3] > 0)
-		screen_puts(get_spaces(wp->w_popup_padding[3]), row,
-			wp->w_wincol + wp->w_popup_border[3], popup_attr);
+	    if (do_padding && wp->w_popup_padding[3] > 0)
+	    {
+		int col = wincol + wp->w_popup_border[3];
+
+		// left padding
+		pad_left = wp->w_popup_padding[3];
+		if (col < 0)
+		{
+		    pad_left += col;
+		    col = 0;
+		}
+		if (pad_left > 0)
+		    screen_puts(get_spaces(pad_left), row, col, popup_attr);
+	    }
 	    // scrollbar
 	    if (wp->w_has_scrollbar)
 	    {
@@ -2395,14 +2532,14 @@ update_popups(void (*win_update)(win_T *wp))
 	    if (wp->w_popup_border[1] > 0)
 	    {
 		buf[mb_char2bytes(border_char[1], buf)] = NUL;
-		screen_puts(buf, row,
-			       wp->w_wincol + total_width - 1, border_attr[1]);
+		screen_puts(buf, row, wincol + total_width - 1, border_attr[1]);
 	    }
 	    // right padding
-	    if (wp->w_popup_padding[1] > 0)
+	    if (do_padding && wp->w_popup_padding[1] > 0)
 		screen_puts(get_spaces(wp->w_popup_padding[1]), row,
-			wp->w_wincol + wp->w_popup_border[3]
-			   + wp->w_popup_padding[3] + wp->w_width, popup_attr);
+			wincol + wp->w_popup_border[3]
+			+ wp->w_popup_padding[3] + wp->w_width + wp->w_leftcol,
+			popup_attr);
 	}
 
 	if (wp->w_popup_padding[2] > 0)
@@ -2411,9 +2548,7 @@ update_popups(void (*win_update)(win_T *wp))
 	    row = wp->w_winrow + wp->w_popup_border[0]
 				       + wp->w_popup_padding[0] + wp->w_height;
 	    screen_fill(row, row + wp->w_popup_padding[2],
-		    wp->w_wincol + wp->w_popup_border[3],
-		    wp->w_wincol + total_width - wp->w_popup_border[1],
-							 ' ', ' ', popup_attr);
+				       padcol, padwidth, ' ', ' ', popup_attr);
 	}
 
 	if (wp->w_popup_border[2] > 0)
@@ -2421,17 +2556,24 @@ update_popups(void (*win_update)(win_T *wp))
 	    // bottom border
 	    row = wp->w_winrow + total_height - 1;
 	    screen_fill(row , row + 1,
-		    wp->w_wincol,
-		    wp->w_wincol + total_width,
-		    wp->w_popup_border[3] != 0
+		    wincol < 0 ? 0 : wincol,
+		    wincol + total_width,
+		    wp->w_popup_border[3] != 0 && wp->w_popup_leftoff == 0
 					     ? border_char[7] : border_char[2],
 		    border_char[2], border_attr[2]);
 	    if (wp->w_popup_border[1] > 0)
 	    {
 		buf[mb_char2bytes(border_char[6], buf)] = NUL;
-		screen_puts(buf, row,
-			       wp->w_wincol + total_width - 1, border_attr[2]);
+		screen_puts(buf, row, wincol + total_width - 1, border_attr[2]);
 	    }
+	}
+
+	if (wp->w_popup_close == POPCLOSE_BUTTON)
+	{
+	    // close button goes on top of anything at the top-right corner
+	    buf[mb_char2bytes('X', buf)] = NUL;
+	    screen_puts(buf, wp->w_winrow, wincol + total_width - 1,
+		      wp->w_popup_border[0] > 0 ? border_attr[0] : popup_attr);
 	}
 
 	update_popup_transparent(wp, 0);
