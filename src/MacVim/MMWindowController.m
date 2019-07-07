@@ -224,8 +224,12 @@
         [win setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 
     // This makes windows animate when opened
-    if ([win respondsToSelector:@selector(setAnimationBehavior:)])
-        [win setAnimationBehavior:NSWindowAnimationBehaviorDocumentWindow];
+    if ([win respondsToSelector:@selector(setAnimationBehavior:)]) {
+        if (![[NSUserDefaults standardUserDefaults]
+              boolForKey:MMDisableLaunchAnimation]) {
+            [win setAnimationBehavior:NSWindowAnimationBehaviorDocumentWindow];
+        }
+    }
 #endif
 
     [[NSNotificationCenter defaultCenter]

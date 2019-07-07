@@ -247,6 +247,8 @@ Here is a list of relevant dictionary entries:
 KEY				VALUE ~
 *MMCellWidthMultiplier*		width of a normal glyph in em units [float]
 *MMDialogsTrackPwd*		open/save dialogs track the Vim pwd [bool]
+*MMDisableLaunchAnimation*	disable launch animation when opening a new
+				MacVim window [bool]
 *MMFullScreenFadeTime*		fade delay for non-native fullscreen [float]
 *MMLoginShellArgument*		login shell parameter [string]
 *MMLoginShellCommand*		which shell to use to launch Vim [string]
