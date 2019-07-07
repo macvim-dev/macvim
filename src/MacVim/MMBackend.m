@@ -636,10 +636,12 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
 - (void)flushQueue:(BOOL)force
 {
-    // NOTE: This variable allows for better control over when the queue is
-    // flushed.  It can be set to YES at the beginning of a sequence of calls
-    // that may potentially add items to the queue, and then restored back to
-    // NO.
+    // TODO: "force" is currently unused. When flushDisabled is set, it will
+    // always disable flushing. Consider fixing it so that force will actually
+    // forcefully flush (i.e. ignore flushDisabled), and change
+    // gui_macvim_flush() to call flushQueue with
+    // force set to NO.
+
     if (flushDisabled) return;
 
     if ([drawData length] > 0) {
@@ -1793,7 +1795,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         if (count%2 == 0) {
             for (i = count-2; i >= 0; i -= 2) {
                 int msgid = [[inputQueue objectAtIndex:i] intValue];
-                if (SetTextDimensionsMsgID == msgid) {
+                if (SetTextDimensionsMsgID == msgid || SetTextDimensionsNoResizeWindowMsgID == msgid) {
                     textDimData = [[inputQueue objectAtIndex:i+1] retain];
                     break;
                 }
@@ -2716,10 +2718,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                 bufHasFilename = curbuf->b_ffname != NULL;
             }
 
-            // Temporarily disable flushing since the following code may
-            // potentially cause multiple redraws.
-            flushDisabled = YES;
-
             // Make sure we're in normal mode first.
             // TODO: The mixing of addInput and Ex commands is a little
             // problematic because addInput is asynchronous and will therefore
@@ -2959,8 +2957,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             out_flush();
             gui_update_cursor(FALSE, FALSE);
             maketitle();
-
-            flushDisabled = NO;
         }
     }
 
