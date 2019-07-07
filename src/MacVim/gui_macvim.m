@@ -2369,8 +2369,7 @@ gui_mch_drawsign(int row, int col, int typenr)
     if (!imgName)
         return;
 
-    char_u *txt = sign_get_text(typenr);
-    int txtSize = txt ? strlen((char*)txt) : 2;
+    const int txtSize = 2; // This is specified in the docs, and is expected to always be the case.
 
     [[MMBackend sharedInstance] drawSign:imgName
                                    atRow:row
