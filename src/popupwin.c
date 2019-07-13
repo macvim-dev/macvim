@@ -199,7 +199,7 @@ set_mousemoved_columns(win_T *wp, int flags)
 	getvcol(textwp, &pos, &mcol, NULL, NULL);
 	wp->w_popup_mouse_mincol = mcol;
 
-	pos.col = col + STRLEN(text) - 1;
+	pos.col = col + (colnr_T)STRLEN(text) - 1;
 	getvcol(textwp, &pos, NULL, NULL, &mcol);
 	wp->w_popup_mouse_maxcol = mcol;
 	vim_free(text);
@@ -317,7 +317,7 @@ popup_handle_scrollbar_click(win_T *wp, int row, int col)
 	return;
     if (row >= wp->w_popup_border[0]
 	    && row < height - wp->w_popup_border[2]
-	    && col == popup_width(wp) - 1)
+	    && col == popup_width(wp) - wp->w_popup_border[1] - 1)
     {
 	if (row >= height / 2)
 	{
@@ -799,6 +799,8 @@ popup_height(win_T *wp)
     int
 popup_width(win_T *wp)
 {
+    // w_leftcol is how many columns of the core are left of the screen
+    // w_popup_rightoff is how many columns of the core are right of the screen
     return wp->w_width + wp->w_leftcol
 	+ wp->w_popup_padding[3] + wp->w_popup_border[3]
 	+ wp->w_popup_padding[1] + wp->w_popup_border[1]
@@ -924,7 +926,11 @@ popup_adjust_position(win_T *wp)
 	    wp->w_width = maxwidth;
 	}
 	if (wp->w_width < len)
+	{
 	    wp->w_width = len;
+	    if (wp->w_maxwidth > 0 && wp->w_width > wp->w_maxwidth)
+		wp->w_width = wp->w_maxwidth;
+	}
 	// do not use the width of lines we're not going to show
 	if (wp->w_maxheight > 0
 		       && lnum - wp->w_topline + 1 + wrapped > wp->w_maxheight)
@@ -1506,6 +1512,12 @@ popup_highlight_curline(win_T *wp)
 
     match_delete(wp, 1, FALSE);
 
+    // Scroll to show the line with the cursor.  This assumes lines don't wrap.
+    while (wp->w_topline + wp->w_height - 1 < wp->w_cursor.lnum)
+	wp->w_topline++;
+    while (wp->w_cursor.lnum < wp->w_topline)
+	wp->w_topline--;
+
     id = syn_name2id((char_u *)"PopupSelected");
     vim_snprintf(buf, sizeof(buf), "\\%%%dl.*", (int)wp->w_cursor.lnum);
     match_add(wp, (char_u *)(id == 0 ? "PmenuSel" : "PopupSelected"),
@@ -1889,6 +1901,20 @@ f_popup_getpos(typval_T *argvars, typval_T *rettv)
 	dict_add_number(dict, "visible",
 		      win_valid(wp) && (wp->w_popup_flags & POPF_HIDDEN) == 0);
     }
+}
+/*
+ * popup_locate({row}, {col})
+ */
+    void
+f_popup_locate(typval_T *argvars, typval_T *rettv)
+{
+    int		row = tv_get_number(&argvars[0]) - 1;
+    int		col = tv_get_number(&argvars[1]) - 1;
+    win_T	*wp;
+
+    wp = mouse_find_win(&row, &col, FIND_POPUP);
+    if (WIN_IS_POPUP(wp))
+	rettv->vval.v_number = wp->w_id;
 }
 
 /*
@@ -2323,8 +2349,10 @@ update_popup_transparent(win_T *wp, int val)
 	    --lines;
 	    if (lines < 0)
 		lines = 0;
-	    for (line = lines; line < linee && line < screen_Rows; ++line)
-		for (col = cols; col < cole && col < screen_Columns; ++col)
+	    for (line = lines; line < linee
+				  && line + wp->w_winrow < screen_Rows; ++line)
+		for (col = cols; col < cole
+				&& col + wp->w_wincol < screen_Columns; ++col)
 		    popup_transparent[(line + wp->w_winrow) * screen_Columns
 						   + col + wp->w_wincol] = val;
 	}

@@ -8364,6 +8364,8 @@ popup-window	popup.txt	/*popup-window*
 popup-window-functions	usr_41.txt	/*popup-window-functions*
 popup.txt	popup.txt	/*popup.txt*
 popup_atcursor()	popup.txt	/*popup_atcursor()*
+popup_beval()	popup.txt	/*popup_beval()*
+popup_beval_example	popup.txt	/*popup_beval_example*
 popup_clear()	popup.txt	/*popup_clear()*
 popup_close()	popup.txt	/*popup_close()*
 popup_create()	popup.txt	/*popup_create()*
@@ -8375,6 +8377,7 @@ popup_filter_yesno()	popup.txt	/*popup_filter_yesno()*
 popup_getoptions()	popup.txt	/*popup_getoptions()*
 popup_getpos()	popup.txt	/*popup_getpos()*
 popup_hide()	popup.txt	/*popup_hide()*
+popup_locate()	popup.txt	/*popup_locate()*
 popup_menu()	popup.txt	/*popup_menu()*
 popup_menu-shortcut-example	popup.txt	/*popup_menu-shortcut-example*
 popup_move()	popup.txt	/*popup_move()*
@@ -8713,6 +8716,7 @@ screenattr()	eval.txt	/*screenattr()*
 screenchar()	eval.txt	/*screenchar()*
 screenchars()	eval.txt	/*screenchars()*
 screencol()	eval.txt	/*screencol()*
+screenpos()	eval.txt	/*screenpos()*
 screenrow()	eval.txt	/*screenrow()*
 screenstring()	eval.txt	/*screenstring()*
 script	usr_41.txt	/*script*
