@@ -7555,6 +7555,7 @@ listener_add()	eval.txt	/*listener_add()*
 listener_flush()	eval.txt	/*listener_flush()*
 listener_remove()	eval.txt	/*listener_remove()*
 lite.vim	syntax.txt	/*lite.vim*
+literal-Dict	eval.txt	/*literal-Dict*
 literal-string	eval.txt	/*literal-string*
 lnum-variable	eval.txt	/*lnum-variable*
 load-plugins	starting.txt	/*load-plugins*
@@ -8820,8 +8821,10 @@ sign_getdefined()	eval.txt	/*sign_getdefined()*
 sign_getplaced()	eval.txt	/*sign_getplaced()*
 sign_jump()	eval.txt	/*sign_jump()*
 sign_place()	eval.txt	/*sign_place()*
+sign_placelist()	eval.txt	/*sign_placelist()*
 sign_undefine()	eval.txt	/*sign_undefine()*
 sign_unplace()	eval.txt	/*sign_unplace()*
+sign_unplacelist()	eval.txt	/*sign_unplacelist()*
 signs	sign.txt	/*signs*
 simple-change	change.txt	/*simple-change*
 simplify()	eval.txt	/*simplify()*
