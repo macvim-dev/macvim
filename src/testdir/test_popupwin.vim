@@ -634,6 +634,8 @@ func Test_popup_invalid_arguments()
   call popup_clear()
   call assert_fails('call popup_create("text", #{borderhighlight: "none"})', 'E714:')
   call popup_clear()
+  call assert_fails('call popup_create("text", #{borderhighlight: test_null_list()})', 'E714:')
+  call popup_clear()
   call assert_fails('call popup_create("text", #{borderchars: "none"})', 'E714:')
   call popup_clear()
 
@@ -642,6 +644,10 @@ func Test_popup_invalid_arguments()
   call assert_fails('call popup_create([#{text: "text", props: "none"}], {})', 'E714:')
   call popup_clear()
   call assert_fails('call popup_create([#{text: "text", props: ["none"]}], {})', 'E715:')
+  call popup_clear()
+  call assert_fails('call popup_create("text", #{mask: ["asdf"]})', 'E475:')
+  call popup_clear()
+  call assert_fails('call popup_create("text", #{mask: test_null_list()})', 'E475:')
   call popup_clear()
 endfunc
 
@@ -1913,6 +1919,178 @@ func Test_popup_menu_with_scrollbar()
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestPopupMenuScroll')
+endfunc
+
+func Test_popup_menu_filter()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+
+  let lines =<< trim END
+	function! MyFilter(winid, key) abort
+	  if a:key == "0"
+		call win_execute(a:winid, "call setpos('.', [0, 1, 1, 0])")
+		return 1
+	  endif
+	  if a:key == "G"
+		call win_execute(a:winid, "call setpos('.', [0, line('$'), 1, 0])")
+		return 1
+	  endif
+	  if a:key == "j"
+		call win_execute(a:winid, "call setpos('.', [0, line('.') + 1, 1, 0])")
+		return 1
+	  endif
+	  if a:key == "k"
+		call win_execute(a:winid, "call setpos('.', [0, line('.') - 1, 1, 0])")
+		return 1
+	  endif
+	  if a:key == 'x'
+		call popup_close(a:winid)
+		return 1
+	  endif
+	  return 0
+	endfunction
+	call popup_menu(['111', '222', '333', '444', '555', '666', '777', '888', '999'], #{
+	  \ maxheight : 3,
+	  \ filter : 'MyFilter'
+	  \ })
+  END
+  call writefile(lines, 'XtestPopupMenuFilter')
+  let buf = RunVimInTerminal('-S XtestPopupMenuFilter', #{rows: 10})
+
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_popupwin_menu_filter_1', {})
+
+  call term_sendkeys(buf, "k")
+  call VerifyScreenDump(buf, 'Test_popupwin_menu_filter_2', {})
+
+  call term_sendkeys(buf, "G")
+  call VerifyScreenDump(buf, 'Test_popupwin_menu_filter_3', {})
+
+  call term_sendkeys(buf, "0")
+  call VerifyScreenDump(buf, 'Test_popupwin_menu_filter_4', {})
+
+  call term_sendkeys(buf, "x")
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupMenuFilter')
+endfunc
+
+func Test_popup_cursorline()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+
+  let winid = popup_create('some text', {})
+  call assert_equal(0, popup_getoptions(winid).cursorline)
+  call popup_close(winid)
+
+  let winid = popup_create('some text', #{ cursorline: 1, })
+  call assert_equal(1, popup_getoptions(winid).cursorline)
+  call popup_close(winid)
+
+  let winid = popup_create('some text', #{ cursorline: 0, })
+  call assert_equal(0, popup_getoptions(winid).cursorline)
+  call popup_close(winid)
+
+  let winid = popup_menu('some text', {})
+  call assert_equal(1, popup_getoptions(winid).cursorline)
+  call popup_close(winid)
+
+  let winid = popup_menu('some text', #{ cursorline: 1, })
+  call assert_equal(1, popup_getoptions(winid).cursorline)
+  call popup_close(winid)
+
+  let winid = popup_menu('some text', #{ cursorline: 0, })
+  call assert_equal(0, popup_getoptions(winid).cursorline)
+  call popup_close(winid)
+
+  " ---------
+  " Pattern 1
+  " ---------
+  let lines =<< trim END
+	call popup_create(['111', '222', '333'], #{ cursorline : 0 })
+  END
+  call writefile(lines, 'XtestPopupCursorLine')
+  let buf = RunVimInTerminal('-S XtestPopupCursorLine', #{rows: 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_cursorline_1', {})
+  call term_sendkeys(buf, ":call popup_clear()\<cr>")
+  call StopVimInTerminal(buf)
+
+  " ---------
+  " Pattern 2
+  " ---------
+  let lines =<< trim END
+	call popup_create(['111', '222', '333'], #{ cursorline : 1 })
+  END
+  call writefile(lines, 'XtestPopupCursorLine')
+  let buf = RunVimInTerminal('-S XtestPopupCursorLine', #{rows: 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_cursorline_2', {})
+  call term_sendkeys(buf, ":call popup_clear()\<cr>")
+  call StopVimInTerminal(buf)
+
+  " ---------
+  " Pattern 3
+  " ---------
+  let lines =<< trim END
+	function! MyFilter(winid, key) abort
+	  if a:key == "j"
+		call win_execute(a:winid, "call setpos('.', [0, line('.') + 1, 1, 0]) | redraw")
+		return 1
+	  endif
+	  if a:key == 'x'
+		call popup_close(a:winid)
+		return 1
+	  endif
+	  return 0
+	endfunction
+	call popup_menu(['111', '222', '333'], #{
+	  \ cursorline : 0,
+	  \ maxheight : 2,
+	  \ filter : 'MyFilter',
+	  \ })
+  END
+  call writefile(lines, 'XtestPopupCursorLine')
+  let buf = RunVimInTerminal('-S XtestPopupCursorLine', #{rows: 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_cursorline_3', {})
+  call term_sendkeys(buf, "j")
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_popupwin_cursorline_4', {})
+  call term_sendkeys(buf, "x")
+  call StopVimInTerminal(buf)
+
+  " ---------
+  " Pattern 4
+  " ---------
+  let lines =<< trim END
+	function! MyFilter(winid, key) abort
+	  if a:key == "j"
+		call win_execute(a:winid, "call setpos('.', [0, line('.') + 1, 1, 0]) | redraw")
+		return 1
+	  endif
+	  if a:key == 'x'
+		call popup_close(a:winid)
+		return 1
+	  endif
+	  return 0
+	endfunction
+	call popup_menu(['111', '222', '333'], #{
+	  \ cursorline : 1,
+	  \ maxheight : 2,
+	  \ filter : 'MyFilter',
+	  \ })
+  END
+  call writefile(lines, 'XtestPopupCursorLine')
+  let buf = RunVimInTerminal('-S XtestPopupCursorLine', #{rows: 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_cursorline_5', {})
+  call term_sendkeys(buf, "j")
+  call term_sendkeys(buf, "j")
+  call VerifyScreenDump(buf, 'Test_popupwin_cursorline_6', {})
+  call term_sendkeys(buf, "x")
+  call StopVimInTerminal(buf)
+
+  call delete('XtestPopupCursorLine')
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
