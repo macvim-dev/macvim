@@ -802,9 +802,9 @@ nr  Name		Normal action  ~
 30  WinMinWidth		make current window use few columns
 
 					*hidden-menus* *win32-hidden-menus*
-In the Win32 and GTK+ GUI, starting a menu name with ']' excludes that menu
-from the main menu bar.  You must then use the |:popup| or |:tearoff| command
-to display it.
+In the Win32, MacVim, and GTK+ GUI, starting a menu name with ']' excludes
+that menu from the main menu bar.  You must then use the |:popup| or
+|:tearoff| command to display it.
 
 					*window-toolbar* *WinBar*
 Each window can have a local toolbar.  This uses the first line of the window,
