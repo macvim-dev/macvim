@@ -717,6 +717,27 @@ func Test_popup_without_wrap()
   call delete('XtestPopup')
 endfunc
 
+func Test_popup_with_showbreak()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+  let lines =<< trim END
+	 set showbreak=>>\ 
+	 call setline(1, range(1, 20))
+	 let winid = popup_dialog(
+	   \ 'a long line here',
+	   \ #{filter: 'popup_filter_yesno'})
+  END
+  call writefile(lines, 'XtestPopupShowbreak')
+  let buf = RunVimInTerminal('-S XtestPopupShowbreak', #{rows: 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_showbreak', {})
+
+  " clean up
+  call term_sendkeys(buf, "y")
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupShowbreak')
+endfunc
+
 func Test_popup_time()
   if !has('timers')
     throw 'Skipped: timer feature not supported'
@@ -1213,6 +1234,29 @@ func Test_popup_menu_screenshot()
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestPopupMenu')
+endfunc
+
+func Test_popup_menu_narrow()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+
+  let lines =<< trim END
+	call setline(1, range(1, 20))
+	hi PopupSelected ctermbg=green
+	call popup_menu(['one', 'two', 'three'], #{callback: 'MenuDone'})
+	func MenuDone(id, res)
+	  echomsg "selected " .. a:res
+	endfunc
+  END
+  call writefile(lines, 'XtestPopupNarrowMenu')
+  let buf = RunVimInTerminal('-S XtestPopupNarrowMenu', #{rows: 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_menu_04', {})
+
+  " clean up
+  call term_sendkeys(buf, "x")
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupNarrowMenu')
 endfunc
 
 func Test_popup_title()
@@ -2093,4 +2137,50 @@ func Test_popup_cursorline()
   call delete('XtestPopupCursorLine')
 endfunc
 
-" vim: shiftwidth=2 sts=2 expandtab
+func Test_previewpopup()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot make screendumps'
+  endif
+  call writefile([
+        \ "!_TAG_FILE_ENCODING\tutf-8\t//",
+        \ "another\tXtagfile\t/^this is another",
+        \ "theword\tXtagfile\t/^theword"],
+        \ 'Xtags')
+  call writefile(range(1,20)
+        \ + ['theword is here']
+        \ + range(22, 27)
+        \ + ['this is another place']
+        \ + range(29, 40),
+        \ "Xtagfile")
+  let lines =<< trim END
+        set tags=Xtags
+	call setline(1, [
+              \ 'one',
+              \ 'two',
+              \ 'three',
+              \ 'four',
+              \ 'five',
+              \ 'six',
+              \ 'seven',
+              \ 'find theword somewhere',
+              \ 'nine',
+              \ 'this is another word'])
+        set previewpopup=height:4,width:40
+  END
+  call writefile(lines, 'XtestPreviewPopup')
+  let buf = RunVimInTerminal('-S XtestPreviewPopup', #{rows: 14})
+
+  call term_sendkeys(buf, "/theword\<CR>\<C-W>}")
+  call term_sendkeys(buf, ":\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_previewpopup_1', {})
+
+  call term_sendkeys(buf, "/another\<CR>\<C-W>}")
+  call VerifyScreenDump(buf, 'Test_popupwin_previewpopup_2', {})
+
+  call StopVimInTerminal(buf)
+  call delete('Xtags')
+  call delete('Xtagfile')
+  call delete('XtestPreviewPopup')
+endfunc
+
+" vim: shiftwidth=2 sts=2

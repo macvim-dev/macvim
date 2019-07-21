@@ -6526,6 +6526,7 @@ ft-ptcap-syntax	syntax.txt	/*ft-ptcap-syntax*
 ft-python-indent	indent.txt	/*ft-python-indent*
 ft-python-plugin	filetype.txt	/*ft-python-plugin*
 ft-python-syntax	syntax.txt	/*ft-python-syntax*
+ft-qf-plugin	filetype.txt	/*ft-qf-plugin*
 ft-quake-syntax	syntax.txt	/*ft-quake-syntax*
 ft-r-indent	indent.txt	/*ft-r-indent*
 ft-r-syntax	syntax.txt	/*ft-r-syntax*
@@ -8513,6 +8514,7 @@ q	repeat.txt	/*q*
 q/	cmdline.txt	/*q\/*
 q:	cmdline.txt	/*q:*
 q?	cmdline.txt	/*q?*
+qf.vim	filetype.txt	/*qf.vim*
 qnx	os_qnx.txt	/*qnx*
 qnx-compiling	os_qnx.txt	/*qnx-compiling*
 qnx-general	os_qnx.txt	/*qnx-general*

@@ -3223,10 +3223,10 @@ win_line(
     int		syntax_attr = 0;	/* attributes desired by syntax */
     int		has_syntax = FALSE;	/* this buffer has syntax highl. */
     int		save_did_emsg;
-    int		eol_hl_off = 0;		/* 1 if highlighted char after EOL */
     int		draw_color_col = FALSE;	/* highlight colorcolumn */
     int		*color_cols = NULL;	/* pointer to according columns array */
 #endif
+    int		eol_hl_off = 0;		/* 1 if highlighted char after EOL */
 #ifdef FEAT_TEXT_PROP
     int		text_prop_count;
     int		text_prop_next = 0;	// next text property to use
@@ -5370,6 +5370,8 @@ win_line(
 			if (wp->w_p_cul && lnum == wp->w_cursor.lnum)
 			    char_attr = hl_combine_attr(char_attr,
 							    HL_ATTR(HLF_CUL));
+			else if (line_attr)
+			    char_attr = hl_combine_attr(char_attr, line_attr);
 		    }
 # endif
 		}
@@ -5565,11 +5567,11 @@ win_line(
 	/*
 	 * At end of the text line or just after the last character.
 	 */
-	if (c == NUL
+	if ((c == NUL
 #if defined(LINE_ATTR)
 		|| did_line_attr == 1
 #endif
-		)
+		) && eol_hl_off == 0)
 	{
 #ifdef FEAT_SEARCH_EXTRA
 	    long prevcol = (long)(ptr - line) - (c == NUL);
@@ -5695,9 +5697,7 @@ win_line(
 		    ++off;
 		}
 		++vcol;
-#ifdef FEAT_SYN_HL
 		eol_hl_off = 1;
-#endif
 	    }
 	}
 
