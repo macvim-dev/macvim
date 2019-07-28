@@ -3138,7 +3138,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     char_u tcdCmd[] = "tcd";
     ea.arg = path_vim;
     ea.cmdidx = CMD_tcd;
-    ea.cmd = tabnewCmd;
+    ea.cmd = tcdCmd;
     ex_cd(&ea);
 
     vim_free(path_vim);
