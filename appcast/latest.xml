@@ -6,35 +6,26 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-156</title>
+      <title>MacVim snapshot-157</title>
       <description><![CDATA[
-<p>Vim patch 8.1.1517</p>
-
-<p>Security Fixes:</p>
-
-<ul>
-  <li>Fix modeline security vulnerability (CVE-2019-12735). #898 (fixed in Vim 8.1.1365)</li>
-</ul>
+<p>Vim patch 8.1.1722</p>
 
 <p>Features:</p>
 
 <ul>
-  <li>Add new option ‘MMTitlebarAppearsTransparent’ that will make the title bar transparent and use the background color in the color scheme (10.14 or above only). #888</li>
+  <li>Add ‘MMDisableLaunchAnimation’ option to disable the opening animation
+of MacVim Windows. #915</li>
+  <li>Make ‘MMTitlebarAppearsTransparent’ work in pre-Mojave macOS versions.
+#917</li>
 </ul>
 
 <p>Fixes:</p>
 
 <ul>
-  <li>Fix filename parsing error when opening a file with special characters like ‘$’ in file path. #863</li>
-  <li>Fix blurry I-beam mouse cursor. #755</li>
-  <li>Fix silently failing to save a file when conversion error is present.  #671. (Vim 8.1.1349)</li>
-  <li>Fix failing to save to a network shared SMB folder #861.  (Vim 8.1.0957)</li>
-</ul>
-
-<p>Misc:</p>
-
-<ul>
-  <li>‘guitablabel’ can now be set in .vimrc, without MacVim overriding it.  #899</li>
+  <li>Fix issue where MacVim would freeze when opening a file already opened
+in another MacVim window when swap files are enabled. #913</li>
+  <li>Menu items with name starting with ‘]’ now properly get hidden in the
+main menu bar (see <code>:help hidden-menus</code>). #853</li>
 </ul>
 
 <p>Targets macOS 10.8+</p>
@@ -49,16 +40,15 @@
   <li>Ruby 2.6</li>
 </ul>
 
-
       ]]></description>
-      <pubDate>Tue, 11 Jun 2019 02:00:00 -0700</pubDate>
+      <pubDate>Sat, 27 Jul 2019 22:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-156/MacVim.dmg"
-        length="16869239"
-        sparkle:version="156"
-        sparkle:shortVersionString="8.1.1517"
-        sparkle:dsaSignature="MC0CFQCCKCkD77UMft4QNdOQfL6BEbMIDQIUHJgH1myqjo3XpTR4DVdoQEQCFkU="
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-157/MacVim.dmg"
+        length="16902712"
+        sparkle:version="157"
+        sparkle:shortVersionString="8.1.1722"
+        sparkle:dsaSignature="MCwCFB735GbaLl3tYNo6IRlcoV3QRHL7AhRCMhI/U8VHny9kM5N2mNUUT5xhuw=="
         />
     </item>
   </channel>
