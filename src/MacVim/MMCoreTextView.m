@@ -147,17 +147,13 @@ defaultAdvanceForFont(NSFont *font)
     }
     cgLayerLock = [NSLock new];
 
-    // NOTE!  It does not matter which font is set here, Vim will set its
-    // own font on startup anyway.  Just set some bogus values.
-    font = [[NSFont userFixedPitchFontOfSize:0] retain];
-    cellSize.width = cellSize.height = 1;
-
     // NOTE: If the default changes to 'NO' then the intialization of
     // p_antialias in option.c must change as well.
     antialias = YES;
 
     drawData = [[NSMutableArray alloc] init];
     fontCache = [[NSMutableArray alloc] init];
+    [self setFont:[NSFont userFixedPitchFontOfSize:0]];
 
     helper = [[MMTextViewHelper alloc] init];
     [helper setTextView:self];
@@ -301,18 +297,13 @@ defaultAdvanceForFont(NSFont *font)
 
 - (void)setFont:(NSFont *)newFont
 {
-    if (!(newFont && font != newFont))
+    if (!newFont || [font isEqual:newFont])
         return;
 
     double em = round(defaultAdvanceForFont(newFont));
-    double pt = round([newFont pointSize]);
-
-    CTFontDescriptorRef desc = CTFontDescriptorCreateWithNameAndSize((CFStringRef)[newFont fontName], pt);
-    CTFontRef fontRef = CTFontCreateWithFontDescriptor(desc, pt, NULL);
-    CFRelease(desc);
 
     [font release];
-    font = (NSFont*)fontRef;
+    font = [newFont retain];
 
     float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
             floatForKey:MMCellWidthMultiplierKey];
@@ -324,7 +315,7 @@ defaultAdvanceForFont(NSFont *font)
     cellSize.width = columnspace + ceil(em * cellWidthMultiplier);
     cellSize.height = linespace + defaultLineHeightForFont(font);
 
-    fontDescent = ceil(CTFontGetDescent(fontRef));
+    fontDescent = ceil(CTFontGetDescent((CTFontRef)newFont));
 
     [fontCache removeAllObjects];
 }
