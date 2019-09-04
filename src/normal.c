@@ -5152,7 +5152,8 @@ dozet:
 		    if (ptr == NULL && (len = find_ident_under_cursor(&ptr,
 							    FIND_IDENT)) == 0)
 			return;
-		    spell_add_word(ptr, len, nchar == 'w' || nchar == 'W',
+		    spell_add_word(ptr, len, nchar == 'w' || nchar == 'W'
+					      ? SPELL_ADD_BAD : SPELL_ADD_GOOD,
 					    (nchar == 'G' || nchar == 'W')
 						       ? 0 : (int)cap->count1,
 					    undo);
@@ -5770,11 +5771,11 @@ nv_ident(cmdarg_T *cap)
 		    ? vim_iswordp(mb_prevptr(ml_get_curline(), ptr))
 		    : vim_iswordc(ptr[-1])))
 	    STRCAT(buf, "\\>");
-#ifdef FEAT_CMDHIST
-	/* put pattern in search history */
+
+	// put pattern in search history
 	init_history();
 	add_to_history(HIST_SEARCH, buf, TRUE, NUL);
-#endif
+
 	(void)normal_search(cap, cmdchar == '*' ? '/' : '?', buf, 0);
     }
     else
@@ -8096,10 +8097,14 @@ nv_g_cmd(cmdarg_T *cap)
 	    }
 	    else
 	    {
+		if (cap->count1 > 1)
+		    // if it fails, let the cursor still move to the last char
+		    (void)cursor_down(cap->count1 - 1, FALSE);
+
 		i = curwin->w_leftcol + curwin->w_width - col_off - 1;
 		coladvance((colnr_T)i);
 
-		/* Make sure we stick in this column. */
+		// Make sure we stick in this column.
 		validate_virtcol();
 		curwin->w_curswant = curwin->w_virtcol;
 		curwin->w_set_curswant = FALSE;
@@ -9375,13 +9380,15 @@ nv_put_opt(cmdarg_T *cap, int fix_indent)
 		reg1 = get_register(regname, TRUE);
 	    }
 
-	    /* Now delete the selected text. */
+	    // Now delete the selected text. Avoid messages here.
 	    cap->cmdchar = 'd';
 	    cap->nchar = NUL;
 	    cap->oap->regname = NUL;
+	    ++msg_silent;
 	    nv_operator(cap);
 	    do_pending_operator(cap, 0, FALSE);
 	    empty = (curbuf->b_ml.ml_flags & ML_EMPTY);
+	    --msg_silent;
 
 	    /* delete PUT_LINE_BACKWARD; */
 	    cap->oap->regname = regname;
@@ -9436,6 +9443,7 @@ nv_put_opt(cmdarg_T *cap, int fix_indent)
 	if (empty && *ml_get(curbuf->b_ml.ml_line_count) == NUL)
 	{
 	    ml_delete(curbuf->b_ml.ml_line_count, TRUE);
+	    deleted_lines(curbuf->b_ml.ml_line_count + 1, 1);
 
 	    /* If the cursor was in that line, move it to the end of the last
 	     * line. */

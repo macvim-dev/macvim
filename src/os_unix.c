@@ -3105,12 +3105,11 @@ mch_can_exe(char_u *name, char_u **path, int use_path)
 
     /* When "use_path" is false and if it's an absolute or relative path don't
      * need to use $PATH. */
-    if (!use_path || mch_isFullName(name) || (name[0] == '.'
-		   && (name[1] == '/' || (name[1] == '.' && name[2] == '/'))))
+    if (!use_path || gettail(name) != name)
     {
 	/* There must be a path separator, files in the current directory
 	 * can't be executed. */
-	if (gettail(name) != name && executable_file(name))
+	if ((use_path || gettail(name) != name) && executable_file(name))
 	{
 	    if (path != NULL)
 	    {
@@ -6021,14 +6020,20 @@ WaitForCharOrMouse(long msec, int *interrupted, int ignore_input)
 		rest -= msec;
 	}
 # endif
+# ifdef FEAT_SOUND_CANBERRA
+	// Invoke any pending sound callbacks.
+	if (has_sound_callback_in_queue())
+	    invoke_sound_callback();
+# endif
 # ifdef FEAT_MOUSE_GPM
 	gpm_process_wanted = 0;
 	avail = RealWaitForChar(read_cmd_fd, msec,
 					     &gpm_process_wanted, interrupted);
+	if (!avail && !gpm_process_wanted)
 # else
 	avail = RealWaitForChar(read_cmd_fd, msec, NULL, interrupted);
-# endif
 	if (!avail)
+# endif
 	{
 	    if (!ignore_input && input_available())
 		return 1;

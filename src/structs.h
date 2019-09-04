@@ -123,6 +123,7 @@ typedef struct {
 // alphabet coding.  To minimize changes to the code, I decided to just
 // increase the number of possible marks.
 #define NMARKS		('z' - 'a' + 1)	// max. # of named marks
+#define EXTRA_MARKS	10		// marks 0-9
 #define JUMPLISTSIZE	100		// max. # of marks in jump list
 #define TAGSTACKSIZE	20		// max. # of tags in tag stack
 
@@ -554,7 +555,7 @@ typedef struct expand
     int		xp_context;		// type of expansion
     char_u	*xp_pattern;		// start of item to expand
     int		xp_pattern_len;		// bytes in xp_pattern before cursor
-#if defined(FEAT_EVAL) && defined(FEAT_CMDL_COMPL)
+#if defined(FEAT_EVAL)
     char_u	*xp_arg;		// completion function
     sctx_T	xp_script_ctx;		// SCTX for completion function
 #endif
@@ -576,6 +577,33 @@ typedef struct expand
 #define XP_BS_NONE	0	// nothing special for backslashes
 #define XP_BS_ONE	1	// uses one backslash before a space
 #define XP_BS_THREE	2	// uses three backslashes before a space
+
+/*
+ * Variables shared between getcmdline(), redrawcmdline() and others.
+ * These need to be saved when using CTRL-R |, that's why they are in a
+ * structure.
+ */
+typedef struct
+{
+    char_u	*cmdbuff;	/* pointer to command line buffer */
+    int		cmdbufflen;	/* length of cmdbuff */
+    int		cmdlen;		/* number of chars in command line */
+    int		cmdpos;		/* current cursor position */
+    int		cmdspos;	/* cursor column on screen */
+    int		cmdfirstc;	/* ':', '/', '?', '=', '>' or NUL */
+    int		cmdindent;	/* number of spaces before cmdline */
+    char_u	*cmdprompt;	/* message in front of cmdline */
+    int		cmdattr;	/* attributes for prompt */
+    int		overstrike;	/* Typing mode on the command line.  Shared by
+				   getcmdline() and put_on_cmdline(). */
+    expand_T	*xpc;		/* struct being used for expansion, xp_pattern
+				   may point into cmdbuff */
+    int		xp_context;	/* type of expansion */
+# ifdef FEAT_EVAL
+    char_u	*xp_arg;	/* user-defined expansion arg */
+    int		input_fn;	/* when TRUE Invoked for input() function */
+# endif
+} cmdline_info_T;
 
 /*
  * Command modifiers ":vertical", ":browse", ":confirm" and ":hide" set a flag.
@@ -741,9 +769,9 @@ typedef struct proptype_S
 // Sign group
 typedef struct signgroup_S
 {
-    short_u	refcount;		// number of signs in this group
     int		next_sign_id;		// next sign id for this group
-    char_u	sg_name[1];		// sign group name
+    short_u	refcount;		// number of signs in this group
+    char_u	sg_name[1];		// sign group name, actually longer
 } signgroup_T;
 
 typedef struct signlist signlist_T;
@@ -1115,6 +1143,17 @@ typedef struct
     garray_T	vir_barlines;	// lines starting with |
 } vir_T;
 
+/*
+ * Structure used for the command line history.
+ */
+typedef struct hist_entry
+{
+    int		hisnum;		/* identifying number */
+    int		viminfo;	/* when TRUE hisstr comes from viminfo */
+    char_u	*hisstr;	/* actual entry, separator char after the NUL */
+    time_t	time_set;	/* when it was typed, zero if unknown */
+} histentry_T;
+
 #define CONV_NONE		0
 #define CONV_TO_UTF8		1
 #define CONV_9_TO_UTF8		2
@@ -1186,6 +1225,7 @@ typedef struct hashitem_S
 
 // Initial size for a hashtable.  Our items are relatively small and growing
 // is expensive, thus use 16 as a start.  Must be a power of 2.
+// This allows for storing 10 items (2/3 of 16) before a resize is needed.
 #define HT_INIT_SIZE 16
 
 typedef struct hashtable_S
@@ -1591,6 +1631,23 @@ typedef struct
     int	    dummy;
 } scriptitem_T;
 #endif
+
+// Struct passed between functions dealing with function call execution.
+//
+// "argv_func", when not NULL, can be used to fill in arguments only when the
+// invoked function uses them.  It is called like this:
+//   new_argcount = argv_func(current_argcount, argv, called_func_argcount)
+//
+typedef struct {
+    int		(* argv_func)(int, typval_T *, int);
+    linenr_T	firstline;	// first line of range
+    linenr_T	lastline;	// last line of range
+    int		*doesrange;	// if not NULL: return: function handled range
+    int		evaluate;	// actually evaluate expressions
+    partial_T	*partial;	// for extra arguments
+    dict_T	*selfdict;	// Dictionary for "self"
+    typval_T	*basetv;	// base for base->method()
+} funcexe_T;
 
 struct partial_S
 {
@@ -2224,10 +2281,8 @@ struct file_buffer
 
     varnumber_T	b_last_changedtick; // b:changedtick when TextChanged or
 				    // TextChangedI was last triggered.
-#ifdef FEAT_INS_EXPAND
     varnumber_T	b_last_changedtick_pum; // b:changedtick when TextChangedP was
 					// last triggered.
-#endif
 
     int		b_saving;	// Set to TRUE if we are in the middle of
 				// saving the buffer.
@@ -2283,13 +2338,12 @@ struct file_buffer
      */
     char_u	b_chartab[32];
 
-#ifdef FEAT_LOCALMAP
     // Table used for mappings local to a buffer.
     mapblock_T	*(b_maphash[256]);
 
     // First abbreviation local to a buffer.
     mapblock_T	*b_first_abbr;
-#endif
+
     // User commands local to the buffer.
     garray_T	b_ucmds;
     // start and end of an operator, also used for '[ and ']
@@ -2323,9 +2377,7 @@ struct file_buffer
     linenr_T	b_u_line_lnum;	// line number of line in u_line
     colnr_T	b_u_line_colnr;	// optional column number
 
-#ifdef FEAT_INS_EXPAND
     int		b_scanned;	// ^N/^P have scanned this buffer
-#endif
 
     // flags for use of ":lmap" and IM control
     long	b_p_iminsert;	// input mode for insert
@@ -2383,8 +2435,9 @@ struct file_buffer
 #ifdef FEAT_FOLDING
     char_u	*b_p_cms;	// 'commentstring'
 #endif
-#ifdef FEAT_INS_EXPAND
     char_u	*b_p_cpt;	// 'complete'
+#ifdef BACKSLASH_IN_FILENAME
+    char_u	*b_p_csl;	// 'completeslash'
 #endif
 #ifdef FEAT_COMPL_FUNC
     char_u	*b_p_cfu;	// 'completefunc'
@@ -2489,10 +2542,8 @@ struct file_buffer
     char_u	*b_p_tags;	// 'tags' local value
     char_u	*b_p_tc;	// 'tagcase' local value
     unsigned	b_tc_flags;     // flags for 'tagcase'
-#ifdef FEAT_INS_EXPAND
     char_u	*b_p_dict;	// 'dictionary' local value
     char_u	*b_p_tsr;	// 'thesaurus' local value
-#endif
     long	b_p_ul;		// 'undolevels' local value
 #ifdef FEAT_PERSISTENT_UNDO
     int		b_p_udf;	// 'undofile'
@@ -2983,6 +3034,9 @@ struct window_S
     char_u	*w_popup_title;
     poppos_T	w_popup_pos;
     int		w_popup_fixed;	    // do not shift popup to fit on screen
+    int		w_popup_prop_type;  // when not zero: textprop type ID
+    win_T	*w_popup_prop_win;  // window to search for textprop
+    int		w_popup_prop_id;    // when not zero: textprop ID
     int		w_zindex;
     int		w_minheight;	    // "minheight" for popup window
     int		w_minwidth;	    // "minwidth" for popup window
@@ -3002,10 +3056,17 @@ struct window_S
 
     int		w_popup_leftoff;    // columns left of the screen
     int		w_popup_rightoff;   // columns right of the screen
-    varnumber_T	w_popup_last_changedtick; // b:changedtick when position was
-					  // computed
+    varnumber_T	w_popup_last_changedtick; // b:changedtick of popup buffer
+					  // when position was computed
+    varnumber_T	w_popup_prop_changedtick; // b:changedtick of buffer with
+					  // w_popup_prop_type when position
+					  // was computed
+    int		w_popup_prop_topline; // w_topline of window with
+				      // w_popup_prop_type when position was
+				      // computed
     callback_T	w_close_cb;	    // popup close callback
     callback_T	w_filter_cb;	    // popup filter callback
+    int		w_filter_mode;	    // mode when filter callback is used
 
     win_T	*w_popup_curwin;    // close popup if curwin differs
     linenr_T	w_popup_lnum;	    // close popup if cursor not on this line
@@ -3014,10 +3075,12 @@ struct window_S
     int		w_popup_mouse_row;  // close popup if mouse moves away
     int		w_popup_mouse_mincol;  // close popup if mouse moves away
     int		w_popup_mouse_maxcol;  // close popup if mouse moves away
-    int		w_popup_drag;	    // allow moving the popup with the mouse
     popclose_T	w_popup_close;	    // allow closing the popup with the mouse
 
-    list_T	*w_popup_mask;	    // list of lists for "mask"
+    list_T	*w_popup_mask;	     // list of lists for "mask"
+    char_u	*w_popup_mask_cells; // cached mask cells
+    int		w_popup_mask_height; // height of w_popup_mask_cells
+    int		w_popup_mask_width;  // width of w_popup_mask_cells
 # if defined(FEAT_TIMERS)
     timer_T	*w_popup_timer;	    // timer for closing popup window
 # endif
@@ -3744,9 +3807,72 @@ typedef enum {
     CDSCOPE_WINDOW	// :lcd
 } cdscope_T;
 
+// Variable flavor
+typedef enum
+{
+    VAR_FLAVOUR_DEFAULT,	/* doesn't start with uppercase */
+    VAR_FLAVOUR_SESSION,	/* starts with uppercase, some lower */
+    VAR_FLAVOUR_VIMINFO		/* all uppercase */
+} var_flavour_T;
+
 // argument for mouse_find_win()
 typedef enum {
     IGNORE_POPUP,	// only check non-popup windows
     FIND_POPUP,		// also find popup windows
     FAIL_POPUP		// return NULL if mouse on popup window
 } mouse_find_T;
+
+// Symbolic names for some registers.
+#define DELETION_REGISTER	36
+#ifdef FEAT_CLIPBOARD
+# define STAR_REGISTER		37
+#  ifdef FEAT_X11
+#   define PLUS_REGISTER	38
+#  else
+#   define PLUS_REGISTER	STAR_REGISTER	    // there is only one
+#  endif
+#endif
+#ifdef FEAT_DND
+# define TILDE_REGISTER		(PLUS_REGISTER + 1)
+#endif
+
+#ifdef FEAT_CLIPBOARD
+# ifdef FEAT_DND
+#  define NUM_REGISTERS		(TILDE_REGISTER + 1)
+# else
+#  define NUM_REGISTERS		(PLUS_REGISTER + 1)
+# endif
+#else
+# define NUM_REGISTERS		37
+#endif
+
+// Each yank register has an array of pointers to lines.
+typedef struct
+{
+    char_u	**y_array;	// pointer to array of line pointers
+    linenr_T	y_size;		// number of lines in y_array
+    char_u	y_type;		// MLINE, MCHAR or MBLOCK
+    colnr_T	y_width;	// only set if y_type == MBLOCK
+#ifdef FEAT_VIMINFO
+    time_t	y_time_set;
+#endif
+} yankreg_T;
+
+// The offset for a search command is store in a soff struct
+// Note: only spats[0].off is really used
+typedef struct soffset
+{
+    int		dir;		// search direction, '/' or '?'
+    int		line;		// search has line offset
+    int		end;		// search set cursor at end
+    long	off;		// line or char offset
+} soffset_T;
+
+// A search pattern and its attributes are stored in a spat struct
+typedef struct spat
+{
+    char_u	    *pat;	// the pattern (in allocated memory) or NULL
+    int		    magic;	// magicness of the pattern
+    int		    no_scs;	// no smartcase for this pattern
+    soffset_T	    off;
+} spat_T;

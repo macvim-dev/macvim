@@ -190,6 +190,21 @@ func Test_window_preview()
   call assert_fails('wincmd P', 'E441:')
 endfunc
 
+func Test_window_preview_from_help()
+  filetype on
+  call writefile(['/* some C code */'], 'Xpreview.c')
+  help
+  pedit Xpreview.c
+  wincmd P
+  call assert_equal(1, &previewwindow)
+  call assert_equal('c', &filetype)
+  wincmd z
+
+  filetype off
+  close
+  call delete('Xpreview.c')
+endfunc
+
 func Test_window_exchange()
   e Xa
 
@@ -531,14 +546,15 @@ func Test_window_colon_command()
 endfunc
 
 func Test_access_freed_mem()
+  call assert_equal(&columns, winwidth(0))
   " This was accessing freed memory
   au * 0 vs xxx
   arg 0
   argadd
-  all
-  all
+  call assert_fails("all", "E249:")
   au!
   bwipe xxx
+  call assert_equal(&columns, winwidth(0))
 endfunc
 
 func Test_visual_cleared_after_window_split()
@@ -581,6 +597,7 @@ func Test_winrestcmd()
 endfunc
 
 func Fun_RenewFile()
+  " Need to wait a bit for the timestamp to be older.
   sleep 2
   silent execute '!echo "1" > tmp.txt'
   sp
@@ -598,7 +615,6 @@ func Test_window_prevwin()
   call writefile(['2'], 'tmp.txt')
   new tmp.txt
   q
-  " Need to wait a bit for the timestamp to be older.
   call Fun_RenewFile()
   call assert_equal(2, winnr())
   wincmd p

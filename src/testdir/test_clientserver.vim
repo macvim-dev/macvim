@@ -1,8 +1,8 @@
 " Tests for the +clientserver feature.
 
-if !has('job') || !has('clientserver')
-  throw 'Skipped: job and/or clientserver feature missing'
-endif
+source check.vim
+CheckFeature job
+CheckFeature clientserver
 
 if has('gui_macvim') && !has('gui_running')
   " MacVim currently doesn't support client_server for non-gui.

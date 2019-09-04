@@ -1014,14 +1014,19 @@ do_outofmem_msg(size_t size)
 {
     if (!did_outofmem_msg)
     {
-	/* Don't hide this message */
+	// Don't hide this message
 	emsg_silent = 0;
 
-	/* Must come first to avoid coming back here when printing the error
-	 * message fails, e.g. when setting v:errmsg. */
+	// Must come first to avoid coming back here when printing the error
+	// message fails, e.g. when setting v:errmsg.
 	did_outofmem_msg = TRUE;
 
 	semsg(_("E342: Out of memory!  (allocating %lu bytes)"), (long_u)size);
+
+	if (starting == NO_SCREEN)
+	    // Not even finished with initializations and already out of
+	    // memory?  Then nothing is going to work, exit.
+	    mch_exit(123);
     }
 }
 
@@ -1060,7 +1065,7 @@ free_all_mem(void)
     spell_free_all();
 # endif
 
-# if defined(FEAT_INS_EXPAND) && defined(FEAT_BEVAL_TERM)
+# if defined(FEAT_BEVAL_TERM)
     ui_remove_balloon();
 # endif
 
@@ -1108,15 +1113,11 @@ free_all_mem(void)
     free_all_marks();
     alist_clear(&global_alist);
     free_homedir();
-# if defined(FEAT_CMDL_COMPL)
     free_users();
-# endif
     free_search_patterns();
     free_old_sub();
     free_last_insert();
-# if defined(FEAT_INS_EXPAND)
     free_insexpand_stuff();
-# endif
     free_prev_shellcmd();
     free_regexp_stuff();
     free_tag_stuff();
@@ -1139,16 +1140,12 @@ free_all_mem(void)
     vim_regfree(clip_exclude_prog);
 # endif
     vim_free(last_cmdline);
-# ifdef FEAT_CMDHIST
     vim_free(new_last_cmdline);
-# endif
     set_keep_msg(NULL, 0);
 
     /* Clear cmdline history. */
     p_hi = 0;
-# ifdef FEAT_CMDHIST
     init_history();
-# endif
 # ifdef FEAT_TEXT_PROP
     clear_global_prop_types();
 # endif
@@ -2830,10 +2827,10 @@ find_special_key(
 		    l = mb_ptr2len(bp + 1);
 		else
 		    l = 1;
-		/* Anything accepted, like <C-?>.
-		 * <C-"> or <M-"> are not special in strings as " is
-		 * the string delimiter. With a backslash it works: <M-\"> */
-		if (!(in_string && bp[1] == '"') && bp[2] == '>')
+		// Anything accepted, like <C-?>.
+		// <C-"> or <M-"> are not special in strings as " is
+		// the string delimiter. With a backslash it works: <M-\">
+		if (!(in_string && bp[1] == '"') && bp[l + 1] == '>')
 		    bp += l;
 		else if (in_string && bp[1] == '\\' && bp[2] == '"'
 							       && bp[3] == '>')
@@ -3052,7 +3049,6 @@ get_special_key_code(char_u *name)
     return 0;
 }
 
-#if defined(FEAT_CMDL_COMPL) || defined(PROTO)
     char_u *
 get_key_name(int i)
 {
@@ -3060,7 +3056,6 @@ get_key_name(int i)
 	return NULL;
     return  key_names_table[i].name;
 }
-#endif
 
 #if defined(FEAT_MOUSE) || defined(PROTO)
 /*
@@ -4502,6 +4497,10 @@ parse_queued_messages(void)
 # ifdef FEAT_TERMINAL
 	free_unused_terminals();
 # endif
+# ifdef FEAT_SOUND_CANBERRA
+	if (has_sound_callback_in_queue())
+	    invoke_sound_callback();
+# endif
 	break;
     }
 
@@ -4689,81 +4688,4 @@ build_argv_from_list(list_T *l, char ***argv, int *argc)
     return OK;
 }
 # endif
-#endif
-
-#if defined(FEAT_SESSION) || defined(PROTO)
-/*
- * Generate a script that can be used to restore the current editing session.
- * Save the value of v:this_session before running :mksession in order to make
- * automagic session save fully transparent.  Return TRUE on success.
- */
-    int
-write_session_file(char_u *filename)
-{
-    char_u	    *escaped_filename;
-    char	    *mksession_cmdline;
-    unsigned int    save_ssop_flags;
-    int		    failed;
-
-    /*
-     * Build an ex command line to create a script that restores the current
-     * session if executed.  Escape the filename to avoid nasty surprises.
-     */
-    escaped_filename = vim_strsave_escaped(filename, escape_chars);
-    if (escaped_filename == NULL)
-	return FALSE;
-    mksession_cmdline = alloc(10 + (int)STRLEN(escaped_filename) + 1);
-    if (mksession_cmdline == NULL)
-    {
-	vim_free(escaped_filename);
-	return FALSE;
-    }
-    strcpy(mksession_cmdline, "mksession ");
-    STRCAT(mksession_cmdline, escaped_filename);
-    vim_free(escaped_filename);
-
-    /*
-     * Use a reasonable hardcoded set of 'sessionoptions' flags to avoid
-     * unpredictable effects when the session is saved automatically.  Also,
-     * we definitely need SSOP_GLOBALS to be able to restore v:this_session.
-     * Don't use SSOP_BUFFERS to prevent the buffer list from becoming
-     * enormously large if the GNOME session feature is used regularly.
-     */
-    save_ssop_flags = ssop_flags;
-    ssop_flags = (SSOP_BLANK|SSOP_CURDIR|SSOP_FOLDS|SSOP_GLOBALS
-		  |SSOP_HELP|SSOP_OPTIONS|SSOP_WINSIZE|SSOP_TABPAGES);
-
-    do_cmdline_cmd((char_u *)"let Save_VV_this_session = v:this_session");
-    failed = (do_cmdline_cmd((char_u *)mksession_cmdline) == FAIL);
-    do_cmdline_cmd((char_u *)"let v:this_session = Save_VV_this_session");
-    do_unlet((char_u *)"Save_VV_this_session", TRUE);
-
-    ssop_flags = save_ssop_flags;
-    vim_free(mksession_cmdline);
-
-    /*
-     * Reopen the file and append a command to restore v:this_session,
-     * as if this save never happened.	This is to avoid conflicts with
-     * the user's own sessions.  FIXME: It's probably less hackish to add
-     * a "stealth" flag to 'sessionoptions' -- gotta ask Bram.
-     */
-    if (!failed)
-    {
-	FILE *fd;
-
-	fd = open_exfile(filename, TRUE, APPENDBIN);
-
-	failed = (fd == NULL
-	       || put_line(fd, "let v:this_session = Save_VV_this_session") == FAIL
-	       || put_line(fd, "unlet Save_VV_this_session") == FAIL);
-
-	if (fd != NULL && fclose(fd) != 0)
-	    failed = TRUE;
-
-	if (failed)
-	    mch_remove(filename);
-    }
-
-    return !failed;
-}
 #endif

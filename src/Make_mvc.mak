@@ -712,6 +712,7 @@ INCL =	vim.h alloc.h ascii.h ex_cmds.h feature.h globals.h \
 
 OBJ = \
 	$(OUTDIR)\arabic.obj \
+	$(OUTDIR)\arglist.obj \
 	$(OUTDIR)\autocmd.obj \
 	$(OUTDIR)\beval.obj \
 	$(OUTDIR)\blob.obj \
@@ -719,6 +720,8 @@ OBJ = \
 	$(OUTDIR)\buffer.obj \
 	$(OUTDIR)\change.obj \
 	$(OUTDIR)\charset.obj \
+	$(OUTDIR)\cmdexpand.obj \
+	$(OUTDIR)\cmdhist.obj \
 	$(OUTDIR)\crypt.obj \
 	$(OUTDIR)\crypt_zip.obj \
 	$(OUTDIR)\debugger.obj \
@@ -728,6 +731,7 @@ OBJ = \
 	$(OUTDIR)\edit.obj \
 	$(OUTDIR)\eval.obj \
 	$(OUTDIR)\evalfunc.obj \
+	$(OUTDIR)\evalvars.obj \
 	$(OUTDIR)\ex_cmds.obj \
 	$(OUTDIR)\ex_cmds2.obj \
 	$(OUTDIR)\ex_docmd.obj \
@@ -745,6 +749,7 @@ OBJ = \
 	$(OUTDIR)\json.obj \
 	$(OUTDIR)\list.obj \
 	$(OUTDIR)\main.obj \
+	$(OUTDIR)\map.obj \
 	$(OUTDIR)\mark.obj \
 	$(OUTDIR)\mbyte.obj \
 	$(OUTDIR)\memfile.obj \
@@ -765,8 +770,10 @@ OBJ = \
 	$(OUTDIR)\profiler.obj \
 	$(OUTDIR)\quickfix.obj \
 	$(OUTDIR)\regexp.obj \
+	$(OUTDIR)\scriptfile.obj \
 	$(OUTDIR)\screen.obj \
 	$(OUTDIR)\search.obj \
+	$(OUTDIR)\session.obj \
 	$(OUTDIR)\sha256.obj \
 	$(OUTDIR)\sign.obj \
 	$(OUTDIR)\spell.obj \
@@ -780,6 +787,7 @@ OBJ = \
 	$(OUTDIR)\undo.obj \
 	$(OUTDIR)\usercmd.obj \
 	$(OUTDIR)\userfunc.obj \
+	$(OUTDIR)\viminfo.obj \
 	$(OUTDIR)\winclip.obj \
 	$(OUTDIR)\window.obj \
 
@@ -1429,6 +1437,8 @@ $(NEW_TESTS):
 
 $(OUTDIR)/arabic.obj:	$(OUTDIR) arabic.c  $(INCL)
 
+$(OUTDIR)/arglist.obj:	$(OUTDIR) arglist.c  $(INCL)
+
 $(OUTDIR)/autocmd.obj:	$(OUTDIR) autocmd.c  $(INCL)
 
 $(OUTDIR)/beval.obj:	$(OUTDIR) beval.c  $(INCL)
@@ -1442,6 +1452,10 @@ $(OUTDIR)/buffer.obj:	$(OUTDIR) buffer.c  $(INCL)
 $(OUTDIR)/change.obj:	$(OUTDIR) change.c  $(INCL)
 
 $(OUTDIR)/charset.obj:	$(OUTDIR) charset.c  $(INCL)
+
+$(OUTDIR)/cmdexpand.obj:	$(OUTDIR) cmdexpand.c  $(INCL)
+
+$(OUTDIR)/cmdhist.obj:	$(OUTDIR) cmdhist.c  $(INCL)
 
 $(OUTDIR)/crypt.obj:	$(OUTDIR) crypt.c  $(INCL)
 
@@ -1472,6 +1486,8 @@ $(OUTDIR)/edit.obj:	$(OUTDIR) edit.c  $(INCL)
 $(OUTDIR)/eval.obj:	$(OUTDIR) eval.c  $(INCL)
 
 $(OUTDIR)/evalfunc.obj:	$(OUTDIR) evalfunc.c  $(INCL)
+
+$(OUTDIR)/evalvars.obj:	$(OUTDIR) evalvars.c  $(INCL)
 
 $(OUTDIR)/ex_cmds.obj:	$(OUTDIR) ex_cmds.c  $(INCL)
 
@@ -1554,6 +1570,8 @@ $(OUTDIR)/list.obj:	$(OUTDIR) list.c  $(INCL)
 
 $(OUTDIR)/main.obj:	$(OUTDIR) main.c  $(INCL) $(CUI_INCL)
 
+$(OUTDIR)/map.obj:	$(OUTDIR) map.c  $(INCL)
+
 $(OUTDIR)/mark.obj:	$(OUTDIR) mark.c  $(INCL)
 
 $(OUTDIR)/memfile.obj:	$(OUTDIR) memfile.c  $(INCL)
@@ -1613,9 +1631,13 @@ $(OUTDIR)/quickfix.obj:	$(OUTDIR) quickfix.c  $(INCL)
 
 $(OUTDIR)/regexp.obj:	$(OUTDIR) regexp.c regexp_nfa.c  $(INCL)
 
+$(OUTDIR)/scriptfile.obj:	$(OUTDIR) scriptfile.c  $(INCL)
+
 $(OUTDIR)/screen.obj:	$(OUTDIR) screen.c  $(INCL)
 
 $(OUTDIR)/search.obj:	$(OUTDIR) search.c  $(INCL)
+
+$(OUTDIR)/session.obj:	$(OUTDIR) session.c  $(INCL)
 
 $(OUTDIR)/sha256.obj:	$(OUTDIR) sha256.c  $(INCL)
 
@@ -1642,6 +1664,8 @@ $(OUTDIR)/undo.obj:	$(OUTDIR) undo.c  $(INCL)
 $(OUTDIR)/usercmd.obj:	$(OUTDIR) usercmd.c  $(INCL)
 
 $(OUTDIR)/userfunc.obj:	$(OUTDIR) userfunc.c  $(INCL)
+
+$(OUTDIR)/viminfo.obj:	$(OUTDIR) viminfo.c  $(INCL)
 
 $(OUTDIR)/window.obj:	$(OUTDIR) window.c  $(INCL)
 
@@ -1732,12 +1756,15 @@ $(PATHDEF_SRC): Make_mvc.mak
 # End Custom Build
 proto.h: \
 	proto/arabic.pro \
+	proto/arglist.pro \
 	proto/autocmd.pro \
 	proto/blob.pro \
 	proto/blowfish.pro \
 	proto/buffer.pro \
 	proto/change.pro \
 	proto/charset.pro \
+	proto/cmdexpand.pro \
+	proto/cmdhist.pro \
 	proto/crypt.pro \
 	proto/crypt_zip.pro \
 	proto/debugger.pro \
@@ -1747,6 +1774,7 @@ proto.h: \
 	proto/edit.pro \
 	proto/eval.pro \
 	proto/evalfunc.pro \
+	proto/evalvars.pro \
 	proto/ex_cmds.pro \
 	proto/ex_cmds2.pro \
 	proto/ex_docmd.pro \
@@ -1763,6 +1791,7 @@ proto.h: \
 	proto/json.pro \
 	proto/list.pro \
 	proto/main.pro \
+	proto/map.pro \
 	proto/mark.pro \
 	proto/memfile.pro \
 	proto/memline.pro \
@@ -1783,8 +1812,10 @@ proto.h: \
 	proto/profiler.pro \
 	proto/quickfix.pro \
 	proto/regexp.pro \
+	proto/scriptfile.pro \
 	proto/screen.pro \
 	proto/search.pro \
+	proto/session.pro \
 	proto/sha256.pro \
 	proto/sign.pro \
 	proto/spell.pro \
@@ -1798,6 +1829,7 @@ proto.h: \
 	proto/undo.pro \
 	proto/usercmd.pro \
 	proto/userfunc.pro \
+	proto/viminfo.pro \
 	proto/window.pro \
 	$(SOUND_PRO) \
 	$(NETBEANS_PRO) \

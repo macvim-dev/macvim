@@ -25,11 +25,14 @@ RM =		rm
 	${CC} ${CFLAGS} $< -o $@
 
 SRC =	arabic.c						\
+	arglist.c						\
 	autocmd.c						\
 	blowfish.c						\
 	buffer.c						\
 	change.c						\
 	charset.c						\
+	cmdexpand.c						\
+	cmdhist.c						\
 	crypt.c							\
 	crypt_zip.c						\
 	debugger.c						\
@@ -39,6 +42,7 @@ SRC =	arabic.c						\
 	edit.c							\
 	eval.c							\
 	evalfunc.c						\
+	evalvars.c						\
 	ex_cmds.c						\
 	ex_cmds2.c						\
 	ex_docmd.c						\
@@ -56,6 +60,7 @@ SRC =	arabic.c						\
 	json.c							\
 	list.c							\
 	main.c							\
+	map.c							\
 	mark.c							\
 	mbyte.c							\
 	memfile.c						\
@@ -73,8 +78,10 @@ SRC =	arabic.c						\
 	profiler.c						\
 	quickfix.c						\
 	regexp.c						\
+	scriptfile.c						\
 	screen.c						\
 	search.c						\
+	session.c						\
 	sha256.c						\
 	sign.c							\
 	spell.c							\
@@ -89,6 +96,7 @@ SRC =	arabic.c						\
 	usercmd.c						\
 	userfunc.c						\
 	version.c						\
+	viminfo.c						\
 	window.c						\
 
 OBJ =	$(SRC:.c=.o)

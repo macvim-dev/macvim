@@ -104,7 +104,7 @@ static int	screen_attr = 0;
 static int	screen_cur_row, screen_cur_col;	/* last known cursor position */
 
 #ifdef FEAT_SEARCH_EXTRA
-static match_T search_hl;	/* used for 'hlsearch' highlight matching */
+static match_T search_hl;	// used for 'hlsearch' highlight matching
 #endif
 
 #ifdef FEAT_FOLDING
@@ -135,13 +135,8 @@ static void draw_vsep_win(win_T *wp, int row);
 static void redraw_custom_statusline(win_T *wp);
 #endif
 #ifdef FEAT_SEARCH_EXTRA
-# define SEARCH_HL_PRIORITY 0
 static void start_search_hl(void);
 static void end_search_hl(void);
-static void init_search_hl(win_T *wp);
-static void prepare_search_hl(win_T *wp, linenr_T lnum);
-static void next_search_hl(win_T *win, match_T *shl, linenr_T lnum, colnr_T mincol, matchitem_T *cur);
-static int next_search_hl_pos(match_T *shl, linenr_T lnum, posmatch_T *pos, colnr_T mincol);
 #endif
 static void screen_char(unsigned off, int row, int col);
 static void screen_char_2(unsigned off, int row, int col);
@@ -166,11 +161,6 @@ static void win_redr_ruler(win_T *wp, int always, int ignore_pum);
 
 /* Ugly global: overrule attribute used by screen_char() */
 static int screen_char_attr = 0;
-
-#if defined(FEAT_SYN_HL) && defined(FEAT_RELTIME)
-/* Can limit syntax highlight time to 'redrawtime'. */
-# define SYN_TIME_LIMIT 1
-#endif
 
 #ifdef FEAT_RIGHTLEFT
 # define HAS_RIGHTLEFT(x) x
@@ -581,6 +571,12 @@ update_screen(int type_arg)
     }
 #endif
 
+#ifdef FEAT_DIFF
+    // May have postponed updating diffs.
+    if (need_diff_redraw)
+	diff_redraw(TRUE);
+#endif
+
     if (must_redraw)
     {
 	if (type < must_redraw)	    /* use maximal type */
@@ -799,15 +795,18 @@ update_screen(int type_arg)
 #if defined(FEAT_SEARCH_EXTRA)
     end_search_hl();
 #endif
-#ifdef FEAT_INS_EXPAND
     /* May need to redraw the popup menu. */
     pum_may_redraw();
-#endif
 
     /* Reset b_mod_set flags.  Going through all windows is probably faster
      * than going through all buffers (there could be many buffers). */
     FOR_ALL_WINDOWS(wp)
 	wp->w_buffer->b_mod_set = FALSE;
+
+#ifdef FEAT_TEXT_PROP
+    // Display popup windows on top of the windows and command line.
+    update_popups(win_update);
+#endif
 
     after_updating_screen(TRUE);
 
@@ -823,11 +822,6 @@ update_screen(int type_arg)
     if (!did_intro)
 	maybe_intro_message();
     did_intro = TRUE;
-
-#ifdef FEAT_TEXT_PROP
-    // Display popup windows on top of the windows.
-    update_popups(win_update);
-#endif
 
 #ifdef FEAT_GUI
     /* Redraw the cursor and update the scrollbars when all screen updating is
@@ -1009,8 +1003,13 @@ get_wcr_attr(win_T *wp)
     if (*wp->w_p_wcr != NUL)
 	wcr_attr = syn_name2attr(wp->w_p_wcr);
 #ifdef FEAT_TEXT_PROP
-    if (WIN_IS_POPUP(wp) && wcr_attr == 0)
-	wcr_attr = HL_ATTR(HLF_PNI);
+    else if (WIN_IS_POPUP(wp))
+    {
+	if (wp->w_popup_flags & POPF_INFO)
+	    wcr_attr = HL_ATTR(HLF_PSI);    // PmenuSel
+	else
+	    wcr_attr = HL_ATTR(HLF_PNI);    // Pmenu
+    }
 #endif
     return wcr_attr;
 }
@@ -1105,8 +1104,7 @@ win_update(win_T *wp)
     int		scrolled_down = FALSE;	/* TRUE when scrolled down when
 					   w_topline got smaller a bit */
 #ifdef FEAT_SEARCH_EXTRA
-    matchitem_T *cur;		/* points to the match list */
-    int		top_to_mod = FALSE;    /* redraw above mod_top */
+    int		top_to_mod = FALSE;    // redraw above mod_top
 #endif
 
     int		row;		/* current window row to display */
@@ -1181,7 +1179,7 @@ win_update(win_T *wp)
 #endif
 
 #ifdef FEAT_SEARCH_EXTRA
-    init_search_hl(wp);
+    init_search_hl(wp, &search_hl);
 #endif
 
 #ifdef FEAT_LINEBREAK
@@ -1236,18 +1234,18 @@ win_update(win_T *wp)
 		mod_bot = buf->b_mod_bot;
 
 #ifdef FEAT_SEARCH_EXTRA
-	    /* When 'hlsearch' is on and using a multi-line search pattern, a
-	     * change in one line may make the Search highlighting in a
-	     * previous line invalid.  Simple solution: redraw all visible
-	     * lines above the change.
-	     * Same for a match pattern.
-	     */
+	    // When 'hlsearch' is on and using a multi-line search pattern, a
+	    // change in one line may make the Search highlighting in a
+	    // previous line invalid.  Simple solution: redraw all visible
+	    // lines above the change.
+	    // Same for a match pattern.
 	    if (search_hl.rm.regprog != NULL
 					&& re_multiline(search_hl.rm.regprog))
 		top_to_mod = TRUE;
 	    else
 	    {
-		cur = wp->w_match_head;
+		matchitem_T *cur = wp->w_match_head;
+
 		while (cur != NULL)
 		{
 		    if (cur->match.regprog != NULL
@@ -2099,7 +2097,7 @@ win_update(win_T *wp)
 	    else
 	    {
 #ifdef FEAT_SEARCH_EXTRA
-		prepare_search_hl(wp, lnum);
+		prepare_search_hl(wp, &search_hl, lnum);
 #endif
 #ifdef FEAT_SYN_HL
 		/* Let the syntax stuff know we skipped a few lines. */
@@ -3282,17 +3280,6 @@ win_line(
     int		sign_present = FALSE;
     sign_attrs_T sattr;
 #endif
-#ifdef FEAT_SEARCH_EXTRA
-    matchitem_T *cur;			/* points to the match list */
-    match_T	*shl;			/* points to search_hl or a match */
-    int		shl_flag;		/* flag to indicate whether search_hl
-					   has been processed or not */
-    int		pos_inprogress;		/* marks that position match search is
-					   in progress */
-    int		prevcol_hl_flag;	/* flag to indicate whether prevcol
-					   equals startcol of search_hl or one
-					   of the matches */
-#endif
 #ifdef FEAT_ARABIC
     int		prev_c = 0;		/* previous Arabic character */
     int		prev_c1 = 0;		/* first composing char for prev_c */
@@ -3340,17 +3327,19 @@ win_line(
 #endif
     int		screen_line_flags = 0;
 
+#if defined(FEAT_CONCEAL) || defined(FEAT_SEARCH_EXTRA)
+    int		match_conc	= 0;	// cchar for match functions
+#endif
 #ifdef FEAT_CONCEAL
     int		syntax_flags	= 0;
     int		syntax_seqnr	= 0;
     int		prev_syntax_id	= 0;
     int		conceal_attr	= HL_ATTR(HLF_CONCEAL);
     int		is_concealing	= FALSE;
-    int		boguscols	= 0;	/* nonexistent columns added to force
-					   wrapping */
-    int		vcol_off	= 0;	/* offset for concealed characters */
+    int		boguscols	= 0;	// nonexistent columns added to force
+					// wrapping
+    int		vcol_off	= 0;	// offset for concealed characters
     int		did_wcol	= FALSE;
-    int		match_conc	= 0;	/* cchar for match functions */
     int		old_boguscols   = 0;
 # define VCOL_HLC (vcol - vcol_off)
 # define FIX_FOR_BOGUSCOLS \
@@ -3817,65 +3806,12 @@ win_line(
     }
 
 #ifdef FEAT_SEARCH_EXTRA
-    /*
-     * Handle highlighting the last used search pattern and matches.
-     * Do this for both search_hl and the match list.
-     * Do not use search_hl in a popup window.
-     */
-    cur = wp->w_match_head;
-    shl_flag = (screen_line_flags & SLF_POPUP);
-    while ((cur != NULL || shl_flag == FALSE) && !number_only)
+    if (!number_only)
     {
-	if (shl_flag == FALSE)
-	{
-	    shl = &search_hl;
-	    shl_flag = TRUE;
-	}
-	else
-	    shl = &cur->hl;
-	shl->startcol = MAXCOL;
-	shl->endcol = MAXCOL;
-	shl->attr_cur = 0;
-	shl->is_addpos = FALSE;
 	v = (long)(ptr - line);
-	if (cur != NULL)
-	    cur->pos.cur = 0;
-	next_search_hl(wp, shl, lnum, (colnr_T)v,
-					       shl == &search_hl ? NULL : cur);
-
-	/* Need to get the line again, a multi-line regexp may have made it
-	 * invalid. */
-	line = ml_get_buf(wp->w_buffer, lnum, FALSE);
-	ptr = line + v;
-
-	if (shl->lnum != 0 && shl->lnum <= lnum)
-	{
-	    if (shl->lnum == lnum)
-		shl->startcol = shl->rm.startpos[0].col;
-	    else
-		shl->startcol = 0;
-	    if (lnum == shl->lnum + shl->rm.endpos[0].lnum
-						- shl->rm.startpos[0].lnum)
-		shl->endcol = shl->rm.endpos[0].col;
-	    else
-		shl->endcol = MAXCOL;
-	    /* Highlight one character for an empty match. */
-	    if (shl->startcol == shl->endcol)
-	    {
-		if (has_mbyte && line[shl->endcol] != NUL)
-		    shl->endcol += (*mb_ptr2len)(line + shl->endcol);
-		else
-		    ++shl->endcol;
-	    }
-	    if ((long)shl->startcol < v)  /* match at leftcol */
-	    {
-		shl->attr_cur = shl->attr;
-		search_attr = shl->attr;
-	    }
-	    area_highlighting = TRUE;
-	}
-	if (shl != &search_hl && cur != NULL)
-	    cur = cur->next;
+	area_highlighting |= prepare_search_hl_line(wp, lnum, (colnr_T)v,
+					      &line, &search_hl, &search_attr);
+	ptr = line + v; // "line" may have been updated
     }
 #endif
 
@@ -3937,8 +3873,10 @@ win_line(
      */
     for (;;)
     {
-#ifdef FEAT_CONCEAL
+#if defined(FEAT_CONCEAL) || defined(FEAT_SEARCH_EXTRA)
 	int has_match_conc  = 0;	// match wants to conceal
+#endif
+#ifdef FEAT_CONCEAL
 	int did_decrement_ptr = FALSE;
 #endif
 	/* Skip this quickly when working on the text. */
@@ -4256,132 +4194,15 @@ win_line(
 	    if (!n_extra)
 	    {
 		/*
-		 * Check for start/end of search pattern match.
+		 * Check for start/end of 'hlsearch' and other matches.
 		 * After end, check for start/end of next match.
 		 * When another match, have to check for start again.
-		 * Watch out for matching an empty string!
-		 * Do this for 'search_hl' and the match list (ordered by
-		 * priority).
 		 */
 		v = (long)(ptr - line);
-		cur = wp->w_match_head;
-		shl_flag = FALSE;
-		while (cur != NULL || shl_flag == FALSE)
-		{
-		    if (shl_flag == FALSE
-			    && ((cur != NULL
-				    && cur->priority > SEARCH_HL_PRIORITY)
-				|| cur == NULL))
-		    {
-			shl = &search_hl;
-			shl_flag = TRUE;
-			if (screen_line_flags & SLF_POPUP)
-			    continue;  // do not use search_hl
-		    }
-		    else
-			shl = &cur->hl;
-		    if (cur != NULL)
-			cur->pos.cur = 0;
-		    pos_inprogress = TRUE;
-		    while (shl->rm.regprog != NULL
-					   || (cur != NULL && pos_inprogress))
-		    {
-			if (shl->startcol != MAXCOL
-				&& v >= (long)shl->startcol
-				&& v < (long)shl->endcol)
-			{
-			    int tmp_col = v + MB_PTR2LEN(ptr);
-
-			    if (shl->endcol < tmp_col)
-				shl->endcol = tmp_col;
-			    shl->attr_cur = shl->attr;
-#ifdef FEAT_CONCEAL
-			    // Match with the "Conceal" group results in hiding
-			    // the match.
-			    if (cur != NULL
-				    && shl != &search_hl
-				    && syn_name2id((char_u *)"Conceal")
-								== cur->hlg_id)
-			    {
-				has_match_conc =
-					     v == (long)shl->startcol ? 2 : 1;
-				match_conc = cur->conceal_char;
-			    }
-			    else
-				has_match_conc = match_conc = 0;
-#endif
-			}
-			else if (v == (long)shl->endcol)
-			{
-			    shl->attr_cur = 0;
-			    next_search_hl(wp, shl, lnum, (colnr_T)v,
-					       shl == &search_hl ? NULL : cur);
-			    pos_inprogress = cur == NULL || cur->pos.cur == 0
-							       ? FALSE : TRUE;
-
-			    /* Need to get the line again, a multi-line regexp
-			     * may have made it invalid. */
-			    line = ml_get_buf(wp->w_buffer, lnum, FALSE);
-			    ptr = line + v;
-
-			    if (shl->lnum == lnum)
-			    {
-				shl->startcol = shl->rm.startpos[0].col;
-				if (shl->rm.endpos[0].lnum == 0)
-				    shl->endcol = shl->rm.endpos[0].col;
-				else
-				    shl->endcol = MAXCOL;
-
-				if (shl->startcol == shl->endcol)
-				{
-				    /* highlight empty match, try again after
-				     * it */
-				    if (has_mbyte)
-					shl->endcol += (*mb_ptr2len)(line
-							       + shl->endcol);
-				    else
-					++shl->endcol;
-				}
-
-				/* Loop to check if the match starts at the
-				 * current position */
-				continue;
-			    }
-			}
-			break;
-		    }
-		    if (shl != &search_hl && cur != NULL)
-			cur = cur->next;
-		}
-
-		/* Use attributes from match with highest priority among
-		 * 'search_hl' and the match list. */
-		cur = wp->w_match_head;
-		shl_flag = FALSE;
-		search_attr = 0;
-		while (cur != NULL || shl_flag == FALSE)
-		{
-		    if (shl_flag == FALSE
-			    && ((cur != NULL
-				    && cur->priority > SEARCH_HL_PRIORITY)
-				|| cur == NULL))
-		    {
-			shl = &search_hl;
-			shl_flag = TRUE;
-			if (screen_line_flags & SLF_POPUP)
-			    continue;  // do not use search_hl
-		    }
-		    else
-			shl = &cur->hl;
-		    if (shl->attr_cur != 0)
-			search_attr = shl->attr_cur;
-		    if (shl != &search_hl && cur != NULL)
-			cur = cur->next;
-		}
-		/* Only highlight one character after the last column. */
-		if (*ptr == NUL && (did_line_attr >= 1
-				    || (wp->w_p_list && lcs_eol_one == -1)))
-		    search_attr = 0;
+		search_attr = update_search_hl(wp, lnum, (colnr_T)v, &line,
+				      &search_hl, &has_match_conc, &match_conc,
+				      did_line_attr, lcs_eol_one);
+		ptr = line + v;  // "line" may have been changed
 	    }
 #endif
 
@@ -5083,7 +4904,7 @@ win_line(
 		    if (*p_sbr != NUL && vcol == vcol_sbr && wp->w_p_wrap)
 			vcol_adjusted = vcol - MB_CHARLEN(p_sbr);
 #endif
-		    /* tab amount depends on current column */
+		    // tab amount depends on current column
 #ifdef FEAT_VARTABS
 		    tab_len = tabstop_padding(vcol_adjusted,
 					      wp->w_buffer->b_p_ts,
@@ -5096,30 +4917,29 @@ win_line(
 #ifdef FEAT_LINEBREAK
 		    if (!wp->w_p_lbr || !wp->w_p_list)
 #endif
-		    /* tab amount depends on current column */
+			// tab amount depends on current column
 			n_extra = tab_len;
 #ifdef FEAT_LINEBREAK
 		    else
 		    {
-			char_u *p;
+			char_u	*p;
 			int	len;
 			int	i;
 			int	saved_nextra = n_extra;
 
 #ifdef FEAT_CONCEAL
 			if (vcol_off > 0)
-			    /* there are characters to conceal */
+			    // there are characters to conceal
 			    tab_len += vcol_off;
-			/* boguscols before FIX_FOR_BOGUSCOLS macro from above
-			 */
+			// boguscols before FIX_FOR_BOGUSCOLS macro from above
 			if (wp->w_p_list && lcs_tab1 && old_boguscols > 0
 							 && n_extra > tab_len)
 			    tab_len += n_extra - tab_len;
 #endif
 
-			/* if n_extra > 0, it gives the number of chars, to
-			 * use for a tab, else we need to calculate the width
-			 * for a tab */
+			// if n_extra > 0, it gives the number of chars, to
+			// use for a tab, else we need to calculate the width
+			// for a tab
 			len = (tab_len * mb_char2len(lcs_tab2));
 			if (n_extra > 0)
 			    len += n_extra - tab_len;
@@ -5131,20 +4951,27 @@ win_line(
 			p_extra_free = p;
 			for (i = 0; i < tab_len; i++)
 			{
+			    int lcs = lcs_tab2;
+
 			    if (*p == NUL)
 			    {
 				tab_len = i;
 				break;
 			    }
-			    mb_char2bytes(lcs_tab2, p);
-			    p += mb_char2len(lcs_tab2);
-			    n_extra += mb_char2len(lcs_tab2)
-						 - (saved_nextra > 0 ? 1 : 0);
+
+			    // if lcs_tab3 is given, need to change the char
+			    // for tab
+			    if (lcs_tab3 && i == tab_len - 1)
+				lcs = lcs_tab3;
+			    mb_char2bytes(lcs, p);
+			    p += mb_char2len(lcs);
+			    n_extra += mb_char2len(lcs)
+						  - (saved_nextra > 0 ? 1 : 0);
 			}
 			p_extra = p_extra_free;
 #ifdef FEAT_CONCEAL
-			/* n_extra will be increased by FIX_FOX_BOGUSCOLS
-			 * macro below, so need to adjust for that here */
+			// n_extra will be increased by FIX_FOX_BOGUSCOLS
+			// macro below, so need to adjust for that here
 			if (vcol_off > 0)
 			    n_extra -= vcol_off;
 #endif
@@ -5574,35 +5401,15 @@ win_line(
 		) && eol_hl_off == 0)
 	{
 #ifdef FEAT_SEARCH_EXTRA
-	    long prevcol = (long)(ptr - line) - (c == NUL);
-
-	    /* we're not really at that column when skipping some text */
-	    if ((long)(wp->w_p_wrap ? wp->w_skipcol : wp->w_leftcol) > prevcol)
-		++prevcol;
+	    // flag to indicate whether prevcol equals startcol of search_hl or
+	    // one of the matches
+	    int prevcol_hl_flag = get_prevcol_hl_flag(wp, &search_hl,
+					      (long)(ptr - line) - (c == NUL));
 #endif
-
-	    /* Invert at least one char, used for Visual and empty line or
-	     * highlight match at end of line. If it's beyond the last
-	     * char on the screen, just overwrite that one (tricky!)  Not
-	     * needed when a '$' was displayed for 'list'. */
-#ifdef FEAT_SEARCH_EXTRA
-	    prevcol_hl_flag = FALSE;
-	    if (!search_hl.is_addpos && prevcol == (long)search_hl.startcol)
-		prevcol_hl_flag = TRUE;
-	    else
-	    {
-		cur = wp->w_match_head;
-		while (cur != NULL)
-		{
-		    if (!cur->hl.is_addpos && prevcol == (long)cur->hl.startcol)
-		    {
-			prevcol_hl_flag = TRUE;
-			break;
-		    }
-		    cur = cur->next;
-		}
-	    }
-#endif
+	    // Invert at least one char, used for Visual and empty line or
+	    // highlight match at end of line. If it's beyond the last
+	    // char on the screen, just overwrite that one (tricky!)  Not
+	    // needed when a '$' was displayed for 'list'.
 	    if (lcs_eol == lcs_eol_one
 		    && ((area_attr != 0 && vcol == fromcol
 			    && (VIsual_mode != Ctrl_V
@@ -5610,8 +5417,8 @@ win_line(
 				|| lnum == curwin->w_cursor.lnum)
 			    && c == NUL)
 #ifdef FEAT_SEARCH_EXTRA
-			/* highlight 'hlsearch' match at end of line */
-			|| (prevcol_hl_flag == TRUE
+			// highlight 'hlsearch' match at end of line
+			|| (prevcol_hl_flag
 # ifdef FEAT_SYN_HL
 			    && !(wp->w_p_cul && lnum == wp->w_cursor.lnum
 				    && !(wp == curwin && VIsual_active))
@@ -5657,30 +5464,10 @@ win_line(
 #ifdef FEAT_SEARCH_EXTRA
 		if (area_attr == 0)
 		{
-		    /* Use attributes from match with highest priority among
-		     * 'search_hl' and the match list. */
-		    cur = wp->w_match_head;
-		    shl_flag = FALSE;
-		    while (cur != NULL || shl_flag == FALSE)
-		    {
-			if (shl_flag == FALSE
-				&& ((cur != NULL
-					&& cur->priority > SEARCH_HL_PRIORITY)
-				    || cur == NULL))
-			{
-			    shl = &search_hl;
-			    shl_flag = TRUE;
-			    if (screen_line_flags & SLF_POPUP)
-				continue;  // do not use search_hl
-			}
-			else
-			    shl = &cur->hl;
-			if ((ptr - line) - 1 == (long)shl->startcol
-				&& (shl == &search_hl || !shl->is_addpos))
-			    char_attr = shl->attr;
-			if (shl != &search_hl && cur != NULL)
-			    cur = cur->next;
-		    }
+		    // Use attributes from match with highest priority among
+		    // 'search_hl' and the match list.
+		    get_search_match_hl(wp, &search_hl,
+					       (long)(ptr - line), &char_attr);
 		}
 #endif
 		ScreenAttrs[off] = char_attr;
@@ -7114,12 +6901,9 @@ win_redr_status(win_T *wp, int ignore_pum UNUSED)
 	redraw_cmdline = TRUE;
     }
     else if (!redrawing()
-#ifdef FEAT_INS_EXPAND
 	    // don't update status line when popup menu is visible and may be
 	    // drawn over it, unless it will be redrawn later
-	    || (!ignore_pum && pum_visible())
-#endif
-	    )
+	    || (!ignore_pum && pum_visible()))
     {
 	/* Don't redraw right now, do it later. */
 	wp->w_redr_status = TRUE;
@@ -7921,323 +7705,6 @@ end_search_hl(void)
 	search_hl.rm.regprog = NULL;
     }
 }
-
-/*
- * Init for calling prepare_search_hl().
- */
-    static void
-init_search_hl(win_T *wp)
-{
-    matchitem_T *cur;
-
-    /* Setup for match and 'hlsearch' highlighting.  Disable any previous
-     * match */
-    cur = wp->w_match_head;
-    while (cur != NULL)
-    {
-	cur->hl.rm = cur->match;
-	if (cur->hlg_id == 0)
-	    cur->hl.attr = 0;
-	else
-	    cur->hl.attr = syn_id2attr(cur->hlg_id);
-	cur->hl.buf = wp->w_buffer;
-	cur->hl.lnum = 0;
-	cur->hl.first_lnum = 0;
-# ifdef FEAT_RELTIME
-	/* Set the time limit to 'redrawtime'. */
-	profile_setlimit(p_rdt, &(cur->hl.tm));
-# endif
-	cur = cur->next;
-    }
-    search_hl.buf = wp->w_buffer;
-    search_hl.lnum = 0;
-    search_hl.first_lnum = 0;
-    /* time limit is set at the toplevel, for all windows */
-}
-
-/*
- * Advance to the match in window "wp" line "lnum" or past it.
- */
-    static void
-prepare_search_hl(win_T *wp, linenr_T lnum)
-{
-    matchitem_T *cur;		/* points to the match list */
-    match_T	*shl;		/* points to search_hl or a match */
-    int		shl_flag;	/* flag to indicate whether search_hl
-				   has been processed or not */
-    int		pos_inprogress;	/* marks that position match search is
-				   in progress */
-    int		n;
-
-    /*
-     * When using a multi-line pattern, start searching at the top
-     * of the window or just after a closed fold.
-     * Do this both for search_hl and the match list.
-     */
-    cur = wp->w_match_head;
-    shl_flag = FALSE;
-    while (cur != NULL || shl_flag == FALSE)
-    {
-	if (shl_flag == FALSE)
-	{
-	    shl = &search_hl;
-	    shl_flag = TRUE;
-	}
-	else
-	    shl = &cur->hl;
-	if (shl->rm.regprog != NULL
-		&& shl->lnum == 0
-		&& re_multiline(shl->rm.regprog))
-	{
-	    if (shl->first_lnum == 0)
-	    {
-# ifdef FEAT_FOLDING
-		for (shl->first_lnum = lnum;
-			   shl->first_lnum > wp->w_topline; --shl->first_lnum)
-		    if (hasFoldingWin(wp, shl->first_lnum - 1,
-						      NULL, NULL, TRUE, NULL))
-			break;
-# else
-		shl->first_lnum = wp->w_topline;
-# endif
-	    }
-	    if (cur != NULL)
-		cur->pos.cur = 0;
-	    pos_inprogress = TRUE;
-	    n = 0;
-	    while (shl->first_lnum < lnum && (shl->rm.regprog != NULL
-					  || (cur != NULL && pos_inprogress)))
-	    {
-		next_search_hl(wp, shl, shl->first_lnum, (colnr_T)n,
-					       shl == &search_hl ? NULL : cur);
-		pos_inprogress = cur == NULL || cur->pos.cur == 0
-							      ? FALSE : TRUE;
-		if (shl->lnum != 0)
-		{
-		    shl->first_lnum = shl->lnum
-				    + shl->rm.endpos[0].lnum
-				    - shl->rm.startpos[0].lnum;
-		    n = shl->rm.endpos[0].col;
-		}
-		else
-		{
-		    ++shl->first_lnum;
-		    n = 0;
-		}
-	    }
-	}
-	if (shl != &search_hl && cur != NULL)
-	    cur = cur->next;
-    }
-}
-
-/*
- * Search for a next 'hlsearch' or match.
- * Uses shl->buf.
- * Sets shl->lnum and shl->rm contents.
- * Note: Assumes a previous match is always before "lnum", unless
- * shl->lnum is zero.
- * Careful: Any pointers for buffer lines will become invalid.
- */
-    static void
-next_search_hl(
-    win_T	    *win,
-    match_T	    *shl,	/* points to search_hl or a match */
-    linenr_T	    lnum,
-    colnr_T	    mincol,	/* minimal column for a match */
-    matchitem_T	    *cur)	/* to retrieve match positions if any */
-{
-    linenr_T	l;
-    colnr_T	matchcol;
-    long	nmatched;
-    int		save_called_emsg = called_emsg;
-
-    // for :{range}s/pat only highlight inside the range
-    if (lnum < search_first_line || lnum > search_last_line)
-    {
-	shl->lnum = 0;
-	return;
-    }
-
-    if (shl->lnum != 0)
-    {
-	/* Check for three situations:
-	 * 1. If the "lnum" is below a previous match, start a new search.
-	 * 2. If the previous match includes "mincol", use it.
-	 * 3. Continue after the previous match.
-	 */
-	l = shl->lnum + shl->rm.endpos[0].lnum - shl->rm.startpos[0].lnum;
-	if (lnum > l)
-	    shl->lnum = 0;
-	else if (lnum < l || shl->rm.endpos[0].col > mincol)
-	    return;
-    }
-
-    /*
-     * Repeat searching for a match until one is found that includes "mincol"
-     * or none is found in this line.
-     */
-    called_emsg = FALSE;
-    for (;;)
-    {
-#ifdef FEAT_RELTIME
-	/* Stop searching after passing the time limit. */
-	if (profile_passed_limit(&(shl->tm)))
-	{
-	    shl->lnum = 0;		/* no match found in time */
-	    break;
-	}
-#endif
-	/* Three situations:
-	 * 1. No useful previous match: search from start of line.
-	 * 2. Not Vi compatible or empty match: continue at next character.
-	 *    Break the loop if this is beyond the end of the line.
-	 * 3. Vi compatible searching: continue at end of previous match.
-	 */
-	if (shl->lnum == 0)
-	    matchcol = 0;
-	else if (vim_strchr(p_cpo, CPO_SEARCH) == NULL
-		|| (shl->rm.endpos[0].lnum == 0
-		    && shl->rm.endpos[0].col <= shl->rm.startpos[0].col))
-	{
-	    char_u	*ml;
-
-	    matchcol = shl->rm.startpos[0].col;
-	    ml = ml_get_buf(shl->buf, lnum, FALSE) + matchcol;
-	    if (*ml == NUL)
-	    {
-		++matchcol;
-		shl->lnum = 0;
-		break;
-	    }
-	    if (has_mbyte)
-		matchcol += mb_ptr2len(ml);
-	    else
-		++matchcol;
-	}
-	else
-	    matchcol = shl->rm.endpos[0].col;
-
-	shl->lnum = lnum;
-	if (shl->rm.regprog != NULL)
-	{
-	    /* Remember whether shl->rm is using a copy of the regprog in
-	     * cur->match. */
-	    int regprog_is_copy = (shl != &search_hl && cur != NULL
-				&& shl == &cur->hl
-				&& cur->match.regprog == cur->hl.rm.regprog);
-	    int timed_out = FALSE;
-
-	    nmatched = vim_regexec_multi(&shl->rm, win, shl->buf, lnum,
-		    matchcol,
-#ifdef FEAT_RELTIME
-		    &(shl->tm), &timed_out
-#else
-		    NULL, NULL
-#endif
-		    );
-	    /* Copy the regprog, in case it got freed and recompiled. */
-	    if (regprog_is_copy)
-		cur->match.regprog = cur->hl.rm.regprog;
-
-	    if (called_emsg || got_int || timed_out)
-	    {
-		/* Error while handling regexp: stop using this regexp. */
-		if (shl == &search_hl)
-		{
-		    /* don't free regprog in the match list, it's a copy */
-		    vim_regfree(shl->rm.regprog);
-		    set_no_hlsearch(TRUE);
-		}
-		shl->rm.regprog = NULL;
-		shl->lnum = 0;
-		got_int = FALSE;  /* avoid the "Type :quit to exit Vim"
-				     message */
-		break;
-	    }
-	}
-	else if (cur != NULL)
-	    nmatched = next_search_hl_pos(shl, lnum, &(cur->pos), matchcol);
-	else
-	    nmatched = 0;
-	if (nmatched == 0)
-	{
-	    shl->lnum = 0;		/* no match found */
-	    break;
-	}
-	if (shl->rm.startpos[0].lnum > 0
-		|| shl->rm.startpos[0].col >= mincol
-		|| nmatched > 1
-		|| shl->rm.endpos[0].col > mincol)
-	{
-	    shl->lnum += shl->rm.startpos[0].lnum;
-	    break;			/* useful match found */
-	}
-    }
-
-    // Restore called_emsg for assert_fails().
-    called_emsg = save_called_emsg;
-}
-
-/*
- * If there is a match fill "shl" and return one.
- * Return zero otherwise.
- */
-    static int
-next_search_hl_pos(
-    match_T	    *shl,	/* points to a match */
-    linenr_T	    lnum,
-    posmatch_T	    *posmatch,	/* match positions */
-    colnr_T	    mincol)	/* minimal column for a match */
-{
-    int	    i;
-    int	    found = -1;
-
-    for (i = posmatch->cur; i < MAXPOSMATCH; i++)
-    {
-	llpos_T	*pos = &posmatch->pos[i];
-
-	if (pos->lnum == 0)
-	    break;
-	if (pos->len == 0 && pos->col < mincol)
-	    continue;
-	if (pos->lnum == lnum)
-	{
-	    if (found >= 0)
-	    {
-		/* if this match comes before the one at "found" then swap
-		 * them */
-		if (pos->col < posmatch->pos[found].col)
-		{
-		    llpos_T	tmp = *pos;
-
-		    *pos = posmatch->pos[found];
-		    posmatch->pos[found] = tmp;
-		}
-	    }
-	    else
-		found = i;
-	}
-    }
-    posmatch->cur = 0;
-    if (found >= 0)
-    {
-	colnr_T	start = posmatch->pos[found].col == 0
-					    ? 0 : posmatch->pos[found].col - 1;
-	colnr_T	end = posmatch->pos[found].col == 0
-				   ? MAXCOL : start + posmatch->pos[found].len;
-
-	shl->lnum = lnum;
-	shl->rm.startpos[0].lnum = 0;
-	shl->rm.startpos[0].col = start;
-	shl->rm.endpos[0].lnum = 0;
-	shl->rm.endpos[0].col = end;
-	shl->is_addpos = TRUE;
-	posmatch->cur = found + 1;
-	return 1;
-    }
-    return 0;
-}
 #endif
 
       static void
@@ -8526,16 +7993,14 @@ screen_char(unsigned off, int row, int col)
     if (row >= screen_Rows || col >= screen_Columns)
 	return;
 
-#ifdef FEAT_INS_EXPAND
     // Skip if under the popup menu.
     // Popup windows with zindex higher than POPUPMENU_ZINDEX go on top.
     if (pum_under_menu(row, col)
-# ifdef FEAT_TEXT_PROP
+#ifdef FEAT_TEXT_PROP
 	    && screen_zindex <= POPUPMENU_ZINDEX
-# endif
+#endif
 	    )
 	return;
-#endif
 #ifdef FEAT_TEXT_PROP
     if (blocked_by_popup(row, col))
 	return;
@@ -9239,10 +8704,16 @@ give_up:
 	}
 	/* Use the last line of the screen for the current line. */
 	current_ScreenLine = new_ScreenLines + Rows * Columns;
+
+#ifdef FEAT_TEXT_PROP
+	vim_memset(new_popup_mask, 0, Rows * Columns * sizeof(short));
+	vim_memset(new_popup_transparent, 0, Rows * Columns * sizeof(char));
+#endif
     }
 
     free_screenlines();
 
+    // NOTE: this may result in all pointers to become NULL.
     ScreenLines = new_ScreenLines;
     ScreenLinesUC = new_ScreenLinesUC;
     for (i = 0; i < p_mco; ++i)
@@ -9255,10 +8726,8 @@ give_up:
     TabPageIdxs = new_TabPageIdxs;
 #ifdef FEAT_TEXT_PROP
     popup_mask = new_popup_mask;
-    vim_memset(popup_mask, 0, Rows * Columns * sizeof(short));
     popup_mask_next = new_popup_mask_next;
     popup_transparent = new_popup_transparent;
-    vim_memset(popup_transparent, 0, Rows * Columns * sizeof(char));
     popup_mask_refresh = TRUE;
 #endif
 
@@ -9804,8 +9273,8 @@ win_ins_lines(
     /*
      * If there is a next window or a status line, we first try to delete the
      * lines at the bottom to avoid messing what is after the window.
-     * If this fails and there are following windows, don't do anything to avoid
-     * messing up those windows, better just redraw.
+     * If this fails and there are following windows, don't do anything to
+     * avoid messing up those windows, better just redraw.
      */
     did_delete = FALSE;
     if (wp->w_next != NULL || wp->w_status_height)
@@ -9835,7 +9304,7 @@ win_ins_lines(
     if (screen_ins_lines(0, W_WINROW(wp) + row, line_count, (int)Rows, 0, NULL)
 								      == FAIL)
     {
-	    /* deletion will have messed up other windows */
+	// deletion will have messed up other windows
 	if (did_delete)
 	{
 	    wp->w_redr_status = TRUE;
@@ -10532,9 +10001,7 @@ showmode(void)
     int		do_mode;
     int		attr;
     int		nwr_save;
-#ifdef FEAT_INS_EXPAND
     int		sub_attr;
-#endif
 
     do_mode = ((p_smd && msg_silent == 0)
 	    && ((State & INSERT)
@@ -10590,7 +10057,6 @@ showmode(void)
 		}
 	    }
 #endif
-#ifdef FEAT_INS_EXPAND
 	    /* CTRL-X in Insert mode */
 	    if (edit_submode != NULL && !shortmess(SHM_COMPLETIONMENU))
 	    {
@@ -10621,7 +10087,6 @@ showmode(void)
 		}
 	    }
 	    else
-#endif
 	    {
 		if (State & VREPLACE_FLAG)
 		    msg_puts_attr(_(" VREPLACE"), attr);
@@ -10686,10 +10151,7 @@ showmode(void)
 	    need_clear = TRUE;
 	}
 	if (reg_recording != 0
-#ifdef FEAT_INS_EXPAND
-		&& edit_submode == NULL	    /* otherwise it gets too long */
-#endif
-		)
+		&& edit_submode == NULL)    // otherwise it gets too long
 	{
 	    recording_mode(attr);
 	    need_clear = TRUE;
@@ -11146,14 +10608,12 @@ showruler(int always)
 {
     if (!always && !redrawing())
 	return;
-#ifdef FEAT_INS_EXPAND
     if (pum_visible())
     {
 	/* Don't redraw right now, do it later. */
 	curwin->w_redr_status = TRUE;
 	return;
     }
-#endif
 #if defined(FEAT_STL_OPT)
     if ((*p_stl != NUL || *curwin->w_p_stl != NUL) && curwin->w_status_height)
 	redraw_custom_statusline(curwin);
@@ -11206,9 +10666,8 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
     if (wp->w_cursor.lnum > wp->w_buffer->b_ml.ml_line_count)
 	return;
 
-#ifdef FEAT_INS_EXPAND
-    /* Don't draw the ruler while doing insert-completion, it might overwrite
-     * the (long) mode message. */
+    // Don't draw the ruler while doing insert-completion, it might overwrite
+    // the (long) mode message.
     if (wp == lastwin && lastwin->w_status_height == 0)
 	if (edit_submode != NULL)
 	    return;
@@ -11216,7 +10675,6 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
     // Except when the popup menu will be redrawn anyway.
     if (!ignore_pum && pum_visible())
 	return;
-#endif
 
 #ifdef FEAT_STL_OPT
     if (*p_ruf)
@@ -11363,6 +10821,55 @@ win_redr_ruler(win_T *wp, int always, int ignore_pum)
 }
 #endif
 
+/*
+ * Compute columns for ruler and shown command. 'sc_col' is also used to
+ * decide what the maximum length of a message on the status line can be.
+ * If there is a status line for the last window, 'sc_col' is independent
+ * of 'ru_col'.
+ */
+
+#define COL_RULER 17	    // columns needed by standard ruler
+
+    void
+comp_col(void)
+{
+#if defined(FEAT_CMDL_INFO)
+    int last_has_status = (p_ls == 2 || (p_ls == 1 && !ONE_WINDOW));
+
+    sc_col = 0;
+    ru_col = 0;
+    if (p_ru)
+    {
+# ifdef FEAT_STL_OPT
+	ru_col = (ru_wid ? ru_wid : COL_RULER) + 1;
+# else
+	ru_col = COL_RULER + 1;
+# endif
+	// no last status line, adjust sc_col
+	if (!last_has_status)
+	    sc_col = ru_col;
+    }
+    if (p_sc)
+    {
+	sc_col += SHOWCMD_COLS;
+	if (!p_ru || last_has_status)	    // no need for separating space
+	    ++sc_col;
+    }
+    sc_col = Columns - sc_col;
+    ru_col = Columns - ru_col;
+    if (sc_col <= 0)		// screen too narrow, will become a mess
+	sc_col = 1;
+    if (ru_col <= 0)
+	ru_col = 1;
+#else
+    sc_col = Columns;
+    ru_col = Columns;
+#endif
+#ifdef FEAT_EVAL
+    set_vim_var_nr(VV_ECHOSPACE, sc_col - 1);
+#endif
+}
+
 #if defined(FEAT_LINEBREAK) || defined(PROTO)
 /*
  * Return the width of the 'number' and 'relativenumber' column.
@@ -11432,3 +10939,133 @@ screen_screenrow(void)
     return screen_cur_row;
 }
 #endif
+
+/*
+ * Handle setting 'listchars' or 'fillchars'.
+ * Returns error message, NULL if it's OK.
+ */
+    char *
+set_chars_option(char_u **varp)
+{
+    int		round, i, len, entries;
+    char_u	*p, *s;
+    int		c1 = 0, c2 = 0, c3 = 0;
+    struct charstab
+    {
+	int	*cp;
+	char	*name;
+    };
+    static struct charstab filltab[] =
+    {
+	{&fill_stl,	"stl"},
+	{&fill_stlnc,	"stlnc"},
+	{&fill_vert,	"vert"},
+	{&fill_fold,	"fold"},
+	{&fill_diff,	"diff"},
+    };
+    static struct charstab lcstab[] =
+    {
+	{&lcs_eol,	"eol"},
+	{&lcs_ext,	"extends"},
+	{&lcs_nbsp,	"nbsp"},
+	{&lcs_prec,	"precedes"},
+	{&lcs_space,	"space"},
+	{&lcs_tab2,	"tab"},
+	{&lcs_trail,	"trail"},
+#ifdef FEAT_CONCEAL
+	{&lcs_conceal,	"conceal"},
+#else
+	{NULL,		"conceal"},
+#endif
+    };
+    struct charstab *tab;
+
+    if (varp == &p_lcs)
+    {
+	tab = lcstab;
+	entries = sizeof(lcstab) / sizeof(struct charstab);
+    }
+    else
+    {
+	tab = filltab;
+	entries = sizeof(filltab) / sizeof(struct charstab);
+    }
+
+    // first round: check for valid value, second round: assign values
+    for (round = 0; round <= 1; ++round)
+    {
+	if (round > 0)
+	{
+	    // After checking that the value is valid: set defaults: space for
+	    // 'fillchars', NUL for 'listchars'
+	    for (i = 0; i < entries; ++i)
+		if (tab[i].cp != NULL)
+		    *(tab[i].cp) = (varp == &p_lcs ? NUL : ' ');
+
+	    if (varp == &p_lcs)
+	    {
+		lcs_tab1 = NUL;
+		lcs_tab3 = NUL;
+	    }
+	    else
+		fill_diff = '-';
+	}
+	p = *varp;
+	while (*p)
+	{
+	    for (i = 0; i < entries; ++i)
+	    {
+		len = (int)STRLEN(tab[i].name);
+		if (STRNCMP(p, tab[i].name, len) == 0
+			&& p[len] == ':'
+			&& p[len + 1] != NUL)
+		{
+		    c2 = c3 = 0;
+		    s = p + len + 1;
+		    c1 = mb_ptr2char_adv(&s);
+		    if (mb_char2cells(c1) > 1)
+			continue;
+		    if (tab[i].cp == &lcs_tab2)
+		    {
+			if (*s == NUL)
+			    continue;
+			c2 = mb_ptr2char_adv(&s);
+			if (mb_char2cells(c2) > 1)
+			    continue;
+			if (!(*s == ',' || *s == NUL))
+			{
+			    c3 = mb_ptr2char_adv(&s);
+			    if (mb_char2cells(c3) > 1)
+				continue;
+			}
+		    }
+
+		    if (*s == ',' || *s == NUL)
+		    {
+			if (round)
+			{
+			    if (tab[i].cp == &lcs_tab2)
+			    {
+				lcs_tab1 = c1;
+				lcs_tab2 = c2;
+				lcs_tab3 = c3;
+			    }
+			    else if (tab[i].cp != NULL)
+				*(tab[i].cp) = c1;
+
+			}
+			p = s;
+			break;
+		    }
+		}
+	    }
+
+	    if (i == entries)
+		return e_invarg;
+	    if (*p == ',')
+		++p;
+	}
+    }
+
+    return NULL;	// no error
+}

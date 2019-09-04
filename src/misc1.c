@@ -14,7 +14,7 @@
 #include "vim.h"
 #include "version.h"
 
-#if defined(FEAT_CMDL_COMPL) && defined(MSWIN)
+#if defined(MSWIN)
 # include <lm.h>
 #endif
 
@@ -24,10 +24,8 @@ static char_u *remove_tail(char_u *p, char_u *pend, char_u *name);
 #define URL_SLASH	1		/* path_is_url() has found "://" */
 #define URL_BACKSLASH	2		/* path_is_url() has found ":\\" */
 
-/* All user names (for ~user completion as done by shell). */
-#if defined(FEAT_CMDL_COMPL) || defined(PROTO)
+// All user names (for ~user completion as done by shell).
 static garray_T	ga_users;
-#endif
 
 /*
  * Count the size (in window cells) of the indent in the current line.
@@ -1722,13 +1720,11 @@ free_homedir(void)
     vim_free(homedir);
 }
 
-# ifdef FEAT_CMDL_COMPL
     void
 free_users(void)
 {
     ga_clear_strings(&ga_users);
 }
-# endif
 #endif
 
 /*
@@ -2373,7 +2369,6 @@ vim_setenv(char_u *name, char_u *val)
 #endif
 }
 
-#if defined(FEAT_CMDL_COMPL) || defined(PROTO)
 /*
  * Function given to ExpandGeneric() to obtain an environment variable name.
  */
@@ -2539,7 +2534,6 @@ match_user(char_u *name)
     }
     return result;
 }
-#endif
 
 /*
  * Replace home directory by "~" in each space or comma separated file name in
@@ -3095,7 +3089,7 @@ FullName_save(
     return new_fname;
 }
 
-    void
+    static void
 prepare_to_exit(void)
 {
 #if defined(SIGHUP) && defined(SIG_IGN)
@@ -3189,11 +3183,7 @@ vim_fexists(char_u *fname)
  */
 
 #ifndef BREAKCHECK_SKIP
-# ifdef FEAT_GUI		    /* assume the GUI only runs on fast computers */
-#  define BREAKCHECK_SKIP 200
-# else
-#  define BREAKCHECK_SKIP 32
-# endif
+# define BREAKCHECK_SKIP 1000
 #endif
 
 static int	breakcheck_count = 0;
@@ -3879,7 +3869,6 @@ unix_expandpath(
 }
 #endif
 
-#if defined(FEAT_SEARCHPATH) || defined(FEAT_CMDL_COMPL) || defined(PROTO)
 /*
  * Sort "gap" and remove duplicate entries.  "gap" is expected to contain a
  * list of file names in allocated memory.
@@ -3901,7 +3890,6 @@ remove_duplicates(garray_T *gap)
 	    --gap->ga_len;
 	}
 }
-#endif
 
 /*
  * Return TRUE if "p" contains what looks like an environment variable.
@@ -4105,7 +4093,9 @@ gen_expand_wildcards(
 		addfile(&ga, t, flags | EW_DIR | EW_FILE);
 	    else
 		addfile(&ga, t, flags);
-	    vim_free(t);
+
+	    if (t != p)
+		vim_free(t);
 	}
 
 #if defined(FEAT_SEARCHPATH)
@@ -4257,7 +4247,9 @@ addfile(
 }
 #endif /* !NO_EXPANDPATH */
 
-#if defined(VIM_BACKTICK) || defined(FEAT_EVAL) || defined(PROTO)
+#if defined(VIM_BACKTICK) || defined(FEAT_EVAL) \
+	|| (defined(HAVE_LOCALE_H) || defined(X_LOCALE)) \
+	|| defined(PROTO)
 
 #ifndef SEEK_SET
 # define SEEK_SET 0

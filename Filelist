@@ -13,6 +13,7 @@ SRC_ALL =	\
 		src/README.md \
 		src/alloc.h \
 		src/arabic.c \
+		src/arglist.c \
 		src/ascii.h \
 		src/autocmd.c \
 		src/beval.c \
@@ -23,6 +24,8 @@ SRC_ALL =	\
 		src/change.c \
 		src/channel.c \
 		src/charset.c \
+		src/cmdexpand.c \
+		src/cmdhist.c \
 		src/crypt.c \
 		src/crypt_zip.c \
 		src/debugger.c \
@@ -32,6 +35,7 @@ SRC_ALL =	\
 		src/edit.c \
 		src/eval.c \
 		src/evalfunc.c \
+		src/evalvars.c \
 		src/ex_cmdidxs.h \
 		src/ex_cmds.c \
 		src/ex_cmds.h \
@@ -60,6 +64,7 @@ SRC_ALL =	\
 		src/keymap.h \
 		src/macros.h \
 		src/main.c \
+		src/map.c \
 		src/mark.c \
 		src/mbyte.c \
 		src/memfile.c \
@@ -86,8 +91,10 @@ SRC_ALL =	\
 		src/regexp.c \
 		src/regexp_nfa.c \
 		src/regexp.h \
+		src/scriptfile.c \
 		src/screen.c \
 		src/search.c \
+		src/session.c \
 		src/sha256.c \
 		src/sign.c \
 		src/sound.c \
@@ -110,6 +117,7 @@ SRC_ALL =	\
 		src/version.c \
 		src/version.h \
 		src/vim.h \
+		src/viminfo.c \
 		src/winclip.c \
 		src/window.c \
 		src/tee/tee.c \
@@ -161,6 +169,7 @@ SRC_ALL =	\
 		src/proto.h \
 		src/protodef.h \
 		src/proto/arabic.pro \
+		src/proto/arglist.pro \
 		src/proto/autocmd.pro \
 		src/proto/beval.pro \
 		src/proto/blob.pro \
@@ -169,6 +178,8 @@ SRC_ALL =	\
 		src/proto/change.pro \
 		src/proto/channel.pro \
 		src/proto/charset.pro \
+		src/proto/cmdexpand.pro \
+		src/proto/cmdhist.pro \
 		src/proto/crypt.pro \
 		src/proto/crypt_zip.pro \
 		src/proto/debugger.pro \
@@ -178,6 +189,7 @@ SRC_ALL =	\
 		src/proto/edit.pro \
 		src/proto/eval.pro \
 		src/proto/evalfunc.pro \
+		src/proto/evalvars.pro \
 		src/proto/ex_cmds.pro \
 		src/proto/ex_cmds2.pro \
 		src/proto/ex_docmd.pro \
@@ -197,6 +209,7 @@ SRC_ALL =	\
 		src/proto/json.pro \
 		src/proto/list.pro \
 		src/proto/main.pro \
+		src/proto/map.pro \
 		src/proto/mark.pro \
 		src/proto/mbyte.pro \
 		src/proto/memfile.pro \
@@ -215,8 +228,10 @@ SRC_ALL =	\
 		src/proto/profiler.pro \
 		src/proto/quickfix.pro \
 		src/proto/regexp.pro \
+		src/proto/scriptfile.pro \
 		src/proto/screen.pro \
 		src/proto/search.pro \
+		src/proto/session.pro \
 		src/proto/sha256.pro \
 		src/proto/sign.pro \
 		src/proto/sound.pro \
@@ -234,6 +249,7 @@ SRC_ALL =	\
 		src/proto/usercmd.pro \
 		src/proto/userfunc.pro \
 		src/proto/version.pro \
+		src/proto/viminfo.pro \
 		src/proto/winclip.pro \
 		src/proto/window.pro \
 		src/libvterm/.bzrignore \
