@@ -186,6 +186,7 @@ static int win32_setattrs(char_u *name, int attrs);
 static int win32_set_archive(char_u *name);
 
 static int conpty_working = 0;
+static int conpty_type = 0;
 static int conpty_stable = 0;
 static void vtp_flag_init();
 
@@ -364,7 +365,7 @@ read_console_input(
 peek_console_input(
     HANDLE	    hInput,
     INPUT_RECORD    *lpBuffer,
-    DWORD	    nLength,
+    DWORD	    nLength UNUSED,
     LPDWORD	    lpEvents)
 {
     return read_console_input(hInput, lpBuffer, -1, lpEvents);
@@ -1005,7 +1006,7 @@ decode_key_event(
     WCHAR		*pch,
     WCHAR		*pch2,
     int			*pmodifiers,
-    BOOL		fDoPost)
+    BOOL		fDoPost UNUSED)
 {
     int i;
     const int nModifs = pker->dwControlKeyState & (SHIFT | ALT | CTRL);
@@ -4485,7 +4486,7 @@ mch_system_g(char *cmd, int options)
 
 #if !defined(FEAT_GUI_MSWIN) || defined(VIMDLL)
     static int
-mch_system_c(char *cmd, int options)
+mch_system_c(char *cmd, int options UNUSED)
 {
     int		ret;
     WCHAR	*wcmd;
@@ -4656,12 +4657,14 @@ mch_call_shell(
     {
 	char_u	*cmdbase = cmd;
 
-	// Skip a leading quote and (.
-	while (*cmdbase == '"' || *cmdbase == '(')
-	    ++cmdbase;
+	if (cmdbase != NULL)
+	    // Skip a leading quote and (.
+	    while (*cmdbase == '"' || *cmdbase == '(')
+		++cmdbase;
 
 	// Check the command does not begin with "start "
-	if (STRNICMP(cmdbase, "start", 5) != 0 || !VIM_ISWHITE(cmdbase[5]))
+	if (cmdbase == NULL
+		|| STRNICMP(cmdbase, "start", 5) != 0 || !VIM_ISWHITE(cmdbase[5]))
 	{
 	    // Use a terminal window to run the command in.
 	    x = mch_call_shell_terminal(cmd, options);
@@ -6453,7 +6456,7 @@ mch_remove(char_u *name)
  * Check for an "interrupt signal": CTRL-break or CTRL-C.
  */
     void
-mch_breakcheck(int force)
+mch_breakcheck(int force UNUSED)
 {
 #if !defined(FEAT_GUI_MSWIN) || defined(VIMDLL)
 # ifdef VIMDLL
@@ -7215,7 +7218,7 @@ fix_arg_enc(void)
 }
 
     int
-mch_setenv(char *var, char *value, int x)
+mch_setenv(char *var, char *value, int x UNUSED)
 {
     char_u	*envbuf;
     WCHAR	*p;
@@ -7249,9 +7252,25 @@ mch_setenv(char *var, char *value, int x)
 
 /*
  * Support for pseudo-console (ConPTY) was added in windows 10
- * version 1809 (October 2018 update).  However, that version is unstable.
+ * version 1809 (October 2018 update).
  */
 #define CONPTY_FIRST_SUPPORT_BUILD  MAKE_VER(10, 0, 17763)
+
+/*
+ * ConPTY differences between versions, need different logic.
+ * version 1903 (May 2019 update).
+ */
+#define CONPTY_1903_BUILD	    MAKE_VER(10, 0, 18362)
+
+/*
+ * Confirm until this version.  Also the logic changes.
+ * insider preview.
+ */
+#define CONPTY_INSIDER_BUILD	    MAKE_VER(10, 0, 18898)
+
+/*
+ * Not stable now.
+ */
 #define CONPTY_STABLE_BUILD	    MAKE_VER(10, 0, 32767)  // T.B.D.
 
     static void
@@ -7281,6 +7300,12 @@ vtp_flag_init(void)
     if (ver >= CONPTY_STABLE_BUILD)
 	conpty_stable = 1;
 
+    if (ver <= CONPTY_INSIDER_BUILD)
+	conpty_type = 3;
+    if (ver <= CONPTY_1903_BUILD)
+	conpty_type = 2;
+    if (ver < CONPTY_FIRST_SUPPORT_BUILD)
+	conpty_type = 1;
 }
 
 #if !defined(FEAT_GUI_MSWIN) || defined(VIMDLL) || defined(PROTO)
@@ -7500,6 +7525,12 @@ has_vtp_working(void)
 has_conpty_working(void)
 {
     return conpty_working;
+}
+
+    int
+get_conpty_type(void)
+{
+    return conpty_type;
 }
 
     int

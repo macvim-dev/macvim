@@ -924,9 +924,7 @@ getcmdline_int(
 	im_set_active(TRUE);
 #endif
 
-#ifdef FEAT_MOUSE
     setmouse();
-#endif
 #ifdef CURSOR_SHAPE
     ui_cursor_shape();		/* may show different cursor shape */
 #endif
@@ -970,6 +968,9 @@ getcmdline_int(
 	did_emsg = FALSE;	/* There can't really be a reason why an error
 				   that occurs while typing a command should
 				   cause the command not to be executed. */
+
+	// Trigger SafeState if nothing is pending.
+	may_trigger_safestate(xpc.xp_numfiles <= 0);
 
 	cursorcmd();		/* set the cursor on the right spot */
 
@@ -2395,9 +2396,7 @@ returncmd:
 	im_save_status(b_im_ptr);
     im_set_active(FALSE);
 #endif
-#ifdef FEAT_MOUSE
     setmouse();
-#endif
 #ifdef CURSOR_SHAPE
     ui_cursor_shape();		/* may show different cursor shape */
 #endif
@@ -3767,7 +3766,7 @@ ccheck_abbr(int c)
  * Returns the result in allocated memory.
  */
     char_u *
-vim_strsave_fnameescape(char_u *fname, int shell)
+vim_strsave_fnameescape(char_u *fname, int shell UNUSED)
 {
     char_u	*p;
 #ifdef BACKSLASH_IN_FILENAME
@@ -3880,7 +3879,7 @@ get_ccline_ptr(void)
  * Only works when the command line is being edited.
  * Returns NULL when something is wrong.
  */
-    char_u *
+    static char_u *
 get_cmdline_str(void)
 {
     cmdline_info_T *p;
@@ -3894,19 +3893,26 @@ get_cmdline_str(void)
 }
 
 /*
- * Get the current command line position, counted in bytes.
- * Zero is the first position.
- * Only works when the command line is being edited.
- * Returns -1 when something is wrong.
+ * "getcmdline()" function
  */
-    int
-get_cmdline_pos(void)
+    void
+f_getcmdline(typval_T *argvars UNUSED, typval_T *rettv)
+{
+    rettv->v_type = VAR_STRING;
+    rettv->vval.v_string = get_cmdline_str();
+}
+
+/*
+ * "getcmdpos()" function
+ */
+    void
+f_getcmdpos(typval_T *argvars UNUSED, typval_T *rettv)
 {
     cmdline_info_T *p = get_ccline_ptr();
 
-    if (p == NULL)
-	return -1;
-    return p->cmdpos;
+    rettv->vval.v_number = 0;
+    if (p != NULL)
+    rettv->vval.v_number = p->cmdpos + 1;
 }
 
 /*
@@ -3914,7 +3920,7 @@ get_cmdline_pos(void)
  * Only works when the command line is being edited.
  * Returns 1 when failed, 0 when OK.
  */
-    int
+    static int
 set_cmdline_pos(
     int		pos)
 {
@@ -3931,6 +3937,34 @@ set_cmdline_pos(
 	new_cmdpos = pos;
     return 0;
 }
+
+/*
+ * "setcmdpos()" function
+ */
+    void
+f_setcmdpos(typval_T *argvars, typval_T *rettv)
+{
+    int		pos = (int)tv_get_number(&argvars[0]) - 1;
+
+    if (pos >= 0)
+	rettv->vval.v_number = set_cmdline_pos(pos);
+}
+
+/*
+ * "getcmdtype()" function
+ */
+    void
+f_getcmdtype(typval_T *argvars UNUSED, typval_T *rettv)
+{
+    rettv->v_type = VAR_STRING;
+    rettv->vval.v_string = alloc(2);
+    if (rettv->vval.v_string != NULL)
+    {
+	rettv->vval.v_string[0] = get_cmdline_type();
+	rettv->vval.v_string[1] = NUL;
+    }
+}
+
 #endif
 
 #if defined(FEAT_EVAL) || defined(FEAT_CMDWIN) || defined(PROTO)
@@ -4046,30 +4080,26 @@ open_cmdwin(void)
     }
     set_bufref(&old_curbuf, curbuf);
 
-    /* Save current window sizes. */
+    // Save current window sizes.
     win_size_save(&winsizes);
-
-    /* Don't execute autocommands while creating the window. */
-    block_autocmds();
 
     // When using completion in Insert mode with <C-R>=<C-F> one can open the
     // command line window, but we don't want the popup menu then.
     pum_undisplay();
 
-    /* don't use a new tab page */
+    // don't use a new tab page
     cmdmod.tab = 0;
     cmdmod.noswapfile = 1;
 
-    /* Create a window for the command-line buffer. */
+    // Create a window for the command-line buffer.
     if (win_split((int)p_cwh, WSP_BOT) == FAIL)
     {
 	beep_flush();
-	unblock_autocmds();
 	return K_IGNORE;
     }
     cmdwin_type = get_cmdline_type();
 
-    /* Create the command-line buffer empty. */
+    // Create the command-line buffer empty.
     (void)do_ecmd(0, NULL, NULL, NULL, ECMD_ONE, ECMD_HIDE, NULL);
     (void)setfname(curbuf, (char_u *)"[Command Line]", NULL, TRUE);
     set_option_value((char_u *)"bt", 0L, (char_u *)"nofile", OPT_LOCAL);
@@ -4083,12 +4113,10 @@ open_cmdwin(void)
 # endif
     RESET_BINDING(curwin);
 
-    /* Do execute autocommands for setting the filetype (load syntax). */
-    unblock_autocmds();
-    /* But don't allow switching to another buffer. */
+    // Don't allow switching to another buffer.
     ++curbuf_lock;
 
-    /* Showing the prompt may have set need_wait_return, reset it. */
+    // Showing the prompt may have set need_wait_return, reset it.
     need_wait_return = FALSE;
 
     histtype = hist_char2type(cmdwin_type);
@@ -4103,11 +4131,11 @@ open_cmdwin(void)
     }
     --curbuf_lock;
 
-    /* Reset 'textwidth' after setting 'filetype' (the Vim filetype plugin
-     * sets 'textwidth' to 78). */
+    // Reset 'textwidth' after setting 'filetype' (the Vim filetype plugin
+    // sets 'textwidth' to 78).
     curbuf->b_p_tw = 0;
 
-    /* Fill the buffer with the history. */
+    // Fill the buffer with the history.
     init_history();
     if (get_hislen() > 0)
     {
@@ -4140,13 +4168,11 @@ open_cmdwin(void)
     exmode_active = 0;
 
     State = NORMAL;
-# ifdef FEAT_MOUSE
     setmouse();
-# endif
 
-    /* Trigger CmdwinEnter autocommands. */
+    // Trigger CmdwinEnter autocommands.
     trigger_cmd_autocmd(cmdwin_type, EVENT_CMDWINENTER);
-    if (restart_edit != 0)	/* autocmd with ":startinsert" */
+    if (restart_edit != 0)	// autocmd with ":startinsert"
 	stuffcharReadbuff(K_NOP);
 
     i = RedrawingDisabled;
@@ -4164,11 +4190,11 @@ open_cmdwin(void)
     save_KeyTyped = KeyTyped;
 # endif
 
-    /* Trigger CmdwinLeave autocommands. */
+    // Trigger CmdwinLeave autocommands.
     trigger_cmd_autocmd(cmdwin_type, EVENT_CMDWINLEAVE);
 
 # ifdef FEAT_FOLDING
-    /* Restore KeyTyped in case it is modified by autocommands */
+    // Restore KeyTyped in case it is modified by autocommands
     KeyTyped = save_KeyTyped;
 # endif
 
@@ -4245,10 +4271,8 @@ open_cmdwin(void)
 	    }
 	}
 
-	/* Don't execute autocommands while deleting the window. */
-	block_autocmds();
 # ifdef FEAT_CONCEAL
-	/* Avoid command-line window first character being concealed. */
+	// Avoid command-line window first character being concealed.
 	curwin->w_p_cole = 0;
 # endif
 	wp = curwin;
@@ -4256,15 +4280,13 @@ open_cmdwin(void)
 	win_goto(old_curwin);
 	win_close(wp, TRUE);
 
-	/* win_close() may have already wiped the buffer when 'bh' is
-	 * set to 'wipe' */
+	// win_close() may have already wiped the buffer when 'bh' is
+	// set to 'wipe'
 	if (bufref_valid(&bufref))
 	    close_buffer(NULL, bufref.br_buf, DOBUF_WIPE, FALSE);
 
-	/* Restore window sizes. */
+	// Restore window sizes.
 	win_size_restore(&winsizes);
-
-	unblock_autocmds();
     }
 
     ga_clear(&winsizes);
@@ -4274,13 +4296,11 @@ open_cmdwin(void)
 # endif
 
     State = save_State;
-# ifdef FEAT_MOUSE
     setmouse();
-# endif
 
     return cmdwin_result;
 }
-#endif /* FEAT_CMDWIN */
+#endif // FEAT_CMDWIN
 
 /*
  * Used for commands that either take a simple command string argument, or:

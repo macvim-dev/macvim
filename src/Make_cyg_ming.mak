@@ -719,22 +719,28 @@ OBJ = \
 	$(OUTDIR)/dict.o \
 	$(OUTDIR)/diff.o \
 	$(OUTDIR)/digraph.o \
+	$(OUTDIR)/drawline.o \
+	$(OUTDIR)/drawscreen.o \
 	$(OUTDIR)/edit.o \
 	$(OUTDIR)/eval.o \
+	$(OUTDIR)/evalbuffer.o \
 	$(OUTDIR)/evalfunc.o \
 	$(OUTDIR)/evalvars.o \
+	$(OUTDIR)/evalwindow.o \
 	$(OUTDIR)/ex_cmds.o \
 	$(OUTDIR)/ex_cmds2.o \
 	$(OUTDIR)/ex_docmd.o \
 	$(OUTDIR)/ex_eval.o \
 	$(OUTDIR)/ex_getln.o \
 	$(OUTDIR)/fileio.o \
+	$(OUTDIR)/filepath.o \
 	$(OUTDIR)/findfile.o \
 	$(OUTDIR)/fold.o \
 	$(OUTDIR)/getchar.o \
 	$(OUTDIR)/hardcopy.o \
 	$(OUTDIR)/hashtab.o \
 	$(OUTDIR)/highlight.o \
+	$(OUTDIR)/if_cscope.o \
 	$(OUTDIR)/indent.o \
 	$(OUTDIR)/insexpand.o \
 	$(OUTDIR)/json.o \
@@ -748,11 +754,13 @@ OBJ = \
 	$(OUTDIR)/message.o \
 	$(OUTDIR)/misc1.o \
 	$(OUTDIR)/misc2.o \
+	$(OUTDIR)/mouse.o \
 	$(OUTDIR)/move.o \
 	$(OUTDIR)/mbyte.o \
 	$(OUTDIR)/normal.o \
 	$(OUTDIR)/ops.o \
 	$(OUTDIR)/option.o \
+	$(OUTDIR)/optionstr.o \
 	$(OUTDIR)/os_mswin.o \
 	$(OUTDIR)/os_win32.o \
 	$(OUTDIR)/pathdef.o \
@@ -820,9 +828,6 @@ endif
 ifdef TCL
 OBJ += $(OUTDIR)/if_tcl.o
 endif
-ifeq ($(CSCOPE),yes)
-OBJ += $(OUTDIR)/if_cscope.o
-endif
 
 ifeq ($(NETBEANS),yes)
  ifneq ($(CHANNEL),yes)
@@ -862,7 +867,7 @@ ifeq ($(TERMINAL),yes)
 OBJ += $(OUTDIR)/terminal.o \
 	$(OUTDIR)/encoding.o \
 	$(OUTDIR)/keyboard.o \
-	$(OUTDIR)/mouse.o \
+	$(OUTDIR)/termmouse.o \
 	$(OUTDIR)/parser.o \
 	$(OUTDIR)/pen.o \
 	$(OUTDIR)/termscreen.o \
@@ -1178,7 +1183,7 @@ $(OUTDIR)/os_w32exeg.o:	os_w32exe.c $(INCL)
 $(OUTDIR)/os_win32.o:	os_win32.c $(INCL) $(MZSCHEME_INCL)
 	$(CC) -c $(CFLAGS) os_win32.c -o $@
 
-$(OUTDIR)/regexp.o:	regexp.c regexp_nfa.c $(INCL)
+$(OUTDIR)/regexp.o:	regexp.c regexp_bt.c regexp_nfa.c $(INCL)
 	$(CC) -c $(CFLAGS) regexp.c -o $@
 
 $(OUTDIR)/terminal.o:	terminal.c $(INCL) $(TERM_DEPS)
@@ -1191,7 +1196,8 @@ $(OUTDIR)/pathdef.o:	$(PATHDEF_SRC) $(INCL)
 CCCTERM = $(CC) -c $(CFLAGS) -Ilibvterm/include -DINLINE="" \
 	  -DVSNPRINTF=vim_vsnprintf \
 	  -DIS_COMBINING_FUNCTION=utf_iscomposing_uint \
-	  -DWCWIDTH_FUNCTION=utf_uint2cells
+	  -DWCWIDTH_FUNCTION=utf_uint2cells \
+	  -DGET_SPECIAL_PTY_TYPE_FUNCTION=get_special_pty_type
 
 $(OUTDIR)/%.o : libvterm/src/%.c $(TERM_DEPS)
 	$(CCCTERM) $< -o $@

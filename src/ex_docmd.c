@@ -7351,7 +7351,7 @@ close_redir(void)
 
 #if (defined(FEAT_SESSION) || defined(FEAT_EVAL)) || defined(PROTO)
     int
-vim_mkdir_emsg(char_u *name, int prot)
+vim_mkdir_emsg(char_u *name, int prot UNUSED)
 {
     if (vim_mkdir(name, prot) != 0)
     {
@@ -7594,9 +7594,7 @@ ex_normal(exarg_T *eap)
 
     restore_current_state(&save_state);
     --ex_normal_busy;
-#ifdef FEAT_MOUSE
     setmouse();
-#endif
 #ifdef CURSOR_SHAPE
     ui_cursor_shape();		/* may show different cursor shape */
 #endif
@@ -7612,16 +7610,14 @@ ex_startinsert(exarg_T *eap)
 {
     if (eap->forceit)
     {
-	/* cursor line can be zero on startup */
+	// cursor line can be zero on startup
 	if (!curwin->w_cursor.lnum)
 	    curwin->w_cursor.lnum = 1;
-	coladvance((colnr_T)MAXCOL);
-	curwin->w_curswant = MAXCOL;
-	curwin->w_set_curswant = FALSE;
+	set_cursor_for_append_to_line();
     }
 
-    /* Ignore the command when already in Insert mode.  Inserting an
-     * expression register that invokes a function can do this. */
+    // Ignore the command when already in Insert mode.  Inserting an
+    // expression register that invokes a function can do this.
     if (State & INSERT)
 	return;
 
@@ -7636,7 +7632,7 @@ ex_startinsert(exarg_T *eap)
     {
 	if (eap->cmdidx == CMD_startinsert)
 	    restart_edit = 'i';
-	curwin->w_curswant = 0;	    /* avoid MAXCOL */
+	curwin->w_curswant = 0;	    // avoid MAXCOL
     }
 }
 
@@ -7991,10 +7987,8 @@ eval_vars(
     buf_T	*buf;
     int		valid = VALID_HEAD + VALID_PATH;    /* assume valid result */
     int		spec_idx;
-#ifdef FEAT_MODIFY_FNAME
     int		tilde_file = FALSE;
     int		skip_mod = FALSE;
-#endif
     char_u	strbuf[30];
 
     *errormsg = NULL;
@@ -8059,9 +8053,7 @@ eval_vars(
 		else
 		{
 		    result = curbuf->b_fname;
-#ifdef FEAT_MODIFY_FNAME
 		    tilde_file = STRCMP(result, "~") == 0;
-#endif
 		}
 		break;
 
@@ -8073,9 +8065,7 @@ eval_vars(
 		    *usedlen = 2;
 		    if (escaped != NULL)
 			*escaped = TRUE;
-#ifdef FEAT_MODIFY_FNAME
 		    skip_mod = TRUE;
-#endif
 		    break;
 		}
 		s = src + 1;
@@ -8128,9 +8118,7 @@ eval_vars(
 		    else
 		    {
 			result = buf->b_fname;
-#ifdef FEAT_MODIFY_FNAME
 			tilde_file = STRCMP(result, "~") == 0;
-#endif
 		    }
 		}
 		break;
@@ -8237,7 +8225,6 @@ eval_vars(
 	    if ((s = vim_strrchr(result, '.')) != NULL && s >= gettail(result))
 		resultlen = (int)(s - result);
 	}
-#ifdef FEAT_MODIFY_FNAME
 	else if (!skip_mod)
 	{
 	    valid |= modify_fname(src, tilde_file, usedlen, &result, &resultbuf,
@@ -8248,7 +8235,6 @@ eval_vars(
 		return NULL;
 	    }
 	}
-#endif
     }
 
     if (resultlen == 0 || valid != VALID_HEAD + VALID_PATH)

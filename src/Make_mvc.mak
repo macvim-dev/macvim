@@ -349,8 +349,6 @@ CSCOPE = yes
 
 !if "$(CSCOPE)" == "yes"
 # CSCOPE - Include support for Cscope
-CSCOPE_INCL  = if_cscope.h
-CSCOPE_OBJ   = $(OBJDIR)/if_cscope.obj
 CSCOPE_DEFS  = -DFEAT_CSCOPE
 !endif
 
@@ -367,7 +365,7 @@ TERM_OBJ = \
 	$(OBJDIR)/terminal.obj \
 	$(OBJDIR)/encoding.obj \
 	$(OBJDIR)/keyboard.obj \
-	$(OBJDIR)/mouse.obj \
+	$(OBJDIR)/termmouse.obj \
 	$(OBJDIR)/parser.obj \
 	$(OBJDIR)/pen.obj \
 	$(OBJDIR)/termscreen.obj \
@@ -728,22 +726,28 @@ OBJ = \
 	$(OUTDIR)\dict.obj \
 	$(OUTDIR)\diff.obj \
 	$(OUTDIR)\digraph.obj \
+	$(OUTDIR)\drawline.obj \
+	$(OUTDIR)\drawscreen.obj \
 	$(OUTDIR)\edit.obj \
 	$(OUTDIR)\eval.obj \
+	$(OUTDIR)\evalbuffer.obj \
 	$(OUTDIR)\evalfunc.obj \
 	$(OUTDIR)\evalvars.obj \
+	$(OUTDIR)\evalwindow.obj \
 	$(OUTDIR)\ex_cmds.obj \
 	$(OUTDIR)\ex_cmds2.obj \
 	$(OUTDIR)\ex_docmd.obj \
 	$(OUTDIR)\ex_eval.obj \
 	$(OUTDIR)\ex_getln.obj \
 	$(OUTDIR)\fileio.obj \
+	$(OUTDIR)\filepath.obj \
 	$(OUTDIR)\findfile.obj \
 	$(OUTDIR)\fold.obj \
 	$(OUTDIR)\getchar.obj \
 	$(OUTDIR)\hardcopy.obj \
 	$(OUTDIR)\hashtab.obj \
 	$(OUTDIR)\highlight.obj \
+	$(OBJDIR)\if_cscope.obj \
 	$(OUTDIR)\indent.obj \
 	$(OUTDIR)\insexpand.obj \
 	$(OUTDIR)\json.obj \
@@ -758,10 +762,12 @@ OBJ = \
 	$(OUTDIR)\message.obj \
 	$(OUTDIR)\misc1.obj \
 	$(OUTDIR)\misc2.obj \
+	$(OUTDIR)\mouse.obj \
 	$(OUTDIR)\move.obj \
 	$(OUTDIR)\normal.obj \
 	$(OUTDIR)\ops.obj \
 	$(OUTDIR)\option.obj \
+	$(OUTDIR)\optionstr.obj \
 	$(OUTDIR)\os_mswin.obj \
 	$(OUTDIR)\os_win32.obj \
 	$(OUTDIR)\pathdef.obj \
@@ -1284,13 +1290,13 @@ all:	$(MAIN_TARGET) \
 
 $(VIMDLLBASE).dll: $(OUTDIR) $(OBJ) $(XDIFF_OBJ) $(GUI_OBJ) $(CUI_OBJ) $(OLE_OBJ) $(OLE_IDL) $(MZSCHEME_OBJ) \
 		$(LUA_OBJ) $(PERL_OBJ) $(PYTHON_OBJ) $(PYTHON3_OBJ) $(RUBY_OBJ) $(TCL_OBJ) \
-		$(CSCOPE_OBJ) $(TERM_OBJ) $(SOUND_OBJ) $(NETBEANS_OBJ) $(CHANNEL_OBJ) $(XPM_OBJ) \
+		$(TERM_OBJ) $(SOUND_OBJ) $(NETBEANS_OBJ) $(CHANNEL_OBJ) $(XPM_OBJ) \
 		version.c version.h
 	$(CC) $(CFLAGS_OUTDIR) version.c
 	$(link) @<<
 $(LINKARGS1) /dll -out:$(VIMDLLBASE).dll $(OBJ) $(XDIFF_OBJ) $(GUI_OBJ) $(CUI_OBJ) $(OLE_OBJ)
 $(LUA_OBJ) $(MZSCHEME_OBJ) $(PERL_OBJ) $(PYTHON_OBJ) $(PYTHON3_OBJ) $(RUBY_OBJ)
-$(TCL_OBJ) $(CSCOPE_OBJ) $(TERM_OBJ) $(SOUND_OBJ) $(NETBEANS_OBJ) $(CHANNEL_OBJ)
+$(TCL_OBJ) $(TERM_OBJ) $(SOUND_OBJ) $(NETBEANS_OBJ) $(CHANNEL_OBJ)
 $(XPM_OBJ) $(OUTDIR)\version.obj $(LINKARGS2)
 <<
 
@@ -1306,13 +1312,13 @@ $(VIM).exe: $(OUTDIR) $(EXEOBJC) $(VIMDLLBASE).dll
 
 $(VIM).exe: $(OUTDIR) $(OBJ) $(XDIFF_OBJ) $(GUI_OBJ) $(CUI_OBJ) $(OLE_OBJ) $(OLE_IDL) $(MZSCHEME_OBJ) \
 		$(LUA_OBJ) $(PERL_OBJ) $(PYTHON_OBJ) $(PYTHON3_OBJ) $(RUBY_OBJ) $(TCL_OBJ) \
-		$(CSCOPE_OBJ) $(TERM_OBJ) $(SOUND_OBJ) $(NETBEANS_OBJ) $(CHANNEL_OBJ) $(XPM_OBJ) \
+		$(TERM_OBJ) $(SOUND_OBJ) $(NETBEANS_OBJ) $(CHANNEL_OBJ) $(XPM_OBJ) \
 		version.c version.h
 	$(CC) $(CFLAGS_OUTDIR) version.c
 	$(link) @<<
 $(LINKARGS1) /subsystem:$(SUBSYSTEM) -out:$(VIM).exe $(OBJ) $(XDIFF_OBJ) $(GUI_OBJ) $(CUI_OBJ) $(OLE_OBJ)
 $(LUA_OBJ) $(MZSCHEME_OBJ) $(PERL_OBJ) $(PYTHON_OBJ) $(PYTHON3_OBJ) $(RUBY_OBJ)
-$(TCL_OBJ) $(CSCOPE_OBJ) $(TERM_OBJ) $(SOUND_OBJ) $(NETBEANS_OBJ) $(CHANNEL_OBJ)
+$(TCL_OBJ) $(TERM_OBJ) $(SOUND_OBJ) $(NETBEANS_OBJ) $(CHANNEL_OBJ)
 $(XPM_OBJ) $(OUTDIR)\version.obj $(LINKARGS2)
 <<
 	if exist $(VIM).exe.manifest mt.exe -nologo -manifest $(VIM).exe.manifest -updateresource:$(VIM).exe;1
@@ -1481,13 +1487,21 @@ $(OUTDIR)/xpatience.obj:	$(OUTDIR) xdiff/xpatience.c  $(XDIFF_DEPS)
 
 $(OUTDIR)/digraph.obj:	$(OUTDIR) digraph.c  $(INCL)
 
+$(OUTDIR)/drawline.obj:	$(OUTDIR) drawline.c  $(INCL)
+
+$(OUTDIR)/drawscreen.obj:	$(OUTDIR) drawscreen.c  $(INCL)
+
 $(OUTDIR)/edit.obj:	$(OUTDIR) edit.c  $(INCL)
 
 $(OUTDIR)/eval.obj:	$(OUTDIR) eval.c  $(INCL)
 
+$(OUTDIR)/evalbuffer.obj:	$(OUTDIR) evalbuffer.c  $(INCL)
+
 $(OUTDIR)/evalfunc.obj:	$(OUTDIR) evalfunc.c  $(INCL)
 
 $(OUTDIR)/evalvars.obj:	$(OUTDIR) evalvars.c  $(INCL)
+
+$(OUTDIR)/evalwindow.obj:	$(OUTDIR) evalwindow.c  $(INCL)
 
 $(OUTDIR)/ex_cmds.obj:	$(OUTDIR) ex_cmds.c  $(INCL)
 
@@ -1500,6 +1514,8 @@ $(OUTDIR)/ex_eval.obj:	$(OUTDIR) ex_eval.c  $(INCL)
 $(OUTDIR)/ex_getln.obj:	$(OUTDIR) ex_getln.c  $(INCL)
 
 $(OUTDIR)/fileio.obj:	$(OUTDIR) fileio.c  $(INCL)
+
+$(OUTDIR)/filepath.obj:	$(OUTDIR) filepath.c  $(INCL)
 
 $(OUTDIR)/findfile.obj:	$(OUTDIR) findfile.c  $(INCL)
 
@@ -1586,6 +1602,8 @@ $(OUTDIR)/misc1.obj:	$(OUTDIR) misc1.c  $(INCL)
 
 $(OUTDIR)/misc2.obj:	$(OUTDIR) misc2.c  $(INCL)
 
+$(OUTDIR)/mouse.obj:	$(OUTDIR) mouse.c  $(INCL)
+
 $(OUTDIR)/move.obj:	$(OUTDIR) move.c  $(INCL)
 
 $(OUTDIR)/mbyte.obj: $(OUTDIR) mbyte.c  $(INCL)
@@ -1596,7 +1614,9 @@ $(OUTDIR)/channel.obj: $(OUTDIR) channel.c $(INCL)
 
 $(OUTDIR)/normal.obj:	$(OUTDIR) normal.c  $(INCL)
 
-$(OUTDIR)/option.obj:	$(OUTDIR) option.c  $(INCL)
+$(OUTDIR)/option.obj:	$(OUTDIR) option.c  $(INCL) optiondefs.h
+
+$(OUTDIR)/optionstr.obj:	$(OUTDIR) optionstr.c  $(INCL)
 
 $(OUTDIR)/ops.obj:	$(OUTDIR) ops.c  $(INCL)
 
@@ -1629,7 +1649,7 @@ $(OUTDIR)/profiler.obj:	$(OUTDIR) profiler.c  $(INCL)
 
 $(OUTDIR)/quickfix.obj:	$(OUTDIR) quickfix.c  $(INCL)
 
-$(OUTDIR)/regexp.obj:	$(OUTDIR) regexp.c regexp_nfa.c  $(INCL)
+$(OUTDIR)/regexp.obj:	$(OUTDIR) regexp.c regexp_bt.c regexp_nfa.c  $(INCL)
 
 $(OUTDIR)/scriptfile.obj:	$(OUTDIR) scriptfile.c  $(INCL)
 
@@ -1708,6 +1728,7 @@ CCCTERM = $(CC) $(CFLAGS) -Ilibvterm/include -DINLINE="" \
 	-DVSNPRINTF=vim_vsnprintf \
 	-DIS_COMBINING_FUNCTION=utf_iscomposing_uint \
 	-DWCWIDTH_FUNCTION=utf_uint2cells \
+	-DGET_SPECIAL_PTY_TYPE_FUNCTION=get_special_pty_type \
 	-D_CRT_SECURE_NO_WARNINGS
 
 # Create a default rule for libvterm.
@@ -1718,7 +1739,7 @@ $(OUTDIR)/encoding.obj: $(OUTDIR) libvterm/src/encoding.c $(TERM_DEPS)
 
 $(OUTDIR)/keyboard.obj: $(OUTDIR) libvterm/src/keyboard.c $(TERM_DEPS)
 
-$(OUTDIR)/mouse.obj: $(OUTDIR) libvterm/src/mouse.c $(TERM_DEPS)
+$(OUTDIR)/termmouse.obj: $(OUTDIR) libvterm/src/termmouse.c $(TERM_DEPS)
 
 $(OUTDIR)/parser.obj: $(OUTDIR) libvterm/src/parser.c $(TERM_DEPS)
 
@@ -1771,16 +1792,21 @@ proto.h: \
 	proto/dict.pro \
 	proto/diff.pro \
 	proto/digraph.pro \
+	proto/drawline.pro \
+	proto/drawscreen.pro \
 	proto/edit.pro \
 	proto/eval.pro \
+	proto/evalbuffer.pro \
 	proto/evalfunc.pro \
 	proto/evalvars.pro \
+	proto/evalwindow.pro \
 	proto/ex_cmds.pro \
 	proto/ex_cmds2.pro \
 	proto/ex_docmd.pro \
 	proto/ex_eval.pro \
 	proto/ex_getln.pro \
 	proto/fileio.pro \
+	proto/filepath.pro \
 	proto/findfile.pro \
 	proto/getchar.pro \
 	proto/hardcopy.pro \
@@ -1799,11 +1825,13 @@ proto.h: \
 	proto/message.pro \
 	proto/misc1.pro \
 	proto/misc2.pro \
+	proto/mouse.pro \
 	proto/move.pro \
 	proto/mbyte.pro \
 	proto/normal.pro \
 	proto/ops.pro \
 	proto/option.pro \
+	proto/optionstr.pro \
 	proto/os_mswin.pro \
 	proto/winclip.pro \
 	proto/os_win32.pro \

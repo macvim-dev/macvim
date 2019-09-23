@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 8.1.  Last change: 2019 Aug 30
+*todo.txt*      For Vim version 8.1.  Last change: 2019 Sep 19
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -38,7 +38,21 @@ browser use: https://github.com/vim/vim/issues/1234
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
+Add test for state().
+Add test for using SafeState and SafeStateAgain autocommand.
+Then plugin can:
+- When callback is invoked and state() returns non-empty, add to work queue
+- When SafeState autocommand event triggers, process work queue
+
+Fix for "x" should be done by fixing "dl" ?  8.1.2052
+
+'completeopt' "popup" variant that uses a callback after the popup has been
+created, so the contents can be changed.  Make it hidden, callback
+or later has to make it visible. #4924  Setting the buffer contents later
+doesn't work well.
+
 Popup windows:
+- Use popup (or popup menu) for command line completion
 - Implement flip option
 - Why does 'nrformats' leak from the popup window buffer???
   Happens in Test_simple_popup() at the second screendump.
@@ -128,13 +142,18 @@ E278, E279, E290, E292, E362, E366, E450, E451, E452,
 E453, E454, E460, E489, E491, E565, E578, E610, E611, E653,
 E654, E856, E857, E860, E861, E863, E889, E900
 
+Improve running tests on MS-Windows: #4922
+
+Patch to properly break CJK lines: #3875
+Ready to include now?
+
 Remove check for cmd_silent when calling search_stat()? (Gary Johnson)
 
 undo result wrong: Masato Nishihata, #4798
 
-Sound: support on Mac?  Or does libcanberra work there?
+Undo puts cursor in wrong line after "cG<Esc>" undo.
 
-Patch to add win_splitmove() function. (Andy Massimino, #4561)
+Sound: support on Mac?  Or does libcanberra work there?
 
 Patch for #4733: #4734.  Test needs improvements.
 
@@ -154,15 +173,6 @@ Ready to include now?
 
 Adding "10" to 'spellsuggest' causes spell suggestions to become very slow.
 (#4087)
-
-Patch to support 'cursorlineopt' - only highlight the line number of the
-cursor line: #4693
-
-Let plugins know how much space is available in the last line before
-triggering the hit-enter prompt.  Internally called "sc_col".
-(Daniel Hahler, #4732)
-
-Patch for Template string: #4491  Not ready yet.  New pull: #4634
 
 ":bnext" in a help buffer is supposed to go to the next help buffer, but it
 goes to any buffer, and then :bnext skips help buffers, since they are
@@ -189,8 +199,17 @@ with packages under "start". (xtal8, #1994)
 Modeless selection doesn't work in gvim. (#4783)
 Caused by patch 8.1.1534.
 
+Patch to add random number generator. (Hong Xu, 2010 Nov 8, update Nov 10)
+Alternative from Christian Brabandt. (2010 Sep 19)
+New one from Yasuhiro Matsumoto, #1277.
+
 Visual highlight not removed when 'dipslay' is "lastline" and line doesn't
 fit. (Kevin Lawler, #4457)
+
+Patch to add interrupt(). (Yasuhiro Matsumoto, #2834)
+
+Patch to add per-tabpage and per-window previous directory: "lcd -" and "tcd
+-". (Yegappan Lakshmanan, #4362)
 
 Does not build with MinGW out of the box:
 - _stat64 is not defined, need to use "struct stat" in vim.h
@@ -200,6 +219,11 @@ Crash when mixing matchadd and substitute()? (Max Christian Pohle, 2018 May
 13, #2910)  Can't reproduce?
 
 Check_external_diff() is used too often. (Daniel Hahler, #4800)
+
+Incorrect formatting with autoindent. (Sebastian Gniazdowski, #4909)
+
+Patch to sort buffers on b_last_used time.  (Andy Massimino, #4722)
+Needs a test.
 
 Errors found with random data:
     heap-buffer-overflow in alist_add (#2472)
@@ -278,8 +302,6 @@ Many users don't like 'thesaurus' to match so many words. (#4667, #1611)
 Some composing characters actually add a cell width to the character they are
 on top off, making the whole thing two characters wide. (#4526)
 
-Add CmdwinLeavePost (#4762).  Also add WinLeavePost then?
-
 Should we include some part of pull request #4505, not increment changedtick
 in some cases?  E.g. for ":write" when the changed flag was already off, the
 buffer didn't change at all.
@@ -310,6 +332,9 @@ Support setting the character displayed below the last line?  Neovim uses
 
 Check: __attribute__((format(printf, on semsg() and siemsg().  Where was this
 added?
+
+Patch to add a flatten() function.  #3676.  Check that the doc explains the
+maxdepth argument (applies to the input "recursiveness").
 
 Add test for urxvt mouse codes.  Also test that mouse coordinates can be
 negative. (see #4326)
@@ -502,9 +527,6 @@ Further xdiff changes:
 
 Difference between two regexp engines: #3373
 
-Patch to properly break CJK lines: #3875
-Requires more tests.  dbcs_ functions are not implemented.
-
 Patch to add ch_listen() (Yasuhiro Matsumoto, 2018 Nov 26, #3639)
 What is the practical use for this?
 
@@ -639,6 +661,9 @@ Jan 15, #2555)
 
 ":bufdo e" disabled syntax HL in windows other than the current. (BPJ)
 
+Patch for Template string: #4491.  New pull: #4634
+It's an awful lot of code for something that is just a bit nicer syntax.
+
 Check argument of systemlist(). (Pavlov)
 
 No maintainer for Vietnamese translations.
@@ -772,7 +797,7 @@ Problem with 'delcombine'. (agguser, 2017 Nov 10, #2313)
 MS-Windows: buffer completion doesn't work when using backslash (or slash)
 for a path separator. (xtal8, #2201)
 
-Would be nice for insert mode completion to highlight the text that was added
+Would be nice for Insert mode completion to highlight the text that was added
 (and may change when picking another completion).
 
 Test runtime files.
@@ -988,10 +1013,6 @@ somewhere else.  :{range}copy {dest} !cmd
 
 Patch to fix that empty first tab is not in session.
 (Hirohito Higashi, 2016 Nov 25, #1282)
-
-Patch to add random number generator. (Hong Xu, 2010 Nov 8, update Nov 10)
-Alternative from Christian Brabandt. (2010 Sep 19)
-New one from Yasuhiro Matsumoto, #1277.
 
 Patch to fix escaping of job arguments. (Yasuhiro Matsumoto, 2016 Oct 5)
 Update Oct 14: https://gist.github.com/mattn/d47e7d3bfe5ade4be86062b565a4bfca
@@ -1886,9 +1907,6 @@ need to make the change in where RET_WIN_BUF_CHARTABSIZE() is called.
 Syntax region with 'concealends' and a 'cchar' value, 'conceallevel' set to 2,
 only one of the two ends gets the cchar displayed. (Brett Stahlman, 2010 Aug
 21, Ben Fritz, 2010 Sep 14)
-
-'cursorline' works on a text line only.  Add 'cursorscreenline' for
-highlighting the screen line. (Christian Brabandt, 2012 Mar 31)
 
 Win32: Patch to use task dialogs when available. (Sergiu Dotenco, 2011 Sep 17)
 New feature, requires testing.  Made some remarks.

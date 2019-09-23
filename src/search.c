@@ -4812,9 +4812,7 @@ current_search(
 #endif
 
     may_start_select('c');
-#ifdef FEAT_MOUSE
     setmouse();
-#endif
 #ifdef FEAT_CLIPBOARD
     /* Make sure the clipboard gets updated.  Needed because start and
      * end are still the same, and the selection needs to be owned */
@@ -5020,7 +5018,9 @@ search_stat(
 	len = STRLEN(t);
 	if (show_top_bot_msg && len + 2 < SEARCH_STAT_BUF_LEN)
 	{
-	    STRCPY(t + len, " W");
+	    mch_memmove(t + 2, t, len);
+	    t[0] = 'W';
+	    t[1] = ' ';
 	    len += 2;
 	}
 

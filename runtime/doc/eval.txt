@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.1.  Last change: 2019 Aug 31
+*eval.txt*	For Vim version 8.1.  Last change: 2019 Sep 19
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -92,7 +92,8 @@ the Number.  Examples:
 							*octal*
 Conversion from a String to a Number is done by converting the first digits to
 a number.  Hexadecimal "0xf9", Octal "017", and Binary "0b10" numbers are
-recognized.  If the String doesn't start with digits, the result is zero.
+recognized (NOTE: when using |scriptversion-4| octal is not recognized).  If
+the String doesn't start with digits, the result is zero.
 Examples:
 	String "456"	-->	Number 456 ~
 	String "6bar"	-->	Number 6 ~
@@ -2468,6 +2469,7 @@ getfperm({fname})		String	file permissions of file {fname}
 getfsize({fname})		Number	size in bytes of file {fname}
 getftime({fname})		Number	last modification time of file
 getftype({fname})		String	description of type of file {fname}
+getimstatus()			Number	|TRUE| if the IME status is active
 getjumplist([{winnr} [, {tabnr}]])
 				List	list of jump list items
 getline({lnum})			String	line {lnum} of current buffer
@@ -2547,7 +2549,7 @@ keys({dict})			List	keys in {dict}
 len({expr})			Number	the length of {expr}
 libcall({lib}, {func}, {arg})	String	call {func} in library {lib} with {arg}
 libcallnr({lib}, {func}, {arg})	Number	idem, but return a Number
-line({expr})			Number	line nr of cursor, last line or mark
+line({expr} [, {winid}])	Number	line nr of cursor, last line or mark
 line2byte({lnum})		Number	byte count of line {lnum}
 lispindent({lnum})		Number	Lisp indent for line {lnum}
 list2str({list} [, {utf8}])	String	turn numbers in {list} into a String
@@ -2593,7 +2595,7 @@ or({expr}, {expr})		Number	bitwise OR
 pathshorten({expr})		String	shorten directory names in a path
 perleval({expr})		any	evaluate |Perl| expression
 popup_atcursor({what}, {options}) Number create popup window near the cursor
-popup_beval({what}, {options}) 	Number 	create popup window for 'ballooneval'
+popup_beval({what}, {options})	Number	create popup window for 'ballooneval'
 popup_clear()			none	close all popup windows
 popup_close({id} [, {result}])	none	close popup window {id}
 popup_create({what}, {options}) Number	create a popup window
@@ -2753,10 +2755,12 @@ spellsuggest({word} [, {max} [, {capital}]])
 split({expr} [, {pat} [, {keepempty}]])
 				List	make |List| from {pat} separated {expr}
 sqrt({expr})			Float	square root of {expr}
+state([{what}])			String	current state of Vim
 str2float({expr})		Float	convert String to Float
 str2list({expr} [, {utf8}])	List	convert each character of {expr} to
 					ASCII/UTF8 value
-str2nr({expr} [, {base}])	Number	convert String to Number
+str2nr({expr} [, {base} [, {quoted}]])
+				Number	convert String to Number
 strchars({expr} [, {skipcc}])	Number	character length of the String {expr}
 strcharpart({str}, {start} [, {len}])
 				String	{len} characters of {str} at {start}
@@ -2874,6 +2878,8 @@ win_gotoid({expr})		Number	go to window with ID {expr}
 win_id2tabwin({expr})		List	get tab and window nr from window ID
 win_id2win({expr})		Number	get window nr from window ID
 win_screenpos({nr})		List	get screen position of window {nr}
+win_splitmove({nr}, {target} [, {options}])
+				none	move window {nr} to split of {target}
 winbufnr({nr})			Number	buffer number of window {nr}
 wincol()			Number	window column of the cursor
 winheight({nr})			Number	height of window {nr}
@@ -3154,7 +3160,7 @@ bufadd({name})						*bufadd()*
 		number.  Otherwise return the buffer number of the newly
 		created buffer.  When {name} is an empty string then a new
 		buffer is always created.
-		The buffer will not have' 'buflisted' set and not be loaded
+		The buffer will not have 'buflisted' set and not be loaded
 		yet.  To add some text to the buffer use this: >
 			let bufnr = bufadd('someName')
 			call bufload(bufnr)
@@ -5202,6 +5208,11 @@ getftype({fname})					*getftype()*
 		Can also be used as a |method|: >
 			GetFilename()->getftype()
 
+getimstatus()						*getimstatus()*
+		The result is a Number, which is |TRUE| when the IME status is
+		active.
+		See 'imstatusfunc'.
+
 getjumplist([{winnr} [, {tabnr}]])			*getjumplist()*
 		Returns the |jumplist| for the specified window.
 
@@ -5688,8 +5699,8 @@ glob2regpat({expr})					 *glob2regpat()*
 			GetExpr()->glob2regpat()
 <								*globpath()*
 globpath({path}, {expr} [, {nosuf} [, {list} [, {alllinks}]]])
-		Perform glob() on all directories in {path} and concatenate
-		the results.  Example: >
+		Perform glob() for {expr} on all directories in {path} and
+		concatenate the results.  Example: >
 			:echo globpath(&rtp, "syntax/c.vim")
 <
 		{path} is a comma-separated list of directory names.  Each
@@ -5790,7 +5801,9 @@ hasmapto({what} [, {mode} [, {abbr}]])			*hasmapto()*
 		If no matching mapping is found 0 is returned.
 		The following characters are recognized in {mode}:
 			n	Normal mode
-			v	Visual mode
+			v	Visual and Select mode
+			x	Visual mode
+			s	Select mode
 			o	Operator-pending mode
 			i	Insert mode
 			l	Language-Argument ("r", "f", "t", etc.)
@@ -5831,7 +5844,7 @@ histadd({history}, {item})				*histadd()*
 
 		Can also be used as a |method|, the base is used for the
 		second argument: >
-			GetPattern()->histadd('search')
+			GetHistory()->histadd('search')
 
 histdel({history} [, {item}])				*histdel()*
 		Clear {history}, i.e. delete all its entries.  See |hist-names|
@@ -6376,8 +6389,9 @@ libcallnr({libname}, {funcname}, {argument})
 		the argument to the called function: >
 			GetValue()->libcallnr("libc.so", "printf")
 <
-							*line()*
-line({expr})	The result is a Number, which is the line number of the file
+
+line({expr} [, {winid}])				*line()*
+		The result is a Number, which is the line number of the file
 		position given with {expr}.  The accepted positions are:
 		    .	    the cursor position
 		    $	    the last line in the current buffer
@@ -6395,8 +6409,11 @@ line({expr})	The result is a Number, which is the line number of the file
 		then applies to another buffer.
 		To get the column number use |col()|.  To get both use
 		|getpos()|.
+		With the optional {winid} argument the values are obtained for
+		that window instead of the current window.
 		Examples: >
 			line(".")		line number of the cursor
+			line(".", winid)	idem, in window "winid"
 			line("'t")		line number of mark t
 			line("'" . marker)	line number of mark marker
 <
@@ -6459,7 +6476,7 @@ listener_add({callback} [, {buf}])			*listener_add()*
 		buffer is used.
 		Returns a unique ID that can be passed to |listener_remove()|.
 
-		The {callback} is invoked with four arguments:
+		The {callback} is invoked with five arguments:
 		    a:bufnr	the buffer that was changed
 		    a:start	first changed line number
 		    a:end	first line number below the change
@@ -7050,6 +7067,7 @@ mode([expr])	Return a string that indicates the current mode.
 		If [expr] is supplied and it evaluates to a non-zero Number or
 		a non-empty String (|non-zero-arg|), then the full mode is
 		returned, otherwise only the first letter is returned.
+		Also see |state()|.
 
 		   n	    Normal, Terminal-Normal
 		   no	    Operator-pending
@@ -7120,6 +7138,9 @@ nextnonblank({lnum})					*nextnonblank()*
 		below it, zero is returned.
 		See also |prevnonblank()|.
 
+		Can also be used as a |method|: >
+			GetLnum()->nextnonblank()
+
 nr2char({expr} [, {utf8}])				*nr2char()*
 		Return a string with a single character, which has the number
 		value {expr}.  Examples: >
@@ -7138,6 +7159,8 @@ nr2char({expr} [, {utf8}])				*nr2char()*
 		    let str = join(map(list, {_, val -> nr2char(val)}), '')
 <		Result: "ABC"
 
+		Can also be used as a |method|: >
+			GetNumber()->nr2char()
 
 or({expr}, {expr})					*or()*
 		Bitwise OR on the two arguments.  The arguments are converted
@@ -7157,6 +7180,9 @@ pathshorten({expr})					*pathshorten()*
 <			~/.v/a/myfile.vim ~
 		It doesn't matter if the path exists or not.
 
+		Can also be used as a |method|: >
+			GetDirectories()->pathshorten()
+
 perleval({expr})					*perleval()*
 		Evaluate Perl expression {expr} in scalar context and return
 		its result converted to Vim data structures. If value can't be
@@ -7166,7 +7192,11 @@ perleval({expr})					*perleval()*
 		Example: >
 			:echo perleval('[1 .. 4]')
 <			[1, 2, 3, 4]
-		{only available when compiled with the |+perl| feature}
+
+		Can also be used as a |method|: >
+			GetExpr()->perleval()
+
+<		{only available when compiled with the |+perl| feature}
 
 
 popup_ functions are documented here: |popup-functions|.
@@ -7196,6 +7226,8 @@ prevnonblank({lnum})					*prevnonblank()*
 		above it, zero is returned.
 		Also see |nextnonblank()|.
 
+		Can also be used as a |method|: >
+			GetLnum()->prevnonblank()
 
 printf({fmt}, {expr1} ...)				*printf()*
 		Return a String with {fmt}, where "%" items are replaced by
@@ -7424,6 +7456,10 @@ prompt_setcallback({buf}, {expr})			*prompt_setcallback()*
 		     endif
 		   endfunc
 
+<		Can also be used as a |method|: >
+			GetBuffer()->prompt_setcallback(callback)
+
+
 prompt_setinterrupt({buf}, {expr})			*prompt_setinterrupt()*
 		Set a callback for buffer {buf} to {expr}.  When {expr} is an
 		empty string the callback is removed.  This has only effect if
@@ -7433,6 +7469,9 @@ prompt_setinterrupt({buf}, {expr})			*prompt_setinterrupt()*
 		mode.  Without setting a callback Vim will exit Insert mode,
 		as in any buffer.
 
+		Can also be used as a |method|: >
+			GetBuffer()->prompt_setinterrupt(callback)
+
 prompt_setprompt({buf}, {text})				*prompt_setprompt()*
 		Set prompt for buffer {buf} to {text}.  You most likely want
 		{text} to end in a space.
@@ -7440,6 +7479,9 @@ prompt_setprompt({buf}, {text})				*prompt_setprompt()*
 		"prompt".  Example: >
 			call prompt_setprompt(bufnr(), 'command: ')
 <
+		Can also be used as a |method|: >
+			GetBuffer()->prompt_setprompt('command: ')
+
 prop_ functions are documented here: |text-prop-functions|.
 
 pum_getpos()						*pum_getpos()*
@@ -7471,7 +7513,11 @@ py3eval({expr})						*py3eval()*
 		Lists are represented as Vim |List| type.
 		Dictionaries are represented as Vim |Dictionary| type with
 		keys converted to strings.
-		{only available when compiled with the |+python3| feature}
+
+		Can also be used as a |method|: >
+			GetExpr()->py3eval()
+
+<		{only available when compiled with the |+python3| feature}
 
 							*E858* *E859*
 pyeval({expr})						*pyeval()*
@@ -7482,14 +7528,22 @@ pyeval({expr})						*pyeval()*
 		Lists are represented as Vim |List| type.
 		Dictionaries are represented as Vim |Dictionary| type,
 		non-string keys result in error.
-		{only available when compiled with the |+python| feature}
+
+		Can also be used as a |method|: >
+			GetExpr()->pyeval()
+
+<		{only available when compiled with the |+python| feature}
 
 pyxeval({expr})						*pyxeval()*
 		Evaluate Python expression {expr} and return its result
 		converted to Vim data structures.
 		Uses Python 2 or 3, see |python_x| and 'pyxversion'.
 		See also: |pyeval()|, |py3eval()|
-		{only available when compiled with the |+python| or the
+
+		Can also be used as a |method|: >
+			GetExpr()->pyxeval()
+
+<		{only available when compiled with the |+python| or the
 		|+python3| feature}
 
 							*E726* *E727*
@@ -7510,6 +7564,9 @@ range({expr} [, {max} [, {stride}]])				*range()*
 			range(2, -2, -1)	" [2, 1, 0, -1, -2]
 			range(0)		" []
 			range(2, 0)		" error!
+<
+		Can also be used as a |method|: >
+			GetExpr()->range()
 <
 							*readdir()*
 readdir({directory} [, {expr}])
@@ -7539,6 +7596,9 @@ readdir({directory} [, {expr}])
 		      \          {x : s:tree(a:dir . '/' . x)} : x})}
                   endfunction
                   echo s:tree(".")
+<
+		Can also be used as a |method|: >
+			GetDirName()->readdir()
 <
 							*readfile()*
 readfile({fname} [, {type} [, {max}]])
@@ -7574,6 +7634,9 @@ readfile({fname} [, {type} [, {max}]])
 		the result is an empty list.
 		Also see |writefile()|.
 
+		Can also be used as a |method|: >
+			GetFileName()->readfile()
+
 reg_executing()						*reg_executing()*
 		Returns the single letter name of the register being executed.
 		Returns an empty string when no register is being executed.
@@ -7595,6 +7658,10 @@ reltime([{start} [, {end}]])				*reltime()*
 		and {end}.
 		The {start} and {end} arguments must be values returned by
 		reltime().
+
+		Can also be used as a |method|: >
+			GetStart()->reltime()
+<
 		{only available when compiled with the |+reltime| feature}
 
 reltimefloat({time})				*reltimefloat()*
@@ -7605,7 +7672,11 @@ reltimefloat({time})				*reltimefloat()*
 			let seconds = reltimefloat(reltime(start))
 <		See the note of reltimestr() about overhead.
 		Also see |profiling|.
-		{only available when compiled with the |+reltime| feature}
+
+		Can also be used as a |method|: >
+			reltime(start)->reltimefloat()
+
+<		{only available when compiled with the |+reltime| feature}
 
 reltimestr({time})				*reltimestr()*
 		Return a String that represents the time value of {time}.
@@ -7620,7 +7691,11 @@ reltimestr({time})				*reltimestr()*
 		can use split() to remove it. >
 			echo split(reltimestr(reltime(start)))[0]
 <		Also see |profiling|.
-		{only available when compiled with the |+reltime| feature}
+
+		Can also be used as a |method|: >
+			reltime(start)->reltimestr()
+
+<		{only available when compiled with the |+reltime| feature}
 
 							*remote_expr()* *E449*
 remote_expr({server}, {string} [, {idvar} [, {timeout}]])
@@ -7649,6 +7724,8 @@ remote_expr({server}, {string} [, {idvar} [, {timeout}]])
 			:echo remote_expr("gvim", "2+2")
 			:echo remote_expr("gvim1", "b:current_syntax")
 <
+		Can also be used as a |method|: >
+			ServerName()->remote_expr(expr)
 
 remote_foreground({server})				*remote_foreground()*
 		Move the Vim server with the name {server} to the foreground.
@@ -7660,7 +7737,11 @@ remote_foreground({server})				*remote_foreground()*
 		Note: This does not restore the window if it was minimized,
 		like foreground() does.
 		This function is not available in the |sandbox|.
-		{only in the Win32, Athena, Motif and GTK GUI versions and the
+
+		Can also be used as a |method|: >
+			ServerName()->remote_foreground()
+
+<		{only in the Win32, Athena, Motif and GTK GUI versions and the
 		Win32 console version}
 
 
@@ -7678,6 +7759,9 @@ remote_peek({serverid} [, {retvar}])		*remote_peek()*
 			:let repl = ""
 			:echo "PEEK: ".remote_peek(id, "repl").": ".repl
 
+<		Can also be used as a |method|: >
+			ServerId()->remote_peek()
+
 remote_read({serverid}, [{timeout}])			*remote_read()*
 		Return the oldest available reply from {serverid} and consume
 		it.  Unless a {timeout} in seconds is given, it blocks until a
@@ -7687,6 +7771,9 @@ remote_read({serverid}, [{timeout}])			*remote_read()*
 		{only available when compiled with the |+clientserver| feature}
 		Example: >
 			:echo remote_read(id)
+
+<		Can also be used as a |method|: >
+			ServerId()->remote_read()
 <
 							*remote_send()* *E241*
 remote_send({server}, {string} [, {idvar}])
@@ -7711,11 +7798,18 @@ remote_send({server}, {string} [, {idvar}])
 		:echo remote_send("gvim", ":sleep 10 | echo ".
 		 \ 'server2client(expand("<client>"), "HELLO")<CR>')
 <
+		Can also be used as a |method|: >
+			ServerName()->remote_send(keys)
+<
 					*remote_startserver()* *E941* *E942*
 remote_startserver({name})
 		Become the server {name}.  This fails if already running as a
 		server, when |v:servername| is not empty.
-		{only available when compiled with the |+clientserver| feature}
+
+		Can also be used as a |method|: >
+			ServerName()->remote_startserver()
+
+<		{only available when compiled with the |+clientserver| feature}
 
 remove({list}, {idx} [, {end}])				*remove()*
 		Without {end}: Remove the item at {idx} from |List| {list} and
@@ -7759,6 +7853,9 @@ rename({from}, {to})					*rename()*
 		NOTE: If {to} exists it is overwritten without warning.
 		This function is not available in the |sandbox|.
 
+		Can also be used as a |method|: >
+			GetOldName()->rename(newname)
+
 repeat({expr}, {count})					*repeat()*
 		Repeat {expr} {count} times and return the concatenated
 		result.  Example: >
@@ -7788,6 +7885,8 @@ resolve({filename})					*resolve()* *E655*
 		current directory (provided the result is still a relative
 		path name) and also keeps a trailing path separator.
 
+		Can also be used as a |method|: >
+			GetName()->resolve()
 
 reverse({object})					*reverse()*
 		Reverse the order of items in {object} in-place.
@@ -7825,12 +7924,19 @@ rubyeval({expr})					*rubyeval()*
 		Hashes are represented as Vim |Dictionary| type.
 		Other objects are represented as strings resulted from their
 		"Object#to_s" method.
-		{only available when compiled with the |+ruby| feature}
+
+		Can also be used as a |method|: >
+			GetRubyExpr()->rubyeval()
+
+<		{only available when compiled with the |+ruby| feature}
 
 screenattr({row}, {col})					*screenattr()*
 		Like |screenchar()|, but return the attribute.  This is a rather
 		arbitrary number that can only be used to compare to the
 		attribute at other positions.
+
+		Can also be used as a |method|: >
+			GetRow()->screenattr(col)
 
 screenchar({row}, {col})					*screenchar()*
 		The result is a Number, which is the character at position
@@ -7842,12 +7948,18 @@ screenchar({row}, {col})					*screenchar()*
 		This is mainly to be used for testing.
 		Returns -1 when row or col is out of range.
 
+		Can also be used as a |method|: >
+			GetRow()->screenchar(col)
+
 screenchars({row}, {col})					*screenchars()*
 		The result is a List of Numbers.  The first number is the same
 		as what |screenchar()| returns.  Further numbers are
 		composing characters on top of the base character.
 		This is mainly to be used for testing.
 		Returns an empty List when row or col is out of range.
+
+		Can also be used as a |method|: >
+			GetRow()->screenchars(col)
 
 screencol()							*screencol()*
 		The result is a Number, which is the current screen column of
@@ -7879,6 +7991,9 @@ screenpos({winid}, {lnum}, {col})				*screenpos()*
 		a Tab it would be the same as "endcol", while for a double
 		width character it would be the same as "col".
 
+		Can also be used as a |method|: >
+			GetWinid()->screenpos(lnum, col)
+
 screenrow()							*screenrow()*
 		The result is a Number, which is the current screen row of the
 		cursor.  The top line has number one.
@@ -7894,6 +8009,9 @@ screenstring({row}, {col})					*screenstring()*
 		characters.
 		This is mainly to be used for testing.
 		Returns an empty String when row or col is out of range.
+
+		Can also be used as a |method|: >
+			GetRow()->screenstring(col)
 
 search({pattern} [, {flags} [, {stopline} [, {timeout}]]])	*search()*
 		Search for regexp pattern {pattern}.  The search starts at the
@@ -7981,6 +8099,8 @@ search({pattern} [, {flags} [, {stopline} [, {timeout}]]])	*search()*
 		without the 'e' flag if the cursor is on the "f" of "if".
 		The 'n' flag tells the function not to move the cursor.
 
+		Can also be used as a |method|: >
+			GetPattern()->search()
 
 searchdecl({name} [, {global} [, {thisblock}]])			*searchdecl()*
 		Search for the declaration of {name}.
@@ -7999,6 +8119,9 @@ searchdecl({name} [, {global} [, {thisblock}]])			*searchdecl()*
 			if searchdecl('myvar') == 0
 			   echo getline('.')
 			endif
+<
+		Can also be used as a |method|: >
+			GetName()->searchdecl()
 <
 							*searchpair()*
 searchpair({start}, {middle}, {end} [, {flags} [, {skip}
@@ -8114,6 +8237,9 @@ searchpos({pattern} [, {flags} [, {stopline} [, {timeout}]]])	*searchpos()*
 <		In this example "submatch" is 2 when a lowercase letter is
 		found |/\l|, 3 when an uppercase letter is found |/\u|.
 
+		Can also be used as a |method|: >
+			GetPattern()->searchpos()
+
 server2client({clientid}, {string})			*server2client()*
 		Send a reply string to {clientid}.  The most recent {clientid}
 		that sent a string can be retrieved with expand("<client>").
@@ -8125,6 +8251,9 @@ server2client({clientid}, {string})			*server2client()*
 		See also |clientserver|.
 		Example: >
 			:echo server2client(expand("<client>"), "HELLO")
+
+<		Can also be used as a |method|: >
+			GetClientId()->server2client(string)
 <
 serverlist()					*serverlist()*
 		Return a list of available server names, one per line.
@@ -8148,6 +8277,9 @@ setbufline({expr}, {lnum}, {text})			*setbufline()*
 		{lnum} is not valid then 1 is returned.  On success 0 is
 		returned.
 
+		Can also be used as a |method|: >
+			GetText()->setbufline(buf, lnum)
+
 setbufvar({expr}, {varname}, {val})			*setbufvar()*
 		Set option or local variable {varname} in buffer {expr} to
 		{val}.
@@ -8160,6 +8292,9 @@ setbufvar({expr}, {varname}, {val})			*setbufvar()*
 			:call setbufvar(1, "&mod", 1)
 			:call setbufvar("todo", "myvar", "foobar")
 <		This function is not available in the |sandbox|.
+
+		Can also be used as a |method|: >
+			GetValue()->setbufvar(buf, varname)
 
 setcharsearch({dict})					*setcharsearch()*
 		Set the current character search information to {dict},
@@ -8181,6 +8316,9 @@ setcharsearch({dict})					*setcharsearch()*
 			:call setcharsearch(prevsearch)
 <		Also see |getcharsearch()|.
 
+		Can also be used as a |method|: >
+			SavedSearch()->setcharsearch()
+
 setcmdpos({pos})					*setcmdpos()*
 		Set the cursor position in the command line to byte position
 		{pos}.  The first position is 1.
@@ -8196,10 +8334,16 @@ setcmdpos({pos})					*setcmdpos()*
 		Returns 0 when successful, 1 when not editing the command
 		line.
 
+		Can also be used as a |method|: >
+			GetPos()->setcmdpos()
+
 setenv({name}, {val})						*setenv()*
 		Set environment variable {name} to {val}.
 		When {val} is |v:null| the environment variable is deleted.
 		See also |expr-env|.
+
+		Can also be used as a |method|, passing the value as the base: >
+			GetPath()->setenv('PATH')
 
 setfperm({fname}, {mode})				*setfperm()* *chmod*
 		Set the file permissions for {fname} to {mode}.
@@ -8247,6 +8391,9 @@ setline({lnum}, {text})					*setline()*
 
 <		Note: The '[ and '] marks are not set.
 
+		Can also be used as a |method|, passing the text as the base: >
+			GetText()->setline(lnum)
+
 setloclist({nr}, {list} [, {action} [, {what}]])		*setloclist()*
 		Create or replace or add to the location list for window {nr}.
 		{nr} can be the window number or the |window-ID|.
@@ -8261,6 +8408,10 @@ setloclist({nr}, {list} [, {action} [, {what}]])		*setloclist()*
 		only the items listed in {what} are set. Refer to |setqflist()|
 		for the list of supported keys in {what}.
 
+		Can also be used as a |method|, the base is passed as the
+		second argument: >
+			GetLoclist()->setloclist(winnr)
+
 setmatches({list} [, {win}])				*setmatches()*
 		Restores a list of matches saved by |getmatches() for the
 		current window|.  Returns 0 if successful, otherwise -1.  All
@@ -8269,6 +8420,9 @@ setmatches({list} [, {win}])				*setmatches()*
 		If {win} is specified, use the window with this number or
 		window ID instead of the current window.
 
+		Can also be used as a |method|: >
+			GetMatches()->setmatches()
+<
 							*setpos()*
 setpos({expr}, {list})
 		Set the position for {expr}.  Possible values:
@@ -8317,6 +8471,9 @@ setpos({expr}, {list})
 		|k| motions will jump to previous columns!  Use |cursor()| to
 		also set the preferred column.  Also see the "curswant" key in
 		|winrestview()|.
+
+		Can also be used as a |method|: >
+			GetPosition()->setpos('.')
 
 setqflist({list} [, {action} [, {what}]])		*setqflist()*
 		Create or replace or add to the quickfix list.
@@ -8419,7 +8576,10 @@ setqflist({list} [, {action} [, {what}]])		*setqflist()*
 		independent of the 'errorformat' setting.  Use a command like
 		`:cc 1` to jump to the first position.
 
-
+		Can also be used as a |method|, the base is passed as the
+		second argument: >
+			GetErrorlist()->setqflist()
+<
 							*setreg()*
 setreg({regname}, {value} [, {options}])
 		Set the register {regname} to {value}.
@@ -8467,6 +8627,10 @@ setreg({regname}, {value} [, {options}])
 		nothing: >
 			:call setreg('a', '', 'al')
 
+<		Can also be used as a |method|, the base is passed as the
+		second argument: >
+			GetText()->setreg('a')
+
 settabvar({tabnr}, {varname}, {val})			*settabvar()*
 		Set tab-local variable {varname} to {val} in tab page {tabnr}.
 		|t:var|
@@ -8475,6 +8639,9 @@ settabvar({tabnr}, {varname}, {val})			*settabvar()*
 		Note that the variable name without "t:" must be used.
 		Tabs are numbered starting with one.
 		This function is not available in the |sandbox|.
+
+		Can also be used as a |method|, the base is used as the value: >
+			GetValue()->settabvar(tab, name)
 
 settabwinvar({tabnr}, {winnr}, {varname}, {val})	*settabwinvar()*
 		Set option or local variable {varname} in window {winnr} to
@@ -8493,6 +8660,9 @@ settabwinvar({tabnr}, {winnr}, {varname}, {val})	*settabwinvar()*
 			:call settabwinvar(1, 1, "&list", 0)
 			:call settabwinvar(3, 2, "myvar", "foobar")
 <		This function is not available in the |sandbox|.
+
+		Can also be used as a |method|, the base is used as the value: >
+			GetValue()->settabvar(tab, winnr, name)
 
 settagstack({nr}, {dict} [, {action}])			*settagstack()*
 		Modify the tag stack of the window {nr} using {dict}.
@@ -8525,16 +8695,26 @@ settagstack({nr}, {dict} [, {action}])			*settagstack()*
 			call settagstack(1003, stack)
 			unlet stack
 <
-setwinvar({nr}, {varname}, {val})			*setwinvar()*
+		Can also be used as a |method|, the base is used as the Dict: >
+			GetStack()->settagstack(winnr)
+
+setwinvar({winnr}, {varname}, {val})			*setwinvar()*
 		Like |settabwinvar()| for the current tab page.
 		Examples: >
 			:call setwinvar(1, "&list", 0)
 			:call setwinvar(2, "myvar", "foobar")
 
+<		Can also be used as a |method|, the base is used as the value: >
+			GetValue()->setwinvar(winnr, name)
+
 sha256({string})						*sha256()*
 		Returns a String with 64 hex characters, which is the SHA256
 		checksum of {string}.
-		{only available when compiled with the |+cryptv| feature}
+
+		Can also be used as a |method|: >
+			GetText()->sha256()
+
+<		{only available when compiled with the |+cryptv| feature}
 
 shellescape({string} [, {special}])			*shellescape()*
 		Escape {string} for use as a shell command argument.
@@ -8566,6 +8746,8 @@ shellescape({string} [, {special}])			*shellescape()*
 		    :call system("chmod +w -- " . shellescape(expand("%")))
 <		See also |::S|.
 
+		Can also be used as a |method|: >
+			GetCommand()->shellescape()
 
 shiftwidth([{col}])						*shiftwidth()*
 		Returns the effective value of 'shiftwidth'. This is the
@@ -8578,6 +8760,9 @@ shiftwidth([{col}])						*shiftwidth()*
 		for which to return the 'shiftwidth' value. This matters for the
 		'vartabstop' feature. If the 'vartabstop' setting is enabled and
 		no {col} argument is given, column 1 will be assumed.
+
+		Can also be used as a |method|: >
+			GetColumn()->shiftwidth()
 
 sign_ functions are documented here: |sign-functions-details|
 
@@ -8716,7 +8901,11 @@ sound_playevent({name} [, {callback}])
 
 		Returns the sound ID, which can be passed to `sound_stop()`.
 		Returns zero if the sound could not be played.
-		{only available when compiled with the |+sound| feature}
+
+		Can also be used as a |method|: >
+			GetSoundName()->sound_playevent()
+
+<		{only available when compiled with the |+sound| feature}
 
 							*sound_playfile()*
 sound_playfile({path} [, {callback}])
@@ -8724,6 +8913,10 @@ sound_playfile({path} [, {callback}])
 		must be a full path.  On Ubuntu you may find files to play
 		with this command: >
 		    :!find /usr/share/sounds -type f | grep -v index.theme
+
+<		Can also be used as a |method|: >
+			GetSoundPath()->sound_playfile()
+
 <		{only available when compiled with the |+sound| feature}
 
 
@@ -8734,7 +8927,10 @@ sound_stop({id})					*sound_stop()*
 		On MS-Windows, this does not work for event sound started by
 		`sound_playevent()`. To stop event sounds, use `sound_clear()`.
 
-		{only available when compiled with the |+sound| feature}
+		Can also be used as a |method|: >
+			soundid->sound_stop()
+
+<		{only available when compiled with the |+sound| feature}
 
 							*soundfold()*
 soundfold({word})
@@ -8745,6 +8941,9 @@ soundfold({word})
 		This can be used for making spelling suggestions.  Note that
 		the method can be quite slow.
 
+		Can also be used as a |method|: >
+			GetWord()->soundfold()
+<
 							*spellbadword()*
 spellbadword([{sentence}])
 		Without argument: The result is the badly spelled word under
@@ -8771,6 +8970,9 @@ spellbadword([{sentence}])
 		'spell' option must be set and the value of 'spelllang' is
 		used.
 
+		Can also be used as a |method|: >
+			GetText()->spellbadword()
+<
 							*spellsuggest()*
 spellsuggest({word} [, {max} [, {capital}]])
 		Return a |List| with spelling suggestions to replace {word}.
@@ -8794,6 +8996,8 @@ spellsuggest({word} [, {max} [, {capital}]])
 		'spell' option must be set and the values of 'spelllang' and
 		'spellsuggest' are used.
 
+		Can also be used as a |method|: >
+			GetWord()->spellsuggest()
 
 split({expr} [, {pattern} [, {keepempty}]])			*split()*
 		Make a |List| out of {expr}.  When {pattern} is omitted or
@@ -8839,6 +9043,42 @@ sqrt({expr})						*sqrt()*
 		{only available when compiled with the |+float| feature}
 
 
+state([{what}])						*state()*
+		Return a string which contains characters indicating the
+		current state.  Mostly useful in callbacks that want to do
+		work that may not always be safe.  Roughly this works like:
+		- callback uses state() to check if work is safe to do.
+		  Yes: then do it right away.
+		  No:  add to work queue and add a |SafeState| and/or
+		       |SafeStateAgain| autocommand (|SafeState| triggers at
+		       toplevel, |SafeStateAgain| triggers after handling
+		       messages and callbacks).
+		- When SafeState or SafeStateAgain is triggered and executes
+		  your autocommand, check with `state()` if the work can be
+		  done now, and if yes remove it from the queue and execute.
+		  Remove the autocommand if the queue is now empty.
+		Also see |mode()|.
+
+		When {what} is given only characters in this string will be
+		added.  E.g, this checks if the screen has scrolled: >
+			if state('s') == ''
+			   " screen has not scrolled
+<
+		These characters indicate the state, generally indicating that
+		something is busy:
+		    m	halfway a mapping, :normal command, feedkeys() or
+			stuffed command
+		    o	operator pending or waiting for a command argument,
+		        e.g. after |f|
+		    a	Insert mode autocomplete active
+		    x	executing an autocommand
+		    w	blocked on waiting, e.g. ch_evalexpr() and
+			ch_read(), ch_readraw() when reading json.
+		    S	not triggering SafeState or SafeStateAgain
+		    c	callback invoked, including timer (repeats for
+			recursiveness up to "ccc")
+		    s	screen has scrolled for messages
+
 str2float({expr})					*str2float()*
 		Convert String {expr} to a Float.  This mostly works the same
 		as when using a floating point number in an expression, see
@@ -8875,9 +9115,11 @@ str2list({expr} [, {utf8}])				*str2list()*
 			GetString()->str2list()
 
 
-str2nr({expr} [, {base}])				*str2nr()*
+str2nr({expr} [, {base} [, {quoted}]])				*str2nr()*
 		Convert string {expr} to a number.
 		{base} is the conversion base, it can be 2, 8, 10 or 16.
+		When {quoted} is present and non-zero then embedded single
+		quotes are ignored, thus "1'000'000" is a million.
 
 		When {base} is omitted base 10 is used.  This also means that
 		a leading zero doesn't cause octal conversion to be used, as
@@ -8890,6 +9132,19 @@ str2nr({expr} [, {base}])				*str2nr()*
 		leading "0b" or "0B" is ignored.
 		Text after the number is silently ignored.
 
+		Can also be used as a |method|: >
+			GetText()->str2nr()
+
+strcharpart({src}, {start} [, {len}])			*strcharpart()*
+		Like |strpart()| but using character index and length instead
+		of byte index and length.
+		When a character index is used where a character does not
+		exist it is assumed to be one character.  For example: >
+			strcharpart('abc', -1, 2)
+<		results in 'a'.
+
+		Can also be used as a |method|: >
+			GetText()->strcharpart(5)
 
 strchars({expr} [, {skipcc}])					*strchars()*
 		The result is a Number, which is the number of characters
@@ -8915,13 +9170,8 @@ strchars({expr} [, {skipcc}])					*strchars()*
 		      endfunction
 		    endif
 <
-strcharpart({src}, {start} [, {len}])			*strcharpart()*
-		Like |strpart()| but using character index and length instead
-		of byte index and length.
-		When a character index is used where a character does not
-		exist it is assumed to be one character.  For example: >
-			strcharpart('abc', -1, 2)
-<		results in 'a'.
+		Can also be used as a |method|: >
+			GetText()->strchars()
 
 strdisplaywidth({expr} [, {col}])			*strdisplaywidth()*
 		The result is a Number, which is the number of display cells
@@ -8935,6 +9185,9 @@ strdisplaywidth({expr} [, {col}])			*strdisplaywidth()*
 		When {expr} contains characters with East Asian Width Class
 		Ambiguous, this function's return value depends on 'ambiwidth'.
 		Also see |strlen()|, |strwidth()| and |strchars()|.
+
+		Can also be used as a |method|: >
+			GetText()->strdisplaywidth()
 
 strftime({format} [, {time}])				*strftime()*
 		The result is a String, which is a formatted date and time, as
@@ -8955,11 +9208,17 @@ strftime({format} [, {time}])				*strftime()*
 <		Not available on all systems.  To check use: >
 			:if exists("*strftime")
 
+<		Can also be used as a |method|: >
+			GetFormat()->strftime()
+
 strgetchar({str}, {index})				*strgetchar()*
 		Get character {index} from {str}.  This uses a character
 		index, not a byte index.  Composing characters are considered
 		separate characters here.
 		Also see |strcharpart()| and |strchars()|.
+
+		Can also be used as a |method|: >
+			GetText()->strgetchar(5)
 
 stridx({haystack}, {needle} [, {start}])		*stridx()*
 		The result is a Number, which gives the byte index in
@@ -8980,6 +9239,8 @@ stridx({haystack}, {needle} [, {start}])		*stridx()*
 		stridx() works similar to the C function strstr().  When used
 		with a single character it works similar to strchr().
 
+		Can also be used as a |method|: >
+			GetHaystack()->stridx(needle)
 							*string()*
 string({expr})	Return {expr} converted to a String.  If {expr} is a Number,
 		Float, String, Blob or a composition of them, then the result
@@ -9032,6 +9293,9 @@ strpart({src}, {start} [, {len}])			*strpart()*
 		example, to get three bytes under and after the cursor: >
 			strpart(getline("."), col(".") - 1, 3)
 <
+		Can also be used as a |method|: >
+			GetText()->strpart(5)
+
 strridx({haystack}, {needle} [, {start}])			*strridx()*
 		The result is a Number, which gives the byte index in
 		{haystack} of the last occurrence of the String {needle}.
@@ -9049,6 +9313,9 @@ strridx({haystack}, {needle} [, {start}])			*strridx()*
 <							*strrchr()*
 		When used with a single character it works similar to the C
 		function strrchr().
+
+		Can also be used as a |method|: >
+			GetHaystack()->strridx(needle)
 
 strtrans({expr})					*strtrans()*
 		The result is a String, which is {expr} with all unprintable
@@ -9097,6 +9364,9 @@ submatch({nr} [, {list}])			*submatch()* *E935*
 			:echo substitute(text, '\d\+', '\=submatch(0) + 1', '')
 <		This finds the first number in the line and adds one to it.
 		A line break is included as a newline character.
+
+		Can also be used as a |method|: >
+			GetNr()->submatch()
 
 substitute({expr}, {pat}, {sub}, {flags})		*substitute()*
 		The result is a String, which is a copy of {expr}, in which
@@ -9161,12 +9431,18 @@ swapinfo({fname})					*swapinfo()*
 			Not a swap file: does not contain correct block ID
 			Magic number mismatch: Info in first block is invalid
 
+		Can also be used as a |method|: >
+			GetFilename()->swapinfo()
+
 swapname({expr})					*swapname()*
 		The result is the swap file path of the buffer {expr}.
 		For the use of {expr}, see |bufname()| above.
 		If buffer {expr} is the current buffer, the result is equal to
 		|:swapname| (unless no swap file).
 		If buffer {expr} has no swap file, returns an empty string.
+
+		Can also be used as a |method|: >
+			GetBufname()->swapname()
 
 synID({lnum}, {col}, {trans})				*synID()*
 		The result is a Number, which is the syntax ID at the position
@@ -9374,6 +9650,8 @@ tabpagebuflist([{arg}])					*tabpagebuflist()*
 			endfor
 <		Note that a buffer may appear in more than one window.
 
+		Can also be used as a |method|: >
+			GetTabpage()->tabpagebuflist()
 
 tabpagenr([{arg}])					*tabpagenr()*
 		The result is a Number, which is the number of the current
@@ -9396,6 +9674,9 @@ tabpagewinnr({tabarg} [, {arg}])			*tabpagewinnr()*
 		    tabpagewinnr(4, '$')    " number of windows in tab page 4
 <		When {tabarg} is invalid zero is returned.
 
+		Can also be used as a |method|: >
+			GetTabpage()->tabpagewinnr()
+<
 							*tagfiles()*
 tagfiles()	Returns a |List| with the file names used to search for tags
 		for the current buffer.  This is the 'tags' option expanded.
@@ -9443,6 +9724,9 @@ taglist({expr} [, {filename}])				*taglist()*
 		Refer to |'tags'| for information about how the tags file is
 		located by Vim. Refer to |tags-file-format| for the format of
 		the tags file generated by the different ctags tools.
+
+		Can also be used as a |method|: >
+			GetTagpattern()->taglist()
 
 tan({expr})						*tan()*
 		Return the tangent of {expr}, measured in radians, as a |Float|
@@ -9510,7 +9794,10 @@ timer_info([{id}])
 		    "callback"	    the callback
 		    "paused"	    1 if the timer is paused, 0 otherwise
 
-		{only available when compiled with the |+timers| feature}
+		Can also be used as a |method|: >
+			GetTimer()->timer_info()
+
+<		{only available when compiled with the |+timers| feature}
 
 timer_pause({timer}, {paused})				*timer_pause()*
 		Pause or unpause a timer.  A paused timer does not invoke its
@@ -9525,7 +9812,10 @@ timer_pause({timer}, {paused})				*timer_pause()*
 		String, then the timer is paused, otherwise it is unpaused.
 		See |non-zero-arg|.
 
-		{only available when compiled with the |+timers| feature}
+		Can also be used as a |method|: >
+			GetTimer()->timer_pause(1)
+
+<		{only available when compiled with the |+timers| feature}
 
 						*timer_start()* *timer* *timers*
 timer_start({time}, {callback} [, {options}])
@@ -9558,7 +9848,10 @@ timer_start({time}, {callback} [, {options}])
 <		This will invoke MyHandler() three times at 500 msec
 		intervals.
 
-		Not available in the |sandbox|.
+		Can also be used as a |method|: >
+			GetMsec()->timer_start(callback)
+
+<		Not available in the |sandbox|.
 		{only available when compiled with the |+timers| feature}
 
 timer_stop({timer})					*timer_stop()*
@@ -9566,7 +9859,10 @@ timer_stop({timer})					*timer_stop()*
 		{timer} is an ID returned by timer_start(), thus it must be a
 		Number.  If {timer} does not exist there is no error.
 
-		{only available when compiled with the |+timers| feature}
+		Can also be used as a |method|: >
+			GetTimer()->timer_stop()
+
+<		{only available when compiled with the |+timers| feature}
 
 timer_stopall()						*timer_stopall()*
 		Stop all timers.  The timer callbacks will no longer be
@@ -9580,10 +9876,16 @@ tolower({expr})						*tolower()*
 		characters turned into lowercase (just like applying |gu| to
 		the string).
 
+		Can also be used as a |method|: >
+			GetText()->tolower()
+
 toupper({expr})						*toupper()*
 		The result is a copy of the String given, with all lowercase
 		characters turned into uppercase (just like applying |gU| to
 		the string).
+
+		Can also be used as a |method|: >
+			GetText()->toupper()
 
 tr({src}, {fromstr}, {tostr})				*tr()*
 		The result is a copy of the {src} string with all characters
@@ -9598,6 +9900,9 @@ tr({src}, {fromstr}, {tostr})				*tr()*
 <		returns "Hello THere" >
 			echo tr("<blob>", "<>", "{}")
 <		returns "{blob}"
+
+		Can also be used as a |method|: >
+			GetText()->tr(from, to)
 
 trim({text} [, {mask}])						*trim()*
 		Return {text} as a String where any character in {mask} is
@@ -9614,6 +9919,9 @@ trim({text} [, {mask}])						*trim()*
 <		returns "RESERVE_TAIL" >
 			echo trim("rm<Xrm<>X>rrm", "rm<>")
 <		returns "Xrm<>X" (characters in the middle are not removed)
+
+		Can also be used as a |method|: >
+			GetText()->trim()
 
 trunc({expr})							*trunc()*
 		Return the largest integral value with magnitude less than or
@@ -9674,6 +9982,9 @@ undofile({name})					*undofile()*
 		Useful in combination with |:wundo| and |:rundo|.
 		When compiled without the |+persistent_undo| option this always
 		returns an empty string.
+
+		Can also be used as a |method|: >
+			GetFilename()->undofile()
 
 undotree()						*undotree()*
 		Return the current state of the undo tree in a dictionary with
@@ -9773,8 +10084,11 @@ virtcol({expr})						*virtcol()*
 		all lines: >
 		    echo max(map(range(1, line('$')), "virtcol([v:val, '$'])"))
 
+<		Can also be used as a |method|: >
+			GetPos()->virtcol()
 
-visualmode([expr])						*visualmode()*
+
+visualmode([{expr}])						*visualmode()*
 		The result is a String, which describes the last Visual mode
 		used in the current buffer.  Initially it returns an empty
 		string, but once Visual mode has been used, it returns "v",
@@ -9788,7 +10102,7 @@ visualmode([expr])						*visualmode()*
 		Visual mode that was used.
 		If Visual mode is active, use |mode()| to get the Visual mode
 		(e.g., in a |:vmap|).
-		If [expr] is supplied and it evaluates to a non-zero Number or
+		If {expr} is supplied and it evaluates to a non-zero Number or
 		a non-empty String, then the Visual mode will be cleared and
 		the old value is returned.  See |non-zero-arg|.
 
@@ -9817,9 +10131,16 @@ win_execute({id}, {command} [, {silent}])		*win_execute()*
 		Not all commands are allowed in popup windows.
 		When window {id} does not exist then no error is given.
 
+		Can also be used as a |method|, the base is used for the
+		command: >
+			GetCommand()->win_execute(winid)
+
 win_findbuf({bufnr})					*win_findbuf()*
 		Returns a list with |window-ID|s for windows that contain
 		buffer {bufnr}.  When there is none the list is empty.
+
+		Can also be used as a |method|: >
+			GetBufnr()->win_findbuf()
 
 win_getid([{win} [, {tab}]])				*win_getid()*
 		Get the |window-ID| for the specified window.
@@ -9830,19 +10151,31 @@ win_getid([{win} [, {tab}]])				*win_getid()*
 		number {tab}.  The first tab has number one.
 		Return zero if the window cannot be found.
 
+		Can also be used as a |method|: >
+			GetWinnr()->win_getid()
+
 win_gotoid({expr})					*win_gotoid()*
 		Go to window with ID {expr}.  This may also change the current
 		tabpage.
 		Return 1 if successful, 0 if the window cannot be found.
+
+		Can also be used as a |method|: >
+			GetWinid()->win_gotoid()
 
 win_id2tabwin({expr})					*win_id2tabwin()*
 		Return a list with the tab number and window number of window
 		with ID {expr}: [tabnr, winnr].
 		Return [0, 0] if the window cannot be found.
 
+		Can also be used as a |method|: >
+			GetWinid()->win_id2tabwin()
+
 win_id2win({expr})					*win_id2win()*
 		Return the window number of window with ID {expr}.
 		Return 0 if the window cannot be found in the current tabpage.
+
+		Can also be used as a |method|: >
+			GetWinid()->win_id2win()
 
 win_screenpos({nr})					*win_screenpos()*
 		Return the screen position of window {nr} as a list with two
@@ -9852,6 +10185,31 @@ win_screenpos({nr})					*win_screenpos()*
 		Return [0, 0] if the window cannot be found in the current
 		tabpage.
 
+		Can also be used as a |method|: >
+			GetWinid()->win_screenpos()
+<
+win_splitmove({nr}, {target} [, {options}])		*win_splitmove()*
+	        Move the window {nr} to a new split of the window {target}.
+		This is similar to moving to {target}, creating a new window
+		using |:split| but having the same contents as window {nr}, and
+		then closing {nr}.
+
+		Both {nr} and {target} can be window numbers or |window-ID|s.
+
+		Returns zero for success, non-zero for failure.
+
+		{options} is a Dictionary with the following optional entries:
+		  "vertical"	When TRUE, the split is created vertically,
+				like with |:vsplit|.
+		  "rightbelow"	When TRUE, the split is made below or to the
+				right (if vertical).  When FALSE, it is done
+				above or to the left (if vertical).  When not
+				present, the values of 'splitbelow' and
+				'splitright' are used.
+
+		Can also be used as a |method|: >
+			GetWinid()->win_splitmove(target)
+<
 							*winbufnr()*
 winbufnr({nr})	The result is a Number, which is the number of the buffer
 		associated with window {nr}.  {nr} can be the window number or
@@ -9879,6 +10237,9 @@ winheight({nr})						*winheight()*
 		This excludes any window toolbar line.
 		Examples: >
   :echo "The current window has " . winheight(0) . " lines."
+
+<		Can also be used as a |method|: >
+			GetWinid()->winheight()
 <
 winlayout([{tabnr}])					*winlayout()*
 		The result is a nested List containing the layout of windows
@@ -9908,6 +10269,9 @@ winlayout([{tabnr}])					*winlayout()*
 			:echo winlayout(2)
 			['col', [['leaf', 1002], ['row', ['leaf', 1003],
 					     ['leaf', 1001]]], ['leaf', 1000]]
+<
+		Can also be used as a |method|: >
+			GetTabnr()->winlayout()
 <
 							*winline()*
 winline()	The result is a Number, which is the screen line of the cursor
@@ -9942,6 +10306,9 @@ winnr([{arg}])	The result is a Number, which is the number of the current
 			let window_count = winnr('$')
 			let prev_window = winnr('#')
 			let wnum = winnr('3k')
+
+<		Can also be used as a |method|: >
+			GetWinval()->winnr()
 <
 							*winrestcmd()*
 winrestcmd()	Returns a sequence of |:resize| commands that should restore
@@ -9970,6 +10337,9 @@ winrestview({dict})
 		If you have changed the values the result is unpredictable.
 		If the window size changed the result won't be the same.
 
+		Can also be used as a |method|: >
+			GetView()->winrestview()
+<
 							*winsaveview()*
 winsaveview()	Returns a |Dictionary| that contains information to restore
 		the view of the current window.  Use |winrestview()| to
@@ -10006,6 +10376,9 @@ winwidth({nr})						*winwidth()*
   :endif
 <		For getting the terminal or screen size, see the 'columns'
 		option.
+
+		Can also be used as a |method|: >
+			GetWinid()->winwidth()
 
 
 wordcount()						*wordcount()*
@@ -10067,6 +10440,9 @@ writefile({object}, {fname} [, {flags}])
 		To copy a file byte for byte: >
 			:let fl = readfile("foo", "b")
 			:call writefile(fl, "foocopy", "b")
+
+<		Can also be used as a |method|: >
+			GetText()->writefile("thefile")
 
 
 xor({expr}, {expr})					*xor()*
@@ -10197,6 +10573,7 @@ macunix			Synonym for osxdarwin
 menu			Compiled with support for |:menu|.
 mksession		Compiled with support for |:mksession|.
 modify_fname		Compiled with file name modifiers. |filename-modifiers|
+			(always true)
 mouse			Compiled with support mouse.
 mouse_dec		Compiled with support for Dec terminal mouse.
 mouse_gpm		Compiled with support for gpm (Linux console mouse)
@@ -12607,6 +12984,23 @@ instead of failing in mysterious ways.
 
 	Test for support with: >
 		has('vimscript-3')
+<
+							*scriptversion-4*  >
+ :scriptversion 4
+<	Numbers with a leading zero are not recognized as octal.  With the
+	previous version you get: >
+		echo 017   " displays 15
+		echo 018   " displays 18
+<	with script version 4: >
+		echo 017   " displays 17
+		echo 018   " displays 18
+<	Also, it is possible to use single quotes inside numbers to make them
+	easier to read: >
+		echo 1'000'000
+<	The quotes must be surrounded by digits.
+
+	Test for support with: >
+		has('vimscript-4')
 
 ==============================================================================
 11. No +eval feature				*no-eval-feature*

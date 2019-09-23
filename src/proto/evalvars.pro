@@ -9,6 +9,8 @@ int eval_charconvert(char_u *enc_from, char_u *enc_to, char_u *fname_from, char_
 int eval_printexpr(char_u *fname, char_u *args);
 void eval_diff(char_u *origfile, char_u *newfile, char_u *outfile);
 void eval_patch(char_u *origfile, char_u *difffile, char_u *outfile);
+list_T *eval_spell_expr(char_u *badword, char_u *expr);
+int get_spellword(list_T *list, char_u **pp);
 void prepare_vimvar(int idx, typval_T *save_tv);
 void restore_vimvar(int idx, typval_T *save_tv);
 void ex_let(exarg_T *eap);
@@ -75,4 +77,8 @@ void f_settabvar(typval_T *argvars, typval_T *rettv);
 void f_settabwinvar(typval_T *argvars, typval_T *rettv);
 void f_setwinvar(typval_T *argvars, typval_T *rettv);
 void f_setbufvar(typval_T *argvars, typval_T *rettv);
+callback_T get_callback(typval_T *arg);
+void put_callback(callback_T *cb, typval_T *tv);
+void set_callback(callback_T *dest, callback_T *src);
+void free_callback(callback_T *callback);
 /* vim: set ft=c : */

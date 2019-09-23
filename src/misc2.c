@@ -2498,44 +2498,6 @@ static struct key_name_entry
 
 #define KEY_NAMES_TABLE_LEN (sizeof(key_names_table) / sizeof(struct key_name_entry))
 
-#ifdef FEAT_MOUSE
-static struct mousetable
-{
-    int	    pseudo_code;	/* Code for pseudo mouse event */
-    int	    button;		/* Which mouse button is it? */
-    int	    is_click;		/* Is it a mouse button click event? */
-    int	    is_drag;		/* Is it a mouse drag event? */
-} mouse_table[] =
-{
-    {(int)KE_LEFTMOUSE,		MOUSE_LEFT,	TRUE,	FALSE},
-#ifdef FEAT_GUI
-    {(int)KE_LEFTMOUSE_NM,	MOUSE_LEFT,	TRUE,	FALSE},
-#endif
-    {(int)KE_LEFTDRAG,		MOUSE_LEFT,	FALSE,	TRUE},
-    {(int)KE_LEFTRELEASE,	MOUSE_LEFT,	FALSE,	FALSE},
-#ifdef FEAT_GUI
-    {(int)KE_LEFTRELEASE_NM,	MOUSE_LEFT,	FALSE,	FALSE},
-#endif
-    {(int)KE_MIDDLEMOUSE,	MOUSE_MIDDLE,	TRUE,	FALSE},
-    {(int)KE_MIDDLEDRAG,	MOUSE_MIDDLE,	FALSE,	TRUE},
-    {(int)KE_MIDDLERELEASE,	MOUSE_MIDDLE,	FALSE,	FALSE},
-    {(int)KE_RIGHTMOUSE,	MOUSE_RIGHT,	TRUE,	FALSE},
-    {(int)KE_RIGHTDRAG,		MOUSE_RIGHT,	FALSE,	TRUE},
-    {(int)KE_RIGHTRELEASE,	MOUSE_RIGHT,	FALSE,	FALSE},
-    {(int)KE_X1MOUSE,		MOUSE_X1,	TRUE,	FALSE},
-    {(int)KE_X1DRAG,		MOUSE_X1,	FALSE,	TRUE},
-    {(int)KE_X1RELEASE,		MOUSE_X1,	FALSE,	FALSE},
-    {(int)KE_X2MOUSE,		MOUSE_X2,	TRUE,	FALSE},
-    {(int)KE_X2DRAG,		MOUSE_X2,	FALSE,	TRUE},
-    {(int)KE_X2RELEASE,		MOUSE_X2,	FALSE,	FALSE},
-    /* DRAG without CLICK */
-    {(int)KE_MOUSEMOVE,		MOUSE_RELEASE,	FALSE,	TRUE},
-    /* RELEASE without CLICK */
-    {(int)KE_IGNORE,		MOUSE_RELEASE,	FALSE,	FALSE},
-    {0,				0,		0,	0},
-};
-#endif /* FEAT_MOUSE */
-
 /*
  * Return the modifier mask bit (MOD_MASK_*) which corresponds to the given
  * modifier name ('S' for Shift, 'C' for Ctrl etc).
@@ -3056,66 +3018,6 @@ get_key_name(int i)
 	return NULL;
     return  key_names_table[i].name;
 }
-
-#if defined(FEAT_MOUSE) || defined(PROTO)
-/*
- * Look up the given mouse code to return the relevant information in the other
- * arguments.  Return which button is down or was released.
- */
-    int
-get_mouse_button(int code, int *is_click, int *is_drag)
-{
-    int	    i;
-
-    for (i = 0; mouse_table[i].pseudo_code; i++)
-	if (code == mouse_table[i].pseudo_code)
-	{
-	    *is_click = mouse_table[i].is_click;
-	    *is_drag = mouse_table[i].is_drag;
-	    return mouse_table[i].button;
-	}
-    return 0;	    /* Shouldn't get here */
-}
-
-/*
- * Return the appropriate pseudo mouse event token (KE_LEFTMOUSE etc) based on
- * the given information about which mouse button is down, and whether the
- * mouse was clicked, dragged or released.
- */
-    int
-get_pseudo_mouse_code(
-    int	    button,	/* eg MOUSE_LEFT */
-    int	    is_click,
-    int	    is_drag)
-{
-    int	    i;
-
-    for (i = 0; mouse_table[i].pseudo_code; i++)
-	if (button == mouse_table[i].button
-	    && is_click == mouse_table[i].is_click
-	    && is_drag == mouse_table[i].is_drag)
-	{
-#ifdef FEAT_GUI
-	    /* Trick: a non mappable left click and release has mouse_col -1
-	     * or added MOUSE_COLOFF.  Used for 'mousefocus' in
-	     * gui_mouse_moved() */
-	    if (mouse_col < 0 || mouse_col > MOUSE_COLOFF)
-	    {
-		if (mouse_col < 0)
-		    mouse_col = 0;
-		else
-		    mouse_col -= MOUSE_COLOFF;
-		if (mouse_table[i].pseudo_code == (int)KE_LEFTMOUSE)
-		    return (int)KE_LEFTMOUSE_NM;
-		if (mouse_table[i].pseudo_code == (int)KE_LEFTRELEASE)
-		    return (int)KE_LEFTRELEASE_NM;
-	    }
-#endif
-	    return mouse_table[i].pseudo_code;
-	}
-    return (int)KE_IGNORE;	    /* not recognized, ignore it */
-}
-#endif /* FEAT_MOUSE */
 
 /*
  * Return the current end-of-line type: EOL_DOS, EOL_UNIX or EOL_MAC.
@@ -3945,82 +3847,6 @@ sort_strings(
     qsort((void *)files, (size_t)count, sizeof(char_u *), sort_compare);
 }
 
-#if !defined(NO_EXPANDPATH) || defined(PROTO)
-/*
- * Compare path "p[]" to "q[]".
- * If "maxlen" >= 0 compare "p[maxlen]" to "q[maxlen]"
- * Return value like strcmp(p, q), but consider path separators.
- */
-    int
-pathcmp(const char *p, const char *q, int maxlen)
-{
-    int		i, j;
-    int		c1, c2;
-    const char	*s = NULL;
-
-    for (i = 0, j = 0; maxlen < 0 || (i < maxlen && j < maxlen);)
-    {
-	c1 = PTR2CHAR((char_u *)p + i);
-	c2 = PTR2CHAR((char_u *)q + j);
-
-	/* End of "p": check if "q" also ends or just has a slash. */
-	if (c1 == NUL)
-	{
-	    if (c2 == NUL)  /* full match */
-		return 0;
-	    s = q;
-	    i = j;
-	    break;
-	}
-
-	/* End of "q": check if "p" just has a slash. */
-	if (c2 == NUL)
-	{
-	    s = p;
-	    break;
-	}
-
-	if ((p_fic ? MB_TOUPPER(c1) != MB_TOUPPER(c2) : c1 != c2)
-#ifdef BACKSLASH_IN_FILENAME
-		/* consider '/' and '\\' to be equal */
-		&& !((c1 == '/' && c2 == '\\')
-		    || (c1 == '\\' && c2 == '/'))
-#endif
-		)
-	{
-	    if (vim_ispathsep(c1))
-		return -1;
-	    if (vim_ispathsep(c2))
-		return 1;
-	    return p_fic ? MB_TOUPPER(c1) - MB_TOUPPER(c2)
-		    : c1 - c2;  /* no match */
-	}
-
-	i += MB_PTR2LEN((char_u *)p + i);
-	j += MB_PTR2LEN((char_u *)q + j);
-    }
-    if (s == NULL)	/* "i" or "j" ran into "maxlen" */
-	return 0;
-
-    c1 = PTR2CHAR((char_u *)s + i);
-    c2 = PTR2CHAR((char_u *)s + i + MB_PTR2LEN((char_u *)s + i));
-    /* ignore a trailing slash, but not "//" or ":/" */
-    if (c2 == NUL
-	    && i > 0
-	    && !after_pathsep((char_u *)s, (char_u *)s + i)
-#ifdef BACKSLASH_IN_FILENAME
-	    && (c1 == '/' || c1 == '\\')
-#else
-	    && c1 == '/'
-#endif
-       )
-	return 0;   /* match with trailing slash */
-    if (s == q)
-	return -1;	    /* no match */
-    return 1;
-}
-#endif
-
 /*
  * The putenv() implementation below comes from the "screen" program.
  * Included with permission from Juergen Weigert.
@@ -4432,87 +4258,6 @@ has_non_ascii(char_u *s)
 }
 #endif
 
-#if defined(MESSAGE_QUEUE) || defined(PROTO)
-# define MAX_REPEAT_PARSE 8
-
-/*
- * Process messages that have been queued for netbeans or clientserver.
- * Also check if any jobs have ended.
- * These functions can call arbitrary vimscript and should only be called when
- * it is safe to do so.
- */
-    void
-parse_queued_messages(void)
-{
-    int	    old_curwin_id = curwin->w_id;
-    int	    old_curbuf_fnum = curbuf->b_fnum;
-    int	    i;
-    int	    save_may_garbage_collect = may_garbage_collect;
-
-    // Do not handle messages while redrawing, because it may cause buffers to
-    // change or be wiped while they are being redrawn.
-    if (updating_screen)
-	return;
-
-    // may_garbage_collect is set in main_loop() to do garbage collection when
-    // blocking to wait on a character.  We don't want that while parsing
-    // messages, a callback may invoke vgetc() while lists and dicts are in use
-    // in the call stack.
-    may_garbage_collect = FALSE;
-
-    // Loop when a job ended, but don't keep looping forever.
-    for (i = 0; i < MAX_REPEAT_PARSE; ++i)
-    {
-	// For Win32 mch_breakcheck() does not check for input, do it here.
-# if defined(MSWIN) && defined(FEAT_JOB_CHANNEL)
-	channel_handle_events(FALSE);
-# endif
-
-# if defined(FEAT_GUI_MACVIM) && defined(FEAT_JOB_CHANNEL)
-    if (gui.in_use)
-	gui_macvim_cleanup_job_all();
-# endif
-
-# ifdef FEAT_NETBEANS_INTG
-	// Process the queued netbeans messages.
-	netbeans_parse_messages();
-# endif
-# ifdef FEAT_JOB_CHANNEL
-	// Write any buffer lines still to be written.
-	channel_write_any_lines();
-
-	// Process the messages queued on channels.
-	channel_parse_messages();
-# endif
-# if defined(FEAT_CLIENTSERVER) && defined(FEAT_X11)
-	// Process the queued clientserver messages.
-	server_parse_messages();
-# endif
-# ifdef FEAT_JOB_CHANNEL
-	// Check if any jobs have ended.  If so, repeat the above to handle
-	// changes, e.g. stdin may have been closed.
-	if (job_check_ended())
-	    continue;
-# endif
-# ifdef FEAT_TERMINAL
-	free_unused_terminals();
-# endif
-# ifdef FEAT_SOUND_CANBERRA
-	if (has_sound_callback_in_queue())
-	    invoke_sound_callback();
-# endif
-	break;
-    }
-
-    may_garbage_collect = save_may_garbage_collect;
-
-    // If the current window or buffer changed we need to bail out of the
-    // waiting loop.  E.g. when a job exit callback closes the terminal window.
-    if (curwin->w_id != old_curwin_id || curbuf->b_fnum != old_curbuf_fnum)
-	ins_char_typebuf(K_IGNORE);
-}
-#endif
-
 #ifndef PROTO  /* proto is defined in vim.h */
 # ifdef ELAPSED_TIMEVAL
 /*
@@ -4689,3 +4434,22 @@ build_argv_from_list(list_T *l, char ***argv, int *argc)
 }
 # endif
 #endif
+
+/*
+ * Change the behavior of vterm.
+ * 0: As usual.
+ * 1: Windows 10 version 1809
+ *      The bug causes unstable handling of ambiguous width character.
+ * 2: Windows 10 version 1903
+ *      Use the wrong result because each result is different.
+ * 3: Windows 10 insider preview (current latest logic)
+ */
+    int
+get_special_pty_type(void)
+{
+#ifdef MSWIN
+    return get_conpty_type();
+#else
+    return 0;
+#endif
+}

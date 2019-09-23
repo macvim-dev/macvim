@@ -875,7 +875,7 @@ free_scrollback(term_T *term)
 
 
 // Terminals that need to be freed soon.
-term_T	*terminals_to_free = NULL;
+static term_T	*terminals_to_free = NULL;
 
 /*
  * Free a terminal and everything it refers to.
@@ -957,7 +957,7 @@ free_unused_terminals()
  * possible to do "1,5term vim -".
  */
     static ch_part_T
-get_tty_part(term_T *term)
+get_tty_part(term_T *term UNUSED)
 {
 #ifdef UNIX
     ch_part_T	parts[3] = {PART_IN, PART_OUT, PART_ERR};
@@ -5060,6 +5060,8 @@ f_term_getattr(typval_T *argvars, typval_T *rettv)
     if (name == NULL)
 	return;
 
+    if (attr > HL_ALL)
+	attr = syn_attr2attr(attr);
     for (i = 0; i < sizeof(attrs)/sizeof(attrs[0]); ++i)
 	if (STRCMP(name, attrs[i].name) == 0)
 	{
@@ -5790,7 +5792,7 @@ dyn_conpty_init(int verbose)
 conpty_term_and_job_init(
 	term_T	    *term,
 	typval_T    *argvar,
-	char	    **argv,
+	char	    **argv UNUSED,
 	jobopt_T    *opt,
 	jobopt_T    *orig_opt)
 {
@@ -6027,7 +6029,7 @@ conpty_term_report_winsize(term_T *term, int rows, int cols)
     pResizePseudoConsole(term->tl_conpty, consize);
 }
 
-    void
+    static void
 term_free_conpty(term_T *term)
 {
     if (term->tl_siex.lpAttributeList != NULL)
@@ -6142,7 +6144,7 @@ dyn_winpty_init(int verbose)
 winpty_term_and_job_init(
 	term_T	    *term,
 	typval_T    *argvar,
-	char	    **argv,
+	char	    **argv UNUSED,
 	jobopt_T    *opt,
 	jobopt_T    *orig_opt)
 {

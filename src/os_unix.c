@@ -135,7 +135,7 @@ static int get_x11_title(int);
 
 static char_u	*oldtitle = NULL;
 static volatile sig_atomic_t oldtitle_outdated = FALSE;
-static int	did_set_title = FALSE;
+static int	unix_did_set_title = FALSE;
 static char_u	*oldicon = NULL;
 static int	did_set_icon = FALSE;
 #endif
@@ -2189,7 +2189,7 @@ mch_settitle(char_u *title, char_u *icon)
 	else
 	    gui_mch_settitle(title, icon);
 #endif
-	did_set_title = TRUE;
+	unix_did_set_title = TRUE;
     }
 
     if ((type || *T_CIS != NUL) && icon != NULL)
@@ -2230,10 +2230,10 @@ mch_settitle(char_u *title, char_u *icon)
     void
 mch_restore_title(int which)
 {
-    int	do_push_pop = did_set_title || did_set_icon;
+    int	do_push_pop = unix_did_set_title || did_set_icon;
 
     /* only restore the title or icon when it has been set */
-    mch_settitle(((which & SAVE_RESTORE_TITLE) && did_set_title) ?
+    mch_settitle(((which & SAVE_RESTORE_TITLE) && unix_did_set_title) ?
 			(oldtitle ? oldtitle : p_titleold) : NULL,
 	       ((which & SAVE_RESTORE_ICON) && did_set_icon) ? oldicon : NULL);
 
@@ -4282,7 +4282,7 @@ open_pty(int *pty_master_fd, int *pty_slave_fd, char_u **name1, char_u **name2)
 /*
  * Send SIGINT to a child process if "c" is an interrupt character.
  */
-    void
+    static void
 may_send_sigint(int c UNUSED, pid_t pid UNUSED, pid_t wpid UNUSED)
 {
 # ifdef SIGINT
@@ -6418,7 +6418,6 @@ select_eintr:
     return result;
 }
 
-#ifndef NO_EXPANDPATH
 /*
  * Expand a path into all matching files and/or directories.  Handles "*",
  * "?", "[a-z]", "**", etc.
@@ -6433,7 +6432,6 @@ mch_expandpath(
 {
     return unix_expandpath(gap, path, 0, flags, FALSE);
 }
-#endif
 
 /*
  * mch_expand_wildcards() - this code does wild-card pattern matching using

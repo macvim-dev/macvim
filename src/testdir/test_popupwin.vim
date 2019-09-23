@@ -145,7 +145,7 @@ func Test_popup_with_border_and_padding()
 	\ scrollbar: 0,
 	\ visible: 1}
   let winid = popup_create('hello border', #{line: 2, col: 3, border: []})",
-  call assert_equal(with_border_or_padding, popup_getpos(winid))
+  call assert_equal(with_border_or_padding, winid->popup_getpos())
   let options = popup_getoptions(winid)
   call assert_equal([], options.border)
   call assert_false(has_key(options, "padding"))
@@ -337,7 +337,7 @@ func Test_popup_firstline()
   call assert_equal(3, popup_getoptions(winid).firstline)
   call popup_setoptions(winid, #{firstline: 1})
   call assert_equal(1, popup_getoptions(winid).firstline)
-  call popup_close(winid)
+  eval winid->popup_close()
 
   let winid = popup_create(['xxx']->repeat(50), #{
 	\ maxheight: 3,
@@ -797,8 +797,9 @@ func Test_popup_with_showbreak()
 	 set showbreak=>>\ 
 	 call setline(1, range(1, 20))
 	 let winid = popup_dialog(
-	   \ 'a long line here',
-	   \ #{filter: 'popup_filter_yesno'})
+	   \ 'a long line here that wraps',
+	   \ #{filter: 'popup_filter_yesno',
+	   \   maxwidth: 12})
   END
   call writefile(lines, 'XtestPopupShowbreak')
   let buf = RunVimInTerminal('-S XtestPopupShowbreak', #{rows: 10})
@@ -833,7 +834,7 @@ func Test_popup_time()
 
   sleep 700m
   redraw
-  let line = join(map(range(1, 5), 'screenstring(1, v:val)'), '')
+  let line = join(map(range(1, 5), '1->screenstring(v:val)'), '')
   call assert_equal('hello', line)
 
   call popup_create('on the command line', #{
@@ -878,7 +879,7 @@ func Test_popup_hide()
   " buffer is still listed but hidden
   call assert_match(winbufnr(winid) .. 'u h.*\[Popup\]', execute('ls u'))
 
-  call popup_show(winid)
+  eval winid->popup_show()
   redraw
   let line = join(map(range(1, 5), 'screenstring(1, v:val)'), '')
   call assert_equal('world', line)
@@ -894,7 +895,7 @@ func Test_popup_hide()
   call assert_fails('call popup_hide(win_getid())', 'E993:')
 
   " no error non-existing window
-  call popup_hide(1234234)
+  eval 1234234->popup_hide()
   call popup_show(41234234)
 
   bwipe!
@@ -920,7 +921,7 @@ func Test_popup_move()
   let line = join(map(range(1, 6), 'screenstring(2, v:val)'), '')
   call assert_equal('~world', line)
 
-  call popup_move(winid, #{line: 1})
+  eval winid->popup_move(#{line: 1})
   redraw
   let line = join(map(range(1, 6), 'screenstring(1, v:val)'), '')
   call assert_equal('hworld', line)
@@ -1076,7 +1077,7 @@ func Test_popup_atcursor()
 
   call cursor(3, 4)
   redraw
-  let winid = popup_atcursor('vim', {})
+  let winid = 'vim'->popup_atcursor({})
   redraw
   let line = join(map(range(1, 17), 'screenstring(2, v:val)'), '')
   call assert_equal('xxxvimxxxxxxxxxxx', line)
@@ -1136,6 +1137,7 @@ endfunc
 
 func Test_popup_beval()
   CheckScreendump
+  CheckFeature balloon_eval_term
 
   let lines =<< trim END
 	call setline(1, range(1, 20))
@@ -1144,7 +1146,7 @@ func Test_popup_beval()
 	set balloonexpr=BalloonExpr()
 	set balloondelay=100
 	func BalloonExpr()
-	  let s:winid = popup_beval([v:beval_text], {})
+	  let s:winid = [v:beval_text]->popup_beval({})
 	  return ''
 	endfunc
 	func Hover()
@@ -1199,7 +1201,7 @@ func Test_popup_filter()
     return 0
   endfunc
 
-  let winid = popup_create('something', #{filter: 'MyPopupFilter'})
+  let winid = 'something'->popup_create(#{filter: 'MyPopupFilter'})
   redraw
 
   " e is consumed by the filter
@@ -1762,6 +1764,7 @@ func Test_popup_scrollbar()
 
   " remove the minwidth and maxheight
   call term_sendkeys(buf, ":call popup_setoptions(winid, #{maxheight: 0, minwidth: 0})\<CR>")
+  call term_sendkeys(buf, ":\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_scroll_10', {})
 
   " clean up
@@ -1787,7 +1790,7 @@ func Test_popup_settext()
   let lines =<< trim END
     let opts = #{wrap: 0}
     let p = popup_create('test', opts)
-    call popup_settext(p, 'this is a text')
+    eval p->popup_settext('this is a text')
   END
 
   call writefile(lines, 'XtestPopupSetText')
@@ -1840,7 +1843,7 @@ func Test_popup_hidden()
     let s:cb_winid = a:id
     let s:cb_res = a:res
   endfunc
-  let winid = popup_dialog('make a choice', #{hidden: 1,
+  let winid = 'make a choice'->popup_dialog(#{hidden: 1,
 	  \ filter: 'popup_filter_yesno',
 	  \ callback: 'QuitCallback',
 	  \ })
@@ -2020,7 +2023,7 @@ func Test_popupwin_width()
 	\ maxheight: 10,
 	\ })
   for top in range(1, 20)
-    call popup_setoptions(winid, #{firstline: top})
+    eval winid->popup_setoptions(#{firstline: top})
     redraw
     call assert_equal(19, popup_getpos(winid).width)
   endfor
@@ -2100,8 +2103,9 @@ func Test_popup_menu_with_scrollbar()
     call setline(1, range(1, 20))
     hi ScrollThumb ctermbg=blue
     hi ScrollBar ctermbg=red
-    call popup_menu(['one', 'two', 'three', 'four', 'five',
-	  \ 'six', 'seven', 'eight', 'nine'], #{
+    eval ['one', 'two', 'three', 'four', 'five',
+	  \ 'six', 'seven', 'eight', 'nine']
+	  \ ->popup_menu(#{
 	  \ minwidth: 8,
 	  \ maxheight: 3,
 	  \ })
@@ -2158,9 +2162,9 @@ func Test_popup_menu_filter()
 		call win_execute(a:winid, "call setpos('.', [0, line('.') - 1, 1, 0])")
 		return 1
 	  endif
-	  if a:key == 'x'
+	  if a:key == ':'
 		call popup_close(a:winid)
-		return 1
+		return 0
 	  endif
 	  return 0
 	endfunction
@@ -2184,7 +2188,10 @@ func Test_popup_menu_filter()
   call term_sendkeys(buf, "0")
   call VerifyScreenDump(buf, 'Test_popupwin_menu_filter_4', {})
 
-  call term_sendkeys(buf, "x")
+  " check that when the popup is closed in the filter the screen is redrawn
+  call term_sendkeys(buf, ":")
+  call VerifyScreenDump(buf, 'Test_popupwin_menu_filter_5', {})
+  call term_sendkeys(buf, "\<CR>")
 
   " clean up
   call StopVimInTerminal(buf)
@@ -2300,6 +2307,20 @@ func Test_popup_cursorline()
   call term_sendkeys(buf, "j")
   call VerifyScreenDump(buf, 'Test_popupwin_cursorline_6', {})
   call term_sendkeys(buf, "x")
+  call StopVimInTerminal(buf)
+
+  " ---------
+  " Cursor in second line when creating the popup
+  " ---------
+  let lines =<< trim END
+    let winid = popup_create(['111', '222', '333'], #{
+	  \ cursorline : 1,
+	  \ })
+    call win_execute(winid, "2")
+  END
+  call writefile(lines, 'XtestPopupCursorLine')
+  let buf = RunVimInTerminal('-S XtestPopupCursorLine', #{rows: 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_cursorline_7', {})
   call StopVimInTerminal(buf)
 
   call delete('XtestPopupCursorLine')
@@ -2435,7 +2456,7 @@ func Get_popupmenu_lines()
       call setline(1, 'text text text text text text text ')
       func ChangeColor()
 	let id = popup_findinfo()
-	call popup_setoptions(id, #{highlight: 'InfoPopup'})
+	eval id->popup_setoptions(#{highlight: 'InfoPopup'})
       endfunc
   END
   return lines
@@ -2522,7 +2543,7 @@ endfunc
 func Test_popupwin_recycle_bnr()
   let bufnr = popup_notification('nothing wrong', {})->winbufnr()
   call popup_clear()
-  let winid = popup_notification('nothing wrong', {})
+  let winid = 'nothing wrong'->popup_notification({})
   call assert_equal(bufnr, winbufnr(winid))
   call popup_clear()
 endfunc

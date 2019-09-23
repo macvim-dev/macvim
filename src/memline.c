@@ -2101,7 +2101,7 @@ static char	tz_cache[64];
     struct tm *
 vim_localtime(
     const time_t	*timep,		// timestamp for local representation
-    struct tm		*result)	// pointer to caller return buffer
+    struct tm		*result UNUSED)	// pointer to caller return buffer
 {
 #ifdef HAVE_LOCALTIME_R
 # ifdef HAVE_TZSET
@@ -2716,7 +2716,7 @@ add_text_props_for_append(
     int		count;
     int		n;
     char_u	*props;
-    int		new_len;
+    int		new_len = 0;  // init for gcc
     char_u	*new_line;
     textprop_T	prop;
 

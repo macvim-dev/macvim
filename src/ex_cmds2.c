@@ -260,7 +260,7 @@ check_due_timer(void)
 /*
  * Find a timer by ID.  Returns NULL if not found;
  */
-    timer_T *
+    static timer_T *
 find_timer(long id)
 {
     timer_T *timer;
@@ -291,7 +291,7 @@ stop_timer(timer_T *timer)
     }
 }
 
-    void
+    static void
 stop_all_timers(void)
 {
     timer_T *timer;
@@ -304,7 +304,7 @@ stop_all_timers(void)
     }
 }
 
-    void
+    static void
 add_timer_info(typval_T *rettv, timer_T *timer)
 {
     list_T	*list = rettv->vval.v_list;
@@ -338,7 +338,7 @@ add_timer_info(typval_T *rettv, timer_T *timer)
     }
 }
 
-    void
+    static void
 add_timer_info_all(typval_T *rettv)
 {
     timer_T *timer;
@@ -375,7 +375,7 @@ set_ref_in_timer(int copyID)
     return abort;
 }
 
-#  if defined(EXITFREE) || defined(PROTO)
+# if defined(EXITFREE) || defined(PROTO)
     void
 timer_free_all()
 {
@@ -388,10 +388,123 @@ timer_free_all()
 	free_timer(timer);
     }
 }
-#  endif
 # endif
 
-#endif
+/*
+ * "timer_info([timer])" function
+ */
+    void
+f_timer_info(typval_T *argvars, typval_T *rettv)
+{
+    timer_T *timer = NULL;
+
+    if (rettv_list_alloc(rettv) != OK)
+	return;
+    if (argvars[0].v_type != VAR_UNKNOWN)
+    {
+	if (argvars[0].v_type != VAR_NUMBER)
+	    emsg(_(e_number_exp));
+	else
+	{
+	    timer = find_timer((int)tv_get_number(&argvars[0]));
+	    if (timer != NULL)
+		add_timer_info(rettv, timer);
+	}
+    }
+    else
+	add_timer_info_all(rettv);
+}
+
+/*
+ * "timer_pause(timer, paused)" function
+ */
+    void
+f_timer_pause(typval_T *argvars, typval_T *rettv UNUSED)
+{
+    timer_T	*timer = NULL;
+    int		paused = (int)tv_get_number(&argvars[1]);
+
+    if (argvars[0].v_type != VAR_NUMBER)
+	emsg(_(e_number_exp));
+    else
+    {
+	timer = find_timer((int)tv_get_number(&argvars[0]));
+	if (timer != NULL)
+	    timer->tr_paused = paused;
+    }
+}
+
+/*
+ * "timer_start(time, callback [, options])" function
+ */
+    void
+f_timer_start(typval_T *argvars, typval_T *rettv)
+{
+    long	msec = (long)tv_get_number(&argvars[0]);
+    timer_T	*timer;
+    int		repeat = 0;
+    callback_T	callback;
+    dict_T	*dict;
+
+    rettv->vval.v_number = -1;
+    if (check_secure())
+	return;
+    if (argvars[2].v_type != VAR_UNKNOWN)
+    {
+	if (argvars[2].v_type != VAR_DICT
+				   || (dict = argvars[2].vval.v_dict) == NULL)
+	{
+	    semsg(_(e_invarg2), tv_get_string(&argvars[2]));
+	    return;
+	}
+	if (dict_find(dict, (char_u *)"repeat", -1) != NULL)
+	    repeat = dict_get_number(dict, (char_u *)"repeat");
+    }
+
+    callback = get_callback(&argvars[1]);
+    if (callback.cb_name == NULL)
+	return;
+
+    timer = create_timer(msec, repeat);
+    if (timer == NULL)
+	free_callback(&callback);
+    else
+    {
+	set_callback(&timer->tr_callback, &callback);
+	rettv->vval.v_number = (varnumber_T)timer->tr_id;
+    }
+}
+
+/*
+ * "timer_stop(timer)" function
+ */
+    void
+f_timer_stop(typval_T *argvars, typval_T *rettv UNUSED)
+{
+    timer_T *timer;
+
+    if (argvars[0].v_type != VAR_NUMBER)
+    {
+	emsg(_(e_number_exp));
+	return;
+    }
+    timer = find_timer((int)tv_get_number(&argvars[0]));
+    if (timer != NULL)
+	stop_timer(timer);
+}
+
+/*
+ * "timer_stopall()" function
+ */
+    void
+f_timer_stopall(typval_T *argvars UNUSED, typval_T *rettv UNUSED)
+{
+    stop_all_timers();
+}
+
+# endif // FEAT_TIMERS
+
+#endif // FEAT_EVAL
 
 /*
  * If 'autowrite' option set, try to write the file.
