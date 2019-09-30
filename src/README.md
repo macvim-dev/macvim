@@ -27,6 +27,7 @@ arglist.c	| handling argument list
 autocmd.c	| autocommands
 blob.c		| blob data type
 buffer.c	| manipulating buffers (loaded files)
+bufwrite.c	| writing a buffer to file
 change.c	| handling changes to text
 cmdexpand.c	| command-line completion
 cmdhist.c	| command-line history
@@ -58,17 +59,20 @@ mouse.c		| handling the mouse
 ops.c		| handling operators ("d", "y", "p")
 option.c	| options
 optionstr.c	| handling string options
-popupmnu.c	| popup menu
+popupmenu.c	| popup menu
 popupwin.c	| popup window
 profiler.c	| vim script profiler
 quickfix.c	| quickfix commands (":make", ":cn")
 regexp.c	| pattern matching
+register.c	| handling registers
 scriptfile.c	| runtime directory handling and sourcing scripts
 screen.c	| lower level screen functions
 search.c	| pattern searching
 session.c	| sessions and views
 sign.c		| signs
-spell.c		| spell checking
+spell.c		| spell checking core
+spellfile.c	| spell file handling
+spellsuggest.c	| spell correction suggestions
 syntax.c	| syntax and other highlighting
 tag.c		| tags
 term.c		| terminal handling, termcap codes

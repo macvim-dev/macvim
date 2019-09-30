@@ -716,6 +716,7 @@ OBJ = \
 	$(OUTDIR)\blob.obj \
 	$(OUTDIR)\blowfish.obj \
 	$(OUTDIR)\buffer.obj \
+	$(OUTDIR)\bufwrite.obj \
 	$(OUTDIR)\change.obj \
 	$(OUTDIR)\charset.obj \
 	$(OUTDIR)\cmdexpand.obj \
@@ -771,11 +772,12 @@ OBJ = \
 	$(OUTDIR)\os_mswin.obj \
 	$(OUTDIR)\os_win32.obj \
 	$(OUTDIR)\pathdef.obj \
-	$(OUTDIR)\popupmnu.obj \
+	$(OUTDIR)\popupmenu.obj \
 	$(OUTDIR)\popupwin.obj \
 	$(OUTDIR)\profiler.obj \
 	$(OUTDIR)\quickfix.obj \
 	$(OUTDIR)\regexp.obj \
+	$(OUTDIR)\register.obj \
 	$(OUTDIR)\scriptfile.obj \
 	$(OUTDIR)\screen.obj \
 	$(OUTDIR)\search.obj \
@@ -784,6 +786,7 @@ OBJ = \
 	$(OUTDIR)\sign.obj \
 	$(OUTDIR)\spell.obj \
 	$(OUTDIR)\spellfile.obj \
+	$(OUTDIR)\spellsuggest.obj \
 	$(OUTDIR)\syntax.obj \
 	$(OUTDIR)\tag.obj \
 	$(OUTDIR)\term.obj \
@@ -1278,7 +1281,7 @@ MAIN_TARGET = $(VIM).exe
 all:	$(MAIN_TARGET) \
 	vimrun.exe \
 	install.exe \
-	uninstal.exe \
+	uninstall.exe \
 	xxd/xxd.exe \
 	tee/tee.exe \
 	GvimExt/gvimext.dll
@@ -1337,8 +1340,8 @@ install.exe: dosinst.c
 	- if exist install.exe del install.exe
 	ren dosinst.exe install.exe
 
-uninstal.exe: uninstal.c
-	$(CC) /nologo -DNDEBUG -DWIN32 uninstal.c shell32.lib advapi32.lib \
+uninstall.exe: uninstall.c
+	$(CC) /nologo -DNDEBUG -DWIN32 uninstall.c shell32.lib advapi32.lib \
 		-link -subsystem:$(SUBSYSTEM_TOOLS)
 
 vimrun.exe: vimrun.c
@@ -1385,7 +1388,7 @@ clean:
 !endif
 	- if exist vimrun.exe del vimrun.exe
 	- if exist install.exe del install.exe
-	- if exist uninstal.exe del uninstal.exe
+	- if exist uninstall.exe del uninstall.exe
 	- if exist if_perl.c del if_perl.c
 	- if exist auto\if_perl.c del auto\if_perl.c
 	- if exist dimm.h del dimm.h
@@ -1454,6 +1457,8 @@ $(OUTDIR)/blob.obj:	$(OUTDIR) blob.c  $(INCL)
 $(OUTDIR)/blowfish.obj:	$(OUTDIR) blowfish.c  $(INCL)
 
 $(OUTDIR)/buffer.obj:	$(OUTDIR) buffer.c  $(INCL)
+
+$(OUTDIR)/bufwrite.obj:	$(OUTDIR) bufwrite.c  $(INCL)
 
 $(OUTDIR)/change.obj:	$(OUTDIR) change.c  $(INCL)
 
@@ -1641,7 +1646,7 @@ $(OUTDIR)/os_w32exeg.obj:	$(OUTDIR) os_w32exe.c  $(INCL)
 $(OUTDIR)/pathdef.obj:	$(OUTDIR) $(PATHDEF_SRC) $(INCL)
 	$(CC) $(CFLAGS_OUTDIR) $(PATHDEF_SRC)
 
-$(OUTDIR)/popupmnu.obj:	$(OUTDIR) popupmnu.c  $(INCL)
+$(OUTDIR)/popupmenu.obj:	$(OUTDIR) popupmenu.c  $(INCL)
 
 $(OUTDIR)/popupwin.obj:	$(OUTDIR) popupwin.c  $(INCL)
 
@@ -1650,6 +1655,8 @@ $(OUTDIR)/profiler.obj:	$(OUTDIR) profiler.c  $(INCL)
 $(OUTDIR)/quickfix.obj:	$(OUTDIR) quickfix.c  $(INCL)
 
 $(OUTDIR)/regexp.obj:	$(OUTDIR) regexp.c regexp_bt.c regexp_nfa.c  $(INCL)
+
+$(OUTDIR)/register.obj:	$(OUTDIR) register.c $(INCL)
 
 $(OUTDIR)/scriptfile.obj:	$(OUTDIR) scriptfile.c  $(INCL)
 
@@ -1666,6 +1673,8 @@ $(OUTDIR)/sign.obj:	$(OUTDIR) sign.c  $(INCL)
 $(OUTDIR)/spell.obj:	$(OUTDIR) spell.c  $(INCL)
 
 $(OUTDIR)/spellfile.obj:	$(OUTDIR) spellfile.c  $(INCL)
+
+$(OUTDIR)/spellsuggest.obj:	$(OUTDIR) spellsuggest.c  $(INCL)
 
 $(OUTDIR)/syntax.obj:	$(OUTDIR) syntax.c  $(INCL)
 
@@ -1782,6 +1791,7 @@ proto.h: \
 	proto/blob.pro \
 	proto/blowfish.pro \
 	proto/buffer.pro \
+	proto/bufwrite.pro \
 	proto/change.pro \
 	proto/charset.pro \
 	proto/cmdexpand.pro \
@@ -1835,11 +1845,12 @@ proto.h: \
 	proto/os_mswin.pro \
 	proto/winclip.pro \
 	proto/os_win32.pro \
-	proto/popupmnu.pro \
+	proto/popupmenu.pro \
 	proto/popupwin.pro \
 	proto/profiler.pro \
 	proto/quickfix.pro \
 	proto/regexp.pro \
+	proto/register.pro \
 	proto/scriptfile.pro \
 	proto/screen.pro \
 	proto/search.pro \
@@ -1848,6 +1859,7 @@ proto.h: \
 	proto/sign.pro \
 	proto/spell.pro \
 	proto/spellfile.pro \
+	proto/spellsuggest.pro \
 	proto/syntax.pro \
 	proto/tag.pro \
 	proto/term.pro \

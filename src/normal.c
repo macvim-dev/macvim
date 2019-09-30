@@ -3284,7 +3284,6 @@ find_decl(
 	    }
 	    break;
 	}
-#ifdef FEAT_COMMENTS
 	if (get_leader_len(ml_get_curline(), NULL, FALSE, TRUE) > 0)
 	{
 	    /* Ignore this line, continue at start of next line. */
@@ -3292,7 +3291,6 @@ find_decl(
 	    curwin->w_cursor.col = 0;
 	    continue;
 	}
-#endif
 	valid = is_ident(ml_get_curline(), curwin->w_cursor.col);
 
 	/* If the current position is not a valid identifier and a previous
@@ -3409,8 +3407,8 @@ nv_screengo(oparg_T *oap, int dir, long dist)
       {
 	if (dir == BACKWARD)
 	{
-	    if ((long)curwin->w_curswant >= width2)
-		/* move back within line */
+	    if ((long)curwin->w_curswant > width2)
+		// move back within line
 		curwin->w_curswant -= width2;
 	    else
 	    {
@@ -7240,10 +7238,8 @@ n_opencmd(cmdarg_T *cap)
 					       (cap->cmdchar == 'o' ? 1 : 0))
 		       ) == OK
 		&& open_line(cap->cmdchar == 'O' ? BACKWARD : FORWARD,
-#ifdef FEAT_COMMENTS
-		    has_format_option(FO_OPEN_COMS) ? OPENLINE_DO_COM :
-#endif
-		    0, 0) == OK)
+			 has_format_option(FO_OPEN_COMS) ? OPENLINE_DO_COM : 0,
+								      0) == OK)
 	{
 #ifdef FEAT_CONCEAL
 	    if (curwin->w_p_cole > 0 && oldline != curwin->w_cursor.lnum)

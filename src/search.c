@@ -5402,7 +5402,6 @@ search_line:
 		     */
 		    if (!define_matched && skip_comments)
 		    {
-#ifdef FEAT_COMMENTS
 			if ((*line != '#' ||
 				STRNCMP(skipwhite(line + 1), "define", 6) != 0)
 				&& get_leader_len(line, NULL, FALSE, TRUE))
@@ -5417,7 +5416,6 @@ search_line:
 			p = skipwhite(line);
 			if (matched
 				|| (p[0] == '/' && p[1] == '*') || p[0] == '*')
-#endif
 			    for (p = line; *p && p < startp; ++p)
 			    {
 				if (matched

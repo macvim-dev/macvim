@@ -231,9 +231,7 @@ check_buf_options(buf_T *buf)
     check_string_option(&buf->b_p_fo);
     check_string_option(&buf->b_p_flp);
     check_string_option(&buf->b_p_isk);
-#ifdef FEAT_COMMENTS
     check_string_option(&buf->b_p_com);
-#endif
 #ifdef FEAT_FOLDING
     check_string_option(&buf->b_p_cms);
 #endif
@@ -1267,7 +1265,6 @@ did_set_string_option(
 	}
     }
 
-#ifdef FEAT_COMMENTS
     // 'comments'
     else if (gvarp == &p_com)
     {
@@ -1298,7 +1295,6 @@ did_set_string_option(
 	    s = skip_to_option_part(s);
 	}
     }
-#endif
 
     // 'listchars'
     else if (varp == &p_lcs)
