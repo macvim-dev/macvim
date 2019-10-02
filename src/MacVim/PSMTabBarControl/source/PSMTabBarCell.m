@@ -14,6 +14,7 @@
 
 
 @implementation PSMTabBarCell
+@dynamic controlView;
 
 #pragma mark -
 #pragma mark Creation/Destruction
@@ -21,7 +22,7 @@
 {
     self = [super init];
     if(self){
-        _controlView = controlView;
+        self.controlView = controlView;
         _closeButtonTrackingTag = 0;
         _cellTrackingTag = 0;
         _closeButtonOver = NO;
@@ -41,7 +42,7 @@
 {
     self = [super init];
     if(self){
-        _controlView = controlView;
+        self.controlView = controlView;
         _isPlaceholder = YES;
         if(!value)
             frame.size.width = 0.0;
@@ -75,17 +76,6 @@
 
 #pragma mark -
 #pragma mark Accessors
-
-- (id)controlView
-{
-    return _controlView;
-}
-
-- (void)setControlView:(id)view
-{
-    // no retain release pattern, as this simply switches a tab to another view.
-    _controlView = view;
-}
 
 - (NSTrackingRectTag)closeButtonTrackingTag
 {
@@ -127,7 +117,7 @@
     [super setStringValue:aString];
     _stringSize = [[self attributedStringValue] size];
     // need to redisplay now - binding observation was too quick.
-    [_controlView update];
+    [self.controlView update];
 }
 
 - (NSSize)stringSize
@@ -137,7 +127,7 @@
 
 - (NSAttributedString *)attributedStringValue
 {
-    return [[_controlView psmTabStyle] attributedStringValueForTabCell:self];
+    return [[self.controlView psmTabStyle] attributedStringValueForTabCell:self];
 }
 
 - (int)tabState
@@ -213,7 +203,7 @@
 - (void)setHasIcon:(BOOL)value
 {
     _hasIcon = value;
-    [_controlView update]; // binding notice is too fast
+    [self.controlView update]; // binding notice is too fast
 }
 
 - (int)count
@@ -224,7 +214,7 @@
 - (void)setCount:(int)value
 {
     _count = value;
-    [_controlView update]; // binding notice is too fast
+    [self.controlView update]; // binding notice is too fast
 }
 
 - (BOOL)isPlaceholder
@@ -271,22 +261,22 @@
 
 - (NSRect)indicatorRectForFrame:(NSRect)cellFrame
 {
-    return [[_controlView psmTabStyle] indicatorRectForTabCell:self];
+    return [[self.controlView psmTabStyle] indicatorRectForTabCell:self];
 }
 
 - (NSRect)closeButtonRectForFrame:(NSRect)cellFrame
 {
-    return [[_controlView psmTabStyle] closeButtonRectForTabCell:self];
+    return [[self.controlView psmTabStyle] closeButtonRectForTabCell:self];
 }
 
 - (float)minimumWidthOfCell
 {
-    return [[_controlView psmTabStyle] minimumWidthOfTabCell:self];
+    return [[self.controlView psmTabStyle] minimumWidthOfTabCell:self];
 }
 
 - (float)desiredWidthOfCell
 {
-    return [[_controlView psmTabStyle] desiredWidthOfTabCell:self];
+    return [[self.controlView psmTabStyle] desiredWidthOfTabCell:self];
 }  
 
 #pragma mark -
@@ -300,7 +290,7 @@
         return;
     }
     
-    [[_controlView psmTabStyle] drawTabCell:self];
+    [[self.controlView psmTabStyle] drawTabCell:self];
 }
 
 #pragma mark -
@@ -315,7 +305,7 @@
     if([theEvent trackingNumber] == _cellTrackingTag){
         [self setHighlighted:YES];
     }
-    [_controlView setNeedsDisplay];
+    [self.controlView setNeedsDisplay];
 }
 
 - (void)mouseExited:(NSEvent *)theEvent
@@ -327,7 +317,7 @@
     if([theEvent trackingNumber] == _cellTrackingTag){
         [self setHighlighted:NO];
     }
-    [_controlView setNeedsDisplay];
+    [self.controlView setNeedsDisplay];
 }
 
 #pragma mark -
@@ -335,14 +325,14 @@
 
 - (NSImage*)dragImageForRect:(NSRect)cellFrame
 {
-    if(([self state] == NSOnState) && ([[_controlView styleName] isEqualToString:@"Metal"]))
+    if(([self state] == NSOnState) && ([[self.controlView styleName] isEqualToString:@"Metal"]))
         cellFrame.size.width += 1.0;
-    [_controlView lockFocus];
+    [self.controlView lockFocus];
 
     NSBitmapImageRep *rep = [[self controlView] bitmapImageRepForCachingDisplayInRect:cellFrame];
     [[self controlView] cacheDisplayInRect:cellFrame toBitmapImageRep:rep];
 
-    [_controlView unlockFocus];
+    [self.controlView unlockFocus];
     NSImage *image = [[[NSImage alloc] initWithSize:[rep size]] autorelease];
     [image addRepresentation:rep];
     NSImage *returnImage = [[[NSImage alloc] initWithSize:[rep size]] autorelease];
@@ -353,7 +343,7 @@
         NSImage *pi = [[NSImage alloc] initByReferencingFile:[[PSMTabBarControl bundle] pathForImageResource:@"pi"]];
         [returnImage lockFocus];
         NSPoint indicatorPoint = NSMakePoint([self frame].size.width - MARGIN_X - kPSMTabBarIndicatorWidth, MARGIN_Y);
-        if(([self state] == NSOnState) && ([[_controlView styleName] isEqualToString:@"Metal"]))
+        if(([self state] == NSOnState) && ([[self.controlView styleName] isEqualToString:@"Metal"]))
             indicatorPoint.y += 1.0;
         [pi drawAtPoint:indicatorPoint fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:0.7];
         [returnImage unlockFocus];
