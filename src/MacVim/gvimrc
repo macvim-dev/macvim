@@ -37,7 +37,7 @@ endif
 set printexpr=system('open\ -a\ Preview\ '.v:fname_in)\ +\ v:shell_error
 
 " askpass
-let $SSH_ASKPASS = simplify($VIM . '/../../MacOS') . '/macvim-askpass'
+let $SSH_ASKPASS = simplify($VIM . '/../../Resources') . '/macvim-askpass'
 let $SUDO_ASKPASS = $SSH_ASKPASS
 
 

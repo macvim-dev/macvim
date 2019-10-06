@@ -34,14 +34,14 @@
     NSString            *_toolTip;
 }
 
+@property(assign) PSMTabBarControl* controlView;
+
 // creation/destruction
 - (id)initWithControlView:(PSMTabBarControl *)controlView;
 - (id)initPlaceholderWithFrame:(NSRect)frame expanded:(BOOL)value inControlView:(PSMTabBarControl *)controlView;
 - (void)dealloc;
 
 // accessors
-- (id)controlView;
-- (void)setControlView:(id)view;
 - (NSTrackingRectTag)closeButtonTrackingTag;
 - (void)setCloseButtonTrackingTag:(NSTrackingRectTag)tag;
 - (NSTrackingRectTag)cellTrackingTag;

@@ -157,7 +157,7 @@
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
-			dstSubfolderSpec = 6;
+			dstSubfolderSpec = 7;
 			files = (
 				528DA66A1426D4F9003380F1 /* macvim-askpass in Copy Scripts */,
 			);
