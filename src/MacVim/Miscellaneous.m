@@ -330,3 +330,26 @@ shouldUseBufferedDrawing()
 #endif
     return NO;
 }
+
+
+int
+getCurrentAppearance(NSAppearance *appearance){
+    int flag = 0; // for macOS 10.13 or eariler always return 0;
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_14
+    if (@available(macOS 10.14, *)) {
+        NSAppearanceName appearanceName = [appearance bestMatchFromAppearancesWithNames:
+                @[NSAppearanceNameAqua
+                , NSAppearanceNameDarkAqua
+                , NSAppearanceNameAccessibilityHighContrastAqua
+                , NSAppearanceNameAccessibilityHighContrastDarkAqua]];
+        if ([appearanceName isEqualToString:NSAppearanceNameDarkAqua]) {
+            flag = 1;
+        } else if ([appearanceName isEqualToString:NSAppearanceNameAccessibilityHighContrastAqua]) {
+            flag = 2;
+        } else if ([appearanceName isEqualToString:NSAppearanceNameAccessibilityHighContrastDarkAqua]) {
+            flag = 3;
+        }
+    }
+#endif
+    return flag;
+}

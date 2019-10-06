@@ -176,6 +176,10 @@ static BOOL isUnsafeMessage(int msgid);
 
     isInitialized = YES;
 
+    // After MMVimController's initialization is completed,
+    // set up the variable `v:os_appearance`.
+    [self appearanceChanged:getCurrentAppearance([windowController vimView].effectiveAppearance)];
+    
     return self;
 }
 
@@ -356,6 +360,13 @@ static BOOL isUnsafeMessage(int msgid);
 
         [self sendMessage:DropStringMsgID data:data];
     }
+}
+
+- (void)appearanceChanged:(int)flag
+{
+    [self sendMessage:NotifyAppearanceChangeMsgID
+                 data:[NSData dataWithBytes: &flag
+               length:sizeof(flag)]];
 }
 
 - (void)passArguments:(NSDictionary *)args

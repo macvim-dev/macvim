@@ -1322,6 +1322,7 @@ enum auto_event
     EVENT_INSERTLEAVE,		// when leaving Insert mode
     EVENT_MENUPOPUP,		// just before popup menu is displayed
     EVENT_OPTIONSET,		// option was set
+    EVENT_OSAPPCHANGED,   // after changing the OS appearance
     EVENT_QUICKFIXCMDPOST,	// after :make, :grep etc.
     EVENT_QUICKFIXCMDPRE,	// before :make, :grep etc.
     EVENT_QUITPRE,		// before :quit
@@ -1992,7 +1993,8 @@ typedef int sock_T;
 #define VV_EVENT	90
 #define VV_VERSIONLONG	91
 #define VV_ECHOSPACE	92
-#define VV_LEN		93	// number of v: vars
+#define VV_OS_APPEARANCE 93
+#define VV_LEN		94	// number of v: vars
 
 // used for v_number in VAR_SPECIAL
 #define VVAL_FALSE	0L

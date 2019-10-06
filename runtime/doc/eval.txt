@@ -2033,6 +2033,18 @@ v:operator	The last operator given in Normal mode.  This is a single
 		commands.
 		Read-only.
 
+                                        *v:os_appearance* *os-appearance-variable*
+v:os_appearance The current OS appearance mode. Useful if you want to change
+		options |background| or |colorscheme| according to the 
+ 		appearance of the GUI frontend. See also |OSAppearanceChanged|.
+		 	value   description ~
+ 			0       Light Mode (always 0 on unsupported platforms)
+ 			1       Dark Mode
+ 			2       High-Contrast Light Mode
+ 			3       High-Contrast Dark Mode
+
+ 		{only in MacVim GUI}
+
 					*v:prevcount* *prevcount-variable*
 v:prevcount	The count given for the last but one Normal mode command.
 		This is the v:count value of the previous command.  Useful if

@@ -143,6 +143,7 @@ static struct vimvar
     {VV_NAME("event",		 VAR_DICT), VV_RO},
     {VV_NAME("versionlong",	 VAR_NUMBER), VV_RO},
     {VV_NAME("echospace",	 VAR_NUMBER), VV_RO},
+    {VV_NAME("os_appearance",    VAR_NUMBER), VV_RO},
 };
 
 // shorthand
