@@ -172,6 +172,7 @@ NEW_TESTS = \
 	test_listlbr \
 	test_listlbr_utf8 \
 	test_lua \
+	test_macvim \
 	test_makeencoding \
 	test_man \
 	test_maparg \
@@ -372,6 +373,7 @@ NEW_TESTS_RES = \
 	test_listener.res \
 	test_listlbr.res \
 	test_lua.res \
+	test_macvim.res \
 	test_makeencoding.res \
 	test_man.res \
 	test_maparg.res \
