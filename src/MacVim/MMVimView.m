@@ -664,6 +664,10 @@ enum {
     [self frameSizeMayHaveChanged:NO];
 }
 
+- (void)viewDidChangeEffectiveAppearance
+{
+    [vimController appearanceChanged:getCurrentAppearance(self.effectiveAppearance)];
+}
 @end // MMVimView
 
 

@@ -290,6 +290,8 @@ Name			triggered by ~
 |EncodingChanged|	after the 'encoding' option has been changed
 |TermChanged|		after the value of 'term' has changed
 |OptionSet|		after setting any option
+|OSAppearanceChanged|	after the variable |v:os_appearance| has changed 
+			{only in MacVim GUI}
 
 	Startup and exit
 |VimEnter|		after doing all the startup stuff
@@ -918,6 +920,11 @@ OptionSet			After setting an option.  The pattern is
 
 				When using |:set| in the autocommand the event
 				is not triggered again.
+                                                        *OSAppearanceChanged*
+OSAppearanceChanged             After changing the variable |v:os_appearance|. 
+                                This change happens only if the OS changes
+                                its appearance and Vim is running with a GUI.
+
 							*QuickFixCmdPre*
 QuickFixCmdPre			Before a quickfix command is run (|:make|,
 				|:lmake|, |:grep|, |:lgrep|, |:grepadd|,

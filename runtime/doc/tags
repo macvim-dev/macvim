@@ -4996,6 +4996,7 @@ OS390-bugs	os_390.txt	/*OS390-bugs*
 OS390-has-ebcdic	os_390.txt	/*OS390-has-ebcdic*
 OS390-limitations	os_390.txt	/*OS390-limitations*
 OS390-open-source	os_390.txt	/*OS390-open-source*
+OSAppearanceChanged	autocmd.txt	/*OSAppearanceChanged*
 OffTheSpot	mbyte.txt	/*OffTheSpot*
 OnTheSpot	mbyte.txt	/*OnTheSpot*
 Operator-pending	intro.txt	/*Operator-pending*
@@ -8274,6 +8275,7 @@ options.txt	options.txt	/*options.txt*
 optwin	options.txt	/*optwin*
 or()	eval.txt	/*or()*
 oracle	ft_sql.txt	/*oracle*
+os-appearance-variable	eval.txt	/*os-appearance-variable*
 os2	os_os2.txt	/*os2*
 os390	os_390.txt	/*os390*
 os_390.txt	os_390.txt	/*os_390.txt*
@@ -9753,6 +9755,7 @@ v:option_old	eval.txt	/*v:option_old*
 v:option_oldglobal	eval.txt	/*v:option_oldglobal*
 v:option_oldlocal	eval.txt	/*v:option_oldlocal*
 v:option_type	eval.txt	/*v:option_type*
+v:os_appearance	eval.txt	/*v:os_appearance*
 v:prevcount	eval.txt	/*v:prevcount*
 v:profiling	eval.txt	/*v:profiling*
 v:progname	eval.txt	/*v:progname*

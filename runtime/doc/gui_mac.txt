@@ -121,6 +121,10 @@ These are the non-standard options that MacVim supports:
 These are the non-standard commands that MacVim supports:
 	|:macaction|	|:macmenu|
 
+                                                       *macvim-autocommands*
+These are the non-standard events that MacVim supports:
+       |OSAppearanceChanged|
+
 							*macvim-find*
 Whenever you search for something in Vim (e.g. using "/"), or hit <D-e> when
 you have text selected, the search query is copied to the macOS "Find

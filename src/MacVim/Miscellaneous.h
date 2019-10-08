@@ -160,3 +160,5 @@ NSArray *normalizeFilenames(NSArray *filenames);
 BOOL shouldUseYosemiteTabBarStyle();
 BOOL shouldUseMojaveTabBarStyle();
 BOOL shouldUseBufferedDrawing();
+
+int getCurrentAppearance(NSAppearance *appearance);

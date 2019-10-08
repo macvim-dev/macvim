@@ -198,6 +198,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 - (void)useSelectionForFind;
 - (void)handleMarkedText:(NSData *)data;
 - (void)handleGesture:(NSData *)data;
+- (void)handleOSAppearanceChange:(NSData *)data;
 #ifdef FEAT_BEVAL
 - (void)bevalCallback:(id)sender;
 #endif
@@ -2110,6 +2111,8 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         ASLogDebug(@"SetWindowPositionMsgID: x=%d y=%d", winposX, winposY);
     } else if (GestureMsgID == msgid) {
         [self handleGesture:data];
+    } else if (NotifyAppearanceChangeMsgID == msgid) {
+        [self handleOSAppearanceChange:data];
     } else if (ActivatedImMsgID == msgid) {
         [self setImState:YES];
     } else if (DeactivatedImMsgID == msgid) {
@@ -3324,6 +3327,17 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
         string[2] = modifiers;
         add_to_input_buf(string, 6);
     }
+}
+
+- (void)handleOSAppearanceChange:(NSData *)data {
+    const void *bytes = [data bytes];
+    int flag = *((int*)bytes);  bytes += sizeof(int);
+    // 0 : (default) The standard (light) system appearance.
+    // 1 : The standard dark system appearance.
+    // 2 : The high-contrast version of the standard light system appearance.
+    // 3 : The high-contrast version of the standard dark system appearance.
+    set_vim_var_nr(VV_OS_APPEARANCE, flag);
+    apply_autocmds(EVENT_OSAPPCHANGED, NULL, NULL, FALSE, curbuf);
 }
 
 #ifdef FEAT_BEVAL
