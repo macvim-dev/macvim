@@ -301,9 +301,14 @@ defaultAdvanceForFont(NSFont *font)
         return;
 
     double em = round(defaultAdvanceForFont(newFont));
+    double pt = round([newFont pointSize]);
+
+    CTFontDescriptorRef desc = CTFontDescriptorCreateWithNameAndSize((CFStringRef)[newFont fontName], pt);
+    CTFontRef fontRef = CTFontCreateWithFontDescriptor(desc, pt, NULL);
+    CFRelease(desc);
 
     [font release];
-    font = [newFont retain];
+    font = (NSFont*)fontRef;
 
     float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
             floatForKey:MMCellWidthMultiplierKey];
@@ -315,7 +320,7 @@ defaultAdvanceForFont(NSFont *font)
     cellSize.width = columnspace + ceil(em * cellWidthMultiplier);
     cellSize.height = linespace + defaultLineHeightForFont(font);
 
-    fontDescent = ceil(CTFontGetDescent((CTFontRef)newFont));
+    fontDescent = ceil(CTFontGetDescent(fontRef));
 
     [fontCache removeAllObjects];
 }
