@@ -8,6 +8,9 @@
     <item>
       <title>MacVim snapshot-159</title>
       <description><![CDATA[
+<style>
+:root { supported-color-schemes: light dark; color-scheme: light dark; }
+</style>
 
 <p>Vim patch 8.1.2168</p>
 
@@ -47,7 +50,7 @@ light mode). See <code>:help OSAppearanceChanged</code>. #766</li>
         length="16955918"
         sparkle:version="159"
         sparkle:shortVersionString="8.1.2168"
-        sparkle:dsaSignature="MC0CFC5U6i0BjaiMLu09r2a58cZWKWzPAhUAqfYuZagx51FPGmLA2dZtejD8Wss="
+        sparkle:dsaSignature="MC4CFQC4CITArrC+w6Bf4emjBqWKSHfzCwIVAIgs6MN4SHZak722coyqpqDgx2dH"
         />
     </item>
   </channel>
