@@ -7663,6 +7663,7 @@ mac-vimfile	os_mac.txt	/*mac-vimfile*
 macintosh	os_mac.txt	/*macintosh*
 macro	map.txt	/*macro*
 macvim	gui_mac.txt	/*macvim*
+macvim-autocommands	gui_mac.txt	/*macvim-autocommands*
 macvim-backspace	gui_mac.txt	/*macvim-backspace*
 macvim-clientserver	remote.txt	/*macvim-clientserver*
 macvim-colors	gui_mac.txt	/*macvim-colors*
