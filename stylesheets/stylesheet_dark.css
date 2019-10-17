@@ -2,10 +2,19 @@
  * Custom modified stylesheet to support dark mode as upstream doesn't support
  * it.
  */
-:root {
-    prefer-color-schemes: light dark;
-    color-scheme: light dark;
+@supports (color-scheme: light dark) {
+    :root {
+        color-scheme: light dark;
+    }
 }
+@supports not (color-scheme: light dark) {
+    @media (prefers-color-scheme: dark) {
+        body {
+            background-color: #1E1E1E;
+        }
+    }
+}
+
 @media (prefers-color-scheme: dark) {
     a {
         color: #2583E2;
