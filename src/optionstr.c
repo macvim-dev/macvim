@@ -1896,7 +1896,8 @@ did_set_string_option(
     {
 	if (*p_pt)
 	{
-	    (void)replace_termcodes(p_pt, &p, TRUE, TRUE, FALSE);
+	    (void)replace_termcodes(p_pt, &p,
+				      REPTERM_FROM_PART | REPTERM_DO_LT, NULL);
 	    if (p != NULL)
 	    {
 		if (new_value_alloced)

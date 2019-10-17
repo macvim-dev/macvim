@@ -509,6 +509,38 @@ func Test_popup_close_with_mouse()
   call delete('XtestPopupClose')
 endfunction
 
+func Test_popup_menu_wrap()
+  CheckScreendump
+
+  let lines =<< trim END
+	call setline(1, range(1, 20))
+	call popup_create([
+	      \ 'one',
+	      \ 'asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfas',
+	      \ 'three',
+	      \ 'four',
+	      \ ], #{
+	      \ pos: "botleft",
+	      \ border: [],
+	      \ padding: [0,1,0,1],
+	      \ maxheight: 3,
+	      \ cursorline: 1,
+	      \ filter: 'popup_filter_menu',
+	      \ })
+  END
+  call writefile(lines, 'XtestPopupWrap')
+  let buf = RunVimInTerminal('-S XtestPopupWrap', #{rows: 10})
+  call VerifyScreenDump(buf, 'Test_popupwin_wrap_1', {})
+
+  call term_sendkeys(buf, "jj")
+  call VerifyScreenDump(buf, 'Test_popupwin_wrap_2', {})
+
+  " clean up
+  call term_sendkeys(buf, "\<Esc>")
+  call StopVimInTerminal(buf)
+  call delete('XtestPopupWrap')
+endfunction
+
 func Test_popup_with_mask()
   CheckScreendump
 
@@ -2554,6 +2586,40 @@ func Test_popupwin_recycle_bnr()
   let winid = 'nothing wrong'->popup_notification({})
   call assert_equal(bufnr, winbufnr(winid))
   call popup_clear()
+endfunc
+
+func Test_popupwin_getoptions_tablocal()
+  topleft split
+  let win1 = popup_create('nothing', #{maxheight: 8})
+  let win2 = popup_create('something', #{maxheight: 10})
+  let win3 = popup_create('something', #{maxheight: 15})
+  call assert_equal(8, popup_getoptions(win1).maxheight)
+  call assert_equal(10, popup_getoptions(win2).maxheight)
+  call assert_equal(15, popup_getoptions(win3).maxheight)
+  call popup_clear()
+  quit
+endfunc
+
+func Test_popupwin_cancel()
+  let win1 = popup_create('one', #{line: 5, filter: {... -> 0}})
+  let win2 = popup_create('two', #{line: 10, filter: {... -> 0}})
+  let win3 = popup_create('three', #{line: 15, filter: {... -> 0}})
+  call assert_equal(5, popup_getpos(win1).line)
+  call assert_equal(10, popup_getpos(win2).line)
+  call assert_equal(15, popup_getpos(win3).line)
+  " TODO: this also works without patch 8.1.2110
+  call feedkeys("\<C-C>", 'xt')
+  call assert_equal(5, popup_getpos(win1).line)
+  call assert_equal(10, popup_getpos(win2).line)
+  call assert_equal({}, popup_getpos(win3))
+  call feedkeys("\<C-C>", 'xt')
+  call assert_equal(5, popup_getpos(win1).line)
+  call assert_equal({}, popup_getpos(win2))
+  call assert_equal({}, popup_getpos(win3))
+  call feedkeys("\<C-C>", 'xt')
+  call assert_equal({}, popup_getpos(win1))
+  call assert_equal({}, popup_getpos(win2))
+  call assert_equal({}, popup_getpos(win3))
 endfunc
 
 " vim: shiftwidth=2 sts=2

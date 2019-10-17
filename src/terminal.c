@@ -772,7 +772,8 @@ ex_terminal(exarg_T *eap)
 
 	    p = skiptowhite(cmd);
 	    *p = NUL;
-	    keys = replace_termcodes(ep + 1, &buf, TRUE, TRUE, TRUE);
+	    keys = replace_termcodes(ep + 1, &buf,
+		    REPTERM_FROM_PART | REPTERM_DO_LT | REPTERM_SPECIAL, NULL);
 	    opt.jo_set2 |= JO2_EOF_CHARS;
 	    opt.jo_eof_chars = vim_strsave(keys);
 	    vim_free(buf);
@@ -1376,11 +1377,18 @@ term_convert_key(term_T *term, int c, char *buf)
 				break;
     }
 
+    // add modifiers for the typed key
+    if (mod_mask & MOD_MASK_SHIFT)
+	mod |= VTERM_MOD_SHIFT;
+    if (mod_mask & MOD_MASK_CTRL)
+	mod |= VTERM_MOD_CTRL;
+    if (mod_mask & (MOD_MASK_ALT | MOD_MASK_META))
+	mod |= VTERM_MOD_ALT;
+
     /*
      * Convert special keys to vterm keys:
      * - Write keys to vterm: vterm_keyboard_key()
      * - Write output to channel.
-     * TODO: use mod_mask
      */
     if (key != VTERM_KEY_NONE)
 	/* Special key, let vterm convert it. */
@@ -1907,15 +1915,21 @@ term_vgetc()
 {
     int c;
     int save_State = State;
+    int modify_other_keys =
+			  vterm_is_modify_other_keys(curbuf->b_term->tl_vterm);
 
     State = TERMINAL;
     got_int = FALSE;
 #ifdef MSWIN
     ctrl_break_was_pressed = FALSE;
 #endif
+    if (modify_other_keys)
+	++no_reduce_keys;
     c = vgetc();
     got_int = FALSE;
     State = save_State;
+    if (modify_other_keys)
+	--no_reduce_keys;
     return c;
 }
 
@@ -2260,6 +2274,7 @@ term_win_entered()
 terminal_loop(int blocking)
 {
     int		c;
+    int		raw_c;
     int		termwinkey = 0;
     int		ret;
 #ifdef UNIX
@@ -2311,6 +2326,13 @@ terminal_loop(int blocking)
 	}
 	if (c == K_IGNORE)
 	    continue;
+
+	// vgetc may not include CTRL in the key when modify_other_keys is set.
+	raw_c = c;
+	if ((mod_mask & MOD_MASK_CTRL)
+		&& ((c >= '`' && c <= 0x7f)
+		    || (c >= '@' && c <= '_')))
+	    c &= 0x1f;
 
 #ifdef UNIX
 	/*
@@ -2422,7 +2444,7 @@ terminal_loop(int blocking)
 		c = wc;
 	}
 # endif
-	if (send_keys_to_term(curbuf->b_term, c, TRUE) != OK)
+	if (send_keys_to_term(curbuf->b_term, raw_c, TRUE) != OK)
 	{
 	    if (c == K_MOUSEMOVE)
 		/* We are sure to come back here, don't reset the cursor color
@@ -4607,6 +4629,7 @@ read_dump_file(FILE *fd, VTermPos *cursor_pos)
     }
 
     ga_clear(&ga_text);
+    ga_clear(&ga_cell);
     vim_free(prev_char);
 
     return max_cells;
@@ -4738,7 +4761,7 @@ term_load_dump(typval_T *argvars, typval_T *rettv, int do_diff)
 	    buf = curbuf;
 	    while (!(curbuf->b_ml.ml_flags & ML_EMPTY))
 		ml_delete((linenr_T)1, FALSE);
-	    ga_clear(&curbuf->b_term->tl_scrollback);
+	    free_scrollback(curbuf->b_term);
 	    redraw_later(NOT_VALID);
 	}
     }
@@ -5435,7 +5458,7 @@ f_term_scrape(typval_T *argvars, typval_T *rettv)
 	    attrs = cellattr->attrs;
 	    fg = cellattr->fg;
 	    bg = cellattr->bg;
-	    len = MB_PTR2LEN(p);
+	    len = mb_ptr2len(p);
 	    mch_memmove(mbs, p, len);
 	    mbs[len] = NUL;
 	    p += len;
