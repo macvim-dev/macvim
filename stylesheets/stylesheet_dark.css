@@ -1,0 +1,19 @@
+/*
+ * Custom modified stylesheet to support dark mode as upstream doesn't support
+ * it.
+ */
+:root {
+    prefer-color-schemes: light dark;
+    color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+    a {
+        color: #2583E2;
+    }
+    body {
+        color: #9F938E;
+    }
+    .site-footer-credits {
+        color: #7E6E67;
+    }
+}
