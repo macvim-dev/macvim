@@ -6,26 +6,24 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-157</title>
+      <title>MacVim snapshot-159</title>
       <description><![CDATA[
-<p>Vim patch 8.1.1722</p>
+
+<p>Vim patch 8.1.2168</p>
 
 <p>Features:</p>
 
 <ul>
-  <li>Add ‘MMDisableLaunchAnimation’ option to disable the opening animation
-of MacVim Windows. #915</li>
-  <li>Make ‘MMTitlebarAppearsTransparent’ work in pre-Mojave macOS versions.
-#917</li>
+  <li>Can now use autocommand to detect an OS appearance change (dark vs
+light mode). See <code>:help OSAppearanceChanged</code>. #766</li>
 </ul>
 
 <p>Fixes:</p>
 
 <ul>
-  <li>Fix issue where MacVim would freeze when opening a file already opened
-in another MacVim window when swap files are enabled. #913</li>
-  <li>Menu items with name starting with ‘]’ now properly get hidden in the
-main menu bar (see <code>:help hidden-menus</code>). #853</li>
+  <li>Fix text being clipped in macOS Catalina. #905</li>
+  <li>Fix “E432: Tags file not sorted” issue in macOS Catalina. #953. (Vim
+8.1.2152)</li>
 </ul>
 
 <p>Targets macOS 10.8+</p>
@@ -40,15 +38,16 @@ main menu bar (see <code>:help hidden-menus</code>). #853</li>
   <li>Ruby 2.6</li>
 </ul>
 
+
       ]]></description>
-      <pubDate>Sat, 27 Jul 2019 22:00:00 -0700</pubDate>
+      <pubDate>Thu, 17 Oct 2019 02:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-157/MacVim.dmg"
-        length="16902712"
-        sparkle:version="157"
-        sparkle:shortVersionString="8.1.1722"
-        sparkle:dsaSignature="MCwCFB735GbaLl3tYNo6IRlcoV3QRHL7AhRCMhI/U8VHny9kM5N2mNUUT5xhuw=="
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-159/MacVim.dmg"
+        length="16955918"
+        sparkle:version="159"
+        sparkle:shortVersionString="8.1.2168"
+        sparkle:dsaSignature="MC0CFC5U6i0BjaiMLu09r2a58cZWKWzPAhUAqfYuZagx51FPGmLA2dZtejD8Wss="
         />
     </item>
   </channel>
