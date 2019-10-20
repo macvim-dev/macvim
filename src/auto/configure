@@ -4708,6 +4708,8 @@ rm -f core conftest.err conftest.$ac_objext \
     if test -z "$MACOSX_DEPLOYMENT_TARGET"; then
       macosx_deployment_target=`/usr/bin/sw_vers -productVersion|/usr/bin/sed -e 's/^\([0-9]*\.[0-9]*\).*/\1/'`
       XCODEFLAGS="$XCODEFLAGS MACOSX_DEPLOYMENT_TARGET=$macosx_deployment_target"
+    else
+      XCODEFLAGS="$XCODEFLAGS MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
     fi
   fi
 
@@ -9183,7 +9185,7 @@ $as_echo "no GUI support" >&6; }
 		SKIP_MACVIM=YES ;;
     yes|""|auto)	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes/auto - automatic GUI support" >&5
 $as_echo "yes/auto - automatic GUI support" >&6; }
-    	gui_auto=yes
+        gui_auto=yes
 		SKIP_CARBON=YES ;;
     carbon)	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Carbon GUI support" >&5
 $as_echo "Carbon GUI support" >&6; }

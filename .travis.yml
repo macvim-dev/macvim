@@ -6,9 +6,9 @@ os:
 
 osx_image:
   - xcode7.3
-  - xcode8.3
   - xcode9.4
-  - xcode10.2
+  - xcode10.3
+  - xcode11.2
 
 compiler:
   - clang
@@ -23,7 +23,6 @@ addons:
 
 env:
   - MACOSX_DEPLOYMENT_TARGET=10.8
-    XCODEFLAGS="MACOSX_DEPLOYMENT_TARGET=10.8"
     VERSIONER_PERL_VERSION=5.18
     VERSIONER_PYTHON_VERSION=2.7
     vi_cv_path_python=/usr/bin/python
