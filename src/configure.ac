@@ -236,6 +236,8 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
     if test -z "$MACOSX_DEPLOYMENT_TARGET"; then
       macosx_deployment_target=`/usr/bin/sw_vers -productVersion|/usr/bin/sed -e 's/^\([[0-9]]*\.[[0-9]]*\).*/\1/'`
       XCODEFLAGS="$XCODEFLAGS MACOSX_DEPLOYMENT_TARGET=$macosx_deployment_target"
+    else
+      XCODEFLAGS="$XCODEFLAGS MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
     fi
   fi
 
