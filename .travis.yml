@@ -22,7 +22,7 @@ addons:
     update: true
 
 env:
-  - MACOSX_DEPLOYMENT_TARGET=10.8
+  - MACOSX_DEPLOYMENT_TARGET=10.9
     VERSIONER_PERL_VERSION=5.18
     VERSIONER_PYTHON_VERSION=2.7
     vi_cv_path_python=/usr/bin/python
