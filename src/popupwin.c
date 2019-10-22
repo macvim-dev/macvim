@@ -493,12 +493,28 @@ handle_moved_argument(win_T *wp, dictitem_T *di, int mousemoved)
     }
     else if (di->di_tv.v_type == VAR_LIST
 	    && di->di_tv.vval.v_list != NULL
-	    && di->di_tv.vval.v_list->lv_len == 2)
+	    && (di->di_tv.vval.v_list->lv_len == 2
+	     || di->di_tv.vval.v_list->lv_len == 3))
     {
-	list_T	*l = di->di_tv.vval.v_list;
-	int	mincol = tv_get_number(&l->lv_first->li_tv);
-	int	maxcol = tv_get_number(&l->lv_first->li_next->li_tv);
+	list_T	    *l = di->di_tv.vval.v_list;
+	listitem_T  *li = l->lv_first;
+	int	    mincol;
+	int	    maxcol;
 
+	if (di->di_tv.vval.v_list->lv_len == 3)
+	{
+	    varnumber_T nr = tv_get_number(&l->lv_first->li_tv);
+
+	    // Three numbers, might be from popup_getoptions().
+	    if (mousemoved)
+		wp->w_popup_mouse_row = nr;
+	    else
+		wp->w_popup_lnum = nr;
+	    li = li->li_next;
+	}
+
+	mincol = tv_get_number(&li->li_tv);
+	maxcol = tv_get_number(&li->li_next->li_tv);
 	if (mousemoved)
 	{
 	    wp->w_popup_mouse_mincol = mincol;
@@ -2225,7 +2241,7 @@ f_popup_close(typval_T *argvars, typval_T *rettv UNUSED)
 	popup_close_and_callback(wp, &argvars[1]);
 }
 
-    static void
+    void
 popup_hide(win_T *wp)
 {
     if ((wp->w_popup_flags & POPF_HIDDEN) == 0)
@@ -2272,7 +2288,11 @@ f_popup_show(typval_T *argvars, typval_T *rettv UNUSED)
     win_T	*wp = find_popup_win(id);
 
     if (wp != NULL)
+    {
 	popup_show(wp);
+	if (wp->w_popup_flags & POPF_INFO)
+	    pum_position_info_popup(wp);
+    }
 }
 
 /*

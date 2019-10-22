@@ -1399,14 +1399,14 @@ win_line(
 	    }
 #endif
 
-	    if (extra_check)
+#ifdef FEAT_SYN_HL
+	    if (extra_check && n_extra == 0)
 	    {
-#ifdef FEAT_TERMINAL
+		syntax_attr = 0;
+# ifdef FEAT_TERMINAL
 		if (get_term_attr)
 		    syntax_attr = term_get_attr(wp->w_buffer, lnum, vcol);
-#endif
-
-#ifdef FEAT_SYN_HL
+# endif
 		// Get syntax attribute.
 		if (has_syntax)
 		{
@@ -1463,16 +1463,28 @@ win_line(
 			syntax_flags = get_syntax_info(&syntax_seqnr);
 # endif
 		}
-#endif
 	    }
+#endif
 
 	    // Decide which of the highlight attributes to use.
 	    attr_pri = TRUE;
 #ifdef LINE_ATTR
 	    if (area_attr != 0)
+	    {
 		char_attr = hl_combine_attr(line_attr, area_attr);
+# ifdef FEAT_SYN_HL
+		if (syntax_attr != 0)
+		    char_attr = hl_combine_attr(syntax_attr, char_attr);
+# endif
+	    }
 	    else if (search_attr != 0)
+	    {
 		char_attr = hl_combine_attr(line_attr, search_attr);
+# ifdef FEAT_SYN_HL
+		if (syntax_attr != 0)
+		    char_attr = hl_combine_attr(syntax_attr, char_attr);
+# endif
+	    }
 # ifdef FEAT_TEXT_PROP
 	    else if (text_prop_type != NULL)
 	    {
@@ -1490,7 +1502,7 @@ win_line(
 		// Use line_attr when not in the Visual or 'incsearch' area
 		// (area_attr may be 0 when "noinvcur" is set).
 # ifdef FEAT_SYN_HL
-		if (has_syntax)
+		if (syntax_attr != 0)
 		    char_attr = hl_combine_attr(syntax_attr, line_attr);
 		else
 # endif
@@ -1519,15 +1531,10 @@ win_line(
 		else
 #endif
 #ifdef FEAT_SYN_HL
-		    if (has_syntax
-# ifdef FEAT_TERMINAL
-			    || get_term_attr
-# endif
-		       )
-			char_attr = syntax_attr;
-		else
-#endif
+		    char_attr = syntax_attr;
+#else
 		    char_attr = 0;
+#endif
 	    }
 	}
 	if (char_attr == 0)
@@ -1824,6 +1831,7 @@ win_line(
 		// Only do this when there is no syntax highlighting, the
 		// @Spell cluster is not used or the current syntax item
 		// contains the @Spell cluster.
+		v = (long)(ptr - line);
 		if (has_spell && v >= word_end && v > cur_checked_col)
 		{
 		    spell_attr = 0;
@@ -1874,7 +1882,8 @@ win_line(
 			    // Remember that the good word continues at the
 			    // start of the next line.
 			    checked_lnum = lnum + 1;
-			    checked_col = (int)((p - nextline) + len - nextline_idx);
+			    checked_col = (int)((p - nextline)
+							 + len - nextline_idx);
 			}
 
 			// Turn index into actual attributes.

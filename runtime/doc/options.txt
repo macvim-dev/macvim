@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 8.1.  Last change: 2019 Sep 28
+*options.txt*	For Vim version 8.1.  Last change: 2019 Oct 20
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1942,6 +1942,13 @@ A jump table for the options with a short description can be found at |Q_op|.
 		    See |'completepopup'| for specifying properties.
 		    {only works when compiled with the |+textprop| feature}
 
+	   popuphidden
+	   	    Just like "popup" but initially hide the popup.  Use a
+		    |CompleteChanged| autocommand to fetch the info and call
+		    |popup_show()| once the popup has been filled.
+		    See the example at |complete-popuphidden|.
+		    {only works when compiled with the |+textprop| feature}
+
 	   noinsert Do not insert any text for a match until the user selects
 		    a match from the menu. Only works in combination with
 		    "menu" or "menuone". No effect if "longest" is present.
@@ -2716,7 +2723,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	- The swap file will be created in the first directory where this is
 	  possible.
 	- Empty means that no swap file will be used (recovery is
-	  impossible!).
+	  impossible!) and no |E303| error will be given.
 	- A directory "." means to put the swap file in the same directory as
 	  the edited file.  On Unix, a dot is prepended to the file name, so
 	  it doesn't show in a directory listing.  On MS-Windows the "hidden"
