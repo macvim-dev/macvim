@@ -335,7 +335,7 @@ shouldUseBufferedDrawing()
 int
 getCurrentAppearance(NSAppearance *appearance){
     int flag = 0; // for macOS 10.13 or eariler always return 0;
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_14
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
     if (@available(macOS 10.14, *)) {
         NSAppearanceName appearanceName = [appearance bestMatchFromAppearancesWithNames:
                 @[NSAppearanceNameAqua
