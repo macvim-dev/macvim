@@ -690,6 +690,8 @@ term_start(
     }
 
     apply_autocmds(EVENT_TERMINALOPEN, NULL, NULL, FALSE, newbuf);
+    if (!opt->jo_hidden && !(flags & TERM_START_SYSTEM))
+	apply_autocmds(EVENT_TERMINALWINOPEN, NULL, NULL, FALSE, newbuf);
     return newbuf;
 }
 
@@ -1499,7 +1501,7 @@ term_try_stop_job(buf_T *buf)
 	if (job->jv_status >= JOB_ENDED)
 	    return OK;
 
-	ui_delay(10L, FALSE);
+	ui_delay(10L, TRUE);
 	term_flush_messages();
     }
     return FAIL;
