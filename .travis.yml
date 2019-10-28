@@ -29,6 +29,8 @@ anchors:
           - python
           - ruby
         update: true
+  - &lang_env
+    env: "LANGOPT='--enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local'"
   - &caches
     cache:
       directories:
@@ -84,7 +86,7 @@ script:
 jobs:
   include:
     - osx_image: xcode11.2
-      env: "LANGOPT='--enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local'"
+      <<: *lang_env
       <<: *homebrew
       <<: *caches
     - osx_image: xcode10.3
@@ -92,6 +94,7 @@ jobs:
     - osx_image: xcode7.3
     - stage: deploy
       osx_image: xcode11.2
+      <<: *lang_env
       <<: *caches
       script: skip
       before_deploy:
