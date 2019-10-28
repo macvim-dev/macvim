@@ -6,30 +6,44 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-159</title>
+      <title>MacVim snapshot-160</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
 
-<p>Vim patch 8.1.2168</p>
+<p>Vim patch 8.1.2224</p>
+
+<p>General:</p>
+
+<ul>
+  <li>MacVim <strong>now requires macOS 10.9</strong>, up from 10.8.</li>
+  <li>MacVim binary is now notaraized by Apple. This should make it open
+properly without a security warning in macOS 10.15 Catalina. #959 #825</li>
+</ul>
 
 <p>Features:</p>
 
 <ul>
-  <li>Can now use autocommand to detect an OS appearance change (dark vs
-light mode). See <code>:help OSAppearanceChanged</code>. #766</li>
+  <li>Make mouse cursor higher contrast under macOS 10.13 or older. #910</li>
 </ul>
 
 <p>Fixes:</p>
 
 <ul>
-  <li>Fix text being clipped in macOS Catalina. #905</li>
-  <li>Fix “E432: Tags file not sorted” issue in macOS Catalina. #953. (Vim
-8.1.2152)</li>
+  <li>Fix OS appearance (dark vs light mode) detection not working. See
+<code>:help OSAppearanceChanged</code> for more info on the feature.  #973</li>
+  <li>Fix spell checker flagging first words in line. #971 (Vim 8.1.2172)</li>
+  <li>Fix wrong highlighting color scheme. #960 (Vim 8.1.2176)</li>
 </ul>
 
-<p>Targets macOS 10.8+</p>
+<p>Misc:</p>
+
+<ul>
+  <li>Sparkle updater has been updated to 1.22.00. #963</li>
+</ul>
+
+<p>Targets macOS 10.9+</p>
 
 <p>Script interfaces have compatibility with these versions:</p>
 
@@ -43,14 +57,14 @@ light mode). See <code>:help OSAppearanceChanged</code>. #766</li>
 
 
       ]]></description>
-      <pubDate>Thu, 17 Oct 2019 02:00:00 -0700</pubDate>
-      <sparkle:minimumSystemVersion>10.8</sparkle:minimumSystemVersion>
+      <pubDate>Mon, 28 Oct 2019 05:00:00 -0700</pubDate>
+      <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-159/MacVim.dmg"
-        length="16955918"
-        sparkle:version="159"
-        sparkle:shortVersionString="8.1.2168"
-        sparkle:dsaSignature="MC4CFQC4CITArrC+w6Bf4emjBqWKSHfzCwIVAIgs6MN4SHZak722coyqpqDgx2dH"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-160/MacVim.dmg"
+        length="17219480"
+        sparkle:version="160"
+        sparkle:shortVersionString="8.1.2224"
+        sparkle:dsaSignature="MC0CFBxU3jipD1Ds3FkpqlTglMv/Q3inAhUAmQqM2eguuvh6W/GUyPksKrY+XS8="
         />
     </item>
   </channel>
