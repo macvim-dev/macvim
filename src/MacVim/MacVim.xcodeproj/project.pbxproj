@@ -53,6 +53,7 @@
 		1DCD00D30E50B2B700460166 /* Undo.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DCD00BE0E50B2B700460166 /* Undo.png */; };
 		1DD04DEC0C529C5E006CDC2B /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1DD04DEB0C529C5E006CDC2B /* Credits.rtf */; };
 		1DD0C20C0C60FFB4008CD84A /* gvimrc in Copy Vim Runtime Files */ = {isa = PBXBuildFile; fileRef = 1DD0C20A0C60FF9A008CD84A /* gvimrc */; };
+		1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DD3D51D0D82D4C9006E4320 /* ibeam.png */; };
 		1DD66ECE0C803D3600EBDAB3 /* MMApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */; };
 		1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */; };
 		1DE3F8E70D50F80500052B9E /* Preferences.nib in Resources */ = {isa = PBXBuildFile; fileRef = 1DE3F8E50D50F80500052B9E /* Preferences.nib */; };
@@ -228,6 +229,7 @@
 		1DCD00BE0E50B2B700460166 /* Undo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Undo.png; path = Toolbar/Undo.png; sourceTree = "<group>"; };
 		1DD04DEB0C529C5E006CDC2B /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		1DD0C20A0C60FF9A008CD84A /* gvimrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gvimrc; sourceTree = "<group>"; };
+		1DD3D51D0D82D4C9006E4320 /* ibeam.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ibeam.png; sourceTree = "<group>"; };
 		1DD66ECB0C803D3600EBDAB3 /* MMApplication.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MMApplication.h; sourceTree = "<group>"; };
 		1DD66ECC0C803D3600EBDAB3 /* MMApplication.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MMApplication.m; sourceTree = "<group>"; };
 		1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = SystemColors.plist; sourceTree = "<group>"; };
@@ -554,6 +556,7 @@
 				1D8BEA73104992290069B072 /* FindAndReplace.nib */,
 				0395A8A90D72D88B00881434 /* General.png */,
 				1D22374A0E45DF4800E6FFFF /* Advanced.png */,
+				1DD3D51D0D82D4C9006E4320 /* ibeam.png */,
 				1D0F11480D58C77800D5DA09 /* Font */,
 				1DE9726C0C48050600F96A9F /* Toolbar */,
 				1DD9F5E40C85D60500E8D5A5 /* SystemColors.plist */,
@@ -842,6 +845,7 @@
 				1DD9F5E50C85D60500E8D5A5 /* SystemColors.plist in Resources */,
 				1DE3F8E70D50F80500052B9E /* Preferences.nib in Resources */,
 				0395A8AA0D72D88B00881434 /* General.png in Resources */,
+				1DD3D51E0D82D4C9006E4320 /* ibeam.png in Resources */,
 				1D22374B0E45DF4800E6FFFF /* Advanced.png in Resources */,
 				1DCD00BF0E50B2B700460166 /* Attention.png in Resources */,
 				1DCD00C00E50B2B700460166 /* Copy.png in Resources */,

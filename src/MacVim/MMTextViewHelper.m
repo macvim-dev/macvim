@@ -1028,6 +1028,38 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
 
 - (void)setCursor
 {
+    static NSCursor *ibeamCursor = nil;
+
+    if (!ibeamCursor) {
+        if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_14)
+        {
+            // macOS 10.14 (Mojave) introduced dark mode, and seems to have
+            // added a thick white border around the system I-beam cursor,
+            // which makes it legible across bright and dark background. Just
+            // use it.
+            ibeamCursor = [NSCursor IBeamCursor];
+        }
+        else
+        {
+            // Pre-Mojave versions the I-beam cursors doesn't have the strong
+            // white background and is hard to read on dark background. Use a
+            // custom I-beam cursor that has better contrast against dark
+            // backgrounds.
+            NSImage *ibeamImage = [NSImage imageNamed:@"ibeam"];
+            if (ibeamImage) {
+                NSSize size = [ibeamImage size];
+                NSPoint hotSpot = { size.width*.5f, size.height*.5f };
+                
+                ibeamCursor = [[NSCursor alloc]
+                               initWithImage:ibeamImage hotSpot:hotSpot];
+            }
+            if (!ibeamCursor) {
+                ASLogWarn(@"Failed to load custom Ibeam cursor");
+                ibeamCursor = [NSCursor IBeamCursor];
+            }
+        }
+    }
+
     // This switch should match mshape_names[] in misc2.c.
     //
     // We don't fill every shape here. Only the ones that make sense and have
@@ -1037,7 +1069,7 @@ KeyboardInputSourcesEqual(TISInputSourceRef a, TISInputSourceRef b)
             [[NSCursor arrowCursor] set]; break;
         //case 1: // blank
         case 2: // beam
-            [[NSCursor IBeamCursor] set]; break;
+            [ibeamCursor set]; break;
         case 3: // updown
         case 4: // udsizing
             [[NSCursor resizeUpDownCursor] set]; break;
