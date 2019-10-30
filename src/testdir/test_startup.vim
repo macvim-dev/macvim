@@ -678,7 +678,9 @@ func Test_v_argv()
 
   let out = system(GetVimCommand() . ' -es -V1 -X arg1 --cmd "echo v:argv" --cmd q')
   let list = out->split("', '")
-  call assert_match('vim', list[0])
+  if !has('gui_macvim') " MacVim doesn't always use 'vim' as the executable as it could be 'Vim'
+      call assert_match('vim', list[0])
+  endif
   let idx = index(list, 'arg1')
   call assert_true(idx > 2)
   call assert_equal(['arg1', '--cmd', 'echo v:argv', '--cmd', 'q'']'], list[idx:])
