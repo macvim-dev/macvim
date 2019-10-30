@@ -42,8 +42,17 @@ by using the correct entitlements. #979</li>
         length="17224292"
         sparkle:version="161"
         sparkle:shortVersionString="8.1.2234"
-        sparkle:dsaSignature="MCwCFAp4nZ0WSGqxK3Lucv9rKgRfN+LYAhQ48i9B66yU7/4+jGdCy/Yk3oh1Xw=="
+        sparkle:dsaSignature="MCwCFHoUfW4AQtKHJ9ysyzLJZEK+uGyqAhR0YYduTkSsgNiS0ukXMLFuo/XoyA=="
         />
+      <sparkle:deltas>
+        <enclosure type="application/octet-stream"
+          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-161/160_to_161.delta"
+          length="249609"
+          sparkle:version="161"
+          sparkle:deltaFrom="160"
+          sparkle:dsaSignature="MCwCFAl8W5yqeYrOuPkaVoWe0eIxgxD8AhRQm2cZEvKorv6X1ncZE0uQbgv09g=="
+          />
+      </sparkle:deltas>
     </item>
   </channel>
 </rss>
