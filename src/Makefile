@@ -3620,16 +3620,21 @@ $(APPDIR)/Contents:
 
 ##############################################################################
 ### MacVim GUI
-.PHONY: macvim macvim-dmg macvimclean
+.PHONY: macvim macvim-dmg macvimclean macvim-signed macvim-dmg-release
 
 RELEASEDIR = MacVim/build/Release
 DMGDIR = MacVim/build/dmg
 DMGFILE = MacVim.dmg
+ENTITLEMENTS = MacVim/MacVim.entitlements
 
 macvim: $(VIMTARGET)
 	xcodebuild -project MacVim/MacVim.xcodeproj $(XCODEFLAGS)
 
+macvim-signed:
+	MacVim/scripts/sign-developer-id $(RELEASEDIR)/MacVim.app $(ENTITLEMENTS)
+
 macvim-dmg:
+	rm -rf $(DMGDIR)
 	mkdir -p $(DMGDIR)
 	cp -a $(RELEASEDIR)/MacVim.app $(DMGDIR)/
 	rm -rf $(RELEASEDIR)/$(DMGFILE)
@@ -3647,6 +3652,13 @@ macvimclean:
 	if test -d MacVim; then \
 		rm -rf MacVim/build MacVim/qlstephen/build xxd/xxd.dSYM; \
 	fi
+
+# Create a release DMG image that is signed and notaraized
+macvim-dmg-release: macvim-signed macvim-dmg
+	MacVim/scripts/sign-developer-id $(RELEASEDIR)/MacVim.dmg $(ENTITLEMENTS)
+	MacVim/scripts/notarize-dmg $(RELEASEDIR)/MacVim.dmg
+	echo "--------------------"
+	echo "Release MacVim built!"
 
 
 ###############################################################################
