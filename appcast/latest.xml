@@ -6,41 +6,19 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-160</title>
+      <title>MacVim snapshot-161</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
 
-<p>Vim patch 8.1.2224</p>
-
-<p>General:</p>
-
-<ul>
-  <li>MacVim <strong>now requires macOS 10.9</strong>, up from 10.8.</li>
-  <li>MacVim binary is now notaraized by Apple. This should make it open
-properly without a security warning in macOS 10.15 Catalina. #959 #825</li>
-</ul>
-
-<p>Features:</p>
-
-<ul>
-  <li>Make mouse cursor higher contrast under macOS 10.13 or older. #910</li>
-</ul>
+<p>Vim patch 8.1.2234</p>
 
 <p>Fixes:</p>
 
 <ul>
-  <li>Fix OS appearance (dark vs light mode) detection not working. See
-<code>:help OSAppearanceChanged</code> for more info on the feature.  #973</li>
-  <li>Fix spell checker flagging first words in line. #971 (Vim 8.1.2172)</li>
-  <li>Fix wrong highlighting color scheme. #960 (Vim 8.1.2176)</li>
-</ul>
-
-<p>Misc:</p>
-
-<ul>
-  <li>Sparkle updater has been updated to 1.22.00. #963</li>
+  <li>Fix scripting languages not working (e.g. Python) in binary releases
+by using the correct entitlements. #979</li>
 </ul>
 
 <p>Targets macOS 10.9+</p>
@@ -57,14 +35,14 @@ properly without a security warning in macOS 10.15 Catalina. #959 #825</li>
 
 
       ]]></description>
-      <pubDate>Mon, 28 Oct 2019 05:00:00 -0700</pubDate>
+      <pubDate>Wed, 30 Oct 2019 06:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-160/MacVim.dmg"
-        length="17219480"
-        sparkle:version="160"
-        sparkle:shortVersionString="8.1.2224"
-        sparkle:dsaSignature="MC0CFBxU3jipD1Ds3FkpqlTglMv/Q3inAhUAmQqM2eguuvh6W/GUyPksKrY+XS8="
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-161/MacVim.dmg"
+        length="17224292"
+        sparkle:version="161"
+        sparkle:shortVersionString="8.1.2234"
+        sparkle:dsaSignature="MCwCFAp4nZ0WSGqxK3Lucv9rKgRfN+LYAhQ48i9B66yU7/4+jGdCy/Yk3oh1Xw=="
         />
     </item>
   </channel>
