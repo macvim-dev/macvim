@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# Utility script to sign MacVim with a valid Developer ID with hardened runtime
+# along with a provided entitlments file. This script requires a Developer ID
+# cert already installed on the computer.
+
+# Use the following to verify:
+#     codesign -d --verbose=4 --entitlements - <MacVim_app>
+
+if [[ $# == 0 || $# == 1 ]]; then
+    echo "Usage: sign-developer-id <MacVim_app> <entitlements_file>"
+    exit -1
+fi
+
+set -e
+
+macvim_path=$1
+entitlements=$2
+
+if [[ $macvim_path =~ dmg ]]; then
+    set -x
+    codesign -f -s "Developer ID Application" -o runtime --timestamp $macvim_path
+else
+    # Sign bottom-up to make sure everything is signed. Note: --deep doesn't
+    # catch certain edge cases like the files in Resources, hence the need to
+    # manually sign them before signing the main app.
+    set -x
+    codesign -f -s "Developer ID Application" -o runtime --deep --timestamp $macvim_path/Contents/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app
+    codesign -f -s "Developer ID Application" -o runtime --deep --timestamp $macvim_path/Contents/Library/QuickLook/QLStephen.qlgenerator/Contents/MacOS/QLStephen
+    codesign -f -s "Developer ID Application" -o runtime --deep --timestamp --entitlements $entitlements $macvim_path
+fi
