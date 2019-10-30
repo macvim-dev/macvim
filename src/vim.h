@@ -813,6 +813,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #define WILD_ALLLINKS		    0x200
 #define WILD_IGNORE_COMPLETESLASH   0x400
 #define WILD_NOERROR		    0x800  // sets EW_NOERROR
+#define WILD_BUFLASTUSED	    0x1000
 
 // Flags for expand_wildcards()
 #define EW_DIR		0x01	// include directory names
@@ -1384,6 +1385,8 @@ typedef enum
     , HLF_M	    // "--More--" message
     , HLF_CM	    // Mode (e.g., "-- INSERT --")
     , HLF_N	    // line number for ":number" and ":#" commands
+    , HLF_LNA	    // LineNrAbove
+    , HLF_LNB	    // LineNrBelow
     , HLF_CLN	    // current line number
     , HLF_R	    // return to continue message and yes/no questions
     , HLF_S	    // status lines
@@ -1425,8 +1428,8 @@ typedef enum
 // The HL_FLAGS must be in the same order as the HLF_ enums!
 // When changing this also adjust the default for 'highlight'.
 #define HL_FLAGS {'8', '~', '@', 'd', 'e', 'h', 'i', 'l', 'm', 'M', \
-		  'n', 'N', 'r', 's', 'S', 'c', 't', 'v', 'V', 'w', 'W', \
-		  'f', 'F', 'A', 'C', 'D', 'T', '-', '>', \
+		  'n', 'a', 'b', 'N', 'r', 's', 'S', 'c', 't', 'v', 'V', \
+		  'w', 'W', 'f', 'F', 'A', 'C', 'D', 'T', '-', '>', \
 		  'B', 'P', 'R', 'L', \
 		  '+', '=', 'x', 'X', '*', '#', '_', '!', '.', 'o', 'q', \
 		  'z', 'Z'}
@@ -1990,8 +1993,10 @@ typedef int sock_T;
 #define VV_EVENT	90
 #define VV_VERSIONLONG	91
 #define VV_ECHOSPACE	92
-#define VV_OS_APPEARANCE 93
-#define VV_LEN		94	// number of v: vars
+#define VV_ARGV		93
+// MacVim-specific values go here
+#define VV_OS_APPEARANCE 94
+#define VV_LEN		95	// number of v: vars
 
 // used for v_number in VAR_SPECIAL
 #define VVAL_FALSE	0L

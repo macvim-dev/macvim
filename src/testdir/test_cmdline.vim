@@ -767,3 +767,78 @@ func Test_cmdwin_bug()
   endtry
   bw!
 endfunc
+
+func Test_cmdwin_restore()
+  CheckScreendump
+
+  let lines =<< trim [SCRIPT]
+    call setline(1, range(30))
+    2split
+  [SCRIPT]
+  call writefile(lines, 'XTest_restore')
+
+  let buf = RunVimInTerminal('-S XTest_restore', {'rows': 12})
+  call term_wait(buf, 100)
+  call term_sendkeys(buf, "q:")
+  call VerifyScreenDump(buf, 'Test_cmdwin_restore_1', {})
+
+  " normal restore
+  call term_sendkeys(buf, ":q\<CR>")
+  call VerifyScreenDump(buf, 'Test_cmdwin_restore_2', {})
+
+  " restore after setting 'lines' with one window
+  call term_sendkeys(buf, ":close\<CR>")
+  call term_sendkeys(buf, "q:")
+  call term_sendkeys(buf, ":set lines=18\<CR>")
+  call term_sendkeys(buf, ":q\<CR>")
+  call VerifyScreenDump(buf, 'Test_cmdwin_restore_3', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('XTest_restore')
+endfunc
+
+func Test_buffers_lastused()
+  " check that buffers are sorted by time when wildmode has lastused
+  call test_settime(1550020000)	  " middle
+  edit bufa
+  enew
+  call test_settime(1550030000)	  " newest
+  edit bufb
+  enew
+  call test_settime(1550010000)	  " oldest
+  edit bufc
+  enew
+  call test_settime(0)
+  enew
+
+  call assert_equal(['bufa', 'bufb', 'bufc'],
+	\ getcompletion('', 'buffer'))
+
+  let save_wildmode = &wildmode
+  set wildmode=full:lastused
+
+  let cap = "\<c-r>=execute('let X=getcmdline()')\<cr>"
+  call feedkeys(":b \<tab>" .. cap .. "\<esc>", 'xt')
+  call assert_equal('b bufb', X)
+  call feedkeys(":b \<tab>\<tab>" .. cap .. "\<esc>", 'xt')
+  call assert_equal('b bufa', X)
+  call feedkeys(":b \<tab>\<tab>\<tab>" .. cap .. "\<esc>", 'xt')
+  call assert_equal('b bufc', X)
+  enew
+
+  edit other
+  call feedkeys(":b \<tab>" .. cap .. "\<esc>", 'xt')
+  call assert_equal('b bufb', X)
+  call feedkeys(":b \<tab>\<tab>" .. cap .. "\<esc>", 'xt')
+  call assert_equal('b bufa', X)
+  call feedkeys(":b \<tab>\<tab>\<tab>" .. cap .. "\<esc>", 'xt')
+  call assert_equal('b bufc', X)
+  enew
+
+  let &wildmode = save_wildmode
+
+  bwipeout bufa
+  bwipeout bufb
+  bwipeout bufc
+endfunc

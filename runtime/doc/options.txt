@@ -4034,6 +4034,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 				     "8:SpecialKey,~:EndOfBuffer,@:NonText,
 				     d:Directory,e:ErrorMsg,i:IncSearch,
 				     l:Search,m:MoreMsg,M:ModeMsg,n:LineNr,
+				     a:LineNrAbove,b:LineNrBelow,
 				     N:CursorLineNr,r:Question,s:StatusLine,
 				     S:StatusLineNC,c:VertSplit,t:Title,
 				     v:Visual,V:VisualNOS,w:WarningMsg,
@@ -4065,6 +4066,10 @@ A jump table for the options with a short description can be found at |Q_op|.
 	|hl-ModeMsg|	 M  Mode (e.g., "-- INSERT --")
 	|hl-LineNr|	 n  line number for ":number" and ":#" commands, and
 			    when 'number' or 'relativenumber' option is set.
+	|hl-LineNrAbove|   a  line number above the cursor for when the
+			    'relativenumber' option is set.
+	|hl-LineNrBelow|   b  line number below the cursor for when the
+			    'relativenumber' option is set.
 	|hl-CursorLineNr|  N like n for when 'cursorline' or 'relativenumber' is
 			    set.
 	|hl-Question|	 r  |hit-enter| prompt and yes/no questions
@@ -5340,12 +5345,11 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 						*'mouse'* *E538*
 'mouse'			string	(default "", "a" for GUI, MS-DOS and Win32,
-						 set to "a" in |defaults.vim|)
+					set to "a" or "nvi" in |defaults.vim|)
 			global
-	Enable the use of the mouse.  Only works for certain terminals
-	(xterm, MS-DOS, Win32 |win32-mouse|, QNX pterm, *BSD console with
-	sysmouse and Linux console with gpm).  For using the mouse in the
-	GUI, see |gui-mouse|.
+	Enable the use of the mouse.  Works for most terminals (xterm, MS-DOS,
+	Win32 |win32-mouse|, QNX pterm, *BSD console with sysmouse and Linux
+	console with gpm).  For using the mouse in the GUI, see |gui-mouse|.
 	The mouse can be enabled for different modes:
 		n	Normal mode and Terminal modes
 		v	Visual mode
@@ -5356,7 +5360,15 @@ A jump table for the options with a short description can be found at |Q_op|.
 		r	for |hit-enter| and |more-prompt| prompt
 	Normally you would enable the mouse in all five modes with: >
 		:set mouse=a
-<	When the mouse is not enabled, the GUI will still use the mouse for
+<	If your terminal can't overrule the mouse events going to the
+	application, use: >
+		:set mouse=nvi
+<	The you can press ":", select text for the system, and press Esc to go
+	back to Vim using the mouse events.
+	In |defaults.vim| "nvi" is used if the 'term' option is not matching
+	"xterm".
+
+	When the mouse is not enabled, the GUI will still use the mouse for
 	modeless selection.  This doesn't move the text cursor.
 
 	See |mouse-using|.  Also see |'clipboard'|.
@@ -8852,6 +8864,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 			complete first match.
 	"list:longest"	When more than one match, list all matches and
 			complete till longest common string.
+	"list:lastused" When more than one buffer matches, sort buffers
+			by time last used (other than the current buffer).
 	When there is only a single match, it is fully completed in all cases.
 
 	Examples: >
