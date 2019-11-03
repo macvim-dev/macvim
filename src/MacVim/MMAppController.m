@@ -43,6 +43,7 @@
 #import "MMWindowController.h"
 #import "MMTextView.h"
 #import "Miscellaneous.h"
+#import "Sparkle.framework/Headers/Sparkle.h"
 #import <unistd.h>
 #import <CoreServices/CoreServices.h>
 // Need Carbon for TIS...() functions
@@ -298,6 +299,12 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         ASLogCrit(@"Failed to register connection with name '%@'", name);
         [connection release];  connection = nil;
     }
+    
+#if !DISABLE_SPARKLE
+    // Sparkle is enabled (this is the default). Initialize it. It will
+    // automatically check for update.
+    updater = [[SUUpdater alloc] init];
+#endif
 
     return self;
 }
@@ -315,6 +322,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
     [defaultMainMenu release];  defaultMainMenu = nil;
     [appMenuItemTemplate release];  appMenuItemTemplate = nil;
+    [updater release];  updater = nil;
 
     [super dealloc];
 }
@@ -892,6 +900,14 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // private so this will have to be considered a bit of a hack!)
     NSMenu *appMenu = [mainMenu findApplicationMenu];
     [NSApp performSelector:@selector(setAppleMenu:) withObject:appMenu];
+    
+#if DISABLE_SPARKLE
+    // If Sparkle is disabled, we want to remove the "Check for Updates" menu
+    // item since it's no longer useful.
+    NSMenuItem *checkForUpdatesItem = [appMenu itemAtIndex:
+                                       [appMenu indexOfItemWithAction:@selector(checkForUpdates:)]];
+    checkForUpdatesItem.hidden = true;
+#endif
 
     NSMenu *servicesMenu = [mainMenu findServicesMenu];
     [NSApp setServicesMenu:servicesMenu];
@@ -1194,6 +1210,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [self launchVimProcessWithArguments:[NSArray arrayWithObjects:
                                     @"-c", @":h gui_mac", @"-c", @":res", nil]
                        workingDirectory:nil];
+}
+    
+- (IBAction)checkForUpdates:(id)sender
+{
+#if !DISABLE_SPARKLE
+    // Check for updates for new versions manually.
+    ASLogDebug(@"Check for software updates");
+    [updater checkForUpdates:sender];
+#endif
 }
 
 - (IBAction)zoomAll:(id)sender

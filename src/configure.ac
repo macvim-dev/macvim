@@ -190,6 +190,17 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
     AC_MSG_RESULT([yes, Darwin support excluded])
   fi
 
+  AC_MSG_CHECKING(--disable-sparkle argument)
+  AC_ARG_ENABLE(sparkle,
+	  [  --disable-sparkle       Disable Sparkle updater (MacVim).],
+	  , [enable_sparkle="yes"])
+  if test "$enable_sparkle" == "yes"; then
+    AC_MSG_RESULT(no)
+  else
+    AC_MSG_RESULT(yes)
+    XCODEFLAGS="$XCODEFLAGS GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS DISABLE_SPARKLE=1'"
+  fi
+
   AC_MSG_CHECKING(--with-developer-dir argument)
   AC_ARG_WITH(developer-dir, [  --with-developer-dir=PATH    use PATH as location for Xcode developer tools],
 	DEVELOPER_DIR="$withval"; AC_MSG_RESULT($DEVELOPER_DIR),

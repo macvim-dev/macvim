@@ -26,7 +26,7 @@
                             </menuItem>
                             <menuItem title="Check for Updates…" id="255">
                                 <connections>
-                                    <action selector="checkForUpdates:" target="Jqk-qh-n0J" id="Wau-rL-cbn"/>
+                                    <action selector="checkForUpdates:" target="235" id="Vif-VP-y50"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="196">
@@ -208,6 +208,5 @@
             </items>
             <point key="canvasLocation" x="139" y="67"/>
         </menu>
-        <customObject id="Jqk-qh-n0J" customClass="SUUpdater"/>
     </objects>
 </document>

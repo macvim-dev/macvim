@@ -162,6 +162,16 @@ be in when executing these commands):
 1. Configure Vim (call "./configure --help" to see a list of flags)
     src/$ ./configure
 
+   MacVim-specific flags that `./configure` supports:
+   --disable-sparkle: Disable Sparkle auto-update. This is useful if you want
+                      to manually sync or building this as part of a package
+                      manager.
+   --with-macsdk:     Build MacVim against specific SDK versions.
+
+   You can also use environment variable `MACOSX_DEPLOYMENT_TARGET` to specify
+   minimum target macOS version to deploy (e.g. '10.14'), and `XCODEFLAGS` for
+   additional command-line arguments to pass to `xcodebuild`.
+
 2. Build
     src/$ make
 

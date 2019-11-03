@@ -43,6 +43,16 @@ static void loadSymbols()
 
 @implementation MMPreferenceController
 
+- (IBAction)showWindow:(id)sender
+{
+    [super showWindow:sender];
+    #if DISABLE_SPARKLE
+        // If Sparkle is disabled in config, we don't want to show the preference pane
+        // which could be confusing as it won't do anything.
+        [sparkleUpdaterPane setHidden:YES];
+    #endif
+}
+
 - (void)setupToolbar
 {
     loadSymbols();

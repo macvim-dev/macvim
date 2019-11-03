@@ -14,6 +14,7 @@
 
 @class MMWindowController;
 @class MMVimController;
+@class SUUpdater;
 
 
 @interface MMAppController : NSObject <MMAppProtocol> {
@@ -30,6 +31,8 @@
     int                 numChildProcesses;
     NSMutableDictionary *inputQueues;
     int                 processingFlag;
+    
+    SUUpdater           *updater;
 
     FSEventStreamRef    fsEventStream;
 }
@@ -52,6 +55,7 @@
 - (IBAction)orderFrontPreferencePanel:(id)sender;
 - (IBAction)openWebsite:(id)sender;
 - (IBAction)showVimHelp:(id)sender;
+- (IBAction)checkForUpdates:(id)sender;
 - (IBAction)zoomAll:(id)sender;
 - (IBAction)stayInFront:(id)sender;
 - (IBAction)stayInBack:(id)sender;

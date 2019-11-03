@@ -18,9 +18,11 @@
     // General pane
     IBOutlet NSPopUpButton *layoutPopUpButton;
     IBOutlet NSButton *autoInstallUpdateButton;
+    IBOutlet NSView *sparkleUpdaterPane;
 }
 
 // General pane
+- (IBAction)showWindow:(id)sender;
 - (IBAction)openInCurrentWindowSelectionChanged:(id)sender;
 - (IBAction)checkForUpdatesChanged:(id)sender;
 
