@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15400" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment version="1050" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14460.31"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15400"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -12,6 +12,7 @@
                 <outlet property="autoInstallUpdateButton" destination="UYM-W0-Kgl" id="cX5-tk-9WJ"/>
                 <outlet property="generalPreferences" destination="115" id="143"/>
                 <outlet property="layoutPopUpButton" destination="427" id="596"/>
+                <outlet property="sparkleUpdaterPane" destination="0hT-y8-Hge" id="e0L-sv-OCW"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -21,182 +22,206 @@
             <rect key="frame" x="0.0" y="0.0" width="483" height="314"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <popUpButton verticalHuggingPriority="750" id="957">
-                    <rect key="frame" x="206" y="19" width="197" height="26"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <popUpButtonCell key="cell" type="push" title="Keep MacVim Running" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" selectedItem="960" id="979">
-                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="menu"/>
-                        <menu key="menu" title="OtherViews" id="959">
-                            <items>
-                                <menuItem title="Keep MacVim Running" state="on" id="960"/>
-                                <menuItem title="Hide MacVim" id="961"/>
-                                <menuItem title="Quit MacVim" id="962"/>
-                            </items>
-                        </menu>
-                    </popUpButtonCell>
-                    <connections>
-                        <binding destination="58" name="selectedIndex" keyPath="values.MMLastWindowClosedBehavior" id="968"/>
-                    </connections>
-                </popUpButton>
-                <textField verticalHuggingPriority="750" id="126">
-                    <rect key="frame" x="17" y="25" width="187" height="17"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="After last window closes:" id="977">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <popUpButton verticalHuggingPriority="750" id="427">
-                    <rect key="frame" x="218" y="112" width="229" height="26"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <popUpButtonCell key="cell" type="push" title="and set the arglist" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" selectedItem="436" id="978">
-                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="menu"/>
-                        <menu key="menu" title="OtherViews" id="429">
-                            <items>
-                                <menuItem title="with a tab for each file" tag="3" id="430"/>
-                                <menuItem title="with a window for each file" tag="4" id="544">
-                                    <connections>
-                                        <binding destination="58" name="enabled" keyPath="values.MMOpenInCurrentWindow" id="546">
-                                            <dictionary key="options">
-                                                <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                            </dictionary>
-                                        </binding>
-                                    </connections>
-                                </menuItem>
-                                <menuItem title="with a split for each file" tag="1" id="431"/>
-                                <menuItem title="and set the arglist" state="on" id="436"/>
-                            </items>
-                        </menu>
-                    </popUpButtonCell>
-                    <connections>
-                        <binding destination="58" name="selectedTag" keyPath="values.MMOpenLayout" id="441"/>
-                    </connections>
-                </popUpButton>
-                <textField verticalHuggingPriority="750" id="124">
-                    <rect key="frame" x="17" y="209" width="187" height="17"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="When MacVim launches:" id="976">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <button id="122">
-                    <rect key="frame" x="207" y="208" width="258" height="18"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                    <string key="toolTip">Checks for updates and presents a dialog box showing the release notes and prompt for whether you want to install the new version.</string>
-                    <buttonCell key="cell" type="check" title="Check for updates" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="975">
-                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                        <font key="font" metaFont="system"/>
-                    </buttonCell>
-                    <connections>
-                        <action selector="checkForUpdatesChanged:" target="-2" id="YjS-ig-M1j"/>
-                        <binding destination="58" name="value" keyPath="values.SUCheckAtStartup" id="169"/>
-                    </connections>
-                </button>
-                <textField verticalHuggingPriority="750" id="121">
-                    <rect key="frame" x="209" y="50" width="243" height="58"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" id="974">
-                        <font key="font" metaFont="smallSystem"/>
-                        <string key="title">This applies to files opened from the Finder (e.g. by double-clicking on a file or by dragging a file onto the MacVim dock icon) or from external programs such as Xcode. </string>
-                        <color key="textColor" name="disabledControlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" id="120">
-                    <rect key="frame" x="209" y="144" width="243" height="38"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    <size key="cellSize" width="243" height="18"/>
-                    <size key="intercellSpacing" width="4" height="2"/>
-                    <buttonCell key="prototype" type="radio" title="Radio" imagePosition="left" alignment="left" inset="2" id="997">
-                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                        <font key="font" metaFont="system"/>
-                    </buttonCell>
-                    <cells>
-                        <column>
-                            <buttonCell type="radio" title="in a new window" imagePosition="left" alignment="left" inset="2" id="135">
+                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5x5-P0-afk" userLabel="Open untitled window">
+                    <rect key="frame" x="19" y="234" width="433" height="58"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <subviews>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="117">
+                            <rect key="frame" x="-2" y="41" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Open untitled window:" id="973">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" autosizesCells="NO" translatesAutoresizingMaskIntoConstraints="NO" id="119">
+                            <rect key="frame" x="190" y="0.0" width="243" height="58"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            <size key="cellSize" width="243" height="18"/>
+                            <size key="intercellSpacing" width="4" height="2"/>
+                            <buttonCell key="prototype" type="radio" title="Radio" imagePosition="left" alignment="left" inset="2" id="996">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
                             </buttonCell>
-                            <buttonCell type="radio" title="in the current window" imagePosition="left" alignment="left" state="on" tag="1" inset="2" id="134">
+                            <cells>
+                                <column>
+                                    <buttonCell type="radio" title="on launch and re-activation" imagePosition="left" alignment="left" state="on" tag="3" inset="2" id="139">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                    <buttonCell type="radio" title="only when MacVim launches" imagePosition="left" alignment="left" tag="1" inset="2" id="138">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                    <buttonCell type="radio" title="never" imagePosition="left" alignment="left" inset="2" id="137">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                </column>
+                            </cells>
+                            <connections>
+                                <binding destination="58" name="selectedTag" keyPath="values.MMUntitledWindow" id="171"/>
+                            </connections>
+                        </matrix>
+                    </subviews>
+                </customView>
+                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="p6o-fo-STi" userLabel="Open files from applications">
+                    <rect key="frame" x="19" y="94" width="433" height="132"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <subviews>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="116">
+                            <rect key="frame" x="-2" y="115" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Open files from applications:" id="972">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="120">
+                            <rect key="frame" x="190" y="94" width="243" height="38"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            <size key="cellSize" width="243" height="18"/>
+                            <size key="intercellSpacing" width="4" height="2"/>
+                            <buttonCell key="prototype" type="radio" title="Radio" imagePosition="left" alignment="left" inset="2" id="997">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
                             </buttonCell>
-                        </column>
-                    </cells>
-                    <connections>
-                        <action selector="openInCurrentWindowSelectionChanged:" target="-2" id="572"/>
-                        <binding destination="58" name="selectedTag" keyPath="values.MMOpenInCurrentWindow" id="520"/>
-                    </connections>
-                </matrix>
-                <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" autosizesCells="NO" id="119">
-                    <rect key="frame" x="209" y="234" width="243" height="58"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                    <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    <size key="cellSize" width="243" height="18"/>
-                    <size key="intercellSpacing" width="4" height="2"/>
-                    <buttonCell key="prototype" type="radio" title="Radio" imagePosition="left" alignment="left" inset="2" id="996">
-                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                        <font key="font" metaFont="system"/>
-                    </buttonCell>
-                    <cells>
-                        <column>
-                            <buttonCell type="radio" title="on launch and re-activation" imagePosition="left" alignment="left" state="on" tag="3" inset="2" id="139">
+                            <cells>
+                                <column>
+                                    <buttonCell type="radio" title="in a new window" imagePosition="left" alignment="left" inset="2" id="135">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                    <buttonCell type="radio" title="in the current window" imagePosition="left" alignment="left" state="on" tag="1" inset="2" id="134">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                </column>
+                            </cells>
+                            <connections>
+                                <action selector="openInCurrentWindowSelectionChanged:" target="-2" id="572"/>
+                                <binding destination="58" name="selectedTag" keyPath="values.MMOpenInCurrentWindow" id="520"/>
+                            </connections>
+                        </matrix>
+                        <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="427">
+                            <rect key="frame" x="199" y="62" width="229" height="26"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            <popUpButtonCell key="cell" type="push" title="and set the arglist" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" selectedItem="436" id="978">
+                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="menu"/>
+                                <menu key="menu" title="OtherViews" id="429">
+                                    <items>
+                                        <menuItem title="with a tab for each file" tag="3" id="430"/>
+                                        <menuItem title="with a window for each file" tag="4" id="544">
+                                            <connections>
+                                                <binding destination="58" name="enabled" keyPath="values.MMOpenInCurrentWindow" id="546">
+                                                    <dictionary key="options">
+                                                        <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                    </dictionary>
+                                                </binding>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="with a split for each file" tag="1" id="431"/>
+                                        <menuItem title="and set the arglist" state="on" id="436"/>
+                                    </items>
+                                </menu>
+                            </popUpButtonCell>
+                            <connections>
+                                <binding destination="58" name="selectedTag" keyPath="values.MMOpenLayout" id="441"/>
+                            </connections>
+                        </popUpButton>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="121">
+                            <rect key="frame" x="190" y="0.0" width="243" height="58"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" id="974">
+                                <font key="font" metaFont="smallSystem"/>
+                                <string key="title">This applies to files opened from the Finder (e.g. by double-clicking on a file or by dragging a file onto the MacVim dock icon) or from external programs such as Xcode. </string>
+                                <color key="textColor" name="disabledControlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                </customView>
+                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dlz-JQ-U4e" userLabel="After last window closes">
+                    <rect key="frame" x="19" y="66" width="381" height="22"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <subviews>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="126">
+                            <rect key="frame" x="-2" y="3" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="After last window closes:" id="977">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="957">
+                            <rect key="frame" x="187" y="-3" width="197" height="26"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            <popUpButtonCell key="cell" type="push" title="Keep MacVim Running" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" selectedItem="960" id="979">
+                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="menu"/>
+                                <menu key="menu" title="OtherViews" id="959">
+                                    <items>
+                                        <menuItem title="Keep MacVim Running" state="on" id="960"/>
+                                        <menuItem title="Hide MacVim" id="961"/>
+                                        <menuItem title="Quit MacVim" id="962"/>
+                                    </items>
+                                </menu>
+                            </popUpButtonCell>
+                            <connections>
+                                <binding destination="58" name="selectedIndex" keyPath="values.MMLastWindowClosedBehavior" id="968"/>
+                            </connections>
+                        </popUpButton>
+                    </subviews>
+                </customView>
+                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0hT-y8-Hge" userLabel="Updater">
+                    <rect key="frame" x="19" y="22" width="444" height="36"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <subviews>
+                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="122">
+                            <rect key="frame" x="188" y="18" width="258" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <string key="toolTip">Checks for updates and presents a dialog box showing the release notes and prompt for whether you want to install the new version.</string>
+                            <buttonCell key="cell" type="check" title="Check for updates" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="975">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
                             </buttonCell>
-                            <buttonCell type="radio" title="only when MacVim launches" imagePosition="left" alignment="left" tag="1" inset="2" id="138">
+                            <connections>
+                                <action selector="checkForUpdatesChanged:" target="-2" id="YjS-ig-M1j"/>
+                                <binding destination="58" name="value" keyPath="values.SUCheckAtStartup" id="169"/>
+                            </connections>
+                        </button>
+                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UYM-W0-Kgl" userLabel="Auto-install updates">
+                            <rect key="frame" x="202" y="-2" width="244" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <string key="toolTip">MacVim will automatically download and install updates without prompting. The updated version will be used the next time MacVim starts.</string>
+                            <buttonCell key="cell" type="check" title="Automatically install updates" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="GfP-vg-mec">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
+                                <connections>
+                                    <binding destination="58" name="enabled" keyPath="values.SUCheckAtStartup" id="5oY-Gf-XJN"/>
+                                </connections>
                             </buttonCell>
-                            <buttonCell type="radio" title="never" imagePosition="left" alignment="left" inset="2" id="137">
-                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <connections>
+                                <binding destination="58" name="value" keyPath="values.SUAutomaticallyUpdate" id="kyZ-ah-zKf"/>
+                            </connections>
+                        </button>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="124">
+                            <rect key="frame" x="-2" y="19" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="When MacVim launches:" id="976">
                                 <font key="font" metaFont="system"/>
-                            </buttonCell>
-                        </column>
-                    </cells>
-                    <connections>
-                        <binding destination="58" name="selectedTag" keyPath="values.MMUntitledWindow" id="171"/>
-                    </connections>
-                </matrix>
-                <textField verticalHuggingPriority="750" id="117">
-                    <rect key="frame" x="17" y="275" width="187" height="17"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Open untitled window:" id="973">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <textField verticalHuggingPriority="750" id="116">
-                    <rect key="frame" x="17" y="165" width="187" height="17"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Open files from applications:" id="972">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <button id="UYM-W0-Kgl" userLabel="Auto-install updates">
-                    <rect key="frame" x="221" y="188" width="244" height="18"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                    <string key="toolTip">MacVim will automatically download and install updates without prompting. The updated version will be used the next time MacVim starts.</string>
-                    <buttonCell key="cell" type="check" title="Automatically install updates" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="GfP-vg-mec">
-                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                        <font key="font" metaFont="system"/>
-                        <connections>
-                            <binding destination="58" name="enabled" keyPath="values.SUCheckAtStartup" id="5oY-Gf-XJN"/>
-                        </connections>
-                    </buttonCell>
-                    <connections>
-                        <binding destination="58" name="value" keyPath="values.SUAutomaticallyUpdate" id="kyZ-ah-zKf"/>
-                    </connections>
-                </button>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                </customView>
             </subviews>
             <point key="canvasLocation" x="137.5" y="382"/>
         </customView>
@@ -204,7 +229,7 @@
             <rect key="frame" x="0.0" y="0.0" width="483" height="318"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField verticalHuggingPriority="750" id="826">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="826">
                     <rect key="frame" x="17" y="170" width="449" height="56"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="993">
@@ -214,7 +239,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button id="817">
+                <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="817">
                     <rect key="frame" x="18" y="228" width="133" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Enable Quickstart" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="992">
@@ -226,7 +251,7 @@
                         <binding destination="58" name="value" keyPath="values.MMPreloadCacheSize" id="828"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" id="815">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="815">
                     <rect key="frame" x="17" y="252" width="449" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="991">
@@ -236,7 +261,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button id="782">
+                <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="782">
                     <rect key="frame" x="18" y="282" width="174" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Use Core Text renderer" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="990">
@@ -248,7 +273,7 @@
                         <binding destination="58" name="value" keyPath="values.MMRenderer" id="1000"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" id="1001">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1001">
                     <rect key="frame" x="17" y="74" width="444" height="70"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="1004">
@@ -258,7 +283,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button id="1013">
+                <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1013">
                     <rect key="frame" x="18" y="146" width="174" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Draw marked text inline" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="1014">
@@ -269,7 +294,7 @@
                         <binding destination="58" name="value" keyPath="values.MMUseInlineIm" id="1016"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" id="1017">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1017">
                     <rect key="frame" x="17" y="20" width="415" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="1020">
@@ -279,7 +304,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button id="1028">
+                <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1028">
                     <rect key="frame" x="18" y="50" width="388" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Prefer native full-screen support (requires Mac OS X 10.7)" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="1029">
@@ -291,6 +316,7 @@
                     </connections>
                 </button>
             </subviews>
+            <point key="canvasLocation" x="139" y="385"/>
         </customView>
     </objects>
 </document>

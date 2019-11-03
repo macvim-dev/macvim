@@ -782,6 +782,7 @@ ac_user_opts='
 enable_option_checking
 enable_fail_if_missing
 enable_darwin
+enable_sparkle
 with_developer_dir
 with_macsdk
 with_macarchs
@@ -1476,6 +1477,7 @@ Optional Features:
   --enable-fail-if-missing    Fail if dependencies on additional features
      specified on the command line are missing.
   --disable-darwin        Disable Darwin (Mac OS X) support.
+  --disable-sparkle       Disable Sparkle updater (MacVim).
   --disable-smack	  Do not check for Smack support.
   --disable-selinux	  Do not check for SELinux support.
   --disable-xsmp          Disable XSMP session management
@@ -4589,6 +4591,24 @@ $as_echo "no, Darwin support disabled" >&6; }
   else
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes, Darwin support excluded" >&5
 $as_echo "yes, Darwin support excluded" >&6; }
+  fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking --disable-sparkle argument" >&5
+$as_echo_n "checking --disable-sparkle argument... " >&6; }
+  # Check whether --enable-sparkle was given.
+if test "${enable_sparkle+set}" = set; then :
+  enableval=$enable_sparkle;
+else
+  enable_sparkle="yes"
+fi
+
+  if test "$enable_sparkle" == "yes"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+    XCODEFLAGS="$XCODEFLAGS GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS DISABLE_SPARKLE=1'"
   fi
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking --with-developer-dir argument" >&5
