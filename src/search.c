@@ -4774,9 +4774,6 @@ current_search(
     pos_T	save_VIsual = VIsual;
     int		zero_width;
 
-    /* wrapping should not occur */
-    p_ws = FALSE;
-
     /* Correct cursor when 'selection' is exclusive */
     if (VIsual_active && *p_sel == 'e' && LT_POS(VIsual, curwin->w_cursor))
 	dec_cursor();
@@ -4795,10 +4792,7 @@ current_search(
     zero_width = is_zero_width(spats[last_idx].pat, TRUE, &curwin->w_cursor,
 								      FORWARD);
     if (zero_width == -1)
-    {
-	p_ws = old_p_ws;
 	return FAIL;  /* pattern not found */
-    }
 
     /*
      * The trick is to first search backwards and then search forward again,
@@ -4817,10 +4811,16 @@ current_search(
 	    flags = SEARCH_END;
 	end_pos = pos;
 
+	// wrapping should not occur in the first round
+	if (i == 0)
+	    p_ws = FALSE;
+
 	result = searchit(curwin, curbuf, &pos, &end_pos,
 		(dir ? FORWARD : BACKWARD),
 		spats[last_idx].pat, (long) (i ? count : 1),
 		SEARCH_KEEP | flags, RE_SEARCH, NULL);
+
+	p_ws = old_p_ws;
 
 	/* First search may fail, but then start searching from the
 	 * beginning of the file (cursor might be on the search match)
@@ -4831,7 +4831,6 @@ current_search(
 	    curwin->w_cursor = orig_pos;
 	    if (VIsual_active)
 		VIsual = save_VIsual;
-	    p_ws = old_p_ws;
 	    return FAIL;
 	}
 	else if (i == 0 && !result)
@@ -4853,7 +4852,6 @@ current_search(
     }
 
     start_pos = pos;
-    p_ws = old_p_ws;
 
     if (!VIsual_active)
 	VIsual = start_pos;

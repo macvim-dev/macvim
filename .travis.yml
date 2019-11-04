@@ -77,6 +77,7 @@ script:
   - macvim_excmd -c 'py3 import sys; print("Test")'
   - macvim_excmd -c 'ruby puts("Test")'
   - make test
+  - make -C runtime/doc vimtags VIMEXE=../../src/MacVim/build/Release/MacVim.app/Contents/bin/vim
   - echo -en "travis_fold:end:test\\r\\033[0K"
   - echo -e "\\033[33;1mTesting MacVim (GUI)\\033[0m" && echo -en "travis_fold:start:test_gui\\r\\033[0K"
   - make -C src/testdir clean
