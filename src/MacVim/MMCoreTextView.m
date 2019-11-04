@@ -1710,7 +1710,7 @@ static void WriteDrawCmd(NSMutableData *drawData, const struct DrawCmd *drawCmd)
 
     static CTFontRef
 lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
-           CTFontRef currFontRef)
+           CTFontRef currFontRef, CGGlyph *glyphsOut)
 {
     CGGlyph glyphs[count];
 
@@ -1720,7 +1720,10 @@ lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
         NSFont *font = [fontCache objectAtIndex:i];
 
         if (CTFontGetGlyphsForCharacters((CTFontRef)font, chars, glyphs, count))
+        {
+            memcpy(glyphsOut, glyphs, count * sizeof(CGGlyph));
             return (CTFontRef)[font retain];
+        }
     }
 
     // Ask Core Text for a font (can be *very* slow, which is why we cache
@@ -1737,6 +1740,7 @@ lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
     if (newFontRef)
         [fontCache addObject:(NSFont *)newFontRef];
 
+    memcpy(glyphsOut, glyphs, count * sizeof(CGGlyph));
     return newFontRef;
 }
 
@@ -1840,6 +1844,8 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
             UniCharCount length, CGContextRef context, CTFontRef fontRef,
             NSMutableArray *fontCache, BOOL isComposing, BOOL useLigatures)
 {
+    // Note: This function is misnamed. It does not actually use recursion and
+    // will be renamed in future.
     if (CTFontGetGlyphsForCharacters(fontRef, chars, glyphs, length)) {
         // All chars were mapped to glyphs, so draw all at once and return.
         length = isComposing || useLigatures
@@ -1897,7 +1903,7 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
             CTFontRef fallback = nil;
             while (fallback == nil && attemptedCount > 0) {
                 fallback = lookupFont(fontCache, chars, attemptedCount,
-                                      fontRef);
+                                      fontRef, glyphs);
                 if (!fallback)
                     attemptedCount /= 2;
             }
@@ -1905,9 +1911,13 @@ recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
             if (!fallback)
                 return;
 
-            recurseDraw(chars, glyphs, positions, attemptedCount, context,
-                        fallback, fontCache, isComposing, useLigatures);
+            UniCharCount actualAttemptLength = isComposing || useLigatures
+                ? composeGlyphsForChars(chars, glyphs, positions, attemptedCount,
+                                    fallback, isComposing, useLigatures)
+                : gatherGlyphs(glyphs, attemptedCount);
+            CTFontDrawGlyphs(fallback, glyphs, positions, actualAttemptLength, context);
 
+            // TODO: This doesn't take into account surrogate pairs for 'p'. Clean this up.
             // If only a portion of the invalid range was rendered above,
             // the remaining range needs to be attempted by subsequent
             // iterations of the draw loop.
