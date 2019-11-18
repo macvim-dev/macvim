@@ -557,7 +557,7 @@ ServerWait(
     time_t	    now;
     XEvent	    event;
 
-#define UI_MSEC_DELAY 50
+#define UI_MSEC_DELAY 53
 #define SEND_MSEC_POLL 500
 #ifndef HAVE_SELECT
     struct pollfd   fds;

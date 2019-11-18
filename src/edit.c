@@ -323,9 +323,15 @@ edit(
     revins_scol = -1;
 #endif
     if (!p_ek)
-	/* Disable bracketed paste mode, we won't recognize the escape
-	 * sequences. */
+    {
+	// Disable bracketed paste mode, we won't recognize the escape
+	// sequences.
 	out_str(T_BD);
+
+	// Disable modifyOtherKeys, keys with modifiers would cause exiting
+	// Insert mode.
+	out_str(T_CTE);
+    }
 
     /*
      * Handle restarting Insert mode.
@@ -3241,7 +3247,7 @@ oneleft(void)
 	    /* getviscol() is slow, skip it when 'showbreak' is empty,
 	     * 'breakindent' is not set and there are no multi-byte
 	     * characters */
-	    if ((*p_sbr == NUL && !curwin->w_p_bri
+	    if ((*get_showbreak_value(curwin) == NUL && !curwin->w_p_bri
 					     && !has_mbyte) || getviscol() < v)
 		break;
 	    ++width;
@@ -4229,11 +4235,16 @@ ins_esc(
 
     setmouse();
 #ifdef CURSOR_SHAPE
-    ui_cursor_shape();		/* may show different cursor shape */
+    ui_cursor_shape();		// may show different cursor shape
 #endif
     if (!p_ek)
-	/* Re-enable bracketed paste mode. */
+    {
+	// Re-enable bracketed paste mode.
 	out_str(T_BE);
+
+	// Re-enable modifyOtherKeys.
+	out_str(T_CTI);
+    }
 
     // When recording or for CTRL-O, need to display the new mode.
     // Otherwise remove the mode message.
@@ -4242,7 +4253,7 @@ ins_esc(
     else if (p_smd && (got_int || !skip_showmode()))
 	msg("");
 
-    return TRUE;	    /* exit Insert mode */
+    return TRUE;	    // exit Insert mode
 }
 
 #ifdef FEAT_RIGHTLEFT

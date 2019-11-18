@@ -2107,7 +2107,7 @@ buflist_new(
 	    if (emsg_silent == 0)
 	    {
 		out_flush();
-		ui_delay(3000L, TRUE);	/* make sure it is noticed */
+		ui_delay(3001L, TRUE);	// make sure it is noticed
 	    }
 	    top_file_num = 1;
 	}
@@ -3091,11 +3091,12 @@ buflist_list(exarg_T *eap)
 	qsort(buflist.ga_data, (size_t)buflist.ga_len,
 		sizeof(buf_T *), buf_compare);
 
-	p = buflist_data = (buf_T **)buflist.ga_data;
-	buf = *p;
+	buflist_data = (buf_T **)buflist.ga_data;
+	buf = *buflist_data;
     }
+    p = buflist_data;
 
-    for (; buf != NULL && !got_int; buf = buflist_data
+    for (; buf != NULL && !got_int; buf = buflist_data != NULL
 	    ? (++p < buflist_data + buflist.ga_len ? *p : NULL)
 	    : buf->b_next)
 #else
