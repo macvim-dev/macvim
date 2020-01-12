@@ -68,12 +68,14 @@ typedef struct VimMenu vimmenu_T;
 #endif
 
 /*
- * SCript ConteXt (SCTX): identifies a script script line.
+ * SCript ConteXt (SCTX): identifies a script line.
  * When sourcing a script "sc_lnum" is zero, "sourcing_lnum" is the current
  * line number. When executing a user function "sc_lnum" is the line where the
  * function was defined, "sourcing_lnum" is the line number inside the
  * function.  When stored with a function, mapping, option, etc. "sc_lnum" is
  * the line number in the script "sc_sid".
+ *
+ * sc_version is also here, for convenience.
  */
 typedef struct {
     scid_T	sc_sid;		// script ID
@@ -863,8 +865,7 @@ struct eslist_elem
  */
 #define CSTACK_LEN	50
 
-struct condstack
-{
+typedef struct {
     short	cs_flags[CSTACK_LEN];	// CSF_ flags
     char	cs_pending[CSTACK_LEN];	// CSTP_: what's pending in ":finally"
     union {
@@ -878,7 +879,7 @@ struct condstack
     int		cs_trylevel;		// nr of nested ":try"s
     eslist_T	*cs_emsg_silent_list;	// saved values of "emsg_silent"
     char	cs_lflags;		// loop flags: CSL_ flags
-};
+} cstack_T;
 # define cs_rettv	cs_pend.csp_rv
 # define cs_exception	cs_pend.csp_ex
 
@@ -912,7 +913,7 @@ struct condstack
 # define CSTP_FINISH	32	// ":finish" is pending
 
 /*
- * Flags for the cs_lflags item in struct condstack.
+ * Flags for the cs_lflags item in cstack_T.
  */
 # define CSL_HAD_LOOP	 1	// just found ":while" or ":for"
 # define CSL_HAD_ENDLOOP 2	// just found ":endwhile" or ":endfor"
@@ -1105,7 +1106,7 @@ typedef struct
     int		tb_change_cnt;	// nr of time tb_buf was changed; never zero
 } typebuf_T;
 
-/* Struct to hold the saved typeahead for save_typeahead(). */
+// Struct to hold the saved typeahead for save_typeahead().
 typedef struct
 {
     typebuf_T		save_typebuf;
@@ -1200,7 +1201,8 @@ struct stl_hlrec
  * Syntax items - usually buffer-specific.
  */
 
-/* Item for a hashtable.  "hi_key" can be one of three values:
+/*
+ * Item for a hashtable.  "hi_key" can be one of three values:
  * NULL:	   Never been used
  * HI_KEY_REMOVED: Entry was removed
  * Otherwise:	   Used item, pointer to the actual key; this usually is
@@ -1313,7 +1315,8 @@ typedef enum
     VAR_LIST,	 // "v_list" is used
     VAR_DICT,	 // "v_dict" is used
     VAR_FLOAT,	 // "v_float" is used
-    VAR_SPECIAL, // "v_number" is used
+    VAR_BOOL,	 // "v_number" is VVAL_FALSE or VVAL_TRUE
+    VAR_SPECIAL, // "v_number" is VVAL_NONE or VVAL_NULL
     VAR_JOB,	 // "v_job" is used
     VAR_CHANNEL, // "v_channel" is used
     VAR_BLOB,	 // "v_blob" is used
@@ -1496,6 +1499,8 @@ typedef struct
 				// used for s: variables
     int		uf_refcount;	// reference count, see func_name_refcount()
     funccall_T	*uf_scoped;	// l: local variables for closure
+    char_u	*uf_name_exp;	// if "uf_name[]" starts with SNR the name with
+				// "<SNR>" as a string, otherwise NULL
     char_u	uf_name[1];	// name of function (actually longer); can
 				// start with <SNR>123_ (<SNR> is K_SPECIAL
 				// KS_EXTRA KE_SNR)
@@ -1505,7 +1510,9 @@ typedef struct
 #define VAR_SHORT_LEN	20	// short variable name length
 #define FIXVAR_CNT	12	// number of fixed variables
 
-/* structure to hold info for a function that is currently being executed. */
+/*
+ * structure to hold info for a function that is currently being executed.
+ */
 struct funccall_S
 {
     ufunc_T	*func;		// function being called
@@ -1555,17 +1562,34 @@ struct funccal_entry {
     funccal_entry_T *next;
 };
 
-/* From user function to hashitem and back. */
+// From user function to hashitem and back.
 #define UF2HIKEY(fp) ((fp)->uf_name)
 #define HIKEY2UF(p)  ((ufunc_T *)((p) - offsetof(ufunc_T, uf_name)))
 #define HI2UF(hi)     HIKEY2UF((hi)->hi_key)
 
-/* Growarray to store info about already sourced scripts.
- * For Unix also store the dev/ino, so that we don't have to stat() each
- * script when going through the list. */
-typedef struct scriptitem_S
+/*
+ * Holds the hashtab with variables local to each sourced script.
+ * Each item holds a variable (nameless) that points to the dict_T.
+ */
+typedef struct
 {
+    dictitem_T	sv_var;
+    dict_T	sv_dict;
+} scriptvar_T;
+
+/*
+ * Growarray to store info about already sourced scripts.
+ * For Unix also store the dev/ino, so that we don't have to stat() each
+ * script when going through the list.
+ */
+typedef struct
+{
+    scriptvar_T	*sn_vars;	// stores s: variables for this script
+
     char_u	*sn_name;
+
+    int		sn_version;	// :scriptversion
+
 # ifdef UNIX
     int		sn_dev_valid;
     dev_t	sn_dev;
@@ -1593,7 +1617,9 @@ typedef struct scriptitem_S
 } scriptitem_T;
 
 # ifdef FEAT_PROFILE
-/* Struct used in sn_prl_ga for every line of a script. */
+/*
+ * Struct used in sn_prl_ga for every line of a script.
+ */
 typedef struct sn_prl_S
 {
     int		snp_count;	// nr of times line was executed
@@ -1658,6 +1684,38 @@ struct partial_S
     typval_T	*pt_argv;	// arguments in allocated array
     dict_T	*pt_dict;	// dict for "self"
 };
+
+typedef struct AutoPatCmd_S AutoPatCmd;
+
+/*
+ * Entry in the execution stack "exestack".
+ */
+typedef enum {
+    ETYPE_TOP,		    // toplevel
+    ETYPE_SCRIPT,           // sourcing script, use es_info.sctx
+    ETYPE_UFUNC,            // user function, use es_info.ufunc
+    ETYPE_AUCMD,            // autocomand, use es_info.aucmd
+    ETYPE_MODELINE,         // modeline, use es_info.sctx
+    ETYPE_EXCEPT,           // exception, use es_info.exception
+    ETYPE_ARGS,             // command line argument
+    ETYPE_ENV,              // environment variable
+    ETYPE_INTERNAL,         // internal operation
+    ETYPE_SPELL,            // loading spell file
+} etype_T;
+
+typedef struct {
+    long      es_lnum;      // replaces "sourcing_lnum"
+    char_u    *es_name;     // replaces "sourcing_name"
+    etype_T   es_type;
+    union {
+	sctx_T  *sctx;      // script and modeline info
+#if defined(FEAT_EVAL)
+	ufunc_T *ufunc;     // function info
+#endif
+	AutoPatCmd *aucmd;  // autocommand info
+	except_T   *except; // exception info
+    } es_info;
+} estack_T;
 
 // Information returned by get_tty_info().
 typedef struct {
@@ -2115,7 +2173,7 @@ typedef struct {
 //  # define CRYPT_NOT_INPLACE 1
 #endif
 
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
 typedef enum {
     POPPOS_BOTLEFT,
     POPPOS_TOPLEFT,
@@ -2614,7 +2672,7 @@ struct file_buffer
     listener_T	*b_listener;
     list_T	*b_recorded_changes;
 #endif
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
     int		b_has_textprop;	// TRUE when text props were added
     hashtab_T	*b_proptypes;	// text property types local to buffer
 #endif
@@ -2773,7 +2831,7 @@ struct tabpage_S
     win_T	    *tp_prevwin;    // previous window in this Tab page
     win_T	    *tp_firstwin;   // first window in this Tab page
     win_T	    *tp_lastwin;    // last window in this Tab page
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
     win_T	    *tp_first_popupwin; // first popup window in this Tab page
 #endif
     long	    tp_old_Rows;    // Rows when Tab page was left
@@ -3025,7 +3083,7 @@ struct window_S
     int		w_width;	    // Width of window, excluding separation.
     int		w_vsep_width;	    // Number of separator columns (0 or 1).
     pos_save_T	w_save_cursor;	    // backup of cursor pos and topline
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
     int		w_popup_flags;	    // POPF_ values
     int		w_popup_handled;    // POPUP_HANDLE[0-9] flags
     char_u	*w_popup_title;
@@ -3382,7 +3440,7 @@ typedef struct cmdarg_S
 /*
  * struct to store values from 'guicursor' and 'mouseshape'
  */
-/* Indexes in shape_table[] */
+// Indexes in shape_table[]
 #define SHAPE_IDX_N	0	// Normal mode
 #define SHAPE_IDX_V	1	// Visual mode
 #define SHAPE_IDX_I	2	// Insert mode
@@ -3641,15 +3699,17 @@ typedef struct {
  */
 typedef enum
 {
-    TYPE_UNKNOWN = 0,
-    TYPE_EQUAL,		// ==
-    TYPE_NEQUAL,	// !=
-    TYPE_GREATER,	// >
-    TYPE_GEQUAL,	// >=
-    TYPE_SMALLER,	// <
-    TYPE_SEQUAL,	// <=
-    TYPE_MATCH,		// =~
-    TYPE_NOMATCH,	// !~
+    EXPR_UNKNOWN = 0,
+    EXPR_EQUAL,		// ==
+    EXPR_NEQUAL,	// !=
+    EXPR_GREATER,	// >
+    EXPR_GEQUAL,	// >=
+    EXPR_SMALLER,	// <
+    EXPR_SEQUAL,	// <=
+    EXPR_MATCH,		// =~
+    EXPR_NOMATCH,	// !~
+    EXPR_IS,		// is
+    EXPR_ISNOT,		// isnot
 } exptype_T;
 
 /*

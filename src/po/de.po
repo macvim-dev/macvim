@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Vim\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-13 22:38+0100\n"
+"POT-Creation-Date: 2019-12-02 17:17+0100\n"
 "PO-Revision-Date: 2008-05-24 17:26+0200\n"
 "Last-Translator: Christian Brabandt <cb@256bit.org>\n"
 "Language-Team: German\n"
@@ -2131,9 +2131,6 @@ msgstr "Stil:"
 msgid "Size:"
 msgstr "Größe:"
 
-msgid "E256: Hangul automata ERROR"
-msgstr "E256: Hangul-Automat Fehler"
-
 msgid "E550: Missing colon"
 msgstr "E550: Fehlender Doppelpunkt"
 
@@ -2300,8 +2297,8 @@ msgstr "E799: Ungültige ID: %d (muss größer gleich 1 sein)"
 msgid "E801: ID already taken: %d"
 msgstr "E801: ID bereits benutzt: %d"
 
-msgid "List or number required"
-msgstr "Liste oder Nummer erforderlich"
+msgid "E290: List or number required"
+msgstr "E290: Liste oder Nummer erforderlich"
 
 #, c-format
 msgid "E802: Invalid ID: %d (must be greater than or equal to 1)"
@@ -4559,7 +4556,7 @@ msgid "shell returned %d"
 msgstr "Shell gab %d zurück"
 
 msgid "E278: Cannot put a terminal buffer in a popup window"
-msgstr "E278: Terminal kann nicht in einem Popup-Fenster geöffnet werdent."
+msgstr "E278: Terminal kann nicht in einem Popup-Fenster geöffnet werden."
 
 #, c-format
 msgid "E997: Tabpage not found: %d"

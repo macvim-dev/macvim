@@ -103,7 +103,7 @@ win_id2wp_tp(int id, tabpage_T **tpp)
 		*tpp = tp;
 	    return wp;
 	}
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
     // popup windows are in separate lists
      FOR_ALL_TABPAGES(tp)
 	 for (wp = tp->tp_first_popupwin; wp != NULL; wp = wp->w_next)
@@ -181,7 +181,7 @@ find_win_by_nr(
     }
     if (nr >= LOWEST_WIN_ID)
     {
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
 	// check tab-local popup windows
 	for (wp = tp->tp_first_popupwin; wp != NULL; wp = wp->w_next)
 	    if (wp->w_id == nr)
@@ -199,6 +199,7 @@ find_win_by_nr(
 /*
  * Find a window: When using a Window ID in any tab page, when using a number
  * in the current tab page.
+ * Returns NULL when not found.
  */
     win_T *
 find_win_by_nr_or_id(typval_T *vp)
@@ -807,7 +808,8 @@ f_win_splitmove(typval_T *argvars, typval_T *rettv)
     wp = find_win_by_nr_or_id(&argvars[0]);
     targetwin = find_win_by_nr_or_id(&argvars[1]);
 
-    if (wp == NULL || targetwin == NULL || wp == targetwin)
+    if (wp == NULL || targetwin == NULL || wp == targetwin
+	    || !win_valid(wp) || !win_valid(targetwin))
     {
         emsg(_(e_invalwindow));
 	rettv->vval.v_number = -1;
@@ -1137,7 +1139,7 @@ restore_win_noblock(
 	curwin = save_curwin;
 	curbuf = curwin->w_buffer;
     }
-# ifdef FEAT_TEXT_PROP
+# ifdef FEAT_PROP_POPUP
     else if (WIN_IS_POPUP(curwin))
 	// original window was closed and now we're in a popup window: Go
 	// to the first valid window.

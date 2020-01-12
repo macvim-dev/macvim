@@ -95,7 +95,7 @@ EXTERN int redrawing_for_callback INIT(= 0);
  */
 EXTERN short	*TabPageIdxs INIT(= NULL);
 
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
 // Array with size Rows x Columns containing zindex of popups.
 EXTERN short	*popup_mask INIT(= NULL);
 EXTERN short	*popup_mask_next INIT(= NULL);
@@ -226,7 +226,7 @@ EXTERN int	did_uncaught_emsg;	    // emsg() was called and did not
 #endif
 EXTERN int	did_emsg_syntax;	    // did_emsg set because of a
 					    // syntax error
-EXTERN int	called_emsg;		    // always set by emsg()
+EXTERN int	called_emsg;		    // always incremented by emsg()
 EXTERN int	ex_exitval INIT(= 0);	    // exit value for ex mode
 EXTERN int	emsg_on_display INIT(= FALSE);	// there is an error message
 EXTERN int	rc_did_emsg INIT(= FALSE);  // vim_regcomp() called emsg()
@@ -266,8 +266,15 @@ EXTERN int	lines_left INIT(= -1);	    // lines left for listing
 EXTERN int	msg_no_more INIT(= FALSE);  // don't use more prompt, truncate
 					    // messages
 
-EXTERN char_u	*sourcing_name INIT( = NULL);// name of error message source
-EXTERN linenr_T	sourcing_lnum INIT(= 0);    // line number of the source file
+/*
+ * Stack of execution contexts.  Each entry is an estack_T.
+ * Current context is at ga_len - 1.
+ */
+EXTERN garray_T	exestack INIT5(0, 0, sizeof(estack_T), 50, NULL);
+// name of error message source
+#define SOURCING_NAME (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_name)
+// line number in the message source or zero
+#define SOURCING_LNUM (((estack_T *)exestack.ga_data)[exestack.ga_len - 1].es_lnum)
 
 #ifdef FEAT_EVAL
 EXTERN int	ex_nesting_level INIT(= 0);	// nesting level
@@ -278,7 +285,7 @@ EXTERN int	debug_backtrace_level INIT(= 0); // breakpoint backtrace level
 # ifdef FEAT_PROFILE
 EXTERN int	do_profiling INIT(= PROF_NONE);	// PROF_ values
 # endif
-EXTERN garray_T script_items INIT(= {0 COMMA 0 COMMA sizeof(scriptitem_T) COMMA 4 COMMA NULL});
+EXTERN garray_T script_items INIT5(0, 0, sizeof(scriptitem_T), 4, NULL);
 #define SCRIPT_ITEM(id) (((scriptitem_T *)script_items.ga_data)[(id) - 1])
 #define FUNCLINE(fp, j)	((char_u **)(fp->uf_lines.ga_data))[j]
 
@@ -368,7 +375,7 @@ EXTERN int	want_garbage_collect INIT(= FALSE);
 EXTERN int	garbage_collect_at_exit INIT(= FALSE);
 
 // Script CTX being sourced or was sourced to define the current function.
-EXTERN sctx_T	current_sctx INIT(= {0 COMMA 0 COMMA 0 COMMA 0});
+EXTERN sctx_T	current_sctx INIT4(0, 0, 0, 0);
 #endif
 
 EXTERN int	did_source_packages INIT(= FALSE);
@@ -461,7 +468,7 @@ EXTERN int	au_did_filetype INIT(= FALSE);
 
 // When deleting the current buffer, another one must be loaded.  If we know
 // which one is preferred, au_new_curbuf is set to it
-EXTERN bufref_T	au_new_curbuf INIT(= {NULL COMMA 0 COMMA 0});
+EXTERN bufref_T	au_new_curbuf INIT3(NULL, 0, 0);
 
 // When deleting a buffer/window and autocmd_busy is TRUE, do not free the
 // buffer/window. but link it in the list starting with
@@ -640,7 +647,7 @@ EXTERN win_T	*curwin;	// currently active window
 EXTERN win_T	*aucmd_win;	// window used in aucmd_prepbuf()
 EXTERN int	aucmd_win_used INIT(= FALSE);	// aucmd_win is being used
 
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
 EXTERN win_T    *first_popupwin;		// first global popup window
 EXTERN win_T	*popup_dragwin INIT(= NULL);	// popup window being dragged
 
@@ -853,9 +860,9 @@ EXTERN pos_T	saved_cursor		// w_cursor before formatting text.
 EXTERN pos_T	Insstart;		// This is where the latest
 					// insert/append mode started.
 
-/* This is where the latest insert/append mode started. In contrast to
- * Insstart, this won't be reset by certain keys and is needed for
- * op_insert(), to detect correctly where inserting by the user started. */
+// This is where the latest insert/append mode started. In contrast to
+// Insstart, this won't be reset by certain keys and is needed for
+// op_insert(), to detect correctly where inserting by the user started.
 EXTERN pos_T	Insstart_orig;
 
 /*
@@ -865,7 +872,7 @@ EXTERN int	orig_line_count INIT(= 0);  // Line count when "gR" started
 EXTERN int	vr_lines_changed INIT(= 0); // #Lines changed by "gR" so far
 
 #if defined(FEAT_X11) && defined(FEAT_XCLIPBOARD)
-/* argument to SETJMP() for handling X IO errors */
+// argument to SETJMP() for handling X IO errors
 EXTERN JMP_BUF x_jump_env;
 #endif
 
@@ -965,11 +972,6 @@ EXTERN XIC		xic INIT(= NULL);
 EXTERN guicolor_T	xim_fg_color INIT(= INVALCOLOR);
 EXTERN guicolor_T	xim_bg_color INIT(= INVALCOLOR);
 # endif
-#endif
-
-#ifdef FEAT_HANGULIN
-EXTERN int		composing_hangul INIT(= 0);
-EXTERN char_u		composing_hangul_buffer[5];
 #endif
 
 /*
@@ -1256,7 +1258,6 @@ EXTERN int	km_stopsel INIT(= FALSE);
 EXTERN int	km_startsel INIT(= FALSE);
 
 #ifdef FEAT_CMDWIN
-EXTERN int	cedit_key INIT(= -1);	// key value of 'cedit' option
 EXTERN int	cmdwin_type INIT(= 0);	// type of cmdline window or 0
 EXTERN int	cmdwin_result INIT(= 0); // result of cmdline window or 0
 #endif
@@ -1414,8 +1415,8 @@ EXTERN int	term_is_xterm INIT(= FALSE);	// xterm-like 'term'
 #ifdef BACKSLASH_IN_FILENAME
 EXTERN char	psepc INIT(= '\\');	// normal path separator character
 EXTERN char	psepcN INIT(= '/');	// abnormal path separator character
-/* normal path separator string */
-EXTERN char	pseps[2] INIT(= {'\\' COMMA 0});
+// normal path separator string
+EXTERN char	pseps[2] INIT2('\\', 0);
 #endif
 
 // Set to TRUE when an operator is being executed with virtual editing, MAYBE
@@ -1603,6 +1604,7 @@ EXTERN char e_listreq[]	INIT(= N_("E714: List required"));
 EXTERN char e_listblobreq[]	INIT(= N_("E897: List or Blob required"));
 EXTERN char e_listdictarg[]	INIT(= N_("E712: Argument of %s must be a List or Dictionary"));
 EXTERN char e_listdictblobarg[]	INIT(= N_("E896: Argument of %s must be a List, Dictionary or Blob"));
+EXTERN char e_inval_string[]	INIT(= N_("E908: using an invalid value as a String"));
 #endif
 #ifdef FEAT_QUICKFIX
 EXTERN char e_readerrf[]	INIT(= N_("E47: Error while reading errorfile"));
@@ -1671,6 +1673,8 @@ EXTERN short disallow_gui	INIT(= FALSE);
 EXTERN char top_bot_msg[] INIT(= N_("search hit TOP, continuing at BOTTOM"));
 EXTERN char bot_top_msg[] INIT(= N_("search hit BOTTOM, continuing at TOP"));
 
+EXTERN char line_msg[]		INIT(= N_(" line "));
+
 #ifdef FEAT_CRYPT
 EXTERN char need_key_msg[] INIT(= N_("Need encryption key for \"%s\""));
 #endif
@@ -1733,6 +1737,9 @@ EXTERN int  did_echo_string_emsg INIT(= FALSE);
 
 // Used for checking if local variables or arguments used in a lambda.
 EXTERN int *eval_lavars_used INIT(= NULL);
+
+// Only filled for Win32.
+EXTERN char windowsVersion[20] INIT(= {0});
 #endif
 
 #ifdef MSWIN

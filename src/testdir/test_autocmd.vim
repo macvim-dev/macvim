@@ -1713,10 +1713,12 @@ func Test_nocatch_wipe_all_buffers()
 endfunc
 
 func Test_nocatch_wipe_dummy_buffer()
-  " Nasty autocommand: wipe buffer on any event.
-  au * x bwipe
-  call assert_fails('lv½ /x', 'E480')
-  au!
+  if has('quickfix')
+    " Nasty autocommand: wipe buffer on any event.
+    au * x bwipe
+    call assert_fails('lv½ /x', 'E480')
+    au!
+  endif
 endfunc
 
 function s:Before_test_dirchanged()
@@ -2251,9 +2253,9 @@ func Test_autocmd_SafeState()
   call WaitForAssert({-> assert_match('^xxxx', term_getline(buf, 6))}, 1000)
 
   call term_sendkeys(buf, ":let g:again = ''\<CR>:call CallTimer()\<CR>")
-  call term_wait(buf)
+  call term_wait(buf, 50)
   call term_sendkeys(buf, ":\<CR>")
-  call term_wait(buf)
+  call term_wait(buf, 50)
   call term_sendkeys(buf, ":echo g:again\<CR>")
   call WaitForAssert({-> assert_match('xtx', term_getline(buf, 6))}, 1000)
 
@@ -2291,6 +2293,8 @@ func Test_autocmd_CmdWinEnter()
 endfunc
 
 func Test_autocmd_was_using_freed_memory()
+  CheckFeature quickfix
+
   pedit xx
   n x
   au WinEnter * quit
@@ -2330,4 +2334,26 @@ func Test_BufWrite_lockmarks()
   augroup! lockmarks
   call delete('Xtest')
   call delete('Xtest2')
+endfunc
+
+func Test_FileType_spell()
+  if !isdirectory('/tmp')
+    throw "Skipped: requires /tmp directory"
+  endif
+
+  " this was crashing with an invalid free()
+  setglobal spellfile=/tmp/en.utf-8.add
+  augroup crash
+    autocmd!
+    autocmd BufNewFile,BufReadPost crashfile setf somefiletype
+    autocmd BufNewFile,BufReadPost crashfile set ft=anotherfiletype
+    autocmd FileType anotherfiletype setlocal spell
+  augroup END
+  func! NoCrash() abort
+    edit /tmp/crashfile
+  endfunc
+  call NoCrash()
+
+  au! crash
+  setglobal spellfile=
 endfunc

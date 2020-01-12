@@ -1925,7 +1925,7 @@ wipe_qf_buffer(qf_info_T *qi)
 	{
 	    // If the quickfix buffer is not loaded in any window, then
 	    // wipe the buffer.
-	    close_buffer(NULL, qfbuf, DOBUF_WIPE, FALSE);
+	    close_buffer(NULL, qfbuf, DOBUF_WIPE, FALSE, FALSE);
 	    qi->qf_bufnr = INVALID_QFBUFNR;
 	}
     }
@@ -3044,12 +3044,9 @@ qf_goto_win_with_qfl_file(int qf_fnum)
     static int
 qf_jump_to_usable_window(int qf_fnum, int newwin, int *opened_window)
 {
-    win_T	*usable_win_ptr = NULL;
-    int		usable_win;
+    win_T	*usable_wp = NULL;
+    int		usable_win = FALSE;
     qf_info_T	*ll_ref = NULL;
-    win_T	*win;
-
-    usable_win = 0;
 
     // If opening a new window, then don't use the location list referred by
     // the current window.  Otherwise two windows will refer to the same
@@ -3060,17 +3057,17 @@ qf_jump_to_usable_window(int qf_fnum, int newwin, int *opened_window)
     if (ll_ref != NULL)
     {
 	// Find a non-quickfix window with this location list
-	usable_win_ptr = qf_find_win_with_loclist(ll_ref);
-	if (usable_win_ptr != NULL)
-	    usable_win = 1;
+	usable_wp = qf_find_win_with_loclist(ll_ref);
+	if (usable_wp != NULL)
+	    usable_win = TRUE;
     }
 
     if (!usable_win)
     {
 	// Locate a window showing a normal buffer
-	win = qf_find_win_with_normal_buf();
+	win_T	*win = qf_find_win_with_normal_buf();
 	if (win != NULL)
-	    usable_win = 1;
+	    usable_win = TRUE;
     }
 
     // If no usable window is found and 'switchbuf' contains "usetab"
@@ -3089,7 +3086,7 @@ qf_jump_to_usable_window(int qf_fnum, int newwin, int *opened_window)
     else
     {
 	if (curwin->w_llist_ref != NULL)	// In a location window
-	    qf_goto_win_with_ll_file(usable_win_ptr, qf_fnum, ll_ref);
+	    qf_goto_win_with_ll_file(usable_wp, qf_fnum, ll_ref);
 	else					// In a quickfix window
 	    qf_goto_win_with_qfl_file(qf_fnum);
     }
@@ -3454,17 +3451,12 @@ theend:
 	qfl->qf_ptr = qf_ptr;
 	qfl->qf_index = qf_index;
     }
-    if (p_swb != old_swb)
+    if (p_swb != old_swb && p_swb == empty_option)
     {
 	// Restore old 'switchbuf' value, but not when an autocommand or
 	// modeline has changed the value.
-	if (p_swb == empty_option)
-	{
-	    p_swb = old_swb;
-	    swb_flags = old_swb_flags;
-	}
-	else
-	    free_string_option(old_swb);
+	p_swb = old_swb;
+	swb_flags = old_swb_flags;
     }
     decr_quickfix_busy();
 }
@@ -4424,7 +4416,7 @@ qf_buf_add_line(buf_T *buf, linenr_T lnum, qfline_T *qfp, char_u *dirname)
 
     if (qfp->qf_module != NULL)
     {
-	STRCPY(IObuff, qfp->qf_module);
+	vim_strncpy(IObuff, qfp->qf_module, IOSIZE - 1);
 	len = (int)STRLEN(IObuff);
     }
     else if (qfp->qf_fnum != 0
@@ -4432,7 +4424,7 @@ qf_buf_add_line(buf_T *buf, linenr_T lnum, qfline_T *qfp, char_u *dirname)
 	    && errbuf->b_fname != NULL)
     {
 	if (qfp->qf_type == 1)	// :helpgrep
-	    STRCPY(IObuff, gettail(errbuf->b_fname));
+	    vim_strncpy(IObuff, gettail(errbuf->b_fname), IOSIZE - 1);
 	else
 	{
 	    // shorten the file name if not done already
@@ -4443,26 +4435,29 @@ qf_buf_add_line(buf_T *buf, linenr_T lnum, qfline_T *qfp, char_u *dirname)
 		    mch_dirname(dirname, MAXPATHL);
 		shorten_buf_fname(errbuf, dirname, FALSE);
 	    }
-	    STRCPY(IObuff, errbuf->b_fname);
+	    vim_strncpy(IObuff, errbuf->b_fname, IOSIZE - 1);
 	}
 	len = (int)STRLEN(IObuff);
     }
     else
 	len = 0;
-    IObuff[len++] = '|';
+
+    if (len < IOSIZE - 1)
+	IObuff[len++] = '|';
 
     if (qfp->qf_lnum > 0)
     {
-	sprintf((char *)IObuff + len, "%ld", qfp->qf_lnum);
+	vim_snprintf((char *)IObuff + len, IOSIZE - len, "%ld", qfp->qf_lnum);
 	len += (int)STRLEN(IObuff + len);
 
 	if (qfp->qf_col > 0)
 	{
-	    sprintf((char *)IObuff + len, " col %d", qfp->qf_col);
+	    vim_snprintf((char *)IObuff + len, IOSIZE - len,
+						       " col %d", qfp->qf_col);
 	    len += (int)STRLEN(IObuff + len);
 	}
 
-	sprintf((char *)IObuff + len, "%s",
+	vim_snprintf((char *)IObuff + len, IOSIZE - len, "%s",
 		(char *)qf_types(qfp->qf_type, qfp->qf_nr));
 	len += (int)STRLEN(IObuff + len);
     }
@@ -4471,8 +4466,11 @@ qf_buf_add_line(buf_T *buf, linenr_T lnum, qfline_T *qfp, char_u *dirname)
 	qf_fmt_text(qfp->qf_pattern, IObuff + len, IOSIZE - len);
 	len += (int)STRLEN(IObuff + len);
     }
-    IObuff[len++] = '|';
-    IObuff[len++] = ' ';
+    if (len < IOSIZE - 2)
+    {
+	IObuff[len++] = '|';
+	IObuff[len++] = ' ';
+    }
 
     // Remove newlines and leading whitespace from the text.
     // For an unrecognized line keep the indent, the compiler may
@@ -6313,7 +6311,7 @@ unload_dummy_buffer(buf_T *buf, char_u *dirname_start)
 {
     if (curbuf != buf)		// safety check
     {
-	close_buffer(NULL, buf, DOBUF_UNLOAD, FALSE);
+	close_buffer(NULL, buf, DOBUF_UNLOAD, FALSE, TRUE);
 
 	// When autocommands/'autochdir' option changed directory: go back.
 	restore_start_dir(dirname_start);
@@ -7550,7 +7548,7 @@ ex_cexpr(exarg_T *eap)
 
     // Evaluate the expression.  When the result is a string or a list we can
     // use it to fill the errorlist.
-    tv = eval_expr(eap->arg, NULL);
+    tv = eval_expr(eap->arg, &eap->nextcmd);
     if (tv != NULL)
     {
 	if ((tv->v_type == VAR_STRING && tv->vval.v_string != NULL)
@@ -7882,7 +7880,7 @@ ex_helpgrep(exarg_T *eap)
 	    curwin->w_llist = qi;
     }
 }
-#endif /* FEAT_QUICKFIX */
+#endif // FEAT_QUICKFIX
 
 #if defined(FEAT_EVAL) || defined(PROTO)
 # ifdef FEAT_QUICKFIX

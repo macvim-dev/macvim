@@ -697,7 +697,7 @@ do_map(
 #ifdef FEAT_EVAL
 				    mp->m_expr = expr;
 				    mp->m_script_ctx = current_sctx;
-				    mp->m_script_ctx.sc_lnum += sourcing_lnum;
+				    mp->m_script_ctx.sc_lnum += SOURCING_LNUM;
 #endif
 				    did_it = TRUE;
 				}
@@ -796,7 +796,7 @@ do_map(
 #ifdef FEAT_EVAL
 	mp->m_expr = expr;
 	mp->m_script_ctx = current_sctx;
-	mp->m_script_ctx.sc_lnum += sourcing_lnum;
+	mp->m_script_ctx.sc_lnum += SOURCING_LNUM;
 #endif
 
 	// add the new entry in front of the abbrlist or maphash[] list
@@ -1915,14 +1915,15 @@ check_map_keycodes(void)
     char_u	*p;
     int		i;
     char_u	buf[3];
-    char_u	*save_name;
     int		abbr;
     int		hash;
     buf_T	*bp;
+    ESTACK_CHECK_DECLARATION
 
     validate_maphash();
-    save_name = sourcing_name;
-    sourcing_name = (char_u *)"mappings"; // avoids giving error messages
+    // avoids giving error messages
+    estack_push(ETYPE_INTERNAL, (char_u *)"mappings", 0);
+    ESTACK_CHECK_SETUP
 
     // Do this once for each buffer, and then once for global
     // mappings/abbreviations with bp == NULL
@@ -1979,7 +1980,8 @@ check_map_keycodes(void)
 	if (bp == NULL)
 	    break;
     }
-    sourcing_name = save_name;
+    ESTACK_CHECK_NOW
+    estack_pop();
 }
 
 #if defined(FEAT_EVAL) || defined(PROTO)

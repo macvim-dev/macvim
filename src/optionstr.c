@@ -2234,7 +2234,7 @@ did_set_string_option(
     }
 #endif
 
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
     // 'previewpopup'
     else if (varp == &p_pvp)
     {

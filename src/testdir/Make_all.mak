@@ -13,16 +13,9 @@ SCRIPTS_FIRST = \
 
 # Tests that run on all systems.
 SCRIPTS_ALL = \
-	test39.out \
 	test42.out \
 	test44.out \
-	test48.out \
-	test64.out \
-	test69.out \
 	test70.out \
-	test88.out \
-	test94.out \
-	test95.out \
 	test99.out \
 	test_eval.out
 
@@ -41,9 +34,7 @@ SCRIPTS_MORE2 = \
 
 # Tests that run on most systems, but not on VMS
 SCRIPTS_MORE4 = \
-	test59.out \
-	test72.out \
-
+	test59.out
 
 # Tests specifically for MS-Windows.
 SCRIPTS_WIN32 =
@@ -106,6 +97,7 @@ NEW_TESTS = \
 	test_ex_equal \
 	test_ex_undo \
 	test_ex_z \
+	test_ex_mode \
 	test_excmd \
 	test_exec_while_if \
 	test_execute_func \
@@ -154,6 +146,7 @@ NEW_TESTS = \
 	test_increment \
 	test_increment_dbcs \
 	test_ins_complete \
+	test_interrupt \
 	test_job_fails \
 	test_join \
 	test_json \
@@ -211,6 +204,7 @@ NEW_TESTS = \
 	test_pyx3 \
 	test_quickfix \
 	test_quotestar \
+	test_random \
 	test_recover \
 	test_regex_char_classes \
 	test_regexp_latin \
@@ -362,6 +356,7 @@ NEW_TESTS_RES = \
 	test_increment.res \
 	test_increment_dbcs.res \
 	test_ins_complete.res \
+	test_interrupt.res \
 	test_job_fails.res \
 	test_json.res \
 	test_jumplist.res \
@@ -403,6 +398,7 @@ NEW_TESTS_RES = \
 	test_pyx3.res \
 	test_quickfix.res \
 	test_quotestar.res \
+	test_random.res \
 	test_regex_char_classes.res \
 	test_registers.res \
 	test_restricted.res \
@@ -435,6 +431,7 @@ NEW_TESTS_RES = \
 	test_textformat.res \
 	test_textobjects.res \
 	test_textprop.res \
+	test_timers.res \
 	test_trycatch.res \
 	test_undo.res \
 	test_user_func.res \

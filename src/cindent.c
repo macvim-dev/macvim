@@ -582,6 +582,8 @@ cin_iscase(
 	for (s += 4; *s; ++s)
 	{
 	    s = cin_skipcomment(s);
+	    if (*s == NUL)
+		break;
 	    if (*s == ':')
 	    {
 		if (s[1] == ':')	// skip over "::" for C++
@@ -1628,9 +1630,9 @@ get_baseclass_amount(int col)
  * Ignore a '{' that is in a comment, makes indenting the next three lines
  * work.
  */
-/* foo()    */
-/* {	    */
-/* }	    */
+// foo()
+// {
+// }
 
     static pos_T *
 find_start_brace(void)	    // XXX

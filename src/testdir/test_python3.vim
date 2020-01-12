@@ -1,5 +1,5 @@
 " Test for python 3 commands.
-" TODO: move tests from test88.in here.
+" TODO: move tests from test87.in here.
 
 source check.vim
 CheckFeature python3
@@ -166,4 +166,24 @@ func Test_Catch_Exception_Message()
   catch /.*/
     call assert_match( '^Vim(.*):RuntimeError: TEST$', v:exception )
   endtry
+endfunc
+
+func Test_unicode()
+  " this crashed Vim once
+  if &tenc != ''
+    throw "Skipped: 'termencoding' is not empty"
+  endif
+
+  set encoding=utf32
+  py3 print('hello')
+
+  if !has('win32')
+    set encoding=debug
+    py3 print('hello')
+
+    set encoding=euc-tw
+    py3 print('hello')
+  endif
+
+  set encoding=utf8
 endfunc
