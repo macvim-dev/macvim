@@ -793,6 +793,7 @@ call_user_func(
     proftime_T	call_start;
     int		started_profiling = FALSE;
 #endif
+    ESTACK_CHECK_DECLARATION
 
     // If depth of calling is getting too high, don't execute the function
     if (depth >= p_mfd)
@@ -969,6 +970,7 @@ call_user_func(
     }
 
     estack_push_ufunc(ETYPE_UFUNC, fp, 1);
+    ESTACK_CHECK_SETUP
     if (p_verbose >= 12)
     {
 	++no_wait_return;
@@ -1115,6 +1117,7 @@ call_user_func(
 	--no_wait_return;
     }
 
+    ESTACK_CHECK_NOW
     estack_pop();
     current_sctx = save_current_sctx;
 #ifdef FEAT_PROFILE
@@ -2572,9 +2575,13 @@ ex_function(exarg_T *eap)
 	    }
 	    else
 	    {
-		// redefine existing function
+		char_u *exp_name = fp->uf_name_exp;
+
+		// redefine existing function, keep the expanded name
 		VIM_CLEAR(name);
+		fp->uf_name_exp = NULL;
 		func_clear_items(fp);
+		fp->uf_name_exp = exp_name;
 #ifdef FEAT_PROFILE
 		fp->uf_profiling = FALSE;
 		fp->uf_prof_initialized = FALSE;

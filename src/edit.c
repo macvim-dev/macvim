@@ -5610,14 +5610,36 @@ ins_tab(void)
 	    i = cursor->col - fpos.col;
 	    if (i > 0)
 	    {
-		STRMOVE(ptr, ptr + i);
+#ifdef FEAT_PROP_POPUP
+		if (!(State & VREPLACE_FLAG))
+		{
+		    char_u  *newp;
+		    int	    col;
+
+		    newp = alloc(curbuf->b_ml.ml_line_len - i);
+		    if (newp == NULL)
+			return FALSE;
+
+		    col = ptr - curbuf->b_ml.ml_line_ptr;
+		    if (col > 0)
+			mch_memmove(newp, ptr - col, col);
+		    mch_memmove(newp + col, ptr + i,
+					   curbuf->b_ml.ml_line_len - col - i);
+
+		    if (curbuf->b_ml.ml_flags & ML_LINE_DIRTY)
+			vim_free(curbuf->b_ml.ml_line_ptr);
+		    curbuf->b_ml.ml_line_ptr = newp;
+		    curbuf->b_ml.ml_line_len -= i;
+		    curbuf->b_ml.ml_flags =
+			   (curbuf->b_ml.ml_flags | ML_LINE_DIRTY) & ~ML_EMPTY;
+		}
+		else
+#endif
+		    STRMOVE(ptr, ptr + i);
 		// correct replace stack.
 		if ((State & REPLACE_FLAG) && !(State & VREPLACE_FLAG))
 		    for (temp = i; --temp >= 0; )
 			replace_join(repl_off);
-#ifdef FEAT_PROP_POPUP
-		curbuf->b_ml.ml_line_len -= i;
-#endif
 	    }
 #ifdef FEAT_NETBEANS_INTG
 	    if (netbeans_active())

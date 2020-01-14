@@ -158,17 +158,17 @@ func s:CompleteDone_CompleteFuncDict( findstart, base )
   endif
 
   return {
-          \ 'words': [
-            \ {
-              \ 'word': 'aword',
-              \ 'abbr': 'wrd',
-              \ 'menu': 'extra text',
-              \ 'info': 'words are cool',
-              \ 'kind': 'W',
-              \ 'user_data': 'test'
-            \ }
-          \ ]
-        \ }
+	  \ 'words': [
+	    \ {
+	      \ 'word': 'aword',
+	      \ 'abbr': 'wrd',
+	      \ 'menu': 'extra text',
+	      \ 'info': 'words are cool',
+	      \ 'kind': 'W',
+	      \ 'user_data': 'test'
+	    \ }
+	  \ ]
+	\ }
 endfunc
 
 func s:CompleteDone_CheckCompletedItemNone()
@@ -222,16 +222,17 @@ func s:CompleteDone_CompleteFuncDictNoUserData(findstart, base)
   endif
 
   return {
-          \ 'words': [
-            \ {
-              \ 'word': 'aword',
-              \ 'abbr': 'wrd',
-              \ 'menu': 'extra text',
-              \ 'info': 'words are cool',
-              \ 'kind': 'W'
-            \ }
-          \ ]
-        \ }
+	  \ 'words': [
+	    \ {
+	      \ 'word': 'aword',
+	      \ 'abbr': 'wrd',
+	      \ 'menu': 'extra text',
+	      \ 'info': 'words are cool',
+	      \ 'kind': 'W',
+	      \ 'user_data': ['one', 'two'],
+	    \ }
+	  \ ]
+	\ }
 endfunc
 
 func s:CompleteDone_CheckCompletedItemDictNoUserData()
@@ -240,7 +241,7 @@ func s:CompleteDone_CheckCompletedItemDictNoUserData()
   call assert_equal( 'extra text',     v:completed_item[ 'menu' ] )
   call assert_equal( 'words are cool', v:completed_item[ 'info' ] )
   call assert_equal( 'W',              v:completed_item[ 'kind' ] )
-  call assert_equal( '',               v:completed_item[ 'user_data' ] )
+  call assert_equal( ['one', 'two'],   v:completed_item[ 'user_data' ] )
 
   let s:called_completedone = 1
 endfunc
@@ -252,7 +253,7 @@ func Test_CompleteDoneDictNoUserData()
   execute "normal a\<C-X>\<C-U>\<C-Y>"
   set completefunc&
 
-  call assert_equal('', v:completed_item[ 'user_data' ])
+  call assert_equal(['one', 'two'], v:completed_item[ 'user_data' ])
   call assert_true(s:called_completedone)
 
   let s:called_completedone = 0
@@ -430,4 +431,32 @@ func Test_pum_with_preview_win()
   call term_sendkeys(buf, "\<Esc>")
   call StopVimInTerminal(buf)
   call delete('Xpreviewscript')
+endfunc
+
+" Test for inserting the tag search pattern in insert mode
+func Test_ins_compl_tag_sft()
+  call writefile([
+        \ "!_TAG_FILE_ENCODING\tutf-8\t//",
+        \ "first\tXfoo\t/^int first() {}$/",
+        \ "second\tXfoo\t/^int second() {}$/",
+        \ "third\tXfoo\t/^int third() {}$/"],
+        \ 'Xtags')
+  set tags=Xtags
+  let code =<< trim [CODE]
+    int first() {}
+    int second() {}
+    int third() {}
+  [CODE]
+  call writefile(code, 'Xfoo')
+
+  enew
+  set showfulltag
+  exe "normal isec\<C-X>\<C-]>\<C-N>\<CR>"
+  call assert_equal('int second() {}', getline(1))
+  set noshowfulltag
+
+  call delete('Xtags')
+  call delete('Xfoo')
+  set tags&
+  %bwipe!
 endfunc

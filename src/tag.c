@@ -3808,6 +3808,7 @@ test_for_current(
 find_extra(char_u **pp)
 {
     char_u	*str = *pp;
+    char_u	first_char = **pp;
 
     // Repeat for addresses separated with ';'
     for (;;)
@@ -3817,7 +3818,7 @@ find_extra(char_u **pp)
 	else if (*str == '/' || *str == '?')
 	{
 	    str = skip_regexp(str + 1, *str, FALSE, NULL);
-	    if (*str != **pp)
+	    if (*str != first_char)
 		str = NULL;
 	    else
 		++str;
@@ -3837,6 +3838,7 @@ find_extra(char_u **pp)
 		  || !(VIM_ISDIGIT(str[1]) || str[1] == '/' || str[1] == '?'))
 	    break;
 	++str;	// skip ';'
+	first_char = *str;
     }
 
     if (str != NULL && STRNCMP(str, ";\"", 2) == 0)
@@ -4224,13 +4226,16 @@ tagstack_set_curidx(win_T *wp, int curidx)
 
 /*
  * Set the tag stack entries of the specified window.
- * 'action' is set to either 'a' for append or 'r' for replace.
+ * 'action' is set to one of:
+ *	'a' for append
+ *	'r' for replace
+ *	't' for truncate
  */
     int
 set_tagstack(win_T *wp, dict_T *d, int action)
 {
     dictitem_T	*di;
-    list_T	*l;
+    list_T	*l = NULL;
 
 #ifdef FEAT_EVAL
     // not allowed to alter the tag stack entries from inside tagfunc
@@ -4249,15 +4254,31 @@ set_tagstack(win_T *wp, dict_T *d, int action)
 	    return FAIL;
 	}
 	l = di->di_tv.vval.v_list;
-
-	if (action == 'r')
-	    tagstack_clear(wp);
-
-	tagstack_push_items(wp, l);
     }
 
     if ((di = dict_find(d, (char_u *)"curidx", -1)) != NULL)
 	tagstack_set_curidx(wp, (int)tv_get_number(&di->di_tv) - 1);
+
+    if (action == 't')		    // truncate the stack
+    {
+	taggy_T	*tagstack = wp->w_tagstack;
+	int	tagstackidx = wp->w_tagstackidx;
+	int	tagstacklen = wp->w_tagstacklen;
+	// delete all the tag stack entries above the current entry
+	while (tagstackidx < tagstacklen)
+	    tagstack_clear_entry(&tagstack[--tagstacklen]);
+	wp->w_tagstacklen = tagstacklen;
+    }
+
+    if (l != NULL)
+    {
+	if (action == 'r')		// replace the stack
+	    tagstack_clear(wp);
+
+	tagstack_push_items(wp, l);
+	// set the current index after the last entry
+	wp->w_tagstackidx = wp->w_tagstacklen;
+    }
 
     return OK;
 }

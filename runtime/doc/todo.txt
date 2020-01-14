@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 8.2.  Last change: 2019 Dec 24
+*todo.txt*      For Vim version 8.2.  Last change: 2020 Jan 06
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -38,6 +38,8 @@ browser use: https://github.com/vim/vim/issues/1234
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
+- Implement prop_find() issue #4970  Done by Ryan Hackett, #5421
+
 Include ipv6 syntax changes?  (DJ Lucas, #5360)
 
 Still have /* */ comments:
@@ -50,7 +52,9 @@ Popup windows:
   input?  Sort-of possible by creating a hidden terminal and opening a popup
   with that buffer: #4063.
 - Use popup (or popup menu) for command line completion
-- Implement flip option
+- When using a popup for the info of a completion menu, and there is not
+  enough space, let the popup overlap with the menu. (#4544)
+- Implement flip option.
 - Make redrawing more efficient and avoid flicker:
     - put popup menu also in popup_mask?
 - Any other commands to disable in a popup window?
@@ -58,7 +62,6 @@ Popup windows:
 - Figure out the size and position better if wrapping inserts indent
 
 Text properties:
-- Implement prop_find() issue #4970
 - Text properties spanning more than one line
 - See remarks at top of src/textprop.c
 
@@ -125,7 +128,7 @@ Terminal emulator window:
   conversions.
 
 Error numbers available:
-E292, E362, E366, E450, E451, E452,
+E362, E366, E450, E451, E452,
 E453, E454, E460, E489, E491, E565, E578, E610, E611, E653,
 E654, E856, E857, E860, E861, E863, E889, E900
 
@@ -192,6 +195,8 @@ It can replace the BeOS code, which is likely not used anymore.
 Now on github: #1856.  Updated Oct 2017
 Got permission to include this under the Vim license.
 
+Add "t" action to settagstack(): truncate and add new entries. (#5405)
+
 Result of synID() sometimes wrong in help files. (#5252)
 
 Problem showing a line if the number column width changes when using "o".
@@ -204,6 +209,7 @@ When using :packadd files under "later" are not used, which is inconsistent
 with packages under "start". (xtal8, #1994)
 
 Patch to add new motion ]( and ]{.  (Yasuhiro Matsumoto, #5320)
+Or make "v" prefix work? 
 
 Modeless selection doesn't work in gvim. (#4783)
 Caused by patch 8.1.1534.
@@ -280,6 +286,10 @@ it's in a mapping. (2018 Oct 6, #2302, #3522)
 Patch to have text objects defined by arbitrary single characters. (Daniel
 Thau, 2013 Nov 20, 2014 Jan 29, 2014 Jan 31)
 Added tests (James McCoy, 2016 Aug 3, #958).  Still needs more work.
+
+":2resize +10" uses size of the current window, adds 10 and applies it to
+window 2.  User expects 10 to be added to size of window 2. (Daniel Steinberg,
+#5443)
 
 Patch for multi-byte characters in langmap and applying a mapping on them.
 (Christian Brabandt, 2015 Jun 12, update July 25)
@@ -401,9 +411,6 @@ similar to check_due_timer().  Also see #3809.
 
 C syntax: {} inside () causes following {} to be highlighted as error.
 (Michalis Giannakidis, 2006 Jun 1)
-
-Support setting the character displayed below the last line?  Neovim uses
-"eob:X" in 'fillchars'.
 
 Check: __attribute__((format(printf, on semsg() and siemsg().  Where was this
 added?
@@ -541,6 +548,8 @@ Add something like 'fillchars' local to window, but allow for specifying a
 highlight name.  Esp. for the statusline.
 And "extends" and "precedes" are also useful without 'list' set.  Also in
 'fillchars' or another option?
+Related: #3820 - Support setting the character displayed below the last line?
+Neovim uses "eob:X" in 'fillchars'.
 
 Sourceforge Vim pages still have content, redirect from empty page.
 Check for PHP errors. (Wayne Davison, 2018 Oct 26)
@@ -916,8 +925,6 @@ Cindent: returning a structure has more indent for the second item.
 Patch from Christian Brabandt to preserve upper case marks when wiping out a
 buffer. (2013 Dec 9)
 Also fixes #2166?
-
-Patch to add argument to :cquit. (Thinca, 2014 Oct 12)
 
 Python: After "import vim" error messages only show the first line of the
 stack trace. (Yggdroot, 2017 Jul 28, #1887)

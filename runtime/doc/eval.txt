@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.2.  Last change: 2019 Dec 17
+*eval.txt*	For Vim version 8.2.  Last change: 2020 Jan 06
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -3059,10 +3059,6 @@ argv([{nr} [, {winid}])
 		The {winid} argument specifies the window ID, see |argc()|.
 		For the Vim command line arguments see |v:argv|.
 
-
-assert_ functions are documented here: |assert-functions-details|
-
-
 asin({expr})						*asin()*
 		Return the arc sine of {expr} measured in radians, as a |Float|
 		in the range of [-pi/2, pi/2].
@@ -3078,6 +3074,10 @@ asin({expr})						*asin()*
 			Compute()->asin()
 <
 		{only available when compiled with the |+float| feature}
+
+
+assert_ functions are documented here: |assert-functions-details|
+
 
 
 atan({expr})						*atan()*
@@ -3947,13 +3947,6 @@ diff_hlID({lnum}, {col})				*diff_hlID()*
 
 		Can also be used as a |method|: >
 			GetLnum()->diff_hlID(col)
-environ()						*environ()*
-		Return all of environment variables as dictionary. You can
-		check if an environment variable exists like this: >
-			:echo has_key(environ(), 'HOME')
-<		Note that the variable name may be CamelCase; to ignore case
-		use this: >
-			:echo index(keys(environ()), 'HOME', 0, 1) != -1
 
 empty({expr})						*empty()*
 		Return the Number 1 if {expr} is empty, zero otherwise.
@@ -3971,6 +3964,14 @@ empty({expr})						*empty()*
 
 		Can also be used as a |method|: >
 			mylist->empty()
+
+environ()						*environ()*
+		Return all of environment variables as dictionary. You can
+		check if an environment variable exists like this: >
+			:echo has_key(environ(), 'HOME')
+<		Note that the variable name may be CamelCase; to ignore case
+		use this: >
+			:echo index(keys(environ()), 'HOME', 0, 1) != -1
 
 escape({string}, {chars})				*escape()*
 		Escape the characters in {chars} that occur in {string} with a
@@ -7096,9 +7097,9 @@ matchstrpos({expr}, {pat} [, {start} [, {count}]])		*matchstrpos()*
 <
 							*max()*
 max({expr})	Return the maximum value of all items in {expr}.
-		{expr} can be a list or a dictionary.  For a dictionary,
-		it returns the maximum of all values in the dictionary.
-		If {expr} is neither a list nor a dictionary, or one of the
+		{expr} can be a List or a Dictionary.  For a Dictionary,
+		it returns the maximum of all values in the Dictionary.
+		If {expr} is neither a List nor a Dictionary, or one of the
 		items in {expr} cannot be used as a Number this results in
 		an error.  An empty |List| or |Dictionary| results in zero.
 
@@ -7107,9 +7108,9 @@ max({expr})	Return the maximum value of all items in {expr}.
 
 <							*min()*
 min({expr})	Return the minimum value of all items in {expr}.
-		{expr} can be a list or a dictionary.  For a dictionary,
-		it returns the minimum of all values in the dictionary.
-		If {expr} is neither a list nor a dictionary, or one of the
+		{expr} can be a List or a Dictionary.  For a Dictionary,
+		it returns the minimum of all values in the Dictionary.
+		If {expr} is neither a List nor a Dictionary, or one of the
 		items in {expr} cannot be used as a Number this results in
 		an error.  An empty |List| or |Dictionary| results in zero.
 
@@ -8786,11 +8787,21 @@ settagstack({nr}, {dict} [, {action}])			*settagstack()*
 		{nr} can be the window number or the |window-ID|.
 
 		For a list of supported items in {dict}, refer to
-		|gettagstack()|
+		|gettagstack()|. "curidx" takes effect before changing the tag
+		stack.
 							*E962*
-		If {action} is not present or is set to 'r', then the tag
-		stack is replaced. If {action} is set to 'a', then new entries
-		from {dict} are pushed onto the tag stack.
+		How the tag stack is modified depends on the {action}
+		argument:
+		- If {action} is not present or is set to 'r', then the tag
+		  stack is replaced.
+		- If {action} is set to 'a', then new entries from {dict} are
+		  pushed (added) onto the tag stack.
+		- If {action} is set to 't', then all the entries from the
+		  current entry in the tag stack or "curidx" in {dict} are
+		  removed and then new entries are pushed to the stack.
+
+		The current index is set to one after the length of the tag
+		stack after the modification.
 
 		Returns zero for success, -1 for failure.
 
@@ -10362,6 +10373,7 @@ win_splitmove({nr}, {target} [, {options}])		*win_splitmove()*
 		then closing {nr}.
 
 		Both {nr} and {target} can be window numbers or |window-ID|s.
+		Both must be in the current tab page.
 
 		Returns zero for success, non-zero for failure.
 
