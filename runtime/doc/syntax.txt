@@ -1,4 +1,4 @@
-*syntax.txt*	For Vim version 8.1.  Last change: 2019 Nov 14
+*syntax.txt*	For Vim version 8.2.  Last change: 2019 Dec 19
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -79,9 +79,9 @@ with: >
 For a color terminal see |:hi-normal-cterm|.
 For setting up your own colors syntax highlighting see |syncolor|.
 
-NOTE: The syntax files on MS-DOS and Windows have lines that end in <CR><NL>.
+NOTE: The syntax files on MS-Windows have lines that end in <CR><NL>.
 The files for Unix end in <NL>.  This means you should use the right type of
-file for your system.  Although on MS-DOS and Windows the right format is
+file for your system.  Although on MS-Windows the right format is
 automatically selected if the 'fileformats' option is not empty.
 
 NOTE: When using reverse video ("gvim -fg white -bg black"), the default value
@@ -966,10 +966,12 @@ Basic.
 C							*c.vim* *ft-c-syntax*
 
 A few things in C highlighting are optional.  To enable them assign any value
-to the respective variable.  Example: >
+(including zero) to the respective variable.  Example: >
 	:let c_comment_strings = 1
-To disable them use ":unlet".  Example: >
+	:let c_no_bracket_error = 0
+To disable them use `:unlet`.  Example: >
 	:unlet c_comment_strings
+Setting the value to zero doesn't work!
 
 An alternative is to switch to the C++ highlighting: >
 	:set filetype=cpp
@@ -985,8 +987,8 @@ Variable		Highlight ~
 				except { and } in first column
 				Default is to highlight them, otherwise you
 				can't spot a missing ")".
-*c_curly_error*		highlight a missing }; this forces syncing from the
-			start of the file, can be slow
+*c_curly_error*		highlight a missing } by finding all pairs; this
+			forces syncing from the start of the file, can be slow
 *c_no_ansi*		don't do standard ANSI types and constants
 *c_ansi_typedefs*		 ... but do standard ANSI types
 *c_ansi_constants*	 ... but do standard ANSI constants
@@ -1399,26 +1401,26 @@ to your startup file.
 
 EUPHORIA	    *euphoria3.vim* *euphoria4.vim* *ft-euphoria-syntax*
 
-Two syntax highlighting files exists for Euphoria. One for Euphoria 
-version 3.1.1, which is the default syntax highlighting file, and one for 
+Two syntax highlighting files exists for Euphoria. One for Euphoria
+version 3.1.1, which is the default syntax highlighting file, and one for
 Euphoria version 4.0.5 or later.
 
-Euphoria version 3.1.1 (http://www.rapideuphoria.com/) is still necessary 
-for developing applications for the DOS platform, which Euphoria version 4 
+Euphoria version 3.1.1 (http://www.rapideuphoria.com/) is still necessary
+for developing applications for the DOS platform, which Euphoria version 4
 (http://www.openeuphoria.org/) does not support.
 
-The following file extensions are auto-detected as Euphoria file type: 
-    
+The following file extensions are auto-detected as Euphoria file type:
+
 	*.e, *.eu, *.ew, *.ex, *.exu, *.exw
 	*.E, *.EU, *.EW, *.EX, *.EXU, *.EXW
 
-To select syntax highlighting file for Euphoria, as well as for 
+To select syntax highlighting file for Euphoria, as well as for
 auto-detecting the *.e and *.E file extensions as Euphoria file type,
 add the following line to your startup file: >
 
 	:let filetype_euphoria="euphoria3"
 
-	or 
+	or
 
 	:let filetype_euphoria="euphoria4"
 
@@ -2759,6 +2761,13 @@ This will add highlighting for the commands that BASH (version 2.05a and
 later, and part earlier) adds.
 
 
+REGO						*rego.vim* *ft-rego-syntax*
+
+Rego is a query language developed by Styra.  It is mostly used as a policy
+language for kubernetes, but can be applied to almost anything.  Files with
+the following extensions are recognized as rego files: .rego.
+
+
 RESTRUCTURED TEXT			*rst.vim* *ft-rst-syntax*
 
 Syntax highlighting is enabled for code blocks within the document for a
@@ -2771,10 +2780,10 @@ To set a user-defined list of code block syntax highlighting: >
 To assign multiple code block types to a single syntax, define
 `rst_syntax_code_list` as a mapping: >
 	let rst_syntax_code_list = {
-		\ 'cpp' = ['cpp', 'c++'],
-                \ 'bash' = ['bash', 'sh'],
+		\ 'cpp': ['cpp', 'c++'],
+		\ 'bash': ['bash', 'sh'],
 		...
-	}
+	\ }
 
 To use color highlighting for emphasis text: >
 	let rst_use_emphasis_colors = 1
@@ -3535,26 +3544,26 @@ It will look much better with a font in a quadratic cell size, e.g. for X: >
 YAML						*yaml.vim* *ft-yaml-syntax*
 
 					*g:yaml_schema* *b:yaml_schema*
-A YAML schema is a combination of a set of tags and a mechanism for resolving 
-non-specific tags. For user this means that YAML parser may, depending on 
-plain scalar contents, treat plain scalar (which can actually be only string 
-and nothing else) as a value of the other type: null, boolean, floating-point, 
-integer. `g:yaml_schema` option determines according to which schema values 
+A YAML schema is a combination of a set of tags and a mechanism for resolving
+non-specific tags. For user this means that YAML parser may, depending on
+plain scalar contents, treat plain scalar (which can actually be only string
+and nothing else) as a value of the other type: null, boolean, floating-point,
+integer. `g:yaml_schema` option determines according to which schema values
 will be highlighted specially. Supported schemas are
 
 Schema		Description ~
 failsafe	No additional highlighting.
 json		Supports JSON-style numbers, booleans and null.
 core		Supports more number, boolean and null styles.
-pyyaml		In addition to core schema supports highlighting timestamps, 
-		but there are some differences in what is recognized as 
-		numbers and many additional boolean values not present in core 
+pyyaml		In addition to core schema supports highlighting timestamps,
+		but there are some differences in what is recognized as
+		numbers and many additional boolean values not present in core
 		schema.
 
 Default schema is `core`.
 
-Note that schemas are not actually limited to plain scalars, but this is the 
-only difference between schemas defined in YAML specification and the only 
+Note that schemas are not actually limited to plain scalars, but this is the
+only difference between schemas defined in YAML specification and the only
 difference defined in the syntax file.
 
 
@@ -3656,7 +3665,7 @@ SYNTAX ISKEYWORD SETTING				*:syn-iskeyword*
 
 	clear:		Syntax specific iskeyword setting is disabled and the
 			buffer-local 'iskeyword' setting is used.
-	{option}        Set the syntax 'iskeyword' option to a new value. 
+	{option}        Set the syntax 'iskeyword' option to a new value.
 
 	Example: >
   :syntax iskeyword @,48-57,192-255,$,_
@@ -4818,7 +4827,7 @@ mentioned for the default values. See |:verbose-cmd| for more information.
 					*highlight-args* *E416* *E417* *E423*
 There are three types of terminals for highlighting:
 term	a normal terminal (vt100, xterm)
-cterm	a color terminal (MS-DOS console, color-xterm, these have the "Co"
+cterm	a color terminal (MS-Windows console, color-xterm, these have the "Co"
 	termcap entry)
 gui	the GUI
 
@@ -4905,9 +4914,9 @@ ctermbg={color-nr}				*highlight-ctermbg*
 	Unfortunately this means that it's not possible to get the same colors
 	for each user.	See |xterm-color| for info about color xterms.
 
-	The MSDOS standard colors are fixed (in a console window), so these
-	have been used for the names.  But the meaning of color names in X11
-	are fixed, so these color settings have been used, to make the
+	The MS-Windows standard colors are fixed (in a console window), so
+	these have been used for the names.  But the meaning of color names in
+	X11 are fixed, so these color settings have been used, to make the
 	highlighting settings portable (complicated, isn't it?).  The
 	following names are recognized, with the color number used:
 
@@ -4972,8 +4981,8 @@ ctermbg={color-nr}				*highlight-ctermbg*
 							*E419* *E420*
 	When Vim knows the normal foreground and background colors, "fg" and
 	"bg" can be used as color names.  This only works after setting the
-	colors for the Normal group and for the MS-DOS console.  Example, for
-	reverse video: >
+	colors for the Normal group and for the MS-Windows console.  Example,
+	for reverse video: >
 	    :highlight Visual ctermfg=bg ctermbg=fg
 <	Note that the colors are used that are valid at the moment this
 	command are given.  If the Normal group colors are changed later, the

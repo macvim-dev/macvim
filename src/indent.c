@@ -773,7 +773,7 @@ set_indent(
 		// at the start of the indent (replacing spaces with TAB)
 		saved_cursor.col = (colnr_T)(s - newline);
 	}
-#ifdef FEAT_TEXT_PROP
+#ifdef FEAT_PROP_POPUP
 	{
 	    int added = ind_len - (colnr_T)(p - oldline);
 
@@ -838,6 +838,50 @@ get_number_indent(linenr_T lnum)
 }
 
 #if defined(FEAT_LINEBREAK) || defined(PROTO)
+/*
+ * This is called when 'breakindentopt' is changed and when a window is
+ * initialized.
+ */
+    int
+briopt_check(win_T *wp)
+{
+    char_u	*p;
+    int		bri_shift = 0;
+    long	bri_min = 20;
+    int		bri_sbr = FALSE;
+
+    p = wp->w_p_briopt;
+    while (*p != NUL)
+    {
+	if (STRNCMP(p, "shift:", 6) == 0
+		 && ((p[6] == '-' && VIM_ISDIGIT(p[7])) || VIM_ISDIGIT(p[6])))
+	{
+	    p += 6;
+	    bri_shift = getdigits(&p);
+	}
+	else if (STRNCMP(p, "min:", 4) == 0 && VIM_ISDIGIT(p[4]))
+	{
+	    p += 4;
+	    bri_min = getdigits(&p);
+	}
+	else if (STRNCMP(p, "sbr", 3) == 0)
+	{
+	    p += 3;
+	    bri_sbr = TRUE;
+	}
+	if (*p != ',' && *p != NUL)
+	    return FAIL;
+	if (*p == ',')
+	    ++p;
+    }
+
+    wp->w_p_brishift = bri_shift;
+    wp->w_p_brimin   = bri_min;
+    wp->w_p_brisbr   = bri_sbr;
+
+    return OK;
+}
+
 /*
  * Return appropriate space number for breakindent, taking influencing
  * parameters into account. Window must be specified, since it is not
@@ -1490,25 +1534,25 @@ ex_retab(exarg_T *eap)
     long	len;
     long	col;
     long	vcol;
-    long	start_col = 0;		/* For start of white-space string */
-    long	start_vcol = 0;		/* For start of white-space string */
+    long	start_col = 0;		// For start of white-space string
+    long	start_vcol = 0;		// For start of white-space string
     long	old_len;
     char_u	*ptr;
-    char_u	*new_line = (char_u *)1;    /* init to non-NULL */
-    int		did_undo;		/* called u_save for current line */
+    char_u	*new_line = (char_u *)1; // init to non-NULL
+    int		did_undo;		// called u_save for current line
 #ifdef FEAT_VARTABS
     int		*new_vts_array = NULL;
-    char_u	*new_ts_str;		/* string value of tab argument */
+    char_u	*new_ts_str;		// string value of tab argument
 #else
     int		temp;
     int		new_ts;
 #endif
     int		save_list;
-    linenr_T	first_line = 0;		/* first changed line */
-    linenr_T	last_line = 0;		/* last changed line */
+    linenr_T	first_line = 0;		// first changed line
+    linenr_T	last_line = 0;		// last changed line
 
     save_list = curwin->w_p_list;
-    curwin->w_p_list = 0;	    /* don't want list mode here */
+    curwin->w_p_list = 0;	    // don't want list mode here
 
 #ifdef FEAT_VARTABS
     new_ts_str = eap->arg;
@@ -1549,7 +1593,7 @@ ex_retab(exarg_T *eap)
 	    {
 		if (!got_tab && num_spaces == 0)
 		{
-		    /* First consecutive white-space */
+		    // First consecutive white-space
 		    start_vcol = vcol;
 		    start_col = col;
 		}
@@ -1562,9 +1606,9 @@ ex_retab(exarg_T *eap)
 	    {
 		if (got_tab || (eap->forceit && num_spaces > 1))
 		{
-		    /* Retabulate this string of white-space */
+		    // Retabulate this string of white-space
 
-		    /* len is virtual length of white string */
+		    // len is virtual length of white string
 		    len = num_spaces = vcol - start_vcol;
 		    num_tabs = 0;
 		    if (!curbuf->b_p_et)
@@ -1596,12 +1640,12 @@ ex_retab(exarg_T *eap)
 			    if (u_save((linenr_T)(lnum - 1),
 						(linenr_T)(lnum + 1)) == FAIL)
 			    {
-				new_line = NULL;	/* flag out-of-memory */
+				new_line = NULL;	// flag out-of-memory
 				break;
 			    }
 			}
 
-			/* len is actual number of white characters used */
+			// len is actual number of white characters used
 			len = num_spaces + num_tabs;
 			old_len = (long)STRLEN(ptr);
 			new_line = alloc(old_len - col + start_col + len + 1);
@@ -1633,7 +1677,7 @@ ex_retab(exarg_T *eap)
 	    else
 		++col;
 	}
-	if (new_line == NULL)		    /* out of memory */
+	if (new_line == NULL)		    // out of memory
 	    break;
 	line_breakcheck();
     }
@@ -1646,10 +1690,10 @@ ex_retab(exarg_T *eap)
     if (tabstop_count(curbuf->b_p_vts_array) == 0
 	&& tabstop_count(new_vts_array) == 1
 	&& curbuf->b_p_ts == tabstop_first(new_vts_array))
-	; /* not changed */
+	; // not changed
     else if (tabstop_count(curbuf->b_p_vts_array) > 0
         && tabstop_eq(curbuf->b_p_vts_array, new_vts_array))
-	; /* not changed */
+	; // not changed
     else
 	redraw_curbuf_later(NOT_VALID);
 #else
@@ -1659,10 +1703,10 @@ ex_retab(exarg_T *eap)
     if (first_line != 0)
 	changed_lines(first_line, 0, last_line + 1, 0L);
 
-    curwin->w_p_list = save_list;	/* restore 'list' */
+    curwin->w_p_list = save_list;	// restore 'list'
 
 #ifdef FEAT_VARTABS
-    if (new_ts_str != NULL)		/* set the new tabstop */
+    if (new_ts_str != NULL)		// set the new tabstop
     {
 	// If 'vartabstop' is in use or if the value given to retab has more
 	// than one tabstop then update 'vartabstop'.
