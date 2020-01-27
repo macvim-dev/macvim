@@ -1931,7 +1931,7 @@ get_x11_thing(
 	 * keep traversing up the tree until a window with a title/icon is
 	 * found.
 	 */
-	// Previously this was only done for xterm and alikes.  I don't see a
+	// Previously this was only done for xterm and alike.  I don't see a
 	// reason why it would fail for other terminal emulators.
 	// if (term_is_xterm)
 	{
@@ -3941,16 +3941,6 @@ check_mouse_termcode(void)
 	del_mouse_termcode(KS_SGR_MOUSE);
 	del_mouse_termcode(KS_SGR_MOUSE_RELEASE);
     }
-}
-
-/*
- * set screen mode, always fails.
- */
-    int
-mch_screenmode(char_u *arg UNUSED)
-{
-    emsg(_(e_screenmode));
-    return FAIL;
 }
 
 #ifndef VMS

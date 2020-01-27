@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2019 Nov 26
+" Last Change:	2020 Jan 22
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -1626,6 +1626,13 @@ au BufNewFile,BufRead *.sml			setf sml
 
 " Sratus VOS command macro
 au BufNewFile,BufRead *.cm			setf voscm
+
+" Swift
+au BufNewFile,BufRead *.swift			setf swift
+au BufNewFile,BufRead *.swift.gyb 		setf swiftgyb
+
+" Swift Intermediate Language
+au BufNewFile,BufRead *.sil 			setf sil
 
 " Sysctl
 au BufNewFile,BufRead */etc/sysctl.conf,*/etc/sysctl.d/*.conf	setf sysctl

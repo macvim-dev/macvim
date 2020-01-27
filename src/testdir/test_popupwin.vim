@@ -913,6 +913,10 @@ func Test_win_execute_not_allowed()
   call assert_fails('call win_execute(winid, "next")', 'E994:')
   call assert_fails('call win_execute(winid, "rewind")', 'E994:')
   call assert_fails('call win_execute(winid, "buf")', 'E994:')
+  call assert_fails('call win_execute(winid, "bnext")', 'E994:')
+  call assert_fails('call win_execute(winid, "bprev")', 'E994:')
+  call assert_fails('call win_execute(winid, "bfirst")', 'E994:')
+  call assert_fails('call win_execute(winid, "blast")', 'E994:')
   call assert_fails('call win_execute(winid, "edit")', 'E994:')
   call assert_fails('call win_execute(winid, "enew")', 'E994:')
   call assert_fails('call win_execute(winid, "wincmd x")', 'E994:')
@@ -1045,7 +1049,7 @@ func Test_popup_hide()
   call assert_equal('hello', line)
   call assert_equal(0, popup_getpos(winid).visible)
   " buffer is still listed but hidden
-  call assert_match(winbufnr(winid) .. 'u h.*\[Popup\]', execute('ls u'))
+  call assert_match(winbufnr(winid) .. 'u a.*\[Popup\]', execute('ls u'))
 
   eval winid->popup_show()
   redraw
@@ -2800,6 +2804,12 @@ func Test_previewpopup()
   call term_sendkeys(buf, ":\<CR>")
   call VerifyScreenDump(buf, 'Test_popupwin_previewpopup_8', {})
 
+  call term_sendkeys(buf, "\<C-W>p")
+  call VerifyScreenDump(buf, 'Test_popupwin_previewpopup_9', {})
+
+  call term_sendkeys(buf, ":call win_execute(popup_findpreview(), 'call popup_clear()')\<CR>")
+  call VerifyScreenDump(buf, 'Test_popupwin_previewpopup_10', {})
+
   call StopVimInTerminal(buf)
   call delete('Xtags')
   call delete('Xtagfile')
@@ -2936,6 +2946,16 @@ func Test_popupmenu_info_border()
   call term_sendkeys(buf, "cc\<C-X>\<C-U>")
   call VerifyScreenDump(buf, 'Test_popupwin_infopopup_6', {})
 
+  " Hide the info popup, cycle trough buffers, make sure it didn't get
+  " deleted.
+  call term_sendkeys(buf, "\<Esc>")
+  call term_sendkeys(buf, ":set hidden\<CR>")
+  call term_sendkeys(buf, ":bn\<CR>")
+  call term_sendkeys(buf, ":bn\<CR>")
+  call term_sendkeys(buf, "otest text test text\<C-X>\<C-U>")
+  call VerifyScreenDump(buf, 'Test_popupwin_infopopup_7', {})
+
+  call term_sendkeys(buf, "\<Esc>")
   call StopVimInTerminal(buf)
   call delete('XtestInfoPopup')
 endfunc

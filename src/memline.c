@@ -111,7 +111,7 @@ struct data_block
     unsigned	db_txt_end;	// byte just after data block
     linenr_T	db_line_count;	// number of lines in this block
     unsigned	db_index[1];	// index for start of line (actually bigger)
-				// followed by empty space upto db_txt_start
+				// followed by empty space up to db_txt_start
 				// followed by the text in the lines until
 				// end of page
 };
@@ -5753,8 +5753,8 @@ ml_find_line_or_offset(buf_T *buf, linenr_T lnum, long *offp)
 	else
 	{
 #ifdef FEAT_PROP_POPUP
-	    long textprop_total = 0;
-	    long textprop_size = 0;
+	    size_t textprop_total = 0;
+	    size_t textprop_size = 0;
 	    char_u *l1, *l2;
 #endif
 
@@ -5774,7 +5774,7 @@ ml_find_line_or_offset(buf_T *buf, linenr_T lnum, long *offp)
 		if (!(offset >= size
 			+ text_end - (int)((dp->db_index[idx]) & DB_INDEX_MASK)
 #ifdef FEAT_PROP_POPUP
-			- textprop_total - textprop_size
+			- (long)(textprop_total + textprop_size)
 #endif
 			+ ffdos))
 		    break;

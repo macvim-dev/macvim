@@ -27,7 +27,6 @@ static int	if_level = 0;		// depth in :if
 #endif
 static void	free_cmdmod(void);
 static void	append_command(char_u *cmd);
-static char_u	*find_command(exarg_T *eap, int *full);
 
 #ifndef FEAT_MENU
 # define ex_emenu		ex_ni
@@ -276,6 +275,7 @@ static void	ex_tag_cmd(exarg_T *eap, char_u *name);
 # define ex_debug		ex_ni
 # define ex_debuggreedy		ex_ni
 # define ex_delfunction		ex_ni
+# define ex_disassemble		ex_ni
 # define ex_echo		ex_ni
 # define ex_echohl		ex_ni
 # define ex_else		ex_ni
@@ -301,7 +301,10 @@ static void	ex_tag_cmd(exarg_T *eap, char_u *name);
 # define ex_try			ex_ni
 # define ex_unlet		ex_ni
 # define ex_unlockvar		ex_ni
+# define ex_vim9script		ex_ni
 # define ex_while		ex_ni
+# define ex_import		ex_ni
+# define ex_export		ex_ni
 #endif
 #ifndef FEAT_SESSION
 # define ex_loadview		ex_ni
@@ -321,7 +324,6 @@ static void	ex_setfiletype(exarg_T *eap);
 # define ex_diffupdate		ex_ni
 #endif
 static void	ex_digraphs(exarg_T *eap);
-static void	ex_set(exarg_T *eap);
 #ifdef FEAT_SEARCH_EXTRA
 static void	ex_nohlsearch(exarg_T *eap);
 #else
@@ -1715,7 +1717,13 @@ do_one_cmd(
     ea.cmd = skip_range(ea.cmd, NULL);
     if (*ea.cmd == '*' && vim_strchr(p_cpo, CPO_STAR) == NULL)
 	ea.cmd = skipwhite(ea.cmd + 1);
-    p = find_command(&ea, NULL);
+
+#ifdef FEAT_EVAL
+    if (current_sctx.sc_version == SCRIPT_VERSION_VIM9)
+	p = find_ex_command(&ea, NULL, lookup_scriptvar, NULL);
+    else
+#endif
+	p = find_ex_command(&ea, NULL, NULL, NULL);
 
 #ifdef FEAT_EVAL
 # ifdef FEAT_PROFILE
@@ -1883,7 +1891,7 @@ do_one_cmd(
 #ifdef FEAT_EVAL
 		&& !aborting()
 #endif
-		) ? find_command(&ea, NULL) : ea.cmd;
+		) ? find_ex_command(&ea, NULL, NULL, NULL) : ea.cmd;
     }
 
     if (p == NULL)
@@ -2492,6 +2500,10 @@ do_one_cmd(
     }
 
 #ifdef FEAT_EVAL
+    // Set flag that any command was executed, used by ex_vim9script().
+    if (getline_equal(ea.getline, ea.cookie, getsourceline))
+	SCRIPT_ITEM(current_sctx.sc_sid)->sn_had_command = TRUE;
+
     /*
      * If the command just executed called do_cmdline(), any throw or ":return"
      * or ":finish" encountered there must also check the cstack of the still
@@ -3115,14 +3127,63 @@ append_command(char_u *cmd)
  * Start of the name can be found at eap->cmd.
  * Sets eap->cmdidx and returns a pointer to char after the command name.
  * "full" is set to TRUE if the whole command name matched.
+ *
+ * If "lookup" is not NULL recognize expression without "eval" or "call" and
+ * assignment without "let".  Sets eap->cmdidx to the command while returning
+ * "eap->cmd".
+ *
  * Returns NULL for an ambiguous user command.
  */
-    static char_u *
-find_command(exarg_T *eap, int *full UNUSED)
+    char_u *
+find_ex_command(
+	exarg_T *eap,
+	int *full UNUSED,
+	int (*lookup)(char_u *, size_t, cctx_T *) UNUSED,
+	cctx_T *cctx UNUSED)
 {
     int		len;
     char_u	*p;
     int		i;
+
+#ifdef FEAT_EVAL
+    /*
+     * Recognize a Vim9 script function/method call and assignment:
+     * "lvar = value", "lvar(arg)", "[1, 2 3]->Func()"
+     */
+    if (lookup != NULL && (p = to_name_const_end(eap->cmd)) > eap->cmd
+								  && *p != NUL)
+    {
+	int oplen;
+	int heredoc;
+
+	// "funcname(" is always a function call.
+	// "varname[]" is an expression.
+	// "g:varname" is an expression.
+	// "varname->expr" is an expression.
+	if (*p == '('
+		|| *p == '['
+		|| p[1] == ':'
+		|| (*p == '-' && p[1] == '>'))
+	{
+	    eap->cmdidx = CMD_eval;
+	    return eap->cmd;
+	}
+
+	oplen = assignment_len(skipwhite(p), &heredoc);
+	if (oplen > 0)
+	{
+	    // Recognize an assignment if we recognize the variable name:
+	    // "g:var = expr"
+	    // "var = expr"  where "var" is a local var name.
+	    if (((p - eap->cmd) > 2 && eap->cmd[1] == ':')
+		    || lookup(eap->cmd, p - eap->cmd, cctx) >= 0)
+	    {
+		eap->cmdidx = CMD_let;
+		return eap->cmd;
+	    }
+	}
+    }
+#endif
 
     /*
      * Isolate the command and search for it in the command table.
@@ -3156,8 +3217,17 @@ find_command(exarg_T *eap, int *full UNUSED)
 	    ++p;
 	// for python 3.x support ":py3", ":python3", ":py3file", etc.
 	if (eap->cmd[0] == 'p' && eap->cmd[1] == 'y')
+	{
 	    while (ASCII_ISALNUM(*p))
 		++p;
+	}
+	else if (*p == '9' && STRNCMP("vim9", eap->cmd, 4) == 0)
+	{
+	    // include "9" for "vim9script"
+	    ++p;
+	    while (ASCII_ISALPHA(*p))
+		++p;
+	}
 
 	// check for non-alpha command
 	if (p == eap->cmd && vim_strchr((char_u *)"@*!=><&~#", *p) != NULL)
@@ -3314,7 +3384,7 @@ cmd_exists(char_u *name)
     // For ":2match" and ":3match" we need to skip the number.
     ea.cmd = (*name == '2' || *name == '3') ? name + 1 : name;
     ea.cmdidx = (cmdidx_T)0;
-    p = find_command(&ea, &full);
+    p = find_ex_command(&ea, &full, NULL, NULL);
     if (p == NULL)
 	return 3;
     if (vim_isdigit(*name) && ea.cmdidx != CMD_match)
@@ -4619,6 +4689,9 @@ ex_bmodified(exarg_T *eap)
     static void
 ex_bnext(exarg_T *eap)
 {
+    if (ERROR_IF_POPUP_WINDOW)
+	return;
+
     goto_buffer(eap, DOBUF_CURRENT, FORWARD, (int)eap->line2);
     if (eap->do_ecmd_cmd != NULL)
 	do_cmdline_cmd(eap->do_ecmd_cmd);
@@ -4633,6 +4706,9 @@ ex_bnext(exarg_T *eap)
     static void
 ex_bprevious(exarg_T *eap)
 {
+    if (ERROR_IF_POPUP_WINDOW)
+	return;
+
     goto_buffer(eap, DOBUF_CURRENT, BACKWARD, (int)eap->line2);
     if (eap->do_ecmd_cmd != NULL)
 	do_cmdline_cmd(eap->do_ecmd_cmd);
@@ -4647,6 +4723,9 @@ ex_bprevious(exarg_T *eap)
     static void
 ex_brewind(exarg_T *eap)
 {
+    if (ERROR_IF_POPUP_WINDOW)
+	return;
+
     goto_buffer(eap, DOBUF_FIRST, FORWARD, 0);
     if (eap->do_ecmd_cmd != NULL)
 	do_cmdline_cmd(eap->do_ecmd_cmd);
@@ -4659,6 +4738,9 @@ ex_brewind(exarg_T *eap)
     static void
 ex_blast(exarg_T *eap)
 {
+    if (ERROR_IF_POPUP_WINDOW)
+	return;
+
     goto_buffer(eap, DOBUF_LAST, BACKWARD, 0);
     if (eap->do_ecmd_cmd != NULL)
 	do_cmdline_cmd(eap->do_ecmd_cmd);
@@ -5933,7 +6015,7 @@ ex_mode(exarg_T *eap)
     if (*eap->arg == NUL)
 	shell_resized();
     else
-	mch_screenmode(eap->arg);
+	emsg(_(e_screenmode));
 }
 
 /*
@@ -6058,7 +6140,7 @@ ex_edit(exarg_T *eap)
 }
 
 /*
- * ":edit <file>" command and alikes.
+ * ":edit <file>" command and alike.
  */
     void
 do_exedit(
@@ -8492,23 +8574,6 @@ ex_digraphs(exarg_T *eap UNUSED)
 #endif
 }
 
-    static void
-ex_set(exarg_T *eap)
-{
-    int		flags = 0;
-
-    if (eap->cmdidx == CMD_setlocal)
-	flags = OPT_LOCAL;
-    else if (eap->cmdidx == CMD_setglobal)
-	flags = OPT_GLOBAL;
-#if defined(FEAT_EVAL) && defined(FEAT_BROWSE)
-    if (cmdmod.browse && flags == 0)
-	ex_options(eap);
-    else
-#endif
-	(void)do_set(eap->arg, flags);
-}
-
 #if defined(FEAT_SEARCH_EXTRA) || defined(PROTO)
     void
 set_no_hlsearch(int flag)
@@ -8580,7 +8645,7 @@ ex_folddo(exarg_T *eap)
 }
 #endif
 
-#ifdef FEAT_QUICKFIX
+#if defined(FEAT_QUICKFIX) || defined(PROTO)
 /*
  * Returns TRUE if the supplied Ex cmdidx is for a location list command
  * instead of a quickfix command.

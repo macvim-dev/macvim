@@ -1,4 +1,4 @@
-*todo.txt*      For Vim version 8.2.  Last change: 2020 Jan 06
+*todo.txt*      For Vim version 8.2.  Last change: 2020 Jan 23
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -38,14 +38,7 @@ browser use: https://github.com/vim/vim/issues/1234
 							*known-bugs*
 -------------------- Known bugs and current work -----------------------
 
-- Implement prop_find() issue #4970  Done by Ryan Hackett, #5421
-
 Include ipv6 syntax changes?  (DJ Lucas, #5360)
-
-Still have /* */ comments:
-    misc1.c
-    misc2.c
-    others?
 
 Popup windows:
 - Make it possible to put a terminal window in a popup.  Would always grab key
@@ -128,7 +121,7 @@ Terminal emulator window:
   conversions.
 
 Error numbers available:
-E362, E366, E450, E451, E452,
+E450, E451, E452,
 E453, E454, E460, E489, E491, E565, E578, E610, E611, E653,
 E654, E856, E857, E860, E861, E863, E889, E900
 
@@ -149,6 +142,9 @@ Needs better docs.  Is there a better name?
 
 undo result wrong: Masato Nishihata, #4798
 
+Patch to add function to return the text used in the quickfix window.
+(Yegappan, #5465)
+
 Undo puts cursor in wrong line after "cG<Esc>" undo.
 
 :unmap <c-n> gives error but does remove the mapping. (Antony Scriven, 2019
@@ -163,17 +159,23 @@ remains equal?  Then %argdel to clean it up.  Do try this with 'hidden' set.
 Also #4994: window-local options not always restored, related to using :badd.
 Also #5326: netrw buffers are not restored.
 
+Patch to support cindent option to handle pragmas differently.
+(Max Rumpf, #5468)
+
+Patch to make ":verbose pwd" show the scope of the directory. (Takuya
+Fujiwara, #5469)
+
 Completion mixes results from the current buffer with tags and other files.
 Happens when typing CTRL-N while still searching for results.  E.g., type "b_"
 in terminal.c and then CTRL-N twice.
 Should do current file first and not split it up when more results are found.
 (Also #1890)
 
+Undo history wrong when ":next file" re-uses a buffer. (#5426)
+ex_next() should pass flag to do_argfile(), then to do_ecmd().
+
 Adding "10" to 'spellsuggest' causes spell suggestions to become very slow.
 (#4087)
-
-Instead of using a syntax error, use #error to fail early when something is
-wrong.  E.g. in vim.h "Error:", and blowfish.c "error!". (#5299)
 
 ":helptags ALL" should skip directories where "tags" cannot be written.
 (Matěj Cepl, #5026)
@@ -182,10 +184,17 @@ wrong.  E.g. in vim.h "Error:", and blowfish.c "error!". (#5299)
 goes to any buffer, and then :bnext skips help buffers, since they are
 unlisted. (#4478)
 
+Patch to include reduce() function. (#5481)
+
+Patch to provide search stats in a variable, so that it can be used in the
+statusline. (Fujiwara Takuya, #4446)
+
 Enable 'termbidi' if $VTE_VERSION >= 5703 ?
 
 Universal solution to detect if t_RS is working, using cursor position.
 Koichi Iwamoto, #2126
+
+Python 3.8 doesn't work. (Antonios Hadjigeorgalis, #5509)
 
 The :syntax cchar value can only be a single character.  It would be useful to
 support combining characters. (Charles Campbell)  Also #4687
@@ -198,6 +207,8 @@ Got permission to include this under the Vim license.
 Add "t" action to settagstack(): truncate and add new entries. (#5405)
 
 Result of synID() sometimes wrong in help files. (#5252)
+
+Status line is nut updated when splitting windows. (Marcin Szamotulski, #5496)
 
 Problem showing a line if the number column width changes when using "o".
 (Mateusz Morusiewicz, #4245)
@@ -245,6 +256,9 @@ Patch to make FocusGained and FocusLost work in modern terminals. (Hayaki
 Saito, 2013 Apr 24) Update 2016 Aug 12.
 Also see issue #609.
 We could add the enable/disable sequences to t_ti/t_te or t_ks/t_ke.
+
+:buffer completion does not escape "+" properly and results in a regexp error.
+(#5467)
 
 Check_external_diff() is used too often. (Daniel Hahler, #4800)
 
@@ -1113,6 +1127,7 @@ Patch for 'cursorlinenr' option. (Ozaki Kiichi, 2016 Nov 30)
 
 When 'completeopt' has "noselect" does not insert a newline. (Lifepillar, 2017
 Apr 23, #1653)
+Can 'completeopt' be made buffer-local? (#5487)
 
 Window resizing with 'winfixheight': With a vertical split the height changes
 anyway. (Tommy allen, 2017 Feb 21, #1502)
@@ -1281,10 +1296,6 @@ Patch to add 'systemencoding', convert between 'encoding' and this for file
 names, shell commands and the like.  (Kikuchan, 2010 Oct 14)
 Assume the system converts between the actual encoding of the filesystem to
 the system encoding (usually utf-8).
-
-Using ":tab drop file" does not trigger BufEnter or TabEnter events.
-(Andy Stewart, 2017 Apr 27, #1660)
-Autocommands blocked in do_arg_all().  Supposed to happen later?
 
 'hlsearch' interferes with a Conceal match. (Rom Grk, 2016 Aug 9)
 
