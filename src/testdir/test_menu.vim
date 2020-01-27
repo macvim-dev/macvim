@@ -12,7 +12,9 @@ func Test_load_menu()
   call assert_match('browse confirm w', execute(':menu File.Save'))
 
   let v:errmsg = ''
-  doautocmd LoadBufferMenu VimEnter
+  if !has("gui_macvim")
+    doautocmd LoadBufferMenu VimEnter
+  endif
   call assert_equal('', v:errmsg)
 
   source $VIMRUNTIME/delmenu.vim
