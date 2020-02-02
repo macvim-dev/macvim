@@ -1744,19 +1744,30 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         NSEnumerator *enumerator = [queries objectEnumerator];
         NSString *param;
         while ((param = [enumerator nextObject])) {
+            // query: <field>=<value>
             NSArray *arr = [param componentsSeparatedByString:@"="];
             if ([arr count] == 2) {
+                // parse field
+                NSString *f = [arr objectAtIndex:0];
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_11
-                [dict setValue:[[arr lastObject] stringByRemovingPercentEncoding]
-                        forKey:[[arr objectAtIndex:0] stringByRemovingPercentEncoding]];
+                f = [f stringByRemovingPercentEncoding];
 #else
-                [dict setValue:[[arr lastObject]
-                            stringByReplacingPercentEscapesUsingEncoding:
-                                NSUTF8StringEncoding]
-                        forKey:[[arr objectAtIndex:0]
-                            stringByReplacingPercentEscapesUsingEncoding:
-                                NSUTF8StringEncoding]];
+		f = [f stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
 #endif
+
+                // parse value
+                NSString *v = [arr objectAtIndex:1];
+
+                // do not decode url, since it's a file URI
+                BOOL decode = ![f isEqualToString:@"url"];
+                if (decode)
+                {
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_11
+                    v = [f stringByRemovingPercentEncoding];
+#else
+                    v = [f stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+#endif
+                }
             }
         }
 
