@@ -29,6 +29,9 @@ anchors:
           - python
           - ruby
         update: true
+    before_install:
+      # Homebrew has issues linking Python due to conflicts with Python2. Manually link in Python3.
+      - brew link --overwrite python3
   - &lang_env
     env: "LANGOPT='--enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local'"
   - &caches
