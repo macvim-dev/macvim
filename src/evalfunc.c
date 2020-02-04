@@ -100,7 +100,6 @@ static void f_getpos(typval_T *argvars, typval_T *rettv);
 static void f_getreg(typval_T *argvars, typval_T *rettv);
 static void f_getregtype(typval_T *argvars, typval_T *rettv);
 static void f_gettagstack(typval_T *argvars, typval_T *rettv);
-static void f_has(typval_T *argvars, typval_T *rettv);
 static void f_haslocaldir(typval_T *argvars, typval_T *rettv);
 static void f_hasmapto(typval_T *argvars, typval_T *rettv);
 static void f_hlID(typval_T *argvars, typval_T *rettv);
@@ -1856,7 +1855,7 @@ f_empty(typval_T *argvars, typval_T *rettv)
 #endif
 	case VAR_LIST:
 	    n = argvars[0].vval.v_list == NULL
-				  || argvars[0].vval.v_list->lv_first == NULL;
+					|| argvars[0].vval.v_list->lv_len == 0;
 	    break;
 	case VAR_DICT:
 	    n = argvars[0].vval.v_dict == NULL
@@ -2064,7 +2063,7 @@ execute_common(typval_T *argvars, typval_T *rettv, int arg_off)
     if (argvars[arg_off].v_type == VAR_LIST)
     {
 	list = argvars[arg_off].vval.v_list;
-	if (list == NULL || list->lv_first == NULL)
+	if (list == NULL || list->lv_len == 0)
 	    // empty list, no commands, empty output
 	    return;
 	++list->lv_refcount;
@@ -2114,8 +2113,10 @@ execute_common(typval_T *argvars, typval_T *rettv, int arg_off)
 	do_cmdline_cmd(cmd);
     else
     {
-	listitem_T	*item = list->lv_first;
+	listitem_T	*item;
 
+	range_list_materialize(list);
+	item = list->lv_first;
 	do_cmdline(NULL, get_list_line, (void *)&item,
 		      DOCMD_NOWAIT|DOCMD_VERBOSE|DOCMD_REPEAT|DOCMD_KEYTYPED);
 	--list->lv_refcount;
@@ -2643,9 +2644,12 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 		    for (i = 0; i < arg_len; i++)
 			copy_tv(&arg_pt->pt_argv[i], &pt->pt_argv[i]);
 		    if (lv_len > 0)
+		    {
+			range_list_materialize(list);
 			for (li = list->lv_first; li != NULL;
 							 li = li->li_next)
 			    copy_tv(&li->li_tv, &pt->pt_argv[i++]);
+		    }
 		}
 
 		// For "function(dict.func, [], dict)" and "func" is a partial
@@ -3256,7 +3260,7 @@ f_gettagstack(typval_T *argvars, typval_T *rettv)
 /*
  * "has()" function
  */
-    static void
+    void
 f_has(typval_T *argvars, typval_T *rettv)
 {
     int		i;
@@ -4073,13 +4077,14 @@ f_index(typval_T *argvars, typval_T *rettv)
     l = argvars[0].vval.v_list;
     if (l != NULL)
     {
+	range_list_materialize(l);
 	item = l->lv_first;
 	if (argvars[2].v_type != VAR_UNKNOWN)
 	{
 	    // Start at specified item.  Use the cached index that list_find()
 	    // sets, so that a negative number also works.
 	    item = list_find(l, (long)tv_get_number_chk(&argvars[2], &error));
-	    idx = l->lv_idx;
+	    idx = l->lv_u.mat.lv_idx;
 	    if (argvars[3].v_type != VAR_UNKNOWN)
 		ic = (int)tv_get_number_chk(&argvars[3], &error);
 	    if (error)
@@ -4154,6 +4159,7 @@ f_inputdialog(typval_T *argvars, typval_T *rettv)
     static void
 f_inputlist(typval_T *argvars, typval_T *rettv)
 {
+    list_T	*l;
     listitem_T	*li;
     int		selected;
     int		mouse_used;
@@ -4176,7 +4182,9 @@ f_inputlist(typval_T *argvars, typval_T *rettv)
     msg_scroll = TRUE;
     msg_clr_eos();
 
-    for (li = argvars[0].vval.v_list->lv_first; li != NULL; li = li->li_next)
+    l = argvars[0].vval.v_list;
+    range_list_materialize(l);
+    for (li = l->lv_first; li != NULL; li = li->li_next)
     {
 	msg_puts((char *)tv_get_string(&li->li_tv));
 	msg_putchar('\n');
@@ -4659,6 +4667,7 @@ find_some_match(typval_T *argvars, typval_T *rettv, matchtype_T type)
     {
 	if ((l = argvars[0].vval.v_list) == NULL)
 	    goto theend;
+	range_list_materialize(l);
 	li = l->lv_first;
     }
     else
@@ -4683,7 +4692,7 @@ find_some_match(typval_T *argvars, typval_T *rettv, matchtype_T type)
 	    li = list_find(l, start);
 	    if (li == NULL)
 		goto theend;
-	    idx = l->lv_idx;	// use the cached index
+	    idx = l->lv_u.mat.lv_idx;	// use the cached index
 	}
 	else
 	{
@@ -4886,20 +4895,31 @@ max_min(typval_T *argvars, typval_T *rettv, int domax)
 	listitem_T	*li;
 
 	l = argvars[0].vval.v_list;
-	if (l != NULL)
+	if (l != NULL && l->lv_len > 0)
 	{
-	    li = l->lv_first;
-	    if (li != NULL)
+	    if (l->lv_first == &range_list_item)
 	    {
-		n = tv_get_number_chk(&li->li_tv, &error);
-		for (;;)
+		if ((l->lv_u.nonmat.lv_stride > 0) ^ domax)
+		    n = l->lv_u.nonmat.lv_start;
+		else
+		    n = l->lv_u.nonmat.lv_start + (l->lv_len - 1)
+						    * l->lv_u.nonmat.lv_stride;
+	    }
+	    else
+	    {
+		li = l->lv_first;
+		if (li != NULL)
 		{
-		    li = li->li_next;
-		    if (li == NULL)
-			break;
-		    i = tv_get_number_chk(&li->li_tv, &error);
-		    if (domax ? i > n : i < n)
-			n = i;
+		    n = tv_get_number_chk(&li->li_tv, &error);
+		    for (;;)
+		    {
+			li = li->li_next;
+			if (li == NULL)
+			    break;
+			i = tv_get_number_chk(&li->li_tv, &error);
+			if (domax ? i > n : i < n)
+			    n = i;
+		    }
 		}
 	    }
 	}
@@ -5334,10 +5354,10 @@ f_range(typval_T *argvars, typval_T *rettv)
 	// works with ":for".  If used otherwise range_list_materialize() must
 	// be called.
 	list->lv_first = &range_list_item;
-	list->lv_start = start;
-	list->lv_end = end;
-	list->lv_stride = stride;
-	list->lv_len = (end - start + 1) / stride;
+	list->lv_u.nonmat.lv_start = start;
+	list->lv_u.nonmat.lv_end = end;
+	list->lv_u.nonmat.lv_stride = stride;
+	list->lv_len = (end - start) / stride + 1;
     }
 }
 
@@ -5349,15 +5369,15 @@ range_list_materialize(list_T *list)
 {
     if (list->lv_first == &range_list_item)
     {
-	varnumber_T start = list->lv_start;
-	varnumber_T end = list->lv_end;
-	int	    stride = list->lv_stride;
+	varnumber_T start = list->lv_u.nonmat.lv_start;
+	varnumber_T end = list->lv_u.nonmat.lv_end;
+	int	    stride = list->lv_u.nonmat.lv_stride;
 	varnumber_T i;
 
 	list->lv_first = NULL;
-	list->lv_last = NULL;
+	list->lv_u.mat.lv_last = NULL;
 	list->lv_len = 0;
-	list->lv_idx_item = NULL;
+	list->lv_u.mat.lv_idx_item = NULL;
 	for (i = start; stride > 0 ? i <= end : i >= end; i += stride)
 	    if (list_append_number(list, (varnumber_T)i) == FAIL)
 		break;
@@ -6813,22 +6833,25 @@ f_setreg(typval_T *argvars, typval_T *rettv)
 	allocval = lstval + len + 2;
 	curallocval = allocval;
 
-	for (li = ll == NULL ? NULL : ll->lv_first; li != NULL;
-							     li = li->li_next)
+	if (ll != NULL)
 	{
-	    strval = tv_get_string_buf_chk(&li->li_tv, buf);
-	    if (strval == NULL)
-		goto free_lstval;
-	    if (strval == buf)
+	    range_list_materialize(ll);
+	    for (li = ll->lv_first; li != NULL; li = li->li_next)
 	    {
-		// Need to make a copy, next tv_get_string_buf_chk() will
-		// overwrite the string.
-		strval = vim_strsave(buf);
+		strval = tv_get_string_buf_chk(&li->li_tv, buf);
 		if (strval == NULL)
 		    goto free_lstval;
-		*curallocval++ = strval;
+		if (strval == buf)
+		{
+		    // Need to make a copy, next tv_get_string_buf_chk() will
+		    // overwrite the string.
+		    strval = vim_strsave(buf);
+		    if (strval == NULL)
+			goto free_lstval;
+		    *curallocval++ = strval;
+		}
+		*curval++ = strval;
 	    }
-	    *curval++ = strval;
 	}
 	*curval++ = NULL;
 

@@ -384,7 +384,7 @@ au BufNewFile,BufRead configure.in,configure.ac setf config
 " CUDA  Cumpute Unified Device Architecture
 au BufNewFile,BufRead *.cu,*.cuh		setf cuda
 
-" Dockerfilb; Podman uses the same syntax with name Containerfile
+" Dockerfile; Podman uses the same syntax with name Containerfile
 au BufNewFile,BufRead Containerfile,Dockerfile,*.Dockerfile	setf dockerfile
 
 " WildPackets EtherPeek Decoder
@@ -491,7 +491,7 @@ au BufNewFile,BufRead *.rul
 au BufNewFile,BufRead *.com			call dist#ft#BindzoneCheck('dcl')
 
 " DOT
-au BufNewFile,BufRead *.dot			setf dot
+au BufNewFile,BufRead *.dot,*.gv		setf dot
 
 " Dylan - lid files
 au BufNewFile,BufRead *.lid			setf dylanlid
@@ -832,6 +832,9 @@ au BufNewFile,BufRead *.k			setf kwt
 
 " Kivy
 au BufNewFile,BufRead *.kv			setf kivy
+
+" Kotlin
+au BufNewFile,BufRead *.kt,*.ktm,*.kts		setf kotlin
 
 " KDE script
 au BufNewFile,BufRead *.ks			setf kscript

@@ -88,7 +88,7 @@ struct scope_S {
 	whilescope_T	se_while;
 	forscope_T	se_for;
 	tryscope_T	se_try;
-    };
+    } se_u;
 };
 
 /*
@@ -115,6 +115,8 @@ struct cctx_S {
 
     garray_T	ctx_imports;	    // imported items
 
+    int		ctx_skip;	    // when TRUE skip commands, when FALSE skip
+				    // commands after "else"
     scope_T	*ctx_scope;	    // current scope, NULL at toplevel
 
     garray_T	ctx_type_stack;	    // type of each item on the stack
@@ -333,7 +335,7 @@ check_number_or_float(vartype_T type1, vartype_T type2, char_u *op)
 						     || type2 == VAR_UNKNOWN)))
     {
 	if (*op == '+')
-	    semsg(_("E1035: wrong argument type for +"));
+	    emsg(_("E1035: wrong argument type for +"));
 	else
 	    semsg(_("E1036: %c requires number or float arguments"), *op);
 	return FAIL;
@@ -719,20 +721,49 @@ generate_LOAD(
 }
 
 /*
+ * Generate an ISN_LOADV instruction.
+ */
+    static int
+generate_LOADV(
+	cctx_T	    *cctx,
+	char_u	    *name,
+	int	    error)
+{
+    // load v:var
+    int vidx = find_vim_var(name);
+
+    if (vidx < 0)
+    {
+	if (error)
+	    semsg(_(e_var_notfound), name);
+	return FAIL;
+    }
+
+    // TODO: get actual type
+    return generate_LOAD(cctx, ISN_LOADV, vidx, NULL, &t_any);
+}
+
+/*
  * Generate an ISN_LOADS instruction.
  */
     static int
-generate_LOADS(
+generate_OLDSCRIPT(
 	cctx_T	    *cctx,
+	isntype_T   isn_type,
 	char_u	    *name,
-	int	    sid)
+	int	    sid,
+	type_T	    *type)
 {
     isn_T	*isn;
 
-    if ((isn = generate_instr_type(cctx, ISN_LOADS, &t_any)) == NULL)
+    if (isn_type == ISN_LOADS)
+	isn = generate_instr_type(cctx, isn_type, type);
+    else
+	isn = generate_instr_drop(cctx, isn_type, 1);
+    if (isn == NULL)
 	return FAIL;
-    isn->isn_arg.loads.ls_name = vim_strsave(name);
-    isn->isn_arg.loads.ls_sid = sid;
+    isn->isn_arg.loadstore.ls_name = vim_strsave(name);
+    isn->isn_arg.loadstore.ls_sid = sid;
 
     return OK;
 }
@@ -741,7 +772,7 @@ generate_LOADS(
  * Generate an ISN_LOADSCRIPT or ISN_STORESCRIPT instruction.
  */
     static int
-generate_SCRIPT(
+generate_VIM9SCRIPT(
 	cctx_T	    *cctx,
 	isntype_T   isn_type,
 	int	    sid,
@@ -993,9 +1024,11 @@ generate_UCALL(cctx_T *cctx, char_u *name, int argcount)
     isn->isn_arg.ufunc.cuf_argcount = argcount;
 
     stack->ga_len -= argcount; // drop the arguments
-
-    // drop the funcref/partial, get back the return value
-    ((type_T **)stack->ga_data)[stack->ga_len - 1] = &t_any;
+    if (ga_grow(stack, 1) == FAIL)
+	return FAIL;
+    // add return value
+    ((type_T **)stack->ga_data)[stack->ga_len] = &t_any;
+    ++stack->ga_len;
 
     return OK;
 }
@@ -1436,7 +1469,7 @@ get_script_item_idx(int sid, char_u *name, int check_writable)
  * Find "name" in imported items of the current script/
  */
     imported_T *
-find_imported(char_u *name, cctx_T *cctx)
+find_imported(char_u *name, size_t len, cctx_T *cctx)
 {
     scriptitem_T    *si = SCRIPT_ITEM(current_sctx.sc_sid);
     int		    idx;
@@ -1447,7 +1480,9 @@ find_imported(char_u *name, cctx_T *cctx)
 	    imported_T *import = ((imported_T *)cctx->ctx_imports.ga_data)
 									 + idx;
 
-	    if (STRCMP(name, import->imp_name) == 0)
+	    if (len == 0 ? STRCMP(name, import->imp_name) == 0
+			 : STRLEN(import->imp_name) == len
+				  && STRNCMP(name, import->imp_name, len) == 0)
 		return import;
 	}
 
@@ -1455,7 +1490,9 @@ find_imported(char_u *name, cctx_T *cctx)
     {
 	imported_T *import = ((imported_T *)si->sn_imports.ga_data) + idx;
 
-	if (STRCMP(name, import->imp_name) == 0)
+	if (len == 0 ? STRCMP(name, import->imp_name) == 0
+		     : STRLEN(import->imp_name) == len
+				  && STRNCMP(name, import->imp_name, len) == 0)
 	    return import;
     }
     return NULL;
@@ -1474,22 +1511,23 @@ compile_load_scriptvar(cctx_T *cctx, char_u *name)
     if (idx == -1)
     {
 	// variable exists but is not in sn_var_vals: old style script.
-	return generate_LOADS(cctx, name, current_sctx.sc_sid);
+	return generate_OLDSCRIPT(cctx, ISN_LOADS, name, current_sctx.sc_sid,
+								       &t_any);
     }
     if (idx >= 0)
     {
 	svar_T		*sv = ((svar_T *)si->sn_var_vals.ga_data) + idx;
 
-	generate_SCRIPT(cctx, ISN_LOADSCRIPT,
+	generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
 					current_sctx.sc_sid, idx, sv->sv_type);
 	return OK;
     }
 
-    import = find_imported(name, cctx);
+    import = find_imported(name, 0, cctx);
     if (import != NULL)
     {
 	// TODO: check this is a variable, not a function
-	generate_SCRIPT(cctx, ISN_LOADSCRIPT,
+	generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
 		import->imp_sid,
 		import->imp_var_vals_idx,
 		import->imp_type);
@@ -1521,18 +1559,7 @@ compile_load(char_u **arg, char_u *end, cctx_T *cctx, int error)
 
 	if (**arg == 'v')
 	{
-	    // load v:var
-	    int vidx = find_vim_var(name);
-
-	    if (vidx < 0)
-	    {
-		if (error)
-		    semsg(_(e_var_notfound), name);
-		goto theend;
-	    }
-
-	    // TODO: get actual type
-	    res = generate_LOAD(cctx, ISN_LOADV, vidx, NULL, &t_any);
+	    res = generate_LOADV(cctx, name, error);
 	}
 	else if (**arg == 'g')
 	{
@@ -1651,7 +1678,7 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 compile_call(char_u **arg, size_t varlen, cctx_T *cctx, int argcount_init)
 {
     char_u	*name = *arg;
-    char_u	*p = *arg + varlen + 1;
+    char_u	*p;
     int		argcount = argcount_init;
     char_u	namebuf[100];
     ufunc_T	*ufunc;
@@ -2056,7 +2083,6 @@ compile_get_env(char_u **arg, cctx_T *cctx)
     int		ret;
     char_u	*name;
 
-    start = *arg;
     ++*arg;
     len = get_env_len(arg);
     if (len == 0)
@@ -2917,7 +2943,8 @@ compile_expr1(char_u **arg,  cctx_T *cctx)
 
 	// evaluate the second expression; any type is accepted
 	*arg = skipwhite(p + 1);
-	compile_expr1(arg, cctx);
+	if (compile_expr1(arg, cctx) == FAIL)
+	    return FAIL;
 
 	// remember the type and drop it
 	--stack->ga_len;
@@ -2942,7 +2969,8 @@ compile_expr1(char_u **arg,  cctx_T *cctx)
 
 	// evaluate the third expression
 	*arg = skipwhite(p + 1);
-	compile_expr1(arg, cctx);
+	if (compile_expr1(arg, cctx) == FAIL)
+	    return FAIL;
 
 	// If the types differ, the result has a more generic type.
 	type2 = ((type_T **)stack->ga_data)[stack->ga_len - 1];
@@ -3049,6 +3077,16 @@ heredoc_getline(
 							     [cctx->ctx_lnum]);
 }
 
+typedef enum {
+    dest_local,
+    dest_option,
+    dest_env,
+    dest_global,
+    dest_vimvar,
+    dest_script,
+    dest_reg,
+} assign_dest_T;
+
 /*
  * compile "let var [= expr]", "const var = expr" and "var = expr"
  * "arg" points to "var".
@@ -3064,11 +3102,10 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     garray_T	*instr = &cctx->ctx_instr;
     int		idx = -1;
     char_u	*op;
-    int		option = FALSE;
     int		opt_type;
+    assign_dest_T dest = dest_local;
     int		opt_flags = 0;
-    int		global = FALSE;
-    int		script = FALSE;
+    int		vimvaridx = -1;
     int		oplen = 0;
     int		heredoc = FALSE;
     type_T	*type;
@@ -3100,7 +3137,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	long	    numval;
 	char_u	    *stringval = NULL;
 
-	option = TRUE;
+	dest = dest_option;
 	if (cmdidx == CMD_const)
 	{
 	    emsg(_(e_const_option));
@@ -3132,12 +3169,50 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	else
 	    type = &t_number;	// both number and boolean option
     }
+    else if (*arg == '$')
+    {
+	dest = dest_env;
+	if (is_decl)
+	{
+	    semsg(_("E1065: Cannot declare an environment variable: %s"), name);
+	    goto theend;
+	}
+    }
+    else if (*arg == '@')
+    {
+	if (!valid_yank_reg(arg[1], TRUE))
+	{
+	    emsg_invreg(arg[1]);
+	    return FAIL;
+	}
+	dest = dest_reg;
+	if (is_decl)
+	{
+	    semsg(_("E1066: Cannot declare a register: %s"), name);
+	    goto theend;
+	}
+    }
     else if (STRNCMP(arg, "g:", 2) == 0)
     {
-	global = TRUE;
+	dest = dest_global;
 	if (is_decl)
 	{
 	    semsg(_("E1016: Cannot declare a global variable: %s"), name);
+	    goto theend;
+	}
+    }
+    else if (STRNCMP(arg, "v:", 2) == 0)
+    {
+	vimvaridx = find_vim_var(name + 2);
+	if (vimvaridx < 0)
+	{
+	    semsg(_(e_var_notfound), arg);
+	    goto theend;
+	}
+	dest = dest_vimvar;
+	if (is_decl)
+	{
+	    semsg(_("E1064: Cannot declare a v: variable: %s"), name);
 	    goto theend;
 	}
     }
@@ -3168,9 +3243,12 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		}
 	    }
 	}
-	else if (lookup_script(arg, varlen) == OK)
+	else if ((STRNCMP(arg, "s:", 2) == 0
+		    ? lookup_script(arg + 2, varlen - 2)
+		    : lookup_script(arg, varlen)) == OK
+				   || find_imported(arg, varlen, cctx) != NULL)
 	{
-	    script = TRUE;
+	    dest = dest_script;
 	    if (is_decl)
 	    {
 		semsg(_("E1054: Variable already declared in the script: %s"),
@@ -3180,7 +3258,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	}
     }
 
-    if (!option)
+    if (dest != dest_option)
     {
 	if (is_decl && *p == ':')
 	{
@@ -3215,15 +3293,15 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	semsg(_(e_white_both), buf);
     }
 
-    if (oplen == 3 && !heredoc && !global && type->tt_type != VAR_STRING
-					       && type->tt_type != VAR_UNKNOWN)
+    if (oplen == 3 && !heredoc && dest != dest_global
+	    && type->tt_type != VAR_STRING && type->tt_type != VAR_UNKNOWN)
     {
 	emsg("E1019: Can only concatenate to string");
 	goto theend;
     }
 
     // +=, /=, etc. require an existing variable
-    if (idx < 0 && !global && !option)
+    if (idx < 0 && dest == dest_local)
     {
 	if (oplen > 1 && !heredoc)
 	{
@@ -3264,12 +3342,32 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	// for "+=", "*=", "..=" etc. first load the current value
 	if (*op != '=')
 	{
-	    if (option)
-		generate_LOAD(cctx, ISN_LOADOPT, 0, name + 1, type);
-	    else if (global)
-		generate_LOAD(cctx, ISN_LOADG, 0, name + 2, type);
-	    else
-		generate_LOAD(cctx, ISN_LOAD, idx, NULL, type);
+	    switch (dest)
+	    {
+		case dest_option:
+		    // TODO: check the option exists
+		    generate_LOAD(cctx, ISN_LOADOPT, 0, name + 1, type);
+		    break;
+		case dest_global:
+		    generate_LOAD(cctx, ISN_LOADG, 0, name + 2, type);
+		    break;
+		case dest_script:
+		    compile_load_scriptvar(cctx, name);
+		    break;
+		case dest_env:
+		    // Include $ in the name here
+		    generate_LOAD(cctx, ISN_LOADENV, 0, name, type);
+		    break;
+		case dest_reg:
+		    generate_LOAD(cctx, ISN_LOADREG, arg[1], NULL, &t_string);
+		    break;
+		case dest_vimvar:
+		    generate_LOADV(cctx, name + 2, TRUE);
+		    break;
+		case dest_local:
+		    generate_LOAD(cctx, ISN_LOAD, idx, NULL, type);
+		    break;
+	    }
 	}
 
 	// compile the expression
@@ -3305,7 +3403,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	emsg(_("E1021: const requires a value"));
 	goto theend;
     }
-    else if (!has_type || option)
+    else if (!has_type || dest == dest_option)
     {
 	emsg(_("E1022: type or initialization required"));
 	goto theend;
@@ -3355,36 +3453,68 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	}
     }
 
-    if (option)
-	generate_STOREOPT(cctx, name + 1, opt_flags);
-    else if (global)
-	generate_STORE(cctx, ISN_STOREG, 0, name + 2);
-    else if (script)
+    switch (dest)
     {
-	idx = get_script_item_idx(current_sctx.sc_sid, name, TRUE);
-	// TODO: specific type
-	generate_SCRIPT(cctx, ISN_STORESCRIPT,
-					     current_sctx.sc_sid, idx, &t_any);
-    }
-    else
-    {
-	isn_T *isn = ((isn_T *)instr->ga_data) + instr->ga_len - 1;
+	case dest_option:
+	    generate_STOREOPT(cctx, name + 1, opt_flags);
+	    break;
+	case dest_global:
+	    // include g: with the name, easier to execute that way
+	    generate_STORE(cctx, ISN_STOREG, 0, name);
+	    break;
+	case dest_env:
+	    generate_STORE(cctx, ISN_STOREENV, 0, name + 1);
+	    break;
+	case dest_reg:
+	    generate_STORE(cctx, ISN_STOREREG, name[1], NULL);
+	    break;
+	case dest_vimvar:
+	    generate_STORE(cctx, ISN_STOREV, vimvaridx, NULL);
+	    break;
+	case dest_script:
+	    {
+		char_u	    *rawname = name + (name[1] == ':' ? 2 : 0);
+		imported_T  *import = NULL;
+		int	    sid = current_sctx.sc_sid;
 
-	// optimization: turn "var = 123" from ISN_PUSHNR + ISN_STORE into
-	// ISN_STORENR
-	if (instr->ga_len == instr_count + 1 && isn->isn_type == ISN_PUSHNR)
-	{
-	    varnumber_T val = isn->isn_arg.number;
-	    garray_T	*stack = &cctx->ctx_type_stack;
+		if (name[1] != ':')
+		{
+		    import = find_imported(name, 0, cctx);
+		    if (import != NULL)
+			sid = import->imp_sid;
+		}
 
-	    isn->isn_type = ISN_STORENR;
-	    isn->isn_arg.storenr.str_idx = idx;
-	    isn->isn_arg.storenr.str_val = val;
-	    if (stack->ga_len > 0)
-		--stack->ga_len;
-	}
-	else
-	    generate_STORE(cctx, ISN_STORE, idx, NULL);
+		idx = get_script_item_idx(sid, rawname, TRUE);
+		// TODO: specific type
+		if (idx < 0)
+		    generate_OLDSCRIPT(cctx, ISN_STORES, rawname, sid, &t_any);
+		else
+		    generate_VIM9SCRIPT(cctx, ISN_STORESCRIPT,
+							     sid, idx, &t_any);
+	    }
+	    break;
+	case dest_local:
+	    {
+		isn_T *isn = ((isn_T *)instr->ga_data) + instr->ga_len - 1;
+
+		// optimization: turn "var = 123" from ISN_PUSHNR + ISN_STORE
+		// into ISN_STORENR
+		if (instr->ga_len == instr_count + 1
+						&& isn->isn_type == ISN_PUSHNR)
+		{
+		    varnumber_T val = isn->isn_arg.number;
+		    garray_T	*stack = &cctx->ctx_type_stack;
+
+		    isn->isn_type = ISN_STORENR;
+		    isn->isn_arg.storenr.str_idx = idx;
+		    isn->isn_arg.storenr.str_val = val;
+		    if (stack->ga_len > 0)
+			--stack->ga_len;
+		}
+		else
+		    generate_STORE(cctx, ISN_STORE, idx, NULL);
+	    }
+	    break;
     }
     ret = p;
 
@@ -3456,6 +3586,210 @@ new_scope(cctx_T *cctx, scopetype_T type)
 }
 
 /*
+ * Evaluate an expression that is a constant:
+ *  has(arg)
+ *
+ * Also handle:
+ *  ! in front		logical NOT
+ *
+ * Return FAIL if the expression is not a constant.
+ */
+    static int
+evaluate_const_expr7(char_u **arg, cctx_T *cctx UNUSED, typval_T *tv)
+{
+    typval_T	argvars[2];
+    char_u	*start_leader, *end_leader;
+
+    /*
+     * Skip '!' characters.  They are handled later.
+     */
+    start_leader = *arg;
+    while (**arg == '!')
+	*arg = skipwhite(*arg + 1);
+    end_leader = *arg;
+
+    /*
+     * Recognize only has() for now.
+     */
+    if (STRNCMP("has(", *arg, 4) != 0)
+	return FAIL;
+    *arg = skipwhite(*arg + 4);
+
+    if (**arg == '"')
+    {
+	if (get_string_tv(arg, tv, TRUE) == FAIL)
+	    return FAIL;
+    }
+    else if (**arg == '\'')
+    {
+	if (get_lit_string_tv(arg, tv, TRUE) == FAIL)
+	    return FAIL;
+    }
+    else
+	return FAIL;
+
+    *arg = skipwhite(*arg);
+    if (**arg != ')')
+	return FAIL;
+    *arg = skipwhite(*arg + 1);
+
+    argvars[0] = *tv;
+    argvars[1].v_type = VAR_UNKNOWN;
+    tv->v_type = VAR_NUMBER;
+    tv->vval.v_number = 0;
+    f_has(argvars, tv);
+    clear_tv(&argvars[0]);
+
+    while (start_leader < end_leader)
+    {
+	if (*start_leader == '!')
+	    tv->vval.v_number = !tv->vval.v_number;
+	++start_leader;
+    }
+
+    return OK;
+}
+
+static int evaluate_const_expr3(char_u **arg, cctx_T *cctx, typval_T *tv);
+
+/*
+ * Compile constant || or &&.
+ */
+    static int
+evaluate_const_and_or(char_u **arg, cctx_T *cctx, char *op, typval_T *tv)
+{
+    char_u	*p = skipwhite(*arg);
+    int		opchar = *op;
+
+    if (p[0] == opchar && p[1] == opchar)
+    {
+	int	val = tv2bool(tv);
+
+	/*
+	 * Repeat until there is no following "||" or "&&"
+	 */
+	while (p[0] == opchar && p[1] == opchar)
+	{
+	    typval_T	tv2;
+
+	    if (!VIM_ISWHITE(**arg) || !VIM_ISWHITE(p[2]))
+		return FAIL;
+
+	    // eval the next expression
+	    *arg = skipwhite(p + 2);
+	    tv2.v_type = VAR_UNKNOWN;
+	    tv2.v_lock = 0;
+	    if ((opchar == '|' ? evaluate_const_expr3(arg, cctx, &tv2)
+			       : evaluate_const_expr7(arg, cctx, &tv2)) == FAIL)
+	    {
+		clear_tv(&tv2);
+		return FAIL;
+	    }
+	    if ((opchar == '&') == val)
+	    {
+		// false || tv2  or true && tv2: use tv2
+		clear_tv(tv);
+		*tv = tv2;
+		val = tv2bool(tv);
+	    }
+	    else
+		clear_tv(&tv2);
+	    p = skipwhite(*arg);
+	}
+    }
+
+    return OK;
+}
+
+/*
+ * Evaluate an expression that is a constant: expr4 && expr4 && expr4
+ * Return FAIL if the expression is not a constant.
+ */
+    static int
+evaluate_const_expr3(char_u **arg, cctx_T *cctx, typval_T *tv)
+{
+    // evaluate the first expression
+    if (evaluate_const_expr7(arg, cctx, tv) == FAIL)
+	return FAIL;
+
+    // || and && work almost the same
+    return evaluate_const_and_or(arg, cctx, "&&", tv);
+}
+
+/*
+ * Evaluate an expression that is a constant: expr3 || expr3 || expr3
+ * Return FAIL if the expression is not a constant.
+ */
+    static int
+evaluate_const_expr2(char_u **arg, cctx_T *cctx, typval_T *tv)
+{
+    // evaluate the first expression
+    if (evaluate_const_expr3(arg, cctx, tv) == FAIL)
+	return FAIL;
+
+    // || and && work almost the same
+    return evaluate_const_and_or(arg, cctx, "||", tv);
+}
+
+/*
+ * Evaluate an expression that is a constant: expr2 ? expr1 : expr1
+ * E.g. for "has('feature')".
+ * This does not produce error messages.  "tv" should be cleared afterwards.
+ * Return FAIL if the expression is not a constant.
+ */
+    static int
+evaluate_const_expr1(char_u **arg, cctx_T *cctx, typval_T *tv)
+{
+    char_u	*p;
+
+    // evaluate the first expression
+    if (evaluate_const_expr2(arg, cctx, tv) == FAIL)
+	return FAIL;
+
+    p = skipwhite(*arg);
+    if (*p == '?')
+    {
+	int		val = tv2bool(tv);
+	typval_T	tv2;
+
+	if (!VIM_ISWHITE(**arg) || !VIM_ISWHITE(p[1]))
+	    return FAIL;
+
+	// evaluate the second expression; any type is accepted
+	clear_tv(tv);
+	*arg = skipwhite(p + 1);
+	if (evaluate_const_expr1(arg, cctx, tv) == FAIL)
+	    return FAIL;
+
+	// Check for the ":".
+	p = skipwhite(*arg);
+	if (*p != ':' || !VIM_ISWHITE(**arg) || !VIM_ISWHITE(p[1]))
+	    return FAIL;
+
+	// evaluate the third expression
+	*arg = skipwhite(p + 1);
+	tv2.v_type = VAR_UNKNOWN;
+	if (evaluate_const_expr1(arg, cctx, &tv2) == FAIL)
+	{
+	    clear_tv(&tv2);
+	    return FAIL;
+	}
+	if (val)
+	{
+	    // use the expr after "?"
+	    clear_tv(&tv2);
+	}
+	else
+	{
+	    // use the expr after ":"
+	    clear_tv(tv);
+	    *tv = tv2;
+	}
+    }
+    return OK;
+}
+
+/*
  * compile "if expr"
  *
  * "if expr" Produces instructions:
@@ -3493,18 +3827,34 @@ compile_if(char_u *arg, cctx_T *cctx)
     char_u	*p = arg;
     garray_T	*instr = &cctx->ctx_instr;
     scope_T	*scope;
+    typval_T	tv;
 
-    // compile "expr"
-    if (compile_expr1(&p, cctx) == FAIL)
-	return NULL;
+    // compile "expr"; if we know it evaluates to FALSE skip the block
+    tv.v_type = VAR_UNKNOWN;
+    if (evaluate_const_expr1(&p, cctx, &tv) == OK)
+	cctx->ctx_skip = tv2bool(&tv) ? FALSE : TRUE;
+    else
+	cctx->ctx_skip = MAYBE;
+    clear_tv(&tv);
+    if (cctx->ctx_skip == MAYBE)
+    {
+	p = arg;
+	if (compile_expr1(&p, cctx) == FAIL)
+	    return NULL;
+    }
 
     scope = new_scope(cctx, IF_SCOPE);
     if (scope == NULL)
 	return NULL;
 
-    // "where" is set when ":elseif", "else" or ":endif" is found
-    scope->se_if.is_if_label = instr->ga_len;
-    generate_JUMP(cctx, JUMP_IF_FALSE, 0);
+    if (cctx->ctx_skip == MAYBE)
+    {
+	// "where" is set when ":elseif", "else" or ":endif" is found
+	scope->se_u.se_if.is_if_label = instr->ga_len;
+	generate_JUMP(cctx, JUMP_IF_FALSE, 0);
+    }
+    else
+	scope->se_u.se_if.is_if_label = -1;
 
     return p;
 }
@@ -3516,6 +3866,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     garray_T	*instr = &cctx->ctx_instr;
     isn_T	*isn;
     scope_T	*scope = cctx->ctx_scope;
+    typval_T	tv;
 
     if (scope == NULL || scope->se_type != IF_SCOPE)
     {
@@ -3524,22 +3875,35 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     }
     cctx->ctx_locals.ga_len = scope->se_local_count;
 
-    // jump from previous block to the end
-    if (compile_jump_to_end(&scope->se_if.is_end_label,
+    if (cctx->ctx_skip != TRUE)
+    {
+	if (compile_jump_to_end(&scope->se_u.se_if.is_end_label,
 						    JUMP_ALWAYS, cctx) == FAIL)
-	return NULL;
+	    return NULL;
+	// previous "if" or "elseif" jumps here
+	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_if.is_if_label;
+	isn->isn_arg.jump.jump_where = instr->ga_len;
+    }
 
-    // previous "if" or "elseif" jumps here
-    isn = ((isn_T *)instr->ga_data) + scope->se_if.is_if_label;
-    isn->isn_arg.jump.jump_where = instr->ga_len;
+    // compile "expr"; if we know it evaluates to FALSE skip the block
+    tv.v_type = VAR_UNKNOWN;
+    if (evaluate_const_expr1(&p, cctx, &tv) == OK)
+	cctx->ctx_skip = tv2bool(&tv) ? FALSE : TRUE;
+    else
+	cctx->ctx_skip = MAYBE;
+    clear_tv(&tv);
+    if (cctx->ctx_skip == MAYBE)
+    {
+	p = arg;
+	if (compile_expr1(&p, cctx) == FAIL)
+	    return NULL;
 
-    // compile "expr"
-    if (compile_expr1(&p, cctx) == FAIL)
-	return NULL;
-
-    // "where" is set when ":elseif", "else" or ":endif" is found
-    scope->se_if.is_if_label = instr->ga_len;
-    generate_JUMP(cctx, JUMP_IF_FALSE, 0);
+	// "where" is set when ":elseif", "else" or ":endif" is found
+	scope->se_u.se_if.is_if_label = instr->ga_len;
+	generate_JUMP(cctx, JUMP_IF_FALSE, 0);
+    }
+    else
+	scope->se_u.se_if.is_if_label = -1;
 
     return p;
 }
@@ -3559,14 +3923,26 @@ compile_else(char_u *arg, cctx_T *cctx)
     }
     cctx->ctx_locals.ga_len = scope->se_local_count;
 
-    // jump from previous block to the end
-    if (compile_jump_to_end(&scope->se_if.is_end_label,
+    // jump from previous block to the end, unless the else block is empty
+    if (cctx->ctx_skip == MAYBE)
+    {
+	if (compile_jump_to_end(&scope->se_u.se_if.is_end_label,
 						    JUMP_ALWAYS, cctx) == FAIL)
-	return NULL;
+	    return NULL;
+    }
 
-    // previous "if" or "elseif" jumps here
-    isn = ((isn_T *)instr->ga_data) + scope->se_if.is_if_label;
-    isn->isn_arg.jump.jump_where = instr->ga_len;
+    if (cctx->ctx_skip != TRUE)
+    {
+	if (scope->se_u.se_if.is_if_label >= 0)
+	{
+	    // previous "if" or "elseif" jumps here
+	    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_if.is_if_label;
+	    isn->isn_arg.jump.jump_where = instr->ga_len;
+	}
+    }
+
+    if (cctx->ctx_skip != MAYBE)
+	cctx->ctx_skip = !cctx->ctx_skip;
 
     return p;
 }
@@ -3584,16 +3960,19 @@ compile_endif(char_u *arg, cctx_T *cctx)
 	emsg(_(e_endif_without_if));
 	return NULL;
     }
-    ifscope = &scope->se_if;
+    ifscope = &scope->se_u.se_if;
     cctx->ctx_scope = scope->se_outer;
     cctx->ctx_locals.ga_len = scope->se_local_count;
 
-    // previous "if" or "elseif" jumps here
-    isn = ((isn_T *)instr->ga_data) + scope->se_if.is_if_label;
-    isn->isn_arg.jump.jump_where = instr->ga_len;
-
+    if (scope->se_u.se_if.is_if_label >= 0)
+    {
+	// previous "if" or "elseif" jumps here
+	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_if.is_if_label;
+	isn->isn_arg.jump.jump_where = instr->ga_len;
+    }
     // Fill in the "end" label in jumps at the end of the blocks.
     compile_fill_jump_to_end(&ifscope->is_end_label, cctx);
+    cctx->ctx_skip = FALSE;
 
     vim_free(scope);
     return arg;
@@ -3685,7 +4064,7 @@ compile_for(char_u *arg, cctx_T *cctx)
     }
 
     // "for_end" is set when ":endfor" is found
-    scope->se_for.fs_top_label = instr->ga_len;
+    scope->se_u.se_for.fs_top_label = instr->ga_len;
 
     generate_FOR(cctx, loop_idx);
     generate_STORE(cctx, ISN_STORE, var_idx, NULL);
@@ -3709,7 +4088,7 @@ compile_endfor(char_u *arg, cctx_T *cctx)
 	emsg(_(e_for));
 	return NULL;
     }
-    forscope = &scope->se_for;
+    forscope = &scope->se_u.se_for;
     cctx->ctx_scope = scope->se_outer;
     cctx->ctx_locals.ga_len = scope->se_local_count;
 
@@ -3754,14 +4133,14 @@ compile_while(char_u *arg, cctx_T *cctx)
     if (scope == NULL)
 	return NULL;
 
-    scope->se_while.ws_top_label = instr->ga_len;
+    scope->se_u.se_while.ws_top_label = instr->ga_len;
 
     // compile "expr"
     if (compile_expr1(&p, cctx) == FAIL)
 	return NULL;
 
     // "while_end" is set when ":endwhile" is found
-    if (compile_jump_to_end(&scope->se_while.ws_end_label,
+    if (compile_jump_to_end(&scope->se_u.se_while.ws_end_label,
 						  JUMP_IF_FALSE, cctx) == FAIL)
 	return FAIL;
 
@@ -3785,11 +4164,11 @@ compile_endwhile(char_u *arg, cctx_T *cctx)
     cctx->ctx_locals.ga_len = scope->se_local_count;
 
     // At end of ":for" scope jump back to the FOR instruction.
-    generate_JUMP(cctx, JUMP_ALWAYS, scope->se_while.ws_top_label);
+    generate_JUMP(cctx, JUMP_ALWAYS, scope->se_u.se_while.ws_top_label);
 
     // Fill in the "end" label in the WHILE statement so it can jump here.
     // And in any jumps for ":break"
-    compile_fill_jump_to_end(&scope->se_while.ws_end_label, cctx);
+    compile_fill_jump_to_end(&scope->se_u.se_while.ws_end_label, cctx);
 
     vim_free(scope);
 
@@ -3818,8 +4197,8 @@ compile_continue(char_u *arg, cctx_T *cctx)
 
     // Jump back to the FOR or WHILE instruction.
     generate_JUMP(cctx, JUMP_ALWAYS,
-	    scope->se_type == FOR_SCOPE ? scope->se_for.fs_top_label
-					       : scope->se_while.ws_top_label);
+	    scope->se_type == FOR_SCOPE ? scope->se_u.se_for.fs_top_label
+					  : scope->se_u.se_while.ws_top_label);
     return arg;
 }
 
@@ -3846,9 +4225,9 @@ compile_break(char_u *arg, cctx_T *cctx)
 
     // Jump to the end of the FOR or WHILE loop.
     if (scope->se_type == FOR_SCOPE)
-	el = &scope->se_for.fs_end_label;
+	el = &scope->se_u.se_for.fs_end_label;
     else
-	el = &scope->se_while.ws_end_label;
+	el = &scope->se_u.se_while.ws_end_label;
     if (compile_jump_to_end(el, JUMP_ALWAYS, cctx) == FAIL)
 	return FAIL;
 
@@ -3925,7 +4304,7 @@ compile_try(char_u *arg, cctx_T *cctx)
 
     // "catch" is set when the first ":catch" is found.
     // "finally" is set when ":finally" or ":endtry" is found
-    try_scope->se_try.ts_try_label = instr->ga_len;
+    try_scope->se_u.se_try.ts_try_label = instr->ga_len;
     if (generate_instr(cctx, ISN_TRY) == NULL)
 	return NULL;
 
@@ -3960,33 +4339,33 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	return NULL;
     }
 
-    if (scope->se_try.ts_caught_all)
+    if (scope->se_u.se_try.ts_caught_all)
     {
 	emsg(_("E1033: catch unreachable after catch-all"));
 	return NULL;
     }
 
     // Jump from end of previous block to :finally or :endtry
-    if (compile_jump_to_end(&scope->se_try.ts_end_label,
+    if (compile_jump_to_end(&scope->se_u.se_try.ts_end_label,
 						    JUMP_ALWAYS, cctx) == FAIL)
 	return NULL;
 
     // End :try or :catch scope: set value in ISN_TRY instruction
-    isn = ((isn_T *)instr->ga_data) + scope->se_try.ts_try_label;
+    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_try_label;
     if (isn->isn_arg.try.try_catch == 0)
 	isn->isn_arg.try.try_catch = instr->ga_len;
-    if (scope->se_try.ts_catch_label != 0)
+    if (scope->se_u.se_try.ts_catch_label != 0)
     {
 	// Previous catch without match jumps here
-	isn = ((isn_T *)instr->ga_data) + scope->se_try.ts_catch_label;
+	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
 	isn->isn_arg.jump.jump_where = instr->ga_len;
     }
 
     p = skipwhite(arg);
     if (ends_excmd(*p))
     {
-	scope->se_try.ts_caught_all = TRUE;
-	scope->se_try.ts_catch_label = 0;
+	scope->se_u.se_try.ts_caught_all = TRUE;
+	scope->se_u.se_try.ts_catch_label = 0;
     }
     else
     {
@@ -4000,7 +4379,7 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	if (generate_COMPARE(cctx, EXPR_MATCH, FALSE) == FAIL)
 	    return NULL;
 
-	scope->se_try.ts_catch_label = instr->ga_len;
+	scope->se_u.se_try.ts_catch_label = instr->ga_len;
 	if (generate_JUMP(cctx, JUMP_IF_FALSE, 0) == FAIL)
 	    return NULL;
     }
@@ -4033,7 +4412,7 @@ compile_finally(char_u *arg, cctx_T *cctx)
     }
 
     // End :catch or :finally scope: set value in ISN_TRY instruction
-    isn = ((isn_T *)instr->ga_data) + scope->se_try.ts_try_label;
+    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_try_label;
     if (isn->isn_arg.try.try_finally != 0)
     {
 	emsg(_(e_finally_dup));
@@ -4041,12 +4420,12 @@ compile_finally(char_u *arg, cctx_T *cctx)
     }
 
     // Fill in the "end" label in jumps at the end of the blocks.
-    compile_fill_jump_to_end(&scope->se_try.ts_end_label, cctx);
+    compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label, cctx);
 
-    if (scope->se_try.ts_catch_label != 0)
+    if (scope->se_u.se_try.ts_catch_label != 0)
     {
 	// Previous catch without match jumps here
-	isn = ((isn_T *)instr->ga_data) + scope->se_try.ts_catch_label;
+	isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_catch_label;
 	isn->isn_arg.jump.jump_where = instr->ga_len;
     }
 
@@ -4075,14 +4454,14 @@ compile_endtry(char_u *arg, cctx_T *cctx)
 	    emsg(_(e_no_endtry));
 	else if (scope->se_type == WHILE_SCOPE)
 	    emsg(_(e_endwhile));
-	if (scope->se_type == FOR_SCOPE)
+	else if (scope->se_type == FOR_SCOPE)
 	    emsg(_(e_endfor));
 	else
 	    emsg(_(e_endif));
 	return NULL;
     }
 
-    isn = ((isn_T *)instr->ga_data) + scope->se_try.ts_try_label;
+    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_try.ts_try_label;
     if (isn->isn_arg.try.try_catch == 0 && isn->isn_arg.try.try_finally == 0)
     {
 	emsg(_("E1032: missing :catch or :finally"));
@@ -4091,7 +4470,7 @@ compile_endtry(char_u *arg, cctx_T *cctx)
 
     // Fill in the "end" label in jumps at the end of the blocks, if not done
     // by ":finally".
-    compile_fill_jump_to_end(&scope->se_try.ts_end_label, cctx);
+    compile_fill_jump_to_end(&scope->se_u.se_try.ts_end_label, cctx);
 
     // End :catch or :finally scope: set value in ISN_TRY instruction
     if (isn->isn_arg.try.try_finally == 0)
@@ -4275,8 +4654,9 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	    ea.cmd = skipwhite(ea.cmd);
 
 	// Assuming the command starts with a variable or function name, find
-	// what follows.  Also "&opt = value".
-	p = (*ea.cmd == '&') ? ea.cmd + 1 : ea.cmd;
+	// what follows.  Also "&opt = val", "$ENV = val" and "@r = val".
+	p = (*ea.cmd == '&' || *ea.cmd == '$' || *ea.cmd == '@')
+							 ? ea.cmd + 1 : ea.cmd;
 	p = to_name_end(p);
 	if (p > ea.cmd && *p != NUL)
 	{
@@ -4285,7 +4665,6 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 
 	    // "funcname(" is always a function call.
 	    // "varname[]" is an expression.
-	    // "g:varname" is an expression.
 	    // "varname->expr" is an expression.
 	    if (*p == '('
 		    || *p == '['
@@ -4302,10 +4681,15 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 		// "g:var = expr"
 		// "var = expr"  where "var" is a local var name.
 		// "&opt = expr"
+		// "$ENV = expr"
+		// "@r = expr"
 		if (*ea.cmd == '&'
+			|| *ea.cmd == '$'
+			|| *ea.cmd == '@'
 			|| ((p - ea.cmd) > 2 && ea.cmd[1] == ':')
 			|| lookup_local(ea.cmd, p - ea.cmd, &cctx) >= 0
-			|| lookup_script(ea.cmd, p - ea.cmd) == OK)
+			|| lookup_script(ea.cmd, p - ea.cmd) == OK
+			|| find_imported(ea.cmd, p - ea.cmd, &cctx) != NULL)
 		{
 		    line = compile_assignment(ea.cmd, &ea, CMD_SIZE, &cctx);
 		    if (line == NULL)
@@ -4323,6 +4707,12 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 
 	if (p == ea.cmd && ea.cmdidx != CMD_SIZE)
 	{
+	    if (cctx.ctx_skip == TRUE)
+	    {
+		line += STRLEN(line);
+		continue;
+	    }
+
 	    // Expression or function call.
 	    if (ea.cmdidx == CMD_eval)
 	    {
@@ -4347,6 +4737,15 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	}
 
 	p = skipwhite(p);
+
+	if (cctx.ctx_skip == TRUE
+		&& ea.cmdidx != CMD_elseif
+		&& ea.cmdidx != CMD_else
+		&& ea.cmdidx != CMD_endif)
+	{
+	    line += STRLEN(line);
+	    continue;
+	}
 
 	switch (ea.cmdidx)
 	{
@@ -4509,12 +4908,14 @@ delete_instr(isn_T *isn)
 	case ISN_MEMBER:
 	case ISN_PUSHEXC:
 	case ISN_PUSHS:
+	case ISN_STOREENV:
 	case ISN_STOREG:
 	    vim_free(isn->isn_arg.string);
 	    break;
 
 	case ISN_LOADS:
-	    vim_free(isn->isn_arg.loads.ls_name);
+	case ISN_STORES:
+	    vim_free(isn->isn_arg.loadstore.ls_name);
 	    break;
 
 	case ISN_STOREOPT:
@@ -4574,7 +4975,9 @@ delete_instr(isn_T *isn)
 	case ISN_PUSHSPEC:
 	case ISN_RETURN:
 	case ISN_STORE:
+	case ISN_STOREV:
 	case ISN_STORENR:
+	case ISN_STOREREG:
 	case ISN_STORESCRIPT:
 	case ISN_THROW:
 	case ISN_TRY:
