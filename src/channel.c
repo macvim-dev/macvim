@@ -4208,8 +4208,8 @@ ch_expr_common(typval_T *argvars, typval_T *rettv, int eval)
 
 	    // Move the item from the list and then change the type to
 	    // avoid the value being freed.
-	    *rettv = list->lv_last->li_tv;
-	    list->lv_last->li_tv.v_type = VAR_NUMBER;
+	    *rettv = list->lv_u.mat.lv_last->li_tv;
+	    list->lv_u.mat.lv_last->li_tv.v_type = VAR_NUMBER;
 	    free_tv(listtv);
 	}
     }
@@ -4829,8 +4829,8 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		if (!(supported & JO_OUT_IO))
 		    break;
 		opt->jo_set |= JO_OUT_NAME << (part - PART_OUT);
-		opt->jo_io_name[part] =
-		       tv_get_string_buf_chk(item, opt->jo_io_name_buf[part]);
+		opt->jo_io_name[part] = tv_get_string_buf_chk(item,
+						   opt->jo_io_name_buf[part]);
 	    }
 	    else if (STRCMP(hi->hi_key, "pty") == 0)
 	    {
@@ -4995,7 +4995,8 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		if (!(supported2 & JO2_TERM_NAME))
 		    break;
 		opt->jo_set2 |= JO2_TERM_NAME;
-		opt->jo_term_name = tv_get_string_chk(item);
+		opt->jo_term_name = tv_get_string_buf_chk(item,
+						       opt->jo_term_name_buf);
 		if (opt->jo_term_name == NULL)
 		{
 		    semsg(_(e_invargval), "term_name");
@@ -5022,7 +5023,8 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		if (!(supported2 & JO2_TERM_OPENCMD))
 		    break;
 		opt->jo_set2 |= JO2_TERM_OPENCMD;
-		p = opt->jo_term_opencmd = tv_get_string_chk(item);
+		p = opt->jo_term_opencmd = tv_get_string_buf_chk(item,
+						    opt->jo_term_opencmd_buf);
 		if (p != NULL)
 		{
 		    // Must have %d and no other %.
@@ -5039,13 +5041,12 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 	    }
 	    else if (STRCMP(hi->hi_key, "eof_chars") == 0)
 	    {
-		char_u *p;
-
 		if (!(supported2 & JO2_EOF_CHARS))
 		    break;
 		opt->jo_set2 |= JO2_EOF_CHARS;
-		p = opt->jo_eof_chars = tv_get_string_chk(item);
-		if (p == NULL)
+		opt->jo_eof_chars = tv_get_string_buf_chk(item,
+						       opt->jo_eof_chars_buf);
+		if (opt->jo_eof_chars == NULL)
 		{
 		    semsg(_(e_invargval), "eof_chars");
 		    return FAIL;
@@ -5124,7 +5125,13 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		if (!(supported2 & JO2_TERM_KILL))
 		    break;
 		opt->jo_set2 |= JO2_TERM_KILL;
-		opt->jo_term_kill = tv_get_string_chk(item);
+		opt->jo_term_kill = tv_get_string_buf_chk(item,
+						       opt->jo_term_kill_buf);
+		if (opt->jo_term_kill == NULL)
+		{
+		    semsg(_(e_invargval), "term_kill");
+		    return FAIL;
+		}
 	    }
 	    else if (STRCMP(hi->hi_key, "tty_type") == 0)
 	    {
@@ -5165,6 +5172,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		    return FAIL;
 		}
 
+		range_list_materialize(item->vval.v_list);
 		li = item->vval.v_list->lv_first;
 		for (; li != NULL && n < 16; li = li->li_next, n++)
 		{
@@ -5198,7 +5206,12 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		    break;
 		opt->jo_set2 |= JO2_TERM_API;
 		opt->jo_term_api = tv_get_string_buf_chk(item,
-							 opt->jo_term_api_buf);
+							opt->jo_term_api_buf);
+		if (opt->jo_term_api == NULL)
+		{
+		    semsg(_(e_invargval), "term_api");
+		    return FAIL;
+		}
 	    }
 #endif
 	    else if (STRCMP(hi->hi_key, "env") == 0)
@@ -5288,7 +5301,7 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		    break;
 		opt->jo_set |= JO_STOPONEXIT;
 		opt->jo_stoponexit = tv_get_string_buf_chk(item,
-							     opt->jo_soe_buf);
+						      opt->jo_stoponexit_buf);
 		if (opt->jo_stoponexit == NULL)
 		{
 		    semsg(_(e_invargval), "stoponexit");
@@ -5571,6 +5584,7 @@ win32_build_cmd(list_T *l, garray_T *gap)
     listitem_T  *li;
     char_u	*s;
 
+    range_list_materialize(l);
     for (li = l->lv_first; li != NULL; li = li->li_next)
     {
 	s = tv_get_string_chk(&li->li_tv);
@@ -5857,7 +5871,7 @@ job_start(
 	typval_T    *argvars,
 	char	    **argv_arg UNUSED,
 	jobopt_T    *opt_arg,
-	int	    is_terminal UNUSED)
+	job_T	    **term_job)
 {
     job_T	*job;
     char_u	*cmd = NULL;
@@ -6008,6 +6022,9 @@ job_start(
     // Save the command used to start the job.
     job->jv_argv = argv;
 
+    if (term_job != NULL)
+	*term_job = job;
+
 #ifdef USE_ARGV
     if (ch_log_active())
     {
@@ -6024,7 +6041,7 @@ job_start(
 	ch_log(NULL, "Starting job: %s", (char *)ga.ga_data);
 	ga_clear(&ga);
     }
-    mch_job_start(argv, job, &opt, is_terminal);
+    mch_job_start(argv, job, &opt, term_job != NULL);
 #else
     ch_log(NULL, "Starting job: %s", (char *)cmd);
     mch_job_start((char *)cmd, job, &opt);
@@ -6640,7 +6657,7 @@ f_job_start(typval_T *argvars, typval_T *rettv)
     rettv->v_type = VAR_JOB;
     if (check_restricted() || check_secure())
 	return;
-    rettv->vval.v_job = job_start(argvars, NULL, NULL, FALSE);
+    rettv->vval.v_job = job_start(argvars, NULL, NULL, NULL);
 }
 
 /*

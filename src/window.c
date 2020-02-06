@@ -122,7 +122,7 @@ do_window(
 #endif
     char_u	cbuf[40];
 
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
 
 #ifdef FEAT_CMDWIN
@@ -784,7 +784,7 @@ check_split_disallowed()
     int
 win_split(int size, int flags)
 {
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return FAIL;
 
     // When the ":tab" modifier was used open a new tab page instead.
@@ -1579,7 +1579,7 @@ win_exchange(long Prenum)
     win_T	*wp2;
     int		temp;
 
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
     if (ONE_WINDOW)	    // just one window
     {
@@ -2446,7 +2446,12 @@ win_close(win_T *win, int free_buf)
     int		had_diffmode = win->w_p_diff;
 #endif
 
-    if (ERROR_IF_POPUP_WINDOW)
+#if defined(FEAT_TERMINAL) && defined(FEAT_PROP_POPUP)
+    // Can close a popup window with a terminal if the job has finished.
+    if (may_close_term_popup() == OK)
+	return OK;
+#endif
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return FAIL;
 
     if (last_window())
@@ -4349,7 +4354,7 @@ win_goto(win_T *wp)
 #endif
 
 #ifdef FEAT_PROP_POPUP
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
     if (popup_is_popup(wp))
     {
@@ -4431,6 +4436,11 @@ win_vert_neighbor(tabpage_T *tp, win_T *wp, int up, long count)
     frame_T	*nfr;
     frame_T	*foundfr;
 
+#ifdef FEAT_PROP_POPUP
+    if (popup_is_popup(wp))
+	// popups don't have neighbors.
+	return NULL;
+#endif
     foundfr = wp->w_frame;
     while (count--)
     {
@@ -4491,6 +4501,10 @@ win_goto_ver(
 {
     win_T	*win;
 
+#ifdef FEAT_PROP_POPUP
+    if (ERROR_IF_TERM_POPUP_WINDOW)
+	return;
+#endif
     win = win_vert_neighbor(curtab, curwin, up, count);
     if (win != NULL)
 	win_goto(win);
@@ -4509,6 +4523,11 @@ win_horz_neighbor(tabpage_T *tp, win_T *wp, int left, long count)
     frame_T	*nfr;
     frame_T	*foundfr;
 
+#ifdef FEAT_PROP_POPUP
+    if (popup_is_popup(wp))
+	// popups don't have neighbors.
+	return NULL;
+#endif
     foundfr = wp->w_frame;
     while (count--)
     {
@@ -4569,6 +4588,10 @@ win_goto_hor(
 {
     win_T	*win;
 
+#ifdef FEAT_PROP_POPUP
+    if (ERROR_IF_TERM_POPUP_WINDOW)
+	return;
+#endif
     win = win_horz_neighbor(curtab, curwin, left, count);
     if (win != NULL)
 	win_goto(win);
@@ -6443,6 +6466,12 @@ only_one_window(void)
 {
     int		count = 0;
     win_T	*wp;
+
+#if defined(FEAT_PROP_POPUP)
+    // If the current window is a popup then there always is another window.
+    if (popup_is_popup(curwin))
+	return FALSE;
+#endif
 
     // If there is another tab page there always is another window.
     if (first_tabpage->tp_next != NULL)

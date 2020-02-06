@@ -1410,13 +1410,13 @@ struct listvar_S
 	    varnumber_T lv_start;
 	    varnumber_T lv_end;
 	    int		lv_stride;
-	};
+	} nonmat;
 	struct {	// used for materialized list
 	    listitem_T	*lv_last;	// last item, NULL if none
 	    listitem_T	*lv_idx_item;	// when not NULL item at index "lv_idx"
 	    int		lv_idx;		// cached index of an item
-	};
-    };
+	} mat;
+    } lv_u;
     list_T	*lv_copylist;	// copied list used by deepcopy()
     list_T	*lv_used_next;	// next list in used lists list
     list_T	*lv_used_prev;	// previous list in used lists list
@@ -2109,7 +2109,7 @@ typedef struct
     int		jo_block_write;	// for testing only
     int		jo_part;
     int		jo_id;
-    char_u	jo_soe_buf[NUMBUFLEN];
+    char_u	jo_stoponexit_buf[NUMBUFLEN];
     char_u	*jo_stoponexit;
     dict_T	*jo_env;	// environment variables
     char_u	jo_cwd_buf[NUMBUFLEN];
@@ -2124,17 +2124,21 @@ typedef struct
     buf_T	*jo_bufnr_buf;
     int		jo_hidden;
     int		jo_term_norestore;
+    char_u	jo_term_name_buf[NUMBUFLEN];
     char_u	*jo_term_name;
+    char_u	jo_term_opencmd_buf[NUMBUFLEN];
     char_u	*jo_term_opencmd;
     int		jo_term_finish;
+    char_u	jo_eof_chars_buf[NUMBUFLEN];
     char_u	*jo_eof_chars;
+    char_u	jo_term_kill_buf[NUMBUFLEN];
     char_u	*jo_term_kill;
 # if defined(FEAT_GUI) || defined(FEAT_TERMGUICOLORS)
     long_u	jo_ansi_colors[16];
 # endif
     int		jo_tty_type;	    // first character of "tty_type"
-    char_u	*jo_term_api;
     char_u	jo_term_api_buf[NUMBUFLEN];
+    char_u	*jo_term_api;
 #endif
 } jobopt_T;
 

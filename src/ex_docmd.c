@@ -4639,7 +4639,7 @@ ex_doautocmd(exarg_T *eap)
     static void
 ex_bunload(exarg_T *eap)
 {
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
     eap->errmsg = do_bufdel(
 	    eap->cmdidx == CMD_bdelete ? DOBUF_DEL
@@ -4655,7 +4655,7 @@ ex_bunload(exarg_T *eap)
     static void
 ex_buffer(exarg_T *eap)
 {
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
     if (*eap->arg)
 	eap->errmsg = e_trailing;
@@ -4689,7 +4689,7 @@ ex_bmodified(exarg_T *eap)
     static void
 ex_bnext(exarg_T *eap)
 {
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
 
     goto_buffer(eap, DOBUF_CURRENT, FORWARD, (int)eap->line2);
@@ -4706,7 +4706,7 @@ ex_bnext(exarg_T *eap)
     static void
 ex_bprevious(exarg_T *eap)
 {
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
 
     goto_buffer(eap, DOBUF_CURRENT, BACKWARD, (int)eap->line2);
@@ -4723,7 +4723,7 @@ ex_bprevious(exarg_T *eap)
     static void
 ex_brewind(exarg_T *eap)
 {
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
 
     goto_buffer(eap, DOBUF_FIRST, FORWARD, 0);
@@ -4738,7 +4738,7 @@ ex_brewind(exarg_T *eap)
     static void
 ex_blast(exarg_T *eap)
 {
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
 
     goto_buffer(eap, DOBUF_LAST, BACKWARD, 0);
@@ -5768,7 +5768,7 @@ ex_splitview(exarg_T *eap)
 		       || eap->cmdidx == CMD_tabfind
 		       || eap->cmdidx == CMD_tabnew;
 
-    if (ERROR_IF_POPUP_WINDOW)
+    if (ERROR_IF_ANY_POPUP_WINDOW)
 	return;
 
 #ifdef FEAT_GUI
@@ -6151,7 +6151,8 @@ do_exedit(
     int		need_hide;
     int		exmode_was = exmode_active;
 
-    if (eap->cmdidx != CMD_pedit && ERROR_IF_POPUP_WINDOW)
+    if ((eap->cmdidx != CMD_pedit && ERROR_IF_POPUP_WINDOW)
+						 || ERROR_IF_TERM_POPUP_WINDOW)
 	return;
     /*
      * ":vi" command ends Ex mode.
@@ -6580,7 +6581,7 @@ changedir_func(
     int		dir_differs;
     int		retval = FALSE;
 
-    if (allbuf_locked())
+    if (new_dir == NULL || allbuf_locked())
 	return FALSE;
 
     if (vim_strchr(p_cpo, CPO_CHDIR) != NULL && curbufIsChanged() && !forceit)

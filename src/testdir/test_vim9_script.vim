@@ -42,6 +42,13 @@ def Test_assignment()
 
   let dict1: dict<string> = #{key: 'value'}
   let dict2: dict<number> = #{one: 1, two: 2}
+
+  v:char = 'abc'
+  call assert_equal('abc', v:char)
+
+  $ENVVAR = 'foobar'
+  call assert_equal('foobar', $ENVVAR)
+  $ENVVAR = ''
 enddef
 
 func Test_assignment_failure()
@@ -124,12 +131,43 @@ def Test_call_varargs()
   assert_equal('one,two,three', MyVarargs('one', 'two', 'three'))
 enddef
 
+"def Test_call_func_defined_later()
+"  call assert_equal('one', DefineLater('one'))
+"  call assert_fails('call NotDefined("one")', 'E99:')
+"enddef
+
+func DefineLater(arg)
+  return a:arg
+endfunc
+
+def MyDefaultArgs(name = 'string'): string
+  return name
+enddef
+
+func Test_call_default_args_from_func()
+  " TODO: implement using default value for optional argument
+  "call assert_equal('string', MyDefaultArgs())
+  call assert_fails('call MyDefaultArgs()', 'optional arguments not implemented yet')
+  call assert_equal('one', MyDefaultArgs('one'))
+  call assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
+endfunc
+
+def Test_call_default_args()
+  " TODO: implement using default value for optional argument
+  "assert_equal('string', MyDefaultArgs())
+  assert_equal('one', MyDefaultArgs('one'))
+  assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
+enddef
+
 def Test_return_type_wrong()
-  " TODO: why is ! needed for Mac and FreeBSD?
   CheckScriptFailure(['def Func(): number', 'return "a"', 'enddef'], 'expected number but got string')
   CheckScriptFailure(['def Func(): string', 'return 1', 'enddef'], 'expected string but got number')
   CheckScriptFailure(['def Func(): void', 'return "a"', 'enddef'], 'expected void but got string')
   CheckScriptFailure(['def Func()', 'return "a"', 'enddef'], 'expected void but got string')
+enddef
+
+def Test_arg_type_wrong()
+  CheckScriptFailure(['def Func3(items: list)', 'echo "a"', 'enddef'], 'E1008: Missing <type>')
 enddef
 
 def Test_try_catch()
@@ -311,7 +349,13 @@ def Test_import_absolute()
   let import_lines = [
         \ 'vim9script',
         \ 'import exported from "' .. escape(getcwd(), '\') .. '/Xexport_abs.vim"',
-        \ 'g:imported_abs = exported',
+        \ 'def UseExported()',
+        \ '  g:imported_abs = exported',
+        \ '  exported = 8888',
+        \ '  g:imported_after = exported',
+        \ 'enddef',
+        \ 'UseExported()',
+        \ 'g:import_disassembled = execute("disass UseExported")',
         \ ]
   writefile(import_lines, 'Ximport_abs.vim')
   writefile(s:export_script_lines, 'Xexport_abs.vim')
@@ -319,7 +363,19 @@ def Test_import_absolute()
   source Ximport_abs.vim
 
   assert_equal(9876, g:imported_abs)
+  assert_equal(8888, g:imported_after)
+  assert_match('<SNR>\d\+_UseExported.*'
+        \ .. 'g:imported_abs = exported.*'
+        \ .. '0 LOADSCRIPT exported from .*Xexport_abs.vim.*'
+        \ .. '1 STOREG g:imported_abs.*'
+        \ .. 'exported = 8888.*'
+        \ .. '3 STORESCRIPT exported in .*Xexport_abs.vim.*'
+        \ .. 'g:imported_after = exported.*'
+        \ .. '4 LOADSCRIPT exported from .*Xexport_abs.vim.*'
+        \ .. '5 STOREG g:imported_after.*'
+        \, g:import_disassembled)
   unlet g:imported_abs
+  unlet g:import_disassembled
 
   delete('Ximport_abs.vim')
   delete('Xexport_abs.vim')
@@ -354,7 +410,7 @@ def Test_fixed_size_list()
   l->remove(0)
   l->add(5)
   l->insert(99, 1)
-  call assert_equal([2, 99, 3, 4, 5], l)
+  assert_equal([2, 99, 3, 4, 5], l)
 enddef
 
 " Test that inside :function a Python function can be defined, :def is not
@@ -367,6 +423,246 @@ def do_something():
   return 1
 EOF
 endfunc
+
+def HasEval()
+  if has('eval')
+    echo 'yes'
+  else
+    echo 'no'
+  endif
+enddef
+
+def HasNothing()
+  if has('nothing')
+    echo 'yes'
+  else
+    echo 'no'
+  endif
+enddef
+
+def Test_compile_const_expr()
+  assert_equal("\nyes", execute('call HasEval()'))
+  let instr = execute('disassemble HasEval')
+  assert_match('PUSHS "yes"', instr)
+  assert_notmatch('PUSHS "no"', instr)
+  assert_notmatch('JUMP', instr)
+
+  assert_equal("\nno", execute('call HasNothing()'))
+  instr = execute('disassemble HasNothing')
+  assert_notmatch('PUSHS "yes"', instr)
+  assert_match('PUSHS "no"', instr)
+  assert_notmatch('JUMP', instr)
+enddef
+
+func NotCompiled()
+  echo "not"
+endfunc
+
+let s:scriptvar = 4
+let g:globalvar = 'g'
+
+def s:ScriptFuncLoad(arg: string)
+  let local = 1
+  buffers
+  echo arg
+  echo local
+  echo v:version
+  echo s:scriptvar
+  echo g:globalvar
+  echo &tabstop
+  echo $ENVVAR
+  echo @z
+enddef
+
+def Test_disassembleLoad()
+  assert_fails('disass NoFunc', 'E1061:')
+  assert_fails('disass NotCompiled', 'E1062:')
+
+  let res = execute('disass s:ScriptFuncLoad')
+  assert_match('<SNR>\d*_ScriptFuncLoad.*'
+        \ .. 'buffers.*'
+        \ .. ' EXEC \+buffers.*'
+        \ .. ' LOAD arg\[-1\].*'
+        \ .. ' LOAD $0.*'
+        \ .. ' LOADV v:version.*'
+        \ .. ' LOADS s:scriptvar from .*test_vim9_script.vim.*'
+        \ .. ' LOADG g:globalvar.*'
+        \ .. ' LOADENV $ENVVAR.*'
+        \ .. ' LOADREG @z.*'
+        \, res)
+enddef
+
+def s:ScriptFuncPush()
+  let localbool = true
+  let localspec = v:none
+  let localblob = 0z1234
+  if has('float')
+    let localfloat = 1.234
+  endif
+enddef
+
+def Test_disassemblePush()
+  let res = execute('disass s:ScriptFuncPush')
+  assert_match('<SNR>\d*_ScriptFuncPush.*'
+        \ .. 'localbool = true.*'
+        \ .. ' PUSH v:true.*'
+        \ .. 'localspec = v:none.*'
+        \ .. ' PUSH v:none.*'
+        \ .. 'localblob = 0z1234.*'
+        \ .. ' PUSHBLOB 0z1234.*'
+        \, res)
+  if has('float')
+  assert_match('<SNR>\d*_ScriptFuncPush.*'
+        \ .. 'localfloat = 1.234.*'
+        \ .. ' PUSHF 1.234.*'
+        \, res)
+  endif
+enddef
+
+def s:ScriptFuncStore()
+  let localnr = 1
+  localnr = 2
+  let localstr = 'abc'
+  localstr = 'xyz'
+  v:char = 'abc'
+  s:scriptvar = 'sv'
+  g:globalvar = 'gv'
+  &tabstop = 8
+  $ENVVAR = 'ev'
+  @z = 'rv'
+enddef
+
+def Test_disassembleStore()
+  let res = execute('disass s:ScriptFuncStore')
+  assert_match('<SNR>\d*_ScriptFuncStore.*'
+        \ .. 'localnr = 2.*'
+        \ .. ' STORE 2 in $0.*'
+        \ .. 'localstr = ''xyz''.*'
+        \ .. ' STORE $1.*'
+        \ .. 'v:char = ''abc''.*'
+        \ .. 'STOREV v:char.*'
+        \ .. 's:scriptvar = ''sv''.*'
+        \ .. ' STORES s:scriptvar in .*test_vim9_script.vim.*'
+        \ .. 'g:globalvar = ''gv''.*'
+        \ .. ' STOREG g:globalvar.*'
+        \ .. '&tabstop = 8.*'
+        \ .. ' STOREOPT &tabstop.*'
+        \ .. '$ENVVAR = ''ev''.*'
+        \ .. ' STOREENV $ENVVAR.*'
+        \ .. '@z = ''rv''.*'
+        \ .. ' STOREREG @z.*'
+        \, res)
+enddef
+
+def s:ScriptFuncTry()
+  try
+    echo 'yes'
+  catch /fail/
+    echo 'no'
+  finally
+    echo 'end'
+  endtry
+enddef
+
+def Test_disassembleTry()
+  let res = execute('disass s:ScriptFuncTry')
+  assert_match('<SNR>\d*_ScriptFuncTry.*'
+        \ .. 'try.*'
+        \ .. 'TRY catch -> \d\+, finally -> \d\+.*'
+        \ .. 'catch /fail/.*'
+        \ .. ' JUMP -> \d\+.*'
+        \ .. ' PUSH v:exception.*'
+        \ .. ' PUSHS "fail".*'
+        \ .. ' COMPARESTRING =\~.*'
+        \ .. ' JUMP_IF_FALSE -> \d\+.*'
+        \ .. ' CATCH.*'
+        \ .. 'finally.*'
+        \ .. ' PUSHS "end".*'
+        \ .. 'endtry.*'
+        \ .. ' ENDTRY.*'
+        \, res)
+enddef
+
+def s:ScriptFuncNew()
+  let ll = [1, "two", 333]
+  let dd = #{one: 1, two: "val"}
+enddef
+
+def Test_disassembleNew()
+  let res = execute('disass s:ScriptFuncNew')
+  assert_match('<SNR>\d*_ScriptFuncNew.*'
+        \ .. 'let ll = \[1, "two", 333].*'
+        \ .. 'PUSHNR 1.*'
+        \ .. 'PUSHS "two".*'
+        \ .. 'PUSHNR 333.*'
+        \ .. 'NEWLIST size 3.*'
+        \ .. 'let dd = #{one: 1, two: "val"}.*'
+        \ .. 'PUSHS "one".*'
+        \ .. 'PUSHNR 1.*'
+        \ .. 'PUSHS "two".*'
+        \ .. 'PUSHS "val".*'
+        \ .. 'NEWDICT size 2.*'
+        \, res)
+enddef
+
+def FuncWithArg(arg)
+  echo arg
+enddef
+
+func UserFunc()
+  echo 'nothing'
+endfunc
+
+func UserFuncWithArg(arg)
+  echo a:arg
+endfunc
+
+def s:ScriptFuncCall(): string
+  changenr()
+  char2nr("abc")
+  Test_disassembleNew()
+  FuncWithArg(343)
+  UserFunc()
+  UserFuncWithArg("foo")
+  let FuncRef = function("UserFunc")
+  FuncRef()
+  let FuncRefWithArg = function("UserFuncWithArg")
+  FuncRefWithArg("bar")
+  return "yes"
+enddef
+
+def Test_disassembleCall()
+  let res = execute('disass s:ScriptFuncCall')
+  assert_match('<SNR>\d*_ScriptFuncCall.*'
+        \ .. 'changenr().*'
+        \ .. ' BCALL changenr(argc 0).*'
+        \ .. 'char2nr("abc").*'
+        \ .. ' PUSHS "abc".*'
+        \ .. ' BCALL char2nr(argc 1).*'
+        \ .. 'Test_disassembleNew().*'
+        \ .. ' DCALL Test_disassembleNew(argc 0).*'
+        \ .. 'FuncWithArg(343).*'
+        \ .. ' PUSHNR 343.*'
+        \ .. ' DCALL FuncWithArg(argc 1).*'
+        \ .. 'UserFunc().*'
+        \ .. ' UCALL UserFunc(argc 0).*'
+        \ .. 'UserFuncWithArg("foo").*'
+        \ .. ' PUSHS "foo".*'
+        \ .. ' UCALL UserFuncWithArg(argc 1).*'
+        \ .. 'let FuncRef = function("UserFunc").*'
+        \ .. 'FuncRef().*'
+        \ .. ' LOAD $\d.*'
+        \ .. ' PCALL (argc 0).*'
+        \ .. 'let FuncRefWithArg = function("UserFuncWithArg").*'
+        \ .. 'FuncRefWithArg("bar").*'
+        \ .. ' PUSHS "bar".*'
+        \ .. ' LOAD $\d.*'
+        \ .. ' PCALL (argc 1).*'
+        \ .. 'return "yes".*'
+        \ .. ' PUSHS "yes".*'
+        \ .. ' RETURN.*'
+        \, res)
+enddef
 
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker
