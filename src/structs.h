@@ -1245,42 +1245,33 @@ typedef struct hashtable_S
 typedef long_u hash_T;		// Type for hi_hash
 
 
-#ifdef FEAT_NUM64
 // Use 64-bit Number.
-# ifdef MSWIN
-#  ifdef PROTO
-typedef long		    varnumber_T;
-typedef unsigned long	    uvarnumber_T;
-#   define VARNUM_MIN	    LONG_MIN
-#   define VARNUM_MAX	    LONG_MAX
-#   define UVARNUM_MAX	    ULONG_MAX
-#  else
-typedef __int64		    varnumber_T;
-typedef unsigned __int64    uvarnumber_T;
-#   define VARNUM_MIN	    _I64_MIN
-#   define VARNUM_MAX	    _I64_MAX
-#   define UVARNUM_MAX	    _UI64_MAX
-#  endif
-# elif defined(HAVE_STDINT_H)
-typedef int64_t		    varnumber_T;
-typedef uint64_t	    uvarnumber_T;
-#  define VARNUM_MIN	    INT64_MIN
-#  define VARNUM_MAX	    INT64_MAX
-#  define UVARNUM_MAX	    UINT64_MAX
-# else
+#ifdef MSWIN
+# ifdef PROTO
 typedef long		    varnumber_T;
 typedef unsigned long	    uvarnumber_T;
 #  define VARNUM_MIN	    LONG_MIN
 #  define VARNUM_MAX	    LONG_MAX
 #  define UVARNUM_MAX	    ULONG_MAX
+# else
+typedef __int64		    varnumber_T;
+typedef unsigned __int64    uvarnumber_T;
+#  define VARNUM_MIN	    _I64_MIN
+#  define VARNUM_MAX	    _I64_MAX
+#  define UVARNUM_MAX	    _UI64_MAX
 # endif
+#elif defined(HAVE_STDINT_H)
+typedef int64_t		    varnumber_T;
+typedef uint64_t	    uvarnumber_T;
+# define VARNUM_MIN	    INT64_MIN
+# define VARNUM_MAX	    INT64_MAX
+# define UVARNUM_MAX	    UINT64_MAX
 #else
-// Use 32-bit Number.
-typedef int		    varnumber_T;
-typedef unsigned int	    uvarnumber_T;
-# define VARNUM_MIN	    INT_MIN
-# define VARNUM_MAX	    INT_MAX
-# define UVARNUM_MAX	    UINT_MAX
+typedef long		    varnumber_T;
+typedef unsigned long	    uvarnumber_T;
+# define VARNUM_MIN	    LONG_MIN
+# define VARNUM_MAX	    LONG_MAX
+# define UVARNUM_MAX	    ULONG_MAX
 #endif
 
 typedef double	float_T;
@@ -1515,6 +1506,8 @@ typedef struct
     type_T	**uf_arg_types;	// argument types (count == uf_args.ga_len)
     type_T	*uf_ret_type;	// return type
     garray_T	uf_type_list;	// types used in arg and return types
+    int		*uf_def_arg_idx; // instruction indexes for evaluating
+				// uf_def_args; length: uf_def_args.ga_len + 1
     char_u	*uf_va_name;	// name from "...name" or NULL
     type_T	*uf_va_type;	// type from "...name: type" or NULL
 

@@ -60,6 +60,7 @@ NEW_TESTS = \
 	test_blob \
 	test_blockedit \
 	test_breakindent \
+	test_buffer \
 	test_bufline \
 	test_bufwintabinfo \
 	test_cd \
@@ -269,6 +270,7 @@ NEW_TESTS = \
 	test_utf8 \
 	test_utf8_comparisons \
 	test_vartabs \
+	test_vim9_disassemble \
 	test_vim9_expr \
 	test_vim9_script \
 	test_viminfo \
@@ -305,6 +307,7 @@ NEW_TESTS_RES = \
 	test_blob.res \
 	test_blockedit.res \
 	test_breakindent.res \
+	test_buffer.res \
 	test_bufline.res \
 	test_bufwintabinfo.res \
 	test_cd.res \
@@ -472,6 +475,7 @@ NEW_TESTS_RES = \
 	test_user_func.res \
 	test_usercommands.res \
 	test_vartabs.res \
+	test_vim9_disassemble.res \
 	test_vim9_expr.res \
 	test_vim9_script.res \
 	test_viminfo.res \

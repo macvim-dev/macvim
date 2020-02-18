@@ -538,6 +538,15 @@ func Xtest_browse(cchar)
   10Xcc
   call assert_equal(11, line('.'))
   call assert_equal('Xqftestfile2', bufname('%'))
+  Xopen
+  call cursor(2, 1)
+  if a:cchar == 'c'
+    .cc
+  else
+    .ll
+  endif
+  call assert_equal(6, line('.'))
+  call assert_equal('Xqftestfile1', bufname('%'))
 
   " Jumping to an error from the error window (when only the error window is
   " present)
@@ -1626,6 +1635,13 @@ endfunc
 func Test_setqflist_invalid_nr()
   " The following command used to crash Vim
   eval []->setqflist(' ', {'nr' : $XXX_DOES_NOT_EXIST})
+endfunc
+
+func Test_setqflist_user_sets_buftype()
+  call setqflist([{'text': 'foo'}, {'text': 'bar'}])
+  set buftype=quickfix
+  call setqflist([], 'a')
+  enew
 endfunc
 
 func Test_quickfix_set_list_with_act()
@@ -2718,10 +2734,6 @@ func XvimgrepTests(cchar)
   call assert_equal(0, getbufinfo('Xtestfile1')[0].loaded)
   call assert_equal([], getbufinfo('Xtestfile2'))
 
-  " Test with the last search pattern not set
-  call test_clear_search_pat()
-  call assert_fails('Xvimgrep // *', 'E35:')
-
   call delete('Xtestfile1')
   call delete('Xtestfile2')
 endfunc
@@ -2745,6 +2757,21 @@ func Test_vimgrep_incsearch()
 
   call test_override("ALL", 0)
   set noincsearch
+endfunc
+
+" Test vimgrep with the last search pattern not set
+func Test_vimgrep_with_no_last_search_pat()
+  let lines =<< trim [SCRIPT]
+    call assert_fails('vimgrep // *', 'E35:')
+    call writefile(v:errors, 'Xresult')
+    qall!
+  [SCRIPT]
+  call writefile(lines, 'Xscript')
+  if RunVim([], [], '--clean -S Xscript')
+    call assert_equal([], readfile('Xresult'))
+  endif
+  call delete('Xscript')
+  call delete('Xresult')
 endfunc
 
 func XfreeTests(cchar)

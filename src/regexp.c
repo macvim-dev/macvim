@@ -2511,6 +2511,28 @@ reg_submatch_list(int no)
 }
 #endif
 
+/*
+ * Initialize the values used for matching against multiple lines
+ */
+    static void
+init_regexec_multi(
+	regmmatch_T	*rmp,
+	win_T		*win,	// window in which to search or NULL
+	buf_T		*buf,	// buffer in which to search
+	linenr_T	lnum)	// nr of line to start looking for match
+{
+    rex.reg_match = NULL;
+    rex.reg_mmatch = rmp;
+    rex.reg_buf = buf;
+    rex.reg_win = win;
+    rex.reg_firstlnum = lnum;
+    rex.reg_maxline = rex.reg_buf->b_ml.ml_line_count - lnum;
+    rex.reg_line_lbr = FALSE;
+    rex.reg_ic = rmp->rmm_ic;
+    rex.reg_icombine = FALSE;
+    rex.reg_maxcol = rmp->rmm_maxcol;
+}
+
 #include "regexp_bt.c"
 
 static regengine_T bt_regengine =
@@ -2662,15 +2684,6 @@ free_regexp_stuff(void)
     vim_free(reg_prev_sub);
 }
 #endif
-
-/*
- * Free the previously used substitute search pattern.
- */
-    void
-free_regexp_prev_sub(void)
-{
-    VIM_CLEAR(reg_prev_sub);
-}
 
 #ifdef FEAT_EVAL
     static void

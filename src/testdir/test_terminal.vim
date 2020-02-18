@@ -2338,6 +2338,7 @@ func Test_terminal_in_popup()
   call writefile(text, 'Xtext')
   let cmd = GetVimCommandCleanTerm()
   let lines = [
+	\ 'set t_u7=',
 	\ 'call setline(1, range(20))',
 	\ 'hi PopTerm ctermbg=grey',
 	\ 'func OpenTerm(setColor)',
@@ -2351,9 +2352,14 @@ func Test_terminal_in_popup()
 	\ 'func HidePopup()',
 	\ '  call popup_hide(s:winid)',
 	\ 'endfunc',
+	\ 'sleep 10m',
+	\ 'redraw',
+	\ 'echo getwinvar(s:winid, "&buftype") win_gettype(s:winid)',
 	\ ]
   call writefile(lines, 'XtermPopup')
   let buf = RunVimInTerminal('-S XtermPopup', #{rows: 15})
+  call term_wait(buf, 100)
+  call term_sendkeys(buf, ":\<CR>")
   call VerifyScreenDump(buf, 'Test_terminal_popup_1', {})
 
   call term_sendkeys(buf, ":q\<CR>")
@@ -2364,16 +2370,29 @@ func Test_terminal_in_popup()
   call term_sendkeys(buf, "/edit\<CR>")
   call VerifyScreenDump(buf, 'Test_terminal_popup_3', {})
  
-  " TODO: somehow this causes the job to keep running on Mac
-  if !has('mac')
-    call term_sendkeys(buf, "\<C-W>:call HidePopup()\<CR>")
-    call VerifyScreenDump(buf, 'Test_terminal_popup_4', {})
-    call term_sendkeys(buf, "\<CR>")
-  endif
+  call term_sendkeys(buf, "\<C-W>:call HidePopup()\<CR>")
+  call VerifyScreenDump(buf, 'Test_terminal_popup_4', {})
+  call term_sendkeys(buf, "\<CR>")
+  call term_wait(buf, 100)
 
   call term_sendkeys(buf, ":q\<CR>")
   call term_wait(buf, 100)  " wait for terminal to vanish
 
   call StopVimInTerminal(buf)
   call delete('XtermPopup')
+endfunc
+
+func Test_issue_5607()
+  let wincount = winnr('$')
+  exe 'terminal' &shell &shellcmdflag 'exit'
+  let job = term_getjob(bufnr())
+  call WaitForAssert({-> assert_equal("dead", job_status(job))})
+
+  let old_wincolor = &wincolor
+  try
+    set wincolor=
+  finally
+    let &wincolor = old_wincolor
+    bw!
+  endtry
 endfunc

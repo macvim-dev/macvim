@@ -1416,10 +1416,6 @@ endfunc
 "-------------------------------------------------------------------------------
 
 func Test_num64()
-    if !has('num64')
-	return
-    endif
-
     call assert_notequal( 4294967296, 0)
     call assert_notequal(-4294967296, 0)
     call assert_equal( 4294967296,  0xFFFFffff + 1)
@@ -1692,27 +1688,15 @@ func Test_compound_assignment_operators()
     " Test special cases: division or modulus with 0.
     let x = 1
     let x /= 0
-    if has('num64')
-        call assert_equal(0x7FFFFFFFFFFFFFFF, x)
-    else
-        call assert_equal(0x7fffffff, x)
-    endif
+    call assert_equal(0x7FFFFFFFFFFFFFFF, x)
 
     let x = -1
     let x /= 0
-    if has('num64')
-        call assert_equal(-0x7FFFFFFFFFFFFFFF, x)
-    else
-        call assert_equal(-0x7fffffff, x)
-    endif
+    call assert_equal(-0x7FFFFFFFFFFFFFFF, x)
 
     let x = 0
     let x /= 0
-    if has('num64')
-        call assert_equal(-0x7FFFFFFFFFFFFFFF - 1, x)
-    else
-        call assert_equal(-0x7FFFFFFF - 1, x)
-    endif
+    call assert_equal(-0x7FFFFFFFFFFFFFFF - 1, x)
 
     let x = 1
     let x %= 0
@@ -1973,6 +1957,102 @@ func Test_function_defined_line()
     call assert_match(' line 23$', m)
 
     call delete('Xtest.vim')
+endfunc
+
+" Test for missing :endif, :endfor, :endwhile and :endtry           {{{1
+func Test_missing_end()
+  call writefile(['if 2 > 1', 'echo ">"'], 'Xscript')
+  call assert_fails('source Xscript', 'E171:')
+  call writefile(['for i in range(5)', 'echo i'], 'Xscript')
+  call assert_fails('source Xscript', 'E170:')
+  call writefile(['while v:true', 'echo "."'], 'Xscript')
+  call assert_fails('source Xscript', 'E170:')
+  call writefile(['try', 'echo "."'], 'Xscript')
+  call assert_fails('source Xscript', 'E600:')
+  call delete('Xscript')
+endfunc
+
+" Test for deep nesting of if/for/while/try statements              {{{1
+func Test_deep_nest()
+  if !CanRunVimInTerminal()
+    throw 'Skipped: cannot run vim in terminal'
+  endif
+
+  let lines =<< trim [SCRIPT]
+    " Deep nesting of if ... endif
+    func Test1()
+      let @a = join(repeat(['if v:true'], 51), "\n")
+      let @a ..= "\n"
+      let @a ..= join(repeat(['endif'], 51), "\n")
+      @a
+      let @a = ''
+    endfunc
+
+    " Deep nesting of for ... endfor
+    func Test2()
+      let @a = join(repeat(['for i in [1]'], 51), "\n")
+      let @a ..= "\n"
+      let @a ..= join(repeat(['endfor'], 51), "\n")
+      @a
+      let @a = ''
+    endfunc
+
+    " Deep nesting of while ... endwhile
+    func Test3()
+      let @a = join(repeat(['while v:true'], 51), "\n")
+      let @a ..= "\n"
+      let @a ..= join(repeat(['endwhile'], 51), "\n")
+      @a
+      let @a = ''
+    endfunc
+
+    " Deep nesting of try ... endtry
+    func Test4()
+      let @a = join(repeat(['try'], 51), "\n")
+      let @a ..= "\necho v:true\n"
+      let @a ..= join(repeat(['endtry'], 51), "\n")
+      @a
+      let @a = ''
+    endfunc
+  [SCRIPT]
+  call writefile(lines, 'Xscript')
+
+  let buf = RunVimInTerminal('-S Xscript', {'rows': 6})
+
+  " Deep nesting of if ... endif
+  call term_sendkeys(buf, ":call Test1()\n")
+  call WaitForAssert({-> assert_match('^E579:', term_getline(buf, 5))})
+
+  " Deep nesting of for ... endfor
+  call term_sendkeys(buf, ":call Test2()\n")
+  call WaitForAssert({-> assert_match('^E585:', term_getline(buf, 5))})
+
+  " Deep nesting of while ... endwhile
+  call term_sendkeys(buf, ":call Test3()\n")
+  call WaitForAssert({-> assert_match('^E585:', term_getline(buf, 5))})
+
+  " Deep nesting of try ... endtry
+  call term_sendkeys(buf, ":call Test4()\n")
+  call WaitForAssert({-> assert_match('^E601:', term_getline(buf, 5))})
+
+  "let l = ''
+  "for i in range(1, 6)
+  "  let l ..= term_getline(buf, i) . "\n"
+  "endfor
+  "call assert_report(l)
+
+  call StopVimInTerminal(buf)
+  call delete('Xscript')
+endfunc
+
+" Test for <sfile>, <slnum> in a function                           {{{1
+func Test_sfile_in_function()
+  func Xfunc()
+    call assert_match('..Test_sfile_in_function\[5]..Xfunc', expand('<sfile>'))
+    call assert_equal('2', expand('<slnum>'))
+  endfunc
+  call Xfunc()
+  delfunc Xfunc
 endfunc
 
 "-------------------------------------------------------------------------------

@@ -1295,9 +1295,8 @@ abc
   \                  '2147483647'], getline(1, '$'))
   bwipe!
 
-  if has('num64')
-    new
-    a
+  new
+  a
 -9223372036854775808
 -9223372036854775807
 
@@ -1312,22 +1311,21 @@ abc
 abc
 
 .
-    sort n
-    call assert_equal(['',
-    \                  'abc',
-    \                  '',
-    \                  '-9223372036854775808',
-    \                  '-9223372036854775808',
-    \                  '-9223372036854775807',
-    \                  '-9223372036854775806',
-    \                  '-1',
-    \                  '0',
-    \                  '1',
-    \                  '9223372036854775806',
-    \                  '9223372036854775807',
-    \                  '9223372036854775807'], getline(1, '$'))
-    bwipe!
-  endif
+  sort n
+  call assert_equal(['',
+  \                  'abc',
+  \                  '',
+  \                  '-9223372036854775808',
+  \                  '-9223372036854775808',
+  \                  '-9223372036854775807',
+  \                  '-9223372036854775806',
+  \                  '-1',
+  \                  '0',
+  \                  '1',
+  \                  '9223372036854775806',
+  \                  '9223372036854775807',
+  \                  '9223372036854775807'], getline(1, '$'))
+  bwipe!
 endfunc
 
 
@@ -1383,9 +1381,23 @@ func Test_sort_last_search_pat()
   call setline(1, ['3b', '1c', '2a'])
   sort //
   call assert_equal(['2a', '3b', '1c'], getline(1, '$'))
-  call test_clear_search_pat()
-  call assert_fails('sort //', 'E35:')
   close!
+endfunc
+
+" Test for :sort with no last search pattern
+func Test_sort_with_no_last_search_pat()
+  let lines =<< trim [SCRIPT]
+    call setline(1, ['3b', '1c', '2a'])
+    call assert_fails('sort //', 'E35:')
+    call writefile(v:errors, 'Xresult')
+    qall!
+  [SCRIPT]
+  call writefile(lines, 'Xscript')
+  if RunVim([], [], '--clean -S Xscript')
+    call assert_equal([], readfile('Xresult'))
+  endif
+  call delete('Xscript')
+  call delete('Xresult')
 endfunc
 
 " Test for retaining marks across a :sort

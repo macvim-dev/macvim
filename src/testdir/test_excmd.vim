@@ -20,6 +20,7 @@ func Test_range_error()
   call assert_fails(':\/echo 1', 'E481:')
   normal vv
   call assert_fails(":'<,'>echo 1", 'E481:')
+  call assert_fails(":\\xcenter", 'E10:')
 endfunc
 
 func Test_buffers_lastused()
@@ -239,6 +240,99 @@ func Test_confirm_cmd()
 
   call delete('foo')
   call delete('bar')
+endfunc
+
+" Test for the :print command
+func Test_print_cmd()
+  call assert_fails('print', 'E749:')
+endfunc
+
+" Test for the :winsize command
+func Test_winsize_cmd()
+  call assert_fails('winsize 1', 'E465:')
+endfunc
+
+" Test for the :redir command
+func Test_redir_cmd()
+  call assert_fails('redir @@', 'E475:')
+  call assert_fails('redir abc', 'E475:')
+  if has('unix')
+    call mkdir('Xdir')
+    call assert_fails('redir > Xdir', 'E17:')
+    call delete('Xdir', 'd')
+  endif
+  if !has('bsd')
+    call writefile([], 'Xfile')
+    call setfperm('Xfile', 'r--r--r--')
+    call assert_fails('redir! > Xfile', 'E190:')
+    call delete('Xfile')
+  endif
+
+  " Test for redirecting to a register
+  redir @q> | echon 'clean ' | redir END
+  redir @q>> | echon 'water' | redir END
+  call assert_equal('clean water', @q)
+
+  " Test for redirecting to a variable
+  redir => color | echon 'blue ' | redir END
+  redir =>> color | echon 'sky' | redir END
+  call assert_equal('blue sky', color)
+endfunc
+
+" Test for the :filetype command
+func Test_filetype_cmd()
+  call assert_fails('filetype abc', 'E475:')
+endfunc
+
+" Test for the :mode command
+func Test_mode_cmd()
+  call assert_fails('mode abc', 'E359:')
+endfunc
+
+" Test for the :sleep command
+func Test_sleep_cmd()
+  call assert_fails('sleep x', 'E475:')
+endfunc
+
+" Test for the :read command
+func Test_read_cmd()
+  call writefile(['one'], 'Xfile')
+  new
+  call assert_fails('read', 'E32:')
+  edit Xfile
+  read
+  call assert_equal(['one', 'one'], getline(1, '$'))
+  close!
+  new
+  read Xfile
+  call assert_equal(['', 'one'], getline(1, '$'))
+  call deletebufline('', 1, '$')
+  call feedkeys("Qr Xfile\<CR>visual\<CR>", 'xt')
+  call assert_equal(['one'], getline(1, '$'))
+  close!
+  call delete('Xfile')
+endfunc
+
+" Test for running Ex commands when text is locked.
+" <C-\>e in the command line is used to lock the text
+func Test_run_excmd_with_text_locked()
+  " :quit
+  let cmd = ":\<C-\>eexecute('quit')\<CR>\<C-C>"
+  call assert_fails("call feedkeys(cmd, 'xt')", 'E523:')
+
+  " :qall
+  let cmd = ":\<C-\>eexecute('qall')\<CR>\<C-C>"
+  call assert_fails("call feedkeys(cmd, 'xt')", 'E523:')
+
+  " :exit
+  let cmd = ":\<C-\>eexecute('exit')\<CR>\<C-C>"
+  call assert_fails("call feedkeys(cmd, 'xt')", 'E523:')
+
+  " :close - should be ignored
+  new
+  let cmd = ":\<C-\>eexecute('close')\<CR>\<C-C>"
+  call assert_equal(2, winnr('$'))
+  close
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

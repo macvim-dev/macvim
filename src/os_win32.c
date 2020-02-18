@@ -4173,7 +4173,6 @@ mch_system_piped(char *cmd, int options)
     int		ta_len = 0;		// valid bytes in ta_buf[]
 
     DWORD	i;
-    int		c;
     int		noread_cnt = 0;
     garray_T	ga;
     int		delay = 1;
@@ -4312,29 +4311,7 @@ mch_system_piped(char *cmd, int options)
 			}
 		    }
 
-		    // replace K_BS by <BS> and K_DEL by <DEL>
-		    for (i = ta_len; i < ta_len + len; ++i)
-		    {
-			if (ta_buf[i] == CSI && len - i > 2)
-			{
-			    c = TERMCAP2KEY(ta_buf[i + 1], ta_buf[i + 2]);
-			    if (c == K_DEL || c == K_KDEL || c == K_BS)
-			    {
-				mch_memmove(ta_buf + i + 1, ta_buf + i + 3,
-					    (size_t)(len - i - 2));
-				if (c == K_DEL || c == K_KDEL)
-				    ta_buf[i] = DEL;
-				else
-				    ta_buf[i] = Ctrl_H;
-				len -= 2;
-			    }
-			}
-			else if (ta_buf[i] == '\r')
-			    ta_buf[i] = '\n';
-			if (has_mbyte)
-			    i += (*mb_ptr2len_len)(ta_buf + i,
-						    ta_len + len - i) - 1;
-		    }
+		    term_replace_bs_del_keycode(ta_buf, ta_len, len);
 
 		    /*
 		     * For pipes: echo the typed characters.  For a pty this
@@ -4948,24 +4925,6 @@ win32_build_env(dict_T *env, garray_T *gap, int is_terminal)
     if (ga_grow(gap, 1) == FAIL)
 	return;
 
-    if (base)
-    {
-	WCHAR	*p = (WCHAR*) base;
-
-	// for last \0
-	if (ga_grow(gap, 1) == FAIL)
-	    return;
-
-	while (*p != 0 || *(p + 1) != 0)
-	{
-	    if (ga_grow(gap, 1) == OK)
-		*((WCHAR*)gap->ga_data + gap->ga_len++) = *p;
-	    p++;
-	}
-	FreeEnvironmentStrings(base);
-	*((WCHAR*)gap->ga_data + gap->ga_len++) = L'\0';
-    }
-
     if (env != NULL)
     {
 	for (hi = env->dv_hashtab.ht_array; todo > 0; ++hi)
@@ -4995,6 +4954,24 @@ win32_build_env(dict_T *env, garray_T *gap, int is_terminal)
 		vim_free(wval);
 	    }
 	}
+    }
+
+    if (base)
+    {
+	WCHAR	*p = (WCHAR*) base;
+
+	// for last \0
+	if (ga_grow(gap, 1) == FAIL)
+	    return;
+
+	while (*p != 0 || *(p + 1) != 0)
+	{
+	    if (ga_grow(gap, 1) == OK)
+		*((WCHAR*)gap->ga_data + gap->ga_len++) = *p;
+	    p++;
+	}
+	FreeEnvironmentStrings(base);
+	*((WCHAR*)gap->ga_data + gap->ga_len++) = L'\0';
     }
 
 # if defined(FEAT_CLIENTSERVER) || defined(FEAT_TERMINAL)
@@ -5384,9 +5361,9 @@ mch_signal_job(job_T *job, char_u *how)
 	{
 	    if (job->jv_channel != NULL && job->jv_channel->ch_anonymous_pipe)
 		job->jv_channel->ch_killing = TRUE;
-	    return TerminateJobObject(job->jv_job_object, 0) ? OK : FAIL;
+	    return TerminateJobObject(job->jv_job_object, -1) ? OK : FAIL;
 	}
-	return terminate_all(job->jv_proc_info.hProcess, 0) ? OK : FAIL;
+	return terminate_all(job->jv_proc_info.hProcess, -1) ? OK : FAIL;
     }
 
     if (!AttachConsole(job->jv_proc_info.dwProcessId))

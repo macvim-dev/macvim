@@ -138,7 +138,7 @@ lookup_local(char_u *name, size_t len, cctx_T *cctx)
 {
     int	    idx;
 
-    if (len <= 0)
+    if (len == 0)
 	return -1;
     for (idx = 0; idx < cctx->ctx_locals.ga_len; ++idx)
     {
@@ -160,7 +160,7 @@ lookup_arg(char_u *name, size_t len, cctx_T *cctx)
 {
     int	    idx;
 
-    if (len <= 0)
+    if (len == 0)
 	return -1;
     for (idx = 0; idx < cctx->ctx_ufunc->uf_args.ga_len; ++idx)
     {
@@ -956,11 +956,12 @@ generate_BCALL(cctx_T *cctx, int func_idx, int argcount)
  * Return FAIL if the number of arguments is wrong.
  */
     static int
-generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int argcount)
+generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 {
     isn_T	*isn;
     garray_T	*stack = &cctx->ctx_type_stack;
     int		regular_args = ufunc->uf_args.ga_len;
+    int		argcount = pushed_argcount;
 
     if (argcount > regular_args && !has_varargs(ufunc))
     {
@@ -978,9 +979,13 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int argcount)
     {
 	int count = argcount - regular_args;
 
-	// TODO: add default values for optional arguments?
-	generate_NEWLIST(cctx, count < 0 ? 0 : count);
-	argcount = regular_args + 1;
+	// If count is negative an empty list will be added after evaluating
+	// default values for missing optional arguments.
+	if (count >= 0)
+	{
+	    generate_NEWLIST(cctx, count);
+	    argcount = regular_args + 1;
+	}
     }
 
     if ((isn = generate_instr(cctx,
@@ -1681,49 +1686,60 @@ compile_call(char_u **arg, size_t varlen, cctx_T *cctx, int argcount_init)
     char_u	*p;
     int		argcount = argcount_init;
     char_u	namebuf[100];
+    char_u	fname_buf[FLEN_FIXED + 1];
+    char_u	*tofree = NULL;
+    int		error = FCERR_NONE;
     ufunc_T	*ufunc;
+    int		res = FAIL;
 
     if (varlen >= sizeof(namebuf))
     {
 	semsg(_("E1011: name too long: %s"), name);
 	return FAIL;
     }
-    vim_strncpy(namebuf, name, varlen);
+    vim_strncpy(namebuf, *arg, varlen);
+    name = fname_trans_sid(namebuf, fname_buf, &tofree, &error);
 
     *arg = skipwhite(*arg + varlen + 1);
     if (compile_arguments(arg, cctx, &argcount) == FAIL)
-	return FAIL;
+	goto theend;
 
-    if (ASCII_ISLOWER(*name))
+    if (ASCII_ISLOWER(*name) && name[1] != ':')
     {
 	int	    idx;
 
 	// builtin function
-	idx = find_internal_func(namebuf);
+	idx = find_internal_func(name);
 	if (idx >= 0)
-	    return generate_BCALL(cctx, idx, argcount);
+	{
+	    res = generate_BCALL(cctx, idx, argcount);
+	    goto theend;
+	}
 	semsg(_(e_unknownfunc), namebuf);
     }
 
-    // User defined function or variable must start with upper case.
-    if (!ASCII_ISUPPER(*name))
-    {
-	semsg(_("E1012: Invalid function name: %s"), namebuf);
-	return FAIL;
-    }
-
     // If we can find the function by name generate the right call.
-    ufunc = find_func(namebuf, cctx);
+    ufunc = find_func(name, cctx);
     if (ufunc != NULL)
-	return generate_CALL(cctx, ufunc, argcount);
+    {
+	res = generate_CALL(cctx, ufunc, argcount);
+	goto theend;
+    }
 
     // If the name is a variable, load it and use PCALL.
     p = namebuf;
     if (compile_load(&p, namebuf + varlen, cctx, FALSE) == OK)
-	return generate_PCALL(cctx, argcount, FALSE);
+    {
+	res = generate_PCALL(cctx, argcount, FALSE);
+	goto theend;
+    }
 
     // The function may be defined only later.  Need to figure out at runtime.
-    return generate_UCALL(cctx, namebuf, argcount);
+    res = generate_UCALL(cctx, name, argcount);
+
+theend:
+    vim_free(tofree);
+    return res;
 }
 
 // like NAMESPACE_CHAR but with 'a' and 'l'.
@@ -2314,6 +2330,9 @@ compile_subscript(
 	}
 	else if (**arg == '[')
 	{
+	    garray_T	*stack;
+	    type_T	**typep;
+
 	    // list index: list[123]
 	    // TODO: more arguments
 	    // TODO: dict member  dict['name']
@@ -2326,10 +2345,18 @@ compile_subscript(
 		emsg(_(e_missbrac));
 		return FAIL;
 	    }
-	    *arg = skipwhite(*arg + 1);
+	    *arg = *arg + 1;
 
 	    if (generate_instr_drop(cctx, ISN_INDEX, 1) == FAIL)
 		return FAIL;
+	    stack = &cctx->ctx_type_stack;
+	    typep = ((type_T **)stack->ga_data) + stack->ga_len - 1;
+	    if ((*typep)->tt_type != VAR_LIST && *typep != &t_any)
+	    {
+		emsg(_(e_listreq));
+		return FAIL;
+	    }
+	    *typep = (*typep)->tt_member;
 	}
 	else if (**arg == '.' && (*arg)[1] != '.')
 	{
@@ -3296,7 +3323,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     if (oplen == 3 && !heredoc && dest != dest_global
 	    && type->tt_type != VAR_STRING && type->tt_type != VAR_UNKNOWN)
     {
-	emsg("E1019: Can only concatenate to string");
+	emsg(_("E1019: Can only concatenate to string"));
 	goto theend;
     }
 
@@ -3411,13 +3438,51 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     else
     {
 	// variables are always initialized
-	// TODO: support more types
 	if (ga_grow(instr, 1) == FAIL)
 	    goto theend;
-	if (type->tt_type == VAR_STRING)
-	    generate_PUSHS(cctx, vim_strsave((char_u *)""));
-	else
-	    generate_PUSHNR(cctx, 0);
+	switch (type->tt_type)
+	{
+	    case VAR_BOOL:
+		generate_PUSHBOOL(cctx, VVAL_FALSE);
+		break;
+	    case VAR_SPECIAL:
+		generate_PUSHSPEC(cctx, VVAL_NONE);
+		break;
+	    case VAR_FLOAT:
+#ifdef FEAT_FLOAT
+		generate_PUSHF(cctx, 0.0);
+#endif
+		break;
+	    case VAR_STRING:
+		generate_PUSHS(cctx, NULL);
+		break;
+	    case VAR_BLOB:
+		generate_PUSHBLOB(cctx, NULL);
+		break;
+	    case VAR_FUNC:
+		// generate_PUSHS(cctx, NULL); TODO
+		break;
+	    case VAR_PARTIAL:
+		// generate_PUSHS(cctx, NULL); TODO
+		break;
+	    case VAR_LIST:
+		generate_NEWLIST(cctx, 0);
+		break;
+	    case VAR_DICT:
+		generate_NEWDICT(cctx, 0);
+		break;
+	    case VAR_JOB:
+		// generate_PUSHS(cctx, NULL); TODO
+		break;
+	    case VAR_CHANNEL:
+		// generate_PUSHS(cctx, NULL); TODO
+		break;
+	    case VAR_NUMBER:
+	    case VAR_UNKNOWN:
+	    case VAR_VOID:
+		generate_PUSHNR(cctx, 0);
+		break;
+	}
     }
 
     if (oplen > 0 && *op != '=')
@@ -3875,7 +3940,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     }
     cctx->ctx_locals.ga_len = scope->se_local_count;
 
-    if (cctx->ctx_skip != TRUE)
+    if (cctx->ctx_skip == MAYBE)
     {
 	if (compile_jump_to_end(&scope->se_u.se_if.is_end_label,
 						    JUMP_ALWAYS, cctx) == FAIL)
@@ -3931,13 +3996,14 @@ compile_else(char_u *arg, cctx_T *cctx)
 	    return NULL;
     }
 
-    if (cctx->ctx_skip != TRUE)
+    if (cctx->ctx_skip == MAYBE)
     {
 	if (scope->se_u.se_if.is_if_label >= 0)
 	{
 	    // previous "if" or "elseif" jumps here
 	    isn = ((isn_T *)instr->ga_data) + scope->se_u.se_if.is_if_label;
 	    isn->isn_arg.jump.jump_where = instr->ga_len;
+	    scope->se_u.se_if.is_if_label = -1;
 	}
     }
 
@@ -4372,7 +4438,7 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	char_u *end;
 	char_u *pat;
 	char_u *tofree = NULL;
-	size_t len;
+	int	len;
 
 	// Push v:exception, push {expr} and MATCH
 	generate_instr_type(cctx, ISN_PUSHEXC, &t_string);
@@ -4385,9 +4451,9 @@ compile_catch(char_u *arg, cctx_T *cctx UNUSED)
 	    return FAIL;
 	}
 	if (tofree == NULL)
-	    len = end - (p + 1);
+	    len = (int)(end - (p + 1));
 	else
-	    len = end - (tofree + 1);
+	    len = (int)(end - (tofree + 1));
 	pat = vim_strnsave(p + 1, len);
 	vim_free(tofree);
 	p += len + 2;
@@ -4600,6 +4666,44 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
     // Most modern script version.
     current_sctx.sc_version = SCRIPT_VERSION_VIM9;
 
+    if (ufunc->uf_def_args.ga_len > 0)
+    {
+	int	count = ufunc->uf_def_args.ga_len;
+	int	i;
+	char_u	*arg;
+	int	off = STACK_FRAME_SIZE + (ufunc->uf_va_name != NULL ? 1 : 0);
+
+	// Produce instructions for the default values of optional arguments.
+	// Store the instruction index in uf_def_arg_idx[] so that we know
+	// where to start when the function is called, depending on the number
+	// of arguments.
+	ufunc->uf_def_arg_idx = ALLOC_CLEAR_MULT(int, count + 1);
+	if (ufunc->uf_def_arg_idx == NULL)
+	    goto erret;
+	for (i = 0; i < count; ++i)
+	{
+	    ufunc->uf_def_arg_idx[i] = instr->ga_len;
+	    arg = ((char_u **)(ufunc->uf_def_args.ga_data))[i];
+	    if (compile_expr1(&arg, &cctx) == FAIL
+		    || generate_STORE(&cctx, ISN_STORE,
+						i - count - off, NULL) == FAIL)
+		goto erret;
+	}
+
+	// If a varargs is following, push an empty list.
+	if (ufunc->uf_va_name != NULL)
+	{
+	    if (generate_NEWLIST(&cctx, 0) == FAIL
+		    || generate_STORE(&cctx, ISN_STORE, -off, NULL) == FAIL)
+		goto erret;
+	}
+
+	ufunc->uf_def_arg_idx[count] = instr->ga_len;
+    }
+
+    /*
+     * Loop over all the lines of the function and generate instructions.
+     */
     for (;;)
     {
 	if (line != NULL && *line == '|')
@@ -4642,7 +4746,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	    }
 	    else
 	    {
-		emsg("E1025: using } outside of a block scope");
+		emsg(_("E1025: using } outside of a block scope"));
 		goto erret;
 	    }
 	    if (line != NULL)
@@ -4902,7 +5006,7 @@ erret:
 	if (errormsg != NULL)
 	    emsg(errormsg);
 	else if (called_emsg == called_emsg_before)
-	    emsg("E1028: compile_def_function failed");
+	    emsg(_("E1028: compile_def_function failed"));
 
 	// don't execute this function body
 	ufunc->uf_lines.ga_len = 0;
