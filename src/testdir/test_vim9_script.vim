@@ -29,6 +29,7 @@ endfunc
 
 let s:appendToMe = 'xxx'
 let s:addToMe = 111
+let g:existing = 'yes'
 
 def Test_assignment()
   let bool1: bool = true
@@ -39,12 +40,18 @@ def Test_assignment()
   let list1: list<string> = ['sdf', 'asdf']
   let list2: list<number> = [1, 2, 3]
 
-  " TODO: does not work yet
-  " let listS: list<string> = []
-  " let listN: list<number> = []
+  let listS: list<string> = []
+  let listN: list<number> = []
 
   let dict1: dict<string> = #{key: 'value'}
   let dict2: dict<number> = #{one: 1, two: 2}
+
+  g:newvar = 'new'
+  assert_equal('new', g:newvar)
+
+  assert_equal('yes', g:existing)
+  g:existing = 'no'
+  assert_equal('no', g:existing)
 
   v:char = 'abc'
   assert_equal('abc', v:char)
@@ -53,10 +60,12 @@ def Test_assignment()
   assert_equal('foobar', $ENVVAR)
   $ENVVAR = ''
 
-  appendToMe ..= 'yyy'
-  assert_equal('xxxyyy', appendToMe)
-  addToMe += 222
-  assert_equal(333, addToMe)
+  s:appendToMe ..= 'yyy'
+  assert_equal('xxxyyy', s:appendToMe)
+  s:addToMe += 222
+  assert_equal(333, s:addToMe)
+  s:newVar = 'new'
+  assert_equal('new', s:newVar)
 enddef
 
 func Test_assignment_failure()
@@ -105,9 +114,16 @@ def ReturnNumber(): number
   return 123
 enddef
 
+let g:notNumber = 'string'
+
+def ReturnGlobal(): number
+  return g:notNumber
+enddef
+
 def Test_return_string()
   assert_equal('string', ReturnString())
   assert_equal(123, ReturnNumber())
+  assert_fails('call ReturnGlobal()', 'E1029: Expected number but got string')
 enddef
 
 func Increment()
@@ -206,6 +222,62 @@ def Test_try_catch()
   assert_equal(['1', 'wrong', '3'], l)
 enddef
 
+def ThrowFromDef()
+  throw 'getout'
+enddef
+
+func CatchInFunc()
+  try
+    call ThrowFromDef()
+  catch
+    let g:thrown_func = v:exception
+  endtry
+endfunc
+
+def CatchInDef()
+  try
+    ThrowFromDef()
+  catch
+    g:thrown_def = v:exception
+  endtry
+enddef
+
+def ReturnFinally(): string
+  try
+    return 'intry'
+  finally
+    g:in_finally = 'finally'
+  endtry
+  return 'end'
+enddef
+
+def Test_try_catch_nested()
+  CatchInFunc()
+  assert_equal('getout', g:thrown_func)
+
+  CatchInDef()
+  assert_equal('getout', g:thrown_def)
+
+  assert_equal('intry', ReturnFinally())
+  assert_equal('finally', g:in_finally)
+enddef
+
+def Test_try_catch_match()
+  let seq = 'a'
+  try
+    throw 'something'
+  catch /nothing/
+    seq ..= 'x'
+  catch /some/
+    seq ..= 'b'
+  catch /asdf/
+    seq ..= 'x'
+  finally
+    seq ..= 'c'
+  endtry
+  assert_equal('abc', seq)
+enddef
+
 let s:export_script_lines =<< trim END
   vim9script
   let name: string = 'bob'
@@ -259,10 +331,99 @@ def Test_vim9script()
   unlet g:imported_func
   unlet g:imported_name g:imported_name_appended
   delete('Ximport.vim')
+
+  let import_star_as_lines =<< trim END
+    vim9script
+    import * as Export from './Xexport.vim'
+    def UseExport()
+      g:imported = Export.exported
+    enddef
+    UseExport()
+  END
+  writefile(import_star_as_lines, 'Ximport.vim')
+  source Ximport.vim
+  assert_equal(9876, g:imported)
+
+  let import_star_lines =<< trim END
+    vim9script
+    import * from './Xexport.vim'
+    g:imported = exported
+  END
+  writefile(import_star_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1045:')
+
+  " try to import something that exists but is not exported
+  let import_not_exported_lines =<< trim END
+    vim9script
+    import name from './Xexport.vim'
+  END
+  writefile(import_not_exported_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1049:')
+
+  " import a very long name, requires making a copy
+  let import_long_name_lines =<< trim END
+    vim9script
+    import name012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789 from './Xexport.vim'
+  END
+  writefile(import_long_name_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1048:')
+
+  let import_no_from_lines =<< trim END
+    vim9script
+    import name './Xexport.vim'
+  END
+  writefile(import_no_from_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1070:')
+
+  let import_invalid_string_lines =<< trim END
+    vim9script
+    import name from Xexport.vim
+  END
+  writefile(import_invalid_string_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1071:')
+
+  let import_wrong_name_lines =<< trim END
+    vim9script
+    import name from './XnoExport.vim'
+  END
+  writefile(import_wrong_name_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1053:')
+
+  let import_missing_comma_lines =<< trim END
+    vim9script
+    import {exported name} from './Xexport.vim'
+  END
+  writefile(import_missing_comma_lines, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1046:')
+
+  delete('Ximport.vim')
   delete('Xexport.vim')
 
+  " Check that in a Vim9 script 'cpo' is set to the Vim default.
+  set cpo&vi
+  let cpo_before = &cpo
+  let lines =<< trim END
+    vim9script
+    g:cpo_in_vim9script = &cpo
+  END
+  writefile(lines, 'Xvim9_script')
+  source Xvim9_script
+  assert_equal(cpo_before, &cpo)
+  set cpo&vim
+  assert_equal(&cpo, g:cpo_in_vim9script)
+  delete('Xvim9_script')
+enddef
+
+def Test_vim9script_fails()
   CheckScriptFailure(['scriptversion 2', 'vim9script'], 'E1039:')
   CheckScriptFailure(['vim9script', 'scriptversion 2'], 'E1040:')
+  CheckScriptFailure(['export let some = 123'], 'E1042:')
+  CheckScriptFailure(['import some from "./Xexport.vim"'], 'E1042:')
+  CheckScriptFailure(['vim9script', 'export let g:some'], 'E1044:')
+  CheckScriptFailure(['vim9script', 'export echo 134'], 'E1043:')
+
+  assert_fails('vim9script', 'E1038')
+  assert_fails('export something', 'E1042')
 enddef
 
 def Test_vim9script_call()
@@ -298,6 +459,11 @@ def Test_vim9script_call()
     assert_equal(#{a: 1, b: 2}, dictvar)
     #{a: 3, b: 4}->DictFunc()
     assert_equal(#{a: 3, b: 4}, dictvar)
+
+    ('text')->MyFunc()
+    assert_equal('text', var)
+    ("some")->MyFunc()
+    assert_equal('some', var)
   END
   writefile(lines, 'Xcall.vim')
   source Xcall.vim
@@ -475,6 +641,49 @@ def Test_if_elseif_else()
   assert_equal('one', IfElse(1))
   assert_equal('two', IfElse(2))
   assert_equal('three', IfElse(3))
+enddef
+
+def Test_delfunc()
+  let lines =<< trim END
+    vim9script
+    def GoneSoon()
+      echo 'hello'
+    enddef
+
+    def CallGoneSoon()
+      GoneSoon()
+    enddef
+
+    delfunc GoneSoon
+    CallGoneSoon()
+  END
+  writefile(lines, 'XToDelFunc')
+  assert_fails('so XToDelFunc', 'E933')
+  assert_fails('so XToDelFunc', 'E933')
+
+  delete('XToDelFunc')
+enddef
+
+def Test_substitute_cmd()
+  new
+  setline(1, 'something')
+  :substitute(some(other(
+  assert_equal('otherthing', getline(1))
+  bwipe!
+
+  " also when the context is Vim9 script
+  let lines =<< trim END
+    vim9script
+    new
+    setline(1, 'something')
+    :substitute(some(other(
+    assert_equal('otherthing', getline(1))
+    bwipe!
+  END
+  writefile(lines, 'Xvim9lines')
+  source Xvim9lines
+
+  delete('Xvim9lines')
 enddef
 
 

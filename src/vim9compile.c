@@ -211,6 +211,8 @@ get_list_type(type_T *member_type, garray_T *type_list)
     // recognize commonly used types
     if (member_type->tt_type == VAR_UNKNOWN)
 	return &t_list_any;
+    if (member_type->tt_type == VAR_VOID)
+	return &t_list_empty;
     if (member_type->tt_type == VAR_NUMBER)
 	return &t_list_number;
     if (member_type->tt_type == VAR_STRING)
@@ -234,6 +236,8 @@ get_dict_type(type_T *member_type, garray_T *type_list)
     // recognize commonly used types
     if (member_type->tt_type == VAR_UNKNOWN)
 	return &t_dict_any;
+    if (member_type->tt_type == VAR_VOID)
+	return &t_dict_empty;
     if (member_type->tt_type == VAR_NUMBER)
 	return &t_dict_number;
     if (member_type->tt_type == VAR_STRING)
@@ -374,6 +378,8 @@ generate_two_op(cctx_T *cctx, char_u *op)
     switch (*op)
     {
 	case '+': if (vartype != VAR_LIST && vartype != VAR_BLOB
+			  && type1->tt_type != VAR_UNKNOWN
+			  && type2->tt_type != VAR_UNKNOWN
 			  && check_number_or_float(
 				   type1->tt_type, type2->tt_type, op) == FAIL)
 		      return FAIL;
@@ -811,11 +817,12 @@ generate_NEWLIST(cctx_T *cctx, int count)
     // drop the value types
     stack->ga_len -= count;
 
-    // use the first value type for the list member type
+    // Use the first value type for the list member type.  Use "void" for an
+    // empty list.
     if (count > 0)
 	member = ((type_T **)stack->ga_data)[stack->ga_len];
     else
-	member = &t_any;
+	member = &t_void;
     type = get_list_type(member, type_list);
 
     // add the list type to the type stack
@@ -846,11 +853,12 @@ generate_NEWDICT(cctx_T *cctx, int count)
     // drop the key and value types
     stack->ga_len -= 2 * count;
 
-    // use the first value type for the list member type
+    // Use the first value type for the list member type.  Use "void" for an
+    // empty dict.
     if (count > 0)
 	member = ((type_T **)stack->ga_data)[stack->ga_len + 1];
     else
-	member = &t_any;
+	member = &t_void;
     type = get_dict_type(member, type_list);
 
     // add the dict type to the type stack
@@ -1074,9 +1082,16 @@ generate_MEMBER(cctx_T *cctx, char_u *name, size_t len)
 	return FAIL;
     isn->isn_arg.string = vim_strnsave(name, (int)len);
 
-    // change dict type to dict member type
+    // check for dict type
     type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-    ((type_T **)stack->ga_data)[stack->ga_len - 1] = type->tt_member;
+    if (type->tt_type != VAR_DICT && type != &t_any)
+    {
+	emsg(_(e_dictreq));
+	return FAIL;
+    }
+    // change dict type to dict member type
+    if (type->tt_type == VAR_DICT)
+	((type_T **)stack->ga_data)[stack->ga_len - 1] = type->tt_member;
 
     return OK;
 }
@@ -1507,15 +1522,19 @@ find_imported(char_u *name, size_t len, cctx_T *cctx)
  * Generate an instruction to load script-local variable "name".
  */
     static int
-compile_load_scriptvar(cctx_T *cctx, char_u *name)
+compile_load_scriptvar(
+	cctx_T *cctx,
+	char_u *name,	    // variable NUL terminated
+	char_u *start,	    // start of variable
+	char_u **end)	    // end of variable
 {
     scriptitem_T    *si = SCRIPT_ITEM(current_sctx.sc_sid);
     int		    idx = get_script_item_idx(current_sctx.sc_sid, name, FALSE);
     imported_T	    *import;
 
-    if (idx == -1)
+    if (idx == -1 || si->sn_version != SCRIPT_VERSION_VIM9)
     {
-	// variable exists but is not in sn_var_vals: old style script.
+	// variable is not in sn_var_vals: old style script.
 	return generate_OLDSCRIPT(cctx, ISN_LOADS, name, current_sctx.sc_sid,
 								       &t_any);
     }
@@ -1531,11 +1550,40 @@ compile_load_scriptvar(cctx_T *cctx, char_u *name)
     import = find_imported(name, 0, cctx);
     if (import != NULL)
     {
-	// TODO: check this is a variable, not a function
-	generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
-		import->imp_sid,
-		import->imp_var_vals_idx,
-		import->imp_type);
+	if (import->imp_all)
+	{
+	    char_u	*p = skipwhite(*end);
+	    int		name_len;
+	    ufunc_T	*ufunc;
+	    type_T	*type;
+
+	    // Used "import * as Name", need to lookup the member.
+	    if (*p != '.')
+	    {
+		semsg(_("E1060: expected dot after name: %s"), start);
+		return FAIL;
+	    }
+	    ++p;
+
+	    idx = find_exported(import->imp_sid, &p, &name_len, &ufunc, &type);
+	    // TODO: what if it is a function?
+	    if (idx < 0)
+		return FAIL;
+	    *end = p;
+
+	    generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
+		    import->imp_sid,
+		    idx,
+		    type);
+	}
+	else
+	{
+	    // TODO: check this is a variable, not a function
+	    generate_VIM9SCRIPT(cctx, ISN_LOADSCRIPT,
+		    import->imp_sid,
+		    import->imp_var_vals_idx,
+		    import->imp_type);
+	}
 	return OK;
     }
 
@@ -1549,10 +1597,11 @@ compile_load_scriptvar(cctx_T *cctx, char_u *name)
  * When "error" is FALSE do not give an error when not found.
  */
     static int
-compile_load(char_u **arg, char_u *end, cctx_T *cctx, int error)
+compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
 {
     type_T	*type;
     char_u	*name;
+    char_u	*end = end_arg;
     int		res = FAIL;
 
     if (*(*arg + 1) == ':')
@@ -1574,7 +1623,7 @@ compile_load(char_u **arg, char_u *end, cctx_T *cctx, int error)
 	}
 	else if (**arg == 's')
 	{
-	    res = compile_load_scriptvar(cctx, name);
+	    res = compile_load_scriptvar(cctx, name, NULL, NULL);
 	}
 	else
 	{
@@ -1627,8 +1676,10 @@ compile_load(char_u **arg, char_u *end, cctx_T *cctx, int error)
 			|| (len == 5 && STRNCMP("false", *arg, 5) == 0))
 		    res = generate_PUSHBOOL(cctx, **arg == 't'
 						     ? VVAL_TRUE : VVAL_FALSE);
-		else
-		   res = compile_load_scriptvar(cctx, name);
+		else if (SCRIPT_ITEM(current_sctx.sc_sid)->sn_version
+							== SCRIPT_VERSION_VIM9)
+		    // in Vim9 script "var" can be script-local.
+		   res = compile_load_scriptvar(cctx, name, *arg, &end);
 	    }
 	}
 	if (gen_load)
@@ -1658,9 +1709,21 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 	if (compile_expr1(&p, cctx) == FAIL)
 	    return FAIL;
 	++*argcount;
+
+	if (*p != ',' && *skipwhite(p) == ',')
+	{
+	    emsg(_("E1068: No white space allowed before ,"));
+	    p = skipwhite(p);
+	}
 	if (*p == ',')
-	    p = skipwhite(p + 1);
+	{
+	    ++p;
+	    if (!VIM_ISWHITE(*p))
+		emsg(_("E1069: white space required after ,"));
+	}
+	p = skipwhite(p);
     }
+    p = skipwhite(p);
     if (*p != ')')
     {
 	emsg(_(e_missing_close));
@@ -1831,8 +1894,13 @@ check_type(type_T *expected, type_T *actual, int give_msg)
 	}
 	if (expected->tt_type == VAR_DICT || expected->tt_type == VAR_LIST)
 	{
-	    int ret = check_type(expected->tt_member, actual->tt_member,
-									FALSE);
+	    int ret;
+
+	    // void is used for an empty list or dict
+	    if (actual->tt_member == &t_void)
+		ret = OK;
+	    else
+		ret = check_type(expected->tt_member, actual->tt_member, FALSE);
 	    if (ret == FAIL && give_msg)
 		type_mismatch(expected, actual);
 	    return ret;
@@ -1850,7 +1918,7 @@ check_type(type_T *expected, type_T *actual, int give_msg)
     static int
 need_type(type_T *actual, type_T *expected, int offset, cctx_T *cctx)
 {
-    if (equal_type(actual, expected) || expected->tt_type == VAR_UNKNOWN)
+    if (check_type(expected, actual, FALSE))
 	return OK;
     if (actual->tt_type != VAR_UNKNOWN)
     {
@@ -2356,7 +2424,8 @@ compile_subscript(
 		emsg(_(e_listreq));
 		return FAIL;
 	    }
-	    *typep = (*typep)->tt_member;
+	    if ((*typep)->tt_type == VAR_LIST)
+		*typep = (*typep)->tt_member;
 	}
 	else if (**arg == '.' && (*arg)[1] != '.')
 	{
@@ -2373,7 +2442,6 @@ compile_subscript(
 		semsg(_(e_syntax_at), *arg);
 		return FAIL;
 	    }
-	    // TODO: check type is dict
 	    if (generate_MEMBER(cctx, *arg, p - *arg) == FAIL)
 		return FAIL;
 	    *arg = p;
@@ -3270,10 +3338,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		}
 	    }
 	}
-	else if ((STRNCMP(arg, "s:", 2) == 0
-		    ? lookup_script(arg + 2, varlen - 2)
-		    : lookup_script(arg, varlen)) == OK
-				   || find_imported(arg, varlen, cctx) != NULL)
+	else if (STRNCMP(arg, "s:", 2) == 0
+		|| lookup_script(arg, varlen) == OK
+		|| find_imported(arg, varlen, cctx) != NULL)
 	{
 	    dest = dest_script;
 	    if (is_decl)
@@ -3379,7 +3446,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		    generate_LOAD(cctx, ISN_LOADG, 0, name + 2, type);
 		    break;
 		case dest_script:
-		    compile_load_scriptvar(cctx, name);
+		    compile_load_scriptvar(cctx, name + (name[1] == ':' ? 2 : 0), NULL, NULL);
 		    break;
 		case dest_env:
 		    // Include $ in the name here
@@ -3552,7 +3619,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		idx = get_script_item_idx(sid, rawname, TRUE);
 		// TODO: specific type
 		if (idx < 0)
-		    generate_OLDSCRIPT(cctx, ISN_STORES, rawname, sid, &t_any);
+		    generate_OLDSCRIPT(cctx, ISN_STORES, name, sid, &t_any);
 		else
 		    generate_VIM9SCRIPT(cctx, ISN_STORESCRIPT,
 							     sid, idx, &t_any);
@@ -4706,6 +4773,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
      */
     for (;;)
     {
+	int	is_ex_command;
+
 	if (line != NULL && *line == '|')
 	    // the line continues after a '|'
 	    ++line;
@@ -4760,6 +4829,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	    line = compile_block(ea.cmd, &cctx);
 	    continue;
 	}
+	is_ex_command = *ea.cmd == ':';
 
 	/*
 	 * COMMAND MODIFIERS
@@ -4777,48 +4847,42 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	if (checkforcmd(&ea.cmd, "call", 3))
 	    ea.cmd = skipwhite(ea.cmd);
 
-	// Assuming the command starts with a variable or function name, find
-	// what follows.  Also "&opt = val", "$ENV = val" and "@r = val".
-	p = (*ea.cmd == '&' || *ea.cmd == '$' || *ea.cmd == '@')
-							 ? ea.cmd + 1 : ea.cmd;
-	p = to_name_end(p);
-	if (p > ea.cmd && *p != NUL)
+	if (!is_ex_command)
 	{
-	    int oplen;
-	    int heredoc;
-
-	    // "funcname(" is always a function call.
-	    // "varname[]" is an expression.
-	    // "varname->expr" is an expression.
-	    if (*p == '('
-		    || *p == '['
-		    || ((p - ea.cmd) > 2 && ea.cmd[1] == ':')
-		    || (*p == '-' && p[1] == '>'))
+	    // Assuming the command starts with a variable or function name,
+	    // find what follows.  Also "&opt = val", "$ENV = val" and "@r =
+	    // val".
+	    p = (*ea.cmd == '&' || *ea.cmd == '$' || *ea.cmd == '@')
+							 ? ea.cmd + 1 : ea.cmd;
+	    p = to_name_end(p);
+	    if ((p > ea.cmd && *p != NUL) || *p == '(')
 	    {
-		// TODO
-	    }
+		int oplen;
+		int heredoc;
 
-	    oplen = assignment_len(skipwhite(p), &heredoc);
-	    if (oplen > 0)
-	    {
-		// Recognize an assignment if we recognize the variable name:
-		// "g:var = expr"
-		// "var = expr"  where "var" is a local var name.
-		// "&opt = expr"
-		// "$ENV = expr"
-		// "@r = expr"
-		if (*ea.cmd == '&'
-			|| *ea.cmd == '$'
-			|| *ea.cmd == '@'
-			|| ((p - ea.cmd) > 2 && ea.cmd[1] == ':')
-			|| lookup_local(ea.cmd, p - ea.cmd, &cctx) >= 0
-			|| lookup_script(ea.cmd, p - ea.cmd) == OK
-			|| find_imported(ea.cmd, p - ea.cmd, &cctx) != NULL)
+		oplen = assignment_len(skipwhite(p), &heredoc);
+		if (oplen > 0)
 		{
-		    line = compile_assignment(ea.cmd, &ea, CMD_SIZE, &cctx);
-		    if (line == NULL)
-			goto erret;
-		    continue;
+		    // Recognize an assignment if we recognize the variable
+		    // name:
+		    // "g:var = expr"
+		    // "var = expr"  where "var" is a local var name.
+		    // "&opt = expr"
+		    // "$ENV = expr"
+		    // "@r = expr"
+		    if (*ea.cmd == '&'
+			    || *ea.cmd == '$'
+			    || *ea.cmd == '@'
+			    || ((p - ea.cmd) > 2 && ea.cmd[1] == ':')
+			    || lookup_local(ea.cmd, p - ea.cmd, &cctx) >= 0
+			    || lookup_script(ea.cmd, p - ea.cmd) == OK
+			    || find_imported(ea.cmd, p - ea.cmd, &cctx) != NULL)
+		    {
+			line = compile_assignment(ea.cmd, &ea, CMD_SIZE, &cctx);
+			if (line == NULL)
+			    goto erret;
+			continue;
+		    }
 		}
 	    }
 	}
@@ -4827,7 +4891,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 	 * COMMAND after range
 	 */
 	ea.cmd = skip_range(ea.cmd, NULL);
-	p = find_ex_command(&ea, NULL, lookup_local, &cctx);
+	p = find_ex_command(&ea, NULL, is_ex_command ? NULL : lookup_local,
+									&cctx);
 
 	if (p == ea.cmd && ea.cmdidx != CMD_SIZE)
 	{
@@ -4951,6 +5016,10 @@ compile_def_function(ufunc_T *ufunc, int set_return_type)
 
 	    default:
 		    // Not recognized, execute with do_cmdline_cmd().
+		    // TODO:
+		    // CMD_echomsg
+		    // CMD_execute
+		    // etc.
 		    generate_EXEC(&cctx, line);
 		    line = (char_u *)"";
 		    break;

@@ -48,8 +48,7 @@ There are ten types of variables:
 
 							*Number* *Integer*
 Number		A 32 or 64 bit signed number.  |expr-number|
-		64-bit Numbers are available only when compiled with the
-		|+num64| feature.
+		The number of bits is available in |v:numbersize|.
 		Examples:  -123  0x10  0177  0b1011
 
 Float		A floating point number. |floating-point-format| *Float*
@@ -1991,6 +1990,10 @@ v:null		An empty String. Used to put "null" in JSON.  See
 		That is so that eval() can parse the string back to the same
 		value.  Read-only.
 
+					*v:numbersize* *numbersize-variable*
+v:numbersize	Number of bits in a Number.  This is normally 64, but on some
+		systems it my be 32.
+
 					*v:oldfiles* *oldfiles-variable*
 v:oldfiles	List of file names that is loaded from the |viminfo| file on
 		startup.  These are the files that Vim remembers marks for.
@@ -2873,6 +2876,8 @@ test_null_job()			Job	null value for testing
 test_null_list()		List	null value for testing
 test_null_partial()		Funcref	null value for testing
 test_null_string()		String	null value for testing
+test_unknown()			any	unknown value for testing
+test_void()			any	void value for testing
 test_option_not_set({name})	none	reset flag indicating option was set
 test_override({expr}, {val})	none	test with Vim internal overrides
 test_refcount({expr})		Number	get the reference count of {expr}
