@@ -13,6 +13,8 @@ func Test_load_menu()
 
   let v:errmsg = ''
   if !has("gui_macvim")
+    " MacVim initializes buffer menus differently (by calling BMShow
+    " immediately) so this is unnecessary and would break the test.
     doautocmd LoadBufferMenu VimEnter
   endif
   call assert_equal('', v:errmsg)
