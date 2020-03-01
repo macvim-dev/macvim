@@ -1768,6 +1768,8 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                     v = [f stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
 #endif
                 }
+
+		[dict setValue:v forKey:f];
             }
         }
 
