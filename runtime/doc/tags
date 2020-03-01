@@ -6760,6 +6760,7 @@ g:html_use_encoding	syntax.txt	/*g:html_use_encoding*
 g:html_use_input_for_pc	syntax.txt	/*g:html_use_input_for_pc*
 g:html_use_xhtml	syntax.txt	/*g:html_use_xhtml*
 g:html_whole_filler	syntax.txt	/*g:html_whole_filler*
+g:macvim_default_touchbar_fullscreen	gui_mac.txt	/*g:macvim_default_touchbar_fullscreen*
 g:netrw_altfile	pi_netrw.txt	/*g:netrw_altfile*
 g:netrw_alto	pi_netrw.txt	/*g:netrw_alto*
 g:netrw_altv	pi_netrw.txt	/*g:netrw_altv*
@@ -7737,6 +7738,8 @@ macvim-tablabel	gui_mac.txt	/*macvim-tablabel*
 macvim-todo	gui_mac.txt	/*macvim-todo*
 macvim-toolbar	gui_mac.txt	/*macvim-toolbar*
 macvim-touchbar	gui_mac.txt	/*macvim-touchbar*
+macvim-touchbar-defaults	gui_mac.txt	/*macvim-touchbar-defaults*
+macvim-touchbar-fullscreen	gui_mac.txt	/*macvim-touchbar-fullscreen*
 macvim-url-handler	gui_mac.txt	/*macvim-url-handler*
 macvim-user-defaults	gui_mac.txt	/*macvim-user-defaults*
 macvim-window-title	gui_mac.txt	/*macvim-window-title*

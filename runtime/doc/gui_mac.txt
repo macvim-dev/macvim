@@ -525,6 +525,16 @@ their template names. An example: >
 This feature only works on Mac devices that come with Touch Bars. On the ones
 that don't, nothing will show up.
 
+						    *macvim-touchbar-defaults*
+Here is a list of default Touch Bar buttons that MacVim sets up:
+
+					*macvim-touchbar-fullscreen*
+					*g:macvim_default_touchbar_fullscreen*
+EnterFullScreen		Touch Bar buttons that allow you to toggle
+ExitFullScreen		|'fullscreen'| mode. To disable the button, add the
+			following to your vimrc file: >
+			  let g:macvim_default_touchbar_fullscreen=0
+
 ==============================================================================
 8. Dialogs						*macvim-dialogs*
 
