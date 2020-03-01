@@ -1300,23 +1300,30 @@ endif
 if has("touchbar")
   " Set up default Touch Bar buttons.
   " 1. Smart fullscreen icon that toggles between going full screen or not.
-  an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
+
+  if !exists("g:macvim_default_touchbar_fullscreen") || g:macvim_default_touchbar_fullscreen
+    an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
+  endif
 
   let s:touchbar_fullscreen=0
   func! s:SetupFullScreenTouchBar()
-    if &fullscreen && s:touchbar_fullscreen == 0
-      aun TouchBar.EnterFullScreen
-      an icon=NSTouchBarExitFullScreenTemplate 1.10 TouchBar.ExitFullScreen :set nofullscreen<CR>
+    if &fullscreen && s:touchbar_fullscreen != 1
+      silent! aun TouchBar.EnterFullScreen
+      if !exists("g:macvim_default_touchbar_fullscreen") || g:macvim_default_touchbar_fullscreen
+        an icon=NSTouchBarExitFullScreenTemplate 1.10 TouchBar.ExitFullScreen :set nofullscreen<CR>
+      endif
       let s:touchbar_fullscreen = 1
-    elseif !&fullscreen && s:touchbar_fullscreen == 1
-      aun TouchBar.ExitFullScreen
-      an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
+    elseif !&fullscreen && s:touchbar_fullscreen != 0
+      silent! aun TouchBar.ExitFullScreen
+      if !exists("g:macvim_default_touchbar_fullscreen") || g:macvim_default_touchbar_fullscreen
+        an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
+      endif
       let s:touchbar_fullscreen = 0
     endif
   endfunc
   aug FullScreenTouchBar
     au!
-    au VimResized * call <SID>SetupFullScreenTouchBar()
+    au VimEnter,VimResized * call <SID>SetupFullScreenTouchBar()
   aug END
 endif
 
