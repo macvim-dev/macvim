@@ -6,19 +6,26 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-161</title>
+      <title>MacVim snapshot-162</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
 
-<p>Vim patch 8.1.2234</p>
+<p>Vim patch 8.2.319</p>
+
+<p>General:</p>
+
+<ul>
+  <li>MacVim is now upgraded to Vim 8.2!</li>
+</ul>
 
 <p>Fixes:</p>
 
 <ul>
-  <li>Fix scripting languages not working (e.g. Python) in binary releases
-by using the correct entitlements. #979</li>
+  <li>Fix mvim:// protocol handler to handle spaces in file names. #1002</li>
+  <li>Allow the fullscreen toggle on the Touch Bar to be disabled. #997</li>
+  <li>Fixed potential infinite recursion draw crash. #985</li>
 </ul>
 
 <p>Targets macOS 10.9+</p>
@@ -30,27 +37,27 @@ by using the correct entitlements. #979</li>
   <li>Perl 5.18</li>
   <li>Python2 2.7</li>
   <li>Python3 3.7</li>
-  <li>Ruby 2.6</li>
+  <li>Ruby 2.7</li>
 </ul>
 
 
       ]]></description>
-      <pubDate>Wed, 30 Oct 2019 06:00:00 -0700</pubDate>
+      <pubDate>Tue, 03 Mar 2020 04:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-161/MacVim.dmg"
-        length="17224292"
-        sparkle:version="161"
-        sparkle:shortVersionString="8.1.2234"
-        sparkle:dsaSignature="MCwCFHoUfW4AQtKHJ9ysyzLJZEK+uGyqAhR0YYduTkSsgNiS0ukXMLFuo/XoyA=="
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-162/MacVim.dmg"
+        length="17357286"
+        sparkle:version="162"
+        sparkle:shortVersionString="8.2.319"
+        sparkle:dsaSignature="MC4CFQCi/6lR/l0UO9uv2lXHt7xP58cOSwIVAKApidasN1LtPMR/HpE305TDUD9r"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-161/160_to_161.delta"
-          length="249609"
-          sparkle:version="161"
-          sparkle:deltaFrom="160"
-          sparkle:dsaSignature="MCwCFAl8W5yqeYrOuPkaVoWe0eIxgxD8AhRQm2cZEvKorv6X1ncZE0uQbgv09g=="
+          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-162/161_to_162.delta"
+          length="972502"
+          sparkle:version="162"
+          sparkle:deltaFrom="161"
+          sparkle:dsaSignature="MC0CFQChmCMeeCcSmgBuV15OZbmgWowOGwIUadVaY2KITGHQySYx6yd4U6VI4hw="
           />
       </sparkle:deltas>
     </item>
