@@ -14,44 +14,45 @@
 
 
 // NSUserDefaults keys
-NSString *MMTabMinWidthKey                = @"MMTabMinWidth";
-NSString *MMTabMaxWidthKey                = @"MMTabMaxWidth";
-NSString *MMTabOptimumWidthKey            = @"MMTabOptimumWidth";
-NSString *MMShowAddTabButtonKey           = @"MMShowAddTabButton";
-NSString *MMTextInsetLeftKey              = @"MMTextInsetLeft";
-NSString *MMTextInsetRightKey             = @"MMTextInsetRight";
-NSString *MMTextInsetTopKey               = @"MMTextInsetTop";
-NSString *MMTextInsetBottomKey            = @"MMTextInsetBottom";
-NSString *MMTypesetterKey                 = @"MMTypesetter";
-NSString *MMCellWidthMultiplierKey        = @"MMCellWidthMultiplier";
-NSString *MMBaselineOffsetKey             = @"MMBaselineOffset";
-NSString *MMTranslateCtrlClickKey         = @"MMTranslateCtrlClick";
-NSString *MMTopLeftPointKey               = @"MMTopLeftPoint";
-NSString *MMOpenInCurrentWindowKey        = @"MMOpenInCurrentWindow";
-NSString *MMNoFontSubstitutionKey         = @"MMNoFontSubstitution";
-NSString *MMNoTitleBarWindowKey           = @"MMNoTitleBarWindow";
-NSString *MMTitlebarAppearsTransparentKey = @"MMTitlebarAppearsTransparent";
-NSString *MMDisableLaunchAnimation        = @"MMDisableLaunchAnimation";
-NSString *MMLoginShellKey                 = @"MMLoginShell";
-NSString *MMUntitledWindowKey             = @"MMUntitledWindow";
-NSString *MMZoomBothKey                   = @"MMZoomBoth";
-NSString *MMCurrentPreferencePaneKey      = @"MMCurrentPreferencePane";
-NSString *MMLoginShellCommandKey          = @"MMLoginShellCommand";
-NSString *MMLoginShellArgumentKey         = @"MMLoginShellArgument";
-NSString *MMDialogsTrackPwdKey            = @"MMDialogsTrackPwd";
-NSString *MMOpenLayoutKey                 = @"MMOpenLayout";
-NSString *MMVerticalSplitKey              = @"MMVerticalSplit";
-NSString *MMPreloadCacheSizeKey           = @"MMPreloadCacheSize";
-NSString *MMLastWindowClosedBehaviorKey   = @"MMLastWindowClosedBehavior";
+NSString *MMTabMinWidthKey                 = @"MMTabMinWidth";
+NSString *MMTabMaxWidthKey                 = @"MMTabMaxWidth";
+NSString *MMTabOptimumWidthKey             = @"MMTabOptimumWidth";
+NSString *MMShowAddTabButtonKey            = @"MMShowAddTabButton";
+NSString *MMTextInsetLeftKey               = @"MMTextInsetLeft";
+NSString *MMTextInsetRightKey              = @"MMTextInsetRight";
+NSString *MMTextInsetTopKey                = @"MMTextInsetTop";
+NSString *MMTextInsetBottomKey             = @"MMTextInsetBottom";
+NSString *MMTypesetterKey                  = @"MMTypesetter";
+NSString *MMCellWidthMultiplierKey         = @"MMCellWidthMultiplier";
+NSString *MMBaselineOffsetKey              = @"MMBaselineOffset";
+NSString *MMTranslateCtrlClickKey          = @"MMTranslateCtrlClick";
+NSString *MMTopLeftPointKey                = @"MMTopLeftPoint";
+NSString *MMOpenInCurrentWindowKey         = @"MMOpenInCurrentWindow";
+NSString *MMNoFontSubstitutionKey          = @"MMNoFontSubstitution";
+NSString *MMNoTitleBarWindowKey            = @"MMNoTitleBarWindow";
+NSString *MMTitlebarAppearsTransparentKey  = @"MMTitlebarAppearsTransparent";
+NSString *MMTitlebarDisableDocumentIconKey = @"MMTitlebarDisableDocumentIcon";
+NSString *MMDisableLaunchAnimation         = @"MMDisableLaunchAnimation";
+NSString *MMLoginShellKey                  = @"MMLoginShell";
+NSString *MMUntitledWindowKey              = @"MMUntitledWindow";
+NSString *MMZoomBothKey                    = @"MMZoomBoth";
+NSString *MMCurrentPreferencePaneKey       = @"MMCurrentPreferencePane";
+NSString *MMLoginShellCommandKey           = @"MMLoginShellCommand";
+NSString *MMLoginShellArgumentKey          = @"MMLoginShellArgument";
+NSString *MMDialogsTrackPwdKey             = @"MMDialogsTrackPwd";
+NSString *MMOpenLayoutKey                  = @"MMOpenLayout";
+NSString *MMVerticalSplitKey               = @"MMVerticalSplit";
+NSString *MMPreloadCacheSizeKey            = @"MMPreloadCacheSize";
+NSString *MMLastWindowClosedBehaviorKey    = @"MMLastWindowClosedBehavior";
 #ifdef INCLUDE_OLD_IM_CODE
-NSString *MMUseInlineImKey                = @"MMUseInlineIm";
+NSString *MMUseInlineImKey                 = @"MMUseInlineIm";
 #endif // INCLUDE_OLD_IM_CODE
-NSString *MMSuppressTerminationAlertKey   = @"MMSuppressTerminationAlert";
-NSString *MMNativeFullScreenKey           = @"MMNativeFullScreen";
-NSString *MMUseMouseTimeKey               = @"MMUseMouseTime";
-NSString *MMFullScreenFadeTimeKey         = @"MMFullScreenFadeTime";
-NSString *MMUseCGLayerAlwaysKey           = @"MMUseCGLayerAlways";
-NSString *MMBufferedDrawingKey            = @"MMBufferedDrawing";
+NSString *MMSuppressTerminationAlertKey    = @"MMSuppressTerminationAlert";
+NSString *MMNativeFullScreenKey            = @"MMNativeFullScreen";
+NSString *MMUseMouseTimeKey                = @"MMUseMouseTime";
+NSString *MMFullScreenFadeTimeKey          = @"MMFullScreenFadeTime";
+NSString *MMUseCGLayerAlwaysKey            = @"MMUseCGLayerAlways";
+NSString *MMBufferedDrawingKey             = @"MMBufferedDrawing";
 
 
 

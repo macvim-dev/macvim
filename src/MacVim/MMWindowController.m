@@ -149,10 +149,12 @@
                           defer:YES];
     [win autorelease];
     
-    if ([[NSUserDefaults standardUserDefaults]
-         boolForKey:MMTitlebarAppearsTransparentKey]) {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMTitlebarAppearsTransparentKey]) {
         // Transparent title bar setting
         win.titlebarAppearsTransparent = true;
+        if (NSAppKitVersionNumber >= NSAppKitVersionNumber10_10) {
+            win.appearance = [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua];
+        }
     }
 
     self = [super initWithWindow:win];
@@ -504,6 +506,12 @@
 
     [decoratedWindow setRepresentedFilename:filename];
     [fullScreenWindow setRepresentedFilename:filename];
+    
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMTitlebarDisableDocumentIconKey]) {
+        // Transparent title bar setting
+        [[decoratedWindow standardWindowButton:NSWindowDocumentIconButton] setImage: nil];
+        [[fullScreenWindow standardWindowButton:NSWindowDocumentIconButton] setImage: nil];
+    }
 }
 
 - (void)setToolbar:(NSToolbar *)theToolbar
