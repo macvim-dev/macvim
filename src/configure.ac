@@ -4543,10 +4543,16 @@ if test "x$MACOS_X" = "xyes"; then
     [ AC_MSG_RESULT(using default) ])
 
   dnl Set CFBundleShortVersionString of Info.plist
-  vim_short_version_string=`grep 'define.*VIM_VERSION_SHORT' $srcdir/version.h|sed -E -e 's/.*"([[0-9.]]*)".*/\1/'`
+  vim_major_version_string=`grep -m 1 'define.*VIM_VERSION_MAJOR' $srcdir/version.h|sed -E -e 's/^.*([[0-9]]+).*/\1/'`
+  vim_minor_version_string=`grep -m 1 'define.*VIM_VERSION_MINOR' $srcdir/version.h|sed -E -e 's/^.*([[0-9]]+).*/\1/'`
   snapshot=`grep -C2 "Add new patch number below this line" $srcdir/version.c|tail -1|sed -E -e 's/^ *([[0-9]]+),.*/\1/'`
-  vim_short_version_string="$vim_short_version_string.$snapshot"
-  XCODEFLAGS="$XCODEFLAGS VIM_SHORT_VERSION_STRING=$vim_short_version_string"
+  vim_short_version_string="$vim_major_version_string.$vim_minor_version_string.$snapshot"
+
+  if echo "$vim_short_version_string" | grep -q "^\d\+\.\d\+\.\d\+$"; then
+    XCODEFLAGS="$XCODEFLAGS VIM_SHORT_VERSION_STRING=$vim_short_version_string"
+  else
+    AC_MSG_ERROR(could not parse Vim version: $vim_short_version_string)
+  fi
 
   AC_SUBST(XCODEFLAGS)
 fi
