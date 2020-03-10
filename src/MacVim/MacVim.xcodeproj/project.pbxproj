@@ -904,7 +904,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "BINPATH=$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin\nmkdir -p $BINPATH\ncp -a $SRCROOT/mvim $BINPATH/mvim\nchmod 755 $BINPATH/mvim\n(cd $BINPATH; for f in vim vimdiff view gvim gvimdiff gview mvimdiff mview; do ln -fs mvim $f; done)";
+			shellScript = "BINPATH=$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin\nmkdir -p \"${BINPATH}\"\ncp -a \"${SRCROOT}/mvim\" \"${BINPATH}/mvim\"\nchmod 755 \"${BINPATH}/mvim\"\n(cd \"${BINPATH}\"; for f in vim vimdiff view gvim gvimdiff gview mvimdiff mview; do ln -fs mvim $f; done)\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
