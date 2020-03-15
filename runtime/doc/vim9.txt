@@ -1,4 +1,4 @@
-*vim9.txt*	For Vim version 8.2.  Last change: 2020 Feb 22
+*vim9.txt*	For Vim version 8.2.  Last change: 2020 Mar 01
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -149,6 +149,12 @@ with `substitute(` this will use the function, prepend a colon to use the
 command instead: >
 	:substitute(pattern (replacement (
 
+Note that while variables need to be defined before they can be used,
+functions can be called before being defined.  This is required to be able
+have cyclic dependencies between functions.  It is slightly less efficient,
+since the function has to be looked up by name.  And a typo in the function
+name will only be found when the call is executed.
+
 
 No curly braces expansion ~
 
@@ -207,7 +213,7 @@ few exceptions.
 	blob		non-empty
 	list		non-empty (different from JavaScript)
 	dictionary	non-empty (different from JavaScript)
-	funcref		when not NULL
+	func		when not NULL
 	partial		when not NULL
 	special		v:true
 	job		when not NULL
@@ -275,6 +281,8 @@ script, then script-local variables must be accessed with the "s:" prefix.
 						*:disa* *:disassemble*
 :disa[ssemble] {func}	Show the instructions generated for {func}.
 			This is for debugging and testing.
+			Note that for command line completion of {func} you
+			can prepend "s:" to find script-local functions.
 
 ==============================================================================
 
@@ -293,6 +301,8 @@ The following builtin types are supported:
 	(a: type, b: type): type
 	job
 	channel
+	func
+	partial
 
 Not supported yet:
 	tuple<a: type, b: type, ...>

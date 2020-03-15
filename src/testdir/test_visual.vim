@@ -157,11 +157,16 @@ func Test_blockwise_visual_o_O()
   exe "norm! gvO\<Esc>rb"
   exe "norm! gvo\<C-c>rc"
   exe "norm! gvO\<C-c>rd"
+  set selection=exclusive
+  exe "norm! gvOo\<C-c>re"
+  call assert_equal('...a   be.', getline(4))
+  exe "norm! gvOO\<C-c>rf"
+  set selection&
 
   call assert_equal(['..........',
         \            '...c   d..',
         \            '...     ..',
-        \            '...a   b..',
+        \            '...a   bf.',
         \            '..........'], getline(1, '$'))
 
   enew!
@@ -645,6 +650,16 @@ func Test_characterwise_select_mode()
   exe "normal Gkgh\<Down>\<End>\<Del>"
   call assert_equal(['', 'a', ''], getline(1, '$'))
 
+  " CTRL-H in select mode behaves like 'x'
+  call setline(1, 'abcdef')
+  exe "normal! gggh\<Right>\<Right>\<Right>\<C-H>"
+  call assert_equal('ef', getline(1))
+
+  " CTRL-O in select mode switches to visual mode for one command
+  call setline(1, 'abcdef')
+  exe "normal! gggh\<C-O>3lm"
+  call assert_equal('mef', getline(1))
+
   sunmap <lt>End>
   sunmap <lt>Down>
   sunmap <lt>Del>
@@ -658,7 +673,6 @@ func Test_linewise_select_mode()
   call append('$', ['a', 'b', 'c'])
   exe "normal GkkgH\<Del>"
   call assert_equal(['', 'b', 'c'], getline(1, '$'))
-
 
   " linewise select mode: delete middle two lines
   call deletebufline('', 1, '$')
@@ -679,6 +693,15 @@ func Test_linewise_select_mode()
   call assert_equal(['', 'a'], getline(1, '$'))
 
   bwipe!
+endfunc
+
+" Test for blockwise select mode (g CTRL-H)
+func Test_blockwise_select_mode()
+  new
+  call setline(1, ['foo', 'bar'])
+  call feedkeys("g\<BS>\<Right>\<Down>mm", 'xt')
+  call assert_equal(['mmo', 'mmr'], getline(1, '$'))
+  close!
 endfunc
 
 func Test_visual_mode_put()
@@ -744,8 +767,7 @@ endfunc
 func Test_visual_block_mode()
   new
   call append(0, '')
-  call setline(1, ['abcdefghijklm', 'abcdefghijklm', 'abcdefghijklm',
-        \ 'abcdefghijklm', 'abcdefghijklm'])
+  call setline(1, repeat(['abcdefghijklm'], 5))
   call cursor(1, 1)
 
   " Test shift-right of a block
@@ -763,6 +785,16 @@ func Test_visual_block_mode()
         \ 'axyzqqqqef mno        ghijklm',
         \ 'axyzqqqqefgmnoklm',
         \ 'abcdqqqqijklm'], getline(1, 5))
+
+  " Test 'C' to change till the end of the line
+  call cursor(3, 4)
+  exe "normal! \<C-V>j3lCooo"
+  call assert_equal(['axyooo', 'axyooo'], getline(3, 4))
+
+  " Test 'D' to delete till the end of the line
+  call cursor(3, 3)
+  exe "normal! \<C-V>j2lD"
+  call assert_equal(['ax', 'ax'], getline(3, 4))
 
   bwipe!
 endfunc
@@ -905,6 +937,59 @@ func Test_star_register()
 
   delmarks < >
   call assert_fails('*yank', 'E20:')
+  close!
+endfunc
+
+" Test for using visual mode maps in select mode
+func Test_select_mode_map()
+  new
+  vmap <buffer> <F2> 3l
+  call setline(1, 'Test line')
+  call feedkeys("gh\<F2>map", 'xt')
+  call assert_equal('map line', getline(1))
+
+  vmap <buffer> <F2> ygV
+  call feedkeys("0gh\<Right>\<Right>\<F2>cwabc", 'xt')
+  call assert_equal('abc line', getline(1))
+
+  vmap <buffer> <F2> :<C-U>let v=100<CR>
+  call feedkeys("gggh\<Right>\<Right>\<F2>foo", 'xt')
+  call assert_equal('foo line', getline(1))
+
+  " reselect the select mode using gv from a visual mode map
+  vmap <buffer> <F2> gv
+  set selectmode=cmd
+  call feedkeys("0gh\<F2>map", 'xt')
+  call assert_equal('map line', getline(1))
+  set selectmode&
+
+  close!
+endfunc
+
+" Test for changing text in visual mode with 'exclusive' selection
+func Test_exclusive_selection()
+  new
+  call setline(1, ['one', 'two'])
+  set selection=exclusive
+  call feedkeys("vwcabc", 'xt')
+  call assert_equal('abctwo', getline(1))
+  call setline(1, ["\tone"])
+  set virtualedit=all
+  call feedkeys('0v2lcl', 'xt')
+  call assert_equal('l      one', getline(1))
+  set virtualedit&
+  set selection&
+  close!
+endfunc
+
+" Test for starting visual mode with a count.
+" This test should be run without any previous visual modes. So this should be
+" run as a first test.
+func Test_AAA_start_visual_mode_with_count()
+  new
+  call setline(1, ['aaaaaaa', 'aaaaaaa', 'aaaaaaa', 'aaaaaaa'])
+  normal! gg2Vy
+  call assert_equal("aaaaaaa\naaaaaaa\n", @")
   close!
 endfunc
 

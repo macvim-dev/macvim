@@ -9,6 +9,12 @@ func CheckDefFailure(line, error)
   call delete('Xdef')
 endfunc
 
+func CheckDefFailureMult(lines, error)
+  call writefile(['def! Func()'] + a:lines + ['enddef'], 'Xdef')
+  call assert_fails('so Xdef', a:error, join(a:lines, ' | '))
+  call delete('Xdef')
+endfunc
+
 " Check that "line" inside ":def" results in an "error" message when executed.
 func CheckDefExecFailure(line, error)
   call writefile(['def! Func()', a:line, 'enddef'], 'Xdef')
@@ -31,9 +37,9 @@ def Test_expr1()
     assert_equal('one', 0.1 ? 'one' : 'two')
   endif
   assert_equal('one', 'x' ? 'one' : 'two')
-"  assert_equal('one', 0z1234 ? 'one' : 'two')
+  assert_equal('one', 0z1234 ? 'one' : 'two')
   assert_equal('one', [0] ? 'one' : 'two')
-"  assert_equal('one', #{x: 0} ? 'one' : 'two')
+  assert_equal('one', #{x: 0} ? 'one' : 'two')
   let var = 1
   assert_equal('one', var ? 'one' : 'two')
 
@@ -43,9 +49,9 @@ def Test_expr1()
     assert_equal('two', 0.0 ? 'one' : 'two')
   endif
   assert_equal('two', '' ? 'one' : 'two')
-"  assert_equal('one', 0z ? 'one' : 'two')
+  assert_equal('two', 0z ? 'one' : 'two')
   assert_equal('two', [] ? 'one' : 'two')
-"  assert_equal('two', {} ? 'one' : 'two')
+  assert_equal('two', {} ? 'one' : 'two')
   var = 0
   assert_equal('two', var ? 'one' : 'two')
 enddef
@@ -441,6 +447,11 @@ func Test_expr4_fails()
   call CheckDefFailure("let x = [13] <= [88]", 'Cannot compare list with list')
   call CheckDefFailure("let x = [13] =~ [88]", 'Cannot compare list with list')
   call CheckDefFailure("let x = [13] !~ [88]", 'Cannot compare list with list')
+
+  call CheckDefFailureMult(['let j: job', 'let chan: channel', 'let r = j == chan'], 'Cannot compare job with channel')
+  call CheckDefFailureMult(['let j: job', 'let x: list<any>', 'let r = j == x'], 'Cannot compare job with list')
+  call CheckDefFailureMult(['let j: job', 'let x: func', 'let r = j == x'], 'Cannot compare job with func')
+  call CheckDefFailureMult(['let j: job', 'let x: partial', 'let r = j == x'], 'Cannot compare job with partial')
 endfunc
 
 " test addition, subtraction, concatenation
@@ -805,6 +816,8 @@ func Test_expr7_fails()
   call CheckDefExecFailure("let x = +g:ablob", 'E974:')
   call CheckDefExecFailure("let x = +g:alist", 'E745:')
   call CheckDefExecFailure("let x = +g:adict", 'E728:')
+
+  call CheckDefFailureMult(["let x = ''", "let y = x.memb"], 'E715:')
 endfunc
 
 let g:Funcrefs = [function('add')]

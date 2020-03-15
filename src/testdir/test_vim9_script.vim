@@ -1,6 +1,7 @@
 " Test various aspects of the Vim9 script language.
 
 source check.vim
+source view_util.vim
 
 " Check that "lines" inside ":def" results in an "error" message.
 func CheckDefFailure(lines, error)
@@ -52,6 +53,24 @@ def Test_assignment()
   let dict4: dict<any> = #{one: 1, two: '2'}
   let dict5: dict<blob> = #{one: 0z01, tw: 0z02}
 
+  if has('channel')
+    let chan1: channel
+    let job1: job
+    let job2: job = job_start('willfail')
+  endif
+  if has('float')
+    let float1: float = 3.4
+  endif
+  let funky1: func
+  let funky2: func = function('len')
+  let party1: partial
+  let party2: partial = funcref('Test_syntax')
+
+  " type becomes list<any>
+  let somelist = rand() > 0 ? [1, 2, 3] : ['a', 'b', 'c']
+  " type becomes dict<any>
+  let somedict = rand() > 0 ? #{a: 1, b: 2} : #{a: 'a', b: 'b'}
+
   g:newvar = 'new'
   assert_equal('new', g:newvar)
 
@@ -90,6 +109,21 @@ func Test_assignment_failure()
 
   call CheckDefFailure(['let var = feedkeys("0")'], 'E1031:')
   call CheckDefFailure(['let var: number = feedkeys("0")'], 'expected number but got void')
+
+  call CheckDefFailure(['let var: dict <number>'], 'E1007:')
+  call CheckDefFailure(['let var: dict<number'], 'E1009:')
+
+  call CheckDefFailure(['let var: ally'], 'E1010:')
+  call CheckDefFailure(['let var: bram'], 'E1010:')
+  call CheckDefFailure(['let var: cathy'], 'E1010:')
+  call CheckDefFailure(['let var: dom'], 'E1010:')
+  call CheckDefFailure(['let var: freddy'], 'E1010:')
+  call CheckDefFailure(['let var: john'], 'E1010:')
+  call CheckDefFailure(['let var: larry'], 'E1010:')
+  call CheckDefFailure(['let var: ned'], 'E1010:')
+  call CheckDefFailure(['let var: pam'], 'E1010:')
+  call CheckDefFailure(['let var: sam'], 'E1010:')
+  call CheckDefFailure(['let var: vim'], 'E1010:')
 endfunc
 
 func Test_const()
@@ -177,6 +211,15 @@ func Test_call_default_args_from_func()
   call assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
 endfunc
 
+func TakesOneArg(arg)
+  echo a:arg
+endfunc
+
+def Test_call_wrong_arg_count()
+  call CheckDefFailure(['TakesOneArg()'], 'E119:')
+  call CheckDefFailure(['TakesOneArg(11, 22)'], 'E118:')
+enddef
+
 " Default arg and varargs
 def MyDefVarargs(one: string, two = 'foo', ...rest: list<string>): string
   let res = one .. ',' .. two
@@ -193,15 +236,33 @@ def Test_call_def_varargs()
   assert_equal('one,two,three', MyDefVarargs('one', 'two', 'three'))
 enddef
 
+def Test_using_var_as_arg()
+  call writefile(['def Func(x: number)',  'let x = 234', 'enddef'], 'Xdef')
+  call assert_fails('so Xdef', 'E1006:')
+  call delete('Xdef')
+enddef
 
-"def Test_call_func_defined_later()
-"  call assert_equal('one', DefineLater('one'))
-"  call assert_fails('call NotDefined("one")', 'E99:')
-"enddef
+def Test_call_func_defined_later()
+  call assert_equal('one', DefinedLater('one'))
+  call assert_fails('call NotDefined("one")', 'E117:')
+enddef
 
-func DefineLater(arg)
+func DefinedLater(arg)
   return a:arg
 endfunc
+
+def FuncWithForwardCall()
+  return DefinedEvenLater("yes")
+enddef
+
+def DefinedEvenLater(arg: string): string
+  return arg
+enddef
+
+def Test_error_in_nested_function()
+  " Error in called function requires unwinding the call stack.
+  assert_fails('call FuncWithForwardCall()', 'E1029')
+enddef
 
 def Test_return_type_wrong()
   CheckScriptFailure(['def Func(): number', 'return "a"', 'enddef'], 'expected number but got string')
@@ -301,7 +362,7 @@ let s:export_script_lines =<< trim END
   enddef
 END
 
-def Test_vim9script()
+def Test_vim9_import_export()
   let import_script_lines =<< trim END
     vim9script
     import {exported, Exported} from './Xexport.vim'
@@ -314,6 +375,7 @@ def Test_vim9script()
     g:imported_name = exp_name
     exp_name ..= ' Doe'
     g:imported_name_appended = exp_name
+    g:imported_later = exported
   END
 
   writefile(import_script_lines, 'Ximport.vim')
@@ -325,6 +387,7 @@ def Test_vim9script()
   assert_equal('bob', g:localname)
   assert_equal(9876, g:imported)
   assert_equal(9879, g:imported_added)
+  assert_equal(9879, g:imported_later)
   assert_equal('Exported', g:imported_func)
   assert_equal('John', g:imported_name)
   assert_equal('John Doe', g:imported_name_appended)
@@ -334,9 +397,29 @@ def Test_vim9script()
   unlet g:localname
   unlet g:imported
   unlet g:imported_added
+  unlet g:imported_later
   unlet g:imported_func
   unlet g:imported_name g:imported_name_appended
   delete('Ximport.vim')
+
+  let import_in_def_lines =<< trim END
+    vim9script
+    def ImportInDef()
+      import exported from './Xexport.vim'
+      g:imported = exported
+      exported += 7
+      g:imported_added = exported
+    enddef
+    ImportInDef()
+  END
+  writefile(import_in_def_lines, 'Ximport2.vim')
+  source Ximport2.vim
+  " TODO: this should be 9879
+  assert_equal(9876, g:imported)
+  assert_equal(9883, g:imported_added)
+  unlet g:imported
+  unlet g:imported_added
+  delete('Ximport2.vim')
 
   let import_star_as_lines =<< trim END
     vim9script
@@ -348,7 +431,7 @@ def Test_vim9script()
   END
   writefile(import_star_as_lines, 'Ximport.vim')
   source Ximport.vim
-  assert_equal(9876, g:imported)
+  assert_equal(9883, g:imported)
 
   let import_star_lines =<< trim END
     vim9script
@@ -365,6 +448,33 @@ def Test_vim9script()
   END
   writefile(import_not_exported_lines, 'Ximport.vim')
   assert_fails('source Ximport.vim', 'E1049:')
+
+  " try to import something that is already defined
+  let import_already_defined =<< trim END
+    vim9script
+    let exported = 'something'
+    import exported from './Xexport.vim'
+  END
+  writefile(import_already_defined, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1073:')
+
+  " try to import something that is already defined
+  import_already_defined =<< trim END
+    vim9script
+    let exported = 'something'
+    import * as exported from './Xexport.vim'
+  END
+  writefile(import_already_defined, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1073:')
+
+  " try to import something that is already defined
+  import_already_defined =<< trim END
+    vim9script
+    let exported = 'something'
+    import {exported} from './Xexport.vim'
+  END
+  writefile(import_already_defined, 'Ximport.vim')
+  assert_fails('source Ximport.vim', 'E1073:')
 
   " import a very long name, requires making a copy
   let import_long_name_lines =<< trim END
@@ -399,10 +509,11 @@ def Test_vim9script()
     vim9script
     import {exported name} from './Xexport.vim'
   END
-  writefile(import_missing_comma_lines, 'Ximport.vim')
-  assert_fails('source Ximport.vim', 'E1046:')
+  writefile(import_missing_comma_lines, 'Ximport3.vim')
+  assert_fails('source Ximport3.vim', 'E1046:')
 
   delete('Ximport.vim')
+  delete('Ximport3.vim')
   delete('Xexport.vim')
 
   " Check that in a Vim9 script 'cpo' is set to the Vim default.
@@ -649,6 +760,108 @@ def Test_if_elseif_else()
   assert_equal('three', IfElse(3))
 enddef
 
+let g:bool_true = v:true
+let g:bool_false = v:false
+
+def Test_if_const_expr()
+  let res = false
+  if true ? true : false
+    res = true
+  endif
+  assert_equal(true, res)
+
+  res = false
+  if g:bool_true ? true : false
+    res = true
+  endif
+  assert_equal(true, res)
+
+  res = false
+  if true ? g:bool_true : false
+    res = true
+  endif
+  assert_equal(true, res)
+
+  res = false
+  if true ? true : g:bool_false
+    res = true
+  endif
+  assert_equal(true, res)
+
+  res = false
+  if true ? false : true
+    res = true
+  endif
+  assert_equal(false, res)
+
+  res = false
+  if false ? false : true
+    res = true
+  endif
+  assert_equal(true, res)
+
+  res = false
+  if false ? true : false
+    res = true
+  endif
+  assert_equal(false, res)
+
+  res = false
+  if true && true
+    res = true
+  endif
+  assert_equal(true, res)
+
+  res = false
+  if true && false
+    res = true
+  endif
+  assert_equal(false, res)
+
+  res = false
+  if g:bool_true && false
+    res = true
+  endif
+  assert_equal(false, res)
+
+  res = false
+  if true && g:bool_false
+    res = true
+  endif
+  assert_equal(false, res)
+
+  res = false
+  if false && false
+    res = true
+  endif
+  assert_equal(false, res)
+
+  res = false
+  if true || false
+    res = true
+  endif
+  assert_equal(true, res)
+
+  res = false
+  if g:bool_true || false
+    res = true
+  endif
+  assert_equal(true, res)
+
+  res = false
+  if true || g:bool_false
+    res = true
+  endif
+  assert_equal(true, res)
+
+  res = false
+  if false || false
+    res = true
+  endif
+  assert_equal(false, res)
+
+enddef
+
 def Test_delfunc()
   let lines =<< trim END
     vim9script
@@ -668,6 +881,65 @@ def Test_delfunc()
   assert_fails('so XToDelFunc', 'E933')
 
   delete('XToDelFunc')
+enddef
+
+def Test_execute_cmd()
+  new
+  setline(1, 'default')
+  execute 'call setline(1, "execute-string")'
+  assert_equal('execute-string', getline(1))
+  let cmd1 = 'call setline(1,'
+  let cmd2 = '"execute-var")'
+  execute cmd1 cmd2
+  assert_equal('execute-var', getline(1))
+  execute cmd1 cmd2 '|call setline(1, "execute-var-string")'
+  assert_equal('execute-var-string', getline(1))
+  let cmd_first = 'call '
+  let cmd_last = 'setline(1, "execute-var-var")'
+  execute cmd_first .. cmd_last
+  assert_equal('execute-var-var', getline(1))
+  bwipe!
+enddef
+
+def Test_echo_cmd()
+  echo 'something'
+  assert_match('^something$', Screenline(&lines))
+
+  let str1 = 'some'
+  let str2 = 'more'
+  echo str1 str2
+  assert_match('^some more$', Screenline(&lines))
+enddef
+
+def Test_for_outside_of_function()
+  let lines =<< trim END
+    vim9script
+    new
+    for var in range(0, 3)
+      append(line('$'), var)
+    endfor
+    assert_equal(['', '0', '1', '2', '3'], getline(1, '$'))
+    bwipe!
+  END
+  writefile(lines, 'Xvim9for.vim')
+  source Xvim9for.vim
+  delete('Xvim9for.vim')
+enddef
+
+def Test_while_loop()
+  let result = ''
+  let cnt = 0
+  while cnt < 555
+    if cnt == 3
+      break
+    endif
+    cnt += 1
+    if cnt == 2
+      continue
+    endif
+    result ..= cnt .. '_'
+  endwhile
+  assert_equal('1_3_', result)
 enddef
 
 def Test_substitute_cmd()
@@ -691,6 +963,5 @@ def Test_substitute_cmd()
 
   delete('Xvim9lines')
 enddef
-
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

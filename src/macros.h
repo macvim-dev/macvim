@@ -344,9 +344,11 @@
 
 // Give an error in curwin is a popup window and evaluate to TRUE.
 #ifdef FEAT_PROP_POPUP
+# define WIN_IS_POPUP(wp) ((wp)->w_popup_flags != 0)
 # define ERROR_IF_POPUP_WINDOW error_if_popup_window(FALSE)
 # define ERROR_IF_ANY_POPUP_WINDOW error_if_popup_window(TRUE)
 #else
+# define WIN_IS_POPUP(wp) 0
 # define ERROR_IF_POPUP_WINDOW 0
 # define ERROR_IF_ANY_POPUP_WINDOW 0
 #endif
@@ -362,8 +364,11 @@
 # define ESTACK_CHECK_SETUP estack_len_before = exestack.ga_len;
 # define ESTACK_CHECK_NOW if (estack_len_before != exestack.ga_len) \
 	siemsg("Exestack length expected: %d, actual: %d", estack_len_before, exestack.ga_len);
+# define CHECK_CURBUF if (curwin != NULL && curwin->w_buffer != curbuf) \
+		iemsg("curbuf != curwin->w_buffer")
 #else
 # define ESTACK_CHECK_DECLARATION
 # define ESTACK_CHECK_SETUP
 # define ESTACK_CHECK_NOW
+# define CHECK_CURBUF
 #endif

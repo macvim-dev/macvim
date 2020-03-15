@@ -1127,7 +1127,7 @@ popup_adjust_position(win_T *wp)
     int		org_height = wp->w_height;
     int		org_leftcol = wp->w_leftcol;
     int		org_leftoff = wp->w_popup_leftoff;
-    int		minwidth;
+    int		minwidth, minheight;
     int		wantline = wp->w_wantline;  // adjusted for textprop
     int		wantcol = wp->w_wantcol;    // adjusted for textprop
     int		use_wantcol = wantcol != 0;
@@ -1232,8 +1232,9 @@ popup_adjust_position(win_T *wp)
 		|| wp->w_popup_pos == POPPOS_BOTLEFT))
 	{
 	    wp->w_wincol = wantcol - 1;
-	    if (wp->w_wincol >= Columns - 1)
-		wp->w_wincol = Columns - 1;
+	    // Need to see at least one character after the decoration.
+	    if (wp->w_wincol > Columns - left_extra - 1)
+		wp->w_wincol = Columns - left_extra - 1;
 	}
     }
 
@@ -1248,6 +1249,18 @@ popup_adjust_position(win_T *wp)
 	maxwidth = wp->w_maxwidth;
     }
     minwidth = wp->w_minwidth;
+    minheight = wp->w_minheight;
+#ifdef FEAT_TERMINAL
+    // A terminal popup initially does not have content, use a default minimal
+    // width of 20 characters and height of 5 lines.
+    if (wp->w_buffer->b_term != NULL)
+    {
+	if (minwidth == 0)
+	    minwidth = 20;
+	if (minheight == 0)
+	    minheight = 5;
+    }
+#endif
 
     // start at the desired first line
     if (wp->w_firstline > 0)
@@ -1418,8 +1431,8 @@ popup_adjust_position(win_T *wp)
 
     wp->w_height = wp->w_buffer->b_ml.ml_line_count - wp->w_topline
 								 + 1 + wrapped;
-    if (wp->w_minheight > 0 && wp->w_height < wp->w_minheight)
-	wp->w_height = wp->w_minheight;
+    if (minheight > 0 && wp->w_height < minheight)
+	wp->w_height = minheight;
     if (wp->w_maxheight > 0 && wp->w_height > wp->w_maxheight)
 	wp->w_height = wp->w_maxheight;
     w_height_before_limit = wp->w_height;
@@ -2114,9 +2127,31 @@ popup_close_and_callback(win_T *wp, typval_T *arg)
 #ifdef FEAT_TERMINAL
     if (wp == curwin && curbuf->b_term != NULL)
     {
-	// Closing popup window with a terminal: put focus back on the previous
-	// window.
-	win_enter(prevwin, FALSE);
+	win_T *owp;
+
+	// Closing popup window with a terminal: put focus back on the first
+	// that works:
+	// - another popup window with a terminal
+	// - the previous window
+	// - the first one.
+	for (owp = first_popupwin; owp != NULL; owp = owp->w_next)
+	    if (owp != curwin && owp->w_buffer->b_term != NULL)
+		break;
+	if (owp != NULL)
+	    win_enter(owp, FALSE);
+	else
+	{
+	    for (owp = curtab->tp_first_popupwin; owp != NULL;
+							     owp = owp->w_next)
+		if (owp != curwin && owp->w_buffer->b_term != NULL)
+		    break;
+	    if (owp != NULL)
+		win_enter(owp, FALSE);
+	    else if (win_valid(prevwin) && wp != prevwin)
+		win_enter(prevwin, FALSE);
+	    else
+		win_enter(firstwin, FALSE);
+	}
     }
 #endif
 
@@ -2124,11 +2159,13 @@ popup_close_and_callback(win_T *wp, typval_T *arg)
     if (wp == curwin && ERROR_IF_POPUP_WINDOW)
 	return;
 
+    CHECK_CURBUF;
     if (wp->w_close_cb.cb_name != NULL)
 	// Careful: This may make "wp" invalid.
 	invoke_popup_callback(wp, arg);
 
     popup_close(id);
+    CHECK_CURBUF;
 }
 
     void
@@ -2467,6 +2504,31 @@ popup_free(win_T *wp)
     popup_mask_refresh = TRUE;
 }
 
+    static void
+error_for_popup_window(void)
+{
+    emsg(_("E994: Not allowed in a popup window"));
+}
+
+    int
+error_if_popup_window(int also_with_term UNUSED)
+{
+    // win_execute() may set "curwin" to a popup window temporarily, but many
+    // commands are disallowed then.  When a terminal runs in the popup most
+    // things are allowed.  When a terminal is finished it can be closed.
+    if (WIN_IS_POPUP(curwin)
+# ifdef FEAT_TERMINAL
+	    && (also_with_term || curbuf->b_term == NULL)
+	    && !term_is_finished(curbuf)
+# endif
+	    )
+    {
+	error_for_popup_window();
+	return TRUE;
+    }
+    return FALSE;
+}
+
 /*
  * Close a popup window by Window-id.
  * Does not invoke the callback.
@@ -2482,6 +2544,11 @@ popup_close(int id)
     for (wp = first_popupwin; wp != NULL; prev = wp, wp = wp->w_next)
 	if (wp->w_id == id)
 	{
+	    if (wp == curwin)
+	    {
+		error_for_popup_window();
+		return;
+	    }
 	    if (prev == NULL)
 		first_popupwin = wp->w_next;
 	    else
@@ -2508,6 +2575,11 @@ popup_close_tabpage(tabpage_T *tp, int id)
     for (wp = *root; wp != NULL; prev = wp, wp = wp->w_next)
 	if (wp->w_id == id)
 	{
+	    if (wp == curwin)
+	    {
+		error_for_popup_window();
+		return;
+	    }
 	    if (prev == NULL)
 		*root = wp->w_next;
 	    else
@@ -2853,24 +2925,6 @@ f_popup_getoptions(typval_T *argvars, typval_T *rettv)
     }
 }
 
-    int
-error_if_popup_window(int also_with_term UNUSED)
-{
-    // win_execute() may set "curwin" to a popup window temporarily, but many
-    // commands are disallowed then.  When a terminal runs in the popup most
-    // things are allowed.
-    if (WIN_IS_POPUP(curwin)
-# ifdef FEAT_TERMINAL
-	    && (also_with_term || curbuf->b_term == NULL)
-# endif
-	    )
-    {
-	emsg(_("E994: Not allowed in a popup window"));
-	return TRUE;
-    }
-    return FALSE;
-}
-
 # if defined(FEAT_TERMINAL) || defined(PROTO)
 /*
  * Return TRUE if the current window is running a terminal in a popup window.
@@ -2977,7 +3031,7 @@ invoke_popup_filter(win_T *wp, int c)
 
     // Convert the number to a string, so that the function can use:
     //	    if a:c == "\<F2>"
-    buf[special_to_buf(c, mod_mask, TRUE, buf)] = NUL;
+    buf[special_to_buf(c, mod_mask, FALSE, buf)] = NUL;
     argv[1].v_type = VAR_STRING;
     argv[1].vval.v_string = vim_strsave(buf);
 
@@ -3483,9 +3537,14 @@ update_popups(void (*win_update)(win_T *wp))
 
 	wp->w_winrow -= top_off;
 	wp->w_wincol -= left_extra;
-	// cursor position matters in terminal
-	wp->w_wrow += top_off;
-	wp->w_wcol += left_extra;
+	// cursor position matters in terminal in job mode
+#ifdef FEAT_TERMINAL
+	if (wp != curwin || !term_in_normal_mode())
+#endif
+	{
+	    wp->w_wrow += top_off;
+	    wp->w_wcol += left_extra;
+	}
 
 	total_width = popup_width(wp);
 	total_height = popup_height(wp);

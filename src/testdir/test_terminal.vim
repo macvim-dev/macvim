@@ -368,7 +368,11 @@ func Test_terminal_postponed_scrollback()
   call term_wait(buf)
   call term_sendkeys(buf, "exit\<CR>")
   call term_wait(buf)
-  call term_sendkeys(buf, ":q\<CR>")
+  let tsk_ret = term_sendkeys(buf, ":q\<CR>")
+
+  " check type of term_sendkeys() return value
+  echo type(tsk_ret)
+
   call StopVimInTerminal(buf)
   call delete('XTest_postponed')
   call delete('Xtext')
@@ -2344,29 +2348,29 @@ func Test_terminal_in_popup()
 	\ 'hi PopTerm ctermbg=grey',
 	\ 'func OpenTerm(setColor)',
 	\ "  let s:buf = term_start('" .. cmd .. " Xtext', #{hidden: 1, term_finish: 'close'})",
-	\ '  let s:winid = popup_create(s:buf, #{minwidth: 45, minheight: 7, border: [], drag: 1, resize: 1})',
+	\ '  let g:winid = popup_create(s:buf, #{minwidth: 45, minheight: 7, border: [], drag: 1, resize: 1})',
 	\ '  if a:setColor',
-	\ '    call win_execute(s:winid, "set wincolor=PopTerm")',
+	\ '    call win_execute(g:winid, "set wincolor=PopTerm")',
 	\ '  endif',
 	\ 'endfunc',
-	\ 'call OpenTerm(0)',
 	\ 'func HidePopup()',
-	\ '  call popup_hide(s:winid)',
+	\ '  call popup_hide(g:winid)',
 	\ 'endfunc',
 	\ 'func ClosePopup()',
-	\ '  call popup_close(s:winid)',
+	\ '  call popup_close(g:winid)',
 	\ 'endfunc',
 	\ 'func ReopenPopup()',
 	\ '  call popup_create(s:buf, #{minwidth: 40, minheight: 6, border: []})',
 	\ 'endfunc',
-	\ 'sleep 10m',
-	\ 'redraw',
-	\ 'echo getwinvar(s:winid, "&buftype") win_gettype(s:winid)',
 	\ ]
   call writefile(lines, 'XtermPopup')
   let buf = RunVimInTerminal('-S XtermPopup', #{rows: 15})
   call term_wait(buf, 100)
+  call term_sendkeys(buf, "\<C-L>")
+  call term_sendkeys(buf, ":call OpenTerm(0)\<CR>")
+  call term_wait(buf, 100)
   call term_sendkeys(buf, ":\<CR>")
+  call term_sendkeys(buf, "\<C-W>:echo getwinvar(g:winid, \"&buftype\") win_gettype(g:winid)\<CR>")
   call VerifyScreenDump(buf, 'Test_terminal_popup_1', {})
 
   call term_sendkeys(buf, ":q\<CR>")
@@ -2387,13 +2391,69 @@ func Test_terminal_in_popup()
 
   call term_sendkeys(buf, "\<C-W>:call ReopenPopup()\<CR>")
   call VerifyScreenDump(buf, 'Test_terminal_popup_6', {})
-  call term_wait(buf, 100)
 
+  " Go to terminal-Normal mode and visually select text.
+  call term_sendkeys(buf, "\<C-W>Ngg/in\<CR>vww")
+  call VerifyScreenDump(buf, 'Test_terminal_popup_7', {})
+
+  " Back to job mode, redraws
+  call term_sendkeys(buf, "A")
+  call VerifyScreenDump(buf, 'Test_terminal_popup_8', {})
+
+  call term_wait(buf, 100)
   call term_sendkeys(buf, ":q\<CR>")
   call term_wait(buf, 100)  " wait for terminal to vanish
 
   call StopVimInTerminal(buf)
+  call delete('Xtext')
   call delete('XtermPopup')
+endfunc
+
+" Check a terminal in popup window uses the default mininum size.
+func Test_terminal_in_popup_min_size()
+  CheckRunVimInTerminal
+
+  let text =<< trim END
+    another text
+    to show
+    in a popup window
+  END
+  call writefile(text, 'Xtext')
+  let lines = [
+	\ 'set t_u7=',
+	\ 'call setline(1, range(20))',
+	\ 'hi PopTerm ctermbg=grey',
+	\ 'func OpenTerm()',
+	\ "  let s:buf = term_start('cat Xtext', #{hidden: 1})",
+	\ '  let g:winid = popup_create(s:buf, #{ border: []})',
+	\ 'endfunc',
+	\ ]
+  call writefile(lines, 'XtermPopup')
+  let buf = RunVimInTerminal('-S XtermPopup', #{rows: 15})
+  call term_wait(buf, 100)
+  call term_sendkeys(buf, "\<C-L>")
+  call term_sendkeys(buf, ":call OpenTerm()\<CR>")
+  call term_wait(buf, 100)
+  call term_sendkeys(buf, ":\<CR>")
+  call VerifyScreenDump(buf, 'Test_terminal_popup_m1', {})
+
+  call term_wait(buf, 100)
+  call term_sendkeys(buf, ":q\<CR>")
+  call term_wait(buf, 100)  " wait for terminal to vanish
+  call StopVimInTerminal(buf)
+  call delete('Xtext')
+  call delete('XtermPopup')
+endfunc
+
+func Test_double_popup_terminal()
+  let buf1 = term_start(&shell, #{hidden: 1})
+  let win1 = popup_create(buf1, {})
+  let buf2 = term_start(&shell, #{hidden: 1})
+  let win2 = popup_create(buf2, {})
+  call popup_close(win1)
+  call popup_close(win2)
+  exe buf1 .. 'bwipe!'
+  exe buf2 .. 'bwipe!'
 endfunc
 
 func Test_issue_5607()
@@ -2416,3 +2476,27 @@ func Test_hidden_terminal()
   call assert_equal('', bufname('^$'))
   call StopShellInTerminal(buf)
 endfunc
+
+func Test_term_nasty_callback()
+  func OpenTerms()
+    set hidden
+    let g:buf0 = term_start('sh', #{hidden: 1})
+    call popup_create(g:buf0, {})
+    let g:buf1 = term_start('sh', #{hidden: 1, term_finish: 'close'})
+    call popup_create(g:buf1, {})
+    let g:buf2 = term_start(['sh', '-c'], #{curwin: 1, exit_cb: function('TermExit')})
+    sleep 100m
+    call popup_close(win_getid())
+  endfunc
+  func TermExit(...)
+    call term_sendkeys(bufnr('#'), "exit\<CR>")
+    call popup_close(win_getid())
+  endfu
+  call OpenTerms()
+
+  call term_sendkeys(g:buf0, "exit\<CR>")
+  sleep 100m
+  exe g:buf0 .. 'bwipe'
+  set hidden&
+endfunc
+

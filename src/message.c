@@ -838,6 +838,16 @@ internal_error(char *where)
     siemsg(_(e_intern2), where);
 }
 
+/*
+ * Like internal_error() but do not call abort(), to avoid tests using
+ * test_unknown() and test_void() causing Vim to exit.
+ */
+    void
+internal_error_no_abort(char *where)
+{
+     semsg(_(e_intern2), where);
+}
+
 // emsg3() and emsgn() are in misc2.c to avoid warnings for the prototypes.
 
     void
@@ -4717,9 +4727,13 @@ vim_vsnprintf_typval(
 			    // signed
 			    switch (length_modifier)
 			    {
-			    case '\0':
+			    case '\0': str_arg_l += sprintf(
+						 tmp + str_arg_l, f,
+						 int_arg);
+				       break;
 			    case 'h': str_arg_l += sprintf(
-						 tmp + str_arg_l, f, int_arg);
+						 tmp + str_arg_l, f,
+						 (short)int_arg);
 				      break;
 			    case 'l': str_arg_l += sprintf(
 						tmp + str_arg_l, f, long_arg);
@@ -4734,9 +4748,13 @@ vim_vsnprintf_typval(
 			    // unsigned
 			    switch (length_modifier)
 			    {
-			    case '\0':
+			    case '\0': str_arg_l += sprintf(
+						tmp + str_arg_l, f,
+						uint_arg);
+				       break;
 			    case 'h': str_arg_l += sprintf(
-						tmp + str_arg_l, f, uint_arg);
+						tmp + str_arg_l, f,
+						(unsigned short)uint_arg);
 				      break;
 			    case 'l': str_arg_l += sprintf(
 					       tmp + str_arg_l, f, ulong_arg);

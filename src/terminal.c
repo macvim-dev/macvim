@@ -382,6 +382,7 @@ term_close_buffer(buf_T *buf, buf_T *old_curbuf)
 	curwin->w_buffer = curbuf;
 	++curbuf->b_nwindows;
     }
+    CHECK_CURBUF;
 
     // Wiping out the buffer will also close the window and call
     // free_terminal().
@@ -1801,6 +1802,27 @@ update_snapshot(term_T *term)
 }
 
 /*
+ * Loop over all windows in the current tab, and also curwin, which is not
+ * encountered when using a terminal in a popup window.
+ * Return TRUE if "*wp" was set to the next window.
+ */
+    static int
+for_all_windows_and_curwin(win_T **wp, int *did_curwin)
+{
+    if (*wp == NULL)
+	*wp = firstwin;
+    else if ((*wp)->w_next != NULL)
+	*wp = (*wp)->w_next;
+    else if (!*did_curwin)
+	*wp = curwin;
+    else
+	return FALSE;
+    if (*wp == curwin)
+	*did_curwin = TRUE;
+    return TRUE;
+}
+
+/*
  * If needed, add the current lines of the terminal to scrollback and to the
  * buffer.  Called after the job has ended and when switching to
  * Terminal-Normal mode.
@@ -1809,8 +1831,6 @@ update_snapshot(term_T *term)
     static void
 may_move_terminal_to_buffer(term_T *term, int redraw)
 {
-    win_T	    *wp;
-
     if (term->tl_vterm == NULL)
 	return;
 
@@ -1825,7 +1845,11 @@ may_move_terminal_to_buffer(term_T *term, int redraw)
 		       &term->tl_default_color.fg, &term->tl_default_color.bg);
 
     if (redraw)
-	FOR_ALL_WINDOWS(wp)
+    {
+	win_T	    *wp = NULL;
+	int	    did_curwin = FALSE;
+
+	while (for_all_windows_and_curwin(&wp, &did_curwin))
 	{
 	    if (wp->w_buffer == term->tl_buffer)
 	    {
@@ -1842,6 +1866,7 @@ may_move_terminal_to_buffer(term_T *term, int redraw)
 		redraw_win_later(wp, NOT_VALID);
 	    }
 	}
+    }
 }
 
 #if defined(FEAT_TIMERS) || defined(PROTO)
@@ -1925,6 +1950,7 @@ term_enter_normal_mode(void)
     check_cursor();
     if (coladvance(term->tl_cursor_pos.col) == FAIL)
 	coladvance(MAXCOL);
+    curwin->w_set_curswant = TRUE;
 
     // Display the same lines as in the terminal.
     curwin->w_topline = term->tl_scrollback_scrolled + 1;
@@ -1956,6 +1982,10 @@ term_enter_job_mode()
     if (term->tl_channel_closed)
 	cleanup_vterm(term);
     redraw_buf_and_status_later(curbuf, NOT_VALID);
+#ifdef FEAT_PROP_POPUP
+    if (WIN_IS_POPUP(curwin))
+	redraw_win_later(curwin, NOT_VALID);
+#endif
 }
 
 /*
@@ -2806,14 +2836,15 @@ handle_damage(VTermRect rect, void *user)
     static void
 term_scroll_up(term_T *term, int start_row, int count)
 {
-    win_T		 *wp;
+    win_T		 *wp = NULL;
+    int			 did_curwin = FALSE;
     VTermColor		 fg, bg;
     VTermScreenCellAttrs attr;
     int			 clear_attr;
 
     vim_memset(&attr, 0, sizeof(attr));
 
-    FOR_ALL_WINDOWS(wp)
+    while (for_all_windows_and_curwin(&wp, &did_curwin))
     {
 	if (wp->w_buffer == term->tl_buffer)
 	{
@@ -2863,12 +2894,13 @@ handle_movecursor(
 	void *user)
 {
     term_T	*term = (term_T *)user;
-    win_T	*wp;
+    win_T	*wp = NULL;
+    int		did_curwin = FALSE;
 
     term->tl_cursor_pos = pos;
     term->tl_cursor_visible = visible;
 
-    FOR_ALL_WINDOWS(wp)
+    while (for_all_windows_and_curwin(&wp, &did_curwin))
     {
 	if (wp->w_buffer == term->tl_buffer)
 	    position_cursor(wp, &pos, FALSE);
@@ -5719,13 +5751,12 @@ f_term_scrape(typval_T *argvars, typval_T *rettv)
  * "term_sendkeys(buf, keys)" function
  */
     void
-f_term_sendkeys(typval_T *argvars, typval_T *rettv)
+f_term_sendkeys(typval_T *argvars, typval_T *rettv UNUSED)
 {
     buf_T	*buf = term_get_buf(argvars, "term_sendkeys()");
     char_u	*msg;
     term_T	*term;
 
-    rettv->v_type = VAR_UNKNOWN;
     if (buf == NULL)
 	return;
 

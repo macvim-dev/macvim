@@ -146,6 +146,7 @@ NEW_TESTS = \
 	test_iminsert \
 	test_increment \
 	test_increment_dbcs \
+	test_indent \
 	test_ins_complete \
 	test_interrupt \
 	test_job_fails \
@@ -377,6 +378,7 @@ NEW_TESTS_RES = \
 	test_iminsert.res \
 	test_increment.res \
 	test_increment_dbcs.res \
+	test_indent.res \
 	test_ins_complete.res \
 	test_interrupt.res \
 	test_job_fails.res \
@@ -400,6 +402,7 @@ NEW_TESTS_RES = \
 	test_marks.res \
 	test_match.res \
 	test_matchadd_conceal.res \
+	test_matchadd_conceal_utf8.res \
 	test_memory_usage.res \
 	test_messages.res \
 	test_method.res \
