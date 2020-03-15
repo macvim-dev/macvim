@@ -754,6 +754,8 @@ static char *(features[]) =
 static int included_patches[] =
 {   /* Add new patch number below this line */
 /**/
+    320,
+/**/
     319,
 /**/
     318,
@@ -1737,6 +1739,9 @@ list_version(void)
     msg_puts(_("with X11-Athena GUI."));
 #    endif
 #   else
+#    ifdef FEAT_GUI_HAIKU
+    msg_puts(_("with Haiku GUI."));
+#    else
 #     ifdef FEAT_GUI_PHOTON
     msg_puts(_("with Photon GUI."));
 #     else
@@ -1755,6 +1760,7 @@ list_version(void)
 #	  endif
 #	 endif
 #	endif
+#	 endif
 #      endif
 #    endif
 #   endif
