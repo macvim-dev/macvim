@@ -1752,7 +1752,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_11
                 f = [f stringByRemovingPercentEncoding];
 #else
-		f = [f stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+                f = [f stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
 #endif
 
                 // parse value
@@ -1763,20 +1763,20 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 if (decode)
                 {
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_11
-                    v = [f stringByRemovingPercentEncoding];
+                    v = [v stringByRemovingPercentEncoding];
 #else
-                    v = [f stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+                    v = [v stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
 #endif
                 }
 
-		[dict setValue:v forKey:f];
+                [dict setValue:v forKey:f];
             }
         }
 
         // Actually open the file.
         NSString *file = [dict objectForKey:@"url"];
         if (file != nil) {
-            NSURL *fileUrl= [NSURL URLWithString:file];
+            NSURL *fileUrl = [NSURL URLWithString:file];
             // TextMate only opens files that already exist.
             if ([fileUrl isFileURL]
                     && [[NSFileManager defaultManager] fileExistsAtPath:
