@@ -1030,13 +1030,6 @@ func Test_cmdline_expand_special()
 endfunc
 
 func Test_cmdwin_jump_to_win()
-  if has('gui_macvim') && has('gui_running')
-    " Due to a mix of MacVim-specific menu behaviors (calling BMShow at start
-    " instead of VimEnter), and buffer menu stale item bugs in Vim, this test
-    " doesn't work in GUI for now. Will be re-enabled after buffer menu bugs
-    " are fixed.
-    return
-  endif
   call assert_fails('call feedkeys("q:\<C-W>\<C-W>\<CR>", "xt")', 'E11:')
   new
   set modified
