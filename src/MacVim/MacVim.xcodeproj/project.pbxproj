@@ -254,6 +254,44 @@
 		52B7ED9A1C4A4D6900AFFF15 /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dsa_pub.pem; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* MacVim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacVim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		901C06F42430C8C800797C2A /* map.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = map.c; path = ../map.c; sourceTree = "<group>"; };
+		901C06F62430C8C900797C2A /* time.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = time.c; path = ../time.c; sourceTree = "<group>"; };
+		901C06F72430C8C900797C2A /* testing.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = testing.c; path = ../testing.c; sourceTree = "<group>"; };
+		901C06F82430C8C900797C2A /* cmdhist.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = cmdhist.c; path = ../cmdhist.c; sourceTree = "<group>"; };
+		901C06F92430C8C900797C2A /* change.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = change.c; path = ../change.c; sourceTree = "<group>"; };
+		901C06FA2430C8C900797C2A /* evalwindow.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = evalwindow.c; path = ../evalwindow.c; sourceTree = "<group>"; };
+		901C06FB2430C8C900797C2A /* bufwrite.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = bufwrite.c; path = ../bufwrite.c; sourceTree = "<group>"; };
+		901C06FC2430C8CA00797C2A /* evalvars.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = evalvars.c; path = ../evalvars.c; sourceTree = "<group>"; };
+		901C06FD2430C8CA00797C2A /* drawscreen.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = drawscreen.c; path = ../drawscreen.c; sourceTree = "<group>"; };
+		901C06FE2430C8CA00797C2A /* debugger.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = debugger.c; path = ../debugger.c; sourceTree = "<group>"; };
+		901C06FF2430C8CA00797C2A /* popupmenu.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = popupmenu.c; path = ../popupmenu.c; sourceTree = "<group>"; };
+		901C07002430C8CA00797C2A /* cindent.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = cindent.c; path = ../cindent.c; sourceTree = "<group>"; };
+		901C07012430C8CA00797C2A /* usercmd.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = usercmd.c; path = ../usercmd.c; sourceTree = "<group>"; };
+		901C07022430C8CA00797C2A /* popupwin.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = popupwin.c; path = ../popupwin.c; sourceTree = "<group>"; };
+		901C07032430C8CA00797C2A /* drawline.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = drawline.c; path = ../drawline.c; sourceTree = "<group>"; };
+		901C07042430C8CA00797C2A /* cmdexpand.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = cmdexpand.c; path = ../cmdexpand.c; sourceTree = "<group>"; };
+		901C07052430C8CB00797C2A /* scriptfile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = scriptfile.c; path = ../scriptfile.c; sourceTree = "<group>"; };
+		901C07062430C8CB00797C2A /* register.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = register.c; path = ../register.c; sourceTree = "<group>"; };
+		901C07072430C8CB00797C2A /* vim9execute.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = vim9execute.c; path = ../vim9execute.c; sourceTree = "<group>"; };
+		901C07082430C8CB00797C2A /* evalbuffer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = evalbuffer.c; path = ../evalbuffer.c; sourceTree = "<group>"; };
+		901C07092430C8CB00797C2A /* spellsuggest.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = spellsuggest.c; path = ../spellsuggest.c; sourceTree = "<group>"; };
+		901C070A2430C8CB00797C2A /* insexpand.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = insexpand.c; path = ../insexpand.c; sourceTree = "<group>"; };
+		901C070B2430C8CB00797C2A /* profiler.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = profiler.c; path = ../profiler.c; sourceTree = "<group>"; };
+		901C070C2430C8CB00797C2A /* vim9compile.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = vim9compile.c; path = ../vim9compile.c; sourceTree = "<group>"; };
+		901C070D2430C8CC00797C2A /* sound.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = sound.c; path = ../sound.c; sourceTree = "<group>"; };
+		901C070E2430C8CC00797C2A /* vim9.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = vim9.h; path = ../vim9.h; sourceTree = "<group>"; };
+		901C070F2430C8CC00797C2A /* arglist.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = arglist.c; path = ../arglist.c; sourceTree = "<group>"; };
+		901C07102430C8CC00797C2A /* vim9script.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = vim9script.c; path = ../vim9script.c; sourceTree = "<group>"; };
+		901C07112430C8CC00797C2A /* clipboard.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = clipboard.c; path = ../clipboard.c; sourceTree = "<group>"; };
+		901C07122430C8CC00797C2A /* highlight.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = highlight.c; path = ../highlight.c; sourceTree = "<group>"; };
+		901C07132430C8CC00797C2A /* uninstall.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = uninstall.c; path = ../uninstall.c; sourceTree = "<group>"; };
+		901C07142430C8CC00797C2A /* regexp_bt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = regexp_bt.c; path = ../regexp_bt.c; sourceTree = "<group>"; };
+		901C07152430C8CC00797C2A /* mouse.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = mouse.c; path = ../mouse.c; sourceTree = "<group>"; };
+		901C07162430C8CD00797C2A /* optiondefs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = optiondefs.h; path = ../optiondefs.h; sourceTree = "<group>"; };
+		901C07172430C8CD00797C2A /* optionstr.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = optionstr.c; path = ../optionstr.c; sourceTree = "<group>"; };
+		901C07182430C8CD00797C2A /* viminfo.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = viminfo.c; path = ../viminfo.c; sourceTree = "<group>"; };
+		901C07192430C8CD00797C2A /* filepath.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = filepath.c; path = ../filepath.c; sourceTree = "<group>"; };
+		901C071A2430C8CD00797C2A /* session.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = session.c; path = ../session.c; sourceTree = "<group>"; };
 		90922A3B221D429500F1E1F4 /* misc2.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = misc2.c; path = ../misc2.c; sourceTree = "<group>"; };
 		90922A3C221D429500F1E1F4 /* if_mzsch.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = if_mzsch.c; path = ../if_mzsch.c; sourceTree = "<group>"; };
 		90922A3D221D429500F1E1F4 /* version.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = version.h; path = ../version.h; sourceTree = "<group>"; };
@@ -603,6 +641,44 @@
 		90922A3A221D417800F1E1F4 /* Vim Source */ = {
 			isa = PBXGroup;
 			children = (
+				901C070F2430C8CC00797C2A /* arglist.c */,
+				901C06FB2430C8C900797C2A /* bufwrite.c */,
+				901C06F92430C8C900797C2A /* change.c */,
+				901C07002430C8CA00797C2A /* cindent.c */,
+				901C07112430C8CC00797C2A /* clipboard.c */,
+				901C07042430C8CA00797C2A /* cmdexpand.c */,
+				901C06F82430C8C900797C2A /* cmdhist.c */,
+				901C06FE2430C8CA00797C2A /* debugger.c */,
+				901C07032430C8CA00797C2A /* drawline.c */,
+				901C06FD2430C8CA00797C2A /* drawscreen.c */,
+				901C07082430C8CB00797C2A /* evalbuffer.c */,
+				901C06FC2430C8CA00797C2A /* evalvars.c */,
+				901C06FA2430C8C900797C2A /* evalwindow.c */,
+				901C07192430C8CD00797C2A /* filepath.c */,
+				901C07122430C8CC00797C2A /* highlight.c */,
+				901C070A2430C8CB00797C2A /* insexpand.c */,
+				901C06F42430C8C800797C2A /* map.c */,
+				901C07152430C8CC00797C2A /* mouse.c */,
+				901C07162430C8CD00797C2A /* optiondefs.h */,
+				901C07172430C8CD00797C2A /* optionstr.c */,
+				901C06FF2430C8CA00797C2A /* popupmenu.c */,
+				901C07022430C8CA00797C2A /* popupwin.c */,
+				901C070B2430C8CB00797C2A /* profiler.c */,
+				901C07142430C8CC00797C2A /* regexp_bt.c */,
+				901C07062430C8CB00797C2A /* register.c */,
+				901C07052430C8CB00797C2A /* scriptfile.c */,
+				901C071A2430C8CD00797C2A /* session.c */,
+				901C070D2430C8CC00797C2A /* sound.c */,
+				901C07092430C8CB00797C2A /* spellsuggest.c */,
+				901C06F72430C8C900797C2A /* testing.c */,
+				901C06F62430C8C900797C2A /* time.c */,
+				901C07132430C8CC00797C2A /* uninstall.c */,
+				901C07012430C8CA00797C2A /* usercmd.c */,
+				901C070E2430C8CC00797C2A /* vim9.h */,
+				901C070C2430C8CB00797C2A /* vim9compile.c */,
+				901C07072430C8CB00797C2A /* vim9execute.c */,
+				901C07102430C8CC00797C2A /* vim9script.c */,
+				901C07182430C8CD00797C2A /* viminfo.c */,
 				90922ABB221D42DC00F1E1F4 /* MacVim */,
 				90922A66221D429800F1E1F4 /* alloc.h */,
 				90922A54221D429700F1E1F4 /* arabic.c */,
