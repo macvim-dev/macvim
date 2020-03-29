@@ -28,4 +28,5 @@ void ex_macmenu(exarg_T *eap);
 void ex_macmenukey(exarg_T *eap);
 char_u *lookup_toolbar_item(int idx);
 #endif
+void f_menu_info(typval_T *argvars, typval_T *rettv);
 /* vim: set ft=c : */

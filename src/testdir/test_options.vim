@@ -255,9 +255,10 @@ func Test_set_errors()
   call assert_fails('set regexpengine=3', 'E474:')
   call assert_fails('set history=10001', 'E474:')
   call assert_fails('set numberwidth=21', 'E474:')
-  call assert_fails('set colorcolumn=-a')
-  call assert_fails('set colorcolumn=a')
-  call assert_fails('set colorcolumn=1,')
+  call assert_fails('set colorcolumn=-a', 'E474:')
+  call assert_fails('set colorcolumn=a', 'E474:')
+  call assert_fails('set colorcolumn=1,', 'E474:')
+  call assert_fails('set colorcolumn=1;', 'E474:')
   call assert_fails('set cmdheight=-1', 'E487:')
   call assert_fails('set cmdwinheight=-1', 'E487:')
   if has('conceal')
@@ -293,8 +294,12 @@ func Test_set_errors()
     call assert_fails('set guicursor=i-ci,r-cr:h', 'E545:')
     call assert_fails('set guicursor=i-ci', 'E545:')
     call assert_fails('set guicursor=x', 'E545:')
+    call assert_fails('set guicursor=x:', 'E546:')
     call assert_fails('set guicursor=r-cr:horx', 'E548:')
     call assert_fails('set guicursor=r-cr:hor0', 'E549:')
+  endif
+  if has('mouseshape')
+    call assert_fails('se mouseshape=i-r:x', 'E547:')
   endif
   call assert_fails('set backupext=~ patchmode=~', 'E589:')
   call assert_fails('set winminheight=10 winheight=9', 'E591:')
@@ -391,8 +396,7 @@ endfunc
 func Test_set_one_column()
   let out_mult = execute('set all')->split("\n")
   let out_one = execute('set! all')->split("\n")
-  " one column should be two to four times as many lines
-  call assert_inrange(len(out_mult) * 2, len(out_mult) * 4, len(out_one))
+  call assert_true(len(out_mult) < len(out_one))
 endfunc
 
 func Test_set_values()
@@ -656,7 +660,15 @@ func Test_buftype()
   call setline(1, ['L1'])
   set buftype=nowrite
   call assert_fails('write', 'E382:')
-  close!
+
+  for val in ['', 'nofile', 'nowrite', 'acwrite', 'quickfix', 'help', 'terminal', 'prompt', 'popup']
+    exe 'set buftype=' .. val
+    call writefile(['something'], 'XBuftype')
+    call assert_fails('write XBuftype', 'E13:', 'with buftype=' .. val)
+  endfor
+
+  call delete('XBuftype')
+  bwipe!
 endfunc
 
 " Test for the 'shellquote' option

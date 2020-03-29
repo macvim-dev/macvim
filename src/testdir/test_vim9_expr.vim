@@ -806,11 +806,26 @@ func Test_expr7_fails()
   call CheckDefFailure("let x = @", "E1002:")
   call CheckDefFailure("let x = @<", "E354:")
 
+  call CheckDefFailure("let x = [1, 2", "E697:")
+  call CheckDefFailure("let x = [notfound]", "E1001:")
+
+  call CheckDefFailure("let x = { -> 123) }", "E451:")
+  call CheckDefFailure("let x = 123->{x -> x + 5) }", "E451:")
+
   call CheckDefFailure("let x = &notexist", 'E113:')
   call CheckDefExecFailure("&grepprg = [343]", 'E1051:')
 
   call CheckDefExecFailure("echo s:doesnt_exist", 'E121:')
   call CheckDefExecFailure("echo g:doesnt_exist", 'E121:')
+
+  call CheckDefFailure("echo a:somevar", 'E1075:')
+  call CheckDefFailure("echo l:somevar", 'E1075:')
+  call CheckDefFailure("echo x:somevar", 'E1075:')
+
+  " TODO
+  call CheckDefFailure("echo b:somevar", 'not supported yet')
+  call CheckDefFailure("echo w:somevar", 'not supported yet')
+  call CheckDefFailure("echo t:somevar", 'not supported yet')
 
   call CheckDefExecFailure("let x = +g:astring", 'E1030:')
   call CheckDefExecFailure("let x = +g:ablob", 'E974:')
@@ -818,6 +833,10 @@ func Test_expr7_fails()
   call CheckDefExecFailure("let x = +g:adict", 'E728:')
 
   call CheckDefFailureMult(["let x = ''", "let y = x.memb"], 'E715:')
+
+  call CheckDefExecFailure("[1, 2->len()", 'E492:')
+  call CheckDefExecFailure("#{a: 1->len()", 'E488:')
+  call CheckDefExecFailure("{'a': 1->len()", 'E492:')
 endfunc
 
 let g:Funcrefs = [function('add')]
@@ -865,6 +884,7 @@ enddef
 
 func Test_expr7_trailing_fails()
   call CheckDefFailureList(['let l = [2]', 'l->{l -> add(l, 8)}'], 'E107')
+  call CheckDefFailureList(['let l = [2]', 'l->{l -> add(l, 8)} ()'], 'E274')
 endfunc
 
 func Test_expr_fails()
@@ -878,4 +898,8 @@ func Test_expr_fails()
   call CheckDefFailure("v:nosuch += 3", 'E1001:')
   call CheckDefFailure("let v:version = 3", 'E1064:')
   call CheckDefFailure("let asdf = v:nosuch", 'E1001:')
+
+  call CheckDefFailure("echo len('asdf'", 'E110:')
+  call CheckDefFailure("echo Func0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789()", 'E1011:')
+  call CheckDefFailure("echo doesnotexist()", 'E117:')
 endfunc

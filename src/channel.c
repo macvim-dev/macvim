@@ -399,6 +399,7 @@ channel_can_close(channel_T *channel)
 
 /*
  * Close a channel and free all its resources.
+ * The "channel" pointer remains valid.
  */
     static void
 channel_free_contents(channel_T *channel)
@@ -408,6 +409,9 @@ channel_free_contents(channel_T *channel)
     ch_log(channel, "Freeing channel");
 }
 
+/*
+ * Unlink "channel" from the list of channels and free it.
+ */
     static void
 channel_free_channel(channel_T *channel)
 {
@@ -500,10 +504,8 @@ free_unused_channels(int copyID, int mask)
 	ch_next = ch->ch_next;
 	if (!channel_still_useful(ch)
 				 && (ch->ch_copyID & mask) != (copyID & mask))
-	{
 	    // Free the channel struct itself.
 	    channel_free_channel(ch);
-	}
     }
 }
 
@@ -4468,13 +4470,19 @@ channel_parse_messages(void)
     int		ret = FALSE;
     int		r;
     ch_part_T	part = PART_SOCK;
+    static int	recursive = 0;
 #ifdef ELAPSED_FUNC
     elapsed_T	start_tv;
-
-    ELAPSED_INIT(start_tv);
 #endif
 
+    // The code below may invoke callbacks, which might call us back.
+    // In a recursive call channels will not be closed.
+    ++recursive;
     ++safe_to_invoke_callback;
+
+#ifdef ELAPSED_FUNC
+    ELAPSED_INIT(start_tv);
+#endif
 
     // Only do this message when another message was given, otherwise we get
     // lots of them.
@@ -4486,34 +4494,37 @@ channel_parse_messages(void)
     }
     while (channel != NULL)
     {
-	if (channel_can_close(channel))
+	if (recursive == 1)
 	{
-	    channel->ch_to_be_closed = (1U << PART_COUNT);
-	    channel_close_now(channel);
-	    // channel may have been freed, start over
-	    channel = first_channel;
-	    continue;
-	}
-	if (channel->ch_to_be_freed || channel->ch_killing)
-	{
-	    if (channel->ch_killing)
+	    if (channel_can_close(channel))
+	    {
+		channel->ch_to_be_closed = (1U << PART_COUNT);
+		channel_close_now(channel);
+		// channel may have been freed, start over
+		channel = first_channel;
+		continue;
+	    }
+	    if (channel->ch_to_be_freed || channel->ch_killing)
 	    {
 		channel_free_contents(channel);
-		channel->ch_job->jv_channel = NULL;
+		if (channel->ch_job != NULL)
+		    channel->ch_job->jv_channel = NULL;
+
+		// free the channel and then start over
+		channel_free_channel(channel);
+		channel = first_channel;
+		continue;
 	    }
-	    channel_free(channel);
-	    // channel has been freed, start over
-	    channel = first_channel;
-	    continue;
+	    if (channel->ch_refcount == 0 && !channel_still_useful(channel))
+	    {
+		// channel is no longer useful, free it
+		channel_free(channel);
+		channel = first_channel;
+		part = PART_SOCK;
+		continue;
+	    }
 	}
-	if (channel->ch_refcount == 0 && !channel_still_useful(channel))
-	{
-	    // channel is no longer useful, free it
-	    channel_free(channel);
-	    channel = first_channel;
-	    part = PART_SOCK;
-	    continue;
-	}
+
 	if (channel->ch_part[part].ch_fd != INVALID_FD
 				      || channel_has_readahead(channel, part))
 	{
@@ -4554,6 +4565,7 @@ channel_parse_messages(void)
     }
 
     --safe_to_invoke_callback;
+    --recursive;
 
     return ret;
 }
@@ -5200,6 +5212,21 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		memcpy(opt->jo_ansi_colors, rgb, sizeof(rgb));
 	    }
 # endif
+	    else if (STRCMP(hi->hi_key, "term_highlight") == 0)
+	    {
+		char_u *p;
+
+		if (!(supported2 & JO2_TERM_HIGHLIGHT))
+		    break;
+		opt->jo_set2 |= JO2_TERM_HIGHLIGHT;
+		p = tv_get_string_buf_chk(item, opt->jo_term_highlight_buf);
+		if (p == NULL || *p == NUL)
+		{
+		    semsg(_(e_invargval), "term_highlight");
+		    return FAIL;
+		}
+		opt->jo_term_highlight = p;
+	    }
 	    else if (STRCMP(hi->hi_key, "term_api") == 0)
 	    {
 		if (!(supported2 & JO2_TERM_API))

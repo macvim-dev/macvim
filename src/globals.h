@@ -384,9 +384,7 @@ EXTERN type_T t_void INIT4(VAR_VOID, 0, NULL, NULL);
 EXTERN type_T t_bool INIT4(VAR_BOOL, 0, NULL, NULL);
 EXTERN type_T t_special INIT4(VAR_SPECIAL, 0, NULL, NULL);
 EXTERN type_T t_number INIT4(VAR_NUMBER, 0, NULL, NULL);
-# ifdef FEAT_FLOAT
 EXTERN type_T t_float INIT4(VAR_FLOAT, 0, NULL, NULL);
-# endif
 EXTERN type_T t_string INIT4(VAR_STRING, 0, NULL, NULL);
 EXTERN type_T t_blob INIT4(VAR_BLOB, 0, NULL, NULL);
 EXTERN type_T t_job INIT4(VAR_JOB, 0, NULL, NULL);
@@ -1651,6 +1649,7 @@ EXTERN char e_func_deleted[]	INIT(= N_("E933: Function was deleted: %s"));
 EXTERN char e_dictkey[]		INIT(= N_("E716: Key not present in Dictionary: %s"));
 EXTERN char e_listreq[]		INIT(= N_("E714: List required"));
 EXTERN char e_listblobreq[]	INIT(= N_("E897: List or Blob required"));
+EXTERN char e_list_end[]	INIT(= N_("E697: Missing end of List ']': %s"));
 EXTERN char e_listdictarg[]	INIT(= N_("E712: Argument of %s must be a List or Dictionary"));
 EXTERN char e_listdictblobarg[]	INIT(= N_("E896: Argument of %s must be a List, Dictionary or Blob"));
 EXTERN char e_modulus[]		INIT(= N_("E804: Cannot use '%' with Float"));

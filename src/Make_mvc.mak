@@ -38,7 +38,8 @@
 #	  is yes)
 #	Global IME support: GIME=yes (requires GUI=yes)
 #
-#	Terminal support: TERMINAL=yes (default is yes)
+#	Terminal support: TERMINAL=yes (default is yes if FEATURES is HUGE)
+#	  Will also enable CHANNEL
 #
 #	Sound support: SOUND=yes (default is yes)
 #
@@ -109,13 +110,13 @@
 #	PostScript printing: POSTSCRIPT=yes (default is no)
 #
 #	Netbeans Support: NETBEANS=[yes or no] (default is yes if GUI is yes)
-#	Requires CHANNEL.
+#	  Requires CHANNEL.
 #
 #	Netbeans Debugging Support: NBDEBUG=[yes or no] (should be no, yes
 #	doesn't work)
 #
 #	Inter process communication: CHANNEL=[yes or no] (default is yes if GUI
-#	is yes)
+#	is yes or TERMINAL is yes)
 #
 #	XPM Image Support: XPM=[path to XPM directory]
 #	Default is "xpm", using the files included in the distribution.
@@ -388,7 +389,7 @@ NETBEANS = $(GUI)
 !endif
 
 !ifndef CHANNEL
-! if "$(FEATURES)"=="HUGE"
+! if "$(FEATURES)"=="HUGE" || "$(TERMINAL)"=="yes"
 CHANNEL = yes
 ! else
 CHANNEL = $(GUI)
@@ -729,6 +730,7 @@ OBJ = \
 	$(OUTDIR)\change.obj \
 	$(OUTDIR)\charset.obj \
 	$(OUTDIR)\cindent.obj \
+	$(OUTDIR)\clipboard.obj \
 	$(OUTDIR)\cmdexpand.obj \
 	$(OUTDIR)\cmdhist.obj \
 	$(OUTDIR)\crypt.obj \
@@ -1514,6 +1516,8 @@ $(OUTDIR)/charset.obj:	$(OUTDIR) charset.c  $(INCL)
 
 $(OUTDIR)/cindent.obj:	$(OUTDIR) cindent.c  $(INCL)
 
+$(OUTDIR)/clipboard.obj:	$(OUTDIR) clipboard.c  $(INCL)
+
 $(OUTDIR)/cmdexpand.obj:	$(OUTDIR) cmdexpand.c  $(INCL)
 
 $(OUTDIR)/cmdhist.obj:	$(OUTDIR) cmdhist.c  $(INCL)
@@ -1861,6 +1865,7 @@ proto.h: \
 	proto/change.pro \
 	proto/charset.pro \
 	proto/cindent.pro \
+	proto/clipboard.pro \
 	proto/cmdexpand.pro \
 	proto/cmdhist.pro \
 	proto/crypt.pro \

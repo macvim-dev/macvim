@@ -242,6 +242,14 @@ func Test_confirm_cmd()
   call assert_equal(['foo4'], readfile('foo'))
   call assert_equal(['bar2'], readfile('bar'))
 
+  call delete('foo')
+  call delete('bar')
+endfunc
+
+func Test_confirm_cmd_cancel()
+  CheckNotGui
+  CheckRunVimInTerminal
+
   " Test for closing a window with a modified buffer
   let buf = RunVimInTerminal('', {'rows': 20})
   call term_sendkeys(buf, ":set nomore\n")
@@ -251,15 +259,14 @@ func Test_confirm_cmd()
   call WaitForAssert({-> assert_match('^\[Y\]es, (N)o, (C)ancel: *$',
         \ term_getline(buf, 20))}, 1000)
   call term_sendkeys(buf, "C")
+  call WaitForAssert({-> assert_equal('', term_getline(buf, 20))}, 1000)
   call term_sendkeys(buf, ":confirm close\n")
   call WaitForAssert({-> assert_match('^\[Y\]es, (N)o, (C)ancel: *$',
         \ term_getline(buf, 20))}, 1000)
   call term_sendkeys(buf, "N")
-  call term_sendkeys(buf, ":quit\n")
+  call WaitForAssert({-> assert_match('^ *0,0-1         All$',
+        \ term_getline(buf, 20))}, 1000)
   call StopVimInTerminal(buf)
-
-  call delete('foo')
-  call delete('bar')
 endfunc
 
 " Test for the :print command
@@ -276,12 +283,21 @@ endfunc
 func Test_redir_cmd()
   call assert_fails('redir @@', 'E475:')
   call assert_fails('redir abc', 'E475:')
+  call assert_fails('redir => 1abc', 'E474:')
+  call assert_fails('redir => a b', 'E488:')
+  call assert_fails('redir => abc[1]', 'E474:')
+  let b=0zFF
+  call assert_fails('redir =>> b', 'E734:')
+  unlet b
+
   if has('unix')
+    " Redirecting to a directory name
     call mkdir('Xdir')
     call assert_fails('redir > Xdir', 'E17:')
     call delete('Xdir', 'd')
   endif
   if !has('bsd')
+    " Redirecting to a read-only file
     call writefile([], 'Xfile')
     call setfperm('Xfile', 'r--r--r--')
     call assert_fails('redir! > Xfile', 'E190:')

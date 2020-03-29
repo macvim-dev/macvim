@@ -121,30 +121,6 @@ func Test_normal01_keymodel()
   bw!
 endfunc
 
-" Test for select mode
-func Test_normal02_selectmode()
-  call Setup_NewWindow()
-  50
-  norm! gHy
-  call assert_equal('y51', getline('.'))
-  call setline(1, range(1,100))
-  50
-  exe ":norm! V9jo\<c-g>y"
-  call assert_equal('y60', getline('.'))
-  " clean up
-  bw!
-endfunc
-
-func Test_normal02_selectmode2()
-  " some basic select mode tests
-  call Setup_NewWindow()
-  50
-  call feedkeys(":set im\n\<c-o>gHc\<c-o>:set noim\n", 'tx')
-  call assert_equal('c51', getline('.'))
-  " clean up
-  bw!
-endfunc
-
 func Test_normal03_join()
   " basic join test
   call Setup_NewWindow()
@@ -420,6 +396,7 @@ func Test_normal10_expand()
 
   " Test expand(`=...`) i.e. backticks expression expansion
   call assert_equal('5', expand('`=2+3`'))
+  call assert_equal('3.14', expand('`=3.14`'))
 
   " clean up
   bw!

@@ -2018,7 +2018,10 @@ buflist_new(
 	    apply_autocmds(EVENT_BUFWIPEOUT, NULL, NULL, FALSE, curbuf);
 #ifdef FEAT_EVAL
 	if (aborting())		// autocmds may abort script processing
+	{
+	    vim_free(ffname);
 	    return NULL;
+	}
 #endif
 	if (buf == curbuf)
 	{

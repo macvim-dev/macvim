@@ -12,6 +12,7 @@ SRC_ALL =	\
 		appveyor.yml \
 		ci/appveyor.bat \
 		ci/if_ver*.vim \
+		ci/load-snd-dummy.sh \
 		src/Make_all.mak \
 		src/README.md \
 		src/alloc.h \
@@ -29,6 +30,7 @@ SRC_ALL =	\
 		src/channel.c \
 		src/charset.c \
 		src/cindent.c \
+		src/clipboard.c \
 		src/cmdexpand.c \
 		src/cmdhist.c \
 		src/crypt.c \
@@ -150,17 +152,18 @@ SRC_ALL =	\
 		src/testdir/*.py \
 		src/testdir/lsan-suppress.txt \
 		src/testdir/sautest/autoload/*.vim \
-		src/testdir/runtest.vim \
-		src/testdir/summarize.vim \
 		src/testdir/check.vim \
-		src/testdir/shared.vim \
-		src/testdir/screendump.vim \
-		src/testdir/view_util.vim \
-		src/testdir/term_util.vim \
-		src/testdir/setup.vim \
 		src/testdir/gui_init.vim \
-		src/testdir/setup_gui.vim \
 		src/testdir/gui_preinit.vim \
+		src/testdir/mouse.vim \
+		src/testdir/runtest.vim \
+		src/testdir/screendump.vim \
+		src/testdir/setup.vim \
+		src/testdir/setup_gui.vim \
+		src/testdir/shared.vim \
+		src/testdir/summarize.vim \
+		src/testdir/term_util.vim \
+		src/testdir/view_util.vim \
 		src/testdir/test[0-9]*.ok \
 		src/testdir/test[0-9]*a.ok \
 		src/testdir/test_[a-z]*.ok \
@@ -200,6 +203,7 @@ SRC_ALL =	\
 		src/proto/channel.pro \
 		src/proto/charset.pro \
 		src/proto/cindent.pro \
+		src/proto/clipboard.pro \
 		src/proto/cmdexpand.pro \
 		src/proto/cmdhist.pro \
 		src/proto/crypt.pro \
@@ -784,20 +788,20 @@ RT_UNIX =	\
 		README_unix.txt \
 		runtime/hi16-action-make.png \
 		runtime/hi22-action-make.png \
-		runtime/vim16x16.png \
-		runtime/vim16x16.xpm \
-		runtime/vim32x32.png \
-		runtime/vim32x32.xpm \
-		runtime/vim48x48.png \
-		runtime/vim48x48.xpm \
 		runtime/gvim.desktop \
 		runtime/vim.desktop \
 
 # Unix and DOS runtime without CR-LF translation
 RT_UNIX_DOS_BIN =	\
 		runtime/vim16x16.gif \
+		runtime/vim16x16.png \
+		runtime/vim16x16.xpm \
 		runtime/vim32x32.gif \
+		runtime/vim32x32.png \
+		runtime/vim32x32.xpm \
 		runtime/vim48x48.gif \
+		runtime/vim48x48.png \
+		runtime/vim48x48.xpm \
 
 # runtime not for unix or extra
 RT_NO_UNIX =	\

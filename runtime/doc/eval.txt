@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.2.  Last change: 2020 Mar 14
+*eval.txt*	For Vim version 8.2.  Last change: 2020 Mar 26
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2527,7 +2527,7 @@ glob({expr} [, {nosuf} [, {list} [, {alllinks}]]])
 glob2regpat({expr})		String	convert a glob pat into a search pat
 globpath({path}, {expr} [, {nosuf} [, {list} [, {alllinks}]]])
 				String	do glob({expr}) for all dirs in {path}
-has({feature})			Number	|TRUE| if feature {feature} supported
+has({feature} [, {check}])	Number	|TRUE| if feature {feature} supported
 has_key({dict}, {key})		Number	|TRUE| if {dict} has entry {key}
 haslocaldir([{winnr} [, {tabnr}]])
 				Number	|TRUE| if the window executed |:lcd|
@@ -2613,6 +2613,7 @@ matchstr({expr}, {pat} [, {start} [, {count}]])
 matchstrpos({expr}, {pat} [, {start} [, {count}]])
 				List	{count}'th match of {pat} in {expr}
 max({expr})			Number	maximum value of items in {expr}
+menu_info({name} [, {mode}])	Dict	get menu item information
 min({expr})			Number	minimum value of items in {expr}
 mkdir({name} [, {path} [, {prot}]])
 				Number	create directory {name}
@@ -4113,8 +4114,12 @@ exists({expr})	The result is a Number, which is |TRUE| if {expr} is defined,
 					string)
 			*funcname	built-in function (see |functions|)
 					or user defined function (see
-					|user-functions|). Also works for a
-					variable that is a Funcref.
+					|user-functions|) that is implemented.
+					Also works for a variable that is a
+					Funcref.
+			?funcname	built-in function that could be
+					implemented; to be used to check if
+					"funcname" is valid
 			varname		internal variable (see
 					|internal-variables|).  Also works
 					for |curly-braces-names|, |Dictionary|
@@ -4369,8 +4374,8 @@ feedkeys({string} [, {mode}])				*feedkeys()*
 		'L'	Lowlevel input.  Only works for Unix or when using the
 			GUI. Keys are used as if they were coming from the
 			terminal.  Other flags are not used.  *E980*
-			When a CTRL-C interrupts it sets the internal
-			"got_int" flag.
+			When a CTRL-C interrupts and 't' is included it sets
+			the internal "got_int" flag.
 		'i'	Insert the string instead of appending (see above).
 		'x'	Execute commands until typeahead is empty.  This is
 			similar to using ":normal!".  You can call feedkeys()
@@ -5839,10 +5844,22 @@ globpath({path}, {expr} [, {nosuf} [, {list} [, {alllinks}]]])
 			GetExpr()->globpath(&rtp)
 <
 							*has()*
-has({feature})	The result is a Number, which is 1 if the feature {feature} is
-		supported, zero otherwise.  The {feature} argument is a
-		string.  See |feature-list| below.
+has({feature} [, {check}])
+		When {check} is omitted or is zero: The result is a Number,
+		which is 1 if the feature {feature} is supported, zero
+		otherwise.  The {feature} argument is a string, case is
+		ignored.  See |feature-list| below.
+
+		When {check} is present and not zero: The result is a Number,
+		which is 1 if the feature {feature} could ever be supported,
+		zero otherwise.  This is useful to check for a typo in
+		{feature} and to detect dead code.  Keep in mind that an older
+		Vim version will not know about a feature added later and
+		features that have been abandoned will not be know by the
+		current Vim version.
+
 		Also see |exists()|.
+
 		Note that to skip code that has a syntax error when the
 		feature is not available, Vim may skip the rest of the line
 		and miss a following `endif`.  Therfore put the `endif` on a
@@ -5850,8 +5867,8 @@ has({feature})	The result is a Number, which is 1 if the feature {feature} is
 			if has('feature')
 			  let x = this->breaks->without->the->feature
 			endif
-<		If the `endif` would be in the second line it would not be
-		found.
+<		If the `endif` would be moved to the second line as "| endif" it
+		would not be found.
 
 
 has_key({dict}, {key})					*has_key()*
@@ -7136,6 +7153,7 @@ matchstrpos({expr}, {pat} [, {start} [, {count}]])		*matchstrpos()*
 		Can also be used as a |method|: >
 			GetText()->matchstrpos('word')
 <
+
 							*max()*
 max({expr})	Return the maximum value of all items in {expr}.
 		{expr} can be a List or a Dictionary.  For a Dictionary,
@@ -7146,6 +7164,66 @@ max({expr})	Return the maximum value of all items in {expr}.
 
 		Can also be used as a |method|: >
 			mylist->max()
+
+
+menu_info({name} [, {mode}])				*menu_info()*
+		Return information about the specified menu {name} in
+		mode {mode}. The menu name should be specified without the
+		shortcut character ('&').
+
+		{mode} can be one of these strings:
+			"n"	Normal
+			"v"	Visual (including Select)
+			"o"	Operator-pending
+			"i"	Insert
+			"c"	Cmd-line
+			"s"	Select
+			"x"	Visual
+			"t"	Terminal-Job
+			""	Normal, Visual and Operator-pending
+			"!"	Insert and Cmd-line
+		When {mode} is omitted, the modes for "" are used.
+
+		Returns a |Dictionary| containing the following items:
+		  accel		menu item accelerator text |menu-text|
+		  display	display name (name without '&')
+		  enabled	v:true if this menu item is enabled
+				Refer to |:menu-enable|
+		  icon		name of the icon file (for toolbar)
+				|toolbar-icon|
+		  iconidx	index of a built-in icon
+		  modes		modes for which the menu is defined. In
+				addition to the modes mentioned above, these
+				characters will be used:
+				" "	Normal, Visual and Operator-pending
+		  name		menu item name.
+		  noremenu	v:true if the {rhs} of the menu item is not
+				remappable else v:false.
+		  priority	menu order priority |menu-priority|
+		  rhs		right-hand-side of the menu item. The returned
+				string has special characters translated like
+				in the output of the ":menu" command listing.
+				When the {rhs} of a menu item is empty, then
+				"<Nop>" is returned.
+		  script	v:true if script-local remapping of {rhs} is
+				allowed else v:false.  See |:menu-script|.
+		  shortcut	shortcut key (character after '&' in
+				the menu name) |menu-shortcut|
+		  silent	v:true if the menu item is created
+				with <silent> argument |:menu-silent|
+		  submenus	|List| containing the names of
+				all the submenus.  Present only if the menu
+				item has submenus.
+
+		Returns an empty dictionary if the menu item is not found.
+
+		Examples: >
+			:echo menu_info('Edit.Cut')
+			:echo menu_info('File.Save', 'n')
+<
+		Can also be used as a |method|: >
+			GetMenuName()->menu_info('v')
+
 
 <							*min()*
 min({expr})	Return the minimum value of all items in {expr}.
@@ -8742,6 +8820,7 @@ setqflist({list} [, {action} [, {what}]])		*setqflist()*
 							*setreg()*
 setreg({regname}, {value} [, {options}])
 		Set the register {regname} to {value}.
+		If {regname} is "" or "@", the unnamed register '"' is used.
 		{value} may be any value returned by |getreg()|, including
 		a |List|.
 		If {options} contains "a" or {regname} is upper case,

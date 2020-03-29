@@ -283,6 +283,7 @@ call_ufunc(ufunc_T *ufunc, int argcount, ectx_T *ectx, isn_T *iptr)
 	// that was defined later: we can call it directly next time.
 	if (iptr != NULL)
 	{
+	    delete_instr(iptr);
 	    iptr->isn_type = ISN_DCALL;
 	    iptr->isn_arg.dfunc.cdf_idx = ufunc->uf_dfunc_idx;
 	    iptr->isn_arg.dfunc.cdf_argcount = argcount;
@@ -480,11 +481,21 @@ call_def_function(
     for (;;)
     {
 	isn_T	    *iptr;
-	trycmd_T    *trycmd = NULL;
+
+	veryfast_breakcheck();
+	if (got_int)
+	{
+	    // Turn CTRL-C into an exception.
+	    got_int = FALSE;
+	    if (throw_exception("Vim:Interrupt", ET_INTERRUPT, NULL) == FAIL)
+		goto failed;
+	    did_throw = TRUE;
+	}
 
 	if (did_throw && !ectx.ec_in_catch)
 	{
 	    garray_T	*trystack = &ectx.ec_trystack;
+	    trycmd_T    *trycmd = NULL;
 
 	    // An exception jumps to the first catch, finally, or returns from
 	    // the current function.
@@ -782,8 +793,9 @@ call_def_function(
 	    // store $ENV
 	    case ISN_STOREENV:
 		--ectx.ec_stack.ga_len;
-		vim_setenv_ext(iptr->isn_arg.string,
-					       tv_get_string(STACK_TV_BOT(0)));
+		tv = STACK_TV_BOT(0);
+		vim_setenv_ext(iptr->isn_arg.string, tv_get_string(tv));
+		clear_tv(tv);
 		break;
 
 	    // store @r
@@ -1038,6 +1050,7 @@ call_def_function(
 	    case ISN_RETURN:
 		{
 		    garray_T	*trystack = &ectx.ec_trystack;
+		    trycmd_T    *trycmd = NULL;
 
 		    if (trystack->ga_len > 0)
 			trycmd = ((trycmd_T *)trystack->ga_data)
@@ -1146,6 +1159,8 @@ call_def_function(
 	    // start of ":try" block
 	    case ISN_TRY:
 		{
+		    trycmd_T    *trycmd = NULL;
+
 		    if (ga_grow(&ectx.ec_trystack, 1) == FAIL)
 			goto failed;
 		    trycmd = ((trycmd_T *)ectx.ec_trystack.ga_data)
@@ -1180,7 +1195,7 @@ call_def_function(
 
 		    if (trystack->ga_len > 0)
 		    {
-			trycmd = ((trycmd_T *)trystack->ga_data)
+			trycmd_T    *trycmd = ((trycmd_T *)trystack->ga_data)
 							+ trystack->ga_len - 1;
 			trycmd->tcd_caught = TRUE;
 		    }
@@ -1196,6 +1211,8 @@ call_def_function(
 
 		    if (trystack->ga_len > 0)
 		    {
+			trycmd_T    *trycmd = NULL;
+
 			--trystack->ga_len;
 			--trylevel;
 			trycmd = ((trycmd_T *)trystack->ga_data)
@@ -1677,6 +1694,7 @@ failed:
     for (idx = 0; idx < ectx.ec_stack.ga_len; ++idx)
 	clear_tv(STACK_TV(idx));
     vim_free(ectx.ec_stack.ga_data);
+    vim_free(ectx.ec_trystack.ga_data);
     return ret;
 }
 
@@ -1756,14 +1774,16 @@ ex_disassemble(exarg_T *eap)
 		}
 		break;
 	    case ISN_EXECUTE:
-		smsg("%4d EXECUTE %d", current, iptr->isn_arg.number);
+		smsg("%4d EXECUTE %lld", current,
+					    (long long)(iptr->isn_arg.number));
 		break;
 	    case ISN_LOAD:
 		if (iptr->isn_arg.number < 0)
 		    smsg("%4d LOAD arg[%lld]", current,
-				      iptr->isn_arg.number + STACK_FRAME_SIZE);
+			 (long long)(iptr->isn_arg.number + STACK_FRAME_SIZE));
 		else
-		    smsg("%4d LOAD $%lld", current, iptr->isn_arg.number);
+		    smsg("%4d LOAD $%lld", current,
+					    (long long)(iptr->isn_arg.number));
 		break;
 	    case ISN_LOADV:
 		smsg("%4d LOADV v:%s", current,
@@ -1799,15 +1819,16 @@ ex_disassemble(exarg_T *eap)
 		smsg("%4d LOADENV %s", current, iptr->isn_arg.string);
 		break;
 	    case ISN_LOADREG:
-		smsg("%4d LOADREG @%c", current, iptr->isn_arg.number);
+		smsg("%4d LOADREG @%c", current, (int)(iptr->isn_arg.number));
 		break;
 
 	    case ISN_STORE:
 		if (iptr->isn_arg.number < 0)
 		    smsg("%4d STORE arg[%lld]", current,
-				      iptr->isn_arg.number + STACK_FRAME_SIZE);
+			 (long long)(iptr->isn_arg.number + STACK_FRAME_SIZE));
 		else
-		    smsg("%4d STORE $%lld", current, iptr->isn_arg.number);
+		    smsg("%4d STORE $%lld", current,
+					    (long long)(iptr->isn_arg.number));
 		break;
 	    case ISN_STOREV:
 		smsg("%4d STOREV v:%s", current,
@@ -1844,7 +1865,7 @@ ex_disassemble(exarg_T *eap)
 		smsg("%4d STOREENV $%s", current, iptr->isn_arg.string);
 		break;
 	    case ISN_STOREREG:
-		smsg("%4d STOREREG @%c", current, iptr->isn_arg.number);
+		smsg("%4d STOREREG @%c", current, (int)iptr->isn_arg.number);
 		break;
 	    case ISN_STORENR:
 		smsg("%4d STORE %lld in $%d", current,
@@ -1854,7 +1875,8 @@ ex_disassemble(exarg_T *eap)
 
 	    // constants
 	    case ISN_PUSHNR:
-		smsg("%4d PUSHNR %lld", current, iptr->isn_arg.number);
+		smsg("%4d PUSHNR %lld", current,
+					    (long long)(iptr->isn_arg.number));
 		break;
 	    case ISN_PUSHBOOL:
 	    case ISN_PUSHSPEC:
@@ -1923,10 +1945,12 @@ ex_disassemble(exarg_T *eap)
 		smsg("%4d PUSH v:exception", current);
 		break;
 	    case ISN_NEWLIST:
-		smsg("%4d NEWLIST size %lld", current, iptr->isn_arg.number);
+		smsg("%4d NEWLIST size %lld", current,
+					    (long long)(iptr->isn_arg.number));
 		break;
 	    case ISN_NEWDICT:
-		smsg("%4d NEWDICT size %lld", current, iptr->isn_arg.number);
+		smsg("%4d NEWDICT size %lld", current,
+					    (long long)(iptr->isn_arg.number));
 		break;
 
 	    // function call
@@ -2135,8 +2159,8 @@ ex_disassemble(exarg_T *eap)
 			    else
 				smsg("%4d 2BOOL (!!val)", current);
 			    break;
-	    case ISN_2STRING: smsg("%4d 2STRING stack[%d]", current,
-							 iptr->isn_arg.number);
+	    case ISN_2STRING: smsg("%4d 2STRING stack[%lld]", current,
+					 (long long)(iptr->isn_arg.number));
 				break;
 
 	    case ISN_DROP: smsg("%4d DROP", current); break;

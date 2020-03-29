@@ -23,6 +23,9 @@ let s:chopt = {}
 " Run "testfunc" after starting the server and stop the server afterwards.
 func s:run_server(testfunc, ...)
   call RunServer('test_channel.py', a:testfunc, a:000)
+
+  " communicating with a server can be flaky
+  let g:test_is_flaky = 1
 endfunc
 
 " Return a list of open files.
@@ -415,6 +418,8 @@ endfunc
 " Test that trying to connect to a non-existing port fails quickly.
 func Test_connect_waittime()
   CheckFunction reltimefloat
+  " this is timing sensitive
+  let g:test_is_flaky = 1
 
   call ch_log('Test_connect_waittime()')
   let start = reltime()
@@ -513,6 +518,15 @@ func Test_raw_pipe()
     endif
   endfor
   call assert_equal(1, found)
+
+  " Try to use the job and channel where a number is expected. This is not
+  " related to testing the raw pipe. This test is here just to reuse the
+  " already created job/channel.
+  let ch = job_getchannel(job)
+  call assert_fails('let i = job + 1', 'E910:')
+  call assert_fails('let j = ch + 1', 'E913:')
+  call assert_fails('echo 2.0 == job', 'E911:')
+  call assert_fails('echo 2.0 == ch', 'E914:')
 endfunc
 
 func Test_raw_pipe_blob()
@@ -1160,7 +1174,8 @@ func Test_out_cb()
     " Receive a json object split in pieces
     let g:Ch_outobj = ''
     call ch_sendraw(job, "echosplit [0, {\"one\": 1,| \"tw|o\": 2, \"three\": 3|}]\n")
-    call WaitForAssert({-> assert_equal({'one': 1, 'two': 2, 'three': 3}, g:Ch_outobj)})
+    " For unknown reason this can be very slow on Mac.
+    call WaitForAssert({-> assert_equal({'one': 1, 'two': 2, 'three': 3}, g:Ch_outobj)}, 10000)
   finally
     call job_stop(job)
   endtry
@@ -1775,7 +1790,7 @@ endfunc
 
 func Test_job_start_in_timer()
   CheckFeature timers
-  CheckFeature reltimefloat
+  CheckFunction reltimefloat
 
   func OutCb(chan, msg)
     let g:val += 1
@@ -1999,15 +2014,15 @@ func Test_issue_5150()
   endif
   let g:job = job_start(cmd, {})
   call job_stop(g:job)
-  sleep 10m
+  sleep 50m
   call assert_equal(-1, job_info(g:job).exitval)
   let g:job = job_start(cmd, {})
   call job_stop(g:job, 'term')
-  sleep 10m
+  sleep 50m
   call assert_equal(-1, job_info(g:job).exitval)
   let g:job = job_start(cmd, {})
   call job_stop(g:job, 'kill')
-  sleep 10m
+  sleep 50m
   call assert_equal(-1, job_info(g:job).exitval)
 endfunc
 
@@ -2019,3 +2034,13 @@ func Test_issue_5485()
   call WaitForAssert({-> assert_equal("local local", trim(g:Ch_reply))})
   unlet $VAR1
 endfunc
+
+func Test_job_trailing_space_unix()
+  CheckUnix
+  CheckExecutable cat
+  let job = job_start("cat ", #{in_io: 'null'})
+  call WaitForAssert({-> assert_equal("dead", job_status(job))})
+  call assert_equal(0, job_info(job).exitval)
+endfunc
+
+" vim: shiftwidth=2 sts=2 expandtab

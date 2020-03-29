@@ -1133,7 +1133,8 @@ do_source(
     {
 	// Already loaded and no need to load again, return here.
 	*ret_sid = sid;
-	return OK;
+	retval = OK;
+	goto theend;
     }
 #endif
 
@@ -1273,6 +1274,7 @@ do_source(
 
 	// loading the same script again
 	si->sn_had_command = FALSE;
+	si->sn_version = 1;
 	current_sctx.sc_sid = sid;
 
 	ht = &SCRIPT_VARS(sid);
@@ -1525,6 +1527,7 @@ free_scriptnames(void)
 	vim_free(si->sn_vars);
 
 	vim_free(si->sn_name);
+	free_imports(i);
 	free_string_option(si->sn_save_cpo);
 #  ifdef FEAT_PROFILE
 	ga_clear(&si->sn_prl_ga);
