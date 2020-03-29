@@ -18,6 +18,14 @@ func Test_macvim_options_commands()
 
     call assert_true(exists(':macaction'), 'Missing command "macaction"')
     call assert_true(exists(':macmenu'), 'Missing command "macmenu"')
+
+    call assert_true(exists('##OSAppearanceChanged'), 'Missing autocmd event "OSAppearanceChanged"')
+
+    call assert_true(has('fullscreen'), 'Missing feature "fullscreen"')
+    call assert_true(has('gui_macvim'), 'Missing feature "gui_macvim"')
+    call assert_true(has('odbeditor'), 'Missing feature "odbeditor"')
+    call assert_true(has('touchbar'), 'Missing feature "touchbar"')
+    call assert_true(has('transparency'), 'Missing feature "transparency"')
 endfunc
 
 " Test that Cmd-key and touch pad mappings are working (this doesn't actually
@@ -26,9 +34,9 @@ endfunc
 func Test_macvim_mappings()
     let g:marker_value=0
 
-    nnoremap <D-1> :let g:marker_value=1<CR>
+    nnoremap <D-1> :let g:marker_value=100<CR>
     call feedkeys("\<D-1>", "xt")
-    call assert_equal(1, g:marker_value)
+    call assert_equal(100, g:marker_value)
 
     nnoremap <SwipeLeft> :let g:marker_value=1<CR>
     call feedkeys("\<SwipeLeft>", "xt")
