@@ -1256,6 +1256,8 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>162</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
