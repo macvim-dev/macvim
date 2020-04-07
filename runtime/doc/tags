@@ -9632,6 +9632,7 @@ test_ignore_error()	testing.txt	/*test_ignore_error()*
 test_null_blob()	testing.txt	/*test_null_blob()*
 test_null_channel()	testing.txt	/*test_null_channel()*
 test_null_dict()	testing.txt	/*test_null_dict()*
+test_null_function()	testing.txt	/*test_null_function()*
 test_null_job()	testing.txt	/*test_null_job()*
 test_null_list()	testing.txt	/*test_null_list()*
 test_null_partial()	testing.txt	/*test_null_partial()*
