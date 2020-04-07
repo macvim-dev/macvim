@@ -1272,6 +1272,7 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 	switch (tv1->v_type)
 	{
 	    case VAR_UNKNOWN:
+	    case VAR_ANY:
 	    case VAR_VOID:
 	    case VAR_DICT:
 	    case VAR_FUNC:
@@ -2967,6 +2968,7 @@ eval_index(
 		emsg(_("E909: Cannot index a special variable"));
 	    return FAIL;
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	    if (evaluate)
 		return FAIL;
@@ -3073,6 +3075,7 @@ eval_index(
 	switch (rettv->v_type)
 	{
 	    case VAR_UNKNOWN:
+	    case VAR_ANY:
 	    case VAR_VOID:
 	    case VAR_FUNC:
 	    case VAR_PARTIAL:
@@ -3668,7 +3671,7 @@ get_lit_string_tv(char_u **arg, typval_T *rettv, int evaluate)
 }
 
 /*
- * Return the function name of the partial.
+ * Return the function name of partial "pt".
  */
     char_u *
 partial_name(partial_T *pt)
@@ -3849,9 +3852,14 @@ tv_equal(
 	    return tv1->vval.v_channel == tv2->vval.v_channel;
 #endif
 
-	case VAR_FUNC:
 	case VAR_PARTIAL:
+	    return tv1->vval.v_partial == tv2->vval.v_partial;
+
+	case VAR_FUNC:
+	    return tv1->vval.v_string == tv2->vval.v_string;
+
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	    break;
     }
@@ -3969,11 +3977,11 @@ garbage_collect(int testing)
 	abort = abort || set_ref_in_item(&aucmd_win->w_winvar.di_tv, copyID,
 								  NULL, NULL);
 #ifdef FEAT_PROP_POPUP
-    for (wp = first_popupwin; wp != NULL; wp = wp->w_next)
+    FOR_ALL_POPUPWINS(wp)
 	abort = abort || set_ref_in_item(&wp->w_winvar.di_tv, copyID,
 								  NULL, NULL);
     FOR_ALL_TABPAGES(tp)
-	for (wp = tp->tp_first_popupwin; wp != NULL; wp = wp->w_next)
+	FOR_ALL_POPUPWINS_IN_TAB(tp, wp)
 		abort = abort || set_ref_in_item(&wp->w_winvar.di_tv, copyID,
 								  NULL, NULL);
 #endif
@@ -4566,6 +4574,7 @@ echo_string_core(
 
 	case VAR_NUMBER:
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	    *tofree = NULL;
 	    r = tv_get_string_buf(tv, numbuf);
@@ -5418,6 +5427,7 @@ free_tv(typval_T *varp)
 #endif
 	    case VAR_NUMBER:
 	    case VAR_FLOAT:
+	    case VAR_ANY:
 	    case VAR_UNKNOWN:
 	    case VAR_VOID:
 	    case VAR_BOOL:
@@ -5482,6 +5492,7 @@ clear_tv(typval_T *varp)
 		varp->vval.v_channel = NULL;
 #endif
 	    case VAR_UNKNOWN:
+	    case VAR_ANY:
 	    case VAR_VOID:
 		break;
 	}
@@ -5561,6 +5572,7 @@ tv_get_number_chk(typval_T *varp, int *denote)
 	    emsg(_("E974: Using a Blob as a Number"));
 	    break;
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	    internal_error_no_abort("tv_get_number(UNKNOWN)");
 	    break;
@@ -5615,6 +5627,7 @@ tv_get_float(typval_T *varp)
 	    emsg(_("E975: Using a Blob as a Float"));
 	    break;
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	    internal_error_no_abort("tv_get_float(UNKNOWN)");
 	    break;
@@ -5738,6 +5751,7 @@ tv_get_string_buf_chk(typval_T *varp, char_u *buf)
 #endif
 	    break;
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	    emsg(_(e_inval_string));
 	    break;
@@ -5887,6 +5901,7 @@ copy_tv(typval_T *from, typval_T *to)
 	    }
 	    break;
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	    internal_error_no_abort("copy_tv(UNKNOWN)");
 	    break;
@@ -5966,6 +5981,7 @@ item_copy(
 		ret = FAIL;
 	    break;
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	    internal_error_no_abort("item_copy(UNKNOWN)");
 	    ret = FAIL;

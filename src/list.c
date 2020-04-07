@@ -20,6 +20,11 @@ static char *e_listblobarg = N_("E899: Argument of %s must be a List or Blob");
 // List heads for garbage collection.
 static list_T		*first_list = NULL;	// list of all lists
 
+#define FOR_ALL_WATCHERS(l, lw) \
+    for ((lw) = (l)->lv_watch; (lw) != NULL; (lw) = (lw)->lw_next)
+
+static void list_free_item(list_T *l, listitem_T *item);
+
 /*
  * Add a watcher to a list.
  */
@@ -40,7 +45,7 @@ list_rem_watch(list_T *l, listwatch_T *lwrem)
     listwatch_T	*lw, **lwp;
 
     lwp = &l->lv_watch;
-    for (lw = l->lv_watch; lw != NULL; lw = lw->lw_next)
+    FOR_ALL_WATCHERS(l, lw)
     {
 	if (lw == lwrem)
 	{
@@ -60,7 +65,7 @@ list_fix_watch(list_T *l, listitem_T *item)
 {
     listwatch_T	*lw;
 
-    for (lw = l->lv_watch; lw != NULL; lw = lw->lw_next)
+    FOR_ALL_WATCHERS(l, lw)
 	if (lw->lw_item == item)
 	    lw->lw_item = item->li_next;
 }
@@ -311,7 +316,7 @@ listitem_alloc(void)
  * Free a list item, unless it was allocated together with the list itself.
  * Does not clear the value.  Does not notify watchers.
  */
-    void
+    static void
 list_free_item(list_T *l, listitem_T *item)
 {
     if (l->lv_with_items == 0 || item < (listitem_T *)l
@@ -1109,7 +1114,7 @@ write_list(FILE *fd, list_T *list, int binary)
     char_u	*s;
 
     range_list_materialize(list);
-    for (li = list->lv_first; li != NULL; li = li->li_next)
+    FOR_ALL_LIST_ITEMS(list, li)
     {
 	for (s = tv_get_string(&li->li_tv); *s != NUL; ++s)
 	{
@@ -1207,7 +1212,7 @@ f_list2str(typval_T *argvars, typval_T *rettv)
 	else
 	    char2bytes = mb_char2bytes;
 
-	for (li = l->lv_first; li != NULL; li = li->li_next)
+	FOR_ALL_LIST_ITEMS(l, li)
 	{
 	    buf[(*char2bytes)(tv_get_number(&li->li_tv), buf)] = NUL;
 	    ga_concat(&ga, buf);
@@ -1216,7 +1221,7 @@ f_list2str(typval_T *argvars, typval_T *rettv)
     }
     else if (ga_grow(&ga, list_len(l) + 1) == OK)
     {
-	for (li = l->lv_first; li != NULL; li = li->li_next)
+	FOR_ALL_LIST_ITEMS(l, li)
 	    ga_append(&ga, tv_get_number(&li->li_tv));
 	ga_append(&ga, NUL);
     }
@@ -1225,7 +1230,7 @@ f_list2str(typval_T *argvars, typval_T *rettv)
     rettv->vval.v_string = ga.ga_data;
 }
 
-    void
+    static void
 list_remove(typval_T *argvars, typval_T *rettv, char_u *arg_errmsg)
 {
     list_T	*l;
@@ -1579,7 +1584,7 @@ do_sort_uniq(typval_T *argvars, typval_T *rettv, int sort)
 	if (sort)
 	{
 	    // sort(): ptrs will be the list to sort
-	    for (li = l->lv_first; li != NULL; li = li->li_next)
+	    FOR_ALL_LIST_ITEMS(l, li)
 	    {
 		ptrs[i].item = li;
 		ptrs[i].idx = i;

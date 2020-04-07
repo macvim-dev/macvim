@@ -96,9 +96,9 @@ NEW_TESTS = \
 	test_escaped_glob \
 	test_eval_stuff \
 	test_ex_equal \
+	test_ex_mode \
 	test_ex_undo \
 	test_ex_z \
-	test_ex_mode \
 	test_excmd \
 	test_exec_while_if \
 	test_execute_func \
@@ -275,6 +275,7 @@ NEW_TESTS = \
 	test_vartabs \
 	test_vim9_disassemble \
 	test_vim9_expr \
+	test_vim9_func \
 	test_vim9_script \
 	test_viminfo \
 	test_vimscript \
@@ -485,6 +486,7 @@ NEW_TESTS_RES = \
 	test_vartabs.res \
 	test_vim9_disassemble.res \
 	test_vim9_expr.res \
+	test_vim9_func.res \
 	test_vim9_script.res \
 	test_viminfo.res \
 	test_vimscript.res \

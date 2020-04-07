@@ -659,6 +659,7 @@ func Save_mode()
   return ''
 endfunc
 
+" Test for the mode() function
 func Test_mode()
   new
   call append(0, ["Blue Ball Black", "Brown Band Bowl", ""])
@@ -782,6 +783,8 @@ func Test_mode()
   call assert_equal('c-c', g:current_modes)
   call feedkeys("gQecho \<C-R>=Save_mode()\<CR>\<CR>vi\<CR>", 'xt')
   call assert_equal('c-cv', g:current_modes)
+  call feedkeys("Qcall Save_mode()\<CR>vi\<CR>", 'xt')
+  call assert_equal('c-ce', g:current_modes)
   " How to test Ex mode?
 
   bwipe!
@@ -840,6 +843,16 @@ func Test_getbufvar()
   call assert_equal(1, getbufvar(bufnr('%'), '&bin'))
   call assert_equal('iso-8859-2', getbufvar(bufnr('%'), '&fenc'))
   close
+
+  " Get the b: dict.
+  let b:testvar = 'one'
+  new
+  let b:testvar = 'two'
+  let thebuf = bufnr()
+  wincmd w
+  call assert_equal('two', getbufvar(thebuf, 'testvar'))
+  call assert_equal('two', getbufvar(thebuf, '').testvar)
+  bwipe!
 
   set fileformats&
 endfunc
@@ -1273,6 +1286,19 @@ func Test_inputlist()
   call assert_equal(2, c)
   call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>3\<cr>", 'tx')
   call assert_equal(3, c)
+
+  " Use backspace to delete characters in the prompt
+  call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>1\<BS>3\<BS>2\<cr>", 'tx')
+  call assert_equal(2, c)
+
+  " Use mouse to make a selection
+  call test_setmouse(&lines - 3, 2)
+  call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>\<LeftMouse>", 'tx')
+  call assert_equal(1, c)
+  " Mouse click outside of the list
+  call test_setmouse(&lines - 6, 2)
+  call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>\<LeftMouse>", 'tx')
+  call assert_equal(-2, c)
 
   call assert_fails('call inputlist("")', 'E686:')
 endfunc
@@ -1940,6 +1966,7 @@ func Test_range()
   execute "normal! a\<C-r>=[complete(col('.'), range(10)), ''][1]\<CR>"
   " complete_info()
   execute "normal! a\<C-r>=[complete(col('.'), range(10)), ''][1]\<CR>\<C-r>=[complete_info(range(5)), ''][1]\<CR>"
+  call assert_fails('call complete(1, ["a"])', 'E785:')
 
   " copy()
   call assert_equal([1, 2, 3], copy(range(1, 3)))

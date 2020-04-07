@@ -764,6 +764,7 @@ f_test_refcount(typval_T *argvars, typval_T *rettv)
     switch (argvars[0].v_type)
     {
 	case VAR_UNKNOWN:
+	case VAR_ANY:
 	case VAR_VOID:
 	case VAR_NUMBER:
 	case VAR_BOOL:
@@ -880,6 +881,13 @@ f_test_null_job(typval_T *argvars UNUSED, typval_T *rettv)
 f_test_null_list(typval_T *argvars UNUSED, typval_T *rettv)
 {
     rettv_list_set(rettv, NULL);
+}
+
+    void
+f_test_null_function(typval_T *argvars UNUSED, typval_T *rettv)
+{
+    rettv->v_type = VAR_FUNC;
+    rettv->vval.v_string = NULL;
 }
 
     void

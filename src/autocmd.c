@@ -236,6 +236,10 @@ struct AutoPatCmd_S
 
 static AutoPatCmd *active_apc_list = NULL; // stack of active autocommands
 
+// Macro to loop over all the patterns for an autocmd event
+#define FOR_ALL_AUTOCMD_PATTERNS(event, ap) \
+    for ((ap) = first_autopat[(int)(event)]; (ap) != NULL; (ap) = (ap)->next)
+
 /*
  * augroups stores a list of autocmd group names.
  */
@@ -457,7 +461,7 @@ aubuflocal_remove(buf_T *buf)
     for (event = (event_T)0; (int)event < (int)NUM_EVENTS;
 					    event = (event_T)((int)event + 1))
 	// loop over all autocommand patterns
-	for (ap = first_autopat[(int)event]; ap != NULL; ap = ap->next)
+	FOR_ALL_AUTOCMD_PATTERNS(event, ap)
 	    if (ap->buflocal_nr == buf->b_fnum)
 	    {
 		au_remove_pat(ap);
@@ -520,7 +524,7 @@ au_del_group(char_u *name)
 	for (event = (event_T)0; (int)event < (int)NUM_EVENTS;
 					    event = (event_T)((int)event + 1))
 	{
-	    for (ap = first_autopat[(int)event]; ap != NULL; ap = ap->next)
+	    FOR_ALL_AUTOCMD_PATTERNS(event, ap)
 		if (ap->group == i && ap->pat != NULL)
 		{
 		    give_warning((char_u *)_("W19: Deleting augroup that is still in use"), TRUE);
@@ -1042,7 +1046,7 @@ do_autocmd_event(
      */
     if (*pat == NUL)
     {
-	for (ap = first_autopat[(int)event]; ap != NULL; ap = ap->next)
+	FOR_ALL_AUTOCMD_PATTERNS(event, ap)
 	{
 	    if (forceit)  // delete the AutoPat, if it's in the current group
 	    {
@@ -2401,7 +2405,7 @@ has_autocmd(event_T event, char_u *sfname, buf_T *buf)
     forward_slash(fname);
 #endif
 
-    for (ap = first_autopat[(int)event]; ap != NULL; ap = ap->next)
+    FOR_ALL_AUTOCMD_PATTERNS(event, ap)
 	if (ap->pat != NULL && ap->cmds != NULL
 	      && (ap->buflocal_nr == 0
 		? match_file_pat(NULL, &ap->reg_prog,

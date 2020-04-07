@@ -61,6 +61,12 @@ static ch_part_T channel_part_send(channel_T *channel);
 static ch_part_T channel_part_read(channel_T *channel);
 static void free_job_options(jobopt_T *opt);
 
+#define FOR_ALL_CHANNELS(ch) \
+    for ((ch) = first_channel; (ch) != NULL; (ch) = (ch)->ch_next)
+
+#define FOR_ALL_JOBS(job) \
+    for ((job) = first_job; (job) != NULL; (job) = (job)->jv_next)
+
 // Whether a redraw is needed for appending a line to a buffer.
 static int channel_need_redraw = FALSE;
 
@@ -479,7 +485,7 @@ free_unused_channels_contents(int copyID, int mask)
     // point.
     ++safe_to_invoke_callback;
 
-    for (ch = first_channel; ch != NULL; ch = ch->ch_next)
+    FOR_ALL_CHANNELS(ch)
 	if (!channel_still_useful(ch)
 				 && (ch->ch_copyID & mask) != (copyID & mask))
 	{
@@ -523,8 +529,7 @@ channel_fd2channel(sock_T fd, ch_part_T *partp)
     ch_part_T	part;
 
     if (fd != INVALID_FD)
-	for (channel = first_channel; channel != NULL;
-						   channel = channel->ch_next)
+	FOR_ALL_CHANNELS(channel)
 	{
 	    for (part = PART_SOCK; part < PART_IN; ++part)
 		if (channel->ch_part[part].ch_fd == fd)
@@ -673,7 +678,7 @@ channel_gui_register_all(void)
 {
     channel_T *channel;
 
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
 	channel_gui_register(channel);
 }
 
@@ -1595,7 +1600,7 @@ channel_buffer_free(buf_T *buf)
     channel_T	*channel;
     ch_part_T	part;
 
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
 	for (part = PART_SOCK; part < PART_COUNT; ++part)
 	{
 	    chanpart_T  *ch_part = &channel->ch_part[part];
@@ -1636,7 +1641,7 @@ channel_write_any_lines(void)
 {
     channel_T	*channel;
 
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
 	channel_write_input(channel);
 }
 
@@ -1651,7 +1656,7 @@ channel_write_new_lines(buf_T *buf)
 
     // There could be more than one channel for the buffer, loop over all of
     // them.
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
     {
 	chanpart_T  *in_part = &channel->ch_part[PART_IN];
 	linenr_T    lnum;
@@ -2630,7 +2635,7 @@ append_to_buffer(buf_T *buffer, char_u *msg, channel_T *channel, ch_part_T part)
 	// Find channels reading from this buffer and adjust their
 	// next-to-read line number.
 	buffer->b_write_to_channel = TRUE;
-	for (ch = first_channel; ch != NULL; ch = ch->ch_next)
+	FOR_ALL_CHANNELS(ch)
 	{
 	    chanpart_T  *in_part = &ch->ch_part[PART_IN];
 
@@ -3206,7 +3211,7 @@ channel_free_all(void)
     channel_T *channel;
 
     ch_log(NULL, "channel_free_all()");
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
 	channel_clear(channel);
 }
 #endif
@@ -3228,7 +3233,7 @@ channel_fill_wfds(int maxfd_arg, fd_set *wfds)
     int		maxfd = maxfd_arg;
     channel_T	*ch;
 
-    for (ch = first_channel; ch != NULL; ch = ch->ch_next)
+    FOR_ALL_CHANNELS(ch)
     {
 	chanpart_T  *in_part = &ch->ch_part[PART_IN];
 
@@ -3253,7 +3258,7 @@ channel_fill_poll_write(int nfd_in, struct pollfd *fds)
     int		nfd = nfd_in;
     channel_T	*ch;
 
-    for (ch = first_channel; ch != NULL; ch = ch->ch_next)
+    FOR_ALL_CHANNELS(ch)
     {
 	chanpart_T  *in_part = &ch->ch_part[PART_IN];
 
@@ -3863,7 +3868,7 @@ channel_handle_events(int only_keep_open)
     ch_part_T	part;
     sock_T	fd;
 
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
     {
 	if (only_keep_open && !channel->ch_keep_open)
 	    continue;
@@ -3896,7 +3901,7 @@ channel_any_keep_open()
 {
     channel_T	*channel;
 
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
 	if (channel->ch_keep_open)
 	    return TRUE;
     return FALSE;
@@ -4276,7 +4281,7 @@ channel_poll_setup(int nfd_in, void *fds_in, int *towait)
     struct	pollfd *fds = fds_in;
     ch_part_T	part;
 
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
     {
 	for (part = PART_SOCK; part < PART_IN; ++part)
 	{
@@ -4323,7 +4328,7 @@ channel_poll_check(int ret_in, void *fds_in)
     int		idx;
     chanpart_T	*in_part;
 
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
     {
 	for (part = PART_SOCK; part < PART_IN; ++part)
 	{
@@ -4374,7 +4379,7 @@ channel_select_setup(
     fd_set	*wfds = wfds_in;
     ch_part_T	part;
 
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
     {
 	for (part = PART_SOCK; part < PART_IN; ++part)
 	{
@@ -4423,7 +4428,7 @@ channel_select_check(int ret_in, void *rfds_in, void *wfds_in)
     ch_part_T	part;
     chanpart_T	*in_part;
 
-    for (channel = first_channel; channel != NULL; channel = channel->ch_next)
+    FOR_ALL_CHANNELS(channel)
     {
 	for (part = PART_SOCK; part < PART_IN; ++part)
 	{
@@ -5513,7 +5518,7 @@ job_any_running()
 {
     job_T	*job;
 
-    for (job = first_job; job != NULL; job = job->jv_next)
+    FOR_ALL_JOBS(job)
 	if (job_still_useful(job))
 	{
 	    ch_log(NULL, "GUI not forking because a job is running");
@@ -5612,7 +5617,7 @@ win32_build_cmd(list_T *l, garray_T *gap)
     char_u	*s;
 
     range_list_materialize(l);
-    for (li = l->lv_first; li != NULL; li = li->li_next)
+    FOR_ALL_LIST_ITEMS(l, li)
     {
 	s = tv_get_string_chk(&li->li_tv);
 	if (s == NULL)
@@ -5737,7 +5742,7 @@ free_unused_jobs_contents(int copyID, int mask)
     int		did_free = FALSE;
     job_T	*job;
 
-    for (job = first_job; job != NULL; job = job->jv_next)
+    FOR_ALL_JOBS(job)
 	if ((job->jv_copyID & mask) != (copyID & mask)
 						    && !job_still_useful(job))
 	{
@@ -5823,7 +5828,7 @@ job_stop_on_exit(void)
 {
     job_T	*job;
 
-    for (job = first_job; job != NULL; job = job->jv_next)
+    FOR_ALL_JOBS(job)
 	if (job->jv_status == JOB_STARTED && job->jv_stoponexit != NULL)
 	    mch_signal_job(job, job->jv_stoponexit);
 }
@@ -5837,7 +5842,7 @@ has_pending_job(void)
 {
     job_T	    *job;
 
-    for (job = first_job; job != NULL; job = job->jv_next)
+    FOR_ALL_JOBS(job)
 	// Only should check if the channel has been closed, if the channel is
 	// open the job won't exit.
 	if ((job->jv_status == JOB_STARTED && !job_channel_still_useful(job))
@@ -6631,7 +6636,7 @@ job_info_all(list_T *l)
     job_T	*job;
     typval_T	tv;
 
-    for (job = first_job; job != NULL; job = job->jv_next)
+    FOR_ALL_JOBS(job)
     {
 	tv.v_type = VAR_JOB;
 	tv.vval.v_job = job;

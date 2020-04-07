@@ -52,6 +52,9 @@ static void	clear_wininfo(buf_T *buf);
 # define dev_T unsigned
 #endif
 
+#define FOR_ALL_BUFS_FROM_LAST(buf) \
+    for ((buf) = lastbuf; (buf) != NULL; (buf) = (buf)->b_prev)
+
 #if defined(FEAT_QUICKFIX)
 static char *msg_loclist = N_("[Location List]");
 static char *msg_qflist = N_("[Quickfix List]");
@@ -415,7 +418,7 @@ buf_valid(buf_T *buf)
 
     // Assume that we more often have a recent buffer, start with the last
     // one.
-    for (bp = lastbuf; bp != NULL; bp = bp->b_prev)
+    FOR_ALL_BUFS_FROM_LAST(bp)
 	if (bp == buf)
 	    return TRUE;
     return FALSE;
@@ -2514,7 +2517,7 @@ buflist_findname_stat(
     buf_T	*buf;
 
     // Start at the last buffer, expect to find a match sooner.
-    for (buf = lastbuf; buf != NULL; buf = buf->b_prev)
+    FOR_ALL_BUFS_FROM_LAST(buf)
 	if ((buf->b_flags & BF_DUMMY) == 0 && !otherfile_buf(buf, ffname
 #ifdef UNIX
 		    , stp
@@ -2597,7 +2600,7 @@ buflist_findpat(
 		    return -1;
 		}
 
-		for (buf = lastbuf; buf != NULL; buf = buf->b_prev)
+		FOR_ALL_BUFS_FROM_LAST(buf)
 		    if (buf->b_p_bl == find_listed
 #ifdef FEAT_DIFF
 			    && (!diffmode || diff_mode_buf(buf))
@@ -2915,7 +2918,7 @@ buflist_setfpos(
 {
     wininfo_T	*wip;
 
-    for (wip = buf->b_wininfo; wip != NULL; wip = wip->wi_next)
+    FOR_ALL_BUF_WININFO(buf, wip)
 	if (wip->wi_win == win)
 	    break;
     if (wip == NULL)
@@ -3008,7 +3011,7 @@ find_wininfo(
 {
     wininfo_T	*wip;
 
-    for (wip = buf->b_wininfo; wip != NULL; wip = wip->wi_next)
+    FOR_ALL_BUF_WININFO(buf, wip)
 	if (wip->wi_win == curwin
 #ifdef FEAT_DIFF
 		&& (!skip_diff_buffer || !wininfo_other_tab_diff(wip))
@@ -3023,7 +3026,7 @@ find_wininfo(
 #ifdef FEAT_DIFF
 	if (skip_diff_buffer)
 	{
-	    for (wip = buf->b_wininfo; wip != NULL; wip = wip->wi_next)
+	    FOR_ALL_BUF_WININFO(buf, wip)
 		if (!wininfo_other_tab_diff(wip))
 		    break;
 	}
@@ -3136,7 +3139,7 @@ buflist_list(exarg_T *eap)
     if (vim_strchr(eap->arg, 't'))
     {
 	ga_init2(&buflist, sizeof(buf_T *), 50);
-	for (buf = firstbuf; buf != NULL; buf = buf->b_next)
+	FOR_ALL_BUFFERS(buf)
 	{
 	    if (ga_grow(&buflist, 1) == OK)
 		((buf_T **)buflist.ga_data)[buflist.ga_len++] = buf;

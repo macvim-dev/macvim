@@ -36,16 +36,6 @@ func Test_terminal_basic()
   au TerminalOpen * let b:done = 'yes'
   let buf = Run_shell_in_terminal({})
 
-  if has("unix")
-    call assert_match('^/dev/', job_info(g:job).tty_out)
-    call assert_match('^/dev/', term_gettty(''))
-  else
-    " ConPTY works on anonymous pipe.
-    if !has('conpty')
-      call assert_match('^\\\\.\\pipe\\', job_info(g:job).tty_out)
-      call assert_match('^\\\\.\\pipe\\', ''->term_gettty())
-    endif
-  endif
   call assert_equal('t', mode())
   call assert_equal('yes', b:done)
   call assert_match('%aR[^\n]*running]', execute('ls'))
@@ -1006,6 +996,28 @@ func Test_terminal_term_start_empty_command()
   call assert_fails(cmd, 'E474')
   let cmd = "call term_start(0, {'curwin' : 1, 'term_finish' : 'close'})"
   call assert_fails(cmd, 'E474')
+  let cmd = "call term_start('', {'term_name' : []})"
+  call assert_fails(cmd, 'E475')
+  let cmd = "call term_start('', {'term_finish' : 'axby'})"
+  call assert_fails(cmd, 'E475')
+  let cmd = "call term_start('', {'eof_chars' : []})"
+  call assert_fails(cmd, 'E475:')
+  let cmd = "call term_start('', {'term_kill' : []})"
+  call assert_fails(cmd, 'E475:')
+  let cmd = "call term_start('', {'tty_type' : []})"
+  call assert_fails(cmd, 'E475:')
+  let cmd = "call term_start('', {'tty_type' : 'abc'})"
+  call assert_fails(cmd, 'E475:')
+  let cmd = "call term_start('', {'term_highlight' : []})"
+  call assert_fails(cmd, 'E475:')
+  if has('gui')
+    let cmd = "call term_start('', {'ansi_colors' : 'abc'})"
+    call assert_fails(cmd, 'E475:')
+    let cmd = "call term_start('', {'ansi_colors' : [[]]})"
+    call assert_fails(cmd, 'E730:')
+    let cmd = "call term_start('', {'ansi_colors' : repeat(['blue'], 18)})"
+    call assert_fails(cmd, 'E475:')
+  endif
 endfunc
 
 func Test_terminal_response_to_control_sequence()
@@ -1290,6 +1302,7 @@ func Test_terminal_dumpdiff_options()
   call assert_equal(1, winnr('$'))
   call term_dumpdiff('dumps/Test_popup_command_01.dump', 'dumps/Test_popup_command_02.dump', {'curwin': 1})
   call assert_equal(1, winnr('$'))
+  call assert_fails("call term_dumpdiff('dumps/Test_popup_command_01.dump', 'dumps/Test_popup_command_02.dump', {'bufnr': -1})", 'E475:')
   bwipe
 
   set laststatus&
@@ -1490,6 +1503,8 @@ func Test_terminal_api_call()
   call assert_equal(buf, g:called_bufnum2)
   call assert_equal(['hello', 123], g:called_arg2)
   call StopVimInTerminal(buf)
+
+  call assert_fails("call term_start('ls', {'term_api' : []})", 'E475:')
 
   unlet! g:called_bufnum2
   unlet! g:called_arg2
@@ -2166,6 +2181,49 @@ func Test_term_gettitle()
   exe term . 'bwipe!'
 endfunc
 
+func Test_term_gettty()
+  let buf = Run_shell_in_terminal({})
+  let gettty = term_gettty(buf)
+
+  if has('unix') && executable('tty')
+    " Find tty using the tty shell command.
+    call WaitForAssert({-> assert_notequal('', term_getline(buf, 1))})
+    call term_sendkeys(buf, "tty\r")
+    call WaitForAssert({-> assert_notequal('', term_getline(buf, 3))})
+    let tty = term_getline(buf, 2)
+    call assert_equal(tty, gettty)
+  endif
+
+  let gettty0 = term_gettty(buf, 0)
+  let gettty1 = term_gettty(buf, 1)
+
+  call assert_equal(gettty, gettty0)
+  call assert_equal(job_info(g:job).tty_out, gettty0)
+  call assert_equal(job_info(g:job).tty_in,  gettty1)
+
+  if has('unix')
+    " For unix, term_gettty(..., 0) and term_gettty(..., 1)
+    " are identical according to :help term_gettty()
+    call assert_equal(gettty0, gettty1)
+    call assert_match('^/dev/', gettty)
+  else
+    " ConPTY works on anonymous pipe.
+    if !has('conpty')
+      call assert_match('^\\\\.\\pipe\\', gettty0)
+      call assert_match('^\\\\.\\pipe\\', gettty1)
+    endif
+  endif
+
+  call assert_fails('call term_gettty(buf, 2)', 'E475:')
+  call assert_fails('call term_gettty(buf, -1)', 'E475:')
+
+  call assert_equal('', term_gettty(buf + 1))
+
+  call StopShellInTerminal(buf)
+  call term_wait(buf)
+  exe buf . 'bwipe'
+endfunc
+
 " When drawing the statusline the cursor position may not have been updated
 " yet.
 " 1. create a terminal, make it show 2 lines
@@ -2557,3 +2615,5 @@ func Test_term_nasty_callback()
   exe g:buf0 .. 'bwipe!'
   set hidden&
 endfunc
+
+" vim: shiftwidth=2 sts=2 expandtab

@@ -691,9 +691,12 @@ LINT_OPTIONS = -beprxzF
 
 
 # Uncomment one of the next two lines to compile Vim with the
-# address sanitizer or with the undefined sanitizer.  Works with gcc and
+# address sanitizer (asan) or with the undefined sanitizer.  Works with gcc and
 # clang.  May make Vim twice as slow.  Errors reported on stderr.
 # More at: https://code.google.com/p/address-sanitizer/
+# Useful environment variables:
+# $ export ASAN_OPTIONS="print_stacktrace=1 log_path=asan"
+# $ export LSAN_OPTIONS="suppressions=$cwd/testdir/lsan-suppress.txt"
 #SANITIZER_CFLAGS = -g -O0 -fsanitize=address -fno-omit-frame-pointer
 #SANITIZER_CFLAGS = -g -O0 -fsanitize=undefined -fno-omit-frame-pointer
 SANITIZER_LIBS = $(SANITIZER_CFLAGS)
@@ -1616,6 +1619,7 @@ BASIC_SRC = \
 	change.c \
 	charset.c \
 	cindent.c \
+	clientserver.c \
 	clipboard.c \
 	cmdexpand.c \
 	cmdhist.c \
@@ -1761,6 +1765,7 @@ OBJ_COMMON = \
 	objects/blob.o \
 	objects/blowfish.o \
 	objects/cindent.o \
+	objects/clientserver.o \
 	objects/clipboard.o \
 	objects/cmdexpand.o \
 	objects/cmdhist.o \
@@ -1922,6 +1927,7 @@ PRO_AUTO = \
 	channel.pro \
 	charset.pro \
 	cindent.pro \
+	clientserver.pro \
 	clipboard.pro \
 	cmdexpand.pro \
 	cmdhist.pro \
@@ -3143,6 +3149,9 @@ objects/charset.o: charset.c
 objects/cindent.o: cindent.c
 	$(CCC) -o $@ cindent.c
 
+objects/clientserver.o: clientserver.c
+	$(CCC) -o $@ clientserver.c
+
 objects/clipboard.o: clipboard.c
 	$(CCC) -o $@ clipboard.c
 
@@ -3806,6 +3815,10 @@ objects/charset.o: charset.c vim.h protodef.h auto/config.h feature.h os_unix.h 
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
 objects/cindent.o: cindent.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h
+objects/clientserver.o: clientserver.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h

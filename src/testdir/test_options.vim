@@ -1,6 +1,7 @@
 " Test for options
 
 source check.vim
+source view_util.vim
 
 func Test_whichwrap()
   set whichwrap=b,s
@@ -194,6 +195,7 @@ func Test_complete()
   new
   call feedkeys("i\<C-N>\<Esc>", 'xt')
   bwipe!
+  call assert_fails('set complete=ix', 'E535:')
   set complete&
 endfun
 
@@ -380,6 +382,10 @@ func Test_set_ttytype()
 
   set ttytype&
   call assert_equal(&ttytype, &term)
+
+  if has('gui') && !has('gui_running')
+    call assert_fails('set term=gui', 'E531:')
+  endif
 endfunc
 
 func Test_set_all()
@@ -705,6 +711,14 @@ func Test_rightleftcmd()
   unlet g:l
   set rightleftcmd&
   set rightleft&
+endfunc
+
+" Test for the "debug" option
+func Test_debug_option()
+  set debug=beep
+  exe "normal \<C-c>"
+  call assert_equal('Beep!', Screenline(&lines))
+  set debug&
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab
