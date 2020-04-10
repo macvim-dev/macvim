@@ -576,6 +576,16 @@ mac_lang_init(void)
 		    kLocaleRegionMask | kLocaleRegionVariantMask,
 		    sizeof buf, buf) == noErr && *buf)
 	{
+#   ifdef FEAT_GUI_MACVIM
+	    // This usually happens when the user directly launches from the Dock
+	    // instead of terminal. macOS doesn't really provide the encoding part
+	    // in the locale API, since it assumes everything is UTF-8 anyway. We
+	    // should manually append a UTF-8 encoding component to the locale
+	    // string. This helps tools that wants to parse the encoding compoennt
+	    // of the locale.
+	    strlcat(buf, ".UTF-8", sizeof(buf)/sizeof(char));
+#   endif
+        
 	    vim_setenv((char_u *)"LANG", (char_u *)buf);
 #   ifdef HAVE_LOCALE_H
 	    setlocale(LC_ALL, "");
