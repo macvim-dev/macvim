@@ -6,58 +6,58 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-162</title>
+      <title>MacVim snapshot-163</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
 
-<p>Vim patch 8.2.319</p>
+<p>Vim patch 8.2.539</p>
 
 <p>General:</p>
 
 <ul>
-  <li>MacVim is now upgraded to Vim 8.2!</li>
+  <li>MacVim now reports its app category to be “Productivity” for Screen
+Time. <a href="https://github.com/macvim-dev/macvim/issues/1032">#1032</a></li>
 </ul>
 
 <p>Fixes:</p>
 
 <ul>
-  <li>Fix mvim:// protocol handler to handle spaces in file names. #1002</li>
-  <li>Allow the fullscreen toggle on the Touch Bar to be disabled. #997</li>
-  <li>Fixed potential infinite recursion draw crash. #985</li>
+  <li>Fix MacVim not reporting its version number correctly. <a href="https://github.com/macvim-dev/macvim/issues/1011">#1011</a></li>
+  <li>Fix mvim:// protocol handler not handling line number. <a href="https://github.com/macvim-dev/macvim/issues/1020">#1020</a></li>
+  <li>Fix opening MacVim from the Dock not setting UTF-8 in locale. <a href="https://github.com/macvim-dev/macvim/issues/1033">#1033</a></li>
+  <li>Buffer menu now doesn’t show stale menu items from command-line
+windows or terminal windows. <a href="https://github.com/macvim-dev/macvim/issues/1025">#1025</a></li>
 </ul>
 
 <p>Targets macOS 10.9+</p>
 
-<p>Script interfaces have compatibility with these versions:</p>
-
-<ul>
-  <li>Lua 5.3</li>
-  <li>Perl 5.18</li>
-  <li>Python2 2.7</li>
-  <li>Python3 3.7</li>
-  <li>Ruby 2.7</li>
-</ul>
+<p>Script interfaces have compatibility with these versions:
+- Lua 5.3
+- Perl 5.18
+- Python2 2.7
+- Python3 3.7
+- Ruby 2.7</p>
 
 
       ]]></description>
-      <pubDate>Tue, 03 Mar 2020 04:00:00 -0800</pubDate>
+      <pubDate>Sat, 11 Apr 2020 22:00:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-162/MacVim.dmg"
-        length="17357286"
-        sparkle:version="162"
-        sparkle:shortVersionString="8.2.319"
-        sparkle:dsaSignature="MC4CFQCi/6lR/l0UO9uv2lXHt7xP58cOSwIVAKApidasN1LtPMR/HpE305TDUD9r"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-163/MacVim.dmg"
+        length="17331125"
+        sparkle:version="163"
+        sparkle:shortVersionString="8.2.539"
+        sparkle:dsaSignature="MC0CFCDZF7YzphgJygNbbeSJANY363xWAhUAnrp7s/K23H9oRlY5tR7dvsys9lM="
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-162/161_to_162.delta"
-          length="972502"
-          sparkle:version="162"
-          sparkle:deltaFrom="161"
-          sparkle:dsaSignature="MC0CFQChmCMeeCcSmgBuV15OZbmgWowOGwIUadVaY2KITGHQySYx6yd4U6VI4hw="
+          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-163/162_to_163.delta"
+          length="469769"
+          sparkle:version="163"
+          sparkle:deltaFrom="162"
+          sparkle:dsaSignature="MC0CFQCz+eXoeTZ+U5LLHphj+EGNM4PB+QIUDQpSi5Vx/Kra0Qb11BzP90ZaYgA="
           />
       </sparkle:deltas>
     </item>
