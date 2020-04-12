@@ -33,12 +33,15 @@ windows or terminal windows. <a href="https://github.com/macvim-dev/macvim/issue
 
 <p>Targets macOS 10.9+</p>
 
-<p>Script interfaces have compatibility with these versions:
-- Lua 5.3
-- Perl 5.18
-- Python2 2.7
-- Python3 3.7
-- Ruby 2.7</p>
+<p>Script interfaces have compatibility with these versions:</p>
+
+<ul>
+  <li>Lua 5.3</li>
+  <li>Perl 5.18</li>
+  <li>Python2 2.7</li>
+  <li>Python3 3.7</li>
+  <li>Ruby 2.7</li>
+</ul>
 
 
       ]]></description>
