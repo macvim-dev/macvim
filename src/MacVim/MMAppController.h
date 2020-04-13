@@ -47,6 +47,8 @@
 - (NSArray *)filterOpenFiles:(NSArray *)filenames;
 - (BOOL)openFiles:(NSArray *)filenames withArguments:(NSDictionary *)args;
 
+- (void)refreshAllAppearances;
+
 - (IBAction)newWindow:(id)sender;
 - (IBAction)newWindowAndActivate:(id)sender;
 - (IBAction)fileOpen:(id)sender;

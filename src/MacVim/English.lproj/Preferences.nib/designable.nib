@@ -9,6 +9,7 @@
         <customObject id="-2" userLabel="File's Owner" customClass="MMPreferenceController">
             <connections>
                 <outlet property="advancedPreferences" destination="620" id="632"/>
+                <outlet property="appearancePreferences" destination="hr4-G4-3ZG" id="G54-DD-ACh"/>
                 <outlet property="autoInstallUpdateButton" destination="UYM-W0-Kgl" id="cX5-tk-9WJ"/>
                 <outlet property="generalPreferences" destination="115" id="143"/>
                 <outlet property="layoutPopUpButton" destination="427" id="596"/>
@@ -224,6 +225,105 @@
                 </customView>
             </subviews>
             <point key="canvasLocation" x="137.5" y="382"/>
+        </customView>
+        <customView id="hr4-G4-3ZG" userLabel="Appearance">
+            <rect key="frame" x="0.0" y="0.0" width="483" height="224"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fw0-VK-Nbz" userLabel="Dark mode selection">
+                    <rect key="frame" x="19" y="46" width="433" height="156"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <subviews>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="T40-Os-PUf" userLabel="Dark mode selection">
+                            <rect key="frame" x="-2" y="139" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Dark mode selection:" id="rgk-9z-Mrz">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" autosizesCells="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Szz-4K-Xkl">
+                            <rect key="frame" x="190" y="78" width="171" height="78"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            <size key="cellSize" width="171" height="18"/>
+                            <size key="intercellSpacing" width="4" height="2"/>
+                            <buttonCell key="prototype" type="radio" title="Radio" imagePosition="left" alignment="left" inset="2" id="ai1-QM-Nz6">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <cells>
+                                <column>
+                                    <buttonCell type="radio" title="Automatic" imagePosition="left" alignment="left" state="on" inset="2" id="iww-SB-HvM">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                    <buttonCell type="radio" title="Light mode" imagePosition="left" alignment="left" tag="1" inset="2" id="BYl-Vr-tMv">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                    <buttonCell type="radio" title="Dark mode" imagePosition="left" alignment="left" tag="2" inset="2" id="FdX-A8-mBi">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                    <buttonCell type="radio" title="Use 'background' option" imagePosition="left" alignment="left" tag="3" inset="2" id="Gte-4q-PYS">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="system"/>
+                                    </buttonCell>
+                                </column>
+                            </cells>
+                            <connections>
+                                <action selector="appearanceChanged:" target="-2" id="hBK-fa-8vS"/>
+                                <binding destination="58" name="selectedTag" keyPath="values.MMAppearanceModeSelection" id="egk-8m-OAE"/>
+                                <outlet property="delegate" destination="58" id="Sob-YR-Fmp"/>
+                            </connections>
+                        </matrix>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1Lk-MW-O2L">
+                            <rect key="frame" x="188" y="0.0" width="243" height="70"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" id="tgh-S7-3or">
+                                <font key="font" metaFont="smallSystem"/>
+                                <string key="title">Selects when MacVim will apply dark mode. "Automatic" would choose based on the system settings, while "Use 'background' option" will base it on Vim's 'background' option.</string>
+                                <color key="textColor" name="disabledControlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                </customView>
+                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7af-iK-4r7" userLabel="Titlebar appearance">
+                    <rect key="frame" x="19" y="20" width="433" height="18"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <subviews>
+                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7ie-0J-0Zr" userLabel="Auto-install updates">
+                            <rect key="frame" x="189" y="-1" width="244" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <string key="toolTip">MacVim will automatically download and install updates without prompting. The updated version will be used the next time MacVim starts.</string>
+                            <buttonCell key="cell" type="check" title="Transparent" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="hzd-hj-Pth">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                                <connections>
+                                    <binding destination="58" name="enabled" keyPath="values.SUCheckAtStartup" id="nYZ-8w-Dyi"/>
+                                </connections>
+                            </buttonCell>
+                            <connections>
+                                <action selector="appearanceChanged:" target="-2" id="B97-8h-FDo"/>
+                                <binding destination="58" name="value" keyPath="values.MMTitlebarAppearsTransparent" id="pQP-eb-JXS"/>
+                            </connections>
+                        </button>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
+                            <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Titlebar appearance:" id="HEH-Lo-v4I" userLabel="Titlebar appearance:">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                </customView>
+            </subviews>
+            <point key="canvasLocation" x="137.5" y="384"/>
         </customView>
         <customView id="620" userLabel="Advanced">
             <rect key="frame" x="0.0" y="0.0" width="483" height="318"/>

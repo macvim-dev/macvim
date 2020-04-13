@@ -897,6 +897,12 @@ did_set_string_option(
 		init_highlight(FALSE, FALSE);
 	    }
 #endif
+
+#ifdef FEAT_GUI_MACVIM
+	    // MacVim needs to know about background changes to optionally
+	    // change the appearance mode.
+	    gui_macvim_set_background(dark);
+#endif
 	}
 	else
 	    errmsg = e_invarg;

@@ -9,6 +9,7 @@
  */
 
 #import "MMPreferenceController.h"
+#import "MMAppController.h"
 #import "Miscellaneous.h"
 
 // On Leopard, we want to use the images provided by the OS for some of the
@@ -27,6 +28,7 @@
 
 
 NSString* nsImageNamePreferencesGeneral = nil;
+NSString* nsImageNamePreferencesAppearance = nil;
 NSString* nsImageNamePreferencesAdvanced = nil;
 
 
@@ -36,6 +38,8 @@ static void loadSymbols()
     void *ptr;
     if ((ptr = dlsym(RTLD_DEFAULT, "NSImageNamePreferencesGeneral")) != NULL)
         nsImageNamePreferencesGeneral = *(NSString**)ptr;
+    if ((ptr = dlsym(RTLD_DEFAULT, "NSImageNameColorPanel")) != NULL) // Closest match for default icon for "appearance"
+        nsImageNamePreferencesAppearance = *(NSString**)ptr;
     if ((ptr = dlsym(RTLD_DEFAULT, "NSImageNameAdvanced")) != NULL)
         nsImageNamePreferencesAdvanced = *(NSString**)ptr;
 }
@@ -45,6 +49,7 @@ static void loadSymbols()
 
 - (IBAction)showWindow:(id)sender
 {
+    [super setCrossFade:NO];
     [super showWindow:sender];
     #if DISABLE_SPARKLE
         // If Sparkle is disabled in config, we don't want to show the preference pane
@@ -65,6 +70,14 @@ static void loadSymbols()
         [self addView:generalPreferences label:@"General"];
     }
 
+    if (nsImageNamePreferencesAppearance != NULL) {
+        [self addView:appearancePreferences
+                label:@"Appearance"
+                image:[NSImage imageNamed:nsImageNamePreferencesAppearance]];
+    } else {
+        [self addView:appearancePreferences label:@"Appearance"];
+    }
+
     if (nsImageNamePreferencesAdvanced != NULL) {
         [self addView:advancedPreferences
                 label:@"Advanced"
@@ -72,7 +85,6 @@ static void loadSymbols()
     } else {
         [self addView:advancedPreferences label:@"Advanced"];
     }
-
 }
 
 
@@ -110,6 +122,12 @@ static void loadSymbols()
     if (!checkForUpdates) {
         [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"SUAutomaticallyUpdate"];
     }
+}
+
+- (IBAction)appearanceChanged:(id)sender
+{
+    // Refresh all windows' appearance to match preference.
+    [[MMAppController sharedInstance] refreshAllAppearances];
 }
 
 @end

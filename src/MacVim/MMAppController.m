@@ -1072,6 +1072,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     return openOk;
 }
 
+- (void)refreshAllAppearances
+{
+    unsigned count = [vimControllers count];
+    for (unsigned i = 0; i < count; ++i) {
+        MMVimController *vc = [vimControllers objectAtIndex:i];
+        [vc.windowController refreshApperanceMode];
+    }
+}
+
 - (IBAction)newWindow:(id)sender
 {
     ASLogDebug(@"Open new window");

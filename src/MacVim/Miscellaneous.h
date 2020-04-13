@@ -33,6 +33,7 @@ extern NSString *MMTranslateCtrlClickKey;
 extern NSString *MMTopLeftPointKey;
 extern NSString *MMOpenInCurrentWindowKey;
 extern NSString *MMNoFontSubstitutionKey;
+extern NSString *MMAppearanceModeSelectionKey;
 extern NSString *MMNoTitleBarWindowKey;
 extern NSString *MMTitlebarAppearsTransparentKey;
 extern NSString *MMDisableLaunchAnimation;
@@ -82,6 +83,13 @@ enum {
     MMTerminateWhenLastWindowClosed = 2,
 };
 
+// Enum for MMAppearanceModeSelectionKey
+enum MMAppearanceModeSelectionEnum {
+    MMAppearanceModeSelectionAuto = 0,
+    MMAppearanceModeSelectionLight = 1,
+    MMAppearanceModeSelectionDark = 2,
+    MMAppearanceModeSelectionBackgroundOption = 3,
+};
 
 
 enum {
