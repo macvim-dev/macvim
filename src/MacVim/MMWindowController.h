@@ -45,6 +45,7 @@
     NSToolbar           *toolbar;
     BOOL                resizingDueToMove;
     int                 blurRadius;
+    BOOL                backgroundDark;
     NSMutableArray      *afterWindowPresentedQueue;
 }
 
@@ -73,6 +74,10 @@
 - (void)setScrollbarPosition:(int)pos length:(int)len identifier:(int32_t)ident;
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
                     identifier:(int32_t)ident;
+
+- (void)setBackgroundOption:(int)dark;
+- (void)refreshApperanceMode;
+
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore;
 - (void)setFont:(NSFont *)font;
 - (void)setWideFont:(NSFont *)font;

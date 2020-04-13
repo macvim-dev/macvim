@@ -2474,3 +2474,9 @@ gui_macvim_set_blur(int radius)
 {
     [[MMBackend sharedInstance] setBlurRadius:radius];
 }
+
+    void
+gui_macvim_set_background(int dark)
+{
+    [[MMBackend sharedInstance] setBackground:dark];
+}

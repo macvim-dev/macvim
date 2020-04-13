@@ -980,6 +980,10 @@ static BOOL isUnsafeMessage(int msgid);
         if (filenames)
             [[NSDocumentController sharedDocumentController]
                                             noteNewRecentFilePaths:filenames];
+    } else if (SetBackgroundOptionMsgID == msgid) {
+        const void *bytes = [data bytes];
+        int dark = *((int*)bytes);
+        [windowController setBackgroundOption:dark];
     } else if (SetBlurRadiusMsgID == msgid) {
         const void *bytes = [data bytes];
         int radius = *((int*)bytes);

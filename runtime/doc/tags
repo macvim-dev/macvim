@@ -4957,6 +4957,7 @@ LogiPat-flags	pi_logipat.txt	/*LogiPat-flags*
 Lua	if_lua.txt	/*Lua*
 M	motion.txt	/*M*
 MDI	starting.txt	/*MDI*
+MMAppearanceModeSelection	gui_mac.txt	/*MMAppearanceModeSelection*
 MMCellWidthMultiplier	gui_mac.txt	/*MMCellWidthMultiplier*
 MMDialogsTrackPwd	gui_mac.txt	/*MMDialogsTrackPwd*
 MMDisableLaunchAnimation	gui_mac.txt	/*MMDisableLaunchAnimation*
@@ -7728,12 +7729,15 @@ mac-vimfile	os_mac.txt	/*mac-vimfile*
 macintosh	os_mac.txt	/*macintosh*
 macro	map.txt	/*macro*
 macvim	gui_mac.txt	/*macvim*
+macvim-appearance	gui_mac.txt	/*macvim-appearance*
+macvim-appearance-mode	gui_mac.txt	/*macvim-appearance-mode*
 macvim-autocommands	gui_mac.txt	/*macvim-autocommands*
 macvim-backspace	gui_mac.txt	/*macvim-backspace*
 macvim-clientserver	remote.txt	/*macvim-clientserver*
 macvim-colors	gui_mac.txt	/*macvim-colors*
 macvim-colorscheme	gui_mac.txt	/*macvim-colorscheme*
 macvim-commands	gui_mac.txt	/*macvim-commands*
+macvim-dark-mode	gui_mac.txt	/*macvim-dark-mode*
 macvim-default-menu	gui_mac.txt	/*macvim-default-menu*
 macvim-delete	gui_mac.txt	/*macvim-delete*
 macvim-dialogs	gui_mac.txt	/*macvim-dialogs*

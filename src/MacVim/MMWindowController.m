@@ -127,6 +127,8 @@
 
 - (id)initWithVimController:(MMVimController *)controller
 {
+    backgroundDark = NO;
+    
     unsigned styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
             | NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable
             | NSWindowStyleMaskUnifiedTitleAndToolbar
@@ -148,12 +150,6 @@
                         backing:NSBackingStoreBuffered
                           defer:YES];
     [win autorelease];
-    
-    if ([[NSUserDefaults standardUserDefaults]
-         boolForKey:MMTitlebarAppearsTransparentKey]) {
-        // Transparent title bar setting
-        win.titlebarAppearsTransparent = true;
-    }
 
     self = [super initWithWindow:win];
     if (!self) return nil;
@@ -162,6 +158,8 @@
 
     vimController = controller;
     decoratedWindow = [win retain];
+    
+    [self refreshApperanceMode];
 
     // Window cascading is handled by MMAppController.
     [self setShouldCascadeWindows:NO];
@@ -504,6 +502,13 @@
 
     [decoratedWindow setRepresentedFilename:filename];
     [fullScreenWindow setRepresentedFilename:filename];
+
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMTitlebarAppearsTransparentKey]) {
+        // Remove the draggable file icon in the title bar for a clean look
+        // when we are in transparent titlebar mode.
+        [[decoratedWindow standardWindowButton:NSWindowDocumentIconButton] setImage: nil];
+        [[fullScreenWindow standardWindowButton:NSWindowDocumentIconButton] setImage: nil];
+    }
 }
 
 - (void)setToolbar:(NSToolbar *)theToolbar
@@ -553,6 +558,63 @@
                     identifier:(int32_t)ident
 {
     [vimView setScrollbarThumbValue:val proportion:prop identifier:ident];
+}
+
+- (void)setBackgroundOption:(int)dark
+{
+    backgroundDark = dark;
+    if ([[NSUserDefaults standardUserDefaults]
+         integerForKey:MMAppearanceModeSelectionKey] == MMAppearanceModeSelectionBackgroundOption)
+    {
+        [self refreshApperanceMode];
+    }
+}
+
+- (void)refreshApperanceMode
+{
+    // This function calculates what apperance mode (light vs dark mode and
+    // titlebar settings) to use for this window, depending on what the user
+    // has selected as a preference.
+    
+    // Transparent title bar setting
+    decoratedWindow.titlebarAppearsTransparent = [[NSUserDefaults standardUserDefaults]
+                                                  boolForKey:MMTitlebarAppearsTransparentKey];
+
+    // Dark mode only works on 10.14+ because that's when dark mode was
+    // introduced.
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+    if (@available(macos 10.14, *)) {
+        switch ([[NSUserDefaults standardUserDefaults] integerForKey:MMAppearanceModeSelectionKey])
+        {
+            case MMAppearanceModeSelectionLight:
+            {
+                decoratedWindow.appearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
+                break;
+            }
+            case MMAppearanceModeSelectionDark:
+            {
+                decoratedWindow.appearance = [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua];
+                break;
+            }
+            case MMAppearanceModeSelectionBackgroundOption:
+            {
+                if (backgroundDark) {
+                    decoratedWindow.appearance = [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua];
+                } else {
+                    decoratedWindow.appearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
+                }
+                break;
+            }
+            case MMAppearanceModeSelectionAuto:
+            default:
+            {
+                // Use the system appearance. This will also auto-switch when OS changes mode.
+                decoratedWindow.appearance = nil;
+                break;
+            }
+        }
+    }
+#endif
 }
 
 - (void)setDefaultColorsBackground:(NSColor *)back foreground:(NSColor *)fore

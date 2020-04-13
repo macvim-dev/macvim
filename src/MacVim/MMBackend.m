@@ -1236,6 +1236,14 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     [self queueMessage:SetBlurRadiusMsgID data:data];
 }
 
+- (void)setBackground:(int)dark
+{
+    NSMutableData *data = [NSMutableData data];
+    [data appendBytes:&dark length:sizeof(int)];
+
+    [self queueMessage:SetBackgroundOptionMsgID data:data];
+}
+
 - (void)updateModifiedFlag
 {
     int state = [self checkForModifiedBuffers];

@@ -264,6 +264,7 @@ extern const char * const MMVimMsgIDStrings[];
     MSG(AddToMRUMsgID) \
     MSG(BackingPropertiesChangedMsgID) \
     MSG(SetBlurRadiusMsgID) \
+    MSG(SetBackgroundOptionMsgID) \
     MSG(NotifyAppearanceChangeMsgID) \
     MSG(EnableLigaturesMsgID) \
     MSG(DisableLigaturesMsgID) \

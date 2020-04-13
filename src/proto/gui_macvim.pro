@@ -219,6 +219,8 @@ void gui_macvim_set_ligatures(int ligatures);
 void gui_macvim_set_thinstrokes(int thinStrokes);
 void gui_macvim_set_blur(int blur);
 
+void gui_macvim_set_background(int dark);
+
 int16_t odb_buffer_close(buf_T *buf);
 int16_t odb_post_buffer_write(buf_T *buf);
 void odb_end(void);

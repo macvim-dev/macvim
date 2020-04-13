@@ -13,6 +13,7 @@
 
 @interface MMPreferenceController : DBPrefsWindowController {
     IBOutlet NSView *generalPreferences;
+    IBOutlet NSView *appearancePreferences;
     IBOutlet NSView *advancedPreferences;
 
     // General pane
@@ -25,5 +26,5 @@
 - (IBAction)showWindow:(id)sender;
 - (IBAction)openInCurrentWindowSelectionChanged:(id)sender;
 - (IBAction)checkForUpdatesChanged:(id)sender;
-
+- (IBAction)appearanceChanged:(id)sender;
 @end
