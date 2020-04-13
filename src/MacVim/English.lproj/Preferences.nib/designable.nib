@@ -227,11 +227,11 @@
             <point key="canvasLocation" x="137.5" y="382"/>
         </customView>
         <customView id="hr4-G4-3ZG" userLabel="Appearance">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="224"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="244"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fw0-VK-Nbz" userLabel="Dark mode selection">
-                    <rect key="frame" x="19" y="46" width="433" height="156"/>
+                    <rect key="frame" x="19" y="66" width="433" height="156"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="T40-Os-PUf" userLabel="Dark mode selection">
@@ -292,11 +292,11 @@
                     </subviews>
                 </customView>
                 <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7af-iK-4r7" userLabel="Titlebar appearance">
-                    <rect key="frame" x="19" y="20" width="433" height="18"/>
+                    <rect key="frame" x="19" y="20" width="433" height="38"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7ie-0J-0Zr" userLabel="Auto-install updates">
-                            <rect key="frame" x="189" y="-1" width="244" height="18"/>
+                            <rect key="frame" x="189" y="19" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <string key="toolTip">MacVim will automatically download and install updates without prompting. The updated version will be used the next time MacVim starts.</string>
                             <buttonCell key="cell" type="check" title="Transparent" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="hzd-hj-Pth">
@@ -312,7 +312,7 @@
                             </connections>
                         </button>
                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
-                            <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
+                            <rect key="frame" x="-2" y="20" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Titlebar appearance:" id="HEH-Lo-v4I" userLabel="Titlebar appearance:">
                                 <font key="font" metaFont="system"/>
@@ -320,10 +320,26 @@
                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
+                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Hqh-Ql-2od">
+                            <rect key="frame" x="189" y="1" width="244" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <string key="toolTip">MacVim will automatically download and install updates without prompting. The updated version will be used the next time MacVim starts.</string>
+                            <buttonCell key="cell" type="check" title="Hidden" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="W40-cB-m1U">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                                <connections>
+                                    <binding destination="58" name="enabled" keyPath="values.SUCheckAtStartup" id="c7R-qa-q9c"/>
+                                </connections>
+                            </buttonCell>
+                            <connections>
+                                <action selector="appearanceChanged:" target="-2" id="WQA-OC-F4I"/>
+                                <binding destination="58" name="value" keyPath="values.MMNoTitleBarWindow" id="CKL-mo-ZhZ"/>
+                            </connections>
+                        </button>
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="137.5" y="384"/>
+            <point key="canvasLocation" x="137.5" y="394"/>
         </customView>
         <customView id="620" userLabel="Advanced">
             <rect key="frame" x="0.0" y="0.0" width="483" height="318"/>

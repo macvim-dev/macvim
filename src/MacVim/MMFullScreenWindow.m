@@ -191,6 +191,8 @@ enum {
         // we have to do it manually.
         [NSApp changeWindowsItem:self title:[target title] filename:NO];
     }
+    
+    [self setAppearance:target.appearance];
 
     [self setOpaque:[target isOpaque]];
 
