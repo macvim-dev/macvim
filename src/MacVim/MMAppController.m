@@ -1767,16 +1767,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 // parse value
                 NSString *v = [arr objectAtIndex:1];
 
-                // do not decode url, since it's a file URI
-                BOOL decode = ![f isEqualToString:@"url"];
-                if (decode)
-                {
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_11
-                    v = [v stringByRemovingPercentEncoding];
+                v = [v stringByRemovingPercentEncoding];
 #else
-                    v = [v stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+                v = [v stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
 #endif
-                }
 
                 [dict setValue:v forKey:f];
             }
