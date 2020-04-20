@@ -1336,6 +1336,7 @@ $VIM_POSIX	vi_diff.txt	/*$VIM_POSIX*
 +iconv	various.txt	/*+iconv*
 +iconv/dyn	various.txt	/*+iconv\/dyn*
 +insert_expand	various.txt	/*+insert_expand*
++ipv6	various.txt	/*+ipv6*
 +job	various.txt	/*+job*
 +jumplist	various.txt	/*+jumplist*
 +keymap	various.txt	/*+keymap*
