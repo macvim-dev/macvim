@@ -653,9 +653,9 @@ do_cmdline(
 # define cmd_cookie cookie
 #endif
     static int	call_depth = 0;		// recursiveness
+#ifdef FEAT_EVAL
     ESTACK_CHECK_DECLARATION
 
-#ifdef FEAT_EVAL
     // For every pair of do_cmdline()/do_one_cmd() calls, use an extra memory
     // location for storing error messages to be converted to an exception.
     // This ensures that the do_errthrow() call in do_one_cmd() does not
@@ -734,7 +734,7 @@ do_cmdline(
     if (flags & DOCMD_EXCRESET)
 	save_dbg_stuff(&debug_saved);
     else
-	vim_memset(&debug_saved, 0, sizeof(debug_saved));
+	CLEAR_FIELD(debug_saved);
 
     initial_trylevel = trylevel;
 
@@ -1301,7 +1301,7 @@ do_cmdline(
 	/*
 	 * On an interrupt or an aborting error not converted to an exception,
 	 * disable the conversion of errors to exceptions.  (Interrupts are not
-	 * converted any more, here.) This enables also the interrupt message
+	 * converted anymore, here.) This enables also the interrupt message
 	 * when force_abort is set and did_emsg unset in case of an interrupt
 	 * from a finally clause after an error.
 	 */
@@ -1669,7 +1669,7 @@ do_one_cmd(
     int		starts_with_colon;
 #endif
 
-    vim_memset(&ea, 0, sizeof(ea));
+    CLEAR_FIELD(ea);
     ea.line1 = 1;
     ea.line2 = 1;
 #ifdef FEAT_EVAL
@@ -1841,7 +1841,11 @@ do_one_cmd(
      * If we find a '|' or '\n' we set ea.nextcmd.
      */
     if (*ea.cmd == NUL || *ea.cmd == '"'
-			      || (ea.nextcmd = check_nextcmd(ea.cmd)) != NULL)
+#ifdef FEAT_EVAL
+		|| (*ea.cmd == '#' && ea.cmd[1] != '{'
+				      && !starts_with_colon && in_vim9script())
+#endif
+		|| (ea.nextcmd = check_nextcmd(ea.cmd)) != NULL)
     {
 	/*
 	 * strange vi behaviour:
@@ -2632,7 +2636,7 @@ parse_command_modifiers(exarg_T *eap, char **errormsg, int skip_only)
 {
     char_u *p;
 
-    vim_memset(&cmdmod, 0, sizeof(cmdmod));
+    CLEAR_FIELD(cmdmod);
     eap->verbose_save = -1;
     eap->save_msg_silent = -1;
 
@@ -3156,9 +3160,9 @@ append_command(char_u *cmd)
     char_u *
 find_ex_command(
 	exarg_T *eap,
-	int *full UNUSED,
-	int (*lookup)(char_u *, size_t, cctx_T *) UNUSED,
-	cctx_T *cctx UNUSED)
+	int	*full UNUSED,
+	int	(*lookup)(char_u *, size_t, cctx_T *) UNUSED,
+	cctx_T	*cctx UNUSED)
 {
     int		len;
     char_u	*p;
@@ -3288,6 +3292,8 @@ find_ex_command(
 	    if (ASCII_ISLOWER(c2))
 		eap->cmdidx += cmdidxs2[CharOrdLow(c1)][CharOrdLow(c2)];
 	}
+	else if (ASCII_ISUPPER(eap->cmd[0]))
+	    eap->cmdidx = CMD_Next;
 	else
 	    eap->cmdidx = CMD_bang;
 
@@ -4437,6 +4443,10 @@ separate_nextcmd(exarg_T *eap)
 			|| p != eap->arg)
 		    && (eap->cmdidx != CMD_redir
 			|| p != eap->arg + 1 || p[-1] != '@'))
+#ifdef FEAT_EVAL
+		|| (*p == '#' && in_vim9script()
+			  && p[1] != '{' && p > eap->cmd && VIM_ISWHITE(p[-1]))
+#endif
 		|| *p == '|' || *p == '\n')
 	{
 	    /*
@@ -4767,9 +4777,33 @@ ex_blast(exarg_T *eap)
 	do_cmdline_cmd(eap->do_ecmd_cmd);
 }
 
+/*
+ * Check if "c" ends an Ex command.
+ * In Vim9 script does not check for white space before # or #{.
+ */
     int
 ends_excmd(int c)
 {
+#ifdef FEAT_EVAL
+    if (c == '#')
+	return in_vim9script();
+#endif
+    return (c == NUL || c == '|' || c == '"' || c == '\n');
+}
+
+/*
+ * Like ends_excmd() but checks that a # in Vim9 script either has "cmd" equal
+ * to "cmd_start" or has a white space character before it.
+ */
+    int
+ends_excmd2(char_u *cmd_start UNUSED, char_u *cmd)
+{
+    int c = *cmd;
+
+#ifdef FEAT_EVAL
+    if (c == '#' && cmd[1] != '{' && (cmd == cmd_start || VIM_ISWHITE(cmd[-1])))
+	return in_vim9script();
+#endif
     return (c == NUL || c == '|' || c == '"' || c == '\n');
 }
 
@@ -5637,7 +5671,7 @@ handle_drop_internal(void)
      * Move to the first file.
      */
     // Fake up a minimal "next" command for do_argfile()
-    vim_memset(&ea, 0, sizeof(ea));
+    CLEAR_FIELD(ea);
     ea.cmd = (char_u *)"next";
     do_argfile(&ea, 0);
 
@@ -5904,7 +5938,7 @@ tabpage_new(void)
 {
     exarg_T	ea;
 
-    vim_memset(&ea, 0, sizeof(ea));
+    CLEAR_FIELD(ea);
     ea.cmdidx = CMD_tabnew;
     ea.cmd = (char_u *)"tabn";
     ea.arg = (char_u *)"";
@@ -7732,6 +7766,11 @@ ex_startinsert(exarg_T *eap)
 	    curwin->w_cursor.lnum = 1;
 	set_cursor_for_append_to_line();
     }
+#ifdef FEAT_TERMINAL
+    // Ignore this when running in an active terminal.
+    if (term_job_running(curbuf->b_term))
+	return;
+#endif
 
     // Ignore the command when already in Insert mode.  Inserting an
     // expression register that invokes a function can do this.

@@ -500,7 +500,7 @@ normal_cmd(
     int		set_prevcount = FALSE;
 #endif
 
-    vim_memset(&ca, 0, sizeof(ca));	// also resets ca.retval
+    CLEAR_FIELD(ca);	// also resets ca.retval
     ca.oap = oap;
 
     // Use a count remembered from before entering an operator.  After typing
@@ -3492,7 +3492,7 @@ do_nv_ident(int c1, int c2)
     cmdarg_T	ca;
 
     clear_oparg(&oa);
-    vim_memset(&ca, 0, sizeof(ca));
+    CLEAR_FIELD(ca);
     ca.oap = &oa;
     ca.cmdchar = c1;
     ca.nchar = c2;
@@ -4320,7 +4320,7 @@ normal_search(
     cap->oap->use_reg_one = TRUE;
     curwin->w_set_curswant = TRUE;
 
-    vim_memset(&sia, 0, sizeof(sia));
+    CLEAR_FIELD(sia);
     i = do_search(cap->oap, dir, dir, pat, cap->count1,
 			    opt | SEARCH_OPT | SEARCH_ECHO | SEARCH_MSG, &sia);
     if (wrapped != NULL)

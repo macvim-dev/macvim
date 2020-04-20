@@ -950,7 +950,7 @@ win32_kbd_patch_key(
     if (pker->UChar != 0)
 	return 1;
 
-    vim_memset(abKeystate, 0, sizeof (abKeystate));
+    CLEAR_FIELD(abKeystate);
 
     // Clear any pending dead keys
     ToUnicode(VK_SPACE, MapVirtualKey(VK_SPACE, 0), abKeystate, awAnsiCode, 2, 0);
@@ -2749,6 +2749,10 @@ mch_init(void)
     void
 mch_exit(int r)
 {
+#ifdef FEAT_NETBEANS_INTG
+    netbeans_send_disconnect();
+#endif
+
 #ifdef VIMDLL
     if (gui.in_use || gui.starting)
 	mch_exit_g(r);
@@ -5996,6 +6000,10 @@ visual_bell(void)
 cursor_visible(BOOL fVisible)
 {
     s_cursor_visible = fVisible;
+
+    if (USE_VTP)
+	vtp_printf("\033[?25%c", fVisible ? 'h' : 'l');
+
 # ifdef MCH_CURSOR_SHAPE
     mch_update_cursor();
 # endif

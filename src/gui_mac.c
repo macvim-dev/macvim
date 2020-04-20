@@ -5461,7 +5461,7 @@ gui_mch_dialog(
     button = 0;
 
     // initialize the hotkey mapping
-    vim_memset(hotKeys, 0, sizeof(hotKeys));
+    CLEAR_FIELD(hotKeys);
 
     for (;*buttonChar != 0;)
     {

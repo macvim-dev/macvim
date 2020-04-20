@@ -234,7 +234,7 @@ eval_expr_typval(typval_T *expr, typval_T *argv, int argc, typval_T *rettv)
 	s = expr->vval.v_string;
 	if (s == NULL || *s == NUL)
 	    return FAIL;
-	vim_memset(&funcexe, 0, sizeof(funcexe));
+	CLEAR_FIELD(funcexe);
 	funcexe.evaluate = TRUE;
 	if (call_func(s, -1, rettv, argc, argv, &funcexe) == FAIL)
 	    return FAIL;
@@ -253,7 +253,7 @@ eval_expr_typval(typval_T *expr, typval_T *argv, int argc, typval_T *rettv)
 	    s = partial_name(partial);
 	    if (s == NULL || *s == NUL)
 		return FAIL;
-	    vim_memset(&funcexe, 0, sizeof(funcexe));
+	    CLEAR_FIELD(funcexe);
 	    funcexe.evaluate = TRUE;
 	    funcexe.partial = partial;
 	    if (call_func(s, -1, rettv, argc, argv, &funcexe) == FAIL)
@@ -475,7 +475,7 @@ call_vim_function(
     funcexe_T	funcexe;
 
     rettv->v_type = VAR_UNKNOWN;		// clear_tv() uses this
-    vim_memset(&funcexe, 0, sizeof(funcexe));
+    CLEAR_FIELD(funcexe);
     funcexe.firstline = curwin->w_cursor.lnum;
     funcexe.lastline = curwin->w_cursor.lnum;
     funcexe.evaluate = TRUE;
@@ -649,7 +649,7 @@ get_lval(
     int		quiet = flags & GLV_QUIET;
 
     // Clear everything in "lp".
-    vim_memset(lp, 0, sizeof(lval_T));
+    CLEAR_POINTER(lp);
 
     if (skip)
     {
@@ -1715,7 +1715,7 @@ eval_func(
 	funcexe_T funcexe;
 
 	// Invoke the function.
-	vim_memset(&funcexe, 0, sizeof(funcexe));
+	CLEAR_FIELD(funcexe);
 	funcexe.firstline = curwin->w_cursor.lnum;
 	funcexe.lastline = curwin->w_cursor.lnum;
 	funcexe.evaluate = evaluate;
@@ -2805,7 +2805,7 @@ call_func_rettv(
     else
 	s = (char_u *)"";
 
-    vim_memset(&funcexe, 0, sizeof(funcexe));
+    CLEAR_FIELD(funcexe);
     funcexe.firstline = curwin->w_cursor.lnum;
     funcexe.lastline = curwin->w_cursor.lnum;
     funcexe.evaluate = evaluate;
@@ -5098,6 +5098,7 @@ find_name_end(
     int		br_nest = 0;
     char_u	*p;
     int		len;
+    int		vim9script = current_sctx.sc_version == SCRIPT_VERSION_VIM9;
 
     if (expr_start != NULL)
     {
@@ -5106,12 +5107,13 @@ find_name_end(
     }
 
     // Quick check for valid starting character.
-    if ((flags & FNE_CHECK_START) && !eval_isnamec1(*arg) && *arg != '{')
+    if ((flags & FNE_CHECK_START) && !eval_isnamec1(*arg)
+						&& (*arg != '{' || vim9script))
 	return arg;
 
     for (p = arg; *p != NUL
 		    && (eval_isnamec(*p)
-			|| *p == '{'
+			|| (*p == '{' && !vim9script)
 			|| ((flags & FNE_INCL_BR) && (*p == '[' || *p == '.'))
 			|| mb_nest != 0
 			|| br_nest != 0); MB_PTR_ADV(p))
@@ -5151,7 +5153,7 @@ find_name_end(
 		--br_nest;
 	}
 
-	if (br_nest == 0)
+	if (br_nest == 0 && !vim9script)
 	{
 	    if (*p == '{')
 	    {
@@ -5507,7 +5509,7 @@ clear_tv(typval_T *varp)
 init_tv(typval_T *varp)
 {
     if (varp != NULL)
-	vim_memset(varp, 0, sizeof(typval_T));
+	CLEAR_POINTER(varp);
 }
 
 /*
@@ -6061,7 +6063,7 @@ ex_echo(exarg_T *eap)
 
     if (eap->skip)
 	++emsg_skip;
-    while (*arg != NUL && *arg != '|' && *arg != '\n' && !got_int)
+    while ((!ends_excmd2(eap->cmd, arg) || *arg == '"') && !got_int)
     {
 	// If eval1() causes an error message the text from the command may
 	// still need to be cleared. E.g., "echo 22,44".
@@ -6143,7 +6145,7 @@ ex_execute(exarg_T *eap)
 
     if (eap->skip)
 	++emsg_skip;
-    while (*arg != NUL && *arg != '|' && *arg != '\n')
+    while (!ends_excmd2(eap->cmd, arg) || *arg == '"')
     {
 	ret = eval1_emsg(&arg, &rettv, !eap->skip);
 	if (ret == FAIL)

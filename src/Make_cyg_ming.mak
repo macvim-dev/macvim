@@ -624,7 +624,10 @@ NBDEBUG_SRC = nbdebug.c
 endif
 
 ifeq ($(CHANNEL),yes)
-DEFINES += -DFEAT_JOB_CHANNEL
+DEFINES += -DFEAT_JOB_CHANNEL -DFEAT_IPV6
+ ifeq ($(shell expr "$(WINVER)" \>= 0x600),1)
+DEFINES += -DHAVE_INET_NTOP
+ endif
 endif
 
 ifeq ($(TERMINAL),yes)
@@ -850,7 +853,7 @@ endif
 
 ifeq ($(CHANNEL),yes)
 OBJ += $(OUTDIR)/channel.o
-LIB += -lwsock32
+LIB += -lwsock32 -lws2_32
 endif
 
 ifeq ($(DIRECTX),yes)

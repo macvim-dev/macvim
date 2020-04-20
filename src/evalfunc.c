@@ -2706,6 +2706,17 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 	     TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD | TFN_NO_DEREF, NULL, NULL);
 	if (*name != NUL)
 	    s = NULL;
+	else if (trans_name != NULL
+		&& ASCII_ISUPPER(*s)
+		&& current_sctx.sc_version == SCRIPT_VERSION_VIM9
+		&& find_func(trans_name, NULL) == NULL)
+	{
+	    // With Vim9 script "MyFunc" can be script-local to the current
+	    // script or global.  The script-local name is not found, assume
+	    // global.
+	    vim_free(trans_name);
+	    trans_name = vim_strsave(s);
+	}
     }
 
     if (s == NULL || *s == NUL || (use_string && VIM_ISDIGIT(*s))
@@ -2977,7 +2988,7 @@ f_get(typval_T *argvars, typval_T *rettv)
 	    pt = argvars[0].vval.v_partial;
 	else
 	{
-	    vim_memset(&fref_pt, 0, sizeof(fref_pt));
+	    CLEAR_FIELD(fref_pt);
 	    fref_pt.pt_name = argvars[0].vval.v_string;
 	    pt = &fref_pt;
 	}
@@ -3957,6 +3968,13 @@ f_has(typval_T *argvars, typval_T *rettv)
 #endif
 		},
 	{"insert_expand", 1},
+	{"ipv6",
+#ifdef FEAT_IPV6
+		1
+#else
+		0
+#endif
+	},
 	{"job",
 #ifdef FEAT_JOB_CHANNEL
 		1
@@ -6558,7 +6576,7 @@ search_cmn(typval_T *argvars, pos_T *match_pos, int *flagsp)
     }
 
     pos = save_cursor = curwin->w_cursor;
-    vim_memset(&sia, 0, sizeof(sia));
+    CLEAR_FIELD(sia);
     sia.sa_stop_lnum = (linenr_T)lnum_stop;
 #ifdef FEAT_RELTIME
     sia.sa_tm = &tm;
@@ -7006,7 +7024,7 @@ do_searchpair(
     {
 	searchit_arg_T sia;
 
-	vim_memset(&sia, 0, sizeof(sia));
+	CLEAR_FIELD(sia);
 	sia.sa_stop_lnum = lnum_stop;
 #ifdef FEAT_RELTIME
 	sia.sa_tm = &tm;
@@ -8429,7 +8447,7 @@ f_synconcealed(typval_T *argvars UNUSED, typval_T *rettv)
     lnum = tv_get_lnum(argvars);		// -1 on type error
     col = (colnr_T)tv_get_number(&argvars[1]) - 1;	// -1 on type error
 
-    vim_memset(str, NUL, sizeof(str));
+    CLEAR_FIELD(str);
 
     if (rettv_list_alloc(rettv) != FAIL)
     {

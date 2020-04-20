@@ -42,6 +42,7 @@ func Test_terminal_basic()
   call assert_match('%aR[^\n]*running]', execute('ls R'))
   call assert_notmatch('%[^\n]*running]', execute('ls F'))
   call assert_notmatch('%[^\n]*running]', execute('ls ?'))
+  call assert_fails('set modifiable', 'E946:')
 
   call StopShellInTerminal(buf)
   call TermWait(buf)
@@ -2614,6 +2615,28 @@ func Test_term_nasty_callback()
   call TermWait(g:buf0, 50)
   exe g:buf0 .. 'bwipe!'
   set hidden&
+endfunc
+
+func Test_term_and_startinsert()
+  CheckRunVimInTerminal
+  CheckUnix
+
+  let lines =<< trim EOL
+     put='some text'
+     term
+     startinsert
+  EOL
+  call writefile(lines, 'XTest_startinsert')
+  let buf = RunVimInTerminal('-S XTest_startinsert', {})
+
+  call term_sendkeys(buf, "exit\r")
+  call WaitForAssert({-> assert_equal("some text", term_getline(buf, 1))})
+  call term_sendkeys(buf, "0l")
+  call term_sendkeys(buf, "A<\<Esc>")
+  call WaitForAssert({-> assert_equal("some text<", term_getline(buf, 1))})
+
+  call StopVimInTerminal(buf)
+  call delete('XTest_startinsert')
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

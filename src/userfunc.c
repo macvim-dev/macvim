@@ -64,14 +64,16 @@ func_tbl_get(void)
 }
 
 /*
- * Get one function argument and an optional type: "arg: type".
+ * Get one function argument.
+ * If "argtypes" is not NULL also get the type: "arg: type".
  * Return a pointer to after the type.
  * When something is wrong return "arg".
  */
     static char_u *
 one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 {
-    char_u *p = arg;
+    char_u	*p = arg;
+    char_u	*arg_copy = NULL;
 
     while (ASCII_ISALNUM(*p) || *p == '_')
 	++p;
@@ -87,7 +89,6 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 	return arg;
     if (newargs != NULL)
     {
-	char_u	*arg_copy;
 	int	c;
 	int	i;
 
@@ -119,14 +120,24 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
     {
 	char_u *type = NULL;
 
+	if (VIM_ISWHITE(*p) && *skipwhite(p) == ':')
+	{
+	    semsg(_("E1059: No white space allowed before colon: %s"),
+					    arg_copy == NULL ? arg : arg_copy);
+	    p = skipwhite(p);
+	}
 	if (*p == ':')
 	{
 	    type = skipwhite(p + 1);
 	    p = skip_type(type);
 	    type = vim_strnsave(type, p - type);
 	}
-	else if (*skipwhite(p) == ':')
-	    emsg(_("E1059: No white space allowed before :"));
+	else if (*skipwhite(p) != '=')
+	{
+	    semsg(_("E1077: Missing argument type for %s"),
+					    arg_copy == NULL ? arg : arg_copy);
+	    return arg;
+	}
 	((char_u **)argtypes->ga_data)[argtypes->ga_len++] = type;
     }
 
@@ -144,7 +155,9 @@ get_function_args(
     garray_T	*argtypes,	// NULL unless using :def
     int		*varargs,
     garray_T	*default_args,
-    int		skip)
+    int		skip,
+    exarg_T	*eap,
+    char_u	**line_to_free)
 {
     int		mustend = FALSE;
     char_u	*arg = *argp;
@@ -152,6 +165,7 @@ get_function_args(
     int		c;
     int		any_default = FALSE;
     char_u	*expr;
+    char_u	*whitep = arg;
 
     if (newargs != NULL)
 	ga_init2(newargs, (int)sizeof(char_u *), 3);
@@ -168,6 +182,30 @@ get_function_args(
      */
     while (*p != endchar)
     {
+	while (eap != NULL && eap->getline != NULL
+			 && (*p == NUL || (VIM_ISWHITE(*whitep) && *p == '#')))
+	{
+	    char_u *theline;
+
+	    // End of the line, get the next one.
+	    theline = eap->getline(':', eap->cookie, 0, TRUE);
+	    if (theline == NULL)
+		break;
+	    vim_free(*line_to_free);
+	    *line_to_free = theline;
+	    whitep = (char_u *)" ";
+	    p = skipwhite(theline);
+	}
+
+	if (mustend && *p != endchar)
+	{
+	    if (!skip)
+		semsg(_(e_invarg2), *argp);
+	    break;
+	}
+	if (*p == endchar)
+	    break;
+
 	if (p[0] == '.' && p[1] == '.' && p[2] == '.')
 	{
 	    if (varargs != NULL)
@@ -204,6 +242,7 @@ get_function_args(
 		// find the end of the expression (doesn't evaluate it)
 		any_default = TRUE;
 		p = skipwhite(p) + 1;
+		whitep = p;
 		p = skipwhite(p);
 		expr = p;
 		if (eval1(&p, &rettv, FALSE) != FAIL)
@@ -240,14 +279,10 @@ get_function_args(
 	    else
 		mustend = TRUE;
 	}
+	whitep = p;
 	p = skipwhite(p);
-	if (mustend && *p != endchar)
-	{
-	    if (!skip)
-		semsg(_(e_invarg2), *argp);
-	    break;
-	}
     }
+
     if (*p != endchar)
 	goto err_ret;
     ++p;	// skip "endchar"
@@ -323,7 +358,8 @@ get_lambda_tv(char_u **arg, typval_T *rettv, int evaluate)
     ga_init(&newlines);
 
     // First, check if this is a lambda expression. "->" must exist.
-    ret = get_function_args(&start, '-', NULL, NULL, NULL, NULL, TRUE);
+    ret = get_function_args(&start, '-', NULL, NULL, NULL, NULL, TRUE,
+								   NULL, NULL);
     if (ret == FAIL || *start != '>')
 	return NOTDONE;
 
@@ -334,7 +370,8 @@ get_lambda_tv(char_u **arg, typval_T *rettv, int evaluate)
 	pnewargs = NULL;
     *arg = skipwhite(*arg + 1);
     // TODO: argument types
-    ret = get_function_args(arg, '-', pnewargs, NULL, &varargs, NULL, FALSE);
+    ret = get_function_args(arg, '-', pnewargs, NULL, &varargs, NULL, FALSE,
+								   NULL, NULL);
     if (ret == FAIL || **arg != '>')
 	goto errret;
 
@@ -693,7 +730,8 @@ find_func_even_dead(char_u *name, cctx_T *cctx)
 	}
     }
 
-    hi = hash_find(&func_hashtab, name);
+    hi = hash_find(&func_hashtab,
+				STRNCMP(name, "g:", 2) == 0 ? name + 2 : name);
     if (!HASHITEM_EMPTY(hi))
 	return HI2UF(hi);
 
@@ -1136,7 +1174,7 @@ call_user_func(
 	v->di_tv.v_lock = VAR_FIXED;
 	v->di_tv.vval.v_list = &fc->l_varlist;
     }
-    vim_memset(&fc->l_varlist, 0, sizeof(list_T));
+    CLEAR_FIELD(fc->l_varlist);
     fc->l_varlist.lv_refcount = DO_NOT_FREE_CNT;
     fc->l_varlist.lv_lock = VAR_FIXED;
 
@@ -1614,7 +1652,7 @@ free_all_functions(void)
 
 /*
  * Return TRUE if "name" looks like a builtin function name: starts with a
- * lower case letter and doesn't contain AUTOLOAD_CHAR.
+ * lower case letter and doesn't contain AUTOLOAD_CHAR or ':'.
  * "len" is the length of "name", or -1 for NUL terminated.
  */
     int
@@ -1622,7 +1660,7 @@ builtin_function(char_u *name, int len)
 {
     char_u *p;
 
-    if (!ASCII_ISLOWER(name[0]))
+    if (!ASCII_ISLOWER(name[0]) || name[1] == ':')
 	return FALSE;
     p = vim_strchr(name, AUTOLOAD_CHAR);
     return p == NULL || (len > 0 && p > name + len);
@@ -1659,7 +1697,7 @@ func_call(
     {
 	funcexe_T funcexe;
 
-	vim_memset(&funcexe, 0, sizeof(funcexe));
+	CLEAR_FIELD(funcexe);
 	funcexe.firstline = curwin->w_cursor.lnum;
 	funcexe.lastline = curwin->w_cursor.lnum;
 	funcexe.evaluate = TRUE;
@@ -1698,7 +1736,7 @@ call_callback(
     funcexe_T	funcexe;
     int		ret;
 
-    vim_memset(&funcexe, 0, sizeof(funcexe));
+    CLEAR_FIELD(funcexe);
     funcexe.evaluate = TRUE;
     funcexe.partial = callback->cb_partial;
     ++callback_depth;
@@ -1856,6 +1894,15 @@ call_func(
 	    {
 		// loaded a package, search for the function again
 		fp = find_func(rfname, NULL);
+	    }
+	    if (fp == NULL)
+	    {
+		char_u *p = untrans_function_name(rfname);
+
+		// If using Vim9 script try not local to the script.
+		// TODO: should not do this if the name started with "s:".
+		if (p != NULL)
+		    fp = find_func(p, NULL);
 	    }
 
 	    if (fp != NULL && (fp->uf_flags & FC_DELETED))
@@ -2052,7 +2099,7 @@ trans_function_name(
     int		vim9script;
 
     if (fdp != NULL)
-	vim_memset(fdp, 0, sizeof(funcdict_T));
+	CLEAR_POINTER(fdp);
     start = *pp;
 
     // Check for hard coded <SNR>: already translated function ID (from a user
@@ -2261,6 +2308,27 @@ theend:
 }
 
 /*
+ * Assuming "name" is the result of trans_function_name() and it was prefixed
+ * to use the script-local name, return the unmodified name (points into
+ * "name").  Otherwise return NULL.
+ * This can be used to first search for a script-local function and fall back
+ * to the global function if not found.
+ */
+    char_u *
+untrans_function_name(char_u *name)
+{
+    char_u *p;
+
+    if (*name == K_SPECIAL && current_sctx.sc_version == SCRIPT_VERSION_VIM9)
+    {
+	p = vim_strchr(name, '_');
+	if (p != NULL)
+	    return p + 1;
+    }
+    return NULL;
+}
+
+/*
  * ":function"
  */
     void
@@ -2430,6 +2498,16 @@ ex_function(exarg_T *eap)
 	if (!eap->skip && !got_int)
 	{
 	    fp = find_func(name, NULL);
+	    if (fp == NULL && ASCII_ISUPPER(*eap->arg))
+	    {
+		char_u *up = untrans_function_name(name);
+
+		// With Vim9 script the name was made script-local, if not
+		// found try again with the original name.
+		if (up != NULL)
+		    fp = find_func(up, NULL);
+	    }
+
 	    if (fp != NULL)
 	    {
 		list_func_head(fp, TRUE);
@@ -2457,7 +2535,7 @@ ex_function(exarg_T *eap)
 		}
 	    }
 	    else
-		emsg_funcname(N_("E123: Undefined function: %s"), name);
+		emsg_funcname(N_("E123: Undefined function: %s"), eap->arg);
 	}
 	goto ret_free;
     }
@@ -2508,9 +2586,12 @@ ex_function(exarg_T *eap)
 	    emsg(_("E862: Cannot use g: here"));
     }
 
+    // This may get more lines and make the pointers into the first line
+    // invalid.
     if (get_function_args(&p, ')', &newargs,
 			eap->cmdidx == CMD_def ? &argtypes : NULL,
-			 &varargs, &default_args, eap->skip) == FAIL)
+			 &varargs, &default_args, eap->skip,
+			 eap, &line_to_free) == FAIL)
 	goto errret_2;
 
     if (eap->cmdidx == CMD_def)
@@ -2521,9 +2602,15 @@ ex_function(exarg_T *eap)
 	    ret_type = skipwhite(p + 1);
 	    p = skip_type(ret_type);
 	    if (p > ret_type)
+	    {
+		ret_type = vim_strnsave(ret_type, (int)(p - ret_type));
 		p = skipwhite(p);
+	    }
 	    else
+	    {
+		ret_type = NULL;
 		semsg(_("E1056: expected a type: %s"), ret_type);
+	    }
 	}
     }
     else
@@ -2565,7 +2652,8 @@ ex_function(exarg_T *eap)
     // Makes 'exe "func Test()\n...\nendfunc"' work.
     if (*p == '\n')
 	line_arg = p + 1;
-    else if (*p != NUL && *p != '"' && !eap->skip && !did_emsg)
+    else if (*p != NUL && *p != '"' && !(eap->cmdidx == CMD_def && *p == '#')
+						    && !eap->skip && !did_emsg)
 	emsg(_(e_trailing));
 
     /*
@@ -2783,10 +2871,19 @@ ex_function(exarg_T *eap)
 	    {
 		// ":python <<" continues until a dot, like ":append"
 		p = skipwhite(arg + 2);
+		if (STRNCMP(p, "trim", 4) == 0)
+		{
+		    // Ignore leading white space.
+		    p = skipwhite(p + 4);
+		    heredoc_trimmed = vim_strnsave(theline,
+			    (int)(skipwhite(theline) - theline));
+		}
 		if (*p == NUL)
 		    skip_until = vim_strsave((char_u *)".");
 		else
-		    skip_until = vim_strsave(p);
+		    skip_until = vim_strnsave(p, (int)(skiptowhite(p) - p));
+		do_concat = FALSE;
+		is_heredoc = TRUE;
 	    }
 
 	    // Check for ":let v =<< [trim] EOF"
@@ -3134,6 +3231,7 @@ ret_free:
     vim_free(line_to_free);
     vim_free(fudi.fd_newkey);
     vim_free(name);
+    vim_free(ret_type);
     did_emsg |= saved_did_emsg;
     need_wait_return |= saved_wait_return;
 }
@@ -3572,7 +3670,7 @@ ex_call(exarg_T *eap)
 	}
 	arg = startarg;
 
-	vim_memset(&funcexe, 0, sizeof(funcexe));
+	CLEAR_FIELD(funcexe);
 	funcexe.firstline = eap->line1;
 	funcexe.lastline = eap->line2;
 	funcexe.doesrange = &doesrange;

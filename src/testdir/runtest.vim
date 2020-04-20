@@ -161,8 +161,7 @@ func RunTheTest(test)
     exe 'call ' . a:test
   else
     try
-      let s:test = a:test
-      au VimLeavePre * call EarlyExit(s:test)
+      au VimLeavePre * call EarlyExit(g:testfunc)
       exe 'call ' . a:test
       au! VimLeavePre
     catch /^\cskipped/
@@ -226,11 +225,11 @@ func AfterTheTest(func_name)
   if len(v:errors) > 0
     if match(s:may_fail_list, '^' .. a:func_name) >= 0
       let s:fail_expected += 1
-      call add(s:errors_expected, 'Found errors in ' . s:test . ':')
+      call add(s:errors_expected, 'Found errors in ' . g:testfunc . ':')
       call extend(s:errors_expected, v:errors)
     else
       let s:fail += 1
-      call add(s:errors, 'Found errors in ' . s:test . ':')
+      call add(s:errors, 'Found errors in ' . g:testfunc . ':')
       call extend(s:errors, v:errors)
     endif
     let v:errors = []
@@ -350,7 +349,6 @@ let s:flaky_tests = [
       \ 'Test_diff_screen()',
       \ 'Test_exit_callback_interval()',
       \ 'Test_map_timeout_with_timer_interrupt()',
-      \ 'Test_nb_basic()',
       \ 'Test_out_cb()',
       \ 'Test_pipe_through_sort_all()',
       \ 'Test_pipe_through_sort_some()',
@@ -396,31 +394,31 @@ endif
 
 let s:may_fail_list = []
 if $TEST_MAY_FAIL != ''
-  " Split the list at commas and add () to make it match s:test.
+  " Split the list at commas and add () to make it match g:testfunc.
   let s:may_fail_list = split($TEST_MAY_FAIL, ',')->map({i, v -> v .. '()'})
 endif
 
 " Execute the tests in alphabetical order.
-for s:test in sort(s:tests)
+for g:testfunc in sort(s:tests)
   " Silence, please!
   set belloff=all
   let prev_error = ''
   let total_errors = []
   let g:run_nr = 1
 
-  " A test can set test_is_flaky to retry running the test.
-  let test_is_flaky = 0
+  " A test can set g:test_is_flaky to retry running the test.
+  let g:test_is_flaky = 0
 
-  call RunTheTest(s:test)
+  call RunTheTest(g:testfunc)
 
   " Repeat a flaky test.  Give up when:
   " - it fails again with the same message
   " - it fails five times (with a different message)
   if len(v:errors) > 0
-        \ && (index(s:flaky_tests, s:test) >= 0
-        \      || test_is_flaky)
+        \ && (index(s:flaky_tests, g:testfunc) >= 0
+        \      || g:test_is_flaky)
     while 1
-      call add(s:messages, 'Found errors in ' . s:test . ':')
+      call add(s:messages, 'Found errors in ' . g:testfunc . ':')
       call extend(s:messages, v:errors)
 
       call add(total_errors, 'Run ' . g:run_nr . ':')
@@ -452,7 +450,7 @@ for s:test in sort(s:tests)
       let v:errors = []
       let g:run_nr += 1
 
-      call RunTheTest(s:test)
+      call RunTheTest(g:testfunc)
 
       if len(v:errors) == 0
         " Test passed on rerun.
@@ -461,7 +459,7 @@ for s:test in sort(s:tests)
     endwhile
   endif
 
-  call AfterTheTest(s:test)
+  call AfterTheTest(g:testfunc)
 endfor
 
 call FinishTesting()

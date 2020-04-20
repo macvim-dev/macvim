@@ -174,9 +174,8 @@ static void list_win_vars(int *first);
 static void list_tab_vars(int *first);
 static char_u *list_arg_vars(exarg_T *eap, char_u *arg, int *first);
 static char_u *ex_let_one(char_u *arg, typval_T *tv, int copy, int flags, char_u *endchars, char_u *op);
-static void ex_unletlock(exarg_T *eap, char_u *argstart, int deep);
-static int do_unlet_var(lval_T *lp, char_u *name_end, int forceit);
-static int do_lock_var(lval_T *lp, char_u *name_end, int deep, int lock);
+static int do_unlet_var(lval_T *lp, char_u *name_end, exarg_T *eap, int deep, void *cookie);
+static int do_lock_var(lval_T *lp, char_u *name_end, exarg_T *eap, int deep, void *cookie);
 static void item_lock(typval_T *tv, int deep, int lock);
 static void delete_var(hashtab_T *ht, hashitem_T *hi);
 static void list_one_var(dictitem_T *v, char *prefix, int *first);
@@ -543,10 +542,15 @@ list_script_vars(int *first)
  * The {marker} is a string. If the optional 'trim' word is supplied before the
  * marker, then the leading indentation before the lines (matching the
  * indentation in the 'cmd' line) is stripped.
+ *
+ * When getting lines for an embedded script (e.g. python, lua, perl, ruby,
+ * tcl, mzscheme), script_get is set to TRUE. In this case, if the marker is
+ * missing, then '.' is accepted as a marker.
+ *
  * Returns a List with {lines} or NULL.
  */
     list_T *
-heredoc_get(exarg_T *eap, char_u *cmd)
+heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 {
     char_u	*theline;
     char_u	*marker;
@@ -555,6 +559,7 @@ heredoc_get(exarg_T *eap, char_u *cmd)
     int		marker_indent_len = 0;
     int		text_indent_len = 0;
     char_u	*text_indent = NULL;
+    char_u	dot[] = ".";
 
     if (eap->getline == NULL)
     {
@@ -600,8 +605,15 @@ heredoc_get(exarg_T *eap, char_u *cmd)
     }
     else
     {
-	emsg(_("E172: Missing marker"));
-	return NULL;
+	// When getting lines for an embedded script, if the marker is missing,
+	// accept '.' as the marker.
+	if (script_get)
+	    marker = dot;
+	else
+	{
+	    emsg(_("E172: Missing marker"));
+	    return NULL;
+	}
     }
 
     l = list_alloc();
@@ -748,7 +760,7 @@ ex_let_const(exarg_T *eap, int is_const)
 	list_T	*l;
 
 	// HERE document
-	l = heredoc_get(eap, expr + 3);
+	l = heredoc_get(eap, expr + 3, FALSE);
 	if (l != NULL)
 	{
 	    rettv_list_set(&rettv, l);
@@ -1361,7 +1373,7 @@ ex_let_one(
     void
 ex_unlet(exarg_T *eap)
 {
-    ex_unletlock(eap, eap->arg, 0);
+    ex_unletlock(eap, eap->arg, 0, 0, do_unlet_var, NULL);
 }
 
 /*
@@ -1381,17 +1393,22 @@ ex_lockvar(exarg_T *eap)
 	arg = skipwhite(arg);
     }
 
-    ex_unletlock(eap, arg, deep);
+    ex_unletlock(eap, arg, deep, 0, do_lock_var, NULL);
 }
 
 /*
  * ":unlet", ":lockvar" and ":unlockvar" are quite similar.
+ * Also used for Vim9 script.  "callback" is invoked as:
+ *	callback(&lv, name_end, eap, deep, cookie)
  */
-    static void
+    void
 ex_unletlock(
     exarg_T	*eap,
     char_u	*argstart,
-    int		deep)
+    int		deep,
+    int		glv_flags,
+    int		(*callback)(lval_T *, char_u *, exarg_T *, int, void *),
+    void	*cookie)
 {
     char_u	*arg = argstart;
     char_u	*name_end;
@@ -1402,56 +1419,49 @@ ex_unletlock(
     {
 	if (*arg == '$')
 	{
-	    char_u    *name = ++arg;
-
+	    lv.ll_name = arg;
+	    lv.ll_tv = NULL;
+	    ++arg;
 	    if (get_env_len(&arg) == 0)
 	    {
-		semsg(_(e_invarg2), name - 1);
+		semsg(_(e_invarg2), arg - 1);
 		return;
 	    }
-	    vim_unsetenv(name);
-	    arg = skipwhite(arg);
-	    continue;
+	    if (!error && !eap->skip
+			      && callback(&lv, arg, eap, deep, cookie) == FAIL)
+		error = TRUE;
+	    name_end = arg;
 	}
-
-	// Parse the name and find the end.
-	name_end = get_lval(arg, NULL, &lv, TRUE, eap->skip || error, 0,
-							     FNE_CHECK_START);
-	if (lv.ll_name == NULL)
-	    error = TRUE;	    // error but continue parsing
-	if (name_end == NULL || (!VIM_ISWHITE(*name_end)
-						   && !ends_excmd(*name_end)))
+	else
 	{
-	    if (name_end != NULL)
+	    // Parse the name and find the end.
+	    name_end = get_lval(arg, NULL, &lv, TRUE, eap->skip || error,
+						   glv_flags, FNE_CHECK_START);
+	    if (lv.ll_name == NULL)
+		error = TRUE;	    // error but continue parsing
+	    if (name_end == NULL || (!VIM_ISWHITE(*name_end)
+						    && !ends_excmd(*name_end)))
 	    {
-		emsg_severe = TRUE;
-		emsg(_(e_trailing));
+		if (name_end != NULL)
+		{
+		    emsg_severe = TRUE;
+		    emsg(_(e_trailing));
+		}
+		if (!(eap->skip || error))
+		    clear_lval(&lv);
+		break;
 	    }
-	    if (!(eap->skip || error))
+
+	    if (!error && !eap->skip
+			 && callback(&lv, name_end, eap, deep, cookie) == FAIL)
+		error = TRUE;
+
+	    if (!eap->skip)
 		clear_lval(&lv);
-	    break;
 	}
-
-	if (!error && !eap->skip)
-	{
-	    if (eap->cmdidx == CMD_unlet)
-	    {
-		if (do_unlet_var(&lv, name_end, eap->forceit) == FAIL)
-		    error = TRUE;
-	    }
-	    else
-	    {
-		if (do_lock_var(&lv, name_end, deep,
-					  eap->cmdidx == CMD_lockvar) == FAIL)
-		    error = TRUE;
-	    }
-	}
-
-	if (!eap->skip)
-	    clear_lval(&lv);
 
 	arg = skipwhite(name_end);
-    } while (!ends_excmd(*arg));
+    } while (!ends_excmd2(name_end, arg));
 
     eap->nextcmd = check_nextcmd(arg);
 }
@@ -1460,8 +1470,11 @@ ex_unletlock(
 do_unlet_var(
     lval_T	*lp,
     char_u	*name_end,
-    int		forceit)
+    exarg_T	*eap,
+    int		deep UNUSED,
+    void	*cookie UNUSED)
 {
+    int		forceit = eap->forceit;
     int		ret = OK;
     int		cc;
 
@@ -1470,8 +1483,10 @@ do_unlet_var(
 	cc = *name_end;
 	*name_end = NUL;
 
-	// Normal name or expanded name.
-	if (do_unlet(lp->ll_name, forceit) == FAIL)
+	// Environment variable, normal name or expanded name.
+	if (*lp->ll_name == '$')
+	    vim_unsetenv(lp->ll_name + 1);
+	else if (do_unlet(lp->ll_name, forceit) == FAIL)
 	    ret = FAIL;
 	*name_end = cc;
     }
@@ -1530,6 +1545,10 @@ do_unlet(char_u *name, int forceit)
     dict_T	*d;
     dictitem_T	*di;
 
+    if (current_sctx.sc_version == SCRIPT_VERSION_VIM9
+	    && check_vim9_unlet(name) == FAIL)
+	return FAIL;
+
     ht = find_var_ht(name, &varname);
     if (ht != NULL && *varname != NUL)
     {
@@ -1581,9 +1600,11 @@ do_unlet(char_u *name, int forceit)
 do_lock_var(
     lval_T	*lp,
     char_u	*name_end,
+    exarg_T	*eap,
     int		deep,
-    int		lock)
+    void	*cookie UNUSED)
 {
+    int		lock = eap->cmdidx == CMD_lockvar;
     int		ret = OK;
     int		cc;
     dictitem_T	*di;
@@ -1595,24 +1616,34 @@ do_lock_var(
     {
 	cc = *name_end;
 	*name_end = NUL;
-
-	// Normal name or expanded name.
-	di = find_var(lp->ll_name, NULL, TRUE);
-	if (di == NULL)
+	if (*lp->ll_name == '$')
+	{
+	    semsg(_(e_lock_unlock), lp->ll_name);
 	    ret = FAIL;
-	else if ((di->di_flags & DI_FLAGS_FIX)
-			&& di->di_tv.v_type != VAR_DICT
-			&& di->di_tv.v_type != VAR_LIST)
-	    // For historic reasons this error is not given for a list or dict.
-	    // E.g., the b: dict could be locked/unlocked.
-	    semsg(_("E940: Cannot lock or unlock variable %s"), lp->ll_name);
+	}
 	else
 	{
-	    if (lock)
-		di->di_flags |= DI_FLAGS_LOCK;
+	    // Normal name or expanded name.
+	    di = find_var(lp->ll_name, NULL, TRUE);
+	    if (di == NULL)
+		ret = FAIL;
+	    else if ((di->di_flags & DI_FLAGS_FIX)
+			    && di->di_tv.v_type != VAR_DICT
+			    && di->di_tv.v_type != VAR_LIST)
+	    {
+		// For historic reasons this error is not given for a list or
+		// dict.  E.g., the b: dict could be locked/unlocked.
+		semsg(_(e_lock_unlock), lp->ll_name);
+		ret = FAIL;
+	    }
 	    else
-		di->di_flags &= ~DI_FLAGS_LOCK;
-	    item_lock(&di->di_tv, deep, lock);
+	    {
+		if (lock)
+		    di->di_flags |= DI_FLAGS_LOCK;
+		else
+		    di->di_flags &= ~DI_FLAGS_LOCK;
+		item_lock(&di->di_tv, deep, lock);
+	    }
 	}
 	*name_end = cc;
     }

@@ -13,7 +13,7 @@ list_T *eval_spell_expr(char_u *badword, char_u *expr);
 int get_spellword(list_T *list, char_u **pp);
 void prepare_vimvar(int idx, typval_T *save_tv);
 void restore_vimvar(int idx, typval_T *save_tv);
-list_T *heredoc_get(exarg_T *eap, char_u *cmd);
+list_T *heredoc_get(exarg_T *eap, char_u *cmd, int script_get);
 void ex_let(exarg_T *eap);
 void ex_const(exarg_T *eap);
 int ex_let_vars(char_u *arg_start, typval_T *tv, int copy, int semicolon, int var_count, int flags, char_u *op);
@@ -21,6 +21,7 @@ char_u *skip_var_list(char_u *arg, int include_type, int *var_count, int *semico
 void list_hashtable_vars(hashtab_T *ht, char *prefix, int empty, int *first);
 void ex_unlet(exarg_T *eap);
 void ex_lockvar(exarg_T *eap);
+void ex_unletlock(exarg_T *eap, char_u *argstart, int deep, int glv_flags, int (*callback)(lval_T *, char_u *, exarg_T *, int, void *), void *cookie);
 int do_unlet(char_u *name, int forceit);
 void del_menutrans_vars(void);
 char_u *get_user_var_name(expand_T *xp, int idx);
