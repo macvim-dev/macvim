@@ -1767,8 +1767,23 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 // parse value
                 NSString *v = [arr objectAtIndex:1];
 
-                // do not decode url, since it's a file URI
-                BOOL decode = ![f isEqualToString:@"url"];
+                // Ideally we don't decode anything here. The input parameters
+                // should be used as-in as there would be no reason for caller
+                // to encoder anything. For the line component it's a simple
+                // string, and the URL should already be a proper file:// URL
+                // with all the necessary characters (e.g. space) encoded and
+                // we can just pass it to NSURL as-in below.
+                // However, iTerm2 appears to encode the slashes as well
+                // resulting in URL that looks like
+                // file://%2Fsome%2Ffolder/file%20with%20space which is wrong
+                // as this doesn't form a valid URL. To accommodate that, we
+                // decode the URL, and later on manually parse it instead of
+                // relying on NSURL.
+                // See: https://github.com/macvim-dev/macvim/issues/1020.
+
+                // BOOL decode = ![f isEqualToString:@"url"];
+                const BOOL decode = YES;
+
                 if (decode)
                 {
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_11
@@ -1785,31 +1800,63 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // Actually open the file.
         NSString *file = [dict objectForKey:@"url"];
         if (file != nil) {
-            NSURL *fileUrl = [NSURL URLWithString:file];
-            // TextMate only opens files that already exist.
-            if ([fileUrl isFileURL]
-                    && [[NSFileManager defaultManager] fileExistsAtPath:
-                           [fileUrl path]]) {
-                // Strip 'file://' path, else application:openFiles: might think
-                // the file is not yet open.
-                NSArray *filenames = [NSArray arrayWithObject:[fileUrl path]];
+            // Instead of passing "file" to NSURL directly, we just manually
+            // parse the URL because the URL is already decoded and NSURL will
+            // get confused by special chars like spaces. See above
+            // explanation.
+            if ([file hasPrefix:@"file:///"]) {
+                NSString *filePath = [file substringFromIndex:7];
+                // Only opens files that already exist.
+                if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
+                    NSArray *filenames = [NSArray arrayWithObject:filePath];
+                    
+                    // Look for the line and column options.
+                    NSDictionary *args = nil;
+                    NSString *line = [dict objectForKey:@"line"];
+                    if (line) {
+                        NSString *column = [dict objectForKey:@"column"];
+                        if (column)
+                            args = [NSDictionary dictionaryWithObjectsAndKeys:
+                                    line, @"cursorLine",
+                                    column, @"cursorColumn",
+                                    nil];
+                        else
+                            args = [NSDictionary dictionaryWithObject:line
+                                                               forKey:@"cursorLine"];
+                    }
+                    
+                    [self openFiles:filenames withArguments:args];
+                } else {
+                    NSAlert *alert = [[NSAlert alloc] init];
+                    [alert addButtonWithTitle:NSLocalizedString(@"OK",
+                        @"Dialog button")];
 
-                // Look for the line and column options.
-                NSDictionary *args = nil;
-                NSString *line = [dict objectForKey:@"line"];
-                if (line) {
-                    NSString *column = [dict objectForKey:@"column"];
-                    if (column)
-                        args = [NSDictionary dictionaryWithObjectsAndKeys:
-                                line, @"cursorLine",
-                                column, @"cursorColumn",
-                                nil];
-                    else
-                        args = [NSDictionary dictionaryWithObject:line
-                                forKey:@"cursorLine"];
+                    [alert setMessageText:NSLocalizedString(@"Bad file path",
+                        @"Bad file path dialog, title")];
+                    [alert setInformativeText:[NSString stringWithFormat:NSLocalizedString(
+                        @"Cannot open file path \"%@\"",
+                        @"Bad file path dialog, text"),
+                        filePath]];
+
+                    [alert setAlertStyle:NSAlertStyleWarning];
+                    [alert runModal];
+                    [alert release];
                 }
+            } else {
+                NSAlert *alert = [[NSAlert alloc] init];
+                [alert addButtonWithTitle:NSLocalizedString(@"OK",
+                    @"Dialog button")];
 
-                [self openFiles:filenames withArguments:args];
+                [alert setMessageText:NSLocalizedString(@"Unknown File Protocol",
+                    @"Unknown File Protocol dialog, title")];
+                [alert setInformativeText:[NSString stringWithFormat:NSLocalizedString(
+                    @"Unknown protocol in \"%@\"",
+                    @"Unknown File Protocol dialog, text"),
+                    file]];
+
+                [alert setAlertStyle:NSAlertStyleWarning];
+                [alert runModal];
+                [alert release];
             }
         }
     } else {
