@@ -2863,8 +2863,8 @@ menu_translate_tab_and_shift(char_u *arg_start)
     return arg;
 }
 
-#ifdef FEAT_GUI_MACVIM
-    vimmenu_T *
+#if defined(FEAT_GUI_MACVIM) || defined(PROTO)
+    static vimmenu_T *
 menu_for_path(char_u *menu_path)
 {
     vimmenu_T	*menu;
@@ -2918,14 +2918,14 @@ menu_for_path(char_u *menu_path)
     return menu;
 }
 
-    void 
+    static void
 set_mac_menu_attrs(
-    vimmenu_T	*menu, 
-    char_u	*action, 
-    int		set_alt, 
-    int		mac_alternate, 
-    int		set_key, 
-    int		mac_key, 
+    vimmenu_T	*menu,
+    char_u	*action,
+    int		set_alt,
+    int		mac_alternate,
+    int		set_key,
+    int		mac_key,
     int		mac_mods)
 {
     if (action)
@@ -2943,8 +2943,7 @@ set_mac_menu_attrs(
  * Handle the ":macmenu" command.
  */
     void
-ex_macmenu(eap)
-    exarg_T	*eap;
+ex_macmenu(exarg_T *eap)
 {
     vimmenu_T	*menu = NULL;
     vimmenu_T	*popup_menu_for_mode = NULL;
@@ -2968,8 +2967,8 @@ ex_macmenu(eap)
     int		unmenu;
     char_u	*last_dash;
     int		bit;
-    int         set_key = FALSE;
-    int         set_alt = FALSE;
+    int		set_key = FALSE;
+    int		set_alt = FALSE;
 
     arg = eap->arg;
 
@@ -2983,7 +2982,8 @@ ex_macmenu(eap)
     keys = menu_translate_tab_and_shift(arg);
 
     menu = menu_for_path(menu_path);
-    if (!menu) return;
+    if (!menu)
+	return;
 
     /*
      * Parse all key=value arguments.
@@ -3180,7 +3180,8 @@ ex_macmenu(eap)
      */
     if (!error)
     {
-	set_mac_menu_attrs(menu, action, set_alt, mac_alternate, set_key, mac_key, mac_mods);
+	set_mac_menu_attrs(menu, action, set_alt, mac_alternate, set_key,
+							   mac_key, mac_mods);
 
 	modes = get_menu_cmd_modes(eap->cmd, eap->forceit, &noremap, &unmenu);
 	if (menu_is_popup(menu_path))
@@ -3192,7 +3193,9 @@ ex_macmenu(eap)
 		    if (p != NULL)
 		    {
 			popup_menu_for_mode = menu_for_path(p);
-			set_mac_menu_attrs(popup_menu_for_mode, action, set_alt, mac_alternate, set_key, mac_key, mac_mods);
+			set_mac_menu_attrs(popup_menu_for_mode, action,
+						  set_alt, mac_alternate,
+						  set_key, mac_key, mac_mods);
 			vim_free(p);
 		    }
 		}
@@ -3205,11 +3208,10 @@ ex_macmenu(eap)
 }
 
     char_u *
-lookup_toolbar_item(idx)
-    int idx;
+lookup_toolbar_item(int idx)
 {
-    if (idx >= 0 && idx < TOOLBAR_NAME_COUNT)
-        return (char_u*)toolbar_names[idx];
+    if (idx >= 0 && (size_t)idx < TOOLBAR_NAME_COUNT)
+	return (char_u*)toolbar_names[idx];
 
     return NULL;
 }

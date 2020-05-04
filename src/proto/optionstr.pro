@@ -11,4 +11,5 @@ void set_string_option_direct_in_buf(buf_T *buf, char_u *name, int opt_idx, char
 char *set_string_option(int opt_idx, char_u *value, int opt_flags);
 char *did_set_string_option(int opt_idx, char_u **varp, int new_value_alloced, char_u *oldval, char *errbuf, int opt_flags, int *value_checked);
 int check_ff_value(char_u *p);
+int check_fuoptions(void);
 /* vim: set ft=c : */

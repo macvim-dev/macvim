@@ -3966,7 +3966,7 @@ theend:
     free_job_options(&opt);
 }
 
-#ifdef FEAT_GUI_MACVIM
+#if defined(FEAT_GUI_MACVIM) || defined(PROTO)
 /*
  * Read from channel "channel" in dispatch event handler.
  * Channel may be already read out elsewhere before the handler invoked

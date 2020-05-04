@@ -2035,15 +2035,14 @@ did_set_string_option(
 #endif
 
 #ifdef FEAT_FULLSCREEN
-    /* 'fuoptions' */
+    // 'fuoptions'
     else if (varp == &p_fuoptions)
     {
-        if (check_fuoptions(p_fuoptions, &fuoptions_flags, 
-                    &fuoptions_bgcolor) != OK)
+	if (check_fuoptions() != OK)
 	    errmsg = e_invarg;
     }
 #endif
-    
+
     // 'virtualedit'
     else if (varp == &p_ve)
     {
@@ -2507,3 +2506,94 @@ check_ff_value(char_u *p)
 {
     return check_opt_strings(p, p_ff_values, FALSE);
 }
+
+#if defined(FEAT_FULLSCREEN) || defined(PROTO)
+/*
+ * Read the 'fuoptions' option, set fuoptions_flags and fuoptions_bgcolor.
+ */
+    int
+check_fuoptions(void)
+{
+    unsigned	new_fuoptions_flags;
+    int		new_fuoptions_bgcolor;
+    char_u	*p;
+
+    new_fuoptions_flags = 0;
+    new_fuoptions_bgcolor = 0xFF000000;
+
+    for (p = p_fuoptions; *p; ++p)
+    {
+	int i, j, k;
+
+	for (i = 0; ASCII_ISALPHA(p[i]); ++i)
+	    ;
+	if (p[i] != NUL && p[i] != ',' && p[i] != ':')
+	    return FAIL;
+	if (i == 10 && STRNCMP(p, "background", 10) == 0)
+	{
+	    if (p[i] != ':')
+		return FAIL;
+	    i++;
+	    if (p[i] == NUL)
+		return FAIL;
+	    if (p[i] == '#')
+	    {
+		// explicit color (#aarrggbb)
+		i++;
+		for (j = i; j < i + 8 && vim_isxdigit(p[j]); ++j)
+		    ;
+		if (j < i + 8)
+		    return FAIL;    // less than 8 digits
+		if (p[j] != NUL && p[j] != ',')
+		    return FAIL;
+		new_fuoptions_bgcolor = 0;
+		for (k = 0; k < 8; ++k)
+		    new_fuoptions_bgcolor = new_fuoptions_bgcolor * 16
+							   + hex2nr(p[i + k]);
+		i = j;
+		// mark bgcolor as an explicit argb color
+		new_fuoptions_flags &= ~FUOPT_BGCOLOR_HLGROUP;
+	    }
+	    else
+	    {
+		char_u hg_term; // character terminating highlight group string
+                                // in 'background' option
+
+		// highlight group name
+		for (j = i; ASCII_ISALPHA(p[j]); ++j)
+		    ;
+		if (p[j] != NUL && p[j] != ',')
+		    return FAIL;
+		hg_term = p[j];
+		p[j] = NUL;     // temporarily terminate string
+		new_fuoptions_bgcolor = syn_name2id((char_u*)(p + i));
+		p[j] = hg_term; // restore string
+		if (! new_fuoptions_bgcolor)
+		    return FAIL;
+		i = j;
+		// mark bgcolor as highlight group id
+		new_fuoptions_flags |= FUOPT_BGCOLOR_HLGROUP;
+	    }
+	}
+	else if (i == 7 && STRNCMP(p, "maxhorz", 7) == 0)
+	    new_fuoptions_flags |= FUOPT_MAXHORZ;
+	else if (i == 7 && STRNCMP(p, "maxvert", 7) == 0)
+	    new_fuoptions_flags |= FUOPT_MAXVERT;
+	else
+	    return FAIL;
+	p += i;
+	if (*p == NUL)
+	    break;
+	if (*p == ':')
+	    return FAIL;
+    }
+
+    fuoptions_flags = new_fuoptions_flags;
+    fuoptions_bgcolor = new_fuoptions_bgcolor;
+
+    // Let the GUI know, in case the background color has changed.
+    gui_mch_fuopt_update();
+
+    return OK;
+}
+#endif

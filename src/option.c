@@ -77,7 +77,7 @@ set_init_1(int clean_arg)
     int		opt_idx;
     long_u	n;
 #if defined(FEAT_GUI_MACVIM)
-    int         did_mb_init;
+    int		did_mb_init;
 #endif
 
 #ifdef FEAT_LANGMAP
@@ -446,8 +446,8 @@ set_init_1(int clean_arg)
 	did_mb_init = (mb_init() == NULL);
 	if (!did_mb_init)
 	{
-            /* The encoding returned by enc_locale() was invalid, so fall back
-             * on using utf-8 as the default encoding in MacVim. */
+	    /* The encoding returned by enc_locale() was invalid, so fall back
+	     * on using utf-8 as the default encoding in MacVim. */
 	    vim_free(p_enc);
 	    p_enc = vim_strsave((char_u *)"utf-8");
 	    did_mb_init = (mb_init() == NULL);
@@ -2297,8 +2297,7 @@ didset_options(void)
     didset_string_options();
 
 #ifdef FEAT_FULLSCREEN
-    (void)check_fuoptions(p_fuoptions, &fuoptions_flags, 
-            &fuoptions_bgcolor);
+    (void)check_fuoptions();
 #endif
 
 #ifdef FEAT_SPELL
@@ -2866,21 +2865,22 @@ set_bool_option(
     {
 	if (p_fullscreen && !old_value)
 	{
-            guicolor_T fg, bg;
-            if (fuoptions_flags & FUOPT_BGCOLOR_HLGROUP) 
-            {
-                // Find out background color from colorscheme 
-                // via highlight group id
-                syn_id2colors(fuoptions_bgcolor, &fg, &bg);
-            } 
-            else
-            {
-                // set explicit background color
-                bg = fuoptions_bgcolor;
-            }
-            gui_mch_enter_fullscreen(fuoptions_flags, bg);
+	    guicolor_T fg, bg;
+
+	    if (fuoptions_flags & FUOPT_BGCOLOR_HLGROUP)
+	    {
+		// Find out background color from colorscheme via highlight
+		// group id
+		syn_id2colors(fuoptions_bgcolor, &fg, &bg);
+	    }
+	    else
+	    {
+		// set explicit background color
+		bg = fuoptions_bgcolor;
+	    }
+	    gui_mch_enter_fullscreen(bg);
 	}
-        else if (!p_fullscreen && old_value)
+	else if (!p_fullscreen && old_value)
 	{
 	    gui_mch_leave_fullscreen();
 	}
@@ -2897,11 +2897,11 @@ set_bool_option(
 #if defined(FEAT_GUI_MACVIM)
     else if ((int *)varp == &p_macligatures)
     {
-        gui_macvim_set_ligatures(p_macligatures);
+	gui_macvim_set_ligatures(p_macligatures);
     }
     else if ((int*)varp == &p_macthinstrokes)
     {
-        gui_macvim_set_thinstrokes(p_macthinstrokes);
+	gui_macvim_set_thinstrokes(p_macthinstrokes);
     }
 #endif
 
@@ -3627,15 +3627,13 @@ set_num_option(
 #ifdef FEAT_GUI_MACVIM
     else if (pp == &p_blur)
     {
-        if (p_blur < 0)
-        {
-            errmsg = e_invarg;
-            p_blur = old_value;
-        }
-        else
-        {
-            gui_macvim_set_blur(p_blur);
-        }
+	if (p_blur < 0)
+	{
+	    errmsg = e_invarg;
+	    p_blur = old_value;
+	}
+	else
+	    gui_macvim_set_blur(p_blur);
     }
 #endif
 
@@ -6963,98 +6961,6 @@ get_sidescrolloff_value(void)
 {
     return curwin->w_p_siso < 0 ? p_siso : curwin->w_p_siso;
 }
-
-#ifdef FEAT_FULLSCREEN
-/*
- * Read the 'fuoptions' option, set fuoptions_flags and 
- * fuoptions_bgcolor.
- */
-    int
-check_fuoptions(p_fuoptions, flags, bgcolor)
-    char_u	*p_fuoptions;	/* fuoptions string */
-    unsigned    *flags;         /* fuoptions flags */
-    int         *bgcolor;       /* background highlight group id */
-{
-    unsigned 	new_fuoptions_flags;
-    int         new_fuoptions_bgcolor;
-    char_u      *p;
-    char_u      hg_term;        /* character terminating
-                                   highlight group string in 
-                                   'background' option' */
-    int		i,j,k;
-
-    new_fuoptions_flags = 0;
-    new_fuoptions_bgcolor = 0xFF000000;
-
-    for (p = p_fuoptions; *p; ++p)
-    {
-	for (i = 0; ASCII_ISALPHA(p[i]); ++i)
-	    ;
-	if (p[i] != NUL && p[i] != ',' && p[i] != ':')
-	    return FAIL;
-        if (i == 10 && STRNCMP(p, "background", 10) == 0) 
-        {
-            if (p[i] != ':') return FAIL;
-            i++;
-            if (p[i] == NUL) return FAIL;
-            if (p[i] == '#')
-            {
-                /* explicit color (#aarrggbb) */
-                i++;
-                for (j = i; j < i+8 && vim_isxdigit(p[j]); ++j)
-                    ;
-                if (j < i+8)
-                    return FAIL;    /* less than 8 digits */
-                if (p[j] != NUL && p[j] != ',')
-                    return FAIL; 
-                new_fuoptions_bgcolor = 0;
-                for (k = 0; k < 8; k++) 
-                    new_fuoptions_bgcolor = new_fuoptions_bgcolor * 16 +
-                        hex2nr(p[i+k]);
-                i = j;
-                /* mark bgcolor as an explicit argb color */
-                new_fuoptions_flags &= ~FUOPT_BGCOLOR_HLGROUP;
-            } 
-            else
-            {
-                /* highlight group name */
-                for (j = i; ASCII_ISALPHA(p[j]); ++j)
-                    ;
-                if (p[j] != NUL && p[j] != ',')
-                    return FAIL;
-                hg_term = p[j];
-                p[j] = NUL;     /* temporarily terminate string */
-                new_fuoptions_bgcolor = syn_name2id((char_u*)(p+i));
-                p[j] = hg_term; /* restore string */
-                if (! new_fuoptions_bgcolor) 
-                    return FAIL;
-                i = j;
-                /* mark bgcolor as highlight group id */
-                new_fuoptions_flags |= FUOPT_BGCOLOR_HLGROUP;
-            }
-        }
-        else if (i == 7 && STRNCMP(p, "maxhorz", 7) == 0)
-	    new_fuoptions_flags |= FUOPT_MAXHORZ;
-        else if (i == 7 && STRNCMP(p, "maxvert", 7) == 0)
-	    new_fuoptions_flags |= FUOPT_MAXVERT;
-	else
-	    return FAIL;
-	p += i;
-	if (*p == NUL)
-	    break;
-        if (*p == ':')
-            return FAIL;
-    }
-
-    *flags = new_fuoptions_flags;
-    *bgcolor = new_fuoptions_bgcolor;
-
-    /* Let the GUI know, in case the background color has changed. */
-    gui_mch_fuopt_update();
-
-    return OK;
-}
-#endif
 
 /*
  * Get the local or global value of 'backupcopy'.

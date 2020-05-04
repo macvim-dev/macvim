@@ -4470,8 +4470,8 @@ mch_call_shell_system(
 
     out_flush();
 #ifdef FEAT_GUI_MACVIM
-    /* It is conceivable that the shell command will take a long time to finish
-     * so force a flush now. */
+    // It is conceivable that the shell command will take a long time to finish
+    // so force a flush now.
     if (gui.in_use)
 	gui_macvim_force_flush();
 #endif
@@ -4589,8 +4589,8 @@ mch_call_shell_fork(
 
     out_flush();
 #ifdef FEAT_GUI_MACVIM
-    /* It is conceivable that the shell command will take a long time to finish
-     * so force a flush now. */
+    // It is conceivable that the shell command will take a long time to finish
+    // so force a flush now.
     if (gui.in_use)
 	gui_macvim_force_flush();
 #endif
