@@ -633,6 +633,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     while (CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true)
             == kCFRunLoopRunHandledSource)
         ;   // do nothing
+    [self processInputQueue];
 }
 
 - (void)flushQueue:(BOOL)force
@@ -729,8 +730,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
 
     // The above calls may have placed messages on the input queue so process
     // it now.  This call may enter a blocking loop.
-    if ([inputQueue count] > 0)
-        [self processInputQueue];
+    [self processInputQueue];
 
     return inputReceived;
 }
