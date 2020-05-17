@@ -609,7 +609,7 @@ func Nb_basic(port)
 
   " detach
   call appendbufline(cmdbufnr, '$', 'detach_Test')
-  call WaitFor('len(readfile("Xnetbeans")) >= (g:last + 6)')
+  call WaitFor('len(readfile("Xnetbeans")) >= (g:last + 8)')
   let l = readfile('Xnetbeans')
   call assert_equal('0:disconnect=91', l[-1])
 
