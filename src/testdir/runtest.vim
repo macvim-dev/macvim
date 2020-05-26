@@ -432,7 +432,7 @@ for g:testfunc in sort(s:tests)
           " tests pending for now before a more proper fix is implemented.
           call extend(s:messages, [
                 \ 'Flaky test failed too often, giving up',
-                \ 'MacVim marked ' . s:test . ' as pending',
+                \ 'MacVim marked ' . g:testfunc . ' as pending',
                 \ ])
           let v:errors = []
         endif

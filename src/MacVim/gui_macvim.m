@@ -347,9 +347,16 @@ gui_mch_update(void)
 
     CFAbsoluteTime nowTime = CFAbsoluteTimeGetCurrent();
     if (nowTime - lastTime > 1.0 / 30) {
-        [[MMBackend sharedInstance] update];
+        gui_macvim_update();
         lastTime = nowTime;
     }
+}
+
+
+    void
+gui_macvim_update(void)
+{
+    [[MMBackend sharedInstance] update];
 }
 
 
