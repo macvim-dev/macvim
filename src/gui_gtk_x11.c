@@ -1023,7 +1023,7 @@ focus_out_event(GtkWidget *widget UNUSED,
  * http://developer.gnome.org/doc/API/2.0/gdk/gdk-Event-Structures.html#GdkEventKey
  */
     static int
-keyval_to_string(unsigned int keyval, unsigned int state, char_u *string)
+keyval_to_string(unsigned int keyval, unsigned int *state, char_u *string)
 {
     int	    len;
     guint32 uc;
@@ -1031,8 +1031,8 @@ keyval_to_string(unsigned int keyval, unsigned int state, char_u *string)
     uc = gdk_keyval_to_unicode(keyval);
     if (uc != 0)
     {
-	// Check for CTRL-foo
-	if ((state & GDK_CONTROL_MASK) && uc >= 0x20 && uc < 0x80)
+	// Check for CTRL-char
+	if ((*state & GDK_CONTROL_MASK) && uc >= 0x20 && uc < 0x80)
 	{
 	    // These mappings look arbitrary at the first glance, but in fact
 	    // resemble quite exactly the behaviour of the GTK+ 1.2 GUI on my
@@ -1051,6 +1051,10 @@ keyval_to_string(unsigned int keyval, unsigned int state, char_u *string)
 	    else
 		string[0] = uc;
 	    len = 1;
+
+	    if (string[0] != uc)
+		// The modifier was used, remove it.
+		*state = *state & ~GDK_CONTROL_MASK;
 	}
 	else
 	{
@@ -1169,7 +1173,7 @@ key_press_event(GtkWidget *widget UNUSED,
     else
 #endif
     {
-	len = keyval_to_string(key_sym, state, string2);
+	len = keyval_to_string(key_sym, &state, string2);
 
 	// Careful: convert_input() doesn't handle the NUL character.
 	// No need to convert pure ASCII anyway, thus the len > 1 check.
@@ -1212,39 +1216,9 @@ key_press_event(GtkWidget *widget UNUSED,
 	return FALSE;
 #endif
 
-    // Check for Alt/Meta key (Mod1Mask), but not for a BS, DEL or character
-    // that already has the 8th bit set.
-    // Don't do this for <S-M-Tab>, that should become K_S_TAB with ALT.
-    // Don't do this for double-byte encodings, it turns the char into a lead
-    // byte.
-    if (len == 1
-	    && ((state & GDK_MOD1_MASK)
-#if GTK_CHECK_VERSION(2,10,0)
-		|| (state & GDK_SUPER_MASK)
-#endif
-		)
-	    && !(key_sym == GDK_BackSpace || key_sym == GDK_Delete)
-	    && (string[0] & 0x80) == 0
-	    && !(key_sym == GDK_Tab && (state & GDK_SHIFT_MASK))
-	    && !enc_dbcs
-	    )
-    {
-	string[0] |= 0x80;
-	state &= ~GDK_MOD1_MASK;	// don't use it again
-	if (enc_utf8) // convert to utf-8
-	{
-	    string[1] = string[0] & 0xbf;
-	    string[0] = ((unsigned)string[0] >> 6) + 0xc0;
-	    if (string[1] == CSI)
-	    {
-		string[2] = KS_EXTRA;
-		string[3] = (int)KE_CSI;
-		len = 4;
-	    }
-	    else
-		len = 2;
-	}
-    }
+    // We used to apply Alt/Meta to the key here (Mod1Mask), but that is now
+    // done later, the same as it happens for the terminal.  Hopefully that
+    // works for everybody...
 
     // Check for special keys.	Also do this when len == 1 (key has an ASCII
     // value) to detect backspace, delete and keypad keys.
@@ -1266,52 +1240,37 @@ key_press_event(GtkWidget *widget UNUSED,
     if (len == 0)   // Unrecognized key
 	return TRUE;
 
-    // Special keys (and a few others) may have modifiers. Also when using a
-    // double-byte encoding (can't set the 8th bit).
-    if (len == -3 || key_sym == GDK_space || key_sym == GDK_Tab
-	    || key_sym == GDK_Return || key_sym == GDK_Linefeed
-	    || key_sym == GDK_Escape || key_sym == GDK_KP_Tab
-	    || key_sym == GDK_ISO_Enter || key_sym == GDK_3270_Enter
-	    || (enc_dbcs && len == 1 && ((state & GDK_MOD1_MASK)
-#if GTK_CHECK_VERSION(2,10,0)
-		    || (state & GDK_SUPER_MASK)
-#endif
-		    )))
+    // Handle modifiers.
+    modifiers = modifiers_gdk2vim(state);
+
+    // For some keys a shift modifier is translated into another key code.
+    if (len == -3)
+	key = TO_SPECIAL(string[1], string[2]);
+    else
+	key = string[0];
+
+    key = simplify_key(key, &modifiers);
+    if (key == CSI)
+	key = K_CSI;
+    if (IS_SPECIAL(key))
     {
-	modifiers = modifiers_gdk2vim(state);
+	string[0] = CSI;
+	string[1] = K_SECOND(key);
+	string[2] = K_THIRD(key);
+	len = 3;
+    }
+    else
+    {
+	string[0] = key;
+	len = 1;
+    }
 
-	/*
-	 * For some keys a shift modifier is translated into another key
-	 * code.
-	 */
-	if (len == -3)
-	    key = TO_SPECIAL(string[1], string[2]);
-	else
-	    key = string[0];
-
-	key = simplify_key(key, &modifiers);
-	if (key == CSI)
-	    key = K_CSI;
-	if (IS_SPECIAL(key))
-	{
-	    string[0] = CSI;
-	    string[1] = K_SECOND(key);
-	    string[2] = K_THIRD(key);
-	    len = 3;
-	}
-	else
-	{
-	    string[0] = key;
-	    len = 1;
-	}
-
-	if (modifiers != 0)
-	{
-	    string2[0] = CSI;
-	    string2[1] = KS_MODIFIER;
-	    string2[2] = modifiers;
-	    add_to_input_buf(string2, 3);
-	}
+    if (modifiers != 0)
+    {
+	string2[0] = CSI;
+	string2[1] = KS_MODIFIER;
+	string2[2] = modifiers;
+	add_to_input_buf(string2, 3);
     }
 
     if (len == 1 && ((string[0] == Ctrl_C && ctrl_c_interrupts)

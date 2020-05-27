@@ -126,12 +126,6 @@
 #undef PTYRANGE0
 #undef PTYRANGE1
 
-/* Define mode for pty */
-#undef PTYMODE
-
-/* Define group for pty */
-#undef PTYGROUP
-
 /* Define as the return type of signal handlers (int or void).  */
 #undef RETSIGTYPE
 
@@ -489,6 +483,12 @@
 
 /* Define if we have isnan() */
 #undef HAVE_ISNAN
+
+/* Define if we have dirfd() */
+#undef HAVE_DIRFD
+
+/* Define if we have flock() */
+#undef HAVE_FLOCK
 
 /* Define to inline symbol or empty */
 #undef inline

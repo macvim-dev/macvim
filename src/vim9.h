@@ -13,8 +13,11 @@
 
 typedef enum {
     ISN_EXEC,	    // execute Ex command line isn_arg.string
+    ISN_EXECCONCAT, // execute Ex command from isn_arg.number items on stack
     ISN_ECHO,	    // echo isn_arg.echo.echo_count items on top of stack
     ISN_EXECUTE,    // execute Ex commands isn_arg.number items on top of stack
+    ISN_ECHOMSG,    // echo Ex commands isn_arg.number items on top of stack
+    ISN_ECHOERR,    // echo Ex commands isn_arg.number items on top of stack
 
     // get and set variables
     ISN_LOAD,	    // push local variable isn_arg.number
@@ -24,6 +27,7 @@ typedef enum {
     ISN_LOADW,	    // push w: variable isn_arg.string
     ISN_LOADT,	    // push t: variable isn_arg.string
     ISN_LOADS,	    // push s: variable isn_arg.loadstore
+    ISN_LOADOUTER,  // push variable from outer scope isn_arg.number
     ISN_LOADSCRIPT, // push script-local variable isn_arg.script.
     ISN_LOADOPT,    // push option isn_arg.string
     ISN_LOADENV,    // push environment variable isn_arg.string
@@ -36,13 +40,16 @@ typedef enum {
     ISN_STOREW,	    // pop into window-local variable isn_arg.string
     ISN_STORET,	    // pop into tab-local variable isn_arg.string
     ISN_STORES,	    // pop into script variable isn_arg.loadstore
+    ISN_STOREOUTER,  // pop variable into outer scope isn_arg.number
     ISN_STORESCRIPT, // pop into script variable isn_arg.script
-    ISN_STOREOPT,   // pop into option isn_arg.string
+    ISN_STOREOPT,    // pop into option isn_arg.string
     ISN_STOREENV,    // pop into environment variable isn_arg.string
     ISN_STOREREG,    // pop into register isn_arg.number
     // ISN_STOREOTHER, // pop into other script variable isn_arg.other.
 
     ISN_STORENR,    // store number into local variable isn_arg.storenr.stnr_idx
+    ISN_STORELIST,	// store into list, value/index/varable on stack
+    ISN_STOREDICT,	// store into dictionary, value/index/variable on stack
 
     ISN_UNLET,		// unlet variable isn_arg.unlet.ul_name
     ISN_UNLETENV,	// unlet environment variable isn_arg.unlet.ul_name
@@ -67,7 +74,7 @@ typedef enum {
     ISN_PCALL,	    // call partial, use isn_arg.pfunc
     ISN_PCALL_END,  // cleanup after ISN_PCALL with cpf_top set
     ISN_RETURN,	    // return, result is on top of stack
-    ISN_FUNCREF,    // push a function ref to dfunc isn_arg.number
+    ISN_FUNCREF,    // push a function ref to dfunc isn_arg.funcref
 
     // expression operations
     ISN_JUMP,	    // jump if condition is matched isn_arg.jump
@@ -105,7 +112,8 @@ typedef enum {
     // expression operations
     ISN_CONCAT,
     ISN_INDEX,	    // [expr] list index
-    ISN_MEMBER,	    // dict.member using isn_arg.string
+    ISN_MEMBER,	    // dict[member]
+    ISN_STRINGMEMBER, // dict.member using isn_arg.string
     ISN_2BOOL,	    // convert value to bool, invert if isn_arg.number != 0
     ISN_2STRING,    // convert value to string at isn_arg.number on stack
     ISN_NEGATENR,   // apply "-" to number
@@ -214,6 +222,12 @@ typedef struct {
     int		ul_forceit;	// forceit flag
 } unlet_T;
 
+// arguments to ISN_FUNCREF
+typedef struct {
+    int		fr_func;	// function index
+    int		fr_var_idx;	// variable to store partial
+} funcref_T;
+
 /*
  * Instruction
  */
@@ -245,6 +259,7 @@ struct isn_S {
 	loadstore_T	    loadstore;
 	script_T	    script;
 	unlet_T		    unlet;
+	funcref_T	    funcref;
     } isn_arg;
 };
 
@@ -261,9 +276,13 @@ struct dfunc_S {
     int		df_instr_count;
 
     int		df_varcount;	    // number of local variables
+    int		df_closure_count;   // number of closures created
 };
 
 // Number of entries used by stack frame for a function call.
+// - function index
+// - instruction index
+// - previous frame index
 #define STACK_FRAME_SIZE 3
 
 

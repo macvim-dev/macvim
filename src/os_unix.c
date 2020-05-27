@@ -129,6 +129,8 @@ Window	    x11_window = 0;
 Display	    *x11_display = NULL;
 #endif
 
+static int ignore_sigtstp = FALSE;
+
 #ifdef FEAT_TITLE
 static int get_x11_title(int);
 
@@ -213,7 +215,8 @@ static volatile sig_atomic_t in_mch_delay = FALSE; // sleeping in mch_delay()
 static int dont_check_job_ended = 0;
 #endif
 
-static int curr_tmode = TMODE_COOK;	// contains current terminal mode
+// Current terminal mode from mch_settmode().  Can differ from cur_tmode.
+static tmode_T mch_cur_tmode = TMODE_COOK;
 
 #ifdef USE_XSMP
 typedef struct
@@ -579,7 +582,7 @@ mch_total_mem(int special UNUSED)
     void
 mch_delay(long msec, int ignoreinput)
 {
-    int		old_tmode;
+    tmode_T	old_tmode;
 #ifdef FEAT_MZSCHEME
     long	total = msec; // remember original value
 #endif
@@ -589,9 +592,10 @@ mch_delay(long msec, int ignoreinput)
 	// Go to cooked mode without echo, to allow SIGINT interrupting us
 	// here.  But we don't want QUIT to kill us (CTRL-\ used in a
 	// shell may produce SIGQUIT).
+	// Only do this if sleeping for more than half a second.
 	in_mch_delay = TRUE;
-	old_tmode = curr_tmode;
-	if (curr_tmode == TMODE_RAW)
+	old_tmode = mch_cur_tmode;
+	if (mch_cur_tmode == TMODE_RAW && msec > 500)
 	    settmode(TMODE_SLEEP);
 
 	/*
@@ -648,7 +652,8 @@ mch_delay(long msec, int ignoreinput)
 	while (total > 0);
 #endif
 
-	settmode(old_tmode);
+	if (msec > 500)
+	    settmode(old_tmode);
 	in_mch_delay = FALSE;
     }
     else
@@ -1083,10 +1088,10 @@ deathtrap SIGDEFARG(sigarg)
 
     // No translation, it may call malloc().
 #ifdef SIGHASARG
-    sprintf((char *)IObuff, "Vim: Caught deadly signal %s\n",
+    sprintf((char *)IObuff, "Vim: Caught deadly signal %s\r\n",
 							 signal_info[i].name);
 #else
-    sprintf((char *)IObuff, "Vim: Caught deadly signal\n");
+    sprintf((char *)IObuff, "Vim: Caught deadly signal\r\n");
 #endif
 
     // Preserve files and exit.  This sets the really_exiting flag to prevent
@@ -1237,6 +1242,9 @@ restore_clipboard(void)
     void
 mch_suspend(void)
 {
+    if (ignore_sigtstp)
+	return;
+
     // BeOS does have SIGTSTP, but it doesn't work.
 #if defined(SIGTSTP) && !defined(__BEOS__)
     in_mch_suspend = TRUE;
@@ -1286,6 +1294,14 @@ mch_init(void)
     Rows = 24;
 
     out_flush();
+
+#ifdef SIGTSTP
+    // Check whether we were invoked with SIGTSTP set to be ignored. If it is
+    // that indicates the shell (or program) that launched us does not support
+    // tty job control and thus we should ignore that signal. If invoked as a
+    // restricted editor (e.g., as "rvim") SIGTSTP is always ignored.
+    ignore_sigtstp = restricted || SIG_IGN == signal(SIGTSTP, SIG_ERR);
+#endif
     set_signals();
 
 #ifdef MACOS_CONVERT
@@ -1306,17 +1322,13 @@ set_signals(void)
     signal(SIGWINCH, (RETSIGTYPE (*)())sig_winch);
 #endif
 
-    /*
-     * We want the STOP signal to work, to make mch_suspend() work.
-     * For "rvim" the STOP signal is ignored.
-     */
 #ifdef SIGTSTP
-    signal(SIGTSTP, restricted ? SIG_IGN : SIG_DFL);
+    // See mch_init() for the conditions under which we ignore SIGTSTP.
+    signal(SIGTSTP, ignore_sigtstp ? SIG_IGN : SIG_DFL);
 #endif
 #if defined(SIGCONT)
     signal(SIGCONT, sigcont_handler);
 #endif
-
     /*
      * We want to ignore breaking of PIPEs.
      */
@@ -1386,6 +1398,7 @@ catch_signals(
     int	    i;
 
     for (i = 0; signal_info[i].sig != -1; i++)
+    {
 	if (signal_info[i].deadly)
 	{
 #if defined(HAVE_SIGALTSTACK) && defined(HAVE_SIGACTION)
@@ -1420,7 +1433,17 @@ catch_signals(
 #endif
 	}
 	else if (func_other != SIG_ERR)
+	{
+	    // Deal with non-deadly signals.
+#ifdef SIGTSTP
+	    signal(signal_info[i].sig,
+		    signal_info[i].sig == SIGTSTP && ignore_sigtstp
+						       ? SIG_IGN : func_other);
+#else
 	    signal(signal_info[i].sig, func_other);
+#endif
+	}
+    }
 }
 
 #ifdef HAVE_SIGPROCMASK
@@ -1544,10 +1567,15 @@ x_error_handler(Display *dpy, XErrorEvent *error_event)
     XGetErrorText(dpy, error_event->error_code, (char *)IObuff, IOSIZE);
     STRCAT(IObuff, _("\nVim: Got X error\n"));
 
-    // We cannot print a message and continue, because no X calls are allowed
-    // here (causes my system to hang).  Silently continuing might be an
-    // alternative...
-    preserve_exit();		    // preserve files and exit
+    // In the GUI we cannot print a message and continue, because no X calls
+    // are allowed here (causes my system to hang).  Silently continuing seems
+    // like the best alternative.  Do preserve files, in case we crash.
+    ml_sync_all(FALSE, FALSE);
+
+#ifdef FEAT_GUI
+    if (!gui.in_use)
+#endif
+	msg((char *)IObuff);
 
     return 0;		// NOTREACHED
 }
@@ -3293,6 +3321,10 @@ exit_scroll(void)
     }
 }
 
+#ifdef USE_GCOV_FLUSH
+extern void __gcov_flush();
+#endif
+
     void
 mch_exit(int r)
 {
@@ -3339,6 +3371,12 @@ mch_exit(int r)
     }
     out_flush();
     ml_close_all(TRUE);		// remove all memfiles
+
+#ifdef USE_GCOV_FLUSH
+    // Flush coverage info before possibly being killed by a deadly signal.
+    __gcov_flush();
+#endif
+
     may_core_dump();
 #ifdef FEAT_GUI
     if (gui.in_use)
@@ -3432,7 +3470,7 @@ mch_tcgetattr(int fd, void *term)
 }
 
     void
-mch_settmode(int tmode)
+mch_settmode(tmode_T tmode)
 {
     static int first = TRUE;
 
@@ -3529,7 +3567,7 @@ mch_settmode(int tmode)
 	ttybnew.sg_flags &= ~(ECHO);
     ioctl(read_cmd_fd, TIOCSETN, &ttybnew);
 #endif
-    curr_tmode = tmode;
+    mch_cur_tmode = tmode;
 }
 
 /*
@@ -4166,11 +4204,6 @@ set_child_environment(
     static char	envbuf_Servername[60];
 #  endif
 # endif
-    long	colors =
-#  ifdef FEAT_GUI
-	    gui.in_use ? 256*256*256 :
-#  endif
-	    t_colors;
 
 # ifdef HAVE_SETENV
     setenv("TERM", term, 1);
@@ -4180,7 +4213,7 @@ set_child_environment(
     setenv("LINES", (char *)envbuf, 1);
     sprintf((char *)envbuf, "%ld", columns);
     setenv("COLUMNS", (char *)envbuf, 1);
-    sprintf((char *)envbuf, "%ld", colors);
+    sprintf((char *)envbuf, "%d", t_colors);
     setenv("COLORS", (char *)envbuf, 1);
 #  ifdef FEAT_TERMINAL
     if (is_terminal)
@@ -4207,7 +4240,7 @@ set_child_environment(
     vim_snprintf(envbuf_Columns, sizeof(envbuf_Columns),
 						       "COLUMNS=%ld", columns);
     putenv(envbuf_Columns);
-    vim_snprintf(envbuf_Colors, sizeof(envbuf_Colors), "COLORS=%ld", colors);
+    vim_snprintf(envbuf_Colors, sizeof(envbuf_Colors), "COLORS=%ld", t_colors);
     putenv(envbuf_Colors);
 #  ifdef FEAT_TERMINAL
     if (is_terminal)
@@ -4431,7 +4464,7 @@ mch_call_shell_system(
     char	*ifn = NULL;
     char	*ofn = NULL;
 #endif
-    int		tmode = cur_tmode;
+    tmode_T	tmode = cur_tmode;
     char_u	*newcmd;	// only needed for unix
     int		x;
 
@@ -4503,7 +4536,11 @@ mch_call_shell_system(
     }
 
     if (tmode == TMODE_RAW)
+    {
+	// The shell may have messed with the mode, always set it.
+	cur_tmode = TMODE_UNKNOWN;
 	settmode(TMODE_RAW);	// set to raw mode
+    }
 # ifdef FEAT_TITLE
     resettitle();
 # endif
@@ -4527,7 +4564,7 @@ mch_call_shell_fork(
     char_u	*cmd,
     int		options)	// SHELL_*, see vim.h
 {
-    int		tmode = cur_tmode;
+    tmode_T	tmode = cur_tmode;
     pid_t	pid;
     pid_t	wpid = 0;
     pid_t	wait_pid = 0;
@@ -4559,6 +4596,9 @@ mch_call_shell_fork(
 #endif
     if (options & SHELL_COOKED)
 	settmode(TMODE_COOK);		// set to normal mode
+    if (tmode == TMODE_RAW)
+	// The shell may have messed with the mode, always set it later.
+	cur_tmode = TMODE_UNKNOWN;
 
     if (unix_build_argv(cmd, &argv, &tofree1, &tofree2) == FAIL)
 	goto error;
@@ -5924,7 +5964,7 @@ mch_create_pty_channel(job_T *job, jobopt_T *options)
     void
 mch_breakcheck(int force)
 {
-    if ((curr_tmode == TMODE_RAW || force)
+    if ((mch_cur_tmode == TMODE_RAW || force)
 			       && RealWaitForChar(read_cmd_fd, 0L, NULL, NULL))
 	fill_input_buf(FALSE);
 }

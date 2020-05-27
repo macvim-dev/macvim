@@ -60,9 +60,12 @@ pum_compute_size(void)
     pum_extra_width = 0;
     for (i = 0; i < pum_size; ++i)
     {
-	w = vim_strsize(pum_array[i].pum_text);
-	if (pum_base_width < w)
-	    pum_base_width = w;
+	if (pum_array[i].pum_text != NULL)
+	{
+	    w = vim_strsize(pum_array[i].pum_text);
+	    if (pum_base_width < w)
+		pum_base_width = w;
+	}
 	if (pum_array[i].pum_kind != NULL)
 	{
 	    w = vim_strsize(pum_array[i].pum_kind) + 1;
@@ -1315,7 +1318,7 @@ ui_post_balloon(char_u *mesg, list_T *list)
 	balloon_array = ALLOC_CLEAR_MULT(pumitem_T, list->lv_len);
 	if (balloon_array == NULL)
 	    return;
-	range_list_materialize(list);
+	CHECK_LIST_MATERIALIZE(list);
 	for (idx = 0, li = list->lv_first; li != NULL; li = li->li_next, ++idx)
 	{
 	    char_u *text = tv_get_string_chk(&li->li_tv);

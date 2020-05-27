@@ -382,6 +382,8 @@ SRC = \
 	term.c \
 	termlib.c \
 	testing.c \
+	textformat.c \
+	textobject.c \
 	textprop.c \
 	time.c \
 	ui.c \
@@ -491,6 +493,8 @@ OBJ = \
 	term.obj \
 	termlib.obj \
 	testing.obj \
+	textformat.obj \
+	textobject.obj \
 	textprop.obj \
 	time.obj \
 	ui.obj \
@@ -987,6 +991,12 @@ termlib.obj : termlib.c vim.h [.auto]config.h feature.h os_unix.h   \
  ascii.h keymap.h term.h macros.h structs.h regexp.h gui.h beval.h \
  [.proto]gui_beval.pro option.h ex_cmds.h proto.h globals.h
 testing.obj : testing.c vim.h [.auto]config.h feature.h os_unix.h   \
+ ascii.h keymap.h term.h macros.h structs.h regexp.h gui.h beval.h \
+ [.proto]gui_beval.pro option.h ex_cmds.h proto.h globals.h
+textformat.obj : textformat.c vim.h [.auto]config.h feature.h os_unix.h   \
+ ascii.h keymap.h term.h macros.h structs.h regexp.h gui.h beval.h \
+ [.proto]gui_beval.pro option.h ex_cmds.h proto.h globals.h
+textobject.obj : textobject.c vim.h [.auto]config.h feature.h os_unix.h   \
  ascii.h keymap.h term.h macros.h structs.h regexp.h gui.h beval.h \
  [.proto]gui_beval.pro option.h ex_cmds.h proto.h globals.h
 textprop.obj : textprop.c vim.h [.auto]config.h feature.h os_unix.h   \

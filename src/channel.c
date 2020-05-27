@@ -156,9 +156,9 @@ ch_logfile(char_u *fname, char_u *opt)
     if (log_fd != NULL)
     {
 	if (*fname != NUL)
-	    ch_log(NULL, "closing, opening %s", fname);
+	    ch_log(NULL, "closing this logfile, opening %s", fname);
 	else
-	    ch_log(NULL, "closing");
+	    ch_log(NULL, "closing logfile");
 	fclose(log_fd);
     }
 
@@ -974,6 +974,7 @@ channel_open(
     int			sd = -1;
     channel_T		*channel = NULL;
 #ifdef FEAT_IPV6
+    int			err;
     struct addrinfo	hints;
     struct addrinfo	*res = NULL;
     struct addrinfo	*addr = NULL;
@@ -1005,10 +1006,11 @@ channel_open(
     // Set port number manually in order to prevent name resolution services
     // from being invoked in the environment where AI_NUMERICSERV is not
     // defined.
-    if (getaddrinfo(hostname, NULL, &hints, &res) != 0)
+    if ((err = getaddrinfo(hostname, NULL, &hints, &res)) != 0)
     {
 	ch_error(channel, "in getaddrinfo() in channel_open()");
-	PERROR(_("E901: getaddrinfo() in channel_open()"));
+	semsg(_("E901: getaddrinfo() in channel_open(): %s"),
+							   gai_strerror(err));
 	channel_free(channel);
 	return NULL;
     }
@@ -1054,7 +1056,7 @@ channel_open(
 	if (waittime == 0)
 	    waittime = 1;
 
-	sd = channel_connect(channel, addr->ai_addr, addr->ai_addrlen,
+	sd = channel_connect(channel, addr->ai_addr, (int)addr->ai_addrlen,
 								   &waittime);
 	if (sd >= 0)
 	    break;
@@ -2423,7 +2425,7 @@ channel_get_json(
 	list_T	    *l = item->jq_value->vval.v_list;
 	typval_T    *tv;
 
-	range_list_materialize(l);
+	CHECK_LIST_MATERIALIZE(l);
 	tv = &l->lv_first->li_tv;
 
 	if ((without_callback || !item->jq_no_callback)
@@ -3964,7 +3966,7 @@ theend:
     free_job_options(&opt);
 }
 
-# ifdef FEAT_GUI_MACVIM
+#ifdef FEAT_GUI_MACVIM
 /*
  * Read from channel "channel" in dispatch event handler.
  * Channel may be already read out elsewhere before the handler invoked
@@ -3978,9 +3980,9 @@ channel_may_read(channel_T *channel, ch_part_T part, char *func)
     if (fd != INVALID_FD && channel_wait(channel, fd, 0) == CW_READY)
 	channel_read(channel, part, func);
 }
-# endif
+#endif
 
-# if defined(MSWIN) || defined(FEAT_GUI) || defined(PROTO)
+#if defined(MSWIN) || defined(__HAIKU__) || defined(FEAT_GUI) || defined(PROTO)
 /*
  * Check the channels for anything that is ready to be read.
  * The data is put in the read queue.
@@ -4013,9 +4015,23 @@ channel_handle_events(int only_keep_open)
 						     "channel_handle_events");
 	    }
 	}
+
+# ifdef __HAIKU__
+	// Workaround for Haiku: Since select/poll cannot detect EOF from tty,
+	// should close fds when the job has finished if 'channel' connects to
+	// the pty.
+	if (channel->ch_job != NULL)
+	{
+	    job_T *job = channel->ch_job;
+
+	    if (job->jv_tty_out != NULL && job->jv_status == JOB_FINISHED)
+		for (part = PART_SOCK; part < PART_COUNT; ++part)
+		    ch_close_part(channel, part);
+	}
+# endif
     }
 }
-# endif
+#endif
 
 # if defined(FEAT_GUI) || defined(PROTO)
 /*
@@ -4581,6 +4597,20 @@ channel_select_check(int ret_in, void *rfds_in, void *wfds_in)
 	    channel_write_input(channel);
 	    --ret;
 	}
+
+# ifdef __HAIKU__
+	// Workaround for Haiku: Since select/poll cannot detect EOF from tty,
+	// should close fds when the job has finished if 'channel' connects to
+	// the pty.
+	if (channel->ch_job != NULL)
+	{
+	    job_T *job = channel->ch_job;
+
+	    if (job->jv_tty_out != NULL && job->jv_status == JOB_FINISHED)
+		for (part = PART_SOCK; part < PART_COUNT; ++part)
+		    ch_close_part(channel, part);
+	}
+# endif
     }
 
     return ret;
@@ -5314,12 +5344,13 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 		    return FAIL;
 		}
 
-		range_list_materialize(item->vval.v_list);
+		CHECK_LIST_MATERIALIZE(item->vval.v_list);
 		li = item->vval.v_list->lv_first;
 		for (; li != NULL && n < 16; li = li->li_next, n++)
 		{
 		    char_u	*color_name;
 		    guicolor_T	guicolor;
+		    int		called_emsg_before = called_emsg;
 
 		    color_name = tv_get_string_chk(&li->li_tv);
 		    if (color_name == NULL)
@@ -5327,7 +5358,12 @@ get_job_options(typval_T *tv, jobopt_T *opt, int supported, int supported2)
 
 		    guicolor = GUI_GET_COLOR(color_name);
 		    if (guicolor == INVALCOLOR)
+		    {
+			if (called_emsg_before == called_emsg)
+			    // may not get the error if the GUI didn't start
+			    semsg(_(e_alloc_color), color_name);
 			return FAIL;
+		    }
 
 		    rgb[n] = GUI_MCH_GET_RGB(guicolor);
 		}
@@ -5741,7 +5777,7 @@ win32_build_cmd(list_T *l, garray_T *gap)
     listitem_T  *li;
     char_u	*s;
 
-    range_list_materialize(l);
+    CHECK_LIST_MATERIALIZE(l);
     FOR_ALL_LIST_ITEMS(l, li)
     {
 	s = tv_get_string_chk(&li->li_tv);

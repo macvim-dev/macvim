@@ -662,7 +662,7 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
 	  # https://groups.google.com/forum/#!topic/vim_use/O0vek60WuTk
 	  lua_suf=/moonjit-2.3
 	  inc_path="$vi_cv_path_lua_pfx/include"
-	  for dir in "$inc_path"/moonjit-[0-9]* ; do
+	  for dir in "$inc_path"/moonjit-[[0-9]]* ; do
 	    if test -d "$dir" ; then
 	      lua_suf=`basename '$dir'`
 	      lua_suf="/$lua_suf"
@@ -3771,77 +3771,6 @@ else
   AC_MSG_RESULT([don't know])
 fi
 
-dnl    ****  pty mode/group handling ****
-dnl
-dnl support provided by Luke Mewburn <lm@rmit.edu.au>, 931222
-rm -f conftest_grp
-AC_CACHE_CHECK([default tty permissions/group], [vim_cv_tty_group],
-  [
-    AC_RUN_IFELSE([AC_LANG_SOURCE([[
-#include "confdefs.h"
-#include <sys/types.h>
-#if STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#endif
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-#include <sys/stat.h>
-#include <stdio.h>
-main()
-{
-  struct stat sb;
-  char *x,*ttyname();
-  int om, m;
-  FILE *fp;
-
-  if (!(x = ttyname(0))) exit(1);
-  if (stat(x, &sb)) exit(1);
-  om = sb.st_mode;
-  if (om & 002) exit(0);
-  m = system("mesg y");
-  if (m == -1 || m == 127) exit(1);
-  if (stat(x, &sb)) exit(1);
-  m = sb.st_mode;
-  if (chmod(x, om)) exit(1);
-  if (m & 002) exit(0);
-  if (sb.st_gid == getgid()) exit(1);
-  if (!(fp=fopen("conftest_grp", "w")))
-    exit(1);
-  fprintf(fp, "%d\n", sb.st_gid);
-  fclose(fp);
-  exit(0);
-}
-    ]])],[
-      if test -f conftest_grp; then
-	vim_cv_tty_group=`cat conftest_grp`
-	if test "x$vim_cv_tty_mode" = "x" ; then
-	  vim_cv_tty_mode=0620
-	fi
-	AC_MSG_RESULT([pty mode: $vim_cv_tty_mode, group: $vim_cv_tty_group])
-      else
-	vim_cv_tty_group=world
-	AC_MSG_RESULT([ptys are world accessible])
-      fi
-    ],[
-      vim_cv_tty_group=world
-      AC_MSG_RESULT([can't determine - assume ptys are world accessible])
-    ],[
-      AC_MSG_ERROR(cross-compiling: please set 'vim_cv_tty_group' and 'vim_cv_tty_mode')
-    ])
-  ])
-rm -f conftest_grp
-
-if test "x$vim_cv_tty_group" != "xworld" ; then
-  AC_DEFINE_UNQUOTED(PTYGROUP,$vim_cv_tty_group)
-  if test "x$vim_cv_tty_mode" = "x" ; then
-    AC_MSG_ERROR([It seems you're cross compiling and have 'vim_cv_tty_group' set, please also set the environment variable 'vim_cv_tty_mode' to the correct mode (probably 0620)])
-  else
-    AC_DEFINE(PTYMODE, 0620)
-  fi
-fi
-
 dnl Checks for library functions. ===================================
 
 AC_TYPE_SIGNAL
@@ -4228,6 +4157,21 @@ AC_MSG_CHECKING(for rename)
 AC_TRY_LINK([#include <stdio.h>], [rename("this", "that")],
 	AC_MSG_RESULT(yes); AC_DEFINE(HAVE_RENAME),
 	AC_MSG_RESULT(no))
+
+dnl check for dirfd()
+AC_MSG_CHECKING(for dirfd)
+AC_TRY_COMPILE(
+[#include <sys/types.h>
+#include <dirent.h>],
+[DIR * dir=opendir("dirname"); dirfd(dir);],
+AC_MSG_RESULT(yes); AC_DEFINE(HAVE_DIRFD), AC_MSG_RESULT(not usable))
+
+dnl check for flock()
+AC_MSG_CHECKING(for flock)
+AC_TRY_COMPILE(
+[#include <sys/file.h>],
+[flock(10, LOCK_SH);],
+AC_MSG_RESULT(yes); AC_DEFINE(HAVE_FLOCK), AC_MSG_RESULT(not usable))
 
 dnl sysctl() may exist but not the arguments we use
 AC_MSG_CHECKING(for sysctl)

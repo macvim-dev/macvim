@@ -1488,6 +1488,7 @@ func SetXlistTests(cchar, bnum)
 	      \ " {'bufnr':999, 'lnum':5}])", 'E92:')
   call g:Xsetlist([[1, 2,3]])
   call assert_equal(0, len(g:Xgetlist()))
+  call assert_fails('call g:Xsetlist([], [])', 'E928:')
 endfunc
 
 func Test_setqflist()
@@ -1707,7 +1708,6 @@ func s:create_test_file(filename)
 endfunc
 
 func Test_switchbuf()
-  CheckNotBSD
   call s:create_test_file('Xqftestfile1')
   call s:create_test_file('Xqftestfile2')
   call s:create_test_file('Xqftestfile3')
@@ -1833,6 +1833,7 @@ func Test_switchbuf()
 
   " If opening a file changes 'switchbuf', then the new value should be
   " retained.
+  set modeline&vim
   call writefile(["vim: switchbuf=split"], 'Xqftestfile1')
   enew | only
   set switchbuf&vim
@@ -2158,6 +2159,18 @@ func Xproperty_tests(cchar)
     call g:Xsetlist([], 'a', {'context':246})
     let d = g:Xgetlist({'context':1})
     call assert_equal(246, d.context)
+    " set other Vim data types as context
+    call g:Xsetlist([], 'a', {'context' : test_null_blob()})
+    if has('channel')
+      call g:Xsetlist([], 'a', {'context' : test_null_channel()})
+    endif
+    if has('job')
+      call g:Xsetlist([], 'a', {'context' : test_null_job()})
+    endif
+    call g:Xsetlist([], 'a', {'context' : test_null_function()})
+    call g:Xsetlist([], 'a', {'context' : test_null_partial()})
+    call g:Xsetlist([], 'a', {'context' : ''})
+    call test_garbagecollect_now()
     if a:cchar == 'l'
 	" Test for copying context across two different location lists
 	new | only

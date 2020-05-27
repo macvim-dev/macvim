@@ -428,7 +428,7 @@ func Test_popup_nospace()
   call delete('XtestPopupNospace')
 endfunc
 
-func Test_popup_firstline()
+func Test_popup_firstline_dump()
   CheckScreendump
 
   let lines =<< trim END
@@ -449,7 +449,9 @@ func Test_popup_firstline()
   " clean up
   call StopVimInTerminal(buf)
   call delete('XtestPopupFirstline')
+endfunc
 
+func Test_popup_firstline()
   let winid = popup_create(['1111', '222222', '33333', '44444'], #{
 	\ maxheight: 2,
 	\ firstline: 3,
@@ -491,6 +493,7 @@ func Test_popup_firstline()
   call popup_setoptions(winid, #{line: 3})
   call assert_equal(0, popup_getoptions(winid).firstline)
   call assert_equal(10, popup_getpos(winid).firstline)
+  call popup_close(winid)
 
   " CTRL-D scrolls down half a page
   let winid = popup_create(['xxx']->repeat(50), #{
@@ -826,10 +829,13 @@ func Test_popup_in_tab()
 endfunc
 
 func Test_popup_valid_arguments()
+  call assert_equal(0, len(popup_list()))
+
   " Zero value is like the property wasn't there
   let winid = popup_create("text", #{col: 0})
   let pos = popup_getpos(winid)
   call assert_inrange(&columns / 2 - 1, &columns / 2 + 1, pos.col)
+  call assert_equal([winid], popup_list())
   call popup_clear()
 
   " using cursor column has minimum value of 1
@@ -852,6 +858,9 @@ func Test_popup_invalid_arguments()
   call assert_fails('call popup_create(666, {})', 'E86:')
   call popup_clear()
   call assert_fails('call popup_create("text", "none")', 'E715:')
+  call popup_clear()
+  call assert_fails('call popup_create(test_null_string(), {})', 'E450:')
+  call assert_fails('call popup_create(test_null_list(), {})', 'E450:')
   call popup_clear()
 
   call assert_fails('call popup_create("text", #{col: "xxx"})', 'E475:')
@@ -901,6 +910,8 @@ func Test_popup_invalid_arguments()
   call popup_clear()
   call assert_fails('call popup_create("text", #{mask: test_null_list()})', 'E475:')
   call assert_fails('call popup_create("text", #{mapping: []})', 'E745:')
+  call popup_clear()
+  call assert_fails('call popup_create("text", #{tabpage : 4})', 'E997:')
   call popup_clear()
 endfunc
 
@@ -1113,7 +1124,12 @@ func Test_popup_move()
   let line = join(map(range(1, 6), 'screenstring(1, v:val)'), '')
   call assert_equal('hworld', line)
 
+  call assert_fails('call popup_move(winid, [])', 'E715:')
+  call assert_fails('call popup_move(winid, test_null_dict())', 'E715:')
+
   call popup_close(winid)
+
+  call assert_equal(0, popup_move(-1, {}))
 
   bwipe!
 endfunc
@@ -1609,12 +1625,14 @@ func Test_popup_empty()
   let pos = popup_getpos(winid)
   call assert_equal(5, pos.width)
   call assert_equal(5, pos.height)
+  call popup_close(winid)
 
   let winid = popup_create([], #{border: []})
   redraw
   let pos = popup_getpos(winid)
   call assert_equal(3, pos.width)
   call assert_equal(3, pos.height)
+  call popup_close(winid)
 endfunc
 
 func Test_popup_never_behind()
@@ -2176,7 +2194,11 @@ func Test_set_get_options()
   call assert_equal(1, options.drag)
   call assert_equal('Another', options.highlight)
 
+  call assert_fails('call popup_setoptions(winid, [])', 'E715:')
+  call assert_fails('call popup_setoptions(winid, test_null_dict())', 'E715:')
+
   call popup_close(winid)
+  call assert_equal(0, popup_setoptions(winid, options.wrap))
 endfunc
 
 func Test_popupwin_garbage_collect()
@@ -2400,19 +2422,35 @@ endfunc
 func Test_popupwin_terminal_buffer()
   CheckFeature terminal
   CheckUnix
+  " Starting a terminal to run a shell in is considered flaky.
+  let g:test_is_flaky = 1
 
   let origwin = win_getid()
-  let ptybuf = term_start(&shell, #{hidden: 1})
-  let winid = popup_create(ptybuf, #{minwidth: 40, minheight: 10})
+  let termbuf = term_start(&shell, #{hidden: 1})
+  let winid = popup_create(termbuf, #{minwidth: 40, minheight: 10})
   " Wait for shell to start
-  sleep 200m
+  call WaitForAssert({-> assert_equal("run", job_status(term_getjob(termbuf)))})
+  sleep 100m
   " Check this doesn't crash
   call assert_equal(winnr(), winnr('j'))
   call assert_equal(winnr(), winnr('k'))
   call assert_equal(winnr(), winnr('h'))
   call assert_equal(winnr(), winnr('l'))
+
   " Cannot quit while job is running
   call assert_fails('call feedkeys("\<C-W>:quit\<CR>", "xt")', 'E948:')
+
+  " Cannot enter Terminal-Normal mode. (TODO: but it works...)
+  call feedkeys("xxx\<C-W>N", 'xt')
+  call assert_fails('call feedkeys("gf", "xt")', 'E863:')
+  call feedkeys("a\<C-U>", 'xt')
+
+  " Cannot open a second one.
+  let termbuf2 = term_start(&shell, #{hidden: 1})
+  call assert_fails('call popup_create(termbuf2, #{})', 'E861:')
+  call term_sendkeys(termbuf2, "exit\<CR>")
+
+  " Exiting shell closes popup window
   call feedkeys("exit\<CR>", 'xt')
   " Wait for shell to exit
   sleep 100m
@@ -3301,8 +3339,9 @@ func Test_popupwin_atcursor_far_right()
   set signcolumn=yes
   call setline(1, repeat('=', &columns))
   normal! ggg$
-  call popup_atcursor(repeat('x', 500), #{moved: 'any', border: []})
+  let winid = popup_atcursor(repeat('x', 500), #{moved: 'any', border: []})
 
+  call popup_close(winid)
   bwipe!
   set signcolumn&
 endfunc

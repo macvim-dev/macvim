@@ -13,6 +13,7 @@ SRC_ALL =	\
 		ci/appveyor.bat \
 		ci/if_ver*.vim \
 		ci/load-snd-dummy.sh \
+		ci/config.mk*.sed \
 		src/Make_all.mak \
 		src/README.md \
 		src/alloc.h \
@@ -128,6 +129,8 @@ SRC_ALL =	\
 		src/term.h \
 		src/termlib.c \
 		src/testing.c \
+		src/textformat.c \
+		src/textobject.c \
 		src/textprop.c \
 		src/time.c \
 		src/ui.c \
@@ -162,12 +165,12 @@ SRC_ALL =	\
 		src/testdir/setup.vim \
 		src/testdir/setup_gui.vim \
 		src/testdir/shared.vim \
+		src/testdir/vim9.vim \
 		src/testdir/summarize.vim \
 		src/testdir/term_util.vim \
 		src/testdir/view_util.vim \
 		src/testdir/test[0-9]*.ok \
 		src/testdir/test[0-9]*a.ok \
-		src/testdir/test_[a-z]*.ok \
 		src/testdir/test49.vim \
 		src/testdir/test83-tags? \
 		src/testdir/test77a.com \
@@ -182,8 +185,6 @@ SRC_ALL =	\
 		src/testdir/python_after/*.py \
 		src/testdir/python_before/*.py \
 		src/testdir/pyxfile/*.py \
-		src/testdir/bench*.in \
-		src/testdir/bench*.vim \
 		src/testdir/dumps/*.dump \
 		src/testdir/samples/*.txt \
 		src/testdir/samples/test000 \
@@ -280,6 +281,8 @@ SRC_ALL =	\
 		src/proto/terminal.pro \
 		src/proto/termlib.pro \
 		src/proto/testing.pro \
+		src/proto/textformat.pro \
+		src/proto/textobject.pro \
 		src/proto/textprop.pro \
 		src/proto/time.pro \
 		src/proto/ui.pro \
@@ -298,10 +301,12 @@ SRC_ALL =	\
 		src/libvterm/LICENSE \
 		src/libvterm/Makefile \
 		src/libvterm/README \
+		src/libvterm/CONTRIBUTING \
 		src/libvterm/tbl2inc_c.pl \
 		src/libvterm/vterm.pc.in \
 		src/libvterm/doc/URLs \
 		src/libvterm/doc/seqs.txt \
+		src/libvterm/find-wide-chars.pl \
 		src/libvterm/include/vterm.h \
 		src/libvterm/include/vterm_keycodes.h \
 		src/libvterm/src/encoding.c \
@@ -309,6 +314,7 @@ SRC_ALL =	\
 		src/libvterm/src/encoding/DECdrawing.tbl \
 		src/libvterm/src/encoding/uk.inc \
 		src/libvterm/src/encoding/uk.tbl \
+		src/libvterm/src/fullwidth.inc \
 		src/libvterm/src/keyboard.c \
 		src/libvterm/src/mouse.c \
 		src/libvterm/src/parser.c \
@@ -339,16 +345,17 @@ SRC_ALL =	\
 		src/libvterm/t/27state_reset.test \
 		src/libvterm/t/28state_dbl_wh.test \
 		src/libvterm/t/29state_fallback.test \
-		src/libvterm/t/30pen.test \
-		src/libvterm/t/40screen_ascii.test \
-		src/libvterm/t/41screen_unicode.test \
-		src/libvterm/t/42screen_damage.test \
-		src/libvterm/t/43screen_resize.test \
-		src/libvterm/t/44screen_pen.test \
-		src/libvterm/t/45screen_protect.test \
-		src/libvterm/t/46screen_extent.test \
-		src/libvterm/t/47screen_dbl_wh.test \
-		src/libvterm/t/48screen_termprops.test \
+		src/libvterm/t/30state_pen.test \
+		src/libvterm/t/31state_rep.test \
+		src/libvterm/t/60screen_ascii.test \
+		src/libvterm/t/61screen_unicode.test \
+		src/libvterm/t/62screen_damage.test \
+		src/libvterm/t/63screen_resize.test \
+		src/libvterm/t/64screen_pen.test \
+		src/libvterm/t/65screen_protect.test \
+		src/libvterm/t/66screen_extent.test \
+		src/libvterm/t/67screen_dbl_wh.test \
+		src/libvterm/t/68screen_termprops.test \
 		src/libvterm/t/90vttest_01-movement-1.test \
 		src/libvterm/t/90vttest_01-movement-2.test \
 		src/libvterm/t/90vttest_01-movement-3.test \
@@ -607,8 +614,9 @@ SRC_AMI =	\
 
 # source files for Haiku (also in the extra archive)
 SRC_HAIKU =	\
+		README_haiku.txt \
 		src/os_haiku.h \
-		src/os_haiku.rdef \
+		src/os_haiku.rdef.in \
 		src/gui_haiku.cc \
 		src/gui_haiku.h \
 		src/proto/gui_haiku.pro \

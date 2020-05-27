@@ -1387,7 +1387,7 @@ termgui_get_color(char_u *name)
     t = termgui_mch_get_color(name);
 
     if (t == INVALCOLOR)
-	semsg(_("E254: Cannot allocate color %s"), name);
+	semsg(_(e_alloc_color), name);
     return t;
 }
 
@@ -1593,9 +1593,9 @@ may_adjust_color_count(int val)
 
 	    log_tr("Received t_Co, redraw_asap(): %d", r);
 	}
-#else
+# else
 	redraw_asap(CLEAR);
-#endif
+# endif
     }
 }
 #endif
@@ -1603,10 +1603,10 @@ may_adjust_color_count(int val)
 #ifdef HAVE_TGETENT
 static char *(key_names[]) =
 {
-#ifdef FEAT_TERMRESPONSE
+# ifdef FEAT_TERMRESPONSE
     // Do this one first, it may cause a screen redraw.
     "Co",
-#endif
+# endif
     "ku", "kd", "kr", "kl",
     "#2", "#4", "%i", "*7",
     "k1", "k2", "k3", "k4", "k5", "k6",
@@ -2868,7 +2868,7 @@ term_color(char_u *s, int n)
 #if defined(FEAT_VTP) && defined(FEAT_TERMGUICOLORS)
 		  || (s[0] == ESC && s[1] == '|')
 #endif
-	          || (s[0] == CSI && (i = 1) == 1))
+		  || (s[0] == CSI && (i = 1) == 1))
 	      && s[i] != NUL
 	      && (STRCMP(s + i + 1, "%p1%dm") == 0
 		  || STRCMP(s + i + 1, "%dm") == 0)
@@ -3128,15 +3128,21 @@ ttest(int pairs)
     }
     need_gather = TRUE;
 
-    // Set t_colors to the value of $COLORS or t_Co.
+    // Set t_colors to the value of $COLORS or t_Co.  Ignore $COLORS in the
+    // GUI.
     t_colors = atoi((char *)T_CCO);
-    env_colors = mch_getenv((char_u *)"COLORS");
-    if (env_colors != NULL && isdigit(*env_colors))
+#ifdef FEAT_GUI
+    if (!gui.in_use)
+#endif
     {
-	int colors = atoi((char *)env_colors);
+	env_colors = mch_getenv((char_u *)"COLORS");
+	if (env_colors != NULL && isdigit(*env_colors))
+	{
+	    int colors = atoi((char *)env_colors);
 
-	if (colors != t_colors)
-	    set_color_count(colors);
+	    if (colors != t_colors)
+		set_color_count(colors);
+	}
     }
 }
 
@@ -3436,7 +3442,7 @@ set_shellsize(int width, int height, int mustset)
  * commands and Ex mode).
  */
     void
-settmode(int tmode)
+settmode(tmode_T tmode)
 {
 #ifdef FEAT_GUI
     // don't set the term where gvim was started to any mode
@@ -3447,14 +3453,14 @@ settmode(int tmode)
     if (full_screen)
     {
 	/*
-	 * When returning after calling a shell we want to really set the
-	 * terminal to raw mode, even though we think it already is, because
-	 * the shell program may have reset the terminal mode.
+	 * When returning after calling a shell cur_tmode is TMODE_UNKNOWN,
+	 * set the terminal to raw mode, even though we think it already is,
+	 * because the shell program may have reset the terminal mode.
 	 * When we think the terminal is normal, don't try to set it to
 	 * normal again, because that causes problems (logout!) on some
 	 * machines.
 	 */
-	if (tmode != TMODE_COOK || cur_tmode != TMODE_COOK)
+	if (tmode != cur_tmode)
 	{
 #ifdef FEAT_TERMRESPONSE
 # ifdef FEAT_GUI
@@ -3471,13 +3477,24 @@ settmode(int tmode)
 #endif
 	    if (tmode != TMODE_RAW)
 		mch_setmouse(FALSE);	// switch mouse off
-	    if (termcap_active)
+
+	    // Disable bracketed paste and modifyOtherKeys in cooked mode.
+	    // Avoid doing this too often, on some terminals the codes are not
+	    // handled properly.
+	    if (termcap_active && tmode != TMODE_SLEEP
+						   && cur_tmode != TMODE_SLEEP)
 	    {
 		if (tmode != TMODE_RAW)
+		{
 		    out_str(T_BD);	// disable bracketed paste mode
+		    out_str(T_CTE);	// possibly disables modifyOtherKeys
+		}
 		else
+		{
 		    out_str(T_BE);	// enable bracketed paste mode (should
 					// be before mch_settmode().
+		    out_str(T_CTI);	// possibly enables modifyOtherKeys
+		}
 	    }
 	    out_flush();
 	    mch_settmode(tmode);	// machine specific function
@@ -6346,12 +6363,6 @@ static int grey_ramp[] = {
     0x80, 0x8A, 0x94, 0x9E, 0xA8, 0xB2, 0xBC, 0xC6, 0xD0, 0xDA, 0xE4, 0xEE
 };
 
-# ifdef FEAT_TERMINAL
-#  include "libvterm/include/vterm.h"  // for VTERM_ANSI_INDEX_NONE
-# else
-#  define VTERM_ANSI_INDEX_NONE 0
-# endif
-
 static char_u ansi_table[16][4] = {
 //   R    G    B   idx
   {  0,   0,   0,  1}, // black
@@ -6373,6 +6384,8 @@ static char_u ansi_table[16][4] = {
   {255, 255, 255, 16}, // white
 };
 
+#define ANSI_INDEX_NONE 0
+
     void
 cterm_color2rgb(int nr, char_u *r, char_u *g, char_u *b, char_u *ansi_idx)
 {
@@ -6392,7 +6405,7 @@ cterm_color2rgb(int nr, char_u *r, char_u *g, char_u *b, char_u *ansi_idx)
 	*r = cube_value[idx / 36 % 6];
 	*g = cube_value[idx / 6  % 6];
 	*b = cube_value[idx      % 6];
-	*ansi_idx = VTERM_ANSI_INDEX_NONE;
+	*ansi_idx = ANSI_INDEX_NONE;
     }
     else if (nr < 256)
     {
@@ -6401,14 +6414,14 @@ cterm_color2rgb(int nr, char_u *r, char_u *g, char_u *b, char_u *ansi_idx)
 	*r = grey_ramp[idx];
 	*g = grey_ramp[idx];
 	*b = grey_ramp[idx];
-	*ansi_idx = VTERM_ANSI_INDEX_NONE;
+	*ansi_idx = ANSI_INDEX_NONE;
     }
     else
     {
 	*r = 0;
 	*g = 0;
 	*b = 0;
-	*ansi_idx = 0;
+	*ansi_idx = ANSI_INDEX_NONE;
     }
 }
 #endif

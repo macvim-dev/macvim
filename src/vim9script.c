@@ -32,7 +32,7 @@ in_vim9script(void)
     void
 ex_vim9script(exarg_T *eap)
 {
-    scriptitem_T *si = SCRIPT_ITEM(current_sctx.sc_sid);
+    scriptitem_T    *si = SCRIPT_ITEM(current_sctx.sc_sid);
 
     if (!getline_equal(eap->getline, eap->cookie, getsourceline))
     {
@@ -64,7 +64,7 @@ ex_vim9script(exarg_T *eap)
  * ":export {Name, ...}"
  */
     void
-ex_export(exarg_T *eap UNUSED)
+ex_export(exarg_T *eap)
 {
     if (current_sctx.sc_version != SCRIPT_VERSION_VIM9)
     {
@@ -217,7 +217,7 @@ find_exported(
 	funcname[1] = KS_EXTRA;
 	funcname[2] = (int)KE_SNR;
 	sprintf((char *)funcname + 3, "%ld_%s", (long)sid, name);
-	*ufunc = find_func(funcname, NULL);
+	*ufunc = find_func(funcname, FALSE, NULL);
 	if (funcname != buffer)
 	    vim_free(funcname);
 

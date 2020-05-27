@@ -451,12 +451,9 @@ ex_sort(exarg_T *eap)
 	}
 	else if (!ASCII_ISALPHA(*p) && regmatch.regprog == NULL)
 	{
-	    s = skip_regexp(p + 1, *p, TRUE);
-	    if (*s != *p)
-	    {
-		emsg(_(e_invalpat));
+	    s = skip_regexp_err(p + 1, *p, TRUE);
+	    if (s == NULL)
 		goto sortend;
-	    }
 	    *s = NUL;
 	    // Use last search pattern if sort pattern is empty.
 	    if (s == p + 1)
@@ -2486,6 +2483,11 @@ do_ecmd(
     int		readfile_flags = 0;
     int		did_inc_redrawing_disabled = FALSE;
     long        *so_ptr = curwin->w_p_so >= 0 ? &curwin->w_p_so : &p_so;
+
+#ifdef FEAT_PROP_POPUP
+    if (ERROR_IF_TERM_POPUP_WINDOW)
+	return FAIL;
+#endif
 
     if (eap != NULL)
 	command = eap->do_ecmd_cmd;

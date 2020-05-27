@@ -1069,6 +1069,10 @@ free_all_mem(void)
 # if defined(FEAT_BEVAL_TERM)
     ui_remove_balloon();
 # endif
+# ifdef FEAT_PROP_POPUP
+    if (curwin != NULL)
+	close_all_popups(TRUE);
+# endif
 
     // Clear user commands (before deleting buffers).
     ex_comclear(NULL);
@@ -2050,30 +2054,35 @@ ga_init2(garray_T *gap, int itemsize, int growsize)
     int
 ga_grow(garray_T *gap, int n)
 {
+    if (gap->ga_maxlen - gap->ga_len < n)
+	return ga_grow_inner(gap, n);
+    return OK;
+}
+
+    int
+ga_grow_inner(garray_T *gap, int n)
+{
     size_t	old_len;
     size_t	new_len;
     char_u	*pp;
 
-    if (gap->ga_maxlen - gap->ga_len < n)
-    {
-	if (n < gap->ga_growsize)
-	    n = gap->ga_growsize;
+    if (n < gap->ga_growsize)
+	n = gap->ga_growsize;
 
-	// A linear growth is very inefficient when the array grows big.  This
-	// is a compromise between allocating memory that won't be used and too
-	// many copy operations. A factor of 1.5 seems reasonable.
-	if (n < gap->ga_len / 2)
-	    n = gap->ga_len / 2;
+    // A linear growth is very inefficient when the array grows big.  This
+    // is a compromise between allocating memory that won't be used and too
+    // many copy operations. A factor of 1.5 seems reasonable.
+    if (n < gap->ga_len / 2)
+	n = gap->ga_len / 2;
 
-	new_len = gap->ga_itemsize * (gap->ga_len + n);
-	pp = vim_realloc(gap->ga_data, new_len);
-	if (pp == NULL)
-	    return FAIL;
-	old_len = gap->ga_itemsize * gap->ga_maxlen;
-	vim_memset(pp + old_len, 0, new_len - old_len);
-	gap->ga_maxlen = gap->ga_len + n;
-	gap->ga_data = pp;
-    }
+    new_len = gap->ga_itemsize * (gap->ga_len + n);
+    pp = vim_realloc(gap->ga_data, new_len);
+    if (pp == NULL)
+	return FAIL;
+    old_len = gap->ga_itemsize * gap->ga_maxlen;
+    vim_memset(pp + old_len, 0, new_len - old_len);
+    gap->ga_maxlen = gap->ga_len + n;
+    gap->ga_data = pp;
     return OK;
 }
 
@@ -3151,8 +3160,7 @@ call_shell(char_u *cmd, int opt)
     if (p_verbose > 3)
     {
 	verbose_enter();
-	smsg(_("Calling shell to execute: \"%s\""),
-						    cmd == NULL ? p_sh : cmd);
+	smsg(_("Calling shell to execute: \"%s\""), cmd == NULL ? p_sh : cmd);
 	out_char('\n');
 	cursor_on();
 	verbose_leave();

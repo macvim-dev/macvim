@@ -176,7 +176,14 @@ set_buffer_lines(
     if (lines->v_type == VAR_LIST)
     {
 	l = lines->vval.v_list;
-	range_list_materialize(l);
+	if (l == NULL || list_len(l) == 0)
+	{
+	    // set proper return code
+	    if (lnum > curbuf->b_ml.ml_line_count)
+		rettv->vval.v_number = 1;	// FAIL
+	    goto done;
+	}
+	CHECK_LIST_MATERIALIZE(l);
 	li = l->lv_first;
     }
     else
@@ -251,6 +258,7 @@ set_buffer_lines(
 	update_topline();
     }
 
+done:
     if (!is_curbuf)
     {
 	curbuf = curbuf_save;

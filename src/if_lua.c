@@ -119,6 +119,7 @@ static luaV_Funcref *luaV_pushfuncref(lua_State *L, char_u *name);
 #define luaL_buffinit dll_luaL_buffinit
 #define luaL_addlstring dll_luaL_addlstring
 #define luaL_pushresult dll_luaL_pushresult
+#define luaL_loadstring dll_luaL_loadstring
 // lua
 #if LUA_VERSION_NUM <= 501
 #define lua_tonumber dll_lua_tonumber
@@ -213,6 +214,7 @@ lua_State *(*dll_luaL_newstate) (void);
 void (*dll_luaL_buffinit) (lua_State *L, luaL_Buffer *B);
 void (*dll_luaL_addlstring) (luaL_Buffer *B, const char *s, size_t l);
 void (*dll_luaL_pushresult) (luaL_Buffer *B);
+int (*dll_luaL_loadstring) (lua_State *L, const char *s);
 // lua
 #if LUA_VERSION_NUM <= 501
 lua_Number (*dll_lua_tonumber) (lua_State *L, int idx);
@@ -325,6 +327,7 @@ static const luaV_Reg luaV_dll[] = {
     {"luaL_buffinit", (luaV_function) &dll_luaL_buffinit},
     {"luaL_addlstring", (luaV_function) &dll_luaL_addlstring},
     {"luaL_pushresult", (luaV_function) &dll_luaL_pushresult},
+    {"luaL_loadstring", (luaV_function) &dll_luaL_loadstring},
     // lua
 #if LUA_VERSION_NUM <= 501
     {"lua_tonumber", (luaV_function) &dll_lua_tonumber},
@@ -568,8 +571,21 @@ luaV_totypval(lua_State *L, int pos, typval_T *tv)
 	    break;
 	case LUA_TNUMBER:
 #ifdef FEAT_FLOAT
-	    tv->v_type = VAR_FLOAT;
-	    tv->vval.v_float = (float_T) lua_tonumber(L, pos);
+	{
+	    const lua_Number n = lua_tonumber(L, pos);
+
+	    if (n > (lua_Number)INT64_MAX || n < (lua_Number)INT64_MIN
+		    || ((lua_Number)((varnumber_T)n)) != n)
+	    {
+		tv->v_type = VAR_FLOAT;
+		tv->vval.v_float = (float_T)n;
+	    }
+	    else
+	    {
+		tv->v_type = VAR_NUMBER;
+		tv->vval.v_number = (varnumber_T)n;
+	    }
+	}
 #else
 	    tv->v_type = VAR_NUMBER;
 	    tv->vval.v_number = (varnumber_T) lua_tointeger(L, pos);
@@ -1903,6 +1919,52 @@ luaV_type(lua_State *L)
     return 1;
 }
 
+    static int
+luaV_call(lua_State *L)
+{
+    int		argc = lua_gettop(L) - 1;
+    size_t	funcname_len;
+    char_u	*funcname;
+    char	*error = NULL;
+    typval_T	rettv;
+    typval_T	argv[MAX_FUNC_ARGS + 1];
+    int		i = 0;
+
+    if (argc > MAX_FUNC_ARGS)
+	return luaL_error(L, "Function called with too many arguments");
+
+    funcname = (char_u *)luaL_checklstring(L, 1, &funcname_len);
+
+    for (; i < argc; i++)
+    {
+	if (luaV_totypval(L, i + 2, &argv[i]) == FAIL)
+	{
+	    error = "lua: cannot convert value";
+	    goto free_vim_args;
+	}
+    }
+
+    argv[argc].v_type = VAR_UNKNOWN;
+
+    if (call_vim_function(funcname, argc, argv, &rettv) == FAIL)
+    {
+	error = "lua: call_vim_function failed";
+	goto free_vim_args;
+    }
+
+    luaV_pushtypval(L, &rettv);
+    clear_tv(&rettv);
+
+free_vim_args:
+    while (i > 0)
+	clear_tv(&argv[--i]);
+
+    if (error == NULL)
+	return 1;
+    else
+	return luaL_error(L, error);
+}
+
 static const luaL_Reg luaV_module[] = {
     {"command", luaV_command},
     {"eval", luaV_eval},
@@ -1916,6 +1978,7 @@ static const luaL_Reg luaV_module[] = {
     {"window", luaV_window},
     {"open", luaV_open},
     {"type", luaV_type},
+    {"call", luaV_call},
     {NULL, NULL}
 };
 
@@ -1997,6 +2060,17 @@ luaV_setref(lua_State *L)
     return 1;
 }
 
+#define LUA_VIM_FN_CODE \
+    "vim.fn = setmetatable({}, {"\
+    "  __index = function (t, key)"\
+    "    local function _fn(...)"\
+    "      return vim.call(key, ...)"\
+    "    end"\
+    "    t[key] = _fn"\
+    "    return _fn"\
+    "  end"\
+    "})"
+
     static int
 luaopen_vim(lua_State *L)
 {
@@ -2052,6 +2126,8 @@ luaopen_vim(lua_State *L)
     lua_pushvalue(L, 1); // cache table
     luaV_openlib(L, luaV_module, 1);
     lua_setglobal(L, LUAVIM_NAME);
+    // custom code
+    (void)luaL_dostring(L, LUA_VIM_FN_CODE);
     return 0;
 }
 

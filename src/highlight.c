@@ -524,7 +524,7 @@ static int color_numbers_88[28] = {0, 4, 2, 6,
 				 75, 11, 78, 15, -1};
 // for xterm with 256 colors...
 static int color_numbers_256[28] = {0, 4, 2, 6,
-				 1, 5, 130, 130,
+				 1, 5, 130, 3,
 				 248, 248, 7, 7,
 				 242, 242,
 				 12, 81, 10, 121,
@@ -658,7 +658,7 @@ do_highlight(
     /*
      * If no argument, list current highlighting.
      */
-    if (ends_excmd(*line))
+    if (!init && ends_excmd2(line - 1, line))
     {
 	for (i = 1; i <= highlight_ga.ga_len && !got_int; ++i)
 	    // TODO: only call when the group has attributes set
@@ -694,7 +694,7 @@ do_highlight(
     /*
      * ":highlight {group-name}": list highlighting for one group.
      */
-    if (!doclear && !dolink && ends_excmd(*linep))
+    if (!doclear && !dolink && ends_excmd2(line, linep))
     {
 	id = syn_namen2id(line, (int)(name_end - line));
 	if (id == 0)
@@ -720,14 +720,14 @@ do_highlight(
 	to_start = skipwhite(from_end);
 	to_end	 = skiptowhite(to_start);
 
-	if (ends_excmd(*from_start) || ends_excmd(*to_start))
+	if (ends_excmd2(line, from_start) || ends_excmd2(line, to_start))
 	{
 	    semsg(_("E412: Not enough arguments: \":highlight link %s\""),
 								  from_start);
 	    return;
 	}
 
-	if (!ends_excmd(*skipwhite(to_end)))
+	if (!ends_excmd2(line, skipwhite(to_end)))
 	{
 	    semsg(_("E413: Too many arguments: \":highlight link %s\""), from_start);
 	    return;
@@ -781,8 +781,7 @@ do_highlight(
 	/*
 	 * ":highlight clear [group]" command.
 	 */
-	line = linep;
-	if (ends_excmd(*line))
+	if (ends_excmd2(line, linep))
 	{
 #ifdef FEAT_GUI
 	    // First, we do not destroy the old values, but allocate the new
@@ -827,7 +826,7 @@ do_highlight(
 	    // It is now Ok to clear out the old data.
 #endif
 #ifdef FEAT_EVAL
-	    do_unlet((char_u *)"colors_name", TRUE);
+	    do_unlet((char_u *)"g:colors_name", TRUE);
 #endif
 	    restore_cterm_colors();
 
@@ -846,6 +845,7 @@ do_highlight(
 	    redraw_later_clear();
 	    return;
 	}
+	line = linep;
 	name_end = skiptowhite(line);
 	linep = skipwhite(name_end);
     }
@@ -889,7 +889,7 @@ do_highlight(
     }
 
     if (!doclear)
-      while (!ends_excmd(*linep))
+      while (!ends_excmd2(line, linep))
       {
 	key_start = linep;
 	if (*linep == '=')
@@ -3744,7 +3744,7 @@ match_add(
 	listitem_T	*li;
 	int		i;
 
-	range_list_materialize(pos_list);
+	CHECK_LIST_MATERIALIZE(pos_list);
 	for (i = 0, li = pos_list->lv_first; li != NULL && i < MAXPOSMATCH;
 							i++, li = li->li_next)
 	{
@@ -4947,10 +4947,11 @@ ex_match(exarg_T *eap)
     if (!eap->skip)
 	match_delete(curwin, id, FALSE);
 
-    if (ends_excmd(*eap->arg))
+    if (ends_excmd2(eap->cmd, eap->arg))
 	end = eap->arg;
     else if ((STRNICMP(eap->arg, "none", 4) == 0
-		&& (VIM_ISWHITE(eap->arg[4]) || ends_excmd(eap->arg[4]))))
+		&& (VIM_ISWHITE(eap->arg[4])
+				      || ends_excmd2(eap->arg, eap->arg + 4))))
 	end = eap->arg + 4;
     else
     {
@@ -4968,7 +4969,7 @@ ex_match(exarg_T *eap)
 	end = skip_regexp(p + 1, *p, TRUE);
 	if (!eap->skip)
 	{
-	    if (*end != NUL && !ends_excmd(*skipwhite(end + 1)))
+	    if (*end != NUL && !ends_excmd2(end, skipwhite(end + 1)))
 	    {
 		vim_free(g);
 		eap->errmsg = e_trailing;

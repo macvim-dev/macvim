@@ -249,7 +249,9 @@ do_incsearch_highlighting(int firstc, int *search_delim, incsearch_state_T *is_s
     }
     else if (STRNCMP(cmd, "sort", MAX(p - cmd, 3)) == 0)
     {
-	// skip over flags
+	// skip over ! and flags
+	if (*p == '!')
+	    p = skipwhite(p + 1);
 	while (ASCII_ISALPHA(*(p = skipwhite(p))))
 	    ++p;
 	if (*p == NUL)
@@ -1316,12 +1318,12 @@ getcmdline_int(
 		c = get_expr_register();
 		if (c == '=')
 		{
-		    // Need to save and restore ccline.  And set "textlock"
+		    // Need to save and restore ccline.  And set "textwinlock"
 		    // to avoid nasty things like going to another buffer when
 		    // evaluating an expression.
-		    ++textlock;
+		    ++textwinlock;
 		    p = get_expr_line();
-		    --textlock;
+		    --textwinlock;
 
 		    if (p != NULL)
 		    {
@@ -2555,17 +2557,17 @@ check_opt_wim(void)
 
 /*
  * Return TRUE when the text must not be changed and we can't switch to
- * another window or buffer.  Used when editing the command line, evaluating
+ * another window or buffer.  TRUE when editing the command line, evaluating
  * 'balloonexpr', etc.
  */
     int
-text_locked(void)
+text_and_win_locked(void)
 {
 #ifdef FEAT_CMDWIN
     if (cmdwin_type != 0)
 	return TRUE;
 #endif
-    return textlock != 0;
+    return textwinlock != 0;
 }
 
 /*
@@ -2585,7 +2587,19 @@ get_text_locked_msg(void)
     if (cmdwin_type != 0)
 	return e_cmdwin;
 #endif
-    return e_secure;
+    if (textwinlock != 0)
+	return e_textwinlock;
+    return e_textlock;
+}
+
+/*
+ * Return TRUE when the text must not be changed and/or we cannot switch to
+ * another window.  TRUE while evaluating 'completefunc'.
+ */
+    int
+text_locked(void)
+{
+    return text_and_win_locked() || textlock != 0;
 }
 
 /*
@@ -3570,11 +3584,11 @@ cmdline_paste(
     regname = may_get_selection(regname);
 #endif
 
-    // Need to  set "textlock" to avoid nasty things like going to another
+    // Need to  set "textwinlock" to avoid nasty things like going to another
     // buffer when evaluating an expression.
-    ++textlock;
+    ++textwinlock;
     i = get_spec_reg(regname, &arg, &allocated, TRUE);
-    --textlock;
+    --textwinlock;
 
     if (i)
     {
@@ -4478,6 +4492,8 @@ get_user_input(
 
     rettv->v_type = VAR_STRING;
     rettv->vval.v_string = NULL;
+    if (input_busy)
+	return;  // this doesn't work recursively.
 
 #ifdef NO_CONSOLE_INPUT
     // While starting up, there is no place to enter text. When running tests
@@ -4538,12 +4554,18 @@ get_user_input(
 	if (defstr != NULL)
 	{
 	    int save_ex_normal_busy = ex_normal_busy;
+	    int save_vgetc_busy = vgetc_busy;
+	    int save_input_busy = input_busy;
 
+	    input_busy |= vgetc_busy;
 	    ex_normal_busy = 0;
+	    vgetc_busy = 0;
 	    rettv->vval.v_string =
 		getcmdline_prompt(secret ? NUL : '@', p, get_echo_attr(),
 							      xp_type, xp_arg);
 	    ex_normal_busy = save_ex_normal_busy;
+	    vgetc_busy = save_vgetc_busy;
+	    input_busy = save_input_busy;
 	}
 	if (inputdialog && rettv->vval.v_string == NULL
 		&& argvars[1].v_type != VAR_UNKNOWN

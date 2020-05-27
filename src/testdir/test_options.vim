@@ -60,6 +60,13 @@ func Test_wildchar()
   set wildchar&
 endfunc
 
+func Test_wildoptions()
+  set wildoptions=
+  set wildoptions+=tagfile
+  set wildoptions+=tagfile
+  call assert_equal('tagfile', &wildoptions)
+endfunc
+
 func Test_options_command()
   let caught = 'ok'
   try
@@ -269,6 +276,7 @@ func Test_set_completion()
   " Expand terminal options.
   call feedkeys(":set t_A\<C-A>\<C-B>\"\<CR>", 'tx')
   call assert_equal('"set t_AB t_AF t_AL', @:)
+  call assert_fails('call feedkeys(":set <t_afoo>=\<C-A>\<CR>", "xt")', 'E474:')
 
   " Expand directories.
   call feedkeys(":set cdpath=./\<C-A>\<C-B>\"\<CR>", 'tx')
@@ -897,6 +905,20 @@ func Test_opt_num_op()
   set sw^=2
   call assert_equal(8, &sw)
   set shiftwidth&
+endfunc
+
+" Test for setting option values using v:false and v:true
+func Test_opt_boolean()
+  set number&
+  set number
+  call assert_equal(1, &nu)
+  set nonu
+  call assert_equal(0, &nu)
+  let &nu = v:true
+  call assert_equal(1, &nu)
+  let &nu = v:false
+  call assert_equal(0, &nu)
+  set number&
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

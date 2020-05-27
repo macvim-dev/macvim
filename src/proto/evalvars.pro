@@ -15,7 +15,6 @@ void prepare_vimvar(int idx, typval_T *save_tv);
 void restore_vimvar(int idx, typval_T *save_tv);
 list_T *heredoc_get(exarg_T *eap, char_u *cmd, int script_get);
 void ex_let(exarg_T *eap);
-void ex_const(exarg_T *eap);
 int ex_let_vars(char_u *arg_start, typval_T *tv, int copy, int semicolon, int var_count, int flags, char_u *op);
 char_u *skip_var_list(char_u *arg, int include_type, int *var_count, int *semicolon);
 void list_hashtable_vars(hashtab_T *ht, char *prefix, int empty, int *first);
@@ -55,7 +54,7 @@ int get_var_tv(char_u *name, int len, typval_T *rettv, dictitem_T **dip, int ver
 void check_vars(char_u *name, int len);
 dictitem_T *find_var(char_u *name, hashtab_T **htp, int no_autoload);
 dictitem_T *find_var_in_ht(hashtab_T *ht, int htname, char_u *varname, int no_autoload);
-int lookup_scriptvar(char_u *name, size_t len, cctx_T *dummy);
+void *lookup_scriptvar(char_u *name, size_t len, cctx_T *dummy);
 hashtab_T *find_var_ht(char_u *name, char_u **varname);
 char_u *get_var_value(char_u *name);
 void new_script_vars(scid_T id);

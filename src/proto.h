@@ -223,6 +223,8 @@ void mbyte_im_set_active(int active_arg);
 #  include "textprop.pro"
 # endif
 # include "testing.pro"
+# include "textobject.pro"
+# include "textformat.pro"
 # include "time.pro"
 # include "ui.pro"
 # include "undo.pro"

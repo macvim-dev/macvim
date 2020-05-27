@@ -675,9 +675,6 @@ CFLAGS = $(CFLAGS) $(WP64CHECK)
 
 CFLAGS = $(CFLAGS) $(OPTFLAG) -DNDEBUG $(CPUARG)
 RCFLAGS = $(rcflags) $(rcvars) -DNDEBUG
-! if "$(CL)" == "/D_USING_V110_SDK71_"
-RCFLAGS = $(RCFLAGS) /D_USING_V110_SDK71_
-! endif
 ! ifdef USE_MSVCRT
 CFLAGS = $(CFLAGS) /MD
 LIBC = msvcrt.lib
@@ -706,6 +703,10 @@ LIBC = $(LIBC) libcmtd.lib
 CFLAGS = $(CFLAGS) /Zl /MTd
 ! endif
 !endif # DEBUG
+
+!if "$(CL)" == "/D_USING_V110_SDK71_"
+RCFLAGS = $(RCFLAGS) /D_USING_V110_SDK71_
+!endif
 
 !if $(MSVC_MAJOR) >= 8
 # Visual Studio 2005 has 'deprecated' many of the standard CRT functions
@@ -806,6 +807,8 @@ OBJ = \
 	$(OUTDIR)\tag.obj \
 	$(OUTDIR)\term.obj \
 	$(OUTDIR)\testing.obj \
+	$(OUTDIR)\textformat.obj \
+	$(OUTDIR)\textobject.obj \
 	$(OUTDIR)\textprop.obj \
 	$(OUTDIR)\time.obj \
 	$(OUTDIR)\ui.obj \
@@ -1744,6 +1747,10 @@ $(OUTDIR)/term.obj:	$(OUTDIR) term.c  $(INCL)
 
 $(OUTDIR)/term.obj:	$(OUTDIR) testing.c  $(INCL)
 
+$(OUTDIR)/textformat.obj:	$(OUTDIR) textformat.c  $(INCL)
+
+$(OUTDIR)/textobject.obj:	$(OUTDIR) textobject.c  $(INCL)
+
 $(OUTDIR)/textprop.obj:	$(OUTDIR) textprop.c  $(INCL)
 
 $(OUTDIR)/time.obj:	$(OUTDIR) time.c  $(INCL)
@@ -1805,6 +1812,7 @@ $(OUTDIR)/glbl_ime.obj:	$(OUTDIR) glbl_ime.cpp  dimm.h $(INCL)
 
 CCCTERM = $(CC) $(CFLAGS) -Ilibvterm/include -DINLINE="" \
 	-DVSNPRINTF=vim_vsnprintf \
+	-DSNPRINTF=vim_snprintf \
 	-DIS_COMBINING_FUNCTION=utf_iscomposing_uint \
 	-DWCWIDTH_FUNCTION=utf_uint2cells \
 	-DGET_SPECIAL_PTY_TYPE_FUNCTION=get_special_pty_type \
@@ -1942,6 +1950,8 @@ proto.h: \
 	proto/tag.pro \
 	proto/term.pro \
 	proto/testing.pro \
+	proto/textformat.pro \
+	proto/textobject.pro \
 	proto/textprop.pro \
 	proto/time.pro \
 	proto/ui.pro \

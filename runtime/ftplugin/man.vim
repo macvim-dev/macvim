@@ -1,7 +1,8 @@
 " Vim filetype plugin file
 " Language:	man
+" Maintainer:	Jason Franklin <vim@justemail.net>
 " Maintainer:	SungHyun Nam <goweol@gmail.com>
-" Last Change: 	2020 Apr 13
+" Last Change: 	2020 May 07
 
 " To make the ":Man" command available before editing a manual page, source
 " this script from your startup vimrc file.

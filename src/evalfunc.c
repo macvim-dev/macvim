@@ -664,6 +664,7 @@ static funcentry_T global_functions[] =
     {"map",		2, 2, FEARG_1,	  ret_any,	f_map},
     {"maparg",		1, 4, FEARG_1,	  ret_string,	f_maparg},
     {"mapcheck",	1, 3, FEARG_1,	  ret_string,	f_mapcheck},
+    {"mapset",		3, 3, FEARG_1,	  ret_void,	f_mapset},
     {"match",		2, 4, FEARG_1,	  ret_any,	f_match},
     {"matchadd",	2, 5, FEARG_1,	  ret_number,	f_matchadd},
     {"matchaddpos",	2, 5, FEARG_1,	  ret_number,	f_matchaddpos},
@@ -704,7 +705,7 @@ static funcentry_T global_functions[] =
 			},
     {"popup_atcursor",	2, 2, FEARG_1,	  ret_number,	PROP_FUNC(f_popup_atcursor)},
     {"popup_beval",	2, 2, FEARG_1,	  ret_number,	PROP_FUNC(f_popup_beval)},
-    {"popup_clear",	0, 0, 0,	  ret_void,	PROP_FUNC(f_popup_clear)},
+    {"popup_clear",	0, 1, 0,	  ret_void,	PROP_FUNC(f_popup_clear)},
     {"popup_close",	1, 2, FEARG_1,	  ret_void,	PROP_FUNC(f_popup_close)},
     {"popup_create",	2, 2, FEARG_1,	  ret_number,	PROP_FUNC(f_popup_create)},
     {"popup_dialog",	2, 2, FEARG_1,	  ret_number,	PROP_FUNC(f_popup_dialog)},
@@ -715,6 +716,7 @@ static funcentry_T global_functions[] =
     {"popup_getoptions", 1, 1, FEARG_1,	  ret_dict_any,	PROP_FUNC(f_popup_getoptions)},
     {"popup_getpos",	1, 1, FEARG_1,	  ret_dict_any,	PROP_FUNC(f_popup_getpos)},
     {"popup_hide",	1, 1, FEARG_1,	  ret_void,	PROP_FUNC(f_popup_hide)},
+    {"popup_list",	0, 0, 0,	  ret_list_number, PROP_FUNC(f_popup_list)},
     {"popup_locate",	2, 2, 0,	  ret_number,	PROP_FUNC(f_popup_locate)},
     {"popup_menu",	2, 2, FEARG_1,	  ret_number,	PROP_FUNC(f_popup_menu)},
     {"popup_move",	2, 2, FEARG_1,	  ret_void,	PROP_FUNC(f_popup_move)},
@@ -2131,7 +2133,7 @@ f_eval(typval_T *argvars, typval_T *rettv)
 	s = skipwhite(s);
 
     p = s;
-    if (s == NULL || eval1(&s, rettv, TRUE) == FAIL)
+    if (s == NULL || eval1(&s, rettv, EVAL_EVALUATE) == FAIL)
     {
 	if (p != NULL && !aborting())
 	    semsg(_(e_invexpr2), p);
@@ -2149,7 +2151,7 @@ f_eval(typval_T *argvars, typval_T *rettv)
     static void
 f_eventhandler(typval_T *argvars UNUSED, typval_T *rettv)
 {
-    rettv->vval.v_number = vgetc_busy;
+    rettv->vval.v_number = vgetc_busy || input_busy;
 }
 
 static garray_T	redir_execute_ga;
@@ -2274,7 +2276,7 @@ execute_common(typval_T *argvars, typval_T *rettv, int arg_off)
     {
 	listitem_T	*item;
 
-	range_list_materialize(list);
+	CHECK_LIST_MATERIALIZE(list);
 	item = list->lv_first;
 	do_cmdline(NULL, get_list_line, (void *)&item,
 		      DOCMD_NOWAIT|DOCMD_VERBOSE|DOCMD_REPEAT|DOCMD_KEYTYPED);
@@ -2566,7 +2568,7 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
 #ifdef FEAT_TIMERS
 			|| timer_busy
 #endif
-			)
+			|| input_busy)
 		    typebuf_was_filled = TRUE;
 	    }
 	    vim_free(keys_esc);
@@ -2601,9 +2603,9 @@ f_float2nr(typval_T *argvars, typval_T *rettv)
 
     if (get_float_arg(argvars, &f) == OK)
     {
-	if (f <= -VARNUM_MAX + DBL_EPSILON)
+	if (f <= (float_T)-VARNUM_MAX + DBL_EPSILON)
 	    rettv->vval.v_number = -VARNUM_MAX;
-	else if (f >= VARNUM_MAX - DBL_EPSILON)
+	else if (f >= (float_T)VARNUM_MAX - DBL_EPSILON)
 	    rettv->vval.v_number = VARNUM_MAX;
 	else
 	    rettv->vval.v_number = (varnumber_T)f;
@@ -2679,6 +2681,7 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
     int		use_string = FALSE;
     partial_T   *arg_pt = NULL;
     char_u	*trans_name = NULL;
+    int		is_global = FALSE;
 
     if (argvars[0].v_type == VAR_FUNC)
     {
@@ -2702,21 +2705,10 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
     if ((use_string && vim_strchr(s, AUTOLOAD_CHAR) == NULL) || is_funcref)
     {
 	name = s;
-	trans_name = trans_function_name(&name, FALSE,
+	trans_name = trans_function_name(&name, &is_global, FALSE,
 	     TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD | TFN_NO_DEREF, NULL, NULL);
 	if (*name != NUL)
 	    s = NULL;
-	else if (trans_name != NULL
-		&& ASCII_ISUPPER(*s)
-		&& current_sctx.sc_version == SCRIPT_VERSION_VIM9
-		&& find_func(trans_name, NULL) == NULL)
-	{
-	    // With Vim9 script "MyFunc" can be script-local to the current
-	    // script or global.  The script-local name is not found, assume
-	    // global.
-	    vim_free(trans_name);
-	    trans_name = vim_strsave(s);
-	}
     }
 
     if (s == NULL || *s == NUL || (use_string && VIM_ISDIGIT(*s))
@@ -2724,8 +2716,8 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 	semsg(_(e_invarg2), use_string ? tv_get_string(&argvars[0]) : s);
     // Don't check an autoload name for existence here.
     else if (trans_name != NULL && (is_funcref
-				? find_func(trans_name, NULL) == NULL
-				: !translated_function_exists(trans_name)))
+			 ? find_func(trans_name, is_global, NULL) == NULL
+			 : !translated_function_exists(trans_name, is_global)))
 	semsg(_("E700: Unknown function: %s"), s);
     else
     {
@@ -2829,7 +2821,7 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 			copy_tv(&arg_pt->pt_argv[i], &pt->pt_argv[i]);
 		    if (lv_len > 0)
 		    {
-			range_list_materialize(list);
+			CHECK_LIST_MATERIALIZE(list);
 			FOR_ALL_LIST_ITEMS(list, li)
 			    copy_tv(&li->li_tv, &pt->pt_argv[i++]);
 		    }
@@ -2862,7 +2854,7 @@ common_function(typval_T *argvars, typval_T *rettv, int is_funcref)
 		}
 		else if (is_funcref)
 		{
-		    pt->pt_func = find_func(trans_name, NULL);
+		    pt->pt_func = find_func(trans_name, is_global, NULL);
 		    func_ptr_ref(pt->pt_func);
 		    vim_free(name);
 		}
@@ -2897,7 +2889,7 @@ f_funcref(typval_T *argvars, typval_T *rettv)
 }
 
     static type_T *
-ret_f_function(int argcount, type_T **argtypes UNUSED)
+ret_f_function(int argcount, type_T **argtypes)
 {
     if (argcount == 1 && argtypes[0]->tt_type == VAR_STRING)
 	return &t_func_any;
@@ -4956,7 +4948,7 @@ f_index(typval_T *argvars, typval_T *rettv)
     l = argvars[0].vval.v_list;
     if (l != NULL)
     {
-	range_list_materialize(l);
+	CHECK_LIST_MATERIALIZE(l);
 	item = l->lv_first;
 	if (argvars[2].v_type != VAR_UNKNOWN)
 	{
@@ -5062,7 +5054,7 @@ f_inputlist(typval_T *argvars, typval_T *rettv)
     msg_clr_eos();
 
     l = argvars[0].vval.v_list;
-    range_list_materialize(l);
+    CHECK_LIST_MATERIALIZE(l);
     FOR_ALL_LIST_ITEMS(l, li)
     {
 	msg_puts((char *)tv_get_string(&li->li_tv));
@@ -5538,7 +5530,7 @@ find_some_match(typval_T *argvars, typval_T *rettv, matchtype_T type)
     {
 	if ((l = argvars[0].vval.v_list) == NULL)
 	    goto theend;
-	range_list_materialize(l);
+	CHECK_LIST_MATERIALIZE(l);
 	li = l->lv_first;
     }
     else
@@ -6323,7 +6315,7 @@ f_range(typval_T *argvars, typval_T *rettv)
 	list_T *list = rettv->vval.v_list;
 
 	// Create a non-materialized list.  This is much more efficient and
-	// works with ":for".  If used otherwise range_list_materialize() must
+	// works with ":for".  If used otherwise CHECK_LIST_MATERIALIZE() must
 	// be called.
 	list->lv_first = &range_list_item;
 	list->lv_u.nonmat.lv_start = start;
@@ -6334,26 +6326,24 @@ f_range(typval_T *argvars, typval_T *rettv)
 }
 
 /*
- * If "list" is a non-materialized list then materialize it now.
+ * Materialize "list".
+ * Do not call directly, use CHECK_LIST_MATERIALIZE()
  */
     void
 range_list_materialize(list_T *list)
 {
-    if (list->lv_first == &range_list_item)
-    {
-	varnumber_T start = list->lv_u.nonmat.lv_start;
-	varnumber_T end = list->lv_u.nonmat.lv_end;
-	int	    stride = list->lv_u.nonmat.lv_stride;
-	varnumber_T i;
+    varnumber_T start = list->lv_u.nonmat.lv_start;
+    varnumber_T end = list->lv_u.nonmat.lv_end;
+    int	    stride = list->lv_u.nonmat.lv_stride;
+    varnumber_T i;
 
-	list->lv_first = NULL;
-	list->lv_u.mat.lv_last = NULL;
-	list->lv_len = 0;
-	list->lv_u.mat.lv_idx_item = NULL;
-	for (i = start; stride > 0 ? i <= end : i >= end; i += stride)
-	    if (list_append_number(list, (varnumber_T)i) == FAIL)
-		break;
-    }
+    list->lv_first = NULL;
+    list->lv_u.mat.lv_last = NULL;
+    list->lv_len = 0;
+    list->lv_u.mat.lv_idx_item = NULL;
+    for (i = start; stride > 0 ? i <= end : i >= end; i += stride)
+	if (list_append_number(list, (varnumber_T)i) == FAIL)
+	    break;
 }
 
     static void
@@ -7371,7 +7361,7 @@ f_setreg(typval_T *argvars, typval_T *rettv)
 
 	if (ll != NULL)
 	{
-	    range_list_materialize(ll);
+	    CHECK_LIST_MATERIALIZE(ll);
 	    FOR_ALL_LIST_ITEMS(ll, li)
 	    {
 		strval = tv_get_string_buf_chk(&li->li_tv, buf);
