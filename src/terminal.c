@@ -459,9 +459,9 @@ term_start(
 	    return NULL;
 	}
 	if (do_ecmd(0, NULL, NULL, &split_ea, ECMD_ONE,
-		     ECMD_HIDE
-			   + ((flags & TERM_START_FORCEIT) ? ECMD_FORCEIT : 0),
-		     curwin) == FAIL)
+		      (buf_hide(curwin->w_buffer) ? ECMD_HIDE : 0)
+			  + ((flags & TERM_START_FORCEIT) ? ECMD_FORCEIT : 0),
+							       curwin) == FAIL)
 	{
 	    vim_free(term);
 	    return NULL;
@@ -1614,7 +1614,7 @@ add_scrollback_line_to_buffer(term_T *term, char_u *text, int len)
     {
 	// Delete the empty line that was in the empty buffer.
 	curbuf = buf;
-	ml_delete(1, FALSE);
+	ml_delete(1);
 	curbuf = curwin->w_buffer;
     }
 }
@@ -1688,7 +1688,7 @@ cleanup_scrollback(term_T *term)
     while (curbuf->b_ml.ml_line_count > term->tl_scrollback_scrolled
 							    && gap->ga_len > 0)
     {
-	ml_delete(curbuf->b_ml.ml_line_count, FALSE);
+	ml_delete(curbuf->b_ml.ml_line_count);
 	line = (sb_line_T *)gap->ga_data + gap->ga_len - 1;
 	vim_free(line->sb_cells);
 	--gap->ga_len;
@@ -3147,7 +3147,7 @@ limit_scrollback(term_T *term, garray_T *gap, int update_buffer)
 	{
 	    vim_free(((sb_line_T *)gap->ga_data + i)->sb_cells);
 	    if (update_buffer)
-		ml_delete(1, FALSE);
+		ml_delete(1);
 	}
 	curbuf = curwin->w_buffer;
 
@@ -3472,7 +3472,7 @@ term_channel_closed(channel_T *ch)
 	redraw_statuslines();
 
 	// Need to break out of vgetc().
-	ins_char_typebuf(K_IGNORE);
+	ins_char_typebuf(K_IGNORE, 0);
 	typebuf_was_filled = TRUE;
 
 	term = curbuf->b_term;
@@ -4235,7 +4235,7 @@ parse_osc(int command, VTermStringFragment frag, void *user)
 	return 1;
     }
     mch_memmove((char *)gap->ga_data + gap->ga_len, frag.str, frag.len);
-    gap->ga_len += frag.len;
+    gap->ga_len += (int)frag.len;
     if (!frag.final)
 	return 1;
 
@@ -5153,7 +5153,7 @@ term_load_dump(typval_T *argvars, typval_T *rettv, int do_diff)
 	{
 	    buf = curbuf;
 	    while (!(curbuf->b_ml.ml_flags & ML_EMPTY))
-		ml_delete((linenr_T)1, FALSE);
+		ml_delete((linenr_T)1);
 	    free_scrollback(curbuf->b_term);
 	    redraw_later(NOT_VALID);
 	}
@@ -5188,7 +5188,7 @@ term_load_dump(typval_T *argvars, typval_T *rettv, int do_diff)
 	}
 
 	// Delete the empty line that was in the empty buffer.
-	ml_delete(1, FALSE);
+	ml_delete(1);
 
 	// For term_dumpload() we are done here.
 	if (!do_diff)
@@ -5379,7 +5379,7 @@ term_swap_diff()
 	if (p == NULL)
 	    return OK;
 	ml_append(bot_start, p, 0, FALSE);
-	ml_delete(1, FALSE);
+	ml_delete(1);
 	vim_free(p);
     }
 
@@ -5389,7 +5389,7 @@ term_swap_diff()
 	p = vim_strsave(ml_get(bot_start + lnum));
 	if (p == NULL)
 	    return OK;
-	ml_delete(bot_start + lnum, FALSE);
+	ml_delete(bot_start + lnum);
 	ml_append(lnum - 1, p, 0, FALSE);
 	vim_free(p);
     }
@@ -5399,14 +5399,14 @@ term_swap_diff()
     if (p == NULL)
 	return OK;
     ml_append(line_count - top_rows - 1, p, 0, FALSE);
-    ml_delete(bot_rows + 1, FALSE);
+    ml_delete(bot_rows + 1);
     vim_free(p);
 
     // move bottom title to top
     p = vim_strsave(ml_get(line_count - top_rows));
     if (p == NULL)
 	return OK;
-    ml_delete(line_count - top_rows, FALSE);
+    ml_delete(line_count - top_rows);
     ml_append(bot_rows, p, 0, FALSE);
     vim_free(p);
 

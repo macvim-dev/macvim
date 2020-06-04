@@ -2122,6 +2122,15 @@ static struct vimoption options[] =
 #endif
 			    {(char_u *)DEFAULT_PYTHON_VER, (char_u *)0L}
 			    SCTX_INIT},
+    {"quickfixtextfunc", "qftf", P_STRING|P_ALLOCED|P_VI_DEF|P_VIM|P_SECURE,
+#if defined(FEAT_QUICKFIX) && defined(FEAT_EVAL)
+			    (char_u *)&p_qftf, PV_NONE,
+			    {(char_u *)"", (char_u *)0L}
+#else
+			    (char_u *)NULL, PV_NONE,
+			    {(char_u *)NULL, (char_u *)NULL}
+#endif
+			    SCTX_INIT},
     {"quoteescape", "qe",   P_STRING|P_ALLOCED|P_VI_DEF,
 #ifdef FEAT_TEXTOBJ
 			    (char_u *)&p_qe, PV_QE,
@@ -3008,6 +3017,7 @@ static struct vimoption options[] =
 
     p_term("t_AB", T_CAB)
     p_term("t_AF", T_CAF)
+    p_term("t_AU", T_CAU)
     p_term("t_AL", T_CAL)
     p_term("t_al", T_AL)
     p_term("t_bc", T_BC)
@@ -3086,6 +3096,7 @@ static struct vimoption options[] =
     p_term("t_ZR", T_CZR)
     p_term("t_8f", T_8F)
     p_term("t_8b", T_8B)
+    p_term("t_8u", T_8U)
 
 // terminal key codes are not in here
 

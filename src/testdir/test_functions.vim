@@ -189,6 +189,10 @@ func Test_str2nr()
   call assert_equal(65, str2nr('0101', 8))
   call assert_equal(-65, str2nr('-101', 8))
   call assert_equal(-65, str2nr('-0101', 8))
+  call assert_equal(65, str2nr('0o101', 8))
+  call assert_equal(65, str2nr('0O0101', 8))
+  call assert_equal(-65, str2nr('-0O101', 8))
+  call assert_equal(-65, str2nr('-0o0101', 8))
 
   call assert_equal(11259375, str2nr('abcdef', 16))
   call assert_equal(11259375, str2nr('ABCDEF', 16))
@@ -207,6 +211,7 @@ func Test_str2nr()
 
   call assert_equal(0, str2nr('0x10'))
   call assert_equal(0, str2nr('0b10'))
+  call assert_equal(0, str2nr('0o10'))
   call assert_equal(1, str2nr('12', 2))
   call assert_equal(1, str2nr('18', 8))
   call assert_equal(1, str2nr('1g', 16))
@@ -1187,6 +1192,30 @@ func Test_Executable()
     call assert_equal(0, executable('notepad.exe.exe'))
     call assert_equal(0, executable('shell32.dll'))
     call assert_equal(0, executable('win.ini'))
+
+    " get "notepad" path and remove the leading drive and sep. (ex. 'C:\')
+    let notepadcmd = exepath('notepad.exe')
+    let driveroot = notepadcmd[:2]
+    let notepadcmd = notepadcmd[3:]
+    new
+    " check that the relative path works in /
+    execute 'lcd' driveroot
+    call assert_equal(1, executable(notepadcmd))
+    call assert_equal(driveroot .. notepadcmd, notepadcmd->exepath())
+    bwipe
+
+    " create "notepad.bat"
+    call mkdir('Xdir')
+    let notepadbat = fnamemodify('Xdir/notepad.bat', ':p')
+    call writefile([], notepadbat)
+    new
+    " check that the path and the pathext order is valid
+    lcd Xdir
+    let [pathext, $PATHEXT] = [$PATHEXT, '.com;.exe;.bat;.cmd']
+    call assert_equal(notepadbat, exepath('notepad'))
+    let $PATHEXT = pathext
+    bwipe
+    eval 'Xdir'->delete('rf')
   elseif has('unix')
     call assert_equal(1, 'cat'->executable())
     call assert_equal(0, executable('nodogshere'))
@@ -1472,6 +1501,13 @@ func Test_trim()
   call assert_equal("", trim("", ""))
   call assert_equal("a", trim("a", ""))
   call assert_equal("", trim("", "a"))
+
+  call assert_equal("vim", trim("  vim  ", " ", 0))
+  call assert_equal("vim  ", trim("  vim  ", " ", 1))
+  call assert_equal("  vim", trim("  vim  ", " ", 2))
+  call assert_fails('eval trim("  vim  ", " ", [])', 'E745:')
+  call assert_fails('eval trim("  vim  ", " ", -1)', 'E475:')
+  call assert_fails('eval trim("  vim  ", " ", 3)', 'E475:')
 
   let chars = join(map(range(1, 0x20) + [0xa0], {n -> n->nr2char()}), '')
   call assert_equal("x", trim(chars . "x" . chars))
@@ -1766,11 +1802,10 @@ endfunc
 
 func Test_platform_name()
   " The system matches at most only one name.
-  let names = ['amiga', 'beos', 'bsd', 'hpux', 'linux', 'mac', 'qnx', 'sun', 'vms', 'win32', 'win32unix']
+  let names = ['amiga', 'bsd', 'hpux', 'linux', 'mac', 'qnx', 'sun', 'vms', 'win32', 'win32unix']
   call assert_inrange(0, 1, len(filter(copy(names), 'has(v:val)')))
 
   " Is Unix?
-  call assert_equal(has('beos'), has('beos') && has('unix'))
   call assert_equal(has('bsd'), has('bsd') && has('unix'))
   call assert_equal(has('hpux'), has('hpux') && has('unix'))
   call assert_equal(has('linux'), has('linux') && has('unix'))
@@ -1782,7 +1817,6 @@ func Test_platform_name()
 
   if has('unix') && executable('uname')
     let uname = system('uname')
-    call assert_equal(uname =~? 'BeOS', has('beos'))
     " GNU userland on BSD kernels (e.g., GNU/kFreeBSD) don't have BSD defined
     call assert_equal(uname =~? '\%(GNU/k\w\+\)\@<!BSD\|DragonFly', has('bsd'))
     call assert_equal(uname =~? 'HP-UX', has('hpux'))
@@ -1805,7 +1839,7 @@ func Test_readdir()
   call assert_equal(['bar.txt', 'dir', 'foo.txt'], sort(files))
 
   " Only results containing "f"
-  let files = 'Xdir'->readdir({ x -> stridx(x, 'f') !=- 1 })
+  let files = 'Xdir'->readdir({ x -> stridx(x, 'f') != -1 })
   call assert_equal(['foo.txt'], sort(files))
 
   " Only .txt files
@@ -1823,6 +1857,47 @@ func Test_readdir()
 
   " Nested readdir() must not crash
   let files = readdir('Xdir', 'readdir("Xdir", "1") != []')
+  call sort(files)->assert_equal(['bar.txt', 'dir', 'foo.txt'])
+
+  eval 'Xdir'->delete('rf')
+endfunc
+
+func Test_readdirex()
+  call mkdir('Xdir')
+  call writefile(['foo'], 'Xdir/foo.txt')
+  call writefile(['barbar'], 'Xdir/bar.txt')
+  call mkdir('Xdir/dir')
+
+  " All results
+  let files = readdirex('Xdir')->map({-> v:val.name})
+  call assert_equal(['bar.txt', 'dir', 'foo.txt'], sort(files))
+  let sizes = readdirex('Xdir')->map({-> v:val.size})
+  call assert_equal([0, 4, 7], sort(sizes))
+
+  " Only results containing "f"
+  let files = 'Xdir'->readdirex({ e -> stridx(e.name, 'f') != -1 })
+			  \ ->map({-> v:val.name})
+  call assert_equal(['foo.txt'], sort(files))
+
+  " Only .txt files
+  let files = readdirex('Xdir', { e -> e.name =~ '.txt$' })
+			  \ ->map({-> v:val.name})
+  call assert_equal(['bar.txt', 'foo.txt'], sort(files))
+
+  " Only .txt files with string
+  let files = readdirex('Xdir', 'v:val.name =~ ".txt$"')
+			  \ ->map({-> v:val.name})
+  call assert_equal(['bar.txt', 'foo.txt'], sort(files))
+
+  " Limit to 1 result.
+  let l = []
+  let files = readdirex('Xdir', {e -> len(add(l, e.name)) == 2 ? -1 : 1})
+			  \ ->map({-> v:val.name})
+  call assert_equal(1, len(files))
+
+  " Nested readdirex() must not crash
+  let files = readdirex('Xdir', 'readdirex("Xdir", "1") != []')
+			  \ ->map({-> v:val.name})
   call sort(files)->assert_equal(['bar.txt', 'dir', 'foo.txt'])
 
   eval 'Xdir'->delete('rf')

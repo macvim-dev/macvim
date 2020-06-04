@@ -761,6 +761,7 @@ OBJ = \
 	$(OUTDIR)\findfile.obj \
 	$(OUTDIR)\fold.obj \
 	$(OUTDIR)\getchar.obj \
+	$(OUTDIR)\gui_xim.obj \
 	$(OUTDIR)\hardcopy.obj \
 	$(OUTDIR)\hashtab.obj \
 	$(OUTDIR)\highlight.obj \
@@ -811,6 +812,7 @@ OBJ = \
 	$(OUTDIR)\textobject.obj \
 	$(OUTDIR)\textprop.obj \
 	$(OUTDIR)\time.obj \
+	$(OUTDIR)\typval.obj \
 	$(OUTDIR)\ui.obj \
 	$(OUTDIR)\undo.obj \
 	$(OUTDIR)\usercmd.obj \
@@ -1590,6 +1592,8 @@ $(OUTDIR)/fold.obj:	$(OUTDIR) fold.c  $(INCL)
 
 $(OUTDIR)/getchar.obj:	$(OUTDIR) getchar.c  $(INCL)
 
+$(OUTDIR)/gui_xim.obj:	$(OUTDIR) gui_xim.c  $(INCL)
+
 $(OUTDIR)/hardcopy.obj:	$(OUTDIR) hardcopy.c  $(INCL) version.h
 
 $(OUTDIR)/hashtab.obj:	$(OUTDIR) hashtab.c  $(INCL)
@@ -1755,6 +1759,8 @@ $(OUTDIR)/textprop.obj:	$(OUTDIR) textprop.c  $(INCL)
 
 $(OUTDIR)/time.obj:	$(OUTDIR) time.c  $(INCL)
 
+$(OUTDIR)/typval.obj:	$(OUTDIR) typval.c  $(INCL)
+
 $(OUTDIR)/ui.obj:	$(OUTDIR) ui.c  $(INCL)
 
 $(OUTDIR)/undo.obj:	$(OUTDIR) undo.c  $(INCL)
@@ -1905,6 +1911,7 @@ proto.h: \
 	proto/filepath.pro \
 	proto/findfile.pro \
 	proto/getchar.pro \
+	proto/gui_xim.pro \
 	proto/hardcopy.pro \
 	proto/hashtab.pro \
 	proto/highlight.pro \
@@ -1954,6 +1961,7 @@ proto.h: \
 	proto/textobject.pro \
 	proto/textprop.pro \
 	proto/time.pro \
+	proto/typval.pro \
 	proto/ui.pro \
 	proto/undo.pro \
 	proto/usercmd.pro \

@@ -133,6 +133,7 @@ SRC_ALL =	\
 		src/textobject.c \
 		src/textprop.c \
 		src/time.c \
+		src/typval.c \
 		src/ui.c \
 		src/undo.c \
 		src/usercmd.c \
@@ -156,6 +157,7 @@ SRC_ALL =	\
 		src/testdir/*.py \
 		src/testdir/lsan-suppress.txt \
 		src/testdir/sautest/autoload/*.vim \
+		src/testdir/testluaplugin/lua/testluaplugin/*.lua \
 		src/testdir/check.vim \
 		src/testdir/gui_init.vim \
 		src/testdir/gui_preinit.vim \
@@ -285,6 +287,7 @@ SRC_ALL =	\
 		src/proto/textobject.pro \
 		src/proto/textprop.pro \
 		src/proto/time.pro \
+		src/proto/typval.pro \
 		src/proto/ui.pro \
 		src/proto/undo.pro \
 		src/proto/usercmd.pro \
@@ -347,6 +350,7 @@ SRC_ALL =	\
 		src/libvterm/t/29state_fallback.test \
 		src/libvterm/t/30state_pen.test \
 		src/libvterm/t/31state_rep.test \
+		src/libvterm/t/32state_flow.test \
 		src/libvterm/t/60screen_ascii.test \
 		src/libvterm/t/61screen_unicode.test \
 		src/libvterm/t/62screen_damage.test \
@@ -415,6 +419,7 @@ SRC_UNIX =	\
 		src/gui_gtk_x11.c \
 		src/gui_gtk_res.xml \
 		src/gui_motif.c \
+		src/gui_xim.c \
 		src/gui_xmdlg.c \
 		src/gui_xmebw.c \
 		src/gui_xmebw.h \
@@ -438,6 +443,7 @@ SRC_UNIX =	\
 		src/proto/gui_gtk_x11.pro \
 		src/proto/gui_gtk_gresources.pro \
 		src/proto/gui_motif.pro \
+		src/proto/gui_xim.pro \
 		src/proto/gui_xmdlg.pro \
 		src/proto/gui_x11.pro \
 		src/proto/if_xcmdsrv.pro \
@@ -670,10 +676,6 @@ SRC_EXTRA =	\
 		src/Make_mint.mak \
 		src/infplist.xml \
 		src/link.390 \
-		src/os_beos.c \
-		src/os_beos.h \
-		src/os_beos.rsrc \
-		src/proto/os_beos.pro \
 		src/os_mint.h \
 		src/os_vms_fix.com \
 		src/toolbar.phi \
@@ -970,6 +972,8 @@ LANG_GEN = \
 		runtime/doc/*-pl.UTF-8.1 \
 		runtime/doc/*-ru.1 \
 		runtime/doc/*-ru.UTF-8.1 \
+		runtime/doc/*-tr.1 \
+		runtime/doc/*-tr.UTF-8.1 \
 		runtime/lang/README.txt \
 		runtime/lang/menu_*.vim \
 		runtime/keymap/README.txt \

@@ -2710,20 +2710,17 @@ get_special_key_name(int c, int modifiers)
 trans_special(
     char_u	**srcp,
     char_u	*dst,
-    int		keycode,    // prefer key code, e.g. K_DEL instead of DEL
-    int		in_string,  // TRUE when inside a double quoted string
-    int		simplify,	// simplify <C-H> and <A-x>
-    int		*did_simplify)  // found <C-H> or <A-x>
+    int		flags,		// FSK_ values
+    int		*did_simplify)  // FSK_SIMPLIFY and found <C-H> or <A-x>
 {
     int		modifiers = 0;
     int		key;
 
-    key = find_special_key(srcp, &modifiers, keycode, FALSE, in_string,
-						       simplify, did_simplify);
+    key = find_special_key(srcp, &modifiers, flags, did_simplify);
     if (key == 0)
 	return 0;
 
-    return special_to_buf(key, modifiers, keycode, dst);
+    return special_to_buf(key, modifiers, flags & FSK_KEYCODE, dst);
 }
 
 /*
@@ -2771,16 +2768,14 @@ special_to_buf(int key, int modifiers, int keycode, char_u *dst)
 find_special_key(
     char_u	**srcp,
     int		*modp,
-    int		keycode,	// prefer key code, e.g. K_DEL instead of DEL
-    int		keep_x_key,	// don't translate xHome to Home key
-    int		in_string,	// TRUE in string, double quote is escaped
-    int		simplify,	// simplify <C-H> and <A-x>
+    int		flags,		// FSK_ values
     int		*did_simplify)  // found <C-H> or <A-x>
 {
     char_u	*last_dash;
     char_u	*end_of_name;
     char_u	*src;
     char_u	*bp;
+    int		in_string = flags & FSK_IN_STRING;
     int		modifiers;
     int		bit;
     int		key;
@@ -2790,6 +2785,8 @@ find_special_key(
     src = *srcp;
     if (src[0] != '<')
 	return 0;
+    if (src[1] == '*')	    // <*xxx>: do not simplify
+	++src;
 
     // Find end of modifier list
     last_dash = src;
@@ -2810,7 +2807,7 @@ find_special_key(
 		if (!(in_string && bp[1] == '"') && bp[l + 1] == '>')
 		    bp += l;
 		else if (in_string && bp[1] == '\\' && bp[2] == '"'
-							       && bp[3] == '>')
+							   && bp[3] == '>')
 		    bp += 2;
 	    }
 	}
@@ -2880,7 +2877,7 @@ find_special_key(
 		else
 		{
 		    key = get_special_key_code(last_dash + off);
-		    if (!keep_x_key)
+		    if (!(flags & FSK_KEEP_X_KEY))
 			key = handle_x_keys(key);
 		}
 	    }
@@ -2897,7 +2894,7 @@ find_special_key(
 		 */
 		key = simplify_key(key, &modifiers);
 
-		if (!keycode)
+		if (!(flags & FSK_KEYCODE))
 		{
 		    // don't want keycode, use single byte code
 		    if (key == K_BS)
@@ -2909,7 +2906,7 @@ find_special_key(
 		// Normal Key with modifier: Try to make a single byte code.
 		if (!IS_SPECIAL(key))
 		    key = extract_modifiers(key, &modifiers,
-						       simplify, did_simplify);
+					   flags & FSK_SIMPLIFY, did_simplify);
 
 		*modp = modifiers;
 		*srcp = end_of_name;

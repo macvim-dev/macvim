@@ -547,6 +547,9 @@ au BufNewFile,BufRead */etc/elinks.conf,*/.elinks/elinks.conf	setf elinks
 " ERicsson LANGuage; Yaws is erlang too
 au BufNewFile,BufRead *.erl,*.hrl,*.yaws	setf erlang
 
+" Elm
+au BufNewFile,BufRead *.elm			setf elm
+
 " Elm Filter Rules file
 au BufNewFile,BufRead filter-rules		setf elmfilt
 
@@ -884,11 +887,12 @@ au BufNewFile,BufRead *.ll			setf lifelines
 " Lilo: Linux loader
 au BufNewFile,BufRead lilo.conf			setf lilo
 
-" Lisp (*.el = ELisp, *.cl = Common Lisp, *.jl = librep Lisp)
+" Lisp (*.el = ELisp, *.cl = Common Lisp)
+" *.jl was removed, it's also used for Julia, better skip than guess wrong.
 if has("fname_case")
-  au BufNewFile,BufRead *.lsp,*.lisp,*.el,*.cl,*.jl,*.L,.emacs,.sawfishrc setf lisp
+  au BufNewFile,BufRead *.lsp,*.lisp,*.el,*.cl,*.L,.emacs,.sawfishrc setf lisp
 else
-  au BufNewFile,BufRead *.lsp,*.lisp,*.el,*.cl,*.jl,.emacs,.sawfishrc setf lisp
+  au BufNewFile,BufRead *.lsp,*.lisp,*.el,*.cl,.emacs,.sawfishrc setf lisp
 endif
 
 " SBCL implementation of Common Lisp

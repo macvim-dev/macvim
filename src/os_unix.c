@@ -12,7 +12,7 @@
 /*
  * os_unix.c -- code for all flavors of Unix (BSD, SYSV, SVR4, POSIX, ...)
  *	     Also for OS/2, using the excellent EMX package!!!
- *	     Also for BeOS and Atari MiNT.
+ *	     Also for Atari MiNT.
  *
  * A lot of this file was originally written by Juergen Weigert and later
  * changed beyond recognition.
@@ -41,11 +41,6 @@ static int selinux_enabled = -1;
 # ifndef SMACK_LABEL_LEN
 #  define SMACK_LABEL_LEN 1024
 # endif
-#endif
-
-#ifdef __BEOS__
-# undef select
-# define select	beos_select
 #endif
 
 #ifdef __CYGWIN__
@@ -150,7 +145,7 @@ typedef int waitstatus;
 #endif
 static int  WaitForChar(long msec, int *interrupted, int ignore_input);
 static int  WaitForCharOrMouse(long msec, int *interrupted, int ignore_input);
-#if defined(__BEOS__) || defined(VMS)
+#ifdef VMS
 int  RealWaitForChar(int, long, int *, int *interrupted);
 #else
 static int  RealWaitForChar(int, long, int *, int *interrupted);
@@ -1245,8 +1240,7 @@ mch_suspend(void)
     if (ignore_sigtstp)
 	return;
 
-    // BeOS does have SIGTSTP, but it doesn't work.
-#if defined(SIGTSTP) && !defined(__BEOS__)
+#if defined(SIGTSTP)
     in_mch_suspend = TRUE;
 
     out_flush();	    // needed to make cursor visible on some systems
@@ -3492,10 +3486,9 @@ mch_settmode(tmode_T tmode)
     tnew = told;
     if (tmode == TMODE_RAW)
     {
-	/*
-	 * ~ICRNL enables typing ^V^M
-	 */
-	tnew.c_iflag &= ~ICRNL;
+	// ~ICRNL enables typing ^V^M
+	// ~IXON disables CTRL-S stopping output, so that it can be mapped.
+	tnew.c_iflag &= ~(ICRNL | IXON);
 	tnew.c_lflag &= ~(ICANON | ECHO | ISIG | ECHOE
 # if defined(IEXTEN) && !defined(__MINT__)
 		    | IEXTEN	    // IEXTEN enables typing ^V on SOLARIS
@@ -4649,11 +4642,6 @@ mch_call_shell_fork(
     if (!pipe_error)			// pty or pipe opened or not used
     {
 	SIGSET_DECL(curset)
-
-# if defined(__BEOS__) && USE_THREAD_FOR_INPUT_WITH_TIMEOUT
-	beos_cleanup_read_thread();
-# endif
-
 	BLOCK_SIGNALS(&curset);
 	pid = fork();	// maybe we should use vfork()
 	if (pid == -1)
@@ -6097,11 +6085,7 @@ WaitForCharOrMouse(long msec, int *interrupted, int ignore_input)
  * "interrupted" (if not NULL) is set to TRUE when no character is available
  * but something else needs to be done.
  */
-#if defined(__BEOS__)
-    int
-#else
     static int
-#endif
 RealWaitForChar(int fd, long msec, int *check_for_gpm UNUSED, int *interrupted)
 {
     int		ret;

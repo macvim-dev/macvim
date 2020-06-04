@@ -741,6 +741,7 @@ OBJ = \
 	$(OUTDIR)/findfile.o \
 	$(OUTDIR)/fold.o \
 	$(OUTDIR)/getchar.o \
+	$(OUTDIR)/gui_xim.o \
 	$(OUTDIR)/hardcopy.o \
 	$(OUTDIR)/hashtab.o \
 	$(OUTDIR)/highlight.o \
@@ -791,6 +792,7 @@ OBJ = \
 	$(OUTDIR)/textobject.o \
 	$(OUTDIR)/textprop.o \
 	$(OUTDIR)/time.o \
+	$(OUTDIR)/typval.o \
 	$(OUTDIR)/ui.o \
 	$(OUTDIR)/undo.o \
 	$(OUTDIR)/usercmd.o \

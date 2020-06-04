@@ -1597,6 +1597,9 @@ DEST_MAN_PL_I = $(DEST_MAN_TOP)/pl.ISO8859-2$(MAN1DIR)
 DEST_MAN_PL_U = $(DEST_MAN_TOP)/pl.UTF-8$(MAN1DIR)
 DEST_MAN_RU = $(DEST_MAN_TOP)/ru.KOI8-R$(MAN1DIR)
 DEST_MAN_RU_U = $(DEST_MAN_TOP)/ru.UTF-8$(MAN1DIR)
+DEST_MAN_TR = $(DEST_MAN_TOP)/tr$(MAN1DIR)
+DEST_MAN_TR_I = $(DEST_MAN_TOP)/tr.ISO8859-9$(MAN1DIR)
+DEST_MAN_TR_U = $(DEST_MAN_TOP)/tr.UTF-8$(MAN1DIR)
 
 # stuff common to all systems
 include Make_all.mak
@@ -1650,6 +1653,7 @@ BASIC_SRC = \
 	findfile.c \
 	fold.c \
 	getchar.c \
+	gui_xim.c \
 	hardcopy.c \
 	hashtab.c \
 	highlight.c \
@@ -1703,6 +1707,7 @@ BASIC_SRC = \
 	textobject.c \
 	textprop.c \
 	time.c \
+	typval.c \
 	ui.c \
 	undo.c \
 	usercmd.c \
@@ -1798,6 +1803,7 @@ OBJ_COMMON = \
 	objects/findfile.o \
 	objects/fold.o \
 	objects/getchar.o \
+	objects/gui_xim.o \
 	objects/hardcopy.o \
 	objects/hashtab.o \
 	objects/highlight.o \
@@ -1847,6 +1853,7 @@ OBJ_COMMON = \
 	objects/textobject.o \
 	objects/textprop.o \
 	objects/time.o \
+	objects/typval.o \
 	objects/ui.o \
 	objects/undo.o \
 	objects/usercmd.o \
@@ -1962,6 +1969,7 @@ PRO_AUTO = \
 	findfile.pro \
 	fold.pro \
 	getchar.pro \
+	gui_xim.pro \
 	gui_beval.pro \
 	hardcopy.pro \
 	hashtab.pro \
@@ -2023,6 +2031,7 @@ PRO_AUTO = \
 	textobject.pro \
 	textprop.pro \
 	time.pro \
+	typval.pro \
 	ui.pro \
 	undo.pro \
 	usercmd.pro \
@@ -2040,7 +2049,7 @@ PRO_AUTO = \
 RSRC_DIR = os_mac_rsrc
 
 PRO_MANUAL = os_amiga.pro os_win32.pro \
-	os_mswin.pro winclip.pro os_beos.pro os_vms.pro $(PERL_PRO)
+	os_mswin.pro winclip.pro os_vms.pro $(PERL_PRO)
 
 # Default target is making the executable and tools
 all: $(VIMTARGET) $(TOOLS) languages $(GUI_BUNDLE)
@@ -2205,10 +2214,6 @@ os_mswin.pro: os_mswin.c
 
 winclip.pro: winclip.c
 	$(CPROTO) -DWIN32 -UHAVE_CONFIG_H $< > proto/$@
-	echo "/* vim: set ft=c : */" >> proto/$@
-
-os_beos.pro: os_beos.c
-	$(CPROTO) -D__BEOS__ -UHAVE_CONFIG_H $< > proto/$@
 	echo "/* vim: set ft=c : */" >> proto/$@
 
 os_vms.pro: os_vms.c
@@ -2593,6 +2598,10 @@ install-tool-languages:
 	-$(SHELL) ./installman.sh xxd $(DEST_MAN_PL_U) "-pl.UTF-8" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh xxd $(DEST_MAN_RU) "-ru" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh xxd $(DEST_MAN_RU_U) "-ru.UTF-8" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh xxd $(DEST_MAN_TR) "-tr" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh xxd $(DEST_MAN_TR_I) "-tr" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh xxd $(DEST_MAN_TR_U) "-tr.UTF-8" $(INSTALLMANARGS)
+
 
 # install the language specific files, if they were unpacked
 install-languages: languages $(DEST_LANG) $(DEST_KMAP)
@@ -2614,6 +2623,9 @@ install-languages: languages $(DEST_LANG) $(DEST_KMAP)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_PL_U) "-pl.UTF-8" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_RU) "-ru" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh install $(DEST_MAN_RU_U) "-ru.UTF-8" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh install $(DEST_MAN_TR) "-tr" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh install $(DEST_MAN_TR_I) "-tr" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh install $(DEST_MAN_TR_U) "-tr.UTF-8" $(INSTALLMANARGS)
 	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
 		$(DEST_MAN_DA) $(INSTALLMLARGS)
 	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
@@ -2650,6 +2662,12 @@ install-languages: languages $(DEST_LANG) $(DEST_KMAP)
 		$(DEST_MAN_RU) $(INSTALLMLARGS)
 	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
 		$(DEST_MAN_RU_U) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_TR) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_TR_I) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh install "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_TR_U) $(INSTALLMLARGS)
 	if test -n "$(MAKEMO)" -a -f $(PODIR)/Makefile; then \
 	   cd $(PODIR); $(MAKE) prefix=$(DESTDIR)$(prefix) LOCALEDIR=$(DEST_LANG) \
 	   INSTALL_DATA=$(INSTALL_DATA) FILEMOD=$(FILEMOD) install; \
@@ -2823,6 +2841,9 @@ uninstall_runtime:
 	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_PL_U) "" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_RU) "" $(INSTALLMANARGS)
 	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_RU_U) "" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_TR) "" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_TR_I) "" $(INSTALLMANARGS)
+	-$(SHELL) ./installman.sh uninstall $(DEST_MAN_TR_U) "" $(INSTALLMANARGS)
 	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
 		$(DEST_MAN) $(INSTALLMLARGS)
 	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
@@ -2861,6 +2882,12 @@ uninstall_runtime:
 		$(DEST_MAN_RU) $(INSTALLMLARGS)
 	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
 		$(DEST_MAN_RU_U) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_TR) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_TR_I) $(INSTALLMLARGS)
+	-$(SHELL) ./installml.sh uninstall "$(GUI_MAN_TARGETS)" \
+		$(DEST_MAN_TR_U) $(INSTALLMLARGS)
 	-rm -f $(DEST_MAN)/xxd.1
 	-rm -f $(DEST_MAN_DA)/xxd.1 $(DEST_MAN_DA_I)/xxd.1 $(DEST_MAN_DA_U)/xxd.1
 	-rm -f $(DEST_MAN_DE)/xxd.1 $(DEST_MAN_DE_I)/xxd.1 $(DEST_MAN_DE_U)/xxd.1
@@ -2976,7 +3003,9 @@ shadow:	runtime pixmaps
 				 ../../testdir/samples \
 				 ../../testdir/dumps \
 				 ../../testdir/test83-tags? \
-				 ../../testdir/*.ok .
+				 ../../testdir/*.ok \
+				 ../../testdir/testluaplugin \
+				 .
 
 # After updating Vim new files may have been created, use this to refresh the
 # symbolic links in the shadow directory. This isn't guaranteed to catch all
@@ -3300,6 +3329,9 @@ objects/gui_xmebw.o: gui_xmebw.c
 objects/gui_x11.o: gui_x11.c
 	$(CCC) -o $@ gui_x11.c
 
+objects/gui_xim.o: gui_xim.c
+	$(CCC) -o $@ gui_xim.c
+
 objects/gui_photon.o: gui_photon.c
 	$(CCC) -o $@ gui_photon.c
 
@@ -3417,9 +3449,6 @@ objects/option.o: option.c optiondefs.h
 objects/optionstr.o: optionstr.c
 	$(CCC_NF) $(LUA_CFLAGS) $(PERL_CFLAGS) $(PYTHON_CFLAGS) $(PYTHON3_CFLAGS) $(RUBY_CFLAGS) $(TCL_CFLAGS) $(ALL_CFLAGS) -o $@ optionstr.c
 
-objects/os_beos.o: os_beos.c
-	$(CCC) -o $@ os_beos.c
-
 objects/os_qnx.o: os_qnx.c
 	$(CCC) -o $@ os_qnx.c
 
@@ -3521,6 +3550,9 @@ objects/textprop.o: textprop.c
 
 objects/time.o: time.c
 	$(CCC) -o $@ time.c
+
+objects/typval.o: typval.c
+	$(CCC) -o $@ typval.c
 
 objects/ui.o: ui.c
 	$(CCC) -o $@ ui.c
@@ -4167,6 +4199,10 @@ objects/time.o: time.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
+objects/typval.o: typval.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h
 objects/ui.o: ui.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
@@ -4276,6 +4312,11 @@ objects/gui_gtk_x11.o: gui_gtk_x11.c vim.h protodef.h auto/config.h feature.h \
  proto.h globals.h auto/gui_gtk_gresources.h gui_gtk_f.h \
  ../runtime/vim32x32.xpm ../runtime/vim16x16.xpm ../runtime/vim48x48.xpm
 objects/gui_x11.o: gui_x11.c vim.h protodef.h auto/config.h feature.h os_unix.h \
+ auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h ../runtime/vim32x32.xpm ../runtime/vim16x16.xpm \
+ ../runtime/vim48x48.xpm
+objects/gui_xim.o: gui_xim.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h ../runtime/vim32x32.xpm ../runtime/vim16x16.xpm \

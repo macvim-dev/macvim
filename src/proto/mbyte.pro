@@ -74,21 +74,6 @@ int encname2codepage(char_u *name);
 void *my_iconv_open(char_u *to, char_u *from);
 int iconv_enabled(int verbose);
 void iconv_end(void);
-void im_set_active(int active);
-void xim_set_focus(int focus);
-void im_set_position(int row, int col);
-void xim_set_preedit(void);
-int im_get_feedback_attr(int col);
-void xim_init(void);
-void im_shutdown(void);
-int im_xim_isvalid_imactivate(void);
-void xim_reset(void);
-int xim_queue_key_press_event(GdkEventKey *event, int down);
-int im_get_status(void);
-int preedit_get_status(void);
-int im_is_preediting(void);
-void xim_set_status_area(void);
-int xim_get_status_area_height(void);
 void f_getimstatus(typval_T *argvars, typval_T *rettv);
 int convert_setup(vimconv_T *vcp, char_u *from, char_u *to);
 int convert_setup_ext(vimconv_T *vcp, char_u *from, int from_unicode_is_utf8, char_u *to, int to_unicode_is_utf8);
@@ -96,8 +81,4 @@ int convert_input(char_u *ptr, int len, int maxlen);
 int convert_input_safe(char_u *ptr, int len, int maxlen, char_u **restp, int *restlenp);
 char_u *string_convert(vimconv_T *vcp, char_u *ptr, int *lenp);
 char_u *string_convert_ext(vimconv_T *vcp, char_u *ptr, int *lenp, int *unconvlenp);
-#ifdef FEAT_GUI_MACVIM
-void call_imactivatefunc(int active);
-int call_imstatusfunc(void);
-#endif
 /* vim: set ft=c : */

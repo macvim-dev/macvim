@@ -2305,4 +2305,116 @@ f_reverse(typval_T *argvars, typval_T *rettv)
     }
 }
 
+/*
+ * "reduce(list, { accumlator, element -> value } [, initial])" function
+ */
+    void
+f_reduce(typval_T *argvars, typval_T *rettv)
+{
+    typval_T	initial;
+    char_u	*func_name;
+    partial_T   *partial = NULL;
+    funcexe_T	funcexe;
+    typval_T	argv[3];
+
+    if (argvars[0].v_type != VAR_LIST && argvars[0].v_type != VAR_BLOB)
+    {
+	emsg(_(e_listblobreq));
+	return;
+    }
+
+    if (argvars[1].v_type == VAR_FUNC)
+	func_name = argvars[1].vval.v_string;
+    else if (argvars[1].v_type == VAR_PARTIAL)
+    {
+	partial = argvars[1].vval.v_partial;
+	func_name = partial_name(partial);
+    }
+    else
+	func_name = tv_get_string(&argvars[1]);
+    if (*func_name == NUL)
+	return;		// type error or empty name
+
+    vim_memset(&funcexe, 0, sizeof(funcexe));
+    funcexe.evaluate = TRUE;
+    funcexe.partial = partial;
+
+    if (argvars[0].v_type == VAR_LIST)
+    {
+	list_T	    *l = argvars[0].vval.v_list;
+	listitem_T  *li = NULL;
+	int	    r;
+
+	CHECK_LIST_MATERIALIZE(l);
+	if (argvars[2].v_type == VAR_UNKNOWN)
+	{
+	    if (l == NULL || l->lv_first == NULL)
+	    {
+		semsg(_(e_reduceempty), "List");
+		return;
+	    }
+	    initial = l->lv_first->li_tv;
+	    li = l->lv_first->li_next;
+	}
+	else
+	{
+	    initial = argvars[2];
+	    if (l != NULL)
+		li = l->lv_first;
+	}
+
+	copy_tv(&initial, rettv);
+	for ( ; li != NULL; li = li->li_next)
+	{
+	    argv[0] = *rettv;
+	    argv[1] = li->li_tv;
+	    rettv->v_type = VAR_UNKNOWN;
+	    r = call_func(func_name, -1, rettv, 2, argv, &funcexe);
+	    clear_tv(&argv[0]);
+	    if (r == FAIL)
+		return;
+	}
+    }
+    else
+    {
+	blob_T	*b = argvars[0].vval.v_blob;
+	int	i;
+
+	if (argvars[2].v_type == VAR_UNKNOWN)
+	{
+	    if (b == NULL || b->bv_ga.ga_len == 0)
+	    {
+		semsg(_(e_reduceempty), "Blob");
+		return;
+	    }
+	    initial.v_type = VAR_NUMBER;
+	    initial.vval.v_number = blob_get(b, 0);
+	    i = 1;
+	}
+	else if (argvars[2].v_type != VAR_NUMBER)
+	{
+	    emsg(_(e_number_exp));
+	    return;
+	}
+	else
+	{
+	    initial = argvars[2];
+	    i = 0;
+	}
+
+	copy_tv(&initial, rettv);
+	if (b != NULL)
+	{
+	    for ( ; i < b->bv_ga.ga_len; i++)
+	    {
+		argv[0] = *rettv;
+		argv[1].v_type = VAR_NUMBER;
+		argv[1].vval.v_number = blob_get(b, i);
+		if (call_func(func_name, -1, rettv, 2, argv, &funcexe) == FAIL)
+		    return;
+	    }
+	}
+    }
+}
+
 #endif // defined(FEAT_EVAL)

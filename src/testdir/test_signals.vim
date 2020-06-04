@@ -80,6 +80,7 @@ endfunc
 
 " Test signal INT. Handler sets got_int. It should be like typing CTRL-C.
 func Test_signal_INT()
+  CheckRunVimInTerminal
   if !HasSignal('INT')
     throw 'Skipped: INT signal not supported'
   endif
@@ -91,9 +92,6 @@ func Test_signal_INT()
     throw 'Skipped: cannot test signal INT with valgrind'
   endif
 
-  if !CanRunVimInTerminal()
-    throw 'Skipped: cannot run vim in terminal'
-  endif
   let buf = RunVimInTerminal('', {'rows': 6})
   let pid_vim = term_getjob(buf)->job_info().process
 
@@ -120,16 +118,20 @@ func Test_deadly_signal_TERM()
   if !HasSignal('TERM')
     throw 'Skipped: TERM signal not supported'
   endif
-  if !CanRunVimInTerminal()
-    throw 'Skipped: cannot run vim in terminal'
-  endif
+  CheckRunVimInTerminal
   let cmd = GetVimCommand()
   if cmd =~ 'valgrind'
     throw 'Skipped: cannot test signal TERM with valgrind'
   endif
+
+  " If test fails once, it can leave temporary files and trying to rerun
+  " the test would then fail again if they are not deleted first.
+  call delete('.Xsig_TERM.swp')
+  call delete('XsetupAucmd')
+  call delete('XautoOut')
   let lines =<< trim END
-    au VimLeave * call writefile(["VimLeave triggered"], "XautoOut", "a")
-    au VimLeavePre * call writefile(["VimLeavePre triggered"], "XautoOut", "a")
+    au VimLeave * call writefile(["VimLeave triggered"], "XautoOut", "as")
+    au VimLeavePre * call writefile(["VimLeavePre triggered"], "XautoOut", "as")
   END
   call writefile(lines, 'XsetupAucmd')
 

@@ -812,6 +812,13 @@ gui_init(void)
 	    gui_mch_disable_beval_area(balloonEval);
 #endif
 
+#ifndef FEAT_GUI_MSWIN
+	// In the GUI modifiers are prepended to keys.
+	// Don't do this for MS-Windows yet, it sends CTRL-K without the
+	// modifier.
+	seenModifyOtherKeys = TRUE;
+#endif
+
 #if defined(FEAT_XIM) && defined(FEAT_GUI_GTK)
 	if (!im_xim_isvalid_imactivate())
 	    emsg(_("E599: Value of 'imactivatekey' is invalid"));
