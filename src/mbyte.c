@@ -4828,9 +4828,6 @@ call_imstatusfunc(void)
 #if defined(FEAT_XIM) || defined(PROTO)
 
 # ifdef FEAT_GUI_MACVIM
-   typedef int	 GtkIMContext;
-   typedef int * gpointer;
-   typedef char  gchar;
 #  define g_return_if_fail(x) if (!(x)) return;
 # endif
 
@@ -4856,8 +4853,8 @@ static int preedit_is_active   = FALSE;
 static int im_preedit_cursor   = 0;	// cursor offset in characters
 static int im_preedit_trailing = 0;	// number of characters after cursor
 
-static unsigned long im_commit_handler_id  = 0;
 # ifndef FEAT_GUI_MACVIM
+static unsigned long im_commit_handler_id  = 0;
 static unsigned int  im_activatekey_keyval = GDK_VoidSymbol;
 static unsigned int  im_activatekey_state  = 0;
 
@@ -4865,7 +4862,9 @@ static GtkWidget *preedit_window = NULL;
 static GtkWidget *preedit_label = NULL;
 
 static void im_preedit_window_set_position(void);
+# endif
 
+# if !defined(FEAT_GUI_MACVIM) || defined(PROTO)
     void
 im_set_active(int active)
 {
@@ -4880,7 +4879,7 @@ im_set_active(int active)
 # endif
 
     void
-xim_set_focus(int focus)
+xim_set_focus(int focus UNUSED)
 {
 # ifndef FEAT_GUI_MACVIM
     if (xic != NULL)
@@ -4893,7 +4892,7 @@ xim_set_focus(int focus)
 # endif
 }
 
-# ifndef FEAT_GUI_MACVIM
+# if !defined(FEAT_GUI_MACVIM) || defined(PROTO)
     void
 im_set_position(int row, int col)
 {
@@ -5545,7 +5544,7 @@ translate_pango_attributes(PangoAttrIterator *iter)
  * Return -1 if not in preediting mode or if col is out of range.
  */
     int
-im_get_feedback_attr(int col)
+im_get_feedback_attr(int col UNUSED)
 {
 # ifndef FEAT_GUI_MACVIM
     char	    *preedit_string = NULL;
@@ -5640,7 +5639,9 @@ im_shutdown(void)
     }
 # endif
     im_is_active = FALSE;
+# ifndef FEAT_GUI_MACVIM
     im_commit_handler_id = 0;
+# endif
     if (p_imst == IM_ON_THE_SPOT)
 	preedit_start_col = MAXCOL;
     xim_has_preediting = FALSE;
@@ -5790,7 +5791,7 @@ xim_reset(void)
     xim_has_preediting = FALSE;
 }
 
-# ifndef FEAT_GUI_MACVIM
+# if !defined(FEAT_GUI_MACVIM) || defined(PROTO)
     int
 xim_queue_key_press_event(GdkEventKey *event, int down)
 {
@@ -5929,7 +5930,7 @@ xim_queue_key_press_event(GdkEventKey *event, int down)
 }
 # endif
 
-# ifndef FEAT_GUI_MACVIM
+# if !defined(FEAT_GUI_MACVIM) || defined(PROTO)
     int
 im_get_status(void)
 {

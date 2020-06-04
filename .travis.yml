@@ -44,6 +44,7 @@ script:
   - NPROC=$(getconf _NPROCESSORS_ONLN)
   - make distclean
   - ./configure ${CONFOPT} ${LANGOPT} --enable-fail-if-missing
+  - sed -i.bak -f ci/config.mk.sed -f ci/config.mk.clang.sed src/auto/config.mk
   # Ruby is keg-only in Homebrew, so need to manually link in the path so Vim will know where to look for the binaries.
   - perl -p -i -e "s#(?<=-DDYNAMIC_RUBY_DLL=\\\\\").*?(?=\\\\\")#${vi_cv_dll_name_ruby}#" src/auto/config.mk
   - cat src/auto/config.mk

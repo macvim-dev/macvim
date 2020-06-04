@@ -14,7 +14,6 @@ void did_set_option(int opt_idx, int opt_flags, int new_value, int value_checked
 int string_to_key(char_u *arg, int multi_byte);
 void did_set_title(void);
 void set_options_bin(int oldval, int newval, int opt_flags);
-int check_fuoptions(char_u *p_fuoptions, unsigned *flags, int *bgcolor);
 void check_options(void);
 int get_term_opt_idx(char_u **p);
 int set_term_option_alloced(char_u **p);

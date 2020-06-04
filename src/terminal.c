@@ -1170,7 +1170,7 @@ write_to_term(buf_T *buffer, char_u *msg, channel_T *channel)
 	    if (buffer == curbuf && curbuf->b_term != NULL)
 		update_cursor(curbuf->b_term, TRUE);
 #ifdef FEAT_GUI_MACVIM
-            /* Force a flush now for better experience of interactive shell. */
+	    // Force a flush now for better experience of interactive shell.
 	    if (gui.in_use)
 		gui_macvim_force_flush();
 #endif

@@ -23,10 +23,7 @@ void ex_emenu(exarg_T *eap);
 void winbar_click(win_T *wp, int col);
 vimmenu_T *gui_find_menu(char_u *path_name);
 void ex_menutranslate(exarg_T *eap);
-#ifdef FEAT_GUI_MACVIM
 void ex_macmenu(exarg_T *eap);
-void ex_macmenukey(exarg_T *eap);
 char_u *lookup_toolbar_item(int idx);
-#endif
 void f_menu_info(typval_T *argvars, typval_T *rettv);
 /* vim: set ft=c : */

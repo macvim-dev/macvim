@@ -1,4 +1,4 @@
-Vim - the text editor - for Mac OS X
+Vim - the text editor - for macOS
 
 
 - MacVim homepage https://macvim-dev.github.io/macvim

@@ -495,7 +495,7 @@ static struct vimoption options[] =
 #else
 			    (char_u *)NULL, PV_NONE,
 #endif
-			    {(char_u *)0L, (char_u *)0L} },
+			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
     {"bomb",	    NULL,   P_BOOL|P_NO_MKRC|P_VI_DEF|P_RSTAT,
 			    (char_u *)&p_bomb, PV_BOMB,
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
@@ -1138,11 +1138,12 @@ static struct vimoption options[] =
     {"fullscreen",  "fu",   P_BOOL|P_NO_MKRC,
 #ifdef FEAT_FULLSCREEN
 			    (char_u *)&p_fullscreen, PV_NONE,
-			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},
+			    {(char_u *)FALSE, (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)NULL, (char_u *)0L} SCTX_INIT},
+			    {(char_u *)NULL, (char_u *)0L}
 #endif
+			    SCTX_INIT},
     {"fuoptions",  "fuopt", P_STRING|P_COMMA|P_NODUP|P_VI_DEF,
 #ifdef FEAT_FULLSCREEN
 			    (char_u *)&p_fuoptions, PV_NONE,
@@ -1677,27 +1678,30 @@ static struct vimoption options[] =
     {"macligatures", NULL,  P_BOOL|P_VI_DEF|P_RCLR,
 #ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_macligatures, PV_NONE,
-			    {(char_u *)FALSE, (char_u *)0L}},
+			    {(char_u *)FALSE, (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)NULL, (char_u *)0L}},
+			    {(char_u *)NULL, (char_u *)0L}
 #endif
+			    SCTX_INIT},
     {"macmeta",	    "mmta", P_BOOL|P_VI_DEF,
 #ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_mmta, PV_MMTA,
-			    {(char_u *)FALSE, (char_u *)0L}},
+			    {(char_u *)FALSE, (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_MMTA,
-			    {(char_u *)NULL, (char_u *)0L}},
+			    {(char_u *)NULL, (char_u *)0L}
 #endif
+			    SCTX_INIT},
     {"macthinstrokes", NULL,  P_BOOL|P_VI_DEF|P_RCLR,
 #ifdef FEAT_GUI_MACVIM
 			    (char_u *)&p_macthinstrokes, PV_NONE,
-			    {(char_u *)FALSE, (char_u *)0L}},
+			    {(char_u *)FALSE, (char_u *)0L}
 #else
 			    (char_u *)NULL, PV_NONE,
-			    {(char_u *)NULL, (char_u *)0L}},
+			    {(char_u *)NULL, (char_u *)0L}
 #endif
+			    SCTX_INIT},
     {"magic",	    NULL,   P_BOOL|P_VI_DEF,
 			    (char_u *)&p_magic, PV_NONE,
 			    {(char_u *)TRUE, (char_u *)0L} SCTX_INIT},
@@ -2732,7 +2736,7 @@ static struct vimoption options[] =
 #else
 			    (char_u *)NULL, PV_NONE,
 #endif
-			    {(char_u *)0L, (char_u *)0L} },
+			    {(char_u *)0L, (char_u *)0L} SCTX_INIT},
     {"ttimeout",    NULL,   P_BOOL|P_VI_DEF|P_VIM,
 			    (char_u *)&p_ttimeout, PV_NONE,
 			    {(char_u *)FALSE, (char_u *)0L} SCTX_INIT},

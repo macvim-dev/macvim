@@ -535,12 +535,12 @@ ui_delay(long msec, int ignoreinput)
 #endif
     {
 #if defined(FEAT_GUI_MACVIM)
-        /* MacVim tries to be conservative with flushing, but when Vim takes a
-         * nap it really must flush (else timed error messages might not appear
-         * etc.).  Note that gui_mch_wait_for_chars() already does force a
-         * flush, so only do it here. */
-        if (gui.in_use)
-            gui_macvim_force_flush();
+	// MacVim tries to be conservative with flushing, but when Vim takes a
+	// nap it really must flush (else timed error messages might not appear
+	// etc.).  Note that gui_mch_wait_for_chars() already does force a
+	// flush, so only do it here.
+	if (gui.in_use)
+	    gui_macvim_force_flush();
 #endif
 	mch_delay(msec, ignoreinput);
     }
@@ -595,9 +595,9 @@ ui_get_shellsize(void)
 #ifdef FEAT_GUI
     if (gui.in_use
 # ifdef FEAT_GUI_MACVIM
-            /* Avoid using terminal dimensions for GUI window.  MacVim
-             * autosaves the dimensions of the first window. */
-            || gui.starting
+	    // Avoid using terminal dimensions for GUI window.  MacVim
+	    // autosaves the dimensions of the first window.
+	    || gui.starting
 # endif
             )
 	retval = gui_get_shellsize();

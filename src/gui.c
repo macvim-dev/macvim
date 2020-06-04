@@ -918,14 +918,14 @@ gui_init_font(char_u *font_list, int fontset UNUSED)
 		(void)copy_option_part(&font_list, font_name, FONTLEN, ",");
 
 #if defined(FEAT_GUI_MACVIM)
-                // The font dialog is modeless in Mac OS X, so when
-                // gui_mch_init_font() is called with "*" it brings up the
-                // dialog and returns immediately.  In this case we don't want
-                // it to be called again with NULL, so return here.
-                if (STRCMP(font_name, "*") == 0) {
-                    gui_mch_init_font(font_name, FALSE);
-                    return FALSE;
-                }
+		// The font dialog is modeless in Mac OS X, so when
+		// gui_mch_init_font() is called with "*" it brings up the
+		// dialog and returns immediately.  In this case we don't want
+		// it to be called again with NULL, so return here.
+		if (STRCMP(font_name, "*") == 0) {
+		    gui_mch_init_font(font_name, FALSE);
+		    return FALSE;
+		}
 #endif
 		// Careful!!!  The Win32 version of gui_mch_init_font(), when
 		// called with "*" will change p_guifont to the selected font

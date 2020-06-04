@@ -140,6 +140,7 @@ extern NSTimeInterval MMBalloonEvalInternalDelay;
 - (void)setLigatures:(BOOL)ligatures;
 - (void)setThinStrokes:(BOOL)thinStrokes;
 - (void)setBlurRadius:(int)radius;
+- (void)setBackground:(int)dark;
 
 - (void)updateModifiedFlag;
 
