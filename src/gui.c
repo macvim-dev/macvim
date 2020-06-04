@@ -812,7 +812,7 @@ gui_init(void)
 	    gui_mch_disable_beval_area(balloonEval);
 #endif
 
-#ifndef FEAT_GUI_MSWIN
+#if !defined(FEAT_GUI_MSWIN) && !defined(FEAT_GUI_MACVIM)
 	// In the GUI modifiers are prepended to keys.
 	// Don't do this for MS-Windows yet, it sends CTRL-K without the
 	// modifier.
