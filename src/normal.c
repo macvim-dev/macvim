@@ -1080,16 +1080,7 @@ getcount:
     {
 	clearop(oap);
 #ifdef FEAT_EVAL
-	{
-	    int regname = 0;
-
-	    // Adjust the register according to 'clipboard', so that when
-	    // "unnamed" is present it becomes '*' or '+' instead of '"'.
-# ifdef FEAT_CLIPBOARD
-	    adjust_clip_reg(&regname);
-# endif
-	    set_reg_var(regname);
-	}
+	reset_reg_var();
 #endif
     }
 
@@ -1189,6 +1180,11 @@ getcount:
 normal_end:
 
     msg_nowait = FALSE;
+
+#ifdef FEAT_EVAL
+    if (finish_op)
+	reset_reg_var();
+#endif
 
     // Reset finish_op, in case it was set
 #ifdef CURSOR_SHAPE

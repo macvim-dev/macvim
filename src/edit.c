@@ -1618,7 +1618,7 @@ decodeModifyOtherKeys(int c)
 #endif
 
 	    mod_mask = decode_modifiers(arg[!form]);
-	    c = merge_modifyOtherKeys(arg[form]);
+	    c = merge_modifyOtherKeys(arg[form], &mod_mask);
 	}
     }
 

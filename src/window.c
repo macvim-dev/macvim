@@ -340,6 +340,7 @@ newwindow:
 
 // move window to new tab page
     case 'T':
+		CHECK_CMDWIN;
 		if (one_window())
 		    msg(_(m_onlyone));
 		else
@@ -3814,6 +3815,7 @@ free_tabpage(tabpage_T *tp)
 #endif
 
     vim_free(tp->tp_localdir);
+    vim_free(tp->tp_prevdir);
 
 #ifdef FEAT_PYTHON
     python_tabpage_free(tp);
@@ -4979,6 +4981,7 @@ win_free(
 	vim_free(wp->w_tagstack[i].user_data);
     }
     vim_free(wp->w_localdir);
+    vim_free(wp->w_prevdir);
 
     // Remove the window from the b_wininfo lists, it may happen that the
     // freed memory is re-used for another window.

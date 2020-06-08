@@ -1,7 +1,7 @@
 " These commands create the option window.
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2019 Nov 07
+" Last Change:	2020 Jun 02
 
 " If there already is an option window, jump to that one.
 let buf = bufnr('option-window')
@@ -1172,7 +1172,7 @@ call <SID>BinOptionG("warn", &warn)
 
 
 if has("quickfix")
-  call <SID>Header("running make and jumping to errors")
+  call <SID>Header("running make and jumping to errors (quickfix)")
   call append("$", "errorfile\tname of the file that contains error messages")
   call <SID>OptionG("ef", &ef)
   call append("$", "errorformat\tlist of formats for error messages")
@@ -1193,6 +1193,8 @@ if has("quickfix")
   call append("$", "makeencoding\tencoding of the \":make\" and \":grep\" output")
   call append("$", "\t(global or local to buffer)")
   call <SID>OptionG("menc", &menc)
+  call append("$", "quickfixtextfunc\tfunction to display text in the quickfix window")
+  call <SID>OptionG("qftf", &qftf)
 endif
 
 

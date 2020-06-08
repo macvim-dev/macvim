@@ -212,6 +212,18 @@ eval1_emsg(char_u **arg, typval_T *rettv, int evaluate)
 }
 
 /*
+ * Return whether a typval is a valid expression to pass to eval_expr_typval()
+ * or eval_expr_to_bool().  An empty string returns FALSE;
+ */
+    int
+eval_expr_valid_arg(typval_T *tv)
+{
+    return tv->v_type != VAR_UNKNOWN
+	    && (tv->v_type != VAR_STRING
+		  || (tv->vval.v_string != NULL && *tv->vval.v_string != NUL));
+}
+
+/*
  * Evaluate an expression, which can be a function, partial or string.
  * Pass arguments "argv[argc]".
  * Return the result in "rettv" and OK or FAIL.
@@ -3127,7 +3139,7 @@ eval_index(
 		    if (n1 >= len || n2 < 0 || n1 > n2)
 			s = NULL;
 		    else
-			s = vim_strnsave(s + n1, (int)(n2 - n1 + 1));
+			s = vim_strnsave(s + n1, n2 - n1 + 1);
 		}
 		else
 		{

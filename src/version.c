@@ -44,9 +44,13 @@ init_longVersion(void)
      * VAX C can't concatenate strings in the preprocessor.
      */
     strcpy(longVersion, VIM_VERSION_LONG_DATE);
+#ifdef BUILD_DATE
+    strcat(longVersion, BUILD_DATE);
+#else
     strcat(longVersion, __DATE__);
     strcat(longVersion, " ");
     strcat(longVersion, __TIME__);
+#endif
     strcat(longVersion, ")");
 }
 
@@ -56,7 +60,11 @@ init_longVersion(void)
 {
     if (longVersion == NULL)
     {
+#ifdef BUILD_DATE
+	char *date_time = BUILD_DATE;
+#else
 	char *date_time = __DATE__ " " __TIME__;
+#endif
 	char *msg = _("%s (%s, compiled %s)");
 	size_t len = strlen(msg)
 		    + strlen(VIM_VERSION_LONG_ONLY)
@@ -761,6 +769,58 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    931,
+/**/
+    930,
+/**/
+    929,
+/**/
+    928,
+/**/
+    927,
+/**/
+    926,
+/**/
+    925,
+/**/
+    924,
+/**/
+    923,
+/**/
+    922,
+/**/
+    921,
+/**/
+    920,
+/**/
+    919,
+/**/
+    918,
+/**/
+    917,
+/**/
+    916,
+/**/
+    915,
+/**/
+    914,
+/**/
+    913,
+/**/
+    912,
+/**/
+    911,
+/**/
+    910,
+/**/
+    909,
+/**/
+    908,
+/**/
+    907,
+/**/
+    906,
 /**/
     905,
 /**/

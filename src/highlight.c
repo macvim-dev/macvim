@@ -907,7 +907,7 @@ do_highlight(
 	while (*linep && !VIM_ISWHITE(*linep) && *linep != '=')
 	    ++linep;
 	vim_free(key);
-	key = vim_strnsave_up(key_start, (int)(linep - key_start));
+	key = vim_strnsave_up(key_start, linep - key_start);
 	if (key == NULL)
 	{
 	    error = TRUE;
@@ -2930,7 +2930,12 @@ set_hl_attr(
 #  endif
 	at_en.ae_u.cterm.fg_rgb = GUI_MCH_GET_RGB2(sgp->sg_gui_fg);
 	at_en.ae_u.cterm.bg_rgb = GUI_MCH_GET_RGB2(sgp->sg_gui_bg);
-	at_en.ae_u.cterm.ul_rgb = GUI_MCH_GET_RGB2(sgp->sg_gui_sp);
+	// Only use the underline/undercurl color when used, it may clear the
+	// background color if not supported.
+	if (sgp->sg_cterm & (HL_UNDERLINE | HL_UNDERCURL))
+	    at_en.ae_u.cterm.ul_rgb = GUI_MCH_GET_RGB2(sgp->sg_gui_sp);
+	else
+	    at_en.ae_u.cterm.ul_rgb = INVALCOLOR;
 	if (at_en.ae_u.cterm.fg_rgb == INVALCOLOR
 		&& at_en.ae_u.cterm.bg_rgb == INVALCOLOR)
 	{

@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.2.  Last change: 2020 Jun 03
+*eval.txt*	For Vim version 8.2.  Last change: 2020 Jun 07
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2518,8 +2518,9 @@ getpid()			Number	process ID of Vim
 getpos({expr})			List	position of cursor, mark, etc.
 getqflist([{what}])		List	list of quickfix items
 getreg([{regname} [, 1 [, {list}]]])
-				String or List   contents of register
-getregtype([{regname}])		String	type of register
+				String or List   contents of a register
+getreginfo([{regname}])		Dict	information about a register
+getregtype([{regname}])		String	type of a register
 gettabinfo([{expr}])		List	list of tab pages
 gettabvar({nr}, {varname} [, {def}])
 				any	variable {varname} in tab {nr} or {def}
@@ -2728,7 +2729,7 @@ screencol()			Number	current cursor column
 screenpos({winid}, {lnum}, {col}) Dict	screen row and col of a text character
 screenrow()			Number	current cursor row
 screenstring({row}, {col})	String	characters at screen position
-search({pattern} [, {flags} [, {stopline} [, {timeout}]]])
+search({pattern} [, {flags} [, {stopline} [, {timeout} [, {skip}]]]])
 				Number	search for {pattern}
 searchcount([{options}])	Dict	get or update search stats
 searchdecl({name} [, {global} [, {thisblock}]])
@@ -2737,7 +2738,7 @@ searchpair({start}, {middle}, {end} [, {flags} [, {skip} [...]]])
 				Number	search for other end of start/end pair
 searchpairpos({start}, {middle}, {end} [, {flags} [, {skip} [...]]])
 				List	search for other end of start/end pair
-searchpos({pattern} [, {flags} [, {stopline} [, {timeout}]]])
+searchpos({pattern} [, {flags} [, {stopline} [, {timeout} [, {skip}]]]])
 				List	search for {pattern}
 server2client({clientid}, {string})
 				Number	send reply string
@@ -5123,6 +5124,7 @@ getcompletion({pat}, {type} [, {filtered}])		*getcompletion()*
 		behave		:behave suboptions
 		color		color schemes
 		command		Ex command (and arguments)
+		cmdline		|cmdline-completion| result
 		compiler	compilers
 		cscope		|:cscope| suboptions
 		diff_buffer     |:diffget| and |:diffput| completion
@@ -5153,14 +5155,19 @@ getcompletion({pat}, {type} [, {filtered}])		*getcompletion()*
 		user		user names
 		var		user variables
 
-		If {pat} is an empty string, then all the matches are returned.
-		Otherwise only items matching {pat} are returned. See
-		|wildcards| for the use of special characters in {pat}.
+		If {pat} is an empty string, then all the matches are
+		returned.  Otherwise only items matching {pat} are returned.
+		See |wildcards| for the use of special characters in {pat}.
 
 		If the optional {filtered} flag is set to 1, then 'wildignore'
 		is applied to filter the results.  Otherwise all the matches
 		are returned. The 'wildignorecase' option always applies.
 
+		If {type} is "cmdline", then the |cmdline-completion| result is
+		returned.  For example, to complete the possible values after
+		a ":call" command: >
+                	echo getcompletion('call ', 'cmdline')
+<
 		If there are no matches, an empty list is returned.  An
 		invalid value for {type} produces an error.
 
@@ -5608,6 +5615,31 @@ getreg([{regname} [, 1 [, {list}]]])			*getreg()*
 		Can also be used as a |method|: >
 			GetRegname()->getreg()
 
+getreginfo([{regname}])					*getreginfo()*
+		Returns detailed information about register {regname} as a
+		Dictionary with the following entries:
+			regcontents	List of lines contained in register
+					{regname}, like
+					|getreg|({regname}, 1, 1).
+			regtype		the type of register {regname}, as in
+					|getregtype()|.
+			isunnamed	Boolean flag, v:true if this register
+					is currently pointed to by the unnamed
+					register.
+			points_to	for the unnamed register, gives the
+					single letter name of the register
+					currently pointed to (see |quotequote|).
+					For example, after deleting a line
+					with `dd`, this field will be "1",
+					which is the register that got the
+					deleted text.
+
+		If {regname} is invalid or not set, an empty Dictionary
+		will be returned.
+		If {regname} is not specified, |v:register| is used.
+
+		Can also be used as a |method|: >
+			GetRegname()->getreginfo()
 
 getregtype([{regname}])					*getregtype()*
 		The result is a String, which is type of register {regname}.
@@ -8376,8 +8408,9 @@ screenstring({row}, {col})					*screenstring()*
 
 		Can also be used as a |method|: >
 			GetRow()->screenstring(col)
-
-search({pattern} [, {flags} [, {stopline} [, {timeout}]]])	*search()*
+<
+								*search()*
+search({pattern} [, {flags} [, {stopline} [, {timeout} [, {skip}]]]])
 		Search for regexp pattern {pattern}.  The search starts at the
 		cursor position (you can use |cursor()| to set it).
 
@@ -8425,6 +8458,15 @@ search({pattern} [, {flags} [, {stopline} [, {timeout}]]])	*search()*
 		giving the argument.
 		{only available when compiled with the |+reltime| feature}
 
+		If the {skip} expression is given it is evaluated with the
+		cursor positioned on the start of a match.  If it evaluates to
+		non-zero this match is skipped.  This can be used, for
+		example, to skip a match in a comment or a string.
+		{skip} can be a string, which is evaluated as an expression, a
+		function reference or a lambda.
+		When {skip} is omitted or empty, every match is accepted.
+		When evaluating {skip} causes an error the search is aborted
+		and -1 returned.
 							*search()-sub-match*
 		With the 'p' flag the returned value is one more than the
 		first sub-match in \(\).  One if none of them matched but the
@@ -8708,7 +8750,8 @@ searchpairpos({start}, {middle}, {end} [, {flags} [, {skip}
 <
 		See |match-parens| for a bigger and more useful example.
 
-searchpos({pattern} [, {flags} [, {stopline} [, {timeout}]]])	*searchpos()*
+							*searchpos()*
+searchpos({pattern} [, {flags} [, {stopline} [, {timeout} [, {skip}]]]])
 		Same as |search()|, but returns a |List| with the line and
 		column position of the match. The first element of the |List|
 		is the line number and the second element is the byte index of
@@ -9091,8 +9134,8 @@ setqflist({list} [, {action} [, {what}]])		*setqflist()*
 setreg({regname}, {value} [, {options}])
 		Set the register {regname} to {value}.
 		If {regname} is "" or "@", the unnamed register '"' is used.
-		{value} may be any value returned by |getreg()|, including
-		a |List|.
+		{value} may be any value returned by |getreg()| or
+		|getreginfo()|, including a |List| or |Dict|.
 		If {options} contains "a" or {regname} is upper case,
 		then the value is appended.
 		{options} can also contain a register type specification:
@@ -9119,9 +9162,13 @@ setreg({regname}, {value} [, {options}])
 			:call setreg(v:register, @*)
 			:call setreg('*', @%, 'ac')
 			:call setreg('a', "1\n2\n3", 'b5')
+			:call setreg('"', { 'points_to': 'a'})
 
 <		This example shows using the functions to save and restore a
 		register: >
+			:let var_a = getreginfo()
+			:call setreg('a', var_a)
+<		or:
 			:let var_a = getreg('a', 1, 1)
 			:let var_amode = getregtype('a')
 			    ....
