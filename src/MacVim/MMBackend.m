@@ -633,7 +633,6 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
     while (CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true)
             == kCFRunLoopRunHandledSource)
         ;   // do nothing
-    [self processInputQueue];
 }
 
 - (void)flushQueue:(BOOL UNUSED)force

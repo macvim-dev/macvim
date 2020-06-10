@@ -850,9 +850,12 @@ func Test_opt_default_cdpath()
   else
     let $CDPATH='/path/to/dir1;/path/to/dir2'
   endif
+  " Workaround for https://github.com/macvim-dev/macvim/issues/1050
+  if !(has('gui_macvim') && has('gui_running'))
   if RunVim([], after, '')
     call assert_equal([], readfile('Xtestout'))
     call delete('Xtestout')
+  endif
   endif
 endfunc
 
