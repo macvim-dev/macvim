@@ -1173,9 +1173,14 @@ EXTERN int	curscript INIT(= 0);	    // index in scriptin[]
 EXTERN FILE	*scriptout  INIT(= NULL);   // stream to write script to
 EXTERN int	read_cmd_fd INIT(= 0);	    // fd to read commands from
 
-// volatile because it is used in signal handler catch_sigint().
-EXTERN volatile sig_atomic_t got_int INIT(= FALSE); // set to TRUE when interrupt
-						// signal occurred
+// Set to TRUE when an interrupt signal occurred.
+// Volatile because it is used in signal handler catch_sigint().
+EXTERN volatile sig_atomic_t got_int INIT(= FALSE);
+
+// Set to TRUE when SIGUSR1 signal was detected.
+// Volatile because it is used in signal handler catch_sigint().
+EXTERN volatile sig_atomic_t got_sigusr1 INIT(= FALSE);
+
 #ifdef USE_TERM_CONSOLE
 EXTERN int	term_console INIT(= FALSE); // set to TRUE when console used
 #endif
@@ -1585,6 +1590,9 @@ EXTERN char e_invrange[]	INIT(= N_("E16: Invalid range"));
 EXTERN char e_invcmd[]		INIT(= N_("E476: Invalid command"));
 #if defined(UNIX) || defined(FEAT_SYN_HL) || defined(FEAT_SPELL)
 EXTERN char e_isadir2[]		INIT(= N_("E17: \"%s\" is a directory"));
+#endif
+#ifdef FEAT_SPELL
+EXTERN char e_no_spell[]	INIT(= N_("E756: Spell checking is not possible"));
 #endif
 #ifdef FEAT_LIBCALL
 EXTERN char e_libcall[]	INIT(= N_("E364: Library call failed for \"%s()\""));

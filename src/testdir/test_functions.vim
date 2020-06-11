@@ -280,6 +280,10 @@ func Test_strptime()
 
   call assert_equal(1484653763, strptime('%Y-%m-%d %T', '2017-01-17 11:49:23'))
 
+  " Force DST and check that it's considered
+  let $TZ = 'WINTER0SUMMER,J1,J365'
+  call assert_equal(1484653763 - 3600, strptime('%Y-%m-%d %T', '2017-01-17 11:49:23'))
+
   call assert_fails('call strptime()', 'E119:')
   call assert_fails('call strptime("xxx")', 'E119:')
   call assert_equal(0, strptime("%Y", ''))
@@ -1371,6 +1375,18 @@ func Test_inputlist()
   call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>3\<cr>", 'tx')
   call assert_equal(3, c)
 
+  " CR to cancel
+  call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>\<cr>", 'tx')
+  call assert_equal(0, c)
+
+  " Esc to cancel
+  call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>\<Esc>", 'tx')
+  call assert_equal(0, c)
+
+  " q to cancel
+  call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>q", 'tx')
+  call assert_equal(0, c)
+
   " Use backspace to delete characters in the prompt
   call feedkeys(":let c = inputlist(['Select color:', '1. red', '2. green', '3. blue'])\<cr>1\<BS>3\<BS>2\<cr>", 'tx')
   call assert_equal(2, c)
@@ -1900,6 +1916,16 @@ func Test_readdirex()
 			  \ ->map({-> v:val.name})
   call sort(files)->assert_equal(['bar.txt', 'dir', 'foo.txt'])
 
+  " report brocken link correctly
+  if has("unix")
+    call writefile([], 'Xdir/abc.txt')
+    call system("ln -s Xdir/abc.txt Xdir/link")
+    call delete('Xdir/abc.txt')
+    let files = readdirex('Xdir', 'readdirex("Xdir", "1") != []')
+			  \ ->map({-> v:val.name .. '_' .. v:val.type})
+    call sort(files)->assert_equal(
+        \ ['bar.txt_file', 'dir_dir', 'foo.txt_file', 'link_link'])
+  endif
   eval 'Xdir'->delete('rf')
 endfunc
 

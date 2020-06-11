@@ -2710,7 +2710,6 @@ func Test_cwindow_highlight()
   CheckScreendump
 
   let lines =<< trim END
-	set t_u7=
 	call setline(1, ['some', 'text', 'with', 'matches'])
 	write XCwindow
 	vimgrep e XCwindow
@@ -4822,7 +4821,7 @@ func Tqfexpr(info)
     let qfl = getqflist({'id' : a:info.id, 'idx' : a:info.idx,
           \ 'items' : 1}).items
   else
-    let qfl = getloclist(0, {'id' : a:info.id, 'idx' : a:info.idx,
+    let qfl = getloclist(a:info.winid, {'id' : a:info.id, 'idx' : a:info.idx,
           \ 'items' : 1}).items
   endif
 
@@ -4863,7 +4862,7 @@ func Xtest_qftextfunc(cchar)
       let qfl = getqflist({'id' : a:info.id, 'idx' : a:info.idx,
             \ 'items' : 1}).items
     else
-      let qfl = getloclist(0, {'id' : a:info.id, 'idx' : a:info.idx,
+      let qfl = getloclist(a:info.winid, {'id' : a:info.id, 'idx' : a:info.idx,
             \ 'items' : 1}).items
     endif
     if empty(qfl)
@@ -4877,6 +4876,11 @@ func Xtest_qftextfunc(cchar)
   Xwindow
   call assert_equal('Line 10, Col 2', getline(1))
   call assert_equal('Line 20, Col 4', getline(2))
+  Xclose
+  " Add entries to the list when the quickfix buffer is hidden
+  Xaddexpr ['F1:30:6:red']
+  Xwindow
+  call assert_equal('Line 30, Col 6', getline(3))
   Xclose
   call g:Xsetlist([], 'r', {'quickfixtextfunc' : ''})
   set quickfixtextfunc&
@@ -4911,6 +4915,24 @@ endfunc
 func Test_qftextfunc()
   call Xtest_qftextfunc('c')
   call Xtest_qftextfunc('l')
+endfunc
+
+" Running :lhelpgrep command more than once in a help window, doesn't jump to
+" the help topic
+func Test_lhelpgrep_from_help_window()
+  call mkdir('Xtestdir/doc', 'p')
+  call writefile(['window'], 'Xtestdir/doc/a.txt')
+  call writefile(['buffer'], 'Xtestdir/doc/b.txt')
+  let save_rtp = &rtp
+  let &rtp = 'Xtestdir'
+  lhelpgrep window
+  lhelpgrep buffer
+  call assert_equal('b.txt', fnamemodify(@%, ":p:t"))
+  lhelpgrep window
+  call assert_equal('a.txt', fnamemodify(@%, ":p:t"))
+  let &rtp = save_rtp
+  call delete('Xtestdir', 'rf')
+  new | only!
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

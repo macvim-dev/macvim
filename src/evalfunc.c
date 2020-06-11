@@ -541,6 +541,7 @@ static funcentry_T global_functions[] =
     {"filter",		2, 2, FEARG_1,	  ret_any,	f_filter},
     {"finddir",		1, 3, FEARG_1,	  ret_string,	f_finddir},
     {"findfile",	1, 3, FEARG_1,	  ret_string,	f_findfile},
+    {"flatten",		1, 2, FEARG_1,	  ret_list_any,	f_flatten},
     {"float2nr",	1, 1, FEARG_1,	  ret_number,	FLOAT_FUNC(f_float2nr)},
     {"floor",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_floor)},
     {"fmod",		2, 2, FEARG_1,	  ret_float,	FLOAT_FUNC(f_fmod)},
@@ -7630,9 +7631,30 @@ f_spellbadword(typval_T *argvars UNUSED, typval_T *rettv)
     char_u	*word = (char_u *)"";
     hlf_T	attr = HLF_COUNT;
     int		len = 0;
+#ifdef FEAT_SPELL
+    int		wo_spell_save = curwin->w_p_spell;
+
+    if (!curwin->w_p_spell)
+    {
+	did_set_spelllang(curwin);
+	curwin->w_p_spell = TRUE;
+    }
+
+    if (*curwin->w_s->b_p_spl == NUL)
+    {
+	emsg(_(e_no_spell));
+	curwin->w_p_spell = wo_spell_save;
+	return;
+    }
+#endif
 
     if (rettv_list_alloc(rettv) == FAIL)
+    {
+#ifdef FEAT_SPELL
+	curwin->w_p_spell = wo_spell_save;
+#endif
 	return;
+    }
 
 #ifdef FEAT_SPELL
     if (argvars[0].v_type == VAR_UNKNOWN)
@@ -7645,7 +7667,7 @@ f_spellbadword(typval_T *argvars UNUSED, typval_T *rettv)
 	    curwin->w_set_curswant = TRUE;
 	}
     }
-    else if (curwin->w_p_spell && *curbuf->b_s.b_p_spl != NUL)
+    else if (*curbuf->b_s.b_p_spl != NUL)
     {
 	char_u	*str = tv_get_string_chk(&argvars[0]);
 	int	capcol = -1;
@@ -7667,6 +7689,7 @@ f_spellbadword(typval_T *argvars UNUSED, typval_T *rettv)
 	    }
 	}
     }
+    curwin->w_p_spell = wo_spell_save;
 #endif
 
     list_append_string(rettv->vval.v_list, word, len);
@@ -7692,13 +7715,32 @@ f_spellsuggest(typval_T *argvars UNUSED, typval_T *rettv)
     int		i;
     listitem_T	*li;
     int		need_capital = FALSE;
+    int		wo_spell_save = curwin->w_p_spell;
+
+    if (!curwin->w_p_spell)
+    {
+	did_set_spelllang(curwin);
+	curwin->w_p_spell = TRUE;
+    }
+
+    if (*curwin->w_s->b_p_spl == NUL)
+    {
+	emsg(_(e_no_spell));
+	curwin->w_p_spell = wo_spell_save;
+	return;
+    }
 #endif
 
     if (rettv_list_alloc(rettv) == FAIL)
+    {
+#ifdef FEAT_SPELL
+	curwin->w_p_spell = wo_spell_save;
+#endif
 	return;
+    }
 
 #ifdef FEAT_SPELL
-    if (curwin->w_p_spell && *curwin->w_s->b_p_spl != NUL)
+    if (*curwin->w_s->b_p_spl != NUL)
     {
 	str = tv_get_string(&argvars[0]);
 	if (argvars[1].v_type != VAR_UNKNOWN)
@@ -7735,6 +7777,7 @@ f_spellsuggest(typval_T *argvars UNUSED, typval_T *rettv)
 	}
 	ga_clear(&ga);
     }
+    curwin->w_p_spell = wo_spell_save;
 #endif
 }
 
