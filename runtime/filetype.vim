@@ -1166,6 +1166,7 @@ else
 endif
 au BufNewFile,BufRead *.plx,*.al,*.psgi		setf perl
 au BufNewFile,BufRead *.p6,*.pm6,*.pl6		setf perl6
+au BufNewFile,BufRead *.raku,*.rakumod		setf perl6
 
 " Perl, XPM or XPM2
 au BufNewFile,BufRead *.pm
@@ -1295,7 +1296,8 @@ au BufNewFile,BufRead *.pyx,*.pxd		setf pyrex
 
 " Python, Python Shell Startup and Python Stub Files
 " Quixote (Python-based web framework)
-au BufNewFile,BufRead *.py,*.pyw,.pythonstartup,.pythonrc,*.ptl,*.pyi  setf python
+au BufNewFile,BufRead *.py,*.pyw,.pythonstartup,.pythonrc  setf python
+au BufNewFile,BufRead *.ptl,*.pyi,SConstruct		   setf python
 
 " Radiance
 au BufNewFile,BufRead *.rad,*.mat		setf radiance

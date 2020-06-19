@@ -94,6 +94,7 @@ NEW_TESTS = \
 	test_compiler \
 	test_conceal \
 	test_const \
+	test_cpoptions \
 	test_crypt \
 	test_cscope \
 	test_cursor_func \
@@ -344,6 +345,7 @@ NEW_TESTS_RES = \
 	test_comparators.res \
 	test_conceal.res \
 	test_const.res \
+	test_cpoptions.res \
 	test_crypt.res \
 	test_cscope.res \
 	test_cursor_func.res \

@@ -1,6 +1,7 @@
 " Test various aspects of the Vim9 script language.
 
 source check.vim
+source term_util.vim
 source view_util.vim
 source vim9.vim
 
@@ -126,6 +127,7 @@ def Test_assignment_list()
   list2[-3] = 77
   assert_equal([77, 88, 99], list2)
   call CheckDefExecFailure(['let ll = [1, 2, 3]', 'll[-4] = 6'], 'E684:')
+  call CheckDefExecFailure(['let [v1, v2] = [1, 2]'], 'E1092:')
 
   # type becomes list<any>
   let somelist = rand() > 0 ? [1, 2, 3] : ['a', 'b', 'c']
@@ -223,6 +225,28 @@ def Test_assignment_default()
   assert_equal(5678, nr)
 enddef
 
+def Test_assignment_var_list()
+  let v1: string
+  let v2: string
+  let vrem: list<string>
+  [v1] = ['aaa']
+  assert_equal('aaa', v1)
+
+  [v1, v2] = ['one', 'two']
+  assert_equal('one', v1)
+  assert_equal('two', v2)
+
+  [v1, v2; vrem] = ['one', 'two']
+  assert_equal('one', v1)
+  assert_equal('two', v2)
+  assert_equal([], vrem)
+
+  [v1, v2; vrem] = ['one', 'two', 'three']
+  assert_equal('one', v1)
+  assert_equal('two', v2)
+  assert_equal(['three'], vrem)
+enddef
+
 def Mess(): string
   v:foldstart = 123
   return 'xxx'
@@ -236,7 +260,18 @@ def Test_assignment_failure()
   call CheckDefFailure(['let true = 1'], 'E1034:')
   call CheckDefFailure(['let false = 1'], 'E1034:')
 
-  call CheckDefFailure(['let [a; b; c] = g:list'], 'E452:')
+  call CheckDefFailure(['[a; b; c] = g:list'], 'E452:')
+  call CheckDefExecFailure(['let a: number',
+                            '[a] = test_null_list()'], 'E1093:')
+  call CheckDefExecFailure(['let a: number',
+                            '[a] = []'], 'E1093:')
+  call CheckDefExecFailure(['let x: number',
+                            'let y: number',
+                            '[x, y] = [1]'], 'E1093:')
+  call CheckDefExecFailure(['let x: number',
+                            'let y: number',
+                            'let z: list<number>',
+                            '[x, y; z] = [1]'], 'E1093:')
 
   call CheckDefFailure(['let somevar'], "E1022:")
   call CheckDefFailure(['let &option'], 'E1052:')
@@ -736,12 +771,36 @@ def Test_vim9script_fails()
   CheckScriptFailure(['scriptversion 2', 'vim9script'], 'E1039:')
   CheckScriptFailure(['vim9script', 'scriptversion 2'], 'E1040:')
   CheckScriptFailure(['export let some = 123'], 'E1042:')
-  CheckScriptFailure(['import some from "./Xexport.vim"'], 'E1042:')
+  CheckScriptFailure(['import some from "./Xexport.vim"'], 'E1048:')
   CheckScriptFailure(['vim9script', 'export let g:some'], 'E1044:')
   CheckScriptFailure(['vim9script', 'export echo 134'], 'E1043:')
 
   assert_fails('vim9script', 'E1038')
   assert_fails('export something', 'E1043')
+enddef
+
+func Test_import_fails_without_script()
+  CheckRunVimInTerminal
+
+  " call indirectly to avoid compilation error for missing functions
+  call Run_Test_import_fails_without_script()
+endfunc
+
+def Run_Test_import_fails_without_script()
+  let export =<< trim END
+    vim9script
+    export def Foo(): number
+        return 0
+    enddef
+  END
+  writefile(export, 'Xexport.vim')
+
+  let buf = RunVimInTerminal('-c "import Foo from ''./Xexport.vim''"', #{
+                rows: 6, wait_for_ruler: 0})
+  WaitForAssert({-> assert_match('^E1094:', term_getline(buf, 5))})
+
+  delete('Xexport.vim')
+  StopVimInTerminal(buf)
 enddef
 
 def Test_vim9script_reload_import()
@@ -1102,6 +1161,26 @@ def Test_if_const_expr_fails()
   call CheckDefFailure(["if 'aaa' == 'bbb"], 'E115:')
   call CheckDefFailure(["if has('aaa'"], 'E110:')
   call CheckDefFailure(["if has('aaa') ? true false"], 'E109:')
+enddef
+
+def RunNested(i: number): number
+  let x: number = 0
+  if i % 2
+    if 1
+      " comment
+    else
+      " comment
+    endif
+    x += 1
+  else
+    x += 1000
+  endif
+  return x
+enddef
+
+def Test_nested_if()
+  assert_equal(1, RunNested(1))
+  assert_equal(1000, RunNested(2))
 enddef
 
 def Test_execute_cmd()
@@ -1815,6 +1894,68 @@ def Test_let_missing_type()
   CheckScriptSuccess(lines)
 enddef
 
+def Test_let_declaration()
+  let lines =<< trim END
+    vim9script
+    let var: string
+    g:var_uninit = var
+    var = 'text'
+    g:var_test = var
+    " prefixing s: is optional
+    s:var = 'prefixed'
+    g:var_prefixed = s:var
+
+    let s:other: number
+    other = 1234
+    g:other_var = other
+  END
+  CheckScriptSuccess(lines)
+  assert_equal('', g:var_uninit)
+  assert_equal('text', g:var_test)
+  assert_equal('prefixed', g:var_prefixed)
+  assert_equal(1234, g:other_var)
+
+  unlet g:var_uninit
+  unlet g:var_test
+  unlet g:var_prefixed
+  unlet g:other_var
+enddef
+
+def Test_let_declaration_fails()
+  let lines =<< trim END
+    vim9script
+    const var: string
+  END
+  CheckScriptFailure(lines, 'E1021:')
+
+  lines =<< trim END
+    vim9script
+    let 9var: string
+  END
+  CheckScriptFailure(lines, 'E475:')
+enddef
+
+def Test_let_type_check()
+  let lines =<< trim END
+    vim9script
+    let var: string
+    var = 1234
+  END
+  CheckScriptFailure(lines, 'E1013:')
+
+  lines =<< trim END
+    vim9script
+    let var:string
+  END
+  CheckScriptFailure(lines, 'E1069:')
+
+  lines =<< trim END
+    vim9script
+    let var: asdf
+  END
+  CheckScriptFailure(lines, 'E1010:')
+enddef
+
 def Test_forward_declaration()
   let lines =<< trim END
     vim9script
@@ -1836,6 +1977,47 @@ def Test_forward_declaration()
   delete('Xforward')
 enddef
 
+def Test_source_vim9_from_legacy()
+  let legacy_lines =<< trim END
+    source Xvim9_script.vim
+
+    call assert_false(exists('local'))
+    call assert_false(exists('exported'))
+    call assert_false(exists('s:exported'))
+    call assert_equal('global', global)
+    call assert_equal('global', g:global)
+
+    " imported variable becomes script-local
+    import exported from './Xvim9_script.vim'
+    call assert_equal('exported', s:exported)
+    call assert_false(exists('exported'))
+
+    " imported function becomes script-local
+    import GetText from './Xvim9_script.vim'
+    call assert_equal('text', s:GetText())
+    call assert_false(exists('*GetText'))
+  END
+  writefile(legacy_lines, 'Xlegacy_script.vim')
+
+  let vim9_lines =<< trim END
+    vim9script
+    let local = 'local'
+    g:global = 'global'
+    export let exported = 'exported'
+    export def GetText(): string
+       return 'text'
+    enddef
+  END
+  writefile(vim9_lines, 'Xvim9_script.vim')
+
+  source Xlegacy_script.vim
+
+  assert_equal('global', g:global)
+"  unlet g:global
+
+  delete('Xlegacy_script.vim')
+  delete('Xvim9_script.vim')
+enddef
 
 " Keep this last, it messes up highlighting.
 def Test_substitute_cmd()

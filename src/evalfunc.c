@@ -339,6 +339,14 @@ ret_job(int argcount UNUSED, type_T **argtypes UNUSED)
     return &t_job;
 }
 
+    static type_T *
+ret_first_arg(int argcount, type_T **argtypes)
+{
+    if (argcount > 0)
+	return argtypes[0];
+    return &t_void;
+}
+
 static type_T *ret_f_function(int argcount, type_T **argtypes);
 
 /*
@@ -769,8 +777,8 @@ static funcentry_T global_functions[] =
 			},
     {"rand",		0, 1, FEARG_1,	  ret_number,	f_rand},
     {"range",		1, 3, FEARG_1,	  ret_list_number, f_range},
-    {"readdir",		1, 2, FEARG_1,	  ret_list_string, f_readdir},
-    {"readdirex",	1, 2, FEARG_1,	  ret_list_dict_any, f_readdirex},
+    {"readdir",		1, 3, FEARG_1,	  ret_list_string, f_readdir},
+    {"readdirex",	1, 3, FEARG_1,	  ret_list_dict_any, f_readdirex},
     {"readfile",	1, 3, FEARG_1,	  ret_any,	f_readfile},
     {"reduce",		2, 3, FEARG_1,	  ret_any,	f_reduce},
     {"reg_executing",	0, 0, 0,	  ret_string,	f_reg_executing},
@@ -849,7 +857,7 @@ static funcentry_T global_functions[] =
     {"simplify",	1, 1, FEARG_1,	  ret_string,	f_simplify},
     {"sin",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_sin)},
     {"sinh",		1, 1, FEARG_1,	  ret_float,	FLOAT_FUNC(f_sinh)},
-    {"sort",		1, 3, FEARG_1,	  ret_list_any,	f_sort},
+    {"sort",		1, 3, FEARG_1,	  ret_first_arg, f_sort},
     {"sound_clear",	0, 0, 0,	  ret_void,	SOUND_FUNC(f_sound_clear)},
     {"sound_playevent",	1, 2, FEARG_1,	  ret_number,	SOUND_FUNC(f_sound_playevent)},
     {"sound_playfile",	1, 2, FEARG_1,	  ret_number,	SOUND_FUNC(f_sound_playfile)},
@@ -944,6 +952,7 @@ static funcentry_T global_functions[] =
     {"term_setsize",	3, 3, FEARG_1,	  ret_void,	TERM_FUNC(f_term_setsize)},
     {"term_start",	1, 2, FEARG_1,	  ret_number,	TERM_FUNC(f_term_start)},
     {"term_wait",	1, 2, FEARG_1,	  ret_void,	TERM_FUNC(f_term_wait)},
+    {"terminalprops",	0, 0, 0,	  ret_dict_string, f_terminalprops},
     {"test_alloc_fail",	3, 3, FEARG_1,	  ret_void,	f_test_alloc_fail},
     {"test_autochdir",	0, 0, 0,	  ret_void,	f_test_autochdir},
     {"test_feedinput",	1, 1, FEARG_1,	  ret_void,	f_test_feedinput},

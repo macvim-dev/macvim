@@ -28,10 +28,12 @@ endfunc
 " The second argument is the minimum time to wait in msec, 10 if omitted.
 func TermWait(buf, ...)
   let wait_time = a:0 ? a:1 : 10
-  if g:run_nr == 2
-    let wait_time *= 4
-  elseif g:run_nr > 2
-    let wait_time *= 10
+  if exists('g:run_nr')
+    if g:run_nr == 2
+      let wait_time *= 4
+    elseif g:run_nr > 2
+      let wait_time *= 10
+    endif
   endif
   call term_wait(a:buf, wait_time)
 
@@ -107,16 +109,18 @@ func RunVimInTerminal(arguments, options)
 
   call TermWait(buf)
 
-  " Wait for "All" or "Top" of the ruler to be shown in the last line or in
-  " the status line of the last window. This can be quite slow (e.g. when
-  " using valgrind).
-  " If it fails then show the terminal contents for debugging.
-  try
-    call WaitFor({-> len(term_getline(buf, rows)) >= cols - 1 || len(term_getline(buf, rows - statusoff)) >= cols - 1})
-  catch /timed out after/
-    let lines = map(range(1, rows), {key, val -> term_getline(buf, val)})
-    call assert_report('RunVimInTerminal() failed, screen contents: ' . join(lines, "<NL>"))
-  endtry
+  if get(a:options, 'wait_for_ruler', 1)
+    " Wait for "All" or "Top" of the ruler to be shown in the last line or in
+    " the status line of the last window. This can be quite slow (e.g. when
+    " using valgrind).
+    " If it fails then show the terminal contents for debugging.
+    try
+      call WaitFor({-> len(term_getline(buf, rows)) >= cols - 1 || len(term_getline(buf, rows - statusoff)) >= cols - 1})
+    catch /timed out after/
+      let lines = map(range(1, rows), {key, val -> term_getline(buf, val)})
+      call assert_report('RunVimInTerminal() failed, screen contents: ' . join(lines, "<NL>"))
+    endtry
+  endif
 
   " Starting a terminal to run Vim is always considered flaky.
   let g:test_is_flaky = 1

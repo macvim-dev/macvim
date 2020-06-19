@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.2.  Last change: 2020 Jun 07
+*eval.txt*	For Vim version 8.2.  Last change: 2020 Jun 14
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -1533,6 +1533,7 @@ An internal variable is explicitly destroyed with the ":unlet" command
 Using a name that is not an internal variable or refers to a variable that has
 been destroyed results in an error.
 
+						*variable-scope*
 There are several name spaces for variables.  Which one is to be used is
 specified by what is prepended:
 
@@ -1551,7 +1552,9 @@ delete all script-local variables: >
 	:for k in keys(s:)
 	:    unlet s:[k]
 	:endfor
-<
+
+Note: in Vim9 script this is different, see |vim9-scopes|.
+
 						*buffer-variable* *b:var* *b:*
 A variable name that is preceded with "b:" is local to the current buffer.
 Thus you can have several "b:foo" variables, one for each buffer.
@@ -1742,6 +1745,14 @@ v:cmdbang	Set like v:cmdarg for a file read/write command.  When a "!"
 		was used the value is 1, otherwise it is 0.  Note that this
 		can only be used in autocommands.  For user commands |<bang>|
 		can be used.
+						*v:collate* *collate-variable*
+v:collate	The current locale setting for collation order of the runtime
+		environment.  This allows Vim scripts to be aware of the
+		current locale encoding.  Technical: it's the value of
+		LC_COLLATE.  When not using a locale the value is "C".
+		This variable can not be set directly, use the |:language|
+		command.
+		See |multi-lang|.
 
 				*v:completed_item* *completed_item-variable*
 v:completed_item
@@ -2206,7 +2217,8 @@ v:termresponse	The escape sequence returned by the terminal for the |t_RV|
 		'c', with only digits and ';' in between.
 		When this option is set, the TermResponse autocommand event is
 		fired, so that you can react to the response from the
-		terminal.
+		terminal.  You can use |terminalprops()| to see what Vim
+		figured out about the terminal.
 		The response from a new xterm is: "<Esc>[> Pp ; Pv ; Pc c".  Pp
 		is the terminal type: 0 for vt100 and 1 for vt220.  Pv is the
 		patch level (since this was introduced in patch 95, it's
@@ -2691,8 +2703,10 @@ pyxeval({expr})			any	evaluate |python_x| expression
 rand([{expr}])			Number	get pseudo-random number
 range({expr} [, {max} [, {stride}]])
 				List	items from {expr} to {max}
-readdir({dir} [, {expr}])	List	file names in {dir} selected by {expr}
-readdirex({dir} [, {expr}])	List	file info in {dir} selected by {expr}
+readdir({dir} [, {expr} [, {dict}]])
+				List	file names in {dir} selected by {expr}
+readdirex({dir} [, {expr} [, {dict}]])
+				List	file info in {dir} selected by {expr}
 readfile({fname} [, {type} [, {max}]])
 				List	get list of lines from file {fname}
 reduce({object}, {func} [, {initial}])
@@ -2882,6 +2896,7 @@ term_setsize({buf}, {rows}, {cols})
 				none	set the size of a terminal
 term_start({cmd} [, {options}])	Number	open a terminal window and run a job
 term_wait({buf} [, {time}])	Number  wait for screen to be updated
+terminalprops()			Dict	properties of the terminal
 test_alloc_fail({id}, {countdown}, {repeat})
 				none	make memory allocation fail
 test_autochdir()		none	enable 'autochdir' during startup
@@ -4533,7 +4548,7 @@ flatten({list} [, {maxdepth}])					*flatten()*
 		a very large number.
 		The {list} is changed in place, make a copy first if you do
 		not want that.
-							        *E964*
+							        *E900*
 		{maxdepth} means how deep in nested lists changes are made.
 		{list} is not modified when {maxdepth} is 0.
 		{maxdepth} must be positive number.
@@ -6288,10 +6303,11 @@ inputlist({textlist})					*inputlist()*
 		displayed, one string per line.  The user will be prompted to
 		enter a number, which is returned.
 		The user can also select an item by clicking on it with the
-		mouse.  For the first string 0 is returned.  When clicking
-		above the first item a negative number is returned.  When
-		clicking on the prompt one more than the length of {textlist}
-		is returned.
+		mouse, if the mouse is enabled in the command line ('mouse' is
+		"a" or includes "c").  For the first string 0 is returned.
+		When clicking above the first item a negative number is
+		returned.  When clicking on the prompt one more than the
+		length of {textlist} is returned.
 		Make sure {textlist} has less than 'lines' entries, otherwise
 		it won't work.  It's a good idea to put the entry number at
 		the start of the string.  And put a prompt in the first item.
@@ -7910,11 +7926,12 @@ rand([{expr}])						*rand()* *random*
 			:echo rand(seed)
 			:echo rand(seed) % 16  " random number 0 - 15
 <
-readdir({directory} [, {expr}])				*readdir()*
+readdir({directory} [, {expr} [, {dict}]])			*readdir()*
 		Return a list with file and directory names in {directory}.
 		You can also use |glob()| if you don't need to do complicated
 		things, such as limiting the number of matches.
-		The list will be sorted (case sensitive).
+		The list will be sorted (case sensitive), see the {dict}
+		argument below for changing the sort order.
 
 		When {expr} is omitted all entries are included.
 		When {expr} is given, it is evaluated to check what to do:
@@ -7932,18 +7949,38 @@ readdir({directory} [, {expr}])				*readdir()*
 <		To skip hidden and backup files: >
 		  readdir(dirname, {n -> n !~ '^\.\|\~$'})
 
+<		The optional {dict} argument allows for further custom
+		values. Currently this is used to specify if and how sorting
+		should be performed. The dict can have the following members:
+
+		    sort    How to sort the result returned from the system.
+			    Valid values are:
+				"none"	    do not sort (fastest method)
+				"case"	    sort case sensitive (byte value of
+					    each character, technically, using
+					    strcmp()) (default)
+				"icase"	    sort case insensitive (technically
+					    using strcasecmp())
+				"collate"   sort using the collation order
+					    of the "POSIX" or "C" |locale|
+					    (technically using strcoll())
+			    Other values are silently ignored.
+
+		For example, to get a list of all files in the current
+		directory without sorting the individual entries: >
+		  readdir('.', '1', #{sort: 'none'})
 <		If you want to get a directory tree: >
-                  function! s:tree(dir)
-                      return {a:dir : map(readdir(a:dir),
+		  function! s:tree(dir)
+		      return {a:dir : map(readdir(a:dir),
 		      \ {_, x -> isdirectory(x) ?
-		      \          {x : s:tree(a:dir . '/' . x)} : x})}
-                  endfunction
-                  echo s:tree(".")
+		      \		 {x : s:tree(a:dir . '/' . x)} : x})}
+		  endfunction
+		  echo s:tree(".")
 <
 		Can also be used as a |method|: >
 			GetDirName()->readdir()
 <
-readdirex({directory} [, {expr}])			*readdirex()*
+readdirex({directory} [, {expr} [, {dict}]])			*readdirex()*
 		Extended version of |readdir()|.
 		Return a list of Dictionaries with file and directory
 		information in {directory}.
@@ -7952,7 +7989,9 @@ readdirex({directory} [, {expr}])			*readdirex()*
 		This is much faster than calling |readdir()| then calling
 		|getfperm()|, |getfsize()|, |getftime()| and |getftype()| for
 		each file and directory especially on MS-Windows.
-		The list will be sorted by name (case sensitive).
+		The list will by default be sorted by name (case sensitive),
+		the sorting can be changed by using the optional {dict}
+		argument, see |readdir()|.
 
 		The Dictionary for file and directory information has the
 		following items:
@@ -7992,6 +8031,11 @@ readdirex({directory} [, {expr}])			*readdirex()*
 		When {expr} is a function the entry is passed as the argument.
 		For example, to get a list of files ending in ".txt": >
 		  readdirex(dirname, {e -> e.name =~ '.txt$'})
+<
+		For example, to get a list of all files in the current
+		directory without sorting the individual entries: >
+		  readdirex(dirname, '1', #{sort: 'none'})
+
 <
 		Can also be used as a |method|: >
 			GetDirName()->readdirex()
@@ -10402,6 +10446,41 @@ tempname()					*tempname()* *temp-file-name*
 
 term_ functions are documented here: |terminal-function-details|
 
+
+terminalprops()						*terminalprops()*
+		Returns a dictionary with properties of the terminal that Vim
+		detected from the response to |t_RV| request.  See
+		|v:termresponse| for the response itself.  If |v:termresponse|
+		is empty most values here will be 'u' for unknown.
+		   cursor_style		wether sending |t_RS| works  **
+		   cursor_blink_mode	wether sending |t_RC| works  **
+		   underline_rgb	whether |t_8u| works **
+		   mouse		mouse type supported
+
+		** value 'u' for unknown, 'y' for yes, 'n' for no
+
+		If the |+termresponse| feature is missing then the result is
+		an empty dictionary.
+
+		If "cursor_style" is 'y' then |t_RS| will be send to request the
+		current cursor style.
+		If "cursor_blink_mode" is 'y' then |t_RC| will be send to
+		request the cursor blink status.
+		"cursor_style" and "cursor_blink_mode" are also set if |t_u7|
+		is not empty, Vim will detect the working of sending |t_RS|
+		and |t_RC| on startup.
+
+		When "underline_rgb" is not 'y', then |t_8u| will be made empty.
+		This avoids sending it to xterm, which would clear the colors.
+
+		For "mouse" the value 'u' is unknown
+
+		Also see:
+		- 'ambiwidth' - detected by using |t_u7|.
+		- |v:termstyleresp| and |v:termblinkresp| for the response to
+		  |t_RS| and |t_RC|.
+
+
 test_ functions are documented here: |test-functions-details|
 
 
@@ -10797,7 +10876,10 @@ win_getid([{win} [, {tab}]])				*win_getid()*
 
 win_gettype([{nr}])					*win_gettype()*
 		Return the type of the window:
+			"autocmd"	autocommand window. Temporary window
+					used to execute autocommands.
 			"popup"		popup window |popup|
+			"preview"	preview window |preview-window|
 			"command"	command-line window |cmdwin|
 			(empty)		normal window
 			"unknown"	window {nr} not found
@@ -11763,6 +11845,9 @@ like this: >
 
 	:call filename#funcname()
 
+These functions are always global, in Vim9 script "g:" needs to be used: >
+	:call g:filename#funcname()
+
 When such a function is called, and it is not defined yet, Vim will search the
 "autoload" directories in 'runtimepath' for a script file called
 "filename.vim".  For example "~/.vim/autoload/filename.vim".  That file should
@@ -11774,7 +11859,11 @@ then define the function like this: >
 
 The file name and the name used before the # in the function must match
 exactly, and the defined function must have the name exactly as it will be
-called.
+called.  In Vim9 script the "g:" prefix must be used: >
+	function g:filename#funcname()
+
+or for a compiled function: >
+	def g:filename#funcname()
 
 It is possible to use subdirectories.  Every # in the function name works like
 a path separator.  Thus when calling a function: >
@@ -11856,6 +11945,9 @@ This does NOT work: >
 
 ==============================================================================
 7. Commands						*expression-commands*
+
+Note: in Vim9 script `:let` is used for variable declaration, not assignment.
+An assignment leaves out the `:let` command.  |vim9-declaration|
 
 :let {var-name} = {expr1}				*:let* *E18*
 			Set internal variable {var-name} to the result of the
@@ -12079,12 +12171,14 @@ text...
 			  s:	script-local variables
 			  l:	local function variables
 			  v:	Vim variables.
+			This does not work in Vim9 script. |vim9-declaration|
 
 :let			List the values of all variables.  The type of the
 			variable is indicated before the value:
 			    <nothing>	String
 				#	Number
 				*	Funcref
+			This does not work in Vim9 script. |vim9-declaration|
 
 :unl[et][!] {name} ...				*:unlet* *:unl* *E108* *E795*
 			Remove the internal variable {name}.  Several variable

@@ -719,20 +719,45 @@ find_func_even_dead(char_u *name, int is_global, cctx_T *cctx)
     ufunc_T	*func;
     imported_T	*imported;
 
-    if (in_vim9script() && !is_global)
+    if (!is_global)
     {
-	// Find script-local function before global one.
-	func = find_func_with_sid(name, current_sctx.sc_sid);
-	if (func != NULL)
-	    return func;
+	char_u *after_script = NULL;
 
-	// Find imported funcion before global one.
-	imported = find_imported(name, 0, cctx);
-	if (imported != NULL && imported->imp_funcname != NULL)
+	if (in_vim9script())
 	{
-	    hi = hash_find(&func_hashtab, imported->imp_funcname);
-	    if (!HASHITEM_EMPTY(hi))
-		return HI2UF(hi);
+	    // Find script-local function before global one.
+	    func = find_func_with_sid(name, current_sctx.sc_sid);
+	    if (func != NULL)
+		return func;
+	}
+
+	if (!in_vim9script()
+		&& name[0] == K_SPECIAL
+		&& name[1] == KS_EXTRA
+		&& name[2] == KE_SNR)
+	{
+	    long sid;
+
+	    // Caller changes s: to <SNR>99_name.
+
+	    after_script = name + 3;
+	    sid = getdigits(&after_script);
+	    if (sid == current_sctx.sc_sid && *after_script == '_')
+		++after_script;
+	    else
+		after_script = NULL;
+	}
+	if (in_vim9script() || after_script != NULL)
+	{
+	    // Find imported function before global one.
+	    imported = find_imported(
+			  after_script == NULL ? name : after_script, 0, cctx);
+	    if (imported != NULL && imported->imp_funcname != NULL)
+	    {
+		hi = hash_find(&func_hashtab, imported->imp_funcname);
+		if (!HASHITEM_EMPTY(hi))
+		    return HI2UF(hi);
+	    }
 	}
     }
 
@@ -2674,7 +2699,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 	    p = skip_type(ret_type);
 	    if (p > ret_type)
 	    {
-		ret_type = vim_strnsave(ret_type, (int)(p - ret_type));
+		ret_type = vim_strnsave(ret_type, p - ret_type);
 		p = skipwhite(p);
 	    }
 	    else
@@ -2947,12 +2972,12 @@ def_function(exarg_T *eap, char_u *name_arg)
 		    // Ignore leading white space.
 		    p = skipwhite(p + 4);
 		    heredoc_trimmed = vim_strnsave(theline,
-			    (int)(skipwhite(theline) - theline));
+						 skipwhite(theline) - theline);
 		}
 		if (*p == NUL)
 		    skip_until = vim_strsave((char_u *)".");
 		else
-		    skip_until = vim_strnsave(p, (int)(skiptowhite(p) - p));
+		    skip_until = vim_strnsave(p, skiptowhite(p) - p);
 		do_concat = FALSE;
 		is_heredoc = TRUE;
 	    }
@@ -2977,9 +3002,9 @@ def_function(exarg_T *eap, char_u *name_arg)
 			// Ignore leading white space.
 			p = skipwhite(p + 4);
 			heredoc_trimmed = vim_strnsave(theline,
-					  (int)(skipwhite(theline) - theline));
+						 skipwhite(theline) - theline);
 		    }
-		    skip_until = vim_strnsave(p, (int)(skiptowhite(p) - p));
+		    skip_until = vim_strnsave(p, skiptowhite(p) - p);
 		    do_concat = FALSE;
 		    is_heredoc = TRUE;
 		}

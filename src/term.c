@@ -1476,7 +1476,7 @@ static termprop_T term_props[TPR_COUNT];
  * When "all" is FALSE only set those that are detected from the version
  * response.
  */
-    static void
+    void
 init_term_props(int all)
 {
     int i;
@@ -1493,6 +1493,29 @@ init_term_props(int all)
     for (i = 0; i < TPR_COUNT; ++i)
 	if (all || term_props[i].tpr_set_by_termresponse)
 	    term_props[i].tpr_status = TPR_UNKNOWN;
+}
+#endif
+
+#if defined(FEAT_EVAL) || defined(PROTO)
+    void
+f_terminalprops(typval_T *argvars UNUSED, typval_T *rettv)
+{
+# ifdef FEAT_TERMRESPONSE
+    int i;
+# endif
+
+    if (rettv_dict_alloc(rettv) != OK)
+	return;
+# ifdef FEAT_TERMRESPONSE
+    for (i = 0; i < TPR_COUNT; ++i)
+    {
+	char_u	value[2];
+
+	value[0] = term_props[i].tpr_status;
+	value[1] = NUL;
+	dict_add_string(rettv->vval.v_dict, term_props[i].tpr_name, value);
+    }
+# endif
 }
 #endif
 
@@ -3682,8 +3705,6 @@ check_terminal_behavior(void)
 {
     int	    did_send = FALSE;
 
-    init_term_props(TRUE);
-
     if (!can_get_termresponse() || starting != 0 || *T_U7 == NUL)
 	return;
 
@@ -4092,11 +4113,11 @@ add_termcode(char_u *name, char_u *string, int flags)
     }
 
 #if defined(MSWIN) && !defined(FEAT_GUI)
-    s = vim_strnsave(string, (int)STRLEN(string) + 1);
+    s = vim_strnsave(string, STRLEN(string) + 1);
 #else
 # ifdef VIMDLL
     if (!gui.in_use)
-	s = vim_strnsave(string, (int)STRLEN(string) + 1);
+	s = vim_strnsave(string, STRLEN(string) + 1);
     else
 # endif
 	s = vim_strsave(string);
@@ -4522,7 +4543,14 @@ handle_version_response(int first, int *arg, int argc, char_u *tp)
 
     // Reset terminal properties that are set based on the termresponse.
     // Mainly useful for tests that send the termresponse multiple times.
-    init_term_props(FALSE);
+    // For testing all props can be reset.
+    init_term_props(
+#ifdef FEAT_EVAL
+	    reset_term_props_on_termresponse
+#else
+	    FALSE
+#endif
+	    );
 
     // If this code starts with CSI, you can bet that the
     // terminal uses 8-bit codes.
@@ -4615,6 +4643,7 @@ handle_version_response(int first, int *arg, int argc, char_u *tp)
 	// "xterm-256color" but are not fully xterm compatible.
 	//
 	// Gnome terminal sends 1;3801;0, 1;4402;0 or 1;2501;0.
+	// Newer Gnome-terminal sends 65;6001;1.
 	// xfce4-terminal sends 1;2802;0.
 	// screen sends 83;40500;0
 	// Assuming any version number over 2500 is not an
@@ -4666,8 +4695,9 @@ handle_version_response(int first, int *arg, int argc, char_u *tp)
 
 	// Unless the underline RGB color is expected to work, disable "t_8u".
 	// It does not work for the real Xterm, it resets the background color.
-	if (term_props[TPR_UNDERLINE_RGB].tpr_status == TPR_YES && *T_8U != NUL)
-	    T_8U = empty_option;
+	if (term_props[TPR_UNDERLINE_RGB].tpr_status != TPR_YES && *T_8U != NUL)
+	    set_string_option_direct((char_u *)"t_8u", -1, (char_u *)"",
+								  OPT_FREE, 0);
 
 	// Only set 'ttymouse' automatically if it was not set
 	// by the user already.
