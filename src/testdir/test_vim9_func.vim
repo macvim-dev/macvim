@@ -323,7 +323,7 @@ def Test_vim9script_call()
     str->MyFunc()
     assert_equal('barfoo', var)
 
-    let g:value = 'value'
+    g:value = 'value'
     g:value->MyFunc()
     assert_equal('value', var)
 
@@ -835,6 +835,17 @@ enddef
 def Test_sort_return_type()
   let res: list<number>
   res = [1, 2, 3]->sort()
+enddef
+
+def Line_continuation_in_def(dir: string = ''): string
+    let path: string = empty(dir)
+            \ ? 'empty'
+            \ : 'full'
+    return path
+enddef
+
+def Test_line_continuation_in_def()
+  assert_equal('full', Line_continuation_in_def('.'))
 enddef
 
 

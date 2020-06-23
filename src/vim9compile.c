@@ -27,7 +27,7 @@
 typedef enum {
     SKIP_NOT,		// condition is a constant, produce code
     SKIP_YES,		// condition is a constant, do NOT produce code
-    SKIP_UNKNONW	// condition is not a constant, produce code
+    SKIP_UNKNOWN	// condition is not a constant, produce code
 } skip_T;
 
 /*
@@ -643,7 +643,7 @@ check_number_or_float(vartype_T type1, vartype_T type2, char_u *op)
 							 || type2 == VAR_ANY)))
     {
 	if (*op == '+')
-	    emsg(_("E1035: wrong argument type for +"));
+	    emsg(_("E1051: wrong argument type for +"));
 	else
 	    semsg(_("E1036: %c requires number or float arguments"), *op);
 	return FAIL;
@@ -1493,7 +1493,7 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 	return FAIL;
     }
 
-    if (ufunc->uf_dfunc_idx != UF_NOT_COMPILED)
+    if (ufunc->uf_def_status != UF_NOT_COMPILED)
     {
 	int		i;
 
@@ -1517,16 +1517,16 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 		return FAIL;
 	    }
 	}
-	if (ufunc->uf_dfunc_idx == UF_TO_BE_COMPILED)
+	if (ufunc->uf_def_status == UF_TO_BE_COMPILED)
 	    if (compile_def_function(ufunc, TRUE, NULL) == FAIL)
 		return FAIL;
     }
 
     if ((isn = generate_instr(cctx,
-		    ufunc->uf_dfunc_idx != UF_NOT_COMPILED ? ISN_DCALL
+		    ufunc->uf_def_status != UF_NOT_COMPILED ? ISN_DCALL
 							 : ISN_UCALL)) == NULL)
 	return FAIL;
-    if (ufunc->uf_dfunc_idx != UF_NOT_COMPILED)
+    if (ufunc->uf_def_status != UF_NOT_COMPILED)
     {
 	isn->isn_arg.dfunc.cdf_idx = ufunc->uf_dfunc_idx;
 	isn->isn_arg.dfunc.cdf_argcount = argcount;
@@ -2381,11 +2381,45 @@ free_imported(cctx_T *cctx)
 }
 
 /*
+ * Return TRUE if "p" points at a "#" but not at "#{".
+ */
+    static int
+comment_start(char_u *p)
+{
+    return p[0] == '#' && p[1] != '{';
+}
+
+/*
+ * Return a pointer to the next line that isn't empty or only contains a
+ * comment. Skips over white space.
+ * Returns NULL if there is none.
+ */
+    static char_u *
+peek_next_line(cctx_T *cctx)
+{
+    int lnum = cctx->ctx_lnum;
+
+    while (++lnum < cctx->ctx_ufunc->uf_lines.ga_len)
+    {
+	char_u *line = ((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)[lnum];
+	char_u *p;
+
+	if (line == NULL)
+	    break;
+	p = skipwhite(line);
+	if (*p != NUL && !comment_start(p))
+	    return p;
+    }
+    return NULL;
+}
+
+/*
  * Get the next line of the function from "cctx".
+ * Skips over empty lines.  Skips over comment lines if "skip_comment" is TRUE.
  * Returns NULL when at the end.
  */
     static char_u *
-next_line_from_context(cctx_T *cctx)
+next_line_from_context(cctx_T *cctx, int skip_comment)
 {
     char_u	*line;
 
@@ -2400,17 +2434,9 @@ next_line_from_context(cctx_T *cctx)
 	line = ((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)[cctx->ctx_lnum];
 	cctx->ctx_line_start = line;
 	SOURCING_LNUM = cctx->ctx_lnum + 1;
-    } while (line == NULL || *skipwhite(line) == NUL);
+    } while (line == NULL || *skipwhite(line) == NUL
+			  || (skip_comment && comment_start(skipwhite(line))));
     return line;
-}
-
-/*
- * Return TRUE if "p" points at a "#" but not at "#{".
- */
-    static int
-comment_start(char_u *p)
-{
-    return p[0] == '#' && p[1] != '{';
 }
 
 /*
@@ -2423,7 +2449,7 @@ may_get_next_line(char_u *whitep, char_u **arg, cctx_T *cctx)
 {
     if (**arg == NUL || (VIM_ISWHITE(*whitep) && comment_start(*arg)))
     {
-	char_u *next = next_line_from_context(cctx);
+	char_u *next = next_line_from_context(cctx, TRUE);
 
 	if (next == NULL)
 	    return FAIL;
@@ -2752,14 +2778,8 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 
     for (;;)
     {
-	while (*p == NUL || (VIM_ISWHITE(*whitep) && comment_start(p)))
-	{
-	    p = next_line_from_context(cctx);
-	    if (p == NULL)
-		goto failret;
-	    whitep = (char_u *)" ";
-	    p = skipwhite(p);
-	}
+	if (may_get_next_line(whitep, &p, cctx) == FAIL)
+	    goto failret;
 	if (*p == ')')
 	{
 	    *arg = p + 1;
@@ -2986,16 +3006,10 @@ compile_list(char_u **arg, cctx_T *cctx)
 
     for (;;)
     {
-	while (*p == NUL || (VIM_ISWHITE(*whitep) && comment_start(p)))
+	if (may_get_next_line(whitep, &p, cctx) == FAIL)
 	{
-	    p = next_line_from_context(cctx);
-	    if (p == NULL)
-	    {
-		semsg(_(e_list_end), *arg);
-		return FAIL;
-	    }
-	    whitep = (char_u *)" ";
-	    p = skipwhite(p);
+	    semsg(_(e_list_end), *arg);
+	    return FAIL;
 	}
 	if (*p == ']')
 	{
@@ -3042,7 +3056,7 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     // Compile it into instructions.
     compile_def_function(ufunc, TRUE, cctx);
 
-    if (ufunc->uf_dfunc_idx >= 0)
+    if (ufunc->uf_def_status == UF_COMPILED)
 	return generate_FUNCREF(cctx, ufunc->uf_dfunc_idx);
     return FAIL;
 }
@@ -3112,14 +3126,10 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
     {
 	char_u *key = NULL;
 
-	while (**arg == NUL || (literal && **arg == '"')
-			      || (VIM_ISWHITE(*whitep) && comment_start(*arg)))
+	if (may_get_next_line(whitep, arg, cctx) == FAIL)
 	{
-	    *arg = next_line_from_context(cctx);
-	    if (*arg == NULL)
-		goto failret;
-	    whitep = (char_u *)" ";
-	    *arg = skipwhite(*arg);
+	    *arg = NULL;
+	    goto failret;
 	}
 
 	if (**arg == '}')
@@ -3179,13 +3189,10 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 
 	whitep = *arg + 1;
 	*arg = skipwhite(*arg + 1);
-	while (**arg == NUL || (VIM_ISWHITE(*whitep) && comment_start(*arg)))
+	if (may_get_next_line(whitep, arg, cctx) == FAIL)
 	{
-	    *arg = next_line_from_context(cctx);
-	    if (*arg == NULL)
-		goto failret;
-	    whitep = (char_u *)" ";
-	    *arg = skipwhite(*arg);
+	    *arg = NULL;
+	    goto failret;
 	}
 
 	if (compile_expr0(arg, cctx) == FAIL)
@@ -3193,15 +3200,11 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 	++count;
 
 	whitep = *arg;
-	p = skipwhite(*arg);
-	while (*p == NUL || (VIM_ISWHITE(*whitep) && comment_start(p)))
+	*arg = skipwhite(*arg);
+	if (may_get_next_line(whitep, arg, cctx) == FAIL)
 	{
-	    *arg = next_line_from_context(cctx);
-	    if (*arg == NULL)
-		goto failret;
-	    whitep = (char_u *)" ";
-	    *arg = skipwhite(*arg);
-	    p = *arg;
+	    *arg = NULL;
+	    goto failret;
 	}
 	if (**arg == '}')
 	    break;
@@ -3506,6 +3509,24 @@ compile_subscript(
 {
     for (;;)
     {
+	char_u *p = skipwhite(*arg);
+
+	if (*p == NUL || (VIM_ISWHITE(**arg) && comment_start(p)))
+	{
+	    char_u *next = peek_next_line(cctx);
+
+	    // If a following line starts with "->{" or "->X" advance to that
+	    // line, so that a line break before "->" is allowed.
+	    if (next != NULL && next[0] == '-' && next[1] == '>'
+		    && (next[2] == '{' || ASCII_ISALPHA(next[2])))
+	    {
+		next = next_line_from_context(cctx, TRUE);
+		if (next == NULL)
+		    return FAIL;
+		*arg = skipwhite(next);
+	    }
+	}
+
 	if (**arg == '(')
 	{
 	    garray_T    *stack = &cctx->ctx_type_stack;
@@ -3526,8 +3547,6 @@ compile_subscript(
 	}
 	else if (**arg == '-' && (*arg)[1] == '>')
 	{
-	    char_u *p;
-
 	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
@@ -3538,7 +3557,10 @@ compile_subscript(
 		return FAIL;
 	    *start_leader = end_leader;   // don't apply again later
 
-	    *arg = skipwhite(*arg + 2);
+	    p = *arg + 2;
+	    *arg = skipwhite(p);
+	    if (may_get_next_line(p, arg, cctx) == FAIL)
+		return FAIL;
 	    if (**arg == '{')
 	    {
 		// lambda call:  list->{lambda}
@@ -3576,7 +3598,10 @@ compile_subscript(
 	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
-	    *arg = skipwhite(*arg + 1);
+	    p = *arg + 1;
+	    *arg = skipwhite(p);
+	    if (may_get_next_line(p, arg, cctx) == FAIL)
+		return FAIL;
 	    if (compile_expr0(arg, cctx) == FAIL)
 		return FAIL;
 
@@ -3611,14 +3636,14 @@ compile_subscript(
 	}
 	else if (**arg == '.' && (*arg)[1] != '.')
 	{
-	    char_u *p;
-
 	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
 	    ++*arg;
-	    p = *arg;
+	    if (may_get_next_line(*arg, arg, cctx) == FAIL)
+		return FAIL;
 	    // dictionary member: dict.name
+	    p = *arg;
 	    if (eval_isnamec1(*p))
 		while (eval_isnamec(*p))
 		    MB_PTR_ADV(p);
@@ -4335,9 +4360,9 @@ compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
 	garray_T	*instr = &cctx->ctx_instr;
 	garray_T	*stack = &cctx->ctx_type_stack;
 	int		alt_idx = instr->ga_len;
-	int		end_idx;
+	int		end_idx = 0;
 	isn_T		*isn;
-	type_T		*type1;
+	type_T		*type1 = NULL;
 	type_T		*type2;
 	int		has_const_expr = FALSE;
 	int		const_value = FALSE;
@@ -4539,7 +4564,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 
     if (ufunc == NULL)
 	return NULL;
-    if (ufunc->uf_dfunc_idx == UF_TO_BE_COMPILED
+    if (ufunc->uf_def_status == UF_TO_BE_COMPILED
 	    && compile_def_function(ufunc, TRUE, cctx) == FAIL)
 	return NULL;
 
@@ -4648,6 +4673,24 @@ generate_loadvar(
 		generate_LOAD(cctx, ISN_LOAD, lvar->lv_idx, NULL, type);
 	    break;
     }
+}
+
+    void
+vim9_declare_error(char_u *name)
+{
+    char *scope = "";
+
+    switch (*name)
+    {
+	case 'g': scope = _("global"); break;
+	case 'b': scope = _("buffer"); break;
+	case 'w': scope = _("window"); break;
+	case 't': scope = _("tab"); break;
+	case 'v': scope = "v:"; break;
+	case '$': semsg(_(e_declare_env_var), name); return;
+	default: return;
+    }
+    semsg(_(e_declare_var), scope, name);
 }
 
 /*
@@ -4846,8 +4889,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		type = &t_string;
 		if (is_decl)
 		{
-		    semsg(_("E1065: Cannot declare an environment variable: %s"),
-									 name);
+		    vim9_declare_error(name);
 		    goto theend;
 		}
 	    }
@@ -4871,8 +4913,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		dest = dest_global;
 		if (is_decl)
 		{
-		    semsg(_("E1016: Cannot declare a global variable: %s"),
-									 name);
+		    vim9_declare_error(name);
 		    goto theend;
 		}
 	    }
@@ -4881,8 +4922,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		dest = dest_buffer;
 		if (is_decl)
 		{
-		    semsg(_("E1078: Cannot declare a buffer variable: %s"),
-									 name);
+		    vim9_declare_error(name);
 		    goto theend;
 		}
 	    }
@@ -4891,8 +4931,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		dest = dest_window;
 		if (is_decl)
 		{
-		    semsg(_("E1079: Cannot declare a window variable: %s"),
-									 name);
+		    vim9_declare_error(name);
 		    goto theend;
 		}
 	    }
@@ -4901,7 +4940,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		dest = dest_tab;
 		if (is_decl)
 		{
-		    semsg(_("E1080: Cannot declare a tab variable: %s"), name);
+		    vim9_declare_error(name);
 		    goto theend;
 		}
 	    }
@@ -4924,7 +4963,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		type = typval2type(vtv);
 		if (is_decl)
 		{
-		    semsg(_("E1064: Cannot declare a v: variable: %s"), name);
+		    vim9_declare_error(name);
 		    goto theend;
 		}
 	    }
@@ -5688,7 +5727,7 @@ compile_if(char_u *arg, cctx_T *cctx)
     else
     {
 	// Not a constant, generate instructions for the expression.
-	cctx->ctx_skip = SKIP_UNKNONW;
+	cctx->ctx_skip = SKIP_UNKNOWN;
 	if (generate_ppconst(cctx, &ppconst) == FAIL)
 	    return NULL;
     }
@@ -5700,7 +5739,7 @@ compile_if(char_u *arg, cctx_T *cctx)
     // "is_had_return" will be reset if any block does not end in :return
     scope->se_u.se_if.is_had_return = TRUE;
 
-    if (cctx->ctx_skip == SKIP_UNKNONW)
+    if (cctx->ctx_skip == SKIP_UNKNOWN)
     {
 	// "where" is set when ":elseif", "else" or ":endif" is found
 	scope->se_u.se_if.is_if_label = instr->ga_len;
@@ -5731,7 +5770,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     if (!cctx->ctx_had_return)
 	scope->se_u.se_if.is_had_return = FALSE;
 
-    if (cctx->ctx_skip == SKIP_UNKNONW)
+    if (cctx->ctx_skip == SKIP_UNKNOWN)
     {
 	if (compile_jump_to_end(&scope->se_u.se_if.is_end_label,
 						    JUMP_ALWAYS, cctx) == FAIL)
@@ -5761,7 +5800,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     else
     {
 	// Not a constant, generate instructions for the expression.
-	cctx->ctx_skip = SKIP_UNKNONW;
+	cctx->ctx_skip = SKIP_UNKNOWN;
 	if (generate_ppconst(cctx, &ppconst) == FAIL)
 	    return NULL;
 
@@ -5794,7 +5833,7 @@ compile_else(char_u *arg, cctx_T *cctx)
     if (scope->se_skip_save != SKIP_YES)
     {
 	// jump from previous block to the end, unless the else block is empty
-	if (cctx->ctx_skip == SKIP_UNKNONW)
+	if (cctx->ctx_skip == SKIP_UNKNOWN)
 	{
 	    if (!cctx->ctx_had_return
 		    && compile_jump_to_end(&scope->se_u.se_if.is_end_label,
@@ -5802,7 +5841,7 @@ compile_else(char_u *arg, cctx_T *cctx)
 		return NULL;
 	}
 
-	if (cctx->ctx_skip == SKIP_UNKNONW)
+	if (cctx->ctx_skip == SKIP_UNKNOWN)
 	{
 	    if (scope->se_u.se_if.is_if_label >= 0)
 	    {
@@ -5813,7 +5852,7 @@ compile_else(char_u *arg, cctx_T *cctx)
 	    }
 	}
 
-	if (cctx->ctx_skip != SKIP_UNKNONW)
+	if (cctx->ctx_skip != SKIP_UNKNOWN)
 	    cctx->ctx_skip = cctx->ctx_skip == SKIP_YES ? SKIP_NOT : SKIP_YES;
     }
 
@@ -6517,12 +6556,21 @@ theend:
 
 /*
  * Add a function to the list of :def functions.
- * This "sets ufunc->uf_dfunc_idx" but the function isn't compiled yet.
+ * This sets "ufunc->uf_dfunc_idx" but the function isn't compiled yet.
  */
     static int
 add_def_function(ufunc_T *ufunc)
 {
     dfunc_T *dfunc;
+
+    if (def_functions.ga_len == 0)
+    {
+	// The first position is not used, so that a zero uf_dfunc_idx means it
+	// wasn't set.
+	if (ga_grow(&def_functions, 1) == FAIL)
+	    return FAIL;
+	++def_functions.ga_len;
+    }
 
     // Add the function to "def_functions".
     if (ga_grow(&def_functions, 1) == FAIL)
@@ -6563,7 +6611,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 
     // When using a function that was compiled before: Free old instructions.
     // Otherwise add a new entry in "def_functions".
-    if (ufunc->uf_dfunc_idx >= 0)
+    if (ufunc->uf_dfunc_idx > 0)
     {
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
@@ -6647,6 +6695,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
     {
 	exarg_T	ea;
 	int	starts_with_colon = FALSE;
+	char_u	*cmd;
 
 	// Bail out on the first error to avoid a flood of errors and report
 	// the right line number when inside try/catch.
@@ -6656,7 +6705,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	if (line != NULL && *line == '|')
 	    // the line continues after a '|'
 	    ++line;
-	else if (line != NULL && *line != NUL
+	else if (line != NULL && *skipwhite(line) != NUL
 		&& !(*line == '#' && (line == cctx.ctx_line_start
 						    || VIM_ISWHITE(line[-1]))))
 	{
@@ -6665,7 +6714,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	}
 	else
 	{
-	    line = next_line_from_context(&cctx);
+	    line = next_line_from_context(&cctx, FALSE);
 	    if (cctx.ctx_lnum >= ufunc->uf_lines.ga_len)
 		// beyond the last line
 		break;
@@ -6805,7 +6854,13 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	/*
 	 * COMMAND after range
 	 */
+	cmd = ea.cmd;
 	ea.cmd = skip_range(ea.cmd, NULL);
+	if (ea.cmd > cmd && !starts_with_colon)
+	{
+	    emsg(_(e_colon_required));
+	    goto erret;
+	}
 	p = find_ex_command(&ea, NULL, starts_with_colon ? NULL
 		   : (void *(*)(char_u *, size_t, cctx_T *))lookup_local,
 									&cctx);
@@ -6838,6 +6893,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	p = skipwhite(p);
 
 	if (cctx.ctx_skip == SKIP_YES
+		&& ea.cmdidx != CMD_if
 		&& ea.cmdidx != CMD_elseif
 		&& ea.cmdidx != CMD_else
 		&& ea.cmdidx != CMD_endif)
@@ -6959,8 +7015,9 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    line = compile_mult_expr(p, ea.cmdidx, &cctx);
 		    break;
 
+	    // TODO: other commands with an expression argument
+
 	    default:
-		    // TODO: other commands with an expression argument
 		    // Not recognized, execute with do_cmdline_cmd().
 		    ea.arg = p;
 		    line = compile_exec(line, &ea, &cctx);
@@ -7013,6 +7070,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	dfunc->df_closure_count = cctx.ctx_closure_count;
 	if (cctx.ctx_outer_used)
 	    ufunc->uf_flags |= FC_CLOSURE;
+	ufunc->uf_def_status = UF_COMPILED;
     }
 
     ret = OK;
@@ -7032,7 +7090,7 @@ erret:
 	if (!dfunc->df_deleted
 			    && ufunc->uf_dfunc_idx == def_functions.ga_len - 1)
 	    --def_functions.ga_len;
-	ufunc->uf_dfunc_idx = UF_NOT_COMPILED;
+	ufunc->uf_def_status = UF_NOT_COMPILED;
 
 	while (cctx.ctx_scope != NULL)
 	    drop_scope(&cctx);
@@ -7260,17 +7318,19 @@ delete_def_function_contents(dfunc_T *dfunc)
 }
 
 /*
- * When a user function is deleted, delete any associated def function.
+ * When a user function is deleted, clear the contents of any associated def
+ * function.  The position in def_functions can be re-used.
  */
     void
-delete_def_function(ufunc_T *ufunc)
+clear_def_function(ufunc_T *ufunc)
 {
-    if (ufunc->uf_dfunc_idx >= 0)
+    if (ufunc->uf_dfunc_idx > 0)
     {
 	dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 							 + ufunc->uf_dfunc_idx;
 
 	delete_def_function_contents(dfunc);
+	ufunc->uf_def_status = UF_NOT_COMPILED;
     }
 }
 

@@ -4775,14 +4775,8 @@ handle_key_with_modifier(
 
     modifiers = decode_modifiers(arg[1]);
 
-    // Some keys already have Shift included, pass them as
-    // normal keys.  Not when Ctrl is also used, because <C-H>
-    // and <C-S-H> are different.
-    if (modifiers == MOD_MASK_SHIFT
-	    && ((key >= '@' && key <= 'Z')
-		|| key == '^' || key == '_'
-		|| (key >= '{' && key <= '~')))
-	modifiers = 0;
+    // May remove the shift modifier if it's already included in the key.
+    modifiers = may_remove_shift_modifier(modifiers, key);
 
     // When used with Ctrl we always make a letter upper case,
     // so that mapping <C-H> and <C-h> are the same.  Typing

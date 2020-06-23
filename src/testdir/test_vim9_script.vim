@@ -109,6 +109,41 @@ def Test_assignment()
   call CheckDefFailure(['v:errmsg += 123'], 'E1013:')
 enddef
 
+def Test_vim9_single_char_vars()
+  let lines =<< trim END
+      vim9script
+
+      " single character variable declarations work
+      let a: string
+      let b: number
+      let l: list<any>
+      let s: string
+      let t: number
+      let v: number
+      let w: number
+
+      " script-local variables can be used without s: prefix
+      a = 'script-a'
+      b = 111
+      l = [1, 2, 3]
+      s = 'script-s'
+      t = 222
+      v = 333
+      w = 444
+
+      assert_equal('script-a', a)
+      assert_equal(111, b)
+      assert_equal([1, 2, 3], l)
+      assert_equal('script-s', s)
+      assert_equal(222, t)
+      assert_equal(333, v)
+      assert_equal(444, w)
+  END
+  writefile(lines, 'Xsinglechar')
+  source Xsinglechar
+  delete('Xsinglechar')
+enddef
+
 def Test_assignment_list()
   let list1: list<bool> = [false, true, false]
   let list2: list<number> = [1, 2, 3]
@@ -139,6 +174,9 @@ def Test_assignment_dict()
   let dict3: dict<string> = #{key: 'value'}
   let dict4: dict<any> = #{one: 1, two: '2'}
   let dict5: dict<blob> = #{one: 0z01, two: 0z02}
+
+  " overwrite
+  dict3['key'] = 'another'
 
   call CheckDefExecFailure(['let dd = {}', 'dd[""] = 6'], 'E713:')
 
@@ -219,6 +257,13 @@ def Test_assignment_default()
 
     let thechannel: channel
     assert_equal(test_null_channel(), thechannel)
+
+    if has('unix') && executable('cat')
+      " check with non-null job and channel, types must match
+      thejob = job_start("cat ", #{})
+      thechannel = job_getchannel(thejob)
+      job_stop(thejob, 'kill')
+    endif
   endif
 
   let nr = 1234 | nr = 5678
@@ -277,15 +322,15 @@ def Test_assignment_failure()
   call CheckDefFailure(['let &option'], 'E1052:')
   call CheckDefFailure(['&g:option = 5'], 'E113:')
 
-  call CheckDefFailure(['let $VAR = 5'], 'E1065:')
+  call CheckDefFailure(['let $VAR = 5'], 'E1016: Cannot declare an environment variable:')
 
   call CheckDefFailure(['let @~ = 5'], 'E354:')
   call CheckDefFailure(['let @a = 5'], 'E1066:')
 
-  call CheckDefFailure(['let g:var = 5'], 'E1016:')
-  call CheckDefFailure(['let w:var = 5'], 'E1079:')
-  call CheckDefFailure(['let b:var = 5'], 'E1078:')
-  call CheckDefFailure(['let t:var = 5'], 'E1080:')
+  call CheckDefFailure(['let g:var = 5'], 'E1016: Cannot declare a global variable:')
+  call CheckDefFailure(['let w:var = 5'], 'E1016: Cannot declare a window variable:')
+  call CheckDefFailure(['let b:var = 5'], 'E1016: Cannot declare a buffer variable:')
+  call CheckDefFailure(['let t:var = 5'], 'E1016: Cannot declare a tab variable:')
 
   call CheckDefFailure(['let anr = 4', 'anr ..= "text"'], 'E1019:')
   call CheckDefFailure(['let xnr += 4'], 'E1020:')
@@ -422,6 +467,14 @@ func Test_const()
   call CheckDefFailure(['const two'], 'E1021:')
   call CheckDefFailure(['const &option'], 'E996:')
 endfunc
+
+def Test_range_no_colon()
+  call CheckDefFailure(['%s/a/b/'], 'E1050:')
+  call CheckDefFailure(['+ s/a/b/'], 'E1050:')
+  call CheckDefFailure(['- s/a/b/'], 'E1050:')
+  call CheckDefFailure(['. s/a/b/'], 'E1050:')
+enddef
+
 
 def Test_block()
   let outer = 1
@@ -775,6 +828,9 @@ def Test_vim9script_fails()
   CheckScriptFailure(['vim9script', 'export let g:some'], 'E1044:')
   CheckScriptFailure(['vim9script', 'export echo 134'], 'E1043:')
 
+  CheckScriptFailure(['vim9script', 'let str: string', 'str = 1234'], 'E1013:')
+  CheckScriptFailure(['vim9script', 'const str = "asdf"', 'str = "xxx"'], 'E46:')
+
   assert_fails('vim9script', 'E1038')
   assert_fails('export something', 'E1043')
 enddef
@@ -1051,11 +1107,11 @@ def Test_if_const_expr()
 
   g:glob = 2
   if false
-    execute('let g:glob = 3')
+    execute('g:glob = 3')
   endif
   assert_equal(2, g:glob)
   if true
-    execute('let g:glob = 3')
+    execute('g:glob = 3')
   endif
   assert_equal(3, g:glob)
 
@@ -1231,7 +1287,7 @@ def Test_echomsg_cmd()
   echomsg 'some' 'more' # comment
   assert_match('^some more$', Screenline(&lines))
   echo 'clear'
-  1messages
+  :1messages
   assert_match('^some more$', Screenline(&lines))
 
   call CheckDefFailure(['echomsg "xxx"# comment'], 'E488:')
@@ -1742,8 +1798,8 @@ def Test_vim9_comment_gui()
 enddef
 
 def Test_vim9_comment_not_compiled()
-  au TabEnter *.vim let g:entered = 1
-  au TabEnter *.x let g:entered = 2
+  au TabEnter *.vim g:entered = 1
+  au TabEnter *.x g:entered = 2
 
   edit test.vim
   doautocmd TabEnter #comment
@@ -1763,14 +1819,46 @@ def Test_vim9_comment_not_compiled()
 
   CheckScriptSuccess([
       'vim9script',
-      'let g:var = 123',
-      'let w:var = 777',
+      'g:var = 123',
+      'b:var = 456',
+      'w:var = 777',
+      't:var = 888',
       'unlet g:var w:var # something',
       ])
 
   CheckScriptFailure([
       'vim9script',
       'let g:var = 123',
+      ], 'E1016: Cannot declare a global variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let b:var = 123',
+      ], 'E1016: Cannot declare a buffer variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let w:var = 123',
+      ], 'E1016: Cannot declare a window variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let t:var = 123',
+      ], 'E1016: Cannot declare a tab variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let v:version = 123',
+      ], 'E1016: Cannot declare a v: variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'let $VARIABLE = "text"',
+      ], 'E1016: Cannot declare an environment variable:')
+
+  CheckScriptFailure([
+      'vim9script',
+      'g:var = 123',
       'unlet g:var# comment1',
       ], 'E108:')
 
@@ -1818,7 +1906,7 @@ def Test_vim9_comment_not_compiled()
       'vim9script',
       'new'
       'call setline(1, ["# define pat", "last"])',
-      '$',
+      ':$',
       'dsearch /pat/ #comment',
       'bwipe!',
       ])
@@ -1827,7 +1915,7 @@ def Test_vim9_comment_not_compiled()
       'vim9script',
       'new'
       'call setline(1, ["# define pat", "last"])',
-      '$',
+      ':$',
       'dsearch /pat/#comment',
       'bwipe!',
       ], 'E488:')
@@ -1841,11 +1929,11 @@ enddef
 def Test_finish()
   let lines =<< trim END
     vim9script
-    let g:res = 'one'
+    g:res = 'one'
     if v:false | finish | endif
-    let g:res = 'two'
+    g:res = 'two'
     finish
-    let g:res = 'three'
+    g:res = 'three'
   END
   writefile(lines, 'Xfinished')
   source Xfinished
