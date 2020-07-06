@@ -1767,29 +1767,39 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 // parse value
                 NSString *v = [arr objectAtIndex:1];
 
-                // Ideally we don't decode anything here. The input parameters
-                // should be used as-in as there would be no reason for caller
-                // to encoder anything. For the line component it's a simple
-                // string, and the URL should already be a proper file:// URL
-                // with all the necessary characters (e.g. space) encoded and
-                // we can just pass it to NSURL as-in below.
-                // However, iTerm2 appears to encode the slashes as well
-                // resulting in URL that looks like
-                // file://%2Fsome%2Ffolder/file%20with%20space which is wrong
-                // as this doesn't form a valid URL. To accommodate that, we
-                // decode the URL, and later on manually parse it instead of
-                // relying on NSURL.
-                // See: https://github.com/macvim-dev/macvim/issues/1020.
-
-                // BOOL decode = ![f isEqualToString:@"url"];
-                const BOOL decode = YES;
-
-                if (decode)
-                {
+                // We need to decode the parameters here because most URL
+                // parsers treat the query component as needing to be decoded
+                // instead of treating it as is. It does mean that a link to
+                // open file "/tmp/file name.txt" will be
+                // mvim://open?url=file:///tmp/file%2520name.txt to encode a
+                // URL of file:///tmp/file%20name.txt. This double-encoding is
+                // intentional to follow the URL spec.
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_11
-                    v = [v stringByRemovingPercentEncoding];
+                v = [v stringByRemovingPercentEncoding];
 #else
-                    v = [v stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+                v = [v stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+#endif
+
+                if ([f isEqualToString:@"url"]) {
+                    // Since the URL scheme uses a double-encoding due to a
+                    // file:// URL encoded in another mvim: one, existing tools
+                    // like iTerm2 could sometimes erroneously only do a single
+                    // encode. To maximize compatiblity, we re-encode invalid
+                    // characters if we detect them as they would not work
+                    // later on when we pass this string to URLWithString.
+                    //
+                    // E.g. mvim://open?uri=file:///foo%20bar => "file:///foo bar"
+                    // which is not a valid URL, so we re-encode it to
+                    // file:///foo%20bar here. The only important case is to
+                    // not touch the "%" character as it introduces ambiguity
+                    // and the re-encoding is a nice compatibility feature, but
+                    // the canonical form should be double-encoded, i.e.
+                    // mvim://open?uri=file:///foo%2520bar
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_11
+                    NSMutableCharacterSet *charSet = [NSMutableCharacterSet characterSetWithCharactersInString:@"%"];
+                    [charSet formUnionWithCharacterSet:NSCharacterSet.URLHostAllowedCharacterSet];
+                    [charSet formUnionWithCharacterSet:NSCharacterSet.URLPathAllowedCharacterSet];
+                    v = [v stringByAddingPercentEncodingWithAllowedCharacters:charSet];
 #endif
                 }
 
@@ -1800,12 +1810,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         // Actually open the file.
         NSString *file = [dict objectForKey:@"url"];
         if (file != nil) {
-            // Instead of passing "file" to NSURL directly, we just manually
-            // parse the URL because the URL is already decoded and NSURL will
-            // get confused by special chars like spaces. See above
-            // explanation.
-            if ([file hasPrefix:@"file:///"]) {
-                NSString *filePath = [file substringFromIndex:7];
+            NSURL *fileUrl = [NSURL URLWithString:file];
+            if ([fileUrl isFileURL]) {
+                NSString *filePath = [fileUrl path];
                 // Only opens files that already exist.
                 if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
                     NSArray *filenames = [NSArray arrayWithObject:filePath];
@@ -1847,11 +1854,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 [alert addButtonWithTitle:NSLocalizedString(@"OK",
                     @"Dialog button")];
 
-                [alert setMessageText:NSLocalizedString(@"Unknown File Protocol",
-                    @"Unknown File Protocol dialog, title")];
+                [alert setMessageText:NSLocalizedString(@"Invalid File URL",
+                    @"Unknown Fie URL dialog, title")];
                 [alert setInformativeText:[NSString stringWithFormat:NSLocalizedString(
-                    @"Unknown protocol in \"%@\"",
-                    @"Unknown File Protocol dialog, text"),
+                    @"Unknown file URL in \"%@\"",
+                    @"Unknown file URL dialog, text"),
                     file]];
 
                 [alert setAlertStyle:NSAlertStyleWarning];

@@ -604,6 +604,15 @@ For example, the link >
 	mvim://open?url=file:///etc/profile&line=20
 will open the file /etc/profile on line 20 when clicked in a web browser.
 
+Note: A caveat in MacVim's implementation is that it expects special
+characters to be encoded twice. For example, a space should be encoded into
+"%2520" instead of "%20". A file "/tmp/file name?.txt" would need the
+following link: >
+	mvim://open?url=file:///tmp/file%2520name%253F.txt
+
+MacVim will try to be smart and detect cases where a user has erroneously only
+encoded once, but for best results use double-encoding as described above.
+
 Note that url has to be a file:// url pointing to an existing local file.
 
 ==============================================================================
