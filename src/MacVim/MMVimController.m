@@ -686,11 +686,7 @@ static BOOL isUnsafeMessage(int msgid);
         NSString *string = [[NSString alloc] initWithBytes:(void*)bytes
                 length:len encoding:NSUTF8StringEncoding];
 
-        // While in live resize the window title displays the dimensions of the
-        // window so don't clobber this with a spurious "set title" message
-        // from Vim.
-        if (![[windowController vimView] inLiveResize])
-            [windowController setTitle:string];
+        [windowController setTitle:string];
 
         [string release];
     } else if (SetDocumentFilenameMsgID == msgid) {

@@ -75,6 +75,7 @@
 - (void)setScrollbarThumbValue:(float)val proportion:(float)prop
                     identifier:(int32_t)ident;
 
+- (unsigned int)calculateStyleMask;
 - (void)setBackgroundOption:(int)dark;
 - (void)refreshApperanceMode;
 

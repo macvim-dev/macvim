@@ -477,6 +477,17 @@
 
 - (void)setTitle:(NSString *)title
 {
+    // Save the original title, if we haven't already.
+    [lastSetTitle release];
+    lastSetTitle = [title retain];
+    
+    // While in live resize the window title displays the dimensions of the
+    // window so don't clobber this with the new title. We have already set
+    // lastSetTitle above so once live resize is done we will set it back.
+    if ([vimView inLiveResize]) {
+        return;
+    }
+
     if (!title)
         return;
 
@@ -579,29 +590,41 @@
     // Transparent title bar setting
     decoratedWindow.titlebarAppearsTransparent = [[NSUserDefaults standardUserDefaults]
                                                   boolForKey:MMTitlebarAppearsTransparentKey];
+    
+    // No title bar setting
+    if ([[NSUserDefaults standardUserDefaults]
+            boolForKey:MMNoTitleBarWindowKey]) {
+        [decoratedWindow setStyleMask:([decoratedWindow styleMask] & ~NSWindowStyleMaskTitled)];
+    } else {
+        [decoratedWindow setStyleMask:([decoratedWindow styleMask] | NSWindowStyleMaskTitled)];
+    }
+
+    // Title may have been lost if we hid the title-bar. Reset it.
+    [self setTitle:lastSetTitle];
 
     // Dark mode only works on 10.14+ because that's when dark mode was
     // introduced.
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
     if (@available(macos 10.14, *)) {
+        NSAppearance* desiredAppearance;
         switch ([[NSUserDefaults standardUserDefaults] integerForKey:MMAppearanceModeSelectionKey])
         {
             case MMAppearanceModeSelectionLight:
             {
-                decoratedWindow.appearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
+                desiredAppearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
                 break;
             }
             case MMAppearanceModeSelectionDark:
             {
-                decoratedWindow.appearance = [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua];
+                desiredAppearance = [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua];
                 break;
             }
             case MMAppearanceModeSelectionBackgroundOption:
             {
                 if (backgroundDark) {
-                    decoratedWindow.appearance = [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua];
+                    desiredAppearance = [NSAppearance appearanceNamed: NSAppearanceNameDarkAqua];
                 } else {
-                    decoratedWindow.appearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
+                    desiredAppearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
                 }
                 break;
             }
@@ -609,10 +632,13 @@
             default:
             {
                 // Use the system appearance. This will also auto-switch when OS changes mode.
-                decoratedWindow.appearance = nil;
+                desiredAppearance = nil;
                 break;
             }
         }
+        
+        decoratedWindow.appearance = desiredAppearance;
+        fullScreenWindow.appearance = desiredAppearance;
     }
 #endif
 }
@@ -821,11 +847,6 @@
 {
     if (!setupDone) return;
 
-    // Save the original title, if we haven't already.
-    if (lastSetTitle == nil) {
-        lastSetTitle = [[decoratedWindow title] retain];
-    }
-
     // NOTE: During live resize Cocoa goes into "event tracking mode".  We have
     // to add the backend connection to this mode in order for resize messages
     // from Vim to reach MacVim.  We do not wish to always listen to requests
@@ -849,8 +870,6 @@
     // If we saved the original title while resizing, restore it.
     if (lastSetTitle != nil) {
         [decoratedWindow setTitle:lastSetTitle];
-        [lastSetTitle release];
-        lastSetTitle = nil;
     }
 
     // If we are in the middle of rapid resize (e.g. double-clicking on the border/corner
