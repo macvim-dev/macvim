@@ -2,6 +2,7 @@
 
 source check.vim
 source vim9.vim
+source view_util.vim
 
 def Test_edit_wildcards()
   let filename = 'Xtest'
@@ -76,6 +77,190 @@ def Test_assign_dict()
     nrd[i] = i
   endfor
   assert_equal({'0': 0, '1': 1, '2': 2}, nrd)
+enddef
+
+def Test_echo_linebreak()
+  let lines =<< trim END
+      vim9script
+      redir @a
+      echo 'one'
+            .. 'two'
+      redir END
+      assert_equal("\nonetwo", @a)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      redir @a
+      echo 11 +
+            77
+            - 22
+      redir END
+      assert_equal("\n66", @a)
+  END
+  CheckScriptSuccess(lines)
+enddef
+
+def Test_if_linebreak()
+  let lines =<< trim END
+      vim9script
+      if 1 &&
+            2
+            || 3
+        g:res = 42
+      endif
+      assert_equal(42, g:res)
+  END
+  CheckScriptSuccess(lines)
+  unlet g:res
+
+  lines =<< trim END
+      vim9script
+      if 1 &&
+            0
+        g:res = 0
+      elseif 0 ||
+              0
+              || 1
+        g:res = 12
+      endif
+      assert_equal(12, g:res)
+  END
+  CheckScriptSuccess(lines)
+  unlet g:res
+enddef
+
+def Test_while_linebreak()
+  let lines =<< trim END
+      vim9script
+      let nr = 0
+      while nr <
+              10 + 3
+            nr = nr
+                  + 4
+      endwhile
+      assert_equal(16, nr)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      let nr = 0
+      while nr
+            <
+              10
+              +
+              3
+            nr = nr
+                  +
+                  4
+      endwhile
+      assert_equal(16, nr)
+  END
+  CheckScriptSuccess(lines)
+enddef
+
+def Test_for_linebreak()
+  let lines =<< trim END
+      vim9script
+      let nr = 0
+      for x
+            in
+              [1, 2, 3, 4]
+          nr = nr + x
+      endfor
+      assert_equal(10, nr)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      let nr = 0
+      for x
+            in
+              [1, 2,
+                  3, 4
+                  ]
+          nr = nr
+                 +
+                  x
+      endfor
+      assert_equal(10, nr)
+  END
+  CheckScriptSuccess(lines)
+enddef
+
+def Test_method_call_linebreak()
+  let lines =<< trim END
+      vim9script
+      let res = []
+      func RetArg(
+            arg
+            )
+            let s:res = a:arg
+      endfunc
+      [1,
+          2,
+          3]->RetArg()
+      assert_equal([1, 2, 3], res)
+  END
+  CheckScriptSuccess(lines)
+enddef
+
+def Test_bar_after_command()
+  def RedrawAndEcho()
+    let x = 'did redraw'
+    redraw | echo x
+  enddef
+  RedrawAndEcho()
+  assert_match('did redraw', Screenline(&lines))
+
+  def CallAndEcho()
+    let x = 'did redraw'
+    reg_executing() | echo x
+  enddef
+  CallAndEcho()
+  assert_match('did redraw', Screenline(&lines))
+
+  if has('unix')
+    # bar in filter write command does not start new command
+    def WriteToShell()
+      new
+      setline(1, 'some text')
+      w !cat | cat > Xoutfile
+      bwipe!
+    enddef
+    WriteToShell()
+    assert_equal(['some text'], readfile('Xoutfile'))
+    delete('Xoutfile')
+
+    # bar in filter read command does not start new command
+    def ReadFromShell()
+      new
+      r! echo hello there | cat > Xoutfile
+      r !echo again | cat >> Xoutfile
+      bwipe!
+    enddef
+    ReadFromShell()
+    assert_equal(['hello there', 'again'], readfile('Xoutfile'))
+    delete('Xoutfile')
+  endif
+enddef
+
+def Test_eval_command()
+  let from = 3
+  let to = 5
+  g:val = 111
+  def Increment(nrs: list<number>)
+    for nr in nrs
+      g:val += nr
+    endfor
+  enddef
+  eval range(from, to)
+        ->Increment()
+  assert_equal(111 + 3 + 4 + 5, g:val)
+  unlet g:val
 enddef
 
 

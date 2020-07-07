@@ -3083,7 +3083,7 @@ expand_backtick(
 
 #ifdef FEAT_EVAL
     if (*cmd == '=')	    // `={expr}`: Expand expression
-	buffer = eval_to_string(cmd + 1, &p, TRUE);
+	buffer = eval_to_string(cmd + 1, TRUE);
     else
 #endif
 	buffer = get_cmd_output(cmd, NULL,
@@ -3813,8 +3813,13 @@ gen_expand_wildcards(
 	    vim_free(p);
     }
 
+    // When returning FAIL the array must be freed here.
+    if (retval == FAIL)
+	ga_clear(&ga);
+
     *num_file = ga.ga_len;
-    *file = (ga.ga_data != NULL) ? (char_u **)ga.ga_data : (char_u **)"";
+    *file = (ga.ga_data != NULL) ? (char_u **)ga.ga_data
+						  : (char_u **)_("no matches");
 
     recursive = FALSE;
 

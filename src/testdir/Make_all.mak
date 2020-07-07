@@ -20,15 +20,11 @@ SCRIPTS_ALL = \
 
 # Tests that run on most systems, but not on Amiga.
 SCRIPTS_MORE1 = \
-	test52.out \
-	test86.out \
-	test87.out
-
+	test52.out
 
 # Tests that run on most systems, but not on Amiga and DOS/Windows.
 SCRIPTS_MORE2 = \
 	test49.out
-
 
 # Tests that run on most systems, but not on VMS
 SCRIPTS_MORE4 = \
@@ -36,7 +32,6 @@ SCRIPTS_MORE4 = \
 
 # Tests specifically for MS-Windows.
 SCRIPTS_WIN32 =
-
 
 # Tests for the GUI.
 SCRIPTS_GUI =
@@ -90,6 +85,7 @@ NEW_TESTS = \
 	test_close_count \
 	test_cmdline \
 	test_command_count \
+	test_comments \
 	test_comparators \
 	test_compiler \
 	test_conceal \
@@ -276,6 +272,7 @@ NEW_TESTS = \
 	test_termcodes \
 	test_termencoding \
 	test_terminal \
+	test_terminal2 \
 	test_terminal_fail \
 	test_textformat \
 	test_textobjects \
@@ -309,7 +306,6 @@ NEW_TESTS = \
 	test_alot_utf8 \
 	test_alot
 
-
 # Test targets that use runtest.vim.
 # Keep test_alot*.res as the last one, sort the others.
 # test_largefile.res is omitted, it uses too much resources to run on CI.
@@ -342,6 +338,7 @@ NEW_TESTS_RES = \
 	test_close_count.res \
 	test_cmdline.res \
 	test_command_count.res \
+	test_comments.res \
 	test_comparators.res \
 	test_conceal.res \
 	test_const.res \
@@ -492,6 +489,7 @@ NEW_TESTS_RES = \
 	test_termcodes.res \
 	test_termencoding.res \
 	test_terminal.res \
+	test_terminal2.res \
 	test_terminal_fail.res \
 	test_textformat.res \
 	test_textobjects.res \

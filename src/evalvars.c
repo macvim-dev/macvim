@@ -437,7 +437,7 @@ eval_spell_expr(char_u *badword, char_u *expr)
     if (p_verbose == 0)
 	++emsg_off;
 
-    if (eval1(&p, &rettv, EVAL_EVALUATE) == OK)
+    if (eval1(&p, &rettv, &EVALARG_EVALUATE) == OK)
     {
 	if (rettv.v_type != VAR_LIST)
 	    clear_tv(&rettv);
@@ -776,7 +776,7 @@ ex_let(exarg_T *eap)
     }
     else
     {
-	int eval_flags;
+	evalarg_T   evalarg;
 
 	rettv.v_type = VAR_UNKNOWN;
 	i = FAIL;
@@ -799,14 +799,22 @@ ex_let(exarg_T *eap)
 
 	    if (eap->skip)
 		++emsg_skip;
-	    eval_flags = eap->skip ? 0 : EVAL_EVALUATE;
-	    i = eval0(expr, &rettv, &eap->nextcmd, eval_flags);
+	    CLEAR_FIELD(evalarg);
+	    evalarg.eval_flags = eap->skip ? 0 : EVAL_EVALUATE;
+	    if (getline_equal(eap->getline, eap->cookie, getsourceline))
+	    {
+		evalarg.eval_getline = eap->getline;
+		evalarg.eval_cookie = eap->cookie;
+	    }
+	    i = eval0(expr, &rettv, eap, &evalarg);
+	    if (eap->skip)
+		--emsg_skip;
+	    clear_evalarg(&evalarg, eap);
 	}
 	if (eap->skip)
 	{
 	    if (i != FAIL)
 		clear_tv(&rettv);
-	    --emsg_skip;
 	}
 	else if (i != FAIL)
 	{
@@ -1118,14 +1126,14 @@ list_arg_vars(exarg_T *eap, char_u *arg, int *first)
 	    {
 		if (tofree != NULL)
 		    name = tofree;
-		if (get_var_tv(name, len, &tv, NULL, TRUE, FALSE) == FAIL)
+		if (eval_variable(name, len, &tv, NULL, TRUE, FALSE) == FAIL)
 		    error = TRUE;
 		else
 		{
 		    // handle d.key, l[idx], f(expr)
 		    arg_subsc = arg;
-		    if (handle_subscript(&arg, &tv, EVAL_EVALUATE, TRUE,
-							  name, &name) == FAIL)
+		    if (handle_subscript(&arg, &tv, &EVALARG_EVALUATE, TRUE)
+								       == FAIL)
 			error = TRUE;
 		    else
 		    {
@@ -2359,7 +2367,7 @@ set_cmdarg(exarg_T *eap, char_u *oldarg)
  * Return OK or FAIL.  If OK is returned "rettv" must be cleared.
  */
     int
-get_var_tv(
+eval_variable(
     char_u	*name,
     int		len,		// length of "name"
     typval_T	*rettv,		// NULL when only checking existence
@@ -2846,7 +2854,7 @@ set_var(
     typval_T	*tv,
     int		copy)	    // make copy of value in "tv"
 {
-    set_var_const(name, NULL, tv, copy, 0);
+    set_var_const(name, NULL, tv, copy, LET_NO_COMMAND);
 }
 
 /*
@@ -3200,7 +3208,7 @@ getwinvar(
 			done = TRUE;
 		    }
 		}
-		else if (get_option_tv(&varname, rettv, 1) == OK)
+		else if (eval_option(&varname, rettv, 1) == OK)
 		    // window-local-option
 		    done = TRUE;
 	    }
@@ -3336,12 +3344,11 @@ var_exists(char_u *var)
     {
 	if (tofree != NULL)
 	    name = tofree;
-	n = (get_var_tv(name, len, &tv, NULL, FALSE, TRUE) == OK);
+	n = (eval_variable(name, len, &tv, NULL, FALSE, TRUE) == OK);
 	if (n)
 	{
 	    // handle d.key, l[idx], f(expr)
-	    n = (handle_subscript(&var, &tv, EVAL_EVALUATE,
-						    FALSE, name, &name) == OK);
+	    n = (handle_subscript(&var, &tv, &EVALARG_EVALUATE, FALSE) == OK);
 	    if (n)
 		clear_tv(&tv);
 	}
@@ -3604,7 +3611,7 @@ f_getbufvar(typval_T *argvars, typval_T *rettv)
 		    done = TRUE;
 		}
 	    }
-	    else if (get_option_tv(&varname, rettv, TRUE) == OK)
+	    else if (eval_option(&varname, rettv, TRUE) == OK)
 		// buffer-local-option
 		done = TRUE;
 

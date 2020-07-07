@@ -25,7 +25,6 @@ static char_u	*do_one_cmd(char_u **, int, cstack_T *, char_u *(*fgetline)(int, v
 static char_u	*do_one_cmd(char_u **, int, char_u *(*fgetline)(int, void *, int, int), void *cookie);
 static int	if_level = 0;		// depth in :if
 #endif
-static void	free_cmdmod(void);
 static void	append_command(char_u *cmd);
 
 #ifndef FEAT_MENU
@@ -635,6 +634,7 @@ do_cmdline(
     cstack_T	cstack;			// conditional stack
     garray_T	lines_ga;		// keep lines for ":while"/":for"
     int		current_line = 0;	// active line in lines_ga
+    int		current_line_before = 0;
     char_u	*fname = NULL;		// function or script name
     linenr_T	*breakpoint = NULL;	// ptr to breakpoint field in cookie
     int		*dbg_tick = NULL;	// ptr to dbg_tick field in cookie
@@ -857,27 +857,6 @@ do_cmdline(
 	    }
 # endif
 	}
-
-	if (cstack.cs_looplevel > 0)
-	{
-	    // Inside a while/for loop we need to store the lines and use them
-	    // again.  Pass a different "fgetline" function to do_one_cmd()
-	    // below, so that it stores lines in or reads them from
-	    // "lines_ga".  Makes it possible to define a function inside a
-	    // while/for loop.
-	    cmd_getline = get_loop_line;
-	    cmd_cookie = (void *)&cmd_loop_cookie;
-	    cmd_loop_cookie.lines_gap = &lines_ga;
-	    cmd_loop_cookie.current_line = current_line;
-	    cmd_loop_cookie.getline = fgetline;
-	    cmd_loop_cookie.cookie = cookie;
-	    cmd_loop_cookie.repeating = (current_line < lines_ga.ga_len);
-	}
-	else
-	{
-	    cmd_getline = fgetline;
-	    cmd_cookie = cookie;
-	}
 #endif
 
 	// 2. If no line given, get an allocated line with fgetline().
@@ -935,21 +914,44 @@ do_cmdline(
 
 #ifdef FEAT_EVAL
 	/*
-	 * Save the current line when inside a ":while" or ":for", and when
-	 * the command looks like a ":while" or ":for", because we may need it
-	 * later.  When there is a '|' and another command, it is stored
-	 * separately, because we need to be able to jump back to it from an
+	 * Inside a while/for loop, and when the command looks like a ":while"
+	 * or ":for", the line is stored, because we may need it later when
+	 * looping.
+	 *
+	 * When there is a '|' and another command, it is stored separately,
+	 * because we need to be able to jump back to it from an
 	 * :endwhile/:endfor.
+	 *
+	 * Pass a different "fgetline" function to do_one_cmd() below,
+	 * that it stores lines in or reads them from "lines_ga".  Makes it
+	 * possible to define a function inside a while/for loop and handles
+	 * line continuation.
 	 */
-	if (current_line == lines_ga.ga_len
-		&& (cstack.cs_looplevel || has_loop_cmd(next_cmdline)))
+	if ((cstack.cs_looplevel > 0 || has_loop_cmd(next_cmdline)))
 	{
-	    if (store_loop_line(&lines_ga, next_cmdline) == FAIL)
+	    cmd_getline = get_loop_line;
+	    cmd_cookie = (void *)&cmd_loop_cookie;
+	    cmd_loop_cookie.lines_gap = &lines_ga;
+	    cmd_loop_cookie.current_line = current_line;
+	    cmd_loop_cookie.getline = fgetline;
+	    cmd_loop_cookie.cookie = cookie;
+	    cmd_loop_cookie.repeating = (current_line < lines_ga.ga_len);
+
+	    // Save the current line when encountering it the first time.
+	    if (current_line == lines_ga.ga_len
+		    && store_loop_line(&lines_ga, next_cmdline) == FAIL)
 	    {
 		retval = FAIL;
 		break;
 	    }
+	    current_line_before = current_line;
 	}
+	else
+	{
+	    cmd_getline = fgetline;
+	    cmd_cookie = cookie;
+	}
+
 	did_endif = FALSE;
 #endif
 
@@ -1084,7 +1086,7 @@ do_cmdline(
 	    else if (cstack.cs_lflags & CSL_HAD_LOOP)
 	    {
 		cstack.cs_lflags &= ~CSL_HAD_LOOP;
-		cstack.cs_line[cstack.cs_idx] = current_line - 1;
+		cstack.cs_line[cstack.cs_idx] = current_line_before;
 	    }
 	}
 
@@ -1521,7 +1523,7 @@ getline_cookie(
 {
 #ifdef FEAT_EVAL
     char_u		*(*gp)(int, void *, int, int);
-    struct loop_cookie *cp;
+    struct loop_cookie  *cp;
 
     // When "fgetline" is "get_loop_line()" use the "cookie" to find the
     // cookie that's originally used to obtain the lines.  This may be nested
@@ -1538,6 +1540,41 @@ getline_cookie(
     return cookie;
 #endif
 }
+
+#if defined(FEAT_EVAL) || defined(PROT)
+/*
+ * Get the next line source line without advancing.
+ */
+    char_u *
+getline_peek(
+    char_u	*(*fgetline)(int, void *, int, int) UNUSED,
+    void	*cookie)		// argument for fgetline()
+{
+    char_u		*(*gp)(int, void *, int, int);
+    struct loop_cookie  *cp;
+    wcmd_T		*wp;
+
+    // When "fgetline" is "get_loop_line()" use the "cookie" to find the
+    // cookie that's originally used to obtain the lines.  This may be nested
+    // several levels.
+    gp = fgetline;
+    cp = (struct loop_cookie *)cookie;
+    while (gp == get_loop_line)
+    {
+	if (cp->current_line + 1 < cp->lines_gap->ga_len)
+	{
+	    // executing lines a second time, use the stored copy
+	    wp = (wcmd_T *)(cp->lines_gap->ga_data) + cp->current_line + 1;
+	    return wp->line;
+	}
+	gp = cp->getline;
+	cp = cp->cookie;
+    }
+    if (gp == getsourceline)
+	return source_nextline(cp);
+    return NULL;
+}
+#endif
 
 
 /*
@@ -2579,31 +2616,9 @@ doend:
 			? cmdnames[(int)ea.cmdidx].cmd_name : (char_u *)NULL);
 #endif
 
-    if (ea.verbose_save >= 0)
-	p_verbose = ea.verbose_save;
-
-    free_cmdmod();
+    undo_cmdmod(&ea, save_msg_scroll);
     cmdmod = save_cmdmod;
     reg_executing = save_reg_executing;
-
-    if (ea.save_msg_silent != -1)
-    {
-	// messages could be enabled for a serious error, need to check if the
-	// counters don't become negative
-	if (!did_emsg || msg_silent > ea.save_msg_silent)
-	    msg_silent = ea.save_msg_silent;
-	emsg_silent -= ea.did_esilent;
-	if (emsg_silent < 0)
-	    emsg_silent = 0;
-	// Restore msg_scroll, it's set by file I/O commands, even when no
-	// message is actually displayed.
-	msg_scroll = save_msg_scroll;
-
-	// "silent reg" or "silent echo x" inside "redir" leaves msg_col
-	// somewhere in the line.  Put it back in the first column.
-	if (redirecting())
-	    msg_col = 0;
-    }
 
 #ifdef HAVE_SANDBOX
     if (ea.did_sandbox)
@@ -2615,6 +2630,7 @@ doend:
 
 #ifdef FEAT_EVAL
     --ex_nesting_level;
+    vim_free(ea.cmdline_tofree);
 #endif
 
     return ea.nextcmd;
@@ -2894,11 +2910,14 @@ parse_command_modifiers(exarg_T *eap, char **errormsg, int skip_only)
 }
 
 /*
- * Free contents of "cmdmod".
+ * Unod and free contents of "cmdmod".
  */
-    static void
-free_cmdmod(void)
+    void
+undo_cmdmod(exarg_T *eap, int save_msg_scroll)
 {
+    if (eap->verbose_save >= 0)
+	p_verbose = eap->verbose_save;
+
     if (cmdmod.save_ei != NULL)
     {
 	// Restore 'eventignore' to the value before ":noautocmd".
@@ -2909,6 +2928,25 @@ free_cmdmod(void)
 
     if (cmdmod.filter_regmatch.regprog != NULL)
 	vim_regfree(cmdmod.filter_regmatch.regprog);
+
+    if (eap->save_msg_silent != -1)
+    {
+	// messages could be enabled for a serious error, need to check if the
+	// counters don't become negative
+	if (!did_emsg || msg_silent > eap->save_msg_silent)
+	    msg_silent = eap->save_msg_silent;
+	emsg_silent -= eap->did_esilent;
+	if (emsg_silent < 0)
+	    emsg_silent = 0;
+	// Restore msg_scroll, it's set by file I/O commands, even when no
+	// message is actually displayed.
+	msg_scroll = save_msg_scroll;
+
+	// "silent reg" or "silent echo x" inside "redir" leaves msg_col
+	// somewhere in the line.  Put it back in the first column.
+	if (redirecting())
+	    msg_col = 0;
+    }
 }
 
 /*
@@ -3186,8 +3224,9 @@ find_ex_command(
      * "lvar = value", "lvar(arg)", "[1, 2 3]->Func()"
      */
     p = eap->cmd;
-    if (lookup != NULL && (*p == '('
-	       || ((p = to_name_const_end(eap->cmd)) > eap->cmd && *p != NUL)))
+    if (lookup != NULL && (*p == '(' || *p == '{'
+	       || ((p = to_name_const_end(eap->cmd)) > eap->cmd && *p != NUL)
+	       || *p == '['))
     {
 	int oplen;
 	int heredoc;
@@ -3197,8 +3236,10 @@ find_ex_command(
 	// "g:varname" is an expression.
 	// "varname->expr" is an expression.
 	// "(..." is an expression.
+	// "{..." is an dict expression.
 	if (*p == '('
-		|| *p == '['
+		|| *p == '{'
+		|| (*p == '[' && p > eap->cmd)
 		|| p[1] == ':'
 		|| (*p == '-' && p[1] == '>'))
 	{
@@ -3206,12 +3247,24 @@ find_ex_command(
 	    return eap->cmd;
 	}
 
+	// "[...]->Method()" is a list expression, but "[a, b] = Func()" is
+	// an assignment.
+	// If there is no line break inside the "[...]" then "p" is advanced to
+	// after the "]" by to_name_const_end(): check if a "=" follows.
+	// If "[...]" has a line break "p" still points at the "[" and it can't
+	// be an assignment.
+	if (*eap->cmd == '[' && (p == eap->cmd || *skipwhite(p) != '='))
+	{
+	    eap->cmdidx = CMD_eval;
+	    return eap->cmd;
+	}
+
+	// Recognize an assignment if we recognize the variable name:
+	// "g:var = expr"
+	// "var = expr"  where "var" is a local var name.
 	oplen = assignment_len(skipwhite(p), &heredoc);
 	if (oplen > 0)
 	{
-	    // Recognize an assignment if we recognize the variable name:
-	    // "g:var = expr"
-	    // "var = expr"  where "var" is a local var name.
 	    if (((p - eap->cmd) > 2 && eap->cmd[1] == ':')
 		    || lookup(eap->cmd, p - eap->cmd, cctx) != NULL)
 	    {
@@ -4918,7 +4971,7 @@ ex_colorscheme(exarg_T *eap)
 	if (expr != NULL)
 	{
 	    ++emsg_off;
-	    p = eval_to_string(expr, NULL, FALSE);
+	    p = eval_to_string(expr, FALSE);
 	    --emsg_off;
 	    vim_free(expr);
 	}
@@ -5182,6 +5235,13 @@ ex_win_close(
 {
     int		need_hide;
     buf_T	*buf = win->w_buffer;
+
+    // Never close the autocommand window.
+    if (win == aucmd_win)
+    {
+	emsg(_(e_autocmd_close));
+	return;
+    }
 
     need_hide = (bufIsChanged(buf) && buf->b_nwindows <= 1);
     if (need_hide && !buf_hide(buf) && !forceit)

@@ -709,6 +709,18 @@ func Test_reduce()
   call assert_fails("call reduce({}, { acc, val -> acc + val }, 1)", 'E897:')
   call assert_fails("call reduce(0, { acc, val -> acc + val }, 1)", 'E897:')
   call assert_fails("call reduce('', { acc, val -> acc + val }, 1)", 'E897:')
+
+  let g:lut = [1, 2, 3, 4]
+  func EvilRemove()
+    call remove(g:lut, 1)
+    return 1
+  endfunc
+  call assert_fails("call reduce(g:lut, { acc, val -> EvilRemove() }, 1)", 'E742:')
+  unlet g:lut
+  delfunc EvilRemove
+
+  call assert_equal(42, reduce(test_null_list(), function('add'), 42))
+  call assert_equal(42, reduce(test_null_blob(), function('add'), 42))
 endfunc
 
 " splitting a string to a List using split()

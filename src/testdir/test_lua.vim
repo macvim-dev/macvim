@@ -4,6 +4,15 @@ source check.vim
 CheckFeature lua
 CheckFeature float
 
+let s:luaver = split(split(luaeval('_VERSION'), ' ')[1], '\.')
+let s:major = str2nr(s:luaver[0])
+let s:minor = str2nr(s:luaver[1])
+if s:major < 5 || (s:major == 5 && s:minor < 3)
+  let s:lua_53_or_later = 0
+else
+  let s:lua_53_or_later = 1
+endif
+
 func TearDown()
   " Run garbage collection after each test to exercise luaV_setref().
   call test_garbagecollect_now()
@@ -26,6 +35,23 @@ func Test_lua_command()
   luado vim.command("1,2d_")
   call assert_equal(['three'], getline(1, '$'))
   bwipe!
+endfunc
+
+func Test_lua_luado()
+  new
+  call setline(1, ['one', 'two'])
+  luado return(linenr)
+  call assert_equal(['1', '2'], getline(1, '$'))
+  close!
+
+  " Error cases
+  call assert_fails('luado string.format()',
+        \ "[string \"vim chunk\"]:1: bad argument #1 to 'format' (string expected, got no value)")
+  call assert_fails('luado func()',
+        \ s:lua_53_or_later
+        \ ? "[string \"vim chunk\"]:1: attempt to call a nil value (global 'func')"
+        \ : "[string \"vim chunk\"]:1: attempt to call global 'func' (a nil value)")
+  call assert_fails('luado error("failed")', "[string \"vim chunk\"]:1: failed")
 endfunc
 
 " Test vim.eval()
@@ -55,6 +81,24 @@ func Test_lua_eval()
   call assert_equal('blob', luaeval('vim.type(v)'))
   call assert_equal(0z00112233.deadbeef, luaeval('v'))
 
+  " lua.eval with a float
+  lua v = vim.eval('3.14')
+  call assert_equal('number', luaeval('vim.type(v)'))
+  call assert_equal(3.14, luaeval('v'))
+
+  " lua.eval with a bool
+  lua v = vim.eval('v:true')
+  call assert_equal('number', luaeval('vim.type(v)'))
+  call assert_equal(1, luaeval('v'))
+  lua v = vim.eval('v:false')
+  call assert_equal('number', luaeval('vim.type(v)'))
+  call assert_equal(0, luaeval('v'))
+
+  " lua.eval with a null
+  lua v = vim.eval('v:null')
+  call assert_equal('nil', luaeval('vim.type(v)'))
+  call assert_equal(v:null, luaeval('v'))
+
   call assert_fails('lua v = vim.eval(nil)',
         \ "[string \"vim chunk\"]:1: bad argument #1 to 'eval' (string expected, got nil)")
   call assert_fails('lua v = vim.eval(true)',
@@ -81,6 +125,13 @@ func Test_lua_window()
 
   " Window 3 does not exist so vim.window(3) should return nil
   call assert_equal('nil', luaeval('tostring(vim.window(3))'))
+
+  call assert_fails("let n = luaeval('vim.window().xyz()')",
+        \ s:lua_53_or_later
+        \ ? "[string \"luaeval\"]:1: attempt to call a nil value (field 'xyz')"
+        \ : "[string \"luaeval\"]:1: attempt to call field 'xyz' (a nil value)")
+  call assert_fails('lua vim.window().xyz = 1',
+        \ "[string \"vim chunk\"]:1: invalid window property: `xyz'")
 
   %bwipe!
 endfunc
@@ -125,6 +176,15 @@ endfunc
 func Test_lua_call()
   call assert_equal(has('lua'), luaeval('vim.call("has", "lua")'))
   call assert_equal(printf("Hello %s", "vim"), luaeval('vim.call("printf", "Hello %s", "vim")'))
+
+  " Error cases
+  call assert_fails("call luaeval('vim.call(\"min\", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)')",
+        \ '[string "luaeval"]:1: Function called with too many arguments')
+  lua co = coroutine.create(function () print("hi") end)
+  call assert_fails("call luaeval('vim.call(\"type\", co)')",
+        \ '[string "luaeval"]:1: lua: cannot convert value')
+  lua co = nil
+  call assert_fails("call luaeval('vim.call(\"abc\")')", '[string "luaeval"]:1: lua: call_vim_function failed')
 endfunc
 
 " Test vim.fn.*
@@ -245,6 +305,15 @@ func Test_lua_buffer_insert()
   lua vim.buffer():insert('4', 10)
 
   call assert_equal(['1', '2', '3', '4'], getline(1, '$'))
+  call assert_equal('4', luaeval('vim.buffer()[4]'))
+  call assert_equal(v:null, luaeval('vim.buffer()[5]'))
+  call assert_equal(v:null, luaeval('vim.buffer()[{}]'))
+  call assert_fails('lua vim.buffer():xyz()',
+        \ s:lua_53_or_later
+        \ ? "[string \"vim chunk\"]:1: attempt to call a nil value (method 'xyz')"
+        \ : "[string \"vim chunk\"]:1: attempt to call method 'xyz' (a nil value)")
+  call assert_fails('lua vim.buffer()[1] = {}',
+        \ '[string "vim chunk"]:1: wrong argument to change')
   bwipe!
 endfunc
 
@@ -252,6 +321,7 @@ endfunc
 func Test_lua_buffer_delete()
   new
   call setline(1, ['1', '2', '3'])
+  call cursor(3, 1)
   lua vim.buffer()[2] = nil
   call assert_equal(['1', '3'], getline(1, '$'))
 
@@ -327,14 +397,30 @@ func Test_lua_list()
   call assert_equal(7, luaeval('#l'))
   call assert_match('^list: \%(0x\)\?\x\+$', luaeval('tostring(l)'))
 
-  lua l[0] = 124
-  lua l[5] = nil
+  lua l[1] = 124
+  lua l[6] = nil
   lua l:insert('first')
   lua l:insert('xx', 3)
+  call assert_fails('lua l:insert("xx", -20)',
+        \ '[string "vim chunk"]:1: invalid position')
   call assert_equal(['first', 124, 'abc', 'xx', v:true, v:false, v:null, {'a': 1, 'b': 2, 'c': 3}], l)
 
   lockvar 1 l
   call assert_fails('lua l:add("x")', '[string "vim chunk"]:1: list is locked')
+  call assert_fails('lua l:insert(2)', '[string "vim chunk"]:1: list is locked')
+  call assert_fails('lua l[9] = 1', '[string "vim chunk"]:1: list is locked')
+
+  unlockvar l
+  let l = [1, 2]
+  lua ll = vim.eval('l')
+  let x = luaeval("ll[3]")
+  call assert_equal(v:null, x)
+  call assert_fails('let x = luaeval("ll:xyz(3)")',
+        \ s:lua_53_or_later
+        \ ? "[string \"luaeval\"]:1: attempt to call a nil value (method 'xyz')"
+        \ : "[string \"luaeval\"]:1: attempt to call method 'xyz' (a nil value)")
+  let y = luaeval("ll[{}]")
+  call assert_equal(v:null, y)
 
   lua l = nil
 endfunc
@@ -353,6 +439,28 @@ func Test_lua_list_table()
   call assert_fails('lua vim.list(true)', '[string "vim chunk"]:1: table expected, got boolean')
 endfunc
 
+func Test_lua_list_table_insert_remove()
+  if !s:lua_53_or_later
+    throw 'Skipped: Lua version < 5.3'
+  endif
+
+  let l = [1, 2] 
+  lua t = vim.eval('l')
+  lua table.insert(t, 10)
+  lua t[#t + 1] = 20
+  lua table.insert(t, 2, 30)
+  call assert_equal(l, [1, 30, 2, 10, 20])
+  lua table.remove(t, 2)
+  call assert_equal(l, [1, 2, 10, 20])
+  lua t[3] = nil
+  call assert_equal(l, [1, 2, 20])
+  lua removed_value = table.remove(t, 3)
+  call assert_equal(luaeval('removed_value'), 20)
+  lua t = nil
+  lua removed_value = nil
+  unlet l
+endfunc
+
 " Test l() i.e. iterator on list
 func Test_lua_list_iter()
   lua l = vim.list():add('foo'):add('bar')
@@ -367,22 +475,22 @@ func Test_lua_recursive_list()
   lua l = vim.list():add(1):add(2)
   lua l = l:add(l)
 
-  call assert_equal(1, luaeval('l[0]'))
-  call assert_equal(2, luaeval('l[1]'))
+  call assert_equal(1, luaeval('l[1]'))
+  call assert_equal(2, luaeval('l[2]'))
 
-  call assert_equal(1, luaeval('l[2][0]'))
-  call assert_equal(2, luaeval('l[2][1]'))
+  call assert_equal(1, luaeval('l[3][1]'))
+  call assert_equal(2, luaeval('l[3][2]'))
 
-  call assert_equal(1, luaeval('l[2][2][0]'))
-  call assert_equal(2, luaeval('l[2][2][1]'))
+  call assert_equal(1, luaeval('l[3][3][1]'))
+  call assert_equal(2, luaeval('l[3][3][2]'))
 
   call assert_equal('[1, 2, [...]]', string(luaeval('l')))
 
   call assert_match('^list: \%(0x\)\?\x\+$', luaeval('tostring(l)'))
-  call assert_equal(luaeval('tostring(l)'), luaeval('tostring(l[2])'))
+  call assert_equal(luaeval('tostring(l)'), luaeval('tostring(l[3])'))
 
-  call assert_equal(luaeval('l'), luaeval('l[2]'))
-  call assert_equal(luaeval('l'), luaeval('l[2][2]'))
+  call assert_equal(luaeval('l'), luaeval('l[3]'))
+  call assert_equal(luaeval('l'), luaeval('l[3][3]'))
 
   lua l = nil
 endfunc
@@ -403,6 +511,7 @@ func Test_lua_dict()
   call assert_match('^dict: \%(0x\)\?\x\+$', luaeval('tostring(d)'))
 
   call assert_equal('abc', luaeval('d[1]'))
+  call assert_equal(v:null, luaeval('d[22]'))
 
   lua d[0] = 124
   lua d[4] = nil
@@ -410,6 +519,23 @@ func Test_lua_dict()
 
   lockvar 1 d
   call assert_fails('lua d[6] = 1', '[string "vim chunk"]:1: dict is locked')
+  unlockvar d
+
+  " Error case
+  lua d = {}
+  lua d[''] = 10
+  call assert_fails("let t = luaeval('vim.dict(d)')",
+        \ '[string "luaeval"]:1: table has empty key')
+  let d = {}
+  lua x = vim.eval('d')
+  call assert_fails("lua x[''] = 10", '[string "vim chunk"]:1: empty key')
+  lua x['a'] = nil
+  call assert_equal({}, d)
+
+  " cannot assign funcrefs in the global scope
+  lua x = vim.eval('g:')
+  call assert_fails("lua x['min'] = vim.funcref('max')",
+        \ '[string "vim chunk"]:1: cannot assign funcref to builtin scope')
 
   lua d = nil
 endfunc
@@ -467,6 +593,28 @@ func Test_lua_blob()
   call assert_fails('lua b:add(true)', '[string "vim chunk"]:1: string expected, got boolean')
   call assert_fails('lua b:add({})', '[string "vim chunk"]:1: string expected, got table')
   lua b = nil
+
+  let b = 0z0102
+  lua lb = vim.eval('b')
+  let n = luaeval('lb[1]')
+  call assert_equal(2, n)
+  let n = luaeval('lb[6]')
+  call assert_equal(v:null, n)
+  call assert_fails('let x = luaeval("lb:xyz(3)")',
+        \ s:lua_53_or_later
+        \ ? "[string \"luaeval\"]:1: attempt to call a nil value (method 'xyz')"
+        \ : "[string \"luaeval\"]:1: attempt to call method 'xyz' (a nil value)")
+  let y = luaeval("lb[{}]")
+  call assert_equal(v:null, y)
+
+  lockvar b
+  call assert_fails('lua lb[1] = 2', '[string "vim chunk"]:1: blob is locked')
+  call assert_fails('lua lb:add("12")', '[string "vim chunk"]:1: blob is locked')
+
+  " Error cases
+  lua t = {}
+  call assert_fails('lua b = vim.blob(t)',
+        \ '[string "vim chunk"]:1: string expected, got table')
 endfunc
 
 func Test_lua_funcref()
@@ -479,6 +627,17 @@ func Test_lua_funcref()
   lua msg = "funcref|test|" .. (#i2(i1) == #i1(i2) and "OK" or "FAIL")
   lua msg = vim.funcref"tr"(msg, "|", " ")
   call assert_equal("funcref test OK", luaeval('msg'))
+
+  " Error cases
+  call assert_fails('lua f1 = vim.funcref("")',
+        \ '[string "vim chunk"]:1: invalid function name: ')
+  call assert_fails('lua f1 = vim.funcref("10")',
+        \ '[string "vim chunk"]:1: invalid function name: 10')
+  let fname = test_null_string()
+  call assert_fails('lua f1 = vim.funcref(fname)',
+        \ "[string \"vim chunk\"]:1: bad argument #1 to 'funcref' (string expected, got nil)")
+  call assert_fails('lua vim.funcref("abc")()',
+        \ '[string "vim chunk"]:1: cannot call funcref')
 
   " dict funcref
   function Mylen() dict
@@ -541,6 +700,35 @@ func Test_update_package_paths()
   call assert_equal("hello from lua", luaeval("require('testluaplugin').hello()"))
 endfunc
 
+func Vim_func_call_lua_callback(Concat, Cb)
+  let l:message = a:Concat("hello", "vim")
+  call a:Cb(l:message)
+endfunc
+
+func Test_pass_lua_callback_to_vim_from_lua()
+  lua pass_lua_callback_to_vim_from_lua_result = ""
+  call assert_equal("", luaeval("pass_lua_callback_to_vim_from_lua_result"))
+  lua <<EOF
+  vim.funcref('Vim_func_call_lua_callback')(
+    function(greeting, message)
+      return greeting .. " " .. message
+    end,
+    function(message)
+      pass_lua_callback_to_vim_from_lua_result = message
+    end)
+EOF
+  call assert_equal("hello vim", luaeval("pass_lua_callback_to_vim_from_lua_result"))
+endfunc
+
+func Vim_func_call_metatable_lua_callback(Greet)
+  return a:Greet("world")
+endfunc
+
+func Test_pass_lua_metatable_callback_to_vim_from_lua()
+  let result = luaeval("vim.funcref('Vim_func_call_metatable_lua_callback')(setmetatable({ space = ' '}, { __call = function(tbl, msg) return 'hello' .. tbl.space .. msg  end }) )")
+  call assert_equal("hello world", result)
+endfunc
+
 " Test vim.line()
 func Test_lua_line()
   new
@@ -564,6 +752,10 @@ func Test_luaeval_error()
   \ '[string "luaeval"]:1: attempt to perform arithmetic on a nil value')
   call assert_fails("call luaeval(']')",
   \ "[string \"luaeval\"]:1: unexpected symbol near ']'")
+  lua co = coroutine.create(function () print("hi") end)
+  call assert_fails('let i = luaeval("co")', 'luaeval: cannot convert value')
+  lua co = nil
+  call assert_fails('let m = luaeval("{}")', 'luaeval: cannot convert value')
 endfunc
 
 " Test :luafile foo.lua
@@ -607,6 +799,17 @@ func Test_luafile_error()
 
   call delete('Xlua_file')
   bwipe!
+endfunc
+
+" Test for dealing with strings containing newlines and null character
+func Test_lua_string_with_newline()
+  let x = execute('lua print("Hello\nWorld")')
+  call assert_equal("\nHello\nWorld", x)
+  new
+  lua k = vim.buffer(vim.eval('bufnr()'))
+  lua k:insert("Hello\0World", 0)
+  call assert_equal(["Hello\nWorld", ''], getline(1, '$'))
+  close!
 endfunc
 
 func Test_lua_set_cursor()

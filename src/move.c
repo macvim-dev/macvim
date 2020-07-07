@@ -2710,8 +2710,6 @@ halfpage(int flag, linenr_T Prenum)
 	    if (curwin->w_topfill > 0)
 	    {
 		i = 1;
-		if (--n < 0 && scrolled > 0)
-		    break;
 		--curwin->w_topfill;
 	    }
 	    else

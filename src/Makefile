@@ -1666,6 +1666,7 @@ BASIC_SRC = \
 	main.c \
 	map.c \
 	mark.c \
+	match.c \
 	mbyte.c \
 	memfile.c \
 	memline.c \
@@ -1814,6 +1815,7 @@ OBJ_COMMON = \
 	objects/list.o \
 	objects/map.o \
 	objects/mark.o \
+	objects/match.o \
 	objects/mbyte.o \
 	objects/memline.o \
 	objects/menu.o \
@@ -1988,6 +1990,7 @@ PRO_AUTO = \
 	main.pro \
 	map.pro \
 	mark.pro \
+	match.pro \
 	mbyte.pro \
 	memfile.pro \
 	memline.pro \
@@ -2322,7 +2325,6 @@ test1 \
 	test42 test44 test49 \
 	test52 test59 \
 	test70 \
-	test86 test87 \
 	test99:
 	cd testdir; rm -f $@.out; $(MAKE) -f Makefile $@.out VIMPROG=../$(VIMTESTTARGET) $(GUI_TESTARG) SCRIPTSOURCE=../$(SCRIPTSOURCE)
 
@@ -3405,6 +3407,9 @@ objects/map.o: map.c
 objects/mark.o: mark.c
 	$(CCC) -o $@ mark.c
 
+objects/match.o: match.c
+	$(CCC) -o $@ match.c
+
 objects/memfile.o: memfile.c
 	$(CCC) -o $@ memfile.c
 
@@ -4032,6 +4037,10 @@ objects/map.o: map.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  proto.h globals.h
 objects/mark.o: mark.c vim.h protodef.h auto/config.h feature.h os_unix.h \
  auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
+ proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
+ proto.h globals.h
+objects/match.o: match.c vim.h protodef.h auto/config.h feature.h \
+ os_unix.h auto/osdef.h ascii.h keymap.h term.h macros.h option.h beval.h \
  proto/gui_beval.pro structs.h regexp.h gui.h alloc.h ex_cmds.h spell.h \
  proto.h globals.h
 objects/mbyte.o: mbyte.c vim.h protodef.h auto/config.h feature.h os_unix.h \

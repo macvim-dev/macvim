@@ -288,7 +288,7 @@ lookup_script(char_u *name, size_t len)
  * Return FAIL and give an error if it defined.
  */
     int
-check_defined(char_u *p, int len, cctx_T *cctx)
+check_defined(char_u *p, size_t len, cctx_T *cctx)
 {
     if (lookup_script(p, len) == OK
 	    || (cctx != NULL
@@ -2336,9 +2336,12 @@ get_script_item_idx(int sid, char_u *name, int check_writable)
     imported_T *
 find_imported(char_u *name, size_t len, cctx_T *cctx)
 {
-    scriptitem_T    *si = SCRIPT_ITEM(current_sctx.sc_sid);
+    scriptitem_T    *si;
     int		    idx;
 
+    if (current_sctx.sc_sid <= 0)
+	return NULL;
+    si = SCRIPT_ITEM(current_sctx.sc_sid);
     if (cctx != NULL)
 	for (idx = 0; idx < cctx->ctx_imports.ga_len; ++idx)
 	{
@@ -2610,7 +2613,8 @@ compile_load_scriptvar(
 	if (import->imp_all)
 	{
 	    char_u	*p = skipwhite(*end);
-	    int		name_len;
+	    char_u	*exp_name;
+	    int		cc;
 	    ufunc_T	*ufunc;
 	    type_T	*type;
 
@@ -2627,7 +2631,17 @@ compile_load_scriptvar(
 		return FAIL;
 	    }
 
-	    idx = find_exported(import->imp_sid, &p, &name_len, &ufunc, &type);
+	    // isolate one name
+	    exp_name = p;
+	    while (eval_isnamec(*p))
+		++p;
+	    cc = *p;
+	    *p = NUL;
+
+	    idx = find_exported(import->imp_sid, exp_name, &ufunc, &type);
+	    *p = cc;
+	    p = skipwhite(p);
+
 	    // TODO: what if it is a function?
 	    if (idx < 0)
 		return FAIL;
@@ -2865,9 +2879,9 @@ compile_call(
 
 	argvars[0].v_type = VAR_UNKNOWN;
 	if (*s == '"')
-	    (void)get_string_tv(&s, &argvars[0], TRUE);
+	    (void)eval_string(&s, &argvars[0], TRUE);
 	else if (*s == '\'')
-	    (void)get_lit_string_tv(&s, &argvars[0], TRUE);
+	    (void)eval_lit_string(&s, &argvars[0], TRUE);
 	s = skipwhite(s);
 	if (*s == ')' && argvars[0].v_type == VAR_STRING)
 	{
@@ -2978,6 +2992,7 @@ to_name_end(char_u *arg, int namespace)
 
 /*
  * Like to_name_end() but also skip over a list or dict constant.
+ * This intentionally does not handle line continuation.
  */
     char_u *
 to_name_const_end(char_u *arg)
@@ -2989,24 +3004,24 @@ to_name_const_end(char_u *arg)
     {
 
 	// Can be "[1, 2, 3]->Func()".
-	if (get_list_tv(&p, &rettv, 0, FALSE) == FAIL)
+	if (eval_list(&p, &rettv, NULL, FALSE) == FAIL)
 	    p = arg;
     }
     else if (p == arg && *arg == '#' && arg[1] == '{')
     {
 	// Can be "#{a: 1}->Func()".
 	++p;
-	if (eval_dict(&p, &rettv, 0, TRUE) == FAIL)
+	if (eval_dict(&p, &rettv, NULL, TRUE) == FAIL)
 	    p = arg;
     }
     else if (p == arg && *arg == '{')
     {
-	int	    ret = get_lambda_tv(&p, &rettv, FALSE);
+	int	    ret = get_lambda_tv(&p, &rettv, NULL);
 
 	// Can be "{x -> ret}()".
 	// Can be "{'a': 1}->Func()".
 	if (ret == NOTDONE)
-	    ret = eval_dict(&p, &rettv, 0, FALSE);
+	    ret = eval_dict(&p, &rettv, NULL, FALSE);
 	if (ret != OK)
 	    p = arg;
     }
@@ -3065,7 +3080,7 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     ufunc_T	*ufunc;
 
     // Get the funcref in "rettv".
-    if (get_lambda_tv(arg, &rettv, TRUE) != OK)
+    if (get_lambda_tv(arg, &rettv, &EVALARG_EVALUATE) != OK)
 	return FAIL;
 
     ufunc = rettv.vval.v_partial->pt_func;
@@ -3095,7 +3110,7 @@ compile_lambda_call(char_u **arg, cctx_T *cctx)
     int		ret = FAIL;
 
     // Get the funcref in "rettv".
-    if (get_lambda_tv(arg, &rettv, TRUE) == FAIL)
+    if (get_lambda_tv(arg, &rettv, &EVALARG_EVALUATE) == FAIL)
 	return FAIL;
 
     if (**arg != '(')
@@ -3267,10 +3282,10 @@ compile_get_option(char_u **arg, cctx_T *cctx)
 
     // parse the option and get the current value to get the type.
     rettv.v_type = VAR_UNKNOWN;
-    ret = get_option_tv(arg, &rettv, TRUE);
+    ret = eval_option(arg, &rettv, TRUE);
     if (ret == OK)
     {
-	// include the '&' in the name, get_option_tv() expects it.
+	// include the '&' in the name, eval_option() expects it.
 	char_u *name = vim_strnsave(start, *arg - start);
 	type_T	*type = rettv.v_type == VAR_NUMBER ? &t_number : &t_string;
 
@@ -3301,7 +3316,7 @@ compile_get_env(char_u **arg, cctx_T *cctx)
 	return FAIL;
     }
 
-    // include the '$' in the name, get_env_tv() expects it.
+    // include the '$' in the name, eval_env_var() expects it.
     name = vim_strnsave(start, len + 1);
     ret = generate_LOAD(cctx, ISN_LOADENV, 0, name, &t_string);
     vim_free(name);
@@ -3758,21 +3773,21 @@ compile_expr7(
 	case '7':
 	case '8':
 	case '9':
-	case '.':   if (get_number_tv(arg, rettv, TRUE, FALSE) == FAIL)
+	case '.':   if (eval_number(arg, rettv, TRUE, FALSE) == FAIL)
 			return FAIL;
 		    break;
 
 	/*
 	 * String constant: "string".
 	 */
-	case '"':   if (get_string_tv(arg, rettv, TRUE) == FAIL)
+	case '"':   if (eval_string(arg, rettv, TRUE) == FAIL)
 			return FAIL;
 		    break;
 
 	/*
 	 * Literal string constant: 'str''ing'.
 	 */
-	case '\'':  if (get_lit_string_tv(arg, rettv, TRUE) == FAIL)
+	case '\'':  if (eval_lit_string(arg, rettv, TRUE) == FAIL)
 			return FAIL;
 		    break;
 
@@ -3837,7 +3852,6 @@ compile_expr7(
 			char_u *start = skipwhite(*arg + 1);
 
 			// Find out what comes after the arguments.
-			// TODO: pass getline function
 			ret = get_function_args(&start, '-', NULL,
 					   NULL, NULL, NULL, TRUE, NULL, NULL);
 			if (ret != FAIL && *start == '>')
@@ -4553,9 +4567,19 @@ compile_return(char_u *arg, int set_return_type, cctx_T *cctx)
 	stack_type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 	if (set_return_type)
 	    cctx->ctx_ufunc->uf_ret_type = stack_type;
-	else if (need_type(stack_type, cctx->ctx_ufunc->uf_ret_type, -1, cctx)
+	else
+	{
+	    if (cctx->ctx_ufunc->uf_ret_type->tt_type == VAR_VOID
+		    && stack_type->tt_type != VAR_VOID
+		    && stack_type->tt_type != VAR_UNKNOWN)
+	    {
+		emsg(_("E1096: Returning a value in a function without a return type"));
+		return NULL;
+	    }
+	    if (need_type(stack_type, cctx->ctx_ufunc->uf_ret_type, -1, cctx)
 								       == FAIL)
 	    return NULL;
+	}
     }
     else
     {
@@ -5629,7 +5653,7 @@ compile_unletlock(char_u *arg, exarg_T *eap, cctx_T *cctx)
     static char_u *
 compile_import(char_u *arg, cctx_T *cctx)
 {
-    return handle_import(arg, &cctx->ctx_imports, 0, cctx);
+    return handle_import(arg, &cctx->ctx_imports, 0, NULL, cctx);
 }
 
 /*
@@ -6037,15 +6061,15 @@ compile_for(char_u *arg, cctx_T *cctx)
 	return NULL;
     }
 
-    // now we know the type of "var"
+    // Now that we know the type of "var", check that it is a list, now or at
+    // runtime.
     vartype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-    if (vartype->tt_type != VAR_LIST)
+    if (need_type(vartype, &t_list_any, -1, cctx) == FAIL)
     {
-	emsg(_("E1024: need a List to iterate over"));
 	drop_scope(cctx);
 	return NULL;
     }
-    if (vartype->tt_member->tt_type != VAR_ANY)
+    if (vartype->tt_type == VAR_LIST && vartype->tt_member->tt_type != VAR_ANY)
 	var_lvar->lv_type = vartype->tt_member;
 
     // "for_end" is set when ":endfor" is found
@@ -6547,12 +6571,33 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 {
     char_u  *p;
     int	    has_expr = FALSE;
+    char_u  *nextcmd = (char_u *)"";
 
     if (cctx->ctx_skip == SKIP_YES)
 	goto theend;
 
     if (eap->cmdidx >= 0 && eap->cmdidx < CMD_SIZE)
-	has_expr = (excmd_get_argt(eap->cmdidx) & (EX_XFILE | EX_EXPAND));
+    {
+	long	argt = excmd_get_argt(eap->cmdidx);
+	int	usefilter = FALSE;
+
+	has_expr = argt & (EX_XFILE | EX_EXPAND);
+
+	// If the command can be followed by a bar, find the bar and truncate
+	// it, so that the following command can be compiled.
+	// The '|' is overwritten with a NUL, it is put back below.
+	if ((eap->cmdidx == CMD_write || eap->cmdidx == CMD_read)
+							   && *eap->arg == '!')
+	    // :w !filter or :r !filter or :r! filter
+	    usefilter = TRUE;
+	if ((argt & EX_TRLBAR) && !usefilter)
+	{
+	    separate_nextcmd(eap);
+	    if (eap->nextcmd != NULL)
+		nextcmd = eap->nextcmd;
+	}
+    }
+
     if (eap->cmdidx == CMD_syntax && STRNCMP(eap->arg, "include ", 8) == 0)
     {
 	// expand filename in "syntax include [@group] filename"
@@ -6611,7 +6656,14 @@ compile_exec(char_u *line, exarg_T *eap, cctx_T *cctx)
 	generate_EXEC(cctx, line);
 
 theend:
-    return (char_u *)"";
+    if (*nextcmd != NUL)
+    {
+	// the parser expects a pointer to the bar, put it back
+	--nextcmd;
+	*nextcmd = '|';
+    }
+
+    return nextcmd;
 }
 
 /*
@@ -6756,6 +6808,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	exarg_T	ea;
 	int	starts_with_colon = FALSE;
 	char_u	*cmd;
+	int	save_msg_scroll = msg_scroll;
 
 	// Bail out on the first error to avoid a flood of errors and report
 	// the right line number when inside try/catch.
@@ -6844,6 +6897,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    line = (char_u *)"";
 	    continue;
 	}
+	// TODO: use modifiers in the command
+	undo_cmdmod(&ea, save_msg_scroll);
 
 	// Skip ":call" to get to the function name.
 	if (checkforcmd(&ea.cmd, "call", 3))
@@ -6934,20 +6989,12 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    }
 
 	    // Expression or function call.
-	    if (ea.cmdidx == CMD_eval)
+	    if (ea.cmdidx != CMD_eval)
 	    {
-		p = ea.cmd;
-		if (compile_expr0(&p, &cctx) == FAIL)
-		    goto erret;
-
-		// drop the return value
-		generate_instr_drop(&cctx, ISN_DROP, 1);
-		line = p;
-		continue;
+		// CMD_let cannot happen, compile_assignment() above is used
+		iemsg("Command from find_ex_command() not handled");
+		goto erret;
 	    }
-	    // CMD_let cannot happen, compile_assignment() above is used
-	    iemsg("Command from find_ex_command() not handled");
-	    goto erret;
 	}
 
 	p = skipwhite(p);
@@ -7065,6 +7112,16 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    break;
 	    case CMD_throw:
 		    line = compile_throw(p, &cctx);
+		    break;
+
+	    case CMD_eval:
+		    if (compile_expr0(&p, &cctx) == FAIL)
+			goto erret;
+
+		    // drop the return value
+		    generate_instr_drop(&cctx, ISN_DROP, 1);
+
+		    line = skipwhite(p);
 		    break;
 
 	    case CMD_echo:
