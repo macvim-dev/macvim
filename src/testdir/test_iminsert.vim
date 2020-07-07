@@ -27,7 +27,7 @@ func Test_iminsert2()
   set imactivatefunc=
   set imstatusfunc=
 
-  let expected = (has('win32') && has('gui_running')) ? 0 : 1
+  let expected = ((has('win32') || has('gui_macvim')) && has('gui_running')) ? 0 : 1
   call assert_equal(expected, s:imactivatefunc_called)
   call assert_equal(expected, s:imstatusfunc_called)
 endfunc
@@ -35,6 +35,8 @@ endfunc
 func Test_getimstatus()
   if has('win32')
     CheckFeature multi_byte_ime
+  elseif has('gui_macvim')
+    CheckNotGui
   elseif !has('gui_mac')
     CheckFeature xim
   endif
