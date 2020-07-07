@@ -69,7 +69,7 @@
  * main loop.
  */
 #if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MAC) || defined(FEAT_GUI_GTK) \
-    || defined(FEAT_GUI_MACVIM)
+	|| defined(FEAT_GUI_MACVIM)
 # define USE_ON_FLY_SCROLL
 #endif
 
@@ -77,8 +77,8 @@
  * GUIs that support dropping files on a running Vim.
  */
 #if (defined(FEAT_DND) && defined(FEAT_GUI_GTK)) \
-        || defined(FEAT_GUI_MACVIM) \
 	|| defined(FEAT_GUI_MSWIN) \
+	|| defined(FEAT_GUI_MACVIM) \
 	|| defined(FEAT_GUI_MAC) \
 	|| defined(FEAT_GUI_HAIKU)
 # define HAVE_DROP_FILE

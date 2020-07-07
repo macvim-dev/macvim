@@ -622,8 +622,8 @@
 #if defined(FEAT_TOOLBAR) && !defined(FEAT_MENU)
 # define FEAT_MENU
 #endif
-										
-#if defined(FEAT_TOOLBAR) && defined(FEAT_GUI_MACVIM) 
+
+#if defined(FEAT_TOOLBAR) && defined(FEAT_GUI_MACVIM)
 # define FEAT_TOUCHBAR
 #endif
 
@@ -639,8 +639,8 @@
  */
 #if defined(FEAT_NORMAL) \
     && (defined(FEAT_GUI_GTK) \
-        || defined(FEAT_GUI_MACVIM) \
 	|| (defined(FEAT_GUI_MOTIF) && defined(HAVE_XM_NOTEBOOK_H)) \
+	|| defined(FEAT_GUI_MACVIM) \
 	|| defined(FEAT_GUI_MAC) \
 	|| defined(FEAT_GUI_HAIKU) \
 	|| (defined(FEAT_GUI_MSWIN) \
@@ -684,8 +684,8 @@
 	|| defined(FEAT_GUI_PHOTON) \
 	|| defined(FEAT_GUI_HAIKU) \
 	|| defined(FEAT_GUI_MSWIN) \
-	|| defined(FEAT_GUI_MAC) \
-	|| defined(FEAT_GUI_MACVIM)
+	|| defined(FEAT_GUI_MACVIM) \
+	|| defined(FEAT_GUI_MAC)
 #  define FEAT_CON_DIALOG
 #  define FEAT_GUI_DIALOG
 # else
