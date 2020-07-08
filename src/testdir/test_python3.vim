@@ -462,9 +462,9 @@ func Test_python3_range2()
   py3 r[1:0] = ["d"]
   call assert_equal(['c', 'd', 'a', 'two', 'three', 'b'], getline(1, '$'))
 
-  " FIXME: The following code triggers ml_get errors
-  " %d
-  " let x = py3eval('r[:]')
+  " The following code used to trigger an ml_get error
+  %d
+  let x = py3eval('r[:]')
 
   " Non-existing range attribute
   call AssertException(["let x = py3eval('r.abc')"],
@@ -516,9 +516,9 @@ func Test_python3_window()
   call AssertException(["py3 vim.current.window = w"],
         \ 'Vim(py3):vim.error: attempt to refer to deleted window')
   " Try to set one of the options of the closed window
-  " FIXME: The following causes ASAN failure
-  "call AssertException(["py3 wopts['list'] = False"],
-  "      \ 'Vim(py3):vim.error: problem while switching windows')
+  " The following caused ASAN failure
+  call AssertException(["py3 wopts['list'] = False"],
+        \ 'Vim(py3):vim.error: attempt to refer to deleted window')
   call assert_match('<window object (deleted)', py3eval("repr(w)"))
   %bw!
 endfunc
@@ -798,6 +798,9 @@ func Test_python3_slice_assignment()
   py3 l = vim.bindeval('l')
   py3 l[2:2:1] = ()
   call assert_equal([0, 1, 2, 3, 4, 5, 6, 7], l)
+
+  call AssertException(["py3 x = l[10:11:0]"],
+        \ "Vim(py3):ValueError: slice step cannot be zero")
 endfunc
 
 " Locked variables
@@ -987,6 +990,10 @@ func Test_python3_vim_bindeval()
   call assert_equal(0, py3eval("vim.bindeval('v:false')"))
   call assert_equal(v:none, py3eval("vim.bindeval('v:null')"))
   call assert_equal(v:none, py3eval("vim.bindeval('v:none')"))
+
+  " channel/job
+  call assert_equal(v:none, py3eval("vim.bindeval('test_null_channel()')"))
+  call assert_equal(v:none, py3eval("vim.bindeval('test_null_job()')"))
 endfunc
 
 " threading
@@ -1580,6 +1587,20 @@ func Test_python3_buffer()
   call assert_equal([], py3eval('b[2:0]'))
   call assert_equal([], py3eval('b[10:12]'))
   call assert_equal([], py3eval('b[-10:-8]'))
+  call AssertException(["py3 x = b[0:3:0]"],
+        \ 'Vim(py3):ValueError: slice step cannot be zero')
+  call AssertException(["py3 b[0:3:0] = 'abc'"],
+        \ 'Vim(py3):ValueError: slice step cannot be zero')
+  call AssertException(["py3 x = b[{}]"],
+        \ 'Vim(py3):TypeError: index must be int or slice, not dict')
+  call AssertException(["py3 b[{}] = 'abc'"],
+        \ 'Vim(py3):TypeError: index must be int or slice, not dict')
+
+  " Test for getting lines using a range
+  call AssertException(["py3 x = b.range(0,3)[0:2:0]"],
+        \ "Vim(py3):ValueError: slice step cannot be zero")
+  call AssertException(["py3 b.range(0,3)[0:2:0] = 'abc'"],
+        \ "Vim(py3):ValueError: slice step cannot be zero")
 
   " Tests BufferAppend and BufferItem
   py3 cb.append(b[0])
@@ -1689,6 +1710,9 @@ func Test_python3_buffer()
   call setline(1, ['a', 'b', 'c'])
   py3 vim.current.buffer[:] = []
   call assert_equal([''], getline(1, '$'))
+
+  " Test for buffer marks
+  call assert_equal(v:none, py3eval("vim.current.buffer.mark('r')"))
 
   " Test for modifying a 'nomodifiable' buffer
   setlocal nomodifiable
@@ -2578,6 +2602,7 @@ func Test_python3_chdir()
   call assert_equal(["b'testdir'", 'Xfile', "b'src'", 'testdir/Xfile',
         \"b'testdir'", 'Xfile'], getline(2, '$'))
   close!
+  call AssertException(["py3 vim.chdir(None)"], "Vim(py3):TypeError:")
 endfunc
 
 " Test errors
