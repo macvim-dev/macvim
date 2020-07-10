@@ -321,6 +321,14 @@ alloc_type(garray_T *type_gap)
     return type;
 }
 
+    void
+clear_type_list(garray_T *gap)
+{
+    while (gap->ga_len > 0)
+	vim_free(((type_T **)gap->ga_data)[--gap->ga_len]);
+    ga_clear(gap);
+}
+
     static type_T *
 get_list_type(type_T *member_type, garray_T *type_gap)
 {
@@ -1437,19 +1445,30 @@ generate_FOR(cctx_T *cctx, int loop_idx)
 
 /*
  * Generate an ISN_BCALL instruction.
+ * "method_call" is TRUE for "value->method()"
  * Return FAIL if the number of arguments is wrong.
  */
     static int
-generate_BCALL(cctx_T *cctx, int func_idx, int argcount)
+generate_BCALL(cctx_T *cctx, int func_idx, int argcount, int method_call)
 {
     isn_T	*isn;
     garray_T	*stack = &cctx->ctx_type_stack;
+    int		argoff;
     type_T	*argtypes[MAX_FUNC_ARGS];
     int		i;
 
     RETURN_OK_IF_SKIP(cctx);
-    if (check_internal_func(func_idx, argcount) == FAIL)
+    argoff = check_internal_func(func_idx, argcount);
+    if (argoff < 0)
 	return FAIL;
+
+    if (method_call && argoff > 1)
+    {
+	if ((isn = generate_instr(cctx, ISN_SHUFFLE)) == NULL)
+	    return FAIL;
+	isn->isn_arg.shuffle.shfl_item = argcount;
+	isn->isn_arg.shuffle.shfl_up = argoff - 1;
+    }
 
     if ((isn = generate_instr(cctx, ISN_BCALL)) == NULL)
 	return FAIL;
@@ -2397,8 +2416,8 @@ comment_start(char_u *p)
  * comment. Skips over white space.
  * Returns NULL if there is none.
  */
-    static char_u *
-peek_next_line(cctx_T *cctx)
+    char_u *
+peek_next_line_from_context(cctx_T *cctx)
 {
     int lnum = cctx->ctx_lnum;
 
@@ -2430,7 +2449,7 @@ may_peek_next_line(cctx_T *cctx, char_u *arg, char_u **nextp)
     *nextp = NULL;
     if (*p == NUL || (VIM_ISWHITE(*arg) && comment_start(p)))
     {
-	*nextp = peek_next_line(cctx);
+	*nextp = peek_next_line_from_context(cctx);
 	if (*nextp != NULL)
 	    return *nextp;
     }
@@ -2442,7 +2461,7 @@ may_peek_next_line(cctx_T *cctx, char_u *arg, char_u **nextp)
  * Skips over empty lines.  Skips over comment lines if "skip_comment" is TRUE.
  * Returns NULL when at the end.
  */
-    static char_u *
+    char_u *
 next_line_from_context(cctx_T *cctx, int skip_comment)
 {
     char_u	*line;
@@ -2922,7 +2941,7 @@ compile_call(
 	// builtin function
 	idx = find_internal_func(name);
 	if (idx >= 0)
-	    res = generate_BCALL(cctx, idx, argcount);
+	    res = generate_BCALL(cctx, idx, argcount, argcount_init == 1);
 	else
 	    semsg(_(e_unknownfunc), namebuf);
 	goto theend;
@@ -3060,7 +3079,14 @@ compile_list(char_u **arg, cctx_T *cctx)
 	    break;
 	++count;
 	if (*p == ',')
+	{
 	    ++p;
+	    if (*p != ']' && !IS_WHITE_OR_NUL(*p))
+	    {
+		semsg(_(e_white_after), ",");
+		return FAIL;
+	    }
+	}
 	whitep = p;
 	p = skipwhite(p);
     }
@@ -3079,9 +3105,14 @@ compile_lambda(char_u **arg, cctx_T *cctx)
 {
     typval_T	rettv;
     ufunc_T	*ufunc;
+    evalarg_T	evalarg;
+
+    CLEAR_FIELD(evalarg);
+    evalarg.eval_flags = EVAL_EVALUATE;
+    evalarg.eval_cctx = cctx;
 
     // Get the funcref in "rettv".
-    if (get_lambda_tv(arg, &rettv, &EVALARG_EVALUATE) != OK)
+    if (get_lambda_tv(arg, &rettv, &evalarg) != OK)
 	return FAIL;
 
     ufunc = rettv.vval.v_partial->pt_func;
@@ -3092,6 +3123,8 @@ compile_lambda(char_u **arg, cctx_T *cctx)
     // The function will have one line: "return {expr}".
     // Compile it into instructions.
     compile_def_function(ufunc, TRUE, cctx);
+
+    clear_evalarg(&evalarg, NULL);
 
     if (ufunc->uf_def_status == UF_COMPILED)
 	return generate_FUNCREF(cctx, ufunc->uf_dfunc_idx);
@@ -3535,6 +3568,7 @@ compile_leader(cctx_T *cctx, char_u *start, char_u *end)
 
 /*
  * Compile whatever comes after "name" or "name()".
+ * Advances "*arg" only when something was recognized.
  */
     static int
 compile_subscript(
@@ -3550,7 +3584,7 @@ compile_subscript(
 
 	if (*p == NUL || (VIM_ISWHITE(**arg) && comment_start(p)))
 	{
-	    char_u *next = peek_next_line(cctx);
+	    char_u *next = peek_next_line_from_context(cctx);
 
 	    // If a following line starts with "->{" or "->X" advance to that
 	    // line, so that a line break before "->" is allowed.
@@ -3560,11 +3594,12 @@ compile_subscript(
 		next = next_line_from_context(cctx, TRUE);
 		if (next == NULL)
 		    return FAIL;
-		*arg = skipwhite(next);
+		*arg = next;
+		p = skipwhite(*arg);
 	    }
 	}
 
-	if (**arg == '(')
+	if (*p == '(')
 	{
 	    garray_T    *stack = &cctx->ctx_type_stack;
 	    type_T	*type;
@@ -3576,13 +3611,13 @@ compile_subscript(
 	    // funcref(arg)
 	    type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 
-	    *arg = skipwhite(*arg + 1);
+	    *arg = skipwhite(p + 1);
 	    if (compile_arguments(arg, cctx, &argcount) == FAIL)
 		return FAIL;
 	    if (generate_PCALL(cctx, argcount, end_leader, type, TRUE) == FAIL)
 		return FAIL;
 	}
-	else if (**arg == '-' && (*arg)[1] == '>')
+	else if (*p == '-' && p[1] == '>')
 	{
 	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
@@ -3594,7 +3629,7 @@ compile_subscript(
 		return FAIL;
 	    *start_leader = end_leader;   // don't apply again later
 
-	    p = *arg + 2;
+	    p += 2;
 	    *arg = skipwhite(p);
 	    if (may_get_next_line(p, arg, cctx) == FAIL)
 		return FAIL;
@@ -3622,7 +3657,7 @@ compile_subscript(
 		    return FAIL;
 	    }
 	}
-	else if (**arg == '[')
+	else if (*p == '[')
 	{
 	    garray_T	*stack = &cctx->ctx_type_stack;
 	    type_T	**typep;
@@ -3635,7 +3670,7 @@ compile_subscript(
 	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
-	    p = *arg + 1;
+	    ++p;
 	    *arg = skipwhite(p);
 	    if (may_get_next_line(p, arg, cctx) == FAIL)
 		return FAIL;
@@ -3671,12 +3706,12 @@ compile_subscript(
 		return FAIL;
 	    }
 	}
-	else if (**arg == '.' && (*arg)[1] != '.')
+	else if (*p == '.' && p[1] != '.')
 	{
 	    if (generate_ppconst(cctx, ppconst) == FAIL)
 		return FAIL;
 
-	    ++*arg;
+	    *arg = p + 1;
 	    if (may_get_next_line(*arg, arg, cctx) == FAIL)
 		return FAIL;
 	    // dictionary member: dict.name
@@ -7135,6 +7170,10 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 
 	    // TODO: other commands with an expression argument
 
+	    case CMD_SIZE:
+		    semsg(_("E476: Invalid command: %s"), ea.cmd);
+		    goto erret;
+
 	    default:
 		    // Not recognized, execute with do_cmdline_cmd().
 		    ea.arg = p;
@@ -7369,6 +7408,7 @@ delete_instr(isn_T *isn)
 	case ISN_COMPARESTRING:
 	case ISN_CONCAT:
 	case ISN_DCALL:
+	case ISN_SHUFFLE:
 	case ISN_DROP:
 	case ISN_ECHO:
 	case ISN_ECHOERR:

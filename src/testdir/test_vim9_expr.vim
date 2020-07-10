@@ -1014,6 +1014,7 @@ def Test_expr7_list()
 
   call CheckDefExecFailure(["let x = g:anint[3]"], 'E714:')
   call CheckDefFailure(["let x = g:list_mixed[xxx]"], 'E1001:')
+  call CheckDefFailure(["let x = [1,2,3]"], 'E1069:')
   call CheckDefExecFailure(["let x = g:list_mixed['xx']"], 'E39:')
   call CheckDefFailure(["let x = g:list_mixed[0"], 'E111:')
   call CheckDefExecFailure(["let x = g:list_empty[3]"], 'E684:')
@@ -1410,6 +1411,28 @@ def Test_expr7_subscript_linebreak()
 	one)
 enddef
 
+def Test_expr7_method_call()
+  new
+  setline(1, ['first', 'last'])
+  eval 'second'->append(1)
+  assert_equal(['first', 'second', 'last'], getline(1, '$'))
+  bwipe!
+
+  let bufnr = bufnr()
+  let loclist = [#{bufnr: bufnr, lnum: 42, col: 17, text: 'wrong'}]
+  loclist->setloclist(0)
+  assert_equal([#{bufnr: bufnr,
+  		lnum: 42,
+		col: 17,
+		text: 'wrong',
+		pattern: '',
+		valid: 1,
+		vcol: 0,
+		nr: 0,
+		type: '',
+		module: ''}
+		], getloclist(0))
+enddef
 
 func Test_expr7_trailing_fails()
   call CheckDefFailure(['let l = [2]', 'l->{l -> add(l, 8)}'], 'E107')
@@ -1420,7 +1443,7 @@ func Test_expr_fails()
   call CheckDefFailure(["let x = '1'is2"], 'E488:')
   call CheckDefFailure(["let x = '1'isnot2"], 'E488:')
 
-  call CheckDefExecFailure(["CallMe ('yes')"], 'E492:')
+  call CheckDefFailure(["CallMe ('yes')"], 'E476:')
   call CheckDefFailure(["CallMe2('yes','no')"], 'E1069:')
   call CheckDefFailure(["CallMe2('yes' , 'no')"], 'E1068:')
 

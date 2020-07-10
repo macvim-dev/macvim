@@ -1765,13 +1765,19 @@ typedef struct {
     char_u	*(*eval_getline)(int, void *, int, int);
     void	*eval_cookie;	    // argument for eval_getline()
 
+    // used when compiling a :def function, NULL otherwise
+    cctx_T	*eval_cctx;
+
     // Used to collect lines while parsing them, so that they can be
     // concatenated later.  Used when "eval_ga.ga_itemsize" is not zero.
     // "eval_ga.ga_data" is a list of pointers to lines.
     garray_T	eval_ga;
 
-    // pointer to the line obtained with getsourceline()
+    // pointer to the last line obtained with getsourceline()
     char_u	*eval_tofree;
+
+    // pointer to the lines concatenated for a lambda.
+    char_u	*eval_tofree_lambda;
 } evalarg_T;
 
 // Flags for expression evaluation.
@@ -1905,6 +1911,9 @@ typedef struct {
 	AutoPatCmd *aucmd;  // autocommand info
 	except_T   *except; // exception info
     } es_info;
+#if defined(FEAT_EVAL)
+    scid_T	es_save_sid;	    // saved sc_sid when calling function
+#endif
 } estack_T;
 
 // Information returned by get_tty_info().

@@ -160,6 +160,7 @@ call_dfunc(int cdf_idx, int argcount_arg, ectx_T *ectx)
     int	    arg_to_add;
     int	    vararg_count = 0;
     int	    idx;
+    estack_T *entry;
 
     if (dfunc->df_deleted)
     {
@@ -230,7 +231,14 @@ call_dfunc(int cdf_idx, int argcount_arg, ectx_T *ectx)
     // Set execution state to the start of the called function.
     ectx->ec_dfunc_idx = cdf_idx;
     ectx->ec_instr = dfunc->df_instr;
-    estack_push_ufunc(dfunc->df_ufunc, 1);
+    entry = estack_push_ufunc(dfunc->df_ufunc, 1);
+    if (entry != NULL)
+    {
+	// Set the script context to the script where the function was defined.
+	// TODO: save more than the SID?
+	entry->es_save_sid = current_sctx.sc_sid;
+	current_sctx.sc_sid = ufunc->uf_script_ctx.sc_sid;
+    }
 
     // Decide where to start execution, handles optional arguments.
     init_instr_idx(ufunc, argcount, ectx);
@@ -386,9 +394,12 @@ func_return(ectx_T *ectx)
 							  + ectx->ec_dfunc_idx;
     int		argcount = ufunc_argcount(dfunc->df_ufunc);
     int		top = ectx->ec_frame_idx - argcount;
+    estack_T	*entry;
 
     // execution context goes one level up
-    estack_pop();
+    entry = estack_pop();
+    if (entry != NULL)
+	current_sctx.sc_sid = entry->es_save_sid;
 
     if (handle_closure_in_use(ectx, TRUE) == FAIL)
 	return FAIL;
@@ -543,7 +554,7 @@ call_by_name(char_u *name, int argcount, ectx_T *ectx, isn_T *iptr)
 
 	if (func_idx < 0)
 	    return FAIL;
-	if (check_internal_func(func_idx, argcount) == FAIL)
+	if (check_internal_func(func_idx, argcount) < 0)
 	    return FAIL;
 	return call_bfunc(func_idx, argcount, ectx);
     }
@@ -2322,6 +2333,22 @@ call_def_function(
 		}
 		break;
 
+	    case ISN_SHUFFLE:
+		{
+		    typval_T	    tmp_tv;
+		    int		    item = iptr->isn_arg.shuffle.shfl_item;
+		    int		    up = iptr->isn_arg.shuffle.shfl_up;
+
+		    tmp_tv = *STACK_TV_BOT(-item);
+		    for ( ; up > 0 && item > 1; --up)
+		    {
+			*STACK_TV_BOT(-item) = *STACK_TV_BOT(-item + 1);
+			--item;
+		    }
+		    *STACK_TV_BOT(-item) = tmp_tv;
+		}
+		break;
+
 	    case ISN_DROP:
 		--ectx.ec_stack.ga_len;
 		clear_tv(STACK_TV_BOT(0));
@@ -2889,8 +2916,12 @@ ex_disassemble(exarg_T *eap)
 			    break;
 	    case ISN_2STRING: smsg("%4d 2STRING stack[%lld]", current,
 					 (long long)(iptr->isn_arg.number));
-				break;
+			      break;
 
+	    case ISN_SHUFFLE: smsg("%4d SHUFFLE %d up %d", current,
+					 iptr->isn_arg.shuffle.shfl_item,
+					 iptr->isn_arg.shuffle.shfl_up);
+			      break;
 	    case ISN_DROP: smsg("%4d DROP", current); break;
 	}
     }
