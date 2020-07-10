@@ -61,6 +61,7 @@ script:
   - make -j${NPROC}
   - echo -en "travis_fold:end:build\\r\\033[0K"
   - set +o errexit
+  - ${VIMCMD} --version
   - echo -e "\\033[33;1mTesting MacVim\\033[0m" && echo -en "travis_fold:start:test\\r\\033[0K"
   - |
     macvim_excmd() {
