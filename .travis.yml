@@ -15,7 +15,7 @@ env:
       vi_cv_path_ruby=/usr/local/opt/ruby/bin/ruby
       vi_cv_dll_name_perl=/System/Library/Perl/5.18/darwin-thread-multi-2level/CORE/libperl.dylib
       vi_cv_dll_name_python=/System/Library/Frameworks/Python.framework/Versions/2.7/Python
-      vi_cv_dll_name_python3=/usr/local/Frameworks/Python.framework/Versions/3.7/Python
+      vi_cv_dll_name_python3=/usr/local/Frameworks/Python.framework/Versions/3.8/Python
       vi_cv_dll_name_ruby=/usr/local/opt/ruby/lib/libruby.dylib
       VIMCMD=src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
       CONFOPT="--with-features=huge --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-gui=macvim"
