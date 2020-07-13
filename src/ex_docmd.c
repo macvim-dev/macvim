@@ -1771,7 +1771,7 @@ do_one_cmd(
 	ea.cmd = skipwhite(ea.cmd + 1);
 
 #ifdef FEAT_EVAL
-    if (current_sctx.sc_version == SCRIPT_VERSION_VIM9 && !starts_with_colon)
+    if (in_vim9script() && !starts_with_colon)
     {
 	if (ea.cmd > cmd)
 	{
@@ -2756,6 +2756,11 @@ parse_command_modifiers(exarg_T *eap, char **errormsg, int skip_only)
 				if (*p == NUL || ends_excmd(*p))
 				    break;
 			    }
+#ifdef FEAT_EVAL
+			    // Avoid that "filter(arg)" is recognized.
+			    if (in_vim9script() && !VIM_ISWHITE(*p))
+				break;
+#endif
 			    if (skip_only)
 				p = skip_vimgrep_pat(p, NULL, NULL);
 			    else
@@ -2910,7 +2915,7 @@ parse_command_modifiers(exarg_T *eap, char **errormsg, int skip_only)
 }
 
 /*
- * Unod and free contents of "cmdmod".
+ * Undo and free contents of "cmdmod".
  */
     void
 undo_cmdmod(exarg_T *eap, int save_msg_scroll)

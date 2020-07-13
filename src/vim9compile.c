@@ -820,6 +820,14 @@ get_compare_isn(exptype_T exptype, vartype_T type1, vartype_T type2)
     return isntype;
 }
 
+    int
+check_compare_types(exptype_T type, typval_T *tv1, typval_T *tv2)
+{
+    if (get_compare_isn(type, tv1->v_type, tv2->v_type) == ISN_DROP)
+	return FAIL;
+    return OK;
+}
+
 /*
  * Generate an ISN_COMPARE* instruction with a boolean result.
  */
@@ -904,7 +912,12 @@ generate_TYPECHECK(cctx_T *cctx, type_T *vartype, int offset)
  * - return FAIL.
  */
     static int
-need_type(type_T *actual, type_T *expected, int offset, cctx_T *cctx)
+need_type(
+	type_T	*actual,
+	type_T	*expected,
+	int	offset,
+	cctx_T	*cctx,
+	int	silent)
 {
     if (check_type(expected, actual, FALSE) == OK)
 	return OK;
@@ -913,7 +926,8 @@ need_type(type_T *actual, type_T *expected, int offset, cctx_T *cctx)
 	    && !(actual->tt_type == VAR_FUNC
 		&& (actual->tt_member == &t_any || actual->tt_argcount < 0)))
     {
-	type_mismatch(expected, actual);
+	if (!silent)
+	    type_mismatch(expected, actual);
 	return FAIL;
     }
     generate_TYPECHECK(cctx, expected, offset);
@@ -1530,7 +1544,7 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 	    else
 		expected = ufunc->uf_va_type->tt_member;
 	    actual = ((type_T **)stack->ga_data)[stack->ga_len - argcount + i];
-	    if (need_type(actual, expected, -argcount + i, cctx) == FAIL)
+	    if (need_type(actual, expected, -argcount + i, cctx, TRUE) == FAIL)
 	    {
 		arg_type_mismatch(expected, actual, i + 1);
 		return FAIL;
@@ -2500,6 +2514,21 @@ may_get_next_line(char_u *whitep, char_u **arg, cctx_T *cctx)
     }
     return OK;
 }
+
+/*
+ * Idem, and give an error when failed.
+ */
+    static int
+may_get_next_line_error(char_u *whitep, char_u **arg, cctx_T *cctx)
+{
+    if (may_get_next_line(whitep, arg, cctx) == FAIL)
+    {
+	emsg(_("E1097: line incomplete"));
+	return FAIL;
+    }
+    return OK;
+}
+
 
 // Structure passed between the compile_expr* functions to keep track of
 // constants that have been parsed but for which no code was produced yet.  If
@@ -3588,8 +3617,11 @@ compile_subscript(
 
 	    // If a following line starts with "->{" or "->X" advance to that
 	    // line, so that a line break before "->" is allowed.
-	    if (next != NULL && next[0] == '-' && next[1] == '>'
-		    && (next[2] == '{' || ASCII_ISALPHA(next[2])))
+	    // Also if a following line starts with ".x".
+	    if (next != NULL &&
+		    ((next[0] == '-' && next[1] == '>'
+				 && (next[2] == '{' || ASCII_ISALPHA(next[2])))
+		    || (next[0] == '.' && ASCII_ISALPHA(next[1]))))
 	    {
 		next = next_line_from_context(cctx, TRUE);
 		if (next == NULL)
@@ -3672,11 +3704,13 @@ compile_subscript(
 
 	    ++p;
 	    *arg = skipwhite(p);
-	    if (may_get_next_line(p, arg, cctx) == FAIL)
+	    if (may_get_next_line_error(p, arg, cctx) == FAIL)
 		return FAIL;
 	    if (compile_expr0(arg, cctx) == FAIL)
 		return FAIL;
 
+	    if (may_get_next_line_error(p, arg, cctx) == FAIL)
+		return FAIL;
 	    if (**arg != ']')
 	    {
 		emsg(_(e_missbrac));
@@ -4276,7 +4310,7 @@ compile_expr4(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	    // Both sides are a constant, compute the result now.
 	    // First check for a valid combination of types, this is more
 	    // strict than typval_compare().
-	    if (get_compare_isn(type, tv1->v_type, tv2->v_type) == ISN_DROP)
+	    if (check_compare_types(type, tv1, tv2) == FAIL)
 		ret = FAIL;
 	    else
 	    {
@@ -4612,8 +4646,8 @@ compile_return(char_u *arg, int set_return_type, cctx_T *cctx)
 		emsg(_("E1096: Returning a value in a function without a return type"));
 		return NULL;
 	    }
-	    if (need_type(stack_type, cctx->ctx_ufunc->uf_ret_type, -1, cctx)
-								       == FAIL)
+	    if (need_type(stack_type, cctx->ctx_ufunc->uf_ret_type, -1,
+							  cctx, FALSE) == FAIL)
 	    return NULL;
 	}
     }
@@ -4914,7 +4948,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		emsg(_(e_cannot_use_void));
 		goto theend;
 	    }
-	    if (need_type(stacktype, &t_list_any, -1, cctx) == FAIL)
+	    if (need_type(stacktype, &t_list_any, -1, cctx, FALSE) == FAIL)
 		goto theend;
 	    generate_CHECKLEN(cctx, semicolon ? var_count - 1 : var_count,
 								    semicolon);
@@ -5328,13 +5362,13 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			    if (use_type == NULL)
 				use_type = &t_void;
 			}
-			if (need_type(stacktype, use_type, -1, cctx)
+			if (need_type(stacktype, use_type, -1, cctx, FALSE)
 								   == FAIL)
 			    goto theend;
 		    }
 		}
 		else if (*p != '=' && need_type(stacktype, member_type, -1,
-							     cctx) == FAIL)
+							  cctx, FALSE) == FAIL)
 		    goto theend;
 	    }
 	    else if (cmdidx == CMD_const)
@@ -5411,7 +5445,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    if (*op == '.')
 		expected = &t_string;
 	    stacktype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	    if (need_type(stacktype, expected, -1, cctx) == FAIL)
+	    if (need_type(stacktype, expected, -1, cctx, FALSE) == FAIL)
 		goto theend;
 
 	    if (*op == '.')
@@ -6100,7 +6134,7 @@ compile_for(char_u *arg, cctx_T *cctx)
     // Now that we know the type of "var", check that it is a list, now or at
     // runtime.
     vartype = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-    if (need_type(vartype, &t_list_any, -1, cctx) == FAIL)
+    if (need_type(vartype, &t_list_any, -1, cctx, FALSE) == FAIL)
     {
 	drop_scope(cctx);
 	return NULL;
@@ -6768,6 +6802,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
     else if (add_def_function(ufunc) == FAIL)
 	return FAIL;
 
+    ufunc->uf_def_status = UF_COMPILING;
+
     CLEAR_FIELD(cctx);
     cctx.ctx_ufunc = ufunc;
     cctx.ctx_lnum = -1;
@@ -6935,6 +6971,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	}
 	// TODO: use modifiers in the command
 	undo_cmdmod(&ea, save_msg_scroll);
+	CLEAR_FIELD(cmdmod);
 
 	// Skip ":call" to get to the function name.
 	if (checkforcmd(&ea.cmd, "call", 3))

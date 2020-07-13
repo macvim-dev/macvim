@@ -557,7 +557,7 @@ def RetVoid()
 enddef
 
 def Test_expr4_vimscript()
-  " only checks line continuation
+  " check line continuation
   let lines =<< trim END
       vim9script
       let var = 0
@@ -599,6 +599,25 @@ def Test_expr4_vimscript()
       assert_equal(1, var)
   END
   CheckScriptSuccess(lines)
+
+  " spot check mismatching types
+  lines =<< trim END
+      vim9script
+      echo '' == 0
+  END
+  CheckScriptFailure(lines, 'E1072:')
+
+  lines =<< trim END
+      vim9script
+      echo v:true > v:false
+  END
+  CheckScriptFailure(lines, 'Cannot compare bool with bool')
+
+  lines =<< trim END
+      vim9script
+      echo 123 is 123
+  END
+  CheckScriptFailure(lines, 'Cannot use "is" with number')
 enddef
 
 func Test_expr4_fails()
@@ -1016,7 +1035,8 @@ def Test_expr7_list()
   call CheckDefFailure(["let x = g:list_mixed[xxx]"], 'E1001:')
   call CheckDefFailure(["let x = [1,2,3]"], 'E1069:')
   call CheckDefExecFailure(["let x = g:list_mixed['xx']"], 'E39:')
-  call CheckDefFailure(["let x = g:list_mixed[0"], 'E111:')
+  call CheckDefFailure(["let x = g:list_mixed["], 'E1097:')
+  call CheckDefFailure(["let x = g:list_mixed[0"], 'E1097:')
   call CheckDefExecFailure(["let x = g:list_empty[3]"], 'E684:')
 enddef
 
@@ -1047,10 +1067,32 @@ def Test_expr7_list_vim9script()
 enddef
 
 def Test_expr7_lambda()
-  " lambda
   let La = { -> 'result'}
   assert_equal('result', La())
   assert_equal([1, 3, 5], [1, 2, 3]->map({key, val -> key + val}))
+
+  " line continuation inside lambda with "cond ? expr : expr" works
+  let ll = range(3)
+  map(ll, {k, v -> v % 2 ? {
+	    '111': 111 } : {}
+	})
+  assert_equal([{}, {'111': 111}, {}], ll)
+
+  ll = range(3)
+  map(ll, {k, v -> v == 8 || v
+		== 9
+		|| v % 2 ? 111 : 222
+	})
+  assert_equal([222, 111, 222], ll)
+
+  ll = range(3)
+  map(ll, {k, v -> v != 8 && v
+		!= 9
+		&& v % 2 == 0 ? 111 : 222
+	})
+  assert_equal([111, 222, 111], ll)
+
+  call CheckDefFailure(["filter([1, 2], {k,v -> 1})"], 'E1069:')
 enddef
 
 def Test_expr7_lambda_vim9script()
@@ -1135,6 +1177,11 @@ def Test_expr_member()
   assert_equal(1, g:dict_one.one)
   let d: dict<number> = g:dict_one
   assert_equal(1, d['one'])
+  assert_equal(1, d[
+		  'one'
+		  ])
+  assert_equal(1, d
+  	.one)
 
   # getting the one member should clear the dict after getting the item
   assert_equal('one', #{one: 'one'}.one)

@@ -746,7 +746,7 @@ enddef
 def Test_unknown_function()
   CheckDefExecFailure([
       'let Ref: func = function("NotExist")',
-      'delfunc g:NotExist'], 'E130:')
+      'delfunc g:NotExist'], 'E700:')
 enddef
 
 def RefFunc(Ref: func(string): string): string
@@ -967,7 +967,7 @@ enddef
 
 def Line_continuation_in_lambda(): list<number>
   let x = range(97, 100)
-      ->map({_,v -> nr2char(v)
+      ->map({_, v -> nr2char(v)
           ->toupper()})
       ->reverse()
   return x
@@ -998,6 +998,18 @@ func Test_silent_echo()
   call StopVimInTerminal(buf)
   call delete('XTest_silent_echo')
 endfunc
+
+def Fibonacci(n: number): number
+  if n < 2
+    return n
+  else
+    return Fibonacci(n - 1) + Fibonacci(n - 2)
+  endif
+enddef
+
+def Test_recursive_call()
+  assert_equal(6765, Fibonacci(20))
+enddef
 
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

@@ -266,10 +266,20 @@ get_function_args(
 	    else if (any_default)
 	    {
 		emsg(_("E989: Non-default argument follows default argument"));
-		mustend = TRUE;
+		goto err_ret;
 	    }
 	    if (*p == ',')
+	    {
 		++p;
+		// Don't give this error when skipping, it makes the "->" not
+		// found in "{k,v -> x}" and give a confusing error.
+		if (!skip && in_vim9script()
+				      && !IS_WHITE_OR_NUL(*p) && *p != endchar)
+		{
+		    semsg(_(e_white_after), ",");
+		    goto err_ret;
+		}
+	    }
 	    else
 		mustend = TRUE;
 	}
@@ -2378,8 +2388,7 @@ trans_function_name(
     }
 
     // In Vim9 script a user function is script-local by default.
-    vim9script = ASCII_ISUPPER(*start)
-			     && current_sctx.sc_version == SCRIPT_VERSION_VIM9;
+    vim9script = ASCII_ISUPPER(*start) && in_vim9script();
 
     /*
      * Copy the function name to allocated memory.
@@ -2459,7 +2468,7 @@ untrans_function_name(char_u *name)
 {
     char_u *p;
 
-    if (*name == K_SPECIAL && current_sctx.sc_version == SCRIPT_VERSION_VIM9)
+    if (*name == K_SPECIAL && in_vim9script())
     {
 	p = vim_strchr(name, '_');
 	if (p != NULL)
