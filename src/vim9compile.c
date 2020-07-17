@@ -3212,6 +3212,7 @@ compile_lambda_call(char_u **arg, cctx_T *cctx)
 compile_dict(char_u **arg, cctx_T *cctx, int literal)
 {
     garray_T	*instr = &cctx->ctx_instr;
+    garray_T	*stack = &cctx->ctx_type_stack;
     int		count = 0;
     dict_T	*d = dict_alloc();
     dictitem_T	*item;
@@ -3254,10 +3255,16 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 
 	    if (compile_expr0(arg, cctx) == FAIL)
 		return FAIL;
-	    // TODO: check type is string
 	    isn = ((isn_T *)instr->ga_data) + instr->ga_len - 1;
 	    if (isn->isn_type == ISN_PUSHS)
 		key = isn->isn_arg.string;
+	    else
+	    {
+		type_T *keytype = ((type_T **)stack->ga_data)
+							   [stack->ga_len - 1];
+		if (need_type(keytype, &t_string, -1, cctx, FALSE) == FAIL)
+		    return FAIL;
+	    }
 	}
 
 	// Check for duplicate keys, if using string keys.
@@ -6858,7 +6865,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    val_type = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 	    if (ufunc->uf_arg_types[arg_idx] == &t_unknown)
 		ufunc->uf_arg_types[arg_idx] = val_type;
-	    else if (check_type(ufunc->uf_arg_types[i], val_type, FALSE)
+	    else if (check_type(ufunc->uf_arg_types[arg_idx], val_type, FALSE)
 								       == FAIL)
 	    {
 		arg_type_mismatch(ufunc->uf_arg_types[arg_idx], val_type,
@@ -7041,13 +7048,17 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 
 	/*
 	 * COMMAND after range
+	 * 'text'->func() should not be confused with 'a mark
 	 */
 	cmd = ea.cmd;
-	ea.cmd = skip_range(ea.cmd, NULL);
-	if (ea.cmd > cmd && !starts_with_colon)
+	if (*cmd != '\'')
 	{
-	    emsg(_(e_colon_required));
-	    goto erret;
+	    ea.cmd = skip_range(ea.cmd, NULL);
+	    if (ea.cmd > cmd && !starts_with_colon)
+	    {
+		emsg(_(e_colon_required));
+		goto erret;
+	    }
 	}
 	p = find_ex_command(&ea, NULL, starts_with_colon ? NULL
 		   : (void *(*)(char_u *, size_t, cctx_T *))lookup_local,

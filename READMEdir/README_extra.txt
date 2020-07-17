@@ -21,8 +21,6 @@ src/os_mac*		Shared files for the different Mac ports.
 
 src/MacVim/*		Files for the MacVim port.
 
-src/os_mint.8		Files for the Atari Mint port.
-
 src/os_vms*		Files for the VMS port.
 
 src/os_w32*

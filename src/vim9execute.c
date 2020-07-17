@@ -461,6 +461,10 @@ call_prepare(int argcount, typval_T *argvars, ectx_T *ectx)
     return OK;
 }
 
+// Ugly global to avoid passing the execution context around through many
+// layers.
+static ectx_T *current_ectx = NULL;
+
 /*
  * Call a builtin function by index.
  */
@@ -470,12 +474,16 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
     typval_T	argvars[MAX_FUNC_ARGS];
     int		idx;
     int		did_emsg_before = did_emsg;
+    ectx_T	*prev_ectx = current_ectx;
 
     if (call_prepare(argcount, argvars, ectx) == FAIL)
 	return FAIL;
 
-    // Call the builtin function.
+    // Call the builtin function.  Set "current_ectx" so that when it
+    // recursively invokes call_def_function() a closure context can be set.
+    current_ectx = ectx;
     call_internal_func_by_idx(func_idx, argvars, STACK_TV_BOT(-1));
+    current_ectx = prev_ectx;
 
     // Clear the arguments.
     for (idx = 0; idx < argcount; ++idx)
@@ -567,14 +575,32 @@ call_by_name(char_u *name, int argcount, ectx_T *ectx, isn_T *iptr)
 }
 
     static int
-call_partial(typval_T *tv, int argcount, ectx_T *ectx)
+call_partial(typval_T *tv, int argcount_arg, ectx_T *ectx)
 {
+    int		argcount = argcount_arg;
     char_u	*name = NULL;
     int		called_emsg_before = called_emsg;
 
     if (tv->v_type == VAR_PARTIAL)
     {
-	partial_T *pt = tv->vval.v_partial;
+	partial_T   *pt = tv->vval.v_partial;
+	int	    i;
+
+	if (pt->pt_argc > 0)
+	{
+	    // Make space for arguments from the partial, shift the "argcount"
+	    // arguments up.
+	    if (ga_grow(&ectx->ec_stack, pt->pt_argc) == FAIL)
+		return FAIL;
+	    for (i = 1; i <= argcount; ++i)
+		*STACK_TV_BOT(-i + pt->pt_argc) = *STACK_TV_BOT(-i);
+	    ectx->ec_stack.ga_len += pt->pt_argc;
+	    argcount += pt->pt_argc;
+
+	    // copy the arguments from the partial onto the stack
+	    for (i = 0; i < pt->pt_argc; ++i)
+		copy_tv(&pt->pt_argv[i], STACK_TV_BOT(-argcount + i));
+	}
 
 	if (pt->pt_func != NULL)
 	{
@@ -749,8 +775,17 @@ call_def_function(
 
     if (partial != NULL)
     {
-	ectx.ec_outer_stack = partial->pt_ectx_stack;
-	ectx.ec_outer_frame = partial->pt_ectx_frame;
+	if (partial->pt_ectx_stack == NULL && current_ectx != NULL)
+	{
+	    // TODO: is this always the right way?
+	    ectx.ec_outer_stack = &current_ectx->ec_stack;
+	    ectx.ec_outer_frame = current_ectx->ec_frame_idx;
+	}
+	else
+	{
+	    ectx.ec_outer_stack = partial->pt_ectx_stack;
+	    ectx.ec_outer_frame = partial->pt_ectx_frame;
+	}
     }
 
     // dummy frame entries
@@ -2397,7 +2432,14 @@ ex_disassemble(exarg_T *eap)
     int		prev_current = 0;
     int		is_global = FALSE;
 
-    fname = trans_function_name(&arg, &is_global, FALSE,
+    if (STRNCMP(arg, "<lambda>", 8) == 0)
+    {
+	arg += 8;
+	(void)getdigits(&arg);
+	fname = vim_strnsave(eap->arg, arg - eap->arg);
+    }
+    else
+	fname = trans_function_name(&arg, &is_global, FALSE,
 			    TFN_INT | TFN_QUIET | TFN_NO_AUTOLOAD, NULL, NULL);
     if (fname == NULL)
     {

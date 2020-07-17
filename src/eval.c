@@ -2196,6 +2196,7 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	long	    result = FALSE;
 	typval_T    var2;
 	int	    error;
+	int	    vim9script = in_vim9script();
 
 	if (evalarg == NULL)
 	{
@@ -2206,12 +2207,19 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	evaluate = orig_flags & EVAL_EVALUATE;
 	if (evaluate)
 	{
-	    error = FALSE;
-	    if (tv_get_number_chk(rettv, &error) != 0)
-		result = TRUE;
-	    clear_tv(rettv);
-	    if (error)
-		return FAIL;
+	    if (vim9script)
+	    {
+		result = tv2bool(rettv);
+	    }
+	    else
+	    {
+		error = FALSE;
+		if (tv_get_number_chk(rettv, &error) != 0)
+		    result = TRUE;
+		clear_tv(rettv);
+		if (error)
+		    return FAIL;
+	    }
 	}
 
 	/*
@@ -2236,13 +2244,22 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	     */
 	    if (evaluate && !result)
 	    {
-		if (tv_get_number_chk(&var2, &error) != 0)
-		    result = TRUE;
-		clear_tv(&var2);
-		if (error)
-		    return FAIL;
+		if (vim9script)
+		{
+		    clear_tv(rettv);
+		    *rettv = var2;
+		    result = tv2bool(rettv);
+		}
+		else
+		{
+		    if (tv_get_number_chk(&var2, &error) != 0)
+			result = TRUE;
+		    clear_tv(&var2);
+		    if (error)
+			return FAIL;
+		}
 	    }
-	    if (evaluate)
+	    if (evaluate && !vim9script)
 	    {
 		rettv->v_type = VAR_NUMBER;
 		rettv->vval.v_number = result;
@@ -2294,6 +2311,7 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	long	    result = TRUE;
 	typval_T    var2;
 	int	    error;
+	int	    vim9script = in_vim9script();
 
 	if (evalarg == NULL)
 	{
@@ -2304,12 +2322,19 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	evaluate = orig_flags & EVAL_EVALUATE;
 	if (evaluate)
 	{
-	    error = FALSE;
-	    if (tv_get_number_chk(rettv, &error) == 0)
-		result = FALSE;
-	    clear_tv(rettv);
-	    if (error)
-		return FAIL;
+	    if (vim9script)
+	    {
+		result = tv2bool(rettv);
+	    }
+	    else
+	    {
+		error = FALSE;
+		if (tv_get_number_chk(rettv, &error) == 0)
+		    result = FALSE;
+		clear_tv(rettv);
+		if (error)
+		    return FAIL;
+	    }
 	}
 
 	/*
@@ -2334,13 +2359,22 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	     */
 	    if (evaluate && result)
 	    {
-		if (tv_get_number_chk(&var2, &error) == 0)
-		    result = FALSE;
-		clear_tv(&var2);
-		if (error)
-		    return FAIL;
+		if (vim9script)
+		{
+		    clear_tv(rettv);
+		    *rettv = var2;
+		    result = tv2bool(rettv);
+		}
+		else
+		{
+		    if (tv_get_number_chk(&var2, &error) == 0)
+			result = FALSE;
+		    clear_tv(&var2);
+		    if (error)
+			return FAIL;
+		}
 	    }
-	    if (evaluate)
+	    if (evaluate && !vim9script)
 	    {
 		rettv->v_type = VAR_NUMBER;
 		rettv->vval.v_number = result;
@@ -2538,8 +2572,6 @@ eval_addlist(typval_T *tv1, typval_T *tv2)
     static int
 eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 {
-    int	evaluate = evalarg == NULL ? 0 : (evalarg->eval_flags & EVAL_EVALUATE);
-
     /*
      * Get the first variable.
      */
@@ -2551,6 +2583,7 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
      */
     for (;;)
     {
+	int	    evaluate;
 	int	    getnext;
 	char_u	    *p;
 	int	    op;
@@ -2563,9 +2596,10 @@ eval5(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	concat = op == '.' && (*(p + 1) == '.' || current_sctx.sc_version < 2);
 	if (op != '+' && op != '-' && !concat)
 	    break;
+
 	if (getnext)
 	    *arg = eval_next_line(evalarg);
-
+	evaluate = evalarg == NULL ? 0 : (evalarg->eval_flags & EVAL_EVALUATE);
 	if ((op != '+' || (rettv->v_type != VAR_LIST
 						 && rettv->v_type != VAR_BLOB))
 #ifdef FEAT_FLOAT
@@ -2728,14 +2762,9 @@ eval6(
     evalarg_T	*evalarg,
     int		want_string)  // after "." operator
 {
-    typval_T	var2;
-    int		op;
-    varnumber_T	n1, n2;
 #ifdef FEAT_FLOAT
-    int		use_float = FALSE;
-    float_T	f1 = 0, f2 = 0;
+    int	    use_float = FALSE;
 #endif
-    int		error = FALSE;
 
     /*
      * Get the first variable.
@@ -2748,16 +2777,29 @@ eval6(
      */
     for (;;)
     {
-	int	evaluate = evalarg == NULL ? 0
-				       : (evalarg->eval_flags & EVAL_EVALUATE);
-	int	getnext;
+	int	    evaluate;
+	int	    getnext;
+	typval_T    var2;
+	int	    op;
+	varnumber_T n1, n2;
+#ifdef FEAT_FLOAT
+	float_T	    f1, f2;
+#endif
+	int	    error;
 
 	op = *eval_next_non_blank(*arg, evalarg, &getnext);
 	if (op != '*' && op != '/' && op != '%')
 	    break;
+
 	if (getnext)
 	    *arg = eval_next_line(evalarg);
 
+#ifdef FEAT_FLOAT
+	f1 = 0;
+	f2 = 0;
+#endif
+	error = FALSE;
+	evaluate = evalarg == NULL ? 0 : (evalarg->eval_flags & EVAL_EVALUATE);
 	if (evaluate)
 	{
 #ifdef FEAT_FLOAT
@@ -2904,7 +2946,6 @@ eval7(
     evalarg_T	*evalarg,
     int		want_string)	// after "." operator
 {
-    int		flags = evalarg == NULL ? 0 : evalarg->eval_flags;
     int		evaluate = evalarg != NULL
 				      && (evalarg->eval_flags & EVAL_EVALUATE);
     int		len;
@@ -3064,14 +3105,30 @@ eval7(
 	    ret = FAIL;
 	else
 	{
+	    int	    flags = evalarg == NULL ? 0 : evalarg->eval_flags;
+
 	    if (**arg == '(')
 		// "name(..."  recursive!
 		ret = eval_func(arg, evalarg, s, len, rettv, flags, NULL);
 	    else if (flags & EVAL_CONSTANT)
 		ret = FAIL;
 	    else if (evaluate)
-		// get value of variable
-		ret = eval_variable(s, len, rettv, NULL, TRUE, FALSE);
+	    {
+		// get the value of "true", "false" or a variable
+		if (len == 4 && in_vim9script() && STRNCMP(s, "true", 4) == 0)
+		{
+		    rettv->v_type = VAR_BOOL;
+		    rettv->vval.v_number = VVAL_TRUE;
+		}
+		else if (len == 5 && in_vim9script()
+						&& STRNCMP(s, "false", 4) == 0)
+		{
+		    rettv->v_type = VAR_BOOL;
+		    rettv->vval.v_number = VVAL_FALSE;
+		}
+		else
+		    ret = eval_variable(s, len, rettv, NULL, TRUE, FALSE);
+	    }
 	    else
 	    {
 		// skip the name

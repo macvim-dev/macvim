@@ -104,10 +104,18 @@ def MyDefaultArgs(name = 'string'): string
   return name
 enddef
 
+def MyDefaultSecond(name: string, second: bool  = true): string
+  return second ? name : 'none'
+enddef
+
 def Test_call_default_args()
   assert_equal('string', MyDefaultArgs())
   assert_equal('one', MyDefaultArgs('one'))
   assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
+
+  assert_equal('test', MyDefaultSecond('test'))
+  assert_equal('test', MyDefaultSecond('test', true))
+  assert_equal('none', MyDefaultSecond('test', false))
 
   CheckScriptFailure(['def Func(arg: number = asdf)', 'enddef', 'defcompile'], 'E1001:')
   CheckScriptFailure(['def Func(arg: number = "text")', 'enddef', 'defcompile'], 'E1013: argument 1: type mismatch, expected number but got string')
@@ -354,6 +362,15 @@ def Test_vim9script_call()
     assert_equal('text', var)
     ("some")->MyFunc()
     assert_equal('some', var)
+
+    'asdfasdf'->MyFunc()
+    assert_equal('asdfasdf', var)
+
+    def UseString()
+      'xyork'->MyFunc()
+    enddef
+    UseString()
+    assert_equal('xyork', var)
 
     MyFunc(
         'continued'
@@ -954,6 +971,14 @@ def Test_filter_return_type()
   assert_equal(6, res)
 enddef
 
+def Wrong_dict_key_type(items: list<number>): list<number>
+  return filter(items, {_, val -> get({val: 1}, 'x')})
+enddef
+
+def Test_wrong_dict_key_type()
+  assert_fails('Wrong_dict_key_type([1, 2, 3])', 'E1029:')
+enddef
+
 def Line_continuation_in_def(dir: string = ''): string
     let path: string = empty(dir)
             \ ? 'empty'
@@ -1009,6 +1034,43 @@ enddef
 
 def Test_recursive_call()
   assert_equal(6765, Fibonacci(20))
+enddef
+
+def TreeWalk(dir: string): list<any>
+  return readdir(dir)->map({_, val ->
+            fnamemodify(dir .. '/' .. val, ':p')->isdirectory()
+               ? {val : TreeWalk(dir .. '/' .. val)}
+               : val
+             })
+enddef
+
+def Test_closure_in_map()
+  mkdir('XclosureDir/tdir', 'p')
+  writefile(['111'], 'XclosureDir/file1')
+  writefile(['222'], 'XclosureDir/file2')
+  writefile(['333'], 'XclosureDir/tdir/file3')
+
+  assert_equal(['file1', 'file2', {'tdir': ['file3']}], TreeWalk('XclosureDir'))
+
+  delete('XclosureDir', 'rf')
+enddef
+
+def Test_partial_call()
+  let Xsetlist = function('setloclist', [0])
+  Xsetlist([], ' ', {'title': 'test'})
+  assert_equal({'title': 'test'}, getloclist(0, {'title': 1}))
+
+  Xsetlist = function('setloclist', [0, [], ' '])
+  Xsetlist({'title': 'test'})
+  assert_equal({'title': 'test'}, getloclist(0, {'title': 1}))
+
+  Xsetlist = function('setqflist')
+  Xsetlist([], ' ', {'title': 'test'})
+  assert_equal({'title': 'test'}, getqflist({'title': 1}))
+
+  Xsetlist = function('setqflist', [[], ' '])
+  Xsetlist({'title': 'test'})
+  assert_equal({'title': 'test'}, getqflist({'title': 1}))
 enddef
 
 
