@@ -160,6 +160,10 @@ gui_mch_set_scrollbar_pos(
 	int y,
 	int w,
 	int h);
+    int
+gui_mch_get_scrollbar_xpadding(void);
+    int
+gui_mch_get_scrollbar_ypadding(void);
     void
 gui_mch_set_scrollbar_thumb(
 	scrollbar_T *sb,
