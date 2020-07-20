@@ -1,5 +1,3 @@
-extern int use_gui_macvim_draw_string;
-
     void
 macvim_early_init();
     void

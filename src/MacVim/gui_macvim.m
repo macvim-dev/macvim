@@ -19,9 +19,6 @@
 #import <Foundation/Foundation.h>
 
 
-// HACK! Used in gui.c to determine which string drawing code to use.
-int use_gui_macvim_draw_string = 1;
-
 static int use_graphical_sign = 0;
 
 static BOOL is_macos_high_sierra_or_later = NO;
@@ -195,7 +192,6 @@ gui_macvim_after_fork_init()
     }
     if (keyValid) {
         ASLogInfo(@"Use renderer=%ld", val);
-        use_gui_macvim_draw_string = (val != MMRendererCoreText);
 
         // For now only the Core Text renderer knows how to render graphical
         // signs.
