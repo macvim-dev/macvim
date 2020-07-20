@@ -2268,6 +2268,8 @@ did_set_string_option(
     {
 	if (parse_completepopup(NULL) == FAIL)
 	    errmsg = e_invarg;
+	else
+	    popup_close_info();
     }
 # endif
 #endif

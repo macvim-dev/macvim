@@ -240,6 +240,7 @@ gui_mch_set_rendering_options(char_u *s)
 # define CONST
 # define FAR
 # define NEAR
+# define WINAPI
 # undef _cdecl
 # define _cdecl
 typedef int BOOL;
@@ -320,9 +321,6 @@ static int		s_findrep_is_find;	// TRUE for find dialog, FALSE
 						// for find/replace dialog
 #endif
 
-#if !defined(FEAT_GUI)
-static
-#endif
 HWND			s_hwnd = NULL;
 static HDC		s_hdc = NULL;
 static HBRUSH		s_brush = NULL;
@@ -389,7 +387,7 @@ directx_binddc(void)
 #endif
 
 // use of WindowProc depends on Global IME
-#define MyWindowProc vim_WindowProc
+static LRESULT WINAPI MyWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 extern int current_font_height;	    // this is in os_mswin.c
 
@@ -1259,12 +1257,8 @@ _TextAreaWndProc(
     }
 }
 
-#ifdef PROTO
-typedef int WINAPI;
-#endif
-
-    LRESULT WINAPI
-vim_WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+    static LRESULT WINAPI
+MyWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 #ifdef GLOBAL_IME
     return global_ime_DefWindowProc(hwnd, message, wParam, lParam);
@@ -1410,6 +1404,34 @@ gui_mch_set_scrollbar_pos(
 {
     SetWindowPos(sb->id, NULL, x, y, w, h,
 			      SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+}
+
+    int
+gui_mch_get_scrollbar_xpadding(void)
+{
+    RECT    rcTxt, rcWnd;
+    int	    xpad;
+
+    GetWindowRect(s_textArea, &rcTxt);
+    GetWindowRect(s_hwnd, &rcWnd);
+    xpad = rcWnd.right - rcTxt.right - gui.scrollbar_width
+	- GetSystemMetrics(SM_CXFRAME)
+	- GetSystemMetrics(SM_CXPADDEDBORDER);
+    return (xpad < 0) ? 0 : xpad;
+}
+
+    int
+gui_mch_get_scrollbar_ypadding(void)
+{
+    RECT    rcTxt, rcWnd;
+    int	    ypad;
+
+    GetWindowRect(s_textArea, &rcTxt);
+    GetWindowRect(s_hwnd, &rcWnd);
+    ypad = rcWnd.bottom - rcTxt.bottom - gui.scrollbar_height
+	- GetSystemMetrics(SM_CYFRAME)
+	- GetSystemMetrics(SM_CXPADDEDBORDER);
+    return (ypad < 0) ? 0 : ypad;
 }
 
     void
@@ -3320,19 +3342,33 @@ gui_mch_init_font(char_u *font_name, int fontset UNUSED)
 
 /*
  * Return TRUE if the GUI window is maximized, filling the whole screen.
+ * Also return TRUE if the window is snapped.
  */
     int
 gui_mch_maximized(void)
 {
     WINDOWPLACEMENT wp;
+    RECT	    rc;
 
     wp.length = sizeof(WINDOWPLACEMENT);
     if (GetWindowPlacement(s_hwnd, &wp))
-	return wp.showCmd == SW_SHOWMAXIMIZED
+    {
+	if (wp.showCmd == SW_SHOWMAXIMIZED
 	    || (wp.showCmd == SW_SHOWMINIMIZED
-		    && wp.flags == WPF_RESTORETOMAXIMIZED);
+		    && wp.flags == WPF_RESTORETOMAXIMIZED))
+	    return TRUE;
+	if (wp.showCmd == SW_SHOWMINIMIZED)
+	    return FALSE;
 
-    return 0;
+	// Assume the window is snapped when the sizes from two APIs differ.
+	GetWindowRect(s_hwnd, &rc);
+	if ((rc.right - rc.left !=
+		    wp.rcNormalPosition.right - wp.rcNormalPosition.left)
+		|| (rc.bottom - rc.top !=
+		    wp.rcNormalPosition.bottom - wp.rcNormalPosition.top))
+	    return TRUE;
+    }
+    return FALSE;
 }
 
 /*
@@ -3794,10 +3830,6 @@ _OnScroll(
 
 #ifdef FEAT_XPM_W32
 # include "xpm_w32.h"
-#endif
-
-#ifdef PROTO
-# define WINAPI
 #endif
 
 #ifdef __MINGW32__

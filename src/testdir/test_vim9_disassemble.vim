@@ -21,9 +21,13 @@ def s:ScriptFuncLoad(arg: string)
   echo v:version
   echo s:scriptvar
   echo g:globalvar
+  echo get(g:, "global")
   echo b:buffervar
+  echo get(b:, "buffer")
   echo w:windowvar
+  echo get(w:, "window")
   echo t:tabpagevar
+  echo get(t:, "tab")
   echo &tabstop
   echo $ENVVAR
   echo @z
@@ -47,9 +51,25 @@ def Test_disassemble_load()
         ' LOADV v:version.*' ..
         ' LOADS s:scriptvar from .*test_vim9_disassemble.vim.*' ..
         ' LOADG g:globalvar.*' ..
+        'echo get(g:, "global")\_s*' ..
+        '\d\+ LOAD g:\_s*' ..
+        '\d\+ PUSHS "global"\_s*' ..
+        '\d\+ BCALL get(argc 2).*' ..
         ' LOADB b:buffervar.*' ..
+        'echo get(b:, "buffer")\_s*' ..
+        '\d\+ LOAD b:\_s*' ..
+        '\d\+ PUSHS "buffer"\_s*' ..
+        '\d\+ BCALL get(argc 2).*' ..
         ' LOADW w:windowvar.*' ..
+        'echo get(w:, "window")\_s*' ..
+        '\d\+ LOAD w:\_s*' ..
+        '\d\+ PUSHS "window"\_s*' ..
+        '\d\+ BCALL get(argc 2).*' ..
         ' LOADT t:tabpagevar.*' ..
+        'echo get(t:, "tab")\_s*' ..
+        '\d\+ LOAD t:\_s*' ..
+        '\d\+ PUSHS "tab"\_s*' ..
+        '\d\+ BCALL get(argc 2).*' ..
         ' LOADENV $ENVVAR.*' ..
         ' LOADREG @z.*',
         res)
@@ -463,7 +483,7 @@ def Test_disassemble_update_instr()
         '\d RETURN',
         res)
 
-  " Calling the function will change UCALL into the faster DCALL
+  # Calling the function will change UCALL into the faster DCALL
   assert_equal('yes', FuncWithForwardCall())
 
   res = execute('disass s:FuncWithForwardCall')
@@ -898,6 +918,27 @@ def Test_disassemble_concat()
   assert_equal('aabb', ConcatString())
 enddef
 
+def StringIndex(): number
+  let s = "abcd"
+  let res = s[1]
+  return res
+enddef
+
+def Test_disassemble_string_index()
+  let instr = execute('disassemble StringIndex')
+  assert_match('StringIndex\_s*' ..
+        'let s = "abcd"\_s*' ..
+        '\d PUSHS "abcd"\_s*' ..
+        '\d STORE $0\_s*' ..
+        'let res = s\[1]\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d PUSHNR 1\_s*' ..
+        '\d STRINDEX\_s*' ..
+        '\d STORE $1\_s*',
+        instr)
+  assert_equal('b', StringIndex())
+enddef
+
 def ListIndex(): number
   let l = [1, 2, 3]
   let res = l[1]
@@ -916,7 +957,7 @@ def Test_disassemble_list_index()
         'let res = l\[1]\_s*' ..
         '\d LOAD $0\_s*' ..
         '\d PUSHNR 1\_s*' ..
-        '\d INDEX\_s*' ..
+        '\d LISTINDEX\_s*' ..
         '\d STORE $1\_s*',
         instr)
   assert_equal(2, ListIndex())
@@ -1073,7 +1114,7 @@ def Test_disassemble_compare()
 
   let nr = 1
   for case in cases
-    " declare local variables to get a non-constant with the right type
+    # declare local variables to get a non-constant with the right type
     writefile(['def TestCase' .. nr .. '()',
              '  let isFalse = false',
              '  let isNull = v:null',
@@ -1121,7 +1162,7 @@ def Test_disassemble_compare_const()
     source Xdisassemble
     let instr = execute('disassemble TestCase' .. nr)
     if case[1]
-      " condition true, "echo 42" executed
+      # condition true, "echo 42" executed
       assert_match('TestCase' .. nr .. '.*' ..
           'if ' .. substitute(case[0], '[[~]', '\\\0', 'g') .. '.*' ..
           '\d PUSHNR 42.*' ..
@@ -1130,7 +1171,7 @@ def Test_disassemble_compare_const()
           '\d RETURN.*',
           instr)
     else
-      " condition false, function just returns
+      # condition false, function just returns
       assert_match('TestCase' .. nr .. '.*' ..
           'if ' .. substitute(case[0], '[[~]', '\\\0', 'g') .. '[ \n]*' ..
           'echo 42[ \n]*' ..
@@ -1245,7 +1286,7 @@ def Test_vim9script_forward_func()
   writefile(lines, 'Xdisassemble')
   source Xdisassemble
 
-  " check that the first function calls the second with DCALL
+  # check that the first function calls the second with DCALL
   assert_match('\<SNR>\d*_FuncOne\_s*' ..
         'return FuncTwo()\_s*' ..
         '\d DCALL <SNR>\d\+_FuncTwo(argc 0)\_s*' ..
