@@ -737,7 +737,8 @@ call_def_function(
     for (idx = 0; idx < argc; ++idx)
     {
 	if (ufunc->uf_arg_types != NULL && idx < ufunc->uf_args.ga_len
-		&& check_argtype(ufunc->uf_arg_types[idx], &argv[idx]) == FAIL)
+		&& check_typval_type(ufunc->uf_arg_types[idx], &argv[idx])
+								       == FAIL)
 	    goto failed_early;
 	copy_tv(&argv[idx], STACK_TV_BOT(0));
 	++ectx.ec_stack.ga_len;
@@ -754,9 +755,27 @@ call_def_function(
 	    argc -= vararg_count;
 	if (exe_newlist(vararg_count, &ectx) == FAIL)
 	    goto failed_early;
+
+	// Check the type of the list items.
+	tv = STACK_TV_BOT(-1);
+	if (ufunc->uf_va_type != NULL
+		&& ufunc->uf_va_type->tt_member != &t_any
+		&& tv->vval.v_list != NULL)
+	{
+	    type_T	*expected = ufunc->uf_va_type->tt_member;
+	    listitem_T	*li = tv->vval.v_list->lv_first;
+
+	    for (idx = 0; idx < vararg_count; ++idx)
+	    {
+		if (check_typval_type(expected, &li->li_tv) == FAIL)
+		    goto failed_early;
+		li = li->li_next;
+	    }
+	}
+
 	if (defcount > 0)
 	    // Move varargs list to below missing default arguments.
-	    *STACK_TV_BOT(defcount- 1) = *STACK_TV_BOT(-1);
+	    *STACK_TV_BOT(defcount - 1) = *STACK_TV_BOT(-1);
 	--ectx.ec_stack.ga_len;
     }
 
@@ -2017,9 +2036,6 @@ call_def_function(
 
 		    typval_compare(tv1, tv2, exptype, ic);
 		    clear_tv(tv2);
-		    tv1->v_type = VAR_BOOL;
-		    tv1->vval.v_number = tv1->vval.v_number
-						      ? VVAL_TRUE : VVAL_FALSE;
 		    --ectx.ec_stack.ga_len;
 		}
 		break;
@@ -2470,6 +2486,7 @@ func_return:
 	if (func_return(&ectx) == FAIL)
 	    // only fails when out of memory
 	    goto failed;
+	continue;
 
 on_error:
 	if (trylevel == 0)

@@ -594,7 +594,7 @@ heredoc_get(exarg_T *eap, char_u *cmd, int script_get)
 	p = skiptowhite(marker);
 	if (*skipwhite(p) != NUL && *skipwhite(p) != '"')
 	{
-	    emsg(_(e_trailing));
+	    semsg(_(e_trailing_arg), p);
 	    return NULL;
 	}
 	*p = NUL;
@@ -700,12 +700,13 @@ ex_let(exarg_T *eap)
     int		i;
     int		var_count = 0;
     int		semicolon = 0;
-    char_u	op[2];
+    char_u	op[4];
     char_u	*argend;
     int		first = TRUE;
     int		concat;
     int		has_assign;
     int		flags = eap->cmdidx == CMD_const ? LET_IS_CONST : 0;
+    int		vim9script = in_vim9script();
 
     // detect Vim9 assignment without ":let" or ":const"
     if (eap->arg == eap->cmd)
@@ -727,11 +728,11 @@ ex_let(exarg_T *eap)
 	// ":let" without "=": list variables
 	if (*arg == '[')
 	    emsg(_(e_invarg));
-	else if (expr[0] == '.')
-	    emsg(_("E985: .= is not supported with script version 2"));
+	else if (expr[0] == '.' && expr[1] == '=')
+	    emsg(_("E985: .= is not supported with script version >= 2"));
 	else if (!ends_excmd2(eap->cmd, arg))
 	{
-	    if (in_vim9script())
+	    if (vim9script)
 	    {
 		// Vim9 declaration ":let var: type"
 		arg = vim9_declare_scriptvar(eap, arg);
@@ -777,6 +778,7 @@ ex_let(exarg_T *eap)
     else
     {
 	evalarg_T   evalarg;
+	int	    len = 1;
 
 	rettv.v_type = VAR_UNKNOWN;
 	i = FAIL;
@@ -789,13 +791,25 @@ ex_let(exarg_T *eap)
 		if (vim_strchr((char_u *)"+-*/%.", *expr) != NULL)
 		{
 		    op[0] = *expr;   // +=, -=, *=, /=, %= or .=
+		    ++len;
 		    if (expr[0] == '.' && expr[1] == '.') // ..=
+		    {
 			++expr;
+			++len;
+		    }
 		}
-		expr = skipwhite(expr + 2);
+		expr += 2;
 	    }
 	    else
-		expr = skipwhite(expr + 1);
+		++expr;
+
+	    if (vim9script && (!VIM_ISWHITE(*argend) || !VIM_ISWHITE(*expr)))
+	    {
+		vim_strncpy(op, expr - len, len);
+		semsg(_(e_white_both), op);
+		i = FAIL;
+	    }
+	    expr = skipwhite(expr);
 
 	    if (eap->skip)
 		++emsg_skip;
@@ -819,7 +833,7 @@ ex_let(exarg_T *eap)
 	else if (i != FAIL)
 	{
 	    (void)ex_let_vars(eap->arg, &rettv, FALSE, semicolon, var_count,
-								 flags, op);
+								    flags, op);
 	    clear_tv(&rettv);
 	}
     }
@@ -1001,7 +1015,7 @@ skip_var_one(char_u *arg, int include_type)
 	if (end == arg + 2 && end[-1] == ':')
 	    --end;
 	if (*end == ':')
-	    end = skip_type(skipwhite(end + 1));
+	    end = skip_type(skipwhite(end + 1), FALSE);
     }
     return end;
 }
@@ -1101,7 +1115,7 @@ list_arg_vars(exarg_T *eap, char_u *arg, int *first)
 	    if (!VIM_ISWHITE(*arg) && !ends_excmd(*arg))
 	    {
 		emsg_severe = TRUE;
-		emsg(_(e_trailing));
+		semsg(_(e_trailing_arg), arg);
 		break;
 	    }
 	}
@@ -1477,7 +1491,7 @@ ex_unletlock(
 		if (name_end != NULL)
 		{
 		    emsg_severe = TRUE;
-		    emsg(_(e_trailing));
+		    semsg(_(e_trailing_arg), name_end);
 		}
 		if (!(eap->skip || error))
 		    clear_lval(&lv);
@@ -3419,9 +3433,9 @@ var_redir_start(char_u *name, int append)
 	clear_lval(redir_lval);
 	if (redir_endp != NULL && *redir_endp != NUL)
 	    // Trailing characters are present after the variable name
-	    emsg(_(e_trailing));
+	    semsg(_(e_trailing_arg), redir_endp);
 	else
-	    emsg(_(e_invarg));
+	    semsg(_(e_invarg2), name);
 	redir_endp = NULL;  // don't store a value, only cleanup
 	var_redir_stop();
 	return FAIL;

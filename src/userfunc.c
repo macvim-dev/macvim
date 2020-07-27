@@ -123,7 +123,7 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 		return arg;
 	    }
 	    type = skipwhite(p);
-	    p = skip_type(type);
+	    p = skip_type(type, TRUE);
 	    type = vim_strnsave(type, p - type);
 	}
 	else if (*skipwhite(p) != '=')
@@ -1148,6 +1148,8 @@ func_clear_free(ufunc_T *fp, int force)
     func_clear(fp, force);
     if (force || fp->uf_dfunc_idx == 0)
 	func_free(fp, force);
+    else
+	fp->uf_flags |= FC_DEAD;
 }
 
 
@@ -2555,12 +2557,7 @@ def_function(exarg_T *eap, char_u *name_arg)
     int		is_heredoc = FALSE;
     char_u	*skip_until = NULL;
     char_u	*heredoc_trimmed = NULL;
-
-    if (in_vim9script() && eap->forceit)
-    {
-	emsg(_(e_nobang));
-	return NULL;
-    }
+    int		vim9script = in_vim9script();
 
     /*
      * ":function" without argument: list functions.
@@ -2663,7 +2660,7 @@ def_function(exarg_T *eap, char_u *name_arg)
     {
 	if (!ends_excmd(*skipwhite(p)))
 	{
-	    emsg(_(e_trailing));
+	    semsg(_(e_trailing_arg), p);
 	    goto ret_free;
 	}
 	eap->nextcmd = check_nextcmd(p);
@@ -2731,6 +2728,13 @@ def_function(exarg_T *eap, char_u *name_arg)
     }
     p = skipwhite(p + 1);
 
+    // In Vim9 script only global functions can be redefined.
+    if (vim9script && eap->forceit && !is_global)
+    {
+	emsg(_(e_nobang));
+	goto ret_free;
+    }
+
     ga_init2(&newlines, (int)sizeof(char_u *), 3);
 
     if (!eap->skip && name_arg == NULL)
@@ -2774,7 +2778,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 	if (*p == ':')
 	{
 	    ret_type = skipwhite(p + 1);
-	    p = skip_type(ret_type);
+	    p = skip_type(ret_type, FALSE);
 	    if (p > ret_type)
 	    {
 		ret_type = vim_strnsave(ret_type, p - ret_type);
@@ -2786,6 +2790,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 		ret_type = NULL;
 	    }
 	}
+	p = skipwhite(p);
     }
     else
 	// find extra arguments "range", "dict", "abort" and "closure"
@@ -2826,9 +2831,12 @@ def_function(exarg_T *eap, char_u *name_arg)
     // Makes 'exe "func Test()\n...\nendfunc"' work.
     if (*p == '\n')
 	line_arg = p + 1;
-    else if (*p != NUL && *p != '"' && !(eap->cmdidx == CMD_def && *p == '#')
-						    && !eap->skip && !did_emsg)
-	emsg(_(e_trailing));
+    else if (*p != NUL
+	    && !(*p == '"' && !(vim9script || eap->cmdidx == CMD_def))
+	    && !(*p == '#' && (vim9script || eap->cmdidx == CMD_def))
+	    && !eap->skip
+	    && !did_emsg)
+	semsg(_(e_trailing_arg), p);
 
     /*
      * Read the body of the function, until "}", ":endfunction" or ":enddef" is
@@ -3386,7 +3394,7 @@ def_function(exarg_T *eap, char_u *name_arg)
     fp->uf_varargs = varargs;
     if (sandbox)
 	flags |= FC_SANDBOX;
-    if (in_vim9script() && !ASCII_ISUPPER(*fp->uf_name))
+    if (vim9script && !ASCII_ISUPPER(*fp->uf_name))
 	flags |= FC_VIM9;
     fp->uf_flags = flags;
     fp->uf_calls = 0;
@@ -3624,7 +3632,7 @@ ex_delfunction(exarg_T *eap)
     if (!ends_excmd(*skipwhite(p)))
     {
 	vim_free(name);
-	emsg(_(e_trailing));
+	semsg(_(e_trailing_arg), p);
 	return;
     }
     eap->nextcmd = check_nextcmd(p);
@@ -3972,7 +3980,7 @@ ex_call(exarg_T *eap)
 	    if (!failed)
 	    {
 		emsg_severe = TRUE;
-		emsg(_(e_trailing));
+		semsg(_(e_trailing_arg), arg);
 	    }
 	}
 	else
