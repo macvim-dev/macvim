@@ -3758,7 +3758,7 @@ compile_subscript(
 	    if (next != NULL &&
 		    ((next[0] == '-' && next[1] == '>'
 				 && (next[2] == '{' || ASCII_ISALPHA(next[2])))
-		    || (next[0] == '.' && ASCII_ISALPHA(next[1]))))
+		    || (next[0] == '.' && eval_isdictc(next[1]))))
 	    {
 		next = next_line_from_context(cctx, TRUE);
 		if (next == NULL)
@@ -3922,7 +3922,7 @@ compile_subscript(
 		return FAIL;
 	    // dictionary member: dict.name
 	    p = *arg;
-	    if (eval_isnamec1(*p))
+	    if (eval_isdictc(*p))
 		while (eval_isnamec(*p))
 		    MB_PTR_ADV(p);
 	    if (p == *arg)
@@ -7408,6 +7408,13 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    break;
 
 	    // TODO: other commands with an expression argument
+
+	    case CMD_append:
+	    case CMD_change:
+	    case CMD_insert:
+	    case CMD_xit:
+		    not_in_vim9(&ea);
+		    goto erret;
 
 	    case CMD_SIZE:
 		    semsg(_("E476: Invalid command: %s"), ea.cmd);
