@@ -19,6 +19,7 @@ env:
       vi_cv_dll_name_ruby=/usr/local/opt/ruby/lib/libruby.dylib
       VIMCMD=src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
       CONFOPT="--with-features=huge --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-gui=macvim"
+      BASH_SILENCE_DEPRECATION_WARNING=1
 
 _anchors:
   - &lang_env
@@ -84,11 +85,11 @@ script:
 
 jobs:
   include:
+    - osx_image: xcode12
     - osx_image: xcode11.3
       <<: *lang_env
       <<: *homebrew
       <<: *caches
-    - osx_image: xcode10.3
     - osx_image: xcode9.4
     - osx_image: xcode7.3
     - stage: deploy
