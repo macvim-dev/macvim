@@ -1689,6 +1689,7 @@ EXTERN char e_readonlysbx[]	INIT(= N_("E794: Cannot set variable in the sandbox:
 EXTERN char e_stringreq[]	INIT(= N_("E928: String required"));
 EXTERN char e_emptykey[]	INIT(= N_("E713: Cannot use empty key for Dictionary"));
 EXTERN char e_dictreq[]		INIT(= N_("E715: Dictionary required"));
+EXTERN char e_dictnull[]	INIT(= N_("E1103: Dictionary not set"));
 EXTERN char e_listidx[]		INIT(= N_("E684: list index out of range: %ld"));
 EXTERN char e_blobidx[]		INIT(= N_("E979: Blob index out of range: %ld"));
 EXTERN char e_invalblob[]	INIT(= N_("E978: Invalid operation for Blob"));
@@ -1750,6 +1751,7 @@ EXTERN char e_missing_dict_colon[] INIT(= N_("E720: Missing colon in Dictionary:
 EXTERN char e_duplicate_key[]	INIT(= N_("E721: Duplicate key in Dictionary: \"%s\""));
 EXTERN char e_missing_dict_comma[] INIT(= N_("E722: Missing comma in Dictionary: %s"));
 EXTERN char e_missing_dict_end[]    INIT(= N_("E723: Missing end of Dictionary '}': %s"));
+EXTERN char e_already_defined[] INIT(= N_("E1073: name already defined: %s"));
 #endif
 #ifdef FEAT_CLIENTSERVER
 EXTERN char e_invexprmsg[]	INIT(= N_("E449: Invalid expression received"));

@@ -366,7 +366,7 @@ register_cfunc(cfunc_T cb, cfunc_free_T cb_free, void *state)
     if (fp == NULL)
 	return NULL;
 
-    fp->uf_dfunc_idx = UF_NOT_COMPILED;
+    fp->uf_def_status = UF_NOT_COMPILED;
     fp->uf_refcount = 1;
     fp->uf_varargs = TRUE;
     fp->uf_flags = FC_CFUNC;
@@ -642,6 +642,10 @@ get_func_tv(
 	    break;
 	}
 	++argcount;
+	// The comma should come right after the argument, but this wasn't
+	// checked previously, thus only enforce it in Vim9 script.
+	if (!in_vim9script())
+	    argp = skipwhite(argp);
 	if (*argp != ',')
 	    break;
     }
@@ -776,7 +780,7 @@ find_func_with_sid(char_u *name, int sid)
  * When "is_global" is true don't find script-local or imported functions.
  * Return NULL for unknown function.
  */
-    static ufunc_T *
+    ufunc_T *
 find_func_even_dead(char_u *name, int is_global, cctx_T *cctx)
 {
     hashitem_T	*hi;
@@ -785,9 +789,10 @@ find_func_even_dead(char_u *name, int is_global, cctx_T *cctx)
 
     if (!is_global)
     {
-	char_u *after_script = NULL;
+	int	vim9script = in_vim9script();
+	char_u	*after_script = NULL;
 
-	if (in_vim9script())
+	if (vim9script)
 	{
 	    // Find script-local function before global one.
 	    func = find_func_with_sid(name, current_sctx.sc_sid);
@@ -795,7 +800,7 @@ find_func_even_dead(char_u *name, int is_global, cctx_T *cctx)
 		return func;
 	}
 
-	if (!in_vim9script()
+	if (!vim9script
 		&& name[0] == K_SPECIAL
 		&& name[1] == KS_EXTRA
 		&& name[2] == KE_SNR)
@@ -811,7 +816,7 @@ find_func_even_dead(char_u *name, int is_global, cctx_T *cctx)
 	    else
 		after_script = NULL;
 	}
-	if (in_vim9script() || after_script != NULL)
+	if (vim9script || after_script != NULL)
 	{
 	    // Find imported function before global one.
 	    imported = find_imported(
@@ -1065,7 +1070,8 @@ func_remove(ufunc_T *fp)
     {
 	// When there is a def-function index do not actually remove the
 	// function, so we can find the index when defining the function again.
-	if (fp->uf_def_status == UF_COMPILED)
+	// Do remove it when it's a copy.
+	if (fp->uf_def_status == UF_COMPILED && (fp->uf_flags & FC_COPY) == 0)
 	    fp->uf_flags |= FC_DEAD;
 	else
 	    hash_remove(&func_hashtab, hi);
@@ -1118,7 +1124,8 @@ func_clear(ufunc_T *fp, int force)
     // clear this function
     func_clear_items(fp);
     funccal_unref(fp->uf_scoped, fp, force);
-    clear_def_function(fp);
+    if ((fp->uf_flags & FC_COPY) == 0)
+	clear_def_function(fp);
 }
 
 /*
@@ -1146,10 +1153,81 @@ func_free(ufunc_T *fp, int force)
 func_clear_free(ufunc_T *fp, int force)
 {
     func_clear(fp, force);
-    if (force || fp->uf_dfunc_idx == 0)
+    if (force || fp->uf_dfunc_idx == 0 || (fp->uf_flags & FC_COPY))
 	func_free(fp, force);
     else
 	fp->uf_flags |= FC_DEAD;
+}
+
+/*
+ * Copy already defined function "lambda" to a new function with name "global".
+ * This is for when a compiled function defines a global function.
+ */
+    void
+copy_func(char_u *lambda, char_u *global)
+{
+    ufunc_T *ufunc = find_func_even_dead(lambda, TRUE, NULL);
+    ufunc_T *fp;
+
+    if (ufunc == NULL)
+	semsg(_("E1102: lambda function not found: %s"), lambda);
+    else
+    {
+	// TODO: handle ! to overwrite
+	fp = find_func(global, TRUE, NULL);
+	if (fp != NULL)
+	{
+	    semsg(_(e_funcexts), global);
+	    return;
+	}
+
+	fp = alloc_clear(offsetof(ufunc_T, uf_name) + STRLEN(global) + 1);
+	if (fp == NULL)
+	    return;
+
+	fp->uf_varargs = ufunc->uf_varargs;
+	fp->uf_flags = (ufunc->uf_flags & ~FC_VIM9) | FC_COPY;
+	fp->uf_def_status = ufunc->uf_def_status;
+	fp->uf_dfunc_idx = ufunc->uf_dfunc_idx;
+	if (ga_copy_strings(&ufunc->uf_args, &fp->uf_args) == FAIL
+		|| ga_copy_strings(&ufunc->uf_def_args, &fp->uf_def_args)
+									== FAIL
+		|| ga_copy_strings(&ufunc->uf_lines, &fp->uf_lines) == FAIL)
+	    goto failed;
+
+	fp->uf_name_exp = ufunc->uf_name_exp == NULL ? NULL
+					     : vim_strsave(ufunc->uf_name_exp);
+	if (ufunc->uf_arg_types != NULL)
+	{
+	    fp->uf_arg_types = ALLOC_MULT(type_T *, fp->uf_args.ga_len);
+	    if (fp->uf_arg_types == NULL)
+		goto failed;
+	    mch_memmove(fp->uf_arg_types, ufunc->uf_arg_types,
+					sizeof(type_T *) * fp->uf_args.ga_len);
+	}
+	if (ufunc->uf_def_arg_idx != NULL)
+	{
+	    fp->uf_def_arg_idx = ALLOC_MULT(int, fp->uf_def_args.ga_len + 1);
+	    if (fp->uf_def_arg_idx == NULL)
+		goto failed;
+	    mch_memmove(fp->uf_def_arg_idx, ufunc->uf_def_arg_idx,
+				     sizeof(int) * fp->uf_def_args.ga_len + 1);
+	}
+	if (ufunc->uf_va_name != NULL)
+	{
+	    fp->uf_va_name = vim_strsave(ufunc->uf_va_name);
+	    if (fp->uf_va_name == NULL)
+		goto failed;
+	}
+
+	fp->uf_refcount = 1;
+	STRCPY(fp->uf_name, global);
+	hash_add(&func_hashtab, UF2HIKEY(fp));
+    }
+    return;
+
+failed:
+    func_clear_free(fp, TRUE);
 }
 
 
@@ -1682,7 +1760,7 @@ delete_script_functions(int sid)
 {
     hashitem_T	*hi;
     ufunc_T	*fp;
-    long_u	todo;
+    long_u	todo = 1;
     char_u	buf[30];
     size_t	len;
 
@@ -1692,18 +1770,27 @@ delete_script_functions(int sid)
     sprintf((char *)buf + 3, "%d_", sid);
     len = STRLEN(buf);
 
-    todo = func_hashtab.ht_used;
-    for (hi = func_hashtab.ht_array; todo > 0; ++hi)
-	if (!HASHITEM_EMPTY(hi))
-	{
-	    fp = HI2UF(hi);
-	    if (STRNCMP(fp->uf_name, buf, len) == 0)
+    while (todo > 0)
+    {
+	todo = func_hashtab.ht_used;
+	for (hi = func_hashtab.ht_array; todo > 0; ++hi)
+	    if (!HASHITEM_EMPTY(hi))
 	    {
-		fp->uf_flags |= FC_DEAD;
-		func_clear(fp, TRUE);
+		fp = HI2UF(hi);
+		if (STRNCMP(fp->uf_name, buf, len) == 0)
+		{
+		    int changed = func_hashtab.ht_changed;
+
+		    fp->uf_flags |= FC_DEAD;
+		    func_clear(fp, TRUE);
+		    // When clearing a function another function can be cleared
+		    // as a side effect.  When that happens start over.
+		    if (changed != func_hashtab.ht_changed)
+			break;
+		}
+		--todo;
 	    }
-	    --todo;
-	}
+    }
 }
 
 #if defined(EXITFREE) || defined(PROTO)
@@ -2000,10 +2087,14 @@ call_func(
     if (error == FCERR_NONE && funcexe->evaluate)
     {
 	char_u *rfname = fname;
+	int	is_global = FALSE;
 
-	// Ignore "g:" before a function name.
+	// Skip "g:" before a function name.
 	if (fp == NULL && fname[0] == 'g' && fname[1] == ':')
+	{
+	    is_global = TRUE;
 	    rfname = fname + 2;
+	}
 
 	rettv->v_type = VAR_NUMBER;	// default rettv is number zero
 	rettv->vval.v_number = 0;
@@ -2015,7 +2106,7 @@ call_func(
 	     * User defined function.
 	     */
 	    if (fp == NULL)
-		fp = find_func(rfname, FALSE, NULL);
+		fp = find_func(rfname, is_global, NULL);
 
 	    // Trigger FuncUndefined event, may load the function.
 	    if (fp == NULL
@@ -2024,13 +2115,13 @@ call_func(
 		    && !aborting())
 	    {
 		// executed an autocommand, search for the function again
-		fp = find_func(rfname, FALSE, NULL);
+		fp = find_func(rfname, is_global, NULL);
 	    }
 	    // Try loading a package.
 	    if (fp == NULL && script_autoload(rfname, TRUE) && !aborting())
 	    {
 		// loaded a package, search for the function again
-		fp = find_func(rfname, FALSE, NULL);
+		fp = find_func(rfname, is_global, NULL);
 	    }
 	    if (fp == NULL)
 	    {
@@ -2039,7 +2130,7 @@ call_func(
 		// If using Vim9 script try not local to the script.
 		// TODO: should not do this if the name started with "s:".
 		if (p != NULL)
-		    fp = find_func(p, FALSE, NULL);
+		    fp = find_func(p, is_global, NULL);
 	    }
 
 	    if (fp != NULL && (fp->uf_flags & FC_DELETED))
@@ -2089,6 +2180,7 @@ call_func(
 	     */
 	    error = call_internal_func(fname, argcount, argvars, rettv);
 	}
+
 	/*
 	 * The function call (or "FuncUndefined" autocommand sequence) might
 	 * have been aborted by an error, an interrupt, or an explicitly thrown
@@ -2517,6 +2609,8 @@ list_functions(regmatch_T *regmatch)
 
 /*
  * ":function" also supporting nested ":def".
+ * When "name_arg" is not NULL this is a nested function, using "name_arg" for
+ * the function name.
  * Returns a pointer to the function or NULL if no function defined.
  */
     ufunc_T *
@@ -2558,6 +2652,7 @@ def_function(exarg_T *eap, char_u *name_arg)
     char_u	*skip_until = NULL;
     char_u	*heredoc_trimmed = NULL;
     int		vim9script = in_vim9script();
+    imported_T	*import = NULL;
 
     /*
      * ":function" without argument: list functions.
@@ -2832,7 +2927,8 @@ def_function(exarg_T *eap, char_u *name_arg)
     if (*p == '\n')
 	line_arg = p + 1;
     else if (*p != NUL
-	    && !(*p == '"' && !(vim9script || eap->cmdidx == CMD_def))
+	    && !(*p == '"' && (!vim9script || eap->cmdidx == CMD_function)
+						     && eap->cmdidx != CMD_def)
 	    && !(*p == '#' && (vim9script || eap->cmdidx == CMD_def))
 	    && !eap->skip
 	    && !did_emsg)
@@ -3140,17 +3236,29 @@ def_function(exarg_T *eap, char_u *name_arg)
 	}
 
 	fp = find_func_even_dead(name, is_global, NULL);
-	if (fp != NULL)
+	if (vim9script)
 	{
-	    int dead = fp->uf_flags & FC_DEAD;
+	    char_u *uname = untrans_function_name(name);
+
+	    import = find_imported(uname == NULL ? name : uname, 0, NULL);
+	}
+
+	if (fp != NULL || import != NULL)
+	{
+	    int dead = fp != NULL && (fp->uf_flags & FC_DEAD);
 
 	    // Function can be replaced with "function!" and when sourcing the
 	    // same script again, but only once.
-	    if (!dead && !eap->forceit
+	    // A name that is used by an import can not be overruled.
+	    if (import != NULL
+		    || (!dead && !eap->forceit
 			&& (fp->uf_script_ctx.sc_sid != current_sctx.sc_sid
-			    || fp->uf_script_ctx.sc_seq == current_sctx.sc_seq))
+			  || fp->uf_script_ctx.sc_seq == current_sctx.sc_seq)))
 	    {
-		emsg_funcname(e_funcexts, name);
+		if (vim9script)
+		    emsg_funcname(e_already_defined, name);
+		else
+		    emsg_funcname(e_funcexts, name);
 		goto erret;
 	    }
 	    if (fp->uf_calls > 0)

@@ -131,6 +131,8 @@ def Test_nested_function()
   CheckDefFailure(['def Nested(arg: string)', 'enddef', 'Nested()'], 'E119:')
 
   CheckDefFailure(['func Nested()', 'endfunc'], 'E1086:')
+  CheckDefFailure(['def s:Nested()', 'enddef'], 'E1075:')
+  CheckDefFailure(['def b:Nested()', 'enddef'], 'E1075:')
 enddef
 
 func Test_call_default_args_from_func()
@@ -138,6 +140,70 @@ func Test_call_default_args_from_func()
   call assert_equal('one', MyDefaultArgs('one'))
   call assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
 endfunc
+
+def Test_nested_global_function()
+  let lines =<< trim END
+      vim9script
+      def Outer()
+          def g:Inner(): string
+              return 'inner'
+          enddef
+      enddef
+      defcompile
+      Outer()
+      assert_equal('inner', g:Inner())
+      delfunc g:Inner
+      Outer()
+      assert_equal('inner', g:Inner())
+      delfunc g:Inner
+      Outer()
+      assert_equal('inner', g:Inner())
+      delfunc g:Inner
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      def Outer()
+          def g:Inner(): string
+              return 'inner'
+          enddef
+      enddef
+      defcompile
+      Outer()
+      Outer()
+  END
+  CheckScriptFailure(lines, "E122:")
+
+  lines =<< trim END
+      vim9script
+      def Func()
+        echo 'script'
+      enddef
+      def Outer()
+        def Func()
+          echo 'inner'
+        enddef
+      enddef
+      defcompile
+  END
+  CheckScriptFailure(lines, "E1073:")
+enddef
+
+def Test_global_local_function()
+  let lines =<< trim END
+      vim9script
+      def g:Func(): string
+          return 'global'
+      enddef
+      def Func(): string
+          return 'local'
+      enddef
+      assert_equal('global', g:Func())
+      assert_equal('local', Func())
+  END
+  CheckScriptSuccess(lines)
+enddef
 
 func TakesOneArg(arg)
   echo a:arg
@@ -502,14 +568,23 @@ def Test_vim9script_call()
     assert_equal('some', var)
 
     # line starting with single quote is not a mark
+    # line starting with double quote can be a method call
     'asdfasdf'->MyFunc()
     assert_equal('asdfasdf', var)
+    "xyz"->MyFunc()
+    assert_equal('xyz', var)
 
     def UseString()
       'xyork'->MyFunc()
     enddef
     UseString()
     assert_equal('xyork', var)
+
+    def UseString2()
+      "knife"->MyFunc()
+    enddef
+    UseString2()
+    assert_equal('knife', var)
 
     # prepending a colon makes it a mark
     new
