@@ -60,7 +60,7 @@ def Test_expr1()
 enddef
 
 def Test_expr1_vimscript()
-  # only checks line continuation
+  # check line continuation
   let lines =<< trim END
       vim9script
       let var = 1
@@ -87,6 +87,33 @@ def Test_expr1_vimscript()
       assert_equal('no', var)
   END
   CheckScriptSuccess(lines)
+
+  # check white space
+  lines =<< trim END
+      vim9script
+      let var = v:true?1:2
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      let var = v:true? 1 : 2
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      let var = v:true ?1 : 2
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      let var = v:true ? 1: 2
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      let var = v:true ? 1 :2
+  END
+  CheckScriptFailure(lines, 'E1004:')
 enddef
 
 func Test_expr1_fails()
@@ -174,6 +201,23 @@ def Test_expr2_vimscript()
       assert_equal(v:true, var)
   END
   CheckScriptSuccess(lines)
+
+  # check white space
+  lines =<< trim END
+      vim9script
+      let var = v:true||v:true
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      let var = v:true ||v:true
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      let var = v:true|| v:true
+  END
+  CheckScriptFailure(lines, 'E1004:')
 
   # check keeping the value
   lines =<< trim END
@@ -278,6 +322,23 @@ def Test_expr3_vimscript()
       assert_equal(v:true, var)
   END
   CheckScriptSuccess(lines)
+
+  # check white space
+  lines =<< trim END
+      vim9script
+      let var = v:true&&v:true
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      let var = v:true &&v:true
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      let var = v:true&& v:true
+  END
+  CheckScriptFailure(lines, 'E1004:')
 
   # check keeping the value
   lines =<< trim END
@@ -726,6 +787,38 @@ def Test_expr4_vimscript()
     set noignorecase
   END
   CheckScriptSuccess(lines)
+
+  # check missing white space
+  lines =<< trim END
+    vim9script
+    echo 2>3
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+    vim9script
+    echo 2 >3
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+    vim9script
+    echo 2> 3
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+    vim9script
+    echo 2!=3
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+    vim9script
+    echo 2 !=3
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+    vim9script
+    echo 2!= 3
+  END
+  CheckScriptFailure(lines, 'E1004:')
 enddef
 
 func Test_expr4_fails()
@@ -843,6 +936,15 @@ def Test_expr5_vim9script()
 
   lines =<< trim END
       vim9script
+      let var = 11 +
+		  77 -
+		  22
+      assert_equal(66, var)
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
       let var = 'one'
       		.. 'two'
       assert_equal('onetwo', var)
@@ -872,6 +974,39 @@ def Test_expr5_vim9script()
       echo 'abc' isnot? 'abc'
   END
   CheckScriptFailure(lines, 'E15:')
+
+  # check white space
+  lines =<< trim END
+      vim9script
+      echo 5+6
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      echo 5 +6
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      echo 5+ 6
+  END
+  CheckScriptFailure(lines, 'E1004:')
+
+  lines =<< trim END
+      vim9script
+      echo 'a'..'b'
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      echo 'a' ..'b'
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      echo 'a'.. 'b'
+  END
+  CheckScriptFailure(lines, 'E1004:')
 enddef
 
 def Test_expr5_float()
@@ -966,7 +1101,7 @@ def Test_expr6()
 enddef
 
 def Test_expr6_vim9script()
-  # only checks line continuation
+  # check line continuation
   let lines =<< trim END
       vim9script
       let var = 11
@@ -983,6 +1118,32 @@ def Test_expr6_vim9script()
       assert_equal(5, var)
   END
   CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      let var = 11 *
+      		22 /
+		3
+      assert_equal(80, var)
+  END
+  CheckScriptSuccess(lines)
+
+  # check white space
+  lines =<< trim END
+      vim9script
+      echo 5*6
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      echo 5 *6
+  END
+  CheckScriptFailure(lines, 'E1004:')
+  lines =<< trim END
+      vim9script
+      echo 5* 6
+  END
+  CheckScriptFailure(lines, 'E1004:')
 enddef
 
 def Test_expr6_float()
@@ -1430,6 +1591,22 @@ enddef
 def Test_expr7_register()
   @a = 'register a'
   assert_equal('register a', @a)
+
+  let fname = expand('%')
+  assert_equal(fname, @%)
+
+  feedkeys(":echo 'some'\<CR>", "xt")
+  assert_equal("echo 'some'", @:)
+
+  normal axyz
+  assert_equal("xyz", @.)
+  call CheckDefFailure(["@. = 'yes'"], 'E354:')
+
+  @/ = 'slash'
+  assert_equal('slash', @/)
+
+  @= = 'equal'
+  assert_equal('equal', @=)
 enddef
 
 def Test_expr7_namespace()
@@ -1497,14 +1674,14 @@ def Echo(arg: any): string
   return arg
 enddef
 
-def s:EchoArg(arg: any): string
+def s:Echo4Arg(arg: any): string
   return arg
 enddef
 
 def Test_expr7_call()
   assert_equal('yes', 'yes'->Echo())
   assert_equal('yes', 'yes'
-  			->s:EchoArg())
+  			->s:Echo4Arg())
   assert_equal(1, !range(5)->empty())
   assert_equal([0, 1, 2], --3->range())
 

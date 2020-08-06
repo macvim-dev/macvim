@@ -1139,6 +1139,7 @@ list_arg_vars(exarg_T *eap, char_u *arg, int *first)
 	    }
 	    else
 	    {
+		arg = skipwhite(arg);
 		if (tofree != NULL)
 		    name = tofree;
 		if (eval_variable(name, len, &tv, NULL, TRUE, FALSE) == FAIL)
@@ -1221,17 +1222,19 @@ ex_let_one(
     int		opt_flags;
     char_u	*tofree = NULL;
 
+    if (in_vim9script() && (flags & LET_NO_COMMAND) == 0
+				  && vim_strchr((char_u *)"$@&", *arg) != NULL)
+    {
+	vim9_declare_error(arg);
+	return NULL;
+    }
+
     // ":let $VAR = expr": Set environment variable.
     if (*arg == '$')
     {
 	if (flags & LET_IS_CONST)
 	{
 	    emsg(_("E996: Cannot lock an environment variable"));
-	    return NULL;
-	}
-	if (in_vim9script() && (flags & LET_NO_COMMAND) == 0)
-	{
-	    vim9_declare_error(arg);
 	    return NULL;
 	}
 
@@ -2429,7 +2432,7 @@ eval_variable(
 	    else
 	    {
 		scriptitem_T    *si = SCRIPT_ITEM(import->imp_sid);
-		svar_T	    *sv = ((svar_T *)si->sn_var_vals.ga_data)
+		svar_T		*sv = ((svar_T *)si->sn_var_vals.ga_data)
 						    + import->imp_var_vals_idx;
 		tv = sv->sv_tv;
 	    }
@@ -3358,6 +3361,7 @@ assert_error(garray_T *gap)
     int
 var_exists(char_u *var)
 {
+    char_u	*arg = var;
     char_u	*name;
     char_u	*tofree;
     typval_T    tv;
@@ -3366,7 +3370,7 @@ var_exists(char_u *var)
 
     // get_name_len() takes care of expanding curly braces
     name = var;
-    len = get_name_len(&var, &tofree, TRUE, FALSE);
+    len = get_name_len(&arg, &tofree, TRUE, FALSE);
     if (len > 0)
     {
 	if (tofree != NULL)
@@ -3375,12 +3379,13 @@ var_exists(char_u *var)
 	if (n)
 	{
 	    // handle d.key, l[idx], f(expr)
-	    n = (handle_subscript(&var, &tv, &EVALARG_EVALUATE, FALSE) == OK);
+	    arg = skipwhite(arg);
+	    n = (handle_subscript(&arg, &tv, &EVALARG_EVALUATE, FALSE) == OK);
 	    if (n)
 		clear_tv(&tv);
 	}
     }
-    if (*var != NUL)
+    if (*arg != NUL)
 	n = FALSE;
 
     vim_free(tofree);
