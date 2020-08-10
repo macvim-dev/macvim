@@ -836,6 +836,7 @@
 				1D9EB2840C366D7B0074B739 /* Copy Frameworks */,
 				52818B021C1C088000F59085 /* Copy QuickLookPlugin */,
 				1DE608B80C58807F0055263D /* Copy Vim Runtime Files */,
+				90BD4EF224E0E8B700BF29F2 /* Copy locale message translation files */,
 				1D1C31F00EFFBFD6003FE9A5 /* Make Document Icons */,
 				528DA6671426D456003380F1 /* Copy Scripts */,
 				52283AB71EBA200C00A6F6B9 /* Copy mvim scripts */,
@@ -981,6 +982,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "BINPATH=$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin\nmkdir -p \"${BINPATH}\"\ncp -a \"${SRCROOT}/mvim\" \"${BINPATH}/mvim\"\nchmod 755 \"${BINPATH}/mvim\"\n(cd \"${BINPATH}\"; for f in vim vimdiff view gvim gvimdiff gview mvimdiff mview; do ln -fs mvim $f; done)\n";
+			showEnvVarsInLog = 0;
+		};
+		90BD4EF224E0E8B700BF29F2 /* Copy locale message translation files */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy locale message translation files";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy all the locale translation files from the po folder to\n# runtime/lang/<lang>/LC_MESSAGES/vim.mo. Need to do this because unlike normal\n# Vim, MacVim is distributed as a standalone app package and therefore we don't\n# want to install these files to a global location (e.g.\n# /usr/local/share/locale/). This is similar to how Windows installation\n# (po/Make_mvc.mak) works.\ncd \"${SRCROOT}\"/..\nmake macvim-install-languages DEST_LANG=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/vim/runtime/lang\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

@@ -23,11 +23,14 @@ env:
 
 _anchors:
   - &lang_env
-    env: LANGOPT="--enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local"
+    env:
+      - LANGOPT="--enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local"
+        HAS_GETTEXT=1
   - &homebrew
     addons:
       homebrew:
         packages:
+          - gettext
           - lua
           - python
           - ruby
@@ -64,6 +67,7 @@ script:
   - set +o errexit
   - ${VIMCMD} --version
   - echo -e "\\033[33;1mTesting MacVim\\033[0m" && echo -en "travis_fold:start:test\\r\\033[0K"
+  # Smoketest scripting languages
   - |
     macvim_excmd() {
       if [[ -n "${LANGOPT}" ]]; then
@@ -75,6 +79,12 @@ script:
   - macvim_excmd -c 'py import sys; print("Test")'
   - macvim_excmd -c 'py3 import sys; print("Test")'
   - macvim_excmd -c 'ruby puts("Test")'
+  # Check that localized messages work by printing ':version' and checking against localized word
+  - |
+    if [[ -n "${HAS_GETTEXT}" ]]; then
+      ${VIMCMD} -es -c 'lang es_ES' -c 'redir @a' -c 'version' -c 'put a' -c 'print' -c 'qa!' | grep Enlazado
+    fi
+  # Run standard test suites
   - make test
   - make -C runtime/doc vimtags VIMEXE=../../src/MacVim/build/Release/MacVim.app/Contents/bin/vim
   - echo -en "travis_fold:end:test\\r\\033[0K"
