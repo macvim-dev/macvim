@@ -3745,7 +3745,7 @@ $(APPDIR)/Contents:
 
 ##############################################################################
 ### MacVim GUI
-.PHONY: macvim macvim-dmg macvimclean macvim-signed macvim-dmg-release
+.PHONY: macvim macvim-dmg macvimclean macvim-signed macvim-dmg-release macvim-install-languages
 
 RELEASEDIR = MacVim/build/Release
 DMGDIR = MacVim/build/dmg
@@ -3785,6 +3785,12 @@ macvim-dmg-release: macvim-signed macvim-dmg
 	echo "--------------------"
 	echo "Release MacVim built!"
 
+# Install only language files to a dest folder. Subset of "install-languages".
+macvim-install-languages:
+	@if test -n "$(MAKEMO)" -a -f $(PODIR)/Makefile; then \
+	   cd $(PODIR); $(MAKE) prefix=$(DESTDIR)$(prefix) LOCALEDIR=$(DEST_LANG) \
+	   INSTALL_DATA=$(INSTALL_DATA) FILEMOD=$(FILEMOD) install; \
+	fi
 
 # Dependencies that "make depend" doesn't find
 objects/gui_gtk_x11.o: version.h

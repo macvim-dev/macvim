@@ -551,6 +551,11 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 # define _(x) ((char *)(x))
 # define NGETTEXT(x, xs, n) (((n) == 1) ? (char *)(x) : (char *)(xs))
 # define N_(x) x
+#ifdef FEAT_GUI_MACVIM
+    // In MacVim, we want bindtextdomain to work because we bundle the locale
+    // files in runtime dir instead of a global install loation. This is
+    // similar to Windows (which has DYNAMIC_GETTEXT set).
+#else
 # ifdef bindtextdomain
 #  undef bindtextdomain
 # endif
@@ -563,6 +568,7 @@ extern int (*dyn_libintl_wputenv)(const wchar_t *envstring);
 #  undef textdomain
 # endif
 # define textdomain(x) // empty
+#endif // MacVim
 #endif
 
 /*
