@@ -28,6 +28,7 @@ def Test_assignment()
   call CheckDefFailure(['let x:string'], 'E1069:')
   call CheckDefFailure(['let x:string = "x"'], 'E1069:')
   call CheckDefFailure(['let a:string = "x"'], 'E1069:')
+  call CheckDefFailure(['let lambda = {-> "lambda"}'], 'E704:')
 
   let nr: number = 1234
   call CheckDefFailure(['let nr: number = "asdf"'], 'E1013:')
@@ -126,13 +127,13 @@ def Test_assignment()
 
   $SOME_ENV_VAR ..= 'more'
   assert_equal('somemore', $SOME_ENV_VAR)
-  call CheckDefFailure(['$SOME_ENV_VAR += "more"'], 'E1013:')
+  call CheckDefFailure(['$SOME_ENV_VAR += "more"'], 'E1051:')
   call CheckDefFailure(['$SOME_ENV_VAR += 123'], 'E1013:')
 
   @a = 'areg'
   @a ..= 'add'
   assert_equal('aregadd', @a)
-  call CheckDefFailure(['@a += "more"'], 'E1013:')
+  call CheckDefFailure(['@a += "more"'], 'E1051:')
   call CheckDefFailure(['@a += 123'], 'E1013:')
 
   lines =<< trim END
@@ -146,7 +147,7 @@ def Test_assignment()
   v:errmsg = 'none'
   v:errmsg ..= 'again'
   assert_equal('noneagain', v:errmsg)
-  call CheckDefFailure(['v:errmsg += "more"'], 'E1013:')
+  call CheckDefFailure(['v:errmsg += "more"'], 'E1051:')
   call CheckDefFailure(['v:errmsg += 123'], 'E1013:')
 
   # single letter variables
@@ -224,6 +225,13 @@ def Test_assignment_list()
   assert_equal([1, 88, 99], list2)
   list2[-3] = 77
   assert_equal([77, 88, 99], list2)
+  list2 += [100]
+  assert_equal([77, 88, 99, 100], list2)
+
+  list3 += ['end']
+  assert_equal(['sdf', 'asdf', 'end'], list3)
+
+
   call CheckDefExecFailure(['let ll = [1, 2, 3]', 'll[-4] = 6'], 'E684:')
   call CheckDefExecFailure(['let [v1, v2] = [1, 2]'], 'E1092:')
 
@@ -415,6 +423,11 @@ def Test_assignment_var_list()
   assert_equal('one', v1)
   assert_equal('two', v2)
   assert_equal(['three'], vrem)
+
+  [&ts, &sw] = [3, 4]
+  assert_equal(3, &ts)
+  assert_equal(4, &sw)
+  set ts=8 sw=4
 enddef
 
 def Test_assignment_vim9script()
@@ -449,6 +462,17 @@ def Test_assignment_vim9script()
       @+ = 'plus'
       assert_equal('plus', @+)
     endif
+
+    let a: number = 123
+    assert_equal(123, a)
+    let s: string = 'yes'
+    assert_equal('yes', s)
+    let b: number = 42
+    assert_equal(42, b)
+    let w: number = 43
+    assert_equal(43, w)
+    let t: number = 44
+    assert_equal(44, t)
   END
   CheckScriptSuccess(lines)
 enddef
@@ -727,11 +751,6 @@ func Test_block_failure()
   call CheckDefFailure(['}'], 'E1025:')
   call CheckDefFailure(['{', 'echo 1'], 'E1026:')
 endfunc
-
-def Test_cmd_modifier()
-  tab echo '0'
-  call CheckDefFailure(['5tab echo 3'], 'E16:')
-enddef
 
 func g:NoSuchFunc()
   echo 'none'
@@ -1098,6 +1117,11 @@ let s:export_script_lines =<< trim END
   enddef
 END
 
+def Undo_export_script_lines()
+  unlet g:result
+  unlet g:localname
+enddef
+
 def Test_vim9_import_export()
   let import_script_lines =<< trim END
     vim9script
@@ -1136,8 +1160,7 @@ def Test_vim9_import_export()
   assert_equal('John Doe', g:imported_name_appended)
   assert_false(exists('g:name'))
 
-  unlet g:result
-  unlet g:localname
+  Undo_export_script_lines()
   unlet g:imported
   unlet g:imported_added
   unlet g:imported_later
@@ -1376,9 +1399,64 @@ def Test_import_export_expr_map()
   nnoremap <expr> trigger g:Trigger()
   feedkeys('trigger', "xt")
 
-  delete('Xexport.vim')
+  delete('Xexport_that.vim')
   delete('Ximport.vim')
   nunmap trigger
+enddef
+
+def Test_import_in_filetype()
+  # check that :import works when the buffer is locked
+  mkdir('ftplugin', 'p')
+  let export_lines =<< trim END
+    vim9script
+    export let That = 'yes'
+  END
+  writefile(export_lines, 'ftplugin/Xexport_ft.vim')
+
+  let import_lines =<< trim END
+    vim9script
+    import That from './Xexport_ft.vim'
+    assert_equal('yes', That)
+    g:did_load_mytpe = 1
+  END
+  writefile(import_lines, 'ftplugin/qf.vim')
+
+  let save_rtp = &rtp
+  &rtp = getcwd() .. ',' .. &rtp
+
+  filetype plugin on
+  copen
+  assert_equal(1, g:did_load_mytpe)
+
+  quit!
+  delete('Xexport_ft.vim')
+  delete('ftplugin', 'rf')
+  &rtp = save_rtp
+enddef
+
+def Test_use_import_in_mapping()
+  let lines =<< trim END
+      vim9script
+      export def Funcx()
+        g:result = 42
+      enddef
+  END
+  writefile(lines, 'XsomeExport.vim')
+  lines =<< trim END
+      vim9script
+      import Funcx from './XsomeExport.vim'
+      nnoremap <F3> :call <sid>Funcx()<cr>
+  END
+  writefile(lines, 'Xmapscript.vim')
+
+  source Xmapscript.vim
+  feedkeys("\<F3>", "xt")
+  assert_equal(42, g:result)
+
+  unlet g:result
+  delete('XsomeExport.vim')
+  delete('Xmapscript.vim')
+  nunmap <F3>
 enddef
 
 def Test_vim9script_fails()
@@ -1410,13 +1488,13 @@ def Run_Test_import_fails_on_command_line()
         return 0
     enddef
   END
-  writefile(export, 'Xexport.vim')
+  writefile(export, 'XexportCmd.vim')
 
-  let buf = RunVimInTerminal('-c "import Foo from ''./Xexport.vim''"', #{
+  let buf = RunVimInTerminal('-c "import Foo from ''./XexportCmd.vim''"', #{
                 rows: 6, wait_for_ruler: 0})
   WaitForAssert({-> assert_match('^E1094:', term_getline(buf, 5))})
 
-  delete('Xexport.vim')
+  delete('XexportCmd.vim')
   StopVimInTerminal(buf)
 enddef
 
@@ -1623,6 +1701,8 @@ def Test_import_absolute()
           '4 LOADSCRIPT exported from .*Xexport_abs.vim.*' ..
           '5 STOREG g:imported_after.*',
         g:import_disassembled)
+
+  Undo_export_script_lines()
   unlet g:imported_abs
   unlet g:import_disassembled
 
@@ -1646,8 +1726,9 @@ def Test_import_rtp()
   &rtp = save_rtp
 
   assert_equal(9876, g:imported_rtp)
-  unlet g:imported_rtp
 
+  Undo_export_script_lines()
+  unlet g:imported_rtp
   delete('Ximport_rtp.vim')
   delete('import', 'rf')
 enddef
@@ -1725,6 +1806,18 @@ def Test_func_redefine_fails()
     def Func()
       echo 'two'
     enddef
+  END
+  CheckScriptFailure(lines, 'E1073:')
+
+  lines =<< trim END
+    vim9script
+    def Foo(): string
+      return 'foo'
+      enddef
+    def Func()
+      let  Foo = {-> 'lambda'}
+    enddef
+    defcompile
   END
   CheckScriptFailure(lines, 'E1073:')
 enddef
@@ -2921,6 +3014,37 @@ def Test_vim9_autoload()
   augroup END
   delete('Xdir', 'rf')
   &rtp = save_rtp
+enddef
+
+def Test_cmdline_win()
+  # if the Vim syntax highlighting uses Vim9 constructs they can be used from
+  # the command line window.
+  mkdir('rtp/syntax', 'p')
+  let export_lines =<< trim END
+    vim9script
+    export let That = 'yes'
+  END
+  writefile(export_lines, 'rtp/syntax/Xexport.vim')
+  let import_lines =<< trim END
+    vim9script
+    import That from './Xexport.vim'
+  END
+  writefile(import_lines, 'rtp/syntax/vim.vim')
+  let save_rtp = &rtp
+  &rtp = getcwd() .. '/rtp' .. ',' .. &rtp
+  syntax on
+  augroup CmdWin
+    autocmd CmdwinEnter * g:got_there = 'yes'
+  augroup END
+  # this will open and also close the cmdline window
+  feedkeys('q:', 'xt')
+  assert_equal('yes', g:got_there)
+
+  augroup CmdWin
+    au!
+  augroup END
+  &rtp = save_rtp
+  delete('rtp', 'rf')
 enddef
 
 " Keep this last, it messes up highlighting.

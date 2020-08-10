@@ -53,8 +53,8 @@ def Test_expr1()
   let RetThat: func = g:atrue ? RetOne : RetTwo
   assert_equal(function('len'), RetThat)
 
-  let x = FuncOne
-  let y = FuncTwo
+  let X = FuncOne
+  let Y = FuncTwo
   let Z = g:cond ? FuncOne : FuncTwo
   assert_equal(123, Z(3))
 enddef
@@ -132,8 +132,8 @@ func Test_expr1_fails()
 
   " missing argument detected even when common type is used
   call CheckDefFailure([
-	\ 'let x = FuncOne',
-	\ 'let y = FuncTwo',
+	\ 'let X = FuncOne',
+	\ 'let Y = FuncTwo',
 	\ 'let Z = g:cond ? FuncOne : FuncTwo',
 	\ 'Z()'], 'E119:')
 endfunc
@@ -1247,6 +1247,12 @@ let g:dict_one = #{one: 1}
 
 let $TESTVAR = 'testvar'
 
+" type casts
+def Test_expr7t()
+  let ls: list<string> = ['a', <string>g:string_empty]
+  let ln: list<number> = [<number>g:anint, <number>g:alsoint]
+enddef
+
 " test low level expression
 def Test_expr7_number()
   # number constant
@@ -1307,6 +1313,16 @@ def Test_expr7_special()
   assert_equal(g:special_false, false)
   assert_equal(g:special_true, v:true)
   assert_equal(g:special_false, v:false)
+
+  assert_equal(true, !false)
+  assert_equal(false, !true)
+  assert_equal(true, !0)
+  assert_equal(false, !1)
+  assert_equal(false, !!false)
+  assert_equal(true, !!true)
+  assert_equal(false, !!0)
+  assert_equal(true, !!1)
+
   assert_equal(g:special_null, v:null)
   assert_equal(g:special_none, v:none)
 
@@ -1326,6 +1342,14 @@ def Test_expr7_special_vim9script()
       assert_equal(true, t)
       assert_equal(v:false, false)
       assert_equal(false, f)
+      assert_equal(true, !false)
+      assert_equal(false, !true)
+      assert_equal(true, !0)
+      assert_equal(false, !1)
+      assert_equal(false, !!false)
+      assert_equal(true, !!true)
+      assert_equal(false, !!0)
+      assert_equal(true, !!1)
   END
   CheckScriptSuccess(lines)
 enddef
@@ -1334,7 +1358,17 @@ def Test_expr7_list()
   # list
   assert_equal(g:list_empty, [])
   assert_equal(g:list_empty, [  ])
-  assert_equal(g:list_mixed, [1, 'b', false,])
+
+  let numbers: list<number> = [1, 2, 3]
+  numbers = [1]
+  numbers = []
+
+  let strings: list<string> = ['a', 'b', 'c']
+  strings = ['x']
+  strings = []
+
+  let mixed: list<any> = [1, 'b', false,]
+  assert_equal(g:list_mixed, mixed)
   assert_equal('b', g:list_mixed[1])
 
   echo [1,
@@ -1348,6 +1382,10 @@ def Test_expr7_list()
   call CheckDefFailure(["let x = g:list_mixed["], 'E1097:')
   call CheckDefFailure(["let x = g:list_mixed[0"], 'E1097:')
   call CheckDefExecFailure(["let x = g:list_empty[3]"], 'E684:')
+  call CheckDefFailure(["let l: list<number> = [234, 'x']"], 'E1013:')
+  call CheckDefFailure(["let l: list<number> = ['x', 234]"], 'E1013:')
+  call CheckDefFailure(["let l: list<string> = [234, 'x']"], 'E1013:')
+  call CheckDefFailure(["let l: list<string> = ['x', 123]"], 'E1013:')
 enddef
 
 def Test_expr7_list_vim9script()
@@ -1437,6 +1475,19 @@ def Test_expr7_dict()
   let val = 1
   assert_equal(g:dict_one, {key: val})
 
+  let numbers: dict<number> = #{a: 1, b: 2, c: 3}
+  numbers = #{a: 1}
+  numbers = #{}
+
+  let strings: dict<string> = #{a: 'a', b: 'b', c: 'c'}
+  strings = #{a: 'x'}
+  strings = #{}
+
+  let mixed: dict<any> = #{a: 'a', b: 42}
+  mixed = #{a: 'x'}
+  mixed = #{a: 234}
+  mixed = #{}
+
   call CheckDefFailure(["let x = #{8: 8}"], 'E1014:')
   call CheckDefFailure(["let x = #{xxx}"], 'E720:')
   call CheckDefFailure(["let x = #{xxx: 1", "let y = 2"], 'E722:')
@@ -1449,6 +1500,11 @@ def Test_expr7_dict()
   call CheckDefFailure(["let x = x + 1"], 'E1001:')
   call CheckDefExecFailure(["let x = g:anint.member"], 'E715:')
   call CheckDefExecFailure(["let x = g:dict_empty.member"], 'E716:')
+
+  call CheckDefFailure(['let x: dict<number> = #{a: 234, b: "1"}'], 'E1013:')
+  call CheckDefFailure(['let x: dict<number> = #{a: "x", b: 134}'], 'E1013:')
+  call CheckDefFailure(['let x: dict<string> = #{a: 234, b: "1"}'], 'E1013:')
+  call CheckDefFailure(['let x: dict<string> = #{a: "x", b: 134}'], 'E1013:')
 enddef
 
 def Test_expr7_dict_vim9script()
@@ -1686,6 +1742,10 @@ def Test_expr7_call()
   assert_equal([0, 1, 2], --3->range())
 
   call CheckDefFailure(["let x = 'yes'->Echo"], 'E107:')
+  call CheckScriptFailure([
+	"vim9script",
+	"let x = substitute ('x', 'x', 'x', 'x')"
+	], 'E121:')
 enddef
 
 

@@ -503,16 +503,48 @@ def Test_error_in_nested_function()
 enddef
 
 def Test_return_type_wrong()
-  CheckScriptFailure(['def Func(): number', 'return "a"', 'enddef', 'defcompile'], 'expected number but got string')
-  CheckScriptFailure(['def Func(): string', 'return 1', 'enddef', 'defcompile'], 'expected string but got number')
-  CheckScriptFailure(['def Func(): void', 'return "a"', 'enddef', 'defcompile'], 'E1096: Returning a value in a function without a return type')
-  CheckScriptFailure(['def Func()', 'return "a"', 'enddef', 'defcompile'], 'E1096: Returning a value in a function without a return type')
+  CheckScriptFailure([
+        'def Func(): number',
+        'return "a"',
+        'enddef',
+        'defcompile'], 'expected number but got string')
+  CheckScriptFailure([
+        'def Func(): string',
+        'return 1',
+        'enddef',
+        'defcompile'], 'expected string but got number')
+  CheckScriptFailure([
+        'def Func(): void',
+        'return "a"',
+        'enddef',
+        'defcompile'],
+        'E1096: Returning a value in a function without a return type')
+  CheckScriptFailure([
+        'def Func()',
+        'return "a"',
+        'enddef',
+        'defcompile'],
+        'E1096: Returning a value in a function without a return type')
 
-  CheckScriptFailure(['def Func(): number', 'return', 'enddef', 'defcompile'], 'E1003:')
+  CheckScriptFailure([
+        'def Func(): number',
+        'return',
+        'enddef',
+        'defcompile'], 'E1003:')
 
   CheckScriptFailure(['def Func(): list', 'return []', 'enddef'], 'E1008:')
   CheckScriptFailure(['def Func(): dict', 'return {}', 'enddef'], 'E1008:')
   CheckScriptFailure(['def Func()', 'return 1'], 'E1057:')
+
+  CheckScriptFailure([
+        'vim9script',
+        'def FuncB()',
+        '  return 123',
+        'enddef',
+        'def FuncA()',
+        '   FuncB()',
+        'enddef',
+        'defcompile'], 'E1096:')
 enddef
 
 def Test_arg_type_wrong()
@@ -984,6 +1016,47 @@ func DelMe()
   echo 'DelMe'
 endfunc
 
+def Test_error_reporting()
+  # comment lines at the start of the function
+  let lines =<< trim END
+    " comment
+    def Func()
+      # comment
+      # comment
+      invalid
+    enddef
+    defcompile
+  END
+  call writefile(lines, 'Xdef')
+  try
+    source Xdef
+  catch /E476:/
+    assert_match('Invalid command: invalid', v:exception)
+    assert_match(', line 3$', v:throwpoint)
+  endtry
+
+  # comment lines after the start of the function
+  lines =<< trim END
+    " comment
+    def Func()
+      let x = 1234
+      # comment
+      # comment
+      invalid
+    enddef
+    defcompile
+  END
+  call writefile(lines, 'Xdef')
+  try
+    source Xdef
+  catch /E476:/
+    assert_match('Invalid command: invalid', v:exception)
+    assert_match(', line 4$', v:throwpoint)
+  endtry
+
+  call delete('Xdef')
+enddef
+
 def Test_deleted_function()
   CheckDefExecFailure([
       'let RefMe: func = function("g:DelMe")',
@@ -1202,6 +1275,12 @@ def Test_filter_return_type()
   assert_equal(6, res)
 enddef
 
+def Test_getreg_return_type()
+  let s1: string = getreg('"')
+  let s2: string = getreg('"', 1)
+  let s3: list<string> = getreg('"', 1, 1)
+enddef
+
 def Wrong_dict_key_type(items: list<number>): list<number>
   return filter(items, {_, val -> get({val: 1}, 'x')})
 enddef
@@ -1302,6 +1381,31 @@ def Test_partial_call()
   Xsetlist = function('setqflist', [[], ' '])
   Xsetlist({'title': 'test'})
   assert_equal({'title': 'test'}, getqflist({'title': 1}))
+enddef
+
+def Test_cmd_modifier()
+  tab echo '0'
+  call CheckDefFailure(['5tab echo 3'], 'E16:')
+enddef
+
+def Test_restore_modifiers()
+  # check that when compiling a :def function command modifiers are not messed
+  # up.
+  let lines =<< trim END
+      vim9script
+      set eventignore=
+      autocmd QuickFixCmdPost * copen
+      def AutocmdsDisabled()
+          eval 0
+      enddef
+      func Func()
+        noautocmd call s:AutocmdsDisabled()
+        let g:ei_after = &eventignore
+      endfunc
+      Func()
+  END
+  CheckScriptSuccess(lines)
+  assert_equal('', g:ei_after)
 enddef
 
 
