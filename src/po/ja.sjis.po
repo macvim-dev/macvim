@@ -3178,7 +3178,7 @@ msgstr ""
 "gvimによって解釈される引数(GTK+バージョン):\n"
 
 msgid "-display <display>\tRun Vim on <display> (also: --display)"
-msgstr "-display <display>\t<display> でvimを実行する(同義: --display)"
+msgstr "-display <display>\t<display> でVimを実行する(同義: --display)"
 
 msgid "--role <role>\tSet a unique role to identify the main window"
 msgstr "--role <role>\tメインウィンドウを識別する一意な役割(role)を設定する"
@@ -6236,6 +6236,10 @@ msgstr "with Carbon GUI."
 msgid "with Cocoa GUI."
 msgstr "with Cocoa GUI."
 
+# MacVim only
+msgid "with MacVim GUI."
+msgstr "with MacVim GUI."
+
 msgid "  Features included (+) or not (-):\n"
 msgstr "  機能\の一覧 有効(+)/無効(-)\n"
 
@@ -6316,6 +6320,10 @@ msgstr "終了するには           :q<Enter>              "
 
 msgid "type  :help<Enter>  or  <F1>  for on-line help"
 msgstr "オンラインヘルプは     :help<Enter> か <F1>   "
+
+# MacVim only
+msgid "type  :help macvim<Enter>     for MacVim help "
+msgstr "MacVim のオンラインヘルプは     :help macvim<Enter>             "
 
 msgid "type  :help version8<Enter>   for version info"
 msgstr "バージョン情報は       :help version8<Enter>  "
