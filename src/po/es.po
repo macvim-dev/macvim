@@ -5792,6 +5792,10 @@ msgstr "con GUI Carbon."
 msgid "with Cocoa GUI."
 msgstr "con interfaz gráfica para Cocoa."
 
+# MacVim only
+msgid "with MacVim GUI."
+msgstr "con interfaz gráfica para MacVim."
+
 msgid "with (classic) GUI."
 msgstr "con interfaz gráfica (clásica)."
 
@@ -5872,6 +5876,10 @@ msgstr "escriba  «:q<Intro>»            para salir             "
 
 msgid "type  :help<Enter>  or  <F1>  for on-line help"
 msgstr "escriba  «:help<Intro>» o <F1>  para obtener ayuda     "
+
+# MacVim only
+msgid "type  :help macvim<Enter>     for MacVim help "
+msgstr "       escriba  «:help macvim<Enter>»  para obtener ayuda para MacVim"
 
 msgid "type  :help version8<Enter>   for version info"
 msgstr "escriba «:help version8<Intro>» para información de la versión"

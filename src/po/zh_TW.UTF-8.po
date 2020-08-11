@@ -4642,6 +4642,10 @@ msgstr "使用 Carbon 圖型界面。"
 msgid "with Cocoa GUI."
 msgstr "使用 Cocoa 圖型界面。"
 
+# MacVim only
+msgid "with MacVim GUI."
+msgstr "使用 MacVim 圖型界面。"
+
 msgid "with (classic) GUI."
 msgstr "使用 (傳統) 圖型界面。"
 
@@ -4722,6 +4726,10 @@ msgstr "要離開請輸入                  :q<Enter>            "
 
 msgid "type  :help<Enter>  or  <F1>  for on-line help"
 msgstr "線上說明請輸入                :help<Enter>         "
+
+# MacVim only
+msgid "type  :help macvim<Enter>     for MacVim help "
+msgstr "MacVim 線上說明請輸入                :help<Enter>               "
 
 msgid "type  :help version8<Enter>   for version info"
 msgstr "新版本資訊請輸入              :help version8<Enter>"
