@@ -82,10 +82,13 @@ if has("gui_macvim")
   an <silent> 9998.310 Window.Zoom		    <Nop>
   an <silent> 9998.311 Window.Zoom\ All		    <Nop>
   an <silent> 9998.320 Window.Toggle\ Full\ Screen\ Mode :set invfullscreen<CR>
+  tln <silent> 9998.320 Window.Toggle\ Full\ Screen\ Mode <C-W>:set invfullscreen<CR>
   an 9998.330 Window.-SEP1-			    <Nop>
   " TODO! Grey out if no tabs are visible.
   an <silent> 9998.340 Window.Select\ Next\ Tab	    :tabnext<CR>
+  tln <silent> 9998.340 Window.Select\ Next\ Tab	<C-W>:tabnext<CR>
   an <silent> 9998.350 Window.Select\ Previous\ Tab :tabprevious<CR>
+  tln <silent> 9998.350 Window.Select\ Previous\ Tab <C-W>:tabprevious<CR>
   an 9998.360 Window.-SEP2-			    <Nop>
   an <silent> 9998.370 Window.Bring\ All\ To\ Front <Nop>
   an <silent> 9998.380 Window.Stay\ in\ Front <Nop>
@@ -130,10 +133,12 @@ endfun
 if has("gui_macvim")
   an <silent> 10.290 &File.New\ Window		    <Nop>
   an  10.295 &File.New\ Tab			    :tabnew<CR>
+  tln 10.295 &File.New\ Tab			    <C-W>:tabnew<CR>
   an <silent> 10.310 &File.Open\.\.\.		    <Nop>
   an <silent> 10.325 &File.Open\ Recent		    <Nop>
   an 10.328 &File.-SEP0-			    <Nop>
   an <silent> 10.330 &File.Close\ Window<Tab>:qa    :conf qa<CR>
+  tln <silent> 10.330 &File.Close\ Window<Tab>:qa   <C-W>:conf qa<CR>
   an <silent> 10.332 &File.Close		    :conf q<CR>
   an <silent> 10.341 &File.Save\ All		    :browse conf wa<CR>
   an 10.350 &File.Save\ As\.\.\.<Tab>:sav	    :browse confirm saveas<CR>
@@ -1328,20 +1333,25 @@ if has("touchbar")
 
   if !exists("g:macvim_default_touchbar_fullscreen") || g:macvim_default_touchbar_fullscreen
     an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
+    tln icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen <C-W>:set fullscreen<CR>
   endif
 
   let s:touchbar_fullscreen=0
   func! s:SetupFullScreenTouchBar()
     if &fullscreen && s:touchbar_fullscreen != 1
       silent! aun TouchBar.EnterFullScreen
+      silent! tlun TouchBar.EnterFullScreen
       if !exists("g:macvim_default_touchbar_fullscreen") || g:macvim_default_touchbar_fullscreen
         an icon=NSTouchBarExitFullScreenTemplate 1.10 TouchBar.ExitFullScreen :set nofullscreen<CR>
+        tln icon=NSTouchBarExitFullScreenTemplate 1.10 TouchBar.ExitFullScreen <C-W>:set nofullscreen<CR>
       endif
       let s:touchbar_fullscreen = 1
     elseif !&fullscreen && s:touchbar_fullscreen != 0
       silent! aun TouchBar.ExitFullScreen
+      silent! tlun TouchBar.ExitFullScreen
       if !exists("g:macvim_default_touchbar_fullscreen") || g:macvim_default_touchbar_fullscreen
         an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
+        tln icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen <C-W>:set fullscreen<CR>
       endif
       let s:touchbar_fullscreen = 0
     endif
