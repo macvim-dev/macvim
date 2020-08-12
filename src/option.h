@@ -713,9 +713,6 @@ EXTERN int	p_lpl;		// 'loadplugins'
 #if defined(DYNAMIC_LUA)
 EXTERN char_u	*p_luadll;	// 'luadll'
 #endif
-#ifdef FEAT_GUI_MAC
-EXTERN int	p_macatsui;	// 'macatsui'
-#endif
 #ifdef FEAT_GUI_MACVIM
 EXTERN int	p_macligatures;	// 'macligatures'
 EXTERN int	p_macthinstrokes;	// 'macthinstrokes'

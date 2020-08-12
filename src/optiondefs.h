@@ -1255,7 +1255,7 @@ static struct vimoption options[] =
 			    (char_u *)&p_go, PV_NONE,
 # if defined(FEAT_GUI_MACVIM)
 			    {(char_u *)"egmrL", (char_u *)0L}
-# elif defined(UNIX) && !defined(FEAT_GUI_MAC)
+# elif defined(UNIX)
 			    {(char_u *)"aegimrLtT", (char_u *)0L}
 # else
 			    {(char_u *)"egmrLtT", (char_u *)0L}
@@ -1668,13 +1668,8 @@ static struct vimoption options[] =
 #endif
 			    SCTX_INIT},
     {"macatsui",    NULL,   P_BOOL|P_VI_DEF|P_RCLR,
-#ifdef FEAT_GUI_MAC
-			    (char_u *)&p_macatsui, PV_NONE,
-			    {(char_u *)TRUE, (char_u *)0L}
-#else
 			    (char_u *)NULL, PV_NONE,
 			    {(char_u *)"", (char_u *)0L}
-#endif
 			    SCTX_INIT},
     {"macligatures", NULL,  P_BOOL|P_VI_DEF|P_RCLR,
 #ifdef FEAT_GUI_MACVIM

@@ -706,7 +706,7 @@ def RetVoid()
   let x = 1
 enddef
 
-def Test_expr4_vimscript()
+def Test_expr4_vim9script()
   # check line continuation
   let lines =<< trim END
       vim9script
@@ -819,6 +819,12 @@ def Test_expr4_vimscript()
     echo 2!= 3
   END
   CheckScriptFailure(lines, 'E1004:')
+
+  lines =<< trim END
+    vim9script
+    echo len('xxx') == 3
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 func Test_expr4_fails()
@@ -1738,7 +1744,7 @@ def Test_expr7_call()
   assert_equal('yes', 'yes'->Echo())
   assert_equal('yes', 'yes'
   			->s:Echo4Arg())
-  assert_equal(1, !range(5)->empty())
+  assert_equal(true, !range(5)->empty())
   assert_equal([0, 1, 2], --3->range())
 
   call CheckDefFailure(["let x = 'yes'->Echo"], 'E107:')
@@ -1750,31 +1756,38 @@ enddef
 
 
 def Test_expr7_not()
-  assert_equal(true, !'')
-  assert_equal(true, ![])
-  assert_equal(false, !'asdf')
-  assert_equal(false, ![2])
-  assert_equal(true, !!'asdf')
-  assert_equal(true, !![2])
+  let lines =<< trim END
+      assert_equal(true, !'')
+      assert_equal(true, ![])
+      assert_equal(false, !'asdf')
+      assert_equal(false, ![2])
+      assert_equal(true, !!'asdf')
+      assert_equal(true, !![2])
 
-  assert_equal(true, !test_null_partial())
-  assert_equal(false, !{-> 'yes'})
+      assert_equal(true, !test_null_partial())
+      assert_equal(false, !{-> 'yes'})
 
-  assert_equal(true, !test_null_dict())
-  assert_equal(true, !{})
-  assert_equal(false, !{'yes': 'no'})
+      assert_equal(true, !test_null_dict())
+      assert_equal(true, !{})
+      assert_equal(false, !{'yes': 'no'})
 
-  if has('channel')
-    assert_equal(true, !test_null_job())
-    assert_equal(true, !test_null_channel())
-  endif
+      if has('channel')
+	assert_equal(true, !test_null_job())
+	assert_equal(true, !test_null_channel())
+      endif
 
-  assert_equal(true, !test_null_blob())
-  assert_equal(true, !0z)
-  assert_equal(false, !0z01)
+      assert_equal(true, !test_null_blob())
+      assert_equal(true, !0z)
+      assert_equal(false, !0z01)
 
-  assert_equal(true, !test_void())
-  assert_equal(true, !test_unknown())
+      assert_equal(true, !test_void())
+      assert_equal(true, !test_unknown())
+
+      assert_equal(false, ![1, 2, 3]->reverse())
+      assert_equal(true, ![]->reverse())
+  END
+  CheckDefSuccess(lines)
+  CheckScriptSuccess(['vim9script'] + lines)
 enddef
 
 func Test_expr7_fails()

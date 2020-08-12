@@ -3927,13 +3927,7 @@ f_has(typval_T *argvars, typval_T *rettv)
 		0
 #endif
 		},
-	{"gui_mac",
-#ifdef FEAT_GUI_MAC
-		1
-#else
-		0
-#endif
-		},
+	{"gui_mac", 0},
 	{"gui_macvim",
 #ifdef FEAT_GUI_MACVIM
 		1

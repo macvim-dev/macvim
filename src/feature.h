@@ -641,7 +641,6 @@
     && (defined(FEAT_GUI_GTK) \
 	|| (defined(FEAT_GUI_MOTIF) && defined(HAVE_XM_NOTEBOOK_H)) \
 	|| defined(FEAT_GUI_MACVIM) \
-	|| defined(FEAT_GUI_MAC) \
 	|| defined(FEAT_GUI_HAIKU) \
 	|| (defined(FEAT_GUI_MSWIN) \
 	    && (!defined(_MSC_VER) || _MSC_VER > 1020)))
@@ -655,9 +654,8 @@
 #if defined(FEAT_NORMAL)
 # define FEAT_BROWSE_CMD
 # if defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA) \
-	|| defined(FEAT_GUI_GTK) || defined(FEAT_GUI_HAIKU) || defined(FEAT_GUI_PHOTON) \
 	|| defined(FEAT_GUI_MACVIM) \
-	|| defined(FEAT_GUI_MAC)
+	|| defined(FEAT_GUI_GTK) || defined(FEAT_GUI_HAIKU) || defined(FEAT_GUI_PHOTON)
 #  define FEAT_BROWSE
 # endif
 #endif
@@ -667,8 +665,7 @@
  * there is no terminal version, and on Windows we can't figure out how to
  * fork one off with :gui.
  */
-#if (defined(FEAT_GUI_MSWIN) && !defined(VIMDLL)) \
-	    || (defined(FEAT_GUI_MAC) && !defined(MACOS_X_DARWIN))
+#if defined(FEAT_GUI_MSWIN) && !defined(VIMDLL)
 # define ALWAYS_USE_GUI
 #endif
 
@@ -683,9 +680,8 @@
 	|| defined(FEAT_GUI_GTK) \
 	|| defined(FEAT_GUI_PHOTON) \
 	|| defined(FEAT_GUI_HAIKU) \
-	|| defined(FEAT_GUI_MSWIN) \
 	|| defined(FEAT_GUI_MACVIM) \
-	|| defined(FEAT_GUI_MAC)
+	|| defined(FEAT_GUI_MSWIN)
 #  define FEAT_CON_DIALOG
 #  define FEAT_GUI_DIALOG
 # else
@@ -701,7 +697,7 @@
 #if defined(FEAT_GUI_DIALOG) && \
 	(defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA) \
 	 || defined(FEAT_GUI_GTK) || defined(FEAT_GUI_MSWIN) \
-	 || defined(FEAT_GUI_PHOTON) || defined(FEAT_GUI_MAC) \
+	 || defined(FEAT_GUI_PHOTON) \
 	 || defined(FEAT_GUI_MACVIM) \
 	 || defined(FEAT_GUI_HAIKU))
 # define FEAT_GUI_TEXTDIALOG
@@ -715,11 +711,6 @@
  */
 #if (defined(FEAT_BIG) && defined(FEAT_SYN_HL)) && !defined(ALWAYS_USE_GUI)
 # define FEAT_TERMGUICOLORS
-#endif
-
-// Mac specific thing: Codewarrior interface.
-#ifdef FEAT_GUI_MAC
-# define FEAT_CW_EDITOR
 #endif
 
 /*
@@ -1109,8 +1100,7 @@
 #endif
 
 #if defined(FEAT_MZSCHEME) && (defined(FEAT_GUI_MSWIN) || defined(FEAT_GUI_GTK)    \
-	|| defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA)	\
-	|| defined(FEAT_GUI_MAC))
+	|| defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA))
 # define MZSCHEME_GUI_THREADS
 #endif
 
