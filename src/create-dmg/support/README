@@ -1,0 +1,7 @@
+# create-dmg support files
+
+## licenseDMG.py
+
+The licenseDMG.py script is taken from Jared Hobbs' pyhacker library, at <https://bitbucket.org/jaredhobbs/pyhacker>.
+
+See LICENSE-licenseDMG-pyhacker for licensing details.

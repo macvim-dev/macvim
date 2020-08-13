@@ -3752,7 +3752,7 @@ macvim-dmg:
 	create-dmg/create-dmg \
 		--volname "MacVim" \
 		--volicon MacVim/icons/MacVim.icns \
-		--background create-dmg/background.png \
+		--background MacVim/dmg/background.png \
 		--window-size 650 470 \
 		--icon-size 80 \
 		--icon MacVim.app 240 320 \
