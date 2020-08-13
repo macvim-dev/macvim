@@ -16,6 +16,7 @@ Vim's Graphical User Interface				*gui* *GUI*
 8. Shell Commands		|gui-shell|
 
 Other GUI documentation:
+|gui_mac.txt|	For specific items of the MacVim GUI.
 |gui_x11.txt|	For specific items of the X11 GUI.
 |gui_w32.txt|	For specific items of the Win32 GUI.
 
