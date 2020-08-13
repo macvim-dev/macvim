@@ -732,14 +732,6 @@ A jump table for the options with a short description can be found at |Q_op|.
 	v10.2 or later.  When on, Vim will use smooth ("antialiased") fonts,
 	which can be easier to read at certain sizes on certain displays.
 
-	Setting this option in the Carbon version can sometimes cause problems
-	if 'guifont' is set to its default (empty string).
-	NOTE: This option is reset when 'compatible' is set.
-
-	Support for this option is not flawless in MacVim. In particular,
-	Monaco always seems to render not antialiased for point sizes up
-	to 10. The ATSUI renderer has better antialias support.
-
 			*'autochdir'* *'acd'* *'noautochdir'* *'noacd'*
 'autochdir' 'acd'	boolean (default off)
 			global
@@ -7894,8 +7886,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 
 					*'termencoding'* *'tenc'*
 'termencoding' 'tenc'	string	(default ""
-				 with GTK+ and MacVim GUIs: "utf-8"
-				 with Macintosh (Carbon) GUI: "macroman")
+				 with GTK+ and MacVim GUIs: "utf-8")
 			global
 	Encoding used for the terminal.  This specifies what character
 	encoding the keyboard produces and the display will understand.  For
