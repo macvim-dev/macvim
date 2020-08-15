@@ -1,4 +1,4 @@
-*gui_mac.txt*	For Vim version 8.1.  Last change: 2018 Dec 17
+*gui_mac.txt*	For Vim version 8.2.  Last change: 2020 Aug 13
 
 
 		  VIM REFERENCE MANUAL    by Bjorn Winckler
