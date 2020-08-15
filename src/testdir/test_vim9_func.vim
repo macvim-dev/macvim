@@ -290,6 +290,12 @@ def Test_call_def_varargs()
   CheckScriptFailure(lines, 'E1013:')
 enddef
 
+def Test_call_call()
+  let l = [3, 2, 1]
+  call('reverse', [l])
+  assert_equal([1, 2, 3], l)
+enddef
+
 let s:value = ''
 
 def FuncOneDefArg(opt = 'text')
@@ -768,7 +774,7 @@ func Test_InternalFuncRetType()
     enddef
 
     def RetListAny(): list<any>
-      return items({'k' : 'v'})
+      return items({'k': 'v'})
     enddef
 
     def RetListString(): list<string>
@@ -1039,6 +1045,7 @@ def Test_error_reporting()
   call writefile(lines, 'Xdef')
   try
     source Xdef
+    assert_report('should have failed')
   catch /E476:/
     assert_match('Invalid command: invalid', v:exception)
     assert_match(', line 3$', v:throwpoint)
@@ -1058,9 +1065,28 @@ def Test_error_reporting()
   call writefile(lines, 'Xdef')
   try
     source Xdef
+    assert_report('should have failed')
   catch /E476:/
     assert_match('Invalid command: invalid', v:exception)
     assert_match(', line 4$', v:throwpoint)
+  endtry
+
+  lines =<< trim END
+    vim9script
+    def Func()
+      let db = #{foo: 1, bar: 2}
+      # comment
+      let x = db.asdf
+    enddef
+    defcompile
+    Func()
+  END
+  call writefile(lines, 'Xdef')
+  try
+    source Xdef
+    assert_report('should have failed')
+  catch /E716:/
+    assert_match('_Func, line 3$', v:throwpoint)
   endtry
 
   call delete('Xdef')
@@ -1255,6 +1281,11 @@ def Test_insert_return_type()
     res += n
   endfor
   assert_equal(6, res)
+enddef
+
+def Test_keys_return_type()
+  const var: list<string> = #{a: 1, b: 2}->keys()
+  assert_equal(['a', 'b'], var)
 enddef
 
 def Test_reverse_return_type()

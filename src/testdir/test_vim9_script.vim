@@ -1054,6 +1054,24 @@ def Test_throw_vimscript()
   CheckScriptSuccess(lines)
 enddef
 
+def Test_error_in_nested_function()
+  # an error in a nested :function aborts executin in the calling :def function
+  let lines =<< trim END
+      vim9script
+      def Func()
+        Error()
+        g:test_var = 1
+      enddef
+      func Error() abort
+        eval [][0]
+      endfunc
+      Func()
+  END
+  g:test_var = 0
+  CheckScriptFailure(lines, 'E684:')
+  assert_equal(0, g:test_var)
+enddef
+
 def Test_cexpr_vimscript()
   # only checks line continuation
   set errorformat=File\ %f\ line\ %l
@@ -1066,6 +1084,20 @@ def Test_cexpr_vimscript()
   END
   CheckScriptSuccess(lines)
   set errorformat&
+enddef
+
+def Test_statusline_syntax()
+  # legacy syntax is used for 'statusline'
+  let lines =<< trim END
+      vim9script
+      func g:Status()
+        return '%{"x" is# "x"}'
+      endfunc
+      set laststatus=2 statusline=%!Status()
+      redrawstatus
+      set laststatus statusline= 
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_list_vimscript()
@@ -1762,6 +1794,29 @@ def Test_import_compile_error()
 
   delete('Xexported.vim')
   delete('Ximport.vim')
+enddef
+
+def Test_func_redefine_error()
+  let lines = [
+        'vim9script',
+        'def Func()',
+        '  eval [][0]',
+        'enddef',
+        'Func()',
+        ]
+  writefile(lines, 'Xtestscript.vim')
+
+  for count in range(3)
+    try
+      source Xtestscript.vim
+    catch /E684/
+      # function name should contain <SNR> every time
+      assert_match('E684: list index out of range', v:exception)
+      assert_match('function <SNR>\d\+_Func, line 1', v:throwpoint)
+    endtry
+  endfor
+
+  delete('Xtestscript.vim')
 enddef
 
 def Test_func_overrules_import_fails()
@@ -2983,6 +3038,42 @@ def Test_source_vim9_from_legacy()
   delete('Xlegacy_script.vim')
   delete('Xvim9_script.vim')
 enddef
+
+func Test_vim9script_not_global()
+  " check that items defined in Vim9 script are script-local, not global
+  let vim9lines =<< trim END
+    vim9script
+    let var = 'local'
+    func TheFunc()
+      echo 'local'
+    endfunc
+    def DefFunc()
+      echo 'local'
+    enddef
+  END
+  call writefile(vim9lines, 'Xvim9script.vim')
+  source Xvim9script.vim
+  try
+    echo g:var
+    assert_report('did not fail')
+  catch /E121:/
+    " caught
+  endtry
+  try
+    call TheFunc()
+    assert_report('did not fail')
+  catch /E117:/
+    " caught
+  endtry
+  try
+    call DefFunc()
+    assert_report('did not fail')
+  catch /E117:/
+    " caught
+  endtry
+
+  call delete('Xvim9script.vium')
+endfunc
 
 def Test_vim9_copen()
   # this was giving an error for setting w:quickfix_title

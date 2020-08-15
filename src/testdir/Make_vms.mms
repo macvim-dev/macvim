@@ -4,7 +4,7 @@
 # Authors:	Zoltan Arpadffy, <arpadffy@polarhome.com>
 #		Sandor Kopanyi,  <sandor.kopanyi@mailbox.hu>
 #
-# Last change:  2020 Jul 03
+# Last change:  2020 Aug 13
 #
 # This has been tested on VMS 6.2 to 8.3 on DEC Alpha, VAX and IA64.
 # Edit the lines in the Configuration section below to select.
@@ -37,7 +37,9 @@ VIMPROG = <->vim.exe
 
 .SUFFIXES : .out .in
 
-SCRIPT = test1.out test77a.out
+SCRIPT = test20.out test21.out test22.out test23.out test24.out \
+	 test25.out test26.out test27.out \
+	 test77a.out
 
 .IFDEF WANT_GUI
 GUI_OPTION = -g
@@ -102,9 +104,5 @@ clean :
 	-@ if "''F$SEARCH("*.*_sw*")'"      .NES. "" then delete/noconfirm/nolog *.*_sw*.*
 	-@ if "''F$SEARCH("*.failed")'"     .NES. "" then delete/noconfirm/nolog *.failed.*
 	-@ if "''F$SEARCH("*.rej")'"        .NES. "" then delete/noconfirm/nolog *.rej.*
-	-@ if "''F$SEARCH("tiny.vim")'"     .NES. "" then delete/noconfirm/nolog tiny.vim.*
-	-@ if "''F$SEARCH("small.vim")'"    .NES. "" then delete/noconfirm/nolog small.vim.*
-	-@ if "''F$SEARCH("mbyte.vim")'"    .NES. "" then delete/noconfirm/nolog mbyte.vim.*
-	-@ if "''F$SEARCH("mzscheme.vim")'" .NES. "" then delete/noconfirm/nolog mzscheme.vim.*
 	-@ if "''F$SEARCH("viminfo.*")'"    .NES. "" then delete/noconfirm/nolog viminfo.*.*
 

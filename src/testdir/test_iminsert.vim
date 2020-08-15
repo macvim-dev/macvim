@@ -1,3 +1,5 @@
+" Test for 'iminsert'
+
 source view_util.vim
 source check.vim
 
@@ -37,7 +39,7 @@ func Test_getimstatus()
     CheckFeature multi_byte_ime
   elseif has('gui_macvim')
     CheckNotGui
-  elseif !has('gui_mac')
+  else
     CheckFeature xim
   endif
   if has('win32') && has('gui_running')
@@ -87,12 +89,11 @@ func Test_iminsert_toggle()
   CheckGui
   if has('win32')
     CheckFeature multi_byte_ime
-  elseif !has('gui_mac')
+  else
     CheckFeature xim
   endif
   if has('gui_running') && !has('win32')
-    " this works only in Win32 GUI version (for some reason)
-    return
+    throw 'Skipped: works only in Win32 GUI version (for some reason)'
   endif
   new
   let save_imdisable = &imdisable

@@ -921,6 +921,14 @@ def Test_expr5()
   assert_equal('123 hello', 123 .. ' hello')
   assert_equal('123456', 123 .. 456)
 
+  assert_equal('av:true', 'a' .. true)
+  assert_equal('av:false', 'a' .. false)
+  assert_equal('av:null', 'a' .. v:null)
+  assert_equal('av:none', 'a' .. v:none)
+  if has('float')
+    assert_equal('a0.123', 'a' .. 0.123)
+  endif
+
   assert_equal([1, 2, 3, 4], [1, 2] + [3, 4])
   assert_equal(0z11223344, 0z1122 + 0z3344)
   assert_equal(0z112201ab, 0z1122
@@ -1013,6 +1021,56 @@ def Test_expr5_vim9script()
       echo 'a'.. 'b'
   END
   CheckScriptFailure(lines, 'E1004:')
+
+  # check valid string concatenation
+  lines =<< trim END
+      vim9script
+      assert_equal('one123', 'one' .. 123)
+      assert_equal('onev:true', 'one' .. true)
+      assert_equal('onev:null', 'one' .. v:null)
+      assert_equal('onev:none', 'one' .. v:none)
+      if has('float')
+        assert_equal('a0.123', 'a' .. 0.123)
+      endif
+  END
+  CheckScriptSuccess(lines)
+
+  # check invalid string concatenation
+  lines =<< trim END
+      vim9script
+      echo 'a' .. [1]
+  END
+  CheckScriptFailure(lines, 'E730:')
+  lines =<< trim END
+      vim9script
+      echo 'a' .. #{a: 1}
+  END
+  CheckScriptFailure(lines, 'E731:')
+  lines =<< trim END
+      vim9script
+      echo 'a' .. test_void()
+  END
+  CheckScriptFailure(lines, 'E908:')
+  lines =<< trim END
+      vim9script
+      echo 'a' .. 0z33
+  END
+  CheckScriptFailure(lines, 'E976:')
+  lines =<< trim END
+      vim9script
+      echo 'a' .. function('len')
+  END
+  CheckScriptFailure(lines, 'E729:')
+  lines =<< trim END
+      vim9script
+      echo 'a' .. test_null_job()
+  END
+  CheckScriptFailure(lines, 'E908:')
+  lines =<< trim END
+      vim9script
+      echo 'a' .. test_null_channel()
+  END
+  CheckScriptFailure(lines, 'E908:')
 enddef
 
 def Test_expr5_float()
@@ -1063,6 +1121,15 @@ func Test_expr5_fails()
   call CheckDefFailure(["let x = [3] + 0z1122"], 'E1051')
   call CheckDefFailure(["let x = 'asdf' + 0z1122"], 'E1051')
   call CheckDefFailure(["let x = 6 + xxx"], 'E1001')
+
+  call CheckDefFailure(["let x = 'a' .. [1]"], 'E1105')
+  call CheckDefFailure(["let x = 'a' .. #{a: 1}"], 'E1105')
+  call CheckDefFailure(["let x = 'a' .. test_void()"], 'E1105')
+  call CheckDefFailure(["let x = 'a' .. 0z32"], 'E1105')
+  call CheckDefFailure(["let x = 'a' .. function('len')"], 'E1105')
+  call CheckDefFailure(["let x = 'a' .. function('len', ['a'])"], 'E1105')
+  call CheckDefFailure(["let x = 'a' .. test_null_job()"], 'E1105')
+  call CheckDefFailure(["let x = 'a' .. test_null_channel()"], 'E1105')
 endfunc
 
 " test multiply, divide, modulo
@@ -1257,6 +1324,12 @@ let $TESTVAR = 'testvar'
 def Test_expr7t()
   let ls: list<string> = ['a', <string>g:string_empty]
   let ln: list<number> = [<number>g:anint, <number>g:alsoint]
+  let nr = <number>234
+  assert_equal(234, nr)
+
+  call CheckDefFailure(["let x = <nr>123"], 'E1010:')
+  call CheckDefFailure(["let x = <number >123"], 'E1068:')
+  call CheckDefFailure(["let x = <number 123"], 'E1104:')
 enddef
 
 " test low level expression
@@ -1383,7 +1456,10 @@ def Test_expr7_list()
 
   call CheckDefExecFailure(["let x = g:anint[3]"], 'E714:')
   call CheckDefFailure(["let x = g:list_mixed[xxx]"], 'E1001:')
+
   call CheckDefFailure(["let x = [1,2,3]"], 'E1069:')
+  call CheckDefFailure(["let x = [1 ,2, 3]"], 'E1068:')
+
   call CheckDefExecFailure(["let x = g:list_mixed['xx']"], 'E1029:')
   call CheckDefFailure(["let x = g:list_mixed["], 'E1097:')
   call CheckDefFailure(["let x = g:list_mixed[0"], 'E1097:')
@@ -1422,6 +1498,53 @@ def Test_expr7_list_vim9script()
       let l = [11,22]
   END
   CheckScriptFailure(lines, 'E1069:')
+
+  lines =<< trim END
+      vim9script
+      let l = [11 , 22]
+  END
+  CheckScriptFailure(lines, 'E1068:')
+
+  lines =<< trim END
+    vim9script
+    let l: list<number> = [234, 'x']
+  END
+  CheckScriptFailure(lines, 'E1013:')
+  lines =<< trim END
+    vim9script
+    let l: list<number> = ['x', 234]
+  END
+  CheckScriptFailure(lines, 'E1013:')
+  lines =<< trim END
+    vim9script
+    let l: list<string> = ['x', 234]
+  END
+  CheckScriptFailure(lines, 'E1013:')
+  lines =<< trim END
+    vim9script
+    let l: list<string> = [234, 'x']
+  END
+  CheckScriptFailure(lines, 'E1013:')
+enddef
+
+def LambdaWithComments(): func
+  return {x ->
+            # some comment
+            x == 1
+            # some comment
+            ||
+            x == 2
+        }
+enddef
+
+def LambdaUsingArg(x: number): func
+  return {->
+            # some comment
+            x == 1
+            # some comment
+            ||
+            x == 2
+        }
 enddef
 
 def Test_expr7_lambda()
@@ -1457,7 +1580,24 @@ def Test_expr7_lambda()
   assert_equal([{'key': 12}], filter(dl,
 	{_, v -> has_key(v, 'key') ? v['key'] == 12 : 0}))
 
+  assert_equal(false, LambdaWithComments()(0))
+  assert_equal(true, LambdaWithComments()(1))
+  assert_equal(true, LambdaWithComments()(2))
+  assert_equal(false, LambdaWithComments()(3))
+
+  assert_equal(false, LambdaUsingArg(0)())
+  assert_equal(true, LambdaUsingArg(1)())
+
   call CheckDefFailure(["filter([1, 2], {k,v -> 1})"], 'E1069:')
+  call CheckDefFailure(["let L = {a -> a + b}"], 'E1001:')
+
+  assert_equal('xxxyyy', 'xxx'->{a, b -> a .. b}('yyy'))
+
+  CheckDefExecFailure(["let s = 'asdf'->{a -> a}('x')"],
+        'E1106: one argument too many')
+  CheckDefExecFailure(["let s = 'asdf'->{a -> a}('x', 'y')"],
+        'E1106: 2 arguments too many')
+  CheckDefFailure(["echo 'asdf'->{a -> a}(x)"], 'E1001:')
 enddef
 
 def Test_expr7_lambda_vim9script()
@@ -1493,6 +1633,11 @@ def Test_expr7_dict()
   mixed = #{a: 'x'}
   mixed = #{a: 234}
   mixed = #{}
+
+  call CheckDefFailure(["let x = #{a:8}"], 'E1069:')
+  call CheckDefFailure(["let x = #{a : 8}"], 'E1068:')
+  call CheckDefFailure(["let x = #{a :8}"], 'E1068:')
+  call CheckDefFailure(["let x = #{a: 8 , b: 9}"], 'E1068:')
 
   call CheckDefFailure(["let x = #{8: 8}"], 'E1014:')
   call CheckDefFailure(["let x = #{xxx}"], 'E720:')
@@ -1552,6 +1697,45 @@ def Test_expr7_dict_vim9script()
       let d = #{one: 1,two: 2}
   END
   CheckScriptFailure(lines, 'E1069:')
+
+  lines =<< trim END
+      vim9script
+      let d = #{one : 1}
+  END
+  CheckScriptFailure(lines, 'E1068:')
+
+  lines =<< trim END
+      vim9script
+      let d = #{one:1}
+  END
+  CheckScriptFailure(lines, 'E1069:')
+
+  lines =<< trim END
+      vim9script
+      let d = #{one: 1 , two: 2}
+  END
+  CheckScriptFailure(lines, 'E1068:')
+
+  lines =<< trim END
+    vim9script
+    let l: dict<number> = #{a: 234, b: 'x'}
+  END
+  CheckScriptFailure(lines, 'E1013:')
+  lines =<< trim END
+    vim9script
+    let l: dict<number> = #{a: 'x', b: 234}
+  END
+  CheckScriptFailure(lines, 'E1013:')
+  lines =<< trim END
+    vim9script
+    let l: dict<string> = #{a: 'x', b: 234}
+  END
+  CheckScriptFailure(lines, 'E1013:')
+  lines =<< trim END
+    vim9script
+    let l: dict<string> = #{a: 234, b: 'x'}
+  END
+  CheckScriptFailure(lines, 'E1013:')
 enddef
 
 let g:oneString = 'one'
@@ -1752,6 +1936,21 @@ def Test_expr7_call()
 	"vim9script",
 	"let x = substitute ('x', 'x', 'x', 'x')"
 	], 'E121:')
+
+  let auto_lines =<< trim END
+      def g:some#func(): string
+	return 'found'
+      enddef
+  END
+  mkdir('Xruntime/autoload', 'p')
+  writefile(auto_lines, 'Xruntime/autoload/some.vim')
+  let save_rtp = &rtp
+  &rtp = getcwd() .. '/Xruntime,' .. &rtp
+  assert_equal('found', g:some#func())
+  assert_equal('found', some#func())
+
+  &rtp = save_rtp
+  delete('Xruntime', 'rf')
 enddef
 
 
@@ -1962,3 +2161,5 @@ func Test_expr_fails()
   call CheckDefFailure(["echo Func0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789()"], 'E1011:')
   call CheckDefFailure(["echo doesnotexist()"], 'E117:')
 endfunc
+
+" vim: shiftwidth=2 sts=2 expandtab

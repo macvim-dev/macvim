@@ -302,7 +302,7 @@ check_defined(char_u *p, size_t len, cctx_T *cctx)
 	    || find_func_even_dead(p, FALSE, cctx) != NULL)
     {
 	p[len] = c;
-	semsg(_(e_already_defined), p);
+	semsg(_(e_name_already_defined), p);
 	return FAIL;
     }
     p[len] = c;
@@ -374,19 +374,49 @@ generate_instr_type(cctx_T *cctx, isntype_T isn_type, type_T *type)
 
 /*
  * If type at "offset" isn't already VAR_STRING then generate ISN_2STRING.
+ * But only for simple types.
  */
     static int
 may_generate_2STRING(int offset, cctx_T *cctx)
 {
     isn_T	*isn;
+    isntype_T	isntype = ISN_2STRING;
     garray_T	*stack = &cctx->ctx_type_stack;
     type_T	**type = ((type_T **)stack->ga_data) + stack->ga_len + offset;
 
-    if ((*type)->tt_type == VAR_STRING)
-	return OK;
-    *type = &t_string;
+    switch ((*type)->tt_type)
+    {
+	// nothing to be done
+	case VAR_STRING: return OK;
 
-    if ((isn = generate_instr(cctx, ISN_2STRING)) == NULL)
+	// conversion possible
+	case VAR_SPECIAL:
+	case VAR_BOOL:
+	case VAR_NUMBER:
+	case VAR_FLOAT:
+			 break;
+
+	// conversion possible (with runtime check)
+	case VAR_ANY:
+	case VAR_UNKNOWN:
+			 isntype = ISN_2STRING_ANY;
+			 break;
+
+	// conversion not possible
+	case VAR_VOID:
+	case VAR_BLOB:
+	case VAR_FUNC:
+	case VAR_PARTIAL:
+	case VAR_LIST:
+	case VAR_DICT:
+	case VAR_JOB:
+	case VAR_CHANNEL:
+			 to_string_error((*type)->tt_type);
+			 return FAIL;
+    }
+
+    *type = &t_string;
+    if ((isn = generate_instr(cctx, isntype)) == NULL)
 	return FAIL;
     isn->isn_arg.number = offset;
 
@@ -1331,6 +1361,9 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 		    continue;
 		expected = ufunc->uf_arg_types[i];
 	    }
+	    else if (ufunc->uf_va_type == NULL)
+		// possibly a lambda
+		expected = &t_any;
 	    else
 		expected = ufunc->uf_va_type->tt_member;
 	    actual = ((type_T **)stack->ga_data)[stack->ga_len - argcount + i];
@@ -1729,11 +1762,13 @@ peek_next_line_from_context(cctx_T *cctx)
 	char_u *line = ((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)[lnum];
 	char_u *p;
 
-	if (line == NULL)
-	    break;
-	p = skipwhite(line);
-	if (*p != NUL && !vim9_comment_start(p))
-	    return p;
+	// ignore NULLs inserted for continuation lines
+	if (line != NULL)
+	{
+	    p = skipwhite(line);
+	    if (*p != NUL && !vim9_comment_start(p))
+		return p;
+	}
     }
     return NULL;
 }
@@ -2133,7 +2168,10 @@ compile_load(char_u **arg, char_u *end_arg, cctx_T *cctx, int error)
 	if (gen_load)
 	    res = generate_LOAD(cctx, ISN_LOAD, idx, NULL, type);
 	if (gen_load_outer)
+	{
 	    res = generate_LOAD(cctx, ISN_LOADOUTER, idx, NULL, type);
+	    cctx->ctx_outer_used = TRUE;
+	}
     }
 
     *arg = end;
@@ -2171,14 +2209,14 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 
 	if (*p != ',' && *skipwhite(p) == ',')
 	{
-	    semsg(_(e_no_white_before), ",");
+	    semsg(_(e_no_white_space_allowed_before), ",");
 	    p = skipwhite(p);
 	}
 	if (*p == ',')
 	{
 	    ++p;
 	    if (*p != NUL && !VIM_ISWHITE(*p))
-		semsg(_(e_white_after), ",");
+		semsg(_(e_white_space_required_after), ",");
 	}
 	whitep = p;
 	p = skipwhite(p);
@@ -2214,6 +2252,7 @@ compile_call(
     int		error = FCERR_NONE;
     ufunc_T	*ufunc;
     int		res = FAIL;
+    int		is_autoload;
 
     // we can evaluate "has('name')" at compile time
     if (varlen == 3 && STRNCMP(*arg, "has", 3) == 0)
@@ -2258,7 +2297,8 @@ compile_call(
     if (compile_arguments(arg, cctx, &argcount) == FAIL)
 	goto theend;
 
-    if (ASCII_ISLOWER(*name) && name[1] != ':')
+    is_autoload = vim_strchr(name, '#') != NULL;
+    if (ASCII_ISLOWER(*name) && name[1] != ':' && !is_autoload)
     {
 	int	    idx;
 
@@ -2281,8 +2321,9 @@ compile_call(
 
     // If the name is a variable, load it and use PCALL.
     // Not for g:Func(), we don't know if it is a variable or not.
+    // Not for eome#Func(), it will be loaded later.
     p = namebuf;
-    if (STRNCMP(namebuf, "g:", 2) != 0
+    if (STRNCMP(namebuf, "g:", 2) != 0 && !is_autoload
 	    && compile_load(&p, namebuf + varlen, cctx, FALSE) == OK)
     {
 	garray_T    *stack = &cctx->ctx_type_stack;
@@ -2295,7 +2336,7 @@ compile_call(
 
     // A global function may be defined only later.  Need to figure out at
     // runtime.  Also handles a FuncRef at runtime.
-    if (STRNCMP(namebuf, "g:", 2) == 0)
+    if (STRNCMP(namebuf, "g:", 2) == 0 || is_autoload)
 	res = generate_UCALL(cctx, name, argcount);
     else
 	semsg(_(e_unknownfunc), namebuf);
@@ -2358,17 +2399,6 @@ to_name_const_end(char_u *arg)
 	if (eval_dict(&p, &rettv, NULL, TRUE) == FAIL)
 	    p = arg;
     }
-    else if (p == arg && *arg == '{')
-    {
-	int	    ret = get_lambda_tv(&p, &rettv, NULL);
-
-	// Can be "{x -> ret}()".
-	// Can be "{'a': 1}->Func()".
-	if (ret == NOTDONE)
-	    ret = eval_dict(&p, &rettv, NULL, FALSE);
-	if (ret != OK)
-	    p = arg;
-    }
 
     return p;
 }
@@ -2391,6 +2421,11 @@ compile_list(char_u **arg, cctx_T *cctx)
 	    semsg(_(e_list_end), *arg);
 	    return FAIL;
 	}
+	if (*p == ',')
+	{
+	    semsg(_(e_no_white_space_allowed_before), ",");
+	    return FAIL;
+	}
 	if (*p == ']')
 	{
 	    ++p;
@@ -2407,7 +2442,7 @@ compile_list(char_u **arg, cctx_T *cctx)
 	    ++p;
 	    if (*p != ']' && !IS_WHITE_OR_NUL(*p))
 	    {
-		semsg(_(e_white_after), ",");
+		semsg(_(e_white_space_required_after), ",");
 		return FAIL;
 	    }
 	}
@@ -2590,14 +2625,21 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 	    }
 	}
 
-	*arg = skipwhite(*arg);
 	if (**arg != ':')
 	{
-	    semsg(_(e_missing_dict_colon), *arg);
+	    if (*skipwhite(*arg) == ':')
+		semsg(_(e_no_white_space_allowed_before), ":");
+	    else
+		semsg(_(e_missing_dict_colon), *arg);
+	    return FAIL;
+	}
+	whitep = *arg + 1;
+	if (!IS_WHITE_OR_NUL(*whitep))
+	{
+	    semsg(_(e_white_space_required_after), ":");
 	    return FAIL;
 	}
 
-	whitep = *arg + 1;
 	*arg = skipwhite(*arg + 1);
 	if (may_get_next_line(whitep, arg, cctx) == FAIL)
 	{
@@ -2622,6 +2664,11 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal)
 	{
 	    semsg(_(e_missing_dict_comma), *arg);
 	    goto failret;
+	}
+	if (IS_WHITE_OR_NUL(*whitep))
+	{
+	    semsg(_(e_no_white_space_allowed_before), ",");
+	    return FAIL;
 	}
 	whitep = *arg + 1;
 	*arg = skipwhite(*arg + 1);
@@ -3097,7 +3144,7 @@ compile_subscript(
 	    }
 	    else
 	    {
-		emsg(_(e_listdictblobreq));
+		emsg(_(e_list_dict_or_blob_required));
 		return FAIL;
 	    }
 	}
@@ -3414,7 +3461,7 @@ error_white_both(char_u *op, int len)
     char_u	buf[10];
 
     vim_strncpy(buf, op, len);
-    semsg(_(e_white_both), buf);
+    semsg(_(e_white_space_required_before_and_after), buf);
 }
 
 /*
@@ -3438,7 +3485,7 @@ compile_expr7t(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 	if (**arg != '>')
 	{
 	    if (*skipwhite(*arg) == '>')
-		semsg(_(e_no_white_before), ">");
+		semsg(_(e_no_white_space_allowed_before), ">");
 	    else
 		emsg(_("E1104: Missing >"));
 	    return FAIL;
@@ -3454,11 +3501,12 @@ compile_expr7t(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
     if (want_type != NULL)
     {
 	garray_T    *stack = &cctx->ctx_type_stack;
-	type_T	    *actual = ((type_T **)stack->ga_data)[stack->ga_len - 1];
+	type_T	    *actual;
 
+	generate_ppconst(cctx, ppconst);
+	actual = ((type_T **)stack->ga_data)[stack->ga_len - 1];
 	if (check_type(want_type, actual, FALSE) == FAIL)
 	{
-	    generate_ppconst(cctx, ppconst);
 	    if (need_type(actual, want_type, -1, cctx, FALSE) == FAIL)
 		return FAIL;
 	}
@@ -3782,7 +3830,7 @@ compile_and_or(
 
 	    if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[2]))
 	    {
-		semsg(_(e_white_both), op);
+		semsg(_(e_white_space_required_before_and_after), op);
 		return FAIL;
 	    }
 
@@ -3923,7 +3971,7 @@ compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
 
 	if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[1]))
 	{
-	    semsg(_(e_white_both), "?");
+	    semsg(_(e_white_space_required_before_and_after), "?");
 	    return FAIL;
 	}
 
@@ -3982,7 +4030,7 @@ compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
 
 	if (!IS_WHITE_OR_NUL(**arg) || !IS_WHITE_OR_NUL(p[1]))
 	{
-	    semsg(_(e_white_both), ":");
+	    semsg(_(e_white_space_required_before_and_after), ":");
 	    return FAIL;
 	}
 
@@ -4282,7 +4330,7 @@ vim9_declare_error(char_u *name)
 	case 'w': scope = _("window"); break;
 	case 't': scope = _("tab"); break;
 	case 'v': scope = "v:"; break;
-	case '$': semsg(_(e_declare_env_var), name);
+	case '$': semsg(_(e_cannot_declare_an_environment_variable), name);
 		  return;
 	case '&': semsg(_("E1052: Cannot declare an option: %s"), name);
 		  return;
@@ -4290,7 +4338,7 @@ vim9_declare_error(char_u *name)
 		  return;
 	default: return;
     }
-    semsg(_(e_declare_var), scope, name);
+    semsg(_(e_cannot_declare_a_scope_variable), scope, name);
 }
 
 /*
@@ -4669,7 +4717,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		// parse optional type: "let var: type = expr"
 		if (!VIM_ISWHITE(p[1]))
 		{
-		    semsg(_(e_white_after), ":");
+		    semsg(_(e_white_space_required_after), ":");
 		    goto theend;
 		}
 		p = skipwhite(p + 1);
@@ -4848,12 +4896,12 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    }
 	    else if (cmdidx == CMD_const)
 	    {
-		emsg(_(e_const_req_value));
+		emsg(_(e_const_requires_a_value));
 		goto theend;
 	    }
 	    else if (!has_type || dest == dest_option)
 	    {
-		emsg(_(e_type_req));
+		emsg(_(e_type_or_initialization_required));
 		goto theend;
 	    }
 	    else
@@ -4969,6 +5017,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		goto theend;
 	    if (*skipwhite(p) != ']')
 	    {
+		// this should not happen
 		emsg(_(e_missbrac));
 		goto theend;
 	    }
@@ -6484,8 +6533,15 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	cmdmod = save_cmdmod;
 
 	// Skip ":call" to get to the function name.
+	p = ea.cmd;
 	if (checkforcmd(&ea.cmd, "call", 3))
-	    ea.cmd = skipwhite(ea.cmd);
+	{
+	    if (*ea.cmd == '(')
+		// not for "call()"
+		ea.cmd = p;
+	    else
+		ea.cmd = skipwhite(ea.cmd);
+	}
 
 	if (!starts_with_colon)
 	{
@@ -6557,12 +6613,12 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	 * 'text'->func() should not be confused with 'a mark
 	 */
 	cmd = ea.cmd;
-	if (*cmd != '\'')
+	if (*cmd != '\'' || starts_with_colon)
 	{
 	    ea.cmd = skip_range(ea.cmd, NULL);
 	    if (ea.cmd > cmd && !starts_with_colon)
 	    {
-		emsg(_(e_colon_required));
+		emsg(_(e_colon_required_before_a_range));
 		goto erret;
 	    }
 	}
@@ -6973,6 +7029,7 @@ delete_instr(isn_T *isn)
 
 	case ISN_2BOOL:
 	case ISN_2STRING:
+	case ISN_2STRING_ANY:
 	case ISN_ADDBLOB:
 	case ISN_ADDLIST:
 	case ISN_BCALL:

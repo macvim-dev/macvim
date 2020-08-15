@@ -119,7 +119,7 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 	    ++p;
 	    if (!VIM_ISWHITE(*p))
 	    {
-		semsg(_(e_white_after), ":");
+		semsg(_(e_white_space_required_after), ":");
 		return arg;
 	    }
 	    type = skipwhite(p);
@@ -276,7 +276,7 @@ get_function_args(
 		if (!skip && in_vim9script()
 				      && !IS_WHITE_OR_NUL(*p) && *p != endchar)
 		{
-		    semsg(_(e_white_after), ",");
+		    semsg(_(e_white_space_required_after), ",");
 		    goto err_ret;
 		}
 	    }
@@ -1090,7 +1090,6 @@ func_clear_items(ufunc_T *fp)
     ga_clear_strings(&(fp->uf_args));
     ga_clear_strings(&(fp->uf_def_args));
     ga_clear_strings(&(fp->uf_lines));
-    VIM_CLEAR(fp->uf_name_exp);
     VIM_CLEAR(fp->uf_arg_types);
     VIM_CLEAR(fp->uf_def_arg_idx);
     VIM_CLEAR(fp->uf_va_name);
@@ -1146,7 +1145,10 @@ func_free(ufunc_T *fp, int force)
 	func_remove(fp);
 
     if ((fp->uf_flags & FC_DEAD) == 0 || force)
+    {
+	VIM_CLEAR(fp->uf_name_exp);
 	vim_free(fp);
+    }
 }
 
 /*
@@ -3272,7 +3274,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 			  || fp->uf_script_ctx.sc_seq == current_sctx.sc_seq)))
 	    {
 		if (vim9script)
-		    emsg_funcname(e_already_defined, name);
+		    emsg_funcname(e_name_already_defined, name);
 		else
 		    emsg_funcname(e_funcexts, name);
 		goto erret;

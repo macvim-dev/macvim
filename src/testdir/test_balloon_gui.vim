@@ -21,3 +21,4 @@ func Test_balloon_show_gui()
 endfunc
 
 endif " !has('gui_macvim')
+" vim: shiftwidth=2 sts=2 expandtab

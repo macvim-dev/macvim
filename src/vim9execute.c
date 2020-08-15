@@ -72,6 +72,12 @@ typedef struct {
 // Get pointer to item relative to the bottom of the stack, -1 is the last one.
 #define STACK_TV_BOT(idx) (((typval_T *)ectx->ec_stack.ga_data) + ectx->ec_stack.ga_len + idx)
 
+    void
+to_string_error(vartype_T vartype)
+{
+    semsg(_("E1105: Cannot convert %s to string"), vartype_name(vartype));
+}
+
 /*
  * Return the number of arguments, including optional arguments and any vararg.
  */
@@ -200,7 +206,10 @@ call_dfunc(int cdf_idx, int argcount_arg, ectx_T *ectx)
     arg_to_add = ufunc->uf_args.ga_len - argcount;
     if (arg_to_add < 0)
     {
-	iemsg("Argument count wrong?");
+	if (arg_to_add == -1)
+	    emsg(_("E1106: one argument too many"));
+	else
+	    semsg(_("E1106: %d arguments too many"), -arg_to_add);
 	return FAIL;
     }
     if (ga_grow(&ectx->ec_stack, arg_to_add + 3
@@ -505,6 +514,7 @@ call_ufunc(ufunc_T *ufunc, int argcount, ectx_T *ectx, isn_T *iptr)
     funcexe_T   funcexe;
     int		error;
     int		idx;
+    int		called_emsg_before = called_emsg;
 
     if (ufunc->uf_def_status == UF_TO_BE_COMPILED
 	    && compile_def_function(ufunc, FALSE, NULL) == FAIL)
@@ -542,7 +552,19 @@ call_ufunc(ufunc_T *ufunc, int argcount, ectx_T *ectx, isn_T *iptr)
 	user_func_error(error, ufunc->uf_name);
 	return FAIL;
     }
+    if (called_emsg > called_emsg_before)
+	// Error other than from calling the function itself.
+	return FAIL;
     return OK;
+}
+
+/*
+ * Return TRUE if an error was given or CTRL-C was pressed.
+ */
+    static int
+vim9_aborting(int prev_called_emsg)
+{
+    return called_emsg > prev_called_emsg || got_int || did_throw;
 }
 
 /*
@@ -568,6 +590,18 @@ call_by_name(char_u *name, int argcount, ectx_T *ectx, isn_T *iptr)
     }
 
     ufunc = find_func(name, FALSE, NULL);
+
+    if (ufunc == NULL)
+    {
+	int called_emsg_before = called_emsg;
+
+	if (script_autoload(name, TRUE))
+	    // loaded a package, search for the function again
+	    ufunc = find_func(name, FALSE, NULL);
+	if (vim9_aborting(called_emsg_before))
+	    return FAIL;  // bail out if loading the script caused an error
+    }
+
     if (ufunc != NULL)
 	return call_ufunc(ufunc, argcount, ectx, iptr);
 
@@ -649,10 +683,11 @@ store_var(char_u *name, typval_T *tv)
     static int
 call_eval_func(char_u *name, int argcount, ectx_T *ectx, isn_T *iptr)
 {
-    int		called_emsg_before = called_emsg;
+    int	    called_emsg_before = called_emsg;
+    int	    res;
 
-    if (call_by_name(name, argcount, ectx, iptr) == FAIL
-					  && called_emsg == called_emsg_before)
+    res = call_by_name(name, argcount, ectx, iptr);
+    if (res == FAIL && called_emsg == called_emsg_before)
     {
 	dictitem_T	*v;
 
@@ -669,7 +704,7 @@ call_eval_func(char_u *name, int argcount, ectx_T *ectx, isn_T *iptr)
 	}
 	return call_partial(&v->di_tv, argcount, ectx);
     }
-    return OK;
+    return res;
 }
 
 /*
@@ -883,16 +918,17 @@ call_def_function(
 	    }
 	    else
 	    {
-		// not inside try or need to return from current functions.
+		// Not inside try or need to return from current functions.
+		// Push a dummy return value.
+		if (GA_GROW(&ectx.ec_stack, 1) == FAIL)
+		    goto failed;
+		tv = STACK_TV_BOT(0);
+		tv->v_type = VAR_NUMBER;
+		tv->vval.v_number = 0;
+		++ectx.ec_stack.ga_len;
 		if (ectx.ec_frame_idx == initial_frame_idx)
 		{
-		    // At the toplevel we are done.  Push a dummy return value.
-		    if (GA_GROW(&ectx.ec_stack, 1) == FAIL)
-			goto failed;
-		    tv = STACK_TV_BOT(0);
-		    tv->v_type = VAR_NUMBER;
-		    tv->vval.v_number = 0;
-		    ++ectx.ec_stack.ga_len;
+		    // At the toplevel we are done.
 		    need_rethrow = TRUE;
 		    if (handle_closure_in_use(&ectx, FALSE) == FAIL)
 			goto failed;
@@ -994,6 +1030,7 @@ call_def_function(
 			tv = STACK_TV_BOT(idx - count);
 			if (tv->v_type == VAR_CHANNEL || tv->v_type == VAR_JOB)
 			{
+			    SOURCING_LNUM = iptr->isn_lnum;
 			    emsg(_(e_inval_string));
 			    break;
 			}
@@ -1088,6 +1125,7 @@ call_def_function(
 
 		    if (di == NULL)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			semsg(_(e_undefvar), name);
 			goto on_error;
 		    }
@@ -1136,6 +1174,7 @@ call_def_function(
 
 		    if (di == NULL)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			semsg(_("E121: Undefined variable: %c:%s"),
 					     namespace, iptr->isn_arg.string);
 			goto on_error;
@@ -1293,6 +1332,7 @@ call_def_function(
 		    clear_tv(tv);
 		    if (msg != NULL)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			emsg(_(msg));
 			goto on_error;
 		    }
@@ -1388,6 +1428,7 @@ call_def_function(
 			lidx = list->lv_len + lidx;
 		    if (lidx < 0 || lidx > list->lv_len)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			semsg(_(e_listidx), lidx);
 			goto on_error;
 		    }
@@ -1424,7 +1465,8 @@ call_def_function(
 
 		    if (dict == NULL)
 		    {
-			emsg(_(e_dictnull));
+			SOURCING_LNUM = iptr->isn_lnum;
+			emsg(_(e_dictionary_not_set));
 			goto on_error;
 		    }
 		    if (key == NULL)
@@ -1553,6 +1595,7 @@ call_def_function(
 			item = dict_find(dict, tv->vval.v_string, -1);
 			if (item != NULL)
 			{
+			    SOURCING_LNUM = iptr->isn_lnum;
 			    semsg(_(e_duplicate_key), tv->vval.v_string);
 			    dict_unref(dict);
 			    goto on_error;
@@ -1716,6 +1759,7 @@ call_def_function(
 			if (tv->v_type == VAR_PARTIAL)
 			{
 			    // TODO: use a garray_T on ectx.
+			    SOURCING_LNUM = iptr->isn_lnum;
 			    emsg("Multiple closures not supported yet");
 			    goto failed;
 			}
@@ -1819,6 +1863,7 @@ call_def_function(
 	    case ISN_PUSHEXC:
 		if (current_exception == NULL)
 		{
+		    SOURCING_LNUM = iptr->isn_lnum;
 		    iemsg("Evaluating catch while current_exception is NULL");
 		    goto failed;
 		}
@@ -2142,7 +2187,8 @@ call_def_function(
 			    case EXPR_DIV:  f1 = f1 / f2; break;
 			    case EXPR_SUB:  f1 = f1 - f2; break;
 			    case EXPR_ADD:  f1 = f1 + f2; break;
-			    default: emsg(_(e_modulus));
+			    default: SOURCING_LNUM = iptr->isn_lnum;
+				     emsg(_(e_modulus));
 				     goto on_error;
 			}
 			clear_tv(tv1);
@@ -2195,6 +2241,7 @@ call_def_function(
 		    tv = STACK_TV_BOT(-2);
 		    if (tv->v_type != VAR_STRING)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			emsg(_(e_stringreq));
 			goto on_error;
 		    }
@@ -2203,6 +2250,7 @@ call_def_function(
 		    tv = STACK_TV_BOT(-1);
 		    if (tv->v_type != VAR_NUMBER)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			emsg(_(e_number_exp));
 			goto on_error;
 		    }
@@ -2233,6 +2281,7 @@ call_def_function(
 		    tv = STACK_TV_BOT(-2);
 		    if (tv->v_type != VAR_LIST)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			emsg(_(e_listreq));
 			goto on_error;
 		    }
@@ -2241,6 +2290,7 @@ call_def_function(
 		    tv = STACK_TV_BOT(-1);
 		    if (tv->v_type != VAR_NUMBER)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			emsg(_(e_number_exp));
 			goto on_error;
 		    }
@@ -2248,6 +2298,7 @@ call_def_function(
 		    clear_tv(tv);
 		    if ((li = list_find(list, n)) == NULL)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			semsg(_(e_listidx), n);
 			goto on_error;
 		    }
@@ -2321,6 +2372,7 @@ call_def_function(
 
 		    if ((di = dict_find(dict, key, -1)) == NULL)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			semsg(_(e_dictkey), key);
 			goto on_error;
 		    }
@@ -2345,6 +2397,7 @@ call_def_function(
 		    tv = STACK_TV_BOT(-1);
 		    if (tv->v_type != VAR_DICT || tv->vval.v_dict == NULL)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			emsg(_(e_dictreq));
 			goto on_error;
 		    }
@@ -2353,6 +2406,7 @@ call_def_function(
 		    if ((di = dict_find(dict, iptr->isn_arg.string, -1))
 								       == NULL)
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			semsg(_(e_dictkey), iptr->isn_arg.string);
 			goto on_error;
 		    }
@@ -2372,6 +2426,7 @@ call_def_function(
 #endif
 			)
 		{
+		    SOURCING_LNUM = iptr->isn_lnum;
 		    emsg(_(e_number_exp));
 		    goto on_error;
 		}
@@ -2408,6 +2463,7 @@ call_def_function(
 				|| (tv->v_type == VAR_FUNC
 					       && ct->ct_type == VAR_PARTIAL)))
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			semsg(_("E1029: Expected %s but got %s"),
 				    vartype_name(ct->ct_type),
 				    vartype_name(tv->v_type));
@@ -2428,6 +2484,7 @@ call_def_function(
 			    || (list->lv_len > min_len
 					&& !iptr->isn_arg.checklen.cl_more_OK))
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			semsg(_("E1093: Expected %d items but got %d"),
 				     min_len, list == NULL ? 0 : list->lv_len);
 			goto on_error;
@@ -2450,12 +2507,26 @@ call_def_function(
 		break;
 
 	    case ISN_2STRING:
+	    case ISN_2STRING_ANY:
 		{
 		    char_u *str;
 
 		    tv = STACK_TV_BOT(iptr->isn_arg.number);
 		    if (tv->v_type != VAR_STRING)
 		    {
+			if (iptr->isn_type == ISN_2STRING_ANY)
+			{
+			    switch (tv->v_type)
+			    {
+				case VAR_SPECIAL:
+				case VAR_BOOL:
+				case VAR_NUMBER:
+				case VAR_FLOAT:
+				case VAR_BLOB:	break;
+				default:	to_string_error(tv->v_type);
+						goto on_error;
+			    }
+			}
 			str = typval_tostring(tv);
 			clear_tv(tv);
 			tv->v_type = VAR_STRING;
@@ -3099,6 +3170,9 @@ ex_disassemble(exarg_T *eap)
 				smsg("%4d 2BOOL (!!val)", current);
 			    break;
 	    case ISN_2STRING: smsg("%4d 2STRING stack[%lld]", current,
+					 (long long)(iptr->isn_arg.number));
+			      break;
+	    case ISN_2STRING_ANY: smsg("%4d 2STRING_ANY stack[%lld]", current,
 					 (long long)(iptr->isn_arg.number));
 			      break;
 
