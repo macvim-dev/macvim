@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Test for https://github.com/create-dmg/create-dmg/issues/7 - spaces in folder names
+
+../../create-dmg "my disk image.dmg" "my files"
