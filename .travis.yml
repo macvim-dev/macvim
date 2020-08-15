@@ -61,12 +61,13 @@ script:
       grep -q -- "-DDYNAMIC_RUBY_DLL=\\\\\"${vi_cv_dll_name_ruby}\\\\\"" src/auto/config.mk
     fi
   - echo -en "travis_fold:end:configure\\r\\033[0K"
+
   - echo -e "\\033[33;1mBuilding MacVim\\033[0m" && echo -en "travis_fold:start:build\\r\\033[0K"
   - make -j${NPROC}
   - echo -en "travis_fold:end:build\\r\\033[0K"
-  - set +o errexit
   - ${VIMCMD} --version
-  - echo -e "\\033[33;1mTesting MacVim\\033[0m" && echo -en "travis_fold:start:test\\r\\033[0K"
+
+  - echo -e "\\033[33;1mSmoketest\\033[0m" && echo -en "travis_fold:start:smoketest\\r\\033[0K"
   # Smoketest scripting languages
   - |
     macvim_excmd() {
@@ -84,7 +85,20 @@ script:
     if [[ -n "${HAS_GETTEXT}" ]]; then
       ${VIMCMD} -es -c 'lang es_ES' -c 'redir @a' -c 'version' -c 'put a' -c 'print' -c 'qa!' | grep Enlazado
     fi
-  # Run standard test suites
+  # Make sure there isn't any dynamic linkage to third-party dependencies in the built binary, as we should only use
+  # static linkage to avoid dependency hell. First, sanity check that we have some dylib linkage to make sure objdump is
+  # working properly, then test that all those dylib's are in /usr/lib which is bundled with macOS and not third-party.
+  - |
+    if (which objdump > /dev/null); then
+      objdump -p ${VIMCMD} | grep -q dylib &&
+      ! (objdump -p ${VIMCMD} | grep dylib | grep -v "name /usr/lib/")
+    fi
+  - echo -en "travis_fold:end:smoketest\\r\\033[0K"
+
+  # Run standard test suites.
+  # Disable errexit so flaky tests won't immediately exit to allow us to see all the errors.
+  - set +o errexit
+  - echo -e "\\033[33;1mTesting MacVim\\033[0m" && echo -en "travis_fold:start:test\\r\\033[0K"
   - make test
   - make -C runtime/doc vimtags VIMEXE=../../src/MacVim/build/Release/MacVim.app/Contents/bin/vim
   - echo -en "travis_fold:end:test\\r\\033[0K"

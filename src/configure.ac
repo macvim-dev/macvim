@@ -4425,6 +4425,20 @@ if test "$enable_nls" = "yes"; then
 		[++_nl_msg_cat_cntr;],
 		AC_MSG_RESULT([yes]); AC_DEFINE(HAVE_NL_MSG_CAT_CNTR),
 		AC_MSG_RESULT([no]))
+
+      # MacVim: Hack to statically link against libintl instead of dynamic link, as we can't distribute app bundles with
+      # external linkage dependencies. Clang doesn't support any way to specify static linkage as it prefers dynamic
+      # linkage if a dylib exists in the same folder, and as such we have to manually specify the library path instead
+      # of using -l<lib> syntax. This also means it won't work with AC_TRY_LINK as specifying full lib path only works
+      # if you have separate compile/link stages but AC_TRY_LINK just compiles/link in one command.
+      AC_MSG_CHECKING([for libintl.a])
+      if test -f ${local_dir}/lib/libintl.a; then
+        LIBS="$olibs ${local_dir}/lib/libintl.a"
+        AC_MSG_RESULT([Using ${local_dir}/lib/libintl.a instead of -lintl]);
+      else
+        AC_MSG_RESULT([libintl.a not found - keeping using -lintl]);
+      fi
+
       AC_MSG_CHECKING([if msgfmt supports --desktop])
       MSGFMT_DESKTOP=
       if "$MSGFMT" --help | grep -e '--desktop' >/dev/null; then
