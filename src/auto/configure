@@ -14705,6 +14705,23 @@ $as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
+
+      # MacVim: Hack to statically link against libintl instead of dynamic link, as we can't distribute app bundles with
+      # external linkage dependencies. Clang doesn't support any way to specify static linkage as it prefers dynamic
+      # linkage if a dylib exists in the same folder, and as such we have to manually specify the library path instead
+      # of using -l<lib> syntax. This also means it won't work with AC_TRY_LINK as specifying full lib path only works
+      # if you have separate compile/link stages but AC_TRY_LINK just compiles/link in one command.
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libintl.a" >&5
+$as_echo_n "checking for libintl.a... " >&6; }
+      if test -f ${local_dir}/lib/libintl.a; then
+        LIBS="$olibs ${local_dir}/lib/libintl.a"
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: Using ${local_dir}/lib/libintl.a instead of -lintl" >&5
+$as_echo "Using ${local_dir}/lib/libintl.a instead of -lintl" >&6; };
+      else
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: libintl.a not found - keeping using -lintl" >&5
+$as_echo "libintl.a not found - keeping using -lintl" >&6; };
+      fi
+
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking if msgfmt supports --desktop" >&5
 $as_echo_n "checking if msgfmt supports --desktop... " >&6; }
       MSGFMT_DESKTOP=
