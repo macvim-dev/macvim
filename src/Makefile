@@ -3747,7 +3747,7 @@ macvim-dmg:
 		--icon-size 80 \
 		--icon MacVim.app 240 320 \
 		--app-drop-link 410 320 \
-		$(RELEASEDIR)/$(DMGFILE) $(DMGDIR)
+		$(CREATEDMG_FLAGS) $(RELEASEDIR)/$(DMGFILE) $(DMGDIR)
 
 macvimclean:
 	if test -d MacVim; then \
@@ -3758,8 +3758,8 @@ macvimclean:
 macvim-dmg-release: macvim-signed macvim-dmg
 	MacVim/scripts/sign-developer-id $(RELEASEDIR)/MacVim.dmg $(ENTITLEMENTS)
 	MacVim/scripts/notarize-dmg $(RELEASEDIR)/MacVim.dmg
-	echo "--------------------"
-	echo "Release MacVim built!"
+	@echo "----------------------------------------"
+	@echo "Release MacVim built!"
 
 # Install only language files to a dest folder. Subset of "install-languages".
 macvim-install-languages:

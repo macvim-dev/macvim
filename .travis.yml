@@ -122,7 +122,8 @@ jobs:
       <<: *caches
       script: skip
       before_deploy:
-        - make -C src macvim-dmg
+        # Use the --skip-jenkins flag to skip the prettify osascript calls which will fail due to permission issues in Travis CI's Mac environment.
+        - make -C src macvim-dmg CREATEDMG_FLAGS=--skip-jenkins
       deploy:
         provider: releases
         token:
