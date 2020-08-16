@@ -1311,6 +1311,8 @@
 	<string>https://raw.githubusercontent.com/macvim-dev/macvim/gh-pages/appcast/latest.xml</string>
 	<key>SUPublicDSAKeyFile</key>
 	<string>dsa_pub.pem</string>
+	<key>SUPublicEDKey</key>
+	<string>EnnNZOR1zR6TmKXohjTNWbToLYNE4/1qd/dtkuTE2zc=</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>MacVim uses Apple Events to allow you to communicate with other apps using Apple Script, and to support working as an ODB external editor.</string>
 	<key>NSAppleScriptEnabled</key>
