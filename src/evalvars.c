@@ -175,7 +175,7 @@ static char_u *list_arg_vars(exarg_T *eap, char_u *arg, int *first);
 static char_u *ex_let_one(char_u *arg, typval_T *tv, int copy, int flags, char_u *endchars, char_u *op);
 static int do_unlet_var(lval_T *lp, char_u *name_end, exarg_T *eap, int deep, void *cookie);
 static int do_lock_var(lval_T *lp, char_u *name_end, exarg_T *eap, int deep, void *cookie);
-static void item_lock(typval_T *tv, int deep, int lock);
+static void item_lock(typval_T *tv, int deep, int lock, int check_refcount);
 static void delete_var(hashtab_T *ht, hashitem_T *hi);
 static void list_one_var(dictitem_T *v, char *prefix, int *first);
 static void list_one_var_a(char *prefix, char_u *name, int type, char_u *string, int *first);
@@ -788,7 +788,13 @@ ex_let(exarg_T *eap)
 	    op[1] = NUL;
 	    if (*expr != '=')
 	    {
-		if (vim_strchr((char_u *)"+-*/%.", *expr) != NULL)
+		if (vim9script && (flags & LET_NO_COMMAND) == 0)
+		{
+		    // +=, /=, etc. require an existing variable
+		    semsg(_(e_cannot_use_operator_on_new_variable), eap->arg);
+		    i = FAIL;
+		}
+		else if (vim_strchr((char_u *)"+-*/%.", *expr) != NULL)
 		{
 		    op[0] = *expr;   // +=, -=, *=, /=, %= or .=
 		    ++len;
@@ -807,7 +813,7 @@ ex_let(exarg_T *eap)
 						   || !IS_WHITE_OR_NUL(*expr)))
 	    {
 		vim_strncpy(op, expr - len, len);
-		semsg(_(e_white_space_required_before_and_after), op);
+		semsg(_(e_white_space_required_before_and_after_str), op);
 		i = FAIL;
 	    }
 
@@ -1296,28 +1302,36 @@ ex_let_one(
 	    emsg(_(e_letunexp));
 	else
 	{
-	    long	n;
+	    long	n = 0;
 	    int		opt_type;
 	    long	numval;
 	    char_u	*stringval = NULL;
 	    char_u	*s = NULL;
+	    int		failed = FALSE;
 
 	    c1 = *p;
 	    *p = NUL;
 
-	    n = (long)tv_get_number(tv);
-	    // avoid setting a string option to the text "v:false" or similar.
-	    if (tv->v_type != VAR_BOOL && tv->v_type != VAR_SPECIAL)
-		s = tv_get_string_chk(tv);	// != NULL if number or string
-	    if (s != NULL && op != NULL && *op != '=')
+	    opt_type = get_option_value(arg, &numval, &stringval, opt_flags);
+	    if ((opt_type == 1 || opt_type == -1)
+			     && (tv->v_type != VAR_STRING || !in_vim9script()))
+		// number, possibly hidden
+		n = (long)tv_get_number(tv);
+
+	    // Avoid setting a string option to the text "v:false" or similar.
+	    // In Vim9 script also don't convert a number to string.
+	    if (tv->v_type != VAR_BOOL && tv->v_type != VAR_SPECIAL
+			     && (!in_vim9script() || tv->v_type != VAR_NUMBER))
+		s = tv_get_string_chk(tv);
+
+	    if (op != NULL && *op != '=')
 	    {
-		opt_type = get_option_value(arg, &numval,
-						       &stringval, opt_flags);
 		if ((opt_type == 1 && *op == '.')
 			|| (opt_type == 0 && *op != '.'))
 		{
 		    semsg(_(e_letwrong), op);
-		    s = NULL;  // don't set the value
+		    failed = TRUE;  // don't set the value
+
 		}
 		else
 		{
@@ -1332,19 +1346,25 @@ ex_let_one(
 			    case '%': n = (long)num_modulus(numval, n); break;
 			}
 		    }
-		    else if (opt_type == 0 && stringval != NULL) // string
+		    else if (opt_type == 0 && stringval != NULL && s != NULL)
 		    {
+			// string
 			s = concat_str(stringval, s);
 			vim_free(stringval);
 			stringval = s;
 		    }
 		}
 	    }
-	    if (s != NULL || tv->v_type == VAR_BOOL
-						  || tv->v_type == VAR_SPECIAL)
+
+	    if (!failed)
 	    {
-		set_option_value(arg, n, s, opt_flags);
-		arg_end = p;
+		if (opt_type != 0 || s != NULL)
+		{
+		    set_option_value(arg, n, s, opt_flags);
+		    arg_end = p;
+		}
+		else
+		    emsg(_(e_stringreq));
 	    }
 	    *p = c1;
 	    vim_free(stringval);
@@ -1691,7 +1711,7 @@ do_lock_var(
 		    di->di_flags |= DI_FLAGS_LOCK;
 		else
 		    di->di_flags &= ~DI_FLAGS_LOCK;
-		item_lock(&di->di_tv, deep, lock);
+		item_lock(&di->di_tv, deep, lock, FALSE);
 	    }
 	}
 	*name_end = cc;
@@ -1703,26 +1723,28 @@ do_lock_var(
 	// (un)lock a range of List items.
 	while (li != NULL && (lp->ll_empty2 || lp->ll_n2 >= lp->ll_n1))
 	{
-	    item_lock(&li->li_tv, deep, lock);
+	    item_lock(&li->li_tv, deep, lock, FALSE);
 	    li = li->li_next;
 	    ++lp->ll_n1;
 	}
     }
     else if (lp->ll_list != NULL)
 	// (un)lock a List item.
-	item_lock(&lp->ll_li->li_tv, deep, lock);
+	item_lock(&lp->ll_li->li_tv, deep, lock, FALSE);
     else
 	// (un)lock a Dictionary item.
-	item_lock(&lp->ll_di->di_tv, deep, lock);
+	item_lock(&lp->ll_di->di_tv, deep, lock, FALSE);
 
     return ret;
 }
 
 /*
  * Lock or unlock an item.  "deep" is nr of levels to go.
+ * When "check_refcount" is TRUE do not lock a list or dict with a reference
+ * count larger than 1.
  */
     static void
-item_lock(typval_T *tv, int deep, int lock)
+item_lock(typval_T *tv, int deep, int lock, int check_refcount)
 {
     static int	recurse = 0;
     list_T	*l;
@@ -1764,7 +1786,8 @@ item_lock(typval_T *tv, int deep, int lock)
 	    break;
 
 	case VAR_BLOB:
-	    if ((b = tv->vval.v_blob) != NULL)
+	    if ((b = tv->vval.v_blob) != NULL
+				    && !(check_refcount && b->bv_refcount > 1))
 	    {
 		if (lock)
 		    b->bv_lock |= VAR_LOCKED;
@@ -1773,7 +1796,8 @@ item_lock(typval_T *tv, int deep, int lock)
 	    }
 	    break;
 	case VAR_LIST:
-	    if ((l = tv->vval.v_list) != NULL)
+	    if ((l = tv->vval.v_list) != NULL
+				    && !(check_refcount && l->lv_refcount > 1))
 	    {
 		if (lock)
 		    l->lv_lock |= VAR_LOCKED;
@@ -1782,11 +1806,12 @@ item_lock(typval_T *tv, int deep, int lock)
 		if ((deep < 0 || deep > 1) && l->lv_first != &range_list_item)
 		    // recursive: lock/unlock the items the List contains
 		    FOR_ALL_LIST_ITEMS(l, li)
-			item_lock(&li->li_tv, deep - 1, lock);
+			item_lock(&li->li_tv, deep - 1, lock, check_refcount);
 	    }
 	    break;
 	case VAR_DICT:
-	    if ((d = tv->vval.v_dict) != NULL)
+	    if ((d = tv->vval.v_dict) != NULL
+				    && !(check_refcount && d->dv_refcount > 1))
 	    {
 		if (lock)
 		    d->dv_lock |= VAR_LOCKED;
@@ -1801,7 +1826,8 @@ item_lock(typval_T *tv, int deep, int lock)
 			if (!HASHITEM_EMPTY(hi))
 			{
 			    --todo;
-			    item_lock(&HI2DI(hi)->di_tv, deep - 1, lock);
+			    item_lock(&HI2DI(hi)->di_tv, deep - 1, lock,
+							       check_refcount);
 			}
 		    }
 		}
@@ -2056,7 +2082,7 @@ set_vim_var_tv(int idx, typval_T *tv)
 {
     if (vimvars[idx].vv_type != tv->v_type)
     {
-	emsg(_("E1063: type mismatch for v: variable"));
+	emsg(_(e_type_mismatch_for_v_variable));
 	clear_tv(tv);
 	return FAIL;
     }
@@ -2444,7 +2470,7 @@ eval_variable(
 	if (tv == NULL)
 	{
 	    if (rettv != NULL && verbose)
-		semsg(_(e_undefvar), name);
+		semsg(_(e_undefined_variable_str), name);
 	    ret = FAIL;
 	}
 	else if (rettv != NULL)
@@ -2947,7 +2973,7 @@ set_var_const(
 	    {
 		if ((flags & LET_NO_COMMAND) == 0)
 		{
-		    semsg(_("E1041: Redefining script item %s"), name);
+		    semsg(_(e_redefining_script_item_str), name);
 		    return;
 		}
 
@@ -3051,7 +3077,10 @@ set_var_const(
 						      + si->sn_var_vals.ga_len;
 		sv->sv_name = di->di_key;
 		sv->sv_tv = &di->di_tv;
-		sv->sv_type = type == NULL ? &t_any : type;
+		if (type == NULL)
+		    sv->sv_type = typval2type(tv, &si->sn_type_list);
+		else
+		    sv->sv_type = type;
 		sv->sv_const = (flags & LET_IS_CONST);
 		sv->sv_export = is_export;
 		++si->sn_var_vals.ga_len;
@@ -3072,7 +3101,10 @@ set_var_const(
     }
 
     if (flags & LET_IS_CONST)
-	di->di_tv.v_lock |= VAR_LOCKED;
+	// Like :lockvar! name: lock the value and what it contains, but only
+	// if the reference count is up to one.  That locks only literal
+	// values.
+	item_lock(&di->di_tv, DICT_MAXNEST, TRUE, TRUE);
 }
 
 /*
@@ -3269,6 +3301,24 @@ getwinvar(
 }
 
 /*
+ * Set option "varname" to the value of "varp" for the current buffer/window.
+ */
+    static void
+set_option_from_tv(char_u *varname, typval_T *varp)
+{
+    long	numval = 0;
+    char_u	*strval;
+    char_u	nbuf[NUMBUFLEN];
+    int		error = FALSE;
+
+    if (!in_vim9script() || varp->v_type != VAR_STRING)
+	numval = (long)tv_get_number_chk(varp, &error);
+    strval = tv_get_string_buf_chk(varp, nbuf);
+    if (!error && strval != NULL)
+	set_option_value(varname, numval, strval, OPT_LOCAL);
+}
+
+/*
  * "setwinvar()" and "settabwinvar()" functions
  */
     static void
@@ -3280,7 +3330,6 @@ setwinvar(typval_T *argvars, int off)
     int		need_switch_win;
     char_u	*varname, *winvarname;
     typval_T	*varp;
-    char_u	nbuf[NUMBUFLEN];
     tabpage_T	*tp = NULL;
 
     if (check_secure())
@@ -3301,17 +3350,7 @@ setwinvar(typval_T *argvars, int off)
 	       || switch_win(&save_curwin, &save_curtab, win, tp, TRUE) == OK)
 	{
 	    if (*varname == '&')
-	    {
-		long	numval;
-		char_u	*strval;
-		int		error = FALSE;
-
-		++varname;
-		numval = (long)tv_get_number_chk(varp, &error);
-		strval = tv_get_string_buf_chk(varp, nbuf);
-		if (!error && strval != NULL)
-		    set_option_value(varname, numval, strval, OPT_LOCAL);
-	    }
+		set_option_from_tv(varname + 1, varp);
 	    else
 	    {
 		winvarname = alloc(STRLEN(varname) + 3);
@@ -3735,7 +3774,6 @@ f_setbufvar(typval_T *argvars, typval_T *rettv UNUSED)
     buf_T	*buf;
     char_u	*varname, *bufvarname;
     typval_T	*varp;
-    char_u	nbuf[NUMBUFLEN];
 
     if (check_secure())
 	return;
@@ -3748,19 +3786,12 @@ f_setbufvar(typval_T *argvars, typval_T *rettv UNUSED)
     {
 	if (*varname == '&')
 	{
-	    long	numval;
-	    char_u	*strval;
-	    int		error = FALSE;
 	    aco_save_T	aco;
 
 	    // set curbuf to be our buf, temporarily
 	    aucmd_prepbuf(&aco, buf);
 
-	    ++varname;
-	    numval = (long)tv_get_number_chk(varp, &error);
-	    strval = tv_get_string_buf_chk(varp, nbuf);
-	    if (!error && strval != NULL)
-		set_option_value(varname, numval, strval, OPT_LOCAL);
+	    set_option_from_tv(varname + 1, varp);
 
 	    // reset notion of buffer
 	    aucmd_restbuf(&aco);

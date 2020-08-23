@@ -323,7 +323,7 @@ type_mismatch(type_T *expected, type_T *actual)
 {
     char *tofree1, *tofree2;
 
-    semsg(_("E1013: type mismatch, expected %s but got %s"),
+    semsg(_(e_type_mismatch_expected_str_but_got_str),
 		   type_name(expected, &tofree1), type_name(actual, &tofree2));
     vim_free(tofree1);
     vim_free(tofree2);
@@ -334,7 +334,7 @@ arg_type_mismatch(type_T *expected, type_T *actual, int argidx)
 {
     char *tofree1, *tofree2;
 
-    semsg(_("E1013: argument %d: type mismatch, expected %s but got %s"),
+    semsg(_(e_argument_nr_type_mismatch_expected_str_but_got_str),
 	    argidx,
 	    type_name(expected, &tofree1), type_name(actual, &tofree2));
     vim_free(tofree1);
@@ -471,9 +471,9 @@ parse_type_member(char_u **arg, type_T *type, garray_T *type_gap)
     if (**arg != '<')
     {
 	if (*skipwhite(*arg) == '<')
-	    semsg(_(e_no_white_space_allowed_before), "<");
+	    semsg(_(e_no_white_space_allowed_before_str), "<");
 	else
-	    emsg(_("E1008: Missing <type>"));
+	    emsg(_(e_missing_type));
 	return type;
     }
     *arg = skipwhite(*arg + 1);
@@ -483,7 +483,7 @@ parse_type_member(char_u **arg, type_T *type, garray_T *type_gap)
     *arg = skipwhite(*arg);
     if (**arg != '>' && called_emsg == prev_called_emsg)
     {
-	emsg(_("E1009: Missing > after type"));
+	emsg(_(e_missing_gt_after_type));
 	return type;
     }
     ++*arg;
@@ -550,7 +550,7 @@ parse_type(char_u **arg, garray_T *type_gap)
 		*arg += len;
 		return &t_float;
 #else
-		emsg(_("E1076: This Vim is not compiled with float support"));
+		emsg(_(e_this_vim_is_not_compiled_with_float_support));
 		return &t_any;
 #endif
 	    }
@@ -588,7 +588,7 @@ parse_type(char_u **arg, garray_T *type_gap)
 			}
 			else if (first_optional != -1)
 			{
-			    emsg(_("E1007: mandatory argument after optional argument"));
+			    emsg(_(e_mandatory_argument_after_optional_argument));
 			    return &t_any;
 			}
 
@@ -600,7 +600,7 @@ parse_type(char_u **arg, garray_T *type_gap)
 
 			if (*p != ',' && *skipwhite(p) == ',')
 			{
-			    semsg(_(e_no_white_space_allowed_before), ",");
+			    semsg(_(e_no_white_space_allowed_before_str), ",");
 			    return &t_any;
 			}
 			if (*p == ',')
@@ -608,14 +608,14 @@ parse_type(char_u **arg, garray_T *type_gap)
 			    ++p;
 			    if (!VIM_ISWHITE(*p))
 			    {
-				semsg(_(e_white_space_required_after), ",");
+				semsg(_(e_white_space_required_after_str), ",");
 				return &t_any;
 			    }
 			}
 			p = skipwhite(p);
 			if (argcount == MAX_FUNC_ARGS)
 			{
-			    emsg(_("E740: Too many argument types"));
+			    emsg(_(e_too_many_argument_types));
 			    return &t_any;
 			}
 		    }
@@ -633,7 +633,7 @@ parse_type(char_u **arg, garray_T *type_gap)
 		    // parse return type
 		    ++*arg;
 		    if (!VIM_ISWHITE(**arg))
-			semsg(_(e_white_space_required_after), ":");
+			semsg(_(e_white_space_required_after_str), ":");
 		    *arg = skipwhite(*arg);
 		    ret_type = parse_type(arg, type_gap);
 		}
@@ -695,7 +695,7 @@ parse_type(char_u **arg, garray_T *type_gap)
 	    break;
     }
 
-    semsg(_("E1010: Type not recognized: %s"), *arg);
+    semsg(_(e_type_not_recognized_str), *arg);
     return &t_any;
 }
 

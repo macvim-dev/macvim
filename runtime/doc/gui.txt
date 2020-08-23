@@ -1106,7 +1106,8 @@ Also see 'macatsui', it can help fix display problems {not in MacVim}.
 In MacVim, fonts with spaces are set like this: >
     :set guifont=DejaVu\ Sans\ Mono:h13
 <
-							*E236*
+Mono-spaced fonts					*E236*
+
 Note that the fonts must be mono-spaced (all characters have the same width).
 An exception is MacVim and GTK: all fonts are accepted, but mono-spaced fonts
 look best.

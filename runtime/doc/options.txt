@@ -1,4 +1,4 @@
-*options.txt*	For Vim version 8.2.  Last change: 2020 Aug 07
+*options.txt*	For Vim version 8.2.  Last change: 2020 Aug 13
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -727,8 +727,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 'antialias' 'anti'	boolean (default off, on for MacVim)
 			global
 			{only available when compiled with GUI enabled
-			on Mac OS X}
-	This option only has an effect in the GUI version of Vim on Mac OS X
+			on macOS}
+	This option only has an effect in the GUI version of Vim on macOS
 	v10.2 or later.  When on, Vim will use smooth ("antialiased") fonts,
 	which can be easier to read at certain sizes on certain displays.
 
@@ -4649,7 +4649,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	set and to the Vim default value when 'compatible' is reset.
 
 						*'isprint'* *'isp'*
-'isprint' 'isp'	string	(default for Win32 and Macintosh:
+'isprint' 'isp'	string	(default for Win32 and macOS:
 				"@,~-255"; otherwise: "@,161-255")
 			global
 	The characters given by this option are displayed directly on the
@@ -5026,19 +5026,8 @@ A jump table for the options with a short description can be found at |Q_op|.
 						*'macatsui'* *'nomacatsui'*
 'macatsui'		boolean	(default on)
 			global
-			{only available in Mac Carbon GUI version}
-	This is a workaround for when drawing doesn't work properly.  When set
-	and compiled with multi-byte support ATSUI text drawing is used.  When
-	not set ATSUI text drawing is not used.  Switch this option off when
-	you experience drawing problems.  In a future version the problems may
-	be solved and this option becomes obsolete.  Therefore use this method
-	to unset it: >
-		if exists('&macatsui')
-		   set nomacatsui
-		endif
-<	Another option to check if you have drawing problems is
-	'termencoding'.
-	Note: MacVim does not use this option.
+			{not supported}
+	No longer supported, as the Mac OS X GUI code was removed.
 
 				*'macligatures'* *'nomacligatures'*
 'macligatures' 		boolean (default off)
@@ -6366,7 +6355,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 <
 				*'runtimepath'* *'rtp'* *vimfiles*
 'runtimepath' 'rtp'	string	(default:
-					Unix, Mac OS X: "$HOME/.vim,
+					Unix, macOS: "$HOME/.vim,
 						$VIM/vimfiles,
 						$VIMRUNTIME,
 						$VIM/vimfiles/after,
@@ -6381,7 +6370,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 						$VIMRUNTIME,
 						$VIM/vimfiles/after,
 						$HOME/vimfiles/after"
-					Macintosh (pre-OS X): "$VIM:vimfiles,
+					Classic Mac OS: "$VIM:vimfiles,
 						$VIMRUNTIME,
 						$VIM:vimfiles:after"
 					Haiku: "$BE_USER_SETTINGS/vim,
@@ -7891,8 +7880,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 	Encoding used for the terminal.  This specifies what character
 	encoding the keyboard produces and the display will understand.  For
 	the GUI it only applies to the keyboard ('encoding' is used for the
-	display).  Except for the Mac when 'macatsui' is off, then
-	'termencoding' should be "macroman".
+	display).
 								*E617* *E950*
 	Note: This does not apply to the GTK+ and MacVim GUIs.  After the GUI
 	has been successfully initialized, 'termencoding' is forcibly set to
@@ -8549,7 +8537,7 @@ A jump table for the options with a short description can be found at |Q_op|.
 'viewdir' 'vdir'	string	(default for Amiga and Win32:
 							 "$VIM/vimfiles/view",
 				 for Unix: "~/.vim/view",
-				 for Macintosh: "$VIM:vimfiles:view"
+				 for macOS: "$VIM:vimfiles:view"
 				 for VMS: "sys$login:vimfiles/view")
 			global
 			{not available when compiled without the |+mksession|

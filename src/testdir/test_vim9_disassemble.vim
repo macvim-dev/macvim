@@ -35,7 +35,7 @@ enddef
 
 def Test_disassemble_load()
   assert_fails('disass NoFunc', 'E1061:')
-  assert_fails('disass NotCompiled', 'E1062:')
+  assert_fails('disass NotCompiled', 'E1091:')
   assert_fails('disass', 'E471:')
   assert_fails('disass [', 'E475:')
   assert_fails('disass 234', 'E129:')
@@ -971,7 +971,7 @@ def Test_disassemble_concat()
   assert_equal('aabb', ConcatString())
 enddef
 
-def StringIndex(): number
+def StringIndex(): string
   let s = "abcd"
   let res = s[1]
   return res
@@ -990,6 +990,28 @@ def Test_disassemble_string_index()
         '\d STORE $1\_s*',
         instr)
   assert_equal('b', StringIndex())
+enddef
+
+def StringSlice(): string
+  let s = "abcd"
+  let res = s[1:8]
+  return res
+enddef
+
+def Test_disassemble_string_slice()
+  let instr = execute('disassemble StringSlice')
+  assert_match('StringSlice\_s*' ..
+        'let s = "abcd"\_s*' ..
+        '\d PUSHS "abcd"\_s*' ..
+        '\d STORE $0\_s*' ..
+        'let res = s\[1:8]\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d PUSHNR 1\_s*' ..
+        '\d PUSHNR 8\_s*' ..
+        '\d STRSLICE\_s*' ..
+        '\d STORE $1\_s*',
+        instr)
+  assert_equal('bcd', StringSlice())
 enddef
 
 def ListIndex(): number
@@ -1014,6 +1036,31 @@ def Test_disassemble_list_index()
         '\d STORE $1\_s*',
         instr)
   assert_equal(2, ListIndex())
+enddef
+
+def ListSlice(): list<number>
+  let l = [1, 2, 3]
+  let res = l[1:8]
+  return res
+enddef
+
+def Test_disassemble_list_slice()
+  let instr = execute('disassemble ListSlice')
+  assert_match('ListSlice\_s*' ..
+        'let l = \[1, 2, 3]\_s*' ..
+        '\d PUSHNR 1\_s*' ..
+        '\d PUSHNR 2\_s*' ..
+        '\d PUSHNR 3\_s*' ..
+        '\d NEWLIST size 3\_s*' ..
+        '\d STORE $0\_s*' ..
+        'let res = l\[1:8]\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d PUSHNR 1\_s*' ..
+        '\d PUSHNR 8\_s*' ..
+        '\d LISTSLICE\_s*' ..
+        '\d STORE $1\_s*',
+        instr)
+  assert_equal([2, 3], ListSlice())
 enddef
 
 def DictMember(): number
@@ -1042,6 +1089,50 @@ def Test_disassemble_dict_member()
         '\d\+ STORE $1\_s*',
         instr)
   call assert_equal(1, DictMember())
+enddef
+
+let somelist = [1, 2, 3, 4, 5]
+def AnyIndex(): number
+  let res = g:somelist[2]
+  return res
+enddef
+
+def Test_disassemble_any_index()
+  let instr = execute('disassemble AnyIndex')
+  assert_match('AnyIndex\_s*' ..
+        'let res = g:somelist\[2\]\_s*' ..
+        '\d LOADG g:somelist\_s*' ..
+        '\d PUSHNR 2\_s*' ..
+        '\d ANYINDEX\_s*' ..
+        '\d STORE $0\_s*' ..
+        'return res\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d CHECKTYPE number stack\[-1\]\_s*' ..
+        '\d RETURN',
+        instr)
+  assert_equal(3, AnyIndex())
+enddef
+
+def AnySlice(): list<number>
+  let res = g:somelist[1:3]
+  return res
+enddef
+
+def Test_disassemble_any_slice()
+  let instr = execute('disassemble AnySlice')
+  assert_match('AnySlice\_s*' ..
+        'let res = g:somelist\[1:3\]\_s*' ..
+        '\d LOADG g:somelist\_s*' ..
+        '\d PUSHNR 1\_s*' ..
+        '\d PUSHNR 3\_s*' ..
+        '\d ANYSLICE\_s*' ..
+        '\d STORE $0\_s*' ..
+        'return res\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d CHECKTYPE list stack\[-1\]\_s*' ..
+        '\d RETURN',
+        instr)
+  assert_equal([2, 3, 4], AnySlice())
 enddef
 
 def NegateNumber(): number

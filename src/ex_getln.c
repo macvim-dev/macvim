@@ -2714,12 +2714,12 @@ getexline(
     int		c,		// normally ':', NUL for ":append"
     void	*cookie UNUSED,
     int		indent,		// indent for inside conditionals
-    int		do_concat)
+    getline_opt_T options)
 {
     // When executing a register, remove ':' that's in front of each line.
     if (exec_from_reg && vpeekc() == ':')
 	(void)vgetc();
-    return getcmdline(c, 1L, indent, do_concat);
+    return getcmdline(c, 1L, indent, options);
 }
 
 /*
@@ -2734,7 +2734,7 @@ getexmodeline(
 				// :s prompt
     void	*cookie UNUSED,
     int		indent,		// indent for inside conditionals
-    int		do_concat UNUSED)
+    getline_opt_T options UNUSED)
 {
     garray_T	line_ga;
     char_u	*pend;

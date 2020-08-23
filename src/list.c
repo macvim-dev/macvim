@@ -888,6 +888,61 @@ list_slice(list_T *ol, long n1, long n2)
     return l;
 }
 
+    int
+list_slice_or_index(
+	    list_T	*list,
+	    int		range,
+	    long	n1_arg,
+	    long	n2_arg,
+	    typval_T	*rettv,
+	    int		verbose)
+{
+    long	len = list_len(list);
+    long	n1 = n1_arg;
+    long	n2 = n2_arg;
+    typval_T	var1;
+
+    if (n1 < 0)
+	n1 = len + n1;
+    if (n1 < 0 || n1 >= len)
+    {
+	// For a range we allow invalid values and return an empty
+	// list.  A list index out of range is an error.
+	if (!range)
+	{
+	    if (verbose)
+		semsg(_(e_listidx), n1);
+	    return FAIL;
+	}
+	n1 = n1 < 0 ? 0 : len;
+    }
+    if (range)
+    {
+	list_T	*l;
+
+	if (n2 < 0)
+	    n2 = len + n2;
+	else if (n2 >= len)
+	    n2 = len - 1;
+	if (n2 < 0 || n2 + 1 < n1)
+	    n2 = -1;
+	l = list_slice(list, n1, n2);
+	if (l == NULL)
+	    return FAIL;
+	clear_tv(rettv);
+	rettv_list_set(rettv, l);
+    }
+    else
+    {
+	// copy the item to "var1" to avoid that freeing the list makes it
+	// invalid.
+	copy_tv(&list_find(list, n1)->li_tv, &var1);
+	clear_tv(rettv);
+	*rettv = var1;
+    }
+    return OK;
+}
+
 /*
  * Make a copy of list "orig".  Shallow if "deep" is FALSE.
  * The refcount of the new list is set to 1.
@@ -1204,7 +1259,7 @@ eval_list(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int do_error)
 	{
 	    if (vim9script && !IS_WHITE_OR_NUL((*arg)[1]))
 	    {
-		semsg(_(e_white_space_required_after), ",");
+		semsg(_(e_white_space_required_after_str), ",");
 		goto failret;
 	    }
 	    *arg = skipwhite(*arg + 1);
@@ -1221,7 +1276,7 @@ eval_list(char_u **arg, typval_T *rettv, evalarg_T *evalarg, int do_error)
 	    if (do_error)
 	    {
 		if (**arg == ',')
-		    semsg(_(e_no_white_space_allowed_before), ",");
+		    semsg(_(e_no_white_space_allowed_before_str), ",");
 		else
 		    semsg(_("E696: Missing comma in List: %s"), *arg);
 	    }
@@ -1854,7 +1909,10 @@ filter_map_one(typval_T *tv, typval_T *expr, int map, int *remp)
 	int	    error = FALSE;
 
 	// filter(): when expr is zero remove the item
-	*remp = (tv_get_number_chk(&rettv, &error) == 0);
+	if (in_vim9script())
+	    *remp = !tv2bool(&rettv);
+	else
+	    *remp = (tv_get_number_chk(&rettv, &error) == 0);
 	clear_tv(&rettv);
 	// On type error, nothing has been removed; return FAIL to stop the
 	// loop.  The error message was given by tv_get_number_chk().

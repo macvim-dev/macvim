@@ -110,7 +110,7 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 
 	if (VIM_ISWHITE(*p) && *skipwhite(p) == ':')
 	{
-	    semsg(_("E1059: No white space allowed before colon: %s"),
+	    semsg(_(e_no_white_space_allowed_before_colon_str),
 					    arg_copy == NULL ? arg : arg_copy);
 	    p = skipwhite(p);
 	}
@@ -119,7 +119,7 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 	    ++p;
 	    if (!VIM_ISWHITE(*p))
 	    {
-		semsg(_(e_white_space_required_after), ":");
+		semsg(_(e_white_space_required_after_str), ":");
 		return arg;
 	    }
 	    type = skipwhite(p);
@@ -128,7 +128,7 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
 	}
 	else if (*skipwhite(p) != '=')
 	{
-	    semsg(_("E1077: Missing argument type for %s"),
+	    semsg(_(e_missing_argument_type_for_str),
 					    arg_copy == NULL ? arg : arg_copy);
 	    return arg;
 	}
@@ -212,7 +212,7 @@ get_function_args(
 		// ...name: list<type>
 		if (!ASCII_ISALPHA(*p))
 		{
-		    emsg(_("E1055: Missing name after ..."));
+		    emsg(_(e_missing_name_after_dots));
 		    break;
 		}
 
@@ -276,7 +276,7 @@ get_function_args(
 		if (!skip && in_vim9script()
 				      && !IS_WHITE_OR_NUL(*p) && *p != endchar)
 		{
-		    semsg(_(e_white_space_required_after), ",");
+		    semsg(_(e_white_space_required_after_str), ",");
 		    goto err_ret;
 		}
 	    }
@@ -623,6 +623,7 @@ get_func_tv(
     int		ret = OK;
     typval_T	argvars[MAX_FUNC_ARGS + 1];	// vars for arguments
     int		argcount = 0;		// number of arguments found
+    int		vim9script = in_vim9script();
 
     /*
      * Get the arguments.
@@ -644,10 +645,25 @@ get_func_tv(
 	++argcount;
 	// The comma should come right after the argument, but this wasn't
 	// checked previously, thus only enforce it in Vim9 script.
-	if (!in_vim9script())
+	if (vim9script)
+	{
+	    if (*argp != ',' && *skipwhite(argp) == ',')
+	    {
+		semsg(_(e_no_white_space_allowed_before_str), ",");
+		ret = FAIL;
+		break;
+	    }
+	}
+	else
 	    argp = skipwhite(argp);
 	if (*argp != ',')
 	    break;
+	if (vim9script && !IS_WHITE_OR_NUL(argp[1]))
+	{
+	    semsg(_(e_white_space_required_after_str), ",");
+	    ret = FAIL;
+	    break;
+	}
     }
     argp = skipwhite_and_linebreak(argp, evalarg);
     if (*argp == ')')
@@ -1176,7 +1192,7 @@ copy_func(char_u *lambda, char_u *global)
     ufunc_T *fp;
 
     if (ufunc == NULL)
-	semsg(_("E1102: lambda function not found: %s"), lambda);
+	semsg(_(e_lambda_function_not_found_str), lambda);
     else
     {
 	// TODO: handle ! to overwrite
@@ -2651,7 +2667,7 @@ def_function(exarg_T *eap, char_u *name_arg)
     static int	func_nr = 0;	    // number for nameless function
     int		paren;
     hashitem_T	*hi;
-    int		do_concat = TRUE;
+    getline_opt_T getline_options = GETLINE_CONCAT_CONT;
     linenr_T	sourcing_lnum_off;
     linenr_T	sourcing_lnum_top;
     int		is_heredoc = FALSE;
@@ -2887,7 +2903,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 	    }
 	    else
 	    {
-		semsg(_("E1056: expected a type: %s"), ret_type);
+		semsg(_(e_expected_type_str), ret_type);
 		ret_type = NULL;
 	    }
 	}
@@ -3008,9 +3024,10 @@ def_function(exarg_T *eap, char_u *name_arg)
 	{
 	    vim_free(line_to_free);
 	    if (eap->getline == NULL)
-		theline = getcmdline(':', 0L, indent, do_concat);
+		theline = getcmdline(':', 0L, indent, getline_options);
 	    else
-		theline = eap->getline(':', eap->cookie, indent, do_concat);
+		theline = eap->getline(':', eap->cookie, indent,
+							      getline_options);
 	    line_to_free = theline;
 	}
 	if (KeyTyped)
@@ -3018,7 +3035,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 	if (theline == NULL)
 	{
 	    if (eap->cmdidx == CMD_def)
-		emsg(_("E1057: Missing :enddef"));
+		emsg(_(e_missing_enddef));
 	    else
 		emsg(_("E126: Missing :endfunction"));
 	    goto erret;
@@ -3053,7 +3070,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 		{
 		    VIM_CLEAR(skip_until);
 		    VIM_CLEAR(heredoc_trimmed);
-		    do_concat = TRUE;
+		    getline_options = GETLINE_CONCAT_CONT;
 		    is_heredoc = FALSE;
 		}
 	    }
@@ -3119,7 +3136,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 		if (*skipwhite(p) == '(')
 		{
 		    if (nesting == MAX_FUNC_NESTING - 1)
-			emsg(_("E1058: function nesting too deep"));
+			emsg(_(e_function_nesting_too_deep));
 		    else
 		    {
 			++nesting;
@@ -3178,7 +3195,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 		    skip_until = vim_strsave((char_u *)".");
 		else
 		    skip_until = vim_strnsave(p, skiptowhite(p) - p);
-		do_concat = FALSE;
+		getline_options = GETLINE_NONE;
 		is_heredoc = TRUE;
 	    }
 
@@ -3205,7 +3222,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 						 skipwhite(theline) - theline);
 		    }
 		    skip_until = vim_strnsave(p, skiptowhite(p) - p);
-		    do_concat = FALSE;
+		    getline_options = GETLINE_NONE;
 		    is_heredoc = TRUE;
 		}
 	    }
@@ -3274,7 +3291,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 			  || fp->uf_script_ctx.sc_seq == current_sctx.sc_seq)))
 	    {
 		if (vim9script)
-		    emsg_funcname(e_name_already_defined, name);
+		    emsg_funcname(e_name_already_defined_str, name);
 		else
 		    emsg_funcname(e_funcexts, name);
 		goto erret;
@@ -3785,7 +3802,7 @@ ex_delfunction(exarg_T *eap)
 	}
 	if (fp->uf_flags & FC_VIM9)
 	{
-	    semsg(_("E1084: Cannot delete Vim9 script function %s"), eap->arg);
+	    semsg(_(e_cannot_delete_vim9_script_function_str), eap->arg);
 	    return;
 	}
 
@@ -4249,7 +4266,7 @@ get_func_line(
     int	    c UNUSED,
     void    *cookie,
     int	    indent UNUSED,
-    int	    do_concat UNUSED)
+    getline_opt_T options UNUSED)
 {
     funccall_T	*fcp = (funccall_T *)cookie;
     ufunc_T	*fp = fcp->func;
