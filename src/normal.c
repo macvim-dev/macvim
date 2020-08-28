@@ -3656,8 +3656,10 @@ nv_ident(cmdarg_T *cap)
 	    {
 		if (g_cmd)
 		    STRCPY(buf, "tj ");
+		else if (cap->count0 == 0)
+		    STRCPY(buf, "ta ");
 		else
-		    sprintf((char *)buf, "%ldta ", cap->count0);
+		    sprintf((char *)buf, ":%ldta ", cap->count0);
 	    }
     }
 

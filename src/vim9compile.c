@@ -259,6 +259,15 @@ lookup_arg(
 }
 
 /*
+ * Returnd TRUE if the script context is Vim9 script.
+ */
+    static int
+script_is_vim9()
+{
+    return SCRIPT_ITEM(current_sctx.sc_sid)->sn_version == SCRIPT_VERSION_VIM9;
+}
+
+/*
  * Lookup a variable in the current script.
  * If "vim9script" is TRUE the script must be Vim9 script.  Used for "var"
  * without "s:".
@@ -271,8 +280,7 @@ lookup_script(char_u *name, size_t len, int vim9script)
     hashtab_T	    *ht = &SCRIPT_VARS(current_sctx.sc_sid);
     dictitem_T	    *di;
 
-    if (vim9script && SCRIPT_ITEM(current_sctx.sc_sid)->sn_version
-							!= SCRIPT_VERSION_VIM9)
+    if (vim9script && !script_is_vim9())
 	return FAIL;
     cc = name[len];
     name[len] = NUL;
@@ -4006,6 +4014,13 @@ compile_expr1(char_u **arg,  cctx_T *cctx, ppconst_T *ppconst)
     int		ppconst_used = ppconst->pp_used;
     char_u	*next;
 
+    // Ignore all kinds of errors when not producing code.
+    if (cctx->ctx_skip == SKIP_YES)
+    {
+	skip_expr(arg);
+	return OK;
+    }
+
     // Evaluate the first expression.
     if (compile_expr2(arg, cctx, ppconst) == FAIL)
 	return FAIL;
@@ -4256,7 +4271,7 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
     ufunc = def_function(eap, lambda_name);
 
     if (ufunc == NULL)
-	return NULL;
+	return eap->skip ? (char_u *)"" : NULL;
     if (ufunc->uf_def_status == UF_TO_BE_COMPILED
 	    && compile_def_function(ufunc, TRUE, cctx) == FAIL)
 	return NULL;
@@ -4542,8 +4557,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    p = var_start + 2;
 	else
 	{
-	    p = (*var_start == '&' || *var_start == '$')
-						   ? var_start + 1 : var_start;
+	    // skip over the leading "&", "&l:", "&g:" and "$"
+	    p = skip_option_env_lead(var_start);
 	    p = to_name_end(p, TRUE);
 	}
 
@@ -4587,8 +4602,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		}
 		cc = *p;
 		*p = NUL;
-		opt_type = get_option_value(var_start + 1, &numval,
-							      NULL, opt_flags);
+		opt_type = get_option_value(skip_option_env_lead(var_start),
+						     &numval, NULL, opt_flags);
 		*p = cc;
 		if (opt_type == -3)
 		{
@@ -5123,7 +5138,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    switch (dest)
 	    {
 		case dest_option:
-		    generate_STOREOPT(cctx, name + 1, opt_flags);
+		    generate_STOREOPT(cctx, skip_option_env_lead(name),
+								    opt_flags);
 		    break;
 		case dest_global:
 		    // include g: with the name, easier to execute that way
@@ -5234,6 +5250,9 @@ check_vim9_unlet(char_u *name)
 {
     if (name[1] != ':' || vim_strchr((char_u *)"gwtb", *name) == NULL)
     {
+	// "unlet s:var" is allowed in legacy script.
+	if (*name == 's' && !script_is_vim9())
+	    return OK;
 	semsg(_(e_cannot_unlet_str), name);
 	return FAIL;
     }
@@ -5500,6 +5519,7 @@ compile_elseif(char_u *arg, cctx_T *cctx)
     isn_T	*isn;
     scope_T	*scope = cctx->ctx_scope;
     ppconst_T	ppconst;
+    skip_T	save_skip = cctx->ctx_skip;
 
     if (scope == NULL || scope->se_type != IF_SCOPE)
     {
@@ -5522,11 +5542,14 @@ compile_elseif(char_u *arg, cctx_T *cctx)
 
     // compile "expr"; if we know it evaluates to FALSE skip the block
     CLEAR_FIELD(ppconst);
+    if (cctx->ctx_skip == SKIP_YES)
+	cctx->ctx_skip = SKIP_UNKNOWN;
     if (compile_expr1(&p, cctx, &ppconst) == FAIL)
     {
 	clear_ppconst(&ppconst);
 	return NULL;
     }
+    cctx->ctx_skip = save_skip;
     if (scope->se_skip_save == SKIP_YES)
 	clear_ppconst(&ppconst);
     else if (instr->ga_len == instr_count && ppconst.pp_used == 1)
@@ -6712,17 +6735,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 
 	p = skipwhite(p);
 
-	if (cctx.ctx_skip == SKIP_YES
-		&& ea.cmdidx != CMD_if
+	if (cctx.ctx_had_return
 		&& ea.cmdidx != CMD_elseif
-		&& ea.cmdidx != CMD_else
-		&& ea.cmdidx != CMD_endif)
-	{
-	    line = (char_u *)"";
-	    continue;
-	}
-
-	if (ea.cmdidx != CMD_elseif
 		&& ea.cmdidx != CMD_else
 		&& ea.cmdidx != CMD_endif
 		&& ea.cmdidx != CMD_endfor
@@ -6731,11 +6745,8 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		&& ea.cmdidx != CMD_finally
 		&& ea.cmdidx != CMD_endtry)
 	{
-	    if (cctx.ctx_had_return)
-	    {
-		emsg(_(e_unreachable_code_after_return));
-		goto erret;
-	    }
+	    emsg(_(e_unreachable_code_after_return));
+	    goto erret;
 	}
 
 	switch (ea.cmdidx)
@@ -6833,7 +6844,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    if (compile_expr0(&p, &cctx) == FAIL)
 			goto erret;
 
-		    // drop the return value
+		    // drop the result
 		    generate_instr_drop(&cctx, ISN_DROP, 1);
 
 		    line = skipwhite(p);
@@ -6847,7 +6858,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    line = compile_mult_expr(p, ea.cmdidx, &cctx);
 		    break;
 
-	    // TODO: other commands with an expression argument
+	    // TODO: any other commands with an expression argument?
 
 	    case CMD_append:
 	    case CMD_change:
@@ -6858,13 +6869,27 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    goto erret;
 
 	    case CMD_SIZE:
-		    semsg(_(e_invalid_command_str), ea.cmd);
-		    goto erret;
+		    if (cctx.ctx_skip != SKIP_YES)
+		    {
+			semsg(_(e_invalid_command_str), ea.cmd);
+			goto erret;
+		    }
+		    // We don't check for a next command here.
+		    line = (char_u *)"";
+		    break;
 
 	    default:
-		    // Not recognized, execute with do_cmdline_cmd().
-		    ea.arg = p;
-		    line = compile_exec(line, &ea, &cctx);
+		    if (cctx.ctx_skip == SKIP_YES)
+		    {
+			// We don't check for a next command here.
+			line = (char_u *)"";
+		    }
+		    else
+		    {
+			// Not recognized, execute with do_cmdline_cmd().
+			ea.arg = p;
+			line = compile_exec(line, &ea, &cctx);
+		    }
 		    break;
 	}
 nextline:

@@ -43,6 +43,9 @@ def Test_expr1()
   var = 0
   assert_equal('two', var ? 'one' : 'two')
 
+  # with constant condition expression is not evaluated 
+  assert_equal('one', 1 ? 'one' : xxx)
+
   let Some: func = function('len')
   let Other: func = function('winnr')
   let Res: func = g:atrue ? Some : Other
@@ -139,7 +142,6 @@ enddef
 
 func Test_expr1_fails()
   call CheckDefFailure(["let x = 1 ? 'one'"], "Missing ':' after '?'", 1)
-  call CheckDefFailure(["let x = 1 ? 'one' : xxx"], "E1001:", 1)
 
   let msg = "white space required before and after '?'"
   call CheckDefFailure(["let x = 1? 'one' : 'two'"], msg, 1)
@@ -1666,6 +1668,17 @@ def Test_expr7_lambda_vim9script()
 	->map({_, v -> synIDattr(v, 'name')})->len()})
   END
   CheckScriptSuccess(lines)
+enddef
+
+def Test_epxr7_funcref()
+  let lines =<< trim END
+    def RetNumber(): number
+      return 123
+    enddef
+    let FuncRef = RetNumber
+    assert_equal(123, FuncRef())
+  END
+  CheckDefAndScriptSuccess(lines)
 enddef
 
 def Test_expr7_dict()

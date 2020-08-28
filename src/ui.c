@@ -548,7 +548,7 @@ ui_delay(long msec_arg, int ignoreinput)
 	if (gui.in_use)
 	    gui_macvim_force_flush();
 #endif
-	mch_delay(msec, ignoreinput);
+	mch_delay(msec, ignoreinput ? MCH_DELAY_IGNOREINPUT : 0);
     }
 }
 
