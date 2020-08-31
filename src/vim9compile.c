@@ -729,7 +729,7 @@ need_type(
 	cctx_T	*cctx,
 	int	silent)
 {
-    if (check_type(expected, actual, FALSE) == OK)
+    if (check_type(expected, actual, FALSE, 0) == OK)
 	return OK;
     if (actual->tt_type != VAR_ANY
 	    && actual->tt_type != VAR_UNKNOWN
@@ -1661,7 +1661,7 @@ get_script_item_idx(int sid, char_u *name, int check_writable)
     int		    idx;
 
     // First look the name up in the hashtable.
-    if (sid <= 0 || sid > script_items.ga_len)
+    if (!SCRIPT_ID_VALID(sid))
 	return -1;
     ht = &SCRIPT_VARS(sid);
     di = find_var_in_ht(ht, 0, name, TRUE);
@@ -1692,7 +1692,7 @@ find_imported(char_u *name, size_t len, cctx_T *cctx)
 {
     int		    idx;
 
-    if (current_sctx.sc_sid <= 0)
+    if (!SCRIPT_ID_VALID(current_sctx.sc_sid))
 	return NULL;
     if (cctx != NULL)
 	for (idx = 0; idx < cctx->ctx_imports.ga_len; ++idx)
@@ -1712,9 +1712,12 @@ find_imported(char_u *name, size_t len, cctx_T *cctx)
     imported_T *
 find_imported_in_script(char_u *name, size_t len, int sid)
 {
-    scriptitem_T    *si = SCRIPT_ITEM(sid);
+    scriptitem_T    *si;
     int		    idx;
 
+    if (!SCRIPT_ID_VALID(sid))
+	return NULL;
+    si = SCRIPT_ITEM(sid);
     for (idx = 0; idx < si->sn_imports.ga_len; ++idx)
     {
 	imported_T *import = ((imported_T *)si->sn_imports.ga_data) + idx;
@@ -1966,10 +1969,14 @@ compile_load_scriptvar(
 	char_u **end,	    // end of variable
 	int    error)	    // when TRUE may give error
 {
-    scriptitem_T    *si = SCRIPT_ITEM(current_sctx.sc_sid);
-    int		    idx = get_script_item_idx(current_sctx.sc_sid, name, FALSE);
+    scriptitem_T    *si;
+    int		    idx;
     imported_T	    *import;
 
+    if (!SCRIPT_ID_VALID(current_sctx.sc_sid))
+	return FAIL;
+    si = SCRIPT_ITEM(current_sctx.sc_sid);
+    idx = get_script_item_idx(current_sctx.sc_sid, name, FALSE);
     if (idx == -1 || si->sn_version != SCRIPT_VERSION_VIM9)
     {
 	// variable is not in sn_var_vals: old style script.
@@ -3574,7 +3581,7 @@ compile_expr7t(char_u **arg, cctx_T *cctx, ppconst_T *ppconst)
 
 	generate_ppconst(cctx, ppconst);
 	actual = ((type_T **)stack->ga_data)[stack->ga_len - 1];
-	if (check_type(want_type, actual, FALSE) == FAIL)
+	if (check_type(want_type, actual, FALSE, 0) == FAIL)
 	{
 	    if (need_type(actual, want_type, -1, cctx, FALSE) == FAIL)
 		return FAIL;
@@ -4750,15 +4757,18 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			scriptvar_sid = current_sctx.sc_sid;
 			if (import != NULL)
 			    scriptvar_sid = import->imp_sid;
-			scriptvar_idx = get_script_item_idx(scriptvar_sid,
-								rawname, TRUE);
-			if (scriptvar_idx >= 0)
+			if (SCRIPT_ID_VALID(scriptvar_sid))
 			{
-			    scriptitem_T *si = SCRIPT_ITEM(scriptvar_sid);
-			    svar_T	     *sv =
+			    scriptvar_idx = get_script_item_idx(scriptvar_sid,
+								rawname, TRUE);
+			    if (scriptvar_idx > 0)
+			    {
+				scriptitem_T *si = SCRIPT_ITEM(scriptvar_sid);
+				svar_T	     *sv =
 					    ((svar_T *)si->sn_var_vals.ga_data)
 							       + scriptvar_idx;
-			    type = sv->sv_type;
+				type = sv->sv_type;
+			    }
 			}
 		    }
 		    else if (name[1] == ':' && name[2] != NUL)
@@ -6490,13 +6500,9 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		did_set_arg_type = TRUE;
 		ufunc->uf_arg_types[arg_idx] = val_type;
 	    }
-	    else if (check_type(ufunc->uf_arg_types[arg_idx], val_type, FALSE)
-								       == FAIL)
-	    {
-		arg_type_mismatch(ufunc->uf_arg_types[arg_idx], val_type,
-								  arg_idx + 1);
+	    else if (check_type(ufunc->uf_arg_types[arg_idx], val_type,
+						    TRUE, arg_idx + 1) == FAIL)
 		goto erret;
-	    }
 
 	    if (generate_STORE(&cctx, ISN_STORE, i - count - off, NULL) == FAIL)
 		goto erret;

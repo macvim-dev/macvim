@@ -223,6 +223,15 @@ def Test_call_wrong_args()
   call CheckDefFailure(['TakesOneArg(11, 22)'], 'E118:')
   call CheckDefFailure(['bufnr(xxx)'], 'E1001:')
   call CheckScriptFailure(['def Func(Ref: func(s: string))'], 'E475:')
+
+  let lines =<< trim END
+    vim9script
+    def Func(s: string)
+      echo s
+    enddef
+    Func([])
+  END
+  call CheckScriptFailure(lines, 'E1013: argument 1: type mismatch, expected string but got list<unknown>', 5)
 enddef
 
 " Default arg and varargs
@@ -269,7 +278,7 @@ def Test_call_def_varargs()
       enddef
       Func(1, 2, 3)
   END
-  CheckScriptFailure(lines, 'E1012:')
+  CheckScriptFailure(lines, 'E1013: argument 1: type mismatch')
 
   lines =<< trim END
       vim9script
@@ -278,7 +287,7 @@ def Test_call_def_varargs()
       enddef
       Func('a', 9)
   END
-  CheckScriptFailure(lines, 'E1012:')
+  CheckScriptFailure(lines, 'E1013: argument 2: type mismatch')
 
   lines =<< trim END
       vim9script
@@ -287,7 +296,7 @@ def Test_call_def_varargs()
       enddef
       Func(1, 'a')
   END
-  CheckScriptFailure(lines, 'E1012:')
+  CheckScriptFailure(lines, 'E1013: argument 1: type mismatch')
 enddef
 
 def Test_call_call()
@@ -682,7 +691,7 @@ def Test_vim9script_call_fail_type()
     enddef
     MyFunc(1234)
   END
-  CheckScriptFailure(lines, 'E1012: type mismatch, expected string but got number')
+  CheckScriptFailure(lines, 'E1013: argument 1: type mismatch, expected string but got number')
 enddef
 
 def Test_vim9script_call_fail_const()
@@ -1417,6 +1426,21 @@ def Test_setbufvar()
    settabwinvar(1, 1, '&ts', 15)
    assert_equal(15, &ts)
    setlocal ts=8
+enddef
+
+def Test_setreg()
+  setreg('a', ['aaa', 'bbb', 'ccc'])
+  let reginfo = getreginfo('a')
+  setreg('a', reginfo)
+  assert_equal(reginfo, getreginfo('a'))
+enddef 
+
+def Test_bufname()
+  split SomeFile
+  assert_equal('SomeFile', bufname('%'))
+  edit OtherFile
+  assert_equal('SomeFile', bufname('#'))
+  close
 enddef
 
 def Fibonacci(n: number): number

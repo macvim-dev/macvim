@@ -1,4 +1,4 @@
-*usr_41.txt*	For Vim version 8.2.  Last change: 2020 Aug 13
+*usr_41.txt*	For Vim version 8.2.  Last change: 2020 Aug 30
 
 		     VIM USER MANUAL - by Bram Moolenaar
 
@@ -600,6 +600,7 @@ String manipulation:					*string-functions*
 	strtrans()		translate a string to make it printable
 	tolower()		turn a string to lowercase
 	toupper()		turn a string to uppercase
+	charclass()		class of a character
 	match()			position where a pattern matches in a string
 	matchend()		position where a pattern match ends in a string
 	matchstr()		match of a pattern in a string
@@ -611,6 +612,7 @@ String manipulation:					*string-functions*
 	strchars()		length of a string in characters
 	strwidth()		size of string when displayed
 	strdisplaywidth()	size of string when displayed, deals with tabs
+	setcellwidths()		set character cell width overrides
 	substitute()		substitute a pattern match with a string
 	submatch()		get a specific match in ":s" and substitute()
 	strpart()		get part of a string using byte index
@@ -626,6 +628,7 @@ String manipulation:					*string-functions*
 	execute()		execute an Ex command and get the output
 	win_execute()		like execute() but in a specified window
 	trim()			trim characters from a string
+	gettext()		lookup message translation
 
 List manipulation:					*list-functions*
 	get()			get an item without error for wrong index
@@ -2066,7 +2069,7 @@ with this mechanism: >
  22	  map <unique> <Leader>a  <Plug>TypecorrAdd;
  23	endif
 
-This checks if a mapping to "<Plug>TypecorrAdd/" already exists, and only
+This checks if a mapping to "<Plug>TypecorrAdd;" already exists, and only
 defines the mapping from "<Leader>a" if it doesn't.  The user then has a
 chance of putting this in his vimrc file: >
 
