@@ -13934,7 +13934,7 @@ DIR * dir=opendir("dirname"); dirfd(dir);
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
+if ac_fn_c_try_link "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }; $as_echo "#define HAVE_DIRFD 1" >>confdefs.h
 
@@ -13942,7 +13942,8 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: not usable" >&5
 $as_echo "not usable" >&6; }
 fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for flock" >&5
 $as_echo_n "checking for flock... " >&6; }
@@ -13957,7 +13958,7 @@ flock(10, LOCK_SH);
   return 0;
 }
 _ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
+if ac_fn_c_try_link "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }; $as_echo "#define HAVE_FLOCK 1" >>confdefs.h
 
@@ -13965,7 +13966,8 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: not usable" >&5
 $as_echo "not usable" >&6; }
 fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sysctl" >&5
 $as_echo_n "checking for sysctl... " >&6; }

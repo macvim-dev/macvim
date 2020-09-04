@@ -2434,7 +2434,7 @@ f_expand(typval_T *argvars, typval_T *rettv)
     rettv->v_type = VAR_STRING;
     if (argvars[1].v_type != VAR_UNKNOWN
 	    && argvars[2].v_type != VAR_UNKNOWN
-	    && tv_get_number_chk(&argvars[2], &error)
+	    && tv_get_bool_chk(&argvars[2], &error)
 	    && !error)
 	rettv_list_set(rettv, NULL);
 
@@ -2458,7 +2458,7 @@ f_expand(typval_T *argvars, typval_T *rettv)
 	// When the optional second argument is non-zero, don't remove matches
 	// for 'wildignore' and don't put matches for 'suffixes' at the end.
 	if (argvars[1].v_type != VAR_UNKNOWN
-				    && tv_get_number_chk(&argvars[1], &error))
+				    && tv_get_bool_chk(&argvars[1], &error))
 	    options |= WILD_KEEP_ALL;
 	if (!error)
 	{
@@ -3081,12 +3081,7 @@ f_getchangelist(typval_T *argvars, typval_T *rettv)
     if (argvars[0].v_type == VAR_UNKNOWN)
 	buf = curbuf;
     else
-    {
-	(void)tv_get_number(&argvars[0]);    // issue errmsg if type error
-	++emsg_off;
-	buf = tv_get_buf(&argvars[0], FALSE);
-	--emsg_off;
-    }
+	buf = tv_get_buf_from_arg(&argvars[0]);
     if (buf == NULL)
 	return;
 
@@ -3341,9 +3336,9 @@ f_getreg(typval_T *argvars, typval_T *rettv)
 	error = strregname == NULL;
 	if (argvars[1].v_type != VAR_UNKNOWN)
 	{
-	    arg2 = (int)tv_get_number_chk(&argvars[1], &error);
+	    arg2 = (int)tv_get_bool_chk(&argvars[1], &error);
 	    if (!error && argvars[2].v_type != VAR_UNKNOWN)
-		return_list = (int)tv_get_number_chk(&argvars[2], &error);
+		return_list = (int)tv_get_bool_chk(&argvars[2], &error);
 	}
     }
     else
@@ -4848,7 +4843,7 @@ f_hasmapto(typval_T *argvars, typval_T *rettv)
     {
 	mode = tv_get_string_buf(&argvars[1], buf);
 	if (argvars[2].v_type != VAR_UNKNOWN)
-	    abbr = (int)tv_get_number(&argvars[2]);
+	    abbr = (int)tv_get_bool(&argvars[2]);
     }
 
     if (map_to_exists(name, mode, abbr))
@@ -4984,7 +4979,7 @@ f_index(typval_T *argvars, typval_T *rettv)
 	    item = list_find(l, (long)tv_get_number_chk(&argvars[2], &error));
 	    idx = l->lv_u.mat.lv_idx;
 	    if (argvars[3].v_type != VAR_UNKNOWN)
-		ic = (int)tv_get_number_chk(&argvars[3], &error);
+		ic = (int)tv_get_bool_chk(&argvars[3], &error);
 	    if (error)
 		item = NULL;
 	}

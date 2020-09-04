@@ -1426,6 +1426,42 @@ def Test_setbufvar()
    settabwinvar(1, 1, '&ts', 15)
    assert_equal(15, &ts)
    setlocal ts=8
+
+   setbufvar('%', 'myvar', 123)
+   assert_equal(123, getbufvar('%', 'myvar'))
+enddef
+
+def Test_bufwinid()
+  let origwin = win_getid()
+  below split SomeFile
+  let SomeFileID = win_getid()
+  below split OtherFile
+  below split SomeFile
+  assert_equal(SomeFileID, bufwinid('SomeFile'))
+
+  win_gotoid(origwin)
+  only
+  bwipe SomeFile
+  bwipe OtherFile
+enddef
+
+def Test_getbufline()
+  e SomeFile
+  let buf = bufnr()
+  e #
+  let lines = ['aaa', 'bbb', 'ccc']
+  setbufline(buf, 1, lines)
+  assert_equal(lines, getbufline('#', 1, '$'))
+
+  bwipe!
+enddef
+
+def Test_getchangelist()
+  new
+  setline(1, 'some text')
+  let changelist = bufnr()->getchangelist()
+  assert_equal(changelist, getchangelist('%'))
+  bwipe!
 enddef
 
 def Test_setreg()
@@ -1443,12 +1479,85 @@ def Test_bufname()
   close
 enddef
 
+def Test_gebufinfo()
+  let bufinfo = getbufinfo(bufnr())
+  assert_equal(bufinfo, getbufinfo('%'))
+enddef
+
 def Fibonacci(n: number): number
   if n < 2
     return n
   else
     return Fibonacci(n - 1) + Fibonacci(n - 2)
   endif
+enddef
+
+def Test_count()
+  assert_equal(3, count('ABC ABC ABC', 'b', true))
+  assert_equal(0, count('ABC ABC ABC', 'b', false))
+enddef
+
+def Test_index()
+  assert_equal(3, index(['a', 'b', 'a', 'B'], 'b', 2, true))
+enddef
+
+def Test_expand()
+  split SomeFile
+  assert_equal(['SomeFile'], expand('%', true, true))
+  close
+enddef
+
+def Test_getreg()
+  let lines = ['aaa', 'bbb', 'ccc']
+  setreg('a', lines)
+  assert_equal(lines, getreg('a', true, true))
+enddef
+
+def Test_glob()
+  assert_equal(['runtest.vim'], glob('runtest.vim', true, true, true))
+enddef
+
+def Test_globpath()
+  assert_equal(['./runtest.vim'], globpath('.', 'runtest.vim', true, true, true))
+enddef
+
+def Test_hasmapto()
+  assert_equal(0, hasmapto('foobar', 'i', true))
+  iabbrev foo foobar
+  assert_equal(1, hasmapto('foobar', 'i', true))
+  iunabbrev foo
+enddef
+
+def SID(): number
+  return expand('<SID>')
+          ->matchstr('<SNR>\zs\d\+\ze_$')
+          ->str2nr()
+enddef
+
+def Test_maparg()
+  let lnum = str2nr(expand('<sflnum>'))
+  map foo bar
+  assert_equal(#{
+        lnum: lnum + 1,
+        script: 0,
+        mode: ' ',
+        silent: 0,
+        noremap: 0,
+        lhs: 'foo',
+        lhsraw: 'foo',
+        nowait: 0,
+        expr: 0,
+        sid: SID(),
+        rhs: 'bar',
+        buffer: 0},
+        maparg('foo', '', false, true))
+  unmap foo
+enddef
+
+def Test_mapcheck()
+  iabbrev foo foobar
+  assert_equal('foobar', mapcheck('foo', 'i', true))
+  iunabbrev foo
 enddef
 
 def Test_recursive_call()
