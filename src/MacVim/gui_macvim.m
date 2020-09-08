@@ -788,7 +788,15 @@ gui_mch_add_menu_item(vimmenu_T *menu, int idx)
     int modifierMask = vimModMaskToEventModifierFlags(menu->mac_mods);
     char_u *icon = NULL;
 
-    if (menu_is_toolbar(menu->parent->name)) {
+    vimmenu_T *rootMenu = menu;
+    while (rootMenu->parent) {
+        rootMenu = rootMenu->parent;
+    }
+    if (menu_is_toolbar(rootMenu->name)) {
+        //
+        // Find out what file to load for the icon. This is only relevant for the
+        // toolbar and TouchBar.
+        //
         char_u fname[MAXPATHL];
 
         // Try to use the icon=.. argument

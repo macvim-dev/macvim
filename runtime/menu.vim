@@ -1332,8 +1332,8 @@ if has("touchbar")
   " 1. Smart fullscreen icon that toggles between going full screen or not.
 
   if !exists("g:macvim_default_touchbar_fullscreen") || g:macvim_default_touchbar_fullscreen
-    an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
-    tln icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen <C-W>:set fullscreen<CR>
+    an icon=NSTouchBarEnterFullScreenTemplate 1.20 TouchBar.EnterFullScreen :set fullscreen<CR>
+    tln icon=NSTouchBarEnterFullScreenTemplate 1.20 TouchBar.EnterFullScreen <C-W>:set fullscreen<CR>
   endif
 
   let s:touchbar_fullscreen=0
@@ -1342,16 +1342,16 @@ if has("touchbar")
       silent! aun TouchBar.EnterFullScreen
       silent! tlun TouchBar.EnterFullScreen
       if !exists("g:macvim_default_touchbar_fullscreen") || g:macvim_default_touchbar_fullscreen
-        an icon=NSTouchBarExitFullScreenTemplate 1.10 TouchBar.ExitFullScreen :set nofullscreen<CR>
-        tln icon=NSTouchBarExitFullScreenTemplate 1.10 TouchBar.ExitFullScreen <C-W>:set nofullscreen<CR>
+        an icon=NSTouchBarExitFullScreenTemplate 1.20 TouchBar.ExitFullScreen :set nofullscreen<CR>
+        tln icon=NSTouchBarExitFullScreenTemplate 1.20 TouchBar.ExitFullScreen <C-W>:set nofullscreen<CR>
       endif
       let s:touchbar_fullscreen = 1
     elseif !&fullscreen && s:touchbar_fullscreen != 0
       silent! aun TouchBar.ExitFullScreen
       silent! tlun TouchBar.ExitFullScreen
       if !exists("g:macvim_default_touchbar_fullscreen") || g:macvim_default_touchbar_fullscreen
-        an icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen :set fullscreen<CR>
-        tln icon=NSTouchBarEnterFullScreenTemplate 1.10 TouchBar.EnterFullScreen <C-W>:set fullscreen<CR>
+        an icon=NSTouchBarEnterFullScreenTemplate 1.20 TouchBar.EnterFullScreen :set fullscreen<CR>
+        tln icon=NSTouchBarEnterFullScreenTemplate 1.20 TouchBar.EnterFullScreen <C-W>:set fullscreen<CR>
       endif
       let s:touchbar_fullscreen = 0
     endif
@@ -1360,6 +1360,14 @@ if has("touchbar")
     au!
     au VimEnter,VimResized * call <SID>SetupFullScreenTouchBar()
   aug END
+
+  " 2. Character (i.e. emojis) picker. Only in modes where user is actively
+  " entering text.
+  if !exists("g:macvim_default_touchbar_characterpicker") || g:macvim_default_touchbar_characterpicker
+    inoremenu 1.40 TouchBar.-characterpicker- <Nop>
+    cnoremenu 1.40 TouchBar.-characterpicker- <Nop>
+    tlnoremenu 1.40 TouchBar.-characterpicker- <Nop>
+  endif
 endif
 
 " vim: set sw=2 :

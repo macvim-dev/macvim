@@ -6801,6 +6801,7 @@ g:html_use_encoding	syntax.txt	/*g:html_use_encoding*
 g:html_use_input_for_pc	syntax.txt	/*g:html_use_input_for_pc*
 g:html_use_xhtml	syntax.txt	/*g:html_use_xhtml*
 g:html_whole_filler	syntax.txt	/*g:html_whole_filler*
+g:macvim_default_touchbar_characterpicker	gui_mac.txt	/*g:macvim_default_touchbar_characterpicker*
 g:macvim_default_touchbar_fullscreen	gui_mac.txt	/*g:macvim_default_touchbar_fullscreen*
 g:netrw_altfile	pi_netrw.txt	/*g:netrw_altfile*
 g:netrw_alto	pi_netrw.txt	/*g:netrw_alto*
@@ -7803,8 +7804,13 @@ macvim-tablabel	gui_mac.txt	/*macvim-tablabel*
 macvim-todo	gui_mac.txt	/*macvim-todo*
 macvim-toolbar	gui_mac.txt	/*macvim-toolbar*
 macvim-touchbar	gui_mac.txt	/*macvim-touchbar*
+macvim-touchbar-characterpicker	gui_mac.txt	/*macvim-touchbar-characterpicker*
 macvim-touchbar-defaults	gui_mac.txt	/*macvim-touchbar-defaults*
+macvim-touchbar-emoji	gui_mac.txt	/*macvim-touchbar-emoji*
 macvim-touchbar-fullscreen	gui_mac.txt	/*macvim-touchbar-fullscreen*
+macvim-touchbar-icon	gui_mac.txt	/*macvim-touchbar-icon*
+macvim-touchbar-separator	gui_mac.txt	/*macvim-touchbar-separator*
+macvim-touchbar-title	gui_mac.txt	/*macvim-touchbar-title*
 macvim-url-handler	gui_mac.txt	/*macvim-url-handler*
 macvim-user-defaults	gui_mac.txt	/*macvim-user-defaults*
 macvim-window-title	gui_mac.txt	/*macvim-window-title*
@@ -8618,6 +8624,7 @@ progname-variable	eval.txt	/*progname-variable*
 progpath-variable	eval.txt	/*progpath-variable*
 progress.vim	syntax.txt	/*progress.vim*
 prompt-buffer	channel.txt	/*prompt-buffer*
+prompt_getprompt()	eval.txt	/*prompt_getprompt()*
 prompt_setcallback()	eval.txt	/*prompt_setcallback()*
 prompt_setinterrupt()	eval.txt	/*prompt_setinterrupt()*
 prompt_setprompt()	eval.txt	/*prompt_setprompt()*
