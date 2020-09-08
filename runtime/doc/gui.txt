@@ -837,7 +837,7 @@ The window toolbar uses the ToolbarLine and ToolbarButton highlight groups.
 When splitting the window the window toolbar is not copied to the new window.
 
 							*popup-menu*
-In the Win32, GTK+, Motif, Athena and Photon GUI, you can define the
+In the Win32, MacVim, GTK+, Motif, Athena and Photon GUI, you can define the
 special menu "PopUp".  This is the menu that is displayed when the right mouse
 button is pressed, if 'mousemodel' is set to popup or popup_setpos.
 Example: >
@@ -967,13 +967,14 @@ See section |42.4| in the user manual.
 
 							*:tmenu* *:tm*
 :tm[enu] {menupath} {rhs}	Define a tip for a menu or tool.  {only in
-				X11 and Win32 GUI}
+				X11, MacVim, and Win32 GUI}
 
-:tm[enu] [menupath]		List menu tips. {only in X11 and Win32 GUI}
+:tm[enu] [menupath]		List menu tips. {only in X11, MacVim, and
+				Win32 GUI}
 
 							*:tunmenu* *:tu*
 :tu[nmenu] {menupath}		Remove a tip for a menu or tool.
-				{only in X11 and Win32 GUI}
+				{only in X11, MacVim, and Win32 GUI}
 
 Note: To create menus for terminal mode, use |:tlmenu| instead.
 
@@ -993,8 +994,9 @@ The tip is defined like this: >
 And delete it with: >
 	:tunmenu MyMenu.Hello
 
-Tooltips are currently only supported for the X11 and Win32 GUI.  However, they
-should appear for the other gui platforms in the not too distant future.
+Tooltips are currently only supported for the X11, MacVim, and Win32 GUI.
+However, they should appear for the other gui platforms in the not too distant
+future.
 
 The ":tmenu" command works just like other menu commands, it uses the same
 arguments.  ":tunmenu" deletes an existing menu tip, in the same way as the
