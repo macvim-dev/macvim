@@ -514,10 +514,17 @@ icon can be found a warning triangle is displayed instead.
 ==============================================================================
 8. Touch Bar						*macvim-touchbar*
 
-Touch Bar in MacVim works similar to the toolbar (see |macvim-toolbar|).  The
-difference is that you use the special menu "TouchBar" instead of "ToolBar": >
+Touch Bar in MacVim is configurable, and works similar to the toolbar (see
+|macvim-toolbar|).  The difference is that you use the special menu "TouchBar"
+instead of "ToolBar": >
 	:an TouchBar.Hello          :echo "Hello"<CR>
-
+<
+You can also create submenus. Due to macOS restrictions, submenus can only be
+one level deep: >
+	:an TouchBar.Navigate.Next  :next<CR>
+	:an TouchBar.Navigate.Prev  :prev<CR>
+<
+						*macvim-touchbar-separator*
 The separators work similar to how toolbars work: >
 	:an TouchBar.-Sep-          <Nop>
 	:an TouchBar.-space1-       <Nop>
@@ -530,24 +537,45 @@ separator and are specified by names that begin with "-space" and ends with
 that items after it will be right-aligned, and is specified by names that
 begin with "-flexspace" and ends with "-".
 
+						*macvim-touchbar-icon*
 You can specify icons for Touch Bar buttons the same way for toolbar icons.
 Touch Bar icons should ideally be 36x36 pixels, and no larger than 44x44
 pixels. You can also use default template icons provided by Apple by using
 their template names. An example: >
-	:an icon=NSTouchBarListViewTemplate TouchBar.ShowList <Nop>
+	:an icon=NSTouchBarListViewTemplate TouchBar.ShowList :ls<CR>
+<
+						*macvim-touchbar-title*
+By default, the TouchBar buttons will use the menu names as the title. If an
+icon is specified, the title will not be shown. You can override this by using
+|tmenu| to set a tooltip. The tooltip will be displayed as the title of the
+button. If an icon is specified, the tooltip override will be shown alongside
+the icion. Example: >
+	:an icon=NSTouchBarAddTemplate TouchBar.AddItem <Nop>
+	:tmenu TouchBar.AddItem Add an Item
+<
+			*macvim-touchbar-characterpicker* *macvim-touchbar-emoji*
+You can also insert emojis by adding a character picker button (specified by
+using a name that begin wtih "-characterpicker" and ends with "-"): >
+	:inoremenu TouchBar.-characterpicker-	<Nop>
 
 This feature only works on Mac devices that come with Touch Bars. On the ones
 that don't, nothing will show up.
 
-						    *macvim-touchbar-defaults*
+						*macvim-touchbar-defaults*
 Here is a list of default Touch Bar buttons that MacVim sets up:
 
-					*macvim-touchbar-fullscreen*
+						*macvim-touchbar-fullscreen*
 					*g:macvim_default_touchbar_fullscreen*
 EnterFullScreen		Touch Bar buttons that allow you to toggle
-ExitFullScreen		|'fullscreen'| mode. To disable the button, add the
-			following to your vimrc file: >
+ExitFullScreen		|'fullscreen'| mode. To disable, add the following to
+			your vimrc file: >
 			  let g:macvim_default_touchbar_fullscreen=0
+<
+				*g:macvim_default_touchbar_characterpicker*
+-characterpicker-	Character picker that lets you add special characters
+			and emojis in insert and terminal modes. To disable,
+			add the following to your vimrc file: >
+			  let g:macvim_default_touchbar_characterpicker=0
 
 ==============================================================================
 9. Dialogs						*macvim-dialogs*

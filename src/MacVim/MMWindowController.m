@@ -1083,7 +1083,7 @@
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
 - (IBAction)vimTouchbarItemAction:(id)sender
 {
-    NSArray *desc = [NSArray arrayWithObjects:@"TouchBar", [sender title], nil];
+    NSArray *desc = [sender desc];
     NSDictionary *attrs = [NSDictionary dictionaryWithObject:desc
                                                       forKey:@"descriptor"];
     [vimController sendMessage:ExecuteMenuMsgID data:[attrs dictionaryAsData]];

@@ -12,6 +12,7 @@
 
 
 @class MMWindowController;
+@class MMTouchBarInfo;
 
 
 
@@ -34,10 +35,7 @@
     NSToolbar           *toolbar;
     NSMutableDictionary *toolbarItemDict;
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
-    NSTouchBar          *touchbar;
-    NSMutableDictionary *touchbarItemDict;
-    NSMutableArray      *touchbarItemOrder;
-    NSMutableSet        *touchbarDisabledItems;
+    MMTouchBarInfo      *touchbarInfo;
 #endif
 
     int                 pid;
