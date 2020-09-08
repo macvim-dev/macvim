@@ -124,7 +124,7 @@ These are the non-standard commands that MacVim supports:
 
                                                        *macvim-autocommands*
 These are the non-standard events that MacVim supports:
-       |OSAppearanceChanged|
+	|OSAppearanceChanged|
 
 							*macvim-find*
 Whenever you search for something in Vim (e.g. using "/"), or hit <D-e> when
@@ -761,6 +761,8 @@ See the section on |key-mapping| for more help on how to map keys.
 ==============================================================================
 14. International					*macvim-international*
 
+Typing text ~
+
 When editing non-English text it may be convenient to keep separate keyboard
 layouts for normal and insert mode.  This is supported via the 'imd' option on
 macOS 10.5 or later (on 10.4 the 'imd' option support is not as useful as it
@@ -779,6 +781,13 @@ set (i.e when IM is enabled).  If you find that MacVim switches to the
 wrong layout when going back to normal mode, then select the layout you want
 to use in normal mode and type ":set imd" followed by ":set noimd".
 
+Translations ~
+
+MacVim uses localized Vim messages (see |multilang-messages|), but there are
+MacVim-specific messages that are not currently localized. Please file an
+issue if you would like to see certain messages localized. Menus
+(|multilang-menus|) are currently not localized in MacVim.
+
 ==============================================================================
 15. Known bugs/missing features				*macvim-todo*
 
@@ -788,22 +797,24 @@ prominent bugs/missing features.
 - Under macOS Mojave (10.14), the default renderer (Core Text renderer) has
   some performance issues and scrolling is not as smooth as previous macOS
   versions (10.13 or below).
+- Sound.  MacVim does not currently support |+sound| yet.
+- |modifyOtherKeys| support.  This feature allows for more granular key
+  mapping (e.g. differentiating <C-I> and <Tab>) and isn't supported by the
+  MacVim GUI yet.
 - Localized menus are not supported.  Choosing anything but "English" in the
   "International" pane of "System Prefences" may break the menus (and
   toolbar).
-- Some Unicode characters are not handled well (e.g. nonspacing marks)
 - Sometimes multibyte characters look "too wide", i.e. they overlap the
   following character.  It might help to change 'ambiwidth', or override the
   automatic font substitution by setting 'guifontwide' manually.
 - Printing.  As a temporary solution <D-p> creates a PostScript file which is
-  then opened in Preview where it may be printed.
-- The toolbar looks ugly and is not very useful.
+  then opened in Preview where it may be printed. See |hardcopy|.
 
-Other bugs and issues are tracked on Github. If you find new bugs then please
-file an issue there: >
+Other bugs and issues are tracked on Github.  If you find new bugs or have
+feature requests then please file an issue there: >
 	https://github.com/macvim-dev/macvim/issues
 
-There is also a vim_mac mailing list. You can also post your findings of bugs
+There is also a vim_mac mailing list.  You can also post your findings of bugs
 and issues there as well:				*vim_mac_group*   >
 	http://groups.google.com/group/vim_mac
 
@@ -815,6 +826,12 @@ general questions about MacVim.
 
 In this section some general (not necessarily MacVim specific) hints are
 given.
+
+Scenario: ~
+You would like to remap Caps Lock to Esc.
+Solution: ~
+Go to System Preferences → Keyboard → Modifier Keys…, and map Caps Lock Key to
+Escape.
 
 Scenario: ~
 You try opening a bunch of files in tabs but not all files get opened in their
@@ -853,11 +870,15 @@ Solution: ~
 This is a known problem, see |macvim-todo|.
 
 Scenario: ~
-When you click the (green) zoom button you want the window to maximize
-horizontally as well as vertically.
+When you click the (green) full screen button you want the window to maximize
+instead of going full screen. You would also like it to maximize both
+horizontally and vertically.
 Solution: ~
-Hold down Cmd and click the zoom button.  If you prefer this to be the default
-action, then set the user default MMZoomBoth (see |macvim-prefs|).
+Hole down Option, and the full screen button will become the zoom button,
+which will by default only maximize vertically.
+To maximize in both directions, hold down Cmd and click the zoom button.  If
+you prefer this to be the default action, then set the user default MMZoomBoth
+(see |macvim-prefs|).
 
 Scenario: ~
 Typing feels sluggish when the cursor is just before a right bracket (i.e.
@@ -896,18 +917,6 @@ bring up an editor, you would set that option to something like: >
 (See the above Scenario for an explanation of the "-f" switch.)
 
 Scenario: ~
-You would like to remap Caps Lock to Esc.
-Solution: ~
-The app "PCKeyboardHack" can be used to remap Caps Lock.  It is available as a
-free download from: >
-	http://pqrs.org/macosx/keyremap4macbook/extra.html
-On some Apple keyboards the Caps Lock key doesn't immediately register and
-this makes Caps Lock "drop" key presses.  To work around this problem go into
-the "Keyboard" System Preference and remap Caps Lock to Ctrl first (click the
-"Modifier Keys..." button).  This trick may also be necessary if the Caps Lock
-light turns on/off despite having remapped to Esc.
-
-Scenario: ~
 You have problems creating custom mappings involving the Cmd key.
 Solution: ~
 To bind to a key involving Cmd you use the "<D-..>" syntax.  Many Cmd-key
@@ -921,6 +930,7 @@ Scenario: ~
 You can't find the information on MacVim you thought should be in this manual
 page.
 Solution: ~
-Post your question on the |vim_mac| mailing list and wait for an answer.
+Post your question on the |vim_mac| mailing list or file an issue at
+https://github.com/macvim-dev/macvim/issues.
 
  vim:tw=78:sw=4:ts=8:noet:ft=help:norl:
