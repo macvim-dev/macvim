@@ -203,6 +203,7 @@ extern const char * const MMVimMsgIDStrings[];
     MSG(RemoveMenuItemMsgID) \
     MSG(EnableMenuItemMsgID) \
     MSG(ExecuteMenuMsgID) \
+    MSG(UpdateMenuItemTooltipMsgID) \
     MSG(ShowToolbarMsgID) \
     MSG(ToggleToolbarMsgID) \
     MSG(CreateScrollbarMsgID) \

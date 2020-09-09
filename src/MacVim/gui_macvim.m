@@ -895,6 +895,22 @@ gui_mch_show_popupmenu(vimmenu_T *menu)
 
 
 /*
+ * Update a menu's tooltip.
+ */
+    void
+gui_mch_menu_set_tip(vimmenu_T *menu)
+{
+    char_u *tip = menu->strings[MENU_INDEX_TIP];
+    NSArray *desc = descriptor_for_menu(menu);
+    [[MMBackend sharedInstance] queueMessage:UpdateMenuItemTooltipMsgID properties:
+        [NSDictionary dictionaryWithObjectsAndKeys:
+            desc, @"descriptor",
+            [NSString stringWithVimString:tip], @"tip",
+            nil]];
+}
+
+
+/*
  * This is called when a :popup command is executed.
  */
     void
