@@ -729,6 +729,15 @@ need_type(
 	cctx_T	*cctx,
 	int	silent)
 {
+    if (expected == &t_bool && actual != &t_bool
+					&& (actual->tt_flags & TTFLAG_BOOL_OK))
+    {
+	// Using "0", "1" or the result of an expression with "&&" or "||" as a
+	// boolean is OK but requires a conversion.
+	generate_2BOOL(cctx, FALSE);
+	return OK;
+    }
+
     if (check_type(expected, actual, FALSE, 0) == OK)
 	return OK;
     if (actual->tt_type != VAR_ANY
@@ -751,12 +760,25 @@ need_type(
 generate_PUSHNR(cctx_T *cctx, varnumber_T number)
 {
     isn_T	*isn;
+    garray_T	*stack = &cctx->ctx_type_stack;
 
     RETURN_OK_IF_SKIP(cctx);
     if ((isn = generate_instr_type(cctx, ISN_PUSHNR, &t_number)) == NULL)
 	return FAIL;
     isn->isn_arg.number = number;
 
+    if (number == 0 || number == 1)
+    {
+	type_T	*type = alloc_type(cctx->ctx_type_list);
+
+	// A 0 or 1 number can also be used as a bool.
+	if (type != NULL)
+	{
+	    type->tt_type = VAR_NUMBER;
+	    type->tt_flags = TTFLAG_BOOL_OK;
+	    ((type_T **)stack->ga_data)[stack->ga_len - 1] = type;
+	}
+    }
     return OK;
 }
 
@@ -1564,6 +1586,22 @@ generate_MULT_EXPR(cctx_T *cctx, isntype_T isn_type, int count)
 	return FAIL;
     isn->isn_arg.number = count;
 
+    return OK;
+}
+
+/*
+ * Generate an ISN_PUT instruction.
+ */
+    static int
+generate_PUT(cctx_T *cctx, int regname, linenr_T lnum)
+{
+    isn_T	*isn;
+
+    RETURN_OK_IF_SKIP(cctx);
+    if ((isn = generate_instr(cctx, ISN_PUT)) == NULL)
+	return FAIL;
+    isn->isn_arg.put.put_regname = regname;
+    isn->isn_arg.put.put_lnum = lnum;
     return OK;
 }
 
@@ -3897,6 +3935,8 @@ compile_and_or(
     {
 	garray_T	*instr = &cctx->ctx_instr;
 	garray_T	end_ga;
+	garray_T	*stack = &cctx->ctx_type_stack;
+	type_T		**typep;
 
 	/*
 	 * Repeat until there is no following "||" or "&&"
@@ -3956,6 +3996,20 @@ compile_and_or(
 	    isn->isn_arg.jump.jump_where = instr->ga_len;
 	}
 	ga_clear(&end_ga);
+
+	// The resulting type can be used as a bool.
+	typep = ((type_T **)stack->ga_data) + stack->ga_len - 1;
+	if (*typep != &t_bool)
+	{
+	    type_T *type = alloc_type(cctx->ctx_type_list);
+
+	    if (type != NULL)
+	    {
+		*type = **typep;
+		type->tt_flags |= TTFLAG_BOOL_OK;
+		*typep = type;
+	    }
+	}
     }
 
     return OK;
@@ -6272,6 +6326,50 @@ compile_mult_expr(char_u *arg, int cmdidx, cctx_T *cctx)
 }
 
 /*
+ * :put r
+ * :put ={expr}
+ */
+    static char_u *
+compile_put(char_u *arg, exarg_T *eap, cctx_T *cctx)
+{
+    char_u	*line = arg;
+    linenr_T	lnum;
+    char	*errormsg;
+    int		above = FALSE;
+
+    if (*arg == '!')
+    {
+	above = TRUE;
+	line = skipwhite(arg + 1);
+    }
+    eap->regname = *line;
+
+    if (eap->regname == '=')
+    {
+	char_u *p = line + 1;
+
+	if (compile_expr0(&p, cctx) == FAIL)
+	    return NULL;
+	line = p;
+    }
+    else if (eap->regname != NUL)
+	++line;
+
+    // TODO: if the range is something like "$" need to evaluate at runtime
+    if (parse_cmd_address(eap, &errormsg, FALSE) == FAIL)
+	return NULL;
+    if (eap->addr_count == 0)
+	lnum = -1;
+    else
+	lnum = eap->line2;
+    if (above)
+	--lnum;
+
+    generate_PUT(cctx, eap->regname, lnum);
+    return line;
+}
+
+/*
  * A command that is not compiled, execute with legacy code.
  */
     static char_u *
@@ -6870,6 +6968,11 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    line = compile_mult_expr(p, ea.cmdidx, &cctx);
 		    break;
 
+	    case CMD_put:
+		    ea.cmd = cmd;
+		    line = compile_put(p, &ea, &cctx);
+		    break;
+
 	    // TODO: any other commands with an expression argument?
 
 	    case CMD_append:
@@ -7192,6 +7295,7 @@ delete_instr(isn_T *isn)
 	case ISN_PUSHF:
 	case ISN_PUSHNR:
 	case ISN_PUSHSPEC:
+	case ISN_PUT:
 	case ISN_RETURN:
 	case ISN_SHUFFLE:
 	case ISN_SLICE:

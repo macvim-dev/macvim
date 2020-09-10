@@ -495,7 +495,7 @@ static funcentry_T global_functions[] =
     {"assert_equal",	2, 3, FEARG_2,	  ret_number,	f_assert_equal},
     {"assert_equalfile", 2, 3, FEARG_1,	  ret_number,	f_assert_equalfile},
     {"assert_exception", 1, 2, 0,	  ret_number,	f_assert_exception},
-    {"assert_fails",	1, 4, FEARG_1,	  ret_number,	f_assert_fails},
+    {"assert_fails",	1, 5, FEARG_1,	  ret_number,	f_assert_fails},
     {"assert_false",	1, 2, FEARG_1,	  ret_number,	f_assert_false},
     {"assert_inrange",	3, 4, FEARG_3,	  ret_number,	f_assert_inrange},
     {"assert_match",	2, 3, FEARG_2,	  ret_number,	f_assert_match},
@@ -7919,7 +7919,7 @@ f_split(typval_T *argvars, typval_T *rettv)
 	if (pat == NULL)
 	    typeerr = TRUE;
 	if (argvars[2].v_type != VAR_UNKNOWN)
-	    keepempty = (int)tv_get_number_chk(&argvars[2], &typeerr);
+	    keepempty = (int)tv_get_bool_chk(&argvars[2], &typeerr);
     }
     if (pat == NULL || *pat == NUL)
 	pat = (char_u *)"[\\x01- ]\\+";
@@ -8065,7 +8065,7 @@ f_str2nr(typval_T *argvars, typval_T *rettv)
 	    emsg(_(e_invarg));
 	    return;
 	}
-	if (argvars[2].v_type != VAR_UNKNOWN && tv_get_number(&argvars[2]))
+	if (argvars[2].v_type != VAR_UNKNOWN && tv_get_bool(&argvars[2]))
 	    what |= STR2NR_QUOTE;
     }
 
@@ -8190,12 +8190,12 @@ f_strlen(typval_T *argvars, typval_T *rettv)
 f_strchars(typval_T *argvars, typval_T *rettv)
 {
     char_u		*s = tv_get_string(&argvars[0]);
-    int			skipcc = 0;
+    int			skipcc = FALSE;
     varnumber_T		len = 0;
     int			(*func_mb_ptr2char_adv)(char_u **pp);
 
     if (argvars[1].v_type != VAR_UNKNOWN)
-	skipcc = (int)tv_get_number_chk(&argvars[1], NULL);
+	skipcc = (int)tv_get_bool(&argvars[1]);
     if (skipcc < 0 || skipcc > 1)
 	emsg(_(e_invarg));
     else
@@ -8435,7 +8435,7 @@ f_submatch(typval_T *argvars, typval_T *rettv)
 	return;
     }
     if (argvars[1].v_type != VAR_UNKNOWN)
-	retList = (int)tv_get_number_chk(&argvars[1], &error);
+	retList = (int)tv_get_bool_chk(&argvars[1], &error);
     if (error)
 	return;
 

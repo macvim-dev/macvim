@@ -1373,6 +1373,7 @@ struct type_S {
 
 #define TTFLAG_VARARGS	1	    // func args ends with "..."
 #define TTFLAG_OPTARG	2	    // func arg type with "?"
+#define TTFLAG_BOOL_OK	4	    // can be converted to bool
 
 /*
  * Structure to hold an internal variable without a name.
@@ -1380,7 +1381,7 @@ struct type_S {
 typedef struct
 {
     vartype_T	v_type;
-    char	v_lock;	    // see below: VAR_LOCKED, VAR_FIXED
+    char	v_lock;	    // see below: VAR_LOCKED, VAR_FIXED, VAR_BOOL_OK
     union
     {
 	varnumber_T	v_number;	// number value
@@ -1405,8 +1406,9 @@ typedef struct
 			// allowed to mask existing functions
 
 // Values for "v_lock".
-#define VAR_LOCKED  1	// locked with lock(), can use unlock()
-#define VAR_FIXED   2	// locked forever
+#define VAR_LOCKED	1	// locked with lock(), can use unlock()
+#define VAR_FIXED	2	// locked forever
+#define VAR_BOOL_OK	4	// can be convered to bool
 
 /*
  * Structure to hold an item of a list: an internal variable without a name.
@@ -3350,6 +3352,7 @@ struct window_S
 				      // with "cursorline" set
     callback_T	w_close_cb;	    // popup close callback
     callback_T	w_filter_cb;	    // popup filter callback
+    int		w_filter_errors;    // popup filter error count
     int		w_filter_mode;	    // mode when filter callback is used
 
     win_T	*w_popup_curwin;    // close popup if curwin differs

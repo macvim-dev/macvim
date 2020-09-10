@@ -24,7 +24,7 @@
  * Allocate memory for a type_T and add the pointer to type_gap, so that it can
  * be freed later.
  */
-    static type_T *
+    type_T *
 alloc_type(garray_T *type_gap)
 {
     type_T *type;
@@ -199,16 +199,16 @@ func_type_add_arg_types(
  * Get a type_T for a typval_T.
  * "type_list" is used to temporarily create types in.
  */
-    type_T *
-typval2type(typval_T *tv, garray_T *type_gap)
+    static type_T *
+typval2type_int(typval_T *tv, garray_T *type_gap)
 {
-    type_T  *actual;
+    type_T  *type;
     type_T  *member_type;
 
     if (tv->v_type == VAR_NUMBER)
 	return &t_number;
     if (tv->v_type == VAR_BOOL)
-	return &t_bool;  // not used
+	return &t_bool;
     if (tv->v_type == VAR_STRING)
 	return &t_string;
 
@@ -276,13 +276,53 @@ typval2type(typval_T *tv, garray_T *type_gap)
 	}
     }
 
-    actual = alloc_type(type_gap);
-    if (actual == NULL)
+    type = alloc_type(type_gap);
+    if (type == NULL)
 	return NULL;
-    actual->tt_type = tv->v_type;
-    actual->tt_member = &t_any;
+    type->tt_type = tv->v_type;
+    type->tt_member = &t_any;
 
-    return actual;
+    return type;
+}
+
+/*
+ * Return TRUE if "tv" is not a bool but should be converted to bool.
+ */
+    int
+need_convert_to_bool(type_T *type, typval_T *tv)
+{
+    return type != NULL && type == &t_bool && tv->v_type != VAR_BOOL
+	    && ((tv->v_lock & VAR_BOOL_OK)
+		|| (tv->v_type == VAR_NUMBER
+		       && (tv->vval.v_number == 0 || tv->vval.v_number == 1)));
+}
+
+/*
+ * Get a type_T for a typval_T and handle VAR_BOOL_OK.
+ * "type_list" is used to temporarily create types in.
+ */
+    type_T *
+typval2type(typval_T *tv, garray_T *type_gap)
+{
+    type_T *type = typval2type_int(tv, type_gap);
+
+    if (type != NULL && type != &t_bool
+	    && ((tv->v_type == VAR_NUMBER
+		    && (tv->vval.v_number == 0 || tv->vval.v_number == 1))
+		|| (tv->v_lock & VAR_BOOL_OK)))
+    {
+	type_T *newtype = alloc_type(type_gap);
+
+	// Number 0 and 1 and expression with "&&" or "||" can also be used
+	// for bool.
+	if (newtype != NULL)
+	{
+	    *newtype = *type;
+	    newtype->tt_flags = TTFLAG_BOOL_OK;
+	    type = newtype;
+	}
+    }
+    return type;
 }
 
 /*
@@ -359,6 +399,10 @@ check_type(type_T *expected, type_T *actual, int give_msg, int argidx)
     {
 	if (expected->tt_type != actual->tt_type)
 	{
+	    if (expected->tt_type == VAR_BOOL
+					&& (actual->tt_flags & TTFLAG_BOOL_OK))
+		// Using number 0 or 1 for bool is OK.
+		return OK;
 	    if (give_msg)
 		arg_type_mismatch(expected, actual, argidx);
 	    return FAIL;

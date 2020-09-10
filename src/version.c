@@ -9,10 +9,6 @@
 
 #include "vim.h"
 
-#ifdef AMIGA
-# include <time.h>	// for time()
-#endif
-
 /*
  * Vim originated from Stevie version 3.6 (Fish disk 217) by GRWalter (Fred)
  * It has been changed beyond recognition since then.
@@ -769,6 +765,68 @@ static char *(features[]) =
 
 static int included_patches[] =
 {   /* Add new patch number below this line */
+/**/
+    1651,
+/**/
+    1650,
+/**/
+    1649,
+/**/
+    1648,
+/**/
+    1647,
+/**/
+    1646,
+/**/
+    1645,
+/**/
+    1644,
+/**/
+    1643,
+/**/
+    1642,
+/**/
+    1641,
+/**/
+    1640,
+/**/
+    1639,
+/**/
+    1638,
+/**/
+    1637,
+/**/
+    1636,
+/**/
+    1635,
+/**/
+    1634,
+/**/
+    1633,
+/**/
+    1632,
+/**/
+    1631,
+/**/
+    1630,
+/**/
+    1629,
+/**/
+    1628,
+/**/
+    1627,
+/**/
+    1626,
+/**/
+    1625,
+/**/
+    1624,
+/**/
+    1623,
+/**/
+    1622,
+/**/
+    1621,
 /**/
     1620,
 /**/

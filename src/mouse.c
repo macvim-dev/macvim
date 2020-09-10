@@ -431,7 +431,8 @@ do_mouse(
 		    insert_reg(regname, TRUE);
 		else
 		{
-		    do_put(regname, BACKWARD, 1L, fixindent | PUT_CURSEND);
+		    do_put(regname, NULL, BACKWARD, 1L,
+						      fixindent | PUT_CURSEND);
 
 		    // Repeat it with CTRL-R CTRL-O r or CTRL-R CTRL-P r
 		    AppendCharToRedobuff(Ctrl_R);
@@ -850,7 +851,7 @@ do_mouse(
 	// to this position
 	if (restart_edit != 0)
 	    where_paste_started = curwin->w_cursor;
-	do_put(regname, dir, count, fixindent | PUT_CURSEND);
+	do_put(regname, NULL, dir, count, fixindent | PUT_CURSEND);
     }
 
 #if defined(FEAT_QUICKFIX)

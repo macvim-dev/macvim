@@ -1,6 +1,7 @@
 " Test various aspects of the Vim9 script language.
 
 source check.vim
+source term_util.vim
 source view_util.vim
 source vim9.vim
 source screendump.vim
@@ -29,7 +30,7 @@ enddef
 def Test_return_something()
   assert_equal('string', ReturnString())
   assert_equal(123, ReturnNumber())
-  assert_fails('call ReturnGlobal()', 'E1029: Expected number but got string')
+  assert_fails('ReturnGlobal()', 'E1029: Expected number but got string', '', 1, 'ReturnGlobal')
 enddef
 
 def Test_missing_return()
@@ -111,7 +112,7 @@ enddef
 def Test_call_default_args()
   assert_equal('string', MyDefaultArgs())
   assert_equal('one', MyDefaultArgs('one'))
-  assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
+  assert_fails('MyDefaultArgs("one", "two")', 'E118:', '', 3, 'Test_call_default_args')
 
   assert_equal('test', MyDefaultSecond('test'))
   assert_equal('test', MyDefaultSecond('test', true))
@@ -138,7 +139,7 @@ enddef
 func Test_call_default_args_from_func()
   call assert_equal('string', MyDefaultArgs())
   call assert_equal('one', MyDefaultArgs('one'))
-  call assert_fails('call MyDefaultArgs("one", "two")', 'E118:')
+  call assert_fails('call MyDefaultArgs("one", "two")', 'E118:', '', 3, 'Test_call_default_args_from_func')
 endfunc
 
 def Test_nested_global_function()
@@ -219,10 +220,10 @@ func TakesOneArg(arg)
 endfunc
 
 def Test_call_wrong_args()
-  call CheckDefFailure(['TakesOneArg()'], 'E119:')
-  call CheckDefFailure(['TakesOneArg(11, 22)'], 'E118:')
-  call CheckDefFailure(['bufnr(xxx)'], 'E1001:')
-  call CheckScriptFailure(['def Func(Ref: func(s: string))'], 'E475:')
+  CheckDefFailure(['TakesOneArg()'], 'E119:')
+  CheckDefFailure(['TakesOneArg(11, 22)'], 'E118:')
+  CheckDefFailure(['bufnr(xxx)'], 'E1001:')
+  CheckScriptFailure(['def Func(Ref: func(s: string))'], 'E475:')
 
   let lines =<< trim END
     vim9script
@@ -244,7 +245,7 @@ def MyDefVarargs(one: string, two = 'foo', ...rest: list<string>): string
 enddef
 
 def Test_call_def_varargs()
-  call assert_fails('call MyDefVarargs()', 'E119:')
+  assert_fails('MyDefVarargs()', 'E119:', '', 1, 'Test_call_def_varargs')
   assert_equal('one,foo', MyDefVarargs('one'))
   assert_equal('one,two', MyDefVarargs('one', 'two'))
   assert_equal('one,two,three', MyDefVarargs('one', 'two', 'three'))
@@ -333,8 +334,8 @@ def Test_func_type_varargs()
   assert_equal('99text', RefDef2Arg(99))
   assert_equal('77some', RefDef2Arg(77, 'some'))
 
-  call CheckDefFailure(['let RefWrong: func(string?)'], 'E1010:')
-  call CheckDefFailure(['let RefWrong: func(?string, string)'], 'E1007:')
+  CheckDefFailure(['let RefWrong: func(string?)'], 'E1010:')
+  CheckDefFailure(['let RefWrong: func(?string, string)'], 'E1007:')
 
   let RefVarargs: func(...list<string>): string
   RefVarargs = FuncVarargs
@@ -342,8 +343,8 @@ def Test_func_type_varargs()
   assert_equal('one', RefVarargs('one'))
   assert_equal('one,two', RefVarargs('one', 'two'))
 
-  call CheckDefFailure(['let RefWrong: func(...list<string>, string)'], 'E110:')
-  call CheckDefFailure(['let RefWrong: func(...list<string>, ?string)'], 'E110:')
+  CheckDefFailure(['let RefWrong: func(...list<string>, string)'], 'E110:')
+  CheckDefFailure(['let RefWrong: func(...list<string>, ?string)'], 'E110:')
 enddef
 
 " Only varargs
@@ -355,14 +356,14 @@ def Test_call_varargs_only()
   assert_equal('', MyVarargsOnly())
   assert_equal('one', MyVarargsOnly('one'))
   assert_equal('one,two', MyVarargsOnly('one', 'two'))
-  call CheckDefFailure(['MyVarargsOnly(1)'], 'E1013: argument 1: type mismatch, expected string but got number')
-  call CheckDefFailure(['MyVarargsOnly("one", 2)'], 'E1013: argument 2: type mismatch, expected string but got number')
+  CheckDefFailure(['MyVarargsOnly(1)'], 'E1013: argument 1: type mismatch, expected string but got number')
+  CheckDefFailure(['MyVarargsOnly("one", 2)'], 'E1013: argument 2: type mismatch, expected string but got number')
 enddef
 
 def Test_using_var_as_arg()
-  call writefile(['def Func(x: number)',  'let x = 234', 'enddef', 'defcompile'], 'Xdef')
-  call assert_fails('so Xdef', 'E1006:')
-  call delete('Xdef')
+  writefile(['def Func(x: number)',  'let x = 234', 'enddef', 'defcompile'], 'Xdef')
+  assert_fails('so Xdef', 'E1006:', '', 1, 'Func')
+  delete('Xdef')
 enddef
 
 def DictArg(arg: dict<string>)
@@ -382,12 +383,12 @@ def Test_assign_to_argument()
   ListArg(l)
   assert_equal('value', l[0])
 
-  call CheckScriptFailure(['def Func(arg: number)', 'arg = 3', 'enddef', 'defcompile'], 'E1090:')
+  CheckScriptFailure(['def Func(arg: number)', 'arg = 3', 'enddef', 'defcompile'], 'E1090:')
 enddef
 
 def Test_call_func_defined_later()
-  call assert_equal('one', g:DefinedLater('one'))
-  call assert_fails('call NotDefined("one")', 'E117:')
+  assert_equal('one', g:DefinedLater('one'))
+  assert_fails('NotDefined("one")', 'E117:', '', 2, 'Test_call_func_defined_later')
 enddef
 
 func DefinedLater(arg)
@@ -396,8 +397,8 @@ endfunc
 
 def Test_call_funcref()
   assert_equal(3, g:SomeFunc('abc'))
-  assert_fails('NotAFunc()', 'E117:') # comment after call
-  assert_fails('g:NotAFunc()', 'E117:')
+  assert_fails('NotAFunc()', 'E117:', '', 2, 'Test_call_funcref') # comment after call
+  assert_fails('g:NotAFunc()', 'E117:', '', 3, 'Test_call_funcref')
 
   let lines =<< trim END
     vim9script
@@ -523,7 +524,7 @@ enddef
 
 def Test_error_in_nested_function()
   # Error in called function requires unwinding the call stack.
-  assert_fails('call FuncWithForwardCall()', 'E1096:')
+  assert_fails('FuncWithForwardCall()', 'E1096:', '', 1, 'FuncWithForwardCall')
 enddef
 
 def Test_return_type_wrong()
@@ -704,7 +705,7 @@ def Test_vim9script_call_fail_const()
     defcompile
   END
   writefile(lines, 'Xcall_const.vim')
-  assert_fails('source Xcall_const.vim', 'E46:')
+  assert_fails('source Xcall_const.vim', 'E46:', '', 1, 'MyFunc')
   delete('Xcall_const.vim')
 enddef
 
@@ -735,26 +736,26 @@ def Test_delfunc()
     CallGoneSoon()
   END
   writefile(lines, 'XToDelFunc')
-  assert_fails('so XToDelFunc', 'E933:')
-  assert_fails('so XToDelFunc', 'E933:')
+  assert_fails('so XToDelFunc', 'E933:', '', 1, 'CallGoneSoon')
+  assert_fails('so XToDelFunc', 'E933:', '', 1, 'CallGoneSoon')
 
   delete('XToDelFunc')
 enddef
 
 def Test_redef_failure()
-  call writefile(['def Func0(): string',  'return "Func0"', 'enddef'], 'Xdef')
+  writefile(['def Func0(): string',  'return "Func0"', 'enddef'], 'Xdef')
   so Xdef
-  call writefile(['def Func1(): string',  'return "Func1"', 'enddef'], 'Xdef')
+  writefile(['def Func1(): string',  'return "Func1"', 'enddef'], 'Xdef')
   so Xdef
-  call writefile(['def! Func0(): string', 'enddef', 'defcompile'], 'Xdef')
-  call assert_fails('so Xdef', 'E1027:')
-  call writefile(['def Func2(): string',  'return "Func2"', 'enddef'], 'Xdef')
+  writefile(['def! Func0(): string', 'enddef', 'defcompile'], 'Xdef')
+  assert_fails('so Xdef', 'E1027:', '', 1, 'Func0')
+  writefile(['def Func2(): string',  'return "Func2"', 'enddef'], 'Xdef')
   so Xdef
-  call delete('Xdef')
+  delete('Xdef')
 
-  call assert_equal(0, g:Func0())
-  call assert_equal('Func1', g:Func1())
-  call assert_equal('Func2', g:Func2())
+  assert_equal(0, g:Func0())
+  assert_equal('Func1', g:Func1())
+  assert_equal('Func2', g:Func2())
 
   delfunc! Func0
   delfunc! Func1
@@ -823,7 +824,7 @@ func Test_internalfunc_arg_error()
     defcompile
   END
   call writefile(l, 'Xinvalidarg')
-  call assert_fails('so Xinvalidarg', 'E118:')
+  call assert_fails('so Xinvalidarg', 'E118:', '', 1, 'FArgErr')
   let l =<< trim END
     def! FArgErr(): float
       return ceil()
@@ -831,7 +832,7 @@ func Test_internalfunc_arg_error()
     defcompile
   END
   call writefile(l, 'Xinvalidarg')
-  call assert_fails('so Xinvalidarg', 'E119:')
+  call assert_fails('so Xinvalidarg', 'E119:', '', 1, 'FArgErr')
   call delete('Xinvalidarg')
 endfunc
 
@@ -960,10 +961,10 @@ def Test_func_type_fails()
   CheckDefFailure(['let Ref1: func(?bool)', 'Ref1 = FuncTwoArgNoRet'], 'E1012: type mismatch, expected func(?bool) but got func(bool, number)')
   CheckDefFailure(['let Ref1: func(...bool)', 'Ref1 = FuncTwoArgNoRet'], 'E1012: type mismatch, expected func(...bool) but got func(bool, number)')
 
-  call CheckDefFailure(['let RefWrong: func(string ,number)'], 'E1068:')
-  call CheckDefFailure(['let RefWrong: func(string,number)'], 'E1069:')
-  call CheckDefFailure(['let RefWrong: func(bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool)'], 'E1005:')
-  call CheckDefFailure(['let RefWrong: func(bool):string'], 'E1069:')
+  CheckDefFailure(['let RefWrong: func(string ,number)'], 'E1068:')
+  CheckDefFailure(['let RefWrong: func(string,number)'], 'E1069:')
+  CheckDefFailure(['let RefWrong: func(bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool)'], 'E1005:')
+  CheckDefFailure(['let RefWrong: func(bool):string'], 'E1069:')
 enddef
 
 def Test_func_return_type()
@@ -1636,11 +1637,61 @@ def Test_spellsuggest()
   endif
 enddef
 
+def Test_split()
+  split('  aa  bb  ', '\W\+', true)->assert_equal(['', 'aa', 'bb', ''])
+enddef
+
+def Test_str2nr()
+  str2nr("1'000'000", 10, true)->assert_equal(1000000)
+enddef
+
+def Test_strchars()
+  strchars("A\u20dd", true)->assert_equal(1)
+enddef
+
+def Test_submatch()
+  let pat = 'A\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)\(.\)'
+  let Rep = {-> range(10)->map({_, v -> submatch(v, true)})->string()}
+  let actual = substitute('A123456789', pat, Rep, '')
+  let expected = "[['A123456789'], ['1'], ['2'], ['3'], ['4'], ['5'], ['6'], ['7'], ['8'], ['9']]"
+  assert_equal(expected, actual)
+enddef
+
 def Test_synID()
   new
   setline(1, "text")
   assert_equal(0, synID(1, 1, true))
   bwipe!
+enddef
+
+def Test_term_gettty()
+  if !has('terminal')
+    MissingFeature 'terminal'
+  else
+    let buf = Run_shell_in_terminal({})
+    assert_notequal('', term_gettty(buf, true))
+    StopShellInTerminal(buf)
+  endif
+enddef
+
+def Test_term_start()
+  if !has('terminal')
+    MissingFeature 'terminal'
+  else
+    botright new
+    let winnr = winnr()
+    term_start(&shell, #{curwin: true})
+    assert_equal(winnr, winnr())
+    bwipe!
+  endif
+enddef
+
+def Test_timer_paused()
+  let id = timer_start(50, {-> 0})
+  timer_pause(id, true)
+  let info = timer_info(id)
+  assert_equal(1, info[0]['paused'])
+  timer_stop(id)
 enddef
 
 def Test_win_splitmove()
@@ -1702,7 +1753,7 @@ enddef
 
 def Test_cmd_modifier()
   tab echo '0'
-  call CheckDefFailure(['5tab echo 3'], 'E16:')
+  CheckDefFailure(['5tab echo 3'], 'E16:')
 enddef
 
 def Test_restore_modifiers()
