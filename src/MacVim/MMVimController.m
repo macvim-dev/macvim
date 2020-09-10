@@ -37,13 +37,13 @@
 #import "MMWindow.h"
 
 
-static NSString *MMDefaultToolbarImageName = @"Attention";
+static NSString * const MMDefaultToolbarImageName = @"Attention";
 static int MMAlertTextFieldHeight = 22;
 
-static const NSString * const MMToolbarMenuName = @"ToolBar";
-static const NSString * const MMTouchbarMenuName = @"TouchBar";
-static const NSString * const MMPopUpMenuPrefix = @"PopUp";
-static const NSString * const MMUserPopUpMenuPrefix = @"]";
+static NSString * const MMToolbarMenuName = @"ToolBar";
+static NSString * const MMTouchbarMenuName = @"TouchBar";
+static NSString * const MMPopUpMenuPrefix = @"PopUp";
+static NSString * const MMUserPopUpMenuPrefix = @"]";
 
 // NOTE: By default a message sent to the backend will be dropped if it cannot
 // be delivered instantly; otherwise there is a possibility that MacVim will
@@ -138,6 +138,7 @@ static BOOL isUnsafeMessage(int msgid);
 - (void)addToolbarItemWithLabel:(NSString *)label
                           tip:(NSString *)tip icon:(NSString *)icon
                       atIndex:(int)idx;
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12_2
 - (void)addTouchbarItemWithLabel:(NSString *)label
                             icon:(NSString *)icon
                              tip:(NSString *)tip
@@ -151,6 +152,7 @@ static BOOL isUnsafeMessage(int msgid);
 - (BOOL)touchBarItemForDescriptor:(NSArray *)desc
                          touchBar:(MMTouchBarInfo **)touchBarPtr
                      touchBarItem:(MMTouchBarItemInfo **)touchBarItemPtr;
+#endif
 - (void)popupMenuWithDescriptor:(NSArray *)desc
                           atRow:(NSNumber *)row
                          column:(NSNumber *)col;
@@ -1109,10 +1111,12 @@ static BOOL isUnsafeMessage(int msgid);
                 pid, identifier, ex);
     }
 }
+
 + (bool) hasPopupPrefix: (NSString *) menuName
 {
     return [menuName hasPrefix:MMPopUpMenuPrefix] || [menuName hasPrefix:MMUserPopUpMenuPrefix];
 }
+
 - (NSMenuItem *)menuItemForDescriptor:(NSArray *)desc
 {
     if (!(desc && [desc count] > 0)) return nil;
