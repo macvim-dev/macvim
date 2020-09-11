@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15400" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment version="1050" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15400"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14490.70"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -224,7 +224,7 @@
                     </subviews>
                 </customView>
             </subviews>
-            <point key="canvasLocation" x="137.5" y="382"/>
+            <point key="canvasLocation" x="138" y="20"/>
         </customView>
         <customView id="hr4-G4-3ZG" userLabel="Appearance">
             <rect key="frame" x="0.0" y="0.0" width="483" height="244"/>
@@ -295,10 +295,9 @@
                     <rect key="frame" x="19" y="20" width="433" height="38"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7ie-0J-0Zr" userLabel="Auto-install updates">
+                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7ie-0J-0Zr">
                             <rect key="frame" x="189" y="19" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                            <string key="toolTip">MacVim will automatically download and install updates without prompting. The updated version will be used the next time MacVim starts.</string>
                             <buttonCell key="cell" type="check" title="Transparent" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="hzd-hj-Pth">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
@@ -323,7 +322,6 @@
                         <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Hqh-Ql-2od">
                             <rect key="frame" x="189" y="1" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
-                            <string key="toolTip">MacVim will automatically download and install updates without prompting. The updated version will be used the next time MacVim starts.</string>
                             <buttonCell key="cell" type="check" title="Hidden" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="W40-cB-m1U">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
@@ -432,7 +430,7 @@
                     </connections>
                 </button>
             </subviews>
-            <point key="canvasLocation" x="139" y="385"/>
+            <point key="canvasLocation" x="138" y="770"/>
         </customView>
     </objects>
 </document>
