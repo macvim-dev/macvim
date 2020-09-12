@@ -47,15 +47,31 @@ static void loadSymbols()
 
 @implementation MMPreferenceController
 
+- (void)windowDidLoad
+{
+#if DISABLE_SPARKLE
+    // If Sparkle is disabled in config, we don't want to show the preference pane
+    // which could be confusing as it won't do anything.
+    // After hiding the Sparkle subview, shorten the height of the General pane
+    // and move its other subviews down.
+    [sparkleUpdaterPane setHidden:YES];
+    CGFloat sparkleHeight = NSHeight(sparkleUpdaterPane.frame);
+    NSRect frame = generalPreferences.frame;
+    frame.size.height -= sparkleHeight;
+    generalPreferences.frame = frame;
+    for (NSView *subview in generalPreferences.subviews) {
+        frame = subview.frame;
+        frame.origin.y -= sparkleHeight;
+        subview.frame = frame;
+    }
+#endif
+    [super windowDidLoad];
+}
+
 - (IBAction)showWindow:(id)sender
 {
     [super setCrossFade:NO];
     [super showWindow:sender];
-    #if DISABLE_SPARKLE
-        // If Sparkle is disabled in config, we don't want to show the preference pane
-        // which could be confusing as it won't do anything.
-        [sparkleUpdaterPane setHidden:YES];
-    #endif
 }
 
 - (void)setupToolbar
