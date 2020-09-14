@@ -1419,6 +1419,11 @@
         // full-screen using :fullscreen option (including Ctrl-Cmd-f).
         [vimController sendMessage:BackingPropertiesChangedMsgID data:nil];
     }
+
+    // Sometimes full screen will de-focus the text view. This seems to happen
+    // when titlebar is configured as hidden. Simply re-assert it to make sure
+    // text is still focused.
+    [decoratedWindow makeFirstResponder:[vimView textView]];
 }
 
 - (void)windowDidFailToEnterFullScreen:(NSWindow *)window
@@ -1436,6 +1441,11 @@
     [[vimView tabBarControl] setStyleNamed:tabBarStyle];
     [self updateTablineSeparator];
     [window setFrame:preFullScreenFrame display:YES];
+
+    // Sometimes full screen will de-focus the text view. This seems to happen
+    // when titlebar is configured as hidden. Simply re-assert it to make sure
+    // text is still focused.
+    [decoratedWindow makeFirstResponder:[vimView textView]];
 }
 
 - (NSArray *)customWindowsToExitFullScreenForWindow:(NSWindow *)window
@@ -1500,6 +1510,11 @@
     }
 
     [self updateTablineSeparator];
+
+    // Sometimes full screen will de-focus the text view. This seems to happen
+    // when titlebar is configured as hidden. Simply re-assert it to make sure
+    // text is still focused.
+    [decoratedWindow makeFirstResponder:[vimView textView]];
 }
 
 - (void)windowDidFailToExitFullScreen:(NSWindow *)window
@@ -1515,6 +1530,11 @@
     [[vimView tabBarControl] setStyleNamed:tabBarStyle];
     [self updateTablineSeparator];
     [self maximizeWindow:fullScreenOptions];
+
+    // Sometimes full screen will de-focus the text view. This seems to happen
+    // when titlebar is configured as hidden. Simply re-assert it to make sure
+    // text is still focused.
+    [decoratedWindow makeFirstResponder:[vimView textView]];
 }
 
 #endif // (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
