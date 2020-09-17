@@ -875,6 +875,15 @@ find_func(char_u *name, int is_global, cctx_T *cctx)
 }
 
 /*
+ * Return TRUE if "ufunc" is a global function.
+ */
+    int
+func_is_global(ufunc_T *ufunc)
+{
+    return ufunc->uf_name[0] != K_SPECIAL;
+}
+
+/*
  * Copy the function name of "fp" to buffer "buf".
  * "buf" must be able to hold the function name plus three bytes.
  * Takes care of script-local function names.
@@ -882,7 +891,7 @@ find_func(char_u *name, int is_global, cctx_T *cctx)
     static void
 cat_func_name(char_u *buf, ufunc_T *fp)
 {
-    if (fp->uf_name[0] == K_SPECIAL)
+    if (!func_is_global(fp))
     {
 	STRCPY(buf, "<SNR>");
 	STRCAT(buf, fp->uf_name + 3);
@@ -3141,7 +3150,7 @@ def_function(exarg_T *eap, char_u *name_arg)
 	    }
 
 	    // Check for ":append", ":change", ":insert".  Not for :def.
-	    p = skip_range(p, NULL);
+	    p = skip_range(p, FALSE, NULL);
 	    if (eap->cmdidx != CMD_def
 		&& ((p[0] == 'a' && (!ASCII_ISALPHA(p[1]) || p[1] == 'p'))
 		    || (p[0] == 'c'
@@ -3337,11 +3346,11 @@ def_function(exarg_T *eap, char_u *name_arg)
 	if (fudi.fd_di == NULL)
 	{
 	    // Can't add a function to a locked dictionary
-	    if (var_check_lock(fudi.fd_dict->dv_lock, eap->arg, FALSE))
+	    if (value_check_lock(fudi.fd_dict->dv_lock, eap->arg, FALSE))
 		goto erret;
 	}
 	    // Can't change an existing function if it is locked
-	else if (var_check_lock(fudi.fd_di->di_tv.v_lock, eap->arg, FALSE))
+	else if (value_check_lock(fudi.fd_di->di_tv.v_lock, eap->arg, FALSE))
 	    goto erret;
 
 	// Give the function a sequential number.  Can only be used with a

@@ -662,6 +662,42 @@ func Test_colorcolumn()
   call delete('Xtest_colorcolumn')
 endfunc
 
+func Test_colorcolumn_bri()
+  CheckScreendump
+
+  " check 'colorcolumn' when 'breakindent' is set
+  let lines =<< trim END
+	call setline(1, 'The quick brown fox jumped over the lazy dogs')
+  END
+  call writefile(lines, 'Xtest_colorcolumn_bri')
+  let buf = RunVimInTerminal('-S Xtest_colorcolumn_bri', {'rows': 10,'columns': 40})
+  call term_sendkeys(buf, ":set co=40 linebreak bri briopt=shift:2 cc=40,41,43\<CR>")
+  call TermWait(buf)
+  call VerifyScreenDump(buf, 'Test_colorcolumn_2', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('Xtest_colorcolumn_bri')
+endfunc
+
+func Test_colorcolumn_sbr()
+  CheckScreendump
+
+  " check 'colorcolumn' when 'showbreak' is set
+  let lines =<< trim END
+	call setline(1, 'The quick brown fox jumped over the lazy dogs')
+  END
+  call writefile(lines, 'Xtest_colorcolumn_srb')
+  let buf = RunVimInTerminal('-S Xtest_colorcolumn_srb', {'rows': 10,'columns': 40})
+  call term_sendkeys(buf, ":set co=40 showbreak=+++>\\  cc=40,41,43\<CR>")
+  call TermWait(buf)
+  call VerifyScreenDump(buf, 'Test_colorcolumn_3', {})
+
+  " clean up
+  call StopVimInTerminal(buf)
+  call delete('Xtest_colorcolumn_srb')
+endfunc
+
 " This test must come before the Test_cursorline test, as it appears this
 " defines the Normal highlighting group anyway.
 func Test_1_highlight_Normalgroup_exists()
@@ -793,6 +829,38 @@ func Test_highlight_term_attr()
   call assert_equal('hi HlGrp3          term=bold,standout,underline,undercurl,italic,reverse,strikethrough', HighlightArgs('HlGrp3'))
   hi HlGrp3 term=NONE
   call assert_equal('hi HlGrp3          cleared', HighlightArgs('HlGrp3'))
+  hi clear
+endfunc
+
+" Test default highlighting is restored
+func Test_highlight_restore_defaults()
+  hi! link TestLink Identifier
+  hi! TestHi ctermbg=red
+
+  let hlTestLinkPre = HighlightArgs('TestLink')
+  let hlTestHiPre = HighlightArgs('TestHi')
+
+  " Test colorscheme
+  hi clear
+  if exists('syntax_on')
+    syntax reset
+  endif
+  let g:colors_name = 'test'
+  hi! link TestLink ErrorMsg
+  hi! TestHi ctermbg=green
+
+  " Restore default highlighting
+  colorscheme default
+  syntax on
+  " 'default' should work no matter if highlight group was cleared
+  hi def link TestLink Identifier
+  hi def TestHi ctermbg=red
+
+  let hlTestLinkPost = HighlightArgs('TestLink')
+  let hlTestHiPost = HighlightArgs('TestHi')
+
+  call assert_equal(hlTestLinkPre, hlTestLinkPost)
+  call assert_equal(hlTestHiPre, hlTestHiPost)
   hi clear
 endfunc
 
