@@ -22,7 +22,11 @@
     NSMutableArray      *vimControllers;
     NSString            *openSelectionString;
     NSMutableDictionary *pidArguments;
+
     NSMenu              *defaultMainMenu;
+    NSMenu              *currentMainMenu;
+    BOOL                mainMenuDirty;
+
     NSMenuItem          *appMenuItemTemplate;
     NSMenuItem          *recentFilesMenuItem;
     NSMutableArray      *cachedVimControllers;
@@ -44,6 +48,8 @@
 - (void)removeVimController:(id)controller;
 - (void)windowControllerWillOpen:(MMWindowController *)windowController;
 - (void)setMainMenu:(NSMenu *)mainMenu;
+- (void)markMainMenuDirty:(NSMenu *)mainMenu;
+- (void)refreshMainMenu;
 - (NSArray *)filterOpenFiles:(NSArray *)filenames;
 - (BOOL)openFiles:(NSArray *)filenames withArguments:(NSDictionary *)args;
 
