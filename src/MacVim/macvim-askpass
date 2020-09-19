@@ -3,9 +3,10 @@
 #
 # An SSH_ASKPASS command for MacOS X
 #
-# Author: Joseph Mocker, Sun Microsystems
+# Original script from:
+#   http://blog.retep.org/2009/04/09/ssh-askpass-on-osx-10-5/
+#   Author: Joseph Mocker, Sun Microsystems
 #
-# http://blog.retep.org/2009/04/09/ssh-askpass-on-osx-10-5/
 
 #
 # To use this script:
@@ -18,8 +19,7 @@ TITLE=${MACOS_ASKPASS_TITLE:-"SSH"}
 DIALOG="display dialog \"$@\" default answer \"\" with title \"$TITLE\""
 DIALOG="$DIALOG with icon caution with hidden answer"
 
-result=`osascript -e 'tell application "Finder"' -e "activate"  -e "$DIALOG" -e "text returned of result" -e 'end tell'`
-osascript -e 'tell application "MacVim"' -e "activate" -e 'end tell'
+result=`osascript -e 'tell application "MacVim"' -e "activate"  -e "$DIALOG" -e "text returned of result" -e 'end tell'`
 
 if [ "$result" = "" ]; then
     exit 1
