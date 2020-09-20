@@ -1513,6 +1513,10 @@ def Test_expr7_list()
   	2] [3,
 		4]
 
+  let llstring: list<list<string>> = [['text'], []]
+  llstring = [[], ['text']]
+  llstring = [[], []]
+
   CheckDefFailure(["let x = 1234[3]"], 'E1107:', 1)
   CheckDefExecFailure(["let x = g:anint[3]"], 'E1062:', 1)
 
@@ -1718,6 +1722,14 @@ def Test_expr7_dict()
   mixed = #{a: 234}
   mixed = #{}
 
+  let dictlist: dict<list<string>> = #{absent: [], present: ['hi']}
+  dictlist = #{absent: ['hi'], present: []}
+  dictlist = #{absent: [], present: []}
+
+  let dictdict: dict<dict<string>> = #{one: #{a: 'text'}, two: #{}}
+  dictdict = #{one: #{}, two: #{a: 'text'}}
+  dictdict = #{one: #{}, two: #{}}
+ 
   CheckDefFailure(["let x = #{a:8}"], 'E1069:', 1)
   CheckDefFailure(["let x = #{a : 8}"], 'E1068:', 1)
   CheckDefFailure(["let x = #{a :8}"], 'E1068:', 1)
@@ -2100,6 +2112,7 @@ def Test_expr7_call()
    "vim9script",
    "let x = substitute ('x', 'x', 'x', 'x')"
    ], 'E121:', 2)
+  CheckDefFailure(["let Ref = function('len' [1, 2])"], 'E1123:', 1)
 
   let auto_lines =<< trim END
       def g:some#func(): string

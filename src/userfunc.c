@@ -66,8 +66,9 @@ one_function_arg(char_u *arg, garray_T *newargs, garray_T *argtypes, int skip)
     while (ASCII_ISALNUM(*p) || *p == '_')
 	++p;
     if (arg == p || isdigit(*arg)
-	    || (p - arg == 9 && STRNCMP(arg, "firstline", 9) == 0)
-	    || (p - arg == 8 && STRNCMP(arg, "lastline", 8) == 0))
+	    || (argtypes == NULL
+		&& ((p - arg == 9 && STRNCMP(arg, "firstline", 9) == 0)
+		    || (p - arg == 8 && STRNCMP(arg, "lastline", 8) == 0))))
     {
 	if (!skip)
 	    semsg(_("E125: Illegal argument: %s"), arg);
@@ -1049,6 +1050,21 @@ cleanup_function_call(funccall_T *fc)
 	}
     }
 }
+
+/*
+ * There are two kinds of function names:
+ * 1. ordinary names, function defined with :function or :def
+ * 2. numbered functions and lambdas
+ * For the first we only count the name stored in func_hashtab as a reference,
+ * using function() does not count as a reference, because the function is
+ * looked up by name.
+ */
+    int
+func_name_refcount(char_u *name)
+{
+    return isdigit(*name) || *name == '<';
+}
+
 /*
  * Unreference "fc": decrement the reference count and free it when it
  * becomes zero.  "fp" is detached from "fc".
@@ -1161,8 +1177,9 @@ func_clear(ufunc_T *fp, int force)
  * Free a function and remove it from the list of functions.  Does not free
  * what a function contains, call func_clear() first.
  * When "force" is TRUE we are exiting.
+ * Returns OK when the function was actually freed.
  */
-    static void
+    static int
 func_free(ufunc_T *fp, int force)
 {
     // Only remove it when not done already, otherwise we would remove a newer
@@ -1172,9 +1189,13 @@ func_free(ufunc_T *fp, int force)
 
     if ((fp->uf_flags & FC_DEAD) == 0 || force)
     {
+	if (fp->uf_dfunc_idx > 0)
+	    unlink_def_function(fp);
 	VIM_CLEAR(fp->uf_name_exp);
 	vim_free(fp);
+	return OK;
     }
+    return FAIL;
 }
 
 /*
@@ -1185,7 +1206,8 @@ func_free(ufunc_T *fp, int force)
 func_clear_free(ufunc_T *fp, int force)
 {
     func_clear(fp, force);
-    if (force || fp->uf_dfunc_idx == 0 || (fp->uf_flags & FC_COPY))
+    if (force || fp->uf_dfunc_idx == 0 || func_name_refcount(fp->uf_name)
+						   || (fp->uf_flags & FC_COPY))
 	func_free(fp, force);
     else
 	fp->uf_flags |= FC_DEAD;
@@ -1730,20 +1752,6 @@ call_user_func_check(
     return error;
 }
 
-/*
- * There are two kinds of function names:
- * 1. ordinary names, function defined with :function
- * 2. numbered functions and lambdas
- * For the first we only count the name stored in func_hashtab as a reference,
- * using function() does not count as a reference, because the function is
- * looked up by name.
- */
-    static int
-func_name_refcount(char_u *name)
-{
-    return isdigit(*name) || *name == '<';
-}
-
 static funccal_entry_T *funccal_stack = NULL;
 
 /*
@@ -1886,9 +1894,13 @@ free_all_functions(void)
 		    ++skipped;
 		else
 		{
-		    func_free(fp, FALSE);
-		    skipped = 0;
-		    break;
+		    if (func_free(fp, FALSE) == OK)
+		    {
+			skipped = 0;
+			break;
+		    }
+		    // did not actually free it
+		    ++skipped;
 		}
 	    }
     }

@@ -1406,12 +1406,12 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
     RETURN_OK_IF_SKIP(cctx);
     if (argcount > regular_args && !has_varargs(ufunc))
     {
-	semsg(_(e_toomanyarg), ufunc->uf_name);
+	semsg(_(e_toomanyarg), printable_func_name(ufunc));
 	return FAIL;
     }
     if (argcount < regular_args - ufunc->uf_def_args.ga_len)
     {
-	semsg(_(e_toofewarg), ufunc->uf_name);
+	semsg(_(e_toofewarg), printable_func_name(ufunc));
 	return FAIL;
     }
 
@@ -1452,7 +1452,7 @@ generate_CALL(cctx_T *cctx, ufunc_T *ufunc, int pushed_argcount)
 		    ufunc->uf_def_status != UF_NOT_COMPILED ? ISN_DCALL
 							 : ISN_UCALL)) == NULL)
 	return FAIL;
-    if (ufunc->uf_def_status != UF_NOT_COMPILED)
+    if (isn->isn_type == ISN_DCALL)
     {
 	isn->isn_arg.dfunc.cdf_idx = ufunc->uf_dfunc_idx;
 	isn->isn_arg.dfunc.cdf_argcount = argcount;
@@ -2290,6 +2290,7 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 {
     char_u  *p = *arg;
     char_u  *whitep = *arg;
+    int	    must_end = FALSE;
 
     for (;;)
     {
@@ -2299,6 +2300,11 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 	{
 	    *arg = p + 1;
 	    return OK;
+	}
+	if (must_end)
+	{
+	    semsg(_(e_missing_comma_before_argument_str), p);
+	    return FAIL;
 	}
 
 	if (compile_expr0(&p, cctx) == FAIL)
@@ -2316,6 +2322,8 @@ compile_arguments(char_u **arg, cctx_T *cctx, int *argcount)
 	    if (*p != NUL && !VIM_ISWHITE(*p))
 		semsg(_(e_white_space_required_after_str), ",");
 	}
+	else
+	    must_end = TRUE;
 	whitep = p;
 	p = skipwhite(p);
     }
@@ -2593,6 +2601,9 @@ compile_lambda(char_u **arg, cctx_T *cctx)
 	// The return type will now be known.
 	set_function_type(ufunc);
 
+	// The function reference count will be 1.  When the ISN_FUNCREF
+	// instruction is deleted the reference count is decremented and the
+	// function is freed.
 	return generate_FUNCREF(cctx, ufunc);
     }
 
@@ -2631,8 +2642,8 @@ compile_lambda_call(char_u **arg, cctx_T *cctx)
     clear_tv(&rettv);
     ga_init2(&ufunc->uf_type_list, sizeof(type_T *), 10);
 
-    // The function will have one line: "return {expr}".
-    // Compile it into instructions.
+    // The function will have one line: "return {expr}".  Compile it into
+    // instructions so that we get any errors right now.
     compile_def_function(ufunc, TRUE, cctx);
 
     // compile the arguments
@@ -7282,7 +7293,19 @@ delete_instr(isn_T *isn)
 	    {
 		dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 					       + isn->isn_arg.funcref.fr_func;
-		func_ptr_unref(dfunc->df_ufunc);
+
+		if (func_name_refcount(dfunc->df_ufunc->uf_name))
+		    func_ptr_unref(dfunc->df_ufunc);
+	    }
+	    break;
+
+	case ISN_DCALL:
+	    {
+		dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
+					       + isn->isn_arg.dfunc.cdf_idx;
+
+		if (func_name_refcount(dfunc->df_ufunc->uf_name))
+		    func_ptr_unref(dfunc->df_ufunc);
 	    }
 	    break;
 
@@ -7330,7 +7353,6 @@ delete_instr(isn_T *isn)
 	case ISN_COMPARESPECIAL:
 	case ISN_COMPARESTRING:
 	case ISN_CONCAT:
-	case ISN_DCALL:
 	case ISN_DROP:
 	case ISN_ECHO:
 	case ISN_ECHOERR:
@@ -7422,6 +7444,18 @@ clear_def_function(ufunc_T *ufunc)
 	delete_def_function_contents(dfunc);
 	ufunc->uf_def_status = UF_NOT_COMPILED;
     }
+}
+
+/*
+ * Used when a user function is about to be deleted: remove the pointer to it.
+ * The entry in def_functions is then unused.
+ */
+    void
+unlink_def_function(ufunc_T *ufunc)
+{
+    dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data) + ufunc->uf_dfunc_idx;
+
+    dfunc->df_ufunc = NULL;
 }
 
 #if defined(EXITFREE) || defined(PROTO)

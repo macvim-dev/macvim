@@ -270,11 +270,17 @@ handle_closure_in_use(ectx_T *ectx, int free_arguments)
 {
     dfunc_T	*dfunc = ((dfunc_T *)def_functions.ga_data)
 							  + ectx->ec_dfunc_idx;
-    int		argcount = ufunc_argcount(dfunc->df_ufunc);
-    int		top = ectx->ec_frame_idx - argcount;
+    int		argcount;
+    int		top;
     int		idx;
     typval_T	*tv;
     int		closure_in_use = FALSE;
+
+    if (dfunc->df_ufunc == NULL)
+	// function was freed
+	return OK;
+    argcount = ufunc_argcount(dfunc->df_ufunc);
+    top = ectx->ec_frame_idx - argcount;
 
     // Check if any created closure is still in use.
     for (idx = 0; idx < dfunc->df_closure_count; ++idx)
@@ -761,6 +767,7 @@ call_def_function(
     sctx_T	save_current_sctx = current_sctx;
     int		breakcheck_count = 0;
     int		called_emsg_before = called_emsg;
+    int		save_suppress_errthrow = suppress_errthrow;
 
 // Get pointer to item in the stack.
 #define STACK_TV(idx) (((typval_T *)ectx.ec_stack.ga_data) + idx)
@@ -906,6 +913,9 @@ call_def_function(
     estack_push_ufunc(ufunc, 1);
     current_sctx = ufunc->uf_script_ctx;
     current_sctx.sc_version = SCRIPT_VERSION_VIM9;
+
+    // Do turn errors into exceptions.
+    suppress_errthrow = FALSE;
 
     // Decide where to start execution, handles optional arguments.
     init_instr_idx(ufunc, argc, &ectx);
@@ -1826,6 +1836,7 @@ call_def_function(
 			    // TODO: use a garray_T on ectx.
 			    SOURCING_LNUM = iptr->isn_lnum;
 			    emsg("Multiple closures not supported yet");
+			    vim_free(pt);
 			    goto failed;
 			}
 			tv->v_type = VAR_PARTIAL;
@@ -1884,7 +1895,8 @@ call_def_function(
 		    // push the next item from the list
 		    if (GA_GROW(&ectx.ec_stack, 1) == FAIL)
 			goto failed;
-		    if (++idxtv->vval.v_number >= list->lv_len)
+		    ++idxtv->vval.v_number;
+		    if (list == NULL || idxtv->vval.v_number >= list->lv_len)
 			// past the end of the list, jump to "endfor"
 			ectx.ec_iidx = iptr->isn_arg.forloop.for_end;
 		    else if (list->lv_first == &range_list_item)
@@ -2671,15 +2683,11 @@ call_def_function(
 	continue;
 
 func_return:
-	// Restore previous function. If the frame pointer is zero then there
-	// is none and we are done.
+	// Restore previous function. If the frame pointer is where we started
+	// then there is none and we are done.
 	if (ectx.ec_frame_idx == initial_frame_idx)
-	{
-	    if (handle_closure_in_use(&ectx, FALSE) == FAIL)
-		// only fails when out of memory
-		goto failed;
 	    goto done;
-	}
+
 	if (func_return(&ectx) == FAIL)
 	    // only fails when out of memory
 	    goto failed;
@@ -2698,6 +2706,10 @@ done:
     ret = OK;
 
 failed:
+    // Also deal with closures when failed, they may already be in use
+    // somewhere.
+    handle_closure_in_use(&ectx, FALSE);
+
     // When failed need to unwind the call stack.
     while (ectx.ec_frame_idx != initial_frame_idx)
 	func_return(&ectx);
@@ -2712,6 +2724,9 @@ failed_early:
 
     vim_free(ectx.ec_stack.ga_data);
     vim_free(ectx.ec_trystack.ga_data);
+
+    // Not sure if this is necessary.
+    suppress_errthrow = save_suppress_errthrow;
 
     if (ret != OK && called_emsg == called_emsg_before)
 	semsg(_(e_unknown_error_while_executing_str),
