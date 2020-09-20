@@ -1251,7 +1251,8 @@ static BOOL isUnsafeMessage(int msgid);
     [item setSubmenu:menu];
 
     NSMenu *parent = [self parentMenuForDescriptor:desc];
-    if (!parent && [MMVimController hasPopupPrefix:rootName]) {
+    const BOOL isPopup = [MMVimController hasPopupPrefix:rootName];
+    if (!parent && isPopup) {
         if ([popupMenuItems count] <= idx) {
             [popupMenuItems addObject:item];
         } else {
@@ -1271,6 +1272,8 @@ static BOOL isUnsafeMessage(int msgid);
 
     [item release];
     [menu release];
+    if (!isPopup)
+        [[MMAppController sharedInstance] markMainMenuDirty:mainMenu];
 }
 
 - (void)addMenuItemWithDescriptor:(NSArray *)desc
@@ -1350,6 +1353,9 @@ static BOOL isUnsafeMessage(int msgid);
     } else {
         [parent insertItem:item atIndex:idx];
     }
+    const BOOL isPopup = [MMVimController hasPopupPrefix:rootName];
+    if (!isPopup)
+        [[MMAppController sharedInstance] markMainMenuDirty:mainMenu];
 }
 
 - (void)removeMenuItemWithDescriptor:(NSArray *)desc
@@ -1405,6 +1411,10 @@ static BOOL isUnsafeMessage(int msgid);
         [[item menu] removeItem:item];
 
     [item release];
+
+    const BOOL isPopup = [MMVimController hasPopupPrefix:rootName];
+    if (!isPopup)
+        [[MMAppController sharedInstance] markMainMenuDirty:mainMenu];
 }
 
 - (void)enableMenuItemWithDescriptor:(NSArray *)desc state:(BOOL)on
@@ -1439,6 +1449,10 @@ static BOOL isUnsafeMessage(int msgid);
     // but at the same time Vim can set if a menu is enabled whenever it
     // wants to.
     [[self menuItemForDescriptor:desc] setTag:on];
+
+    const BOOL isPopup = [MMVimController hasPopupPrefix:rootName];
+    if (!isPopup)
+        [[MMAppController sharedInstance] markMainMenuDirty:mainMenu];
 }
     
 - (void)updateMenuItemTooltipWithDescriptor:(NSArray *)desc
@@ -1471,6 +1485,10 @@ static BOOL isUnsafeMessage(int msgid);
     }
 
     [[self menuItemForDescriptor:desc] setToolTip:tip];
+
+    const BOOL isPopup = [MMVimController hasPopupPrefix:rootName];
+    if (!isPopup)
+        [[MMAppController sharedInstance] markMainMenuDirty:mainMenu];
 }
 
 - (void)addToolbarItemToDictionaryWithLabel:(NSString *)title

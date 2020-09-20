@@ -299,7 +299,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         ASLogCrit(@"Failed to register connection with name '%@'", name);
         [connection release];  connection = nil;
     }
-    
+
 #if !DISABLE_SPARKLE
     // Sparkle is enabled (this is the default). Initialize it. It will
     // automatically check for update.
@@ -321,6 +321,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [openSelectionString release];  openSelectionString = nil;
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
     [defaultMainMenu release];  defaultMainMenu = nil;
+    currentMainMenu = nil;
     [appMenuItemTemplate release];  appMenuItemTemplate = nil;
     [updater release];  updater = nil;
 
@@ -329,6 +330,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)applicationWillFinishLaunching:(NSNotification *)notification
 {
+    // This prevents macOS from injecting "Enter Full Screen" menu item.
+    // MacVim already has a separate menu item to do that.
+    // See https://developer.apple.com/library/archive/releasenotes/AppKit/RN-AppKitOlderNotes/index.html#10_11FullScreen
+    [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"NSFullScreenMenuItemEverywhere"];
+
     // Remember the default menu so that it can be restored if the user closes
     // all editor windows.
     defaultMainMenu = [[NSApp mainMenu] retain];
@@ -862,7 +868,42 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
 - (void)setMainMenu:(NSMenu *)mainMenu
 {
-    if ([NSApp mainMenu] == mainMenu) return;
+    if (currentMainMenu == mainMenu) {
+        return;
+    }
+    currentMainMenu = mainMenu;
+    [self refreshMainMenu];
+}
+
+// Refresh the currently active main menu. This call is necessary when any
+// modification was made to the menu, because refreshMainMenu makes a copy of
+// the main menu, meaning that modifications to the original menu wouldn't be
+// reflected until refreshMainMenu is invoked.
+- (void)markMainMenuDirty:(NSMenu *)mainMenu
+{
+    if (currentMainMenu != mainMenu) {
+        // The menu being updated is not the currently set menu, so just ignore,
+        // as this is likely a background Vim window.
+        return;
+    }
+    if (!mainMenuDirty) {
+        // Mark the main menu as dirty and queue up a refresh. We don't immediately
+        // execute the refresh so that multiple calls would get batched up in one go.
+        mainMenuDirty = YES;
+        [self performSelectorOnMainThread:@selector(refreshMainMenu) withObject:nil waitUntilDone:NO];
+    }
+}
+
+- (void)refreshMainMenu
+{
+    mainMenuDirty = NO;
+
+    // Make a copy of the menu before we pass to AppKit. The main reason is
+    // that setWindowsMenu: below will inject items like "Tile Window to Left
+    // of Screen" to the Window menu, and on repeated calls it will keep adding
+    // the same item over and over again, without resolving for duplicates. Using
+    // copies help keep the source menu clean.
+    NSMenu *mainMenu = [currentMainMenu copy];
 
     // If the new menu has a "Recent Files" dummy item, then swap the real item
     // for the dummy.  We are forced to do this since Cocoa initializes the
@@ -871,7 +912,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSMenu *fileMenu = [mainMenu findFileMenu];
     if (recentFilesMenuItem && fileMenu) {
         int dummyIdx =
-                [fileMenu indexOfItemWithAction:@selector(recentFilesDummy:)];
+            [fileMenu indexOfItemWithAction:@selector(recentFilesDummy:)];
         if (dummyIdx >= 0) {
             NSMenuItem *dummyItem = [[fileMenu itemAtIndex:dummyIdx] retain];
             [fileMenu removeItemAtIndex:dummyIdx];
@@ -889,19 +930,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         }
     }
 
-    // Now set the new menu.  Notice that we keep one menu for each editor
-    // window since each editor can have its own set of menus.  When swapping
-    // menus we have to tell Cocoa where the new "MacVim", "Windows", and
-    // "Services" menu are.
-    [NSApp setMainMenu:mainMenu];
-
-    // Setting the "MacVim" (or "Application") menu ensures that it is typeset
-    // in boldface.  (The setAppleMenu: method used to be public but is now
-    // private so this will have to be considered a bit of a hack!)
-    NSMenu *appMenu = [mainMenu findApplicationMenu];
-    [NSApp performSelector:@selector(setAppleMenu:) withObject:appMenu];
-    
 #if DISABLE_SPARKLE
+    NSMenu *appMenu = [mainMenu findApplicationMenu];
+
     // If Sparkle is disabled, we want to remove the "Check for Updates" menu
     // item since it's no longer useful.
     NSMenuItem *checkForUpdatesItem = [appMenu itemAtIndex:
@@ -909,25 +940,16 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     checkForUpdatesItem.hidden = true;
 #endif
 
+    // Now set the new menu.  Notice that we keep one menu for each editor
+    // window since each editor can have its own set of menus.  When swapping
+    // menus we have to tell Cocoa where the new "MacVim", "Windows", and
+    // "Services" menu are.
+    [NSApp setMainMenu:mainMenu];
+
     NSMenu *servicesMenu = [mainMenu findServicesMenu];
     [NSApp setServicesMenu:servicesMenu];
 
     NSMenu *windowsMenu = [mainMenu findWindowsMenu];
-    if (windowsMenu) {
-        // Cocoa isn't clever enough to get rid of items it has added to the
-        // "Windows" menu so we have to do it ourselves otherwise there will be
-        // multiple menu items for each window in the "Windows" menu.
-        //   This code assumes that the only items Cocoa add are ones which
-        // send off the action makeKeyAndOrderFront:.  (Cocoa will not add
-        // another separator item if the last item on the "Windows" menu
-        // already is a separator, so we needen't worry about separators.)
-        int i, count = [windowsMenu numberOfItems];
-        for (i = count-1; i >= 0; --i) {
-            NSMenuItem *item = [windowsMenu itemAtIndex:i];
-            if ([item action] == @selector(makeKeyAndOrderFront:))
-                [windowsMenu removeItem:item];
-        }
-    }
     [NSApp setWindowsMenu:windowsMenu];
 }
 
@@ -1220,7 +1242,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                                     @"-c", @":h gui_mac", @"-c", @":res", nil]
                        workingDirectory:nil];
 }
-    
+
 - (IBAction)checkForUpdates:(id)sender
 {
 #if !DISABLE_SPARKLE
@@ -1816,7 +1838,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                 // Only opens files that already exist.
                 if ([[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
                     NSArray *filenames = [NSArray arrayWithObject:filePath];
-                    
+
                     // Look for the line and column options.
                     NSDictionary *args = nil;
                     NSString *line = [dict objectForKey:@"line"];
@@ -1831,7 +1853,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                             args = [NSDictionary dictionaryWithObject:line
                                                                forKey:@"cursorLine"];
                     }
-                    
+
                     [self openFiles:filenames withArguments:args];
                 } else {
                     NSAlert *alert = [[NSAlert alloc] init];
@@ -2198,7 +2220,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     NSString *path = [@"~/.vim" stringByExpandingTildeInPath];
     NSArray *pathsToWatch = [NSArray arrayWithObject:path];
- 
+
     fsEventStream = FSEventStreamCreate(NULL, &fsEventCallback, NULL,
             (CFArrayRef)pathsToWatch, kFSEventStreamEventIdSinceNow,
             MMEventStreamLatency, kFSEventStreamCreateFlagNone);
