@@ -545,11 +545,11 @@ their template names. An example: >
 	:an icon=NSTouchBarListViewTemplate TouchBar.ShowList :ls<CR>
 <
 						*macvim-touchbar-title*
-By default, the TouchBar buttons will use the menu names as the title. If an
+By default, the Touch Bar buttons will use the menu names as the title. If an
 icon is specified, the title will not be shown. You can override this by using
 |tmenu| to set a tooltip. The tooltip will be displayed as the title of the
 button. If an icon is specified, the tooltip override will be shown alongside
-the icion. Example: >
+the icon. Example: >
 	:an icon=NSTouchBarAddTemplate TouchBar.AddItem <Nop>
 	:tmenu TouchBar.AddItem Add an Item
 <
