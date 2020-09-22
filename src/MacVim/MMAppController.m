@@ -300,6 +300,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [connection release];  connection = nil;
     }
 
+    // Register help search handler to support search Vim docs via the Help menu
+    [NSApp registerUserInterfaceItemSearchHandler:self];
+
 #if !DISABLE_SPARKLE
     // Sparkle is enabled (this is the default). Initialize it. It will
     // automatically check for update.
@@ -951,6 +954,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     NSMenu *windowsMenu = [mainMenu findWindowsMenu];
     [NSApp setWindowsMenu:windowsMenu];
+
+    NSMenu *helpMenu = [mainMenu findHelpMenu];
+    [NSApp setHelpMenu:helpMenu];
 }
 
 - (NSArray *)filterOpenFiles:(NSArray *)filenames
@@ -1150,10 +1156,11 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     NSInteger result = [panel runModal];
 
 #if (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10)
-    if (NSModalResponseOK == result) {
+    if (NSModalResponseOK == result)
 #else
-    if (NSOKButton == result) {
+    if (NSOKButton == result)
 #endif
+    {
         // NOTE: -[NSOpenPanel filenames] is deprecated on 10.7 so use
         // -[NSOpenPanel URLs] instead.  The downside is that we have to check
         // that each URL is really a path first.
@@ -1234,13 +1241,18 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             [NSURL URLWithString:MMWebsiteString]];
 }
 
-- (IBAction)showVimHelp:(id)sender
+- (IBAction)showVimHelp:(id)sender withCmd:(NSString *)cmd
 {
     ASLogDebug(@"Open window with Vim help");
-    // Open a new window with the help window maximized.
+    // Open a new window with only the help window shown.
     [self launchVimProcessWithArguments:[NSArray arrayWithObjects:
-                                    @"-c", @":h gui_mac", @"-c", @":res", nil]
+                                    @"-c", cmd, @"-c", @":only", nil]
                        workingDirectory:nil];
+}
+
+- (IBAction)showVimHelp:(id)sender
+{
+    [self showVimHelp:sender withCmd:@":h gui_mac"];
 }
 
 - (IBAction)checkForUpdates:(id)sender
@@ -1420,6 +1432,99 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 
     return array;
 }
+
+// Begin NSUserInterfaceItemSearching implementation
+- (NSArray<NSString *> *)localizedTitlesForItem:(id)item
+{
+    return item;
+}
+
+- (void)searchForItemsWithSearchString:(NSString *)searchString
+                           resultLimit:(NSInteger)resultLimit
+                    matchedItemHandler:(void (^)(NSArray *items))handleMatchedItems
+{
+    // Search documentation tags and provide the results in a pair of (file
+    // name, tag name). Currently lazily parse the Vim's doc tags, and reuse
+    // that in future searches.
+    //
+    // Does not support plugins for now, as different Vim instances could have
+    // different plugins loaded. Theoretically it's possible to query the
+    // current Vim instance for what plugins are loaded and the tags associated
+    // with them but it's tricky especially since this function is not invoked
+    // on the main thread. Just providing Vim's builtin docs should be mostly
+    // good enough.
+
+    static BOOL parsed = NO;
+    static NSMutableArray *parsedLineComponents = nil;
+
+    @synchronized (self) {
+        if (!parsed) {
+            parsedLineComponents = [[NSMutableArray alloc]init];
+            
+            NSString *tagsFilePath = [[[NSBundle mainBundle] resourcePath]
+                                      stringByAppendingPathComponent:@"vim/runtime/doc/tags"];
+            NSString *fileContent = [NSString stringWithContentsOfFile:tagsFilePath encoding:NSUTF8StringEncoding error:NULL];
+            NSArray *lines = [fileContent componentsSeparatedByString:@"\n"];
+            
+            for (NSString *line in lines) {
+                NSArray<NSString *> *components = [line componentsSeparatedByString:@"\t"];
+                if ([components count] < 2) {
+                    continue;
+                }
+                [parsedLineComponents addObject:components];
+            }
+            
+            parsed = YES;
+        }
+    }
+
+    // Use a simple search algorithm where the string is split by whitespace and each word has to match
+    // substring in the tag. Don't do fuzzy matching or regex for simplicity for now.
+    NSArray<NSString *> *searchStrings = [searchString componentsSeparatedByString:@" "];
+
+    NSMutableArray *ret = [[[NSMutableArray alloc]init] autorelease];
+    for (NSArray<NSString *> *line in parsedLineComponents) {
+        BOOL found = YES;
+        for (NSString *curSearchString in searchStrings) {
+            if (![line[0] localizedCaseInsensitiveContainsString:curSearchString]) {
+                found = NO;
+                break;
+            }
+        }
+        if (found) {
+            // We flip the ordering because we want it to look like "file_name.txt > tag_name" in the results.
+            NSArray *foundObject = @[line[1], line[0]];
+            
+            if ([searchStrings count] == 1 && [searchString localizedCaseInsensitiveCompare:line[0]] == NSOrderedSame) {
+                // Exact match has highest priority.
+                [ret insertObject:foundObject atIndex:0];
+            }
+            else {
+                // Don't do any other prioritization for now. May add more sophisticated sorting/heuristics
+                // in the future.
+                [ret addObject:foundObject];
+            }
+        }
+    }
+
+    // Return the results to callback.
+    handleMatchedItems(ret);
+}
+
+- (void)performActionForItem:(id)item
+{
+    // When opening a help page, either open a new Vim instance, or reuse the
+    // existing one.
+    MMVimController *vimController = [self keyVimController];
+    if (vimController == nil) {
+        [self showVimHelp:self withCmd:[NSString stringWithFormat:
+                                        @":help %@", item[1]]];
+        return;
+    }
+    [vimController addVimInput:[NSString stringWithFormat:
+                                @"<C-\\><C-N>:help %@<CR>", item[1]]];
+}
+// End NSUserInterfaceItemSearching
 
 @end // MMAppController
 
