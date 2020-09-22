@@ -17,7 +17,7 @@
 @class SUUpdater;
 
 
-@interface MMAppController : NSObject <MMAppProtocol> {
+@interface MMAppController : NSObject <MMAppProtocol, NSUserInterfaceItemSearching> {
     NSConnection        *connection;
     NSMutableArray      *vimControllers;
     NSString            *openSelectionString;
@@ -62,11 +62,18 @@
 - (IBAction)selectPreviousWindow:(id)sender;
 - (IBAction)orderFrontPreferencePanel:(id)sender;
 - (IBAction)openWebsite:(id)sender;
+- (IBAction)showVimHelp:(id)sender withCmd:(NSString *)cmd;
 - (IBAction)showVimHelp:(id)sender;
 - (IBAction)checkForUpdates:(id)sender;
 - (IBAction)zoomAll:(id)sender;
 - (IBAction)stayInFront:(id)sender;
 - (IBAction)stayInBack:(id)sender;
 - (IBAction)stayLevelNormal:(id)sender;
+
+- (NSArray<NSString *> *)localizedTitlesForItem:(id)item;
+- (void)searchForItemsWithSearchString:(NSString *)searchString
+                           resultLimit:(NSInteger)resultLimit
+                    matchedItemHandler:(void (^)(NSArray *items))handleMatchedItems;
+- (void)performActionForItem:(id)item;
 
 @end

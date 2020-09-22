@@ -463,8 +463,7 @@ is not used.
 Hint: The |:macaction| command supports command-line completion so you can
 enter ":maca<Space><C-d>" to see a list of all available actions.
 
-Here is a random assortment of actions from Actions.plist which might be
-useful.  
+Here are some of the actions from Actions.plist which might be useful.  
 
 Action				Description ~
 fileOpen:			Show "File Open" dialog

@@ -178,6 +178,11 @@ NSString *MMBufferedDrawingKey            = @"MMBufferedDrawing";
     return [self findMenuContainingItemWithAction:@selector(performClose:)];
 }
 
+- (NSMenu *)findHelpMenu
+{
+    return [self findMenuContainingItemWithAction:@selector(openWebsite:)];
+}
+
 @end // NSMenu (MMExtras)
 
 
