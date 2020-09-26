@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -840,6 +840,7 @@
 				1D1C31F00EFFBFD6003FE9A5 /* Make Document Icons */,
 				528DA6671426D456003380F1 /* Copy Scripts */,
 				52283AB71EBA200C00A6F6B9 /* Copy mvim scripts */,
+				90C052E1251E889500E2D81E /* Copy vimtutor */,
 			);
 			buildRules = (
 			);
@@ -1001,6 +1002,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# Copy all the locale translation files from the po folder to\n# runtime/lang/<lang>/LC_MESSAGES/vim.mo. Need to do this because unlike normal\n# Vim, MacVim is distributed as a standalone app package and therefore we don't\n# want to install these files to a global location (e.g.\n# /usr/local/share/locale/). This is similar to how Windows installation\n# (po/Make_mvc.mak) works.\ncd \"${SRCROOT}\"/..\nmake macvim-install-languages DEST_LANG=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/vim/runtime/lang\"\n";
+			showEnvVarsInLog = 0;
+		};
+		90C052E1251E889500E2D81E /* Copy vimtutor */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy vimtutor";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "BINPATH=$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/bin\nmkdir -p \"${BINPATH}\"\ncp -a \"${SRCROOT}/../vimtutor\" \"${BINPATH}/vimtutor\"\ncp -a \"${SRCROOT}/../gvimtutor\" \"${BINPATH}/gvimtutor\"\nchmod 755 \"${BINPATH}/vimtutor\"\nchmod 755 \"${BINPATH}/gvimtutor\"\ncd \"${BINPATH}\"\nln -fs gvimtutor mvimtutor \n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

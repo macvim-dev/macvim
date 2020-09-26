@@ -906,7 +906,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // of Screen" to the Window menu, and on repeated calls it will keep adding
     // the same item over and over again, without resolving for duplicates. Using
     // copies help keep the source menu clean.
-    NSMenu *mainMenu = [currentMainMenu copy];
+    NSMenu *mainMenu = [[currentMainMenu copy] autorelease];
 
     // If the new menu has a "Recent Files" dummy item, then swap the real item
     // for the dummy.  We are forced to do this since Cocoa initializes the

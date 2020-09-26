@@ -118,6 +118,9 @@ On Unix, if Vim has been properly installed, you can start it from the shell:
 On MS-Windows you can find it in the Program/Vim menu.  Or execute
 vimtutor.bat in the $VIMRUNTIME directory.
 
+On MacVim, you can run `vimtutor` from the shell, or select "Vim Tutor" in the
+Help menu.
+
 This will make a copy of the tutor file, so that you can edit it without
 the risk of damaging the original.
    There are a few translated versions of the tutor.  To find out if yours is
