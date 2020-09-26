@@ -99,8 +99,16 @@ endif
 " Help menu
 if has("gui_macvim")
   an 9999.1 &Help.MacVim\ Help		    :h gui_mac<CR>
+  tln 9999.1 &Help.MacVim\ Help		    <C-W>:h gui_mac<CR>
   an <silent> 9999.2 Help.MacVim\ Website   <Nop>
   an 9999.3 &Help.-sep0-		    <Nop>
+endif
+if has("gui_macvim")
+  " Run vimtutor in GUI mode. Need to make sure to override the PATH so we use
+  " this app instead of accidentally opening another installed Vim/MacVim.
+  an 9999.5 &Help.Vim\ Tutor       :silent !PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&<CR>
+  tln 9999.5 &Help.Vim\ Tutor      <C-W>:silent !PATH="$VIM/../../bin":/usr/bin:/bin:/usr/sbin:/sbin $VIM/../../bin/vimtutor -g&<CR>
+  an 9999.6 &Help.-sep-vim-tutor-  <Nop>
 endif
 an 9999.10 &Help.&Overview<Tab><F1>	:help<CR>
 an 9999.20 &Help.&User\ Manual		:help usr_toc<CR>
@@ -114,6 +122,19 @@ an 9999.70 &Help.O&rphans		:help kcc<CR>
 an 9999.75 &Help.-sep2-			<Nop>
 an 9999.80 &Help.&Version		:version<CR>
 an 9999.90 &Help.&About			:intro<CR>
+
+tln 9999.10 &Help.&Overview<Tab><F1>	<C-W>:help<CR>
+tln 9999.20 &Help.&User\ Manual		<C-W>:help usr_toc<CR>
+tln 9999.30 &Help.&How-To\ Links		<C-W>:help how-to<CR>
+tln <silent> 9999.40 &Help.&Find\.\.\.	<C-W>:call <SID>Helpfind()<CR>
+tln 9999.45 &Help.-sep1-			<Nop>
+tln 9999.50 &Help.&Credits		<C-W>:help credits<CR>
+tln 9999.60 &Help.Co&pying		<C-W>:help copying<CR>
+tln 9999.70 &Help.&Sponsor/Register	<C-W>:help sponsor<CR>
+tln 9999.70 &Help.O&rphans		<C-W>:help kcc<CR>
+tln 9999.75 &Help.-sep2-			<Nop>
+tln 9999.80 &Help.&Version		<C-W>:version<CR>
+tln 9999.90 &Help.&About			<C-W>:intro<CR>
 
 fun! s:Helpfind()
   if !exists("g:menutrans_help_dialog")
