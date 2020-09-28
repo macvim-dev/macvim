@@ -744,7 +744,9 @@ func Test_menu()
 
   " Check deleting menu doesn't cause trouble.
   aunmenu Help
-  tlunmenu Help
+  if exists(':tlmenu')
+    tlunmenu Help
+  endif
   call assert_fails('menu Help', 'E329:')
 endfunc
 
