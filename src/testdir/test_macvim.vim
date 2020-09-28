@@ -1,7 +1,6 @@
 " Test for MacVim behaviors and regressions
 
 source check.vim
-source term_util.vim
 CheckFeature gui_macvim
 
 " Tests for basic existence of commands and options to make sure no
@@ -54,44 +53,4 @@ func Test_macvim_mappings()
     nnoremap <ForceClick> :let g:marker_value=5<CR>
     call feedkeys("\<ForceClick>", "xt")
     call assert_equal(5, g:marker_value)
-endfunc
-
-" Test that we correctly set the locale to have .UTF-8 if launching from the
-" Dock or the $LANG env variable is not set.
-func Test_macvim_default_locale_utf8()
-    CheckRunVimInTerminal
-    if !has('terminal') || !executable('/bin/sh')
-        return
-    endif
-    let buf = term_start('/bin/sh')
-
-    " Wait for shell prompt.
-    call WaitForAssert({-> assert_match('[$#] $', term_getline(buf, '.'))})
-
-    " Unset the $LANG environmental variable. This causes Vim to try to set a
-    " default one in macOS.
-    call term_sendkeys(buf, "unset LANG\<CR>")
-
-    " Run Vim and ask it to output the $LANG variable. It should be
-    " automatically created since it doesn't exist.
-    call term_sendkeys(buf, v:progpath
-        \              . " --clean -X"
-        \              . " -c 'echo $LANG'\<CR>")
-
-    " Wait for Vim to come up and show something in the status line.
-    let term_rows = term_getsize(buf)[0]
-    call term_wait(buf)
-    call WaitFor({-> len(term_getline(buf, term_rows)) > 0})
-
-    " Check that the locale actually has .UTF-8 in it. We can't check for
-    " "en_US.UTF-8" because we shouldn't assume what locale the tester is
-    " using.
-    call assert_match('^[a-zA-Z-_]\+\.UTF-8\>', term_getline(buf, term_rows), "Default locale doesn't have UTF-8 encoding set")
-
-    " Cleanly exist from Vim/terminal and clean up.
-    call term_sendkeys(buf, ":qall!\<CR>")
-    call term_wait(buf)
-    call WaitForAssert({-> assert_match('[$#] $', term_getline(buf, '.'))})
-    call StopShellInTerminal(buf)
-    exe buf . 'bwipe!'
 endfunc
