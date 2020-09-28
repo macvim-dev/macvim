@@ -1,4 +1,4 @@
-*eval.txt*	For Vim version 8.2.  Last change: 2020 Sep 16
+*eval.txt*	For Vim version 8.2.  Last change: 2020 Sep 22
 
 
 		  VIM REFERENCE MANUAL	  by Bram Moolenaar
@@ -2528,7 +2528,7 @@ getcmdtype()			String	return current command-line type
 getcmdwintype()			String	return current command-line window type
 getcompletion({pat}, {type} [, {filtered}])
 				List	list of cmdline completion matches
-getcurpos()			List	position of the cursor
+getcurpos([{winnr}])		List	position of the cursor
 getcwd([{winnr} [, {tabnr}]])	String	get the current working directory
 getenv({name})			String	return environment variable
 getfontname([{name}])		String	name of font being used
@@ -2653,7 +2653,10 @@ matcharg({nr})			List	arguments of |:match|
 matchdelete({id} [, {win}])	Number	delete match identified by {id}
 matchend({expr}, {pat} [, {start} [, {count}]])
 				Number	position where {pat} ends in {expr}
-matchfuzzy({list}, {str})	List	fuzzy match {str} in {list}
+matchfuzzy({list}, {str} [, {dict}])
+				List	fuzzy match {str} in {list}
+matchfuzzypos({list}, {str} [, {dict}])
+				List	fuzzy match {str} in {list}
 matchlist({expr}, {pat} [, {start} [, {count}]])
 				List	match and submatches of {pat} in {expr}
 matchstr({expr}, {pat} [, {start} [, {count}]])
@@ -2670,7 +2673,7 @@ mzeval({expr})			any	evaluate |MzScheme| expression
 nextnonblank({lnum})		Number	line nr of non-blank line >= {lnum}
 nr2char({expr} [, {utf8}])	String	single char with ASCII/UTF8 value {expr}
 or({expr}, {expr})		Number	bitwise OR
-pathshorten({expr})		String	shorten directory names in a path
+pathshorten({expr} [, {len}])	String	shorten directory names in a path
 perleval({expr})		any	evaluate |Perl| expression
 popup_atcursor({what}, {options}) Number create popup window near the cursor
 popup_beval({what}, {options})	Number	create popup window for 'ballooneval'
@@ -5270,12 +5273,19 @@ getcompletion({pat}, {type} [, {filtered}])		*getcompletion()*
 			GetPattern()->getcompletion('color')
 <
 							*getcurpos()*
-getcurpos()	Get the position of the cursor.  This is like getpos('.'), but
+getcurpos([{winid}])
+		Get the position of the cursor.  This is like getpos('.'), but
 		includes an extra "curswant" item in the list:
 		    [0, lnum, col, off, curswant] ~
 		The "curswant" number is the preferred column when moving the
 		cursor vertically.  Also see |getpos()|.
 		The first "bufnum" item is always zero.
+
+		The optional {winid} argument can specify the window.  It can
+		be the window number or the |window-ID|.  The last known
+		cursor position is returned, this may be invalid for the
+		current value of the buffer if it is not the current window.
+		If {winid} is invalid a list with zeroes is returned.
 
 		This can be used to save and restore the cursor position: >
 			let save_cursor = getcurpos()
@@ -5487,8 +5497,9 @@ getloclist({nr} [, {what}])				*getloclist()*
 					|location-list-file-window| for more
 					details.
 
-		Returns an empty Dictionary if there is no location list for
-		the window {nr} or the window is not present.
+		Returns a Dictionary with default values if there is no location
+		list for the window {nr}.
+		Returns an empty Dictionary if window {nr} does not exist.
 
 		Examples (See also |getqflist-examples|): >
 			:echo getloclist(3, {'all': 0})
@@ -7323,12 +7334,25 @@ matchend({expr}, {pat} [, {start} [, {count}]])			*matchend()*
 			GetText()->matchend('word')
 
 
-matchfuzzy({list}, {str})			*matchfuzzy()*
-		Returns a list with all the strings in {list} that fuzzy
-		match {str}. The strings in the returned list are sorted
-		based on the matching score. {str} is treated as a literal
-		string and regular expression matching is NOT supported.
-		The maximum supported {str} length is 256.
+matchfuzzy({list}, {str} [, {dict}])			*matchfuzzy()*
+		If {list} is a list of strings, then returns a list with all
+		the strings in {list} that fuzzy match {str}. The strings in
+		the returned list are sorted based on the matching score.
+
+		If {list} is a list of dictionaries, then the optional {dict}
+		argument supports the following items:
+		    key		key of the item which is fuzzy matched against
+				{str}. The value of this item should be a
+				string.
+		    text_cb	|Funcref| that will be called for every item
+				in {list} to get the text for fuzzy matching.
+				This should accept a dictionary item as the
+				argument and return the text for that item to
+				use for fuzzy matching.
+
+		{str} is treated as a literal string and regular expression
+		matching is NOT supported.  The maximum supported {str} length
+		is 256.
 
 		If there are no matching strings or there is an error, then an
 		empty list is returned. If length of {str} is greater than
@@ -7339,11 +7363,36 @@ matchfuzzy({list}, {str})			*matchfuzzy()*
 <		results in ["clay"]. >
 		   :echo getbufinfo()->map({_, v -> v.name})->matchfuzzy("ndl")
 <		results in a list of buffer names fuzzy matching "ndl". >
+		   :echo getbufinfo()->matchfuzzy("ndl", {'key' : 'name'})
+<		results in a list of buffer information dicts with buffer
+		names fuzzy matching "ndl". >
+		   :echo getbufinfo()->matchfuzzy("spl",
+						\ {'text_cb' : {v -> v.name}})
+<		results in a list of buffer information dicts with buffer
+		names fuzzy matching "spl". >
 		   :echo v:oldfiles->matchfuzzy("test")
 <		results in a list of file names fuzzy matching "test". >
 		   :let l = readfile("buffer.c")->matchfuzzy("str")
 <		results in a list of lines in "buffer.c" fuzzy matching "str".
 
+matchfuzzypos({list}, {str} [, {dict}])			*matchfuzzypos()*
+		Same as |matchfuzzy()|, but returns the list of matched
+		strings and the list of character positions where characters
+		in {str} matches.
+
+		If {str} matches multiple times in a string, then only the
+		positions for the best match is returned.
+
+		If there are no matching strings or there is an error, then a
+		list with two empty list items is returned.
+
+		Example: >
+			:echo matchfuzzypos(['testing'], 'tsg')
+<		results in [['testing'], [[0, 2, 6]]] >
+			:echo matchfuzzypos(['clay', 'lacy'], 'la')
+<		results in [['lacy', 'clay'], [[0, 1], [1, 2]]] >
+			:echo [{'text': 'hello', 'id' : 10}]->matchfuzzypos('ll', {'key' : 'text'})
+<		results in [{'id': 10, 'text': 'hello'}] [[2, 3]]
 
 matchlist({expr}, {pat} [, {start} [, {count}]])		*matchlist()*
 		Same as |match()|, but return a |List|.  The first item in the
@@ -7619,13 +7668,17 @@ or({expr}, {expr})					*or()*
 			:let bits = bits->or(0x80)
 
 
-pathshorten({expr})					*pathshorten()*
+pathshorten({expr} [, {len}])				*pathshorten()*
 		Shorten directory names in the path {expr} and return the
 		result.  The tail, the file name, is kept as-is.  The other
-		components in the path are reduced to single letters.  Leading
-		'~' and '.' characters are kept.  Example: >
+		components in the path are reduced to {len} letters in length.
+		If {len} is omitted or smaller than 1 then 1 is used (single
+		letters).  Leading '~' and '.' characters are kept.  Examples: >
 			:echo pathshorten('~/.vim/autoload/myfile.vim')
 <			~/.v/a/myfile.vim ~
+>
+			:echo pathshorten('~/.vim/autoload/myfile.vim', 2)
+<			~/.vi/au/myfile.vim ~
 		It doesn't matter if the path exists or not.
 
 		Can also be used as a |method|: >

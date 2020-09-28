@@ -363,12 +363,12 @@ endfunc
 " Test for insert path completion with completeslash option
 func Test_ins_completeslash()
   CheckMSWindows
-  
+
   call mkdir('Xdir')
   let orig_shellslash = &shellslash
   set cpt&
   new
-  
+
   set noshellslash
 
   set completeslash=
@@ -405,6 +405,28 @@ func Test_ins_completeslash()
 
   let &shellslash = orig_shellslash
   set completeslash=
+endfunc
+
+func Test_pum_stopped_by_timer()
+  CheckScreendump
+
+  let lines =<< trim END
+    call setline(1, ['hello', 'hullo', 'heeee', ''])
+    func StartCompl()
+      call timer_start(100, { -> execute('stopinsert') })
+      call feedkeys("Gah\<C-N>")
+    endfunc
+  END
+
+  call writefile(lines, 'Xpumscript')
+  let buf = RunVimInTerminal('-S Xpumscript', #{rows: 12})
+  call term_sendkeys(buf, ":call StartCompl()\<CR>")
+  call TermWait(buf, 200)
+  call term_sendkeys(buf, "k")
+  call VerifyScreenDump(buf, 'Test_pum_stopped_by_timer', {})
+
+  call StopVimInTerminal(buf)
+  call delete('Xpumscript')
 endfunc
 
 func Test_pum_with_folds_two_tabs()
@@ -652,6 +674,19 @@ func Test_complete_cmdline()
   exe "normal oabcxyz(\<C-X>\<C-V>"
   call assert_equal('abcxyz(', getline(3))
   close!
+endfunc
+
+func Test_issue_7021()
+  CheckMSWindows
+
+  let orig_shellslash = &shellslash
+  set noshellslash
+
+  set completeslash=slash
+  call assert_false(expand('~') =~ '/')
+
+  let &shellslash = orig_shellslash
+  set completeslash=
 endfunc
 
 " vim: shiftwidth=2 sts=2 expandtab

@@ -872,8 +872,7 @@ get_lval(
     while (*p == '[' || (*p == '.' && lp->ll_tv->v_type == VAR_DICT))
     {
 	if (!(lp->ll_tv->v_type == VAR_LIST && lp->ll_tv->vval.v_list != NULL)
-		&& !(lp->ll_tv->v_type == VAR_DICT
-					   && lp->ll_tv->vval.v_dict != NULL)
+		&& !(lp->ll_tv->v_type == VAR_DICT)
 		&& !(lp->ll_tv->v_type == VAR_BLOB
 					   && lp->ll_tv->vval.v_blob != NULL))
 	{
@@ -994,7 +993,20 @@ get_lval(
 		}
 	    }
 	    lp->ll_list = NULL;
+
+	    // a NULL dict is equivalent with an empty dict
+	    if (lp->ll_tv->vval.v_dict == NULL)
+	    {
+		lp->ll_tv->vval.v_dict = dict_alloc();
+		if (lp->ll_tv->vval.v_dict == NULL)
+		{
+		    clear_tv(&var1);
+		    return NULL;
+		}
+		++lp->ll_tv->vval.v_dict->dv_refcount;
+	    }
 	    lp->ll_dict = lp->ll_tv->vval.v_dict;
+
 	    lp->ll_di = dict_find(lp->ll_dict, key, len);
 
 	    // When assigning to a scope dictionary check that a function and
@@ -1201,7 +1213,7 @@ set_var_lval(
     char_u	*endp,
     typval_T	*rettv,
     int		copy,
-    int		flags,    // LET_IS_CONST, LET_FORCEIT, LET_NO_COMMAND
+    int		flags,    // ASSIGN_CONST, ASSIGN_NO_DECL
     char_u	*op)
 {
     int		cc;
@@ -1269,7 +1281,7 @@ set_var_lval(
 	{
 	    typval_T tv;
 
-	    if (flags & LET_IS_CONST)
+	    if (flags & ASSIGN_CONST)
 	    {
 		emsg(_(e_cannot_mod));
 		*endp = cc;
@@ -1307,7 +1319,7 @@ set_var_lval(
 	listitem_T *ll_li = lp->ll_li;
 	int	    ll_n1 = lp->ll_n1;
 
-	if (flags & LET_IS_CONST)
+	if (flags & ASSIGN_CONST)
 	{
 	    emsg(_("E996: Cannot lock a range"));
 	    return;
@@ -1366,7 +1378,7 @@ set_var_lval(
 	/*
 	 * Assign to a List or Dictionary item.
 	 */
-	if (flags & LET_IS_CONST)
+	if (flags & ASSIGN_CONST)
 	{
 	    emsg(_("E996: Cannot lock a list or dict"));
 	    return;
@@ -1460,8 +1472,16 @@ tv_op(typval_T *tv1, typval_T *tv2, char_u *op)
 		if (*op != '+' || tv2->v_type != VAR_LIST)
 		    break;
 		// List += List
-		if (tv1->vval.v_list != NULL && tv2->vval.v_list != NULL)
-		    list_extend(tv1->vval.v_list, tv2->vval.v_list, NULL);
+		if (tv2->vval.v_list != NULL)
+		{
+		    if (tv1->vval.v_list == NULL)
+		    {
+			tv1->vval.v_list = tv2->vval.v_list;
+			++tv1->vval.v_list->lv_refcount;
+		    }
+		    else
+			list_extend(tv1->vval.v_list, tv2->vval.v_list, NULL);
+		}
 		return OK;
 
 	    case VAR_NUMBER:
@@ -1668,7 +1688,7 @@ next_for_item(void *fi_void, char_u *arg)
 {
     forinfo_T	*fi = (forinfo_T *)fi_void;
     int		result;
-    int		flag = in_vim9script() ?  LET_NO_COMMAND : 0;
+    int		flag = in_vim9script() ?  ASSIGN_NO_DECL : 0;
     listitem_T	*item;
 
     if (fi->fi_blob != NULL)
@@ -1721,11 +1741,12 @@ set_context_for_expression(
     char_u	*arg,
     cmdidx_T	cmdidx)
 {
-    int		got_eq = FALSE;
+    int		has_expr = cmdidx != CMD_let && cmdidx != CMD_var;
     int		c;
     char_u	*p;
 
-    if (cmdidx == CMD_let || cmdidx == CMD_const)
+    if (cmdidx == CMD_let || cmdidx == CMD_var
+				 || cmdidx == CMD_const || cmdidx == CMD_final)
     {
 	xp->xp_context = EXPAND_USER_VARS;
 	if (vim_strpbrk(arg, (char_u *)"\"'+-*/%.=!?~|&$([<>,#") == NULL)
@@ -1754,8 +1775,7 @@ set_context_for_expression(
 	    if (c == '&')
 	    {
 		++xp->xp_pattern;
-		xp->xp_context = cmdidx != CMD_let || got_eq
-					 ? EXPAND_EXPRESSION : EXPAND_NOTHING;
+		xp->xp_context = has_expr ? EXPAND_EXPRESSION : EXPAND_NOTHING;
 	    }
 	    else if (c != ' ')
 	    {
@@ -1772,7 +1792,7 @@ set_context_for_expression(
 	}
 	else if (c == '=')
 	{
-	    got_eq = TRUE;
+	    has_expr = TRUE;
 	    xp->xp_context = EXPAND_EXPRESSION;
 	}
 	else if (c == '#'
@@ -1788,7 +1808,7 @@ set_context_for_expression(
 	    // Function name can start with "<SNR>" and contain '#'.
 	    break;
 	}
-	else if (cmdidx != CMD_let || got_eq)
+	else if (has_expr)
 	{
 	    if (c == '"')	    // string
 	    {

@@ -646,7 +646,7 @@ static funcentry_T global_functions[] =
     {"getcmdtype",	0, 0, 0,	  ret_string,	f_getcmdtype},
     {"getcmdwintype",	0, 0, 0,	  ret_string,	f_getcmdwintype},
     {"getcompletion",	2, 3, FEARG_1,	  ret_list_string, f_getcompletion},
-    {"getcurpos",	0, 0, 0,	  ret_list_number, f_getcurpos},
+    {"getcurpos",	0, 1, FEARG_1,	  ret_list_number, f_getcurpos},
     {"getcwd",		0, 2, FEARG_1,	  ret_string,	f_getcwd},
     {"getenv",		1, 1, FEARG_1,	  ret_string,	f_getenv},
     {"getfontname",	0, 1, 0,	  ret_string,	f_getfontname},
@@ -753,7 +753,8 @@ static funcentry_T global_functions[] =
     {"matcharg",	1, 1, FEARG_1,	  ret_list_string, f_matcharg},
     {"matchdelete",	1, 2, FEARG_1,	  ret_number,	f_matchdelete},
     {"matchend",	2, 4, FEARG_1,	  ret_number,	f_matchend},
-    {"matchfuzzy",	2, 2, FEARG_1,	  ret_list_string,	f_matchfuzzy},
+    {"matchfuzzy",	2, 3, FEARG_1,	  ret_list_string,	f_matchfuzzy},
+    {"matchfuzzypos",	2, 3, FEARG_1,	  ret_list_any,	f_matchfuzzypos},
     {"matchlist",	2, 4, FEARG_1,	  ret_list_string, f_matchlist},
     {"matchstr",	2, 4, FEARG_1,	  ret_string,	f_matchstr},
     {"matchstrpos",	2, 4, FEARG_1,	  ret_list_any,	f_matchstrpos},
@@ -778,7 +779,7 @@ static funcentry_T global_functions[] =
     {"nextnonblank",	1, 1, FEARG_1,	  ret_number,	f_nextnonblank},
     {"nr2char",		1, 2, FEARG_1,	  ret_string,	f_nr2char},
     {"or",		2, 2, FEARG_1,	  ret_number,	f_or},
-    {"pathshorten",	1, 1, FEARG_1,	  ret_string,	f_pathshorten},
+    {"pathshorten",	1, 2, FEARG_1,	  ret_string,	f_pathshorten},
     {"perleval",	1, 1, FEARG_1,	  ret_any,
 #ifdef FEAT_PERL
 	    f_perleval
@@ -1981,7 +1982,7 @@ f_deepcopy(typval_T *argvars, typval_T *rettv)
     if (argvars[1].v_type != VAR_UNKNOWN)
 	noref = (int)tv_get_bool_chk(&argvars[1], NULL);
     if (noref < 0 || noref > 1)
-	emsg(_(e_invarg));
+	semsg(_(e_using_number_as_bool_nr), noref);
     else
     {
 	copyID = get_copyID();
@@ -2435,6 +2436,12 @@ f_expand(typval_T *argvars, typval_T *rettv)
     expand_T	xpc;
     int		error = FALSE;
     char_u	*result;
+#ifdef BACKSLASH_IN_FILENAME
+    char_u	*p_csl_save = p_csl;
+
+    // avoid using 'completeslash' here
+    p_csl = empty_option;
+#endif
 
     rettv->v_type = VAR_STRING;
     if (argvars[1].v_type != VAR_UNKNOWN
@@ -2487,6 +2494,9 @@ f_expand(typval_T *argvars, typval_T *rettv)
 	else
 	    rettv->vval.v_string = NULL;
     }
+#ifdef BACKSLASH_IN_FILENAME
+    p_csl = p_csl_save;
+#endif
 }
 
 /*
@@ -2609,7 +2619,13 @@ f_feedkeys(typval_T *argvars, typval_T *rettv UNUSED)
 		    ++ex_normal_busy;
 		exec_normal(TRUE, lowlevel, TRUE);
 		if (!dangerous)
+		{
 		    --ex_normal_busy;
+#ifdef FEAT_PROP_POPUP
+		    if (ex_normal_busy == 0)
+			ex_normal_busy_done = FALSE;
+#endif
+		}
 
 		msg_scroll |= save_msg_scroll;
 	    }
@@ -3258,7 +3274,8 @@ getpos_both(
     typval_T	*rettv,
     int		getcurpos)
 {
-    pos_T	*fp;
+    pos_T	*fp = NULL;
+    win_T	*wp = curwin;
     list_T	*l;
     int		fnum = -1;
 
@@ -3266,7 +3283,16 @@ getpos_both(
     {
 	l = rettv->vval.v_list;
 	if (getcurpos)
-	    fp = &curwin->w_cursor;
+	{
+	    if (argvars[0].v_type != VAR_UNKNOWN)
+	    {
+		wp = find_win_by_nr_or_id(&argvars[0]);
+		if (wp != NULL)
+		    fp = &wp->w_cursor;
+	    }
+	    else
+		fp = &curwin->w_cursor;
+	}
 	else
 	    fp = var2fpos(&argvars[0], TRUE, &fnum);
 	if (fnum != -1)
@@ -3286,13 +3312,14 @@ getpos_both(
 	    colnr_T save_curswant = curwin->w_curswant;
 	    colnr_T save_virtcol = curwin->w_virtcol;
 
-	    update_curswant();
-	    list_append_number(l, curwin->w_curswant == MAXCOL ?
-		    (varnumber_T)MAXCOL : (varnumber_T)curwin->w_curswant + 1);
+	    if (wp == curwin)
+		update_curswant();
+	    list_append_number(l, wp == NULL ? 0 : wp->w_curswant == MAXCOL
+		    ?  (varnumber_T)MAXCOL : (varnumber_T)wp->w_curswant + 1);
 
 	    // Do not change "curswant", as it is unexpected that a get
 	    // function has a side effect.
-	    if (save_set_curswant)
+	    if (wp == curwin && save_set_curswant)
 	    {
 		curwin->w_set_curswant = save_set_curswant;
 		curwin->w_curswant = save_curswant;
@@ -8201,7 +8228,7 @@ f_strchars(typval_T *argvars, typval_T *rettv)
     if (argvars[1].v_type != VAR_UNKNOWN)
 	skipcc = (int)tv_get_bool(&argvars[1]);
     if (skipcc < 0 || skipcc > 1)
-	emsg(_(e_invarg));
+	semsg(_(e_using_number_as_bool_nr), skipcc);
     else
     {
 	func_mb_ptr2char_adv = skipcc ? mb_ptr2char_adv : mb_cptr2char_adv;

@@ -126,8 +126,8 @@ struct cctx_S {
     garray_T	ctx_locals;	    // currently visible local variables
     int		ctx_locals_count;   // total number of local variables
 
-    int		ctx_closure_count;  // number of closures created in the
-				    // function
+    int		ctx_has_closure;    // set to one if a closures was created in
+				    // the function
 
     garray_T	ctx_imports;	    // imported items
 
@@ -277,9 +277,12 @@ script_is_vim9()
 lookup_script(char_u *name, size_t len, int vim9script)
 {
     int		    cc;
-    hashtab_T	    *ht = &SCRIPT_VARS(current_sctx.sc_sid);
+    hashtab_T	    *ht;
     dictitem_T	    *di;
 
+    if (current_sctx.sc_sid <= 0)
+	return FAIL;
+    ht = &SCRIPT_VARS(current_sctx.sc_sid);
     if (vim9script && !script_is_vim9())
 	return FAIL;
     cc = name[len];
@@ -1273,7 +1276,7 @@ generate_FUNCREF(cctx_T *cctx, ufunc_T *ufunc)
     if ((isn = generate_instr(cctx, ISN_FUNCREF)) == NULL)
 	return FAIL;
     isn->isn_arg.funcref.fr_func = ufunc->uf_dfunc_idx;
-    isn->isn_arg.funcref.fr_var_idx = cctx->ctx_closure_count++;
+    cctx->ctx_has_closure = 1;
 
     if (ga_grow(stack, 1) == FAIL)
 	return FAIL;
@@ -4357,7 +4360,7 @@ exarg_getline(
 
     for (;;)
     {
-	if (cctx->ctx_lnum == cctx->ctx_ufunc->uf_lines.ga_len)
+	if (cctx->ctx_lnum >= cctx->ctx_ufunc->uf_lines.ga_len - 1)
 	    return NULL;
 	++cctx->ctx_lnum;
 	p = ((char_u **)cctx->ctx_ufunc->uf_lines.ga_data)[cctx->ctx_lnum];
@@ -4408,7 +4411,10 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	return eap->skip ? (char_u *)"" : NULL;
     if (ufunc->uf_def_status == UF_TO_BE_COMPILED
 	    && compile_def_function(ufunc, TRUE, cctx) == FAIL)
+    {
+	func_ptr_unref(ufunc);
 	return NULL;
+    }
 
     if (is_global)
     {
@@ -4556,8 +4562,12 @@ vim9_declare_error(char_u *name)
 
 /*
  * Compile declaration and assignment:
- * "let var", "let var = expr", "const var = expr" and "var = expr"
- * "arg" points to "var".
+ * "let name"
+ * "var name = expr"
+ * "final name = expr"
+ * "const name = expr"
+ * "name = expr"
+ * "arg" points to "name".
  * Return NULL for an error.
  * Return "arg" if it does not look like a variable list.
  */
@@ -4582,7 +4592,8 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     type_T	*member_type = &t_any;
     char_u	*name = NULL;
     char_u	*sp;
-    int		is_decl = cmdidx == CMD_let || cmdidx == CMD_const;
+    int		is_decl = cmdidx == CMD_let || cmdidx == CMD_var
+				 || cmdidx == CMD_final || cmdidx == CMD_const;
 
     // Skip over the "var" or "[var, var]" to get to any "=".
     p = skip_var_list(arg, TRUE, &var_count, &semicolon, TRUE);
@@ -4621,16 +4632,21 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	eap->getline = exarg_getline;
 	eap->cookie = cctx;
 	l = heredoc_get(eap, op + 3, FALSE);
+	if (l == NULL)
+	    return NULL;
 
-	// Push each line and the create the list.
-	FOR_ALL_LIST_ITEMS(l, li)
+	if (cctx->ctx_skip != SKIP_YES)
 	{
-	    generate_PUSHS(cctx, li->li_tv.vval.v_string);
-	    li->li_tv.vval.v_string = NULL;
+	    // Push each line and the create the list.
+	    FOR_ALL_LIST_ITEMS(l, li)
+	    {
+		generate_PUSHS(cctx, li->li_tv.vval.v_string);
+		li->li_tv.vval.v_string = NULL;
+	    }
+	    generate_NEWLIST(cctx, l->lv_len);
+	    type = &t_list_string;
+	    member_type = &t_list_string;
 	}
-	generate_NEWLIST(cctx, l->lv_len);
-	type = &t_list_string;
-	member_type = &t_list_string;
 	list_free(l);
 	p += STRLEN(p);
 	end = p;
@@ -4720,7 +4736,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		long	    numval;
 
 		dest = dest_option;
-		if (cmdidx == CMD_const)
+		if (cmdidx == CMD_final || cmdidx == CMD_const)
 		{
 		    emsg(_(e_const_option));
 		    goto theend;
@@ -4883,7 +4899,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			{
 			    scriptvar_idx = get_script_item_idx(scriptvar_sid,
 								rawname, TRUE);
-			    if (scriptvar_idx > 0)
+			    if (scriptvar_idx >= 0)
 			    {
 				scriptitem_T *si = SCRIPT_ITEM(scriptvar_sid);
 				svar_T	     *sv =
@@ -4959,7 +4975,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 					    && var_wrong_func_name(name, TRUE))
 		goto theend;
 	    lvar = reserve_local(cctx, var_start, varlen,
-						    cmdidx == CMD_const, type);
+			     cmdidx == CMD_final || cmdidx == CMD_const, type);
 	    if (lvar == NULL)
 		goto theend;
 	    new_local = TRUE;
@@ -5077,12 +5093,14 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			}
 			else
 			{
-			    // An empty list or dict has a &t_void member,
+			    // An empty list or dict has a &t_unknown member,
 			    // for a variable that implies &t_any.
 			    if (stacktype == &t_list_empty)
 				lvar->lv_type = &t_list_any;
 			    else if (stacktype == &t_dict_empty)
 				lvar->lv_type = &t_dict_any;
+			    else if (stacktype == &t_unknown)
+				lvar->lv_type = &t_any;
 			    else
 				lvar->lv_type = stacktype;
 			}
@@ -5107,6 +5125,11 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 		else if (*p != '=' && need_type(stacktype, member_type, -1,
 							  cctx, FALSE) == FAIL)
 		    goto theend;
+	    }
+	    else if (cmdidx == CMD_final)
+	    {
+		emsg(_(e_final_requires_a_value));
+		goto theend;
 	    }
 	    else if (cmdidx == CMD_const)
 	    {
@@ -5272,9 +5295,9 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	}
 	else
 	{
-	    if (is_decl && eap->forceit && cmdidx == CMD_const
-		    && (dest == dest_script || dest == dest_local))
-		// ":const! var": lock the value, but not referenced variables
+	    if (is_decl && cmdidx == CMD_const
+				&& (dest == dest_script || dest == dest_local))
+		// ":const var": lock the value, but not referenced variables
 		generate_LOCKCONST(cctx);
 
 	    switch (dest)
@@ -6904,7 +6927,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    // Expression or function call.
 	    if (ea.cmdidx != CMD_eval)
 	    {
-		// CMD_let cannot happen, compile_assignment() above is used
+		// CMD_var cannot happen, compile_assignment() above is used
 		iemsg("Command from find_ex_command() not handled");
 		goto erret;
 	    }
@@ -6956,6 +6979,14 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 		    break;
 
 	    case CMD_let:
+		    if (get_vim_var_nr(VV_DISALLOW_LET))
+		    {
+			emsg(_(e_cannot_use_let_in_vim9_script));
+			break;
+		    }
+		    // FALLTHROUGH
+	    case CMD_var:
+	    case CMD_final:
 	    case CMD_const:
 		    line = compile_assignment(p, &ea, ea.cmdidx, &cctx);
 		    if (line == p)
@@ -7130,7 +7161,7 @@ nextline:
 	dfunc->df_instr = instr->ga_data;
 	dfunc->df_instr_count = instr->ga_len;
 	dfunc->df_varcount = cctx.ctx_locals_count;
-	dfunc->df_closure_count = cctx.ctx_closure_count;
+	dfunc->df_has_closure = cctx.ctx_has_closure;
 	if (cctx.ctx_outer_used)
 	    ufunc->uf_flags |= FC_CLOSURE;
 	ufunc->uf_def_status = UF_COMPILED;
@@ -7304,7 +7335,8 @@ delete_instr(isn_T *isn)
 		dfunc_T *dfunc = ((dfunc_T *)def_functions.ga_data)
 					       + isn->isn_arg.dfunc.cdf_idx;
 
-		if (func_name_refcount(dfunc->df_ufunc->uf_name))
+		if (dfunc->df_ufunc != NULL
+			       && func_name_refcount(dfunc->df_ufunc->uf_name))
 		    func_ptr_unref(dfunc->df_ufunc);
 	    }
 	    break;

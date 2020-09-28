@@ -269,15 +269,17 @@ typval2type_int(typval_T *tv, garray_T *type_gap)
 
     if (tv->v_type == VAR_LIST)
     {
-	listitem_T *li;
+	list_T	    *l = tv->vval.v_list;
+	listitem_T  *li;
 
-	if (tv->vval.v_list == NULL || tv->vval.v_list->lv_first == NULL)
+	if (l == NULL || l->lv_first == NULL)
 	    return &t_list_empty;
+	if (l->lv_first == &range_list_item)
+	    return &t_list_number;
 
 	// Use the common type of all members.
-	member_type = typval2type(&tv->vval.v_list->lv_first->li_tv, type_gap);
-	for (li = tv->vval.v_list->lv_first->li_next; li != NULL;
-							     li = li->li_next)
+	member_type = typval2type(&l->lv_first->li_tv, type_gap);
+	for (li = l->lv_first->li_next; li != NULL; li = li->li_next)
 	    common_type(typval2type(&li->li_tv, type_gap),
 					  member_type, &member_type, type_gap);
 	return get_list_type(member_type, type_gap);
@@ -463,7 +465,11 @@ check_type(type_T *expected, type_T *actual, int give_msg, int argidx)
 	    && !(expected->tt_type == VAR_ANY && actual->tt_type != VAR_VOID))
 
     {
-	if (expected->tt_type != actual->tt_type)
+	// tt_type should match, except that a "partial" can be assigned to a
+	// variable with type "func".
+	if (!(expected->tt_type == actual->tt_type
+		    || (expected->tt_type == VAR_FUNC
+					   && actual->tt_type == VAR_PARTIAL)))
 	{
 	    if (expected->tt_type == VAR_BOOL
 					&& (actual->tt_flags & TTFLAG_BOOL_OK))

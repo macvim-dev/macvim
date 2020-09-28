@@ -570,25 +570,24 @@ mac_lang_init(void)
 {
     if (mch_getenv((char_u *)"LANG") == NULL)
     {
-	char	buf[20];
+	char	buf[50];
+
+	// $LANG is not set, either because it was unset or Vim was started
+	// from the Dock.  Query the system locale.
 	if (LocaleRefGetPartString(NULL,
 		    kLocaleLanguageMask | kLocaleLanguageVariantMask |
 		    kLocaleRegionMask | kLocaleRegionVariantMask,
-		    sizeof buf, buf) == noErr && *buf)
+		    sizeof(buf) - 10, buf) == noErr && *buf)
 	{
-#   ifdef FEAT_GUI_MACVIM
-	    // This usually happens when the user directly launches from the Dock
-	    // instead of terminal. macOS doesn't really provide the encoding part
-	    // in the locale API, since it assumes everything is UTF-8 anyway. We
-	    // should manually append a UTF-8 encoding component to the locale
-	    // string. This helps tools that wants to parse the encoding compoennt
-	    // of the locale.
-	    strlcat(buf, ".UTF-8", sizeof(buf)/sizeof(char));
-#   endif
-        
+	    if (strcasestr(buf, "utf-8") == NULL)
+		strcat(buf, ".UTF-8");
 	    vim_setenv((char_u *)"LANG", (char_u *)buf);
 #   ifdef HAVE_LOCALE_H
 	    setlocale(LC_ALL, "");
+#   endif
+#   if defined(FEAT_FLOAT) && defined(LC_NUMERIC)
+	    // Make sure strtod() uses a decimal point, not a comma.
+	    setlocale(LC_NUMERIC, "C");
 #   endif
 	}
     }
