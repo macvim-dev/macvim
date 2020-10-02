@@ -86,7 +86,7 @@
                                     <action selector="fileOpen:" target="235" id="277"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Open Recent" id="262">
+                            <menuItem title="Open Recent" tag="15432" id="262">
                                 <menu key="submenu" title="Open Recent" id="271">
                                     <items>
                                         <menuItem title="Clear Menu" id="272">

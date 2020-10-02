@@ -366,7 +366,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         int idx = [fileMenu indexOfItemWithAction:@selector(fileOpen:)];
         if (idx >= 0 && idx+1 < [fileMenu numberOfItems])
 
-        recentFilesMenuItem = [fileMenu itemWithTitle:@"Open Recent"];
+        recentFilesMenuItem = [fileMenu itemWithTag:15432];
         [[recentFilesMenuItem submenu] performSelector:@selector(_setMenuName:)
                                         withObject:@"NSRecentDocumentsMenu"];
 
