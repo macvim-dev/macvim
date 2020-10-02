@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17156" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
-        <deployment version="1050" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14490.70"/>
-        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+        <deployment version="1090" identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17156"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MMPreferenceController">
@@ -23,11 +22,11 @@
             <rect key="frame" x="0.0" y="0.0" width="483" height="314"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5x5-P0-afk" userLabel="Open untitled window">
+                <customView id="5x5-P0-afk" userLabel="Open untitled window">
                     <rect key="frame" x="19" y="234" width="433" height="58"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="117">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="117">
                             <rect key="frame" x="-2" y="41" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Open untitled window:" id="973">
@@ -36,7 +35,7 @@
                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
-                        <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" autosizesCells="NO" translatesAutoresizingMaskIntoConstraints="NO" id="119">
+                        <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" autosizesCells="NO" id="119">
                             <rect key="frame" x="190" y="0.0" width="243" height="58"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -68,11 +67,11 @@
                         </matrix>
                     </subviews>
                 </customView>
-                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="p6o-fo-STi" userLabel="Open files from applications">
+                <customView id="p6o-fo-STi" userLabel="Open files from applications">
                     <rect key="frame" x="19" y="94" width="433" height="132"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="116">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="116">
                             <rect key="frame" x="-2" y="115" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Open files from applications:" id="972">
@@ -81,7 +80,7 @@
                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
-                        <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="120">
+                        <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" id="120">
                             <rect key="frame" x="190" y="94" width="243" height="38"/>
                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -108,7 +107,7 @@
                                 <binding destination="58" name="selectedTag" keyPath="values.MMOpenInCurrentWindow" id="520"/>
                             </connections>
                         </matrix>
-                        <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="427">
+                        <popUpButton verticalHuggingPriority="750" id="427">
                             <rect key="frame" x="199" y="62" width="229" height="26"/>
                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             <popUpButtonCell key="cell" type="push" title="and set the arglist" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" selectedItem="436" id="978">
@@ -135,7 +134,7 @@
                                 <binding destination="58" name="selectedTag" keyPath="values.MMOpenLayout" id="441"/>
                             </connections>
                         </popUpButton>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="121">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="121">
                             <rect key="frame" x="190" y="0.0" width="243" height="58"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" id="974">
@@ -147,11 +146,11 @@
                         </textField>
                     </subviews>
                 </customView>
-                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dlz-JQ-U4e" userLabel="After last window closes">
+                <customView id="dlz-JQ-U4e" userLabel="After last window closes">
                     <rect key="frame" x="19" y="66" width="381" height="22"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="126">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="126">
                             <rect key="frame" x="-2" y="3" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="After last window closes:" id="977">
@@ -160,7 +159,7 @@
                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
-                        <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="957">
+                        <popUpButton verticalHuggingPriority="750" id="957">
                             <rect key="frame" x="187" y="-3" width="197" height="26"/>
                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             <popUpButtonCell key="cell" type="push" title="Keep MacVim Running" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" selectedItem="960" id="979">
@@ -180,11 +179,11 @@
                         </popUpButton>
                     </subviews>
                 </customView>
-                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0hT-y8-Hge" userLabel="Updater">
+                <customView id="0hT-y8-Hge" userLabel="Updater">
                     <rect key="frame" x="19" y="22" width="444" height="36"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                     <subviews>
-                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="122">
+                        <button fixedFrame="YES" id="122">
                             <rect key="frame" x="188" y="18" width="258" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <string key="toolTip">Checks for updates and presents a dialog box showing the release notes and prompt for whether you want to install the new version.</string>
@@ -197,7 +196,7 @@
                                 <binding destination="58" name="value" keyPath="values.SUCheckAtStartup" id="169"/>
                             </connections>
                         </button>
-                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UYM-W0-Kgl" userLabel="Auto-install updates">
+                        <button fixedFrame="YES" id="UYM-W0-Kgl" userLabel="Auto-install updates">
                             <rect key="frame" x="202" y="-2" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <string key="toolTip">MacVim will automatically download and install updates without prompting. The updated version will be used the next time MacVim starts.</string>
@@ -212,7 +211,7 @@
                                 <binding destination="58" name="value" keyPath="values.SUAutomaticallyUpdate" id="kyZ-ah-zKf"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="124">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="124">
                             <rect key="frame" x="-2" y="19" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="When MacVim launches:" id="976">
@@ -230,11 +229,11 @@
             <rect key="frame" x="0.0" y="0.0" width="483" height="244"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fw0-VK-Nbz" userLabel="Dark mode selection">
+                <customView id="fw0-VK-Nbz" userLabel="Dark mode selection">
                     <rect key="frame" x="19" y="66" width="433" height="156"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="T40-Os-PUf" userLabel="Dark mode selection">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="T40-Os-PUf" userLabel="Dark mode selection">
                             <rect key="frame" x="-2" y="139" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Dark mode selection:" id="rgk-9z-Mrz">
@@ -243,7 +242,7 @@
                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
-                        <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" autosizesCells="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Szz-4K-Xkl">
+                        <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" autosizesCells="NO" id="Szz-4K-Xkl">
                             <rect key="frame" x="190" y="78" width="171" height="78"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -279,7 +278,7 @@
                                 <outlet property="delegate" destination="58" id="Sob-YR-Fmp"/>
                             </connections>
                         </matrix>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1Lk-MW-O2L">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="1Lk-MW-O2L">
                             <rect key="frame" x="188" y="0.0" width="243" height="70"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" id="tgh-S7-3or">
@@ -291,11 +290,11 @@
                         </textField>
                     </subviews>
                 </customView>
-                <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7af-iK-4r7" userLabel="Titlebar appearance">
+                <customView id="7af-iK-4r7" userLabel="Titlebar appearance">
                     <rect key="frame" x="19" y="20" width="433" height="38"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7ie-0J-0Zr">
+                        <button fixedFrame="YES" id="7ie-0J-0Zr">
                             <rect key="frame" x="189" y="19" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="Transparent" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="hzd-hj-Pth">
@@ -310,7 +309,7 @@
                                 <binding destination="58" name="value" keyPath="values.MMTitlebarAppearsTransparent" id="pQP-eb-JXS"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
                             <rect key="frame" x="-2" y="20" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Titlebar appearance:" id="HEH-Lo-v4I" userLabel="Titlebar appearance:">
@@ -319,7 +318,7 @@
                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
-                        <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Hqh-Ql-2od">
+                        <button fixedFrame="YES" id="Hqh-Ql-2od">
                             <rect key="frame" x="189" y="1" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="Hidden" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="W40-cB-m1U">
@@ -343,7 +342,7 @@
             <rect key="frame" x="0.0" y="0.0" width="483" height="318"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="826">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="826">
                     <rect key="frame" x="17" y="170" width="449" height="56"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="993">
@@ -353,7 +352,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="817">
+                <button fixedFrame="YES" id="817">
                     <rect key="frame" x="18" y="228" width="133" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Enable Quickstart" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="992">
@@ -365,7 +364,7 @@
                         <binding destination="58" name="value" keyPath="values.MMPreloadCacheSize" id="828"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="815">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="815">
                     <rect key="frame" x="17" y="252" width="449" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="991">
@@ -375,7 +374,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="782">
+                <button fixedFrame="YES" id="782">
                     <rect key="frame" x="18" y="282" width="174" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Use Core Text renderer" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="990">
@@ -387,7 +386,7 @@
                         <binding destination="58" name="value" keyPath="values.MMRenderer" id="1000"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1001">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="1001">
                     <rect key="frame" x="17" y="74" width="444" height="70"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="1004">
@@ -397,7 +396,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1013">
+                <button fixedFrame="YES" id="1013">
                     <rect key="frame" x="18" y="146" width="174" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Draw marked text inline" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="1014">
@@ -408,7 +407,7 @@
                         <binding destination="58" name="value" keyPath="values.MMUseInlineIm" id="1016"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1017">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="1017">
                     <rect key="frame" x="17" y="20" width="415" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="1020">
@@ -418,7 +417,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1028">
+                <button fixedFrame="YES" id="1028">
                     <rect key="frame" x="18" y="50" width="388" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Prefer native full-screen support (requires Mac OS X 10.7)" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="1029">
