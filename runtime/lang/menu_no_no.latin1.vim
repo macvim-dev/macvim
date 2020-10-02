@@ -231,6 +231,9 @@ endif
 	let g:menutrans_textwidth_dialog = "Velg ny tekstbredde (0 for å forhindre formatering): "
 	let g:menutrans_fileformat_dialog = "Velg filformat som filen skal lagres med"
 
+so $VIMRUNTIME/lang/macvim_menu/menu_no_no.latin1.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_no_no.latin1.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo
 

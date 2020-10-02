@@ -286,5 +286,8 @@ menutrans &Convert\ to\ HTML		&Converter\ para\ HTML
 " Find Help dialog text
 let g:menutrans_help_dialog = "Digite um comando ou palavra para obter ajuda;\n\nAnteponha i_ para comandos de entrada (ex.: i_CTRL-X)\nAnteponha c_ para comandos da linha de comandos (ex.: c_<Del>)\nAnteponha ` para um nome de opção (ex.: `shiftwidth`)"
 
+so $VIMRUNTIME/lang/macvim_menu/menu_pt_br.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_pt_br.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

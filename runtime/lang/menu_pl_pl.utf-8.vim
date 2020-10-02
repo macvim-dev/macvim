@@ -288,5 +288,8 @@ let g:menutrans_textwidth_dialog = "Wprowadź nową szerokość tekstu (0 wyłą
 let g:menutrans_fileformat_dialog = "Wybierz format w którym ten plik ma być zapisany"
 let g:menutrans_fileformat_choices = "&Unix\n&Dos\n&Mac\n&Anuluj"
 
+so $VIMRUNTIME/lang/macvim_menu/menu_pl_pl.utf-8.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_pl_pl.utf-8.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

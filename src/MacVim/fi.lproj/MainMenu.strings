@@ -1,0 +1,62 @@
+/* Class = "NSMenuItem"; title = "About MacVim"; ObjectID = "58"; */
+"58.title" = "Tietoja: MacVim";
+
+/* Class = "NSMenuItem"; title = "Check for Updates…"; ObjectID = "255"; */
+"255.title" = "Etsi päivityksiä…";
+
+/* Class = "NSMenuItem"; title = "Hide MacVim"; ObjectID = "134"; */
+"134.title" = "Kätke MacVim";
+
+/* Class = "NSMenuItem"; title = "Quit MacVim"; ObjectID = "136"; */
+"136.title" = "Lopeta MacVim";
+
+/* Class = "NSMenuItem"; title = "MacVim Website"; ObjectID = "234"; */
+"234.title" = "MacVim-verkkosivusto";
+
+/* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
+"275.title" = "MacVim-ohje";
+
+// The strings below are untranslated
+
+/* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */
+"29.title" = "MainMenu";
+
+/* Class = "NSMenuItem"; title = "MacVim"; ObjectID = "56"; */
+"56.title" = "MacVim";
+
+/* Class = "NSMenu"; title = "MacVim"; ObjectID = "57"; */
+"57.title" = "MacVim";
+
+// The strings below were generated from Apple localization glossaries (Finnish).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"129.title" = "Asetukset…";
+"130.title" = "Palvelut";
+"131.title" = "Palvelut";
+"272.title" = "Tyhjennä valikko";
+"145.title" = "Kätke muut";
+"150.title" = "Näytä kaikki";
+"218.title" = "Arkisto";
+"217.title" = "Tiedosto";
+"219.title" = "Uusi ikkuna";
+"338.title" = "Uusi ikkuna";
+"261.title" = "Avaa…";
+"271.title" = "Avaa äskeinen";
+"262.title" = "Avaa äskeinen";
+"248.title" = "Sulje";
+"282.title" = "Muokkaa";
+"281.title" = "Muokkaa";
+"283.title" = "Peru";
+"284.title" = "Tee sittenkin";
+"286.title" = "Leikkaa";
+"287.title" = "Kopioi";
+"288.title" = "Sijoita";
+"291.title" = "Valitse kaikki";
+"310.title" = "Ikkuna";
+"309.title" = "Ikkuna";
+"311.title" = "Pienennä";
+"312.title" = "Zoomaa";
+"314.title" = "Tuo kaikki eteen";
+"233.title" = "Ohje";
+"232.title" = "Ohje";

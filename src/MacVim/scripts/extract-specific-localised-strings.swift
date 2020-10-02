@@ -1,5 +1,43 @@
 #! /usr/bin/swift
 
+// MacVim changes
+//
+// This script was taken from Douglas Hill's Gist in order to quickly extract official translations from Apple's
+// glossary files for translations for MacVim menus: https://gist.github.com/douglashill/c5b08a9099883475294d27cecc56ec29
+//
+// A variable called `isMainMenu` was added to toggle between generating translations for Vim menus (which are in `.vim`
+// files with menutranslate commands) or MacVim nib menus (which use .strings files). It could be changed by passing
+// --vimMenu or --mainMenu as command parameters in.
+//
+// The Localisation struct also has a new `vimMenuTrans` member to store the Vim translation file's name to output to,
+// as that file name depends on the locale (some are done in the latin1 file, while others in the utf-8 ones, etc).
+//
+// To use this:
+// 1. First download all the glossaries from Apple Developer, and mount the DMG's.
+// 2. Run this script with --mainMenu. This will generate the translations for MainMenu.xib. Copy each locale's
+//    Localizable.strings into each MainMenu.strings in MacVim.
+// 3. Run this script with --vimMenu. This should output the updated string names to the individual locale's .vim
+//    translation files.
+
+var isMainMenu = true
+for argument in CommandLine.arguments {
+    switch argument {
+    case "--vimMenu":
+        isMainMenu = false
+
+    case "--mainMenu":
+        isMainMenu = true
+
+    case "--help":
+        print("extract-specific-localised-strings.swift [--vimMenu] [--mainMenu]")
+        exit(0)
+
+    default:
+        continue
+    }
+}
+
+
 // Douglas Hill, March 2020
 // This file is made available under the MIT license included at the bottom of this file.
 
@@ -36,7 +74,10 @@ import Foundation
 // MARK: Input data
 
 /// The directory containing the .lproj directories where the .strings files will be written.
-let outputDirectory = URL(fileURLWithPath: "<#PUT A PATH TO WHERE THE LPROJ DIRECTORIES SHOULD BE PLACED HERE#>")
+var outputDirectory = URL(fileURLWithPath: "./xib_strings")
+if !isMainMenu {
+    outputDirectory = URL(fileURLWithPath: "../../../runtime/lang/macvim_menu")
+}
 
 // Possible improvement:
 // We identify using glossary -> key, which could be ambiguous because there are entries from
@@ -54,90 +95,151 @@ struct NeededLocalisation {
     let glossaryFilename: String
 }
 
-let neededLocalisations = [
-    NeededLocalisation(targetKey: "app_newWindow",          appleKey: "fluid.switcher.plus.button.label", glossaryFilename: "AccessibilityBundles"),
-    NeededLocalisation(targetKey: "app_settings",           appleKey: "Settings",                         glossaryFilename: "MobileNotes"         ),
-    NeededLocalisation(targetKey: "barButton_action",       appleKey: "Share",                            glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_add",          appleKey: "Add",                              glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_bookmarks",    appleKey: "Bookmarks",                        glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_camera",       appleKey: "Camera",                           glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_cancel",       appleKey: "Cancel",                           glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_close",        appleKey: "Close",                            glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_compose",      appleKey: "Compose",                          glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_done",         appleKey: "Done",                             glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_edit",         appleKey: "Edit",                             glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_fastForward",  appleKey: "Fast Forward",                     glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_organize",     appleKey: "Organize",                         glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_pause",        appleKey: "Pause",                            glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_play",         appleKey: "Play",                             glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_redo",         appleKey: "Redo",                             glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_reply",        appleKey: "Reply",                            glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_rewind",       appleKey: "Rewind",                           glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_save",         appleKey: "Save",                             glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_search",       appleKey: "Search",                           glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_stop",         appleKey: "Stop",                             glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "barButton_undo",         appleKey: "Undo",                             glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "delete",                 appleKey: "Delete",                           glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "find_jump",              appleKey: "315.title",                        glossaryFilename: "TextEdit"            ),
-    NeededLocalisation(targetKey: "find_next",              appleKey: "312.title",                        glossaryFilename: "TextEdit"            ),
-    NeededLocalisation(targetKey: "find_previous",          appleKey: "314.title",                        glossaryFilename: "TextEdit"            ),
-    NeededLocalisation(targetKey: "find_useSelection",      appleKey: "316.title",                        glossaryFilename: "TextEdit"            ),
-    NeededLocalisation(targetKey: "navigation_back",        appleKey: "Back",                             glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "refresh",                appleKey: "Refresh",                          glossaryFilename: "UIKitCore"           ),
-    NeededLocalisation(targetKey: "scrollView_zoomIn",      appleKey: "438.title",                        glossaryFilename: "WebBrowser"          ),
-    NeededLocalisation(targetKey: "scrollView_zoomOut",     appleKey: "439.title",                        glossaryFilename: "WebBrowser"          ),
-    NeededLocalisation(targetKey: "scrollView_zoomReset",   appleKey: "863.title",                        glossaryFilename: "WebBrowser"          ),
-    NeededLocalisation(targetKey: "window_close",           appleKey: "Close Window",                     glossaryFilename: "AppKit"              ),
-    NeededLocalisation(targetKey: "window_cycle",           appleKey: "Cycle Through Windows",            glossaryFilename: "AppKit"              ),
+// These are the translations we need for MainMenu.xib, which contains the app menu as well.
+let neededLocalisations_mainmenu_xib = [
+    // Preferences…
+    NeededLocalisation(targetKey: "129.title", appleKey: "501.title", glossaryFilename: "TextEdit"),
+    // Services
+    NeededLocalisation(targetKey: "130.title", appleKey: "503.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "131.title", appleKey: "504.title", glossaryFilename: "TextEdit"),
+    // Clear Menu
+    NeededLocalisation(targetKey: "272.title", appleKey: "461.title", glossaryFilename: "TextEdit"),
+    // Hide Others
+    NeededLocalisation(targetKey: "145.title", appleKey: "515.title", glossaryFilename: "TextEdit"),
+    // Show All
+    NeededLocalisation(targetKey: "150.title", appleKey: "517.title", glossaryFilename: "TextEdit"),
+
+    // File
+    NeededLocalisation(targetKey: "218.title", appleKey: "279.title", glossaryFilename: "TextEdit"),
+    // File
+    NeededLocalisation(targetKey: "217.title", appleKey: "274.title", glossaryFilename: "TextEdit"),
+    // New Window (Main menu and Dock menu)
+    NeededLocalisation(targetKey: "219.title",  appleKey: "82.title", glossaryFilename: "WebBrowser"),
+    NeededLocalisation(targetKey: "338.title",  appleKey: "82.title", glossaryFilename: "WebBrowser"),
+    // Open…
+    NeededLocalisation(targetKey: "261.title", appleKey: "276.title", glossaryFilename: "TextEdit"),
+    // Open Recent
+    NeededLocalisation(targetKey: "271.title", appleKey: "459.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "262.title", appleKey: "459.title", glossaryFilename: "TextEdit"),
+    // Close
+    NeededLocalisation(targetKey: "248.title", appleKey: "419.title", glossaryFilename: "TextEdit"),
+
+    // Edit
+    NeededLocalisation(targetKey: "282.title", appleKey: "4.title", glossaryFilename: "TextEdit"),
+    // Edit
+    NeededLocalisation(targetKey: "281.title", appleKey: "96.title", glossaryFilename: "TextEdit"),
+    // Undo
+    NeededLocalisation(targetKey: "283.title", appleKey: "dRJ-4n-Yzg.title", glossaryFilename: "Notes"),
+    // Redo
+    NeededLocalisation(targetKey: "284.title", appleKey: "6dh-zS-Vam.title", glossaryFilename: "Notes"),
+    // Cut
+    NeededLocalisation(targetKey: "286.title", appleKey: "124.title", glossaryFilename: "TextEdit"),
+    // Copy
+    NeededLocalisation(targetKey: "287.title", appleKey: "120.title", glossaryFilename: "TextEdit"),
+    // Paste
+    NeededLocalisation(targetKey: "288.title", appleKey: "112.title", glossaryFilename: "TextEdit"),
+    // Select All
+    NeededLocalisation(targetKey: "291.title", appleKey: "101.title", glossaryFilename: "TextEdit"),
+
+    // Window
+    NeededLocalisation(targetKey: "310.title", appleKey: "475.title", glossaryFilename: "TextEdit"),
+    // Window
+    NeededLocalisation(targetKey: "309.title", appleKey: "474.title", glossaryFilename: "TextEdit"),
+    // Minimize
+    NeededLocalisation(targetKey: "311.title", appleKey: "477.title", glossaryFilename: "TextEdit"),
+    // Zoom
+    NeededLocalisation(targetKey: "312.title", appleKey: "Zoom", glossaryFilename: "AppKit"),
+    // Bring All to Front
+    NeededLocalisation(targetKey: "314.title", appleKey: "Bring All to Front", glossaryFilename: "AppKit"),
+
+    // Help
+    NeededLocalisation(targetKey: "233.title", appleKey: "526.title", glossaryFilename: "TextEdit"),
+    // Help
+    NeededLocalisation(targetKey: "232.title", appleKey: "524.title", glossaryFilename: "TextEdit"),
 ]
+
+// These are the translations for the Vim menus that MacVim re-named to fit Apple's HIG better.
+let neededLocalisations_vim = [
+    NeededLocalisation(targetKey: "New\\ Window",  appleKey: "82.title", glossaryFilename: "WebBrowser"),
+    NeededLocalisation(targetKey: "New\\ Tab",  appleKey: "649.title", glossaryFilename: "WebBrowser"),
+    NeededLocalisation(targetKey: "Open…", appleKey: "276.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Open\\ Recent", appleKey: "459.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Close\\ Window<Tab>:qa", appleKey: "Close Window", glossaryFilename: "AppKit"),
+    NeededLocalisation(targetKey: "Close<Tab>:q", appleKey: "419.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Save\\ As…<Tab>:sav", appleKey: "281.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Save\\ All", appleKey: "284.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Find",  appleKey: "317.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Find…",  appleKey: "311.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Find\\ Next",  appleKey: "312.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Find\\ Previous",  appleKey: "314.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Use\\ Selection\\ for\\ Find", appleKey: "316.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Font", appleKey: "159.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Show\\ Fonts", appleKey: "172.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Bigger", appleKey: "543.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Smaller", appleKey: "544.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Minimize", appleKey: "477.title", glossaryFilename: "TextEdit"),
+    NeededLocalisation(targetKey: "Minimize\\ All", appleKey: "Minimize All", glossaryFilename: "AppKit"),
+    NeededLocalisation(targetKey: "Zoom", appleKey: "Zoom", glossaryFilename: "AppKit"),
+    NeededLocalisation(targetKey: "Zoom\\ All", appleKey: "Zoom All", glossaryFilename: "AppKit"),
+    NeededLocalisation(targetKey: "Show\\ Next\\ Tab", appleKey: "Show Next Tab", glossaryFilename: "AppKit"),
+    NeededLocalisation(targetKey: "Show\\ Previous\\ Tab", appleKey: "Show Previous Tab", glossaryFilename: "AppKit"),
+    NeededLocalisation(targetKey: "Bring\\ All\\ to\\ Front", appleKey: "Bring All to Front", glossaryFilename: "AppKit"),
+]
+
+var neededLocalisations = neededLocalisations_mainmenu_xib
+if !isMainMenu {
+    neededLocalisations = neededLocalisations_vim
+}
 
 struct Localisation {
     /// The language code as used for .lproj directories.
     let code: String
+    /// Vim menu translation file name
+    let vimMenuTrans: String
     /// Enough of the volume name for Apple’s DMG to pick this localisation out from the others. E.g. just ‘French’ would not enough because it would match both Universal French and Canadian French.
     let volumeName: String
 }
 
 let localisations = [
-    Localisation(code: "ar", volumeName: "Arabic"),
-    Localisation(code: "ca", volumeName: "Catalan"),
-    Localisation(code: "cs", volumeName: "Czech"),
-    Localisation(code: "da", volumeName: "Danish"),
-    Localisation(code: "de", volumeName: "German"),
-    Localisation(code: "el", volumeName: "Greek"),
-    Localisation(code: "en", volumeName: "Australian English"), // Apple does not provide a glossary for en.
-    Localisation(code: "en-AU", volumeName: "Australian English"),
-    Localisation(code: "en-GB", volumeName: "British English"),
-    Localisation(code: "es", volumeName: "Spanish"),
-    Localisation(code: "es-419", volumeName: "Latin"),
-    Localisation(code: "fi", volumeName: "Finnish"),
-    Localisation(code: "fr", volumeName: "Universal French"),
-    Localisation(code: "fr-CA", volumeName: "Canadian"),
-    Localisation(code: "he", volumeName: "Hebrew"),
-    Localisation(code: "hi", volumeName: "Hindi"),
-    Localisation(code: "hr", volumeName: "Croatian"),
-    Localisation(code: "hu", volumeName: "Hungarian"),
-    Localisation(code: "id", volumeName: "Indonesian"),
-    Localisation(code: "it", volumeName: "Italian"),
-    Localisation(code: "ja", volumeName: "Japanese"),
-    Localisation(code: "ko", volumeName: "Korean"),
-    Localisation(code: "ms", volumeName: "Malay"),
-    Localisation(code: "nb", volumeName: "Norwegian"),
-    Localisation(code: "nl", volumeName: "Dutch"),
-    Localisation(code: "pl", volumeName: "Polish"),
-    Localisation(code: "pt-BR", volumeName: "Brazilian"),
-    Localisation(code: "pt-PT", volumeName: "Portuguese"),
-    Localisation(code: "ro", volumeName: "Romanian"),
-    Localisation(code: "ru", volumeName: "Russian"),
-    Localisation(code: "sk", volumeName: "Slovak"),
-    Localisation(code: "sv", volumeName: "Swedish"),
-    Localisation(code: "th", volumeName: "Thai"),
-    Localisation(code: "tr", volumeName: "Turkish"),
-    Localisation(code: "uk", volumeName: "Ukrainian"),
-    Localisation(code: "vi", volumeName: "Vietnamese"),
-    Localisation(code: "zh-Hans", volumeName: "Simplified Chinese"),
-    Localisation(code: "zh-Hant", volumeName: "Traditional Chinese"),
-    Localisation(code: "zh-HK", volumeName: "Hong Kong"),
+//    Localisation(code: "ar", volumeName: "Arabic"),
+    Localisation(code: "ca", vimMenuTrans: "ca_es.latin1", volumeName: "Catalan"),
+    Localisation(code: "cs", vimMenuTrans: "cs_cz.utf-8", volumeName: "Czech"),
+    Localisation(code: "da", vimMenuTrans: "da.utf-8", volumeName: "Danish"),
+    Localisation(code: "de", vimMenuTrans: "de_de.latin1", volumeName: "German"),
+//    Localisation(code: "el", volumeName: "Greek"),
+//    Localisation(code: "en", volumeName: "Australian English"), // Apple does not provide a glossary for en.
+//    Localisation(code: "en-AU", volumeName: "Australian English"),
+//    Localisation(code: "en-GB", volumeName: "British English"),
+    Localisation(code: "es", vimMenuTrans: "es_es.latin1", volumeName: "Spanish"),
+//    Localisation(code: "es-419", volumeName: "Latin"),
+    Localisation(code: "fi", vimMenuTrans: "fi_fi.latin1", volumeName: "Finnish"),
+    Localisation(code: "fr", vimMenuTrans: "fr_fr.latin1", volumeName: "Universal French"),
+//    Localisation(code: "fr-CA", volumeName: "Canadian"),
+//    Localisation(code: "he", volumeName: "Hebrew"),
+//    Localisation(code: "hi", volumeName: "Hindi"),
+//    Localisation(code: "hr", volumeName: "Croatian"),
+    Localisation(code: "hu", vimMenuTrans: "hu_hu.utf-8", volumeName: "Hungarian"),
+//    Localisation(code: "id", volumeName: "Indonesian"),
+    Localisation(code: "it", vimMenuTrans: "it_it.latin1", volumeName: "Italian"),
+    Localisation(code: "ja", vimMenuTrans: "ja_jp.utf-8", volumeName: "Japanese"),
+    Localisation(code: "ko", vimMenuTrans: "ko_kr.utf-8", volumeName: "Korean"),
+//    Localisation(code: "ms", volumeName: "Malay"),
+    Localisation(code: "nb", vimMenuTrans: "no_no.latin1", volumeName: "Norwegian"),
+    Localisation(code: "nl", vimMenuTrans: "nl_nl.latin1", volumeName: "Dutch"),
+    Localisation(code: "pl", vimMenuTrans: "pl_pl.utf-8", volumeName: "Polish"),
+    Localisation(code: "pt-BR", vimMenuTrans: "pt_br", volumeName: "Brazilian"),
+    Localisation(code: "pt-PT", vimMenuTrans: "pt_pt", volumeName: "Portuguese"),
+//    Localisation(code: "ro", volumeName: "Romanian"),
+    Localisation(code: "ru", vimMenuTrans: "ru_ru", volumeName: "Russian"),
+//    Localisation(code: "sk", volumeName: "Slovak"),
+    Localisation(code: "sv", vimMenuTrans: "sv_se.latin1", volumeName: "Swedish"),
+//    Localisation(code: "th", volumeName: "Thai"),
+    Localisation(code: "tr", vimMenuTrans: "tr_tr.utf-8", volumeName: "Turkish"),
+//    Localisation(code: "uk", volumeName: "Ukrainian"),
+//    Localisation(code: "vi", volumeName: "Vietnamese"),
+    Localisation(code: "zh-Hans", vimMenuTrans: "zh_cn.utf-8", volumeName: "Simplified Chinese"),
+    Localisation(code: "zh-Hant", vimMenuTrans: "zh_tw.utf-8", volumeName: "Traditional Chinese"),
+//    Localisation(code: "zh-HK", volumeName: "Hong Kong"),
 ]
 
 // MARK: - Support
@@ -252,21 +354,47 @@ for localisation in localisations {
                 return nil
             }
 
-            return """
-            "\(neededLocalisation.targetKey)" = "\(translation)";
-            """
+            if isMainMenu {
+                return """
+                "\(neededLocalisation.targetKey)" = "\(translation)";
+                """
+            }
+            else {
+                let escapedTranslation = translation.replacingOccurrences(of: " ", with: "\\ ", options: .literal, range: nil)
+                                                    .replacingOccurrences(of: " ", with: "\\ ", options: .literal, range: nil)
+
+                return """
+                menutrans \(neededLocalisation.targetKey) \(escapedTranslation)
+                """
+            }
         }
 
-        let targetStringsFileURL = outputDirectory.appendingPathComponents(["\(localisation.code).lproj", "Localizable.strings"])
+        var targetStringsFileURL = outputDirectory.appendingPathComponents(["\(localisation.code).lproj", "Localizable.strings"])
+        if !isMainMenu {
+            targetStringsFileURL = outputDirectory.appendingPathComponents(["menu_\(localisation.vimMenuTrans).apple.vim"])
+        }
 
         try! FileManager.default.createDirectory(at: targetStringsFileURL.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
 
-        try! """
-            // This file was generated from Apple localisation glossaries.
+        if isMainMenu {
+            try! """
+                // The strings below were generated from Apple localization glossaries (\(localisation.volumeName)).
+                // See extract-specific-localised-strings.swift for details.
+                // Do no modify directly!
 
-            \(lines.joined(separator: "\n"))
+                \(lines.joined(separator: "\n"))
 
-            """.write(to: targetStringsFileURL, atomically: false, encoding: .utf8)
+                """.write(to: targetStringsFileURL, atomically: false, encoding: .utf8)
+        }
+        else {
+            try! """
+                " This file was generated from Apple localization glossaries (\(localisation.volumeName)).
+                " Do not modify this file directly!
+
+                \(lines.joined(separator: "\n"))
+
+                """.write(to: targetStringsFileURL, atomically: false, encoding: .utf8)
+        }
     }
 }
 

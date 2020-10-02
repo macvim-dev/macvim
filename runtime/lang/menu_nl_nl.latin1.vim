@@ -241,5 +241,8 @@ let g:menutrans_tags_dialog = "Typ namen van tag bestanden.\nGebruik commas tuss
 let g:menutrans_textwidth_dialog = "Typ de nieuwe tekst breedte (0 om formatteren uit the schakelen): "
 let g:menutrans_fileformat_dialog = "Selecteer formaat voor het schrijven van het bestand"
 
+so $VIMRUNTIME/lang/macvim_menu/menu_nl_nl.latin1.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_nl_nl.latin1.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

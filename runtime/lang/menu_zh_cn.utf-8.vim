@@ -446,6 +446,9 @@ menutrans Set\ '&filetype'\ Too			也设置\ 'filetype'(&F)
 " endif
 " }}}
 
+so $VIMRUNTIME/lang/macvim_menu/menu_zh_cn.utf-8.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_zh_cn.utf-8.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo
 

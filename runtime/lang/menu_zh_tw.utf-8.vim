@@ -285,6 +285,9 @@ if has("toolbar")
 endif
 " }}}
 
+so $VIMRUNTIME/lang/macvim_menu/menu_zh_tw.utf-8.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_zh_tw.utf-8.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo
 

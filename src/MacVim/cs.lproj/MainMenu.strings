@@ -1,0 +1,62 @@
+/* Class = "NSMenuItem"; title = "About MacVim"; ObjectID = "58"; */
+"58.title" = "O aplikaci MacVim";
+
+/* Class = "NSMenuItem"; title = "Check for Updates…"; ObjectID = "255"; */
+"255.title" = "Ověřit aktualizace…";
+
+/* Class = "NSMenuItem"; title = "Hide MacVim"; ObjectID = "134"; */
+"134.title" = "Skrýt MacVim";
+
+/* Class = "NSMenuItem"; title = "Quit MacVim"; ObjectID = "136"; */
+"136.title" = "Ukončit MacVim";
+
+/* Class = "NSMenuItem"; title = "MacVim Website"; ObjectID = "234"; */
+"234.title" = "Webové stránky MacVim";
+
+/* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
+"275.title" = "Nápověda pro MacVim";
+
+// The strings below are untranslated
+
+/* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */
+"29.title" = "MainMenu";
+
+/* Class = "NSMenuItem"; title = "MacVim"; ObjectID = "56"; */
+"56.title" = "MacVim";
+
+/* Class = "NSMenu"; title = "MacVim"; ObjectID = "57"; */
+"57.title" = "MacVim";
+
+// The strings below were generated from Apple localization glossaries (Czech).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"129.title" = "Předvolby…";
+"130.title" = "Služby";
+"131.title" = "Služby";
+"272.title" = "Vyprázdnit nabídku";
+"145.title" = "Skrýt ostatní";
+"150.title" = "Zobrazit vše";
+"218.title" = "Soubor";
+"217.title" = "Soubor";
+"219.title" = "Nové okno";
+"338.title" = "Nové okno";
+"261.title" = "Otevřít…";
+"271.title" = "Otevřít poslední položku";
+"262.title" = "Otevřít poslední položku";
+"248.title" = "Zavřít";
+"282.title" = "Úpravy";
+"281.title" = "Úpravy";
+"283.title" = "Odvolat akci";
+"284.title" = "Opakovat akci";
+"286.title" = "Vyjmout";
+"287.title" = "Kopírovat";
+"288.title" = "Vložit";
+"291.title" = "Vybrat vše";
+"310.title" = "Okno";
+"309.title" = "Okno";
+"311.title" = "Minimalizovat";
+"312.title" = "Přepnout velikost";
+"314.title" = "Převést vše do popředí";
+"233.title" = "Nápověda";
+"232.title" = "Nápověda";

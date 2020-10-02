@@ -1,0 +1,62 @@
+/* Class = "NSMenuItem"; title = "About MacVim"; ObjectID = "58"; */
+"58.title" = "MacVim에 관하여";
+
+/* Class = "NSMenuItem"; title = "Check for Updates…"; ObjectID = "255"; */
+"255.title" = "업데이트 확인…";
+
+/* Class = "NSMenuItem"; title = "Hide MacVim"; ObjectID = "134"; */
+"134.title" = "MacVim 가리기";
+
+/* Class = "NSMenuItem"; title = "Quit MacVim"; ObjectID = "136"; */
+"136.title" = "MacVim 종료";
+
+/* Class = "NSMenuItem"; title = "MacVim Website"; ObjectID = "234"; */
+"234.title" = "MacVim 웹 사이트";
+
+/* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
+"275.title" = "MacVim 도움말";
+
+// The strings below are untranslated
+
+/* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */
+"29.title" = "MainMenu";
+
+/* Class = "NSMenuItem"; title = "MacVim"; ObjectID = "56"; */
+"56.title" = "MacVim";
+
+/* Class = "NSMenu"; title = "MacVim"; ObjectID = "57"; */
+"57.title" = "MacVim";
+
+// The strings below were generated from Apple localization glossaries (Korean).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"129.title" = "환경설정…";
+"130.title" = "서비스";
+"131.title" = "서비스";
+"272.title" = "메뉴 지우기";
+"145.title" = "기타 가리기";
+"150.title" = "모두 보기";
+"218.title" = "파일";
+"217.title" = "파일";
+"219.title" = "새로운 윈도우";
+"338.title" = "새로운 윈도우";
+"261.title" = "열기…";
+"271.title" = "최근 사용 열기";
+"262.title" = "최근 사용 열기";
+"248.title" = "닫기";
+"282.title" = "편집";
+"281.title" = "편집";
+"283.title" = "실행 취소";
+"284.title" = "실행 복귀";
+"286.title" = "오려두기";
+"287.title" = "복사하기";
+"288.title" = "붙여넣기";
+"291.title" = "모두 선택";
+"310.title" = "윈도우";
+"309.title" = "윈도우";
+"311.title" = "최소화";
+"312.title" = "확대/축소";
+"314.title" = "모두 앞으로 가져오기";
+"233.title" = "도움말";
+"232.title" = "도움말";

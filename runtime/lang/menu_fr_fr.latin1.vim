@@ -469,5 +469,8 @@ menutrans Co&lor\ test				Tester\ les\ co&uleurs
 menutrans &Highlight\ test			Tester\ les\ g&roupes\ de\ surbrillance
 menutrans &Convert\ to\ HTML			Con&vertir\ en\ HTML
 
+so $VIMRUNTIME/lang/macvim_menu/menu_fr_fr.latin1.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_fr_fr.latin1.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

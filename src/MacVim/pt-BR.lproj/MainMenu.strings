@@ -1,0 +1,62 @@
+/* Class = "NSMenuItem"; title = "About MacVim"; ObjectID = "58"; */
+"58.title" = "Sobre MacVim";
+
+/* Class = "NSMenuItem"; title = "Check for Updates…"; ObjectID = "255"; */
+"255.title" = "Buscar Atualizações…";
+
+/* Class = "NSMenuItem"; title = "Hide MacVim"; ObjectID = "134"; */
+"134.title" = "Ocultar o MacVim";
+
+/* Class = "NSMenuItem"; title = "Quit MacVim"; ObjectID = "136"; */
+"136.title" = "Encerrar MacVim";
+
+/* Class = "NSMenuItem"; title = "MacVim Website"; ObjectID = "234"; */
+"234.title" = "Site MacVim";
+
+/* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
+"275.title" = "Ajuda do MacVim";
+
+// The strings below are untranslated
+
+/* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */
+"29.title" = "MainMenu";
+
+/* Class = "NSMenuItem"; title = "MacVim"; ObjectID = "56"; */
+"56.title" = "MacVim";
+
+/* Class = "NSMenu"; title = "MacVim"; ObjectID = "57"; */
+"57.title" = "MacVim";
+
+// The strings below were generated from Apple localization glossaries (Brazilian).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"129.title" = "Preferências…";
+"130.title" = "Serviços";
+"131.title" = "Serviços";
+"272.title" = "Limpar Menu";
+"145.title" = "Ocultar Outros";
+"150.title" = "Mostrar Tudo";
+"218.title" = "Arquivo";
+"217.title" = "Arquivo";
+"219.title" = "Nova Janela";
+"338.title" = "Nova Janela";
+"261.title" = "Abrir…";
+"271.title" = "Abrir Recente";
+"262.title" = "Abrir Recente";
+"248.title" = "Fechar";
+"282.title" = "Editar";
+"281.title" = "Editar";
+"283.title" = "Desfazer";
+"284.title" = "Refazer";
+"286.title" = "Cortar";
+"287.title" = "Copiar";
+"288.title" = "Colar";
+"291.title" = "Selecionar Tudo";
+"310.title" = "Janela";
+"309.title" = "Janela";
+"311.title" = "Minimizar";
+"312.title" = "Zoom";
+"314.title" = "Trazer Todas para a Frente";
+"233.title" = "Ajuda";
+"232.title" = "Ajuda";

@@ -151,6 +151,32 @@ what they contain:
     gui_macvim.m            Hooks from Vim
 
 
+Localization:
+
+MacVim has 3 types of translations:
+1. gettext/po-based: Affects Vim messages. Texts are stored in src/po.
+2. Menu translations: Affects menus. MacVim-specific translations are in
+   runtime/lang/macvim_menu/.
+3. Localized nibs: Affects MacVim UI and also the main app menu (the one that
+   says "MacVim"). Currently only the menus are localized, but not other UI
+   components like the preference pane. The translations are in
+   `src/MacVim/*/MainMenu.strings`.
+
+1 and 2 are both existing Vim features, and are controlled by the locale
+settings in the environmental variables. MacVim supports both and has added
+some new translations for MacVim-specific items. The coverage. however, is not
+complete, and would need some help from contributors to fill in the gap.
+
+3 is MacVim-only, and is affected by macOS system localization settings. As
+such, if you are setting system to American English, but launch `mvim` by doing
+`LANG=zh_TW.UTF-8 mvim`, and then do `:lang ja_JP.UTF-8` in Vim, you could have
+all 3 translation types using different languages.
+
+Both 2 and 3 have some manual MacVim-specific translations, but also some that
+are extracted from Apple's official translation glossaries. See
+`src/MacVim/scripts/extract-specific-localised-strings.swift`.
+
+
 Building:
 
 You will need to install the Xcode tools before building the source code.
@@ -178,5 +204,5 @@ be in when executing these commands):
 The application bundle can be found inside "src/MacVim/build/Release".
 
 
-Bjorn Winckler <bjorn.winckler@gmail.com>
-March 21, 2011
+This file was originally written by Bjorn Winckler on March 21, 2011 but
+currently maintained by macvim-dev.

@@ -261,5 +261,8 @@ menutrans Co&lor\ test		색\ 시험(&l)
 menutrans &Highlight\ test	Highlight\ 시험(&H)
 menutrans &Convert\ to\ HTML	HTML로\ 변환(&C)
 
+so $VIMRUNTIME/lang/macvim_menu/menu_ko_kr.utf-8.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_ko_kr.utf-8.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

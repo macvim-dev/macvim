@@ -307,5 +307,8 @@ let g:menutrans_textwidth_dialog = "Geben Sie eine neue Text-Breite ein (oder 0,
 let g:menutrans_fileformat_dialog = "Wählen Sie ein Datei-Format aus"
 " }}}
 
+so $VIMRUNTIME/lang/macvim_menu/menu_de_de.latin1.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_de_de.latin1.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

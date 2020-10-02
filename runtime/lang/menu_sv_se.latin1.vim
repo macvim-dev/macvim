@@ -251,5 +251,8 @@ let g:menutrans_tags_dialog = "Skriv in namn på taggfiler.\nSeparera namn med ko
 let g:menutrans_textwidth_dialog = "Välj ny textbredd (0 för att förhindra formatering): "
 let g:menutrans_fileformat_dialog = "Välj filformat som filen ska sparas med"
 
+so $VIMRUNTIME/lang/macvim_menu/menu_sv_se.latin1.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_sv_se.latin1.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17156" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
-        <deployment version="1060" identifier="macosx"/>
+        <deployment version="1090" identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17156"/>
     </dependencies>
     <objects>
@@ -137,11 +137,6 @@
                             <menuItem title="Paste" keyEquivalent="v" id="288">
                                 <connections>
                                     <action selector="paste:" target="-1" id="320"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Delete" id="290">
-                                <connections>
-                                    <action selector="delete:" target="-1" id="321"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Select All" keyEquivalent="a" id="291">

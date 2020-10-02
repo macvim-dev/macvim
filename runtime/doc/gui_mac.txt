@@ -93,8 +93,7 @@ desired.
 
 							*macvim-default-menu*
 The default menu in MacVim has been changed to conform better with the Apple
-Human Interface Guidelines (HIG).  At the moment this breaks the localized
-menus, so only English menus are supported.
+Human Interface Guidelines (HIG).
 
 Note: The menus are a work in progress.  If you know something about the HIG
 and want to contribute to MacVim you could do so by making the menus better.
@@ -758,7 +757,7 @@ As another example, here is how to switch buffers by swiping left/right: >
 See the section on |key-mapping| for more help on how to map keys.
 
 ==============================================================================
-14. International					*macvim-international*
+14. International			*macvim-international* *macvim-multilang*
 
 Typing text ~
 
@@ -782,10 +781,11 @@ to use in normal mode and type ":set imd" followed by ":set noimd".
 
 Translations ~
 
-MacVim uses localized Vim messages (see |multilang-messages|), but there are
-MacVim-specific messages that are not currently localized. Please file an
-issue if you would like to see certain messages localized. Menus
-(|multilang-menus|) are currently not localized in MacVim.
+MacVim uses localized Vim messages (see |multilang-messages|) and menus (see
+|multilang-menus|).  However, some of the user interface in MacVim (e.g.
+Preference pane) are not yet localized.  There are also some MacVim-specific
+messages/menus in Vim that are not currently localized.  Please file an issue
+if you would like to see certain messages localized.
 
 ==============================================================================
 15. Known bugs/missing features				*macvim-todo*
@@ -800,9 +800,8 @@ prominent bugs/missing features.
 - |modifyOtherKeys| support.  This feature allows for more granular key
   mapping (e.g. differentiating <C-I> and <Tab>) and isn't supported by the
   MacVim GUI yet.
-- Localized menus are not supported.  Choosing anything but "English" in the
-  "International" pane of "System Prefences" may break the menus (and
-  toolbar).
+- Some parts of MacVim GUI and MacVim-specific messages in Vim are not
+  localized yet.
 - Sometimes multibyte characters look "too wide", i.e. they overlap the
   following character.  It might help to change 'ambiwidth', or override the
   automatic font substitution by setting 'guifontwide' manually.
@@ -862,11 +861,6 @@ Scenario: ~
 You do not want MacVim to set up any key mappings.
 Solution: ~
 See |cmd-movement|.
-
-Scenario: ~
-Enabling localized menus breaks the toolbar and the menus as well.
-Solution: ~
-This is a known problem, see |macvim-todo|.
 
 Scenario: ~
 When you click the (green) full screen button you want the window to maximize
