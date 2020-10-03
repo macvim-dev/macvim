@@ -385,6 +385,9 @@ menut TagJump		Vai\ a\ Tag
 menut Help		Aiuto
 menut FindHelp		Cerca\ in\ Aiuto
 
+so $VIMRUNTIME/lang/macvim_menu/menu_it_it.latin1.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_it_it.latin1.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo
 

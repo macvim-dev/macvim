@@ -472,6 +472,9 @@ fun! Do_toolbar_tmenu()
   tmenu ToolBar.FindHelp			Etsi ohjeesta
 endfun
 
+so $VIMRUNTIME/lang/macvim_menu/menu_fi_fi.latin1.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_fi_fi.latin1.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo
 

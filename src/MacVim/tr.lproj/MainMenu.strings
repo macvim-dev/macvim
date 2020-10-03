@@ -1,0 +1,62 @@
+/* Class = "NSMenuItem"; title = "About MacVim"; ObjectID = "58"; */
+"58.title" = "MacVim Hakkında";
+
+/* Class = "NSMenuItem"; title = "Check for Updates…"; ObjectID = "255"; */
+"255.title" = "Güncellemeleri Denetle…";
+
+/* Class = "NSMenuItem"; title = "Hide MacVim"; ObjectID = "134"; */
+"134.title" = "MacVim'i gizle";
+
+/* Class = "NSMenuItem"; title = "Quit MacVim"; ObjectID = "136"; */
+"136.title" = "MacVim'den Çık";
+
+/* Class = "NSMenuItem"; title = "MacVim Website"; ObjectID = "234"; */
+"234.title" = "MacVim web sitesi";
+
+/* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
+"275.title" = "MacVim Yardım";
+
+// The strings below are untranslated
+
+/* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */
+"29.title" = "MainMenu";
+
+/* Class = "NSMenuItem"; title = "MacVim"; ObjectID = "56"; */
+"56.title" = "MacVim";
+
+/* Class = "NSMenu"; title = "MacVim"; ObjectID = "57"; */
+"57.title" = "MacVim";
+
+// The strings below were generated from Apple localization glossaries (Turkish).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"129.title" = "Tercihler…";
+"130.title" = "Servisler";
+"131.title" = "Servisler";
+"272.title" = "Menüyü Boşalt";
+"145.title" = "Diğerlerini Gizle";
+"150.title" = "Tümünü Göster";
+"218.title" = "Dosya";
+"217.title" = "Dosya";
+"219.title" = "Yeni Pencere";
+"338.title" = "Yeni Pencere";
+"261.title" = "Aç…";
+"271.title" = "Son Kullanılanı Aç";
+"262.title" = "Son Kullanılanı Aç";
+"248.title" = "Kapat";
+"282.title" = "Düzen";
+"281.title" = "Düzen";
+"283.title" = "Geri Al";
+"284.title" = "Yinele";
+"286.title" = "Kes";
+"287.title" = "Kopyala";
+"288.title" = "Yapıştır";
+"291.title" = "Tümünü Seç";
+"310.title" = "Pencere";
+"309.title" = "Pencere";
+"311.title" = "Simge Durumuna Küçült";
+"312.title" = "Büyüt/Küçült";
+"314.title" = "Tümünü Öne Getir";
+"233.title" = "Yardım";
+"232.title" = "Yardım";

@@ -1,0 +1,62 @@
+/* Class = "NSMenuItem"; title = "About MacVim"; ObjectID = "58"; */
+"58.title" = "Om MacVim";
+
+/* Class = "NSMenuItem"; title = "Check for Updates…"; ObjectID = "255"; */
+"255.title" = "Leta efter uppdateringar…";
+
+/* Class = "NSMenuItem"; title = "Hide MacVim"; ObjectID = "134"; */
+"134.title" = "Göm MacVim";
+
+/* Class = "NSMenuItem"; title = "Quit MacVim"; ObjectID = "136"; */
+"136.title" = "Avsluta MacVim";
+
+/* Class = "NSMenuItem"; title = "MacVim Website"; ObjectID = "234"; */
+"234.title" = "MacVim webbplats";
+
+/* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
+"275.title" = "MacVim Hjälp";
+
+// The strings below are untranslated
+
+/* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */
+"29.title" = "MainMenu";
+
+/* Class = "NSMenuItem"; title = "MacVim"; ObjectID = "56"; */
+"56.title" = "MacVim";
+
+/* Class = "NSMenu"; title = "MacVim"; ObjectID = "57"; */
+"57.title" = "MacVim";
+
+// The strings below were generated from Apple localization glossaries (Swedish).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"129.title" = "Inställningar…";
+"130.title" = "Tjänster";
+"131.title" = "Tjänster";
+"272.title" = "Rensa menyn";
+"145.title" = "Göm övriga";
+"150.title" = "Visa alla";
+"218.title" = "Arkiv";
+"217.title" = "Arkiv";
+"219.title" = "Nytt fönster";
+"338.title" = "Nytt fönster";
+"261.title" = "Öppna…";
+"271.title" = "Öppna senaste";
+"262.title" = "Öppna senaste";
+"248.title" = "Stäng";
+"282.title" = "Redigera";
+"281.title" = "Redigera";
+"283.title" = "Ångra";
+"284.title" = "Gör om";
+"286.title" = "Klipp ut";
+"287.title" = "Kopiera";
+"288.title" = "Klistra in";
+"291.title" = "Markera allt";
+"310.title" = "Fönster";
+"309.title" = "Fönster";
+"311.title" = "Minimera";
+"312.title" = "Zooma";
+"314.title" = "Lägg alla överst";
+"233.title" = "Hjälp";
+"232.title" = "Hjälp";

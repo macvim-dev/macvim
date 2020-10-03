@@ -85,10 +85,10 @@ if has("gui_macvim")
   tln <silent> 9998.320 Window.Toggle\ Full\ Screen\ Mode <C-W>:set invfullscreen<CR>
   an 9998.330 Window.-SEP1-			    <Nop>
   " TODO! Grey out if no tabs are visible.
-  an <silent> 9998.340 Window.Select\ Next\ Tab	    :tabnext<CR>
-  tln <silent> 9998.340 Window.Select\ Next\ Tab	<C-W>:tabnext<CR>
-  an <silent> 9998.350 Window.Select\ Previous\ Tab :tabprevious<CR>
-  tln <silent> 9998.350 Window.Select\ Previous\ Tab <C-W>:tabprevious<CR>
+  an <silent> 9998.340 Window.Show\ Next\ Tab	    :tabnext<CR>
+  tln <silent> 9998.340 Window.Show\ Next\ Tab	<C-W>:tabnext<CR>
+  an <silent> 9998.350 Window.Show\ Previous\ Tab :tabprevious<CR>
+  tln <silent> 9998.350 Window.Show\ Previous\ Tab <C-W>:tabprevious<CR>
   an 9998.360 Window.-SEP2-			    <Nop>
   an <silent> 9998.370 Window.Bring\ All\ To\ Front <Nop>
   an <silent> 9998.380 Window.Stay\ in\ Front <Nop>
@@ -100,7 +100,7 @@ endif
 if has("gui_macvim")
   an 9999.1 &Help.MacVim\ Help		    :h gui_mac<CR>
   tln 9999.1 &Help.MacVim\ Help		    <C-W>:h gui_mac<CR>
-  an <silent> 9999.2 Help.MacVim\ Website   <Nop>
+  an <silent> 9999.2 &Help.MacVim\ Website   <Nop>
   an 9999.3 &Help.-sep0-		    <Nop>
 endif
 if has("gui_macvim")
@@ -157,14 +157,14 @@ if has("gui_macvim")
   an <silent> 10.290 &File.New\ Window		    <Nop>
   an  10.295 &File.New\ Tab			    :tabnew<CR>
   tln 10.295 &File.New\ Tab			    <C-W>:tabnew<CR>
-  an <silent> 10.310 &File.Open\.\.\.		    <Nop>
+  an <silent> 10.310 &File.Open…		    <Nop>
   an <silent> 10.325 &File.Open\ Recent		    <Nop>
   an 10.328 &File.-SEP0-			    <Nop>
   an <silent> 10.330 &File.Close\ Window<Tab>:qa    :conf qa<CR>
   tln <silent> 10.330 &File.Close\ Window<Tab>:qa   <C-W>:conf qa<CR>
-  an <silent> 10.332 &File.Close		    :conf q<CR>
+  an <silent> 10.332 &File.Close<Tab>:q		    :conf q<CR>
   an <silent> 10.341 &File.Save\ All		    :browse conf wa<CR>
-  an 10.350 &File.Save\ As\.\.\.<Tab>:sav	    :browse confirm saveas<CR>
+  an 10.350 &File.Save\ As…<Tab>:sav	    :browse confirm saveas<CR>
 else
 endif
 if !has("gui_macvim")
@@ -183,7 +183,9 @@ if !has("gui_macvim")
 endif
 an 10.335 &File.-SEP1-				<Nop>
 an <silent> 10.340 &File.&Save<Tab>:w		:if expand("%") == ""<Bar>browse confirm w<Bar>else<Bar>confirm w<Bar>endif<CR>
-an 10.350 &File.Save\ &As\.\.\.<Tab>:sav	:browse confirm saveas<CR>
+if !has("gui_macvim")
+  an 10.350 &File.Save\ &As\.\.\.<Tab>:sav	:browse confirm saveas<CR>
+endif
 
 if has("diff")
   an 10.400 &File.-SEP2-			<Nop>
@@ -258,9 +260,9 @@ if has("win32") || has("gui_gtk") || has("gui_kde") || has("gui_motif")
   vunmenu	 &Edit.Find\ and\ Rep&lace\.\.\.
   vnoremenu <silent>	 &Edit.Find\ and\ Rep&lace\.\.\. y:promptrepl <C-R>=<SID>FixFText()<CR><CR>
 elseif has("gui_macvim")
-  an <silent> 20.410.10 &Edit.Find.Find\.\.\.	:promptfind<CR>
-  vunmenu &Edit.Find.Find\.\.\.
-  vnoremenu <silent> &Edit.Find.Find\.\.\.	y:promptfind <C-R>=<SID>FixFText()<CR><CR>
+  an <silent> 20.410.10 &Edit.Find.Find…	:promptfind<CR>
+  vunmenu &Edit.Find.Find…
+  vnoremenu <silent> &Edit.Find.Find…	y:promptfind <C-R>=<SID>FixFText()<CR><CR>
   an 20.410.20 &Edit.Find.Find\ Next			<Nop>
   an 20.410.30 &Edit.Find.Find\ Previous		<Nop>
   vnoremenu 20.410.35 &Edit.Find.Use\ Selection\ for\ Find	<Nop>
@@ -497,7 +499,6 @@ elseif has("gui_macvim")
   an 20.475.20 &Edit.Font.-SEP5-               <Nop>
   an 20.475.30 &Edit.Font.Bigger               <Nop>
   an 20.475.40 &Edit.Font.Smaller              <Nop>
-  an 20.480 &Edit.Emoji\ &&\ Symbols           <Nop>
 endif
 
 " Programming menu
@@ -1300,14 +1301,14 @@ if has("gui_macvim")
   "
   macm File.New\ Window				key=<D-n> action=newWindow:
   macm File.New\ Tab				key=<D-t>
-  macm File.Open\.\.\.				key=<D-o> action=fileOpen:
+  macm File.Open…				key=<D-o> action=fileOpen:
   macm File.Open\ Tab\.\.\.<Tab>:tabnew		key=<D-T>
   macm File.Open\ Recent			action=recentFilesDummy:
   macm File.Close\ Window<Tab>:qa		key=<D-W>
   macm File.Close				key=<D-w> action=performClose:
   macm File.Save<Tab>:w				key=<D-s>
   macm File.Save\ All				key=<D-M-s> alt=YES
-  macm File.Save\ As\.\.\.<Tab>:sav		key=<D-S>
+  macm File.Save\ As…<Tab>:sav		key=<D-S>
   macm File.Print				key=<D-p>
 
   macm Edit.Undo<Tab>u				key=<D-z> action=undo:
@@ -1316,14 +1317,13 @@ if has("gui_macvim")
   macm Edit.Copy<Tab>"+y			key=<D-c> action=copy:
   macm Edit.Paste<Tab>"+gP			key=<D-v> action=paste:
   macm Edit.Select\ All<Tab>ggVG		key=<D-a> action=selectAll:
-  macm Edit.Find.Find\.\.\.			key=<D-f>
+  macm Edit.Find.Find…			key=<D-f>
   macm Edit.Find.Find\ Next			key=<D-g> action=findNext:
   macm Edit.Find.Find\ Previous			key=<D-G> action=findPrevious:
   macm Edit.Find.Use\ Selection\ for\ Find	key=<D-e> action=useSelectionForFind:
   macm Edit.Font.Show\ Fonts			action=orderFrontFontPanel:
   macm Edit.Font.Bigger				key=<D-=> action=fontSizeUp:
   macm Edit.Font.Smaller			key=<D--> action=fontSizeDown:
-  macm Edit.Emoji\ &&\ Symbols			key=<D-C-Space> action=orderFrontCharacterPalette:
 
   macm Tools.Spelling.To\ Next\ Error<Tab>]s	key=<D-;>
   macm Tools.Spelling.Suggest\ Corrections<Tab>z=   key=<D-:>
@@ -1339,8 +1339,8 @@ if has("gui_macvim")
   macm Window.Zoom		key=<D-C-z>	action=performZoom:
   macm Window.Zoom\ All		key=<D-M-C-z>	action=zoomAll:		alt=YES
   macm Window.Toggle\ Full\ Screen\ Mode	key=<D-C-f>
-  macm Window.Select\ Next\ Tab			key=<D-}>
-  macm Window.Select\ Previous\ Tab		key=<D-{>
+  macm Window.Show\ Next\ Tab			key=<D-}>
+  macm Window.Show\ Previous\ Tab		key=<D-{>
   macm Window.Bring\ All\ To\ Front		action=arrangeInFront:
   macm Window.Stay\ in\ Front 	action=stayInFront:
   macm Window.Stay\ in\ Back 	action=stayInBack:

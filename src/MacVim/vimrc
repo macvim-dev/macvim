@@ -9,11 +9,6 @@ set nocompatible
 " more sensible value.  Add "set backspace&" to your ~/.vimrc to reset it.
 set backspace+=indent,eol,start
 
-" Disable localized menus for now since only some items are translated (e.g.
-" the entire MacVim menu is set up in a nib file which currently only is
-" translated to English).
-set langmenu=none
-
 " Python2
 " MacVim is configured by default to use the pre-installed System python2
 " version. However, following code tries to find a Homebrew, MacPorts or

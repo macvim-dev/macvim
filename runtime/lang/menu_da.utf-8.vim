@@ -457,6 +457,9 @@ menut History					Historik
 
 menut Targets					Mål
 
+so $VIMRUNTIME/lang/macvim_menu/menu_da.utf-8.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_da.utf-8.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo
 

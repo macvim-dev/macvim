@@ -307,6 +307,9 @@ menutrans Co&lor\ test		カラーテスト(&L)
 menutrans &Highlight\ test	ハイライトテスト(&H)
 menutrans &Convert\ to\ HTML	HTMLへコンバート(&C)
 
+so $VIMRUNTIME/lang/macvim_menu/menu_ja_jp.utf-8.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_ja_jp.utf-8.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo
 

@@ -243,5 +243,8 @@ let g:menutrans_tags_dialog = "Írd be a tag fájl lehetséges elérési útjait
 let g:menutrans_textwidth_dialog = "Írd be a szöveg szélességét (0 = formázás kikapcsolva)"
 let g:menutrans_fileformat_dialog = "Válaszd ki a fájl formátumát"
 
+so $VIMRUNTIME/lang/macvim_menu/menu_hu_hu.utf-8.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_hu_hu.utf-8.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

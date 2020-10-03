@@ -1,0 +1,62 @@
+/* Class = "NSMenuItem"; title = "About MacVim"; ObjectID = "58"; */
+"58.title" = "MacVim について";
+
+/* Class = "NSMenuItem"; title = "Check for Updates…"; ObjectID = "255"; */
+"255.title" = "アップデートを確認…";
+
+/* Class = "NSMenuItem"; title = "Hide MacVim"; ObjectID = "134"; */
+"134.title" = "MacVim を非表示";
+
+/* Class = "NSMenuItem"; title = "Quit MacVim"; ObjectID = "136"; */
+"136.title" = "MacVim を終了";
+
+/* Class = "NSMenuItem"; title = "MacVim Website"; ObjectID = "234"; */
+"234.title" = "MacVim Webサイト";
+
+/* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
+"275.title" = "MacVim ヘルプ";
+
+// The strings below are untranslated
+
+/* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */
+"29.title" = "MainMenu";
+
+/* Class = "NSMenuItem"; title = "MacVim"; ObjectID = "56"; */
+"56.title" = "MacVim";
+
+/* Class = "NSMenu"; title = "MacVim"; ObjectID = "57"; */
+"57.title" = "MacVim";
+
+// The strings below were generated from Apple localization glossaries (Japanese).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"129.title" = "環境設定…";
+"130.title" = "サービス";
+"131.title" = "サービス";
+"272.title" = "メニューを消去";
+"145.title" = "ほかを非表示";
+"150.title" = "すべてを表示";
+"218.title" = "ファイル";
+"217.title" = "ファイル";
+"219.title" = "新規ウインドウ";
+"338.title" = "新規ウインドウ";
+"261.title" = "開く…";
+"271.title" = "最近使った項目を開く";
+"262.title" = "最近使った項目を開く";
+"248.title" = "閉じる";
+"282.title" = "編集";
+"281.title" = "編集";
+"283.title" = "取り消す";
+"284.title" = "やり直す";
+"286.title" = "カット";
+"287.title" = "コピー";
+"288.title" = "ペースト";
+"291.title" = "すべてを選択";
+"310.title" = "ウインドウ";
+"309.title" = "ウインドウ";
+"311.title" = "しまう";
+"312.title" = "拡大/縮小";
+"314.title" = "すべてを手前に移動";
+"233.title" = "ヘルプ";
+"232.title" = "ヘルプ";

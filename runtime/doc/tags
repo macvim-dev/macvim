@@ -7798,6 +7798,7 @@ macvim-hints	gui_mac.txt	/*macvim-hints*
 macvim-international	gui_mac.txt	/*macvim-international*
 macvim-login-shell	gui_mac.txt	/*macvim-login-shell*
 macvim-menus	gui_mac.txt	/*macvim-menus*
+macvim-multilang	gui_mac.txt	/*macvim-multilang*
 macvim-options	gui_mac.txt	/*macvim-options*
 macvim-preferences	gui_mac.txt	/*macvim-preferences*
 macvim-prefs	gui_mac.txt	/*macvim-prefs*

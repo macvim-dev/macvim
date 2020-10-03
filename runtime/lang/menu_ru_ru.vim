@@ -332,5 +332,8 @@ let g:menutrans_fileformat_choices = "&Unix\n&Dos\n&Mac\nО&тмена"
 "
 let menutrans_no_file = "[Нет файла]"
 
+so $VIMRUNTIME/lang/macvim_menu/menu_ru_ru.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_ru_ru.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

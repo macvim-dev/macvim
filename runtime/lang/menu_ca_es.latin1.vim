@@ -312,5 +312,8 @@ menutrans Config			Configuració
 menutrans Set\ '&syntax'\ only		Només\ el\ ressaltat\ de\ sintaxi
 menutrans Set\ '&filetype'\ too		Carrega\ també\ els\ plugins
 
+so $VIMRUNTIME/lang/macvim_menu/menu_ca_es.latin1.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_ca_es.latin1.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo

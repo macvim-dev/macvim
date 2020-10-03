@@ -300,6 +300,9 @@ let g:menutrans_textwidth_dialog = "Zadejte délku řádku (0 pro zakázání fo
 let g:menutrans_fileformat_dialog = "Vyberte typ konce řádků"
 " }}}" 
 
+so $VIMRUNTIME/lang/macvim_menu/menu_cs_cz.utf-8.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_cs_cz.utf-8.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo
 

@@ -1,0 +1,62 @@
+/* Class = "NSMenuItem"; title = "About MacVim"; ObjectID = "58"; */
+"58.title" = "A MacVim névjegye";
+
+/* Class = "NSMenuItem"; title = "Check for Updates…"; ObjectID = "255"; */
+"255.title" = "Frissítések keresése…";
+
+/* Class = "NSMenuItem"; title = "Hide MacVim"; ObjectID = "134"; */
+"134.title" = "A MacVim elrejtése";
+
+/* Class = "NSMenuItem"; title = "Quit MacVim"; ObjectID = "136"; */
+"136.title" = "Kilépés a MacVim-ből";
+
+/* Class = "NSMenuItem"; title = "MacVim Website"; ObjectID = "234"; */
+"234.title" = "MacVim webhely";
+
+/* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
+"275.title" = "A MacVim súgója";
+
+// The strings below are untranslated
+
+/* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */
+"29.title" = "MainMenu";
+
+/* Class = "NSMenuItem"; title = "MacVim"; ObjectID = "56"; */
+"56.title" = "MacVim";
+
+/* Class = "NSMenu"; title = "MacVim"; ObjectID = "57"; */
+"57.title" = "MacVim";
+
+// The strings below were generated from Apple localization glossaries (Hungarian).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"129.title" = "Beállítások…";
+"130.title" = "Szolgáltatások";
+"131.title" = "Szolgáltatások";
+"272.title" = "Menü törlése";
+"145.title" = "Többi elrejtése";
+"150.title" = "Összes megjelenítése";
+"218.title" = "Fájl";
+"217.title" = "Fájl";
+"219.title" = "Új ablak";
+"338.title" = "Új ablak";
+"261.title" = "Megnyitás…";
+"271.title" = "Legutóbbi megnyitása";
+"262.title" = "Legutóbbi megnyitása";
+"248.title" = "Bezárás";
+"282.title" = "Szerkesztés";
+"281.title" = "Szerkesztés";
+"283.title" = "Visszavonás";
+"284.title" = "Ismétlés";
+"286.title" = "Kivágás";
+"287.title" = "Másolás";
+"288.title" = "Beillesztés";
+"291.title" = "Összes kijelölése";
+"310.title" = "Ablak";
+"309.title" = "Ablak";
+"311.title" = "Kis méret";
+"312.title" = "Nagyítás";
+"314.title" = "Összes előtérbe hozása";
+"233.title" = "Súgó";
+"232.title" = "Súgó";

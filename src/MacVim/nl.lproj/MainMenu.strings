@@ -1,0 +1,62 @@
+/* Class = "NSMenuItem"; title = "About MacVim"; ObjectID = "58"; */
+"58.title" = "Over MacVim";
+
+/* Class = "NSMenuItem"; title = "Check for Updates…"; ObjectID = "255"; */
+"255.title" = "Zoek naar updates…";
+
+/* Class = "NSMenuItem"; title = "Hide MacVim"; ObjectID = "134"; */
+"134.title" = "Verberg MacVim";
+
+/* Class = "NSMenuItem"; title = "Quit MacVim"; ObjectID = "136"; */
+"136.title" = "Stop MacVim";
+
+/* Class = "NSMenuItem"; title = "MacVim Website"; ObjectID = "234"; */
+"234.title" = "MacVim-website";
+
+/* Class = "NSMenuItem"; title = "MacVim Help"; ObjectID = "275"; */
+"275.title" = "MacVim Help";
+
+// The strings below are untranslated
+
+/* Class = "NSMenu"; title = "MainMenu"; ObjectID = "29"; */
+"29.title" = "MainMenu";
+
+/* Class = "NSMenuItem"; title = "MacVim"; ObjectID = "56"; */
+"56.title" = "MacVim";
+
+/* Class = "NSMenu"; title = "MacVim"; ObjectID = "57"; */
+"57.title" = "MacVim";
+
+// The strings below were generated from Apple localization glossaries (Dutch).
+// See extract-specific-localised-strings.swift for details.
+// Do no modify directly!
+
+"129.title" = "Voorkeuren…";
+"130.title" = "Voorzieningen";
+"131.title" = "Voorzieningen";
+"272.title" = "Wis menu";
+"145.title" = "Verberg andere";
+"150.title" = "Toon alles";
+"218.title" = "Archief";
+"217.title" = "Archief";
+"219.title" = "Nieuw venster";
+"338.title" = "Nieuw venster";
+"261.title" = "Open…";
+"271.title" = "Open recente bestanden";
+"262.title" = "Open recente bestanden";
+"248.title" = "Sluit";
+"282.title" = "Wijzig";
+"281.title" = "Wijzig";
+"283.title" = "Herstel";
+"284.title" = "Opnieuw";
+"286.title" = "Knip";
+"287.title" = "Kopieer";
+"288.title" = "Plak";
+"291.title" = "Selecteer alles";
+"310.title" = "Venster";
+"309.title" = "Venster";
+"311.title" = "Minimaliseer";
+"312.title" = "Zoom in of uit";
+"314.title" = "Alles op voorgrond";
+"233.title" = "Help";
+"232.title" = "Help";

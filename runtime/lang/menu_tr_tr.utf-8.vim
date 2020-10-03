@@ -304,5 +304,9 @@ let g:menutrans_textwidth_dialog = "Biçimlendirme için metin genişliğini bel
 let g:menutrans_fileformat_dialog = "Dosya biçimi seçin"
 let g:menutrans_fileformat_choices = "&Unix\n&Dos\n&Mac\nİ&ptal"
 let menutrans_no_file = "[Dosya Yok]"
+
+so $VIMRUNTIME/lang/macvim_menu/menu_tr_tr.utf-8.apple.vim
+so $VIMRUNTIME/lang/macvim_menu/menu_tr_tr.utf-8.custom.vim
+
 let &cpo = s:keepcpo
 unlet s:keepcpo
