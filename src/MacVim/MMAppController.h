@@ -14,7 +14,10 @@
 
 @class MMWindowController;
 @class MMVimController;
+
+#if !DISABLE_SPARKLE
 @class SUUpdater;
+#endif
 
 
 @interface MMAppController : NSObject <MMAppProtocol, NSUserInterfaceItemSearching> {
@@ -36,7 +39,9 @@
     NSMutableDictionary *inputQueues;
     int                 processingFlag;
     
+#if !DISABLE_SPARKLE
     SUUpdater           *updater;
+#endif
 
     FSEventStreamRef    fsEventStream;
 }
