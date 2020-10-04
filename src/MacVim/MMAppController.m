@@ -326,7 +326,9 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [defaultMainMenu release];  defaultMainMenu = nil;
     currentMainMenu = nil;
     [appMenuItemTemplate release];  appMenuItemTemplate = nil;
+#if !DISABLE_SPARKLE
     [updater release];  updater = nil;
+#endif
 
     [super dealloc];
 }
