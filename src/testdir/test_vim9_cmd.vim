@@ -68,12 +68,80 @@ def Test_echo_linebreak()
   CheckScriptSuccess(lines)
 enddef
 
+def Test_condition_types()
+  var lines =<< trim END
+      if 'text'
+      endif
+  END
+  CheckDefAndScriptFailure(lines, 'E1030:', 1)
+
+  lines =<< trim END
+      if [1]
+      endif
+  END
+  CheckDefFailure(lines, 'E1012:', 1)
+  CheckScriptFailure(['vim9script'] + lines, 'E745:', 2)
+
+  lines =<< trim END
+      g:cond = 'text'
+      if g:cond
+      endif
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1030:', 2)
+
+  lines =<< trim END
+      g:cond = 0
+      if g:cond
+      elseif 'text'
+      endif
+  END
+  CheckDefFailure(lines, 'E1012:', 3)
+  CheckScriptFailure(['vim9script'] + lines, 'E1030:', 4)
+
+  lines =<< trim END
+      if g:cond
+      elseif [1]
+      endif
+  END
+  CheckDefFailure(lines, 'E1012:', 2)
+  CheckScriptFailure(['vim9script'] + lines, 'E745:', 3)
+
+  lines =<< trim END
+      g:cond = 'text'
+      if 0
+      elseif g:cond
+      endif
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1030:', 3)
+
+  lines =<< trim END
+      while 'text'
+      endwhile
+  END
+  CheckDefFailure(lines, 'E1012:', 1)
+  CheckScriptFailure(['vim9script'] + lines, 'E1030:', 2)
+
+  lines =<< trim END
+      while [1]
+      endwhile
+  END
+  CheckDefFailure(lines, 'E1012:', 1)
+  CheckScriptFailure(['vim9script'] + lines, 'E745:', 2)
+
+  lines =<< trim END
+      g:cond = 'text'
+      while g:cond
+      endwhile
+  END
+  CheckDefExecAndScriptFailure(lines, 'E1030:', 2)
+enddef
+
 def Test_if_linebreak()
   var lines =<< trim END
       vim9script
       if 1 &&
-            2
-            || 3
+            true
+            || 1
         g:res = 42
       endif
       assert_equal(42, g:res)

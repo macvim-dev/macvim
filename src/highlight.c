@@ -2685,13 +2685,14 @@ highlight_has_attr(
     char_u *
 highlight_color(
     int		id,
-    char_u	*what,	// "font", "fg", "bg", "sp", "fg#", "bg#" or "sp#"
+    char_u	*what,	// "font", "fg", "bg", "sp", "ul", "fg#", "bg#" or "sp#"
     int		modec)	// 'g' for GUI, 'c' for cterm, 't' for term
 {
     static char_u	name[20];
     int			n;
     int			fg = FALSE;
     int			sp = FALSE;
+    int			ul = FALSE;
     int			font = FALSE;
 
     if (id <= 0 || id > highlight_ga.ga_len)
@@ -2704,6 +2705,8 @@ highlight_color(
 	font = TRUE;
     else if (TOLOWER_ASC(what[0]) == 's' && TOLOWER_ASC(what[1]) == 'p')
 	sp = TRUE;
+    else if (TOLOWER_ASC(what[0]) == 'u' && TOLOWER_ASC(what[1]) == 'l')
+	ul = TRUE;
     else if (!(TOLOWER_ASC(what[0]) == 'b' && TOLOWER_ASC(what[1]) == 'g'))
 	return NULL;
     if (modec == 'g')
@@ -2750,6 +2753,8 @@ highlight_color(
     {
 	if (fg)
 	    n = HL_TABLE()[id - 1].sg_cterm_fg - 1;
+	else if (ul)
+	    n = HL_TABLE()[id - 1].sg_cterm_ul - 1;
 	else
 	    n = HL_TABLE()[id - 1].sg_cterm_bg - 1;
 	if (n < 0)

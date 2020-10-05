@@ -239,7 +239,9 @@ call_dfunc(int cdf_idx, int argcount_arg, ectx_T *ectx)
     // Store current execution state in stack frame for ISN_RETURN.
     STACK_TV_BOT(0)->vval.v_number = ectx->ec_dfunc_idx;
     STACK_TV_BOT(1)->vval.v_number = ectx->ec_iidx;
-    STACK_TV_BOT(2)->vval.v_number = ectx->ec_frame_idx;
+    STACK_TV_BOT(2)->vval.v_string = (void *)ectx->ec_outer_stack;
+    STACK_TV_BOT(3)->vval.v_number = ectx->ec_outer_frame;
+    STACK_TV_BOT(4)->vval.v_number = ectx->ec_frame_idx;
     ectx->ec_frame_idx = ectx->ec_stack.ga_len;
 
     // Initialize local variables
@@ -455,7 +457,11 @@ func_return(ectx_T *ectx)
     // Restore the previous frame.
     ectx->ec_dfunc_idx = STACK_TV(ectx->ec_frame_idx)->vval.v_number;
     ectx->ec_iidx = STACK_TV(ectx->ec_frame_idx + 1)->vval.v_number;
-    ectx->ec_frame_idx = STACK_TV(ectx->ec_frame_idx + 2)->vval.v_number;
+    ectx->ec_outer_stack =
+		       (void *)STACK_TV(ectx->ec_frame_idx + 2)->vval.v_string;
+    ectx->ec_outer_frame = STACK_TV(ectx->ec_frame_idx + 3)->vval.v_number;
+    // restoring ec_frame_idx must be last
+    ectx->ec_frame_idx = STACK_TV(ectx->ec_frame_idx + 4)->vval.v_number;
     dfunc = ((dfunc_T *)def_functions.ga_data) + ectx->ec_dfunc_idx;
     ectx->ec_instr = dfunc->df_instr;
 
@@ -1895,14 +1901,26 @@ call_def_function(
 	    case ISN_JUMP:
 		{
 		    jumpwhen_T	when = iptr->isn_arg.jump.jump_when;
+		    int		error = FALSE;
 		    int		jump = TRUE;
 
 		    if (when != JUMP_ALWAYS)
 		    {
 			tv = STACK_TV_BOT(-1);
-			jump = tv2bool(tv);
+			if (when == JUMP_IF_COND_FALSE
+				|| when == JUMP_IF_FALSE
+				|| when == JUMP_IF_COND_TRUE)
+			{
+			    SOURCING_LNUM = iptr->isn_lnum;
+			    jump = tv_get_bool_chk(tv, &error);
+			    if (error)
+				goto on_error;
+			}
+			else
+			    jump = tv2bool(tv);
 			if (when == JUMP_IF_FALSE
-					     || when == JUMP_AND_KEEP_IF_FALSE)
+					     || when == JUMP_AND_KEEP_IF_FALSE
+					     || when == JUMP_IF_COND_FALSE)
 			    jump = !jump;
 			if (when == JUMP_IF_FALSE || !jump)
 			{
@@ -2618,13 +2636,25 @@ call_def_function(
 		break;
 
 	    case ISN_2BOOL:
+	    case ISN_COND2BOOL:
 		{
 		    int n;
+		    int error = FALSE;
 
 		    tv = STACK_TV_BOT(-1);
-		    n = tv2bool(tv);
-		    if (iptr->isn_arg.number)  // invert
-			n = !n;
+		    if (iptr->isn_type == ISN_2BOOL)
+		    {
+			n = tv2bool(tv);
+			if (iptr->isn_arg.number)  // invert
+			    n = !n;
+		    }
+		    else
+		    {
+			SOURCING_LNUM = iptr->isn_lnum;
+			n = tv_get_bool_chk(tv, &error);
+			if (error)
+			    goto on_error;
+		    }
 		    clear_tv(tv);
 		    tv->v_type = VAR_BOOL;
 		    tv->vval.v_number = n ? VVAL_TRUE : VVAL_FALSE;
@@ -3186,6 +3216,12 @@ ex_disassemble(exarg_T *eap)
 			case JUMP_AND_KEEP_IF_FALSE:
 			    when = "JUMP_AND_KEEP_IF_FALSE";
 			    break;
+			case JUMP_IF_COND_FALSE:
+			    when = "JUMP_IF_COND_FALSE";
+			    break;
+			case JUMP_IF_COND_TRUE:
+			    when = "JUMP_IF_COND_TRUE";
+			    break;
 		    }
 		    smsg("%4d %s -> %d", current, when,
 						iptr->isn_arg.jump.jump_where);
@@ -3336,6 +3372,7 @@ ex_disassemble(exarg_T *eap)
 				iptr->isn_arg.checklen.cl_more_OK ? ">= " : "",
 				iptr->isn_arg.checklen.cl_min_len);
 			       break;
+	    case ISN_COND2BOOL: smsg("%4d COND2BOOL", current); break;
 	    case ISN_2BOOL: if (iptr->isn_arg.number)
 				smsg("%4d INVERT (!val)", current);
 			    else
@@ -3367,7 +3404,7 @@ ex_disassemble(exarg_T *eap)
 }
 
 /*
- * Return TRUE when "tv" is not falsey: non-zero, non-empty string, non-empty
+ * Return TRUE when "tv" is not falsy: non-zero, non-empty string, non-empty
  * list, etc.  Mostly like what JavaScript does, except that empty list and
  * empty dictionary are FALSE.
  */

@@ -1273,18 +1273,16 @@ win_split_ins(
     if (flags & (WSP_TOP | WSP_BOT))
 	(void)win_comp_pos();
 
-    /*
-     * Both windows need redrawing
-     */
+     // Both windows need redrawing.  Update all status lines, in case they
+     // show something related to the window count or position.
     redraw_win_later(wp, NOT_VALID);
-    wp->w_redr_status = TRUE;
 #ifdef FEAT_GUI_MACVIM
-    /* The view may have moved, so clear all or display may get corrupted. */
+    // The view may have moved, so clear all or display may get corrupted.
     redraw_win_later(oldwin, gui.in_use ? CLEAR : NOT_VALID);
 #else
     redraw_win_later(oldwin, NOT_VALID);
 #endif
-    oldwin->w_redr_status = TRUE;
+    status_redraw_all();
 
     if (need_status)
     {
@@ -2234,7 +2232,7 @@ leaving_window(win_T *win)
     }
 }
 
-    static void
+    void
 entering_window(win_T *win)
 {
     // Only matters for a prompt window.

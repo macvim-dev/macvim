@@ -1538,14 +1538,18 @@ win_found:
 	else
 	    // Hmm, original window disappeared.  Just use the first one.
 	    curwin = firstwin;
+	curbuf = curwin->w_buffer;
+#ifdef FEAT_JOB_CHANNEL
+	// May need to restore insert mode for a prompt buffer.
+	entering_window(curwin);
+#endif
+
 	if (win_valid(aco->save_prevwin))
 	    prevwin = aco->save_prevwin;
 #ifdef FEAT_EVAL
 	vars_clear(&aucmd_win->w_vars->dv_hashtab);  // free all w: variables
 	hash_init(&aucmd_win->w_vars->dv_hashtab);   // re-use the hashtab
 #endif
-	curbuf = curwin->w_buffer;
-
 	vim_free(globaldir);
 	globaldir = aco->globaldir;
 

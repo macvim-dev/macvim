@@ -191,7 +191,7 @@ eval_to_bool(
 	if (!skip)
 	{
 	    if (in_vim9script())
-		retval = tv2bool(&tv);
+		retval = tv_get_bool_chk(&tv, error);
 	    else
 		retval = (tv_get_number_chk(&tv, error) != 0);
 	    clear_tv(&tv);
@@ -2110,6 +2110,7 @@ eval0(
 /*
  * Handle top level expression:
  *	expr2 ? expr1 : expr1
+ *	expr2 ?? expr1
  *
  * "arg" must point to the first non-white of the expression.
  * "arg" is advanced to just after the recognized expression.
@@ -2135,12 +2136,14 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
     p = eval_next_non_blank(*arg, evalarg, &getnext);
     if (*p == '?')
     {
+	int		op_falsy = p[1] == '?';
 	int		result;
 	typval_T	var2;
 	evalarg_T	*evalarg_used = evalarg;
 	evalarg_T	local_evalarg;
 	int		orig_flags;
 	int		evaluate;
+	int		vim9script = in_vim9script();
 
 	if (evalarg == NULL)
 	{
@@ -2154,7 +2157,7 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    *arg = eval_next_line(evalarg_used);
 	else
 	{
-	    if (evaluate && in_vim9script() && !VIM_ISWHITE(p[-1]))
+	    if (evaluate && vim9script && !VIM_ISWHITE(p[-1]))
 	    {
 		error_white_both(p, 1);
 		clear_tv(rettv);
@@ -2168,11 +2171,14 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	{
 	    int		error = FALSE;
 
-	    if (in_vim9script())
+	    if (op_falsy)
 		result = tv2bool(rettv);
+	    else if (vim9script)
+		result = tv_get_bool_chk(rettv, &error);
 	    else if (tv_get_number_chk(rettv, &error) != 0)
 		result = TRUE;
-	    clear_tv(rettv);
+	    if (error || !op_falsy || !result)
+		clear_tv(rettv);
 	    if (error)
 		return FAIL;
 	}
@@ -2180,69 +2186,76 @@ eval1(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	/*
 	 * Get the second variable.  Recursive!
 	 */
-	if (evaluate && in_vim9script() && !IS_WHITE_OR_NUL((*arg)[1]))
+	if (op_falsy)
+	    ++*arg;
+	if (evaluate && vim9script && !IS_WHITE_OR_NUL((*arg)[1]))
 	{
 	    error_white_both(p, 1);
 	    clear_tv(rettv);
 	    return FAIL;
 	}
 	*arg = skipwhite_and_linebreak(*arg + 1, evalarg_used);
-	evalarg_used->eval_flags = result ? orig_flags
-						 : orig_flags & ~EVAL_EVALUATE;
-	if (eval1(arg, rettv, evalarg_used) == FAIL)
+	evalarg_used->eval_flags = (op_falsy ? !result : result)
+				    ? orig_flags : orig_flags & ~EVAL_EVALUATE;
+	if (eval1(arg, &var2, evalarg_used) == FAIL)
 	{
 	    evalarg_used->eval_flags = orig_flags;
 	    return FAIL;
 	}
+	if (!op_falsy || !result)
+	    *rettv = var2;
 
-	/*
-	 * Check for the ":".
-	 */
-	p = eval_next_non_blank(*arg, evalarg_used, &getnext);
-	if (*p != ':')
+	if (!op_falsy)
 	{
-	    emsg(_(e_missing_colon));
-	    if (evaluate && result)
-		clear_tv(rettv);
-	    evalarg_used->eval_flags = orig_flags;
-	    return FAIL;
-	}
-	if (getnext)
-	    *arg = eval_next_line(evalarg_used);
-	else
-	{
-	    if (evaluate && in_vim9script() && !VIM_ISWHITE(p[-1]))
+	    /*
+	     * Check for the ":".
+	     */
+	    p = eval_next_non_blank(*arg, evalarg_used, &getnext);
+	    if (*p != ':')
+	    {
+		emsg(_(e_missing_colon));
+		if (evaluate && result)
+		    clear_tv(rettv);
+		evalarg_used->eval_flags = orig_flags;
+		return FAIL;
+	    }
+	    if (getnext)
+		*arg = eval_next_line(evalarg_used);
+	    else
+	    {
+		if (evaluate && vim9script && !VIM_ISWHITE(p[-1]))
+		{
+		    error_white_both(p, 1);
+		    clear_tv(rettv);
+		    evalarg_used->eval_flags = orig_flags;
+		    return FAIL;
+		}
+		*arg = p;
+	    }
+
+	    /*
+	     * Get the third variable.  Recursive!
+	     */
+	    if (evaluate && vim9script && !IS_WHITE_OR_NUL((*arg)[1]))
 	    {
 		error_white_both(p, 1);
 		clear_tv(rettv);
 		evalarg_used->eval_flags = orig_flags;
 		return FAIL;
 	    }
-	    *arg = p;
-	}
-
-	/*
-	 * Get the third variable.  Recursive!
-	 */
-	if (evaluate && in_vim9script() && !IS_WHITE_OR_NUL((*arg)[1]))
-	{
-	    error_white_both(p, 1);
-	    clear_tv(rettv);
-	    evalarg_used->eval_flags = orig_flags;
-	    return FAIL;
-	}
-	*arg = skipwhite_and_linebreak(*arg + 1, evalarg_used);
-	evalarg_used->eval_flags = !result ? orig_flags
+	    *arg = skipwhite_and_linebreak(*arg + 1, evalarg_used);
+	    evalarg_used->eval_flags = !result ? orig_flags
 						 : orig_flags & ~EVAL_EVALUATE;
-	if (eval1(arg, &var2, evalarg_used) == FAIL)
-	{
-	    if (evaluate && result)
-		clear_tv(rettv);
-	    evalarg_used->eval_flags = orig_flags;
-	    return FAIL;
+	    if (eval1(arg, &var2, evalarg_used) == FAIL)
+	    {
+		if (evaluate && result)
+		    clear_tv(rettv);
+		evalarg_used->eval_flags = orig_flags;
+		return FAIL;
+	    }
+	    if (evaluate && !result)
+		*rettv = var2;
 	}
-	if (evaluate && !result)
-	    *rettv = var2;
 
 	if (evalarg == NULL)
 	    clear_evalarg(&local_evalarg, NULL);
@@ -2286,7 +2299,7 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	int	    orig_flags;
 	long	    result = FALSE;
 	typval_T    var2;
-	int	    error;
+	int	    error = FALSE;
 	int	    vim9script = in_vim9script();
 
 	if (evalarg == NULL)
@@ -2299,18 +2312,12 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	if (evaluate)
 	{
 	    if (vim9script)
-	    {
-		result = tv2bool(rettv);
-	    }
-	    else
-	    {
-		error = FALSE;
-		if (tv_get_number_chk(rettv, &error) != 0)
-		    result = TRUE;
-		clear_tv(rettv);
-		if (error)
-		    return FAIL;
-	    }
+		result = tv_get_bool_chk(rettv, &error);
+	    else if (tv_get_number_chk(rettv, &error) != 0)
+		result = TRUE;
+	    clear_tv(rettv);
+	    if (error)
+		return FAIL;
 	}
 
 	/*
@@ -2352,24 +2359,25 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    if (evaluate && !result)
 	    {
 		if (vim9script)
+		    result = tv_get_bool_chk(&var2, &error);
+		else if (tv_get_number_chk(&var2, &error) != 0)
+		    result = TRUE;
+		clear_tv(&var2);
+		if (error)
+		    return FAIL;
+	    }
+	    if (evaluate)
+	    {
+		if (vim9script)
 		{
-		    clear_tv(rettv);
-		    *rettv = var2;
-		    result = tv2bool(rettv);
+		    rettv->v_type = VAR_BOOL;
+		    rettv->vval.v_number = result ? VVAL_TRUE : VVAL_FALSE;
 		}
 		else
 		{
-		    if (tv_get_number_chk(&var2, &error) != 0)
-			result = TRUE;
-		    clear_tv(&var2);
-		    if (error)
-			return FAIL;
+		    rettv->v_type = VAR_NUMBER;
+		    rettv->vval.v_number = result;
 		}
-	    }
-	    if (evaluate && !vim9script)
-	    {
-		rettv->v_type = VAR_NUMBER;
-		rettv->vval.v_number = result;
 	    }
 
 	    p = eval_next_non_blank(*arg, evalarg_used, &getnext);
@@ -2379,9 +2387,6 @@ eval2(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    clear_evalarg(&local_evalarg, NULL);
 	else
 	    evalarg->eval_flags = orig_flags;
-
-	// Resulting value can be assigned to a bool.
-	rettv->v_lock |= VAR_BOOL_OK;
     }
 
     return OK;
@@ -2420,7 +2425,7 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	int	    evaluate;
 	long	    result = TRUE;
 	typval_T    var2;
-	int	    error;
+	int	    error = FALSE;
 	int	    vim9script = in_vim9script();
 
 	if (evalarg == NULL)
@@ -2433,18 +2438,12 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	if (evaluate)
 	{
 	    if (vim9script)
-	    {
-		result = tv2bool(rettv);
-	    }
-	    else
-	    {
-		error = FALSE;
-		if (tv_get_number_chk(rettv, &error) == 0)
-		    result = FALSE;
-		clear_tv(rettv);
-		if (error)
-		    return FAIL;
-	    }
+		result = tv_get_bool_chk(rettv, &error);
+	    else if (tv_get_number_chk(rettv, &error) == 0)
+		result = FALSE;
+	    clear_tv(rettv);
+	    if (error)
+		return FAIL;
 	}
 
 	/*
@@ -2456,7 +2455,7 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 		*arg = eval_next_line(evalarg_used);
 	    else
 	    {
-		if (evaluate && in_vim9script() && !VIM_ISWHITE(p[-1]))
+		if (evaluate && vim9script && !VIM_ISWHITE(p[-1]))
 		{
 		    error_white_both(p, 2);
 		    clear_tv(rettv);
@@ -2487,24 +2486,25 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    if (evaluate && result)
 	    {
 		if (vim9script)
+		    result = tv_get_bool_chk(&var2, &error);
+		else if (tv_get_number_chk(&var2, &error) == 0)
+		    result = FALSE;
+		clear_tv(&var2);
+		if (error)
+		    return FAIL;
+	    }
+	    if (evaluate)
+	    {
+		if (vim9script)
 		{
-		    clear_tv(rettv);
-		    *rettv = var2;
-		    result = tv2bool(rettv);
+		    rettv->v_type = VAR_BOOL;
+		    rettv->vval.v_number = result ? VVAL_TRUE : VVAL_FALSE;
 		}
 		else
 		{
-		    if (tv_get_number_chk(&var2, &error) == 0)
-			result = FALSE;
-		    clear_tv(&var2);
-		    if (error)
-			return FAIL;
+		    rettv->v_type = VAR_NUMBER;
+		    rettv->vval.v_number = result;
 		}
-	    }
-	    if (evaluate && !vim9script)
-	    {
-		rettv->v_type = VAR_NUMBER;
-		rettv->vval.v_number = result;
 	    }
 
 	    p = eval_next_non_blank(*arg, evalarg_used, &getnext);
@@ -2514,9 +2514,6 @@ eval3(char_u **arg, typval_T *rettv, evalarg_T *evalarg)
 	    clear_evalarg(&local_evalarg, NULL);
 	else
 	    evalarg->eval_flags = orig_flags;
-
-	// Resulting value can be assigned to a bool.
-	rettv->v_lock |= VAR_BOOL_OK;
     }
 
     return OK;

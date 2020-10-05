@@ -227,7 +227,12 @@ func RunTheTest(test)
 
   " Close any extra tab pages and windows and make the current one not modified.
   while tabpagenr('$') > 1
+    let winid = win_getid()
     quit!
+    if winid == win_getid()
+      echoerr 'Could not quit window'
+      break
+    endif
   endwhile
 
   while 1
@@ -354,9 +359,6 @@ func FinishTesting()
 
   qall!
 endfunc
-
-" TODO: remove later
-let v:disallow_let = 1
 
 " Source the test script.  First grab the file name, in case the script
 " navigates away.  g:testname can be used by the tests.
