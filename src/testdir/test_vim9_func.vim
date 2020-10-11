@@ -1388,6 +1388,20 @@ def Test_double_closure_fails()
   CheckScriptSuccess(lines)
 enddef
 
+def Test_nested_closure_used()
+  var lines =<< trim END
+      vim9script
+      def Func()
+        var x = 'hello'
+        var Closure = {-> x}
+        g:Myclosure = {-> Closure()}
+      enddef
+      Func()
+      assert_equal('hello', g:Myclosure())
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def Test_nested_closure_fails()
   var lines =<< trim END
     vim9script
@@ -2014,6 +2028,24 @@ def Test_callstack_def()
   catch
     v:throwpoint->assert_match('Test_callstack_def\[2\]..StackTop\[4\]..StackBot, line 2')
   endtry
+enddef
+
+" Re-using spot for variable used in block
+def Test_block_scoped_var()
+  var lines =<< trim END
+      vim9script
+      def Func()
+        var x = ['a', 'b', 'c']
+        if 1
+          var y = 'x'
+          map(x, {-> y})
+        endif
+        var z = x
+        assert_equal(['x', 'x', 'x'], z)
+      enddef
+      Func()
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 

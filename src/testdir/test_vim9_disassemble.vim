@@ -436,6 +436,7 @@ def Test_disassemble_call()
         res)
 enddef
 
+
 def s:CreateRefs()
   var local = 'a'
   def Append(arg: string)

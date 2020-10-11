@@ -889,6 +889,8 @@ typedef struct {
     }		cs_pend;
     void	*cs_forinfo[CSTACK_LEN]; // info used by ":for"
     int		cs_line[CSTACK_LEN];	// line nr of ":while"/":for" line
+    int		cs_script_var_len[CSTACK_LEN];	// value of sn_var_vals.ga_len
+						// when entering the block
     int		cs_idx;			// current entry, or -1 if none
     int		cs_looplevel;		// nr of nested ":while"s and ":for"s
     int		cs_trylevel;		// nr of nested ":try"s
@@ -905,6 +907,7 @@ typedef struct {
 # define CSF_ELSE	0x0004	// ":else" has been passed
 # define CSF_WHILE	0x0008	// is a ":while"
 # define CSF_FOR	0x0010	// is a ":for"
+# define CSF_BLOCK	0x0020	// is a "{" block
 
 # define CSF_TRY	0x0100	// is a ":try"
 # define CSF_FINALLY	0x0200	// ":finally" has been passed
@@ -1869,8 +1872,11 @@ typedef struct funcstack_S
 				// - arguments
 				// - frame
 				// - local variables
+    int		fs_var_offset;	// count of arguments + frame size == offset to
+				// local variables
 
     int		fs_refcount;	// nr of closures referencing this funcstack
+    int		fs_min_refcount; // nr of closures on this funcstack
     int		fs_copyID;	// for garray_T collection
 } funcstack_T;
 
@@ -4074,6 +4080,7 @@ typedef struct lval_S
     dict_T	*ll_dict;	// The Dictionary or NULL
     dictitem_T	*ll_di;		// The dictitem or NULL
     char_u	*ll_newkey;	// New key for Dict in alloc. mem or NULL.
+    type_T	*ll_valtype;	// type expected for the value or NULL
     blob_T	*ll_blob;	// The Blob or NULL
 } lval_T;
 

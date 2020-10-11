@@ -2103,11 +2103,47 @@ endfunc
 func Test_mapping_works_with_ctrl()
   call RunTest_mapping_works_with_mods(function('GetEscCodeCSI27'), 'C', 5)
   call RunTest_mapping_works_with_mods(function('GetEscCodeCSIu'), 'C', 5)
+
+  new
+  set timeoutlen=10
+
+  " CTRL-@ actually produces the code for CTRL-2, which is converted
+  call RunTest_mapping_mods('<C-@>', '2', function('GetEscCodeCSI27'), 5)
+  call RunTest_mapping_mods('<C-@>', '2', function('GetEscCodeCSIu'), 5)
+
+  " CTRL-^ actually produces the code for CTRL-6, which is converted
+  call RunTest_mapping_mods('<C-^>', '6', function('GetEscCodeCSI27'), 5)
+  call RunTest_mapping_mods('<C-^>', '6', function('GetEscCodeCSIu'), 5)
+
+  " CTRL-_ actually produces the code for CTRL--, which is converted
+  call RunTest_mapping_mods('<C-_>', '-', function('GetEscCodeCSI27'), 5)
+  call RunTest_mapping_mods('<C-_>', '-', function('GetEscCodeCSIu'), 5)
+
+  bwipe!
+  set timeoutlen&
 endfunc
 
 func Test_mapping_works_with_shift_ctrl()
   call RunTest_mapping_works_with_mods(function('GetEscCodeCSI27'), 'C-S', 6)
   call RunTest_mapping_works_with_mods(function('GetEscCodeCSIu'), 'C-S', 6)
+
+  new
+  set timeoutlen=10
+
+  " Ctrl-Shift-[ actually produces CTRL-Shift-{ which is mapped as <C-{>
+  call RunTest_mapping_mods('<C-{>', '{', function('GetEscCodeCSI27'), 6)
+  call RunTest_mapping_mods('<C-{>', '{', function('GetEscCodeCSIu'), 6)
+
+  " Ctrl-Shift-] actually produces CTRL-Shift-} which is mapped as <C-}>
+  call RunTest_mapping_mods('<C-{>', '{', function('GetEscCodeCSI27'), 6)
+  call RunTest_mapping_mods('<C-{>', '{', function('GetEscCodeCSIu'), 6)
+
+  " Ctrl-Shift-\ actually produces CTRL-Shift-| which is mapped as <C-|>
+  call RunTest_mapping_mods('<C-\|>', '|', function('GetEscCodeCSI27'), 6)
+  call RunTest_mapping_mods('<C-\|>', '|', function('GetEscCodeCSIu'), 6)
+
+  bwipe!
+  set timeoutlen&
 endfunc
 
 " Below we also test the "u" code with Alt, This works, but libvterm would not

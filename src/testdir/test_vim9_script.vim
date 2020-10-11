@@ -145,6 +145,15 @@ def Test_wrong_type()
   CheckDefFailure(['var Ref: string', 'var res = Ref()'], 'E1085:')
 enddef
 
+def Test_script_wrong_type()
+  var lines =<< trim END
+      vim9script
+      var s:dict: dict<string>
+      s:dict['a'] = ['x']
+  END
+  CheckScriptFailure(lines, 'E1012: Type mismatch; expected string but got list<string>', 3)
+enddef
+
 def Test_const()
   CheckDefFailure(['final name = 234', 'name = 99'], 'E1018:')
   CheckDefFailure(['final one = 234', 'var one = 99'], 'E1017:')
@@ -2674,6 +2683,77 @@ def Run_Test_define_func_at_command_line()
   call StopVimInTerminal(buf)
   delete('XcallFunc')
   delete('Xdidcmd')
+enddef
+
+def Test_script_var_scope()
+  var lines =<< trim END
+      vim9script
+      if true
+        if true
+          var one = 'one'
+          echo one
+        endif
+        echo one
+      endif
+  END
+  CheckScriptFailure(lines, 'E121:', 7)
+
+  lines =<< trim END
+      vim9script
+      if true
+        if false
+          var one = 'one'
+          echo one
+        else
+          var one = 'one'
+          echo one
+        endif
+        echo one
+      endif
+  END
+  CheckScriptFailure(lines, 'E121:', 10)
+
+  lines =<< trim END
+      vim9script
+      while true
+        var one = 'one'
+        echo one
+        break
+      endwhile
+      echo one
+  END
+  CheckScriptFailure(lines, 'E121:', 7)
+
+  lines =<< trim END
+      vim9script
+      for i in range(1)
+        var one = 'one'
+        echo one
+      endfor
+      echo one
+  END
+  CheckScriptFailure(lines, 'E121:', 6)
+
+  lines =<< trim END
+      vim9script
+      {
+        var one = 'one'
+        assert_equal('one', one)
+      }
+      assert_false(exists('one'))
+      assert_false(exists('s:one'))
+  END
+  CheckScriptSuccess(lines)
+
+  lines =<< trim END
+      vim9script
+      {
+        var one = 'one'
+        echo one
+      }
+      echo one
+  END
+  CheckScriptFailure(lines, 'E121:', 6)
 enddef
 
 " Keep this last, it messes up highlighting.

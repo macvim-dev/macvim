@@ -2954,8 +2954,35 @@ find_special_key(
 
 
 /*
+ * Some keys are used with Ctrl without Shift and are still expected to be
+ * mapped as if Shift was pressed:
+ * CTRL-2 is CTRL-@
+ * CTRL-6 is CTRL-^
+ * CTRL-- is CTRL-_
+ * Also, <C-H> and <C-h> mean the same thing, always use "H".
+ * Returns the possibly adjusted key.
+ */
+    int
+may_adjust_key_for_ctrl(int modifiers, int key)
+{
+    if (modifiers & MOD_MASK_CTRL)
+    {
+	if (ASCII_ISALPHA(key))
+	    return TOUPPER_ASC(key);
+	if (key == '2')
+	    return '@';
+	if (key == '6')
+	    return '^';
+	if (key == '-')
+	    return '_';
+    }
+    return key;
+}
+
+/*
  * Some keys already have Shift included, pass them as normal keys.
- * Not when Ctrl is also used, because <C-H> and <C-S-H> are different.
+ * When Ctrl is also used <C-H> and <C-S-H> are different, but <C-S-{> should
+ * be <C-{>.  Same for <C-S-}> and <C-S-|>.
  * Also for <A-S-a> and <M-S-a>.
  * This includes all printable ASCII characters except numbers and a-z.
  */
@@ -2970,6 +2997,11 @@ may_remove_shift_modifier(int modifiers, int key)
 		|| (key >= '[' && key <= '`')
 		|| (key >= '{' && key <= '~')))
 	return modifiers & ~MOD_MASK_SHIFT;
+
+    if (modifiers == (MOD_MASK_SHIFT | MOD_MASK_CTRL)
+		&& (key == '{' || key == '}' || key == '|'))
+	return modifiers & ~MOD_MASK_SHIFT;
+
     return modifiers;
 }
 
