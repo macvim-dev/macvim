@@ -74,7 +74,11 @@ def Test_assignment()
 
   if has('channel')
     var chan1: channel
+    assert_equal('fail', ch_status(chan1))
+
     var job1: job
+    assert_equal('fail', job_status(job1))
+
     # calling job_start() is in test_vim9_fails.vim, it causes leak reports
   endif
   if has('float')
@@ -454,7 +458,6 @@ def Test_assignment_local()
 enddef
 
 def Test_assignment_default()
-
   # Test default values.
   var thebool: bool
   assert_equal(v:false, thebool)
@@ -571,6 +574,10 @@ def Test_assignment_vim9script()
     assert_equal(43, w)
     var t: number = 44
     assert_equal(44, t)
+
+    var to_var = 0
+    to_var = 3
+    assert_equal(3, to_var)
   END
   CheckScriptSuccess(lines)
 
@@ -615,6 +622,9 @@ def Test_assignment_failure()
   CheckDefExecFailure(['var x: number',
                        'var y: number',
                        '[x, y] = [1]'], 'E1093:')
+  CheckDefExecFailure(['var x: string',
+                       'var y: string',
+                       '[x, y] = ["x"]'], 'E1093:')
   CheckDefExecFailure(['var x: number',
                        'var y: number',
                        'var z: list<number>',

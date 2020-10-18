@@ -85,7 +85,7 @@ EXTERN char e_missing_rcurly[]
 	INIT(= N_("E1026: Missing }"));
 EXTERN char e_missing_return_statement[]
 	INIT(= N_("E1027: Missing return statement"));
-EXTERN char e_compile_def_function_failed[]
+EXTERN char e_compiling_def_function_failed[]
 	INIT(= N_("E1028: Compiling :def function failed"));
 EXTERN char e_expected_str_but_got_str[]
 	INIT(= N_("E1029: Expected %s but got %s"));
@@ -280,4 +280,6 @@ EXTERN char e_missing_name_after_dot[]
 	INIT(= N_("E1127: Missing name after dot"));
 EXTERN char e_endblock_without_block[]
 	INIT(= N_("E1128: } without {"));
+EXTERN char e_throw_with_empty_string[]
+	INIT(= N_("E1129: Throw with empty string"));
 #endif

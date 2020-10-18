@@ -134,7 +134,7 @@ new_imported(garray_T *gap)
  * Free all imported items in script "sid".
  */
     void
-free_imports(int sid)
+free_imports_and_script_vars(int sid)
 {
     scriptitem_T    *si = SCRIPT_ITEM(sid);
     int		    idx;
@@ -146,7 +146,9 @@ free_imports(int sid)
 	vim_free(imp->imp_name);
     }
     ga_clear(&si->sn_imports);
-    ga_clear(&si->sn_var_vals);
+
+    free_all_script_vars(si);
+
     clear_type_list(&si->sn_type_list);
 }
 
@@ -191,7 +193,8 @@ find_exported(
 	int	    sid,
 	char_u	    *name,
 	ufunc_T	    **ufunc,
-	type_T	    **type)
+	type_T	    **type,
+	cctx_T	    *cctx)
 {
     int		idx = -1;
     svar_T	*sv;
@@ -199,7 +202,7 @@ find_exported(
 
     // find name in "script"
     // TODO: also find script-local user function
-    idx = get_script_item_idx(sid, name, FALSE);
+    idx = get_script_item_idx(sid, name, FALSE, cctx);
     if (idx >= 0)
     {
 	sv = ((svar_T *)script->sn_var_vals.ga_data) + idx;
@@ -246,6 +249,7 @@ find_exported(
 /*
  * Handle an ":import" command and add the resulting imported_T to "gap", when
  * not NULL, or script "import_sid" sn_imports.
+ * "cctx" is NULL at the script level.
  * Returns a pointer to after the command or NULL in case of failure
  */
     char_u *
@@ -459,7 +463,7 @@ handle_import(
 	    ufunc_T	*ufunc = NULL;
 	    type_T	*type;
 
-	    idx = find_exported(sid, name, &ufunc, &type);
+	    idx = find_exported(sid, name, &ufunc, &type, cctx);
 
 	    if (idx < 0 && ufunc == NULL)
 		goto erret;
@@ -562,6 +566,140 @@ vim9_declare_scriptvar(exarg_T *eap, char_u *arg)
 
     vim_free(name);
     return p;
+}
+
+/*
+ * Vim9 part of adding a script variable: add it to sn_all_vars and
+ * sn_var_vals.
+ * When "type" is NULL use "tv" for the type.
+ */
+    void
+add_vim9_script_var(dictitem_T *di, typval_T *tv, type_T *type)
+{
+    scriptitem_T *si = SCRIPT_ITEM(current_sctx.sc_sid);
+
+    // Store a pointer to the typval_T, so that it can be found by
+    // index instead of using a hastab lookup.
+    if (ga_grow(&si->sn_var_vals, 1) == OK)
+    {
+	svar_T *sv = ((svar_T *)si->sn_var_vals.ga_data)
+						      + si->sn_var_vals.ga_len;
+	hashitem_T *hi;
+	sallvar_T *newsav = (sallvar_T *)alloc_clear(
+				       sizeof(sallvar_T) + STRLEN(di->di_key));
+
+	if (newsav == NULL)
+	    return;
+
+	sv->sv_tv = &di->di_tv;
+	if (type == NULL)
+	    sv->sv_type = typval2type(tv, &si->sn_type_list);
+	else
+	    sv->sv_type = type;
+	sv->sv_const = (di->di_flags & DI_FLAGS_LOCK) ? ASSIGN_CONST : 0;
+	sv->sv_export = is_export;
+	newsav->sav_var_vals_idx = si->sn_var_vals.ga_len;
+	++si->sn_var_vals.ga_len;
+
+	STRCPY(&newsav->sav_key, di->di_key);
+	sv->sv_name = newsav->sav_key;
+	newsav->sav_di = di;
+	newsav->sav_block_id = si->sn_current_block_id;
+
+	hi = hash_find(&si->sn_all_vars.dv_hashtab, newsav->sav_key);
+	if (!HASHITEM_EMPTY(hi))
+	{
+	    sallvar_T *sav = HI2SAV(hi);
+
+	    // variable with this name exists in another block
+	    while (sav->sav_next != NULL)
+		sav = sav->sav_next;
+	    sav->sav_next = newsav;
+	}
+	else
+	    // new variable name
+	    hash_add(&si->sn_all_vars.dv_hashtab, newsav->sav_key);
+
+	// let ex_export() know the export worked.
+	is_export = FALSE;
+    }
+}
+
+/*
+ * Hide a script variable when leaving a block.
+ * "idx" is de index in sn_var_vals.
+ */
+    void
+hide_script_var(scriptitem_T *si, int idx)
+{
+    svar_T	*sv = ((svar_T *)si->sn_var_vals.ga_data) + idx;
+    hashtab_T	*script_ht = get_script_local_ht();
+    hashtab_T	*all_ht = &si->sn_all_vars.dv_hashtab;
+    hashitem_T	*script_hi;
+    hashitem_T	*all_hi;
+
+    // Remove a variable declared inside the block, if it still exists.
+    // The typval is moved into the sallvar_T.
+    script_hi = hash_find(script_ht, sv->sv_name);
+    all_hi = hash_find(all_ht, sv->sv_name);
+    if (!HASHITEM_EMPTY(script_hi) && !HASHITEM_EMPTY(all_hi))
+    {
+	dictitem_T	*di = HI2DI(script_hi);
+	sallvar_T	*sav = HI2SAV(all_hi);
+
+	// There can be multiple entries with the same name in different
+	// blocks, find the right one.
+	while (sav != NULL && sav->sav_var_vals_idx != idx)
+	    sav = sav->sav_next;
+	if (sav != NULL)
+	{
+	    sav->sav_tv = di->di_tv;
+	    di->di_tv.v_type = VAR_UNKNOWN;
+	    sav->sav_flags = di->di_flags;
+	    sav->sav_di = NULL;
+	    delete_var(script_ht, script_hi);
+	    sv->sv_tv = &sav->sav_tv;
+	}
+    }
+}
+
+/*
+ * Free the script variables from "sn_all_vars".
+ */
+    void
+free_all_script_vars(scriptitem_T *si)
+{
+    int		todo;
+    hashtab_T	*ht = &si->sn_all_vars.dv_hashtab;
+    hashitem_T	*hi;
+    sallvar_T	*sav;
+    sallvar_T	*sav_next;
+
+    hash_lock(ht);
+    todo = (int)ht->ht_used;
+    for (hi = ht->ht_array; todo > 0; ++hi)
+    {
+	if (!HASHITEM_EMPTY(hi))
+	{
+	    --todo;
+
+	    // Free the variable.  Don't remove it from the hashtab, ht_array
+	    // might change then.  hash_clear() takes care of it later.
+	    sav = HI2SAV(hi);
+	    while (sav != NULL)
+	    {
+		sav_next = sav->sav_next;
+		if (sav->sav_di == NULL)
+		    clear_tv(&sav->sav_tv);
+		vim_free(sav);
+		sav = sav_next;
+	    }
+	}
+    }
+    hash_clear(ht);
+    hash_init(ht);
+
+    ga_clear(&si->sn_var_vals);
 }
 
 /*
