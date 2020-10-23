@@ -1126,6 +1126,24 @@ def Test_expr5_vim9script()
 
   lines =<< trim END
       vim9script
+      echo {} - 22
+  END
+  CheckScriptFailure(lines, 'E728:', 2)
+
+  lines =<< trim END
+      vim9script
+      echo [] - 33
+  END
+  CheckScriptFailure(lines, 'E745:', 2)
+
+  lines =<< trim END
+      vim9script
+      echo 0z1234 - 44
+  END
+  CheckScriptFailure(lines, 'E974:', 2)
+
+  lines =<< trim END
+      vim9script
       echo 'abc' is? 'abc'
   END
   CheckScriptFailure(lines, 'E15:', 2)
@@ -1805,6 +1823,13 @@ def Test_expr7_lambda()
   CheckDefExecFailure(["var s = 'asdf'->{a -> a}('x', 'y')"],
         'E1106: 2 arguments too many')
   CheckDefFailure(["echo 'asdf'->{a -> a}(x)"], 'E1001:', 1)
+
+  CheckDefSuccess(['var Fx = {a -> #{k1: 0,', ' k2: 1}}'])
+  CheckDefFailure(['var Fx = {a -> #{k1: 0', ' k2: 1}}'], 'E722:', 2)
+  CheckDefFailure(['var Fx = {a -> #{k1: 0,', ' k2 1}}'], 'E720:', 2)
+
+  CheckDefSuccess(['var Fx = {a -> [0,', ' 1]}'])
+  CheckDefFailure(['var Fx = {a -> [0', ' 1]}'], 'E696:', 2)
 enddef
 
 def Test_expr7_lambda_vim9script()
@@ -1873,6 +1898,7 @@ def Test_expr7_dict()
   CheckDefFailure(["var x = #{a : 8}"], 'E1068:', 1)
   CheckDefFailure(["var x = #{a :8}"], 'E1068:', 1)
   CheckDefFailure(["var x = #{a: 8 , b: 9}"], 'E1068:', 1)
+  CheckDefFailure(["var x = #{a: 1,b: 2}"], 'E1069:', 1)
 
   CheckDefFailure(["var x = #{8: 8}"], 'E1014:', 1)
   CheckDefFailure(["var x = #{xxx}"], 'E720:', 1)
@@ -2371,7 +2397,7 @@ func Test_expr7_fails()
   call CheckDefFailure(["'yes'->", "Echo()"], 'E488: Trailing characters: ->', 1)
 
   call CheckDefExecFailure(["[1, 2->len()"], 'E697:', 2)
-  call CheckDefExecFailure(["#{a: 1->len()"], 'E488:', 1)
+  call CheckDefExecFailure(["#{a: 1->len()"], 'E722:', 1)
   call CheckDefExecFailure(["{'a': 1->len()"], 'E723:', 2)
 endfunc
 

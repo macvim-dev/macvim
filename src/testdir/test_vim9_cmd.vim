@@ -242,6 +242,13 @@ def Test_method_call_linebreak()
   CheckScriptSuccess(lines)
 enddef
 
+def Test_skipped_expr_linebreak()
+  if 0
+    var x = []
+               ->map({ -> 0})
+  endif
+enddef
+
 def Test_dict_member()
    var test: dict<list<number>> = {'data': [3, 1, 2]}
    test.data->sort()
@@ -375,6 +382,24 @@ def Test_command_star_range()
   bwipe!
 enddef
 
+def Test_f_args()
+  var lines =<< trim END
+    vim9script
+
+    func SaveCmdArgs(...)
+      let g:args = a:000
+    endfunc
+
+    command -nargs=* TestFArgs call SaveCmdArgs(<f-args>)
+
+    TestFArgs
+    assert_equal([], g:args)
+
+    TestFArgs one two three
+    assert_equal(['one', 'two', 'three'], g:args)
+  END
+  CheckScriptSuccess(lines)
+enddef
 
 
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

@@ -273,6 +273,62 @@ def Test_disassemble_list_assign()
         res)
 enddef
 
+def s:ListAdd()
+  var l: list<number> = []
+  add(l, 123)
+  add(l, g:aNumber)
+enddef
+
+def Test_disassemble_list_add()
+  var res = execute('disass s:ListAdd')
+  assert_match('<SNR>\d*_ListAdd\_s*' ..
+        'var l: list<number> = []\_s*' ..
+        '\d NEWLIST size 0\_s*' ..
+        '\d STORE $0\_s*' ..
+        'add(l, 123)\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d PUSHNR 123\_s*' ..
+        '\d LISTAPPEND\_s*' ..
+        '\d DROP\_s*' ..
+        'add(l, g:aNumber)\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d\+ LOADG g:aNumber\_s*' ..
+        '\d\+ CHECKTYPE number stack\[-1\]\_s*' ..
+        '\d\+ LISTAPPEND\_s*' ..
+        '\d\+ DROP\_s*' ..
+        '\d\+ PUSHNR 0\_s*' ..
+        '\d\+ RETURN',
+        res)
+enddef
+
+def s:BlobAdd()
+  var b: blob = 0z
+  add(b, 123)
+  add(b, g:aNumber)
+enddef
+
+def Test_disassemble_blob_add()
+  var res = execute('disass s:BlobAdd')
+  assert_match('<SNR>\d*_BlobAdd\_s*' ..
+        'var b: blob = 0z\_s*' ..
+        '\d PUSHBLOB 0z\_s*' ..
+        '\d STORE $0\_s*' ..
+        'add(b, 123)\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d PUSHNR 123\_s*' ..
+        '\d BLOBAPPEND\_s*' ..
+        '\d DROP\_s*' ..
+        'add(b, g:aNumber)\_s*' ..
+        '\d LOAD $0\_s*' ..
+        '\d\+ LOADG g:aNumber\_s*' ..
+        '\d\+ CHECKTYPE number stack\[-1\]\_s*' ..
+        '\d\+ BLOBAPPEND\_s*' ..
+        '\d\+ DROP\_s*' ..
+        '\d\+ PUSHNR 0\_s*' ..
+        '\d\+ RETURN',
+        res)
+enddef
+
 def s:ScriptFuncUnlet()
   g:somevar = "value"
   unlet g:somevar
@@ -803,7 +859,7 @@ def Test_disassemble_for_loop()
         'res->add(i)\_s*' ..
         '\d LOAD $0\_s*' ..
         '\d LOAD $2\_s*' ..
-        '\d\+ BCALL add(argc 2)\_s*' ..
+        '\d\+ LISTAPPEND\_s*' ..
         '\d\+ DROP\_s*' ..
         'endfor\_s*' ..
         '\d\+ JUMP -> \d\+\_s*' ..
