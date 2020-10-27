@@ -1152,7 +1152,7 @@ ex_mkrc(exarg_T	*eap)
 	fname = (char_u *)EXRC_FILE;
 
 #ifdef FEAT_BROWSE
-    if (cmdmod.browse)
+    if (cmdmod.cmod_flags & CMOD_BROWSE)
     {
 	browseFile = do_browse(BROWSE_SAVE,
 # ifdef FEAT_SESSION

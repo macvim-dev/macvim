@@ -1617,4 +1617,28 @@ def Test_shuffle()
         res)
 enddef
 
+
+def s:SilentMessage()
+  silent echomsg "text"
+  silent! echoerr "error"
+enddef
+
+def Test_silent()
+  var res = execute('disass s:SilentMessage')
+  assert_match('<SNR>\d*_SilentMessage\_s*' ..
+        'silent echomsg "text"\_s*' ..
+        '\d CMDMOD silent\_s*' ..
+        '\d PUSHS "text"\_s*' ..
+        '\d ECHOMSG 1\_s*' ..
+        '\d CMDMOD_REV\_s*' ..
+        'silent! echoerr "error"\_s*' ..
+        '\d CMDMOD silent!\_s*' ..
+        '\d PUSHS "error"\_s*' ..
+        '\d ECHOERR 1\_s*' ..
+        '\d CMDMOD_REV\_s*' ..
+        '\d PUSHNR 0\_s*' ..
+        '\d RETURN',
+        res)
+enddef
+
 " vim: ts=8 sw=2 sts=2 expandtab tw=80 fdm=marker

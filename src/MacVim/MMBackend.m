@@ -2811,7 +2811,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                     }
 
                     // Convert ":drop ..." to ":$tab drop ..."
-                    cmdmod.tab = numTabs + 1;
+                    cmdmod.cmod_tab = numTabs + 1;
                 }
 
                 if (splitInNewTab) {
@@ -2842,7 +2842,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                     vim_memset(&cmdmod, 0, sizeof(cmdmod));
                     if (WIN_VER == layout) {
                         // Convert :sall to :vert sall
-                        cmdmod.split |= WSP_VERT;
+                        cmdmod.cmod_split |= WSP_VERT;
                     }
 
                     char_u sallArg[] = "";
@@ -2915,7 +2915,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
                         FOR_ALL_TABPAGES(tp) {
                             numTabs += 1;
                         }
-                        cmdmod.tab = numTabs + 1;
+                        cmdmod.cmod_tab = numTabs + 1;
                     }
                 } else {
                     // (The :drop command will split if there is a modified
@@ -3073,7 +3073,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             ea.cmdidx = CMD_sbuffer;
             ea.cmd = sbufferCmd;
 
-            cmdmod.split |= WSP_VERT;
+            cmdmod.cmod_split |= WSP_VERT;
         } else if (WIN_TABS == layout) {
             // :tab sb <filename>
             ea.cmdidx = CMD_sbuffer;
@@ -3084,7 +3084,7 @@ extern GuiFont gui_mch_retain_font(GuiFont font);
             FOR_ALL_TABPAGES(tp) {
                 numTabs += 1;
             }
-            cmdmod.tab = numTabs + 1;
+            cmdmod.cmod_tab = numTabs + 1;
         } else {
             // :b <filename>
             ea.cmdidx = CMD_buffer;

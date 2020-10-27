@@ -832,6 +832,8 @@ call_def_function(
     int		save_suppress_errthrow = suppress_errthrow;
     msglist_T	**saved_msg_list = NULL;
     msglist_T	*private_msg_list = NULL;
+    cmdmod_T	save_cmdmod;
+    int		restore_cmdmod = FALSE;
 
 // Get pointer to item in the stack.
 #define STACK_TV(idx) (((typval_T *)ectx.ec_stack.ga_data) + idx)
@@ -2814,6 +2816,21 @@ call_def_function(
 		}
 		break;
 
+	    case ISN_CMDMOD:
+		save_cmdmod = cmdmod;
+		restore_cmdmod = TRUE;
+		cmdmod = *iptr->isn_arg.cmdmod.cf_cmdmod;
+		apply_cmdmod(&cmdmod);
+		break;
+
+	    case ISN_CMDMOD_REV:
+		// filter regprog is owned by the instruction, don't free it
+		cmdmod.cmod_filter_regmatch.regprog = NULL;
+		undo_cmdmod(&cmdmod);
+		cmdmod = save_cmdmod;
+		restore_cmdmod = FALSE;
+		break;
+
 	    case ISN_SHUFFLE:
 		{
 		    typval_T	    tmp_tv;
@@ -2884,6 +2901,13 @@ failed:
 	*plist = *msg_list;
     }
     msg_list = saved_msg_list;
+
+    if (restore_cmdmod)
+    {
+	cmdmod.cmod_filter_regmatch.regprog = NULL;
+	undo_cmdmod(&cmdmod);
+	cmdmod = save_cmdmod;
+    }
 
 failed_early:
     // Free all local variables, but not arguments.
@@ -3501,6 +3525,25 @@ ex_disassemble(exarg_T *eap)
 		smsg("%4d PUT %c %ld", current, iptr->isn_arg.put.put_regname,
 					     (long)iptr->isn_arg.put.put_lnum);
 		break;
+
+		// TODO: summarize modifiers
+	    case ISN_CMDMOD:
+		{
+		    char_u  *buf;
+		    size_t  len = produce_cmdmods(
+				  NULL, iptr->isn_arg.cmdmod.cf_cmdmod, FALSE);
+
+		    buf = alloc(len + 1);
+		    if (buf != NULL)
+		    {
+			(void)produce_cmdmods(
+				   buf, iptr->isn_arg.cmdmod.cf_cmdmod, FALSE);
+			smsg("%4d CMDMOD %s", current, buf);
+			vim_free(buf);
+		    }
+		    break;
+		}
+	    case ISN_CMDMOD_REV: smsg("%4d CMDMOD_REV", current); break;
 
 	    case ISN_SHUFFLE: smsg("%4d SHUFFLE %d up %d", current,
 					 iptr->isn_arg.shuffle.shfl_item,
