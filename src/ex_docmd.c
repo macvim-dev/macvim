@@ -1725,6 +1725,7 @@ do_one_cmd(
 #ifdef FEAT_EVAL
     int		may_have_range;
     int		vim9script = in_vim9script();
+    int		did_set_expr_line = FALSE;
 #endif
 
     CLEAR_FIELD(ea);
@@ -2321,8 +2322,9 @@ do_one_cmd(
 	    // for '=' register: accept the rest of the line as an expression
 	    if (ea.arg[-1] == '=' && ea.arg[0] != NUL)
 	    {
-		set_expr_line(vim_strsave(ea.arg));
+		set_expr_line(vim_strsave(ea.arg), &ea);
 		ea.arg += STRLEN(ea.arg);
+		did_set_expr_line = TRUE;
 	    }
 #endif
 	    ea.arg = skipwhite(ea.arg);
@@ -2601,6 +2603,9 @@ doend:
     do_errthrow(cstack,
 	    (ea.cmdidx != CMD_SIZE && !IS_USER_CMDIDX(ea.cmdidx))
 			? cmdnames[(int)ea.cmdidx].cmd_name : (char_u *)NULL);
+
+    if (did_set_expr_line)
+	set_expr_line(NULL, NULL);
 #endif
 
     undo_cmdmod(&cmdmod);
@@ -2764,7 +2769,7 @@ parse_command_modifiers(
 			    }
 #ifdef FEAT_EVAL
 			    // Avoid that "filter(arg)" is recognized.
-			    if (in_vim9script() && !VIM_ISWHITE(*p))
+			    if (in_vim9script() && !VIM_ISWHITE(p[-1]))
 				break;
 #endif
 			    if (skip_only)

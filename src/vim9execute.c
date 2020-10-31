@@ -550,7 +550,7 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
 {
     typval_T	argvars[MAX_FUNC_ARGS];
     int		idx;
-    int		called_emsg_before = called_emsg;
+    int		did_emsg_before = did_emsg;
     ectx_T	*prev_ectx = current_ectx;
 
     if (call_prepare(argcount, argvars, ectx) == FAIL)
@@ -566,7 +566,7 @@ call_bfunc(int func_idx, int argcount, ectx_T *ectx)
     for (idx = 0; idx < argcount; ++idx)
 	clear_tv(&argvars[idx]);
 
-    if (called_emsg != called_emsg_before)
+    if (did_emsg != did_emsg_before)
 	return FAIL;
     return OK;
 }
@@ -582,7 +582,7 @@ call_ufunc(ufunc_T *ufunc, int argcount, ectx_T *ectx, isn_T *iptr)
     funcexe_T   funcexe;
     int		error;
     int		idx;
-    int		called_emsg_before = called_emsg;
+    int		did_emsg_before = did_emsg;
 
     if (ufunc->uf_def_status == UF_TO_BE_COMPILED
 	    && compile_def_function(ufunc, FALSE, NULL) == FAIL)
@@ -620,7 +620,7 @@ call_ufunc(ufunc_T *ufunc, int argcount, ectx_T *ectx, isn_T *iptr)
 	user_func_error(error, ufunc->uf_name);
 	return FAIL;
     }
-    if (called_emsg > called_emsg_before)
+    if (did_emsg > did_emsg_before)
 	// Error other than from calling the function itself.
 	return FAIL;
     return OK;
@@ -828,12 +828,13 @@ call_def_function(
     int		defcount = ufunc->uf_args.ga_len - argc;
     sctx_T	save_current_sctx = current_sctx;
     int		breakcheck_count = 0;
-    int		called_emsg_before = called_emsg;
+    int		did_emsg_before = did_emsg;
     int		save_suppress_errthrow = suppress_errthrow;
     msglist_T	**saved_msg_list = NULL;
     msglist_T	*private_msg_list = NULL;
     cmdmod_T	save_cmdmod;
     int		restore_cmdmod = FALSE;
+    int		trylevel_at_start = trylevel;
 
 // Get pointer to item in the stack.
 #define STACK_TV(idx) (((typval_T *)ectx.ec_stack.ga_data) + idx)
@@ -852,7 +853,7 @@ call_def_function(
 	    || (ufunc->uf_def_status == UF_TO_BE_COMPILED
 			  && compile_def_function(ufunc, FALSE, NULL) == FAIL))
     {
-	if (called_emsg == called_emsg_before)
+	if (did_emsg == did_emsg_before)
 	    semsg(_(e_function_is_not_compiled_str),
 						   printable_func_name(ufunc));
 	return FAIL;
@@ -2606,6 +2607,8 @@ call_def_function(
 		    tv = STACK_TV_BOT(-1);
 		    // no need to check for VAR_STRING, 2STRING will check.
 		    key = tv->vval.v_string;
+		    if (key == NULL)
+			key = (char_u *)"";
 
 		    if ((di = dict_find(dict, key, -1)) == NULL)
 		    {
@@ -2866,7 +2869,12 @@ func_return:
 	continue;
 
 on_error:
-	if (trylevel == 0)
+	// If "emsg_silent" is set then ignore the error.
+	if (did_emsg == did_emsg_before && emsg_silent)
+	    continue;
+
+	// If we are not inside a try-catch started here, abort execution.
+	if (trylevel <= trylevel_at_start)
 	    goto failed;
     }
 
@@ -2920,7 +2928,7 @@ failed_early:
     // Not sure if this is necessary.
     suppress_errthrow = save_suppress_errthrow;
 
-    if (ret != OK && called_emsg == called_emsg_before)
+    if (ret != OK && did_emsg == did_emsg_before)
 	semsg(_(e_unknown_error_while_executing_str),
 						   printable_func_name(ufunc));
     return ret;

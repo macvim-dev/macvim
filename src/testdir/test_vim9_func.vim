@@ -322,6 +322,8 @@ def Test_call_wrong_args()
   CheckDefFailure(['bufnr(xxx)'], 'E1001:')
   CheckScriptFailure(['def Func(Ref: func(s: string))'], 'E475:')
 
+  CheckDefFailure(['echo {i -> 0}()'], 'E119: Not enough arguments for function: {i -> 0}()')
+
   var lines =<< trim END
     vim9script
     def Func(s: string)
@@ -1460,6 +1462,50 @@ func Test_silent_echo()
   call delete('XTest_silent_echo')
 endfunc
 
+def SilentlyError()
+  execute('silent! invalid')
+  g:did_it = 'yes'
+enddef
+
+func UserError()
+  silent! invalid
+endfunc
+
+def SilentlyUserError()
+  UserError()
+  g:did_it = 'yes'
+enddef
+
+" This can't be a :def function, because the assert would not be reached.
+func Test_ignore_silent_error()
+  let g:did_it = 'no'
+  call SilentlyError()
+  call assert_equal('yes', g:did_it)
+
+  let g:did_it = 'no'
+  call SilentlyUserError()
+  call assert_equal('yes', g:did_it)
+
+  unlet g:did_it
+endfunc
+
+def Test_ignore_silent_error_in_filter()
+  var lines =<< trim END
+      vim9script
+      def Filter(winid: number, key: string): bool
+          if key == 'o'
+              silent! eval [][0]
+              return true
+          endif
+          return popup_filter_menu(winid, key)
+      enddef
+
+      popup_create('popup', #{filter: Filter})
+      feedkeys("o\r", 'xnt')
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def Fibonacci(n: number): number
   if n < 2
     return n
@@ -1551,7 +1597,7 @@ def Test_restore_modifiers()
       set eventignore=
       autocmd QuickFixCmdPost * copen
       def AutocmdsDisabled()
-          eval 0
+        eval 0
       enddef
       func Func()
         noautocmd call s:AutocmdsDisabled()

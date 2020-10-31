@@ -298,7 +298,7 @@ has_compl_option(int dict_opt)
 	msg_attr(dict_opt ? _("'dictionary' option is empty")
 			  : _("'thesaurus' option is empty"),
 							      HL_ATTR(HLF_E));
-	if (emsg_silent == 0)
+	if (emsg_silent == 0 && !in_assert_fails)
 	{
 	    vim_beep(BO_COMPL);
 	    setcursor();
@@ -4072,10 +4072,11 @@ ins_complete(int c, int enable_pum)
 	}
 	else
 	{
+#if defined(FEAT_COMPL_FUNC) || defined(FEAT_EVAL)
 	    // Update completion sequence number when needed.
 	    if (compl_curr_match->cp_number == -1)
 		ins_compl_update_sequence_numbers();
-
+#endif
 	    // The match should always have a sequence number now, this is
 	    // just a safety check.
 	    if (compl_curr_match->cp_number != -1)
