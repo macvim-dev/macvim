@@ -79,6 +79,7 @@ static CGSSetWindowBackgroundBlurRadiusFunction* GetCGSSetWindowBackgroundBlurRa
     tablineSeparator = [[NSBox alloc] initWithFrame:tabSepRect];
     
     [tablineSeparator setBoxType:NSBoxSeparator];
+    [tablineSeparator setFillColor:NSColor.secondaryLabelColor];
     [tablineSeparator setHidden:YES];
     [tablineSeparator setAutoresizingMask:NSViewWidthSizable|NSViewMinYMargin];
 

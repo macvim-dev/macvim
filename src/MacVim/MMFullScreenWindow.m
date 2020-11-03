@@ -29,7 +29,6 @@
 #import "MMVimView.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
-#import <PSMTabBarControl/PSMTabBarControl.h>
 
 // These have to be the same as in option.h
 #define FUOPT_MAXVERT         0x001
@@ -169,12 +168,6 @@ enum {
     // make target's window controller believe that it's now controlling us
     [[target windowController] setWindow:self];
 
-    oldTabBarStyle = [[view tabBarControl] styleName];
-
-    NSString *style =
-        shouldUseYosemiteTabBarStyle() ? (shouldUseMojaveTabBarStyle() ? @"Mojave" : @"Yosemite") : @"Unified";
-    [[view tabBarControl] setStyleNamed:style];
-
     // add text view
     oldPosition = [view frame].origin;
 
@@ -267,8 +260,6 @@ enum {
     // fix up target controller
     [self retain];  // NSWindowController releases us once
     [[self windowController] setWindow:target];
-
-    [[view tabBarControl] setStyleNamed:oldTabBarStyle];
 
     // fix delegate
     id delegate = [self delegate];

@@ -18,7 +18,6 @@
     NSWindow    *target;
     MMVimView   *view;
     NSPoint     oldPosition;
-    NSString    *oldTabBarStyle;
     int         options;
     int         state;
 
