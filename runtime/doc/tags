@@ -5642,6 +5642,7 @@ MMAllowForceClickLookUp	gui_mac.txt	/*MMAllowForceClickLookUp*
 MMAppearanceModeSelection	gui_mac.txt	/*MMAppearanceModeSelection*
 MMCellWidthMultiplier	gui_mac.txt	/*MMCellWidthMultiplier*
 MMCmdLineAlignBottom	gui_mac.txt	/*MMCmdLineAlignBottom*
+MMDefaultTablineColors	gui_mac.txt	/*MMDefaultTablineColors*
 MMDialogsTrackPwd	gui_mac.txt	/*MMDialogsTrackPwd*
 MMDisableLaunchAnimation	gui_mac.txt	/*MMDisableLaunchAnimation*
 MMFontPreserveLineSpacing	gui_mac.txt	/*MMFontPreserveLineSpacing*
@@ -5658,9 +5659,9 @@ MMRendererClipToRow	gui_mac.txt	/*MMRendererClipToRow*
 MMScrollOneDirectionOnly	gui_mac.txt	/*MMScrollOneDirectionOnly*
 MMShareFindPboard	gui_mac.txt	/*MMShareFindPboard*
 MMShowAddTabButton	gui_mac.txt	/*MMShowAddTabButton*
+MMShowTabScrollButtons	gui_mac.txt	/*MMShowTabScrollButtons*
 MMShowWhatsNewOnStartup	gui_mac.txt	/*MMShowWhatsNewOnStartup*
 MMSmoothResize	gui_mac.txt	/*MMSmoothResize*
-MMTabMaxWidth	gui_mac.txt	/*MMTabMaxWidth*
 MMTabMinWidth	gui_mac.txt	/*MMTabMinWidth*
 MMTabOptimumWidth	gui_mac.txt	/*MMTabOptimumWidth*
 MMTextInsetBottom	gui_mac.txt	/*MMTextInsetBottom*
