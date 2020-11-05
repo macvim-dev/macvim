@@ -1516,6 +1516,7 @@ typedef struct
 typedef struct
 {
     int		item_compare_ic;
+    int		item_compare_lc;
     int		item_compare_numeric;
     int		item_compare_numbers;
 #ifdef FEAT_FLOAT
@@ -1594,10 +1595,10 @@ item_compare(const void *s1, const void *s2)
 	p2 = (char_u *)"";
     if (!sortinfo->item_compare_numeric)
     {
-	if (sortinfo->item_compare_ic)
-	    res = STRICMP(p1, p2);
+	if (sortinfo->item_compare_lc)
+	    res = strcoll((char *)p1, (char *)p2);
 	else
-	    res = STRCMP(p1, p2);
+	    res = sortinfo->item_compare_ic ? STRICMP(p1, p2): STRCMP(p1, p2);
     }
     else
     {
@@ -1706,6 +1707,7 @@ do_sort_uniq(typval_T *argvars, typval_T *rettv, int sort)
 	    goto theend;	// short list sorts pretty quickly
 
 	info.item_compare_ic = FALSE;
+	info.item_compare_lc = FALSE;
 	info.item_compare_numeric = FALSE;
 	info.item_compare_numbers = FALSE;
 #ifdef FEAT_FLOAT
@@ -1772,6 +1774,11 @@ do_sort_uniq(typval_T *argvars, typval_T *rettv, int sort)
 		    {
 			info.item_compare_func = NULL;
 			info.item_compare_ic = TRUE;
+		    }
+		    else if (STRCMP(info.item_compare_func, "l") == 0)
+		    {
+			info.item_compare_func = NULL;
+			info.item_compare_lc = TRUE;
 		    }
 		}
 	    }
@@ -2296,9 +2303,13 @@ f_extend(typval_T *argvars, typval_T *rettv)
 	int		error = FALSE;
 
 	l1 = argvars[0].vval.v_list;
+	if (l1 == NULL)
+	{
+	    emsg(_(e_cannot_extend_null_list));
+	    return;
+	}
 	l2 = argvars[1].vval.v_list;
-	if (l1 != NULL && !value_check_lock(l1->lv_lock, arg_errmsg, TRUE)
-		&& l2 != NULL)
+	if (!value_check_lock(l1->lv_lock, arg_errmsg, TRUE) && l2 != NULL)
 	{
 	    if (argvars[2].v_type != VAR_UNKNOWN)
 	    {
@@ -2332,9 +2343,13 @@ f_extend(typval_T *argvars, typval_T *rettv)
 	int	i;
 
 	d1 = argvars[0].vval.v_dict;
+	if (d1 == NULL)
+	{
+	    emsg(_(e_cannot_extend_null_dict));
+	    return;
+	}
 	d2 = argvars[1].vval.v_dict;
-	if (d1 != NULL && !value_check_lock(d1->dv_lock, arg_errmsg, TRUE)
-		&& d2 != NULL)
+	if (!value_check_lock(d1->dv_lock, arg_errmsg, TRUE) && d2 != NULL)
 	{
 	    // Check the third argument.
 	    if (argvars[2].v_type != VAR_UNKNOWN)
@@ -2545,8 +2560,11 @@ f_reduce(typval_T *argvars, typval_T *rettv)
     }
     else
 	func_name = tv_get_string(&argvars[1]);
-    if (*func_name == NUL)
-	return;		// type error or empty name
+    if (func_name == NULL || *func_name == NUL)
+    {
+	emsg(_(e_missing_function_argument));
+	return;
+    }
 
     vim_memset(&funcexe, 0, sizeof(funcexe));
     funcexe.evaluate = TRUE;

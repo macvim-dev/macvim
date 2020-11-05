@@ -1788,24 +1788,44 @@ do_one_cmd(
  */
     cmd = ea.cmd;
 #ifdef FEAT_EVAL
-    // In Vim9 script a colon is required before the range.
-    may_have_range = !vim9script || starts_with_colon;
+    // In Vim9 script a colon is required before the range.  This may also be
+    // after command modifiers.
+    if (vim9script)
+    {
+	may_have_range = FALSE;
+	for (p = ea.cmd; p >= *cmdlinep; --p)
+	{
+	    if (*p == ':')
+		may_have_range = TRUE;
+	    if (p < ea.cmd && !VIM_ISWHITE(*p))
+		break;
+	}
+    }
+    else
+	may_have_range = TRUE;
     if (may_have_range)
 #endif
 	ea.cmd = skip_range(ea.cmd, TRUE, NULL);
 
 #ifdef FEAT_EVAL
-    if (vim9script && !starts_with_colon)
+    if (vim9script && !may_have_range)
     {
 	if (ea.cmd == cmd + 1 && *cmd == '$')
 	    // should be "$VAR = val"
 	    --ea.cmd;
-	else if (ea.cmd > cmd)
-	{
-	    emsg(_(e_colon_required_before_a_range));
-	    goto doend;
-	}
 	p = find_ex_command(&ea, NULL, lookup_scriptvar, NULL);
+	if (ea.cmdidx == CMD_SIZE)
+	{
+	    char_u *ar = skip_range(ea.cmd, TRUE, NULL);
+
+	    // If a ':' before the range is missing, give a clearer error
+	    // message.
+	    if (ar > ea.cmd)
+	    {
+		emsg(_(e_colon_required_before_a_range));
+		goto doend;
+	    }
+	}
     }
     else
 #endif

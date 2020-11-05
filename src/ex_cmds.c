@@ -277,6 +277,7 @@ linelen(int *has_tab)
 static char_u	*sortbuf1;
 static char_u	*sortbuf2;
 
+static int	sort_lc;	// sort using locale
 static int	sort_ic;	// ignore case
 static int	sort_nr;	// sort on number
 static int	sort_rx;	// sort on regex instead of skipping it
@@ -307,7 +308,13 @@ typedef struct
     } st_u;
 } sorti_T;
 
-static int sort_compare(const void *s1, const void *s2);
+    static int
+string_compare(const void *s1, const void *s2)
+{
+    if (sort_lc)
+	return strcoll((char *)s1, (char *)s2);
+    return sort_ic ? STRICMP(s1, s2) : STRCMP(s1, s2);
+}
 
     static int
 sort_compare(const void *s1, const void *s2)
@@ -350,8 +357,7 @@ sort_compare(const void *s1, const void *s2)
 		     l2.st_u.line.end_col_nr - l2.st_u.line.start_col_nr + 1);
 	sortbuf2[l2.st_u.line.end_col_nr - l2.st_u.line.start_col_nr] = 0;
 
-	result = sort_ic ? STRICMP(sortbuf1, sortbuf2)
-						 : STRCMP(sortbuf1, sortbuf2);
+	result = string_compare(sortbuf1, sortbuf2);
     }
 
     // If two lines have the same value, preserve the original line order.
@@ -398,7 +404,7 @@ ex_sort(exarg_T *eap)
     if (nrs == NULL)
 	goto sortend;
 
-    sort_abort = sort_ic = sort_rx = sort_nr = 0;
+    sort_abort = sort_ic = sort_lc = sort_rx = sort_nr = 0;
 #ifdef FEAT_FLOAT
     sort_flt = 0;
 #endif
@@ -409,6 +415,8 @@ ex_sort(exarg_T *eap)
 	    ;
 	else if (*p == 'i')
 	    sort_ic = TRUE;
+	else if (*p == 'l')
+	    sort_lc = TRUE;
 	else if (*p == 'r')
 	    sort_rx = TRUE;
 	else if (*p == 'n')
@@ -614,8 +622,7 @@ ex_sort(exarg_T *eap)
 	    change_occurred = TRUE;
 
 	s = ml_get(get_lnum);
-	if (!unique || i == 0
-		|| (sort_ic ? STRICMP(s, sortbuf1) : STRCMP(s, sortbuf1)) != 0)
+	if (!unique || i == 0 || string_compare(s, sortbuf1) != 0)
 	{
 	    // Copy the line into a buffer, it may become invalid in
 	    // ml_append(). And it's needed for "unique".
@@ -1247,6 +1254,16 @@ do_filter(
 		if (read_linecount >= linecount)
 		    // move all marks from old lines to new lines
 		    mark_adjust(line1, line2, linecount, 0L);
+		else if (save_cmod_flags & CMOD_LOCKMARKS)
+		{
+		    // Move marks from the lines below the new lines down by
+		    // the number of lines lost.
+		    // Move marks from the lines that will be deleted to the
+		    // new lines and below.
+		    mark_adjust(line2 + 1, (linenr_T)MAXLNUM,
+					       linecount - read_linecount, 0L);
+		    mark_adjust(line1, line2, linecount, 0L);
+		}
 		else
 		{
 		    // move marks from old lines to new lines, delete marks

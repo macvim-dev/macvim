@@ -1071,8 +1071,15 @@ call_def_function(
 	{
 	    // execute Ex command line
 	    case ISN_EXEC:
-		SOURCING_LNUM = iptr->isn_lnum;
-		do_cmdline_cmd(iptr->isn_arg.string);
+		{
+		    int save_did_emsg = did_emsg;
+
+		    SOURCING_LNUM = iptr->isn_lnum;
+		    do_cmdline_cmd(iptr->isn_arg.string);
+		    // do_cmdline_cmd() will reset did_emsg, but we want to
+		    // keep track of the count to compare with did_emsg_before.
+		    did_emsg += save_did_emsg;
+		}
 		break;
 
 	    // execute Ex command from pieces on the stack
@@ -1738,6 +1745,7 @@ call_def_function(
 		    int		count = iptr->isn_arg.number;
 		    dict_T	*dict = dict_alloc();
 		    dictitem_T	*item;
+		    char_u	*key;
 
 		    if (dict == NULL)
 			goto failed;
@@ -1746,15 +1754,17 @@ call_def_function(
 			// have already checked key type is VAR_STRING
 			tv = STACK_TV_BOT(2 * (idx - count));
 			// check key is unique
-			item = dict_find(dict, tv->vval.v_string, -1);
+			key = tv->vval.v_string == NULL
+					    ? (char_u *)"" : tv->vval.v_string;
+			item = dict_find(dict, key, -1);
 			if (item != NULL)
 			{
 			    SOURCING_LNUM = iptr->isn_lnum;
-			    semsg(_(e_duplicate_key), tv->vval.v_string);
+			    semsg(_(e_duplicate_key), key);
 			    dict_unref(dict);
 			    goto on_error;
 			}
-			item = dictitem_alloc(tv->vval.v_string);
+			item = dictitem_alloc(key);
 			clear_tv(tv);
 			if (item == NULL)
 			{
