@@ -479,13 +479,24 @@ ret_job(int argcount UNUSED, type_T **argtypes UNUSED)
 {
     return &t_job;
 }
-
     static type_T *
 ret_first_arg(int argcount, type_T **argtypes)
 {
     if (argcount > 0)
 	return argtypes[0];
     return &t_void;
+}
+// for map(): returns first argument but item type may differ
+    static type_T *
+ret_first_cont(int argcount UNUSED, type_T **argtypes)
+{
+    if (argtypes[0]->tt_type == VAR_LIST)
+	return &t_list_any;
+    if (argtypes[0]->tt_type == VAR_DICT)
+	return &t_dict_any;
+    if (argtypes[0]->tt_type == VAR_BLOB)
+	return argtypes[0];
+    return &t_any;
 }
 
 /*
@@ -1115,11 +1126,13 @@ static funcentry_T global_functions[] =
 #endif
 			},
     {"map",		2, 2, FEARG_1,	    NULL,
-			ret_any,	    f_map},
+			ret_first_cont,	    f_map},
     {"maparg",		1, 4, FEARG_1,	    NULL,
 			ret_maparg,	    f_maparg},
     {"mapcheck",	1, 3, FEARG_1,	    NULL,
 			ret_string,	    f_mapcheck},
+    {"mapnew",		2, 2, FEARG_1,	    NULL,
+			ret_first_cont,	    f_mapnew},
     {"mapset",		3, 3, FEARG_1,	    NULL,
 			ret_void,	    f_mapset},
     {"match",		2, 4, FEARG_1,	    NULL,
@@ -5519,6 +5532,73 @@ f_has(typval_T *argvars, typval_T *rettv)
 }
 
 /*
+ * Return TRUE if "feature" can change later.
+ * Also when checking for the feature has side effects, such as loading a DLL.
+ */
+    int
+dynamic_feature(char_u *feature)
+{
+    return (feature == NULL
+#if defined(FEAT_BEVAL) && defined(FEAT_GUI_MSWIN)
+	    || STRICMP(feature, "balloon_multiline") == 0
+#endif
+#if defined(FEAT_GUI) && defined(FEAT_BROWSE)
+	    || (STRICMP(feature, "browse") == 0 && !gui.in_use)
+#endif
+#ifdef VIMDLL
+	    || STRICMP(feature, "filterpipe") == 0
+#endif
+#if defined(FEAT_GUI) && !defined(ALWAYS_USE_GUI) && !defined(VIMDLL)
+	    // this can only change on Unix where the ":gui" command could be
+	    // used.
+	    || (STRICMP(feature, "gui_running") == 0 && !gui.in_use)
+#endif
+#if defined(USE_ICONV) && defined(DYNAMIC_ICONV)
+	    || STRICMP(feature, "iconv") == 0
+#endif
+#ifdef DYNAMIC_LUA
+	    || STRICMP(feature, "lua") == 0
+#endif
+#ifdef FEAT_MOUSE_GPM
+	    || (STRICMP(feature, "mouse_gpm_enabled") == 0 && !gpm_enabled())
+#endif
+#ifdef DYNAMIC_MZSCHEME
+	    || STRICMP(feature, "mzscheme") == 0
+#endif
+#ifdef FEAT_NETBEANS_INTG
+	    || STRICMP(feature, "netbeans_enabled") == 0
+#endif
+#ifdef DYNAMIC_PERL
+	    || STRICMP(feature, "perl") == 0
+#endif
+#ifdef DYNAMIC_PYTHON
+	    || STRICMP(feature, "python") == 0
+#endif
+#ifdef DYNAMIC_PYTHON3
+	    || STRICMP(feature, "python3") == 0
+#endif
+#if defined(DYNAMIC_PYTHON) || defined(DYNAMIC_PYTHON3)
+	    || STRICMP(feature, "pythonx") == 0
+#endif
+#ifdef DYNAMIC_RUBY
+	    || STRICMP(feature, "ruby") == 0
+#endif
+#ifdef FEAT_SYN_HL
+	    || STRICMP(feature, "syntax_items") == 0
+#endif
+#ifdef DYNAMIC_TCL
+	    || STRICMP(feature, "tcl") == 0
+#endif
+	    // once "starting" is zero it will stay that way
+	    || (STRICMP(feature, "vim_starting") == 0 && starting != 0)
+	    || STRICMP(feature, "multi_byte_encoding") == 0
+#if defined(FEAT_TERMINAL) && defined(MSWIN)
+	    || STRICMP(feature, "conpty") == 0
+#endif
+	    );
+}
+
+/*
  * "haslocaldir()" function
  */
     static void
@@ -6908,7 +6988,7 @@ f_rand(typval_T *argvars, typval_T *rettv)
     static UINT32_T	gx, gy, gz, gw;
     static int	initialized = FALSE;
     listitem_T	*lx, *ly, *lz, *lw;
-    UINT32_T	x, y, z, w, t, result;
+    UINT32_T	x = 0, y, z, w, t, result;
 
     if (argvars[0].v_type == VAR_UNKNOWN)
     {
