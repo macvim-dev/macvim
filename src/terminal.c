@@ -2185,6 +2185,10 @@ send_keys_to_term(term_T *term, int c, int modmask, int typed)
 		    return FAIL;
 		}
 	    }
+	    break;
+
+	case K_COMMAND:
+	    return do_cmdline(NULL, getcmdkeycmd, NULL, 0);
     }
     if (typed)
 	mouse_was_outside = FALSE;
@@ -2209,7 +2213,10 @@ position_cursor(win_T *wp, VTermPos *pos, int add_off UNUSED)
     {
 	wp->w_wrow += popup_top_extra(curwin);
 	wp->w_wcol += popup_left_extra(curwin);
+	wp->w_flags |= WFLAG_WCOL_OFF_ADDED | WFLAG_WROW_OFF_ADDED;
     }
+    else
+	wp->w_flags &= ~(WFLAG_WCOL_OFF_ADDED | WFLAG_WROW_OFF_ADDED);
 #endif
     wp->w_valid |= (VALID_WCOL|VALID_WROW);
 }
@@ -2528,7 +2535,7 @@ terminal_loop(int blocking)
     while (blocking || vpeekc_nomap() != NUL)
     {
 #ifdef FEAT_GUI
-	if (!curbuf->b_term->tl_system)
+	if (curbuf->b_term != NULL && !curbuf->b_term->tl_system)
 #endif
 	    // TODO: skip screen update when handling a sequence of keys.
 	    // Repeat redrawing in case a message is received while redrawing.
@@ -2543,8 +2550,6 @@ terminal_loop(int blocking)
 	restore_cursor = TRUE;
 
 	raw_c = term_vgetc();
-if (raw_c > 0)
-    ch_log(NULL, "terminal_loop() got %d", raw_c);
 	if (!term_use_loop_check(TRUE) || in_terminal_loop != curbuf->b_term)
 	{
 	    // Job finished while waiting for a character.  Push back the
@@ -3451,15 +3456,19 @@ term_after_channel_closed(term_T *term)
 	if (term->tl_finish == TL_FINISH_OPEN
 				   && term->tl_buffer->b_nwindows == 0)
 	{
-	    char buf[50];
+	    char    *cmd = term->tl_opencmd == NULL
+				? "botright sbuf %d"
+				: (char *)term->tl_opencmd;
+	    size_t  len = strlen(cmd) + 50;
+	    char    *buf = alloc(len);
 
-	    // TODO: use term_opencmd
-	    ch_log(NULL, "terminal job finished, opening window");
-	    vim_snprintf(buf, sizeof(buf),
-		    term->tl_opencmd == NULL
-			    ? "botright sbuf %d"
-			    : (char *)term->tl_opencmd, fnum);
-	    do_cmdline_cmd((char_u *)buf);
+	    if (buf != NULL)
+	    {
+		ch_log(NULL, "terminal job finished, opening window");
+		vim_snprintf(buf, len, cmd, fnum);
+		do_cmdline_cmd((char_u *)buf);
+		vim_free(buf);
+	    }
 	}
 	else
 	    ch_log(NULL, "terminal job finished");

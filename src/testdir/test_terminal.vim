@@ -567,10 +567,12 @@ func Test_terminal_finish_open_close()
   call assert_fails("call term_start(cmd, {'term_opencmd': 'split %d and %s'})", 'E475:')
   call assert_fails("call term_start(cmd, {'term_opencmd': 'split % and %d'})", 'E475:')
 
-  call term_start(cmd, {'term_finish': 'open', 'term_opencmd': '4split | buffer %d'})
+  call term_start(cmd, {'term_finish': 'open', 'term_opencmd': '4split | buffer %d | let g:result = "opened the buffer in a window"'})
   close!
   call WaitForAssert({-> assert_equal(2, winnr('$'))}, waittime)
   call assert_equal(4, winheight(0))
+  call assert_equal('opened the buffer in a window', g:result)
+  unlet g:result
   bwipe
 endfunc
 
@@ -1203,7 +1205,60 @@ func Test_terminal_open_autocmd()
 
   unlet s:called
   au! repro
-endfunction
+endfunc
+
+func Test_open_term_from_cmd()
+  CheckUnix
+  CheckRunVimInTerminal
+
+  let lines =<< trim END
+      call setline(1, ['a', 'b', 'c'])
+      3
+      set incsearch
+      cnoremap <F3> <Cmd>call term_start(['/bin/sh', '-c', ':'])<CR>
+  END
+  call writefile(lines, 'Xopenterm')
+  let buf = RunVimInTerminal('-S Xopenterm', {})
+
+  " this opens a window, incsearch should not use the old cursor position
+  call term_sendkeys(buf, "/\<F3>")
+  call VerifyScreenDump(buf, 'Test_terminal_from_cmd', {})
+  call term_sendkeys(buf, "\<Esc>")
+  call term_sendkeys(buf, ":q\<CR>")
+
+  call StopVimInTerminal(buf)
+  call delete('Xopenterm')
+endfunc
+
+func Test_terminal_popup_with_cmd()
+  " this was crashing
+  let buf = term_start(&shell, #{hidden: v:true})
+  let s:winid = popup_create(buf, {})
+  tnoremap <F3> <Cmd>call popup_close(s:winid)<CR>
+  call feedkeys("\<F3>", 'xt')
+
+  tunmap  <F3>
+  exe 'bwipe! ' .. buf
+  unlet s:winid
+endfunc
+
+func Test_terminal_popup_insert_cmd()
+  CheckUnix
+
+  inoremap <F3> <Cmd>call StartTermInPopup()<CR>
+  func StartTermInPopup()
+    call term_start(['/bin/sh', '-c', 'cat'], #{hidden: v:true})->popup_create(#{highlight: 'Pmenu'})
+  endfunc
+  call feedkeys("i\<F3>")
+  sleep 10m
+  call assert_equal('n', mode())
+
+  call feedkeys("\<C-D>", 'xt')
+  sleep 20m
+  call feedkeys(":q\<CR>", 'xt')
+  delfunc StartTermInPopup
+  iunmap <F3>
+endfunc
 
 func Check_dump01(off)
   call assert_equal('one two three four five', trim(getline(a:off + 1)))
