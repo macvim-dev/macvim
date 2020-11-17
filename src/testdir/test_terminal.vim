@@ -1242,20 +1242,36 @@ func Test_terminal_popup_with_cmd()
   unlet s:winid
 endfunc
 
+func Test_terminal_popup_bufload()
+  let termbuf = term_start(&shell, #{hidden: v:true, term_finish: 'close'})
+  let winid = popup_create(termbuf, {})
+  sleep 50m
+
+  let newbuf = bufadd('')
+  call bufload(newbuf)
+  call setbufline(newbuf, 1, 'foobar')
+
+  " must not have switched to another window
+  call assert_equal(winid, win_getid())
+
+  call StopShellInTerminal(termbuf)
+  call WaitFor({-> win_getid() != winid})
+  exe 'bwipe! ' .. newbuf
+endfunc
+
 func Test_terminal_popup_insert_cmd()
   CheckUnix
 
   inoremap <F3> <Cmd>call StartTermInPopup()<CR>
   func StartTermInPopup()
-    call term_start(['/bin/sh', '-c', 'cat'], #{hidden: v:true})->popup_create(#{highlight: 'Pmenu'})
+    call term_start(['/bin/sh', '-c', 'cat'], #{hidden: v:true, term_finish: 'close'})->popup_create(#{highlight: 'Pmenu'})
   endfunc
   call feedkeys("i\<F3>")
   sleep 10m
   call assert_equal('n', mode())
 
   call feedkeys("\<C-D>", 'xt')
-  sleep 20m
-  call feedkeys(":q\<CR>", 'xt')
+  sleep 50m
   delfunc StartTermInPopup
   iunmap <F3>
 endfunc
