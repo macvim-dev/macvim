@@ -82,6 +82,7 @@ typedef enum {
     ISN_RETURN,	    // return, result is on top of stack
     ISN_FUNCREF,    // push a function ref to dfunc isn_arg.funcref
     ISN_NEWFUNC,    // create a global function from a lambda function
+    ISN_DEF,	    // list functions
 
     // expression operations
     ISN_JUMP,	    // jump if condition is matched isn_arg.jump
@@ -145,6 +146,7 @@ typedef enum {
     ISN_CMDMOD,	    // set cmdmod
     ISN_CMDMOD_REV, // undo ISN_CMDMOD
 
+    ISN_UNPACK,	    // unpack list into items, uses isn_arg.unpack
     ISN_SHUFFLE,    // move item on stack up or down
     ISN_DROP	    // pop stack and discard value
 } isntype_T;
@@ -283,6 +285,12 @@ typedef struct {
     cmdmod_T	*cf_cmdmod;	// allocated
 } cmod_T;
 
+// arguments to ISN_UNPACK
+typedef struct {
+    int		unp_count;	// number of items to produce
+    int		unp_semicolon;	// last item gets list of remainder
+} unpack_T;
+
 /*
  * Instruction
  */
@@ -320,6 +328,7 @@ struct isn_S {
 	shuffle_T	    shuffle;
 	put_T		    put;
 	cmod_T		    cmdmod;
+	unpack_T	    unpack;
     } isn_arg;
 };
 

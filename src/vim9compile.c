@@ -1433,6 +1433,26 @@ generate_NEWFUNC(cctx_T *cctx, char_u *lambda_name, char_u *func_name)
 }
 
 /*
+ * Generate an ISN_DEF instruction: list functions
+ */
+    static int
+generate_DEF(cctx_T *cctx, char_u *name, size_t len)
+{
+    isn_T	*isn;
+
+    RETURN_OK_IF_SKIP(cctx);
+    if ((isn = generate_instr(cctx, ISN_DEF)) == NULL)
+	return FAIL;
+    if (len > 0)
+    {
+	isn->isn_arg.string = vim_strnsave(name, len);
+	if (isn->isn_arg.string == NULL)
+	    return FAIL;
+    }
+    return OK;
+}
+
+/*
  * Generate an ISN_JUMP instruction.
  */
     static int
@@ -1865,6 +1885,19 @@ generate_EXECCONCAT(cctx_T *cctx, int count)
     if ((isn = generate_instr_drop(cctx, ISN_EXECCONCAT, count)) == NULL)
 	return FAIL;
     isn->isn_arg.number = count;
+    return OK;
+}
+
+    static int
+generate_UNPACK(cctx_T *cctx, int var_count, int semicolon)
+{
+    isn_T	*isn;
+
+    RETURN_OK_IF_SKIP(cctx);
+    if ((isn = generate_instr(cctx, ISN_UNPACK)) == NULL)
+	return FAIL;
+    isn->isn_arg.unpack.unp_count = var_count;
+    isn->isn_arg.unpack.unp_semicolon = semicolon;
     return OK;
 }
 
@@ -2767,12 +2800,12 @@ theend:
 /*
  * Find the end of a variable or function name.  Unlike find_name_end() this
  * does not recognize magic braces.
- * When "namespace" is TRUE recognize "b:", "s:", etc.
+ * When "use_namespace" is TRUE recognize "b:", "s:", etc.
  * Return a pointer to just after the name.  Equal to "arg" if there is no
  * valid name.
  */
-    static char_u *
-to_name_end(char_u *arg, int namespace)
+    char_u *
+to_name_end(char_u *arg, int use_namespace)
 {
     char_u	*p;
 
@@ -2784,7 +2817,7 @@ to_name_end(char_u *arg, int namespace)
 	// Include a namespace such as "s:var" and "v:var".  But "n:" is not
 	// and can be used in slice "[n:]".
 	if (*p == ':' && (p != arg + 1
-			     || !namespace
+			     || !use_namespace
 			     || vim_strchr(VIM9_NAMESPACE_CHAR, *arg) == NULL))
 	    break;
     return p;
@@ -2988,7 +3021,8 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal, ppconst_T *ppconst)
     *arg = skipwhite(*arg + 1);
     for (;;)
     {
-	char_u *key = NULL;
+	char_u	    *key = NULL;
+	char_u	    *end;
 
 	if (may_get_next_line(whitep, arg, cctx) == FAIL)
 	{
@@ -2999,10 +3033,14 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal, ppconst_T *ppconst)
 	if (**arg == '}')
 	    break;
 
-	if (literal)
+	// Eventually {name: value} will use "name" as a literal key and
+	// {[expr]: value} for an evaluated key.
+	// Temporarily: if "name" is indeed a valid key, or "[expr]" is
+	// used, use the new method, like JavaScript.  Otherwise fall back
+	// to the old method.
+	end = to_name_end(*arg, FALSE);
+	if (literal || *end == ':')
 	{
-	    char_u *end = to_name_end(*arg, !literal);
-
 	    if (end == *arg)
 	    {
 		semsg(_(e_invalid_key_str), *arg);
@@ -3015,8 +3053,11 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal, ppconst_T *ppconst)
 	}
 	else
 	{
-	    isn_T		*isn;
+	    isn_T	*isn;
+	    int		has_bracket = **arg == '[';
 
+	    if (has_bracket)
+		*arg = skipwhite(*arg + 1);
 	    if (compile_expr0(arg, cctx) == FAIL)
 		return FAIL;
 	    isn = ((isn_T *)instr->ga_data) + instr->ga_len - 1;
@@ -3025,10 +3066,20 @@ compile_dict(char_u **arg, cctx_T *cctx, int literal, ppconst_T *ppconst)
 	    else
 	    {
 		type_T *keytype = ((type_T **)stack->ga_data)
-							   [stack->ga_len - 1];
+						       [stack->ga_len - 1];
 		if (need_type(keytype, &t_string, -1, cctx,
-							 FALSE, FALSE) == FAIL)
+						     FALSE, FALSE) == FAIL)
 		    return FAIL;
+	    }
+	    if (has_bracket)
+	    {
+		*arg = skipwhite(*arg);
+		if (**arg != ']')
+		{
+		    emsg(_(e_missing_matching_bracket_after_dict_key));
+		    return FAIL;
+		}
+		++*arg;
 	    }
 	}
 
@@ -4783,6 +4834,27 @@ compile_nested_function(exarg_T *eap, cctx_T *cctx)
 	return NULL;
     }
 
+    if (*name_start == '/')
+    {
+	name_end = skip_regexp(name_start + 1, '/', TRUE);
+	if (*name_end == '/')
+	    ++name_end;
+	eap->nextcmd = check_nextcmd(name_end);
+    }
+    if (name_end == name_start || *skipwhite(name_end) != '(')
+    {
+	if (!ends_excmd2(name_start, name_end))
+	{
+	    semsg(_(e_invalid_command_str), eap->cmd);
+	    return NULL;
+	}
+
+	// "def" or "def Name": list functions
+	if (generate_DEF(cctx, name_start, name_end - name_start) == FAIL)
+	    return NULL;
+	return eap->nextcmd == NULL ? (char_u *)"" : eap->nextcmd;
+    }
+
     // Only g:Func() can use a namespace.
     if (name_start[1] == ':' && !is_global)
     {
@@ -6264,12 +6336,12 @@ compile_endif(char_u *arg, cctx_T *cctx)
 }
 
 /*
- * compile "for var in expr"
+ * Compile "for var in expr":
  *
  * Produces instructions:
  *       PUSHNR -1
  *       STORE loop-idx		Set index to -1
- *       EVAL expr		Push result of "expr"
+ *       EVAL expr		result of "expr" on top of stack
  * top:  FOR loop-idx, end	Increment index, use list on bottom of stack
  *				- if beyond end, jump to "end"
  *				- otherwise get item from list and push it
@@ -6278,11 +6350,19 @@ compile_endif(char_u *arg, cctx_T *cctx)
  *       JUMP top		Jump back to repeat
  * end:	 DROP			Drop the result of "expr"
  *
+ * Compile "for [var1, var2] in expr" - as above, but instead of "STORE var":
+ *	 UNPACK 2		Split item in 2
+ *       STORE var1		Store item in "var1"
+ *       STORE var2		Store item in "var2"
  */
     static char_u *
-compile_for(char_u *arg, cctx_T *cctx)
+compile_for(char_u *arg_start, cctx_T *cctx)
 {
+    char_u	*arg;
+    char_u	*arg_end;
     char_u	*p;
+    int		var_count = 0;
+    int		semicolon = FALSE;
     size_t	varlen;
     garray_T	*instr = &cctx->ctx_instr;
     garray_T	*stack = &cctx->ctx_type_stack;
@@ -6290,18 +6370,12 @@ compile_for(char_u *arg, cctx_T *cctx)
     lvar_T	*loop_lvar;	// loop iteration variable
     lvar_T	*var_lvar;	// variable for "var"
     type_T	*vartype;
+    type_T	*item_type = &t_any;
+    int		idx;
 
-    // TODO: list of variables: "for [key, value] in dict"
-    // parse "var"
-    for (p = arg; eval_isnamec1(*p); ++p)
-	;
-    varlen = p - arg;
-    var_lvar = lookup_local(arg, varlen, cctx);
-    if (var_lvar != NULL)
-    {
-	semsg(_(e_variable_already_declared), arg);
-	return NULL;
-    }
+    p = skip_var_list(arg_start, TRUE, &var_count, &semicolon, FALSE);
+    if (var_count == 0)
+	var_count = 1;
 
     // consume "in"
     p = skipwhite(p);
@@ -6312,12 +6386,12 @@ compile_for(char_u *arg, cctx_T *cctx)
     }
     p = skipwhite(p + 2);
 
-
     scope = new_scope(cctx, FOR_SCOPE);
     if (scope == NULL)
 	return NULL;
 
-    // Reserve a variable to store the loop iteration counter.
+    // Reserve a variable to store the loop iteration counter and initialize it
+    // to -1.
     loop_lvar = reserve_local(cctx, (char_u *)"", 0, FALSE, &t_number);
     if (loop_lvar == NULL)
     {
@@ -6325,16 +6399,6 @@ compile_for(char_u *arg, cctx_T *cctx)
 	drop_scope(cctx);
 	return NULL;
     }
-
-    // Reserve a variable to store "var"
-    var_lvar = reserve_local(cctx, arg, varlen, FALSE, &t_any);
-    if (var_lvar == NULL)
-    {
-	// out of memory or used as an argument
-	drop_scope(cctx);
-	return NULL;
-    }
-
     generate_STORENR(cctx, loop_lvar->lv_idx, -1);
 
     // compile "expr", it remains on the stack until "endfor"
@@ -6344,6 +6408,7 @@ compile_for(char_u *arg, cctx_T *cctx)
 	drop_scope(cctx);
 	return NULL;
     }
+    arg_end = arg;
 
     // Now that we know the type of "var", check that it is a list, now or at
     // runtime.
@@ -6353,16 +6418,78 @@ compile_for(char_u *arg, cctx_T *cctx)
 	drop_scope(cctx);
 	return NULL;
     }
+
     if (vartype->tt_type == VAR_LIST && vartype->tt_member->tt_type != VAR_ANY)
-	var_lvar->lv_type = vartype->tt_member;
+    {
+	if (var_count == 1)
+	    item_type = vartype->tt_member;
+	else if (vartype->tt_member->tt_type == VAR_LIST
+		      && vartype->tt_member->tt_member->tt_type != VAR_ANY)
+	    item_type = vartype->tt_member->tt_member;
+    }
 
     // "for_end" is set when ":endfor" is found
     scope->se_u.se_for.fs_top_label = instr->ga_len;
-
     generate_FOR(cctx, loop_lvar->lv_idx);
-    generate_STORE(cctx, ISN_STORE, var_lvar->lv_idx, NULL);
 
-    return arg;
+    arg = arg_start;
+    if (var_count > 1)
+    {
+	generate_UNPACK(cctx, var_count, semicolon);
+	arg = skipwhite(arg + 1);	// skip white after '['
+
+	// the list item is replaced by a number of items
+	if (ga_grow(stack, var_count - 1) == FAIL)
+	{
+	    drop_scope(cctx);
+	    return NULL;
+	}
+	--stack->ga_len;
+	for (idx = 0; idx < var_count; ++idx)
+	{
+	    ((type_T **)stack->ga_data)[stack->ga_len] =
+				(semicolon && idx == 0) ? vartype : item_type;
+	    ++stack->ga_len;
+	}
+    }
+
+    for (idx = 0; idx < var_count; ++idx)
+    {
+	// TODO: use skip_var_one, also assign to @r, $VAR, etc.
+	p = arg;
+	while (eval_isnamec(*p))
+	    ++p;
+	varlen = p - arg;
+	var_lvar = lookup_local(arg, varlen, cctx);
+	if (var_lvar != NULL)
+	{
+	    semsg(_(e_variable_already_declared), arg);
+	    drop_scope(cctx);
+	    return NULL;
+	}
+
+	// Reserve a variable to store "var".
+	// TODO: check for type
+	var_lvar = reserve_local(cctx, arg, varlen, FALSE, &t_any);
+	if (var_lvar == NULL)
+	{
+	    // out of memory or used as an argument
+	    drop_scope(cctx);
+	    return NULL;
+	}
+
+	if (semicolon && idx == var_count - 1)
+	    var_lvar->lv_type = vartype;
+	else
+	    var_lvar->lv_type = item_type;
+	generate_STORE(cctx, ISN_STORE, var_lvar->lv_idx, NULL);
+
+	if (*p == ',' || *p == ';')
+	    ++p;
+	arg = skipwhite(p);
+    }
+
+    return arg_end;
 }
 
 /*
@@ -7718,22 +7845,23 @@ delete_instr(isn_T *isn)
 {
     switch (isn->isn_type)
     {
+	case ISN_DEF:
 	case ISN_EXEC:
+	case ISN_LOADB:
 	case ISN_LOADENV:
 	case ISN_LOADG:
-	case ISN_LOADB:
-	case ISN_LOADW:
-	case ISN_LOADT:
 	case ISN_LOADOPT:
-	case ISN_STRINGMEMBER:
+	case ISN_LOADT:
+	case ISN_LOADW:
 	case ISN_PUSHEXC:
+	case ISN_PUSHFUNC:
 	case ISN_PUSHS:
+	case ISN_STOREB:
 	case ISN_STOREENV:
 	case ISN_STOREG:
-	case ISN_STOREB:
-	case ISN_STOREW:
 	case ISN_STORET:
-	case ISN_PUSHFUNC:
+	case ISN_STOREW:
+	case ISN_STRINGMEMBER:
 	    vim_free(isn->isn_arg.string);
 	    break;
 
@@ -7897,6 +8025,7 @@ delete_instr(isn_T *isn)
 	case ISN_STRSLICE:
 	case ISN_THROW:
 	case ISN_TRY:
+	case ISN_UNPACK:
 	    // nothing allocated
 	    break;
     }

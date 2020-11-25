@@ -416,7 +416,7 @@ def Test_try_catch()
 
   var nd: dict<any>
   try
-    nd = {g:anumber: 1}
+    nd = {[g:anumber]: 1}
   catch /E1012:/
     n = 266
   endtry
@@ -459,7 +459,7 @@ def Test_try_catch()
   assert_equal(322, n)
 
   try
-    d = {'text': 1, g:astring: 2}
+    d = {text: 1, [g:astring]: 2}
   catch /E721:/
     n = 333
   endtry
@@ -1860,6 +1860,44 @@ def Test_for_loop_fails()
   CheckDefFailure(['for i in xxx'], 'E1001:')
   CheckDefFailure(['endfor'], 'E588:')
   CheckDefFailure(['for i in range(3)', 'echo 3'], 'E170:')
+enddef
+
+def Test_for_loop_unpack()
+  var result = []
+  for [v1, v2] in [[1, 2], [3, 4]]
+    result->add(v1)
+    result->add(v2)
+  endfor
+  assert_equal([1, 2, 3, 4], result)
+
+  result = []
+  for [v1, v2; v3] in [[1, 2], [3, 4, 5, 6]]
+    result->add(v1)
+    result->add(v2)
+    result->add(v3)
+  endfor
+  assert_equal([1, 2, [], 3, 4, [5, 6]], result)
+
+  var lines =<< trim END
+      for [v1, v2] in [[1, 2, 3], [3, 4]]
+        echo v1 v2
+      endfor
+  END
+  CheckDefExecFailure(lines, 'E710:', 1)
+
+  lines =<< trim END
+      for [v1, v2] in [[1], [3, 4]]
+        echo v1 v2
+      endfor
+  END
+  CheckDefExecFailure(lines, 'E711:', 1)
+
+  lines =<< trim END
+      for [v1, v1] in [[1, 2], [3, 4]]
+        echo v1
+      endfor
+  END
+  CheckDefExecFailure(lines, 'E1017:', 1)
 enddef
 
 def Test_while_loop()

@@ -275,7 +275,6 @@ static void	ex_tag_cmd(exarg_T *eap, char_u *name);
 # define ex_continue		ex_ni
 # define ex_debug		ex_ni
 # define ex_debuggreedy		ex_ni
-# define ex_def			ex_ni
 # define ex_defcompile		ex_ni
 # define ex_delfunction		ex_ni
 # define ex_disassemble		ex_ni
@@ -753,6 +752,9 @@ do_cmdline(
      * cancel the whole command line, and any if/endif or loop.
      * If force_abort is set, we cancel everything.
      */
+#ifdef FEAT_EVAL
+    did_emsg_cumul += did_emsg;
+#endif
     did_emsg = FALSE;
 
     /*
@@ -784,7 +786,12 @@ do_cmdline(
 		&& !(getline_is_func && func_has_abort(real_cookie))
 #endif
 							)
+	{
+#ifdef FEAT_EVAL
+	    did_emsg_cumul += did_emsg;
+#endif
 	    did_emsg = FALSE;
+	}
 
 	/*
 	 * 1. If repeating a line in a loop, get a line from lines_ga.
@@ -1032,7 +1039,10 @@ do_cmdline(
 	if (did_emsg && !force_abort
 		&& getline_equal(fgetline, cookie, get_func_line)
 					      && !func_has_abort(real_cookie))
+	{
+	    // did_emsg_cumul is not set here
 	    did_emsg = FALSE;
+	}
 
 	if (cstack.cs_looplevel > 0)
 	{
@@ -3476,6 +3486,11 @@ find_ex_command(
 #endif
 		break;
 	    }
+
+	// Not not recognize ":*" as the star command unless '*' is in
+	// 'cpoptions'.
+	if (eap->cmdidx == CMD_star && vim_strchr(p_cpo, CPO_STAR) == NULL)
+	    p = eap->cmd;
 
 	// Look for a user defined command as a last resort.  Let ":Print" be
 	// overruled by a user defined command.

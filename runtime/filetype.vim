@@ -696,12 +696,15 @@ au BufNewFile,BufRead .gtkrc,gtkrc		setf gtkrc
 au BufNewFile,BufRead *.haml			setf haml
 
 " Hamster Classic | Playground files
-au BufNewFile,BufRead *.hsc,*.hsm		setf hamster
+au BufNewFile,BufRead *.hsm	  		setf hamster
 
 " Haskell
-au BufNewFile,BufRead *.hs,*.hs-boot		setf haskell
+au BufNewFile,BufRead *.hs,*.hsc,*.hs-boot	setf haskell
 au BufNewFile,BufRead *.lhs			setf lhaskell
 au BufNewFile,BufRead *.chs			setf chaskell
+au BufNewFile,BufRead cabal.project		setf cabalproject
+au BufNewFile,BufRead $HOME/.cabal/config	setf cabalconfig
+au BufNewFile,BufRead cabal.config		setf cabalconfig
 
 " Haste
 au BufNewFile,BufRead *.ht			setf haste
@@ -2037,11 +2040,13 @@ au BufNewFile,BufRead bzr_log.*			setf bzr
 
 " Bazel build file
 if !has("fname_case")
-  au BufNewFile,BufRead *.BUILD,BUILD			setf bzl
+  au BufNewFile,BufRead *.BUILD,BUILD		setf bzl
 endif
 
 " BIND zone
 au BufNewFile,BufRead */named/db.*,*/bind/db.*	call s:StarSetf('bindzone')
+
+au BufNewFile,BufRead cabal.project.*		call s:StarSetf('cabalproject')
 
 " Calendar
 au BufNewFile,BufRead */.calendar/*,

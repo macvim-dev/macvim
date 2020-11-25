@@ -37,7 +37,7 @@ def TestCompilingError()
     for i in range(1, 9)
       text ..= term_getline(buf, i)
     endfor
-    if text =~ 'Error detected'
+    if text =~ 'Variable not found: nothing'
       break
     endif
     sleep 20m
@@ -286,6 +286,33 @@ def Test_nested_global_function()
       defcompile
   END
   CheckScriptFailure(lines, "E1073:")
+enddef
+
+def DefListAll()
+  def
+enddef
+
+def DefListOne()
+  def DefListOne
+enddef
+
+def DefListMatches()
+  def /DefList
+enddef
+
+def Test_nested_def_list()
+  var funcs = split(execute('call DefListAll()'), "\n")
+  assert_true(len(funcs) > 10)
+  assert_true(funcs->index('def DefListAll()') >= 0)
+
+  funcs = split(execute('call DefListOne()'), "\n")
+  assert_equal(['   def DefListOne()', '1    def DefListOne', '   enddef'], funcs)
+
+  funcs = split(execute('call DefListMatches()'), "\n")
+  assert_true(len(funcs) >= 3)
+  assert_true(funcs->index('def DefListAll()') >= 0)
+  assert_true(funcs->index('def DefListOne()') >= 0)
+  assert_true(funcs->index('def DefListMatches()') >= 0)
 enddef
 
 def Test_global_local_function()
@@ -1476,6 +1503,15 @@ def Test_line_continuation_in_def()
   Line_continuation_in_def('.')->assert_equal('full')
 enddef
 
+def Test_script_var_in_lambda()
+  var lines =<< trim END
+      vim9script
+      var script = 'test'
+      assert_equal(['test'], map(['one'], {-> script}))
+  END
+  CheckScriptSuccess(lines)
+enddef
+
 def Line_continuation_in_lambda(): list<string>
   var x = range(97, 100)
       ->map({_, v -> nr2char(v)
@@ -1569,7 +1605,7 @@ enddef
 def TreeWalk(dir: string): list<any>
   return readdir(dir)->map({_, val ->
             fnamemodify(dir .. '/' .. val, ':p')->isdirectory()
-               ? {val: TreeWalk(dir .. '/' .. val)}
+               ? {[val]: TreeWalk(dir .. '/' .. val)}
                : val
              })
 enddef
@@ -1693,6 +1729,20 @@ def Test_block_scoped_var()
       Func()
   END
   CheckScriptSuccess(lines)
+enddef
+
+def Test_reset_did_emsg()
+  var lines =<< trim END
+      @s = 'blah'
+      au BufWinLeave * #
+      def Func()
+        var winid = popup_create('popup', {})
+        exe '*s'
+        popup_close(winid)
+      enddef
+      Func()
+  END
+  CheckScriptFailure(lines, 'E492:', 8)
 enddef
 
 

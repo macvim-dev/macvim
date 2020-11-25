@@ -905,6 +905,29 @@ def Test_nested_func()
         instr)
 enddef
 
+def NestedDefList()
+  def
+  def Info
+  def /Info
+  def /Info/
+enddef
+
+def Test_nested_def_list()
+   var instr = execute('disassemble NestedDefList')
+   assert_match('NestedDefList\_s*' ..
+        'def\_s*' ..
+        '\d DEF \_s*' ..
+        'def Info\_s*' ..
+        '\d DEF Info\_s*' ..
+        'def /Info\_s*' ..
+        '\d DEF /Info\_s*' ..
+        'def /Info/\_s*' ..
+        '\d DEF /Info/\_s*' ..
+        '\d PUSHNR 0\_s*' ..
+        '\d RETURN',
+        instr)
+enddef
+
 def AndOr(arg: any): string
   if arg == 1 && arg != 2 || arg == 4
     return 'yes'
@@ -999,6 +1022,40 @@ def Test_disassemble_for_loop_eval()
         '\d\+ DROP\_s*' ..
         'return res\_s*' ..
         '\d\+ LOAD $0\_s*' ..
+        '\d\+ RETURN',
+        instr)
+enddef
+
+def ForLoopUnpack()
+  for [x1, x2] in [[1, 2], [3, 4]]
+    echo x1 x2
+  endfor
+enddef
+
+def Test_disassemble_for_loop_unpack()
+  var instr = execute('disassemble ForLoopUnpack')
+  assert_match('ForLoopUnpack\_s*' ..
+        'for \[x1, x2\] in \[\[1, 2\], \[3, 4\]\]\_s*' ..
+        '\d\+ STORE -1 in $0\_s*' ..
+        '\d\+ PUSHNR 1\_s*' ..
+        '\d\+ PUSHNR 2\_s*' ..
+        '\d\+ NEWLIST size 2\_s*' ..
+        '\d\+ PUSHNR 3\_s*' ..
+        '\d\+ PUSHNR 4\_s*' ..
+        '\d\+ NEWLIST size 2\_s*' ..
+        '\d\+ NEWLIST size 2\_s*' ..
+        '\d\+ FOR $0 -> 16\_s*' ..
+        '\d\+ UNPACK 2\_s*' ..
+        '\d\+ STORE $1\_s*' ..
+        '\d\+ STORE $2\_s*' ..
+        'echo x1 x2\_s*' ..
+        '\d\+ LOAD $1\_s*' ..
+        '\d\+ LOAD $2\_s*' ..
+        '\d\+ ECHO 2\_s*' ..
+        'endfor\_s*' ..
+        '\d\+ JUMP -> 8\_s*' ..
+        '\d\+ DROP\_s*' ..
+        '\d\+ PUSHNR 0\_s*' ..
         '\d\+ RETURN',
         instr)
 enddef
