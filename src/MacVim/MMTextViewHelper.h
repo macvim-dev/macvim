@@ -18,6 +18,7 @@
 #define GREEN(argb)     (((argb>>8) & 0xff)/255.0f)
 #define RED(argb)       (((argb>>16) & 0xff)/255.0f)
 #define ALPHA(argb)     (((argb>>24) & 0xff)/255.0f)
+#define COMPONENTS(argb) ((CGFloat[]){RED(argb), GREEN(argb), BLUE(argb), ALPHA(argb)})
 
 
 @interface MMTextViewHelper : NSObject {

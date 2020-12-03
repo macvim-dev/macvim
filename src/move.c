@@ -19,9 +19,6 @@
 
 #include "vim.h"
 
-#ifdef FEAT_GUI_MACVIM
-static void redraw_for_ligatures(win_T *wp);
-#endif
 static int scrolljump_value(void);
 static int check_top_offset(void);
 static void curs_rows(win_T *wp);
@@ -161,29 +158,6 @@ redraw_for_cursorline(win_T *wp)
 #endif
     }
 }
-
-#ifdef FEAT_GUI_MACVIM
-/*
- * Redraw when 'macligatures' is set.
- * This is basically the same as when 'cursorline'
- * or 'relativenumber' is set but unconditional.
- */
-static void
-redraw_for_ligatures(wp)
-     win_T *wp;
-{
-	/* Only if ligatures are on but neither
-	 * 'cursorline' nor 'relativenumber'.
-	 */
-	if (p_macligatures
-	    && (wp->w_p_rnu == 0
-#ifdef FEAT_SYN_HL
-	        && wp->w_p_cul == 0
-#endif
-	    ))
-	redraw_win_later(wp, CLEAR);
-}
-#endif
 
 /*
  * Update curwin->w_topline and redraw if necessary.
@@ -809,9 +783,6 @@ curs_rows(win_T *wp)
     }
 
     redraw_for_cursorline(curwin);
-#ifdef FEAT_GUI_MACVIM
-    redraw_for_ligatures(curwin);
-#endif
     wp->w_valid |= VALID_CROW|VALID_CHEIGHT;
 
 }

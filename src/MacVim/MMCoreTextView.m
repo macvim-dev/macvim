@@ -45,6 +45,10 @@
 #define DRAW_WIDE                 0x80    /* draw wide text */
 #define DRAW_COMP                 0x100   /* drawing composing char */
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 101300
+typedef NSString * NSAttributedStringKey;
+#endif // MAC_OS_X_VERSION_MIN_REQUIRED < 101300
+
 #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_8
 #define kCTFontOrientationDefault kCTFontDefaultOrientation
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_8
@@ -69,6 +73,9 @@ CTFontDrawGlyphs(CTFontRef fontRef, const CGGlyph glyphs[],
 @interface MMCoreTextView (Private)
 - (MMWindowController *)windowController;
 - (MMVimController *)vimController;
+- (NSFont *)fontVariantForTextFlags:(int)textFlags;
+- (CTLineRef)lineForCharacterString:(NSString *)string
+                          textFlags:(int)flags;
 @end
 
 
@@ -77,12 +84,11 @@ CTFontDrawGlyphs(CTFontRef fontRef, const CGGlyph glyphs[],
 - (NSRect)rectFromRow:(int)row1 column:(int)col1
                 toRow:(int)row2 column:(int)col2;
 - (NSSize)textAreaSize;
-- (NSData *)optimizeBatchDrawData:(NSData *)data;
 - (void)batchDrawData:(NSData *)data;
-- (void)drawString:(const UniChar *)chars length:(UniCharCount)length
-             atRow:(int)row column:(int)col cells:(int)cells
-         withFlags:(int)flags foregroundColor:(int)fg
-   backgroundColor:(int)bg specialColor:(int)sp;
+- (void)setString:(NSString *)string
+            atRow:(int)row column:(int)col cells:(int)cells
+        withFlags:(int)flags foregroundColor:(int)fg
+  backgroundColor:(int)bg specialColor:(int)sp;
 - (void)deleteLinesFromRow:(int)row lineCount:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right
                      color:(int)color;
@@ -92,9 +98,9 @@ CTFontDrawGlyphs(CTFontRef fontRef, const CGGlyph glyphs[],
 - (void)clearBlockFromRow:(int)row1 column:(int)col1 toRow:(int)row2
                    column:(int)col2 color:(int)color;
 - (void)clearAll;
-- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                       fraction:(int)percent color:(int)color;
-- (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nrows
+- (void)setInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
+                      fraction:(int)percent color:(int)color;
+- (void)invertBlockFromRow:(int)row column:(int)col numRows:(int)nrows
                    numColumns:(int)ncols;
 @end
 
@@ -127,34 +133,106 @@ defaultAdvanceForFont(NSFont *font)
     return [@"m" sizeWithAttributes:a].width;
 }
 
-@implementation MMCoreTextView
+typedef struct {
+    unsigned color;
+    int shape;
+    int fraction;
+} GridCellInsertionPoint;
+
+typedef struct {
+    // Note: All objects should be weak references.
+    // Fields are grouped by draw order.
+    BOOL inverted;
+
+    // 1. Background
+    unsigned bg;
+
+    // 2. Sign
+    NSImage* sign;
+
+    // 3. Insertion point
+    GridCellInsertionPoint insertionPoint;
+
+    // 4. Text
+    unsigned fg;
+    unsigned sp;
+    int textFlags;
+    NSString* string; // Owned by characterStrings.
+} GridCell;
+
+typedef struct {
+    GridCell *cells;
+    int rows;
+    int cols;
+} Grid;
+
+static GridCell* grid_cell(Grid *grid, int row, int col) {
+    return grid->cells + row * grid->cols + col;
+}
+
+// Returns a static cell if row or col is out of bounds. Draw commands can point
+// out of bounds if -setMaxRows:columns: is called while Vim is still drawing at
+// a different size, which has been observed when exiting non-native fullscreen
+// with `:set nofu`. If that gets fixed, then delete this workaround.
+static GridCell* grid_cell_safe(Grid *grid, int row, int col) {
+    if (row >= grid->rows || col >= grid->cols) {
+        static GridCell scratch_cell;
+        return &scratch_cell;
+    }
+    return grid_cell(grid, row, col);
+}
+
+static void grid_resize(Grid *grid, int rows, int cols) {
+    if (rows == grid->rows && cols == grid->cols)
+        return;
+    if (cols == grid->cols && grid->cells != NULL) {
+        // If only the number of rows is changing, resize and zero out new rows.
+        size_t oldSize = grid->rows * grid->cols;
+        size_t newSize = rows * cols;
+        grid->cells = realloc(grid->cells, newSize * sizeof(GridCell));
+        if (newSize > oldSize)
+            bzero(grid->cells + oldSize, (newSize - oldSize) * sizeof(GridCell));
+    } else {
+        // Otherwise, allocate a new buffer.
+        GridCell *oldCells = grid->cells;
+        grid->cells = calloc(rows * cols, sizeof(GridCell));
+        if (oldCells) {
+            for (int r = 1; r < MIN(grid->rows, rows); r++)
+                memcpy(grid->cells + cols * r, oldCells + grid->cols * r, MIN(grid->cols, cols) * sizeof(GridCell));
+            free(oldCells);
+        }
+    }
+    grid->rows = rows;
+    grid->cols = cols;
+}
+
+static void grid_free(Grid *grid) {
+    if (grid->cells == NULL)
+        return;
+    free(grid->cells);
+    grid->cells = NULL;
+}
+
+@implementation MMCoreTextView {
+    Grid grid;
+}
 
 - (id)initWithFrame:(NSRect)frame
 {
     if (!(self = [super initWithFrame:frame]))
         return nil;
     
-    cgBufferDrawEnabled = [[NSUserDefaults standardUserDefaults]
-            boolForKey:MMBufferedDrawingKey];
-    cgBufferDrawNeedsUpdateContext = NO;
-
-    cgLayerEnabled = NO;
-    if (!cgBufferDrawEnabled) {
-        // Buffered draw supercedes the CGLayer renderer, which is deprecated
-        // and doesn't actually work in 10.14+.
-        cgLayerEnabled = [[NSUserDefaults standardUserDefaults]
-                boolForKey:MMUseCGLayerAlwaysKey];
-    }
-    cgLayerLock = [NSLock new];
-
+    self.wantsLayer = YES;
+    
     // NOTE: If the default changes to 'NO' then the intialization of
     // p_antialias in option.c must change as well.
     antialias = YES;
 
-    drawData = [[NSMutableArray alloc] init];
-    fontCache = [[NSMutableArray alloc] init];
     [self setFont:[NSFont userFixedPitchFontOfSize:0]];
-
+    fontVariants = [[NSMutableDictionary alloc] init];
+    characterStrings = [[NSMutableSet alloc] init];
+    characterLines = [[NSMutableDictionary alloc] init];
+    
     helper = [[MMTextViewHelper alloc] init];
     [helper setTextView:self];
 
@@ -171,16 +249,14 @@ defaultAdvanceForFont(NSFont *font)
     [fontWide release];  fontWide = nil;
     [defaultBackgroundColor release];  defaultBackgroundColor = nil;
     [defaultForegroundColor release];  defaultForegroundColor = nil;
-    [drawData release];  drawData = nil;
-    [fontCache release];  fontCache = nil;
-
-    CGContextRelease(cgContext);  cgContext = nil;
-
+    [fontVariants release];  fontVariants = nil;
+    [characterStrings release];  characterStrings = nil;
+    [characterLines release];  characterLines = nil;
+    
     [helper setTextView:nil];
     [helper release];  helper = nil;
 
-    if (glyphs) { free(glyphs); glyphs = NULL; }
-    if (positions) { free(positions); positions = NULL; }
+    grid_free(&grid);
 
     [super dealloc];
 }
@@ -203,7 +279,7 @@ defaultAdvanceForFont(NSFont *font)
 
 - (void)setMaxRows:(int)rows columns:(int)cols
 {
-    // NOTE: Just remember the new values, the actual resizing is done lazily.
+    grid_resize(&grid, rows, cols);
     maxRows = rows;
     maxColumns = cols;
 }
@@ -214,6 +290,7 @@ defaultAdvanceForFont(NSFont *font)
     if (defaultBackgroundColor != bgColor) {
         [defaultBackgroundColor release];
         defaultBackgroundColor = bgColor ? [bgColor retain] : nil;
+        self.needsDisplay = YES;
     }
 
     // NOTE: The default foreground color isn't actually used for anything, but
@@ -301,14 +378,6 @@ defaultAdvanceForFont(NSFont *font)
         return;
 
     double em = round(defaultAdvanceForFont(newFont));
-    double pt = round([newFont pointSize]);
-
-    CTFontDescriptorRef desc = CTFontDescriptorCreateWithNameAndSize((CFStringRef)[newFont fontName], pt);
-    CTFontRef fontRef = CTFontCreateWithFontDescriptor(desc, pt, NULL);
-    CFRelease(desc);
-
-    [font release];
-    font = (NSFont*)fontRef;
 
     float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
             floatForKey:MMCellWidthMultiplierKey];
@@ -318,11 +387,16 @@ defaultAdvanceForFont(NSFont *font)
     // an integer here, otherwise the window width and the actual text
     // width will not match.
     cellSize.width = columnspace + ceil(em * cellWidthMultiplier);
-    cellSize.height = linespace + defaultLineHeightForFont(font);
+    cellSize.height = linespace + defaultLineHeightForFont(newFont);
+    
+    [font release];
+    font = [newFont retain];
+    fontDescent = ceil(CTFontGetDescent((CTFontRef)font));
 
-    fontDescent = ceil(CTFontGetDescent(fontRef));
-
-    [fontCache removeAllObjects];
+    [self clearAll];
+    [fontVariants removeAllObjects];
+    [characterStrings removeAllObjects];
+    [characterLines removeAllObjects];
 }
 
 - (void)setWideFont:(NSFont *)newFont
@@ -332,21 +406,8 @@ defaultAdvanceForFont(NSFont *font)
         // very well include wide characters.)
         if (font) [self setWideFont:font];
     } else if (newFont != fontWide) {
-        // NOTE: No need to set point size etc. since this is taken from the
-        // regular font when drawing.
         [fontWide release];
-
-        // Use 'Apple Color Emoji' font for rendering emoji
-        CGFloat size = [newFont pointSize] > [font pointSize] ? [font pointSize] : [newFont pointSize];
-        NSFontDescriptor *emojiDesc = [NSFontDescriptor
-            fontDescriptorWithName:@"Apple Color Emoji" size:size];
-        NSFontDescriptor *newFontDesc = [newFont fontDescriptor];
-        NSDictionary *attrs = [NSDictionary
-            dictionaryWithObject:[NSArray arrayWithObject:newFontDesc]
-                          forKey:NSFontCascadeListAttribute];
-        NSFontDescriptor *desc =
-            [emojiDesc fontDescriptorByAddingAttributes:attrs];
-        fontWide = [[NSFont fontWithDescriptor:desc size:size] retain];
+        fontWide = [newFont retain];
     }
 }
 
@@ -419,6 +480,7 @@ defaultAdvanceForFont(NSFont *font)
 - (void)setLigatures:(BOOL)state
 {
     ligatures = state;
+    [characterLines removeAllObjects];
 }
 
 - (void)setThinStrokes:(BOOL)state
@@ -450,34 +512,6 @@ defaultAdvanceForFont(NSFont *font)
     // other side-effects, but we really _do_ want to process all key down
     // events so it seems safe to always return YES.
     return YES;
-}
-
-- (void)setFrameSize:(NSSize)newSize {
-    if (!NSEqualSizes(newSize, self.bounds.size)) {
-        if (!drawPending && !cgBufferDrawEnabled && drawData.count == 0) {
-            // When resizing a window, it will invalidate the buffer and cause
-            // MacVim to draw black until we get the draw commands from Vim and
-            // we draw them out in drawRect. Use beginGrouping to stop the
-            // window resize from happening until we get the draw calls.
-            //
-            // The updateLayer/cgBufferDrawEnabled path handles this differently
-            // and don't need this.
-            [NSAnimationContext beginGrouping];
-            drawPending = YES;
-        }
-        if (cgBufferDrawEnabled) {
-            cgBufferDrawNeedsUpdateContext = YES;
-        }
-    }
-    
-    [super setFrameSize:newSize];
-}
-
-- (void)viewDidChangeBackingProperties {
-    if (cgBufferDrawEnabled) {
-        cgBufferDrawNeedsUpdateContext = YES;
-    }
-    [super viewDidChangeBackingProperties];
 }
 
 - (void)keyDown:(NSEvent *)event
@@ -622,7 +656,7 @@ defaultAdvanceForFont(NSFont *font)
 
 - (BOOL)isOpaque
 {
-    return YES;
+    return self.layer == nil || self.defaultBackgroundColor.alphaComponent == 1;
 }
 
 - (BOOL)acceptsFirstResponder
@@ -635,227 +669,161 @@ defaultAdvanceForFont(NSFont *font)
     return NO;
 }
 
-- (void)updateCGContext {
-    if (cgContext) {
-        CGContextRelease(cgContext);
-        cgContext = nil;
-    }
-
-    NSRect backingRect = [self convertRectToBacking:self.bounds];
-    cgContext = CGBitmapContextCreate(NULL, NSWidth(backingRect), NSHeight(backingRect), 8, 0, self.window.colorSpace.CGColorSpace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
-    CGContextScaleCTM(cgContext, self.window.backingScaleFactor, self.window.backingScaleFactor);
-    
-    cgBufferDrawNeedsUpdateContext = NO;
-}
-
-- (BOOL)wantsUpdateLayer {
-    return cgBufferDrawEnabled;
-}
-
-- (void)updateLayer {
-    if (!cgContext) {
-        [self updateCGContext];
-    } else if (cgBufferDrawNeedsUpdateContext) {
-        if ([drawData count] != 0) {
-            [self updateCGContext];
-        } else {
-            // In this case, we don't have a single draw command, meaning that
-            // Vim hasn't caught up yet and hasn't issued draw commands. We
-            // don't want to use [NSAnimationContext beginGrouping] as it's
-            // fragile (we may miss the endGrouping call due to order of
-            // operation), and also it makes the animation jerky.
-            // Instead, copy the image to the new context and align it to the
-            // top left and make sure it doesn't stretch. This makes the
-            // resizing smooth while Vim tries to catch up in issuing draws.
-            CGImageRef oldImage = CGBitmapContextCreateImage(cgContext);
-
-            [self updateCGContext]; // This will make a new cgContext
-            
-            CGContextSaveGState(cgContext);
-            CGContextSetBlendMode(cgContext, kCGBlendModeCopy);
-            
-            // Filling the background so the edge won't be black.
-            NSRect newRect = [self bounds];
-            float r = [defaultBackgroundColor redComponent];
-            float g = [defaultBackgroundColor greenComponent];
-            float b = [defaultBackgroundColor blueComponent];
-            float a = [defaultBackgroundColor alphaComponent];
-            CGContextSetRGBFillColor(cgContext, r, g, b, a);
-            CGContextFillRect(cgContext, *(CGRect*)&newRect);
-            CGContextSetBlendMode(cgContext, kCGBlendModeNormal);
-
-            // Copy the old image over to the new image, and make sure to
-            // respect scaling and remember that CGImage's Y origin is
-            // bottom-left.
-            CGFloat scale = self.window.backingScaleFactor;
-            size_t oldWidth = CGImageGetWidth(oldImage) / scale;
-            size_t oldHeight = CGImageGetHeight(oldImage) / scale;
-            CGFloat newHeight = newRect.size.height;
-            NSRect imageRect = NSMakeRect(0, newHeight - oldHeight, (CGFloat)oldWidth, (CGFloat)oldHeight);
-
-            CGContextDrawImage(cgContext, imageRect, oldImage);
-            CGImageRelease(oldImage);
-            CGContextRestoreGState(cgContext);
-        }
-    }
-    
-    // Now issue the batched draw commands
-    if ([drawData count] != 0) {
-        [NSGraphicsContext saveGraphicsState];
-        NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithCGContext:cgContext flipped:self.flipped];
-        id data;
-        NSEnumerator *e = [drawData objectEnumerator];
-        while ((data = [e nextObject]))
-            [self batchDrawData:data];
-        [drawData removeAllObjects];
-        [NSGraphicsContext restoreGraphicsState];
-    }
-
-    CGImageRef contentsImage = CGBitmapContextCreateImage(cgContext);
-    self.layer.contents = (id)contentsImage;
-    CGImageRelease(contentsImage);
+- (void)setNeedsDisplayFromRow:(int)row column:(int)col toRow:(int)row2
+                        column:(int)col2 {
+    [self setNeedsDisplayInRect:[self rectForRow:row column:0 numRows:row2-row+1 numColumns:maxColumns]];
 }
 
 - (void)drawRect:(NSRect)rect
 {
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
+    CGContextRef ctx = context.CGContext;
     [context setShouldAntialias:antialias];
+    CGContextSetFillColorSpace(ctx, CGColorSpaceCreateWithName(kCGColorSpaceSRGB));
+    CGContextSetTextMatrix(ctx, CGAffineTransformIdentity);
+    CGContextSetTextDrawingMode(ctx, kCGTextFill);
+    CGContextSetFontSize(ctx, [font pointSize]);
+    CGContextSetShouldSmoothFonts(ctx, YES);
+    CGContextSetBlendMode(ctx, kCGBlendModeCopy);
 
-    if (cgLayerEnabled && drawData.count == 0) {
-        // during a live resize, we will have around a stale layer until the
-        // refresh messages travel back from the vim process. We push the old
-        // layer in at an offset to get rid of jitter due to lines changing
-        // position.
-        [cgLayerLock lock];
-        CGLayerRef l = [self getCGLayer];
-        CGSize cgLayerSize = CGLayerGetSize(l);
-        CGSize frameSize = [self frame].size;
-        NSRect drawRect = NSMakeRect(
-                0,
-                frameSize.height - cgLayerSize.height,
-                cgLayerSize.width,
-                cgLayerSize.height);
-
-        CGContextRef cgContext = [context graphicsPort];
-
-        const NSRect *rects;
-        long count;
-        [self getRectsBeingDrawn:&rects count:&count];
-
-        int i;
-        for (i = 0; i < count; i++) {
-           CGContextSaveGState(cgContext);
-           CGContextClipToRect(cgContext, rects[i]);
-           CGContextSetBlendMode(cgContext, kCGBlendModeCopy);
-           CGContextDrawLayerInRect(cgContext, drawRect, l);
-           CGContextRestoreGState(cgContext);
-        }
-        [cgLayerLock unlock];
-    } else {
-       id data;
-       NSEnumerator *e = [drawData objectEnumerator];
-       while ((data = [e nextObject]))
-          [self batchDrawData:data];
-
-       [drawData removeAllObjects];
+    int originalSmoothingStyle;
+    if (thinStrokes) {
+        originalSmoothingStyle = CGContextGetFontSmoothingStyle(ctx);
+        CGContextSetFontSmoothingStyle(ctx, fontSmoothingStyleLight);
     }
+    const unsigned defaultBg = defaultBackgroundColor.argbInt;
+    CGContextSetFillColor(ctx, COMPONENTS(defaultBg));
+
+    CGContextFillRect(ctx, rect);
+
+    for (size_t r = 0; r < grid.rows; r++) {
+        CGRect rowRect = [self rectForRow:r column:0 numRows:1 numColumns:grid.cols];
+        CGRect rowClipRect = CGRectIntersection(rowRect, rect);
+        if (CGRectIsNull(rowClipRect))
+            continue;
+        CGContextSaveGState(ctx);
+        CGContextClipToRect(ctx, rowClipRect);
+        
+        __block NSMutableString *lineString = nil;
+        __block CGFloat lineStringStart = 0;
+        __block CFRange lineStringRange;
+        __block GridCell lastStringCell;
+        void (^flushLineString)() = ^{
+            if (!lineString.length)
+                return;
+            CGPoint positionsByIndex[lineString.length];
+            for (size_t i = 0, stringIndex = 0; i < lineStringRange.length; i++) {
+                GridCell cell = *grid_cell(&grid, r, lineStringRange.location + i);
+                size_t cell_length = cell.string.length;
+                for (size_t j = 0; j < cell_length; j++)
+                    positionsByIndex[stringIndex++] = CGPointMake(i * cellSize.width, 0);
+                if (cell.textFlags & DRAW_WIDE)
+                    i++;
+            }
+            CGContextSetFillColor(ctx, COMPONENTS(lastStringCell.fg));
+            CGContextSetTextPosition(ctx, lineStringStart, rowRect.origin.y + fontDescent);
+            CGContextSetBlendMode(ctx, kCGBlendModeNormal);
+            CTLineRef line = [self lineForCharacterString:lineString textFlags:lastStringCell.textFlags];
+            for (id obj in (NSArray*)CTLineGetGlyphRuns(line)) {
+                CTRunRef run = (CTRunRef)obj;
+                CFIndex glyphCount = CTRunGetGlyphCount(run);
+                CFIndex indices[glyphCount];
+                CGPoint positions[glyphCount];
+                CGGlyph glyphs[glyphCount];
+                CTRunGetStringIndices(run, CFRangeMake(0, 0), indices);
+                CTRunGetGlyphs(run, CFRangeMake(0, 0), glyphs);
+                for (CFIndex i = 0; i < glyphCount; i++)
+                    positions[i] = positionsByIndex[indices[i]];
+                CTFontRef font = CFDictionaryGetValue(CTRunGetAttributes(run), kCTFontAttributeName);
+                CTFontDrawGlyphs(font, glyphs, positions, glyphCount, ctx);
+            }
+            CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+            [lineString deleteCharactersInRange:NSMakeRange(0, lineString.length)];
+        };
+        for (size_t c = 0; c < grid.cols; c++) {
+            GridCell cell = *grid_cell(&grid, r, c);
+            CGRect cellRect = {{rowRect.origin.x + cellSize.width * c, rowRect.origin.y}, cellSize};
+            if (cell.textFlags & DRAW_WIDE)
+                cellRect.size.width *= 2;
+            if (cell.inverted) {
+                cell.bg ^= 0xFFFFFF;
+                cell.fg ^= 0xFFFFFF;
+                cell.sp ^= 0xFFFFFF;
+            }
+            if (cell.bg != defaultBg && ALPHA(cell.bg) > 0) {
+                CGContextSetFillColor(ctx, COMPONENTS(cell.bg));
+                CGContextFillRect(ctx, cellRect);
+            }
+            if (cell.sign) {
+                CGRect signRect = cellRect;
+                signRect.size.width *= 2;
+                [cell.sign drawInRect:signRect
+                             fromRect:(NSRect){{0, 0}, cell.sign.size}
+                            operation:(cell.inverted ? NSCompositingOperationDifference : NSCompositingOperationSourceOver)
+                             fraction:1.0];
+            }
+            if (cell.insertionPoint.color && cell.insertionPoint.fraction) {
+                float frac = cell.insertionPoint.fraction / 100.0;
+                NSRect rect = cellRect;
+                if (MMInsertionPointHorizontal == cell.insertionPoint.shape) {
+                    rect.size.height = cellSize.height * frac;
+                } else if (MMInsertionPointVertical == cell.insertionPoint.shape) {
+                    rect.size.width = cellSize.width * frac;
+                } else if (MMInsertionPointVerticalRight == cell.insertionPoint.shape) {
+                    rect.size.width = cellSize.width * frac;
+                    rect.origin.x += cellRect.size.width - rect.size.width;
+                }
+                rect = [self backingAlignedRect:rect options:NSAlignAllEdgesInward];
+                
+                [[NSColor colorWithArgbInt:cell.insertionPoint.color] set];
+                if (MMInsertionPointHollow == cell.insertionPoint.shape) {
+                    [NSBezierPath strokeRect:NSInsetRect(rect, 0.5, 0.5)];
+                } else {
+                    NSRectFill(rect);
+                }
+            }
+            if (cell.textFlags & DRAW_UNDERL) {
+                CGRect rect = CGRectMake(cellRect.origin.x, cellRect.origin.y+0.4*fontDescent, cellRect.size.width, 1);
+                CGContextSetFillColor(ctx, COMPONENTS(cell.sp));
+                CGContextFillRect(ctx, rect);
+            } else if (cell.textFlags & DRAW_UNDERC) {
+                const float x = cellRect.origin.x, y = cellRect.origin.y+1, w = cellSize.width, h = 0.5*fontDescent;
+                CGContextMoveToPoint(ctx, x, y);
+                CGContextAddCurveToPoint(ctx, x+0.25*w, y, x+0.25*w, y+h, x+0.5*w, y+h);
+                CGContextAddCurveToPoint(ctx, x+0.75*w, y+h, x+0.75*w, y, x+w, y);
+                CGContextSetRGBStrokeColor(ctx, RED(cell.sp), GREEN(cell.sp), BLUE(cell.sp), ALPHA(cell.sp));
+                CGContextStrokePath(ctx);
+            }
+            if (cell.string) {
+                if (!ligatures || lastStringCell.fg != cell.fg || lastStringCell.textFlags != cell.textFlags)
+                    flushLineString();
+                if (!lineString)
+                    lineString = [[NSMutableString alloc] init];
+                if (!lineString.length) {
+                    lineStringStart = cellRect.origin.x;
+                    lineStringRange = CFRangeMake(c, 1);
+                }
+                [lineString appendString:cell.string];
+                lineStringRange.length = c - lineStringRange.location + 1;
+                lastStringCell = cell;
+            } else {
+                flushLineString();
+            }
+            if (cell.textFlags & DRAW_WIDE)
+                c++;
+        }
+        flushLineString();
+        [lineString release];
+        CGContextRestoreGState(ctx);
+    }
+    if (thinStrokes)
+        CGContextSetFontSmoothingStyle(ctx, originalSmoothingStyle);
 }
 
 - (void)performBatchDrawWithData:(NSData *)data
 {
-    if (cgBufferDrawEnabled) {
-        // We batch up all the commands and actually perform the draw at
-        // updateLayer. The reason is that right now MacVim has a lot of
-        // different paths that could change the view size (zoom, user resizing
-        // from either dragging border or another program, Cmd-+/- to change
-        // font size, fullscreen, etc). Those different paths don't currently
-        // have a consistent order of operation of (Vim or MacVim go first), so
-        // sometimes Vim gets updated and issue a batch draw first, but
-        // sometimes MacVim gets notified first (e.g. when window is resized).
-        // If frame size has changed we need to call updateCGContext but we
-        // can't do it here because of the order of operation issue. That's why
-        // we wait till updateLayer to do it where everything has already been
-        // done and settled.
-        //
-        // Note: Should probably refactor the different ways window size could
-        // be changed and unify them instead of the status quo of spaghetti.
-        [drawData addObject:data];
-        [self setNeedsDisplay:YES];
-    } else if (cgLayerEnabled && drawData.count == 0 && [self getCGContext]) {
-        [cgLayerLock lock];
-        [self batchDrawData:data];
-        [cgLayerLock unlock];
-    } else {
-        [drawData addObject:data];
-        [self setNeedsDisplay:YES];
-    }
-    if (drawPending) {
-        [NSAnimationContext endGrouping];
-        drawPending = NO;
-    }
+    [self batchDrawData:data];
 }
-
-- (void)setCGLayerEnabled:(BOOL)enabled
-{
-    if (cgContext || cgBufferDrawEnabled)
-        return;
-
-    cgLayerEnabled = enabled;
-
-    if (!cgLayerEnabled)
-        [self releaseCGLayer];
-}
-
-- (BOOL)getCGLayerEnabled
-{
-    return cgLayerEnabled;
-}
-
-- (void)releaseCGLayer
-{
-    if (cgLayer)  {
-        CGLayerRelease(cgLayer);
-        cgLayer = nil;
-        cgLayerContext = nil;
-    }
-}
-
-- (CGLayerRef)getCGLayer
-{
-    NSParameterAssert(cgLayerEnabled);
-    if (!cgLayer && [self lockFocusIfCanDraw]) {
-        NSGraphicsContext *context = [NSGraphicsContext currentContext];
-        NSRect frame = [self frame];
-        cgLayer = CGLayerCreateWithContext(
-            [context graphicsPort], frame.size, NULL);
-        [self unlockFocus];
-    }
-    return cgLayer;
-}
-
-- (CGContextRef)getCGContext
-{
-    if (cgLayerEnabled) {
-        if (!cgLayerContext)
-            cgLayerContext = CGLayerGetContext([self getCGLayer]);
-        return cgLayerContext;
-    } else {
-        return [[NSGraphicsContext currentContext] graphicsPort];
-    }
-}
-
-- (void)setNeedsDisplayCGLayerInRect:(CGRect)rect
-{
-    if (cgLayerEnabled)
-       [self setNeedsDisplayInRect:rect];
-}
-
-- (void)setNeedsDisplayCGLayer:(BOOL)flag
-{
-    if (cgLayerEnabled)
-       [self setNeedsDisplay:flag];
-}
-
 
 - (NSSize)constrainRows:(int *)rows columns:(int *)cols toSize:(NSSize)size
 {
@@ -1061,6 +1029,44 @@ defaultAdvanceForFont(NSFont *font)
 - (MMVimController *)vimController
 {
     return [[self windowController] vimController];
+}
+
+- (NSFont *)fontVariantForTextFlags:(int)textFlags {
+    NSNumber *cacheFlags = @(textFlags & (DRAW_WIDE | DRAW_ITALIC | DRAW_BOLD));
+    NSFont *fontRef = fontVariants[cacheFlags];
+    if (!fontRef) {
+        fontRef = textFlags & DRAW_WIDE ? fontWide : font;
+        if (textFlags & DRAW_ITALIC)
+            fontRef = [NSFontManager.sharedFontManager convertFont:fontRef toHaveTrait:NSFontItalicTrait];
+        if (textFlags & DRAW_BOLD)
+            fontRef = [NSFontManager.sharedFontManager convertFont:fontRef toHaveTrait:NSFontBoldTrait];
+        fontVariants[cacheFlags] = fontRef;
+    }
+    return fontRef;
+}
+
+- (CTLineRef)lineForCharacterString:(NSString *)string
+                          textFlags:(int)flags {
+    int cacheFlags = flags & (DRAW_WIDE | DRAW_ITALIC | DRAW_BOLD);
+    NSNumber *key = @(cacheFlags);
+    NSCache<NSString *,id> *strCache = characterLines[key];
+    if (!strCache)
+        strCache = characterLines[key] = [[[NSCache alloc] init] autorelease];
+    CTLineRef line = (CTLineRef)[strCache objectForKey:string];
+    if (!line) {
+        NSAttributedString *attrString = [[NSAttributedString alloc]
+            initWithString:string
+            attributes:@{
+                NSFontAttributeName: [self fontVariantForTextFlags:flags],
+                NSLigatureAttributeName: @(ligatures ? 1 : 0),
+                (NSString *)kCTForegroundColorFromContextAttributeName: @YES,
+            }];
+        line = CTLineCreateWithAttributedString((CFAttributedStringRef)attrString);
+        [attrString release];
+        [strCache setObject:(id)line forKey:[[string copy] autorelease]];
+        CFRelease(line);
+    }
+    return line;
 }
 
 @end // MMCoreTextView (Private)
@@ -1306,275 +1312,8 @@ static int ReadDrawCmd(const void **bytesRef, struct DrawCmd *drawCmd)
     return type;
 }
 
-// Write a single draw command to the batch draw data stream.
-static void WriteDrawCmd(NSMutableData *drawData, const struct DrawCmd *drawCmd)
-{
-    int type = drawCmd->type;
-    
-    [drawData appendBytes:&type length:sizeof(int)];
-    
-    switch (type) {
-        case ClearAllDrawType:
-            break;
-        case ClearBlockDrawType:
-        {
-            const struct DrawCmdClearBlock *cmd = &drawCmd->drawCmdClearBlock;
-            [drawData appendBytes:cmd length:sizeof(struct DrawCmdClearBlock)];
-            static_assert(sizeof(struct DrawCmdClearBlock) == sizeof(unsigned) + sizeof(int)*4, "Wrong size");
-        }
-            break;
-        case DeleteLinesDrawType:
-        {
-            const struct DrawCmdDeleteLines *cmd = &drawCmd->drawCmdDeleteLines;
-            [drawData appendBytes:cmd length:sizeof(struct DrawCmdDeleteLines)];
-            static_assert(sizeof(struct DrawCmdDeleteLines) == sizeof(unsigned) + sizeof(int)*5, "Wrong size");
-        }
-            break;
-        case DrawSignDrawType:
-        {
-            // Can't do simple memcpy of whole struct because of cmd->imgName.
-            const struct DrawCmdDrawSign *cmd = &drawCmd->drawCmdDrawSign;
-            [drawData appendBytes:&cmd->strSize length:sizeof(int)];
-            [drawData appendBytes:cmd->imgName length:cmd->strSize];
-            [drawData appendBytes:&cmd->col length:sizeof(int)];
-            [drawData appendBytes:&cmd->row length:sizeof(int)];
-            [drawData appendBytes:&cmd->width length:sizeof(int)];
-            [drawData appendBytes:&cmd->height length:sizeof(int)];
-        }
-            break;
-        case DrawStringDrawType:
-        {
-            // Can't do simple memcpy of whole struct because of cmd->str.
-            const struct DrawCmdDrawString *cmd = &drawCmd->drawCmdDrawString;
-            [drawData appendBytes:&cmd->bg length:sizeof(int)];
-            [drawData appendBytes:&cmd->fg length:sizeof(int)];
-            [drawData appendBytes:&cmd->sp length:sizeof(int)];
-            [drawData appendBytes:&cmd->row length:sizeof(int)];
-            [drawData appendBytes:&cmd->col length:sizeof(int)];
-            [drawData appendBytes:&cmd->cells length:sizeof(int)];
-            [drawData appendBytes:&cmd->flags length:sizeof(int)];
-            [drawData appendBytes:&cmd->len length:sizeof(int)];
-            [drawData appendBytes:cmd->str length:cmd->len];
-        }
-            break;
-        case InsertLinesDrawType:
-        {
-            const struct DrawCmdInsertLines *cmd = &drawCmd->drawCmdInsertLines;
-            [drawData appendBytes:cmd length:sizeof(struct DrawCmdInsertLines)];
-            static_assert(sizeof(struct DrawCmdInsertLines) == sizeof(unsigned) + sizeof(int)*5, "Wrong size");
-        }
-            break;
-        case DrawCursorDrawType:
-        {
-            const struct DrawCmdDrawCursor *cmd = &drawCmd->drawCmdDrawCursor;
-            [drawData appendBytes:cmd length:sizeof(struct DrawCmdDrawCursor)];
-            static_assert(sizeof(struct DrawCmdDrawCursor) == sizeof(unsigned) + sizeof(int)*4, "Wrong size");
-        }
-            break;
-        case DrawInvertedRectDrawType:
-        {
-            const struct DrawCmdDrawInvertedRect *cmd = &drawCmd->drawCmdDrawInvertedRect;
-            [drawData appendBytes:cmd length:sizeof(struct DrawCmdDrawInvertedRect)];
-            static_assert(sizeof(struct DrawCmdDrawInvertedRect) == sizeof(int)*5, "Wrong size");
-        }
-            break;
-        case SetCursorPosDrawType:
-        {
-            const struct DrawCmdSetCursorPos *cmd = &drawCmd->drawCmdSetCursorPos;
-            [drawData appendBytes:cmd length:sizeof(struct DrawCmdSetCursorPos)];
-            static_assert(sizeof(struct DrawCmdSetCursorPos) == sizeof(int)*2, "Wrong size");
-        }
-            break;
-        default:
-        {
-            ASLogWarn(@"Unknown draw type (type=%d)", type);
-        }
-            break;
-    }
-}
-
-// Utility to optimize batch draw commands.
-//
-// Right now, there's only a single reason for this to exist, which is to
-// reduce multiple deleteLines commands from being issued. This can happen when
-// ":version" is called, or ":!" or misc cmds like ":ls". What usually happens
-// is that Vim will issue a "delete lines" command that deletes 1 line, draw
-// some text, then delete another line and so on. This is bad because
-// deleteLinesFromRow: calls scrollRect: which is currently not fast in CGLayer
-// (deprecated) or BufferDraw (default under Mojave) mode as they are not
-// GPU-accelerated. Multiple scrolls means multiple image blits which will
-// severely degrade rendering performance.
-//
-// This function will combine all these little delete lines calls into a single
-// one, and then re-shuffle all the draw string commands later to be draw to
-// the right place. This makes rendering performance much better in the above
-// mentioned situations.
-//
-// This may get revisited later. Also, if we move to a GPU-based Metal renderer
-// or a glyph-based one (rather than draw command-based) we may have no need
-// for this as scrolling/deleting lines would just involve shuffling memory
-// around before we do any draws on the glyphs.
-- (NSData *)optimizeBatchDrawData:(NSData *)data
-{
-    const void *bytes = [data bytes];
-    const void *end = bytes + [data length];
-    
-    //
-    // 1) Do a single pass to detect whether we need to optimize the batch draw
-    //    data stream. If not, we just return the original data back.
-    //
-    bool shouldOptimize = false;
-
-    int deleteLinesCount = 0;
-
-    unsigned deleteLinesColor = 0;
-    int deleteLinesRow = 0;
-    int deleteLinesBot = 0;
-    int deleteLinesLeft = 0;
-    int deleteLinesRight = 0;
-
-    struct DrawCmd cmd;
-    
-    while (bytes < end) {
-        int type = ReadDrawCmd(&bytes, &cmd);
-        if (deleteLinesCount != 0) {
-            // Right onw in the only known cases where multiple delete lines
-            // get issued only draw string commands would get issued so just
-            // don't optimize the other cases for now for simplicity.
-            if (type != DeleteLinesDrawType
-                && type != DrawStringDrawType
-                && type != SetCursorPosDrawType) {
-                return data;
-            }
-        }
-
-        if (DeleteLinesDrawType == type) {
-            struct DrawCmdDeleteLines *cmdDel = &cmd.drawCmdDeleteLines;
-            if (deleteLinesCount == 0) {
-                // First time seeing a delete line operation, cache its
-                // properties.
-                deleteLinesColor = cmdDel->color;
-                deleteLinesRow = cmdDel->row;
-                deleteLinesBot = cmdDel->bot;
-                deleteLinesLeft = cmdDel->left;
-                deleteLinesRight = cmdDel->right;
-            } else {
-                // We only optimize if we see 2+ delete line operations,
-                // otherwise this is no point.
-                shouldOptimize = true;
-
-                bool similarCmd =
-                    deleteLinesColor == cmdDel->color &&
-                    deleteLinesRow == cmdDel->row &&
-                    deleteLinesBot == cmdDel->bot &&
-                    deleteLinesLeft == cmdDel->left &&
-                    deleteLinesRight == cmdDel->right;
-                if (!similarCmd) {
-                    // This shouldn't really happen, but in case we have
-                    // situations where the multiple delete line operations are
-                    // different it's kind of hard to combine them together, so
-                    // just ignore.
-                    return data;
-                }
-            }
-
-            deleteLinesCount += cmdDel->count;
-        } else if (DrawStringDrawType == type) {
-            // There may be cases where this optimization doesn't work and we
-            // need to bail here. E.g. if the string is drawn across the
-            // scrolling boundary of the delete line operation moving the
-            // command around would not result in the correct rendering, or if
-            // the string is in the deleted region later this would cause
-            // problems too.
-            // For simplicity we don't check for those cases now, as they
-            // aren't known to happen.
-        }
-    }
-
-    if (!shouldOptimize) {
-        return data;
-    }
-
-    //
-    // 2) If we reach here, we want to optimize the data stream. Make a new
-    //    data stream with the delete lines commands all shoved into one single
-    //    one.
-    //
-    NSMutableData *newData =  [[[NSMutableData alloc] initWithCapacity:[data length]] autorelease];
-    
-    struct DrawCmd drawCmdDelLines;
-    drawCmdDelLines.type = DeleteLinesDrawType;
-    {
-        struct DrawCmdDeleteLines *cmdDel = &drawCmdDelLines.drawCmdDeleteLines;
-        cmdDel->color = deleteLinesColor;
-        cmdDel->row = deleteLinesRow;
-        cmdDel->count = deleteLinesCount;
-        cmdDel->bot = deleteLinesBot;
-        cmdDel->left = deleteLinesLeft;
-        cmdDel->right = deleteLinesRight;
-    }
-    
-    bytes = [data bytes];
-    end = bytes + [data length];
-
-    bool insertedDelLinesCmd = false;
-    int remainingDeleteLinesLeft = deleteLinesCount;
-    while (bytes < end) {
-        int type = ReadDrawCmd(&bytes, &cmd);
-
-        if (type == DeleteLinesDrawType) {
-            if (!insertedDelLinesCmd) {
-                // We replace the 1st delete line command by the combined
-                // delete line command. This way earlier commands can remain
-                // untouched and only later commands need to be touched up.
-                WriteDrawCmd(newData, &drawCmdDelLines);
-                insertedDelLinesCmd = true;
-            }
-            remainingDeleteLinesLeft -= cmd.drawCmdDeleteLines.count;
-            continue;
-        }
-        
-        if (!insertedDelLinesCmd) {
-            WriteDrawCmd(newData, &cmd);
-            continue;
-        }
-
-        // Shift the draw command up.
-        // Before the optimization, we have:
-        //  A1. delete N lines
-        //  A2. draw string
-        //  A3. delete M lines
-        // After the optimization:
-        //  B1. delete N + M lines
-        //  B2. draw string
-        //
-        // A3 would have shifted the draw string M lines up but it won't now.
-        // Therefore, when we draw B2 (which is here), we need to make sure to
-        // draw it M lines higher to present the same result.
-        if (type == DrawStringDrawType) {
-            struct DrawCmdDrawString *drawCmd = &cmd.drawCmdDrawString;
-            if (drawCmd->row > deleteLinesRow) {
-                drawCmd->row -= remainingDeleteLinesLeft;
-            }
-        } else if (type == SetCursorPosDrawType) {
-            struct DrawCmdSetCursorPos *drawCmd = &cmd.drawCmdSetCursorPos;
-            if (drawCmd->row > deleteLinesRow) {
-                drawCmd->row -= remainingDeleteLinesLeft;
-            }
-        }
-        WriteDrawCmd(newData, &cmd);
-    }
-    
-    return newData;
-}
-
 - (void)batchDrawData:(NSData *)data
 {
-    // Optimize the batch draw commands before issuing them. This makes the
-    // draw commands more efficient but should result in identical final
-    // results.
-    data = [self optimizeBatchDrawData:data];
-
     const void *bytes = [data bytes];
     const void *end = bytes + [data length];
 
@@ -1613,25 +1352,9 @@ static void WriteDrawCmd(NSMutableData *drawData, const struct DrawCmd *drawCmd)
             struct DrawCmdDrawSign *cmd = &drawCmd.drawCmdDrawSign;
             NSString *imgName =
                 [NSString stringWithUTF8String:cmd->imgName];
-
             NSImage *signImg = [helper signImageForName:imgName];
-            NSRect r = [self rectForRow:cmd->row
-                                 column:cmd->col
-                                numRows:cmd->height
-                             numColumns:cmd->width];
-            if (cgLayerEnabled) {
-                CGContextRef context = [self getCGContext];
-                CGImageRef cgImage = [signImg CGImageForProposedRect:&r
-                                                             context:nil
-                                                               hints:nil];
-                CGContextDrawImage(context, r, cgImage);
-            } else {
-                [signImg drawInRect:r
-                           fromRect:NSZeroRect
-                          operation:NSCompositingOperationSourceOver
-                           fraction:1.0];
-            }
-            [self setNeedsDisplayCGLayerInRect:r];
+            grid_cell_safe(&grid, cmd->row, cmd->col)->sign = signImg;
+            [self setNeedsDisplayFromRow:cmd->row column:cmd->col toRow:cmd->row column:cmd->col];
         } else if (DrawStringDrawType == type) {
             struct DrawCmdDrawString *cmd = &drawCmd.drawCmdDrawString;
 #if MM_DEBUG_DRAWING
@@ -1640,33 +1363,19 @@ static void WriteDrawCmd(NSMutableData *drawData, const struct DrawCmd *drawCmd)
 #endif
 
             // Convert UTF-8 chars to UTF-16
-            CFStringRef sref = CFStringCreateWithBytesNoCopy(NULL, cmd->str, cmd->len,
-                                kCFStringEncodingUTF8, false, kCFAllocatorNull);
+            NSString *sref = [[NSString alloc] initWithBytes:cmd->str length:cmd->len encoding:NSUTF8StringEncoding];
             if (sref == NULL) {
                 ASLogWarn(@"Conversion error: some text may not be rendered");
                 continue;
             }
-            CFIndex unilength = CFStringGetLength(sref);
-            const UniChar *unichars = CFStringGetCharactersPtr(sref);
-            UniChar *buffer = NULL;
-            if (unichars == NULL) {
-                buffer = malloc(unilength * sizeof(UniChar));
-                CFStringGetCharacters(sref, CFRangeMake(0, unilength), buffer);
-                unichars = buffer;
-            }
+            [self setString:sref
+                      atRow:cmd->row column:cmd->col cells:cmd->cells
+                  withFlags:cmd->flags
+            foregroundColor:cmd->fg
+            backgroundColor:cmd->bg
+               specialColor:cmd->sp];
 
-            [self drawString:unichars length:unilength
-                       atRow:cmd->row column:cmd->col cells:cmd->cells
-                              withFlags:cmd->flags
-                        foregroundColor:cmd->fg
-                        backgroundColor:cmd->bg
-                           specialColor:cmd->sp];
-
-            if (buffer) {
-                free(buffer);
-                buffer = NULL;
-            }
-            CFRelease(sref);
+            [sref release];
         } else if (InsertLinesDrawType == type) {
             struct DrawCmdInsertLines *cmd = &drawCmd.drawCmdInsertLines;
 #if MM_DEBUG_DRAWING
@@ -1680,17 +1389,17 @@ static void WriteDrawCmd(NSMutableData *drawData, const struct DrawCmd *drawCmd)
 #if MM_DEBUG_DRAWING
             ASLogNotice(@"   Draw cursor at (%d,%d)", cmd->row, cmd->col);
 #endif
-            [self drawInsertionPointAtRow:cmd->row column:cmd->col shape:cmd->shape
-                                     fraction:cmd->percent
-                                        color:cmd->color];
+            [self setInsertionPointAtRow:cmd->row column:cmd->col shape:cmd->shape
+                                fraction:cmd->percent
+                                   color:cmd->color];
         } else if (DrawInvertedRectDrawType == type) {
             struct DrawCmdDrawInvertedRect *cmd = &drawCmd.drawCmdDrawInvertedRect;
 #if MM_DEBUG_DRAWING
             ASLogNotice(@"   Draw inverted rect: row=%d col=%d nrows=%d "
                    "ncols=%d", cmd->row, cmd->col, cmd->nr, cmd->nc);
 #endif
-            [self drawInvertedRectAtRow:cmd->row column:cmd->col numRows:cmd->nr
-                             numColumns:cmd->nc];
+            [self invertBlockFromRow:cmd->row column:cmd->col numRows:cmd->nr
+                          numColumns:cmd->nc];
         } else if (SetCursorPosDrawType == type) {
             // TODO: This is used for Voice Over support in MMTextView,
             // MMCoreTextView currently does not support Voice Over.
@@ -1708,529 +1417,120 @@ static void WriteDrawCmd(NSMutableData *drawData, const struct DrawCmd *drawCmd)
 #endif
 }
 
-    static CTFontRef
-lookupFont(NSMutableArray *fontCache, const unichar *chars, UniCharCount count,
-           CTFontRef currFontRef, CGGlyph *glyphsOut)
+- (void)setString:(NSString *)string
+            atRow:(int)row column:(int)col cells:(int)cells
+        withFlags:(int)flags foregroundColor:(int)fg
+  backgroundColor:(int)bg specialColor:(int)sp
 {
-    CGGlyph glyphs[count];
-
-    // See if font in cache can draw at least one character
-    NSUInteger i;
-    for (i = 0; i < [fontCache count]; ++i) {
-        NSFont *font = [fontCache objectAtIndex:i];
-
-        if (CTFontGetGlyphsForCharacters((CTFontRef)font, chars, glyphs, count))
-        {
-            memcpy(glyphsOut, glyphs, count * sizeof(CGGlyph));
-            return (CTFontRef)[font retain];
-        }
-    }
-
-    // Ask Core Text for a font (can be *very* slow, which is why we cache
-    // fonts in the first place)
-    CFRange r = { 0, count };
-    CFStringRef strRef = CFStringCreateWithCharacters(NULL, chars, count);
-    CTFontRef newFontRef = CTFontCreateForString(currFontRef, strRef, r);
-    CFRelease(strRef);
-
-    // Verify the font can actually convert all the glyphs.
-    if (!CTFontGetGlyphsForCharacters(newFontRef, chars, glyphs, count))
-        return nil;
-
-    if (newFontRef)
-        [fontCache addObject:(NSFont *)newFontRef];
-
-    memcpy(glyphsOut, glyphs, count * sizeof(CGGlyph));
-    return newFontRef;
-}
-
-    static CFAttributedStringRef
-attributedStringForString(NSString *string, const CTFontRef font,
-                          BOOL useLigatures)
-{
-    NSDictionary *attrs = [NSDictionary dictionaryWithObjectsAndKeys:
-                            (id)font, kCTFontAttributeName,
-                            // 2 - full ligatures including rare
-                            // 1 - basic ligatures
-                            // 0 - no ligatures
-                            [NSNumber numberWithBool:useLigatures],
-                            kCTLigatureAttributeName,
-                            nil
-    ];
-
-    return CFAttributedStringCreate(NULL, (CFStringRef)string,
-                                    (CFDictionaryRef)attrs);
-}
-
-    static UniCharCount
-fetchGlyphsAndAdvances(const CTLineRef line, CGGlyph *glyphs, CGSize *advances,
-                       CGPoint *positions, UniCharCount length)
-{
-    NSArray *glyphRuns = (NSArray*)CTLineGetGlyphRuns(line);
-
-    // get a hold on the actual character widths and glyphs in line
-    UniCharCount offset = 0;
-    for (id item in glyphRuns) {
-        CTRunRef run  = (CTRunRef)item;
-        CFIndex count = CTRunGetGlyphCount(run);
-
-        if (count > 0) {
-            if (count > length - offset)
-                count = length - offset;
-
-            CFRange range = CFRangeMake(0, count);
-
-            if (glyphs != NULL)
-                CTRunGetGlyphs(run, range, &glyphs[offset]);
-            if (advances != NULL)
-                CTRunGetAdvances(run, range, &advances[offset]);
-            if (positions != NULL)
-                CTRunGetPositions(run, range, &positions[offset]);
-
-            offset += count;
-            if (offset >= length)
-                break;
-        }
-    }
-
-    return offset;
-}
-
-    static UniCharCount
-gatherGlyphs(CGGlyph glyphs[], UniCharCount count)
-{
-    // Gather scattered glyphs that was happended by Surrogate pair chars
-    UniCharCount glyphCount = 0;
-    NSUInteger pos = 0;
-    NSUInteger i;
-    for (i = 0; i < count; ++i) {
-        if (glyphs[i] != 0) {
-            ++glyphCount;
-            glyphs[pos++] = glyphs[i];
-        }
-    }
-    return glyphCount;
-}
-
-    static UniCharCount
-composeGlyphsForChars(const unichar *chars, CGGlyph *glyphs,
-                      CGPoint *positions, UniCharCount length, CTFontRef font,
-                      BOOL isComposing, BOOL useLigatures)
-{
-    memset(glyphs, 0, sizeof(CGGlyph) * length);
-
-    NSString *plainText = [NSString stringWithCharacters:chars length:length];
-    CFAttributedStringRef composedText = attributedStringForString(plainText,
-                                                                   font,
-                                                                   useLigatures);
-
-    CTLineRef line = CTLineCreateWithAttributedString(composedText);
-
-    // get the (composing)glyphs and advances for the new text
-    UniCharCount offset = fetchGlyphsAndAdvances(line, glyphs, NULL,
-                                                 isComposing ? positions : NULL,
-                                                 length);
-
-    CFRelease(composedText);
-    CFRelease(line);
-
-    // as ligatures composing characters it is required to adjust the
-    // original length value
-    return offset;
-}
-
-    static void
-recurseDraw(const unichar *chars, CGGlyph *glyphs, CGPoint *positions,
-            UniCharCount length, CGContextRef context, CTFontRef fontRef,
-            NSMutableArray *fontCache, BOOL isComposing, BOOL useLigatures)
-{
-    // Note: This function is misnamed. It does not actually use recursion and
-    // will be renamed in future.
-    if (CTFontGetGlyphsForCharacters(fontRef, chars, glyphs, length)) {
-        // All chars were mapped to glyphs, so draw all at once and return.
-        length = isComposing || useLigatures
-                ? composeGlyphsForChars(chars, glyphs, positions, length,
-                                        fontRef, isComposing, useLigatures)
-                : gatherGlyphs(glyphs, length);
-        CTFontDrawGlyphs(fontRef, glyphs, positions, length, context);
-        return;
-    }
-
-    CGGlyph *glyphsEnd = glyphs+length, *g = glyphs;
-    CGPoint *p = positions;
-    const unichar *c = chars;
-    while (glyphs < glyphsEnd) {
-        if (*g) {
-            // Draw as many consecutive glyphs as possible in the current font
-            // (if a glyph is 0 that means it does not exist in the current
-            // font).
-            BOOL surrogatePair = NO;
-            while (*g && g < glyphsEnd) {
-                if (CFStringIsSurrogateHighCharacter(*c)) {
-                    surrogatePair = YES;
-                    g += 2;
-                    c += 2;
-                } else {
-                    ++g;
-                    ++c;
-                }
-                ++p;
-            }
-
-            int count = g-glyphs;
-            if (surrogatePair)
-                count = gatherGlyphs(glyphs, count);
-            CTFontDrawGlyphs(fontRef, glyphs, positions, count, context);
-        } else {
-            // Skip past as many consecutive chars as possible which cannot be
-            // drawn in the current font.
-            while (0 == *g && g < glyphsEnd) {
-                if (CFStringIsSurrogateHighCharacter(*c)) {
-                    g += 2;
-                    c += 2;
-                } else {
-                    ++g;
-                    ++c;
-                }
-                ++p;
-            }
-
-            // Try to find a fallback font that can render the entire
-            // invalid range. If that fails, repeatedly halve the attempted
-            // range until a font is found.
-            UniCharCount count = c - chars;
-            UniCharCount attemptedCount = count;
-            CTFontRef fallback = nil;
-            while (fallback == nil && attemptedCount > 0) {
-                fallback = lookupFont(fontCache, chars, attemptedCount,
-                                      fontRef, glyphs);
-                if (!fallback)
-                    attemptedCount /= 2;
-            }
-
-            if (!fallback)
-                return;
-
-            UniCharCount actualAttemptLength = isComposing || useLigatures
-                ? composeGlyphsForChars(chars, glyphs, positions, attemptedCount,
-                                    fallback, isComposing, useLigatures)
-                : gatherGlyphs(glyphs, attemptedCount);
-            CTFontDrawGlyphs(fallback, glyphs, positions, actualAttemptLength, context);
-
-            // TODO: This doesn't take into account surrogate pairs for 'p'. Clean this up.
-            // If only a portion of the invalid range was rendered above,
-            // the remaining range needs to be attempted by subsequent
-            // iterations of the draw loop.
-            c -= count - attemptedCount;
-            g -= count - attemptedCount;
-            p -= count - attemptedCount;
-
-            CFRelease(fallback);
-        }
-
-        if (glyphs == g) {
-           // No valid chars in the glyphs. Exit from the possible infinite
-           // recursive call.
-           break;
-        }
-
-        chars = c;
-        glyphs = g;
-        positions = p;
-    }
-}
-
-- (void)drawString:(const UniChar *)chars length:(UniCharCount)length
-             atRow:(int)row column:(int)col cells:(int)cells
-         withFlags:(int)flags foregroundColor:(int)fg
-   backgroundColor:(int)bg specialColor:(int)sp
-{
-    CGContextRef context = [self getCGContext];
-    NSRect frame = [self bounds];
-    float x = col*cellSize.width + insetSize.width;
-    float y = frame.size.height - insetSize.height - (1+row)*cellSize.height;
-    float w = cellSize.width;
     BOOL wide = flags & DRAW_WIDE ? YES : NO;
-    BOOL composing = flags & DRAW_COMP ? YES : NO;
+    __block size_t cells_filled = 0;
+    [string enumerateSubstringsInRange:NSMakeRange(0, string.length)
+                               options:NSStringEnumerationByComposedCharacterSequences
+                            usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
+        GridCell *cell = grid_cell_safe(&grid, row, col + cells_filled++ * (wide ? 2 : 1));
+        GridCellInsertionPoint insertionPoint = {0};
+        if (flags & DRAW_TRANSP)
+            insertionPoint = cell->insertionPoint;
 
-    if (wide) {
-        // NOTE: It is assumed that either all characters in 'chars' are wide
-        // or all are normal width.
-        w *= 2;
-    }
-
-    CGContextSaveGState(context);
-
-    int originalFontSmoothingStyle = 0;
-    if (thinStrokes) {
-        CGContextSetShouldSmoothFonts(context, YES);
-        originalFontSmoothingStyle = CGContextGetFontSmoothingStyle(context);
-        CGContextSetFontSmoothingStyle(context, fontSmoothingStyleLight);
-    }
-
-    // NOTE!  'cells' is zero if we're drawing a composing character
-    CGFloat clipWidth = cells > 0 ? cells*cellSize.width : w;
-    CGRect clipRect = { {x, y}, {clipWidth, cellSize.height} };
-    CGContextClipToRect(context, clipRect);
-
-    if (!(flags & DRAW_TRANSP)) {
-        // Draw the background of the text.  Note that if we ignore the
-        // DRAW_TRANSP flag and always draw the background, then the insert
-        // mode cursor is drawn over.
-        CGRect rect = { {x, y}, {cells*cellSize.width, cellSize.height} };
-        CGContextSetRGBFillColor(context, RED(bg), GREEN(bg), BLUE(bg),
-                                 ALPHA(bg));
-
-        // Antialiasing may cause bleeding effects which are highly undesirable
-        // when clearing the background (this code is also called to draw the
-        // cursor sometimes) so disable it temporarily.
-        CGContextSetShouldAntialias(context, NO);
-        CGContextSetBlendMode(context, kCGBlendModeCopy);
-        CGContextFillRect(context, rect);
-        CGContextSetShouldAntialias(context, antialias);
-        CGContextSetBlendMode(context, kCGBlendModeNormal);
-    }
-
-    if (flags & DRAW_UNDERL) {
-        // Draw underline
-        CGRect rect = { {x, y+0.4*fontDescent}, {cells*cellSize.width, 1} };
-        CGContextSetRGBFillColor(context, RED(sp), GREEN(sp), BLUE(sp),
-                                 ALPHA(sp));
-        CGContextFillRect(context, rect);
-    } else if (flags & DRAW_UNDERC) {
-        // Draw curly underline
-        int k;
-        float x0 = x, y0 = y+1, w = cellSize.width, h = 0.5*fontDescent;
-
-        CGContextMoveToPoint(context, x0, y0);
-        for (k = 0; k < cells; ++k) {
-            CGContextAddCurveToPoint(context, x0+0.25*w, y0, x0+0.25*w, y0+h,
-                                     x0+0.5*w, y0+h);
-            CGContextAddCurveToPoint(context, x0+0.75*w, y0+h, x0+0.75*w, y0,
-                                     x0+w, y0);
-            x0 += w;
+        NSString *characterString = nil;
+        if (![substring isEqualToString:@" "]) {
+            characterString = [characterStrings member:substring];
+            if (!characterString) {
+                characterString = substring;
+                [characterStrings addObject:characterString];
+            }
         }
-
-        CGContextSetRGBStrokeColor(context, RED(sp), GREEN(sp), BLUE(sp),
-                                   ALPHA(sp));
-        CGContextStrokePath(context);
-    }
-
-    if (length > maxlen) {
-        if (glyphs) free(glyphs);
-        if (positions) free(positions);
-        glyphs = (CGGlyph*)calloc(length, sizeof(CGGlyph));
-        positions = (CGPoint*)calloc(length, sizeof(CGPoint));
-        maxlen = length;
-    }
-
-    CGContextSetTextMatrix(context, CGAffineTransformIdentity);
-    CGContextSetTextDrawingMode(context, kCGTextFill);
-    CGContextSetRGBFillColor(context, RED(fg), GREEN(fg), BLUE(fg), ALPHA(fg));
-    CGContextSetFontSize(context, [font pointSize]);
-
-    // Calculate position of each glyph relative to (x,y).
-    float xrel = composing ? .0 : w;
-    for (unsigned i = 0; i < length; ++i) {
-        positions[i].x = i * xrel;
-        positions[i].y = .0;
-    }
-
-    CTFontRef fontRef = (CTFontRef)(wide ? [fontWide retain]
-                                         : [font retain]);
-    unsigned traits = 0;
-    if (flags & DRAW_ITALIC)
-        traits |= kCTFontItalicTrait;
-    if (flags & DRAW_BOLD)
-        traits |= kCTFontBoldTrait;
-
-    if (traits) {
-        CTFontRef fr = CTFontCreateCopyWithSymbolicTraits(fontRef, 0.0, NULL,
-                                                          traits, traits);
-        if (fr) {
-            CFRelease(fontRef);
-            fontRef = fr;
-        }
-    }
-
-    CGContextSetTextPosition(context, x, y+fontDescent);
-    recurseDraw(chars, glyphs, positions, length, context, fontRef, fontCache,
-                composing, ligatures);
-
-    CFRelease(fontRef);
-    if (thinStrokes)
-        CGContextSetFontSmoothingStyle(context, originalFontSmoothingStyle);
-    CGContextRestoreGState(context);
-
-    [self setNeedsDisplayCGLayerInRect:clipRect];
-}
-
-- (void)scrollRect:(NSRect)rect lineCount:(int)count
-{
-    if (cgContext) {
-        NSRect fromRect = NSOffsetRect(self.bounds, 0, -count * cellSize.height);
-        NSRect toRect = NSOffsetRect(rect, 0, -count * cellSize.height);
-        CGContextSaveGState(cgContext);
-        CGContextClipToRect(cgContext, toRect);
-        CGContextSetBlendMode(cgContext, kCGBlendModeCopy);
-        CGImageRef contentsImage = CGBitmapContextCreateImage(cgContext);
-        CGContextDrawImage(cgContext, fromRect, contentsImage);
-        CGImageRelease(contentsImage);
-        CGContextRestoreGState(cgContext);
-        [self setNeedsDisplayCGLayerInRect:toRect];
-    } else if (cgLayerEnabled) {
-        CGContextRef context = [self getCGContext];
-        int yOffset = count * cellSize.height;
-        NSRect clipRect = rect;
-        clipRect.origin.y -= yOffset;
-
-        // draw self on top of self, offset so as to "scroll" lines vertically
-        CGContextSaveGState(context);
-        CGContextClipToRect(context, clipRect);
-        CGContextSetBlendMode(context, kCGBlendModeCopy);
-        CGContextDrawLayerAtPoint(
-                context, CGPointMake(0, -yOffset), [self getCGLayer]);
-        CGContextRestoreGState(context);
-        [self setNeedsDisplayCGLayerInRect:clipRect];
-    } else {
-        NSSize delta={0, -count * cellSize.height};
-        [self scrollRect:rect by:delta];
-    }
+        *cell = (GridCell){
+            .bg = bg,
+            .fg = fg,
+            .sp = sp,
+            .textFlags = flags,
+            .insertionPoint = insertionPoint,
+            .string = characterString,
+        };
+    }];
+    [self setNeedsDisplayFromRow:row
+                          column:col
+                           toRow:row
+                          column:col+cells_filled*(wide ? 2 : 1)];
 }
 
 - (void)deleteLinesFromRow:(int)row lineCount:(int)count
               scrollBottom:(int)bottom left:(int)left right:(int)right
                      color:(int)color
 {
-    NSRect rect = [self rectFromRow:row + count
-                             column:left
-                              toRow:bottom
-                             column:right];
-
-    // move rect up for count lines
-    [self scrollRect:rect lineCount:-count];
-    [self clearBlockFromRow:bottom - count + 1
-                     column:left
-                      toRow:bottom
-                     column:right
-                      color:color];
+    for (size_t r = row; r + count <= MIN(grid.rows - 1, bottom); r++) {
+        memcpy(grid_cell(&grid, r, left),
+               grid_cell(&grid, r + count, left),
+               sizeof(GridCell) * (MIN(grid.cols, right + 1) - MIN(grid.cols, left)));
+    }
+    const GridCell clearCell = { .bg = color };
+    for (size_t r = bottom - count + 1; r <= MIN(grid.rows - 1, bottom); r++) {
+        for (size_t c = left; c <= MIN(grid.cols - 1, right); c++)
+            *grid_cell(&grid, r, c) = clearCell;
+    }
+    [self setNeedsDisplayFromRow:row column:left toRow:bottom column:right];
 }
 
 - (void)insertLinesAtRow:(int)row lineCount:(int)count
             scrollBottom:(int)bottom left:(int)left right:(int)right
                    color:(int)color
 {
-    NSRect rect = [self rectFromRow:row
-                             column:left
-                              toRow:bottom - count
-                             column:right];
-
-    // move rect down for count lines
-    [self scrollRect:rect lineCount:count];
-    [self clearBlockFromRow:row
-                     column:left
-                      toRow:row + count - 1
-                     column:right
-                      color:color];
+    for (size_t r = MIN(grid.rows - 1, bottom); r >= row + count; r--) {
+        memcpy(grid_cell(&grid, r, left),
+               grid_cell(&grid, r - count, left),
+               sizeof(GridCell) * (MIN(grid.cols, right + 1) - MIN(grid.cols, left)));
+    }
+    const GridCell clearCell = { .bg = color };
+    for (size_t r = row; r < MIN(grid.rows, row + count); r++) {
+        for (size_t c = left; c <= right; c++)
+            *grid_cell(&grid, r, c) = clearCell;
+    }
+    [self setNeedsDisplayFromRow:row column:left toRow:bottom column:right];
 }
 
 - (void)clearBlockFromRow:(int)row1 column:(int)col1 toRow:(int)row2
                    column:(int)col2 color:(int)color
 {
-    CGContextRef context = [self getCGContext];
-    NSRect rect = [self rectFromRow:row1 column:col1 toRow:row2 column:col2];
-
-    CGContextSetRGBFillColor(context, RED(color), GREEN(color), BLUE(color),
-                             ALPHA(color));
-
-    CGContextSetBlendMode(context, kCGBlendModeCopy);
-    CGContextFillRect(context, *(CGRect*)&rect);
-    CGContextSetBlendMode(context, kCGBlendModeNormal);
-    [self setNeedsDisplayCGLayerInRect:rect];
+    const GridCell clearCell = { .bg = color };
+    for (size_t r = row1; r <= row2; r++) {
+        for (size_t c = col1; c <= col2; c++)
+            *grid_cell_safe(&grid, r, c) = clearCell;
+    }
+    [self setNeedsDisplayFromRow:row1 column:col1 toRow:row2 column:col2];
 }
 
 - (void)clearAll
 {
-    [self releaseCGLayer];
-    CGContextRef context = [self getCGContext];
-    NSRect rect = [self bounds];
-    float r = [defaultBackgroundColor redComponent];
-    float g = [defaultBackgroundColor greenComponent];
-    float b = [defaultBackgroundColor blueComponent];
-    float a = [defaultBackgroundColor alphaComponent];
-
-    CGContextSetBlendMode(context, kCGBlendModeCopy);
-    CGContextSetRGBFillColor(context, r, g, b, a);
-    CGContextFillRect(context, *(CGRect*)&rect);
-    CGContextSetBlendMode(context, kCGBlendModeNormal);
-
-    [self setNeedsDisplayCGLayer:YES];
+    const GridCell clearCell = { .bg = defaultBackgroundColor.argbInt };
+    for (size_t r = 0; r < maxRows; r++) {
+        for (size_t c = 0; c < maxColumns; c++)
+            *grid_cell(&grid, r, c) = clearCell;
+    }
+    self.needsDisplay = YES;
 }
 
-- (void)drawInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
-                       fraction:(int)percent color:(int)color
+- (void)setInsertionPointAtRow:(int)row column:(int)col shape:(int)shape
+                      fraction:(int)percent color:(int)color
 {
-    CGContextRef context = [self getCGContext];
-    NSRect rect = [self rectForRow:row column:col numRows:1 numColumns:1];
-
-    CGContextSaveGState(context);
-
-    if (MMInsertionPointHorizontal == shape) {
-        int frac = (cellSize.height * percent + 99)/100;
-        rect.size.height = frac;
-    } else if (MMInsertionPointVertical == shape) {
-        int frac = (cellSize.width * percent + 99)/100;
-        rect.size.width = frac;
-    } else if (MMInsertionPointVerticalRight == shape) {
-        int frac = (cellSize.width * percent + 99)/100;
-        rect.origin.x += rect.size.width - frac;
-        rect.size.width = frac;
-    }
-
-    // Temporarily disable antialiasing since we are only drawing square
-    // cursors.  Failing to disable antialiasing can cause the cursor to bleed
-    // over into adjacent display cells and it may look ugly.
-    CGContextSetShouldAntialias(context, NO);
-
-    if (MMInsertionPointHollow == shape) {
-        // When stroking a rect its size is effectively 1 pixel wider/higher
-        // than we want so make it smaller to avoid having it bleed over into
-        // the adjacent display cell.
-        // We also have to shift the rect by half a point otherwise it will be
-        // partially drawn outside its bounds on a Retina display.
-        rect.size.width -= 1;
-        rect.size.height -= 1;
-        rect.origin.x += 0.5;
-        rect.origin.y += 0.5;
-
-        CGContextSetRGBStrokeColor(context, RED(color), GREEN(color),
-                                   BLUE(color), ALPHA(color));
-        CGContextStrokeRect(context, *(CGRect*)&rect);
-    } else {
-        CGContextSetRGBFillColor(context, RED(color), GREEN(color), BLUE(color),
-                                 ALPHA(color));
-        CGContextFillRect(context, *(CGRect*)&rect);
-    }
-
-    [self setNeedsDisplayCGLayerInRect:rect];
-    CGContextRestoreGState(context);
+    GridCell *cell = grid_cell_safe(&grid, row, col);
+    cell->insertionPoint = (GridCellInsertionPoint){
+        .color = color,
+        .shape = shape,
+        .fraction = percent,
+    };
+    [self setNeedsDisplayFromRow:row column:col toRow:row column:col];
 }
 
-- (void)drawInvertedRectAtRow:(int)row column:(int)col numRows:(int)nrows
+- (void)invertBlockFromRow:(int)row column:(int)col numRows:(int)nrows
                    numColumns:(int)ncols
 {
-    // TODO: THIS CODE HAS NOT BEEN TESTED!
-    CGContextRef cgctx = [self getCGContext];
-    CGContextSaveGState(cgctx);
-    CGContextSetBlendMode(cgctx, kCGBlendModeDifference);
-    CGContextSetRGBFillColor(cgctx, 1.0, 1.0, 1.0, 1.0);
-
-    NSRect rect = [self rectForRow:row column:col numRows:nrows
-                        numColumns:ncols];
-    CGContextFillRect(cgctx, *(CGRect*)&rect);
-
-    [self setNeedsDisplayCGLayerInRect:rect];
-    CGContextRestoreGState(cgctx);
+    for (size_t r = row; r < row + nrows; r++) {
+        for (size_t c = col; c < col + ncols; c++) {
+            grid_cell_safe(&grid, r, c)->inverted ^= 1;
+        }
+    }
+    [self setNeedsDisplayFromRow:row column:col toRow:row + nrows column:col + ncols];
 }
 
 @end // MMCoreTextView (Drawing)

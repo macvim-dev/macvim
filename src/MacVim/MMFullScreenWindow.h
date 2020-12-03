@@ -34,9 +34,6 @@
     // Controls the speed of the fade in and out.
     double      fadeTime;
     double      fadeReservationTime;
-    
-    // For pre-10.14 we manually sets CGLayer mode, so need to remember the original state
-    BOOL        origCGLayerEnabled;
 }
 
 - (MMFullScreenWindow *)initWithWindow:(NSWindow *)t view:(MMVimView *)v
