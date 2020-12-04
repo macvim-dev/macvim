@@ -55,8 +55,6 @@ extern NSString *MMSuppressTerminationAlertKey;
 extern NSString *MMNativeFullScreenKey;
 extern NSString *MMUseMouseTimeKey;
 extern NSString *MMFullScreenFadeTimeKey;
-extern NSString *MMUseCGLayerAlwaysKey;
-extern NSString *MMBufferedDrawingKey;
 
 
 // Enum for MMUntitledWindowKey
@@ -168,6 +166,5 @@ NSArray *normalizeFilenames(NSArray *filenames);
 
 BOOL shouldUseYosemiteTabBarStyle();
 BOOL shouldUseMojaveTabBarStyle();
-BOOL shouldUseBufferedDrawing();
 
 int getCurrentAppearance(NSAppearance *appearance);

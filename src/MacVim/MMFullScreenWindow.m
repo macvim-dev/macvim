@@ -113,8 +113,6 @@ enum {
     fadeTime = MIN(fadeTime, 0.5 * (kCGMaxDisplayReservationInterval - 1));
     fadeReservationTime = 2.0 * fadeTime + 1;
     
-    origCGLayerEnabled = NO;
-    
     return self;
 }
 
@@ -174,11 +172,6 @@ enum {
     oldPosition = [view frame].origin;
 
     [view removeFromSuperviewWithoutNeedingDisplay];
-    if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_12) {
-        // This shouldn't do much in 10.14+.
-        origCGLayerEnabled = [[view textView] getCGLayerEnabled];
-        [[view textView] setCGLayerEnabled:YES];
-    }
     [[self contentView] addSubview:view];
     [self setInitialFirstResponder:[view textView]];
     
@@ -294,9 +287,6 @@ enum {
 
     [view setFrameOrigin:oldPosition];
     [self close];
-
-    if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_12)
-        [[view textView] setCGLayerEnabled:origCGLayerEnabled];
 
     // Set the text view to initial first responder, otherwise the 'plus'
     // button on the tabline steals the first responder status.

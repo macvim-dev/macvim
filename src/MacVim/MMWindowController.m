@@ -170,6 +170,7 @@
     // on whether the tabline separator is visible or not.
     NSView *contentView = [win contentView];
     [contentView setAutoresizesSubviews:YES];
+    contentView.wantsLayer = YES;
 
     vimView = [[MMVimView alloc] initWithFrame:[contentView frame]
                                  vimController:vimController];
@@ -205,15 +206,6 @@
     if ([win respondsToSelector:@selector(_setContentHasShadow:)])
         [win _setContentHasShadow:NO];
     
-    if (!(styleMask & NSWindowStyleMaskTitled)) {
-        // In the no titlebar mode (aka borderless), we need to set CGLayer
-        // mode since otherwise the legacy renderer would not render properly.
-        // For more reference see MMFullscreenWindow's enterFullscreen:
-        // This shouldn't do much in 10.14+.
-        if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_12)
-            [[vimView textView] setCGLayerEnabled:YES];
-    }
-
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
     // Building on Mac OS X 10.7 or greater.
 
@@ -652,7 +644,7 @@
     if (fullScreenWindow)
         [fullScreenWindow setOpaque:isOpaque];
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 101400
     if (@available(macos 10.14, *)) {
         // We usually don't really need to change the background color of the
         // window, but in 10.14+ we switched to using layer-backed drawing.
@@ -792,6 +784,20 @@
     // Do it last so whatever resizing we have done above will take effect
     // immediate too instead of waiting till next frame.
     [vimView finishPlaceScrollbars];
+
+    // Work around a bug which affects macOS 10.14 and older.
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 101500
+    if (@available(macos 10.15, *)) {
+    } else
+#endif
+    {
+        // Ensure that the app waits until the next frame to commit the current
+        // CATransaction. Without this, layer-backed views display as soon as
+        // the thread returns to the event loop, potentially drawing *many*
+        // times for a single screen update. The app correctly waits to draw
+        // when a window needs display, so mark the window as needing display.
+        self.window.viewsNeedDisplay = YES;
+    }
 }
 
 - (void)showTabBar:(BOOL)on

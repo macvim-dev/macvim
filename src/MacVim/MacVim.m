@@ -157,6 +157,14 @@ debugStringForMessageQueue(NSArray *queue)
 
 @implementation NSColor (MMExtras)
 
+- (unsigned)argbInt {
+    CGFloat rf, gf, bf, af;
+    [[self colorUsingColorSpace:NSColorSpace.deviceRGBColorSpace]
+     getRed:&rf green:&gf blue:&bf alpha:&af];
+    unsigned r = rf * 255, g = gf * 255, b = bf * 255, a = af*255;
+    return a<<24 | r<<16 | g<<8 | b;
+}
+
 + (NSColor *)colorWithRgbInt:(unsigned)rgb
 {
     float r = ((rgb>>16) & 0xff)/255.0f;

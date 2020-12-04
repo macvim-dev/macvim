@@ -73,6 +73,4 @@
 // NOT IMPLEMENTED (only in Core Text renderer)
 - (void)deleteSign:(NSString *)signName;
 - (void)setToolTipAtMousePoint:(NSString *)string;
-- (void)setCGLayerEnabled:(BOOL)enabled;
-- (BOOL)getCGLayerEnabled;
 @end
