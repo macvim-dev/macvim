@@ -42,6 +42,7 @@ static int MMAlertTextFieldHeight = 22;
 
 static NSString * const MMToolbarMenuName = @"ToolBar";
 static NSString * const MMTouchbarMenuName = @"TouchBar";
+static NSString * const MMWinBarMenuName = @"WinBar";
 static NSString * const MMPopUpMenuPrefix = @"PopUp";
 static NSString * const MMUserPopUpMenuPrefix = @"]";
 
@@ -1242,6 +1243,11 @@ static BOOL isUnsafeMessage(int msgid);
         return;
     }
 
+    if ([rootName isEqual:MMWinBarMenuName]) {
+        // WinBar menus are completed handled within Vim windows. No need for GUI to do anything.
+        return;
+    }
+
     // This is either a main menu item or a popup menu item.
     NSString *title = [desc lastObject];
     NSMenuItem *item = [[NSMenuItem alloc] init];
@@ -1261,7 +1267,10 @@ static BOOL isUnsafeMessage(int msgid);
     } else {
         // If descriptor has no parent and its not a popup (or toolbar) menu,
         // then it must belong to main menu.
-        if (!parent) parent = mainMenu;
+        if (!parent) {
+            parent = mainMenu;
+            idx += 1; // Main menu already has the application menu as the first item, so everything else must be shifted by one.
+        }
 
         if ([parent numberOfItems] <= idx) {
             [parent addItem:item];
@@ -1311,6 +1320,11 @@ static BOOL isUnsafeMessage(int msgid);
 #endif
         return;
     }
+    if ([rootName isEqual:MMWinBarMenuName]) {
+        // WinBar menus are completed handled within Vim windows. No need for GUI to do anything.
+        return;
+    }
+
     NSMenu *parent = [self parentMenuForDescriptor:desc];
     if (!parent) {
         ASLogWarn(@"Menu item '%@' has no parent",
