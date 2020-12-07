@@ -257,6 +257,7 @@ KEY				VALUE ~
 *MMLoginShellArgument*		login shell parameter [string]
 *MMLoginShellCommand*		which shell to use to launch Vim [string]
 *MMNoFontSubstitution*		disable automatic font substitution [bool]
+				(Deprecated: Non-CoreText renderer only)
 *MMNoTitleBarWindow*		hide title bar [bool]
 *MMTitlebarAppearsTransparent*	enable a transparent titlebar [bool]
 *MMAppearanceModeSelection*	dark mode selection (|macvim-dark-mode|)[bool]
@@ -793,9 +794,6 @@ if you would like to see certain messages localized.
 This list is by no means exhaustive, it only enumerates some of the more
 prominent bugs/missing features.
 
-- Under macOS Mojave (10.14), the default renderer (Core Text renderer) has
-  some performance issues and scrolling is not as smooth as previous macOS
-  versions (10.13 or below).
 - Sound.  MacVim does not currently support |+sound| yet.
 - |modifyOtherKeys| support.  This feature allows for more granular key
   mapping (e.g. differentiating <C-I> and <Tab>) and isn't supported by the

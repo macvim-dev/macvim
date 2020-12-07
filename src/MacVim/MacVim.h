@@ -348,7 +348,7 @@ extern NSString *MMShareFindPboardKey;
 
 extern NSString *MMAutosaveRowsKey;
 extern NSString *MMAutosaveColumnsKey;
-extern NSString *MMRendererKey;
+extern NSString *MMRendererKey; // Deprecated: Non-CoreText renderer
 
 enum {
     MMRendererDefault = 0,

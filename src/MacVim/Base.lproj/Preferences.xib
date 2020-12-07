@@ -367,9 +367,8 @@
                 <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="815">
                     <rect key="frame" x="17" y="252" width="449" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="991">
+                    <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" title="(Deprecated) Deselect this option to use the legacy renderer, which is unsupported and will be removed in a future version." id="991">
                         <font key="font" metaFont="smallSystem"/>
-                        <string key="title">Selecting this option will increase rendering performance but double-tapping with three fingers to look up words will no longer work.</string>
                         <color key="textColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
