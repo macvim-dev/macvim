@@ -2035,8 +2035,7 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
 	librubyarg=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig.expand($ruby_rbconfig::CONFIG[['LIBRUBYARG']])"`
 	librubya=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig.expand($ruby_rbconfig::CONFIG[['LIBRUBY_A']])"`
 	rubylibdir=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig.expand($ruby_rbconfig::CONFIG[['libdir']])"`
-	if test -f "$rubylibdir/$librubya"; then
-	  librubyarg="$librubyarg"
+	if test -f "$rubylibdir/$librubya" || expr "$librubyarg" : "-lruby"; then
 	  RUBY_LIBS="$RUBY_LIBS -L$rubylibdir"
         elif test "$vi_cv_path_ruby" = "/usr/bin/ruby" -a -d "/System/Library/Frameworks/Ruby.framework"; then
             dnl On Mac OS X it is safer to just use the -framework flag
@@ -4634,6 +4633,10 @@ if echo "$CFLAGS $LUA_CFLAGS $MZSCHEME_CFLAGS $PERL_CFLAGS $PYTHON_CFLAGS $PYTHO
 else
   AC_MSG_RESULT(no)
 fi
+
+dnl $LDFLAGS is passed to glibtool in libvterm, it doesn't like a space
+dnl between "-L" and the path that follows.
+LDFLAGS=`echo "$LDFLAGS" | sed -e 's/-L /-L/g'`
 
 dnl link.sh tries to avoid overlinking in a hackish way.
 dnl At least GNU ld supports --as-needed which provides the same functionality

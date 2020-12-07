@@ -251,18 +251,18 @@ def Test_skipped_expr_linebreak()
 enddef
 
 def Test_dict_member()
-   var test: dict<list<number>> = {'data': [3, 1, 2]}
+   var test: dict<list<number>> = {data: [3, 1, 2]}
    test.data->sort()
-   assert_equal(#{data: [1, 2, 3]}, test)
+   assert_equal({data: [1, 2, 3]}, test)
    test.data
       ->reverse()
-   assert_equal(#{data: [3, 2, 1]}, test)
+   assert_equal({data: [3, 2, 1]}, test)
 
   var lines =<< trim END
       vim9script
-      var test: dict<list<number>> = {'data': [3, 1, 2]}
+      var test: dict<list<number>> = {data: [3, 1, 2]}
       test.data->sort()
-      assert_equal(#{data: [1, 2, 3]}, test)
+      assert_equal({data: [1, 2, 3]}, test)
   END
   CheckScriptSuccess(lines)
 enddef
@@ -308,9 +308,9 @@ def Test_bar_after_command()
 enddef
 
 def Test_filter_is_not_modifier()
-  var tags = [{'a': 1, 'b': 2}, {'x': 3, 'y': 4}]
+  var tags = [{a: 1, b: 2}, {x: 3, y: 4}]
   filter(tags, { _, v -> has_key(v, 'x') ? 1 : 0 })
-  assert_equal([#{x: 3, y: 4}], tags)
+  assert_equal([{x: 3, y: 4}], tags)
 enddef
 
 def Test_command_modifier_filter()
@@ -558,6 +558,19 @@ def Test_eval_command()
         ->Increment()
   assert_equal(111 + 3 + 4 + 5, g:val)
   unlet g:val
+
+  var lines =<< trim END
+    vim9script
+    g:caught = 'no'
+    try
+      eval 123 || 0
+    catch
+      g:caught = 'yes'
+    endtry
+    assert_equal('yes', g:caught)
+    unlet g:caught
+  END
+  CheckScriptSuccess(lines)
 enddef
 
 def Test_map_command()

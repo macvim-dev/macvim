@@ -2005,9 +2005,10 @@ typedef int sock_T;
 #define VV_ECHOSPACE	93
 #define VV_ARGV		94
 #define VV_COLLATE      95
+#define VV_EXITING	96
 // MacVim-specific values go here
-#define VV_OS_APPEARANCE 96
-#define VV_LEN		97	// number of v: vars
+#define VV_OS_APPEARANCE 97
+#define VV_LEN		98	// number of v: vars
 
 // used for v_number in VAR_BOOL and VAR_SPECIAL
 #define VVAL_FALSE	0L	// VAR_BOOL

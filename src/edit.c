@@ -1543,7 +1543,6 @@ ins_ctrl_v(void)
 {
     int		c;
     int		did_putchar = FALSE;
-    int		prev_mod_mask = mod_mask;
 
     // may need to redraw when no more chars available now
     ins_redraw(FALSE);
@@ -1559,7 +1558,9 @@ ins_ctrl_v(void)
     add_to_showcmd_c(Ctrl_V);
 #endif
 
-    c = get_literal();
+    // Do not change any modifyOtherKeys ESC sequence to a normal key for
+    // CTRL-SHIFT-V.
+    c = get_literal(mod_mask & MOD_MASK_SHIFT);
     if (did_putchar)
 	// when the line fits in 'columns' the '^' is at the start of the next
 	// line and will not removed by the redraw
@@ -1567,11 +1568,6 @@ ins_ctrl_v(void)
 #ifdef FEAT_CMDL_INFO
     clear_showcmd();
 #endif
-
-    if ((c == ESC || c == CSI) && !(prev_mod_mask & MOD_MASK_SHIFT))
-	// Using CTRL-V: Change any modifyOtherKeys ESC sequence to a normal
-	// key.  Don't do this for CTRL-SHIFT-V.
-	c = decodeModifyOtherKeys(c);
 
     insert_special(c, FALSE, TRUE);
 #ifdef FEAT_RIGHTLEFT
@@ -1854,9 +1850,11 @@ del_char_after_col(int limit_col UNUSED)
  * A one, two or three digit decimal number is interpreted as its byte value.
  * If one or two digits are entered, the next character is given to vungetc().
  * For Unicode a character > 255 may be returned.
+ * If "noReduceKeys" is TRUE do not change any modifyOtherKeys ESC sequence
+ * into a normal key, return ESC.
  */
     int
-get_literal(void)
+get_literal(int noReduceKeys)
 {
     int		cc;
     int		nc;
@@ -1887,6 +1885,9 @@ get_literal(void)
     for (;;)
     {
 	nc = plain_vgetc();
+	if ((nc == ESC || nc == CSI) && !noReduceKeys)
+	    nc = decodeModifyOtherKeys(nc);
+
 #ifdef FEAT_CMDL_INFO
 	if (!(State & CMDLINE) && MB_BYTE2LEN_CHECK(nc) == 1)
 	    add_to_showcmd(nc);
@@ -3821,8 +3822,7 @@ ins_ctrl_o(void)
 {
     if (State & VREPLACE_FLAG)
 	restart_edit = 'V';
-    else
-	if (State & REPLACE_FLAG)
+    else if (State & REPLACE_FLAG)
 	restart_edit = 'R';
     else
 	restart_edit = 'I';

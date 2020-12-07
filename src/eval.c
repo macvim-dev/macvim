@@ -2156,7 +2156,10 @@ eval0(
 		&& called_emsg == called_emsg_before
 		&& (flags & EVAL_CONSTANT) == 0)
 	    semsg(_(e_invexpr2), arg);
-	ret = FAIL;
+
+	// Some of the expression may not have been consumed.  Do not check for
+	// a next command to avoid more errors.
+	return FAIL;
     }
 
     if (eap != NULL)
@@ -3254,7 +3257,7 @@ eval7(
     /*
      * Dictionary: #{key: val, key: val}
      */
-    case '#':	if ((*arg)[1] == '{')
+    case '#':	if (!in_vim9script() && (*arg)[1] == '{')
 		{
 		    ++*arg;
 		    ret = eval_dict(arg, rettv, evalarg, TRUE);

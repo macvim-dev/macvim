@@ -851,6 +851,8 @@ call_def_function(
     msglist_T	*private_msg_list = NULL;
     cmdmod_T	save_cmdmod;
     int		restore_cmdmod = FALSE;
+    int		save_emsg_silent_def = emsg_silent_def;
+    int		save_did_emsg_def = did_emsg_def;
     int		trylevel_at_start = trylevel;
     int		orig_funcdepth;
 
@@ -1020,6 +1022,11 @@ call_def_function(
 
     // Do turn errors into exceptions.
     suppress_errthrow = FALSE;
+
+    // When ":silent!" was used before calling then we still abort the
+    // function.  If ":silent!" is used in the function then we don't.
+    emsg_silent_def = emsg_silent;
+    did_emsg_def = 0;
 
     // Decide where to start execution, handles optional arguments.
     init_instr_idx(ufunc, argc, &ectx);
@@ -2432,6 +2439,7 @@ call_def_function(
 		    else
 #endif
 		    {
+			SOURCING_LNUM = iptr->isn_lnum;
 			n1 = tv_get_number_chk(tv1, &error);
 			if (error)
 			    goto on_error;
@@ -2669,12 +2677,21 @@ call_def_function(
 		    {
 			SOURCING_LNUM = iptr->isn_lnum;
 			semsg(_(e_dictkey), key);
-			goto on_error;
+
+			// If :silent! is used we will continue, make sure the
+			// stack contents makes sense.
+			clear_tv(tv);
+			--ectx.ec_stack.ga_len;
+			tv = STACK_TV_BOT(-1);
+			clear_tv(tv);
+			tv->v_type = VAR_NUMBER;
+			tv->vval.v_number = 0;
+			goto on_fatal_error;
 		    }
 		    clear_tv(tv);
 		    --ectx.ec_stack.ga_len;
-		    // Clear the dict after getting the item, to avoid that it
-		    // make the item invalid.
+		    // Clear the dict only after getting the item, to avoid
+		    // that it makes the item invalid.
 		    tv = STACK_TV_BOT(-1);
 		    temp_tv = *tv;
 		    copy_tv(&di->di_tv, tv);
@@ -2997,10 +3014,14 @@ func_return:
 	continue;
 
 on_error:
-	// If "emsg_silent" is set then ignore the error.
-	if (did_emsg_cumul + did_emsg == did_emsg_before && emsg_silent)
+	// Jump here for an error that does not require aborting execution.
+	// If "emsg_silent" is set then ignore the error, unless it was set
+	// when calling the function.
+	if (did_emsg_cumul + did_emsg == did_emsg_before
+					   && emsg_silent && did_emsg_def == 0)
 	    continue;
-
+on_fatal_error:
+	// Jump here for an error that messes up the stack.
 	// If we are not inside a try-catch started here, abort execution.
 	if (trylevel <= trylevel_at_start)
 	    goto failed;
@@ -3044,6 +3065,8 @@ failed:
 	undo_cmdmod(&cmdmod);
 	cmdmod = save_cmdmod;
     }
+    emsg_silent_def = save_emsg_silent_def;
+    did_emsg_def += save_did_emsg_def;
 
 failed_early:
     // Free all local variables, but not arguments.

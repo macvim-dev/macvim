@@ -7717,8 +7717,7 @@ $as_echo "$rubyhdrdir" >&6; }
 	librubyarg=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig.expand($ruby_rbconfig::CONFIG['LIBRUBYARG'])"`
 	librubya=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig.expand($ruby_rbconfig::CONFIG['LIBRUBY_A'])"`
 	rubylibdir=`$vi_cv_path_ruby -r rbconfig -e "print $ruby_rbconfig.expand($ruby_rbconfig::CONFIG['libdir'])"`
-	if test -f "$rubylibdir/$librubya"; then
-	  librubyarg="$librubyarg"
+	if test -f "$rubylibdir/$librubya" || expr "$librubyarg" : "-lruby"; then
 	  RUBY_LIBS="$RUBY_LIBS -L$rubylibdir"
         elif test "$vi_cv_path_ruby" = "/usr/bin/ruby" -a -d "/System/Library/Frameworks/Ruby.framework"; then
                         RUBY_LIBS="-framework Ruby"
@@ -15070,6 +15069,8 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 fi
+
+LDFLAGS=`echo "$LDFLAGS" | sed -e 's/-L /-L/g'`
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking linker --as-needed support" >&5
 $as_echo_n "checking linker --as-needed support... " >&6; }
