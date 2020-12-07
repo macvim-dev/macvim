@@ -32,7 +32,7 @@ extern NSString *MMBaselineOffsetKey;
 extern NSString *MMTranslateCtrlClickKey;
 extern NSString *MMTopLeftPointKey;
 extern NSString *MMOpenInCurrentWindowKey;
-extern NSString *MMNoFontSubstitutionKey;
+extern NSString *MMNoFontSubstitutionKey; // Deprecated: Non-CoreText renderer
 extern NSString *MMAppearanceModeSelectionKey;
 extern NSString *MMNoTitleBarWindowKey;
 extern NSString *MMTitlebarAppearsTransparentKey;
