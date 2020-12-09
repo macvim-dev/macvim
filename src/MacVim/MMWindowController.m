@@ -222,6 +222,15 @@
     }
 #endif
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
+    if (@available(macos 11.0, *)) {
+        // macOS 11 will default to a unified toolbar style unless you use the new
+        // toolbarStyle to tell it to use a "preference" style, which makes it look nice
+        // and centered.
+        win.toolbarStyle = NSWindowToolbarStyleUnifiedCompact;
+    }
+#endif
+
     [[NSNotificationCenter defaultCenter]
         addObserver:self
            selector:@selector(applicationDidChangeScreenParameters:)

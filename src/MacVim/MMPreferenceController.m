@@ -12,39 +12,6 @@
 #import "MMAppController.h"
 #import "Miscellaneous.h"
 
-// On Leopard, we want to use the images provided by the OS for some of the
-// toolbar images (NSImageNamePreferencesGeneral and friends). We need to jump
-// through some hoops to do that in a way that MacVim still _compiles_ on Tiger
-// (life would be easier if we'd require Leopard for building). See
-// http://developer.apple.com/documentation/MacOSX/Conceptual/BPFrameworks/Concepts/WeakLinking.html
-// and http://developer.apple.com/technotes/tn2002/tn2064.html
-// for how you'd do it with a Leopard build system, and see
-// http://lists.cairographics.org/archives/cairo-bugs/2007-December/001818.html
-// for why this doesn't work here.
-// Using the system images gives us resolution independence and consistency
-// with other apps.
-
-#import <dlfcn.h>
-
-
-NSString* nsImageNamePreferencesGeneral = nil;
-NSString* nsImageNamePreferencesAppearance = nil;
-NSString* nsImageNamePreferencesAdvanced = nil;
-
-
-static void loadSymbols()
-{
-    // use dlfcn() instead of the deprecated NSModule api.
-    void *ptr;
-    if ((ptr = dlsym(RTLD_DEFAULT, "NSImageNamePreferencesGeneral")) != NULL)
-        nsImageNamePreferencesGeneral = *(NSString**)ptr;
-    if ((ptr = dlsym(RTLD_DEFAULT, "NSImageNameColorPanel")) != NULL) // Closest match for default icon for "appearance"
-        nsImageNamePreferencesAppearance = *(NSString**)ptr;
-    if ((ptr = dlsym(RTLD_DEFAULT, "NSImageNameAdvanced")) != NULL)
-        nsImageNamePreferencesAdvanced = *(NSString**)ptr;
-}
-
-
 @implementation MMPreferenceController
 
 - (void)windowDidLoad
@@ -66,6 +33,15 @@ static void loadSymbols()
     }
 #endif
     [super windowDidLoad];
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
+    if (@available(macos 11.0, *)) {
+        // macOS 11 will default to a unified toolbar style unless you use the new
+        // toolbarStyle to tell it to use a "preference" style, which makes it look nice
+        // and centered.
+        [self window].toolbarStyle = NSWindowToolbarStylePreference;
+    }
+#endif
 }
 
 - (IBAction)showWindow:(id)sender
@@ -76,30 +52,35 @@ static void loadSymbols()
 
 - (void)setupToolbar
 {
-    loadSymbols();
-
-    if (nsImageNamePreferencesGeneral != NULL) {
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
+    if (@available(macos 11.0, *)) {
+        // Use SF Symbols for versions of the OS that supports it to be more unified with OS appearance.
         [self addView:generalPreferences
                 label:@"General"
-                image:[NSImage imageNamed:nsImageNamePreferencesGeneral]];
-    } else {
-        [self addView:generalPreferences label:@"General"];
-    }
+                image:[NSImage imageWithSystemSymbolName:@"gearshape" accessibilityDescription:nil]];
 
-    if (nsImageNamePreferencesAppearance != NULL) {
         [self addView:appearancePreferences
                 label:@"Appearance"
-                image:[NSImage imageNamed:nsImageNamePreferencesAppearance]];
-    } else {
-        [self addView:appearancePreferences label:@"Appearance"];
-    }
+                image:[NSImage imageWithSystemSymbolName:@"paintbrush" accessibilityDescription:nil]];
 
-    if (nsImageNamePreferencesAdvanced != NULL) {
         [self addView:advancedPreferences
                 label:@"Advanced"
-                image:[NSImage imageNamed:nsImageNamePreferencesAdvanced]];
-    } else {
-        [self addView:advancedPreferences label:@"Advanced"];
+                image:[NSImage imageWithSystemSymbolName:@"gearshape.2" accessibilityDescription:nil]];
+    }
+    else
+#endif
+    {
+        [self addView:generalPreferences
+                label:@"General"
+                image:[NSImage imageNamed:NSImageNamePreferencesGeneral]];
+
+        [self addView:appearancePreferences
+                label:@"Appearance"
+                image:[NSImage imageNamed:NSImageNameColorPanel]];
+
+        [self addView:advancedPreferences
+                label:@"Advanced"
+                image:[NSImage imageNamed:NSImageNameAdvanced]];
     }
 }
 
