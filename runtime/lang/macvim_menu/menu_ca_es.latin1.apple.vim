@@ -25,3 +25,4 @@ menutrans Zoom\ All Fer\ zoom\ a\ tot
 menutrans Show\ Next\ Tab Mostrar\ la\ pestanya\ següent
 menutrans Show\ Previous\ Tab Mostrar\ la\ pestanya\ anterior
 menutrans Bring\ All\ to\ Front Portar-ho\ tot\ a\ primer\ pla
+menutrans Release\ Notes Notes\ de\ la\ versió

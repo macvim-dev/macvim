@@ -25,3 +25,4 @@ menutrans Zoom\ All Ridimensiona\ tutto
 menutrans Show\ Next\ Tab Mostra\ pannello\ successivo
 menutrans Show\ Previous\ Tab Mostra\ pannello\ precedente
 menutrans Bring\ All\ to\ Front Porta\ tutto\ in\ primo\ piano
+menutrans Release\ Notes Note\ di\ uscita

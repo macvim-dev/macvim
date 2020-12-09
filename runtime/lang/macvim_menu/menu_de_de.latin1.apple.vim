@@ -25,3 +25,4 @@ menutrans Zoom\ All Alle\ zoomen
 menutrans Show\ Next\ Tab Nächsten\ Tab\ anzeigen
 menutrans Show\ Previous\ Tab Vorherigen\ Tab\ anzeigen
 menutrans Bring\ All\ to\ Front Alle\ nach\ vorne\ bringen
+menutrans Release\ Notes Aktuelle\ Informationen

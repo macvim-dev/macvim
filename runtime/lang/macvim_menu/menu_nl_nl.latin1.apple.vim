@@ -25,3 +25,4 @@ menutrans Zoom\ All Vergroot/verklein\ alles
 menutrans Show\ Next\ Tab Toon\ volgende\ tabblad
 menutrans Show\ Previous\ Tab Toon\ vorige\ tabblad
 menutrans Bring\ All\ to\ Front Alles\ op\ voorgrond
+menutrans Release\ Notes Versienotities
