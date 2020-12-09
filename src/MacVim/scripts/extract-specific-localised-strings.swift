@@ -184,6 +184,7 @@ let neededLocalisations_vim = [
     NeededLocalisation(targetKey: "Show\\ Next\\ Tab", appleKey: "Show Next Tab", glossaryFilename: "AppKit"),
     NeededLocalisation(targetKey: "Show\\ Previous\\ Tab", appleKey: "Show Previous Tab", glossaryFilename: "AppKit"),
     NeededLocalisation(targetKey: "Bring\\ All\\ to\\ Front", appleKey: "Bring All to Front", glossaryFilename: "AppKit"),
+    NeededLocalisation(targetKey: "Release\\ Notes", appleKey: "Release Notes (WFContentItemPropertyName)", glossaryFilename: "Shortcuts"),
 ]
 
 var neededLocalisations = neededLocalisations_mainmenu_xib

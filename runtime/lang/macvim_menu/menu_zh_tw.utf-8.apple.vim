@@ -25,3 +25,4 @@ menutrans Zoom\ All 縮放全部
 menutrans Show\ Next\ Tab 顯示下一個標籤頁
 menutrans Show\ Previous\ Tab 顯示上一個標籤頁
 menutrans Bring\ All\ to\ Front 將此程式所有視窗移至最前
+menutrans Release\ Notes 版本附註

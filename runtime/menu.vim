@@ -101,7 +101,9 @@ if has("gui_macvim")
   an 9999.1 &Help.MacVim\ Help		    :h gui_mac<CR>
   tln 9999.1 &Help.MacVim\ Help		    <C-W>:h gui_mac<CR>
   an <silent> 9999.2 &Help.MacVim\ Website   <Nop>
-  an 9999.3 &Help.-sep0-		    <Nop>
+  an 9999.3 &Help.Release\ Notes        <Cmd>silent !open https://github.com/macvim-dev/macvim/releases<CR>
+  tln 9999.3 &Help.Release\ Notes        <Cmd>silent !open https://github.com/macvim-dev/macvim/releases<CR>
+  an 9999.4 &Help.-sep0-		    <Nop>
 endif
 if has("gui_macvim")
   " Run vimtutor in GUI mode. Need to make sure to override the PATH so we use

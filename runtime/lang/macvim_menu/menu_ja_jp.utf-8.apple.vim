@@ -25,3 +25,4 @@ menutrans Zoom\ All すべてを拡大/縮小
 menutrans Show\ Next\ Tab 次のタブを表示
 menutrans Show\ Previous\ Tab 前のタブを表示
 menutrans Bring\ All\ to\ Front すべてを手前に移動
+menutrans Release\ Notes リリースノート

@@ -25,3 +25,4 @@ menutrans Zoom\ All Zooma\ alla
 menutrans Show\ Next\ Tab Visa\ nästa\ flik
 menutrans Show\ Previous\ Tab Visa\ föregående\ flik
 menutrans Bring\ All\ to\ Front Lägg\ alla\ överst
+menutrans Release\ Notes Versions­anmärkningar

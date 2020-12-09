@@ -25,3 +25,4 @@ menutrans Zoom\ All Изменить\ масштаб\ всех\ окон
 menutrans Show\ Next\ Tab Показать\ следующую\ вкладку
 menutrans Show\ Previous\ Tab Показать\ предыдущую\ вкладку
 menutrans Bring\ All\ to\ Front Все\ окна\ —\ на\ передний\ план
+menutrans Release\ Notes Примечания\ к\ выпуску

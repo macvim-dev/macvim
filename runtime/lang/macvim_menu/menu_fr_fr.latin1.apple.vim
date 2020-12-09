@@ -25,3 +25,4 @@ menutrans Zoom\ All Réduire/agrandir\ toutes\ les\ fenêtres
 menutrans Show\ Next\ Tab Afficher\ l’onglet\ suivant
 menutrans Show\ Previous\ Tab Afficher\ l’onglet\ précédent
 menutrans Bring\ All\ to\ Front Tout\ ramener\ au\ premier\ plan
+menutrans Release\ Notes Notes\ de\ mise\ à\ jour
