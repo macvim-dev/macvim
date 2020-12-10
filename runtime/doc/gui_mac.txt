@@ -52,18 +52,14 @@ It is not possible to modify 'termencoding' in MacVim; this option is forcibly
 set to "utf-8".  The option 'encoding' also defaults to "utf-8" (as opposed to
 "latin1" in the other GUI ports).
 
-Note: UTF-8 can represent all characters defined in Unicode, which includes
-all characters in all other standard encodings, so it should be perfectly safe
-to edit files in any encoding while 'encoding' is set to "utf-8".  Of course,
-you may need to set 'fileencodings' to auto-detect the encoding of the files
-you edit, or force the detection with |++enc| on the command line.
+In generally you should keep 'encoding' set to the default ("utf-8") as that's
+what macOS uses.  It also works on any character.  Sometimes you may need to
+set 'fileencodings' to auto-detect encoding of files you edit, or force the
+detection with |++enc| on the command line.
 
 However, if you are editing files that use multiple encodings (container
-formats like MIME or Unix mbox files) or no standard encoding (binary data,
-see also |edit-binary|), you may want to prevent MacVim from re-encoding the
-file at all. In this situation, you will need to set both 'encoding' and
-'fileencodings' to a simple single-byte encoding such as Latin1 so that when
-the file is read into memory, the original bytes are left untouched.
+formats like MIME or Unix mbox files) or a binary file, you want to make sure
+'binary' is set (see |edit-binary|).
 
 							*macvim-shift-movement*
 Text editors on macOS lets the user hold down shift+movement key to extend the
@@ -91,12 +87,12 @@ The "Open files from applications" preference in the General preference pane
 gives more options on how dropped files should open, in case tabs are not
 desired.
 
-							*macvim-default-menu*
-The default menu in MacVim has been changed to conform better with the Apple
-Human Interface Guidelines (HIG).
+				    *macvim-default-menus* *macvim-help-menu*
+The default menus (|menu.vim|) in MacVim have been changed to conform better
+with the Apple Human Interface Guidelines (HIG).
 
-Note: The menus are a work in progress.  If you know something about the HIG
-and want to contribute to MacVim you could do so by making the menus better.
+The Help menu's search can be used to search Vim's documentation.  You can use
+it to quickly find the documentation you want in addition to using |:help|.
 
 							*macvim-window-title*
 The default window title does not include the argument list because it looks
@@ -156,11 +152,11 @@ behaviour, then add the line "set backspace&" to your "~/.vimrc" file.
 ==============================================================================
 2. Starting MacVim					*macvim-start*
 
-The easiest way to start MacVim is by double-clicking its icon in the Finder,
-but most users will probably prefer to use the Terminal.  First some Finder
-related ways of starting MacVim are described, then Terminal is discussed.
-Note that you can put MacVim anywhere on your hard drive, but in this help
-file it is assumed that you have put it inside your /Applications folder.
+Starting MacVim from the UI ~
+
+To start MacVim in macOS, simply double-click its icon in the Finder or click
+on the Dock icon. Usually it should be installed as
+`/Applications/MacVim.app`.
 
 MacVim automatically registers itself as an editor of several standard file
 formats.  This enables you to double-click a file to open it with MacVim (if
@@ -172,27 +168,26 @@ have files open in e.g. splits by changing the "Open files from applications"
 option in the General preference pane).  Finally, you can use macOS System
 Services to open files in MacVim, see |macvim-services|.
 
-Use |mvim| script to start MacVim from Terminal.
-
-Or use the "open" command (this method can not be used to pass parameters to
-Vim) >
+Alternatively, use the "open" command (this method can not be used to pass
+parameters to Vim) >
 	open -a MacVim file ...
 The advantage of using the latter method is that the settings relating to file
 opening in the preferences panel are respected, and files open instantly if
 |Quickstart| is enabled.
 
-Once in terminal Vim it is possible to start MacVim by using the following
-command:
-	:gui [++opt] [+cmd] [-f|-b] [files...]
-Note: Forking ("-b") currently does not work.
+Starting MacVim from a terminal~
 
-							*mvim*
-The "mvim" shell script bundled with MacVim. >
+					    *mvim* *macvim-PATH* *macvim-cmdline*
+MacVim comes bundled with a shell script called "mvim" that can be used to
+launch MacVim from the terminal. It's located at: >
 	/Applications/MacVim.app/Contents/bin/mvim
-This is a wrapper script to launch Vim executable in the bundle.  Put this
-folder >
+
+To be able to easily use it, put this folder in your path: >
 	/Applications/MacVim.app/Contents/bin
-in your path and then simply type "mvim" to start MacVim from Terminal. >
+For example, if you use zsh, you can put the following in `~/.zprofile`: >
+	export PATH="/Applications/MacVim.app/Contents/bin:$PATH"
+
+After that, type "mvim" to start MacVim from Terminal. >
 	$ mvim
 You can also specify files to open with. >
 	$ mvim file ...
@@ -200,13 +195,24 @@ Also the bin folder has convenient scripts for diffing and opening file as the f
 	* Diff:		mvimdiff
 	* Read-only:	mview
 
-You can use "vim", "vimdiff", and "view" if you want to use non-GUI Vim.
+You can still use the normal "vim", "vimdiff", and "view" commands if you want
+to use non-GUI Vim, and "gvim" to launch MacVim ("gvim" works the same way as
+"mvim").
+
+Going from terminal to GUI mode~
+
+Once in terminal Vim it is possible to start the MacVim GUI by using the
+following command (see |:gui|):
+	:gui [++opt] [+cmd] [-f|-b] [files...]
+Note: Forking ("-b") currently does not work.
 
 							*Quickstart*
-Quickstart ensures that new windows open instantaneously e.g. when <D-n> is
-pressed.  This feature can be enabled from the Advanced preferences pane (it
-is disabled by default).  Note that this setting does not affect the speed
-with which windows open when using the |mvim| command.
+Quickstart ensures that new windows open quickly e.g. when <D-n> is
+pressed.  It works by keeping a Vim process in the background that will
+immediately become active when you open a window.  This feature can be enabled
+from the Advanced preferences pane (it is disabled by default).  Note that
+this setting does not affect the speed with which windows open when using the
+|mvim| command.
 
 Note that any changes to runtime files that are kept in a non-standard
 location (i.e. not in ~/.vim) will not be picked up for the first window that
@@ -256,6 +262,7 @@ KEY				VALUE ~
 *MMFullScreenFadeTime*		fade delay for non-native fullscreen [float]
 *MMLoginShellArgument*		login shell parameter [string]
 *MMLoginShellCommand*		which shell to use to launch Vim [string]
+*MMNativeFullScreen*		use native full screen mode [bool]
 *MMNoFontSubstitution*		disable automatic font substitution [bool]
 				(Deprecated: Non-CoreText renderer only)
 *MMNoTitleBarWindow*		hide title bar [bool]
@@ -314,6 +321,13 @@ color scheme while system preferences are configured to use light mode. It's
 also the recommended setting when title bar is configured to be "Transparent"
 (see |MMTitlebarAppearsTransparent|).
 
+							*macvim-full-screen*
+There are two types of full screen modes.  By default, MacVim uses macOS'
+native full screen functionality, which creates a separate space in Mission
+Control.  MacVim also provides a non-native full screen mode, which can be set
+by disabling native full screen in the preference panel, or by setting
+|MMNativeFullScreen| to `NO` manually.
+
 ==============================================================================
 5. Special colors					*macvim-colors*
 
@@ -366,6 +380,12 @@ highlight color when a window becomes inactive.
 
 ==============================================================================
 6. Menus						*macvim-menus*
+
+Default Menus~
+
+See |macvim-default-menus|.
+
+Customization~
 
 Menus in macOS behave slightly different from other platforms.  For that
 reason two new commands have been added to Vim.  To understand what these
@@ -537,10 +557,13 @@ that items after it will be right-aligned, and is specified by names that
 begin with "-flexspace" and ends with "-".
 
 						*macvim-touchbar-icon*
-You can specify icons for Touch Bar buttons the same way for toolbar icons.
-Touch Bar icons should ideally be 36x36 pixels, and no larger than 44x44
-pixels. You can also use default template icons provided by Apple by using
-their template names. An example: >
+You can specify icons for Touch Bar buttons the same way for toolbar icons
+(see |macvim-toolbar|).  When a button has an icon, it won't show the menu
+name.  Touch Bar icons should ideally be 36x36 pixels, and no larger than
+44x44 pixels. >
+	:an icon=/home/foo/bar.png TouchBar.DoSomething :echo 'Do'<CR>
+You can also use default template icons provided by Apple by using their
+template names. An example: >
 	:an icon=NSTouchBarListViewTemplate TouchBar.ShowList :ls<CR>
 <
 						*macvim-touchbar-title*
@@ -806,16 +829,17 @@ prominent bugs/missing features.
 - Printing.  As a temporary solution <D-p> creates a PostScript file which is
   then opened in Preview where it may be printed. See |hardcopy|.
 
-Other bugs and issues are tracked on Github.  If you find new bugs or have
+General bugs and issues are tracked on Github.  If you find new bugs or have
 feature requests then please file an issue there: >
 	https://github.com/macvim-dev/macvim/issues
+
+For general discussions, asking questions, you could use the Github
+discussions page: >
+	https://github.com/macvim-dev/macvim/discussions
 
 There is also a vim_mac mailing list.  You can also post your findings of bugs
 and issues there as well:				*vim_mac_group*   >
 	http://groups.google.com/group/vim_mac
-
-This is also the best place for making feature requests as well as for asking
-general questions about MacVim.
 
 ==============================================================================
 16. Hints						*macvim-hints*
