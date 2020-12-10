@@ -409,6 +409,12 @@ static void grid_free(Grid *grid) {
         [fontWide release];
         fontWide = [newFont retain];
     }
+
+    [self clearAll];
+    [fontVariants removeAllObjects];
+    [characterStrings removeAllObjects];
+    [characterLines removeAllObjects];
+
 }
 
 - (NSFont *)font
