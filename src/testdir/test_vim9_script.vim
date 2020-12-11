@@ -2381,6 +2381,27 @@ def Test_vim9_comment()
       'Echo',
       ], 'E121:')
   delcommand Echo
+
+  var curdir = getcwd()
+  CheckScriptSuccess([
+      'command Echo cd " comment',
+      'Echo',
+      'delcommand Echo',
+      ])
+  CheckScriptSuccess([
+      'vim9script'
+      'command Echo cd # comment',
+      'Echo',
+      'delcommand Echo',
+      ])
+  CheckScriptFailure([
+      'vim9script',
+      'command Echo cd " comment',
+      'Echo',
+      ], 'E344:')
+  delcommand Echo
+  chdir(curdir)
+
   CheckScriptFailure([
       'vim9script',
       'command Echo# comment',
@@ -2856,6 +2877,17 @@ def Test_invalid_sid()
   endif
   delete('Xdidit')
 enddef
+
+def Test_restoring_cpo()
+  writefile(['vim9script', 'set nocp'], 'Xsourced')
+  writefile(['call writefile(["done"], "Xdone")', 'quit!'], 'Xclose')
+  if RunVim([], [], '-u NONE +"set cpo+=a" -S Xsourced -S Xclose')
+    assert_equal(['done'], readfile('Xdone'))
+  endif
+  delete('Xsourced')
+  delete('Xclose')
+enddef
+
 
 def Test_unset_any_variable()
   var lines =<< trim END

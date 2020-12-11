@@ -1491,9 +1491,8 @@ almosttheend:
     si = SCRIPT_ITEM(current_sctx.sc_sid);
     if (si->sn_save_cpo != NULL)
     {
-	free_string_option(p_cpo);
-	p_cpo = si->sn_save_cpo;
-	si->sn_save_cpo = NULL;
+	set_option_value((char_u *)"cpo", 0L, si->sn_save_cpo, 0);
+	CLEAR_POINTER(si->sn_save_cpo);
     }
 
     current_sctx = save_current_sctx;

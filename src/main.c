@@ -2794,7 +2794,6 @@ read_stdin(void)
     set_buflisted(TRUE);
 
     // Create memfile and read from stdin.
-    // This will also dup stdin from stderr to read commands from.
     (void)open_buffer(TRUE, NULL, 0);
 
     no_wait_return = FALSE;
@@ -2802,6 +2801,14 @@ read_stdin(void)
     TIME_MSG("reading stdin");
 
     check_swap_exists_action();
+
+#if !(defined(AMIGA) || defined(MACOS_X))
+    // Dup stdin from stderr to read commands from, so that shell commands
+    // work.
+    // TODO: why is this needed, even though readfile() has done this?
+    close(0);
+    vim_ignored = dup(2);
+#endif
 }
 
 /*

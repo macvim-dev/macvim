@@ -1888,6 +1888,26 @@ generate_EXECCONCAT(cctx_T *cctx, int count)
     return OK;
 }
 
+/*
+ * Generate ISN_RANGE.  Consumes "range".  Return OK/FAIL.
+ */
+    static int
+generate_RANGE(cctx_T *cctx, char_u *range)
+{
+    isn_T	*isn;
+    garray_T	*stack = &cctx->ctx_type_stack;
+
+    if ((isn = generate_instr(cctx, ISN_RANGE)) == NULL)
+	return FAIL;
+    isn->isn_arg.string = range;
+
+    if (ga_grow(stack, 1) == FAIL)
+	return FAIL;
+    ((type_T **)stack->ga_data)[stack->ga_len] = &t_number;
+    ++stack->ga_len;
+    return OK;
+}
+
     static int
 generate_UNPACK(cctx_T *cctx, int var_count, int semicolon)
 {
@@ -2229,6 +2249,7 @@ may_get_next_line_error(char_u *whitep, char_u **arg, cctx_T *cctx)
 {
     if (may_get_next_line(whitep, arg, cctx) == FAIL)
     {
+	SOURCING_LNUM = cctx->ctx_lnum + 1;
 	emsg(_(e_line_incomplete));
 	return FAIL;
     }
@@ -5300,7 +5321,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 
 	wp = op + oplen;
 	p = skipwhite(wp);
-	if (may_get_next_line(wp, &p, cctx) == FAIL)
+	if (may_get_next_line_error(wp, &p, cctx) == FAIL)
 	    return FAIL;
 	if (compile_expr0(&p, cctx) == FAIL)
 	    return NULL;
@@ -5481,16 +5502,6 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 				type = sv->sv_type;
 			    }
 			}
-		    }
-		    else if (name[1] == ':' && name[2] != NUL)
-		    {
-			semsg(_(e_cannot_use_namespaced_variable), name);
-			goto theend;
-		    }
-		    else if (!is_decl)
-		    {
-			semsg(_(e_unknown_variable_str), name);
-			goto theend;
 		    }
 		    else if (check_defined(var_start, varlen, cctx) == FAIL)
 			goto theend;
@@ -5714,12 +5725,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 
 			// without operator check type here, otherwise below
 			if (has_index)
-			{
 			    use_type = member_type;
-			    if (member_type == NULL)
-				// could be indexing "any"
-				use_type = &t_any;
-			}
 			if (need_type(rhs_type, use_type, -1, cctx,
 						      FALSE, is_const) == FAIL)
 			    goto theend;
@@ -7113,6 +7119,22 @@ compile_mult_expr(char_u *arg, int cmdidx, cctx_T *cctx)
 }
 
 /*
+ * If "eap" has a range that is not a contstant generate an ISN_RANGE
+ * instruction to compute it and return OK.
+ * Otherwise return FAIL, the caller must deal with any range.
+ */
+    static int
+compile_variable_range(exarg_T *eap, cctx_T *cctx)
+{
+    char_u *range_end = skip_range(eap->cmd, TRUE, NULL);
+    char_u *p = skipdigits(eap->cmd);
+
+    if (p == range_end)
+	return FAIL;
+    return generate_RANGE(cctx, vim_strnsave(eap->cmd, range_end - eap->cmd));
+}
+
+/*
  * :put r
  * :put ={expr}
  */
@@ -7137,17 +7159,23 @@ compile_put(char_u *arg, exarg_T *eap, cctx_T *cctx)
     else if (eap->regname != NUL)
 	++line;
 
-    // "errormsg" will not be set because the range is ADDR_LINES.
-    // TODO: if the range contains something like "$" or "." need to evaluate
-    // at runtime
-    if (parse_cmd_address(eap, &errormsg, FALSE) == FAIL)
-	return NULL;
-    if (eap->addr_count == 0)
-	lnum = -1;
+    if (compile_variable_range(eap, cctx) == OK)
+    {
+	lnum = above ? LNUM_VARIABLE_RANGE_ABOVE : LNUM_VARIABLE_RANGE;
+    }
     else
-	lnum = eap->line2;
-    if (above)
-	--lnum;
+    {
+	// Either no range or a number.
+	// "errormsg" will not be set because the range is ADDR_LINES.
+	if (parse_cmd_address(eap, &errormsg, FALSE) == FAIL)
+	    return NULL;
+	if (eap->addr_count == 0)
+	    lnum = -1;
+	else
+	    lnum = eap->line2;
+	if (above)
+	    --lnum;
+    }
 
     generate_PUT(cctx, eap->regname, lnum);
     return line;
@@ -7974,6 +8002,7 @@ delete_instr(isn_T *isn)
 	case ISN_PUSHEXC:
 	case ISN_PUSHFUNC:
 	case ISN_PUSHS:
+	case ISN_RANGE:
 	case ISN_STOREB:
 	case ISN_STOREENV:
 	case ISN_STOREG:

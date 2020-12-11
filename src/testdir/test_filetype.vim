@@ -479,6 +479,7 @@ let s:filename_checks = {
     \ 'tilde': ['file.t.html'],
     \ 'tli': ['file.tli'],
     \ 'tmux': ['tmuxfile.conf', '.tmuxfile.conf', '.tmux-file.conf', '.tmux.conf', 'tmux-file.conf', 'tmux.conf'],
+    \ 'toml': ['file.toml'],
     \ 'tpp': ['file.tpp'],
     \ 'treetop': ['file.treetop'],
     \ 'trustees': ['trustees.conf'],
@@ -721,7 +722,7 @@ func Test_ts_file()
   call assert_equal('typescript', &filetype)
   bwipe!
 
-  call delete('Xfile.hook')
+  call delete('Xfile.ts')
   filetype off
 endfunc
 

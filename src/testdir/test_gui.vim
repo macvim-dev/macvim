@@ -388,6 +388,18 @@ func Test_set_guifont()
     call assert_fails('set guifont=xa1bc23d7f', 'E596:')
   endif
 
+  if exists('+renderoptions')
+    " doing this four times used to cause a crash
+    set renderoptions=type:directx
+    for i in range(5)
+      set guifont=
+    endfor
+    set renderoptions=
+    for i in range(5)
+      set guifont=
+    endfor
+  endif
+
   if has('xfontset')
     let &guifontset = guifontset_saved
   endif
