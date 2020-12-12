@@ -18,7 +18,8 @@ env:
       vi_cv_dll_name_python3=/usr/local/Frameworks/Python.framework/Versions/3.9/Python
       vi_cv_dll_name_ruby=/usr/local/opt/ruby/lib/libruby.dylib
       VIMCMD=src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
-      CONFOPT="--with-features=huge --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-gui=macvim"
+      MACVIM_BIN=src/MacVim/build/Release/MacVim.app/Contents/MacOS/MacVim
+      CONFOPT="--with-features=huge --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-gui=macvim --with-macarchs=x86_64"
       BASH_SILENCE_DEPRECATION_WARNING=1
 
 _anchors:
@@ -85,6 +86,10 @@ script:
   # Make sure there isn't any dynamic linkage to third-party dependencies in the built binary, as we should only use
   # static linkage to avoid dependency hell. Test that all those dylib's are in /usr/lib which is bundled with macOS and not third-party.
   - (! otool -L ${VIMCMD} | grep '\.dylib\s' | grep -v '^\s*/usr/lib/')
+  # Make sure we are building x86_64 only. arm64 builds don't work properly now, so we don't want to accidentally build
+  # it as it will get prioritized by Apple Silicon Macs.
+  - (lipo -archs ${VIMCMD} | grep '^x86_64$')
+  - (lipo -archs ${MACVIM_BIN} | grep '^x86_64$')
   - echo -en "travis_fold:end:smoketest\\r\\033[0K"
 
   # Run standard test suites.
