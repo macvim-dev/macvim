@@ -6,32 +6,80 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-166</title>
+      <title>MacVim snapshot-168</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
-<p>Updated to Vim 8.2.1719.</p>
+<p>Updated to Vim 8.2.2127.</p>
+
+<p><em>Note</em>: This release doesn’t natively support Apple Silicon / M1 yet, but does work under Rosetta. See below.</p>
 
 <h1 id="features">Features</h1>
 
-<h2 id="touch-bar-improvements">Touch Bar improvements</h2>
+<h2 id="big-sur--macos-11">Big Sur / macOS 11</h2>
 
-<p>Touch Bar now supports submenus, and allows mixed icon/text displays using <code>tmenu</code>. When in edit modes (e.g. insert), it will also display an emoji picker as well. See <code>:help touchbar</code> for documentation. <a href="https://github.com/macvim-dev/macvim/issues/1084">#1084</a></p>
+<ul>
+  <li>MacVim now has an updated app icon (<a href="https://github.com/macvim-dev/macvim/issues/1054">#1054</a>), and preference pane / toolbars have been updated to match Big Sur’s interface guidelines. (<a href="https://github.com/macvim-dev/macvim/issues/1128">#1128</a>)</li>
+  <li>Fixed Touch Bar warnings when launching MacVim from the terminal.  <a href="https://github.com/macvim-dev/macvim/issues/1114">#1114</a></li>
+  <li>SF Symbol characters will show up properly as double-width as most of these icons would take up more than one column. Note that these characters are specific to macOS and would not work in other platforms. <a href="https://github.com/macvim-dev/macvim/issues/1129">#1129</a></li>
+</ul>
 
-<p><img width="640" src="https://user-images.githubusercontent.com/1217449/93730988-f2bb4900-fb7f-11ea-9433-4a15187a4af1.png" alt="emoji picker / submenu / icons with labels" title="Example configuration with emoji picker / submenu / icons with labels" /></p>
-<p><img width="640" src="https://user-images.githubusercontent.com/1217449/93730989-f77ffd00-fb7f-11ea-9e44-0dfc36d146f2.png" alt="inside submenu" title="Example of inside a submenu" /></p>
-<p><img width="640" src="https://user-images.githubusercontent.com/1217449/93731159-b63c1d00-fb80-11ea-84a1-77c57d818452.png" alt="activated emoji picker" title="Activated emoji picker" /></p>
+<h2 id="renderer--scrolling-performance-improvements">Renderer / scrolling performance improvements</h2>
+
+<p>The Core Text renderer has been rewritten and is now much faster!  Scrolling should not stutter and lag like before and generally it should feel a lot smoother now. Thanks to Sidney San Martín (<a href="https://github.com/s4y">@s4y</a>) for the contribution. <a href="https://github.com/macvim-dev/macvim/issues/858">#858</a></p>
+
+<p>With this change, the non-Core-Text renderer is now considered deprecated. The old renderer is accessible either through the Preference Pane (under Advanced) or by setting the defaults “MMRenderer” to 0. It works for now, but it will be removed in a future update as it has known bugs.</p>
+
+<h2 id="menu-localization">Menu Localization</h2>
+
+<p>Menus are now localized, see <code>:h langmenu</code> for how Vim menu localization works. You can use <code>set langmenu=none</code> to turn it off if you would like. <a href="https://github.com/macvim-dev/macvim/issues/1099">#1099</a></p>
+
+<p><img width="500" alt="localized menus" src="https://user-images.githubusercontent.com/1217449/101893005-f942d680-3b58-11eb-9cf3-96d117c5a370.png" /></p>
+
+<p>There still exists a few menu items that are not localized, and the general MacVim GUI is not localized as well. If you would like to help, please use <a href="https://github.com/macvim-dev/macvim/issues/1102">#1102</a> to coordinate with MacVim dev team.</p>
+
+<h2 id="getting-help--help-menu">Getting help / Help menu</h2>
+
+<ul>
+  <li>
+    <p>Help menu’s search bar now searches Vim documentation as well! See <a href="https://github.com/macvim-dev/macvim/issues/1095">#1095</a>.</p>
+
+    <p><img width="400" alt="help menu search" src="https://user-images.githubusercontent.com/1217449/101957566-86684880-3bb6-11eb-8466-2bf73b3585bd.png" /></p>
+  </li>
+  <li>Vimtutor is now bundled with MacVim, and you can access vimtutor from the Help menu (<a href="https://github.com/macvim-dev/macvim/issues/1096">#1096</a>).</li>
+  <li>There is also a link to the latest release notes as well (<a href="https://github.com/macvim-dev/macvim/issues/1131">#1131</a>).</li>
+</ul>
+
+<h1 id="general">General</h1>
+
+<h2 id="apple-silicon">Apple Silicon</h2>
+
+<p>This release does not contain a native universal app for Apple Silicon / M1 Macs yet. The release binary will still work under Rosetta, which should provide enough performance, but if you use Python/etc plugins, you need to make sure you have x86 versions of Python/etc installed (which is still the default for Homebrew as of this release).</p>
+
+<p>MacVim is buildable under Apple Silicon, so if you need a native binary, you could build it yourself by downloading the source from the Github repository. See <a href="https://github.com/macvim-dev/macvim/issues/1136">#1136</a> for progress on releasing a universal app for Apple Silicon.</p>
+
+<h2 id="github-discusisons">Github Discusisons</h2>
+
+<p>MacVim has enabled the Github Discussions feature, which serves as a good spot for general discussions and questions. See <a href="https://github.com/macvim-dev/macvim/discussions/">https://github.com/macvim-dev/macvim/discussions/</a> and check it out!</p>
 
 <h1 id="fixes">Fixes</h1>
 
 <ul>
-  <li>Window menu no longer shows duplicate “Enter Full Screen” or “Tile Window to Left of Screen” entries whenever the user switches among different MacVim windows. <a href="https://github.com/macvim-dev/macvim/issues/566">#566</a> <a href="https://github.com/macvim-dev/macvim/issues/992">#992</a></li>
-  <li>Fix issue where going to full screen mode when titlebar appearance is set to “hidden” would result in lost focus of the window. <a href="https://github.com/macvim-dev/macvim/issues/1078">#1078</a></li>
-  <li>The password dialog box when using <code>:!sudo</code> or other commands that require password entry (<code>macvim-askpass</code>) will no longer focus on Finder, and will keep the focus on MacVim. <a href="https://github.com/macvim-dev/macvim/issues/1091">#1091</a></li>
-  <li>Fix minor wrong tooltip in the “Appearance” preference pane. <a href="https://github.com/macvim-dev/macvim/issues/1087">#1087</a></li>
-  <li>“General” preference pane will now be correctly sized when Sparkle updater is disabled (e.g. Homebrew builds). <a href="https://github.com/macvim-dev/macvim/issues/1089">#1089</a></li>
-  <li>Misc issues were fixed by Vim upstream, e.g. <code>vimgrep</code> causing a crash, and odd behaviors with using Shift-O on the first line. <a href="https://github.com/macvim-dev/macvim/issues/1082">#1082</a> <a href="https://github.com/macvim-dev/macvim/issues/1083">#1083</a></li>
+  <li>Launching MacVim from the Dock with locales that use “,” for decimal separators now works correctly. <a href="https://github.com/macvim-dev/macvim/issues/11">#11</a> (Vim 8.2.1738)</li>
+  <li><code>WinBar</code> menus (which are used by plugins like vimspector) now work properly and don’t create dummy menu items. <a href="https://github.com/macvim-dev/macvim/issues/918">#918</a></li>
+  <li>Using <code>:browse tabnew</code> no longer crashes MacVim in terminal mode.  <a href="https://github.com/macvim-dev/macvim/issues/1107">#1107</a> (Vim 8.2.1842)</li>
+</ul>
+
+<h1 id="misc">Misc</h1>
+
+<ul>
+  <li>Scripting languages versions:
+    <ul>
+      <li>Python is now built against 3.9, up from 3.8.</li>
+      <li>Lua is now built against 5.4, up from 5.3.</li>
+    </ul>
+  </li>
 </ul>
 
 <h1 id="compatibility">Compatibility</h1>
@@ -41,30 +89,32 @@
 <p>Script interfaces have compatibility with these versions:</p>
 
 <ul>
-  <li>Lua 5.3</li>
+  <li>Lua 5.4</li>
   <li>Perl 5.18</li>
   <li>Python2 2.7</li>
-  <li>Python3 3.8</li>
+  <li>Python3 3.9</li>
   <li>Ruby 2.7</li>
 </ul>
 
+<p><br /><small>Read the latest release notes <a href="https://github.com/macvim-dev/macvim/releases/latest">here</a>.</small></p>
+
       ]]></description>
-      <pubDate>Sun, 20 Sep 2020 21:00:00 -0700</pubDate>
+      <pubDate>Fri, 11 Dec 2020 22:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-166/MacVim.dmg"
-        sparkle:version="166"
-        sparkle:shortVersionString="8.2.1719"
-        sparkle:dsaSignature="MC0CFDvTjlB/c8USlTUjocXm5Q/nvm/FAhUAtRDNxUt1Q8KFpabseqbZuOhuMB0="
-        sparkle:edSignature="3cdukqFfh5kERiAiBbJgVC+4r4tOMWJIHMzTYGf2scqJgyR5HtEJf2oBvJpoxzidSnliSdo35lApQm8rXjLcDw==" length="20105287"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-168/MacVim.dmg"
+        sparkle:version="168"
+        sparkle:shortVersionString="8.2.2127"
+        sparkle:dsaSignature="MC0CFQC0Er+Y3WNZjB7r6HS+plDtDV/8mwIUIDvrgbbfSBlScKBsIdj7xe7vpWw="
+        length:21663229
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-166/165_to_166.delta"
-          sparkle:version="166"
-          sparkle:deltaFrom="165"
-          sparkle:dsaSignature="MC0CFQCCqpQbVg7eEhgq9q/R1xDg0v4ITgIUBFhHuEAeU7TwKJkm1CFfQGX8I1k="
-          sparkle:edSignature="afRPeC51wAdnV7wZMT+kgw70AlmnH+Zy831RGM5ffm76kmFPbzRtkbqRy+nyVDNMqUEmrD5wSwdpQ3J6CSxACw==" length="754048"
+          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-168/166_to_168.delta"
+          sparkle:version="168"
+          sparkle:deltaFrom="166"
+          sparkle:dsaSignature="MC0CFHuc+5zDH/U/kuRSmBapjoCIQcLGAhUAodMYajJsvQrchNcOyuSRFSO8J8w="
+          length:3746731
           />
       </sparkle:deltas>
     </item>
