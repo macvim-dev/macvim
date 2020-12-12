@@ -106,7 +106,7 @@
         sparkle:version="168"
         sparkle:shortVersionString="8.2.2127"
         sparkle:dsaSignature="MC0CFQC0Er+Y3WNZjB7r6HS+plDtDV/8mwIUIDvrgbbfSBlScKBsIdj7xe7vpWw="
-        length:21663229
+        length="21663229"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
@@ -114,7 +114,7 @@
           sparkle:version="168"
           sparkle:deltaFrom="166"
           sparkle:dsaSignature="MC0CFHuc+5zDH/U/kuRSmBapjoCIQcLGAhUAodMYajJsvQrchNcOyuSRFSO8J8w="
-          length:3746731
+          length="3746731"
           />
       </sparkle:deltas>
     </item>
