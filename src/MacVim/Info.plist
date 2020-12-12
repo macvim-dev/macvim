@@ -1312,7 +1312,7 @@
 	<key>SUPublicDSAKeyFile</key>
 	<string>dsa_pub.pem</string>
 	<key>SUPublicEDKey</key>
-	<string>EnnNZOR1zR6TmKXohjTNWbToLYNE4/1qd/dtkuTE2zc=</string>
+	<string>Pt4zsg/8S3/mxKW7Cmt0cZFw/+2LOuXOYS93evP+Mfc=</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>MacVim uses Apple Events to allow you to communicate with other apps using Apple Script, and to support working as an ODB external editor.</string>
 	<key>NSAppleScriptEnabled</key>
