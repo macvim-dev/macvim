@@ -273,7 +273,15 @@ if test "`(uname) 2>/dev/null`" = Darwin; then
     AC_MSG_CHECKING(if architectures are supported)
     save_cflags="$CFLAGS"
     save_ldflags="$LDFLAGS"
-    archflags=`echo "$ARCHS" | sed -e 's/[[[:<:]]]/-arch /g'`
+
+    # Apple's sed is supposed to treat [[:<:]] as word beginning, but seems
+    # like that broke some time ago and means *any* word character (but
+    # [[:>:]] still seems to work as word end).
+    # Use a more convoluted regex in order to properly to split the archs by
+    # word and prefix each with "-arch" to pass to the compiler.
+    #archflags=`echo "$ARCHS" | sed -e 's/[[[:<:]]]/-arch /g'`
+    archflags=`echo "$ARCHS" | sed 's/[[[:>:]]][[ ]][[ ]]*[[[:<:]]]/ -arch /g' | sed 's/^/-arch /g'`
+
     CFLAGS="$CFLAGS $archflags"
     LDFLAGS="$LDFLAGS $archflags"
     AC_TRY_LINK([ ], [ ],
