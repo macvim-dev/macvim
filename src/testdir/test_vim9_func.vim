@@ -481,6 +481,12 @@ def Test_call_lambda_args()
   CheckDefFailure(lines, 'E1013: Argument 2: type mismatch, expected number but got string')
 enddef
 
+def Test_lambda_uses_assigned_var()
+  CheckDefSuccess([
+        'var x: any = "aaa"'
+        'x = filter(["bbb"], {_, v -> v =~ x})'])
+enddef
+
 " Default arg and varargs
 def MyDefVarargs(one: string, two = 'foo', ...rest: list<string>): string
   var res = one .. ',' .. two
@@ -1816,6 +1822,26 @@ def Test_reset_did_emsg()
   END
   CheckScriptFailure(lines, 'E492:', 8)
   delfunc! g:Func
+enddef
+
+def Test_did_emsg_reset()
+  # executing an autocommand resets did_emsg, this should not result in a
+  # builtin function considered failing
+  var lines =<< trim END
+      vim9script
+      au BufWinLeave * #
+      def Func()
+          popup_menu('', {callback: {-> popup_create('', {})->popup_close()}})
+          eval [][0]
+      enddef
+      nno <F3> <cmd>call <sid>Func()<cr>
+      feedkeys("\<F3>\e", 'xt')
+  END
+  writefile(lines, 'XemsgReset')
+  assert_fails('so XemsgReset', ['E684:', 'E684:'], lines, 2)
+  delete('XemsgReset')
+  nunmap <F3>
+  au! BufWinLeave
 enddef
 
 def Test_abort_with_silent_call()

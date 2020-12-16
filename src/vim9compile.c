@@ -148,45 +148,51 @@ struct cctx_S {
 static void delete_def_function_contents(dfunc_T *dfunc);
 
 /*
- * Lookup variable "name" in the local scope and return it.
- * Return NULL if not found.
+ * Lookup variable "name" in the local scope and return it in "lvar".
+ * "lvar->lv_from_outer" is set accordingly.
+ * If "lvar" is NULL only check if the variable can be found.
+ * Return FAIL if not found.
  */
-    static lvar_T *
-lookup_local(char_u *name, size_t len, cctx_T *cctx)
+    static int
+lookup_local(char_u *name, size_t len, lvar_T *lvar, cctx_T *cctx)
 {
     int	    idx;
-    lvar_T  *lvar;
+    lvar_T  *lvp;
 
     if (len == 0)
-	return NULL;
+	return FAIL;
 
     // Find local in current function scope.
     for (idx = 0; idx < cctx->ctx_locals.ga_len; ++idx)
     {
-	lvar = ((lvar_T *)cctx->ctx_locals.ga_data) + idx;
-	if (STRNCMP(name, lvar->lv_name, len) == 0
-					       && STRLEN(lvar->lv_name) == len)
+	lvp = ((lvar_T *)cctx->ctx_locals.ga_data) + idx;
+	if (STRNCMP(name, lvp->lv_name, len) == 0
+					       && STRLEN(lvp->lv_name) == len)
 	{
-	    lvar->lv_from_outer = FALSE;
-	    return lvar;
+	    if (lvar != NULL)
+	    {
+		*lvar = *lvp;
+		lvar->lv_from_outer = FALSE;
+	    }
+	    return OK;
 	}
     }
 
     // Find local in outer function scope.
     if (cctx->ctx_outer != NULL)
     {
-	lvar = lookup_local(name, len, cctx->ctx_outer);
-	if (lvar != NULL)
+	if (lookup_local(name, len, lvar, cctx->ctx_outer) == OK)
 	{
-	    // TODO: are there situations we should not mark the outer scope as
-	    // used?
-	    cctx->ctx_outer_used = TRUE;
-	    lvar->lv_from_outer = TRUE;
-	    return lvar;
+	    if (lvar != NULL)
+	    {
+		cctx->ctx_outer_used = TRUE;
+		lvar->lv_from_outer = TRUE;
+	    }
+	    return OK;
 	}
     }
 
-    return NULL;
+    return FAIL;
 }
 
 /*
@@ -377,7 +383,7 @@ check_defined(char_u *p, size_t len, cctx_T *cctx)
     p[len] = NUL;
     if (script_var_exists(p, len, FALSE, cctx) == OK
 	    || (cctx != NULL
-		&& (lookup_local(p, len, cctx) != NULL
+		&& (lookup_local(p, len, NULL, cctx) == OK
 		    || arg_exists(p, len, NULL, NULL, NULL, cctx) == OK))
 	    || find_imported(p, len, cctx) != NULL
 	    || (ufunc = find_func_even_dead(p, FALSE, cctx)) != NULL)
@@ -532,14 +538,15 @@ generate_add_instr(
 	type_T *type1,
 	type_T *type2)
 {
-    isn_T *isn = generate_instr_drop(cctx,
-	      vartype == VAR_NUMBER ? ISN_OPNR
-	    : vartype == VAR_LIST ? ISN_ADDLIST
-	    : vartype == VAR_BLOB ? ISN_ADDBLOB
+    garray_T	*stack = &cctx->ctx_type_stack;
+    isn_T	*isn = generate_instr_drop(cctx,
+		      vartype == VAR_NUMBER ? ISN_OPNR
+		    : vartype == VAR_LIST ? ISN_ADDLIST
+		    : vartype == VAR_BLOB ? ISN_ADDBLOB
 #ifdef FEAT_FLOAT
-	    : vartype == VAR_FLOAT ? ISN_OPFLOAT
+		    : vartype == VAR_FLOAT ? ISN_OPFLOAT
 #endif
-	    : ISN_OPANY, 1);
+		    : ISN_OPANY, 1);
 
     if (vartype != VAR_LIST && vartype != VAR_BLOB
 	    && type1->tt_type != VAR_ANY
@@ -550,6 +557,14 @@ generate_add_instr(
 
     if (isn != NULL)
 	isn->isn_arg.op.op_type = EXPR_ADD;
+
+    // When concatenating two lists with different member types the member type
+    // becomes "any".
+    if (vartype == VAR_LIST
+	    && type1->tt_type == VAR_LIST && type2->tt_type == VAR_LIST
+	    && type1->tt_member != type2->tt_member)
+	(((type_T **)stack->ga_data)[stack->ga_len - 1]) = &t_list_any;
+
     return isn == NULL ? FAIL : OK;
 }
 
@@ -2555,13 +2570,13 @@ compile_load(
 	}
 	else
 	{
-	    lvar_T *lvar = lookup_local(*arg, len, cctx);
+	    lvar_T lvar;
 
-	    if (lvar != NULL)
+	    if (lookup_local(*arg, len, &lvar, cctx) == OK)
 	    {
-		type = lvar->lv_type;
-		idx = lvar->lv_idx;
-		if (lvar->lv_from_outer)
+		type = lvar.lv_type;
+		idx = lvar.lv_idx;
+		if (lvar.lv_from_outer)
 		    gen_load_outer = TRUE;
 		else
 		    gen_load = TRUE;
@@ -2763,7 +2778,7 @@ compile_call(
 
     // An argument or local variable can be a function reference, this
     // overrules a function name.
-    if (lookup_local(namebuf, varlen, cctx) == NULL
+    if (lookup_local(namebuf, varlen, NULL, cctx) == FAIL
 	    && arg_exists(namebuf, varlen, NULL, NULL, NULL, cctx) != OK)
     {
 	// If we can find the function by name generate the right call.
@@ -3969,7 +3984,10 @@ compile_expr7(
 
 	if (!eval_isnamec1(**arg))
 	{
-	    semsg(_(e_name_expected), *arg);
+	    if (ends_excmd(*skipwhite(*arg)))
+		semsg(_(e_empty_expression_str), *arg);
+	    else
+		semsg(_(e_name_expected_str), *arg);
 	    return FAIL;
 	}
 
@@ -5366,6 +5384,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	assign_dest_T	dest = dest_local;
 	int		opt_flags = 0;
 	int		vimvaridx = -1;
+	lvar_T		local_lvar;
 	lvar_T		*lvar = NULL;
 	lvar_T		arg_lvar;
 	int		has_type = FALSE;
@@ -5424,8 +5443,10 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 			goto theend;
 		    }
 
-		lvar = lookup_local(var_start, varlen, cctx);
-		if (lvar == NULL)
+
+		if (lookup_local(var_start, varlen, &local_lvar, cctx) == OK)
+		    lvar = &local_lvar;
+		else
 		{
 		    CLEAR_FIELD(arg_lvar);
 		    if (arg_exists(var_start, varlen,
@@ -5844,8 +5865,6 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 	    int r;
 
 	    // Compile the "idx" in "var[idx]" or "key" in "var.key".
-	    if (new_local)
-		--cctx->ctx_locals.ga_len;
 	    p = var_start + varlen;
 	    if (*p == '[')
 	    {
@@ -5865,8 +5884,6 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
 
 		r = generate_PUSHS(cctx, key);
 	    }
-	    if (new_local)
-		++cctx->ctx_locals.ga_len;
 	    if (r == FAIL)
 		goto theend;
 
@@ -5985,7 +6002,7 @@ compile_assignment(char_u *arg, exarg_T *eap, cmdidx_T cmdidx, cctx_T *cctx)
     // for "[var, var] = expr" drop the "expr" value
     if (var_count > 0 && !semicolon)
     {
-	    if (generate_instr_drop(cctx, ISN_DROP, 1) == NULL)
+	if (generate_instr_drop(cctx, ISN_DROP, 1) == NULL)
 	    goto theend;
     }
 
@@ -6064,12 +6081,6 @@ compile_unletlock(char_u *arg, exarg_T *eap, cctx_T *cctx)
     {
 	emsg("Sorry, :lock and unlock not implemented yet");
 	return NULL;
-    }
-
-    if (*p == '!')
-    {
-	p = skipwhite(p + 1);
-	eap->forceit = TRUE;
     }
 
     ex_unletlock(eap, p, 0, GLV_NO_AUTOLOAD, compile_unlet, cctx);
@@ -6579,8 +6590,7 @@ compile_for(char_u *arg_start, cctx_T *cctx)
 	}
 	else
 	{
-	    var_lvar = lookup_local(arg, varlen, cctx);
-	    if (var_lvar != NULL)
+	    if (lookup_local(arg, varlen, NULL, cctx) == OK)
 	    {
 		semsg(_(e_variable_already_declared), arg);
 		goto failed;
@@ -7093,28 +7103,31 @@ compile_throw(char_u *arg, cctx_T *cctx UNUSED)
 compile_mult_expr(char_u *arg, int cmdidx, cctx_T *cctx)
 {
     char_u	*p = arg;
-    char_u	*prev;
+    char_u	*prev = arg;
     int		count = 0;
 
     for (;;)
     {
+	if (ends_excmd2(prev, p))
+	    break;
 	if (compile_expr0(&p, cctx) == FAIL)
 	    return NULL;
 	++count;
 	prev = p;
 	p = skipwhite(p);
-	if (ends_excmd2(prev, p))
-	    break;
     }
 
-    if (cmdidx == CMD_echo || cmdidx == CMD_echon)
-	generate_ECHO(cctx, cmdidx == CMD_echo, count);
-    else if (cmdidx == CMD_execute)
-	generate_MULT_EXPR(cctx, ISN_EXECUTE, count);
-    else if (cmdidx == CMD_echomsg)
-	generate_MULT_EXPR(cctx, ISN_ECHOMSG, count);
-    else
-	generate_MULT_EXPR(cctx, ISN_ECHOERR, count);
+    if (count > 0)
+    {
+	if (cmdidx == CMD_echo || cmdidx == CMD_echon)
+	    generate_ECHO(cctx, cmdidx == CMD_echo, count);
+	else if (cmdidx == CMD_execute)
+	    generate_MULT_EXPR(cctx, ISN_EXECUTE, count);
+	else if (cmdidx == CMD_echomsg)
+	    generate_MULT_EXPR(cctx, ISN_ECHOMSG, count);
+	else
+	    generate_MULT_EXPR(cctx, ISN_ECHOERR, count);
+    }
     return p;
 }
 
@@ -7168,6 +7181,7 @@ compile_put(char_u *arg, exarg_T *eap, cctx_T *cctx)
 	// Either no range or a number.
 	// "errormsg" will not be set because the range is ADDR_LINES.
 	if (parse_cmd_address(eap, &errormsg, FALSE) == FAIL)
+	    // cannot happen
 	    return NULL;
 	if (eap->addr_count == 0)
 	    lnum = -1;
@@ -7584,7 +7598,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 			    || *ea.cmd == '$'
 			    || *ea.cmd == '@'
 			    || ((len) > 2 && ea.cmd[1] == ':')
-			    || lookup_local(ea.cmd, len, &cctx) != NULL
+			    || lookup_local(ea.cmd, len, NULL, &cctx) == OK
 			    || arg_exists(ea.cmd, len, NULL, NULL,
 							     NULL, &cctx) == OK
 			    || script_var_exists(ea.cmd, len,
@@ -7637,7 +7651,7 @@ compile_def_function(ufunc_T *ufunc, int set_return_type, cctx_T *outer_cctx)
 	    }
 	}
 	p = find_ex_command(&ea, NULL, starts_with_colon ? NULL
-		   : (void *(*)(char_u *, size_t, cctx_T *))lookup_local,
+		   : (int (*)(char_u *, size_t, void *, cctx_T *))lookup_local,
 									&cctx);
 
 	if (p == ea.cmd && ea.cmdidx != CMD_SIZE)

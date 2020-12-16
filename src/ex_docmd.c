@@ -1689,7 +1689,7 @@ comment_start(char_u *p, int starts_with_colon UNUSED)
 {
 #ifdef FEAT_EVAL
     if (in_vim9script())
-	return p[0] == '#' && p[1] != '{' && !starts_with_colon;
+	return p[0] == '#' && !starts_with_colon;
 #endif
     return *p == '"';
 }
@@ -3277,7 +3277,7 @@ skip_option_env_lead(char_u *start)
 find_ex_command(
 	exarg_T *eap,
 	int	*full UNUSED,
-	void	*(*lookup)(char_u *, size_t, cctx_T *) UNUSED,
+	int	(*lookup)(char_u *, size_t, void *, cctx_T *) UNUSED,
 	cctx_T	*cctx UNUSED)
 {
     int		len;
@@ -3393,7 +3393,7 @@ find_ex_command(
 			|| *eap->cmd == '&'
 			|| *eap->cmd == '$'
 			|| *eap->cmd == '@'
-			|| lookup(eap->cmd, p - eap->cmd, cctx) != NULL)
+			|| lookup(eap->cmd, p - eap->cmd, NULL, cctx) == OK)
 		{
 		    eap->cmdidx = CMD_var;
 		    return eap->cmd;
@@ -3533,6 +3533,16 @@ find_ex_command(
     // ":fina" means ":finally" for backwards compatibility.
     if (eap->cmdidx == CMD_final && p - eap->cmd == 4)
 	eap->cmdidx = CMD_finally;
+
+#ifdef FEAT_EVAL
+    if (eap->cmdidx != CMD_SIZE && in_vim9script()
+	    && !IS_WHITE_OR_NUL(*p) && !ends_excmd(*p) && *p != '!'
+	    && (cmdnames[eap->cmdidx].cmd_argt & EX_NONWHITE_OK) == 0)
+    {
+	semsg(_(e_command_not_followed_by_white_space_str), eap->cmd);
+	eap->cmdidx = CMD_SIZE;
+    }
+#endif
 
     return p;
 }
@@ -4786,7 +4796,6 @@ separate_nextcmd(exarg_T *eap)
 		|| (*p == '#'
 		    && in_vim9script()
 		    && !(eap->argt & EX_NOTRLCOM)
-		    && p[1] != '{'
 		    && p > eap->cmd && VIM_ISWHITE(p[-1]))
 #endif
 		|| *p == '|' || *p == '\n')
@@ -5121,7 +5130,7 @@ ex_blast(exarg_T *eap)
 
 /*
  * Check if "c" ends an Ex command.
- * In Vim9 script does not check for white space before # or #{.
+ * In Vim9 script does not check for white space before #.
  */
     int
 ends_excmd(int c)
@@ -5870,6 +5879,7 @@ ex_stop(exarg_T *eap)
     {
 	if (!eap->forceit)
 	    autowrite_all();
+	apply_autocmds(EVENT_VIMSUSPEND, NULL, NULL, FALSE, NULL);
 	windgoto((int)Rows - 1, 0);
 	out_char('\n');
 	out_flush();
@@ -5887,6 +5897,7 @@ ex_stop(exarg_T *eap)
 	scroll_start();		// scroll screen before redrawing
 	redraw_later_clear();
 	shell_resized();	// may have resized window
+	apply_autocmds(EVENT_VIMRESUME, NULL, NULL, FALSE, NULL);
     }
 }
 

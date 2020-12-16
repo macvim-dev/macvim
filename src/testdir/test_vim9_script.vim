@@ -23,6 +23,11 @@ def Test_range_only()
   list
   assert_equal('three$', Screenline(&lines))
   bwipe!
+
+  # won't generate anything
+  if false
+    :123
+  endif
 enddef
 
 let g:alist = [7]
@@ -620,7 +625,7 @@ def Test_try_catch_fails()
   CheckDefFailure(['if 1', 'endtry'], 'E171:')
   CheckDefFailure(['try', 'echo 1', 'endtry'], 'E1032:')
 
-  CheckDefFailure(['throw'], 'E1015:')
+  CheckDefFailure(['throw'], 'E1143:')
   CheckDefFailure(['throw xxx'], 'E1001:')
 enddef
 
@@ -1719,6 +1724,10 @@ def Test_nested_if()
 enddef
 
 def Test_execute_cmd()
+  # missing argument is ignored
+  execute
+  execute # comment
+
   new
   setline(1, 'default')
   execute 'setline(1, "execute-string")'
@@ -1886,6 +1895,9 @@ def Test_for_loop()
 enddef
 
 def Test_for_loop_fails()
+  CheckDefFailure(['for '], 'E1097:')
+  CheckDefFailure(['for x'], 'E1097:')
+  CheckDefFailure(['for x in'], 'E1097:')
   CheckDefFailure(['for # in range(5)'], 'E690:')
   CheckDefFailure(['for i In range(5)'], 'E690:')
   CheckDefFailure(['var x = 5', 'for x in range(5)'], 'E1017:')
@@ -2069,7 +2081,21 @@ def Test_vim9_comment()
   CheckScriptSuccess([
       'vim9script',
       '# something',
+      '#something',
+      '#{something',
       ])
+
+  split Xfile
+  CheckScriptSuccess([
+      'vim9script',
+      'edit #something',
+      ])
+  CheckScriptSuccess([
+      'vim9script',
+      'edit #{something',
+      ])
+  close
+
   CheckScriptFailure([
       'vim9script',
       ':# something',
@@ -2123,9 +2149,6 @@ def Test_vim9_comment()
       'vim9script',
       'exe "echo"# something',
       ], 'E121:')
-  CheckDefFailure([
-      'exe # comment',
-      ], 'E1015:')
   CheckScriptFailure([
       'vim9script',
       'exe# something',
@@ -2150,7 +2173,7 @@ def Test_vim9_comment()
       '  throw#comment',
       'catch',
       'endtry',
-      ], 'E1015:')
+      ], 'E1143:')
   CheckDefFailure([
       'try',
       '  throw "yes"#comment',
@@ -3039,18 +3062,6 @@ def Test_no_unknown_error_after_error()
   delete('Xdef')
 enddef
 
-def Test_put_with_linebreak()
-  new
-  var lines =<< trim END
-    vim9script
-    pu=split('abc', '\zs')
-            ->join()
-  END
-  CheckScriptSuccess(lines)
-  getline(2)->assert_equal('a b c')
-  bwipe!
-enddef
-
 def InvokeNormal()
   exe "norm! :m+1\r"
 enddef
@@ -3062,6 +3073,13 @@ def Test_invoke_normal_in_visual_mode()
   feedkeys("V\<F3>", 'xt')
   assert_equal(['bbb', 'aaa'], getline(1, 2))
   xunmap <F3>
+enddef
+
+def Test_white_space_after_command()
+  var lines =<< trim END
+    exit_cb: Func})
+  END
+  CheckDefAndScriptFailure(lines, 'E1144:', 1)
 enddef
 
 " Keep this last, it messes up highlighting.

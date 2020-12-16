@@ -876,7 +876,7 @@ f_exepath(typval_T *argvars, typval_T *rettv)
 {
     char_u *p = NULL;
 
-    if (in_vim9script() && check_for_string(&argvars[0]) == FAIL)
+    if (in_vim9script() && check_for_nonempty_string(&argvars[0]) == FAIL)
 	return;
     (void)mch_can_exe(tv_get_string(&argvars[0]), &p, TRUE);
     rettv->v_type = VAR_STRING;
@@ -942,7 +942,7 @@ findfilendir(
 
     rettv->vval.v_string = NULL;
     rettv->v_type = VAR_STRING;
-    if (in_vim9script() && check_for_string(&argvars[0]) == FAIL)
+    if (in_vim9script() && check_for_nonempty_string(&argvars[0]) == FAIL)
 	return;
 
 #ifdef FEAT_SEARCHPATH
@@ -1019,7 +1019,7 @@ f_fnamemodify(typval_T *argvars, typval_T *rettv)
     char_u	*fname;
     char_u	*mods;
     int		usedlen = 0;
-    int		len;
+    int		len = 0;
     char_u	*fbuf = NULL;
     char_u	buf[NUMBUFLEN];
 
@@ -1028,12 +1028,13 @@ f_fnamemodify(typval_T *argvars, typval_T *rettv)
 	return;
     fname = tv_get_string_chk(&argvars[0]);
     mods = tv_get_string_buf_chk(&argvars[1], buf);
-    if (fname == NULL || mods == NULL)
+    if (mods == NULL || fname == NULL)
 	fname = NULL;
     else
     {
 	len = (int)STRLEN(fname);
-	(void)modify_fname(mods, FALSE, &usedlen, &fname, &fbuf, &len);
+	if (mods != NULL && *mods != NUL)
+	    (void)modify_fname(mods, FALSE, &usedlen, &fname, &fbuf, &len);
     }
 
     rettv->v_type = VAR_STRING;
