@@ -7,7 +7,7 @@ Vim - the text editor - for macOS
 
 - Vim README: [README_vim.md](README_vim.md)
 
-- Travis CI <a href="https://travis-ci.com/macvim-dev/macvim"><img src="https://travis-ci.com/macvim-dev/macvim.svg?branch=master" alt="Build Status"></a>
+- [![MacVim GitHub CI](https://github.com/macvim-dev/macvim/workflows/MacVim%20GitHub%20CI/badge.svg)](https://github.com/macvim-dev/macvim/actions?query=workflow%3A%22MacVim+GitHub+CI%22)
 
 - Packaged in [![Homebrew package](https://repology.org/badge/version-for-repo/homebrew/macvim.svg)](https://repology.org/metapackage/macvim/versions) [![MacPorts package](https://repology.org/badge/version-for-repo/macports/macvim.svg)](https://repology.org/metapackage/macvim/versions)
 
