@@ -2673,13 +2673,14 @@ func Test_popupwin_terminal_buffer()
 
   let termbuf = term_start(&shell, #{hidden: 1})
   let winid = popup_create(termbuf, #{minwidth: 40, minheight: 10, border: []})
-  " Wait for shell to start and show a prompt
+  " Wait for shell to start
   call WaitForAssert({-> assert_equal("run", job_status(term_getjob(termbuf)))})
-  sleep 20m
+  " Wait for a prompt (see border char first, then space after prompt)
+  call WaitForAssert({ -> assert_equal(' ', screenstring(screenrow(), screencol() - 1))})
 
   " When typing a character, the cursor is after it.
   call feedkeys("x", 'xt')
-  sleep 10m
+  call term_wait(termbuf)
   redraw
   call WaitForAssert({ -> assert_equal('x', screenstring(screenrow(), screencol() - 1))})
   call feedkeys("\<BS>", 'xt')
@@ -3307,7 +3308,7 @@ func Test_popupmenu_info_border()
   call term_sendkeys(buf, "cc\<C-X>\<C-U>")
   call VerifyScreenDump(buf, 'Test_popupwin_infopopup_6', {})
 
-  " Hide the info popup, cycle trough buffers, make sure it didn't get
+  " Hide the info popup, cycle through buffers, make sure it didn't get
   " deleted.
   call term_sendkeys(buf, "\<Esc>")
   call term_sendkeys(buf, ":set hidden\<CR>")
@@ -3721,11 +3722,18 @@ func Test_popupwin_latin1_encoding()
       set encoding=latin1
       terminal cat Xmultibyte
       call popup_create(['one', 'two', 'three', 'four'], #{line: 1, col: 10})
+      redraw
+      " wait for "cat" to finish
+      while execute('ls!') !~ 'finished'
+	sleep 10m
+      endwhile
+      echo "Done"
   END
   call writefile(lines, 'XtestPopupLatin')
   call writefile([repeat("\u3042 ", 120)], 'Xmultibyte')
 
   let buf = RunVimInTerminal('-S XtestPopupLatin', #{rows: 10})
+  call WaitForAssert({-> assert_match('Done', term_getline(buf, 10))})
 
   call term_sendkeys(buf, ":q\<CR>")
   call StopVimInTerminal(buf)
