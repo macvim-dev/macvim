@@ -27,6 +27,7 @@ env:
   HAS_GETTEXT: 1
 
   BASH_SILENCE_DEPRECATION_WARNING: 1
+  TERM: xterm
 
 jobs:
 
@@ -108,8 +109,11 @@ jobs:
         set -o verbose
         NPROC=$(getconf _NPROCESSORS_ONLN) && echo "Building MacVim with ${NPROC} cores"
         make -j${NPROC}
-    - name: Show Vim version
-      run: ${VIMCMD} --version
+    - name: Check version
+      run: |
+        ${VIMCMD} --version
+        ${VIMCMD} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-1.vim -c quit
+        ${VIMCMD} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
     - name: Smoketest
       run: |
         set -o errexit
@@ -141,11 +145,9 @@ jobs:
       run: make -C runtime/doc vimtags VIMEXE=../../src/MacVim/build/Release/MacVim.app/Contents/bin/vim
 
     - name: Test
-      if: false # TODO: Tests are failing, turn off temporarily to unblock
       timeout-minutes: 20
       run: make test
     - name: Test GUI
-      if: false # TODO: Tests are failing, turn off temporarily to unblock
       timeout-minutes: 20
       run: make -C src/testdir clean && make -C src testgui
 
