@@ -8,7 +8,6 @@ env:
   MACOSX_DEPLOYMENT_TARGET: 10.9
 
   CC: clang
-  CONFOPT: "--with-features=huge --enable-netbeans --with-tlib=ncurses --enable-cscope --enable-gui=macvim --with-macarchs=x86_64"
 
   VERSIONER_PERL_VERSION: 5.18
   VERSIONER_PYTHON_VERSION: 2.7
@@ -20,173 +19,209 @@ env:
   vi_cv_dll_name_python: /System/Library/Frameworks/Python.framework/Versions/2.7/Python
   vi_cv_dll_name_python3: /usr/local/Frameworks/Python.framework/Versions/3.9/Python
   vi_cv_dll_name_ruby: /usr/local/opt/ruby/lib/libruby.dylib
-  LANGOPT: "--enable-perlinterp=dynamic --enable-pythoninterp=dynamic --enable-python3interp=dynamic --enable-rubyinterp=dynamic --enable-luainterp=dynamic --with-lua-prefix=/usr/local"
 
-  VIMCMD: src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
+  VIM_BIN: src/MacVim/build/Release/MacVim.app/Contents/MacOS/Vim
   MACVIM_BIN: src/MacVim/build/Release/MacVim.app/Contents/MacOS/MacVim
-
-  HAS_GETTEXT: 1
 
   TERM: xterm
   BASH_SILENCE_DEPRECATION_WARNING: 1
 
 jobs:
-
   # Builds and test MacVim
-  build:
+  build-and-test:
 
     # Test on macOS 10.15 / 11.0, and also older version of Xcode for compatibility testing.
     strategy:
       fail-fast: false
       matrix:
-        xcode: ['']
-        os: [macos-10.15, macos-11.0]
         include:
         - os: macos-10.15
           xcode: 11.7
         - os: macos-10.15
-          xcode: ''
           publish: true
+        - os: macos-11.0
 
     runs-on: ${{ matrix.os }}
 
-    env:
-      XCODE_VER: ${{ matrix.xcode }}
-
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
+      # Set up and install gettext for localization.
+      # Instead of using the default binary installed by Homebrew, need to build our own because gettext is statically
+      # linked in MacVim, and need to be built against MACOSX_DEPLOYMENT_TARGET to ensure the built binary will work on
+      # supported macOS versions.
+      - name: Set up gettext
+        if: matrix.publish
+        run: |
+          # Patch the official Homebrew gettext formula to explicitly build for min deployment target
+          cp /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gettext.rb gettext.rb
 
-    # Set up and install gettext for localization.
-    # Instead of using the default binary installed by Homebrew, need to build our own because gettext is statically
-    # linked in MacVim, and need to be built against MACOSX_DEPLOYMENT_TARGET to ensure the built binary will work on
-    # supported macOS versions.
-    - name: Set up gettext
-      run: |
-        # Patch the official Homebrew gettext formula to explicitly build for min deployment target
-        cp /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gettext.rb gettext.rb
+          cat << EOF > gettext_diff.patch
+          --- gettext_orig.rb
+          +++ gettext.rb
+          @@ -24,2 +24,3 @@
+             def install
+          +    ENV["MACOSX_DEPLOYMENT_TARGET"] = "${MACOSX_DEPLOYMENT_TARGET}"
+               args = [
+          EOF
 
-        cat << EOF > gettext_diff.patch
-        --- gettext_orig.rb
-        +++ gettext.rb
-        @@ -24,2 +24,3 @@
-           def install
-        +    ENV["MACOSX_DEPLOYMENT_TARGET"] = "${MACOSX_DEPLOYMENT_TARGET}"
-             args = [
-        EOF
+          patch gettext.rb gettext_diff.patch
 
-        patch gettext.rb gettext_diff.patch
+          # Uninstall the already installed gettext because we want to build our own
+          brew uninstall --ignore-dependencies gettext
 
-        # Uninstall the already installed gettext because we want to build our own
-        brew uninstall --ignore-dependencies gettext
-    - name: Cache gettext
-      uses: actions/cache@v2
-      with:
-        path: /usr/local/Cellar/gettext
-        key: gettext-homebrew-cache-${{ runner.os }}-${{ hashFiles('gettext.rb') }}
-    - name: Install gettext
-      env:
-        HOMEBREW_NO_AUTO_UPDATE: 1
-      run: |
-        brew install -s gettext.rb  # This will be a no-op if gettext was cached
-        brew link gettext           # If gettext was cached, this step is necessary to relink it to /usr/local/
+      - name: Cache gettext
+        if: matrix.publish
+        uses: actions/cache@v2
+        with:
+          path: /usr/local/Cellar/gettext
+          key: gettext-homebrew-cache-${{ runner.os }}-${{ hashFiles('gettext.rb') }}
 
+      - name: Install gettext
+        if: matrix.publish
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          brew install -s gettext.rb  # This will be a no-op if gettext was cached
+          brew link gettext           # If gettext was cached, this step is necessary to relink it to /usr/local/
 
-    - name: Install packages
-      env:
-        HOMEBREW_NO_AUTO_UPDATE: 1
-      run: |
-        brew install python
-        brew install ruby
-        brew install lua
-        brew unlink perl # We just use system perl to reduce dependencies
+      - name: Install packages
+        if: matrix.publish
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          brew install python
+          brew install ruby
+          brew install lua
+          brew unlink perl # We just use system perl to reduce dependencies
 
+      - name: Set up Xcode
+        if: matrix.xcode != ''
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
+          xcode-select -p
 
-    - name: Configure
-      run: |
-        set -o errexit
-        set -o verbose
+      - name: Configure
+        run: |
+          set -o verbose
 
-        if [[ -n "${XCODE_VER}" ]]; then
-          sudo xcode-select -s /Applications/Xcode_${XCODE_VER}.app/Contents/Developer
-        fi
-        xcode-select -p
+          CONFOPT=(
+            --with-features=huge
+            --enable-netbeans
+            --with-tlib=ncurses
+            --enable-cscope
+            --enable-gui=macvim
+            --with-macarchs=x86_64
+          )
+          if ${{ matrix.publish == true }}; then
+            CONFOPT+=(
+              --enable-perlinterp=dynamic
+              --enable-pythoninterp=dynamic
+              --enable-python3interp=dynamic
+              --enable-rubyinterp=dynamic
+              --enable-luainterp=dynamic
+              --with-lua-prefix=/usr/local
+            )
+          fi
+          echo "CONFOPT: ${CONFOPT[@]}"
 
-        ./configure ${CONFOPT} ${LANGOPT} --enable-fail-if-missing
-        sed -i.bak -f ci/config.mk.sed -f ci/config.mk.clang.sed src/auto/config.mk
-        # Ruby is keg-only in Homebrew, so need to manually link in the path so Vim will know where to look for the binaries.
-        perl -p -i -e "s#(?<=-DDYNAMIC_RUBY_DLL=\\\\\").*?(?=\\\\\")#${vi_cv_dll_name_ruby}#" src/auto/config.mk
-        if [[ -n "${LANGOPT}" ]]; then
+          ./configure "${CONFOPT[@]}" --enable-fail-if-missing
+
+          sed -i.bak -f ci/config.mk.sed -f ci/config.mk.clang.sed src/auto/config.mk
+
+      - name: Modify configure result
+        if: matrix.publish
+        run: |
+          # Ruby is keg-only in Homebrew, so need to manually link in the path so Vim will know where to look for the binaries.
+          perl -p -i -e "s#(?<=-DDYNAMIC_RUBY_DLL=\\\\\").*?(?=\\\\\")#${vi_cv_dll_name_ruby}#" src/auto/config.mk
           grep -q -- "-DDYNAMIC_PERL_DLL=\\\\\"${vi_cv_dll_name_perl}\\\\\"" src/auto/config.mk
           grep -q -- "-DDYNAMIC_PYTHON_DLL=\\\\\"${vi_cv_dll_name_python}\\\\\"" src/auto/config.mk
           grep -q -- "-DDYNAMIC_PYTHON3_DLL=\\\\\"${vi_cv_dll_name_python3}\\\\\"" src/auto/config.mk
           grep -q -- "-DDYNAMIC_RUBY_DLL=\\\\\"${vi_cv_dll_name_ruby}\\\\\"" src/auto/config.mk
-        fi
-    - name: Show configure output
-      run: |
-        cat src/auto/config.mk
-        cat src/auto/config.h
-    - name: Make
-      run: |
-        set -o errexit
-        set -o verbose
-        NPROC=$(getconf _NPROCESSORS_ONLN) && echo "Building MacVim with ${NPROC} cores"
-        make -j${NPROC}
-    - name: Check version
-      run: |
-        ${VIMCMD} --version
-        ${VIMCMD} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-1.vim -c quit
-        ${VIMCMD} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
-    - name: Smoketest
-      run: |
-        set -o errexit
-        set -o verbose
 
-        # Smoketest scripting languages
-        macvim_excmd() {
-          ${VIMCMD} -u NONE -i NONE -g -f -X -V1 -es "$@" -c 'echo ""' -c 'qall!' 2>&1
-        }
-        if [[ -n "${LANGOPT}" ]]; then macvim_excmd -c 'lua print("Test")'; fi
-        if [[ -n "${LANGOPT}" ]]; then macvim_excmd -c 'perl VIM::Msg("Test")'; fi
-        if [[ -n "${LANGOPT}" ]]; then macvim_excmd -c 'py import sys; print("Test")'; fi
-        if [[ -n "${LANGOPT}" ]]; then macvim_excmd -c 'py3 import sys; print("Test")'; fi
-        if [[ -n "${LANGOPT}" ]]; then macvim_excmd -c 'ruby puts("Test")'; fi
+      - name: Show configure output
+        run: |
+          cat src/auto/config.mk
+          cat src/auto/config.h
 
-        # Check that localized messages work by printing ':version' and checking against localized word
-        if [[ -n "${HAS_GETTEXT}" ]]; then macvim_excmd -c 'lang es_ES' -c 'version' | grep Enlazado; fi
+      - name: Build
+        run: |
+          set -o verbose
 
-        # Make sure there isn't any dynamic linkage to third-party dependencies in the built binary, as we should only use
-        # static linkage to avoid dependency hell. Test that all those dylib's are in /usr/lib which is bundled with macOS and not third-party.
-        if (otool -L ${VIMCMD} | grep '\.dylib\s' | grep -v '^\s*/usr/lib/'); then echo 'Found external dynamic linkage!' && exit 1; fi
+          NPROC=$(getconf _NPROCESSORS_ONLN)
+          echo "Building MacVim with ${NPROC} cores"
 
-        # Make sure we are building x86_64 only. arm64 builds don't work properly now, so we don't want to accidentally build
-        # it as it will get prioritized by Apple Silicon Macs.
-        (lipo -archs ${VIMCMD} | grep '^x86_64$')
-        (lipo -archs ${MACVIM_BIN} | grep '^x86_64$')
+          make -j${NPROC}
 
-    - name: Update Vim help tags
-      run: make -C runtime/doc vimtags VIMEXE=../../src/MacVim/build/Release/MacVim.app/Contents/bin/vim
+      - name: Check version
+        run: |
+          ${VIM_BIN} --version
+          ${VIM_BIN} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-1.vim -c quit
+          ${VIM_BIN} -u NONE -i NONE --not-a-term -esNX -V1 -S ci/if_ver-2.vim -c quit
 
-    - name: Test
-      timeout-minutes: 20
-      run: make test
-    - name: Test GUI
-      timeout-minutes: 20
-      run: make -C src/testdir clean && make -C src testgui
+      - name: Smoketest
+        if: matrix.publish
+        run: |
+          set -o verbose
 
-    # Creates a DMG package of MacVim. Note that this doesn't create a GitHub release for us, because we would prefer to
-    # do it manually, for two reasons: 1) signing / notarization are currently done out of CI, 2) we want to manually
-    # format our release notes and add pictures to make them look nice.
-    - name: Build MacVim dmg image
-      if: startsWith(github.ref, 'refs/tags/') && matrix.publish
-      run: |
-        # Use the --skip-jenkins flag to skip the prettify osascript calls which could fail due to permission issues in
-        # CI environment.
-        make -C src macvim-dmg CREATEDMG_FLAGS=--skip-jenkins
+          macvim_excmd() {
+            ${VIM_BIN} -u NONE -i NONE -g -f -X -V1 -es "$@" -c 'echo ""' -c 'qall!' 2>&1
+          }
 
-    - name: Upload MacVim image
-      if: startsWith(github.ref, 'refs/tags/') && matrix.publish
-      uses: actions/upload-artifact@v2
-      with:
-        name: MacVim.dmg
-        path: src/MacVim/build/Release/MacVim.dmg
+          # Smoketest scripting languages
+          macvim_excmd -c 'lua print("Test")'
+          macvim_excmd -c 'perl VIM::Msg("Test")'
+          macvim_excmd -c 'py import sys; print("Test")'
+          macvim_excmd -c 'py3 import sys; print("Test")'
+          macvim_excmd -c 'ruby puts("Test")'
+
+          # Check that localized messages work by printing ':version' and checking against localized word
+          macvim_excmd -c 'lang es_ES' -c 'version' | grep Enlazado
+
+          # Make sure there isn't any dynamic linkage to third-party dependencies in the built binary, as we should only use
+          # static linkage to avoid dependency hell. Test that all those dylib's are in /usr/lib which is bundled with macOS and not third-party.
+          if otool -L ${VIM_BIN} | grep '\.dylib\s' | grep -v '^\s*/usr/lib/'; then
+            echo 'Found external dynamic linkage!'; false
+          fi
+
+          # Make sure we are building x86_64 only. arm64 builds don't work properly now, so we don't want to accidentally build
+          # it as it will get prioritized by Apple Silicon Macs.
+          check_arch() {
+            local archs=($(lipo -archs "$1"))
+            if [[ ${archs[@]} != x86_64 ]]; then
+              echo "Found unexpected arch(s) in $1: ${archs[@]}"; false
+            fi
+          }
+          check_arch "${VIM_BIN}"
+          check_arch "${MACVIM_BIN}"
+
+      - name: Update Vim help tags
+        if: matrix.publish
+        run: make -C runtime/doc vimtags VIMEXE=../../${VIM_BIN}
+
+      - name: Test
+        timeout-minutes: 20
+        run: make test
+
+      - name: Test GUI
+        timeout-minutes: 20
+        run: |
+          make -C src/testdir clean
+          make -C src testgui
+
+      # Creates a DMG package of MacVim. Note that this doesn't create a GitHub release for us, because we would prefer to
+      # do it manually, for two reasons: 1) signing / notarization are currently done out of CI, 2) we want to manually
+      # format our release notes and add pictures to make them look nice.
+      - name: Build MacVim dmg image
+        if: startsWith(github.ref, 'refs/tags/') && matrix.publish
+        run: |
+          # Use the --skip-jenkins flag to skip the prettify osascript calls which could fail due to permission issues in
+          # CI environment.
+          make -C src macvim-dmg CREATEDMG_FLAGS=--skip-jenkins
+
+      - name: Upload MacVim image
+        if: startsWith(github.ref, 'refs/tags/') && matrix.publish
+        uses: actions/upload-artifact@v2
+        with:
+          name: MacVim.dmg
+          path: src/MacVim/build/Release/MacVim.dmg
