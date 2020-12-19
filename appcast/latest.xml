@@ -6,12 +6,19 @@
     <description>MacVim</description>
 
     <item>
-      <title>MacVim snapshot-168</title>
+      <title>MacVim snapshot-169</title>
       <description><![CDATA[
 <style>
 :root { supported-color-schemes: light dark; color-scheme: light dark; }
 </style>
-<p>Updated to Vim 8.2.2127.</p>
+<p>Updated to Vim 8.2.2164.</p>
+
+<p>This release (r169) is a minor update to fix the issue that r168 would
+not launch on macOS 10.13 (High Sierra) or below. <a href="https://github.com/macvim-dev/macvim/issues/1138">#1138</a></p>
+
+<details>
+
+<summary>Release notes for r168</summary>
 
 <p><em>Note</em>: This release doesn’t natively support Apple Silicon / M1 yet, but does work under Rosetta. See below.</p>
 
@@ -82,6 +89,8 @@
   </li>
 </ul>
 
+</details>
+
 <h1 id="compatibility">Compatibility</h1>
 
 <p>Requires macOS 10.9 or above.</p>
@@ -98,86 +107,24 @@
 
 <p><br /><small>Read the latest release notes <a href="https://github.com/macvim-dev/macvim/releases/latest">here</a>.</small></p>
 
-      ]]></description>
-      <pubDate>Fri, 11 Dec 2020 22:00:00 -0800</pubDate>
-      <sparkle:minimumSystemVersion>10.14</sparkle:minimumSystemVersion>
-      <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-168/MacVim.dmg"
-        sparkle:version="168"
-        sparkle:shortVersionString="8.2.2127"
-        sparkle:dsaSignature="MC0CFQC0Er+Y3WNZjB7r6HS+plDtDV/8mwIUIDvrgbbfSBlScKBsIdj7xe7vpWw="
-        length="21663229"
-        />
-      <sparkle:deltas>
-        <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-168/166_to_168.delta"
-          sparkle:version="168"
-          sparkle:deltaFrom="166"
-          sparkle:dsaSignature="MC0CFHuc+5zDH/U/kuRSmBapjoCIQcLGAhUAodMYajJsvQrchNcOyuSRFSO8J8w="
-          length="3746731"
-          />
-      </sparkle:deltas>
-    </item>
-    <item>
-      <title>MacVim snapshot-166</title>
-      <description><![CDATA[
-<style>
-:root { supported-color-schemes: light dark; color-scheme: light dark; }
-</style>
-<p>Updated to Vim 8.2.1719.</p>
-
-<h1 id="features">Features</h1>
-
-<h2 id="touch-bar-improvements">Touch Bar improvements</h2>
-
-<p>Touch Bar now supports submenus, and allows mixed icon/text displays using <code>tmenu</code>. When in edit modes (e.g. insert), it will also display an emoji picker as well. See <code>:help touchbar</code> for documentation. <a href="https://github.com/macvim-dev/macvim/issues/1084">#1084</a></p>
-
-<p><img width="640" src="https://user-images.githubusercontent.com/1217449/93730988-f2bb4900-fb7f-11ea-9433-4a15187a4af1.png" alt="emoji picker / submenu / icons with labels" title="Example configuration with emoji picker / submenu / icons with labels" /></p>
-<p><img width="640" src="https://user-images.githubusercontent.com/1217449/93730989-f77ffd00-fb7f-11ea-9e44-0dfc36d146f2.png" alt="inside submenu" title="Example of inside a submenu" /></p>
-<p><img width="640" src="https://user-images.githubusercontent.com/1217449/93731159-b63c1d00-fb80-11ea-84a1-77c57d818452.png" alt="activated emoji picker" title="Activated emoji picker" /></p>
-
-<h1 id="fixes">Fixes</h1>
-
-<ul>
-  <li>Window menu no longer shows duplicate “Enter Full Screen” or “Tile Window to Left of Screen” entries whenever the user switches among different MacVim windows. <a href="https://github.com/macvim-dev/macvim/issues/566">#566</a> <a href="https://github.com/macvim-dev/macvim/issues/992">#992</a></li>
-  <li>Fix issue where going to full screen mode when titlebar appearance is set to “hidden” would result in lost focus of the window. <a href="https://github.com/macvim-dev/macvim/issues/1078">#1078</a></li>
-  <li>The password dialog box when using <code>:!sudo</code> or other commands that require password entry (<code>macvim-askpass</code>) will no longer focus on Finder, and will keep the focus on MacVim. <a href="https://github.com/macvim-dev/macvim/issues/1091">#1091</a></li>
-  <li>Fix minor wrong tooltip in the “Appearance” preference pane. <a href="https://github.com/macvim-dev/macvim/issues/1087">#1087</a></li>
-  <li>“General” preference pane will now be correctly sized when Sparkle updater is disabled (e.g. Homebrew builds). <a href="https://github.com/macvim-dev/macvim/issues/1089">#1089</a></li>
-  <li>Misc issues were fixed by Vim upstream, e.g. <code>vimgrep</code> causing a crash, and odd behaviors with using Shift-O on the first line. <a href="https://github.com/macvim-dev/macvim/issues/1082">#1082</a> <a href="https://github.com/macvim-dev/macvim/issues/1083">#1083</a></li>
-</ul>
-
-<h1 id="compatibility">Compatibility</h1>
-
-<p>Requires macOS 10.9 or above.</p>
-
-<p>Script interfaces have compatibility with these versions:</p>
-
-<ul>
-  <li>Lua 5.3</li>
-  <li>Perl 5.18</li>
-  <li>Python2 2.7</li>
-  <li>Python3 3.8</li>
-  <li>Ruby 2.7</li>
-</ul>
 
       ]]></description>
-      <pubDate>Sun, 20 Sep 2020 21:00:00 -0700</pubDate>
+      <pubDate>Sat, 19 Dec 2020 14:00:00 -0800</pubDate>
       <sparkle:minimumSystemVersion>10.9</sparkle:minimumSystemVersion>
       <enclosure type="application/octet-stream"
-        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-166/MacVim.dmg"
-        sparkle:version="166"
-        sparkle:shortVersionString="8.2.1719"
-        sparkle:dsaSignature="MC0CFDvTjlB/c8USlTUjocXm5Q/nvm/FAhUAtRDNxUt1Q8KFpabseqbZuOhuMB0="
-        sparkle:edSignature="3cdukqFfh5kERiAiBbJgVC+4r4tOMWJIHMzTYGf2scqJgyR5HtEJf2oBvJpoxzidSnliSdo35lApQm8rXjLcDw==" length="20105287"
+        url="https://github.com/macvim-dev/macvim/releases/download/snapshot-169/MacVim.dmg"
+        sparkle:version="169"
+        sparkle:shortVersionString="8.2.2164"
+        sparkle:dsaSignature="MC4CFQCpl741xu6y+lFdHZIXQcsapY+3PAIVALRdwaB7bFSwYvutwWbOH8sfuYsr"
+        length="21657330"
         />
       <sparkle:deltas>
         <enclosure type="application/octet-stream"
-          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-166/165_to_166.delta"
-          sparkle:version="166"
-          sparkle:deltaFrom="165"
-          sparkle:dsaSignature="MC0CFQCCqpQbVg7eEhgq9q/R1xDg0v4ITgIUBFhHuEAeU7TwKJkm1CFfQGX8I1k="
-          sparkle:edSignature="afRPeC51wAdnV7wZMT+kgw70AlmnH+Zy831RGM5ffm76kmFPbzRtkbqRy+nyVDNMqUEmrD5wSwdpQ3J6CSxACw==" length="754048"
+          url="https://github.com/macvim-dev/macvim/releases/download/snapshot-169/168_to_169.delta"
+          sparkle:version="169"
+          sparkle:deltaFrom="168"
+          sparkle:dsaSignature="MC0CFHPy4XXLn+SCwHQK90NDP5K3roiKAhUAtDGuWTecxGdH25u3YzeCw7osDlo="
+          length="306744"
           />
       </sparkle:deltas>
     </item>
