@@ -112,6 +112,7 @@ jobs:
             --enable-cscope
             --enable-gui=macvim
             --with-macarchs=x86_64
+            --with-compiledby="GitHub Actions"
           )
           if ${{ matrix.publish == true }}; then
             CONFOPT+=(
