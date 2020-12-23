@@ -309,6 +309,36 @@ struct vimoption
 # define DEFAULT_PYTHON_VER	0
 #endif
 
+// Support targeting different dynamic linkages for scripting languages based on
+// arch on macOS. This is necessary because package managers such as Homebrew
+// distributes thin binaries, and therefore the x86_64 and arm64 libraries are
+// located in different places.
+#ifdef MACOS_X
+# if defined(DYNAMIC_PYTHON3_DLL_X86_64) && defined(__x86_64__)
+#  undef DYNAMIC_PYTHON3_DLL
+#  define DYNAMIC_PYTHON3_DLL DYNAMIC_PYTHON3_DLL_X86_64
+# elif defined(DYNAMIC_PYTHON3_DLL_ARM64) && defined(__arm64__)
+#  undef DYNAMIC_PYTHON3_DLL
+#  define DYNAMIC_PYTHON3_DLL DYNAMIC_PYTHON3_DLL_ARM64
+# endif
+
+# if defined(DYNAMIC_RUBY_DLL_X86_64) && defined(__x86_64__)
+#  undef DYNAMIC_RUBY_DLL
+#  define DYNAMIC_RUBY_DLL DYNAMIC_RUBY_DLL_X86_64
+# elif defined(DYNAMIC_RUBY_DLL_ARM64) && defined(__arm64__)
+#  undef DYNAMIC_RUBY_DLL
+#  define DYNAMIC_RUBY_DLL DYNAMIC_RUBY_DLL_ARM64
+# endif
+
+# if defined(DYNAMIC_LUA_DLL_X86_64) && defined(__x86_64__)
+#  undef DYNAMIC_LUA_DLL
+#  define DYNAMIC_LUA_DLL DYNAMIC_LUA_DLL_X86_64
+# elif defined(DYNAMIC_LUA_DLL_ARM64) && defined(__arm64__)
+#  undef DYNAMIC_LUA_DLL
+#  define DYNAMIC_LUA_DLL DYNAMIC_LUA_DLL_ARM64
+# endif
+#endif
+
 // used for 'cinkeys' and 'indentkeys'
 #define INDENTKEYS_DEFAULT (char_u *)"0{,0},0),0],:,0#,!^F,o,O,e"
 

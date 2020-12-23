@@ -5673,6 +5673,20 @@ $as_echo "yes" >&6; }
 
       LUA_LIBS=""
       LUA_CFLAGS="-DDYNAMIC_LUA_DLL=\\\"${vi_cv_dll_name_lua}\\\" $LUA_CFLAGS"
+
+      # MacVim patch to hack in a different default dynamic lib path for
+      # arm64. We don't test that it links here so this has to be binary
+      # compatible with DYNAMIC_LUA_DLL
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking liblua${luajit}*.${ext}* (arm64)" >&5
+$as_echo_n "checking liblua${luajit}*.${ext}* (arm64)... " >&6; }
+      if test -n "${vi_cv_dll_name_lua_arm64}"; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${vi_cv_dll_name_lua_arm64}" >&5
+$as_echo "${vi_cv_dll_name_lua_arm64}" >&6; }
+        LUA_CFLAGS+=" -DDYNAMIC_LUA_DLL_ARM64=\\\"${vi_cv_dll_name_lua_arm64}\\\""
+      else
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: <none>" >&5
+$as_echo "<none>" >&6; }
+      fi
     fi
     if test "X$LUA_CFLAGS$LUA_LIBS" != "X" && \
        test "x$MACOS_X" = "xyes" && test "x$vi_cv_with_luajit" != "xno" && \
@@ -7178,6 +7192,20 @@ fi
   PYTHON3_OBJ="objects/if_python3.o"
   PYTHON3_CFLAGS="$PYTHON3_CFLAGS -DDYNAMIC_PYTHON3_DLL=\\\"${vi_cv_dll_name_python3}\\\""
   PYTHON3_LIBS=
+
+  # MacVim patch to hack in a different default dynamic lib path for arm64.
+  # We don't test that it links here so this has to be binary compatible with
+  # DYNAMIC_PYTHON3_DLL
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking Python3's dll name (arm64)" >&5
+$as_echo_n "checking Python3's dll name (arm64)... " >&6; }
+  if test -n "${vi_cv_dll_name_python3_arm64}"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${vi_cv_dll_name_python3_arm64}" >&5
+$as_echo "${vi_cv_dll_name_python3_arm64}" >&6; }
+    PYTHON3_CFLAGS+=" -DDYNAMIC_PYTHON3_DLL_ARM64=\\\"${vi_cv_dll_name_python3_arm64}\\\""
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: <none>" >&5
+$as_echo "<none>" >&6; }
+  fi
 elif test "$python_ok" = yes && test "$enable_pythoninterp" = "dynamic"; then
   $as_echo "#define DYNAMIC_PYTHON 1" >>confdefs.h
 
@@ -7224,6 +7252,20 @@ elif test "$python3_ok" = yes && test "$enable_python3interp" = "dynamic"; then
   PYTHON3_OBJ="objects/if_python3.o"
   PYTHON3_CFLAGS="$PYTHON3_CFLAGS -DDYNAMIC_PYTHON3_DLL=\\\"${vi_cv_dll_name_python3}\\\""
   PYTHON3_LIBS=
+
+  # MacVim patch to hack in a different default dynamic lib path for arm64.
+  # We don't test that it links here so this has to be binary compatible with
+  # DYNAMIC_PYTHON3_DLL
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking Python3's dll name (arm64)" >&5
+$as_echo_n "checking Python3's dll name (arm64)... " >&6; }
+  if test -n "${vi_cv_dll_name_python3_arm64}"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${vi_cv_dll_name_python3_arm64}" >&5
+$as_echo "${vi_cv_dll_name_python3_arm64}" >&6; }
+    PYTHON3_CFLAGS+=" -DDYNAMIC_PYTHON3_DLL_ARM64=\\\"${vi_cv_dll_name_python3_arm64}\\\""
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: <none>" >&5
+$as_echo "<none>" >&6; }
+  fi
 elif test "$python3_ok" = yes; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking if -fPIE can be added for Python3" >&5
 $as_echo_n "checking if -fPIE can be added for Python3... " >&6; }
@@ -7763,6 +7805,23 @@ $as_echo "$rubyhdrdir" >&6; }
 
 	  RUBY_CFLAGS="-DDYNAMIC_RUBY_DLL=\\\"$libruby_soname\\\" $RUBY_CFLAGS"
 	  RUBY_LIBS=
+
+      # MacVim patch to hack in a different default dynamic lib path for
+      # arm64.  We don't test that it links here so this has to be binary
+      # compatible with DYNAMIC_RUBY_DLL
+      # Note: Apple does ship with a default Ruby lib, but it's usually older
+      # than Homebrew, and since on x86_64 we use the Homebrew version, we
+      # should use that as well for Apple Silicon.
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking ${libruby_soname} (arm64)" >&5
+$as_echo_n "checking ${libruby_soname} (arm64)... " >&6; }
+      if test -n "${vi_cv_dll_name_ruby_arm64}"; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${vi_cv_dll_name_ruby_arm64}" >&5
+$as_echo "${vi_cv_dll_name_ruby_arm64}" >&6; }
+        RUBY_CFLAGS+=" -DDYNAMIC_RUBY_DLL_ARM64=\\\"${vi_cv_dll_name_ruby_arm64}\\\""
+      else
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: <none>" >&5
+$as_echo "<none>" >&6; }
+      fi
 	fi
       else
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: not found; disabling Ruby" >&5

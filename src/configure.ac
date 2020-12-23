@@ -777,6 +777,17 @@ if test "$enable_luainterp" = "yes" -o "$enable_luainterp" = "dynamic"; then
       AC_DEFINE(DYNAMIC_LUA)
       LUA_LIBS=""
       LUA_CFLAGS="-DDYNAMIC_LUA_DLL=\\\"${vi_cv_dll_name_lua}\\\" $LUA_CFLAGS"
+
+      # MacVim patch to hack in a different default dynamic lib path for
+      # arm64. We don't test that it links here so this has to be binary
+      # compatible with DYNAMIC_LUA_DLL
+      AC_MSG_CHECKING([liblua${luajit}*.${ext}* (arm64)])
+      if test -n "${vi_cv_dll_name_lua_arm64}"; then
+        AC_MSG_RESULT([${vi_cv_dll_name_lua_arm64}])
+        LUA_CFLAGS+=" -DDYNAMIC_LUA_DLL_ARM64=\\\"${vi_cv_dll_name_lua_arm64}\\\""
+      else
+        AC_MSG_RESULT([<none>])
+      fi
     fi
     if test "X$LUA_CFLAGS$LUA_LIBS" != "X" && \
        test "x$MACOS_X" = "xyes" && test "x$vi_cv_with_luajit" != "xno" && \
@@ -1799,6 +1810,17 @@ if test "$python_ok" = yes && test "$python3_ok" = yes; then
   PYTHON3_OBJ="objects/if_python3.o"
   PYTHON3_CFLAGS="$PYTHON3_CFLAGS -DDYNAMIC_PYTHON3_DLL=\\\"${vi_cv_dll_name_python3}\\\""
   PYTHON3_LIBS=
+
+  # MacVim patch to hack in a different default dynamic lib path for arm64.
+  # We don't test that it links here so this has to be binary compatible with
+  # DYNAMIC_PYTHON3_DLL
+  AC_MSG_CHECKING([Python3's dll name (arm64)])
+  if test -n "${vi_cv_dll_name_python3_arm64}"; then
+    AC_MSG_RESULT([${vi_cv_dll_name_python3_arm64}])
+    PYTHON3_CFLAGS+=" -DDYNAMIC_PYTHON3_DLL_ARM64=\\\"${vi_cv_dll_name_python3_arm64}\\\""
+  else
+    AC_MSG_RESULT([<none>])
+  fi
 elif test "$python_ok" = yes && test "$enable_pythoninterp" = "dynamic"; then
   AC_DEFINE(DYNAMIC_PYTHON)
   PYTHON_SRC="if_python.c"
@@ -1827,6 +1849,17 @@ elif test "$python3_ok" = yes && test "$enable_python3interp" = "dynamic"; then
   PYTHON3_OBJ="objects/if_python3.o"
   PYTHON3_CFLAGS="$PYTHON3_CFLAGS -DDYNAMIC_PYTHON3_DLL=\\\"${vi_cv_dll_name_python3}\\\""
   PYTHON3_LIBS=
+
+  # MacVim patch to hack in a different default dynamic lib path for arm64.
+  # We don't test that it links here so this has to be binary compatible with
+  # DYNAMIC_PYTHON3_DLL
+  AC_MSG_CHECKING([Python3's dll name (arm64)])
+  if test -n "${vi_cv_dll_name_python3_arm64}"; then
+    AC_MSG_RESULT([${vi_cv_dll_name_python3_arm64}])
+    PYTHON3_CFLAGS+=" -DDYNAMIC_PYTHON3_DLL_ARM64=\\\"${vi_cv_dll_name_python3_arm64}\\\""
+  else
+    AC_MSG_RESULT([<none>])
+  fi
 elif test "$python3_ok" = yes; then
   dnl Check that adding -fPIE works.  It may be needed when using a static
   dnl Python library.
@@ -2084,6 +2117,20 @@ if test "$enable_rubyinterp" = "yes" -o "$enable_rubyinterp" = "dynamic"; then
 	  AC_DEFINE(DYNAMIC_RUBY)
 	  RUBY_CFLAGS="-DDYNAMIC_RUBY_DLL=\\\"$libruby_soname\\\" $RUBY_CFLAGS"
 	  RUBY_LIBS=
+
+      # MacVim patch to hack in a different default dynamic lib path for
+      # arm64.  We don't test that it links here so this has to be binary
+      # compatible with DYNAMIC_RUBY_DLL
+      # Note: Apple does ship with a default Ruby lib, but it's usually older
+      # than Homebrew, and since on x86_64 we use the Homebrew version, we
+      # should use that as well for Apple Silicon.
+      AC_MSG_CHECKING([${libruby_soname} (arm64)])
+      if test -n "${vi_cv_dll_name_ruby_arm64}"; then
+        AC_MSG_RESULT([${vi_cv_dll_name_ruby_arm64}])
+        RUBY_CFLAGS+=" -DDYNAMIC_RUBY_DLL_ARM64=\\\"${vi_cv_dll_name_ruby_arm64}\\\""
+      else
+        AC_MSG_RESULT([<none>])
+      fi
 	fi
       else
 	AC_MSG_RESULT(not found; disabling Ruby)
