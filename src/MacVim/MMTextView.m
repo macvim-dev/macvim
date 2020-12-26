@@ -352,6 +352,11 @@
     [(MMTextStorage*)[self textStorage] setWideFont:newFont];
 }
 
+- (void)refreshFonts
+{
+    // Doesn't do anything. CoreText renderer only.
+}
+
 - (NSSize)cellSize
 {
     return [(MMTextStorage*)[self textStorage] cellSize];

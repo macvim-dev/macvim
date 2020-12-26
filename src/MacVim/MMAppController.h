@@ -59,6 +59,7 @@
 - (BOOL)openFiles:(NSArray *)filenames withArguments:(NSDictionary *)args;
 
 - (void)refreshAllAppearances;
+- (void)refreshAllFonts;
 
 - (IBAction)newWindow:(id)sender;
 - (IBAction)newWindowAndActivate:(id)sender;

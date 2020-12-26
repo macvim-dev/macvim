@@ -33,6 +33,7 @@ extern NSString *MMTranslateCtrlClickKey;
 extern NSString *MMTopLeftPointKey;
 extern NSString *MMOpenInCurrentWindowKey;
 extern NSString *MMNoFontSubstitutionKey; // Deprecated: Non-CoreText renderer
+extern NSString *MMFontPreserveLineSpacingKey;
 extern NSString *MMAppearanceModeSelectionKey;
 extern NSString *MMNoTitleBarWindowKey;
 extern NSString *MMTitlebarAppearsTransparentKey;

@@ -721,6 +721,11 @@
     [[vimView textView] setWideFont:font];
 }
 
+- (void)refreshFonts
+{
+    [[vimView textView] refreshFonts];
+}
+
 - (void)processInputQueueDidFinish
 {
     // NOTE: Resizing is delayed until after all commands have been processed

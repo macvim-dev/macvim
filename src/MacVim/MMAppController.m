@@ -229,6 +229,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:YES],    MMTranslateCtrlClickKey,
         [NSNumber numberWithInt:0],       MMOpenInCurrentWindowKey,
         [NSNumber numberWithBool:NO],     MMNoFontSubstitutionKey,
+        [NSNumber numberWithBool:YES],    MMFontPreserveLineSpacingKey,
         [NSNumber numberWithBool:YES],    MMLoginShellKey,
         [NSNumber numberWithInt:MMRendererCoreText],
                                           MMRendererKey,
@@ -1106,6 +1107,15 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     for (unsigned i = 0; i < count; ++i) {
         MMVimController *vc = [vimControllers objectAtIndex:i];
         [vc.windowController refreshApperanceMode];
+    }
+}
+
+- (void)refreshAllFonts
+{
+    unsigned count = [vimControllers count];
+    for (unsigned i = 0; i < count; ++i) {
+        MMVimController *vc = [vimControllers objectAtIndex:i];
+        [vc.windowController refreshFonts];
     }
 }
 

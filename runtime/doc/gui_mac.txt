@@ -241,7 +241,7 @@ is sent back to the server application.
 
 Some settings are global to the MacVim application and would not make sense as
 Vim options.  These settings are stored in the user defaults database and can
-be accessed via the "MacVim.Preferences..." menu item.
+be accessed via the "MacVim.Preferences…" menu item.
 
 							*macvim-user-defaults*
 Not all entries in the user defaults database are exposed via the preference
@@ -265,6 +265,7 @@ KEY				VALUE ~
 *MMNativeFullScreen*		use native full screen mode [bool]
 *MMNoFontSubstitution*		disable automatic font substitution [bool]
 				(Deprecated: Non-CoreText renderer only)
+*MMFontPreserveLineSpacing*	use the line-spacing as specified by font [bool]
 *MMNoTitleBarWindow*		hide title bar [bool]
 *MMTitlebarAppearsTransparent*	enable a transparent titlebar [bool]
 *MMAppearanceModeSelection*	dark mode selection (|macvim-dark-mode|)[bool]
