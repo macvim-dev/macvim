@@ -221,6 +221,8 @@ static void grid_free(Grid *grid) {
 {
     if (!(self = [super initWithFrame:frame]))
         return nil;
+
+    forceRefreshFont = NO;
     
     self.wantsLayer = YES;
     
@@ -374,24 +376,57 @@ static void grid_free(Grid *grid) {
 
 - (void)setFont:(NSFont *)newFont
 {
-    if (!newFont || [font isEqual:newFont])
+    if (!newFont) {
         return;
+    }
+    if (!forceRefreshFont) {
+        if ([font isEqual:newFont])
+            return;
+    }
+    forceRefreshFont = NO;
 
-    double em = round(defaultAdvanceForFont(newFont));
+    const double em = round(defaultAdvanceForFont(newFont));
 
-    float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
+    const float cellWidthMultiplier = [[NSUserDefaults standardUserDefaults]
             floatForKey:MMCellWidthMultiplierKey];
+
+    // Some fonts have non-standard line heights, and historically MacVim has
+    // chosen to ignore it. Provide the option for the user to choose whether to
+    // use the font's line height. If not preserving, will create a new font
+    // from scratch with just name and pt size, which will disard the line
+    // height information.
+    //
+    // Defaults to the new behavior (preserveLineHeight==true) because it's
+    // simpler and respects the font's design more.
+    //
+    // Note: this behavior is somewhat inconsistent across editors and
+    // terminals. Xcode, for example, seems to be equivalent to
+    // (preserveLineHeight==true), but other editors/terminals behave
+    // differently. Xcode respecting the line height is partially the motivation
+    // for setting that as the default.
+    const BOOL preserveLineHeight = [[NSUserDefaults standardUserDefaults]
+                                     boolForKey:MMFontPreserveLineSpacingKey];
+
+    [font release];
+    if (!preserveLineHeight) {
+        double pt = round([newFont pointSize]);
+
+        CTFontDescriptorRef desc = CTFontDescriptorCreateWithNameAndSize((CFStringRef)[newFont fontName], pt);
+        CTFontRef fontRef = CTFontCreateWithFontDescriptor(desc, pt, NULL);
+        CFRelease(desc);
+
+        font = (NSFont*)fontRef;
+    } else {
+        font = [newFont retain];
+    }
+    fontDescent = ceil(CTFontGetDescent((CTFontRef)font));
 
     // NOTE! Even though NSFontFixedAdvanceAttribute is a float, it will
     // only render at integer sizes.  Hence, we restrict the cell width to
     // an integer here, otherwise the window width and the actual text
     // width will not match.
     cellSize.width = columnspace + ceil(em * cellWidthMultiplier);
-    cellSize.height = linespace + defaultLineHeightForFont(newFont);
-    
-    [font release];
-    font = [newFont retain];
-    fontDescent = ceil(CTFontGetDescent((CTFontRef)font));
+    cellSize.height = linespace + defaultLineHeightForFont(font);
 
     [self clearAll];
     [fontVariants removeAllObjects];
@@ -414,7 +449,17 @@ static void grid_free(Grid *grid) {
     [fontVariants removeAllObjects];
     [characterStrings removeAllObjects];
     [characterLines removeAllObjects];
+}
 
+- (void)refreshFonts
+{
+    // Mark force refresh, so that we won't try to use the cached font later.
+    forceRefreshFont = YES;
+
+    // Go through the standard path of updating fonts by passing the current
+    // font in. This lets Vim itself knows about the font change and initiates
+    // the resizing (depends on guioption-k) and redraws.
+    [self changeFont:NSFontManager.sharedFontManager];
 }
 
 - (NSFont *)font
@@ -893,6 +938,9 @@ static void grid_free(Grid *grid) {
                       MMMinRows * cellSize.height + insetSize.height + bot);
 }
 
+// Called when font panel selection has been made. Send the selected font to
+// MMBackend so it would set guifont which will send a message back to MacVim to
+// call MMWindowController::setFont.
 - (void)changeFont:(id)sender
 {
     NSFont *newFont = [sender convertFont:font];

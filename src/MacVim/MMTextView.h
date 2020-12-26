@@ -47,6 +47,7 @@
 - (void)setFont:(NSFont *)newFont;
 - (NSFont *)fontWide;
 - (void)setWideFont:(NSFont *)newFont;
+- (void)refreshFonts;
 - (NSSize)cellSize;
 - (void)setLinespace:(float)newLinespace;
 - (void)setColumnspace:(float)newColumnspace;

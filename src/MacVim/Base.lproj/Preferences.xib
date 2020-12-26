@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17156" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17701" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment version="1090" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17156"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17701"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MMPreferenceController">
@@ -183,7 +184,7 @@
                     <rect key="frame" x="19" y="22" width="444" height="36"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                     <subviews>
-                        <button fixedFrame="YES" id="122">
+                        <button id="122">
                             <rect key="frame" x="188" y="18" width="258" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <string key="toolTip">Checks for updates and presents a dialog box showing the release notes and prompt for whether you want to install the new version.</string>
@@ -196,7 +197,7 @@
                                 <binding destination="58" name="value" keyPath="values.SUCheckAtStartup" id="169"/>
                             </connections>
                         </button>
-                        <button fixedFrame="YES" id="UYM-W0-Kgl" userLabel="Auto-install updates">
+                        <button id="UYM-W0-Kgl" userLabel="Auto-install updates">
                             <rect key="frame" x="202" y="-2" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <string key="toolTip">MacVim will automatically download and install updates without prompting. The updated version will be used the next time MacVim starts.</string>
@@ -211,7 +212,7 @@
                                 <binding destination="58" name="value" keyPath="values.SUAutomaticallyUpdate" id="kyZ-ah-zKf"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="124">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="124">
                             <rect key="frame" x="-2" y="19" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="When MacVim launches:" id="976">
@@ -226,11 +227,11 @@
             <point key="canvasLocation" x="138" y="20"/>
         </customView>
         <customView id="hr4-G4-3ZG" userLabel="Appearance">
-            <rect key="frame" x="0.0" y="0.0" width="483" height="244"/>
+            <rect key="frame" x="0.0" y="0.0" width="483" height="270"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <customView id="fw0-VK-Nbz" userLabel="Dark mode selection">
-                    <rect key="frame" x="19" y="66" width="433" height="156"/>
+                    <rect key="frame" x="19" y="92" width="433" height="156"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
                         <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="T40-Os-PUf" userLabel="Dark mode selection">
@@ -291,25 +292,22 @@
                     </subviews>
                 </customView>
                 <customView id="7af-iK-4r7" userLabel="Titlebar appearance">
-                    <rect key="frame" x="19" y="20" width="433" height="38"/>
+                    <rect key="frame" x="19" y="46" width="433" height="38"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <subviews>
-                        <button fixedFrame="YES" id="7ie-0J-0Zr">
+                        <button id="7ie-0J-0Zr">
                             <rect key="frame" x="189" y="19" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="Transparent" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="hzd-hj-Pth">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
-                                <connections>
-                                    <binding destination="58" name="enabled" keyPath="values.SUCheckAtStartup" id="nYZ-8w-Dyi"/>
-                                </connections>
                             </buttonCell>
                             <connections>
                                 <action selector="appearanceChanged:" target="-2" id="B97-8h-FDo"/>
                                 <binding destination="58" name="value" keyPath="values.MMTitlebarAppearsTransparent" id="pQP-eb-JXS"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="9Rk-gT-kVC" userLabel="Titlebar appearance">
                             <rect key="frame" x="-2" y="20" width="187" height="17"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Titlebar appearance:" id="HEH-Lo-v4I" userLabel="Titlebar appearance:">
@@ -318,15 +316,12 @@
                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                         </textField>
-                        <button fixedFrame="YES" id="Hqh-Ql-2od">
+                        <button id="Hqh-Ql-2od">
                             <rect key="frame" x="189" y="1" width="244" height="18"/>
                             <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
                             <buttonCell key="cell" type="check" title="Hidden" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="W40-cB-m1U">
                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                 <font key="font" metaFont="system"/>
-                                <connections>
-                                    <binding destination="58" name="enabled" keyPath="values.SUCheckAtStartup" id="c7R-qa-q9c"/>
-                                </connections>
                             </buttonCell>
                             <connections>
                                 <action selector="appearanceChanged:" target="-2" id="WQA-OC-F4I"/>
@@ -335,14 +330,42 @@
                         </button>
                     </subviews>
                 </customView>
+                <customView id="BpJ-rH-ona" userLabel="Font">
+                    <rect key="frame" x="19" y="20" width="433" height="18"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <subviews>
+                        <button id="YKV-u2-Egc" userLabel="Preserve Line Spacing">
+                            <rect key="frame" x="189" y="-1" width="244" height="18"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <string key="toolTip">Some fonts have non-standard built-in line spacings (anything other than 1). If this is checked, MacVim will use the font's specified line spacing to calculate line height. Otherwise, it will just set it to 1, which helps if you would like a more compact spacing without having to install another font.</string>
+                            <buttonCell key="cell" type="check" title="Preserve font line spacing" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="2ni-Is-Caz" userLabel="Preserve Line Spacing">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="fontPropertiesChanged:" target="-2" id="uaN-zX-Lvq"/>
+                                <binding destination="58" name="value" keyPath="values.MMFontPreserveLineSpacing" id="i6W-kG-7G5"/>
+                            </connections>
+                        </button>
+                        <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="VAj-Yx-2uZ" userLabel="Font">
+                            <rect key="frame" x="-2" y="0.0" width="187" height="17"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMinY="YES"/>
+                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Font:" id="bMQ-uG-iDR">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                </customView>
             </subviews>
-            <point key="canvasLocation" x="137.5" y="394"/>
+            <point key="canvasLocation" x="138" y="390"/>
         </customView>
         <customView id="620" userLabel="Advanced">
             <rect key="frame" x="0.0" y="0.0" width="483" height="318"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="826">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="826">
                     <rect key="frame" x="17" y="170" width="449" height="56"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="993">
@@ -352,7 +375,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button fixedFrame="YES" id="817">
+                <button id="817">
                     <rect key="frame" x="18" y="228" width="133" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Enable Quickstart" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="992">
@@ -364,7 +387,7 @@
                         <binding destination="58" name="value" keyPath="values.MMPreloadCacheSize" id="828"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="815">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="815">
                     <rect key="frame" x="17" y="252" width="449" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" title="(Deprecated) Deselect this option to use the legacy renderer, which is unsupported and will be removed in a future version." id="991">
@@ -373,7 +396,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button fixedFrame="YES" id="782">
+                <button id="782">
                     <rect key="frame" x="18" y="282" width="174" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Use Core Text renderer" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="990">
@@ -385,7 +408,7 @@
                         <binding destination="58" name="value" keyPath="values.MMRenderer" id="1000"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="1001">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="1001">
                     <rect key="frame" x="17" y="74" width="444" height="70"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="1004">
@@ -395,7 +418,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button fixedFrame="YES" id="1013">
+                <button id="1013">
                     <rect key="frame" x="18" y="146" width="174" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Draw marked text inline" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="1014">
@@ -406,7 +429,7 @@
                         <binding destination="58" name="value" keyPath="values.MMUseInlineIm" id="1016"/>
                     </connections>
                 </button>
-                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" id="1017">
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="1017">
                     <rect key="frame" x="17" y="20" width="415" height="28"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" id="1020">
@@ -416,7 +439,7 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button fixedFrame="YES" id="1028">
+                <button id="1028">
                     <rect key="frame" x="18" y="50" width="388" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Prefer native full-screen support (requires Mac OS X 10.7)" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="1029">

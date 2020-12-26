@@ -5015,6 +5015,7 @@ MMAppearanceModeSelection	gui_mac.txt	/*MMAppearanceModeSelection*
 MMCellWidthMultiplier	gui_mac.txt	/*MMCellWidthMultiplier*
 MMDialogsTrackPwd	gui_mac.txt	/*MMDialogsTrackPwd*
 MMDisableLaunchAnimation	gui_mac.txt	/*MMDisableLaunchAnimation*
+MMFontPreserveLineSpacing	gui_mac.txt	/*MMFontPreserveLineSpacing*
 MMFullScreenFadeTime	gui_mac.txt	/*MMFullScreenFadeTime*
 MMLoginShellArgument	gui_mac.txt	/*MMLoginShellArgument*
 MMLoginShellCommand	gui_mac.txt	/*MMLoginShellCommand*

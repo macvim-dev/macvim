@@ -32,6 +32,8 @@
     BOOL                        ligatures;
     BOOL                        thinStrokes;
 
+    BOOL                        forceRefreshFont; // when true, don't early out of setFont calls.
+
     MMTextViewHelper            *helper;
 
     NSMutableDictionary<NSNumber *, NSFont *> *fontVariants;

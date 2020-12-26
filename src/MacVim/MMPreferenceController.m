@@ -127,4 +127,10 @@
     [[MMAppController sharedInstance] refreshAllAppearances];
 }
 
+- (IBAction)fontPropertiesChanged:(id)sender
+{
+    // Refresh all windows' fonts.
+    [[MMAppController sharedInstance] refreshAllFonts];
+}
+
 @end
