@@ -29,7 +29,6 @@
 #import "MMVimView.h"
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
-#import <Carbon/Carbon.h>
 #import <PSMTabBarControl/PSMTabBarControl.h>
 
 // These have to be the same as in option.h
@@ -47,6 +46,7 @@ enum {
 
 @interface MMFullScreenWindow (Private)
 - (BOOL)isOnPrimaryScreen;
+- (BOOL)screenHasDockAndMenu;
 - (void)windowDidBecomeMain:(NSNotification *)notification;
 - (void)windowDidResignMain:(NSNotification *)notification;
 - (void)windowDidMove:(NSNotification *)notification;
@@ -137,10 +137,12 @@ enum {
 {
     ASLogDebug(@"Enter full-screen now");
 
-    // Hide Dock and menu bar now to avoid the hide animation from playing
-    // after the fade to black (see also windowDidBecomeMain:).
-    if ([self isOnPrimaryScreen])
-        SetSystemUIMode(kUIModeAllSuppressed, 0);
+    // Hide Dock and menu bar when going to full screen. Only do so if the current screen
+    // has a menu bar and dock.
+    if ([self screenHasDockAndMenu]) {
+        [NSApplication sharedApplication].presentationOptions =
+            NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar;
+    }
 
     // fade to black
     Boolean didBlend = NO;
@@ -441,32 +443,38 @@ enum {
     if (screens == nil || [screens count] < 1)
         return NO;
 
-    return [self screen] == [screens objectAtIndex:0];
+    NSScreen* primaryScreen = [screens objectAtIndex:0];
+
+    // We cannot compare the NSScreen pointers directly because they are not
+    // guaranteed to match. Instead use the screen number as a more canonical
+    // way to compare them.
+    NSNumber* primaryScreenNum = primaryScreen.deviceDescription[@"NSScreenNumber"];
+    NSNumber* selfScreenNum = [self screen].deviceDescription[@"NSScreenNumber"];
+    return selfScreenNum == primaryScreenNum;
+}
+
+- (BOOL)screenHasDockAndMenu
+{
+    return NSScreen.screensHaveSeparateSpaces || [self isOnPrimaryScreen];
 }
 
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
-    // Hide menu and dock, both appear on demand.
-    //
-    // Another way to deal with several full-screen windows would be to hide/
-    // reveal the dock only when the first full-screen window is created and
-    // show it again after the last one has been closed, but toggling on each
-    // focus gain/loss works better with Spaces. The downside is that the
-    // menu bar flashes shortly when switching between two full-screen windows.
-
-    // XXX: If you have a full-screen window on a secondary monitor and unplug
-    // the monitor, this will probably not work right.
-
-    if ([self isOnPrimaryScreen]) {
-        SetSystemUIMode(kUIModeAllSuppressed, 0); //requires 10.3
+    // Hide menu and dock when this window gets focus.
+    if ([self screenHasDockAndMenu]) {
+        [NSApplication sharedApplication].presentationOptions =
+            NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar;
     }
 }
 
+
 - (void)windowDidResignMain:(NSNotification *)notification
 {
-    // order menu and dock back in
-    if ([self isOnPrimaryScreen]) {
-        SetSystemUIMode(kUIModeNormal, 0);
+    // Un-hide menu/dock when we lose focus. This makes sure if we have multiple
+    // windows opened, when the non-fullscreen windows get focus they will have the
+    // dock and menu showing (since presentationOptions is per-app, not per-window).
+    if ([self screenHasDockAndMenu]) {
+        [NSApplication sharedApplication].presentationOptions = NSApplicationPresentationDefault;
     }
 }
 
